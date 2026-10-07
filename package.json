@@ -1,0 +1,17 @@
+{
+  "name": "writer-notes",
+  "private": true,
+  "type": "module",
+  "description": "Agent Note gates only; the product is the Go module.",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "verify-agent-note-tree": "node scripts/verify-agent-note-tree.ts",
+    "verify-agent-note-format": "node scripts/verify-agent-note-format.ts",
+    "verify-archived": "node scripts/verify-archived-agent-notes.ts",
+    "verify-notes": "node scripts/verify-agent-note-tree.ts && node scripts/verify-agent-note-format.ts && node scripts/verify-archived-agent-notes.ts",
+    "archive-agent-note": "node scripts/archive-agent-note.ts",
+    "check-anchors": "node scripts/check-note-anchors.ts"
+  }
+}

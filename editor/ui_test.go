@@ -1,0 +1,120 @@
+package editor
+
+import (
+	"testing"
+	"time"
+
+	"github.com/egoist/mygo/ui"
+)
+
+func newTester(e *Editor) *ui.Tester {
+	tt := ui.NewTester(func(c *ui.Context) { e.View(c).Fill() }, 600, 400)
+	tt.Frame()
+	tt.Frame() // the first paint learns the size
+	return tt
+}
+
+func TestTypeComposeAndKeys(t *testing.T) {
+	e := New(NewDoc(""), Options{})
+	tt := newTester(e)
+	if _, ok := tt.TextCaret(); !ok {
+		t.Fatal("editor does not take text from input methods")
+	}
+	tt.Compose("ni", 2)
+	if e.Preedit() != "ni" || e.Doc.Len() != 0 {
+		t.Fatalf("composition must not enter the text: preedit %q doc %q", e.Preedit(), e.Doc.String())
+	}
+	tt.Type("你")
+	if e.Preedit() != "" || e.Doc.String() != "你" {
+		t.Fatalf("commit: preedit %q doc %q", e.Preedit(), e.Doc.String())
+	}
+	tt.Type("好")
+	tt.Key(0, ui.KeyEnter)
+	tt.Type("世界")
+	tt.Key(0, ui.KeyBackspace)
+	if got := e.Doc.String(); got != "你好\n世" {
+		t.Fatalf("doc = %q", got)
+	}
+	tt.Key(ui.Cmd, ui.KeyZ)
+	if got := e.Doc.String(); got != "你好\n世界" {
+		t.Fatalf("after undo = %q", got)
+	}
+	tt.Key(0, ui.KeyUp)
+	if e.Caret() > 2 {
+		t.Fatalf("up should go to the first line, caret %d", e.Caret())
+	}
+}
+
+func TestLongTextWraps(t *testing.T) {
+	s := ""
+	for range 20 {
+		s += "雨下了整整一夜，院子里的老井泛着光。"
+	}
+	e := New(NewDoc(s), Options{})
+	newTester(e)
+	if n := len(e.lay.lines); n < 5 {
+		t.Fatalf("expected wrapping, got %d lines", n)
+	}
+	for _, ln := range e.lay.lines[1:] {
+		if noLineStart(e.lay.disp[ln.start]) {
+			t.Fatalf("line starts with %q", e.lay.disp[ln.start])
+		}
+	}
+}
+
+func TestGhostAcceptedWithTab(t *testing.T) {
+	e := New(NewDoc("她推开门"), Options{Predictor: DemoPredictor{}, PredictDelay: 0})
+	e.MoveTo(e.Doc.Len(), false)
+	tt := newTester(e)
+	deadline := time.Now().Add(2 * time.Second)
+	for e.Ghost() == "" && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+		tt.Frame()
+	}
+	g := e.Ghost()
+	if g == "" {
+		t.Fatal("no prediction shown")
+	}
+	if e.Doc.String() != "她推开门" {
+		t.Fatal("a prediction must not change the text before Tab")
+	}
+	tt.Key(0, ui.KeyTab)
+	if e.Doc.String() != "她推开门"+g {
+		t.Fatalf("after Tab: %q", e.Doc.String())
+	}
+	ms := e.Doc.Marks()
+	if len(ms) != 1 || ms[0].Kind != MarkAIAccepted || e.Doc.Slice(ms[0].Start, ms[0].End) != g {
+		t.Fatalf("accepted text not marked: %+v", ms)
+	}
+	tt.Key(ui.Cmd, ui.KeyZ)
+	if e.Doc.String() != "她推开门" || len(e.Doc.Marks()) != 0 {
+		t.Fatalf("undo accept: %q %+v", e.Doc.String(), e.Doc.Marks())
+	}
+}
+
+func TestEntityCompletion(t *testing.T) {
+	e := New(NewDoc(""), Options{Entities: []Entity{{Name: "沈砚", Kind: "人物"}}})
+	tt := newTester(e)
+	tt.Type("沈")
+	if len(e.Completions()) != 1 {
+		t.Fatalf("completions = %v", e.Completions())
+	}
+	tt.Key(0, ui.KeyEnter)
+	if e.Doc.String() != "沈砚" {
+		t.Fatalf("doc = %q", e.Doc.String())
+	}
+}
+
+func TestClickMovesCaret(t *testing.T) {
+	e := New(NewDoc("一二三四五六七八九十"), Options{})
+	tt := newTester(e)
+	tt.ClickAt(e.lay.left+1, padTop+5)
+	if e.Caret() != 0 {
+		t.Fatalf("click at the start: caret %d", e.Caret())
+	}
+	ln := &e.lay.lines[0]
+	tt.ClickAt(e.lay.left+e.lay.x(ln, 5), padTop+5)
+	if e.Caret() != 5 {
+		t.Fatalf("click at rune 5: caret %d", e.Caret())
+	}
+}
