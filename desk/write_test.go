@@ -855,3 +855,29 @@ func TestCountTheSelection(t *testing.T) {
 		t.Fatal("selected", tt.Texts())
 	}
 }
+
+// A folder lists each chapter with the start of its outline, or of its
+// summary when it has no outline.
+func TestFolderShowsTheGists(t *testing.T) {
+	a, tt, _ := writingFixture(t, "一")
+	vol, err := a.Store.NewChapter("", "第一卷", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	planned, _ := a.Store.NewChapter(vol, "第二章", false)
+	summed, _ := a.Store.NewChapter(vol, "第三章", false)
+	if err = a.Store.WriteOutline(planned, "她找到\n井底的钥匙"); err != nil {
+		t.Fatal(err)
+	}
+	if err = a.Store.WriteSummary(summed, workspace.Summary{Text: "老周说出旧事。", Of: workspace.ProseHash(""), At: time.Now()}); err != nil {
+		t.Fatal(err)
+	}
+	if err = a.loadTree(); err != nil {
+		t.Fatal(err)
+	}
+	a.openNode(vol)
+	tt.Frame()
+	if !tt.HasText("她找到 井底的钥匙") || !tt.HasText("老周说出旧事。") {
+		t.Fatal(tt.Texts())
+	}
+}

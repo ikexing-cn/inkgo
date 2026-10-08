@@ -56,12 +56,13 @@ type writeView struct {
 	goal                  int    // a day's goal, or 0
 	goalText              string // the goal as typed
 	goalOpen              bool
-	offered               string         // the numbered title a new node's name began with
-	days                  map[string]int // what was written each day before, by local date
-	size                  int            // the text's size, or 0 for the default
-	carets                map[string]int // where the caret was in each chapter, as it was left
-	unsummarized          []string       // the chapters before without a summary, as a draft opens
-	recapped              int            // and how many before have one
+	offered               string            // the numbered title a new node's name began with
+	days                  map[string]int    // what was written each day before, by local date
+	size                  int               // the text's size, or 0 for the default
+	gists                 map[string]string // a line on each chapter of the folder open
+	carets                map[string]int    // where the caret was in each chapter, as it was left
+	unsummarized          []string          // the chapters before without a summary, as a draft opens
+	recapped              int               // and how many before have one
 	// The disk's text, changed outside while the node was open; lost, the
 	// node gone from the disk.
 	external  *workspace.Chapter
@@ -254,8 +255,35 @@ func (a *App) openNode(id string) {
 			a.warn(err)
 		}
 		w.lastSnap = time.Now()
+	} else {
+		w.gists = a.gistsIn(n)
 	}
 	a.savePrefs()
+}
+
+// gistsIn reads a line on each chapter in a folder: the start of its
+// outline, else of its summary, so the folder reads as a plan.
+func (a *App) gistsIn(n *workspace.Node) map[string]string {
+	gists := map[string]string{}
+	for _, child := range n.Children {
+		if child.Folder {
+			continue
+		}
+		ch, err := a.Store.ReadChapter(child.ID)
+		if err != nil {
+			continue
+		}
+		gist := ch.Outline
+		if strings.TrimSpace(gist) == "" {
+			if s, err := a.Store.ReadSummary(child.ID); err == nil {
+				gist = s.Text
+			}
+		}
+		if gist = strings.Join(strings.Fields(gist), " "); gist != "" {
+			gists[child.ID] = gist
+		}
+	}
+	return gists
 }
 
 // flush saves the text and the outline shown, as leaving them does; an AI
@@ -1069,15 +1097,20 @@ func (a *App) folderView(c *ui.Context, n *workspace.Node) {
 					}
 				})
 				for _, child := range n.Children {
-					row := ui.ButtonBase(c).Key("f-"+child.ID).Row().FillWidth().Justify(ui.Start).AlignItems(ui.Center).Gap(10).Padding(9, 12).Radius(8).Label("打开-" + child.Title)
+					row := ui.ButtonBase(c).Key("f-"+child.ID).Column().FillWidth().Gap(3).Padding(9, 12).Radius(8).Label("打开-" + child.Title)
 					if row.Hovered() {
 						row.Background(t.SurfaceHover)
 					}
 					row.Children(func() {
-						glyph(c, nodeIcon(child), 16, t.TextMuted)
-						ui.Text(c, child.Title).FontSize(14).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
-						if !child.Folder {
-							ui.Textf(c, "%d 字", w.counts[child.ID]).FontSize(12).TextColor(a.pal.faint)
+						ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(10).Children(func() {
+							glyph(c, nodeIcon(child), 16, t.TextMuted)
+							ui.Text(c, child.Title).FontSize(14).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
+							if !child.Folder {
+								ui.Textf(c, "%d 字", w.counts[child.ID]).FontSize(12).TextColor(a.pal.faint)
+							}
+						})
+						if gist := w.gists[child.ID]; gist != "" {
+							ui.Text(c, gist).FontSize(12.5).TextColor(t.TextMuted).FillWidth().Padding(0, 0, 0, 26).MaxLines(2).Ellipsis("…")
 						}
 					})
 					if row.Clicked() {
