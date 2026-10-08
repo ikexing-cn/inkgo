@@ -197,3 +197,45 @@ func TestNewWorkDoesNotInheritLastWork(t *testing.T) {
 		t.Fatalf("an unnamed work is named after its folder, got %q", name)
 	}
 }
+
+// Inputs the store would reject are caught first, in words the author reads.
+func TestIncompleteFormsExplainInChinese(t *testing.T) {
+	a, tt, i := fixture(t)
+	check := func(name string, err error) {
+		t.Helper()
+		if err == nil {
+			t.Fatalf("%s: accepted", name)
+		}
+		for _, field := range []string{"discussion:", "bookkeeping:", "categories:", "text:", "verified:"} {
+			if strings.Contains(err.Error(), field) {
+				t.Fatalf("%s: store error leaked: %v", name, err)
+			}
+		}
+	}
+	a.talkProvider, a.talkModel = "deepseek", ""
+	check("discussion model", a.saveUsage())
+	a.talkModel, a.bookProvider, a.bookModel = "deepseek-chat", "deepseek", ""
+	check("bookkeeping model", a.saveUsage())
+	a.categoryName, a.categoryTarget = "伏笔", ""
+	check("category target", a.saveCategory())
+
+	a.selectIdea(i)
+	a.draft.text = "  "
+	a.saveDetails(nil, i)
+	check("empty text", shown(a))
+	a.draft.text, a.draft.fact, a.draft.verified, a.draft.factSource = i.Text, true, true, ""
+	a.saveDetails(nil, i)
+	check("unsourced fact", shown(a))
+	tt.Frame()
+	if saved, _ := a.Store.Idea(i.ID); saved.Text != i.Text || saved.Verified {
+		t.Fatalf("rejected edit was saved: %+v", saved)
+	}
+}
+
+// shown is the error the banner shows, if any.
+func shown(a *App) error {
+	if a.Error == "" {
+		return nil
+	}
+	return errors.New(a.Error)
+}

@@ -78,6 +78,9 @@ func (a *App) saveCategory() error {
 	if name == "" {
 		return errors.New("分类名称不能为空")
 	}
+	if target == "" {
+		return errors.New("请填写落点，比如“设定库”或“大纲”")
+	}
 	w := a.Store.Work()
 	updated := false
 	for n, cat := range w.Categories {

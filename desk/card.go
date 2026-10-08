@@ -2,6 +2,7 @@ package desk
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/egoist/mygo/ui"
@@ -277,6 +278,14 @@ func (a *App) saveDetails(c *ui.Context, i workspace.Idea) {
 	i.Fact = a.draft.fact
 	i.Verified = a.draft.fact && a.draft.verified
 	i.FactSource = a.draft.factSource
+	if trim(i.Text) == "" {
+		a.setError(errors.New("思路内容不能为空；不要这条思路可以放弃它"))
+		return
+	}
+	if i.Verified && trim(i.FactSource) == "" {
+		a.setError(errors.New("标为已核实时，请写上来源或链接"))
+		return
+	}
 	if i.Status != workspace.Kept {
 		err := a.Store.SaveIdea(i)
 		if err == nil {

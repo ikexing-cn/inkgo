@@ -248,6 +248,13 @@ func (a *App) saveUsage() error {
 	if w.Bookkeeping.Provider == "" {
 		w.Bookkeeping.Model = ""
 	}
+	// The store requires a provider and a model together; say which is missing.
+	if (w.Discussion.Provider == "") != (w.Discussion.Model == "") {
+		return errors.New("讨论模型需要同时选择服务和填写模型 ID")
+	}
+	if w.Bookkeeping.Provider != "" && w.Bookkeeping.Model == "" {
+		return errors.New("整理模型选了单独的服务，还需要填写模型 ID；或改回“沿用讨论模型”")
+	}
 	w.TokenBudget = budget
 	if err = a.Store.SaveWork(w); err == nil {
 		a.notice = "已保存，下一次发送开始使用"
