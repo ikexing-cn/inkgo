@@ -6,6 +6,8 @@ Status: implemented
 
 写作工具需要的不只是纯文本框：伏笔标记要跟着文字移动，人物/地名要在光标处弹补全，AI 预测要以灰字显示在光标后、按 Tab 才进正文，还要能做 diff 式审阅。mygo 自带的 `ui.TextArea` 只编辑纯文本，拿不到光标坐标，也画不了行内装饰。
 
+[正文页方案](../../proposed/feature/2026-10-08-writing-page-and-chapters.md)计划把编辑器接入作品，并改动下文三处：灰字改为默认按快捷键出现、v1 关闭补全、新增"AI 起草"标记；落地前下文仍是现状。
+
 ## Decision
 
 - 全部代码是 Go，`CGO_ENABLED=0` 可编译；窗口与绘制用 `github.com/egoist/mygo` 的原生 UI（Windows 走 Direct3D 11，macOS 走 Metal，Linux 走 OpenGL），不用 WebView。
