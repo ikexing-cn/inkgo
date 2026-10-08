@@ -83,6 +83,10 @@ func main() {
 			}
 			return paths[0], nil
 		}
+		d.SaveFile = func(title, name string) (string, error) {
+			return mygo.Dialog.Save(mygo.SaveDialogOptions{Title: title, DefaultPath: name, CreateDirectories: true,
+				Filters: []mygo.FileFilter{{Name: "纯文本", Extensions: []string{"txt"}}}})
+		}
 		if *workPath != "" {
 			if err := d.Open(*workPath); err != nil {
 				d.Error = err.Error()
@@ -90,7 +94,7 @@ func main() {
 		}
 		defer d.Close()
 		mygo.App.WhenReady(func() {
-			mygo.NewWindow(mygo.WindowOptions{Title: "写作 · 讨论与思路池", Width: 1280, Height: 820, MinWidth: 1000, MinHeight: 680, Content: ui.View(d.View)})
+			mygo.NewWindow(mygo.WindowOptions{Title: "写作", Width: 1280, Height: 820, MinWidth: 1000, MinHeight: 680, Content: ui.View(d.View)})
 		})
 		if err := mygo.App.Run(); err != nil {
 			log.Fatal(err)

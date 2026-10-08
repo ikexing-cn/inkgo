@@ -90,10 +90,13 @@ Status: proposed
   settings/<分类>/<id>.md     # 一条设定一个文件
   topics/<id>.yaml            # 话题：名称、父话题、挂在哪个设定或章节上
   sessions/<id>.jsonl         # 一次对话一个文件，只追加不修改
-  chapters/
-    order.yaml                # 卷章结构和顺序，只有这里决定"第几章"
-    <id>.md                   # 头信息：标题、所属卷、字数缓存；正文是纯文本
-    <id>.marks.yaml           # 本章的标记
+  chapters/                   # 目录照搬章节树，见正文页笔记
+    .order                    # 每个文件夹一个：子节点的顺序、ID 和原标题
+    <标题>.txt                # 正文，一行一段的纯文本
+    <标题>.outline.txt        # 章纲或卷纲
+    <标题>.marks.json         # 标记：位置加原文片段
+  history/<节点ID>/           # 正文快照
+  trash/<节点ID>/             # 回收站
   .writer/                    # 写进 .gitignore
     index.sqlite              # M2 起使用；可删，重扫文件重建
     embeddings/<模型>/<文本hash>.bin   # M2 起使用；不随索引删除
@@ -160,7 +163,7 @@ M1 已随代码落地，具体契约、取舍与验证见[实现笔记](../../im
 ### 开放问题
 
 - M2：默认 embedding 模型（本地 Ollama + bge-m3，还是 OpenAI），召回数 K，相近阈值。
-- 章节版本快照的格式，到接入编辑器时再定；在那之前先用 git。已在[正文页方案](2026-10-08-writing-page-and-chapters.md)中给出，该篇同时是路线第 5 步的方案。
+- 章节版本快照的格式，到接入编辑器时再定；在那之前先用 git。已在[正文页](../../implemented/feature/2026-10-08-writing-page-and-chapters.md)中落地，该篇是路线第 5 步的第一期；第二期见[AI 辅助写作](2026-10-08-ai-assisted-writing.md)。
 
 ## Alternatives considered
 

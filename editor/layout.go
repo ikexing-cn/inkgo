@@ -24,6 +24,7 @@ type line struct {
 	sh         *shaped
 	last       bool // the last line of its paragraph
 	y          float32
+	dx         float32 // the indent of a paragraph's first line
 }
 
 type layout struct {
@@ -69,13 +70,21 @@ func (e *Editor) buildLayout(width float32) {
 			used[key] = sh
 		}
 		shp := &sh
-		starts := breakLines(l.disp[ps:pe], sh.xs, l.textW)
+		indent := float32(0)
+		if e.opts.Prose {
+			indent = 2 * f.Size
+		}
+		starts := breakLines(l.disp[ps:pe], sh.xs, l.textW, indent)
 		for i, s := range starts {
 			end := pe - ps
 			if i+1 < len(starts) {
 				end = starts[i+1]
 			}
-			l.lines = append(l.lines, line{start: ps + s, end: ps + end, pstart: ps, sh: shp, last: i == len(starts)-1, y: y})
+			ln := line{start: ps + s, end: ps + end, pstart: ps, sh: shp, last: i == len(starts)-1, y: y}
+			if i == 0 {
+				ln.dx = indent
+			}
+			l.lines = append(l.lines, ln)
 			y += l.lineH
 		}
 		y += paraGap
@@ -97,7 +106,7 @@ func shapeText(s string, f ui.Font) shaped {
 
 // x returns the x of display index d on line ln, relative to the text.
 func (l *layout) x(ln *line, d int) float32 {
-	return ln.sh.xs[d-ln.pstart] - ln.sh.xs[ln.start-ln.pstart]
+	return ln.dx + ln.sh.xs[d-ln.pstart] - ln.sh.xs[ln.start-ln.pstart]
 }
 
 // lineOf returns the line showing display index d.

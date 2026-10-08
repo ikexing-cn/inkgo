@@ -1,0 +1,1245 @@
+package desk
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"slices"
+	"strings"
+	"time"
+
+	"github.com/egoist/mygo/ui"
+	"writer/editor"
+	"writer/workspace"
+)
+
+// The writing page saves as the author pauses, looks at the disk for
+// changes made outside, and keeps a snapshot every so often while they
+// write. Tests shorten these.
+var (
+	saveAfter  = 1500 * time.Millisecond
+	checkEvery = 2 * time.Second
+	snapEvery  = 10 * time.Minute
+)
+
+// writeView is the state of the writing page.
+type writeView struct {
+	entered bool // the page read the tree as it showed
+	tree    workspace.Tree
+	counts  map[string]int
+	folded  map[string]bool // folders folded, by ID
+	node    string          // the node shown
+	ed      *editor.Editor
+	// What the disk has of the node shown, as of the last read or write.
+	saved    string
+	savedVer int
+	stamp    workspace.Stamp
+	lastSnap time.Time
+	checked  time.Time
+	// The outline, saved as the author pauses like the text.
+	outline, outlineSaved, outlinePrev string
+	outlineAt                          time.Time
+	outlineOpen                        bool
+	// The disk's text, changed outside while the node was open; lost, the
+	// node gone from the disk.
+	external  *workspace.Chapter
+	lost      bool
+	lostTitle string
+
+	renaming, title string
+	finding         bool
+	query, with     string
+	current         int
+
+	snapsOpen bool
+	snaps     []workspace.Snapshot
+	snap      string // the snapshot chosen
+	snapText  string
+	compare   bool
+
+	trashOpen bool
+	trash     []workspace.Trashed
+	purge     string // the trashed node whose purge awaits confirmation
+
+	takeOpen               bool
+	takeQuote, takeText    string
+	takeCategory           string
+	exportOpen, exportDone bool
+	indent                 bool
+}
+
+// dragNode is a node of the chapter tree being dragged.
+type dragNode string
+
+var markKinds = map[editor.MarkKind]string{
+	editor.MarkForeshadow: workspace.MarkForeshadow,
+	editor.MarkAIAccepted: workspace.MarkAIAccepted,
+	editor.MarkAIDraft:    workspace.MarkAIDraft,
+}
+
+func storedMarks(ms []editor.Mark) []workspace.ChapterMark {
+	var out []workspace.ChapterMark
+	for _, m := range ms {
+		out = append(out, workspace.ChapterMark{Kind: markKinds[m.Kind], Start: m.Start, End: m.End, Note: m.Note, Orphaned: m.Orphaned})
+	}
+	return out
+}
+
+func editorMarks(ms []workspace.ChapterMark) []editor.Mark {
+	var out []editor.Mark
+	for _, m := range ms {
+		for k, name := range markKinds {
+			if name == m.Kind {
+				out = append(out, editor.Mark{Kind: k, Start: m.Start, End: m.End, Note: m.Note, Orphaned: m.Orphaned})
+			}
+		}
+	}
+	return out
+}
+
+// warn shows err, leaving an error shown alone when there is none.
+func (a *App) warn(err error) {
+	if err != nil {
+		a.Error = err.Error()
+	}
+}
+
+// enterWriting reads the tree as the page shows, and opens the node last
+// open, or the first document.
+func (a *App) enterWriting() {
+	w := &a.write
+	if w.folded == nil {
+		w.folded = map[string]bool{}
+	}
+	if err := a.loadTree(); err != nil {
+		a.warn(err)
+		return
+	}
+	counts, err := a.Store.Counts()
+	a.warn(err)
+	w.counts = counts
+	w.checked = time.Time{}
+	if _, ok := w.tree.Node(w.node); ok {
+		if w.ed == nil && w.renaming == "" {
+			a.openNode(w.node)
+		}
+		return
+	}
+	w.node = ""
+	w.tree.Walk(func(n *workspace.Node, _ int) {
+		if w.node == "" && !n.Folder {
+			w.node = n.ID
+		}
+	})
+	if w.node != "" {
+		a.openNode(w.node)
+	}
+}
+
+func (a *App) loadTree() error {
+	t, err := a.Store.Chapters()
+	if err == nil {
+		a.write.tree = t
+	}
+	return err
+}
+
+// chapterEditor returns an editor of a chapter's text and marks.
+func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.Editor {
+	doc := editor.NewDoc(text)
+	doc.LoadMarks(editorMarks(marks))
+	var ed *editor.Editor
+	ed = editor.New(doc, editor.Options{Prose: true, Placeholder: "从这里开始写…", Menu: func(m *ui.Menu) {
+		s, e := ed.Selection()
+		if m.Item("加入设定").Disabled(s == e).Chosen() {
+			a.openTake()
+		}
+	}})
+	return ed
+}
+
+// openNode shows node id, saving what was shown first.
+func (a *App) openNode(id string) {
+	a.flush()
+	w := &a.write
+	w.node, w.ed, w.external, w.lost = id, nil, nil, false
+	w.outline, w.outlineSaved, w.outlinePrev = "", "", ""
+	w.current = 0
+	n, ok := w.tree.Node(id)
+	if !ok {
+		w.node = ""
+		return
+	}
+	ch, err := a.Store.ReadChapter(id)
+	if err != nil {
+		a.warn(err)
+		w.node = ""
+		return
+	}
+	w.outline, w.outlineSaved, w.outlinePrev = ch.Outline, ch.Outline, ch.Outline
+	if !n.Folder {
+		w.ed = a.chapterEditor(ch.Text, ch.Marks)
+		w.saved, w.savedVer, w.stamp = ch.Text, w.ed.Doc.Version(), ch.Stamp
+		if strings.TrimSpace(ch.Text) != "" {
+			_, err = a.Store.TakeSnapshot(id, workspace.SnapOpen, ch.Text, ch.Marks)
+			a.warn(err)
+		}
+		w.lastSnap = time.Now()
+	}
+	a.savePrefs()
+}
+
+// flush saves the text and the outline shown, as leaving them does.
+func (a *App) flush() {
+	if a.Store == nil {
+		return
+	}
+	a.warn(a.saveText())
+	a.warn(a.saveOutline())
+}
+
+// saveText writes the text shown when it changed since the disk had it,
+// with a snapshot when writing has gone on long enough since the last.
+func (a *App) saveText() error {
+	w := &a.write
+	if w.ed == nil || w.external != nil || w.lost || w.ed.Doc.Version() == w.savedVer {
+		return nil
+	}
+	text := w.ed.Doc.String()
+	marks := storedMarks(w.ed.Doc.Marks())
+	stamp, err := a.Store.WriteChapter(w.node, text, marks)
+	if err != nil {
+		return err
+	}
+	w.stamp, w.saved, w.savedVer = stamp, text, w.ed.Doc.Version()
+	if w.counts != nil {
+		w.counts[w.node] = workspace.Count(text)
+	}
+	if time.Since(w.lastSnap) >= snapEvery {
+		if _, err = a.Store.TakeSnapshot(w.node, workspace.SnapInterval, text, marks); err != nil {
+			return err
+		}
+		w.lastSnap = time.Now()
+	}
+	return nil
+}
+
+func (a *App) saveOutline() error {
+	w := &a.write
+	if w.node == "" || w.outline == w.outlineSaved || w.lost {
+		return nil
+	}
+	if err := a.Store.WriteOutline(w.node, w.outline); err != nil {
+		return err
+	}
+	w.outlineSaved = w.outline
+	return nil
+}
+
+// watch saves what paused long enough and looks at the disk, each frame
+// of the writing page.
+func (a *App) watch(c *ui.Context) {
+	w := &a.write
+	if w.ed != nil && w.ed.Doc.Version() != w.savedVer && w.external == nil && !w.lost {
+		if wait := saveAfter - time.Since(w.ed.LastEdit()); wait > 0 {
+			c.After(wait)
+		} else {
+			a.warn(a.saveText())
+		}
+	}
+	if w.outline != w.outlinePrev {
+		w.outlinePrev, w.outlineAt = w.outline, time.Now()
+	}
+	if w.outline != w.outlineSaved {
+		if wait := saveAfter - time.Since(w.outlineAt); wait > 0 {
+			c.After(wait)
+		} else {
+			a.warn(a.saveOutline())
+		}
+	}
+	if wait := checkEvery - time.Since(w.checked); wait > 0 {
+		c.After(wait)
+		return
+	}
+	w.checked = time.Now()
+	c.After(checkEvery)
+	a.checkDisk()
+}
+
+// checkDisk rereads the tree, which may have changed outside, and the
+// text of the node shown.
+func (a *App) checkDisk() {
+	w := &a.write
+	old, _ := w.tree.Node(w.node)
+	if err := a.loadTree(); err != nil {
+		a.warn(err)
+		return
+	}
+	if w.node == "" || w.lost {
+		return
+	}
+	n, ok := w.tree.Node(w.node)
+	if !ok {
+		w.lost, w.lostTitle = true, "找回的章节"
+		if old != nil {
+			w.lostTitle = old.Title
+		}
+		return
+	}
+	if n.Folder || w.external != nil {
+		return
+	}
+	st, err := a.Store.ChapterStamp(w.node)
+	if err != nil {
+		a.warn(err)
+		return
+	}
+	if st.Size == w.stamp.Size && st.Mod.Equal(w.stamp.Mod) {
+		return
+	}
+	ch, err := a.Store.ReadChapter(w.node)
+	if err != nil {
+		a.warn(err)
+		return
+	}
+	if ch.Text == workspace.CleanProse(w.saved) {
+		w.stamp = ch.Stamp
+		return
+	}
+	w.external = &ch
+}
+
+// takeDisk replaces the text shown with the disk's, keeping the text
+// shown as a snapshot.
+func (a *App) takeDisk() {
+	w := &a.write
+	ch := w.external
+	if ch == nil {
+		return
+	}
+	_, err := a.Store.TakeSnapshot(w.node, workspace.SnapExternal, w.ed.Doc.String(), storedMarks(w.ed.Doc.Marks()))
+	if err != nil {
+		a.warn(err)
+		return
+	}
+	w.ed = a.chapterEditor(ch.Text, ch.Marks)
+	w.saved, w.savedVer, w.stamp, w.external = ch.Text, w.ed.Doc.Version(), ch.Stamp, nil
+	if w.counts != nil {
+		w.counts[w.node] = workspace.Count(ch.Text)
+	}
+	a.notice = "已换成磁盘上的版本，编辑器里原来的内容存了快照"
+}
+
+// keepMine writes the text shown over the disk's, keeping the disk's as a
+// snapshot.
+func (a *App) keepMine() {
+	w := &a.write
+	ch := w.external
+	if ch == nil {
+		return
+	}
+	if _, err := a.Store.TakeSnapshot(w.node, workspace.SnapExternal, ch.Text, ch.Marks); err != nil {
+		a.warn(err)
+		return
+	}
+	w.external, w.savedVer = nil, -1
+	a.warn(a.saveText())
+	a.notice = "已保留编辑器里的版本，磁盘上的内容存了快照"
+}
+
+// saveLost saves the text of a node gone from the disk as a new document.
+func (a *App) saveLost() {
+	w := &a.write
+	id, err := a.Store.NewChapter("", w.lostTitle, false)
+	if err == nil {
+		_, err = a.Store.WriteChapter(id, w.ed.Doc.String(), storedMarks(w.ed.Doc.Marks()))
+	}
+	if err != nil {
+		a.warn(err)
+		return
+	}
+	w.ed, w.lost = nil, false
+	a.warn(a.loadTree())
+	a.openNode(id)
+	a.notice = "已存为新章节，放在最上层的末尾"
+}
+
+// writing is the writing page: the node shown between the chapter tree in
+// the sidebar and the setting.
+func (a *App) writing(c *ui.Context) {
+	if !a.write.entered {
+		a.write.entered = true
+		a.enterWriting()
+	}
+	a.watch(c)
+	if c.Shortcut(ui.Cmd, ui.KeyF) && a.write.ed != nil {
+		a.write.finding = true
+	}
+	ui.Row(c).FillWidth().Grow(1).AlignItems(ui.Stretch).Children(func() {
+		main := ui.Column(c).Grow(1).Shrink(1).FillHeight()
+		a.LastWrite = main.Bounds()
+		main.Children(func() {
+			a.writeTop(c)
+			n, ok := a.write.tree.Node(a.write.node)
+			switch {
+			case a.write.lost && a.write.ed != nil:
+				a.chapterView(c)
+			case !ok && len(a.write.tree.Root.Children) == 0:
+				a.emptyWriting(c)
+			case !ok:
+				ui.Column(c).Grow(1).FillWidth().Center().Children(func() {
+					ui.Text(c, "从左边选一章开始写").FontSize(14).TextColor(a.pal.faint)
+				})
+			case n.Folder:
+				a.folderView(c, n)
+			default:
+				a.chapterView(c)
+			}
+		})
+		a.settingColumn(c)
+	})
+	if a.write.snapsOpen {
+		a.snapshots(c)
+	}
+	if a.write.trashOpen {
+		a.trashView(c)
+	}
+	if a.write.takeOpen {
+		a.take(c)
+	}
+	if a.write.exportOpen {
+		a.exportView(c)
+	}
+}
+
+// settingColumn is the setting beside the page, unless the author hid it.
+func (a *App) settingColumn(c *ui.Context) {
+	if a.doc.hidden {
+		return
+	}
+	ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
+	panel := ui.Column(c).Width(392).FillHeight().Padding(18, 18, 12, 18).Gap(12).Background(a.pal.side).Shrink(0)
+	a.LastSetting = panel.Bounds()
+	panel.Children(func() { a.settingPanel(c) })
+}
+
+func (a *App) total() int {
+	n := 0
+	for _, k := range a.write.counts {
+		n += k
+	}
+	return n
+}
+
+func (a *App) writeTop(c *ui.Context) {
+	t := a.pal.theme
+	w := &a.write
+	n, ok := w.tree.Node(w.node)
+	ui.Row(c).FillWidth().Height(52).Padding(0, 16, 0, 24).Gap(6).AlignItems(ui.Center).Shrink(0).Children(func() {
+		if ok {
+			var path []string
+			for p := n.Parent; p != nil && p.Parent != nil; p = p.Parent {
+				path = append([]string{p.Title}, path...)
+			}
+			for _, title := range path {
+				ui.Text(c, title).FontSize(13).TextColor(t.TextMuted).SingleLine().Shrink(1)
+				glyph(c, icChevron, 14, a.pal.faint)
+			}
+			ui.Text(c, n.Title).FontSize(13.5).FontWeight(600).SingleLine().Ellipsis("…").Shrink(1)
+		} else if w.lost {
+			ui.Text(c, w.lostTitle).FontSize(13.5).FontWeight(600)
+		} else {
+			ui.Text(c, "正文").FontSize(13.5).FontWeight(600)
+		}
+		ui.Spacer(c)
+		if ok && !n.Folder {
+			ui.Textf(c, "本章 %d 字 · 全书 %d 字", w.counts[n.ID], a.total()).FontSize(12).TextColor(a.pal.faint).SingleLine()
+		} else {
+			ui.Textf(c, "全书 %d 字", a.total()).FontSize(12).TextColor(a.pal.faint).SingleLine()
+		}
+		ui.Box(c).Width(6)
+		if ok && !n.Folder {
+			s, e := w.ed.Selection()
+			if iconButton(c, icQuote, "加入设定", ui.Color{}).Tooltip("把选中的原文加入设定").Disabled(s == e || w.lost).Clicked() {
+				a.openTake()
+			}
+			color := ui.Color{}
+			if w.finding {
+				color = a.pal.brand
+			}
+			if iconButton(c, icSearch, "查找替换", color).Clicked() {
+				w.finding = !w.finding
+				if !w.finding {
+					w.ed.SetFound(nil, 0)
+				}
+			}
+			if iconButton(c, icClock, "快照", ui.Color{}).Tooltip("这一章的快照").Disabled(w.lost).Clicked() {
+				a.openSnapshots()
+			}
+		}
+		if iconButton(c, icDownload, "导出全书", ui.Color{}).Clicked() {
+			w.exportOpen, w.exportDone = true, false
+		}
+		if a.doc.hidden {
+			a.bookDot(c)
+			if iconButton(c, icPanel, "展开设定", ui.Color{}).Tooltip("展开设定文档").Clicked() {
+				a.setDocHidden(false)
+			}
+		}
+	})
+	a.pal.hairline(c)
+}
+
+func (a *App) emptyWriting(c *ui.Context) {
+	t := a.pal.theme
+	ui.Column(c).Grow(1).FillWidth().AlignItems(ui.Center).Padding(96, 24, 0, 24).Gap(14).Children(func() {
+		ui.Box(c).Size(44, 44).Radius(12).Background(a.pal.brand.Alpha(0.1)).Center().Children(func() {
+			glyph(c, icBook, 22, a.pal.brand)
+		})
+		ui.Text(c, "还没有章节").FontSize(18).FontWeight(600)
+		ui.Text(c, "每一章是作品文件夹 chapters 里的一个纯文本文件，离开软件也能打开。").FontSize(13).TextColor(t.TextMuted)
+		ui.Row(c).Gap(10).Padding(8, 0, 0, 0).Children(func() {
+			if a.pal.primary(c, "新建第一章").Clicked() {
+				a.newNode(false)
+			}
+			if a.pal.secondary(c, "新建文件夹").Clicked() {
+				a.newNode(true)
+			}
+		})
+	})
+}
+
+// outlineBox is the outline of the node shown: 章纲 of a document, 卷纲 of
+// a folder.
+func (a *App) outlineBox(c *ui.Context, label string, height float32) {
+	w := &a.write
+	ui.TextAreaBase(c, &w.outline).Label(label).Placeholder("写下这里要发生什么，作为你自己的提纲").FillWidth().Height(height).
+		FontSize(13.5).LineHeight(1.7).Padding(10, 12).Radius(8).Background(a.pal.side).Disabled(w.lost)
+}
+
+func (a *App) chapterView(c *ui.Context) {
+	t := a.pal.theme
+	w := &a.write
+	if w.external != nil {
+		a.notice2(c, t.Warning, "磁盘上的这一章被别的程序改过了。保留哪一边？另一边会存成快照，不会丢。", func() {
+			if action(c, "用磁盘上的", t.Warning, false).Clicked() {
+				a.takeDisk()
+			}
+			if action(c, "保留我的", t.Warning, true).Clicked() {
+				a.keepMine()
+			}
+		})
+	}
+	if w.lost {
+		a.notice2(c, t.Danger, "磁盘上找不到这一章了：在软件外改名、移动或删除，都会被当成删掉了。编辑器里的文字还在。", func() {
+			if action(c, "存为新章节", t.Danger, true).Clicked() {
+				a.saveLost()
+			}
+		})
+	}
+	ui.Column(c).FillWidth().Padding(10, 24, 0, 24).Shrink(0).Children(func() {
+		label := "章纲"
+		if strings.TrimSpace(w.outline) == "" {
+			label = "章纲（空）"
+		}
+		ui.Collapsible(c, label, &w.outlineOpen, func() {
+			ui.Box(c).FillWidth().Padding(6, 0, 4, 0).Children(func() { a.outlineBox(c, "章纲", 96) })
+		})
+	})
+	if w.finding {
+		a.findBar(c)
+	}
+	w.ed.View(c).Grow(1).FillWidth()
+}
+
+// notice2 is a banner over the editor that asks the author something.
+func (a *App) notice2(c *ui.Context, color ui.Color, text string, buttons func()) {
+	t := a.pal.theme
+	ui.Row(c).FillWidth().Padding(10, 20, 0, 20).Shrink(0).Children(func() {
+		ui.Row(c).FillWidth().Padding(8, 8, 8, 12).Gap(10).Radius(9).AlignItems(ui.Center).Background(color.Alpha(0.08)).Border(1, color.Alpha(0.2)).Children(func() {
+			glyph(c, icAlert, 15, color)
+			ui.Text(c, text).FontSize(13).TextColor(color.Mix(t.Text, 0.35)).Grow(1).Shrink(1)
+			buttons()
+		})
+	})
+}
+
+func (a *App) findBar(c *ui.Context) {
+	t := a.pal.theme
+	w := &a.write
+	found := w.ed.Doc.Find(w.query)
+	if w.current >= len(found) {
+		w.current = 0
+	}
+	w.ed.SetFound(found, w.current)
+	show := func() {
+		if len(found) > 0 {
+			w.ed.Select(found[w.current][0], found[w.current][1])
+		}
+	}
+	ui.Row(c).FillWidth().Padding(8, 16, 4, 24).Gap(6).AlignItems(ui.Center).Shrink(0).Children(func() {
+		q := ui.TextInput(c, &w.query).Label("查找").Placeholder("查找").Width(150).Shrink(1).AutoFocus()
+		if q.Submitted() && len(found) > 0 {
+			w.current = (w.current + 1) % len(found)
+			show()
+		}
+		ui.TextInput(c, &w.with).Label("替换为").Placeholder("替换为").Width(130).Shrink(1)
+		switch {
+		case w.query == "":
+		case len(found) == 0:
+			ui.Text(c, "没有找到").FontSize(12.5).TextColor(a.pal.faint)
+		default:
+			ui.Textf(c, "%d / %d", w.current+1, len(found)).FontSize(12.5).TextColor(t.TextMuted)
+		}
+		ui.Spacer(c)
+		none := len(found) == 0
+		if ghost(c, "上一个", ui.Color{}).Disabled(none).Clicked() {
+			w.current = (w.current + len(found) - 1) % len(found)
+			show()
+		}
+		if ghost(c, "下一个", ui.Color{}).Disabled(none).Clicked() {
+			w.current = (w.current + 1) % len(found)
+			show()
+		}
+		if ghost(c, "替换", ui.Color{}).Disabled(none || w.lost).Clicked() {
+			if s, e := w.ed.Selection(); s == found[w.current][0] && e == found[w.current][1] {
+				w.ed.Replace(s, e, w.with)
+				if found = w.ed.Doc.Find(w.query); len(found) > 0 {
+					w.current %= len(found)
+					show()
+				}
+			} else {
+				show()
+			}
+		}
+		if ghost(c, "全部替换", ui.Color{}).Disabled(none || w.lost).Clicked() {
+			n := w.ed.ReplaceAll(w.query, w.with)
+			a.notice = fmt.Sprintf("已替换 %d 处，可以撤销", n)
+		}
+		if iconButton(c, icX, "关闭查找", ui.Color{}).Clicked() {
+			w.finding = false
+			w.ed.SetFound(nil, 0)
+		}
+	})
+}
+
+// folderView shows a folder: its outline and what it holds.
+func (a *App) folderView(c *ui.Context, n *workspace.Node) {
+	t := a.pal.theme
+	w := &a.write
+	ui.Scroll(c).Key("folder").Grow(1).FillWidth().Children(func() {
+		ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(28, 28, 28, 28).Children(func() {
+			ui.Column(c).FillWidth().MaxWidth(720).Gap(14).Children(func() {
+				ui.Text(c, n.Title).FontSize(22).FontWeight(600)
+				ui.Text(c, "卷纲").FontSize(13).FontWeight(600).TextColor(t.TextMuted)
+				a.outlineBox(c, "卷纲", 160)
+				ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(8, 0, 0, 0).Children(func() {
+					ui.Textf(c, "%d 项", len(n.Children)).FontSize(13).FontWeight(600).TextColor(t.TextMuted).Grow(1)
+					if ghost(c, "在这里新建章节", ui.Color{}).Clicked() {
+						a.newNode(false)
+					}
+				})
+				for _, child := range n.Children {
+					row := ui.ButtonBase(c).Key("f-"+child.ID).Row().FillWidth().Justify(ui.Start).AlignItems(ui.Center).Gap(10).Padding(9, 12).Radius(8).Label("打开-" + child.Title)
+					if row.Hovered() {
+						row.Background(t.SurfaceHover)
+					}
+					row.Children(func() {
+						glyph(c, nodeIcon(child), 16, t.TextMuted)
+						ui.Text(c, child.Title).FontSize(14).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
+						if !child.Folder {
+							ui.Textf(c, "%d 字", w.counts[child.ID]).FontSize(12).TextColor(a.pal.faint)
+						}
+					})
+					if row.Clicked() {
+						a.openNode(child.ID)
+					}
+				}
+			})
+		})
+	})
+}
+
+func nodeIcon(n *workspace.Node) *ui.SVG {
+	if n.Folder {
+		return icFolder
+	}
+	return icDoc
+}
+
+// chapterTree is the sidebar of the writing page.
+func (a *App) chapterTree(c *ui.Context) {
+	t := a.pal.theme
+	w := &a.write
+	ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(0, 4, 0, 8).Gap(2).Children(func() {
+		ui.Text(c, "章节").FontSize(11.5).FontWeight(600).TextColor(a.pal.faint).Grow(1)
+		if iconButton(c, icFolderPlus, "新建文件夹", ui.Color{}).Clicked() {
+			a.newNode(true)
+		}
+		if iconButton(c, icPlus, "新建章节", ui.Color{}).Clicked() {
+			a.newNode(false)
+		}
+	})
+	ui.Scroll(c).Key("chapters").FillWidth().Grow(1).Gap(1).Children(func() {
+		if w.tree.Root == nil {
+			return
+		}
+		var rows func(ns []*workspace.Node, depth int)
+		rows = func(ns []*workspace.Node, depth int) {
+			for _, n := range ns {
+				a.treeRow(c, n, depth)
+				if n.Folder && !w.folded[n.ID] {
+					rows(n.Children, depth+1)
+				}
+			}
+		}
+		rows(w.tree.Root.Children, 0)
+		// Dropping below the rows puts a node at the end of the top level.
+		end := ui.Box(c).FillWidth().Height(40)
+		if v, ok := ui.Drop[dragNode](end); ok {
+			a.warn(a.Store.MoveChapter(string(v), "", len(w.tree.Root.Children)))
+			a.warn(a.loadTree())
+		}
+	})
+	b := ui.ButtonBase(c).Row().FillWidth().Justify(ui.Start).AlignItems(ui.Center).Gap(10).Padding(7, 10).Radius(7).Label("回收站")
+	if b.Hovered() {
+		b.Background(t.SurfaceHover)
+	}
+	b.Children(func() {
+		glyph(c, icTrash, 15, t.TextMuted)
+		ui.Text(c, "回收站").FontSize(13).TextColor(t.TextMuted)
+	})
+	if b.Clicked() {
+		a.openTrash()
+	}
+}
+
+func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
+	t := a.pal.theme
+	w := &a.write
+	on := n.ID == w.node
+	if w.renaming == n.ID {
+		ui.Row(c).Key("r-"+n.ID).FillWidth().AlignItems(ui.Center).Gap(4).Padding(2, 4, 2, 8+float32(depth)*14).Children(func() {
+			in := ui.TextInput(c, &w.title).Label("章节标题").Grow(1).AutoFocus()
+			if in.Submitted() || iconButton(c, icCheck, "确定标题", ui.Color{}).Clicked() {
+				a.rename(n.ID)
+			}
+			if in.Shortcut(0, ui.KeyEscape) {
+				w.renaming = ""
+			}
+		})
+		return
+	}
+	row := ui.ButtonBase(c).Key("n-"+n.ID).Row().FillWidth().Justify(ui.Start).AlignItems(ui.Center).Gap(6).
+		Padding(6, 8, 6, 8+float32(depth)*14).Radius(7).Label("章节-" + n.Title)
+	row.Drag(dragNode(n.ID))
+	_, over := ui.DragOver[dragNode](row)
+	switch {
+	case over:
+		row.Background(a.pal.brand.Alpha(0.12))
+	case on:
+		row.Background(t.SurfacePressed)
+	case row.Hovered():
+		row.Background(t.SurfaceHover)
+	}
+	if v, ok := ui.Drop[dragNode](row); ok {
+		a.dropOn(string(v), n)
+	}
+	row.ContextMenu(func(m *ui.Menu) { a.nodeMenu(m, n) })
+	row.Children(func() {
+		fg := t.TextMuted
+		if on {
+			fg = t.Text
+		}
+		if n.Folder {
+			s := icChevronDown
+			if w.folded[n.ID] {
+				s = icChevron
+			}
+			glyph(c, s, 13, a.pal.faint)
+		}
+		glyph(c, nodeIcon(n), 15, fg)
+		ui.Text(c, n.Title).FontSize(13).TextColor(fg).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
+		if !n.Folder && w.counts[n.ID] > 0 {
+			ui.Textf(c, "%d", w.counts[n.ID]).FontSize(11).TextColor(a.pal.faint)
+		}
+	})
+	if row.Clicked() {
+		if n.Folder && on {
+			w.folded[n.ID] = !w.folded[n.ID]
+		} else {
+			w.folded[n.ID] = false
+			a.openNode(n.ID)
+		}
+	}
+}
+
+// nodeMenu is what a node's context menu offers.
+func (a *App) nodeMenu(m *ui.Menu, n *workspace.Node) {
+	w := &a.write
+	siblings := n.Parent.Children
+	i := slices.Index(siblings, n)
+	if m.Item("重命名").Chosen() {
+		w.renaming, w.title = n.ID, n.Title
+	}
+	if m.Item("新建章节").Chosen() {
+		a.openNode(n.ID)
+		a.newNode(false)
+	}
+	if m.Item("新建文件夹").Chosen() {
+		a.openNode(n.ID)
+		a.newNode(true)
+	}
+	m.Separator()
+	if m.Item("上移").Disabled(i == 0).Chosen() {
+		a.move(n.ID, n.Parent.ID, i-1)
+	}
+	if m.Item("下移").Disabled(i == len(siblings)-1).Chosen() {
+		a.move(n.ID, n.Parent.ID, i+1)
+	}
+	m.Submenu("移到", func(m *ui.Menu) {
+		if m.Item("最上层").Disabled(n.Parent.Parent == nil).Chosen() {
+			a.move(n.ID, "", len(w.tree.Root.Children))
+		}
+		w.tree.Walk(func(f *workspace.Node, depth int) {
+			if !f.Folder || f.Within(n) {
+				return
+			}
+			if m.Item(strings.Repeat("　", depth) + f.Title).Disabled(f == n.Parent).Chosen() {
+				a.move(n.ID, f.ID, len(f.Children))
+			}
+		})
+	})
+	m.Separator()
+	if m.Item("移到回收站").Chosen() {
+		a.trashNode(n)
+	}
+}
+
+func (a *App) move(id, parent string, index int) {
+	a.flush()
+	a.warn(a.Store.MoveChapter(id, parent, index))
+	a.warn(a.loadTree())
+}
+
+// dropOn moves node id into folder target, or before document target.
+func (a *App) dropOn(id string, target *workspace.Node) {
+	if id == target.ID {
+		return
+	}
+	if target.Folder {
+		a.move(id, target.ID, len(target.Children))
+		w := &a.write
+		w.folded[target.ID] = false
+		return
+	}
+	var rest []*workspace.Node
+	for _, s := range target.Parent.Children {
+		if s.ID != id {
+			rest = append(rest, s)
+		}
+	}
+	a.move(id, target.Parent.ID, slices.Index(rest, target))
+}
+
+func (a *App) rename(id string) {
+	w := &a.write
+	a.flush()
+	err := a.Store.RenameChapter(id, w.title)
+	if err == nil {
+		w.renaming = ""
+		err = a.loadTree()
+	}
+	a.warn(err)
+}
+
+// newNode adds a document, or a folder, beside the node shown, or inside
+// it when it is a folder, and has the author name it.
+func (a *App) newNode(folder bool) {
+	w := &a.write
+	parent, index := "", -1
+	if n, ok := w.tree.Node(w.node); ok {
+		if n.Folder {
+			parent = n.ID
+		} else {
+			parent = n.Parent.ID
+			index = slices.Index(n.Parent.Children, n) + 1
+		}
+	}
+	title := "新章节"
+	if folder {
+		title = "新文件夹"
+	}
+	id, err := a.Store.NewChapter(parent, title, folder)
+	if err == nil && index >= 0 {
+		err = a.Store.MoveChapter(id, parent, index)
+	}
+	if err == nil {
+		err = a.loadTree()
+	}
+	if err != nil {
+		a.warn(err)
+		return
+	}
+	if parent != "" {
+		w.folded[parent] = false
+	}
+	if w.counts == nil {
+		w.counts = map[string]int{}
+	}
+	a.openNode(id)
+	w.renaming, w.title = id, title
+}
+
+func (a *App) trashNode(n *workspace.Node) {
+	w := &a.write
+	a.flush()
+	if cur, ok := w.tree.Node(w.node); ok && cur.Within(n) {
+		w.node, w.ed, w.external, w.lost = "", nil, nil, false
+	}
+	if err := a.Store.TrashChapter(n.ID); err != nil {
+		a.warn(err)
+		return
+	}
+	a.warn(a.loadTree())
+	counts, err := a.Store.Counts()
+	a.warn(err)
+	w.counts = counts
+	a.notice = fmt.Sprintf("「%s」已移到回收站", n.Title)
+}
+
+func (a *App) openTrash() {
+	w := &a.write
+	a.flush()
+	items, err := a.Store.Trash()
+	a.warn(err)
+	w.trash, w.trashOpen, w.purge = items, true, ""
+}
+
+func (a *App) trashView(c *ui.Context) {
+	t := a.pal.theme
+	w := &a.write
+	ui.Modal(c, &w.trashOpen, func() {
+		ui.Column(c).Width(520).Gap(14).Children(func() {
+			ui.Column(c).Gap(4).Children(func() {
+				ui.Text(c, "回收站").FontSize(17).FontWeight(600)
+				ui.Text(c, "删掉的章节连同它里面的内容放在作品的 trash 文件夹，恢复后回到原来的文件夹末尾。").FontSize(13).TextColor(t.TextMuted).LineHeight(1.6)
+			})
+			if len(w.trash) == 0 {
+				ui.Text(c, "回收站是空的").FontSize(13).TextColor(a.pal.faint).Padding(12, 0)
+			}
+			ui.Scroll(c).Key("trash").FillWidth().MaxHeight(360).Children(func() {
+				ui.Column(c).FillWidth().Gap(2).Children(func() {
+					for _, it := range w.trash {
+						ui.Row(c).Key("t-"+it.ID).FillWidth().AlignItems(ui.Center).Gap(10).Padding(8, 4).Children(func() {
+							s := icDoc
+							if it.Folder {
+								s = icFolder
+							}
+							glyph(c, s, 15, t.TextMuted)
+							ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
+								ui.Text(c, it.Title).FontSize(13.5).SingleLine().Ellipsis("…")
+								ui.Text(c, it.At.Local().Format("01-02 15:04")+" 删除").FontSize(11.5).TextColor(a.pal.faint)
+							})
+							if ghost(c, "恢复", ui.Color{}).Label("恢复-" + it.Title).Clicked() {
+								a.restore(it.ID)
+							}
+							if w.purge == it.ID {
+								if action(c, "确认彻底删除", t.Danger, true).Clicked() {
+									a.warn(a.Store.PurgeChapter(it.ID))
+									a.openTrash()
+								}
+							} else if action(c, "彻底删除", t.Danger, false).Clicked() {
+								w.purge = it.ID
+							}
+						})
+					}
+				})
+			})
+		})
+	})
+}
+
+func (a *App) restore(id string) {
+	w := &a.write
+	if err := a.Store.RestoreChapter(id); err != nil {
+		a.warn(err)
+		return
+	}
+	a.warn(a.loadTree())
+	counts, err := a.Store.Counts()
+	a.warn(err)
+	w.counts = counts
+	a.openTrash()
+	a.notice = "已恢复"
+}
+
+// snapReasons say why a snapshot was taken.
+var snapReasons = map[string]string{
+	workspace.SnapOpen: "打开时", workspace.SnapInterval: "写作中", workspace.SnapRestore: "恢复前",
+	workspace.SnapExternal: "外部改动", workspace.SnapAI: "AI 改动前",
+}
+
+func (a *App) openSnapshots() {
+	w := &a.write
+	a.warn(a.saveText())
+	snaps, err := a.Store.Snapshots(w.node)
+	if err != nil {
+		a.warn(err)
+		return
+	}
+	w.snaps, w.snapsOpen, w.compare = snaps, true, true
+	w.snap, w.snapText = "", ""
+	if len(snaps) > 0 {
+		a.pickSnapshot(snaps[0].Name)
+	}
+}
+
+func (a *App) pickSnapshot(name string) {
+	w := &a.write
+	text, err := a.Store.SnapshotText(w.node, name)
+	if err != nil {
+		a.warn(err)
+		return
+	}
+	w.snap, w.snapText = name, text
+}
+
+func (a *App) snapshots(c *ui.Context) {
+	t := a.pal.theme
+	w := &a.write
+	ui.Modal(c, &w.snapsOpen, func() {
+		ui.Column(c).Width(min(900, max(a.LastWrite.W, 640))).Height(560).Gap(12).Children(func() {
+			ui.Column(c).Gap(4).Children(func() {
+				ui.Text(c, "快照").FontSize(17).FontWeight(600)
+				ui.Text(c, "打开章节、连续写作每十分钟、恢复之前都会存一份。最近七天的全部保留，更早的每天留最后一份。").FontSize(13).TextColor(t.TextMuted)
+			})
+			ui.Row(c).FillWidth().Grow(1).Gap(14).AlignItems(ui.Stretch).Children(func() {
+				ui.Scroll(c).Key("snaps").Width(210).FillHeight().Shrink(0).Children(func() {
+					ui.Column(c).FillWidth().Gap(2).Children(func() {
+						if len(w.snaps) == 0 {
+							ui.Text(c, "还没有快照").FontSize(13).TextColor(a.pal.faint).Padding(8)
+						}
+						for _, sn := range w.snaps {
+							on := sn.Name == w.snap
+							when := sn.At.Local().Format("01-02 15:04:05")
+							b := ui.ButtonBase(c).Key("s-"+sn.Name).Column().FillWidth().AlignItems(ui.Start).Gap(2).Padding(8, 10).Radius(7).Label("快照-" + when)
+							if on {
+								b.Background(t.SurfacePressed)
+							} else if b.Hovered() {
+								b.Background(t.SurfaceHover)
+							}
+							b.Children(func() {
+								ui.Text(c, when).FontSize(13).FontWeight(map[bool]int{true: 600, false: 400}[on])
+								ui.Textf(c, "%s · %d 字", snapReasons[sn.Reason], sn.Count).FontSize(11.5).TextColor(a.pal.faint)
+							})
+							if b.Clicked() {
+								a.pickSnapshot(sn.Name)
+							}
+						}
+					})
+				})
+				ui.Column(c).Grow(1).Shrink(1).FillHeight().Gap(8).Children(func() {
+					ui.Row(c).FillWidth().Gap(4).AlignItems(ui.Center).Children(func() {
+						ui.Toggle(c, &w.compare, "和现在对比")
+						if w.compare {
+							ui.Text(c, "红色划掉的是快照里有、现在没有的，绿色是现在新写的").FontSize(12).TextColor(a.pal.faint).Padding(0, 0, 0, 8)
+						}
+					})
+					ui.Scroll(c).Key("snap-text").FillWidth().Grow(1).Background(a.pal.side).Radius(10).Children(func() {
+						ui.Box(c).FillWidth().Padding(14, 16).Children(func() {
+							switch {
+							case w.snap == "":
+							case w.compare:
+								var spans []ui.Span
+								for _, p := range diffText(w.snapText, w.ed.Doc.String()) {
+									switch p.kind {
+									case gone:
+										spans = append(spans, ui.Span{Text: p.text, Color: t.Danger, Strikethrough: true, Background: t.Danger.Alpha(0.1)})
+									case came:
+										spans = append(spans, ui.Span{Text: p.text, Color: t.Success, Background: t.Success.Alpha(0.12)})
+									default:
+										spans = append(spans, ui.Span{Text: p.text})
+									}
+								}
+								ui.RichText(c, spans...).FontSize(14).LineHeight(1.8).FillWidth().Selectable()
+							default:
+								ui.Text(c, w.snapText).FontSize(14).LineHeight(1.8).FillWidth().Selectable()
+							}
+						})
+					})
+				})
+			})
+			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
+				ui.Spacer(c)
+				if ghost(c, "关闭", ui.Color{}).Clicked() {
+					w.snapsOpen = false
+				}
+				if a.pal.primary(c, "恢复这个版本").Disabled(w.snap == "" || w.lost || w.external != nil).Clicked() {
+					a.restoreSnapshot()
+				}
+			})
+		})
+	})
+}
+
+// restoreSnapshot replaces the text with the snapshot chosen, keeping the
+// text replaced as a snapshot of its own.
+func (a *App) restoreSnapshot() {
+	w := &a.write
+	i := slices.IndexFunc(w.snaps, func(s workspace.Snapshot) bool { return s.Name == w.snap })
+	if i < 0 {
+		return
+	}
+	if err := a.saveText(); err != nil {
+		a.warn(err)
+		return
+	}
+	if _, err := a.Store.TakeSnapshot(w.node, workspace.SnapRestore, w.ed.Doc.String(), storedMarks(w.ed.Doc.Marks())); err != nil {
+		a.warn(err)
+		return
+	}
+	w.ed = a.chapterEditor(w.snapText, w.snaps[i].Marks)
+	w.savedVer = -1
+	if err := a.saveText(); err != nil {
+		a.warn(err)
+		return
+	}
+	w.snapsOpen = false
+	a.notice = "已恢复到 " + w.snaps[i].At.Local().Format("01-02 15:04") + " 的版本，恢复前的内容也存了快照"
+}
+
+// openTake starts taking the selected words into the setting.
+func (a *App) openTake() {
+	w := &a.write
+	if w.ed == nil {
+		return
+	}
+	q := strings.TrimSpace(w.ed.SelectedText())
+	if q == "" {
+		return
+	}
+	w.takeQuote, w.takeText, w.takeOpen = q, q, true
+	if w.takeCategory == "" {
+		w.takeCategory = workspace.Other
+	}
+}
+
+func (a *App) take(c *ui.Context) {
+	t := a.pal.theme
+	w := &a.write
+	ui.Modal(c, &w.takeOpen, func() {
+		ui.Column(c).Width(560).Gap(14).Children(func() {
+			ui.Column(c).Gap(4).Children(func() {
+				ui.Text(c, "加入设定").FontSize(17).FontWeight(600)
+				ui.Text(c, "选中的原文作为出处记下来；设定可以换成你自己的说法。").FontSize(13).TextColor(t.TextMuted)
+			})
+			ui.Box(c).FillWidth().Padding(10, 12).Radius(8).Background(a.pal.side).Children(func() {
+				ui.Text(c, w.takeQuote).FontSize(13).TextColor(t.TextMuted).LineHeight(1.7).FillWidth().Selectable()
+			})
+			ui.TextAreaBase(c, &w.takeText).Label("设定内容").FillWidth().Height(76).FontSize(13.5).LineHeight(1.65).
+				Padding(10, 12).Radius(8).Border(1, t.Border)
+			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
+				ui.Select(c, &w.takeCategory, a.categoryNames()).Label("设定分类").Width(140)
+				ui.Spacer(c)
+				if ghost(c, "取消", ui.Color{}).Clicked() {
+					w.takeOpen = false
+				}
+				if a.pal.primary(c, "加入").Disabled(strings.TrimSpace(w.takeText) == "").Clicked() {
+					a.takeIn()
+				}
+			})
+		})
+	})
+}
+
+// takeIn adds the author's entry quoting the chapter, saved first so the
+// quote is in the text on disk.
+func (a *App) takeIn() {
+	w := &a.write
+	if err := a.saveText(); err != nil {
+		a.warn(err)
+		return
+	}
+	r, err := a.Store.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{{
+		Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: w.takeCategory, Text: strings.TrimSpace(w.takeText),
+		Sources: []workspace.Source{{Chapter: w.node, Quote: w.takeQuote}},
+	}}})
+	if err == nil {
+		err = a.refresh()
+	}
+	if err != nil {
+		a.warn(err)
+		return
+	}
+	a.flash[r.Ops[0].Entry] = time.Now()
+	w.takeOpen = false
+	a.notice = "已加入设定正文"
+}
+
+func (a *App) exportView(c *ui.Context) {
+	t := a.pal.theme
+	w := &a.write
+	ui.Modal(c, &w.exportOpen, func() {
+		ui.Column(c).Width(460).Gap(14).Children(func() {
+			ui.Column(c).Gap(4).Children(func() {
+				ui.Text(c, "导出全书").FontSize(17).FontWeight(600)
+				ui.Text(c, "按章节树的顺序拼成一个 .txt，每个文件夹和章节前写上标题。").FontSize(13).TextColor(t.TextMuted)
+			})
+			ui.Checkbox(c, &w.indent, "段首加两个全角空格")
+			ui.Row(c).FillWidth().Gap(10).Children(func() {
+				ui.Spacer(c)
+				if ghost(c, "取消", ui.Color{}).Clicked() {
+					w.exportOpen = false
+				}
+				if a.pal.primary(c, "导出").Clicked() {
+					a.export(c)
+				}
+			})
+		})
+	})
+}
+
+// export writes the work as one text where the author picks, or into the
+// work's 导出 folder when there is no dialog.
+func (a *App) export(c *ui.Context) {
+	a.flush()
+	text, err := a.Store.Export(a.write.indent)
+	if err != nil {
+		a.warn(err)
+		return
+	}
+	name := a.Store.Work().Name + ".txt"
+	write := func(path string) {
+		if path == "" {
+			return
+		}
+		if err := os.WriteFile(path, []byte(text), 0644); err != nil {
+			a.warn(err)
+			return
+		}
+		a.write.exportOpen = false
+		a.notice = "已导出到 " + path
+	}
+	if a.SaveFile == nil {
+		dir := filepath.Join(a.Store.Root(), "导出")
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			a.warn(err)
+			return
+		}
+		write(filepath.Join(dir, name))
+		return
+	}
+	save := a.SaveFile
+	go func() {
+		path, err := save("导出全书", name)
+		a.picks <- func() {
+			if err != nil {
+				a.warn(err)
+				return
+			}
+			write(path)
+		}
+		c.Invalidate()
+	}()
+}

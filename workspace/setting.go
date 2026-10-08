@@ -64,7 +64,14 @@ func applyOps(entries []Entry, r Revision, n int) ([]Entry, error) {
 			return fmt.Errorf("ops[%d]: %s", k, fmt.Sprintf(format, args...))
 		}
 		for _, src := range op.Sources {
-			if validID(src.Session) != nil || validID(src.Message) != nil || strings.TrimSpace(src.Quote) == "" {
+			if strings.TrimSpace(src.Quote) == "" {
+				return nil, fail("source needs a quote")
+			}
+			if src.Chapter != "" {
+				if validID(src.Chapter) != nil || src.Session != "" || src.Message != "" {
+					return nil, fail("a chapter's source names the chapter only")
+				}
+			} else if validID(src.Session) != nil || validID(src.Message) != nil {
 				return nil, fail("source needs a session, a message and a quote")
 			}
 		}
@@ -217,6 +224,9 @@ func (s *Store) checkRevision(r Revision, sc *scan) error {
 	}
 	for k, op := range r.Ops {
 		for _, src := range op.Sources {
+			if src.Chapter != "" {
+				continue // the chapter changes as the author writes on
+			}
 			events, err := sc.events(s, src.Session)
 			if err != nil {
 				return fmt.Errorf("ops[%d].sources: %w", k, err)
@@ -321,6 +331,9 @@ func (s *Store) Revise(r Revision) (Revision, error) {
 	if err = s.checkRevision(r, newScan()); err != nil {
 		return Revision{}, err
 	}
+	if err = s.checkChapters(r); err != nil {
+		return Revision{}, err
+	}
 	p, err := s.path("setting.jsonl")
 	if err != nil {
 		return Revision{}, err
@@ -339,4 +352,36 @@ func stale(e Entry, op Op) string {
 	default:
 		return fmt.Sprintf("「%s」：整理时想移动这一条，但你刚改过它。", e.Text)
 	}
+}
+
+// checkChapters checks that each source in a chapter quotes its text as it
+// is now; later edits of the chapter leave the source as it was.
+func (s *Store) checkChapters(r Revision) error {
+	var t *Tree
+	for k, op := range r.Ops {
+		for _, src := range op.Sources {
+			if src.Chapter == "" {
+				continue
+			}
+			if t == nil {
+				tree, err := s.tree()
+				if err != nil {
+					return err
+				}
+				t = &tree
+			}
+			n, ok := t.Node(src.Chapter)
+			if !ok || n.Folder {
+				return fmt.Errorf("ops[%d].sources: unknown chapter %q", k, src.Chapter)
+			}
+			ch, err := s.readChapter(n)
+			if err != nil {
+				return err
+			}
+			if !strings.Contains(ch.Text, src.Quote) {
+				return fmt.Errorf("ops[%d].sources: the quote is not in chapter %q", k, n.Title)
+			}
+		}
+	}
+	return nil
 }

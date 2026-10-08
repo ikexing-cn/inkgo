@@ -76,10 +76,12 @@ const (
 	PlaceDropped = "dropped" // what the author does not want
 )
 
-// Source is where an entry comes from: words quoted verbatim from a message.
+// Source is where an entry comes from: words quoted verbatim from a
+// message, or from a chapter's text as it was when the author took them.
 type Source struct {
-	Session string `json:"session"`
-	Message string `json:"message"`
+	Session string `json:"session,omitempty"`
+	Message string `json:"message,omitempty"`
+	Chapter string `json:"chapter,omitempty"`
 	Quote   string `json:"quote"`
 }
 

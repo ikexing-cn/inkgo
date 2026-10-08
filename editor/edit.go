@@ -55,37 +55,79 @@ func (e *Editor) Insert(s string) {
 	e.updateCompletion()
 }
 
-// Undo and Redo take back the last edit, and put it back.
+// Undo and Redo take back the last edit, and put it back; steps joined
+// go together.
 func (e *Editor) Undo() {
-	if len(e.undo) == 0 {
-		return
+	for len(e.undo) > 0 {
+		u := e.undo[len(e.undo)-1]
+		e.undo = e.undo[:len(e.undo)-1]
+		e.Doc.replace(u.at, u.at+len(u.inserted), u.removed)
+		e.Doc.setMarks(u.marksBefore)
+		e.redo = append(e.redo, u)
+		e.caret, e.anchor = u.caretBefore, u.anchorBefore
+		if !u.joined {
+			break
+		}
 	}
-	u := e.undo[len(e.undo)-1]
-	e.undo = e.undo[:len(e.undo)-1]
-	e.Doc.replace(u.at, u.at+len(u.inserted), u.removed)
-	e.Doc.setMarks(u.marksBefore)
-	e.redo = append(e.redo, u)
-	e.caret, e.anchor = u.caretBefore, u.anchorBefore
 	e.clampCaret()
 	e.edited()
 	e.compOpen = false
 }
 
 func (e *Editor) Redo() {
-	if len(e.redo) == 0 {
-		return
+	for first := true; len(e.redo) > 0; first = false {
+		u := e.redo[len(e.redo)-1]
+		if !first && !u.joined {
+			break
+		}
+		e.redo = e.redo[:len(e.redo)-1]
+		e.Doc.replace(u.at, u.at+len(u.removed), u.inserted)
+		e.Doc.setMarks(u.marksAfter)
+		u.typing = false
+		e.undo = append(e.undo, u)
+		e.caret, e.anchor = u.caretAfter, u.caretAfter
 	}
-	u := e.redo[len(e.redo)-1]
-	e.redo = e.redo[:len(e.redo)-1]
-	e.Doc.replace(u.at, u.at+len(u.removed), u.inserted)
-	e.Doc.setMarks(u.marksAfter)
-	u.typing = false
-	e.undo = append(e.undo, u)
-	e.caret, e.anchor = u.caretAfter, u.caretAfter
 	e.clampCaret()
 	e.edited()
 	e.compOpen = false
 }
+
+// Replace replaces runes [a, b) with s as one undoable step.
+func (e *Editor) Replace(a, b int, s string) {
+	e.replaceRange(a, b, s, false)
+	e.compOpen = false
+}
+
+// ReplaceAll replaces every q with s as one undoable step, marks moving
+// with the text around each, and returns how many it replaced.
+func (e *Editor) ReplaceAll(q, s string) int {
+	found := e.Doc.Find(q)
+	for i := len(found) - 1; i >= 0; i-- {
+		n := len(e.undo)
+		e.replaceRange(found[i][0], found[i][1], s, false)
+		if i < len(found)-1 && len(e.undo) > n {
+			e.undo[len(e.undo)-1].joined = true
+		}
+	}
+	e.compOpen = false
+	return len(found)
+}
+
+// Select selects runes [a, b), scrolling them into view.
+func (e *Editor) Select(a, b int) {
+	n := e.Doc.Len()
+	e.anchor, e.caret = clamp(a, 0, n), clamp(b, 0, n)
+	e.hasGoal, e.reveal, e.compOpen = false, true, false
+}
+
+// SetFound shows ranges found in the text, current the one stronger; nil
+// clears them.
+func (e *Editor) SetFound(ranges [][2]int, current int) {
+	e.found, e.current = ranges, current
+}
+
+// LastEdit is when the text last changed.
+func (e *Editor) LastEdit() time.Time { return e.lastEdit }
 
 func (e *Editor) clampCaret() {
 	n := e.Doc.Len()

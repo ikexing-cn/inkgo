@@ -21,12 +21,17 @@ func (a *App) View(c *ui.Context) {
 		a.pal = a.dark
 	}
 	c.SetTheme(a.pal.theme)
-	if a.Store == nil && a.page == 2 {
+	if a.Store == nil && (a.page == 2 || a.page == 3) {
 		a.page = 0
 	}
 	if a.busy == "" {
 		a.talking = false
 	}
+	if a.Store != nil && a.shown == 3 && a.page != 3 {
+		a.flush()
+		a.write.entered = false
+	}
+	a.shown = a.page
 	ui.Row(c).Fill().AlignItems(ui.Stretch).Background(a.pal.canvas).Children(func() {
 		if a.Store != nil {
 			a.sidebar(c)
@@ -41,6 +46,8 @@ func (a *App) View(c *ui.Context) {
 				a.settings(c)
 			case a.page == 2:
 				a.categories(c)
+			case a.page == 3:
+				a.writing(c)
 			case a.Store == nil:
 				a.welcome(c)
 			default:
@@ -65,7 +72,7 @@ func (a *App) sessionParts(id string) (when, words string) {
 func (a *App) sidebar(c *ui.Context) {
 	t := a.pal.theme
 	w, _ := c.Size()
-	slim := w < narrow
+	slim := w < narrow && a.page != 3 // the writing page needs its tree
 	width := float32(232)
 	if slim {
 		width = 60
@@ -94,9 +101,14 @@ func (a *App) sidebar(c *ui.Context) {
 		}
 		ui.Box(c).Height(10)
 		a.navItem(c, icChat, "讨论", 0, slim)
+		a.navItem(c, icBook, "正文", 3, slim)
 		a.navItem(c, icTag, "作品分类", 2, slim)
 		a.navItem(c, icGear, "模型设置", 1, slim)
 		ui.Box(c).Height(16)
+		if a.page == 3 {
+			a.chapterTree(c)
+			return
+		}
 		if slim {
 			if iconButton(c, icPlus, "新对话", ui.Color{}).Disabled(busy).Clicked() {
 				a.newSession()

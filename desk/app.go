@@ -64,11 +64,15 @@ type App struct {
 	// PickFolder shows a native folder dialog; it runs off the UI thread.
 	// Nil hides the browse buttons (tests, platforms without dialogs).
 	PickFolder func(title string) (string, error)
+	// SaveFile asks where to save a file named name, off the UI thread;
+	// nil saves exports into the work's 导出 folder.
+	SaveFile func(title, name string) (string, error)
 
 	light, dark *palette
 	pal         *palette
 
-	page                    int // 0 discussion, 1 models, 2 categories
+	page                    int // 0 discussion, 1 models, 2 categories, 3 writing
+	shown                   int // the page the last frame showed
 	notice                  string
 	path, name, genre       string
 	welcomeMode             int // 0 create, 1 open
@@ -107,13 +111,14 @@ type App struct {
 	md                      mdCache
 	thoughts                map[string]*bool // reasoning shown, by event or revision ID
 	doc                     docView
+	write                   writeView
 	// Book returns the bookkeeper the worker runs, as the work and the
 	// model settings are now; tests replace it.
-	Book                  func(*workspace.Store) (*discussion.Bookkeeper, error)
-	worker                *discussion.Worker
-	stopWorker            context.CancelFunc
-	changes               chan struct{} // the worker wrote a revision
-	LastChat, LastSetting ui.Rect
+	Book                             func(*workspace.Store) (*discussion.Bookkeeper, error)
+	worker                           *discussion.Worker
+	stopWorker                       context.CancelFunc
+	changes                          chan struct{} // the worker wrote a revision
+	LastChat, LastSetting, LastWrite ui.Rect
 }
 
 func New() *App {
@@ -168,6 +173,7 @@ func (a *App) create() error {
 // attach makes s the current work, starting a session when it has none.
 func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 	if a.Store != nil {
+		a.flush()
 		a.halt()
 		a.Store.Close()
 	}
@@ -193,13 +199,14 @@ func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 
 func (a *App) resetView() {
 	a.source, a.sourceOpen, a.contextReply = nil, false, ""
-	a.input, a.seen, a.flash, a.doc = "", -1, map[string]time.Time{}, docView{}
-	a.page = 0
+	a.input, a.seen, a.flash, a.doc, a.write = "", -1, map[string]time.Time{}, docView{}, writeView{}
+	a.page, a.shown = 0, 0
 }
 
 // closeWork returns to the welcome page, with its form cleared so a new work
 // does not inherit the last one's folder or name.
 func (a *App) closeWork() {
+	a.flush()
 	a.halt()
 	a.setError(a.Store.Close())
 	a.Store = nil
@@ -211,6 +218,7 @@ func (a *App) Close() error {
 	if a.cancel != nil {
 		a.cancel()
 	}
+	a.flush()
 	a.halt()
 	// Window shutdown exits the process. A cancelled worker may still be
 	// saving what it already has, so leave the store open for it.

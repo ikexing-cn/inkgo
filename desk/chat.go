@@ -27,12 +27,7 @@ func (a *App) discussion(c *ui.Context) {
 				a.composer(c)
 			})
 		})
-		if !a.doc.hidden {
-			ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
-			panel := ui.Column(c).Width(392).FillHeight().Padding(18, 18, 12, 18).Gap(12).Background(a.pal.side).Shrink(0)
-			a.LastSetting = panel.Bounds()
-			panel.Children(func() { a.settingPanel(c) })
-		}
+		a.settingColumn(c)
 	})
 }
 

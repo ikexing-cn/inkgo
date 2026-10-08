@@ -165,7 +165,7 @@ func (e *Editor) key(mods ui.Modifiers, k ui.Key) bool {
 		if shift {
 			return false
 		}
-		if !e.AcceptGhost() {
+		if !e.AcceptGhost() && !e.opts.Prose {
 			e.Insert("\u3000\u3000") // a paragraph's indent
 		}
 	case ui.KeyEscape:

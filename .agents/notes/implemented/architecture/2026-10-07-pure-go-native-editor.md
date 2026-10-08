@@ -6,7 +6,7 @@ Status: implemented
 
 写作工具需要的不只是纯文本框：伏笔标记要跟着文字移动，人物/地名要在光标处弹补全，AI 预测要以灰字显示在光标后、按 Tab 才进正文，还要能做 diff 式审阅。mygo 自带的 `ui.TextArea` 只编辑纯文本，拿不到光标坐标，也画不了行内装饰。
 
-[正文页方案](../../proposed/feature/2026-10-08-writing-page-and-chapters.md)计划把编辑器接入作品，并改动下文三处：灰字改为默认按快捷键出现、v1 关闭补全、新增"AI 起草"标记；落地前下文仍是现状。
+编辑器已接入[正文页](../feature/2026-10-08-writing-page-and-chapters.md)。[AI 辅助写作](../../proposed/feature/2026-10-08-ai-assisted-writing.md)计划再改动下文两处：灰字改为默认按快捷键出现、v1 关闭补全；落地前下文仍是现状。
 
 ## Decision
 
@@ -14,6 +14,12 @@ Status: implemented
 - 正文编辑器在 `editor/` 自己实现，不用 `ui.TextArea`：用 `HandleInput` 取按键、文字与输入法组字，`TextCaret` 告诉系统光标位置，`ui.Shape` 排字形后自己按宽度断行、自己画光标、选区、标记、灰字与补全弹层。
 - 文档模型 `editor.Doc` 只存纯文本（rune 下标）加一组 `Mark`；标记在每次替换时按位置映射移动，在标记边上打字不扩大标记，标记内文字被删光时置 `Orphaned` 而不是静默删除。
 - AI 预测只显示、不写入：`Predictor` 的结果作为灰字插在显示层，按 Tab 才作为一次可撤销的编辑写入，并打 `MarkAIAccepted` 标记留下来源。补全候选只来自传入的已确认实体，不调用模型。
+- 标记有三种：伏笔（`MarkForeshadow`）、AI 采纳（`MarkAIAccepted`）、AI 起草（`MarkAIDraft`）。替换正好覆盖一个标记的文字时，标记跟着新文字走。
+- 正文页用到的能力：
+  - `Options.Prose`：首行缩进两字只在显示层，粘贴时去掉行首空白，Tab 不插入"　　"；
+  - `Placeholder`：空文档的提示；
+  - `Menu`：调用方往右键菜单里追加项；
+  - 查找替换：`Doc.Find`、`SetFound` 高亮、`Replace`、`ReplaceAll`。连续的替换在撤销记录里合成一步（`undoStep.joined`）。
 
 ## Alternatives considered
 
@@ -28,4 +34,4 @@ Status: implemented
 
 ## Verification
 
-`go test ./...` 覆盖 `editor/doc_test.go`（标记映射、断行避头尾、补全匹配、撤销合并）、`editor/ui_test.go`（无窗口驱动真实界面）与 `cmd/poc/main_test.go`（编辑器占满窗口）。`GOOS=darwin|linux CGO_ENABLED=0 go build ./cmd/poc` 可通过。
+`go test ./...` 覆盖 `editor/doc_test.go`（标记映射、断行避头尾、补全匹配、撤销合并、全部替换一次撤销、`Prose` 不存缩进）、`editor/ui_test.go`（无窗口驱动真实界面）与 `cmd/poc/main_test.go`（编辑器占满窗口）。`GOOS=darwin|linux CGO_ENABLED=0 go build ./cmd/poc` 可通过。

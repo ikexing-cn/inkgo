@@ -3,6 +3,8 @@ package editor
 import (
 	"slices"
 	"testing"
+
+	"github.com/egoist/mygo/ui"
 )
 
 func TestMarksFollowEdits(t *testing.T) {
@@ -40,7 +42,7 @@ func TestBreakLinesKinsoku(t *testing.T) {
 	}
 	// Four characters fit; "，" must not start the second line, so "四"
 	// goes down with it.
-	got := breakLines(r, xs, 40)
+	got := breakLines(r, xs, 40, 0)
 	if !slices.Equal(got, []int{0, 3}) {
 		t.Fatalf("breakLines = %v, want [0 3]", got)
 	}
@@ -52,9 +54,9 @@ func TestBreakLinesLatinWords(t *testing.T) {
 	for i := range xs {
 		xs[i] = float32(i * 10)
 	}
-	for _, s := range breakLines(r, xs, 60)[1:] {
+	for _, s := range breakLines(r, xs, 60, 0)[1:] {
 		if isWordRune(r[s-1]) && isWordRune(r[s]) {
-			t.Fatalf("broke inside a word at %d: %v", s, breakLines(r, xs, 60))
+			t.Fatalf("broke inside a word at %d: %v", s, breakLines(r, xs, 60, 0))
 		}
 	}
 }
@@ -90,5 +92,51 @@ func TestUndoRedoTypingMerges(t *testing.T) {
 	e.Redo()
 	if e.Doc.String() != "今天" || e.Caret() != 2 {
 		t.Fatalf("redo: %q caret %d", e.Doc.String(), e.Caret())
+	}
+}
+
+// Replacing every match is one step to undo, and marks between matches
+// keep to their words.
+func TestReplaceAllUndoesAsOne(t *testing.T) {
+	e := New(NewDoc("林晚说，林晚走了，林晚"), Options{})
+	id := e.Doc.AddMark(MarkForeshadow, 4, 6, "")
+	if n := e.ReplaceAll("林晚", "沈砚舟"); n != 3 {
+		t.Fatalf("replaced %d", n)
+	}
+	if got := e.Doc.String(); got != "沈砚舟说，沈砚舟走了，沈砚舟" {
+		t.Fatalf("doc %q", got)
+	}
+	for _, m := range e.Doc.Marks() {
+		if m.ID == id && (m.Orphaned || e.Doc.Slice(m.Start, m.End) != "沈砚舟") {
+			t.Fatalf("mark %+v covers %q", m, e.Doc.Slice(m.Start, m.End))
+		}
+	}
+	e.Undo()
+	if got := e.Doc.String(); got != "林晚说，林晚走了，林晚" {
+		t.Fatalf("undo %q", got)
+	}
+	e.Redo()
+	if got := e.Doc.String(); got != "沈砚舟说，沈砚舟走了，沈砚舟" {
+		t.Fatalf("redo %q", got)
+	}
+	e.Undo()
+	e.Insert("雨")
+	e.Undo()
+	if got := e.Doc.String(); got != "林晚说，林晚走了，林晚" {
+		t.Fatalf("a step after a replacement undid with it: %q", got)
+	}
+}
+
+// Prose keeps indents out of the text: Tab adds none, and a paste loses
+// its own.
+func TestProseKeepsIndentsOut(t *testing.T) {
+	e := New(NewDoc("雨"), Options{Prose: true})
+	tt := newTester(e)
+	tt.Key(0, ui.KeyTab)
+	if e.Doc.String() != "雨" {
+		t.Fatalf("Tab indented: %q", e.Doc.String())
+	}
+	if got := unindent("　　第一段\r\n  第二段"); got != "第一段\n第二段" {
+		t.Fatalf("unindent %q", got)
 	}
 }

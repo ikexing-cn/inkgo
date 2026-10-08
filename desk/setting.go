@@ -26,7 +26,8 @@ type docView struct {
 // prefs are the desk's own per-work settings, kept in .writer, which is
 // not part of the work.
 type prefs struct {
-	SettingHidden bool `json:"setting_hidden"`
+	SettingHidden bool   `json:"setting_hidden"`
+	Chapter       string `json:"chapter,omitempty"` // the node last open
 }
 
 func (a *App) prefsPath() string { return filepath.Join(a.Store.Root(), ".writer", "desk.json") }
@@ -37,16 +38,21 @@ func (a *App) loadPrefs() {
 		_ = json.Unmarshal(b, &p) // a damaged file is as good as none
 	}
 	a.doc.hidden = p.SettingHidden
+	a.write.node = p.Chapter
+}
+
+func (a *App) savePrefs() {
+	b, err := json.Marshal(prefs{SettingHidden: a.doc.hidden, Chapter: a.write.node})
+	if err == nil {
+		err = os.WriteFile(a.prefsPath(), b, 0644)
+	}
+	a.warn(err)
 }
 
 // setDocHidden folds the panel away, for the talk alone, or brings it back.
 func (a *App) setDocHidden(hidden bool) {
 	a.doc.hidden = hidden
-	b, err := json.Marshal(prefs{SettingHidden: hidden})
-	if err == nil {
-		err = os.WriteFile(a.prefsPath(), b, 0644)
-	}
-	a.setError(err)
+	a.savePrefs()
 }
 
 var placeNames = map[string]string{workspace.PlaceBody: "正文", workspace.PlaceOpen: "悬而未决", workspace.PlaceDropped: "已放弃"}

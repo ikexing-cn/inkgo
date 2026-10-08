@@ -13,6 +13,7 @@ var (
 	colorForeshadow = ui.RGBA(230, 160, 40, 0.22)
 	colorForeLine   = ui.RGB(214, 140, 20)
 	colorAI         = ui.RGB(90, 140, 230)
+	colorFound      = ui.RGB(240, 190, 40)
 )
 
 // paint draws the text, the marks, the selection and the caret.
@@ -56,8 +57,28 @@ func (e *Editor) paint(p *ui.Painter, r ui.Rect) {
 				p.Line(ox+x0, base, ox+x1, base, 1.5, colorForeLine)
 			case MarkAIAccepted:
 				p.Line(ox+x0, base, ox+x1, base, 1, colorAI.Alpha(0.55))
+			case MarkAIDraft:
+				p.Line(ox+x0, base, ox+x1, base, 1, colorAI.Alpha(0.3))
 			}
 		})
+	}
+
+	// What a search found.
+	for i, f := range e.found {
+		color := colorFound.Alpha(0.28)
+		if i == e.current {
+			color = colorFound.Alpha(0.6)
+		}
+		l.ranges(l.toDisp(f[0], true), l.toDisp(f[1], false), func(x0, x1, y float32) {
+			if y >= top && y <= bottom {
+				p.Fill(ui.Rect{X: ox + x0, Y: oy + y + 3, W: x1 - x0, H: l.lineH - 6}, color, 2)
+			}
+		})
+	}
+
+	// The placeholder of an empty text.
+	if e.Doc.Len() == 0 && e.preedit == "" && e.opts.Placeholder != "" && len(l.lines) > 0 {
+		p.Text(ox+l.lines[0].dx, oy+l.lines[0].y+(l.lineH-e.opts.Font.Size*1.3)/2, e.opts.Placeholder, e.opts.Font.Size, t.TextMuted.Alpha(0.6))
 	}
 
 	// The selection.
@@ -80,7 +101,7 @@ func (e *Editor) paint(p *ui.Painter, r ui.Rect) {
 		if ln.y < top || ln.y > bottom {
 			continue
 		}
-		x := ox - ln.sh.xs[ln.start-ln.pstart]
+		x := ox + ln.dx - ln.sh.xs[ln.start-ln.pstart]
 		y := oy + ln.y + l.ascent
 		e.drawRun(p, ln, ln.start, min(ln.end, l.extraAt), x, y, t.Text)
 		e.drawRun(p, ln, max(ln.start, l.extraAt), min(ln.end, l.preEnd), x, y, t.Text)

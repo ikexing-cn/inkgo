@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 
@@ -94,6 +95,98 @@ func TestLayoutDiscussion(t *testing.T) {
 		t.Fatal(wt.Texts())
 	}
 	shot(t, wt, "-welcome")
+}
+
+func TestLayoutWriting(t *testing.T) {
+	root := t.TempDir()
+	s, err := workspace.Create(filepath.Join(root, "work"), "雨城来信", "网文")
+	if err != nil {
+		t.Fatal(err)
+	}
+	vol, err := s.NewChapter("", "第一卷：雨季", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = s.WriteOutline(vol, "她接下修灯的活，第一次走进没有灯的旧城。"); err != nil {
+		t.Fatal(err)
+	}
+	one, err := s.NewChapter(vol, "第一章：路灯", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := "雨从傍晚开始下，一直没有停。\n林晚背着工具箱，沿着亮着的灯往旧城走。她修了七年路灯，却从来不敢在天黑以后走进没有灯的巷子。\n井边那盏灯坏了三天。她蹲下去拧开灯座，手电的光在雨里抖得厉害。"
+	if _, err = s.WriteChapter(one, text, []workspace.ChapterMark{{Kind: workspace.MarkForeshadow, Start: 78, End: 80}}); err != nil {
+		t.Fatal(err)
+	}
+	if err = s.WriteOutline(one, "林晚夜里去旧城修灯，发现井边的灯是被人拧坏的。"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.NewChapter(vol, "第二章：井", false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.NewChapter("", "番外：晴天", false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.TakeSnapshot(one, workspace.SnapInterval, "雨从傍晚开始下。\n林晚背着工具箱往旧城走。", nil); err != nil {
+		t.Fatal(err)
+	}
+	if err = s.Close(); err != nil {
+		t.Fatal(err)
+	}
+	a := desk.NewWithConfig(filepath.Join(root, "providers.yaml"))
+	if err = a.Open(filepath.Join(root, "work")); err != nil {
+		t.Fatal(err)
+	}
+	defer a.Close()
+	tt := ui.NewTester(a.View, 1266, 780)
+	tt.Frame()
+	if err = tt.Click("正文"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Frame()
+	if a.LastWrite.W < 500 || a.LastWrite.H < 600 {
+		t.Fatalf("writing bounds %+v", a.LastWrite)
+	}
+	if !tt.HasText("第二章：井") || !tt.HasText("本章 91 字 · 全书 91 字") {
+		t.Fatal(tt.Texts())
+	}
+	shot(t, tt, "-write")
+	if err = tt.Click("快照"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	shot(t, tt, "-snapshots")
+	tt.Key(0, ui.KeyEscape)
+	tt.Frame()
+	p := filepath.Join(root, "work", "chapters", "第一卷：雨季", "第一章：路灯.txt")
+	if err = os.WriteFile(p, []byte("别处改过的一句。"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(2100 * time.Millisecond) // the page looks at the disk every two seconds
+	tt.Frame()
+	if !tt.HasText("保留我的") {
+		t.Fatal("the outside change was not noticed", tt.Texts())
+	}
+	shot(t, tt, "-outside")
+	if err = tt.Click("用磁盘上的"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err = tt.Click("章节-第一卷：雨季"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	shot(t, tt, "-folder")
+	if err = tt.Click("章节-第一章：路灯"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err = tt.Click("查找替换"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	shot(t, tt, "-find")
 }
 
 // shot writes a screenshot beside SHOT with suffix, when SHOT is set.

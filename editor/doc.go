@@ -14,6 +14,9 @@ const (
 	MarkForeshadow MarkKind = iota + 1
 	// MarkAIAccepted is text an AI predicted and a human accepted with Tab.
 	MarkAIAccepted
+	// MarkAIDraft is text an AI drafted from the outline, until a human
+	// edits it.
+	MarkAIDraft
 )
 
 func (k MarkKind) String() string {
@@ -22,6 +25,8 @@ func (k MarkKind) String() string {
 		return "伏笔"
 	case MarkAIAccepted:
 		return "AI 采纳"
+	case MarkAIDraft:
+		return "AI 起草"
 	}
 	return "标记"
 }
@@ -64,12 +69,45 @@ func (d *Doc) AddMark(kind MarkKind, a, b int, note string) int {
 	id := d.nextID
 	d.nextID++
 	d.marks = append(d.marks, Mark{ID: id, Kind: kind, Start: a, End: b, Note: note})
+	d.version++
 	return id
 }
 
 // RemoveMark removes the mark of id.
 func (d *Doc) RemoveMark(id int) {
 	d.marks = slices.DeleteFunc(d.marks, func(m Mark) bool { return m.ID == id })
+	d.version++
+}
+
+// LoadMarks gives the document marks read back, with ids of its own.
+func (d *Doc) LoadMarks(marks []Mark) {
+	d.marks = nil
+	for _, m := range marks {
+		m.Start, m.End = clamp(m.Start, 0, len(d.text)), clamp(m.End, 0, len(d.text))
+		m.End = max(m.End, m.Start)
+		m.ID = d.nextID
+		d.nextID++
+		d.marks = append(d.marks, m)
+	}
+	d.version++
+}
+
+// Find returns the ranges where q occurs, without overlapping.
+func (d *Doc) Find(q string) [][2]int {
+	k := []rune(q)
+	var out [][2]int
+	if len(k) == 0 {
+		return nil
+	}
+	for i := 0; i+len(k) <= len(d.text); {
+		if slices.Equal(d.text[i:i+len(k)], k) {
+			out = append(out, [2]int{i, i + len(k)})
+			i += len(k)
+			continue
+		}
+		i++
+	}
+	return out
 }
 
 // replace replaces runes [a, b) with ins, moving the marks with the text.
@@ -79,6 +117,10 @@ func (d *Doc) replace(a, b int, ins []rune) {
 	for i := range d.marks {
 		m := &d.marks[i]
 		wasEmpty := m.End <= m.Start
+		if m.Start == a && m.End == b && !wasEmpty && n > 0 {
+			m.End = a + n // the words marked were replaced: the mark covers the new
+			continue
+		}
 		// A mark's start stays after text inserted at it, and its end
 		// before, so that typing next to a mark does not grow it.
 		m.Start = mapPos(m.Start, a, b, n, true)

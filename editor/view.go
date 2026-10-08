@@ -2,7 +2,9 @@ package editor
 
 import (
 	"context"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -178,6 +180,19 @@ func (e *Editor) menu(m *ui.Menu) {
 			marksBefore: before, marksAfter: e.Doc.Marks(), when: time.Now()})
 		e.redo = nil
 	}
+	if e.opts.Menu != nil {
+		m.Separator()
+		e.opts.Menu(m)
+	}
+}
+
+// unindent drops the indent before each line of s.
+func unindent(s string) string {
+	lines := strings.Split(normalize(s), "\n")
+	for i, l := range lines {
+		lines[i] = strings.TrimLeftFunc(l, unicode.IsSpace)
+	}
+	return strings.Join(lines, "\n")
 }
 
 // markAt returns the id of the innermost mark around i, or 0.
@@ -211,6 +226,9 @@ func (e *Editor) paste() {
 		return
 	}
 	if s := e.c.ReadClipboard(); s != "" {
+		if e.opts.Prose {
+			s = unindent(s)
+		}
 		a, b := e.Selection()
 		e.replaceRange(a, b, s, false)
 		e.compOpen = false

@@ -20,6 +20,13 @@ type Options struct {
 	Predictor    Predictor
 	PredictDelay time.Duration
 	Font         ui.Font
+	// Prose indents each paragraph's first line as it shows it, keeping
+	// indents out of the text: Tab inserts none, and a paste loses its own.
+	Prose bool
+	// Placeholder shows while the text is empty.
+	Placeholder string
+	// Menu adds items to the end of the context menu.
+	Menu func(m *ui.Menu)
 }
 
 // Editor edits a Doc in a window of native UI. Its methods run on the main
@@ -53,6 +60,10 @@ type Editor struct {
 	compSel   int
 	compOpen  bool
 
+	// Ranges found, painted under the text; the current one stronger.
+	found   [][2]int
+	current int
+
 	// View state.
 	c             *ui.Context
 	lay           layout
@@ -81,6 +92,8 @@ type undoStep struct {
 	marksBefore, marksAfter   []Mark
 	typing                    bool
 	when                      time.Time
+	// joined undoes and redoes the step with the one before it.
+	joined bool
 }
 
 // New returns an editor of doc.

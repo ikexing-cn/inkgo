@@ -51,14 +51,18 @@ type glyphPos struct {
 // the rune index each line starts at. Chinese breaks between any two
 // characters, but for punctuation that must not start or end a line
 // (避头尾); runs of Latin letters and digits break between words.
-func breakLines(r []rune, xs []float32, width float32) []int {
+func breakLines(r []rune, xs []float32, width, indent float32) []int {
 	starts := []int{0}
 	if width <= 0 {
 		return starts
 	}
 	ls := 0
 	for i := 0; i < len(r); i++ {
-		if i == ls || xs[i+1]-xs[ls] <= width {
+		w := width
+		if ls == 0 {
+			w -= indent
+		}
+		if i == ls || xs[i+1]-xs[ls] <= w {
 			continue
 		}
 		brk := i
