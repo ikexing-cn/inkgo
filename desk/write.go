@@ -734,7 +734,7 @@ func (a *App) writeTop(c *ui.Context) {
 			if w.finding {
 				color = a.pal.brand
 			}
-			if iconButton(c, icSearch, "查找替换", color).Disabled(busy).Clicked() {
+			if iconButton(c, icSearch, "查找替换", color).Tooltip("查找替换（" + modKey + "F）").Disabled(busy).Clicked() {
 				w.finding = !w.finding
 				if !w.finding {
 					w.wide, w.texts = false, nil
