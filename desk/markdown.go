@@ -203,27 +203,56 @@ func (a *App) markdown(c *ui.Context, s string, size float32) *ui.Element {
 	})
 }
 
+// liveMarkdown draws a reply still streaming. Laying out one text costs
+// as much as its length, so the blocks written stand apart from the last,
+// which grows: they keep their text, and their layout, until it is done.
+func (a *App) liveMarkdown(c *ui.Context, s string, size float32) *ui.Element {
+	return ui.Column(c).FillWidth().Gap(size * 0.7).Children(func() {
+		blocks := a.md.get(s)
+		n := len(blocks) - 1
+		if n <= 0 {
+			a.mdDraw(c, blocks, size)
+			return
+		}
+		a.mdDraw(c, blocks[:n], size)
+		tail := ui.Column(c).FillWidth()
+		if mdFlows(blocks[n-1]) && mdFlows(blocks[n]) {
+			// The blank line the two would have between them.
+			tail.Padding(size*1.8-size*0.7, 0, 0, 0)
+		}
+		tail.Children(func() { a.mdDraw(c, blocks[n:], size) })
+	})
+}
+
+// mdDraw draws blocks. Paragraphs, headings and lists of text run
+// together as one text, so the author can select across them; quotes,
+// code and tables stand apart, and a selection stops at them.
 func (a *App) mdDraw(c *ui.Context, blocks []mdBlock, size float32) {
 	t := a.pal.theme
+	var flow []ui.Span
+	flush := func() {
+		if len(flow) > 0 {
+			ui.RichText(c, flow...).FillWidth().FontSize(size).LineHeight(1.8).TextColor(t.Text).Selectable()
+			flow = nil
+		}
+	}
 	for _, b := range blocks {
-		switch b.kind {
-		case mdParagraph:
-			a.mdText(c, b.inline, size).LineHeight(1.8)
-		case mdHeading:
-			scale := map[int]float32{1: 1.35, 2: 1.2, 3: 1.08}[b.level]
-			if scale == 0 {
-				scale = 1
+		if mdFlows(b) {
+			if len(flow) > 0 {
+				// A blank line parts blocks: lines are no shorter than
+				// the text's line height, so it cannot be a smaller gap.
+				flow = append(flow, ui.Span{Text: "\n\n"})
 			}
-			a.mdText(c, b.inline, size*scale).FontWeight(650).LineHeight(1.5).Padding(size*0.3, 0, 0, 0)
+			flow = a.mdFlow(flow, b, size, 0)
+			continue
+		}
+		flush()
+		switch b.kind {
 		case mdList:
 			ui.Column(c).FillWidth().Gap(size * 0.35).Children(func() {
 				for n, item := range b.items {
 					ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Start).Children(func() {
-						mark := "•"
-						if b.ordered {
-							mark = strconv.Itoa(b.start+n) + "."
-						}
-						ui.Text(c, mark).FontSize(size).LineHeight(1.8).TextColor(t.TextMuted).Width(size * 1.4).TextAlign(ui.End).Shrink(0)
+						ui.Text(c, mdMark(b, n)).FontSize(size).LineHeight(1.8).TextColor(t.TextMuted).Width(size * 1.4).TextAlign(ui.End).Shrink(0)
 						ui.Column(c).Grow(1).Shrink(1).Gap(size * 0.35).Children(func() { a.mdDraw(c, item, size) })
 					})
 				}
@@ -248,7 +277,7 @@ func (a *App) mdDraw(c *ui.Context, blocks []mdBlock, size float32) {
 					ui.Row(c).FillWidth().AlignItems(ui.Stretch).Children(func() {
 						for _, cell := range row {
 							ui.Column(c).Grow(1).Shrink(1).Basis(0).Padding(7, 10).Children(func() {
-								a.mdText(c, cell, size*0.93).LineHeight(1.6)
+								ui.RichText(c, a.mdRuns(nil, cell, size*0.93)...).FillWidth().FontSize(size * 0.93).LineHeight(1.6).TextColor(t.Text).Selectable()
 							})
 						}
 					})
@@ -256,11 +285,76 @@ func (a *App) mdDraw(c *ui.Context, blocks []mdBlock, size float32) {
 			})
 		}
 	}
+	flush()
 }
 
-func (a *App) mdText(c *ui.Context, spans []mdSpan, size float32) *ui.Element {
-	t := a.pal.theme
-	runs := make([]ui.Span, 0, len(spans))
+// mdFlows reports whether b is text that runs with the text around it: a
+// list does when its items hold only text, lists of text among it.
+func mdFlows(b mdBlock) bool {
+	switch b.kind {
+	case mdParagraph, mdHeading:
+		return true
+	case mdList:
+		for _, item := range b.items {
+			for _, ib := range item {
+				if ib.kind != mdParagraph && (ib.kind != mdList || !mdFlows(ib)) {
+					return false
+				}
+			}
+		}
+		return true
+	}
+	return false
+}
+
+// mdFlow appends b, which flows, to the runs of a text. A list's items
+// start lines with their marks, nested lists indented an ideographic
+// space a level;
+// without hanging indents, an item's wrapped lines start at the margin.
+func (a *App) mdFlow(out []ui.Span, b mdBlock, size float32, depth int) []ui.Span {
+	switch b.kind {
+	case mdParagraph:
+		return a.mdRuns(out, b.inline, size)
+	case mdHeading:
+		scale := map[int]float32{1: 1.35, 2: 1.2, 3: 1.08}[b.level]
+		if scale == 0 {
+			scale = 1
+		}
+		from := len(out)
+		out = a.mdRuns(out, b.inline, size*scale)
+		for i := from; i < len(out); i++ {
+			out[i].Size, out[i].Weight = size*scale, 650
+		}
+		return out
+	}
+	for n, item := range b.items {
+		if n > 0 {
+			out = append(out, ui.Span{Text: "\n"})
+		}
+		out = append(out, ui.Span{Text: strings.Repeat("　", depth) + mdMark(b, n) + " ", Color: a.pal.theme.TextMuted})
+		for k, ib := range item {
+			if k > 0 {
+				out = append(out, ui.Span{Text: "\n"})
+			}
+			if ib.kind == mdList {
+				out = a.mdFlow(out, ib, size, depth+1)
+			} else {
+				out = a.mdFlow(out, ib, size, depth)
+			}
+		}
+	}
+	return out
+}
+
+func mdMark(b mdBlock, n int) string {
+	if b.ordered {
+		return strconv.Itoa(b.start+n) + "."
+	}
+	return "•"
+}
+
+// mdRuns appends styled runs of text at size to out.
+func (a *App) mdRuns(out []ui.Span, spans []mdSpan, size float32) []ui.Span {
 	for _, s := range spans {
 		r := ui.Span{Text: s.text, Italic: s.italic, Strikethrough: s.strike}
 		if s.bold {
@@ -272,7 +366,7 @@ func (a *App) mdText(c *ui.Context, spans []mdSpan, size float32) *ui.Element {
 		if s.link {
 			r.Color, r.Underline = a.pal.brand, true
 		}
-		runs = append(runs, r)
+		out = append(out, r)
 	}
-	return ui.RichText(c, runs...).FillWidth().FontSize(size).TextColor(t.Text).Selectable()
+	return out
 }

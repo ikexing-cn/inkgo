@@ -128,6 +128,7 @@ var (
 	icSend      = icon(`<path d="M12 19V5M5 12l7-7 7 7"/>`)
 	icSparkle   = icon(`<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 17l.7 1.8 1.8.7-1.8.7L19 22l-.7-1.8-1.8-.7 1.8-.7z"/>`)
 	icQuote     = icon(`<path d="M4 6h16M4 12h10M4 18h7"/>`)
+	icCopy      = icon(`<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>`)
 	icEye       = icon(`<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>`)
 	icRetry     = icon(`<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>`)
 	icCheck     = icon(`<path d="M20 6 9 17l-5-5"/>`)

@@ -3,7 +3,6 @@ package desk
 import (
 	"context"
 	"fmt"
-	"math"
 	"runtime"
 	"strings"
 
@@ -23,24 +22,7 @@ func (a *App) discussion(c *ui.Context) {
 		a.LastChat = chat.Bounds()
 		chat.Children(func() {
 			a.chatTop(c)
-			ui.Scroll(c).Key("chat-" + a.session).TrackScroll(&a.chatScroll).Grow(1).FillWidth().Children(func() {
-				ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(28, 28, 24, 28).Children(func() {
-					ui.Column(c).FillWidth().MaxWidth(column).Gap(26).Children(func() {
-						if !a.hasMessages() && a.pending == "" {
-							a.emptyChat(c)
-						}
-						last := a.lastMessage()
-						for _, m := range a.events {
-							if m.Kind == workspace.KindMessage {
-								a.message(c, m, m.ID == last)
-							}
-						}
-						if a.talking {
-							a.thinking(c)
-						}
-					})
-				})
-			})
+			a.chatList(c)
 			ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(0, 28, 20, 28).Children(func() {
 				a.composer(c)
 			})
@@ -50,6 +32,46 @@ func (a *App) discussion(c *ui.Context) {
 		a.LastPool = pool.Bounds()
 		pool.Children(func() { a.pool(c) })
 	})
+}
+
+// chatList builds only the messages in view: laying out a long session
+// whole each frame made streaming and scrolling stutter.
+func (a *App) chatList(c *ui.Context) {
+	rows := a.rows[:0]
+	if !a.hasMessages() && a.pending == "" {
+		rows = append(rows, -1)
+	}
+	for n, m := range a.events {
+		if m.Kind == workspace.KindMessage {
+			rows = append(rows, n)
+		}
+	}
+	if a.talking {
+		rows = append(rows, -2)
+	}
+	a.rows = rows
+	last := a.lastMessage()
+	a.chat.FollowEnd = true
+	a.chat.Key = func(i int) any {
+		if rows[i] < 0 {
+			return rows[i]
+		}
+		return a.events[rows[i]].ID
+	}
+	ui.List(c, &a.chat, len(rows), func(i int) {
+		ui.Column(c).FillWidth().AlignItems(ui.Center).Children(func() {
+			ui.Column(c).FillWidth().MaxWidth(column).Children(func() {
+				switch r := rows[i]; r {
+				case -1:
+					a.emptyChat(c)
+				case -2:
+					a.thinking(c)
+				default:
+					a.message(c, a.events[r], a.events[r].ID == last)
+				}
+			})
+		})
+	}).Grow(1).FillWidth().Gap(26).Padding(28, 28, 24, 28)
 }
 
 func (a *App) hasMessages() bool { return a.lastMessage() != "" }
@@ -91,7 +113,7 @@ func (a *App) switchSession(id string) {
 	a.session = id
 	a.source, a.sourceOpen, a.contextReply, a.turn = nil, false, "", ""
 	a.setError(a.refresh())
-	a.chatScroll.Y = math.MaxFloat32
+	a.chat = ui.ListState{} // a list's place is its session's
 }
 
 func (a *App) emptyChat(c *ui.Context) {
@@ -182,6 +204,10 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 				a.openSource(m, 0, 0)
 			}
 			if !user {
+				// Its Markdown, which keeps its structure pasted elsewhere.
+				if iconButton(c, icCopy, "复制-"+m.ID, ui.Color{}).Tooltip("复制全文").Clicked() {
+					c.WriteClipboard(m.Text)
+				}
 				on := a.contextReply == m.ID
 				color := ui.Color{}
 				if on {
@@ -233,7 +259,7 @@ func (a *App) thinking(c *ui.Context) {
 				a.thought(c, "live-reply", "思考过程", reasoning, step == discussion.StepReply && text == "")
 			}
 			if text != "" {
-				a.markdown(c, text, 14.5)
+				a.liveMarkdown(c, text, 14.5)
 			}
 			status := a.busy
 			switch {
@@ -274,7 +300,20 @@ func (a *App) thought(c *ui.Context, key, label, reasoning string, running bool)
 	ui.Collapsible(c, label, open, func() {
 		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Stretch).Padding(4, 0, 2, 2).Children(func() {
 			ui.Box(c).Width(2).Radius(1).Background(a.pal.line).Shrink(0)
-			ui.Text(c, reasoning).FontSize(13).LineHeight(1.7).TextColor(t.TextMuted).Selectable().Grow(1).Shrink(1)
+			if !running {
+				ui.Text(c, reasoning).FontSize(13).LineHeight(1.7).TextColor(t.TextMuted).Selectable().Grow(1).Shrink(1)
+				return
+			}
+			// While it streams, the paragraphs written keep their layout
+			// and only the last is laid out again, as liveMarkdown does.
+			ui.Column(c).Grow(1).Shrink(1).Children(func() {
+				cut := strings.LastIndex(reasoning, "\n") + 1
+				for _, s := range []string{strings.TrimSuffix(reasoning[:cut], "\n"), reasoning[cut:]} {
+					if s != "" {
+						ui.Text(c, s).FontSize(13).LineHeight(1.7).TextColor(t.TextMuted).FillWidth()
+					}
+				}
+			})
 		})
 	}).FillWidth()
 }
@@ -489,7 +528,7 @@ func (a *App) send(c *ui.Context) {
 	}
 	input, session := a.input, a.session
 	a.pending, a.input = input, ""
-	a.chatScroll.Y = math.MaxFloat32
+	a.chat.ScrollToEnd()
 	a.run(c, "AI 正在思考，并整理这一轮的思路…", func(ctx context.Context) (func(), error) {
 		turn, err := eng.Send(ctx, session, input)
 		return func() {
@@ -497,7 +536,7 @@ func (a *App) send(c *ui.Context) {
 			if turn.User.ID == "" && a.input == "" {
 				a.input = input // nothing was saved: give the words back
 			}
-			a.chatScroll.Y = math.MaxFloat32
+			a.chat.ScrollToEnd()
 		}, err
 	})
 	a.talking = a.busy != ""
@@ -512,7 +551,7 @@ func (a *App) retry(c *ui.Context, userID string) {
 	session := a.session
 	a.run(c, "正在重新请求回复…", func(ctx context.Context) (func(), error) {
 		_, err := eng.Retry(ctx, session, userID)
-		return func() { a.chatScroll.Y = math.MaxFloat32 }, err
+		return func() { a.chat.ScrollToEnd() }, err
 	})
 	a.talking = a.busy != ""
 }

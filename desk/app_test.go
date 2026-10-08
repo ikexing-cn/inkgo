@@ -311,3 +311,37 @@ func TestEffortMenuSavesToWork(t *testing.T) {
 		t.Fatal("chip does not show model and effort", tt.Texts())
 	}
 }
+
+// A reply's paragraphs, headings and lists are one text, which the author
+// selects across; Copy takes its Markdown.
+func TestReplyTextSelectsAcrossBlocksAndCopies(t *testing.T) {
+	a, tt, _ := fixture(t)
+	reply := "第一段。\n\n## 小标题\n\n- 甲\n- 乙\n\n第二段。\n\n```\ncode\n```"
+	u, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "说说"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: reply})
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.setError(a.refresh())
+	tt.Frame()
+	if !tt.HasText("第一段。\n\n小标题\n\n• 甲\n• 乙\n\n第二段。") || !tt.HasText("code") {
+		t.Fatal("text blocks do not run together", tt.Texts())
+	}
+	flow, _ := tt.Find("第一段。\n\n小标题\n\n• 甲\n• 乙\n\n第二段。")
+	tt.Press(flow.X+2, flow.Y+4)
+	tt.Move(flow.X+flow.W/2, flow.Y+flow.H-4)
+	tt.Release(flow.X+flow.W/2, flow.Y+flow.H-4)
+	tt.Key(ui.Ctrl, ui.KeyC)
+	if got := tt.Clipboard(); !strings.Contains(got, "第一段。") || !strings.Contains(got, "第二段") {
+		t.Fatalf("a drag selected %q", got)
+	}
+	if err = tt.Click("复制-" + r.ID); err != nil {
+		t.Fatal(err)
+	}
+	if tt.Clipboard() != reply {
+		t.Fatalf("copied %q", tt.Clipboard())
+	}
+}

@@ -30,7 +30,7 @@ func TestLayoutDiscussion(t *testing.T) {
 	}
 	reply, err := s.Append(session, workspace.Event{Kind: "message", Role: "assistant", ReplyTo: user.ID,
 		Model: "deepseek/deepseek-flash", Effort: "high", Reasoning: "作者给了两个设定：城市总在下雨，主角修路灯却怕黑。职业和恐惧正好相反，这是张力所在。",
-		Text: "修路灯和怕黑放在一起很有**张力**：\n\n- 她每天维护别人的光；\n- 却不敢走进没有灯的巷子。\n\n> 她为什么选择了这份工作？"})
+		Text: "修路灯和怕黑放在一起很有**张力**：\n\n- 她每天维护别人的光；\n- 却不敢走进没有灯的巷子，哪怕那是回家最近的路，她也宁可绕上半个城区，沿着亮着的灯一盏一盏走回去。\n  - 绕路本身就是一种`仪式`\n\n### 可以往哪走\n\n1. 先定她怕黑的来历\n2. 再定雨和光的关系\n\n这两件事会互相牵动。\n\n> 她为什么选择了这份工作？"})
 	if err != nil {
 		t.Fatal(err)
 	}

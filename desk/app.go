@@ -118,7 +118,8 @@ type App struct {
 	cancel                  context.CancelFunc
 	results                 chan result
 	picks                   chan func()
-	chatScroll              ui.ScrollState
+	chat                    ui.ListState
+	rows                    []int // the chat list's: event indexes, -1 the empty chat, -2 the turn in flight
 	focusCard               string
 	last                    *undo
 	providerID              string
