@@ -511,6 +511,18 @@ func TestFocusLeavesThePageAlone(t *testing.T) {
 	if a.write.focus || !tt.HasText("右栏-讨论") {
 		t.Fatal("quoting kept the column away", tt.Texts())
 	}
+	// F11 from the prose goes in and out.
+	a.write.ed.Focus()
+	tt.Key(0, ui.KeyF11)
+	tt.Frame()
+	if !a.write.focus {
+		t.Fatal("F11 did not leave the page alone")
+	}
+	tt.Key(0, ui.KeyF11)
+	tt.Frame()
+	if a.write.focus {
+		t.Fatal("F11 did not bring the tree and the column back")
+	}
 }
 
 func TestAFolderCountsItsChapters(t *testing.T) {

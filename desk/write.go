@@ -439,6 +439,9 @@ func (a *App) writing(c *ui.Context) {
 	if c.Shortcut(ui.Cmd, ui.KeyL) {
 		a.quoteToTalk()
 	}
+	if c.Shortcut(0, ui.KeyF11) {
+		a.write.focus = !a.write.focus
+	}
 	ui.Row(c).FillWidth().Grow(1).AlignItems(ui.Stretch).Children(func() {
 		main := ui.Column(c).Grow(1).Shrink(1).FillHeight()
 		a.LastWrite = main.Bounds()
@@ -617,10 +620,10 @@ func (a *App) writeTop(c *ui.Context) {
 			}
 		}
 		if w.focus {
-			if iconButton(c, icShrink, "退出专注", a.pal.brand).Tooltip("退出专注，回到章节树和右栏").Clicked() {
+			if iconButton(c, icShrink, "退出专注", a.pal.brand).Tooltip("退出专注，回到章节树和右栏（F11）").Clicked() {
 				w.focus = false
 			}
-		} else if iconButton(c, icExpand, "专注写作", ui.Color{}).Tooltip("只留正文，收起章节树和右栏").Clicked() {
+		} else if iconButton(c, icExpand, "专注写作", ui.Color{}).Tooltip("只留正文，收起章节树和右栏（F11）").Clicked() {
 			w.focus = true
 		}
 	})
