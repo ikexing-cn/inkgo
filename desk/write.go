@@ -62,6 +62,10 @@ type writeView struct {
 	finding         bool
 	query, with     string
 	current         int
+	wide            bool              // finding in the whole book
+	texts           map[string]string // the chapters' text while finding in the book
+	hits            []bookHit
+	hitsFor         [3]any // the query, chapter and edit the hits were found for
 
 	snapsOpen bool
 	snaps     []workspace.Snapshot
@@ -573,6 +577,7 @@ func (a *App) writeTop(c *ui.Context) {
 			if iconButton(c, icSearch, "查找替换", color).Disabled(busy).Clicked() {
 				w.finding = !w.finding
 				if !w.finding {
+					w.wide, w.texts = false, nil
 					w.ed.SetFound(nil, 0)
 				}
 			}
@@ -732,16 +737,28 @@ func (a *App) findBar(c *ui.Context) {
 			a.notice = fmt.Sprintf("已替换 %d 处，可以撤销", n)
 		}
 	}
+	wide := func() {
+		color := ui.Color{}
+		if w.wide {
+			color = a.pal.brand
+		}
+		if ghost(c, "全书", color).Tooltip("在所有章节里找").Clicked() {
+			w.wide, w.texts = !w.wide, nil
+		}
+	}
 	closer := func() {
 		if iconButton(c, icX, "关闭查找", ui.Color{}).Clicked() {
-			w.finding = false
+			w.finding, w.wide, w.texts = false, false, nil
 			w.ed.SetFound(nil, 0)
 		}
 	}
 	line := func(fn func()) { ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(fn) }
 	bar.Children(func() {
-		line(func() { query(); count(); move(); closer() })
+		line(func() { query(); count(); move(); wide(); closer() })
 		line(func() { with(); replace() })
+		if w.wide {
+			a.bookResults(c)
+		}
 	})
 }
 
