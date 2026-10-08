@@ -41,7 +41,10 @@ type Work struct {
 	Categories  []Category `yaml:"categories" json:"categories"`
 	Discussion  Selection  `yaml:"discussion" json:"discussion"`
 	Bookkeeping Selection  `yaml:"bookkeeping" json:"bookkeeping"`
-	TokenBudget int        `yaml:"token_budget" json:"token_budget"`
+	// Writing continues, rewrites and drafts the prose; left empty, it is
+	// the discussion's model.
+	Writing     Selection `yaml:"writing,omitempty" json:"writing,omitempty"`
+	TokenBudget int       `yaml:"token_budget" json:"token_budget"`
 }
 
 // ContextItem is an entry of the setting as one request showed it, or

@@ -223,7 +223,11 @@ func (e *Editor) AcceptGhost() bool {
 	s, at := e.ghost, e.caret
 	e.replaceRange(at, at, s, false)
 	n := len([]rune(s))
-	e.Doc.AddMark(MarkAIAccepted, at, at+n, "")
+	note := ""
+	if e.opts.GhostNote != nil {
+		note = e.opts.GhostNote()
+	}
+	e.Doc.AddMark(MarkAIAccepted, at, at+n, note)
 	e.undo[len(e.undo)-1].marksAfter = e.Doc.Marks()
 	return true
 }

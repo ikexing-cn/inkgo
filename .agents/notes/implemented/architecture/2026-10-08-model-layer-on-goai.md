@@ -51,8 +51,10 @@ GoAI 在没传 key 时会读 `OPENAI_API_KEY`、`ANTHROPIC_API_KEY`，使用默�
 |---|---|---|---|
 | Default | 不发送，由服务商决定（DeepSeek 默认 high） | 不发送 | 不发送 |
 | Low / High / Max | `reasoning_effort: low/high/max` | `reasoning.effort: low/high/max`，`summary: auto` | `output_config.effort`，加 `thinking: {type: adaptive, display: summarized}` |
+| None（只供程序内部用，不出现在下拉框） | `thinking: {type: disabled}` | `reasoning.effort: none` | 不发送（不开 thinking 就不推理） |
 
-- 讨论和整理分别设推理等级，存在 `work.yaml` 的 `discussion.effort`、`bookkeeping.effort`（空、`low`、`high`、`max`）。整理沿用讨论模型时，可以单独设一个更低的等级。
+- 讨论、整理和写作分别设推理等级，存在 `work.yaml` 的 `discussion.effort`、`bookkeeping.effort`、`writing.effort`（空、`low`、`high`、`max`）。整理或写作沿用讨论模型时，可以单独设一个更低的等级。
+- None 给[续写](../feature/2026-10-08-ai-assisted-writing.md)用。Responses 上不能靠"不发送"：2026-10-08 实测 DeepSeek 走 Responses 时，不发送和 `minimal` 都会推理（推理不流出，却占满 400 token 的输出额度，回复被截断），发 `none` 才不推理。较新的 OpenAI 模型也认 `none`。
 - 输入框下方的模型标签显示"模型 ID + 等级"，点开是原生菜单：`模型 ›` 按提供商列出目录里的模型，`推理等级 ›` 列四档并勾选当前项；选中后立即写回作品配置。设置页也提供同样的两个下拉框。
 
 ### 落盘与复盘

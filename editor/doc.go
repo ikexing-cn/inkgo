@@ -114,9 +114,29 @@ func (d *Doc) Find(q string) [][2]int {
 func (d *Doc) replace(a, b int, ins []rune) {
 	d.text = slices.Concat(d.text[:a:a], ins, d.text[b:])
 	n := len(ins)
+	var split []Mark
+	drop := map[int]bool{}
 	for i := range d.marks {
 		m := &d.marks[i]
 		wasEmpty := m.End <= m.Start
+		if m.Kind == MarkAIDraft && !wasEmpty && a < m.End && b > m.Start {
+			// An edit inside a draft takes its words out of it: what is
+			// left before and after the edit stays the draft's.
+			delta := n - (b - a)
+			before, after := m.Start < a, b < m.End
+			switch {
+			case before && after:
+				split = append(split, Mark{Kind: m.Kind, Start: a + n, End: m.End + delta, Note: m.Note})
+				m.End = a
+			case before:
+				m.End = a
+			case after:
+				m.Start, m.End = a+n, m.End+delta
+			default:
+				drop[m.ID] = true
+			}
+			continue
+		}
 		if m.Start == a && m.End == b && !wasEmpty && n > 0 {
 			m.End = a + n // the words marked were replaced: the mark covers the new
 			continue
@@ -131,6 +151,12 @@ func (d *Doc) replace(a, b int, ins []rune) {
 				m.Orphaned = true
 			}
 		}
+	}
+	d.marks = slices.DeleteFunc(d.marks, func(m Mark) bool { return drop[m.ID] })
+	for _, m := range split {
+		m.ID = d.nextID
+		d.nextID++
+		d.marks = append(d.marks, m)
 	}
 	d.version++
 }

@@ -187,7 +187,7 @@ func (a *App) usage(c *ui.Context) {
 	for _, p := range a.Config.Providers {
 		ids = append(ids, p.ID)
 	}
-	a.section(c, "这部作品用哪个模型", "讨论模型负责回应你；整理模型在后台把讨论整理进设定文档，可以用更便宜的模型或更低的推理等级。推理等级 Default 交给服务商决定。改动从下一次发送开始生效。", func() {
+	a.section(c, "这部作品用哪个模型", "讨论模型负责回应你；整理模型在后台把讨论整理进设定文档，可以用更便宜的模型或更低的推理等级；写作模型负责正文页的续写、改写和起草。推理等级 Default 交给服务商决定。改动从下一次发送开始生效。", func() {
 		ui.Row(c).FillWidth().Gap(12).Children(func() {
 			labeled(c, "讨论 · 服务", func() {
 				ui.Select(c, &a.talkProvider, ids).Label("讨论提供商").FillWidth().Disabled(busy)
@@ -219,6 +219,33 @@ func (a *App) usage(c *ui.Context) {
 				}
 			}).Grow(1)
 			labeled(c, "推理等级", func() { effortSelect(c, &a.bookEffort, "整理推理等级", busy) }).Width(136)
+		})
+		pen := a.penProvider
+		if pen == "" {
+			pen = sameAsTalk
+		}
+		ui.Row(c).FillWidth().Gap(12).Children(func() {
+			labeled(c, "写作 · 服务", func() {
+				if ui.Select(c, &pen, append([]string{sameAsTalk}, ids...)).Label("写作提供商").FillWidth().Disabled(busy).Changed() {
+					a.penProvider = ""
+					if pen != sameAsTalk {
+						a.penProvider = pen
+					}
+				}
+			}).Width(200)
+			labeled(c, "写作 · 模型", func() {
+				if a.penProvider == "" {
+					ui.Text(c, "和讨论用同一个模型").TextColor(t.TextMuted).Padding(7, 0)
+					a.penModel = ""
+				} else {
+					ui.Autocomplete(c, &a.penModel, a.providerModels(a.penProvider)).Label("写作模型").Placeholder("输入或选择模型 ID").FillWidth().Disabled(busy)
+				}
+			}).Grow(1)
+			labeled(c, "推理等级", func() { effortSelect(c, &a.penEffort, "写作推理等级", busy) }).Width(136)
+		})
+		ui.Column(c).FillWidth().Gap(4).Children(func() {
+			ui.Checkbox(c, &a.write.autoPredict, "停止输入后自动续写").Disabled(busy)
+			ui.Text(c, "续写总是不推理、只写一句。默认按 Cmd+J 才续写；打开上面这项后，每次停下来都会调用一次模型。").FontSize(12).TextColor(a.pal.faint).LineHeight(1.5)
 		})
 		ui.Row(c).FillWidth().Gap(12).AlignItems(ui.End).Children(func() {
 			labeled(c, "上下文预算（token，含回答预留）", func() {
@@ -266,6 +293,13 @@ func (a *App) saveUsage() error {
 	if w.Bookkeeping.Provider == "" {
 		w.Bookkeeping.Model = ""
 	}
+	w.Writing = workspace.Selection{Provider: trim(a.penProvider), Model: trim(a.penModel), Effort: a.penEffort}
+	if w.Writing.Provider == "" {
+		w.Writing.Model = ""
+	}
+	if w.Writing.Provider != "" && w.Writing.Model == "" {
+		return errors.New("写作模型选了单独的服务，还需要填写模型 ID；或改回“沿用讨论模型”")
+	}
 	// The store requires a provider and a model together; say which is missing.
 	if (w.Discussion.Provider == "") != (w.Discussion.Model == "") {
 		return errors.New("讨论模型需要同时选择服务和填写模型 ID")
@@ -275,6 +309,10 @@ func (a *App) saveUsage() error {
 	}
 	w.TokenBudget = budget
 	if err = a.Store.SaveWork(w); err == nil {
+		a.savePrefs()
+		if a.write.ed != nil {
+			a.write.ed.SetPredictOnDemand(!a.write.autoPredict)
+		}
 		a.notice = "模型设置已保存，从下一条发言起生效"
 		a.kick() // a model or budget that now works takes in what waited
 	}

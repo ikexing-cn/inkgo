@@ -42,6 +42,28 @@ type Snapshot struct {
 	Title  string        `json:"title"`
 	Count  int           `json:"count"`
 	Marks  []ChapterMark `json:"marks,omitempty"`
+	// AI is what an AI was about to do, for a snapshot taken before it.
+	AI *AIRecord `json:"ai,omitempty"`
+}
+
+// What an AI did to a document.
+const (
+	AIDraft   = "draft"   // wrote it from the outline
+	AIRewrite = "rewrite" // rewrote the words selected
+)
+
+// AIRecord is one change an AI made: what it was asked, by which model,
+// and what it was shown.
+type AIRecord struct {
+	Op          string `json:"op"`
+	Instruction string `json:"instruction,omitempty"`
+	Model       string `json:"model"`
+	Effort      string `json:"effort,omitempty"`
+	// Shown lists what the request held besides the setting, in words;
+	// Setting and Omitted the entries of the setting it held and left out.
+	Shown   []string      `json:"shown,omitempty"`
+	Setting []ContextItem `json:"setting,omitempty"`
+	Omitted []ContextItem `json:"omitted,omitempty"`
 }
 
 func (s *Store) historyPath(id string, name ...string) (string, error) {
@@ -60,10 +82,23 @@ func (s *Store) TakeSnapshot(id, reason, text string, marks []ChapterMark) (bool
 		return false, err
 	}
 	defer unlock()
-	return s.takeSnapshot(id, reason, text, marks, time.Now())
+	return s.takeSnapshot(id, reason, text, marks, nil, time.Now())
 }
 
-func (s *Store) takeSnapshot(id, reason, text string, marks []ChapterMark, now time.Time) (bool, error) {
+// SnapshotForAI keeps the text of document id aside before an AI changes
+// it, with what the AI is to do; the record is kept even when the text is
+// the latest snapshot's.
+func (s *Store) SnapshotForAI(id, text string, marks []ChapterMark, rec AIRecord) error {
+	unlock, err := s.lock()
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	_, err = s.takeSnapshot(id, SnapAI, text, marks, &rec, time.Now())
+	return err
+}
+
+func (s *Store) takeSnapshot(id, reason, text string, marks []ChapterMark, ai *AIRecord, now time.Time) (bool, error) {
 	t, err := s.tree()
 	if err != nil {
 		return false, err
@@ -76,7 +111,7 @@ func (s *Store) takeSnapshot(id, reason, text string, marks []ChapterMark, now t
 	if err != nil {
 		return false, err
 	}
-	if len(snaps) > 0 {
+	if len(snaps) > 0 && ai == nil {
 		last, err := s.snapshotText(id, snaps[0].Name)
 		if err != nil {
 			return false, err
@@ -106,7 +141,7 @@ func (s *Store) takeSnapshot(id, reason, text string, marks []ChapterMark, now t
 		m.Quote = string(runes[m.Start:m.End])
 		kept = append(kept, m)
 	}
-	snap := Snapshot{At: at.UTC(), Reason: reason, Title: n.Title, Count: Count(text), Marks: kept}
+	snap := Snapshot{At: at.UTC(), Reason: reason, Title: n.Title, Count: Count(text), Marks: kept, AI: ai}
 	b, err := json.MarshalIndent(snap, "", "  ")
 	if err != nil {
 		return false, err

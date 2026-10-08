@@ -59,7 +59,7 @@ func validateWork(w Work) error {
 	if !seen[Other] {
 		return fmt.Errorf("categories: must include %q", Other)
 	}
-	for name, sel := range map[string]Selection{"discussion": w.Discussion, "bookkeeping": w.Bookkeeping} {
+	for name, sel := range map[string]Selection{"discussion": w.Discussion, "bookkeeping": w.Bookkeeping, "writing": w.Writing} {
 		if (sel.Provider == "") != (sel.Model == "") {
 			return fmt.Errorf("%s: provider and model must be specified together", name)
 		}

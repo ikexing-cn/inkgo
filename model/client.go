@@ -57,6 +57,9 @@ const (
 	EffortLow     Effort = "low"
 	EffortHigh    Effort = "high"
 	EffortMax     Effort = "max"
+	// EffortNone asks for no reasoning where the provider can turn it off,
+	// for a reply wanted at once. It is not offered as a choice.
+	EffortNone Effort = "none"
 )
 
 // Efforts are the levels offered, in order.
@@ -77,6 +80,9 @@ func (e Effort) Label() string {
 
 // Valid reports whether e is one of Efforts.
 func (e Effort) Valid() bool {
+	if e == EffortNone {
+		return true
+	}
 	for _, x := range Efforts {
 		if e == x {
 			return true
@@ -198,10 +204,22 @@ func (c *Client) languageModel() provider.LanguageModel {
 // effortOptions asks the provider for e in its own words: reasoning_effort
 // on Chat Completions (DeepSeek takes low, high, max), reasoning.effort with
 // a summary on Responses, and output_config.effort with adaptive thinking
-// shown as a summary on Anthropic.
+// shown as a summary on Anthropic. EffortNone turns thinking off on Chat
+// Completions as DeepSeek takes it and asks for effort none on Responses,
+// which DeepSeek and newer OpenAI models take (the default still reasons,
+// and minimal too); Anthropic thinks only when asked.
 func (c *Client) effortOptions(e Effort) map[string]any {
 	if e == EffortDefault {
 		return nil
+	}
+	if e == EffortNone {
+		switch c.provider.Protocol {
+		case "anthropic":
+			return nil
+		case "responses":
+			return map[string]any{"reasoning_effort": "none"}
+		}
+		return map[string]any{"thinking": map[string]any{"type": "disabled"}}
 	}
 	switch c.provider.Protocol {
 	case "responses":

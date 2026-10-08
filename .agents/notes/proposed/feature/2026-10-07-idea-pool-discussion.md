@@ -163,7 +163,7 @@ M1 已随代码落地，具体契约、取舍与验证见[实现笔记](../../im
 ### 开放问题
 
 - M2：默认 embedding 模型（本地 Ollama + bge-m3，还是 OpenAI），召回数 K，相近阈值。
-- 章节版本快照的格式，到接入编辑器时再定；在那之前先用 git。已在[正文页](../../implemented/feature/2026-10-08-writing-page-and-chapters.md)中落地，该篇是路线第 5 步的第一期；第二期见[AI 辅助写作](2026-10-08-ai-assisted-writing.md)。
+- 章节版本快照的格式，到接入编辑器时再定；在那之前先用 git。已在[正文页](../../implemented/feature/2026-10-08-writing-page-and-chapters.md)中落地，该篇是路线第 5 步的第一期；第二期见[AI 辅助写作](../../implemented/feature/2026-10-08-ai-assisted-writing.md)，也已落地。
 
 ## Alternatives considered
 

@@ -43,7 +43,8 @@ type layoutKey struct {
 // ensureLayout lays the text out again when it, the caret or the width
 // changed since the last time.
 func (e *Editor) ensureLayout() {
-	k := layoutKey{e.Doc.version, e.caret, e.preedit, e.Ghost(), e.width}
+	extra, _ := e.extra()
+	k := layoutKey{e.Doc.version, e.caret, e.preedit, extra, e.width}
 	if k != e.layKey || e.lay.lines == nil {
 		e.buildLayout(e.width)
 		e.layKey = k
@@ -56,7 +57,16 @@ func (e *Editor) caretDisp() int {
 	if e.preedit != "" {
 		return e.lay.extraAt + clamp(e.preeditCaret, 0, len([]rune(e.preedit)))
 	}
-	return e.lay.extraAt
+	return e.lay.toDisp(e.caret, false)
+}
+
+// extra is what shows in the text without being in it, besides the
+// composition: the rewrite proposed, or else the prediction; and where.
+func (e *Editor) extra() (string, int) {
+	if e.proposing() {
+		return e.prop.text, e.prop.b
+	}
+	return e.Ghost(), e.caret
 }
 
 // caretPos returns the caret's x and its line's top, in content
@@ -89,13 +99,19 @@ func (e *Editor) maybePredict(c *ui.Context) {
 		e.predictVer == e.Doc.version && e.predictAt == e.caret {
 		return
 	}
-	if e.caret < e.Doc.Len() && e.Doc.text[e.caret] != '\n' {
-		return // predictions continue a paragraph, not the middle of one
-	}
-	if wait := e.opts.PredictDelay - time.Since(e.lastEdit); wait > 0 {
-		c.After(wait)
+	if e.opts.PredictOnDemand && !e.asked {
 		return
 	}
+	if !e.asked {
+		if e.caret < e.Doc.Len() && e.Doc.text[e.caret] != '\n' {
+			return // predictions continue a paragraph, not the middle of one
+		}
+		if wait := e.opts.PredictDelay - time.Since(e.lastEdit); wait > 0 {
+			c.After(wait)
+			return
+		}
+	}
+	e.asked = false
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	e.cancel, e.predicting = cancel, true
 	e.predictVer, e.predictAt = e.Doc.version, e.caret

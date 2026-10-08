@@ -139,6 +139,9 @@ func TestEffortPerProtocol(t *testing.T) {
 		{"responses", EffortMax, []string{`"effort":"max"`, `"summary":"auto"`}, nil},
 		{"anthropic", EffortHigh, []string{`"effort":"high"`, `"type":"adaptive"`}, nil},
 		{"anthropic", EffortDefault, nil, []string{"effort"}},
+		{"chat", EffortNone, []string{`"thinking":{"type":"disabled"}`}, []string{"reasoning_effort"}},
+		{"anthropic", EffortNone, nil, []string{"effort", "thinking"}},
+		{"responses", EffortNone, []string{`"effort":"none"`}, []string{"summary", "thinking"}},
 	} {
 		t.Run(tc.protocol+"-"+tc.effort.Label(), func(t *testing.T) {
 			var raw string

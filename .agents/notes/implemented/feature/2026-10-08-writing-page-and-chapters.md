@@ -12,7 +12,7 @@ Status: implemented
 - 也接受作者写好章纲后由 AI 生成初稿、作者再改；
 - 不只服务网文，章节结构要自由。
 
-AI 辅助（续写、改写、按章纲起草）是第二期，见[AI 辅助写作](../../proposed/feature/2026-10-08-ai-assisted-writing.md)。本篇只记第一期，不涉及 AI。
+AI 辅助（续写、改写、按章纲起草）是第二期，见[AI 辅助写作](2026-10-08-ai-assisted-writing.md)。本篇只记第一期，不涉及 AI。
 
 ## Decision
 

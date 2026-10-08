@@ -28,6 +28,8 @@ type docView struct {
 type prefs struct {
 	SettingHidden bool   `json:"setting_hidden"`
 	Chapter       string `json:"chapter,omitempty"` // the node last open
+	// AutoPredict continues the prose as typing pauses, not on demand.
+	AutoPredict bool `json:"auto_predict,omitempty"`
 }
 
 func (a *App) prefsPath() string { return filepath.Join(a.Store.Root(), ".writer", "desk.json") }
@@ -39,10 +41,11 @@ func (a *App) loadPrefs() {
 	}
 	a.doc.hidden = p.SettingHidden
 	a.write.node = p.Chapter
+	a.write.autoPredict = p.AutoPredict
 }
 
 func (a *App) savePrefs() {
-	b, err := json.Marshal(prefs{SettingHidden: a.doc.hidden, Chapter: a.write.node})
+	b, err := json.Marshal(prefs{SettingHidden: a.doc.hidden, Chapter: a.write.node, AutoPredict: a.write.autoPredict})
 	if err == nil {
 		err = os.WriteFile(a.prefsPath(), b, 0644)
 	}

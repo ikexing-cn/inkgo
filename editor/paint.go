@@ -94,8 +94,27 @@ func (e *Editor) paint(p *ui.Painter, r ui.Rect) {
 		})
 	}
 
+	// A rewrite proposed: its words struck through, the new ones tinted.
+	if e.proposing() {
+		l.ranges(l.toDisp(e.prop.a, true), l.toDisp(e.prop.b, false), func(x0, x1, y float32) {
+			if y >= top && y <= bottom {
+				p.Fill(ui.Rect{X: ox + x0, Y: oy + y + 3, W: x1 - x0, H: l.lineH - 6}, t.Danger.Alpha(0.1), 0)
+				mid := oy + y + l.lineH/2
+				p.Line(ox+x0, mid, ox+x1, mid, 1.2, t.Danger.Alpha(0.8))
+			}
+		})
+		l.ranges(l.preEnd, l.extraEnd, func(x0, x1, y float32) {
+			if y >= top && y <= bottom {
+				p.Fill(ui.Rect{X: ox + x0, Y: oy + y + 3, W: x1 - x0, H: l.lineH - 6}, t.Success.Alpha(0.14), 0)
+			}
+		})
+	}
+
 	// The text, by runs of one color.
 	ghostColor := t.TextMuted.Alpha(0.75)
+	if e.proposing() {
+		ghostColor = t.Success
+	}
 	for i := range l.lines {
 		ln := &l.lines[i]
 		if ln.y < top || ln.y > bottom {

@@ -19,7 +19,13 @@ type Options struct {
 	// off. PredictDelay is how long typing pauses before it is asked.
 	Predictor    Predictor
 	PredictDelay time.Duration
-	Font         ui.Font
+	// PredictOnDemand asks the predictor only when the author asks, with
+	// Cmd+J, never as typing pauses.
+	PredictOnDemand bool
+	// GhostNote, if set, names what wrote a prediction the author accepts,
+	// as the note of its mark.
+	GhostNote func() string
+	Font      ui.Font
 	// Prose indents each paragraph's first line as it shows it, keeping
 	// indents out of the text: Tab inserts none, and a paste loses its own.
 	Prose bool
@@ -50,6 +56,7 @@ type Editor struct {
 	predictVer        int
 	predictAt         int
 	predicting        bool
+	asked             bool // the author asked for a prediction
 	cancel            context.CancelFunc
 	results           chan prediction
 	lastEdit          time.Time
@@ -59,6 +66,10 @@ type Editor struct {
 	compTyped int
 	compSel   int
 	compOpen  bool
+
+	// A rewrite shown beside its words, and a draft being written.
+	prop proposal
+	dr   draft
 
 	// Ranges found, painted under the text; the current one stronger.
 	found   [][2]int

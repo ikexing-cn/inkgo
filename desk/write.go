@@ -6,11 +6,13 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/egoist/mygo/ui"
 	"writer/editor"
 	"writer/workspace"
+	"writer/writing"
 )
 
 // The writing page saves as the author pauses, looks at the disk for
@@ -66,6 +68,20 @@ type writeView struct {
 	takeCategory           string
 	exportOpen, exportDone bool
 	indent                 bool
+
+	// The writing model: the writer the editors predict with, and why
+	// there is none; a request in flight; a rewrite asked for or shown.
+	pen         atomic.Pointer[writing.Writer]
+	penKey      string
+	penErr      error
+	autoPredict bool
+	run         *aiRun
+	rewriting   bool
+	instruction string
+	proposed    *writing.Job
+	draftOpen   bool
+	words       string
+	draftMode   string
 }
 
 // dragNode is a node of the chapter tree being dragged.
@@ -144,17 +160,33 @@ func (a *App) loadTree() error {
 	return err
 }
 
-// chapterEditor returns an editor of a chapter's text and marks.
+// chapterEditor returns an editor of the text and marks of the chapter
+// shown, continuing it with the writing model.
 func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.Editor {
 	doc := editor.NewDoc(text)
 	doc.LoadMarks(editorMarks(marks))
 	var ed *editor.Editor
-	ed = editor.New(doc, editor.Options{Prose: true, Placeholder: "从这里开始写…", Menu: func(m *ui.Menu) {
-		s, e := ed.Selection()
-		if m.Item("加入设定").Disabled(s == e).Chosen() {
-			a.openTake()
-		}
-	}})
+	ed = editor.New(doc, editor.Options{Prose: true, Placeholder: "从这里开始写…",
+		Predictor: pen{writer: &a.write.pen, chapter: a.write.node}, PredictDelay: saveAfter, PredictOnDemand: !a.write.autoPredict,
+		GhostNote: func() string {
+			if pw := a.write.pen.Load(); pw != nil {
+				return pw.Model.Name
+			}
+			return ""
+		},
+		Menu: func(m *ui.Menu) {
+			s, e := ed.Selection()
+			busy := ed.ReadOnly()
+			if m.Item("续写一句").Shortcut(ui.Cmd, ui.KeyJ).Disabled(busy).Chosen() {
+				a.continueText()
+			}
+			if m.Item("AI 改写…").Disabled(s == e || busy).Chosen() {
+				a.openRewrite()
+			}
+			if m.Item("加入设定").Disabled(s == e).Chosen() {
+				a.openTake()
+			}
+		}})
 	return ed
 }
 
@@ -189,11 +221,13 @@ func (a *App) openNode(id string) {
 	a.savePrefs()
 }
 
-// flush saves the text and the outline shown, as leaving them does.
+// flush saves the text and the outline shown, as leaving them does; an AI
+// writing into the text stops first.
 func (a *App) flush() {
 	if a.Store == nil {
 		return
 	}
+	a.stopAI()
 	a.warn(a.saveText())
 	a.warn(a.saveOutline())
 }
@@ -371,6 +405,8 @@ func (a *App) writing(c *ui.Context) {
 		a.write.entered = true
 		a.enterWriting()
 	}
+	a.keepPen()
+	a.pollAI()
 	a.watch(c)
 	if c.Shortcut(ui.Cmd, ui.KeyF) && a.write.ed != nil {
 		a.write.finding = true
@@ -409,6 +445,9 @@ func (a *App) writing(c *ui.Context) {
 	}
 	if a.write.exportOpen {
 		a.exportView(c)
+	}
+	if a.write.draftOpen {
+		a.draftView(c)
 	}
 }
 
@@ -460,6 +499,25 @@ func (a *App) writeTop(c *ui.Context) {
 		ui.Box(c).Width(6)
 		if ok && !n.Folder {
 			s, e := w.ed.Selection()
+			busy := w.ed.ReadOnly() || w.lost || w.external != nil
+			if w.ed.Predicting() {
+				ui.Text(c, "续写中…").FontSize(12).TextColor(a.pal.brand)
+			} else if w.ed.Ghost() != "" {
+				ui.Text(c, "Tab 采纳 · Esc 放弃").FontSize(12).TextColor(a.pal.brand)
+			}
+			if iconButton(c, icSparkle, "续写一句", ui.Color{}).Tooltip("在光标处续写一句（Cmd+J），按 Tab 采纳").Disabled(busy).Clicked() {
+				a.continueText()
+			}
+			if iconButton(c, icWand, "AI 改写", ui.Color{}).Tooltip("让 AI 改写选中的部分").Disabled(s == e || busy).Clicked() {
+				a.openRewrite()
+			}
+			draftTip := "按章纲起草这一章"
+			if strings.TrimSpace(w.outline) == "" {
+				draftTip = "先写章纲，才能按章纲起草"
+			}
+			if iconButton(c, icFeather, "按章纲起草", ui.Color{}).Tooltip(draftTip).Disabled(busy || strings.TrimSpace(w.outline) == "").Clicked() {
+				a.openDraft()
+			}
 			if iconButton(c, icQuote, "加入设定", ui.Color{}).Tooltip("把选中的原文加入设定").Disabled(s == e || w.lost).Clicked() {
 				a.openTake()
 			}
@@ -467,13 +525,13 @@ func (a *App) writeTop(c *ui.Context) {
 			if w.finding {
 				color = a.pal.brand
 			}
-			if iconButton(c, icSearch, "查找替换", color).Clicked() {
+			if iconButton(c, icSearch, "查找替换", color).Disabled(busy).Clicked() {
 				w.finding = !w.finding
 				if !w.finding {
 					w.ed.SetFound(nil, 0)
 				}
 			}
-			if iconButton(c, icClock, "快照", ui.Color{}).Tooltip("这一章的快照").Disabled(w.lost).Clicked() {
+			if iconButton(c, icClock, "快照", ui.Color{}).Tooltip("这一章的快照").Disabled(busy).Clicked() {
 				a.openSnapshots()
 			}
 		}
@@ -546,9 +604,10 @@ func (a *App) chapterView(c *ui.Context) {
 			ui.Box(c).FillWidth().Padding(6, 0, 4, 0).Children(func() { a.outlineBox(c, "章纲", 96) })
 		})
 	})
-	if w.finding {
+	if w.finding && !w.ed.ReadOnly() {
 		a.findBar(c)
 	}
+	a.aiBar(c)
 	w.ed.View(c).Grow(1).FillWidth()
 }
 
@@ -1012,7 +1071,7 @@ func (a *App) snapshots(c *ui.Context) {
 		ui.Column(c).Width(min(900, max(a.LastWrite.W, 640))).Height(560).Gap(12).Children(func() {
 			ui.Column(c).Gap(4).Children(func() {
 				ui.Text(c, "快照").FontSize(17).FontWeight(600)
-				ui.Text(c, "打开章节、连续写作每十分钟、恢复之前都会存一份。最近七天的全部保留，更早的每天留最后一份。").FontSize(13).TextColor(t.TextMuted)
+				ui.Text(c, "打开章节、连续写作每十分钟、恢复之前、AI 起草或采纳改写之前都会存一份。最近七天的全部保留，更早的每天留最后一份。").FontSize(13).TextColor(t.TextMuted)
 			})
 			ui.Row(c).FillWidth().Grow(1).Gap(14).AlignItems(ui.Stretch).Children(func() {
 				ui.Scroll(c).Key("snaps").Width(210).FillHeight().Shrink(0).Children(func() {
@@ -1046,6 +1105,9 @@ func (a *App) snapshots(c *ui.Context) {
 							ui.Text(c, "红色划掉的是快照里有、现在没有的，绿色是现在新写的").FontSize(12).TextColor(a.pal.faint).Padding(0, 0, 0, 8)
 						}
 					})
+					if i := slices.IndexFunc(w.snaps, func(s workspace.Snapshot) bool { return s.Name == w.snap }); i >= 0 && w.snaps[i].AI != nil {
+						a.aiRecord(c, w.snaps[i].AI)
+					}
 					ui.Scroll(c).Key("snap-text").FillWidth().Grow(1).Background(a.pal.side).Radius(10).Children(func() {
 						ui.Box(c).FillWidth().Padding(14, 16).Children(func() {
 							switch {

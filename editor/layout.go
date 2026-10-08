@@ -46,9 +46,10 @@ func (e *Editor) buildLayout(width float32) {
 	l.textW = max(min(width-2*padX, maxTextWidth), 60)
 	l.left = max((width-l.textW)/2, 0)
 
-	pre, ghost := []rune(e.preedit), []rune(e.Ghost())
+	extra, at := e.extra()
+	pre, ghost := []rune(e.preedit), []rune(extra)
 	text := e.Doc.text
-	at := clamp(e.caret, 0, len(text))
+	at = clamp(at, 0, len(text))
 	l.disp = make([]rune, 0, len(text)+len(pre)+len(ghost))
 	l.disp = append(append(append(append(l.disp, text[:at]...), pre...), ghost...), text[at:]...)
 	l.extraAt, l.preEnd, l.extraEnd = at, at+len(pre), at+len(pre)+len(ghost)

@@ -16,6 +16,7 @@ import (
 	"writer/editor"
 	"writer/model"
 	"writer/workspace"
+	"writer/writing"
 )
 
 type result struct {
@@ -107,6 +108,8 @@ type App struct {
 	categoryTarget          string
 	removeCategory          string
 	talkEffort, bookEffort  string
+	penProvider, penModel   string
+	penEffort               string
 	live                    live
 	md                      mdCache
 	thoughts                map[string]*bool // reasoning shown, by event or revision ID
@@ -114,7 +117,10 @@ type App struct {
 	write                   writeView
 	// Book returns the bookkeeper the worker runs, as the work and the
 	// model settings are now; tests replace it.
-	Book                             func(*workspace.Store) (*discussion.Bookkeeper, error)
+	Book func(*workspace.Store) (*discussion.Bookkeeper, error)
+	// Pen returns the writer of the prose, as the work and the model
+	// settings are now; tests replace it.
+	Pen                              func(*workspace.Store) (*writing.Writer, error)
 	worker                           *discussion.Worker
 	stopWorker                       context.CancelFunc
 	changes                          chan struct{} // the worker wrote a revision
@@ -136,6 +142,7 @@ func NewWithConfig(path string) *App {
 	a := &App{genre: "网文", results: make(chan result, 1), picks: make(chan func(), 1), changes: make(chan struct{}, 1), ConfigFile: path,
 		light: lightPalette(), dark: darkPalette(), titles: map[string]string{}, md: mdCache{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
 	a.Book = a.bookkeeper
+	a.Pen = a.newWriter
 	a.pal = a.light
 	if path != "" {
 		var err error
@@ -467,6 +474,7 @@ func (a *App) loadWork() {
 	a.bookModel = w.Bookkeeping.Model
 	a.talkEffort = w.Discussion.Effort
 	a.bookEffort = w.Bookkeeping.Effort
+	a.penProvider, a.penModel, a.penEffort = w.Writing.Provider, w.Writing.Model, w.Writing.Effort
 	a.budget = fmt.Sprint(w.TokenBudget)
 	a.kick() // the models may have changed
 }

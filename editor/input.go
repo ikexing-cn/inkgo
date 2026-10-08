@@ -130,6 +130,9 @@ func (e *Editor) key(mods ui.Modifiers, k ui.Key) bool {
 		case ui.KeyY:
 			e.Redo()
 			return true
+		case ui.KeyJ:
+			e.RequestPrediction()
+			return e.opts.Predictor != nil
 		case ui.KeyA:
 			e.SelectAll()
 			return true

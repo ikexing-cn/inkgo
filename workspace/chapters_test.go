@@ -219,7 +219,7 @@ func TestSnapshotsAndTheirKeeping(t *testing.T) {
 	old := now.Add(-10 * 24 * time.Hour)
 	day := time.Date(old.Year(), old.Month(), old.Day(), 9, 0, 0, 0, time.Local)
 	for i, text := range []string{"早上", "中午", "晚上"} {
-		if _, err := s.takeSnapshot(id, SnapInterval, text, nil, day.Add(time.Duration(i)*4*time.Hour)); err != nil {
+		if _, err := s.takeSnapshot(id, SnapInterval, text, nil, nil, day.Add(time.Duration(i)*4*time.Hour)); err != nil {
 			t.Fatal(err)
 		}
 	}
