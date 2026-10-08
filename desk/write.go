@@ -671,22 +671,30 @@ func (a *App) findBar(c *ui.Context) {
 			w.ed.Select(found[w.current][0], found[w.current][1])
 		}
 	}
-	ui.Row(c).FillWidth().Padding(8, 16, 4, 24).Gap(6).AlignItems(ui.Center).Shrink(0).Children(func() {
-		q := ui.TextInput(c, &w.query).Label("查找").Placeholder("查找").Width(150).Shrink(1).AutoFocus()
-		if q.Submitted() && len(found) > 0 {
+	// Finding on one line and replacing on the next, so neither is
+	// squeezed in a narrow window.
+	bar := ui.Column(c).FillWidth().Padding(8, 16, 4, 24).Gap(6).Shrink(0)
+	none := len(found) == 0
+	query := func() {
+		q := ui.TextInput(c, &w.query).Label("查找").Placeholder("查找").Width(150).Shrink(1).Grow(1).AutoFocus()
+		if q.Submitted() && !none {
 			w.current = (w.current + 1) % len(found)
 			show()
 		}
-		ui.TextInput(c, &w.with).Label("替换为").Placeholder("替换为").Width(130).Shrink(1)
+	}
+	with := func() {
+		ui.TextInput(c, &w.with).Label("替换为").Placeholder("替换为").Width(130).Shrink(1).Grow(1)
+	}
+	count := func() {
 		switch {
 		case w.query == "":
-		case len(found) == 0:
-			ui.Text(c, "没有找到").FontSize(12.5).TextColor(a.pal.faint)
+		case none:
+			ui.Text(c, "没有找到").FontSize(12.5).TextColor(a.pal.faint).Shrink(0)
 		default:
-			ui.Textf(c, "%d / %d", w.current+1, len(found)).FontSize(12.5).TextColor(t.TextMuted)
+			ui.Textf(c, "%d / %d", w.current+1, len(found)).FontSize(12.5).TextColor(t.TextMuted).Shrink(0)
 		}
-		ui.Spacer(c)
-		none := len(found) == 0
+	}
+	move := func() {
 		if ghost(c, "上一个", ui.Color{}).Disabled(none).Clicked() {
 			w.current = (w.current + len(found) - 1) % len(found)
 			show()
@@ -695,6 +703,8 @@ func (a *App) findBar(c *ui.Context) {
 			w.current = (w.current + 1) % len(found)
 			show()
 		}
+	}
+	replace := func() {
 		if ghost(c, "替换", ui.Color{}).Disabled(none || w.lost).Clicked() {
 			if s, e := w.ed.Selection(); s == found[w.current][0] && e == found[w.current][1] {
 				w.ed.Replace(s, e, w.with)
@@ -710,10 +720,17 @@ func (a *App) findBar(c *ui.Context) {
 			n := w.ed.ReplaceAll(w.query, w.with)
 			a.notice = fmt.Sprintf("已替换 %d 处，可以撤销", n)
 		}
+	}
+	closer := func() {
 		if iconButton(c, icX, "关闭查找", ui.Color{}).Clicked() {
 			w.finding = false
 			w.ed.SetFound(nil, 0)
 		}
+	}
+	line := func(fn func()) { ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(fn) }
+	bar.Children(func() {
+		line(func() { query(); count(); move(); closer() })
+		line(func() { with(); replace() })
 	})
 }
 
