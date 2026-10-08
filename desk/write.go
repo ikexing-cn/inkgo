@@ -1037,7 +1037,7 @@ func (a *App) trashView(c *ui.Context) {
 		ui.Column(c).Width(520).Gap(14).Children(func() {
 			ui.Column(c).Gap(4).Children(func() {
 				ui.Text(c, "回收站").FontSize(17).FontWeight(600)
-				ui.Text(c, "删掉的章节连同它里面的内容放在作品的 trash 文件夹，恢复后回到原来的文件夹末尾。").FontSize(13).TextColor(t.TextMuted).LineHeight(1.6)
+				ui.Text(c, "删掉的章节连同它里面的内容先放在这里，恢复后回到原来所在文件夹的末尾。").FontSize(13).TextColor(t.TextMuted).LineHeight(1.6)
 			})
 			if len(w.trash) == 0 {
 				ui.Text(c, "回收站是空的").FontSize(13).TextColor(a.pal.faint).Padding(12, 0)
@@ -1056,7 +1056,7 @@ func (a *App) trashView(c *ui.Context) {
 								ui.Text(c, it.At.Local().Format("01-02 15:04")+" 删除").FontSize(11.5).TextColor(a.pal.faint)
 							})
 							if ghost(c, "恢复", ui.Color{}).Label("恢复-" + it.Title).Clicked() {
-								a.restore(it.ID)
+								a.restore(it.ID, it.Title)
 							}
 							if w.purge == it.ID {
 								if action(c, "确认彻底删除", t.Danger, true).Clicked() {
@@ -1070,11 +1070,17 @@ func (a *App) trashView(c *ui.Context) {
 					}
 				})
 			})
+			ui.Row(c).FillWidth().Children(func() {
+				ui.Spacer(c)
+				if ghost(c, "关闭", ui.Color{}).Clicked() {
+					w.trashOpen = false
+				}
+			})
 		})
 	})
 }
 
-func (a *App) restore(id string) {
+func (a *App) restore(id, title string) {
 	w := &a.write
 	if err := a.Store.RestoreChapter(id); err != nil {
 		a.warn(err)
@@ -1085,7 +1091,7 @@ func (a *App) restore(id string) {
 	a.warn(err)
 	w.counts = counts
 	a.openTrash()
-	a.notice = "已恢复"
+	a.notice = fmt.Sprintf("「%s」已恢复", title)
 }
 
 // snapReasons say why a snapshot was taken.

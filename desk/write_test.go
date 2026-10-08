@@ -280,11 +280,16 @@ func TestTrashAndRestoreFromTheTree(t *testing.T) {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
-	if _, ok := a.write.tree.Node(two); !ok {
-		t.Fatal("not restored")
+	if _, ok := a.write.tree.Node(two); !ok || !tt.HasText("「第二章」已恢复") {
+		t.Fatal("not restored", tt.Texts())
 	}
-	a.write.trashOpen = false
+	if err = tt.Click("关闭"); err != nil {
+		t.Fatal(err)
+	}
 	tt.Frame()
+	if a.write.trashOpen {
+		t.Fatal("the trash stays open")
+	}
 	if err = tt.RightClick("章节-第二章"); err != nil {
 		t.Fatal(err)
 	}
