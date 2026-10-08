@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -332,9 +333,24 @@ func (a *App) startWorker(c *ui.Context) {
 		}
 		c.Invalidate()
 	})
+	a.worker.Log = bookLog(filepath.Join(s.Root(), ".writer", "bookkeeper.log"))
 	a.stopWorker = stop
 	go a.worker.Run(ctx)
 	a.worker.Kick()
+}
+
+// bookLog appends the worker's lines to path, the newest last, keeping the
+// file short; it is for looking into a setting that does not fill.
+func bookLog(path string) func(string) {
+	return func(line string) {
+		b, _ := os.ReadFile(path)
+		lines := strings.Split(strings.TrimSpace(string(b)), "\n")
+		lines = append(lines, time.Now().Format("01-02 15:04:05 ")+line)
+		if len(lines) > 400 {
+			lines = lines[len(lines)-400:]
+		}
+		_ = os.WriteFile(path, []byte(strings.TrimSpace(strings.Join(lines, "\n"))+"\n"), 0644)
+	}
 }
 
 // kick has the bookkeeper look for turns to take in.

@@ -337,6 +337,9 @@ func TestWorkerRetriesRecordsFailureAndRedoes(t *testing.T) {
 	changed := make(chan struct{}, 8)
 	w := NewWorker(func() (*Bookkeeper, error) { return bk.Load(), nil }, []time.Duration{time.Millisecond, time.Millisecond}, func() { changed <- struct{}{} })
 	bk.Store(&Bookkeeper{Store: e.Store, Model: Model{Completer: failing}})
+	var mu sync.Mutex
+	var logged []string
+	w.Log = func(line string) { mu.Lock(); logged = append(logged, line); mu.Unlock() }
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go w.Run(ctx)
@@ -350,6 +353,11 @@ func TestWorkerRetriesRecordsFailureAndRedoes(t *testing.T) {
 	if len(failing.calls) != 3 || len(set.Revisions) != 1 || !strings.Contains(set.Revisions[0].Failed, "服务暂时不可用") || set.Revisions[0].From != u.ID {
 		t.Fatalf("calls %d revisions %+v", len(failing.calls), set.Revisions)
 	}
+	mu.Lock()
+	if log := strings.Join(logged, "|"); strings.Count(log, "失败，用时") != 3 || !strings.Contains(log, "服务暂时不可用") {
+		t.Fatalf("log %q", log)
+	}
+	mu.Unlock()
 	failed := set.Revisions[0].ID
 	next, _ := book(e, ops(map[string]any{"op": "add", "place": "body", "category": "规则", "text": "雨从不停", "sources": []map[string]string{{"msg": "m3", "quote": "雨从不停"}}}))
 	bk.Store(next)

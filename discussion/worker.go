@@ -2,6 +2,7 @@ package discussion
 
 import (
 	"context"
+	"fmt"
 	"time"
 )
 
@@ -17,7 +18,20 @@ type Worker struct {
 	Backoff []time.Duration
 	// Changed hears each revision written, on the worker's goroutine.
 	Changed func()
-	kick    chan struct{}
+	// Log, when set, hears what the worker does and why it stops, on the
+	// worker's goroutine: nothing of it shows in the view.
+	Log  func(string)
+	kick chan struct{}
+}
+
+// attemptLimit bounds one attempt, so a stalled connection cannot hold the
+// worker for good.
+const attemptLimit = 5 * time.Minute
+
+func (w *Worker) log(format string, v ...any) {
+	if w.Log != nil {
+		w.Log(fmt.Sprintf(format, v...))
+	}
 }
 
 // NewWorker returns a worker; Run starts it.
@@ -51,10 +65,12 @@ func (w *Worker) Run(ctx context.Context) {
 func (w *Worker) pass(ctx context.Context) bool {
 	b, err := w.Book()
 	if err != nil {
+		w.log("没有开始整理：%v", err)
 		return false
 	}
 	sessions, err := b.Pending()
 	if err != nil {
+		w.log("读不出待整理的对话：%v", err)
 		return false
 	}
 	wrote := false
@@ -76,15 +92,24 @@ func (w *Worker) pass(ctx context.Context) bool {
 // and reports whether it wrote a revision.
 func (w *Worker) session(ctx context.Context, b *Bookkeeper, s string) bool {
 	for attempt := 0; ; attempt++ {
-		did, err := b.Run(ctx, s)
+		w.log("整理会话 %s，第 %d 次", s, attempt+1)
+		start := time.Now()
+		run, cancel := context.WithTimeout(ctx, attemptLimit)
+		did, err := b.Run(run, s)
+		cancel()
 		if err == nil {
+			w.log("完成，用时 %v，写入修订：%v", time.Since(start).Round(time.Second), did)
 			return did
 		}
+		w.log("失败，用时 %v：%v", time.Since(start).Round(time.Second), err)
 		if ctx.Err() != nil {
 			return false
 		}
 		if attempt == len(w.Backoff) {
-			return b.Fail(s, err.Error()) == nil
+			if err = b.Fail(s, err.Error()); err != nil {
+				w.log("记录失败时出错：%v", err)
+			}
+			return err == nil
 		}
 		select {
 		case <-ctx.Done():
