@@ -81,11 +81,11 @@ type App struct {
 	page              int // 0 discussion, 1 models, 2 categories, 3 writing
 	shown             int // the page the last frame showed
 	notice            string
-	leftWriting       bool      // the work was last on the writing page, not the discussion
-	noticed           string    // the notice as first shown,
-	noticeAt          time.Time // and when
-	keysOpen          bool      // the shortcuts shown
-	titled            string    // the window title last set
+	leftWriting       bool            // the work was last on the writing page, not the discussion
+	noticed           string          // the notice as first shown,
+	noticeAt          time.Time       // and when
+	keysOpen          bool            // the shortcuts shown
+	titled            string          // the window title last set
 	shelved           map[string]bool // the conversations put out of the list
 	showShelved       bool            // the shelved conversations listed too
 	path, name, genre string
