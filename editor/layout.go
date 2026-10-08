@@ -10,6 +10,10 @@ const (
 	maxTextWidth            = 760
 )
 
+// MaxTextWidth is how wide the text grows at most; a wider view centers
+// it, and what sits over the text can line up with it.
+const MaxTextWidth = maxTextWidth
+
 // shaped is a paragraph Shape placed on one line, before it is broken.
 type shaped struct {
 	glyphs []ui.Glyph

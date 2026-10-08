@@ -485,3 +485,30 @@ func TestASnapshotLikeTheChapter(t *testing.T) {
 		t.Fatal("restored the same text", a.notice)
 	}
 }
+
+// Writing in focus leaves the page alone; quoting into the talk brings
+// the column back, since the talk is in it.
+func TestFocusLeavesThePageAlone(t *testing.T) {
+	a, tt, _ := writingFixture(t, "雨下了一夜。")
+	if err := tt.Click("专注写作"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if tt.HasText("章节-第一章") || tt.HasText("右栏-设定") || !tt.HasText("退出专注") {
+		t.Fatal("the tree or the column is still there", tt.Texts())
+	}
+	if err := tt.Click("退出专注"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("章节-第一章") || !tt.HasText("右栏-设定") {
+		t.Fatal(tt.Texts())
+	}
+	a.write.focus = true
+	a.write.ed.Select(0, 2)
+	a.quoteToTalk()
+	tt.Frame()
+	if a.write.focus || !tt.HasText("右栏-讨论") {
+		t.Fatal("quoting kept the column away", tt.Texts())
+	}
+}

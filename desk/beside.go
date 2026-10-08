@@ -168,6 +168,7 @@ func (a *App) quoteToTalk() {
 	if a.doc.hidden {
 		a.doc.hidden = false
 	}
+	w.focus = false // the talk is in the column
 	a.doc.talk = true
 	a.focusTalk = true
 	a.savePrefs()

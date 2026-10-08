@@ -42,7 +42,7 @@ func (a *App) View(c *ui.Context) {
 	}
 	a.shown = a.page
 	ui.Row(c).Fill().AlignItems(ui.Stretch).Background(a.pal.canvas).Children(func() {
-		if a.Store != nil {
+		if a.Store != nil && !(a.page == 3 && a.write.focus) {
 			a.sidebar(c)
 			ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
 		}

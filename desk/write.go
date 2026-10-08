@@ -59,6 +59,7 @@ type writeView struct {
 
 	renaming, title string
 	titleWas        string // the name kept when the title is left empty
+	focus           bool // the page alone, without the tree and the column
 	finding         bool
 	query, with     string
 	current         int
@@ -478,7 +479,7 @@ func (a *App) writing(c *ui.Context) {
 
 // settingColumn is the setting beside the page, unless the author hid it.
 func (a *App) settingColumn(c *ui.Context) {
-	if a.doc.hidden {
+	if a.doc.hidden || a.page == 3 && a.write.focus {
 		return
 	}
 	win, _ := c.Size()
@@ -588,11 +589,18 @@ func (a *App) writeTop(c *ui.Context) {
 		if iconButton(c, icDownload, "导出全书", ui.Color{}).Clicked() {
 			w.exportOpen, w.exportDone = true, false
 		}
-		if a.doc.hidden {
+		if a.doc.hidden && !w.focus {
 			a.bookDot(c)
 			if iconButton(c, icPanel, "展开设定", ui.Color{}).Tooltip("展开设定文档").Clicked() {
 				a.setDocHidden(false)
 			}
+		}
+		if w.focus {
+			if iconButton(c, icShrink, "退出专注", a.pal.brand).Tooltip("退出专注，回到章节树和右栏").Clicked() {
+				w.focus = false
+			}
+		} else if iconButton(c, icExpand, "专注写作", ui.Color{}).Tooltip("只留正文，收起章节树和右栏").Clicked() {
+			w.focus = true
 		}
 	})
 	a.pal.hairline(c)
@@ -645,15 +653,18 @@ func (a *App) chapterView(c *ui.Context) {
 			}
 		})
 	}
-	ui.Column(c).FillWidth().Padding(10, 24, 0, 24).Shrink(0).Children(func() {
-		label := "章纲"
-		if strings.TrimSpace(w.outline) == "" {
-			label = "章纲（空）"
-		}
-		ui.Collapsible(c, label, &w.outlineOpen, func() {
-			ui.Box(c).FillWidth().Padding(6, 0, 4, 0).Children(func() { a.outlineBox(c, "章纲", 96) })
+	// As wide as the prose at most, and over it, when the page is wide.
+	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(10, 24, 0, 24).Shrink(0).Children(func() {
+		ui.Column(c).FillWidth().MaxWidth(editor.MaxTextWidth).Children(func() {
+			label := "章纲"
+			if strings.TrimSpace(w.outline) == "" {
+				label = "章纲（空）"
+			}
+			ui.Collapsible(c, label, &w.outlineOpen, func() {
+				ui.Box(c).FillWidth().Padding(6, 0, 4, 0).Children(func() { a.outlineBox(c, "章纲", 96) })
+			})
+			a.summaryBox(c)
 		})
-		a.summaryBox(c)
 	})
 	if w.finding && !w.ed.ReadOnly() {
 		a.findBar(c)
