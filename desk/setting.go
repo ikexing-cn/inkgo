@@ -35,6 +35,8 @@ type docView struct {
 type prefs struct {
 	SettingHidden bool   `json:"setting_hidden"`
 	Chapter       string `json:"chapter,omitempty"` // the node last open
+	// Writing reopens the work on the writing page, where it was left.
+	Writing bool `json:"writing,omitempty"`
 	// AutoPredict continues the prose as typing pauses, not on demand.
 	AutoPredict bool `json:"auto_predict,omitempty"`
 	// The right column's width, whether the writing page shows the talk
@@ -56,13 +58,16 @@ func (a *App) loadPrefs() {
 	}
 	a.doc.hidden = p.SettingHidden
 	a.write.node = p.Chapter
+	if p.Writing {
+		a.page = 3
+	}
 	a.write.autoPredict = p.AutoPredict
 	a.write.autoSummary = !p.NoAutoSummary
 	a.doc.width, a.doc.talk, a.doc.attach = p.PanelWidth, p.TalkTab, !p.NoAttach
 }
 
 func (a *App) savePrefs() {
-	b, err := json.Marshal(prefs{SettingHidden: a.doc.hidden, Chapter: a.write.node, AutoPredict: a.write.autoPredict,
+	b, err := json.Marshal(prefs{SettingHidden: a.doc.hidden, Chapter: a.write.node, Writing: a.page == 3, AutoPredict: a.write.autoPredict,
 		PanelWidth: a.doc.width, TalkTab: a.doc.talk, NoAttach: !a.doc.attach, NoAutoSummary: !a.write.autoSummary})
 	if err == nil {
 		err = os.WriteFile(a.prefsPath(), b, 0644)

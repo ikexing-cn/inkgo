@@ -183,32 +183,19 @@ func (a *App) section(c *ui.Context, title, caption string, fn func()) {
 func (a *App) usage(c *ui.Context) {
 	t := a.pal.theme
 	busy := a.busy != ""
-	var ids []string
-	for _, p := range a.Config.Providers {
-		ids = append(ids, p.ID)
-	}
 	a.section(c, "这部作品用哪个模型", "讨论模型负责回应你；整理模型在后台把讨论整理进设定文档，可以用更便宜的模型或更低的推理等级；写作模型负责正文页的续写、改写和起草。推理等级 Default 交给服务商决定。改动从下一次发送开始生效。", func() {
 		ui.Row(c).FillWidth().Gap(12).Children(func() {
 			labeled(c, "讨论 · 服务", func() {
-				ui.Select(c, &a.talkProvider, ids).Label("讨论提供商").FillWidth().Disabled(busy)
+				a.providerSelect(c, &a.talkProvider, "", "讨论提供商", busy)
 			}).Width(200)
 			labeled(c, "讨论 · 模型", func() {
 				ui.Autocomplete(c, &a.talkModel, a.providerModels(a.talkProvider)).Label("讨论模型").Placeholder("输入或选择模型 ID").FillWidth().Disabled(busy)
 			}).Grow(1)
 			labeled(c, "推理等级", func() { effortSelect(c, &a.talkEffort, "讨论推理等级", busy) }).Width(136)
 		})
-		book := a.bookProvider
-		if book == "" {
-			book = sameAsTalk
-		}
 		ui.Row(c).FillWidth().Gap(12).Children(func() {
 			labeled(c, "整理 · 服务", func() {
-				if ui.Select(c, &book, append([]string{sameAsTalk}, ids...)).Label("记账提供商").FillWidth().Disabled(busy).Changed() {
-					a.bookProvider = ""
-					if book != sameAsTalk {
-						a.bookProvider = book
-					}
-				}
+				a.providerSelect(c, &a.bookProvider, sameAsTalk, "记账提供商", busy)
 			}).Width(200)
 			labeled(c, "整理 · 模型", func() {
 				if a.bookProvider == "" {
@@ -220,18 +207,9 @@ func (a *App) usage(c *ui.Context) {
 			}).Grow(1)
 			labeled(c, "推理等级", func() { effortSelect(c, &a.bookEffort, "整理推理等级", busy) }).Width(136)
 		})
-		pen := a.penProvider
-		if pen == "" {
-			pen = sameAsTalk
-		}
 		ui.Row(c).FillWidth().Gap(12).Children(func() {
 			labeled(c, "写作 · 服务", func() {
-				if ui.Select(c, &pen, append([]string{sameAsTalk}, ids...)).Label("写作提供商").FillWidth().Disabled(busy).Changed() {
-					a.penProvider = ""
-					if pen != sameAsTalk {
-						a.penProvider = pen
-					}
-				}
+				a.providerSelect(c, &a.penProvider, sameAsTalk, "写作提供商", busy)
 			}).Width(200)
 			labeled(c, "写作 · 模型", func() {
 				if a.penProvider == "" {
@@ -265,6 +243,44 @@ func (a *App) usage(c *ui.Context) {
 			}
 		})
 	})
+}
+
+// providerSelect picks a configured service, shown by its name, into *id;
+// none, when given, is the choice of no service of its own.
+func (a *App) providerSelect(c *ui.Context, id *string, none, label string, disabled bool) {
+	var names []string
+	if none != "" {
+		names = append(names, none)
+	}
+	chosen := none
+	for _, p := range a.Config.Providers {
+		names = append(names, providerLabel(p))
+		if p.ID == *id {
+			chosen = providerLabel(p)
+		}
+	}
+	if *id != "" && chosen == none { // a service no longer configured
+		chosen = *id
+		names = append(names, *id)
+	}
+	if ui.Select(c, &chosen, names).Label(label).FillWidth().Disabled(disabled).Changed() {
+		*id = ""
+		if chosen != none {
+			*id = chosen
+		}
+		for _, p := range a.Config.Providers {
+			if providerLabel(p) == chosen {
+				*id = p.ID
+			}
+		}
+	}
+}
+
+func providerLabel(p model.Provider) string {
+	if p.Name != "" {
+		return p.Name
+	}
+	return p.ID
 }
 
 // effortSelect picks an effort, shown by its label, into *value.

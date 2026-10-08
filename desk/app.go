@@ -78,6 +78,8 @@ type App struct {
 	page              int // 0 discussion, 1 models, 2 categories, 3 writing
 	shown             int // the page the last frame showed
 	notice            string
+	noticed           string    // the notice as first shown,
+	noticeAt          time.Time // and when
 	path, name, genre string
 	shelf             shelf.Shelf
 	books             shelfView

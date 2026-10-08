@@ -2,6 +2,7 @@ package desk
 
 import (
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -34,6 +35,9 @@ func (a *App) View(c *ui.Context) {
 		a.flush()
 		a.leaveChapter()
 		a.write.entered = false
+	}
+	if a.Store != nil && a.shown != a.page && (a.page == 0 || a.page == 3) {
+		a.savePrefs() // the work reopens on the page it was left on
 	}
 	a.shown = a.page
 	ui.Row(c).Fill().AlignItems(ui.Stretch).Background(a.pal.canvas).Children(func() {
@@ -222,6 +226,28 @@ func (a *App) newSession() {
 	a.switchSession(session)
 }
 
+// noticeFor is how long a confirmation stays. It only says something went
+// as asked; left up, it pushes the page down for good.
+var noticeFor = 8 * time.Second
+
+// fresh tells whether there is a notice still to show, and clears it once
+// it has been up long enough.
+func (a *App) fresh(c *ui.Context) bool {
+	if a.notice == "" {
+		return false
+	}
+	if a.notice != a.noticed {
+		a.noticed, a.noticeAt = a.notice, c.Now()
+	}
+	left := noticeFor - c.Now().Sub(a.noticeAt)
+	if left <= 0 {
+		a.notice, a.noticed = "", ""
+		return false
+	}
+	c.After(left)
+	return true
+}
+
 // banners float a slim line for an error, a running request and a quiet
 // confirmation. A request can always be cancelled from here.
 func (a *App) banners(c *ui.Context) {
@@ -252,7 +278,7 @@ func (a *App) banners(c *ui.Context) {
 				a.cancel()
 			}
 		})
-	} else if a.notice != "" {
+	} else if a.fresh(c) {
 		bar(icCheck, t.Success, a.notice, func() {
 			if iconButton(c, icX, "知道了", t.Success).Clicked() {
 				a.notice = ""

@@ -484,3 +484,43 @@ func TestBookkeeperShowsWhileItWorks(t *testing.T) {
 	close(g.open)
 	shown(false)
 }
+
+// Services are chosen by the names the author gave them, and kept by ID.
+func TestChooseAServiceByName(t *testing.T) {
+	a, tt, _ := fixture(t)
+	if err := tt.Click("模型设置"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err := tt.Click("写作提供商"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	texts := tt.Texts()
+	if options := strings.Join(texts[len(texts)-5:], " "); options != "沿用讨论模型 DeepSeek Kimi OpenAI Anthropic" {
+		t.Fatal(options)
+	}
+	tt.Key(0, ui.KeyDown)
+	tt.Key(0, ui.KeyEnter)
+	tt.Frame()
+	if a.penProvider != "deepseek" {
+		t.Fatal(a.penProvider)
+	}
+}
+
+// A confirmation goes away on its own; an error stays until dismissed.
+func TestNoticesFade(t *testing.T) {
+	a, tt, _ := fixture(t)
+	was := noticeFor
+	noticeFor = 50 * time.Millisecond
+	t.Cleanup(func() { noticeFor = was })
+	a.notice, a.Error = "已保存", "出错了"
+	tt.Frame()
+	if !tt.HasText("已保存") {
+		t.Fatal(tt.Texts())
+	}
+	until(t, tt, "the notice to fade", func() bool { return !tt.HasText("已保存") })
+	if !tt.HasText("出错了") || a.notice != "" {
+		t.Fatal(tt.Texts())
+	}
+}

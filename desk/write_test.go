@@ -399,3 +399,34 @@ func TestNameANewChapter(t *testing.T) {
 		t.Fatal(n.Title, a.write.renaming)
 	}
 }
+
+// A work left on the writing page reopens there, on the same chapter; left
+// in the talk, it reopens in the talk.
+func TestReopenWhereLeft(t *testing.T) {
+	a, tt, id := writingFixture(t, "雨从傍晚开始下。")
+	tt.Frame()
+	root := a.Store.Root()
+	reopen := func() *App {
+		a.Close()
+		b := NewWithConfig(a.ConfigFile)
+		if err := b.Open(root); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { b.Close() })
+		return b
+	}
+	b := reopen()
+	if b.page != 3 || b.write.node != id {
+		t.Fatal(b.page, b.write.node)
+	}
+	a = b
+	tb := ui.NewTester(a.View, 1280, 800)
+	tb.Frame()
+	if err := tb.Click("讨论"); err != nil {
+		t.Fatal(err)
+	}
+	tb.Frame()
+	if b = reopen(); b.page != 0 {
+		t.Fatal(b.page)
+	}
+}
