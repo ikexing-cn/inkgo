@@ -523,10 +523,21 @@ func (a *App) writeTop(c *ui.Context) {
 			ui.Text(c, "正文").FontSize(13.5).FontWeight(600)
 		}
 		ui.Spacer(c)
-		if ok && !n.Folder && !roomy {
-			ui.Textf(c, "%d 字", w.counts[n.ID]).FontSize(12).TextColor(a.pal.faint).SingleLine().Shrink(0)
-		} else if ok && !n.Folder {
-			ui.Textf(c, "本章 %d 字 · 全书 %d 字", w.counts[n.ID], a.total()).FontSize(12).TextColor(a.pal.faint).SingleLine()
+		here, unit := 0, "本章"
+		if ok && n.Folder {
+			unit = "本卷"
+			w.tree.Walk(func(f *workspace.Node, _ int) {
+				if f.Within(n) {
+					here += w.counts[f.ID]
+				}
+			})
+		} else if ok {
+			here = w.counts[n.ID]
+		}
+		if ok && !roomy {
+			ui.Textf(c, "%d 字", here).FontSize(12).TextColor(a.pal.faint).SingleLine().Shrink(0)
+		} else if ok {
+			ui.Textf(c, "%s %d 字 · 全书 %d 字", unit, here, a.total()).FontSize(12).TextColor(a.pal.faint).SingleLine()
 		} else {
 			ui.Textf(c, "全书 %d 字", a.total()).FontSize(12).TextColor(a.pal.faint).SingleLine()
 		}

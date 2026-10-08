@@ -377,6 +377,13 @@ func TestDragMovesChapters(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(a.Store.Root(), "chapters", "第一卷", "第一章.txt")); err != nil {
 		t.Fatal(err)
 	}
+	if err := tt.Click("章节-第一卷"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("本卷 1 字 · 全书 1 字") {
+		t.Fatal("the folder's count", tt.Texts())
+	}
 }
 
 // A new chapter's name is typed in place of the one it is given, and left
