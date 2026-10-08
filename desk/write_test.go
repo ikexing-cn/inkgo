@@ -838,3 +838,20 @@ func TestWindowTitle(t *testing.T) {
 		t.Fatalf("discussing: %q", titles)
 	}
 }
+
+// With text selected, the header counts the selection in place of the
+// chapter.
+func TestCountTheSelection(t *testing.T) {
+	a, tt, _ := writingFixture(t, "林晚推门。 雨停了。")
+	a.write.focus = true
+	tt.Frame()
+	if !tt.HasText("本章 9 字 · 全书 9 字") {
+		t.Fatal("before", tt.Texts())
+	}
+	a.write.ed.MoveTo(0, false)
+	a.write.ed.MoveTo(5, true)
+	tt.Frame()
+	if !tt.HasText("选中 5 字 · 全书 9 字") {
+		t.Fatal("selected", tt.Texts())
+	}
+}

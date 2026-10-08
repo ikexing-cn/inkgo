@@ -761,6 +761,11 @@ func (a *App) writeTop(c *ui.Context) {
 		if ok {
 			here = w.wordsIn(n)
 		}
+		if w.ed != nil {
+			if sel := w.ed.SelectedText(); sel != "" {
+				here, unit = workspace.Count(sel), "选中"
+			}
+		}
 		today, tip := "", fmt.Sprintf("全书 %d 字", a.total())
 		k := a.today(time.Now())
 		met := w.goal > 0 && k >= w.goal
@@ -784,7 +789,9 @@ func (a *App) writeTop(c *ui.Context) {
 			counts.Background(t.SurfaceHover)
 		}
 		counts.Children(func() {
-			if ok && !roomy {
+			if ok && !roomy && unit == "选中" {
+				ui.Textf(c, "选中 %d 字", here).FontSize(12).TextColor(color).SingleLine()
+			} else if ok && !roomy {
 				ui.Textf(c, "%d 字", here).FontSize(12).TextColor(color).SingleLine()
 			} else if ok {
 				ui.Textf(c, "%s %d 字 · 全书 %d 字%s", unit, here, a.total(), today).FontSize(12).TextColor(color).SingleLine()
