@@ -46,12 +46,15 @@ func (a *App) categories(c *ui.Context) {
 							}
 							return
 						}
-						if ghost(c, "编辑", t.Accent).Label("编辑-" + cat.Name).Disabled(busy).Clicked() {
-							a.categoryName, a.categoryTarget = cat.Name, cat.Target
-						}
-						if cat.Name != workspace.Other && ghost(c, "删除", t.Danger).Label("删除-"+cat.Name).Disabled(busy).Clicked() {
-							a.removeCategory = cat.Name
-						}
+						// a fixed width, so 其他, which cannot go, lines up with the rest
+						ui.Row(c).Width(100).Gap(12).Shrink(0).Children(func() {
+							if ghost(c, "编辑", t.Accent).Label("编辑-" + cat.Name).Disabled(busy).Clicked() {
+								a.categoryName, a.categoryTarget = cat.Name, cat.Target
+							}
+							if cat.Name != workspace.Other && ghost(c, "删除", t.Danger).Label("删除-"+cat.Name).Disabled(busy).Clicked() {
+								a.removeCategory = cat.Name
+							}
+						})
 					})
 				}
 			})
