@@ -910,8 +910,8 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 		}
 		glyph(c, nodeIcon(n), 15, fg)
 		ui.Text(c, n.Title).FontSize(13).TextColor(fg).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
-		if !n.Folder && w.counts[n.ID] > 0 {
-			ui.Textf(c, "%d", w.counts[n.ID]).FontSize(11).TextColor(a.pal.faint)
+		if k := w.wordsIn(n); k > 0 {
+			ui.Textf(c, "%d", k).FontSize(11).TextColor(a.pal.faint)
 		}
 	})
 	if row.Clicked() {
@@ -1042,6 +1042,18 @@ func (a *App) newNode(folder bool) {
 	}
 	a.openNode(id)
 	w.renaming, w.title, w.titleWas = id, "", title
+}
+
+// wordsIn is a chapter's count, or for a folder all its chapters' together.
+func (w *writeView) wordsIn(n *workspace.Node) int {
+	if !n.Folder {
+		return w.counts[n.ID]
+	}
+	k := 0
+	for _, ch := range n.Children {
+		k += w.wordsIn(ch)
+	}
+	return k
 }
 
 func (a *App) trashNode(n *workspace.Node) {

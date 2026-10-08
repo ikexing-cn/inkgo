@@ -512,3 +512,17 @@ func TestFocusLeavesThePageAlone(t *testing.T) {
 		t.Fatal("quoting kept the column away", tt.Texts())
 	}
 }
+
+func TestAFolderCountsItsChapters(t *testing.T) {
+	w := &writeView{counts: map[string]int{"a": 3, "b": 4, "c": 5}}
+	vol := &workspace.Node{ID: "v", Folder: true, Children: []*workspace.Node{
+		{ID: "a"},
+		{ID: "w", Folder: true, Children: []*workspace.Node{{ID: "b"}}},
+	}}
+	if k := w.wordsIn(vol); k != 7 {
+		t.Fatalf("folder counts %d, want 7", k)
+	}
+	if k := w.wordsIn(&workspace.Node{ID: "c"}); k != 5 {
+		t.Fatalf("chapter counts %d, want 5", k)
+	}
+}
