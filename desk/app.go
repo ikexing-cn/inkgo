@@ -81,6 +81,7 @@ type App struct {
 	path, name, genre string
 	shelf             shelf.Shelf
 	books             shelfView
+	sums              summaries
 	session           string
 	sessions          []string
 	titles            map[string]string
@@ -181,6 +182,7 @@ func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 	if a.Store != nil {
 		a.flush()
 		a.remember(false)
+		a.stopSummaries()
 		a.halt()
 		a.Store.Close()
 	}
@@ -216,6 +218,7 @@ func (a *App) resetView() {
 func (a *App) closeWork() {
 	a.flush()
 	a.remember(false)
+	a.stopSummaries()
 	a.halt()
 	a.setError(a.Store.Close())
 	a.Store = nil

@@ -373,3 +373,29 @@ func TestDragMovesChapters(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// A new chapter's name is typed in place of the one it is given, and left
+// empty, it keeps that one.
+func TestNameANewChapter(t *testing.T) {
+	a, tt, _ := writingFixture(t, "雨从傍晚开始下。")
+	if err := tt.Click("新建章节"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Type("第二章 脚印")
+	tt.Key(0, ui.KeyEnter)
+	tt.Frame()
+	n, ok := a.write.tree.Node(a.write.node)
+	if !ok || n.Title != "第二章 脚印" || a.write.renaming != "" {
+		t.Fatal(n, a.write.renaming)
+	}
+	if err := tt.Click("新建章节"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Key(0, ui.KeyEnter)
+	tt.Frame()
+	if n, _ = a.write.tree.Node(a.write.node); n.Title != "新章节" || a.write.renaming != "" {
+		t.Fatal(n.Title, a.write.renaming)
+	}
+}

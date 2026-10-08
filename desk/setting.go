@@ -42,6 +42,9 @@ type prefs struct {
 	PanelWidth float32 `json:"panel_width,omitempty"`
 	TalkTab    bool    `json:"talk_tab,omitempty"`
 	NoAttach   bool    `json:"no_attach,omitempty"`
+	// NoAutoSummary leaves a chapter's summary alone as the author leaves
+	// it changed.
+	NoAutoSummary bool `json:"no_auto_summary,omitempty"`
 }
 
 func (a *App) prefsPath() string { return filepath.Join(a.Store.Root(), ".writer", "desk.json") }
@@ -54,12 +57,13 @@ func (a *App) loadPrefs() {
 	a.doc.hidden = p.SettingHidden
 	a.write.node = p.Chapter
 	a.write.autoPredict = p.AutoPredict
+	a.write.autoSummary = !p.NoAutoSummary
 	a.doc.width, a.doc.talk, a.doc.attach = p.PanelWidth, p.TalkTab, !p.NoAttach
 }
 
 func (a *App) savePrefs() {
 	b, err := json.Marshal(prefs{SettingHidden: a.doc.hidden, Chapter: a.write.node, AutoPredict: a.write.autoPredict,
-		PanelWidth: a.doc.width, TalkTab: a.doc.talk, NoAttach: !a.doc.attach})
+		PanelWidth: a.doc.width, TalkTab: a.doc.talk, NoAttach: !a.doc.attach, NoAutoSummary: !a.write.autoSummary})
 	if err == nil {
 		err = os.WriteFile(a.prefsPath(), b, 0644)
 	}

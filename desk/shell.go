@@ -27,8 +27,12 @@ func (a *App) View(c *ui.Context) {
 	if a.busy == "" {
 		a.talking = false
 	}
+	if a.Store != nil {
+		a.pollSummaries(c)
+	}
 	if a.Store != nil && a.shown == 3 && a.page != 3 {
 		a.flush()
+		a.leaveChapter()
 		a.write.entered = false
 	}
 	a.shown = a.page

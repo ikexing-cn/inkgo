@@ -257,6 +257,9 @@ func (a *App) openDraft() {
 	a.flush()
 	w.draftOpen, w.words = true, ""
 	w.draftMode = draftAppend
+	missing, have, err := writing.Unsummarized(a.Store, w.node)
+	a.warn(err)
+	w.unsummarized, w.recapped = missing, have
 }
 
 const (
@@ -393,6 +396,7 @@ func (a *App) draftView(c *ui.Context) {
 					}).Grow(1)
 				}
 			})
+			a.recapNote(c)
 			if pw := w.pen.Load(); pw != nil {
 				ui.Textf(c, "用 %s · 推理 %s；可以在“模型设置”里换。", pw.Model.Name, pw.Model.Effort.Label()).FontSize(12).TextColor(a.pal.faint)
 			}

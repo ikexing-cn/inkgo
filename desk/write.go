@@ -42,6 +42,15 @@ type writeView struct {
 	outline, outlineSaved, outlinePrev string
 	outlineAt                          time.Time
 	outlineOpen                        bool
+	// The summary of the chapter shown, as stored and as being edited;
+	// changed, whether its prose was saved since it opened.
+	sum                   workspace.Summary
+	summary, summarySaved string
+	summaryOpen           bool
+	changed               bool
+	autoSummary           bool
+	unsummarized          []string // the chapters before without a summary, as a draft opens
+	recapped              int      // and how many before have one
 	// The disk's text, changed outside while the node was open; lost, the
 	// node gone from the disk.
 	external  *workspace.Chapter
@@ -49,6 +58,7 @@ type writeView struct {
 	lostTitle string
 
 	renaming, title string
+	titleWas        string // the name kept when the title is left empty
 	finding         bool
 	query, with     string
 	current         int
@@ -196,9 +206,11 @@ func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.
 // openNode shows node id, saving what was shown first.
 func (a *App) openNode(id string) {
 	a.flush()
+	a.leaveChapter()
 	w := &a.write
 	w.node, w.ed, w.external, w.lost = id, nil, nil, false
 	w.outline, w.outlineSaved, w.outlinePrev = "", "", ""
+	w.sum, w.summary, w.summarySaved, w.changed = workspace.Summary{}, "", "", false
 	w.current = 0
 	n, ok := w.tree.Node(id)
 	if !ok {
@@ -215,6 +227,7 @@ func (a *App) openNode(id string) {
 	if !n.Folder {
 		w.ed = a.chapterEditor(ch.Text, ch.Marks)
 		w.saved, w.savedVer, w.stamp = ch.Text, w.ed.Doc.Version(), ch.Stamp
+		a.loadSummary(id)
 		if strings.TrimSpace(ch.Text) != "" {
 			_, err = a.Store.TakeSnapshot(id, workspace.SnapOpen, ch.Text, ch.Marks)
 			a.warn(err)
@@ -233,6 +246,7 @@ func (a *App) flush() {
 	a.stopAI()
 	a.warn(a.saveText())
 	a.warn(a.saveOutline())
+	a.warn(a.saveSummary())
 }
 
 // saveText writes the text shown when it changed since the disk had it,
@@ -249,6 +263,7 @@ func (a *App) saveText() error {
 		return err
 	}
 	w.stamp, w.saved, w.savedVer = stamp, text, w.ed.Doc.Version()
+	w.changed = true
 	if w.counts != nil {
 		w.counts[w.node] = workspace.Count(text)
 	}
@@ -618,6 +633,7 @@ func (a *App) chapterView(c *ui.Context) {
 		ui.Collapsible(c, label, &w.outlineOpen, func() {
 			ui.Box(c).FillWidth().Padding(6, 0, 4, 0).Children(func() { a.outlineBox(c, "章纲", 96) })
 		})
+		a.summaryBox(c)
 	})
 	if w.finding && !w.ed.ReadOnly() {
 		a.findBar(c)
@@ -794,7 +810,7 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 	on := n.ID == w.node
 	if w.renaming == n.ID {
 		ui.Row(c).Key("r-"+n.ID).FillWidth().AlignItems(ui.Center).Gap(4).Padding(2, 4, 2, 8+float32(depth)*14).Children(func() {
-			in := ui.TextInput(c, &w.title).Label("章节标题").Grow(1).AutoFocus()
+			in := ui.TextInput(c, &w.title).Label("章节标题").Placeholder(w.titleWas).Grow(1).AutoFocus()
 			if in.Submitted() || iconButton(c, icCheck, "确定标题", ui.Color{}).Clicked() {
 				a.rename(n.ID)
 			}
@@ -854,7 +870,7 @@ func (a *App) nodeMenu(m *ui.Menu, n *workspace.Node) {
 	siblings := n.Parent.Children
 	i := slices.Index(siblings, n)
 	if m.Item("重命名").Chosen() {
-		w.renaming, w.title = n.ID, n.Title
+		w.renaming, w.title, w.titleWas = n.ID, n.Title, n.Title
 	}
 	if m.Item("新建章节").Chosen() {
 		a.openNode(n.ID)
@@ -919,6 +935,9 @@ func (a *App) dropOn(id string, target *workspace.Node) {
 func (a *App) rename(id string) {
 	w := &a.write
 	a.flush()
+	if trim(w.title) == "" {
+		w.title = w.titleWas
+	}
 	err := a.Store.RenameChapter(id, w.title)
 	if err == nil {
 		w.renaming = ""
@@ -962,7 +981,7 @@ func (a *App) newNode(folder bool) {
 		w.counts = map[string]int{}
 	}
 	a.openNode(id)
-	w.renaming, w.title = id, title
+	w.renaming, w.title, w.titleWas = id, "", title
 }
 
 func (a *App) trashNode(n *workspace.Node) {

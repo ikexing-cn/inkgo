@@ -247,6 +247,10 @@ func (a *App) usage(c *ui.Context) {
 			ui.Checkbox(c, &a.write.autoPredict, "停止输入后自动续写").Disabled(busy)
 			ui.Text(c, "续写总是不推理、只写一句。默认按 Cmd+J 才续写；打开上面这项后，每次停下来都会调用一次模型。").FontSize(12).TextColor(a.pal.faint).LineHeight(1.5)
 		})
+		ui.Column(c).FillWidth().Gap(4).Children(func() {
+			ui.Checkbox(c, &a.write.autoSummary, "离开改过的章节时更新摘要").Disabled(busy)
+			ui.Text(c, "起草时 AI 会看到前面各章的摘要。每更新一章调用一次写作模型（不推理）；你自己写的摘要不会被覆盖。").FontSize(12).TextColor(a.pal.faint).LineHeight(1.5)
+		})
 		ui.Row(c).FillWidth().Gap(12).AlignItems(ui.End).Children(func() {
 			labeled(c, "上下文预算（token，含回答预留）", func() {
 				ui.TextInput(c, &a.budget).Label("上下文预算").FillWidth().Disabled(busy)
@@ -314,7 +318,8 @@ func (a *App) saveUsage() error {
 			a.write.ed.SetPredictOnDemand(!a.write.autoPredict)
 		}
 		a.notice = "模型设置已保存，从下一条发言起生效"
-		a.kick() // a model or budget that now works takes in what waited
+		clear(a.sums.failed) // what failed for want of a model may work now
+		a.kick()             // a model or budget that now works takes in what waited
 	}
 	return err
 }
