@@ -9,6 +9,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"sync/atomic"
 	"time"
 
 	"github.com/egoist/mygo"
@@ -76,15 +77,17 @@ func main() {
 	flag.Parse()
 	if !*editorDemo {
 		d := desk.New()
+		// The dialogs open over the window, asked for off the UI thread.
+		var win atomic.Pointer[mygo.Window]
 		d.PickFolder = func(title string) (string, error) {
-			paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Title: title, Directory: true, CreateDirectories: true})
+			paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: win.Load(), Title: title, Directory: true, CreateDirectories: true})
 			if err != nil || len(paths) == 0 {
 				return "", err
 			}
 			return paths[0], nil
 		}
 		d.SaveFile = func(title, name string) (string, error) {
-			return mygo.Dialog.Save(mygo.SaveDialogOptions{Title: title, DefaultPath: name, CreateDirectories: true,
+			return mygo.Dialog.Save(mygo.SaveDialogOptions{Parent: win.Load(), Title: title, DefaultPath: name, CreateDirectories: true,
 				Filters: []mygo.FileFilter{{Name: "纯文本", Extensions: []string{"txt"}}}})
 		}
 		d.Reveal = desk.RevealFolder
@@ -97,7 +100,7 @@ func main() {
 		}
 		defer d.Close()
 		mygo.App.WhenReady(func() {
-			mygo.NewWindow(mygo.WindowOptions{Title: "写作", Width: 1280, Height: 820, MinWidth: 1000, MinHeight: 680, Content: ui.View(d.View)})
+			win.Store(mygo.NewWindow(mygo.WindowOptions{Title: "写作", Width: 1280, Height: 820, MinWidth: 1000, MinHeight: 680, Content: ui.View(d.View)}))
 		})
 		if err := mygo.App.Run(); err != nil {
 			log.Fatal(err)
