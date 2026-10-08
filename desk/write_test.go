@@ -695,3 +695,23 @@ func TestChapterOpensWhereItWasLeft(t *testing.T) {
 		t.Fatal("caret after opening again at", got)
 	}
 }
+
+// Ctrl+S saves the chapter at once and says so.
+func TestCtrlSSavesNow(t *testing.T) {
+	a, tt, one := writingFixture(t, "一")
+	a.write.ed.Focus()
+	tt.Frame()
+	a.write.ed.Insert("二")
+	tt.Key(ui.Cmd, ui.KeyS)
+	tt.Frame()
+	ch, err := a.Store.ReadChapter(one)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ch.Text != a.write.ed.Doc.String() || !strings.Contains(ch.Text, "二") {
+		t.Fatalf("disk has %q", ch.Text)
+	}
+	if !strings.HasPrefix(a.notice, "已保存") {
+		t.Fatal(a.notice)
+	}
+}

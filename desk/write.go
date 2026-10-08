@@ -266,6 +266,25 @@ func (a *App) flush() {
 	a.warn(a.saveSummary())
 }
 
+// saveNow is Ctrl+S: what the page shows goes to the disk now, though it
+// would anyway as the author pauses. An AI writing or a rewrite waiting is
+// left alone; what it has written is saved when it ends.
+func (a *App) saveNow() {
+	w := &a.write
+	if w.run != nil || w.proposed != nil {
+		a.notice = "AI 还在改这一章，等它结束会自动保存"
+		return
+	}
+	for _, err := range []error{a.saveText(), a.saveOutline(), a.saveSummary()} {
+		if err != nil {
+			a.warn(err)
+			return
+		}
+	}
+	a.keepCaret()
+	a.notice = "已保存。停笔片刻也会自动保存"
+}
+
 // keepCaret notes where the caret is in the chapter shown, to put it back
 // there when the chapter opens again, in this run or the next.
 func (a *App) keepCaret() {
@@ -473,6 +492,9 @@ func (a *App) writing(c *ui.Context) {
 	}
 	if c.Shortcut(0, ui.KeyF11) {
 		a.write.focus = !a.write.focus
+	}
+	if c.Shortcut(ui.Cmd, ui.KeyS) {
+		a.saveNow()
 	}
 	if c.Shortcut(ui.Cmd, ui.KeyPageUp) {
 		a.stepChapter(-1)
