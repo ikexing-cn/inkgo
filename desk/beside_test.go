@@ -118,7 +118,7 @@ func TestQuoteProseIntoTheTalk(t *testing.T) {
 }
 
 // A quote in the talk, and an entry taken from one, find their words in
-// the chapter.
+// the chapter; the quote goes by the chapter's name now.
 func TestQuotesFindTheirProse(t *testing.T) {
 	a, tt, id := writingFixture(t, "雨下了一夜。她推开门。")
 	q := workspace.Quote{Chapter: id, Title: "第一章", Text: "她推开门。"}
@@ -131,10 +131,17 @@ func TestQuotesFindTheirProse(t *testing.T) {
 		t.Fatal(err)
 	}
 	a.setError(a.refresh())
+	if err = a.Store.RenameChapter(id, "雨夜"); err != nil {
+		t.Fatal(err)
+	}
+	a.warn(a.loadTree())
 	a.write.ed.MoveTo(0, false)
 	a.page = 0
 	tt.Frame()
 	tt.Frame()
+	if !tt.HasText("《雨夜》") || tt.HasText("《第一章》") {
+		t.Fatal("the quote does not go by the chapter's name now", tt.Texts())
+	}
 	if err := tt.Click("引用-" + u.ID + "-0"); err != nil {
 		t.Fatal(err, tt.Texts())
 	}

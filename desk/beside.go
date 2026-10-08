@@ -185,7 +185,11 @@ func (a *App) quoteBlock(c *ui.Context, q workspace.Quote, key string, remove fu
 	b.Children(func() {
 		ui.Box(c).Width(3).Radius(2).Background(a.pal.brand.Alpha(0.5)).Shrink(0)
 		ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
-			ui.Text(c, "《"+q.Title+"》").FontSize(12).TextColor(a.pal.brand)
+			title := q.Title // as it was named then, unless the tree knows it now
+			if n, ok := a.write.tree.Node(q.Chapter); ok {
+				title = n.Title
+			}
+			ui.Text(c, "《"+title+"》").FontSize(12).TextColor(a.pal.brand)
 			ui.Text(c, clip(q.Text, 160)).FontSize(13).LineHeight(1.6).TextColor(t.TextMuted).FillWidth()
 		})
 		if remove != nil && iconButton(c, icX, "去掉引用-"+key, ui.Color{}).Tooltip("去掉这段引用").Clicked() {
