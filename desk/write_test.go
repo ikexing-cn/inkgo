@@ -423,8 +423,37 @@ func TestNameANewChapter(t *testing.T) {
 	tt.Frame()
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if n, _ = a.write.tree.Node(a.write.node); n.Title != "新章节" || a.write.renaming != "" {
-		t.Fatal(n.Title, a.write.renaming)
+	if n, _ = a.write.tree.Node(a.write.node); n.Title != "第三章" || a.write.renaming != "" {
+		t.Fatal("the number does not go on", n.Title, a.write.renaming)
+	}
+	if err := tt.Click("新建章节"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.write.title != "第四章 " {
+		t.Fatalf("offered %q", a.write.title)
+	}
+	tt.Type("守夜人")
+	tt.Key(0, ui.KeyEnter)
+	tt.Frame()
+	if n, _ = a.write.tree.Node(a.write.node); n.Title != "第四章 守夜人" {
+		t.Fatal(n.Title)
+	}
+	a.openNode(a.write.tree.Root.Children[0].ID)
+	a.write.tree.Root.Children[0].Title = "楔子"
+	a.write.renaming = ""
+	if err := a.Store.RenameChapter(a.write.node, "楔子"); err != nil {
+		t.Fatal(err)
+	}
+	a.warn(a.loadTree())
+	if err := tt.Click("新建章节"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Key(0, ui.KeyEnter)
+	tt.Frame()
+	if n, _ = a.write.tree.Node(a.write.node); n.Title != "新章节" {
+		t.Fatal("a title with no number is numbered", n.Title)
 	}
 }
 

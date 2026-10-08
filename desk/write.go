@@ -55,6 +55,7 @@ type writeView struct {
 	goal                  int    // a day's goal, or 0
 	goalText              string // the goal as typed
 	goalOpen              bool
+	offered               string         // the numbered title a new node's name began with
 	carets                map[string]int // where the caret was in each chapter, as it was left
 	unsummarized          []string       // the chapters before without a summary, as a draft opens
 	recapped              int            // and how many before have one
@@ -1089,7 +1090,7 @@ func (a *App) nodeMenu(m *ui.Menu, n *workspace.Node) {
 	siblings := n.Parent.Children
 	i := slices.Index(siblings, n)
 	if m.Item("重命名").Chosen() {
-		w.renaming, w.title, w.titleWas = n.ID, n.Title, n.Title
+		w.renaming, w.title, w.titleWas, w.offered = n.ID, n.Title, n.Title, ""
 	}
 	if m.Item("新建章节").Chosen() {
 		a.openNode(n.ID)
@@ -1157,7 +1158,12 @@ func (a *App) rename(id string) {
 	if trim(w.title) == "" {
 		w.title = w.titleWas
 	}
-	err := a.Store.RenameChapter(id, w.title)
+	// A whole numbered title typed after the number offered replaces it.
+	if rest, ok := strings.CutPrefix(w.title, w.offered); ok && w.offered != "" && numbered.MatchString(trim(rest)) {
+		w.title = rest
+	}
+	w.offered = ""
+	err := a.Store.RenameChapter(id, trim(w.title))
 	if err == nil {
 		w.renaming = ""
 		err = a.loadTree()
@@ -1189,6 +1195,15 @@ func (a *App) newNode(folder bool) {
 	if err == nil {
 		err = a.loadTree()
 	}
+	// Numbered like the one before, the title is ready to go on with its
+	// name: 第四章 名单 gives 第五章.
+	typed := ""
+	if next := titleAfter(w.tree, id); err == nil && next != "" {
+		title, typed = next, next+" "
+		if err = a.Store.RenameChapter(id, title); err == nil {
+			err = a.loadTree()
+		}
+	}
 	if err != nil {
 		a.warn(err)
 		return
@@ -1200,7 +1215,7 @@ func (a *App) newNode(folder bool) {
 		w.counts = map[string]int{}
 	}
 	a.openNode(id)
-	w.renaming, w.title, w.titleWas = id, "", title
+	w.renaming, w.title, w.titleWas, w.offered = id, typed, title, typed
 }
 
 // wordsIn is a chapter's count, or for a folder all its chapters' together.
