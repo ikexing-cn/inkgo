@@ -817,3 +817,24 @@ func TestSizeTheText(t *testing.T) {
 		t.Fatal("not back", a.write.ed.FontSize())
 	}
 }
+
+// The window is named after the work, and on the writing page after the
+// chapter open too.
+func TestWindowTitle(t *testing.T) {
+	a, tt, _ := writingFixture(t, "一")
+	var titles []string
+	a.SetTitle = func(s string) bool { titles = append(titles, s); return true }
+	work := a.Store.Work().Name
+	tt.Frame()
+	tt.Frame()
+	if want := "第一章 — " + work; len(titles) != 1 || titles[0] != want {
+		t.Fatalf("titles %q, want once %q", titles, want)
+	}
+	if err := tt.Click("讨论"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if titles[len(titles)-1] != work {
+		t.Fatalf("discussing: %q", titles)
+	}
+}

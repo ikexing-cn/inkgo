@@ -91,6 +91,13 @@ func main() {
 				Filters: []mygo.FileFilter{{Name: "纯文本", Extensions: []string{"txt"}}}})
 		}
 		d.Reveal = desk.RevealFolder
+		d.SetTitle = func(title string) bool {
+			w := win.Load()
+			if w != nil {
+				w.SetTitle(title)
+			}
+			return w != nil
+		}
 		if *workPath != "" {
 			if err := d.Open(*workPath); err != nil {
 				d.Error = err.Error()

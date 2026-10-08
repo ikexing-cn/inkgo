@@ -14,6 +14,7 @@ const narrow = 1180
 
 func (a *App) View(c *ui.Context) {
 	a.poll()
+	defer a.nameWindow()
 	if a.Store != nil && a.worker == nil {
 		a.startWorker(c)
 	}
@@ -302,5 +303,30 @@ func (a *App) banners(c *ui.Context) {
 				a.notice = ""
 			}
 		})
+	}
+}
+
+// WindowTitle names the work shown, and on the writing page the chapter
+// open in it, so that the taskbar tells windows and works apart.
+func (a *App) WindowTitle() string {
+	if a.Store == nil {
+		return "写作"
+	}
+	title := a.Store.Work().Name
+	if a.page == 3 {
+		if n, ok := a.write.tree.Node(a.write.node); ok && n.Title != "" {
+			title = n.Title + " — " + title
+		}
+	}
+	return title
+}
+
+// nameWindow sets the window title when it changed.
+func (a *App) nameWindow() {
+	if a.SetTitle == nil {
+		return
+	}
+	if t := a.WindowTitle(); t != a.titled && a.SetTitle(t) {
+		a.titled = t
 	}
 }

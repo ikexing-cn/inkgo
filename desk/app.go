@@ -71,6 +71,9 @@ type App struct {
 	SaveFile func(title, name string) (string, error)
 	// Reveal shows a folder in the system's file manager; nil hides it.
 	Reveal func(path string) error
+	// SetTitle names the window, reporting false when there is no window
+	// yet to name; nil leaves the title as it is.
+	SetTitle func(title string) bool
 
 	light, dark *palette
 	pal         *palette
@@ -82,6 +85,7 @@ type App struct {
 	noticed           string    // the notice as first shown,
 	noticeAt          time.Time // and when
 	keysOpen          bool      // the shortcuts shown
+	titled            string    // the window title last set
 	path, name, genre string
 	shelf             shelf.Shelf
 	books             shelfView
