@@ -2,6 +2,7 @@ package desk
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -56,6 +57,7 @@ type writeView struct {
 	goalText              string // the goal as typed
 	goalOpen              bool
 	offered               string         // the numbered title a new node's name began with
+	days                  map[string]int // what was written each day before, by local date
 	carets                map[string]int // where the caret was in each chapter, as it was left
 	unsummarized          []string       // the chapters before without a summary, as a draft opens
 	recapped              int            // and how many before have one
@@ -572,6 +574,22 @@ func (a *App) total() int {
 	return n
 }
 
+// keepDays is how many days' counts are kept.
+const keepDays = 60
+
+// lastDays is what was written on each of the n days up to now, the last
+// being today; a day the work was not open is 0.
+func (a *App) lastDays(now time.Time, n int) []int {
+	out := make([]int, n)
+	k := a.today(now) // a new day keeps the last first
+	for i := range n {
+		day := now.AddDate(0, 0, i-n+1).Format(time.DateOnly)
+		out[i] = a.write.days[day]
+	}
+	out[n-1] = k
+	return out
+}
+
 // today is how much the book grew today, which the first look on a new
 // day starts from. Taking chapters out counts against it.
 func (a *App) today(now time.Time) int {
@@ -580,10 +598,48 @@ func (a *App) today(now time.Time) int {
 		return 0 // not read yet: a start of nothing would count the whole book
 	}
 	if day := now.Format(time.DateOnly); day != w.day {
+		if w.day != "" {
+			// What the book has now is where the last day the work was
+			// open ended.
+			if w.days == nil {
+				w.days = map[string]int{}
+			}
+			w.days[w.day] = a.total() - w.dayStart
+			for len(w.days) > keepDays {
+				delete(w.days, slices.Min(slices.Collect(maps.Keys(w.days))))
+			}
+		}
 		w.day, w.dayStart = day, a.total()
 		a.savePrefs()
 	}
 	return a.total() - w.dayStart
+}
+
+// weekChart draws the last seven days' writing as bars, those that met the
+// goal in the brand color.
+func (a *App) weekChart(c *ui.Context) {
+	t := a.pal.theme
+	w := &a.write
+	now := time.Now()
+	days := a.lastDays(now, 7)
+	top := max(slices.Max(days), w.goal, 1)
+	const tall = 48
+	ui.Text(c, "最近 7 天").FontSize(12).FontWeight(600).TextColor(t.TextMuted).Padding(6, 0, 0, 0)
+	ui.Row(c).FillWidth().Gap(4).AlignItems(ui.End).Children(func() {
+		for i, k := range days {
+			day := now.AddDate(0, 0, i-len(days)+1)
+			color := t.TextMuted.Alpha(0.35)
+			if w.goal > 0 && k >= w.goal {
+				color = a.pal.brand
+			}
+			ui.Column(c).Key(i).Grow(1).Gap(3).AlignItems(ui.Center).Label(fmt.Sprintf("%s 写了 %d 字", day.Format("1月2日"), k)).Tooltip(fmt.Sprintf("%s：%+d 字", day.Format("1月2日"), k)).Children(func() {
+				h := float32(max(k, 0)) / float32(top) * tall
+				ui.Box(c).Height(tall - h)
+				ui.Box(c).FillWidth().Height(max(h, 2)).Radius(2).Background(color)
+				ui.Textf(c, "%d", day.Day()).FontSize(10.5).TextColor(a.pal.faint)
+			})
+		}
+	})
 }
 
 // stepChapter opens the chapter before (d < 0) or after the node open, in
@@ -705,6 +761,7 @@ func (a *App) writeTop(c *ui.Context) {
 					w.goalOpen = false
 				}
 				ui.Text(c, "今天写到这个数，顶栏的字数变成主题色。留空就不设。").FontSize(12).TextColor(a.pal.faint).LineHeight(1.5).FillWidth()
+				a.weekChart(c)
 			})
 		})
 		ui.Box(c).Width(6)

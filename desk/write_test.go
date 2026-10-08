@@ -3,6 +3,7 @@ package desk
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -604,6 +605,16 @@ func TestTodayCountsFromTheDaysStart(t *testing.T) {
 	}
 	if k := a.today(day.Add(24 * time.Hour)); k != 0 {
 		t.Fatalf("the next day starts at %d", k)
+	}
+	// The day gone is kept, also with the work, and shows among the last
+	// days; a day the work was not open is nothing.
+	a.write.counts[a.write.node] = 15
+	week := a.lastDays(day.Add(72*time.Hour), 4)
+	if want := []int{7, 5, 0, 0}; !slices.Equal(week, want) {
+		t.Fatalf("the last days are %v, want %v", week, want)
+	}
+	if p := savedPrefs(t, a); p.Days["2026-10-09"] != 7 || p.Days["2026-10-10"] != 5 {
+		t.Fatalf("days kept %v", p.Days)
 	}
 }
 
