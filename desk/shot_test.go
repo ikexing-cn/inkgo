@@ -109,3 +109,40 @@ func TestShotAI(t *testing.T) {
 	a.openSnapshots()
 	shot("ai-snapshots.png")
 }
+
+// TestShotBeside writes screenshots of the talk beside the prose when SHOT
+// is a directory: SHOT=dir go test ./desk -run ShotBeside
+func TestShotBeside(t *testing.T) {
+	dir := os.Getenv("SHOT")
+	if dir == "" {
+		t.Skip("set SHOT=dir")
+	}
+	a, tt, id := writingFixture(t, "雨从傍晚开始下，一直没有停。\n林晚背着工具箱，沿着亮着的灯往旧城走。她修了七年路灯，却从来不敢在天黑以后走进没有灯的巷子。\n井边那盏灯坏了三天。")
+	shot := func(name string) {
+		tt.Frame()
+		tt.Frame()
+		f, err := os.Create(filepath.Join(dir, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer f.Close()
+		if err := png.Encode(f, tt.Image()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	u, _ := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "这句是不是交代得太早了？", Chapter: id,
+		Quotes: []workspace.Quote{{Chapter: id, Title: "第一章", Text: "她修了七年路灯，却从来不敢在天黑以后走进没有灯的巷子。"}}})
+	_, _ = a.Store.Append(a.session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Model: "deepseek/deepseek-flash",
+		Text: "有一点。“怕黑”是她的底牌，第一章就直接说出来，后面井边那场戏就少了悬念。\n\n可以只留动作：她在巷口停住，把手电换到另一只手。读者会自己猜。"})
+	a.setError(a.refresh())
+	a.doc.talk = true
+	a.write.ed.Select(15, 34)
+	tt.Frame()
+	tt.Key(ui.Cmd, ui.KeyL)
+	a.input = "换成动作的话，放在哪里合适？"
+	shot("beside-talk.png")
+	a.doc.width = 560
+	shot("beside-wide.png")
+	a.page = 0
+	shot("beside-on-talk-page.png")
+}

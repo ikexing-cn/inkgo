@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"time"
 
 	"github.com/egoist/mygo/ui"
@@ -21,6 +22,12 @@ type docView struct {
 	editing  string           // the entry being edited, "new" for a new one
 	text     string
 	category string
+	// The right column: its width as dragged, and, on the writing page,
+	// whether it shows the talk and sends the chapter with it.
+	width    float32
+	resizing bool
+	talk     bool
+	attach   bool
 }
 
 // prefs are the desk's own per-work settings, kept in .writer, which is
@@ -30,6 +37,11 @@ type prefs struct {
 	Chapter       string `json:"chapter,omitempty"` // the node last open
 	// AutoPredict continues the prose as typing pauses, not on demand.
 	AutoPredict bool `json:"auto_predict,omitempty"`
+	// The right column's width, whether the writing page shows the talk
+	// in it, and whether a turn from there leaves the chapter out.
+	PanelWidth float32 `json:"panel_width,omitempty"`
+	TalkTab    bool    `json:"talk_tab,omitempty"`
+	NoAttach   bool    `json:"no_attach,omitempty"`
 }
 
 func (a *App) prefsPath() string { return filepath.Join(a.Store.Root(), ".writer", "desk.json") }
@@ -42,10 +54,12 @@ func (a *App) loadPrefs() {
 	a.doc.hidden = p.SettingHidden
 	a.write.node = p.Chapter
 	a.write.autoPredict = p.AutoPredict
+	a.doc.width, a.doc.talk, a.doc.attach = p.PanelWidth, p.TalkTab, !p.NoAttach
 }
 
 func (a *App) savePrefs() {
-	b, err := json.Marshal(prefs{SettingHidden: a.doc.hidden, Chapter: a.write.node, AutoPredict: a.write.autoPredict})
+	b, err := json.Marshal(prefs{SettingHidden: a.doc.hidden, Chapter: a.write.node, AutoPredict: a.write.autoPredict,
+		PanelWidth: a.doc.width, TalkTab: a.doc.talk, NoAttach: !a.doc.attach})
 	if err == nil {
 		err = os.WriteFile(a.prefsPath(), b, 0644)
 	}
@@ -81,7 +95,11 @@ func (a *App) settingPanel(c *ui.Context) {
 		if a.doc.history {
 			title = "整理历史"
 		}
-		ui.Text(c, title).FontSize(15).FontWeight(600)
+		if a.page == 3 && !a.doc.history {
+			a.panelTabs(c)
+		} else {
+			ui.Text(c, title).FontSize(15).FontWeight(600)
+		}
 		if !a.doc.history && body > 0 {
 			ui.Textf(c, "%d", body).FontSize(12.5).TextColor(a.pal.faint).Padding(0, 0, 0, 4)
 		}
@@ -194,6 +212,11 @@ func (a *App) entry(c *ui.Context, e workspace.Entry) {
 				case workspace.PlaceDropped:
 					if iconButton(c, icUndo, "移回-"+e.ID, ui.Color{}).Tooltip("移回正文").Clicked() {
 						a.revise(workspace.Op{Op: workspace.OpMove, Entry: e.ID, Place: workspace.PlaceBody})
+					}
+				}
+				if i := slices.IndexFunc(e.Sources, func(s workspace.Source) bool { return s.Chapter != "" }); i >= 0 {
+					if iconButton(c, icBook, "原文-"+e.ID, ui.Color{}).Tooltip("在正文里找到来源").Clicked() {
+						a.findInChapter(e.Sources[i].Chapter, e.Sources[i].Quote)
 					}
 				}
 				if iconButton(c, icPencil, "编辑-"+e.ID, ui.Color{}).Tooltip("修改").Clicked() {

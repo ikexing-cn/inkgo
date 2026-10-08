@@ -2,6 +2,7 @@ package desk
 
 import (
 	"context"
+	"fmt"
 	"runtime"
 	"strings"
 	"time"
@@ -22,7 +23,7 @@ func (a *App) discussion(c *ui.Context) {
 		a.LastChat = chat.Bounds()
 		chat.Children(func() {
 			a.chatTop(c)
-			a.chatList(c)
+			a.chatList(c, false)
 			ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(0, 28, 20, 28).Children(func() {
 				a.composer(c)
 			})
@@ -33,7 +34,7 @@ func (a *App) discussion(c *ui.Context) {
 
 // chatList builds only the messages in view: laying out a long session
 // whole each frame made streaming and scrolling stutter.
-func (a *App) chatList(c *ui.Context) {
+func (a *App) chatList(c *ui.Context, side bool) {
 	rows := a.rows[:0]
 	if !a.hasMessages() && a.pending == "" {
 		rows = append(rows, -1)
@@ -53,7 +54,7 @@ func (a *App) chatList(c *ui.Context) {
 		}
 		return a.events[rows[i]].ID
 	}
-	ui.List(c, &a.chat, len(rows), func(i int) {
+	list := ui.List(c, &a.chat, len(rows), func(i int) {
 		ui.Column(c).FillWidth().AlignItems(ui.Center).Children(func() {
 			ui.Column(c).FillWidth().MaxWidth(column).Children(func() {
 				switch r := rows[i]; r {
@@ -66,7 +67,12 @@ func (a *App) chatList(c *ui.Context) {
 				}
 			})
 		})
-	}).Grow(1).FillWidth().Gap(26).Padding(28, 28, 24, 28)
+	})
+	if side {
+		list.Grow(1).FillWidth().Gap(20).Padding(8, 2, 12, 2)
+	} else {
+		list.Grow(1).FillWidth().Gap(26).Padding(28, 28, 24, 28)
+	}
 }
 
 func (a *App) hasMessages() bool { return len(a.events) > 0 }
@@ -166,6 +172,11 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 	shown := last || box.Hovered() || box.FocusWithin()
 	box.Children(func() {
 		if user {
+			for n, q := range m.Quotes {
+				ui.Column(c).MaxWidthPercent(82).Children(func() {
+					a.quoteBlock(c, q, fmt.Sprintf("%s-%d", m.ID, n), nil)
+				})
+			}
 			a.userBubble(c, m.Text)
 		} else {
 			ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Start).Children(func() {
@@ -346,10 +357,33 @@ func (a *App) composer(c *ui.Context) {
 	if box.FocusWithin() {
 		box.BorderColor(t.TextMuted.Alpha(0.55))
 	}
+	side := a.page == 3
 	box.Children(func() {
-		lines := strings.Count(a.input, "\n") + 1 + len([]rune(a.input))/46
+		for n, q := range a.quotes {
+			a.quoteBlock(c, q, fmt.Sprintf("new-%d", n), func() { a.quotes = append(a.quotes[:n:n], a.quotes[n+1:]...) })
+		}
+		per := 46
+		if side {
+			per = 20
+		}
+		lines := strings.Count(a.input, "\n") + 1 + len([]rune(a.input))/per
 		h := float32(min(max(lines, 2), 7)) * 25
-		ui.TextAreaBase(c, &a.input).Label("讨论输入").Placeholder("说说你的想法，或问 AI 一个问题…").FillWidth().Height(h).FontSize(14.5).LineHeight(1.7).Disabled(a.busy != "")
+		hint := "说说你的想法，或问 AI 一个问题…"
+		if side {
+			hint = "问问这一章，或者选中正文按 Cmd+L 引用…"
+		}
+		in := ui.TextAreaBase(c, &a.input).Label("讨论输入").Placeholder(hint).FillWidth().Height(h).FontSize(14.5).LineHeight(1.7).Disabled(a.busy != "")
+		if a.focusTalk {
+			in.Focus()
+			a.focusTalk = false
+		}
+		if side {
+			ui.Row(c).FillWidth().Children(func() {
+				if ui.Checkbox(c, &a.doc.attach, "附上本章").Tooltip("把章纲和光标前约 2000 字一起发给 AI").Changed() {
+					a.savePrefs()
+				}
+			})
+		}
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 			// The chip names the model and effort the next turn goes to, and
 			// opens a menu to change either; its tooltip says where the words go.
@@ -378,7 +412,9 @@ func (a *App) composer(c *ui.Context) {
 			if runtime.GOOS == "darwin" {
 				key = "⌘ + Enter"
 			}
-			ui.Text(c, key).FontSize(11.5).TextColor(a.pal.faint)
+			if !side {
+				ui.Text(c, key).FontSize(11.5).TextColor(a.pal.faint)
+			}
 			can := a.busy == "" && trim(a.input) != ""
 			send := ui.ButtonBase(c).Size(32, 32).Radius(999).Center().Label("发送").Tooltip("发送").Disabled(!can).Shrink(0)
 			bg := a.pal.ink
@@ -419,15 +455,20 @@ func (a *App) send(c *ui.Context) {
 		a.setError(err)
 		return
 	}
-	input, session := a.input, a.session
-	a.pending, a.input = input, ""
+	input, quotes, session := a.input, a.quotes, a.session
+	words := workspace.Event{Text: input, Quotes: quotes}
+	if a.page == 3 {
+		words.Chapter = a.write.node
+		eng.Beside = a.beside()
+	}
+	a.pending, a.input, a.quotes = input, "", nil
 	a.chat.ScrollToEnd()
 	a.run(c, "AI 正在思考…", func(ctx context.Context) (func(), error) {
-		turn, err := eng.Send(ctx, session, input)
+		turn, err := eng.Say(ctx, session, words)
 		return func() {
 			a.pending = ""
 			if turn.User.ID == "" && a.input == "" {
-				a.input = input // nothing was saved: give the words back
+				a.input, a.quotes = input, quotes // nothing was saved: give the words back
 			}
 			a.chat.ScrollToEnd()
 		}, err
@@ -442,6 +483,9 @@ func (a *App) retry(c *ui.Context, userID string) {
 		return
 	}
 	session := a.session
+	if a.page == 3 {
+		eng.Beside = a.beside()
+	}
 	a.run(c, "正在重新请求回复…", func(ctx context.Context) (func(), error) {
 		_, err := eng.Retry(ctx, session, userID)
 		return func() { a.chat.ScrollToEnd() }, err

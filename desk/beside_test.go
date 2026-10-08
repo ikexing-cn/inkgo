@@ -1,0 +1,152 @@
+package desk
+
+import (
+	"encoding/json"
+	"os"
+	"strings"
+	"testing"
+
+	"github.com/egoist/mygo/ui"
+	"writer/workspace"
+)
+
+func savedPrefs(t *testing.T, a *App) prefs {
+	t.Helper()
+	var p prefs
+	b, err := os.ReadFile(a.prefsPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = json.Unmarshal(b, &p); err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
+// The writing page's right column holds the talk too, and keeps which it
+// shows and how wide the author dragged it.
+func TestTalkBesideTheProse(t *testing.T) {
+	a, tt, _ := writingFixture(t, "雨下了一夜。她推开门。")
+	if !tt.HasText("主角怕黑") {
+		t.Fatal("the setting is not shown first", tt.Texts())
+	}
+	if err := tt.Click("右栏-讨论"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("附上本章") || tt.HasText("主角怕黑") || !savedPrefs(t, a).TalkTab {
+		t.Fatal("the talk is not shown", tt.Texts())
+	}
+
+	// Dragging the column's edge left widens it; the width is kept once
+	// the author lets go.
+	r := a.LastSetting
+	tt.Press(r.X, r.Y+300)
+	tt.Move(r.X-120, r.Y+300)
+	tt.Frame()
+	tt.Release(r.X-120, r.Y+300)
+	tt.Frame()
+	if got := a.LastSetting.W; got < 500 || got > 520 {
+		t.Fatalf("width %v after dragging from %v", got, r.W)
+	}
+	if p := savedPrefs(t, a); p.PanelWidth != a.doc.width {
+		t.Fatalf("width saved %v", p.PanelWidth)
+	}
+	tt.Press(a.LastSetting.X, r.Y+300)
+	tt.Move(a.LastSetting.X+900, r.Y+300)
+	tt.Frame()
+	tt.Release(a.LastSetting.X+900, r.Y+300)
+	tt.Frame()
+	if a.LastSetting.W != panelMin {
+		t.Fatalf("narrowed to %v", a.LastSetting.W)
+	}
+}
+
+// Cmd+L quotes the words selected into the talk; the turn carries the
+// chapter and the text before the caret unless the author turns it off.
+func TestQuoteProseIntoTheTalk(t *testing.T) {
+	a, tt, id := writingFixture(t, "雨下了一夜。她推开门。")
+	a.write.outline = "她回到旧城。"
+	a.write.ed.Select(6, 11)
+	tt.Frame()
+	tt.Key(ui.Cmd, ui.KeyL)
+	tt.Frame()
+	if len(a.quotes) != 1 || a.quotes[0] != (workspace.Quote{Chapter: id, Title: "第一章", Text: "她推开门。"}) || !a.doc.talk {
+		t.Fatalf("quotes %+v", a.quotes)
+	}
+	if !tt.HasText("《第一章》") || !tt.HasText("她推开门。") {
+		t.Fatal("the quote is not in the composer", tt.Texts())
+	}
+	b := a.beside()
+	if b == nil || b.Title != "第一章" || b.Outline != "她回到旧城。" || b.Before != "雨下了一夜。" {
+		t.Fatalf("beside %+v", b)
+	}
+	if err := tt.Click("去掉引用-new-0"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if len(a.quotes) != 0 {
+		t.Fatal("the quote stayed")
+	}
+	if err := tt.Click("附上本章"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.beside() != nil || !savedPrefs(t, a).NoAttach {
+		t.Fatal("the chapter is still sent")
+	}
+}
+
+// A quote in the talk, and an entry taken from one, find their words in
+// the chapter.
+func TestQuotesFindTheirProse(t *testing.T) {
+	a, tt, id := writingFixture(t, "雨下了一夜。她推开门。")
+	q := workspace.Quote{Chapter: id, Title: "第一章", Text: "她推开门。"}
+	u, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "这里太急？", Chapter: id, Quotes: []workspace.Quote{q}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = a.Store.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "她做事急",
+		Sources: []workspace.Source{{Session: a.session, Message: u.ID, Chapter: id, Quote: "她推开门。"}}}}}); err != nil {
+		t.Fatal(err)
+	}
+	a.setError(a.refresh())
+	a.write.ed.MoveTo(0, false)
+	a.page = 0
+	tt.Frame()
+	tt.Frame()
+	if err := tt.Click("引用-" + u.ID + "-0"); err != nil {
+		t.Fatal(err, tt.Texts())
+	}
+	tt.Frame()
+	if s, e := a.write.ed.Selection(); a.page != 3 || s != 6 || e != 11 {
+		t.Fatalf("page %d selection %d-%d", a.page, s, e)
+	}
+
+	a.write.ed.MoveTo(0, false)
+	a.doc.talk = false
+	tt.Frame()
+	var entry string
+	for _, e := range a.set.Entries {
+		if e.Text == "她做事急" {
+			entry = e.ID
+		}
+	}
+	if err := tt.Click("原文-" + entry); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if s, e := a.write.ed.Selection(); s != 6 || e != 11 {
+		t.Fatalf("selection %d-%d", s, e)
+	}
+	a.write.ed.Select(6, 7)
+	a.write.ed.Insert("他")
+	tt.Frame()
+	if err := tt.Click("原文-" + entry); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !strings.Contains(a.notice, "没有在这一章里找到") {
+		t.Fatalf("notice %q", a.notice)
+	}
+}

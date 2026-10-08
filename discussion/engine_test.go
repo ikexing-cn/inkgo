@@ -186,7 +186,7 @@ func TestContextBudget(t *testing.T) {
 		{ID: "new", Place: workspace.PlaceBody, Category: "人物", Text: strings.Repeat("新", 30), Rev: 2},
 	}}
 	w.TokenBudget = talkReserve + Estimate(talkRules) + Estimate("问") + docSlack + Estimate(strings.Repeat("新", 30)) + lineCost
-	got, err := Assemble(w, set, nil, 0, "问")
+	got, err := Assemble(w, set, nil, 0, "问", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,12 +194,12 @@ func TestContextBudget(t *testing.T) {
 		t.Fatalf("%+v", got)
 	}
 	w.TokenBudget = 8192
-	if _, err = Assemble(w, set, nil, 0, strings.Repeat("大", 9000)); err == nil {
+	if _, err = Assemble(w, set, nil, 0, strings.Repeat("大", 9000), nil); err == nil {
 		t.Fatal("oversized current input accepted")
 	}
 	w.TokenBudget = 16000
 	events := []workspace.Event{{ID: "u", Role: "user", Text: "问"}, {ID: "a", Role: "assistant", Text: "答", ReplyTo: "u"}, {Role: "user", Text: "失败的请求"}}
-	got, err = Assemble(w, workspace.Setting{}, events, 0, "本轮")
+	got, err = Assemble(w, workspace.Setting{}, events, 0, "本轮", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

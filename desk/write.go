@@ -183,6 +183,9 @@ func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.
 			if m.Item("AI 改写…").Disabled(s == e || busy).Chosen() {
 				a.openRewrite()
 			}
+			if m.Item("拿去讨论").Shortcut(ui.Cmd, ui.KeyL).Disabled(s == e).Chosen() {
+				a.quoteToTalk()
+			}
 			if m.Item("加入设定").Disabled(s == e).Chosen() {
 				a.openTake()
 			}
@@ -411,6 +414,9 @@ func (a *App) writing(c *ui.Context) {
 	if c.Shortcut(ui.Cmd, ui.KeyF) && a.write.ed != nil {
 		a.write.finding = true
 	}
+	if c.Shortcut(ui.Cmd, ui.KeyL) {
+		a.quoteToTalk()
+	}
 	ui.Row(c).FillWidth().Grow(1).AlignItems(ui.Stretch).Children(func() {
 		main := ui.Column(c).Grow(1).Shrink(1).FillHeight()
 		a.LastWrite = main.Bounds()
@@ -456,10 +462,19 @@ func (a *App) settingColumn(c *ui.Context) {
 	if a.doc.hidden {
 		return
 	}
+	win, _ := c.Size()
+	width := a.panelWidth(win)
 	ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
-	panel := ui.Column(c).Width(392).FillHeight().Padding(18, 18, 12, 18).Gap(12).Background(a.pal.side).Shrink(0)
+	panel := ui.Column(c).Width(width).FillHeight().Padding(18, 18, 12, 18).Gap(12).Background(a.pal.side).Shrink(0)
 	a.LastSetting = panel.Bounds()
-	panel.Children(func() { a.settingPanel(c) })
+	panel.Children(func() {
+		if a.page == 3 && a.doc.talk {
+			a.talkPanel(c)
+		} else {
+			a.settingPanel(c)
+		}
+		a.resizer(c, width)
+	})
 }
 
 func (a *App) total() int {

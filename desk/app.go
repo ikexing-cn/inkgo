@@ -72,27 +72,31 @@ type App struct {
 	light, dark *palette
 	pal         *palette
 
-	page                    int // 0 discussion, 1 models, 2 categories, 3 writing
-	shown                   int // the page the last frame showed
-	notice                  string
-	path, name, genre       string
-	welcomeMode             int // 0 create, 1 open
-	session                 string
-	sessions                []string
-	titles                  map[string]string
-	events                  []workspace.Event
-	set                     workspace.Setting
-	seen                    int // revisions of set the view has flashed
-	flash                   map[string]time.Time
-	input                   string
-	source                  *editor.Editor
-	sourceMessage           string
-	sourceOpen              bool
-	sourceCategory          string
-	contextReply            string
-	busy                    string
-	talking                 bool   // busy with a discussion turn, shown inline in the chat
-	pending                 string // the author's words while their turn is in flight
+	page              int // 0 discussion, 1 models, 2 categories, 3 writing
+	shown             int // the page the last frame showed
+	notice            string
+	path, name, genre string
+	welcomeMode       int // 0 create, 1 open
+	session           string
+	sessions          []string
+	titles            map[string]string
+	events            []workspace.Event
+	set               workspace.Setting
+	seen              int // revisions of set the view has flashed
+	flash             map[string]time.Time
+	input             string
+	source            *editor.Editor
+	sourceMessage     string
+	sourceOpen        bool
+	sourceCategory    string
+	contextReply      string
+	busy              string
+	talking           bool   // busy with a discussion turn, shown inline in the chat
+	pending           string // the author's words while their turn is in flight
+	// Prose the author quoted for their next turn, and whether the talk
+	// beside the prose should take the keyboard.
+	quotes                  []workspace.Quote
+	focusTalk               bool
 	cancel                  context.CancelFunc
 	results                 chan result
 	picks                   chan func()

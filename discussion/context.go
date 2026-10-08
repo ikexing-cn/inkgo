@@ -64,11 +64,23 @@ func oneLine(s string) string { return strings.Join(strings.Fields(s), " ") }
 // budget allows, newest entries first within each place, and the last few
 // complete exchanges, which include every one the bookkeeper has not yet
 // taken in: done is the number of events it covered.
-func Assemble(w workspace.Work, set workspace.Setting, events []workspace.Event, done int, input string) (Context, error) {
+func Assemble(w workspace.Work, set workspace.Setting, events []workspace.Event, done int, input string, beside *Writing) (Context, error) {
 	out := Context{Request: model.Request{MaxTokens: talkOutput}}
-	remaining := w.TokenBudget - talkReserve - Estimate(talkRules) - Estimate(input) - docSlack
+	rules := talkRules
+	if beside != nil {
+		rules += "\n\n" + besideRules
+	}
+	remaining := w.TokenBudget - talkReserve - Estimate(rules) - Estimate(input) - docSlack
 	if remaining < 0 {
 		return out, fmt.Errorf("当前发言超出上下文预算 %d；请缩短发言或提高作品预算", w.TokenBudget)
+	}
+	// What the author is writing comes first, before the talk and the
+	// setting: they asked beside it.
+	if beside != nil {
+		attached, items, cost := beside.render(remaining)
+		remaining -= cost
+		input = attached + input
+		out.Included = append(out.Included, items...)
 	}
 	// The exchanges the setting lags behind come before the setting itself.
 	pairs := exchanges(events)
@@ -105,7 +117,7 @@ func Assemble(w workspace.Work, set workspace.Setting, events []workspace.Event,
 			}
 		}
 	}
-	out.Request.System = talkRules + "\n\n" + renderSetting(w, set, shown)
+	out.Request.System = rules + "\n\n" + renderSetting(w, set, shown)
 	out.Request.Messages = append(msgs, model.Message{Role: workspace.RoleUser, Content: input})
 	return out, nil
 }
@@ -162,7 +174,7 @@ func exchanges(events []workspace.Event) []exchange {
 	for n := 1; n < len(events); n++ {
 		a, b := events[n-1], events[n]
 		if a.Role == workspace.RoleUser && b.Role == workspace.RoleAssistant && b.ReplyTo == a.ID {
-			out = append(out, exchange{model.Message{Role: workspace.RoleUser, Content: a.Text}, model.Message{Role: workspace.RoleAssistant, Content: b.Text}, n})
+			out = append(out, exchange{model.Message{Role: workspace.RoleUser, Content: a.Said()}, model.Message{Role: workspace.RoleAssistant, Content: b.Text}, n})
 		}
 	}
 	return out

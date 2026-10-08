@@ -7,7 +7,9 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // Schema 2 replaced idea cards with the setting document; works of schema
@@ -70,6 +72,59 @@ type Event struct {
 	Model     string `json:"model,omitempty"`
 	Effort    string `json:"effort,omitempty"`
 	Reasoning string `json:"reasoning,omitempty"`
+	// The author's words may come from the writing page: the chapter they
+	// were writing, and the prose they quoted.
+	Chapter string  `json:"chapter,omitempty"`
+	Quotes  []Quote `json:"quotes,omitempty"`
+}
+
+// Quote is prose the author brought into the talk, with the chapter it
+// came from and its title then.
+type Quote struct {
+	Chapter string `json:"chapter"`
+	Title   string `json:"title"`
+	Text    string `json:"text"`
+}
+
+// Said is the author's words as a model reads them: the prose they quoted,
+// each under its chapter's title, then what they wrote.
+func (e Event) Said() string {
+	s, _ := e.said()
+	return s
+}
+
+// QuoteAt returns the quote holding the runes [start, end) of Said, if one
+// does.
+func (e Event) QuoteAt(start, end int) (Quote, bool) {
+	_, spans := e.said()
+	for n, sp := range spans {
+		if start >= sp[0] && end <= sp[1] {
+			return e.Quotes[n], true
+		}
+	}
+	return Quote{}, false
+}
+
+func (e Event) said() (string, [][2]int) {
+	if len(e.Quotes) == 0 {
+		return e.Text, nil
+	}
+	var b strings.Builder
+	var spans [][2]int
+	at := 0
+	write := func(s string) {
+		b.WriteString(s)
+		at += utf8.RuneCountInString(s)
+	}
+	for _, q := range e.Quotes {
+		write("【引用正文《" + q.Title + "》】\n")
+		start := at
+		write(q.Text)
+		spans = append(spans, [2]int{start, at})
+		write("\n\n")
+	}
+	write(e.Text)
+	return b.String(), spans
 }
 
 // Places of an entry in the setting document.
@@ -80,7 +135,8 @@ const (
 )
 
 // Source is where an entry comes from: words quoted verbatim from a
-// message, or from a chapter's text as it was when the author took them.
+// message, or from a chapter's text as it was when the author took them. A
+// message's words that are prose the author quoted name its chapter too.
 type Source struct {
 	Session string `json:"session,omitempty"`
 	Message string `json:"message,omitempty"`

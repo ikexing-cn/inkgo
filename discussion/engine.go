@@ -35,6 +35,9 @@ type Engine struct {
 	// Progress, when set, hears what the reply streams, never empty. It
 	// runs on the caller's goroutine.
 	Progress func(model.Delta)
+	// Beside, when set, is what the author is writing as they talk, sent
+	// with the turn.
+	Beside *Writing
 }
 
 // Turn is one exchange: the author's words and the reply.
@@ -47,18 +50,25 @@ var errNoModel = errors.New("请先配置讨论模型")
 // Send saves the author's words, then asks for a reply. If the reply fails,
 // the words stay saved and Retry asks again without sending them twice.
 func (e *Engine) Send(ctx context.Context, session, input string) (Turn, error) {
+	return e.Say(ctx, session, workspace.Event{Text: input})
+}
+
+// Say is Send of the author's words with the prose they quote and the
+// chapter they were writing.
+func (e *Engine) Say(ctx context.Context, session string, words workspace.Event) (Turn, error) {
 	var turn Turn
-	if strings.TrimSpace(input) == "" {
+	if strings.TrimSpace(words.Text) == "" {
 		return turn, errors.New("请输入要讨论的内容")
 	}
 	if !e.Talk.ready() {
 		return turn, errNoModel
 	}
-	assembled, err := e.assemble(session, -1, input)
+	words = workspace.Event{Role: workspace.RoleUser, Text: words.Text, Quotes: words.Quotes, Chapter: words.Chapter}
+	assembled, err := e.assemble(session, -1, words.Said())
 	if err != nil {
 		return turn, err
 	}
-	turn.User, err = e.Store.Append(session, workspace.Event{Role: workspace.RoleUser, Text: input})
+	turn.User, err = e.Store.Append(session, words)
 	if err != nil {
 		return turn, err
 	}
@@ -87,7 +97,7 @@ func (e *Engine) Retry(ctx context.Context, session, userID string) (Turn, error
 	if pos < 0 {
 		return turn, errors.New("找不到待重试的发言")
 	}
-	assembled, err := e.assemble(session, pos, turn.User.Text)
+	assembled, err := e.assemble(session, pos, turn.User.Said())
 	if err != nil {
 		return turn, err
 	}
@@ -108,7 +118,7 @@ func (e *Engine) assemble(session string, before int, input string) (Context, er
 	if before >= 0 {
 		events = events[:before]
 	}
-	return Assemble(e.Store.Work(), set, events, set.Processed(session, events), input)
+	return Assemble(e.Store.Work(), set, events, set.Processed(session, events), input, e.Beside)
 }
 
 func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembled Context) (Turn, error) {

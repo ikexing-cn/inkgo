@@ -88,6 +88,22 @@ func validateEvent(e Event) error {
 	if e.Role == RoleUser && (e.Model != "" || e.Effort != "" || e.Reasoning != "" || len(e.Context) > 0 || len(e.Omitted) > 0) {
 		return fmt.Errorf("model: only what a model wrote records one")
 	}
+	if e.Role != RoleUser && (e.Chapter != "" || len(e.Quotes) > 0) {
+		return fmt.Errorf("quotes: only the author quotes the prose")
+	}
+	if e.Chapter != "" {
+		if err := validID(e.Chapter); err != nil {
+			return fmt.Errorf("chapter: %w", err)
+		}
+	}
+	for _, q := range e.Quotes {
+		if err := validID(q.Chapter); err != nil {
+			return fmt.Errorf("quotes: %w", err)
+		}
+		if strings.TrimSpace(q.Text) == "" {
+			return fmt.Errorf("quotes: empty")
+		}
+	}
 	if e.ReplyTo != "" {
 		if err := validID(e.ReplyTo); err != nil {
 			return fmt.Errorf("reply_to: %w", err)

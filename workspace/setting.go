@@ -67,12 +67,11 @@ func applyOps(entries []Entry, r Revision, n int) ([]Entry, error) {
 			if strings.TrimSpace(src.Quote) == "" {
 				return nil, fail("source needs a quote")
 			}
-			if src.Chapter != "" {
-				if validID(src.Chapter) != nil || src.Session != "" || src.Message != "" {
-					return nil, fail("a chapter's source names the chapter only")
-				}
-			} else if validID(src.Session) != nil || validID(src.Message) != nil {
-				return nil, fail("source needs a session, a message and a quote")
+			if src.Chapter != "" && validID(src.Chapter) != nil {
+				return nil, fail("source names an invalid chapter")
+			}
+			if (src.Chapter == "" || src.Session != "" || src.Message != "") && (validID(src.Session) != nil || validID(src.Message) != nil) {
+				return nil, fail("source needs a session, a message and a quote, or a chapter and a quote")
 			}
 		}
 		switch op.Op {
@@ -224,7 +223,7 @@ func (s *Store) checkRevision(r Revision, sc *scan) error {
 	}
 	for k, op := range r.Ops {
 		for _, src := range op.Sources {
-			if src.Chapter != "" {
+			if src.Message == "" {
 				continue // the chapter changes as the author writes on
 			}
 			events, err := sc.events(s, src.Session)
@@ -235,7 +234,7 @@ func (s *Store) checkRevision(r Revision, sc *scan) error {
 			if i < 0 {
 				return fmt.Errorf("ops[%d].sources: unknown message %q", k, src.Message)
 			}
-			if !strings.Contains(events[i].Text, src.Quote) {
+			if !strings.Contains(events[i].Said(), src.Quote) {
 				return fmt.Errorf("ops[%d].sources: the quote is not in message %q", k, src.Message)
 			}
 		}
@@ -360,8 +359,8 @@ func (s *Store) checkChapters(r Revision) error {
 	var t *Tree
 	for k, op := range r.Ops {
 		for _, src := range op.Sources {
-			if src.Chapter == "" {
-				continue
+			if src.Chapter == "" || src.Message != "" {
+				continue // a message's quote of a chapter is checked in the message
 			}
 			if t == nil {
 				tree, err := s.tree()

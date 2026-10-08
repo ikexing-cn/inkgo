@@ -280,7 +280,7 @@ func (b *Bookkeeper) input(set workspace.Setting, bt batch) (string, []string, e
 		if e.Role == workspace.RoleUser {
 			who = "author"
 		}
-		in.Messages = append(in.Messages, shownMessage{fmt.Sprintf("m%d", n+1), who, n < len(bt.earlier), e.Text})
+		in.Messages = append(in.Messages, shownMessage{fmt.Sprintf("m%d", n+1), who, n < len(bt.earlier), e.Said()})
 	}
 	payload, err := json.Marshal(in)
 	return string(payload), categories, err
@@ -324,7 +324,8 @@ func (b *Bookkeeper) check(text string, set workspace.Setting, bt batch, categor
 				return workspace.Source{}, false
 			}
 			m, ok := message(q.Msg)
-			words, found := locate(m.Text, q.Quote)
+			said := m.Said()
+			words, found := locate(said, q.Quote)
 			switch {
 			case !ok:
 				bad = append(bad, fmt.Sprintf("%s 指向不存在的消息 %q", field, q.Msg))
@@ -333,7 +334,14 @@ func (b *Bookkeeper) check(text string, set workspace.Setting, bt batch, categor
 			case authorOnly && m.Role != workspace.RoleUser:
 				bad = append(bad, fmt.Sprintf("%s 必须引用作者（author）的原话", field))
 			default:
-				return workspace.Source{Session: bt.session, Message: m.ID, Quote: words}, true
+				src := workspace.Source{Session: bt.session, Message: m.ID, Quote: words}
+				if i := strings.Index(said, words); i >= 0 {
+					start := utf8.RuneCountInString(said[:i])
+					if qt, ok := m.QuoteAt(start, start+utf8.RuneCountInString(words)); ok {
+						src.Chapter = qt.Chapter
+					}
+				}
+				return src, true
 			}
 			return workspace.Source{}, false
 		}
