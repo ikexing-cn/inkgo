@@ -59,7 +59,7 @@ func putBytes(t *testing.T, p string, b []byte) {
 	}
 }
 
-func TestCreateRoundTripAndDisposableIndex(t *testing.T) {
+func TestCreateAndRoundTrip(t *testing.T) {
 	s := testStore(t)
 	root := s.Root()
 	for _, dir := range []string{"ideas", "sessions", "settings", "topics", "chapters", ".writer/embeddings"} {
@@ -85,10 +85,6 @@ func TestCreateRoundTripAndDisposableIndex(t *testing.T) {
 	if err := s.Close(); err != nil {
 		t.Fatal(err)
 	}
-	p := filepath.Join(root, ".writer", "index.sqlite")
-	if err := os.Remove(p); err != nil {
-		t.Fatal(err)
-	}
 	reopened, err := Open(root)
 	if err != nil {
 		t.Fatal(err)
@@ -98,31 +94,16 @@ func TestCreateRoundTripAndDisposableIndex(t *testing.T) {
 	if err != nil || got.Text != i.Text || got.FactSource != "资料" {
 		t.Fatalf("roundtrip: %+v %v", got, err)
 	}
-	counts, err := reopened.Counts()
-	if err != nil || counts[Unprocessed] != 1 {
-		t.Fatalf("counts: %v %v", counts, err)
-	}
-	reopened.Close()
-	putBytes(t, p, []byte("not a sqlite database"))
-	recovered, err := Open(root)
-	if err != nil {
-		t.Fatalf("corrupt disposable cache blocked open: %v", err)
-	}
-	recovered.Close()
 }
 func TestManualEditsAndStrictCanonicalValidation(t *testing.T) {
 	s := testStore(t)
 	i := mustIdea(t, s, Idea{Text: "旧文本"})
 	p := filepath.Join(s.Root(), "ideas", i.ID+".md")
 	original := readBytes(t, p)
-	putBytes(t, p, bytes.Replace(original, []byte("旧文本"), []byte("新文本 100%_literal"), 1))
+	putBytes(t, p, bytes.Replace(original, []byte("旧文本"), []byte("新文本"), 1))
 	ideas, err := s.Ideas()
 	if err != nil || len(ideas) != 1 || !strings.Contains(ideas[0].Text, "新文本") {
 		t.Fatalf("manual edit: %v %v", ideas, err)
-	}
-	matches, err := s.Search("%_literal")
-	if err != nil || len(matches) != 1 {
-		t.Fatalf("literal search: %v %v", matches, err)
 	}
 	for _, tc := range []struct{ name, old, new, field string }{
 		{"unknown field", "category:", "categry:", "categry"},
@@ -357,20 +338,6 @@ func TestCreatedOrderingAndSaveWorkValidation(t *testing.T) {
 		t.Fatal("work identity changed")
 	}
 }
-func TestHumanPrecedesAIWithinTurn(t *testing.T) {
-	s := testStore(t)
-	session := mustSession(t, s)
-	user := mustEvent(t, s, session, Event{Role: "user", Text: "人的想法"})
-	reply := mustEvent(t, s, session, Event{Role: "assistant", Text: "机器建议", ReplyTo: user.ID})
-	at := time.Now().UTC()
-	ai := mustIdea(t, s, Idea{Text: "AI first", Source: "ai", Created: at, Origin: Origin{Session: session, Message: reply.ID, Span: Span{0, 4}}})
-	human := mustIdea(t, s, Idea{Text: "human later", Created: at.Add(time.Second), Origin: Origin{Session: session, Message: user.ID, Span: Span{0, 4}}})
-	ideas, err := s.Ideas()
-	if err != nil || len(ideas) != 2 || ideas[0].ID != human.ID || ideas[1].ID != ai.ID {
-		t.Fatalf("same-turn order: %+v %v", ideas, err)
-	}
-}
-
 func TestBookkeepingJournalsReservedIDs(t *testing.T) {
 	s := testStore(t)
 	session := mustSession(t, s)
@@ -390,20 +357,5 @@ func TestBookkeepingJournalsReservedIDs(t *testing.T) {
 	}
 	if _, err = s.Append(session, Event{Kind: "bookkeeping", IdeaIDs: []string{"../escape"}}); err == nil {
 		t.Fatal("bookkeeping accepted invalid ID")
-	}
-}
-
-func TestCanonicalWriteDoesNotDependOnIndex(t *testing.T) {
-	s := testStore(t)
-	if err := s.db.Close(); err != nil {
-		t.Fatal(err)
-	}
-	i := mustIdea(t, s, Idea{Text: "persist despite dead cache"})
-	if _, err := s.ChangeStatus(i.ID, Kept, ""); err != nil {
-		t.Fatal(err)
-	}
-	ideas, err := s.Ideas()
-	if err != nil || len(ideas) != 1 || ideas[0].Status != Kept {
-		t.Fatalf("canonical reads depend on cache: %v %v", ideas, err)
 	}
 }

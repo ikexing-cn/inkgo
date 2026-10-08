@@ -3,6 +3,7 @@ package desk
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -26,9 +27,14 @@ type undo struct {
 	at       time.Time
 }
 
+// draft holds the edits to the selected card until they are saved.
+type draft struct {
+	text, category, factSource string
+	fact, verified             bool
+}
+
 type App struct {
 	Store      *workspace.Store
-	Engine     *discussion.Engine
 	Config     model.Config
 	ConfigFile string
 	Error      string
@@ -54,9 +60,8 @@ type App struct {
 	turn                    string // reply ID restricting the pool, or ""
 	selected, expanded      string
 	rejectID                string
-	editText, editCategory  string
-	reason, factSource      string
-	fact, verified          bool
+	draft                   draft
+	reason                  string
 	source                  *editor.Editor
 	sourceMessage           string
 	sourceOpen              bool
@@ -120,7 +125,11 @@ func (a *App) Open(path string) error {
 }
 
 func (a *App) create() error {
-	s, err := workspace.Create(trim(a.path), trim(a.name), a.genre)
+	name := trim(a.name)
+	if name == "" {
+		name = filepath.Base(trim(a.path))
+	}
+	s, err := workspace.Create(trim(a.path), name, a.genre)
 	if err != nil {
 		return err
 	}
@@ -133,7 +142,6 @@ func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 		a.Store.Close()
 	}
 	a.Store, a.path = s, path
-	a.Engine = &discussion.Engine{Store: s}
 	a.titles = map[string]string{}
 	a.resetView()
 	a.loadWork()
@@ -159,10 +167,12 @@ func (a *App) resetView() {
 	a.page = 0
 }
 
-// closeWork returns to the welcome page.
+// closeWork returns to the welcome page, with its form cleared so a new work
+// does not inherit the last one's folder or name.
 func (a *App) closeWork() {
 	a.setError(a.Store.Close())
-	a.Store, a.Engine = nil, nil
+	a.Store = nil
+	a.path, a.name = "", ""
 	a.resetView()
 }
 
@@ -170,8 +180,8 @@ func (a *App) Close() error {
 	if a.cancel != nil {
 		a.cancel()
 	}
-	// Window shutdown exits the process. Do not close the database while a
-	// cancelled worker is still committing a response.
+	// Window shutdown exits the process. A cancelled worker may still be
+	// saving what it already has, so leave the store open for it.
 	if a.Store != nil && a.busy == "" {
 		return a.Store.Close()
 	}
@@ -211,7 +221,7 @@ func sessionTitle(id string, events []workspace.Event) string {
 		when = t.Format("01-02 15:04")
 	}
 	for _, e := range events {
-		if e.Kind == "message" && e.Role == "user" {
+		if e.Kind == workspace.KindMessage && e.Role == workspace.RoleUser {
 			return when + " · " + clip(e.Text, 14)
 		}
 	}
@@ -232,26 +242,29 @@ func clip(s string, n int) string {
 	return string(r)
 }
 
-func (a *App) modelsReady() error {
+// engine returns a discussion engine for the open work with the models it
+// selects. Without them it still returns an engine and says why: saving a
+// decision or replaying a journaled plan needs no model.
+func (a *App) engine() (*discussion.Engine, error) {
+	e := &discussion.Engine{Store: a.Store}
 	work := a.Store.Work()
 	if work.Discussion.Provider == "" || work.Discussion.Model == "" {
-		return fmt.Errorf("还没有选择讨论模型：请到“模型设置”里选一个")
+		return e, errors.New("还没有选择讨论模型：请到“模型设置”里选一个")
 	}
-	talk, err := model.NewClient(a.Config, model.Selection{Provider: work.Discussion.Provider, Model: work.Discussion.Model})
+	talk, err := model.NewClient(a.Config, work.Discussion.Provider, work.Discussion.Model)
 	if err != nil {
-		return err
+		return e, err
 	}
 	sel := work.Bookkeeping
 	if sel.Provider == "" {
 		sel = work.Discussion
 	}
-	book, err := model.NewClient(a.Config, model.Selection{Provider: sel.Provider, Model: sel.Model})
+	book, err := model.NewClient(a.Config, sel.Provider, sel.Model)
 	if err != nil {
-		return err
+		return e, err
 	}
-	a.Engine.Talk = talk
-	a.Engine.Book = book
-	return nil
+	e.Talk, e.Book = talk, book
+	return e, nil
 }
 
 // All state visible to the view is changed on the view thread. Workers own the
@@ -324,7 +337,4 @@ func (a *App) loadWork() {
 	a.bookProvider = w.Bookkeeping.Provider
 	a.bookModel = w.Bookkeeping.Model
 	a.budget = fmt.Sprint(w.TokenBudget)
-	if a.name == "" {
-		a.name = filepath.Base(a.Store.Root())
-	}
 }

@@ -182,3 +182,18 @@ func TestFailureRefreshesPersistedWork(t *testing.T) {
 		t.Fatalf("persisted partial result lost: %d %q", len(a.ideas), a.Error)
 	}
 }
+
+func TestNewWorkDoesNotInheritLastWork(t *testing.T) {
+	a, _, _ := fixture(t)
+	a.closeWork()
+	if a.path != "" || a.name != "" {
+		t.Fatalf("welcome form kept the last work: %q %q", a.path, a.name)
+	}
+	a.path = filepath.Join(t.TempDir(), "雨城来信")
+	if err := a.create(); err != nil {
+		t.Fatal(err)
+	}
+	if name := a.Store.Work().Name; name != "雨城来信" {
+		t.Fatalf("an unnamed work is named after its folder, got %q", name)
+	}
+}

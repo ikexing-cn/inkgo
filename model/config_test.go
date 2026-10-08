@@ -111,7 +111,7 @@ func TestCredentialsNeverSerialize(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, value := range []any{cfg, Selection{Provider: "deepseek", Model: "manual"}, client} {
+	for _, value := range []any{cfg, client} {
 		for _, marshal := range []func(any) ([]byte, error){json.Marshal, yaml.Marshal} {
 			data, err := marshal(value)
 			if err != nil {
@@ -184,8 +184,8 @@ func TestSetKeyNoPlaintextFallback(t *testing.T) {
 }
 
 func TestUnknownSelectedProvider(t *testing.T) {
-	_, err := NewClient(DefaultConfig(), Selection{Provider: "missing", Model: "manual"})
-	if err == nil || !strings.Contains(err.Error(), "not configured") {
+	_, err := NewClient(DefaultConfig(), "missing", "manual")
+	if err == nil || !strings.Contains(err.Error(), "没有配置提供商") {
 		t.Fatalf("unknown provider: %v", err)
 	}
 }

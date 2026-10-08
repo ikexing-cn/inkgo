@@ -130,11 +130,11 @@ func TestHTTPErrorSecrecyAndBounds(t *testing.T) {
 	}{
 		{"authentication", 401, `{"error":"secret-credential"}`, "HTTP 401"},
 		{"huge error", 500, strings.Repeat("secret-credential", 100000), "HTTP 500"},
-		{"malformed success", 200, `secret-credential`, "invalid JSON"},
-		{"embedded error", 200, `{"error":{"message":"secret-credential"}}`, "reported an error"},
-		{"empty", 200, `{"choices":[]}`, "no text"},
-		{"truncated", 200, `{"choices":[{"message":{"content":"partial"},"finish_reason":"length"}]}`, "truncated"},
-		{"oversize", 200, strings.Repeat("x", bodyLimit+1), "exceeds 8 MiB"},
+		{"malformed success", 200, `secret-credential`, "不是合法 JSON"},
+		{"embedded error", 200, `{"error":{"message":"secret-credential"}}`, "返回了错误"},
+		{"empty", 200, `{"choices":[]}`, "没有返回文字"},
+		{"truncated", 200, `{"choices":[{"message":{"content":"partial"},"finish_reason":"length"}]}`, "截断"},
+		{"oversize", 200, strings.Repeat("x", bodyLimit+1), "超过 8 MiB"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(tc.status); io.WriteString(w, tc.body) }))

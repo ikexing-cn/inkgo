@@ -103,10 +103,20 @@ func TestTurnJournalAndReopen(t *testing.T) {
 	if turn.Ideas[0].Origin.Span != (workspace.Span{Start: 0, End: 3}) {
 		t.Fatal(turn.Ideas[0].Origin)
 	}
-	if !strings.Contains(talk.calls[0].System, kept.ID) || !strings.Contains(talk.calls[0].System, reject.ID) || strings.Contains(talk.calls[0].System, "海盗") {
-		t.Fatal(talk.calls[0].System)
+	// The model sees what the author decided, never an internal ID it could
+	// repeat back.
+	system := talk.calls[0].System
+	if !strings.Contains(system, kept.Text) || !strings.Contains(system, reject.Text) || strings.Contains(system, "海盗") {
+		t.Fatal(system)
 	}
-	if len(turn.Reply.Context) != 2 {
+	for _, call := range append(talk.calls, book.calls...) {
+		for _, text := range append([]string{call.System}, call.Messages[len(call.Messages)-1].Content) {
+			if strings.Contains(text, kept.ID) || strings.Contains(text, reject.ID) {
+				t.Fatalf("model saw an idea ID: %s", text)
+			}
+		}
+	}
+	if len(turn.Reply.Context) != 2 || strings.Contains(turn.Reply.Context[0].Text, kept.ID) {
 		t.Fatal(turn.Reply.Context)
 	}
 	_, err = e.Store.ChangeStatus(turn.Ideas[0].ID, workspace.Deferred, "再想想")
@@ -140,13 +150,16 @@ func TestTurnJournalAndReopen(t *testing.T) {
 	if err != nil || len(all) != 5 {
 		t.Fatalf("ideas %d %v", len(all), err)
 	}
+	if all[3].Source != workspace.SourceHuman || all[4].Source != workspace.SourceAI {
+		t.Fatal("a turn's ideas lost the author-first order")
+	}
 }
 
 func TestInvalidExtractionDoesNotWritePartialIdeas(t *testing.T) {
 	for _, bad := range []string{
 		`{"ideas":[{"source":"human","quote":"杜撰的原文","text":"x","category":"人物"}]}`,
 		`{"ideas":[{"source":"human","quote":"念头","text":"x","category":"不存在"}]}`,
-		`{"ideas":[{"source":"human","quote":"念头","text":"x","category":"人物","similar":[{"id":"20261007-1000-abcd","difference":"相近"}]}]}`,
+		`{"ideas":[{"source":"human","quote":"念头","text":"x","category":"人物","similar":[{"ref":"r9","difference":"相近"}]}]}`,
 		`{"ideas":[],"ignored":true}`,
 		`{} `,
 		`{"ideas":[]} {"ideas":[]}`,
@@ -213,7 +226,7 @@ func TestConflictsDoNotDecideForAuthor(t *testing.T) {
 	e, _ := setup(t)
 	a := mustIdea(t, e, "她怕黑", workspace.Kept)
 	b := mustIdea(t, e, "她从不怕黑", workspace.Unprocessed)
-	e.Book = &fake{replies: []string{`{"conflicts":["` + a.ID + `"]}`}}
+	e.Book = &fake{replies: []string{`{"conflicts":["k1"]}`}}
 	if err := e.Mark(context.Background(), b.ID, workspace.Kept, "方向不错"); err != nil {
 		t.Fatal(err)
 	}
@@ -256,7 +269,7 @@ func TestConflictFailurePreservesHumanDecision(t *testing.T) {
 func TestContextBudgetAndRecentPairs(t *testing.T) {
 	now := time.Now()
 	ideas := []workspace.Idea{{ID: "new", Status: workspace.Kept, Text: strings.Repeat("新", 30), Updated: now}, {ID: "old", Status: workspace.Deferred, Text: strings.Repeat("旧", 30), Updated: now.Add(-time.Hour)}, {ID: "pending", Status: workspace.Unprocessed, Text: "未定"}, {ID: "superseded", Status: workspace.Superseded, Text: "过时"}}
-	budget := 2048 + Estimate(discussionRules) + Estimate("问") + 128 + Estimate("[保留 new] "+ideas[0].Text)
+	budget := talkReserve + Estimate(talkRules) + Estimate("问") + poolSlack + Estimate(describe(ideas[0])) + refCost
 	got, err := Assemble(ideas, nil, "问", budget)
 	if err != nil {
 		t.Fatal(err)
@@ -292,5 +305,23 @@ func TestManualRuneSelection(t *testing.T) {
 	}
 	if _, err = e.Manual(session, m.ID, 0, 100, "人物"); err == nil {
 		t.Fatal("out of bounds accepted")
+	}
+}
+
+func TestSimilarRefsMapToRejectedIdeas(t *testing.T) {
+	e, session := setup(t)
+	rejected := mustIdea(t, e, "主角是捕快", workspace.Rejected)
+	e.Talk = &fake{replies: []string{"也可以让她在衙门当差。"}}
+	book := &fake{replies: []string{`{"ideas":[{"source":"ai","quote":"在衙门当差","occurrence":0,"text":"主角在衙门当差","category":"人物","fact":false,"similar":[{"ref":"r1","difference":"同属官差，只换了说法"}]}]}`}}
+	e.Book = book
+	turn, err := e.Send(context.Background(), session, "她做什么工作？")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(book.calls[0].Messages[0].Content, `"ref":"r1"`) {
+		t.Fatal(book.calls[0].Messages[0].Content)
+	}
+	if len(turn.Ideas) != 1 || len(turn.Ideas[0].Similar) != 1 || turn.Ideas[0].Similar[0].ID != rejected.ID {
+		t.Fatalf("similar ref not mapped: %+v", turn.Ideas)
 	}
 }

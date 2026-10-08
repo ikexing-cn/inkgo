@@ -19,20 +19,20 @@ func SetKey(providerIDValue, key string) error {
 
 func setKey(id, key string, set func(string, string, string) error, remove func(string, string) error) error {
 	if !providerID.MatchString(id) {
-		return errors.New("provider ID must be a lowercase identifier")
+		return errIDFormat
 	}
 	if strings.ContainsAny(key, "\r\n") {
-		return errors.New("API key must not contain line breaks")
+		return errors.New("API key 不能包含换行")
 	}
 	if key == "" {
 		err := remove(keyringService, id)
 		if err != nil && !errors.Is(err, keyring.ErrNotFound) {
-			return errors.New("OS keychain could not remove the API key; no plaintext fallback is used")
+			return errors.New("系统钥匙串无法删除 API key")
 		}
 		return nil
 	}
 	if err := set(keyringService, id, key); err != nil {
-		return errors.New("OS keychain could not store the API key; no plaintext fallback is used")
+		return errors.New("系统钥匙串无法保存 API key；不会改用明文保存")
 	}
 	return nil
 }
@@ -48,7 +48,7 @@ func loadKey(p Provider, get func(string, string) (string, error)) (string, erro
 		}
 	}
 	if err != nil && !errors.Is(err, keyring.ErrNotFound) {
-		return "", errors.New("OS keychain is unavailable; unlock it or set the provider's API key environment variable")
+		return "", errors.New("系统钥匙串不可用：请解锁钥匙串，或设置这个提供商的 API key 环境变量")
 	}
 	// A credential-free endpoint (for example a local Ollama server) is supported.
 	return "", nil

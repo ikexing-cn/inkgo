@@ -343,7 +343,7 @@ func (a *App) fetchModels(c *ui.Context) {
 		a.setError(err)
 		return
 	}
-	client, err := model.NewClient(a.Config, model.Selection{Provider: a.provider.ID, Model: "catalog"})
+	client, err := model.NewClient(a.Config, a.provider.ID, "")
 	if err != nil {
 		a.setError(err)
 		return

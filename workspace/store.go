@@ -2,7 +2,6 @@ package workspace
 
 import (
 	"bytes"
-	"database/sql"
 	"errors"
 	"fmt"
 	"io"
@@ -16,31 +15,48 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
+// Store is one open work. Only one application instance may write a work at
+// a time; within it, the mutex serializes every operation.
 type Store struct {
 	mu     sync.Mutex
 	root   string
 	work   Work
-	db     *sql.DB
 	closed bool
 }
 
 func (s *Store) Root() string { return s.root }
-func cloneWork(w Work) Work   { w.Categories = append([]Category(nil), w.Categories...); return w }
-func (s *Store) Work() Work   { s.mu.Lock(); defer s.mu.Unlock(); return cloneWork(s.work) }
+
+func cloneWork(w Work) Work {
+	w.Categories = append([]Category(nil), w.Categories...)
+	return w
+}
+
+func (s *Store) Work() Work {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return cloneWork(s.work)
+}
+
 func (s *Store) Close() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.closed = true
-	if s.db != nil {
-		return s.db.Close()
-	}
 	return nil
 }
-func (s *Store) check() error {
+
+// lock serializes an operation and rereads work.yaml first, so a category
+// list edited by hand applies to it.
+func (s *Store) lock() (unlock func(), err error) {
+	s.mu.Lock()
 	if s.closed {
-		return fmt.Errorf("workspace is closed")
+		s.mu.Unlock()
+		return nil, errors.New("workspace is closed")
 	}
-	return nil
+	if err := s.reloadWork(); err != nil {
+		s.mu.Unlock()
+		return nil, err
+	}
+	return s.mu.Unlock, nil
 }
 
 // Create accepts a missing or empty directory. It never replaces an existing
@@ -81,6 +97,9 @@ func Create(dir, name, genre string) (*Store, error) {
 	}
 	return Open(root)
 }
+
+// Open validates every canonical file, so a hand edit gone wrong is reported
+// with its file and field before anything is written.
 func Open(dir string) (*Store, error) {
 	root, err := filepath.Abs(dir)
 	if err != nil {
@@ -103,8 +122,7 @@ func Open(dir string) (*Store, error) {
 			return nil, fmt.Errorf("%s: expected directory", p)
 		}
 	}
-	ideas, err := s.ideas()
-	if err != nil {
+	if _, err = s.ideas(); err != nil {
 		return nil, err
 	}
 	sessions, err := s.sessions()
@@ -115,9 +133,6 @@ func Open(dir string) (*Store, error) {
 		if _, _, err = s.events(id); err != nil {
 			return nil, err
 		}
-	}
-	if err = s.openIndex(ideas); err != nil {
-		return nil, err
 	}
 	return s, nil
 }
@@ -138,6 +153,7 @@ func (s *Store) path(parts ...string) (string, error) {
 	}
 	return p, nil
 }
+
 func decodeYAML(data []byte, out any) error {
 	d := yaml.NewDecoder(bytes.NewReader(data))
 	d.KnownFields(true)
@@ -153,6 +169,7 @@ func decodeYAML(data []byte, out any) error {
 	}
 	return nil
 }
+
 func (s *Store) reloadWork() error {
 	p, err := s.path("work.yaml")
 	if err != nil {
@@ -172,15 +189,29 @@ func (s *Store) reloadWork() error {
 	s.work = w
 	return nil
 }
+
+func (s *Store) writeWork(w Work) error {
+	data, err := yaml.Marshal(w)
+	if err != nil {
+		return err
+	}
+	p, err := s.path("work.yaml")
+	if err != nil {
+		return err
+	}
+	if err = atomicWrite(p, data, false); err != nil {
+		return err
+	}
+	s.work = cloneWork(w)
+	return nil
+}
+
 func (s *Store) SaveWork(w Work) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if err := s.check(); err != nil {
+	unlock, err := s.lock()
+	if err != nil {
 		return err
 	}
-	if err := s.reloadWork(); err != nil {
-		return err
-	}
+	defer unlock()
 	if err := validateWork(w); err != nil {
 		return fmt.Errorf("work.yaml: %w", err)
 	}
@@ -196,20 +227,30 @@ func (s *Store) SaveWork(w Work) error {
 			return fmt.Errorf("ideas/%s.md: %w", i.ID, err)
 		}
 	}
-	data, err := yaml.Marshal(w)
-	if err != nil {
-		return err
-	}
-	p, err := s.path("work.yaml")
-	if err != nil {
-		return err
-	}
-	if err = atomicWrite(p, data, false); err != nil {
-		return err
-	}
-	s.work = cloneWork(w)
-	return nil
+	return s.writeWork(w)
 }
+
+// scan memoizes what checking many ideas rereads: the sessions their
+// origins point into, and which idea files exist.
+type scan struct {
+	sessions map[string][]Event
+	ids      map[string]bool // nil: look each reference up on disk
+}
+
+func newScan() *scan { return &scan{sessions: map[string][]Event{}} }
+
+func (sc *scan) events(s *Store, session string) ([]Event, error) {
+	if events, ok := sc.sessions[session]; ok {
+		return events, nil
+	}
+	events, _, err := s.events(session)
+	if err != nil {
+		return nil, err
+	}
+	sc.sessions[session] = events
+	return events, nil
+}
+
 func readIdea(p string) (Idea, error) {
 	b, err := os.ReadFile(p)
 	if err != nil {
@@ -244,7 +285,8 @@ func readIdea(p string) (Idea, error) {
 	}
 	return Idea{}, fmt.Errorf("%s: unterminated YAML front matter", p)
 }
-func (s *Store) idea(id string) (Idea, error) {
+
+func (s *Store) idea(id string, sc *scan) (Idea, error) {
 	if err := validID(id); err != nil {
 		return Idea{}, err
 	}
@@ -260,22 +302,29 @@ func (s *Store) idea(id string) (Idea, error) {
 		err = validateIdea(i, s.work)
 	}
 	if err == nil {
-		err = s.validateOrigin(i)
+		err = s.validateOrigin(i, sc)
 	}
 	if err == nil {
-		err = s.validateReferences(i)
+		err = s.validateReferences(i, sc)
 	}
 	if err != nil {
 		return Idea{}, fmt.Errorf("%s: %w", p, err)
 	}
 	return i, nil
 }
-func (s *Store) validateReferences(i Idea) error {
+
+func (s *Store) validateReferences(i Idea, sc *scan) error {
 	refs := append(append([]string{}, i.Conflicts...), i.Supersedes...)
 	for _, similar := range i.Similar {
 		refs = append(refs, similar.ID)
 	}
 	for _, id := range refs {
+		if sc.ids != nil {
+			if !sc.ids[id] {
+				return fmt.Errorf("reference %s: %w", id, os.ErrNotExist)
+			}
+			continue
+		}
 		p, err := s.path("ideas", id+".md")
 		if err != nil {
 			return err
@@ -292,16 +341,16 @@ func (s *Store) validateReferences(i Idea) error {
 }
 
 func (s *Store) Idea(id string) (Idea, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if err := s.check(); err != nil {
+	unlock, err := s.lock()
+	if err != nil {
 		return Idea{}, err
 	}
-	if err := s.reloadWork(); err != nil {
-		return Idea{}, err
-	}
-	return s.idea(id)
+	defer unlock()
+	return s.idea(id, newScan())
 }
+
+// ideas reads every idea, oldest first; a turn's ideas keep the order its
+// bookkeeping gave them, the author's before the AI's.
 func (s *Store) ideas() ([]Idea, error) {
 	p, err := s.path("ideas")
 	if err != nil {
@@ -311,7 +360,9 @@ func (s *Store) ideas() ([]Idea, error) {
 	if err != nil {
 		return nil, err
 	}
-	result := []Idea{}
+	sc := newScan()
+	sc.ids = map[string]bool{}
+	var names []string
 	for _, entry := range entries {
 		if strings.HasPrefix(entry.Name(), ".tmp-") {
 			continue
@@ -319,109 +370,55 @@ func (s *Store) ideas() ([]Idea, error) {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
 			return nil, fmt.Errorf("%s: unexpected canonical idea file", filepath.Join(p, entry.Name()))
 		}
-		i, err := s.idea(strings.TrimSuffix(entry.Name(), ".md"))
+		id := strings.TrimSuffix(entry.Name(), ".md")
+		sc.ids[id] = true
+		names = append(names, id)
+	}
+	result := []Idea{}
+	for _, id := range names {
+		i, err := s.idea(id, sc)
 		if err != nil {
 			return nil, err
 		}
 		result = append(result, i)
 	}
-	if err := s.sortIdeas(result); err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-// sortIdeas keeps a turn together at its earliest idea creation time, with
-// human cards before AI cards even if bookkeeping emitted the AI card first.
-func (s *Store) sortIdeas(ideas []Idea) error {
-	turns := map[string]map[string]string{}
-	keys := map[string]string{}
-	earliest := map[string]time.Time{}
-	for _, i := range ideas {
-		key := i.ID
-		if i.Origin.Session != "" {
-			messages, ok := turns[i.Origin.Session]
-			if !ok {
-				events, _, err := s.events(i.Origin.Session)
-				if err != nil {
-					return err
-				}
-				messages = map[string]string{}
-				current := ""
-				for _, e := range events {
-					if e.Kind != "message" {
-						continue
-					}
-					if e.Role == "user" {
-						current = e.ID
-					}
-					turn := current
-					if e.Role != "user" && e.ReplyTo != "" && messages[e.ReplyTo] != "" {
-						turn = messages[e.ReplyTo]
-					}
-					if turn == "" {
-						turn = e.ID
-					}
-					messages[e.ID] = turn
-				}
-				turns[i.Origin.Session] = messages
-			}
-			key = i.Origin.Session + "/" + messages[i.Origin.Message]
-		}
-		keys[i.ID] = key
-		if at, ok := earliest[key]; !ok || i.Created.Before(at) {
-			earliest[key] = i.Created
-		}
-	}
-	sort.SliceStable(ideas, func(a, b int) bool {
-		x, y := ideas[a], ideas[b]
-		tx, ty := earliest[keys[x.ID]], earliest[keys[y.ID]]
-		if !tx.Equal(ty) {
-			return tx.Before(ty)
-		}
-		if x.Source != y.Source {
-			return x.Source == "human"
-		}
+	sort.SliceStable(result, func(a, b int) bool {
+		x, y := result[a], result[b]
 		if !x.Created.Equal(y.Created) {
 			return x.Created.Before(y.Created)
 		}
+		if x.Source != y.Source {
+			return x.Source == SourceHuman
+		}
 		return x.ID < y.ID
 	})
-	return nil
+	return result, nil
 }
 
 func (s *Store) Ideas() ([]Idea, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if err := s.check(); err != nil {
+	unlock, err := s.lock()
+	if err != nil {
 		return nil, err
 	}
-	if err := s.reloadWork(); err != nil {
-		return nil, err
-	}
-	ideas, err := s.ideas()
-	if err == nil {
-		s.refreshIndex(ideas)
-	}
-	return ideas, err
+	defer unlock()
+	return s.ideas()
 }
+
 func (s *Store) saveIdea(i Idea, exclusive bool) error {
 	if err := validateIdea(i, s.work); err != nil {
 		return fmt.Errorf("ideas/%s.md: %w", i.ID, err)
 	}
-	if err := s.validateOrigin(i); err != nil {
+	sc := newScan()
+	if err := s.validateOrigin(i, sc); err != nil {
 		return fmt.Errorf("ideas/%s.md: %w", i.ID, err)
 	}
-	for _, ids := range [][]string{i.Conflicts, i.Supersedes} {
-		for _, id := range ids {
-			if _, err := s.idea(id); err != nil {
-				return fmt.Errorf("ideas/%s.md: reference %s: %w", i.ID, id, err)
-			}
-		}
-	}
+	refs := append(append([]string{}, i.Conflicts...), i.Supersedes...)
 	for _, similar := range i.Similar {
-		if _, err := s.idea(similar.ID); err != nil {
-			return fmt.Errorf("ideas/%s.md: similar: %w", i.ID, err)
+		refs = append(refs, similar.ID)
+	}
+	for _, id := range refs {
+		if _, err := s.idea(id, sc); err != nil {
+			return fmt.Errorf("ideas/%s.md: reference %s: %w", i.ID, id, err)
 		}
 	}
 	p, err := s.path("ideas", i.ID+".md")
@@ -429,33 +426,16 @@ func (s *Store) saveIdea(i Idea, exclusive bool) error {
 		return err
 	}
 	if !exclusive {
-		old, readErr := s.idea(i.ID)
-		if readErr == nil {
-			if err = transition(old.Status, i.Status); err != nil {
+		old, readErr := s.idea(i.ID, sc)
+		switch {
+		case readErr == nil:
+			if err = checkUpdate(old, i); err != nil {
 				return err
 			}
-			if old.Status != i.Status && (len(i.History) != len(old.History)+1 || i.History[len(i.History)-1].From != old.Status) {
-				return fmt.Errorf("history: status changes require an appended transition")
-			}
-			if !i.Created.Equal(old.Created) {
-				return fmt.Errorf("created: cannot change")
-			}
-			if i.Updated.Before(old.Updated) {
-				return fmt.Errorf("updated: cannot move backwards")
-			}
-			if len(i.History) < len(old.History) {
-				return fmt.Errorf("history: cannot remove records")
-			}
-			for n, h := range old.History {
-				next := i.History[n]
-				if !h.At.Equal(next.At) || h.From != next.From || h.To != next.To || h.Reason != next.Reason {
-					return fmt.Errorf("history: cannot rewrite records")
-				}
-			}
-		} else if !errors.Is(readErr, os.ErrNotExist) {
-			return readErr
-		} else {
+		case errors.Is(readErr, os.ErrNotExist):
 			exclusive = true
+		default:
+			return readErr
 		}
 	}
 	b, err := yaml.Marshal(i)
@@ -466,26 +446,51 @@ func (s *Store) saveIdea(i Idea, exclusive bool) error {
 	data = append(data, []byte("---\n"+i.Text)...)
 	return atomicWrite(p, data, exclusive)
 }
+
+// checkUpdate keeps an idea's past intact: its history only grows, and its
+// status only moves along that history.
+func checkUpdate(old, i Idea) error {
+	if err := transition(old.Status, i.Status); err != nil {
+		return err
+	}
+	if old.Status != i.Status && (len(i.History) != len(old.History)+1 || i.History[len(i.History)-1].From != old.Status) {
+		return fmt.Errorf("history: status changes require an appended transition")
+	}
+	if !i.Created.Equal(old.Created) {
+		return fmt.Errorf("created: cannot change")
+	}
+	if i.Updated.Before(old.Updated) {
+		return fmt.Errorf("updated: cannot move backwards")
+	}
+	if len(i.History) < len(old.History) {
+		return fmt.Errorf("history: cannot remove records")
+	}
+	for n, h := range old.History {
+		next := i.History[n]
+		if !h.At.Equal(next.At) || h.From != next.From || h.To != next.To || h.Reason != next.Reason {
+			return fmt.Errorf("history: cannot rewrite records")
+		}
+	}
+	return nil
+}
+
 func (s *Store) SaveIdea(i Idea) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if err := s.check(); err != nil {
+	unlock, err := s.lock()
+	if err != nil {
 		return err
 	}
-	if err := s.reloadWork(); err != nil {
-		return err
-	}
+	defer unlock()
 	return s.saveIdea(i, false)
 }
+
+// NewIdea fills in defaults and creates the idea; it never overwrites an
+// existing file, and retries a generated ID that collides.
 func (s *Store) NewIdea(i Idea) (Idea, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if err := s.check(); err != nil {
+	unlock, err := s.lock()
+	if err != nil {
 		return Idea{}, err
 	}
-	if err := s.reloadWork(); err != nil {
-		return Idea{}, err
-	}
+	defer unlock()
 	if i.Schema == 0 {
 		i.Schema = Schema
 	}
@@ -496,7 +501,7 @@ func (s *Store) NewIdea(i Idea) (Idea, error) {
 		i.Category = Other
 	}
 	if i.Source == "" {
-		i.Source = "human"
+		i.Source = SourceHuman
 	}
 	if i.Created.IsZero() {
 		i.Created = time.Now().UTC()
@@ -517,16 +522,14 @@ func (s *Store) NewIdea(i Idea) (Idea, error) {
 	}
 	return Idea{}, fmt.Errorf("id: could not allocate unique idea ID")
 }
+
 func (s *Store) ChangeStatus(id string, status Status, reason string) (Idea, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if err := s.check(); err != nil {
+	unlock, err := s.lock()
+	if err != nil {
 		return Idea{}, err
 	}
-	if err := s.reloadWork(); err != nil {
-		return Idea{}, err
-	}
-	i, err := s.idea(id)
+	defer unlock()
+	i, err := s.idea(id, newScan())
 	if err != nil {
 		return Idea{}, err
 	}
@@ -540,19 +543,16 @@ func (s *Store) ChangeStatus(id string, status Status, reason string) (Idea, err
 	i.History = append(i.History, History{At: now, From: i.Status, To: status, Reason: reason})
 	i.Status = status
 	i.Updated = now
-	err = s.saveIdea(i, false)
-	return i, err
+	return i, s.saveIdea(i, false)
 }
+
 func (s *Store) SetCategory(id, category string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if err := s.check(); err != nil {
+	unlock, err := s.lock()
+	if err != nil {
 		return err
 	}
-	if err := s.reloadWork(); err != nil {
-		return err
-	}
-	i, err := s.idea(id)
+	defer unlock()
+	i, err := s.idea(id, newScan())
 	if err != nil {
 		return err
 	}
@@ -560,15 +560,13 @@ func (s *Store) SetCategory(id, category string) error {
 	i.Updated = time.Now().UTC()
 	return s.saveIdea(i, false)
 }
+
 func (s *Store) RemoveCategory(name string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if err := s.check(); err != nil {
+	unlock, err := s.lock()
+	if err != nil {
 		return err
 	}
-	if err := s.reloadWork(); err != nil {
-		return err
-	}
+	defer unlock()
 	if name == Other {
 		return fmt.Errorf("categories: cannot remove %q", Other)
 	}
@@ -598,21 +596,21 @@ func (s *Store) RemoveCategory(name string) error {
 		}
 	}
 	w.Categories = append(w.Categories[:found], w.Categories[found+1:]...)
-	b, err := yaml.Marshal(w)
-	if err != nil {
-		return err
-	}
-	p, err := s.path("work.yaml")
-	if err != nil {
-		return err
-	}
-	if err = atomicWrite(p, b, false); err != nil {
-		return err
-	}
-	s.work = w
-	return nil
+	return s.writeWork(w)
 }
+
+// atomicWrite writes a temporary file and renames it over path, so a crash
+// never leaves half a file. exclusive refuses an existing path; checking
+// first suffices because one application instance writes a work, and works
+// on file systems without hard links, such as exFAT drives.
 func atomicWrite(path string, data []byte, exclusive bool) error {
+	if exclusive {
+		if _, err := os.Lstat(path); err == nil {
+			return &os.PathError{Op: "create", Path: path, Err: os.ErrExist}
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+	}
 	f, err := os.CreateTemp(filepath.Dir(path), ".tmp-")
 	if err != nil {
 		return err
@@ -629,11 +627,6 @@ func atomicWrite(path string, data []byte, exclusive bool) error {
 	}
 	if err = f.Close(); err != nil {
 		return err
-	}
-	// Linking a completed temporary file publishes new records atomically with
-	// create-if-absent semantics; rename would overwrite a colliding ID.
-	if exclusive {
-		return os.Link(temp, path)
 	}
 	return os.Rename(temp, path)
 }

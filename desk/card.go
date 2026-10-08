@@ -19,11 +19,7 @@ func (a *App) ideaText(id string) string {
 
 func (a *App) selectIdea(i workspace.Idea) {
 	a.selected = i.ID
-	a.editText = i.Text
-	a.editCategory = i.Category
-	a.fact = i.Fact
-	a.verified = i.Verified
-	a.factSource = i.FactSource
+	a.draft = draft{text: i.Text, category: i.Category, factSource: i.FactSource, fact: i.Fact, verified: i.Verified}
 }
 
 func (a *App) startReject(i workspace.Idea) {
@@ -131,7 +127,7 @@ func (a *App) cardBody(c *ui.Context, i workspace.Idea, tint ui.Color) {
 		ui.Text(c, i.Category).FontSize(12).TextColor(t.TextMuted)
 		ui.Text(c, "·").FontSize(12).TextColor(a.pal.faint)
 		who := "AI 提出"
-		if i.Source == "human" {
+		if i.Source == workspace.SourceHuman {
 			who = "你提出"
 		}
 		ui.Text(c, who).FontSize(12).TextColor(a.pal.faint)
@@ -234,16 +230,16 @@ func (a *App) ideaDetails(c *ui.Context, i workspace.Idea) {
 	locked := busy || i.Status == workspace.Adopted
 	ui.Column(c).FillWidth().Gap(10).Padding(4, 0, 2, 0).Children(func() {
 		a.pal.hairline(c)
-		ui.TextArea(c, &a.editText).Label("思路内容").FillWidth().Height(84).FontSize(13.5).LineHeight(1.6).Disabled(locked)
+		ui.TextArea(c, &a.draft.text).Label("思路内容").FillWidth().Height(84).FontSize(13.5).LineHeight(1.6).Disabled(locked)
 		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, "分类").FontSize(12.5).TextColor(t.TextMuted)
-			ui.Select(c, &a.editCategory, a.categoryNames()).Label("思路分类").Width(140).Disabled(locked)
-			ui.Checkbox(c, &a.fact, "涉及现实事实").Disabled(locked)
+			ui.Select(c, &a.draft.category, a.categoryNames()).Label("思路分类").Width(140).Disabled(locked)
+			ui.Checkbox(c, &a.draft.fact, "涉及现实事实").Disabled(locked)
 		})
-		if a.fact {
+		if a.draft.fact {
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
-				ui.Checkbox(c, &a.verified, "我已核实").Disabled(locked)
-				ui.TextInput(c, &a.factSource).Label("核实来源").Placeholder("来源或链接").Grow(1).Disabled(locked)
+				ui.Checkbox(c, &a.draft.verified, "我已核实").Disabled(locked)
+				ui.TextInput(c, &a.draft.factSource).Label("核实来源").Placeholder("来源或链接").Grow(1).Disabled(locked)
 			})
 		}
 		ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
@@ -251,11 +247,11 @@ func (a *App) ideaDetails(c *ui.Context, i workspace.Idea) {
 				a.saveDetails(c, i)
 			}
 			if i.Status == workspace.Kept && a.pal.secondary(c, "检查冲突").Disabled(busy).Clicked() {
-				if err := a.modelsReady(); err != nil {
+				if eng, err := a.engine(); err != nil {
 					a.setError(err)
 				} else {
 					a.run(c, "正在检查和其他留下的思路是否矛盾…", func(ctx context.Context) (func(), error) {
-						return nil, a.Engine.CheckConflicts(ctx, i.ID)
+						return nil, eng.CheckConflicts(ctx, i.ID)
 					})
 				}
 			}
@@ -276,11 +272,11 @@ func (a *App) ideaDetails(c *ui.Context, i workspace.Idea) {
 }
 
 func (a *App) saveDetails(c *ui.Context, i workspace.Idea) {
-	i.Text = a.editText
-	i.Category = a.editCategory
-	i.Fact = a.fact
-	i.Verified = a.fact && a.verified
-	i.FactSource = a.factSource
+	i.Text = a.draft.text
+	i.Category = a.draft.category
+	i.Fact = a.draft.fact
+	i.Verified = a.draft.fact && a.draft.verified
+	i.FactSource = a.draft.factSource
 	if i.Status != workspace.Kept {
 		err := a.Store.SaveIdea(i)
 		if err == nil {
@@ -290,14 +286,12 @@ func (a *App) saveDetails(c *ui.Context, i workspace.Idea) {
 		a.setError(err)
 		return
 	}
-	if err := a.modelsReady(); err != nil {
-		a.Engine.Book = nil
-	}
+	eng, _ := a.engine()
 	a.run(c, "正在保存，并检查是否与其他思路矛盾…", func(ctx context.Context) (func(), error) {
 		if err := a.Store.SaveIdea(i); err != nil {
 			return nil, err
 		}
-		if err := a.Engine.CheckConflicts(ctx, i.ID); err != nil {
+		if err := eng.CheckConflicts(ctx, i.ID); err != nil {
 			return nil, fmt.Errorf("修改已保存，冲突检查失败：%w", err)
 		}
 		return func() { a.notice = "修改已保存" }, nil

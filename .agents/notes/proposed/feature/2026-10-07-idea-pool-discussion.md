@@ -77,7 +77,7 @@ Status: proposed
   - 每条思路、每条设定各一个小文件，状态历史写在文件里；
   - 每次会话一个对话记录文件。
 - 文件夹可以直接用 git 管理。
-- 另建一个 SQLite 做索引，用于搜索、相近度比对和统计；索引可以删掉重建。
+- 另建一个 SQLite 做索引，用于搜索、相近度比对和统计；索引可以删掉重建。M1 不建索引，见[存储去掉索引](../../implemented/architecture/2026-10-08-m1-storage-without-index.md)；M2 需要检索时再引入。
 
 目录结构：
 
@@ -93,7 +93,7 @@ Status: proposed
     <id>.md                   # 头信息：标题、所属卷、字数缓存；正文是纯文本
     <id>.marks.yaml           # 本章的标记
   .writer/                    # 写进 .gitignore
-    index.sqlite              # 可删，重扫文件重建
+    index.sqlite              # M2 起使用；可删，重扫文件重建
     embeddings/<模型>/<文本hash>.bin   # M2 起使用；不随索引删除
 ```
 
@@ -109,7 +109,7 @@ Status: proposed
 - **ID**：`yyyymmdd-hhmm-xxxx`，时间加 4 位随机十六进制。文件名只用 ID 不带标题，改了内容引用也不断。章节同样用 ID 命名，标题和顺序只在头信息与 `order.yaml` 里。
 - **章节标记**：正文保持纯文本，标记存在同名的 `.marks.yaml` 里。每条标记记 `kind`、`id`、`at`（rune 范围），以及 `quote`（被标记的原文）和 `prefix`/`suffix`（前后约十来个字）。打开章节时先按 `at` 核对：原文对不上，就用 quote 加前后文在全文里重新定位；仍然找不到，标为 `Orphaned` 让作者处理。这是 W3C Web Annotation TextQuoteSelector 的思路，用别的编辑器改过正文或 git 合并后，标记也不会丢。
 - **写入**：先写临时文件再改名，避免留下半截文件。每个文件都带 schema 版本，格式变了能自动迁移。
-- **依赖**：YAML 用 `go.yaml.in/yaml/v3`，按结构体严格解析，拼错的字段直接报错。SQLite 用 `modernc.org/sqlite`，纯 Go，`CGO_ENABLED=0` 照样能编译。M1 索引全量重扫规范文件；后续规模增大时再用修改时间加内容 hash 判断是否过期。
+- **依赖**：YAML 用 `go.yaml.in/yaml/v3`，按结构体严格解析，拼错的字段直接报错。SQLite 用 `modernc.org/sqlite`，纯 Go，`CGO_ENABLED=0` 照样能编译，M2 起引入；届时再决定全量重扫还是用修改时间加内容 hash 判断是否过期。
 
 ### 模型接入（BYOK，参照 DeepSeek Harness 的模型设置）
 
@@ -190,7 +190,7 @@ M1 完成时可以观察到：
 - 保留两条矛盾的思路后，思路池显示未解决冲突数。
 - "AI 看到了哪些思路"能列出这次请求实际发出的上下文条目。
 - 预置提供商和自定义 API 都能配置成功，三种协议都能对话；作品文件夹里搜不到任何 key。
-- 删除 SQLite 索引后重新打开作品，数据不丢、索引自动重建。
+- 删除 `.writer/` 后重新打开作品，数据不丢（M1 不建索引）。
 - 思路池超出 token 预算时，按规则截断，"AI 看到了什么"列出被截掉的条目。
 - 手改一条思路文件的头信息（比如拼错一个字段）后打开作品，会报出具体的文件和字段，不会静默忽略。
 - 门禁：`go vet ./...`、`go test ./...`、`npm run verify-notes` 通过；拆分、上下文组装、状态流转和存储读写都有不依赖真实模型的单元测试（用假的模型应答）。

@@ -17,12 +17,6 @@ import (
 
 const configLimit = 1 << 20
 
-// Selection is safe to store in a work's configuration; it contains no credentials.
-type Selection struct {
-	Provider string `yaml:"provider"`
-	Model    string `yaml:"model"`
-}
-
 // Provider describes an API endpoint. Credentials live only in the OS keychain or environment.
 type Provider struct {
 	ID       string   `yaml:"id"`
@@ -50,7 +44,7 @@ func DefaultConfig() Config {
 func ConfigPath() (string, error) {
 	dir, err := os.UserConfigDir()
 	if err != nil {
-		return "", fmt.Errorf("locate user configuration directory: %w", err)
+		return "", fmt.Errorf("找不到用户配置目录：%w", err)
 	}
 	return filepath.Join(dir, "writer", "providers.yaml"), nil
 }
@@ -64,25 +58,25 @@ func Load(path string) (Config, error) {
 		return cfg, Save(path, cfg)
 	}
 	if err != nil {
-		return Config{}, fmt.Errorf("open provider configuration: %w", err)
+		return Config{}, fmt.Errorf("无法打开模型配置：%w", err)
 	}
 	defer file.Close()
 	data, err := io.ReadAll(io.LimitReader(file, configLimit+1))
 	if err != nil {
-		return Config{}, fmt.Errorf("read provider configuration: %w", err)
+		return Config{}, fmt.Errorf("无法读取模型配置：%w", err)
 	}
 	if len(data) > configLimit {
-		return Config{}, errors.New("provider configuration exceeds 1 MiB")
+		return Config{}, errors.New("模型配置超过 1 MiB")
 	}
 	dec := yaml.NewDecoder(bytes.NewReader(data))
 	dec.KnownFields(true)
 	var cfg Config
 	if err := dec.Decode(&cfg); err != nil {
-		return Config{}, errors.New("invalid provider YAML: check syntax, field names, and field types")
+		return Config{}, errors.New("模型配置不是合法的 YAML：请检查语法、字段名和字段类型")
 	}
 	var extra any
 	if err := dec.Decode(&extra); err != io.EOF {
-		return Config{}, errors.New("provider configuration must contain exactly one YAML document")
+		return Config{}, errors.New("模型配置只能包含一个 YAML 文档")
 	}
 	if err := validateConfig(cfg); err != nil {
 		return Config{}, err
@@ -97,18 +91,18 @@ func Save(path string, cfg Config) error {
 	}
 	data, err := yaml.Marshal(cfg)
 	if err != nil {
-		return errors.New("encode provider configuration")
+		return errors.New("无法编码模型配置")
 	}
 	if len(data) > configLimit {
-		return errors.New("provider configuration exceeds 1 MiB")
+		return errors.New("模型配置超过 1 MiB")
 	}
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0700); err != nil {
-		return fmt.Errorf("create configuration directory: %w", err)
+		return fmt.Errorf("无法创建配置目录：%w", err)
 	}
 	file, err := os.CreateTemp(dir, ".providers-*.yaml")
 	if err != nil {
-		return fmt.Errorf("create temporary configuration: %w", err)
+		return fmt.Errorf("无法创建临时配置文件：%w", err)
 	}
 	defer os.Remove(file.Name())
 	if _, err = file.Write(data); err == nil {
@@ -116,31 +110,33 @@ func Save(path string, cfg Config) error {
 	}
 	closeErr := file.Close()
 	if err != nil {
-		return fmt.Errorf("write provider configuration: %w", err)
+		return fmt.Errorf("无法写入模型配置：%w", err)
 	}
 	if closeErr != nil {
-		return fmt.Errorf("close provider configuration: %w", closeErr)
+		return fmt.Errorf("无法写入模型配置：%w", closeErr)
 	}
 	if err := os.Rename(file.Name(), path); err != nil {
-		return fmt.Errorf("replace provider configuration: %w", err)
+		return fmt.Errorf("无法替换模型配置：%w", err)
 	}
 	return nil
 }
 
 var providerID = regexp.MustCompile(`^[a-z][a-z0-9_-]*$`)
+
+var errIDFormat = errors.New("提供商 ID 只能用小写字母、数字、- 和 _，并以字母开头")
 var envName = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
 func validateConfig(cfg Config) error {
 	if cfg.Schema != 1 {
-		return errors.New("unsupported provider configuration schema (expected 1)")
+		return errors.New("不支持的模型配置版本（应为 1）")
 	}
 	ids := map[string]bool{}
 	for i, p := range cfg.Providers {
 		if err := validateProvider(p); err != nil {
-			return fmt.Errorf("provider %d: %w", i+1, err)
+			return fmt.Errorf("第 %d 个提供商：%w", i+1, err)
 		}
 		if ids[p.ID] {
-			return errors.New("duplicate provider ID")
+			return errors.New("提供商 ID 重复")
 		}
 		ids[p.ID] = true
 	}
@@ -149,26 +145,26 @@ func validateConfig(cfg Config) error {
 
 func validateProvider(p Provider) error {
 	if !providerID.MatchString(p.ID) {
-		return errors.New("provider ID must be a lowercase identifier")
+		return errIDFormat
 	}
 	if strings.TrimSpace(p.Name) == "" {
-		return errors.New("provider name is required")
+		return errors.New("请填写显示名称")
 	}
 	switch p.Protocol {
 	case "chat", "responses", "anthropic":
 	default:
-		return errors.New("protocol must be chat, responses, or anthropic")
+		return errors.New("协议必须是 chat、responses 或 anthropic")
 	}
 	u, err := url.Parse(p.BaseURL)
 	if err != nil || u == nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" || u.Opaque != "" {
-		return errors.New("base URL must be an HTTP(S) API root without credentials, query, or fragment")
+		return errors.New("API 地址必须是 http(s) 根地址，不能带账号、查询参数或锚点")
 	}
 	if p.Env != "" && !envName.MatchString(p.Env) {
-		return errors.New("invalid API key environment variable name")
+		return errors.New("环境变量名称无效")
 	}
 	for _, id := range p.Models {
 		if strings.TrimSpace(id) == "" {
-			return errors.New("model IDs must not be empty")
+			return errors.New("模型 ID 不能为空")
 		}
 	}
 	return nil

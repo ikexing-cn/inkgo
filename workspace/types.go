@@ -23,6 +23,20 @@ const (
 	Superseded  Status = "superseded"
 )
 
+// Event kinds and message roles of a session file.
+const (
+	KindMessage     = "message"
+	KindBookkeeping = "bookkeeping"
+	RoleUser        = "user"
+	RoleAssistant   = "assistant"
+)
+
+// Sources say who first said an idea.
+const (
+	SourceHuman = "human"
+	SourceAI    = "ai"
+)
+
 type Category struct {
 	Name   string `yaml:"name" json:"name"`
 	Target string `yaml:"target" json:"target"`

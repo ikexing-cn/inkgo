@@ -43,19 +43,19 @@ func (s *Store) sessions() ([]string, error) {
 	return ids, nil
 }
 func (s *Store) Sessions() ([]string, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if err := s.check(); err != nil {
+	unlock, err := s.lock()
+	if err != nil {
 		return nil, err
 	}
+	defer unlock()
 	return s.sessions()
 }
 func (s *Store) NewSession() (string, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if err := s.check(); err != nil {
+	unlock, err := s.lock()
+	if err != nil {
 		return "", err
 	}
+	defer unlock()
 	for tries := 0; tries < 128; tries++ {
 		id := NewID()
 		p, err := s.path("sessions", id+".jsonl")
@@ -142,20 +142,20 @@ func (s *Store) events(session string) ([]Event, int64, error) {
 	return events, int64(len(data)), nil
 }
 func (s *Store) Events(session string) ([]Event, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if err := s.check(); err != nil {
+	unlock, err := s.lock()
+	if err != nil {
 		return nil, err
 	}
+	defer unlock()
 	events, _, err := s.events(session)
 	return events, err
 }
 func (s *Store) Append(session string, event Event) (Event, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if err := s.check(); err != nil {
+	unlock, err := s.lock()
+	if err != nil {
 		return Event{}, err
 	}
+	defer unlock()
 	events, prefix, err := s.events(session)
 	if err != nil {
 		return Event{}, err
@@ -164,7 +164,7 @@ func (s *Store) Append(session string, event Event) (Event, error) {
 		event.Schema = Schema
 	}
 	if event.Kind == "" {
-		event.Kind = "message"
+		event.Kind = KindMessage
 	}
 	if event.At.IsZero() {
 		event.At = time.Now().UTC()
@@ -192,12 +192,9 @@ func (s *Store) Append(session string, event Event) (Event, error) {
 	}
 	// Bookkeeping events journal reserved idea IDs before materialization so a
 	// crashed bookkeeping operation can replay the same IDs without duplicates.
-	if event.Kind != "bookkeeping" {
-		if err = s.reloadWork(); err != nil {
-			return Event{}, err
-		}
+	if event.Kind != KindBookkeeping {
 		for _, id := range event.IdeaIDs {
-			if _, err = s.idea(id); err != nil {
+			if _, err = s.idea(id, newScan()); err != nil {
 				return Event{}, fmt.Errorf("idea_ids: %w", err)
 			}
 		}

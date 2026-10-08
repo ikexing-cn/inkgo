@@ -203,15 +203,15 @@ func (a *App) markWith(c *ui.Context, i workspace.Idea, status workspace.Status,
 	if a.busy != "" || i.Status == status {
 		return
 	}
+	// The decision needs no model; only the conflict check after a keep does.
+	eng := &discussion.Engine{Store: a.Store}
 	if status == workspace.Kept {
-		if err := a.modelsReady(); err != nil {
-			a.Engine.Book = nil // decisions never need a model; conflict checks do
-		}
+		eng, _ = a.engine()
 	}
 	next := a.nextCard(i.ID)
 	from, id := i.Status, i.ID
 	a.run(c, "正在保存你的决定…", func(ctx context.Context) (func(), error) {
-		err := a.Engine.Mark(ctx, id, status, reason)
+		err := eng.Mark(ctx, id, status, reason)
 		saved := err == nil
 		if !saved {
 			if now, e := a.Store.Idea(id); e == nil && now.Status == status {

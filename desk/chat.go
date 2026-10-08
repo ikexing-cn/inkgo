@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
+	"writer/discussion"
 	"writer/editor"
 	"writer/workspace"
 )
@@ -29,7 +30,7 @@ func (a *App) discussion(c *ui.Context) {
 						}
 						last := a.lastMessage()
 						for _, m := range a.events {
-							if m.Kind == "message" {
+							if m.Kind == workspace.KindMessage {
 								a.message(c, m, m.ID == last)
 							}
 						}
@@ -54,7 +55,7 @@ func (a *App) hasMessages() bool { return a.lastMessage() != "" }
 
 func (a *App) lastMessage() string {
 	for n := len(a.events) - 1; n >= 0; n-- {
-		if a.events[n].Kind == "message" {
+		if a.events[n].Kind == workspace.KindMessage {
 			return a.events[n].ID
 		}
 	}
@@ -71,7 +72,7 @@ func (a *App) chatTop(c *ui.Context) {
 		ui.Spacer(c)
 		n := 0
 		for _, e := range a.events {
-			if e.Kind == "message" {
+			if e.Kind == workspace.KindMessage {
 				n++
 			}
 		}
@@ -118,7 +119,7 @@ func (a *App) emptyChat(c *ui.Context) {
 
 func (a *App) answered(userID string) bool {
 	for _, e := range a.events {
-		if e.Kind == "message" && e.Role == "assistant" && e.ReplyTo == userID {
+		if e.Kind == workspace.KindMessage && e.Role == workspace.RoleAssistant && e.ReplyTo == userID {
 			return true
 		}
 	}
@@ -140,7 +141,7 @@ func (a *App) userBubble(c *ui.Context, text string) {
 // plain prose, the way a reply reads in a letter. Its actions fade in on hover.
 func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 	t := a.pal.theme
-	user := m.Role == "user"
+	user := m.Role == workspace.RoleUser
 	align := ui.Start
 	if user {
 		align = ui.End
@@ -315,7 +316,7 @@ func (a *App) booked(reply string) bool {
 		have[idea.ID] = true
 	}
 	for _, event := range a.events {
-		if event.Kind == "bookkeeping" && event.ReplyTo == reply {
+		if event.Kind == workspace.KindBookkeeping && event.ReplyTo == reply {
 			for _, id := range event.IdeaIDs {
 				if !have[id] {
 					return false
@@ -403,7 +404,8 @@ func (a *App) send(c *ui.Context) {
 	if trim(a.input) == "" {
 		return
 	}
-	if err := a.modelsReady(); err != nil {
+	eng, err := a.engine()
+	if err != nil {
 		a.setError(err)
 		return
 	}
@@ -411,7 +413,7 @@ func (a *App) send(c *ui.Context) {
 	a.pending, a.input = input, ""
 	a.chatScroll.Y = math.MaxFloat32
 	a.run(c, "AI 正在思考，并整理这一轮的思路…", func(ctx context.Context) (func(), error) {
-		turn, err := a.Engine.Send(ctx, session, input)
+		turn, err := eng.Send(ctx, session, input)
 		return func() {
 			a.pending = ""
 			if turn.User.ID == "" && a.input == "" {
@@ -424,13 +426,14 @@ func (a *App) send(c *ui.Context) {
 }
 
 func (a *App) retry(c *ui.Context, userID string) {
-	if err := a.modelsReady(); err != nil {
+	eng, err := a.engine()
+	if err != nil {
 		a.setError(err)
 		return
 	}
 	session := a.session
 	a.run(c, "正在重新请求回复…", func(ctx context.Context) (func(), error) {
-		_, err := a.Engine.Retry(ctx, session, userID)
+		_, err := eng.Retry(ctx, session, userID)
 		return func() { a.chatScroll.Y = math.MaxFloat32 }, err
 	})
 	a.talking = a.busy != ""
@@ -439,12 +442,10 @@ func (a *App) retry(c *ui.Context, userID string) {
 // bookkeep replays a saved plan even without a model; only a missing plan
 // needs one.
 func (a *App) bookkeep(c *ui.Context, replyID string) {
-	if err := a.modelsReady(); err != nil {
-		a.Engine.Book = nil
-	}
+	eng, _ := a.engine()
 	session := a.session
 	a.run(c, "正在整理这一轮的思路…", func(ctx context.Context) (func(), error) {
-		_, err := a.Engine.Bookkeep(ctx, session, replyID)
+		_, err := eng.Bookkeep(ctx, session, replyID)
 		return nil, err
 	})
 	a.talking = a.busy != ""
@@ -483,7 +484,8 @@ func (a *App) extraction(c *ui.Context) {
 					a.sourceOpen = false
 				}
 				if a.pal.primary(c, "摘为新思路").Disabled(a.busy != "" || start == end).Clicked() {
-					_, err := a.Engine.Manual(a.session, a.sourceMessage, start, end, a.sourceCategory)
+					eng := &discussion.Engine{Store: a.Store}
+					_, err := eng.Manual(a.session, a.sourceMessage, start, end, a.sourceCategory)
 					if err == nil {
 						a.sourceOpen = false
 						a.filter, a.extra, a.turn = 0, extras[0], ""

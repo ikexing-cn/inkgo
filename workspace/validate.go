@@ -95,7 +95,7 @@ func validateIdea(i Idea, w Work) error {
 	if !found {
 		return fmt.Errorf("category: unknown %q", i.Category)
 	}
-	if i.Source != "human" && i.Source != "ai" {
+	if i.Source != SourceHuman && i.Source != SourceAI {
 		return fmt.Errorf("source: must be human or ai")
 	}
 	if strings.TrimSpace(i.Text) == "" {
@@ -158,20 +158,20 @@ func validateIdea(i Idea, w Work) error {
 	}
 	return nil
 }
-func (s *Store) validateOrigin(i Idea) error {
+func (s *Store) validateOrigin(i Idea, sc *scan) error {
 	if i.Origin.Session == "" {
 		return nil
 	}
-	events, _, err := s.events(i.Origin.Session)
+	events, err := sc.events(s, i.Origin.Session)
 	if err != nil {
 		return fmt.Errorf("origin.session: %w", err)
 	}
 	for _, e := range events {
 		if e.ID == i.Origin.Message {
-			if e.Kind != "message" {
+			if e.Kind != KindMessage {
 				return fmt.Errorf("origin.message: must refer to message")
 			}
-			if (i.Source == "human" && e.Role != "user") || (i.Source == "ai" && e.Role != "assistant") {
+			if (i.Source == SourceHuman && e.Role != RoleUser) || (i.Source == SourceAI && e.Role != RoleAssistant) {
 				return fmt.Errorf("origin.message: role does not match source")
 			}
 			if i.Origin.Span.End > utf8.RuneCountInString(e.Text) || i.Origin.Span.Start == i.Origin.Span.End {
@@ -193,12 +193,12 @@ func validateEvent(e Event) error {
 		return fmt.Errorf("at: missing timestamp")
 	}
 	switch e.Kind {
-	case "message":
-		if e.Role != "user" && e.Role != "assistant" && e.Role != "system" {
+	case KindMessage:
+		if e.Role != RoleUser && e.Role != RoleAssistant {
 			return fmt.Errorf("role: invalid message role %q", e.Role)
 		}
-	case "bookkeeping":
-		if e.Role != "" && e.Role != "assistant" {
+	case KindBookkeeping:
+		if e.Role != "" {
 			return fmt.Errorf("role: invalid bookkeeping role %q", e.Role)
 		}
 	default:

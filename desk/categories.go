@@ -32,7 +32,7 @@ func (a *App) categories(c *ui.Context) {
 						ui.Textf(c, "%d 条", counts[cat.Name]).FontSize(12.5).TextColor(t.TextMuted)
 						if a.removeCategory == cat.Name {
 							ui.Textf(c, "%d 条思路将移到“其他”", counts[cat.Name]).FontSize(12.5).TextColor(t.Danger)
-							if quiet(c, "取消", ui.Color{}).Clicked() {
+							if ghost(c, "取消", ui.Color{}).Clicked() {
 								a.removeCategory = ""
 							}
 							if action(c, "确认删除", t.Danger, true).Disabled(busy).Clicked() {
@@ -46,10 +46,10 @@ func (a *App) categories(c *ui.Context) {
 							}
 							return
 						}
-						if quiet(c, "编辑", t.Accent).Label("编辑-" + cat.Name).Disabled(busy).Clicked() {
+						if ghost(c, "编辑", t.Accent).Label("编辑-" + cat.Name).Disabled(busy).Clicked() {
 							a.categoryName, a.categoryTarget = cat.Name, cat.Target
 						}
-						if cat.Name != workspace.Other && quiet(c, "删除", t.Danger).Label("删除-"+cat.Name).Disabled(busy).Clicked() {
+						if cat.Name != workspace.Other && ghost(c, "删除", t.Danger).Label("删除-"+cat.Name).Disabled(busy).Clicked() {
 							a.removeCategory = cat.Name
 						}
 					})

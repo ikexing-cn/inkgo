@@ -23,6 +23,27 @@ const (
 	defaultMaxTokens = 4096
 )
 
+var errTooLarge = errors.New("模型请求超过 8 MiB")
+
+// statusError names the likely cause of an HTTP failure. The response body
+// is never shown: some providers echo part of the key or the request.
+func statusError(code int) error {
+	var hint string
+	switch {
+	case code == 401 || code == 403:
+		hint = "：API key 无效、缺失或没有权限"
+	case code == 404:
+		hint = "：API 地址或模型 ID 不对"
+	case code == 429:
+		hint = "：请求太频繁或额度不足"
+	case code == 400 || code == 422:
+		hint = "：请求被拒绝，常见原因是模型 ID 或参数不受支持"
+	case code >= 500:
+		hint = "：服务端出错，稍后重试"
+	}
+	return fmt.Errorf("模型服务返回 HTTP %d%s", code, hint)
+}
+
 type Message struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
@@ -49,21 +70,23 @@ type Client struct {
 
 var _ Completer = (*Client)(nil)
 
-func NewClient(cfg Config, sel Selection) (*Client, error) {
+// NewClient talks to modelID at the configured provider providerID, with the
+// key from the OS keychain or the provider's environment variable.
+func NewClient(cfg Config, providerID, modelID string) (*Client, error) {
 	if err := validateConfig(cfg); err != nil {
 		return nil, err
 	}
 	for _, p := range cfg.Providers {
-		if p.ID != sel.Provider {
+		if p.ID != providerID {
 			continue
 		}
 		key, err := loadKey(p, keyring.Get)
 		if err != nil {
 			return nil, err
 		}
-		return NewClientWithKey(p, sel.Model, key, nil)
+		return NewClientWithKey(p, modelID, key, nil)
 	}
-	return nil, errors.New("selected provider is not configured on this computer; choose a provider")
+	return nil, fmt.Errorf("本机没有配置提供商 %q，请在模型设置里重新选择", providerID)
 }
 
 // NewClientWithKey permits custom transports and credential-free local servers.
@@ -74,7 +97,7 @@ func NewClientWithKey(provider Provider, modelID, key string, httpClient *http.C
 		return nil, err
 	}
 	if strings.ContainsAny(key, "\r\n") {
-		return nil, errors.New("API key must not contain line breaks")
+		return nil, errors.New("API key 不能包含换行")
 	}
 	hc := http.Client{}
 	if httpClient != nil {
@@ -83,29 +106,29 @@ func NewClientWithKey(provider Provider, modelID, key string, httpClient *http.C
 	if hc.Timeout <= 0 || hc.Timeout > requestTimeout {
 		hc.Timeout = requestTimeout
 	}
-	hc.CheckRedirect = func(*http.Request, []*http.Request) error { return errors.New("model API redirects are disabled") }
+	hc.CheckRedirect = func(*http.Request, []*http.Request) error { return errors.New("模型服务的重定向已禁用") }
 	provider.Models = append([]string(nil), provider.Models...)
 	return &Client{provider: provider, modelID: modelID, key: key, http: &hc}, nil
 }
 
 func (c *Client) Complete(ctx context.Context, req Request) (string, error) {
 	if strings.TrimSpace(c.modelID) == "" {
-		return "", errors.New("model ID is required")
+		return "", errors.New("请填写模型 ID")
 	}
 	if req.MaxTokens < 0 {
-		return "", errors.New("max tokens must not be negative")
+		return "", errors.New("max tokens 不能为负数")
 	}
 	if len(req.Messages) == 0 {
-		return "", errors.New("at least one message is required")
+		return "", errors.New("请求至少要有一条消息")
 	}
 	inputBytes := len(req.System)
 	for _, m := range req.Messages {
 		if m.Role != "user" && m.Role != "assistant" {
-			return "", errors.New("message role must be user or assistant; use Request.System for instructions")
+			return "", errors.New("消息角色只能是 user 或 assistant；系统指令放在 Request.System")
 		}
 		inputBytes += len(m.Content)
 		if inputBytes > bodyLimit {
-			return "", errors.New("model request exceeds 8 MiB")
+			return "", errTooLarge
 		}
 	}
 	tokens := req.MaxTokens
@@ -175,23 +198,23 @@ func (c *Client) Complete(ctx context.Context, req Request) (string, error) {
 		StopReason string `json:"stop_reason"`
 	}
 	if err := json.Unmarshal(data, &result); err != nil {
-		return "", errors.New("model API returned invalid JSON or an unexpected response shape")
+		return "", errors.New("模型服务返回的不是合法 JSON，或格式不符合协议")
 	}
 	if len(result.Error) > 0 && string(result.Error) != "null" {
-		return "", errors.New("model API reported an error (details omitted to protect credentials and content)")
+		return "", errors.New("模型服务返回了错误（为保护密钥和内容，不显示原文）")
 	}
 	var text strings.Builder
 	switch c.provider.Protocol {
 	case "chat":
 		if len(result.Choices) > 0 {
 			if reason := result.Choices[0].FinishReason; reason == "length" || reason == "content_filter" {
-				return "", errors.New("model response was truncated or filtered")
+				return "", errors.New("模型回复被截断或被内容过滤")
 			}
 			text.WriteString(result.Choices[0].Message.Content)
 		}
 	case "responses":
 		if result.Status != "" && result.Status != "completed" {
-			return "", errors.New("model response did not complete")
+			return "", errors.New("模型回复没有完成")
 		}
 		for _, out := range result.Output {
 			if out.Type == "message" {
@@ -204,7 +227,7 @@ func (c *Client) Complete(ctx context.Context, req Request) (string, error) {
 		}
 	case "anthropic":
 		if result.StopReason == "max_tokens" {
-			return "", errors.New("model response was truncated")
+			return "", errors.New("模型回复被截断")
 		}
 		for _, part := range result.Content {
 			if part.Type == "text" {
@@ -213,7 +236,7 @@ func (c *Client) Complete(ctx context.Context, req Request) (string, error) {
 		}
 	}
 	if strings.TrimSpace(text.String()) == "" {
-		return "", errors.New("model API returned no text")
+		return "", errors.New("模型服务没有返回文字")
 	}
 	return text.String(), nil
 }
@@ -234,7 +257,7 @@ func (c *Client) ListModels(ctx context.Context) ([]string, error) {
 		}
 		catalogBytes += len(data)
 		if catalogBytes > bodyLimit {
-			return nil, errors.New("model catalog exceeds 8 MiB across all pages")
+			return nil, errors.New("模型目录总计超过 8 MiB")
 		}
 		var result struct {
 			Data []struct {
@@ -245,13 +268,13 @@ func (c *Client) ListModels(ctx context.Context) ([]string, error) {
 			Error   json.RawMessage `json:"error"`
 		}
 		if err := json.Unmarshal(data, &result); err != nil {
-			return nil, errors.New("model catalog returned invalid JSON")
+			return nil, errors.New("模型目录不是合法 JSON")
 		}
 		if len(result.Error) > 0 && string(result.Error) != "null" {
-			return nil, errors.New("model catalog API reported an error")
+			return nil, errors.New("模型目录接口返回了错误")
 		}
 		if result.Data == nil {
-			return nil, errors.New("model catalog response is missing data")
+			return nil, errors.New("模型目录缺少 data 字段")
 		}
 		for _, entry := range result.Data {
 			if strings.TrimSpace(entry.ID) != "" {
@@ -267,12 +290,12 @@ func (c *Client) ListModels(ctx context.Context) ([]string, error) {
 			return models, nil
 		}
 		if c.provider.Protocol != "anthropic" || result.LastID == "" || cursors[result.LastID] {
-			return nil, errors.New("model catalog has unsupported or invalid pagination")
+			return nil, errors.New("模型目录的分页方式不受支持或无效")
 		}
 		cursors[result.LastID] = true
 		endpoint = "/models?after_id=" + url.QueryEscape(result.LastID)
 	}
-	return nil, errors.New("model catalog exceeds 100 pages")
+	return nil, errors.New("模型目录超过 100 页")
 }
 
 func (c *Client) call(ctx context.Context, method, endpoint string, payload any) ([]byte, error) {
@@ -281,17 +304,17 @@ func (c *Client) call(ctx context.Context, method, endpoint string, payload any)
 		var err error
 		body, err = json.Marshal(payload)
 		if err != nil {
-			return nil, errors.New("could not encode model request")
+			return nil, errors.New("无法编码模型请求")
 		}
 		if len(body) > bodyLimit {
-			return nil, errors.New("model request exceeds 8 MiB")
+			return nil, errTooLarge
 		}
 	}
 	ctx, cancel := context.WithTimeout(ctx, requestTimeout)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, method, strings.TrimRight(c.provider.BaseURL, "/")+endpoint, bytes.NewReader(body))
 	if err != nil {
-		return nil, errors.New("could not create model HTTP request")
+		return nil, errors.New("无法创建模型请求")
 	}
 	req.Header.Set("Accept", "application/json")
 	if payload != nil {
@@ -311,26 +334,26 @@ func (c *Client) call(ctx context.Context, method, endpoint string, payload any)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("model API HTTP %d (response details omitted to protect credentials and content)", resp.StatusCode)
+		return nil, statusError(resp.StatusCode)
 	}
 	data, err := io.ReadAll(io.LimitReader(resp.Body, bodyLimit+1))
 	if err != nil {
 		return nil, safeNetworkError(ctx, err)
 	}
 	if len(data) > bodyLimit {
-		return nil, errors.New("model API response exceeds 8 MiB")
+		return nil, errors.New("模型回复超过 8 MiB")
 	}
 	return data, nil
 }
 
 func safeNetworkError(ctx context.Context, err error) error {
 	if ctx.Err() != nil {
-		return fmt.Errorf("model request: %w", ctx.Err())
+		return fmt.Errorf("模型请求已中止：%w", ctx.Err())
 	}
 	var timeout net.Error
 	if errors.As(err, &timeout) && timeout.Timeout() {
-		return fmt.Errorf("model request: %w", context.DeadlineExceeded)
+		return fmt.Errorf("模型请求超时：%w", context.DeadlineExceeded)
 	}
 	// Transport errors can contain URLs, headers, credentials, and remote bodies.
-	return errors.New("model HTTP request failed; check the endpoint, connection, and redirect policy")
+	return errors.New("连不上模型服务：请检查 API 地址和网络")
 }
