@@ -9,6 +9,9 @@ import (
 // input takes the editor's input as it comes; it reports whether it took
 // the event.
 func (e *Editor) input(ev ui.InputEvent) bool {
+	if e.opts.ReadOnly && (ev.Kind == ui.InputText || ev.Kind == ui.InputCompose) {
+		return true
+	}
 	switch ev.Kind {
 	case ui.InputText:
 		s := strings.Map(func(r rune) rune {
@@ -56,6 +59,9 @@ func (e *Editor) input(ev ui.InputEvent) bool {
 }
 
 func (e *Editor) command(name string) bool {
+	if e.opts.ReadOnly && name != "copy" && name != "selectAll" {
+		return false
+	}
 	switch name {
 	case "copy":
 		e.copy()
@@ -84,6 +90,19 @@ func (e *Editor) key(mods ui.Modifiers, k ui.Key) bool {
 	}
 	shift := mods&ui.Shift != 0
 	base := mods &^ ui.Shift
+	if e.opts.ReadOnly {
+		if base == ui.Cmd {
+			if k != ui.KeyA && k != ui.KeyC && k != ui.KeyHome && k != ui.KeyEnd && k != ui.KeyLeft && k != ui.KeyRight {
+				return false
+			}
+		} else {
+			switch k {
+			case ui.KeyLeft, ui.KeyRight, ui.KeyUp, ui.KeyDown, ui.KeyHome, ui.KeyEnd, ui.KeyPageUp, ui.KeyPageDown:
+			default:
+				return false
+			}
+		}
+	}
 	if e.compOpen && mods == 0 {
 		switch k {
 		case ui.KeyUp:

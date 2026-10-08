@@ -6,6 +6,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 
+	"writer/desk"
 	"writer/editor"
 )
 
@@ -69,6 +71,32 @@ func (a *app) view(c *ui.Context) {
 }
 
 func main() {
+	editorDemo := flag.Bool("editor", false, "打开原有正文编辑器演示")
+	workPath := flag.String("work", "", "打开作品文件夹")
+	flag.Parse()
+	if !*editorDemo {
+		d := desk.New()
+		d.PickFolder = func(title string) (string, error) {
+			paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Title: title, Directory: true, CreateDirectories: true})
+			if err != nil || len(paths) == 0 {
+				return "", err
+			}
+			return paths[0], nil
+		}
+		if *workPath != "" {
+			if err := d.Open(*workPath); err != nil {
+				d.Error = err.Error()
+			}
+		}
+		defer d.Close()
+		mygo.App.WhenReady(func() {
+			mygo.NewWindow(mygo.WindowOptions{Title: "写作 · 讨论与思路池", Width: 1280, Height: 820, MinWidth: 1000, MinHeight: 680, Content: ui.View(d.View)})
+		})
+		if err := mygo.App.Run(); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 	ents := []editor.Entity{
 		{Name: "林晚", Kind: "人物"}, {Name: "林晚舟", Kind: "人物"},
 		{Name: "沈砚", Kind: "人物"}, {Name: "青石镇", Kind: "地名"},

@@ -11,6 +11,8 @@ import (
 
 // Options configure an Editor.
 type Options struct {
+	// ReadOnly allows selection and copying without changing the document.
+	ReadOnly bool
 	// Entities are the confirmed names that complete as they are typed.
 	Entities []Entity
 	// Predictor predicts the text after the caret; nil turns predictions
@@ -72,13 +74,13 @@ type prediction struct {
 }
 
 type undoStep struct {
-	at                      int
-	removed, inserted       []rune
+	at                        int
+	removed, inserted         []rune
 	caretBefore, anchorBefore int
-	caretAfter              int
-	marksBefore, marksAfter []Mark
-	typing                  bool
-	when                    time.Time
+	caretAfter                int
+	marksBefore, marksAfter   []Mark
+	typing                    bool
+	when                      time.Time
 }
 
 // New returns an editor of doc.

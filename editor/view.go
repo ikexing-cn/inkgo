@@ -83,7 +83,7 @@ func (e *Editor) caretRect() ui.Rect {
 // maybePredict asks the predictor once typing paused at the end of a
 // paragraph.
 func (e *Editor) maybePredict(c *ui.Context) {
-	if e.opts.Predictor == nil || !e.focused || e.predicting || e.caret != e.anchor || e.preedit != "" ||
+	if e.opts.ReadOnly || e.opts.Predictor == nil || !e.focused || e.predicting || e.caret != e.anchor || e.preedit != "" ||
 		e.predictVer == e.Doc.version && e.predictAt == e.caret {
 		return
 	}
@@ -145,6 +145,15 @@ func (e *Editor) DismissGhost() {
 // menu is the editor's context menu.
 func (e *Editor) menu(m *ui.Menu) {
 	a, b := e.Selection()
+	if e.opts.ReadOnly {
+		if m.Item("复制").Shortcut(ui.Cmd, ui.KeyC).Disabled(a == b).Chosen() {
+			e.copy()
+		}
+		if m.Item("全选").Shortcut(ui.Cmd, ui.KeyA).Chosen() {
+			e.SelectAll()
+		}
+		return
+	}
 	if m.Item("剪切").Shortcut(ui.Cmd, ui.KeyX).Disabled(a == b).Chosen() {
 		e.cut()
 	}

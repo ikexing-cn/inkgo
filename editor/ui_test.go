@@ -45,6 +45,35 @@ func TestTypeComposeAndKeys(t *testing.T) {
 	}
 }
 
+func TestReadOnlySourceSelection(t *testing.T) {
+	e := New(NewDoc("雨夜🌙，林晚怕黑。"), Options{ReadOnly: true, Predictor: DemoPredictor{}})
+	tt := newTester(e)
+	tt.Key(ui.Cmd, ui.KeyA)
+	if e.SelectedText() != e.Doc.String() {
+		t.Fatal("read-only selection failed")
+	}
+	tt.Command("copy")
+	if tt.Clipboard() != e.Doc.String() {
+		t.Fatal("read-only copy failed")
+	}
+	tt.Type("改写")
+	tt.Compose("ni", 2)
+	tt.Key(0, ui.KeyBackspace)
+	tt.Key(0, ui.KeyDelete)
+	tt.Key(0, ui.KeyEnter)
+	tt.Command("cut")
+	tt.Command("paste")
+	tt.Key(ui.Cmd, ui.KeyZ)
+	if e.Doc.String() != "雨夜🌙，林晚怕黑。" || e.Preedit() != "" || e.Ghost() != "" {
+		t.Fatalf("read-only source changed: %q", e.Doc.String())
+	}
+	tt.Key(0, ui.KeyHome)
+	tt.Key(ui.Shift, ui.KeyRight)
+	if e.SelectedText() != "雨" {
+		t.Fatalf("read-only navigation selection: %q", e.SelectedText())
+	}
+}
+
 func TestLongTextWraps(t *testing.T) {
 	s := ""
 	for range 20 {

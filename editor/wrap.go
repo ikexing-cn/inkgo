@@ -97,8 +97,10 @@ func isWordRune(r rune) bool {
 	return r < 0x2E80 && (unicode.IsLetter(r) || unicode.IsDigit(r) || r == '\'' || r == '-')
 }
 
-func noLineStart(r rune) bool { return strings.ContainsRune("，。、；：？！）》」』”’…—·%,.;:?!)]}", r) }
-func noLineEnd(r rune) bool   { return strings.ContainsRune("（《「『“‘([{", r) }
+func noLineStart(r rune) bool {
+	return strings.ContainsRune("，。、；：？！）》」』”’…—·%,.;:?!)]}", r)
+}
+func noLineEnd(r rune) bool { return strings.ContainsRune("（《「『“‘([{", r) }
 
 // runeClass groups runes for double-click selection.
 func runeClass(r rune) int {

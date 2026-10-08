@@ -8,7 +8,7 @@ import (
 func TestMarksFollowEdits(t *testing.T) {
 	d := NewDoc("甲乙丙丁戊")
 	id := d.AddMark(MarkForeshadow, 1, 3, "") // 乙丙
-	d.replace(0, 0, []rune("前"))               // before the mark
+	d.replace(0, 0, []rune("前"))              // before the mark
 	m := d.Marks()[0]
 	if m.Start != 2 || m.End != 4 || d.Slice(m.Start, m.End) != "乙丙" {
 		t.Fatalf("after insert before: %+v %q", m, d.String())
