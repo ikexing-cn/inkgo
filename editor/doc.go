@@ -110,6 +110,18 @@ func (d *Doc) Find(q string) [][2]int {
 	return out
 }
 
+// ReplaceAll replaces every q with s, moving the marks with the text as an
+// edit would, and says how many. It is for a document not in an editor;
+// an editor's own ReplaceAll can be undone.
+func (d *Doc) ReplaceAll(q, s string) int {
+	found := d.Find(q)
+	ins := []rune(s)
+	for i := len(found) - 1; i >= 0; i-- {
+		d.replace(found[i][0], found[i][1], ins)
+	}
+	return len(found)
+}
+
 // replace replaces runes [a, b) with ins, moving the marks with the text.
 func (d *Doc) replace(a, b int, ins []rune) {
 	d.text = slices.Concat(d.text[:a:a], ins, d.text[b:])

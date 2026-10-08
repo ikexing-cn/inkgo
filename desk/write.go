@@ -72,6 +72,7 @@ type writeView struct {
 	query, with     string
 	current         int
 	wide            bool              // finding in the whole book
+	sure            bool              // asking before replacing through the book
 	texts           map[string]string // the chapters' text while finding in the book
 	hits            []bookHit
 	hitsFor         [3]any // the query, chapter and edit the hits were found for
@@ -903,6 +904,12 @@ func (a *App) findBar(c *ui.Context) {
 				show()
 			}
 		}
+		if w.wide {
+			if ghost(c, "全书替换", ui.Color{}).Disabled(w.query == "" || len(w.hits) == 0 || w.lost || w.external != nil).Clicked() {
+				w.sure = !w.sure
+			}
+			return
+		}
 		if ghost(c, "全部替换", ui.Color{}).Disabled(none || w.lost).Clicked() {
 			n := w.ed.ReplaceAll(w.query, w.with)
 			a.notice = fmt.Sprintf("已替换 %d 处，可以撤销", n)
@@ -914,12 +921,12 @@ func (a *App) findBar(c *ui.Context) {
 			color = a.pal.brand
 		}
 		if ghost(c, "全书", color).Tooltip("在所有章节里找").Clicked() {
-			w.wide, w.texts = !w.wide, nil
+			w.wide, w.texts, w.sure = !w.wide, nil, false
 		}
 	}
 	closer := func() {
 		if iconButton(c, icX, "关闭查找", ui.Color{}).Clicked() {
-			w.finding, w.wide, w.texts = false, false, nil
+			w.finding, w.wide, w.texts, w.sure = false, false, nil, false
 			w.ed.SetFound(nil, 0)
 		}
 	}
@@ -927,6 +934,9 @@ func (a *App) findBar(c *ui.Context) {
 	bar.Children(func() {
 		line(func() { query(); count(); move(); wide(); closer() })
 		line(func() { with(); replace() })
+		if w.wide && w.sure {
+			a.confirmBookReplace(c)
+		}
 		if w.wide {
 			a.bookResults(c)
 		}
@@ -1322,7 +1332,7 @@ func (a *App) restore(id, title string) {
 // snapReasons say why a snapshot was taken.
 var snapReasons = map[string]string{
 	workspace.SnapOpen: "打开时", workspace.SnapInterval: "写作中", workspace.SnapRestore: "恢复前",
-	workspace.SnapExternal: "外部改动", workspace.SnapAI: "AI 改动前",
+	workspace.SnapExternal: "外部改动", workspace.SnapAI: "AI 改动前", workspace.SnapReplace: "全书替换前",
 }
 
 func (a *App) openSnapshots() {

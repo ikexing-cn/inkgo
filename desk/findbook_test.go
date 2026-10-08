@@ -57,3 +57,60 @@ func TestAroundKeepsALittleOnEachSide(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+// Replacing through the book asks first, changes every chapter with a
+// snapshot before each, and the chapter open can be undone.
+func TestReplaceThroughTheBook(t *testing.T) {
+	a, tt, first := writingFixture(t, "林晚走进雨里。")
+	second, err := a.Store.NewChapter("", "第二章", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = a.Store.WriteChapter(second, "门开了，林晚又看见了林晚的影子。", nil); err != nil {
+		t.Fatal(err)
+	}
+	a.write.checked = time.Time{}
+	tt.Frame()
+	if err = tt.Click("查找替换"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Type("林晚")
+	a.write.with = "苏晴"
+	tt.Frame()
+	if err = tt.Click("全书"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err = tt.Click("全书替换"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("把全书 2 章里的 3 处“林晚”换成“苏晴”？只改正文，设定和章纲不动；每章换之前都存一份快照。") {
+		t.Fatal("no asking", tt.Texts())
+	}
+	if ch, _ := a.Store.ReadChapter(second); ch.Text != "门开了，林晚又看见了林晚的影子。" {
+		t.Fatal("replaced before asked", ch.Text)
+	}
+	if err = tt.Click("确定替换"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if ch, _ := a.Store.ReadChapter(second); ch.Text != "门开了，苏晴又看见了苏晴的影子。" {
+		t.Fatal(ch.Text)
+	}
+	if ch, _ := a.Store.ReadChapter(first); ch.Text != "苏晴走进雨里。" {
+		t.Fatal(ch.Text)
+	}
+	// The chapter open had its text kept as it opened; the other gets one.
+	if snaps, err := a.Store.Snapshots(second); err != nil || len(snaps) == 0 || snaps[0].Reason != "replace" {
+		t.Fatal("no snapshot before replacing", snaps, err)
+	}
+	if !tt.HasText("全书都没有找到") {
+		t.Fatal(tt.Texts())
+	}
+	a.write.ed.Undo()
+	if a.write.ed.Doc.String() != "林晚走进雨里。" {
+		t.Fatal("the chapter open cannot be undone", a.write.ed.Doc.String())
+	}
+}

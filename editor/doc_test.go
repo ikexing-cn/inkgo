@@ -140,3 +140,20 @@ func TestProseKeepsIndentsOut(t *testing.T) {
 		t.Fatalf("unindent %q", got)
 	}
 }
+
+// Replacing every match in a document moves its marks with the text.
+func TestDocReplaceAllMovesMarks(t *testing.T) {
+	d := NewDoc("林晚说，林晚走了。")
+	id := d.AddMark(MarkForeshadow, 6, 8, "") // 走了
+	if n := d.ReplaceAll("林晚", "苏"); n != 2 {
+		t.Fatal(n)
+	}
+	if d.String() != "苏说，苏走了。" {
+		t.Fatal(d.String())
+	}
+	for _, m := range d.Marks() {
+		if m.ID == id && d.Slice(m.Start, m.End) != "走了" {
+			t.Fatal("the mark did not move", m)
+		}
+	}
+}

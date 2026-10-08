@@ -24,6 +24,7 @@ const (
 	SnapRestore  = "restore"  // a snapshot was about to replace the text
 	SnapExternal = "external" // the text changed outside, and one side gave way
 	SnapAI       = "ai"       // an AI was about to change the text
+	SnapReplace  = "replace"  // a replace through the book was about to change it
 )
 
 // keepAll is how long every snapshot is kept; older ones keep the last of

@@ -1,10 +1,12 @@
 package desk
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
 
+	"writer/editor"
 	"writer/workspace"
 )
 
@@ -132,5 +134,83 @@ func (a *App) openHit(id string) {
 	w.current = 0
 	if found := w.ed.Doc.Find(w.query); len(found) > 0 {
 		w.ed.Select(found[0][0], found[0][1])
+	}
+}
+
+// confirmBookReplace asks before a replace that reaches chapters the undo
+// cannot.
+func (a *App) confirmBookReplace(c *ui.Context) {
+	t := a.pal.theme
+	w := &a.write
+	total := 0
+	for _, h := range w.hits {
+		total += h.Count
+	}
+	with := "“" + w.with + "”"
+	if w.with == "" {
+		with = "空（删掉）"
+	}
+	ui.Row(c).FillWidth().Gap(8).Padding(8, 10).Radius(8).AlignItems(ui.Center).Background(t.Danger.Alpha(0.07)).Children(func() {
+		ui.Textf(c, "把全书 %d 章里的 %d 处“%s”换成%s？只改正文，设定和章纲不动；每章换之前都存一份快照。", len(w.hits), total, w.query, with).
+			FontSize(12.5).LineHeight(1.5).Grow(1).Shrink(1)
+		if ghost(c, "取消", ui.Color{}).Clicked() {
+			w.sure = false
+		}
+		if ghost(c, "确定替换", t.Danger).Clicked() {
+			a.replaceInBook()
+		}
+	})
+}
+
+// replaceInBook replaces the query in every chapter. Each chapter is
+// snapshotted first; the chapter open is replaced in its editor, where it
+// can be undone, the others on the disk with their marks moved along.
+func (a *App) replaceInBook() {
+	w := &a.write
+	w.sure = false
+	a.stopAI()
+	if err := a.saveText(); err != nil {
+		a.warn(err)
+		return
+	}
+	w.texts = nil
+	hits := a.bookHits(w.query)
+	chapters, total, here := 0, 0, false
+	for _, h := range hits {
+		var n int
+		if h.ID == w.node && w.ed != nil {
+			if _, err := a.Store.TakeSnapshot(h.ID, workspace.SnapReplace, w.ed.Doc.String(), storedMarks(w.ed.Doc.Marks())); err != nil {
+				a.warn(err)
+				break
+			}
+			n, here = w.ed.ReplaceAll(w.query, w.with), true
+			a.warn(a.saveText())
+		} else {
+			ch, err := a.Store.ReadChapter(h.ID)
+			if err == nil {
+				_, err = a.Store.TakeSnapshot(h.ID, workspace.SnapReplace, ch.Text, ch.Marks)
+			}
+			if err != nil {
+				a.warn(err)
+				break
+			}
+			doc := editor.NewDoc(ch.Text)
+			doc.LoadMarks(editorMarks(ch.Marks))
+			n = doc.ReplaceAll(w.query, w.with)
+			if _, err := a.Store.WriteChapter(h.ID, doc.String(), storedMarks(doc.Marks())); err != nil {
+				a.warn(err)
+				break
+			}
+			if w.counts != nil {
+				w.counts[h.ID] = workspace.Count(doc.String())
+			}
+		}
+		chapters, total = chapters+1, total+n
+	}
+	w.texts, w.hits = nil, nil
+	w.hitsFor = [3]any{}
+	a.notice = fmt.Sprintf("已在 %d 章里替换 %d 处，每章替换前的版本都在快照里", chapters, total)
+	if here {
+		a.notice += "；本章也可以直接撤销"
 	}
 }
