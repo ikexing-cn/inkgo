@@ -47,7 +47,7 @@ func (a *App) View(c *ui.Context) {
 			ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
 		}
 		ui.Column(c).Grow(1).Shrink(1).FillHeight().Children(func() {
-			if a.page != 0 || a.Store == nil || !a.talking {
+			if !a.talking || !a.talkShown() { // the turn shows its own progress
 				a.banners(c)
 			}
 			switch {
@@ -162,6 +162,15 @@ func (a *App) sidebar(c *ui.Context) {
 			}
 		})
 	})
+}
+
+// talkShown tells whether the discussion is on screen, on its page or
+// beside the prose.
+func (a *App) talkShown() bool {
+	if a.Store == nil {
+		return false
+	}
+	return a.page == 0 || a.page == 3 && a.doc.talk && !a.doc.hidden
 }
 
 func (a *App) navItem(c *ui.Context, s *ui.SVG, label string, page int, slim bool) {

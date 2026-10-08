@@ -1,6 +1,7 @@
 package desk
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"strings"
@@ -168,4 +169,32 @@ func TestQuotesFindTheirProse(t *testing.T) {
 	if !strings.Contains(a.notice, "没有在这一章里找到") {
 		t.Fatalf("notice %q", a.notice)
 	}
+}
+
+// A turn beside the prose shows its progress in the column, not again
+// across the top of the page, which would push the prose down.
+func TestTalkBesideShowsItsOwnProgress(t *testing.T) {
+	a, _, _ := writingFixture(t, "雨下了一夜。")
+	var c *ui.Context
+	tt := ui.NewTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
+	tt.Frame()
+	if err := tt.Click("右栏-讨论"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	block := make(chan struct{})
+	a.pending = "这一章怎么样？"
+	a.run(c, "AI 正在思考", func(ctx context.Context) (func(), error) { <-block; return nil, nil })
+	a.talking = true
+	tt.Frame()
+	if !tt.HasText("正在思考…") || tt.HasText("AI 正在思考") {
+		t.Fatal("the progress is shown twice", tt.Texts())
+	}
+	a.setDocHidden(true)
+	tt.Frame()
+	if !tt.HasText("AI 正在思考") {
+		t.Fatal("with the column shut the progress is not shown", tt.Texts())
+	}
+	close(block)
+	settle(t, a, tt)
 }
