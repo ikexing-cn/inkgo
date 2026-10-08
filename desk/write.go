@@ -55,8 +55,9 @@ type writeView struct {
 	goal                  int    // a day's goal, or 0
 	goalText              string // the goal as typed
 	goalOpen              bool
-	unsummarized          []string // the chapters before without a summary, as a draft opens
-	recapped              int      // and how many before have one
+	carets                map[string]int // where the caret was in each chapter, as it was left
+	unsummarized          []string       // the chapters before without a summary, as a draft opens
+	recapped              int            // and how many before have one
 	// The disk's text, changed outside while the node was open; lost, the
 	// node gone from the disk.
 	external  *workspace.Chapter
@@ -238,6 +239,9 @@ func (a *App) openNode(id string) {
 	w.outline, w.outlineSaved, w.outlinePrev = ch.Outline, ch.Outline, ch.Outline
 	if !n.Folder {
 		w.ed = a.chapterEditor(ch.Text, ch.Marks)
+		if at, ok := w.carets[id]; ok {
+			w.ed.MoveTo(at, false)
+		}
 		w.saved, w.savedVer, w.stamp = ch.Text, w.ed.Doc.Version(), ch.Stamp
 		a.loadSummary(id)
 		if strings.TrimSpace(ch.Text) != "" {
@@ -256,9 +260,32 @@ func (a *App) flush() {
 		return
 	}
 	a.stopAI()
+	a.keepCaret()
 	a.warn(a.saveText())
 	a.warn(a.saveOutline())
 	a.warn(a.saveSummary())
+}
+
+// keepCaret notes where the caret is in the chapter shown, to put it back
+// there when the chapter opens again, in this run or the next.
+func (a *App) keepCaret() {
+	w := &a.write
+	if w.ed == nil || w.node == "" {
+		return
+	}
+	if at, ok := w.carets[w.node]; ok && at == w.ed.Caret() {
+		return
+	}
+	if w.carets == nil {
+		w.carets = map[string]int{}
+	}
+	w.carets[w.node] = w.ed.Caret()
+	for id := range w.carets {
+		if _, ok := w.tree.Node(id); !ok && w.tree.Root != nil {
+			delete(w.carets, id) // gone from the tree
+		}
+	}
+	a.savePrefs()
 }
 
 // saveText writes the text shown when it changed since the disk had it,

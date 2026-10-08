@@ -666,3 +666,32 @@ func TestStepThroughChapters(t *testing.T) {
 		t.Fatal("from a folder up is not the chapter before it", a.write.node)
 	}
 }
+
+// A chapter opens with the caret where it was left, also after the work
+// is opened again.
+func TestChapterOpensWhereItWasLeft(t *testing.T) {
+	a, tt, one := writingFixture(t, "一二三四五六")
+	two, err := a.Store.NewChapter("", "第二章", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.warn(a.loadTree())
+	a.write.ed.MoveTo(4, false)
+	a.openNode(two)
+	tt.Frame()
+	a.openNode(one)
+	tt.Frame()
+	if got := a.write.ed.Caret(); got != 4 {
+		t.Fatal("caret at", got)
+	}
+	if savedPrefs(t, a).Carets[one] != 4 {
+		t.Fatal("the caret is not kept with the work", savedPrefs(t, a).Carets)
+	}
+	a.write.carets = nil
+	a.loadPrefs()
+	a.openNode(two)
+	a.openNode(one)
+	if got := a.write.ed.Caret(); got != 4 {
+		t.Fatal("caret after opening again at", got)
+	}
+}

@@ -53,6 +53,8 @@ type prefs struct {
 	DayStart int    `json:"day_start,omitempty"`
 	// Goal is how much the author means to write a day, or 0 for none.
 	Goal int `json:"day_goal,omitempty"`
+	// Carets is where the caret was left in each chapter, by ID.
+	Carets map[string]int `json:"carets,omitempty"`
 }
 
 func (a *App) prefsPath() string { return filepath.Join(a.Store.Root(), ".writer", "desk.json") }
@@ -71,7 +73,7 @@ func (a *App) loadPrefs() {
 	a.write.autoPredict = p.AutoPredict
 	a.write.autoSummary = !p.NoAutoSummary
 	a.write.day, a.write.dayStart, a.write.goal = p.Day, p.DayStart, p.Goal
-	a.write.goalText = ""
+	a.write.goalText, a.write.carets = "", p.Carets
 	if p.Goal > 0 {
 		a.write.goalText = strconv.Itoa(p.Goal)
 	}
@@ -81,7 +83,7 @@ func (a *App) loadPrefs() {
 func (a *App) savePrefs() {
 	b, err := json.Marshal(prefs{SettingHidden: a.doc.hidden, Chapter: a.write.node, Writing: a.leftWriting, AutoPredict: a.write.autoPredict,
 		PanelWidth: a.doc.width, TalkTab: a.doc.talk, NoAttach: !a.doc.attach, NoAutoSummary: !a.write.autoSummary,
-		Day: a.write.day, DayStart: a.write.dayStart, Goal: a.write.goal})
+		Day: a.write.day, DayStart: a.write.dayStart, Goal: a.write.goal, Carets: a.write.carets})
 	if err == nil {
 		err = os.WriteFile(a.prefsPath(), b, 0644)
 	}
