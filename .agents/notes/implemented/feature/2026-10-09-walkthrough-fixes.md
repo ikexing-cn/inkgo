@@ -108,8 +108,7 @@ Status: implemented
 - `workspace/chapters_test.go`：只导出一卷时从卷名开始、含其下各章，只导出一章时只有这一章，都没有作品名。`desk/write_test.go`：在导出对话框里选"本章「第一章」"，写出 `测试作品-第一章.txt`。
 - `desk/write_test.go`：在模型设置里勾两个写作开关，不点保存，`desk.json` 里已经是新值。
 - `desk/beside_test.go`：章节改名后，讨论里的引用卡显示新名、不再显示旧名。
-- `editor/ui_test.go`（`TestDeleteAWord`）："林晚推门，雨停了
-老周"在"雨停了"后 Ctrl+Backspace 删掉它；接着 Ctrl+Delete 只删换行；在开头 Ctrl+Delete 删掉"林晚推门"；撤销能回来。真机：在第六章打"夜深了，灯还亮着"，Ctrl+Backspace 后剩"夜深了，"。
+- `editor/ui_test.go`（`TestDeleteAWord`）："林晚推门，雨停了↵老周"在"雨停了"后 Ctrl+Backspace 删掉它；接着 Ctrl+Delete 只删换行；在开头 Ctrl+Delete 删掉"林晚推门"；撤销能回来。真机：在第六章打"夜深了，灯还亮着"，Ctrl+Backspace 后剩"夜深了，"。
 - `desk/write_test.go`（`TestFolderShowsTheGists`）：卷里一章有两行章纲、一章只有摘要，打开卷后分别显示"她找到 井底的钥匙"和摘要。真机：打开"第一卷"，第二章下显示它的摘要；起初灰字没和章名对齐，加 `FillWidth` 后对齐。
 - `desk/write_test.go`（`TestCountTheSelection`）：没选中时"本章 9 字 · 全书 9 字"，选中前 5 个字后"选中 5 字 · 全书 9 字"。真机：在第一章拖选第一句，头部显示"选中 14 字 · 全书 615 字"。
 - `desk/app_test.go`（`TestShelveAConversation`）：右键收起旧对话，列表里没了、出现"已收起 1 段对话"，`shelved_sessions` 存了它，文件还在；点开后右键"放回列表"复原；收起正打开的那段换到另一段，两段都收起时新开一段。真机：右键第二段对话收起，列表剩一段、底部"已收起 1 段对话"；点开后它浅色列出，右键放回，`desk.json` 里不再有记录。
