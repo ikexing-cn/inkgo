@@ -17,6 +17,7 @@ var keyGroups = []struct {
 		{"Tab / Esc", "采纳 / 放弃续写"},
 		{modKey + "L", "把选中的原文拿去讨论"},
 		{modKey + "Z / " + modKey + "Y", "撤销 / 重做"},
+		{modKey + "= / " + modKey + "- / " + modKey + "0", "正文字号大一号 / 小一号 / 复原"},
 	}},
 	{"讨论", [][2]string{
 		{modKey + "Enter", "发送"},

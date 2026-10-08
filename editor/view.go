@@ -34,17 +34,27 @@ func (e *Editor) View(c *ui.Context) *ui.Element {
 // Focus gives the editor the keyboard focus in the next frame.
 func (e *Editor) Focus() { e.wantFocus = true }
 
+// FontSize is the size the text is set in.
+func (e *Editor) FontSize() float32 { return e.opts.Font.Size }
+
+// SetFontSize sets the text in px, keeping the caret in view.
+func (e *Editor) SetFontSize(px float32) {
+	if px > 0 && px != e.opts.Font.Size {
+		e.opts.Font.Size, e.reveal = px, true
+	}
+}
+
 type layoutKey struct {
 	ver, caret     int
 	preedit, ghost string
-	width          float32
+	width, size    float32
 }
 
 // ensureLayout lays the text out again when it, the caret or the width
 // changed since the last time.
 func (e *Editor) ensureLayout() {
 	extra, _ := e.extra()
-	k := layoutKey{e.Doc.version, e.caret, e.preedit, extra, e.width}
+	k := layoutKey{e.Doc.version, e.caret, e.preedit, extra, e.width, e.opts.Font.Size}
 	if k != e.layKey || e.lay.lines == nil {
 		e.buildLayout(e.width)
 		e.layKey = k

@@ -785,3 +785,35 @@ func TestShortcutsHelp(t *testing.T) {
 		t.Fatal("the shortcuts stay")
 	}
 }
+
+// Ctrl+= and Ctrl+- size the text within bounds, Ctrl+0 puts it back, and
+// the size is kept with the work.
+func TestSizeTheText(t *testing.T) {
+	a, tt, one := writingFixture(t, "一")
+	a.write.ed.Focus()
+	tt.Frame()
+	tt.Key(ui.Cmd, ui.KeyEqual)
+	tt.Key(ui.Cmd, ui.KeyEqual)
+	tt.Frame()
+	if a.write.ed.FontSize() != 19 || savedPrefs(t, a).TextSize != 19 {
+		t.Fatal("size", a.write.ed.FontSize(), savedPrefs(t, a).TextSize)
+	}
+	a.loadPrefs()
+	a.openNode(one)
+	if a.write.ed.FontSize() != 19 {
+		t.Fatal("a chapter opens at", a.write.ed.FontSize())
+	}
+	for range 20 {
+		a.sizeText(-1)
+	}
+	if a.write.ed.FontSize() != textSizeMin {
+		t.Fatal("below the least", a.write.ed.FontSize())
+	}
+	a.write.ed.Focus()
+	tt.Frame()
+	tt.Key(ui.Cmd, ui.Key0)
+	tt.Frame()
+	if a.write.ed.FontSize() != textSizeDefault || savedPrefs(t, a).TextSize != 0 {
+		t.Fatal("not back", a.write.ed.FontSize())
+	}
+}

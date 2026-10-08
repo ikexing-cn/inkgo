@@ -58,6 +58,7 @@ type writeView struct {
 	goalOpen              bool
 	offered               string         // the numbered title a new node's name began with
 	days                  map[string]int // what was written each day before, by local date
+	size                  int            // the text's size, or 0 for the default
 	carets                map[string]int // where the caret was in each chapter, as it was left
 	unsummarized          []string       // the chapters before without a summary, as a draft opens
 	recapped              int            // and how many before have one
@@ -193,7 +194,7 @@ func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.
 	doc := editor.NewDoc(text)
 	doc.LoadMarks(editorMarks(marks))
 	var ed *editor.Editor
-	ed = editor.New(doc, editor.Options{Prose: true, Placeholder: "从这里开始写…",
+	ed = editor.New(doc, editor.Options{Prose: true, Placeholder: "从这里开始写…", Font: ui.Font{Size: float32(a.write.textSize())},
 		Predictor: pen{writer: &a.write.pen, chapter: a.write.node}, PredictDelay: saveAfter, PredictOnDemand: !a.write.autoPredict,
 		GhostNote: func() string {
 			if pw := a.write.pen.Load(); pw != nil {
@@ -287,6 +288,42 @@ func (a *App) saveNow() {
 	}
 	a.keepCaret()
 	a.notice = "已保存。停笔片刻也会自动保存"
+}
+
+// Sizes of the text: the default, and the least and most it goes to.
+const (
+	textSizeDefault = 17
+	textSizeMin     = 13
+	textSizeMax     = 28
+)
+
+// textSize is the size the chapter's text is set in.
+func (w *writeView) textSize() int {
+	if w.size == 0 {
+		return textSizeDefault
+	}
+	return w.size
+}
+
+// sizeText makes the text a size larger (d > 0) or smaller, or back to
+// the default (d == 0), and keeps the size with the work.
+func (a *App) sizeText(d int) {
+	w := &a.write
+	size := textSizeDefault
+	if d != 0 {
+		size = min(max(w.textSize()+d, textSizeMin), textSizeMax)
+	}
+	if size == w.textSize() {
+		return
+	}
+	w.size = size
+	if size == textSizeDefault {
+		w.size = 0
+	}
+	if w.ed != nil {
+		w.ed.SetFontSize(float32(size))
+	}
+	a.savePrefs()
 }
 
 // keepCaret notes where the caret is in the chapter shown, to put it back
@@ -499,6 +536,11 @@ func (a *App) writing(c *ui.Context) {
 	}
 	if c.Shortcut(ui.Cmd, ui.KeyN) && a.write.renaming == "" {
 		a.newNode(false)
+	}
+	for key, d := range map[ui.Key]int{ui.KeyEqual: 1, ui.KeyMinus: -1, ui.Key0: 0} {
+		if c.Shortcut(ui.Cmd, key) {
+			a.sizeText(d)
+		}
 	}
 	if c.Shortcut(ui.Cmd, ui.KeyS) {
 		a.saveNow()
