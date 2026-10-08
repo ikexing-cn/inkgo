@@ -81,6 +81,7 @@ type App struct {
 	leftWriting       bool      // the work was last on the writing page, not the discussion
 	noticed           string    // the notice as first shown,
 	noticeAt          time.Time // and when
+	keysOpen          bool      // the shortcuts shown
 	path, name, genre string
 	shelf             shelf.Shelf
 	books             shelfView

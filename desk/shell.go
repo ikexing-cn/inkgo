@@ -127,7 +127,15 @@ func (a *App) sidebar(c *ui.Context) {
 			if m.Item("全部作品…").Chosen() {
 				chosen = a.closeWork
 			}
+			m.Separator()
+			if m.Item("快捷键…").Shortcut(ui.Cmd, ui.KeySlash).Chosen() {
+				a.keysOpen = true
+			}
 		})
+		if c.Shortcut(ui.Cmd, ui.KeySlash) {
+			a.keysOpen = true // Esc puts it away, as any dialog
+		}
+		a.keysHelp(c)
 		if chosen != nil {
 			chosen()
 			if a.Store == nil {

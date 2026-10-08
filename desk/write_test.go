@@ -770,3 +770,18 @@ func TestCtrlNMakesAChapter(t *testing.T) {
 		t.Fatal("the new chapter is not after the one open")
 	}
 }
+
+// Ctrl+/ shows the shortcuts; Esc puts them away.
+func TestShortcutsHelp(t *testing.T) {
+	a, tt, _ := writingFixture(t, "一")
+	tt.Key(ui.Cmd, ui.KeySlash)
+	tt.Frame()
+	if !a.keysOpen || !tt.HasText("快捷键") || !tt.HasText("下一章 / 上一章") {
+		t.Fatal("no shortcuts", a.keysOpen, tt.Texts())
+	}
+	tt.Key(0, ui.KeyEscape)
+	tt.Frame()
+	if a.keysOpen {
+		t.Fatal("the shortcuts stay")
+	}
+}
