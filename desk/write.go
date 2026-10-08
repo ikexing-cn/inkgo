@@ -447,6 +447,12 @@ func (a *App) writing(c *ui.Context) {
 	if c.Shortcut(0, ui.KeyF11) {
 		a.write.focus = !a.write.focus
 	}
+	if c.Shortcut(ui.Cmd, ui.KeyPageUp) {
+		a.stepChapter(-1)
+	}
+	if c.Shortcut(ui.Cmd, ui.KeyPageDown) {
+		a.stepChapter(1)
+	}
 	ui.Row(c).FillWidth().Grow(1).AlignItems(ui.Stretch).Children(func() {
 		main := ui.Column(c).Grow(1).Shrink(1).FillHeight()
 		a.LastWrite = main.Bounds()
@@ -527,6 +533,33 @@ func (a *App) today(now time.Time) int {
 		a.savePrefs()
 	}
 	return a.total() - w.dayStart
+}
+
+// stepChapter opens the chapter before (d < 0) or after the node open, in
+// the tree's order, passing over folders; at either end it stays.
+func (a *App) stepChapter(d int) {
+	w := &a.write
+	var order []string
+	at, folder := -1, false
+	w.tree.Walk(func(n *workspace.Node, _ int) {
+		if n.ID == w.node {
+			at, folder = len(order), n.Folder
+		}
+		if !n.Folder {
+			order = append(order, n.ID)
+		}
+	})
+	next := at + d
+	switch {
+	case at < 0: // nothing open: from the start
+		next = 0
+	case folder && d > 0:
+		next = at // a folder sits just before its first chapter
+	}
+	if next < 0 || next >= len(order) {
+		return
+	}
+	a.openNode(order[next])
 }
 
 // setGoal takes the day's goal as typed: a whole number of characters, or

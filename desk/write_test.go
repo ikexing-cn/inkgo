@@ -627,3 +627,42 @@ func TestSetTheDaysGoal(t *testing.T) {
 		t.Fatal("the goal stayed", a.write.goal)
 	}
 }
+
+// Ctrl+PageDown and Ctrl+PageUp go through the chapters in the tree's
+// order, over folders, and stop at the ends.
+func TestStepThroughChapters(t *testing.T) {
+	a, tt, one := writingFixture(t, "一")
+	vol, err := a.Store.NewChapter("", "第一卷", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	two, err := a.Store.NewChapter(vol, "第二章", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.warn(a.loadTree())
+	step := func(key ui.Key, want string) {
+		t.Helper()
+		a.write.ed.Focus()
+		tt.Key(ui.Cmd, key)
+		tt.Frame()
+		if a.write.node != want {
+			t.Fatalf("at %s, want %s", a.write.node, want)
+		}
+	}
+	step(ui.KeyPageDown, two)
+	step(ui.KeyPageDown, two)
+	step(ui.KeyPageUp, one)
+	step(ui.KeyPageUp, one)
+	a.openNode(vol)
+	tt.Frame()
+	a.stepChapter(1)
+	if a.write.node != two {
+		t.Fatal("from a folder down is not its first chapter", a.write.node)
+	}
+	a.openNode(vol)
+	a.stepChapter(-1)
+	if a.write.node != one {
+		t.Fatal("from a folder up is not the chapter before it", a.write.node)
+	}
+}
