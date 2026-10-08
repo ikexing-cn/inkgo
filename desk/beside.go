@@ -109,6 +109,9 @@ func (a *App) talkPanel(c *ui.Context) {
 	pick.Menu(func(m *ui.Menu) {
 		for n := len(a.sessions) - 1; n >= 0; n-- {
 			id := a.sessions[n]
+			if a.shelved[id] && id != a.session {
+				continue
+			}
 			when, words := a.sessionParts(id)
 			if m.Item(clip(words, 24) + "  " + when).Checked(id == a.session).Chosen() {
 				a.switchSession(id)

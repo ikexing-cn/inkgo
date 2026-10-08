@@ -86,6 +86,8 @@ type App struct {
 	noticeAt          time.Time // and when
 	keysOpen          bool      // the shortcuts shown
 	titled            string    // the window title last set
+	shelved           map[string]bool // the conversations put out of the list
+	showShelved       bool            // the shelved conversations listed too
 	path, name, genre string
 	shelf             shelf.Shelf
 	books             shelfView

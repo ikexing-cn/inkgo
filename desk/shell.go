@@ -1,6 +1,7 @@
 package desk
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -166,8 +167,25 @@ func (a *App) sidebar(c *ui.Context) {
 			}
 		})
 		ui.Scroll(c).Key("sessions").FillWidth().Grow(1).Gap(1).Children(func() {
+			put := 0
 			for n := len(a.sessions) - 1; n >= 0; n-- {
-				a.sessionItem(c, a.sessions[n])
+				id := a.sessions[n]
+				if a.shelved[id] {
+					put++
+					if !a.showShelved && id != a.session {
+						continue
+					}
+				}
+				a.sessionItem(c, id)
+			}
+			if put > 0 {
+				label := fmt.Sprintf("已收起 %d 段对话", put)
+				if a.showShelved {
+					label = "不显示收起的对话"
+				}
+				if ghost(c, label, a.pal.faint).Label("收起的对话").Margin(6, 0, 0, 4).Clicked() {
+					a.showShelved = !a.showShelved
+				}
 			}
 		})
 	})
@@ -226,8 +244,21 @@ func (a *App) sessionItem(c *ui.Context, id string) {
 		if on {
 			fg = t.Text
 		}
+		if a.shelved[id] {
+			fg = a.pal.faint
+		}
 		ui.Text(c, words).FontSize(13).TextColor(fg).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 		ui.Text(c, when).FontSize(11).TextColor(a.pal.faint).SingleLine()
+	})
+	b.ContextMenu(func(m *ui.Menu) {
+		if a.shelved[id] {
+			if m.Item("放回列表").Disabled(a.busy != "").Chosen() {
+				delete(a.shelved, id)
+				a.savePrefs()
+			}
+		} else if m.Item("收起这段对话").Disabled(a.busy != "").Chosen() {
+			a.shelve(id)
+		}
 	})
 	if b.Clicked() {
 		a.page = 0
@@ -329,4 +360,25 @@ func (a *App) nameWindow() {
 	if t := a.WindowTitle(); t != a.titled && a.SetTitle(t) {
 		a.titled = t
 	}
+}
+
+// shelve puts a conversation out of the list, keeping its file: the
+// setting cites what was said in it. Shelving the one open opens the
+// latest left, or a new one.
+func (a *App) shelve(id string) {
+	if a.shelved == nil {
+		a.shelved = map[string]bool{}
+	}
+	a.shelved[id] = true
+	a.savePrefs()
+	if id != a.session {
+		return
+	}
+	for n := len(a.sessions) - 1; n >= 0; n-- {
+		if !a.shelved[a.sessions[n]] {
+			a.switchSession(a.sessions[n])
+			return
+		}
+	}
+	a.newSession()
 }

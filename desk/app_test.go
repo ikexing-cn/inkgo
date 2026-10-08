@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -553,5 +554,53 @@ func TestPickAModelFromTheList(t *testing.T) {
 	tt.Frame()
 	if !tt.HasText("deepseek-flash") || tt.HasText("deepseek-v4-pro") {
 		t.Fatal(tt.Texts())
+	}
+}
+
+// Shelving a conversation takes it out of the list but keeps its file;
+// the one open gives way to the latest left, and it can be put back.
+func TestShelveAConversation(t *testing.T) {
+	a, tt, _ := fixture(t)
+	old := a.session
+	a.newSession()
+	open := a.session
+	tt.Frame()
+	if err := tt.RightClick("对话-" + old); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.ChooseMenuItem("收起这段对话"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if _, ok := tt.Find("对话-" + old); ok || !tt.HasText("已收起 1 段对话") {
+		t.Fatal("still listed", tt.Texts())
+	}
+	if p := savedPrefs(t, a); !slices.Equal(p.Shelved, []string{old}) {
+		t.Fatal("saved", p.Shelved)
+	}
+	if ids, _ := a.Store.Sessions(); !slices.Contains(ids, old) {
+		t.Fatal("the file went", ids)
+	}
+	if err := tt.Click("收起的对话"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err := tt.RightClick("对话-" + old); err != nil {
+		t.Fatal("not shown", err)
+	}
+	if err := tt.ChooseMenuItem("放回列表"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if len(savedPrefs(t, a).Shelved) != 0 || tt.HasText("已收起 1 段对话") {
+		t.Fatal("not back")
+	}
+	a.shelve(open)
+	if a.session != old {
+		t.Fatal("the open one stays", a.session)
+	}
+	a.shelve(old)
+	if a.session == old || a.session == open {
+		t.Fatal("no new conversation", a.session)
 	}
 }
