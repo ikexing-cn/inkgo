@@ -159,6 +159,31 @@ func (e *Editor) DeleteForward() {
 	e.compOpen = false
 }
 
+// deleteWord deletes the selection, or else back (forward when ahead) to
+// where Cmd+Left (Cmd+Right) would go. At a paragraph's edge it takes only
+// the line break, as a plain Backspace (Delete) does.
+func (e *Editor) deleteWord(ahead bool) {
+	a, b := e.Selection()
+	switch {
+	case a != b:
+	case ahead && b < e.Doc.Len() && e.Doc.text[b] == '\n', !ahead && a > 0 && e.Doc.text[a-1] == '\n':
+		if ahead {
+			b++
+		} else {
+			a--
+		}
+	case ahead:
+		b = e.wordRight()
+	default:
+		a = e.wordLeft()
+	}
+	if a == b {
+		return
+	}
+	e.replaceRange(a, b, "", false)
+	e.compOpen = false
+}
+
 // MoveTo moves the caret to i, extending the selection when extend.
 func (e *Editor) MoveTo(i int, extend bool) {
 	e.caret = clamp(i, 0, e.Doc.Len())

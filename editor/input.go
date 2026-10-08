@@ -157,6 +157,12 @@ func (e *Editor) key(mods ui.Modifiers, k ui.Key) bool {
 		case ui.KeyRight:
 			e.MoveTo(e.wordRight(), shift)
 			return true
+		case ui.KeyBackspace:
+			e.deleteWord(false)
+			return true
+		case ui.KeyDelete:
+			e.deleteWord(true)
+			return true
 		}
 		return false
 	}
