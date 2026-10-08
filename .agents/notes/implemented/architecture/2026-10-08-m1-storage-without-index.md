@@ -6,7 +6,7 @@ Status: implemented
 
 M1 在打开作品时重建 SQLite 索引，在 `Search`、`Counts` 之前又全量重扫规范文件刷新索引，但界面从不调用这两个方法：思路池的筛选、搜索、计数都在内存里对 `Ideas()` 的结果做。索引因此没有提速，只多出一个依赖（`modernc.org/sqlite`）和一条“库文件损坏就删掉重建”的恢复分支。同时 `Ideas()` 校验每条思路的来源时都把它所在的会话文件整份重新解析一次，存储层还为“同一轮人先 AI 后”的顺序再读一遍全部会话。另外，独占新建用硬链接实现，在不支持硬链接的 exFAT、FAT U 盘上无法新建任何思路。
 
-本篇部分取代 [M1 实现笔记](../feature/2026-10-07-m1-discussion.md)中关于 SQLite 的段落；该篇其余决定继续有效。[完整产品提案](../../proposed/feature/2026-10-07-idea-pool-discussion.md)中 M2 的检索与向量缓存不受影响。
+本篇部分取代 [M1 实现笔记](../feature/2026-10-07-m1-discussion.md)中关于 SQLite 的段落；该篇其余决定继续有效。[完整产品提案](../../proposed/feature/2026-10-07-idea-pool-discussion.md)中 M2 的检索与向量缓存不受影响。下文关于 `ideas/*.md` 的读取、排序和独占新建已随思路卡片一起由[设定文档与后台记账](../feature/2026-10-08-setting-document-and-background-bookkeeper.md)取代；去掉 SQLite、规范文件是唯一数据的决定继续有效。
 
 ## Decision
 

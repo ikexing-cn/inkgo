@@ -10,7 +10,7 @@ func (a *App) welcome(c *ui.Context) {
 		ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(56, 24).Gap(28).Children(func() {
 			ui.Column(c).Width(560).Gap(10).Children(func() {
 				ui.Text(c, "从一个念头开始").FontSize(30).Bold()
-				ui.Text(c, "和 AI 慢慢聊。觉得好的思路留下，不合适的放下，AI 之后不再提起。").FontSize(15).TextColor(t.TextMuted).LineHeight(1.6)
+				ui.Text(c, "和 AI 慢慢聊，讨论会在后台整理成设定文档。你定下的会被遵守，放下的 AI 不再提起。").FontSize(15).TextColor(t.TextMuted).LineHeight(1.6)
 			})
 			a.pal.cardBox(c).Width(560).Padding(24).Gap(16).Children(func() {
 				ui.Segmented(c, &a.welcomeMode, "新建作品", "打开已有作品").Label("开始方式")
@@ -52,7 +52,7 @@ func (a *App) welcome(c *ui.Context) {
 			})
 			ui.Column(c).Width(560).Gap(6).Children(func() {
 				for _, line := range []string{
-					"作品、对话和每一条思路都是你文件夹里的普通文件，可以备份、同步或用别的编辑器打开。",
+					"作品、对话和设定文档都是你文件夹里的普通文件，可以备份、同步或用别的编辑器打开。",
 					"AI 只在你发送时回应，不会自己往下写。",
 					"API key 存在系统钥匙串里，不会写进作品文件夹。",
 				} {

@@ -3,12 +3,11 @@ package workspace
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
-	"time"
 )
 
 func testStore(t *testing.T) *Store {
@@ -20,13 +19,25 @@ func testStore(t *testing.T) *Store {
 	t.Cleanup(func() { s.Close() })
 	return s
 }
-func mustIdea(t *testing.T, s *Store, i Idea) Idea {
+func mustRevise(t *testing.T, s *Store, r Revision) Revision {
 	t.Helper()
-	v, err := s.NewIdea(i)
+	v, err := s.Revise(r)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return v
+}
+func entry(t *testing.T, s *Store, id string) Entry {
+	t.Helper()
+	set, err := s.Setting()
+	if err != nil {
+		t.Fatal(err)
+	}
+	e, ok := set.Entry(id)
+	if !ok {
+		t.Fatalf("no entry %s", id)
+	}
+	return e
 }
 func mustSession(t *testing.T, s *Store) string {
 	t.Helper()
@@ -62,7 +73,7 @@ func putBytes(t *testing.T, p string, b []byte) {
 func TestCreateAndRoundTrip(t *testing.T) {
 	s := testStore(t)
 	root := s.Root()
-	for _, dir := range []string{"ideas", "sessions", "settings", "topics", "chapters", ".writer/embeddings"} {
+	for _, dir := range []string{"sessions", "chapters", ".writer"} {
 		if st, err := os.Stat(filepath.Join(root, dir)); err != nil || !st.IsDir() {
 			t.Fatalf("missing directory %s: %v", dir, err)
 		}
@@ -70,9 +81,9 @@ func TestCreateAndRoundTrip(t *testing.T) {
 	if got := string(readBytes(t, filepath.Join(root, ".gitignore"))); got != ".writer/\n" {
 		t.Fatal(got)
 	}
-	i := mustIdea(t, s, Idea{Text: "第一行\r\n\n---\n正文保持原样。\n", Fact: true, Verified: true, FactSource: "资料"})
-	if !idPattern.MatchString(i.ID) || i.Status != Unprocessed || i.Schema != Schema {
-		t.Fatalf("bad defaults: %+v", i)
+	r := mustRevise(t, s, Revision{By: ByAuthor, Ops: []Op{{Op: OpAdd, Place: PlaceBody, Category: "人物", Text: "第一行\r\n正文保持原样。\n"}}})
+	if !idPattern.MatchString(r.ID) || !idPattern.MatchString(r.Ops[0].Entry) || r.Schema != Schema {
+		t.Fatalf("bad defaults: %+v", r)
 	}
 	w := s.Work()
 	w.Categories[0].Name = "mutated copy"
@@ -90,142 +101,159 @@ func TestCreateAndRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer reopened.Close()
-	got, err := reopened.Idea(i.ID)
-	if err != nil || got.Text != i.Text || got.FactSource != "资料" {
-		t.Fatalf("roundtrip: %+v %v", got, err)
+	if e := entry(t, reopened, r.Ops[0].Entry); e.Text != "第一行\r\n正文保持原样。\n" || !e.Author || e.Rev != 1 {
+		t.Fatalf("roundtrip: %+v", e)
 	}
 }
-func TestManualEditsAndStrictCanonicalValidation(t *testing.T) {
+
+// A work of schema 1, with idea cards, is refused with a reason in Chinese.
+func TestOldWorksAreRefused(t *testing.T) {
 	s := testStore(t)
-	i := mustIdea(t, s, Idea{Text: "旧文本"})
-	p := filepath.Join(s.Root(), "ideas", i.ID+".md")
+	p := filepath.Join(s.Root(), "work.yaml")
+	putBytes(t, p, bytes.Replace(readBytes(t, p), []byte("schema: 2"), []byte("schema: 1"), 1))
+	if _, err := Open(s.Root()); err == nil || !strings.Contains(err.Error(), "旧版本的作品") {
+		t.Fatalf("schema 1 opened: %v", err)
+	}
+}
+
+func TestStrictWorkAndSettingValidation(t *testing.T) {
+	s := testStore(t)
+	r := mustRevise(t, s, Revision{By: ByAuthor, Ops: []Op{{Op: OpAdd, Place: PlaceBody, Category: "人物", Text: "旧文本"}}})
+	p := filepath.Join(s.Root(), "setting.jsonl")
 	original := readBytes(t, p)
 	putBytes(t, p, bytes.Replace(original, []byte("旧文本"), []byte("新文本"), 1))
-	ideas, err := s.Ideas()
-	if err != nil || len(ideas) != 1 || !strings.Contains(ideas[0].Text, "新文本") {
-		t.Fatalf("manual edit: %v %v", ideas, err)
+	if e := entry(t, s, r.Ops[0].Entry); e.Text != "新文本" {
+		t.Fatalf("hand edit: %+v", e)
 	}
 	for _, tc := range []struct{ name, old, new, field string }{
-		{"unknown field", "category:", "categry:", "categry"},
-		{"future schema", "schema: 1", "schema: 2", "schema"},
-		{"unknown source", "source: human", "source: robot", "source"},
-		{"unknown category", "category: 其他", "category: invented", "category"},
-		{"duplicate key", "schema: 1", "schema: 1\nschema: 1", "schema"},
+		{"unknown field", `"place":`, `"placе":`, "placе"},
+		{"future schema", `"schema":2`, `"schema":3`, "schema"},
+		{"unknown op", `"op":"add"`, `"op":"delete"`, "delete"},
+		{"unknown place", `"place":"body"`, `"place":"draft"`, "place"},
+		{"author with model", `"by":"author"`, `"by":"author","model":"x"`, "by"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			putBytes(t, p, bytes.Replace(original, []byte(tc.old), []byte(tc.new), 1))
-			_, err := s.Ideas()
-			if err == nil || !strings.Contains(err.Error(), i.ID+".md") || !strings.Contains(err.Error(), tc.field) {
-				t.Fatalf("missing filename/field: %v", err)
+			_, err := s.Setting()
+			if err == nil || !strings.Contains(err.Error(), "setting.jsonl:1") || !strings.Contains(err.Error(), tc.field) {
+				t.Fatalf("missing file/field: %v", err)
 			}
 			if opened, err := Open(s.Root()); err == nil {
 				opened.Close()
-				t.Fatal("Open accepted malformed canonical file")
+				t.Fatal("Open accepted a malformed setting")
 			}
 			putBytes(t, p, original)
 		})
 	}
+	// A crash mid-append leaves an incomplete last line, which is dropped.
+	putBytes(t, p, append(append([]byte{}, original...), []byte(`{"schema":2,"id":"bro`)...))
+	next := mustRevise(t, s, Revision{By: ByAuthor, Ops: []Op{{Op: OpMove, Entry: r.Ops[0].Entry, Place: PlaceDropped}}})
+	set, err := s.Setting()
+	if err != nil || len(set.Revisions) != 2 || set.Revisions[1].ID != next.ID || set.Entries[0].Place != PlaceDropped {
+		t.Fatalf("tail recovery: %+v %v", set, err)
+	}
 	wp := filepath.Join(s.Root(), "work.yaml")
-	work := readBytes(t, wp)
-	putBytes(t, wp, append(work, []byte("typo: true\n")...))
-	if _, err = s.Idea(i.ID); err == nil || !strings.Contains(err.Error(), "typo") {
+	putBytes(t, wp, append(readBytes(t, wp), []byte("typo: true\n")...))
+	if _, err = s.Setting(); err == nil || !strings.Contains(err.Error(), "typo") {
 		t.Fatalf("work not refreshed: %v", err)
 	}
 }
-func TestStatusHistoryAndCategoryRemoval(t *testing.T) {
+
+func TestRevisionsCheckOpsAndSources(t *testing.T) {
 	s := testStore(t)
-	i := mustIdea(t, s, Idea{Text: "一条思路", Category: "人物"})
-	for _, status := range []Status{Kept, Rejected, Deferred, Kept, Adopted} {
-		if i.Status == Rejected {
-			if _, err := s.ChangeStatus(i.ID, Kept, "invalid restore"); err == nil {
-				t.Fatal("rejected jumped to kept")
+	session := mustSession(t, s)
+	u := mustEvent(t, s, session, Event{Role: RoleUser, Text: "主角怕黑🙂，却修路灯"})
+	a := mustEvent(t, s, session, Event{Role: RoleAssistant, Text: "可以让她绕路回家", ReplyTo: u.ID})
+	src := Source{Session: session, Message: u.ID, Quote: "主角怕黑🙂"}
+	add := mustRevise(t, s, Revision{By: ByBookkeeper, Session: session, From: u.ID, Through: a.ID,
+		Ops: []Op{{Op: OpAdd, Place: PlaceBody, Category: "人物", Text: "主角怕黑", Sources: []Source{src}}}, Model: "deepseek/deepseek-flash", Effort: "high", Reasoning: "她说的"})
+	id := add.Ops[0].Entry
+	if e := entry(t, s, id); e.Author || e.Sources[0] != src {
+		t.Fatalf("bookkeeper's entry: %+v", e)
+	}
+	for _, tc := range []struct {
+		name string
+		r    Revision
+	}{
+		{"quote not in message", Revision{By: ByAuthor, Ops: []Op{{Op: OpAdd, Place: PlaceBody, Category: "人物", Text: "x", Sources: []Source{{Session: session, Message: u.ID, Quote: "没说过"}}}}}},
+		{"unknown message", Revision{By: ByAuthor, Ops: []Op{{Op: OpAdd, Place: PlaceBody, Category: "人物", Text: "x", Sources: []Source{{Session: session, Message: NewID(), Quote: "主角"}}}}}},
+		{"unknown category", Revision{By: ByAuthor, Ops: []Op{{Op: OpAdd, Place: PlaceBody, Category: "虚构", Text: "x"}}}},
+		{"unknown entry", Revision{By: ByAuthor, Ops: []Op{{Op: OpEdit, Entry: NewID(), Text: "x"}}}},
+		{"edit moves", Revision{By: ByAuthor, Ops: []Op{{Op: OpEdit, Entry: id, Text: "x", Place: PlaceOpen}}}},
+		{"empty move", Revision{By: ByAuthor, Ops: []Op{{Op: OpMove, Entry: id}}}},
+		{"no ops", Revision{By: ByAuthor}},
+		{"failed with ops", Revision{By: ByBookkeeper, Session: session, From: u.ID, Through: a.ID, Failed: "超时", Ops: []Op{{Op: OpMove, Entry: id, Place: PlaceOpen}}}},
+		{"redo of nothing", Revision{By: ByBookkeeper, Session: session, From: u.ID, Through: a.ID, Redo: add.ID}},
+		{"through unknown", Revision{By: ByBookkeeper, Session: session, From: u.ID, Through: NewID()}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := s.Revise(tc.r); err == nil {
+				t.Fatal("accepted")
 			}
-		}
-		next, err := s.ChangeStatus(i.ID, status, "because")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if next.History[len(next.History)-1].From != i.Status {
-			t.Fatal("history lost previous status")
-		}
-		i = next
+		})
 	}
-	if len(i.History) != 5 {
-		t.Fatal(i.History)
+	mustRevise(t, s, Revision{By: ByAuthor, Ops: []Op{{Op: OpEdit, Entry: id, Text: "主角怕黑，但不说"}}})
+	if e := entry(t, s, id); !e.Author || e.Text != "主角怕黑，但不说" || e.Rev != 2 {
+		t.Fatalf("author's edit: %+v", e)
 	}
-	if _, err := s.ChangeStatus(i.ID, Deferred, ""); err == nil {
-		t.Fatal("adopted state changed")
+	set, err := s.Setting()
+	if err != nil || set.Processed(session, []Event{u, a}) != 2 {
+		t.Fatalf("processed: %v", err)
 	}
-	i.Status = Deferred
-	if err := s.SaveIdea(i); err == nil {
-		t.Fatal("SaveIdea bypassed adopted protection")
+	failed := mustRevise(t, s, Revision{By: ByBookkeeper, Session: session, From: u.ID, Through: a.ID, Failed: "超时"})
+	mustRevise(t, s, Revision{By: ByBookkeeper, Session: session, From: u.ID, Through: a.ID, Redo: failed.ID})
+	if set, _ = s.Setting(); !set.Redone(failed.ID) {
+		t.Fatal("a successful redo does not count")
+	}
+}
+
+// What the author changed while the bookkeeper worked stands: its ops on
+// that entry are skipped and become open entries.
+func TestBookkeeperDefersToTheAuthorsConcurrentEdit(t *testing.T) {
+	s := testStore(t)
+	session := mustSession(t, s)
+	u := mustEvent(t, s, session, Event{Role: RoleUser, Text: "雨从不停"})
+	first := mustRevise(t, s, Revision{By: ByAuthor, Ops: []Op{{Op: OpAdd, Place: PlaceBody, Category: "规则", Text: "雨从不停"}, {Op: OpAdd, Place: PlaceBody, Category: "规则", Text: "晴天是传说"}}})
+	rain, sun := first.Ops[0].Entry, first.Ops[1].Entry
+	mustRevise(t, s, Revision{By: ByAuthor, Ops: []Op{{Op: OpEdit, Entry: rain, Text: "雨每年停一天"}}})
+	r := mustRevise(t, s, Revision{By: ByBookkeeper, Base: 1, Session: session, From: u.ID, Through: u.ID,
+		Ops: []Op{{Op: OpEdit, Entry: rain, Text: "雨从不停，连一天也不停"}, {Op: OpMove, Entry: sun, Place: PlaceOpen}}})
+	if len(r.Skipped) != 1 || r.Skipped[0].Entry != rain || len(r.Ops) != 2 || r.Ops[0].Op != OpAdd || r.Ops[0].Place != PlaceOpen {
+		t.Fatalf("revision: %+v", r)
+	}
+	if e := entry(t, s, rain); e.Text != "雨每年停一天" {
+		t.Fatalf("the author's edit was overwritten: %+v", e)
+	}
+	if e := entry(t, s, sun); e.Place != PlaceOpen {
+		t.Fatalf("an untouched entry was not moved: %+v", e)
+	}
+	if e := entry(t, s, r.Ops[0].Entry); !strings.Contains(e.Text, "雨从不停，连一天也不停") {
+		t.Fatalf("open entry: %+v", e)
+	}
+}
+
+func TestCategoryRemovalMovesEntries(t *testing.T) {
+	s := testStore(t)
+	r := mustRevise(t, s, Revision{By: ByAuthor, Ops: []Op{{Op: OpAdd, Place: PlaceBody, Category: "人物", Text: "一条设定"}}})
+	w := s.Work()
+	w.Categories = slices.DeleteFunc(w.Categories, func(c Category) bool { return c.Name == "人物" })
+	if err := s.SaveWork(w); err == nil {
+		t.Fatal("removed a category the setting uses")
 	}
 	if err := s.RemoveCategory("人物"); err != nil {
 		t.Fatal(err)
 	}
-	got, err := s.Idea(i.ID)
-	if err != nil || got.Category != Other || got.Status != Adopted {
-		t.Fatalf("reclassify: %+v %v", got, err)
+	if e := entry(t, s, r.Ops[0].Entry); e.Category != Other {
+		t.Fatalf("reclassify: %+v", e)
 	}
-	if err = s.RemoveCategory(Other); err == nil {
+	if err := s.RemoveCategory(Other); err == nil {
 		t.Fatal("removed fallback category")
 	}
-	if err = s.SetCategory(i.ID, "bogus"); err == nil {
-		t.Fatal("accepted invalid category")
-	}
-	got.History = nil
-	if err = s.SaveIdea(got); err == nil {
-		t.Fatal("history erased")
-	}
 }
-func TestOriginUsesRunesAndValidatesSource(t *testing.T) {
+
+func TestTraversalAndDuplicateEvents(t *testing.T) {
 	s := testStore(t)
-	session := mustSession(t, s)
-	e := mustEvent(t, s, session, Event{Role: "user", Text: "你好🙂world"})
-	valid := Idea{Text: "好🙂", Source: "human", Origin: Origin{Session: session, Message: e.ID, Span: Span{Start: 1, End: 3}}}
-	mustIdea(t, s, valid)
-	for _, tc := range []struct {
-		name   string
-		mutate func(*Idea)
-	}{
-		{"byte offsets", func(i *Idea) { i.Origin.Span.End = 13 }},
-		{"negative", func(i *Idea) { i.Origin.Span.Start = -1 }},
-		{"reverse", func(i *Idea) { i.Origin.Span = Span{3, 1} }},
-		{"empty", func(i *Idea) { i.Origin.Span = Span{1, 1} }},
-		{"wrong source", func(i *Idea) { i.Source = "ai" }},
-		{"unknown message", func(i *Idea) { i.Origin.Message = "20000101-0000-0000" }},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			i := valid
-			tc.mutate(&i)
-			if _, err := s.NewIdea(i); err == nil {
-				t.Fatal("accepted invalid origin")
-			}
-		})
-	}
-}
-func TestIDsCollisionsTraversalAndAtomicFailures(t *testing.T) {
-	s := testStore(t)
-	i := mustIdea(t, s, Idea{Text: "original"})
-	p := filepath.Join(s.Root(), "ideas", i.ID+".md")
-	before := readBytes(t, p)
-	if _, err := s.NewIdea(Idea{ID: i.ID, Text: "replace"}); !errors.Is(err, os.ErrExist) {
-		t.Fatalf("collision: %v", err)
-	}
-	if !bytes.Equal(before, readBytes(t, p)) {
-		t.Fatal("collision overwrote record")
-	}
-	i.Source = "typo"
-	if err := s.SaveIdea(i); err == nil {
-		t.Fatal("invalid update succeeded")
-	}
-	if !bytes.Equal(before, readBytes(t, p)) {
-		t.Fatal("failed validation changed file")
-	}
 	for _, id := range []string{"../work", "..\\work", "C:\\escape", "/absolute", "valid/../../bad", ""} {
-		if _, err := s.Idea(id); err == nil {
-			t.Fatalf("Idea accepted %q", id)
-		}
 		if _, err := s.Events(id); err == nil {
 			t.Fatalf("Events accepted %q", id)
 		}
@@ -243,6 +271,7 @@ func TestIDsCollisionsTraversalAndAtomicFailures(t *testing.T) {
 		t.Fatalf("collision mutated events: %v %v", events, err)
 	}
 }
+
 func TestSessionRecoverySnapshotsAndCorruption(t *testing.T) {
 	s := testStore(t)
 	session := mustSession(t, s)
@@ -250,7 +279,7 @@ func TestSessionRecoverySnapshotsAndCorruption(t *testing.T) {
 	first := mustEvent(t, s, session, Event{Role: "user", Text: "想法"})
 	assistant := mustEvent(t, s, session, Event{Role: "assistant", Text: "回答", ReplyTo: first.ID, Context: []ContextItem{{ID: "context-id", Text: "实际文本", Reason: "current topic"}}, Omitted: []ContextItem{{ID: "omitted-id", Text: "未发送", Reason: "budget"}}})
 	original := readBytes(t, p)
-	putBytes(t, p, append(append([]byte{}, original...), []byte(`{"schema":1,"id":"broken`)...))
+	putBytes(t, p, append(append([]byte{}, original...), []byte(`{"schema":2,"id":"broken`)...))
 	events, err := s.Events(session)
 	if err != nil || len(events) != 2 {
 		t.Fatalf("tail recovery read: %v %v", events, err)
@@ -279,7 +308,7 @@ func TestSessionRecoverySnapshotsAndCorruption(t *testing.T) {
 	}{
 		{"middle", append([]byte("{broken}\n"), good...), ".jsonl:1"},
 		{"complete final", append(append([]byte{}, good...), []byte("{broken}\n")...), ".jsonl:4"},
-		{"future", bytes.Replace(good, []byte(`"schema":1`), []byte(`"schema":2`), 1), "schema"},
+		{"future", bytes.Replace(good, []byte(`"schema":2`), []byte(`"schema":3`), 1), "schema"},
 		{"unknown field", bytes.Replace(good, []byte(`"role":`), []byte(`"rol":`), 1), "rol"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -308,55 +337,27 @@ func TestSessionRecoverySnapshotsAndCorruption(t *testing.T) {
 		t.Fatal("JSON field casing")
 	}
 }
-func TestCreatedOrderingAndSaveWorkValidation(t *testing.T) {
+
+func TestSaveWorkValidation(t *testing.T) {
 	s := testStore(t)
-	at := time.Now().UTC()
-	ai := mustIdea(t, s, Idea{Text: "AI", Source: "ai", Created: at})
-	human := mustIdea(t, s, Idea{Text: "human", Created: at})
-	earlier := mustIdea(t, s, Idea{Text: "earlier", Created: at.Add(-time.Hour)})
-	ideas, err := s.Ideas()
-	if err != nil || len(ideas) != 3 || ideas[0].ID != earlier.ID || ideas[1].ID != human.ID || ideas[2].ID != ai.ID {
-		t.Fatalf("ordering: %v %v", ideas, err)
-	}
 	w := s.Work()
 	w.Discussion = Selection{Provider: "custom", Model: "model-id"}
-	if err = s.SaveWork(w); err != nil {
+	if err := s.SaveWork(w); err != nil {
 		t.Fatal(err)
 	}
 	w.TokenBudget = -1
-	if err = s.SaveWork(w); err == nil {
+	if err := s.SaveWork(w); err == nil {
 		t.Fatal("invalid budget persisted")
 	}
 	w = s.Work()
 	w.Categories = append(w.Categories, Category{Name: Other, Target: "duplicate"})
-	if err = s.SaveWork(w); err == nil {
+	if err := s.SaveWork(w); err == nil {
 		t.Fatal("duplicate category persisted")
 	}
 	w = s.Work()
 	w.ID = NewID()
-	if err = s.SaveWork(w); err == nil {
+	if err := s.SaveWork(w); err == nil {
 		t.Fatal("work identity changed")
-	}
-}
-func TestBookkeepingJournalsReservedIDs(t *testing.T) {
-	s := testStore(t)
-	session := mustSession(t, s)
-	user := mustEvent(t, s, session, Event{Role: "user", Text: "想法"})
-	reply := mustEvent(t, s, session, Event{Role: "assistant", Text: "建议", ReplyTo: user.ID})
-	reserved := NewID()
-	mustEvent(t, s, session, Event{Kind: "bookkeeping", ReplyTo: reply.ID, Text: "[]", IdeaIDs: []string{reserved}})
-	reopened, err := Open(s.Root())
-	if err != nil {
-		t.Fatalf("pending plan cannot reopen: %v", err)
-	}
-	reopened.Close()
-	mustIdea(t, s, Idea{ID: reserved, Text: "journaled idea"})
-	events, err := s.Events(session)
-	if err != nil || events[2].IdeaIDs[0] != reserved {
-		t.Fatalf("journal round trip: %v %v", events, err)
-	}
-	if _, err = s.Append(session, Event{Kind: "bookkeeping", IdeaIDs: []string{"../escape"}}); err == nil {
-		t.Fatal("bookkeeping accepted invalid ID")
 	}
 }
 
@@ -371,6 +372,9 @@ func TestModelOutputKeepsReasoningForReview(t *testing.T) {
 	}
 	if _, err = s.Append(session, Event{Role: RoleUser, Text: "x", Reasoning: "伪造"}); err == nil {
 		t.Fatal("the author's words recorded a model's reasoning")
+	}
+	if _, err = s.Append(session, Event{Role: RoleUser, Text: "x", Context: []ContextItem{{ID: "x", Text: "y"}}}); err == nil {
+		t.Fatal("the author's words recorded a context")
 	}
 	if _, err = s.Append(session, Event{Role: RoleAssistant, Text: "x", ReplyTo: user.ID, Effort: "medium"}); err == nil {
 		t.Fatal("accepted an effort not offered")

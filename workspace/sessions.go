@@ -1,11 +1,8 @@
 package workspace
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -70,26 +67,8 @@ func (s *Store) NewSession() (string, error) {
 	}
 	return "", fmt.Errorf("id: could not allocate unique session ID")
 }
-func decodeEvent(b []byte) (Event, error) {
-	var e Event
-	d := json.NewDecoder(bytes.NewReader(b))
-	d.DisallowUnknownFields()
-	if err := d.Decode(&e); err != nil {
-		return e, err
-	}
-	var extra any
-	if err := d.Decode(&extra); err != io.EOF {
-		if err != nil {
-			return e, err
-		}
-		return e, fmt.Errorf("multiple JSON values on one line")
-	}
-	return e, nil
-}
 
-// events returns the length of the recoverable prefix. Only a syntactically
-// incomplete, unterminated last line is recoverable. Complete corrupt lines,
-// unknown fields and unsupported schemas always fail with filename and line.
+// events reads a session and returns the length of its recoverable prefix.
 func (s *Store) events(session string) ([]Event, int64, error) {
 	if err := validID(session); err != nil {
 		return nil, 0, err
@@ -98,49 +77,32 @@ func (s *Store) events(session string) ([]Event, int64, error) {
 	if err != nil {
 		return nil, 0, err
 	}
-	data, err := os.ReadFile(p)
+	events := []Event{}
+	seen := map[string]bool{}
+	prefix, err := readJSONL(p, func(raw []byte) error {
+		var e Event
+		if err := decodeStrict(raw, &e); err != nil {
+			return err
+		}
+		if err := validateEvent(e); err != nil {
+			return err
+		}
+		if seen[e.ID] {
+			return fmt.Errorf("id: duplicate %q", e.ID)
+		}
+		if e.ReplyTo != "" && !seen[e.ReplyTo] {
+			return fmt.Errorf("reply_to: unknown earlier event %q", e.ReplyTo)
+		}
+		seen[e.ID] = true
+		events = append(events, e)
+		return nil
+	})
 	if err != nil {
 		return nil, 0, err
 	}
-	events := []Event{}
-	seen := map[string]Event{}
-	offset := 0
-	line := 0
-	for offset < len(data) {
-		line++
-		end := bytes.IndexByte(data[offset:], '\n')
-		terminated := end >= 0
-		next := len(data)
-		if terminated {
-			next = offset + end + 1
-		}
-		raw := bytes.TrimSpace(data[offset:next])
-		e, err := decodeEvent(raw)
-		if !terminated && (errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF)) {
-			return events, int64(offset), nil
-		}
-		if err == nil {
-			err = validateEvent(e)
-		}
-		if err == nil {
-			if _, exists := seen[e.ID]; exists {
-				err = fmt.Errorf("id: duplicate %q", e.ID)
-			}
-		}
-		if err == nil && e.ReplyTo != "" {
-			if _, exists := seen[e.ReplyTo]; !exists {
-				err = fmt.Errorf("reply_to: unknown earlier event %q", e.ReplyTo)
-			}
-		}
-		if err != nil {
-			return nil, 0, fmt.Errorf("%s:%d: %w", p, line, err)
-		}
-		seen[e.ID] = e
-		events = append(events, e)
-		offset = next
-	}
-	return events, int64(len(data)), nil
+	return events, prefix, nil
 }
+
 func (s *Store) Events(session string) ([]Event, error) {
 	unlock, err := s.lock()
 	if err != nil {
@@ -150,6 +112,7 @@ func (s *Store) Events(session string) ([]Event, error) {
 	events, _, err := s.events(session)
 	return events, err
 }
+
 func (s *Store) Append(session string, event Event) (Event, error) {
 	unlock, err := s.lock()
 	if err != nil {
@@ -162,9 +125,6 @@ func (s *Store) Append(session string, event Event) (Event, error) {
 	}
 	if event.Schema == 0 {
 		event.Schema = Schema
-	}
-	if event.Kind == "" {
-		event.Kind = KindMessage
 	}
 	if event.At.IsZero() {
 		event.At = time.Now().UTC()
@@ -190,56 +150,9 @@ func (s *Store) Append(session string, event Event) (Event, error) {
 	if event.ReplyTo != "" && !ids[event.ReplyTo] {
 		return Event{}, fmt.Errorf("reply_to: unknown earlier event %q", event.ReplyTo)
 	}
-	// Bookkeeping events journal reserved idea IDs before materialization so a
-	// crashed bookkeeping operation can replay the same IDs without duplicates.
-	if event.Kind != KindBookkeeping {
-		for _, id := range event.IdeaIDs {
-			if _, err = s.idea(id, newScan()); err != nil {
-				return Event{}, fmt.Errorf("idea_ids: %w", err)
-			}
-		}
-	}
-	data, err := json.Marshal(event)
-	if err != nil {
-		return Event{}, err
-	}
-	data = append(data, '\n')
 	p, err := s.path("sessions", session+".jsonl")
 	if err != nil {
 		return Event{}, err
 	}
-	f, err := os.OpenFile(p, os.O_RDWR, 0600)
-	if err != nil {
-		return Event{}, err
-	}
-	defer f.Close()
-	st, err := f.Stat()
-	if err != nil {
-		return Event{}, err
-	}
-	if st.Size() != prefix {
-		if err = f.Truncate(prefix); err != nil {
-			return Event{}, err
-		}
-	}
-	// A valid final event without a newline is preserved, then delimited.
-	if prefix > 0 {
-		var last [1]byte
-		if _, err = f.ReadAt(last[:], prefix-1); err != nil {
-			return Event{}, err
-		}
-		if last[0] != '\n' {
-			data = append([]byte{'\n'}, data...)
-		}
-	}
-	if _, err = f.Seek(prefix, io.SeekStart); err != nil {
-		return Event{}, err
-	}
-	if _, err = f.Write(data); err != nil {
-		return Event{}, err
-	}
-	if err = f.Sync(); err != nil {
-		return Event{}, err
-	}
-	return event, nil
+	return event, appendJSONL(p, prefix, event)
 }

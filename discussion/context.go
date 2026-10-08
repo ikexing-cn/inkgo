@@ -1,8 +1,9 @@
-// Package discussion implements the passive discussion and bookkeeping loop.
+// Package discussion runs the talk with the author and the bookkeeper that
+// keeps the setting document up with it.
 package discussion
 
 import (
-	"context"
+	"cmp"
 	"fmt"
 	"slices"
 	"strings"
@@ -11,13 +12,7 @@ import (
 	"writer/workspace"
 )
 
-// Embedder is reserved for M2. M1 never calls an embedding service.
-// Cache entries will live in .writer/embeddings/<model>/<text-sha256>.bin.
-type Embedder interface {
-	Embed(context.Context, []string) ([][]float32, error)
-}
-
-// Context is what one discussion request sends, and which ideas it had to
+// Context is what one talk request sends, and which entries it had to
 // leave out.
 type Context struct {
 	Request  model.Request
@@ -30,8 +25,8 @@ const (
 	// allows far more output, talkOutput, as reasoning comes out of it too.
 	talkReserve = 2048
 	talkOutput  = 32768
-	poolSlack   = 512 // section headings and per-message overhead
-	refCost     = 24  // a "[12] " prefix or a conflict note
+	docSlack    = 512 // headings and per-message overhead
+	lineCost    = 8   // a "- " and a newline
 	recentTurns = 4
 )
 
@@ -40,146 +35,123 @@ const (
 // reported as an exact token count.
 func Estimate(s string) int { return len(s) + 16 }
 
-// sections order the pool in the prompt, by the status they show.
-var sections = []struct {
-	status         workspace.Status
-	label, heading string
+// places order the setting in the prompt and decide what goes first when
+// it does not all fit: the body binds the reply, then what the author
+// dropped, then what is open.
+var places = []struct {
+	place, label, heading string
 }{
-	{workspace.Kept, "留下", "作者留下的方向："},
-	{workspace.Deferred, "待定", "作者还没想好的方向："},
-	{workspace.Adopted, "已定设定", "已定设定（只能遵守）："},
-	{workspace.Rejected, "已放弃", "作者放弃的方向（不要再推荐）："},
+	{workspace.PlaceBody, "正文", "设定正文（作者定下的，必须遵守）："},
+	{workspace.PlaceDropped, "已放弃", "已放弃（不要再推荐，换个说法也不行）："},
+	{workspace.PlaceOpen, "悬而未决", "悬而未决（作者还没表态，可以讨论）："},
 }
 
-func label(s workspace.Status) string {
-	for _, sec := range sections {
-		if sec.status == s {
-			return sec.label
-		}
-	}
-	return ""
-}
+func oneLine(s string) string { return strings.Join(strings.Fields(s), " ") }
 
-// describe is an idea's line in the prompt, without its number.
-func describe(i workspace.Idea) string {
-	text := strings.Join(strings.Fields(i.Text), " ")
-	if i.Status == workspace.Rejected && len(i.History) > 0 {
-		if reason := i.History[len(i.History)-1].Reason; reason != "" {
-			text += "（理由：" + reason + "）"
-		}
-	}
-	if i.Fact && !i.Verified {
-		text += "（现实事实，未核实）"
-	}
-	return text
-}
-
-// Assemble builds a discussion request: the rules, the ideas the author
-// decided on, newest first until the budget runs out, and the last few
-// complete exchanges.
-func Assemble(ideas []workspace.Idea, events []workspace.Event, input string, budget int) (Context, error) {
+// Assemble builds a talk request: the rules, the setting as far as the
+// budget allows, newest entries first within each place, and the last few
+// complete exchanges, which include every one the bookkeeper has not yet
+// taken in: done is the number of events it covered.
+func Assemble(w workspace.Work, set workspace.Setting, events []workspace.Event, done int, input string) (Context, error) {
 	out := Context{Request: model.Request{MaxTokens: talkOutput}}
-	remaining := budget - talkReserve - Estimate(talkRules) - Estimate(input) - poolSlack
+	remaining := w.TokenBudget - talkReserve - Estimate(talkRules) - Estimate(input) - docSlack
 	if remaining < 0 {
-		return out, fmt.Errorf("当前发言超出上下文预算 %d；请缩短发言或提高作品预算", budget)
+		return out, fmt.Errorf("当前发言超出上下文预算 %d；请缩短发言或提高作品预算", w.TokenBudget)
 	}
-	kept := map[string]bool{}
-	for _, i := range ideas {
-		if i.Status == workspace.Kept {
-			kept[i.ID] = true
-		}
-	}
-	candidates := slices.Clone(ideas)
-	slices.SortStableFunc(candidates, func(a, b workspace.Idea) int { return b.Updated.Compare(a.Updated) })
-	var shown []workspace.Idea
-	for _, i := range candidates {
-		if label(i.Status) == "" {
-			continue
-		}
-		text := describe(i)
-		item := workspace.ContextItem{ID: i.ID, Text: label(i.Status) + "：" + text}
-		cost := Estimate(text) + refCost*(1+len(activeConflicts(i, kept)))
-		if cost > remaining {
-			item.Reason = "超出上下文预算"
-			out.Omitted = append(out.Omitted, item)
-			continue
-		}
-		remaining -= cost
-		shown = append(shown, i)
-		out.Included = append(out.Included, item)
-	}
-	out.Request.System = talkRules + "\n\n" + renderPool(shown, kept)
-	out.Request.Messages = append(recent(events, remaining), model.Message{Role: workspace.RoleUser, Content: input})
-	return out, nil
-}
-
-func activeConflicts(i workspace.Idea, kept map[string]bool) []string {
-	if !kept[i.ID] {
-		return nil
-	}
-	var ids []string
-	for _, id := range i.Conflicts {
-		if kept[id] {
-			ids = append(ids, id)
-		}
-	}
-	return ids
-}
-
-// renderPool lists ideas by section under numbers local to this request.
-func renderPool(shown []workspace.Idea, kept map[string]bool) string {
-	if len(shown) == 0 {
-		return "作者还没有对任何方向表态。"
-	}
-	ref := map[string]int{}
-	for n, i := range shown {
-		ref[i.ID] = n + 1
-	}
-	var b strings.Builder
-	for _, sec := range sections {
-		first := true
-		for _, i := range shown {
-			if i.Status != sec.status {
-				continue
-			}
-			if first {
-				if b.Len() > 0 {
-					b.WriteString("\n")
-				}
-				b.WriteString(sec.heading + "\n")
-				first = false
-			}
-			fmt.Fprintf(&b, "[%d] %s", ref[i.ID], describe(i))
-			for _, id := range activeConflicts(i, kept) {
-				if r, ok := ref[id]; ok {
-					fmt.Fprintf(&b, "（与 [%d] 矛盾，作者尚未解决）", r)
-				}
-			}
-			b.WriteString("\n")
-		}
-	}
-	return strings.TrimSuffix(b.String(), "\n")
-}
-
-// recent keeps the last complete exchanges that fit. Unanswered turns and
-// bookkeeping records must not masquerade as chat context.
-func recent(events []workspace.Event, remaining int) []model.Message {
-	var pairs [][2]model.Message
-	for n := 1; n < len(events); n++ {
-		a, b := events[n-1], events[n]
-		if a.Kind == workspace.KindMessage && a.Role == workspace.RoleUser &&
-			b.Kind == workspace.KindMessage && b.Role == workspace.RoleAssistant && b.ReplyTo == a.ID {
-			pairs = append(pairs, [2]model.Message{{Role: workspace.RoleUser, Content: a.Text}, {Role: workspace.RoleAssistant, Content: b.Text}})
-		}
+	// The exchanges the setting lags behind come before the setting itself.
+	pairs := exchanges(events)
+	keep := recentTurns
+	for n := len(pairs) - 1; n >= 0 && pairs[n].at >= done; n-- {
+		keep = max(keep, len(pairs)-n)
 	}
 	var msgs []model.Message
-	for n := len(pairs) - 1; n >= 0 && n >= len(pairs)-recentTurns; n-- {
-		cost := Estimate(pairs[n][0].Content) + Estimate(pairs[n][1].Content)
+	for n := len(pairs) - 1; n >= 0 && n >= len(pairs)-keep; n-- {
+		cost := Estimate(pairs[n].user.Content) + Estimate(pairs[n].reply.Content)
 		if cost > remaining {
 			break
 		}
 		remaining -= cost
-		msgs = append([]model.Message{pairs[n][0], pairs[n][1]}, msgs...)
+		msgs = append([]model.Message{pairs[n].user, pairs[n].reply}, msgs...)
 	}
-	return msgs
+	shown := map[string]bool{}
+	for _, p := range places {
+		entries := slices.Clone(set.Entries)
+		slices.SortStableFunc(entries, func(a, b workspace.Entry) int { return cmp.Compare(b.Rev, a.Rev) })
+		for _, e := range entries {
+			if e.Place != p.place {
+				continue
+			}
+			text := oneLine(e.Text)
+			item := workspace.ContextItem{ID: e.ID, Text: p.label + "：" + text}
+			if cost := Estimate(text) + lineCost; cost <= remaining {
+				remaining -= cost
+				shown[e.ID] = true
+				out.Included = append(out.Included, item)
+			} else {
+				item.Reason = "超出上下文预算"
+				out.Omitted = append(out.Omitted, item)
+			}
+		}
+	}
+	out.Request.System = talkRules + "\n\n" + renderSetting(w, set, shown)
+	out.Request.Messages = append(msgs, model.Message{Role: workspace.RoleUser, Content: input})
+	return out, nil
+}
+
+// renderSetting lists the entries shown, the body by category in the
+// work's order, in the order they were added.
+func renderSetting(w workspace.Work, set workspace.Setting, shown map[string]bool) string {
+	if len(shown) == 0 {
+		return "设定文档还是空的。"
+	}
+	var b strings.Builder
+	for _, p := range places {
+		var lines []string
+		if p.place == workspace.PlaceBody {
+			for _, c := range w.Categories {
+				first := true
+				for _, e := range set.Entries {
+					if shown[e.ID] && e.Place == p.place && e.Category == c.Name {
+						if first {
+							lines = append(lines, "【"+c.Name+"】")
+							first = false
+						}
+						lines = append(lines, "- "+oneLine(e.Text))
+					}
+				}
+			}
+		} else {
+			for _, e := range set.Entries {
+				if shown[e.ID] && e.Place == p.place {
+					lines = append(lines, "- "+oneLine(e.Text))
+				}
+			}
+		}
+		if len(lines) == 0 {
+			continue
+		}
+		if b.Len() > 0 {
+			b.WriteString("\n\n")
+		}
+		b.WriteString(p.heading + "\n" + strings.Join(lines, "\n"))
+	}
+	return b.String()
+}
+
+type exchange struct {
+	user, reply model.Message
+	at          int // the reply's index in the events
+}
+
+// exchanges are the complete turns of events: an unanswered turn must not
+// masquerade as chat context.
+func exchanges(events []workspace.Event) []exchange {
+	var out []exchange
+	for n := 1; n < len(events); n++ {
+		a, b := events[n-1], events[n]
+		if a.Role == workspace.RoleUser && b.Role == workspace.RoleAssistant && b.ReplyTo == a.ID {
+			out = append(out, exchange{model.Message{Role: workspace.RoleUser, Content: a.Text}, model.Message{Role: workspace.RoleAssistant, Content: b.Text}, n})
+		}
+	}
+	return out
 }

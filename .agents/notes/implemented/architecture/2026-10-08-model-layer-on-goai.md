@@ -13,7 +13,7 @@ M1 的模型客户端是自己写的三种协议的非流式请求。实际使�
 
 第一次选用的 Fantasy 让程序体积从 13.6 MB 涨到 60.8 MB（Windows/amd64，去掉调试信息），而且它走 Responses 协议时会丢掉 DeepSeek 的推理内容，所以改用 GoAI。Fantasy 的落地只存在于提交 `bcbb8b2`，这里不再单独保留笔记，测量结果和否决理由都写在下文"被否方案"里。
 
-本篇取代 [M1 实现笔记](../feature/2026-10-07-m1-discussion.md)中"API 不流式，单次请求最长两分钟"的决定；该篇的上下文、预算、记账与凭据规则继续有效。模型看到的思路形式沿用[短编号与讨论规则](../feature/2026-10-08-model-facing-refs-and-talk-rules.md)。
+本篇取代 [M1 实现笔记](../feature/2026-10-07-m1-discussion.md)中"API 不流式，单次请求最长两分钟"的决定；该篇的上下文、预算、记账与凭据规则继续有效。模型看到的思路形式沿用[短编号与讨论规则](../feature/2026-10-08-model-facing-refs-and-talk-rules.md)。下文的冲突检查、`Progress(step, delta)` 的步骤、记账事件和"正在把这一轮整理成思路卡片"已由[设定文档与后台记账](../feature/2026-10-08-setting-document-and-background-bookkeeper.md)取代：`Progress` 只转发回复的增量，记账在后台进行，它的模型、等级和推理记在修订里。
 
 ## Decision
 

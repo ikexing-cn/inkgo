@@ -6,7 +6,7 @@ Status: implemented
 
 作者需要把讨论中的具体想法逐条留下、待定或放弃，并在新会话中继续使用这些决定。只保留聊天记录无法区分临时发散与作者认可的依据，网络失败或记账中断还可能造成重复卡片和丢失原文。
 
-本篇落实[完整产品提案](../../proposed/feature/2026-10-07-idea-pool-discussion.md)中的 M1。原提案与本篇部分重叠，保留 proposed 状态供 M2、话题、设定整理和正文集成继续使用；其中 M1 的实现事实以本篇为准。[原生编辑器决策](../architecture/2026-10-07-pure-go-native-editor.md)继续有效，本次仅增加只读原文选区。[笔记门禁](../process/2026-10-07-agent-notes-gates.md)只约束过程，没有业务决定被替代或废弃。本篇的 SQLite 索引已由[存储去掉索引](../architecture/2026-10-08-m1-storage-without-index.md)取代；模型看到的思路形式与讨论规则见[短编号与讨论规则](2026-10-08-model-facing-refs-and-talk-rules.md)。下文"API 不流式"的决定已由[模型层用 GoAI](../architecture/2026-10-08-model-layer-on-goai.md)取代，推理等级与推理内容落盘也在该篇。
+本篇落实[完整产品提案](../../proposed/feature/2026-10-07-idea-pool-discussion.md)中的 M1。原提案与本篇部分重叠，保留 proposed 状态供 M2、话题、设定整理和正文集成继续使用；其中 M1 的实现事实以本篇为准。[原生编辑器决策](../architecture/2026-10-07-pure-go-native-editor.md)继续有效，本次仅增加只读原文选区。[笔记门禁](../process/2026-10-07-agent-notes-gates.md)只约束过程，没有业务决定被替代或废弃。本篇的 SQLite 索引已由[存储去掉索引](../architecture/2026-10-08-m1-storage-without-index.md)取代；模型看到的思路形式与讨论规则见[短编号与讨论规则](2026-10-08-model-facing-refs-and-talk-rules.md)。下文"API 不流式"的决定已由[模型层用 GoAI](../architecture/2026-10-08-model-layer-on-goai.md)取代，推理等级与推理内容落盘也在该篇。思路卡片、状态流转、串行记账、冲突检查和撤销已由[设定文档与后台记账](2026-10-08-setting-document-and-background-bookkeeper.md)取代，下文相关段落只作历史记录。
 
 ## Decision
 

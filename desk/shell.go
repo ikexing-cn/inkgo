@@ -13,6 +13,9 @@ const narrow = 1180
 
 func (a *App) View(c *ui.Context) {
 	a.poll()
+	if a.Store != nil && a.worker == nil {
+		a.startWorker(c)
+	}
 	a.pal = a.light
 	if c.Theme().Dark {
 		a.pal = a.dark

@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -13,6 +16,7 @@ import (
 )
 
 type fake struct {
+	mu        sync.Mutex
 	replies   []string
 	reasoning string
 	calls     []model.Request
@@ -20,6 +24,8 @@ type fake struct {
 }
 
 func (f *fake) Complete(ctx context.Context, r model.Request, on func(model.Delta)) (model.Reply, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	f.calls = append(f.calls, r)
 	if f.err != nil {
 		return model.Reply{}, f.err
@@ -35,6 +41,7 @@ func (f *fake) Complete(ctx context.Context, r model.Request, on func(model.Delt
 	}
 	return model.Reply{Text: s, Reasoning: f.reasoning}, nil
 }
+
 func setup(t *testing.T) (*Engine, string) {
 	t.Helper()
 	s, err := workspace.Create(t.TempDir(), "雨夜", "网文")
@@ -48,25 +55,42 @@ func setup(t *testing.T) (*Engine, string) {
 	}
 	return &Engine{Store: s}, session
 }
-func mustIdea(t *testing.T, e *Engine, text string, status workspace.Status) workspace.Idea {
+
+// turn appends an exchange without a model.
+func turn(t *testing.T, e *Engine, session, user, reply string) (workspace.Event, workspace.Event) {
 	t.Helper()
-	i, err := e.Store.NewIdea(workspace.Idea{Text: text, Source: "human", Category: "人物"})
+	u, err := e.Store.Append(session, workspace.Event{Role: workspace.RoleUser, Text: user})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if status != workspace.Unprocessed {
-		i, err = e.Store.ChangeStatus(i.ID, status, "作者决定")
-		if err != nil {
-			t.Fatal(err)
-		}
+	a, err := e.Store.Append(session, workspace.Event{Role: workspace.RoleAssistant, Text: reply, ReplyTo: u.ID})
+	if err != nil {
+		t.Fatal(err)
 	}
-	return i
+	return u, a
+}
+
+func revise(t *testing.T, e *Engine, ops ...workspace.Op) workspace.Revision {
+	t.Helper()
+	r, err := e.Store.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: ops})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return r
+}
+
+func setting(t *testing.T, e *Engine) workspace.Setting {
+	t.Helper()
+	set, err := e.Store.Setting()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return set
 }
 
 func TestRetryUnansweredTurnDoesNotDuplicateInput(t *testing.T) {
 	e, session := setup(t)
 	e.Talk = Model{Completer: &fake{err: context.Canceled}}
-	e.Book = Model{Completer: &fake{replies: []string{`{"ideas":[]}`}}}
 	turn, err := e.Send(context.Background(), session, "先讨论城市的天气")
 	if !errors.Is(err, context.Canceled) || turn.User.ID == "" {
 		t.Fatal(turn, err)
@@ -81,7 +105,7 @@ func TestRetryUnansweredTurnDoesNotDuplicateInput(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(events) != 3 || retried.User.ID != turn.User.ID || events[1].ReplyTo != turn.User.ID {
+	if len(events) != 2 || retried.User.ID != turn.User.ID || events[1].ReplyTo != turn.User.ID {
 		t.Fatalf("retry duplicated or lost a turn: %+v", events)
 	}
 	if _, err = e.Retry(context.Background(), session, turn.User.ID); err == nil || len(talk.calls) != 1 {
@@ -89,281 +113,305 @@ func TestRetryUnansweredTurnDoesNotDuplicateInput(t *testing.T) {
 	}
 }
 
-func TestTurnJournalAndReopen(t *testing.T) {
+// A turn waits for the reply only: it streams, is recorded with its model
+// and reasoning, and no other model is asked.
+func TestTurnWaitsForTheReplyOnly(t *testing.T) {
 	e, session := setup(t)
-	kept := mustIdea(t, e, "故事发生在雨夜", workspace.Kept)
-	reject := mustIdea(t, e, "主角是捕快", workspace.Rejected)
-	mustIdea(t, e, "未处理的海盗方向", workspace.Unprocessed)
-	talk := &fake{replies: []string{"可以让她成为一个修灯的人。"}}
-	book := &fake{replies: []string{`{"ideas":[{"source":"ai","quote":"修灯的人","occurrence":0,"text":"主角修灯","category":"人物","fact":false,"similar":[]},{"source":"human","quote":"她怕黑","occurrence":0,"text":"她怕黑","category":"人物","fact":false,"similar":[]}]}`}}
+	talk := &fake{replies: []string{"可以让她修灯。"}, reasoning: "她怕黑，职业要和光有关"}
+	e.Talk = Model{Completer: talk, Name: "deepseek/deepseek-flash", Effort: model.EffortMax}
+	var streamed string
+	e.Progress = func(d model.Delta) { streamed += d.Reasoning + d.Text }
+	got, err := e.Send(context.Background(), session, "她做什么工作？")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if streamed != "她怕黑，职业要和光有关可以让她修灯。" || len(talk.calls) != 1 || talk.calls[0].Effort != model.EffortMax {
+		t.Fatalf("streamed %q calls %d", streamed, len(talk.calls))
+	}
+	events, err := e.Store.Events(session)
+	if err != nil || len(events) != 2 {
+		t.Fatalf("events %+v %v", events, err)
+	}
+	if r := events[1]; r.ID != got.Reply.ID || r.Reasoning != "她怕黑，职业要和光有关" || r.Model != "deepseek/deepseek-flash" || r.Effort != "max" {
+		t.Fatalf("reply record %+v", r)
+	}
+}
+
+func TestTalkSeesTheSettingAndTheTurnsItLags(t *testing.T) {
+	e, session := setup(t)
+	r := revise(t, e,
+		workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "主角怕黑"},
+		workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceDropped, Category: "人物", Text: "主角是转生者"},
+		workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceOpen, Category: "规则", Text: "雨每年停一天"})
+	var users []string
+	for n := 0; n < 6; n++ {
+		u := fmt.Sprintf("第%d轮", n)
+		users = append(users, u)
+		turn(t, e, session, u, "好")
+	}
+	talk := &fake{replies: []string{"嗯"}}
 	e.Talk = Model{Completer: talk}
-	e.Book = Model{Completer: book}
-	turn, err := e.Send(context.Background(), session, "她怕黑，讨论一下职业。")
-	if err != nil {
+	if _, err := e.Send(context.Background(), session, "继续"); err != nil {
 		t.Fatal(err)
 	}
-	if len(turn.Ideas) != 2 || turn.Ideas[0].Source != "human" {
-		t.Fatalf("ideas %#v", turn.Ideas)
-	}
-	if turn.Ideas[0].Origin.Span != (workspace.Span{Start: 0, End: 3}) {
-		t.Fatal(turn.Ideas[0].Origin)
-	}
-	// The model sees what the author decided, never an internal ID it could
-	// repeat back.
-	system := talk.calls[0].System
-	if !strings.Contains(system, kept.Text) || !strings.Contains(system, reject.Text) || strings.Contains(system, "海盗") {
-		t.Fatal(system)
-	}
-	for _, call := range append(talk.calls, book.calls...) {
-		for _, text := range append([]string{call.System}, call.Messages[len(call.Messages)-1].Content) {
-			if strings.Contains(text, kept.ID) || strings.Contains(text, reject.ID) {
-				t.Fatalf("model saw an idea ID: %s", text)
-			}
+	req := talk.calls[0]
+	for _, want := range []string{"设定正文（作者定下的，必须遵守）：\n【人物】\n- 主角怕黑", "已放弃（不要再推荐，换个说法也不行）：\n- 主角是转生者", "悬而未决（作者还没表态，可以讨论）：\n- 雨每年停一天"} {
+		if !strings.Contains(req.System, want) {
+			t.Fatalf("system lacks %q:\n%s", want, req.System)
 		}
 	}
-	if len(turn.Reply.Context) != 2 || strings.Contains(turn.Reply.Context[0].Text, kept.ID) {
-		t.Fatal(turn.Reply.Context)
-	}
-	_, err = e.Store.ChangeStatus(turn.Ideas[0].ID, workspace.Deferred, "再想想")
-	if err != nil {
-		t.Fatal(err)
-	}
-	repeated, err := e.Bookkeep(context.Background(), session, turn.Reply.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(book.calls) != 1 || repeated[0].Status != workspace.Deferred {
-		t.Fatal("retry invoked model or overwrote decision")
-	}
-	root := e.Store.Root()
-	if err = e.Store.Close(); err != nil {
-		t.Fatal(err)
-	}
-	reopened, err := workspace.Open(root)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer reopened.Close()
-	events, err := reopened.Events(session)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(events) != 3 || events[1].Context[0].ID == "" {
-		t.Fatalf("events %+v", events)
-	}
-	all, err := reopened.Ideas()
-	if err != nil || len(all) != 5 {
-		t.Fatalf("ideas %d %v", len(all), err)
-	}
-	if all[3].Source != workspace.SourceHuman || all[4].Source != workspace.SourceAI {
-		t.Fatal("a turn's ideas lost the author-first order")
-	}
-}
-
-func TestInvalidExtractionDoesNotWritePartialIdeas(t *testing.T) {
-	for _, bad := range []string{
-		`{"ideas":[{"source":"human","quote":"杜撰的原文","text":"x","category":"人物"}]}`,
-		`{"ideas":[{"source":"human","quote":"念头","text":"x","category":"不存在"}]}`,
-		`{"ideas":[{"source":"human","quote":"念头","text":"x","category":"人物","similar":[{"ref":"r9","difference":"相近"}]}]}`,
-		`{"ideas":[],"ignored":true}`,
-		`{} `,
-		`{"ideas":[]} {"ideas":[]}`,
-	} {
-		t.Run(bad, func(t *testing.T) {
-			e, session := setup(t)
-			e.Talk = Model{Completer: &fake{replies: []string{"好的"}}}
-			e.Book = Model{Completer: &fake{replies: []string{bad}}}
-			turn, err := e.Send(context.Background(), session, "念头")
-			if err == nil {
-				t.Fatal("invalid extraction accepted")
-			}
-			if turn.Reply.ID == "" {
-				t.Fatal("lost reply")
-			}
-			ideas, _ := e.Store.Ideas()
-			events, _ := e.Store.Events(session)
-			if len(ideas) != 0 || len(events) != 2 {
-				t.Fatalf("partial extraction persisted: %d %d", len(ideas), len(events))
-			}
-			e.Book = Model{Completer: &fake{replies: []string{`{"ideas":[]}`}}}
-			if _, err = e.Bookkeep(context.Background(), session, turn.Reply.ID); err != nil {
-				t.Fatal(err)
-			}
-		})
-	}
-}
-
-func TestBookkeepingPlanReplaysMissingFiles(t *testing.T) {
-	e, session := setup(t)
-	user, err := e.Store.Append(session, workspace.Event{Kind: "message", Role: "user", Text: "林晚怕黑"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	reply, err := e.Store.Append(session, workspace.Event{Kind: "message", Role: "assistant", Text: "好的", ReplyTo: user.ID})
-	if err != nil {
-		t.Fatal(err)
-	}
-	now := time.Now().UTC()
-	planned := []workspace.Idea{{Schema: 1, ID: workspace.NewID(), Text: "林晚怕黑", Status: workspace.Unprocessed, Category: "人物", Source: "human", Created: now, Updated: now, Origin: workspace.Origin{Session: session, Message: user.ID, Span: workspace.Span{Start: 0, End: 4}}}}
-	data, _ := json.Marshal(planned)
-	_, err = e.Store.Append(session, workspace.Event{Kind: "bookkeeping", ReplyTo: reply.ID, Text: string(data), IdeaIDs: []string{planned[0].ID}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	// There are no model clients: recovery must use the durable plan alone.
-	ideas, err := e.Bookkeep(context.Background(), session, reply.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(ideas) != 1 || ideas[0].ID != planned[0].ID {
-		t.Fatal(ideas)
-	}
-	if _, err = e.Bookkeep(context.Background(), session, reply.ID); err != nil {
-		t.Fatal(err)
-	}
-	all, _ := e.Store.Ideas()
-	if len(all) != 1 {
-		t.Fatal("duplicate replay")
-	}
-}
-
-func TestConflictsDoNotDecideForAuthor(t *testing.T) {
-	e, _ := setup(t)
-	a := mustIdea(t, e, "她怕黑", workspace.Kept)
-	b := mustIdea(t, e, "她从不怕黑", workspace.Unprocessed)
-	e.Book = Model{Completer: &fake{replies: []string{`{"conflicts":["k1"]}`}}}
-	if err := e.Mark(context.Background(), b.ID, workspace.Kept, "方向不错"); err != nil {
-		t.Fatal(err)
-	}
-	ideas, _ := e.Store.Ideas()
-	if ConflictCount(ideas) != 1 {
-		t.Fatal(ideas)
-	}
-	for _, i := range ideas {
-		if i.Status != workspace.Kept || len(i.Conflicts) != 1 {
-			t.Fatal(i)
+	for _, op := range r.Ops {
+		if strings.Contains(req.System, op.Entry) {
+			t.Fatal("an entry ID reached the model")
 		}
 	}
-	if err := e.Mark(context.Background(), a.ID, workspace.Rejected, "取另一条"); err != nil {
+	// None of the six turns is in the setting yet, so all of them are sent,
+	// past the usual four.
+	if len(req.Messages) != 13 || req.Messages[0].Content != users[0] {
+		t.Fatalf("messages %+v", req.Messages)
+	}
+	events, err := e.Store.Events(session)
+	if err != nil {
 		t.Fatal(err)
 	}
-	ideas, _ = e.Store.Ideas()
-	if ConflictCount(ideas) != 0 {
-		t.Fatal("inactive conflict counted")
-	}
-	if err := e.Mark(context.Background(), a.ID, workspace.Kept, ""); err == nil {
-		t.Fatal("rejected must restore to deferred first")
+	if reply := events[len(events)-1]; len(reply.Context) != 3 || reply.Context[0].Text != "正文：主角怕黑" {
+		t.Fatalf("snapshot %+v", reply.Context)
 	}
 }
 
-func TestConflictFailurePreservesHumanDecision(t *testing.T) {
-	e, _ := setup(t)
-	mustIdea(t, e, "怕黑", workspace.Kept)
-	b := mustIdea(t, e, "不怕黑", workspace.Unprocessed)
-	e.Book = Model{Completer: &fake{err: errors.New("offline")}}
-	err := e.Mark(context.Background(), b.ID, workspace.Kept, "保留")
-	if err == nil {
-		t.Fatal("expected check warning")
-	}
-	saved, _ := e.Store.Idea(b.ID)
-	if saved.Status != workspace.Kept || len(saved.History) != 1 {
-		t.Fatal(saved)
-	}
-}
-
-func TestContextBudgetAndRecentPairs(t *testing.T) {
-	now := time.Now()
-	ideas := []workspace.Idea{{ID: "new", Status: workspace.Kept, Text: strings.Repeat("新", 30), Updated: now}, {ID: "old", Status: workspace.Deferred, Text: strings.Repeat("旧", 30), Updated: now.Add(-time.Hour)}, {ID: "pending", Status: workspace.Unprocessed, Text: "未定"}, {ID: "superseded", Status: workspace.Superseded, Text: "过时"}}
-	budget := talkReserve + Estimate(talkRules) + Estimate("问") + poolSlack + Estimate(describe(ideas[0])) + refCost
-	got, err := Assemble(ideas, nil, "问", budget)
+func TestContextBudget(t *testing.T) {
+	w := workspace.Work{Categories: workspace.Categories("网文")}
+	set := workspace.Setting{Entries: []workspace.Entry{
+		{ID: "old", Place: workspace.PlaceBody, Category: "人物", Text: strings.Repeat("旧", 30), Rev: 1},
+		{ID: "new", Place: workspace.PlaceBody, Category: "人物", Text: strings.Repeat("新", 30), Rev: 2},
+	}}
+	w.TokenBudget = talkReserve + Estimate(talkRules) + Estimate("问") + docSlack + Estimate(strings.Repeat("新", 30)) + lineCost
+	got, err := Assemble(w, set, nil, 0, "问")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(got.Included) != 1 || got.Included[0].ID != "new" || len(got.Omitted) != 1 || got.Omitted[0].ID != "old" {
 		t.Fatalf("%+v", got)
 	}
-	if _, err = Assemble(nil, nil, strings.Repeat("大", 9000), 8192); err == nil {
+	w.TokenBudget = 8192
+	if _, err = Assemble(w, set, nil, 0, strings.Repeat("大", 9000)); err == nil {
 		t.Fatal("oversized current input accepted")
 	}
-	events := []workspace.Event{{ID: "u", Kind: "message", Role: "user", Text: "问"}, {ID: "a", Kind: "message", Role: "assistant", Text: "答", ReplyTo: "u"}, {Kind: "bookkeeping", Text: "不能发给讨论模型的计划"}, {Kind: "message", Role: "user", Text: "失败的请求"}}
-	got, err = Assemble(nil, events, "本轮", 16000)
+	w.TokenBudget = 16000
+	events := []workspace.Event{{ID: "u", Role: "user", Text: "问"}, {ID: "a", Role: "assistant", Text: "答", ReplyTo: "u"}, {Role: "user", Text: "失败的请求"}}
+	got, err = Assemble(w, workspace.Setting{}, events, 0, "本轮")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got.Request.Messages) != 3 || got.Request.Messages[0].Content != "问" || got.Request.Messages[2].Content != "本轮" {
-		t.Fatal(got.Request.Messages)
+	if len(got.Request.Messages) != 3 || got.Request.Messages[0].Content != "问" || got.Request.Messages[2].Content != "本轮" || !strings.Contains(got.Request.System, "设定文档还是空的") {
+		t.Fatal(got.Request)
 	}
 }
 
-func TestManualRuneSelection(t *testing.T) {
+func TestExtractQuotesTheSelectedRunes(t *testing.T) {
 	e, session := setup(t)
-	m, err := e.Store.Append(session, workspace.Event{Kind: "message", Role: "user", Text: "雨夜🌙，林晚怕黑。"})
+	m, err := e.Store.Append(session, workspace.Event{Role: "user", Text: "雨夜🌙，林晚怕黑。"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	idea, err := e.Manual(session, m.ID, 4, 8, "人物")
+	entry, err := e.Extract(session, m.ID, 4, 8, "人物")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if idea.Text != "林晚怕黑" || idea.Source != "human" {
-		t.Fatal(idea)
+	if entry.Text != "林晚怕黑" || entry.Place != workspace.PlaceBody || !entry.Author || entry.Sources[0].Quote != "林晚怕黑" {
+		t.Fatal(entry)
 	}
-	if _, err = e.Manual(session, m.ID, 0, 100, "人物"); err == nil {
+	if _, err = e.Extract(session, m.ID, 0, 100, "人物"); err == nil {
 		t.Fatal("out of bounds accepted")
 	}
 }
 
-func TestSimilarRefsMapToRejectedIdeas(t *testing.T) {
+// book returns a bookkeeper answering with replies.
+func book(e *Engine, replies ...string) (*Bookkeeper, *fake) {
+	f := &fake{replies: replies, reasoning: "想一想"}
+	return &Bookkeeper{Store: e.Store, Model: Model{Completer: f, Name: "deepseek/deepseek-flash", Effort: model.EffortLow}}, f
+}
+
+func ops(v ...map[string]any) string {
+	b, _ := json.Marshal(map[string]any{"ops": v})
+	return string(b)
+}
+
+func TestBookkeeperWritesWhatTheRulesAllow(t *testing.T) {
 	e, session := setup(t)
-	rejected := mustIdea(t, e, "主角是捕快", workspace.Rejected)
-	e.Talk = Model{Completer: &fake{replies: []string{"也可以让她在衙门当差。"}}}
-	book := &fake{replies: []string{`{"ideas":[{"source":"ai","quote":"在衙门当差","occurrence":0,"text":"主角在衙门当差","category":"人物","fact":false,"similar":[{"ref":"r1","difference":"同属官差，只换了说法"}]}]}`}}
-	e.Book = Model{Completer: book}
-	turn, err := e.Send(context.Background(), session, "她做什么工作？")
-	if err != nil {
-		t.Fatal(err)
+	kept := revise(t, e, workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "主角怕黑"}).Ops[0].Entry
+	u, a := turn(t, e, session, "主角修路灯。她其实不是怕黑，是怕安静。", "也许可以让城市的雨从不停。")
+	b, f := book(e, ops(
+		map[string]any{"op": "add", "place": "body", "category": "人物", "text": "主角修路灯", "sources": []map[string]string{{"msg": "m1", "quote": "主角修路灯"}}},
+		map[string]any{"op": "edit", "entry": "e1", "text": "主角怕安静", "because": map[string]string{"msg": "m1", "quote": "她其实不是怕黑，是怕安静"}},
+		map[string]any{"op": "add", "place": "open", "category": "规则", "text": "雨从不停", "sources": []map[string]string{{"msg": "m2", "quote": "城市的雨从不停"}}},
+	))
+	did, err := b.Run(context.Background(), session)
+	if err != nil || !did {
+		t.Fatal(did, err)
 	}
-	if !strings.Contains(book.calls[0].Messages[0].Content, `"ref":"r1"`) {
-		t.Fatal(book.calls[0].Messages[0].Content)
+	payload := f.calls[0].Messages[0].Content
+	if strings.Contains(payload, kept) || strings.Contains(payload, u.ID) || !strings.Contains(payload, `"who":"author"`) {
+		t.Fatalf("payload %s", payload)
 	}
-	if len(turn.Ideas) != 1 || len(turn.Ideas[0].Similar) != 1 || turn.Ideas[0].Similar[0].ID != rejected.ID {
-		t.Fatalf("similar ref not mapped: %+v", turn.Ideas)
+	set := setting(t, e)
+	if len(set.Entries) != 3 || set.Entries[0].Text != "主角怕安静" || set.Entries[1].Place != workspace.PlaceBody || set.Entries[2].Place != workspace.PlaceOpen {
+		t.Fatalf("entries %+v", set.Entries)
+	}
+	if src := set.Entries[0].Sources; len(src) != 1 || src[0].Message != u.ID {
+		t.Fatalf("the author's words did not join the sources: %+v", src)
+	}
+	r := set.Revisions[len(set.Revisions)-1]
+	if r.By != workspace.ByBookkeeper || r.From != u.ID || r.Through != a.ID || r.Base != 1 || r.Reasoning != "想一想" || r.Effort != "low" {
+		t.Fatalf("revision %+v", r)
+	}
+	if did, err = b.Run(context.Background(), session); did || err != nil {
+		t.Fatal("covered turns were taken in again")
 	}
 }
 
-// A turn keeps what each model showed of its reasoning, with the model and
-// effort, and reports its steps as they run.
-func TestTurnRecordsReasoningAndSteps(t *testing.T) {
+func TestBookkeeperRules(t *testing.T) {
+	src := func(msg, q string) []map[string]string { return []map[string]string{{"msg": msg, "quote": q}} }
+	because := func(msg, q string) map[string]string { return map[string]string{"msg": msg, "quote": q} }
+	for _, tc := range []struct {
+		name, want string
+		op         map[string]any
+	}{
+		{"quote not verbatim", "逐字", map[string]any{"op": "add", "place": "body", "category": "人物", "text": "主角修灯", "sources": src("m1", "主角修灯")}},
+		{"unknown message", "不存在", map[string]any{"op": "add", "place": "open", "category": "人物", "text": "x", "sources": src("m9", "主角")}},
+		{"AI's idea into the body", "accepted", map[string]any{"op": "add", "place": "body", "category": "规则", "text": "雨从不停", "sources": src("m2", "雨从不停")}},
+		{"AI accepting itself", "作者", map[string]any{"op": "add", "place": "body", "category": "规则", "text": "雨从不停", "sources": src("m2", "雨从不停"), "accepted": because("m2", "雨从不停")}},
+		{"inferred change to the body", "because", map[string]any{"op": "edit", "entry": "e1", "text": "主角不怕黑"}},
+		{"inferred drop", "because", map[string]any{"op": "move", "entry": "e1", "place": "dropped"}},
+		{"back from dropped", "because", map[string]any{"op": "move", "entry": "e2", "place": "open"}},
+		{"the author's entry", "because", map[string]any{"op": "edit", "entry": "e3", "text": "改一改"}},
+		{"unknown category", "未知分类", map[string]any{"op": "add", "place": "open", "category": "魔法", "text": "x", "sources": src("m1", "主角")}},
+		{"unknown entry", "不在 setting", map[string]any{"op": "edit", "entry": "e9", "text": "x"}},
+		{"ID instead of ref", "不在 setting", map[string]any{"op": "move", "entry": "20261008-1200-abcd", "place": "open"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e, session := setup(t)
+			revise(t, e,
+				workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "主角怕黑"},
+				workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceDropped, Category: "人物", Text: "主角是转生者"},
+				workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceOpen, Category: "人物", Text: "主角有个妹妹"})
+			turn(t, e, session, "主角修路灯。", "也许城市的雨从不停。")
+			before := len(setting(t, e).Revisions)
+			// The same breach twice: the correction fails too.
+			b, f := book(e, ops(tc.op), ops(tc.op))
+			_, err := b.Run(context.Background(), session)
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("error %v", err)
+			}
+			if len(f.calls) != 2 || !strings.Contains(f.calls[1].Messages[2].Content, tc.want) {
+				t.Fatal("the model was not told what to correct")
+			}
+			if len(setting(t, e).Revisions) != before {
+				t.Fatal("a breach was written")
+			}
+		})
+	}
+}
+
+func TestBookkeeperCorrectsOnce(t *testing.T) {
 	e, session := setup(t)
-	e.Talk = Model{Completer: &fake{replies: []string{"可以让她修灯。"}, reasoning: "她怕黑，职业要和光有关"}, Name: "deepseek/deepseek-flash", Effort: model.EffortMax}
-	e.Book = Model{Completer: &fake{replies: []string{`{"ideas":[]}`}, reasoning: "没有新思路"}, Name: "deepseek/deepseek-flash", Effort: model.EffortLow}
-	var steps []Step
-	var streamed string
-	e.Progress = func(s Step, d model.Delta) {
-		if len(steps) == 0 || steps[len(steps)-1] != s {
-			steps = append(steps, s)
+	turn(t, e, session, "主角修路灯。", "好的。")
+	b, _ := book(e, `{"ops":[{"op":"add","place":"body","category":"人物","text":"主角修灯","sources":[{"msg":"m1","quote":"主角修灯"}]}]}`,
+		`{"ops":[{"op":"add","place":"body","category":"人物","text":"主角修路灯","sources":[{"msg":"m1","quote":"主角修路灯"}]}]}`)
+	if _, err := b.Run(context.Background(), session); err != nil {
+		t.Fatal(err)
+	}
+	set := setting(t, e)
+	if len(set.Entries) != 1 || set.Entries[0].Text != "主角修路灯" || !strings.Contains(set.Revisions[0].Reasoning, "（改正时）") {
+		t.Fatalf("%+v", set)
+	}
+}
+
+// A batch failing every attempt is recorded and the turns after it go on;
+// redoing it later takes it in.
+func TestWorkerRetriesRecordsFailureAndRedoes(t *testing.T) {
+	e, session := setup(t)
+	u, _ := turn(t, e, session, "主角修路灯。", "好的。")
+	failing := &fake{err: errors.New("服务暂时不可用")}
+	var bk atomic.Pointer[Bookkeeper]
+	changed := make(chan struct{}, 8)
+	w := NewWorker(func() (*Bookkeeper, error) { return bk.Load(), nil }, []time.Duration{time.Millisecond, time.Millisecond}, func() { changed <- struct{}{} })
+	bk.Store(&Bookkeeper{Store: e.Store, Model: Model{Completer: failing}})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go w.Run(ctx)
+	w.Kick()
+	select {
+	case <-changed:
+	case <-time.After(3 * time.Second):
+		t.Fatal("no revision")
+	}
+	set := setting(t, e)
+	if len(failing.calls) != 3 || len(set.Revisions) != 1 || !strings.Contains(set.Revisions[0].Failed, "服务暂时不可用") || set.Revisions[0].From != u.ID {
+		t.Fatalf("calls %d revisions %+v", len(failing.calls), set.Revisions)
+	}
+	failed := set.Revisions[0].ID
+	next, _ := book(e, ops(map[string]any{"op": "add", "place": "body", "category": "规则", "text": "雨从不停", "sources": []map[string]string{{"msg": "m3", "quote": "雨从不停"}}}))
+	bk.Store(next)
+	turn(t, e, session, "雨从不停。", "好。")
+	w.Kick()
+	select {
+	case <-changed:
+	case <-time.After(3 * time.Second):
+		t.Fatal("the turns after a failure did not go on")
+	}
+	if set = setting(t, e); len(set.Entries) != 1 || set.Entries[0].Text != "雨从不停" {
+		t.Fatalf("%+v", set.Entries)
+	}
+	redo, _ := book(e, ops(map[string]any{"op": "add", "place": "body", "category": "人物", "text": "主角修路灯", "sources": []map[string]string{{"msg": "m1", "quote": "主角修路灯"}}}))
+	if err := redo.Redo(context.Background(), failed); err != nil {
+		t.Fatal(err)
+	}
+	if set = setting(t, e); !set.Redone(failed) || len(set.Entries) != 2 {
+		t.Fatalf("redo %+v", set)
+	}
+}
+
+func TestLocateForgivesCopyMarks(t *testing.T) {
+	text := "**一种是它吃声音。** 那东西一动，周围的“雨声”会先被吸走。"
+	for quote, want := range map[string]string{
+		"它吃声音": "它吃声音",
+		"一种是它吃声音。那东西一动": "一种是它吃声音。** 那东西一动",
+		"周围的雨声会先被吸走":    "周围的“雨声”会先被吸走",
+	} {
+		if got, ok := locate(text, quote); !ok || got != want || !strings.Contains(text, got) {
+			t.Errorf("locate(%q) = %q %v, want %q", quote, got, ok, want)
 		}
-		streamed += d.Reasoning + d.Text
 	}
-	turn, err := e.Send(context.Background(), session, "她做什么工作？")
-	if err != nil {
+	for _, quote := range []string{"", "  ", "它不吃声音", "**"} {
+		if _, ok := locate(text, quote); ok {
+			t.Errorf("locate(%q) found", quote)
+		}
+	}
+}
+
+// The exchange before a batch goes with it, marked as covered, so "the
+// second one" can be resolved and quoted.
+func TestBookkeeperSeesTheExchangeBefore(t *testing.T) {
+	e, session := setup(t)
+	turn(t, e, session, "给我几个方向", "一是雨从不停；二是雨每年停一天。")
+	b, _ := book(e, `{"ops":[]}`)
+	if _, err := b.Run(context.Background(), session); err != nil {
 		t.Fatal(err)
 	}
-	if len(steps) != 2 || steps[0] != StepReply || steps[1] != StepBookkeep || !strings.Contains(streamed, "可以让她修灯。") {
-		t.Fatalf("steps %v streamed %q", steps, streamed)
-	}
-	if e.Talk.Completer.(*fake).calls[0].Effort != model.EffortMax || e.Book.Completer.(*fake).calls[0].Effort != model.EffortLow {
-		t.Fatal("effort not sent")
-	}
-	events, err := e.Store.Events(session)
-	if err != nil {
+	u, _ := turn(t, e, session, "第二个不错，就这么定。", "好。")
+	b, f := book(e, ops(map[string]any{"op": "add", "place": "body", "category": "规则", "text": "雨每年停一天",
+		"sources": []map[string]string{{"msg": "m2", "quote": "雨每年停一天"}}, "accepted": map[string]string{"msg": "m3", "quote": "第二个不错，就这么定"}}))
+	if _, err := b.Run(context.Background(), session); err != nil {
 		t.Fatal(err)
 	}
-	reply, book := events[1], events[2]
-	if reply.ID != turn.Reply.ID || reply.Reasoning != "她怕黑，职业要和光有关" || reply.Model != "deepseek/deepseek-flash" || reply.Effort != "max" {
-		t.Fatalf("reply record %+v", reply)
+	payload := f.calls[0].Messages[0].Content
+	if !strings.Contains(payload, `{"ref":"m2","who":"ai","earlier":true,"text":"一是雨从不停；二是雨每年停一天。"}`) || !strings.Contains(payload, `{"ref":"m3","who":"author","text":"第二个不错，就这么定。"}`) {
+		t.Fatalf("payload %s", payload)
 	}
-	if book.Kind != workspace.KindBookkeeping || book.Reasoning != "没有新思路" || book.Effort != "low" {
-		t.Fatalf("bookkeeping record %+v", book)
+	set := setting(t, e)
+	r := set.Revisions[len(set.Revisions)-1]
+	if r.From != u.ID || len(set.Entries) != 1 || set.Entries[0].Place != workspace.PlaceBody {
+		t.Fatalf("%+v %+v", r, set.Entries)
 	}
 }

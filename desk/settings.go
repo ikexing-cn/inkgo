@@ -187,7 +187,7 @@ func (a *App) usage(c *ui.Context) {
 	for _, p := range a.Config.Providers {
 		ids = append(ids, p.ID)
 	}
-	a.section(c, "这部作品用哪个模型", "讨论模型负责回应你；整理模型把对话拆成思路卡片，可以用更便宜的模型或更低的推理等级。推理等级 Default 交给服务商决定。改动从下一次发送开始生效。", func() {
+	a.section(c, "这部作品用哪个模型", "讨论模型负责回应你；整理模型在后台把讨论整理进设定文档，可以用更便宜的模型或更低的推理等级。推理等级 Default 交给服务商决定。改动从下一次发送开始生效。", func() {
 		ui.Row(c).FillWidth().Gap(12).Children(func() {
 			labeled(c, "讨论 · 服务", func() {
 				ui.Select(c, &a.talkProvider, ids).Label("讨论提供商").FillWidth().Disabled(busy)
@@ -224,7 +224,7 @@ func (a *App) usage(c *ui.Context) {
 			labeled(c, "上下文预算（token，含回答预留）", func() {
 				ui.TextInput(c, &a.budget).Label("上下文预算").FillWidth().Disabled(busy)
 			}).Width(200)
-			ui.Text(c, "不要超过模型的上下文窗口。放不下的思路会在回复下的“AI 看到了什么”里列出。").FontSize(12).TextColor(a.pal.faint).LineHeight(1.5).Grow(1).Padding(0, 0, 8, 0)
+			ui.Text(c, "不要超过模型的上下文窗口。放不下的设定会在回复下的“AI 看到了什么”里列出。").FontSize(12).TextColor(a.pal.faint).LineHeight(1.5).Grow(1).Padding(0, 0, 8, 0)
 		})
 		a.pal.hairline(c)
 		ui.Row(c).FillWidth().Children(func() {

@@ -1,4 +1,4 @@
-// Package desk is the native M1 discussion interface.
+// Package desk is the native discussion interface.
 package desk
 
 import (
@@ -22,61 +22,38 @@ type result struct {
 	err   error
 }
 
-// undo remembers the author's last decision so a misclick costs one click.
-type undo struct {
-	id, text string
-	from, to workspace.Status
-	at       time.Time
-}
-
-// live is what the steps of the running turn have streamed so far. The
-// worker writes it as output arrives; the view reads it each frame.
+// live is what the reply in flight has streamed so far. The worker writes
+// it as output arrives; the view reads it each frame.
 type live struct {
-	mu    sync.Mutex
-	step  discussion.Step
-	parts map[discussion.Step]*streamed
+	mu              sync.Mutex
+	reasoning, text strings.Builder
 }
 
-type streamed struct{ reasoning, text strings.Builder }
-
-func (l *live) add(step discussion.Step, d model.Delta) {
+func (l *live) add(d model.Delta) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if l.parts == nil {
-		l.parts = map[discussion.Step]*streamed{}
-	}
-	p := l.parts[step]
-	if p == nil || d == (model.Delta{}) {
-		// An empty delta announces the step; one that runs again starts empty.
-		p = &streamed{}
-		l.parts[step] = p
-	}
-	l.step = step
-	p.reasoning.WriteString(d.Reasoning)
-	p.text.WriteString(d.Text)
+	l.reasoning.WriteString(d.Reasoning)
+	l.text.WriteString(d.Text)
 }
 
-// read returns the running step and what step s has streamed.
-func (l *live) read(s discussion.Step) (running discussion.Step, reasoning, text string) {
+func (l *live) read() (reasoning, text string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if p := l.parts[s]; p != nil {
-		reasoning, text = p.reasoning.String(), p.text.String()
-	}
-	return l.step, reasoning, text
+	return l.reasoning.String(), l.text.String()
 }
 
 func (l *live) reset() {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.step, l.parts = "", nil
+	l.reasoning.Reset()
+	l.text.Reset()
 }
 
-// draft holds the edits to the selected card until they are saved.
-type draft struct {
-	text, category, factSource string
-	fact, verified             bool
-}
+// flashFor is how long an entry the bookkeeper just changed stays tinted.
+const flashFor = 3 * time.Second
+
+// bookBackoff is the waits between the bookkeeper's attempts at a batch.
+var bookBackoff = []time.Duration{10 * time.Second, time.Minute}
 
 type App struct {
 	Store      *workspace.Store
@@ -98,15 +75,10 @@ type App struct {
 	sessions                []string
 	titles                  map[string]string
 	events                  []workspace.Event
-	ideas                   []workspace.Idea
+	set                     workspace.Setting
+	seen                    int // revisions of set the view has flashed
+	flash                   map[string]time.Time
 	input                   string
-	filter                  int // index into filters
-	extra, search           string
-	turn                    string // reply ID restricting the pool, or ""
-	selected, expanded      string
-	rejectID                string
-	draft                   draft
-	reason                  string
 	source                  *editor.Editor
 	sourceMessage           string
 	sourceOpen              bool
@@ -120,8 +92,6 @@ type App struct {
 	picks                   chan func()
 	chat                    ui.ListState
 	rows                    []int // the chat list's: event indexes, -1 the empty chat, -2 the turn in flight
-	focusCard               string
-	last                    *undo
 	providerID              string
 	provider                model.Provider
 	key, models             string
@@ -134,8 +104,15 @@ type App struct {
 	talkEffort, bookEffort  string
 	live                    live
 	md                      mdCache
-	thoughts                map[string]*bool // reasoning shown, by event ID
-	LastChat, LastPool      ui.Rect
+	thoughts                map[string]*bool // reasoning shown, by event or revision ID
+	doc                     docView
+	// Book returns the bookkeeper the worker runs, as the work and the
+	// model settings are now; tests replace it.
+	Book                  func(*workspace.Store) (*discussion.Bookkeeper, error)
+	worker                *discussion.Worker
+	stopWorker            context.CancelFunc
+	changes               chan struct{} // the worker wrote a revision
+	LastChat, LastSetting ui.Rect
 }
 
 func New() *App {
@@ -150,8 +127,9 @@ func New() *App {
 
 // NewWithConfig allows a separate profile, including isolated test profiles.
 func NewWithConfig(path string) *App {
-	a := &App{genre: "网文", results: make(chan result, 1), picks: make(chan func(), 1), ConfigFile: path,
-		light: lightPalette(), dark: darkPalette(), titles: map[string]string{}, md: mdCache{}, thoughts: map[string]*bool{}}
+	a := &App{genre: "网文", results: make(chan result, 1), picks: make(chan func(), 1), changes: make(chan struct{}, 1), ConfigFile: path,
+		light: lightPalette(), dark: darkPalette(), titles: map[string]string{}, md: mdCache{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
+	a.Book = a.bookkeeper
 	a.pal = a.light
 	if path != "" {
 		var err error
@@ -189,11 +167,13 @@ func (a *App) create() error {
 // attach makes s the current work, starting a session when it has none.
 func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 	if a.Store != nil {
+		a.halt()
 		a.Store.Close()
 	}
 	a.Store, a.path = s, path
 	a.titles = map[string]string{}
 	a.resetView()
+	a.loadPrefs()
 	a.loadWork()
 	sessions, err := s.Sessions()
 	if err != nil {
@@ -211,15 +191,15 @@ func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 }
 
 func (a *App) resetView() {
-	a.selected, a.expanded, a.rejectID, a.turn = "", "", "", ""
 	a.source, a.sourceOpen, a.contextReply = nil, false, ""
-	a.input, a.search, a.extra, a.filter, a.last = "", "", extras[0], 0, nil
+	a.input, a.seen, a.flash, a.doc = "", -1, map[string]time.Time{}, docView{}
 	a.page = 0
 }
 
 // closeWork returns to the welcome page, with its form cleared so a new work
 // does not inherit the last one's folder or name.
 func (a *App) closeWork() {
+	a.halt()
 	a.setError(a.Store.Close())
 	a.Store = nil
 	a.path, a.name = "", ""
@@ -230,6 +210,7 @@ func (a *App) Close() error {
 	if a.cancel != nil {
 		a.cancel()
 	}
+	a.halt()
 	// Window shutdown exits the process. A cancelled worker may still be
 	// saving what it already has, so leave the store open for it.
 	if a.Store != nil && a.busy == "" {
@@ -242,9 +223,10 @@ func (a *App) refresh() error {
 		return nil
 	}
 	var err error
-	if a.ideas, err = a.Store.Ideas(); err != nil {
+	if a.set, err = a.Store.Setting(); err != nil {
 		return err
 	}
+	a.flashNew()
 	if a.events, err = a.Store.Events(a.session); err != nil {
 		return err
 	}
@@ -271,7 +253,7 @@ func sessionTitle(id string, events []workspace.Event) string {
 		when = t.Format("01-02 15:04")
 	}
 	for _, e := range events {
-		if e.Kind == workspace.KindMessage && e.Role == workspace.RoleUser {
+		if e.Role == workspace.RoleUser {
 			return when + " · " + clip(e.Text, 14)
 		}
 	}
@@ -292,16 +274,15 @@ func clip(s string, n int) string {
 	return string(r)
 }
 
-// engine returns a discussion engine for the open work with the models it
-// selects, streaming its progress into the view when c is given. Without
-// models it still returns an engine and says why: saving a decision or
-// replaying a journaled plan needs no model.
+// engine returns a discussion engine for the open work with the model it
+// selects, streaming the reply into the view when c is given. Without a
+// model it still returns an engine and says why.
 func (a *App) engine(c *ui.Context) (*discussion.Engine, error) {
 	e := &discussion.Engine{Store: a.Store}
 	if c != nil {
 		a.live.reset()
-		e.Progress = func(s discussion.Step, d model.Delta) {
-			a.live.add(s, d)
+		e.Progress = func(d model.Delta) {
+			a.live.add(d)
 			c.Invalidate()
 		}
 	}
@@ -313,17 +294,76 @@ func (a *App) engine(c *ui.Context) (*discussion.Engine, error) {
 	if err != nil {
 		return e, err
 	}
+	e.Talk = discussion.Model{Completer: talk, Name: work.Discussion.Provider + "/" + work.Discussion.Model, Effort: model.Effort(work.Discussion.Effort)}
+	return e, nil
+}
+
+// bookkeeper builds the bookkeeper of s from the model settings on disk:
+// it runs on the worker's goroutine, which must not read the view's state.
+// The bookkeeping model left empty is the discussion's.
+func (a *App) bookkeeper(s *workspace.Store) (*discussion.Bookkeeper, error) {
+	work := s.Work()
 	sel := work.Bookkeeping
 	if sel.Provider == "" {
 		sel.Provider, sel.Model = work.Discussion.Provider, work.Discussion.Model
 	}
-	book, err := model.NewClient(a.Config, sel.Provider, sel.Model)
-	if err != nil {
-		return e, err
+	if sel.Provider == "" || sel.Model == "" {
+		return nil, errors.New("还没有选择模型")
 	}
-	e.Talk = discussion.Model{Completer: talk, Name: work.Discussion.Provider + "/" + work.Discussion.Model, Effort: model.Effort(work.Discussion.Effort)}
-	e.Book = discussion.Model{Completer: book, Name: sel.Provider + "/" + sel.Model, Effort: model.Effort(sel.Effort)}
-	return e, nil
+	cfg, err := model.Load(a.ConfigFile)
+	if err != nil {
+		return nil, err
+	}
+	client, err := model.NewClient(cfg, sel.Provider, sel.Model)
+	if err != nil {
+		return nil, err
+	}
+	return &discussion.Bookkeeper{Store: s, Model: discussion.Model{Completer: client, Name: sel.Provider + "/" + sel.Model, Effort: model.Effort(sel.Effort)}}, nil
+}
+
+// startWorker runs the bookkeeper of the open work in the background.
+func (a *App) startWorker(c *ui.Context) {
+	ctx, stop := context.WithCancel(context.Background())
+	s, book := a.Store, a.Book
+	a.worker = discussion.NewWorker(func() (*discussion.Bookkeeper, error) { return book(s) }, bookBackoff, func() {
+		select {
+		case a.changes <- struct{}{}:
+		default:
+		}
+		c.Invalidate()
+	})
+	a.stopWorker = stop
+	go a.worker.Run(ctx)
+	a.worker.Kick()
+}
+
+// kick has the bookkeeper look for turns to take in.
+func (a *App) kick() {
+	if a.worker != nil {
+		a.worker.Kick()
+	}
+}
+
+// halt stops the bookkeeper: what it has not written is taken in when the
+// work opens again.
+func (a *App) halt() {
+	if a.stopWorker != nil {
+		a.stopWorker()
+	}
+	a.worker, a.stopWorker = nil, nil
+}
+
+// flashNew tints the entries the bookkeeper changed since the view last
+// looked; the revisions there were when the work opened are not news.
+func (a *App) flashNew() {
+	if a.seen >= 0 {
+		for _, e := range a.set.Entries {
+			if e.Rev > a.seen && a.set.Revisions[e.Rev-1].By == workspace.ByBookkeeper {
+				a.flash[e.ID] = time.Now()
+			}
+		}
+	}
+	a.seen = len(a.set.Revisions)
 }
 
 // All state visible to the view is changed on the view thread. Workers own the
@@ -343,6 +383,11 @@ func (a *App) poll() {
 	select {
 	case fn := <-a.picks:
 		fn()
+	default:
+	}
+	select {
+	case <-a.changes:
+		a.setError(a.refresh())
 	default:
 	}
 	select {
@@ -398,4 +443,5 @@ func (a *App) loadWork() {
 	a.talkEffort = w.Discussion.Effort
 	a.bookEffort = w.Bookkeeping.Effort
 	a.budget = fmt.Sprint(w.TokenBudget)
+	a.kick() // the models may have changed
 }

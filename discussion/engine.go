@@ -19,72 +19,46 @@ type Model struct {
 
 func (m Model) ready() bool { return m.Completer != nil }
 
-// Step is the part of a turn a model is working on.
-type Step string
-
-const (
-	StepReply     Step = "reply"
-	StepBookkeep  Step = "bookkeep"
-	StepConflicts Step = "conflicts"
-)
-
-// Engine runs the discussion of one work. Its owner serializes calls; Talk
-// and Book may be unset when no model is configured, which only the calls
-// that need a model refuse.
-type Engine struct {
-	Store *workspace.Store
-	Talk  Model
-	Book  Model
-	// Progress, when set, hears each step start, with an empty delta, and
-	// then what its model streams, never empty. It runs on the caller's
-	// goroutine.
-	Progress func(Step, model.Delta)
-}
-
-// ask runs one step on m, reporting its progress.
-func (e *Engine) ask(ctx context.Context, m Model, step Step, req model.Request) (model.Reply, error) {
+// ask runs a request on m, streaming to on when it is set.
+func ask(ctx context.Context, m Model, req model.Request, on func(model.Delta)) (model.Reply, error) {
 	req.Effort = m.Effort
-	var on func(model.Delta)
-	if e.Progress != nil {
-		e.Progress(step, model.Delta{})
-		on = func(d model.Delta) { e.Progress(step, d) }
-	}
 	return m.Complete(ctx, req, on)
 }
 
-// Turn is one exchange: the author's words, the reply, and the ideas
-// bookkeeping drew from them.
+// Engine runs the talk of one work: a turn waits for the reply only, and
+// the bookkeeper brings the setting up to date in the background. Its
+// owner serializes calls; Talk may be unset when no model is configured,
+// which only the calls that need a model refuse.
+type Engine struct {
+	Store *workspace.Store
+	Talk  Model
+	// Progress, when set, hears what the reply streams, never empty. It
+	// runs on the caller's goroutine.
+	Progress func(model.Delta)
+}
+
+// Turn is one exchange: the author's words and the reply.
 type Turn struct {
 	User, Reply workspace.Event
-	Ideas       []workspace.Idea
 }
 
 var errNoModel = errors.New("请先配置讨论模型")
 
-// Send saves the author's words, then asks for a reply and bookkeeps it.
-// Whatever fails after the words are saved can be retried without them
-// being sent twice.
+// Send saves the author's words, then asks for a reply. If the reply fails,
+// the words stay saved and Retry asks again without sending them twice.
 func (e *Engine) Send(ctx context.Context, session, input string) (Turn, error) {
 	var turn Turn
 	if strings.TrimSpace(input) == "" {
 		return turn, errors.New("请输入要讨论的内容")
 	}
-	if !e.Talk.ready() || !e.Book.ready() {
+	if !e.Talk.ready() {
 		return turn, errNoModel
 	}
-	ideas, err := e.Store.Ideas()
+	assembled, err := e.assemble(session, -1, input)
 	if err != nil {
 		return turn, err
 	}
-	events, err := e.Store.Events(session)
-	if err != nil {
-		return turn, err
-	}
-	assembled, err := Assemble(ideas, events, input, e.Store.Work().TokenBudget)
-	if err != nil {
-		return turn, err
-	}
-	turn.User, err = e.Store.Append(session, workspace.Event{Kind: workspace.KindMessage, Role: workspace.RoleUser, Text: input})
+	turn.User, err = e.Store.Append(session, workspace.Event{Role: workspace.RoleUser, Text: input})
 	if err != nil {
 		return turn, err
 	}
@@ -94,7 +68,7 @@ func (e *Engine) Send(ctx context.Context, session, input string) (Turn, error) 
 // Retry resumes an unanswered saved turn without appending a duplicate user message.
 func (e *Engine) Retry(ctx context.Context, session, userID string) (Turn, error) {
 	var turn Turn
-	if !e.Talk.ready() || !e.Book.ready() {
+	if !e.Talk.ready() {
 		return turn, errNoModel
 	}
 	events, err := e.Store.Events(session)
@@ -103,29 +77,42 @@ func (e *Engine) Retry(ctx context.Context, session, userID string) (Turn, error
 	}
 	pos := -1
 	for n, m := range events {
-		if m.ID == userID && m.Kind == workspace.KindMessage && m.Role == workspace.RoleUser {
+		if m.ID == userID && m.Role == workspace.RoleUser {
 			turn.User, pos = m, n
 		}
-		if m.Kind == workspace.KindMessage && m.Role == workspace.RoleAssistant && m.ReplyTo == userID {
-			return turn, errors.New("这条发言已有回复，请使用重试记账")
+		if m.Role == workspace.RoleAssistant && m.ReplyTo == userID {
+			return turn, errors.New("这条发言已有回复")
 		}
 	}
 	if pos < 0 {
 		return turn, errors.New("找不到待重试的发言")
 	}
-	ideas, err := e.Store.Ideas()
-	if err != nil {
-		return turn, err
-	}
-	assembled, err := Assemble(ideas, events[:pos], turn.User.Text, e.Store.Work().TokenBudget)
+	assembled, err := e.assemble(session, pos, turn.User.Text)
 	if err != nil {
 		return turn, err
 	}
 	return e.respond(ctx, session, turn, assembled)
 }
 
+// assemble builds the request for input from the setting and the talk
+// before event before, or all of it for -1.
+func (e *Engine) assemble(session string, before int, input string) (Context, error) {
+	set, err := e.Store.Setting()
+	if err != nil {
+		return Context{}, err
+	}
+	events, err := e.Store.Events(session)
+	if err != nil {
+		return Context{}, err
+	}
+	if before >= 0 {
+		events = events[:before]
+	}
+	return Assemble(e.Store.Work(), set, events, set.Processed(session, events), input)
+}
+
 func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembled Context) (Turn, error) {
-	reply, err := e.ask(ctx, e.Talk, StepReply, assembled.Request)
+	reply, err := ask(ctx, e.Talk, assembled.Request, e.Progress)
 	if err != nil {
 		return turn, fmt.Errorf("讨论失败，原文已保存：%w", err)
 	}
@@ -133,56 +120,45 @@ func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembl
 		return turn, errors.New("模型返回空回复，原文已保存")
 	}
 	turn.Reply, err = e.Store.Append(session, workspace.Event{
-		Kind: workspace.KindMessage, Role: workspace.RoleAssistant, Text: reply.Text, ReplyTo: turn.User.ID,
+		Role: workspace.RoleAssistant, Text: reply.Text, ReplyTo: turn.User.ID,
 		Context: assembled.Included, Omitted: assembled.Omitted,
 		Model: e.Talk.Name, Effort: string(e.Talk.Effort), Reasoning: reply.Reasoning,
 	})
-	if err != nil {
-		return turn, err
-	}
-	turn.Ideas, err = e.Bookkeep(ctx, session, turn.Reply.ID)
-	if err != nil {
-		return turn, fmt.Errorf("回复已保存，记账未完成，可重试：%w", err)
-	}
-	return turn, nil
+	return turn, err
 }
 
-// Mark persists the author's decision even if the advisory conflict check
-// fails. Errors explicitly distinguish a saved decision from a failed check.
-func (e *Engine) Mark(ctx context.Context, id string, status workspace.Status, reason string) error {
-	if _, err := e.Store.ChangeStatus(id, status, reason); err != nil {
-		return err
-	}
-	if status == workspace.Kept {
-		if err := e.CheckConflicts(ctx, id); err != nil {
-			return fmt.Errorf("保留已保存，冲突检查失败（可重试）：%w", err)
-		}
-	}
-	return nil
-}
-
-// Manual extracts precisely the selected rune range; it does not ask a model.
-func (e *Engine) Manual(session, message string, start, end int, category string) (workspace.Idea, error) {
+// Extract adds the selected runes of a message to the setting's body as
+// the author's entry, quoting them as its source; it asks no model.
+func (e *Engine) Extract(session, message string, start, end int, category string) (workspace.Entry, error) {
 	events, err := e.Store.Events(session)
 	if err != nil {
-		return workspace.Idea{}, err
+		return workspace.Entry{}, err
 	}
 	for _, m := range events {
-		if m.ID != message || m.Kind != workspace.KindMessage {
+		if m.ID != message {
 			continue
 		}
 		runes := []rune(m.Text)
 		if start < 0 || end <= start || end > len(runes) {
-			return workspace.Idea{}, errors.New("原文选区无效")
+			return workspace.Entry{}, errors.New("原文选区无效")
 		}
-		source := workspace.SourceAI
-		if m.Role == workspace.RoleUser {
-			source = workspace.SourceHuman
+		text := string(runes[start:end])
+		if strings.TrimSpace(text) == "" {
+			return workspace.Entry{}, errors.New("选中的只有空白")
 		}
-		return e.Store.NewIdea(workspace.Idea{
-			Text: string(runes[start:end]), Source: source, Category: category, Topic: "general",
-			Origin: workspace.Origin{Session: session, Message: message, Span: workspace.Span{Start: start, End: end}},
-		})
+		r, err := e.Store.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{{
+			Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: category, Text: strings.TrimSpace(text),
+			Sources: []workspace.Source{{Session: session, Message: message, Quote: text}},
+		}}})
+		if err != nil {
+			return workspace.Entry{}, err
+		}
+		set, err := e.Store.Setting()
+		if err != nil {
+			return workspace.Entry{}, err
+		}
+		entry, _ := set.Entry(r.Ops[0].Entry)
+		return entry, nil
 	}
-	return workspace.Idea{}, errors.New("找不到来源消息")
+	return workspace.Entry{}, errors.New("找不到来源消息")
 }

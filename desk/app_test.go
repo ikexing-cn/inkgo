@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -15,14 +16,15 @@ import (
 	"writer/workspace"
 )
 
-func fixture(t *testing.T) (*App, *ui.Tester, workspace.Idea) {
+// fixture opens a work whose setting holds one entry the author wrote.
+func fixture(t *testing.T) (*App, *ui.Tester, workspace.Entry) {
 	t.Helper()
 	root := t.TempDir()
 	s, err := workspace.Create(filepath.Join(root, "work"), "测试作品", "网文")
 	if err != nil {
 		t.Fatal(err)
 	}
-	i, err := s.NewIdea(workspace.Idea{Text: "主角怕黑", Category: "人物"})
+	r, err := s.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "主角怕黑"}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,8 +37,10 @@ func fixture(t *testing.T) (*App, *ui.Tester, workspace.Idea) {
 	tt := ui.NewTester(a.View, 1266, 780)
 	tt.Frame()
 	tt.Frame()
-	return a, tt, i
+	e, _ := a.set.Entry(r.Ops[0].Entry)
+	return a, tt, e
 }
+
 func settle(t *testing.T, a *App, tt *ui.Tester) {
 	t.Helper()
 	if a.busy == "" {
@@ -51,89 +55,179 @@ func settle(t *testing.T, a *App, tt *ui.Tester) {
 	}
 }
 
-func TestAuthorShortcutsAndInputIsolation(t *testing.T) {
-	a, tt, i := fixture(t)
-	if err := tt.Click("讨论输入"); err != nil {
-		t.Fatal(err)
-	}
-	tt.TypeKey(0, ui.Key1, "1")
-	tt.TypeKey(0, ui.Key2, "2")
-	tt.TypeKey(0, ui.Key3, "3")
-	if a.input != "123" || a.busy != "" || a.rejectID != "" {
-		t.Fatalf("input shortcuts leaked: %q %q", a.input, a.busy)
-	}
-	if err := tt.Click("思路-" + i.ID); err != nil {
-		t.Fatal(err)
-	}
-	tt.Key(0, ui.Key2)
-	tt.Frame()
-	if a.rejectID != i.ID || a.busy != "" {
-		t.Fatal("reject must allow an optional reason")
-	}
-	tt.Type("与故事基调不符")
-	tt.Key(0, ui.KeyEnter)
-	settle(t, a, tt)
-	saved, err := a.Store.Idea(i.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if saved.Status != workspace.Rejected || saved.History[0].Reason != "与故事基调不符" {
-		t.Fatalf("rejection %+v", saved)
-	}
-	tt.Frame()
-	if len(a.visibleIdeas()) != 0 {
-		t.Fatal("a decided card must leave the pending queue")
-	}
-	a.filter = len(filters) - 1
-	tt.Frame()
-	if err = tt.Click("捞回待定"); err != nil {
-		t.Fatal(err)
-	}
-	settle(t, a, tt)
-	saved, _ = a.Store.Idea(i.ID)
-	if saved.Status != workspace.Deferred {
-		t.Fatal(saved.Status)
-	}
-	if err = tt.Click("思路-" + i.ID); err != nil {
-		t.Fatal(err)
-	}
-	tt.Key(0, ui.Key1)
-	settle(t, a, tt)
-	saved, _ = a.Store.Idea(i.ID)
-	if saved.Status != workspace.Kept {
-		t.Fatal("offline human decision did not persist", a.Error)
-	}
+// answer is a model that gives its replies in order.
+type answer struct {
+	mu      sync.Mutex
+	replies []string
 }
 
-func TestUndoLastDecision(t *testing.T) {
-	a, tt, i := fixture(t)
-	// The pool's tab also reads 留下; the card's button is named by its card.
-	if err := tt.Click("留下-" + i.ID); err != nil {
+func (f *answer) Complete(ctx context.Context, r model.Request, on func(model.Delta)) (model.Reply, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if len(f.replies) == 0 {
+		return model.Reply{}, errors.New("unexpected model call")
+	}
+	s := f.replies[0]
+	f.replies = f.replies[1:]
+	return model.Reply{Text: s, Reasoning: "想一想"}, nil
+}
+
+// The author changes the setting directly: each change is a revision of
+// theirs, and what they drop can come back.
+func TestTheAuthorEditsTheSetting(t *testing.T) {
+	a, tt, e := fixture(t)
+	if !tt.HasText("主角怕黑") || !tt.HasText("人物 · 1") {
+		t.Fatal("the setting is not shown", tt.Texts())
+	}
+	if err := tt.Click("编辑-" + e.ID); err != nil {
 		t.Fatal(err)
 	}
-	settle(t, a, tt)
 	tt.Frame()
-	if saved, _ := a.Store.Idea(i.ID); saved.Status != workspace.Kept {
-		t.Fatal(saved.Status, a.Error)
+	a.doc.text, a.doc.category = "主角怕安静", "关系"
+	if err := tt.Click("保存"); err != nil {
+		t.Fatal(err)
 	}
-	if err := tt.Click("撤销"); err != nil {
+	tt.Frame()
+	got, _ := a.set.Entry(e.ID)
+	if got.Text != "主角怕安静" || got.Category != "关系" || !got.Author || a.doc.editing != "" {
+		t.Fatalf("edit %+v", got)
+	}
+	if err := tt.Click("放弃-" + e.ID); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if got, _ = a.set.Entry(e.ID); got.Place != workspace.PlaceDropped {
+		t.Fatal(got.Place)
+	}
+	*a.doc.open[workspace.PlaceDropped+"/"] = true
+	tt.Frame()
+	if err := tt.Click("移回-" + e.ID); err != nil {
 		t.Fatal(err, tt.Texts())
 	}
-	settle(t, a, tt)
-	if saved, _ := a.Store.Idea(i.ID); saved.Status != workspace.Unprocessed || a.last != nil {
-		t.Fatal("undo did not restore", saved.Status)
+	tt.Frame()
+	if got, _ = a.set.Entry(e.ID); got.Place != workspace.PlaceBody {
+		t.Fatal(got.Place)
+	}
+	if err := tt.Click("新增设定"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	a.doc.text = "雨从不停"
+	if err := tt.Click("保存"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if len(a.set.Entries) != 2 || a.set.Entries[1].Category != workspace.Other {
+		t.Fatalf("new entry %+v", a.set.Entries)
+	}
+	for _, r := range a.set.Revisions {
+		if r.By != workspace.ByAuthor {
+			t.Fatal("an author's change recorded as the bookkeeper's")
+		}
 	}
 }
 
-func TestSessionTitlesAndTurnFilter(t *testing.T) {
-	a, tt, i := fixture(t)
-	user, _ := a.Store.Append(a.session, workspace.Event{Kind: "message", Role: "user", Text: "雨城的故事\n第二行"})
-	reply, _ := a.Store.Append(a.session, workspace.Event{Kind: "message", Role: "assistant", ReplyTo: user.ID, Text: "好"})
-	turnIdea, err := a.Store.NewIdea(workspace.Idea{Text: "本轮思路", Category: "人物", Source: "human", Origin: workspace.Origin{Session: a.session, Message: user.ID, Span: workspace.Span{Start: 0, End: 2}}})
+// The bookkeeper works in the background: a turn saved brings the setting
+// up to date without the author doing anything, and what it changed is
+// tinted for a moment.
+func TestBookkeeperFillsTheSettingInTheBackground(t *testing.T) {
+	a, tt, _ := fixture(t)
+	f := &answer{replies: []string{`{"ops":[{"op":"add","place":"body","category":"规则","text":"雨从不停","sources":[{"msg":"m1","quote":"雨从不停"}]}]}`}}
+	a.Book = func(s *workspace.Store) (*discussion.Bookkeeper, error) {
+		return &discussion.Bookkeeper{Store: s, Model: discussion.Model{Completer: f, Name: "deepseek/deepseek-flash"}}, nil
+	}
+	a.halt() // the next frame starts one with the bookkeeper above
+	tt.Frame()
+	u, _ := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "这座城市雨从不停。"})
+	if _, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "好"}); err != nil {
+		t.Fatal(err)
+	}
+	a.kick()
+	deadline := time.Now().Add(3 * time.Second)
+	for len(a.set.Entries) < 2 && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+		tt.Frame()
+	}
+	if len(a.set.Entries) != 2 || !tt.HasText("雨从不停") {
+		t.Fatalf("setting %+v %q", a.set.Entries, a.Error)
+	}
+	if _, ok := a.flash[a.set.Entries[1].ID]; !ok {
+		t.Fatal("the bookkeeper's change is not tinted")
+	}
+	if err := tt.Click("设定历史"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("后台整理") || !tt.HasText("新增到正文 · 规则：雨从不停") || !tt.HasText("整理时的思考") {
+		t.Fatal("history", tt.Texts())
+	}
+}
+
+// A batch the bookkeeper could not take in shows in the history only, with
+// a retry.
+func TestFailedBookkeepingShowsInHistory(t *testing.T) {
+	a, tt, _ := fixture(t)
+	u, _ := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "雨从不停。"})
+	r, _ := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "好"})
+	failed, err := a.Store.Revise(workspace.Revision{By: workspace.ByBookkeeper, Session: a.session, From: u.ID, Through: r.ID, Failed: "服务暂时不可用"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = a.Store.Append(a.session, workspace.Event{Kind: "bookkeeping", ReplyTo: reply.ID, IdeaIDs: []string{turnIdea.ID}, Text: "[]"}); err != nil {
+	a.setError(a.refresh())
+	tt.Frame()
+	if tt.HasText("这几轮没整理成功：服务暂时不可用") {
+		t.Fatal("a failure shows outside the history")
+	}
+	a.doc.history = true
+	tt.Frame()
+	if !tt.HasText("这几轮没整理成功：服务暂时不可用") {
+		t.Fatal("history", tt.Texts())
+	}
+	f := &answer{replies: []string{`{"ops":[]}`}}
+	a.Book = func(s *workspace.Store) (*discussion.Bookkeeper, error) {
+		return &discussion.Bookkeeper{Store: s, Model: discussion.Model{Completer: f}}, nil
+	}
+	if err = tt.Click("重试整理-" + failed.ID); err != nil {
+		t.Fatal(err)
+	}
+	settle(t, a, tt)
+	if !a.set.Redone(failed.ID) || a.Error != "" {
+		t.Fatalf("redo %q", a.Error)
+	}
+}
+
+// The panel folds away for the talk alone, and stays folded when the work
+// opens again.
+func TestSettingPanelFoldsAndRemembers(t *testing.T) {
+	a, tt, _ := fixture(t)
+	if err := tt.Click("收起设定"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !a.doc.hidden || tt.HasText("主角怕黑") {
+		t.Fatal("panel still shown")
+	}
+	path := a.path
+	a.closeWork()
+	if err := a.Open(path); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !a.doc.hidden {
+		t.Fatal("folding was not remembered")
+	}
+	if err := tt.Click("展开设定"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.doc.hidden || !tt.HasText("主角怕黑") {
+		t.Fatal("panel not shown again")
+	}
+}
+
+func TestSessionTitles(t *testing.T) {
+	a, tt, _ := fixture(t)
+	if _, err := a.Store.Append(a.session, workspace.Event{Role: "user", Text: "雨城的故事\n第二行"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := a.refresh(); err != nil {
@@ -143,12 +237,25 @@ func TestSessionTitlesAndTurnFilter(t *testing.T) {
 	if title := a.titles[a.session]; !strings.HasSuffix(title, "雨城的故事") {
 		t.Fatalf("title %q", title)
 	}
-	if err := tt.Click("本轮思路-" + reply.ID); err != nil {
+}
+
+func TestExtractionAddsTheAuthorsEntry(t *testing.T) {
+	a, tt, _ := fixture(t)
+	m, err := a.Store.Append(a.session, workspace.Event{Role: "user", Text: "林晚修路灯"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.setError(a.refresh())
+	tt.Frame()
+	a.openSource(m, 0, 2)
+	tt.Frame()
+	if err = tt.Click("加入设定"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if v := a.visibleIdeas(); len(v) != 1 || v[0].Text != "本轮思路" || tt.HasText(i.Text) {
-		t.Fatalf("turn filter %+v", v)
+	last := a.set.Entries[len(a.set.Entries)-1]
+	if last.Text != "林晚" || last.Place != workspace.PlaceBody || last.Sources[0].Message != m.ID || a.sourceOpen {
+		t.Fatalf("%+v", last)
 	}
 }
 
@@ -173,16 +280,15 @@ func TestFailureRefreshesPersistedWork(t *testing.T) {
 	var c *ui.Context
 	tt = ui.NewTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
 	tt.Frame()
-	a.run(c, "记账", func(context.Context) (func(), error) {
-		_, err := a.Store.NewIdea(workspace.Idea{Text: "失败前已经落盘的内容"})
-		if err != nil {
+	a.run(c, "讨论", func(context.Context) (func(), error) {
+		if _, err := a.Store.Append(a.session, workspace.Event{Role: "user", Text: "失败前已经落盘的发言"}); err != nil {
 			return nil, err
 		}
 		return nil, errors.New("网络失败")
 	})
 	settle(t, a, tt)
-	if len(a.ideas) != 2 || a.Error != "网络失败" {
-		t.Fatalf("persisted partial result lost: %d %q", len(a.ideas), a.Error)
+	if len(a.events) != 1 || a.Error != "网络失败" {
+		t.Fatalf("persisted partial result lost: %d %q", len(a.events), a.Error)
 	}
 }
 
@@ -203,13 +309,13 @@ func TestNewWorkDoesNotInheritLastWork(t *testing.T) {
 
 // Inputs the store would reject are caught first, in words the author reads.
 func TestIncompleteFormsExplainInChinese(t *testing.T) {
-	a, tt, i := fixture(t)
+	a, _, _ := fixture(t)
 	check := func(name string, err error) {
 		t.Helper()
 		if err == nil {
 			t.Fatalf("%s: accepted", name)
 		}
-		for _, field := range []string{"discussion:", "bookkeeping:", "categories:", "text:", "verified:"} {
+		for _, field := range []string{"discussion:", "bookkeeping:", "categories:"} {
 			if strings.Contains(err.Error(), field) {
 				t.Fatalf("%s: store error leaked: %v", name, err)
 			}
@@ -221,26 +327,6 @@ func TestIncompleteFormsExplainInChinese(t *testing.T) {
 	check("bookkeeping model", a.saveUsage())
 	a.categoryName, a.categoryTarget = "伏笔", ""
 	check("category target", a.saveCategory())
-
-	a.selectIdea(i)
-	a.draft.text = "  "
-	a.saveDetails(nil, i)
-	check("empty text", shown(a))
-	a.draft.text, a.draft.fact, a.draft.verified, a.draft.factSource = i.Text, true, true, ""
-	a.saveDetails(nil, i)
-	check("unsourced fact", shown(a))
-	tt.Frame()
-	if saved, _ := a.Store.Idea(i.ID); saved.Text != i.Text || saved.Verified {
-		t.Fatalf("rejected edit was saved: %+v", saved)
-	}
-}
-
-// shown is the error the banner shows, if any.
-func shown(a *App) error {
-	if a.Error == "" {
-		return nil
-	}
-	return errors.New(a.Error)
 }
 
 func TestMarkdownBlocks(t *testing.T) {
@@ -279,21 +365,15 @@ func TestLiveTurnStreams(t *testing.T) {
 	a.pending = "她做什么工作？"
 	a.run(c, "AI 正在思考", func(ctx context.Context) (func(), error) { <-block; return nil, nil })
 	a.talking = true
-	a.live.add(discussion.StepReply, model.Delta{})
-	a.live.add(discussion.StepReply, model.Delta{Reasoning: "她怕黑，职业要和光有关"})
+	a.live.add(model.Delta{Reasoning: "她怕黑，职业要和光有关"})
 	tt.Frame()
 	if !tt.HasText("她怕黑，职业要和光有关") || !tt.HasText("正在思考…") {
 		t.Fatal("reasoning not streamed", tt.Texts())
 	}
-	a.live.add(discussion.StepReply, model.Delta{Text: "可以让她**修灯**。"})
+	a.live.add(model.Delta{Text: "可以让她**修灯**。"})
 	tt.Frame()
 	if !tt.HasText("正在回复…") || tt.HasText("**") {
 		t.Fatal("reply not streamed as markdown", tt.Texts())
-	}
-	a.live.add(discussion.StepBookkeep, model.Delta{})
-	tt.Frame()
-	if !tt.HasText("正在把这一轮整理成思路卡片…") {
-		t.Fatal("bookkeeping step not shown", tt.Texts())
 	}
 	close(block)
 	settle(t, a, tt)

@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui"
-	"writer/discussion"
 	"writer/model"
 	"writer/workspace"
 )
@@ -55,7 +54,7 @@ func streamingBench(b *testing.B, turns int, reasoning bool) {
 	tt := ui.NewTester(a.View, 1266, 780)
 	tt.Frame()
 	a.busy, a.talking = "AI 正在思考", true
-	a.live.add(discussion.StepReply, model.Delta{})
+	a.live.reset()
 	reply := []rune(longReply(99) + longReply(100))
 	tt.Frame()
 	b.ResetTimer()
@@ -65,15 +64,15 @@ func streamingBench(b *testing.B, turns int, reasoning bool) {
 			// Start halfway, as a long reply is most of the time.
 			a.live.reset()
 			if reasoning {
-				a.live.add(discussion.StepReply, model.Delta{Reasoning: string(reply[:len(reply)/2])})
+				a.live.add(model.Delta{Reasoning: string(reply[:len(reply)/2])})
 			} else {
-				a.live.add(discussion.StepReply, model.Delta{Reasoning: strings.Repeat("先想想雨的来历。", 40), Text: string(reply[:len(reply)/2])})
+				a.live.add(model.Delta{Reasoning: strings.Repeat("先想想雨的来历。", 40), Text: string(reply[:len(reply)/2])})
 			}
 		}
 		if reasoning {
-			a.live.add(discussion.StepReply, model.Delta{Reasoning: string(reply[at : at+1])})
+			a.live.add(model.Delta{Reasoning: string(reply[at : at+1])})
 		} else {
-			a.live.add(discussion.StepReply, model.Delta{Text: string(reply[len(reply)/2+at : len(reply)/2+at+1])})
+			a.live.add(model.Delta{Text: string(reply[len(reply)/2+at : len(reply)/2+at+1])})
 		}
 		tt.Frame()
 	}

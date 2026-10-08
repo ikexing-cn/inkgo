@@ -2,9 +2,9 @@ package desk
 
 import (
 	"context"
-	"fmt"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"writer/discussion"
@@ -27,10 +27,12 @@ func (a *App) discussion(c *ui.Context) {
 				a.composer(c)
 			})
 		})
-		ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
-		pool := ui.Column(c).Width(392).FillHeight().Padding(18, 18, 12, 18).Gap(12).Background(a.pal.side).Shrink(0)
-		a.LastPool = pool.Bounds()
-		pool.Children(func() { a.pool(c) })
+		if !a.doc.hidden {
+			ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
+			panel := ui.Column(c).Width(392).FillHeight().Padding(18, 18, 12, 18).Gap(12).Background(a.pal.side).Shrink(0)
+			a.LastSetting = panel.Bounds()
+			panel.Children(func() { a.settingPanel(c) })
+		}
 	})
 }
 
@@ -41,10 +43,8 @@ func (a *App) chatList(c *ui.Context) {
 	if !a.hasMessages() && a.pending == "" {
 		rows = append(rows, -1)
 	}
-	for n, m := range a.events {
-		if m.Kind == workspace.KindMessage {
-			rows = append(rows, n)
-		}
+	for n := range a.events {
+		rows = append(rows, n)
 	}
 	if a.talking {
 		rows = append(rows, -2)
@@ -74,15 +74,13 @@ func (a *App) chatList(c *ui.Context) {
 	}).Grow(1).FillWidth().Gap(26).Padding(28, 28, 24, 28)
 }
 
-func (a *App) hasMessages() bool { return a.lastMessage() != "" }
+func (a *App) hasMessages() bool { return len(a.events) > 0 }
 
 func (a *App) lastMessage() string {
-	for n := len(a.events) - 1; n >= 0; n-- {
-		if a.events[n].Kind == workspace.KindMessage {
-			return a.events[n].ID
-		}
+	if len(a.events) == 0 {
+		return ""
 	}
-	return ""
+	return a.events[len(a.events)-1].ID
 }
 
 func (a *App) chatTop(c *ui.Context) {
@@ -93,14 +91,11 @@ func (a *App) chatTop(c *ui.Context) {
 		glyph(c, icChevron, 14, a.pal.faint)
 		ui.Text(c, words).FontSize(13.5).FontWeight(600).SingleLine().Ellipsis("…").Shrink(1)
 		ui.Spacer(c)
-		n := 0
-		for _, e := range a.events {
-			if e.Kind == workspace.KindMessage {
-				n++
-			}
-		}
-		if n > 0 {
+		if n := len(a.events); n > 0 {
 			ui.Textf(c, "%d 条发言", n).FontSize(12).TextColor(a.pal.faint)
+		}
+		if a.doc.hidden && iconButton(c, icPanel, "展开设定", ui.Color{}).Tooltip("展开设定文档").Clicked() {
+			a.setDocHidden(false)
 		}
 	})
 	a.pal.hairline(c)
@@ -111,7 +106,7 @@ func (a *App) switchSession(id string) {
 		return
 	}
 	a.session = id
-	a.source, a.sourceOpen, a.contextReply, a.turn = nil, false, "", ""
+	a.source, a.sourceOpen, a.contextReply = nil, false, ""
 	a.setError(a.refresh())
 	a.chat = ui.ListState{} // a list's place is its session's
 }
@@ -123,7 +118,7 @@ func (a *App) emptyChat(c *ui.Context) {
 			glyph(c, icSparkle, 22, a.pal.brand)
 		})
 		ui.Text(c, "从一个模糊的念头聊起").FontSize(22).FontWeight(600)
-		ui.Text(c, "写下脑子里的那一点想法。你和 AI 提到的思路会整理到右边，\n留下的会成为之后讨论的依据，放下的不再被提起。").FontSize(13.5).TextColor(t.TextMuted).TextAlign(ui.Center).LineHeight(1.7)
+		ui.Text(c, "写下脑子里的那一点想法。讨论会在后台整理成右边的设定文档，\n你定下的会成为之后讨论的依据，放下的不再被提起。").FontSize(13.5).TextColor(t.TextMuted).TextAlign(ui.Center).LineHeight(1.7)
 		ui.Box(c).Height(6)
 		ui.Row(c).Gap(8).Wrap().Justify(ui.Center).Children(func() {
 			for _, s := range []string{"我想写一个总在下雨的城市", "主角有个说不出口的秘密", "这个故事的冲突在哪"} {
@@ -142,7 +137,7 @@ func (a *App) emptyChat(c *ui.Context) {
 
 func (a *App) answered(userID string) bool {
 	for _, e := range a.events {
-		if e.Kind == workspace.KindMessage && e.Role == workspace.RoleAssistant && e.ReplyTo == userID {
+		if e.Role == workspace.RoleAssistant && e.ReplyTo == userID {
 			return true
 		}
 	}
@@ -238,40 +233,30 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 			if a.contextReply == m.ID {
 				a.audit(c, m)
 			}
-			a.turnSummary(c, m)
 		}
 	})
 }
 
 // thinking shows a turn in flight as it streams: the reply forming under
-// its reasoning, then the bookkeeping that follows it.
+// its reasoning.
 func (a *App) thinking(c *ui.Context) {
 	t := a.pal.theme
 	if a.pending != "" {
 		ui.Column(c).FillWidth().AlignItems(ui.End).Children(func() { a.userBubble(c, a.pending) })
 	}
-	step, reasoning, text := a.live.read(discussion.StepReply)
-	_, bookReasoning, _ := a.live.read(discussion.StepBookkeep)
+	reasoning, text := a.live.read()
 	ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Start).Children(func() {
 		a.aiMark(c)
 		ui.Column(c).Grow(1).Shrink(1).Gap(10).Children(func() {
 			if reasoning != "" {
-				a.thought(c, "live-reply", "思考过程", reasoning, step == discussion.StepReply && text == "")
+				a.thought(c, "live-reply", "思考过程", reasoning, text == "")
 			}
 			if text != "" {
 				a.liveMarkdown(c, text, 14.5)
 			}
-			status := a.busy
-			switch {
-			case step == discussion.StepReply && text == "":
+			status := "正在回复…"
+			if text == "" {
 				status = "正在思考…"
-			case step == discussion.StepReply:
-				status = "正在回复…"
-			case step == discussion.StepBookkeep:
-				status = "正在把这一轮整理成思路卡片…"
-			}
-			if step == discussion.StepBookkeep && bookReasoning != "" {
-				a.thought(c, "live-book", "整理时的思考", bookReasoning, false)
 			}
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
 				ui.Spinner(c)
@@ -329,85 +314,13 @@ func modelLabel(name, effort string) string {
 	return name
 }
 
-// turnIdeas are the cards bookkeeping drew from one exchange.
-func (a *App) turnIdeas(reply workspace.Event) []workspace.Idea {
-	var found []workspace.Idea
-	for _, i := range a.ideas {
-		if i.Origin.Session == a.session && (i.Origin.Message == reply.ID || i.Origin.Message == reply.ReplyTo) {
-			found = append(found, i)
-		}
-	}
-	return found
-}
-
-// turnSummary is one quiet line under a reply; decisions happen in the pool,
-// which it filters to this exchange.
-func (a *App) turnSummary(c *ui.Context, m workspace.Event) {
-	t := a.pal.theme
-	ideas := a.turnIdeas(m)
-	ui.Row(c).Padding(0, 0, 0, 36).Gap(8).AlignItems(ui.Center).Children(func() {
-		switch {
-		case !a.booked(m.ID):
-			glyph(c, icAlert, 14, t.Warning)
-			ui.Text(c, "这一轮的思路还没整理完").FontSize(12.5).TextColor(t.Warning)
-			if ghost(c, "重试记账", t.Text).Disabled(a.busy != "").Clicked() {
-				a.bookkeep(c, m.ID)
-			}
-		case len(ideas) == 0:
-			ui.Text(c, "这一轮没有新的思路").FontSize(12.5).TextColor(a.pal.faint)
-		default:
-			waiting := 0
-			for _, i := range ideas {
-				if i.Status == workspace.Unprocessed {
-					waiting++
-				}
-			}
-			b := ui.ButtonBase(c).Row().Gap(7).AlignItems(ui.Center).Padding(5, 10).Radius(999).Border(1, a.pal.brand.Alpha(0.22)).Background(a.pal.brand.Alpha(0.06)).Label("本轮思路-" + m.ID)
-			if b.Hovered() || a.turn == m.ID {
-				b.Background(a.pal.brand.Alpha(0.13))
-			}
-			b.Children(func() {
-				glyph(c, icSparkle, 13, a.pal.brand)
-				text := fmt.Sprintf("整理出 %d 条思路", len(ideas))
-				if waiting > 0 {
-					text += fmt.Sprintf("，%d 条等你决定", waiting)
-				} else {
-					text += "，都已处理"
-				}
-				ui.Text(c, text).FontSize(12.5).TextColor(a.pal.brand)
-				if a.turn == m.ID {
-					glyph(c, icX, 12, a.pal.brand)
-				} else {
-					glyph(c, icChevron, 12, a.pal.brand)
-				}
-			})
-			if b.Clicked() {
-				if a.turn == m.ID {
-					a.turn = ""
-				} else {
-					a.turn, a.filter, a.extra, a.search = m.ID, len(filters)-1, extras[0], ""
-				}
-			}
-		}
-	})
-}
-
 func (a *App) audit(c *ui.Context, m workspace.Event) {
 	t := a.pal.theme
 	ui.Column(c).FillWidth().Padding(0, 0, 0, 36).Children(func() {
 		ui.Column(c).FillWidth().Padding(12, 14).Gap(7).Radius(10).Background(a.pal.side).Border(1, a.pal.line).Children(func() {
-			ui.Textf(c, "回复时带上了 %d 条思路，预算不足省略 %d 条", len(m.Context), len(m.Omitted)).FontSize(12.5).FontWeight(600)
-			for _, e := range a.events {
-				if e.Kind == workspace.KindBookkeeping && e.ReplyTo == m.ID && e.Reasoning != "" {
-					label := "整理这一轮时的思考"
-					if who := modelLabel(e.Model, e.Effort); who != "" {
-						label += "（" + who + "）"
-					}
-					a.thought(c, e.ID, label, e.Reasoning, false)
-				}
-			}
+			ui.Textf(c, "回复时带上了 %d 条设定，预算不足省略 %d 条", len(m.Context), len(m.Omitted)).FontSize(12.5).FontWeight(600)
 			if len(m.Context) == 0 && len(m.Omitted) == 0 {
-				ui.Text(c, "只读了最近几轮对话，思路池里还没有可作依据的思路。").FontSize(12.5).TextColor(t.TextMuted)
+				ui.Text(c, "只读了最近几轮对话，设定文档里还没有内容。").FontSize(12.5).TextColor(t.TextMuted)
 			}
 			for _, item := range m.Context {
 				ui.Row(c).FillWidth().Gap(8).Children(func() {
@@ -423,24 +336,6 @@ func (a *App) audit(c *ui.Context, m workspace.Event) {
 			}
 		})
 	})
-}
-
-func (a *App) booked(reply string) bool {
-	have := map[string]bool{}
-	for _, idea := range a.ideas {
-		have[idea.ID] = true
-	}
-	for _, event := range a.events {
-		if event.Kind == workspace.KindBookkeeping && event.ReplyTo == reply {
-			for _, id := range event.IdeaIDs {
-				if !have[id] {
-					return false
-				}
-			}
-			return true
-		}
-	}
-	return false
 }
 
 // composer is one rounded field: the text, then the model it goes to and a
@@ -529,7 +424,7 @@ func (a *App) send(c *ui.Context) {
 	input, session := a.input, a.session
 	a.pending, a.input = input, ""
 	a.chat.ScrollToEnd()
-	a.run(c, "AI 正在思考，并整理这一轮的思路…", func(ctx context.Context) (func(), error) {
+	a.run(c, "AI 正在思考…", func(ctx context.Context) (func(), error) {
 		turn, err := eng.Send(ctx, session, input)
 		return func() {
 			a.pending = ""
@@ -556,18 +451,6 @@ func (a *App) retry(c *ui.Context, userID string) {
 	a.talking = a.busy != ""
 }
 
-// bookkeep replays a saved plan even without a model; only a missing plan
-// needs one.
-func (a *App) bookkeep(c *ui.Context, replyID string) {
-	eng, _ := a.engine(c)
-	session := a.session
-	a.run(c, "正在整理这一轮的思路…", func(ctx context.Context) (func(), error) {
-		_, err := eng.Bookkeep(ctx, session, replyID)
-		return nil, err
-	})
-	a.talking = a.busy != ""
-}
-
 func (a *App) openSource(m workspace.Event, start, end int) {
 	a.source = editor.New(editor.NewDoc(m.Text), editor.Options{ReadOnly: true})
 	if end > start {
@@ -585,7 +468,7 @@ func (a *App) extraction(c *ui.Context) {
 		ui.Column(c).Width(min(620, max(a.LastChat.W, 480))).Gap(14).Children(func() {
 			ui.Column(c).Gap(4).Children(func() {
 				ui.Text(c, "摘取原文").FontSize(17).FontWeight(600)
-				ui.Text(c, "拖选一段原话，存成一条新思路。原话不会被改动。").FontSize(13).TextColor(t.TextMuted)
+				ui.Text(c, "拖选一段原话，作为你定下的设定加入正文。原话不会被改动。").FontSize(13).TextColor(t.TextMuted)
 			})
 			a.source.View(c).Height(220).FillWidth().Border(1, t.Border).Radius(10)
 			start, end := a.source.Selection()
@@ -600,14 +483,14 @@ func (a *App) extraction(c *ui.Context) {
 				if ghost(c, "收起原文", ui.Color{}).Clicked() {
 					a.sourceOpen = false
 				}
-				if a.pal.primary(c, "摘为新思路").Disabled(a.busy != "" || start == end).Clicked() {
+				if a.pal.primary(c, "加入设定").Disabled(a.busy != "" || start == end).Clicked() {
 					eng := &discussion.Engine{Store: a.Store}
-					_, err := eng.Manual(a.session, a.sourceMessage, start, end, a.sourceCategory)
+					entry, err := eng.Extract(a.session, a.sourceMessage, start, end, a.sourceCategory)
 					if err == nil {
 						a.sourceOpen = false
-						a.filter, a.extra, a.turn = 0, extras[0], ""
-						a.notice = "已摘为新思路，放在“待处理”里"
+						a.notice = "已加入设定正文"
 						err = a.refresh()
+						a.flash[entry.ID] = time.Now()
 					}
 					a.setError(err)
 				}
