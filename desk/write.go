@@ -85,6 +85,7 @@ type writeView struct {
 	takeCategory           string
 	exportOpen, exportDone bool
 	indent                 bool
+	exportFrom             string // the node exported with what is in it, or "" for the book
 
 	// The writing model: the writer the editors predict with, and why
 	// there is none; a request in flight; a rewrite asked for or shown.
@@ -610,8 +611,8 @@ func (a *App) writeTop(c *ui.Context) {
 				a.openSnapshots()
 			}
 		}
-		if iconButton(c, icDownload, "导出全书", ui.Color{}).Clicked() {
-			w.exportOpen, w.exportDone = true, false
+		if iconButton(c, icDownload, "导出全书或章节", ui.Color{}).Tooltip("导出全书、本卷或本章").Clicked() {
+			w.exportOpen, w.exportDone, w.exportFrom = true, false, ""
 		}
 		if a.doc.hidden && !w.focus {
 			a.bookDot(c)
@@ -1384,9 +1385,19 @@ func (a *App) exportView(c *ui.Context) {
 	ui.Modal(c, &w.exportOpen, func() {
 		ui.Column(c).Width(460).Gap(14).Children(func() {
 			ui.Column(c).Gap(4).Children(func() {
-				ui.Text(c, "导出全书").FontSize(17).FontWeight(600)
+				ui.Text(c, "导出正文").FontSize(17).FontWeight(600)
 				ui.Text(c, "按章节树的顺序拼成一个 .txt，每个文件夹和章节前写上标题。").FontSize(13).TextColor(t.TextMuted)
 			})
+			ui.RadioGroup(c, func() {
+				ui.Radio(c, &w.exportFrom, "", "全书")
+				for _, n := range a.exportParts() {
+					unit := "本章"
+					if n.Folder {
+						unit = "本卷"
+					}
+					ui.Radio(c, &w.exportFrom, n.ID, unit+"「"+n.Title+"」")
+				}
+			}).Label("导出范围")
 			ui.Checkbox(c, &w.indent, "段首加两个全角空格")
 			ui.Row(c).FillWidth().Gap(10).Children(func() {
 				ui.Spacer(c)
@@ -1401,16 +1412,38 @@ func (a *App) exportView(c *ui.Context) {
 	})
 }
 
-// export writes the work as one text where the author picks, or into the
-// work's 导出 folder when there is no dialog.
+// exportParts are what can be exported besides the book: the volume the
+// open node is in, and the open node itself.
+func (a *App) exportParts() []*workspace.Node {
+	w := &a.write
+	n, ok := w.tree.Node(w.node)
+	if !ok {
+		return nil
+	}
+	var parts []*workspace.Node
+	if p := n.Parent; p != nil && p.Parent != nil {
+		parts = append(parts, p)
+	}
+	return append(parts, n)
+}
+
+// export writes the work, or the part chosen, as one text where the author
+// picks, or into the work's 导出 folder when there is no dialog.
 func (a *App) export(c *ui.Context) {
 	a.flush()
-	text, err := a.Store.Export(a.write.indent)
+	w := &a.write
+	if _, ok := w.tree.Node(w.exportFrom); !ok {
+		w.exportFrom = ""
+	}
+	text, err := a.Store.Export(w.exportFrom, w.indent)
 	if err != nil {
 		a.warn(err)
 		return
 	}
 	name := a.Store.Work().Name + ".txt"
+	if n, ok := w.tree.Node(w.exportFrom); ok {
+		name = a.Store.Work().Name + "-" + n.Title + ".txt"
+	}
 	write := func(path string) {
 		if path == "" {
 			return
@@ -1433,7 +1466,7 @@ func (a *App) export(c *ui.Context) {
 	}
 	save := a.SaveFile
 	go func() {
-		path, err := save("导出全书", name)
+		path, err := save("导出", name)
 		a.picks <- func() {
 			if err != nil {
 				a.warn(err)

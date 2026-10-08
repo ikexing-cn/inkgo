@@ -1024,8 +1024,9 @@ func (s *Store) Counts() (map[string]int, error) {
 }
 
 // Export joins the work into one text in the tree's order, each node under
-// its title; indent puts two full-width spaces before each paragraph.
-func (s *Store) Export(indent bool) (string, error) {
+// its title; indent puts two full-width spaces before each paragraph. With
+// from, only that node and what is in it, without the work's name.
+func (s *Store) Export(from string, indent bool) (string, error) {
 	unlock, err := s.lock()
 	if err != nil {
 		return "", err
@@ -1035,14 +1036,26 @@ func (s *Store) Export(indent bool) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	var top *Node
+	if from != "" {
+		var ok bool
+		if top, ok = t.Node(from); !ok {
+			return "", fmt.Errorf("no chapter %s", from)
+		}
+	}
 	var b strings.Builder
-	b.WriteString(s.work.Name + "\n")
+	if top == nil {
+		b.WriteString(s.work.Name + "\n")
+	}
 	var failed error
 	t.Walk(func(n *Node, depth int) {
-		if failed != nil {
+		if failed != nil || top != nil && !n.Within(top) {
 			return
 		}
-		b.WriteString("\n" + n.Title + "\n")
+		if b.Len() > 0 {
+			b.WriteString("\n")
+		}
+		b.WriteString(n.Title + "\n")
 		if n.Folder {
 			return
 		}

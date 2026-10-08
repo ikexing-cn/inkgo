@@ -276,12 +276,23 @@ func TestExportAndCount(t *testing.T) {
 	if _, err := s.WriteChapter(one, "雨下着。\n她 走了。", nil); err != nil {
 		t.Fatal(err)
 	}
-	out, err := s.Export(true)
+	two := mustChapter(t, s, "", "第二章", false)
+	if _, err := s.WriteChapter(two, "天晴了。", nil); err != nil {
+		t.Fatal(err)
+	}
+	out, err := s.Export("", true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := "测试作品\n\n第一卷\n\n第一章\n\n　　雨下着。\n　　她 走了。\n"; out != want {
+	if want := "测试作品\n\n第一卷\n\n第一章\n\n　　雨下着。\n　　她 走了。\n\n第二章\n\n　　天晴了。\n"; out != want {
 		t.Fatalf("export:\n%q\nwant\n%q", out, want)
+	}
+	// A volume alone, and a chapter alone, without the work's name.
+	if out, err = s.Export(vol, false); err != nil || out != "第一卷\n\n第一章\n\n雨下着。\n她 走了。\n" {
+		t.Fatalf("volume %q %v", out, err)
+	}
+	if out, err = s.Export(two, false); err != nil || out != "第二章\n\n天晴了。\n" {
+		t.Fatalf("chapter %q %v", out, err)
 	}
 	counts, err := s.Counts()
 	if err != nil || counts[one] != 8 {

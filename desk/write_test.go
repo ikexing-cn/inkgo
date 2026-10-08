@@ -318,7 +318,7 @@ func TestMarksSurviveReopening(t *testing.T) {
 
 func TestExportTheWork(t *testing.T) {
 	a, tt, _ := writingFixture(t, "雨下着。")
-	if err := tt.Click("导出全书"); err != nil {
+	if err := tt.Click("导出全书或章节"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -333,6 +333,22 @@ func TestExportTheWork(t *testing.T) {
 	}
 	if !strings.Contains(string(b), "第一章\n\n　　雨下着。") {
 		t.Fatalf("export %q", b)
+	}
+	// The chapter open alone, named after it.
+	if err := tt.Click("导出全书或章节"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err := tt.Click("本章「第一章」"); err != nil {
+		t.Fatal(err, tt.Texts())
+	}
+	tt.Frame()
+	if err := tt.Click("导出"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if b, err = os.ReadFile(filepath.Join(a.Store.Root(), "导出", "测试作品-第一章.txt")); err != nil || !strings.HasPrefix(string(b), "第一章\n") {
+		t.Fatalf("chapter export %q %v", b, err)
 	}
 }
 
