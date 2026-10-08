@@ -49,6 +49,8 @@ type writeView struct {
 	summaryOpen           bool
 	changed               bool
 	autoSummary           bool
+	day                   string   // the local date the count below was taken
+	dayStart              int      // the book's count as that day began
 	unsummarized          []string // the chapters before without a summary, as a draft opens
 	recapped              int      // and how many before have one
 	// The disk's text, changed outside while the node was open; lost, the
@@ -59,7 +61,7 @@ type writeView struct {
 
 	renaming, title string
 	titleWas        string // the name kept when the title is left empty
-	focus           bool // the page alone, without the tree and the column
+	focus           bool   // the page alone, without the tree and the column
 	finding         bool
 	query, with     string
 	current         int
@@ -505,12 +507,27 @@ func (a *App) total() int {
 	return n
 }
 
+// today is how much the book grew today, which the first look on a new
+// day starts from. Taking chapters out counts against it.
+func (a *App) today(now time.Time) int {
+	w := &a.write
+	if w.counts == nil {
+		return 0 // not read yet: a start of nothing would count the whole book
+	}
+	if day := now.Format(time.DateOnly); day != w.day {
+		w.day, w.dayStart = day, a.total()
+		a.savePrefs()
+	}
+	return a.total() - w.dayStart
+}
+
 func (a *App) writeTop(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
 	n, ok := w.tree.Node(w.node)
 	top := ui.Row(c).FillWidth().Height(52).Padding(0, 16, 0, 24).Gap(6).AlignItems(ui.Center).Shrink(0)
 	roomy := top.Bounds().W == 0 || top.Bounds().W >= 600 // the counts give way to the title
+	wide := top.Bounds().W == 0 || top.Bounds().W >= 760  // and today's to the book's
 	top.Children(func() {
 		if ok {
 			var path []string
@@ -531,20 +548,24 @@ func (a *App) writeTop(c *ui.Context) {
 		here, unit := 0, "本章"
 		if ok && n.Folder {
 			unit = "本卷"
-			w.tree.Walk(func(f *workspace.Node, _ int) {
-				if f.Within(n) {
-					here += w.counts[f.ID]
-				}
-			})
-		} else if ok {
-			here = w.counts[n.ID]
+		}
+		if ok {
+			here = w.wordsIn(n)
+		}
+		today, tip := "", fmt.Sprintf("全书 %d 字", a.total())
+		if k := a.today(time.Now()); k != 0 {
+			today = fmt.Sprintf(" · 今天 %+d", k)
+			tip += fmt.Sprintf("，今天 %+d 字", k)
+		}
+		if !wide {
+			today = ""
 		}
 		if ok && !roomy {
-			ui.Textf(c, "%d 字", here).FontSize(12).TextColor(a.pal.faint).SingleLine().Shrink(0)
+			ui.Textf(c, "%d 字", here).FontSize(12).TextColor(a.pal.faint).SingleLine().Shrink(0).Tooltip(tip)
 		} else if ok {
-			ui.Textf(c, "%s %d 字 · 全书 %d 字", unit, here, a.total()).FontSize(12).TextColor(a.pal.faint).SingleLine()
+			ui.Textf(c, "%s %d 字 · 全书 %d 字%s", unit, here, a.total(), today).FontSize(12).TextColor(a.pal.faint).SingleLine().Tooltip(tip)
 		} else {
-			ui.Textf(c, "全书 %d 字", a.total()).FontSize(12).TextColor(a.pal.faint).SingleLine()
+			ui.Textf(c, "全书 %d 字%s", a.total(), today).FontSize(12).TextColor(a.pal.faint).SingleLine().Tooltip(tip)
 		}
 		ui.Box(c).Width(6)
 		if ok && !n.Folder {

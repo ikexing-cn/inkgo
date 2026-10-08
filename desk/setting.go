@@ -47,6 +47,9 @@ type prefs struct {
 	// NoAutoSummary leaves a chapter's summary alone as the author leaves
 	// it changed.
 	NoAutoSummary bool `json:"no_auto_summary,omitempty"`
+	// The book's count when Day began, for how much was written today.
+	Day      string `json:"day,omitempty"`
+	DayStart int    `json:"day_start,omitempty"`
 }
 
 func (a *App) prefsPath() string { return filepath.Join(a.Store.Root(), ".writer", "desk.json") }
@@ -64,12 +67,14 @@ func (a *App) loadPrefs() {
 	}
 	a.write.autoPredict = p.AutoPredict
 	a.write.autoSummary = !p.NoAutoSummary
+	a.write.day, a.write.dayStart = p.Day, p.DayStart
 	a.doc.width, a.doc.talk, a.doc.attach = p.PanelWidth, p.TalkTab, !p.NoAttach
 }
 
 func (a *App) savePrefs() {
 	b, err := json.Marshal(prefs{SettingHidden: a.doc.hidden, Chapter: a.write.node, Writing: a.leftWriting, AutoPredict: a.write.autoPredict,
-		PanelWidth: a.doc.width, TalkTab: a.doc.talk, NoAttach: !a.doc.attach, NoAutoSummary: !a.write.autoSummary})
+		PanelWidth: a.doc.width, TalkTab: a.doc.talk, NoAttach: !a.doc.attach, NoAutoSummary: !a.write.autoSummary,
+		Day: a.write.day, DayStart: a.write.dayStart})
 	if err == nil {
 		err = os.WriteFile(a.prefsPath(), b, 0644)
 	}

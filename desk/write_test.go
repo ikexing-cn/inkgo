@@ -526,3 +526,26 @@ func TestAFolderCountsItsChapters(t *testing.T) {
 		t.Fatalf("chapter counts %d, want 5", k)
 	}
 }
+
+// What was written today starts from the book as the day began, survives
+// reopening the work, and starts over the next day.
+func TestTodayCountsFromTheDaysStart(t *testing.T) {
+	a, _, _ := writingFixture(t, "一二三")
+	day := time.Date(2026, 10, 9, 9, 0, 0, 0, time.Local)
+	a.write.day = ""
+	if k := a.today(day); k != 0 {
+		t.Fatalf("today starts at %d", k)
+	}
+	a.write.counts[a.write.node] = 10
+	if k := a.today(day.Add(time.Hour)); k != 7 {
+		t.Fatalf("today is %d, want 7", k)
+	}
+	a.write.day, a.write.dayStart = "", 0
+	a.loadPrefs()
+	if k := a.today(day.Add(2 * time.Hour)); k != 7 {
+		t.Fatalf("after reopening today is %d, want 7", k)
+	}
+	if k := a.today(day.Add(24 * time.Hour)); k != 0 {
+		t.Fatalf("the next day starts at %d", k)
+	}
+}
