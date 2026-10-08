@@ -10,11 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"charm.land/fantasy"
-	"charm.land/fantasy/providers/anthropic"
-	"charm.land/fantasy/providers/openai"
-	"charm.land/fantasy/providers/openaicompat"
 	"github.com/zalando/go-keyring"
+	"github.com/zendev-sh/goai"
+	"github.com/zendev-sh/goai/provider"
+	"github.com/zendev-sh/goai/provider/anthropic"
+	"github.com/zendev-sh/goai/provider/compat"
+	"github.com/zendev-sh/goai/provider/openai"
 )
 
 const (
@@ -119,6 +120,7 @@ type Client struct {
 	modelID  string
 	key      string
 	http     *http.Client
+	retries  int // for transient failures before a reply starts
 }
 
 var _ Completer = (*Client)(nil)
@@ -144,8 +146,9 @@ func NewClient(cfg Config, providerID, modelID string) (*Client, error) {
 
 // NewClientWithKey permits custom transports and credential-free local servers.
 // A blank model ID can list models; Complete requires a nonempty model ID.
-// The HTTP client is copied with redirects rejected; a request's duration is
-// bounded by its context, as a stream outlasts any fixed client timeout.
+// The HTTP client is copied with redirects rejected and guard in front of its
+// transport; a request's duration is bounded by its context, as a stream
+// outlasts any fixed client timeout.
 func NewClientWithKey(provider Provider, modelID, key string, httpClient *http.Client) (*Client, error) {
 	if err := validateProvider(provider); err != nil {
 		return nil, err
@@ -168,161 +171,145 @@ func NewClientWithKey(provider Provider, modelID, key string, httpClient *http.C
 	}
 	hc.Transport = guard{base: base, host: u.Host, anthropic: provider.Protocol == "anthropic", key: key}
 	provider.Models = append([]string(nil), provider.Models...)
-	return &Client{provider: provider, modelID: modelID, key: key, http: &hc}, nil
+	return &Client{provider: provider, modelID: modelID, key: key, http: &hc, retries: 2}, nil
 }
 
-// languageModel opens the provider's model through fantasy. Base URLs end
-// in the API version, as /v1, except that the Anthropic SDK adds it itself.
-func (c *Client) languageModel(ctx context.Context) (fantasy.LanguageModel, error) {
+// languageModel opens the model through goai. Base URLs end in the API
+// version, as /v1, except that goai's Anthropic provider adds it itself.
+// goai falls back to OPENAI_API_KEY and ANTHROPIC_API_KEY when given no key,
+// so a keyless provider gets a placeholder, which guard replaces anyway.
+func (c *Client) languageModel() provider.LanguageModel {
 	base := strings.TrimRight(c.provider.BaseURL, "/")
-	var p fantasy.Provider
-	var err error
+	key := c.key
+	if key == "" {
+		key = "none"
+	}
 	switch c.provider.Protocol {
-	case "chat":
-		p, err = openaicompat.New(openaicompat.WithBaseURL(base), openaicompat.WithAPIKey(c.key), openaicompat.WithHTTPClient(c.http))
 	case "responses":
-		every := func(string) bool { return true }
-		p, err = openai.New(openai.WithBaseURL(base), openai.WithAPIKey(c.key), openai.WithHTTPClient(c.http), openai.WithUseResponsesAPI(), openai.WithResponsesAPIFunc(every))
+		return openai.Chat(c.modelID, openai.WithBaseURL(base), openai.WithAPIKey(key), openai.WithHTTPClient(c.http))
 	case "anthropic":
-		// Without a key the SDK searches the environment and login profiles
-		// and fails when it finds none; a placeholder stops the search, and
-		// guard sends no credential either way.
-		key := c.key
-		if key == "" {
-			key = "none"
-		}
-		p, err = anthropic.New(anthropic.WithBaseURL(strings.TrimSuffix(base, "/v1")), anthropic.WithAPIKey(key), anthropic.WithHTTPClient(c.http))
+		return anthropic.Chat(c.modelID, anthropic.WithBaseURL(strings.TrimSuffix(base, "/v1")), anthropic.WithAPIKey(key),
+			anthropic.WithSkipEnvResolve(), anthropic.WithHTTPClient(c.http))
 	default:
-		return nil, errors.New("协议必须是 chat、responses 或 anthropic")
+		return compat.Chat(c.modelID, compat.WithBaseURL(base), compat.WithAPIKey(key), compat.WithHTTPClient(c.http))
 	}
-	if err != nil {
-		return nil, errors.New("无法创建模型客户端")
-	}
-	lm, err := p.LanguageModel(ctx, c.modelID)
-	if err != nil {
-		return nil, safeError(ctx, err)
-	}
-	return lm, nil
 }
 
-// effortOptions asks the provider for e. DeepSeek and other compatible
-// services take low, high and max. OpenAI's highest is xhigh, and fantasy
-// sends it only to models it knows reason (gpt-5, the o series). The
-// Anthropic provider turns effort into adaptive thinking with its summary
-// shown.
-func (c *Client) effortOptions(e Effort) fantasy.ProviderOptions {
+// effortOptions asks the provider for e in its own words: reasoning_effort
+// on Chat Completions (DeepSeek takes low, high, max), reasoning.effort with
+// a summary on Responses, and output_config.effort with adaptive thinking
+// shown as a summary on Anthropic.
+func (c *Client) effortOptions(e Effort) map[string]any {
 	if e == EffortDefault {
 		return nil
 	}
 	switch c.provider.Protocol {
-	case "chat":
-		re := openai.ReasoningEffort(e)
-		return openaicompat.NewProviderOptions(&openaicompat.ProviderOptions{ReasoningEffort: &re})
 	case "responses":
-		re := openai.ReasoningEffort(e)
-		if e == EffortMax {
-			re = openai.ReasoningEffortXHigh
-		}
-		summary := "auto"
-		return openai.NewResponsesProviderOptions(&openai.ResponsesProviderOptions{ReasoningEffort: &re, ReasoningSummary: &summary})
+		return map[string]any{"reasoning_effort": string(e), "reasoning_summary": "auto"}
 	case "anthropic":
-		ae := anthropic.Effort(e)
-		return anthropic.NewProviderOptions(&anthropic.ProviderOptions{Effort: &ae})
+		return map[string]any{"effort": string(e), "thinking": map[string]any{"type": "adaptive", "display": "summarized"}}
+	default:
+		return map[string]any{"reasoning_effort": string(e)}
 	}
-	return nil
 }
 
 func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta)) (Reply, error) {
-	var reply Reply
 	if strings.TrimSpace(c.modelID) == "" {
-		return reply, errors.New("请填写模型 ID")
+		return Reply{}, errors.New("请填写模型 ID")
 	}
 	if req.MaxTokens < 0 {
-		return reply, errors.New("max tokens 不能为负数")
+		return Reply{}, errors.New("max tokens 不能为负数")
 	}
 	if !req.Effort.Valid() {
-		return reply, fmt.Errorf("不支持的推理等级 %q", req.Effort)
+		return Reply{}, fmt.Errorf("不支持的推理等级 %q", req.Effort)
 	}
 	if len(req.Messages) == 0 {
-		return reply, errors.New("请求至少要有一条消息")
+		return Reply{}, errors.New("请求至少要有一条消息")
 	}
 	size := len(req.System)
-	var prompt fantasy.Prompt
-	if req.System != "" {
-		prompt = append(prompt, fantasy.NewSystemMessage(req.System))
-	}
+	messages := make([]provider.Message, 0, len(req.Messages))
 	for _, m := range req.Messages {
-		size += len(m.Content)
-		if size > bodyLimit {
-			return reply, errTooLarge
-		}
+		var role provider.Role
 		switch m.Role {
 		case "user":
-			prompt = append(prompt, fantasy.NewUserMessage(m.Content))
+			role = provider.RoleUser
 		case "assistant":
-			prompt = append(prompt, fantasy.Message{Role: fantasy.MessageRoleAssistant, Content: []fantasy.MessagePart{fantasy.TextPart{Text: m.Content}}})
+			role = provider.RoleAssistant
 		default:
-			return reply, errors.New("消息角色只能是 user 或 assistant；系统指令放在 Request.System")
+			return Reply{}, errors.New("消息角色只能是 user 或 assistant；系统指令放在 Request.System")
 		}
+		size += len(m.Content)
+		if size > bodyLimit {
+			return Reply{}, errTooLarge
+		}
+		messages = append(messages, provider.Message{Role: role, Content: []provider.Part{{Type: provider.PartText, Text: m.Content}}})
 	}
-	tokens := int64(req.MaxTokens)
+	tokens := req.MaxTokens
 	if tokens == 0 {
 		tokens = defaultMaxTokens
 	}
 	ctx, cancel := context.WithTimeout(ctx, streamTimeout)
 	defer cancel()
-	lm, err := c.languageModel(ctx)
-	if err != nil {
-		return reply, err
+	opts := []goai.Option{goai.WithMessages(messages...), goai.WithMaxOutputTokens(tokens), goai.WithMaxRetries(c.retries)}
+	if req.System != "" {
+		opts = append(opts, goai.WithSystem(req.System))
 	}
-	stream, err := lm.Stream(ctx, fantasy.Call{Prompt: prompt, MaxOutputTokens: &tokens, ProviderOptions: c.effortOptions(req.Effort)})
+	if eo := c.effortOptions(req.Effort); eo != nil {
+		opts = append(opts, goai.WithProviderOptions(eo))
+	}
+	stream, err := goai.StreamText(ctx, c.languageModel(), opts...)
 	if err != nil {
-		return reply, safeError(ctx, err)
+		return Reply{}, safeError(ctx, err)
 	}
 	var text, reasoning strings.Builder
 	finished := false
-	for part := range stream {
+	for chunk := range stream.Stream() {
 		var d Delta
-		switch part.Type {
-		case fantasy.StreamPartTypeReasoningDelta:
-			d.Reasoning = part.Delta
-			reasoning.WriteString(part.Delta)
-		case fantasy.StreamPartTypeTextDelta:
-			d.Text = part.Delta
-			text.WriteString(part.Delta)
-		case fantasy.StreamPartTypeError:
+		switch chunk.Type {
+		case provider.ChunkReasoning:
+			d.Reasoning = chunk.Text
+			reasoning.WriteString(chunk.Text)
+		case provider.ChunkText:
+			d.Text = chunk.Text
+			text.WriteString(chunk.Text)
+		case provider.ChunkError:
 			if ctx.Err() == nil && text.Len()+reasoning.Len() > 0 {
-				return reply, errors.New("模型回复中途断开，没有完成")
+				return Reply{}, errors.New("模型回复中途断开，没有完成")
 			}
-			return reply, safeError(ctx, part.Error)
-		case fantasy.StreamPartTypeFinish:
-			finished = true
-			switch part.FinishReason {
-			case fantasy.FinishReasonLength:
-				return reply, errors.New("模型回复被截断")
-			case fantasy.FinishReasonContentFilter:
-				return reply, errors.New("模型回复被内容过滤")
-			case fantasy.FinishReasonError:
-				return reply, errors.New("模型回复没有完成")
+			return Reply{}, safeError(ctx, chunk.Error)
+		case provider.ChunkStepFinish, provider.ChunkFinish:
+			// goai reports why the model stopped on the step's finish; the
+			// stream's last finish may carry no reason, and a stream cut off
+			// before the model stopped brings none at all.
+			switch chunk.FinishReason {
+			case "":
+			case provider.FinishLength:
+				return Reply{}, errors.New("模型回复被截断")
+			case provider.FinishContentFilter:
+				return Reply{}, errors.New("模型回复被内容过滤")
+			case provider.FinishError:
+				return Reply{}, errors.New("模型回复没有完成")
+			default:
+				finished = true
 			}
 			continue
 		default:
 			continue
 		}
 		if text.Len()+reasoning.Len() > bodyLimit {
-			return reply, errors.New("模型回复超过 8 MiB")
+			return Reply{}, errors.New("模型回复超过 8 MiB")
 		}
 		if onDelta != nil && d != (Delta{}) {
 			onDelta(d)
 		}
 	}
 	if err := ctx.Err(); err != nil {
-		return reply, safeError(ctx, err)
+		return Reply{}, safeError(ctx, err)
 	}
 	if !finished {
-		return reply, errors.New("模型回复没有完成")
+		return Reply{}, errors.New("模型回复没有完成")
 	}
-	reply = Reply{Text: text.String(), Reasoning: strings.TrimSpace(reasoning.String())}
+	reply := Reply{Text: text.String(), Reasoning: strings.TrimSpace(reasoning.String())}
 	if strings.TrimSpace(reply.Text) == "" {
 		return Reply{}, errors.New("模型服务没有返回文字")
 	}
@@ -330,8 +317,8 @@ func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta))
 }
 
 // safeError reports a failed request by cause alone. Provider errors carry
-// the request and response bodies, and transport errors URLs and headers;
-// none of it is shown.
+// the response body, and transport errors URLs and headers; none of it is
+// shown.
 func safeError(ctx context.Context, err error) error {
 	if ctx.Err() != nil {
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
@@ -339,20 +326,13 @@ func safeError(ctx context.Context, err error) error {
 		}
 		return fmt.Errorf("模型请求已中止：%w", ctx.Err())
 	}
-	var pe *fantasy.ProviderError
-	if errors.As(err, &pe) {
-		if pe.StatusCode >= 300 {
-			return statusError(pe.StatusCode)
-		}
-		if pe.StatusCode == 0 && pe.ResponseBody == nil && pe.Cause != nil {
-			return networkError(pe.Cause)
+	var api *goai.APIError
+	if errors.As(err, &api) {
+		if api.StatusCode >= 300 {
+			return statusError(api.StatusCode)
 		}
 		return errors.New("模型服务返回了错误（为保护密钥和内容，不显示原文）")
 	}
-	return networkError(err)
-}
-
-func networkError(err error) error {
 	var timeout net.Error
 	if errors.As(err, &timeout) && timeout.Timeout() {
 		return fmt.Errorf("模型请求超时：%w", context.DeadlineExceeded)
@@ -361,9 +341,8 @@ func networkError(err error) error {
 }
 
 // guard sends a request only to the provider's host, with the provider's
-// key and nothing else that identifies the author. The SDKs fill in
-// credentials, organizations and custom headers from the environment
-// (OPENAI_API_KEY, ANTHROPIC_AUTH_TOKEN, OPENAI_CUSTOM_HEADERS, ...), which
+// key and nothing else that identifies the author. Model SDKs fill in
+// credentials, organizations and custom headers from the environment, which
 // would otherwise reach whatever endpoint the author configured.
 type guard struct {
 	base      http.RoundTripper
@@ -393,8 +372,8 @@ func (g guard) RoundTrip(r *http.Request) (*http.Response, error) {
 	return g.base.RoundTrip(out)
 }
 
-// passes reports whether a header the SDKs set may go out: what the
-// protocols need, and the SDKs' own retry and platform details.
+// passes reports whether a header a client set may go out: what the
+// protocols need, and SDK retry and platform details.
 func passes(header string) bool {
 	h := strings.ToLower(header)
 	switch h {

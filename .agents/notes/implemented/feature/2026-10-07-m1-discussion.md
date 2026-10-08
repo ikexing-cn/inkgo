@@ -6,7 +6,7 @@ Status: implemented
 
 作者需要把讨论中的具体想法逐条留下、待定或放弃，并在新会话中继续使用这些决定。只保留聊天记录无法区分临时发散与作者认可的依据，网络失败或记账中断还可能造成重复卡片和丢失原文。
 
-本篇落实[完整产品提案](../../proposed/feature/2026-10-07-idea-pool-discussion.md)中的 M1。原提案与本篇部分重叠，保留 proposed 状态供 M2、话题、设定整理和正文集成继续使用；其中 M1 的实现事实以本篇为准。[原生编辑器决策](../architecture/2026-10-07-pure-go-native-editor.md)继续有效，本次仅增加只读原文选区。[笔记门禁](../process/2026-10-07-agent-notes-gates.md)只约束过程，没有业务决定被替代或废弃。本篇的 SQLite 索引已由[存储去掉索引](../architecture/2026-10-08-m1-storage-without-index.md)取代；模型看到的思路形式与讨论规则见[短编号与讨论规则](2026-10-08-model-facing-refs-and-talk-rules.md)。下文"API 不流式"的决定已由[模型层改用 Fantasy](../architecture/2026-10-08-model-layer-on-fantasy.md)取代，推理等级与推理内容落盘也在该篇。
+本篇落实[完整产品提案](../../proposed/feature/2026-10-07-idea-pool-discussion.md)中的 M1。原提案与本篇部分重叠，保留 proposed 状态供 M2、话题、设定整理和正文集成继续使用；其中 M1 的实现事实以本篇为准。[原生编辑器决策](../architecture/2026-10-07-pure-go-native-editor.md)继续有效，本次仅增加只读原文选区。[笔记门禁](../process/2026-10-07-agent-notes-gates.md)只约束过程，没有业务决定被替代或废弃。本篇的 SQLite 索引已由[存储去掉索引](../architecture/2026-10-08-m1-storage-without-index.md)取代；模型看到的思路形式与讨论规则见[短编号与讨论规则](2026-10-08-model-facing-refs-and-talk-rules.md)。下文"API 不流式"的决定已由[模型层用 GoAI](../architecture/2026-10-08-model-layer-on-goai.md)取代，推理等级与推理内容落盘也在该篇。
 
 ## Decision
 
@@ -38,7 +38,7 @@ M1 只有总话题。上下文来自保留、待定、放弃避让清单和已�
 
 全局提供商预置 DeepSeek、Kimi、OpenAI、Anthropic，支持自定义 API 和三种协议：Chat Completions、Responses、Anthropic Messages。讨论和记账分别选模型，记账留空沿用讨论。模型目录可以手写或显式拉取，目录外 ID 可直接使用。凭据存系统钥匙串，缺失时读环境变量；作品里只保存提供商与模型 ID。空 key 输入保留已有凭据，专门的清除按钮删除后回到环境变量。配置界面及发送前显示本机或远程目的地址；本机代理是否继续转发由服务本身决定。
 
-请求改为流式，时长、输出上限与凭据关卡见[模型层改用 Fantasy](../architecture/2026-10-08-model-layer-on-fantasy.md)。客户端拒绝重定向，支持上层取消；请求、响应和完整目录限制 8 MiB，目录分页上限 100。错误信息为中文，HTTP 失败附带可能原因（如 401 对应 key 无效）；不回显远程响应体或传输详情，避免凭据泄漏。系统钥匙串不可用且未设置环境变量时显示错误；该情形下 M1 界面不能直接使用无凭据端点，底层显式无 key 客户端可以。
+请求改为流式，时长、输出上限与凭据关卡见[模型层用 GoAI](../architecture/2026-10-08-model-layer-on-goai.md)。客户端拒绝重定向，支持上层取消；请求、响应和完整目录限制 8 MiB，目录分页上限 100。错误信息为中文，HTTP 失败附带可能原因（如 401 对应 key 无效）；不回显远程响应体或传输详情，避免凭据泄漏。系统钥匙串不可用且未设置环境变量时显示错误；该情形下 M1 界面不能直接使用无凭据端点，底层显式无 key 客户端可以。
 
 ### 验证
 

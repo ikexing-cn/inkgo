@@ -136,7 +136,7 @@ func TestEffortPerProtocol(t *testing.T) {
 		{"chat", EffortDefault, nil, []string{"reasoning_effort"}},
 		{"chat", EffortMax, []string{`"reasoning_effort":"max"`}, nil},
 		{"chat", EffortLow, []string{`"reasoning_effort":"low"`}, nil},
-		{"responses", EffortMax, []string{`"effort":"xhigh"`, `"summary":"auto"`}, nil},
+		{"responses", EffortMax, []string{`"effort":"max"`, `"summary":"auto"`}, nil},
 		{"anthropic", EffortHigh, []string{`"effort":"high"`, `"type":"adaptive"`}, nil},
 		{"anthropic", EffortDefault, nil, []string{"effort"}},
 	} {
@@ -312,6 +312,7 @@ func TestRedirectsNeverForwardCredentialsOrContent(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		client.retries = 0
 		_, err = client.Complete(context.Background(), Request{Messages: []Message{{Role: "user", Content: "private manuscript"}}}, nil)
 		if err == nil || strings.Contains(err.Error(), "secret-credential") {
 			t.Fatalf("unsafe redirect error: %v", err)
@@ -336,6 +337,7 @@ func TestTransportErrorAndRequestValidation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	client.retries = 0
 	for _, req := range []Request{
 		{Messages: []Message{{Role: "user", Content: "hi"}}},
 		{Messages: []Message{{Role: "system", Content: "hi"}}},
