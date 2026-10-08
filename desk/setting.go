@@ -94,23 +94,19 @@ func (a *App) revise(ops ...workspace.Op) {
 }
 
 func (a *App) settingPanel(c *ui.Context) {
-	body := 0
-	for _, e := range a.set.Entries {
-		if e.Place == workspace.PlaceBody {
-			body++
-		}
-	}
+	body := a.bodyCount()
 	ui.Row(c).FillWidth().Height(34).Gap(4).AlignItems(ui.Center).Children(func() {
 		title := "设定"
 		if a.doc.history {
 			title = "整理历史"
 		}
-		if a.page == 3 && !a.doc.history {
+		tabs := a.page == 3 && !a.doc.history
+		if tabs {
 			a.panelTabs(c)
 		} else {
 			ui.Text(c, title).FontSize(15).FontWeight(600)
 		}
-		if !a.doc.history && body > 0 {
+		if !a.doc.history && !tabs && body > 0 {
 			ui.Textf(c, "%d", body).FontSize(12.5).TextColor(a.pal.faint).Padding(0, 0, 0, 4)
 		}
 		ui.Spacer(c)
@@ -131,6 +127,17 @@ func (a *App) settingPanel(c *ui.Context) {
 	} else {
 		a.document(c)
 	}
+}
+
+// bodyCount is how many entries the author has settled.
+func (a *App) bodyCount() int {
+	n := 0
+	for _, e := range a.set.Entries {
+		if e.Place == workspace.PlaceBody {
+			n++
+		}
+	}
+	return n
 }
 
 // document shows the body by category, then what is open and what was

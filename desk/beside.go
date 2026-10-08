@@ -47,7 +47,7 @@ func (a *App) panelTabs(c *ui.Context) {
 	t := a.pal.theme
 	tab := func(label string, talk bool) {
 		on := a.doc.talk == talk
-		b := ui.ButtonBase(c).Padding(4, 10).Radius(7).Label("右栏-" + label)
+		b := ui.ButtonBase(c).Row().AlignItems(ui.Center).Padding(4, 10).Radius(7).Label("右栏-" + label)
 		if on {
 			b.Background(t.SurfacePressed)
 		} else if b.Hovered() {
@@ -59,6 +59,11 @@ func (a *App) panelTabs(c *ui.Context) {
 				text.FontWeight(600)
 			} else {
 				text.TextColor(t.TextMuted)
+			}
+			// The count sits inside its own tab; beside the tabs it read
+			// as unread talk.
+			if n := a.bodyCount(); !talk && n > 0 {
+				ui.Textf(c, "%d", n).FontSize(12.5).TextColor(a.pal.faint).Padding(0, 0, 0, 4)
 			}
 		})
 		if b.Clicked() && !on {
