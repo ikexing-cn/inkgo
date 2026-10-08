@@ -415,3 +415,38 @@ func TestBookkeeperSeesTheExchangeBefore(t *testing.T) {
 		t.Fatalf("%+v %+v", r, set.Entries)
 	}
 }
+
+// Chinese counts by the character, not by its three UTF-8 bytes.
+func TestEstimateCountsCharacters(t *testing.T) {
+	if got := Estimate(strings.Repeat("雨", 1000)); got != 1516 {
+		t.Fatalf("1000 汉字 = %d", got)
+	}
+	if got := Estimate(strings.Repeat("rain ", 300)); got != 516 {
+		t.Fatalf("1500 ASCII bytes = %d", got)
+	}
+}
+
+// A backlog too long for one request is taken in a turn at a time, oldest
+// first, instead of failing.
+func TestBookkeeperSplitsALongBacklog(t *testing.T) {
+	e, session := setup(t)
+	long := strings.Repeat("雨", 2000)
+	u1, r1 := turn(t, e, session, "第一轮", long)
+	u2, r2 := turn(t, e, session, "第二轮", long)
+	w := e.Store.Work()
+	w.TokenBudget = Estimate(bookRules) + bookReserve + Estimate(long) + 600
+	if err := e.Store.SaveWork(w); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := book(e, `{"ops":[]}`, `{"ops":[]}`)
+	for range 2 {
+		if did, err := b.Run(context.Background(), session); !did || err != nil {
+			t.Fatal(did, err)
+		}
+	}
+	set := setting(t, e)
+	if len(set.Revisions) != 2 || set.Revisions[0].From != u1.ID || set.Revisions[0].Through != r1.ID ||
+		set.Revisions[1].From != u2.ID || set.Revisions[1].Through != r2.ID {
+		t.Fatalf("%+v", set.Revisions)
+	}
+}

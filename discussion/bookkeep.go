@@ -99,7 +99,24 @@ func (b *Bookkeeper) next(set workspace.Setting, session string) (batch, error) 
 	if last < done {
 		return batch{session: session}, nil
 	}
-	return batch{session: session, earlier: events[max(0, done-earlierTurn):done], events: events[done : last+1]}, nil
+	bt := batch{session: session, earlier: events[max(0, done-earlierTurn):done], events: events[done : last+1]}
+	// A backlog too long for one request goes in parts, oldest first, each
+	// through a reply: the next pass takes the rest.
+	for end := len(bt.events) - 2; end >= 0 && !b.fits(set, bt); end-- {
+		if bt.events[end].Role == workspace.RoleAssistant {
+			bt.events = bt.events[:end+1]
+		}
+	}
+	if !b.fits(set, bt) {
+		bt.earlier = nil // what was said before is a help, not a must
+	}
+	return bt, nil
+}
+
+// fits reports whether bt goes in one request within the work's budget.
+func (b *Bookkeeper) fits(set workspace.Setting, bt batch) bool {
+	payload, _, err := b.input(set, bt)
+	return err == nil && Estimate(bookRules)+Estimate(payload)+bookReserve <= b.Store.Work().TokenBudget
 }
 
 // Pending lists the sessions with turns the bookkeeper has not covered.
@@ -196,6 +213,42 @@ func (b *Bookkeeper) draft(ctx context.Context, set workspace.Setting, bt batch)
 	if !b.Model.ready() {
 		return workspace.Revision{}, errors.New("请先配置记账模型")
 	}
+	payload, categories, err := b.input(set, bt)
+	if err != nil {
+		return workspace.Revision{}, err
+	}
+	if Estimate(bookRules)+Estimate(payload)+bookReserve > b.Store.Work().TokenBudget {
+		return workspace.Revision{}, errors.New("设定文档和这一轮对话超出整理预算，请提高作品预算")
+	}
+	req := model.Request{System: bookRules, Messages: []model.Message{{Role: workspace.RoleUser, Content: payload}}, MaxTokens: bookOutput}
+	answer, err := ask(ctx, b.Model, req, nil)
+	if err != nil {
+		return workspace.Revision{}, err
+	}
+	reasoning := answer.Reasoning
+	ops, problems := b.check(answer.Text, set, bt, categories)
+	if len(problems) > 0 {
+		req.Messages = append(req.Messages,
+			model.Message{Role: workspace.RoleAssistant, Content: answer.Text},
+			model.Message{Role: workspace.RoleUser, Content: "上面的回答有这些问题：\n" + strings.Join(problems, "\n") + "\n请改正后重新给出完整的 JSON。"})
+		if answer, err = ask(ctx, b.Model, req, nil); err != nil {
+			return workspace.Revision{}, err
+		}
+		if answer.Reasoning != "" {
+			reasoning = strings.TrimSpace(reasoning + "\n\n（改正时）\n" + answer.Reasoning)
+		}
+		if ops, problems = b.check(answer.Text, set, bt, categories); len(problems) > 0 {
+			return workspace.Revision{}, fmt.Errorf("整理结果不合规则：%s", strings.Join(problems, "；"))
+		}
+	}
+	return workspace.Revision{By: workspace.ByBookkeeper, Ops: ops, Base: len(set.Revisions), Session: bt.session,
+		From: bt.events[0].ID, Through: bt.events[len(bt.events)-1].ID,
+		Model: b.Model.Name, Effort: string(b.Model.Effort), Reasoning: reasoning}, nil
+}
+
+// input is what the bookkeeper is shown of set and bt, and the categories
+// it may use.
+func (b *Bookkeeper) input(set workspace.Setting, bt batch) (string, []string, error) {
 	w := b.Store.Work()
 	var categories []string
 	for _, c := range w.Categories {
@@ -230,36 +283,7 @@ func (b *Bookkeeper) draft(ctx context.Context, set workspace.Setting, bt batch)
 		in.Messages = append(in.Messages, shownMessage{fmt.Sprintf("m%d", n+1), who, n < len(bt.earlier), e.Text})
 	}
 	payload, err := json.Marshal(in)
-	if err != nil {
-		return workspace.Revision{}, err
-	}
-	if Estimate(bookRules)+Estimate(string(payload))+bookReserve > w.TokenBudget {
-		return workspace.Revision{}, errors.New("设定文档和这几轮对话超出整理预算，请提高作品预算")
-	}
-	req := model.Request{System: bookRules, Messages: []model.Message{{Role: workspace.RoleUser, Content: string(payload)}}, MaxTokens: bookOutput}
-	answer, err := ask(ctx, b.Model, req, nil)
-	if err != nil {
-		return workspace.Revision{}, err
-	}
-	reasoning := answer.Reasoning
-	ops, problems := b.check(answer.Text, set, bt, categories)
-	if len(problems) > 0 {
-		req.Messages = append(req.Messages,
-			model.Message{Role: workspace.RoleAssistant, Content: answer.Text},
-			model.Message{Role: workspace.RoleUser, Content: "上面的回答有这些问题：\n" + strings.Join(problems, "\n") + "\n请改正后重新给出完整的 JSON。"})
-		if answer, err = ask(ctx, b.Model, req, nil); err != nil {
-			return workspace.Revision{}, err
-		}
-		if answer.Reasoning != "" {
-			reasoning = strings.TrimSpace(reasoning + "\n\n（改正时）\n" + answer.Reasoning)
-		}
-		if ops, problems = b.check(answer.Text, set, bt, categories); len(problems) > 0 {
-			return workspace.Revision{}, fmt.Errorf("整理结果不合规则：%s", strings.Join(problems, "；"))
-		}
-	}
-	return workspace.Revision{By: workspace.ByBookkeeper, Ops: ops, Base: len(set.Revisions), Session: bt.session,
-		From: bt.events[0].ID, Through: bt.events[len(bt.events)-1].ID,
-		Model: b.Model.Name, Effort: string(b.Model.Effort), Reasoning: reasoning}, nil
+	return string(payload), categories, err
 }
 
 // check turns an answer into ops, or says which rules it breaks:

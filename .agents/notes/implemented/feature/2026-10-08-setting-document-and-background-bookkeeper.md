@@ -68,8 +68,9 @@ M1 每轮对话串行：先回复，再把这一轮拆成思路卡片，再查�
 
 ### 调度
 
-- 每轮回复落盘、打开作品、后台结果回来时，`App.kick` 唤醒 worker。
+- 打开作品、改了模型设置、任何前台请求（包括发送一轮）结束时，`App.kick` 唤醒 worker。最初只在打开作品时唤醒，作者聊了四轮设定仍是空的；`TestBookkeeperFillsTheSettingInTheBackground` 现在按发送的路径写入一轮，不再手动唤醒。
 - 同一部作品只有一个 worker；它在跑时到来的唤醒会合并，下一轮把积压的轮次合成一批。
+- 积压的轮次一次放不进[预算](../architecture/2026-10-08-token-estimate-by-character.md)时，从最早的轮次起截到放得下的最后一条回复，剩下的下一批处理；只剩一轮仍放不下，就去掉附带的前一轮。一轮本身就超出预算才算失败。
 - 一个会话处理到哪条消息，由覆盖它的最近一次修订决定，失败的修订也算。只处理到最后一条 AI 回复，还在等回复的发言留到下一批。
 - 失败后按 10 秒、1 分钟递增重试，共 3 次。仍失败就写失败修订，后续轮次继续往下处理。
 - 关闭作品时取消在跑的记账；没写入的批次下次打开再补。
@@ -138,6 +139,7 @@ M1 每轮对话串行：先回复，再把这一轮拆成思路卡片，再查�
   - 原文放宽匹配（`TestLocateForgivesCopyMarks`）；
   - 附上前一轮消息（`TestBookkeeperSeesTheExchangeBefore`）；
   - worker 重试、写失败修订、重试成功（`TestWorkerRetriesRecordsFailureAndRedoes`）；
+  - 积压过长时分批（`TestBookkeeperSplitsALongBacklog`）；
   - 聊天上下文覆盖未处理的轮次。
 - `go test ./desk`：
   - 作者编辑、放弃、移回、新增都记为作者修订；

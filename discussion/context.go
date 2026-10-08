@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"writer/model"
 	"writer/workspace"
@@ -30,10 +31,21 @@ const (
 	recentTurns = 4
 )
 
-// Estimate deliberately uses UTF-8 bytes, a conservative bound for ordinary
-// byte-based tokenizers. Providers can have different tokenizers; this is not
-// reported as an exact token count.
-func Estimate(s string) int { return len(s) + 16 }
+// Estimate bounds the tokens of s without the provider's tokenizer: one for
+// every three ASCII bytes, and one and a half for every other character,
+// above what the tokenizers we know of spend on Chinese. It is never
+// reported as an exact count.
+func Estimate(s string) int {
+	ascii, other := 0, 0
+	for _, r := range s {
+		if r < utf8.RuneSelf {
+			ascii++
+		} else {
+			other++
+		}
+	}
+	return (ascii+2)/3 + (other*3+1)/2 + 16
+}
 
 // places order the setting in the prompt and decide what goes first when
 // it does not all fit: the body binds the reply, then what the author

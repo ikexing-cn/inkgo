@@ -138,11 +138,18 @@ func TestBookkeeperFillsTheSettingInTheBackground(t *testing.T) {
 	}
 	a.halt() // the next frame starts one with the bookkeeper above
 	tt.Frame()
-	u, _ := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "这座城市雨从不停。"})
-	if _, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "好"}); err != nil {
-		t.Fatal(err)
-	}
-	a.kick()
+	var c *ui.Context
+	tt = ui.NewTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
+	tt.Frame()
+	// A turn saved the way a send saves it; nothing else wakes the bookkeeper.
+	a.run(c, "AI 正在思考…", func(context.Context) (func(), error) {
+		u, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "这座城市雨从不停。"})
+		if err == nil {
+			_, err = a.Store.Append(a.session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "好"})
+		}
+		return nil, err
+	})
+	settle(t, a, tt)
 	deadline := time.Now().Add(3 * time.Second)
 	for len(a.set.Entries) < 2 && time.Now().Before(deadline) {
 		time.Sleep(5 * time.Millisecond)

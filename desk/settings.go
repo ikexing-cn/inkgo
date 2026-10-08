@@ -275,7 +275,8 @@ func (a *App) saveUsage() error {
 	}
 	w.TokenBudget = budget
 	if err = a.Store.SaveWork(w); err == nil {
-		a.notice = "已保存，下一次发送开始使用"
+		a.notice = "模型设置已保存，从下一条发言起生效"
+		a.kick() // a model or budget that now works takes in what waited
 	}
 	return err
 }

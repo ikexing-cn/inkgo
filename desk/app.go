@@ -403,6 +403,7 @@ func (a *App) poll() {
 		if err := a.refresh(); err != nil {
 			a.Error = err.Error()
 		}
+		a.kick() // a turn may have been saved
 	default:
 	}
 }
