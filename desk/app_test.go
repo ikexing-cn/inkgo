@@ -185,9 +185,13 @@ func TestFailedBookkeepingShowsInHistory(t *testing.T) {
 	if tt.HasText("这几轮没整理成功：服务暂时不可用") {
 		t.Fatal("a failure shows outside the history")
 	}
-	a.doc.history = true
+	a.doc.hidden = true
 	tt.Frame()
-	if !tt.HasText("这几轮没整理成功：服务暂时不可用") {
+	if err = tt.Click("上次整理没成功，点开看看"); err != nil {
+		t.Fatal("no sign of the failure", err)
+	}
+	tt.Frame()
+	if !a.doc.history || a.doc.hidden || !tt.HasText("这几轮没整理成功：服务暂时不可用") {
 		t.Fatal("history", tt.Texts())
 	}
 	f := &answer{replies: []string{`{"ops":[]}`}}
@@ -200,6 +204,10 @@ func TestFailedBookkeepingShowsInHistory(t *testing.T) {
 	settle(t, a, tt)
 	if !a.set.Redone(failed.ID) || a.Error != "" {
 		t.Fatalf("redo %q", a.Error)
+	}
+	tt.Frame()
+	if _, ok := tt.Find("上次整理没成功，点开看看"); ok {
+		t.Fatal("the sign outlived the retry")
 	}
 }
 
@@ -431,4 +439,45 @@ func TestReplyTextSelectsAcrossBlocksAndCopies(t *testing.T) {
 	if tt.Clipboard() != reply {
 		t.Fatalf("copied %q", tt.Clipboard())
 	}
+}
+
+// gate is a model that answers once let through.
+type gate struct{ open chan struct{} }
+
+func (g gate) Complete(ctx context.Context, r model.Request, on func(model.Delta)) (model.Reply, error) {
+	select {
+	case <-g.open:
+		return model.Reply{Text: `{"ops":[]}`}, nil
+	case <-ctx.Done():
+		return model.Reply{}, ctx.Err()
+	}
+}
+
+// While the bookkeeper works, a dot says so; it goes when the work is done.
+func TestBookkeeperShowsWhileItWorks(t *testing.T) {
+	a, tt, _ := fixture(t)
+	g := gate{open: make(chan struct{})}
+	a.Book = func(s *workspace.Store) (*discussion.Bookkeeper, error) {
+		return &discussion.Bookkeeper{Store: s, Model: discussion.Model{Completer: g}}, nil
+	}
+	a.halt()
+	tt.Frame()
+	u, _ := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "雨从不停。"})
+	a.Store.Append(a.session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "好"})
+	a.kick()
+	shown := func(want bool) {
+		t.Helper()
+		for deadline := time.Now().Add(3 * time.Second); time.Now().Before(deadline); time.Sleep(5 * time.Millisecond) {
+			tt.Frame()
+			if _, ok := tt.Find("正在整理设定"); ok == want {
+				return
+			}
+		}
+		t.Fatalf("dot shown should be %v", want)
+	}
+	shown(true)
+	a.setDocHidden(true)
+	shown(true) // beside the button that brings the panel back
+	close(g.open)
+	shown(false)
 }

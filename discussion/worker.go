@@ -3,6 +3,7 @@ package discussion
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"time"
 )
 
@@ -16,12 +17,25 @@ type Worker struct {
 	Book func() (*Bookkeeper, error)
 	// Backoff is the waits between attempts: a batch has len(Backoff)+1.
 	Backoff []time.Duration
-	// Changed hears each revision written, on the worker's goroutine.
+	// Changed hears each revision written, and the worker starting and
+	// stopping work, on the worker's goroutine.
 	Changed func()
 	// Log, when set, hears what the worker does and why it stops, on the
 	// worker's goroutine: nothing of it shows in the view.
 	Log  func(string)
 	kick chan struct{}
+	busy atomic.Bool
+}
+
+// Busy reports whether the worker is taking turns in, retries and the
+// waits before them included.
+func (w *Worker) Busy() bool { return w.busy.Load() }
+
+func (w *Worker) setBusy(busy bool) {
+	w.busy.Store(busy)
+	if w.Changed != nil {
+		w.Changed()
+	}
 }
 
 // attemptLimit bounds one attempt, so a stalled connection cannot hold the
@@ -73,6 +87,11 @@ func (w *Worker) pass(ctx context.Context) bool {
 		w.log("读不出待整理的对话：%v", err)
 		return false
 	}
+	if len(sessions) == 0 {
+		return false
+	}
+	w.setBusy(true)
+	defer w.setBusy(false)
 	wrote := false
 	for _, s := range sessions {
 		if w.session(ctx, b, s) {

@@ -343,12 +343,22 @@ func TestWorkerRetriesRecordsFailureAndRedoes(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go w.Run(ctx)
-	w.Kick()
-	select {
-	case <-changed:
-	case <-time.After(3 * time.Second):
-		t.Fatal("no revision")
+	// settled waits for the worker to finish with revisions written.
+	settled := func(revisions int, what string) {
+		t.Helper()
+		for {
+			if set := setting(t, e); len(set.Revisions) >= revisions && !w.Busy() {
+				return
+			}
+			select {
+			case <-changed:
+			case <-time.After(3 * time.Second):
+				t.Fatal(what)
+			}
+		}
 	}
+	w.Kick()
+	settled(1, "no revision")
 	set := setting(t, e)
 	if len(failing.calls) != 3 || len(set.Revisions) != 1 || !strings.Contains(set.Revisions[0].Failed, "服务暂时不可用") || set.Revisions[0].From != u.ID {
 		t.Fatalf("calls %d revisions %+v", len(failing.calls), set.Revisions)
@@ -363,11 +373,7 @@ func TestWorkerRetriesRecordsFailureAndRedoes(t *testing.T) {
 	bk.Store(next)
 	turn(t, e, session, "雨从不停。", "好。")
 	w.Kick()
-	select {
-	case <-changed:
-	case <-time.After(3 * time.Second):
-		t.Fatal("the turns after a failure did not go on")
-	}
+	settled(2, "the turns after a failure did not go on")
 	if set = setting(t, e); len(set.Entries) != 1 || set.Entries[0].Text != "雨从不停" {
 		t.Fatalf("%+v", set.Entries)
 	}

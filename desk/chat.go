@@ -94,6 +94,9 @@ func (a *App) chatTop(c *ui.Context) {
 		if n := len(a.events); n > 0 {
 			ui.Textf(c, "%d 条发言", n).FontSize(12).TextColor(a.pal.faint)
 		}
+		if a.doc.hidden {
+			a.bookDot(c)
+		}
 		if a.doc.hidden && iconButton(c, icPanel, "展开设定", ui.Color{}).Tooltip("展开设定文档").Clicked() {
 			a.setDocHidden(false)
 		}

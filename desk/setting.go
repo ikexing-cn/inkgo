@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"time"
@@ -76,6 +77,7 @@ func (a *App) settingPanel(c *ui.Context) {
 			ui.Textf(c, "%d", body).FontSize(12.5).TextColor(a.pal.faint).Padding(0, 0, 0, 4)
 		}
 		ui.Spacer(c)
+		a.bookDot(c)
 		color := ui.Color{}
 		if a.doc.history {
 			color = a.pal.brand
@@ -335,3 +337,52 @@ func (a *App) redo(c *ui.Context, failed string) {
 		return nil, book.Redo(ctx, failed)
 	})
 }
+
+// bookFailed reports whether the bookkeeper's latest batch failed and has
+// not been retried; a later batch that went through clears it.
+func (a *App) bookFailed() bool {
+	for n := len(a.set.Revisions) - 1; n >= 0; n-- {
+		if r := a.set.Revisions[n]; r.By == workspace.ByBookkeeper {
+			return r.Failed != "" && !a.set.Redone(r.ID)
+		}
+	}
+	return false
+}
+
+// bookDot is the one sign of the background bookkeeper: a dot that breathes
+// while it works and turns to a warning when its last batch failed. It
+// opens the history.
+func (a *App) bookDot(c *ui.Context) {
+	busy := a.worker != nil && a.worker.Busy()
+	failed := !busy && a.bookFailed()
+	if !busy && !failed {
+		return
+	}
+	label, color := "正在整理设定", a.pal.brand
+	if failed {
+		label, color = "上次整理没成功，点开看看", a.pal.theme.Warning
+	}
+	b := ui.ButtonBase(c).Label(label).Tooltip(label).Padding(7).Radius(6)
+	if b.Hovered() {
+		b.Background(a.pal.theme.SurfaceHover)
+	}
+	b.Children(func() {
+		d := dot(c, color, 7)
+		if busy {
+			phase := float64(time.Now().UnixMilli()%breath) / float64(breath)
+			d.Opacity(float32(0.3 + 0.7*(0.5+0.5*math.Cos(2*math.Pi*phase))))
+			c.After(breathStep)
+		}
+	})
+	if b.Clicked() {
+		a.setDocHidden(false)
+		a.doc.history = true
+	}
+}
+
+// The dot breathes once in breath, redrawn every breathStep: slow enough
+// not to pull the eye from the talk, and to cost next to nothing.
+const (
+	breath     = 1800
+	breathStep = 90 * time.Millisecond
+)
