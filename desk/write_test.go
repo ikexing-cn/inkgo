@@ -549,3 +549,22 @@ func TestTodayCountsFromTheDaysStart(t *testing.T) {
 		t.Fatalf("the next day starts at %d", k)
 	}
 }
+
+// The writing switches in the settings are kept as they are ticked, not
+// only with the models' save.
+func TestWritingSwitchesKeepAsTicked(t *testing.T) {
+	a, tt, _ := writingFixture(t, "雨从傍晚开始下。")
+	if err := tt.Click("模型设置"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	for _, label := range []string{"停止输入后自动续写", "离开改过的章节时更新摘要"} {
+		if err := tt.Click(label); err != nil {
+			t.Fatal(err, tt.Texts())
+		}
+		tt.Frame()
+	}
+	if p := savedPrefs(t, a); !p.AutoPredict || !p.NoAutoSummary {
+		t.Fatalf("prefs %+v", p)
+	}
+}

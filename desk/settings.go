@@ -222,11 +222,15 @@ func (a *App) usage(c *ui.Context) {
 			labeled(c, "推理等级", func() { effortSelect(c, &a.penEffort, "写作推理等级", busy) }).Width(136)
 		})
 		ui.Column(c).FillWidth().Gap(4).Children(func() {
-			ui.Checkbox(c, &a.write.autoPredict, "停止输入后自动续写").Disabled(busy)
+			if ui.Checkbox(c, &a.write.autoPredict, "停止输入后自动续写").Disabled(busy).Changed() {
+				a.savePrefs() // kept as ticked, not with the models below
+			}
 			ui.Text(c, "续写总是不推理、只写一句。默认按 "+modKey+"J 才续写；打开上面这项后，每次停下来都会调用一次模型。").FontSize(12).TextColor(a.pal.faint).LineHeight(1.5)
 		})
 		ui.Column(c).FillWidth().Gap(4).Children(func() {
-			ui.Checkbox(c, &a.write.autoSummary, "离开改过的章节时更新摘要").Disabled(busy)
+			if ui.Checkbox(c, &a.write.autoSummary, "离开改过的章节时更新摘要").Disabled(busy).Changed() {
+				a.savePrefs() // kept as ticked, not with the models below
+			}
 			ui.Text(c, "起草时 AI 会看到前面各章的摘要。每更新一章调用一次写作模型（不推理）；你自己写的摘要不会被覆盖。").FontSize(12).TextColor(a.pal.faint).LineHeight(1.5)
 		})
 		ui.Row(c).FillWidth().Gap(12).AlignItems(ui.End).Children(func() {
