@@ -187,14 +187,15 @@ func (a *App) usage(c *ui.Context) {
 	for _, p := range a.Config.Providers {
 		ids = append(ids, p.ID)
 	}
-	a.section(c, "这部作品用哪个模型", "讨论模型负责回应你；整理模型把对话拆成思路卡片，可以用更便宜的模型。改动从下一次发送开始生效。", func() {
+	a.section(c, "这部作品用哪个模型", "讨论模型负责回应你；整理模型把对话拆成思路卡片，可以用更便宜的模型或更低的推理等级。推理等级 Default 交给服务商决定。改动从下一次发送开始生效。", func() {
 		ui.Row(c).FillWidth().Gap(12).Children(func() {
 			labeled(c, "讨论 · 服务", func() {
 				ui.Select(c, &a.talkProvider, ids).Label("讨论提供商").FillWidth().Disabled(busy)
-			}).Width(220)
+			}).Width(200)
 			labeled(c, "讨论 · 模型", func() {
 				ui.Autocomplete(c, &a.talkModel, a.providerModels(a.talkProvider)).Label("讨论模型").Placeholder("输入或选择模型 ID").FillWidth().Disabled(busy)
 			}).Grow(1)
+			labeled(c, "推理等级", func() { effortSelect(c, &a.talkEffort, "讨论推理等级", busy) }).Width(136)
 		})
 		book := a.bookProvider
 		if book == "" {
@@ -208,7 +209,7 @@ func (a *App) usage(c *ui.Context) {
 						a.bookProvider = book
 					}
 				}
-			}).Width(220)
+			}).Width(200)
 			labeled(c, "整理 · 模型", func() {
 				if a.bookProvider == "" {
 					ui.Text(c, "和讨论用同一个模型").TextColor(t.TextMuted).Padding(7, 0)
@@ -217,11 +218,12 @@ func (a *App) usage(c *ui.Context) {
 					ui.Autocomplete(c, &a.bookModel, a.providerModels(a.bookProvider)).Label("记账模型").Placeholder("输入或选择模型 ID").FillWidth().Disabled(busy)
 				}
 			}).Grow(1)
+			labeled(c, "推理等级", func() { effortSelect(c, &a.bookEffort, "整理推理等级", busy) }).Width(136)
 		})
 		ui.Row(c).FillWidth().Gap(12).AlignItems(ui.End).Children(func() {
 			labeled(c, "上下文预算（token，含回答预留）", func() {
 				ui.TextInput(c, &a.budget).Label("上下文预算").FillWidth().Disabled(busy)
-			}).Width(220)
+			}).Width(200)
 			ui.Text(c, "不要超过模型的上下文窗口。放不下的思路会在回复下的“AI 看到了什么”里列出。").FontSize(12).TextColor(a.pal.faint).LineHeight(1.5).Grow(1).Padding(0, 0, 8, 0)
 		})
 		a.pal.hairline(c)
@@ -234,6 +236,22 @@ func (a *App) usage(c *ui.Context) {
 	})
 }
 
+// effortSelect picks an effort, shown by its label, into *value.
+func effortSelect(c *ui.Context, value *string, label string, disabled bool) {
+	names := make([]string, len(model.Efforts))
+	chosen := model.Effort(*value).Label()
+	for n, e := range model.Efforts {
+		names[n] = e.Label()
+	}
+	if ui.Select(c, &chosen, names).Label(label).FillWidth().Disabled(disabled).Changed() {
+		for _, e := range model.Efforts {
+			if e.Label() == chosen {
+				*value = string(e)
+			}
+		}
+	}
+}
+
 func (a *App) saveUsage() error {
 	budget, err := strconv.Atoi(trim(a.budget))
 	if err != nil {
@@ -243,8 +261,8 @@ func (a *App) saveUsage() error {
 		return errors.New("上下文预算至少为 8192，请确保不超过模型支持的窗口")
 	}
 	w := a.Store.Work()
-	w.Discussion = workspace.Selection{Provider: trim(a.talkProvider), Model: trim(a.talkModel)}
-	w.Bookkeeping = workspace.Selection{Provider: trim(a.bookProvider), Model: trim(a.bookModel)}
+	w.Discussion = workspace.Selection{Provider: trim(a.talkProvider), Model: trim(a.talkModel), Effort: a.talkEffort}
+	w.Bookkeeping = workspace.Selection{Provider: trim(a.bookProvider), Model: trim(a.bookModel), Effort: a.bookEffort}
 	if w.Bookkeeping.Provider == "" {
 		w.Bookkeeping.Model = ""
 	}
@@ -276,7 +294,7 @@ func (a *App) providerForm(c *ui.Context) {
 		ui.Row(c).FillWidth().Gap(12).Children(func() {
 			labeled(c, "ID（小写字母、数字、- _）", func() {
 				ui.TextInput(c, &a.provider.ID).Label("Provider ID（小写）").FillWidth().Disabled(busy || a.providerID != "")
-			}).Width(220)
+			}).Width(200)
 			labeled(c, "显示名称", func() { ui.TextInput(c, &a.provider.Name).Label("显示名称").FillWidth().Disabled(busy) }).Grow(1)
 		})
 		labeled(c, "API 地址", func() {

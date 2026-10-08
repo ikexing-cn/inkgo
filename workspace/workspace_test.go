@@ -359,3 +359,33 @@ func TestBookkeepingJournalsReservedIDs(t *testing.T) {
 		t.Fatal("bookkeeping accepted invalid ID")
 	}
 }
+
+func TestModelOutputKeepsReasoningForReview(t *testing.T) {
+	s := testStore(t)
+	session := mustSession(t, s)
+	user := mustEvent(t, s, session, Event{Role: RoleUser, Text: "她怕黑"})
+	mustEvent(t, s, session, Event{Role: RoleAssistant, Text: "回答", ReplyTo: user.ID, Model: "deepseek/deepseek-flash", Effort: "max", Reasoning: "先想一想\n再回答"})
+	events, err := s.Events(session)
+	if err != nil || events[1].Reasoning != "先想一想\n再回答" || events[1].Model != "deepseek/deepseek-flash" || events[1].Effort != "max" {
+		t.Fatalf("reasoning lost: %+v %v", events, err)
+	}
+	if _, err = s.Append(session, Event{Role: RoleUser, Text: "x", Reasoning: "伪造"}); err == nil {
+		t.Fatal("the author's words recorded a model's reasoning")
+	}
+	if _, err = s.Append(session, Event{Role: RoleAssistant, Text: "x", ReplyTo: user.ID, Effort: "medium"}); err == nil {
+		t.Fatal("accepted an effort not offered")
+	}
+	w := s.Work()
+	w.Discussion = Selection{Provider: "deepseek", Model: "deepseek-flash", Effort: "high"}
+	w.Bookkeeping = Selection{Effort: "low"}
+	if err = s.SaveWork(w); err != nil {
+		t.Fatal(err)
+	}
+	if s.Work().Bookkeeping.Effort != "low" {
+		t.Fatal("bookkeeping effort lost")
+	}
+	w.Discussion.Effort = "xhigh"
+	if err = s.SaveWork(w); err == nil {
+		t.Fatal("accepted an unknown effort")
+	}
+}

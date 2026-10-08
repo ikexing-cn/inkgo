@@ -26,9 +26,12 @@ type Context struct {
 }
 
 const (
-	talkReserve = 2048 // tokens kept for the reply
-	poolSlack   = 512  // section headings and per-message overhead
-	refCost     = 24   // a "[12] " prefix or a conflict note
+	// talkReserve is the reply's share of the context budget. The request
+	// allows far more output, talkOutput, as reasoning comes out of it too.
+	talkReserve = 2048
+	talkOutput  = 32768
+	poolSlack   = 512 // section headings and per-message overhead
+	refCost     = 24  // a "[12] " prefix or a conflict note
 	recentTurns = 4
 )
 
@@ -75,7 +78,7 @@ func describe(i workspace.Idea) string {
 // decided on, newest first until the budget runs out, and the last few
 // complete exchanges.
 func Assemble(ideas []workspace.Idea, events []workspace.Event, input string, budget int) (Context, error) {
-	out := Context{Request: model.Request{MaxTokens: talkReserve}}
+	out := Context{Request: model.Request{MaxTokens: talkOutput}}
 	remaining := budget - talkReserve - Estimate(talkRules) - Estimate(input) - poolSlack
 	if remaining < 0 {
 		return out, fmt.Errorf("当前发言超出上下文预算 %d；请缩短发言或提高作品预算", budget)

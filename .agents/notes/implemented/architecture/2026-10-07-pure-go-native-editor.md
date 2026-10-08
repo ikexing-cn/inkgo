@@ -21,7 +21,7 @@ Status: implemented
 
 ## Consequences
 
-- **收益**：单个 Go 二进制（约 15 MB），交叉编译 Windows/macOS/Linux 不需要 C 工具链；编辑器每个行为都在自己代码里，可用 `ui.Tester` 无窗口测试（输入法组字、Tab 采纳与撤销、补全、点击定位）。
+- **收益**：单个 Go 二进制（去掉调试信息约 61 MB，大部分来自模型层依赖，见[模型层改用 Fantasy](2026-10-08-model-layer-on-fantasy.md)），交叉编译 Windows/macOS/Linux 不需要 C 工具链；编辑器每个行为都在自己代码里，可用 `ui.Tester` 无窗口测试（输入法组字、Tab 采纳与撤销、补全、点击定位）。
 - **代价与已知上限**：中文断行、光标、选区、撤销、滚动、无障碍都要自己维护；目前还没有无障碍文本暴露，超长章节每次编辑会重新断全部行。mygo 处于 0.2.x、基本单人维护，API 变动或停更时需要重访这个决定。Linux 上回车/退格是否以按键事件到达、fcitx5/ibus 输入法兼容性尚未在真机验证。
 
 ## Verification

@@ -21,6 +21,16 @@ func validSchema(n int) error {
 	}
 	return nil
 }
+
+// validEffort mirrors model.Efforts; workspace stays free of model clients.
+func validEffort(e string) bool {
+	switch e {
+	case "", "low", "high", "max":
+		return true
+	}
+	return false
+}
+
 func validStatus(s Status) bool {
 	switch s {
 	case Unprocessed, Kept, Deferred, Rejected, Adopted, Superseded:
@@ -72,6 +82,9 @@ func validateWork(w Work) error {
 	for name, sel := range map[string]Selection{"discussion": w.Discussion, "bookkeeping": w.Bookkeeping} {
 		if (sel.Provider == "") != (sel.Model == "") {
 			return fmt.Errorf("%s: provider and model must be specified together", name)
+		}
+		if !validEffort(sel.Effort) {
+			return fmt.Errorf("%s.effort: invalid %q", name, sel.Effort)
 		}
 	}
 	return nil
@@ -203,6 +216,12 @@ func validateEvent(e Event) error {
 		}
 	default:
 		return fmt.Errorf("kind: invalid %q", e.Kind)
+	}
+	if !validEffort(e.Effort) {
+		return fmt.Errorf("effort: invalid %q", e.Effort)
+	}
+	if e.Kind == KindMessage && e.Role == RoleUser && (e.Model != "" || e.Effort != "" || e.Reasoning != "") {
+		return fmt.Errorf("model: only what a model wrote records one")
 	}
 	if e.ReplyTo != "" {
 		if err := validID(e.ReplyTo); err != nil {

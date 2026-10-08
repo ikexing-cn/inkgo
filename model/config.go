@@ -34,7 +34,7 @@ type Config struct {
 
 func DefaultConfig() Config {
 	return Config{Schema: 1, Providers: []Provider{
-		{ID: "deepseek", Name: "DeepSeek", BaseURL: "https://api.deepseek.com/v1", Protocol: "chat", Env: "DEEPSEEK_API_KEY", Models: []string{"deepseek-chat", "deepseek-reasoner"}},
+		{ID: "deepseek", Name: "DeepSeek", BaseURL: "https://api.deepseek.com/v1", Protocol: "chat", Env: "DEEPSEEK_API_KEY", Models: []string{"deepseek-flash", "deepseek-v4-pro"}},
 		{ID: "kimi", Name: "Kimi", BaseURL: "https://api.moonshot.cn/v1", Protocol: "chat", Env: "MOONSHOT_API_KEY", Models: []string{"kimi-k2.5"}},
 		{ID: "openai", Name: "OpenAI", BaseURL: "https://api.openai.com/v1", Protocol: "responses", Env: "OPENAI_API_KEY", Models: []string{}},
 		{ID: "anthropic", Name: "Anthropic", BaseURL: "https://api.anthropic.com/v1", Protocol: "anthropic", Env: "ANTHROPIC_API_KEY", Models: []string{}},

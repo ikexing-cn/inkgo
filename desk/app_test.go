@@ -3,12 +3,15 @@ package desk
 import (
 	"context"
 	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/discussion"
+	"writer/model"
 	"writer/workspace"
 )
 
@@ -214,7 +217,7 @@ func TestIncompleteFormsExplainInChinese(t *testing.T) {
 	}
 	a.talkProvider, a.talkModel = "deepseek", ""
 	check("discussion model", a.saveUsage())
-	a.talkModel, a.bookProvider, a.bookModel = "deepseek-chat", "deepseek", ""
+	a.talkModel, a.bookProvider, a.bookModel = "deepseek-flash", "deepseek", ""
 	check("bookkeeping model", a.saveUsage())
 	a.categoryName, a.categoryTarget = "伏笔", ""
 	check("category target", a.saveCategory())
@@ -238,4 +241,73 @@ func shown(a *App) error {
 		return nil
 	}
 	return errors.New(a.Error)
+}
+
+func TestMarkdownBlocks(t *testing.T) {
+	src := "# 标题\n\n有**粗体**、*斜体*、`代码`和[链接](https://example.com)。\n\n- 一\n- 二\n\n1. 甲\n\n> 引用\n\n```\ncode\n```\n\n| 列 | 值 |\n|---|---|\n| 甲 | 1 |\n\n<script>x</script>\n\n---\n"
+	blocks := mdCache{}.get(src)
+	var kinds []mdKind
+	for _, b := range blocks {
+		kinds = append(kinds, b.kind)
+	}
+	want := []mdKind{mdHeading, mdParagraph, mdList, mdList, mdQuote, mdCode, mdTable, mdParagraph, mdRule}
+	if fmt.Sprint(kinds) != fmt.Sprint(want) {
+		t.Fatalf("kinds %v, want %v", kinds, want)
+	}
+	styled := map[string]mdSpan{}
+	for _, s := range blocks[1].inline {
+		styled[s.text] = s
+	}
+	if !styled["粗体"].bold || !styled["斜体"].italic || !styled["代码"].code || !styled["链接"].link {
+		t.Fatalf("inline styles %+v", blocks[1].inline)
+	}
+	if !blocks[3].ordered || blocks[3].start != 1 || blocks[5].code != "code" || len(blocks[6].rows) != 2 || !blocks[6].rows[0][0][0].bold {
+		t.Fatalf("blocks %+v", blocks)
+	}
+	if blocks[7].inline[0].text != "<script>x</script>" {
+		t.Fatal("raw HTML must show as text")
+	}
+}
+
+// A turn in flight shows its reasoning, then its reply, as they stream.
+func TestLiveTurnStreams(t *testing.T) {
+	a, tt, _ := fixture(t)
+	var c *ui.Context
+	tt = ui.NewTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
+	tt.Frame()
+	block := make(chan struct{})
+	a.pending = "她做什么工作？"
+	a.run(c, "AI 正在思考", func(ctx context.Context) (func(), error) { <-block; return nil, nil })
+	a.talking = true
+	a.live.add(discussion.StepReply, model.Delta{})
+	a.live.add(discussion.StepReply, model.Delta{Reasoning: "她怕黑，职业要和光有关"})
+	tt.Frame()
+	if !tt.HasText("她怕黑，职业要和光有关") || !tt.HasText("正在思考…") {
+		t.Fatal("reasoning not streamed", tt.Texts())
+	}
+	a.live.add(discussion.StepReply, model.Delta{Text: "可以让她**修灯**。"})
+	tt.Frame()
+	if !tt.HasText("正在回复…") || tt.HasText("**") {
+		t.Fatal("reply not streamed as markdown", tt.Texts())
+	}
+	a.live.add(discussion.StepBookkeep, model.Delta{})
+	tt.Frame()
+	if !tt.HasText("正在把这一轮整理成思路卡片…") {
+		t.Fatal("bookkeeping step not shown", tt.Texts())
+	}
+	close(block)
+	settle(t, a, tt)
+}
+
+func TestEffortMenuSavesToWork(t *testing.T) {
+	a, tt, _ := fixture(t)
+	a.setTalk(func(s *workspace.Selection) { s.Provider, s.Model = "deepseek", "deepseek-flash" })
+	a.setTalk(func(s *workspace.Selection) { s.Effort = string(model.EffortMax) })
+	tt.Frame()
+	if w := a.Store.Work().Discussion; w.Effort != "max" || w.Model != "deepseek-flash" || a.talkEffort != "max" {
+		t.Fatalf("selection %+v", w)
+	}
+	if !tt.HasText("deepseek-flash") || !tt.HasText("Max") {
+		t.Fatal("chip does not show model and effort", tt.Texts())
+	}
 }

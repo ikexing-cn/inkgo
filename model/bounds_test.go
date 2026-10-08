@@ -61,20 +61,34 @@ func TestCatalogErrorsAndPaginationBounds(t *testing.T) {
 }
 
 func TestIncompleteResponsesAreNotUsableText(t *testing.T) {
-	for _, tc := range []struct{ protocol, body string }{
-		{"responses", `{"status":"incomplete","output":[{"type":"message","content":[{"type":"output_text","text":"partial"}]}]}`},
-		{"anthropic", `{"content":[{"type":"text","text":"partial"}],"stop_reason":"max_tokens"}`},
+	for _, tc := range []struct {
+		protocol string
+		events   []string
+	}{
+		{"responses", []string{
+			event("response.created", `{"type":"response.created","response":{"id":"r1","status":"in_progress","output":[]}}`),
+			event("response.output_text.delta", `{"type":"response.output_text.delta","output_index":0,"content_index":0,"item_id":"msg_1","delta":"partial"}`),
+			event("response.incomplete", `{"type":"response.incomplete","response":{"id":"r1","status":"incomplete","output":[],"incomplete_details":{"reason":"max_output_tokens"},"usage":{"input_tokens":1,"output_tokens":1,"total_tokens":2}}}`),
+		}},
+		{"anthropic", []string{
+			event("message_start", `{"type":"message_start","message":{"id":"m1","type":"message","role":"assistant","model":"m","content":[],"stop_reason":null,"usage":{"input_tokens":1,"output_tokens":0}}}`),
+			event("content_block_start", `{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}`),
+			event("content_block_delta", `{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"partial"}}`),
+			event("content_block_stop", `{"type":"content_block_stop","index":0}`),
+			event("message_delta", `{"type":"message_delta","delta":{"stop_reason":"max_tokens","stop_sequence":null},"usage":{"output_tokens":1}}`),
+			event("message_stop", `{"type":"message_stop"}`),
+		}},
 	} {
 		t.Run(tc.protocol, func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, tc.body) }))
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { sse(w, tc.events...) }))
 			defer server.Close()
 			client, err := NewClientWithKey(testProvider(server.URL, tc.protocol), "model", "", server.Client())
 			if err != nil {
 				t.Fatal(err)
 			}
-			text, err := client.Complete(context.Background(), Request{Messages: []Message{{Role: "user", Content: "hi"}}})
-			if err == nil || text != "" {
-				t.Fatalf("incomplete output accepted: %q %v", text, err)
+			got, err := client.Complete(context.Background(), Request{Messages: []Message{{Role: "user", Content: "hi"}}}, nil)
+			if err == nil || got.Text != "" {
+				t.Fatalf("incomplete output accepted: %q %v", got.Text, err)
 			}
 		})
 	}

@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	bookReserve = 4096 // tokens kept for the ledger
-	maxIdeas    = 100  // per turn
+	bookReserve = 4096  // the ledger's share of the context budget
+	bookOutput  = 32768 // what the request allows, reasoning included
+	maxIdeas    = 100   // per turn
 )
 
 // extracted is one idea as the bookkeeping model reports it.
@@ -79,7 +80,7 @@ func (e *Engine) Bookkeep(ctx context.Context, session, replyID string) ([]works
 			return e.apply(plan)
 		}
 	}
-	plan, err := e.draftPlan(ctx, session, user, reply)
+	plan, reasoning, err := e.draftPlan(ctx, session, user, reply)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +92,10 @@ func (e *Engine) Bookkeep(ctx context.Context, session, replyID string) ([]works
 	for _, i := range plan {
 		ids = append(ids, i.ID)
 	}
-	if _, err = e.Store.Append(session, workspace.Event{Kind: workspace.KindBookkeeping, ReplyTo: replyID, Text: string(data), IdeaIDs: ids}); err != nil {
+	if _, err = e.Store.Append(session, workspace.Event{
+		Kind: workspace.KindBookkeeping, ReplyTo: replyID, Text: string(data), IdeaIDs: ids,
+		Model: e.Book.Name, Effort: string(e.Book.Effort), Reasoning: reasoning,
+	}); err != nil {
 		return nil, err
 	}
 	return e.apply(plan)
@@ -136,14 +140,15 @@ func readPlan(ev workspace.Event, session string, user, reply workspace.Event) (
 }
 
 // draftPlan asks the bookkeeping model for this turn's ideas and turns its
-// answer into new idea records, rejecting anything it cannot verify.
-func (e *Engine) draftPlan(ctx context.Context, session string, user, reply workspace.Event) ([]workspace.Idea, error) {
-	if e.Book == nil {
-		return nil, errors.New("请先配置记账模型")
+// answer into new idea records, rejecting anything it cannot verify. It also
+// returns the reasoning the model showed.
+func (e *Engine) draftPlan(ctx context.Context, session string, user, reply workspace.Event) ([]workspace.Idea, string, error) {
+	if !e.Book.ready() {
+		return nil, "", errors.New("请先配置记账模型")
 	}
 	ideas, err := e.Store.Ideas()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	// Rejected ideas go out under local refs; the model never sees an ID.
 	rejected := map[string]string{}
@@ -161,25 +166,25 @@ func (e *Engine) draftPlan(ctx context.Context, session string, user, reply work
 	}
 	payload, err := json.Marshal(map[string]any{"human": user.Text, "ai": reply.Text, "categories": categories, "rejected": avoid})
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	req := model.Request{System: bookRules, Messages: []model.Message{{Role: workspace.RoleUser, Content: string(payload)}}, MaxTokens: bookReserve}
+	req := model.Request{System: bookRules, Messages: []model.Message{{Role: workspace.RoleUser, Content: string(payload)}}, MaxTokens: bookOutput}
 	if Estimate(bookRules)+Estimate(string(payload))+bookReserve > e.Store.Work().TokenBudget {
-		return nil, errors.New("本轮原文和放弃清单超出记账预算，请提高预算后重试；未静默省略相近检测")
+		return nil, "", errors.New("本轮原文和放弃清单超出记账预算，请提高预算后重试；未静默省略相近检测")
 	}
-	raw, err := e.Book.Complete(ctx, req)
+	answer, err := e.ask(ctx, e.Book, StepBookkeep, req)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	var l ledger
-	if err = decode(raw, &l); err != nil {
-		return nil, err
+	if err = decode(answer.Text, &l); err != nil {
+		return nil, "", err
 	}
 	if l.Ideas == nil {
-		return nil, errors.New("记账缺少 ideas 数组")
+		return nil, "", errors.New("记账缺少 ideas 数组")
 	}
 	if len(l.Ideas) > maxIdeas {
-		return nil, fmt.Errorf("单轮思路超过 %d 条，请缩短讨论", maxIdeas)
+		return nil, "", fmt.Errorf("单轮思路超过 %d 条，请缩短讨论", maxIdeas)
 	}
 	// The author's words come first, whatever order the model used.
 	slices.SortStableFunc(l.Ideas, func(a, b extracted) int {
@@ -200,23 +205,23 @@ func (e *Engine) draftPlan(ctx context.Context, session string, user, reply work
 			msg = user
 		case workspace.SourceAI:
 		default:
-			return nil, errors.New("记账 source 必须是 human 或 ai")
+			return nil, "", errors.New("记账 source 必须是 human 或 ai")
 		}
 		if strings.TrimSpace(item.Text) == "" || item.Quote == "" || item.Occurrence < 0 {
-			return nil, errors.New("记账思路缺少内容或有效原文")
+			return nil, "", errors.New("记账思路缺少内容或有效原文")
 		}
 		start, end, ok := quoteSpan(msg.Text, item.Quote, item.Occurrence)
 		if !ok {
-			return nil, fmt.Errorf("记账引用无法在 %s 原文中定位", item.Source)
+			return nil, "", fmt.Errorf("记账引用无法在 %s 原文中定位", item.Source)
 		}
 		if !slices.Contains(categories, item.Category) {
-			return nil, fmt.Errorf("记账使用未知分类 %q", item.Category)
+			return nil, "", fmt.Errorf("记账使用未知分类 %q", item.Category)
 		}
 		var similar []workspace.Similarity
 		for _, sim := range item.Similar {
 			id, ok := rejected[sim.Ref]
 			if !ok || strings.TrimSpace(sim.Difference) == "" {
-				return nil, errors.New("记账相近标记指向未知的放弃条目或缺少区别说明")
+				return nil, "", errors.New("记账相近标记指向未知的放弃条目或缺少区别说明")
 			}
 			similar = append(similar, workspace.Similarity{ID: id, Difference: sim.Difference})
 		}
@@ -238,7 +243,7 @@ func (e *Engine) draftPlan(ctx context.Context, session string, user, reply work
 			Created: at, Updated: at,
 		})
 	}
-	return plan, nil
+	return plan, answer.Reasoning, nil
 }
 
 func boolOrder(b bool) int {

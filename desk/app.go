@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/egoist/mygo/ui"
@@ -25,6 +27,49 @@ type undo struct {
 	id, text string
 	from, to workspace.Status
 	at       time.Time
+}
+
+// live is what the steps of the running turn have streamed so far. The
+// worker writes it as output arrives; the view reads it each frame.
+type live struct {
+	mu    sync.Mutex
+	step  discussion.Step
+	parts map[discussion.Step]*streamed
+}
+
+type streamed struct{ reasoning, text strings.Builder }
+
+func (l *live) add(step discussion.Step, d model.Delta) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.parts == nil {
+		l.parts = map[discussion.Step]*streamed{}
+	}
+	p := l.parts[step]
+	if p == nil || d == (model.Delta{}) {
+		// An empty delta announces the step; one that runs again starts empty.
+		p = &streamed{}
+		l.parts[step] = p
+	}
+	l.step = step
+	p.reasoning.WriteString(d.Reasoning)
+	p.text.WriteString(d.Text)
+}
+
+// read returns the running step and what step s has streamed.
+func (l *live) read(s discussion.Step) (running discussion.Step, reasoning, text string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if p := l.parts[s]; p != nil {
+		reasoning, text = p.reasoning.String(), p.text.String()
+	}
+	return l.step, reasoning, text
+}
+
+func (l *live) reset() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.step, l.parts = "", nil
 }
 
 // draft holds the edits to the selected card until they are saved.
@@ -85,6 +130,10 @@ type App struct {
 	categoryName            string
 	categoryTarget          string
 	removeCategory          string
+	talkEffort, bookEffort  string
+	live                    live
+	md                      mdCache
+	thoughts                map[string]*bool // reasoning shown, by event ID
 	LastChat, LastPool      ui.Rect
 }
 
@@ -101,7 +150,7 @@ func New() *App {
 // NewWithConfig allows a separate profile, including isolated test profiles.
 func NewWithConfig(path string) *App {
 	a := &App{genre: "网文", results: make(chan result, 1), picks: make(chan func(), 1), ConfigFile: path,
-		light: lightPalette(), dark: darkPalette(), titles: map[string]string{}}
+		light: lightPalette(), dark: darkPalette(), titles: map[string]string{}, md: mdCache{}, thoughts: map[string]*bool{}}
 	a.pal = a.light
 	if path != "" {
 		var err error
@@ -243,10 +292,18 @@ func clip(s string, n int) string {
 }
 
 // engine returns a discussion engine for the open work with the models it
-// selects. Without them it still returns an engine and says why: saving a
-// decision or replaying a journaled plan needs no model.
-func (a *App) engine() (*discussion.Engine, error) {
+// selects, streaming its progress into the view when c is given. Without
+// models it still returns an engine and says why: saving a decision or
+// replaying a journaled plan needs no model.
+func (a *App) engine(c *ui.Context) (*discussion.Engine, error) {
 	e := &discussion.Engine{Store: a.Store}
+	if c != nil {
+		a.live.reset()
+		e.Progress = func(s discussion.Step, d model.Delta) {
+			a.live.add(s, d)
+			c.Invalidate()
+		}
+	}
 	work := a.Store.Work()
 	if work.Discussion.Provider == "" || work.Discussion.Model == "" {
 		return e, errors.New("还没有选择讨论模型：请到“模型设置”里选一个")
@@ -257,13 +314,14 @@ func (a *App) engine() (*discussion.Engine, error) {
 	}
 	sel := work.Bookkeeping
 	if sel.Provider == "" {
-		sel = work.Discussion
+		sel.Provider, sel.Model = work.Discussion.Provider, work.Discussion.Model
 	}
 	book, err := model.NewClient(a.Config, sel.Provider, sel.Model)
 	if err != nil {
 		return e, err
 	}
-	e.Talk, e.Book = talk, book
+	e.Talk = discussion.Model{Completer: talk, Name: work.Discussion.Provider + "/" + work.Discussion.Model, Effort: model.Effort(work.Discussion.Effort)}
+	e.Book = discussion.Model{Completer: book, Name: sel.Provider + "/" + sel.Model, Effort: model.Effort(sel.Effort)}
 	return e, nil
 }
 
@@ -336,5 +394,7 @@ func (a *App) loadWork() {
 	a.talkModel = w.Discussion.Model
 	a.bookProvider = w.Bookkeeping.Provider
 	a.bookModel = w.Bookkeeping.Model
+	a.talkEffort = w.Discussion.Effort
+	a.bookEffort = w.Bookkeeping.Effort
 	a.budget = fmt.Sprint(w.TokenBudget)
 }

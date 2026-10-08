@@ -10,6 +10,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/discussion"
 	"writer/editor"
+	"writer/model"
 	"writer/workspace"
 )
 
@@ -154,7 +155,12 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 		} else {
 			ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Start).Children(func() {
 				a.aiMark(c)
-				ui.Text(c, m.Text).FontSize(14.5).LineHeight(1.8).Selectable().Grow(1).Shrink(1)
+				ui.Column(c).Grow(1).Shrink(1).Gap(10).Children(func() {
+					if m.Reasoning != "" {
+						a.thought(c, m.ID, "思考过程", m.Reasoning, false)
+					}
+					a.markdown(c, m.Text, 14.5)
+				})
 			})
 		}
 		acts := ui.Row(c).Gap(2).AlignItems(ui.Center)
@@ -166,7 +172,11 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 		}
 		acts.Children(func() {
 			if !user && !m.At.IsZero() {
-				ui.Text(c, m.At.Local().Format("15:04")).FontSize(11.5).TextColor(a.pal.faint).Padding(0, 6, 0, 0)
+				when := m.At.Local().Format("15:04")
+				if who := modelLabel(m.Model, m.Effort); who != "" {
+					when += " · " + who
+				}
+				ui.Text(c, when).FontSize(11.5).TextColor(a.pal.faint).Padding(0, 6, 0, 0)
 			}
 			if iconButton(c, icQuote, "摘取-"+m.ID, ui.Color{}).Tooltip("摘取原文").Disabled(a.busy != "").Clicked() {
 				a.openSource(m, 0, 0)
@@ -207,20 +217,77 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 	})
 }
 
-// thinking stands in for the reply while a turn is in flight.
+// thinking shows a turn in flight as it streams: the reply forming under
+// its reasoning, then the bookkeeping that follows it.
 func (a *App) thinking(c *ui.Context) {
 	t := a.pal.theme
 	if a.pending != "" {
 		ui.Column(c).FillWidth().AlignItems(ui.End).Children(func() { a.userBubble(c, a.pending) })
 	}
-	ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Center).Children(func() {
+	step, reasoning, text := a.live.read(discussion.StepReply)
+	_, bookReasoning, _ := a.live.read(discussion.StepBookkeep)
+	ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Start).Children(func() {
 		a.aiMark(c)
-		ui.Spinner(c)
-		ui.Text(c, a.busy).FontSize(13).TextColor(t.TextMuted).Grow(1).Shrink(1)
-		if ghost(c, "取消请求", ui.Color{}).Clicked() && a.cancel != nil {
-			a.cancel()
-		}
+		ui.Column(c).Grow(1).Shrink(1).Gap(10).Children(func() {
+			if reasoning != "" {
+				a.thought(c, "live-reply", "思考过程", reasoning, step == discussion.StepReply && text == "")
+			}
+			if text != "" {
+				a.markdown(c, text, 14.5)
+			}
+			status := a.busy
+			switch {
+			case step == discussion.StepReply && text == "":
+				status = "正在思考…"
+			case step == discussion.StepReply:
+				status = "正在回复…"
+			case step == discussion.StepBookkeep:
+				status = "正在把这一轮整理成思路卡片…"
+			}
+			if step == discussion.StepBookkeep && bookReasoning != "" {
+				a.thought(c, "live-book", "整理时的思考", bookReasoning, false)
+			}
+			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
+				ui.Spinner(c)
+				ui.Text(c, status).FontSize(13).TextColor(t.TextMuted).Grow(1).Shrink(1)
+				if ghost(c, "取消请求", ui.Color{}).Clicked() && a.cancel != nil {
+					a.cancel()
+				}
+			})
+		})
 	})
+}
+
+// thought folds what a model reasoned before it answered; it stays open
+// while the reasoning is all that is streaming.
+func (a *App) thought(c *ui.Context, key, label, reasoning string, running bool) {
+	t := a.pal.theme
+	open := a.thoughts[key]
+	if open == nil || running {
+		v := running
+		open = &v
+		a.thoughts[key] = open
+	}
+	if running {
+		label = "正在思考"
+	}
+	ui.Collapsible(c, label, open, func() {
+		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Stretch).Padding(4, 0, 2, 2).Children(func() {
+			ui.Box(c).Width(2).Radius(1).Background(a.pal.line).Shrink(0)
+			ui.Text(c, reasoning).FontSize(13).LineHeight(1.7).TextColor(t.TextMuted).Selectable().Grow(1).Shrink(1)
+		})
+	}).FillWidth()
+}
+
+// modelLabel names the model and effort a reply came from.
+func modelLabel(name, effort string) string {
+	if i := strings.LastIndex(name, "/"); i >= 0 {
+		name = name[i+1:]
+	}
+	if effort != "" && name != "" {
+		name += " · " + model.Effort(effort).Label()
+	}
+	return name
 }
 
 // turnIdeas are the cards bookkeeping drew from one exchange.
@@ -291,6 +358,15 @@ func (a *App) audit(c *ui.Context, m workspace.Event) {
 	ui.Column(c).FillWidth().Padding(0, 0, 0, 36).Children(func() {
 		ui.Column(c).FillWidth().Padding(12, 14).Gap(7).Radius(10).Background(a.pal.side).Border(1, a.pal.line).Children(func() {
 			ui.Textf(c, "回复时带上了 %d 条思路，预算不足省略 %d 条", len(m.Context), len(m.Omitted)).FontSize(12.5).FontWeight(600)
+			for _, e := range a.events {
+				if e.Kind == workspace.KindBookkeeping && e.ReplyTo == m.ID && e.Reasoning != "" {
+					label := "整理这一轮时的思考"
+					if who := modelLabel(e.Model, e.Effort); who != "" {
+						label += "（" + who + "）"
+					}
+					a.thought(c, e.ID, label, e.Reasoning, false)
+				}
+			}
 			if len(m.Context) == 0 && len(m.Omitted) == 0 {
 				ui.Text(c, "只读了最近几轮对话，思路池里还没有可作依据的思路。").FontSize(12.5).TextColor(t.TextMuted)
 			}
@@ -343,7 +419,9 @@ func (a *App) composer(c *ui.Context) {
 		h := float32(min(max(lines, 2), 7)) * 25
 		ui.TextAreaBase(c, &a.input).Label("讨论输入").Placeholder("说说你的想法，或问 AI 一个问题…").FillWidth().Height(h).FontSize(14.5).LineHeight(1.7).Disabled(a.busy != "")
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-			chip := ui.ButtonBase(c).Row().Gap(6).AlignItems(ui.Center).Padding(4, 8).Radius(7).Label("当前模型").Tooltip("在模型设置里更换").Shrink(1)
+			// The chip names the model and effort the next turn goes to, and
+			// opens a menu to change either; its tooltip says where the words go.
+			chip := ui.ButtonBase(c).Row().Gap(6).AlignItems(ui.Center).Padding(4, 8).Radius(7).Label("当前模型").Tooltip(a.destination(work.Discussion)).Shrink(1).Disabled(a.busy != "")
 			if chip.Hovered() {
 				chip.Background(t.SurfaceHover)
 			}
@@ -354,15 +432,15 @@ func (a *App) composer(c *ui.Context) {
 						color = a.pal.brand
 					}
 					dot(c, color, 6)
-					ui.Text(c, a.destination(work.Discussion)).FontSize(12).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
+					ui.Text(c, work.Discussion.Model).FontSize(12).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
+					ui.Text(c, model.Effort(work.Discussion.Effort).Label()).FontSize(12).TextColor(a.pal.faint).SingleLine()
 				} else {
 					dot(c, t.Warning, 6)
-					ui.Text(c, "还没有选择讨论模型，去设置").FontSize(12).TextColor(t.Warning).SingleLine()
+					ui.Text(c, "选择讨论模型").FontSize(12).TextColor(t.Warning).SingleLine()
 				}
+				glyph(c, icChevronUp, 12, a.pal.faint)
 			})
-			if chip.Clicked() {
-				a.page = 1
-			}
+			chip.Menu(func(m *ui.Menu) { a.modelMenu(m, work) })
 			ui.Spacer(c)
 			key := "Ctrl + Enter"
 			if runtime.GOOS == "darwin" {
@@ -404,7 +482,7 @@ func (a *App) send(c *ui.Context) {
 	if trim(a.input) == "" {
 		return
 	}
-	eng, err := a.engine()
+	eng, err := a.engine(c)
 	if err != nil {
 		a.setError(err)
 		return
@@ -426,7 +504,7 @@ func (a *App) send(c *ui.Context) {
 }
 
 func (a *App) retry(c *ui.Context, userID string) {
-	eng, err := a.engine()
+	eng, err := a.engine(c)
 	if err != nil {
 		a.setError(err)
 		return
@@ -442,7 +520,7 @@ func (a *App) retry(c *ui.Context, userID string) {
 // bookkeep replays a saved plan even without a model; only a missing plan
 // needs one.
 func (a *App) bookkeep(c *ui.Context, replyID string) {
-	eng, _ := a.engine()
+	eng, _ := a.engine(c)
 	session := a.session
 	a.run(c, "正在整理这一轮的思路…", func(ctx context.Context) (func(), error) {
 		_, err := eng.Bookkeep(ctx, session, replyID)
@@ -508,4 +586,47 @@ func (a *App) categoryNames() []string {
 		names = append(names, cat.Name)
 	}
 	return names
+}
+
+// modelMenu changes the discussion model and its effort without leaving the
+// conversation. Models come from each provider's catalog; one outside it
+// is set in the model settings.
+func (a *App) modelMenu(m *ui.Menu, work workspace.Work) {
+	m.Submenu("模型", func(m *ui.Menu) {
+		for _, p := range a.Config.Providers {
+			if len(p.Models) == 0 {
+				continue
+			}
+			m.Submenu(p.Name, func(m *ui.Menu) {
+				for _, id := range p.Models {
+					on := work.Discussion.Provider == p.ID && work.Discussion.Model == id
+					if m.Item(id).Checked(on).Chosen() {
+						a.setTalk(func(s *workspace.Selection) { s.Provider, s.Model = p.ID, id })
+					}
+				}
+			})
+		}
+		m.Separator()
+		if m.Item("模型设置…").Chosen() {
+			a.page = 1
+		}
+	})
+	m.Submenu("推理等级", func(m *ui.Menu) {
+		for _, e := range model.Efforts {
+			if m.Item(e.Label()).Checked(work.Discussion.Effort == string(e)).Chosen() {
+				a.setTalk(func(s *workspace.Selection) { s.Effort = string(e) })
+			}
+		}
+	})
+}
+
+// setTalk changes the work's discussion selection and saves it.
+func (a *App) setTalk(change func(*workspace.Selection)) {
+	w := a.Store.Work()
+	change(&w.Discussion)
+	err := a.Store.SaveWork(w)
+	if err == nil {
+		a.loadWork()
+	}
+	a.setError(err)
 }

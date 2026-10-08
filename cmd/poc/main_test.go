@@ -28,7 +28,9 @@ func TestLayoutDiscussion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	reply, err := s.Append(session, workspace.Event{Kind: "message", Role: "assistant", ReplyTo: user.ID, Text: "修路灯和怕黑放在一起很有张力。她每天维护别人的光，却不敢走进没有灯的巷子。\n\n我们可以先讨论：她为什么选择了这份工作？"})
+	reply, err := s.Append(session, workspace.Event{Kind: "message", Role: "assistant", ReplyTo: user.ID,
+		Model: "deepseek/deepseek-flash", Effort: "high", Reasoning: "作者给了两个设定：城市总在下雨，主角修路灯却怕黑。职业和恐惧正好相反，这是张力所在。",
+		Text: "修路灯和怕黑放在一起很有**张力**：\n\n- 她每天维护别人的光；\n- 却不敢走进没有灯的巷子。\n\n> 她为什么选择了这份工作？"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,6 +67,14 @@ func TestLayoutDiscussion(t *testing.T) {
 		t.Fatal(tt.Texts())
 	}
 	shot(t, tt, "-m1")
+	if err = tt.Click("思考过程"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("这是张力所在") {
+		t.Fatal("reasoning did not unfold", tt.Texts())
+	}
+	shot(t, tt, "-thought")
 	if err = tt.Click("模型设置"); err != nil {
 		t.Fatal(err)
 	}

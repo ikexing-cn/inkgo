@@ -248,7 +248,7 @@ func (a *App) ideaDetails(c *ui.Context, i workspace.Idea) {
 				a.saveDetails(c, i)
 			}
 			if i.Status == workspace.Kept && a.pal.secondary(c, "检查冲突").Disabled(busy).Clicked() {
-				if eng, err := a.engine(); err != nil {
+				if eng, err := a.engine(c); err != nil {
 					a.setError(err)
 				} else {
 					a.run(c, "正在检查和其他留下的思路是否矛盾…", func(ctx context.Context) (func(), error) {
@@ -295,7 +295,7 @@ func (a *App) saveDetails(c *ui.Context, i workspace.Idea) {
 		a.setError(err)
 		return
 	}
-	eng, _ := a.engine()
+	eng, _ := a.engine(c)
 	a.run(c, "正在保存，并检查是否与其他思路矛盾…", func(ctx context.Context) (func(), error) {
 		if err := a.Store.SaveIdea(i); err != nil {
 			return nil, err

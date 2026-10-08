@@ -11,7 +11,10 @@ import (
 	"writer/workspace"
 )
 
-const conflictReserve = 1024
+const (
+	conflictReserve = 1024  // the answer's share of the context budget
+	conflictOutput  = 16384 // what the request allows, reasoning included
+)
 
 // CheckConflicts asks which other kept ideas contradict id, and records the
 // answer on both sides. It only points conflicts out; the author resolves
@@ -72,7 +75,7 @@ func (e *Engine) CheckConflicts(ctx context.Context, id string) error {
 
 // askConflicts returns the IDs the model says contradict target.
 func (e *Engine) askConflicts(ctx context.Context, target string, others []map[string]string, refs map[string]string) ([]string, error) {
-	if e.Book == nil {
+	if !e.Book.ready() {
 		return nil, errors.New("未配置记账模型")
 	}
 	data, err := json.Marshal(map[string]any{"target": target, "others": others})
@@ -82,21 +85,21 @@ func (e *Engine) askConflicts(ctx context.Context, target string, others []map[s
 	if Estimate(string(data))+Estimate(conflictRules)+conflictReserve > e.Store.Work().TokenBudget {
 		return nil, errors.New("保留清单超出冲突检查预算，请提高作品预算")
 	}
-	raw, err := e.Book.Complete(ctx, model.Request{System: conflictRules, Messages: []model.Message{{Role: workspace.RoleUser, Content: string(data)}}, MaxTokens: conflictReserve})
+	answer, err := e.ask(ctx, e.Book, StepConflicts, model.Request{System: conflictRules, Messages: []model.Message{{Role: workspace.RoleUser, Content: string(data)}}, MaxTokens: conflictOutput})
 	if err != nil {
 		return nil, err
 	}
-	var answer struct {
+	var found struct {
 		Conflicts []string `json:"conflicts"`
 	}
-	if err = decode(raw, &answer); err != nil {
+	if err = decode(answer.Text, &found); err != nil {
 		return nil, err
 	}
-	if answer.Conflicts == nil {
+	if found.Conflicts == nil {
 		return nil, errors.New("冲突检查缺少 conflicts 数组")
 	}
 	ids := []string{}
-	for _, ref := range answer.Conflicts {
+	for _, ref := range found.Conflicts {
 		id, ok := refs[ref]
 		if !ok {
 			return nil, errors.New("冲突检查返回了未知条目")

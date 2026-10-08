@@ -41,9 +41,13 @@ type Category struct {
 	Name   string `yaml:"name" json:"name"`
 	Target string `yaml:"target" json:"target"`
 }
+
+// Selection is the model a use goes to. Effort is how hard it reasons:
+// empty for the provider's default, or low, high, max.
 type Selection struct {
 	Provider string `yaml:"provider" json:"provider"`
 	Model    string `yaml:"model" json:"model"`
+	Effort   string `yaml:"effort,omitempty" json:"effort,omitempty"`
 }
 type Work struct {
 	Schema      int        `yaml:"schema" json:"schema"`
@@ -109,6 +113,11 @@ type Event struct {
 	Omitted []ContextItem `json:"omitted"`
 	ReplyTo string        `json:"reply_to"`
 	IdeaIDs []string      `json:"idea_ids"`
+	// What a model wrote is recorded with the model, provider/model, the
+	// effort it ran at, and the reasoning it showed, for review afterwards.
+	Model     string `json:"model,omitempty"`
+	Effort    string `json:"effort,omitempty"`
+	Reasoning string `json:"reasoning,omitempty"`
 }
 
 // NewID uses cryptographically secure randomness. Creation methods retry an ID

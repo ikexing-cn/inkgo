@@ -10,13 +10,46 @@ import (
 	"writer/workspace"
 )
 
+// Model is a model client with the settings it runs at.
+type Model struct {
+	model.Completer
+	Name   string // provider/model, recorded with what it writes
+	Effort model.Effort
+}
+
+func (m Model) ready() bool { return m.Completer != nil }
+
+// Step is the part of a turn a model is working on.
+type Step string
+
+const (
+	StepReply     Step = "reply"
+	StepBookkeep  Step = "bookkeep"
+	StepConflicts Step = "conflicts"
+)
+
 // Engine runs the discussion of one work. Its owner serializes calls; Talk
-// and Book may be nil when no model is configured, which only the calls that
-// need a model refuse.
+// and Book may be unset when no model is configured, which only the calls
+// that need a model refuse.
 type Engine struct {
 	Store *workspace.Store
-	Talk  model.Completer
-	Book  model.Completer
+	Talk  Model
+	Book  Model
+	// Progress, when set, hears each step start, with an empty delta, and
+	// then what its model streams, never empty. It runs on the caller's
+	// goroutine.
+	Progress func(Step, model.Delta)
+}
+
+// ask runs one step on m, reporting its progress.
+func (e *Engine) ask(ctx context.Context, m Model, step Step, req model.Request) (model.Reply, error) {
+	req.Effort = m.Effort
+	var on func(model.Delta)
+	if e.Progress != nil {
+		e.Progress(step, model.Delta{})
+		on = func(d model.Delta) { e.Progress(step, d) }
+	}
+	return m.Complete(ctx, req, on)
 }
 
 // Turn is one exchange: the author's words, the reply, and the ideas
@@ -36,7 +69,7 @@ func (e *Engine) Send(ctx context.Context, session, input string) (Turn, error) 
 	if strings.TrimSpace(input) == "" {
 		return turn, errors.New("请输入要讨论的内容")
 	}
-	if e.Talk == nil || e.Book == nil {
+	if !e.Talk.ready() || !e.Book.ready() {
 		return turn, errNoModel
 	}
 	ideas, err := e.Store.Ideas()
@@ -61,7 +94,7 @@ func (e *Engine) Send(ctx context.Context, session, input string) (Turn, error) 
 // Retry resumes an unanswered saved turn without appending a duplicate user message.
 func (e *Engine) Retry(ctx context.Context, session, userID string) (Turn, error) {
 	var turn Turn
-	if e.Talk == nil || e.Book == nil {
+	if !e.Talk.ready() || !e.Book.ready() {
 		return turn, errNoModel
 	}
 	events, err := e.Store.Events(session)
@@ -92,16 +125,17 @@ func (e *Engine) Retry(ctx context.Context, session, userID string) (Turn, error
 }
 
 func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembled Context) (Turn, error) {
-	reply, err := e.Talk.Complete(ctx, assembled.Request)
+	reply, err := e.ask(ctx, e.Talk, StepReply, assembled.Request)
 	if err != nil {
 		return turn, fmt.Errorf("讨论失败，原文已保存：%w", err)
 	}
-	if strings.TrimSpace(reply) == "" {
+	if strings.TrimSpace(reply.Text) == "" {
 		return turn, errors.New("模型返回空回复，原文已保存")
 	}
 	turn.Reply, err = e.Store.Append(session, workspace.Event{
-		Kind: workspace.KindMessage, Role: workspace.RoleAssistant, Text: reply, ReplyTo: turn.User.ID,
+		Kind: workspace.KindMessage, Role: workspace.RoleAssistant, Text: reply.Text, ReplyTo: turn.User.ID,
 		Context: assembled.Included, Omitted: assembled.Omitted,
+		Model: e.Talk.Name, Effort: string(e.Talk.Effort), Reasoning: reply.Reasoning,
 	})
 	if err != nil {
 		return turn, err

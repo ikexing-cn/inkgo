@@ -206,7 +206,7 @@ func (a *App) markWith(c *ui.Context, i workspace.Idea, status workspace.Status,
 	// The decision needs no model; only the conflict check after a keep does.
 	eng := &discussion.Engine{Store: a.Store}
 	if status == workspace.Kept {
-		eng, _ = a.engine()
+		eng, _ = a.engine(c)
 	}
 	next := a.nextCard(i.ID)
 	from, id := i.Status, i.ID

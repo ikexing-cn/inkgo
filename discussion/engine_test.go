@@ -13,22 +13,27 @@ import (
 )
 
 type fake struct {
-	replies []string
-	calls   []model.Request
-	err     error
+	replies   []string
+	reasoning string
+	calls     []model.Request
+	err       error
 }
 
-func (f *fake) Complete(ctx context.Context, r model.Request) (string, error) {
+func (f *fake) Complete(ctx context.Context, r model.Request, on func(model.Delta)) (model.Reply, error) {
 	f.calls = append(f.calls, r)
 	if f.err != nil {
-		return "", f.err
+		return model.Reply{}, f.err
 	}
 	if len(f.replies) == 0 {
-		return "", errors.New("unexpected model call")
+		return model.Reply{}, errors.New("unexpected model call")
 	}
 	s := f.replies[0]
 	f.replies = f.replies[1:]
-	return s, nil
+	if on != nil {
+		on(model.Delta{Reasoning: f.reasoning})
+		on(model.Delta{Text: s})
+	}
+	return model.Reply{Text: s, Reasoning: f.reasoning}, nil
 }
 func setup(t *testing.T) (*Engine, string) {
 	t.Helper()
@@ -60,14 +65,14 @@ func mustIdea(t *testing.T, e *Engine, text string, status workspace.Status) wor
 
 func TestRetryUnansweredTurnDoesNotDuplicateInput(t *testing.T) {
 	e, session := setup(t)
-	e.Talk = &fake{err: context.Canceled}
-	e.Book = &fake{replies: []string{`{"ideas":[]}`}}
+	e.Talk = Model{Completer: &fake{err: context.Canceled}}
+	e.Book = Model{Completer: &fake{replies: []string{`{"ideas":[]}`}}}
 	turn, err := e.Send(context.Background(), session, "先讨论城市的天气")
 	if !errors.Is(err, context.Canceled) || turn.User.ID == "" {
 		t.Fatal(turn, err)
 	}
 	talk := &fake{replies: []string{"可以从长期下雨对城市生活的影响谈起。"}}
-	e.Talk = talk
+	e.Talk = Model{Completer: talk}
 	retried, err := e.Retry(context.Background(), session, turn.User.ID)
 	if err != nil {
 		t.Fatal(err)
@@ -91,8 +96,8 @@ func TestTurnJournalAndReopen(t *testing.T) {
 	mustIdea(t, e, "未处理的海盗方向", workspace.Unprocessed)
 	talk := &fake{replies: []string{"可以让她成为一个修灯的人。"}}
 	book := &fake{replies: []string{`{"ideas":[{"source":"ai","quote":"修灯的人","occurrence":0,"text":"主角修灯","category":"人物","fact":false,"similar":[]},{"source":"human","quote":"她怕黑","occurrence":0,"text":"她怕黑","category":"人物","fact":false,"similar":[]}]}`}}
-	e.Talk = talk
-	e.Book = book
+	e.Talk = Model{Completer: talk}
+	e.Book = Model{Completer: book}
 	turn, err := e.Send(context.Background(), session, "她怕黑，讨论一下职业。")
 	if err != nil {
 		t.Fatal(err)
@@ -166,8 +171,8 @@ func TestInvalidExtractionDoesNotWritePartialIdeas(t *testing.T) {
 	} {
 		t.Run(bad, func(t *testing.T) {
 			e, session := setup(t)
-			e.Talk = &fake{replies: []string{"好的"}}
-			e.Book = &fake{replies: []string{bad}}
+			e.Talk = Model{Completer: &fake{replies: []string{"好的"}}}
+			e.Book = Model{Completer: &fake{replies: []string{bad}}}
 			turn, err := e.Send(context.Background(), session, "念头")
 			if err == nil {
 				t.Fatal("invalid extraction accepted")
@@ -180,7 +185,7 @@ func TestInvalidExtractionDoesNotWritePartialIdeas(t *testing.T) {
 			if len(ideas) != 0 || len(events) != 2 {
 				t.Fatalf("partial extraction persisted: %d %d", len(ideas), len(events))
 			}
-			e.Book = &fake{replies: []string{`{"ideas":[]}`}}
+			e.Book = Model{Completer: &fake{replies: []string{`{"ideas":[]}`}}}
 			if _, err = e.Bookkeep(context.Background(), session, turn.Reply.ID); err != nil {
 				t.Fatal(err)
 			}
@@ -226,7 +231,7 @@ func TestConflictsDoNotDecideForAuthor(t *testing.T) {
 	e, _ := setup(t)
 	a := mustIdea(t, e, "她怕黑", workspace.Kept)
 	b := mustIdea(t, e, "她从不怕黑", workspace.Unprocessed)
-	e.Book = &fake{replies: []string{`{"conflicts":["k1"]}`}}
+	e.Book = Model{Completer: &fake{replies: []string{`{"conflicts":["k1"]}`}}}
 	if err := e.Mark(context.Background(), b.ID, workspace.Kept, "方向不错"); err != nil {
 		t.Fatal(err)
 	}
@@ -255,7 +260,7 @@ func TestConflictFailurePreservesHumanDecision(t *testing.T) {
 	e, _ := setup(t)
 	mustIdea(t, e, "怕黑", workspace.Kept)
 	b := mustIdea(t, e, "不怕黑", workspace.Unprocessed)
-	e.Book = &fake{err: errors.New("offline")}
+	e.Book = Model{Completer: &fake{err: errors.New("offline")}}
 	err := e.Mark(context.Background(), b.ID, workspace.Kept, "保留")
 	if err == nil {
 		t.Fatal("expected check warning")
@@ -311,9 +316,9 @@ func TestManualRuneSelection(t *testing.T) {
 func TestSimilarRefsMapToRejectedIdeas(t *testing.T) {
 	e, session := setup(t)
 	rejected := mustIdea(t, e, "主角是捕快", workspace.Rejected)
-	e.Talk = &fake{replies: []string{"也可以让她在衙门当差。"}}
+	e.Talk = Model{Completer: &fake{replies: []string{"也可以让她在衙门当差。"}}}
 	book := &fake{replies: []string{`{"ideas":[{"source":"ai","quote":"在衙门当差","occurrence":0,"text":"主角在衙门当差","category":"人物","fact":false,"similar":[{"ref":"r1","difference":"同属官差，只换了说法"}]}]}`}}
-	e.Book = book
+	e.Book = Model{Completer: book}
 	turn, err := e.Send(context.Background(), session, "她做什么工作？")
 	if err != nil {
 		t.Fatal(err)
@@ -323,5 +328,42 @@ func TestSimilarRefsMapToRejectedIdeas(t *testing.T) {
 	}
 	if len(turn.Ideas) != 1 || len(turn.Ideas[0].Similar) != 1 || turn.Ideas[0].Similar[0].ID != rejected.ID {
 		t.Fatalf("similar ref not mapped: %+v", turn.Ideas)
+	}
+}
+
+// A turn keeps what each model showed of its reasoning, with the model and
+// effort, and reports its steps as they run.
+func TestTurnRecordsReasoningAndSteps(t *testing.T) {
+	e, session := setup(t)
+	e.Talk = Model{Completer: &fake{replies: []string{"可以让她修灯。"}, reasoning: "她怕黑，职业要和光有关"}, Name: "deepseek/deepseek-flash", Effort: model.EffortMax}
+	e.Book = Model{Completer: &fake{replies: []string{`{"ideas":[]}`}, reasoning: "没有新思路"}, Name: "deepseek/deepseek-flash", Effort: model.EffortLow}
+	var steps []Step
+	var streamed string
+	e.Progress = func(s Step, d model.Delta) {
+		if len(steps) == 0 || steps[len(steps)-1] != s {
+			steps = append(steps, s)
+		}
+		streamed += d.Reasoning + d.Text
+	}
+	turn, err := e.Send(context.Background(), session, "她做什么工作？")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(steps) != 2 || steps[0] != StepReply || steps[1] != StepBookkeep || !strings.Contains(streamed, "可以让她修灯。") {
+		t.Fatalf("steps %v streamed %q", steps, streamed)
+	}
+	if e.Talk.Completer.(*fake).calls[0].Effort != model.EffortMax || e.Book.Completer.(*fake).calls[0].Effort != model.EffortLow {
+		t.Fatal("effort not sent")
+	}
+	events, err := e.Store.Events(session)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reply, book := events[1], events[2]
+	if reply.ID != turn.Reply.ID || reply.Reasoning != "她怕黑，职业要和光有关" || reply.Model != "deepseek/deepseek-flash" || reply.Effort != "max" {
+		t.Fatalf("reply record %+v", reply)
+	}
+	if book.Kind != workspace.KindBookkeeping || book.Reasoning != "没有新思路" || book.Effort != "low" {
+		t.Fatalf("bookkeeping record %+v", book)
 	}
 }
