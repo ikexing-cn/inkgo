@@ -881,3 +881,18 @@ func TestFolderShowsTheGists(t *testing.T) {
 		t.Fatal(tt.Texts())
 	}
 }
+
+// The counts move as the author types, before the text is saved.
+func TestCountsMoveAsTyped(t *testing.T) {
+	a, tt, _ := writingFixture(t, "一")
+	saveAfter = time.Hour
+	a.write.focus = true
+	a.write.ed.Focus()
+	a.write.ed.MoveTo(1, false)
+	tt.Frame()
+	tt.Type("二三")
+	tt.Frame()
+	if !tt.HasText("本章 3 字 · 全书 3 字 · 今天 +2") {
+		t.Fatal(tt.Texts())
+	}
+}

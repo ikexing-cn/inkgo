@@ -37,9 +37,12 @@ type writeView struct {
 	// What the disk has of the node shown, as of the last read or write.
 	saved    string
 	savedVer int
-	stamp    workspace.Stamp
-	lastSnap time.Time
-	checked  time.Time
+	// counted is the text the open chapter's count was last taken of.
+	counted    *editor.Doc
+	countedVer int
+	stamp      workspace.Stamp
+	lastSnap   time.Time
+	checked    time.Time
 	// The outline, saved as the author pauses like the text.
 	outline, outlineSaved, outlinePrev string
 	outlineAt                          time.Time
@@ -552,6 +555,7 @@ func (a *App) writing(c *ui.Context) {
 	}
 	a.keepPen()
 	a.pollAI()
+	a.countAsTyped()
 	a.watch(c)
 	if c.Shortcut(ui.Cmd, ui.KeyF) && a.write.ed != nil {
 		a.write.finding = true
@@ -637,6 +641,20 @@ func (a *App) settingColumn(c *ui.Context) {
 		}
 		a.resizer(c, width)
 	})
+}
+
+// countAsTyped keeps the open chapter's count up with its text, so the
+// counts move as the author types rather than when the text is saved.
+func (a *App) countAsTyped() {
+	w := &a.write
+	if w.ed == nil || w.counts == nil || w.lost || w.external != nil {
+		return
+	}
+	if w.ed.Doc == w.counted && w.ed.Doc.Version() == w.countedVer {
+		return
+	}
+	w.counted, w.countedVer = w.ed.Doc, w.ed.Doc.Version()
+	w.counts[w.node] = workspace.Count(w.ed.Doc.String())
 }
 
 func (a *App) total() int {
