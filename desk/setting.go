@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"time"
 
 	"github.com/egoist/mygo/ui"
@@ -50,6 +51,8 @@ type prefs struct {
 	// The book's count when Day began, for how much was written today.
 	Day      string `json:"day,omitempty"`
 	DayStart int    `json:"day_start,omitempty"`
+	// Goal is how much the author means to write a day, or 0 for none.
+	Goal int `json:"day_goal,omitempty"`
 }
 
 func (a *App) prefsPath() string { return filepath.Join(a.Store.Root(), ".writer", "desk.json") }
@@ -67,14 +70,18 @@ func (a *App) loadPrefs() {
 	}
 	a.write.autoPredict = p.AutoPredict
 	a.write.autoSummary = !p.NoAutoSummary
-	a.write.day, a.write.dayStart = p.Day, p.DayStart
+	a.write.day, a.write.dayStart, a.write.goal = p.Day, p.DayStart, p.Goal
+	a.write.goalText = ""
+	if p.Goal > 0 {
+		a.write.goalText = strconv.Itoa(p.Goal)
+	}
 	a.doc.width, a.doc.talk, a.doc.attach = p.PanelWidth, p.TalkTab, !p.NoAttach
 }
 
 func (a *App) savePrefs() {
 	b, err := json.Marshal(prefs{SettingHidden: a.doc.hidden, Chapter: a.write.node, Writing: a.leftWriting, AutoPredict: a.write.autoPredict,
 		PanelWidth: a.doc.width, TalkTab: a.doc.talk, NoAttach: !a.doc.attach, NoAutoSummary: !a.write.autoSummary,
-		Day: a.write.day, DayStart: a.write.dayStart})
+		Day: a.write.day, DayStart: a.write.dayStart, Goal: a.write.goal})
 	if err == nil {
 		err = os.WriteFile(a.prefsPath(), b, 0644)
 	}

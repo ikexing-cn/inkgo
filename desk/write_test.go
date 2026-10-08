@@ -596,3 +596,34 @@ func TestWritingSwitchesKeepAsTicked(t *testing.T) {
 		t.Fatalf("prefs %+v", p)
 	}
 }
+
+// The day's goal is set from the counts in the bar and kept with the work;
+// what is not a number leaves it be.
+func TestSetTheDaysGoal(t *testing.T) {
+	a, tt, _ := writingFixture(t, "一二三")
+	if err := tt.Click("字数"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !a.write.goalOpen || !tt.HasText("每日目标") {
+		t.Fatal("no goal to set", tt.Texts())
+	}
+	a.setGoal("2000")
+	if a.write.goal != 2000 || savedPrefs(t, a).Goal != 2000 {
+		t.Fatal(a.write.goal)
+	}
+	a.setGoal("两千")
+	if a.write.goal != 2000 {
+		t.Fatal("a word changed the goal", a.write.goal)
+	}
+	a.write.focus = true // room for today's count in the bar
+	tt.Frame()
+	tt.Frame()
+	if !tt.HasText("/ 2000") {
+		t.Fatal("the goal is not by the counts", tt.Texts())
+	}
+	a.setGoal("")
+	if a.write.goal != 0 || savedPrefs(t, a).Goal != 0 {
+		t.Fatal("the goal stayed", a.write.goal)
+	}
+}

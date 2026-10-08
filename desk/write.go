@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -49,8 +50,11 @@ type writeView struct {
 	summaryOpen           bool
 	changed               bool
 	autoSummary           bool
-	day                   string   // the local date the count below was taken
-	dayStart              int      // the book's count as that day began
+	day                   string // the local date the count below was taken
+	dayStart              int    // the book's count as that day began
+	goal                  int    // a day's goal, or 0
+	goalText              string // the goal as typed
+	goalOpen              bool
 	unsummarized          []string // the chapters before without a summary, as a draft opens
 	recapped              int      // and how many before have one
 	// The disk's text, changed outside while the node was open; lost, the
@@ -525,6 +529,22 @@ func (a *App) today(now time.Time) int {
 	return a.total() - w.dayStart
 }
 
+// setGoal takes the day's goal as typed: a whole number of characters, or
+// nothing for none. Anything else leaves the goal as it was.
+func (a *App) setGoal(text string) {
+	w := &a.write
+	text = strings.TrimSpace(text)
+	if text == "" {
+		w.goal = 0
+		a.savePrefs()
+		return
+	}
+	if n, err := strconv.Atoi(text); err == nil && n >= 0 {
+		w.goal = n
+		a.savePrefs()
+	}
+}
+
 func (a *App) writeTop(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
@@ -557,20 +577,52 @@ func (a *App) writeTop(c *ui.Context) {
 			here = w.wordsIn(n)
 		}
 		today, tip := "", fmt.Sprintf("全书 %d 字", a.total())
-		if k := a.today(time.Now()); k != 0 {
+		k := a.today(time.Now())
+		met := w.goal > 0 && k >= w.goal
+		switch {
+		case w.goal > 0:
+			today = fmt.Sprintf(" · 今天 %+d / %d", k, w.goal)
+			tip += fmt.Sprintf("，今天 %+d 字，目标 %d 字", k, w.goal)
+		case k != 0:
 			today = fmt.Sprintf(" · 今天 %+d", k)
 			tip += fmt.Sprintf("，今天 %+d 字", k)
 		}
 		if !wide {
 			today = ""
 		}
-		if ok && !roomy {
-			ui.Textf(c, "%d 字", here).FontSize(12).TextColor(a.pal.faint).SingleLine().Shrink(0).Tooltip(tip)
-		} else if ok {
-			ui.Textf(c, "%s %d 字 · 全书 %d 字%s", unit, here, a.total(), today).FontSize(12).TextColor(a.pal.faint).SingleLine().Tooltip(tip)
-		} else {
-			ui.Textf(c, "全书 %d 字%s", a.total(), today).FontSize(12).TextColor(a.pal.faint).SingleLine().Tooltip(tip)
+		color := a.pal.faint
+		if met {
+			color = a.pal.brand
 		}
+		counts := ui.ButtonBase(c).Row().Padding(3, 6).Radius(6).Shrink(1).Label("字数").Tooltip(tip + "。点击设每日目标")
+		if counts.Hovered() {
+			counts.Background(t.SurfaceHover)
+		}
+		counts.Children(func() {
+			if ok && !roomy {
+				ui.Textf(c, "%d 字", here).FontSize(12).TextColor(color).SingleLine()
+			} else if ok {
+				ui.Textf(c, "%s %d 字 · 全书 %d 字%s", unit, here, a.total(), today).FontSize(12).TextColor(color).SingleLine()
+			} else {
+				ui.Textf(c, "全书 %d 字%s", a.total(), today).FontSize(12).TextColor(color).SingleLine()
+			}
+		})
+		if counts.Clicked() {
+			w.goalOpen = !w.goalOpen
+		}
+		ui.Popover(c, counts, &w.goalOpen, func() {
+			ui.Column(c).Width(220).Gap(6).Padding(8).Children(func() {
+				ui.Text(c, "每日目标").FontSize(13).FontWeight(600)
+				in := ui.TextInput(c, &w.goalText).Label("每日目标字数").Placeholder("比如 2000").FillWidth().AutoFocus()
+				if in.Changed() {
+					a.setGoal(w.goalText)
+				}
+				if in.Submitted() {
+					w.goalOpen = false
+				}
+				ui.Text(c, "今天写到这个数，顶栏的字数变成主题色。留空就不设。").FontSize(12).TextColor(a.pal.faint).LineHeight(1.5).FillWidth()
+			})
+		})
 		ui.Box(c).Width(6)
 		if ok && !n.Folder {
 			s, e := w.ed.Selection()
