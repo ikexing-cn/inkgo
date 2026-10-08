@@ -497,6 +497,9 @@ func (a *App) writing(c *ui.Context) {
 	if c.Shortcut(0, ui.KeyF11) {
 		a.write.focus = !a.write.focus
 	}
+	if c.Shortcut(ui.Cmd, ui.KeyN) && a.write.renaming == "" {
+		a.newNode(false)
+	}
 	if c.Shortcut(ui.Cmd, ui.KeyS) {
 		a.saveNow()
 	}
@@ -1053,7 +1056,7 @@ func (a *App) chapterTree(c *ui.Context) {
 		if iconButton(c, icFolderPlus, "新建文件夹", ui.Color{}).Clicked() {
 			a.newNode(true)
 		}
-		if iconButton(c, icPlus, "新建章节", ui.Color{}).Clicked() {
+		if iconButton(c, icPlus, "新建章节", ui.Color{}).Tooltip("新建章节（" + modKey + "N）").Clicked() {
 			a.newNode(false)
 		}
 	})
@@ -1425,7 +1428,7 @@ func (a *App) snapshots(c *ui.Context) {
 		ui.Column(c).Width(min(900, max(a.LastWrite.W, 640))).Height(560).Gap(12).Children(func() {
 			ui.Column(c).Gap(4).Children(func() {
 				ui.Text(c, "快照").FontSize(17).FontWeight(600)
-				ui.Text(c, "打开章节、连续写作每十分钟、恢复之前、AI 起草或采纳改写之前都会存一份。最近七天的全部保留，更早的每天留最后一份。").FontSize(13).TextColor(t.TextMuted)
+				ui.Text(c, "打开章节、连续写作每十分钟、恢复之前、AI 起草或采纳改写之前、全书替换之前都会存一份。最近七天的全部保留，更早的每天留最后一份。").FontSize(13).TextColor(t.TextMuted)
 			})
 			ui.Row(c).FillWidth().Grow(1).Gap(14).AlignItems(ui.Stretch).Children(func() {
 				ui.Scroll(c).Key("snaps").Width(210).FillHeight().Shrink(0).Children(func() {

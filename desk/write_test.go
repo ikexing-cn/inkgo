@@ -755,3 +755,18 @@ func TestCtrlSSavesNow(t *testing.T) {
 		t.Fatal(a.notice)
 	}
 }
+
+// Ctrl+N makes a chapter after the one open, ready to be named.
+func TestCtrlNMakesAChapter(t *testing.T) {
+	a, tt, one := writingFixture(t, "一")
+	a.write.ed.Focus()
+	tt.Frame()
+	tt.Key(ui.Cmd, ui.KeyN)
+	tt.Frame()
+	if a.write.node == one || a.write.renaming != a.write.node {
+		t.Fatal("no new chapter to name", a.write.node, a.write.renaming)
+	}
+	if n, _ := a.write.tree.Node(a.write.node); n.Folder || n.Parent.Children[0].ID != one {
+		t.Fatal("the new chapter is not after the one open")
+	}
+}
