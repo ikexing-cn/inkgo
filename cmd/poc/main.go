@@ -100,7 +100,7 @@ func main() {
 		}
 		defer d.Close()
 		mygo.App.WhenReady(func() {
-			win.Store(mygo.NewWindow(mygo.WindowOptions{Title: "写作", Width: 1280, Height: 820, MinWidth: 1000, MinHeight: 680, Content: ui.View(d.View)}))
+			win.Store(mygo.NewWindow(mygo.WindowOptions{Title: "写作", Width: 1280, Height: 820, MinWidth: 1000, MinHeight: 680, StateKey: "main", Content: ui.View(d.View)}))
 		})
 		if err := mygo.App.Run(); err != nil {
 			log.Fatal(err)
