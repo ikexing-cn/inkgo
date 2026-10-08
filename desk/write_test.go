@@ -436,3 +436,21 @@ func TestReopenWhereLeft(t *testing.T) {
 		t.Fatal(b.page)
 	}
 }
+
+// In the narrowest window the column gives way to the page, and the counts
+// to the chapter's title.
+func TestNarrowWindowKeepsThePage(t *testing.T) {
+	a, _, _ := writingFixture(t, "雨从傍晚开始下。")
+	if w := a.panelWidth(1000); w != panelMin {
+		t.Fatal(w)
+	}
+	if w := a.panelWidth(1280); w != panelWidth {
+		t.Fatal(w)
+	}
+	tt := ui.NewTester(a.View, 1000, 700)
+	tt.Frame()
+	tt.Frame()
+	if !tt.HasText("8 字") || tt.HasText("全书 8 字") {
+		t.Fatal(tt.Texts())
+	}
+}

@@ -504,7 +504,9 @@ func (a *App) writeTop(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
 	n, ok := w.tree.Node(w.node)
-	ui.Row(c).FillWidth().Height(52).Padding(0, 16, 0, 24).Gap(6).AlignItems(ui.Center).Shrink(0).Children(func() {
+	top := ui.Row(c).FillWidth().Height(52).Padding(0, 16, 0, 24).Gap(6).AlignItems(ui.Center).Shrink(0)
+	roomy := top.Bounds().W == 0 || top.Bounds().W >= 600 // the counts give way to the title
+	top.Children(func() {
 		if ok {
 			var path []string
 			for p := n.Parent; p != nil && p.Parent != nil; p = p.Parent {
@@ -521,7 +523,9 @@ func (a *App) writeTop(c *ui.Context) {
 			ui.Text(c, "正文").FontSize(13.5).FontWeight(600)
 		}
 		ui.Spacer(c)
-		if ok && !n.Folder {
+		if ok && !n.Folder && !roomy {
+			ui.Textf(c, "%d 字", w.counts[n.ID]).FontSize(12).TextColor(a.pal.faint).SingleLine().Shrink(0)
+		} else if ok && !n.Folder {
 			ui.Textf(c, "本章 %d 字 · 全书 %d 字", w.counts[n.ID], a.total()).FontSize(12).TextColor(a.pal.faint).SingleLine()
 		} else {
 			ui.Textf(c, "全书 %d 字", a.total()).FontSize(12).TextColor(a.pal.faint).SingleLine()

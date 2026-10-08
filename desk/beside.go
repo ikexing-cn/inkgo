@@ -11,17 +11,18 @@ import (
 const (
 	panelWidth = 392 // the right column's width until the author drags it
 	panelMin   = 300
+	pageMin    = 480 // the page between the sidebar and the column
 )
 
 // panelWidth is the right column's width in a window win wide: what the
 // author dragged it to, no narrower than panelMin nor wider than half the
-// window.
+// window, and narrower while the window leaves the page under pageMin.
 func (a *App) panelWidth(win float32) float32 {
 	w := a.doc.width
 	if w == 0 {
 		w = panelWidth
 	}
-	return min(max(w, panelMin), max(win/2, panelMin))
+	return min(max(w, panelMin), max(min(win/2, win-233-pageMin), panelMin))
 }
 
 // resizer is the column's left edge, which the author drags to widen it;
