@@ -58,6 +58,8 @@ func (a *App) View(c *ui.Context) {
 	if a.sourceOpen && a.source != nil {
 		a.extraction(c)
 	}
+	a.createDialog(c)
+	a.renameDialog(c)
 }
 
 // sessionParts splits a session title into its date and its words.
@@ -91,13 +93,37 @@ func (a *App) sidebar(c *ui.Context) {
 			if !slim {
 				ui.Column(c).Grow(1).Shrink(1).Gap(1).Children(func() {
 					ui.Text(c, work.Name).FontSize(13.5).FontWeight(600).SingleLine().Ellipsis("…")
-					ui.Text(c, work.Genre+" · 切换作品").FontSize(11.5).TextColor(t.TextMuted).SingleLine()
+					ui.Text(c, work.Genre).FontSize(11.5).TextColor(t.TextMuted).SingleLine()
 				})
+				glyph(c, icChevronDown, 13, a.pal.faint)
 			}
 		})
-		if head.Clicked() {
-			a.closeWork()
-			return
+		var chosen func()
+		head.Menu(func(m *ui.Menu) {
+			n := 0
+			for _, b := range a.shelf.Recent() {
+				if n == 5 {
+					break
+				}
+				n++
+				path := b.Path
+				if m.Item(b.Name).Checked(sameFolder(path, a.Store.Root())).Disabled(a.books.missing[path]).Chosen() && !sameFolder(path, a.Store.Root()) {
+					chosen = func() { a.switchWork(path) }
+				}
+			}
+			m.Separator()
+			if m.Item("新建作品…").Chosen() {
+				chosen = a.openCreate
+			}
+			if m.Item("全部作品…").Chosen() {
+				chosen = a.closeWork
+			}
+		})
+		if chosen != nil {
+			chosen()
+			if a.Store == nil {
+				return
+			}
 		}
 		ui.Box(c).Height(10)
 		a.navItem(c, icChat, "讨论", 0, slim)

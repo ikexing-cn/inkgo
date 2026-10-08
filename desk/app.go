@@ -15,6 +15,7 @@ import (
 	"writer/discussion"
 	"writer/editor"
 	"writer/model"
+	"writer/shelf"
 	"writer/workspace"
 	"writer/writing"
 )
@@ -68,6 +69,8 @@ type App struct {
 	// SaveFile asks where to save a file named name, off the UI thread;
 	// nil saves exports into the work's 导出 folder.
 	SaveFile func(title, name string) (string, error)
+	// Reveal shows a folder in the system's file manager; nil hides it.
+	Reveal func(path string) error
 
 	light, dark *palette
 	pal         *palette
@@ -76,7 +79,8 @@ type App struct {
 	shown             int // the page the last frame showed
 	notice            string
 	path, name, genre string
-	welcomeMode       int // 0 create, 1 open
+	shelf             shelf.Shelf
+	books             shelfView
 	session           string
 	sessions          []string
 	titles            map[string]string
@@ -158,6 +162,9 @@ func NewWithConfig(path string) *App {
 	if len(a.Config.Providers) > 0 {
 		a.chooseProvider(a.Config.Providers[0].ID)
 	}
+	if path != "" {
+		a.loadShelf()
+	}
 	return a
 }
 
@@ -169,26 +176,16 @@ func (a *App) Open(path string) error {
 	return a.attach(s, path, false)
 }
 
-func (a *App) create() error {
-	name := trim(a.name)
-	if name == "" {
-		name = filepath.Base(trim(a.path))
-	}
-	s, err := workspace.Create(trim(a.path), name, a.genre)
-	if err != nil {
-		return err
-	}
-	return a.attach(s, trim(a.path), true)
-}
-
 // attach makes s the current work, starting a session when it has none.
 func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 	if a.Store != nil {
 		a.flush()
+		a.remember(false)
 		a.halt()
 		a.Store.Close()
 	}
 	a.Store, a.path = s, path
+	a.remember(true)
 	a.titles = map[string]string{}
 	a.resetView()
 	a.loadPrefs()
@@ -218,11 +215,13 @@ func (a *App) resetView() {
 // does not inherit the last one's folder or name.
 func (a *App) closeWork() {
 	a.flush()
+	a.remember(false)
 	a.halt()
 	a.setError(a.Store.Close())
 	a.Store = nil
 	a.path, a.name = "", ""
 	a.resetView()
+	a.lookForBooks()
 }
 
 func (a *App) Close() error {
@@ -230,6 +229,7 @@ func (a *App) Close() error {
 		a.cancel()
 	}
 	a.flush()
+	a.remember(false)
 	a.halt()
 	// Window shutdown exits the process. A cancelled worker may still be
 	// saving what it already has, so leave the store open for it.

@@ -87,10 +87,13 @@ func main() {
 			return mygo.Dialog.Save(mygo.SaveDialogOptions{Title: title, DefaultPath: name, CreateDirectories: true,
 				Filters: []mygo.FileFilter{{Name: "纯文本", Extensions: []string{"txt"}}}})
 		}
+		d.Reveal = desk.RevealFolder
 		if *workPath != "" {
 			if err := d.Open(*workPath); err != nil {
 				d.Error = err.Error()
 			}
+		} else {
+			d.OpenLast()
 		}
 		defer d.Close()
 		mygo.App.WhenReady(func() {

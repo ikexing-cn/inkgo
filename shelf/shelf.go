@@ -1,0 +1,187 @@
+// Package shelf keeps the list of the author's works: where each lives,
+// when it was last opened, and what it was called then, so the list shows
+// without opening every work.
+package shelf
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
+	"slices"
+	"strings"
+	"time"
+)
+
+const Schema = 1
+
+// Book is a work on the shelf, as it was when last opened or closed.
+type Book struct {
+	Path   string    `json:"path"`
+	Name   string    `json:"name"`
+	Genre  string    `json:"genre"`
+	Words  int       `json:"words"`
+	Opened time.Time `json:"opened"`
+}
+
+// Shelf is works.json.
+type Shelf struct {
+	Schema int `json:"schema"`
+	// Library is where new works go unless the author picks elsewhere.
+	Library string `json:"library"`
+	// Cards shows the works as cards rather than a list.
+	Cards bool   `json:"cards,omitempty"`
+	Books []Book `json:"books"`
+}
+
+// File is the shelf beside the model configuration at config.
+func File(config string) string {
+	return filepath.Join(filepath.Dir(config), "works.json")
+}
+
+// DefaultLibrary is a 写作 folder in the author's documents.
+func DefaultLibrary() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "写作"
+	}
+	return filepath.Join(home, "Documents", "写作")
+}
+
+// Start is a first shelf: the works already in library.
+func Start(library string) Shelf {
+	s := Shelf{Schema: Schema, Library: library}
+	for _, p := range Scan(library) {
+		s.Books = append(s.Books, Book{Path: p, Name: filepath.Base(p)})
+	}
+	return s
+}
+
+// Load reads the shelf at path; fresh says there is none yet.
+func Load(path string) (s Shelf, fresh bool, err error) {
+	b, err := os.ReadFile(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return Shelf{}, true, nil
+	}
+	if err != nil {
+		return Shelf{}, false, err
+	}
+	d := json.NewDecoder(bytes.NewReader(b))
+	d.DisallowUnknownFields()
+	if err = d.Decode(&s); err != nil {
+		return Shelf{}, false, fmt.Errorf("%s: %w", path, err)
+	}
+	if s.Schema != Schema {
+		return Shelf{}, false, fmt.Errorf("%s: unsupported schema %d", path, s.Schema)
+	}
+	for _, bk := range s.Books {
+		if !filepath.IsAbs(bk.Path) {
+			return Shelf{}, false, fmt.Errorf("%s: work path %q is not absolute", path, bk.Path)
+		}
+	}
+	return s, false, nil
+}
+
+// Save writes the shelf whole, through a temporary file.
+func (s Shelf) Save(path string) error {
+	s.Schema = Schema
+	if s.Books == nil {
+		s.Books = []Book{}
+	}
+	b, err := json.MarshalIndent(s, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err = os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return err
+	}
+	tmp := path + ".tmp"
+	if err = os.WriteFile(tmp, append(b, '\n'), 0644); err != nil {
+		return err
+	}
+	return os.Rename(tmp, path)
+}
+
+// same tells whether two work paths are the same folder.
+func same(a, b string) bool {
+	a, b = filepath.Clean(a), filepath.Clean(b)
+	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+		return strings.EqualFold(a, b)
+	}
+	return a == b
+}
+
+// Find is the index of the work at path, or -1.
+func (s *Shelf) Find(path string) int {
+	return slices.IndexFunc(s.Books, func(b Book) bool { return same(b.Path, path) })
+}
+
+// Put adds the work or updates what the shelf remembers of it.
+func (s *Shelf) Put(b Book) {
+	if i := s.Find(b.Path); i >= 0 {
+		if b.Opened.IsZero() {
+			b.Opened = s.Books[i].Opened
+		}
+		s.Books[i] = b
+		return
+	}
+	s.Books = append(s.Books, b)
+}
+
+// Remove takes the work off the shelf; its folder is left alone.
+func (s *Shelf) Remove(path string) {
+	if i := s.Find(path); i >= 0 {
+		s.Books = slices.Delete(s.Books, i, i+1)
+	}
+}
+
+// Relocate points the work at from to its new folder, keeping when it was
+// last opened.
+func (s *Shelf) Relocate(from, to string) {
+	i := s.Find(from)
+	if i < 0 {
+		return
+	}
+	if j := s.Find(to); j >= 0 && j != i {
+		s.Books = slices.Delete(s.Books, i, i+1) // the new folder is already on the shelf
+		return
+	}
+	s.Books[i].Path = to
+}
+
+// Recent is the works by when they were last opened, newest first; works
+// never opened come last, by name.
+func (s *Shelf) Recent() []Book {
+	out := slices.Clone(s.Books)
+	slices.SortStableFunc(out, func(a, b Book) int {
+		if c := b.Opened.Compare(a.Opened); c != 0 {
+			return c
+		}
+		return strings.Compare(a.Name, b.Name)
+	})
+	return out
+}
+
+// IsWork tells whether dir holds a work.
+func IsWork(dir string) bool {
+	st, err := os.Stat(filepath.Join(dir, "work.yaml"))
+	return err == nil && !st.IsDir()
+}
+
+// Scan is the works directly inside dir.
+func Scan(dir string) []string {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+	var out []string
+	for _, e := range entries {
+		if p := filepath.Join(dir, e.Name()); e.IsDir() && IsWork(p) {
+			out = append(out, p)
+		}
+	}
+	return out
+}

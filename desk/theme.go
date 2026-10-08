@@ -133,6 +133,9 @@ var (
 	icTrash       = icon(`<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/>`)
 	icWand        = icon(`<path d="m14 4 6 6L9 21l-6-6z"/><path d="M11 7l6 6"/>`)
 	icFeather     = icon(`<path d="M20 4C11 4 5 10 5 19v1"/><path d="M5 15h8"/><path d="M20 4c0 7-4 11-11 11"/>`)
+	icList        = icon(`<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>`)
+	icGrid        = icon(`<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>`)
+	icMore        = icon(`<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>`)
 	icDownload    = icon(`<path d="M12 4v11M7 10l5 5 5-5"/><path d="M4 20h16"/>`)
 )
 

@@ -29,6 +29,9 @@ func fixture(t *testing.T) (*App, *ui.Tester, workspace.Entry) {
 		t.Fatal(err)
 	}
 	s.Close()
+	lib, was := filepath.Join(root, "library"), Library
+	Library = func() string { return lib }
+	t.Cleanup(func() { Library = was })
 	a := NewWithConfig(filepath.Join(root, "providers.yaml"))
 	if err = a.Open(filepath.Join(root, "work")); err != nil {
 		t.Fatal(err)

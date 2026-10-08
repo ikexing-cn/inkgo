@@ -91,10 +91,18 @@ func TestLayoutDiscussion(t *testing.T) {
 	wt := ui.NewTester(w.View, 1266, 780)
 	wt.Frame()
 	wt.Frame()
-	if !wt.HasText("从一个念头开始") {
+	if !wt.HasText("我的作品") || !wt.HasText("雨城来信") {
 		t.Fatal(wt.Texts())
 	}
-	shot(t, wt, "-welcome")
+	shot(t, wt, "-shelf")
+	e := desk.NewWithConfig(filepath.Join(t.TempDir(), "providers.yaml"))
+	et := ui.NewTester(e.View, 1266, 780)
+	et.Frame()
+	et.Frame()
+	if !et.HasText("从一个念头开始") {
+		t.Fatal(et.Texts())
+	}
+	shot(t, et, "-welcome")
 }
 
 func TestLayoutWriting(t *testing.T) {

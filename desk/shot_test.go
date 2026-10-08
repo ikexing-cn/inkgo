@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
+	"writer/shelf"
 
 	"github.com/egoist/mygo/ui"
 
@@ -145,4 +147,59 @@ func TestShotBeside(t *testing.T) {
 	shot("beside-wide.png")
 	a.page = 0
 	shot("beside-on-talk-page.png")
+}
+
+// TestShotShelf writes screenshots of the shelf when SHOT is a directory:
+// SHOT=dir go test ./desk -run ShotShelf
+func TestShotShelf(t *testing.T) {
+	dir := os.Getenv("SHOT")
+	if dir == "" {
+		t.Skip("set SHOT=dir")
+	}
+	a, tt, _ := fixture(t)
+	shot := func(name string) {
+		tt.Frame()
+		tt.Frame()
+		f, err := os.Create(filepath.Join(dir, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer f.Close()
+		if err := png.Encode(f, tt.Image()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	root := filepath.Dir(a.Store.Root())
+	for i, w := range []struct{ name, genre, text string }{
+		{"雨城来信", "网文", strings.Repeat("雨从傍晚开始下。", 15000)},
+		{"旧城灯匠", "出版小说", strings.Repeat("她修了七年路灯。", 400)},
+		{"井边", "剧本", ""},
+	} {
+		s, err := workspace.Create(filepath.Join(root, w.name), w.name, w.genre)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if w.text != "" {
+			id, _ := s.NewChapter("", "第一章", false)
+			_, _ = s.WriteChapter(id, w.text, nil)
+		}
+		b := book(s)
+		b.Opened = time.Now().Add(-time.Duration(i*30+2) * time.Hour)
+		a.shelf.Put(b)
+		s.Close()
+	}
+	a.shelf.Put(shelf.Book{Path: filepath.Join(root, "早年的稿子"), Name: "早年的稿子", Genre: "非虚构", Words: 52000, Opened: time.Now().AddDate(-1, 0, 0)})
+	a.PickFolder = func(string) (string, error) { return "", nil }
+	shot("shelf-sidebar.png")
+	a.closeWork()
+	shot("shelf-list.png")
+	a.shelf.Cards = true
+	shot("shelf-cards.png")
+	a.openCreate()
+	a.name = "灯下"
+	shot("shelf-create.png")
+	a.books.creating = false
+	a.shelf.Cards = false
+	a.shelf.Books = nil
+	shot("shelf-empty.png")
 }
