@@ -454,3 +454,22 @@ func TestNarrowWindowKeepsThePage(t *testing.T) {
 		t.Fatal(tt.Texts())
 	}
 }
+
+// A snapshot the same as the chapter says so and has nothing to restore.
+func TestASnapshotLikeTheChapter(t *testing.T) {
+	a, tt, _ := writingFixture(t, "第一版。")
+	if err := tt.Click("快照"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("这一份和现在的正文一样") {
+		t.Fatal(tt.Texts())
+	}
+	if err := tt.Click("恢复这个版本"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !a.write.snapsOpen || a.notice != "" {
+		t.Fatal("restored the same text", a.notice)
+	}
+}

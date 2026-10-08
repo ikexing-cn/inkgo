@@ -1123,6 +1123,7 @@ func (a *App) snapshots(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
 	ui.Modal(c, &w.snapsOpen, func() {
+		same := w.snap != "" && w.snapText == w.ed.Doc.String() // nothing to restore
 		ui.Column(c).Width(min(900, max(a.LastWrite.W, 640))).Height(560).Gap(12).Children(func() {
 			ui.Column(c).Gap(4).Children(func() {
 				ui.Text(c, "快照").FontSize(17).FontWeight(600)
@@ -1156,7 +1157,9 @@ func (a *App) snapshots(c *ui.Context) {
 				ui.Column(c).Grow(1).Shrink(1).FillHeight().Gap(8).Children(func() {
 					ui.Row(c).FillWidth().Gap(4).AlignItems(ui.Center).Children(func() {
 						ui.Toggle(c, &w.compare, "和现在对比")
-						if w.compare {
+						if same {
+							ui.Text(c, "这一份和现在的正文一样").FontSize(12).TextColor(a.pal.faint).Padding(0, 0, 0, 8)
+						} else if w.compare {
 							ui.Text(c, "红色划掉的是快照里有、现在没有的，绿色是现在新写的").FontSize(12).TextColor(a.pal.faint).Padding(0, 0, 0, 8)
 						}
 					})
@@ -1192,7 +1195,7 @@ func (a *App) snapshots(c *ui.Context) {
 				if ghost(c, "关闭", ui.Color{}).Clicked() {
 					w.snapsOpen = false
 				}
-				if a.pal.primary(c, "恢复这个版本").Disabled(w.snap == "" || w.lost || w.external != nil).Clicked() {
+				if a.pal.primary(c, "恢复这个版本").Disabled(w.snap == "" || same || w.lost || w.external != nil).Clicked() {
 					a.restoreSnapshot()
 				}
 			})
