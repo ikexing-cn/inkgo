@@ -37,6 +37,7 @@ func (a *App) View(c *ui.Context) {
 		a.write.entered = false
 	}
 	if a.Store != nil && a.shown != a.page && (a.page == 0 || a.page == 3) {
+		a.leftWriting = a.page == 3
 		a.savePrefs() // the work reopens on the page it was left on
 	}
 	a.shown = a.page

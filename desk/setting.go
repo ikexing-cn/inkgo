@@ -58,6 +58,7 @@ func (a *App) loadPrefs() {
 	}
 	a.doc.hidden = p.SettingHidden
 	a.write.node = p.Chapter
+	a.leftWriting = p.Writing
 	if p.Writing {
 		a.page = 3
 	}
@@ -67,7 +68,7 @@ func (a *App) loadPrefs() {
 }
 
 func (a *App) savePrefs() {
-	b, err := json.Marshal(prefs{SettingHidden: a.doc.hidden, Chapter: a.write.node, Writing: a.page == 3, AutoPredict: a.write.autoPredict,
+	b, err := json.Marshal(prefs{SettingHidden: a.doc.hidden, Chapter: a.write.node, Writing: a.leftWriting, AutoPredict: a.write.autoPredict,
 		PanelWidth: a.doc.width, TalkTab: a.doc.talk, NoAttach: !a.doc.attach, NoAutoSummary: !a.write.autoSummary})
 	if err == nil {
 		err = os.WriteFile(a.prefsPath(), b, 0644)

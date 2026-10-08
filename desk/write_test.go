@@ -415,6 +415,12 @@ func TestReopenWhereLeft(t *testing.T) {
 		t.Cleanup(func() { b.Close() })
 		return b
 	}
+	// Settings saved on the way out do not forget the writing page.
+	if err := tt.Click("模型设置"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	a.savePrefs()
 	b := reopen()
 	if b.page != 3 || b.write.node != id {
 		t.Fatal(b.page, b.write.node)

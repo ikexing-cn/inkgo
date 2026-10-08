@@ -78,6 +78,7 @@ type App struct {
 	page              int // 0 discussion, 1 models, 2 categories, 3 writing
 	shown             int // the page the last frame showed
 	notice            string
+	leftWriting       bool      // the work was last on the writing page, not the discussion
 	noticed           string    // the notice as first shown,
 	noticeAt          time.Time // and when
 	path, name, genre string

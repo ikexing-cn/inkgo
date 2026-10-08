@@ -524,3 +524,34 @@ func TestNoticesFade(t *testing.T) {
 		t.Fatal(tt.Texts())
 	}
 }
+
+// Clicking a model field lists the service's models; typing narrows them.
+func TestPickAModelFromTheList(t *testing.T) {
+	a, tt, _ := fixture(t)
+	a.talkProvider, a.talkModel = "deepseek", "deepseek-flash"
+	if err := tt.Click("模型设置"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err := tt.Click("讨论模型"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("deepseek-v4-pro") {
+		t.Fatal(tt.Texts())
+	}
+	if err := tt.Click("deepseek-v4-pro"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Frame()
+	if a.talkModel != "deepseek-v4-pro" || tt.HasText("deepseek-flash") {
+		t.Fatal(a.talkModel, tt.Texts())
+	}
+	tt.Key(ui.Cmd, ui.KeyA)
+	tt.Type("flash")
+	tt.Frame()
+	if !tt.HasText("deepseek-flash") || tt.HasText("deepseek-v4-pro") {
+		t.Fatal(tt.Texts())
+	}
+}

@@ -189,7 +189,7 @@ func (a *App) usage(c *ui.Context) {
 				a.providerSelect(c, &a.talkProvider, "", "讨论提供商", busy)
 			}).Width(200)
 			labeled(c, "讨论 · 模型", func() {
-				ui.Autocomplete(c, &a.talkModel, a.providerModels(a.talkProvider)).Label("讨论模型").Placeholder("输入或选择模型 ID").FillWidth().Disabled(busy)
+				modelField(c, &a.talkModel, a.providerModels(a.talkProvider)).Label("讨论模型").Placeholder("输入或选择模型 ID").FillWidth().Disabled(busy)
 			}).Grow(1)
 			labeled(c, "推理等级", func() { effortSelect(c, &a.talkEffort, "讨论推理等级", busy) }).Width(136)
 		})
@@ -202,7 +202,7 @@ func (a *App) usage(c *ui.Context) {
 					ui.Text(c, "和讨论用同一个模型").TextColor(t.TextMuted).Padding(7, 0)
 					a.bookModel = ""
 				} else {
-					ui.Autocomplete(c, &a.bookModel, a.providerModels(a.bookProvider)).Label("记账模型").Placeholder("输入或选择模型 ID").FillWidth().Disabled(busy)
+					modelField(c, &a.bookModel, a.providerModels(a.bookProvider)).Label("记账模型").Placeholder("输入或选择模型 ID").FillWidth().Disabled(busy)
 				}
 			}).Grow(1)
 			labeled(c, "推理等级", func() { effortSelect(c, &a.bookEffort, "整理推理等级", busy) }).Width(136)
@@ -216,7 +216,7 @@ func (a *App) usage(c *ui.Context) {
 					ui.Text(c, "和讨论用同一个模型").TextColor(t.TextMuted).Padding(7, 0)
 					a.penModel = ""
 				} else {
-					ui.Autocomplete(c, &a.penModel, a.providerModels(a.penProvider)).Label("写作模型").Placeholder("输入或选择模型 ID").FillWidth().Disabled(busy)
+					modelField(c, &a.penModel, a.providerModels(a.penProvider)).Label("写作模型").Placeholder("输入或选择模型 ID").FillWidth().Disabled(busy)
 				}
 			}).Grow(1)
 			labeled(c, "推理等级", func() { effortSelect(c, &a.penEffort, "写作推理等级", busy) }).Width(136)
@@ -479,4 +479,54 @@ func (a *App) saveProvider() error {
 		a.key = ""
 	}
 	return nil
+}
+
+// modelField edits a model ID. A click or Down lists all of the service's
+// models, typing narrows them to those containing what was typed, and an ID
+// none of them is can be typed as well.
+func modelField(c *ui.Context, value *string, models []string) *ui.Element {
+	t := c.Theme()
+	cb := ui.ComboboxBase(c, value)
+	in := cb.Input
+	in.Padding(t.Space(1.5), t.Space(2.5)).Radius(t.Radius).Background(t.Surface).Border(1, t.Border)
+	if in.Focused() {
+		in.Border(1, t.Accent)
+	} else if in.Hovered() {
+		in.Border(1, t.Border.Mix(t.Text, 0.25))
+	}
+	shown := models
+	if q := strings.ToLower(strings.TrimSpace(*value)); cb.Filtering() && q != "" {
+		var starts, contains []string
+		for _, m := range models {
+			switch l := strings.ToLower(m); {
+			case l == q:
+			case strings.HasPrefix(l, q):
+				starts = append(starts, m)
+			case strings.Contains(l, q):
+				contains = append(contains, m)
+			}
+		}
+		shown = append(starts, contains...)
+	}
+	cb.Popup(func(panel *ui.Element) {
+		panel.Margin(t.Space(1), 0, 0, 0).Padding(t.Space(1)).Radius(t.Radius+2).Background(t.Background).Border(1, t.Border)
+		panel.Shadow(0, 6, 20, 0, ui.RGBA(0, 0, 0, 0.18))
+		ui.Scroll(c).MaxHeight(t.Space(70)).FillWidth().Children(func() {
+			for _, m := range shown {
+				item := cb.Item(m).Padding(t.Space(1.5), t.Space(2.5)).Radius(t.Radius)
+				switch {
+				case item.Highlighted():
+					item.Background(t.Accent).TextColor(t.AccentText)
+					item.ScrollIntoView()
+				case m == *value:
+					item.Background(t.Surface)
+				}
+				item.Children(func() { ui.Text(c, m).SingleLine() })
+			}
+		})
+	})
+	if m, ok := cb.Chosen(); ok {
+		*value = m
+	}
+	return in
 }
