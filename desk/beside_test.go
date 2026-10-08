@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"writer/workspace"
@@ -37,6 +38,9 @@ func TestTalkBesideTheProse(t *testing.T) {
 	if !tt.HasText("附上本章") || tt.HasText("主角怕黑") || !savedPrefs(t, a).TalkTab {
 		t.Fatal("the talk is not shown", tt.Texts())
 	}
+	if !tt.HasText("聊聊正在写的这一章") || tt.HasText("右边的设定文档") {
+		t.Fatal("the empty talk is not about the chapter", tt.Texts())
+	}
 
 	// Dragging the column's edge left widens it; the width is kept once
 	// the author lets go.
@@ -59,6 +63,21 @@ func TestTalkBesideTheProse(t *testing.T) {
 	tt.Frame()
 	if a.LastSetting.W != panelMin {
 		t.Fatalf("narrowed to %v", a.LastSetting.W)
+	}
+
+	// On a folder it is the volume's outline that goes along.
+	if _, err := a.Store.NewChapter("", "第一卷", true); err != nil {
+		t.Fatal(err)
+	}
+	a.write.checked = time.Time{}
+	tt.Frame()
+	tt.Frame()
+	if err := tt.Click("章节-第一卷"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("附上本卷") || !tt.HasText("这一卷的节奏怎么样") || tt.HasText("附上本章") {
+		t.Fatal("the folder's talk", tt.Texts())
 	}
 }
 

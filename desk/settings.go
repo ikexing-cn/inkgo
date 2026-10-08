@@ -223,7 +223,7 @@ func (a *App) usage(c *ui.Context) {
 		})
 		ui.Column(c).FillWidth().Gap(4).Children(func() {
 			ui.Checkbox(c, &a.write.autoPredict, "停止输入后自动续写").Disabled(busy)
-			ui.Text(c, "续写总是不推理、只写一句。默认按 Cmd+J 才续写；打开上面这项后，每次停下来都会调用一次模型。").FontSize(12).TextColor(a.pal.faint).LineHeight(1.5)
+			ui.Text(c, "续写总是不推理、只写一句。默认按 "+modKey+"J 才续写；打开上面这项后，每次停下来都会调用一次模型。").FontSize(12).TextColor(a.pal.faint).LineHeight(1.5)
 		})
 		ui.Column(c).FillWidth().Gap(4).Children(func() {
 			ui.Checkbox(c, &a.write.autoSummary, "离开改过的章节时更新摘要").Disabled(busy)

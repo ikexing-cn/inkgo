@@ -550,7 +550,7 @@ func (a *App) writeTop(c *ui.Context) {
 			} else if w.ed.Ghost() != "" {
 				ui.Text(c, "Tab 采纳 · Esc 放弃").FontSize(12).TextColor(a.pal.brand)
 			}
-			if iconButton(c, icSparkle, "续写一句", ui.Color{}).Tooltip("在光标处续写一句（Cmd+J），按 Tab 采纳").Disabled(busy).Clicked() {
+			if iconButton(c, icSparkle, "续写一句", ui.Color{}).Tooltip("在光标处续写一句（" + modKey + "J），按 Tab 采纳").Disabled(busy).Clicked() {
 				a.continueText()
 			}
 			if iconButton(c, icWand, "AI 改写", ui.Color{}).Tooltip("让 AI 改写选中的部分").Disabled(s == e || busy).Clicked() {

@@ -105,6 +105,18 @@ func (a *App) chatTop(c *ui.Context) {
 	a.pal.hairline(c)
 }
 
+// openUnit is what the writing page has open: a chapter, or a folder,
+// which the author thinks of as a volume.
+func (a *App) openUnit() string {
+	if n, ok := a.write.tree.Node(a.write.node); ok && n.Folder {
+		return "卷"
+	}
+	return "章"
+}
+
+// modKey names the command key the way the system shows it.
+var modKey = map[bool]string{true: "⌘", false: "Ctrl+"}[runtime.GOOS == "darwin"]
+
 func (a *App) switchSession(id string) {
 	if id == "" || id == a.session {
 		return
@@ -117,15 +129,25 @@ func (a *App) switchSession(id string) {
 
 func (a *App) emptyChat(c *ui.Context) {
 	t := a.pal.theme
-	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(72, 0, 0, 0).Gap(14).Children(func() {
+	title, about := "从一个模糊的念头聊起", "写下脑子里的那一点想法。讨论会在后台整理成右边的设定文档，\n你定下的会成为之后讨论的依据，放下的不再被提起。"
+	starts := []string{"我想写一个总在下雨的城市", "主角有个说不出口的秘密", "这个故事的冲突在哪"}
+	top, size := float32(72), float32(22)
+	if a.page == 3 { // beside the prose the talk is about the page in front of the author
+		unit := a.openUnit()
+		title = "聊聊正在写的这一" + unit
+		about = "问情节、问人物，或者让 AI 挑挑毛病。下面勾着时，正在写的内容会一起发过去；聊定的设定照样整理进“设定”。"
+		starts = []string{"这一" + unit + "的节奏怎么样", "接下来可以怎么写", "人物的动机说得通吗"}
+		top, size = 40, 18
+	}
+	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(top, 0, 0, 0).Gap(14).Children(func() {
 		ui.Box(c).Size(44, 44).Radius(12).Background(a.pal.brand.Alpha(0.1)).Center().Children(func() {
 			glyph(c, icSparkle, 22, a.pal.brand)
 		})
-		ui.Text(c, "从一个模糊的念头聊起").FontSize(22).FontWeight(600)
-		ui.Text(c, "写下脑子里的那一点想法。讨论会在后台整理成右边的设定文档，\n你定下的会成为之后讨论的依据，放下的不再被提起。").FontSize(13.5).TextColor(t.TextMuted).TextAlign(ui.Center).LineHeight(1.7)
+		ui.Text(c, title).FontSize(size).FontWeight(600)
+		ui.Text(c, about).FontSize(13.5).TextColor(t.TextMuted).TextAlign(ui.Center).LineHeight(1.7)
 		ui.Box(c).Height(6)
 		ui.Row(c).Gap(8).Wrap().Justify(ui.Center).Children(func() {
-			for _, s := range []string{"我想写一个总在下雨的城市", "主角有个说不出口的秘密", "这个故事的冲突在哪"} {
+			for _, s := range starts {
 				b := ui.ButtonBase(c).Padding(7, 14).Radius(999).Border(1, t.Border).Background(a.pal.raised)
 				if b.Hovered() {
 					b.Background(t.SurfaceHover)
@@ -370,7 +392,7 @@ func (a *App) composer(c *ui.Context) {
 		h := float32(min(max(lines, 2), 7)) * 25
 		hint := "说说你的想法，或问 AI 一个问题…"
 		if side {
-			hint = "问问这一章，或者选中正文按 Cmd+L 引用…"
+			hint = "问问这一" + a.openUnit() + "，或者选中正文按 " + modKey + "L 引用…"
 		}
 		in := ui.TextAreaBase(c, &a.input).Label("讨论输入").Placeholder(hint).FillWidth().Height(h).FontSize(14.5).LineHeight(1.7).Disabled(a.busy != "")
 		if a.focusTalk {
@@ -379,7 +401,11 @@ func (a *App) composer(c *ui.Context) {
 		}
 		if side {
 			ui.Row(c).FillWidth().Children(func() {
-				if ui.Checkbox(c, &a.doc.attach, "附上本章").Tooltip("把章纲和光标前约 2000 字一起发给 AI").Changed() {
+				label, tip := "附上本章", "把章纲和光标前约 2000 字一起发给 AI"
+				if a.openUnit() == "卷" {
+					label, tip = "附上本卷", "把卷纲一起发给 AI"
+				}
+				if ui.Checkbox(c, &a.doc.attach, label).Tooltip(tip).Changed() {
 					a.savePrefs()
 				}
 			})
@@ -408,10 +434,7 @@ func (a *App) composer(c *ui.Context) {
 			})
 			chip.Menu(func(m *ui.Menu) { a.modelMenu(m, work) })
 			ui.Spacer(c)
-			key := "Ctrl + Enter"
-			if runtime.GOOS == "darwin" {
-				key = "⌘ + Enter"
-			}
+			key := modKey + "Enter"
 			if !side {
 				ui.Text(c, key).FontSize(11.5).TextColor(a.pal.faint)
 			}
