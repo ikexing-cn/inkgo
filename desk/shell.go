@@ -11,8 +11,9 @@ import (
 func trim(s string) string { return strings.TrimSpace(s) }
 
 // titleHeight is the height of the top row of each pane, which is the
-// window's title bar there: as high as the system's window buttons.
-const titleHeight = 32
+// window's title bar there. The window buttons fill it (cmd/poc gives the
+// window the same title bar height), so their hover covers the whole row.
+const titleHeight = 52
 
 // narrow collapses the sidebar to icons so the chat keeps a readable width.
 const narrow = 1180

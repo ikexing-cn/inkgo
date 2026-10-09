@@ -109,8 +109,8 @@ func main() {
 		mygo.App.WhenReady(func() {
 			win.Store(mygo.NewWindow(mygo.WindowOptions{Title: "写作", Width: 1280, Height: 820, MinWidth: 1000, MinHeight: 680, StateKey: "main",
 				// The page draws the title bar into the top of its panes, as the design does.
-				// The window buttons keep the system's height, at the top of those rows.
-				TitleBarStyle: mygo.TitleBarHidden, Content: ui.View(d.View)}))
+				// The window buttons fill those rows, as high as desk's titleHeight.
+				TitleBarStyle: mygo.TitleBarHidden, TitleBarHeight: 52, Content: ui.View(d.View)}))
 		})
 		if err := mygo.App.Run(); err != nil {
 			log.Fatal(err)
