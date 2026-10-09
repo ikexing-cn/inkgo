@@ -58,6 +58,17 @@ func (s *Store) lock() (unlock func(), err error) {
 	return s.mu.Unlock, nil
 }
 
+// Hold runs fn with the work held still: nothing of it is written until
+// fn returns.
+func (s *Store) Hold(fn func(root string) error) error {
+	unlock, err := s.lock()
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	return fn(s.root)
+}
+
 // Create accepts a missing or empty directory. It never replaces an existing
 // workspace or adopts unrelated files in a nonempty directory.
 func Create(dir, name, genre string) (*Store, error) {

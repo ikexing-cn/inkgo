@@ -77,6 +77,7 @@ func main() {
 	flag.Parse()
 	if !*editorDemo {
 		d := desk.New()
+		d.Backups = true
 		// The dialogs open over the window, asked for off the UI thread.
 		var win atomic.Pointer[mygo.Window]
 		d.PickFolder = func(title string) (string, error) {

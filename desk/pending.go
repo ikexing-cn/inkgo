@@ -25,6 +25,7 @@ type pendItem struct {
 	node           string
 	start, end     int
 	here           bool // in the chapter open
+	retry          bool // a backup failed: choosing it backs up again
 }
 
 // pendGroup is the items of one kind.
@@ -43,7 +44,7 @@ func (a *App) scanMarks() {
 
 // pendingGroups gathers what is pending and not ignored, by kind: for now the
 // foreshadowings lost or waiting too long, the open chapter's as it is
-// being written.
+// being written, and a backup that failed.
 func (a *App) pendingGroups() []pendGroup {
 	w := &a.write
 	var chapters []*workspace.Node
@@ -94,10 +95,14 @@ func (a *App) pendingGroups() []pendGroup {
 		}
 		return 1
 	})
-	if len(items) == 0 {
-		return nil
+	var groups []pendGroup
+	if len(items) > 0 {
+		groups = append(groups, pendGroup{name: "伏笔", color: a.pal.faint, items: items})
 	}
-	return []pendGroup{{name: "伏笔", color: a.pal.faint, items: items}}
+	if g, ok := a.backupPending(); ok {
+		groups = append(groups, g)
+	}
+	return groups
 }
 
 // liveMarks is the marks of the text being written, each quoting what it
@@ -248,7 +253,10 @@ func (a *App) pendingRow(c *ui.Context, it pendItem) {
 		})
 		glyph(c, icChevron, 14, a.pal.faint)
 	})
-	if r.Clicked() {
+	if r.Clicked() && it.retry {
+		a.write.pendOpen = false
+		a.runBackup(c)
+	} else if r.Clicked() {
 		a.goTo(it)
 	}
 }

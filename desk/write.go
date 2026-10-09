@@ -988,6 +988,7 @@ func (a *App) writeTop(c *ui.Context) {
 			w.focus = true
 		}
 		a.pendingButton(c)
+		a.backupChip(c)
 	})
 	a.pal.hairline(c)
 }
@@ -1279,7 +1280,6 @@ func nodeIcon(n *workspace.Node) *ui.SVG {
 
 // chapterTree is the sidebar of the writing page.
 func (a *App) chapterTree(c *ui.Context) {
-	t := a.pal.theme
 	w := &a.write
 	ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(0, 4, 0, 8).Gap(2).Children(func() {
 		ui.Text(c, "章节").FontSize(11.5).FontWeight(600).TextColor(a.pal.faint).Grow(1)
@@ -1311,7 +1311,12 @@ func (a *App) chapterTree(c *ui.Context) {
 			a.warn(a.loadTree())
 		}
 	})
-	b := ui.ButtonBase(c).Row().FillWidth().Justify(ui.Start).AlignItems(ui.Center).Gap(10).Padding(7, 10).Radius(7).Label("回收站")
+}
+
+// trashRow opens the trash.
+func (a *App) trashRow(c *ui.Context) {
+	t := a.pal.theme
+	b := ui.ButtonBase(c).Row().Grow(1).Shrink(1).Justify(ui.Start).AlignItems(ui.Center).Gap(10).Padding(7, 10).Radius(7).Label("回收站")
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}

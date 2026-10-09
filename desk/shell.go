@@ -29,7 +29,7 @@ func (a *App) View(c *ui.Context) {
 		a.pal = a.dark
 	}
 	c.SetTheme(a.pal.theme)
-	if a.Store == nil && (a.page == 2 || a.page == 3) {
+	if a.Store == nil && (a.page == 2 || a.page == 3 || a.page == 4) {
 		a.page = 0
 	}
 	if a.busy == "" {
@@ -37,6 +37,7 @@ func (a *App) View(c *ui.Context) {
 	}
 	if a.Store != nil {
 		a.pollSummaries(c)
+		a.backupDue(c)
 	}
 	if a.Store != nil && a.shown == 3 && a.page != 3 {
 		a.flush()
@@ -54,7 +55,7 @@ func (a *App) View(c *ui.Context) {
 			ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
 		}
 		ui.Column(c).Grow(1).Shrink(1).FillHeight().Children(func() {
-			if a.Store == nil || a.page == 1 || a.page == 2 {
+			if a.Store == nil || a.page == 1 || a.page == 2 || a.page == 4 {
 				// These pages have no top row of their own to hold the window
 				// by, nor to show the banners under.
 				ui.Box(c).Absolute().Top(0).Left(0).Right(0).Height(titleHeight).DragWindow()
@@ -67,6 +68,8 @@ func (a *App) View(c *ui.Context) {
 				a.settings(c)
 			case a.page == 2:
 				a.categories(c)
+			case a.page == 4:
+				a.preferences(c)
 			case a.page == 3:
 				a.writing(c)
 			case a.Store == nil:
@@ -81,6 +84,9 @@ func (a *App) View(c *ui.Context) {
 	}
 	a.createDialog(c)
 	a.renameDialog(c)
+	if a.Store != nil {
+		a.askView(c)
+	}
 }
 
 // pageBanners shows the banners under the top row of the page.
@@ -188,8 +194,9 @@ func (a *App) sidebar(c *ui.Context) {
 		a.navItem(c, icChat, "讨论", 0, slim)
 		a.navItem(c, icBook, "正文", 3, slim)
 		a.navItem(c, icTag, "作品分类", 2, slim)
-		a.navItem(c, icGear, "模型设置", 1, slim)
+		a.navItem(c, icChip, "模型设置", 1, slim)
 		ui.Box(c).Height(16)
+		defer a.sideFoot(c, slim)
 		if a.page == 3 {
 			a.chapterTree(c)
 			return
@@ -198,6 +205,7 @@ func (a *App) sidebar(c *ui.Context) {
 			if iconButton(c, icPlus, "新对话", ui.Color{}).Disabled(busy).Clicked() {
 				a.newSession()
 			}
+			ui.Spacer(c)
 			return
 		}
 		ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(0, 4, 0, 8).Children(func() {

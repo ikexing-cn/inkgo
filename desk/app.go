@@ -66,6 +66,8 @@ type App struct {
 	// PickFolder shows a native folder dialog; it runs off the UI thread.
 	// Nil hides the browse buttons (tests, platforms without dialogs).
 	PickFolder func(title string) (string, error)
+	// Backups asks, the first time a work opens here, where to back it up.
+	Backups bool
 	// SaveFile asks where to save a file named name, off the UI thread;
 	// nil saves exports into the work's 导出 folder.
 	SaveFile func(title, name string) (string, error)
@@ -91,6 +93,7 @@ type App struct {
 	showShelved       bool            // the shelved conversations listed too
 	path, name, genre string
 	shelf             shelf.Shelf
+	bk                backupView
 	books             shelfView
 	sums              summaries
 	session           string
@@ -196,6 +199,7 @@ func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 	if a.Store != nil {
 		a.flush()
 		a.remember(false)
+		a.backupNow()
 		a.stopSummaries()
 		a.halt()
 		a.Store.Close()
@@ -218,12 +222,14 @@ func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 	} else {
 		a.session = sessions[len(sessions)-1]
 	}
+	a.askBackup()
 	return a.refresh()
 }
 
 func (a *App) resetView() {
 	a.source, a.sourceOpen, a.contextReply = nil, false, ""
 	a.input, a.seen, a.flash, a.doc, a.write = "", -1, map[string]time.Time{}, docView{}, writeView{}
+	a.bk = backupView{}
 	a.page, a.shown = 0, 0
 }
 
@@ -232,6 +238,7 @@ func (a *App) resetView() {
 func (a *App) closeWork() {
 	a.flush()
 	a.remember(false)
+	a.backupNow()
 	a.stopSummaries()
 	a.halt()
 	a.setError(a.Store.Close())
@@ -247,6 +254,9 @@ func (a *App) Close() error {
 	}
 	a.flush()
 	a.remember(false)
+	if a.Store != nil {
+		a.backupNow()
+	}
 	a.halt()
 	// Window shutdown exits the process. A cancelled worker may still be
 	// saving what it already has, so leave the store open for it.

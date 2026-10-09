@@ -20,6 +20,7 @@ type palette struct {
 	canvas, side, raised, bubble ui.Color
 	line, faint, ink, onInk      ui.Color
 	amber                        ui.Color // what waits on the author
+	warnBg, warnBd               ui.Color // a warning's fill and border
 }
 
 //go:embed tokens.css
@@ -91,7 +92,7 @@ func paletteOf(t *ui.Theme, k map[string]ui.Color) *palette {
 	return &palette{theme: t,
 		canvas: k["bg"], side: k["side"], raised: k["raised"], bubble: k["hover"],
 		line: k["line"], faint: k["faint"], ink: k["ink"], onInk: k["on-ink"],
-		amber: k["amber"]}
+		amber: k["amber"], warnBg: k["warn-bg"], warnBd: k["warn-bd"]}
 }
 
 // dot is a small status disc.
@@ -158,6 +159,7 @@ var (
 	icBack        = icon(`<path d="m15 6-6 6 6 6"/>`)
 	icForward     = icon(`<path d="m9 6 6 6-6 6"/>`)
 	icChevronUp   = icon(`<path d="m18 15-6-6-6 6"/>`)
+	icChip        = icon(`<path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3M7 6h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zM10 10h4v4h-4z"/>`)
 	icChevronDown = icon(`<path d="m6 9 6 6 6-6"/>`)
 	icBook        = icon(`<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>`)
 	icFolder      = icon(`<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>`)

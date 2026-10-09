@@ -14,6 +14,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"writer/backup"
 )
 
 const Schema = 1
@@ -25,6 +27,9 @@ type Book struct {
 	Genre  string    `json:"genre"`
 	Words  int       `json:"words"`
 	Opened time.Time `json:"opened"`
+	// Backup is how the work is backed up from this machine; nil until
+	// the author is first asked.
+	Backup *backup.Settings `json:"backup,omitempty"`
 }
 
 // Shelf is works.json.
@@ -131,10 +136,30 @@ func (s *Shelf) Put(b Book) {
 		if b.Opened.IsZero() {
 			b.Opened = s.Books[i].Opened
 		}
+		if b.Backup == nil {
+			b.Backup = s.Books[i].Backup
+		}
 		s.Books[i] = b
 		return
 	}
 	s.Books = append(s.Books, b)
+}
+
+// Backup is how the work at path is backed up, and whether it is on the
+// shelf with settings of its own.
+func (s *Shelf) Backup(path string) (backup.Settings, bool) {
+	if i := s.Find(path); i >= 0 && s.Books[i].Backup != nil {
+		return *s.Books[i].Backup, true
+	}
+	return backup.Settings{}, false
+}
+
+// SetBackup sets how the work at path is backed up; a work not on the
+// shelf is left alone.
+func (s *Shelf) SetBackup(path string, b backup.Settings) {
+	if i := s.Find(path); i >= 0 {
+		s.Books[i].Backup = &b
+	}
 }
 
 // Remove takes the work off the shelf; its folder is left alone.
