@@ -91,11 +91,11 @@ type Editor struct {
 	typewriter bool
 	centered   int
 	// zoomed is how far a touchpad has scrolled toward the next Zoom step.
-	zoomed float32
-	dragging      bool
-	wantFocus     bool
-	focused       bool
-	popRect       ui.Rect
+	zoomed    float32
+	dragging  bool
+	wantFocus bool
+	focused   bool
+	popRect   ui.Rect
 }
 
 type prediction struct {
