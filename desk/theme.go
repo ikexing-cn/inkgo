@@ -5,13 +5,13 @@ import (
 )
 
 // palette is the desk's design system: a neutral paper-white canvas, ink for
-// primary actions, one brand hue for what the AI organised, and a quiet tint
-// per idea status. Everything else is typography and spacing.
+// primary actions and links, greys for everything quieter, and amber for what
+// waits on the author. Everything else is typography and spacing.
 type palette struct {
-	theme                          *ui.Theme
-	canvas, side, raised, bubble   ui.Color
-	line, faint, brand, ink, onInk ui.Color
-	amber                          ui.Color // what waits on the author
+	theme                        *ui.Theme
+	canvas, side, raised, bubble ui.Color
+	line, faint, ink, onInk      ui.Color
+	amber                        ui.Color // what waits on the author
 }
 
 func lightPalette() *palette {
@@ -19,7 +19,7 @@ func lightPalette() *palette {
 	t.Background = ui.Hex("#ffffff")
 	t.Surface = ui.Hex("#ffffff")
 	t.SurfaceHover = ui.Hex("#f3f3f1")
-	t.SurfacePressed = ui.Hex("#eaeae7")
+	t.SurfacePressed = ui.Hex("#ebebe8")
 	t.Border = ui.Hex("#e4e4e0")
 	t.Text = ui.Hex("#1d1d1b")
 	t.TextMuted = ui.Hex("#76766f")
@@ -30,13 +30,13 @@ func lightPalette() *palette {
 	t.Success = ui.Hex("#2f8a5b")
 	t.Warning = ui.Hex("#b7791f")
 	t.Danger = ui.Hex("#c4473a")
-	t.Selection = ui.RGBA(94, 84, 214, 0.18)
-	t.Focus = ui.RGBA(94, 84, 214, 0.45)
+	t.Selection = ui.RGBA(50, 120, 215, 0.2)
+	t.Focus = ui.RGBA(29, 29, 27, 0.35)
 	t.Scrollbar = ui.RGBA(0, 0, 0, 0.18)
 	t.Radius = 8
 	return &palette{theme: t,
 		canvas: ui.Hex("#ffffff"), side: ui.Hex("#f7f7f5"), raised: ui.Hex("#ffffff"), bubble: ui.Hex("#f1f1ee"),
-		line: ui.Hex("#ececE8"), faint: ui.Hex("#a3a39c"), brand: ui.Hex("#5e54d6"), ink: ui.Hex("#1d1d1b"), onInk: ui.Hex("#ffffff"),
+		line: ui.Hex("#ececE8"), faint: ui.Hex("#a3a39c"), ink: ui.Hex("#1d1d1b"), onInk: ui.Hex("#ffffff"),
 		amber: ui.Hex("#d9a441")}
 }
 
@@ -45,25 +45,25 @@ func darkPalette() *palette {
 	t.Background = ui.Hex("#191919")
 	t.Surface = ui.Hex("#222221")
 	t.SurfaceHover = ui.Hex("#2b2b2a")
-	t.SurfacePressed = ui.Hex("#333331")
+	t.SurfacePressed = ui.Hex("#2c2c2a")
 	t.Border = ui.Hex("#343432")
 	t.Text = ui.Hex("#ededea")
-	t.TextMuted = ui.Hex("#9a9a93")
+	t.TextMuted = ui.Hex("#a0a09a")
 	t.Accent = ui.Hex("#ededea")
 	t.AccentHover = ui.Hex("#ffffff")
 	t.AccentPressed = ui.Hex("#d6d6d2")
 	t.AccentText = ui.Hex("#191919")
 	t.Success = ui.Hex("#5cb684")
-	t.Warning = ui.Hex("#d6a24a")
+	t.Warning = ui.Hex("#d9a441")
 	t.Danger = ui.Hex("#e4675b")
-	t.Selection = ui.RGBA(139, 131, 240, 0.32)
-	t.Focus = ui.RGBA(139, 131, 240, 0.6)
+	t.Selection = ui.RGBA(90, 140, 220, 0.3)
+	t.Focus = ui.RGBA(237, 237, 234, 0.45)
 	t.Scrollbar = ui.RGBA(255, 255, 255, 0.2)
 	t.Radius = 8
 	return &palette{theme: t,
 		canvas: ui.Hex("#191919"), side: ui.Hex("#1f1f1e"), raised: ui.Hex("#222221"), bubble: ui.Hex("#2a2a29"),
-		line: ui.Hex("#2c2c2b"), faint: ui.Hex("#6f6f69"), brand: ui.Hex("#8b83f0"), ink: ui.Hex("#ededea"), onInk: ui.Hex("#191919"),
-		amber: ui.Hex("#d6a24a")}
+		line: ui.Hex("#2a2a28"), faint: ui.Hex("#6f6f69"), ink: ui.Hex("#ededea"), onInk: ui.Hex("#191919"),
+		amber: ui.Hex("#d9a441")}
 }
 
 // dot is a small status disc.

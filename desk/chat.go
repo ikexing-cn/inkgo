@@ -140,8 +140,8 @@ func (a *App) emptyChat(c *ui.Context) {
 		top, size = 40, 18
 	}
 	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(top, 0, 0, 0).Gap(14).Children(func() {
-		ui.Box(c).Size(44, 44).Radius(12).Background(a.pal.brand.Alpha(0.1)).Center().Children(func() {
-			glyph(c, icSparkle, 22, a.pal.brand)
+		ui.Box(c).Size(44, 44).Radius(12).Background(a.pal.ink.Alpha(0.1)).Center().Children(func() {
+			glyph(c, icSparkle, 22, a.pal.ink)
 		})
 		ui.Text(c, title).FontSize(size).FontWeight(600)
 		ui.Text(c, about).FontSize(13.5).TextColor(t.TextMuted).TextAlign(ui.Center).LineHeight(1.7)
@@ -170,8 +170,8 @@ func (a *App) answered(userID string) bool {
 	return false
 }
 func (a *App) aiMark(c *ui.Context) {
-	ui.Box(c).Size(24, 24).Radius(7).Background(a.pal.brand.Alpha(0.12)).Center().Shrink(0).Children(func() {
-		glyph(c, icSparkle, 14, a.pal.brand)
+	ui.Box(c).Size(24, 24).Radius(7).Background(a.pal.ink.Alpha(0.12)).Center().Shrink(0).Children(func() {
+		glyph(c, icSparkle, 14, a.pal.ink)
 	})
 }
 
@@ -237,7 +237,7 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 				on := a.contextReply == m.ID
 				color := ui.Color{}
 				if on {
-					color = a.pal.brand
+					color = a.pal.ink
 				}
 				if iconButton(c, icEye, "上下文-"+m.ID, color).Tooltip("AI 看到了什么").Clicked() {
 					if on {
@@ -421,7 +421,7 @@ func (a *App) composer(c *ui.Context) {
 				if ready {
 					color := t.Success
 					if !isLocal(a.providerURL(work.Discussion.Provider)) {
-						color = a.pal.brand
+						color = a.pal.ink
 					}
 					dot(c, color, 6)
 					ui.Text(c, work.Discussion.Model).FontSize(12).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
@@ -542,7 +542,7 @@ func (a *App) extraction(c *ui.Context) {
 				if start == end {
 					ui.Text(c, "还没有选中文字").FontSize(12.5).TextColor(a.pal.faint)
 				} else {
-					ui.Textf(c, "已选 %d 字", end-start).FontSize(12.5).TextColor(a.pal.brand)
+					ui.Textf(c, "已选 %d 字", end-start).FontSize(12.5).TextColor(a.pal.ink)
 				}
 				ui.Spacer(c)
 				if ghost(c, "收起原文", ui.Color{}).Clicked() {

@@ -10,10 +10,8 @@ const (
 )
 
 var (
-	colorForeshadow = ui.RGBA(230, 160, 40, 0.22)
-	colorForeLine   = ui.RGB(214, 140, 20)
-	colorAI         = ui.RGB(90, 140, 230)
-	colorFound      = ui.RGB(240, 190, 40)
+	colorAI    = ui.RGB(90, 140, 230)
+	colorFound = ui.RGB(240, 190, 40)
 )
 
 // paint draws the text, the marks, the selection and the caret, inside
@@ -63,8 +61,7 @@ func (e *Editor) paintIn(p *ui.Painter, r ui.Rect) {
 			base := oy + y + l.lineH - 5
 			switch m.Kind {
 			case MarkForeshadow:
-				p.Fill(ui.Rect{X: ox + x0, Y: oy + y + 4, W: x1 - x0, H: l.lineH - 8}, colorForeshadow, 2)
-				p.Line(ox+x0, base, ox+x1, base, 1.5, colorForeLine)
+				dotted(p, ox+x0, ox+x1, base, t.TextMuted.Alpha(0.75))
 			case MarkAIAccepted:
 				p.Line(ox+x0, base, ox+x1, base, 1, colorAI.Alpha(0.55))
 			case MarkAIDraft:
@@ -212,5 +209,14 @@ func (e *Editor) paintPopup(p *ui.Painter, r ui.Rect) {
 			p.Text(x, row.Y+7, "· "+en.Of, 12, fg.Alpha(0.7))
 		}
 		p.Text(row.X+row.W-44, row.Y+7, en.Kind, 12, fg.Alpha(0.7))
+	}
+}
+
+// dotted draws a light dotted underline, the way a foreshadowing is marked:
+// it stays out of the way of reading.
+func dotted(p *ui.Painter, x0, x1, y float32, c ui.Color) {
+	const d, gap = 1.5, 3
+	for x := x0; x+d <= x1; x += gap {
+		p.Fill(ui.Rect{X: x, Y: y - d/2, W: d, H: d}, c, d/2)
 	}
 }

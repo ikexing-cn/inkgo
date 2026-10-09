@@ -325,7 +325,7 @@ func (a *App) aiBar(c *ui.Context) {
 	switch {
 	case w.run != nil && w.run.op == workspace.AIDraft:
 		bar(func() {
-			glyph(c, icFeather, 15, a.pal.brand)
+			glyph(c, icFeather, 15, a.pal.ink)
 			ui.Textf(c, "AI 正在按章纲起草 · 已写 %d 字 · %s", w.run.wrote, a.modelLabel(w.run.job.Record)).FontSize(13).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
 			if action(c, "停止", t.Danger, false).Clicked() {
 				w.run.cancel()
@@ -333,7 +333,7 @@ func (a *App) aiBar(c *ui.Context) {
 		})
 	case w.run != nil:
 		bar(func() {
-			glyph(c, icWand, 15, a.pal.brand)
+			glyph(c, icWand, 15, a.pal.ink)
 			ui.Textf(c, "AI 正在改写选中的部分 · %s", a.modelLabel(w.run.job.Record)).FontSize(13).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
 			if ghost(c, "取消", ui.Color{}).Clicked() {
 				w.run.cancel()

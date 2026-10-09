@@ -169,9 +169,9 @@ func (a *App) summaryState() (label, line string, warn bool) {
 	q := &a.sums
 	switch {
 	case q.running == w.node:
-		return "本章摘要（正在生成）", "AI 正在读这一章写摘要…", false
+		return "本章摘要 · 正在生成", "AI 正在读这一章写摘要…", false
 	case w.sum.Text == "" && w.summary == "":
-		label = "本章摘要（还没有）"
+		label = "本章摘要 · 还没有"
 		line = fmt.Sprintf("正文满 %d 字后，离开这一章时会自动生成；也可以自己写。", writing.MinSummary)
 		if !w.autoSummary {
 			line = "自动生成已关掉，可以点“生成摘要”，也可以自己写。"
@@ -182,7 +182,7 @@ func (a *App) summaryState() (label, line string, warn bool) {
 		label, line = "本章摘要", "AI 写的 · "+shortModel(w.sum.By)+" · "+w.sum.At.Local().Format("01-02 15:04")
 	}
 	if w.sum.Text != "" && w.ed != nil && w.sum.Stale(w.ed.Doc.String()) && w.summary == w.summarySaved {
-		label, warn = "本章摘要（可能过时）", true
+		label, warn = "本章摘要 · 可能过时", true
 		line += " · 正文改过了"
 	}
 	if why := q.failed[w.node]; why != "" {
@@ -198,39 +198,41 @@ func shortModel(name string) string {
 	return name
 }
 
-// summaryBox is the summary of the chapter shown, under its outline.
-func (a *App) summaryBox(c *ui.Context) {
+// summaryShown says whether the chapter shown has a summary to show: not
+// over an empty chapter that has none.
+func (a *App) summaryShown() bool {
+	w := &a.write
+	return w.sum.Text != "" || w.summary != "" || a.sums.running == w.node || w.ed == nil || w.ed.Doc.Len() > 0
+}
+
+// summaryPanel is the summary of the chapter shown, opened under its toggle.
+func (a *App) summaryPanel(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
-	if w.sum.Text == "" && w.summary == "" && a.sums.running != w.node && w.ed != nil && w.ed.Doc.Len() == 0 {
-		return
-	}
-	label, line, warn := a.summaryState()
-	ui.Collapsible(c, label, &w.summaryOpen, func() {
-		ui.Column(c).FillWidth().Gap(6).Padding(6, 0, 4, 0).Children(func() {
-			ui.TextAreaBase(c, &w.summary).Label("本章摘要").Placeholder("这一章发生了什么：起草后面的章节时，AI 会看到各章的摘要").FillWidth().Height(84).
-				FontSize(13.5).LineHeight(1.7).Padding(10, 12).Radius(8).Background(a.pal.side).Disabled(w.lost || a.sums.running == w.node)
-			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-				color := a.pal.faint
-				if warn {
-					color = t.Warning
-				}
-				ui.Text(c, line).FontSize(12).TextColor(color).Grow(1).Shrink(1)
-				verb := "重新生成"
-				if w.sum.Text == "" {
-					verb = "生成摘要"
-				}
-				short := w.ed == nil || workspace.Count(w.ed.Doc.String()) < writing.MinSummary
-				tip := "让 AI 读这一章，写一份摘要"
-				if short {
-					tip = fmt.Sprintf("正文满 %d 字才需要摘要", writing.MinSummary)
-				}
-				if ghost(c, verb, a.pal.brand).Label(verb + "摘要").Tooltip(tip).Disabled(short || a.sums.running == w.node || w.lost).Clicked() {
-					a.flush()
-					w.summary = w.summarySaved
-					a.queueSummary(w.node)
-				}
-			})
+	_, line, warn := a.summaryState()
+	ui.Column(c).FillWidth().Gap(6).Padding(2, 0, 4, 0).Children(func() {
+		ui.TextAreaBase(c, &w.summary).Label("本章摘要").Placeholder("这一章发生了什么：起草后面的章节时，AI 会看到各章的摘要").FillWidth().Height(84).
+			FontSize(13.5).LineHeight(1.7).Padding(10, 12).Radius(8).Background(a.pal.side).Disabled(w.lost || a.sums.running == w.node)
+		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+			color := a.pal.faint
+			if warn {
+				color = t.Warning
+			}
+			ui.Text(c, line).FontSize(12).TextColor(color).Grow(1).Shrink(1)
+			verb := "重新生成"
+			if w.sum.Text == "" {
+				verb = "生成摘要"
+			}
+			short := w.ed == nil || workspace.Count(w.ed.Doc.String()) < writing.MinSummary
+			tip := "让 AI 读这一章，写一份摘要"
+			if short {
+				tip = fmt.Sprintf("正文满 %d 字才需要摘要", writing.MinSummary)
+			}
+			if ghost(c, verb, a.pal.ink).Label(verb + "摘要").Tooltip(tip).Disabled(short || a.sums.running == w.node || w.lost).Clicked() {
+				a.flush()
+				w.summary = w.summarySaved
+				a.queueSummary(w.node)
+			}
 		})
 	})
 }

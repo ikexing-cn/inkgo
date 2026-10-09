@@ -93,7 +93,7 @@ func (a *App) settings(c *ui.Context) {
 					item.Background(t.SurfaceHover)
 				}
 				item.Children(func() {
-					color := a.pal.brand
+					color := a.pal.ink
 					if isLocal(p.BaseURL) {
 						color = t.Success
 					}

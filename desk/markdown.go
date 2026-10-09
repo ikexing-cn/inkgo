@@ -364,7 +364,7 @@ func (a *App) mdRuns(out []ui.Span, spans []mdSpan, size float32) []ui.Span {
 			r.Font, r.Size, r.Background = "monospace", size*0.9, a.pal.side
 		}
 		if s.link {
-			r.Color, r.Underline = a.pal.brand, true
+			r.Color, r.Underline = a.pal.ink, true
 		}
 		out = append(out, r)
 	}

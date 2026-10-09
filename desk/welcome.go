@@ -318,7 +318,7 @@ func (a *App) welcome(c *ui.Context) {
 						ui.Text(c, "我的作品").FontSize(26).Bold()
 						ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 							ui.Textf(c, "%d 部 · 作品库：%s", len(books), a.shelf.Library).FontSize(13).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
-							if a.PickFolder != nil && ghost(c, "更改", a.pal.brand).Label("更改作品库").Clicked() {
+							if a.PickFolder != nil && ghost(c, "更改", a.pal.ink).Label("更改作品库").Clicked() {
 								a.pickInto(c, "选择作品库文件夹", func(p string) {
 									a.shelf.Library = p
 									a.saveShelf()
@@ -448,7 +448,7 @@ func (a *App) bookRow(c *ui.Context, b shelf.Book) {
 			a.switchWork(b.Path)
 		}
 		if gone {
-			if a.PickFolder != nil && ghost(c, "重新定位…", a.pal.brand).Label("重新定位-"+b.Name).Clicked() {
+			if a.PickFolder != nil && ghost(c, "重新定位…", a.pal.ink).Label("重新定位-"+b.Name).Clicked() {
 				from := b.Path
 				a.pickInto(c, "这部作品现在在哪里", func(p string) { a.relocate(from, p) })
 			}
@@ -487,7 +487,7 @@ func (a *App) bookCard(c *ui.Context, b shelf.Book) {
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 				ui.Text(c, "找不到文件夹").FontSize(12).TextColor(t.Danger)
 				ui.Spacer(c)
-				if a.PickFolder != nil && ghost(c, "定位", a.pal.brand).Label("重新定位-"+b.Name).Clicked() {
+				if a.PickFolder != nil && ghost(c, "定位", a.pal.ink).Label("重新定位-"+b.Name).Clicked() {
 					from := b.Path
 					a.pickInto(c, "这部作品现在在哪里", func(p string) { a.relocate(from, p) })
 				}

@@ -728,7 +728,7 @@ func (a *App) today(now time.Time) int {
 }
 
 // weekChart draws the last seven days' writing as bars, those that met the
-// goal in the brand color.
+// goal in ink.
 func (a *App) weekChart(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
@@ -742,7 +742,7 @@ func (a *App) weekChart(c *ui.Context) {
 			day := now.AddDate(0, 0, i-len(days)+1)
 			color := t.TextMuted.Alpha(0.35)
 			if w.goal > 0 && k >= w.goal {
-				color = a.pal.brand
+				color = a.pal.ink
 			}
 			ui.Column(c).Key(i).Grow(1).Gap(3).AlignItems(ui.Center).Label(fmt.Sprintf("%s 写了 %d 字", day.Format("1月2日"), k)).Tooltip(fmt.Sprintf("%s：%+d 字", day.Format("1月2日"), k)).Children(func() {
 				h := float32(max(k, 0)) / float32(top) * tall
@@ -814,11 +814,11 @@ func (a *App) writeTop(c *ui.Context) {
 				ui.Text(c, title).FontSize(13).TextColor(t.TextMuted).SingleLine().Shrink(1)
 				glyph(c, icChevron, 14, a.pal.faint)
 			}
-			ui.Text(c, n.Title).FontSize(13.5).FontWeight(600).SingleLine().Ellipsis("…").Shrink(1)
+			ui.Text(c, n.Title).FontSize(13).FontWeight(600).SingleLine().Ellipsis("…").Shrink(1)
 		} else if w.lost {
-			ui.Text(c, w.lostTitle).FontSize(13.5).FontWeight(600)
+			ui.Text(c, w.lostTitle).FontSize(13).FontWeight(600)
 		} else {
-			ui.Text(c, "正文").FontSize(13.5).FontWeight(600)
+			ui.Text(c, "正文").FontSize(13).FontWeight(600)
 		}
 		ui.Spacer(c)
 		here, unit := 0, "本章"
@@ -849,7 +849,7 @@ func (a *App) writeTop(c *ui.Context) {
 		}
 		color := a.pal.faint
 		if met {
-			color = a.pal.brand
+			color = a.pal.ink
 		}
 		counts := ui.ButtonBase(c).Row().Padding(3, 6).Radius(6).Shrink(1).Label("字数").Tooltip(tip + "。点击设每日目标")
 		if counts.Hovered() {
@@ -888,9 +888,9 @@ func (a *App) writeTop(c *ui.Context) {
 			s, e := w.ed.Selection()
 			busy := w.ed.ReadOnly() || w.lost || w.external != nil
 			if w.ed.Predicting() {
-				ui.Text(c, "续写中…").FontSize(12).TextColor(a.pal.brand)
+				ui.Text(c, "续写中…").FontSize(12).TextColor(a.pal.ink)
 			} else if w.ed.Ghost() != "" {
-				ui.Text(c, "Tab 采纳 · Esc 放弃").FontSize(12).TextColor(a.pal.brand)
+				ui.Text(c, "Tab 采纳 · Esc 放弃").FontSize(12).TextColor(a.pal.ink)
 			}
 			if iconButton(c, icSparkle, "续写一句", ui.Color{}).Tooltip("在光标处续写一句（" + modKey + "J），按 Tab 采纳").Disabled(busy).Clicked() {
 				a.continueText()
@@ -910,7 +910,7 @@ func (a *App) writeTop(c *ui.Context) {
 			}
 			color := ui.Color{}
 			if w.finding {
-				color = a.pal.brand
+				color = a.pal.ink
 			}
 			if iconButton(c, icSearch, "查找替换", color).Tooltip("查找替换（" + modKey + "F）").Disabled(busy).Clicked() {
 				w.finding = !w.finding
@@ -933,7 +933,7 @@ func (a *App) writeTop(c *ui.Context) {
 			}
 		}
 		if w.focus {
-			if iconButton(c, icShrink, "退出专注", a.pal.brand).Tooltip("退出专注，回到章节树和右栏（F11）").Clicked() {
+			if iconButton(c, icShrink, "退出专注", a.pal.ink).Tooltip("退出专注，回到章节树和右栏（F11）").Clicked() {
 				w.focus = false
 			}
 		} else if iconButton(c, icExpand, "专注写作", ui.Color{}).Tooltip("只留正文，收起章节树和右栏（F11）").Clicked() {
@@ -947,8 +947,8 @@ func (a *App) writeTop(c *ui.Context) {
 func (a *App) emptyWriting(c *ui.Context) {
 	t := a.pal.theme
 	ui.Column(c).Grow(1).FillWidth().AlignItems(ui.Center).Padding(96, 24, 0, 24).Gap(14).Children(func() {
-		ui.Box(c).Size(44, 44).Radius(12).Background(a.pal.brand.Alpha(0.1)).Center().Children(func() {
-			glyph(c, icBook, 22, a.pal.brand)
+		ui.Box(c).Size(44, 44).Radius(12).Background(a.pal.ink.Alpha(0.1)).Center().Children(func() {
+			glyph(c, icBook, 22, a.pal.ink)
 		})
 		ui.Text(c, "还没有章节").FontSize(18).FontWeight(600)
 		ui.Text(c, "每一章是作品文件夹 chapters 里的一个纯文本文件，离开软件也能打开。").FontSize(13).TextColor(t.TextMuted)
@@ -991,17 +991,34 @@ func (a *App) chapterView(c *ui.Context) {
 			}
 		})
 	}
-	// As wide as the prose at most, and over it, when the page is wide.
-	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(10, 24, 0, 24).Shrink(0).Children(func() {
-		ui.Column(c).FillWidth().MaxWidth(editor.MaxTextWidth).Children(func() {
+	// As wide as the prose at most, and over it, when the page is wide: the
+	// chapter's title, then its outline and summary side by side, each
+	// opening under the two.
+	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(22, 24, 6, 24).Shrink(0).Children(func() {
+		ui.Column(c).FillWidth().MaxWidth(editor.MaxTextWidth).Gap(8).Children(func() {
+			ui.Text(c, heading(a.shownTitle())).FontSize(22).FontWeight(700).SingleLine().Ellipsis("…")
 			label := "章纲"
 			if strings.TrimSpace(w.outline) == "" {
-				label = "章纲（空）"
+				label = "章纲 · 空"
 			}
-			ui.Collapsible(c, label, &w.outlineOpen, func() {
-				ui.Box(c).FillWidth().Padding(6, 0, 4, 0).Children(func() { a.outlineBox(c, "章纲", 96) })
+			sum := a.summaryShown()
+			var outline, summary ui.CollapsibleParts
+			ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
+				outline = a.disclosure(c, label, &w.outlineOpen)
+				if sum {
+					label, _, warn := a.summaryState()
+					summary = a.disclosure(c, label, &w.summaryOpen)
+					if warn {
+						summary.Trigger.Tooltip("摘要可能和正文对不上了")
+					}
+				}
 			})
-			a.summaryBox(c)
+			outline.Panel(func() {
+				ui.Box(c).FillWidth().Padding(2, 0, 4, 0).Children(func() { a.outlineBox(c, "章纲", 96) })
+			})
+			if sum {
+				summary.Panel(func() { a.summaryPanel(c) })
+			}
 		})
 	})
 	if w.finding && !w.ed.ReadOnly() {
@@ -1009,6 +1026,46 @@ func (a *App) chapterView(c *ui.Context) {
 	}
 	a.aiBar(c)
 	w.ed.View(c).Grow(1).FillWidth()
+}
+
+// shownTitle is the title of the chapter shown.
+func (a *App) shownTitle() string {
+	w := &a.write
+	if n, ok := w.tree.Node(w.node); ok {
+		return n.Title
+	}
+	if w.lost {
+		return w.lostTitle
+	}
+	return "正文"
+}
+
+// heading is a chapter's title over its prose: the name after 第几章, which
+// the breadcrumb above already says.
+func heading(title string) string {
+	if _, name, ok := strings.Cut(title, "："); ok && strings.TrimSpace(name) != "" {
+		return strings.TrimSpace(name)
+	}
+	return title
+}
+
+// disclosure is a quiet toggle over the prose, its panel built apart from it
+// so that several sit on one row.
+func (a *App) disclosure(c *ui.Context, label string, open *bool) ui.CollapsibleParts {
+	t := a.pal.theme
+	p := ui.CollapsibleBase(c, open)
+	color := t.TextMuted
+	if p.Trigger.Hovered() || *open {
+		color = t.Text
+	}
+	arrow := " ▾"
+	if *open {
+		arrow = " ▴"
+	}
+	p.Trigger.Label(label).Padding(2, 0).Children(func() {
+		ui.Text(c, label+arrow).FontSize(12.5).TextColor(color).SingleLine()
+	})
+	return p
 }
 
 // notice2 is a banner over the editor that asks the author something.
@@ -1095,7 +1152,7 @@ func (a *App) findBar(c *ui.Context) {
 	wide := func() {
 		color := ui.Color{}
 		if w.wide {
-			color = a.pal.brand
+			color = a.pal.ink
 		}
 		if ghost(c, "全书", color).Tooltip("在所有章节里找").Clicked() {
 			w.wide, w.texts, w.sure = !w.wide, nil, false
@@ -1238,7 +1295,7 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 	_, over := ui.DragOver[dragNode](row)
 	switch {
 	case over:
-		row.Background(a.pal.brand.Alpha(0.12))
+		row.Background(a.pal.ink.Alpha(0.12))
 	case on:
 		row.Background(t.SurfacePressed)
 	case row.Hovered():

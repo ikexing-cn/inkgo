@@ -148,7 +148,7 @@ func (a *App) settingPanel(c *ui.Context) {
 		a.bookDot(c)
 		color := ui.Color{}
 		if a.doc.history {
-			color = a.pal.brand
+			color = a.pal.ink
 		}
 		if iconButton(c, icClock, "设定历史", color).Tooltip("整理历史").Clicked() {
 			a.doc.history = !a.doc.history
@@ -232,7 +232,7 @@ func (a *App) entry(c *ui.Context, e workspace.Entry) {
 	box := ui.Column(c).Key(e.ID).FillWidth().Padding(6, 8, 6, 10).Radius(8).Gap(8)
 	if at, ok := a.flash[e.ID]; ok {
 		if left := flashFor - time.Since(at); left > 0 {
-			box.Background(a.pal.brand.Alpha(0.16 * float32(left) / float32(flashFor)))
+			box.Background(a.pal.ink.Alpha(0.16 * float32(left) / float32(flashFor)))
 			c.AnimationFrame()
 		} else {
 			delete(a.flash, e.ID)
@@ -460,7 +460,7 @@ func (a *App) bookDot(c *ui.Context) {
 	if !busy && !failed {
 		return
 	}
-	label, color := "正在整理设定", a.pal.brand
+	label, color := "正在整理设定", a.pal.ink
 	if failed {
 		label, color = "上次整理没成功，点开看看", a.pal.theme.Warning
 	}

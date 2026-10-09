@@ -28,7 +28,7 @@ func TestLeavingAChapterSummarizesIt(t *testing.T) {
 	if len(f.asked) != 0 || a.sums.running != "" {
 		t.Fatal("summarized an unchanged chapter")
 	}
-	if tt.HasText("本章摘要（还没有）") {
+	if tt.HasText("本章摘要 · 还没有") {
 		t.Fatal("a summary box over an empty chapter")
 	}
 	a.openNode(one)
@@ -66,7 +66,7 @@ func TestLeavingAChapterSummarizesIt(t *testing.T) {
 	a.write.ed.Insert("再一句。")
 	a.flush()
 	tt.Frame()
-	if !tt.HasText("本章摘要（可能过时）") {
+	if !tt.HasText("本章摘要 · 可能过时") {
 		t.Fatal(tt.Texts())
 	}
 	a.openNode(two)
