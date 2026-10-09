@@ -143,6 +143,15 @@ func TestShotPending(t *testing.T) {
 	a.write.pendOpen = false
 	a.doc.hidden = true
 	shot("titlebar-pane-hidden.png")
+	a.write.moreOpen = true
+	shot("toolbar-more.png")
+	a.write.moreOpen = false
+	a.write.ed.Select(17, 26)
+	shot("toolbar-selection.png")
+	tt.SetDark(true)
+	shot("toolbar-selection-dark.png")
+	tt.SetDark(false)
+	a.write.ed.Select(0, 0)
 	a.page = 1
 	shot("titlebar-settings.png")
 }

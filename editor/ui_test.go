@@ -293,3 +293,26 @@ func TestCtrlWheelZooms(t *testing.T) {
 		t.Fatal("a plain wheel did not scroll")
 	}
 }
+
+func TestSelectionTop(t *testing.T) {
+	e := New(NewDoc("整条街的灯是同时灭的。\n林晚站在巷口。"), Options{})
+	tt := newTester(e)
+	if _, ok := e.SelectionTop(); ok {
+		t.Fatal("no selection, yet a place for it")
+	}
+	start := strings.Index(e.Doc.String(), "\n") + 1
+	e.MoveTo(len([]rune(e.Doc.String()[:start]))+2, false)
+	e.MoveTo(e.Doc.Len(), true)
+	tt.Frame()
+	r, ok := e.SelectionTop()
+	if !ok || r.H <= 0 {
+		t.Fatal("selection in view has no place")
+	}
+	e.MoveTo(0, false)
+	e.MoveTo(2, true)
+	tt.Frame()
+	r0, _ := e.SelectionTop()
+	if r.Y <= r0.Y || r.X <= r0.X {
+		t.Fatalf("second line's selection at %+v is not right of and below the first's %+v", r, r0)
+	}
+}

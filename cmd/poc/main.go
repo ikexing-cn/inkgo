@@ -106,6 +106,9 @@ func main() {
 			d.OpenLast()
 		}
 		defer d.Close()
+		// The appearance chosen on this machine, before the window shows.
+		mygo.Theme.SetSource(mygo.ThemeSource(d.Theme()))
+		d.Appearance = func(v string) { mygo.Theme.SetSource(mygo.ThemeSource(v)) }
 		mygo.App.WhenReady(func() {
 			win.Store(mygo.NewWindow(mygo.WindowOptions{Title: "写作", Width: 1280, Height: 820, MinWidth: 1000, MinHeight: 680, StateKey: "main",
 				// The page draws the title bar into the top of its panes, as the design does.

@@ -120,6 +120,32 @@ func (e *Editor) caretRect() ui.Rect {
 	return ui.Rect{X: x, Y: y - e.scrollY, W: 2, H: e.lay.lineH}
 }
 
+// SelectionTop returns where the selection starts, relative to the
+// element: X is where, Y and H the top and height of its line. ok is false
+// without a selection, while the mouse still drags it, and while its start
+// is out of view.
+func (e *Editor) SelectionTop() (r ui.Rect, ok bool) {
+	a, b := e.Selection()
+	if a == b || e.dragging || e.width == 0 {
+		return ui.Rect{}, false
+	}
+	e.ensureLayout()
+	l := &e.lay
+	if len(l.lines) == 0 {
+		return ui.Rect{}, false
+	}
+	d := l.toDisp(a, true)
+	ln := &l.lines[l.lineOf(d)]
+	y := ln.y - e.scrollY
+	if y < 0 || y+l.lineH > e.height {
+		return ui.Rect{}, false
+	}
+	return ui.Rect{X: l.left + l.x(ln, d), Y: y, H: l.lineH}, true
+}
+
+// Width is the element's width when it was last painted.
+func (e *Editor) Width() float32 { return e.width }
+
 // maybePredict asks the predictor once typing paused at the end of a
 // paragraph.
 func (e *Editor) maybePredict(c *ui.Context) {

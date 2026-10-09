@@ -33,7 +33,10 @@ type Shelf struct {
 	// Library is where new works go unless the author picks elsewhere.
 	Library string `json:"library"`
 	// Cards shows the works as cards rather than a list.
-	Cards bool   `json:"cards,omitempty"`
+	Cards bool `json:"cards,omitempty"`
+	// Theme is the appearance chosen: "light", "dark", or empty to follow
+	// the system.
+	Theme string `json:"theme,omitempty"`
 	Books []Book `json:"books"`
 }
 
@@ -76,6 +79,9 @@ func Load(path string) (s Shelf, fresh bool, err error) {
 	}
 	if s.Schema != Schema {
 		return Shelf{}, false, fmt.Errorf("%s: unsupported schema %d", path, s.Schema)
+	}
+	if s.Theme != "" && s.Theme != "light" && s.Theme != "dark" {
+		return Shelf{}, false, fmt.Errorf("%s: unknown theme %q", path, s.Theme)
 	}
 	for _, bk := range s.Books {
 		if !filepath.IsAbs(bk.Path) {

@@ -145,6 +145,9 @@ type App struct {
 	stopWorker                       context.CancelFunc
 	changes                          chan struct{} // the worker wrote a revision
 	LastChat, LastSetting, LastWrite ui.Rect
+	// Appearance applies the appearance chosen: "light", "dark", or empty
+	// to follow the system. cmd/poc hands it to the window.
+	Appearance func(string)
 }
 
 func New() *App {

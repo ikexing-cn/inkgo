@@ -1,0 +1,162 @@
+package desk
+
+import (
+	"strings"
+
+	"github.com/egoist/mygo/ui"
+)
+
+// moreButton is the toolbar's 「⋯」: continuing and drafting, the chapter's
+// snapshots, export, and the appearance. chapter says a chapter is shown.
+func (a *App) moreButton(c *ui.Context, chapter bool) {
+	w := &a.write
+	b := iconButton(c, icMore, "更多", ui.Color{}).Tooltip("续写、起草、快照、导出和外观")
+	if b.Clicked() {
+		w.moreOpen = !w.moreOpen
+	}
+	ui.Popover(c, b, &w.moreOpen, func() {
+		ui.Column(c).Width(250).Gap(1).Children(func() {
+			if chapter {
+				busy := w.ed.ReadOnly() || w.lost || w.external != nil
+				if a.menuRow(c, icSparkle, "续写一句", modKey+"J", busy).Clicked() {
+					w.moreOpen = false
+					a.continueText()
+				}
+				hint := ""
+				if strings.TrimSpace(w.outline) == "" {
+					hint = "先写章纲"
+				}
+				if a.menuRow(c, icDraft, "按章纲起草", hint, busy || hint != "").Clicked() {
+					w.moreOpen = false
+					a.openDraft()
+				}
+				a.menuLine(c)
+				if a.menuRow(c, icHistory, "快照", "", busy).Clicked() {
+					w.moreOpen = false
+					a.openSnapshots()
+				}
+			}
+			if a.menuRow(c, icDownload, "导出全书或章节…", "", false).Clicked() {
+				w.moreOpen = false
+				w.exportOpen, w.exportDone, w.exportFrom = true, false, ""
+			}
+			a.menuLine(c)
+			a.themeChoice(c)
+		})
+	})
+}
+
+// menuRow is a row of a menu drawn in a popover: an icon, what it does,
+// and on the right a shortcut, or why it cannot be done now.
+func (a *App) menuRow(c *ui.Context, s *ui.SVG, text, hint string, off bool) *ui.Element {
+	t := a.pal.theme
+	b := ui.ButtonBase(c).Row().FillWidth().Height(32).Padding(0, 10).Gap(10).AlignItems(ui.Center).Radius(6).Label(strings.TrimSuffix(text, "…")).Disabled(off)
+	fg := t.AccentHover
+	if off {
+		fg = a.pal.faint
+	} else if b.Hovered() {
+		b.Background(t.SurfaceHover)
+	}
+	b.Children(func() {
+		glyph(c, s, 15, fg)
+		ui.Text(c, text).FontSize(13).TextColor(fg).Grow(1).SingleLine()
+		if hint != "" {
+			ui.Text(c, hint).FontSize(11.5).TextColor(a.pal.faint).SingleLine()
+		}
+	})
+	return b
+}
+
+func (a *App) menuLine(c *ui.Context) {
+	ui.Box(c).FillWidth().Height(1).Margin(5, 4).Background(a.pal.line).Shrink(0)
+}
+
+// themeChoice picks the appearance of the whole app on this machine:
+// following the system, light or dark.
+func (a *App) themeChoice(c *ui.Context) {
+	t := a.pal.theme
+	ui.Column(c).FillWidth().Gap(6).Padding(6, 10, 8, 10).Children(func() {
+		ui.Text(c, "外观").FontSize(12).TextColor(a.pal.faint)
+		ui.Row(c).FillWidth().Gap(2).Padding(2).Radius(7).Background(t.SurfaceHover).Children(func() {
+			for _, m := range []struct {
+				v, n string
+				s    *ui.SVG
+			}{{"", "跟随系统", icMonitor}, {"light", "浅色", icSun}, {"dark", "深色", icMoon}} {
+				on := a.shelf.Theme == m.v
+				b := ui.ButtonBase(c).Row().Grow(1).Height(26).Center().Gap(5).Radius(5).Label("外观-" + m.n)
+				fg := t.TextMuted
+				if on {
+					b.Background(a.pal.raised).Shadow(0, 1, 2, 0, ui.Hex("#000000").Alpha(0.08))
+					fg = t.Text
+				} else if b.Hovered() {
+					fg = t.Text
+				}
+				b.Children(func() {
+					glyph(c, m.s, 13, fg)
+					ui.Text(c, m.n).FontSize(12).TextColor(fg).SingleLine()
+				})
+				if b.Clicked() {
+					a.setTheme(m.v)
+				}
+			}
+		})
+	})
+}
+
+// setTheme keeps the appearance chosen in the shelf, which is this
+// machine's, and applies it.
+func (a *App) setTheme(v string) {
+	if a.shelf.Theme == v {
+		return
+	}
+	a.shelf.Theme = v
+	a.saveShelf()
+	if a.Appearance != nil {
+		a.Appearance(v)
+	}
+}
+
+// Theme is the appearance chosen on this machine: "light", "dark", or
+// empty to follow the system.
+func (a *App) Theme() string { return a.shelf.Theme }
+
+// selectionBar floats over the start of the selection with what acts on
+// it: the AI's rewrite, and taking the words into the settings.
+func (a *App) selectionBar(c *ui.Context) {
+	w := &a.write
+	r, ok := w.ed.SelectionTop()
+	if !ok || w.ed.ReadOnly() || w.lost || w.external != nil || w.rewriting || w.run != nil || w.proposed != nil ||
+		w.takeOpen || w.ed.Predicting() {
+		return
+	}
+	t := a.pal.theme
+	const height, width = 34, 190
+	top := r.Y - height - 6
+	if top < 4 {
+		top = r.Y + r.H + 6 // under the line when there is no room above
+	}
+	left := max(8, min(r.X-12, w.ed.Width()-width-8))
+	bar := ui.Row(c).Absolute().Left(left).Top(top).Height(height).Padding(3).Gap(2).AlignItems(ui.Center).Radius(8).
+		Background(a.pal.raised).Border(1, t.Border).Shadow(0, 6, 20, 0, ui.Hex("#000000").Alpha(0.12))
+	bar.Children(func() {
+		if a.selButton(c, icPen, "AI 改写").Tooltip("让 AI 改写选中的部分").Clicked() {
+			a.openRewrite()
+		}
+		if a.selButton(c, icBookmark, "加入设定").Tooltip("把选中的原文加入设定").Clicked() {
+			a.openTake()
+		}
+	})
+}
+
+func (a *App) selButton(c *ui.Context, s *ui.SVG, text string) *ui.Element {
+	t := a.pal.theme
+	b := ui.ButtonBase(c).Row().Height(26).Padding(0, 8).Gap(5).AlignItems(ui.Center).Radius(5).Label(text)
+	if b.Hovered() {
+		b.Background(t.SurfaceHover)
+	}
+	b.Children(func() {
+		glyph(c, s, 14, t.AccentHover)
+		ui.Text(c, text).FontSize(12.5).TextColor(t.AccentHover).SingleLine()
+	})
+	return b
+}

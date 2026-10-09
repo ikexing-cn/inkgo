@@ -185,7 +185,7 @@ func TestRestoreASnapshot(t *testing.T) {
 	a.write.ed.MoveTo(a.write.ed.Doc.Len(), false)
 	a.write.ed.Insert("加了一句。")
 	tt.Frame()
-	if err := tt.Click("快照"); err != nil {
+	if err := clickMore(tt, "快照"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -319,7 +319,7 @@ func TestMarksSurviveReopening(t *testing.T) {
 
 func TestExportTheWork(t *testing.T) {
 	a, tt, _ := writingFixture(t, "雨下着。")
-	if err := tt.Click("导出全书或章节"); err != nil {
+	if err := clickMore(tt, "导出全书或章节"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -336,7 +336,7 @@ func TestExportTheWork(t *testing.T) {
 		t.Fatalf("export %q", b)
 	}
 	// The chapter open alone, named after it.
-	if err := tt.Click("导出全书或章节"); err != nil {
+	if err := clickMore(tt, "导出全书或章节"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -516,7 +516,7 @@ func TestNarrowWindowKeepsThePage(t *testing.T) {
 // A snapshot the same as the chapter says so and has nothing to restore.
 func TestASnapshotLikeTheChapter(t *testing.T) {
 	a, tt, _ := writingFixture(t, "第一版。")
-	if err := tt.Click("快照"); err != nil {
+	if err := clickMore(tt, "快照"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

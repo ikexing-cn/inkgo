@@ -37,6 +37,7 @@ type writeView struct {
 	// title bar's arrows; stepping is set while they open one.
 	back, forward []string
 	stepping      bool
+	moreOpen      bool // the toolbar's 「⋯」 is open
 	ed            *editor.Editor
 	// What the disk has of the node shown, as of the last read or write.
 	saved    string
@@ -954,28 +955,11 @@ func (a *App) writeTop(c *ui.Context) {
 		})
 		ui.Box(c).Width(6)
 		if ok && !n.Folder {
-			s, e := w.ed.Selection()
 			busy := w.ed.ReadOnly() || w.lost || w.external != nil
 			if w.ed.Predicting() {
 				ui.Text(c, "续写中…").FontSize(12).TextColor(a.pal.faint)
 			} else if w.ed.Ghost() != "" {
 				ui.Text(c, "Tab 采纳 · Esc 放弃").FontSize(12).TextColor(a.pal.faint)
-			}
-			if iconButton(c, icSparkle, "续写一句", ui.Color{}).Tooltip("在光标处续写一句（" + modKey + "J），按 Tab 采纳").Disabled(busy).Clicked() {
-				a.continueText()
-			}
-			if iconButton(c, icWand, "AI 改写", ui.Color{}).Tooltip("让 AI 改写选中的部分").Disabled(s == e || busy).Clicked() {
-				a.openRewrite()
-			}
-			draftTip := "按章纲起草这一章"
-			if strings.TrimSpace(w.outline) == "" {
-				draftTip = "先写章纲，才能按章纲起草"
-			}
-			if iconButton(c, icFeather, "按章纲起草", ui.Color{}).Tooltip(draftTip).Disabled(busy || strings.TrimSpace(w.outline) == "").Clicked() {
-				a.openDraft()
-			}
-			if iconButton(c, icQuote, "加入设定", ui.Color{}).Tooltip("把选中的原文加入设定").Disabled(s == e || w.lost).Clicked() {
-				a.openTake()
 			}
 			color := ui.Color{}
 			if w.finding {
@@ -988,13 +972,8 @@ func (a *App) writeTop(c *ui.Context) {
 					w.ed.SetFound(nil, 0)
 				}
 			}
-			if iconButton(c, icClock, "快照", ui.Color{}).Tooltip("这一章的快照").Disabled(busy).Clicked() {
-				a.openSnapshots()
-			}
 		}
-		if iconButton(c, icDownload, "导出全书或章节", ui.Color{}).Tooltip("导出全书、本卷或本章").Clicked() {
-			w.exportOpen, w.exportDone, w.exportFrom = true, false, ""
-		}
+		a.moreButton(c, ok && !n.Folder)
 		if a.doc.hidden && !w.focus {
 			a.bookDot(c)
 			if iconButton(c, icPanel, "展开设定", ui.Color{}).Tooltip("展开设定文档").Clicked() {
@@ -1094,7 +1073,10 @@ func (a *App) chapterView(c *ui.Context) {
 		a.findBar(c)
 	}
 	a.aiBar(c)
-	w.ed.View(c).Grow(1).FillWidth()
+	ui.Box(c).Grow(1).FillWidth().Children(func() {
+		w.ed.View(c).Fill()
+		a.selectionBar(c)
+	})
 }
 
 // shownTitle is the title of the chapter shown.

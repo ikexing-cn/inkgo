@@ -160,7 +160,7 @@ func TestLayoutWriting(t *testing.T) {
 		t.Fatal(tt.Texts())
 	}
 	shot(t, tt, "-write")
-	if err = tt.Click("快照"); err != nil {
+	if err = clickMore(tt, "快照"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -198,6 +198,15 @@ func TestLayoutWriting(t *testing.T) {
 }
 
 // shot writes a screenshot beside SHOT with suffix, when SHOT is set.
+// clickMore clicks name in the toolbar's 「⋯」.
+func clickMore(tt *ui.Tester, name string) error {
+	if err := tt.Click("更多"); err != nil {
+		return err
+	}
+	tt.Frame()
+	return tt.Click(name)
+}
+
 func shot(t *testing.T, tt *ui.Tester, suffix string) {
 	t.Helper()
 	path := os.Getenv("SHOT")

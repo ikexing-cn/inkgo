@@ -73,7 +73,7 @@ func TestDraftAChapterFromItsOutline(t *testing.T) {
 	f := &stream{pieces: []string{"雨下了一夜。", "\n她醒了。"}, hold: make(chan struct{})}
 	penWith(a, f)
 	tt.Frame()
-	if err := tt.Click("按章纲起草"); err != nil {
+	if err := clickMore(tt, "按章纲起草"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -82,7 +82,7 @@ func TestDraftAChapterFromItsOutline(t *testing.T) {
 	}
 	a.write.outline = "她在雨夜醒来。"
 	tt.Frame()
-	if err := tt.Click("按章纲起草"); err != nil {
+	if err := tt.Click("按章纲起草"); err != nil { // the menu stayed open
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -128,7 +128,7 @@ func TestStopADraftKeepsWhatCame(t *testing.T) {
 	penWith(a, f)
 	a.write.outline = "她醒来。"
 	tt.Frame()
-	if err := tt.Click("按章纲起草"); err != nil {
+	if err := clickMore(tt, "按章纲起草"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -183,8 +183,8 @@ func TestRewriteASelection(t *testing.T) {
 
 	a.write.ed.Select(0, 6)
 	tt.Frame()
-	if err := tt.Click("AI 改写"); err != nil {
-		t.Fatal(err)
+	if !a.write.rewriting { // dropping keeps the rewrite open, for another try
+		t.Fatal("the rewrite closed")
 	}
 	tt.Frame()
 	if err := tt.Click("改写"); err != nil {
@@ -209,7 +209,7 @@ func TestRewriteASelection(t *testing.T) {
 	if text, _ := a.Store.SnapshotText(id, snaps[0].Name); text != "她走到井边。井里有光。" {
 		t.Fatalf("snapshot text %q", text)
 	}
-	if err := tt.Click("快照"); err != nil {
+	if err := clickMore(tt, "快照"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
