@@ -494,7 +494,7 @@ func modelField(c *ui.Context, value *string, models []string) *ui.Element {
 	t := c.Theme()
 	cb := ui.ComboboxBase(c, value)
 	in := cb.Input
-	in.Padding(t.Space(1.5), t.Space(2.5)).Radius(t.Radius).Background(t.Surface).Border(1, t.Border)
+	in.Padding(t.Space(1.5), t.Space(2.5)).Radius(rControl).Background(t.Surface).Border(1, t.Border)
 	if in.Focused() {
 		in.Border(1, t.Accent)
 	} else if in.Hovered() {
@@ -515,11 +515,11 @@ func modelField(c *ui.Context, value *string, models []string) *ui.Element {
 		shown = append(starts, contains...)
 	}
 	cb.Popup(func(panel *ui.Element) {
-		panel.Margin(t.Space(1), 0, 0, 0).Padding(t.Space(1)).Radius(t.Radius+2).Background(t.Background).Border(1, t.Border)
-		panel.Shadow(0, 6, 20, 0, ui.RGBA(0, 0, 0, 0.18))
+		panel.Margin(t.Space(1), 0, 0, 0).Padding(t.Space(1)).Radius(rCard).Background(t.Background).Border(1, t.Border)
+		shadowOf(c, "pop").on(panel)
 		ui.Scroll(c).MaxHeight(t.Space(70)).FillWidth().Children(func() {
 			for _, m := range shown {
-				item := cb.Item(m).Padding(t.Space(1.5), t.Space(2.5)).Radius(t.Radius)
+				item := cb.Item(m).Padding(t.Space(1.5), t.Space(2.5)).Radius(rControl)
 				switch {
 				case item.Highlighted():
 					item.Background(t.Accent).TextColor(t.AccentText)

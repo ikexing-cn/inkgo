@@ -150,7 +150,8 @@ func (a *App) pendingButton(c *ui.Context) {
 	}
 	ui.PopoverBase(c, b, &w.pendOpen, func(panel *ui.Element) {
 		panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(10, 0, 0, 0).Width(380).Radius(rDialog).Clip().
-			Background(a.pal.canvas).Border(1, t.Border).Shadow(0, 18, 44, 0, ui.RGBA(0, 0, 0, 0.14))
+			Background(a.pal.canvas).Border(1, t.Border)
+		a.pal.pop.on(panel)
 		a.pendingList(c, groups, total, here)
 	})
 }
@@ -168,7 +169,7 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 				s := seg.Segment(i).Padding(3, 10).Radius(rXs)
 				color := t.TextMuted
 				if i == w.pendHere {
-					s.Background(a.pal.raised).Shadow(0, 1, 2, 0, ui.RGBA(0, 0, 0, 0.08))
+					a.pal.raise.on(s.Background(a.pal.raised))
 					color = t.Text
 				}
 				s.Children(func() { ui.Text(c, label).FontSize(fsNote).TextColor(color).SingleLine() })

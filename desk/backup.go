@@ -363,33 +363,18 @@ func (a *App) backupCard(c *ui.Context, panel *ui.Element, s backup.Settings) {
 	if a.bk.err != nil && c.Theme().Dark {
 		bg = a.pal.bubble
 	}
-	panel.Width(300).Radius(rCard).Padding(14).Gap(10).Background(bg).Border(1, t.Border).Shadow(0, 8, 28, 0, ui.RGBA(0, 0, 0, 0.12))
+	a.pal.pop.on(panel.Width(300).Radius(rCard).Padding(14).Gap(10).Background(bg).Border(1, t.Border))
 	panel.Children(func() {
-		small := func(text string, primary bool) *ui.Element {
-			b := ui.ButtonBase(c).Row().Padding(4, 10).Radius(rControl).Shrink(0)
-			fg := t.Text
-			if primary {
-				b.Background(a.pal.ink)
-				fg = a.pal.onInk
-			} else {
-				b.Border(1, t.Border)
-				if b.Hovered() {
-					b.Background(t.SurfaceHover)
-				}
-			}
-			b.Children(func() { ui.Text(c, text).FontSize(fsNote).TextColor(fg).SingleLine() })
-			return b
-		}
 		if a.bk.err != nil {
 			_, title, body := trouble(s.Dir, a.bk.err)
 			ui.Text(c, title).FontSize(fsBody).FontWeight(600).FillWidth()
 			ui.Text(c, body+lastSaid(s, now)).FontSize(fsNote).TextColor(t.TextMuted).LineHeight(1.7).FillWidth()
 			ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
-				if small("再试一次", true).Disabled(a.bk.running).Clicked() {
+				if a.pal.small(c, "再试一次", true).Disabled(a.bk.running).Clicked() {
 					a.bk.open, a.bk.chip = false, false
 					a.runBackup(c)
 				}
-				if a.PickFolder != nil && small("换个地方", false).Clicked() {
+				if a.PickFolder != nil && a.pal.small(c, "换个地方", false).Clicked() {
 					a.bk.open, a.bk.chip = false, false
 					a.pickBackupFolder(c)
 				}
@@ -415,10 +400,10 @@ func (a *App) backupCard(c *ui.Context, panel *ui.Element, s backup.Settings) {
 			if a.bk.running {
 				label = "正在备份…"
 			}
-			if small(label, true).Disabled(a.bk.running).Clicked() {
+			if a.pal.small(c, label, true).Disabled(a.bk.running).Clicked() {
 				a.runBackup(c)
 			}
-			if small("备份设置…", false).Clicked() {
+			if a.pal.small(c, "备份设置…", false).Clicked() {
 				a.bk.open = false
 				a.openPrefs("备份")
 			}

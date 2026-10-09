@@ -376,7 +376,8 @@ func (a *App) composer(c *ui.Context) {
 	t := a.pal.theme
 	work := a.Store.Work()
 	ready := work.Discussion.Provider != "" && work.Discussion.Model != ""
-	box := ui.Column(c).FillWidth().MaxWidth(column).Padding(12, 12, 10, 16).Gap(6).Radius(rDialog).Background(a.pal.raised).Border(1, t.Border).Shadow(0, 4, 18, 0, ui.RGBA(0, 0, 0, 0.06))
+	box := ui.Column(c).FillWidth().MaxWidth(column).Padding(12, 12, 10, 16).Gap(6).Radius(rDialog).Background(a.pal.raised).Border(1, t.Border)
+	a.pal.raise.on(box)
 	if box.FocusWithin() {
 		box.BorderColor(t.TextMuted.Alpha(0.55))
 	}

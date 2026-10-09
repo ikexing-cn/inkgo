@@ -50,3 +50,39 @@
   --warn: #d9a441;
   --success: #5cb684;
 }
+
+/* 字号、圆角、阴影：见「设计规范」页。页面和代码只写这些名字，不写数字。
+   代码里 desk/theme.go 的同名常量由测试和这里逐一核对。 */
+:root, .light {
+  --fs-display: 26px;   /* 欢迎页的大字 */
+  --fs-title: 22px;     /* 页标题、设置窗口标题 */
+  --fs-dialog: 17px;    /* 对话框标题 */
+  --fs-group: 15px;     /* 页面里的分组标题、卡片标题 */
+  --fs-body: 13.5px;    /* 列表项、表单项、说明正文 */
+  --fs-control: 13px;   /* 按钮、输入框、下拉框里的字 */
+  --fs-note: 12.5px;    /* 次要说明、文字按钮 */
+  --fs-small: 11.5px;   /* 小标签、计数、快捷键 */
+  --fs-read: 14.5px;    /* 要读的正文：讨论气泡、快照预览 */
+  --fs-paper: 17px;     /* 正文栏稿纸的默认字号，作者可在「外观」里调 */
+  --fs-board-title: 28px; /* 画板上给作者看的标题，不属于软件界面 */
+  --fs-board-h2: 20px;    /* 画板上的小节标题 */
+  --r-xs: 4px;          /* 复选框、小标签、计数 */
+  --r-control: 6px;     /* 按钮、输入框、下拉框、列表行 */
+  --r-card: 10px;       /* 分组、卡片、菜单、提示 */
+  --r-dialog: 12px;     /* 对话框、讨论气泡和输入框 */
+  --r-round: 999px;     /* 圆点、细条 */
+  --r-window: 10px;     /* macOS 窗口外框 */
+  --r-window-win: 8px;  /* Windows 窗口外框 */
+  --shadow-raise: 0 1px 2px rgba(0,0,0,.08);    /* 分段选择里选中的一段 */
+  --shadow-pop: 0 8px 28px rgba(0,0,0,.14), 0 1px 3px rgba(0,0,0,.08); /* 菜单、下拉、提示、待处理面板 */
+  --shadow-dialog: 0 20px 60px rgba(0,0,0,.22); /* 对话框 */
+  --shadow-focus: 0 0 0 3px rgba(127,127,120,.18); /* 聚焦的输入框 */
+  --shadow-inset: inset 0 0 0 .5px rgba(0,0,0,.12); /* 窗口按钮、色块的细边 */
+  --shadow-board: 0 1px 3px rgba(0,0,0,.08), 0 10px 30px rgba(0,0,0,.06); /* 画板上的窗口外框 */
+}
+.dark {
+  --shadow-raise: 0 1px 2px rgba(0,0,0,.3);
+  --shadow-pop: 0 8px 28px rgba(0,0,0,.4);
+  --shadow-dialog: 0 20px 60px rgba(0,0,0,.5);
+  --shadow-board: 0 1px 3px rgba(0,0,0,.2), 0 10px 30px rgba(0,0,0,.15);
+}

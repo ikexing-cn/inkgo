@@ -92,7 +92,7 @@ func (a *App) themeSegments(c *ui.Context) {
 			b := ui.ButtonBase(c).Row().Grow(1).Height(26).Center().Gap(5).Radius(rControl).Label("外观-" + m.n)
 			fg := t.TextMuted
 			if on {
-				b.Background(a.pal.raised).Shadow(0, 1, 2, 0, ui.Hex("#000000").Alpha(0.08))
+				a.pal.raise.on(b.Background(a.pal.raised))
 				fg = t.Text
 			} else if b.Hovered() {
 				fg = t.Text
@@ -142,7 +142,8 @@ func (a *App) selectionBar(c *ui.Context) {
 	}
 	left := max(8, min(r.X-12, w.ed.Width()-width-8))
 	bar := ui.Row(c).Absolute().Left(left).Top(top).Height(height).Padding(3).Gap(2).AlignItems(ui.Center).Radius(rControl).
-		Background(a.pal.raised).Border(1, t.Border).Shadow(0, 6, 20, 0, ui.Hex("#000000").Alpha(0.12))
+		Background(a.pal.raised).Border(1, t.Border)
+	a.pal.pop.on(bar)
 	bar.Children(func() {
 		if a.selButton(c, icPen, "AI 改写").Tooltip("让 AI 改写选中的部分").Clicked() {
 			a.openRewrite()

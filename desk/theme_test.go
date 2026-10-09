@@ -1,6 +1,11 @@
 package desk
 
 import (
+	"os"
+	"path/filepath"
+	"regexp"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -23,6 +28,74 @@ func TestTokens(t *testing.T) {
 	}
 	if p := darkPalette(); p.side != ui.Hex("#1f1f1e") || p.theme.TextMuted != ui.Hex("#a0a09a") {
 		t.Fatalf("dark side = %v, muted = %v", p.side, p.theme.TextMuted)
+	}
+}
+
+// The sizes, corners and shadows the desk uses are those of tokens.css, under
+// the same names.
+func TestSizeTokens(t *testing.T) {
+	code := map[string]float64{
+		"fs-display": fsDisplay, "fs-title": fsTitle, "fs-dialog": fsDialog, "fs-group": fsGroup,
+		"fs-body": fsBody, "fs-control": fsControl, "fs-note": fsNote, "fs-small": fsSmall,
+		"fs-read": fsRead, "fs-paper": textSizeDefault,
+		"r-xs": rXs, "r-control": rControl, "r-card": rCard, "r-dialog": rDialog, "r-round": rRound,
+	}
+	// Only the design's boards use these: its notes and window frames.
+	board := map[string]bool{"fs-board-title": true, "fs-board-h2": true, "r-window": true, "r-window-win": true}
+	seen := map[string]bool{}
+	blocks(tokensCSS, func(_ bool, body string) {
+		for _, d := range regexp.MustCompile(`--((?:fs|r)-[a-z-]+)\s*:\s*([0-9.]+)px`).FindAllStringSubmatch(body, -1) {
+			seen[d[1]] = true
+			v, _ := strconv.ParseFloat(d[2], 64)
+			if want, ok := code[d[1]]; ok && want != v {
+				t.Errorf("--%s is %v in tokens.css, %v in the code", d[1], v, want)
+			} else if !ok && !board[d[1]] {
+				t.Errorf("--%s has no constant in the code", d[1])
+			}
+		}
+	})
+	for name := range code {
+		if !seen[name] {
+			t.Errorf("tokens.css lacks --%s", name)
+		}
+	}
+	light, dark := shadows(tokensCSS)
+	for _, name := range []string{"raise", "pop", "dialog"} {
+		if light[name].color.A == 0 || dark[name].color.A == 0 {
+			t.Errorf("--shadow-%s missing: %v / %v", name, light[name], dark[name])
+		}
+	}
+	if p := light["pop"]; p != (shadow{0, 8, 28, 0, ui.RGBA(0, 0, 0, 0.14)}) || dark["pop"].color != ui.RGBA(0, 0, 0, 0.4) {
+		t.Fatalf("pop = %v / %v", p, dark["pop"])
+	}
+}
+
+// The desk writes the names of the design rules, not numbers: a text size,
+// a corner or a shadow written out in a view drifts from the design.
+func TestNoLiteralSizes(t *testing.T) {
+	files, _ := filepath.Glob("*.go")
+	call := regexp.MustCompile(`\.(FontSize|Radius)\(([^()]*)\)`)
+	number := regexp.MustCompile(`^-?[0-9.]+$`)
+	for _, f := range files {
+		if strings.HasSuffix(f, "_test.go") || f == "theme.go" {
+			continue
+		}
+		b, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i, line := range strings.Split(string(b), "\n") {
+			if strings.Contains(line, ".Shadow(") {
+				t.Errorf("%s:%d: a shadow written out; use a.pal.pop and the like", f, i+1)
+			}
+			for _, m := range call.FindAllStringSubmatch(line, -1) {
+				for _, arg := range strings.Split(m[2], ",") {
+					if arg = strings.TrimSpace(arg); number.MatchString(arg) && arg != "0" {
+						t.Errorf("%s:%d: %s(%s); use fs* or r*", f, i+1, m[1], m[2])
+					}
+				}
+			}
+		}
 	}
 }
 

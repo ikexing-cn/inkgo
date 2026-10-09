@@ -57,7 +57,7 @@ func (a *App) preferences(c *ui.Context) {
 	ui.DialogBase(c, &a.bk.prefs, func(back, panel *ui.Element) {
 		back.Background(ui.RGBA(0, 0, 0, 0.32))
 		panel.Row().AlignItems(ui.Stretch).Width(min(prefsWidth, w-40)).Height(min(prefsHeight, h-40)).Radius(rDialog).Background(t.Background)
-		panel.Shadow(0, 20, 60, 0, ui.RGBA(0, 0, 0, 0.22))
+		a.pal.dialog.on(panel)
 		ui.Column(c).Width(176).FillHeight().Shrink(0).Padding(18, 10).Gap(2).Radius(rDialog, 0, 0, rDialog).Background(a.pal.side).Children(func() {
 			ui.Text(c, "设置").FontSize(fsSmall).FontWeight(600).TextColor(a.pal.faint).Padding(0, 10, 8, 10)
 			for _, tl := range prefTabs {

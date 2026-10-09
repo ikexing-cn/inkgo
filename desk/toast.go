@@ -98,12 +98,9 @@ func splitToast(s string) (title, detail string) {
 func (a *App) toastCard(c *ui.Context, ts ui.Toast) {
 	t := a.pal.theme
 	p := ui.ToastBase(c, ts)
-	shadow := ui.RGBA(0, 0, 0, 0.14)
-	if t.Dark {
-		shadow = ui.RGBA(0, 0, 0, 0.4)
-	}
 	box := p.Root.Row().Width(toastWidth).Gap(10).Padding(12, 12, 12, 14).AlignItems(ui.Start).Radius(rCard).
-		Background(a.pal.raised).Border(1, t.Border).Shadow(0, 8, 28, 0, shadow).Clip()
+		Background(a.pal.raised).Border(1, t.Border).Clip()
+	a.pal.pop.on(box)
 	box.Children(func() {
 		ui.Box(c).Padding(1, 0, 0, 0).Shrink(0).Children(func() {
 			switch ts.Type {

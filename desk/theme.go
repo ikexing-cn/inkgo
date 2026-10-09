@@ -3,6 +3,7 @@ package desk
 import (
 	_ "embed"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
@@ -21,10 +22,15 @@ type palette struct {
 	line, faint, ink, onInk      ui.Color
 	amber                        ui.Color // what waits on the author
 	warnBg, warnBd               ui.Color // a warning's fill and border
+	// The shadows of the design rules, named as there: the chosen part of
+	// a segmented control; menus, popovers and toasts; dialogs.
+	raise, pop, dialog shadow
 }
 
 // The sizes of the design rules (设计规范 in the design): eight text sizes and
-// four corners, named as there. A size between them is not used.
+// four corners, named as there. A size between them is not used. They are
+// the --fs-* and --r-* of tokens.css, which a test holds them to; the desk
+// writes these names, never a number.
 const (
 	fsDisplay = 26   // the welcome page's big words
 	fsTitle   = 22   // a page's title, the settings' too
@@ -48,22 +54,79 @@ const (
 //go:embed tokens.css
 var tokensCSS string
 
+// blocks calls fn with what each block of tokens.css declares, comments
+// dropped, and whether it is the dark one.
+func blocks(css string, fn func(dark bool, body string)) {
+	css = regexp.MustCompile(`(?s)/\*.*?\*/`).ReplaceAllString(css, "")
+	for _, b := range regexp.MustCompile(`(?s)([^{}]+)\{([^}]*)\}`).FindAllStringSubmatch(css, -1) {
+		fn(strings.TrimSpace(b[1]) == ".dark", b[2])
+	}
+}
+
 // tokens reads the colors of tokens.css: the light ones, and the dark ones
 // over them.
 func tokens(css string) (light, dark map[string]ui.Color) {
 	light, dark = map[string]ui.Color{}, map[string]ui.Color{}
-	css = regexp.MustCompile(`(?s)/\*.*?\*/`).ReplaceAllString(css, "")
-	block := regexp.MustCompile(`(?s)([^{}]+)\{([^}]*)\}`)
 	decl := regexp.MustCompile(`--([a-z0-9-]+)\s*:\s*(#[0-9a-fA-F]{3,6})`)
-	for _, b := range block.FindAllStringSubmatch(css, -1) {
+	blocks(css, func(isDark bool, body string) {
 		into := light
-		if strings.TrimSpace(b[1]) == ".dark" {
+		if isDark {
 			into = dark
 		}
-		for _, d := range decl.FindAllStringSubmatch(b[2], -1) {
+		for _, d := range decl.FindAllStringSubmatch(body, -1) {
 			into[d[1]] = ui.Hex(d[2])
 		}
+	})
+	for k, v := range light {
+		if _, ok := dark[k]; !ok {
+			dark[k] = v
+		}
 	}
+	return light, dark
+}
+
+// shadow is a level of the design's shadows. An element draws one shadow,
+// so it is the level's first layer.
+type shadow struct {
+	x, y, blur, spread float32
+	color              ui.Color
+}
+
+// on gives e the shadow.
+func (s shadow) on(e *ui.Element) *ui.Element {
+	return e.Shadow(s.x, s.y, s.blur, s.spread, s.color)
+}
+
+var shadowsLight, shadowsDark = shadows(tokensCSS)
+
+// shadowOf is the named shadow of the theme c draws with, for what draws
+// without the App's palette.
+func shadowOf(c *ui.Context, name string) shadow {
+	if c.Theme().Dark {
+		return shadowsDark[name]
+	}
+	return shadowsLight[name]
+}
+
+// shadows reads the --shadow-* of tokens.css as tokens does the colors. An
+// inset one is left out: the desk draws none.
+func shadows(css string) (light, dark map[string]shadow) {
+	light, dark = map[string]shadow{}, map[string]shadow{}
+	decl := regexp.MustCompile(`--shadow-([a-z]+)\s*:\s*(-?[0-9.]+)(?:px)?\s+(-?[0-9.]+)(?:px)?\s+([0-9.]+)(?:px)?\s+(?:([0-9.]+)px\s+)?rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([0-9.]+)\s*\)`)
+	f := func(s string) float32 {
+		v, _ := strconv.ParseFloat(s, 32)
+		return float32(v)
+	}
+	blocks(css, func(isDark bool, body string) {
+		into := light
+		if isDark {
+			into = dark
+		}
+		for _, d := range decl.FindAllStringSubmatch(body, -1) {
+			into[d[1]] = shadow{f(d[2]), f(d[3]), f(d[4]), f(d[5]),
+				ui.RGBA(uint8(f(d[6])), uint8(f(d[7])), uint8(f(d[8])), f(d[9]))}
+		}
+	})
 	for k, v := range light {
 		if _, ok := dark[k]; !ok {
 			dark[k] = v
@@ -74,22 +137,24 @@ func tokens(css string) (light, dark map[string]ui.Color) {
 
 func lightPalette() *palette {
 	k, _ := tokens(tokensCSS)
+	s, _ := shadows(tokensCSS)
 	t := ui.LightTheme()
 	themeOf(t, k)
 	t.Selection = ui.RGBA(50, 120, 215, 0.2) // --sel over the page, so the text shows through
 	t.Focus = k["ink"].Alpha(0.35)
 	t.Scrollbar = ui.RGBA(0, 0, 0, 0.18)
-	return paletteOf(t, k)
+	return paletteOf(t, k, s)
 }
 
 func darkPalette() *palette {
 	_, k := tokens(tokensCSS)
+	_, s := shadows(tokensCSS)
 	t := ui.DarkTheme()
 	themeOf(t, k)
 	t.Selection = ui.RGBA(90, 140, 220, 0.3)
 	t.Focus = k["ink"].Alpha(0.45)
 	t.Scrollbar = ui.RGBA(255, 255, 255, 0.2)
-	return paletteOf(t, k)
+	return paletteOf(t, k, s)
 }
 
 func themeOf(t *ui.Theme, k map[string]ui.Color) {
@@ -107,14 +172,15 @@ func themeOf(t *ui.Theme, k map[string]ui.Color) {
 	t.Success = k["success"]
 	t.Warning = k["warn"]
 	t.Danger = k["danger"]
-	t.Radius = 8
+	t.Radius = rControl
 }
 
-func paletteOf(t *ui.Theme, k map[string]ui.Color) *palette {
+func paletteOf(t *ui.Theme, k map[string]ui.Color, s map[string]shadow) *palette {
 	return &palette{theme: t,
 		canvas: k["bg"], side: k["side"], raised: k["raised"], bubble: k["hover"],
 		line: k["line"], faint: k["faint"], ink: k["ink"], onInk: k["on-ink"],
-		amber: k["amber"], warnBg: k["warn-bg"], warnBd: k["warn-bd"]}
+		amber: k["amber"], warnBg: k["warn-bg"], warnBd: k["warn-bd"],
+		raise: s["raise"], pop: s["pop"], dialog: s["dialog"]}
 }
 
 // dot is a small status disc.
@@ -263,6 +329,32 @@ func (p *palette) secondary(c *ui.Context, text string) *ui.Element {
 		b.Opacity(0.4)
 	}
 	b.Children(func() { ui.Text(c, text).FontSize(fsControl).SingleLine() })
+	return b
+}
+
+// small is the compact button of a popover or a row, solid ink when it is
+// the likely one, outlined otherwise.
+func (p *palette) small(c *ui.Context, text string, primary bool) *ui.Element {
+	t := p.theme
+	b := ui.ButtonBase(c).Row().Padding(4, 10).Radius(rControl).Shrink(0)
+	fg := t.Text
+	if primary {
+		bg := p.ink
+		if b.Hovered() {
+			bg = t.AccentHover
+		}
+		b.Background(bg)
+		fg = p.onInk
+	} else {
+		b.Border(1, t.Border)
+		if b.Hovered() {
+			b.Background(t.SurfaceHover)
+		}
+	}
+	if b.IsDisabled() {
+		b.Opacity(0.4)
+	}
+	b.Children(func() { ui.Text(c, text).FontSize(fsNote).TextColor(fg).SingleLine() })
 	return b
 }
 
