@@ -31,7 +31,12 @@ func (e *Editor) input(ev ui.InputEvent) bool {
 			e.replaceRange(a, b, "", false)
 		}
 		e.preedit, e.preeditCaret = singleLine(ev.Text), ev.Caret
-		e.ghost, e.compOpen = "", false
+		if ev.Text != "" {
+			// Composing hides what is offered; the empty composition an
+			// input method sends once it committed the text keeps the
+			// names that text offers.
+			e.ghost, e.compOpen = "", false
+		}
 		e.reveal = true
 		return true
 	case ui.InputCommand:
@@ -115,10 +120,8 @@ func (e *Editor) key(mods ui.Modifiers, k ui.Key) bool {
 		case ui.KeyDown:
 			e.compSel = (e.compSel + 1) % len(e.comp)
 			return true
-		case ui.KeyTab:
-			return e.AcceptCompletion()
 		case ui.KeyEnter:
-			e.compOpen = false // Enter breaks the line, as ever
+			return e.AcceptCompletion()
 		case ui.KeyEscape:
 			e.compOpen = false
 			return true

@@ -33,7 +33,7 @@ func TestNamesComplete(t *testing.T) {
 	if c := a.write.ed.Completions(); !slices.Equal(c, []editor.Entity{{Name: "林晚", Kind: "人物"}}) {
 		t.Fatal("completions", c)
 	}
-	tt.Key(0, ui.KeyTab)
+	tt.Key(0, ui.KeyEnter)
 	tt.Type("和晚")
 	if c := a.write.ed.Completions(); len(c) != 1 || c[0].Of != "林晚" {
 		t.Fatal("another name", c)

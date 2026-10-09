@@ -126,19 +126,22 @@ func TestGhostAcceptedWithTab(t *testing.T) {
 func TestEntityCompletion(t *testing.T) {
 	e := New(NewDoc(""), Options{Entities: []Entity{{Name: "沈砚", Kind: "人物"}}})
 	tt := newTester(e)
+	// An input method composes, commits, then ends the composition.
+	tt.Compose("shen", 4)
 	tt.Type("沈")
+	tt.Compose("", 0)
 	if len(e.Completions()) != 1 {
 		t.Fatalf("completions = %v", e.Completions())
 	}
-	tt.Key(0, ui.KeyTab)
+	tt.Key(0, ui.KeyEnter)
 	if e.Doc.String() != "沈砚" {
 		t.Fatalf("doc = %q", e.Doc.String())
 	}
-	// Enter breaks the line and closes the completions.
+	// Composing again hides them.
 	tt.Type("沈")
-	tt.Key(0, ui.KeyEnter)
-	if e.Doc.String() != "沈砚沈\n" || len(e.Completions()) != 0 {
-		t.Fatalf("Enter: %q, %v", e.Doc.String(), e.Completions())
+	tt.Compose("y", 1)
+	if len(e.Completions()) != 0 {
+		t.Fatal("offered while composing")
 	}
 }
 
@@ -156,7 +159,7 @@ func TestCompleteAnotherName(t *testing.T) {
 		t.Fatalf("completions = %v", c)
 	}
 	tt.Frame()
-	tt.Key(0, ui.KeyTab)
+	tt.Key(0, ui.KeyEnter)
 	tt.Type("林")
 	if e.Doc.String() != "晚晚林" || len(e.Completions()) != maxCandidates {
 		t.Fatalf("%q, %d offered", e.Doc.String(), len(e.Completions()))
