@@ -115,8 +115,10 @@ func (e *Editor) key(mods ui.Modifiers, k ui.Key) bool {
 		case ui.KeyDown:
 			e.compSel = (e.compSel + 1) % len(e.comp)
 			return true
-		case ui.KeyEnter, ui.KeyTab:
+		case ui.KeyTab:
 			return e.AcceptCompletion()
+		case ui.KeyEnter:
+			e.compOpen = false // Enter breaks the line, as ever
 		case ui.KeyEscape:
 			e.compOpen = false
 			return true

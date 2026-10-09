@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -146,11 +147,15 @@ type Source struct {
 
 // Entry is one statement of the setting document.
 type Entry struct {
-	ID       string   `json:"id"`
-	Place    string   `json:"place"`
-	Category string   `json:"category"`
-	Text     string   `json:"text"`
-	Sources  []Source `json:"sources,omitempty"`
+	ID       string `json:"id"`
+	Place    string `json:"place"`
+	Category string `json:"category"`
+	Text     string `json:"text"`
+	// Names are the proper names the entry is about, the first the name
+	// itself and the rest what else it is called: they complete as the
+	// prose is typed.
+	Names   []string `json:"names,omitempty"`
+	Sources []Source `json:"sources,omitempty"`
 	// Author is set once the author wrote or edited the entry: the
 	// bookkeeper changes it only on the author's word.
 	Author bool `json:"author,omitempty"`
@@ -163,7 +168,43 @@ const (
 	OpAdd  = "add"  // a new entry: Place, Category, Text, Sources
 	OpEdit = "edit" // Entry's Text, and Sources added to its own
 	OpMove = "move" // Entry to Place, or Category, or both, and Sources added
+	OpName = "name" // Entry's Names, none to clear them
 )
+
+// NameCategories are the categories whose entries name something: a
+// person, a place, a group, a thing, a rank or art of the power system.
+var NameCategories = []string{"人物", "地点", "组织", "物品", "力量体系"}
+
+// maxNameRunes bounds a name.
+const maxNameRunes = 12
+
+// CleanNames trims names and drops the empty and repeated ones.
+func CleanNames(names []string) []string {
+	var out []string
+	for _, n := range names {
+		if n = strings.TrimSpace(n); n != "" && !slices.Contains(out, n) {
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
+// validNames checks names are short, one line and not repeated.
+func validNames(names []string) error {
+	for i, n := range names {
+		switch {
+		case strings.TrimSpace(n) != n || n == "":
+			return fmt.Errorf("name %q has spaces around it or is empty", n)
+		case strings.ContainsAny(n, "\n\r\t"):
+			return fmt.Errorf("name %q spans lines", n)
+		case utf8.RuneCountInString(n) > maxNameRunes:
+			return fmt.Errorf("name %q is longer than %d characters", n, maxNameRunes)
+		case slices.Contains(names[:i], n):
+			return fmt.Errorf("name %q is repeated", n)
+		}
+	}
+	return nil
+}
 
 type Op struct {
 	Op       string   `json:"op"`
@@ -171,6 +212,7 @@ type Op struct {
 	Place    string   `json:"place,omitempty"`
 	Category string   `json:"category,omitempty"`
 	Text     string   `json:"text,omitempty"`
+	Names    []string `json:"names,omitempty"`
 	Sources  []Source `json:"sources,omitempty"`
 }
 

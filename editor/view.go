@@ -34,6 +34,14 @@ func (e *Editor) View(c *ui.Context) *ui.Element {
 // Focus gives the editor the keyboard focus in the next frame.
 func (e *Editor) Focus() { e.wantFocus = true }
 
+// SetEntities sets the names that complete as they are typed.
+func (e *Editor) SetEntities(ents []Entity) {
+	e.opts.Entities = ents
+	if e.compOpen {
+		e.updateCompletion()
+	}
+}
+
 // SetTypewriter turns typewriter scrolling on or off: while on, typing
 // keeps the line written on in the middle of the view.
 func (e *Editor) SetTypewriter(on bool) {
@@ -119,8 +127,8 @@ func (e *Editor) maybePredict(c *ui.Context) {
 		e.predictVer == e.Doc.version && e.predictAt == e.caret {
 		return
 	}
-	if e.opts.PredictOnDemand && !e.asked {
-		return
+	if e.opts.PredictOnDemand && !e.asked || e.compOpen && !e.asked {
+		return // while completions are offered, Tab is theirs
 	}
 	if !e.asked {
 		if e.caret < e.Doc.Len() && e.Doc.text[e.caret] != '\n' {

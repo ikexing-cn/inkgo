@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/egoist/mygo/ui"
@@ -24,6 +25,7 @@ type docView struct {
 	editing  string           // the entry being edited, "new" for a new one
 	text     string
 	category string
+	names    string // as the author writes them, apart by spaces or 、
 	// The right column: its width as dragged, and, on the writing page,
 	// whether it shows the talk and sends the chapter with it.
 	width    float32
@@ -172,6 +174,7 @@ func (a *App) document(c *ui.Context) {
 	t := a.pal.theme
 	ui.Scroll(c).Key("setting").Grow(1).FillWidth().Children(func() {
 		ui.Column(c).FillWidth().Gap(14).Padding(2, 4, 12, 0).Children(func() {
+			a.renameNotice(c)
 			if len(a.set.Entries) == 0 && a.doc.editing == "" {
 				ui.Text(c, "聊着聊着，你定下的设定会整理到这里。也可以直接新增一条。").FontSize(13).TextColor(t.TextMuted).LineHeight(1.7)
 			}
@@ -237,6 +240,9 @@ func (a *App) entry(c *ui.Context, e workspace.Entry) {
 			a.entryForm(c, e)
 			return
 		}
+		if len(e.Names) > 0 {
+			ui.Text(c, strings.Join(e.Names, " · ")).FontSize(12).FontWeight(600).TextColor(a.pal.theme.TextMuted).FillWidth().Margin(0, 0, -6, 0)
+		}
 		ui.Row(c).FillWidth().Gap(4).AlignItems(ui.Start).Children(func() {
 			text := ui.Text(c, e.Text).FontSize(13.5).LineHeight(1.65).Selectable().Grow(1).Shrink(1)
 			if e.Place == workspace.PlaceDropped {
@@ -263,7 +269,7 @@ func (a *App) entry(c *ui.Context, e workspace.Entry) {
 					}
 				}
 				if iconButton(c, icPencil, "编辑-"+e.ID, ui.Color{}).Tooltip("修改").Clicked() {
-					a.doc.editing, a.doc.text, a.doc.category = e.ID, e.Text, e.Category
+					a.doc.editing, a.doc.text, a.doc.category, a.doc.names = e.ID, e.Text, e.Category, strings.Join(e.Names, "、")
 				}
 				if e.Place != workspace.PlaceDropped && iconButton(c, icX, "放弃-"+e.ID, ui.Color{}).Tooltip("放弃").Clicked() {
 					a.revise(workspace.Op{Op: workspace.OpMove, Entry: e.ID, Place: workspace.PlaceDropped})
@@ -279,6 +285,10 @@ func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 	t := a.pal.theme
 	ui.TextAreaBase(c, &a.doc.text).Label("设定内容").Placeholder("写下一条设定").FillWidth().Height(76).FontSize(13.5).LineHeight(1.65).
 		Padding(6, 8).Radius(6).Background(a.pal.raised).Border(1, t.Border)
+	naming := slices.Contains(workspace.NameCategories, a.doc.category)
+	if naming {
+		ui.TextInput(c, &a.doc.names).Label("名称").Placeholder("名称，别名用顿号隔开：林晚、晚晚").FillWidth().FontSize(13)
+	}
 	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Select(c, &a.doc.category, a.categoryNames()).Label("设定分类").Width(120)
 		ui.Spacer(c)
@@ -286,11 +296,15 @@ func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 			a.doc.editing = ""
 		}
 		text := trim(a.doc.text)
+		var names []string
+		if naming {
+			names = splitNames(a.doc.names)
+		}
 		if a.pal.primary(c, "保存").Disabled(text == "").Clicked() {
 			var ops []workspace.Op
 			switch {
 			case e.ID == "":
-				ops = append(ops, workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: a.doc.category, Text: text})
+				ops = append(ops, workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: a.doc.category, Text: text, Names: names})
 			default:
 				if text != e.Text {
 					ops = append(ops, workspace.Op{Op: workspace.OpEdit, Entry: e.ID, Text: text})
@@ -298,12 +312,18 @@ func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 				if a.doc.category != e.Category {
 					ops = append(ops, workspace.Op{Op: workspace.OpMove, Entry: e.ID, Category: a.doc.category})
 				}
+				if naming && !slices.Equal(names, e.Names) {
+					ops = append(ops, workspace.Op{Op: workspace.OpName, Entry: e.ID, Names: names})
+				}
 			}
 			if len(ops) > 0 {
 				a.revise(ops...)
 			}
 			if a.Error == "" {
 				a.doc.editing = ""
+				if len(e.Names) > 0 && len(names) > 0 && naming {
+					a.noteRename(e.Names[0], names[0])
+				}
 			}
 		}
 	})
@@ -325,7 +345,7 @@ func (a *App) newEntry(c *ui.Context) {
 		ui.Text(c, "新增设定").FontSize(13).TextColor(a.pal.theme.TextMuted)
 	})
 	if b.Clicked() {
-		a.doc.editing, a.doc.text, a.doc.category = "new", "", workspace.Other
+		a.doc.editing, a.doc.text, a.doc.category, a.doc.names = "new", "", workspace.Other, ""
 	}
 }
 

@@ -84,6 +84,11 @@ type writeView struct {
 	hits            []bookHit
 	hitsFor         [3]any // the query, chapter and edit the hits were found for
 
+	// named is the editor last given the names, as of namedRevs revisions
+	// of the setting.
+	named     *editor.Editor
+	namedRevs int
+
 	snapsOpen bool
 	snaps     []workspace.Snapshot
 	snap      string // the snapshot chosen
@@ -222,6 +227,7 @@ func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.
 			if m.Item("加入设定").Disabled(s == e).Chosen() {
 				a.openTake()
 			}
+			a.nameMenu(m, ed.Doc.Slice(s, e))
 		}})
 	return ed
 }
@@ -557,6 +563,7 @@ func (a *App) writing(c *ui.Context) {
 	a.keepPen()
 	a.pollAI()
 	a.countAsTyped()
+	a.feedNames()
 	if a.write.ed != nil {
 		a.write.ed.SetTypewriter(a.write.focus) // focused, the line written on stays mid-view
 	}

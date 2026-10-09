@@ -74,6 +74,9 @@ func applyOps(entries []Entry, r Revision, n int) ([]Entry, error) {
 				return nil, fail("source needs a session, a message and a quote, or a chapter and a quote")
 			}
 		}
+		if err := validNames(op.Names); err != nil {
+			return nil, fail("%v", err)
+		}
 		switch op.Op {
 		case OpAdd:
 			if validID(op.Entry) != nil || index(op.Entry) >= 0 {
@@ -83,20 +86,29 @@ func applyOps(entries []Entry, r Revision, n int) ([]Entry, error) {
 				return nil, fail("add needs a place, a category and text")
 			}
 			entries = append(entries, Entry{ID: op.Entry, Place: op.Place, Category: op.Category, Text: op.Text,
-				Sources: slices.Clone(op.Sources), Author: r.By == ByAuthor, Rev: n})
-		case OpEdit, OpMove:
+				Names: slices.Clone(op.Names), Sources: slices.Clone(op.Sources), Author: r.By == ByAuthor, Rev: n})
+		case OpEdit, OpMove, OpName:
 			i := index(op.Entry)
 			if i < 0 {
 				return nil, fail("unknown entry %q", op.Entry)
 			}
 			e := &entries[i]
-			if op.Op == OpEdit {
+			switch op.Op {
+			case OpEdit:
 				if strings.TrimSpace(op.Text) == "" || op.Place != "" || op.Category != "" {
-					return nil, fail("edit changes text, and adds sources, only")
+					return nil, fail("edit changes text, and names, and adds sources, only")
 				}
 				e.Text = op.Text
-			} else {
-				if (op.Place == "" && op.Category == "") || (op.Place != "" && !validPlace(op.Place)) || op.Text != "" {
+				if len(op.Names) > 0 {
+					e.Names = slices.Clone(op.Names)
+				}
+			case OpName:
+				if op.Text != "" || op.Place != "" || op.Category != "" || len(op.Sources) > 0 {
+					return nil, fail("name changes names only")
+				}
+				e.Names = slices.Clone(op.Names)
+			default:
+				if (op.Place == "" && op.Category == "") || (op.Place != "" && !validPlace(op.Place)) || op.Text != "" || len(op.Names) > 0 {
 					return nil, fail("move changes place or category, and adds sources, only")
 				}
 				if op.Place != "" {

@@ -81,6 +81,7 @@ type App struct {
 	page              int // 0 discussion, 1 models, 2 categories, 3 writing
 	shown             int // the page the last frame showed
 	notice            string
+	renamed           renamed         // a name the prose still has after the author renamed it
 	leftWriting       bool            // the work was last on the writing page, not the discussion
 	noticed           string          // the notice as first shown,
 	noticeAt          time.Time       // and when

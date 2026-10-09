@@ -12,7 +12,12 @@ import (
 type Entity struct {
 	Name string
 	Kind string // 人物, 地名…
+	// Of is the name Name is another name for, as 林晚 for 晚晚.
+	Of string
 }
+
+// maxCandidates bounds the completions offered at once.
+const maxCandidates = 6
 
 // maxNameRunes bounds how far back completion looks for a typed prefix.
 const maxNameRunes = 8
@@ -34,7 +39,7 @@ func candidates(before []rune, entities []Entity) ([]Entity, int) {
 			}
 		}
 		if len(out) > 0 {
-			return out, k
+			return out[:min(len(out), maxCandidates)], k
 		}
 	}
 	return nil, 0

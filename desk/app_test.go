@@ -88,6 +88,7 @@ func TestTheAuthorEditsTheSetting(t *testing.T) {
 	}
 	tt.Frame()
 	a.doc.text, a.doc.category = "主角怕安静", "关系"
+	tt.Frame() // the form has no names for a relation
 	if err := tt.Click("保存"); err != nil {
 		t.Fatal(err)
 	}

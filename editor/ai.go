@@ -40,7 +40,7 @@ func (e *Editor) RequestPrediction() {
 		return
 	}
 	e.cancelPredict()
-	e.ghost, e.asked, e.predictVer = "", true, -1
+	e.ghost, e.asked, e.predictVer, e.compOpen = "", true, -1, false
 }
 
 // Propose shows text as a rewrite of [a, b), with the caret after it.

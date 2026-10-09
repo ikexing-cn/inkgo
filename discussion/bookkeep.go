@@ -29,14 +29,15 @@ type quote struct {
 }
 
 type planOp struct {
-	Op       string  `json:"op"`
-	Entry    string  `json:"entry,omitempty"`
-	Place    string  `json:"place,omitempty"`
-	Category string  `json:"category,omitempty"`
-	Text     string  `json:"text,omitempty"`
-	Sources  []quote `json:"sources,omitempty"`
-	Accepted *quote  `json:"accepted,omitempty"`
-	Because  *quote  `json:"because,omitempty"`
+	Op       string   `json:"op"`
+	Entry    string   `json:"entry,omitempty"`
+	Place    string   `json:"place,omitempty"`
+	Category string   `json:"category,omitempty"`
+	Text     string   `json:"text,omitempty"`
+	Names    []string `json:"names,omitempty"`
+	Sources  []quote  `json:"sources,omitempty"`
+	Accepted *quote   `json:"accepted,omitempty"`
+	Because  *quote   `json:"because,omitempty"`
 }
 
 type plan struct {
@@ -255,11 +256,12 @@ func (b *Bookkeeper) input(set workspace.Setting, bt batch) (string, []string, e
 		categories = append(categories, c.Name)
 	}
 	type shownEntry struct {
-		Ref      string `json:"ref"`
-		Place    string `json:"place"`
-		Category string `json:"category"`
-		Text     string `json:"text"`
-		Author   bool   `json:"author,omitempty"`
+		Ref      string   `json:"ref"`
+		Place    string   `json:"place"`
+		Category string   `json:"category"`
+		Text     string   `json:"text"`
+		Names    []string `json:"names,omitempty"`
+		Author   bool     `json:"author,omitempty"`
 	}
 	type shownMessage struct {
 		Ref     string `json:"ref"`
@@ -273,7 +275,7 @@ func (b *Bookkeeper) input(set workspace.Setting, bt batch) (string, []string, e
 		Messages   []shownMessage `json:"messages"`
 	}{Categories: categories, Setting: []shownEntry{}}
 	for n, e := range set.Entries {
-		in.Setting = append(in.Setting, shownEntry{fmt.Sprintf("e%d", n+1), e.Place, e.Category, e.Text, e.Author})
+		in.Setting = append(in.Setting, shownEntry{fmt.Sprintf("e%d", n+1), e.Place, e.Category, e.Text, e.Names, e.Author})
 	}
 	for n, e := range bt.messages() {
 		who := "ai"
@@ -294,6 +296,8 @@ func (b *Bookkeeper) input(set workspace.Setting, bt batch) (string, []string, e
 //  3. What the author settled, the body and dropped and any entry the author
 //     touched, changes only on the author's words, quoted as because.
 //  4. Categories are the work's.
+//  5. Names are given only to entries of NameCategories, and each is said
+//     in the entry or the talk shown.
 func (b *Bookkeeper) check(text string, set workspace.Setting, bt batch, categories []string) ([]workspace.Op, []string) {
 	var p plan
 	if err := decode(text, &p); err != nil {
@@ -358,7 +362,8 @@ func (b *Bookkeeper) check(text string, set workspace.Setting, bt batch, categor
 		if op.Category != "" && !slices.Contains(categories, op.Category) {
 			bad = append(bad, fmt.Sprintf("未知分类 %q", op.Category))
 		}
-		out := workspace.Op{Op: op.Op, Place: op.Place, Category: op.Category, Text: strings.TrimSpace(op.Text), Sources: sources}
+		out := workspace.Op{Op: op.Op, Place: op.Place, Category: op.Category, Text: strings.TrimSpace(op.Text),
+			Names: workspace.CleanNames(op.Names), Sources: sources}
 		switch op.Op {
 		case workspace.OpAdd:
 			if op.Entry != "" {
@@ -407,6 +412,24 @@ func (b *Bookkeeper) check(text string, set workspace.Setting, bt batch, categor
 		default:
 			bad = append(bad, fmt.Sprintf("未知操作 %q", op.Op))
 		}
+		if len(out.Names) > 0 {
+			category := op.Category
+			if e, ok := set.Entry(out.Entry); ok && category == "" {
+				category = e.Category
+			}
+			switch {
+			case op.Op == workspace.OpMove:
+				bad = append(bad, "move 不带 names")
+			case !slices.Contains(workspace.NameCategories, category):
+				bad = append(bad, fmt.Sprintf("只有%s分类的条目带 names", strings.Join(workspace.NameCategories, "、")))
+			default:
+				for _, name := range out.Names {
+					if !saidIn(name, out.Text, shown) {
+						bad = append(bad, fmt.Sprintf("名字「%s」没有在条目或对话里出现过", name))
+					}
+				}
+			}
+		}
 		if len(bad) > 0 {
 			problems = append(problems, fmt.Sprintf("第 %d 个操作：%s", k+1, strings.Join(bad, "；")))
 			continue
@@ -414,6 +437,14 @@ func (b *Bookkeeper) check(text string, set workspace.Setting, bt batch, categor
 		ops = append(ops, out)
 	}
 	return ops, problems
+}
+
+// saidIn reports whether name is in text or in a message shown.
+func saidIn(name, text string, shown []workspace.Event) bool {
+	if strings.Contains(text, name) {
+		return true
+	}
+	return slices.ContainsFunc(shown, func(m workspace.Event) bool { return strings.Contains(m.Said(), name) })
 }
 
 // clip shortens s to n runes for a message.

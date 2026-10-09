@@ -393,3 +393,39 @@ func TestModelOutputKeepsReasoningForReview(t *testing.T) {
 		t.Fatal("accepted an unknown effort")
 	}
 }
+
+// An entry's names come with add, change with edit and name, and must be
+// short, one line and not repeated.
+func TestEntryNames(t *testing.T) {
+	s := testStore(t)
+	r := mustRevise(t, s, Revision{By: ByAuthor, Ops: []Op{{Op: OpAdd, Place: PlaceBody, Category: "人物", Text: "林晚，修路灯的", Names: []string{"林晚", "晚晚"}}}})
+	id := r.Ops[0].Entry
+	mustRevise(t, s, Revision{By: ByAuthor, Ops: []Op{{Op: OpEdit, Entry: id, Text: "林晚，修路灯的姑娘"}}})
+	set, err := s.Setting()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if e, _ := set.Entry(id); !slices.Equal(e.Names, []string{"林晚", "晚晚"}) {
+		t.Fatal("an edit without names lost them:", e.Names)
+	}
+	mustRevise(t, s, Revision{By: ByAuthor, Ops: []Op{{Op: OpEdit, Entry: id, Text: "苏晴", Names: []string{"苏晴"}}}})
+	mustRevise(t, s, Revision{By: ByAuthor, Ops: []Op{{Op: OpName, Entry: id, Names: []string{"苏晴", "晴姐"}}}})
+	if set, _ = s.Setting(); !slices.Equal(set.Entries[0].Names, []string{"苏晴", "晴姐"}) {
+		t.Fatal("names", set.Entries[0].Names)
+	}
+	mustRevise(t, s, Revision{By: ByAuthor, Ops: []Op{{Op: OpName, Entry: id}}})
+	if set, _ = s.Setting(); set.Entries[0].Names != nil {
+		t.Fatal("not cleared", set.Entries[0].Names)
+	}
+	for _, names := range [][]string{{""}, {" 林晚"}, {"林\n晚"}, {"林晚", "林晚"}, {"一二三四五六七八九十一二三"}} {
+		if _, err := s.Revise(Revision{By: ByAuthor, Ops: []Op{{Op: OpName, Entry: id, Names: names}}}); err == nil {
+			t.Errorf("took %q", names)
+		}
+	}
+	if _, err := s.Revise(Revision{By: ByAuthor, Ops: []Op{{Op: OpName, Entry: id, Text: "x"}}}); err == nil {
+		t.Error("a name op changed the text")
+	}
+	if !slices.Equal(CleanNames([]string{" 林晚 ", "", "林晚", "晚晚"}), []string{"林晚", "晚晚"}) {
+		t.Error("CleanNames")
+	}
+}

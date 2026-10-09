@@ -130,9 +130,61 @@ func TestEntityCompletion(t *testing.T) {
 	if len(e.Completions()) != 1 {
 		t.Fatalf("completions = %v", e.Completions())
 	}
-	tt.Key(0, ui.KeyEnter)
+	tt.Key(0, ui.KeyTab)
 	if e.Doc.String() != "沈砚" {
 		t.Fatalf("doc = %q", e.Doc.String())
+	}
+	// Enter breaks the line and closes the completions.
+	tt.Type("沈")
+	tt.Key(0, ui.KeyEnter)
+	if e.Doc.String() != "沈砚沈\n" || len(e.Completions()) != 0 {
+		t.Fatalf("Enter: %q, %v", e.Doc.String(), e.Completions())
+	}
+}
+
+// Another name completes too, showing whose it is; at most a few are
+// offered.
+func TestCompleteAnotherName(t *testing.T) {
+	ents := []Entity{{Name: "林晚", Kind: "人物"}, {Name: "晚晚", Kind: "人物", Of: "林晚"}}
+	for _, n := range []string{"林一", "林二", "林三", "林四", "林五", "林六"} {
+		ents = append(ents, Entity{Name: n})
+	}
+	e := New(NewDoc(""), Options{Entities: ents})
+	tt := newTester(e)
+	tt.Type("晚")
+	if c := e.Completions(); len(c) != 1 || c[0].Of != "林晚" {
+		t.Fatalf("completions = %v", c)
+	}
+	tt.Frame()
+	tt.Key(0, ui.KeyTab)
+	tt.Type("林")
+	if e.Doc.String() != "晚晚林" || len(e.Completions()) != maxCandidates {
+		t.Fatalf("%q, %d offered", e.Doc.String(), len(e.Completions()))
+	}
+}
+
+// While completions are offered, no prediction comes by itself; one asked
+// for closes them.
+func TestCompletionHoldsThePrediction(t *testing.T) {
+	e := New(NewDoc(""), Options{Entities: []Entity{{Name: "沈砚"}}, Predictor: DemoPredictor{}, PredictDelay: 0})
+	tt := newTester(e)
+	tt.Type("沈")
+	time.Sleep(30 * time.Millisecond)
+	tt.Frame()
+	if e.Predicting() || e.Ghost() != "" {
+		t.Fatal("predicted over the completions")
+	}
+	tt.Key(ui.Cmd, ui.KeyJ)
+	if len(e.Completions()) != 0 {
+		t.Fatal("asking kept the completions")
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for e.Ghost() == "" && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+		tt.Frame()
+	}
+	if e.Ghost() == "" {
+		t.Fatal("no prediction when asked")
 	}
 }
 

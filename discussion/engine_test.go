@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -288,6 +289,9 @@ func TestBookkeeperRules(t *testing.T) {
 		{"unknown category", "未知分类", map[string]any{"op": "add", "place": "open", "category": "魔法", "text": "x", "sources": src("m1", "主角")}},
 		{"unknown entry", "不在 setting", map[string]any{"op": "edit", "entry": "e9", "text": "x"}},
 		{"ID instead of ref", "不在 setting", map[string]any{"op": "move", "entry": "20261008-1200-abcd", "place": "open"}},
+		{"a name for a rule", "只有人物", map[string]any{"op": "add", "place": "open", "category": "规则", "text": "城市的雨从不停", "names": []string{"雨城"}, "sources": src("m2", "城市的雨从不停")}},
+		{"a name not said", "没有在条目或对话里出现过", map[string]any{"op": "add", "place": "body", "category": "人物", "text": "主角修路灯", "names": []string{"林晚"}, "sources": src("m1", "主角修路灯")}},
+		{"names on a move", "move 不带 names", map[string]any{"op": "move", "entry": "e3", "place": "dropped", "names": []string{"主角"}, "because": because("m1", "主角修路灯")}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			e, session := setup(t)
@@ -310,6 +314,24 @@ func TestBookkeeperRules(t *testing.T) {
 				t.Fatal("a breach was written")
 			}
 		})
+	}
+}
+
+// The bookkeeper names what an entry is about, and sees the names given.
+func TestBookkeeperNames(t *testing.T) {
+	e, session := setup(t)
+	revise(t, e, workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "地点", Text: "旧城小学", Names: []string{"旧城小学"}})
+	turn(t, e, session, "主角叫林晚，大家叫她晚晚。", "好的。")
+	b, f := book(e, ops(map[string]any{"op": "add", "place": "body", "category": "人物", "text": "主角叫林晚",
+		"names": []string{"林晚", " 晚晚", "林晚"}, "sources": []map[string]string{{"msg": "m1", "quote": "主角叫林晚，大家叫她晚晚"}}}))
+	if _, err := b.Run(context.Background(), session); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(f.calls[0].Messages[0].Content, `"names":["旧城小学"]`) {
+		t.Fatal("the names given were not shown")
+	}
+	if got := setting(t, e).Entries[1].Names; !slices.Equal(got, []string{"林晚", "晚晚"}) {
+		t.Fatal("names", got)
 	}
 }
 

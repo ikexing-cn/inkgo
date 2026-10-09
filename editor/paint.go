@@ -6,7 +6,7 @@ import (
 
 // Completion popup metrics, in DIPs.
 const (
-	popRowH, popPad, popW = 28, 4, 200
+	popRowH, popPad, popW = 28, 4, 240
 )
 
 var (
@@ -206,6 +206,11 @@ func (e *Editor) paintPopup(p *ui.Painter, r ui.Rect) {
 			fg = t.AccentText
 		}
 		p.Text(row.X+8, row.Y+5, en.Name, 14, fg)
+		if en.Of != "" {
+			w, _ := p.MeasureText(0, ui.Span{Text: en.Name, Size: 14})
+			x := row.X + 8 + w + 6
+			p.Text(x, row.Y+7, "· "+en.Of, 12, fg.Alpha(0.7))
+		}
 		p.Text(row.X+row.W-44, row.Y+7, en.Kind, 12, fg.Alpha(0.7))
 	}
 }
