@@ -908,7 +908,6 @@ func (a *App) writeTop(c *ui.Context) {
 		}
 		today, tip := "", "全书 "+words(a.total())
 		k := a.today(time.Now())
-		met := w.goal > 0 && k >= w.goal
 		switch {
 		case w.goal > 0:
 			today = fmt.Sprintf(" · 今天 %s / %s", signed(k), grouped(w.goal))
@@ -920,10 +919,7 @@ func (a *App) writeTop(c *ui.Context) {
 		if !wide {
 			today = ""
 		}
-		color := a.pal.faint
-		if met {
-			color = a.pal.ink
-		}
+		color := a.pal.faint // as the design has it, met or not: the numbers say so
 		counts := ui.ButtonBase(c).Row().Padding(3, 6).Radius(6).Shrink(1).Label("字数").Tooltip(tip + "。点击设每日目标")
 		if counts.Hovered() {
 			counts.Background(t.SurfaceHover)
@@ -952,7 +948,7 @@ func (a *App) writeTop(c *ui.Context) {
 				if in.Submitted() {
 					w.goalOpen = false
 				}
-				ui.Text(c, "今天写到这个数，顶栏的字数变成主题色。留空就不设。").FontSize(12).TextColor(a.pal.faint).LineHeight(1.5).FillWidth()
+				ui.Text(c, "顶栏的字数旁会写出今天写了多少、目标多少。留空就不设。").FontSize(12).TextColor(a.pal.faint).LineHeight(1.5).FillWidth()
 				a.weekChart(c)
 			})
 		})
@@ -961,9 +957,9 @@ func (a *App) writeTop(c *ui.Context) {
 			s, e := w.ed.Selection()
 			busy := w.ed.ReadOnly() || w.lost || w.external != nil
 			if w.ed.Predicting() {
-				ui.Text(c, "续写中…").FontSize(12).TextColor(a.pal.ink)
+				ui.Text(c, "续写中…").FontSize(12).TextColor(a.pal.faint)
 			} else if w.ed.Ghost() != "" {
-				ui.Text(c, "Tab 采纳 · Esc 放弃").FontSize(12).TextColor(a.pal.ink)
+				ui.Text(c, "Tab 采纳 · Esc 放弃").FontSize(12).TextColor(a.pal.faint)
 			}
 			if iconButton(c, icSparkle, "续写一句", ui.Color{}).Tooltip("在光标处续写一句（" + modKey + "J），按 Tab 采纳").Disabled(busy).Clicked() {
 				a.continueText()
