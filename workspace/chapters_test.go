@@ -208,6 +208,19 @@ func TestMarksFollowTheirQuote(t *testing.T) {
 	if !m[1].Orphaned || m[1].Start != m[1].End {
 		t.Fatalf("a mark whose words are gone: %+v", m[1])
 	}
+	// Saved again, the orphaned one still tells what it was.
+	if _, err = s.WriteChapter(id, c.Text, m); err != nil {
+		t.Fatal(err)
+	}
+	if c, err = s.ReadChapter(id); err != nil || c.Marks[1].Quote != "灯灭了" {
+		t.Fatalf("an orphaned mark saved again: %+v, %v", c.Marks, err)
+	}
+	m = c.Marks
+	mustChapter(t, s, "", "二", false) // no marks
+	all, err := s.Marks()
+	if err != nil || len(all) != 1 || !slices.Equal(all[id], m) {
+		t.Fatalf("all the marks: %+v, %v", all, err)
+	}
 }
 
 // Snapshots skip a text the latest holds, and after a week keep the last

@@ -64,6 +64,8 @@ type prefs struct {
 	TextSize int `json:"text_size,omitempty"`
 	// Shelved are the conversations put out of the list, still on disk.
 	Shelved []string `json:"shelved_sessions,omitempty"`
+	// Ignored are the keys of the pending things the author ignored.
+	Ignored []string `json:"ignored,omitempty"`
 }
 
 func (a *App) prefsPath() string { return filepath.Join(a.Store.Root(), ".writer", "desk.json") }
@@ -83,6 +85,10 @@ func (a *App) loadPrefs() {
 	a.write.autoSummary = !p.NoAutoSummary
 	a.write.day, a.write.dayStart, a.write.goal = p.Day, p.DayStart, p.Goal
 	a.write.goalText, a.write.carets, a.write.days, a.write.size = "", p.Carets, p.Days, p.TextSize
+	a.write.ignored = map[string]bool{}
+	for _, k := range p.Ignored {
+		a.write.ignored[k] = true
+	}
 	a.shelved = map[string]bool{}
 	for _, id := range p.Shelved {
 		a.shelved[id] = true
@@ -97,7 +103,8 @@ func (a *App) savePrefs() {
 	shelved := slices.Sorted(maps.Keys(a.shelved))
 	b, err := json.Marshal(prefs{Shelved: shelved, SettingHidden: a.doc.hidden, Chapter: a.write.node, Writing: a.leftWriting, AutoPredict: a.write.autoPredict,
 		PanelWidth: a.doc.width, TalkTab: a.doc.talk, NoAttach: !a.doc.attach, NoAutoSummary: !a.write.autoSummary,
-		Day: a.write.day, DayStart: a.write.dayStart, Goal: a.write.goal, Carets: a.write.carets, Days: a.write.days, TextSize: a.write.size})
+		Day: a.write.day, DayStart: a.write.dayStart, Goal: a.write.goal, Carets: a.write.carets, Days: a.write.days, TextSize: a.write.size,
+		Ignored: a.write.ignoredKeys()})
 	if err == nil {
 		err = os.WriteFile(a.prefsPath(), b, 0644)
 	}

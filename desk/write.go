@@ -89,6 +89,15 @@ type writeView struct {
 	named     *editor.Editor
 	namedRevs int
 
+	// What is pending: the marks of the chapters as of the disk, the list
+	// open, showing the open chapter's alone, the groups listed whole, and
+	// the keys of what the author ignored.
+	marks    map[string][]workspace.ChapterMark
+	pendOpen bool
+	pendHere int
+	pendMore map[string]bool
+	ignored  map[string]bool
+
 	snapsOpen bool
 	snaps     []workspace.Snapshot
 	snap      string // the snapshot chosen
@@ -133,7 +142,7 @@ var markKinds = map[editor.MarkKind]string{
 func storedMarks(ms []editor.Mark) []workspace.ChapterMark {
 	var out []workspace.ChapterMark
 	for _, m := range ms {
-		out = append(out, workspace.ChapterMark{Kind: markKinds[m.Kind], Start: m.Start, End: m.End, Note: m.Note, Orphaned: m.Orphaned})
+		out = append(out, workspace.ChapterMark{Kind: markKinds[m.Kind], Start: m.Start, End: m.End, Note: m.Note, Orphaned: m.Orphaned, Quote: m.Quote})
 	}
 	return out
 }
@@ -143,7 +152,7 @@ func editorMarks(ms []workspace.ChapterMark) []editor.Mark {
 	for _, m := range ms {
 		for k, name := range markKinds {
 			if name == m.Kind {
-				out = append(out, editor.Mark{Kind: k, Start: m.Start, End: m.End, Note: m.Note, Orphaned: m.Orphaned})
+				out = append(out, editor.Mark{Kind: k, Start: m.Start, End: m.End, Note: m.Note, Orphaned: m.Orphaned, Quote: m.Quote})
 			}
 		}
 	}
@@ -236,6 +245,7 @@ func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.
 func (a *App) openNode(id string) {
 	a.flush()
 	a.leaveChapter()
+	a.scanMarks()
 	w := &a.write
 	w.node, w.ed, w.external, w.lost = id, nil, nil, false
 	w.outline, w.outlineSaved, w.outlinePrev = "", "", ""
@@ -929,6 +939,7 @@ func (a *App) writeTop(c *ui.Context) {
 		} else if iconButton(c, icExpand, "专注写作", ui.Color{}).Tooltip("只留正文，收起章节树和右栏（F11）").Clicked() {
 			w.focus = true
 		}
+		a.pendingButton(c)
 	})
 	a.pal.hairline(c)
 }

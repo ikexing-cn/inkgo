@@ -39,6 +39,9 @@ type Mark struct {
 	Note       string
 	// Orphaned tells that all the text the mark covered was deleted.
 	Orphaned bool
+	// Quote is the text the mark covered as it was made or loaded, which
+	// tells what an orphaned mark was.
+	Quote string
 }
 
 // Doc is the text of a chapter and its marks. Offsets are rune indexes.
@@ -68,7 +71,7 @@ func (d *Doc) AddMark(kind MarkKind, a, b int, note string) int {
 	a, b = clamp(min(a, b), 0, len(d.text)), clamp(max(a, b), 0, len(d.text))
 	id := d.nextID
 	d.nextID++
-	d.marks = append(d.marks, Mark{ID: id, Kind: kind, Start: a, End: b, Note: note})
+	d.marks = append(d.marks, Mark{ID: id, Kind: kind, Start: a, End: b, Note: note, Quote: string(d.text[a:b])})
 	d.version++
 	return id
 }

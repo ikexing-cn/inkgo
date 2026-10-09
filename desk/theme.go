@@ -11,6 +11,7 @@ type palette struct {
 	theme                          *ui.Theme
 	canvas, side, raised, bubble   ui.Color
 	line, faint, brand, ink, onInk ui.Color
+	amber                          ui.Color // what waits on the author
 }
 
 func lightPalette() *palette {
@@ -35,7 +36,8 @@ func lightPalette() *palette {
 	t.Radius = 8
 	return &palette{theme: t,
 		canvas: ui.Hex("#ffffff"), side: ui.Hex("#f7f7f5"), raised: ui.Hex("#ffffff"), bubble: ui.Hex("#f1f1ee"),
-		line: ui.Hex("#ececE8"), faint: ui.Hex("#a3a39c"), brand: ui.Hex("#5e54d6"), ink: ui.Hex("#1d1d1b"), onInk: ui.Hex("#ffffff")}
+		line: ui.Hex("#ececE8"), faint: ui.Hex("#a3a39c"), brand: ui.Hex("#5e54d6"), ink: ui.Hex("#1d1d1b"), onInk: ui.Hex("#ffffff"),
+		amber: ui.Hex("#d9a441")}
 }
 
 func darkPalette() *palette {
@@ -60,7 +62,8 @@ func darkPalette() *palette {
 	t.Radius = 8
 	return &palette{theme: t,
 		canvas: ui.Hex("#191919"), side: ui.Hex("#1f1f1e"), raised: ui.Hex("#222221"), bubble: ui.Hex("#2a2a29"),
-		line: ui.Hex("#2c2c2b"), faint: ui.Hex("#6f6f69"), brand: ui.Hex("#8b83f0"), ink: ui.Hex("#ededea"), onInk: ui.Hex("#191919")}
+		line: ui.Hex("#2c2c2b"), faint: ui.Hex("#6f6f69"), brand: ui.Hex("#8b83f0"), ink: ui.Hex("#ededea"), onInk: ui.Hex("#191919"),
+		amber: ui.Hex("#d6a24a")}
 }
 
 // dot is a small status disc.

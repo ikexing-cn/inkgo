@@ -840,6 +840,56 @@ func (s *Store) readChapter(n *Node) (Chapter, error) {
 	return ch, nil
 }
 
+// Marks returns the marks of each chapter that has any, by ID, found in
+// its text again as ReadChapter finds them.
+func (s *Store) Marks() (map[string][]ChapterMark, error) {
+	unlock, err := s.lock()
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
+	t, err := s.tree()
+	if err != nil {
+		return nil, err
+	}
+	out := map[string][]ChapterMark{}
+	for id, n := range t.byID {
+		if n.Folder {
+			continue
+		}
+		p, err := s.nodePath(n, marksExt)
+		if err != nil {
+			return nil, err
+		}
+		b, err := os.ReadFile(p)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		var marks []ChapterMark
+		if err = json.Unmarshal(b, &marks); err != nil {
+			return nil, fmt.Errorf("%s: %w", p, err)
+		}
+		if len(marks) == 0 {
+			continue
+		}
+		if p, err = s.nodePath(n, textExt); err != nil {
+			return nil, err
+		}
+		if b, err = os.ReadFile(p); err != nil {
+			return nil, err
+		}
+		text := []rune(CleanProse(string(b)))
+		for i, m := range marks {
+			marks[i] = anchor(text, m)
+		}
+		out[id] = marks
+	}
+	return out, nil
+}
+
 // anchor finds m in text again: where it was if its quote is still there,
 // else at the occurrence of its quote nearest to that, else nowhere.
 func anchor(text []rune, m ChapterMark) ChapterMark {
@@ -903,7 +953,8 @@ func (s *Store) ChapterStamp(id string) (Stamp, error) {
 }
 
 // WriteChapter saves document id's text and marks, the quote of each mark
-// taken from text, and returns the text's new stamp.
+// taken from text but an orphaned one's kept, and returns the text's new
+// stamp.
 func (s *Store) WriteChapter(id, text string, marks []ChapterMark) (Stamp, error) {
 	unlock, err := s.lock()
 	if err != nil {
@@ -940,7 +991,9 @@ func (s *Store) WriteChapter(id, text string, marks []ChapterMark) (Stamp, error
 		for i, m := range marks {
 			m.Start, m.End = clampIndex(m.Start, len(runes)), clampIndex(m.End, len(runes))
 			m.End = max(m.End, m.Start)
-			m.Quote = string(runes[m.Start:m.End])
+			if !m.Orphaned {
+				m.Quote = string(runes[m.Start:m.End])
+			}
 			out[i] = m
 		}
 		b, err := json.MarshalIndent(out, "", "  ")
