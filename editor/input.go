@@ -52,6 +52,10 @@ func (e *Editor) input(ev ui.InputEvent) bool {
 		e.dragging = false
 		return was
 	case ui.InputScroll:
+		if ev.Mods&^ui.Shift == ui.Cmd && e.opts.Zoom != nil {
+			e.zoomBy(ev.DY, ev.Precise)
+			return true
+		}
 		e.scrollBy(ev.DY)
 		return true
 	}
@@ -337,6 +341,34 @@ func (e *Editor) pointerDown(ev ui.InputEvent) bool {
 
 func (e *Editor) scrollBy(dy float32) {
 	e.scrollY = clampf(e.scrollY+dy, 0, e.maxScroll())
+}
+
+// zoomBy takes a Ctrl+wheel scroll of dy: a wheel's notch is one step,
+// a touchpad's steps every zoomStep DIPs. Scrolling up makes the text
+// larger.
+func (e *Editor) zoomBy(dy float32, precise bool) {
+	if !precise {
+		e.zoomed = 0
+		if dy != 0 {
+			e.opts.Zoom(-sign(dy))
+		}
+		return
+	}
+	e.zoomed += dy
+	for e.zoomed <= -zoomStep || e.zoomed >= zoomStep {
+		d := sign(e.zoomed)
+		e.zoomed -= float32(d) * zoomStep
+		e.opts.Zoom(-d)
+	}
+}
+
+const zoomStep = 40
+
+func sign(v float32) int {
+	if v < 0 {
+		return -1
+	}
+	return 1
 }
 
 // maxScroll is how far the text scrolls: to its end, or in typewriter

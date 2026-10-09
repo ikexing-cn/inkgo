@@ -1,6 +1,7 @@
 package editor
 
 import (
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -201,5 +202,39 @@ func TestTypewriterScrolling(t *testing.T) {
 	tt.Frame()
 	if e.scrollY > e.lay.height-e.height {
 		t.Fatal("scrolled past the end when off")
+	}
+}
+
+// A new size reshapes the text: the glyphs grow, not only the lines.
+func TestFontSizeReshapes(t *testing.T) {
+	e := New(NewDoc("一二三"), Options{Font: ui.Font{Size: 16}})
+	tt := newTester(e)
+	tt.Frame()
+	before := e.lay.lines[0].sh.glyphs[0].Advance
+	e.SetFontSize(24)
+	tt.Frame()
+	if after := e.lay.lines[0].sh.glyphs[0].Advance; after <= before {
+		t.Fatalf("a glyph %v wide at 16, %v at 24", before, after)
+	}
+}
+
+// Ctrl+wheel zooms instead of scrolling: a notch a step, a touchpad a
+// step every zoomStep.
+func TestCtrlWheelZooms(t *testing.T) {
+	var steps []int
+	e := New(NewDoc(strings.Repeat("一行字。\n", 60)), Options{Zoom: func(d int) { steps = append(steps, d) }})
+	tt := newTester(e)
+	tt.Frame()
+	e.input(ui.InputEvent{Kind: ui.InputScroll, DY: -120, Mods: ui.Cmd})
+	e.input(ui.InputEvent{Kind: ui.InputScroll, DY: 50, Mods: ui.Cmd})
+	for range 5 {
+		e.input(ui.InputEvent{Kind: ui.InputScroll, DY: -10, Mods: ui.Cmd, Precise: true})
+	}
+	if !slices.Equal(steps, []int{1, -1, 1}) || e.scrollY != 0 {
+		t.Fatalf("steps %v, scrolled %v", steps, e.scrollY)
+	}
+	e.input(ui.InputEvent{Kind: ui.InputScroll, DY: 50})
+	if e.scrollY == 0 || len(steps) != 3 {
+		t.Fatal("a plain wheel did not scroll")
 	}
 }

@@ -206,6 +206,7 @@ func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.
 			}
 			return ""
 		},
+		Zoom: a.sizeText,
 		Menu: func(m *ui.Menu) {
 			s, e := ed.Selection()
 			busy := ed.ReadOnly()

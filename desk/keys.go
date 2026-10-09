@@ -18,7 +18,7 @@ var keyGroups = []struct {
 		{modKey + "L", "把选中的原文拿去讨论"},
 		{modKey + "Z / " + modKey + "Y", "撤销 / 重做"},
 		{modKey + "Backspace / " + modKey + "Delete", "向前 / 向后删到词边"},
-		{modKey + "= / " + modKey + "- / " + modKey + "0", "正文字号大一号 / 小一号 / 复原"},
+		{modKey + "滚轮 · " + modKey + "= / " + modKey + "- / " + modKey + "0", "正文字号大一号 / 小一号 / 复原"},
 	}},
 	{"讨论", [][2]string{
 		{modKey + "Enter", "发送"},

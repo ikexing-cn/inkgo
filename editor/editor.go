@@ -33,6 +33,9 @@ type Options struct {
 	Placeholder string
 	// Menu adds items to the end of the context menu.
 	Menu func(m *ui.Menu)
+	// Zoom, when set, takes Ctrl+wheel (Cmd on macOS): d is 1 to make the
+	// text larger, -1 smaller.
+	Zoom func(d int)
 }
 
 // Editor edits a Doc in a window of native UI. Its methods run on the main
@@ -87,6 +90,8 @@ type Editor struct {
 	// version of the text it was last centered for.
 	typewriter bool
 	centered   int
+	// zoomed is how far a touchpad has scrolled toward the next Zoom step.
+	zoomed float32
 	dragging      bool
 	wantFocus     bool
 	focused       bool

@@ -50,6 +50,7 @@ func (e *Editor) FontSize() float32 { return e.opts.Font.Size }
 func (e *Editor) SetFontSize(px float32) {
 	if px > 0 && px != e.opts.Font.Size {
 		e.opts.Font.Size, e.reveal = px, true
+		e.shapes = map[string]shaped{} // shaped at the old size
 	}
 }
 
