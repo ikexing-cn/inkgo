@@ -12,13 +12,13 @@ npm run verify-notes
 
 三条都绿才算完成。界面改动在 `cmd/poc` 的布局测试里渲染截图核对（`SHOT=<path> go test -run TestLayout ./cmd/poc`）。
 
-## 界面设计以 Claude Design 为准
+## 界面设计以 Design artifact 为准
 
-设计稿在 Claude Design 项目 <https://claude.ai/design/p/b415efa2-67ae-4711-8873-eafbaebc192a>，入口是 `总览.dc.html`，另有 `标题栏`、`设置`、`伏笔`、`一致性检查`、`导入稿件`、`全书规划`、`备份` 各一份（`.dc.html`），共用 `support.js`。
+设计稿在 Design artifact <https://claude.ai/artifact/RAP7UK4pSfnGArETpVtPSj>，文件都在 `project/` 下：入口是 `Main.dc.html`（总览），另有 `Pending`（待处理）、`Settings`（设置）、`Consistency`（一致性检查）、`Titlebar`（标题栏）、`Foreshadow`（伏笔）、`Planning`（全书规划）、`Import`（导入稿件）、`Backup`（备份）各一份 `.dc.html`，公共组件 `Sidebar`、`WindowControls`，画布排布在 `canvas.json`。它由原 Claude Design 项目 <https://claude.ai/design/p/b415efa2-67ae-4711-8873-eafbaebc192a> 转来，原项目只作存档，不再更新。
 
-1. 新的界面功能都以这份设计为基准：布局、色值、字号、交互照它来，和现有代码冲突时先说出来，不要自己改设计。
-2. 设计稿里没有的界面功能，先请作者去 Claude Design 把设计方向定下来，确认后再开始写代码。
-3. 设计稿只用来读；不要改动 Claude Design 里的项目。
+1. 新的界面功能都以这份设计为基准：布局、色值、字号、交互照它来，和现有代码冲突时先说出来，不要自己决定以哪边为准。
+2. 设计稿里没有的界面功能，先和作者在这份 artifact 里把设计方向定下来，确认后再开始写代码。
+3. 可以改这份 artifact：作者要求的修改，或作者确认后把设计稿和代码实现的偏差同步过去。改之前先读最新版本，改完告诉作者改了哪几页；不删页面，不动分享设置。
 
 ## 重要改动必须留笔记
 
