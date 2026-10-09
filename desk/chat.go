@@ -89,7 +89,7 @@ func (a *App) chatTop(c *ui.Context) {
 	t := a.pal.theme
 	_, words := a.sessionParts(a.session)
 	left, right := a.chromeRoom(c)
-	ui.Row(c).FillWidth().Height(52).Padding(0, 24+right, 0, 24+left).Gap(8).AlignItems(ui.Center).Shrink(0).DragWindow().Children(func() {
+	ui.Row(c).FillWidth().Height(titleHeight).Padding(0, 24+right, 0, 24+left).Gap(8).AlignItems(ui.Center).Shrink(0).DragWindow().Children(func() {
 		ui.Text(c, "总讨论").FontSize(13).TextColor(t.TextMuted)
 		glyph(c, icChevron, 14, a.pal.faint)
 		ui.Text(c, words).FontSize(13.5).FontWeight(600).SingleLine().Ellipsis("…").Shrink(1)

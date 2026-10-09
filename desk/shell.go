@@ -10,6 +10,10 @@ import (
 
 func trim(s string) string { return strings.TrimSpace(s) }
 
+// titleHeight is the height of the top row of each pane, which is the
+// window's title bar there: as high as the system's window buttons.
+const titleHeight = 32
+
 // narrow collapses the sidebar to icons so the chat keeps a readable width.
 const narrow = 1180
 
@@ -52,9 +56,9 @@ func (a *App) View(c *ui.Context) {
 			if a.Store == nil || a.page == 1 || a.page == 2 {
 				// These pages have no top row of their own to hold the window
 				// by, nor to show the banners under.
-				ui.Box(c).Absolute().Top(0).Left(0).Right(0).Height(52).DragWindow()
+				ui.Box(c).Absolute().Top(0).Left(0).Right(0).Height(titleHeight).DragWindow()
 				if a.Error != "" || a.busy != "" || a.notice != "" {
-					ui.Column(c).FillWidth().Padding(42, 0, 0, 0).Shrink(0).Children(func() { a.pageBanners(c) })
+					ui.Column(c).FillWidth().Padding(titleHeight-10, 0, 0, 0).Shrink(0).Children(func() { a.pageBanners(c) })
 				}
 			}
 			switch {
@@ -231,7 +235,15 @@ func (a *App) sidebar(c *ui.Context) {
 // back and forth between the chapters opened.
 func (a *App) sideChrome(c *ui.Context, slim bool, width float32) {
 	bar := c.TitleBar()
-	row := ui.Row(c).Height(52).Width(width).Margin(0, 0, 0, -10).Padding(0, 12, 0, max(18, bar.Left)).Gap(2).AlignItems(ui.Center).Shrink(0).DragWindow()
+	// One column, so the sidebar's gap does not part the line from the row.
+	ui.Column(c).Width(width).Margin(0, 0, 12, -10).Shrink(0).Children(func() {
+		a.sideRow(c, slim, bar)
+		ui.Box(c).FillWidth().Height(1).Background(a.pal.line)
+	})
+}
+
+func (a *App) sideRow(c *ui.Context, slim bool, bar ui.TitleBar) {
+	row := ui.Row(c).Height(titleHeight).FillWidth().Padding(0, 12, 0, max(18, bar.Left)).Gap(2).AlignItems(ui.Center).Shrink(0).DragWindow()
 	row.Children(func() {
 		if slim || a.page != 3 {
 			return
@@ -247,7 +259,6 @@ func (a *App) sideChrome(c *ui.Context, slim bool, width float32) {
 			a.stepHistory(true)
 		}
 	})
-	ui.Box(c).Width(width).Height(1).Margin(0, 0, 12, -10).Background(a.pal.line).Shrink(0)
 }
 
 // talkShown tells whether the discussion is on screen, on its page or

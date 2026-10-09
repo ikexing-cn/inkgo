@@ -704,7 +704,7 @@ func (a *App) settingColumn(c *ui.Context) {
 // paneTop is the top row of the right pane, which is the window's title bar
 // there: it holds the window and leaves room for the Windows buttons.
 func paneTop(c *ui.Context) *ui.Element {
-	return ui.Row(c).FillWidth().Height(52).Padding(0, c.TitleBar().Right, 0, 0).Gap(4).AlignItems(ui.Center).Shrink(0).DragWindow()
+	return ui.Row(c).FillWidth().Height(titleHeight).Padding(0, c.TitleBar().Right, 0, 0).Gap(4).AlignItems(ui.Center).Shrink(0).DragWindow()
 }
 
 // countAsTyped keeps the open chapter's count up with its text, so the
@@ -874,7 +874,7 @@ func (a *App) writeTop(c *ui.Context) {
 	w := &a.write
 	n, ok := w.tree.Node(w.node)
 	left, right := a.chromeRoom(c)
-	top := ui.Row(c).FillWidth().Height(52).Padding(0, 16+right, 0, 24+left).Gap(6).AlignItems(ui.Center).Shrink(0).DragWindow()
+	top := ui.Row(c).FillWidth().Height(titleHeight).Padding(0, 16+right, 0, 24+left).Gap(6).AlignItems(ui.Center).Shrink(0).DragWindow()
 	roomy := top.Bounds().W == 0 || top.Bounds().W >= 600 // the counts give way to the title
 	wide := top.Bounds().W == 0 || top.Bounds().W >= 760  // and today's to the book's
 	top.Children(func() {
