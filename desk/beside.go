@@ -81,7 +81,7 @@ func (a *App) panelTabs(c *ui.Context) {
 // composer, which sends what the author is writing with their words.
 func (a *App) talkPanel(c *ui.Context) {
 	t := a.pal.theme
-	ui.Row(c).FillWidth().Height(34).Gap(4).AlignItems(ui.Center).Children(func() {
+	paneTop(c).Children(func() {
 		a.panelTabs(c)
 		ui.Spacer(c)
 		a.bookDot(c)

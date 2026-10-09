@@ -33,7 +33,11 @@ type writeView struct {
 	counts  map[string]int
 	folded  map[string]bool // folders folded, by ID
 	node    string          // the node shown
-	ed      *editor.Editor
+	// back and forward are the nodes shown before and after it, for the
+	// title bar's arrows; stepping is set while they open one.
+	back, forward []string
+	stepping      bool
+	ed            *editor.Editor
 	// What the disk has of the node shown, as of the last read or write.
 	saved    string
 	savedVer int
@@ -247,6 +251,13 @@ func (a *App) openNode(id string) {
 	a.leaveChapter()
 	a.scanMarks()
 	w := &a.write
+	if !w.stepping && w.node != "" && w.node != id {
+		w.back = append(w.back, w.node)
+		if len(w.back) > 50 {
+			w.back = w.back[1:]
+		}
+		w.forward = nil
+	}
 	w.node, w.ed, w.external, w.lost = id, nil, nil, false
 	w.outline, w.outlineSaved, w.outlinePrev = "", "", ""
 	w.sum, w.summary, w.summarySaved, w.changed = workspace.Summary{}, "", "", false
@@ -279,6 +290,31 @@ func (a *App) openNode(id string) {
 		w.gists = a.gistsIn(n)
 	}
 	a.savePrefs()
+}
+
+// stepHistory opens the chapter opened before the one shown, or after it
+// when going forward, as a browser goes back and forth between pages. A
+// chapter since deleted is passed over.
+func (a *App) stepHistory(forward bool) {
+	w := &a.write
+	from, to := &w.back, &w.forward
+	if forward {
+		from, to = to, from
+	}
+	for len(*from) > 0 {
+		id := (*from)[len(*from)-1]
+		*from = (*from)[:len(*from)-1]
+		if _, ok := w.tree.Node(id); !ok || id == w.node {
+			continue
+		}
+		if w.node != "" {
+			*to = append(*to, w.node)
+		}
+		w.stepping = true
+		a.openNode(id)
+		w.stepping = false
+		return
+	}
 }
 
 // gistsIn reads a line on each chapter in a folder: the start of its
@@ -609,6 +645,7 @@ func (a *App) writing(c *ui.Context) {
 		a.LastWrite = main.Bounds()
 		main.Children(func() {
 			a.writeTop(c)
+			a.pageBanners(c)
 			n, ok := a.write.tree.Node(a.write.node)
 			switch {
 			case a.write.lost && a.write.ed != nil:
@@ -652,7 +689,7 @@ func (a *App) settingColumn(c *ui.Context) {
 	win, _ := c.Size()
 	width := a.panelWidth(win)
 	ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
-	panel := ui.Column(c).Width(width).FillHeight().Padding(18, 18, 12, 18).Gap(12).Background(a.pal.side).Shrink(0)
+	panel := ui.Column(c).Width(width).FillHeight().Padding(0, 18, 12, 18).Gap(12).Background(a.pal.side).Shrink(0)
 	a.LastSetting = panel.Bounds()
 	panel.Children(func() {
 		if a.page == 3 && a.doc.talk {
@@ -662,6 +699,12 @@ func (a *App) settingColumn(c *ui.Context) {
 		}
 		a.resizer(c, width)
 	})
+}
+
+// paneTop is the top row of the right pane, which is the window's title bar
+// there: it holds the window and leaves room for the Windows buttons.
+func paneTop(c *ui.Context) *ui.Element {
+	return ui.Row(c).FillWidth().Height(52).Padding(0, c.TitleBar().Right, 0, 0).Gap(4).AlignItems(ui.Center).Shrink(0).DragWindow()
 }
 
 // countAsTyped keeps the open chapter's count up with its text, so the
@@ -830,7 +873,8 @@ func (a *App) writeTop(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
 	n, ok := w.tree.Node(w.node)
-	top := ui.Row(c).FillWidth().Height(52).Padding(0, 16, 0, 24).Gap(6).AlignItems(ui.Center).Shrink(0)
+	left, right := a.chromeRoom(c)
+	top := ui.Row(c).FillWidth().Height(52).Padding(0, 16+right, 0, 24+left).Gap(6).AlignItems(ui.Center).Shrink(0).DragWindow()
 	roomy := top.Bounds().W == 0 || top.Bounds().W >= 600 // the counts give way to the title
 	wide := top.Bounds().W == 0 || top.Bounds().W >= 760  // and today's to the book's
 	top.Children(func() {

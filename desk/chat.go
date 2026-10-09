@@ -23,6 +23,7 @@ func (a *App) discussion(c *ui.Context) {
 		a.LastChat = chat.Bounds()
 		chat.Children(func() {
 			a.chatTop(c)
+			a.pageBanners(c)
 			a.chatList(c, false)
 			ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(0, 28, 20, 28).Children(func() {
 				a.composer(c)
@@ -87,7 +88,8 @@ func (a *App) lastMessage() string {
 func (a *App) chatTop(c *ui.Context) {
 	t := a.pal.theme
 	_, words := a.sessionParts(a.session)
-	ui.Row(c).FillWidth().Height(52).Padding(0, 24).Gap(8).AlignItems(ui.Center).Shrink(0).Children(func() {
+	left, right := a.chromeRoom(c)
+	ui.Row(c).FillWidth().Height(52).Padding(0, 24+right, 0, 24+left).Gap(8).AlignItems(ui.Center).Shrink(0).DragWindow().Children(func() {
 		ui.Text(c, "总讨论").FontSize(13).TextColor(t.TextMuted)
 		glyph(c, icChevron, 14, a.pal.faint)
 		ui.Text(c, words).FontSize(13.5).FontWeight(600).SingleLine().Ellipsis("…").Shrink(1)

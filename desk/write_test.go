@@ -896,3 +896,49 @@ func TestCountsMoveAsTyped(t *testing.T) {
 		t.Fatal(tt.Texts())
 	}
 }
+
+// The title bar's arrows go back and forth between the chapters opened, as
+// a browser's; opening another drops what was ahead, and a chapter deleted
+// is passed over.
+func TestChapterHistory(t *testing.T) {
+	a, tt, one := writingFixture(t, "一。")
+	two, err := a.Store.NewChapter("", "第二章", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	three, err := a.Store.NewChapter("", "第三章", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = a.loadTree(); err != nil {
+		t.Fatal(err)
+	}
+	a.openNode(two)
+	a.openNode(three)
+	tt.Frame()
+	step := func(label, want string) {
+		t.Helper()
+		if err := tt.Click(label); err != nil {
+			t.Fatal(err)
+		}
+		tt.Frame()
+		if a.write.node != want {
+			t.Fatalf("after %s: shown %q, want %q", label, a.write.node, want)
+		}
+	}
+	step("上一个打开的章节", two)
+	step("上一个打开的章节", one)
+	step("下一个打开的章节", two)
+	a.openNode(three)
+	if len(a.write.forward) != 0 {
+		t.Fatalf("forward = %v after opening another", a.write.forward)
+	}
+	if err = a.Store.TrashChapter(two); err != nil {
+		t.Fatal(err)
+	}
+	if err = a.loadTree(); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	step("上一个打开的章节", one) // 第二章 is gone; 第一章 was before it
+}

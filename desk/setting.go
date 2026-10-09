@@ -130,7 +130,7 @@ func (a *App) revise(ops ...workspace.Op) {
 
 func (a *App) settingPanel(c *ui.Context) {
 	body := a.bodyCount()
-	ui.Row(c).FillWidth().Height(34).Gap(4).AlignItems(ui.Center).Children(func() {
+	paneTop(c).Children(func() {
 		title := "设定"
 		if a.doc.history {
 			title = "整理历史"

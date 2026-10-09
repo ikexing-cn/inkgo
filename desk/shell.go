@@ -44,13 +44,18 @@ func (a *App) View(c *ui.Context) {
 	}
 	a.shown = a.page
 	ui.Row(c).Fill().AlignItems(ui.Stretch).Background(a.pal.canvas).Children(func() {
-		if a.Store != nil && !(a.page == 3 && a.write.focus) {
+		if a.sideShown() {
 			a.sidebar(c)
 			ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
 		}
 		ui.Column(c).Grow(1).Shrink(1).FillHeight().Children(func() {
-			if !a.talking || !a.talkShown() { // the turn shows its own progress
-				a.banners(c)
+			if a.Store == nil || a.page == 1 || a.page == 2 {
+				// These pages have no top row of their own to hold the window
+				// by, nor to show the banners under.
+				ui.Box(c).Absolute().Top(0).Left(0).Right(0).Height(52).DragWindow()
+				if a.Error != "" || a.busy != "" || a.notice != "" {
+					ui.Column(c).FillWidth().Padding(42, 0, 0, 0).Shrink(0).Children(func() { a.pageBanners(c) })
+				}
 			}
 			switch {
 			case a.page == 1:
@@ -73,6 +78,35 @@ func (a *App) View(c *ui.Context) {
 	a.renameDialog(c)
 }
 
+// pageBanners shows the banners under the top row of the page.
+func (a *App) pageBanners(c *ui.Context) {
+	if !a.talking || !a.talkShown() { // the turn shows its own progress
+		a.banners(c)
+	}
+}
+
+// sideShown says whether the sidebar is on screen.
+func (a *App) sideShown() bool { return a.Store != nil && !(a.page == 3 && a.write.focus) }
+
+// paneShown says whether the right pane is on screen.
+func (a *App) paneShown() bool {
+	return a.Store != nil && (a.page == 0 || a.page == 3 && !a.write.focus) && !a.doc.hidden
+}
+
+// chromeRoom is the room the window controls take at the ends of the top
+// row of the main column: the macOS lights when no sidebar is left of it,
+// the Windows buttons when no pane is right of it.
+func (a *App) chromeRoom(c *ui.Context) (left, right float32) {
+	bar := c.TitleBar()
+	if !a.sideShown() {
+		left = bar.Left
+	}
+	if !a.paneShown() {
+		right = bar.Right
+	}
+	return left, right
+}
+
 // sessionParts splits a session title into its date and its words.
 func (a *App) sessionParts(id string) (when, words string) {
 	title := a.titles[id]
@@ -91,7 +125,8 @@ func (a *App) sidebar(c *ui.Context) {
 		width = 60
 	}
 	busy := a.busy != ""
-	ui.Column(c).Width(width).FillHeight().Background(a.pal.side).Padding(14, 10).Gap(2).Shrink(0).Children(func() {
+	ui.Column(c).Width(width).FillHeight().Background(a.pal.side).Padding(0, 10, 14, 10).Gap(2).Shrink(0).Children(func() {
+		a.sideChrome(c, slim, width)
 		work := a.Store.Work()
 		head := ui.ButtonBase(c).Row().FillWidth().AlignItems(ui.Center).Gap(10).Padding(6, 8).Radius(8).Label("切换作品").Tooltip("切换作品").Disabled(busy)
 		if head.Hovered() {
@@ -189,6 +224,30 @@ func (a *App) sidebar(c *ui.Context) {
 			}
 		})
 	})
+}
+
+// sideChrome is the top row of the sidebar, which is the window's title bar
+// there: it holds the window, leaves room for the macOS lights, and goes
+// back and forth between the chapters opened.
+func (a *App) sideChrome(c *ui.Context, slim bool, width float32) {
+	bar := c.TitleBar()
+	row := ui.Row(c).Height(52).Width(width).Margin(0, 0, 0, -10).Padding(0, 12, 0, max(18, bar.Left)).Gap(2).AlignItems(ui.Center).Shrink(0).DragWindow()
+	row.Children(func() {
+		if slim || a.page != 3 {
+			return
+		}
+		if bar.Left > 0 {
+			ui.Spacer(c) // after the lights, the buttons keep to the pane's edge
+		}
+		w := &a.write
+		if iconButton(c, icBack, "上一个打开的章节", ui.Color{}).Disabled(len(w.back) == 0).Clicked() {
+			a.stepHistory(false)
+		}
+		if iconButton(c, icForward, "下一个打开的章节", ui.Color{}).Disabled(len(w.forward) == 0).Clicked() {
+			a.stepHistory(true)
+		}
+	})
+	ui.Box(c).Width(width).Height(1).Margin(0, 0, 12, -10).Background(a.pal.line).Shrink(0)
 }
 
 // talkShown tells whether the discussion is on screen, on its page or

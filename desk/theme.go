@@ -155,6 +155,8 @@ var (
 	icSearch      = icon(`<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>`)
 	icAlert       = icon(`<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>`)
 	icChevron     = icon(`<path d="m9 18 6-6-6-6"/>`)
+	icBack        = icon(`<path d="m15 6-6 6 6 6"/>`)
+	icForward     = icon(`<path d="m9 6 6 6-6 6"/>`)
 	icChevronUp   = icon(`<path d="m18 15-6-6-6 6"/>`)
 	icChevronDown = icon(`<path d="m6 9 6 6 6-6"/>`)
 	icBook        = icon(`<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>`)

@@ -135,7 +135,14 @@ func TestShotPending(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	tt.SetTitleBar(ui.TitleBar{Height: 52, Right: 138}) // the Windows buttons
 	shot("pending-light.png")
 	tt.SetDark(true)
 	shot("pending-dark.png")
+	tt.SetDark(false)
+	a.write.pendOpen = false
+	a.doc.hidden = true
+	shot("titlebar-pane-hidden.png")
+	a.page = 1
+	shot("titlebar-settings.png")
 }

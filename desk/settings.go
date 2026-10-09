@@ -78,7 +78,7 @@ func (a *App) settings(c *ui.Context) {
 	t := a.pal.theme
 	busy := a.busy != ""
 	ui.Row(c).FillWidth().Grow(1).AlignItems(ui.Stretch).Children(func() {
-		ui.Column(c).Width(232).FillHeight().Padding(20, 10).Gap(2).Background(a.pal.side).Shrink(0).Children(func() {
+		ui.Column(c).Width(232).FillHeight().Padding(24, 10, 20, 10).Gap(2).Background(a.pal.side).Shrink(0).Children(func() {
 			ui.Text(c, "模型服务").FontSize(11.5).FontWeight(600).TextColor(a.pal.faint).Padding(0, 10, 8, 10)
 			for _, p := range a.Config.Providers {
 				name := p.Name
