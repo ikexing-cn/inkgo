@@ -29,6 +29,9 @@ func (a *App) View(c *ui.Context) {
 		a.pal = a.dark
 	}
 	c.SetTheme(a.pal.theme)
+	if a.page == 1 { // the models are a part of the settings page
+		a.page, a.bk.tab = 4, "模型"
+	}
 	if a.Store == nil && (a.page == 2 || a.page == 3 || a.page == 4) {
 		a.page = 0
 	}
@@ -55,7 +58,7 @@ func (a *App) View(c *ui.Context) {
 			ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
 		}
 		ui.Column(c).Grow(1).Shrink(1).FillHeight().Children(func() {
-			if a.Store == nil || a.page == 1 || a.page == 2 || a.page == 4 {
+			if a.Store == nil || a.page == 2 || a.page == 4 {
 				// These pages have no top row of their own to hold the window
 				// by, nor to show the banners under.
 				ui.Box(c).Absolute().Top(0).Left(0).Right(0).Height(titleHeight).DragWindow()
@@ -64,8 +67,6 @@ func (a *App) View(c *ui.Context) {
 				}
 			}
 			switch {
-			case a.page == 1:
-				a.settings(c)
 			case a.page == 2:
 				a.categories(c)
 			case a.page == 4:
@@ -86,6 +87,9 @@ func (a *App) View(c *ui.Context) {
 	a.renameDialog(c)
 	if a.Store != nil {
 		a.askView(c)
+		if a.write.trashOpen { // the trash is at the foot of every page
+			a.trashView(c)
+		}
 	}
 }
 
@@ -194,7 +198,6 @@ func (a *App) sidebar(c *ui.Context) {
 		a.navItem(c, icChat, "讨论", 0, slim)
 		a.navItem(c, icBook, "正文", 3, slim)
 		a.navItem(c, icTag, "作品分类", 2, slim)
-		a.navItem(c, icChip, "模型设置", 1, slim)
 		ui.Box(c).Height(16)
 		defer a.sideFoot(c, slim)
 		if a.page == 3 {
@@ -254,18 +257,19 @@ func (a *App) sideChrome(c *ui.Context, slim bool, width float32) {
 func (a *App) sideRow(c *ui.Context, slim bool, bar ui.TitleBar) {
 	row := ui.Row(c).Height(titleHeight).FillWidth().Padding(0, 12, 0, max(18, bar.Left)).Gap(2).AlignItems(ui.Center).Shrink(0).DragWindow()
 	row.Children(func() {
-		if slim || a.page != 3 {
+		if slim {
 			return
 		}
 		if bar.Left > 0 {
 			ui.Spacer(c) // after the lights, the buttons keep to the pane's edge
 		}
 		w := &a.write
+		// From another page, the step is taken as the writing page opens.
 		if iconButton(c, icBack, "上一个打开的章节", ui.Color{}).Disabled(len(w.back) == 0).Clicked() {
-			a.stepHistory(false)
+			a.step(-1)
 		}
 		if iconButton(c, icForward, "下一个打开的章节", ui.Color{}).Disabled(len(w.forward) == 0).Clicked() {
-			a.stepHistory(true)
+			a.step(1)
 		}
 	})
 }

@@ -29,6 +29,7 @@ var (
 // writeView is the state of the writing page.
 type writeView struct {
 	entered bool // the page read the tree as it showed
+	stepTo  int  // a step back (-1) or forward (1) to take as the page opens
 	tree    workspace.Tree
 	counts  map[string]int
 	folded  map[string]bool // folders folded, by ID
@@ -296,6 +297,15 @@ func (a *App) openNode(id string) {
 // stepHistory opens the chapter opened before the one shown, or after it
 // when going forward, as a browser goes back and forth between pages. A
 // chapter since deleted is passed over.
+// step goes back (-1) or forward (1) a chapter, from any page.
+func (a *App) step(dir int) {
+	if a.page == 3 {
+		a.stepHistory(dir > 0)
+		return
+	}
+	a.page, a.write.stepTo = 3, dir
+}
+
 func (a *App) stepHistory(forward bool) {
 	w := &a.write
 	from, to := &w.back, &w.forward
@@ -607,6 +617,10 @@ func (a *App) writing(c *ui.Context) {
 		a.write.entered = true
 		a.enterWriting()
 	}
+	if s := a.write.stepTo; s != 0 {
+		a.write.stepTo = 0
+		a.stepHistory(s > 0)
+	}
 	a.keepPen()
 	a.pollAI()
 	a.countAsTyped()
@@ -667,9 +681,6 @@ func (a *App) writing(c *ui.Context) {
 	})
 	if a.write.snapsOpen {
 		a.snapshots(c)
-	}
-	if a.write.trashOpen {
-		a.trashView(c)
 	}
 	if a.write.takeOpen {
 		a.take(c)

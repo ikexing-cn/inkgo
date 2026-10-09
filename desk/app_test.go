@@ -490,6 +490,10 @@ func TestBookkeeperShowsWhileItWorks(t *testing.T) {
 // Services are chosen by the names the author gave them, and kept by ID.
 func TestChooseAServiceByName(t *testing.T) {
 	a, tt, _ := fixture(t)
+	if err := tt.Click("设置"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
 	if err := tt.Click("模型设置"); err != nil {
 		t.Fatal(err)
 	}
@@ -531,6 +535,10 @@ func TestNoticesFade(t *testing.T) {
 func TestPickAModelFromTheList(t *testing.T) {
 	a, tt, _ := fixture(t)
 	a.talkProvider, a.talkModel = "deepseek", "deepseek-flash"
+	if err := tt.Click("设置"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
 	if err := tt.Click("模型设置"); err != nil {
 		t.Fatal(err)
 	}

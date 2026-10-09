@@ -79,6 +79,10 @@ func TestLayoutDiscussion(t *testing.T) {
 		t.Fatal("history not shown", tt.Texts())
 	}
 	shot(t, tt, "-history")
+	if err = tt.Click("设置"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
 	if err = tt.Click("模型设置"); err != nil {
 		t.Fatal(err)
 	}

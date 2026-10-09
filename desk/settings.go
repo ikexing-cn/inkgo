@@ -74,92 +74,94 @@ func labeled(c *ui.Context, caption string, fn func()) *ui.Element {
 	})
 }
 
-func (a *App) settings(c *ui.Context) {
+// modelNav lists the model services, in the settings page's left column.
+func (a *App) modelNav(c *ui.Context) {
 	t := a.pal.theme
 	busy := a.busy != ""
-	ui.Row(c).FillWidth().Grow(1).AlignItems(ui.Stretch).Children(func() {
-		ui.Column(c).Width(232).FillHeight().Padding(24, 10, 20, 10).Gap(2).Background(a.pal.side).Shrink(0).Children(func() {
-			ui.Text(c, "模型服务").FontSize(11.5).FontWeight(600).TextColor(a.pal.faint).Padding(0, 10, 8, 10)
-			for _, p := range a.Config.Providers {
-				name := p.Name
-				if name == "" {
-					name = p.ID
-				}
-				item := ui.ButtonBase(c).Key("provider-"+p.ID).FillWidth().Padding(7, 10).Radius(7).Gap(9).Row().AlignItems(ui.Center).Label("提供商-" + p.ID).Disabled(busy)
-				on := p.ID == a.providerID
-				if on {
-					item.Background(t.SurfacePressed)
-				} else if item.Hovered() {
-					item.Background(t.SurfaceHover)
-				}
-				item.Children(func() {
-					color := a.pal.ink
-					if isLocal(p.BaseURL) {
-						color = t.Success
-					}
-					dot(c, color, 7)
-					fg := t.TextMuted
-					if on {
-						fg = t.Text
-					}
-					ui.Text(c, name).FontSize(13.5).TextColor(fg).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
-					if a.Store != nil && a.Store.Work().Discussion.Provider == p.ID {
-						ui.Text(c, "在用").FontSize(11).TextColor(a.pal.faint)
-					}
-				})
-				if item.Clicked() {
-					a.chooseProvider(p.ID)
-				}
+	ui.Text(c, "模型服务").FontSize(11.5).FontWeight(600).TextColor(a.pal.faint).Padding(0, 10, 8, 10)
+	for _, p := range a.Config.Providers {
+		name := p.Name
+		if name == "" {
+			name = p.ID
+		}
+		item := ui.ButtonBase(c).Key("provider-"+p.ID).FillWidth().Padding(7, 10).Radius(7).Gap(9).Row().AlignItems(ui.Center).Label("提供商-" + p.ID).Disabled(busy)
+		on := p.ID == a.providerID
+		if on {
+			item.Background(t.SurfacePressed)
+		} else if item.Hovered() {
+			item.Background(t.SurfaceHover)
+		}
+		item.Children(func() {
+			color := a.pal.ink
+			if isLocal(p.BaseURL) {
+				color = t.Success
 			}
-			ui.Box(c).Height(6)
-			add := ui.ButtonBase(c).Row().FillWidth().Justify(ui.Start).Gap(9).AlignItems(ui.Center).Padding(7, 10).Radius(7).Label("+ 添加自定义 API").Disabled(busy)
-			if add.Hovered() {
-				add.Background(t.SurfaceHover)
+			dot(c, color, 7)
+			fg := t.TextMuted
+			if on {
+				fg = t.Text
 			}
-			add.Children(func() {
-				glyph(c, icPlus, 14, t.TextMuted)
-				ui.Text(c, "添加自定义 API").FontSize(13.5).TextColor(t.TextMuted)
-			})
-			if add.Clicked() {
-				a.providerID = ""
-				a.provider = model.Provider{Protocol: "chat"}
-				a.key, a.models = "", ""
+			ui.Text(c, name).FontSize(13.5).TextColor(fg).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
+			if a.Store != nil && a.Store.Work().Discussion.Provider == p.ID {
+				ui.Text(c, "在用").FontSize(11).TextColor(a.pal.faint)
 			}
-			ui.Spacer(c)
-			ui.Column(c).FillWidth().AlignItems(ui.Start).Gap(2).Children(func() {
-				if ghost(c, "打开配置文件", ui.Color{}).Disabled(a.ConfigFile == "").Clicked() {
-					u := url.URL{Scheme: "file", Path: filepath.ToSlash(a.ConfigFile)}
-					if len(u.Path) > 1 && u.Path[1] == ':' {
-						u.Path = "/" + u.Path
-					}
-					c.OpenURL(u.String())
-				}
-				if ghost(c, "重新加载配置", ui.Color{}).Disabled(busy || a.ConfigFile == "").Clicked() {
-					cfg, err := model.Load(a.ConfigFile)
-					if err == nil {
-						a.Config = cfg
-						if len(cfg.Providers) > 0 {
-							a.chooseProvider(cfg.Providers[0].ID)
-						}
-						a.notice = "已重新加载配置"
-					}
-					a.setError(err)
-				}
-			})
 		})
-		ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
-		ui.Scroll(c).Grow(1).FillHeight().Children(func() {
-			ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(36, 40).Children(func() {
-				ui.Column(c).FillWidth().MaxWidth(680).Gap(32).Children(func() {
-					ui.Column(c).Gap(6).Children(func() {
-						ui.Text(c, "模型设置").FontSize(24).FontWeight(600)
-						ui.Text(c, "选择这部作品和谁讨论，以及管理本机保存的模型服务。").FontSize(13.5).TextColor(t.TextMuted)
-					})
-					if a.Store != nil {
-						a.usage(c)
-					}
-					a.providerForm(c)
+		if item.Clicked() {
+			a.chooseProvider(p.ID)
+		}
+	}
+	ui.Box(c).Height(6)
+	add := ui.ButtonBase(c).Row().FillWidth().Justify(ui.Start).Gap(9).AlignItems(ui.Center).Padding(7, 10).Radius(7).Label("+ 添加自定义 API").Disabled(busy)
+	if add.Hovered() {
+		add.Background(t.SurfaceHover)
+	}
+	add.Children(func() {
+		glyph(c, icPlus, 14, t.TextMuted)
+		ui.Text(c, "添加自定义 API").FontSize(13.5).TextColor(t.TextMuted)
+	})
+	if add.Clicked() {
+		a.providerID = ""
+		a.provider = model.Provider{Protocol: "chat"}
+		a.key, a.models = "", ""
+	}
+	ui.Spacer(c)
+	ui.Column(c).FillWidth().AlignItems(ui.Start).Gap(2).Children(func() {
+		if ghost(c, "打开配置文件", ui.Color{}).Disabled(a.ConfigFile == "").Clicked() {
+			u := url.URL{Scheme: "file", Path: filepath.ToSlash(a.ConfigFile)}
+			if len(u.Path) > 1 && u.Path[1] == ':' {
+				u.Path = "/" + u.Path
+			}
+			c.OpenURL(u.String())
+		}
+		if ghost(c, "重新加载配置", ui.Color{}).Disabled(busy || a.ConfigFile == "").Clicked() {
+			cfg, err := model.Load(a.ConfigFile)
+			if err == nil {
+				a.Config = cfg
+				if len(cfg.Providers) > 0 {
+					a.chooseProvider(cfg.Providers[0].ID)
+				}
+				a.notice = "已重新加载配置"
+			}
+			a.setError(err)
+		}
+	})
+}
+
+// modelPane is the settings page's 模型: which models the work uses, and
+// the service chosen in the left column.
+func (a *App) modelPane(c *ui.Context) {
+	t := a.pal.theme
+	ui.Scroll(c).Key("models").Grow(1).FillHeight().Children(func() {
+		ui.Column(c).FillWidth().Padding(titleHeight+20, 56, 40, 56).Children(func() {
+			ui.Column(c).FillWidth().MaxWidth(760).Gap(32).Children(func() {
+				ui.Column(c).Gap(6).Children(func() {
+					ui.Text(c, "模型").FontSize(26).FontWeight(700)
+					ui.Text(c, "选择这部作品和谁讨论，以及管理本机保存的模型服务。").FontSize(13.5).TextColor(t.TextMuted)
 				})
+				if a.Store != nil {
+					a.usage(c)
+				}
+				a.providerForm(c)
 			})
 		})
 	})

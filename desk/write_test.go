@@ -474,6 +474,10 @@ func TestReopenWhereLeft(t *testing.T) {
 		return b
 	}
 	// Settings saved on the way out do not forget the writing page.
+	if err := tt.Click("设置"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
 	if err := tt.Click("模型设置"); err != nil {
 		t.Fatal(err)
 	}
@@ -622,6 +626,10 @@ func TestTodayCountsFromTheDaysStart(t *testing.T) {
 // only with the models' save.
 func TestWritingSwitchesKeepAsTicked(t *testing.T) {
 	a, tt, _ := writingFixture(t, "雨从傍晚开始下。")
+	if err := tt.Click("设置"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
 	if err := tt.Click("模型设置"); err != nil {
 		t.Fatal(err)
 	}

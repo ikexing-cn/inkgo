@@ -74,32 +74,37 @@ func (a *App) menuLine(c *ui.Context) {
 // themeChoice picks the appearance of the whole app on this machine:
 // following the system, light or dark.
 func (a *App) themeChoice(c *ui.Context) {
-	t := a.pal.theme
 	ui.Column(c).FillWidth().Gap(6).Padding(6, 10, 8, 10).Children(func() {
 		ui.Text(c, "外观").FontSize(12).TextColor(a.pal.faint)
-		ui.Row(c).FillWidth().Gap(2).Padding(2).Radius(7).Background(t.SurfaceHover).Children(func() {
-			for _, m := range []struct {
-				v, n string
-				s    *ui.SVG
-			}{{"", "跟随系统", icMonitor}, {"light", "浅色", icSun}, {"dark", "深色", icMoon}} {
-				on := a.shelf.Theme == m.v
-				b := ui.ButtonBase(c).Row().Grow(1).Height(26).Center().Gap(5).Radius(5).Label("外观-" + m.n)
-				fg := t.TextMuted
-				if on {
-					b.Background(a.pal.raised).Shadow(0, 1, 2, 0, ui.Hex("#000000").Alpha(0.08))
-					fg = t.Text
-				} else if b.Hovered() {
-					fg = t.Text
-				}
-				b.Children(func() {
-					glyph(c, m.s, 13, fg)
-					ui.Text(c, m.n).FontSize(12).TextColor(fg).SingleLine()
-				})
-				if b.Clicked() {
-					a.setTheme(m.v)
-				}
+		a.themeSegments(c)
+	})
+}
+
+// themeSegments are the three appearances side by side.
+func (a *App) themeSegments(c *ui.Context) {
+	t := a.pal.theme
+	ui.Row(c).FillWidth().Gap(2).Padding(2).Radius(7).Background(t.SurfaceHover).Children(func() {
+		for _, m := range []struct {
+			v, n string
+			s    *ui.SVG
+		}{{"", "跟随系统", icMonitor}, {"light", "浅色", icSun}, {"dark", "深色", icMoon}} {
+			on := a.shelf.Theme == m.v
+			b := ui.ButtonBase(c).Row().Grow(1).Height(26).Center().Gap(5).Radius(5).Label("外观-" + m.n)
+			fg := t.TextMuted
+			if on {
+				b.Background(a.pal.raised).Shadow(0, 1, 2, 0, ui.Hex("#000000").Alpha(0.08))
+				fg = t.Text
+			} else if b.Hovered() {
+				fg = t.Text
 			}
-		})
+			b.Children(func() {
+				glyph(c, m.s, 13, fg)
+				ui.Text(c, m.n).FontSize(12).TextColor(fg).SingleLine()
+			})
+			if b.Clicked() {
+				a.setTheme(m.v)
+			}
+		}
 	})
 }
 

@@ -160,6 +160,10 @@ func TestBackupFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
+	if err := tt.Click("设置-备份"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
 	if a.page != 4 || !tt.HasText("把整部作品复制一份到别处。快照只防改错，备份防电脑坏。") || !tt.HasText("11 字 · 1 章 · 共保留 1 份，最早一份是 "+time.Now().Format("1 月 2 日")) {
 		t.Fatal("settings page", tt.Texts())
 	}
@@ -261,4 +265,11 @@ func TestShotBackup(t *testing.T) {
 	a.setBackup(s)
 	a.bk.tab, a.page = "备份", 4
 	shot("backup-settings.png")
+	tt.SetDark(true)
+	a.bk.tab, a.page = "外观", 4
+	shot("settings-look-dark.png")
+	a.bk.tab = "模型"
+	shot("settings-models-dark.png")
+	a.page = 0
+	shot("discussion-dark.png")
 }
