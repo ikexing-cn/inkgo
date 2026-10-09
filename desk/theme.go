@@ -1,12 +1,20 @@
 package desk
 
 import (
+	_ "embed"
+	"regexp"
+	"strings"
+
 	"github.com/egoist/mygo/ui"
 )
 
 // palette is the desk's design system: a neutral paper-white canvas, ink for
 // primary actions and links, greys for everything quieter, and amber for what
 // waits on the author. Everything else is typography and spacing.
+//
+// Its colors come from tokens.css, a copy of the design's base colors: the
+// design and the code name each color the same way, so one changed there is
+// copied here and nothing else moves.
 type palette struct {
 	theme                        *ui.Theme
 	canvas, side, raised, bubble ui.Color
@@ -14,56 +22,76 @@ type palette struct {
 	amber                        ui.Color // what waits on the author
 }
 
+//go:embed tokens.css
+var tokensCSS string
+
+// tokens reads the colors of tokens.css: the light ones, and the dark ones
+// over them.
+func tokens(css string) (light, dark map[string]ui.Color) {
+	light, dark = map[string]ui.Color{}, map[string]ui.Color{}
+	css = regexp.MustCompile(`(?s)/\*.*?\*/`).ReplaceAllString(css, "")
+	block := regexp.MustCompile(`(?s)([^{}]+)\{([^}]*)\}`)
+	decl := regexp.MustCompile(`--([a-z0-9-]+)\s*:\s*(#[0-9a-fA-F]{3,6})`)
+	for _, b := range block.FindAllStringSubmatch(css, -1) {
+		into := light
+		if strings.TrimSpace(b[1]) == ".dark" {
+			into = dark
+		}
+		for _, d := range decl.FindAllStringSubmatch(b[2], -1) {
+			into[d[1]] = ui.Hex(d[2])
+		}
+	}
+	for k, v := range light {
+		if _, ok := dark[k]; !ok {
+			dark[k] = v
+		}
+	}
+	return light, dark
+}
+
 func lightPalette() *palette {
+	k, _ := tokens(tokensCSS)
 	t := ui.LightTheme()
-	t.Background = ui.Hex("#ffffff")
-	t.Surface = ui.Hex("#ffffff")
-	t.SurfaceHover = ui.Hex("#f3f3f1")
-	t.SurfacePressed = ui.Hex("#ebebe8")
-	t.Border = ui.Hex("#e4e4e0")
-	t.Text = ui.Hex("#1d1d1b")
-	t.TextMuted = ui.Hex("#76766f")
-	t.Accent = ui.Hex("#1d1d1b")
-	t.AccentHover = ui.Hex("#3a3a37")
-	t.AccentPressed = ui.Hex("#000000")
-	t.AccentText = ui.Hex("#ffffff")
-	t.Success = ui.Hex("#2f8a5b")
-	t.Warning = ui.Hex("#b7791f")
-	t.Danger = ui.Hex("#c4473a")
-	t.Selection = ui.RGBA(50, 120, 215, 0.2)
-	t.Focus = ui.RGBA(29, 29, 27, 0.35)
+	themeOf(t, k)
+	t.Selection = ui.RGBA(50, 120, 215, 0.2) // --sel over the page, so the text shows through
+	t.Focus = k["ink"].Alpha(0.35)
 	t.Scrollbar = ui.RGBA(0, 0, 0, 0.18)
-	t.Radius = 8
-	return &palette{theme: t,
-		canvas: ui.Hex("#ffffff"), side: ui.Hex("#f7f7f5"), raised: ui.Hex("#ffffff"), bubble: ui.Hex("#f1f1ee"),
-		line: ui.Hex("#ececE8"), faint: ui.Hex("#a3a39c"), ink: ui.Hex("#1d1d1b"), onInk: ui.Hex("#ffffff"),
-		amber: ui.Hex("#d9a441")}
+	return paletteOf(t, k)
 }
 
 func darkPalette() *palette {
+	_, k := tokens(tokensCSS)
 	t := ui.DarkTheme()
-	t.Background = ui.Hex("#191919")
-	t.Surface = ui.Hex("#222221")
-	t.SurfaceHover = ui.Hex("#2b2b2a")
-	t.SurfacePressed = ui.Hex("#2c2c2a")
-	t.Border = ui.Hex("#343432")
-	t.Text = ui.Hex("#ededea")
-	t.TextMuted = ui.Hex("#a0a09a")
-	t.Accent = ui.Hex("#ededea")
-	t.AccentHover = ui.Hex("#ffffff")
-	t.AccentPressed = ui.Hex("#d6d6d2")
-	t.AccentText = ui.Hex("#191919")
-	t.Success = ui.Hex("#5cb684")
-	t.Warning = ui.Hex("#d9a441")
-	t.Danger = ui.Hex("#e4675b")
+	themeOf(t, k)
 	t.Selection = ui.RGBA(90, 140, 220, 0.3)
-	t.Focus = ui.RGBA(237, 237, 234, 0.45)
+	t.Focus = k["ink"].Alpha(0.45)
 	t.Scrollbar = ui.RGBA(255, 255, 255, 0.2)
+	return paletteOf(t, k)
+}
+
+func themeOf(t *ui.Theme, k map[string]ui.Color) {
+	t.Background = k["bg"]
+	t.Surface = k["raised"]
+	t.SurfaceHover = k["hover"]
+	t.SurfacePressed = k["active"]
+	t.Border = k["border"]
+	t.Text = k["ink"]
+	t.TextMuted = k["muted"]
+	t.Accent = k["ink"]
+	t.AccentHover = k["ink-2"]
+	t.AccentPressed = k["ink"]
+	t.AccentText = k["on-ink"]
+	t.Success = k["success"]
+	t.Warning = k["warn"]
+	t.Danger = k["danger"]
 	t.Radius = 8
+}
+
+func paletteOf(t *ui.Theme, k map[string]ui.Color) *palette {
 	return &palette{theme: t,
-		canvas: ui.Hex("#191919"), side: ui.Hex("#1f1f1e"), raised: ui.Hex("#222221"), bubble: ui.Hex("#2a2a29"),
-		line: ui.Hex("#2a2a28"), faint: ui.Hex("#6f6f69"), ink: ui.Hex("#ededea"), onInk: ui.Hex("#191919"),
-		amber: ui.Hex("#d9a441")}
+		canvas: k["bg"], side: k["side"], raised: k["raised"], bubble: k["hover"],
+		line: k["line"], faint: k["faint"], ink: k["ink"], onInk: k["on-ink"],
+		amber: k["amber"]}
 }
 
 // dot is a small status disc.

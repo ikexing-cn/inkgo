@@ -659,7 +659,7 @@ func TestSetTheDaysGoal(t *testing.T) {
 	a.write.focus = true // room for today's count in the bar
 	tt.Frame()
 	tt.Frame()
-	if !tt.HasText("/ 2000") {
+	if !tt.HasText("/ 2,000") {
 		t.Fatal("the goal is not by the counts", tt.Texts())
 	}
 	a.setGoal("")

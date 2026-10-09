@@ -797,6 +797,35 @@ func (a *App) setGoal(text string) {
 	}
 }
 
+// words says how many characters, the way the design writes them: grouped
+// by thousands, and in 万 from ten thousand on.
+func words(n int) string {
+	if n >= 10000 {
+		return strings.TrimSuffix(fmt.Sprintf("%.1f", float64(n)/10000), ".0") + " 万字"
+	}
+	return grouped(n) + " 字"
+}
+
+// grouped writes n with a comma between each three digits.
+func grouped(n int) string {
+	if n < 0 {
+		return "-" + grouped(-n)
+	}
+	s := strconv.Itoa(n)
+	for i := len(s) - 3; i > 0; i -= 3 {
+		s = s[:i] + "," + s[i:]
+	}
+	return s
+}
+
+// signed is grouped with its sign.
+func signed(n int) string {
+	if n < 0 {
+		return grouped(n)
+	}
+	return "+" + grouped(n)
+}
+
 func (a *App) writeTop(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
@@ -833,16 +862,16 @@ func (a *App) writeTop(c *ui.Context) {
 				here, unit = workspace.Count(sel), "选中"
 			}
 		}
-		today, tip := "", fmt.Sprintf("全书 %d 字", a.total())
+		today, tip := "", "全书 "+words(a.total())
 		k := a.today(time.Now())
 		met := w.goal > 0 && k >= w.goal
 		switch {
 		case w.goal > 0:
-			today = fmt.Sprintf(" · 今天 %+d / %d", k, w.goal)
-			tip += fmt.Sprintf("，今天 %+d 字，目标 %d 字", k, w.goal)
+			today = fmt.Sprintf(" · 今天 %s / %s", signed(k), grouped(w.goal))
+			tip += "，今天 " + signed(k) + " 字，目标 " + words(w.goal)
 		case k != 0:
-			today = fmt.Sprintf(" · 今天 %+d", k)
-			tip += fmt.Sprintf("，今天 %+d 字", k)
+			today = " · 今天 " + signed(k)
+			tip += "，今天 " + signed(k) + " 字"
 		}
 		if !wide {
 			today = ""
@@ -857,13 +886,13 @@ func (a *App) writeTop(c *ui.Context) {
 		}
 		counts.Children(func() {
 			if ok && !roomy && unit == "选中" {
-				ui.Textf(c, "选中 %d 字", here).FontSize(12).TextColor(color).SingleLine()
+				ui.Text(c, "选中 "+words(here)).FontSize(12).TextColor(color).SingleLine()
 			} else if ok && !roomy {
-				ui.Textf(c, "%d 字", here).FontSize(12).TextColor(color).SingleLine()
+				ui.Text(c, words(here)).FontSize(12).TextColor(color).SingleLine()
 			} else if ok {
-				ui.Textf(c, "%s %d 字 · 全书 %d 字%s", unit, here, a.total(), today).FontSize(12).TextColor(color).SingleLine()
+				ui.Text(c, unit+" "+words(here)+" · 全书 "+words(a.total())+today).FontSize(12).TextColor(color).SingleLine()
 			} else {
-				ui.Textf(c, "全书 %d 字%s", a.total(), today).FontSize(12).TextColor(color).SingleLine()
+				ui.Text(c, "全书 "+words(a.total())+today).FontSize(12).TextColor(color).SingleLine()
 			}
 		})
 		if counts.Clicked() {

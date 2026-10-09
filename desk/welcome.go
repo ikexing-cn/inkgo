@@ -292,15 +292,12 @@ func opened(t time.Time) string {
 	return t.Format("2006-01-02")
 }
 
-// words says how long a work is.
-func words(n int) string {
-	switch {
-	case n == 0:
+// length says how long a work is.
+func length(n int) string {
+	if n == 0 {
 		return "还没有正文"
-	case n >= 10000:
-		return fmt.Sprintf("%.1f 万字", float64(n)/10000)
 	}
-	return fmt.Sprintf("%d 字", n)
+	return words(n)
 }
 
 func (a *App) welcome(c *ui.Context) {
@@ -434,7 +431,7 @@ func (a *App) bookRow(c *ui.Context, b shelf.Book) {
 				}
 				ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
 					ui.Text(c, b.Name).FontSize(15).FontWeight(600).TextColor(fg).SingleLine().Ellipsis("…").Shrink(1)
-					ui.Text(c, b.Genre+" · "+words(b.Words)).FontSize(12.5).TextColor(t.TextMuted).SingleLine()
+					ui.Text(c, b.Genre+" · "+length(b.Words)).FontSize(12.5).TextColor(t.TextMuted).SingleLine()
 				})
 				ui.Text(c, b.Path).FontSize(12).TextColor(a.pal.faint).SingleLine().Ellipsis("…")
 			})
@@ -481,7 +478,7 @@ func (a *App) bookCard(c *ui.Context, b shelf.Book) {
 			fg = a.pal.faint
 		}
 		ui.Text(c, b.Name).FontSize(15.5).FontWeight(600).TextColor(fg).SingleLine().Ellipsis("…").FillWidth()
-		ui.Text(c, b.Genre+" · "+words(b.Words)).FontSize(12.5).TextColor(t.TextMuted).SingleLine()
+		ui.Text(c, b.Genre+" · "+length(b.Words)).FontSize(12.5).TextColor(t.TextMuted).SingleLine()
 		ui.Spacer(c)
 		if gone {
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
