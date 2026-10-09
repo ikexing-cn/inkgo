@@ -259,11 +259,11 @@ func (a *App) mdDraw(c *ui.Context, blocks []mdBlock, size float32) {
 			})
 		case mdQuote:
 			ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Stretch).Children(func() {
-				ui.Box(c).Width(3).Radius(2).Background(a.pal.line).Shrink(0)
+				ui.Box(c).Width(3).Radius(rRound).Background(a.pal.line).Shrink(0)
 				ui.Column(c).Grow(1).Shrink(1).Gap(size * 0.5).Opacity(0.85).Children(func() { a.mdDraw(c, b.blocks, size) })
 			})
 		case mdCode:
-			ui.ScrollHorizontal(c).FillWidth().Radius(8).Background(a.pal.side).Border(1, a.pal.line).Children(func() {
+			ui.ScrollHorizontal(c).FillWidth().Radius(rControl).Background(a.pal.side).Border(1, a.pal.line).Children(func() {
 				ui.Text(c, b.code).Font("monospace").FontSize(size*0.88).LineHeight(1.6).NoWrap().Padding(10, 12).Selectable()
 			})
 		case mdRule:

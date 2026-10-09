@@ -660,7 +660,6 @@ func (a *App) writing(c *ui.Context) {
 		a.LastWrite = main.Bounds()
 		main.Children(func() {
 			a.writeTop(c)
-			a.pageBanners(c)
 			n, ok := a.write.tree.Node(a.write.node)
 			switch {
 			case a.write.lost && a.write.ed != nil:
@@ -669,7 +668,7 @@ func (a *App) writing(c *ui.Context) {
 				a.emptyWriting(c)
 			case !ok:
 				ui.Column(c).Grow(1).FillWidth().Center().Children(func() {
-					ui.Text(c, "从左边选一章开始写").FontSize(14).TextColor(a.pal.faint)
+					ui.Text(c, "从左边选一章开始写").FontSize(fsBody).TextColor(a.pal.faint)
 				})
 			case n.Folder:
 				a.folderView(c, n)
@@ -791,7 +790,7 @@ func (a *App) weekChart(c *ui.Context) {
 	days := a.lastDays(now, 7)
 	top := max(slices.Max(days), w.goal, 1)
 	const tall = 48
-	ui.Text(c, "最近 7 天").FontSize(12).FontWeight(600).TextColor(t.TextMuted).Padding(6, 0, 0, 0)
+	ui.Text(c, "最近 7 天").FontSize(fsNote).FontWeight(600).TextColor(t.TextMuted).Padding(6, 0, 0, 0)
 	ui.Row(c).FillWidth().Gap(4).AlignItems(ui.End).Children(func() {
 		for i, k := range days {
 			day := now.AddDate(0, 0, i-len(days)+1)
@@ -802,8 +801,8 @@ func (a *App) weekChart(c *ui.Context) {
 			ui.Column(c).Key(i).Grow(1).Gap(3).AlignItems(ui.Center).Label(fmt.Sprintf("%s 写了 %d 字", day.Format("1月2日"), k)).Tooltip(fmt.Sprintf("%s：%+d 字", day.Format("1月2日"), k)).Children(func() {
 				h := float32(max(k, 0)) / float32(top) * tall
 				ui.Box(c).Height(tall - h)
-				ui.Box(c).FillWidth().Height(max(h, 2)).Radius(2).Background(color)
-				ui.Textf(c, "%d", day.Day()).FontSize(10.5).TextColor(a.pal.faint)
+				ui.Box(c).FillWidth().Height(max(h, 2)).Radius(rXs).Background(color)
+				ui.Textf(c, "%d", day.Day()).FontSize(fsSmall).TextColor(a.pal.faint)
 			})
 		}
 	})
@@ -896,14 +895,14 @@ func (a *App) writeTop(c *ui.Context) {
 				path = append([]string{p.Title}, path...)
 			}
 			for _, title := range path {
-				ui.Text(c, title).FontSize(13).TextColor(t.TextMuted).SingleLine().Shrink(1)
+				ui.Text(c, title).FontSize(fsControl).TextColor(t.TextMuted).SingleLine().Shrink(1)
 				glyph(c, icChevron, 14, a.pal.faint)
 			}
-			ui.Text(c, n.Title).FontSize(13).FontWeight(600).SingleLine().Ellipsis("…").Shrink(1)
+			ui.Text(c, n.Title).FontSize(fsControl).FontWeight(600).SingleLine().Ellipsis("…").Shrink(1)
 		} else if w.lost {
-			ui.Text(c, w.lostTitle).FontSize(13).FontWeight(600)
+			ui.Text(c, w.lostTitle).FontSize(fsControl).FontWeight(600)
 		} else {
-			ui.Text(c, "正文").FontSize(13).FontWeight(600)
+			ui.Text(c, "正文").FontSize(fsControl).FontWeight(600)
 		}
 		ui.Spacer(c)
 		here, unit := 0, "本章"
@@ -932,19 +931,19 @@ func (a *App) writeTop(c *ui.Context) {
 			today = ""
 		}
 		color := a.pal.faint // as the design has it, met or not: the numbers say so
-		counts := ui.ButtonBase(c).Row().Padding(3, 6).Radius(6).Shrink(1).Label("字数").Tooltip(tip + "。点击设每日目标")
+		counts := ui.ButtonBase(c).Row().Padding(3, 6).Radius(rControl).Shrink(1).Label("字数").Tooltip(tip + "。点击设每日目标")
 		if counts.Hovered() {
 			counts.Background(t.SurfaceHover)
 		}
 		counts.Children(func() {
 			if ok && !roomy && unit == "选中" {
-				ui.Text(c, "选中 "+words(here)).FontSize(12).TextColor(color).SingleLine()
+				ui.Text(c, "选中 "+words(here)).FontSize(fsNote).TextColor(color).SingleLine()
 			} else if ok && !roomy {
-				ui.Text(c, words(here)).FontSize(12).TextColor(color).SingleLine()
+				ui.Text(c, words(here)).FontSize(fsNote).TextColor(color).SingleLine()
 			} else if ok {
-				ui.Text(c, unit+" "+words(here)+" · 全书 "+words(a.total())+today).FontSize(12).TextColor(color).SingleLine()
+				ui.Text(c, unit+" "+words(here)+" · 全书 "+words(a.total())+today).FontSize(fsNote).TextColor(color).SingleLine()
 			} else {
-				ui.Text(c, "全书 "+words(a.total())+today).FontSize(12).TextColor(color).SingleLine()
+				ui.Text(c, "全书 "+words(a.total())+today).FontSize(fsNote).TextColor(color).SingleLine()
 			}
 		})
 		if counts.Clicked() {
@@ -952,7 +951,7 @@ func (a *App) writeTop(c *ui.Context) {
 		}
 		ui.Popover(c, counts, &w.goalOpen, func() {
 			ui.Column(c).Width(220).Gap(6).Padding(8).Children(func() {
-				ui.Text(c, "每日目标").FontSize(13).FontWeight(600)
+				ui.Text(c, "每日目标").FontSize(fsControl).FontWeight(600)
 				in := ui.TextInput(c, &w.goalText).Label("每日目标字数").Placeholder("比如 2000").FillWidth().AutoFocus()
 				if in.Changed() {
 					a.setGoal(w.goalText)
@@ -960,7 +959,7 @@ func (a *App) writeTop(c *ui.Context) {
 				if in.Submitted() {
 					w.goalOpen = false
 				}
-				ui.Text(c, "顶栏的字数旁会写出今天写了多少、目标多少。留空就不设。").FontSize(12).TextColor(a.pal.faint).LineHeight(1.5).FillWidth()
+				ui.Text(c, "顶栏的字数旁会写出今天写了多少、目标多少。留空就不设。").FontSize(fsNote).TextColor(a.pal.faint).LineHeight(1.5).FillWidth()
 				a.weekChart(c)
 			})
 		})
@@ -968,9 +967,9 @@ func (a *App) writeTop(c *ui.Context) {
 		if ok && !n.Folder {
 			busy := w.ed.ReadOnly() || w.lost || w.external != nil
 			if w.ed.Predicting() {
-				ui.Text(c, "续写中…").FontSize(12).TextColor(a.pal.faint)
+				ui.Text(c, "续写中…").FontSize(fsNote).TextColor(a.pal.faint)
 			} else if w.ed.Ghost() != "" {
-				ui.Text(c, "Tab 采纳 · Esc 放弃").FontSize(12).TextColor(a.pal.faint)
+				ui.Text(c, "Tab 采纳 · Esc 放弃").FontSize(fsNote).TextColor(a.pal.faint)
 			}
 			color := ui.Color{}
 			if w.finding {
@@ -1007,11 +1006,11 @@ func (a *App) writeTop(c *ui.Context) {
 func (a *App) emptyWriting(c *ui.Context) {
 	t := a.pal.theme
 	ui.Column(c).Grow(1).FillWidth().AlignItems(ui.Center).Padding(96, 24, 0, 24).Gap(14).Children(func() {
-		ui.Box(c).Size(44, 44).Radius(12).Background(a.pal.ink.Alpha(0.1)).Center().Children(func() {
+		ui.Box(c).Size(44, 44).Radius(rDialog).Background(a.pal.ink.Alpha(0.1)).Center().Children(func() {
 			glyph(c, icBook, 22, a.pal.ink)
 		})
-		ui.Text(c, "还没有章节").FontSize(18).FontWeight(600)
-		ui.Text(c, "每一章是作品文件夹 chapters 里的一个纯文本文件，离开软件也能打开。").FontSize(13).TextColor(t.TextMuted)
+		ui.Text(c, "还没有章节").FontSize(fsDialog).FontWeight(600)
+		ui.Text(c, "每一章是作品文件夹 chapters 里的一个纯文本文件，离开软件也能打开。").FontSize(fsControl).TextColor(t.TextMuted)
 		ui.Row(c).Gap(10).Padding(8, 0, 0, 0).Children(func() {
 			if a.pal.primary(c, "新建第一章").Clicked() {
 				a.newNode(false)
@@ -1028,7 +1027,7 @@ func (a *App) emptyWriting(c *ui.Context) {
 func (a *App) outlineBox(c *ui.Context, label string, height float32) {
 	w := &a.write
 	ui.TextAreaBase(c, &w.outline).Label(label).Placeholder("写下这里要发生什么，作为你自己的提纲").FillWidth().Height(height).
-		FontSize(13.5).LineHeight(1.7).Padding(10, 12).Radius(8).Background(a.pal.side).Disabled(w.lost)
+		FontSize(fsBody).LineHeight(1.7).Padding(10, 12).Radius(rControl).Background(a.pal.side).Disabled(w.lost)
 }
 
 func (a *App) chapterView(c *ui.Context) {
@@ -1056,7 +1055,7 @@ func (a *App) chapterView(c *ui.Context) {
 	// opening under the two.
 	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(22, 24, 6, 24).Shrink(0).Children(func() {
 		ui.Column(c).FillWidth().MaxWidth(editor.MaxTextWidth).Gap(8).Children(func() {
-			ui.Text(c, heading(a.shownTitle())).FontSize(22).FontWeight(700).SingleLine().Ellipsis("…")
+			ui.Text(c, heading(a.shownTitle())).FontSize(fsTitle).FontWeight(700).SingleLine().Ellipsis("…")
 			label := "章纲"
 			if strings.TrimSpace(w.outline) == "" {
 				label = "章纲 · 空"
@@ -1126,7 +1125,7 @@ func (a *App) disclosure(c *ui.Context, label string, open *bool) ui.Collapsible
 		arrow = " ▴"
 	}
 	p.Trigger.Label(label).Padding(2, 0).Children(func() {
-		ui.Text(c, label+arrow).FontSize(12.5).TextColor(color).SingleLine()
+		ui.Text(c, label+arrow).FontSize(fsNote).TextColor(color).SingleLine()
 	})
 	return p
 }
@@ -1135,9 +1134,9 @@ func (a *App) disclosure(c *ui.Context, label string, open *bool) ui.Collapsible
 func (a *App) notice2(c *ui.Context, color ui.Color, text string, buttons func()) {
 	t := a.pal.theme
 	ui.Row(c).FillWidth().Padding(10, 20, 0, 20).Shrink(0).Children(func() {
-		ui.Row(c).FillWidth().Padding(8, 8, 8, 12).Gap(10).Radius(9).AlignItems(ui.Center).Background(color.Alpha(0.08)).Border(1, color.Alpha(0.2)).Children(func() {
+		ui.Row(c).FillWidth().Padding(8, 8, 8, 12).Gap(10).Radius(rCard).AlignItems(ui.Center).Background(color.Alpha(0.08)).Border(1, color.Alpha(0.2)).Children(func() {
 			glyph(c, icAlert, 15, color)
-			ui.Text(c, text).FontSize(13).TextColor(color.Mix(t.Text, 0.35)).Grow(1).Shrink(1)
+			ui.Text(c, text).FontSize(fsControl).TextColor(color.Mix(t.Text, 0.35)).Grow(1).Shrink(1)
 			buttons()
 		})
 	})
@@ -1174,9 +1173,9 @@ func (a *App) findBar(c *ui.Context) {
 		switch {
 		case w.query == "":
 		case none:
-			ui.Text(c, "没有找到").FontSize(12.5).TextColor(a.pal.faint).Shrink(0)
+			ui.Text(c, "没有找到").FontSize(fsNote).TextColor(a.pal.faint).Shrink(0)
 		default:
-			ui.Textf(c, "%d / %d", w.current+1, len(found)).FontSize(12.5).TextColor(t.TextMuted).Shrink(0)
+			ui.Textf(c, "%d / %d", w.current+1, len(found)).FontSize(fsNote).TextColor(t.TextMuted).Shrink(0)
 		}
 	}
 	move := func() {
@@ -1247,30 +1246,30 @@ func (a *App) folderView(c *ui.Context, n *workspace.Node) {
 	ui.Scroll(c).Key("folder").Grow(1).FillWidth().Children(func() {
 		ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(28, 28, 28, 28).Children(func() {
 			ui.Column(c).FillWidth().MaxWidth(720).Gap(14).Children(func() {
-				ui.Text(c, n.Title).FontSize(22).FontWeight(600)
-				ui.Text(c, "卷纲").FontSize(13).FontWeight(600).TextColor(t.TextMuted)
+				ui.Text(c, n.Title).FontSize(fsTitle).FontWeight(600)
+				ui.Text(c, "卷纲").FontSize(fsControl).FontWeight(600).TextColor(t.TextMuted)
 				a.outlineBox(c, "卷纲", 160)
 				ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(8, 0, 0, 0).Children(func() {
-					ui.Textf(c, "%d 项", len(n.Children)).FontSize(13).FontWeight(600).TextColor(t.TextMuted).Grow(1)
+					ui.Textf(c, "%d 项", len(n.Children)).FontSize(fsControl).FontWeight(600).TextColor(t.TextMuted).Grow(1)
 					if ghost(c, "在这里新建章节", ui.Color{}).Clicked() {
 						a.newNode(false)
 					}
 				})
 				for _, child := range n.Children {
-					row := ui.ButtonBase(c).Key("f-"+child.ID).Column().FillWidth().Gap(3).Padding(9, 12).Radius(8).Label("打开-" + child.Title)
+					row := ui.ButtonBase(c).Key("f-"+child.ID).Column().FillWidth().Gap(3).Padding(9, 12).Radius(rControl).Label("打开-" + child.Title)
 					if row.Hovered() {
 						row.Background(t.SurfaceHover)
 					}
 					row.Children(func() {
 						ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(10).Children(func() {
 							glyph(c, nodeIcon(child), 16, t.TextMuted)
-							ui.Text(c, child.Title).FontSize(14).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
+							ui.Text(c, child.Title).FontSize(fsBody).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
 							if !child.Folder {
-								ui.Textf(c, "%d 字", w.counts[child.ID]).FontSize(12).TextColor(a.pal.faint)
+								ui.Textf(c, "%d 字", w.counts[child.ID]).FontSize(fsNote).TextColor(a.pal.faint)
 							}
 						})
 						if gist := w.gists[child.ID]; gist != "" {
-							ui.Text(c, gist).FontSize(12.5).TextColor(t.TextMuted).FillWidth().Padding(0, 0, 0, 26).MaxLines(2).Ellipsis("…")
+							ui.Text(c, gist).FontSize(fsNote).TextColor(t.TextMuted).FillWidth().Padding(0, 0, 0, 26).MaxLines(2).Ellipsis("…")
 						}
 					})
 					if row.Clicked() {
@@ -1293,7 +1292,7 @@ func nodeIcon(n *workspace.Node) *ui.SVG {
 func (a *App) chapterTree(c *ui.Context) {
 	w := &a.write
 	ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(0, 4, 0, 8).Gap(2).Children(func() {
-		ui.Text(c, "章节").FontSize(11.5).FontWeight(600).TextColor(a.pal.faint).Grow(1)
+		ui.Text(c, "章节").FontSize(fsSmall).FontWeight(600).TextColor(a.pal.faint).Grow(1)
 		if iconButton(c, icFolderPlus, "新建文件夹", ui.Color{}).Clicked() {
 			a.newNode(true)
 		}
@@ -1327,13 +1326,13 @@ func (a *App) chapterTree(c *ui.Context) {
 // trashRow opens the trash.
 func (a *App) trashRow(c *ui.Context) {
 	t := a.pal.theme
-	b := ui.ButtonBase(c).Row().Grow(1).Shrink(1).Justify(ui.Start).AlignItems(ui.Center).Gap(10).Padding(7, 10).Radius(7).Label("回收站")
+	b := ui.ButtonBase(c).Row().Grow(1).Shrink(1).Justify(ui.Start).AlignItems(ui.Center).Gap(10).Padding(7, 10).Radius(rControl).Label("回收站")
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}
 	b.Children(func() {
 		glyph(c, icTrash, 15, t.TextMuted)
-		ui.Text(c, "回收站").FontSize(13).TextColor(t.TextMuted)
+		ui.Text(c, "回收站").FontSize(fsControl).TextColor(t.TextMuted)
 	})
 	if b.Clicked() {
 		a.openTrash()
@@ -1357,7 +1356,7 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 		return
 	}
 	row := ui.ButtonBase(c).Key("n-"+n.ID).Row().FillWidth().Justify(ui.Start).AlignItems(ui.Center).Gap(6).
-		Padding(6, 8, 6, 8+float32(depth)*14).Radius(7).Label("章节-" + n.Title)
+		Padding(6, 8, 6, 8+float32(depth)*14).Radius(rControl).Label("章节-" + n.Title)
 	row.Drag(dragNode(n.ID))
 	_, over := ui.DragOver[dragNode](row)
 	switch {
@@ -1385,9 +1384,9 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 			glyph(c, s, 13, a.pal.faint)
 		}
 		glyph(c, nodeIcon(n), 15, fg)
-		ui.Text(c, n.Title).FontSize(13).TextColor(fg).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
+		ui.Text(c, n.Title).FontSize(fsControl).TextColor(fg).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 		if k := w.wordsIn(n); k > 0 {
-			ui.Textf(c, "%d", k).FontSize(11).TextColor(a.pal.faint)
+			ui.Textf(c, "%d", k).FontSize(fsSmall).TextColor(a.pal.faint)
 		}
 	})
 	if row.Clicked() {
@@ -1577,11 +1576,11 @@ func (a *App) trashView(c *ui.Context) {
 	ui.Modal(c, &w.trashOpen, func() {
 		ui.Column(c).Width(520).Gap(14).Children(func() {
 			ui.Column(c).Gap(4).Children(func() {
-				ui.Text(c, "回收站").FontSize(17).FontWeight(600)
-				ui.Text(c, "删掉的章节连同它里面的内容先放在这里，恢复后回到原来所在文件夹的末尾。").FontSize(13).TextColor(t.TextMuted).LineHeight(1.6)
+				ui.Text(c, "回收站").FontSize(fsDialog).FontWeight(600)
+				ui.Text(c, "删掉的章节连同它里面的内容先放在这里，恢复后回到原来所在文件夹的末尾。").FontSize(fsControl).TextColor(t.TextMuted).LineHeight(1.6)
 			})
 			if len(w.trash) == 0 {
-				ui.Text(c, "回收站是空的").FontSize(13).TextColor(a.pal.faint).Padding(12, 0)
+				ui.Text(c, "回收站是空的").FontSize(fsControl).TextColor(a.pal.faint).Padding(12, 0)
 			}
 			ui.Scroll(c).Key("trash").FillWidth().MaxHeight(360).Children(func() {
 				ui.Column(c).FillWidth().Gap(2).Children(func() {
@@ -1593,8 +1592,8 @@ func (a *App) trashView(c *ui.Context) {
 							}
 							glyph(c, s, 15, t.TextMuted)
 							ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
-								ui.Text(c, it.Title).FontSize(13.5).SingleLine().Ellipsis("…")
-								ui.Text(c, it.At.Local().Format("01-02 15:04")+" 删除").FontSize(11.5).TextColor(a.pal.faint)
+								ui.Text(c, it.Title).FontSize(fsBody).SingleLine().Ellipsis("…")
+								ui.Text(c, it.At.Local().Format("01-02 15:04")+" 删除").FontSize(fsSmall).TextColor(a.pal.faint)
 							})
 							if ghost(c, "恢复", ui.Color{}).Label("恢复-" + it.Title).Clicked() {
 								a.restore(it.ID, it.Title)
@@ -1673,27 +1672,27 @@ func (a *App) snapshots(c *ui.Context) {
 		same := w.snap != "" && w.snapText == w.ed.Doc.String() // nothing to restore
 		ui.Column(c).Width(min(900, max(a.LastWrite.W, 640))).Height(560).Gap(12).Children(func() {
 			ui.Column(c).Gap(4).Children(func() {
-				ui.Text(c, "快照").FontSize(17).FontWeight(600)
-				ui.Text(c, "打开章节、连续写作每十分钟、恢复之前、AI 起草或采纳改写之前、全书替换之前都会存一份。最近七天的全部保留，更早的每天留最后一份。").FontSize(13).TextColor(t.TextMuted)
+				ui.Text(c, "快照").FontSize(fsDialog).FontWeight(600)
+				ui.Text(c, "打开章节、连续写作每十分钟、恢复之前、AI 起草或采纳改写之前、全书替换之前都会存一份。最近七天的全部保留，更早的每天留最后一份。").FontSize(fsControl).TextColor(t.TextMuted)
 			})
 			ui.Row(c).FillWidth().Grow(1).Gap(14).AlignItems(ui.Stretch).Children(func() {
 				ui.Scroll(c).Key("snaps").Width(210).FillHeight().Shrink(0).Children(func() {
 					ui.Column(c).FillWidth().Gap(2).Children(func() {
 						if len(w.snaps) == 0 {
-							ui.Text(c, "还没有快照").FontSize(13).TextColor(a.pal.faint).Padding(8)
+							ui.Text(c, "还没有快照").FontSize(fsControl).TextColor(a.pal.faint).Padding(8)
 						}
 						for _, sn := range w.snaps {
 							on := sn.Name == w.snap
 							when := sn.At.Local().Format("01-02 15:04:05")
-							b := ui.ButtonBase(c).Key("s-"+sn.Name).Column().FillWidth().AlignItems(ui.Start).Gap(2).Padding(8, 10).Radius(7).Label("快照-" + when)
+							b := ui.ButtonBase(c).Key("s-"+sn.Name).Column().FillWidth().AlignItems(ui.Start).Gap(2).Padding(8, 10).Radius(rControl).Label("快照-" + when)
 							if on {
 								b.Background(t.SurfacePressed)
 							} else if b.Hovered() {
 								b.Background(t.SurfaceHover)
 							}
 							b.Children(func() {
-								ui.Text(c, when).FontSize(13).FontWeight(map[bool]int{true: 600, false: 400}[on])
-								ui.Textf(c, "%s · %d 字", snapReasons[sn.Reason], sn.Count).FontSize(11.5).TextColor(a.pal.faint)
+								ui.Text(c, when).FontSize(fsControl).FontWeight(map[bool]int{true: 600, false: 400}[on])
+								ui.Textf(c, "%s · %d 字", snapReasons[sn.Reason], sn.Count).FontSize(fsSmall).TextColor(a.pal.faint)
 							})
 							if b.Clicked() {
 								a.pickSnapshot(sn.Name)
@@ -1705,15 +1704,15 @@ func (a *App) snapshots(c *ui.Context) {
 					ui.Row(c).FillWidth().Gap(4).AlignItems(ui.Center).Children(func() {
 						ui.Toggle(c, &w.compare, "和现在对比")
 						if same {
-							ui.Text(c, "这一份和现在的正文一样").FontSize(12).TextColor(a.pal.faint).Padding(0, 0, 0, 8)
+							ui.Text(c, "这一份和现在的正文一样").FontSize(fsNote).TextColor(a.pal.faint).Padding(0, 0, 0, 8)
 						} else if w.compare {
-							ui.Text(c, "红色划掉的是快照里有、现在没有的，绿色是现在新写的").FontSize(12).TextColor(a.pal.faint).Padding(0, 0, 0, 8)
+							ui.Text(c, "红色划掉的是快照里有、现在没有的，绿色是现在新写的").FontSize(fsNote).TextColor(a.pal.faint).Padding(0, 0, 0, 8)
 						}
 					})
 					if i := slices.IndexFunc(w.snaps, func(s workspace.Snapshot) bool { return s.Name == w.snap }); i >= 0 && w.snaps[i].AI != nil {
 						a.aiRecord(c, w.snaps[i].AI)
 					}
-					ui.Scroll(c).Key("snap-text").FillWidth().Grow(1).Background(a.pal.side).Radius(10).Children(func() {
+					ui.Scroll(c).Key("snap-text").FillWidth().Grow(1).Background(a.pal.side).Radius(rCard).Children(func() {
 						ui.Box(c).FillWidth().Padding(14, 16).Children(func() {
 							switch {
 							case w.snap == "":
@@ -1729,9 +1728,9 @@ func (a *App) snapshots(c *ui.Context) {
 										spans = append(spans, ui.Span{Text: p.text})
 									}
 								}
-								ui.RichText(c, spans...).FontSize(14).LineHeight(1.8).FillWidth().Selectable()
+								ui.RichText(c, spans...).FontSize(fsRead).LineHeight(1.8).FillWidth().Selectable()
 							default:
-								ui.Text(c, w.snapText).FontSize(14).LineHeight(1.8).FillWidth().Selectable()
+								ui.Text(c, w.snapText).FontSize(fsRead).LineHeight(1.8).FillWidth().Selectable()
 							}
 						})
 					})
@@ -1798,14 +1797,14 @@ func (a *App) take(c *ui.Context) {
 	ui.Modal(c, &w.takeOpen, func() {
 		ui.Column(c).Width(560).Gap(14).Children(func() {
 			ui.Column(c).Gap(4).Children(func() {
-				ui.Text(c, "加入设定").FontSize(17).FontWeight(600)
-				ui.Text(c, "选中的原文作为出处记下来；设定可以换成你自己的说法。").FontSize(13).TextColor(t.TextMuted)
+				ui.Text(c, "加入设定").FontSize(fsDialog).FontWeight(600)
+				ui.Text(c, "选中的原文作为出处记下来；设定可以换成你自己的说法。").FontSize(fsControl).TextColor(t.TextMuted)
 			})
-			ui.Box(c).FillWidth().Padding(10, 12).Radius(8).Background(a.pal.side).Children(func() {
-				ui.Text(c, w.takeQuote).FontSize(13).TextColor(t.TextMuted).LineHeight(1.7).FillWidth().Selectable()
+			ui.Box(c).FillWidth().Padding(10, 12).Radius(rControl).Background(a.pal.side).Children(func() {
+				ui.Text(c, w.takeQuote).FontSize(fsControl).TextColor(t.TextMuted).LineHeight(1.7).FillWidth().Selectable()
 			})
-			ui.TextAreaBase(c, &w.takeText).Label("设定内容").FillWidth().Height(76).FontSize(13.5).LineHeight(1.65).
-				Padding(10, 12).Radius(8).Border(1, t.Border)
+			ui.TextAreaBase(c, &w.takeText).Label("设定内容").FillWidth().Height(76).FontSize(fsBody).LineHeight(1.65).
+				Padding(10, 12).Radius(rControl).Border(1, t.Border)
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
 				ui.Select(c, &w.takeCategory, a.categoryNames()).Label("设定分类").Width(140)
 				ui.Spacer(c)
@@ -1850,8 +1849,8 @@ func (a *App) exportView(c *ui.Context) {
 	ui.Modal(c, &w.exportOpen, func() {
 		ui.Column(c).Width(460).Gap(14).Children(func() {
 			ui.Column(c).Gap(4).Children(func() {
-				ui.Text(c, "导出正文").FontSize(17).FontWeight(600)
-				ui.Text(c, "按章节树的顺序拼成一个 .txt，每个文件夹和章节前写上标题。").FontSize(13).TextColor(t.TextMuted)
+				ui.Text(c, "导出正文").FontSize(fsDialog).FontWeight(600)
+				ui.Text(c, "按章节树的顺序拼成一个 .txt，每个文件夹和章节前写上标题。").FontSize(fsControl).TextColor(t.TextMuted)
 			})
 			ui.RadioGroup(c, func() {
 				ui.Radio(c, &w.exportFrom, "", "全书")

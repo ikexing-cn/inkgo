@@ -56,16 +56,16 @@ func (a *App) preferences(c *ui.Context) {
 	w, h := c.Size()
 	ui.DialogBase(c, &a.bk.prefs, func(back, panel *ui.Element) {
 		back.Background(ui.RGBA(0, 0, 0, 0.32))
-		panel.Row().AlignItems(ui.Stretch).Width(min(prefsWidth, w-40)).Height(min(prefsHeight, h-40)).Radius(12).Background(t.Background)
+		panel.Row().AlignItems(ui.Stretch).Width(min(prefsWidth, w-40)).Height(min(prefsHeight, h-40)).Radius(rDialog).Background(t.Background)
 		panel.Shadow(0, 20, 60, 0, ui.RGBA(0, 0, 0, 0.22))
-		ui.Column(c).Width(176).FillHeight().Shrink(0).Padding(18, 10).Gap(2).Radius(12, 0, 0, 12).Background(a.pal.side).Children(func() {
-			ui.Text(c, "设置").FontSize(11.5).FontWeight(600).TextColor(a.pal.faint).Padding(0, 10, 8, 10)
+		ui.Column(c).Width(176).FillHeight().Shrink(0).Padding(18, 10).Gap(2).Radius(rDialog, 0, 0, rDialog).Background(a.pal.side).Children(func() {
+			ui.Text(c, "设置").FontSize(fsSmall).FontWeight(600).TextColor(a.pal.faint).Padding(0, 10, 8, 10)
 			for _, tl := range prefTabs {
 				tab := tl[0]
 				if tab == "备份" && a.Store == nil {
 					continue
 				}
-				b := ui.ButtonBase(c).Row().FillWidth().Height(32).Justify(ui.Start).AlignItems(ui.Center).Padding(0, 10).Radius(6).Label(tl[1])
+				b := ui.ButtonBase(c).Row().FillWidth().Height(32).Justify(ui.Start).AlignItems(ui.Center).Padding(0, 10).Radius(rControl).Label(tl[1])
 				on := a.bk.tab == tab
 				fg, weight := t.TextMuted, 400
 				if on {
@@ -74,7 +74,7 @@ func (a *App) preferences(c *ui.Context) {
 				} else if b.Hovered() {
 					b.Background(t.SurfaceHover)
 				}
-				b.Children(func() { ui.Text(c, tab).FontSize(13.5).FontWeight(weight).TextColor(fg) })
+				b.Children(func() { ui.Text(c, tab).FontSize(fsBody).FontWeight(weight).TextColor(fg) })
 				if b.Clicked() {
 					a.bk.tab = tab
 				}
@@ -83,9 +83,6 @@ func (a *App) preferences(c *ui.Context) {
 		ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
 		ui.Scroll(c).Key("prefs-" + a.bk.tab).Grow(1).Shrink(1).FillHeight().Children(func() {
 			ui.Column(c).FillWidth().Padding(28, 36, 32, 36).Gap(22).Children(func() {
-				if a.Error != "" || a.notice != "" {
-					a.banners(c) // the page's are under the dialog
-				}
 				switch a.bk.tab {
 				case "外观":
 					a.looksView(c)
@@ -105,15 +102,15 @@ func (a *App) preferences(c *ui.Context) {
 // prefsHead is the title over a part of the settings.
 func (a *App) prefsHead(c *ui.Context, title, caption string) {
 	ui.Column(c).FillWidth().Gap(6).Padding(0, 32, 0, 0).Children(func() {
-		ui.Text(c, title).FontSize(22).FontWeight(700)
-		ui.Text(c, caption).FontSize(13.5).TextColor(a.pal.theme.TextMuted).LineHeight(1.55)
+		ui.Text(c, title).FontSize(fsTitle).FontWeight(700)
+		ui.Text(c, caption).FontSize(fsBody).TextColor(a.pal.theme.TextMuted).LineHeight(1.55)
 	})
 }
 
 // prefsRow is a labeled row of the settings, between hairlines.
 func (a *App) prefsRow(c *ui.Context, label string, fn func()) {
 	ui.Row(c).FillWidth().Gap(24).Padding(14, 0).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, label).FontSize(14).FontWeight(500).Width(150).Shrink(0)
+		ui.Text(c, label).FontSize(fsBody).FontWeight(500).Width(150).Shrink(0)
 		ui.Column(c).Grow(1).Shrink(1).Children(fn)
 	})
 	a.pal.hairline(c)

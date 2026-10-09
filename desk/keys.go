@@ -33,14 +33,14 @@ func (a *App) keysHelp(c *ui.Context) {
 	t := a.pal.theme
 	ui.Modal(c, &a.keysOpen, func() {
 		ui.Column(c).Width(440).Gap(14).Children(func() {
-			ui.Text(c, "快捷键").FontSize(17).FontWeight(600)
+			ui.Text(c, "快捷键").FontSize(fsDialog).FontWeight(600)
 			for _, g := range keyGroups {
 				ui.Column(c).FillWidth().Gap(6).Children(func() {
-					ui.Text(c, g.Where).FontSize(12.5).FontWeight(600).TextColor(t.TextMuted)
+					ui.Text(c, g.Where).FontSize(fsNote).FontWeight(600).TextColor(t.TextMuted)
 					for _, k := range g.Keys {
 						ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Center).Children(func() {
-							ui.Text(c, k[0]).FontSize(12.5).FontWeight(600).Width(170).Shrink(0)
-							ui.Text(c, k[1]).FontSize(13).TextColor(t.TextMuted).Grow(1).Shrink(1)
+							ui.Text(c, k[0]).FontSize(fsNote).FontWeight(600).Width(170).Shrink(0)
+							ui.Text(c, k[1]).FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1)
 						})
 					}
 				})

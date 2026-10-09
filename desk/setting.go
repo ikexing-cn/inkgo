@@ -139,10 +139,10 @@ func (a *App) settingPanel(c *ui.Context) {
 		if tabs {
 			a.panelTabs(c)
 		} else {
-			ui.Text(c, title).FontSize(15).FontWeight(600)
+			ui.Text(c, title).FontSize(fsGroup).FontWeight(600)
 		}
 		if !a.doc.history && !tabs && body > 0 {
-			ui.Textf(c, "%d", body).FontSize(12.5).TextColor(a.pal.faint).Padding(0, 0, 0, 4)
+			ui.Textf(c, "%d", body).FontSize(fsNote).TextColor(a.pal.faint).Padding(0, 0, 0, 4)
 		}
 		ui.Spacer(c)
 		a.bookDot(c)
@@ -183,7 +183,7 @@ func (a *App) document(c *ui.Context) {
 		ui.Column(c).FillWidth().Gap(14).Padding(2, 4, 12, 0).Children(func() {
 			a.renameNotice(c)
 			if len(a.set.Entries) == 0 && a.doc.editing == "" {
-				ui.Text(c, "聊着聊着，你定下的设定会整理到这里。也可以直接新增一条。").FontSize(13).TextColor(t.TextMuted).LineHeight(1.7)
+				ui.Text(c, "聊着聊着，你定下的设定会整理到这里。也可以直接新增一条。").FontSize(fsControl).TextColor(t.TextMuted).LineHeight(1.7)
 			}
 			for _, cat := range a.Store.Work().Categories {
 				a.docSection(c, workspace.PlaceBody, cat.Name, cat.Name, true)
@@ -229,7 +229,7 @@ func (a *App) docSection(c *ui.Context, place, category, title string, unfolded 
 // bookkeeper just changed is tinted for a moment.
 func (a *App) entry(c *ui.Context, e workspace.Entry) {
 	t := a.pal.theme
-	box := ui.Column(c).Key(e.ID).FillWidth().Padding(6, 8, 6, 10).Radius(8).Gap(8)
+	box := ui.Column(c).Key(e.ID).FillWidth().Padding(6, 8, 6, 10).Radius(rCard).Gap(8)
 	if at, ok := a.flash[e.ID]; ok {
 		if left := flashFor - time.Since(at); left > 0 {
 			box.Background(a.pal.ink.Alpha(0.16 * float32(left) / float32(flashFor)))
@@ -248,10 +248,10 @@ func (a *App) entry(c *ui.Context, e workspace.Entry) {
 			return
 		}
 		if len(e.Names) > 0 {
-			ui.Text(c, strings.Join(e.Names, " · ")).FontSize(12).FontWeight(600).TextColor(a.pal.theme.TextMuted).FillWidth().Margin(0, 0, -6, 0)
+			ui.Text(c, strings.Join(e.Names, " · ")).FontSize(fsNote).FontWeight(600).TextColor(a.pal.theme.TextMuted).FillWidth().Margin(0, 0, -6, 0)
 		}
 		ui.Row(c).FillWidth().Gap(4).AlignItems(ui.Start).Children(func() {
-			text := ui.Text(c, e.Text).FontSize(13.5).LineHeight(1.65).Selectable().Grow(1).Shrink(1)
+			text := ui.Text(c, e.Text).FontSize(fsBody).LineHeight(1.65).Selectable().Grow(1).Shrink(1)
 			if e.Place == workspace.PlaceDropped {
 				text.TextColor(t.TextMuted)
 			}
@@ -290,11 +290,11 @@ func (a *App) entry(c *ui.Context, e workspace.Entry) {
 // body when e is empty.
 func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 	t := a.pal.theme
-	ui.TextAreaBase(c, &a.doc.text).Label("设定内容").Placeholder("写下一条设定").FillWidth().Height(76).FontSize(13.5).LineHeight(1.65).
-		Padding(6, 8).Radius(6).Background(a.pal.raised).Border(1, t.Border)
+	ui.TextAreaBase(c, &a.doc.text).Label("设定内容").Placeholder("写下一条设定").FillWidth().Height(76).FontSize(fsBody).LineHeight(1.65).
+		Padding(6, 8).Radius(rControl).Background(a.pal.raised).Border(1, t.Border)
 	naming := slices.Contains(workspace.NameCategories, a.doc.category)
 	if naming {
-		ui.TextInput(c, &a.doc.names).Label("名称").Placeholder("名称，别名用顿号隔开：林晚、晚晚").FillWidth().FontSize(13)
+		ui.TextInput(c, &a.doc.names).Label("名称").Placeholder("名称，别名用顿号隔开：林晚、晚晚").FillWidth().FontSize(fsControl)
 	}
 	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Select(c, &a.doc.category, a.categoryNames()).Label("设定分类").Width(120)
@@ -338,18 +338,18 @@ func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 
 func (a *App) newEntry(c *ui.Context) {
 	if a.doc.editing == "new" {
-		ui.Column(c).FillWidth().Padding(6, 8, 6, 10).Radius(8).Gap(8).Background(a.pal.raised).Children(func() {
+		ui.Column(c).FillWidth().Padding(6, 8, 6, 10).Radius(rCard).Gap(8).Background(a.pal.raised).Children(func() {
 			a.entryForm(c, workspace.Entry{})
 		})
 		return
 	}
-	b := ui.ButtonBase(c).Row().Gap(6).AlignItems(ui.Center).Padding(5, 8).Radius(7).Label("新增设定")
+	b := ui.ButtonBase(c).Row().Gap(6).AlignItems(ui.Center).Padding(5, 8).Radius(rControl).Label("新增设定")
 	if b.Hovered() {
 		b.Background(a.pal.theme.SurfaceHover)
 	}
 	b.Children(func() {
 		glyph(c, icPlus, 14, a.pal.faint)
-		ui.Text(c, "新增设定").FontSize(13).TextColor(a.pal.theme.TextMuted)
+		ui.Text(c, "新增设定").FontSize(fsControl).TextColor(a.pal.theme.TextMuted)
 	})
 	if b.Clicked() {
 		a.doc.editing, a.doc.text, a.doc.category, a.doc.names = "new", "", workspace.Other, ""
@@ -364,11 +364,11 @@ func (a *App) history(c *ui.Context) {
 	ui.Scroll(c).Key("history").Grow(1).FillWidth().Children(func() {
 		ui.Column(c).FillWidth().Gap(10).Padding(2, 4, 12, 0).Children(func() {
 			if len(a.set.Revisions) == 0 {
-				ui.Text(c, "还没有整理过。每轮对话之后，整理会在后台进行。").FontSize(13).TextColor(t.TextMuted)
+				ui.Text(c, "还没有整理过。每轮对话之后，整理会在后台进行。").FontSize(fsControl).TextColor(t.TextMuted)
 			}
 			for n := len(a.set.Revisions) - 1; n >= 0; n-- {
 				r := a.set.Revisions[n]
-				ui.Column(c).Key(r.ID).FillWidth().Padding(10, 12).Gap(6).Radius(10).Background(a.pal.raised).Border(1, a.pal.line).Children(func() {
+				ui.Column(c).Key(r.ID).FillWidth().Padding(10, 12).Gap(6).Radius(rCard).Background(a.pal.raised).Border(1, a.pal.line).Children(func() {
 					ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
 						who := "你改的"
 						if r.By == workspace.ByBookkeeper {
@@ -377,17 +377,17 @@ func (a *App) history(c *ui.Context) {
 								who += "（重试）"
 							}
 						}
-						ui.Text(c, who).FontSize(12.5).FontWeight(600)
+						ui.Text(c, who).FontSize(fsNote).FontWeight(600)
 						if m := modelLabel(r.Model, r.Effort); m != "" {
-							ui.Text(c, m).FontSize(11.5).TextColor(a.pal.faint).SingleLine().Ellipsis("…").Shrink(1)
+							ui.Text(c, m).FontSize(fsSmall).TextColor(a.pal.faint).SingleLine().Ellipsis("…").Shrink(1)
 						}
 						ui.Spacer(c)
-						ui.Text(c, r.At.Local().Format("01-02 15:04")).FontSize(11.5).TextColor(a.pal.faint)
+						ui.Text(c, r.At.Local().Format("01-02 15:04")).FontSize(fsSmall).TextColor(a.pal.faint)
 					})
 					if r.Failed != "" {
 						ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Start).Children(func() {
 							glyph(c, icAlert, 13, t.Warning)
-							ui.Text(c, "这几轮没整理成功："+r.Failed).FontSize(12.5).TextColor(t.Warning).Grow(1).Shrink(1)
+							ui.Text(c, "这几轮没整理成功："+r.Failed).FontSize(fsNote).TextColor(t.Warning).Grow(1).Shrink(1)
 						})
 						if !a.set.Redone(r.ID) && ghost(c, "重试", t.Text).Label("重试整理-"+r.ID).Disabled(a.busy != "").Clicked() {
 							a.redo(c, r.ID)
@@ -395,13 +395,13 @@ func (a *App) history(c *ui.Context) {
 						return
 					}
 					if len(r.Ops) == 0 {
-						ui.Text(c, "没有需要改的").FontSize(12.5).TextColor(t.TextMuted)
+						ui.Text(c, "没有需要改的").FontSize(fsNote).TextColor(t.TextMuted)
 					}
 					for _, op := range r.Ops {
-						ui.Text(c, a.describeOp(op)).FontSize(12.5).LineHeight(1.6).Selectable().FillWidth()
+						ui.Text(c, a.describeOp(op)).FontSize(fsNote).LineHeight(1.6).Selectable().FillWidth()
 					}
 					if len(r.Skipped) > 0 {
-						ui.Textf(c, "%d 处你刚改过，没有覆盖，放进了悬而未决", len(r.Skipped)).FontSize(12).TextColor(t.TextMuted)
+						ui.Textf(c, "%d 处你刚改过，没有覆盖，放进了悬而未决", len(r.Skipped)).FontSize(fsNote).TextColor(t.TextMuted)
 					}
 					if r.Reasoning != "" {
 						a.thought(c, r.ID, "整理时的思考", r.Reasoning, false)
@@ -464,7 +464,7 @@ func (a *App) bookDot(c *ui.Context) {
 	if failed {
 		label, color = "上次整理没成功，点开看看", a.pal.theme.Warning
 	}
-	b := ui.ButtonBase(c).Label(label).Tooltip(label).Padding(7).Radius(6)
+	b := ui.ButtonBase(c).Label(label).Tooltip(label).Padding(7).Radius(rControl)
 	if b.Hovered() {
 		b.Background(a.pal.theme.SurfaceHover)
 	}

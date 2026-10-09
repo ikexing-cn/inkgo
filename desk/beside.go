@@ -47,14 +47,14 @@ func (a *App) panelTabs(c *ui.Context) {
 	t := a.pal.theme
 	tab := func(label string, talk bool) {
 		on := a.doc.talk == talk
-		b := ui.ButtonBase(c).Row().AlignItems(ui.Center).Padding(4, 10).Radius(7).Label("右栏-" + label)
+		b := ui.ButtonBase(c).Row().AlignItems(ui.Center).Padding(4, 10).Radius(rControl).Label("右栏-" + label)
 		if on {
 			b.Background(t.SurfacePressed)
 		} else if b.Hovered() {
 			b.Background(t.SurfaceHover)
 		}
 		b.Children(func() {
-			text := ui.Text(c, label).FontSize(14)
+			text := ui.Text(c, label).FontSize(fsBody)
 			if on {
 				text.FontWeight(600)
 			} else {
@@ -63,7 +63,7 @@ func (a *App) panelTabs(c *ui.Context) {
 			// The count sits inside its own tab; beside the tabs it read
 			// as unread talk.
 			if n := a.bodyCount(); !talk && n > 0 {
-				ui.Textf(c, "%d", n).FontSize(12.5).TextColor(a.pal.faint).Padding(0, 0, 0, 4)
+				ui.Textf(c, "%d", n).FontSize(fsNote).TextColor(a.pal.faint).Padding(0, 0, 0, 4)
 			}
 		})
 		if b.Clicked() && !on {
@@ -97,13 +97,13 @@ func (a *App) talkPanel(c *ui.Context) {
 		}
 	})
 	_, words := a.sessionParts(a.session)
-	pick := ui.ButtonBase(c).Row().FillWidth().Gap(6).AlignItems(ui.Center).Padding(5, 8).Radius(7).Border(1, t.Border).Label("切换讨论").Disabled(a.busy != "")
+	pick := ui.ButtonBase(c).Row().FillWidth().Gap(6).AlignItems(ui.Center).Padding(5, 8).Radius(rControl).Border(1, t.Border).Label("切换讨论").Disabled(a.busy != "")
 	if pick.Hovered() {
 		pick.Background(t.SurfaceHover)
 	}
 	pick.Children(func() {
 		glyph(c, icChat, 14, t.TextMuted)
-		ui.Text(c, words).FontSize(13).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
+		ui.Text(c, words).FontSize(fsControl).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 		glyph(c, icChevronDown, 13, a.pal.faint)
 	})
 	pick.Menu(func(m *ui.Menu) {
@@ -181,19 +181,19 @@ func (a *App) quoteToTalk() {
 // finds the words in the chapter.
 func (a *App) quoteBlock(c *ui.Context, q workspace.Quote, key string, remove func()) {
 	t := a.pal.theme
-	b := ui.ButtonBase(c).Key(key).Row().FillWidth().Gap(8).AlignItems(ui.Stretch).Padding(6, 8, 6, 0).Radius(6).Label("引用-" + key).Tooltip("在正文里找到这段")
+	b := ui.ButtonBase(c).Key(key).Row().FillWidth().Gap(8).AlignItems(ui.Stretch).Padding(6, 8, 6, 0).Radius(rControl).Label("引用-" + key).Tooltip("在正文里找到这段")
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}
 	b.Children(func() {
-		ui.Box(c).Width(3).Radius(2).Background(a.pal.ink.Alpha(0.5)).Shrink(0)
+		ui.Box(c).Width(3).Radius(rRound).Background(a.pal.ink.Alpha(0.5)).Shrink(0)
 		ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
 			title := q.Title // as it was named then, unless the tree knows it now
 			if n, ok := a.write.tree.Node(q.Chapter); ok {
 				title = n.Title
 			}
-			ui.Text(c, "《"+title+"》").FontSize(12).TextColor(a.pal.ink)
-			ui.Text(c, clip(q.Text, 160)).FontSize(13).LineHeight(1.6).TextColor(t.TextMuted).FillWidth()
+			ui.Text(c, "《"+title+"》").FontSize(fsNote).TextColor(a.pal.ink)
+			ui.Text(c, clip(q.Text, 160)).FontSize(fsControl).LineHeight(1.6).TextColor(t.TextMuted).FillWidth()
 		})
 		if remove != nil && iconButton(c, icX, "去掉引用-"+key, ui.Color{}).Tooltip("去掉这段引用").Clicked() {
 			remove()

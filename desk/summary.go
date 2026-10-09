@@ -212,13 +212,13 @@ func (a *App) summaryPanel(c *ui.Context) {
 	_, line, warn := a.summaryState()
 	ui.Column(c).FillWidth().Gap(6).Padding(2, 0, 4, 0).Children(func() {
 		ui.TextAreaBase(c, &w.summary).Label("本章摘要").Placeholder("这一章发生了什么：起草后面的章节时，AI 会看到各章的摘要").FillWidth().Height(84).
-			FontSize(13.5).LineHeight(1.7).Padding(10, 12).Radius(8).Background(a.pal.side).Disabled(w.lost || a.sums.running == w.node)
+			FontSize(fsBody).LineHeight(1.7).Padding(10, 12).Radius(rControl).Background(a.pal.side).Disabled(w.lost || a.sums.running == w.node)
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 			color := a.pal.faint
 			if warn {
 				color = t.Warning
 			}
-			ui.Text(c, line).FontSize(12).TextColor(color).Grow(1).Shrink(1)
+			ui.Text(c, line).FontSize(fsNote).TextColor(color).Grow(1).Shrink(1)
 			verb := "重新生成"
 			if w.sum.Text == "" {
 				verb = "生成摘要"
@@ -248,7 +248,7 @@ func (a *App) recapNote(c *ui.Context) {
 		waiting++
 	}
 	if waiting > 0 && q.total > 0 {
-		ui.Textf(c, "正在补摘要：%d / %d。补完之前起草，AI 只看得到已有的摘要。", q.total-waiting, q.total).FontSize(12.5).TextColor(t.TextMuted)
+		ui.Textf(c, "正在补摘要：%d / %d。补完之前起草，AI 只看得到已有的摘要。", q.total-waiting, q.total).FontSize(fsNote).TextColor(t.TextMuted)
 		return
 	}
 	var missing []string
@@ -260,12 +260,12 @@ func (a *App) recapNote(c *ui.Context) {
 	w.unsummarized = missing
 	if len(missing) == 0 {
 		if w.recapped > 0 {
-			ui.Textf(c, "起草时 AI 会读前面 %d 章的摘要，接上前情。", w.recapped).FontSize(12.5).TextColor(t.TextMuted)
+			ui.Textf(c, "起草时 AI 会读前面 %d 章的摘要，接上前情。", w.recapped).FontSize(fsNote).TextColor(t.TextMuted)
 		}
 		return
 	}
-	ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Padding(8, 10).Radius(8).Background(t.Warning.Alpha(0.07)).Children(func() {
-		ui.Textf(c, "前面有 %d 章还没有摘要，起草时 AI 不知道这些章里发生了什么。", len(missing)).FontSize(12.5).TextColor(t.Warning.Mix(t.Text, 0.35)).Grow(1).Shrink(1)
+	ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Padding(8, 10).Radius(rCard).Background(t.Warning.Alpha(0.07)).Children(func() {
+		ui.Textf(c, "前面有 %d 章还没有摘要，起草时 AI 不知道这些章里发生了什么。", len(missing)).FontSize(fsNote).TextColor(t.Warning.Mix(t.Text, 0.35)).Grow(1).Shrink(1)
 		if action(c, fmt.Sprintf("补齐摘要（%d 次调用）", len(missing)), t.Warning, false).Label("补齐摘要").Clicked() {
 			for _, id := range missing {
 				a.queueSummary(id)

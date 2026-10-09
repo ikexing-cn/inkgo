@@ -50,7 +50,7 @@ func (a *App) moreButton(c *ui.Context, chapter bool) {
 // and on the right a shortcut, or why it cannot be done now.
 func (a *App) menuRow(c *ui.Context, s *ui.SVG, text, hint string, off bool) *ui.Element {
 	t := a.pal.theme
-	b := ui.ButtonBase(c).Row().FillWidth().Height(32).Padding(0, 10).Gap(10).AlignItems(ui.Center).Radius(6).Label(strings.TrimSuffix(text, "…")).Disabled(off)
+	b := ui.ButtonBase(c).Row().FillWidth().Height(32).Padding(0, 10).Gap(10).AlignItems(ui.Center).Radius(rControl).Label(strings.TrimSuffix(text, "…")).Disabled(off)
 	fg := t.AccentHover
 	if off {
 		fg = a.pal.faint
@@ -59,9 +59,9 @@ func (a *App) menuRow(c *ui.Context, s *ui.SVG, text, hint string, off bool) *ui
 	}
 	b.Children(func() {
 		glyph(c, s, 15, fg)
-		ui.Text(c, text).FontSize(13).TextColor(fg).Grow(1).SingleLine()
+		ui.Text(c, text).FontSize(fsControl).TextColor(fg).Grow(1).SingleLine()
 		if hint != "" {
-			ui.Text(c, hint).FontSize(11.5).TextColor(a.pal.faint).SingleLine()
+			ui.Text(c, hint).FontSize(fsSmall).TextColor(a.pal.faint).SingleLine()
 		}
 	})
 	return b
@@ -75,7 +75,7 @@ func (a *App) menuLine(c *ui.Context) {
 // following the system, light or dark.
 func (a *App) themeChoice(c *ui.Context) {
 	ui.Column(c).FillWidth().Gap(6).Padding(6, 10, 8, 10).Children(func() {
-		ui.Text(c, "外观").FontSize(12).TextColor(a.pal.faint)
+		ui.Text(c, "外观").FontSize(fsNote).TextColor(a.pal.faint)
 		a.themeSegments(c)
 	})
 }
@@ -83,13 +83,13 @@ func (a *App) themeChoice(c *ui.Context) {
 // themeSegments are the three appearances side by side.
 func (a *App) themeSegments(c *ui.Context) {
 	t := a.pal.theme
-	ui.Row(c).FillWidth().Gap(2).Padding(2).Radius(7).Background(t.SurfaceHover).Children(func() {
+	ui.Row(c).FillWidth().Gap(2).Padding(2).Radius(rControl).Background(t.SurfaceHover).Children(func() {
 		for _, m := range []struct {
 			v, n string
 			s    *ui.SVG
 		}{{"", "跟随系统", icMonitor}, {"light", "浅色", icSun}, {"dark", "深色", icMoon}} {
 			on := a.shelf.Theme == m.v
-			b := ui.ButtonBase(c).Row().Grow(1).Height(26).Center().Gap(5).Radius(5).Label("外观-" + m.n)
+			b := ui.ButtonBase(c).Row().Grow(1).Height(26).Center().Gap(5).Radius(rControl).Label("外观-" + m.n)
 			fg := t.TextMuted
 			if on {
 				b.Background(a.pal.raised).Shadow(0, 1, 2, 0, ui.Hex("#000000").Alpha(0.08))
@@ -99,7 +99,7 @@ func (a *App) themeSegments(c *ui.Context) {
 			}
 			b.Children(func() {
 				glyph(c, m.s, 13, fg)
-				ui.Text(c, m.n).FontSize(12).TextColor(fg).SingleLine()
+				ui.Text(c, m.n).FontSize(fsNote).TextColor(fg).SingleLine()
 			})
 			if b.Clicked() {
 				a.setTheme(m.v)
@@ -141,7 +141,7 @@ func (a *App) selectionBar(c *ui.Context) {
 		top = r.Y + r.H + 6 // under the line when there is no room above
 	}
 	left := max(8, min(r.X-12, w.ed.Width()-width-8))
-	bar := ui.Row(c).Absolute().Left(left).Top(top).Height(height).Padding(3).Gap(2).AlignItems(ui.Center).Radius(8).
+	bar := ui.Row(c).Absolute().Left(left).Top(top).Height(height).Padding(3).Gap(2).AlignItems(ui.Center).Radius(rControl).
 		Background(a.pal.raised).Border(1, t.Border).Shadow(0, 6, 20, 0, ui.Hex("#000000").Alpha(0.12))
 	bar.Children(func() {
 		if a.selButton(c, icPen, "AI 改写").Tooltip("让 AI 改写选中的部分").Clicked() {
@@ -155,13 +155,13 @@ func (a *App) selectionBar(c *ui.Context) {
 
 func (a *App) selButton(c *ui.Context, s *ui.SVG, text string) *ui.Element {
 	t := a.pal.theme
-	b := ui.ButtonBase(c).Row().Height(26).Padding(0, 8).Gap(5).AlignItems(ui.Center).Radius(5).Label(text)
+	b := ui.ButtonBase(c).Row().Height(26).Padding(0, 8).Gap(5).AlignItems(ui.Center).Radius(rControl).Label(text)
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}
 	b.Children(func() {
 		glyph(c, s, 14, t.AccentHover)
-		ui.Text(c, text).FontSize(12.5).TextColor(t.AccentHover).SingleLine()
+		ui.Text(c, text).FontSize(fsNote).TextColor(t.AccentHover).SingleLine()
 	})
 	return b
 }

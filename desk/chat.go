@@ -23,7 +23,6 @@ func (a *App) discussion(c *ui.Context) {
 		a.LastChat = chat.Bounds()
 		chat.Children(func() {
 			a.chatTop(c)
-			a.pageBanners(c)
 			a.chatList(c, false)
 			ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(0, 28, 20, 28).Children(func() {
 				a.composer(c)
@@ -90,12 +89,12 @@ func (a *App) chatTop(c *ui.Context) {
 	_, words := a.sessionParts(a.session)
 	left, right := a.chromeRoom(c)
 	ui.Row(c).FillWidth().Height(titleHeight).Padding(0, 24+right, 0, 24+left).Gap(8).AlignItems(ui.Center).Shrink(0).DragWindow().Children(func() {
-		ui.Text(c, "总讨论").FontSize(13).TextColor(t.TextMuted)
+		ui.Text(c, "总讨论").FontSize(fsControl).TextColor(t.TextMuted)
 		glyph(c, icChevron, 14, a.pal.faint)
-		ui.Text(c, words).FontSize(13.5).FontWeight(600).SingleLine().Ellipsis("…").Shrink(1)
+		ui.Text(c, words).FontSize(fsBody).FontWeight(600).SingleLine().Ellipsis("…").Shrink(1)
 		ui.Spacer(c)
 		if n := len(a.events); n > 0 {
-			ui.Textf(c, "%d 条发言", n).FontSize(12).TextColor(a.pal.faint)
+			ui.Textf(c, "%d 条发言", n).FontSize(fsNote).TextColor(a.pal.faint)
 		}
 		if a.doc.hidden {
 			a.bookDot(c)
@@ -142,19 +141,19 @@ func (a *App) emptyChat(c *ui.Context) {
 		top, size = 40, 18
 	}
 	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(top, 0, 0, 0).Gap(14).Children(func() {
-		ui.Box(c).Size(44, 44).Radius(12).Background(a.pal.ink.Alpha(0.1)).Center().Children(func() {
+		ui.Box(c).Size(44, 44).Radius(rDialog).Background(a.pal.ink.Alpha(0.1)).Center().Children(func() {
 			glyph(c, icSparkle, 22, a.pal.ink)
 		})
 		ui.Text(c, title).FontSize(size).FontWeight(600)
-		ui.Text(c, about).FontSize(13.5).TextColor(t.TextMuted).TextAlign(ui.Center).LineHeight(1.7)
+		ui.Text(c, about).FontSize(fsBody).TextColor(t.TextMuted).TextAlign(ui.Center).LineHeight(1.7)
 		ui.Box(c).Height(6)
 		ui.Row(c).Gap(8).Wrap().Justify(ui.Center).Children(func() {
 			for _, s := range starts {
-				b := ui.ButtonBase(c).Padding(7, 14).Radius(999).Border(1, t.Border).Background(a.pal.raised)
+				b := ui.ButtonBase(c).Padding(7, 14).Radius(rRound).Border(1, t.Border).Background(a.pal.raised)
 				if b.Hovered() {
 					b.Background(t.SurfaceHover)
 				}
-				b.Children(func() { ui.Text(c, s).FontSize(13).TextColor(t.Text) })
+				b.Children(func() { ui.Text(c, s).FontSize(fsControl).TextColor(t.Text) })
 				if b.Clicked() {
 					a.input = s
 				}
@@ -172,14 +171,14 @@ func (a *App) answered(userID string) bool {
 	return false
 }
 func (a *App) aiMark(c *ui.Context) {
-	ui.Box(c).Size(24, 24).Radius(7).Background(a.pal.ink.Alpha(0.12)).Center().Shrink(0).Children(func() {
+	ui.Box(c).Size(24, 24).Radius(rControl).Background(a.pal.ink.Alpha(0.12)).Center().Shrink(0).Children(func() {
 		glyph(c, icSparkle, 14, a.pal.ink)
 	})
 }
 
 func (a *App) userBubble(c *ui.Context, text string) {
-	ui.Column(c).MaxWidthPercent(82).Padding(10, 15).Radius(14).Background(a.pal.bubble).Children(func() {
-		ui.Text(c, text).FontSize(14.5).LineHeight(1.7).Selectable()
+	ui.Column(c).MaxWidthPercent(82).Padding(10, 15).Radius(rDialog).Background(a.pal.bubble).Children(func() {
+		ui.Text(c, text).FontSize(fsRead).LineHeight(1.7).Selectable()
 	})
 }
 
@@ -226,7 +225,7 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 				if who := modelLabel(m.Model, m.Effort); who != "" {
 					when += " · " + who
 				}
-				ui.Text(c, when).FontSize(11.5).TextColor(a.pal.faint).Padding(0, 6, 0, 0)
+				ui.Text(c, when).FontSize(fsSmall).TextColor(a.pal.faint).Padding(0, 6, 0, 0)
 			}
 			if iconButton(c, icQuote, "摘取-"+m.ID, ui.Color{}).Tooltip("摘取原文").Disabled(a.busy != "").Clicked() {
 				a.openSource(m, 0, 0)
@@ -250,13 +249,13 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 				}
 			}
 			if user && !m.At.IsZero() {
-				ui.Text(c, m.At.Local().Format("15:04")).FontSize(11.5).TextColor(a.pal.faint).Padding(0, 0, 0, 6)
+				ui.Text(c, m.At.Local().Format("15:04")).FontSize(fsSmall).TextColor(a.pal.faint).Padding(0, 0, 0, 6)
 			}
 		})
 		if user && !a.answered(m.ID) && !a.talking {
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 				glyph(c, icAlert, 14, t.Warning)
-				ui.Text(c, "这条还没有得到回复").FontSize(12.5).TextColor(t.Warning)
+				ui.Text(c, "这条还没有得到回复").FontSize(fsNote).TextColor(t.Warning)
 				if ghost(c, "重试回复", t.Text).Disabled(a.busy != "").Clicked() {
 					a.retry(c, m.ID)
 				}
@@ -293,7 +292,7 @@ func (a *App) thinking(c *ui.Context) {
 			}
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
 				ui.Spinner(c)
-				ui.Text(c, status).FontSize(13).TextColor(t.TextMuted).Grow(1).Shrink(1)
+				ui.Text(c, status).FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1)
 				if ghost(c, "取消请求", ui.Color{}).Clicked() && a.cancel != nil {
 					a.cancel()
 				}
@@ -317,9 +316,9 @@ func (a *App) thought(c *ui.Context, key, label, reasoning string, running bool)
 	}
 	ui.Collapsible(c, label, open, func() {
 		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Stretch).Padding(4, 0, 2, 2).Children(func() {
-			ui.Box(c).Width(2).Radius(1).Background(a.pal.line).Shrink(0)
+			ui.Box(c).Width(2).Radius(rRound).Background(a.pal.line).Shrink(0)
 			if !running {
-				ui.Text(c, reasoning).FontSize(13).LineHeight(1.7).TextColor(t.TextMuted).Selectable().Grow(1).Shrink(1)
+				ui.Text(c, reasoning).FontSize(fsControl).LineHeight(1.7).TextColor(t.TextMuted).Selectable().Grow(1).Shrink(1)
 				return
 			}
 			// While it streams, the paragraphs written keep their layout
@@ -328,7 +327,7 @@ func (a *App) thought(c *ui.Context, key, label, reasoning string, running bool)
 				cut := strings.LastIndex(reasoning, "\n") + 1
 				for _, s := range []string{strings.TrimSuffix(reasoning[:cut], "\n"), reasoning[cut:]} {
 					if s != "" {
-						ui.Text(c, s).FontSize(13).LineHeight(1.7).TextColor(t.TextMuted).FillWidth()
+						ui.Text(c, s).FontSize(fsControl).LineHeight(1.7).TextColor(t.TextMuted).FillWidth()
 					}
 				}
 			})
@@ -350,21 +349,21 @@ func modelLabel(name, effort string) string {
 func (a *App) audit(c *ui.Context, m workspace.Event) {
 	t := a.pal.theme
 	ui.Column(c).FillWidth().Padding(0, 0, 0, 36).Children(func() {
-		ui.Column(c).FillWidth().Padding(12, 14).Gap(7).Radius(10).Background(a.pal.side).Border(1, a.pal.line).Children(func() {
-			ui.Textf(c, "回复时带上了 %d 条设定，预算不足省略 %d 条", len(m.Context), len(m.Omitted)).FontSize(12.5).FontWeight(600)
+		ui.Column(c).FillWidth().Padding(12, 14).Gap(7).Radius(rCard).Background(a.pal.side).Border(1, a.pal.line).Children(func() {
+			ui.Textf(c, "回复时带上了 %d 条设定，预算不足省略 %d 条", len(m.Context), len(m.Omitted)).FontSize(fsNote).FontWeight(600)
 			if len(m.Context) == 0 && len(m.Omitted) == 0 {
-				ui.Text(c, "只读了最近几轮对话，设定文档里还没有内容。").FontSize(12.5).TextColor(t.TextMuted)
+				ui.Text(c, "只读了最近几轮对话，设定文档里还没有内容。").FontSize(fsNote).TextColor(t.TextMuted)
 			}
 			for _, item := range m.Context {
 				ui.Row(c).FillWidth().Gap(8).Children(func() {
 					glyph(c, icCheck, 13, t.Success)
-					ui.Text(c, item.Text).FontSize(12.5).Selectable().Grow(1).Shrink(1)
+					ui.Text(c, item.Text).FontSize(fsNote).Selectable().Grow(1).Shrink(1)
 				})
 			}
 			for _, item := range m.Omitted {
 				ui.Row(c).FillWidth().Gap(8).Children(func() {
 					glyph(c, icX, 13, a.pal.faint)
-					ui.Text(c, item.Text+" · "+item.Reason).FontSize(12.5).TextColor(t.TextMuted).Selectable().Grow(1).Shrink(1)
+					ui.Text(c, item.Text+" · "+item.Reason).FontSize(fsNote).TextColor(t.TextMuted).Selectable().Grow(1).Shrink(1)
 				})
 			}
 		})
@@ -377,7 +376,7 @@ func (a *App) composer(c *ui.Context) {
 	t := a.pal.theme
 	work := a.Store.Work()
 	ready := work.Discussion.Provider != "" && work.Discussion.Model != ""
-	box := ui.Column(c).FillWidth().MaxWidth(column).Padding(12, 12, 10, 16).Gap(6).Radius(16).Background(a.pal.raised).Border(1, t.Border).Shadow(0, 4, 18, 0, ui.RGBA(0, 0, 0, 0.06))
+	box := ui.Column(c).FillWidth().MaxWidth(column).Padding(12, 12, 10, 16).Gap(6).Radius(rDialog).Background(a.pal.raised).Border(1, t.Border).Shadow(0, 4, 18, 0, ui.RGBA(0, 0, 0, 0.06))
 	if box.FocusWithin() {
 		box.BorderColor(t.TextMuted.Alpha(0.55))
 	}
@@ -396,7 +395,7 @@ func (a *App) composer(c *ui.Context) {
 		if side {
 			hint = "问问这一" + a.openUnit() + "，或者选中正文按 " + modKey + "L 引用…"
 		}
-		in := ui.TextAreaBase(c, &a.input).Label("讨论输入").Placeholder(hint).FillWidth().Height(h).FontSize(14.5).LineHeight(1.7).Disabled(a.busy != "")
+		in := ui.TextAreaBase(c, &a.input).Label("讨论输入").Placeholder(hint).FillWidth().Height(h).FontSize(fsRead).LineHeight(1.7).Disabled(a.busy != "")
 		if a.focusTalk {
 			in.Focus()
 			a.focusTalk = false
@@ -415,7 +414,7 @@ func (a *App) composer(c *ui.Context) {
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 			// The chip names the model and effort the next turn goes to, and
 			// opens a menu to change either; its tooltip says where the words go.
-			chip := ui.ButtonBase(c).Row().Gap(6).AlignItems(ui.Center).Padding(4, 8).Radius(7).Label("当前模型").Tooltip(a.destination(work.Discussion)).Shrink(1).Disabled(a.busy != "")
+			chip := ui.ButtonBase(c).Row().Gap(6).AlignItems(ui.Center).Padding(4, 8).Radius(rControl).Label("当前模型").Tooltip(a.destination(work.Discussion)).Shrink(1).Disabled(a.busy != "")
 			if chip.Hovered() {
 				chip.Background(t.SurfaceHover)
 			}
@@ -426,11 +425,11 @@ func (a *App) composer(c *ui.Context) {
 						color = a.pal.ink
 					}
 					dot(c, color, 6)
-					ui.Text(c, work.Discussion.Model).FontSize(12).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
-					ui.Text(c, model.Effort(work.Discussion.Effort).Label()).FontSize(12).TextColor(a.pal.faint).SingleLine()
+					ui.Text(c, work.Discussion.Model).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
+					ui.Text(c, model.Effort(work.Discussion.Effort).Label()).FontSize(fsNote).TextColor(a.pal.faint).SingleLine()
 				} else {
 					dot(c, t.Warning, 6)
-					ui.Text(c, "选择讨论模型").FontSize(12).TextColor(t.Warning).SingleLine()
+					ui.Text(c, "选择讨论模型").FontSize(fsNote).TextColor(t.Warning).SingleLine()
 				}
 				glyph(c, icChevronUp, 12, a.pal.faint)
 			})
@@ -438,10 +437,10 @@ func (a *App) composer(c *ui.Context) {
 			ui.Spacer(c)
 			key := modKey + "Enter"
 			if !side {
-				ui.Text(c, key).FontSize(11.5).TextColor(a.pal.faint)
+				ui.Text(c, key).FontSize(fsSmall).TextColor(a.pal.faint)
 			}
 			can := a.busy == "" && trim(a.input) != ""
-			send := ui.ButtonBase(c).Size(32, 32).Radius(999).Center().Label("发送").Tooltip("发送").Disabled(!can).Shrink(0)
+			send := ui.ButtonBase(c).Size(32, 32).Radius(rRound).Center().Label("发送").Tooltip("发送").Disabled(!can).Shrink(0)
 			bg := a.pal.ink
 			if !can {
 				bg = t.SurfacePressed
@@ -534,17 +533,17 @@ func (a *App) extraction(c *ui.Context) {
 	ui.Modal(c, &a.sourceOpen, func() {
 		ui.Column(c).Width(min(620, max(a.LastChat.W, 480))).Gap(14).Children(func() {
 			ui.Column(c).Gap(4).Children(func() {
-				ui.Text(c, "摘取原文").FontSize(17).FontWeight(600)
-				ui.Text(c, "拖选一段原话，作为你定下的设定加入正文。原话不会被改动。").FontSize(13).TextColor(t.TextMuted)
+				ui.Text(c, "摘取原文").FontSize(fsDialog).FontWeight(600)
+				ui.Text(c, "拖选一段原话，作为你定下的设定加入正文。原话不会被改动。").FontSize(fsControl).TextColor(t.TextMuted)
 			})
-			a.source.View(c).Height(220).FillWidth().Border(1, t.Border).Radius(10)
+			a.source.View(c).Height(220).FillWidth().Border(1, t.Border).Radius(rCard)
 			start, end := a.source.Selection()
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
 				ui.Select(c, &a.sourceCategory, a.categoryNames()).Label("摘取分类").Width(140)
 				if start == end {
-					ui.Text(c, "还没有选中文字").FontSize(12.5).TextColor(a.pal.faint)
+					ui.Text(c, "还没有选中文字").FontSize(fsNote).TextColor(a.pal.faint)
 				} else {
-					ui.Textf(c, "已选 %d 字", end-start).FontSize(12.5).TextColor(a.pal.ink)
+					ui.Textf(c, "已选 %d 字", end-start).FontSize(fsNote).TextColor(a.pal.ink)
 				}
 				ui.Spacer(c)
 				if ghost(c, "收起原文", ui.Color{}).Clicked() {

@@ -23,6 +23,28 @@ type palette struct {
 	warnBg, warnBd               ui.Color // a warning's fill and border
 }
 
+// The sizes of the design rules (设计规范 in the design): eight text sizes and
+// four corners, named as there. A size between them is not used.
+const (
+	fsDisplay = 26   // the welcome page's big words
+	fsTitle   = 22   // a page's title, the settings' too
+	fsDialog  = 17   // a dialog's title
+	fsGroup   = 15   // a group's title in a page
+	fsBody    = 13.5 // list rows, form rows
+	fsControl = 13   // what buttons, inputs and selects say
+	fsNote    = 12.5 // what explains, under or beside
+	fsSmall   = 11.5 // labels, counts, keys
+	// Prose to read, as the discussion's and a snapshot's, is apart from
+	// them, as the manuscript's own size is.
+	fsRead = 14.5
+
+	rXs      = 4  // checkboxes, labels
+	rControl = 6  // buttons, inputs, selects, menu rows
+	rCard    = 10 // groups, cards, menus, toasts
+	rDialog  = 12 // dialogs, and the discussion's bubbles and box
+	rRound   = 999
+)
+
 //go:embed tokens.css
 var tokensCSS string
 
@@ -97,7 +119,7 @@ func paletteOf(t *ui.Theme, k map[string]ui.Color) *palette {
 
 // dot is a small status disc.
 func dot(c *ui.Context, color ui.Color, size float32) *ui.Element {
-	return ui.Box(c).Size(size, size).Radius(999).Background(color).Shrink(0)
+	return ui.Box(c).Size(size, size).Radius(rRound).Background(color).Shrink(0)
 }
 
 // pill is a small rounded label.
@@ -105,15 +127,15 @@ func pill(c *ui.Context, text string, color ui.Color) *ui.Element {
 	if color.A == 0 {
 		color = c.Theme().TextMuted
 	}
-	b := ui.Row(c).Padding(1, 7).Radius(5).Background(color.Alpha(0.1)).Shrink(0)
-	b.Children(func() { ui.Text(c, text).FontSize(11.5).TextColor(color).SingleLine() })
+	b := ui.Row(c).Padding(1, 7).Radius(rXs).Background(color.Alpha(0.1)).Shrink(0)
+	b.Children(func() { ui.Text(c, text).FontSize(fsSmall).TextColor(color).SingleLine() })
 	return b
 }
 
 // ghost is a borderless text button: muted until hovered.
 func ghost(c *ui.Context, text string, color ui.Color) *ui.Element {
 	t := c.Theme()
-	b := ui.ButtonBase(c).Row().AlignItems(ui.Center).Gap(5).Padding(4, 8).Radius(6).Shrink(0)
+	b := ui.ButtonBase(c).Row().AlignItems(ui.Center).Gap(5).Padding(4, 8).Radius(rControl).Shrink(0)
 	fg := color
 	if fg.A == 0 {
 		fg = t.TextMuted
@@ -127,7 +149,7 @@ func ghost(c *ui.Context, text string, color ui.Color) *ui.Element {
 	if b.IsDisabled() {
 		b.Opacity(0.4)
 	}
-	b.Children(func() { ui.Text(c, text).FontSize(12.5).TextColor(fg).SingleLine() })
+	b.Children(func() { ui.Text(c, text).FontSize(fsNote).TextColor(fg).SingleLine() })
 	return b
 }
 
@@ -150,6 +172,7 @@ var (
 	icUndo        = icon(`<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>`)
 	icEye         = icon(`<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>`)
 	icRetry       = icon(`<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>`)
+	icDone        = icon(`<circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.8 2.8 5.7-5.8"/>`)
 	icCheck       = icon(`<path d="M20 6 9 17l-5-5"/>`)
 	icX           = icon(`<path d="M18 6 6 18M6 6l12 12"/>`)
 	icClock       = icon(`<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>`)
@@ -196,7 +219,7 @@ func glyph(c *ui.Context, s *ui.SVG, size float32, color ui.Color) *ui.Element {
 // it for tests and assistive technology.
 func iconButton(c *ui.Context, s *ui.SVG, label string, color ui.Color) *ui.Element {
 	t := c.Theme()
-	b := ui.ButtonBase(c).Size(28, 28).Center().Radius(6).Shrink(0).Label(label).Tooltip(label)
+	b := ui.ButtonBase(c).Size(28, 28).Center().Radius(rControl).Shrink(0).Label(label).Tooltip(label)
 	fg := color
 	if fg.A == 0 {
 		fg = t.TextMuted
@@ -216,7 +239,7 @@ func iconButton(c *ui.Context, s *ui.SVG, label string, color ui.Color) *ui.Elem
 
 // primary is the one solid ink button of a view.
 func (p *palette) primary(c *ui.Context, text string) *ui.Element {
-	b := ui.ButtonBase(c).Row().Center().Gap(6).Padding(7, 16).Radius(8).Shrink(0)
+	b := ui.ButtonBase(c).Row().Center().Gap(6).Padding(7, 16).Radius(rControl).Shrink(0)
 	bg := p.ink
 	if b.Hovered() {
 		bg = p.theme.AccentHover
@@ -225,28 +248,28 @@ func (p *palette) primary(c *ui.Context, text string) *ui.Element {
 	if b.IsDisabled() {
 		b.Opacity(0.3)
 	}
-	b.Children(func() { ui.Text(c, text).FontSize(13).FontWeight(600).TextColor(p.onInk).SingleLine() })
+	b.Children(func() { ui.Text(c, text).FontSize(fsControl).FontWeight(600).TextColor(p.onInk).SingleLine() })
 	return b
 }
 
 // secondary is an outlined button.
 func (p *palette) secondary(c *ui.Context, text string) *ui.Element {
 	t := p.theme
-	b := ui.ButtonBase(c).Row().Center().Gap(6).Padding(6, 14).Radius(8).Border(1, t.Border).Background(p.raised).Shrink(0)
+	b := ui.ButtonBase(c).Row().Center().Gap(6).Padding(6, 14).Radius(rControl).Border(1, t.Border).Background(p.raised).Shrink(0)
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}
 	if b.IsDisabled() {
 		b.Opacity(0.4)
 	}
-	b.Children(func() { ui.Text(c, text).FontSize(13).SingleLine() })
+	b.Children(func() { ui.Text(c, text).FontSize(fsControl).SingleLine() })
 	return b
 }
 
 // group is a rounded, hairline-bordered container whose rows are separated
 // by hairlines, as in system settings.
 func (p *palette) group(c *ui.Context) *ui.Element {
-	return ui.Column(c).FillWidth().Radius(10).Border(1, p.theme.Border).Background(p.raised).Clip()
+	return ui.Column(c).FillWidth().Radius(rCard).Border(1, p.theme.Border).Background(p.raised).Clip()
 }
 
 func (p *palette) hairline(c *ui.Context) {
@@ -260,7 +283,7 @@ func (p *palette) cardBox(c *ui.Context) *ui.Element {
 
 // action is a tinted button; strong fills it, for destructive confirmations.
 func action(c *ui.Context, text string, color ui.Color, strong bool) *ui.Element {
-	b := ui.ButtonBase(c).Row().Center().Padding(5, 12).Radius(7).Shrink(0)
+	b := ui.ButtonBase(c).Row().Center().Padding(5, 12).Radius(rControl).Shrink(0)
 	bg, fg := color.Alpha(0.1), color
 	if strong {
 		bg, fg = color, ui.Hex("#ffffff")
@@ -272,6 +295,6 @@ func action(c *ui.Context, text string, color ui.Color, strong bool) *ui.Element
 	if b.IsDisabled() {
 		b.Opacity(0.4)
 	}
-	b.Children(func() { ui.Text(c, text).FontSize(12.5).FontWeight(600).TextColor(fg).SingleLine() })
+	b.Children(func() { ui.Text(c, text).FontSize(fsNote).FontWeight(600).TextColor(fg).SingleLine() })
 	return b
 }

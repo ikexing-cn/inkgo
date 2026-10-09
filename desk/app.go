@@ -83,14 +83,17 @@ type App struct {
 	page              int // 0 discussion, 1 models, 2 categories, 3 writing
 	shown             int // the page the last frame showed
 	notice            string
-	renamed           renamed         // a name the prose still has after the author renamed it
-	leftWriting       bool            // the work was last on the writing page, not the discussion
-	noticed           string          // the notice as first shown,
-	noticeAt          time.Time       // and when
-	keysOpen          bool            // the shortcuts shown
-	titled            string          // the window title last set
-	shelved           map[string]bool // the conversations put out of the list
-	showShelved       bool            // the shelved conversations listed too
+	renamed           renamed           // a name the prose still has after the author renamed it
+	leftWriting       bool              // the work was last on the writing page, not the discussion
+	toastShown        map[string]string // what each toast shows, by its id
+	toastsOpen        bool              // the folded toasts opened
+	again             func()            // runs the last request again
+	failed            string            // the error the last request ended with,
+	fails             int               // and how many times in a row
+	keysOpen          bool              // the shortcuts shown
+	titled            string            // the window title last set
+	shelved           map[string]bool   // the conversations put out of the list
+	showShelved       bool              // the shelved conversations listed too
 	path, name, genre string
 	shelf             shelf.Shelf
 	bk                backupView
@@ -438,6 +441,7 @@ func (a *App) run(c *ui.Context, label string, fn func(context.Context) (func(),
 	a.cancel = cancel
 	a.busy = label
 	a.Error = ""
+	a.again = func() { a.run(c, label, fn) }
 	go func() { apply, err := fn(ctx); cancel(); a.results <- result{apply: apply, err: err}; c.Invalidate() }()
 }
 
@@ -461,6 +465,13 @@ func (a *App) poll() {
 		}
 		if r.err != nil {
 			a.Error = r.err.Error()
+			if a.Error == a.failed {
+				a.fails++
+			} else {
+				a.failed, a.fails = a.Error, 1
+			}
+		} else {
+			a.failed, a.fails = "", 0
 		}
 		if err := a.refresh(); err != nil {
 			a.Error = err.Error()

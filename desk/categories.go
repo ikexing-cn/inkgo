@@ -18,8 +18,8 @@ func (a *App) categories(c *ui.Context) {
 	ui.Scroll(c).FillWidth().Grow(1).Children(func() {
 		ui.Column(c).FillWidth().MaxWidth(760).Padding(24, 32).Gap(18).Children(func() {
 			ui.Column(c).Gap(6).Children(func() {
-				ui.Text(c, "作品分类").FontSize(22).Bold()
-				ui.Text(c, "设定文档按分类分节，每条设定只归入一个分类。“落点”是它成熟后该去的地方，比如设定库或大纲。").FontSize(13).TextColor(t.TextMuted)
+				ui.Text(c, "作品分类").FontSize(fsTitle).Bold()
+				ui.Text(c, "设定文档按分类分节，每条设定只归入一个分类。“落点”是它成熟后该去的地方，比如设定库或大纲。").FontSize(fsControl).TextColor(t.TextMuted)
 			})
 			a.pal.cardBox(c).Padding(6, 0).Gap(0).Children(func() {
 				for n, cat := range a.Store.Work().Categories {
@@ -29,9 +29,9 @@ func (a *App) categories(c *ui.Context) {
 					ui.Row(c).Key(cat.Name).FillWidth().Padding(10, 18).Gap(12).AlignItems(ui.Center).Children(func() {
 						ui.Text(c, cat.Name).Bold().Width(120)
 						ui.Text(c, cat.Target).TextColor(t.TextMuted).Grow(1)
-						ui.Textf(c, "%d 条", counts[cat.Name]).FontSize(12.5).TextColor(t.TextMuted)
+						ui.Textf(c, "%d 条", counts[cat.Name]).FontSize(fsNote).TextColor(t.TextMuted)
 						if a.removeCategory == cat.Name {
-							ui.Textf(c, "%d 条设定将移到“其他”", counts[cat.Name]).FontSize(12.5).TextColor(t.Danger)
+							ui.Textf(c, "%d 条设定将移到“其他”", counts[cat.Name]).FontSize(fsNote).TextColor(t.Danger)
 							if ghost(c, "取消", ui.Color{}).Clicked() {
 								a.removeCategory = ""
 							}
@@ -59,7 +59,7 @@ func (a *App) categories(c *ui.Context) {
 				}
 			})
 			a.pal.cardBox(c).Padding(18, 20).Gap(12).Children(func() {
-				ui.Text(c, "添加或修改分类").FontSize(15).Bold()
+				ui.Text(c, "添加或修改分类").FontSize(fsGroup).Bold()
 				ui.Row(c).FillWidth().Gap(12).AlignItems(ui.End).Children(func() {
 					labeled(c, "名称（同名即修改）", func() {
 						ui.TextInput(c, &a.categoryName).Label("分类名称").FillWidth().Disabled(busy)

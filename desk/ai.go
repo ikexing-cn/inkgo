@@ -326,7 +326,7 @@ func (a *App) aiBar(c *ui.Context) {
 	case w.run != nil && w.run.op == workspace.AIDraft:
 		bar(func() {
 			glyph(c, icFeather, 15, a.pal.ink)
-			ui.Textf(c, "AI 正在按章纲起草 · 已写 %d 字 · %s", w.run.wrote, a.modelLabel(w.run.job.Record)).FontSize(13).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
+			ui.Textf(c, "AI 正在按章纲起草 · 已写 %d 字 · %s", w.run.wrote, a.modelLabel(w.run.job.Record)).FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
 			if action(c, "停止", t.Danger, false).Clicked() {
 				w.run.cancel()
 			}
@@ -334,7 +334,7 @@ func (a *App) aiBar(c *ui.Context) {
 	case w.run != nil:
 		bar(func() {
 			glyph(c, icWand, 15, a.pal.ink)
-			ui.Textf(c, "AI 正在改写选中的部分 · %s", a.modelLabel(w.run.job.Record)).FontSize(13).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
+			ui.Textf(c, "AI 正在改写选中的部分 · %s", a.modelLabel(w.run.job.Record)).FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
 			if ghost(c, "取消", ui.Color{}).Clicked() {
 				w.run.cancel()
 			}
@@ -342,7 +342,7 @@ func (a *App) aiBar(c *ui.Context) {
 	case w.proposed != nil:
 		bar(func() {
 			glyph(c, icWand, 15, t.Success)
-			ui.Text(c, "红色划掉的是原文，绿色是改写。").FontSize(13).TextColor(t.TextMuted).Grow(1).Shrink(1)
+			ui.Text(c, "红色划掉的是原文，绿色是改写。").FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1)
 			if ghost(c, "放弃", ui.Color{}).Clicked() {
 				a.dropRewrite()
 			}
@@ -380,11 +380,11 @@ func (a *App) draftView(c *ui.Context) {
 	ui.Modal(c, &w.draftOpen, func() {
 		ui.Column(c).Width(520).Gap(14).Children(func() {
 			ui.Column(c).Gap(4).Children(func() {
-				ui.Text(c, "按章纲起草").FontSize(17).FontWeight(600)
-				ui.Text(c, "AI 只把章纲写成文字，不加章纲里没有的大事件。起草前存一份快照，写出的文字带“AI 起草”标记，你改过的地方会脱离标记。").FontSize(13).TextColor(t.TextMuted).LineHeight(1.6)
+				ui.Text(c, "按章纲起草").FontSize(fsDialog).FontWeight(600)
+				ui.Text(c, "AI 只把章纲写成文字，不加章纲里没有的大事件。起草前存一份快照，写出的文字带“AI 起草”标记，你改过的地方会脱离标记。").FontSize(fsControl).TextColor(t.TextMuted).LineHeight(1.6)
 			})
-			ui.Box(c).FillWidth().Padding(10, 12).Radius(8).Background(a.pal.side).Children(func() {
-				ui.Text(c, strings.TrimSpace(w.outline)).FontSize(13).TextColor(t.TextMuted).LineHeight(1.7).FillWidth()
+			ui.Box(c).FillWidth().Padding(10, 12).Radius(rControl).Background(a.pal.side).Children(func() {
+				ui.Text(c, strings.TrimSpace(w.outline)).FontSize(fsControl).TextColor(t.TextMuted).LineHeight(1.7).FillWidth()
 			})
 			ui.Row(c).FillWidth().Gap(12).AlignItems(ui.End).Children(func() {
 				labeled(c, "目标字数（可以不填）", func() {
@@ -398,7 +398,7 @@ func (a *App) draftView(c *ui.Context) {
 			})
 			a.recapNote(c)
 			if pw := w.pen.Load(); pw != nil {
-				ui.Textf(c, "用 %s · 推理 %s；可以在“模型设置”里换。", pw.Model.Name, pw.Model.Effort.Label()).FontSize(12).TextColor(a.pal.faint)
+				ui.Textf(c, "用 %s · 推理 %s；可以在“模型设置”里换。", pw.Model.Name, pw.Model.Effort.Label()).FontSize(fsNote).TextColor(a.pal.faint)
 			}
 			ui.Row(c).FillWidth().Gap(10).Children(func() {
 				ui.Spacer(c)
@@ -417,16 +417,16 @@ func (a *App) draftView(c *ui.Context) {
 func (a *App) aiRecord(c *ui.Context, r *workspace.AIRecord) {
 	t := a.pal.theme
 	op := map[string]string{workspace.AIDraft: "按章纲起草", workspace.AIRewrite: "改写"}[r.Op]
-	ui.Column(c).FillWidth().Gap(4).Padding(10, 12).Radius(8).Border(1, t.Border).Children(func() {
+	ui.Column(c).FillWidth().Gap(4).Padding(10, 12).Radius(rControl).Border(1, t.Border).Children(func() {
 		line := op + " · " + a.modelLabel(*r)
 		if r.Instruction != "" {
 			line += " · " + r.Instruction
 		}
-		ui.Text(c, line).FontSize(12.5).FontWeight(600).FillWidth()
+		ui.Text(c, line).FontSize(fsNote).FontWeight(600).FillWidth()
 		shown := append([]string{fmt.Sprintf("设定 %d 条", len(r.Setting))}, r.Shown...)
-		ui.Text(c, "AI 看到了："+strings.Join(shown, "、")).FontSize(12).TextColor(t.TextMuted).FillWidth().LineHeight(1.5)
+		ui.Text(c, "AI 看到了："+strings.Join(shown, "、")).FontSize(fsNote).TextColor(t.TextMuted).FillWidth().LineHeight(1.5)
 		if len(r.Omitted) > 0 {
-			ui.Textf(c, "超出上下文预算没放进去的设定 %d 条", len(r.Omitted)).FontSize(12).TextColor(t.Warning)
+			ui.Textf(c, "超出上下文预算没放进去的设定 %d 条", len(r.Omitted)).FontSize(fsNote).TextColor(t.Warning)
 		}
 	})
 }

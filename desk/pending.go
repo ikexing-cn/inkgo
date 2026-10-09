@@ -136,20 +136,20 @@ func (a *App) pendingButton(c *ui.Context) {
 		return
 	}
 	t := a.pal.theme
-	b := ui.ButtonBase(c).Row().Margin(0, 0, 0, 6).Gap(7).AlignItems(ui.Center).Padding(4, 10).Radius(6).Shrink(0).
+	b := ui.ButtonBase(c).Row().Margin(0, 0, 0, 6).Gap(7).AlignItems(ui.Center).Padding(4, 10).Radius(rControl).Shrink(0).
 		Background(a.pal.side).Border(1, a.pal.faint.Alpha(0.6)).Label("待处理")
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}
 	b.Children(func() {
 		dot(c, a.pal.amber, 6)
-		ui.Textf(c, "待处理 %d", total).FontSize(12.5).SingleLine()
+		ui.Textf(c, "待处理 %d", total).FontSize(fsNote).SingleLine()
 	})
 	if b.Clicked() {
 		w.pendOpen = !w.pendOpen
 	}
 	ui.PopoverBase(c, b, &w.pendOpen, func(panel *ui.Element) {
-		panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(10, 0, 0, 0).Width(380).Radius(12).Clip().
+		panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(10, 0, 0, 0).Width(380).Radius(rDialog).Clip().
 			Background(a.pal.canvas).Border(1, t.Border).Shadow(0, 18, 44, 0, ui.RGBA(0, 0, 0, 0.14))
 		a.pendingList(c, groups, total, here)
 	})
@@ -161,17 +161,17 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 	t := a.pal.theme
 	w := &a.write
 	ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(14, 20, 10, 20).Children(func() {
-		ui.Text(c, "待处理").FontSize(15).FontWeight(600).Grow(1)
+		ui.Text(c, "待处理").FontSize(fsGroup).FontWeight(600).Grow(1)
 		seg := ui.SegmentedBase(c, &w.pendHere, 2)
-		seg.Track.Label("待处理范围").Padding(2).Radius(7).Background(a.pal.bubble).Children(func() {
+		seg.Track.Label("待处理范围").Padding(2).Radius(rControl).Background(a.pal.bubble).Children(func() {
 			for i, label := range []string{fmt.Sprintf("全部 %d", total), fmt.Sprintf("本章 %d", here)} {
-				s := seg.Segment(i).Padding(3, 10).Radius(5)
+				s := seg.Segment(i).Padding(3, 10).Radius(rXs)
 				color := t.TextMuted
 				if i == w.pendHere {
 					s.Background(a.pal.raised).Shadow(0, 1, 2, 0, ui.RGBA(0, 0, 0, 0.08))
 					color = t.Text
 				}
-				s.Children(func() { ui.Text(c, label).FontSize(12.5).TextColor(color).SingleLine() })
+				s.Children(func() { ui.Text(c, label).FontSize(fsNote).TextColor(color).SingleLine() })
 			}
 		})
 	})
@@ -190,8 +190,8 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 			ui.Column(c).FillWidth().Padding(0, 0, 6, 0).Children(func() {
 				ui.Row(c).Gap(8).AlignItems(ui.Center).Padding(10, 20, 4, 20).Children(func() {
 					dot(c, g.color, 6)
-					ui.Text(c, g.name).FontSize(12).TextColor(t.TextMuted)
-					ui.Textf(c, "%d", len(items)).FontSize(12).TextColor(a.pal.faint)
+					ui.Text(c, g.name).FontSize(fsNote).TextColor(t.TextMuted)
+					ui.Textf(c, "%d", len(items)).FontSize(fsNote).TextColor(a.pal.faint)
 				})
 				open := w.pendMore[g.name]
 				for i, it := range items {
@@ -210,7 +210,7 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 					if more.Hovered() {
 						color = t.Text
 					}
-					more.Children(func() { ui.Text(c, label).FontSize(12.5).TextColor(color) })
+					more.Children(func() { ui.Text(c, label).FontSize(fsNote).TextColor(color) })
 					if more.Clicked() {
 						if w.pendMore == nil {
 							w.pendMore = map[string]bool{}
@@ -221,7 +221,7 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 			})
 		}
 		if len(shown) == 0 {
-			ui.Text(c, "本章没有要处理的").FontSize(13).TextColor(t.TextMuted).Padding(20)
+			ui.Text(c, "本章没有要处理的").FontSize(fsControl).TextColor(t.TextMuted).Padding(20)
 		}
 	})
 	ui.Box(c).FillWidth().Height(1).Background(a.pal.line)
@@ -232,7 +232,7 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 		if all.Hovered() {
 			color = t.Text
 		}
-		all.Children(func() { ui.Text(c, "全部忽略").FontSize(12.5).TextColor(color) })
+		all.Children(func() { ui.Text(c, "全部忽略").FontSize(fsNote).TextColor(color) })
 		if all.Clicked() {
 			a.ignore(shown)
 		}
@@ -242,14 +242,14 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 // pendingRow is one thing pending; choosing it goes to where it is.
 func (a *App) pendingRow(c *ui.Context, it pendItem) {
 	t := a.pal.theme
-	r := ui.ButtonBase(c).Row().Gap(12).AlignItems(ui.Center).Margin(0, 8).Padding(9, 12).Radius(8).Label(it.text)
+	r := ui.ButtonBase(c).Row().Gap(12).AlignItems(ui.Center).Margin(0, 8).Padding(9, 12).Radius(rControl).Label(it.text)
 	if r.Hovered() {
 		r.Background(t.SurfaceHover)
 	}
 	r.Children(func() {
 		ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
-			ui.Text(c, it.text).FontSize(13.5).LineHeight(1.55).MaxLines(2).Ellipsis("…").FillWidth()
-			ui.Text(c, it.sub).FontSize(12).TextColor(t.TextMuted).SingleLine().Ellipsis("…").FillWidth()
+			ui.Text(c, it.text).FontSize(fsBody).LineHeight(1.55).MaxLines(2).Ellipsis("…").FillWidth()
+			ui.Text(c, it.sub).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").FillWidth()
 		})
 		glyph(c, icChevron, 14, a.pal.faint)
 	})

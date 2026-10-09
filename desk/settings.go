@@ -69,7 +69,7 @@ func (a *App) providerModels(id string) []string {
 // labeled stacks a muted caption over a control.
 func labeled(c *ui.Context, caption string, fn func()) *ui.Element {
 	return ui.Column(c).FillWidth().Gap(6).Children(func() {
-		ui.Text(c, caption).FontSize(12.5).FontWeight(500).TextColor(c.Theme().TextMuted)
+		ui.Text(c, caption).FontSize(fsNote).FontWeight(500).TextColor(c.Theme().TextMuted)
 		fn()
 	})
 }
@@ -88,9 +88,9 @@ func (a *App) modelsView(c *ui.Context) {
 // subhead titles a block of the settings.
 func (a *App) subhead(c *ui.Context, title, caption string) {
 	ui.Column(c).FillWidth().Gap(3).Children(func() {
-		ui.Text(c, title).FontSize(15).FontWeight(600)
+		ui.Text(c, title).FontSize(fsGroup).FontWeight(600)
 		if caption != "" {
-			ui.Text(c, caption).FontSize(12.5).TextColor(a.pal.theme.TextMuted).LineHeight(1.55)
+			ui.Text(c, caption).FontSize(fsNote).TextColor(a.pal.theme.TextMuted).LineHeight(1.55)
 		}
 	})
 }
@@ -109,14 +109,14 @@ func (a *App) usage(c *ui.Context) {
 			a.useRow(c, "写作", "续写、改写、起草", &a.penProvider, sameAsTalk, "写作提供商", &a.penModel, "写作模型", &a.penEffort, "写作推理等级")
 		})
 		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Padding(4, 0, 0, 0).Children(func() {
-			ui.Text(c, "上下文预算").FontSize(13.5).FontWeight(500).Width(110).Shrink(0)
+			ui.Text(c, "上下文预算").FontSize(fsBody).FontWeight(500).Width(110).Shrink(0)
 			ui.TextInput(c, &a.budget).Label("上下文预算").Width(110).Disabled(busy)
-			ui.Text(c, "token，含回答预留").FontSize(12.5).TextColor(t.TextMuted).Grow(1).Shrink(1)
+			ui.Text(c, "token，含回答预留").FontSize(fsNote).TextColor(t.TextMuted).Grow(1).Shrink(1)
 			if a.pal.primary(c, "保存").Label("保存作品模型选择").Disabled(busy).Clicked() {
 				a.setError(a.saveUsage())
 			}
 		})
-		ui.Text(c, "不要超过模型的上下文窗口；放不下的设定会在回复下的“AI 看到了什么”里列出。改动从下一次发送开始生效。").FontSize(12).TextColor(a.pal.faint).LineHeight(1.5)
+		ui.Text(c, "不要超过模型的上下文窗口；放不下的设定会在回复下的“AI 看到了什么”里列出。改动从下一次发送开始生效。").FontSize(fsNote).TextColor(a.pal.faint).LineHeight(1.5)
 	})
 }
 
@@ -126,15 +126,15 @@ func (a *App) useRow(c *ui.Context, who, what string, provider *string, none, pr
 	busy := a.busy != ""
 	ui.Row(c).FillWidth().Gap(10).Padding(10, 0).AlignItems(ui.Center).Children(func() {
 		ui.Column(c).Width(118).Shrink(0).Gap(2).Children(func() {
-			ui.Text(c, who).FontSize(13.5).FontWeight(500)
-			ui.Text(c, what).FontSize(12).TextColor(a.pal.theme.TextMuted).SingleLine().Ellipsis("…")
+			ui.Text(c, who).FontSize(fsBody).FontWeight(500)
+			ui.Text(c, what).FontSize(fsNote).TextColor(a.pal.theme.TextMuted).SingleLine().Ellipsis("…")
 		})
 		ui.Column(c).Width(136).Shrink(0).Children(func() {
 			a.providerSelect(c, provider, none, providerLabel, busy)
 		})
 		ui.Column(c).Grow(1).Shrink(1).Children(func() {
 			if none != "" && *provider == "" {
-				ui.Text(c, "和讨论用同一个模型").FontSize(13).TextColor(a.pal.faint).Padding(7, 0)
+				ui.Text(c, "和讨论用同一个模型").FontSize(fsControl).TextColor(a.pal.faint).Padding(7, 0)
 				*model = ""
 				return
 			}
@@ -157,13 +157,13 @@ func (a *App) writingSwitches(c *ui.Context) {
 			if ui.Checkbox(c, &a.write.autoPredict, "停止输入后自动续写").Disabled(busy).Changed() {
 				a.savePrefs() // kept as ticked, not with the models above
 			}
-			ui.Text(c, "续写总是不推理、只写一句。默认按 "+modKey+"J 才续写；打开后每次停下来都会调用一次模型。").FontSize(12).TextColor(a.pal.faint).LineHeight(1.5)
+			ui.Text(c, "续写总是不推理、只写一句。默认按 "+modKey+"J 才续写；打开后每次停下来都会调用一次模型。").FontSize(fsNote).TextColor(a.pal.faint).LineHeight(1.5)
 		})
 		ui.Column(c).FillWidth().Gap(4).Children(func() {
 			if ui.Checkbox(c, &a.write.autoSummary, "离开改过的章节时更新摘要").Disabled(busy).Changed() {
 				a.savePrefs() // kept as ticked, not with the models above
 			}
-			ui.Text(c, "起草时 AI 会看到前面各章的摘要。每更新一章调用一次写作模型（不推理）；你自己写的摘要不会被覆盖。").FontSize(12).TextColor(a.pal.faint).LineHeight(1.5)
+			ui.Text(c, "起草时 AI 会看到前面各章的摘要。每更新一章调用一次写作模型（不推理）；你自己写的摘要不会被覆盖。").FontSize(fsNote).TextColor(a.pal.faint).LineHeight(1.5)
 		})
 	})
 }
@@ -184,7 +184,7 @@ func (a *App) services(c *ui.Context) {
 					}
 					dot(c, color, 7)
 					ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
-						ui.Text(c, providerLabel(p)).FontSize(13.5).FontWeight(500).SingleLine().Ellipsis("…")
+						ui.Text(c, providerLabel(p)).FontSize(fsBody).FontWeight(500).SingleLine().Ellipsis("…")
 						sub := p.BaseURL
 						if u, err := url.Parse(p.BaseURL); err == nil && u.Host != "" {
 							sub = u.Host
@@ -193,7 +193,7 @@ func (a *App) services(c *ui.Context) {
 						if a.Store != nil && a.Store.Work().Discussion.Provider == p.ID {
 							sub += " · 这部作品在用"
 						}
-						ui.Text(c, sub).FontSize(12).TextColor(t.TextMuted).SingleLine().Ellipsis("…")
+						ui.Text(c, sub).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…")
 					})
 					open := a.bk.edit == p.ID
 					text := "编辑"
@@ -219,7 +219,7 @@ func (a *App) services(c *ui.Context) {
 			}
 			add.Children(func() {
 				glyph(c, icPlus, 14, t.TextMuted)
-				ui.Text(c, "添加自定义 API").FontSize(13.5).TextColor(t.TextMuted)
+				ui.Text(c, "添加自定义 API").FontSize(fsBody).TextColor(t.TextMuted)
 			})
 			if add.Clicked() {
 				a.providerID = ""
@@ -368,9 +368,9 @@ func (a *App) providerForm(c *ui.Context) {
 			ui.TextInput(c, &a.provider.BaseURL).Label("API 地址").Placeholder("https://api.example.com/v1").FillWidth().Disabled(busy)
 			if trim(a.provider.BaseURL) != "" {
 				if isLocal(a.provider.BaseURL) {
-					ui.Text(c, "本机地址：请确认这个服务不会再转发到云端").FontSize(12).TextColor(t.TextMuted)
+					ui.Text(c, "本机地址：请确认这个服务不会再转发到云端").FontSize(fsNote).TextColor(t.TextMuted)
 				} else {
-					ui.Text(c, "远程服务：你的讨论内容会发送到这个地址").FontSize(12).TextColor(t.Warning)
+					ui.Text(c, "远程服务：你的讨论内容会发送到这个地址").FontSize(fsNote).TextColor(t.Warning)
 				}
 			}
 		})
@@ -401,7 +401,7 @@ func (a *App) providerForm(c *ui.Context) {
 		if env := trim(a.provider.Env); env != "" && os.Getenv(env) != "" {
 			hint += "已检测到环境变量 " + env + "。"
 		}
-		ui.Text(c, hint).FontSize(12).TextColor(a.pal.faint).Margin(-8, 0, 0, 0)
+		ui.Text(c, hint).FontSize(fsNote).TextColor(a.pal.faint).Margin(-8, 0, 0, 0)
 		labeled(c, "可用模型（每行一个；也可以在上方直接输入目录外的模型）", func() {
 			ui.TextArea(c, &a.models).Label("模型目录").Height(96).FillWidth().Disabled(busy)
 		})
