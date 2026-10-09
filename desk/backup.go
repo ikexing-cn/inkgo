@@ -31,7 +31,9 @@ type backupView struct {
 	asked          bool // asked already this time the work is open
 	list           []backup.Info
 	listed         bool
-	tab            string // the settings page's: "备份" or "外观"
+	prefs          bool   // the settings dialog
+	tab            string // its part shown: "模型", "外观" or "备份"
+	edit           string // the service open in it: an ID, "+" for a new one
 	keepChoice     string
 }
 
@@ -417,7 +419,8 @@ func (a *App) backupCard(c *ui.Context, panel *ui.Element, s backup.Settings) {
 				a.runBackup(c)
 			}
 			if small("备份设置…", false).Clicked() {
-				a.bk.open, a.bk.tab, a.page = false, "备份", 4
+				a.bk.open = false
+				a.openPrefs("备份")
 			}
 		})
 	})
@@ -598,15 +601,12 @@ func size(n int64) string {
 
 var keepChoices = []int{10, 30, 60, 100}
 
-// backupSettingsView is the settings page's 备份.
+// backupSettingsView is the settings' 备份.
 func (a *App) backupSettingsView(c *ui.Context) {
 	t := a.pal.theme
 	s, _ := a.backupSettings()
 	now := time.Now()
-	ui.Column(c).FillWidth().Gap(6).Children(func() {
-		ui.Text(c, "备份").FontSize(26).FontWeight(700)
-		ui.Text(c, "把整部作品复制一份到别处。快照只防改错，备份防电脑坏。").FontSize(13.5).TextColor(t.TextMuted)
-	})
+	a.prefsHead(c, "备份", "把整部作品复制一份到别处。快照只防改错，备份防电脑坏。")
 	if s.Dir == "" {
 		ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(14).Padding(16, 18).Radius(10).Border(1, t.Border).Children(func() {
 			ui.Column(c).Grow(1).Shrink(1).Gap(3).Children(func() {

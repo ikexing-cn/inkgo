@@ -74,178 +74,183 @@ func labeled(c *ui.Context, caption string, fn func()) *ui.Element {
 	})
 }
 
-// modelNav lists the model services, in the settings page's left column.
-func (a *App) modelNav(c *ui.Context) {
-	t := a.pal.theme
-	busy := a.busy != ""
-	ui.Text(c, "模型服务").FontSize(11.5).FontWeight(600).TextColor(a.pal.faint).Padding(0, 10, 8, 10)
-	for _, p := range a.Config.Providers {
-		name := p.Name
-		if name == "" {
-			name = p.ID
-		}
-		item := ui.ButtonBase(c).Key("provider-"+p.ID).FillWidth().Padding(7, 10).Radius(7).Gap(9).Row().AlignItems(ui.Center).Label("提供商-" + p.ID).Disabled(busy)
-		on := p.ID == a.providerID
-		if on {
-			item.Background(t.SurfacePressed)
-		} else if item.Hovered() {
-			item.Background(t.SurfaceHover)
-		}
-		item.Children(func() {
-			color := a.pal.ink
-			if isLocal(p.BaseURL) {
-				color = t.Success
-			}
-			dot(c, color, 7)
-			fg := t.TextMuted
-			if on {
-				fg = t.Text
-			}
-			ui.Text(c, name).FontSize(13.5).TextColor(fg).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
-			if a.Store != nil && a.Store.Work().Discussion.Provider == p.ID {
-				ui.Text(c, "在用").FontSize(11).TextColor(a.pal.faint)
-			}
-		})
-		if item.Clicked() {
-			a.chooseProvider(p.ID)
-		}
+// modelsView is the settings' 模型: which models the work uses, how the
+// writing calls them, and the services kept on this computer.
+func (a *App) modelsView(c *ui.Context) {
+	a.prefsHead(c, "模型", "这部作品用哪个模型；模型服务存在这台电脑上，所有作品共用。")
+	if a.Store != nil {
+		a.usage(c)
+		a.writingSwitches(c)
 	}
-	ui.Box(c).Height(6)
-	add := ui.ButtonBase(c).Row().FillWidth().Justify(ui.Start).Gap(9).AlignItems(ui.Center).Padding(7, 10).Radius(7).Label("+ 添加自定义 API").Disabled(busy)
-	if add.Hovered() {
-		add.Background(t.SurfaceHover)
-	}
-	add.Children(func() {
-		glyph(c, icPlus, 14, t.TextMuted)
-		ui.Text(c, "添加自定义 API").FontSize(13.5).TextColor(t.TextMuted)
-	})
-	if add.Clicked() {
-		a.providerID = ""
-		a.provider = model.Provider{Protocol: "chat"}
-		a.key, a.models = "", ""
-	}
-	ui.Spacer(c)
-	ui.Column(c).FillWidth().AlignItems(ui.Start).Gap(2).Children(func() {
-		if ghost(c, "打开配置文件", ui.Color{}).Disabled(a.ConfigFile == "").Clicked() {
-			u := url.URL{Scheme: "file", Path: filepath.ToSlash(a.ConfigFile)}
-			if len(u.Path) > 1 && u.Path[1] == ':' {
-				u.Path = "/" + u.Path
-			}
-			c.OpenURL(u.String())
-		}
-		if ghost(c, "重新加载配置", ui.Color{}).Disabled(busy || a.ConfigFile == "").Clicked() {
-			cfg, err := model.Load(a.ConfigFile)
-			if err == nil {
-				a.Config = cfg
-				if len(cfg.Providers) > 0 {
-					a.chooseProvider(cfg.Providers[0].ID)
-				}
-				a.notice = "已重新加载配置"
-			}
-			a.setError(err)
+	a.services(c)
+}
+
+// subhead titles a block of the settings.
+func (a *App) subhead(c *ui.Context, title, caption string) {
+	ui.Column(c).FillWidth().Gap(3).Children(func() {
+		ui.Text(c, title).FontSize(15).FontWeight(600)
+		if caption != "" {
+			ui.Text(c, caption).FontSize(12.5).TextColor(a.pal.theme.TextMuted).LineHeight(1.55)
 		}
 	})
 }
 
-// modelPane is the settings page's 模型: which models the work uses, and
-// the service chosen in the left column.
-func (a *App) modelPane(c *ui.Context) {
-	t := a.pal.theme
-	ui.Scroll(c).Key("models").Grow(1).FillHeight().Children(func() {
-		ui.Column(c).FillWidth().Padding(titleHeight+20, 56, 40, 56).Children(func() {
-			ui.Column(c).FillWidth().MaxWidth(760).Gap(32).Children(func() {
-				ui.Column(c).Gap(6).Children(func() {
-					ui.Text(c, "模型").FontSize(26).FontWeight(700)
-					ui.Text(c, "选择这部作品和谁讨论，以及管理本机保存的模型服务。").FontSize(13.5).TextColor(t.TextMuted)
-				})
-				if a.Store != nil {
-					a.usage(c)
-				}
-				a.providerForm(c)
-			})
-		})
-	})
-}
-
-// section is a settings block: a title and caption over a bordered group.
-func (a *App) section(c *ui.Context, title, caption string, fn func()) {
-	t := a.pal.theme
-	ui.Column(c).FillWidth().Gap(12).Children(func() {
-		ui.Column(c).Gap(4).Children(func() {
-			ui.Text(c, title).FontSize(15).FontWeight(600)
-			if caption != "" {
-				ui.Text(c, caption).FontSize(12.5).TextColor(t.TextMuted).LineHeight(1.55)
-			}
-		})
-		a.pal.group(c).Padding(18, 20).Gap(16).Children(fn)
-	})
-}
-
-// usage chooses which configured models this work talks to.
+// usage chooses which configured models this work talks to: one row each
+// for the discussion, the bookkeeping and the writing.
 func (a *App) usage(c *ui.Context) {
 	t := a.pal.theme
 	busy := a.busy != ""
-	a.section(c, "这部作品用哪个模型", "讨论模型负责回应你；整理模型在后台把讨论整理进设定文档，可以用更便宜的模型或更低的推理等级；写作模型负责正文页的续写、改写和起草。推理等级 Default 交给服务商决定。改动从下一次发送开始生效。", func() {
-		ui.Row(c).FillWidth().Gap(12).Children(func() {
-			labeled(c, "讨论 · 服务", func() {
-				a.providerSelect(c, &a.talkProvider, "", "讨论提供商", busy)
-			}).Width(200)
-			labeled(c, "讨论 · 模型", func() {
-				modelField(c, &a.talkModel, a.providerModels(a.talkProvider)).Label("讨论模型").Placeholder("输入或选择模型 ID").FillWidth().Disabled(busy)
-			}).Grow(1)
-			labeled(c, "推理等级", func() { effortSelect(c, &a.talkEffort, "讨论推理等级", busy) }).Width(136)
+	ui.Column(c).FillWidth().Gap(10).Children(func() {
+		a.subhead(c, "这部作品用", "整理在后台把讨论整理进设定，可以用更便宜的模型或更低的推理等级；推理等级 Default 交给服务商决定。")
+		ui.Column(c).FillWidth().Children(func() {
+			a.pal.hairline(c)
+			a.useRow(c, "讨论", "回应你的想法", &a.talkProvider, "", "讨论提供商", &a.talkModel, "讨论模型", &a.talkEffort, "讨论推理等级")
+			a.useRow(c, "整理", "把讨论整理进设定", &a.bookProvider, sameAsTalk, "记账提供商", &a.bookModel, "记账模型", &a.bookEffort, "整理推理等级")
+			a.useRow(c, "写作", "续写、改写、起草", &a.penProvider, sameAsTalk, "写作提供商", &a.penModel, "写作模型", &a.penEffort, "写作推理等级")
 		})
-		ui.Row(c).FillWidth().Gap(12).Children(func() {
-			labeled(c, "整理 · 服务", func() {
-				a.providerSelect(c, &a.bookProvider, sameAsTalk, "记账提供商", busy)
-			}).Width(200)
-			labeled(c, "整理 · 模型", func() {
-				if a.bookProvider == "" {
-					ui.Text(c, "和讨论用同一个模型").TextColor(t.TextMuted).Padding(7, 0)
-					a.bookModel = ""
-				} else {
-					modelField(c, &a.bookModel, a.providerModels(a.bookProvider)).Label("记账模型").Placeholder("输入或选择模型 ID").FillWidth().Disabled(busy)
-				}
-			}).Grow(1)
-			labeled(c, "推理等级", func() { effortSelect(c, &a.bookEffort, "整理推理等级", busy) }).Width(136)
+		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Padding(4, 0, 0, 0).Children(func() {
+			ui.Text(c, "上下文预算").FontSize(13.5).FontWeight(500).Width(110).Shrink(0)
+			ui.TextInput(c, &a.budget).Label("上下文预算").Width(110).Disabled(busy)
+			ui.Text(c, "token，含回答预留").FontSize(12.5).TextColor(t.TextMuted).Grow(1).Shrink(1)
+			if a.pal.primary(c, "保存").Label("保存作品模型选择").Disabled(busy).Clicked() {
+				a.setError(a.saveUsage())
+			}
 		})
-		ui.Row(c).FillWidth().Gap(12).Children(func() {
-			labeled(c, "写作 · 服务", func() {
-				a.providerSelect(c, &a.penProvider, sameAsTalk, "写作提供商", busy)
-			}).Width(200)
-			labeled(c, "写作 · 模型", func() {
-				if a.penProvider == "" {
-					ui.Text(c, "和讨论用同一个模型").TextColor(t.TextMuted).Padding(7, 0)
-					a.penModel = ""
-				} else {
-					modelField(c, &a.penModel, a.providerModels(a.penProvider)).Label("写作模型").Placeholder("输入或选择模型 ID").FillWidth().Disabled(busy)
-				}
-			}).Grow(1)
-			labeled(c, "推理等级", func() { effortSelect(c, &a.penEffort, "写作推理等级", busy) }).Width(136)
+		ui.Text(c, "不要超过模型的上下文窗口；放不下的设定会在回复下的“AI 看到了什么”里列出。改动从下一次发送开始生效。").FontSize(12).TextColor(a.pal.faint).LineHeight(1.5)
+	})
+}
+
+// useRow is one of usage's rows: who, the service, the model and the
+// effort. With none, the row can go without a service of its own.
+func (a *App) useRow(c *ui.Context, who, what string, provider *string, none, providerLabel string, model *string, modelLabel string, effort *string, effortLabel string) {
+	busy := a.busy != ""
+	ui.Row(c).FillWidth().Gap(10).Padding(10, 0).AlignItems(ui.Center).Children(func() {
+		ui.Column(c).Width(118).Shrink(0).Gap(2).Children(func() {
+			ui.Text(c, who).FontSize(13.5).FontWeight(500)
+			ui.Text(c, what).FontSize(12).TextColor(a.pal.theme.TextMuted).SingleLine().Ellipsis("…")
 		})
+		ui.Column(c).Width(136).Shrink(0).Children(func() {
+			a.providerSelect(c, provider, none, providerLabel, busy)
+		})
+		ui.Column(c).Grow(1).Shrink(1).Children(func() {
+			if none != "" && *provider == "" {
+				ui.Text(c, "和讨论用同一个模型").FontSize(13).TextColor(a.pal.faint).Padding(7, 0)
+				*model = ""
+				return
+			}
+			modelField(c, model, a.providerModels(*provider)).Label(modelLabel).Placeholder("输入或选择模型 ID").FillWidth().Disabled(busy)
+		})
+		ui.Column(c).Width(100).Shrink(0).Children(func() {
+			effortSelect(c, effort, effortLabel, busy)
+		})
+	})
+	a.pal.hairline(c)
+}
+
+// writingSwitches are the writing page's calls to the models, kept as
+// they are ticked.
+func (a *App) writingSwitches(c *ui.Context) {
+	busy := a.busy != ""
+	ui.Column(c).FillWidth().Gap(12).Children(func() {
+		a.subhead(c, "写作时", "")
 		ui.Column(c).FillWidth().Gap(4).Children(func() {
 			if ui.Checkbox(c, &a.write.autoPredict, "停止输入后自动续写").Disabled(busy).Changed() {
-				a.savePrefs() // kept as ticked, not with the models below
+				a.savePrefs() // kept as ticked, not with the models above
 			}
-			ui.Text(c, "续写总是不推理、只写一句。默认按 "+modKey+"J 才续写；打开上面这项后，每次停下来都会调用一次模型。").FontSize(12).TextColor(a.pal.faint).LineHeight(1.5)
+			ui.Text(c, "续写总是不推理、只写一句。默认按 "+modKey+"J 才续写；打开后每次停下来都会调用一次模型。").FontSize(12).TextColor(a.pal.faint).LineHeight(1.5)
 		})
 		ui.Column(c).FillWidth().Gap(4).Children(func() {
 			if ui.Checkbox(c, &a.write.autoSummary, "离开改过的章节时更新摘要").Disabled(busy).Changed() {
-				a.savePrefs() // kept as ticked, not with the models below
+				a.savePrefs() // kept as ticked, not with the models above
 			}
 			ui.Text(c, "起草时 AI 会看到前面各章的摘要。每更新一章调用一次写作模型（不推理）；你自己写的摘要不会被覆盖。").FontSize(12).TextColor(a.pal.faint).LineHeight(1.5)
 		})
-		ui.Row(c).FillWidth().Gap(12).AlignItems(ui.End).Children(func() {
-			labeled(c, "上下文预算（token，含回答预留）", func() {
-				ui.TextInput(c, &a.budget).Label("上下文预算").FillWidth().Disabled(busy)
-			}).Width(200)
-			ui.Text(c, "不要超过模型的上下文窗口。放不下的设定会在回复下的“AI 看到了什么”里列出。").FontSize(12).TextColor(a.pal.faint).LineHeight(1.5).Grow(1).Padding(0, 0, 8, 0)
+	})
+}
+
+// services lists the model services kept on this computer; 编辑 opens a
+// service's form in place, and so does adding one.
+func (a *App) services(c *ui.Context) {
+	t := a.pal.theme
+	busy := a.busy != ""
+	ui.Column(c).FillWidth().Gap(10).Children(func() {
+		a.subhead(c, "模型服务", "这台电脑上保存的服务，所有作品共用。")
+		a.pal.group(c).Children(func() {
+			for _, p := range a.Config.Providers {
+				ui.Row(c).Key("provider-"+p.ID).FillWidth().Gap(12).Padding(11, 14).AlignItems(ui.Center).Children(func() {
+					color := a.pal.ink
+					if isLocal(p.BaseURL) {
+						color = t.Success
+					}
+					dot(c, color, 7)
+					ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
+						ui.Text(c, providerLabel(p)).FontSize(13.5).FontWeight(500).SingleLine().Ellipsis("…")
+						sub := p.BaseURL
+						if u, err := url.Parse(p.BaseURL); err == nil && u.Host != "" {
+							sub = u.Host
+						}
+						sub += " · " + strconv.Itoa(len(p.Models)) + " 个模型"
+						if a.Store != nil && a.Store.Work().Discussion.Provider == p.ID {
+							sub += " · 这部作品在用"
+						}
+						ui.Text(c, sub).FontSize(12).TextColor(t.TextMuted).SingleLine().Ellipsis("…")
+					})
+					open := a.bk.edit == p.ID
+					text := "编辑"
+					if open {
+						text = "收起"
+					}
+					if a.pal.secondary(c, text).Label("提供商-" + p.ID).Disabled(busy).Clicked() {
+						a.bk.edit = ""
+						if !open {
+							a.chooseProvider(p.ID)
+							a.bk.edit = p.ID
+						}
+					}
+				})
+				if a.bk.edit == p.ID {
+					a.providerForm(c)
+				}
+				a.pal.hairline(c)
+			}
+			add := ui.ButtonBase(c).Row().FillWidth().Justify(ui.Start).Gap(8).AlignItems(ui.Center).Padding(11, 14).Label("+ 添加自定义 API").Disabled(busy)
+			if add.Hovered() {
+				add.Background(t.SurfaceHover)
+			}
+			add.Children(func() {
+				glyph(c, icPlus, 14, t.TextMuted)
+				ui.Text(c, "添加自定义 API").FontSize(13.5).TextColor(t.TextMuted)
+			})
+			if add.Clicked() {
+				a.providerID = ""
+				a.provider = model.Provider{Protocol: "chat"}
+				a.key, a.models = "", ""
+				a.bk.edit = "+"
+			}
+			if a.bk.edit == "+" {
+				a.providerForm(c)
+			}
 		})
-		a.pal.hairline(c)
-		ui.Row(c).FillWidth().Children(func() {
+		ui.Row(c).FillWidth().Gap(2).Children(func() {
 			ui.Spacer(c)
-			if a.pal.primary(c, "保存作品模型选择").Disabled(busy).Clicked() {
-				a.setError(a.saveUsage())
+			if ghost(c, "打开配置文件", ui.Color{}).Disabled(a.ConfigFile == "").Clicked() {
+				u := url.URL{Scheme: "file", Path: filepath.ToSlash(a.ConfigFile)}
+				if len(u.Path) > 1 && u.Path[1] == ':' {
+					u.Path = "/" + u.Path
+				}
+				c.OpenURL(u.String())
+			}
+			if ghost(c, "重新加载配置", ui.Color{}).Disabled(busy || a.ConfigFile == "").Clicked() {
+				cfg, err := model.Load(a.ConfigFile)
+				if err == nil {
+					a.Config = cfg
+					a.bk.edit = ""
+					if len(cfg.Providers) > 0 {
+						a.chooseProvider(cfg.Providers[0].ID)
+					}
+					a.notice = "已重新加载配置"
+				}
+				a.setError(err)
 			}
 		})
 	})
@@ -269,7 +274,7 @@ func (a *App) providerSelect(c *ui.Context, id *string, none, label string, disa
 		chosen = *id
 		names = append(names, *id)
 	}
-	if ui.Select(c, &chosen, names).Label(label).FillWidth().Disabled(disabled).Changed() {
+	if ui.Select(c, &chosen, names).Label(label).FillWidth().MinWidth(0).Disabled(disabled).Changed() {
 		*id = ""
 		if chosen != none {
 			*id = chosen
@@ -296,7 +301,7 @@ func effortSelect(c *ui.Context, value *string, label string, disabled bool) {
 	for n, e := range model.Efforts {
 		names[n] = e.Label()
 	}
-	if ui.Select(c, &chosen, names).Label(label).FillWidth().Disabled(disabled).Changed() {
+	if ui.Select(c, &chosen, names).Label(label).FillWidth().MinWidth(0).Disabled(disabled).Changed() {
 		for _, e := range model.Efforts {
 			if e.Label() == chosen {
 				*value = string(e)
@@ -346,17 +351,13 @@ func (a *App) saveUsage() error {
 	return err
 }
 
+// providerForm edits the service open in the list, or a new one, under
+// its row.
 func (a *App) providerForm(c *ui.Context) {
 	t := a.pal.theme
 	busy := a.busy != ""
-	title := "添加自定义 API"
-	if a.providerID != "" {
-		title = a.provider.Name
-		if title == "" {
-			title = a.provider.ID
-		}
-	}
-	a.section(c, title, "服务配置保存在本机，所有作品共用。", func() {
+	a.pal.hairline(c)
+	ui.Column(c).FillWidth().Padding(16, 14, 16, 14).Gap(16).Background(a.pal.side).Children(func() {
 		ui.Row(c).FillWidth().Gap(12).Children(func() {
 			labeled(c, "ID（小写字母、数字、- _）", func() {
 				ui.TextInput(c, &a.provider.ID).Label("Provider ID（小写）").FillWidth().Disabled(busy || a.providerID != "")
@@ -394,7 +395,7 @@ func (a *App) providerForm(c *ui.Context) {
 			}).Grow(1)
 			labeled(c, "或读取环境变量", func() {
 				ui.TextInput(c, &a.provider.Env).Label("环境变量名称").Placeholder("例如 DEEPSEEK_API_KEY").FillWidth().Disabled(busy)
-			}).Width(240)
+			}).Width(220)
 		})
 		hint := "key 存入系统钥匙串，不会写进配置文件或作品。"
 		if env := trim(a.provider.Env); env != "" && os.Getenv(env) != "" {
@@ -404,7 +405,6 @@ func (a *App) providerForm(c *ui.Context) {
 		labeled(c, "可用模型（每行一个；也可以在上方直接输入目录外的模型）", func() {
 			ui.TextArea(c, &a.models).Label("模型目录").Height(96).FillWidth().Disabled(busy)
 		})
-		a.pal.hairline(c)
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 			if a.pal.secondary(c, "获取可用模型").Disabled(busy).Clicked() {
 				a.fetchModels(c)
@@ -422,13 +422,13 @@ func (a *App) providerForm(c *ui.Context) {
 				err := a.saveProvider()
 				if err == nil {
 					a.notice = "提供商已保存"
+					a.bk.edit = a.providerID
 				}
 				a.setError(err)
 			}
 		})
 	})
 }
-
 func (a *App) fetchModels(c *ui.Context) {
 	if err := a.saveProvider(); err != nil {
 		a.setError(err)

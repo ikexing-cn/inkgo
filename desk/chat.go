@@ -597,7 +597,7 @@ func (a *App) modelMenu(m *ui.Menu, work workspace.Work) {
 		}
 		m.Separator()
 		if m.Item("模型设置…").Chosen() {
-			a.page = 1
+			a.openPrefs("模型")
 		}
 	})
 	m.Submenu("推理等级", func(m *ui.Menu) {

@@ -16,34 +16,55 @@ func (a *App) sideFoot(c *ui.Context, slim bool) {
 			a.trashRow(c)
 		}
 		color := ui.Color{}
-		if a.page == 4 {
+		if a.bk.prefs {
 			color = a.pal.ink
 		}
 		b := iconButton(c, icGear, "设置", color).Tooltip("设置")
-		if a.page == 4 {
+		if a.bk.prefs {
 			b.Background(a.pal.theme.SurfacePressed)
 		}
 		if b.Clicked() {
-			a.page = 4
+			a.openPrefs(a.bk.tab)
 		}
 	})
 }
 
-// prefTabs are the settings page's parts, with the labels that pick them.
+// prefTabs are the settings' parts, with the labels that pick them.
 var prefTabs = [][2]string{{"模型", "模型设置"}, {"外观", "设置-外观"}, {"备份", "设置-备份"}}
 
-// preferences is the settings page: the models, the appearance, and the
-// backups.
+// The settings dialog keeps one size whichever part is shown.
+const prefsWidth, prefsHeight = 880, 660
+
+// openPrefs opens the settings at the part named, or the models.
+func (a *App) openPrefs(tab string) {
+	if tab == "" {
+		tab = "模型"
+	}
+	a.bk.prefs, a.bk.tab = true, tab
+}
+
+// preferences is the settings dialog: the models, the appearance, and
+// the backups, over whatever page it was opened on.
 func (a *App) preferences(c *ui.Context) {
+	if !a.bk.prefs {
+		return
+	}
 	t := a.pal.theme
-	if a.bk.tab == "" {
+	if a.bk.tab == "" || a.bk.tab == "备份" && a.Store == nil {
 		a.bk.tab = "模型"
 	}
-	ui.Row(c).FillWidth().Grow(1).AlignItems(ui.Stretch).Children(func() {
-		ui.Column(c).Width(232).FillHeight().Padding(titleHeight-20, 10, 20, 10).Gap(2).Background(a.pal.side).Shrink(0).Children(func() {
-			ui.Text(c, "设置").FontSize(12).TextColor(t.TextMuted).Padding(0, 10, 8, 10)
+	w, h := c.Size()
+	ui.DialogBase(c, &a.bk.prefs, func(back, panel *ui.Element) {
+		back.Background(ui.RGBA(0, 0, 0, 0.32))
+		panel.Row().AlignItems(ui.Stretch).Width(min(prefsWidth, w-40)).Height(min(prefsHeight, h-40)).Radius(12).Background(t.Background)
+		panel.Shadow(0, 20, 60, 0, ui.RGBA(0, 0, 0, 0.22))
+		ui.Column(c).Width(176).FillHeight().Shrink(0).Padding(18, 10).Gap(2).Radius(12, 0, 0, 12).Background(a.pal.side).Children(func() {
+			ui.Text(c, "设置").FontSize(11.5).FontWeight(600).TextColor(a.pal.faint).Padding(0, 10, 8, 10)
 			for _, tl := range prefTabs {
 				tab := tl[0]
+				if tab == "备份" && a.Store == nil {
+					continue
+				}
 				b := ui.ButtonBase(c).Row().FillWidth().Height(32).Justify(ui.Start).AlignItems(ui.Center).Padding(0, 10).Radius(6).Label(tl[1])
 				on := a.bk.tab == tab
 				fg, weight := t.TextMuted, 400
@@ -58,35 +79,53 @@ func (a *App) preferences(c *ui.Context) {
 					a.bk.tab = tab
 				}
 			}
-			if a.bk.tab == "模型" {
-				ui.Box(c).Height(18)
-				a.modelNav(c)
-			}
 		})
 		ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
-		if a.bk.tab == "模型" {
-			a.modelPane(c)
-			return
-		}
-		ui.Scroll(c).Key("preferences").Grow(1).Shrink(1).FillHeight().Children(func() {
-			ui.Column(c).FillWidth().MaxWidth(820).Padding(titleHeight+20, 56, 40, 56).Gap(28).Children(func() {
-				if a.bk.tab == "外观" {
-					ui.Column(c).FillWidth().Gap(6).Children(func() {
-						ui.Text(c, "外观").FontSize(26).FontWeight(700)
-						ui.Text(c, "跟随系统，或者一直用浅色、深色。只在这台电脑上生效，所有作品都一样。").FontSize(13.5).TextColor(t.TextMuted)
-					})
-					ui.Column(c).FillWidth().Children(func() {
-						a.pal.hairline(c)
-						ui.Row(c).FillWidth().Gap(24).Padding(16, 0).AlignItems(ui.Center).Children(func() {
-							ui.Text(c, "颜色").FontSize(14).FontWeight(500).Width(180).Shrink(0)
-							ui.Column(c).Width(320).Children(func() { a.themeSegments(c) })
-						})
-						a.pal.hairline(c)
-					})
-					return
+		ui.Scroll(c).Key("prefs-" + a.bk.tab).Grow(1).Shrink(1).FillHeight().Children(func() {
+			ui.Column(c).FillWidth().Padding(28, 36, 32, 36).Gap(22).Children(func() {
+				if a.Error != "" || a.notice != "" {
+					a.banners(c) // the page's are under the dialog
 				}
-				a.backupSettingsView(c)
+				switch a.bk.tab {
+				case "外观":
+					a.looksView(c)
+				case "备份":
+					a.backupSettingsView(c)
+				default:
+					a.modelsView(c)
+				}
 			})
+		})
+		if iconButton(c, icX, "关闭设置", ui.Color{}).Absolute().Top(12).Right(12).Clicked() {
+			a.bk.prefs = false
+		}
+	})
+}
+
+// prefsHead is the title over a part of the settings.
+func (a *App) prefsHead(c *ui.Context, title, caption string) {
+	ui.Column(c).FillWidth().Gap(6).Padding(0, 32, 0, 0).Children(func() {
+		ui.Text(c, title).FontSize(22).FontWeight(700)
+		ui.Text(c, caption).FontSize(13.5).TextColor(a.pal.theme.TextMuted).LineHeight(1.55)
+	})
+}
+
+// prefsRow is a labeled row of the settings, between hairlines.
+func (a *App) prefsRow(c *ui.Context, label string, fn func()) {
+	ui.Row(c).FillWidth().Gap(24).Padding(14, 0).AlignItems(ui.Center).Children(func() {
+		ui.Text(c, label).FontSize(14).FontWeight(500).Width(150).Shrink(0)
+		ui.Column(c).Grow(1).Shrink(1).Children(fn)
+	})
+	a.pal.hairline(c)
+}
+
+// looksView is the settings' 外观.
+func (a *App) looksView(c *ui.Context) {
+	a.prefsHead(c, "外观", "只在这台电脑上生效，所有作品都一样。")
+	ui.Column(c).FillWidth().Children(func() {
+		a.pal.hairline(c)
+		a.prefsRow(c, "颜色", func() {
+			ui.Column(c).Width(320).Children(func() { a.themeSegments(c) })
 		})
 	})
 }

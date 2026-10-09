@@ -164,7 +164,7 @@ func TestBackupFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.page != 4 || !tt.HasText("把整部作品复制一份到别处。快照只防改错，备份防电脑坏。") || !tt.HasText("11 字 · 1 章 · 共保留 1 份，最早一份是 "+time.Now().Format("1 月 2 日")) {
+	if !a.bk.prefs || !tt.HasText("把整部作品复制一份到别处。快照只防改错，备份防电脑坏。") || !tt.HasText("11 字 · 1 章 · 共保留 1 份，最早一份是 "+time.Now().Format("1 月 2 日")) {
 		t.Fatal("settings page", tt.Texts())
 	}
 	if err := tt.Click("写作时每小时一次"); err != nil {
@@ -178,7 +178,7 @@ func TestBackupFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("跟随系统，或者一直用浅色、深色。只在这台电脑上生效，所有作品都一样。") {
+	if !tt.HasText("只在这台电脑上生效，所有作品都一样。") {
 		t.Fatal("appearance", tt.Texts())
 	}
 }
@@ -270,6 +270,11 @@ func TestShotBackup(t *testing.T) {
 	shot("settings-look-dark.png")
 	a.bk.tab = "模型"
 	shot("settings-models-dark.png")
+	a.bk.edit = "deepseek"
+	a.chooseProvider("deepseek")
+	tt.Scroll(700, 500, 0, 600)
+	shot("settings-service-dark.png")
+	a.bk.prefs = false
 	a.page = 0
 	shot("discussion-dark.png")
 }

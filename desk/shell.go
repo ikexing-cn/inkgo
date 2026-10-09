@@ -29,10 +29,15 @@ func (a *App) View(c *ui.Context) {
 		a.pal = a.dark
 	}
 	c.SetTheme(a.pal.theme)
-	if a.page == 1 { // the models are a part of the settings page
-		a.page, a.bk.tab = 4, "模型"
+	if a.page == 1 || a.page == 4 { // the settings are a dialog over the page
+		tab := "模型"
+		if a.page == 4 {
+			tab = a.bk.tab
+		}
+		a.openPrefs(tab)
+		a.page = a.shown
 	}
-	if a.Store == nil && (a.page == 2 || a.page == 3 || a.page == 4) {
+	if a.Store == nil && (a.page == 2 || a.page == 3) {
 		a.page = 0
 	}
 	if a.busy == "" {
@@ -58,7 +63,7 @@ func (a *App) View(c *ui.Context) {
 			ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
 		}
 		ui.Column(c).Grow(1).Shrink(1).FillHeight().Children(func() {
-			if a.Store == nil || a.page == 2 || a.page == 4 {
+			if a.Store == nil || a.page == 2 {
 				// These pages have no top row of their own to hold the window
 				// by, nor to show the banners under.
 				ui.Box(c).Absolute().Top(0).Left(0).Right(0).Height(titleHeight).DragWindow()
@@ -69,8 +74,6 @@ func (a *App) View(c *ui.Context) {
 			switch {
 			case a.page == 2:
 				a.categories(c)
-			case a.page == 4:
-				a.preferences(c)
 			case a.page == 3:
 				a.writing(c)
 			case a.Store == nil:
@@ -83,6 +86,7 @@ func (a *App) View(c *ui.Context) {
 	if a.sourceOpen && a.source != nil {
 		a.extraction(c)
 	}
+	a.preferences(c)
 	a.createDialog(c)
 	a.renameDialog(c)
 	if a.Store != nil {
