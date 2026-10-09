@@ -34,6 +34,15 @@ func (e *Editor) View(c *ui.Context) *ui.Element {
 // Focus gives the editor the keyboard focus in the next frame.
 func (e *Editor) Focus() { e.wantFocus = true }
 
+// SetTypewriter turns typewriter scrolling on or off: while on, typing
+// keeps the line written on in the middle of the view.
+func (e *Editor) SetTypewriter(on bool) {
+	if on != e.typewriter {
+		e.typewriter, e.reveal = on, true
+		e.centered = -1
+	}
+}
+
 // FontSize is the size the text is set in.
 func (e *Editor) FontSize() float32 { return e.opts.Font.Size }
 

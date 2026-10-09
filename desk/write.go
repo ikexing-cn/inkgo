@@ -556,6 +556,9 @@ func (a *App) writing(c *ui.Context) {
 	a.keepPen()
 	a.pollAI()
 	a.countAsTyped()
+	if a.write.ed != nil {
+		a.write.ed.SetTypewriter(a.write.focus) // focused, the line written on stays mid-view
+	}
 	a.watch(c)
 	if c.Shortcut(ui.Cmd, ui.KeyF) && a.write.ed != nil {
 		a.write.finding = true

@@ -16,8 +16,13 @@ var (
 	colorFound      = ui.RGB(240, 190, 40)
 )
 
-// paint draws the text, the marks, the selection and the caret.
+// paint draws the text, the marks, the selection and the caret, inside
+// the element: a line scrolled half out must not draw over what is above.
 func (e *Editor) paint(p *ui.Painter, r ui.Rect) {
+	p.Clip(r, 0, func() { e.paintIn(p, r) })
+}
+
+func (e *Editor) paintIn(p *ui.Painter, r ui.Rect) {
 	t := p.Theme()
 	if r.W != e.width || r.H != e.height {
 		e.width, e.height = r.W, r.H
@@ -30,13 +35,18 @@ func (e *Editor) paint(p *ui.Painter, r ui.Rect) {
 	if e.reveal {
 		e.reveal = false
 		_, cy := e.caretPos()
-		if cy < e.scrollY {
+		switch {
+		case e.typewriter && e.Doc.version != e.centered:
+			// only the text changing moves it, not a click or an arrow
+			e.centered = e.Doc.version
+			e.scrollY = cy + l.lineH/2 - r.H/2
+		case cy < e.scrollY:
 			e.scrollY = cy - l.lineH
-		} else if cy+l.lineH > e.scrollY+r.H {
+		case cy+l.lineH > e.scrollY+r.H:
 			e.scrollY = cy + 2*l.lineH - r.H
 		}
 	}
-	e.scrollY = clampf(e.scrollY, 0, max(l.height-r.H, 0))
+	e.scrollY = clampf(e.scrollY, 0, e.maxScroll())
 	ox, oy := r.X+l.left, r.Y-e.scrollY
 	top, bottom := e.scrollY-l.lineH, e.scrollY+r.H
 
@@ -144,9 +154,9 @@ func (e *Editor) paint(p *ui.Painter, r ui.Rect) {
 	}
 
 	// A scrollbar, while the text is longer than the view.
-	if l.height > r.H {
-		h := max(r.H*r.H/l.height, 24)
-		y := r.Y + (r.H-h)*e.scrollY/max(l.height-r.H, 1)
+	if full := e.maxScroll() + r.H; full > r.H {
+		h := max(r.H*r.H/full, 24)
+		y := r.Y + (r.H-h)*e.scrollY/max(full-r.H, 1)
 		p.Fill(ui.Rect{X: r.X + r.W - 8, Y: y, W: 4, H: h}, t.Scrollbar, 2)
 	}
 }

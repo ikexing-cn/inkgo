@@ -83,6 +83,10 @@ type Editor struct {
 	width, height float32
 	scrollY       float32
 	reveal        bool
+	// typewriter keeps the line written on mid-view; centered is the
+	// version of the text it was last centered for.
+	typewriter bool
+	centered   int
 	dragging      bool
 	wantFocus     bool
 	focused       bool

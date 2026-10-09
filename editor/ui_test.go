@@ -1,6 +1,7 @@
 package editor
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -170,5 +171,35 @@ func TestDeleteAWord(t *testing.T) {
 	tt.Key(ui.Cmd, ui.KeyZ)
 	if got := e.Doc.String(); got != "林晚推门，老周" {
 		t.Fatalf("undo: %q", got)
+	}
+}
+
+// In typewriter mode typing keeps the caret's line mid-view, even on the
+// last line, while clicks and arrows leave the view where it is.
+func TestTypewriterScrolling(t *testing.T) {
+	text := strings.Repeat("一行字。\n", 60)
+	e := New(NewDoc(text), Options{})
+	tt := newTester(e)
+	e.SetTypewriter(true)
+	e.MoveTo(e.Doc.Len(), false)
+	tt.Type("末")
+	tt.Frame()
+	mid := func() float32 {
+		r, _ := tt.TextCaret()
+		return r.Y + r.H/2
+	}
+	if y := mid(); y < 180 || y > 220 {
+		t.Fatalf("the last line at %v, not mid-view in 400", y)
+	}
+	before := e.scrollY
+	e.MoveTo(e.Doc.Len()-10, false) // two lines up, still in view
+	tt.Frame()
+	if e.scrollY != before {
+		t.Fatalf("an arrow moved the view: %v to %v", before, e.scrollY)
+	}
+	e.SetTypewriter(false)
+	tt.Frame()
+	if e.scrollY > e.lay.height-e.height {
+		t.Fatal("scrolled past the end when off")
 	}
 }

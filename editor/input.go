@@ -336,7 +336,16 @@ func (e *Editor) pointerDown(ev ui.InputEvent) bool {
 }
 
 func (e *Editor) scrollBy(dy float32) {
-	e.scrollY = clampf(e.scrollY+dy, 0, max(e.lay.height-e.height, 0))
+	e.scrollY = clampf(e.scrollY+dy, 0, e.maxScroll())
+}
+
+// maxScroll is how far the text scrolls: to its end, or in typewriter
+// mode until its last line is mid-view.
+func (e *Editor) maxScroll() float32 {
+	if e.typewriter {
+		return max(e.lay.height-e.height/2, 0)
+	}
+	return max(e.lay.height-e.height, 0)
 }
 
 func clampf(v, lo, hi float32) float32 { return max(lo, min(v, hi)) }
