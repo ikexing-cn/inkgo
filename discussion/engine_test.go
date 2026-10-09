@@ -292,11 +292,14 @@ func TestBookkeeperRules(t *testing.T) {
 		{"a name for a rule", "只有人物", map[string]any{"op": "add", "place": "open", "category": "规则", "text": "城市的雨从不停", "names": []string{"雨城"}, "sources": src("m2", "城市的雨从不停")}},
 		{"a name not said", "没有在条目或对话里出现过", map[string]any{"op": "add", "place": "body", "category": "人物", "text": "主角修路灯", "names": []string{"林晚"}, "sources": src("m1", "主角修路灯")}},
 		{"names on a move", "move 不带 names", map[string]any{"op": "move", "entry": "e3", "place": "dropped", "names": []string{"主角"}, "because": because("m1", "主角修路灯")}},
+		{"a name another's", "已经在 e1 里", map[string]any{"op": "add", "place": "body", "category": "人物", "text": "主角修路灯", "names": []string{"主角"}, "sources": src("m1", "主角修路灯")}},
+		{"a name dropping one", "e1 的原有名字 主角 要原样排在前面", map[string]any{"op": "name", "entry": "e1", "names": []string{"怕黑"}}},
+		{"a name with text", "name 只给 names", map[string]any{"op": "name", "entry": "e3", "text": "主角有个妹妹", "names": []string{"妹妹"}}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			e, session := setup(t)
 			revise(t, e,
-				workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "主角怕黑"},
+				workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "主角怕黑", Names: []string{"主角"}},
 				workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceDropped, Category: "人物", Text: "主角是转生者"},
 				workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceOpen, Category: "人物", Text: "主角有个妹妹"})
 			turn(t, e, session, "主角修路灯。", "也许城市的雨从不停。")
@@ -332,6 +335,22 @@ func TestBookkeeperNames(t *testing.T) {
 	}
 	if got := setting(t, e).Entries[1].Names; !slices.Equal(got, []string{"林晚", "晚晚"}) {
 		t.Fatal("names", got)
+	}
+}
+
+// Names said of an entry already there, the author's even, are added to
+// it without the author's words: they settle nothing.
+func TestBookkeeperAddsNames(t *testing.T) {
+	e, session := setup(t)
+	revise(t, e, workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "主角叫林晚，小名晚晚或者林林宝", Names: []string{"林晚"}})
+	turn(t, e, session, "主角叫林晚，小名晚晚或者林林宝", "好的。")
+	b, _ := book(e, ops(map[string]any{"op": "name", "entry": "e1", "names": []string{"林晚", "晚晚", "林林宝"}}))
+	if _, err := b.Run(context.Background(), session); err != nil {
+		t.Fatal(err)
+	}
+	set := setting(t, e)
+	if got := set.Entries[0]; !slices.Equal(got.Names, []string{"林晚", "晚晚", "林林宝"}) || got.Text != "主角叫林晚，小名晚晚或者林林宝" {
+		t.Fatalf("%+v", got)
 	}
 }
 

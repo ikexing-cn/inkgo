@@ -296,8 +296,10 @@ func (b *Bookkeeper) input(set workspace.Setting, bt batch) (string, []string, e
 //  3. What the author settled, the body and dropped and any entry the author
 //     touched, changes only on the author's words, quoted as because.
 //  4. Categories are the work's.
-//  5. Names are given only to entries of NameCategories, and each is said
-//     in the entry or the talk shown.
+//  5. Names are given only to entries of NameCategories, each is said in
+//     the entry or the talk shown, and is no other entry's. The name op
+//     only adds names after an entry's, so needs no because: another name
+//     settles nothing.
 func (b *Bookkeeper) check(text string, set workspace.Setting, bt batch, categories []string) ([]workspace.Op, []string) {
 	var p plan
 	if err := decode(text, &p); err != nil {
@@ -387,7 +389,7 @@ func (b *Bookkeeper) check(text string, set workspace.Setting, bt batch, categor
 			default:
 				bad = append(bad, fmt.Sprintf("未知位置 %q", op.Place))
 			}
-		case workspace.OpEdit, workspace.OpMove:
+		case workspace.OpEdit, workspace.OpMove, workspace.OpName:
 			var n int
 			if _, err := fmt.Sscanf(op.Entry, "e%d", &n); err != nil || n < 1 || n > len(set.Entries) || op.Entry != fmt.Sprintf("e%d", n) {
 				bad = append(bad, fmt.Sprintf("entry %q 不在 setting 里", op.Entry))
@@ -400,6 +402,14 @@ func (b *Bookkeeper) check(text string, set workspace.Setting, bt batch, categor
 			}
 			if op.Op == workspace.OpMove && ((op.Place == "" && op.Category == "") || out.Text != "" || len(op.Sources) > 0) {
 				bad = append(bad, "move 只改 place 或 category")
+			}
+			if op.Op == workspace.OpName {
+				if len(out.Names) == 0 || out.Text != "" || op.Place != "" || op.Category != "" || len(op.Sources) > 0 {
+					bad = append(bad, "name 只给 names")
+				} else if len(out.Names) < len(e.Names) || !slices.Equal(out.Names[:len(e.Names)], e.Names) {
+					bad = append(bad, fmt.Sprintf("name 只在原有名字后面加别名，%s 的原有名字 %s 要原样排在前面", op.Entry, strings.Join(e.Names, "、")))
+				}
+				break // adding another name changes nothing settled
 			}
 			if op.Place != "" && op.Place != workspace.PlaceBody && op.Place != workspace.PlaceOpen && op.Place != workspace.PlaceDropped {
 				bad = append(bad, fmt.Sprintf("未知位置 %q", op.Place))
@@ -423,9 +433,18 @@ func (b *Bookkeeper) check(text string, set workspace.Setting, bt batch, categor
 			case !slices.Contains(workspace.NameCategories, category):
 				bad = append(bad, fmt.Sprintf("只有%s分类的条目带 names", strings.Join(workspace.NameCategories, "、")))
 			default:
+				text := out.Text
+				if e, ok := set.Entry(out.Entry); ok && text == "" {
+					text = e.Text
+				}
 				for _, name := range out.Names {
-					if !saidIn(name, out.Text, shown) {
+					if !saidIn(name, text, shown) {
 						bad = append(bad, fmt.Sprintf("名字「%s」没有在条目或对话里出现过", name))
+					}
+					if i := slices.IndexFunc(set.Entries, func(e workspace.Entry) bool {
+						return e.ID != out.Entry && e.Place != workspace.PlaceDropped && slices.Contains(e.Names, name)
+					}); i >= 0 {
+						bad = append(bad, fmt.Sprintf("名字「%s」已经在 e%d 里，一个名字只放在一条里", name, i+1))
 					}
 				}
 			}
