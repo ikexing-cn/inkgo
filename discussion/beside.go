@@ -37,7 +37,7 @@ func (w Writing) render(budget int) (string, []workspace.ContextItem, int) {
 		}
 	} else {
 		if o := strings.TrimSpace(w.VolumeOutline); o != "" {
-			add("【所在卷：" + w.Volume + "】卷纲：", o, "卷纲："+w.Volume)
+			add("【所在卷："+w.Volume+"】卷纲：", o, "卷纲："+w.Volume)
 		}
 		b.WriteString("【作者正在写的章：" + w.Title + "】\n\n")
 		items = append(items, workspace.ContextItem{Text: "所在章：" + w.Title})
