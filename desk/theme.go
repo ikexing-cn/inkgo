@@ -13,21 +13,22 @@ import (
 // primary actions and links, greys for everything quieter, and amber for what
 // waits on the author. Everything else is typography and spacing.
 //
-// Its colors come from tokens.css, where the interface's rules are written
-// once: a color changed there changes in both themes and nothing else moves.
+// Its colors come from tokens.css, a copy of the design's base colors: the
+// design and the code name each color the same way, so one changed there is
+// copied here and nothing else moves.
 type palette struct {
 	theme                        *ui.Theme
 	canvas, side, raised, bubble ui.Color
 	line, faint, ink, onInk      ui.Color
 	amber                        ui.Color // what waits on the author
 	warnBg, warnBd               ui.Color // a warning's fill and border
-	// The shadows of tokens.css, named as there: the chosen part of
+	// The shadows of the design rules, named as there: the chosen part of
 	// a segmented control; menus, popovers and toasts; dialogs.
 	raise, pop, dialog shadow
 	scrim              ui.Color // what dims the window behind a dialog
 }
 
-// The sizes of tokens.css: eight text sizes,
+// The sizes of the design rules (设计规范 in the design): eight text sizes,
 // four corners, five line heights, four icon sizes, six control heights and
 // the disabled opacity, named as there. A size between them is not used.
 // They are the --fs-*, --r-*, --lh-*, --icon-*, --h-* and --opacity-* of
@@ -107,7 +108,7 @@ func tokens(css string) (light, dark map[string]ui.Color) {
 	return light, dark
 }
 
-// shadow is a level of the shadows in tokens.css. An element draws one shadow,
+// shadow is a level of the design's shadows. An element draws one shadow,
 // so it is the level's first layer.
 type shadow struct {
 	x, y, blur, spread float32
