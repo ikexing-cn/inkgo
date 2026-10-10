@@ -427,7 +427,7 @@ func TestEffortMenuSavesToWork(t *testing.T) {
 	if w := a.Store.Work().Discussion; w.Effort != "max" || w.Model != "deepseek-flash" || a.talkEffort != "max" {
 		t.Fatalf("selection %+v", w)
 	}
-	if !tt.HasText("deepseek-flash") || !tt.HasText("最高") {
+	if !tt.HasText("deepseek-flash") || !tt.HasText("Max") {
 		t.Fatal("chip does not show model and effort", tt.Texts())
 	}
 }

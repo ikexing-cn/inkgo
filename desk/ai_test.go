@@ -213,7 +213,7 @@ func TestRewriteASelection(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("改写 · deepseek/deepseek-flash · 高 · 放慢") {
+	if !tt.HasText("改写 · deepseek/deepseek-flash · High · 放慢") {
 		t.Fatal("the AI record is not shown", tt.Texts())
 	}
 }
