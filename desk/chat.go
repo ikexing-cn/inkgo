@@ -524,7 +524,7 @@ func (a *App) retry(c *ui.Context, userID string) {
 }
 
 func (a *App) openSource(m workspace.Event, start, end int) {
-	a.source = editor.New(editor.NewDoc(m.Text), editor.Options{ReadOnly: true})
+	a.source = editor.New(editor.NewDoc(m.Text), editor.Options{ReadOnly: true, LineHeight: lhRead})
 	if end > start {
 		a.source.MoveTo(start, false)
 		a.source.MoveTo(end, true)

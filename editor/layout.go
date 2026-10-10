@@ -45,7 +45,11 @@ func (e *Editor) buildLayout(width float32) {
 	f := e.opts.Font
 	m := f.Metrics()
 	l := layout{}
-	l.lineH = f.Size * 1.8
+	lh := e.opts.LineHeight
+	if lh == 0 {
+		lh = 1.8
+	}
+	l.lineH = f.Size * lh
 	l.ascent = (l.lineH-(m.Ascent+m.Descent))/2 + m.Ascent
 	l.textW = max(min(width-2*padX, maxTextWidth), 60)
 	l.left = max((width-l.textW)/2, 0)

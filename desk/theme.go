@@ -28,7 +28,7 @@ type palette struct {
 }
 
 // The sizes of the design rules (设计规范 in the design): eight text sizes,
-// four corners, four line heights, four icon sizes and the disabled opacity,
+// four corners, five line heights, four icon sizes and the disabled opacity,
 // named as there. A size between them is not used. They are the --fs-*,
 // --r-*, --lh-*, --icon-* and --opacity-* of tokens.css, which a test holds
 // them to; the desk writes these names, never a number.
@@ -51,10 +51,11 @@ const (
 	rDialog  = 12 // dialogs, and the discussion's bubbles and box
 	rRound   = 999
 
-	lhTight = 1.4 // titles, buttons, labels: words on one line
-	lhBody  = 1.6 // list and form rows, what explains
-	lhLoose = 1.7 // paragraphs that explain, the discussion's bubbles
-	lhRead  = 1.8 // prose to read: replies, snapshots, quoted text
+	lhTight = 1.4  // titles, buttons, labels: words on one line
+	lhBody  = 1.6  // list and form rows, what explains
+	lhLoose = 1.7  // paragraphs that explain, the discussion's bubbles
+	lhRead  = 1.8  // prose to read: replies, snapshots, quoted text
+	lhPaper = 1.95 // the manuscript
 
 	iconXs = 12 // arrows, small marks in a line
 	iconSm = 14 // icons beside words, in buttons and rows

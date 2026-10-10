@@ -218,7 +218,7 @@ func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.
 	doc := editor.NewDoc(text)
 	doc.LoadMarks(editorMarks(marks))
 	var ed *editor.Editor
-	ed = editor.New(doc, editor.Options{Prose: true, Placeholder: "从这里开始写…", Font: ui.Font{Size: float32(a.write.textSize())},
+	ed = editor.New(doc, editor.Options{Prose: true, Placeholder: "从这里开始写…", Font: ui.Font{Size: float32(a.write.textSize())}, LineHeight: lhPaper,
 		Predictor: pen{writer: &a.write.pen, chapter: a.write.node}, PredictDelay: saveAfter, PredictOnDemand: !a.write.autoPredict,
 		GhostNote: func() string {
 			if pw := a.write.pen.Load(); pw != nil {

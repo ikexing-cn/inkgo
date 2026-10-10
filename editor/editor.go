@@ -26,6 +26,9 @@ type Options struct {
 	// as the note of its mark.
 	GhostNote func() string
 	Font      ui.Font
+	// LineHeight is the height of a line as a multiple of the font's size;
+	// zero takes 1.8.
+	LineHeight float32
 	// Prose indents each paragraph's first line as it shows it, keeping
 	// indents out of the text: Tab inserts none, and a paste loses its own.
 	Prose bool

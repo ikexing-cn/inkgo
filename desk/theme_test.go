@@ -39,13 +39,12 @@ func TestSizeTokens(t *testing.T) {
 		"fs-body": fsBody, "fs-control": fsControl, "fs-note": fsNote, "fs-small": fsSmall,
 		"fs-read": fsRead, "fs-paper": textSizeDefault,
 		"r-xs": rXs, "r-control": rControl, "r-card": rCard, "r-dialog": rDialog, "r-round": rRound,
-		"lh-tight": lhTight, "lh-body": lhBody, "lh-loose": lhLoose, "lh-read": lhRead,
+		"lh-tight": lhTight, "lh-body": lhBody, "lh-loose": lhLoose, "lh-read": lhRead, "lh-paper": lhPaper,
 		"icon-xs": iconXs, "icon-sm": iconSm, "icon-md": iconMd, "icon-lg": iconLg,
 		"opacity-disabled": opacityDisabled,
 	}
-	// Only the design's boards use these: its notes and window frames. The
-	// manuscript's leading is the editor's, not the desk's.
-	board := map[string]bool{"fs-board-title": true, "fs-board-h2": true, "r-window": true, "r-window-win": true, "lh-paper": true}
+	// Only the design's boards use these: its notes and window frames.
+	board := map[string]bool{"fs-board-title": true, "fs-board-h2": true, "r-window": true, "r-window-win": true}
 	seen := map[string]bool{}
 	blocks(tokensCSS, func(_ bool, body string) {
 		for _, d := range regexp.MustCompile(`--((?:fs|r|lh|icon|opacity)-[a-z-]+)\s*:\s*([0-9.]+)(?:px)?;`).FindAllStringSubmatch(body, -1) {
