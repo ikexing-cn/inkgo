@@ -101,7 +101,7 @@ func (a *App) usage(c *ui.Context) {
 	t := a.pal.theme
 	busy := a.busy != ""
 	ui.Column(c).FillWidth().Gap(10).Children(func() {
-		a.subhead(c, "这部作品用", "思考选「默认」时由服务商决定。")
+		a.subhead(c, "这部作品用", "思考程度选 Default 时由服务商决定。")
 		ui.Column(c).FillWidth().Children(func() {
 			a.pal.hairline(c)
 			a.useRow(c, "讨论", "和你聊故事", &a.talkProvider, "", "讨论提供商", &a.talkModel, "讨论模型", &a.talkEffort, "讨论推理等级")
@@ -297,13 +297,13 @@ func providerLabel(p model.Provider) string {
 // effortSelect picks an effort, shown by its label, into *value.
 func effortSelect(c *ui.Context, value *string, label string, disabled bool) {
 	names := make([]string, len(model.Efforts))
-	chosen := "思考：" + model.Effort(*value).Name()
+	chosen := model.Effort(*value).Label()
 	for n, e := range model.Efforts {
-		names[n] = "思考：" + e.Name()
+		names[n] = e.Label()
 	}
 	if ui.Select(c, &chosen, names).Label(label).FillWidth().MinWidth(0).Disabled(disabled).Changed() {
 		for _, e := range model.Efforts {
-			if "思考："+e.Name() == chosen {
+			if e.Label() == chosen {
 				*value = string(e)
 			}
 		}

@@ -65,7 +65,7 @@ const (
 // Efforts are the levels offered, in order.
 var Efforts = []Effort{EffortDefault, EffortLow, EffortHigh, EffortMax}
 
-// Label is the effort's name beside a model's.
+// Label is the effort's name in the interface.
 func (e Effort) Label() string {
 	switch e {
 	case EffortLow:
@@ -76,19 +76,6 @@ func (e Effort) Label() string {
 		return "Max"
 	}
 	return "Default"
-}
-
-// Name is the effort's name where the author chooses one.
-func (e Effort) Name() string {
-	switch e {
-	case EffortLow:
-		return "低"
-	case EffortHigh:
-		return "高"
-	case EffortMax:
-		return "最高"
-	}
-	return "默认"
 }
 
 // Valid reports whether e is one of Efforts.

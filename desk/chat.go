@@ -636,7 +636,7 @@ func (a *App) modelMenu(m *ui.Menu, work workspace.Work) {
 	})
 	m.Submenu("思考程度", func(m *ui.Menu) {
 		for _, e := range model.Efforts {
-			if m.Item(e.Name()).Checked(work.Discussion.Effort == string(e)).Chosen() {
+			if m.Item(e.Label()).Checked(work.Discussion.Effort == string(e)).Chosen() {
 				a.setTalk(func(s *workspace.Selection) { s.Effort = string(e) })
 			}
 		}
