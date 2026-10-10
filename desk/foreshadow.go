@@ -763,7 +763,7 @@ func (a *App) forePicked(c *ui.Context, f foreshadow) {
 }
 
 // remindersView is the settings' 提醒与检查: when a foreshadowing counts as
-// buried long.
+// buried long, and when chapters are checked against the setting.
 func (a *App) remindersView(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
@@ -780,8 +780,8 @@ func (a *App) remindersView(c *ui.Context) {
 		a.pal.hairline(c)
 		ui.Row(c).FillWidth().Gap(24).Padding(14, 0).AlignItems(ui.Center).Children(func() {
 			ui.Column(c).Grow(1).Shrink(1).Gap(4).Children(func() {
-				ui.Text(c, "埋了多久没回收，开始提醒").FontSize(fsBody).FontWeight(500)
-				ui.Text(c, "到了这个章数，伏笔在列表里标「埋了很久」，待处理数加 1。不弹窗，不打断打字。").
+				ui.Text(c, "多久没回收就提醒").FontSize(fsBody).FontWeight(500)
+				ui.Text(c, "到时归入「久未回收」，不弹窗。").
 					FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody).FillWidth()
 			})
 			set := func(v int) {
@@ -799,6 +799,12 @@ func (a *App) remindersView(c *ui.Context) {
 			})
 		})
 		a.pal.hairline(c)
-		ui.Textf(c, "按你现在的设置，当前有 %d 个伏笔会被标出。", n).FontSize(fsNote).TextColor(a.pal.faint).Padding(10, 0, 0, 0)
+		ui.Textf(c, "现在有 %d 个伏笔久未回收。", n).FontSize(fsNote).TextColor(a.pal.faint).Padding(10, 0, 0, 0)
+	})
+	ui.Column(c).FillWidth().Padding(32, 0, 0, 0).Children(func() {
+		ui.Text(c, "检查正文和设定").FontSize(fsGroup).FontWeight(600).Padding(0, 0, 10, 0)
+		a.pal.hairline(c)
+		ui.Column(c).FillWidth().Gap(12).Padding(14, 0).Children(func() { a.whenRows(c) })
+		a.pal.hairline(c)
 	})
 }

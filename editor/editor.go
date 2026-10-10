@@ -82,6 +82,7 @@ type Editor struct {
 
 	// Ranges found, painted under the text; the current one stronger.
 	found   [][2]int
+	doubts  [][2]int
 	current int
 
 	// View state.

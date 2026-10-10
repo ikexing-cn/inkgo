@@ -76,6 +76,15 @@ func (e *Editor) paintIn(p *ui.Painter, r ui.Rect) {
 		})
 	}
 
+	// What is in doubt, under the text as the marks are.
+	for _, f := range e.doubts {
+		l.ranges(l.toDisp(f[0], true), l.toDisp(f[1], false), func(x0, x1, y float32) {
+			if y >= top && y <= bottom {
+				dashed(p, ox+x0, ox+x1, oy+y+l.lineH-5, t.TextMuted.Alpha(0.55))
+			}
+		})
+	}
+
 	// What a search found.
 	for i, f := range e.found {
 		color := colorFound.Alpha(0.28)
@@ -215,6 +224,14 @@ func (e *Editor) paintPopup(p *ui.Painter, r ui.Rect) {
 			p.Text(x, row.Y+7, "· "+en.Of, 12, fg.Alpha(0.7))
 		}
 		p.Text(row.X+row.W-44, row.Y+7, en.Kind, 12, fg.Alpha(0.7))
+	}
+}
+
+// dashed draws a light dashed underline, the way a doubt is shown.
+func dashed(p *ui.Painter, x0, x1, y float32, c ui.Color) {
+	const d, gap = 5, 3
+	for x := x0; x < x1; x += d + gap {
+		p.Line(x, y, min(x+d, x1), y, 1, c)
 	}
 }
 

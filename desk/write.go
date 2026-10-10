@@ -260,6 +260,7 @@ func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.
 // openNode shows node id, saving what was shown first.
 func (a *App) openNode(id string) {
 	a.flush()
+	a.leaveCheck()
 	a.leaveChapter()
 	a.scanMarks()
 	w := &a.write
@@ -639,6 +640,8 @@ func (a *App) writing(c *ui.Context) {
 		a.write.ed.SetTypewriter(a.write.focus) // focused, the line written on stays mid-view
 	}
 	a.watch(c)
+	a.checkWhilePausing()
+	a.markDoubts()
 	if c.Shortcut(ui.Cmd, ui.KeyF) && a.write.ed != nil {
 		a.write.finding = true
 	}
@@ -1101,6 +1104,9 @@ func (a *App) chapterView(c *ui.Context) {
 		a.selectionBar(c)
 		a.forePopover(c)
 	})
+	if !w.focus {
+		a.checkBar(c)
+	}
 }
 
 // shownTitle is the title of the chapter shown.

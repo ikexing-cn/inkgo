@@ -126,6 +126,10 @@ func (e *Editor) SetFound(ranges [][2]int, current int) {
 	e.found, e.current = ranges, current
 }
 
+// SetDoubts shows ranges of the text something is in doubt about, with a
+// light dashed line under them; nil clears them.
+func (e *Editor) SetDoubts(ranges [][2]int) { e.doubts = ranges }
+
 // LastEdit is when the text last changed.
 func (e *Editor) LastEdit() time.Time { return e.lastEdit }
 

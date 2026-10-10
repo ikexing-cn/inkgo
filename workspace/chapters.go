@@ -462,7 +462,7 @@ func companions(n *Node) []string {
 	if n.Folder {
 		return []string{"", outlineExt}
 	}
-	return []string{textExt, outlineExt, marksExt, summaryExt}
+	return []string{textExt, outlineExt, marksExt, summaryExt, checkExt}
 }
 
 // moveFiles moves n's files from its place to file in dir.

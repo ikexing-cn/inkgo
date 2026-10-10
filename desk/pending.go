@@ -23,6 +23,7 @@ type pendItem struct {
 	here           bool   // in the chapter open
 	retry          bool   // a backup failed: choosing it backs up again
 	fore           string // the foreshadowing it is about
+	check          string // the finding of a check it is
 }
 
 // pendGroup is the items of one kind.
@@ -39,8 +40,8 @@ func (a *App) scanMarks() {
 	a.write.marks = m
 }
 
-// pendingGroups gathers what is pending and not ignored, by kind: for now the
-// foreshadowings lost or waiting too long, the open chapter's as it is
+// pendingGroups gathers what is pending and not ignored, by kind: what the
+// checks against the setting found, the foreshadowings lost or waiting too long, the open chapter's as it is
 // being written, and a backup that failed.
 func (a *App) pendingGroups() []pendGroup {
 	w := &a.write
@@ -75,6 +76,9 @@ func (a *App) pendingGroups() []pendGroup {
 		return 1
 	})
 	var groups []pendGroup
+	if g, ok := a.checkPending(); ok {
+		groups = append(groups, g)
+	}
 	if len(items) > 0 {
 		groups = append(groups, pendGroup{name: "伏笔", color: a.pal.faint, items: items})
 	}
@@ -245,6 +249,10 @@ func (a *App) pendingRow(c *ui.Context, it pendItem) {
 func (a *App) goTo(it pendItem) {
 	w := &a.write
 	w.pendOpen = false
+	if it.check != "" {
+		a.openCheck(it.check)
+		return
+	}
 	if w.node != it.node {
 		a.openNode(it.node)
 	}

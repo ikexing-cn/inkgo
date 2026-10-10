@@ -16,6 +16,7 @@ func TestLeavingAChapterSummarizesIt(t *testing.T) {
 	a, tt, one := writingFixture(t, longProse)
 	f := &stream{pieces: []string{"林晚冒雨", "进城。"}}
 	penWith(a, f)
+	a.ck.when = checkOnDemand // the checks ask the same model
 	two, err := a.Store.NewChapter("", "第二章", false)
 	if err != nil {
 		t.Fatal(err)

@@ -1,0 +1,227 @@
+package desk
+
+import (
+	"image/png"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/egoist/mygo/ui"
+	"writer/workspace"
+)
+
+const checkProse = "整条街的灯是同时灭的。\n林婉站在巷口，手电在工具箱最底下。她没有去摸，一个人走进了没有灯的巷子。\n老周在巷子那头等她，手里拎着一只旧灯泡。\n"
+
+const checkAnswer = `{"findings":[
+	{"kind":"conflict","title":"林晚怕黑，这里却一个人进了黑巷子","quote":"一个人走进了没有灯的巷子","entry":1,"says":"但她很怕黑"},
+	{"kind":"name","title":"「林婉」是不是「林晚」写错了？","quote":"林婉","name":"林晚"},
+	{"kind":"new","title":"老周","quote":"老周在巷子那头等她","name":"老周","category":"人物","text":"在巷子那头等林晚的人"}]}`
+
+// checkFixture is a chapter at odds with the setting in three ways, and a
+// model that says so.
+func checkFixture(t *testing.T) (*App, *ui.Tester, string, *stream) {
+	t.Helper()
+	a, tt, id := writingFixture(t, checkProse+strings.Repeat("她蹲下去拧开灯座。", 30))
+	a.revise(workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "主角靠维修路灯谋生，但她很怕黑。她宁可绕路，沿着亮着的灯走回家。", Names: []string{"林晚"}})
+	a.write.autoSummary = false // the summaries ask the same model
+	f := &stream{pieces: []string{checkAnswer}}
+	penWith(a, f)
+	tt.Frame()
+	return a, tt, id, f
+}
+
+// A chapter is checked when asked; what is found is counted at its foot,
+// in the sidebar and in the pending list, and looked at one by one on the
+// page 检查, where the author says what to do about each.
+func TestCheckAChapterAndSettleWhatItFinds(t *testing.T) {
+	a, tt, id, f := checkFixture(t)
+	if !tt.HasText("第1章还没查过") || !tt.HasText("写完一章就查 ▴") || !tt.HasText("已保存") {
+		t.Fatal(tt.Texts())
+	}
+	if err := tt.Click("现在查"); err != nil {
+		t.Fatal(err)
+	}
+	until(t, tt, "the check", func() bool { return tt.HasText("第1章查完了，有 3 处要看") })
+	if len(f.asked) != 1 || !tt.HasText("待处理 3") || !exists(a, "第一章.check.json") {
+		t.Fatal(len(f.asked), tt.Texts())
+	}
+	if err := tt.Click("待处理"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("设定对不上") || !tt.HasText("「老周」还不在设定里") {
+		t.Fatal(tt.Texts())
+	}
+	if err := tt.Click("「林婉」是不是「林晚」写错了？"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.page != pageCheck || !tt.HasText("全部 3") || !tt.HasText("名字写错 1") || !tt.HasText("2 / 3") || !tt.HasText("设定 · 人物 · 林晚") {
+		t.Fatal(a.page, tt.Texts())
+	}
+
+	// 以后再说 goes on; 加入设定 writes the entry and the finding is gone.
+	if err := tt.Click("以后再说"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("3 / 3") || !tt.HasText("可以加入设定 · 人物") {
+		t.Fatal(tt.Texts())
+	}
+	if err := tt.Click("加入设定"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Frame()
+	named := false
+	for _, e := range a.set.Entries {
+		if len(e.Names) == 1 && e.Names[0] == "老周" && e.Text == "在巷子那头等林晚的人" && e.Place == workspace.PlaceBody && e.Sources[0].Chapter == id {
+			named = true
+		}
+	}
+	if !named || !tt.HasText("全部 2") {
+		t.Fatal(named, tt.Texts())
+	}
+
+	// 是故意的 is remembered on disk and not counted again.
+	if err := tt.Click("检查-林晚怕黑，这里却一个人进了黑巷子"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err := tt.Click("是故意的"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	k, _ := a.Store.ReadCheck(id)
+	if !tt.HasText("全部 1") || !k.Findings[0].Meant || k.Findings[1].Meant {
+		t.Fatal(tt.Texts(), k)
+	}
+
+	// 改正文 opens the chapter with the words selected; once they are put
+	// right and the chapter left, nothing is left to look at, and the
+	// chapter is checked again, being changed.
+	if err := tt.Click("改正文"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.page != 3 || a.write.ed.SelectedText() != "林婉" {
+		t.Fatal(a.page, a.write.ed.SelectedText())
+	}
+	f.pieces = []string{`{"findings":[]}`}
+	tt.Type("林晚")
+	tt.Frame()
+	if tt.HasText("待处理 1") {
+		t.Fatal("still pending as it is put right", tt.Texts())
+	}
+	if err := tt.Click("检查"); err != nil {
+		t.Fatal(err)
+	}
+	until(t, tt, "the check on leaving", func() bool { return len(f.asked) == 2 && a.ck.running == "" })
+	tt.Frame()
+	if !tt.HasText("没有对不上的地方") || !strings.Contains(f.asked[1].Messages[0].Content, "【作者说过是故意的】\n- 一个人走进了没有灯的巷子") {
+		t.Fatal(tt.Texts())
+	}
+}
+
+func exists(a *App, name string) bool {
+	_, err := os.Stat(filepath.Join(a.Store.Root(), "chapters", name))
+	return err == nil
+}
+
+// When to check is the work's: asked only, nothing is checked on leaving;
+// the book is checked from the page, after saying how many times the AI
+// is used.
+func TestCheckOnlyWhenAsked(t *testing.T) {
+	a, tt, _, f := checkFixture(t)
+	if err := tt.Click("什么时候检查"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err := tt.Click("我点了才查"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.ck.when != checkOnDemand || !tt.HasText("点了才查 ▴") {
+		t.Fatal(a.ck.when, tt.Texts())
+	}
+	a.write.ed.Focus()
+	tt.Type("雨。")
+	tt.Frame()
+	if err := tt.Click("检查"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Frame()
+	if len(f.asked) != 0 || a.ck.running != "" || !tt.HasText("还没检查过") {
+		t.Fatal(len(f.asked), tt.Texts())
+	}
+	if err := tt.Click("检查全书"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("有 1 章没查过或改过") || !tt.HasText("每章用一次 AI，一共 1 次。") {
+		t.Fatal(tt.Texts())
+	}
+	if err := tt.Click("开始检查"); err != nil {
+		t.Fatal(err)
+	}
+	until(t, tt, "the check of the book", func() bool { return tt.HasText("全部 3") })
+	if !tt.HasText("查到第1章") || !tt.HasText("再查一次") {
+		t.Fatal(tt.Texts())
+	}
+	if err := tt.Click("再查一次"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if len(f.asked) != 1 || a.notice != "各章都查过了，正文没有再改" {
+		t.Fatal(len(f.asked), a.notice)
+	}
+
+	// The choice is kept with the work.
+	a.loadPrefs()
+	if a.ck.when != checkOnDemand {
+		t.Fatal("the choice was not kept")
+	}
+}
+
+// SHOT=dir go test ./desk -run TestShotCheck draws the page of the checks,
+// the foot of a chapter and the settings.
+func TestShotCheck(t *testing.T) {
+	dir := os.Getenv("SHOT")
+	if dir == "" {
+		t.Skip("set SHOT=dir")
+	}
+	a, tt, _, _ := checkFixture(t)
+	shot := func(name string) {
+		tt.Frame()
+		tt.Frame()
+		out, err := os.Create(filepath.Join(dir, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer out.Close()
+		if err := png.Encode(out, tt.Image()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	tt.SetTitleBar(ui.TitleBar{Height: 40, Right: 138}) // the Windows buttons
+	if err := tt.Click("现在查"); err != nil {
+		t.Fatal(err)
+	}
+	until(t, tt, "the check", func() bool { return tt.HasText("第1章查完了，有 3 处要看") })
+	a.ck.whenOpen = true
+	shot("check-foot.png")
+	a.ck.whenOpen = false
+	a.page = pageCheck
+	shot("check-page.png")
+	a.ck.shown = ""
+	a.ck.tab = 3
+	shot("check-new.png")
+	a.ck.tab = 0
+	tt.SetDark(true)
+	shot("check-page-dark.png")
+	tt.SetDark(false)
+	a.openPrefs("提醒与检查")
+	shot("check-settings.png")
+}

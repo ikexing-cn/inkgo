@@ -80,7 +80,7 @@ type App struct {
 	light, dark *palette
 	pal         *palette
 
-	page              int // 0 discussion, 1 models, 2 categories, 3 writing
+	page              int // 0 discussion, 1 models, 2 categories, 3 writing, 5 checks
 	shown             int // the page the last frame showed
 	notice            string
 	renamed           renamed           // a name the prose still has after the author renamed it
@@ -99,6 +99,7 @@ type App struct {
 	bk                backupView
 	books             shelfView
 	sums              summaries
+	ck                checks
 	session           string
 	sessions          []string
 	titles            map[string]string
@@ -204,6 +205,7 @@ func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 		a.remember(false)
 		a.backupNow()
 		a.stopSummaries()
+		a.stopChecks()
 		a.halt()
 		a.Store.Close()
 	}
@@ -243,6 +245,7 @@ func (a *App) closeWork() {
 	a.remember(false)
 	a.backupNow()
 	a.stopSummaries()
+	a.stopChecks()
 	a.halt()
 	a.setError(a.Store.Close())
 	a.Store = nil

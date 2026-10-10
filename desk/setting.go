@@ -81,6 +81,9 @@ type prefs struct {
 	// LateAfter is how many chapters may follow a foreshadowing before it
 	// is listed as buried long, or 0 for the default.
 	LateAfter int `json:"late_after,omitempty"`
+	// CheckWhen is when chapters are checked against the setting: as the
+	// author leaves one changed when empty, "manual" or "always".
+	CheckWhen string `json:"check_when,omitempty"`
 }
 
 func (a *App) prefsPath() string { return filepath.Join(a.Store.Root(), ".writer", "desk.json") }
@@ -113,12 +116,16 @@ func (a *App) loadPrefs() {
 	}
 	a.doc.width, a.doc.talk, a.doc.attach = p.PanelWidth, p.TalkTab, !p.NoAttach
 	a.doc.fore, a.write.lateAfter, a.write.fore = p.ForeTab, p.LateAfter, foreState{}
+	a.ck.when = checkOnLeave
+	if p.CheckWhen == checkOnDemand || p.CheckWhen == checkOnPause {
+		a.ck.when = p.CheckWhen
+	}
 }
 
 func (a *App) savePrefs() {
 	shelved := slices.Sorted(maps.Keys(a.shelved))
 	b, err := json.Marshal(prefs{Shelved: shelved, SettingHidden: a.doc.hidden, Chapter: a.write.node, Writing: a.leftWriting, AutoPredict: a.write.autoPredict,
-		PanelWidth: a.doc.width, TalkTab: a.doc.talk, ForeTab: a.doc.fore, LateAfter: a.write.lateAfter, NoAttach: !a.doc.attach, NoAutoSummary: !a.write.autoSummary,
+		PanelWidth: a.doc.width, TalkTab: a.doc.talk, ForeTab: a.doc.fore, LateAfter: a.write.lateAfter, CheckWhen: a.ck.when, NoAttach: !a.doc.attach, NoAutoSummary: !a.write.autoSummary,
 		Day: a.write.day, DayStart: a.write.dayStart, Goal: a.write.goal, Carets: a.write.carets, Days: a.write.days, TextSize: a.write.size,
 		Ignored: a.write.ignoredKeys()})
 	if err == nil {

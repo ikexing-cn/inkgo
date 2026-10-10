@@ -36,7 +36,7 @@ func (a *App) View(c *ui.Context) {
 		a.openPrefs(tab)
 		a.page = a.shown
 	}
-	if a.Store == nil && (a.page == 2 || a.page == 3) {
+	if a.Store == nil && (a.page == 2 || a.page == 3 || a.page == pageCheck) {
 		a.page = 0
 	}
 	if a.busy == "" {
@@ -44,12 +44,19 @@ func (a *App) View(c *ui.Context) {
 	}
 	if a.Store != nil {
 		a.pollSummaries(c)
+		a.pollChecks(c)
 		a.backupDue(c)
 	}
 	if a.Store != nil && a.shown == 3 && a.page != 3 {
 		a.flush()
+		a.leaveCheck()
 		a.leaveChapter()
 		a.write.entered = false
+	}
+	if a.Store != nil && a.page == pageCheck && a.shown != pageCheck {
+		a.loadChecks() // as of the disk, without what was put right meanwhile
+		a.pruneChecks()
+		a.ck.proseOf = ""
 	}
 	if a.Store != nil && a.shown != a.page && (a.page == 0 || a.page == 3) {
 		a.leftWriting = a.page == 3
@@ -72,6 +79,8 @@ func (a *App) View(c *ui.Context) {
 				a.categories(c)
 			case a.page == 3:
 				a.writing(c)
+			case a.page == pageCheck && a.Store != nil:
+				a.checkPage(c)
 			case a.Store == nil:
 				a.welcome(c)
 			default:
@@ -189,9 +198,10 @@ func (a *App) sidebar(c *ui.Context) {
 			}
 		}
 		ui.Box(c).Height(10)
-		a.navItem(c, icChat, "讨论", 0, slim)
-		a.navItem(c, icBook, "正文", 3, slim)
-		a.navItem(c, icTag, "作品分类", 2, slim)
+		a.navItem(c, icChat, "讨论", 0, slim, 0)
+		a.navItem(c, icBook, "正文", 3, slim, 0)
+		a.navItem(c, icDone, "检查", pageCheck, slim, len(a.checkItems(false)))
+		a.navItem(c, icTag, "作品分类", 2, slim, 0)
 		ui.Box(c).Height(16)
 		defer a.sideFoot(c, slim)
 		if a.page == 3 {
@@ -277,7 +287,8 @@ func (a *App) talkShown() bool {
 	return a.page == 0 || a.page == 3 && a.doc.talk && !a.doc.fore && !a.doc.hidden
 }
 
-func (a *App) navItem(c *ui.Context, s *ui.SVG, label string, page int, slim bool) {
+// navItem is a page of the sidebar, with how many things wait there.
+func (a *App) navItem(c *ui.Context, s *ui.SVG, label string, page int, slim bool, count int) {
 	t := a.pal.theme
 	on := a.page == page
 	b := ui.ButtonBase(c).Row().FillWidth().AlignItems(ui.Center).Gap(10).Padding(8, 10).Radius(rControl).Label(label).Disabled(a.busy != "")
@@ -298,7 +309,10 @@ func (a *App) navItem(c *ui.Context, s *ui.SVG, label string, page int, slim boo
 	b.Children(func() {
 		glyph(c, s, iconMd, fg)
 		if !slim {
-			ui.Text(c, label).FontSize(fsBody).TextColor(fg).FontWeight(map[bool]int{true: 600, false: 400}[on])
+			ui.Text(c, label).FontSize(fsBody).TextColor(fg).FontWeight(map[bool]int{true: 600, false: 400}[on]).Grow(1)
+			if count > 0 {
+				ui.Textf(c, "%d", count).FontSize(fsSmall).TextColor(a.pal.faint)
+			}
 		}
 	})
 	if b.Clicked() {
