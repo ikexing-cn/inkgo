@@ -710,7 +710,7 @@ func (a *App) settingColumn(c *ui.Context) {
 	win, _ := c.Size()
 	width := a.panelWidth(win)
 	ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
-	panel := ui.Column(c).Width(width).FillHeight().Padding(0, 20, 12, 20).Gap(12).Background(a.pal.side).Shrink(0)
+	panel := ui.Column(c).Width(width).FillHeight().Background(a.pal.side).Shrink(0)
 	a.LastSetting = panel.Bounds()
 	panel.Children(func() {
 		if a.page == 3 && a.doc.fore {
@@ -727,7 +727,7 @@ func (a *App) settingColumn(c *ui.Context) {
 // paneTop is the top row of the right pane, which is the window's title bar
 // there: it holds the window and leaves room for the Windows buttons.
 func paneTop(c *ui.Context) *ui.Element {
-	return ui.Row(c).FillWidth().Height(titleHeight).Padding(0, c.TitleBar().Right, 0, 0).Gap(4).AlignItems(ui.Center).Shrink(0).DragWindow()
+	return ui.Row(c).FillWidth().Height(titleHeight).Padding(0, 20+c.TitleBar().Right, 0, 20).Gap(4).AlignItems(ui.Center).Shrink(0).DragWindow()
 }
 
 // countAsTyped keeps the open chapter's count up with its text, so the

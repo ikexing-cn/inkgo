@@ -132,19 +132,26 @@ func (a *App) emptyChat(c *ui.Context) {
 	t := a.pal.theme
 	title, about := "从一个模糊的念头聊起", "写下脑子里的那一点想法。讨论会在后台整理成右边的设定文档，\n你定下的会成为之后讨论的依据，放下的不再被提起。"
 	starts := []string{"我想写一个总在下雨的城市", "主角有个说不出口的秘密", "这个故事的冲突在哪"}
-	top, size := float32(72), float32(22)
+	top := float32(72)
 	if a.page == 3 { // beside the prose the talk is about the page in front of the author
 		unit := a.openUnit()
-		title = "聊聊正在写的这一" + unit
-		about = "问情节、问人物，或者让 AI 挑挑毛病。下面勾着时，正在写的内容会一起发过去；聊定的设定照样整理进“设定”。"
 		starts = []string{"这一" + unit + "的节奏怎么样", "接下来可以怎么写", "人物的动机说得通吗"}
-		top, size = 40, 18
+		// In the column they are rows, as its lists are.
+		ui.Column(c).FillWidth().Margin(0, -10).Children(func() {
+			a.paneGroup(c, "试试这样问")
+			for _, s := range starts {
+				if a.paneRow(c, s, s, "", "", "", false).Clicked() {
+					a.input, a.focusTalk = s, true
+				}
+			}
+		})
+		return
 	}
 	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(top, 0, 0, 0).Gap(14).Children(func() {
 		ui.Box(c).Size(44, 44).Radius(rDialog).Background(a.pal.ink.Alpha(0.12)).Center().Children(func() {
 			glyph(c, icSparkle, iconLg, a.pal.ink)
 		})
-		ui.Text(c, title).FontSize(size).FontWeight(600)
+		ui.Text(c, title).FontSize(fsTitle).FontWeight(600)
 		ui.Text(c, about).FontSize(fsBody).TextColor(t.TextMuted).TextAlign(ui.Center).LineHeight(lhLoose)
 		ui.Box(c).Height(6)
 		ui.Row(c).Gap(8).Wrap().Justify(ui.Center).Children(func() {
@@ -381,88 +388,110 @@ func (a *App) composer(c *ui.Context) {
 	t := a.pal.theme
 	work := a.Store.Work()
 	ready := work.Discussion.Provider != "" && work.Discussion.Model != ""
+	side := a.page == 3
+	// The chip names the model and effort the next turn goes to, and
+	// opens a menu to change either; its tooltip says where the words go.
+	chip := func() {
+		chip := ui.ButtonBase(c).Row().Gap(6).AlignItems(ui.Center).Padding(4, 8).Radius(rControl).Label("当前模型").Tooltip(a.destination(work.Discussion)).Shrink(1).Disabled(a.busy != "")
+		if chip.Hovered() {
+			chip.Background(t.SurfaceHover)
+		}
+		chip.Children(func() {
+			if ready {
+				color := t.Success
+				if !isLocal(a.providerURL(work.Discussion.Provider)) {
+					color = a.pal.ink
+				}
+				dot(c, color, 6)
+				ui.Text(c, work.Discussion.Model).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
+				ui.Text(c, model.Effort(work.Discussion.Effort).Label()).FontSize(fsNote).TextColor(a.pal.faint).SingleLine()
+			} else {
+				dot(c, t.Warning, 6)
+				ui.Text(c, "选择讨论模型").FontSize(fsNote).TextColor(t.Warning).SingleLine()
+			}
+			glyph(c, icChevronUp, iconXs, a.pal.faint)
+		})
+		chip.Menu(func(m *ui.Menu) { a.modelMenu(m, work) })
+	}
+	send := func() {
+		can := a.busy == "" && trim(a.input) != ""
+		send := ui.ButtonBase(c).Size(hControl, hControl).Radius(rRound).Center().Label("发送").Tooltip("发送").Disabled(!can).Shrink(0)
+		bg := a.pal.ink
+		if !can {
+			bg = t.SurfacePressed
+		} else if send.Hovered() {
+			bg = t.AccentHover
+		}
+		send.Background(bg).Children(func() {
+			fg := a.pal.onInk
+			if !can {
+				fg = a.pal.faint
+			}
+			glyph(c, icSend, iconMd, fg)
+		})
+		if a.busy == "" && (send.Clicked() || c.Shortcut(ui.Cmd, ui.KeyEnter)) {
+			a.send(c)
+		}
+	}
+	field := func(hint string, per, least int) *ui.Element {
+		lines := strings.Count(a.input, "\n") + 1 + len([]rune(a.input))/per
+		h := float32(min(max(lines, least), 7)) * 25
+		in := ui.TextAreaBase(c, &a.input).Label("讨论输入").Placeholder(hint).Height(h).FontSize(fsRead).LineHeight(lhLoose).Disabled(a.busy != "")
+		if a.focusTalk {
+			in.Focus()
+			a.focusTalk = false
+		}
+		return in
+	}
+	quotes := func() {
+		for n, q := range a.quotes {
+			a.quoteBlock(c, q, fmt.Sprintf("new-%d", n), func() { a.quotes = append(a.quotes[:n:n], a.quotes[n+1:]...) })
+		}
+	}
+	if side {
+		ui.Column(c).FillWidth().Gap(8).Children(func() {
+			box := ui.Column(c).FillWidth().Padding(10, 10, 10, 14).Gap(6).Radius(rDialog).Background(a.pal.canvas).Border(1, t.Border)
+			if box.FocusWithin() {
+				box.BorderColor(t.TextMuted.Alpha(0.55))
+			}
+			box.Children(func() {
+				quotes()
+				ui.Row(c).FillWidth().Gap(10).AlignItems(ui.End).Children(func() {
+					hint := "输入消息"
+					if !a.hasMessages() {
+						hint = "想聊什么"
+					}
+					field(hint, 16, 1).Grow(1).Shrink(1)
+					send()
+				})
+			})
+			ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
+				label, tip := "附上本章内容", "把章纲和光标前约 2000 字一起发给 AI"
+				if a.openUnit() == "卷" {
+					label, tip = "附上本卷内容", "把卷纲一起发给 AI"
+				}
+				if ui.Checkbox(c, &a.doc.attach, label).Tooltip(tip).Changed() {
+					a.savePrefs()
+				}
+				ui.Spacer(c)
+				chip()
+			})
+		})
+		return
+	}
 	box := ui.Column(c).FillWidth().MaxWidth(column).Padding(12, 12, 10, 16).Gap(6).Radius(rDialog).Background(a.pal.raised).Border(1, t.Border)
 	a.pal.raise.on(box)
 	if box.FocusWithin() {
 		box.BorderColor(t.TextMuted.Alpha(0.55))
 	}
-	side := a.page == 3
 	box.Children(func() {
-		for n, q := range a.quotes {
-			a.quoteBlock(c, q, fmt.Sprintf("new-%d", n), func() { a.quotes = append(a.quotes[:n:n], a.quotes[n+1:]...) })
-		}
-		per := 46
-		if side {
-			per = 20
-		}
-		lines := strings.Count(a.input, "\n") + 1 + len([]rune(a.input))/per
-		h := float32(min(max(lines, 2), 7)) * 25
-		hint := "说说你的想法，或问 AI 一个问题…"
-		if side {
-			hint = "问问这一" + a.openUnit() + "，或者选中正文按 " + modKey + "L 引用…"
-		}
-		in := ui.TextAreaBase(c, &a.input).Label("讨论输入").Placeholder(hint).FillWidth().Height(h).FontSize(fsRead).LineHeight(lhLoose).Disabled(a.busy != "")
-		if a.focusTalk {
-			in.Focus()
-			a.focusTalk = false
-		}
-		if side {
-			ui.Row(c).FillWidth().Children(func() {
-				label, tip := "附上本章", "把章纲和光标前约 2000 字一起发给 AI"
-				if a.openUnit() == "卷" {
-					label, tip = "附上本卷", "把卷纲一起发给 AI"
-				}
-				if ui.Checkbox(c, &a.doc.attach, label).Tooltip(tip).Changed() {
-					a.savePrefs()
-				}
-			})
-		}
+		quotes()
+		field("说说你的想法，或问 AI 一个问题…", 46, 2).FillWidth()
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-			// The chip names the model and effort the next turn goes to, and
-			// opens a menu to change either; its tooltip says where the words go.
-			chip := ui.ButtonBase(c).Row().Gap(6).AlignItems(ui.Center).Padding(4, 8).Radius(rControl).Label("当前模型").Tooltip(a.destination(work.Discussion)).Shrink(1).Disabled(a.busy != "")
-			if chip.Hovered() {
-				chip.Background(t.SurfaceHover)
-			}
-			chip.Children(func() {
-				if ready {
-					color := t.Success
-					if !isLocal(a.providerURL(work.Discussion.Provider)) {
-						color = a.pal.ink
-					}
-					dot(c, color, 6)
-					ui.Text(c, work.Discussion.Model).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
-					ui.Text(c, model.Effort(work.Discussion.Effort).Label()).FontSize(fsNote).TextColor(a.pal.faint).SingleLine()
-				} else {
-					dot(c, t.Warning, 6)
-					ui.Text(c, "选择讨论模型").FontSize(fsNote).TextColor(t.Warning).SingleLine()
-				}
-				glyph(c, icChevronUp, iconXs, a.pal.faint)
-			})
-			chip.Menu(func(m *ui.Menu) { a.modelMenu(m, work) })
+			chip()
 			ui.Spacer(c)
-			key := modKey + "Enter"
-			if !side {
-				ui.Text(c, key).FontSize(fsSmall).TextColor(a.pal.faint)
-			}
-			can := a.busy == "" && trim(a.input) != ""
-			send := ui.ButtonBase(c).Size(hControl, hControl).Radius(rRound).Center().Label("发送").Tooltip("发送").Disabled(!can).Shrink(0)
-			bg := a.pal.ink
-			if !can {
-				bg = t.SurfacePressed
-			} else if send.Hovered() {
-				bg = t.AccentHover
-			}
-			send.Background(bg).Children(func() {
-				fg := a.pal.onInk
-				if !can {
-					fg = a.pal.faint
-				}
-				glyph(c, icSend, iconMd, fg)
-			})
-			if a.busy == "" && (send.Clicked() || c.Shortcut(ui.Cmd, ui.KeyEnter)) {
-				a.send(c)
-			}
+			ui.Text(c, modKey+"Enter").FontSize(fsSmall).TextColor(a.pal.faint)
+			send()
 		})
 	})
 }

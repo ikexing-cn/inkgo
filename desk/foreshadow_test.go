@@ -71,7 +71,7 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 	if f.status() != foreDone || len(f.pays) != 1 || f.pays[0].node != two || f.pays[0].quote != "七岁那年的那个晚上，她也是这样站着。" || f.gap != 1 {
 		t.Fatalf("paid off %+v", f)
 	}
-	if !a.doc.fore || !tt.HasText("已回收") || !tt.HasText("相隔 1 章") || !tt.HasText("回收在 第2章《停电》 · 当前") || !tt.HasText("埋在 第一章") {
+	if !a.doc.fore || !tt.HasText("取消回收") || !tt.HasText("第 2 章回收，相隔 1 章") || !tt.HasText("第 1 章埋下") {
 		t.Fatal("the two are not shown together", tt.Texts())
 	}
 	if ch, _ = a.Store.ReadChapter(two); len(ch.Marks) != 1 || ch.Marks[0].Kind != workspace.MarkPayoff || ch.Marks[0].Of != id {
@@ -84,7 +84,7 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 		t.Fatalf("renoted %+v", ch.Marks)
 	}
 	tt.Frame()
-	if err = tt.Click("打开第1章"); err != nil {
+	if err = tt.Click("看原文"); err != nil {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
@@ -102,14 +102,14 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 	if ch, _ = a.Store.ReadChapter(two); len(ch.Marks) != 0 {
 		t.Fatalf("the payoff stayed %+v", ch.Marks)
 	}
-	if err = tt.Click("放弃这个伏笔"); err != nil {
+	if err = tt.Click("放弃伏笔"); err != nil {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
 	if f, _ = a.foreshadowOf(id); f.status() != foreDropped || !tt.HasText("已放弃") {
 		t.Fatalf("not dropped %+v", f)
 	}
-	if err = tt.Click("重新算作未回收"); err != nil {
+	if err = tt.Click("恢复伏笔"); err != nil {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
@@ -123,7 +123,7 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Frame()
-	if !tt.HasText("未回收 1") || !tt.HasText("已回收 0") || !tt.HasText("怕黑") {
+	if !tt.HasText("未回收") || !tt.HasText("怕黑") {
 		t.Fatal("the list", tt.Texts())
 	}
 	w.fore.query = "钥匙"
@@ -152,10 +152,10 @@ func TestForeshadowLost(t *testing.T) {
 	}
 	a.doc.fore = true
 	tt.Frame()
-	if !tt.HasText("等你确认 · 1") || !tt.HasText("第1章埋伏笔的那句被删了") {
+	if !tt.HasText("原句已删") {
 		t.Fatal("does not wait on the author", tt.Texts())
 	}
-	if err := tt.Click("伏笔-钥匙"); err != nil {
+	if err := tt.Click("原句已删"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -167,7 +167,7 @@ func TestForeshadowLost(t *testing.T) {
 	text := w.ed.Doc.String()
 	at := len([]rune(text[:strings.Index(text, "她没有去捡。")]))
 	w.ed.Select(at, at+6)
-	if err := tt.Click("挂到选中的句子上"); err != nil {
+	if err := tt.Click("换个原句"); err != nil {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()

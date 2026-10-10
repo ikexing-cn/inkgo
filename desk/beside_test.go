@@ -36,10 +36,10 @@ func TestTalkBesideTheProse(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("附上本章") || tt.HasText("主角怕黑") || !savedPrefs(t, a).TalkTab {
+	if !tt.HasText("附上本章内容") || tt.HasText("主角怕黑") || !savedPrefs(t, a).TalkTab {
 		t.Fatal("the talk is not shown", tt.Texts())
 	}
-	if !tt.HasText("聊聊正在写的这一章") || tt.HasText("右边的设定文档") {
+	if !tt.HasText("这一章的节奏怎么样") || tt.HasText("右边的设定文档") {
 		t.Fatal("the empty talk is not about the chapter", tt.Texts())
 	}
 
@@ -77,7 +77,7 @@ func TestTalkBesideTheProse(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("附上本卷") || !tt.HasText("这一卷的节奏怎么样") || tt.HasText("附上本章") {
+	if !tt.HasText("附上本卷内容") || !tt.HasText("这一卷的节奏怎么样") || tt.HasText("附上本章内容") {
 		t.Fatal("the folder's talk", tt.Texts())
 	}
 }
@@ -108,7 +108,7 @@ func TestQuoteProseIntoTheTalk(t *testing.T) {
 	if len(a.quotes) != 0 {
 		t.Fatal("the quote stayed")
 	}
-	if err := tt.Click("附上本章"); err != nil {
+	if err := tt.Click("附上本章内容"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -159,6 +159,8 @@ func TestQuotesFindTheirProse(t *testing.T) {
 			entry = e.ID
 		}
 	}
+	a.doc.shown = entry // its page has the way to where it comes from
+	tt.Frame()
 	if err := tt.Click("原文-" + entry); err != nil {
 		t.Fatal(err)
 	}

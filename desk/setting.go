@@ -19,20 +19,30 @@ import (
 
 // docView is the state of the setting panel.
 type docView struct {
-	hidden   bool
-	history  bool
-	open     map[string]*bool // sections unfolded, by category or place
-	editing  string           // the entry being edited, "new" for a new one
+	hidden  bool
+	history bool   // the revisions are shown
+	query   string // what the list is searched for
+	shown   string // the entry whose page is shown
+	todo    bool   // what waits on the author is shown
+	dropped bool   // the deleted entries are listed
+	editing string // the entry being edited, "new" for a new one
+	// The form: the entry's text, category, name, and what else it is
+	// called as the author writes them, apart by spaces or 、
 	text     string
 	category string
-	names    string // as the author writes them, apart by spaces or 、
+	name     string
+	names    string
 	// The right column: its width as dragged, and, on the writing page,
 	// whether it shows the talk and sends the chapter with it.
 	width    float32
 	resizing bool
 	talk     bool
-	fore     bool // the writing page shows the foreshadowings in it
-	attach   bool
+	// The talks are listed there, not the one open, and what the list is
+	// searched for.
+	talks     bool
+	talkQuery string
+	fore      bool // the writing page shows the foreshadowings in it
+	attach    bool
 }
 
 // prefs are the desk's own per-work settings, kept in .writer, which is
@@ -123,7 +133,7 @@ func (a *App) setDocHidden(hidden bool) {
 	a.savePrefs()
 }
 
-var placeNames = map[string]string{workspace.PlaceBody: "正文", workspace.PlaceOpen: "悬而未决", workspace.PlaceDropped: "已放弃"}
+var placeNames = map[string]string{workspace.PlaceBody: "正文", workspace.PlaceOpen: "等你决定", workspace.PlaceDropped: "已删除"}
 
 // revise records the author's change and shows the setting after it.
 func (a *App) revise(ops ...workspace.Op) {
@@ -134,39 +144,50 @@ func (a *App) revise(ops ...workspace.Op) {
 	a.setError(err)
 }
 
+// settingPanel is the setting in the right column: its entries a row
+// each, or the page of what a row was clicked for.
 func (a *App) settingPanel(c *ui.Context) {
-	body := a.bodyCount()
+	d := &a.doc
 	paneTop(c).Children(func() {
-		title := "设定"
-		if a.doc.history {
-			title = "整理历史"
-		}
-		tabs := a.page == 3 && !a.doc.history
-		if tabs {
+		if a.page == 3 {
 			a.panelTabs(c)
 		} else {
-			ui.Text(c, title).FontSize(fsGroup).FontWeight(600)
-		}
-		if !a.doc.history && !tabs && body > 0 {
-			ui.Textf(c, "%d", body).FontSize(fsNote).TextColor(a.pal.faint).Padding(0, 0, 0, 4)
+			ui.Text(c, "设定").FontSize(fsGroup).FontWeight(600)
+			if n := a.bodyCount(); n > 0 {
+				ui.Textf(c, "%d", n).FontSize(fsNote).TextColor(a.pal.faint).Padding(0, 0, 0, 4)
+			}
 		}
 		ui.Spacer(c)
 		a.bookDot(c)
-		color := ui.Color{}
-		if a.doc.history {
-			color = a.pal.ink
-		}
-		if iconButton(c, icClock, "设定历史", color).Tooltip("整理历史").Clicked() {
-			a.doc.history = !a.doc.history
-		}
-		if iconButton(c, icPanel, "收起设定", ui.Color{}).Tooltip("收起设定文档").Clicked() {
+		if iconButton(c, icPanel, "收起设定", ui.Color{}).Tooltip("收起右栏").Clicked() {
 			a.setDocHidden(true)
 		}
 	})
-	if a.doc.history {
+	if d.editing != "" && d.editing != "new" {
+		if _, ok := a.set.Entry(d.editing); !ok {
+			d.editing = ""
+		}
+	}
+	shown, ok := a.set.Entry(d.shown)
+	if !ok {
+		d.shown = ""
+	}
+	switch {
+	case d.history:
 		a.history(c)
-	} else {
-		a.document(c)
+	case d.editing == "new":
+		a.entryForm(c, workspace.Entry{})
+	case d.editing != "":
+		e, _ := a.set.Entry(d.editing)
+		a.entryForm(c, e)
+	case ok:
+		a.entryPage(c, shown)
+	case d.todo:
+		a.ideasPage(c)
+	case d.dropped:
+		a.droppedList(c)
+	default:
+		a.settingList(c)
 	}
 }
 
@@ -181,151 +202,338 @@ func (a *App) bodyCount() int {
 	return n
 }
 
-// document shows the body by category, then what is open and what was
-// dropped, folded.
-func (a *App) document(c *ui.Context) {
-	t := a.pal.theme
-	ui.Scroll(c).Key("setting").Grow(1).FillWidth().Children(func() {
-		ui.Column(c).FillWidth().Gap(14).Padding(2, 4, 12, 0).Children(func() {
-			a.renameNotice(c)
-			if len(a.set.Entries) == 0 && a.doc.editing == "" {
-				ui.Text(c, "聊着聊着，你定下的设定会整理到这里。也可以直接新增一条。").FontSize(fsControl).TextColor(t.TextMuted).LineHeight(lhLoose)
-			}
-			for _, cat := range a.Store.Work().Categories {
-				a.docSection(c, workspace.PlaceBody, cat.Name, cat.Name, true)
-			}
-			a.docSection(c, workspace.PlaceOpen, "", "悬而未决", true)
-			a.docSection(c, workspace.PlaceDropped, "", "已放弃", false)
-			a.newEntry(c)
-		})
-	})
+// entryName is what a row calls the entry and the line of it that
+// follows: its name and its text, or its text alone when it names nothing.
+func entryName(e workspace.Entry) (name, gist string) {
+	text := strings.Join(strings.Fields(e.Text), " ")
+	if len(e.Names) == 0 {
+		return text, ""
+	}
+	return clip(e.Names[0], 12), text
 }
 
-// docSection lists the entries in place, of category when it is set, under a
-// heading that folds them.
-func (a *App) docSection(c *ui.Context, place, category, title string, unfolded bool) {
-	var entries []workspace.Entry
+// ideas are what the bookkeeper suggests and the author has not decided,
+// and for each the settled entry it is about, if it is about one: the one
+// that shares a name with it, or whose name it says.
+func (a *App) ideas() (open []workspace.Entry, about map[string]string) {
+	about = map[string]string{}
 	for _, e := range a.set.Entries {
-		if e.Place == place && (category == "" || e.Category == category) {
-			entries = append(entries, e)
+		if e.Place != workspace.PlaceOpen {
+			continue
+		}
+		open = append(open, e)
+		best := 0
+		for _, b := range a.set.Entries {
+			if b.Place != workspace.PlaceBody {
+				continue
+			}
+			for _, name := range b.Names {
+				n := len(name)
+				if slices.Contains(e.Names, name) {
+					n += len(e.Text) // a shared name tells more than a mention
+				} else if !strings.Contains(e.Text, name) {
+					continue
+				}
+				if n > best {
+					best, about[e.ID] = n, b.ID
+				}
+			}
 		}
 	}
-	if len(entries) == 0 {
-		return
-	}
-	if a.doc.open == nil {
-		a.doc.open = map[string]*bool{}
-	}
-	key := place + "/" + category
-	open := a.doc.open[key]
-	if open == nil {
-		open = &unfolded
-		a.doc.open[key] = open
-	}
-	ui.Collapsible(c, fmt.Sprintf("%s · %d", title, len(entries)), open, func() {
-		ui.Column(c).FillWidth().Gap(2).Padding(4, 0, 0, 0).Children(func() {
-			for _, e := range entries {
-				a.entry(c, e)
-			}
-		})
-	}).FillWidth()
+	return open, about
 }
 
-// entry is one statement; its actions show on hover, and one the
-// bookkeeper just changed is tinted for a moment.
-func (a *App) entry(c *ui.Context, e workspace.Entry) {
-	t := a.pal.theme
-	box := ui.Column(c).Key(e.ID).FillWidth().Padding(6, 8, 6, 10).Radius(rCard).Gap(8)
-	if at, ok := a.flash[e.ID]; ok {
-		if left := flashFor - time.Since(at); left > 0 {
-			box.Background(a.pal.ink.Alpha(0.2 * float32(left) / float32(flashFor)))
-			c.AnimationFrame()
-		} else {
-			delete(a.flash, e.ID)
+// settingList is the settled entries by category, a row each, under what
+// waits on the author; or those that say what is searched for.
+func (a *App) settingList(c *ui.Context) {
+	d := &a.doc
+	open, about := a.ideas()
+	waiting := map[string]bool{}
+	for _, id := range about {
+		waiting[id] = true
+	}
+	dropped := 0
+	for _, e := range a.set.Entries {
+		if e.Place == workspace.PlaceDropped {
+			dropped++
 		}
 	}
-	hover := box.Hovered() || box.FocusWithin()
-	if hover && a.doc.editing != e.ID {
-		box.Background(t.SurfaceHover)
+	if a.paneFind(c, &d.query, "搜索设定", "新增", func(m *ui.Menu) {
+		if m.Item(counted("已删除", dropped)).Chosen() {
+			d.dropped = true
+		}
+		if m.Item("修改记录").Chosen() {
+			d.history = true
+		}
+	}) {
+		d.editing, d.text, d.category, d.name, d.names = "new", "", workspace.Other, "", ""
 	}
-	box.Children(func() {
-		if a.doc.editing == e.ID {
-			a.entryForm(c, e)
+	q := trim(d.query)
+	row := func(e workspace.Entry) {
+		name, gist := entryName(e)
+		if q != "" {
+			gist = nearFind(gist, q)
+		}
+		b := a.paneRow(c, "设定-"+e.ID, name, gist, "", q, waiting[e.ID]).Key(e.ID)
+		// One the bookkeeper just changed is tinted for a moment.
+		if at, ok := a.flash[e.ID]; ok {
+			if left := flashFor - time.Since(at); left > 0 {
+				b.Background(a.pal.ink.Alpha(0.2 * float32(left) / float32(flashFor)))
+				c.AnimationFrame()
+			} else {
+				delete(a.flash, e.ID)
+			}
+		}
+		if b.Clicked() {
+			d.shown = e.ID
+		}
+	}
+	a.paneRows(c, "setting", func() {
+		if a.renamed.count > 0 {
+			ui.Box(c).FillWidth().Padding(8, 0, 0, 0).Children(func() { a.renameNotice(c) })
+		}
+		if q != "" {
+			var found []workspace.Entry
+			for _, e := range a.set.Entries {
+				if e.Place == workspace.PlaceBody && (strings.Contains(e.Text, q) || slices.ContainsFunc(e.Names, func(n string) bool { return strings.Contains(n, q) })) {
+					found = append(found, e)
+				}
+			}
+			if len(found) == 0 {
+				a.paneEmpty(c, "没有找到", "")
+				return
+			}
+			a.paneGroup(c, fmt.Sprintf("找到 %d 条", len(found)))
+			for _, e := range found {
+				row(e)
+			}
 			return
 		}
-		if len(e.Names) > 0 {
-			ui.Text(c, strings.Join(e.Names, " · ")).FontSize(fsNote).FontWeight(600).TextColor(a.pal.theme.TextMuted).FillWidth().Margin(0, 0, -6, 0)
+		if len(open) > 0 && a.paneTodo(c, "等你决定", len(open)).Clicked() {
+			d.todo = true
 		}
-		ui.Row(c).FillWidth().Gap(4).AlignItems(ui.Start).Children(func() {
-			text := ui.Text(c, e.Text).FontSize(fsBody).LineHeight(lhLoose).Selectable().Grow(1).Shrink(1)
-			if e.Place == workspace.PlaceDropped {
-				text.TextColor(t.TextMuted)
+		if a.bodyCount() == 0 {
+			a.paneEmpty(c, "还没有设定", "聊过、写过的会自动记到这里，也可以点「新增」自己记一条。")
+			return
+		}
+		for _, cat := range a.Store.Work().Categories {
+			first := true
+			for _, e := range a.set.Entries {
+				if e.Place != workspace.PlaceBody || e.Category != cat.Name {
+					continue
+				}
+				if first {
+					a.paneGroup(c, cat.Name)
+					first = false
+				}
+				row(e)
 			}
-			acts := ui.Row(c).Gap(0).Shrink(0)
-			if !hover {
-				acts.Opacity(0)
+		}
+	})
+}
+
+// idea is one thing the bookkeeper suggests, with what it is about when
+// about says, and the author's word on it.
+func (a *App) idea(c *ui.Context, e workspace.Entry, about string) {
+	ui.Column(c).Key(e.ID).FillWidth().Gap(8).Children(func() {
+		if about != "" {
+			ui.Text(c, about).FontSize(fsNote).TextColor(a.pal.theme.TextMuted).SingleLine().Ellipsis("…").FillWidth()
+		}
+		ui.Text(c, e.Text).FontSize(fsBody).LineHeight(lhLoose).Selectable().FillWidth()
+		paneButtons(c, func() {
+			if a.paneButton(c, "忽略", false).Label("忽略-" + e.ID).Clicked() {
+				a.revise(workspace.Op{Op: workspace.OpMove, Entry: e.ID, Place: workspace.PlaceDropped})
 			}
-			acts.Children(func() {
-				switch e.Place {
-				case workspace.PlaceOpen:
-					if iconButton(c, icCheck, "采纳-"+e.ID, ui.Color{}).Tooltip("放入正文").Clicked() {
-						a.revise(workspace.Op{Op: workspace.OpMove, Entry: e.ID, Place: workspace.PlaceBody})
-					}
-				case workspace.PlaceDropped:
-					if iconButton(c, icUndo, "移回-"+e.ID, ui.Color{}).Tooltip("移回正文").Clicked() {
-						a.revise(workspace.Op{Op: workspace.OpMove, Entry: e.ID, Place: workspace.PlaceBody})
-					}
-				}
-				if i := slices.IndexFunc(e.Sources, func(s workspace.Source) bool { return s.Chapter != "" }); i >= 0 {
-					if iconButton(c, icBook, "原文-"+e.ID, ui.Color{}).Tooltip("在正文里找到来源").Clicked() {
-						a.findInChapter(e.Sources[i].Chapter, e.Sources[i].Quote)
-					}
-				}
-				if iconButton(c, icPencil, "编辑-"+e.ID, ui.Color{}).Tooltip("修改").Clicked() {
-					a.doc.editing, a.doc.text, a.doc.category, a.doc.names = e.ID, e.Text, e.Category, strings.Join(e.Names, "、")
-				}
-				if e.Place != workspace.PlaceDropped && iconButton(c, icX, "放弃-"+e.ID, ui.Color{}).Tooltip("放弃").Clicked() {
-					a.revise(workspace.Op{Op: workspace.OpMove, Entry: e.ID, Place: workspace.PlaceDropped})
-				}
-			})
+			if a.paneButton(c, "采纳", true).Label("采纳-" + e.ID).Clicked() {
+				a.revise(workspace.Op{Op: workspace.OpMove, Entry: e.ID, Place: workspace.PlaceBody})
+			}
 		})
 	})
 }
 
-// entryForm edits e's text and category, or writes a new entry for the
-// body when e is empty.
-func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
-	t := a.pal.theme
-	ui.TextAreaBase(c, &a.doc.text).Label("设定内容").Placeholder("写下一条设定").FillWidth().Height(76).FontSize(fsBody).LineHeight(lhLoose).
-		Padding(6, 8).Radius(rControl).Background(a.pal.raised).Border(1, t.Border)
-	naming := slices.Contains(workspace.NameCategories, a.doc.category)
-	if naming {
-		ui.TextInput(c, &a.doc.names).Label("名称").Placeholder("名称，别名用顿号隔开：林晚、晚晚").FillWidth().FontSize(fsControl)
+// ideasPage is all that waits on the author, one after another.
+func (a *App) ideasPage(c *ui.Context) {
+	d := &a.doc
+	if back, _ := a.paneBack(c, "全部设定", ""); back {
+		d.todo = false
 	}
-	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-		ui.Select(c, &a.doc.category, a.categoryNames()).Label("设定分类").Width(120)
-		ui.Spacer(c)
-		if ghost(c, "取消", ui.Color{}).Clicked() {
-			a.doc.editing = ""
+	open, about := a.ideas()
+	if len(open) == 0 {
+		d.todo = false // the last was decided
+	}
+	a.panePage(c, "ideas", func() {
+		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+			ui.Text(c, "等你决定").FontSize(fsGroup).FontWeight(600)
+			ui.Spacer(c)
+			ui.Textf(c, "%d 条 AI 建议", len(open)).FontSize(fsNote).TextColor(a.pal.theme.TextMuted)
+		})
+		for i, e := range open {
+			if i > 0 {
+				a.pal.hairline(c)
+			}
+			words := "新设定"
+			if b, ok := a.set.Entry(about[e.ID]); ok {
+				words = "关于 " + b.Names[0]
+			}
+			a.idea(c, e, words)
 		}
-		text := trim(a.doc.text)
-		var names []string
-		if naming {
-			names = splitNames(a.doc.names)
+	})
+}
+
+// droppedList is the entries the author deleted, which a click shows and
+// its page puts back.
+func (a *App) droppedList(c *ui.Context) {
+	d := &a.doc
+	if back, _ := a.paneBack(c, "全部设定", ""); back {
+		d.dropped = false
+	}
+	a.paneRows(c, "dropped", func() {
+		a.paneGroup(c, "已删除")
+		n := 0
+		for _, e := range a.set.Entries {
+			if e.Place != workspace.PlaceDropped {
+				continue
+			}
+			n++
+			name, gist := entryName(e)
+			if a.paneRow(c, "设定-"+e.ID, name, gist, "", "", false).Key(e.ID).Clicked() {
+				d.shown = e.ID
+			}
 		}
-		if a.pal.primary(c, "保存").Disabled(text == "").Clicked() {
+		if n == 0 {
+			a.paneEmpty(c, "没有删除过设定", "")
+		}
+	})
+}
+
+// entryPage is one entry: all it says, where it comes from, and what the
+// bookkeeper suggests about it.
+func (a *App) entryPage(c *ui.Context, e workspace.Entry) {
+	d := &a.doc
+	from, act := "全部设定", "删除设定"
+	switch e.Place {
+	case workspace.PlaceDropped:
+		from, act = "已删除", "恢复设定"
+	case workspace.PlaceOpen:
+		act = ""
+	}
+	back, acted := a.paneBack(c, from, act)
+	if back {
+		d.shown = ""
+	}
+	if acted {
+		place := workspace.PlaceDropped
+		if e.Place == place {
+			place = workspace.PlaceBody
+		}
+		a.revise(workspace.Op{Op: workspace.OpMove, Entry: e.ID, Place: place})
+		d.shown = ""
+	}
+	open, about := a.ideas()
+	a.panePage(c, "entry-"+e.ID, func() {
+		name, sub := e.Category, ""
+		if len(e.Names) > 0 {
+			name = e.Names[0]
+			if len(e.Names) > 1 {
+				sub = "别名 " + strings.Join(e.Names[1:], "、")
+			}
+		}
+		if a.paneTitle(c, name, sub, "修改") {
+			d.editing, d.text, d.category, d.name, d.names = e.ID, e.Text, e.Category, "", ""
+			if len(e.Names) > 0 {
+				d.name, d.names = e.Names[0], strings.Join(e.Names[1:], "、")
+			}
+		}
+		text := ui.Text(c, e.Text).FontSize(fsBody).LineHeight(lhLoose).Selectable().FillWidth()
+		if e.Place == workspace.PlaceDropped {
+			text.TextColor(a.pal.theme.TextMuted)
+		}
+		if i := slices.IndexFunc(e.Sources, func(s workspace.Source) bool { return s.Chapter != "" }); i >= 0 {
+			src := e.Sources[i]
+			where := "“" + src.Quote + "”"
+			if n := a.chapterNo(src.Chapter); n > 0 {
+				where = fmt.Sprintf("第 %d 章%s", n, where)
+			}
+			if a.paneWhere(c, where, "原文-"+e.ID) {
+				a.findInChapter(src.Chapter, src.Quote)
+			}
+		}
+		first := true
+		for _, o := range open {
+			if about[o.ID] != e.ID {
+				continue
+			}
+			a.pal.hairline(c)
+			if first {
+				ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+					dot(c, a.pal.amber, 6)
+					ui.Text(c, "AI 建议").FontSize(fsNote).FontWeight(600)
+				})
+				first = false
+			}
+			a.idea(c, o, "")
+		}
+	})
+}
+
+// entryForm changes e's name, text and category, or writes a new entry
+// when e is empty.
+func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
+	d := &a.doc
+	from := "全部设定"
+	if e.ID != "" {
+		from, _ = entryName(e)
+		from = clip(from, 16)
+	}
+	if back, _ := a.paneBack(c, from, ""); back {
+		d.editing = ""
+	}
+	a.panePage(c, "form-"+e.ID, func() {
+		content := func() {
+			a.paneField(c, "内容", func() {
+				ui.TextAreaBase(c, &d.text).Label("设定内容").FillWidth().Height(96).FontSize(fsBody).LineHeight(lhLoose).
+					Padding(8, 10).Radius(rControl).Background(a.pal.canvas).Border(1, a.pal.theme.Border)
+			})
+		}
+		name, alias := "名字", "别名"
+		if e.ID == "" {
+			ui.Text(c, "新增设定").FontSize(fsGroup).FontWeight(600)
+			name, alias = "名字（选填）", "别名（选填）"
+			content()
+		}
+		a.paneField(c, name, func() {
+			ui.TextInput(c, &d.name).Label("名字").FillWidth().FontSize(fsBody)
+		})
+		a.paneField(c, alias, func() {
+			ui.TextInput(c, &d.names).Label("别名").Placeholder("多个用顿号隔开").FillWidth().FontSize(fsBody)
+		})
+		if e.ID != "" {
+			content()
+		}
+		a.paneField(c, "分类", func() {
+			ui.Select(c, &d.category, a.categoryNames()).Label("设定分类").FillWidth()
+		})
+		text := trim(d.text)
+		names := splitNames(d.name + "、" + d.names)
+		paneButtons(c, func() {
+			if a.paneButton(c, "取消", false).Clicked() {
+				d.editing = ""
+			}
+			if !a.paneButton(c, "保存", true).Disabled(text == "").Clicked() {
+				return
+			}
 			var ops []workspace.Op
 			switch {
 			case e.ID == "":
-				ops = append(ops, workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: a.doc.category, Text: text, Names: names})
+				ops = append(ops, workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: d.category, Text: text, Names: names})
 			default:
 				if text != e.Text {
 					ops = append(ops, workspace.Op{Op: workspace.OpEdit, Entry: e.ID, Text: text})
 				}
-				if a.doc.category != e.Category {
-					ops = append(ops, workspace.Op{Op: workspace.OpMove, Entry: e.ID, Category: a.doc.category})
+				if d.category != e.Category {
+					ops = append(ops, workspace.Op{Op: workspace.OpMove, Entry: e.ID, Category: d.category})
 				}
-				if naming && !slices.Equal(names, e.Names) {
+				if !slices.Equal(names, e.Names) {
 					ops = append(ops, workspace.Op{Op: workspace.OpName, Entry: e.ID, Names: names})
 				}
 			}
@@ -333,33 +541,13 @@ func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 				a.revise(ops...)
 			}
 			if a.Error == "" {
-				a.doc.editing = ""
-				if len(e.Names) > 0 && len(names) > 0 && naming {
+				d.editing = ""
+				if len(e.Names) > 0 && len(names) > 0 {
 					a.noteRename(e.Names[0], names[0])
 				}
 			}
-		}
-	})
-}
-
-func (a *App) newEntry(c *ui.Context) {
-	if a.doc.editing == "new" {
-		ui.Column(c).FillWidth().Padding(6, 8, 6, 10).Radius(rCard).Gap(8).Background(a.pal.raised).Children(func() {
-			a.entryForm(c, workspace.Entry{})
 		})
-		return
-	}
-	b := ui.ButtonBase(c).Row().Gap(6).AlignItems(ui.Center).Padding(6, 8).Radius(rControl).Label("新增设定")
-	if b.Hovered() {
-		b.Background(a.pal.theme.SurfaceHover)
-	}
-	b.Children(func() {
-		glyph(c, icPlus, iconSm, a.pal.faint)
-		ui.Text(c, "新增设定").FontSize(fsControl).TextColor(a.pal.theme.TextMuted)
 	})
-	if b.Clicked() {
-		a.doc.editing, a.doc.text, a.doc.category, a.doc.names = "new", "", workspace.Other, ""
-	}
 }
 
 // history lists the revisions, newest first: what changed, who changed it,
@@ -367,10 +555,15 @@ func (a *App) newEntry(c *ui.Context) {
 // can be retried here.
 func (a *App) history(c *ui.Context) {
 	t := a.pal.theme
+	if back, _ := a.paneBack(c, "全部设定", ""); back {
+		a.doc.history = false
+	}
+	a.pal.hairline(c)
 	ui.Scroll(c).Key("history").Grow(1).FillWidth().Children(func() {
-		ui.Column(c).FillWidth().Gap(10).Padding(2, 4, 12, 0).Children(func() {
+		ui.Column(c).FillWidth().Gap(10).Padding(16, 20, 20, 20).Children(func() {
+			ui.Text(c, "修改记录").FontSize(fsGroup).FontWeight(600)
 			if len(a.set.Revisions) == 0 {
-				ui.Text(c, "还没有整理过。每轮对话之后，整理会在后台进行。").FontSize(fsControl).TextColor(t.TextMuted)
+				a.paneNote(c, "还没有改过。聊过之后，AI 会自动整理设定。")
 			}
 			for n := len(a.set.Revisions) - 1; n >= 0; n-- {
 				r := a.set.Revisions[n]
@@ -407,7 +600,7 @@ func (a *App) history(c *ui.Context) {
 						ui.Text(c, a.describeOp(op)).FontSize(fsNote).LineHeight(lhBody).Selectable().FillWidth()
 					}
 					if len(r.Skipped) > 0 {
-						ui.Textf(c, "%d 处你刚改过，没有覆盖，放进了悬而未决", len(r.Skipped)).FontSize(fsNote).TextColor(t.TextMuted)
+						ui.Textf(c, "%d 处你刚改过，没有覆盖，放进了「等你决定」", len(r.Skipped)).FontSize(fsNote).TextColor(t.TextMuted)
 					}
 					if r.Reasoning != "" {
 						a.thought(c, r.ID, "整理时的思考", r.Reasoning, false)
@@ -484,7 +677,7 @@ func (a *App) bookDot(c *ui.Context) {
 	})
 	if b.Clicked() {
 		a.setDocHidden(false)
-		a.doc.history = true
+		a.doc.history, a.doc.fore, a.doc.talk = true, false, false
 	}
 }
 

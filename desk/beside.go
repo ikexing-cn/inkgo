@@ -2,6 +2,7 @@ package desk
 
 import (
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"writer/discussion"
@@ -45,12 +46,14 @@ func (a *App) resizer(c *ui.Context, width float32) {
 // the talk and the foreshadowings.
 func (a *App) panelTabs(c *ui.Context) {
 	t := a.pal.theme
+	// Each count is of what waits on the author there.
 	waiting := 0
 	for _, f := range a.foreshadows() {
 		if f.status() == foreLost {
 			waiting++
 		}
 	}
+	open, _ := a.ideas()
 	tab := func(label string, talk, fore bool) {
 		on := a.doc.fore == fore && (fore || a.doc.talk == talk)
 		b := ui.ButtonBase(c).Row().AlignItems(ui.Center).Padding(4, 10).Radius(rControl).Label("右栏-" + label)
@@ -68,9 +71,9 @@ func (a *App) panelTabs(c *ui.Context) {
 			}
 			// The count sits inside its own tab; beside the tabs it read
 			// as unread talk.
-			n := a.bodyCount()
+			n := len(open)
 			if fore {
-				n = waiting // those that wait on the author
+				n = waiting
 			}
 			if n > 0 && !talk {
 				ui.Textf(c, "%d", n).FontSize(fsNote).TextColor(a.pal.faint).Padding(0, 0, 0, 4)
@@ -91,51 +94,83 @@ func (a *App) panelTabs(c *ui.Context) {
 	})
 }
 
-// talkPanel is the talk beside the prose: the session, its turns, and the
-// composer, which sends what the author is writing with their words.
+// talkPanel is the talk beside the prose: one talk with its turns and the
+// composer, which sends what the author is writing with their words, or
+// the list of them all.
 func (a *App) talkPanel(c *ui.Context) {
-	t := a.pal.theme
+	d := &a.doc
 	paneTop(c).Children(func() {
 		a.panelTabs(c)
 		ui.Spacer(c)
 		a.bookDot(c)
-		if iconButton(c, icPlus, "新讨论", ui.Color{}).Tooltip("开一条新讨论").Disabled(a.busy != "").Clicked() {
-			if id, err := a.Store.NewSession(); err != nil {
-				a.setError(err)
-			} else {
-				a.switchSession(id)
-			}
-		}
 		if iconButton(c, icPanel, "收起右栏", ui.Color{}).Tooltip("收起右栏").Clicked() {
 			a.setDocHidden(true)
 		}
 	})
-	_, words := a.sessionParts(a.session)
-	pick := ui.ButtonBase(c).Row().FillWidth().Gap(6).AlignItems(ui.Center).Padding(6, 8).Radius(rControl).Border(1, t.Border).Label("切换讨论").Disabled(a.busy != "")
-	if pick.Hovered() {
-		pick.Background(t.SurfaceHover)
+	if d.talks {
+		a.talkList(c)
+		return
 	}
-	pick.Children(func() {
-		glyph(c, icChat, iconSm, t.TextMuted)
-		ui.Text(c, words).FontSize(fsControl).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
-		glyph(c, icChevronDown, iconSm, a.pal.faint)
-	})
-	pick.Menu(func(m *ui.Menu) {
-		for n := len(a.sessions) - 1; n >= 0; n-- {
-			id := a.sessions[n]
-			if a.shelved[id] && id != a.session {
-				continue
-			}
-			when, words := a.sessionParts(id)
-			if m.Item(clip(words, 24) + "  " + when).Checked(id == a.session).Chosen() {
-				a.switchSession(id)
-			}
-		}
-	})
-	ui.Column(c).FillWidth().Grow(1).Shrink(1).Children(func() {
+	if back, _ := a.paneBack(c, "全部讨论", ""); back && a.busy == "" {
+		d.talks = true
+	}
+	a.pal.hairline(c)
+	ui.Column(c).FillWidth().Grow(1).Shrink(1).Padding(0, 20).Children(func() {
 		a.chatList(c, true)
 	})
-	a.composer(c)
+	ui.Box(c).FillWidth().Padding(0, 20, 14, 20).Shrink(0).Children(func() { a.composer(c) })
+}
+
+// talkList is the talks of the work, the latest first, a row each.
+func (a *App) talkList(c *ui.Context) {
+	d := &a.doc
+	if a.paneFind(c, &d.talkQuery, "搜索讨论", "新讨论", nil) {
+		if id, err := a.Store.NewSession(); err != nil {
+			a.setError(err)
+		} else {
+			a.switchSession(id)
+			d.talks, a.focusTalk = false, true
+		}
+	}
+	q := trim(d.talkQuery)
+	a.paneRows(c, "talks", func() {
+		group := "最近"
+		if q != "" {
+			group = "找到的"
+		}
+		n := 0
+		for i := len(a.sessions) - 1; i >= 0; i-- {
+			id := a.sessions[i]
+			when, words := a.sessionParts(id)
+			if a.shelved[id] && id != a.session || q != "" && !strings.Contains(words, q) {
+				continue
+			}
+			if n == 0 {
+				a.paneGroup(c, group)
+			}
+			n++
+			if a.paneRow(c, "讨论-"+id, words, "", talkDay(when, time.Now()), "", false).Key(id).Clicked() {
+				a.switchSession(id)
+				d.talks = false
+			}
+		}
+		if n == 0 {
+			a.paneEmpty(c, "没有找到", "")
+		}
+	})
+}
+
+// talkDay is the day of a talk in the fewest words, from when as its title
+// has it: 今天, 昨天, or the month and day.
+func talkDay(when string, now time.Time) string {
+	day, _, _ := strings.Cut(when, " ")
+	switch day {
+	case now.Format("01-02"):
+		return "今天"
+	case now.AddDate(0, 0, -1).Format("01-02"):
+		return "昨天"
+	}
+	return day
 }
 
 // beside is what the author is writing, sent with a turn from the writing

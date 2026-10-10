@@ -80,15 +80,19 @@ func (f *answer) Complete(ctx context.Context, r model.Request, on func(model.De
 // theirs, and what they drop can come back.
 func TestTheAuthorEditsTheSetting(t *testing.T) {
 	a, tt, e := fixture(t)
-	if !tt.HasText("主角怕黑") || !tt.HasText("人物 · 1") {
+	if !tt.HasText("主角怕黑") || !tt.HasText("人物") {
 		t.Fatal("the setting is not shown", tt.Texts())
 	}
-	if err := tt.Click("编辑-" + e.ID); err != nil {
+	if err := tt.Click("设定-" + e.ID); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
+	if err := tt.Click("修改"); err != nil {
+		t.Fatal(err, tt.Texts())
+	}
+	tt.Frame()
 	a.doc.text, a.doc.category = "主角怕安静", "关系"
-	tt.Frame() // the form has no names for a relation
+	tt.Frame()
 	if err := tt.Click("保存"); err != nil {
 		t.Fatal(err)
 	}
@@ -97,24 +101,37 @@ func TestTheAuthorEditsTheSetting(t *testing.T) {
 	if got.Text != "主角怕安静" || got.Category != "关系" || !got.Author || a.doc.editing != "" {
 		t.Fatalf("edit %+v", got)
 	}
-	if err := tt.Click("放弃-" + e.ID); err != nil {
+	if err := tt.Click("删除设定"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
 	if got, _ = a.set.Entry(e.ID); got.Place != workspace.PlaceDropped {
 		t.Fatal(got.Place)
 	}
-	*a.doc.open[workspace.PlaceDropped+"/"] = true
+	if err := tt.Click("更多"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.ChooseMenuItem("已删除  1"); err != nil {
+		t.Fatal(err, tt.Menu())
+	}
 	tt.Frame()
-	if err := tt.Click("移回-" + e.ID); err != nil {
+	if err := tt.Click("设定-" + e.ID); err != nil {
+		t.Fatal(err, tt.Texts())
+	}
+	tt.Frame()
+	if err := tt.Click("恢复设定"); err != nil {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
 	if got, _ = a.set.Entry(e.ID); got.Place != workspace.PlaceBody {
 		t.Fatal(got.Place)
 	}
-	if err := tt.Click("新增设定"); err != nil {
-		t.Fatal(err)
+	if err := tt.Click("全部设定"); err != nil {
+		t.Fatal(err, tt.Texts())
+	}
+	tt.Frame()
+	if err := tt.Click("新增"); err != nil {
+		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
 	a.doc.text = "雨从不停"
@@ -166,8 +183,11 @@ func TestBookkeeperFillsTheSettingInTheBackground(t *testing.T) {
 	if _, ok := a.flash[a.set.Entries[1].ID]; !ok {
 		t.Fatal("the bookkeeper's change is not tinted")
 	}
-	if err := tt.Click("设定历史"); err != nil {
+	if err := tt.Click("更多"); err != nil {
 		t.Fatal(err)
+	}
+	if err := tt.ChooseMenuItem("修改记录"); err != nil {
+		t.Fatal(err, tt.Menu())
 	}
 	tt.Frame()
 	if !tt.HasText("后台整理") || !tt.HasText("新增到正文 · 规则：雨从不停") || !tt.HasText("整理时的思考") {

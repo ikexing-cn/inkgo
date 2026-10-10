@@ -59,7 +59,7 @@ func TestLayoutDiscussion(t *testing.T) {
 	if a.LastChat.H < 600 || a.LastSetting.H < 600 || a.LastChat.W < 600 || a.LastSetting.W < 390 {
 		t.Fatalf("discussion bounds chat=%+v setting=%+v", a.LastChat, a.LastSetting)
 	}
-	if !tt.HasText("设定") || !tt.HasText("悬而未决 · 1") || !tt.HasText("总讨论") {
+	if !tt.HasText("设定") || !tt.HasText("等你决定") || !tt.HasText("总讨论") {
 		t.Fatal(tt.Texts())
 	}
 	shot(t, tt, "-m1")
@@ -71,8 +71,11 @@ func TestLayoutDiscussion(t *testing.T) {
 		t.Fatal("reasoning did not unfold", tt.Texts())
 	}
 	shot(t, tt, "-thought")
-	if err = tt.Click("设定历史"); err != nil {
+	if err = tt.Click("更多"); err != nil {
 		t.Fatal(err)
+	}
+	if err = tt.ChooseMenuItem("修改记录"); err != nil {
+		t.Fatal(err, tt.Menu())
 	}
 	tt.Frame()
 	if !tt.HasText("后台整理") {
