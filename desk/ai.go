@@ -380,7 +380,7 @@ func (a *App) draftView(c *ui.Context) {
 	ui.Modal(c, &w.draftOpen, func() {
 		ui.Column(c).Width(520).Gap(14).Children(func() {
 			ui.Column(c).Gap(4).Children(func() {
-				ui.Text(c, "按章纲起草").FontSize(fsDialog).FontWeight(600)
+				ui.Text(c, "起草本章").FontSize(fsDialog).FontWeight(600)
 				ui.Text(c, "AI 只把章纲写成文字，不加章纲里没有的大事件。起草前存一份快照，写出的文字带“AI 起草”标记，你改过的地方会脱离标记。").FontSize(fsControl).TextColor(t.TextMuted).LineHeight(lhBody)
 			})
 			ui.Box(c).FillWidth().Padding(10, 12).Radius(rControl).Background(a.pal.side).Children(func() {

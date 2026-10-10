@@ -163,8 +163,8 @@ func (a *App) toastActions(c *ui.Context, ts ui.Toast) {
 			again := a.again
 			acts = append(acts, act{"重试", func() { a.Error = ""; again() }, ""})
 		}
-		if strings.Contains(ts.Title, "模型") {
-			acts = append(acts, act{"打开模型设置", func() { a.openPrefs("模型") }, ""})
+		if strings.Contains(ts.Title, "模型") || strings.Contains(ts.Title, "AI") {
+			acts = append(acts, act{"去设置", func() { a.openPrefs("模型") }, ""})
 		}
 		text := a.Error
 		acts = append(acts, act{"复制详情", func() { c.WriteClipboard(text) }, ""})

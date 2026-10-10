@@ -51,7 +51,7 @@ func TestFirstBackup(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("稿子现在只存在这台电脑上") || !tt.HasText("在这台电脑上找到了 · "+sync) || !tt.HasText("每次关闭作品时，再加每天一次") {
+	if !tt.HasText("稿子现在只存在这台电脑上") || !tt.HasText("在这台电脑上找到了 · "+sync) || !tt.HasText("关闭作品时和每天一次") {
 		t.Fatal("not asked", tt.Texts())
 	}
 	if err := tt.Click("开始备份"); err != nil {
@@ -120,25 +120,25 @@ func TestBackupFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if err := tt.Click("现在备份一次"); err != nil {
+	if err := tt.Click("立即备份"); err != nil {
 		t.Fatal(err, tt.Texts())
 	}
 	waitBackup(t, a, tt)
-	if !tt.HasText("备份没成功") || !tt.HasText("备份未完成 · 找不到备份文件夹") || !tt.HasText("待处理 1") {
+	if !tt.HasText("备份没成功") || !tt.HasText("备份没成功 · 找不到备份文件夹") || !tt.HasText("待处理 1") {
 		t.Fatal("failure not shown", tt.Texts())
 	}
-	if err := tt.Click("备份未完成"); err != nil {
+	if err := tt.Click("备份提示"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("找不到备份文件夹，这次没备份上") || !tt.HasText("它可能被移走或改了名。稿子在这台电脑上好好的，换个地方或者把文件夹放回去再试一次。还没有成功过。") {
+	if !tt.HasText("找不到备份文件夹，这次没备份上") || !tt.HasText("稿子没丢，文件夹可能被移走或改名。还没有备份成功过。") {
 		t.Fatal("no reason", tt.Texts())
 	}
-	if err := tt.Click("今天别提醒"); err != nil {
+	if err := tt.Click("今天不提醒"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if tt.HasText("备份未完成 · 找不到备份文件夹") || !tt.HasText("备份没成功") {
+	if tt.HasText("备份没成功 · 找不到备份文件夹") || !tt.HasText("备份没成功") {
 		t.Fatal("still warned on the toolbar", tt.Texts())
 	}
 	// The folder back, trying again works, and the settings page says so.
@@ -149,7 +149,7 @@ func TestBackupFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if err := tt.Click("再试一次"); err != nil {
+	if err := tt.Click("重试"); err != nil {
 		t.Fatal(err, tt.Texts())
 	}
 	waitBackup(t, a, tt)
@@ -164,7 +164,7 @@ func TestBackupFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !a.bk.prefs || !tt.HasText("把整部作品复制一份到别处。快照只防改错，备份防电脑坏。") || !tt.HasText("11 字 · 1 章 · 共保留 1 份，最早一份是 "+time.Now().Format("1 月 2 日")) {
+	if !a.bk.prefs || !tt.HasText("把整部作品多存一份，防电脑坏。") || !tt.HasText("11 字 · 1 章 · 已存 1 份，最早 "+time.Now().Format("1 月 2 日")) {
 		t.Fatal("settings page", tt.Texts())
 	}
 	if err := tt.Click("写作时每小时一次"); err != nil {
@@ -198,10 +198,10 @@ func TestWhenSaid(t *testing.T) {
 			t.Errorf("when(%v) = %q, want %q", c.at, got, c.want)
 		}
 	}
-	if got := whenSaid(true, true, false); got != "每次关闭作品时，再加每天一次" {
+	if got := whenSaid(true, true, false); got != "关闭作品时和每天一次" {
 		t.Error(got)
 	}
-	if got := whenSaid(true, true, true); got != "每次关闭作品时、每天一次，再加写作时每小时一次" {
+	if got := whenSaid(true, true, true); got != "关闭作品时、每天一次和写作时每小时一次" {
 		t.Error(got)
 	}
 }
@@ -244,7 +244,7 @@ func TestShotBackup(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if err := tt.Click("现在备份一次"); err != nil {
+	if err := tt.Click("立即备份"); err != nil {
 		t.Fatal(err)
 	}
 	waitBackup(t, a, tt)

@@ -26,7 +26,7 @@ func (a *App) moreButton(c *ui.Context, chapter bool) {
 				if strings.TrimSpace(w.outline) == "" {
 					hint = "先写章纲"
 				}
-				if a.menuRow(c, icDraft, "按章纲起草", hint, busy || hint != "").Clicked() {
+				if a.menuRow(c, icDraft, "起草本章", hint, busy || hint != "").Clicked() {
 					w.moreOpen = false
 					a.openDraft()
 				}
@@ -36,7 +36,7 @@ func (a *App) moreButton(c *ui.Context, chapter bool) {
 					a.openSnapshots()
 				}
 			}
-			if a.menuRow(c, icDownload, "导出全书或章节…", "", false).Clicked() {
+			if a.menuRow(c, icDownload, "导出…", "", false).Clicked() {
 				w.moreOpen = false
 				w.exportOpen, w.exportDone, w.exportFrom = true, false, ""
 			}

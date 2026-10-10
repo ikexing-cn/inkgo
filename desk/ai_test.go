@@ -73,7 +73,7 @@ func TestDraftAChapterFromItsOutline(t *testing.T) {
 	f := &stream{pieces: []string{"雨下了一夜。", "\n她醒了。"}, hold: make(chan struct{})}
 	penWith(a, f)
 	tt.Frame()
-	if err := clickMore(tt, "按章纲起草"); err != nil {
+	if err := clickMore(tt, "起草本章"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -82,7 +82,7 @@ func TestDraftAChapterFromItsOutline(t *testing.T) {
 	}
 	a.write.outline = "她在雨夜醒来。"
 	tt.Frame()
-	if err := tt.Click("按章纲起草"); err != nil { // the menu stayed open
+	if err := tt.Click("起草本章"); err != nil { // the menu stayed open
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -128,7 +128,7 @@ func TestStopADraftKeepsWhatCame(t *testing.T) {
 	penWith(a, f)
 	a.write.outline = "她醒来。"
 	tt.Frame()
-	if err := clickMore(tt, "按章纲起草"); err != nil {
+	if err := clickMore(tt, "起草本章"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -213,7 +213,7 @@ func TestRewriteASelection(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("改写 · deepseek/deepseek-flash · High · 放慢") {
+	if !tt.HasText("改写 · deepseek/deepseek-flash · 高 · 放慢") {
 		t.Fatal("the AI record is not shown", tt.Texts())
 	}
 }

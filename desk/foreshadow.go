@@ -438,7 +438,7 @@ func (a *App) forePopover(c *ui.Context) {
 		box.Padding(12).Gap(10).Radius(rCard).Children(func() {
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 				glyph(c, icFlag, iconXs, t.TextMuted)
-				ui.Text(c, "把这句记为伏笔，写一句备注").FontSize(fsNote).TextColor(t.TextMuted)
+				ui.Text(c, "记为伏笔，写句备注").FontSize(fsNote).TextColor(t.TextMuted)
 			})
 			in := ui.TextInput(c, &f.note).Label("伏笔备注").Placeholder("比如：小祥为什么突然改口").FillWidth().AutoFocus()
 			cancel := in.Shortcut(0, ui.KeyEscape)
@@ -468,7 +468,7 @@ func (a *App) forePopover(c *ui.Context) {
 	box.Padding(10).Gap(6).Radius(rControl).Children(func() {
 		ui.Row(c).Gap(6).AlignItems(ui.Center).Padding(2, 4).Children(func() {
 			glyph(c, icLink, iconXs, t.TextMuted)
-			ui.Text(c, "这段回收的是哪个伏笔？").FontSize(fsNote).TextColor(t.TextMuted)
+			ui.Text(c, "回收的是哪个伏笔").FontSize(fsNote).TextColor(t.TextMuted)
 		})
 		in := ui.TextInput(c, &f.payQuery).Label("找伏笔").Placeholder("搜备注或原句").FillWidth().AutoFocus()
 		cancel := in.Shortcut(0, ui.KeyEscape)
@@ -509,7 +509,7 @@ func (a *App) forePopover(c *ui.Context) {
 			if ghost(c, "取消", ui.Color{}).Label("取消回收选择").Clicked() {
 				cancel = true
 			}
-			if a.pal.primary(c, "确定").Disabled(f.pick == "").Clicked() || in.Submitted() && f.pick != "" {
+			if a.pal.primary(c, "记为回收").Label("确定回收").Disabled(f.pick == "").Clicked() || in.Submitted() && f.pick != "" {
 				a.pay(f.pick)
 			}
 		})

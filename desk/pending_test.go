@@ -56,12 +56,12 @@ func TestPendingForeshadowing(t *testing.T) {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
-	if !tt.HasText("待处理 2") || !tt.HasText("「钥匙」31 章没回收") || !tt.HasText("第2章 · 当前章") {
+	if !tt.HasText("待处理 2") || !tt.HasText("「钥匙」31 章没回收") || !tt.HasText("第2章 · 本章") {
 		t.Fatal("not listed", tt.Texts())
 	}
 	a.write.pendHere = 1
 	tt.Frame()
-	if tt.HasText("「钥匙」31 章没回收") || !tt.HasText("「雨夜的电话」找不到原句了") {
+	if tt.HasText("「钥匙」31 章没回收") || !tt.HasText("「雨夜的电话」原句已删") {
 		t.Fatal("this chapter's alone", tt.Texts())
 	}
 	a.write.pendHere = 0
@@ -80,7 +80,7 @@ func TestPendingForeshadowing(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("「钥匙」找不到原句了") || !tt.HasText("第一章 · 当前章") {
+	if !tt.HasText("「钥匙」原句已删") || !tt.HasText("第一章 · 本章") {
 		t.Fatal("not lost", tt.Texts())
 	}
 	if err := tt.Click("全部忽略"); err != nil {

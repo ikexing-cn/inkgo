@@ -319,7 +319,7 @@ func TestMarksSurviveReopening(t *testing.T) {
 
 func TestExportTheWork(t *testing.T) {
 	a, tt, _ := writingFixture(t, "雨下着。")
-	if err := clickMore(tt, "导出全书或章节"); err != nil {
+	if err := clickMore(tt, "导出…"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -336,7 +336,7 @@ func TestExportTheWork(t *testing.T) {
 		t.Fatalf("export %q", b)
 	}
 	// The chapter open alone, named after it.
-	if err := clickMore(tt, "导出全书或章节"); err != nil {
+	if err := clickMore(tt, "导出…"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -634,7 +634,7 @@ func TestWritingSwitchesKeepAsTicked(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	for _, label := range []string{"停止输入后自动续写", "离开改过的章节时更新摘要"} {
+	for _, label := range []string{"停笔后自动续写", "改完一章后更新摘要"} {
 		if err := tt.Click(label); err != nil {
 			t.Fatal(err, tt.Texts())
 		}

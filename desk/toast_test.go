@@ -17,13 +17,13 @@ import (
 func TestToastOverTheSettings(t *testing.T) {
 	a, tt, _ := fixture(t)
 	a.openPrefs("模型")
-	a.Error = "连不上模型服务：请检查 API 地址和网络"
+	a.Error = "连不上 AI：检查网络和服务地址"
 	tt.Frame()
 	tt.Frame()
-	if n := strings.Count(strings.Join(tt.Texts(), "\n"), "连不上模型服务"); n != 1 {
+	if n := strings.Count(strings.Join(tt.Texts(), "\n"), "连不上 AI"); n != 1 {
 		t.Fatalf("shown %d times: %q", n, tt.Texts())
 	}
-	for _, s := range []string{"请检查 API 地址和网络", "打开模型设置", "复制详情"} {
+	for _, s := range []string{"检查网络和服务地址", "去设置", "复制详情"} {
 		if !tt.HasText(s) {
 			t.Fatal(s, tt.Texts())
 		}
@@ -38,7 +38,7 @@ func TestToastOverTheSettings(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.Error != "" || tt.HasText("连不上模型服务") {
+	if a.Error != "" || tt.HasText("连不上 AI") {
 		t.Fatal(a.Error, tt.Texts())
 	}
 }
@@ -118,7 +118,7 @@ func TestShotToasts(t *testing.T) {
 	}
 	tt.SetDark(true)
 	a.openPrefs("模型")
-	a.Error = "连不上模型服务：请检查 API 地址和网络"
+	a.Error = "连不上 AI：检查网络和服务地址"
 	shot("toast-settings-dark.png")
 	tt.SetDark(false)
 	a.bk.prefs = false
@@ -127,8 +127,8 @@ func TestShotToasts(t *testing.T) {
 	a.page = 3
 	a.notice = "已保存。停笔片刻也会自动保存"
 	shot("toast-saved.png")
-	a.Error = "连不上模型服务：请检查 API 地址和网络"
+	a.Error = "连不上 AI：检查网络和服务地址"
 	tt.Frame()
-	a.busy = "正在获取模型目录…"
+	a.busy = "正在读取可用模型…"
 	shot("toast-stack.png")
 }

@@ -51,7 +51,7 @@ func (a *App) pendingGroups() []pendGroup {
 		switch st := f.status(); {
 		case st == foreLost:
 			it.key = "伏笔/失去锚点/" + f.node + "/" + f.quote
-			it.text = fmt.Sprintf("「%s」找不到原句了", clip(f.name(), 16))
+			it.text = fmt.Sprintf("「%s」原句已删", clip(f.name(), 16))
 		case st == foreOpen && f.gap >= late:
 			it.key = "伏笔/没回收/" + f.node + "/" + f.quote
 			it.text = fmt.Sprintf("「%s」%d 章没回收", clip(f.name(), 16), f.gap)
@@ -60,7 +60,7 @@ func (a *App) pendingGroups() []pendGroup {
 			continue
 		}
 		if f.here {
-			it.sub += " · 当前章"
+			it.sub += " · 本章"
 		}
 		if !w.ignored[it.key] {
 			items = append(items, it)

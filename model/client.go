@@ -69,13 +69,13 @@ var Efforts = []Effort{EffortDefault, EffortLow, EffortHigh, EffortMax}
 func (e Effort) Label() string {
 	switch e {
 	case EffortLow:
-		return "Low"
+		return "低"
 	case EffortHigh:
-		return "High"
+		return "高"
 	case EffortMax:
-		return "Max"
+		return "最高"
 	}
-	return "Default"
+	return "默认"
 }
 
 // Valid reports whether e is one of Efforts.
@@ -355,7 +355,7 @@ func safeError(ctx context.Context, err error) error {
 	if errors.As(err, &timeout) && timeout.Timeout() {
 		return fmt.Errorf("模型请求超时：%w", context.DeadlineExceeded)
 	}
-	return errors.New("连不上模型服务：请检查 API 地址和网络")
+	return errors.New("连不上 AI：检查网络和服务地址")
 }
 
 // guard sends a request only to the provider's host, with the provider's

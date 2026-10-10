@@ -77,7 +77,7 @@ func labeled(c *ui.Context, caption string, fn func()) *ui.Element {
 // modelsView is the settings' 模型: which models the work uses, how the
 // writing calls them, and the services kept on this computer.
 func (a *App) modelsView(c *ui.Context) {
-	a.prefsHead(c, "模型", "这部作品用哪个模型；模型服务存在这台电脑上，所有作品共用。")
+	a.prefsHead(c, "模型", "给这部作品选模型。")
 	if a.Store != nil {
 		a.usage(c)
 		a.writingSwitches(c)
@@ -101,10 +101,10 @@ func (a *App) usage(c *ui.Context) {
 	t := a.pal.theme
 	busy := a.busy != ""
 	ui.Column(c).FillWidth().Gap(10).Children(func() {
-		a.subhead(c, "这部作品用", "整理在后台把讨论整理进设定，可以用更便宜的模型或更低的推理等级；推理等级 Default 交给服务商决定。")
+		a.subhead(c, "这部作品用", "整理可以用便宜些的模型；思考选「默认」由服务商决定。")
 		ui.Column(c).FillWidth().Children(func() {
 			a.pal.hairline(c)
-			a.useRow(c, "讨论", "回应你的想法", &a.talkProvider, "", "讨论提供商", &a.talkModel, "讨论模型", &a.talkEffort, "讨论推理等级")
+			a.useRow(c, "讨论", "和你聊故事", &a.talkProvider, "", "讨论提供商", &a.talkModel, "讨论模型", &a.talkEffort, "讨论推理等级")
 			a.useRow(c, "整理", "把讨论整理进设定", &a.bookProvider, sameAsTalk, "记账提供商", &a.bookModel, "记账模型", &a.bookEffort, "整理推理等级")
 			a.useRow(c, "写作", "续写、改写、起草", &a.penProvider, sameAsTalk, "写作提供商", &a.penModel, "写作模型", &a.penEffort, "写作推理等级")
 		})
@@ -154,16 +154,16 @@ func (a *App) writingSwitches(c *ui.Context) {
 	ui.Column(c).FillWidth().Gap(12).Children(func() {
 		a.subhead(c, "写作时", "")
 		ui.Column(c).FillWidth().Gap(4).Children(func() {
-			if ui.Checkbox(c, &a.write.autoPredict, "停止输入后自动续写").Disabled(busy).Changed() {
+			if ui.Checkbox(c, &a.write.autoPredict, "停笔后自动续写").Disabled(busy).Changed() {
 				a.savePrefs() // kept as ticked, not with the models above
 			}
-			ui.Text(c, "续写总是不推理、只写一句。默认按 "+modKey+"J 才续写；打开后每次停下来都会调用一次模型。").FontSize(fsNote).TextColor(a.pal.faint).LineHeight(lhBody)
+			ui.Text(c, "打开后每次停笔都会用一次 AI。").FontSize(fsNote).TextColor(a.pal.faint).LineHeight(lhBody)
 		})
 		ui.Column(c).FillWidth().Gap(4).Children(func() {
-			if ui.Checkbox(c, &a.write.autoSummary, "离开改过的章节时更新摘要").Disabled(busy).Changed() {
+			if ui.Checkbox(c, &a.write.autoSummary, "改完一章后更新摘要").Disabled(busy).Changed() {
 				a.savePrefs() // kept as ticked, not with the models above
 			}
-			ui.Text(c, "起草时 AI 会看到前面各章的摘要。每更新一章调用一次写作模型（不推理）；你自己写的摘要不会被覆盖。").FontSize(fsNote).TextColor(a.pal.faint).LineHeight(lhBody)
+			ui.Text(c, "你自己写的摘要不会被覆盖。").FontSize(fsNote).TextColor(a.pal.faint).LineHeight(lhBody)
 		})
 	})
 }
@@ -174,7 +174,7 @@ func (a *App) services(c *ui.Context) {
 	t := a.pal.theme
 	busy := a.busy != ""
 	ui.Column(c).FillWidth().Gap(10).Children(func() {
-		a.subhead(c, "模型服务", "这台电脑上保存的服务，所有作品共用。")
+		a.subhead(c, "模型服务", "存在这台电脑上，所有作品共用")
 		a.pal.group(c).Children(func() {
 			for _, p := range a.Config.Providers {
 				ui.Row(c).Key("provider-"+p.ID).FillWidth().Gap(12).Padding(12, 14).AlignItems(ui.Center).Children(func() {
@@ -213,13 +213,13 @@ func (a *App) services(c *ui.Context) {
 				}
 				a.pal.hairline(c)
 			}
-			add := ui.ButtonBase(c).Row().FillWidth().Justify(ui.Start).Gap(8).AlignItems(ui.Center).Padding(12, 14).Label("+ 添加自定义 API").Disabled(busy)
+			add := ui.ButtonBase(c).Row().FillWidth().Justify(ui.Start).Gap(8).AlignItems(ui.Center).Padding(12, 14).Label("+ 添加服务").Disabled(busy)
 			if add.Hovered() {
 				add.Background(t.SurfaceHover)
 			}
 			add.Children(func() {
 				glyph(c, icPlus, iconSm, t.TextMuted)
-				ui.Text(c, "添加自定义 API").FontSize(fsBody).TextColor(t.TextMuted)
+				ui.Text(c, "添加服务").FontSize(fsBody).TextColor(t.TextMuted)
 			})
 			if add.Clicked() {
 				a.providerID = ""
@@ -248,7 +248,7 @@ func (a *App) services(c *ui.Context) {
 					if len(cfg.Providers) > 0 {
 						a.chooseProvider(cfg.Providers[0].ID)
 					}
-					a.notice = "已重新加载配置"
+					a.notice = "配置已重新读取"
 				}
 				a.setError(err)
 			}
@@ -297,13 +297,13 @@ func providerLabel(p model.Provider) string {
 // effortSelect picks an effort, shown by its label, into *value.
 func effortSelect(c *ui.Context, value *string, label string, disabled bool) {
 	names := make([]string, len(model.Efforts))
-	chosen := model.Effort(*value).Label()
+	chosen := "思考：" + model.Effort(*value).Label()
 	for n, e := range model.Efforts {
-		names[n] = e.Label()
+		names[n] = "思考：" + e.Label()
 	}
 	if ui.Select(c, &chosen, names).Label(label).FillWidth().MinWidth(0).Disabled(disabled).Changed() {
 		for _, e := range model.Efforts {
-			if e.Label() == chosen {
+			if "思考："+e.Label() == chosen {
 				*value = string(e)
 			}
 		}
@@ -344,7 +344,7 @@ func (a *App) saveUsage() error {
 		if a.write.ed != nil {
 			a.write.ed.SetPredictOnDemand(!a.write.autoPredict)
 		}
-		a.notice = "模型设置已保存，从下一条发言起生效"
+		a.notice = "设置已保存，下一条消息起生效"
 		clear(a.sums.failed) // what failed for want of a model may work now
 		a.kick()             // a model or budget that now works takes in what waited
 	}
@@ -439,7 +439,7 @@ func (a *App) fetchModels(c *ui.Context) {
 		a.setError(err)
 		return
 	}
-	a.run(c, "正在获取模型目录…", func(ctx context.Context) (func(), error) {
+	a.run(c, "正在读取可用模型…", func(ctx context.Context) (func(), error) {
 		models, err := client.ListModels(ctx)
 		return func() {
 			if err == nil {

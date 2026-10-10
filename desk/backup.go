@@ -226,9 +226,9 @@ func (a *App) backupPending() (pendGroup, bool) {
 	short, _, _ := trouble(s.Dir, a.bk.err)
 	sub := "点一下重试"
 	if !s.Last.IsZero() {
-		sub += " · 上次成功 " + when(s.Last, time.Now())
+		sub += " · 上次备份 " + when(s.Last, time.Now())
 	}
-	it := pendItem{key: pendBackup, text: "备份未完成，" + short, sub: sub, retry: true}
+	it := pendItem{key: pendBackup, text: "备份没成功，" + short, sub: sub, retry: true}
 	return pendGroup{name: "备份", color: a.pal.amber, items: []pendItem{it}}, true
 }
 
@@ -255,29 +255,29 @@ func trouble(dir string, err error) (short, title, body string) {
 			if _, e := os.Stat(vol + string(filepath.Separator)); e != nil {
 				d := strings.TrimSuffix(vol, ":")
 				return "找不到 " + d + " 盘", "找不到 " + d + " 盘，这次没备份上",
-					"移动硬盘可能没插。稿子在这台电脑上好好的，插上以后点「再试一次」就行。"
+					"稿子没丢，插上硬盘再重试。"
 			}
 		}
 		return "找不到备份文件夹", "找不到备份文件夹，这次没备份上",
-			"它可能被移走或改了名。稿子在这台电脑上好好的，换个地方或者把文件夹放回去再试一次。"
+			"稿子没丢，文件夹可能被移走或改名。"
 	}
 	if errors.Is(err, fs.ErrPermission) {
 		return "没有权限写入", "备份文件夹不让写，这次没备份上",
-			"稿子在这台电脑上好好的。换个地方，或者让这个文件夹可以写入。"
+			"稿子没丢，这个文件夹不让写入。"
 	}
-	return "没写成功", "这次没备份上", "稿子在这台电脑上好好的。原因：" + err.Error()
+	return "没写成功", "这次没备份上", "稿子没丢。原因：" + err.Error()
 }
 
 // lastSaid says when the last backup succeeded, for a failure's popover.
 func lastSaid(s backup.Settings, now time.Time) string {
 	if s.Last.IsZero() {
-		return "还没有成功过。"
+		return "还没有备份成功过。"
 	}
 	days := int(now.Sub(s.Last).Hours() / 24)
 	if days >= 1 {
-		return fmt.Sprintf("上次成功是 %d 天前。", days)
+		return fmt.Sprintf("上次备份在 %d 天前。", days)
 	}
-	return "上次成功是" + when(s.Last, now) + "。"
+	return "上次备份在" + when(s.Last, now) + "。"
 }
 
 // next says when the next backup comes.
@@ -290,7 +290,7 @@ func next(s backup.Settings, now time.Time) string {
 	case s.Daily:
 		return "明天"
 	}
-	return "只在点「现在备份一次」时"
+	return "只在点「立即备份」时"
 }
 
 // backupLine is the sidebar's small line of how the backups go; it opens
@@ -337,13 +337,13 @@ func (a *App) backupChip(c *ui.Context) {
 	short, _, _ := trouble(s.Dir, a.bk.err)
 	t := a.pal.theme
 	b := ui.ButtonBase(c).Row().Margin(0, 0, 0, 6).Gap(8).AlignItems(ui.Center).Padding(4, 10).Radius(rControl).Shrink(0).
-		Background(a.pal.warnBg).Border(1, a.pal.warnBd).Label("备份未完成")
+		Background(a.pal.warnBg).Border(1, a.pal.warnBd).Label("备份提示")
 	if b.Hovered() {
 		b.Background(a.pal.warnBd.Alpha(0.55))
 	}
 	b.Children(func() {
 		dot(c, a.pal.amber, 6)
-		ui.Text(c, "备份未完成 · "+short).FontSize(fsNote).TextColor(t.Warning).SingleLine()
+		ui.Text(c, "备份没成功 · "+short).FontSize(fsNote).TextColor(t.Warning).SingleLine()
 	})
 	if b.Clicked() {
 		a.bk.chip = !a.bk.chip
@@ -370,7 +370,7 @@ func (a *App) backupCard(c *ui.Context, panel *ui.Element, s backup.Settings) {
 			ui.Text(c, title).FontSize(fsBody).FontWeight(600).FillWidth()
 			ui.Text(c, body+lastSaid(s, now)).FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhLoose).FillWidth()
 			ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
-				if a.pal.small(c, "再试一次", true).Disabled(a.bk.running).Clicked() {
+				if a.pal.small(c, "重试", true).Disabled(a.bk.running).Clicked() {
 					a.bk.open, a.bk.chip = false, false
 					a.runBackup(c)
 				}
@@ -378,7 +378,7 @@ func (a *App) backupCard(c *ui.Context, panel *ui.Element, s backup.Settings) {
 					a.bk.open, a.bk.chip = false, false
 					a.pickBackupFolder(c)
 				}
-				if ghost(c, "今天别提醒", ui.Color{}).Clicked() {
+				if ghost(c, "今天不提醒", ui.Color{}).Clicked() {
 					s.Hush = now
 					a.setBackup(s)
 					a.bk.open, a.bk.chip = false, false
@@ -396,7 +396,7 @@ func (a *App) backupCard(c *ui.Context, panel *ui.Element, s backup.Settings) {
 			ui.Text(c, "下次："+next(s, now)).FontSize(fsNote).TextColor(t.TextMuted)
 		})
 		ui.Row(c).FillWidth().Gap(8).Children(func() {
-			label := "现在备份一次"
+			label := "立即备份"
 			if a.bk.running {
 				label = "正在备份…"
 			}
@@ -443,7 +443,7 @@ func (a *App) askView(c *ui.Context) {
 		ui.Column(c).Width(520).Gap(20).Children(func() {
 			ui.Column(c).FillWidth().Gap(6).Children(func() {
 				ui.Text(c, "稿子现在只存在这台电脑上").FontSize(fsDialog).FontWeight(700)
-				ui.Text(c, "电脑坏了稿子就没了。选一个别的地方，我们定时复制一份过去。").FontSize(fsBody).TextColor(t.TextMuted).LineHeight(lhLoose).FillWidth()
+				ui.Text(c, "选个别的地方，定时多存一份。").FontSize(fsBody).TextColor(t.TextMuted).LineHeight(lhLoose).FillWidth()
 			})
 			ui.Column(c).FillWidth().Gap(8).Children(func() {
 				places := syncFolders()
@@ -459,11 +459,11 @@ func (a *App) askView(c *ui.Context) {
 					if own && a.bk.place != "" {
 						sub = a.bk.place
 					}
-					a.placeRow(c, "自己选一个文件夹…", sub, own && a.bk.place != "", func() { a.pickBackupFolder(c) })
+					a.placeRow(c, "选别的文件夹…", sub, own && a.bk.place != "", func() { a.pickBackupFolder(c) })
 				}
 			})
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
-				ui.Text(c, "多久备份一次").FontSize(fsControl).TextColor(t.TextMuted)
+				ui.Text(c, "什么时候备份").FontSize(fsControl).TextColor(t.TextMuted)
 				a.whenMenu(c, &a.bk.onClose, &a.bk.daily, &a.bk.hourly)
 			})
 			ui.Row(c).FillWidth().Gap(8).Children(func() {
@@ -519,7 +519,7 @@ func (a *App) placeRow(c *ui.Context, label, sub string, on bool, pick func()) {
 // choices to tick.
 func (a *App) whenMenu(c *ui.Context, onClose, daily, hourly *bool) {
 	t := a.pal.theme
-	b := ui.ButtonBase(c).Row().AlignItems(ui.Center).Gap(6).Padding(4, 10).Radius(rControl).Border(1, t.Border).Label("多久备份一次")
+	b := ui.ButtonBase(c).Row().AlignItems(ui.Center).Gap(6).Padding(4, 10).Radius(rControl).Border(1, t.Border).Label("什么时候备份")
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}
@@ -549,7 +549,7 @@ func whenChoices(onClose, daily, hourly *bool) []whenChoice {
 func whenSaid(onClose, daily, hourly bool) string {
 	var parts []string
 	if onClose {
-		parts = append(parts, "每次关闭作品时")
+		parts = append(parts, "关闭作品时")
 	}
 	if daily {
 		parts = append(parts, "每天一次")
@@ -563,7 +563,7 @@ func whenSaid(onClose, daily, hourly bool) string {
 	case 1:
 		return parts[0]
 	}
-	return strings.Join(parts[:len(parts)-1], "、") + "，再加" + parts[len(parts)-1]
+	return strings.Join(parts[:len(parts)-1], "、") + "和" + parts[len(parts)-1]
 }
 
 // backups are the work's backups in the folder, read when they may have
@@ -591,7 +591,7 @@ func (a *App) backupSettingsView(c *ui.Context) {
 	t := a.pal.theme
 	s, _ := a.backupSettings()
 	now := time.Now()
-	a.prefsHead(c, "备份", "把整部作品复制一份到别处。快照只防改错，备份防电脑坏。")
+	a.prefsHead(c, "备份", "把整部作品多存一份，防电脑坏。")
 	if s.Dir == "" {
 		ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(14).Padding(16, 20).Radius(rCard).Border(1, t.Border).Children(func() {
 			ui.Column(c).Grow(1).Shrink(1).Gap(4).Children(func() {
@@ -619,11 +619,11 @@ func (a *App) backupSettingsView(c *ui.Context) {
 			ui.Text(c, title).FontSize(fsGroup).FontWeight(600)
 			if len(list) > 0 {
 				first := list[len(list)-1].At
-				ui.Textf(c, "%s · %d 章 · 共保留 %d 份，最早一份是 %d 月 %d 日", words(list[0].Words), list[0].Chapters, len(list), first.Month(), first.Day()).
+				ui.Textf(c, "%s · %d 章 · 已存 %d 份，最早 %d 月 %d 日", words(list[0].Words), list[0].Chapters, len(list), first.Month(), first.Day()).
 					FontSize(fsNote).TextColor(t.TextMuted)
 			}
 		})
-		if a.pal.primary(c, "现在备份一次").Disabled(a.bk.running).Clicked() {
+		if a.pal.primary(c, "立即备份").Disabled(a.bk.running).Clicked() {
 			a.runBackup(c)
 		}
 	})
@@ -677,7 +677,7 @@ func (a *App) backupSettingsView(c *ui.Context) {
 					for _, b := range list {
 						all += b.Size
 					}
-					ui.Textf(c, "每份约 %s，现在一共占 %s", size(list[0].Size), size(all)).FontSize(fsNote).TextColor(t.TextMuted)
+					ui.Textf(c, "每份约 %s，共 %s", size(list[0].Size), size(all)).FontSize(fsNote).TextColor(t.TextMuted)
 				}
 			})
 		})

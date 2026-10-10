@@ -19,7 +19,7 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 	w.ed.Select(0, 20)
 	a.openBury()
 	tt.Frame()
-	if !tt.HasText("把这句记为伏笔，写一句备注") {
+	if !tt.HasText("记为伏笔，写句备注") {
 		t.Fatal("no note asked for", tt.Texts())
 	}
 	w.fore.note = "她怕黑的真正原因"
@@ -60,10 +60,10 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 	w.ed.Select(0, 18)
 	a.openPay("")
 	tt.Frame()
-	if !tt.HasText("这段回收的是哪个伏笔？") || !tt.HasText("第1章 · 1 章前埋下") || w.fore.pick != id {
+	if !tt.HasText("回收的是哪个伏笔") || !tt.HasText("第1章 · 1 章前埋下") || w.fore.pick != id {
 		t.Fatal("nothing to pick", w.fore.pick, tt.Texts())
 	}
-	if err = tt.Click("确定"); err != nil {
+	if err = tt.Click("确定回收"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
