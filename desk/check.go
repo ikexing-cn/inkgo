@@ -513,7 +513,7 @@ func (a *App) checkBar(c *ui.Context) {
 		if b.Clicked() {
 			k.whenOpen = !k.whenOpen
 		}
-		ui.PopoverBase(c, b, &k.whenOpen, func(panel *ui.Element) {
+		ui.PopoverBase(c, b, &k.whenOpen, func(panel ui.Element) {
 			panel.AttachTo(b, ui.AnchorTopLeft, ui.AnchorBottomLeft).Margin(0, 0, 10, 0).Width(340).Radius(rCard).Padding(14).Gap(12).
 				Background(a.pal.canvas).Border(1, t.Border)
 			a.pal.pop.on(panel)
@@ -709,7 +709,7 @@ func (a *App) checkProgress(c *ui.Context) {
 			k.askOpen = true
 		}
 	}
-	ui.PopoverBase(c, b, &k.askOpen, func(panel *ui.Element) {
+	ui.PopoverBase(c, b, &k.askOpen, func(panel ui.Element) {
 		panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(6, 0, 0, 0).Width(280).Radius(rCard).Padding(14).Gap(12).
 			Background(a.pal.canvas).Border(1, t.Border)
 		a.pal.pop.on(panel)

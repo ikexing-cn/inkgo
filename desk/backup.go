@@ -321,7 +321,7 @@ func (a *App) backupLine(c *ui.Context) {
 	if b.Clicked() {
 		a.bk.open = !a.bk.open
 	}
-	ui.PopoverBase(c, b, &a.bk.open, func(panel *ui.Element) {
+	ui.PopoverBase(c, b, &a.bk.open, func(panel ui.Element) {
 		panel.AttachTo(b, ui.AnchorTopLeft, ui.AnchorBottomLeft).Margin(0, 0, 8, 0)
 		a.backupCard(c, panel, s)
 	})
@@ -348,7 +348,7 @@ func (a *App) backupChip(c *ui.Context) {
 	if b.Clicked() {
 		a.bk.chip = !a.bk.chip
 	}
-	ui.PopoverBase(c, b, &a.bk.chip, func(panel *ui.Element) {
+	ui.PopoverBase(c, b, &a.bk.chip, func(panel ui.Element) {
 		panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(10, 0, 0, 0)
 		a.backupCard(c, panel, s)
 	})
@@ -356,7 +356,7 @@ func (a *App) backupChip(c *ui.Context) {
 
 // backupCard is what the backups are, or why the last one failed, with
 // what to do about it.
-func (a *App) backupCard(c *ui.Context, panel *ui.Element, s backup.Settings) {
+func (a *App) backupCard(c *ui.Context, panel ui.Element, s backup.Settings) {
 	t := a.pal.theme
 	now := time.Now()
 	bg := a.pal.canvas

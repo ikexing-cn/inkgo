@@ -10,8 +10,8 @@ import (
 )
 
 // View builds the editor's element; size it as any element (Fill, Grow).
-func (e *Editor) View(c *ui.Context) *ui.Element {
-	e.c = c
+func (e *Editor) View(c *ui.Context) ui.Element {
+	e.c, e.sv = c, c.Services()
 	e.pollPrediction()
 	el := ui.Box(c).Focusable().FocusRing(false).Cursor(ui.CursorText).Clip().Label("正文")
 	if e.wantFocus {
@@ -308,8 +308,8 @@ func (e *Editor) markAt(i int) int {
 }
 
 func (e *Editor) copy() {
-	if s := e.SelectedText(); s != "" && e.c != nil {
-		e.c.WriteClipboard(s)
+	if s := e.SelectedText(); s != "" {
+		e.sv.WriteClipboard(s)
 	}
 }
 
@@ -326,7 +326,7 @@ func (e *Editor) paste() {
 	if e.c == nil {
 		return
 	}
-	if s := e.c.ReadClipboard(); s != "" {
+	if s := e.sv.ReadClipboard(); s != "" {
 		if e.opts.Prose {
 			s = unindent(s)
 		}

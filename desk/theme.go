@@ -116,7 +116,7 @@ type shadow struct {
 }
 
 // on gives e the shadow.
-func (s shadow) on(e *ui.Element) *ui.Element {
+func (s shadow) on(e ui.Element) ui.Element {
 	return e.Shadow(s.x, s.y, s.blur, s.spread, s.color)
 }
 
@@ -221,12 +221,12 @@ func paletteOf(t *ui.Theme, k map[string]ui.Color, s map[string]shadow) *palette
 }
 
 // dot is a small status disc.
-func dot(c *ui.Context, color ui.Color, size float32) *ui.Element {
+func dot(c *ui.Context, color ui.Color, size float32) ui.Element {
 	return ui.Box(c).Size(size, size).Radius(rRound).Background(color).Shrink(0)
 }
 
 // pill is a small rounded label.
-func pill(c *ui.Context, text string, color ui.Color) *ui.Element {
+func pill(c *ui.Context, text string, color ui.Color) ui.Element {
 	if color.A == 0 {
 		color = c.Theme().TextMuted
 	}
@@ -236,7 +236,7 @@ func pill(c *ui.Context, text string, color ui.Color) *ui.Element {
 }
 
 // ghost is a borderless text button: muted until hovered.
-func ghost(c *ui.Context, text string, color ui.Color) *ui.Element {
+func ghost(c *ui.Context, text string, color ui.Color) ui.Element {
 	t := c.Theme()
 	b := ui.ButtonBase(c).Row().AlignItems(ui.Center).Gap(6).Padding(4, 8).Radius(rControl).Shrink(0)
 	fg := color
@@ -312,7 +312,7 @@ var (
 )
 
 // glyph shows an icon at size in color (zero: inherit the text color).
-func glyph(c *ui.Context, s *ui.SVG, size float32, color ui.Color) *ui.Element {
+func glyph(c *ui.Context, s *ui.SVG, size float32, color ui.Color) ui.Element {
 	e := ui.Icon(c, s).Size(size, size).Shrink(0)
 	if color.A != 0 {
 		e.TextColor(color)
@@ -322,7 +322,7 @@ func glyph(c *ui.Context, s *ui.SVG, size float32, color ui.Color) *ui.Element {
 
 // iconButton is a square borderless button with a tooltip; label also names
 // it for tests and assistive technology.
-func iconButton(c *ui.Context, s *ui.SVG, label string, color ui.Color) *ui.Element {
+func iconButton(c *ui.Context, s *ui.SVG, label string, color ui.Color) ui.Element {
 	t := c.Theme()
 	b := ui.ButtonBase(c).Size(hControlSm, hControlSm).Center().Radius(rControl).Shrink(0).Label(label).Tooltip(label)
 	fg := color
@@ -343,7 +343,7 @@ func iconButton(c *ui.Context, s *ui.SVG, label string, color ui.Color) *ui.Elem
 }
 
 // primary is the one solid ink button of a view.
-func (p *palette) primary(c *ui.Context, text string) *ui.Element {
+func (p *palette) primary(c *ui.Context, text string) ui.Element {
 	b := ui.ButtonBase(c).Row().Center().Gap(6).Height(hControl).Padding(0, 16).Radius(rControl).Shrink(0)
 	bg := p.ink
 	if b.Hovered() {
@@ -358,7 +358,7 @@ func (p *palette) primary(c *ui.Context, text string) *ui.Element {
 }
 
 // secondary is an outlined button.
-func (p *palette) secondary(c *ui.Context, text string) *ui.Element {
+func (p *palette) secondary(c *ui.Context, text string) ui.Element {
 	t := p.theme
 	b := ui.ButtonBase(c).Row().Center().Gap(6).Height(hControl).Padding(0, 14).Radius(rControl).Border(1, t.Border).Background(p.raised).Shrink(0)
 	if b.Hovered() {
@@ -373,7 +373,7 @@ func (p *palette) secondary(c *ui.Context, text string) *ui.Element {
 
 // small is the compact button of a popover or a row, solid ink when it is
 // the likely one, outlined otherwise.
-func (p *palette) small(c *ui.Context, text string, primary bool) *ui.Element {
+func (p *palette) small(c *ui.Context, text string, primary bool) ui.Element {
 	t := p.theme
 	b := ui.ButtonBase(c).Row().Padding(4, 10).Radius(rControl).Shrink(0)
 	fg := t.Text
@@ -399,7 +399,7 @@ func (p *palette) small(c *ui.Context, text string, primary bool) *ui.Element {
 
 // group is a rounded, hairline-bordered container whose rows are separated
 // by hairlines, as in system settings.
-func (p *palette) group(c *ui.Context) *ui.Element {
+func (p *palette) group(c *ui.Context) ui.Element {
 	return ui.Column(c).FillWidth().Radius(rCard).Border(1, p.theme.Border).Background(p.raised).Clip()
 }
 
@@ -408,12 +408,12 @@ func (p *palette) hairline(c *ui.Context) {
 }
 
 // cardBox is a padded group.
-func (p *palette) cardBox(c *ui.Context) *ui.Element {
+func (p *palette) cardBox(c *ui.Context) ui.Element {
 	return p.group(c).Padding(20, 20).Gap(12)
 }
 
 // action is a tinted button; strong fills it, for destructive confirmations.
-func action(c *ui.Context, text string, color ui.Color, strong bool) *ui.Element {
+func action(c *ui.Context, text string, color ui.Color, strong bool) ui.Element {
 	b := ui.ButtonBase(c).Row().Center().Padding(6, 12).Radius(rControl).Shrink(0)
 	bg, fg := color.Alpha(0.12), color
 	if strong {

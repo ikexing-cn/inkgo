@@ -67,7 +67,7 @@ func (a *App) providerModels(id string) []string {
 }
 
 // labeled stacks a muted caption over a control.
-func labeled(c *ui.Context, caption string, fn func()) *ui.Element {
+func labeled(c *ui.Context, caption string, fn func()) ui.Element {
 	return ui.Column(c).FillWidth().Gap(6).Children(func() {
 		ui.Text(c, caption).FontSize(fsNote).FontWeight(500).TextColor(c.Theme().TextMuted)
 		fn()
@@ -490,7 +490,7 @@ func (a *App) saveProvider() error {
 // modelField edits a model ID. A click or Down lists all of the service's
 // models, typing narrows them to those containing what was typed, and an ID
 // none of them is can be typed as well.
-func modelField(c *ui.Context, value *string, models []string) *ui.Element {
+func modelField(c *ui.Context, value *string, models []string) ui.Element {
 	t := c.Theme()
 	cb := ui.ComboboxBase(c, value)
 	in := cb.Input
@@ -514,7 +514,7 @@ func modelField(c *ui.Context, value *string, models []string) *ui.Element {
 		}
 		shown = append(starts, contains...)
 	}
-	cb.Popup(func(panel *ui.Element) {
+	cb.Popup(func(panel ui.Element) {
 		panel.Margin(t.Space(1), 0, 0, 0).Padding(t.Space(1)).Radius(rCard).Background(t.Background).Border(1, t.Border)
 		shadowOf(c, "pop").on(panel)
 		ui.Scroll(c).MaxHeight(t.Space(70)).FillWidth().Children(func() {

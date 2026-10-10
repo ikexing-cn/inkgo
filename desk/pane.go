@@ -85,7 +85,7 @@ func (a *App) paneEmpty(c *ui.Context, words, how string) {
 // paneRow is one thing of a list on one line: its name, a line of what it
 // says, what stands at its end, and a dot when it waits on the author. The
 // words of find in what it says are darker.
-func (a *App) paneRow(c *ui.Context, label, name, gist, side, find string, waiting bool) *ui.Element {
+func (a *App) paneRow(c *ui.Context, label, name, gist, side, find string, waiting bool) ui.Element {
 	t := a.pal.theme
 	b := ui.ButtonBase(c).Row().FillWidth().Height(hControl).Gap(10).Padding(0, 10).AlignItems(ui.Center).Radius(rControl).Label(label)
 	if b.Hovered() {
@@ -150,7 +150,7 @@ func nearFind(text, find string) string {
 
 // paneTodo is the first row of a list: what waits on the author, and how
 // many.
-func (a *App) paneTodo(c *ui.Context, label string, n int) *ui.Element {
+func (a *App) paneTodo(c *ui.Context, label string, n int) ui.Element {
 	t := a.pal.theme
 	b := ui.ButtonBase(c).Row().FillWidth().Height(hControl).Gap(8).Padding(0, 10).Margin(8, 0, 0, 0).AlignItems(ui.Center).Radius(rControl).Label(label)
 	if b.Hovered() {
@@ -220,7 +220,7 @@ func (a *App) paneTitle(c *ui.Context, name, sub, button string) (clicked bool) 
 
 // paneButton is a button of a page: solid ink for the one thing the page
 // is for, outlined otherwise.
-func (a *App) paneButton(c *ui.Context, text string, primary bool) *ui.Element {
+func (a *App) paneButton(c *ui.Context, text string, primary bool) ui.Element {
 	t := a.pal.theme
 	b := ui.ButtonBase(c).Row().Center().Height(hControlSm).Padding(0, 12).Radius(rControl).Shrink(0).Label(text)
 	fg := t.Text

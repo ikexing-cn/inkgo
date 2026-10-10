@@ -729,7 +729,7 @@ func (a *App) settingColumn(c *ui.Context) {
 
 // paneTop is the top row of the right pane, which is the window's title bar
 // there: it holds the window and leaves room for the Windows buttons.
-func paneTop(c *ui.Context) *ui.Element {
+func paneTop(c *ui.Context) ui.Element {
 	return ui.Row(c).FillWidth().Height(titleHeight).Padding(0, 20+c.TitleBar().Right, 0, 20).Gap(4).AlignItems(ui.Center).Shrink(0).DragWindow()
 }
 

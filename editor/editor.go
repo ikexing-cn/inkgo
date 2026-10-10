@@ -87,6 +87,7 @@ type Editor struct {
 
 	// View state.
 	c             *ui.Context
+	sv            ui.Services // the clipboard, outside a frame
 	lay           layout
 	layKey        layoutKey
 	shapes        map[string]shaped

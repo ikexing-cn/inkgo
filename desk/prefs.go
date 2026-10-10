@@ -54,7 +54,7 @@ func (a *App) preferences(c *ui.Context) {
 		a.bk.tab = "模型"
 	}
 	w, h := c.Size()
-	ui.DialogBase(c, &a.bk.prefs, func(back, panel *ui.Element) {
+	ui.DialogBase(c, &a.bk.prefs, func(back, panel ui.Element) {
 		back.Background(a.pal.scrim)
 		panel.Row().AlignItems(ui.Stretch).Width(min(prefsWidth, w-40)).Height(min(prefsHeight, h-40)).Radius(rDialog).Background(t.Background)
 		a.pal.dialog.on(panel)

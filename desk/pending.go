@@ -131,7 +131,7 @@ func (a *App) pendingButton(c *ui.Context) {
 	if b.Clicked() {
 		w.pendOpen = !w.pendOpen
 	}
-	ui.PopoverBase(c, b, &w.pendOpen, func(panel *ui.Element) {
+	ui.PopoverBase(c, b, &w.pendOpen, func(panel ui.Element) {
 		panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(10, 0, 0, 0).Width(380).Radius(rDialog).Clip().
 			Background(a.pal.canvas).Border(1, t.Border)
 		a.pal.pop.on(panel)

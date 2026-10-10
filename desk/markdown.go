@@ -197,7 +197,7 @@ func mdInline(parent ast.Node, src []byte, style mdSpan) []mdSpan {
 }
 
 // markdown draws s as the body of a reply.
-func (a *App) markdown(c *ui.Context, s string, size float32) *ui.Element {
+func (a *App) markdown(c *ui.Context, s string, size float32) ui.Element {
 	return ui.Column(c).FillWidth().Gap(size * 0.7).Children(func() {
 		a.mdDraw(c, a.md.get(s), size)
 	})
@@ -206,7 +206,7 @@ func (a *App) markdown(c *ui.Context, s string, size float32) *ui.Element {
 // liveMarkdown draws a reply still streaming. Laying out one text costs
 // as much as its length, so the blocks written stand apart from the last,
 // which grows: they keep their text, and their layout, until it is done.
-func (a *App) liveMarkdown(c *ui.Context, s string, size float32) *ui.Element {
+func (a *App) liveMarkdown(c *ui.Context, s string, size float32) ui.Element {
 	return ui.Column(c).FillWidth().Gap(size * 0.7).Children(func() {
 		blocks := a.md.get(s)
 		n := len(blocks) - 1

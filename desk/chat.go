@@ -433,7 +433,7 @@ func (a *App) composer(c *ui.Context) {
 			a.send(c)
 		}
 	}
-	field := func(hint string, per, least int) *ui.Element {
+	field := func(hint string, per, least int) ui.Element {
 		lines := strings.Count(a.input, "\n") + 1 + len([]rune(a.input))/per
 		h := float32(min(max(lines, least), 7)) * 25
 		in := ui.TextAreaBase(c, &a.input).Label("讨论输入").Placeholder(hint).Height(h).FontSize(fsRead).LineHeight(lhLoose).Disabled(a.busy != "")

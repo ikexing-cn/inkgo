@@ -48,7 +48,7 @@ func (a *App) moreButton(c *ui.Context, chapter bool) {
 
 // menuRow is a row of a menu drawn in a popover: an icon, what it does,
 // and on the right a shortcut, or why it cannot be done now.
-func (a *App) menuRow(c *ui.Context, s *ui.SVG, text, hint string, off bool) *ui.Element {
+func (a *App) menuRow(c *ui.Context, s *ui.SVG, text, hint string, off bool) ui.Element {
 	t := a.pal.theme
 	b := ui.ButtonBase(c).Row().FillWidth().Height(hControl).Padding(0, 10).Gap(10).AlignItems(ui.Center).Radius(rControl).Label(strings.TrimSuffix(text, "…")).Disabled(off)
 	fg := t.AccentHover
@@ -154,7 +154,7 @@ func (a *App) selectionBar(c *ui.Context) {
 	})
 }
 
-func (a *App) selButton(c *ui.Context, s *ui.SVG, text string) *ui.Element {
+func (a *App) selButton(c *ui.Context, s *ui.SVG, text string) ui.Element {
 	t := a.pal.theme
 	b := ui.ButtonBase(c).Row().Height(hSeg).Padding(0, 8).Gap(6).AlignItems(ui.Center).Radius(rControl).Label(text)
 	if b.Hovered() {

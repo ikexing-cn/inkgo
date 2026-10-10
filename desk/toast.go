@@ -42,7 +42,7 @@ func (a *App) toasts(c *ui.Context) {
 			a.notice = ""
 		}
 	})
-	ui.ToastViewportBase(c, func(v *ui.Element, list []ui.Toast) {
+	ui.ToastViewportBase(c, func(v ui.Element, list []ui.Toast) {
 		v.Justify(ui.Start).AlignItems(ui.End).Gap(8).Padding(titleHeight+12, 16, 0, 0)
 		if len(list) <= toastsShown {
 			a.toastsOpen = false
