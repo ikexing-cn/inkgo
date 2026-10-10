@@ -55,7 +55,7 @@ func (a *App) preferences(c *ui.Context) {
 	}
 	w, h := c.Size()
 	ui.DialogBase(c, &a.bk.prefs, func(back, panel *ui.Element) {
-		back.Background(ui.RGBA(0, 0, 0, 0.32))
+		back.Background(a.pal.scrim)
 		panel.Row().AlignItems(ui.Stretch).Width(min(prefsWidth, w-40)).Height(min(prefsHeight, h-40)).Radius(rDialog).Background(t.Background)
 		a.pal.dialog.on(panel)
 		ui.Column(c).Width(176).FillHeight().Shrink(0).Padding(20, 10).Gap(2).Radius(rDialog, 0, 0, rDialog).Background(a.pal.side).Children(func() {
@@ -65,7 +65,7 @@ func (a *App) preferences(c *ui.Context) {
 				if tab == "备份" && a.Store == nil {
 					continue
 				}
-				b := ui.ButtonBase(c).Row().FillWidth().Height(32).Justify(ui.Start).AlignItems(ui.Center).Padding(0, 10).Radius(rControl).Label(tl[1])
+				b := ui.ButtonBase(c).Row().FillWidth().Height(hControl).Justify(ui.Start).AlignItems(ui.Center).Padding(0, 10).Radius(rControl).Label(tl[1])
 				on := a.bk.tab == tab
 				fg, weight := t.TextMuted, 400
 				if on {

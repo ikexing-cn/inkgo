@@ -232,7 +232,7 @@ func (a *App) entry(c *ui.Context, e workspace.Entry) {
 	box := ui.Column(c).Key(e.ID).FillWidth().Padding(6, 8, 6, 10).Radius(rCard).Gap(8)
 	if at, ok := a.flash[e.ID]; ok {
 		if left := flashFor - time.Since(at); left > 0 {
-			box.Background(a.pal.ink.Alpha(0.16 * float32(left) / float32(flashFor)))
+			box.Background(a.pal.ink.Alpha(0.2 * float32(left) / float32(flashFor)))
 			c.AnimationFrame()
 		} else {
 			delete(a.flash, e.ID)

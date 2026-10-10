@@ -224,10 +224,6 @@ func (a *App) liveMarkdown(c *ui.Context, s string, size float32) *ui.Element {
 	})
 }
 
-// quoteFade dims a quote in a reply. It is a fade, not a level of the design
-// rules: those name only the disabled opacity so far.
-const quoteFade = 0.85
-
 // mdDraw draws blocks. Paragraphs, headings and lists of text run
 // together as one text, so the author can select across them; quotes,
 // code and tables stand apart, and a selection stops at them.
@@ -264,7 +260,7 @@ func (a *App) mdDraw(c *ui.Context, blocks []mdBlock, size float32) {
 		case mdQuote:
 			ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Stretch).Children(func() {
 				ui.Box(c).Width(3).Radius(rRound).Background(a.pal.line).Shrink(0)
-				ui.Column(c).Grow(1).Shrink(1).Gap(size * 0.5).Opacity(quoteFade).Children(func() { a.mdDraw(c, b.blocks, size) })
+				ui.Column(c).Grow(1).Shrink(1).Gap(size * 0.5).Opacity(0.85).Children(func() { a.mdDraw(c, b.blocks, size) })
 			})
 		case mdCode:
 			ui.ScrollHorizontal(c).FillWidth().Radius(rControl).Background(a.pal.side).Border(1, a.pal.line).Children(func() {

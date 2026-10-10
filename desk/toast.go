@@ -128,7 +128,7 @@ func (a *App) toastCard(c *ui.Context, ts ui.Toast) {
 		})
 		if ts.Type != "busy" {
 			ui.Box(c).Margin(-2, -2, 0, 0).Shrink(0).Children(func() {
-				p.CloseButton().Size(20, 20).Center().Radius(rXs).Label("关闭提示").Children(func() {
+				p.CloseButton().Size(hTag, hTag).Center().Radius(rXs).Label("关闭提示").Children(func() {
 					glyph(c, icX, iconSm, a.pal.faint)
 				})
 			})

@@ -339,7 +339,7 @@ func (a *App) backupChip(c *ui.Context) {
 	b := ui.ButtonBase(c).Row().Margin(0, 0, 0, 6).Gap(8).AlignItems(ui.Center).Padding(4, 10).Radius(rControl).Shrink(0).
 		Background(a.pal.warnBg).Border(1, a.pal.warnBd).Label("备份未完成")
 	if b.Hovered() {
-		b.Background(a.pal.warnBd.Alpha(0.5))
+		b.Background(a.pal.warnBd.Alpha(0.55))
 	}
 	b.Children(func() {
 		dot(c, a.pal.amber, 6)
@@ -638,7 +638,7 @@ func (a *App) backupSettingsView(c *ui.Context) {
 		a.pal.hairline(c)
 		row("备份到", func() {
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
-				ui.Row(c).Grow(1).Shrink(1).Height(34).AlignItems(ui.Center).Padding(0, 12).Radius(rControl).Border(1, t.Border).Children(func() {
+				ui.Row(c).Grow(1).Shrink(1).Height(hControl).AlignItems(ui.Center).Padding(0, 12).Radius(rControl).Border(1, t.Border).Children(func() {
 					ui.Text(c, s.Dir).FontSize(fsBody).SingleLine().Ellipsis("…")
 				})
 				if a.PickFolder != nil && ui.Button(c, "换一个").Clicked() {

@@ -42,12 +42,13 @@ func TestSizeTokens(t *testing.T) {
 		"lh-tight": lhTight, "lh-body": lhBody, "lh-loose": lhLoose, "lh-read": lhRead, "lh-paper": lhPaper,
 		"icon-xs": iconXs, "icon-sm": iconSm, "icon-md": iconMd, "icon-lg": iconLg,
 		"opacity-disabled": opacityDisabled,
+		"h-control":        hControl, "h-control-sm": hControlSm, "h-row": hRow, "h-seg": hSeg, "h-tag": hTag, "h-bar": hBar,
 	}
 	// Only the design's boards use these: its notes and window frames.
 	board := map[string]bool{"fs-board-title": true, "fs-board-h2": true, "r-window": true, "r-window-win": true}
 	seen := map[string]bool{}
 	blocks(tokensCSS, func(_ bool, body string) {
-		for _, d := range regexp.MustCompile(`--((?:fs|r|lh|icon|opacity)-[a-z-]+)\s*:\s*([0-9.]+)(?:px)?;`).FindAllStringSubmatch(body, -1) {
+		for _, d := range regexp.MustCompile(`--((?:fs|r|lh|icon|opacity|h)-[a-z-]+)\s*:\s*([0-9.]+)(?:px)?;`).FindAllStringSubmatch(body, -1) {
 			seen[d[1]] = true
 			v, _ := strconv.ParseFloat(d[2], 64)
 			if want, ok := code[d[1]]; ok && want != v {
@@ -71,18 +72,33 @@ func TestSizeTokens(t *testing.T) {
 	if p := light["pop"]; p != (shadow{0, 8, 28, 0, ui.RGBA(0, 0, 0, 0.14)}) || dark["pop"].color != ui.RGBA(0, 0, 0, 0.4) {
 		t.Fatalf("pop = %v / %v", p, dark["pop"])
 	}
+	if s := darkPalette().scrim; s != ui.RGBA(25, 25, 25, 0.32) {
+		t.Fatalf("scrim = %v", s)
+	}
 }
 
 // The desk writes the names of the design rules, not numbers: a text size,
-// a corner, a line height, an icon's size, an opacity or a shadow written
-// out in a view drifts from the design. Its
+// a corner, a line height, an icon's size, a button's height, a color or a shadow written
+// out in a view drifts from the design. Its alphas keep to the alpha scale, its
 // padding, gaps and margins keep to the spacing scale of tokens.css; what
 // lines up with something else is written as the sum it is.
 func TestNoLiteralSizes(t *testing.T) {
 	files, _ := filepath.Glob("*.go")
-	call := regexp.MustCompile(`\.(FontSize|Radius|LineHeight|Opacity)\(([^()]*)\)|\bglyph\(c, [^,]+, ([^,]+),`)
+	call := regexp.MustCompile(`\.(FontSize|Radius|LineHeight)\(([^()]*)\)|\bglyph\(c, [^,]+, ([^,]+),`)
 	space := regexp.MustCompile(`\.(Padding|Gap|Margin)\(([^()]*)\)`)
+	alpha := regexp.MustCompile(`\.(?:Alpha|Opacity)\(([0-9.]+)\)|ui\.RGBA\([^()]*, ([0-9.]+)\)`)
+	// From 100 on it is a layout size, as a card's.
+	height := regexp.MustCompile(`\.(?:Height|Size)\([0-9]{1,2}(?:\.[0-9]+)?[,)]`)
 	number := regexp.MustCompile(`^-?[0-9.]+$`)
+	m := regexp.MustCompile(`--alpha:\s*([0-9. ]+);`).FindStringSubmatch(tokensCSS)
+	if m == nil {
+		t.Fatal("tokens.css lacks --alpha")
+	}
+	alphas := map[float64]bool{0: true, 1: true}
+	for _, v := range strings.Fields(m[1]) {
+		a, _ := strconv.ParseFloat(v, 64)
+		alphas[a] = true
+	}
 	scale := map[string]bool{}
 	for _, name := range []string{"space", "space-board"} {
 		m := regexp.MustCompile(`--` + name + `:\s*([0-9 ]+);`).FindStringSubmatch(tokensCSS)
@@ -109,8 +125,19 @@ func TestNoLiteralSizes(t *testing.T) {
 					}
 				}
 			}
+			for _, m := range alpha.FindAllStringSubmatch(line, -1) {
+				if a, _ := strconv.ParseFloat(m[1]+m[2], 64); !alphas[a] {
+					t.Errorf("%s:%d: %s is off the alpha scale", f, i+1, m[0])
+				}
+			}
+			if strings.Contains(line, "ButtonBase(") && height.MatchString(line) {
+				t.Errorf("%s:%d: a button's height written out; use h*", f, i+1)
+			}
 			if f == "theme.go" {
 				continue
+			}
+			if strings.Contains(line, "ui.RGBA(") {
+				t.Errorf("%s:%d: a color written out; use the palette, as a.pal.scrim", f, i+1)
 			}
 			if strings.Contains(line, ".Shadow(") {
 				t.Errorf("%s:%d: a shadow written out; use a.pal.pop and the like", f, i+1)
@@ -122,7 +149,7 @@ func TestNoLiteralSizes(t *testing.T) {
 				}
 				for _, arg := range strings.Split(args, ",") {
 					if arg = strings.TrimSpace(arg); number.MatchString(arg) && arg != "0" {
-						t.Errorf("%s:%d: %s(%s); use fs*, r*, lh*, icon* or opacityDisabled", f, i+1, name, args)
+						t.Errorf("%s:%d: %s(%s); use fs*, r*, lh* or icon*", f, i+1, name, args)
 					}
 				}
 			}

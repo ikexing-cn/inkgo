@@ -264,7 +264,7 @@ func (a *App) recapNote(c *ui.Context) {
 		}
 		return
 	}
-	ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Padding(8, 10).Radius(rCard).Background(t.Warning.Alpha(0.07)).Children(func() {
+	ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Padding(8, 10).Radius(rCard).Background(t.Warning.Alpha(0.08)).Children(func() {
 		ui.Textf(c, "前面有 %d 章还没有摘要，起草时 AI 不知道这些章里发生了什么。", len(missing)).FontSize(fsNote).TextColor(t.Warning.Mix(t.Text, 0.35)).Grow(1).Shrink(1)
 		if action(c, fmt.Sprintf("补齐摘要（%d 次调用）", len(missing)), t.Warning, false).Label("补齐摘要").Clicked() {
 			for _, id := range missing {

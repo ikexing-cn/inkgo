@@ -137,7 +137,7 @@ func (a *App) pendingButton(c *ui.Context) {
 	}
 	t := a.pal.theme
 	b := ui.ButtonBase(c).Row().Margin(0, 0, 0, 6).Gap(8).AlignItems(ui.Center).Padding(4, 10).Radius(rControl).Shrink(0).
-		Background(a.pal.side).Border(1, a.pal.faint.Alpha(0.6)).Label("待处理")
+		Background(a.pal.side).Border(1, a.pal.faint.Alpha(0.55)).Label("待处理")
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}

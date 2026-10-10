@@ -1,13 +1,13 @@
 /**
  * Moves what a design page writes out onto the design rules: text sizes,
- * corners, shadows, line heights and icon sizes become var(--…), padding,
- * margins and gaps move onto the spacing scale. Halfway between two levels
- * goes to the larger. Prints what it would change; --write saves.
+ * corners, shadows, line heights, icon sizes, the heights of controls and
+ * the scrim become var(--…), padding, margins and gaps move onto the spacing
+ * scale and alphas onto theirs. Halfway between two levels goes to the larger. Prints what it would change; --write saves.
  * Usage: node scripts/design/normalize.ts <design project dir> [--write]
  */
 import { readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { level, levels, read, readRules, snapSpace } from './rules.ts'
+import { controlHeight, eachAlpha, level, levels, read, readRules, snapAlpha, snapSpace } from './rules.ts'
 
 const dir = process.argv[2]
 if (!dir) {
@@ -83,7 +83,30 @@ function fixStyle(style: string): string {
     count(`line-height ${v} -> ${t}`)
     return `line-height:var(--${t})`
   })
+  const named = controlHeight(r, style)
+  if (named !== style) {
+    count('height -> ' + named.match(/height:var\(--(h-[a-z-]+)\)/)![1])
+    // An icon button is as wide as it is high.
+    style = named.replace(/(^|;)(\s*)width:28px/, '$1$2width:var(--h-control-sm)')
+  }
   return style
+}
+
+// The scrim behind a dialog is one color; other alphas keep to their scale.
+function fixAlpha(text: string): string {
+  const scrim = (r.value.get('scrim') ?? '').replace(/\s+/g, '')
+  if (scrim) {
+    text = text.replace(/rgba\([^()]*\)/g, (m) => {
+      if (m.replace(/\s+/g, '') !== scrim) return m
+      count('scrim')
+      return 'var(--scrim)'
+    })
+  }
+  return eachAlpha(text, (kind, v) => {
+    const s = snapAlpha(r, v)
+    if (s !== v) count(`${kind} alpha ${v} -> ${s}`)
+    return s
+  })
 }
 
 function fixSpacing(text: string): string {
@@ -114,7 +137,7 @@ for (const page of readdirSync(dir).filter((f) => f.endsWith('.dc.html')).sort()
   let t = s.replace(/style="([^"]*)"/g, (_, v) => `style="${fixStyle(v)}"`)
   t = t.replace(/style='([^']*)'/g, (_, v) => `style='${fixStyle(v)}'`)
   t = t.replace(/(<style>)([\s\S]*?)(<\/style>)/g, (_, a, v, b) => a + fixStyle(v) + b)
-  t = fixIcons(fixSpacing(t))
+  t = fixAlpha(fixIcons(fixSpacing(t)))
   if (t !== s) {
     files++
     if (write) writeFileSync(p, t)

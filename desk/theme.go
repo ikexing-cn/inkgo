@@ -25,13 +25,15 @@ type palette struct {
 	// The shadows of the design rules, named as there: the chosen part of
 	// a segmented control; menus, popovers and toasts; dialogs.
 	raise, pop, dialog shadow
+	scrim              ui.Color // what dims the window behind a dialog
 }
 
 // The sizes of the design rules (设计规范 in the design): eight text sizes,
-// four corners, five line heights, four icon sizes and the disabled opacity,
-// named as there. A size between them is not used. They are the --fs-*,
-// --r-*, --lh-*, --icon-* and --opacity-* of tokens.css, which a test holds
-// them to; the desk writes these names, never a number.
+// four corners, five line heights, four icon sizes, six control heights and
+// the disabled opacity, named as there. A size between them is not used.
+// They are the --fs-*, --r-*, --lh-*, --icon-*, --h-* and --opacity-* of
+// tokens.css, which a test holds them to; the desk writes these names, never
+// a number. An alpha is a number, one on the --alpha scale there.
 const (
 	fsDisplay = 26   // the welcome page's big words
 	fsTitle   = 22   // a page's title, the settings' too
@@ -63,6 +65,13 @@ const (
 	iconLg = 24 // empty states, the welcome page
 
 	opacityDisabled = 0.4 // a button or field that can't be used
+
+	hControl   = 32 // buttons, inputs, selects
+	hControlSm = 28 // icon buttons, text buttons
+	hRow       = 30 // a row of a menu
+	hSeg       = 26 // a segment of a segmented control, the toolbar's small buttons
+	hTag       = 20 // labels, counts
+	hBar       = 40 // the title bar, the toolbar
 )
 
 //go:embed tokens.css
@@ -149,6 +158,20 @@ func shadows(css string) (light, dark map[string]shadow) {
 	return light, dark
 }
 
+// scrim reads the --scrim of tokens.css, what dims the window behind a
+// dialog.
+func scrim(css string) ui.Color {
+	d := regexp.MustCompile(`--scrim\s*:\s*rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([0-9.]+)\s*\)`).FindStringSubmatch(css)
+	if d == nil {
+		return ui.Color{}
+	}
+	f := func(s string) float32 {
+		v, _ := strconv.ParseFloat(s, 32)
+		return float32(v)
+	}
+	return ui.RGBA(uint8(f(d[1])), uint8(f(d[2])), uint8(f(d[3])), f(d[4]))
+}
+
 func lightPalette() *palette {
 	k, _ := tokens(tokensCSS)
 	s, _ := shadows(tokensCSS)
@@ -156,7 +179,7 @@ func lightPalette() *palette {
 	themeOf(t, k)
 	t.Selection = ui.RGBA(50, 120, 215, 0.2) // --sel over the page, so the text shows through
 	t.Focus = k["ink"].Alpha(0.35)
-	t.Scrollbar = ui.RGBA(0, 0, 0, 0.18)
+	t.Scrollbar = ui.RGBA(0, 0, 0, 0.2)
 	return paletteOf(t, k, s)
 }
 
@@ -165,8 +188,8 @@ func darkPalette() *palette {
 	_, s := shadows(tokensCSS)
 	t := ui.DarkTheme()
 	themeOf(t, k)
-	t.Selection = ui.RGBA(90, 140, 220, 0.3)
-	t.Focus = k["ink"].Alpha(0.45)
+	t.Selection = ui.RGBA(90, 140, 220, 0.35)
+	t.Focus = k["ink"].Alpha(0.55)
 	t.Scrollbar = ui.RGBA(255, 255, 255, 0.2)
 	return paletteOf(t, k, s)
 }
@@ -194,7 +217,7 @@ func paletteOf(t *ui.Theme, k map[string]ui.Color, s map[string]shadow) *palette
 		canvas: k["bg"], side: k["side"], raised: k["raised"], bubble: k["hover"],
 		line: k["line"], faint: k["faint"], ink: k["ink"], onInk: k["on-ink"],
 		amber: k["amber"], warnBg: k["warn-bg"], warnBd: k["warn-bd"],
-		raise: s["raise"], pop: s["pop"], dialog: s["dialog"]}
+		raise: s["raise"], pop: s["pop"], dialog: s["dialog"], scrim: scrim(tokensCSS)}
 }
 
 // dot is a small status disc.
@@ -207,7 +230,7 @@ func pill(c *ui.Context, text string, color ui.Color) *ui.Element {
 	if color.A == 0 {
 		color = c.Theme().TextMuted
 	}
-	b := ui.Row(c).Padding(2, 8).Radius(rXs).Background(color.Alpha(0.1)).Shrink(0)
+	b := ui.Row(c).Padding(2, 8).Radius(rXs).Background(color.Alpha(0.12)).Shrink(0)
 	b.Children(func() { ui.Text(c, text).FontSize(fsSmall).TextColor(color).SingleLine() })
 	return b
 }
@@ -299,7 +322,7 @@ func glyph(c *ui.Context, s *ui.SVG, size float32, color ui.Color) *ui.Element {
 // it for tests and assistive technology.
 func iconButton(c *ui.Context, s *ui.SVG, label string, color ui.Color) *ui.Element {
 	t := c.Theme()
-	b := ui.ButtonBase(c).Size(28, 28).Center().Radius(rControl).Shrink(0).Label(label).Tooltip(label)
+	b := ui.ButtonBase(c).Size(hControlSm, hControlSm).Center().Radius(rControl).Shrink(0).Label(label).Tooltip(label)
 	fg := color
 	if fg.A == 0 {
 		fg = t.TextMuted
@@ -319,7 +342,7 @@ func iconButton(c *ui.Context, s *ui.SVG, label string, color ui.Color) *ui.Elem
 
 // primary is the one solid ink button of a view.
 func (p *palette) primary(c *ui.Context, text string) *ui.Element {
-	b := ui.ButtonBase(c).Row().Center().Gap(6).Padding(8, 16).Radius(rControl).Shrink(0)
+	b := ui.ButtonBase(c).Row().Center().Gap(6).Height(hControl).Padding(0, 16).Radius(rControl).Shrink(0)
 	bg := p.ink
 	if b.Hovered() {
 		bg = p.theme.AccentHover
@@ -335,7 +358,7 @@ func (p *palette) primary(c *ui.Context, text string) *ui.Element {
 // secondary is an outlined button.
 func (p *palette) secondary(c *ui.Context, text string) *ui.Element {
 	t := p.theme
-	b := ui.ButtonBase(c).Row().Center().Gap(6).Padding(6, 14).Radius(rControl).Border(1, t.Border).Background(p.raised).Shrink(0)
+	b := ui.ButtonBase(c).Row().Center().Gap(6).Height(hControl).Padding(0, 14).Radius(rControl).Border(1, t.Border).Background(p.raised).Shrink(0)
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}
@@ -390,7 +413,7 @@ func (p *palette) cardBox(c *ui.Context) *ui.Element {
 // action is a tinted button; strong fills it, for destructive confirmations.
 func action(c *ui.Context, text string, color ui.Color, strong bool) *ui.Element {
 	b := ui.ButtonBase(c).Row().Center().Padding(6, 12).Radius(rControl).Shrink(0)
-	bg, fg := color.Alpha(0.1), color
+	bg, fg := color.Alpha(0.12), color
 	if strong {
 		bg, fg = color, ui.Hex("#ffffff")
 	}

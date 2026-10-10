@@ -186,7 +186,7 @@ func (a *App) quoteBlock(c *ui.Context, q workspace.Quote, key string, remove fu
 		b.Background(t.SurfaceHover)
 	}
 	b.Children(func() {
-		ui.Box(c).Width(3).Radius(rRound).Background(a.pal.ink.Alpha(0.5)).Shrink(0)
+		ui.Box(c).Width(3).Radius(rRound).Background(a.pal.ink.Alpha(0.55)).Shrink(0)
 		ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
 			title := q.Title // as it was named then, unless the tree knows it now
 			if n, ok := a.write.tree.Node(q.Chapter); ok {

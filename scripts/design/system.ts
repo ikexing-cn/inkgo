@@ -190,12 +190,45 @@ function opacity(): string {
   const v = raw('opacity-disabled')
   return `<div style="display:flex;gap:24px;align-items:center">${btn('primary', '保存')}${btn('primary', '保存', 'off')}${btn('secondary', '取消', 'off')}${field('例如 https://…', 'off')}${box(true, true)}</div>`
     + `<div style="font-size:var(--fs-note);color:var(--muted);line-height:var(--lh-body)">不能点的按钮、输入框、复选框整体降到 ${Number(v) * 100}%，不换颜色。`
-    + `别处的半透明（提示底下倒计时的细条、规划图例的色条）是装饰，不算这一级，留到半透明色那一轮再收。</div>`
+    + `别处的半透明（提示底下倒计时的细条、规划图例的色条）是装饰，不算这一级，从上面「半透明」的刻度里挑。</div>`
 }
 
+// ---- 半透明 -----------------------------------------------------------------
+const alphaUse: Record<string, string> = {
+  '0.08': '整行提醒的底色',
+  '0.12': '小标签、图标底块、改动对比的底色',
+  '0.2': '染色块的边、选中的文字、滚动条',
+  '0.35': '焦点框、弱化的刻度和色条',
+  '0.55': '倒计时细条、弱化的边和竖线',
+  '0.85': '回复里的引用、拖入文件时的蒙层',
+}
+
+function alphas(dark: boolean): string {
+  const cell = (bg: string, name: string, use: string) =>
+    `<div style="display:flex;flex-direction:column;gap:8px;width:150px">`
+    + `<div style="height:44px;border-radius:var(--r-control);border:1px solid var(--line);background:${bg}"></div>`
+    + `<div style="font-size:var(--fs-control);font-weight:600">${name}</div>`
+    + `<div style="font-size:var(--fs-note);color:var(--muted);line-height:var(--lh-body)">${use}</div></div>`
+  const cells = r.alpha.map((a) => cell(`color-mix(in srgb,var(--ink) ${Math.round(a * 100)}%,transparent)`, String(a).replace(/^0/, ''), alphaUse[String(a)] ?? ''))
+  cells.push(cell('var(--scrim)', code('--scrim'), '对话框、设置窗口后面的遮罩'))
+  return panel(`<div style="display:flex;flex-wrap:wrap;gap:24px 20px">${cells.join('')}</div>`, dark)
+}
+
+// ---- 控件高度 ---------------------------------------------------------------
+const heights: [string, string, () => string, string][] = [
+  ['h-control', '按钮、输入框、下拉框', () => btn('secondary', '取消') + field('例如 https://…'), '32 · 34'],
+  ['h-control-sm', '图标按钮、文字按钮', () => btn('icon', '', '', 'plus') + btn('ghost', '打开配置文件', 'hover'), '28'],
+  ['h-row', '菜单里的一行', () => `<div style="width:160px;display:flex;align-items:center;height:var(--h-row);padding:0 10px;border-radius:var(--r-control);font-size:var(--fs-control);background:var(--hover)">加入设定</div>`, '30'],
+  ['h-seg', '分段选择里的一段、工具栏里的小按钮', () => seg(['浅色', '深色'], 0), '26'],
+  ['h-tag', '小标签、计数', () => pill('草稿') + pill('待处理', 'var(--warn)'), '20'],
+  ['h-bar', '标题栏、工具栏、窗口按钮', () => `<div style="width:260px;height:var(--h-bar);box-sizing:border-box;border-bottom:1px solid var(--line);background:var(--side);display:flex;align-items:center;padding:0 12px;font-size:var(--fs-control);color:var(--muted)">第三章 · 2,846 字</div>`, '40'],
+]
+const heightRows = () => levelRows('130px 60px 330px minmax(0,1fr) 190px', heights.map(([tok, use, sample, merged]) => [
+  tok.slice(2), String(px(tok)),
+  `<div style="display:flex;align-items:center;gap:10px">${sample()}</div>`,
+  use, was('--' + tok, merged)]))
+
 const sizes: [string, string, string][] = [
-  ['控件高度', '32', '按钮、输入框、下拉框'],
-  ['小控件高度', '28', '图标按钮、表格里的小按钮'],
   ['图标线宽', '1.8', '24×24 画布，圆头圆角'],
   ['阅读正文', '14.5（--fs-read）', '讨论气泡、讨论输入框、快照预览：要读的正文，和稿纸一样不在 8 级里'],
   ['稿纸', '17（--fs-paper）', '正文栏的默认字号；作者在「外观」里调了就按设置的来'],
@@ -208,19 +241,19 @@ type State = '' | 'hover' | 'off' | 'focus' | 'error'
 function btn(kind: 'primary' | 'secondary' | 'ghost' | 'danger' | 'icon', text: string, state: State = '', ic?: keyof typeof icon): string {
   const op = state === 'off' ? 'opacity:var(--opacity-disabled);' : ''
   const lead = ic ? svg(icon[ic], 'sm', 'currentColor', 1.9) : ''
-  const base = 'height:32px;box-sizing:border-box;display:inline-flex;align-items:center;gap:6px;border-radius:var(--r-control);font-size:var(--fs-control);white-space:nowrap;'
+  const base = 'height:var(--h-control);box-sizing:border-box;display:inline-flex;align-items:center;gap:6px;border-radius:var(--r-control);font-size:var(--fs-control);white-space:nowrap;'
   let st = ''
   if (kind === 'primary') {
     st = `background:${state === 'hover' ? 'var(--ink-2)' : 'var(--ink)'};color:var(--on-ink);font-weight:600;padding:0 16px;`
   } else if (kind === 'secondary') {
     st = `background:${state === 'hover' ? 'var(--hover)' : 'var(--raised)'};border:1px solid var(--border);color:var(--ink);padding:0 14px;`
   } else if (kind === 'ghost') {
-    st = `background:${state === 'hover' ? 'var(--hover)' : 'transparent'};color:${state === 'hover' ? 'var(--ink)' : 'var(--muted)'};padding:0 8px;height:28px;font-size:var(--fs-note);`
+    st = `background:${state === 'hover' ? 'var(--hover)' : 'transparent'};color:${state === 'hover' ? 'var(--ink)' : 'var(--muted)'};padding:0 8px;height:var(--h-control-sm);font-size:var(--fs-note);`
   } else if (kind === 'danger') {
     st = 'background:var(--danger);color:#fff;font-weight:600;padding:0 16px;' + (state === 'hover' ? 'filter:brightness(.92);' : '')
   } else {
     const bg = state === 'hover' ? 'var(--hover)' : 'transparent', col = state === 'hover' ? 'var(--ink)' : 'var(--muted)'
-    return `<div style="${op}width:28px;height:28px;border-radius:var(--r-control);background:${bg};color:${col};display:flex;align-items:center;justify-content:center">${svg(icon[ic ?? 'plus'], 'md')}</div>`
+    return `<div style="${op}width:var(--h-control-sm);height:var(--h-control-sm);border-radius:var(--r-control);background:${bg};color:${col};display:flex;align-items:center;justify-content:center">${svg(icon[ic ?? 'plus'], 'md')}</div>`
   }
   return `<div style="${base}${st}${op}">${lead}${text}</div>`
 }
@@ -231,17 +264,17 @@ function field(text: string, state: State = ''): string {
   const col = (state === '' || state === 'off') && text.startsWith('例如') ? 'var(--faint)' : 'var(--ink)'
   const op = state === 'off' ? 'opacity:var(--opacity-disabled);' : ''
   const caret = state === 'focus' ? '<div style="width:1px;height:15px;background:var(--ink);margin-left:2px"></div>' : ''
-  const input = `<div style="${op}width:160px;height:32px;box-sizing:border-box;border:1px solid ${bd};${ring}border-radius:var(--r-control);background:var(--bg);`
+  const input = `<div style="${op}width:160px;height:var(--h-control);box-sizing:border-box;border:1px solid ${bd};${ring}border-radius:var(--r-control);background:var(--bg);`
     + `display:flex;align-items:center;padding:0 10px;font-size:var(--fs-control);color:${col}">${text}${caret}</div>`
   const msg = state === 'error' ? '<div style="font-size:var(--fs-note);color:var(--danger);margin-top:6px">要以 http(s):// 开头</div>' : ''
   return `<div>${input}${msg}</div>`
 }
 
 const seg = (items: string[], on: number) => `<div style="display:inline-flex;gap:2px;padding:4px;border-radius:var(--r-control);background:var(--active)">` + items.map((t, i) =>
-  `<div style="padding:0 14px;height:26px;display:flex;align-items:center;border-radius:var(--r-control);font-size:var(--fs-control);`
+  `<div style="padding:0 14px;height:var(--h-seg);display:flex;align-items:center;border-radius:var(--r-control);font-size:var(--fs-control);`
   + `${i === on ? 'background:var(--raised);box-shadow:var(--shadow-raise);font-weight:600;color:var(--ink)' : 'color:var(--muted)'}">${t}</div>`).join('') + '</div>'
 
-const pill = (t: string, color = 'var(--muted)') => `<div style="display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--r-xs);font-size:var(--fs-small);font-weight:500;`
+const pill = (t: string, color = 'var(--muted)') => `<div style="display:inline-flex;align-items:center;height:var(--h-tag);padding:0 8px;border-radius:var(--r-xs);font-size:var(--fs-small);font-weight:500;`
   + `color:${color};background:color-mix(in srgb,${color} 12%,transparent)">${t}</div>`
 
 function group(): string {
@@ -255,7 +288,7 @@ function group(): string {
 function menu(): string {
   const items: [string, string, boolean][] = [['复制', 'Ctrl+C', false], ['加入设定', '', true], ['删除', '', false]]
   return `<div style="width:200px;padding:4px;border-radius:var(--r-card);background:var(--raised);border:1px solid var(--border);box-shadow:var(--shadow-pop)">` + items.map(([t, k, on]) =>
-    `<div style="display:flex;align-items:center;height:30px;padding:0 10px;border-radius:var(--r-control);font-size:var(--fs-control);`
+    `<div style="display:flex;align-items:center;height:var(--h-row);padding:0 10px;border-radius:var(--r-control);font-size:var(--fs-control);`
     + `${on ? 'background:var(--hover);' : ''}color:${t === '删除' ? 'var(--danger)' : 'var(--ink)'}">`
     + `<div style="flex:1">${t}</div><div style="font-size:var(--fs-small);color:var(--faint)">${k}</div></div>`).join('') + '</div>'
 }
@@ -296,7 +329,7 @@ const components = (dark: boolean) => panel([
 ].join(''), dark, '8px 32px 12px', 0)
 
 const rules = [
-  '页面不写数字：颜色、字号、圆角、阴影、行距、图标大小、禁用透明度都写 var(--…)，名字在 tokens.css 里。表里没有的值，先在这页和 tokens.css 加上，再去用。间距从下面的刻度里挑（tokens.css 的 --space），不另起名字。',
+  '页面不写数字：颜色、字号、圆角、阴影、行距、图标大小、控件高度、禁用透明度都写 var(--…)，名字在 tokens.css 里。表里没有的值，先在这页和 tokens.css 加上，再去用。间距和半透明从下面的刻度里挑（tokens.css 的 --space、--alpha），不另起名字。',
   '仓库里 node scripts/verify-design.ts 检查设计稿：写了数字或用了 tokens.css 里没有的名字，就报出来。这一页由 scripts/design/system.ts 照 tokens.css 生成，改了 tokens.css 就重新生成。',
   '新组件先画进这一页，作者确认后再在别的页面里用；已有组件改样子，也先改这一页。',
   '代码里同名：Go 里的常量和这里的名字一一对应（例如 --r-control 对应 rControl，--lh-body 对应 lhBody），数值由测试和 tokens.css 逐一核对；界面代码不直接写数字。',
@@ -311,6 +344,7 @@ const decide: [string, string, string][] = [
   ['提示的图标', '「提示」页画的图标是 17。', '改成 16，跟默认图标一致。'],
   ['间距', '设计稿里 1、3、5、7、9、18 这类零散值约 350 处，代码里约 60 处。', '作者 2026-10-10 要求统一：都并进最近一级，两级中间取大的；设计稿和代码都有检查。'],
   ['页面里的数字', '各页面还是直接写 13px、8px、0 8px 28px 这样的数字。', '作者 2026-10-09 要求做好基建：所有页面改成只写变量，相近的值并进最近的一级（例如稿纸 16.5 并进 17）；设计稿和代码都有检查。'],
+  ['半透明、控件高度', '代码里颜色的透明度有 .07 到 .6 共 14 种，设计稿的遮罩是近黑（25、25、25）的 32%、代码是纯黑的 32%；控件高度只写在这页的表里，没有变量。', '作者 2026-10-10 同意按建议做：半透明收成 6 档，遮罩以设计稿为准；控件高度 6 级，备份页的路径框 34 并进 32；设计稿和代码都有检查。'],
   ['行距、图标、禁用', '设计稿里行距 14 种、图标 8 种，代码里行距 6 种、图标 6 种，禁用的透明度有 .3、.35、.4、.5 四种。', '作者 2026-10-10 同意统一：行距 5 级、图标 4 级、禁用一级 .4，都并进最近一级，两级中间取大的；设计稿和代码都有检查。'],
 ]
 
@@ -322,6 +356,8 @@ function body(): string {
     ['行距', '14 种', '6 种', '5 级'],
     ['图标', '8 种', '6 种', '4 级'],
     ['禁用透明度', '.4、.5', '.3、.35、.4', '1 级'],
+    ['半透明', '6 种', '14 种', '6 档 + 遮罩'],
+    ['控件高度', '7 种', '4 种', '6 级'],
     ['颜色', '已经统一在 tokens.css', '同一份 tokens.css', '不变'],
   ], ['120px', '1fr', '1fr', '1fr'])
   const sizeTable = table(['', '值', '用在哪'], sizes.map(([n, v, u]) => [n, v, u]), ['120px', '220px', '1fr'])
@@ -341,7 +377,9 @@ function body(): string {
   ${sec('阴影', '5 级，画板另有 1 级。深色模式阴影更重，否则看不出浮起。卡片、分组不用阴影，只用边框。代码一层阴影只画得出第一层。', '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">' + shadows(false) + shadows(true) + '</div>')}
   ${sec('间距', 'padding、margin、gap 只用这些值。作者 2026-10-10 要求统一，设计稿和代码都已改好；100 以上的是布局尺寸（窗口按钮让出的 150 等），不算间距。', panel(spacing()))}
   ${sec('图标', '4 级，图标画在 24×24 的画布上、线宽 1.8，按这几级缩放。右边是被并进这一级的旧尺寸。', panel(iconRows()))}
+  ${sec('半透明', '6 档，写在 tokens.css 的 --alpha 里：颜色的透明度和装饰用的 opacity 只用这些值，不另起名字。每格是墨色按这一档盖在底色上。遮罩单列一个颜色。', '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">' + alphas(false) + alphas(true) + '</div>')}
   ${sec('禁用', '一级 --opacity-disabled。', panel(opacity()))}
+  ${sec('控件高度', '6 级。有字或左右留白、定了高度的元素都算控件，高度只用这几级。', panel(heightRows()))}
   ${sec('尺寸', '', panel(sizeTable))}
   ${sec('组件 · 浅色', '每个组件画常态、悬停、禁用；输入框多画聚焦和出错。', components(false))}
   ${sec('组件 · 深色', '', components(true))}

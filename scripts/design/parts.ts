@@ -27,7 +27,7 @@ export function svg(path: string, size: IconSize = 'md', color = 'currentColor',
 /** A drop-down, closed. */
 export function select(text: string, width?: number): string {
   const w = width ? `width:${width}px;` : ''
-  return `<div style="${w}height:32px;box-sizing:border-box;border:1px solid var(--border);border-radius:var(--r-control);display:flex;align-items:center;gap:6px;padding:0 10px;font-size:var(--fs-control);background:var(--bg);min-width:0"><div style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${text}</div><div style="color:var(--faint)">${svg(icon.down, 'xs', 'currentColor', 2)}</div></div>`
+  return `<div style="${w}height:var(--h-control);box-sizing:border-box;border:1px solid var(--border);border-radius:var(--r-control);display:flex;align-items:center;gap:6px;padding:0 10px;font-size:var(--fs-control);background:var(--bg);min-width:0"><div style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${text}</div><div style="color:var(--faint)">${svg(icon.down, 'xs', 'currentColor', 2)}</div></div>`
 }
 
 /** A check box, alone. */

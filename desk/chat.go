@@ -141,7 +141,7 @@ func (a *App) emptyChat(c *ui.Context) {
 		top, size = 40, 18
 	}
 	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(top, 0, 0, 0).Gap(14).Children(func() {
-		ui.Box(c).Size(44, 44).Radius(rDialog).Background(a.pal.ink.Alpha(0.1)).Center().Children(func() {
+		ui.Box(c).Size(44, 44).Radius(rDialog).Background(a.pal.ink.Alpha(0.12)).Center().Children(func() {
 			glyph(c, icSparkle, iconLg, a.pal.ink)
 		})
 		ui.Text(c, title).FontSize(size).FontWeight(600)
@@ -446,7 +446,7 @@ func (a *App) composer(c *ui.Context) {
 				ui.Text(c, key).FontSize(fsSmall).TextColor(a.pal.faint)
 			}
 			can := a.busy == "" && trim(a.input) != ""
-			send := ui.ButtonBase(c).Size(32, 32).Radius(rRound).Center().Label("发送").Tooltip("发送").Disabled(!can).Shrink(0)
+			send := ui.ButtonBase(c).Size(hControl, hControl).Radius(rRound).Center().Label("发送").Tooltip("发送").Disabled(!can).Shrink(0)
 			bg := a.pal.ink
 			if !can {
 				bg = t.SurfacePressed

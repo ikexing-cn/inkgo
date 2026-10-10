@@ -1006,7 +1006,7 @@ func (a *App) writeTop(c *ui.Context) {
 func (a *App) emptyWriting(c *ui.Context) {
 	t := a.pal.theme
 	ui.Column(c).Grow(1).FillWidth().AlignItems(ui.Center).Padding(80, 24, 0, 24).Gap(14).Children(func() {
-		ui.Box(c).Size(44, 44).Radius(rDialog).Background(a.pal.ink.Alpha(0.1)).Center().Children(func() {
+		ui.Box(c).Size(44, 44).Radius(rDialog).Background(a.pal.ink.Alpha(0.12)).Center().Children(func() {
 			glyph(c, icBook, iconLg, a.pal.ink)
 		})
 		ui.Text(c, "还没有章节").FontSize(fsDialog).FontWeight(600)
@@ -1721,7 +1721,7 @@ func (a *App) snapshots(c *ui.Context) {
 								for _, p := range diffText(w.snapText, w.ed.Doc.String()) {
 									switch p.kind {
 									case gone:
-										spans = append(spans, ui.Span{Text: p.text, Color: t.Danger, Strikethrough: true, Background: t.Danger.Alpha(0.1)})
+										spans = append(spans, ui.Span{Text: p.text, Color: t.Danger, Strikethrough: true, Background: t.Danger.Alpha(0.12)})
 									case came:
 										spans = append(spans, ui.Span{Text: p.text, Color: t.Success, Background: t.Success.Alpha(0.12)})
 									default:

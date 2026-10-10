@@ -1,14 +1,15 @@
 /**
  * Checks a copy of the Design artifact's project/ folder against the design
  * rules: pages write var(--…) for colors, text sizes, corners, shadows,
- * line heights and icon sizes, never the numbers, keep spacing on its scale,
- * and only name what tokens.css declares. Also checks that desk/tokens.css is
+ * line heights, icon sizes and the heights of controls, never the numbers,
+ * keep spacing and alphas on their scales, and only name what tokens.css
+ * declares. Also checks that desk/tokens.css is
  * still a verbatim copy of the design's.
  * Usage: node scripts/verify-design.ts <design project dir>
  */
 import { readdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { onScale, read, readRules } from './design/rules.ts'
+import { controlHeight, eachAlpha, onScale, read, readRules, snapAlpha } from './design/rules.ts'
 
 const dir = process.argv[2]
 if (!dir) {
@@ -42,6 +43,9 @@ const rules: { what: string; re: RegExp }[] = [
 // board's for the boards and whole-page room. From 100 on it is a layout
 // size, and a negative one pairs with a size elsewhere.
 if (!design.space.length || !design.board.length) errors.push('tokens.css lacks --space or --space-board')
+// Alphas keep to their own scale, and the scrim behind a dialog is one color.
+if (!design.alpha.length) errors.push('tokens.css lacks --alpha')
+const scrim = (design.value.get('scrim') ?? '').replace(/\s+/g, '')
 const spacingProp = /(?<![a-z-])(?:padding|margin)(?:-(?:top|right|bottom|left))?\s*:([^;"'}]+)|(?<![a-z-])(?:row-|column-)?gap\s*:([^;"'}]+)/g
 
 const pages = readdirSync(dir).filter((f) => f.endsWith('.dc.html')).sort()
@@ -55,6 +59,16 @@ for (const page of pages) {
     for (const v of (m[1] ?? m[2]).matchAll(/(?<![0-9.a-z-])(-?)([0-9.]+)px/g)) {
       if (!v[1] && !onScale(design, Number(v[2]))) errors.push(`${where(m.index!)}: a spacing off the scale: ${m[0].slice(0, 60)}`)
     }
+  }
+  for (const m of text.matchAll(/rgba\([^()]*\)/g)) {
+    if (scrim && m[0].replace(/\s+/g, '') === scrim) errors.push(`${where(m.index!)}: the scrim written out: ${m[0]}`)
+  }
+  eachAlpha(text, (kind, v) => {
+    if (snapAlpha(design, v) !== v) errors.push(`${page}: an alpha off the scale: ${kind} ${v}`)
+    return v
+  })
+  for (const m of text.matchAll(/style="([^"]*)"/g)) {
+    if (controlHeight(design, m[1]) !== m[1]) errors.push(`${where(m.index!)}: a control's height written out: ${m[1].match(/height:\s*[0-9.]+px/)?.[0]}`)
   }
   for (const m of text.matchAll(/var\(--([a-z0-9-]+)/g)) {
     if (!design.declared.has(m[1])) errors.push(`${where(m.index!)}: --${m[1]} is not in tokens.css`)

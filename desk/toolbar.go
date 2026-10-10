@@ -50,7 +50,7 @@ func (a *App) moreButton(c *ui.Context, chapter bool) {
 // and on the right a shortcut, or why it cannot be done now.
 func (a *App) menuRow(c *ui.Context, s *ui.SVG, text, hint string, off bool) *ui.Element {
 	t := a.pal.theme
-	b := ui.ButtonBase(c).Row().FillWidth().Height(32).Padding(0, 10).Gap(10).AlignItems(ui.Center).Radius(rControl).Label(strings.TrimSuffix(text, "…")).Disabled(off)
+	b := ui.ButtonBase(c).Row().FillWidth().Height(hControl).Padding(0, 10).Gap(10).AlignItems(ui.Center).Radius(rControl).Label(strings.TrimSuffix(text, "…")).Disabled(off)
 	fg := t.AccentHover
 	if off {
 		fg = a.pal.faint
@@ -89,7 +89,7 @@ func (a *App) themeSegments(c *ui.Context) {
 			s    *ui.SVG
 		}{{"", "跟随系统", icMonitor}, {"light", "浅色", icSun}, {"dark", "深色", icMoon}} {
 			on := a.shelf.Theme == m.v
-			b := ui.ButtonBase(c).Row().Grow(1).Height(26).Center().Gap(6).Radius(rControl).Label("外观-" + m.n)
+			b := ui.ButtonBase(c).Row().Grow(1).Height(hSeg).Center().Gap(6).Radius(rControl).Label("外观-" + m.n)
 			fg := t.TextMuted
 			if on {
 				a.pal.raise.on(b.Background(a.pal.raised))
@@ -156,7 +156,7 @@ func (a *App) selectionBar(c *ui.Context) {
 
 func (a *App) selButton(c *ui.Context, s *ui.SVG, text string) *ui.Element {
 	t := a.pal.theme
-	b := ui.ButtonBase(c).Row().Height(26).Padding(0, 8).Gap(6).AlignItems(ui.Center).Radius(rControl).Label(text)
+	b := ui.ButtonBase(c).Row().Height(hSeg).Padding(0, 8).Gap(6).AlignItems(ui.Center).Radius(rControl).Label(text)
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}
