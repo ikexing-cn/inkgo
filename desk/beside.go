@@ -41,12 +41,18 @@ func (a *App) resizer(c *ui.Context, width float32) {
 	}
 }
 
-// panelTabs switch the writing page's right column between the setting
-// and the talk.
+// panelTabs switch the writing page's right column between the setting,
+// the talk and the foreshadowings.
 func (a *App) panelTabs(c *ui.Context) {
 	t := a.pal.theme
-	tab := func(label string, talk bool) {
-		on := a.doc.talk == talk
+	waiting := 0
+	for _, f := range a.foreshadows() {
+		if f.status() == foreLost {
+			waiting++
+		}
+	}
+	tab := func(label string, talk, fore bool) {
+		on := a.doc.fore == fore && (fore || a.doc.talk == talk)
 		b := ui.ButtonBase(c).Row().AlignItems(ui.Center).Padding(4, 10).Radius(rControl).Label("右栏-" + label)
 		if on {
 			b.Background(t.SurfacePressed)
@@ -62,18 +68,26 @@ func (a *App) panelTabs(c *ui.Context) {
 			}
 			// The count sits inside its own tab; beside the tabs it read
 			// as unread talk.
-			if n := a.bodyCount(); !talk && n > 0 {
+			n := a.bodyCount()
+			if fore {
+				n = waiting // those that wait on the author
+			}
+			if n > 0 && !talk {
 				ui.Textf(c, "%d", n).FontSize(fsNote).TextColor(a.pal.faint).Padding(0, 0, 0, 4)
 			}
 		})
 		if b.Clicked() && !on {
-			a.doc.talk = talk
+			a.doc.fore = fore
+			if !fore {
+				a.doc.talk = talk
+			}
 			a.savePrefs()
 		}
 	}
 	ui.Row(c).Gap(2).AlignItems(ui.Center).Children(func() {
-		tab("设定", false)
-		tab("讨论", true)
+		tab("设定", false, false)
+		tab("讨论", true, false)
+		tab("伏笔", false, true)
 	})
 }
 
@@ -172,7 +186,7 @@ func (a *App) quoteToTalk() {
 		a.doc.hidden = false
 	}
 	w.focus = false // the talk is in the column
-	a.doc.talk = true
+	a.doc.talk, a.doc.fore = true, false
 	a.focusTalk = true
 	a.savePrefs()
 }

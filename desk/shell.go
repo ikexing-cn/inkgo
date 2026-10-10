@@ -274,7 +274,7 @@ func (a *App) talkShown() bool {
 	if a.Store == nil {
 		return false
 	}
-	return a.page == 0 || a.page == 3 && a.doc.talk && !a.doc.hidden
+	return a.page == 0 || a.page == 3 && a.doc.talk && !a.doc.fore && !a.doc.hidden
 }
 
 func (a *App) navItem(c *ui.Context, s *ui.SVG, label string, page int, slim bool) {

@@ -30,7 +30,7 @@ func (a *App) sideFoot(c *ui.Context, slim bool) {
 }
 
 // prefTabs are the settings' parts, with the labels that pick them.
-var prefTabs = [][2]string{{"模型", "模型设置"}, {"外观", "设置-外观"}, {"备份", "设置-备份"}}
+var prefTabs = [][2]string{{"模型", "模型设置"}, {"外观", "设置-外观"}, {"提醒与检查", "设置-提醒"}, {"备份", "设置-备份"}}
 
 // The settings dialog keeps one size whichever part is shown.
 const prefsWidth, prefsHeight = 880, 660
@@ -62,7 +62,7 @@ func (a *App) preferences(c *ui.Context) {
 			ui.Text(c, "设置").FontSize(fsSmall).FontWeight(600).TextColor(a.pal.faint).Padding(0, 10, 8, 10)
 			for _, tl := range prefTabs {
 				tab := tl[0]
-				if tab == "备份" && a.Store == nil {
+				if (tab == "备份" || tab == "提醒与检查") && a.Store == nil {
 					continue
 				}
 				b := ui.ButtonBase(c).Row().FillWidth().Height(hControl).Justify(ui.Start).AlignItems(ui.Center).Padding(0, 10).Radius(rControl).Label(tl[1])
@@ -88,6 +88,8 @@ func (a *App) preferences(c *ui.Context) {
 					a.looksView(c)
 				case "备份":
 					a.backupSettingsView(c)
+				case "提醒与检查":
+					a.remindersView(c)
 				default:
 					a.modelsView(c)
 				}

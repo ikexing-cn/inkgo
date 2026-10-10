@@ -87,6 +87,7 @@ type orderEntry struct {
 // Kinds of a chapter mark.
 const (
 	MarkForeshadow = "foreshadow"  // a foreshadowing the author marked
+	MarkPayoff     = "payoff"      // where a foreshadowing is paid off
 	MarkAIAccepted = "ai-accepted" // AI text the author accepted
 	MarkAIDraft    = "ai-draft"    // AI text drafted from the outline
 )
@@ -94,6 +95,10 @@ const (
 // ChapterMark is a mark of a document's text, in runes [Start, End). Quote
 // is the text it covered when saved, which finds it again after the file
 // changed outside; one that cannot be found is Orphaned.
+//
+// A foreshadowing and a payoff have an ID, by which a payoff, in any
+// chapter, names the foreshadowing it pays off (Of). A foreshadowing the
+// author gave up is Dropped. At is when the mark was made, in RFC 3339.
 type ChapterMark struct {
 	Kind     string `json:"kind"`
 	Start    int    `json:"start"`
@@ -101,6 +106,20 @@ type ChapterMark struct {
 	Quote    string `json:"quote"`
 	Note     string `json:"note,omitempty"`
 	Orphaned bool   `json:"orphaned,omitempty"`
+	ID       string `json:"id,omitempty"`
+	Of       string `json:"of,omitempty"`
+	Dropped  bool   `json:"dropped,omitempty"`
+	At       string `json:"at,omitempty"`
+}
+
+// identify gives the foreshadowings of node id saved before they had IDs
+// one each, the same at every read until the chapter is saved with it.
+func identify(id string, marks []ChapterMark) {
+	for i := range marks {
+		if marks[i].Kind == MarkForeshadow && marks[i].ID == "" {
+			marks[i].ID = fmt.Sprintf("old-%s-%d", id, i)
+		}
+	}
 }
 
 // Stamp tells a file's version apart, for noticing it changed outside.
@@ -837,6 +856,7 @@ func (s *Store) readChapter(n *Node) (Chapter, error) {
 	for i, m := range ch.Marks {
 		ch.Marks[i] = anchor(text, m)
 	}
+	identify(n.ID, ch.Marks)
 	return ch, nil
 }
 
@@ -885,6 +905,7 @@ func (s *Store) Marks() (map[string][]ChapterMark, error) {
 		for i, m := range marks {
 			marks[i] = anchor(text, m)
 		}
+		identify(id, marks)
 		out[id] = marks
 	}
 	return out, nil

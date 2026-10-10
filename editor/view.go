@@ -143,6 +143,37 @@ func (e *Editor) SelectionTop() (r ui.Rect, ok bool) {
 	return ui.Rect{X: l.left + l.x(ln, d), Y: y, H: l.lineH}, true
 }
 
+// RangeBox returns where the range [a, b) lies, relative to the element:
+// X is where it starts, or where the lines start when it runs over several,
+// Y the top of its first line and H the height down to the bottom of its
+// last. ok is false before the editor was painted and
+// while none of the range is in view.
+func (e *Editor) RangeBox(a, b int) (r ui.Rect, ok bool) {
+	if e.width == 0 {
+		return ui.Rect{}, false
+	}
+	e.ensureLayout()
+	l := &e.lay
+	if len(l.lines) == 0 {
+		return ui.Rect{}, false
+	}
+	a, b = clamp(min(a, b), 0, e.Doc.Len()), clamp(max(a, b), 0, e.Doc.Len())
+	d := l.toDisp(a, true)
+	first, last := &l.lines[l.lineOf(d)], &l.lines[l.lineOf(l.toDisp(b, false))]
+	top, bottom := first.y-e.scrollY, last.y+l.lineH-e.scrollY
+	if bottom < 0 || top > e.height {
+		return ui.Rect{}, false
+	}
+	x := l.left + l.x(first, d)
+	if first != last {
+		x = l.left // over several lines it starts where the lines do
+	}
+	return ui.Rect{X: x, Y: top, H: bottom - top}, true
+}
+
+// Height is the element's height when it was last painted.
+func (e *Editor) Height() float32 { return e.height }
+
 // Width is the element's width when it was last painted.
 func (e *Editor) Width() float32 { return e.width }
 
@@ -239,7 +270,7 @@ func (e *Editor) menu(m *ui.Menu) {
 		e.SelectAll()
 	}
 	m.Separator()
-	if m.Item("标记为伏笔").Disabled(a == b).Chosen() {
+	if !e.opts.OwnMarks && m.Item("标记为伏笔").Disabled(a == b).Chosen() {
 		e.MarkSelection(MarkForeshadow, "")
 	}
 	id := e.markAt(e.caret)

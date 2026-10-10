@@ -271,6 +271,17 @@ func (e *Editor) MarkSelection(kind MarkKind, note string) bool {
 	return true
 }
 
+// AddMark marks m's range with all m holds, as one step to undo, and
+// returns the mark's id.
+func (e *Editor) AddMark(m Mark) int {
+	before := e.Doc.Marks()
+	id := e.Doc.Add(m)
+	e.undo = append(e.undo, undoStep{at: m.Start, caretBefore: e.caret, anchorBefore: e.anchor, caretAfter: e.caret,
+		marksBefore: before, marksAfter: e.Doc.Marks(), when: time.Now()})
+	e.redo = nil
+	return id
+}
+
 // updateCompletion offers the entities matching what was just typed.
 func (e *Editor) updateCompletion() {
 	e.compOpen = false

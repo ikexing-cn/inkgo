@@ -131,7 +131,7 @@ func (a *App) selectionBar(c *ui.Context) {
 	w := &a.write
 	r, ok := w.ed.SelectionTop()
 	if !ok || w.ed.ReadOnly() || w.lost || w.external != nil || w.rewriting || w.run != nil || w.proposed != nil ||
-		w.takeOpen || w.ed.Predicting() {
+		w.takeOpen || w.ed.Predicting() || w.fore.noting || w.fore.paying {
 		return
 	}
 	t := a.pal.theme

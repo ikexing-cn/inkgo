@@ -294,6 +294,8 @@ var (
 	icTrash       = icon(`<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/>`)
 	icPen         = icon(`<path d="M12 20h8"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/>`)
 	icDraft       = icon(`<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>`)
+	icFlag        = icon(`<path d="M6 20V4h10l-2 4 2 4H6"/>`)
+	icLink        = icon(`<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>`)
 	icBookmark    = icon(`<path d="M6 3h12v18l-6-4-6 4z"/><path d="M12 7v6M9 10h6"/>`)
 	icHistory     = icon(`<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>`)
 	icMonitor     = icon(`<path d="M4 5h16v11H4zM9 20h6M12 16v4"/>`)

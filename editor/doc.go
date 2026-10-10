@@ -17,6 +17,9 @@ const (
 	// MarkAIDraft is text an AI drafted from the outline, until a human
 	// edits it.
 	MarkAIDraft
+	// MarkPayoff is where a foreshadowing, of this chapter or another, is
+	// paid off.
+	MarkPayoff
 )
 
 func (k MarkKind) String() string {
@@ -27,6 +30,8 @@ func (k MarkKind) String() string {
 		return "AI 采纳"
 	case MarkAIDraft:
 		return "AI 起草"
+	case MarkPayoff:
+		return "回收"
 	}
 	return "标记"
 }
@@ -42,6 +47,11 @@ type Mark struct {
 	// Quote is the text the mark covered as it was made or loaded, which
 	// tells what an orphaned mark was.
 	Quote string
+	// What the host keeps with a mark, which the editor carries along: a
+	// name that outlives the ID, the name of the mark this one answers,
+	// when it was made, and that the author gave it up.
+	Key, Ref, At string
+	Dropped      bool
 }
 
 // Doc is the text of a chapter and its marks. Offsets are rune indexes.
@@ -74,6 +84,37 @@ func (d *Doc) AddMark(kind MarkKind, a, b int, note string) int {
 	d.marks = append(d.marks, Mark{ID: id, Kind: kind, Start: a, End: b, Note: note, Quote: string(d.text[a:b])})
 	d.version++
 	return id
+}
+
+// Add marks m's range with all m holds and returns the mark's id.
+func (d *Doc) Add(m Mark) int {
+	a, b := clamp(min(m.Start, m.End), 0, len(d.text)), clamp(max(m.Start, m.End), 0, len(d.text))
+	m.ID, m.Start, m.End, m.Orphaned, m.Quote = d.nextID, a, b, false, string(d.text[a:b])
+	d.nextID++
+	d.marks = append(d.marks, m)
+	d.version++
+	return m.ID
+}
+
+// EditMark changes the mark of id as fn does, and tells whether there is
+// one. A mark fn moves quotes what it covers now.
+func (d *Doc) EditMark(id int, fn func(m *Mark)) bool {
+	for i := range d.marks {
+		m := &d.marks[i]
+		if m.ID != id {
+			continue
+		}
+		a, b := m.Start, m.End
+		fn(m)
+		m.ID = id
+		if m.Start != a || m.End != b {
+			m.Start, m.End = clamp(min(m.Start, m.End), 0, len(d.text)), clamp(max(m.Start, m.End), 0, len(d.text))
+			m.Orphaned, m.Quote = false, string(d.text[m.Start:m.End])
+		}
+		d.version++
+		return true
+	}
+	return false
 }
 
 // RemoveMark removes the mark of id.

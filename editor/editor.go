@@ -34,6 +34,9 @@ type Options struct {
 	Prose bool
 	// Placeholder shows while the text is empty.
 	Placeholder string
+	// OwnMarks leaves marking a foreshadowing out of the context menu:
+	// the host offers its own in Menu.
+	OwnMarks bool
 	// Menu adds items to the end of the context menu.
 	Menu func(m *ui.Menu)
 	// Zoom, when set, takes Ctrl+wheel (Cmd on macOS): d is 1 to make the

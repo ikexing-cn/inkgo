@@ -11,10 +11,6 @@ import (
 	"writer/workspace"
 )
 
-// lateAfter is how many chapters may follow a foreshadowing; more, and it
-// is pending as not paid off.
-const lateAfter = 30
-
 // pendShown is how many items a group lists before it is opened.
 const pendShown = 3
 
@@ -24,8 +20,9 @@ type pendItem struct {
 	key, text, sub string
 	node           string
 	start, end     int
-	here           bool // in the chapter open
-	retry          bool // a backup failed: choosing it backs up again
+	here           bool   // in the chapter open
+	retry          bool   // a backup failed: choosing it backs up again
+	fore           string // the foreshadowing it is about
 }
 
 // pendGroup is the items of one kind.
@@ -47,44 +44,26 @@ func (a *App) scanMarks() {
 // being written, and a backup that failed.
 func (a *App) pendingGroups() []pendGroup {
 	w := &a.write
-	var chapters []*workspace.Node
-	w.tree.Walk(func(n *workspace.Node, _ int) {
-		if !n.Folder {
-			chapters = append(chapters, n)
-		}
-	})
 	var items []pendItem
-	for i, n := range chapters {
-		marks := w.marks[n.ID]
-		here := n.ID == w.node && w.ed != nil
-		if here {
-			marks = liveMarks(w.ed.Doc)
+	late := a.late()
+	for _, f := range a.foreshadows() {
+		it := pendItem{node: f.node, start: f.start, end: f.end, here: f.here, sub: f.title, fore: f.id}
+		switch st := f.status(); {
+		case st == foreLost:
+			it.key = "伏笔/失去锚点/" + f.node + "/" + f.quote
+			it.text = fmt.Sprintf("「%s」找不到原句了", clip(f.name(), 16))
+		case st == foreOpen && f.gap >= late:
+			it.key = "伏笔/没回收/" + f.node + "/" + f.quote
+			it.text = fmt.Sprintf("「%s」%d 章没回收", clip(f.name(), 16), f.gap)
+			it.sub += " 埋下"
+		default:
+			continue
 		}
-		for _, m := range marks {
-			if m.Kind != workspace.MarkForeshadow {
-				continue
-			}
-			what := m.Note
-			if what == "" {
-				what = m.Quote
-			}
-			it := pendItem{node: n.ID, start: m.Start, end: m.End, here: here, sub: n.Title}
-			if late := len(chapters) - 1 - i; m.Orphaned {
-				it.key = "伏笔/失去锚点/" + n.ID + "/" + m.Quote
-				it.text = fmt.Sprintf("「%s」找不到原句了", clip(what, 16))
-			} else if late > lateAfter {
-				it.key = "伏笔/没回收/" + n.ID + "/" + m.Quote
-				it.text = fmt.Sprintf("「%s」%d 章没回收", clip(what, 16), late)
-				it.sub += " 埋下"
-			} else {
-				continue
-			}
-			if here {
-				it.sub += " · 当前章"
-			}
-			if !w.ignored[it.key] {
-				items = append(items, it)
-			}
+		if f.here {
+			it.sub += " · 当前章"
+		}
+		if !w.ignored[it.key] {
+			items = append(items, it)
 		}
 	}
 	slices.SortStableFunc(items, func(x, y pendItem) int {
@@ -272,6 +251,9 @@ func (a *App) goTo(it pendItem) {
 	if w.node == it.node && w.ed != nil {
 		w.ed.Select(it.start, it.end)
 		w.ed.Focus()
+	}
+	if it.fore != "" && !a.doc.hidden {
+		a.showFore(it.fore)
 	}
 }
 

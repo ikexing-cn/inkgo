@@ -31,6 +31,7 @@ type docView struct {
 	width    float32
 	resizing bool
 	talk     bool
+	fore     bool // the writing page shows the foreshadowings in it
 	attach   bool
 }
 
@@ -47,6 +48,7 @@ type prefs struct {
 	// in it, and whether a turn from there leaves the chapter out.
 	PanelWidth float32 `json:"panel_width,omitempty"`
 	TalkTab    bool    `json:"talk_tab,omitempty"`
+	ForeTab    bool    `json:"fore_tab,omitempty"`
 	NoAttach   bool    `json:"no_attach,omitempty"`
 	// NoAutoSummary leaves a chapter's summary alone as the author leaves
 	// it changed.
@@ -66,6 +68,9 @@ type prefs struct {
 	Shelved []string `json:"shelved_sessions,omitempty"`
 	// Ignored are the keys of the pending things the author ignored.
 	Ignored []string `json:"ignored,omitempty"`
+	// LateAfter is how many chapters may follow a foreshadowing before it
+	// is listed as buried long, or 0 for the default.
+	LateAfter int `json:"late_after,omitempty"`
 }
 
 func (a *App) prefsPath() string { return filepath.Join(a.Store.Root(), ".writer", "desk.json") }
@@ -97,12 +102,13 @@ func (a *App) loadPrefs() {
 		a.write.goalText = strconv.Itoa(p.Goal)
 	}
 	a.doc.width, a.doc.talk, a.doc.attach = p.PanelWidth, p.TalkTab, !p.NoAttach
+	a.doc.fore, a.write.lateAfter, a.write.fore = p.ForeTab, p.LateAfter, foreState{}
 }
 
 func (a *App) savePrefs() {
 	shelved := slices.Sorted(maps.Keys(a.shelved))
 	b, err := json.Marshal(prefs{Shelved: shelved, SettingHidden: a.doc.hidden, Chapter: a.write.node, Writing: a.leftWriting, AutoPredict: a.write.autoPredict,
-		PanelWidth: a.doc.width, TalkTab: a.doc.talk, NoAttach: !a.doc.attach, NoAutoSummary: !a.write.autoSummary,
+		PanelWidth: a.doc.width, TalkTab: a.doc.talk, ForeTab: a.doc.fore, LateAfter: a.write.lateAfter, NoAttach: !a.doc.attach, NoAutoSummary: !a.write.autoSummary,
 		Day: a.write.day, DayStart: a.write.dayStart, Goal: a.write.goal, Carets: a.write.carets, Days: a.write.days, TextSize: a.write.size,
 		Ignored: a.write.ignoredKeys()})
 	if err == nil {

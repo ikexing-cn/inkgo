@@ -20,7 +20,7 @@ func TestPendingForeshadowing(t *testing.T) {
 		t.Fatal(err)
 	}
 	var two string
-	for i := 2; i <= 31; i++ {
+	for i := 2; i <= 30; i++ {
 		id, err := a.Store.NewChapter("", fmt.Sprintf("第%d章", i), false)
 		if err != nil {
 			t.Fatal(err)
@@ -29,7 +29,7 @@ func TestPendingForeshadowing(t *testing.T) {
 			two = id
 		}
 	}
-	// Thirty chapters after it: not yet.
+	// Twenty-nine chapters after it: not yet.
 	if err := a.loadTree(); err != nil {
 		t.Fatal(err)
 	}
@@ -41,8 +41,10 @@ func TestPendingForeshadowing(t *testing.T) {
 	if _, err := a.Store.WriteChapter(two, "", []workspace.ChapterMark{{Kind: workspace.MarkForeshadow, Orphaned: true, Quote: "雨夜的电话"}}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := a.Store.NewChapter("", "第32章", false); err != nil {
-		t.Fatal(err)
+	for _, title := range []string{"第31章", "第32章"} {
+		if _, err := a.Store.NewChapter("", title, false); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := a.loadTree(); err != nil {
 		t.Fatal(err)

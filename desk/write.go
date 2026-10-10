@@ -104,6 +104,12 @@ type writeView struct {
 	pendMore map[string]bool
 	ignored  map[string]bool
 
+	// The foreshadowings: what their column and popovers show, and how
+	// many chapters may follow one before it is buried long (0: the
+	// default).
+	fore      foreState
+	lateAfter int
+
 	snapsOpen bool
 	snaps     []workspace.Snapshot
 	snap      string // the snapshot chosen
@@ -143,12 +149,14 @@ var markKinds = map[editor.MarkKind]string{
 	editor.MarkForeshadow: workspace.MarkForeshadow,
 	editor.MarkAIAccepted: workspace.MarkAIAccepted,
 	editor.MarkAIDraft:    workspace.MarkAIDraft,
+	editor.MarkPayoff:     workspace.MarkPayoff,
 }
 
 func storedMarks(ms []editor.Mark) []workspace.ChapterMark {
 	var out []workspace.ChapterMark
 	for _, m := range ms {
-		out = append(out, workspace.ChapterMark{Kind: markKinds[m.Kind], Start: m.Start, End: m.End, Note: m.Note, Orphaned: m.Orphaned, Quote: m.Quote})
+		out = append(out, workspace.ChapterMark{Kind: markKinds[m.Kind], Start: m.Start, End: m.End, Note: m.Note, Orphaned: m.Orphaned, Quote: m.Quote,
+			ID: m.Key, Of: m.Ref, At: m.At, Dropped: m.Dropped})
 	}
 	return out
 }
@@ -158,7 +166,8 @@ func editorMarks(ms []workspace.ChapterMark) []editor.Mark {
 	for _, m := range ms {
 		for k, name := range markKinds {
 			if name == m.Kind {
-				out = append(out, editor.Mark{Kind: k, Start: m.Start, End: m.End, Note: m.Note, Orphaned: m.Orphaned, Quote: m.Quote})
+				out = append(out, editor.Mark{Kind: k, Start: m.Start, End: m.End, Note: m.Note, Orphaned: m.Orphaned, Quote: m.Quote,
+					Key: m.ID, Ref: m.Of, At: m.At, Dropped: m.Dropped})
 			}
 		}
 	}
@@ -218,7 +227,7 @@ func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.
 	doc := editor.NewDoc(text)
 	doc.LoadMarks(editorMarks(marks))
 	var ed *editor.Editor
-	ed = editor.New(doc, editor.Options{Prose: true, Placeholder: "从这里开始写…", Font: ui.Font{Size: float32(a.write.textSize())}, LineHeight: lhPaper,
+	ed = editor.New(doc, editor.Options{Prose: true, OwnMarks: true, Placeholder: "从这里开始写…", Font: ui.Font{Size: float32(a.write.textSize())}, LineHeight: lhPaper,
 		Predictor: pen{writer: &a.write.pen, chapter: a.write.node}, PredictDelay: saveAfter, PredictOnDemand: !a.write.autoPredict,
 		GhostNote: func() string {
 			if pw := a.write.pen.Load(); pw != nil {
@@ -243,6 +252,7 @@ func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.
 				a.openTake()
 			}
 			a.nameMenu(m, ed.Doc.Slice(s, e))
+			a.foreMenu(m)
 		}})
 	return ed
 }
@@ -703,7 +713,9 @@ func (a *App) settingColumn(c *ui.Context) {
 	panel := ui.Column(c).Width(width).FillHeight().Padding(0, 20, 12, 20).Gap(12).Background(a.pal.side).Shrink(0)
 	a.LastSetting = panel.Bounds()
 	panel.Children(func() {
-		if a.page == 3 && a.doc.talk {
+		if a.page == 3 && a.doc.fore {
+			a.forePanel(c)
+		} else if a.page == 3 && a.doc.talk {
 			a.talkPanel(c)
 		} else {
 			a.settingPanel(c)
@@ -1087,6 +1099,7 @@ func (a *App) chapterView(c *ui.Context) {
 	ui.Box(c).Grow(1).FillWidth().Children(func() {
 		w.ed.View(c).Fill()
 		a.selectionBar(c)
+		a.forePopover(c)
 	})
 }
 

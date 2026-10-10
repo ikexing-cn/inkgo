@@ -61,7 +61,13 @@ func (e *Editor) paintIn(p *ui.Painter, r ui.Rect) {
 			base := oy + y + l.lineH - 5
 			switch m.Kind {
 			case MarkForeshadow:
-				dotted(p, ox+x0, ox+x1, base, t.TextMuted.Alpha(0.75))
+				if m.Dropped {
+					dotted(p, ox+x0, ox+x1, base, t.TextMuted.Alpha(0.3))
+				} else {
+					dotted(p, ox+x0, ox+x1, base, t.TextMuted.Alpha(0.75))
+				}
+			case MarkPayoff:
+				dotted(p, ox+x0, ox+x1, base, t.Text.Alpha(0.55))
 			case MarkAIAccepted:
 				p.Line(ox+x0, base, ox+x1, base, 1, colorAI.Alpha(0.55))
 			case MarkAIDraft:
