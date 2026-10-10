@@ -105,11 +105,11 @@ func (a *App) toastCard(c *ui.Context, ts ui.Toast) {
 		ui.Box(c).Padding(2, 0, 0, 0).Shrink(0).Children(func() {
 			switch ts.Type {
 			case "busy":
-				ui.Spinner(c).Size(16, 16)
+				ui.Spinner(c).Size(iconMd, iconMd)
 			case "error":
-				glyph(c, icAlert, 16, t.Danger)
+				glyph(c, icAlert, iconMd, t.Danger)
 			default:
-				glyph(c, icDone, 16, t.Success)
+				glyph(c, icDone, iconMd, t.Success)
 			}
 		})
 		ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
@@ -129,7 +129,7 @@ func (a *App) toastCard(c *ui.Context, ts ui.Toast) {
 		if ts.Type != "busy" {
 			ui.Box(c).Margin(-2, -2, 0, 0).Shrink(0).Children(func() {
 				p.CloseButton().Size(20, 20).Center().Radius(rXs).Label("关闭提示").Children(func() {
-					glyph(c, icX, 14, a.pal.faint)
+					glyph(c, icX, iconSm, a.pal.faint)
 				})
 			})
 		}

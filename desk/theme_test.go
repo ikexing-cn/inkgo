@@ -31,20 +31,24 @@ func TestTokens(t *testing.T) {
 	}
 }
 
-// The sizes, corners and shadows the desk uses are those of tokens.css, under
-// the same names.
+// The sizes, corners, line heights, icons, opacity and shadows the desk uses
+// are those of tokens.css, under the same names.
 func TestSizeTokens(t *testing.T) {
 	code := map[string]float64{
 		"fs-display": fsDisplay, "fs-title": fsTitle, "fs-dialog": fsDialog, "fs-group": fsGroup,
 		"fs-body": fsBody, "fs-control": fsControl, "fs-note": fsNote, "fs-small": fsSmall,
 		"fs-read": fsRead, "fs-paper": textSizeDefault,
 		"r-xs": rXs, "r-control": rControl, "r-card": rCard, "r-dialog": rDialog, "r-round": rRound,
+		"lh-tight": lhTight, "lh-body": lhBody, "lh-loose": lhLoose, "lh-read": lhRead,
+		"icon-xs": iconXs, "icon-sm": iconSm, "icon-md": iconMd, "icon-lg": iconLg,
+		"opacity-disabled": opacityDisabled,
 	}
-	// Only the design's boards use these: its notes and window frames.
-	board := map[string]bool{"fs-board-title": true, "fs-board-h2": true, "r-window": true, "r-window-win": true}
+	// Only the design's boards use these: its notes and window frames. The
+	// manuscript's leading is the editor's, not the desk's.
+	board := map[string]bool{"fs-board-title": true, "fs-board-h2": true, "r-window": true, "r-window-win": true, "lh-paper": true}
 	seen := map[string]bool{}
 	blocks(tokensCSS, func(_ bool, body string) {
-		for _, d := range regexp.MustCompile(`--((?:fs|r)-[a-z-]+)\s*:\s*([0-9.]+)px`).FindAllStringSubmatch(body, -1) {
+		for _, d := range regexp.MustCompile(`--((?:fs|r|lh|icon|opacity)-[a-z-]+)\s*:\s*([0-9.]+)(?:px)?;`).FindAllStringSubmatch(body, -1) {
 			seen[d[1]] = true
 			v, _ := strconv.ParseFloat(d[2], 64)
 			if want, ok := code[d[1]]; ok && want != v {
@@ -71,12 +75,13 @@ func TestSizeTokens(t *testing.T) {
 }
 
 // The desk writes the names of the design rules, not numbers: a text size,
-// a corner or a shadow written out in a view drifts from the design. Its
+// a corner, a line height, an icon's size, an opacity or a shadow written
+// out in a view drifts from the design. Its
 // padding, gaps and margins keep to the spacing scale of tokens.css; what
 // lines up with something else is written as the sum it is.
 func TestNoLiteralSizes(t *testing.T) {
 	files, _ := filepath.Glob("*.go")
-	call := regexp.MustCompile(`\.(FontSize|Radius)\(([^()]*)\)`)
+	call := regexp.MustCompile(`\.(FontSize|Radius|LineHeight|Opacity)\(([^()]*)\)|\bglyph\(c, [^,]+, ([^,]+),`)
 	space := regexp.MustCompile(`\.(Padding|Gap|Margin)\(([^()]*)\)`)
 	number := regexp.MustCompile(`^-?[0-9.]+$`)
 	scale := map[string]bool{}
@@ -112,9 +117,13 @@ func TestNoLiteralSizes(t *testing.T) {
 				t.Errorf("%s:%d: a shadow written out; use a.pal.pop and the like", f, i+1)
 			}
 			for _, m := range call.FindAllStringSubmatch(line, -1) {
-				for _, arg := range strings.Split(m[2], ",") {
+				name, args := m[1], m[2]
+				if name == "" {
+					name, args = "glyph", m[3]
+				}
+				for _, arg := range strings.Split(args, ",") {
 					if arg = strings.TrimSpace(arg); number.MatchString(arg) && arg != "0" {
-						t.Errorf("%s:%d: %s(%s); use fs* or r*", f, i+1, m[1], m[2])
+						t.Errorf("%s:%d: %s(%s); use fs*, r*, lh*, icon* or opacityDisabled", f, i+1, name, args)
 					}
 				}
 			}

@@ -150,7 +150,7 @@ func (a *App) sidebar(c *ui.Context) {
 					ui.Text(c, work.Name).FontSize(fsBody).FontWeight(600).SingleLine().Ellipsis("…")
 					ui.Text(c, work.Genre).FontSize(fsSmall).TextColor(t.TextMuted).SingleLine()
 				})
-				glyph(c, icChevronDown, 13, a.pal.faint)
+				glyph(c, icChevronDown, iconSm, a.pal.faint)
 			}
 		})
 		var chosen func()
@@ -296,7 +296,7 @@ func (a *App) navItem(c *ui.Context, s *ui.SVG, label string, page int, slim boo
 		fg = t.Text
 	}
 	b.Children(func() {
-		glyph(c, s, 16, fg)
+		glyph(c, s, iconMd, fg)
 		if !slim {
 			ui.Text(c, label).FontSize(fsBody).TextColor(fg).FontWeight(map[bool]int{true: 600, false: 400}[on])
 		}

@@ -58,7 +58,7 @@ func (a *App) menuRow(c *ui.Context, s *ui.SVG, text, hint string, off bool) *ui
 		b.Background(t.SurfaceHover)
 	}
 	b.Children(func() {
-		glyph(c, s, 15, fg)
+		glyph(c, s, iconMd, fg)
 		ui.Text(c, text).FontSize(fsControl).TextColor(fg).Grow(1).SingleLine()
 		if hint != "" {
 			ui.Text(c, hint).FontSize(fsSmall).TextColor(a.pal.faint).SingleLine()
@@ -98,7 +98,7 @@ func (a *App) themeSegments(c *ui.Context) {
 				fg = t.Text
 			}
 			b.Children(func() {
-				glyph(c, m.s, 13, fg)
+				glyph(c, m.s, iconSm, fg)
 				ui.Text(c, m.n).FontSize(fsNote).TextColor(fg).SingleLine()
 			})
 			if b.Clicked() {
@@ -161,7 +161,7 @@ func (a *App) selButton(c *ui.Context, s *ui.SVG, text string) *ui.Element {
 		b.Background(t.SurfaceHover)
 	}
 	b.Children(func() {
-		glyph(c, s, 14, t.AccentHover)
+		glyph(c, s, iconSm, t.AccentHover)
 		ui.Text(c, text).FontSize(fsNote).TextColor(t.AccentHover).SingleLine()
 	})
 	return b

@@ -27,10 +27,11 @@ type palette struct {
 	raise, pop, dialog shadow
 }
 
-// The sizes of the design rules (设计规范 in the design): eight text sizes and
-// four corners, named as there. A size between them is not used. They are
-// the --fs-* and --r-* of tokens.css, which a test holds them to; the desk
-// writes these names, never a number.
+// The sizes of the design rules (设计规范 in the design): eight text sizes,
+// four corners, four line heights, four icon sizes and the disabled opacity,
+// named as there. A size between them is not used. They are the --fs-*,
+// --r-*, --lh-*, --icon-* and --opacity-* of tokens.css, which a test holds
+// them to; the desk writes these names, never a number.
 const (
 	fsDisplay = 26   // the welcome page's big words
 	fsTitle   = 22   // a page's title, the settings' too
@@ -49,6 +50,18 @@ const (
 	rCard    = 10 // groups, cards, menus, toasts
 	rDialog  = 12 // dialogs, and the discussion's bubbles and box
 	rRound   = 999
+
+	lhTight = 1.4 // titles, buttons, labels: words on one line
+	lhBody  = 1.6 // list and form rows, what explains
+	lhLoose = 1.7 // paragraphs that explain, the discussion's bubbles
+	lhRead  = 1.8 // prose to read: replies, snapshots, quoted text
+
+	iconXs = 12 // arrows, small marks in a line
+	iconSm = 14 // icons beside words, in buttons and rows
+	iconMd = 16 // icons alone, as in icon buttons
+	iconLg = 24 // empty states, the welcome page
+
+	opacityDisabled = 0.4 // a button or field that can't be used
 )
 
 //go:embed tokens.css
@@ -213,7 +226,7 @@ func ghost(c *ui.Context, text string, color ui.Color) *ui.Element {
 		}
 	}
 	if b.IsDisabled() {
-		b.Opacity(0.4)
+		b.Opacity(opacityDisabled)
 	}
 	b.Children(func() { ui.Text(c, text).FontSize(fsNote).TextColor(fg).SingleLine() })
 	return b
@@ -297,9 +310,9 @@ func iconButton(c *ui.Context, s *ui.SVG, label string, color ui.Color) *ui.Elem
 		}
 	}
 	if b.IsDisabled() {
-		b.Opacity(0.35)
+		b.Opacity(opacityDisabled)
 	}
-	b.Children(func() { glyph(c, s, 16, fg) })
+	b.Children(func() { glyph(c, s, iconMd, fg) })
 	return b
 }
 
@@ -312,7 +325,7 @@ func (p *palette) primary(c *ui.Context, text string) *ui.Element {
 	}
 	b.Background(bg)
 	if b.IsDisabled() {
-		b.Opacity(0.3)
+		b.Opacity(opacityDisabled)
 	}
 	b.Children(func() { ui.Text(c, text).FontSize(fsControl).FontWeight(600).TextColor(p.onInk).SingleLine() })
 	return b
@@ -326,7 +339,7 @@ func (p *palette) secondary(c *ui.Context, text string) *ui.Element {
 		b.Background(t.SurfaceHover)
 	}
 	if b.IsDisabled() {
-		b.Opacity(0.4)
+		b.Opacity(opacityDisabled)
 	}
 	b.Children(func() { ui.Text(c, text).FontSize(fsControl).SingleLine() })
 	return b
@@ -352,7 +365,7 @@ func (p *palette) small(c *ui.Context, text string, primary bool) *ui.Element {
 		}
 	}
 	if b.IsDisabled() {
-		b.Opacity(0.4)
+		b.Opacity(opacityDisabled)
 	}
 	b.Children(func() { ui.Text(c, text).FontSize(fsNote).TextColor(fg).SingleLine() })
 	return b
@@ -385,7 +398,7 @@ func action(c *ui.Context, text string, color ui.Color, strong bool) *ui.Element
 	}
 	b.Background(bg)
 	if b.IsDisabled() {
-		b.Opacity(0.4)
+		b.Opacity(opacityDisabled)
 	}
 	b.Children(func() { ui.Text(c, text).FontSize(fsNote).FontWeight(600).TextColor(fg).SingleLine() })
 	return b

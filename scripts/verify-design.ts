@@ -1,13 +1,14 @@
 /**
  * Checks a copy of the Design artifact's project/ folder against the design
- * rules: pages write var(--…) for colors, text sizes, corners and shadows,
- * never the numbers, keep spacing on its scale, and only name what
- * tokens.css declares. Also checks that desk/tokens.css is still a verbatim
- * copy of the design's.
+ * rules: pages write var(--…) for colors, text sizes, corners, shadows,
+ * line heights and icon sizes, never the numbers, keep spacing on its scale,
+ * and only name what tokens.css declares. Also checks that desk/tokens.css is
+ * still a verbatim copy of the design's.
  * Usage: node scripts/verify-design.ts <design project dir>
  */
-import { readdirSync, readFileSync } from 'node:fs'
+import { readdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { onScale, read, readRules } from './design/rules.ts'
 
 const dir = process.argv[2]
 if (!dir) {
@@ -15,12 +16,10 @@ if (!dir) {
   process.exit(2)
 }
 
-const read = (p: string) => readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
-const tokens = read(join(dir, 'tokens.css'))
-const declared = new Set([...tokens.matchAll(/--([a-z0-9-]+)\s*:/g)].map((m) => m[1]))
+const design = readRules(dir)
 const errors: string[] = []
 
-if (read(resolve('desk/tokens.css')) !== tokens) {
+if (read(resolve('desk/tokens.css')) !== design.css) {
   errors.push('desk/tokens.css differs from the design\'s tokens.css: copy it over verbatim')
 }
 
@@ -34,20 +33,15 @@ const rules: { what: string; re: RegExp }[] = [
   { what: 'a shadow written out', re: /box-shadow:\s*(?!var\(|none|\{\{)[^;"'}]+/g },
   { what: 'a shadow written out', re: /'(?:inset )?-?[0-9.]+(?:px)? -?[0-9.]+px [0-9.]+px[^']*rgba\([^']*'/g },
   { what: 'a text size written out', re: /fontSize:\s*'[0-9.]+px'/g },
+  // A line height in px is a row's height, set to line things up.
+  { what: 'a line height written out', re: /line-height:\s*[0-9.]+(?![0-9.]*px)(?=[;"'}\s]|$)/g },
+  { what: 'an icon size written out', re: /<svg[^>]*\s(?:width|height)="[0-9.]+"/g },
 ]
 
 // The spacing scale: padding, margins and gaps take only these values, the
 // board's for the boards and whole-page room. From 100 on it is a layout
 // size, and a negative one pairs with a size elsewhere.
-const scale = (name: string) => {
-  const m = tokens.match(new RegExp(`--${name}:\\s*([0-9 ]+);`))
-  if (!m) {
-    errors.push(`tokens.css lacks --${name}`)
-    return []
-  }
-  return m[1].trim().split(/\s+/).map(Number)
-}
-const spacing = new Set([...scale('space'), ...scale('space-board')])
+if (!design.space.length || !design.board.length) errors.push('tokens.css lacks --space or --space-board')
 const spacingProp = /(?<![a-z-])(?:padding|margin)(?:-(?:top|right|bottom|left))?\s*:([^;"'}]+)|(?<![a-z-])(?:row-|column-)?gap\s*:([^;"'}]+)/g
 
 const pages = readdirSync(dir).filter((f) => f.endsWith('.dc.html')).sort()
@@ -59,12 +53,11 @@ for (const page of pages) {
   }
   for (const m of text.matchAll(spacingProp)) {
     for (const v of (m[1] ?? m[2]).matchAll(/(?<![0-9.a-z-])(-?)([0-9.]+)px/g)) {
-      const n = Number(v[2])
-      if (!v[1] && n < 100 && !spacing.has(n)) errors.push(`${where(m.index!)}: a spacing off the scale: ${m[0].slice(0, 60)}`)
+      if (!v[1] && !onScale(design, Number(v[2]))) errors.push(`${where(m.index!)}: a spacing off the scale: ${m[0].slice(0, 60)}`)
     }
   }
   for (const m of text.matchAll(/var\(--([a-z0-9-]+)/g)) {
-    if (!declared.has(m[1])) errors.push(`${where(m.index!)}: --${m[1]} is not in tokens.css`)
+    if (!design.declared.has(m[1])) errors.push(`${where(m.index!)}: --${m[1]} is not in tokens.css`)
   }
   // The rules page shows the colors' values themselves.
   if (page === 'System.dc.html') continue
@@ -78,4 +71,4 @@ if (errors.length) {
   console.error(`\n${errors.length} problem(s) in ${pages.length} pages`)
   process.exit(1)
 }
-console.log(`design ok: ${pages.length} pages, ${declared.size} tokens`)
+console.log(`design ok: ${pages.length} pages, ${design.declared.size} tokens`)

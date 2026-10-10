@@ -183,7 +183,7 @@ func (a *App) document(c *ui.Context) {
 		ui.Column(c).FillWidth().Gap(14).Padding(2, 4, 12, 0).Children(func() {
 			a.renameNotice(c)
 			if len(a.set.Entries) == 0 && a.doc.editing == "" {
-				ui.Text(c, "聊着聊着，你定下的设定会整理到这里。也可以直接新增一条。").FontSize(fsControl).TextColor(t.TextMuted).LineHeight(1.7)
+				ui.Text(c, "聊着聊着，你定下的设定会整理到这里。也可以直接新增一条。").FontSize(fsControl).TextColor(t.TextMuted).LineHeight(lhLoose)
 			}
 			for _, cat := range a.Store.Work().Categories {
 				a.docSection(c, workspace.PlaceBody, cat.Name, cat.Name, true)
@@ -251,7 +251,7 @@ func (a *App) entry(c *ui.Context, e workspace.Entry) {
 			ui.Text(c, strings.Join(e.Names, " · ")).FontSize(fsNote).FontWeight(600).TextColor(a.pal.theme.TextMuted).FillWidth().Margin(0, 0, -6, 0)
 		}
 		ui.Row(c).FillWidth().Gap(4).AlignItems(ui.Start).Children(func() {
-			text := ui.Text(c, e.Text).FontSize(fsBody).LineHeight(1.65).Selectable().Grow(1).Shrink(1)
+			text := ui.Text(c, e.Text).FontSize(fsBody).LineHeight(lhLoose).Selectable().Grow(1).Shrink(1)
 			if e.Place == workspace.PlaceDropped {
 				text.TextColor(t.TextMuted)
 			}
@@ -290,7 +290,7 @@ func (a *App) entry(c *ui.Context, e workspace.Entry) {
 // body when e is empty.
 func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 	t := a.pal.theme
-	ui.TextAreaBase(c, &a.doc.text).Label("设定内容").Placeholder("写下一条设定").FillWidth().Height(76).FontSize(fsBody).LineHeight(1.65).
+	ui.TextAreaBase(c, &a.doc.text).Label("设定内容").Placeholder("写下一条设定").FillWidth().Height(76).FontSize(fsBody).LineHeight(lhLoose).
 		Padding(6, 8).Radius(rControl).Background(a.pal.raised).Border(1, t.Border)
 	naming := slices.Contains(workspace.NameCategories, a.doc.category)
 	if naming {
@@ -348,7 +348,7 @@ func (a *App) newEntry(c *ui.Context) {
 		b.Background(a.pal.theme.SurfaceHover)
 	}
 	b.Children(func() {
-		glyph(c, icPlus, 14, a.pal.faint)
+		glyph(c, icPlus, iconSm, a.pal.faint)
 		ui.Text(c, "新增设定").FontSize(fsControl).TextColor(a.pal.theme.TextMuted)
 	})
 	if b.Clicked() {
@@ -386,7 +386,7 @@ func (a *App) history(c *ui.Context) {
 					})
 					if r.Failed != "" {
 						ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Start).Children(func() {
-							glyph(c, icAlert, 13, t.Warning)
+							glyph(c, icAlert, iconSm, t.Warning)
 							ui.Text(c, "这几轮没整理成功："+r.Failed).FontSize(fsNote).TextColor(t.Warning).Grow(1).Shrink(1)
 						})
 						if !a.set.Redone(r.ID) && ghost(c, "重试", t.Text).Label("重试整理-"+r.ID).Disabled(a.busy != "").Clicked() {
@@ -398,7 +398,7 @@ func (a *App) history(c *ui.Context) {
 						ui.Text(c, "没有需要改的").FontSize(fsNote).TextColor(t.TextMuted)
 					}
 					for _, op := range r.Ops {
-						ui.Text(c, a.describeOp(op)).FontSize(fsNote).LineHeight(1.6).Selectable().FillWidth()
+						ui.Text(c, a.describeOp(op)).FontSize(fsNote).LineHeight(lhBody).Selectable().FillWidth()
 					}
 					if len(r.Skipped) > 0 {
 						ui.Textf(c, "%d 处你刚改过，没有覆盖，放进了悬而未决", len(r.Skipped)).FontSize(fsNote).TextColor(t.TextMuted)

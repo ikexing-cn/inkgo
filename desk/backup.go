@@ -368,7 +368,7 @@ func (a *App) backupCard(c *ui.Context, panel *ui.Element, s backup.Settings) {
 		if a.bk.err != nil {
 			_, title, body := trouble(s.Dir, a.bk.err)
 			ui.Text(c, title).FontSize(fsBody).FontWeight(600).FillWidth()
-			ui.Text(c, body+lastSaid(s, now)).FontSize(fsNote).TextColor(t.TextMuted).LineHeight(1.7).FillWidth()
+			ui.Text(c, body+lastSaid(s, now)).FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhLoose).FillWidth()
 			ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
 				if a.pal.small(c, "再试一次", true).Disabled(a.bk.running).Clicked() {
 					a.bk.open, a.bk.chip = false, false
@@ -443,7 +443,7 @@ func (a *App) askView(c *ui.Context) {
 		ui.Column(c).Width(520).Gap(20).Children(func() {
 			ui.Column(c).FillWidth().Gap(6).Children(func() {
 				ui.Text(c, "稿子现在只存在这台电脑上").FontSize(fsDialog).FontWeight(700)
-				ui.Text(c, "电脑坏了稿子就没了。选一个别的地方，我们定时复制一份过去。").FontSize(fsBody).TextColor(t.TextMuted).LineHeight(1.7).FillWidth()
+				ui.Text(c, "电脑坏了稿子就没了。选一个别的地方，我们定时复制一份过去。").FontSize(fsBody).TextColor(t.TextMuted).LineHeight(lhLoose).FillWidth()
 			})
 			ui.Column(c).FillWidth().Gap(8).Children(func() {
 				places := syncFolders()
@@ -525,7 +525,7 @@ func (a *App) whenMenu(c *ui.Context, onClose, daily, hourly *bool) {
 	}
 	b.Children(func() {
 		ui.Text(c, whenSaid(*onClose, *daily, *hourly)).FontSize(fsControl).SingleLine()
-		glyph(c, icChevronDown, 12, a.pal.faint)
+		glyph(c, icChevronDown, iconXs, a.pal.faint)
 	})
 	b.Menu(func(m *ui.Menu) {
 		for _, o := range whenChoices(onClose, daily, hourly) {

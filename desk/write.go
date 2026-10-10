@@ -896,7 +896,7 @@ func (a *App) writeTop(c *ui.Context) {
 			}
 			for _, title := range path {
 				ui.Text(c, title).FontSize(fsControl).TextColor(t.TextMuted).SingleLine().Shrink(1)
-				glyph(c, icChevron, 14, a.pal.faint)
+				glyph(c, icChevron, iconSm, a.pal.faint)
 			}
 			ui.Text(c, n.Title).FontSize(fsControl).FontWeight(600).SingleLine().Ellipsis("…").Shrink(1)
 		} else if w.lost {
@@ -959,7 +959,7 @@ func (a *App) writeTop(c *ui.Context) {
 				if in.Submitted() {
 					w.goalOpen = false
 				}
-				ui.Text(c, "顶栏的字数旁会写出今天写了多少、目标多少。留空就不设。").FontSize(fsNote).TextColor(a.pal.faint).LineHeight(1.5).FillWidth()
+				ui.Text(c, "顶栏的字数旁会写出今天写了多少、目标多少。留空就不设。").FontSize(fsNote).TextColor(a.pal.faint).LineHeight(lhBody).FillWidth()
 				a.weekChart(c)
 			})
 		})
@@ -1007,7 +1007,7 @@ func (a *App) emptyWriting(c *ui.Context) {
 	t := a.pal.theme
 	ui.Column(c).Grow(1).FillWidth().AlignItems(ui.Center).Padding(80, 24, 0, 24).Gap(14).Children(func() {
 		ui.Box(c).Size(44, 44).Radius(rDialog).Background(a.pal.ink.Alpha(0.1)).Center().Children(func() {
-			glyph(c, icBook, 22, a.pal.ink)
+			glyph(c, icBook, iconLg, a.pal.ink)
 		})
 		ui.Text(c, "还没有章节").FontSize(fsDialog).FontWeight(600)
 		ui.Text(c, "每一章是作品文件夹 chapters 里的一个纯文本文件，离开软件也能打开。").FontSize(fsControl).TextColor(t.TextMuted)
@@ -1027,7 +1027,7 @@ func (a *App) emptyWriting(c *ui.Context) {
 func (a *App) outlineBox(c *ui.Context, label string, height float32) {
 	w := &a.write
 	ui.TextAreaBase(c, &w.outline).Label(label).Placeholder("写下这里要发生什么，作为你自己的提纲").FillWidth().Height(height).
-		FontSize(fsBody).LineHeight(1.7).Padding(10, 12).Radius(rControl).Background(a.pal.side).Disabled(w.lost)
+		FontSize(fsBody).LineHeight(lhLoose).Padding(10, 12).Radius(rControl).Background(a.pal.side).Disabled(w.lost)
 }
 
 func (a *App) chapterView(c *ui.Context) {
@@ -1135,7 +1135,7 @@ func (a *App) notice2(c *ui.Context, color ui.Color, text string, buttons func()
 	t := a.pal.theme
 	ui.Row(c).FillWidth().Padding(10, 20, 0, 20).Shrink(0).Children(func() {
 		ui.Row(c).FillWidth().Padding(8, 8, 8, 12).Gap(10).Radius(rCard).AlignItems(ui.Center).Background(color.Alpha(0.08)).Border(1, color.Alpha(0.2)).Children(func() {
-			glyph(c, icAlert, 15, color)
+			glyph(c, icAlert, iconMd, color)
 			ui.Text(c, text).FontSize(fsControl).TextColor(color.Mix(t.Text, 0.35)).Grow(1).Shrink(1)
 			buttons()
 		})
@@ -1262,7 +1262,7 @@ func (a *App) folderView(c *ui.Context, n *workspace.Node) {
 					}
 					row.Children(func() {
 						ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(10).Children(func() {
-							glyph(c, nodeIcon(child), 16, t.TextMuted)
+							glyph(c, nodeIcon(child), iconMd, t.TextMuted)
 							ui.Text(c, child.Title).FontSize(fsBody).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
 							if !child.Folder {
 								ui.Textf(c, "%d 字", w.counts[child.ID]).FontSize(fsNote).TextColor(a.pal.faint)
@@ -1331,7 +1331,7 @@ func (a *App) trashRow(c *ui.Context) {
 		b.Background(t.SurfaceHover)
 	}
 	b.Children(func() {
-		glyph(c, icTrash, 15, t.TextMuted)
+		glyph(c, icTrash, iconMd, t.TextMuted)
 		ui.Text(c, "回收站").FontSize(fsControl).TextColor(t.TextMuted)
 	})
 	if b.Clicked() {
@@ -1381,9 +1381,9 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 			if w.folded[n.ID] {
 				s = icChevron
 			}
-			glyph(c, s, 13, a.pal.faint)
+			glyph(c, s, iconSm, a.pal.faint)
 		}
-		glyph(c, nodeIcon(n), 15, fg)
+		glyph(c, nodeIcon(n), iconMd, fg)
 		ui.Text(c, n.Title).FontSize(fsControl).TextColor(fg).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 		if k := w.wordsIn(n); k > 0 {
 			ui.Textf(c, "%d", k).FontSize(fsSmall).TextColor(a.pal.faint)
@@ -1577,7 +1577,7 @@ func (a *App) trashView(c *ui.Context) {
 		ui.Column(c).Width(520).Gap(14).Children(func() {
 			ui.Column(c).Gap(4).Children(func() {
 				ui.Text(c, "回收站").FontSize(fsDialog).FontWeight(600)
-				ui.Text(c, "删掉的章节连同它里面的内容先放在这里，恢复后回到原来所在文件夹的末尾。").FontSize(fsControl).TextColor(t.TextMuted).LineHeight(1.6)
+				ui.Text(c, "删掉的章节连同它里面的内容先放在这里，恢复后回到原来所在文件夹的末尾。").FontSize(fsControl).TextColor(t.TextMuted).LineHeight(lhBody)
 			})
 			if len(w.trash) == 0 {
 				ui.Text(c, "回收站是空的").FontSize(fsControl).TextColor(a.pal.faint).Padding(12, 0)
@@ -1590,7 +1590,7 @@ func (a *App) trashView(c *ui.Context) {
 							if it.Folder {
 								s = icFolder
 							}
-							glyph(c, s, 15, t.TextMuted)
+							glyph(c, s, iconMd, t.TextMuted)
 							ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
 								ui.Text(c, it.Title).FontSize(fsBody).SingleLine().Ellipsis("…")
 								ui.Text(c, it.At.Local().Format("01-02 15:04")+" 删除").FontSize(fsSmall).TextColor(a.pal.faint)
@@ -1728,9 +1728,9 @@ func (a *App) snapshots(c *ui.Context) {
 										spans = append(spans, ui.Span{Text: p.text})
 									}
 								}
-								ui.RichText(c, spans...).FontSize(fsRead).LineHeight(1.8).FillWidth().Selectable()
+								ui.RichText(c, spans...).FontSize(fsRead).LineHeight(lhRead).FillWidth().Selectable()
 							default:
-								ui.Text(c, w.snapText).FontSize(fsRead).LineHeight(1.8).FillWidth().Selectable()
+								ui.Text(c, w.snapText).FontSize(fsRead).LineHeight(lhRead).FillWidth().Selectable()
 							}
 						})
 					})
@@ -1801,9 +1801,9 @@ func (a *App) take(c *ui.Context) {
 				ui.Text(c, "选中的原文作为出处记下来；设定可以换成你自己的说法。").FontSize(fsControl).TextColor(t.TextMuted)
 			})
 			ui.Box(c).FillWidth().Padding(10, 12).Radius(rControl).Background(a.pal.side).Children(func() {
-				ui.Text(c, w.takeQuote).FontSize(fsControl).TextColor(t.TextMuted).LineHeight(1.7).FillWidth().Selectable()
+				ui.Text(c, w.takeQuote).FontSize(fsControl).TextColor(t.TextMuted).LineHeight(lhLoose).FillWidth().Selectable()
 			})
-			ui.TextAreaBase(c, &w.takeText).Label("设定内容").FillWidth().Height(76).FontSize(fsBody).LineHeight(1.65).
+			ui.TextAreaBase(c, &w.takeText).Label("设定内容").FillWidth().Height(76).FontSize(fsBody).LineHeight(lhLoose).
 				Padding(10, 12).Radius(rControl).Border(1, t.Border)
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
 				ui.Select(c, &w.takeCategory, a.categoryNames()).Label("设定分类").Width(140)

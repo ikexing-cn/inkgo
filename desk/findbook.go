@@ -152,7 +152,7 @@ func (a *App) confirmBookReplace(c *ui.Context) {
 	}
 	ui.Row(c).FillWidth().Gap(8).Padding(8, 10).Radius(rCard).AlignItems(ui.Center).Background(t.Danger.Alpha(0.07)).Children(func() {
 		ui.Textf(c, "把全书 %d 章里的 %d 处“%s”换成%s？只改正文，设定和章纲不动；每章换之前都存一份快照。", len(w.hits), total, w.query, with).
-			FontSize(fsNote).LineHeight(1.5).Grow(1).Shrink(1)
+			FontSize(fsNote).LineHeight(lhBody).Grow(1).Shrink(1)
 		if ghost(c, "取消", ui.Color{}).Clicked() {
 			w.sure = false
 		}

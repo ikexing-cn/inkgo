@@ -90,7 +90,7 @@ func (a *App) subhead(c *ui.Context, title, caption string) {
 	ui.Column(c).FillWidth().Gap(4).Children(func() {
 		ui.Text(c, title).FontSize(fsGroup).FontWeight(600)
 		if caption != "" {
-			ui.Text(c, caption).FontSize(fsNote).TextColor(a.pal.theme.TextMuted).LineHeight(1.55)
+			ui.Text(c, caption).FontSize(fsNote).TextColor(a.pal.theme.TextMuted).LineHeight(lhBody)
 		}
 	})
 }
@@ -116,7 +116,7 @@ func (a *App) usage(c *ui.Context) {
 				a.setError(a.saveUsage())
 			}
 		})
-		ui.Text(c, "不要超过模型的上下文窗口；放不下的设定会在回复下的“AI 看到了什么”里列出。改动从下一次发送开始生效。").FontSize(fsNote).TextColor(a.pal.faint).LineHeight(1.5)
+		ui.Text(c, "不要超过模型的上下文窗口；放不下的设定会在回复下的“AI 看到了什么”里列出。改动从下一次发送开始生效。").FontSize(fsNote).TextColor(a.pal.faint).LineHeight(lhBody)
 	})
 }
 
@@ -157,13 +157,13 @@ func (a *App) writingSwitches(c *ui.Context) {
 			if ui.Checkbox(c, &a.write.autoPredict, "停止输入后自动续写").Disabled(busy).Changed() {
 				a.savePrefs() // kept as ticked, not with the models above
 			}
-			ui.Text(c, "续写总是不推理、只写一句。默认按 "+modKey+"J 才续写；打开后每次停下来都会调用一次模型。").FontSize(fsNote).TextColor(a.pal.faint).LineHeight(1.5)
+			ui.Text(c, "续写总是不推理、只写一句。默认按 "+modKey+"J 才续写；打开后每次停下来都会调用一次模型。").FontSize(fsNote).TextColor(a.pal.faint).LineHeight(lhBody)
 		})
 		ui.Column(c).FillWidth().Gap(4).Children(func() {
 			if ui.Checkbox(c, &a.write.autoSummary, "离开改过的章节时更新摘要").Disabled(busy).Changed() {
 				a.savePrefs() // kept as ticked, not with the models above
 			}
-			ui.Text(c, "起草时 AI 会看到前面各章的摘要。每更新一章调用一次写作模型（不推理）；你自己写的摘要不会被覆盖。").FontSize(fsNote).TextColor(a.pal.faint).LineHeight(1.5)
+			ui.Text(c, "起草时 AI 会看到前面各章的摘要。每更新一章调用一次写作模型（不推理）；你自己写的摘要不会被覆盖。").FontSize(fsNote).TextColor(a.pal.faint).LineHeight(lhBody)
 		})
 	})
 }
@@ -218,7 +218,7 @@ func (a *App) services(c *ui.Context) {
 				add.Background(t.SurfaceHover)
 			}
 			add.Children(func() {
-				glyph(c, icPlus, 14, t.TextMuted)
+				glyph(c, icPlus, iconSm, t.TextMuted)
 				ui.Text(c, "添加自定义 API").FontSize(fsBody).TextColor(t.TextMuted)
 			})
 			if add.Clicked() {

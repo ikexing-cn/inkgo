@@ -249,10 +249,10 @@ func (a *App) pendingRow(c *ui.Context, it pendItem) {
 	}
 	r.Children(func() {
 		ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
-			ui.Text(c, it.text).FontSize(fsBody).LineHeight(1.55).MaxLines(2).Ellipsis("…").FillWidth()
+			ui.Text(c, it.text).FontSize(fsBody).LineHeight(lhBody).MaxLines(2).Ellipsis("…").FillWidth()
 			ui.Text(c, it.sub).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").FillWidth()
 		})
-		glyph(c, icChevron, 14, a.pal.faint)
+		glyph(c, icChevron, iconSm, a.pal.faint)
 	})
 	if r.Clicked() && it.retry {
 		a.write.pendOpen = false

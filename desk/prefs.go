@@ -103,7 +103,7 @@ func (a *App) preferences(c *ui.Context) {
 func (a *App) prefsHead(c *ui.Context, title, caption string) {
 	ui.Column(c).FillWidth().Gap(6).Padding(0, 32, 0, 0).Children(func() {
 		ui.Text(c, title).FontSize(fsTitle).FontWeight(700)
-		ui.Text(c, caption).FontSize(fsBody).TextColor(a.pal.theme.TextMuted).LineHeight(1.55)
+		ui.Text(c, caption).FontSize(fsBody).TextColor(a.pal.theme.TextMuted).LineHeight(lhBody)
 	})
 }
 

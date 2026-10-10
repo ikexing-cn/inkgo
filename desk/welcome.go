@@ -357,7 +357,7 @@ func (a *App) emptyShelf(c *ui.Context) {
 	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(80, 24).Gap(32).Children(func() {
 		ui.Column(c).Width(560).Gap(10).Children(func() {
 			ui.Text(c, "从一个念头开始").FontSize(fsDisplay).Bold()
-			ui.Text(c, "和 AI 慢慢聊，讨论会在后台整理成设定文档。你定下的会被遵守，放下的 AI 不再提起。").FontSize(fsGroup).TextColor(t.TextMuted).LineHeight(1.6)
+			ui.Text(c, "和 AI 慢慢聊，讨论会在后台整理成设定文档。你定下的会被遵守，放下的 AI 不再提起。").FontSize(fsGroup).TextColor(t.TextMuted).LineHeight(lhBody)
 		})
 		ui.Row(c).Width(560).Gap(10).Children(func() {
 			if ui.PrimaryButton(c, "新建作品").Label("新建作品").Clicked() {

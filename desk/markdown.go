@@ -224,6 +224,10 @@ func (a *App) liveMarkdown(c *ui.Context, s string, size float32) *ui.Element {
 	})
 }
 
+// quoteFade dims a quote in a reply. It is a fade, not a level of the design
+// rules: those name only the disabled opacity so far.
+const quoteFade = 0.85
+
 // mdDraw draws blocks. Paragraphs, headings and lists of text run
 // together as one text, so the author can select across them; quotes,
 // code and tables stand apart, and a selection stops at them.
@@ -232,7 +236,7 @@ func (a *App) mdDraw(c *ui.Context, blocks []mdBlock, size float32) {
 	var flow []ui.Span
 	flush := func() {
 		if len(flow) > 0 {
-			ui.RichText(c, flow...).FillWidth().FontSize(size).LineHeight(1.8).TextColor(t.Text).Selectable()
+			ui.RichText(c, flow...).FillWidth().FontSize(size).LineHeight(lhRead).TextColor(t.Text).Selectable()
 			flow = nil
 		}
 	}
@@ -252,7 +256,7 @@ func (a *App) mdDraw(c *ui.Context, blocks []mdBlock, size float32) {
 			ui.Column(c).FillWidth().Gap(size * 0.35).Children(func() {
 				for n, item := range b.items {
 					ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Start).Children(func() {
-						ui.Text(c, mdMark(b, n)).FontSize(size).LineHeight(1.8).TextColor(t.TextMuted).Width(size * 1.4).TextAlign(ui.End).Shrink(0)
+						ui.Text(c, mdMark(b, n)).FontSize(size).LineHeight(lhRead).TextColor(t.TextMuted).Width(size * 1.4).TextAlign(ui.End).Shrink(0)
 						ui.Column(c).Grow(1).Shrink(1).Gap(size * 0.35).Children(func() { a.mdDraw(c, item, size) })
 					})
 				}
@@ -260,11 +264,11 @@ func (a *App) mdDraw(c *ui.Context, blocks []mdBlock, size float32) {
 		case mdQuote:
 			ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Stretch).Children(func() {
 				ui.Box(c).Width(3).Radius(rRound).Background(a.pal.line).Shrink(0)
-				ui.Column(c).Grow(1).Shrink(1).Gap(size * 0.5).Opacity(0.85).Children(func() { a.mdDraw(c, b.blocks, size) })
+				ui.Column(c).Grow(1).Shrink(1).Gap(size * 0.5).Opacity(quoteFade).Children(func() { a.mdDraw(c, b.blocks, size) })
 			})
 		case mdCode:
 			ui.ScrollHorizontal(c).FillWidth().Radius(rControl).Background(a.pal.side).Border(1, a.pal.line).Children(func() {
-				ui.Text(c, b.code).Font("monospace").FontSize(size*0.88).LineHeight(1.6).NoWrap().Padding(10, 12).Selectable()
+				ui.Text(c, b.code).Font("monospace").FontSize(size*0.88).LineHeight(lhBody).NoWrap().Padding(10, 12).Selectable()
 			})
 		case mdRule:
 			a.pal.hairline(c)
@@ -277,7 +281,7 @@ func (a *App) mdDraw(c *ui.Context, blocks []mdBlock, size float32) {
 					ui.Row(c).FillWidth().AlignItems(ui.Stretch).Children(func() {
 						for _, cell := range row {
 							ui.Column(c).Grow(1).Shrink(1).Basis(0).Padding(8, 10).Children(func() {
-								ui.RichText(c, a.mdRuns(nil, cell, size*0.93)...).FillWidth().FontSize(size * 0.93).LineHeight(1.6).TextColor(t.Text).Selectable()
+								ui.RichText(c, a.mdRuns(nil, cell, size*0.93)...).FillWidth().FontSize(size * 0.93).LineHeight(lhBody).TextColor(t.Text).Selectable()
 							})
 						}
 					})

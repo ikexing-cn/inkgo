@@ -212,7 +212,7 @@ func (a *App) summaryPanel(c *ui.Context) {
 	_, line, warn := a.summaryState()
 	ui.Column(c).FillWidth().Gap(6).Padding(2, 0, 4, 0).Children(func() {
 		ui.TextAreaBase(c, &w.summary).Label("本章摘要").Placeholder("这一章发生了什么：起草后面的章节时，AI 会看到各章的摘要").FillWidth().Height(84).
-			FontSize(fsBody).LineHeight(1.7).Padding(10, 12).Radius(rControl).Background(a.pal.side).Disabled(w.lost || a.sums.running == w.node)
+			FontSize(fsBody).LineHeight(lhLoose).Padding(10, 12).Radius(rControl).Background(a.pal.side).Disabled(w.lost || a.sums.running == w.node)
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 			color := a.pal.faint
 			if warn {

@@ -102,9 +102,9 @@ func (a *App) talkPanel(c *ui.Context) {
 		pick.Background(t.SurfaceHover)
 	}
 	pick.Children(func() {
-		glyph(c, icChat, 14, t.TextMuted)
+		glyph(c, icChat, iconSm, t.TextMuted)
 		ui.Text(c, words).FontSize(fsControl).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
-		glyph(c, icChevronDown, 13, a.pal.faint)
+		glyph(c, icChevronDown, iconSm, a.pal.faint)
 	})
 	pick.Menu(func(m *ui.Menu) {
 		for n := len(a.sessions) - 1; n >= 0; n-- {
@@ -193,7 +193,7 @@ func (a *App) quoteBlock(c *ui.Context, q workspace.Quote, key string, remove fu
 				title = n.Title
 			}
 			ui.Text(c, "《"+title+"》").FontSize(fsNote).TextColor(a.pal.ink)
-			ui.Text(c, clip(q.Text, 160)).FontSize(fsControl).LineHeight(1.6).TextColor(t.TextMuted).FillWidth()
+			ui.Text(c, clip(q.Text, 160)).FontSize(fsControl).LineHeight(lhBody).TextColor(t.TextMuted).FillWidth()
 		})
 		if remove != nil && iconButton(c, icX, "去掉引用-"+key, ui.Color{}).Tooltip("去掉这段引用").Clicked() {
 			remove()

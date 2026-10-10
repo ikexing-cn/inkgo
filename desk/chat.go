@@ -90,7 +90,7 @@ func (a *App) chatTop(c *ui.Context) {
 	left, right := a.chromeRoom(c)
 	ui.Row(c).FillWidth().Height(titleHeight).Padding(0, 24+right, 0, 24+left).Gap(8).AlignItems(ui.Center).Shrink(0).DragWindow().Children(func() {
 		ui.Text(c, "总讨论").FontSize(fsControl).TextColor(t.TextMuted)
-		glyph(c, icChevron, 14, a.pal.faint)
+		glyph(c, icChevron, iconSm, a.pal.faint)
 		ui.Text(c, words).FontSize(fsBody).FontWeight(600).SingleLine().Ellipsis("…").Shrink(1)
 		ui.Spacer(c)
 		if n := len(a.events); n > 0 {
@@ -142,10 +142,10 @@ func (a *App) emptyChat(c *ui.Context) {
 	}
 	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(top, 0, 0, 0).Gap(14).Children(func() {
 		ui.Box(c).Size(44, 44).Radius(rDialog).Background(a.pal.ink.Alpha(0.1)).Center().Children(func() {
-			glyph(c, icSparkle, 22, a.pal.ink)
+			glyph(c, icSparkle, iconLg, a.pal.ink)
 		})
 		ui.Text(c, title).FontSize(size).FontWeight(600)
-		ui.Text(c, about).FontSize(fsBody).TextColor(t.TextMuted).TextAlign(ui.Center).LineHeight(1.7)
+		ui.Text(c, about).FontSize(fsBody).TextColor(t.TextMuted).TextAlign(ui.Center).LineHeight(lhLoose)
 		ui.Box(c).Height(6)
 		ui.Row(c).Gap(8).Wrap().Justify(ui.Center).Children(func() {
 			for _, s := range starts {
@@ -177,13 +177,13 @@ const replyIndent = 24 + 12
 
 func (a *App) aiMark(c *ui.Context) {
 	ui.Box(c).Size(24, 24).Radius(rControl).Background(a.pal.ink.Alpha(0.12)).Center().Shrink(0).Children(func() {
-		glyph(c, icSparkle, 14, a.pal.ink)
+		glyph(c, icSparkle, iconSm, a.pal.ink)
 	})
 }
 
 func (a *App) userBubble(c *ui.Context, text string) {
 	ui.Column(c).MaxWidthPercent(82).Padding(10, 16).Radius(rDialog).Background(a.pal.bubble).Children(func() {
-		ui.Text(c, text).FontSize(fsRead).LineHeight(1.7).Selectable()
+		ui.Text(c, text).FontSize(fsRead).LineHeight(lhLoose).Selectable()
 	})
 }
 
@@ -259,7 +259,7 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 		})
 		if user && !a.answered(m.ID) && !a.talking {
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
-				glyph(c, icAlert, 14, t.Warning)
+				glyph(c, icAlert, iconSm, t.Warning)
 				ui.Text(c, "这条还没有得到回复").FontSize(fsNote).TextColor(t.Warning)
 				if ghost(c, "重试回复", t.Text).Disabled(a.busy != "").Clicked() {
 					a.retry(c, m.ID)
@@ -323,7 +323,7 @@ func (a *App) thought(c *ui.Context, key, label, reasoning string, running bool)
 		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Stretch).Padding(4, 0, 2, 2).Children(func() {
 			ui.Box(c).Width(2).Radius(rRound).Background(a.pal.line).Shrink(0)
 			if !running {
-				ui.Text(c, reasoning).FontSize(fsControl).LineHeight(1.7).TextColor(t.TextMuted).Selectable().Grow(1).Shrink(1)
+				ui.Text(c, reasoning).FontSize(fsControl).LineHeight(lhLoose).TextColor(t.TextMuted).Selectable().Grow(1).Shrink(1)
 				return
 			}
 			// While it streams, the paragraphs written keep their layout
@@ -332,7 +332,7 @@ func (a *App) thought(c *ui.Context, key, label, reasoning string, running bool)
 				cut := strings.LastIndex(reasoning, "\n") + 1
 				for _, s := range []string{strings.TrimSuffix(reasoning[:cut], "\n"), reasoning[cut:]} {
 					if s != "" {
-						ui.Text(c, s).FontSize(fsControl).LineHeight(1.7).TextColor(t.TextMuted).FillWidth()
+						ui.Text(c, s).FontSize(fsControl).LineHeight(lhLoose).TextColor(t.TextMuted).FillWidth()
 					}
 				}
 			})
@@ -361,13 +361,13 @@ func (a *App) audit(c *ui.Context, m workspace.Event) {
 			}
 			for _, item := range m.Context {
 				ui.Row(c).FillWidth().Gap(8).Children(func() {
-					glyph(c, icCheck, 13, t.Success)
+					glyph(c, icCheck, iconSm, t.Success)
 					ui.Text(c, item.Text).FontSize(fsNote).Selectable().Grow(1).Shrink(1)
 				})
 			}
 			for _, item := range m.Omitted {
 				ui.Row(c).FillWidth().Gap(8).Children(func() {
-					glyph(c, icX, 13, a.pal.faint)
+					glyph(c, icX, iconSm, a.pal.faint)
 					ui.Text(c, item.Text+" · "+item.Reason).FontSize(fsNote).TextColor(t.TextMuted).Selectable().Grow(1).Shrink(1)
 				})
 			}
@@ -401,7 +401,7 @@ func (a *App) composer(c *ui.Context) {
 		if side {
 			hint = "问问这一" + a.openUnit() + "，或者选中正文按 " + modKey + "L 引用…"
 		}
-		in := ui.TextAreaBase(c, &a.input).Label("讨论输入").Placeholder(hint).FillWidth().Height(h).FontSize(fsRead).LineHeight(1.7).Disabled(a.busy != "")
+		in := ui.TextAreaBase(c, &a.input).Label("讨论输入").Placeholder(hint).FillWidth().Height(h).FontSize(fsRead).LineHeight(lhLoose).Disabled(a.busy != "")
 		if a.focusTalk {
 			in.Focus()
 			a.focusTalk = false
@@ -437,7 +437,7 @@ func (a *App) composer(c *ui.Context) {
 					dot(c, t.Warning, 6)
 					ui.Text(c, "选择讨论模型").FontSize(fsNote).TextColor(t.Warning).SingleLine()
 				}
-				glyph(c, icChevronUp, 12, a.pal.faint)
+				glyph(c, icChevronUp, iconXs, a.pal.faint)
 			})
 			chip.Menu(func(m *ui.Menu) { a.modelMenu(m, work) })
 			ui.Spacer(c)
@@ -458,7 +458,7 @@ func (a *App) composer(c *ui.Context) {
 				if !can {
 					fg = a.pal.faint
 				}
-				glyph(c, icSend, 16, fg)
+				glyph(c, icSend, iconMd, fg)
 			})
 			if a.busy == "" && (send.Clicked() || c.Shortcut(ui.Cmd, ui.KeyEnter)) {
 				a.send(c)
