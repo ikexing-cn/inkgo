@@ -12,6 +12,8 @@ npm run verify-notes
 
 三条都绿才算完成。界面改动在 `cmd/poc` 的布局测试里渲染截图核对（`SHOT=<path> go test -run TestLayout ./cmd/poc`）。
 
+要一本有内容的书来试功能：`go run ./cmd/sample <目录>` 写出两本测试用的书（各 15 章，带设定、卷、章纲、伏笔，正文里故意埋了和设定对不上的地方，清单在 `cmd/sample/books/` 各文件开头），再用 `go run ./cmd/poc -work <目录>/<书名>` 打开。
+
 ## 界面设计以 Design artifact 为准
 
 设计稿在 Design artifact <https://claude.ai/artifact/RAP7UK4pSfnGArETpVtPSj>，文件都在 `project/` 下：入口是 `Main.dc.html`（总览），另有 `Pending`（待处理）、`Settings`（设置）、`Consistency`（一致性检查）、`Titlebar`（标题栏）、`Foreshadow`（伏笔）、`SettingPane`（右栏：设定、伏笔、讨论）、`Planning`（全书规划）、`Import`（导入稿件）、`Backup`（备份）、`Toast`（提示）各一份 `.dc.html`，`System`（设计规范）定字号、圆角、阴影、间距和常用组件，公共组件 `Sidebar`、`WindowControls`，画布排布在 `canvas.json`。它由原 Claude Design 项目 <https://claude.ai/design/p/b415efa2-67ae-4711-8873-eafbaebc192a> 转来，原项目只作存档，不再更新。
