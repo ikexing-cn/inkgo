@@ -10,6 +10,7 @@ Status: implemented
 
 ## Decision
 
+- 2026-10-10 起不再使用设计稿（见[界面直接在代码里改](../process/2026-10-10-interface-in-code-without-design.md)）：下面讲设计稿页面、`scripts/design/`、`verify-design` 和两份 `tokens.css` 同步的部分已不适用，工具已删，`desk/tokens.css` 就是基准，画板专用的变量也去掉了；代码这边的常量、刻度和测试不变。
 - 设计稿 `project/tokens.css` 定义基准色，所有画板和组件都链接它，只写 `var(--…)`，不再写色值：
   - 浅色值写在 `:root, .light` 里，深色值写在 `.dark` 里；深色画板和组件的根节点带 `dark` 类。
   - 共 22 个变量：`bg`、`raised`、`side`、`chip`、`hover`、`active`、`line`、`border`、`control`、`dim`、`ink`、`ink-2`、`muted`、`faint`、`on-ink`、`amber`、`warn-bg`、`warn-bd`、`sel`、`danger`、`warn`、`success`，另加只属于画布的 `page`。

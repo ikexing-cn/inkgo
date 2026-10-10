@@ -23,8 +23,8 @@ func TestTokens(t *testing.T) {
 			t.Errorf("dark theme lacks --%s", name)
 		}
 	}
-	if light["ink"] != ui.Hex("#1d1d1b") || dark["ink"] != ui.Hex("#ededea") || dark["page"] != light["page"] {
-		t.Fatalf("ink = %v / %v, page = %v / %v", light["ink"], dark["ink"], light["page"], dark["page"])
+	if light["ink"] != ui.Hex("#1d1d1b") || dark["ink"] != ui.Hex("#ededea") {
+		t.Fatalf("ink = %v / %v", light["ink"], dark["ink"])
 	}
 	if p := darkPalette(); p.side != ui.Hex("#1f1f1e") || p.theme.TextMuted != ui.Hex("#a0a09a") {
 		t.Fatalf("dark side = %v, muted = %v", p.side, p.theme.TextMuted)
@@ -44,8 +44,6 @@ func TestSizeTokens(t *testing.T) {
 		"opacity-disabled": opacityDisabled,
 		"h-control":        hControl, "h-control-sm": hControlSm, "h-row": hRow, "h-seg": hSeg, "h-tag": hTag, "h-bar": hBar,
 	}
-	// Only the design's boards use these: its notes and window frames.
-	board := map[string]bool{"fs-board-title": true, "fs-board-h2": true, "r-window": true, "r-window-win": true}
 	seen := map[string]bool{}
 	blocks(tokensCSS, func(_ bool, body string) {
 		for _, d := range regexp.MustCompile(`--((?:fs|r|lh|icon|opacity|h)-[a-z-]+)\s*:\s*([0-9.]+)(?:px)?;`).FindAllStringSubmatch(body, -1) {
@@ -53,7 +51,7 @@ func TestSizeTokens(t *testing.T) {
 			v, _ := strconv.ParseFloat(d[2], 64)
 			if want, ok := code[d[1]]; ok && want != v {
 				t.Errorf("--%s is %v in tokens.css, %v in the code", d[1], v, want)
-			} else if !ok && !board[d[1]] {
+			} else if !ok {
 				t.Errorf("--%s has no constant in the code", d[1])
 			}
 		}
@@ -77,9 +75,9 @@ func TestSizeTokens(t *testing.T) {
 	}
 }
 
-// The desk writes the names of the design rules, not numbers: a text size,
-// a corner, a line height, an icon's size, a button's height, a color or a shadow written
-// out in a view drifts from the design. Its alphas keep to the alpha scale, its
+// The desk writes the names of the rules in tokens.css, not numbers: a text
+// size, a corner, a line height, an icon's size, a button's height, a color or
+// a shadow written out in a view drifts from them. Its alphas keep to the alpha scale, its
 // padding, gaps and margins keep to the spacing scale of tokens.css; what
 // lines up with something else is written as the sum it is.
 func TestNoLiteralSizes(t *testing.T) {
