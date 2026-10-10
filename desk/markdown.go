@@ -276,7 +276,7 @@ func (a *App) mdDraw(c *ui.Context, blocks []mdBlock, size float32) {
 					}
 					ui.Row(c).FillWidth().AlignItems(ui.Stretch).Children(func() {
 						for _, cell := range row {
-							ui.Column(c).Grow(1).Shrink(1).Basis(0).Padding(7, 10).Children(func() {
+							ui.Column(c).Grow(1).Shrink(1).Basis(0).Padding(8, 10).Children(func() {
 								ui.RichText(c, a.mdRuns(nil, cell, size*0.93)...).FillWidth().FontSize(size * 0.93).LineHeight(1.6).TextColor(t.Text).Selectable()
 							})
 						}

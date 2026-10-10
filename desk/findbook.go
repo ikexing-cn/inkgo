@@ -100,7 +100,7 @@ func (a *App) bookResults(c *ui.Context) {
 	ui.Scroll(c).Key("bookhits").FillWidth().MaxHeight(200).Children(func() {
 		ui.Column(c).FillWidth().Gap(2).Children(func() {
 			for _, h := range hits {
-				row := ui.ButtonBase(c).Key(h.ID).Column().AlignItems(ui.Start).FillWidth().Gap(2).Padding(5, 8).Radius(rControl).Label("全书结果-" + h.Title)
+				row := ui.ButtonBase(c).Key(h.ID).Column().AlignItems(ui.Start).FillWidth().Gap(2).Padding(6, 8).Radius(rControl).Label("全书结果-" + h.Title)
 				if h.ID == w.node {
 					row.Background(t.SurfacePressed)
 				} else if row.Hovered() {

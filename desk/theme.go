@@ -193,7 +193,7 @@ func pill(c *ui.Context, text string, color ui.Color) *ui.Element {
 	if color.A == 0 {
 		color = c.Theme().TextMuted
 	}
-	b := ui.Row(c).Padding(1, 7).Radius(rXs).Background(color.Alpha(0.1)).Shrink(0)
+	b := ui.Row(c).Padding(2, 8).Radius(rXs).Background(color.Alpha(0.1)).Shrink(0)
 	b.Children(func() { ui.Text(c, text).FontSize(fsSmall).TextColor(color).SingleLine() })
 	return b
 }
@@ -201,7 +201,7 @@ func pill(c *ui.Context, text string, color ui.Color) *ui.Element {
 // ghost is a borderless text button: muted until hovered.
 func ghost(c *ui.Context, text string, color ui.Color) *ui.Element {
 	t := c.Theme()
-	b := ui.ButtonBase(c).Row().AlignItems(ui.Center).Gap(5).Padding(4, 8).Radius(rControl).Shrink(0)
+	b := ui.ButtonBase(c).Row().AlignItems(ui.Center).Gap(6).Padding(4, 8).Radius(rControl).Shrink(0)
 	fg := color
 	if fg.A == 0 {
 		fg = t.TextMuted
@@ -305,7 +305,7 @@ func iconButton(c *ui.Context, s *ui.SVG, label string, color ui.Color) *ui.Elem
 
 // primary is the one solid ink button of a view.
 func (p *palette) primary(c *ui.Context, text string) *ui.Element {
-	b := ui.ButtonBase(c).Row().Center().Gap(6).Padding(7, 16).Radius(rControl).Shrink(0)
+	b := ui.ButtonBase(c).Row().Center().Gap(6).Padding(8, 16).Radius(rControl).Shrink(0)
 	bg := p.ink
 	if b.Hovered() {
 		bg = p.theme.AccentHover
@@ -370,12 +370,12 @@ func (p *palette) hairline(c *ui.Context) {
 
 // cardBox is a padded group.
 func (p *palette) cardBox(c *ui.Context) *ui.Element {
-	return p.group(c).Padding(18, 20).Gap(12)
+	return p.group(c).Padding(20, 20).Gap(12)
 }
 
 // action is a tinted button; strong fills it, for destructive confirmations.
 func action(c *ui.Context, text string, color ui.Color, strong bool) *ui.Element {
-	b := ui.ButtonBase(c).Row().Center().Padding(5, 12).Radius(rControl).Shrink(0)
+	b := ui.ButtonBase(c).Row().Center().Padding(6, 12).Radius(rControl).Shrink(0)
 	bg, fg := color.Alpha(0.1), color
 	if strong {
 		bg, fg = color, ui.Hex("#ffffff")

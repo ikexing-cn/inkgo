@@ -343,7 +343,7 @@ func (a *App) newEntry(c *ui.Context) {
 		})
 		return
 	}
-	b := ui.ButtonBase(c).Row().Gap(6).AlignItems(ui.Center).Padding(5, 8).Radius(rControl).Label("新增设定")
+	b := ui.ButtonBase(c).Row().Gap(6).AlignItems(ui.Center).Padding(6, 8).Radius(rControl).Label("新增设定")
 	if b.Hovered() {
 		b.Background(a.pal.theme.SurfaceHover)
 	}
@@ -464,7 +464,7 @@ func (a *App) bookDot(c *ui.Context) {
 	if failed {
 		label, color = "上次整理没成功，点开看看", a.pal.theme.Warning
 	}
-	b := ui.ButtonBase(c).Label(label).Tooltip(label).Padding(7).Radius(rControl)
+	b := ui.ButtonBase(c).Label(label).Tooltip(label).Padding(8).Radius(rControl)
 	if b.Hovered() {
 		b.Background(a.pal.theme.SurfaceHover)
 	}

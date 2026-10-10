@@ -1,8 +1,9 @@
 /**
  * Checks a copy of the Design artifact's project/ folder against the design
  * rules: pages write var(--…) for colors, text sizes, corners and shadows,
- * never the numbers, and only names tokens.css declares. Also checks that
- * desk/tokens.css is still a verbatim copy of the design's.
+ * never the numbers, keep spacing on its scale, and only name what
+ * tokens.css declares. Also checks that desk/tokens.css is still a verbatim
+ * copy of the design's.
  * Usage: node scripts/verify-design.ts <design project dir>
  */
 import { readdirSync, readFileSync } from 'node:fs'
@@ -35,12 +36,32 @@ const rules: { what: string; re: RegExp }[] = [
   { what: 'a text size written out', re: /fontSize:\s*'[0-9.]+px'/g },
 ]
 
+// The spacing scale: padding, margins and gaps take only these values, the
+// board's for the boards and whole-page room. From 100 on it is a layout
+// size, and a negative one pairs with a size elsewhere.
+const scale = (name: string) => {
+  const m = tokens.match(new RegExp(`--${name}:\\s*([0-9 ]+);`))
+  if (!m) {
+    errors.push(`tokens.css lacks --${name}`)
+    return []
+  }
+  return m[1].trim().split(/\s+/).map(Number)
+}
+const spacing = new Set([...scale('space'), ...scale('space-board')])
+const spacingProp = /(?<![a-z-])(?:padding|margin)(?:-(?:top|right|bottom|left))?\s*:([^;"'}]+)|(?<![a-z-])(?:row-|column-)?gap\s*:([^;"'}]+)/g
+
 const pages = readdirSync(dir).filter((f) => f.endsWith('.dc.html')).sort()
 for (const page of pages) {
   const text = read(join(dir, page))
   const where = (i: number) => `${page}:${text.slice(0, i).split('\n').length}`
   for (const { what, re } of rules) {
     for (const m of text.matchAll(re)) errors.push(`${where(m.index!)}: ${what}: ${m[0].slice(0, 60)}`)
+  }
+  for (const m of text.matchAll(spacingProp)) {
+    for (const v of (m[1] ?? m[2]).matchAll(/(?<![0-9.a-z-])(-?)([0-9.]+)px/g)) {
+      const n = Number(v[2])
+      if (!v[1] && n < 100 && !spacing.has(n)) errors.push(`${where(m.index!)}: a spacing off the scale: ${m[0].slice(0, 60)}`)
+    }
   }
   for (const m of text.matchAll(/var\(--([a-z0-9-]+)/g)) {
     if (!declared.has(m[1])) errors.push(`${where(m.index!)}: --${m[1]} is not in tokens.css`)

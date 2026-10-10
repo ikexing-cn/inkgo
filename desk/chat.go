@@ -24,7 +24,7 @@ func (a *App) discussion(c *ui.Context) {
 		chat.Children(func() {
 			a.chatTop(c)
 			a.chatList(c, false)
-			ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(0, 28, 20, 28).Children(func() {
+			ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(0, 32, 20, 32).Children(func() {
 				a.composer(c)
 			})
 		})
@@ -71,7 +71,7 @@ func (a *App) chatList(c *ui.Context, side bool) {
 	if side {
 		list.Grow(1).FillWidth().Gap(20).Padding(8, 2, 12, 2)
 	} else {
-		list.Grow(1).FillWidth().Gap(26).Padding(28, 28, 24, 28)
+		list.Grow(1).FillWidth().Gap(24).Padding(32, 32, 24, 32)
 	}
 }
 
@@ -149,7 +149,7 @@ func (a *App) emptyChat(c *ui.Context) {
 		ui.Box(c).Height(6)
 		ui.Row(c).Gap(8).Wrap().Justify(ui.Center).Children(func() {
 			for _, s := range starts {
-				b := ui.ButtonBase(c).Padding(7, 14).Radius(rRound).Border(1, t.Border).Background(a.pal.raised)
+				b := ui.ButtonBase(c).Padding(8, 14).Radius(rRound).Border(1, t.Border).Background(a.pal.raised)
 				if b.Hovered() {
 					b.Background(t.SurfaceHover)
 				}
@@ -170,6 +170,11 @@ func (a *App) answered(userID string) bool {
 	}
 	return false
 }
+
+// replyIndent is where a reply's text starts: past the mark and the gap
+// after it.
+const replyIndent = 24 + 12
+
 func (a *App) aiMark(c *ui.Context) {
 	ui.Box(c).Size(24, 24).Radius(rControl).Background(a.pal.ink.Alpha(0.12)).Center().Shrink(0).Children(func() {
 		glyph(c, icSparkle, 14, a.pal.ink)
@@ -177,7 +182,7 @@ func (a *App) aiMark(c *ui.Context) {
 }
 
 func (a *App) userBubble(c *ui.Context, text string) {
-	ui.Column(c).MaxWidthPercent(82).Padding(10, 15).Radius(rDialog).Background(a.pal.bubble).Children(func() {
+	ui.Column(c).MaxWidthPercent(82).Padding(10, 16).Radius(rDialog).Background(a.pal.bubble).Children(func() {
 		ui.Text(c, text).FontSize(fsRead).LineHeight(1.7).Selectable()
 	})
 }
@@ -214,7 +219,7 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 		}
 		acts := ui.Row(c).Gap(2).AlignItems(ui.Center)
 		if !user {
-			acts.Padding(0, 0, 0, 30)
+			acts.Padding(0, 0, 0, replyIndent-6) // the icons, not their buttons, under the reply
 		}
 		if !shown {
 			acts.Opacity(0)
@@ -348,8 +353,8 @@ func modelLabel(name, effort string) string {
 
 func (a *App) audit(c *ui.Context, m workspace.Event) {
 	t := a.pal.theme
-	ui.Column(c).FillWidth().Padding(0, 0, 0, 36).Children(func() {
-		ui.Column(c).FillWidth().Padding(12, 14).Gap(7).Radius(rCard).Background(a.pal.side).Border(1, a.pal.line).Children(func() {
+	ui.Column(c).FillWidth().Padding(0, 0, 0, replyIndent).Children(func() {
+		ui.Column(c).FillWidth().Padding(12, 14).Gap(8).Radius(rCard).Background(a.pal.side).Border(1, a.pal.line).Children(func() {
 			ui.Textf(c, "回复时带上了 %d 条设定，预算不足省略 %d 条", len(m.Context), len(m.Omitted)).FontSize(fsNote).FontWeight(600)
 			if len(m.Context) == 0 && len(m.Omitted) == 0 {
 				ui.Text(c, "只读了最近几轮对话，设定文档里还没有内容。").FontSize(fsNote).TextColor(t.TextMuted)

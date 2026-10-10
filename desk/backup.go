@@ -336,7 +336,7 @@ func (a *App) backupChip(c *ui.Context) {
 	}
 	short, _, _ := trouble(s.Dir, a.bk.err)
 	t := a.pal.theme
-	b := ui.ButtonBase(c).Row().Margin(0, 0, 0, 6).Gap(7).AlignItems(ui.Center).Padding(4, 10).Radius(rControl).Shrink(0).
+	b := ui.ButtonBase(c).Row().Margin(0, 0, 0, 6).Gap(8).AlignItems(ui.Center).Padding(4, 10).Radius(rControl).Shrink(0).
 		Background(a.pal.warnBg).Border(1, a.pal.warnBd).Label("备份未完成")
 	if b.Hovered() {
 		b.Background(a.pal.warnBd.Alpha(0.5))
@@ -440,7 +440,7 @@ func (a *App) askView(c *ui.Context) {
 	t := a.pal.theme
 	open := a.bk.ask
 	ui.Modal(c, &a.bk.ask, func() {
-		ui.Column(c).Width(520).Gap(18).Children(func() {
+		ui.Column(c).Width(520).Gap(20).Children(func() {
 			ui.Column(c).FillWidth().Gap(6).Children(func() {
 				ui.Text(c, "稿子现在只存在这台电脑上").FontSize(fsDialog).FontWeight(700)
 				ui.Text(c, "电脑坏了稿子就没了。选一个别的地方，我们定时复制一份过去。").FontSize(fsBody).TextColor(t.TextMuted).LineHeight(1.7).FillWidth()
@@ -593,8 +593,8 @@ func (a *App) backupSettingsView(c *ui.Context) {
 	now := time.Now()
 	a.prefsHead(c, "备份", "把整部作品复制一份到别处。快照只防改错，备份防电脑坏。")
 	if s.Dir == "" {
-		ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(14).Padding(16, 18).Radius(rCard).Border(1, t.Border).Children(func() {
-			ui.Column(c).Grow(1).Shrink(1).Gap(3).Children(func() {
+		ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(14).Padding(16, 20).Radius(rCard).Border(1, t.Border).Children(func() {
+			ui.Column(c).Grow(1).Shrink(1).Gap(4).Children(func() {
 				ui.Text(c, "还没有备份").FontSize(fsGroup).FontWeight(600)
 				ui.Text(c, "稿子现在只存在这台电脑上。").FontSize(fsNote).TextColor(t.TextMuted)
 			})
@@ -605,8 +605,8 @@ func (a *App) backupSettingsView(c *ui.Context) {
 		return
 	}
 	list := a.backups(s)
-	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(14).Padding(16, 18).Radius(rCard).Border(1, t.Border).Children(func() {
-		ui.Column(c).Grow(1).Shrink(1).Gap(3).Children(func() {
+	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(14).Padding(16, 20).Radius(rCard).Border(1, t.Border).Children(func() {
+		ui.Column(c).Grow(1).Shrink(1).Gap(4).Children(func() {
 			title := when(s.Last, now) + " 备份过"
 			switch {
 			case a.bk.running:

@@ -71,13 +71,26 @@ func TestSizeTokens(t *testing.T) {
 }
 
 // The desk writes the names of the design rules, not numbers: a text size,
-// a corner or a shadow written out in a view drifts from the design.
+// a corner or a shadow written out in a view drifts from the design. Its
+// padding, gaps and margins keep to the spacing scale of tokens.css; what
+// lines up with something else is written as the sum it is.
 func TestNoLiteralSizes(t *testing.T) {
 	files, _ := filepath.Glob("*.go")
 	call := regexp.MustCompile(`\.(FontSize|Radius)\(([^()]*)\)`)
+	space := regexp.MustCompile(`\.(Padding|Gap|Margin)\(([^()]*)\)`)
 	number := regexp.MustCompile(`^-?[0-9.]+$`)
+	scale := map[string]bool{}
+	for _, name := range []string{"space", "space-board"} {
+		m := regexp.MustCompile(`--` + name + `:\s*([0-9 ]+);`).FindStringSubmatch(tokensCSS)
+		if m == nil {
+			t.Fatalf("tokens.css lacks --%s", name)
+		}
+		for _, v := range strings.Fields(m[1]) {
+			scale[v] = true
+		}
+	}
 	for _, f := range files {
-		if strings.HasSuffix(f, "_test.go") || f == "theme.go" {
+		if strings.HasSuffix(f, "_test.go") {
 			continue
 		}
 		b, err := os.ReadFile(f)
@@ -85,6 +98,16 @@ func TestNoLiteralSizes(t *testing.T) {
 			t.Fatal(err)
 		}
 		for i, line := range strings.Split(string(b), "\n") {
+			for _, m := range space.FindAllStringSubmatch(line, -1) {
+				for _, arg := range strings.Split(m[2], ",") {
+					if arg = strings.TrimSpace(arg); number.MatchString(arg) && !scale[strings.TrimPrefix(arg, "-")] {
+						t.Errorf("%s:%d: %s(%s); %s is off the spacing scale", f, i+1, m[1], m[2], arg)
+					}
+				}
+			}
+			if f == "theme.go" {
+				continue
+			}
 			if strings.Contains(line, ".Shadow(") {
 				t.Errorf("%s:%d: a shadow written out; use a.pal.pop and the like", f, i+1)
 			}

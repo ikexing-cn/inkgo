@@ -97,7 +97,7 @@ func (a *App) talkPanel(c *ui.Context) {
 		}
 	})
 	_, words := a.sessionParts(a.session)
-	pick := ui.ButtonBase(c).Row().FillWidth().Gap(6).AlignItems(ui.Center).Padding(5, 8).Radius(rControl).Border(1, t.Border).Label("切换讨论").Disabled(a.busy != "")
+	pick := ui.ButtonBase(c).Row().FillWidth().Gap(6).AlignItems(ui.Center).Padding(6, 8).Radius(rControl).Border(1, t.Border).Label("切换讨论").Disabled(a.busy != "")
 	if pick.Hovered() {
 		pick.Background(t.SurfaceHover)
 	}

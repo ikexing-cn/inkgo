@@ -700,7 +700,7 @@ func (a *App) settingColumn(c *ui.Context) {
 	win, _ := c.Size()
 	width := a.panelWidth(win)
 	ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
-	panel := ui.Column(c).Width(width).FillHeight().Padding(0, 18, 12, 18).Gap(12).Background(a.pal.side).Shrink(0)
+	panel := ui.Column(c).Width(width).FillHeight().Padding(0, 20, 12, 20).Gap(12).Background(a.pal.side).Shrink(0)
 	a.LastSetting = panel.Bounds()
 	panel.Children(func() {
 		if a.page == 3 && a.doc.talk {
@@ -798,7 +798,7 @@ func (a *App) weekChart(c *ui.Context) {
 			if w.goal > 0 && k >= w.goal {
 				color = a.pal.ink
 			}
-			ui.Column(c).Key(i).Grow(1).Gap(3).AlignItems(ui.Center).Label(fmt.Sprintf("%s 写了 %d 字", day.Format("1月2日"), k)).Tooltip(fmt.Sprintf("%s：%+d 字", day.Format("1月2日"), k)).Children(func() {
+			ui.Column(c).Key(i).Grow(1).Gap(4).AlignItems(ui.Center).Label(fmt.Sprintf("%s 写了 %d 字", day.Format("1月2日"), k)).Tooltip(fmt.Sprintf("%s：%+d 字", day.Format("1月2日"), k)).Children(func() {
 				h := float32(max(k, 0)) / float32(top) * tall
 				ui.Box(c).Height(tall - h)
 				ui.Box(c).FillWidth().Height(max(h, 2)).Radius(rXs).Background(color)
@@ -931,7 +931,7 @@ func (a *App) writeTop(c *ui.Context) {
 			today = ""
 		}
 		color := a.pal.faint // as the design has it, met or not: the numbers say so
-		counts := ui.ButtonBase(c).Row().Padding(3, 6).Radius(rControl).Shrink(1).Label("字数").Tooltip(tip + "。点击设每日目标")
+		counts := ui.ButtonBase(c).Row().Padding(4, 6).Radius(rControl).Shrink(1).Label("字数").Tooltip(tip + "。点击设每日目标")
 		if counts.Hovered() {
 			counts.Background(t.SurfaceHover)
 		}
@@ -1005,7 +1005,7 @@ func (a *App) writeTop(c *ui.Context) {
 
 func (a *App) emptyWriting(c *ui.Context) {
 	t := a.pal.theme
-	ui.Column(c).Grow(1).FillWidth().AlignItems(ui.Center).Padding(96, 24, 0, 24).Gap(14).Children(func() {
+	ui.Column(c).Grow(1).FillWidth().AlignItems(ui.Center).Padding(80, 24, 0, 24).Gap(14).Children(func() {
 		ui.Box(c).Size(44, 44).Radius(rDialog).Background(a.pal.ink.Alpha(0.1)).Center().Children(func() {
 			glyph(c, icBook, 22, a.pal.ink)
 		})
@@ -1053,7 +1053,7 @@ func (a *App) chapterView(c *ui.Context) {
 	// As wide as the prose at most, and over it, when the page is wide: the
 	// chapter's title, then its outline and summary side by side, each
 	// opening under the two.
-	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(22, 24, 6, 24).Shrink(0).Children(func() {
+	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(24, 24, 6, 24).Shrink(0).Children(func() {
 		ui.Column(c).FillWidth().MaxWidth(editor.MaxTextWidth).Gap(8).Children(func() {
 			ui.Text(c, heading(a.shownTitle())).FontSize(fsTitle).FontWeight(700).SingleLine().Ellipsis("…")
 			label := "章纲"
@@ -1244,7 +1244,7 @@ func (a *App) folderView(c *ui.Context, n *workspace.Node) {
 	t := a.pal.theme
 	w := &a.write
 	ui.Scroll(c).Key("folder").Grow(1).FillWidth().Children(func() {
-		ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(28, 28, 28, 28).Children(func() {
+		ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(32, 32, 32, 32).Children(func() {
 			ui.Column(c).FillWidth().MaxWidth(720).Gap(14).Children(func() {
 				ui.Text(c, n.Title).FontSize(fsTitle).FontWeight(600)
 				ui.Text(c, "卷纲").FontSize(fsControl).FontWeight(600).TextColor(t.TextMuted)
@@ -1256,7 +1256,7 @@ func (a *App) folderView(c *ui.Context, n *workspace.Node) {
 					}
 				})
 				for _, child := range n.Children {
-					row := ui.ButtonBase(c).Key("f-"+child.ID).Column().FillWidth().Gap(3).Padding(9, 12).Radius(rControl).Label("打开-" + child.Title)
+					row := ui.ButtonBase(c).Key("f-"+child.ID).Column().FillWidth().Gap(4).Padding(10, 12).Radius(rControl).Label("打开-" + child.Title)
 					if row.Hovered() {
 						row.Background(t.SurfaceHover)
 					}
@@ -1269,7 +1269,7 @@ func (a *App) folderView(c *ui.Context, n *workspace.Node) {
 							}
 						})
 						if gist := w.gists[child.ID]; gist != "" {
-							ui.Text(c, gist).FontSize(fsNote).TextColor(t.TextMuted).FillWidth().Padding(0, 0, 0, 26).MaxLines(2).Ellipsis("…")
+							ui.Text(c, gist).FontSize(fsNote).TextColor(t.TextMuted).FillWidth().Padding(0, 0, 0, 16+10).MaxLines(2) // under the title, past the icon.Ellipsis("…")
 						}
 					})
 					if row.Clicked() {
@@ -1300,7 +1300,7 @@ func (a *App) chapterTree(c *ui.Context) {
 			a.newNode(false)
 		}
 	})
-	ui.Scroll(c).Key("chapters").FillWidth().Grow(1).Gap(1).Children(func() {
+	ui.Scroll(c).Key("chapters").FillWidth().Grow(1).Gap(2).Children(func() {
 		if w.tree.Root == nil {
 			return
 		}
@@ -1326,7 +1326,7 @@ func (a *App) chapterTree(c *ui.Context) {
 // trashRow opens the trash.
 func (a *App) trashRow(c *ui.Context) {
 	t := a.pal.theme
-	b := ui.ButtonBase(c).Row().Grow(1).Shrink(1).Justify(ui.Start).AlignItems(ui.Center).Gap(10).Padding(7, 10).Radius(rControl).Label("回收站")
+	b := ui.ButtonBase(c).Row().Grow(1).Shrink(1).Justify(ui.Start).AlignItems(ui.Center).Gap(10).Padding(8, 10).Radius(rControl).Label("回收站")
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}

@@ -87,7 +87,7 @@ func (a *App) modelsView(c *ui.Context) {
 
 // subhead titles a block of the settings.
 func (a *App) subhead(c *ui.Context, title, caption string) {
-	ui.Column(c).FillWidth().Gap(3).Children(func() {
+	ui.Column(c).FillWidth().Gap(4).Children(func() {
 		ui.Text(c, title).FontSize(fsGroup).FontWeight(600)
 		if caption != "" {
 			ui.Text(c, caption).FontSize(fsNote).TextColor(a.pal.theme.TextMuted).LineHeight(1.55)
@@ -134,7 +134,7 @@ func (a *App) useRow(c *ui.Context, who, what string, provider *string, none, pr
 		})
 		ui.Column(c).Grow(1).Shrink(1).Children(func() {
 			if none != "" && *provider == "" {
-				ui.Text(c, "和讨论用同一个模型").FontSize(fsControl).TextColor(a.pal.faint).Padding(7, 0)
+				ui.Text(c, "和讨论用同一个模型").FontSize(fsControl).TextColor(a.pal.faint).Padding(8, 0)
 				*model = ""
 				return
 			}
@@ -177,7 +177,7 @@ func (a *App) services(c *ui.Context) {
 		a.subhead(c, "模型服务", "这台电脑上保存的服务，所有作品共用。")
 		a.pal.group(c).Children(func() {
 			for _, p := range a.Config.Providers {
-				ui.Row(c).Key("provider-"+p.ID).FillWidth().Gap(12).Padding(11, 14).AlignItems(ui.Center).Children(func() {
+				ui.Row(c).Key("provider-"+p.ID).FillWidth().Gap(12).Padding(12, 14).AlignItems(ui.Center).Children(func() {
 					color := a.pal.ink
 					if isLocal(p.BaseURL) {
 						color = t.Success
@@ -213,7 +213,7 @@ func (a *App) services(c *ui.Context) {
 				}
 				a.pal.hairline(c)
 			}
-			add := ui.ButtonBase(c).Row().FillWidth().Justify(ui.Start).Gap(8).AlignItems(ui.Center).Padding(11, 14).Label("+ 添加自定义 API").Disabled(busy)
+			add := ui.ButtonBase(c).Row().FillWidth().Justify(ui.Start).Gap(8).AlignItems(ui.Center).Padding(12, 14).Label("+ 添加自定义 API").Disabled(busy)
 			if add.Hovered() {
 				add.Background(t.SurfaceHover)
 			}

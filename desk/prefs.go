@@ -58,7 +58,7 @@ func (a *App) preferences(c *ui.Context) {
 		back.Background(ui.RGBA(0, 0, 0, 0.32))
 		panel.Row().AlignItems(ui.Stretch).Width(min(prefsWidth, w-40)).Height(min(prefsHeight, h-40)).Radius(rDialog).Background(t.Background)
 		a.pal.dialog.on(panel)
-		ui.Column(c).Width(176).FillHeight().Shrink(0).Padding(18, 10).Gap(2).Radius(rDialog, 0, 0, rDialog).Background(a.pal.side).Children(func() {
+		ui.Column(c).Width(176).FillHeight().Shrink(0).Padding(20, 10).Gap(2).Radius(rDialog, 0, 0, rDialog).Background(a.pal.side).Children(func() {
 			ui.Text(c, "设置").FontSize(fsSmall).FontWeight(600).TextColor(a.pal.faint).Padding(0, 10, 8, 10)
 			for _, tl := range prefTabs {
 				tab := tl[0]
@@ -82,7 +82,7 @@ func (a *App) preferences(c *ui.Context) {
 		})
 		ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
 		ui.Scroll(c).Key("prefs-" + a.bk.tab).Grow(1).Shrink(1).FillHeight().Children(func() {
-			ui.Column(c).FillWidth().Padding(28, 36, 32, 36).Gap(22).Children(func() {
+			ui.Column(c).FillWidth().Padding(32, 40, 32, 40).Gap(24).Children(func() {
 				switch a.bk.tab {
 				case "外观":
 					a.looksView(c)

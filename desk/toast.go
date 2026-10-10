@@ -102,7 +102,7 @@ func (a *App) toastCard(c *ui.Context, ts ui.Toast) {
 		Background(a.pal.raised).Border(1, t.Border).Clip()
 	a.pal.pop.on(box)
 	box.Children(func() {
-		ui.Box(c).Padding(1, 0, 0, 0).Shrink(0).Children(func() {
+		ui.Box(c).Padding(2, 0, 0, 0).Shrink(0).Children(func() {
 			switch ts.Type {
 			case "busy":
 				ui.Spinner(c).Size(16, 16)
@@ -197,7 +197,7 @@ func (a *App) toastActions(c *ui.Context, ts ui.Toast) {
 // moreToasts folds the older toasts into one line that opens them.
 func (a *App) moreToasts(c *ui.Context, n int) {
 	t := a.pal.theme
-	b := ui.ButtonBase(c).Padding(3, 10).Radius(rCard).Background(a.pal.raised).Border(1, t.Border).Shrink(0)
+	b := ui.ButtonBase(c).Padding(4, 10).Radius(rCard).Background(a.pal.raised).Border(1, t.Border).Shrink(0)
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}

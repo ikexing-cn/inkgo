@@ -309,7 +309,7 @@ func (a *App) welcome(c *ui.Context) {
 			return
 		}
 		ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(48, 32).Children(func() {
-			ui.Column(c).FillWidth().MaxWidth(960).Gap(22).Children(func() {
+			ui.Column(c).FillWidth().MaxWidth(960).Gap(24).Children(func() {
 				ui.Row(c).FillWidth().AlignItems(ui.End).Gap(10).Children(func() {
 					ui.Column(c).Grow(1).Shrink(1).Gap(6).Children(func() {
 						ui.Text(c, "我的作品").FontSize(fsDisplay).Bold()
@@ -354,7 +354,7 @@ func (a *App) welcome(c *ui.Context) {
 
 func (a *App) emptyShelf(c *ui.Context) {
 	t := a.pal.theme
-	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(72, 24).Gap(28).Children(func() {
+	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(80, 24).Gap(32).Children(func() {
 		ui.Column(c).Width(560).Gap(10).Children(func() {
 			ui.Text(c, "从一个念头开始").FontSize(fsDisplay).Bold()
 			ui.Text(c, "和 AI 慢慢聊，讨论会在后台整理成设定文档。你定下的会被遵守，放下的 AI 不再提起。").FontSize(fsGroup).TextColor(t.TextMuted).LineHeight(1.6)
@@ -424,7 +424,7 @@ func (a *App) bookRow(c *ui.Context, b shelf.Book) {
 		}
 		open.Children(func() {
 			a.initial(c, b.Name, 36, gone)
-			ui.Column(c).Grow(1).Shrink(1).Gap(3).Children(func() {
+			ui.Column(c).Grow(1).Shrink(1).Gap(4).Children(func() {
 				fg := t.Text
 				if gone {
 					fg = a.pal.faint

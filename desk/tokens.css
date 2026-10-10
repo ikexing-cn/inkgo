@@ -79,6 +79,10 @@
   --shadow-focus: 0 0 0 3px rgba(127,127,120,.18); /* 聚焦的输入框 */
   --shadow-inset: inset 0 0 0 .5px rgba(0,0,0,.12); /* 窗口按钮、色块的细边 */
   --shadow-board: 0 1px 3px rgba(0,0,0,.08), 0 10px 30px rgba(0,0,0,.06); /* 画板上的窗口外框 */
+  /* 间距只用这些值（px）：padding、margin、gap 都从这里挑，不另起名字。
+     48 以上只用于画板和整页的大块留白；100 以上的是布局尺寸，不算间距。 */
+  --space: 0 2 4 6 8 10 12 14 16 20 24 32 40;
+  --space-board: 48 56 64 80;
 }
 .dark {
   --shadow-raise: 0 1px 2px rgba(0,0,0,.3);

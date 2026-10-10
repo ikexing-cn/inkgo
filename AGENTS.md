@@ -19,9 +19,9 @@ npm run verify-notes
 1. 新的界面功能都以这份设计为基准：布局、色值、字号、交互照它来；和现有代码冲突时先说出来，不要自己决定以哪边为准。
 2. 设计稿里没有的界面功能，先和作者在这份 artifact 里把设计方向定下来，确认后再开始写代码。
 3. 可以改这份 artifact：作者要求的修改，或作者确认后把设计稿和代码实现的偏差同步过去。改之前先读最新版本，改完告诉作者改了哪几页；不删页面，不动分享设置。
-4. 颜色、字号、圆角、阴影只写名字，不写数字：
+4. 颜色、字号、圆角、阴影只写名字，不写数字；间距只用 `tokens.css` 里 `--space`、`--space-board` 刻度上的数，和别的东西对齐的距离写成算式：
    - 设计稿页面写 `var(--…)`，名字都在 `project/tokens.css`。发布前把最新版本拉到本地，跑 `npm run verify-design -- <本地的 project 目录>`。
-   - 代码用 `desk/theme.go` 里的同名常量（`fsBody`、`rControl`）和调色板里的阴影（`a.pal.pop.on(e)`）。`desk/tokens.css` 是设计稿那份的原样副本；`go test ./desk` 会核对常量和它是否一致，并且检查界面代码里有没有直接写 `FontSize`、`Radius` 的数字或 `Shadow(`。
+   - 代码用 `desk/theme.go` 里的同名常量（`fsBody`、`rControl`）和调色板里的阴影（`a.pal.pop.on(e)`）。`desk/tokens.css` 是设计稿那份的原样副本；`go test ./desk` 会核对常量和它是否一致，并且检查界面代码里有没有直接写 `FontSize`、`Radius` 的数字或 `Shadow(`，`Padding`、`Gap`、`Margin` 的数在不在刻度上。
    - 要加一级，先在「设计规范」页和 `tokens.css` 里加，再复制过来用。
 
 ## 重要改动必须留笔记

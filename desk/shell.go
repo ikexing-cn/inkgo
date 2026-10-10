@@ -146,7 +146,7 @@ func (a *App) sidebar(c *ui.Context) {
 				ui.Text(c, string([]rune(work.Name + " ")[:1])).FontSize(fsControl).Bold().TextColor(a.pal.onInk)
 			})
 			if !slim {
-				ui.Column(c).Grow(1).Shrink(1).Gap(1).Children(func() {
+				ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
 					ui.Text(c, work.Name).FontSize(fsBody).FontWeight(600).SingleLine().Ellipsis("…")
 					ui.Text(c, work.Genre).FontSize(fsSmall).TextColor(t.TextMuted).SingleLine()
 				})
@@ -211,7 +211,7 @@ func (a *App) sidebar(c *ui.Context) {
 				a.newSession()
 			}
 		})
-		ui.Scroll(c).Key("sessions").FillWidth().Grow(1).Gap(1).Children(func() {
+		ui.Scroll(c).Key("sessions").FillWidth().Grow(1).Gap(2).Children(func() {
 			put := 0
 			for n := len(a.sessions) - 1; n >= 0; n-- {
 				id := a.sessions[n]
@@ -249,7 +249,7 @@ func (a *App) sideChrome(c *ui.Context, slim bool, width float32) {
 }
 
 func (a *App) sideRow(c *ui.Context, slim bool, bar ui.TitleBar) {
-	row := ui.Row(c).Height(titleHeight).FillWidth().Padding(0, 12, 0, max(18, bar.Left)).Gap(2).AlignItems(ui.Center).Shrink(0).DragWindow()
+	row := ui.Row(c).Height(titleHeight).FillWidth().Padding(0, 12, 0, max(20, bar.Left)).Gap(2).AlignItems(ui.Center).Shrink(0).DragWindow()
 	row.Children(func() {
 		if slim {
 			return
@@ -280,7 +280,7 @@ func (a *App) talkShown() bool {
 func (a *App) navItem(c *ui.Context, s *ui.SVG, label string, page int, slim bool) {
 	t := a.pal.theme
 	on := a.page == page
-	b := ui.ButtonBase(c).Row().FillWidth().AlignItems(ui.Center).Gap(10).Padding(7, 10).Radius(rControl).Label(label).Disabled(a.busy != "")
+	b := ui.ButtonBase(c).Row().FillWidth().AlignItems(ui.Center).Gap(10).Padding(8, 10).Radius(rControl).Label(label).Disabled(a.busy != "")
 	if slim {
 		b.Tooltip(label).Justify(ui.Center)
 	} else {

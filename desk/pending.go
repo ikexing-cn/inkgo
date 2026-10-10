@@ -136,7 +136,7 @@ func (a *App) pendingButton(c *ui.Context) {
 		return
 	}
 	t := a.pal.theme
-	b := ui.ButtonBase(c).Row().Margin(0, 0, 0, 6).Gap(7).AlignItems(ui.Center).Padding(4, 10).Radius(rControl).Shrink(0).
+	b := ui.ButtonBase(c).Row().Margin(0, 0, 0, 6).Gap(8).AlignItems(ui.Center).Padding(4, 10).Radius(rControl).Shrink(0).
 		Background(a.pal.side).Border(1, a.pal.faint.Alpha(0.6)).Label("待处理")
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
@@ -166,7 +166,7 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 		seg := ui.SegmentedBase(c, &w.pendHere, 2)
 		seg.Track.Label("待处理范围").Padding(2).Radius(rControl).Background(a.pal.bubble).Children(func() {
 			for i, label := range []string{fmt.Sprintf("全部 %d", total), fmt.Sprintf("本章 %d", here)} {
-				s := seg.Segment(i).Padding(3, 10).Radius(rXs)
+				s := seg.Segment(i).Padding(4, 10).Radius(rXs)
 				color := t.TextMuted
 				if i == w.pendHere {
 					a.pal.raise.on(s.Background(a.pal.raised))
@@ -206,7 +206,7 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 					if open {
 						label = "收起"
 					}
-					more := ui.ButtonBase(c).Row().Justify(ui.Start).Margin(0, 8).Padding(7, 12).Label(g.name + label)
+					more := ui.ButtonBase(c).Row().Justify(ui.Start).Margin(0, 8).Padding(8, 12).Label(g.name + label)
 					color := t.TextMuted
 					if more.Hovered() {
 						color = t.Text
@@ -226,7 +226,7 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 		}
 	})
 	ui.Box(c).FillWidth().Height(1).Background(a.pal.line)
-	ui.Row(c).FillWidth().Padding(11, 20).Children(func() {
+	ui.Row(c).FillWidth().Padding(12, 20).Children(func() {
 		ui.Spacer(c)
 		all := ui.ButtonBase(c).Label("全部忽略").Disabled(len(shown) == 0)
 		color := t.TextMuted
@@ -243,7 +243,7 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 // pendingRow is one thing pending; choosing it goes to where it is.
 func (a *App) pendingRow(c *ui.Context, it pendItem) {
 	t := a.pal.theme
-	r := ui.ButtonBase(c).Row().Gap(12).AlignItems(ui.Center).Margin(0, 8).Padding(9, 12).Radius(rControl).Label(it.text)
+	r := ui.ButtonBase(c).Row().Gap(12).AlignItems(ui.Center).Margin(0, 8).Padding(10, 12).Radius(rControl).Label(it.text)
 	if r.Hovered() {
 		r.Background(t.SurfaceHover)
 	}

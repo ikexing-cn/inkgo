@@ -15,7 +15,7 @@ func (a *App) moreButton(c *ui.Context, chapter bool) {
 		w.moreOpen = !w.moreOpen
 	}
 	ui.Popover(c, b, &w.moreOpen, func() {
-		ui.Column(c).Width(250).Gap(1).Children(func() {
+		ui.Column(c).Width(250).Gap(2).Children(func() {
 			if chapter {
 				busy := w.ed.ReadOnly() || w.lost || w.external != nil
 				if a.menuRow(c, icSparkle, "续写一句", modKey+"J", busy).Clicked() {
@@ -68,7 +68,7 @@ func (a *App) menuRow(c *ui.Context, s *ui.SVG, text, hint string, off bool) *ui
 }
 
 func (a *App) menuLine(c *ui.Context) {
-	ui.Box(c).FillWidth().Height(1).Margin(5, 4).Background(a.pal.line).Shrink(0)
+	ui.Box(c).FillWidth().Height(1).Margin(6, 4).Background(a.pal.line).Shrink(0)
 }
 
 // themeChoice picks the appearance of the whole app on this machine:
@@ -89,7 +89,7 @@ func (a *App) themeSegments(c *ui.Context) {
 			s    *ui.SVG
 		}{{"", "跟随系统", icMonitor}, {"light", "浅色", icSun}, {"dark", "深色", icMoon}} {
 			on := a.shelf.Theme == m.v
-			b := ui.ButtonBase(c).Row().Grow(1).Height(26).Center().Gap(5).Radius(rControl).Label("外观-" + m.n)
+			b := ui.ButtonBase(c).Row().Grow(1).Height(26).Center().Gap(6).Radius(rControl).Label("外观-" + m.n)
 			fg := t.TextMuted
 			if on {
 				a.pal.raise.on(b.Background(a.pal.raised))
@@ -141,7 +141,7 @@ func (a *App) selectionBar(c *ui.Context) {
 		top = r.Y + r.H + 6 // under the line when there is no room above
 	}
 	left := max(8, min(r.X-12, w.ed.Width()-width-8))
-	bar := ui.Row(c).Absolute().Left(left).Top(top).Height(height).Padding(3).Gap(2).AlignItems(ui.Center).Radius(rControl).
+	bar := ui.Row(c).Absolute().Left(left).Top(top).Height(height).Padding(4).Gap(2).AlignItems(ui.Center).Radius(rControl).
 		Background(a.pal.raised).Border(1, t.Border)
 	a.pal.pop.on(bar)
 	bar.Children(func() {
@@ -156,7 +156,7 @@ func (a *App) selectionBar(c *ui.Context) {
 
 func (a *App) selButton(c *ui.Context, s *ui.SVG, text string) *ui.Element {
 	t := a.pal.theme
-	b := ui.ButtonBase(c).Row().Height(26).Padding(0, 8).Gap(5).AlignItems(ui.Center).Radius(rControl).Label(text)
+	b := ui.ButtonBase(c).Row().Height(26).Padding(0, 8).Gap(6).AlignItems(ui.Center).Radius(rControl).Label(text)
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}
