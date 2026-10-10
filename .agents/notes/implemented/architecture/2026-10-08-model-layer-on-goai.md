@@ -25,7 +25,7 @@ M1 的模型客户端是自己写的三种协议的非流式请求。实际使�
   - `anthropic` 用 `provider/anthropic`，它会自己补 `/v1/messages`，所以配置里 API 地址末尾的 `/v1` 要去掉。
 
   只有 `model` 包导入 GoAI。
-- **Responses 推理补丁**：DeepSeek 的 Responses API 用 `response.reasoning_text.delta` 发送完整推理（OpenAI SDK 里的 `ResponseReasoningTextDeltaEvent`），GoAI v0.10.6 只认摘要事件。补丁已提交上游 [zendev-sh/goai#183](https://github.com/zendev-sh/goai/pull/183)；合并前，`go.mod` 用 `replace` 指向作者 fork 上的 `fix/responses-reasoning-text` 分支（`3b8f181`）。上游发版后去掉 `replace`。
+- **Responses 推理补丁**：DeepSeek 的 Responses API 用 `response.reasoning_text.delta` 发送完整推理（OpenAI SDK 里的 `ResponseReasoningTextDeltaEvent`），GoAI v0.10.6 只认摘要事件。补丁 [zendev-sh/goai#183](https://github.com/zendev-sh/goai/pull/183) 已合并进上游 v0.10.7；2026-10-10 起 `go.mod` 直接依赖 v0.10.7，不再用 `replace` 指向作者的 fork。
 - 所有请求都走流式。`Completer.Complete(ctx, req, onDelta)` 逐段回调推理和正文增量（不回调空增量），结束后返回 `Reply{Text, Reasoning}`。GoAI 把模型停下的原因放在 `step_finish` 块上，最后的 `finish` 块可能不带原因。所以：
   - 截断、内容过滤或错误都返回错误；
   - 没有出现过带原因的结束块，说明流是半途断开的，也返回错误；
@@ -100,7 +100,7 @@ mygo 在初始化时调用 `bind`，用反射按名字查找方法。只要程�
   - 以后加工具调用时，可以直接用 GoAI 的工具循环；
   - SDK 从环境里读到的凭据不会发往配置以外的地址。
 - **代价与已知上限**：
-  - 在 #183 合并发版之前，依赖的是 fork 上的一个提交；上游如果改了实现方式，去掉 `replace` 时要重新验证 Responses 推理。
+  - 去掉 `replace` 时只确认了上游 v0.10.7 的 `provider/openai/responses.go` 处理 `response.reasoning_text.delta`、本仓库测试全过，没有连真实的 DeepSeek 再验一次 Responses 推理。
   - GoAI 还在 0.x 版本，API 可能变动；只有 `model` 包依赖它。
   - Max 在 OpenAI 的 Responses 或其他兼容服务上可能不被接受，此时 400 错误会提示"推理等级或参数不受支持"。
   - 会话文件会随推理内容明显变大。

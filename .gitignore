@@ -2,3 +2,4 @@ poc.exe
 *.exe
 /artifacts/
 
+/.sample/
