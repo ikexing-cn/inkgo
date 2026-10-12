@@ -46,8 +46,8 @@ func TestAddANameFromTheProse(t *testing.T) {
 	a.write.ed.Select(0, 2)
 	tt.Frame()
 	tt.RightClickAt(550, 300) // on the prose
-	if err := tt.ChooseMenuItem("加入名字表", "人物"); err != nil {
-		t.Fatal(err, tt.Menu())
+	if err := pick(tt, "加入名字表", "人物"); err != nil {
+		t.Fatal(err, rows(tt))
 	}
 	tt.Frame()
 	e := a.set.Entries[len(a.set.Entries)-1]
@@ -55,8 +55,8 @@ func TestAddANameFromTheProse(t *testing.T) {
 		t.Fatalf("entry %+v", e)
 	}
 	tt.RightClickAt(550, 300)
-	if !slices.Contains(tt.Menu(), "已在名字表中") {
-		t.Fatal("offered twice", tt.Menu())
+	if !slices.Contains(rows(tt), "已在名字表中") {
+		t.Fatal("offered twice", rows(tt))
 	}
 }
 

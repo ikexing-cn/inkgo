@@ -74,8 +74,8 @@ func TestLayoutDiscussion(t *testing.T) {
 	if err = tt.Click("更多"); err != nil {
 		t.Fatal(err)
 	}
-	if err = tt.ChooseMenuItem("修改记录"); err != nil {
-		t.Fatal(err, tt.Menu())
+	if err = tt.Click("菜单-修改记录"); err != nil {
+		t.Fatal(err)
 	}
 	tt.Frame()
 	if !tt.HasText("后台整理") {

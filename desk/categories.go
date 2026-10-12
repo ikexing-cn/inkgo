@@ -50,7 +50,7 @@ func (a *App) categories(c *ui.Context) {
 						// 其他 cannot go: what has no category is kept there.
 						del := ui.ButtonBase(c).Label("删除-" + cat.Name).Shrink(0).Disabled(busy || cat.Name == workspace.Other)
 						if del.IsDisabled() {
-							del.Opacity(opacityDisabled)
+							pale(del)
 						}
 						del.Children(func() { ui.Text(c, "删除").FontSize(fsBody).TextColor(t.TextMuted) })
 						if del.Clicked() {

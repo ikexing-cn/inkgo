@@ -260,7 +260,7 @@ func (a *App) textLink(c *ui.Context, text string) ui.Element {
 		fg = t.Text
 	}
 	if b.IsDisabled() {
-		b.Opacity(opacityDisabled)
+		pale(b)
 	}
 	b.Children(func() { ui.Text(c, text).FontSize(fsNote).TextColor(fg).SingleLine() })
 	return b

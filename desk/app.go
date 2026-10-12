@@ -91,6 +91,7 @@ type App struct {
 	failed            string            // the error the last request ended with,
 	fails             int               // and how many times in a row
 	keysOpen          bool              // the shortcuts shown
+	menu              menuState         // the menu open
 	titled            string            // the window title last set
 	shelved           map[string]bool   // the conversations put out of the list
 	showShelved       bool              // the shelved conversations listed too

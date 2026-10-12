@@ -91,7 +91,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, key, cl
 
   // The right button in the prose.
   await click('第87章：停电')
-  await menu(2, '灯一直没有亮。'); await win('记为伏笔…'); await win('记为回收…'); await win('查看伏笔', false); await shot('17-menu')
+  await menu(2, '灯一直没有亮。'); await win('记为伏笔…'); await win('记为回收…'); await win('查看伏笔', false); await win('剪切'); await win('Ctrl+A'); await shot('17-menu')
   must((await drawn('灯一直没有亮。')) === 'sel', 'what was picked is not shown'); await click('记为伏笔…'); await win('记为伏笔，填写备注'); await shot('18-bury')
   must(await js(`document.activeElement.getAttribute('aria-label') === '伏笔备注'`), 'the note of a new foreshadowing is not ready to type in')
   await type('伏笔备注', '灯为什么没亮'); await key('Enter'); await win('记为伏笔，填写备注', false); must((await drawn('灯一直没有亮。')) === 'fs', 'the new foreshadowing is not underlined')
@@ -105,6 +105,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, key, cl
   await js('getSelection().removeAllRanges()')
   const [x, y]: [number, number] = await js(`(() => { const r = document.querySelector('[data-para="0"]').getBoundingClientRect(); return [r.x + 80, r.y + r.height / 2] })()`)
   await rclick(x, y); await win('记为伏笔…'); must(await greyed('记为伏笔…'), 'burying is not greyed'); await shot('22-nothing-picked'); await rclick(x, y); await win('记为伏笔…', false); await done('the menu with nothing picked')
+  await menu(0, '档案室在电力局二楼'); await click('剪切'); await win('原型的正文不能修改'); await click('关闭提示'); await win('粘贴', false); await done('cutting says the prototype cannot')
 
   // A foreshadowing whose sentence is gone takes a new one.
   await click('全部伏笔'); await click('原句已删'); await click('小祥的左手'); await pane('第 1 章的原句已删除'); await shot('23-lost')
@@ -118,7 +119,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, key, cl
 
   // Discussions.
   await click('讨论', 1); await pane('最近'); await click('新讨论'); await pane('示例问题'); await shot('26-new-talk')
-  await click('接下来可以怎么写'); await pane('正在思考…'); await pane('取消请求'); await sleep(800); await pane('正在回复…'); await sleep(700); await pane('这是原型'); await pane('正在回复…', false)
+  await click('接下来可以怎么写'); await pane('正在思考…', false); await key('Enter'); await pane('正在思考…'); await pane('取消请求'); await sleep(800); await pane('正在回复…'); await sleep(700); await pane('这是原型'); await pane('正在回复…', false)
   await type('输入消息', '那下一章呢'); await key('Enter'); await pane('那下一章呢'); await sleep(1500); await pane('先想清楚这一段要做什么'); await shot('27-talk')
   await type('输入消息', '再说一句'); await key('Enter'); await click('取消请求'); await pane('该消息尚未收到回复'); await pane('正在思考', false); await shot('27b-unanswered'); await click('重试回复'); await pane('该消息尚未收到回复', false); await sleep(1500); await pane('我会先留着')
   await pane('先看设定里和这句话有关的几条', false); await click('思考过程'); await pane('先看设定里和这句话有关的几条'); await shot('27c-thought'); await click('思考过程'); await pane('先看设定里和这句话有关的几条', false); await done('a reply cancelled and asked for again')
@@ -217,7 +218,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, key, cl
   await win('设定里只写了他是她带出来的徒弟', true); await click('摘取原文', 1); await win('拖选一段原文，作为已确定的设定加入正文。原文不会被修改。'); await win('尚未选中文字'); await click('收起原文'); await win('尚未选中文字', false); await click('摘取原文', 1)
   await js(`(() => { const box = document.querySelector('.source-text'), r = document.createRange(); r.setStart(box.firstChild, 0); r.setEnd(box.firstChild, 18); const s = getSelection(); s.removeAllRanges(); s.addRange(r); box.dispatchEvent(new MouseEvent('mouseup', { bubbles: true })) })()`); await win('已选 18 字'); await shot('58b-source')
   await click('加入设定'); await win('已加入设定正文'); await pane('设定里只写了他是她带出来的徒弟。可以'); await click('关闭提示'); await done('what stands under a reply')
-  await click('新对话'); await win('从一个初步的想法开始'); await shot('59-new-talk-page'); await click('这个故事的冲突在哪'); await win('正在思考…'); await sleep(1500); await win('这是原型'); await win('2 条发言')
+  await click('新对话'); await win('从一个初步的想法开始'); await shot('59-new-talk-page'); await click('这个故事的冲突在哪'); await win('正在思考…', false); await click('发送'); await win('正在思考…'); await sleep(1500); await win('这是原型'); await win('2 条发言')
   await type('讨论输入', '再想想'); await key('Enter', true); await win('3 条发言'); await sleep(1500); await win('先想清楚这一段要做什么'); await done('a new talk on its page')
   await click('当前模型'); await win('思考程度'); await shot('60-model'); await click('claude-sonnet-5-5'); await win('思考程度', false); await win('claude-sonnet-5-5'); await click('当前模型'); await click('High'); await click('当前模型'); await click('模型设置…'); await win('为本作品选择模型。'); await done('the model of a discussion')
 

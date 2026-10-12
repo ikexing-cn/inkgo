@@ -19,6 +19,10 @@ const narrow = 1180
 
 func (a *App) View(c *ui.Context) {
 	a.poll()
+	if !a.menu.seen {
+		a.menu = menuState{} // what it belonged to is no longer shown
+	}
+	a.menu.seen = false
 	defer a.nameWindow()
 	if a.Store != nil && a.worker == nil {
 		a.startWorker(c)
@@ -147,7 +151,7 @@ func (a *App) sidebar(c *ui.Context) {
 		a.sideChrome(c, slim, width)
 		work := a.Store.Work()
 		head := ui.ButtonBase(c).Row().FillWidth().AlignItems(ui.Center).Gap(10).Padding(4, 8).Radius(rControl).Label("切换作品").Tooltip("切换作品").Disabled(busy)
-		if head.Hovered() {
+		if head.Hovered() || a.menuOpen("作品") {
 			head.Background(t.SurfaceHover)
 		}
 		head.Children(func() {
@@ -163,27 +167,37 @@ func (a *App) sidebar(c *ui.Context) {
 			}
 		})
 		var chosen func()
-		head.Menu(func(m *ui.Menu) {
+		a.dropMenu(c, head, "作品", func(panel ui.Element) {
+			// As wide as the head it hangs from, where that is wide enough.
+			panel.Margin(4, 0, 0, 0).Width(max(head.Bounds().W, menuWide))
+		}, func(m *menu) {
 			n := 0
 			for _, b := range a.shelf.Recent() {
+				if sameFolder(b.Path, a.Store.Root()) {
+					continue
+				}
 				if n == 5 {
 					break
 				}
+				if n == 0 {
+					m.Head("切换作品")
+				}
 				n++
 				path := b.Path
-				if m.Item(b.Name).Checked(sameFolder(path, a.Store.Root())).Disabled(a.books.missing[path]).Chosen() && !sameFolder(path, a.Store.Root()) {
+				if m.Item(b.Name).Hint(b.Genre).Disabled(a.books.missing[path]).Chosen() {
 					chosen = func() { a.switchWork(path) }
 				}
 			}
-			m.Separator()
+			if n > 0 {
+				m.Separator()
+			}
 			if m.Item("新建作品…").Chosen() {
 				chosen = a.openCreate
 			}
 			if m.Item("全部作品…").Chosen() {
 				chosen = a.closeWork
 			}
-			m.Separator()
-			if m.Item("快捷键…").Shortcut(ui.Cmd, ui.KeySlash).Chosen() {
+			if m.Item("快捷键…").Hint(modKey + "/").Chosen() {
 				a.keysOpen = true
 			}
 		})
@@ -341,7 +355,7 @@ func (a *App) sessionItem(c *ui.Context, id string) {
 		ui.Text(c, words).FontSize(fsControl).TextColor(fg).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 		ui.Text(c, when).FontSize(fsSmall).TextColor(a.pal.faint).SingleLine()
 	})
-	b.ContextMenu(func(m *ui.Menu) {
+	a.contextMenu(c, b, "对话-"+id, func(m *menu) {
 		if a.shelved[id] {
 			if m.Item("移回列表").Disabled(a.busy != "").Chosen() {
 				delete(a.shelved, id)

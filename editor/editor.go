@@ -34,11 +34,10 @@ type Options struct {
 	Prose bool
 	// Placeholder shows while the text is empty.
 	Placeholder string
-	// OwnMarks leaves marking a foreshadowing out of the context menu:
-	// the host offers its own in Menu.
-	OwnMarks bool
-	// Menu adds items to the end of the context menu.
-	Menu func(m *ui.Menu)
+	// OwnMenu, when set, leaves the context menu to the host, which draws
+	// its own: it is told where in the window one was asked for, the
+	// pointer or, for the menu key, under the caret.
+	OwnMenu func(x, y float32)
 	// Zoom, when set, takes Ctrl+wheel (Cmd on macOS): d is 1 to make the
 	// text larger, -1 smaller.
 	Zoom func(d int)
@@ -102,6 +101,7 @@ type Editor struct {
 	zoomed    float32
 	dragging  bool
 	wantFocus bool
+	menuKey   bool // the menu key was pressed: the host is told in View
 	focused   bool
 	popRect   ui.Rect
 }

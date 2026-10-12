@@ -1,7 +1,7 @@
 package desk
 
 import (
-	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
@@ -14,7 +14,7 @@ import (
 // paneFind is the top of a list: a box that only searches, the button that
 // adds beside it when add names one, and what is rarely looked at under
 // the dots when more lists it.
-func (a *App) paneFind(c *ui.Context, query *string, hint, add string, more func(m *ui.Menu)) (added bool) {
+func (a *App) paneFind(c *ui.Context, query *string, hint, add string, more func(m *menu)) (added bool) {
 	t := a.pal.theme
 	ui.Row(c).FillWidth().Gap(8).Padding(0, 20, 12, 20).AlignItems(ui.Center).Shrink(0).Children(func() {
 		box := ui.Row(c).Grow(1).Shrink(1).Height(hControl).Gap(8).Padding(0, 10).AlignItems(ui.Center).Radius(rControl).Background(a.pal.canvas).Border(1, t.Border)
@@ -31,7 +31,7 @@ func (a *App) paneFind(c *ui.Context, query *string, hint, add string, more func
 				b.Background(t.SurfaceHover)
 			}
 			if b.IsDisabled() {
-				b.Opacity(opacityDisabled)
+				pale(b)
 			}
 			b.Children(func() {
 				glyph(c, icPlus, iconSm, t.Text)
@@ -41,22 +41,24 @@ func (a *App) paneFind(c *ui.Context, query *string, hint, add string, more func
 		}
 		if more != nil {
 			b := ui.ButtonBase(c).Size(hControl, hControl).Center().Radius(rControl).Shrink(0).Label("更多").Tooltip("更多")
-			if b.Hovered() {
+			if b.Hovered() || a.menuOpen(hint) {
 				b.Background(t.SurfacePressed)
 			}
 			b.Children(func() { glyph(c, icMore, iconMd, t.TextMuted) })
-			b.Menu(more)
+			a.dropMenu(c, b, hint, func(panel ui.Element) {
+				panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(4, 0, 0, 0).Width(160)
+			}, more)
 		}
 	})
 	return added
 }
 
-// counted is a menu item's label with how many it leads to, when any.
-func counted(label string, n int) string {
+// count is how many a menu's row leads to, at its right, when any.
+func count(n int) string {
 	if n == 0 {
-		return label
+		return ""
 	}
-	return fmt.Sprintf("%s  %d", label, n)
+	return strconv.Itoa(n)
 }
 
 // paneRows is the list under the top of a tab, which scrolls.
@@ -238,7 +240,7 @@ func (a *App) paneButton(c *ui.Context, text string, primary bool) ui.Element {
 		}
 	}
 	if b.IsDisabled() {
-		b.Opacity(opacityDisabled)
+		pale(b)
 	}
 	b.Children(func() { ui.Text(c, text).FontSize(fsControl).TextColor(fg).SingleLine() })
 	return b

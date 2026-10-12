@@ -111,8 +111,8 @@ func TestTheAuthorEditsTheSetting(t *testing.T) {
 	if err := tt.Click("更多"); err != nil {
 		t.Fatal(err)
 	}
-	if err := tt.ChooseMenuItem("已删除  1"); err != nil {
-		t.Fatal(err, tt.Menu())
+	if err := pick(tt, "已删除"); err != nil {
+		t.Fatal(err, rows(tt))
 	}
 	tt.Frame()
 	if err := tt.Click("设定-" + e.ID); err != nil {
@@ -186,8 +186,8 @@ func TestBookkeeperFillsTheSettingInTheBackground(t *testing.T) {
 	if err := tt.Click("更多"); err != nil {
 		t.Fatal(err)
 	}
-	if err := tt.ChooseMenuItem("修改记录"); err != nil {
-		t.Fatal(err, tt.Menu())
+	if err := pick(tt, "修改记录"); err != nil {
+		t.Fatal(err, rows(tt))
 	}
 	tt.Frame()
 	if !tt.HasText("后台整理") || !tt.HasText("新增到正文 · 规则：雨从不停") || !tt.HasText("整理思考过程") {
@@ -597,7 +597,7 @@ func TestShelveAConversation(t *testing.T) {
 	if err := tt.RightClick("对话-" + old); err != nil {
 		t.Fatal(err)
 	}
-	if err := tt.ChooseMenuItem("收起这段对话"); err != nil {
+	if err := pick(tt, "收起这段对话"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -617,7 +617,7 @@ func TestShelveAConversation(t *testing.T) {
 	if err := tt.RightClick("对话-" + old); err != nil {
 		t.Fatal("not shown", err)
 	}
-	if err := tt.ChooseMenuItem("移回列表"); err != nil {
+	if err := pick(tt, "移回列表"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

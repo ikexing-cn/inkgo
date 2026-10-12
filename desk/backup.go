@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -544,7 +545,8 @@ func size(n int64) string {
 	return strings.TrimSuffix(fmt.Sprintf("%.1f", float64(n)/(1<<20)), ".0") + " MB"
 }
 
-var keepChoices = []int{10, 30, 60, 100}
+// keepChoices are how many backups the settings offer to keep.
+var keepChoices = []int{10, 30, 90}
 
 // backupSettingsView is the settings' 备份.
 func (a *App) backupSettingsView(c *ui.Context) {
@@ -614,15 +616,21 @@ func (a *App) backupSettingsView(c *ui.Context) {
 		})
 		row(c, "保留份数", func() {
 			{
-				names := make([]string, len(keepChoices))
-				for i, k := range keepChoices {
+				// A number kept from before these were the choices stays one.
+				keeps := keepChoices
+				if !slices.Contains(keeps, s.Kept()) {
+					keeps = append(slices.Clone(keeps), s.Kept())
+					slices.Sort(keeps)
+				}
+				names := make([]string, len(keeps))
+				for i, k := range keeps {
 					names[i] = fmt.Sprintf("最近 %d 份", k)
 				}
 				a.bk.keepChoice = fmt.Sprintf("最近 %d 份", s.Kept())
 				if ui.Select(c, &a.bk.keepChoice, names).Label("保留份数").Width(140).Changed() {
 					for i, n := range names {
 						if n == a.bk.keepChoice {
-							s.Keep = keepChoices[i]
+							s.Keep = keeps[i]
 						}
 					}
 					a.setBackup(s) // the next backup removes those beyond it

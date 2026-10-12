@@ -227,8 +227,7 @@ func (a *App) loadTree() error {
 func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.Editor {
 	doc := editor.NewDoc(text)
 	doc.LoadMarks(editorMarks(marks))
-	var ed *editor.Editor
-	ed = editor.New(doc, editor.Options{Prose: true, OwnMarks: true, Placeholder: "在此开始写作…", Font: ui.Font{Size: float32(a.write.textSize())}, LineHeight: lhPaper,
+	return editor.New(doc, editor.Options{Prose: true, Placeholder: "在此开始写作…", Font: ui.Font{Size: float32(a.write.textSize())}, LineHeight: lhPaper,
 		Predictor: pen{writer: &a.write.pen, chapter: a.write.node}, PredictDelay: saveAfter, PredictOnDemand: !a.write.autoPredict,
 		GhostNote: func() string {
 			if pw := a.write.pen.Load(); pw != nil {
@@ -236,26 +235,48 @@ func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.
 			}
 			return ""
 		},
-		Zoom: a.sizeText,
-		Menu: func(m *ui.Menu) {
-			s, e := ed.Selection()
-			busy := ed.ReadOnly()
-			if m.Item("续写一句").Shortcut(ui.Cmd, ui.KeyJ).Disabled(busy).Chosen() {
-				a.continueText()
-			}
-			if m.Item("AI 改写…").Disabled(s == e || busy).Chosen() {
-				a.openRewrite()
-			}
-			if m.Item("引用到讨论").Shortcut(ui.Cmd, ui.KeyL).Disabled(s == e).Chosen() {
-				a.quoteToTalk()
-			}
-			if m.Item("加入设定").Disabled(s == e).Chosen() {
-				a.openTake()
-			}
-			a.nameMenu(m, ed.Doc.Slice(s, e))
-			a.foreMenu(m)
-		}})
-	return ed
+		Zoom:    a.sizeText,
+		OwnMenu: func(x, y float32) { a.menu = menuState{owner: "正文", x: x, y: y} },
+	})
+}
+
+// textMenu is the menu of the chapter's text: what the clipboard does, what
+// the AI and the setting do with the selection, and its foreshadowings.
+func (a *App) textMenu(m *menu) {
+	ed := a.write.ed
+	s, e := ed.Selection()
+	busy := ed.ReadOnly()
+	if m.Item("剪切").Hint(modKey + "X").Disabled(s == e || busy).Chosen() {
+		ed.Cut()
+	}
+	if m.Item("复制").Hint(modKey + "C").Disabled(s == e).Chosen() {
+		ed.Copy()
+	}
+	if m.Item("粘贴").Hint(modKey + "V").Disabled(busy).Chosen() {
+		ed.Paste()
+	}
+	if m.Item("全选").Hint(modKey + "A").Chosen() {
+		ed.SelectAll()
+	}
+	m.Separator()
+	if m.Item("续写一句").Hint(modKey + "J").Disabled(busy).Chosen() {
+		a.continueText()
+	}
+	if m.Item("AI 改写…").Disabled(s == e || busy).Chosen() {
+		a.openRewrite()
+	}
+	if m.Item("引用到讨论").Hint(modKey + "L").Disabled(s == e).Chosen() {
+		a.quoteToTalk()
+	}
+	if m.Item("加入设定").Disabled(s == e).Chosen() {
+		a.openTake()
+	}
+	a.nameMenu(m, ed.Doc.Slice(s, e))
+	m.Separator()
+	a.foreMenu(m)
+	if ed.Marked() && m.Item("移除此处标记").Disabled(busy).Chosen() {
+		ed.Unmark()
+	}
 }
 
 // openNode shows node id, saving what was shown first.
@@ -1111,6 +1132,7 @@ func (a *App) chapterView(c *ui.Context) {
 		w.ed.View(c).Fill()
 		a.selectionBar(c)
 		a.forePopover(c)
+		a.menuAt(c, "正文", a.textMenu)
 	})
 	a.footBar(c, true)
 }
@@ -1395,7 +1417,6 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 	if v, ok := ui.Drop[dragNode](row); ok {
 		a.dropOn(string(v), n)
 	}
-	row.ContextMenu(func(m *ui.Menu) { a.nodeMenu(m, n) })
 	row.Children(func() {
 		// The top level reads darker than what is inside a folder.
 		fg, weight := t.Text, 400
@@ -1420,6 +1441,7 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 			ui.Text(c, strings.ReplaceAll(strings.TrimSuffix(words(k), "字"), " ", "")).FontSize(fsSmall).TextColor(a.pal.faint)
 		}
 	})
+	a.contextMenu(c, row, "章节-"+n.ID, func(m *menu) { a.nodeMenu(m, n) })
 	if row.Clicked() {
 		if n.Folder && on {
 			w.folded[n.ID] = !w.folded[n.ID]
@@ -1431,7 +1453,7 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 }
 
 // nodeMenu is what a node's context menu offers.
-func (a *App) nodeMenu(m *ui.Menu, n *workspace.Node) {
+func (a *App) nodeMenu(m *menu, n *workspace.Node) {
 	w := &a.write
 	siblings := n.Parent.Children
 	i := slices.Index(siblings, n)
@@ -1453,19 +1475,25 @@ func (a *App) nodeMenu(m *ui.Menu, n *workspace.Node) {
 	if m.Item("下移").Disabled(i == len(siblings)-1).Chosen() {
 		a.move(n.ID, n.Parent.ID, i+1)
 	}
-	m.Submenu("移到", func(m *ui.Menu) {
-		if m.Item("最上层").Disabled(n.Parent.Parent == nil).Chosen() {
+	// Where else it can go: not where it is, nor inside itself.
+	var into []*workspace.Node
+	var depths []int
+	w.tree.Walk(func(f *workspace.Node, depth int) {
+		if f.Folder && f != n.Parent && !f.Within(n) {
+			into, depths = append(into, f), append(depths, depth)
+		}
+	})
+	if top := n.Parent.Parent != nil; top || len(into) > 0 {
+		m.Head("移到")
+		if top && m.Item("最上层").Chosen() {
 			a.move(n.ID, "", len(w.tree.Root.Children))
 		}
-		w.tree.Walk(func(f *workspace.Node, depth int) {
-			if !f.Folder || f.Within(n) {
-				return
-			}
-			if m.Item(strings.Repeat("　", depth) + f.Title).Disabled(f == n.Parent).Chosen() {
+		for i, f := range into {
+			if m.Item(strings.Repeat("　", depths[i]) + f.Title).Chosen() {
 				a.move(n.ID, f.ID, len(f.Children))
 			}
-		})
-	})
+		}
+	}
 	m.Separator()
 	if m.Item("移到回收站").Chosen() {
 		a.trashNode(n)

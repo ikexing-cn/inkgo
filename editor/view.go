@@ -27,7 +27,7 @@ func (e *Editor) View(c *ui.Context) ui.Element {
 	el.TextCaret(e.caretRect())
 	el.Draw(e.paint)
 	el.DrawOver(e.paintPopup)
-	el.ContextMenu(e.menu)
+	e.contextMenu(el)
 	return el
 }
 
@@ -245,12 +245,30 @@ func (e *Editor) DismissGhost() {
 	e.predictVer, e.predictAt = e.Doc.version, e.caret
 }
 
+// contextMenu shows the editor's own menu, or tells the host that draws
+// one where it was asked for.
+func (e *Editor) contextMenu(el ui.Element) {
+	if e.opts.OwnMenu == nil {
+		el.ContextMenu(e.menu)
+		return
+	}
+	at := el.Bounds()
+	if el.RightClicked() {
+		x, y, _ := el.PointerPosition()
+		e.opts.OwnMenu(at.X+x, at.Y+y)
+	} else if e.menuKey {
+		r := e.caretRect()
+		e.opts.OwnMenu(at.X+r.X, at.Y+r.Y+r.H)
+	}
+	e.menuKey = false
+}
+
 // menu is the editor's context menu.
 func (e *Editor) menu(m *ui.Menu) {
 	a, b := e.Selection()
 	if e.opts.ReadOnly {
 		if m.Item("复制").Shortcut(ui.Cmd, ui.KeyC).Disabled(a == b).Chosen() {
-			e.copy()
+			e.Copy()
 		}
 		if m.Item("全选").Shortcut(ui.Cmd, ui.KeyA).Chosen() {
 			e.SelectAll()
@@ -258,33 +276,40 @@ func (e *Editor) menu(m *ui.Menu) {
 		return
 	}
 	if m.Item("剪切").Shortcut(ui.Cmd, ui.KeyX).Disabled(a == b).Chosen() {
-		e.cut()
+		e.Cut()
 	}
 	if m.Item("复制").Shortcut(ui.Cmd, ui.KeyC).Disabled(a == b).Chosen() {
-		e.copy()
+		e.Copy()
 	}
 	if m.Item("粘贴").Shortcut(ui.Cmd, ui.KeyV).Chosen() {
-		e.paste()
+		e.Paste()
 	}
 	if m.Item("全选").Shortcut(ui.Cmd, ui.KeyA).Chosen() {
 		e.SelectAll()
 	}
 	m.Separator()
-	if !e.opts.OwnMarks && m.Item("标记为伏笔").Disabled(a == b).Chosen() {
+	if m.Item("标记为伏笔").Disabled(a == b).Chosen() {
 		e.MarkSelection(MarkForeshadow, "")
 	}
+	if m.Item("移除此处标记").Disabled(!e.Marked()).Chosen() {
+		e.Unmark()
+	}
+}
+
+// Marked reports whether the caret is in a mark.
+func (e *Editor) Marked() bool { return e.markAt(e.caret) != 0 }
+
+// Unmark removes the innermost mark around the caret, as one step to undo.
+func (e *Editor) Unmark() {
 	id := e.markAt(e.caret)
-	if m.Item("移除此处标记").Disabled(id == 0).Chosen() {
-		before := e.Doc.Marks()
-		e.Doc.RemoveMark(id)
-		e.undo = append(e.undo, undoStep{at: e.caret, caretBefore: e.caret, anchorBefore: e.anchor, caretAfter: e.caret,
-			marksBefore: before, marksAfter: e.Doc.Marks(), when: time.Now()})
-		e.redo = nil
+	if id == 0 {
+		return
 	}
-	if e.opts.Menu != nil {
-		m.Separator()
-		e.opts.Menu(m)
-	}
+	before := e.Doc.Marks()
+	e.Doc.RemoveMark(id)
+	e.undo = append(e.undo, undoStep{at: e.caret, caretBefore: e.caret, anchorBefore: e.anchor, caretAfter: e.caret,
+		marksBefore: before, marksAfter: e.Doc.Marks(), when: time.Now()})
+	e.redo = nil
 }
 
 // unindent drops the indent before each line of s.
@@ -307,22 +332,25 @@ func (e *Editor) markAt(i int) int {
 	return id
 }
 
-func (e *Editor) copy() {
+// Copy puts the selection on the clipboard.
+func (e *Editor) Copy() {
 	if s := e.SelectedText(); s != "" {
 		e.sv.WriteClipboard(s)
 	}
 }
 
-func (e *Editor) cut() {
+// Cut takes the selection out of the text, onto the clipboard.
+func (e *Editor) Cut() {
 	a, b := e.Selection()
 	if a == b {
 		return
 	}
-	e.copy()
+	e.Copy()
 	e.replaceRange(a, b, "", false)
 }
 
-func (e *Editor) paste() {
+// Paste puts what the clipboard holds in place of the selection.
+func (e *Editor) Paste() {
 	if e.c == nil {
 		return
 	}

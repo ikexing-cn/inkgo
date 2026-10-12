@@ -266,8 +266,8 @@ func TestTrashAndRestoreFromTheTree(t *testing.T) {
 	if err = tt.RightClick("章节-第二章"); err != nil {
 		t.Fatal(err, tt.Texts())
 	}
-	if err = tt.ChooseMenuItem("移到回收站"); err != nil {
-		t.Fatal(err, tt.Menu())
+	if err = pick(tt, "移到回收站"); err != nil {
+		t.Fatal(err, rows(tt))
 	}
 	tt.Frame()
 	if _, ok := a.write.tree.Node(two); ok || tt.HasText("第二章") && !tt.HasText("「第二章」已移到回收站") {
@@ -294,7 +294,7 @@ func TestTrashAndRestoreFromTheTree(t *testing.T) {
 	if err = tt.RightClick("章节-第二章"); err != nil {
 		t.Fatal(err)
 	}
-	if err = tt.ChooseMenuItem("上移"); err != nil {
+	if err = pick(tt, "上移"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

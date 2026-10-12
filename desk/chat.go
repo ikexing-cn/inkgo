@@ -162,7 +162,7 @@ func (a *App) emptyChat(c *ui.Context) {
 				}
 				b.Children(func() { ui.Text(c, s).FontSize(fsControl).TextColor(fg) })
 				if b.Clicked() {
-					a.input = s
+					a.input, a.focusTalk = s, true
 				}
 			}
 		})
@@ -393,7 +393,7 @@ func (a *App) composer(c *ui.Context) {
 	// opens a menu to change either; its tooltip says where the words go.
 	chip := func() {
 		chip := ui.ButtonBase(c).Row().Gap(6).AlignItems(ui.Center).Padding(4, 8).Radius(rControl).Label("当前模型").Tooltip(a.destination(work.Discussion)).Shrink(1).Disabled(a.busy != "")
-		if chip.Hovered() {
+		if chip.Hovered() || a.menuOpen("讨论模型") {
 			chip.Background(t.SurfaceHover)
 		}
 		chip.Children(func() {
@@ -411,7 +411,9 @@ func (a *App) composer(c *ui.Context) {
 			}
 			glyph(c, icChevronUp, iconXs, a.pal.faint)
 		})
-		chip.Menu(func(m *ui.Menu) { a.modelMenu(m, work) })
+		a.dropMenu(c, chip, "讨论模型", func(panel ui.Element) {
+			panel.AttachTo(chip, ui.AnchorTopRight, ui.AnchorBottomRight).Margin(0, 0, 4, 0).Width(220)
+		}, func(m *menu) { a.modelMenu(m, work) })
 	}
 	send := func() {
 		can := a.busy == "" && trim(a.input) != ""
@@ -553,7 +555,8 @@ func (a *App) retry(c *ui.Context, userID string) {
 }
 
 func (a *App) openSource(m workspace.Event, start, end int) {
-	a.source = editor.New(editor.NewDoc(m.Text), editor.Options{ReadOnly: true, LineHeight: lhRead})
+	a.source = editor.New(editor.NewDoc(m.Text), editor.Options{ReadOnly: true, LineHeight: lhRead,
+		OwnMenu: func(x, y float32) { a.menu = menuState{owner: "原文", x: x, y: y} }})
 	if end > start {
 		a.source.MoveTo(start, false)
 		a.source.MoveTo(end, true)
@@ -570,6 +573,14 @@ func (a *App) extraction(c *ui.Context) {
 			a.pal.dialogHead(c, "摘取原文", "拖选一段原文，作为已确定的设定加入正文。原文不会被修改。")
 			a.source.View(c).Height(220).FillWidth().Border(1, t.Border).Radius(rCard)
 			start, end := a.source.Selection()
+			a.menuAt(c, "原文", func(m *menu) {
+				if m.Item("复制").Hint(modKey + "C").Disabled(start == end).Chosen() {
+					a.source.Copy()
+				}
+				if m.Item("全选").Hint(modKey + "A").Chosen() {
+					a.source.SelectAll()
+				}
+			})
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
 				ui.Select(c, &a.sourceCategory, a.categoryNames()).Label("摘取分类").Width(140)
 				if start == end {
@@ -611,33 +622,37 @@ func (a *App) categoryNames() []string {
 // modelMenu changes the discussion model and its effort without leaving the
 // conversation. Models come from each provider's catalog; one outside it
 // is set in the model settings.
-func (a *App) modelMenu(m *ui.Menu, work workspace.Work) {
-	m.Submenu("模型", func(m *ui.Menu) {
-		for _, p := range a.Config.Providers {
-			if len(p.Models) == 0 {
-				continue
-			}
-			m.Submenu(p.Name, func(m *ui.Menu) {
-				for _, id := range p.Models {
-					on := work.Discussion.Provider == p.ID && work.Discussion.Model == id
-					if m.Item(id).Checked(on).Chosen() {
-						a.setTalk(func(s *workspace.Selection) { s.Provider, s.Model = p.ID, id })
-					}
-				}
-			})
+func (a *App) modelMenu(m *menu, work workspace.Work) {
+	var with []model.Provider
+	for _, p := range a.Config.Providers {
+		if len(p.Models) > 0 {
+			with = append(with, p)
 		}
-		m.Separator()
-		if m.Item("模型设置…").Chosen() {
-			a.openPrefs("模型")
+	}
+	for _, p := range with {
+		// One service's models need no name over them.
+		head := "模型"
+		if len(with) > 1 {
+			head = p.Name
 		}
-	})
-	m.Submenu("思考程度", func(m *ui.Menu) {
-		for _, e := range model.Efforts {
-			if m.Item(e.Label()).Checked(work.Discussion.Effort == string(e)).Chosen() {
-				a.setTalk(func(s *workspace.Selection) { s.Effort = string(e) })
+		m.Head(head)
+		for _, id := range p.Models {
+			on := work.Discussion.Provider == p.ID && work.Discussion.Model == id
+			if m.Item(id).On(on).Chosen() {
+				a.setTalk(func(s *workspace.Selection) { s.Provider, s.Model = p.ID, id })
 			}
 		}
-	})
+	}
+	if m.Item("模型设置…").Chosen() {
+		a.openPrefs("模型")
+	}
+	m.Separator()
+	m.Head("思考程度")
+	for _, e := range model.Efforts {
+		if m.Item(e.Label()).On(work.Discussion.Effort == string(e)).Chosen() {
+			a.setTalk(func(s *workspace.Selection) { s.Effort = string(e) })
+		}
+	}
 }
 
 // setTalk changes the work's discussion selection and saves it.

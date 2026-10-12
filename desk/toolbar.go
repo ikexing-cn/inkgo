@@ -18,7 +18,7 @@ func (a *App) moreButton(c *ui.Context, chapter bool) {
 		ui.Column(c).MinWidth(230).Children(func() {
 			if chapter {
 				busy := w.ed.ReadOnly() || w.lost || w.external != nil
-				if a.menuRow(c, icSparkle, "续写一句", modKey+"J", busy).Clicked() {
+				if a.pal.popRow(c, icSparkle, "续写一句", modKey+"J", busy, false).Clicked() {
 					w.moreOpen = false
 					a.continueText()
 				}
@@ -26,55 +26,30 @@ func (a *App) moreButton(c *ui.Context, chapter bool) {
 				if strings.TrimSpace(w.outline) == "" {
 					hint = "请先填写章纲"
 				}
-				if a.menuRow(c, icDraft, "起草本章", hint, busy || hint != "").Clicked() {
+				if a.pal.popRow(c, icDraft, "起草本章", hint, busy || hint != "", false).Clicked() {
 					w.moreOpen = false
 					a.openDraft()
 				}
-				a.menuLine(c)
-				if a.menuRow(c, icHistory, "快照", "", busy).Clicked() {
+				a.pal.popLine(c)
+				if a.pal.popRow(c, icHistory, "快照", "", busy, false).Clicked() {
 					w.moreOpen = false
 					a.openSnapshots()
 				}
 			}
-			if a.menuRow(c, icDownload, "导出…", "", false).Clicked() {
+			if a.pal.popRow(c, icDownload, "导出…", "", false, false).Clicked() {
 				w.moreOpen = false
 				w.exportOpen, w.exportDone, w.exportFrom, w.exportAt = true, false, "", 0
 			}
-			a.menuLine(c)
+			a.pal.popLine(c)
 			a.themeChoice(c)
 		})
 	})
 }
 
-// menuRow is a row of a menu drawn in a popover: an icon, what it does,
-// and on the right a shortcut, or why it cannot be done now.
-func (a *App) menuRow(c *ui.Context, s *ui.SVG, text, hint string, off bool) ui.Element {
-	t := a.pal.theme
-	b := ui.ButtonBase(c).Row().FillWidth().Height(hRow).Padding(0, 10).Gap(8).AlignItems(ui.Center).Radius(rControl).Label(strings.TrimSuffix(text, "…")).Disabled(off)
-	fg := t.AccentHover
-	if off {
-		fg = a.pal.faint
-	} else if b.Hovered() {
-		b.Background(t.SurfaceHover)
-	}
-	b.Children(func() {
-		glyph(c, s, iconMd, fg)
-		ui.Text(c, text).FontSize(fsControl).TextColor(fg).Grow(1).SingleLine()
-		if hint != "" {
-			ui.Text(c, hint).FontSize(fsSmall).TextColor(a.pal.faint).SingleLine()
-		}
-	})
-	return b
-}
-
-func (a *App) menuLine(c *ui.Context) {
-	ui.Box(c).FillWidth().Height(1).Margin(4, 0).Background(a.pal.line).Shrink(0)
-}
-
 // themeChoice picks the appearance of the whole app on this machine:
 // following the system, light or dark.
 func (a *App) themeChoice(c *ui.Context) {
-	ui.Text(c, "外观").FontSize(fsSmall).TextColor(a.pal.faint).Padding(6, 10, 2, 10)
+	a.pal.popHead(c, "外观")
 	// As wide as its three words: the menu grows to hold it, it does not
 	// squeeze into the menu.
 	ui.Row(c).Padding(2, 6, 6, 6).Children(func() { a.themeSegments(c, false) })
@@ -138,7 +113,7 @@ func (a *App) selectionBar(c *ui.Context) {
 	w := &a.write
 	r, ok := w.ed.SelectionTop()
 	if !ok || w.ed.ReadOnly() || w.lost || w.external != nil || w.rewriting || w.run != nil || w.proposed != nil ||
-		w.takeOpen || w.ed.Predicting() || w.fore.noting || w.fore.paying {
+		w.takeOpen || w.ed.Predicting() || w.fore.noting || w.fore.paying || a.menuOpen("正文") {
 		return
 	}
 	t := a.pal.theme

@@ -390,11 +390,10 @@ func (a *App) foreAt() string {
 }
 
 // foreMenu is what the chapter's context menu does with foreshadowings.
-func (a *App) foreMenu(m *ui.Menu) {
+func (a *App) foreMenu(m *menu) {
 	w := &a.write
 	s, e := w.ed.Selection()
 	busy := w.ed.ReadOnly()
-	m.Separator()
 	if m.Item("记为伏笔…").Disabled(s == e || busy).Chosen() {
 		a.openBury()
 	}
@@ -588,9 +587,9 @@ func (a *App) foreList(c *ui.Context, all []foreshadow) {
 		})
 		return
 	}
-	a.paneFind(c, &s.query, "搜索伏笔", "", func(m *ui.Menu) {
+	a.paneFind(c, &s.query, "搜索伏笔", "", func(m *menu) {
 		for _, st := range []foreStatus{foreDone, foreDropped} {
-			if m.Item(counted(foreLabels[st], counts[st])).Chosen() {
+			if m.Item(foreLabels[st]).Hint(count(counts[st])).Chosen() {
 				s.status = st
 			}
 		}
@@ -790,7 +789,7 @@ func (a *App) remindersView(c *ui.Context) {
 			step := func(sign, label, tip string, off bool, to int) {
 				b := ui.ButtonBase(c).Width(hControlSm).FillHeight().Center().Label(label).Tooltip(tip).Disabled(off)
 				if off {
-					b.Opacity(opacityDisabled)
+					pale(b)
 				}
 				b.Children(func() { ui.Text(c, sign).FontSize(fsBody).TextColor(t.TextMuted) })
 				if b.Clicked() {

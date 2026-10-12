@@ -13,7 +13,7 @@ function talkPage() {
     (talk
       ? `<div class="talk big scroll" id="talk-page">${said(talk)}</div>`
       : '<div class="paper">' + blank('spark', '从一个初步的想法开始', '写下初步的想法。讨论内容会在后台整理为右侧的设定文档；已确定的设定将作为后续讨论的依据，已放弃的不再提及。',
-        `<div class="starts">${starts.map((words) => `<div class="hit"${onClick(() => send(words))}>${words}</div>`).join('')}</div>`) + '</div>') +
+        `<div class="starts">${starts.map((words) => `<div class="hit"${onClick(offer(words))}>${words}</div>`).join('')}</div>`) + '</div>') +
     '<div class="composer big" data-k="composer-page"><div class="box send-box">' +
     `<textarea class="in" rows="2" placeholder="输入想法，或向 AI 提问…" aria-label="讨论输入"${onInput((v) => set({ draft: v }))}${onKey((ev) => { if (ev.key === 'Enter' && ev.ctrlKey) send() })}>${t(S.draft)}</textarea>` +
     `<div class="send-line">${modelPick()}<div class="grow"></div><div class="faint">Ctrl+Enter</div><div class="send hit${S.draft.trim() && !S.waiting ? '' : ' off'}" title="发送"${onClick(() => send())}>${ICON.send}</div></div>` +

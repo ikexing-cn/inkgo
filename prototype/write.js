@@ -418,7 +418,7 @@ function treeMenu() {
   const spots = vol ? [] : [['最上层', ''], ...S.volumes.map((v) => [v[1], v[0]])].filter(([, to]) => to !== c.vol)
   const win = document.getElementById('win')
   return `<div class="veil float-veil"${onClick(closeFloat)}${onMenu((ev) => { ev.preventDefault(); closeFloat() })}></div>` +
-    `<div class="ctx pop" data-k="tree-menu" style="left:${S.tree.x}px;top:${Math.min(S.tree.y, win.offsetHeight - 220 - spots.length * 30)}px">` +
+    `<div class="ctx pop" data-k="tree-menu" style="left:${S.tree.x}px;top:${Math.min(S.tree.y, win.offsetHeight - 240 - (spots.length ? 26 + spots.length * 30 : 0))}px">` +
     menuRow('重命名', () => set({ tree: null, rename: { key, t: vol ? S.volumes.find((v) => v[0] === key)[1] : c.t } })) + menuRow('新建章节', newChapter) + menuRow('新建文件夹', newFolder) + HAIR +
     menuRow('上移', () => shift(key, -1)) + menuRow('下移', () => shift(key, 1)) +
     (spots.length ? '<div class="pop-label">移到</div>' + spots.map(([label, to]) => menuRow(label, () => moveInto(key, to))).join('') : '') + HAIR +
@@ -581,7 +581,7 @@ function foot(cur, vol) {
   else if (dirty) { state = name + '已修改，尚未重新检查'; can = true }
   const found = n && !S.checking && !S.failed[cur.key] && !S.never[cur.key] && counted(cur) >= 200
   const when = [['写完一章后检查', '推荐，每章调用一次 AI'], ['手动检查', '平时不调用 AI'], ['边写边检查', '停笔即检查，调用最多']]
-  return '<div class="foot">' + (found ? `<div class="state ell hit ink" title="前往「检查」页逐条查看"${onClick(seeAll)}>${t(state)}</div>` : `<div class="state ell">${t(state)}</div>`) +
+  return '<div class="foot">' + (found ? `<div class="foot-state ell hit ink" title="前往「检查」页逐条查看"${onClick(seeAll)}>${t(state)}</div>` : `<div class="foot-state ell">${t(state)}</div>`) +
     (can ? `<div class="hit ink under" title="调用一次 AI，对照设定检查本章"${onClick(() => checkNow(cur.key))}>立即检查</div>` : '') + '<div class="faint">·</div>' +
     `<div class="anchor up left"><div class="hit" title="检查时机"${onClick(() => set({ open: S.open === 'when' ? '' : 'when' }))}>${t(S.when)} ▴</div>${S.open === 'when' ? `<div class="pop when-pop" data-k="when-pop"><div class="pop-title">检查时机</div>${radios(S.when, when, (v) => set({ when: v, ...SHUT }))}</div>` : ''}</div>` +
     `<div class="grow"></div>${wordsOf(cur)}</div>`
@@ -649,8 +649,13 @@ function floats() {
       : S.entries.some((e) => e.place !== 'dropped' && e.names.includes(name)) ? menuRow('已在名字表中', null)
       : `<div class="anchor wide"><div class="pop-row row${S.ctx.names ? ' on' : ''}"${onClick(() => set((s) => ({ ctx: { ...s.ctx, names: !s.ctx.names } })))}><div class="grow">加入名字表</div>${ICON.right}</div>` +
         (S.ctx.names ? `<div class="pop side-pop" data-k="ctx-names">${S.cats.filter((c) => BOOK.nameCats.includes(c)).map((c) => menuRow(c, addName(c))).join('')}</div>` : '') + '</div>'
-    // 菜单宽 200，最多八行，都留在窗口里；旁边再开一列时也不出窗口。
-    return veiled + `<div class="ctx pop${S.ctx.x > win.offsetWidth - 208 - 130 ? ' flip' : ''}" data-k="ctx" style="left:${Math.min(S.ctx.x, win.offsetWidth - 208)}px;top:${Math.min(S.ctx.y, win.offsetHeight - 280)}px">` +
+    // 剪贴板的四项：复制和全选是真的；原型的正文不能改，剪切和粘贴只提示一句。
+    const fixed = () => { set({ ctx: null, pick: null }); say('原型的正文不能修改', '软件中此步骤会改动正文') }
+    const copy = () => { if (navigator.clipboard) navigator.clipboard.writeText(p.text).catch(() => {}); set({ ctx: null, pick: null }) }
+    const all = () => { set({ ctx: null, pick: null }); const first = document.querySelector('[data-para]'); if (first) getSelection().selectAllChildren(first.parentElement) }
+    // 菜单宽 200，最多十二行，都留在窗口里；旁边再开一列时也不出窗口。
+    return veiled + `<div class="ctx pop${S.ctx.x > win.offsetWidth - 208 - 130 ? ' flip' : ''}" data-k="ctx" style="left:${Math.min(S.ctx.x, win.offsetWidth - 208)}px;top:${Math.min(S.ctx.y, win.offsetHeight - 430)}px">` +
+      menuRow('剪切', p ? fixed : null, '', 'Ctrl+X') + menuRow('复制', p ? copy : null, '', 'Ctrl+C') + menuRow('粘贴', fixed, '', 'Ctrl+V') + menuRow('全选', all, '', 'Ctrl+A') + HAIR +
       menuRow('续写一句', continueText, '', 'Ctrl+J') + menuRow('AI 改写…', p ? askRewrite : null) + menuRow('引用到讨论', p ? cite : null, '', 'Ctrl+L') + menuRow('加入设定', p ? take : null) + names + HAIR +
       menuRow('记为伏笔…', p ? () => set({ ctx: null, bury: { note: '' } }) : null) + menuRow('记为回收…', p ? () => askPay('') : null) +
       (S.ctx.mark ? menuRow('查看伏笔', () => set({ ctx: null, pick: null, tab: '伏笔', fid: S.ctx.mark, fv: 'list', renote: null, paneOpen: true, focus: false, ...SHUT })) : '') + '</div>'

@@ -30,8 +30,8 @@ func TestShelfKeepsTheWorks(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if err := tt.ChooseMenuItem("新建作品…"); err != nil {
-		t.Fatal(err, tt.Menu())
+	if err := pick(tt, "新建作品…"); err != nil {
+		t.Fatal(err, rows(tt))
 	}
 	tt.Frame()
 	tt.Type("雨城来信")
@@ -57,8 +57,8 @@ func TestShelfKeepsTheWorks(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if err := tt.ChooseMenuItem("测试作品"); err != nil {
-		t.Fatal(err, tt.Menu())
+	if err := pick(tt, "测试作品"); err != nil {
+		t.Fatal(err, rows(tt))
 	}
 	tt.Frame()
 	if !sameFolder(a.Store.Root(), first) {
@@ -69,7 +69,7 @@ func TestShelfKeepsTheWorks(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if err := tt.ChooseMenuItem("全部作品…"); err != nil {
+	if err := pick(tt, "全部作品…"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -87,8 +87,8 @@ func TestShelfKeepsTheWorks(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if err := tt.ChooseMenuItem("从书架移除"); err != nil {
-		t.Fatal(err, tt.Menu())
+	if err := pick(tt, "从书架移除"); err != nil {
+		t.Fatal(err, rows(tt))
 	}
 	tt.Frame()
 	if _, shown := tt.Find("作品-雨城来信"); len(readShelf(t, a).Books) != 1 || shown {
@@ -140,7 +140,7 @@ func TestShelfFindsMovedWorks(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if err := tt.ChooseMenuItem("重命名…"); err != nil {
+	if err := pick(tt, "重命名…"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

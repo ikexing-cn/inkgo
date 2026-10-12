@@ -19,7 +19,7 @@ Status: implemented
 - 正文页用到的能力：
   - `Options.Prose`：首行缩进两字只在显示层，粘贴时去掉行首空白，Tab 不插入"　　"；
   - `Placeholder`：空文档的提示；
-  - `Menu`：调用方往右键菜单里追加项；
+  - `OwnMenu`：设了，右键菜单由调用方自己画，编辑器只告诉它在窗口的哪里要菜单（见[自己画的菜单](../feature/2026-10-12-own-menus.md)）；原来是 `Menu`，调用方往系统菜单里追加项；
   - 查找替换：`Doc.Find`、`SetFound` 高亮、`Replace`、`ReplaceAll`。连续的替换在撤销记录里合成一步（`undoStep.joined`）。
 
 ## Alternatives considered

@@ -73,11 +73,11 @@ func (e *Editor) command(name string) bool {
 	}
 	switch name {
 	case "copy":
-		e.copy()
+		e.Copy()
 	case "cut":
-		e.cut()
+		e.Cut()
 	case "paste":
-		e.paste()
+		e.Paste()
 	case "selectAll":
 		e.SelectAll()
 	case "undo":
@@ -96,6 +96,10 @@ func (e *Editor) command(name string) bool {
 func (e *Editor) key(mods ui.Modifiers, k ui.Key) bool {
 	if e.preedit != "" {
 		return false // the input method has the keys while it composes
+	}
+	if e.opts.OwnMenu != nil && (k == ui.KeyContextMenu && mods == 0 || k == ui.KeyF10 && mods == ui.Shift) {
+		e.menuKey = true
+		return true
 	}
 	shift := mods&ui.Shift != 0
 	base := mods &^ ui.Shift
@@ -146,13 +150,13 @@ func (e *Editor) key(mods ui.Modifiers, k ui.Key) bool {
 			e.SelectAll()
 			return true
 		case ui.KeyC:
-			e.copy()
+			e.Copy()
 			return true
 		case ui.KeyX:
-			e.cut()
+			e.Cut()
 			return true
 		case ui.KeyV:
-			e.paste()
+			e.Paste()
 			return true
 		case ui.KeyHome:
 			e.MoveTo(0, shift)

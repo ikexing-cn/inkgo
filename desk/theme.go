@@ -118,6 +118,13 @@ func (p *palette) blank(c *ui.Context, pic *ui.SVG, title, about string, more fu
 	})
 }
 
+// disabledByKit is what the toolkit multiplies the opacity of a disabled
+// element by on its own.
+const disabledByKit = 0.5
+
+// pale gives b, a disabled control, the design's opacity for one.
+func pale(b ui.Element) ui.Element { return b.Opacity(opacityDisabled / disabledByKit) }
+
 // dialogHead is what a dialog opens with: what it is, and under it, in a
 // line or two, what it does.
 func (p *palette) dialogHead(c *ui.Context, title, about string) {
@@ -310,7 +317,7 @@ func ghost(c *ui.Context, text string, color ui.Color) ui.Element {
 		}
 	}
 	if b.IsDisabled() {
-		b.Opacity(opacityDisabled)
+		pale(b)
 	}
 	b.Children(func() { ui.Text(c, text).FontSize(fsNote).TextColor(fg).SingleLine() })
 	return b
@@ -396,7 +403,7 @@ func iconButton(c *ui.Context, s *ui.SVG, label string, color ui.Color) ui.Eleme
 		}
 	}
 	if b.IsDisabled() {
-		b.Opacity(opacityDisabled)
+		pale(b)
 	}
 	b.Children(func() { glyph(c, s, iconMd, fg) })
 	return b
@@ -411,7 +418,7 @@ func (p *palette) primary(c *ui.Context, text string) ui.Element {
 	}
 	b.Background(bg)
 	if b.IsDisabled() {
-		b.Opacity(opacityDisabled)
+		pale(b)
 	}
 	b.Children(func() { ui.Text(c, text).FontSize(fsControl).TextColor(p.onInk).SingleLine() })
 	return b
@@ -424,7 +431,7 @@ func (p *palette) danger(c *ui.Context, text string) ui.Element {
 	t := p.theme
 	b := ui.ButtonBase(c).Row().Center().Gap(6).Height(hControlSm).Padding(0, 12).Radius(rControl).Background(t.Danger).Shrink(0)
 	if b.IsDisabled() {
-		b.Opacity(opacityDisabled)
+		pale(b)
 	}
 	b.Children(func() { ui.Text(c, text).FontSize(fsControl).TextColor(p.onInk).SingleLine() })
 	return b
@@ -437,7 +444,7 @@ func (p *palette) secondary(c *ui.Context, text string) ui.Element {
 		b.Background(t.SurfaceHover)
 	}
 	if b.IsDisabled() {
-		b.Opacity(opacityDisabled)
+		pale(b)
 	}
 	b.Children(func() { ui.Text(c, text).FontSize(fsControl).SingleLine() })
 	return b
@@ -485,7 +492,7 @@ func action(c *ui.Context, text string, color ui.Color, strong bool) ui.Element 
 	}
 	b.Background(bg)
 	if b.IsDisabled() {
-		b.Opacity(opacityDisabled)
+		pale(b)
 	}
 	b.Children(func() { ui.Text(c, text).FontSize(fsNote).FontWeight(600).TextColor(fg).SingleLine() })
 	return b

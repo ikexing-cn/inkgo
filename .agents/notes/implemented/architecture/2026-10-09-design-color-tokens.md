@@ -52,7 +52,7 @@ Status: implemented
   - `tokens.css` 加了：
     - 行距 5 级：`--lh-tight` 1.4（标题、按钮、单行的字）、`--lh-body` 1.6（列表项、表单项、说明）、`--lh-loose` 1.7（成段的说明、讨论气泡）、`--lh-read` 1.8（AI 回复、快照预览、引用的原文）、`--lh-paper` 1.95（只用在稿纸上）。设计稿原来 14 种，代码 6 种。
     - 图标 4 级：`--icon-xs` 12、`--icon-sm` 14、`--icon-md` 16、`--icon-lg` 24。设计稿原来 8 种（10 到 28），代码 6 种；13 并进 14，15 并进 16，22、28 并进 24。
-    - 禁用一级：`--opacity-disabled` .4。代码里主按钮 .3、图标按钮 .35、设计稿输入框 .5，都改成 .4。
+    - 禁用一级：`--opacity-disabled` .4。代码里主按钮 .3、图标按钮 .35、设计稿输入框 .5，都改成 .4。mygo 画禁用的元素时自己会再乘 0.5，所以代码里不直接写 `Opacity(opacityDisabled)`（那样只有 .2，2026-10-12 之前一直是这样），用 `pale(b)`，它把这 0.5 除回去。
   - 设计稿：行距写 `line-height:var(--lh-*)`；图标写 `<svg style="width:var(--icon-*);height:var(--icon-*)">`，不再写 `width`、`height` 属性。像素写的行距（`16px` 这类）是为了对齐的行高，不算。只有稿纸本身用 `--lh-paper`，别处 1.9、1.95 的引文并进 `--lh-read`。
   - 代码：`lhTight`、`lhBody`、`lhLoose`、`lhRead`、`iconXs`…`iconLg`、`opacityDisabled`。
 - 半透明和控件高度：作者 2026-10-10 同意照同样的做法收级。

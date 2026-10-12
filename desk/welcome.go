@@ -262,16 +262,6 @@ func RevealFolder(path string) error {
 	}
 }
 
-func revealLabel() string {
-	switch runtime.GOOS {
-	case "windows":
-		return "在资源管理器中显示"
-	case "darwin":
-		return "在访达中显示"
-	}
-	return "打开所在文件夹"
-}
-
 // opened says when a work was last opened, briefly.
 func opened(t time.Time) string {
 	if t.IsZero() {
@@ -498,14 +488,20 @@ func (a *App) bookCard(c *ui.Context, b shelf.Book) {
 
 // bookMenu is a work's "⋯": rename, show its folder, take it off the shelf.
 func (a *App) bookMenu(c *ui.Context, b shelf.Book) {
-	iconButton(c, icMore, "更多-"+b.Name, ui.Color{}).Tooltip("更多操作").Menu(func(m *ui.Menu) {
+	key := "作品-" + b.Path
+	more := iconButton(c, icMore, "更多-"+b.Name, ui.Color{}).Tooltip("更多操作")
+	if a.menuOpen(key) {
+		more.Background(a.pal.theme.SurfacePressed)
+	}
+	a.dropMenu(c, more, key, func(panel ui.Element) {
+		panel.AttachTo(more, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(4, 0, 0, 0).Width(180)
+	}, func(m *menu) {
+		if a.Reveal != nil && m.Item("打开所在文件夹").Chosen() {
+			a.warn(a.Reveal(b.Path))
+		}
 		if m.Item("重命名…").Chosen() {
 			a.books.renaming, a.books.name = b.Path, b.Name
 		}
-		if a.Reveal != nil && m.Item(revealLabel()).Chosen() {
-			a.warn(a.Reveal(b.Path))
-		}
-		m.Separator()
 		if m.Item("从书架移除").Chosen() {
 			a.removeBook(b.Path)
 			a.notice = "已从书架移除，文件夹未改动：" + b.Path
