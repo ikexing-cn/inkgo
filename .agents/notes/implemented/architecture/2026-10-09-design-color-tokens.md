@@ -1,4 +1,4 @@
-# Agent Note: 设计稿和代码共用一份基准色、字号、圆角、阴影、间距、行距、图标大小、半透明和控件高度
+# Agent Note: 原型和代码共用一份基准色、字号、圆角、阴影、间距、行距、图标大小、半透明和控件高度
 
 Status: implemented
 
@@ -8,15 +8,20 @@ Status: implemented
 
 作者 2026-10-09 要求从设计稿里定几个基准颜色变量，设计稿和代码都用它，免得越改越散。
 
+2026-10-12 起界面改以仓库里的原型 `prototype/` 为准，artifact 只作存档（见 `implemented/process/2026-10-12-local-prototype.md`）。各级的值没有变，变的是它们写在哪、谁来查；下面讲到「设计稿」的条目，是这些级当初怎么从 artifact 里定下来的。
+
 ## Decision
 
+- 各级的值只写在 `desk/tokens.css` 一处：
+  - 原型的样式链接它，只写 `var(--…)`；代码用 `go:embed` 读它。
+  - 要改一个值或加一级，直接改这份文件，再在 `desk/theme.go` 里改同名常量。
+  - 原型由 `npm run verify-prototype` 查，代码由 `go test ./desk` 查，规则是同一套。
 - 设计稿 `project/tokens.css` 定义基准色，所有画板和组件都链接它，只写 `var(--…)`，不再写色值：
   - 浅色值写在 `:root, .light` 里，深色值写在 `.dark` 里；深色画板和组件的根节点带 `dark` 类。
   - 共 22 个变量：`bg`、`raised`、`side`、`chip`、`hover`、`active`、`line`、`border`、`control`、`dim`、`ink`、`ink-2`、`muted`、`faint`、`on-ink`、`amber`、`warn-bg`、`warn-bd`、`sel`、`danger`、`warn`、`success`，另加只属于画布的 `page`。
   - 相近的值并到一个变量上，比如 `#8a8a83` 并进 `muted`，`#d5d5cf` 和 `#d9d9d3` 并进 `dim`。
   - macOS 红绿灯这类系统颜色保留原值。
-- 代码 `desk/tokens.css` 是设计稿那份的原样副本，用 `go:embed` 读进来，浅色、深色调色板都由它生成（`desk/theme.go` 的 `tokens`）。
-  - 要改颜色，就在设计稿里改，再把文件原样复制过来。
+- 代码用 `go:embed` 把 `desk/tokens.css` 读进来，浅色、深色调色板都由它生成（`desk/theme.go` 的 `tokens`）。它原来是设计稿那份的原样副本，现在是唯一的一份。
   - 设计稿暂时用不到的 `raised`、`warn`、`success` 也写在那份里，代码里就不剩独立的色值。
 - 选中文字、焦点框、滚动条要半透明，叠在文字上面，仍在代码里写；选中色按白底上的效果和 `--sel` 一致。
 - 字号和圆角也照设计稿「设计规范」页（作者 2026-10-09 要求建、按推荐定下）收成固定几级，在 `desk/theme.go` 里写成常量，名字和设计稿一一对应，界面代码不再直接写数字：
@@ -56,12 +61,10 @@ Status: implemented
   - 控件高度 6 级：`--h-control` 32（按钮、输入框、下拉框）、`--h-control-sm` 28（图标按钮、文字按钮）、`--h-row` 30（菜单里的一行）、`--h-seg` 26（分段选择的一段、工具栏的小按钮）、`--h-tag` 20（小标签、计数）、`--h-bar` 40（标题栏、工具栏、窗口按钮）。设计稿原来 7 种，34 的输入框并进 32。
   - 设计稿里哪个 `height` 算控件高度，由 `rules.ts` 的 `controlHeight` 判断：20 到 40 之间，并且同一个元素定了字号或左右留白（`padding:0 N`）；40 的只认标题栏、工具栏和窗口按钮的写法。分隔线、色块、图片这些不算。
   - 代码：`hControl`、`hControlSm`、`hRow`、`hSeg`、`hTag`、`hBar`；`titleHeight` 就是 `hBar`。主按钮、次按钮原来靠上下留白撑出高度（约 33、29），改成照设计稿定高 `hControl`、左右 16 / 14；备份路径那一栏 34 → 32。透明度直接写刻度上的数，回复里引用块的 `quoteFade` 常量去掉，写回 .85。
-- 设计稿的工具放进仓库 `scripts/design/`，Node 直接跑 TypeScript，不装依赖：
-  - `rules.ts` 从设计稿的 `tokens.css` 读出各级的值和间距刻度，其余脚本都用它，各级的值只在 `tokens.css` 里写一次。
-  - `normalize.ts <project>`：把页面里写出来的字号、圆角、阴影、行距、图标大小换成变量，间距并到刻度上；不加 `--write` 只列出要改的。
-  - `system.ts <project> [--height N]`：照 `tokens.css` 生成「设计规范」页，直接写变量和刻度上的间距，生成完就能过检查；`--height` 同时改页面和 `canvas.json` 里画板的高度。
-  - `render.ts <project> <out> [--against <旧 project>] [--only 页名]`：用本机的 Edge 或 Chrome 无头渲染每页，报出内容高度和画板高度；给了旧版本就数改了多少像素，并写一个左右对照的 `index.html`。PNG 用 `node:zlib` 自己解。
-  - `scripts/verify-design.ts` 也改用 `rules.ts`，并多查行距、图标大小、半透明在不在刻度上、遮罩和控件高度有没有写出数字。逐个文件查的那部分在 `scripts/design/check.ts`，仓库里的原型（`prototype/`）也用它查，见 `implemented/process/2026-10-12-local-prototype.md`。
+- 查规则的脚本在 `scripts/design/`，Node 直接跑 TypeScript，不装依赖：
+  - `rules.ts` 从 `tokens.css` 读出各级的值和间距、半透明的刻度。
+  - `check.ts` 逐个文件查：有没有写出数字、用了 `tokens.css` 里没有的名字、间距和半透明在不在刻度上、控件高度有没有写成数字。
+  - 原来给 artifact 用的 `normalize.ts`、`system.ts`、`render.ts`、`parts.ts` 和 `scripts/verify-design.ts` 在 2026-10-12 去掉了。
 - 顶栏字数照设计稿的写法：千分位，满一万字写"万字"（`words`），书架卡片也用这个写法。
 
 ## Alternatives considered
@@ -86,8 +89,7 @@ Status: implemented
 - **代价**：
   - 合并相近的值后，设计稿有几处颜色轻微变化，比如规划页的感情线从 `#8a8a83` 变成 `#76766f`。
   - 代码里深色主题的悬停色从 `#2b2b2a` 变成 `#252524`，边框从 `#343432` 变成 `#3a3a37`；讨论气泡改用 `hover`。
-  - 设计稿那份改了却忘了复制，代码就会停在旧值上；`npm run verify-design` 会比对两份。
-  - 设计稿的检查要先把最新版本拉到本地才能跑，不在 `go test` 和 `verify-notes` 里。
+  - 原型的检查要本机有浏览器，不在 `go test` 和 `verify-notes` 里。
   - 行距、图标收级后，设计稿和界面都有一两像素的变化：行距 1.5、1.55 的地方稍松，13、15 的图标变成 14、16。「设计规范」页加了行距、图标、禁用三节，画板加高到 9000。
   - 稿纸行距原来设计稿是 1.95、编辑器是 1.8；作者 2026-10-10 定以设计稿为准。编辑器的 `Options.LineHeight` 由 desk 传 `lhPaper`，稿纸行距变大，同样的窗口里少显示几行。引用原文的只读编辑器传 `lhRead`；不传时仍是 1.8，`cmd/poc` 不变。
   - 设计稿的禁用透明度检查不出来：页面里分不出哪个 `opacity` 是禁用、哪个是装饰，只能靠生成脚本和代码测试。
@@ -104,8 +106,8 @@ Status: implemented
 - `TestSizeTokens`：`tokens.css` 里每个 `--fs-*`、`--r-*`、`--lh-*`、`--icon-*`、`--opacity-*` 都有同名常量，值也相同（画板专用的除外）；三级阴影两套主题都在。
 - `TestNoLiteralSizes`：界面代码里没有直接写数字的 `FontSize`、`Radius`、`LineHeight`、`glyph` 大小，也没有 `Shadow(`；`Padding`、`Gap`、`Margin` 里直接写的数都在间距刻度上；`Alpha(`、`Opacity(`、`ui.RGBA(` 里的透明度都在 `--alpha` 刻度上，`theme.go` 以外不写 `ui.RGBA(`；`ButtonBase(` 那一行的 `Height`、`Size` 不写数字。临时放一个直接写数字的文件，这几种都会报出来。
 - `TestSizeTokens` 也核对 `--h-*` 六级和读出来的 `--scrim`。
-- `npm run verify-design -- <本地的 project 目录>`：新版通过；第 24 版报出 1926 处，第 25 版报出 406 处间距，第 27 版报出 237 处行距、217 处图标大小，第 28 版报出 250 处控件高度、7 处遮罩、9 处不在刻度上的透明度。
-- `normalize.ts` 改完再跑一遍没有要改的；`system.ts` 生成的页面和原来那页逐段比对过，只多了这次加的几节和改成变量的禁用透明度。
+- 当时的 `npm run verify-design -- <本地的 project 目录>`（已去掉）：新版通过；第 24 版报出 1926 处，第 25 版报出 406 处间距，第 27 版报出 237 处行距、217 处图标大小，第 28 版报出 250 处控件高度、7 处遮罩、9 处不在刻度上的透明度。
+- 当时 `normalize.ts` 改完再跑一遍没有要改的；`system.ts` 生成的页面和原来那页逐段比对过，只多了这次加的几节和改成变量的禁用透明度。
 - 设计稿每页改前改后都用 Edge 渲染比对过，只有并级带来的小变化；代码用 `TestShotPending`、`TestShotToasts`、`TestShotBackup`、`TestShotBeside` 前后截图比对过。
 - `TestWords` 固定了字数的写法。
 - 截图核对了浅色和深色的正文页。

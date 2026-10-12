@@ -1,7 +1,7 @@
 /**
- * The design rules as the design's tokens.css states them: the names it
- * declares, the value of each level, the spacing scale. The design scripts
- * read the levels from here, so tokens.css stays the one place they are.
+ * The design rules as desk/tokens.css states them: the names it declares,
+ * the value of each level, the spacing and alpha scales. The check reads the
+ * levels from here, so tokens.css stays the one place they are.
  */
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -39,14 +39,6 @@ export function nearest(values: number[], v: number): number {
     const d = Math.abs(s - v), bd = Math.abs(best - v)
     return d < bd || (d === bd && s > best) ? s : best
   })
-}
-
-/** Where a padding, margin or gap of v goes on the scale. A layout size (100 on) stays. */
-export function snapSpace(r: Rules, v: number): number {
-  if (v >= 100) return v
-  const all = [...r.space, ...r.board]
-  if (v > Math.max(...all)) return Math.max(...all)
-  return nearest(all, v)
 }
 
 export const onScale = (r: Rules, v: number) => v >= 100 || r.space.includes(v) || r.board.includes(v)

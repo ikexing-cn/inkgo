@@ -2,8 +2,8 @@
  * What a file of interface breaks of the design rules: it writes var(--…)
  * for colors, text sizes, corners, shadows, line heights, icon sizes and the
  * heights of controls, never the numbers, keeps spacing and alphas on their
- * scales, and only names what tokens.css declares. The design's pages and
- * the prototype are both held to it.
+ * scales, and only names what tokens.css declares. The prototype is held to
+ * it.
  */
 import { controlHeight, eachAlpha, onScale, snapAlpha, type Rules } from './rules.ts'
 
@@ -28,12 +28,11 @@ const rules: { what: string; re: RegExp }[] = [
 const spacingProp = /(?<![a-z-])(?:padding|margin)(?:-(?:top|right|bottom|left))?\s*:([^;"'}]+)|(?<![a-z-])(?:row-|column-)?gap\s*:([^;"'}]+)/g
 
 /**
- * The problems of one file, each led by name and line. colors: false for a
- * file that shows the colors' values themselves. sheet: true for a file that
- * styles in a style sheet, so its rules are held to the control heights as a
- * page's style attributes are.
+ * The problems of one file, each led by name and line. sheet: true for a file
+ * that styles in a style sheet, so its rules are held to the control heights
+ * as style attributes are.
  */
-export function problems(design: Rules, name: string, text: string, { colors = true, sheet = false } = {}): string[] {
+export function problems(design: Rules, name: string, text: string, { sheet = false } = {}): string[] {
   const errors: string[] = []
   const where = (i: number) => `${name}:${text.slice(0, i).split('\n').length}`
   for (const { what, re } of rules) {
@@ -60,7 +59,6 @@ export function problems(design: Rules, name: string, text: string, { colors = t
   for (const m of text.matchAll(/var\(--([a-z0-9-]+)/g)) {
     if (!design.declared.has(m[1])) errors.push(`${where(m.index!)}: --${m[1]} is not in tokens.css`)
   }
-  if (!colors) return errors
   for (const m of text.matchAll(/#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g)) {
     if (!systemColors.has(m[0].toLowerCase())) errors.push(`${where(m.index!)}: a color written out: ${m[0]}`)
   }

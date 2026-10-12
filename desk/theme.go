@@ -13,9 +13,9 @@ import (
 // primary actions and links, greys for everything quieter, and amber for what
 // waits on the author. Everything else is typography and spacing.
 //
-// Its colors come from tokens.css, a copy of the design's base colors: the
-// design and the code name each color the same way, so one changed there is
-// copied here and nothing else moves.
+// Its colors come from tokens.css, which the prototype in prototype/ styles
+// itself from too: the two name each color the same way, so one changed
+// there changes in both and nothing else moves.
 type palette struct {
 	theme                        *ui.Theme
 	canvas, side, raised, bubble ui.Color
@@ -28,7 +28,7 @@ type palette struct {
 	scrim              ui.Color // what dims the window behind a dialog
 }
 
-// The sizes of the design rules (设计规范 in the design): eight text sizes,
+// The sizes of the design rules: eight text sizes,
 // four corners, five line heights, four icon sizes, six control heights and
 // the disabled opacity, named as there. A size between them is not used.
 // They are the --fs-*, --r-*, --lh-*, --icon-*, --h-* and --opacity-* of

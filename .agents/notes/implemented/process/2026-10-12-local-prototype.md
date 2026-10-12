@@ -33,6 +33,7 @@ Status: implemented
   - 走查。`scripts/prototype/browser.ts` 用本机的 Edge 或 Chrome 无头打开 `index.html`（走 `file://`，和双击一样），经 DevTools 协议真的按鼠标、敲键盘；`walk.ts` 把 76 条流程点一遍，每条结束时还要查窗口里没有东西伸出去、页面没有报错。只用 Node 自带的 `WebSocket` 和 `fetch`。`SHOT=<目录>` 会存下每一步的截图。
 - 它不进提交前的三道检查：要本机有浏览器，而且只有原型变了才有意义。
 - 窗口固定 1266×780；浮层的位置从页面上量窗口、侧栏、右栏的宽，不另记数字。
+- 只给 artifact 用的工具从仓库里去掉：`scripts/verify-design.ts`，`scripts/design/` 下的 `normalize.ts`、`system.ts`、`render.ts`、`parts.ts`，和它们的四条 npm 命令。`desk/tokens.css` 不再是谁的副本，各级的值只在它里面写。
 
 ## Alternatives considered
 
@@ -42,6 +43,7 @@ Status: implemented
 - **引一个小框架（Preact、Alpine 之类）** — 省掉自己写的对比更新，写法很多人认识。不用：从 CDN 引，断网就打不开；把副本放进仓库，又是一份别人的代码。这一页要的只是「整个重画，只改不一样的地方」，四十行够了。
 - **每次直接整页重写，不做对比** — 最简单，一行 `innerHTML`。不用：输入框每敲一个字就被换掉，光标和拼音选字会断；正文里选中的字每次都丢，而右键菜单靠的就是它。
 - **脚本留在一个文件里** — 不用管加载顺序，也不会有两个文件起了同一个名字。不用：补全以后有两千多行，找一处要翻很久；按窗口的几块分开，改哪一块就开哪一份。
+- **artifact 的工具留着** — artifact 还在，哪天想再改它，工具是现成的。不用：它不再更新，这些脚本没有地方用，留着只会让人以为还要跑；要用时从提交记录里取得回来。
 
 ## Consequences
 
