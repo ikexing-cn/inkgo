@@ -5,7 +5,7 @@
  */
 import type { Page } from './browser.ts'
 
-export async function walk({ js, shot, click, rclick, drag, type, key, clear, sleep }: Page, said: (step: string) => void): Promise<void> {
+export async function walk({ js, shot, click: press, rclick, drag, type, key, clear, sleep }: Page, said: (step: string) => void): Promise<void> {
   const flat = (t: string) => t.replace(/\s+/g, '')
   const reads = (where: string) => async (words: string, want = true) => {
     const text = await js(`(document.querySelector('${where}') || { innerText: '' }).innerText`)
@@ -14,6 +14,13 @@ export async function walk({ js, shot, click, rclick, drag, type, key, clear, sl
   const pane = reads('#pane'), win = reads('#win')
   const MORE = '续写、起草、快照、导出和外观' // the toolbar's "more" button, by its title
   const must = (ok: boolean, words: string) => { if (!ok) throw new Error(words) }
+  // After every click, nothing may be wider than the menu, popover, dialog or toast it is in. One that holds an open
+  // menu of its own is passed over: a submenu is meant to stand beside it.
+  const click = async (words: string, nth = 0) => {
+    await press(words, nth)
+    const out = await js(`(() => { const e = [...document.querySelectorAll('.pop, .float, .dialog, .toast')].find((e) => !e.querySelector('.pop') && e.scrollWidth > e.clientWidth + 1); return e ? e.className + ': ' + e.innerText.slice(0, 30) : '' })()`)
+    must(!out, 'after clicking ' + words + ', something sticks out of ' + out)
+  }
   // A flow is done when nothing in the window sticks out of it: what does can scroll the whole window aside.
   const done = async (step: string) => {
     must(await js(`(() => { const w = document.querySelector('#win'); return w.scrollWidth <= w.clientWidth && w.scrollHeight <= w.clientHeight && !w.scrollLeft && !w.scrollTop })()`), 'something sticks out of the window after: ' + step)
@@ -161,18 +168,18 @@ export async function walk({ js, shot, click, rclick, drag, type, key, clear, sl
   // The toolbar: the count and the goal, find and replace, the more menu, focus, what is pending.
   await click('重新开始'); await click('字数。点击设每日目标'); await win('最近 7 天'); await win('+2,846 字'); await type('每日目标字数', '3000'); await win('今天 2,846 / 3000'); await shot('36-goal'); await key('Escape'); await win('最近 7 天', false); await done('a goal for the day')
   await key('f', true); must(await js(`document.activeElement.getAttribute('aria-label') === '查找'`), 'Ctrl+F did not open the search'); await type('查找', '小祥'); await win('1 / 2'); must((await drawn('小祥')) === 'got on', 'what was found is not marked'); await shot('37-find')
-  await click('下一个'); await win('2 / 2'); await type('替换为', '阿祥'); await click('替换'); await win('阿祥从来不叫她姐'); await win('1 / 1'); await click('全部替换'); await win('已替换 1 处，可以撤销'); await win('阿祥在身后叫她'); await win('没有找到'); await click('关闭提示')
+  await click('下一个'); await win('2 / 2'); await type('替换为', '阿祥'); await click('替换'); await win('阿祥从来不叫她姐'); await win('1 / 1'); await click('全部替换'); await win('已替换 1 处可以撤销'); await win('阿祥在身后叫她'); await win('没有找到'); await click('关闭提示')
   await win('第87章有 1 处要看，正文又改过了'); await click('现在查'); await win('正在检查第87章…'); await sleep(1400); await win('第87章查完了，有 1 处要看'); await done('find and replace in a chapter')
   await clear('查找'); await type('查找', '林晚'); await click('在所有章节里找'); await win('全书 8 章、共 9 处'); await win('第1章：巷口 · 2 处'); await shot('38-find-book')
   await clear('替换为'); await type('替换为', '阿晚'); await click('全书替换'); await win('把全书 8 章里的 9 处“林晚”换成“阿晚”？'); await shot('39-replace-book'); await click('确定替换'); await win('已在 8 章里替换 9 处'); await win('阿晚站在巷口'); await win('全书都没有找到')
   await click('关闭查找'); must(!(await has('.find-bar')), 'the search is still open'); await click('关闭提示'); await done('replace through the book')
   await click(MORE); await win('Ctrl+J'); await shot('40-more'); await click('快照'); await win('快照 · 第87章：停电'); await win('全书替换前'); await win('打开时'); await shot('41-snaps')
   await click('和现在对比'); await win('红色划掉的是快照里有、现在没有的'); must(await has('.snap-text .cut') && await has('.snap-text .add'), 'the comparison shows no change'); await shot('42-snap-diff')
-  await click('今天 09:58'); await click('恢复这个版本'); await win('已恢复到 今天 09:58 的版本，恢复前的内容也存了快照'); await win('小祥在身后叫她', false); await win('七岁那年的那个晚上'); await click('关闭提示'); await done('snapshots')
+  await click('今天 09:58'); await click('恢复这个版本'); await win('已恢复到 今天 09:58 的版本恢复前的内容也存了快照'); await win('小祥在身后叫她', false); await win('七岁那年的那个晚上'); await click('关闭提示'); await done('snapshots')
   await click(MORE); await click('导出…'); await win('按章节树的顺序拼成一个 .txt'); await click('全书'); await shot('43-export'); await click('导出'); await win('已导出到 D:\\写作\\雨城来信.txt'); await click('关闭提示'); await done('export')
   await click('只留正文，收起章节树和右栏（F11）'); must(!(await has('.sidebar')) && !(await has('#pane')), 'focus left something beside the prose'); await shot('44-focus'); await key('F11'); must(await has('.sidebar') && await has('#pane'), 'F11 did not leave focus'); await done('focus')
-  await click('重新开始'); await click('待处理 8'); await win('设定对不上'); await win('「红色钥匙」', false); await win('「钥匙开哪扇门」41 章没回收'); await win('还有 2 条'); await shot('45-pending'); await click('还有 2 条'); await win('「旧城小学」还不在设定里'); await click('收起')
-  await click('本章 1'); await win('周翔', false); await win('林晚怕黑，这里却一个人进了黑巷子'); await click('全部 8'); await click('「小祥的左手」原句已删'); await pane('第 1 章的原句已删除'); await win('全部忽略', false)
+  await click('重新开始'); await click('待处理 8'); await win('设定不一致'); await win('「红色钥匙」', false); await win('「钥匙开哪扇门」41 章没回收'); await win('还有 2 条'); await shot('45-pending'); await click('还有 2 条'); await win('「旧城小学」还不在设定里'); await click('收起')
+  await click('本章 1'); await win('周翔', false); await win('林晚怕黑，却独自走进黑巷'); await click('全部 8'); await click('「小祥的左手」原句已删'); await pane('第 1 章的原句已删除'); await win('全部忽略', false)
   await click('待处理 8'); await click('全部忽略'); must(!(await has('.todo-btn')), 'ignoring all left the button'); await done('what is pending')
 
   // Under the title: the outline and the summary.
@@ -192,7 +199,7 @@ export async function walk({ js, shot, click, rclick, drag, type, key, clear, sl
   await type('目标字数', '1500'); await click('覆盖已写的内容'); await click('开始起草'); await win('AI 正在按章纲起草'); await shot('52-drafting'); await sleep(3800); await win('起草完成，写了 38 字'); await win('整条街的灯是同时灭的。', false); await win('身后，小祥没有再出声。')
   must(await js(`document.querySelectorAll('.prose .ai').length === 3`), 'what the AI drafted is not marked'); await shot('53-drafted'); await click('关闭提示')
   await click(MORE); await click('快照'); await win('AI 改动前'); await win('按章纲起草'); await win('约 1500 字'); await key('Escape')
-  await click(MORE); await click('起草本章'); await type('目标字数', '很多'); await click('开始起草'); await win('目标字数需要是正整数，或者留空'); await win('复制详情'); await click('关闭提示'); await clear('目标字数'); await click('开始起草'); await sleep(1000); await click('停止'); await win('已停止起草，写出的部分保留了'); await click('关闭提示'); must(!(await has('.ai-bar')), 'the draft did not stop'); await done('a draft')
+  await click(MORE); await click('起草本章'); await type('目标字数', '很多'); await click('开始起草'); await win('目标字数需要是正整数或者留空'); await win('复制详情'); await click('关闭提示'); await clear('目标字数'); await click('开始起草'); await sleep(1000); await click('停止'); await win('已停止起草写出的部分保留了'); await click('关闭提示'); must(!(await has('.ai-bar')), 'the draft did not stop'); await done('a draft')
 
   // What was picked goes to the setting, or to a discussion.
   await click('重新开始'); await pick(1, '手电在工具箱最底下'); await click('加入设定'); await win('选中的原文作为出处记下来'); must((await value('设定内容')) === '手电在工具箱最底下', 'what was picked is not in the box'); await click('人物'); await click('物品'); await shot('54-take')
@@ -218,7 +225,7 @@ export async function walk({ js, shot, click, rclick, drag, type, key, clear, sl
   must((await value('讨论模型')) === 'claude-sonnet-5-5', 'the settings show another model'); await shot('61-settings')
   await click('沿用讨论模型'); await click('DeepSeek'); must((await value('整理模型')) === 'deepseek-chat', 'choosing a service chose no model'); must(await js(`document.querySelector('.services').innerText.split('这部作品在用').length === 3`), 'the service taken is not said to be in use')
   await click('Low'); await click('Medium'); await win('Low', false); await clear('上下文预算'); await type('上下文预算', '100'); await click('保存'); await win('上下文预算至少为 8192'); await click('关闭提示'); await click('停笔后自动续写'); must(await js(`document.querySelectorAll('.ticks .check.on').length === 2`), 'the box is not ticked')
-  await click('编辑'); await win('远程服务：你的讨论内容会发送到这个地址'); await win('key 存入系统钥匙串，不会写进配置文件或作品。'); await shot('62-service'); await click('获取可用模型'); await win('正在读取可用模型…'); await sleep(1400); await win('已获取模型目录，保存提供商后生效')
+  await click('编辑'); await win('远程服务：你的讨论内容会发送到这个地址'); await win('key 存入系统钥匙串，不会写进配置文件或作品。'); await shot('62-service'); await click('获取可用模型'); await win('正在读取可用模型…'); await sleep(1400); await win('已获取模型目录保存提供商后生效')
   await click('保存提供商'); await win('提供商已保存'); await win('收起', false); await click('添加服务'); await type('显示名称', '本地'); await type('API 地址', 'http://localhost:11434/v1'); await click('保存提供商'); await win('localhost:11434 · 0 个模型'); await sleep(3300); await done('models and services')
   await click('重新加载配置'); await click('打开配置文件'); await click('保存'); await clear('上下文预算'); await type('上下文预算', '很多'); await click('保存'); await win('上下文预算需要是整数'); await win('还有 1 条'); await shot('63-toasts'); await sleep(3300); await win('还有 1 条', false); await done('more notices than fit')
   await click('外观'); await win('只在这台电脑上生效，所有作品都一样。'); await click('深色'); must(await js(`document.querySelector('#win').className === 'dark'`), 'the window is not dark'); await shot('64-look'); await click('浅色')
@@ -228,11 +235,11 @@ export async function walk({ js, shot, click, rclick, drag, type, key, clear, sl
   await click('设置'); await clear('讨论模型'); await click('关闭设置'); await click('讨论', 1); await click('全部讨论'); await click('新讨论'); await type('想聊什么', '在吗'); await key('Enter'); await win('请先配置讨论模型'); await sleep(3300); await win('请先配置讨论模型'); await shot('67-no-model'); await click('去设置'); await win('给这部作品选模型。'); await win('请先配置讨论模型', false); await key('Escape'); await done('no model to talk with')
 
   // The check page.
-  await click('重新开始'); await click('检查'); await win('查到番外：晴天'); await win('全部 5'); await win('1 / 5'); await win('设定 · 人物 · 林晚'); await win('别的章也有类似的地方'); await shot('68-check')
-  await click('下一条'); await win('2 / 5'); await click('名字写错 1'); await win('应为「周祥」'); await win('1 / 1'); await shot('69-check-name'); await click('改正文'); await win('第84章：刻字'); must((await drawn('周翔')) === 'sel', 'the wrong name is not picked out in the prose'); await done('from a finding to the prose')
-  await click('检查'); await click('新出现 2'); await win('可以加入设定 · 人物'); await shot('70-check-new'); await click('加入设定'); await win('已加入设定'); await win('新出现 1'); await click('关闭提示'); await click('不用记'); await win('这一类没有要看的'); await done('names not yet in the setting')
-  await click('对不上 2'); await click('是故意的'); await win('对不上 1'); await click('改设定'); await pane('名字'); await pane('别名'); await win('第87章：停电'); await click('取消')
-  await click('检查'); await click('是故意的'); await win('这一类没有要看的'); await click('名字写错 1'); await click('是故意的'); await win('没有对不上的地方'); await win('写完一章会自动检查，结果列在这里。'); await shot('71-check-none'); await done('settle every finding')
+  await click('重新开始'); await click('检查'); await win('已检查至番外：晴天'); await win('全部 5'); await win('1 / 5'); await win('设定 · 人物 · 林晚'); await win('别的章也有类似的地方'); await shot('68-check')
+  await click('下一条'); await win('2 / 5'); await click('名字有误 1'); await win('应为「周祥」'); await win('1 / 1'); await shot('69-check-name'); await click('改正文'); await win('第84章：刻字'); must((await drawn('周翔')) === 'sel', 'the wrong name is not picked out in the prose'); await done('from a finding to the prose')
+  await click('检查'); await click('新出现 2'); await win('可以加入设定 · 人物'); await shot('70-check-new'); await click('加入设定'); await win('已加入设定'); await win('新出现 1'); await click('关闭提示'); await click('不用记'); await win('这一类没有待处理的'); await done('names not yet in the setting')
+  await click('不一致 2'); await click('是故意的'); await win('不一致 1'); await click('改设定'); await pane('名字'); await pane('别名'); await win('第87章：停电'); await click('取消')
+  await click('检查'); await click('是故意的'); await win('这一类没有待处理的'); await click('名字有误 1'); await click('是故意的'); await win('没有发现不一致'); await win('写完一章会自动检查，结果列在这里。'); await shot('71-check-none'); await done('settle every finding')
 
   // Categories.
   await click('作品分类'); await win('设定文档按分类分节'); await win('落点：大纲'); await shot('72-cats'); await type('分类名称', '线索'); await type('落点', '大纲'); await click('保存分类'); await win('分类“线索”已保存'); await click('关闭提示')
@@ -242,7 +249,7 @@ export async function walk({ js, shot, click, rclick, drag, type, key, clear, sl
   // The shelf, new and empty works, and the three ways a backup can stand.
   await click('重新开始'); await click('切换作品'); await click('全部作品…'); await win('我的作品'); await win('4 部 · 作品库：D:\\写作'); await win('找不到文件夹'); await shot('74-shelf')
   await click('列表'); await win('重新定位…'); await win('D:\\写作\\旧城灯匠'); await shot('75-shelf-list'); await click('卡片'); await click('更多操作'); await win('打开所在文件夹'); await click('重命名…'); await win('只改作品名，文件夹不动。'); await clear('新作品名'); await type('新作品名', '雨城'); await click('保存'); await win('雨城来信', false)
-  await click('移除'); await win('已从书架移除，文件夹没有动：早年的稿子'); await win('3 部'); await click('关闭提示'); await done('the shelf')
+  await click('移除'); await win('已从书架移除文件夹没有动：早年的稿子'); await win('3 部'); await click('关闭提示'); await done('the shelf')
   await click('新建作品'); await win('会新建这个文件夹；它必须不存在或是空的。'); must((await value('作品位置')) === 'D:\\写作\\未命名作品', 'where the work goes is not offered'); await type('作品名称', '新书'); must((await value('作品位置')) === 'D:\\写作\\新书', 'where the work goes does not follow its name'); await click('网文'); await click('剧本'); await shot('76-new-book'); await click('创建')
   await win('还没有章节'); await win('新书'); await win('还没备份过'); await pane('还没有设定'); await shot('77-empty-book'); await click('新建第一章'); await key('Enter'); await win('从这里开始写…'); await win('本章 0 字 · 全书 0 字'); await win('设定还是空的，没有可以对照的'); await click('检查'); await click('检查全书'); await win('先在讨论里把设定定下来，才有可以对照的。'); await click('关闭提示'); await click('正文'); await done('a new work')
   await click('还没备份过'); await win('稿子现在只存在这台电脑上。'); await click('选一个地方…'); await win('选个别的地方，定时多存一份。'); await win('OneDrive 同步文件夹'); await shot('78-first-backup'); await click('开始备份'); await win('正在备份…'); await sleep(1400); await win('已备份 · 刚刚'); await done('a first backup')
@@ -259,7 +266,7 @@ export async function walk({ js, shot, click, rclick, drag, type, key, clear, sl
 
   // A short name picked in the prose goes into the setting as it is.
   await click('第三卷：停电'); await click('第三卷：停电'); await click('第85章：灯数'); await menu(0, '何主任'); await click('加入名字表'); must(await js(`document.querySelector('.side-pop').innerText.includes('组织') && document.querySelector('.side-pop').getBoundingClientRect().left > document.querySelector('.ctx').getBoundingClientRect().right - 8`), 'the categories of names are not beside the menu'); await shot('83-name-menu'); await js(`document.querySelector('.side-pop .row').click()`)
-  await win('「何主任」已加入设定的人物，打字时可以补全'); await click('关闭提示'); await menu(0, '何主任'); await win('已在名字表里'); await key('Escape')
+  await win('「何主任」已加入设定的人物打字时可以补全'); await click('关闭提示'); await menu(0, '何主任'); await win('已在名字表里'); await key('Escape')
   await menu(0, '何主任让他们把旧城的灯重新数一遍'); must(await js(`[...document.querySelectorAll('.ctx .row')].find((e) => e.innerText.includes('加入名字表')).classList.contains('off')`), 'a long pick can be a name'); await key('Escape'); await done('a name from the prose')
 
   // Saving, and what is stale once the prose changes.
@@ -268,20 +275,20 @@ export async function walk({ js, shot, click, rclick, drag, type, key, clear, sl
 
   // Rare things, shown from the bar over the window: a chapter changed outside, a check and a summary that failed.
   await click('第87章：停电'); await click('少见的情况'); await click('这一章在软件外面被改了'); await win('磁盘上的这一章被别的程序改过了。保留哪一边？另一边会存成快照，不会丢。'); await shot('84-outside')
-  await click('用磁盘上的'); await win('已换成磁盘上的版本，编辑器里原来的内容存了快照'); await win('（这一句是在别的程序里加上的。）'); await win('磁盘上的这一章被别的程序改过了', false); await click('关闭提示')
+  await click('用磁盘上的'); await win('已换成磁盘上的版本编辑器里原来的内容存了快照'); await win('（这一句是在别的程序里加上的。）'); await win('磁盘上的这一章被别的程序改过了', false); await click('关闭提示')
   await click(MORE); await click('快照'); await win('外部改动'); await win('这一份和现在的正文一样', false); await click('关闭')
-  await click('少见的情况'); await click('这一章在软件外面被改了'); await click('保留我的'); await win('已保留编辑器里的版本，磁盘上的内容存了快照'); await click('关闭提示'); await done('a chapter changed outside')
+  await click('少见的情况'); await click('这一章在软件外面被改了'); await click('保留我的'); await win('已保留编辑器里的版本磁盘上的内容存了快照'); await click('关闭提示'); await done('a chapter changed outside')
   await click('少见的情况'); await click('这一章的摘要没生成出来'); await win('上次生成失败：连不上模型服务'); await shot('85-summary-failed'); await click('生成摘要'); await win('本章摘要 · 正在生成 ▴'); await win('AI 正在读这一章写摘要…'); await sleep(1500); await win('AI 写的 · Opus 5.5 · 刚刚'); await win('上次生成失败', false)
   await click('少见的情况'); await click('这一章检查没成功'); await win('检查没成功：连不上模型服务'); await shot('86-check-failed'); await done('a summary and a check that failed')
 
   // The whole book checked: the chapters changed since, one after another.
-  await click('检查'); await click('再查一次'); await win('有 2 章没查过或改过'); await win('每章用一次 AI，一共 2 次。'); await shot('87-check-all'); await click('取消'); await win('有 2 章没查过或改过', false)
-  await click('再查一次'); await click('开始检查'); await win('正在查第86章，还有 1 章'); await sleep(1000); await win('正在查第87章'); await win('还有', false); await click('停下'); await win('查到番外：晴天'); await click('再查一次'); await win('有 1 章没查过或改过'); await click('开始检查'); await sleep(1100)
-  await click('再查一次'); await win('各章都查过了，正文没有再改'); await click('关闭提示'); await click('正文'); await win('第87章查完了，有 1 处要看'); await done('the whole book checked')
+  await click('检查'); await click('重新检查'); await win('2 章未检查或有改动'); await win('每章用一次 AI，共 2 次。'); await shot('87-check-all'); await click('取消'); await win('2 章未检查或有改动', false)
+  await click('重新检查'); await click('开始检查'); await win('正在检查第86章，还有 1 章'); await sleep(1000); await win('正在检查第87章'); await win('还有', false); await click('停止'); await win('已检查至番外：晴天'); await click('重新检查'); await win('1 章未检查或有改动'); await click('开始检查'); await sleep(1100)
+  await click('重新检查'); await win('各章都查过了正文没有再改'); await click('关闭提示'); await click('正文'); await win('第87章查完了，有 1 处要看'); await done('the whole book checked')
 
   // A chapter the disk lost: what is in the editor becomes a chapter of its own.
   await click('少见的情况'); await click('这一章在磁盘上找不到了'); await win('磁盘上找不到这一章了：在软件外改名、移动或删除，都会被当成删掉了。编辑器里的文字还在。'); must(!(await js(`[...document.querySelectorAll('.tree-row')].some((r) => r.innerText.includes('第87章'))`)), 'the lost chapter is still in the tree'); await shot('88-lost')
-  await click('存为新章节'); await win('已存为新章节，放在最上层的末尾'); await win('磁盘上找不到这一章了', false); must(await js(`document.querySelector('.tree').lastElementChild.innerText.includes('停电')`), 'the chapter was not kept at the end'); await click('关闭提示')
+  await click('存为新章节'); await win('已存为新章节放在最上层的末尾'); await win('磁盘上找不到这一章了', false); must(await js(`document.querySelector('.tree').lastElementChild.innerText.includes('停电')`), 'the chapter was not kept at the end'); await click('关闭提示')
   await click('少见的情况'); await click('AI 改写没成功'); await win('模型没有给出改写'); await win('复制详情'); await click('关闭提示'); await click('重新开始'); await done('a chapter the disk lost')
 
   // The pane: a renamed entry and the prose, the bookkeeper's sign, its width.
@@ -315,6 +322,6 @@ export async function walk({ js, shot, click, rclick, drag, type, key, clear, sl
   // The shelf: a work added from disk, a place taken, a name left empty.
   await click('切换作品'); await click('全部作品…'); await click('添加已有作品…'); await win('已加入书架'); await win('井边的旧稿'); await win('还没打开过'); await win('5 部'); await click('关闭提示'); await click('添加已有作品…'); await win('这部作品已经在书架上了'); await click('关闭提示')
   await click('少见的情况'); await click('添加的文件夹里没有作品'); await win('这个文件夹里没有作品（缺少 work.yaml）'); await click('关闭提示')
-  await click('新建作品'); await type('作品名称', '雨城来信'); await click('创建'); await win('D:\\写作\\雨城来信 里已经有文件了，换个名字或位置'); await shot('96-place-taken'); await click('关闭提示'); await clear('作品位置'); await click('创建'); await win('请选择作品放在哪里'); await click('关闭提示'); await click('取消')
+  await click('新建作品'); await type('作品名称', '雨城来信'); await click('创建'); await win('D:\\写作\\雨城来信 里已经有文件了换个名字或位置'); await shot('96-place-taken'); await click('关闭提示'); await clear('作品位置'); await click('创建'); await win('请选择作品放在哪里'); await click('关闭提示'); await click('取消')
   await click('更多操作'); await click('重命名…'); await clear('新作品名'); await click('保存'); await win('作品名不能为空'); await click('关闭提示'); await click('取消'); await click('重新开始'); await done('the shelf, where things go wrong')
 }

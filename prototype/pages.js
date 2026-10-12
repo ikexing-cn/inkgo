@@ -22,7 +22,7 @@ function talkPage() {
 
 // ───────── 检查 ─────────
 
-const KINDS = ['全部', '对不上', '名字写错', '新出现']
+const KINDS = ['全部', '不一致', '名字有误', '新出现']
 
 // 一条处理完了：从列表里拿掉，接着看下一条。
 const settle = (id) => (s) => {
@@ -37,8 +37,8 @@ function checkPage() {
   const count = (k) => (k === '全部' ? S.checks.length : S.checks.filter((c) => c.kind === k).length)
   const about = (c) => {
     const ch = chapterOf(c.key), at = ch ? chapterName(ch) : '已删的章'
-    if (c.kind === '对不上') { const e = S.entries.find((x) => x.id === c.entry); return at + ' ↔ 设定「' + (e ? e.cat + ' · ' + (e.names[0] || clip(e.text, 8)) : '已删除') + '」' }
-    return c.kind === '名字写错' ? at + ' · 应为「' + c.right + '」' : c.cat + ' · ' + at + '起出现 ' + c.times + ' 次'
+    if (c.kind === '不一致') { const e = S.entries.find((x) => x.id === c.entry); return at + ' ↔ 设定「' + (e ? e.cat + ' · ' + (e.names[0] || clip(e.text, 8)) : '已删除') + '」' }
+    return c.kind === '名字有误' ? at + ' · 应为「' + c.right + '」' : c.cat + ' · ' + at + '起出现 ' + c.times + ' 次'
   }
   const row = (c) => `<div class="check-row row${shown && c.id === shown.id ? ' on' : ''}"${onClick(() => set({ cid: c.id }))}><div class="fit"><div class="ell">${t(c.title)}</div><div class="note ell">${t(about(c))}</div></div><div class="side">${c.kind}</div></div>`
   // 「检查全书」：先数出该查几章，问一句再开始。
@@ -48,13 +48,13 @@ function checkPage() {
     else if (!owed.length) say('各章都查过了，正文没有再改')
     else set({ open: S.open === 'checkAll' ? '' : 'checkAll' })
   }
-  const ask = () => `<div class="pop ask-pop" data-k="ask-pop"><div class="pop-title">有 ${owed.length} 章没查过或改过</div><div class="note">每章用一次 AI，一共 ${owed.length} 次。</div>` +
+  const ask = () => `<div class="pop ask-pop" data-k="ask-pop"><div class="pop-title">${owed.length} 章未检查或有改动</div><div class="note">每章用一次 AI，共 ${owed.length} 次。</div>` +
     `<div class="pop-buttons"><div class="grow"></div>${button('取消', () => set(SHUT))}${button('开始检查', () => { set(SHUT); checkNow(...owed.map((c) => c.key)) }, 'primary')}</div></div>`
   const last = S.chapters.filter((c) => !S.never[c.key] && counted(c) >= 200).at(-1)
   const running = chapterOf(S.checking), lost = S.chapters.find((c) => S.failed[c.key])
   const none = !S.entries.some((e) => e.place === 'body') ? ['设定还是空的', '先在讨论里把设定定下来，才有可以对照的。']
-    : S.checks.length ? ['这一类没有要看的', ''] : !last ? ['还没检查过', '点左上的「检查全书」，或者写完一章自动检查。']
-    : ['没有对不上的地方', S.when === '我点了才查' ? '现在是「我点了才查」，要查时点「再查一次」。' : '写完一章会自动检查，结果列在这里。']
+    : S.checks.length ? ['这一类没有待处理的', ''] : !last ? ['还没检查过', '点左上的「检查全书」，或者写完一章自动检查。']
+    : ['没有发现不一致', S.when === '我点了才查' ? '现在是「我点了才查」，要查时点「重新检查」。' : '写完一章会自动检查，结果列在这里。']
   if (lost && !S.checking) none[1] = chapterName(lost) + '没查成：' + S.failed[lost.key]
 
   let detail = `<div class="check-detail">${blank('checked', S.checking ? '正在检查…' : none[0], S.checking ? '查完的结果会列在左边。' : none[1])}</div>`
@@ -65,12 +65,12 @@ function checkPage() {
     const seeText = ch ? goTo(ch.key, { key: ch.key, quote: shown.quote }) : null
     const seeEntry = () => set({ page: 'write', paneOpen: true, focus: false, tab: '设定', sv: 'list', sid: e.id, form: null })
     const next = () => set({ cid: (of[of.indexOf(shown) + 1] || of[0]).id })
-    const right = shown.kind === '对不上' && e ? `<div class="fit"><div class="check-from"><div class="fit ell">设定 · ${t(e.cat)} · ${t(e.names[0] || '')}</div><div class="hit ink"${onClick(seeEntry)}>看设定</div></div><div class="check-card">${lit(e.text, shown.says)}</div></div>`
-      : shown.kind === '名字写错' ? `<div class="fit"><div class="check-from"><div class="fit ell">设定里的名字</div></div><div class="check-card"><span class="lit">${t(shown.right)}</span></div></div>`
+    const right = shown.kind === '不一致' && e ? `<div class="fit"><div class="check-from"><div class="fit ell">设定 · ${t(e.cat)} · ${t(e.names[0] || '')}</div><div class="hit ink"${onClick(seeEntry)}>看设定</div></div><div class="check-card">${lit(e.text, shown.says)}</div></div>`
+      : shown.kind === '名字有误' ? `<div class="fit"><div class="check-from"><div class="fit ell">设定里的名字</div></div><div class="check-card"><span class="lit">${t(shown.right)}</span></div></div>`
       : `<div class="fit"><div class="check-from"><div class="fit ell">可以加入设定 · ${t(shown.cat)}</div></div><div class="check-card"><span class="lit">${t(shown.title)}</span>：${t(shown.as)}</div></div>`
     const add = () => { set((s) => ({ ...settle(shown.id)(s), entries: [...s.entries, { id: 'e' + s.n, place: 'body', cat: shown.cat, names: [shown.title], text: shown.as, src: { key: shown.key, quote: shown.quote } }], n: s.n + 1, log: did(s, '新增到正文 · ' + shown.cat + '：' + shown.as) })); say('已加入设定', '', 'ok') }
     const acts = shown.kind === '新出现' ? button('不用记', () => set(settle(shown.id))) + button('加入设定', add, 'primary')
-      : button('是故意的', () => set(settle(shown.id))) + (shown.kind === '对不上' && e ? button('改设定', () => set({ page: 'write', paneOpen: true, focus: false, tab: '设定', sv: 'list', sid: e.id, form: editing(e) })) : '') + button('改正文', seeText, 'primary')
+      : button('是故意的', () => set(settle(shown.id))) + (shown.kind === '不一致' && e ? button('改设定', () => set({ page: 'write', paneOpen: true, focus: false, tab: '设定', sv: 'list', sid: e.id, form: editing(e) })) : '') + button('改正文', seeText, 'primary')
     detail = '<div class="check-detail" data-k="check-detail">' +
       `<div class="check-title"><div class="fit ell">${t(shown.title)}</div><div class="side">${of.indexOf(shown) + 1} / ${of.length}</div><div class="hit muted${of.length > 1 ? '' : ' off'}"${onClick(of.length > 1 ? next : null)}>下一条</div></div>` +
       `<div class="check-sides"><div class="fit"><div class="check-from"><div class="fit ell">正文 · ${ch ? t(chapterName(ch)) : ''} 第 ${shown.para + 1} 段</div><div class="hit ink"${onClick(seeText)}>看原文</div></div><div class="check-card">${lit(text, shown.quote)}</div></div>${right}</div>` +
@@ -79,8 +79,8 @@ function checkPage() {
   }
   return '<div class="check-list">' +
     `<div class="check-head"><div class="page-title">检查</div><div class="grow"></div>` +
-    (running ? `<div class="muted">正在查${t(chapterName(running))}${S.queue.length ? '，还有 ' + S.queue.length + ' 章' : ''}</div><div class="hit ink"${onClick(() => set({ checking: false, queue: [] }))}>停下</div>`
-      : `<div class="muted">${last ? '查到' + t(chapterName(last)) : ''}</div><div class="anchor"><div class="hit ink"${onClick(again)}>${last ? '再查一次' : '检查全书'}</div>${S.open === 'checkAll' ? ask() : ''}</div>`) + '</div>' +
+    (running ? `<div class="muted">正在检查${t(chapterName(running))}${S.queue.length ? '，还有 ' + S.queue.length + ' 章' : ''}</div><div class="hit ink"${onClick(() => set({ checking: false, queue: [] }))}>停止</div>`
+      : `<div class="muted">${last ? '已检查至' + t(chapterName(last)) : ''}</div><div class="anchor"><div class="hit ink"${onClick(again)}>${last ? '重新检查' : '检查全书'}</div>${S.open === 'checkAll' ? ask() : ''}</div>`) + '</div>' +
     seg(S.kind + ' ' + count(S.kind), KINDS.map((k) => k + ' ' + count(k)), (v) => set({ kind: v.split(' ')[0], cid: null }), '检查分类') +
     `<div class="check-rows scroll">${of.map(row).join('')}</div></div>` + detail
 }

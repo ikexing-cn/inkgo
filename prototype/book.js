@@ -144,13 +144,13 @@ const BOOK = {
   },
 
   // 检查查出来的。kind 是哪一类；key、para、quote 是正文里的哪一句。
-  // 对不上的：entry 是哪条设定，says 是设定里的哪半句，also 是别的章里类似的地方。
-  // 名字写错的：right 是应该写成什么。新出现的：as 是可以记成的设定，cat 是分类。
+  // 不一致的：entry 是哪条设定，says 是设定里的哪半句，also 是别的章里类似的地方。
+  // 名字有误的：right 是应该写成什么。新出现的：as 是可以记成的设定，cat 是分类。
   checks: [
-    { id: 'c1', kind: '对不上', title: '林晚怕黑，这里却一个人进了黑巷子', key: '87', para: 5, quote: '她往前走了一步。', entry: 'lin', says: '但她很怕黑',
+    { id: 'c1', kind: '不一致', title: '林晚怕黑，却独自走进黑巷', key: '87', para: 5, quote: '她往前走了一步。', entry: 'lin', says: '但她很怕黑',
       also: [{ at: '第30章', text: '她一个人穿过停电的菜市场，没有停。', note: '你标过「是故意的」' }, { at: '第52章', text: '她摸黑下了地窖，一只手扶着墙。', note: '还没处理' }] },
-    { id: 'c2', kind: '对不上', title: '小祥的左手从不拿出来，这里却拿着两根冰棍', key: 'x', para: 2, quote: '小祥买了两根冰棍', entry: 'zhou', says: '左手总揣在兜里，从来不拿出来' },
-    { id: 'c3', kind: '名字写错', title: '「周翔」是不是「周祥」写错了？', key: '84', para: 5, quote: '周翔', right: '周祥' },
+    { id: 'c2', kind: '不一致', title: '周祥左手从不外露，却拿着两根冰棍', key: 'x', para: 2, quote: '小祥买了两根冰棍', entry: 'zhou', says: '左手总揣在兜里，从来不拿出来' },
+    { id: 'c3', kind: '名字有误', title: '「周翔」疑为「周祥」', key: '84', para: 5, quote: '周翔', right: '周祥' },
     { id: 'c4', kind: '新出现', title: '何主任', key: '85', para: 0, quote: '何主任让他们把旧城的灯重新数一遍', as: '电力局的主任，档案柜的钥匙挂在他腰上。', cat: '人物', times: 4 },
     { id: 'c5', kind: '新出现', title: '旧城小学', key: '46', para: 0, quote: '旧城小学的侧门锁着', as: '侧门常年锁着，锁眼里塞满了铁锈。', cat: '地点', times: 2 },
   ],

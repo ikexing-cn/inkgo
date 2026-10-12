@@ -357,7 +357,7 @@ function pending() {
   const list = []
   for (const c of S.checks) {
     const ch = chapterOf(c.key)
-    list.push({ id: c.id, group: '设定对不上', name: c.kind === '新出现' ? '「' + c.title + '」还不在设定里' : c.title, about: ch ? chapterName(ch) : '', key: c.key, open: () => set({ page: 'check', kind: '全部', cid: c.id, ...SHUT }) })
+    list.push({ id: c.id, group: '设定不一致', name: c.kind === '新出现' ? '「' + c.title + '」还不在设定里' : c.title, about: ch ? chapterName(ch) : '', key: c.key, open: () => set({ page: 'check', kind: '全部', cid: c.id, ...SHUT }) })
   }
   for (const m of S.marks) {
     const gap = BOOK.now - m.ch
@@ -512,7 +512,7 @@ function findBar(cur) {
 // 工具栏右边的「待处理 N」点开的那一块。
 function todoPop(list) {
   const here = list.filter((x) => x.key === S.ch), shown = S.todoAll ? list : here
-  const groups = ['设定对不上', '伏笔', '备份'].map((g) => [g, shown.filter((x) => x.group === g)]).filter(([, of]) => of.length)
+  const groups = ['设定不一致', '伏笔', '备份'].map((g) => [g, shown.filter((x) => x.group === g)]).filter(([, of]) => of.length)
   const row = (x) => `<div class="todo-row row"${onClick(x.open)}><div class="fit"><div class="ell">${t(x.name)}</div><div class="note ell">${t(x.about)}${x.key === S.ch ? ' · 本章' : ''}</div></div>${ICON.right}</div>`
   return '<div class="pop todo-pop" data-k="todo-pop">' +
     `<div class="todo-head"><div class="todo-title">待处理</div><div class="grow"></div>${seg(S.todoAll ? '全部 ' + list.length : '本章 ' + here.length, ['全部 ' + list.length, '本章 ' + here.length], (v) => set({ todoAll: v.startsWith('全部') }), '待处理范围')}</div>` +
@@ -525,14 +525,21 @@ function todoPop(list) {
 }
 
 // vol 是开着的那一卷：这时没有开着的章。
+// 底栏右边的字数：选中的、本章或本卷的、全书的，设了每日目标还有今天的。点开设目标。
+function wordsOf(cur, vol) {
+  const inVol = vol && (vol[2] ? vol[2].replace('万', ' 万字') : S.chapters.filter((c) => c.vol === vol[0]).reduce((n, c) => n + counted(c), 0) + ' 字')
+  const today = BOOK.days[0][1].toLocaleString('en-US')
+  const count = (S.bar ? '选中 ' + S.bar.text.length + ' 字' : cur ? '本章 ' + sizeOf(cur) + ' 字' : vol ? '本卷 ' + inVol : '') + (cur || vol ? ' · ' : '') + '全书 ' + (S.book === BOOK.shelf[0].id ? BOOK.words : S.chapters.reduce((n, c) => n + counted(c), 0) + ' 字') + (S.goal.trim() ? ' · 今天 ' + today + ' / ' + S.goal.trim() : '')
+  const goal = () => '<div class="pop goal-pop" data-k="goal-pop"><div class="pop-label">最近 7 天</div>' + BOOK.days.map(([day, n]) => `<div class="goal-day"><div class="grow">${day}</div><div>${n ? '+' + n.toLocaleString('en-US') : '0'} 字</div></div>`).join('') + HAIR +
+    field('每日目标', line(S.goal, (v) => set({ goal: v }), '比如 2000', '每日目标字数')) + '<div class="note">字数旁会写出今天写了多少、目标多少。留空就不设。</div></div>'
+  return `<div class="anchor up"><div class="words ell hit" title="字数。点击设每日目标"${onClick(() => set({ open: S.open === 'goal' ? '' : 'goal' }))}>${t(count)}</div>${S.open === 'goal' ? goal() : ''}</div>`
+}
+
 function toolbar(cur, vol) {
   const volume = cur && S.volumes.find(([key]) => key === cur.vol)
-  const inVol = vol && (vol[2] ? vol[2].replace('万', ' 万字') : S.chapters.filter((c) => c.vol === vol[0]).reduce((n, c) => n + counted(c), 0) + ' 字')
   const here = cur ? S.marks.filter((m) => m.st === 'open' && m.key === cur.key).length : 0
   const wide = !S.paneOpen || S.focus
   const list = pending()
-  const today = BOOK.days[0][1].toLocaleString('en-US')
-  const count = (S.bar ? '选中 ' + S.bar.text.length + ' 字' : cur ? '本章 ' + sizeOf(cur) + ' 字' : vol ? '本卷 ' + inVol : '') + (cur || vol ? ' · ' : '') + '全书 ' + (S.book === BOOK.shelf[0].id ? BOOK.words : S.chapters.reduce((n, c) => n + counted(c), 0) + ' 字') + (S.goal.trim() ? ' · 今天 ' + today + ' / ' + S.goal.trim() : '')
   const tool = (label, title, pic, act, on) => `<button class="icon-btn${on ? ' on' : ''}" aria-label="${label}" title="${title}"${onClick(act)}>${icon(pic)}</button>`
   const flip = (name) => () => set({ open: S.open === name ? '' : name })
   const more = () => {
@@ -542,11 +549,9 @@ function toolbar(cur, vol) {
       menuRow('快照', cur ? () => set({ dialog: { kind: 'snaps', id: '', diff: false }, ...SHUT }) : null, 'clock') + menuRow('导出…', () => set({ dialog: { kind: 'export', range: cur ? '本章' : '全书', indent: true }, ...SHUT }), 'save') + HAIR +
       `<div class="pop-label">外观</div><div class="pop-seg">${seg(S.look, [['跟随系统', 'screen'], ['浅色', 'sun'], ['深色', 'moon']], (v) => set({ look: v }), '外观')}</div></div>`
   }
-  const goal = () => '<div class="pop goal-pop" data-k="goal-pop"><div class="pop-label">最近 7 天</div>' + BOOK.days.map(([day, n]) => `<div class="goal-day"><div class="grow">${day}</div><div>${n ? '+' + n.toLocaleString('en-US') : '0'} 字</div></div>`).join('') + HAIR +
-    field('每日目标', line(S.goal, (v) => set({ goal: v }), '比如 2000', '每日目标字数')) + '<div class="note">顶栏的字数旁会写出今天写了多少、目标多少。留空就不设。</div></div>'
   return `<div class="toolbar${wide ? ' wide' : ''}">` +
     (volume ? `<div class="crumb">${t(volume[1])}</div>${icon('right', 'xs', 'faint')}` : '') +
-    `<div class="crumb here ell">${cur ? t(titleOf(cur)) : vol ? t(vol[1]) : '正文'}</div><div class="anchor left"><div class="count-all ell hit" title="字数。点击设每日目标"${onClick(flip('goal'))}>${t(count)}</div>${S.open === 'goal' ? goal() : ''}</div>` +
+    `<div class="crumb here ell">${cur ? t(titleOf(cur)) : vol ? t(vol[1]) : '正文'}</div>` + (cur ? `<div class="count-all">${S.saved ? '已保存' : '还没保存'}</div>` : '') +
     (S.ai && S.ai.kind === 'ghosting' ? '<div class="count-all">续写中…</div>' : S.ai && S.ai.kind === 'ghost' ? '<div class="count-all">Tab 采纳 · Esc 放弃</div>' : '') + '<div class="grow"></div><div class="tools">' +
     (wide && here && !S.focus ? `<button class="fs-btn" aria-label="本章伏笔"${onClick(() => set({ paneOpen: true, tab: '伏笔', fid: null, fv: 'list' }))}>${icon('flag')}<span>本章伏笔 ${here}</span></button>` : '') +
     (cur ? tool('查找替换', '查找替换（Ctrl+F）', 'find', () => set({ find: S.find ? null : { q: '', to: '', all: false, at: 0 } }), !!S.find) : '') +
@@ -558,9 +563,9 @@ function toolbar(cur, vol) {
     '</div></div>'
 }
 
-// 正文下面那一行：检查到哪了、什么时候查、存没存。
-function foot(cur) {
-  if (!cur) return ''
+// 正文下面那一行：检查到哪了、什么时候查，右边是字数。
+function foot(cur, vol) {
+  if (!cur) return `<div class="foot"><div class="grow"></div>${wordsOf(null, vol)}</div>`
   const n = S.checks.filter((c) => c.key === cur.key).length, dirty = S.dirty[cur.key], name = cur.vol ? '第' + cur.no + '章' : '这一章'
   const seeAll = () => set({ page: 'check', kind: '全部', cid: S.checks.find((c) => c.key === cur.key).id })
   // 这一章查到哪了，和现在能不能点「现在查」。
@@ -576,10 +581,10 @@ function foot(cur) {
   else if (dirty) { state = name + '改过，还没再查'; can = true }
   const found = n && !S.checking && !S.failed[cur.key] && !S.never[cur.key] && counted(cur) >= 200
   const when = [['写完一章就查', '推荐，每章用一次 AI'], ['我点了才查', '平时不用 AI'], ['边写边查', '停笔就查，最费额度']]
-  return '<div class="foot">' + (found ? `<div class="hit ink" title="去「检查」页逐条看"${onClick(seeAll)}>${t(state)}</div>` : `<div>${t(state)}</div>`) +
+  return '<div class="foot">' + (found ? `<div class="state ell hit ink" title="去「检查」页逐条看"${onClick(seeAll)}>${t(state)}</div>` : `<div class="state ell">${t(state)}</div>`) +
     (can ? `<div class="hit ink under" title="用一次 AI 对照设定检查这一章"${onClick(() => checkNow(cur.key))}>现在查</div>` : '') + '<div class="faint">·</div>' +
     `<div class="anchor up left"><div class="hit" title="什么时候检查"${onClick(() => set({ open: S.open === 'when' ? '' : 'when' }))}>${t(S.when === '我点了才查' ? '点了才查' : S.when)} ▴</div>${S.open === 'when' ? `<div class="pop when-pop" data-k="when-pop"><div class="pop-title">什么时候检查</div>${radios(S.when, when, (v) => set({ when: v, ...SHUT }))}</div>` : ''}</div>` +
-    `<div class="grow"></div><div class="faint">${S.saved ? '已保存' : '还没保存'}</div></div>`
+    `<div class="grow"></div>${wordsOf(cur)}</div>`
 }
 
 // 软件外面动了开着的这一章时，正文上面的那一条。
@@ -603,10 +608,10 @@ function folderPage([key, title]) {
 
 function editor(cur) {
   const vol = S.volumes.find((v) => v[0] === S.vol)
-  if (vol) return '<div class="editor">' + toolbar(null, vol) + folderPage(vol) + '</div>'
+  if (vol) return '<div class="editor">' + toolbar(null, vol) + folderPage(vol) + foot(null, vol) + '</div>'
   if (!cur) {
     return `<div class="editor">${toolbar(null)}<div class="paper">` + (S.chapters.length ? blank('book', '从左边选一章开始写', '')
-      : blank('book', '还没有章节', '每一章是作品文件夹 chapters 里的一个纯文本文件，离开软件也能打开。', buttons(button('新建第一章', newChapter, 'primary'), button('新建文件夹', newFolder)))) + '</div></div>'
+      : blank('book', '还没有章节', '每一章是作品文件夹 chapters 里的一个纯文本文件，离开软件也能打开。', buttons(button('新建第一章', newChapter, 'primary'), button('新建文件夹', newFolder)))) + '</div>' + foot(null) + '</div>'
   }
   const focus = S.paneOpen && S.tab === '伏笔' ? S.fid : null
   const found = S.find && S.find.q && !S.find.all ? hits(cur, S.find.q) : []

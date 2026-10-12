@@ -91,6 +91,9 @@ function stopAll() {
 // acts 是提示里能点的几个：每个是 [字, 点了做什么]。
 function say(title, detail = '', kind = '', acts = []) {
   const id = 'toast' + Math.random().toString(36).slice(2, 8)
+  // 只给了一句话的：第一个逗号、分号前面是标题，后面是小字，提示条就不用拉得很宽。
+  const cut = detail ? -1 : title.search(/[，；]/)
+  if (cut > 0) [title, detail] = [title.slice(0, cut), title.slice(cut + 1)]
   if (kind === 'fail') acts = [...acts, ['复制详情', () => { if (navigator.clipboard) navigator.clipboard.writeText(title + (detail ? '：' + detail : '')).catch(() => {}) }]]
   set((s) => ({ toasts: [...s.toasts.filter((x) => x.title !== title), { id, title, detail, kind, acts }] }))
   if (kind !== 'fail' && kind !== 'busy') later(3000, () => unsay(id))
