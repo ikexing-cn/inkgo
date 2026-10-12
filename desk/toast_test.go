@@ -23,7 +23,7 @@ func TestToastOverTheSettings(t *testing.T) {
 	if n := strings.Count(strings.Join(tt.Texts(), "\n"), "连不上 AI"); n != 1 {
 		t.Fatalf("shown %d times: %q", n, tt.Texts())
 	}
-	for _, s := range []string{"检查网络和服务地址", "去设置", "复制详情"} {
+	for _, s := range []string{"检查网络和服务地址", "打开设置", "复制详情"} {
 		if !tt.HasText(s) {
 			t.Fatal(s, tt.Texts())
 		}

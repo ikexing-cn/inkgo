@@ -15,7 +15,7 @@ func (a *App) moreButton(c *ui.Context, chapter bool) {
 		w.moreOpen = !w.moreOpen
 	}
 	ui.Popover(c, b, &w.moreOpen, func() {
-		ui.Column(c).Width(250).Gap(2).Children(func() {
+		ui.Column(c).MinWidth(230).Children(func() {
 			if chapter {
 				busy := w.ed.ReadOnly() || w.lost || w.external != nil
 				if a.menuRow(c, icSparkle, "续写一句", modKey+"J", busy).Clicked() {
@@ -24,7 +24,7 @@ func (a *App) moreButton(c *ui.Context, chapter bool) {
 				}
 				hint := ""
 				if strings.TrimSpace(w.outline) == "" {
-					hint = "先写章纲"
+					hint = "请先填写章纲"
 				}
 				if a.menuRow(c, icDraft, "起草本章", hint, busy || hint != "").Clicked() {
 					w.moreOpen = false
@@ -38,7 +38,7 @@ func (a *App) moreButton(c *ui.Context, chapter bool) {
 			}
 			if a.menuRow(c, icDownload, "导出…", "", false).Clicked() {
 				w.moreOpen = false
-				w.exportOpen, w.exportDone, w.exportFrom = true, false, ""
+				w.exportOpen, w.exportDone, w.exportFrom, w.exportAt = true, false, "", 0
 			}
 			a.menuLine(c)
 			a.themeChoice(c)
@@ -50,7 +50,7 @@ func (a *App) moreButton(c *ui.Context, chapter bool) {
 // and on the right a shortcut, or why it cannot be done now.
 func (a *App) menuRow(c *ui.Context, s *ui.SVG, text, hint string, off bool) ui.Element {
 	t := a.pal.theme
-	b := ui.ButtonBase(c).Row().FillWidth().Height(hControl).Padding(0, 10).Gap(10).AlignItems(ui.Center).Radius(rControl).Label(strings.TrimSuffix(text, "…")).Disabled(off)
+	b := ui.ButtonBase(c).Row().FillWidth().Height(hRow).Padding(0, 10).Gap(8).AlignItems(ui.Center).Radius(rControl).Label(strings.TrimSuffix(text, "…")).Disabled(off)
 	fg := t.AccentHover
 	if off {
 		fg = a.pal.faint
@@ -68,38 +68,45 @@ func (a *App) menuRow(c *ui.Context, s *ui.SVG, text, hint string, off bool) ui.
 }
 
 func (a *App) menuLine(c *ui.Context) {
-	ui.Box(c).FillWidth().Height(1).Margin(6, 4).Background(a.pal.line).Shrink(0)
+	ui.Box(c).FillWidth().Height(1).Margin(4, 0).Background(a.pal.line).Shrink(0)
 }
 
 // themeChoice picks the appearance of the whole app on this machine:
 // following the system, light or dark.
 func (a *App) themeChoice(c *ui.Context) {
-	ui.Column(c).FillWidth().Gap(6).Padding(6, 10, 8, 10).Children(func() {
-		ui.Text(c, "外观").FontSize(fsNote).TextColor(a.pal.faint)
-		a.themeSegments(c)
-	})
+	ui.Text(c, "外观").FontSize(fsSmall).TextColor(a.pal.faint).Padding(6, 10, 2, 10)
+	// As wide as its three words: the menu grows to hold it, it does not
+	// squeeze into the menu.
+	ui.Row(c).Padding(2, 6, 6, 6).Children(func() { a.themeSegments(c, false) })
 }
 
 // themeSegments are the three appearances side by side.
-func (a *App) themeSegments(c *ui.Context) {
+func (a *App) themeSegments(c *ui.Context, fill bool) {
 	t := a.pal.theme
-	ui.Row(c).FillWidth().Gap(2).Padding(2).Radius(rControl).Background(t.SurfaceHover).Children(func() {
+	bar := ui.Row(c).Gap(2).Padding(2).Radius(rControl).Background(t.SurfacePressed).Shrink(0)
+	if fill {
+		bar.FillWidth()
+	}
+	bar.Children(func() {
 		for _, m := range []struct {
 			v, n string
 			s    *ui.SVG
 		}{{"", "跟随系统", icMonitor}, {"light", "浅色", icSun}, {"dark", "深色", icMoon}} {
 			on := a.shelf.Theme == m.v
-			b := ui.ButtonBase(c).Row().Grow(1).Height(hSeg).Center().Gap(6).Radius(rControl).Label("外观-" + m.n)
-			fg := t.TextMuted
+			b := ui.ButtonBase(c).Row().Height(hSeg).Center().Gap(6).Padding(0, 10).Radius(rXs).Shrink(0).Label("外观-" + m.n)
+			if fill {
+				b.Grow(1)
+			}
+			fg, weight := t.TextMuted, 400
 			if on {
-				a.pal.raise.on(b.Background(a.pal.raised))
-				fg = t.Text
+				a.pal.raise.on(b.Background(a.pal.canvas))
+				fg, weight = t.Text, 600
 			} else if b.Hovered() {
 				fg = t.Text
 			}
 			b.Children(func() {
 				glyph(c, m.s, iconSm, fg)
-				ui.Text(c, m.n).FontSize(fsNote).TextColor(fg).SingleLine()
+				ui.Text(c, m.n).FontSize(fsControl).FontWeight(weight).TextColor(fg).SingleLine()
 			})
 			if b.Clicked() {
 				a.setTheme(m.v)
@@ -145,10 +152,10 @@ func (a *App) selectionBar(c *ui.Context) {
 		Background(a.pal.raised).Border(1, t.Border)
 	a.pal.pop.on(bar)
 	bar.Children(func() {
-		if a.selButton(c, icPen, "AI 改写").Tooltip("让 AI 改写选中的部分").Clicked() {
+		if a.selButton(c, icPen, "AI 改写").Tooltip("由 AI 改写选中内容").Clicked() {
 			a.openRewrite()
 		}
-		if a.selButton(c, icBookmark, "加入设定").Tooltip("把选中的原文加入设定").Clicked() {
+		if a.selButton(c, icBookmark, "加入设定").Tooltip("将选中的原文加入设定").Clicked() {
 			a.openTake()
 		}
 	})

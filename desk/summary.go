@@ -169,21 +169,21 @@ func (a *App) summaryState() (label, line string, warn bool) {
 	q := &a.sums
 	switch {
 	case q.running == w.node:
-		return "本章摘要 · 正在生成", "AI 正在读这一章写摘要…", false
+		return "本章摘要 · 正在生成", "AI 正在阅读本章并生成摘要…", false
 	case w.sum.Text == "" && w.summary == "":
-		label = "本章摘要 · 还没有"
-		line = fmt.Sprintf("正文满 %d 字后，离开这一章时会自动生成；也可以自己写。", writing.MinSummary)
+		label = "本章摘要 · 暂无"
+		line = fmt.Sprintf("正文满 %d 字后，离开本章时自动生成；也可手动填写。", writing.MinSummary)
 		if !w.autoSummary {
-			line = "自动生成已关掉，可以点“生成摘要”，也可以自己写。"
+			line = "自动生成已关闭，可点击“生成摘要”，也可手动填写。"
 		}
 	case w.sum.By == "":
-		label, line = "本章摘要", "你写的"
+		label, line = "本章摘要", "手动填写"
 	default:
-		label, line = "本章摘要", "AI 写的 · "+shortModel(w.sum.By)+" · "+w.sum.At.Local().Format("01-02 15:04")
+		label, line = "本章摘要", "AI 生成 · "+shortModel(w.sum.By)+" · "+w.sum.At.Local().Format("01-02 15:04")
 	}
 	if w.sum.Text != "" && w.ed != nil && w.sum.Stale(w.ed.Doc.String()) && w.summary == w.summarySaved {
 		label, warn = "本章摘要 · 可能过时", true
-		line += " · 正文改过了"
+		line += " · 正文已修改"
 	}
 	if why := q.failed[w.node]; why != "" {
 		line, warn = "上次生成失败："+why, true
@@ -211,7 +211,7 @@ func (a *App) summaryPanel(c *ui.Context) {
 	w := &a.write
 	_, line, warn := a.summaryState()
 	ui.Column(c).FillWidth().Gap(6).Padding(2, 0, 4, 0).Children(func() {
-		ui.TextAreaBase(c, &w.summary).Label("本章摘要").Placeholder("这一章发生了什么：起草后面的章节时，AI 会看到各章的摘要").FillWidth().Height(84).
+		ui.TextAreaBase(c, &w.summary).Label("本章摘要").Placeholder("本章发生的事。起草后续章节时，AI 会参考各章摘要").FillWidth().Height(84).
 			FontSize(fsBody).LineHeight(lhLoose).Padding(10, 12).Radius(rControl).Background(a.pal.side).Disabled(w.lost || a.sums.running == w.node)
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 			color := a.pal.faint
@@ -224,9 +224,9 @@ func (a *App) summaryPanel(c *ui.Context) {
 				verb = "生成摘要"
 			}
 			short := w.ed == nil || workspace.Count(w.ed.Doc.String()) < writing.MinSummary
-			tip := "让 AI 读这一章，写一份摘要"
+			tip := "由 AI 阅读本章并生成摘要"
 			if short {
-				tip = fmt.Sprintf("正文满 %d 字才需要摘要", writing.MinSummary)
+				tip = fmt.Sprintf("正文满 %d 字后才需要摘要", writing.MinSummary)
 			}
 			if ghost(c, verb, a.pal.ink).Label(verb + "摘要").Tooltip(tip).Disabled(short || a.sums.running == w.node || w.lost).Clicked() {
 				a.flush()
@@ -248,7 +248,7 @@ func (a *App) recapNote(c *ui.Context) {
 		waiting++
 	}
 	if waiting > 0 && q.total > 0 {
-		ui.Textf(c, "正在补摘要：%d / %d。补完之前起草，AI 只看得到已有的摘要。", q.total-waiting, q.total).FontSize(fsNote).TextColor(t.TextMuted)
+		ui.Textf(c, "正在补齐摘要：%d / %d。补齐前起草，AI 只能参考已有摘要。", q.total-waiting, q.total).FontSize(fsNote).TextColor(t.TextMuted)
 		return
 	}
 	var missing []string
@@ -260,12 +260,12 @@ func (a *App) recapNote(c *ui.Context) {
 	w.unsummarized = missing
 	if len(missing) == 0 {
 		if w.recapped > 0 {
-			ui.Textf(c, "起草时 AI 会读前面 %d 章的摘要，接上前情。", w.recapped).FontSize(fsNote).TextColor(t.TextMuted)
+			ui.Textf(c, "起草时 AI 会参考前 %d 章的摘要，以衔接前文。", w.recapped).FontSize(fsNote).TextColor(t.TextMuted)
 		}
 		return
 	}
 	ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Padding(8, 10).Radius(rCard).Background(t.Warning.Alpha(0.08)).Children(func() {
-		ui.Textf(c, "前面有 %d 章还没有摘要，起草时 AI 不知道这些章里发生了什么。", len(missing)).FontSize(fsNote).TextColor(t.Warning.Mix(t.Text, 0.35)).Grow(1).Shrink(1)
+		ui.Textf(c, "前文有 %d 章尚无摘要，起草时 AI 无法了解这些章节的内容。", len(missing)).FontSize(fsNote).TextColor(t.Warning.Mix(t.Text, 0.35)).Grow(1).Shrink(1)
 		if action(c, fmt.Sprintf("补齐摘要（%d 次调用）", len(missing)), t.Warning, false).Label("补齐摘要").Clicked() {
 			for _, id := range missing {
 				a.queueSummary(id)

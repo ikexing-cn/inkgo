@@ -51,9 +51,14 @@ func TestFirstBackup(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("稿子现在只存在这台电脑上") || !tt.HasText("在这台电脑上找到了 · "+sync) || !tt.HasText("关闭作品时和每天一次") {
+	if !tt.HasText("作品目前仅保存在本机") || !tt.HasText("在本机检测到 · "+sync) || !tt.HasText("每天一次（当天有写作时）") {
 		t.Fatal("not asked", tt.Texts())
 	}
+	// When is ticked in the dialog itself.
+	if err := tt.Click("写作时每小时一次"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
 	if err := tt.Click("开始备份"); err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +67,7 @@ func TestFirstBackup(t *testing.T) {
 		t.Fatal("not backed up", zips(t, sync), tt.Texts())
 	}
 	s, ok := a.backupSettings()
-	if !ok || s.Dir != sync || !s.OnClose || !s.Daily || s.Hourly || s.Last.IsZero() {
+	if !ok || s.Dir != sync || !s.OnClose || !s.Daily || !s.Hourly || s.Last.IsZero() {
 		t.Fatalf("settings %+v", s)
 	}
 	// Opened again, it is not asked again; closing backs up what changed.
@@ -70,7 +75,7 @@ func TestFirstBackup(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if tt.HasText("稿子现在只存在这台电脑上") {
+	if tt.HasText("作品目前仅保存在本机") {
 		t.Fatal("asked again")
 	}
 	if _, err := a.Store.NewChapter("", "第二章", false); err != nil {
@@ -90,7 +95,7 @@ func TestBackupLater(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if err := tt.Click("以后再说"); err != nil {
+	if err := tt.Click("稍后再说"); err != nil {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
@@ -101,7 +106,7 @@ func TestBackupLater(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.bk.ask || tt.HasText("稿子现在只存在这台电脑上") {
+	if a.bk.ask || tt.HasText("作品目前仅保存在本机") {
 		t.Fatal("asked again so soon")
 	}
 }
@@ -113,7 +118,7 @@ func TestBackupFails(t *testing.T) {
 	gone := filepath.Join(t.TempDir(), "备份")
 	a.setBackup(backup.Settings{Dir: gone, OnClose: true})
 	tt.Frame()
-	if !tt.HasText("还没备份过") {
+	if !tt.HasText("尚未备份") {
 		t.Fatal("no line", tt.Texts())
 	}
 	if err := tt.Click("备份状态"); err != nil {
@@ -124,21 +129,21 @@ func TestBackupFails(t *testing.T) {
 		t.Fatal(err, tt.Texts())
 	}
 	waitBackup(t, a, tt)
-	if !tt.HasText("备份没成功") || !tt.HasText("备份没成功 · 找不到备份文件夹") || !tt.HasText("待处理 1") {
+	if !tt.HasText("备份失败") || !tt.HasText("备份失败 · 找不到备份文件夹") || !tt.HasText("待处理 1") {
 		t.Fatal("failure not shown", tt.Texts())
 	}
 	if err := tt.Click("备份提示"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("找不到备份文件夹，这次没备份上") || !tt.HasText("稿子没丢，文件夹可能被移走或改名。还没有备份成功过。") {
+	if !tt.HasText("找不到备份文件夹，本次备份未完成") || !tt.HasText("作品未受影响，文件夹可能已被移动或改名。尚无成功的备份。") {
 		t.Fatal("no reason", tt.Texts())
 	}
-	if err := tt.Click("今天不提醒"); err != nil {
+	if err := tt.Click("今日不再提醒"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if tt.HasText("备份没成功 · 找不到备份文件夹") || !tt.HasText("备份没成功") {
+	if tt.HasText("备份失败 · 找不到备份文件夹") || !tt.HasText("备份失败") {
 		t.Fatal("still warned on the toolbar", tt.Texts())
 	}
 	// The folder back, trying again works, and the settings page says so.
@@ -153,7 +158,7 @@ func TestBackupFails(t *testing.T) {
 		t.Fatal(err, tt.Texts())
 	}
 	waitBackup(t, a, tt)
-	if tt.HasText("备份没成功") || zips(t, gone) != 1 {
+	if tt.HasText("备份失败") || zips(t, gone) != 1 {
 		t.Fatal("not backed up", tt.Texts())
 	}
 	if err := tt.Click("设置"); err != nil {
@@ -164,7 +169,7 @@ func TestBackupFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !a.bk.prefs || !tt.HasText("把整部作品多存一份，防电脑坏。") || !tt.HasText("11 字 · 1 章 · 已存 1 份，最早 "+time.Now().Format("1 月 2 日")) {
+	if !a.bk.prefs || !tt.HasText("为整部作品另存一份副本，以防设备故障。") || !tt.HasText("11 字 · 1 章 · 已存 1 份") {
 		t.Fatal("settings page", tt.Texts())
 	}
 	if err := tt.Click("写作时每小时一次"); err != nil {
@@ -178,7 +183,7 @@ func TestBackupFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("只在这台电脑上生效，所有作品都一样。") {
+	if !tt.HasText("仅在本机生效，适用于所有作品。") {
 		t.Fatal("appearance", tt.Texts())
 	}
 }
@@ -197,12 +202,6 @@ func TestWhenSaid(t *testing.T) {
 		if got := when(c.at, now); got != c.want {
 			t.Errorf("when(%v) = %q, want %q", c.at, got, c.want)
 		}
-	}
-	if got := whenSaid(true, true, false); got != "关闭作品时和每天一次" {
-		t.Error(got)
-	}
-	if got := whenSaid(true, true, true); got != "关闭作品时、每天一次和写作时每小时一次" {
-		t.Error(got)
 	}
 }
 

@@ -55,7 +55,7 @@ func TestAddANameFromTheProse(t *testing.T) {
 		t.Fatalf("entry %+v", e)
 	}
 	tt.RightClickAt(550, 300)
-	if !slices.Contains(tt.Menu(), "已在名字表里") {
+	if !slices.Contains(tt.Menu(), "已在名字表中") {
 		t.Fatal("offered twice", tt.Menu())
 	}
 }
@@ -81,10 +81,10 @@ func TestRenameOffersToReplace(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("正文里还有 2 处「林晚」") {
+	if !tt.HasText("正文中仍有 2 处「林晚」") {
 		t.Fatal("no notice", a.renamed, tt.Texts())
 	}
-	if err := tt.Click("把旧名换成新名"); err != nil {
+	if err := tt.Click("将旧名替换为新名"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

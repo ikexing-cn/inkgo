@@ -63,7 +63,7 @@ func (a *App) nameMenu(m *ui.Menu, sel string) {
 		return
 	}
 	if a.named(name) {
-		m.Item("已在名字表里").Disabled(true)
+		m.Item("已在名字表中").Disabled(true)
 		return
 	}
 	m.Submenu("加入名字表", func(m *ui.Menu) {
@@ -71,7 +71,7 @@ func (a *App) nameMenu(m *ui.Menu, sel string) {
 			if slices.Contains(workspace.NameCategories, c.Name) && m.Item(c.Name).Chosen() {
 				a.revise(workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: c.Name, Text: name, Names: []string{name}})
 				if a.Error == "" {
-					a.notice = "「" + name + "」已加入设定的" + c.Name + "，打字时可以补全"
+					a.notice = "「" + name + "」已加入设定的" + c.Name + "，输入时可自动补全"
 				}
 			}
 		}
@@ -125,12 +125,12 @@ func (a *App) renameNotice(c *ui.Context) {
 	}
 	t := a.pal.theme
 	ui.Row(c).FillWidth().Gap(6).Padding(6, 8, 6, 10).Radius(rCard).Background(a.pal.raised).Border(1, a.pal.line).AlignItems(ui.Center).Children(func() {
-		ui.Textf(c, "正文里还有 %d 处「%s」", r.count, r.old).FontSize(fsNote).Grow(1).Shrink(1)
-		if ghost(c, "全书替换", t.Text).Label("把旧名换成新名").Clicked() {
+		ui.Textf(c, "正文中仍有 %d 处「%s」", r.count, r.old).FontSize(fsNote).Grow(1).Shrink(1)
+		if ghost(c, "全书替换", t.Text).Label("将旧名替换为新名").Clicked() {
 			a.renamed = renamed{}
 			a.replaceName(r.old, r.new)
 		}
-		if iconButton(c, icX, "不换旧名", ui.Color{}).Tooltip("不换").Clicked() {
+		if iconButton(c, icX, "保留旧名", ui.Color{}).Tooltip("不替换").Clicked() {
 			a.renamed = renamed{}
 		}
 	})

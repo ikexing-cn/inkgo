@@ -19,11 +19,11 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 	w.ed.Select(0, 20)
 	a.openBury()
 	tt.Frame()
-	if !tt.HasText("记为伏笔，写句备注") {
+	if !tt.HasText("记为伏笔，填写备注") {
 		t.Fatal("no note asked for", tt.Texts())
 	}
 	w.fore.note = "她怕黑的真正原因"
-	if err := tt.Click("记下"); err != nil {
+	if err := tt.Click("确定"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -60,7 +60,7 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 	w.ed.Select(0, 18)
 	a.openPay("")
 	tt.Frame()
-	if !tt.HasText("回收的是哪个伏笔") || !tt.HasText("第1章 · 1 章前埋下") || w.fore.pick != id {
+	if !tt.HasText("选择要回收的伏笔") || !tt.HasText("第1章 · 1 章前埋下") || w.fore.pick != id {
 		t.Fatal("nothing to pick", w.fore.pick, tt.Texts())
 	}
 	if err = tt.Click("确定回收"); err != nil {
@@ -84,7 +84,7 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 		t.Fatalf("renoted %+v", ch.Marks)
 	}
 	tt.Frame()
-	if err = tt.Click("看原文"); err != nil {
+	if err = tt.Click("查看原文"); err != nil {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
@@ -128,7 +128,7 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 	}
 	w.fore.query = "钥匙"
 	tt.Frame()
-	if !tt.HasText("没有找到") {
+	if !tt.HasText("未找到") {
 		t.Fatal("found what is not there", tt.Texts())
 	}
 }
@@ -167,7 +167,7 @@ func TestForeshadowLost(t *testing.T) {
 	text := w.ed.Doc.String()
 	at := len([]rune(text[:strings.Index(text, "她没有去捡。")]))
 	w.ed.Select(at, at+6)
-	if err := tt.Click("换个原句"); err != nil {
+	if err := tt.Click("更换原句"); err != nil {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()

@@ -36,13 +36,13 @@ func checkFixture(t *testing.T) (*App, *ui.Tester, string, *stream) {
 // page 检查, where the author says what to do about each.
 func TestCheckAChapterAndSettleWhatItFinds(t *testing.T) {
 	a, tt, id, f := checkFixture(t)
-	if !tt.HasText("第1章还没查过") || !tt.HasText("写完一章就查 ▴") || !tt.HasText("已保存") {
+	if !tt.HasText("第1章尚未检查") || !tt.HasText("写完一章后检查 ▴") || !tt.HasText("已保存") {
 		t.Fatal(tt.Texts())
 	}
-	if err := tt.Click("现在查"); err != nil {
+	if err := tt.Click("立即检查"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the check", func() bool { return tt.HasText("第1章查完了，有 3 处要看") })
+	until(t, tt, "the check", func() bool { return tt.HasText("第1章检查完成，有 3 处待处理") })
 	if len(f.asked) != 1 || !tt.HasText("待处理 3") || !exists(a, "第一章.check.json") {
 		t.Fatal(len(f.asked), tt.Texts())
 	}
@@ -50,23 +50,23 @@ func TestCheckAChapterAndSettleWhatItFinds(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("设定对不上") || !tt.HasText("「老周」还不在设定里") {
+	if !tt.HasText("设定不一致") || !tt.HasText("「老周」尚未加入设定") {
 		t.Fatal(tt.Texts())
 	}
 	if err := tt.Click("「林婉」是不是「林晚」写错了？"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.page != pageCheck || !tt.HasText("全部 3") || !tt.HasText("名字写错 1") || !tt.HasText("2 / 3") || !tt.HasText("设定 · 人物 · 林晚") {
+	if a.page != pageCheck || !tt.HasText("全部 3") || !tt.HasText("名字有误 1") || !tt.HasText("2 / 3") || !tt.HasText("设定 · 人物 · 林晚") {
 		t.Fatal(a.page, tt.Texts())
 	}
 
-	// 以后再说 goes on; 加入设定 writes the entry and the finding is gone.
-	if err := tt.Click("以后再说"); err != nil {
+	// 稍后再说 goes on; 加入设定 writes the entry and the finding is gone.
+	if err := tt.Click("稍后再说"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("3 / 3") || !tt.HasText("可以加入设定 · 人物") {
+	if !tt.HasText("3 / 3") || !tt.HasText("可加入设定 · 人物") {
 		t.Fatal(tt.Texts())
 	}
 	if err := tt.Click("加入设定"); err != nil {
@@ -84,12 +84,12 @@ func TestCheckAChapterAndSettleWhatItFinds(t *testing.T) {
 		t.Fatal(named, tt.Texts())
 	}
 
-	// 是故意的 is remembered on disk and not counted again.
+	// 无需修改 is remembered on disk and not counted again.
 	if err := tt.Click("检查-林晚怕黑，这里却一个人进了黑巷子"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if err := tt.Click("是故意的"); err != nil {
+	if err := tt.Click("无需修改"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -98,10 +98,10 @@ func TestCheckAChapterAndSettleWhatItFinds(t *testing.T) {
 		t.Fatal(tt.Texts(), k)
 	}
 
-	// 改正文 opens the chapter with the words selected; once they are put
+	// 修改正文 opens the chapter with the words selected; once they are put
 	// right and the chapter left, nothing is left to look at, and the
 	// chapter is checked again, being changed.
-	if err := tt.Click("改正文"); err != nil {
+	if err := tt.Click("修改正文"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -119,7 +119,7 @@ func TestCheckAChapterAndSettleWhatItFinds(t *testing.T) {
 	}
 	until(t, tt, "the check on leaving", func() bool { return len(f.asked) == 2 && a.ck.running == "" })
 	tt.Frame()
-	if !tt.HasText("没有对不上的地方") || !strings.Contains(f.asked[1].Messages[0].Content, "【作者说过是故意的】\n- 一个人走进了没有灯的巷子") {
+	if !tt.HasText("没有发现不一致") || !strings.Contains(f.asked[1].Messages[0].Content, "【作者说过是故意的】\n- 一个人走进了没有灯的巷子") {
 		t.Fatal(tt.Texts())
 	}
 }
@@ -134,15 +134,15 @@ func exists(a *App, name string) bool {
 // is used.
 func TestCheckOnlyWhenAsked(t *testing.T) {
 	a, tt, _, f := checkFixture(t)
-	if err := tt.Click("什么时候检查"); err != nil {
+	if err := tt.Click("检查时机"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if err := tt.Click("我点了才查"); err != nil {
+	if err := tt.Click("手动检查"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.ck.when != checkOnDemand || !tt.HasText("点了才查 ▴") {
+	if a.ck.when != checkOnDemand || !tt.HasText("手动检查 ▴") {
 		t.Fatal(a.ck.when, tt.Texts())
 	}
 	a.write.ed.Focus()
@@ -153,28 +153,28 @@ func TestCheckOnlyWhenAsked(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Frame()
-	if len(f.asked) != 0 || a.ck.running != "" || !tt.HasText("还没检查过") {
+	if len(f.asked) != 0 || a.ck.running != "" || !tt.HasText("尚未检查") {
 		t.Fatal(len(f.asked), tt.Texts())
 	}
 	if err := tt.Click("检查全书"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("有 1 章没查过或改过") || !tt.HasText("每章用一次 AI，一共 1 次。") {
+	if !tt.HasText("1 章未检查或有改动") || !tt.HasText("每章调用一次 AI，共 1 次。") {
 		t.Fatal(tt.Texts())
 	}
 	if err := tt.Click("开始检查"); err != nil {
 		t.Fatal(err)
 	}
 	until(t, tt, "the check of the book", func() bool { return tt.HasText("全部 3") })
-	if !tt.HasText("查到第1章") || !tt.HasText("再查一次") {
+	if !tt.HasText("已检查至第1章") || !tt.HasText("重新检查") {
 		t.Fatal(tt.Texts())
 	}
-	if err := tt.Click("再查一次"); err != nil {
+	if err := tt.Click("重新检查"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if len(f.asked) != 1 || a.notice != "各章都查过了，正文没有再改" {
+	if len(f.asked) != 1 || a.notice != "各章均已检查，正文无新改动" {
 		t.Fatal(len(f.asked), a.notice)
 	}
 
@@ -206,10 +206,10 @@ func TestShotCheck(t *testing.T) {
 		}
 	}
 	tt.SetTitleBar(ui.TitleBar{Height: 40, Right: 138}) // the Windows buttons
-	if err := tt.Click("现在查"); err != nil {
+	if err := tt.Click("立即检查"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the check", func() bool { return tt.HasText("第1章查完了，有 3 处要看") })
+	until(t, tt, "the check", func() bool { return tt.HasText("第1章检查完成，有 3 处待处理") })
 	a.ck.whenOpen = true
 	shot("check-foot.png")
 	a.ck.whenOpen = false

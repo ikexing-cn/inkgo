@@ -175,7 +175,7 @@ func TestQuotesFindTheirProse(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !strings.Contains(a.notice, "没有在这一章里找到") {
+	if !strings.Contains(a.notice, "在本章中未找到") {
 		t.Fatalf("notice %q", a.notice)
 	}
 }

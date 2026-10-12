@@ -37,7 +37,7 @@ func (a *App) loadShelf() {
 	s, fresh, err := shelf.Load(a.books.file)
 	if err != nil {
 		a.books.broken = true
-		a.Error = "作品清单读不了，这次不会改动它：" + err.Error()
+		a.Error = "作品清单无法读取，本次不会改动：" + err.Error()
 		return
 	}
 	if fresh {
@@ -119,7 +119,7 @@ func (a *App) OpenLast() {
 func (a *App) switchWork(path string) {
 	if !shelf.IsWork(path) {
 		a.books.missing[path] = true
-		a.Error = "找不到这部作品的文件夹：" + path
+		a.Error = "找不到该作品的文件夹：" + path
 		return
 	}
 	a.setError(a.Open(path))
@@ -138,10 +138,10 @@ func (a *App) create() error {
 		dir = trim(a.books.at)
 	}
 	if dir == "" {
-		return fmt.Errorf("请选择作品放在哪里")
+		return fmt.Errorf("请选择作品位置")
 	}
 	if entries, err := os.ReadDir(dir); err == nil && len(entries) > 0 {
-		return fmt.Errorf("%s 里已经有文件了，换个名字或位置", dir)
+		return fmt.Errorf("%s 中已有文件，请更换名称或位置", dir)
 	}
 	name := trim(a.name)
 	if name == "" {
@@ -158,11 +158,11 @@ func (a *App) create() error {
 // addBook puts a work already on disk on the shelf.
 func (a *App) addBook(path string) {
 	if !shelf.IsWork(path) {
-		a.Error = "这个文件夹里没有作品（缺少 work.yaml）：" + path
+		a.Error = "该文件夹中没有作品（缺少 work.yaml）：" + path
 		return
 	}
 	if a.shelf.Find(path) >= 0 {
-		a.notice = "这部作品已经在书架上了"
+		a.notice = "该作品已在书架上"
 		return
 	}
 	b, err := describe(path)
@@ -178,7 +178,7 @@ func (a *App) addBook(path string) {
 // relocate points a work whose folder moved at where it is now.
 func (a *App) relocate(from, to string) {
 	if !shelf.IsWork(to) {
-		a.Error = "这个文件夹里没有作品（缺少 work.yaml）：" + to
+		a.Error = "该文件夹中没有作品（缺少 work.yaml）：" + to
 		return
 	}
 	b, err := describe(to)
@@ -275,7 +275,7 @@ func revealLabel() string {
 // opened says when a work was last opened, briefly.
 func opened(t time.Time) string {
 	if t.IsZero() {
-		return "还没打开过"
+		return "尚未打开"
 	}
 	now := time.Now()
 	t = t.Local()
@@ -295,7 +295,7 @@ func opened(t time.Time) string {
 // length says how long a work is.
 func length(n int) string {
 	if n == 0 {
-		return "还没有正文"
+		return "暂无正文"
 	}
 	return words(n)
 }
@@ -308,11 +308,11 @@ func (a *App) welcome(c *ui.Context) {
 			a.emptyShelf(c)
 			return
 		}
-		ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(48, 32).Children(func() {
-			ui.Column(c).FillWidth().MaxWidth(960).Gap(24).Children(func() {
-				ui.Row(c).FillWidth().AlignItems(ui.End).Gap(10).Children(func() {
+		ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(64, 32, 40, 32).Children(func() {
+			ui.Column(c).FillWidth().MaxWidth(940).Gap(24).Children(func() {
+				ui.Row(c).FillWidth().AlignItems(ui.End).Gap(8).Children(func() {
 					ui.Column(c).Grow(1).Shrink(1).Gap(6).Children(func() {
-						ui.Text(c, "我的作品").FontSize(fsDisplay).Bold()
+						ui.Text(c, "我的作品").FontSize(fsDisplay).FontWeight(700)
 						ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 							ui.Textf(c, "%d 部 · 作品库：%s", len(books), a.shelf.Library).FontSize(fsControl).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
 							if a.PickFolder != nil && ghost(c, "更改", a.pal.ink).Label("更改作品库").Clicked() {
@@ -324,10 +324,10 @@ func (a *App) welcome(c *ui.Context) {
 						})
 					})
 					a.viewToggle(c)
-					if a.PickFolder != nil && ui.Button(c, "添加已有作品…").Clicked() {
+					if a.PickFolder != nil && a.pal.secondary(c, "添加已有作品…").Clicked() {
 						a.pickInto(c, "选择已有作品的文件夹", a.addBook)
 					}
-					if ui.PrimaryButton(c, "新建作品").Label("新建作品").Clicked() {
+					if a.pal.primary(c, "新建作品").Clicked() {
 						a.openCreate()
 					}
 				})
@@ -338,11 +338,8 @@ func (a *App) welcome(c *ui.Context) {
 						}
 					})
 				} else {
-					a.pal.cardBox(c).FillWidth().Padding(6).Gap(0).Children(func() {
-						for i, b := range books {
-							if i > 0 {
-								ui.Box(c).FillWidth().Height(1).Background(a.pal.line)
-							}
+					ui.Column(c).FillWidth().Gap(2).Children(func() {
+						for _, b := range books {
 							a.bookRow(c, b)
 						}
 					})
@@ -354,47 +351,45 @@ func (a *App) welcome(c *ui.Context) {
 
 func (a *App) emptyShelf(c *ui.Context) {
 	t := a.pal.theme
-	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(80, 24).Gap(32).Children(func() {
-		ui.Column(c).Width(560).Gap(10).Children(func() {
-			ui.Text(c, "从一个念头开始").FontSize(fsDisplay).Bold()
-			ui.Text(c, "和 AI 慢慢聊，讨论会在后台整理成设定文档。你定下的会被遵守，放下的 AI 不再提起。").FontSize(fsGroup).TextColor(t.TextMuted).LineHeight(lhBody)
-		})
-		ui.Row(c).Width(560).Gap(10).Children(func() {
-			if ui.PrimaryButton(c, "新建作品").Label("新建作品").Clicked() {
-				a.openCreate()
+	_, h := c.Size()
+	a.pal.blank(c, icBook, "从一个想法开始", "与 AI 逐步讨论，内容会在后台整理为设定文档。已确定的设定会被遵守，已放弃的 AI 不再提及。", func() {
+		ui.Column(c).Padding(10, 0).Gap(6).Children(func() {
+			for _, line := range []string{
+				"作品、对话和设定文档均为文件夹中的普通文件，可备份、同步或用其他编辑器打开。",
+				"AI 仅在你发送消息时回应，不会自行续写。",
+				"API key 保存在系统钥匙串中，不会写入作品文件夹。",
+			} {
+				ui.Text(c, "· "+line).FontSize(fsNote).TextColor(t.TextMuted)
 			}
-			if a.PickFolder != nil && ui.Button(c, "添加已有作品…").Clicked() {
+		})
+		ui.Row(c).Gap(8).Padding(10, 0, 0, 0).Children(func() {
+			if a.PickFolder != nil && a.pal.secondary(c, "添加已有作品…").Clicked() {
 				a.pickInto(c, "选择已有作品的文件夹", a.addBook)
 			}
-		})
-		ui.Column(c).Width(560).Gap(6).Children(func() {
-			for _, line := range []string{
-				"作品、对话和设定文档都是你文件夹里的普通文件，可以备份、同步或用别的编辑器打开。",
-				"AI 只在你发送时回应，不会自己往下写。",
-				"API key 存在系统钥匙串里，不会写进作品文件夹。",
-			} {
-				ui.Row(c).Gap(8).Children(func() {
-					ui.Text(c, "·").TextColor(t.Accent).Bold()
-					ui.Text(c, line).FontSize(fsControl).TextColor(t.TextMuted).Grow(1)
-				})
+			if a.pal.primary(c, "新建作品").Clicked() {
+				a.openCreate()
 			}
 		})
-	})
+	}).MinHeight(h).Padding(24)
 }
 
 // viewToggle switches the shelf between a list and cards.
 func (a *App) viewToggle(c *ui.Context) {
 	t := a.pal.theme
-	ui.Row(c).Gap(2).Padding(2).Radius(rControl).Border(1, t.Border).Children(func() {
+	ui.Row(c).Gap(2).Padding(2).Radius(rControl).Background(t.SurfacePressed).Shrink(0).Children(func() {
 		for _, v := range []struct {
 			icon  *ui.SVG
 			label string
 			cards bool
 		}{{icList, "列表", false}, {icGrid, "卡片", true}} {
-			b := iconButton(c, v.icon, "书架-"+v.label, ui.Color{}).Tooltip("按" + v.label + "显示")
-			if a.shelf.Cards == v.cards {
-				b.Background(t.SurfacePressed)
+			on := a.shelf.Cards == v.cards
+			b := ui.ButtonBase(c).Size(hSeg, hSeg).Center().Radius(rXs).Label("书架-" + v.label).Tooltip("按" + v.label + "显示")
+			fg := t.TextMuted
+			if on {
+				a.pal.raise.on(b.Background(a.pal.canvas))
+				fg = t.Text
 			}
+			b.Children(func() { glyph(c, v.icon, iconSm, fg) })
 			if b.Clicked() && a.shelf.Cards != v.cards {
 				a.shelf.Cards = v.cards
 				a.saveShelf()
@@ -404,13 +399,13 @@ func (a *App) viewToggle(c *ui.Context) {
 }
 
 // initial is a work's mark: the first character of its name.
-func (a *App) initial(c *ui.Context, name string, size float32, gone bool) {
+func (a *App) initial(c *ui.Context, name string, gone bool) {
 	bg := a.pal.ink
 	if gone {
-		bg = a.pal.faint
+		bg = a.pal.dim
 	}
-	ui.Box(c).Size(size, size).Radius(size / 4).Background(bg).Center().Shrink(0).Children(func() {
-		ui.Text(c, string([]rune(name + " ")[:1])).FontSize(size * 0.45).Bold().TextColor(a.pal.onInk)
+	ui.Box(c).Size(hControl, hControl).Radius(rControl).Background(bg).Center().Shrink(0).Children(func() {
+		ui.Text(c, string([]rune(name + " ")[:1])).FontSize(fsGroup).FontWeight(600).TextColor(a.pal.onInk)
 	})
 }
 
@@ -418,16 +413,16 @@ func (a *App) bookRow(c *ui.Context, b shelf.Book) {
 	t := a.pal.theme
 	gone := a.books.missing[b.Path]
 	ui.Row(c).Key("b-" + b.Path).FillWidth().AlignItems(ui.Center).Gap(4).Children(func() {
-		open := ui.ButtonBase(c).Row().Grow(1).Shrink(1).AlignItems(ui.Center).Gap(14).Padding(12, 12).Radius(rControl).Label("作品-" + b.Name).Disabled(gone)
+		open := ui.ButtonBase(c).Row().Grow(1).Shrink(1).AlignItems(ui.Center).Gap(14).Padding(12).Radius(rControl).Label("作品-" + b.Name)
 		if open.Hovered() && !gone {
 			open.Background(t.SurfaceHover)
 		}
 		open.Children(func() {
-			a.initial(c, b.Name, 36, gone)
+			a.initial(c, b.Name, gone)
 			ui.Column(c).Grow(1).Shrink(1).Gap(4).Children(func() {
 				fg := t.Text
 				if gone {
-					fg = a.pal.faint
+					fg = t.TextMuted
 				}
 				ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
 					ui.Text(c, b.Name).FontSize(fsGroup).FontWeight(600).TextColor(fg).SingleLine().Ellipsis("…").Shrink(1)
@@ -441,13 +436,13 @@ func (a *App) bookRow(c *ui.Context, b shelf.Book) {
 				ui.Text(c, opened(b.Opened)).FontSize(fsNote).TextColor(a.pal.faint).SingleLine()
 			}
 		})
-		if open.Clicked() {
+		if open.Clicked() && !gone {
 			a.switchWork(b.Path)
 		}
 		if gone {
 			if a.PickFolder != nil && ghost(c, "重新定位…", a.pal.ink).Label("重新定位-"+b.Name).Clicked() {
 				from := b.Path
-				a.pickInto(c, "这部作品现在在哪里", func(p string) { a.relocate(from, p) })
+				a.pickInto(c, "选择该作品当前所在的文件夹", func(p string) { a.relocate(from, p) })
 			}
 			if ghost(c, "从书架移除", t.TextMuted).Label("移除-" + b.Name).Clicked() {
 				a.removeBook(b.Path)
@@ -461,13 +456,13 @@ func (a *App) bookRow(c *ui.Context, b shelf.Book) {
 func (a *App) bookCard(c *ui.Context, b shelf.Book) {
 	t := a.pal.theme
 	gone := a.books.missing[b.Path]
-	card := ui.ButtonBase(c).Key("c-"+b.Path).Column().Justify(ui.Start).AlignItems(ui.Stretch).Width(220).Height(168).Padding(16).Gap(8).Radius(rDialog).Border(1, t.Border).Background(t.Surface).Label("作品-" + b.Name).Disabled(gone)
+	card := ui.ButtonBase(c).Key("c-"+b.Path).Column().Justify(ui.Start).AlignItems(ui.Stretch).Width(220).Height(168).Padding(16).Gap(8).Radius(rDialog).Border(1, t.Border).Background(t.Surface).Label("作品-" + b.Name)
 	if card.Hovered() && !gone {
 		card.Background(t.SurfaceHover)
 	}
 	card.Children(func() {
 		ui.Row(c).FillWidth().AlignItems(ui.Start).Children(func() {
-			a.initial(c, b.Name, 40, gone)
+			a.initial(c, b.Name, gone)
 			ui.Spacer(c)
 			if !gone {
 				a.bookMenu(c, b)
@@ -475,18 +470,18 @@ func (a *App) bookCard(c *ui.Context, b shelf.Book) {
 		})
 		fg := t.Text
 		if gone {
-			fg = a.pal.faint
+			fg = t.TextMuted
 		}
 		ui.Text(c, b.Name).FontSize(fsGroup).FontWeight(600).TextColor(fg).SingleLine().Ellipsis("…").FillWidth()
 		ui.Text(c, b.Genre+" · "+length(b.Words)).FontSize(fsNote).TextColor(t.TextMuted).SingleLine()
 		ui.Spacer(c)
 		if gone {
-			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-				ui.Text(c, "找不到文件夹").FontSize(fsNote).TextColor(t.Danger)
+			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
+				ui.Text(c, "找不到文件夹").FontSize(fsNote).TextColor(t.Danger).SingleLine().Shrink(0)
 				ui.Spacer(c)
 				if a.PickFolder != nil && ghost(c, "定位", a.pal.ink).Label("重新定位-"+b.Name).Clicked() {
 					from := b.Path
-					a.pickInto(c, "这部作品现在在哪里", func(p string) { a.relocate(from, p) })
+					a.pickInto(c, "选择该作品当前所在的文件夹", func(p string) { a.relocate(from, p) })
 				}
 				if ghost(c, "移除", t.TextMuted).Label("移除-" + b.Name).Clicked() {
 					a.removeBook(b.Path)
@@ -496,7 +491,7 @@ func (a *App) bookCard(c *ui.Context, b shelf.Book) {
 			ui.Text(c, opened(b.Opened)).FontSize(fsNote).TextColor(a.pal.faint)
 		}
 	})
-	if card.Clicked() {
+	if card.Clicked() && !gone {
 		a.switchWork(b.Path)
 	}
 }
@@ -513,7 +508,7 @@ func (a *App) bookMenu(c *ui.Context, b shelf.Book) {
 		m.Separator()
 		if m.Item("从书架移除").Chosen() {
 			a.removeBook(b.Path)
-			a.notice = "已从书架移除，文件夹没有动：" + b.Path
+			a.notice = "已从书架移除，文件夹未改动：" + b.Path
 		}
 	})
 }
@@ -533,37 +528,32 @@ func (a *App) createDialog(c *ui.Context) {
 	if auto := filepath.Join(a.shelf.Library, name); v.at == v.auto {
 		v.at, v.auto = auto, auto
 	}
-	ui.Modal(c, &v.creating, func() {
-		ui.Column(c).Width(500).Gap(16).Children(func() {
-			ui.Text(c, "新建作品").FontSize(fsDialog).FontWeight(600)
-			ui.Row(c).FillWidth().Gap(12).Children(func() {
-				ui.Column(c).Grow(1).Gap(6).Children(func() {
-					ui.Text(c, "作品名称").FontSize(fsControl).TextColor(t.TextMuted)
-					ui.TextInput(c, &a.name).Label("作品名称").Placeholder("可以之后再改").FillWidth().Focus()
-				})
-				ui.Column(c).Width(140).Gap(6).Children(func() {
-					ui.Text(c, "体裁").FontSize(fsControl).TextColor(t.TextMuted)
-					ui.Select(c, &a.genre, []string{"网文", "出版小说", "剧本", "非虚构"}).Label("体裁").FillWidth()
-				})
+	a.modal(c, &v.creating, func() {
+		ui.Column(c).Width(dialogSmall).Padding(dialogPad).Gap(16).Children(func() {
+			a.pal.dialogHead(c, "新建作品", "")
+			labeled(c, "作品名称", func() {
+				ui.TextInput(c, &a.name).Label("作品名称").Placeholder("之后可修改").FillWidth().Focus()
 			})
-			ui.Column(c).FillWidth().Gap(6).Children(func() {
-				ui.Text(c, "放在").FontSize(fsControl).TextColor(t.TextMuted)
-				ui.Row(c).FillWidth().Gap(8).Children(func() {
+			labeled(c, "体裁", func() {
+				ui.Select(c, &a.genre, []string{"网文", "出版小说", "剧本", "非虚构"}).Label("体裁").FillWidth()
+			})
+			labeled(c, "位置", func() {
+				ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 					ui.TextInput(c, &v.at).Label("作品位置").Grow(1)
-					if a.PickFolder != nil && ui.Button(c, "更改…").Clicked() {
-						a.pickInto(c, "新作品放在哪个文件夹里", func(p string) {
+					if a.PickFolder != nil && a.pal.secondary(c, "更改…").Clicked() {
+						a.pickInto(c, "选择新作品所在的文件夹", func(p string) {
 							v.at = filepath.Join(p, filepath.Base(v.at))
 						})
 					}
 				})
-				ui.Text(c, "会新建这个文件夹；它必须不存在或是空的。").FontSize(fsNote).TextColor(a.pal.faint)
+				ui.Text(c, "将新建该文件夹；该文件夹须不存在或为空。").FontSize(fsNote).TextColor(t.TextMuted)
 			})
 			ui.Row(c).FillWidth().Gap(8).Children(func() {
 				ui.Spacer(c)
-				if ui.Button(c, "取消").Clicked() {
+				if a.pal.secondary(c, "取消").Clicked() {
 					v.creating = false
 				}
-				if ui.PrimaryButton(c, "创建").Label("创建作品").Disabled(trim(v.at) == "").Clicked() {
+				if a.pal.primary(c, "创建").Label("创建作品").Disabled(trim(v.at) == "").Clicked() {
 					a.setError(a.create())
 				}
 			})
@@ -577,17 +567,17 @@ func (a *App) renameDialog(c *ui.Context) {
 	if !open {
 		return
 	}
-	ui.Modal(c, &open, func() {
-		ui.Column(c).Width(420).Gap(14).Children(func() {
-			ui.Text(c, "重命名作品").FontSize(fsDialog).FontWeight(600)
+	a.modal(c, &open, func() {
+		ui.Column(c).Width(dialogSmall).Padding(dialogPad).Gap(16).Children(func() {
+			a.pal.dialogHead(c, "重命名作品", "")
 			ui.TextInput(c, &v.name).Label("新作品名").FillWidth().Focus()
-			ui.Text(c, "只改作品名，文件夹不动。").FontSize(fsNote).TextColor(a.pal.faint)
+			ui.Text(c, "仅修改作品名，文件夹不变。").FontSize(fsNote).TextColor(a.pal.faint)
 			ui.Row(c).FillWidth().Gap(8).Children(func() {
 				ui.Spacer(c)
-				if ui.Button(c, "取消").Clicked() {
+				if a.pal.secondary(c, "取消").Clicked() {
 					open = false
 				}
-				if ui.PrimaryButton(c, "保存").Label("保存作品名").Disabled(trim(v.name) == "").Clicked() {
+				if a.pal.primary(c, "保存").Label("保存作品名").Disabled(trim(v.name) == "").Clicked() {
 					if err := a.renameBook(v.renaming, v.name); err != nil {
 						a.setError(err)
 					} else {

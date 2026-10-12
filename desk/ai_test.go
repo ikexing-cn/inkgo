@@ -121,6 +121,33 @@ func TestDraftAChapterFromItsOutline(t *testing.T) {
 	}
 }
 
+// What becomes of the words already there is chosen in the dialog, and
+// asked afresh each time it opens.
+func TestDraftOverWhatIsThere(t *testing.T) {
+	a, tt, _ := writingFixture(t, "她醒了")
+	penWith(a, &stream{})
+	a.write.outline = "她醒来。"
+	tt.Frame()
+	for _, want := range []string{draftReplace, draftAppend} {
+		if err := clickMore(tt, "起草本章"); err != nil {
+			t.Fatal(err)
+		}
+		tt.Frame()
+		if want == draftReplace {
+			if err := tt.Click(draftReplace); err != nil {
+				t.Fatal(err, tt.Texts())
+			}
+			tt.Frame()
+		}
+		tt.Frame()
+		if a.write.draftMode != want {
+			t.Fatalf("mode %q, want %q", a.write.draftMode, want)
+		}
+		a.write.draftOpen = false
+		tt.Frame()
+	}
+}
+
 // Stopping a draft keeps what it wrote, after the text there was.
 func TestStopADraftKeepsWhatCame(t *testing.T) {
 	a, tt, _ := writingFixture(t, "她醒了")

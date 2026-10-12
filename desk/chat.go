@@ -46,6 +46,11 @@ func (a *App) chatList(c *ui.Context, side bool) {
 		rows = append(rows, -2)
 	}
 	a.rows = rows
+	if !side && len(rows) == 1 && rows[0] == -1 {
+		// Nothing said yet: the page opens in the middle of its room.
+		ui.Column(c).Grow(1).FillWidth().Padding(24, 32).Children(func() { a.emptyChat(c) })
+		return
+	}
 	last := a.lastMessage()
 	a.chat.FollowEnd = true
 	a.chat.Key = func(i int) any {
@@ -130,15 +135,14 @@ func (a *App) switchSession(id string) {
 
 func (a *App) emptyChat(c *ui.Context) {
 	t := a.pal.theme
-	title, about := "从一个模糊的念头聊起", "写下脑子里的那一点想法。讨论会在后台整理成右边的设定文档，\n你定下的会成为之后讨论的依据，放下的不再被提起。"
+	title, about := "从一个初步的想法开始", "写下初步的想法。讨论内容会在后台整理为右侧的设定文档；已确定的设定将作为后续讨论的依据，已放弃的不再提及。"
 	starts := []string{"我想写一个总在下雨的城市", "主角有个说不出口的秘密", "这个故事的冲突在哪"}
-	top := float32(72)
 	if a.page == 3 { // beside the prose the talk is about the page in front of the author
 		unit := a.openUnit()
 		starts = []string{"这一" + unit + "的节奏怎么样", "接下来可以怎么写", "人物的动机说得通吗"}
 		// In the column they are rows, as its lists are.
 		ui.Column(c).FillWidth().Margin(0, -10).Children(func() {
-			a.paneGroup(c, "试试这样问")
+			a.paneGroup(c, "示例问题")
 			for _, s := range starts {
 				if a.paneRow(c, s, s, "", "", "", false).Clicked() {
 					a.input, a.focusTalk = s, true
@@ -147,20 +151,16 @@ func (a *App) emptyChat(c *ui.Context) {
 		})
 		return
 	}
-	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(top, 0, 0, 0).Gap(14).Children(func() {
-		ui.Box(c).Size(44, 44).Radius(rDialog).Background(a.pal.ink.Alpha(0.12)).Center().Children(func() {
-			glyph(c, icSparkle, iconLg, a.pal.ink)
-		})
-		ui.Text(c, title).FontSize(fsTitle).FontWeight(600)
-		ui.Text(c, about).FontSize(fsBody).TextColor(t.TextMuted).TextAlign(ui.Center).LineHeight(lhLoose)
-		ui.Box(c).Height(6)
-		ui.Row(c).Gap(8).Wrap().Justify(ui.Center).Children(func() {
+	a.pal.blank(c, icSparkle, title, about, func() {
+		ui.Row(c).Gap(8).Padding(10, 0, 0, 0).Wrap().Justify(ui.Center).Children(func() {
 			for _, s := range starts {
-				b := ui.ButtonBase(c).Padding(8, 14).Radius(rRound).Border(1, t.Border).Background(a.pal.raised)
+				b := ui.ButtonBase(c).Padding(6, 12).Radius(rRound).Border(1, t.Border)
+				fg := t.TextMuted
 				if b.Hovered() {
 					b.Background(t.SurfaceHover)
+					fg = t.Text
 				}
-				b.Children(func() { ui.Text(c, s).FontSize(fsControl).TextColor(t.Text) })
+				b.Children(func() { ui.Text(c, s).FontSize(fsControl).TextColor(fg) })
 				if b.Clicked() {
 					a.input = s
 				}
@@ -183,13 +183,13 @@ func (a *App) answered(userID string) bool {
 const replyIndent = 24 + 12
 
 func (a *App) aiMark(c *ui.Context) {
-	ui.Box(c).Size(24, 24).Radius(rControl).Background(a.pal.ink.Alpha(0.12)).Center().Shrink(0).Children(func() {
-		glyph(c, icSparkle, iconSm, a.pal.ink)
+	ui.Box(c).Size(hControlSm, hControlSm).Radius(rRound).Background(a.pal.theme.SurfacePressed).Center().Shrink(0).Children(func() {
+		glyph(c, icSparkle, iconSm, a.pal.theme.TextMuted)
 	})
 }
 
 func (a *App) userBubble(c *ui.Context, text string) {
-	ui.Column(c).MaxWidthPercent(82).Padding(10, 16).Radius(rDialog).Background(a.pal.bubble).Children(func() {
+	ui.Column(c).MaxWidthPercent(82).Padding(8, 12).Radius(rDialog).Background(a.pal.theme.SurfacePressed).Children(func() {
 		ui.Text(c, text).FontSize(fsRead).LineHeight(lhLoose).Selectable()
 	})
 }
@@ -252,7 +252,7 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 				if on {
 					color = a.pal.ink
 				}
-				if iconButton(c, icEye, "上下文-"+m.ID, color).Tooltip("AI 看到了什么").Clicked() {
+				if iconButton(c, icEye, "上下文-"+m.ID, color).Tooltip("AI 参考内容").Clicked() {
 					if on {
 						a.contextReply = ""
 					} else {
@@ -267,7 +267,7 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 		if user && !a.answered(m.ID) && !a.talking {
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 				glyph(c, icAlert, iconSm, t.Warning)
-				ui.Text(c, "这条还没有得到回复").FontSize(fsNote).TextColor(t.Warning)
+				ui.Text(c, "该消息尚未收到回复").FontSize(fsNote).TextColor(t.Warning)
 				if ghost(c, "重试回复", t.Text).Disabled(a.busy != "").Clicked() {
 					a.retry(c, m.ID)
 				}
@@ -362,9 +362,9 @@ func (a *App) audit(c *ui.Context, m workspace.Event) {
 	t := a.pal.theme
 	ui.Column(c).FillWidth().Padding(0, 0, 0, replyIndent).Children(func() {
 		ui.Column(c).FillWidth().Padding(12, 14).Gap(8).Radius(rCard).Background(a.pal.side).Border(1, a.pal.line).Children(func() {
-			ui.Textf(c, "回复时带上了 %d 条设定，预算不足省略 %d 条", len(m.Context), len(m.Omitted)).FontSize(fsNote).FontWeight(600)
+			ui.Textf(c, "回复时附带 %d 条设定，因预算不足省略 %d 条", len(m.Context), len(m.Omitted)).FontSize(fsNote).FontWeight(600)
 			if len(m.Context) == 0 && len(m.Omitted) == 0 {
-				ui.Text(c, "只读了最近几轮对话，设定文档里还没有内容。").FontSize(fsNote).TextColor(t.TextMuted)
+				ui.Text(c, "仅参考了最近几轮对话，设定文档暂无内容。").FontSize(fsNote).TextColor(t.TextMuted)
 			}
 			for _, item := range m.Context {
 				ui.Row(c).FillWidth().Gap(8).Children(func() {
@@ -459,16 +459,16 @@ func (a *App) composer(c *ui.Context) {
 				ui.Row(c).FillWidth().Gap(10).AlignItems(ui.End).Children(func() {
 					hint := "输入消息"
 					if !a.hasMessages() {
-						hint = "想聊什么"
+						hint = "输入想讨论的内容"
 					}
 					field(hint, 16, 1).Grow(1).Shrink(1)
 					send()
 				})
 			})
 			ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
-				label, tip := "附上本章内容", "把章纲和光标前约 2000 字一起发给 AI"
+				label, tip := "附上本章内容", "将章纲和光标前约 2000 字一并发送给 AI"
 				if a.openUnit() == "卷" {
-					label, tip = "附上本卷内容", "把卷纲一起发给 AI"
+					label, tip = "附上本卷内容", "将卷纲一并发送给 AI"
 				}
 				if ui.Checkbox(c, &a.doc.attach, label).Tooltip(tip).Changed() {
 					a.savePrefs()
@@ -486,7 +486,7 @@ func (a *App) composer(c *ui.Context) {
 	}
 	box.Children(func() {
 		quotes()
-		field("说说你的想法，或问 AI 一个问题…", 46, 2).FillWidth()
+		field("输入想法，或向 AI 提问…", 46, 2).FillWidth()
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 			chip()
 			ui.Spacer(c)
@@ -565,18 +565,15 @@ func (a *App) openSource(m workspace.Event, start, end int) {
 
 func (a *App) extraction(c *ui.Context) {
 	t := a.pal.theme
-	ui.Modal(c, &a.sourceOpen, func() {
-		ui.Column(c).Width(min(620, max(a.LastChat.W, 480))).Gap(14).Children(func() {
-			ui.Column(c).Gap(4).Children(func() {
-				ui.Text(c, "摘取原文").FontSize(fsDialog).FontWeight(600)
-				ui.Text(c, "拖选一段原话，作为你定下的设定加入正文。原话不会被改动。").FontSize(fsControl).TextColor(t.TextMuted)
-			})
+	a.modal(c, &a.sourceOpen, func() {
+		ui.Column(c).Width(dialogSource).Padding(dialogPad).Gap(16).Children(func() {
+			a.pal.dialogHead(c, "摘取原文", "拖选一段原文，作为已确定的设定加入正文。原文不会被修改。")
 			a.source.View(c).Height(220).FillWidth().Border(1, t.Border).Radius(rCard)
 			start, end := a.source.Selection()
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
 				ui.Select(c, &a.sourceCategory, a.categoryNames()).Label("摘取分类").Width(140)
 				if start == end {
-					ui.Text(c, "还没有选中文字").FontSize(fsNote).TextColor(a.pal.faint)
+					ui.Text(c, "尚未选中文字").FontSize(fsNote).TextColor(a.pal.faint)
 				} else {
 					ui.Textf(c, "已选 %d 字", end-start).FontSize(fsNote).TextColor(a.pal.ink)
 				}

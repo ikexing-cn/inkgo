@@ -20,6 +20,7 @@ type palette struct {
 	theme                        *ui.Theme
 	canvas, side, raised, bubble ui.Color
 	line, faint, ink, onInk      ui.Color
+	dim                          ui.Color // what stands in for something not there
 	amber                        ui.Color // what waits on the author
 	warnBg, warnBd               ui.Color // a warning's fill and border
 	// The shadows of the design rules, named as there: the chosen part of
@@ -73,6 +74,64 @@ const (
 	hTag       = 20 // labels, counts
 	hBar       = 40 // the title bar, the toolbar
 )
+
+// The dialogs' sizes: most are small; the shortcuts, taking a setting from
+// a passage and the snapshots have their own.
+const (
+	dialogSmall  = 480
+	dialogKeys   = 600
+	dialogSource = 620
+	dialogWide   = 860
+	dialogTall   = 580
+	dialogPad    = 24
+)
+
+// modal is a dialog as the design draws one: the window shaded behind it,
+// its corners and its shadow. What fn makes first gives it its size, with
+// dialogPad around what it holds.
+func (a *App) modal(c *ui.Context, open *bool, fn func()) {
+	if !*open {
+		return
+	}
+	w, h := c.Size()
+	ui.DialogBase(c, open, func(back, panel ui.Element) {
+		back.Background(a.pal.scrim)
+		panel.MaxWidth(w - 2*dialogPad).MaxHeight(h - 2*dialogPad).Radius(rDialog).Background(a.pal.raised)
+		a.pal.dialog.on(panel)
+		fn()
+	})
+}
+
+// blank is what a page shows when it has nothing: a faint picture, what is
+// missing, a line or two on what to do about it, and more, if any, under
+// them. It stands in the middle of the room it is given.
+func (p *palette) blank(c *ui.Context, pic *ui.SVG, title, about string, more func()) ui.Element {
+	return ui.Column(c).Grow(1).FillWidth().Center().Gap(10).Children(func() {
+		glyph(c, pic, iconLg, p.faint)
+		ui.Text(c, title).FontSize(fsDialog).FontWeight(700).TextAlign(ui.Center)
+		if about != "" {
+			ui.Text(c, about).FontSize(fsBody).TextColor(p.theme.TextMuted).LineHeight(lhLoose).TextAlign(ui.Center).MaxWidth(440)
+		}
+		if more != nil {
+			more()
+		}
+	})
+}
+
+// dialogHead is what a dialog opens with: what it is, and under it, in a
+// line or two, what it does.
+func (p *palette) dialogHead(c *ui.Context, title, about string) {
+	ui.Column(c).FillWidth().Gap(8).Children(func() {
+		ui.Text(c, title).FontSize(fsDialog).FontWeight(700)
+		if about != "" {
+			ui.Text(c, about).FontSize(fsNote).TextColor(p.theme.TextMuted).LineHeight(lhBody).FillWidth()
+		}
+	})
+}
+
+// tickIndent is from a tick box's left edge to its words: what explains
+// the box starts under the words.
+const tickIndent = iconMd + 8
 
 //go:embed tokens.css
 var tokensCSS string
@@ -216,6 +275,7 @@ func paletteOf(t *ui.Theme, k map[string]ui.Color, s map[string]shadow) *palette
 	return &palette{theme: t,
 		canvas: k["bg"], side: k["side"], raised: k["raised"], bubble: k["hover"],
 		line: k["line"], faint: k["faint"], ink: k["ink"], onInk: k["on-ink"],
+		dim:   k["dim"],
 		amber: k["amber"], warnBg: k["warn-bg"], warnBd: k["warn-bd"],
 		raise: s["raise"], pop: s["pop"], dialog: s["dialog"], scrim: scrim(tokensCSS)}
 }
@@ -344,7 +404,7 @@ func iconButton(c *ui.Context, s *ui.SVG, label string, color ui.Color) ui.Eleme
 
 // primary is the one solid ink button of a view.
 func (p *palette) primary(c *ui.Context, text string) ui.Element {
-	b := ui.ButtonBase(c).Row().Center().Gap(6).Height(hControl).Padding(0, 16).Radius(rControl).Shrink(0)
+	b := ui.ButtonBase(c).Row().Center().Gap(6).Height(hControlSm).Padding(0, 14).Radius(rControl).Shrink(0)
 	bg := p.ink
 	if b.Hovered() {
 		bg = p.theme.AccentHover
@@ -353,14 +413,26 @@ func (p *palette) primary(c *ui.Context, text string) ui.Element {
 	if b.IsDisabled() {
 		b.Opacity(opacityDisabled)
 	}
-	b.Children(func() { ui.Text(c, text).FontSize(fsControl).FontWeight(600).TextColor(p.onInk).SingleLine() })
+	b.Children(func() { ui.Text(c, text).FontSize(fsControl).TextColor(p.onInk).SingleLine() })
 	return b
 }
 
 // secondary is an outlined button.
+// danger is the button for what cannot be taken back, once the author has
+// asked for it.
+func (p *palette) danger(c *ui.Context, text string) ui.Element {
+	t := p.theme
+	b := ui.ButtonBase(c).Row().Center().Gap(6).Height(hControlSm).Padding(0, 12).Radius(rControl).Background(t.Danger).Shrink(0)
+	if b.IsDisabled() {
+		b.Opacity(opacityDisabled)
+	}
+	b.Children(func() { ui.Text(c, text).FontSize(fsControl).TextColor(p.onInk).SingleLine() })
+	return b
+}
+
 func (p *palette) secondary(c *ui.Context, text string) ui.Element {
 	t := p.theme
-	b := ui.ButtonBase(c).Row().Center().Gap(6).Height(hControl).Padding(0, 14).Radius(rControl).Border(1, t.Border).Background(p.raised).Shrink(0)
+	b := ui.ButtonBase(c).Row().Center().Gap(6).Height(hControlSm).Padding(0, 12).Radius(rControl).Border(1, t.Border).Background(p.canvas).Shrink(0)
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}
@@ -371,30 +443,24 @@ func (p *palette) secondary(c *ui.Context, text string) ui.Element {
 	return b
 }
 
-// small is the compact button of a popover or a row, solid ink when it is
-// the likely one, outlined otherwise.
-func (p *palette) small(c *ui.Context, text string, primary bool) ui.Element {
+// segments is the segmented control: the choice stands raised on a darker
+// track. label names the control, names its choices; at is the one chosen.
+// The track returned takes the width it is given, its choices only their
+// words'.
+func (p *palette) segments(c *ui.Context, at *int, label string, names []string) ui.Element {
 	t := p.theme
-	b := ui.ButtonBase(c).Row().Padding(4, 10).Radius(rControl).Shrink(0)
-	fg := t.Text
-	if primary {
-		bg := p.ink
-		if b.Hovered() {
-			bg = t.AccentHover
+	seg := ui.SegmentedBase(c, at, len(names))
+	return seg.Track.Label(label).Justify(ui.Start).Gap(2).Padding(2).Radius(rControl).Background(t.SurfacePressed).Shrink(0).Children(func() {
+		for i, name := range names {
+			s := seg.Segment(i).Height(hSeg).Center().Padding(0, 10).Radius(rXs)
+			fg, weight := t.TextMuted, 400
+			if i == *at {
+				p.raise.on(s.Background(p.canvas))
+				fg, weight = t.Text, 600
+			}
+			s.Children(func() { ui.Text(c, name).FontSize(fsControl).FontWeight(weight).TextColor(fg).SingleLine() })
 		}
-		b.Background(bg)
-		fg = p.onInk
-	} else {
-		b.Border(1, t.Border)
-		if b.Hovered() {
-			b.Background(t.SurfaceHover)
-		}
-	}
-	if b.IsDisabled() {
-		b.Opacity(opacityDisabled)
-	}
-	b.Children(func() { ui.Text(c, text).FontSize(fsNote).TextColor(fg).SingleLine() })
-	return b
+	})
 }
 
 // group is a rounded, hairline-bordered container whose rows are separated
@@ -405,11 +471,6 @@ func (p *palette) group(c *ui.Context) ui.Element {
 
 func (p *palette) hairline(c *ui.Context) {
 	ui.Box(c).FillWidth().Height(1).Background(p.line).Shrink(0)
-}
-
-// cardBox is a padded group.
-func (p *palette) cardBox(c *ui.Context) ui.Element {
-	return p.group(c).Padding(20, 20).Gap(12)
 }
 
 // action is a tinted button; strong fills it, for destructive confirmations.

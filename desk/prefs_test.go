@@ -35,7 +35,7 @@ func TestSideRowsOnEveryPage(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("回收站是空的") {
+	if !tt.HasText("回收站为空") {
 		t.Fatal("no trash", tt.Texts())
 	}
 }

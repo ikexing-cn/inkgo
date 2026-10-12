@@ -341,7 +341,7 @@ func (a *App) engine(c *ui.Context) (*discussion.Engine, error) {
 	}
 	work := a.Store.Work()
 	if work.Discussion.Provider == "" || work.Discussion.Model == "" {
-		return e, errors.New("还没有选择讨论模型：请到“模型设置”里选一个")
+		return e, errors.New("尚未选择讨论模型：请在“模型设置”中选择")
 	}
 	talk, err := model.NewClient(a.Config, work.Discussion.Provider, work.Discussion.Model)
 	if err != nil {
@@ -361,7 +361,7 @@ func (a *App) bookkeeper(s *workspace.Store) (*discussion.Bookkeeper, error) {
 		sel.Provider, sel.Model = work.Discussion.Provider, work.Discussion.Model
 	}
 	if sel.Provider == "" || sel.Model == "" {
-		return nil, errors.New("还没有选择模型")
+		return nil, errors.New("尚未选择模型")
 	}
 	cfg, err := model.Load(a.ConfigFile)
 	if err != nil {

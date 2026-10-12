@@ -4,6 +4,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -50,7 +51,7 @@ func paneFixture(t *testing.T) (*App, *ui.Tester, paneIDs) {
 // entry, where what the bookkeeper suggests about it is decided.
 func TestSettingListAndPage(t *testing.T) {
 	a, tt, ids := paneFixture(t)
-	if !tt.HasText("等你决定") || !tt.HasText("周祥") || !tt.HasText("物品") || tt.HasText("第一章开头只交代了天气，人物和事件还没出现。") {
+	if !tt.HasText("待确认") || !tt.HasText("周祥") || !tt.HasText("物品") || tt.HasText("第一章开头只交代了天气，人物和事件还没出现。") {
 		t.Fatal("the list", tt.Texts())
 	}
 	if _, about := a.ideas(); about[ids.about] != ids.zhou || about[ids.fresh] != "" {
@@ -87,7 +88,7 @@ func TestSettingListAndPage(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if err := tt.Click("等你决定"); err != nil {
+	if err := tt.Click("待确认"); err != nil {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
@@ -99,7 +100,7 @@ func TestSettingListAndPage(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Frame()
-	if e, _ := a.set.Entry(ids.fresh); e.Place != workspace.PlaceDropped || a.doc.todo || tt.HasText("等你决定") {
+	if e, _ := a.set.Entry(ids.fresh); e.Place != workspace.PlaceDropped || a.doc.todo || tt.HasText("待确认") {
 		t.Fatal("not ignored", e.Place, a.doc.todo, tt.Texts())
 	}
 }
@@ -123,7 +124,7 @@ func TestTalkList(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.session == old || a.doc.talks || a.page != 3 || !tt.HasText("试试这样问") {
+	if a.session == old || a.doc.talks || a.page != 3 || !tt.HasText("示例问题") {
 		t.Fatal("no new talk beside the prose", a.session, a.doc.talks, a.page)
 	}
 	a.doc.talks = true
@@ -182,4 +183,15 @@ func TestShotPane(t *testing.T) {
 		t.Fatal(err)
 	}
 	shot("pane-talk-new.png")
+}
+
+// A change of names is logged as one, not as a move to no category.
+func TestLogNames(t *testing.T) {
+	a, _, _ := fixture(t)
+	if got := a.describeOp(workspace.Op{Op: workspace.OpName, Names: []string{"周祥", "小祥"}}); got != "名称改为：周祥、小祥" {
+		t.Error(got)
+	}
+	if got := a.describeOp(workspace.Op{Op: workspace.OpName}); !strings.HasPrefix(got, "移除名称：") {
+		t.Error(got)
+	}
 }

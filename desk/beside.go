@@ -155,7 +155,7 @@ func (a *App) talkList(c *ui.Context) {
 			}
 		}
 		if n == 0 {
-			a.paneEmpty(c, "没有找到", "")
+			a.paneEmpty(c, "未找到", "")
 		}
 	})
 }
@@ -230,7 +230,7 @@ func (a *App) quoteToTalk() {
 // finds the words in the chapter.
 func (a *App) quoteBlock(c *ui.Context, q workspace.Quote, key string, remove func()) {
 	t := a.pal.theme
-	b := ui.ButtonBase(c).Key(key).Row().FillWidth().Gap(8).AlignItems(ui.Stretch).Padding(6, 8, 6, 0).Radius(rControl).Label("引用-" + key).Tooltip("在正文里找到这段")
+	b := ui.ButtonBase(c).Key(key).Row().FillWidth().Gap(8).AlignItems(ui.Stretch).Padding(6, 8, 6, 0).Radius(rControl).Label("引用-" + key).Tooltip("在正文中定位此段")
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}
@@ -244,7 +244,7 @@ func (a *App) quoteBlock(c *ui.Context, q workspace.Quote, key string, remove fu
 			ui.Text(c, "《"+title+"》").FontSize(fsNote).TextColor(a.pal.ink)
 			ui.Text(c, clip(q.Text, 160)).FontSize(fsControl).LineHeight(lhBody).TextColor(t.TextMuted).FillWidth()
 		})
-		if remove != nil && iconButton(c, icX, "去掉引用-"+key, ui.Color{}).Tooltip("去掉这段引用").Clicked() {
+		if remove != nil && iconButton(c, icX, "去掉引用-"+key, ui.Color{}).Tooltip("移除此段引用").Clicked() {
 			remove()
 		}
 	})
@@ -261,7 +261,7 @@ func (a *App) findInChapter(chapter, text string) {
 		a.enterWriting()
 	}
 	if _, ok := a.write.tree.Node(chapter); !ok {
-		a.Error = "这一章已经不在了"
+		a.Error = "该章已不存在"
 		return
 	}
 	a.page = 3
@@ -274,7 +274,7 @@ func (a *App) findInChapter(chapter, text string) {
 	}
 	at := strings.Index(ed.Doc.String(), text)
 	if at < 0 {
-		a.notice = "这段原文已经改过，没有在这一章里找到"
+		a.notice = "该段原文已修改，在本章中未找到"
 		return
 	}
 	s := len([]rune(ed.Doc.String()[:at]))

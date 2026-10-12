@@ -146,7 +146,7 @@ func (a *App) sidebar(c *ui.Context) {
 	ui.Column(c).Width(width).FillHeight().Background(a.pal.side).Padding(0, 10, 14, 10).Gap(2).Shrink(0).Children(func() {
 		a.sideChrome(c, slim, width)
 		work := a.Store.Work()
-		head := ui.ButtonBase(c).Row().FillWidth().AlignItems(ui.Center).Gap(10).Padding(6, 8).Radius(rControl).Label("切换作品").Tooltip("切换作品").Disabled(busy)
+		head := ui.ButtonBase(c).Row().FillWidth().AlignItems(ui.Center).Gap(10).Padding(4, 8).Radius(rControl).Label("切换作品").Tooltip("切换作品").Disabled(busy)
 		if head.Hovered() {
 			head.Background(t.SurfaceHover)
 		}
@@ -197,12 +197,12 @@ func (a *App) sidebar(c *ui.Context) {
 				return
 			}
 		}
-		ui.Box(c).Height(10)
+		ui.Box(c).Height(8)
 		a.navItem(c, icChat, "讨论", 0, slim, 0)
 		a.navItem(c, icBook, "正文", 3, slim, 0)
 		a.navItem(c, icDone, "检查", pageCheck, slim, len(a.checkItems(false)))
 		a.navItem(c, icTag, "作品分类", 2, slim, 0)
-		ui.Box(c).Height(16)
+		ui.Box(c).Height(20)
 		defer a.sideFoot(c, slim)
 		if a.page == 3 {
 			a.chapterTree(c)
@@ -215,8 +215,8 @@ func (a *App) sidebar(c *ui.Context) {
 			ui.Spacer(c)
 			return
 		}
-		ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(0, 4, 0, 8).Children(func() {
-			ui.Text(c, "总讨论").FontSize(fsSmall).FontWeight(600).TextColor(a.pal.faint).Grow(1)
+		ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(0, 4, 6, 10).Children(func() {
+			ui.Text(c, "总讨论").FontSize(fsNote).TextColor(t.TextMuted).Grow(1)
 			if iconButton(c, icPlus, "新对话", ui.Color{}).Disabled(busy).Clicked() {
 				a.newSession()
 			}
@@ -291,7 +291,7 @@ func (a *App) talkShown() bool {
 func (a *App) navItem(c *ui.Context, s *ui.SVG, label string, page int, slim bool, count int) {
 	t := a.pal.theme
 	on := a.page == page
-	b := ui.ButtonBase(c).Row().FillWidth().AlignItems(ui.Center).Gap(10).Padding(8, 10).Radius(rControl).Label(label).Disabled(a.busy != "")
+	b := ui.ButtonBase(c).Row().FillWidth().Height(hControl).AlignItems(ui.Center).Gap(10).Padding(0, 10).Radius(rControl).Label(label).Disabled(a.busy != "")
 	if slim {
 		b.Tooltip(label).Justify(ui.Center)
 	} else {
@@ -343,7 +343,7 @@ func (a *App) sessionItem(c *ui.Context, id string) {
 	})
 	b.ContextMenu(func(m *ui.Menu) {
 		if a.shelved[id] {
-			if m.Item("放回列表").Disabled(a.busy != "").Chosen() {
+			if m.Item("移回列表").Disabled(a.busy != "").Chosen() {
 				delete(a.shelved, id)
 				a.savePrefs()
 			}

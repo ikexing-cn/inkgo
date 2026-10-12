@@ -140,11 +140,11 @@ func (a *App) finishAI(r *aiRun) {
 		a.warn(a.saveText())
 		switch {
 		case stopped:
-			a.notice = "已停止起草，写出的部分保留了；撤销可以整段撤回"
+			a.notice = "已停止起草，已写部分保留；可撤销整段撤回"
 		case r.err != nil:
-			a.Error = "起草" + r.err.Error() + "；写出的部分保留了"
+			a.Error = "起草" + r.err.Error() + "；已写部分保留"
 		default:
-			a.notice = fmt.Sprintf("起草完成，写了 %d 字；撤销可以整段撤回，起草前的版本在快照里", workspace.Count(r.text))
+			a.notice = fmt.Sprintf("起草完成，共 %d 字；可撤销整段撤回，起草前的版本已存入快照", workspace.Count(r.text))
 		}
 	case workspace.AIRewrite:
 		switch {
@@ -153,7 +153,7 @@ func (a *App) finishAI(r *aiRun) {
 		case r.err != nil || strings.TrimSpace(r.text) == "":
 			w.ed.SetReadOnly(false)
 			if r.err == nil {
-				r.err = errors.New("模型没有给出改写")
+				r.err = errors.New("模型未返回改写结果")
 			}
 			a.Error = "改写失败：" + r.err.Error()
 		default:
@@ -239,7 +239,7 @@ func (a *App) acceptRewrite() {
 	w.ed.AcceptProposal(rec.Model)
 	w.proposed, w.rewriting = nil, false
 	a.warn(a.saveText())
-	a.notice = "已采纳改写；撤销可以换回原文，原来的版本也在快照里"
+	a.notice = "已采纳改写；可撤销恢复原文，原版本已存入快照"
 }
 
 func (a *App) dropRewrite() {
@@ -256,15 +256,15 @@ func (a *App) openDraft() {
 	}
 	a.flush()
 	w.draftOpen, w.words = true, ""
-	w.draftMode = draftAppend
+	w.draftMode, w.draftAt = draftAppend, 0
 	missing, have, err := writing.Unsummarized(a.Store, w.node)
 	a.warn(err)
 	w.unsummarized, w.recapped = missing, have
 }
 
 const (
-	draftAppend  = "接在已写的后面"
-	draftReplace = "覆盖已写的内容"
+	draftAppend  = "接在已有内容之后"
+	draftReplace = "覆盖已有内容"
 )
 
 // startDraft keeps the chapter as a snapshot with what the AI is to do,
@@ -275,7 +275,7 @@ func (a *App) startDraft(c *ui.Context) {
 	if s := strings.TrimSpace(w.words); s != "" {
 		n, err := strconv.Atoi(s)
 		if err != nil || n <= 0 {
-			a.Error = "目标字数需要是正整数，或者留空"
+			a.Error = "目标字数须为正整数，或留空"
 			return
 		}
 		words = n
@@ -334,7 +334,7 @@ func (a *App) aiBar(c *ui.Context) {
 	case w.run != nil:
 		bar(func() {
 			glyph(c, icWand, iconMd, a.pal.ink)
-			ui.Textf(c, "AI 正在改写选中的部分 · %s", a.modelLabel(w.run.job.Record)).FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
+			ui.Textf(c, "AI 正在改写选中内容 · %s", a.modelLabel(w.run.job.Record)).FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
 			if ghost(c, "取消", ui.Color{}).Clicked() {
 				w.run.cancel()
 			}
@@ -342,7 +342,7 @@ func (a *App) aiBar(c *ui.Context) {
 	case w.proposed != nil:
 		bar(func() {
 			glyph(c, icWand, iconMd, t.Success)
-			ui.Text(c, "红色划掉的是原文，绿色是改写。").FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1)
+			ui.Text(c, "红色删除线为原文，绿色为改写。").FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1)
 			if ghost(c, "放弃", ui.Color{}).Clicked() {
 				a.dropRewrite()
 			}
@@ -357,7 +357,7 @@ func (a *App) aiBar(c *ui.Context) {
 	case w.rewriting:
 		bar(func() {
 			glyph(c, icWand, iconMd, t.TextMuted)
-			in := ui.TextInput(c, &w.instruction).Label("改写要求").Placeholder("怎么改？比如：节奏放慢，多写她的犹豫").Grow(1).Shrink(1).AutoFocus()
+			in := ui.TextInput(c, &w.instruction).Label("改写要求").Placeholder("改写要求，例如：放慢节奏，多写她的犹豫").Grow(1).Shrink(1).AutoFocus()
 			s, e := w.ed.Selection()
 			go_ := a.pal.primary(c, "改写").Disabled(s == e || strings.TrimSpace(w.instruction) == "")
 			if (in.Submitted() || go_.Clicked()) && s != e && strings.TrimSpace(w.instruction) != "" {
@@ -377,32 +377,29 @@ func (a *App) modelLabel(r workspace.AIRecord) string {
 func (a *App) draftView(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
-	ui.Modal(c, &w.draftOpen, func() {
-		ui.Column(c).Width(520).Gap(14).Children(func() {
-			ui.Column(c).Gap(4).Children(func() {
-				ui.Text(c, "起草本章").FontSize(fsDialog).FontWeight(600)
-				ui.Text(c, "AI 只把章纲写成文字，不加章纲里没有的大事件。起草前存一份快照，写出的文字带“AI 起草”标记，你改过的地方会脱离标记。").FontSize(fsControl).TextColor(t.TextMuted).LineHeight(lhBody)
-			})
+	a.modal(c, &w.draftOpen, func() {
+		ui.Column(c).Width(dialogSmall).Padding(dialogPad).Gap(16).Children(func() {
+			a.pal.dialogHead(c, "起草本章", "AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。起草前会保存快照；生成的文字带有“AI 起草”标记，修改过的部分不再带标记。")
 			ui.Box(c).FillWidth().Padding(10, 12).Radius(rControl).Background(a.pal.side).Children(func() {
 				ui.Text(c, strings.TrimSpace(w.outline)).FontSize(fsControl).TextColor(t.TextMuted).LineHeight(lhLoose).FillWidth()
 			})
-			ui.Row(c).FillWidth().Gap(12).AlignItems(ui.End).Children(func() {
-				labeled(c, "目标字数（可以不填）", func() {
-					ui.TextInput(c, &w.words).Label("目标字数").Placeholder("由 AI 按章纲判断").FillWidth()
-				}).Width(180)
-				if strings.TrimSpace(w.ed.Doc.String()) != "" {
-					labeled(c, "这一章已经有内容", func() {
-						ui.Select(c, &w.draftMode, []string{draftAppend, draftReplace}).Label("已有内容").FillWidth()
-					}).Grow(1)
-				}
+			labeled(c, "目标字数（选填）", func() {
+				ui.TextInput(c, &w.words).Label("目标字数").Placeholder("由 AI 按章纲判断").FillWidth()
 			})
+			if strings.TrimSpace(w.ed.Doc.String()) != "" {
+				labeled(c, "本章已有内容", func() {
+					modes := []string{draftAppend, draftReplace}
+					w.draftMode = modes[min(w.draftAt, len(modes)-1)]
+					a.pal.segments(c, &w.draftAt, "已有内容的处理方式", modes).FillWidth()
+				})
+			}
 			a.recapNote(c)
 			if pw := w.pen.Load(); pw != nil {
-				ui.Textf(c, "用 %s · 推理 %s；可以在“模型设置”里换。", pw.Model.Name, pw.Model.Effort.Label()).FontSize(fsNote).TextColor(a.pal.faint)
+				ui.Textf(c, "用 %s · 推理 %s；可在“模型设置”中更换。", pw.Model.Name, pw.Model.Effort.Label()).FontSize(fsNote).TextColor(t.TextMuted)
 			}
-			ui.Row(c).FillWidth().Gap(10).Children(func() {
+			ui.Row(c).FillWidth().Gap(8).Children(func() {
 				ui.Spacer(c)
-				if ghost(c, "取消", ui.Color{}).Clicked() {
+				if a.pal.secondary(c, "取消").Clicked() {
 					w.draftOpen = false
 				}
 				if a.pal.primary(c, "开始起草").Clicked() {
@@ -424,9 +421,9 @@ func (a *App) aiRecord(c *ui.Context, r *workspace.AIRecord) {
 		}
 		ui.Text(c, line).FontSize(fsNote).FontWeight(600).FillWidth()
 		shown := append([]string{fmt.Sprintf("设定 %d 条", len(r.Setting))}, r.Shown...)
-		ui.Text(c, "AI 看到了："+strings.Join(shown, "、")).FontSize(fsNote).TextColor(t.TextMuted).FillWidth().LineHeight(lhBody)
+		ui.Text(c, "AI 参考了："+strings.Join(shown, "、")).FontSize(fsNote).TextColor(t.TextMuted).FillWidth().LineHeight(lhBody)
 		if len(r.Omitted) > 0 {
-			ui.Textf(c, "超出上下文预算没放进去的设定 %d 条", len(r.Omitted)).FontSize(fsNote).TextColor(t.Warning)
+			ui.Textf(c, "超出上下文预算而未放入的设定 %d 条", len(r.Omitted)).FontSize(fsNote).TextColor(t.Warning)
 		}
 	})
 }

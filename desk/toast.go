@@ -12,10 +12,11 @@ import (
 // pointer rests on it.
 var noticeFor = 3 * time.Second
 
-// toastWidth is the width of a toast, and toastsShown how many show at
-// once; the rest fold into one line that opens them.
+// A toast is as wide as its words, between toastMin and toastMax; toastsShown
+// is how many show at once, the rest fold into one line that opens them.
 const (
-	toastWidth  = 360
+	toastMin    = 200
+	toastMax    = 300
 	toastsShown = 2
 )
 
@@ -82,9 +83,11 @@ func (a *App) syncToast(c *ui.Context, id, text, key string, life time.Duration,
 	}
 }
 
-// splitToast puts what happened in the title and the rest under it.
+// splitToast puts what happened in the title and the rest under it, in
+// smaller type: a toast is as wide as its longest line, so one long
+// sentence would stretch it.
 func splitToast(s string) (title, detail string) {
-	if i := strings.IndexAny(s, "：；。"); i > 0 {
+	if i := strings.IndexAny(s, "：；。，"); i > 0 {
 		cut := i + len("：")
 		if rest := strings.TrimSpace(s[cut:]); rest != "" {
 			return s[:i], rest
@@ -98,7 +101,7 @@ func splitToast(s string) (title, detail string) {
 func (a *App) toastCard(c *ui.Context, ts ui.Toast) {
 	t := a.pal.theme
 	p := ui.ToastBase(c, ts)
-	box := p.Root.Row().Width(toastWidth).Gap(10).Padding(12, 12, 12, 14).AlignItems(ui.Start).Radius(rCard).
+	box := p.Root.Row().MinWidth(toastMin).MaxWidth(toastMax).Gap(10).Padding(12, 10, 12, 14).AlignItems(ui.Start).Radius(rCard).
 		Background(a.pal.raised).Border(1, t.Border).Clip()
 	a.pal.pop.on(box)
 	box.Children(func() {
@@ -136,7 +139,7 @@ func (a *App) toastCard(c *ui.Context, ts ui.Toast) {
 		if left := p.Left(); left > 0 {
 			// The line under it is the time left.
 			ui.Box(c).Absolute().Left(0).Right(0).Bottom(0).Height(2).Background(a.pal.line).Children(func() {
-				ui.Box(c).Height(2).Width(toastWidth * float32(left) / float32(noticeFor)).Background(t.Success.Alpha(0.55))
+				ui.Box(c).Height(2).WidthPercent(100 * float32(left) / float32(noticeFor)).Background(t.Success.Alpha(0.55))
 			})
 			c.AnimationFrame()
 		}
@@ -163,8 +166,12 @@ func (a *App) toastActions(c *ui.Context, ts ui.Toast) {
 			again := a.again
 			acts = append(acts, act{"重试", func() { a.Error = ""; again() }, ""})
 		}
-		if strings.Contains(ts.Title, "模型") || strings.Contains(ts.Title, "AI") {
-			acts = append(acts, act{"去设置", func() { a.openPrefs("模型") }, ""})
+		head := a.Error // what went wrong, without the advice after it
+		if i := strings.IndexAny(head, "：；。"); i > 0 {
+			head = head[:i]
+		}
+		if strings.Contains(head, "模型") || strings.Contains(head, "AI") {
+			acts = append(acts, act{"打开设置", func() { a.openPrefs("模型") }, ""})
 		}
 		text := a.Error
 		acts = append(acts, act{"复制详情", func() { c.WriteClipboard(text) }, ""})

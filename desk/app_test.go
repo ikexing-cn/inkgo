@@ -190,7 +190,7 @@ func TestBookkeeperFillsTheSettingInTheBackground(t *testing.T) {
 		t.Fatal(err, tt.Menu())
 	}
 	tt.Frame()
-	if !tt.HasText("后台整理") || !tt.HasText("新增到正文 · 规则：雨从不停") || !tt.HasText("整理时的思考") {
+	if !tt.HasText("后台整理") || !tt.HasText("新增到正文 · 规则：雨从不停") || !tt.HasText("整理思考过程") {
 		t.Fatal("history", tt.Texts())
 	}
 }
@@ -207,16 +207,16 @@ func TestFailedBookkeepingShowsInHistory(t *testing.T) {
 	}
 	a.setError(a.refresh())
 	tt.Frame()
-	if tt.HasText("这几轮没整理成功：服务暂时不可用") {
+	if tt.HasText("最近几轮整理失败：服务暂时不可用") {
 		t.Fatal("a failure shows outside the history")
 	}
 	a.doc.hidden = true
 	tt.Frame()
-	if err = tt.Click("上次整理没成功，点开看看"); err != nil {
+	if err = tt.Click("上次整理失败，点击查看"); err != nil {
 		t.Fatal("no sign of the failure", err)
 	}
 	tt.Frame()
-	if !a.doc.history || a.doc.hidden || !tt.HasText("这几轮没整理成功：服务暂时不可用") {
+	if !a.doc.history || a.doc.hidden || !tt.HasText("最近几轮整理失败：服务暂时不可用") {
 		t.Fatal("history", tt.Texts())
 	}
 	f := &answer{replies: []string{`{"ops":[]}`}}
@@ -231,7 +231,7 @@ func TestFailedBookkeepingShowsInHistory(t *testing.T) {
 		t.Fatalf("redo %q", a.Error)
 	}
 	tt.Frame()
-	if _, ok := tt.Find("上次整理没成功，点开看看"); ok {
+	if _, ok := tt.Find("上次整理失败，点击查看"); ok {
 		t.Fatal("the sign outlived the retry")
 	}
 }
@@ -617,7 +617,7 @@ func TestShelveAConversation(t *testing.T) {
 	if err := tt.RightClick("对话-" + old); err != nil {
 		t.Fatal("not shown", err)
 	}
-	if err := tt.ChooseMenuItem("放回列表"); err != nil {
+	if err := tt.ChooseMenuItem("移回列表"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

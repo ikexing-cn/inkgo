@@ -56,17 +56,17 @@ func TestPendingForeshadowing(t *testing.T) {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
-	if !tt.HasText("待处理 2") || !tt.HasText("「钥匙」31 章没回收") || !tt.HasText("第2章 · 本章") {
+	if !tt.HasText("待处理 2") || !tt.HasText("「钥匙」31 章未回收") || !tt.HasText("第2章 · 本章") {
 		t.Fatal("not listed", tt.Texts())
 	}
 	a.write.pendHere = 1
 	tt.Frame()
-	if tt.HasText("「钥匙」31 章没回收") || !tt.HasText("「雨夜的电话」原句已删") {
+	if tt.HasText("「钥匙」31 章未回收") || !tt.HasText("「雨夜的电话」原句已删") {
 		t.Fatal("this chapter's alone", tt.Texts())
 	}
 	a.write.pendHere = 0
 	tt.Frame()
-	if err := tt.Click("「钥匙」31 章没回收"); err != nil {
+	if err := tt.Click("「钥匙」31 章未回收"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

@@ -93,7 +93,7 @@ func (a *App) bookResults(c *ui.Context) {
 		total += h.Count
 	}
 	if len(hits) == 0 {
-		ui.Text(c, "全书都没有找到").FontSize(fsNote).TextColor(a.pal.faint)
+		ui.Text(c, "全书未找到").FontSize(fsNote).TextColor(a.pal.faint)
 		return
 	}
 	ui.Textf(c, "全书 %d 章、共 %d 处", len(hits), total).FontSize(fsNote).TextColor(t.TextMuted)
@@ -148,10 +148,10 @@ func (a *App) confirmBookReplace(c *ui.Context) {
 	}
 	with := "“" + w.with + "”"
 	if w.with == "" {
-		with = "空（删掉）"
+		with = "空（删除）"
 	}
 	ui.Row(c).FillWidth().Gap(8).Padding(8, 10).Radius(rCard).AlignItems(ui.Center).Background(t.Danger.Alpha(0.08)).Children(func() {
-		ui.Textf(c, "把全书 %d 章里的 %d 处“%s”换成%s？只改正文，设定和章纲不动；每章换之前都存一份快照。", len(w.hits), total, w.query, with).
+		ui.Textf(c, "将全书 %d 章中的 %d 处“%s”替换为%s？仅修改正文，设定和章纲不变；各章替换前均保存快照。", len(w.hits), total, w.query, with).
 			FontSize(fsNote).LineHeight(lhBody).Grow(1).Shrink(1)
 		if ghost(c, "取消", ui.Color{}).Clicked() {
 			w.sure = false
@@ -209,8 +209,8 @@ func (a *App) replaceInBook() {
 	}
 	w.texts, w.hits = nil, nil
 	w.hitsFor = [3]any{}
-	a.notice = fmt.Sprintf("已在 %d 章里替换 %d 处，每章替换前的版本都在快照里", chapters, total)
+	a.notice = fmt.Sprintf("已在 %d 章中替换 %d 处，各章替换前的版本已存入快照", chapters, total)
 	if here {
-		a.notice += "；本章也可以直接撤销"
+		a.notice += "；本章也可直接撤销"
 	}
 }

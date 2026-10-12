@@ -62,7 +62,7 @@ func TestWritingSavesAsTheAuthorPauses(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("还没有章节") {
+	if !tt.HasText("暂无章节") {
 		t.Fatal(tt.Texts())
 	}
 	if err := tt.Click("新建第一章"); err != nil {
@@ -123,10 +123,10 @@ func TestOutsideChangeAsksTheAuthor(t *testing.T) {
 	}
 	a.write.checked = time.Time{}
 	tt.Frame()
-	if !tt.HasText("磁盘上的这一章被别的程序改过了。保留哪一边？另一边会存成快照，不会丢。") {
+	if !tt.HasText("本章文件已被其他程序修改。请选择保留的版本，另一版本将存为快照。") {
 		t.Fatal(tt.Texts())
 	}
-	if err := tt.Click("用磁盘上的"); err != nil {
+	if err := tt.Click("使用磁盘版本"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -143,7 +143,7 @@ func TestOutsideChangeAsksTheAuthor(t *testing.T) {
 	}
 	a.write.checked = time.Time{}
 	tt.Frame()
-	if err := tt.Click("保留我的"); err != nil {
+	if err := tt.Click("保留当前版本"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -340,7 +340,7 @@ func TestExportTheWork(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if err := tt.Click("本章「第一章」"); err != nil {
+	if err := tt.Click("本章"); err != nil {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
@@ -524,7 +524,7 @@ func TestASnapshotLikeTheChapter(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("这一份和现在的正文一样") {
+	if !tt.HasText("该快照与当前正文相同") {
 		t.Fatal(tt.Texts())
 	}
 	if err := tt.Click("恢复这个版本"); err != nil {
@@ -634,7 +634,7 @@ func TestWritingSwitchesKeepAsTicked(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	for _, label := range []string{"停笔后自动续写", "改完一章后更新摘要"} {
+	for _, label := range []string{"停笔后自动续写", "章节修改后更新摘要"} {
 		if err := tt.Click(label); err != nil {
 			t.Fatal(err, tt.Texts())
 		}

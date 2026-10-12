@@ -14,7 +14,7 @@ import (
 // The palette takes every color it needs from tokens.css, in both themes.
 func TestTokens(t *testing.T) {
 	light, dark := tokens(tokensCSS)
-	need := []string{"bg", "raised", "side", "hover", "active", "line", "border", "ink", "ink-2", "muted", "faint", "on-ink", "amber", "warn", "success", "danger"}
+	need := []string{"bg", "raised", "side", "hover", "active", "line", "border", "ink", "ink-2", "muted", "faint", "dim", "on-ink", "amber", "warn", "success", "danger"}
 	for _, name := range need {
 		if _, ok := light[name]; !ok {
 			t.Errorf("light theme lacks --%s", name)

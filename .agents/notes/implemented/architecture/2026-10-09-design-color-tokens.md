@@ -42,7 +42,7 @@ Status: implemented
     - 阴影从 `tokens.css` 读（`shadows`），放进调色板的 `raise`、`pop`、`dialog`，用法是 `a.pal.pop.on(e)`；拿不到 App 的地方用 `shadowOf(c, "pop")`。mygo 一个元素只画一层阴影，所以只取每级的第一层。
     - 原来直接写的 9 处阴影都换掉了：讨论输入框 `0 4 18 .06` 改用 `raise`；待处理面板、工具条、模型下拉、备份浮层改用 `pop`；设置弹窗用 `dialog`，深色下从 .22 变成 .5。
     - mygo 主题的 `Radius` 从 8 改成 `rControl`，输入框、下拉框的圆角跟着变成 6；模型下拉菜单从 8 改成 `rCard`。
-    - 备份浮层里的小按钮挪进 `theme.go`，成了共用的 `small`，和设计稿「备份」页一样：字号 `fsNote`，内边距 4/10。别的 `ButtonBase` 是列表行、导航项、文字链接，设计稿也是这样画的，没有改。
+    - 备份浮层里的小按钮曾挪进 `theme.go`，成了共用的 `small`。2026-10-12 照原型同步后，浮层里的按钮和别处一样用 `primary` / `secondary`，`small` 删掉。别的 `ButtonBase` 是列表行、导航项、文字链接，没有改。
 - 间距：作者 2026-10-10 要求统一。
   - 刻度写在 `tokens.css`：`--space` 是 0 2 4 6 8 10 12 14 16 20 24 32 40，`--space-board` 是 48 56 64 80，只用于画板和整页的大块留白（欢迎页、空状态）。
   - padding、margin、gap 只用刻度上的数，不另起名字。100 以上的是布局尺寸（比如给 Windows 窗口按钮让出的 150），负数是和别处的尺寸配对的，都不算。
@@ -60,7 +60,7 @@ Status: implemented
   - 对话框和设置窗口后面的遮罩单列一个颜色 `--scrim`（`rgba(25,25,25,.32)`）。它在设计稿里出现 7 次，写法都一样，是一个有名字的东西，不是刻度上的一档。代码原来写的是 `ui.RGBA(0,0,0,0.32)`，改成从 `tokens.css` 读出来的 `a.pal.scrim`。
   - 控件高度 6 级：`--h-control` 32（按钮、输入框、下拉框）、`--h-control-sm` 28（图标按钮、文字按钮）、`--h-row` 30（菜单里的一行）、`--h-seg` 26（分段选择的一段、工具栏的小按钮）、`--h-tag` 20（小标签、计数）、`--h-bar` 40（标题栏、工具栏、窗口按钮）。设计稿原来 7 种，34 的输入框并进 32。
   - 设计稿里哪个 `height` 算控件高度，由 `rules.ts` 的 `controlHeight` 判断：20 到 40 之间，并且同一个元素定了字号或左右留白（`padding:0 N`）；40 的只认标题栏、工具栏和窗口按钮的写法。分隔线、色块、图片这些不算。
-  - 代码：`hControl`、`hControlSm`、`hRow`、`hSeg`、`hTag`、`hBar`；`titleHeight` 就是 `hBar`。主按钮、次按钮原来靠上下留白撑出高度（约 33、29），改成照设计稿定高 `hControl`、左右 16 / 14；备份路径那一栏 34 → 32。透明度直接写刻度上的数，回复里引用块的 `quoteFade` 常量去掉，写回 .85。
+  - 代码：`hControl`、`hControlSm`、`hRow`、`hSeg`、`hTag`、`hBar`；`titleHeight` 就是 `hBar`。主按钮、次按钮原来靠上下留白撑出高度（约 33、29），改成定高 `hControl`、左右 16 / 14；2026-10-12 照原型的 `.btn` 再改成 `hControlSm`、左右 14 / 12，主按钮不加粗，另加一个 `danger`（确认删除）；备份路径那一栏 34 → 32。透明度直接写刻度上的数，回复里引用块的 `quoteFade` 常量去掉，写回 .85。
 - 查规则的脚本在 `scripts/design/`，Node 直接跑 TypeScript，不装依赖：
   - `rules.ts` 从 `tokens.css` 读出各级的值和间距、半透明的刻度。
   - `check.ts` 逐个文件查：有没有写出数字、用了 `tokens.css` 里没有的名字、间距和半透明在不在刻度上、控件高度有没有写成数字。

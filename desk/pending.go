@@ -55,7 +55,7 @@ func (a *App) pendingGroups() []pendGroup {
 			it.text = fmt.Sprintf("「%s」原句已删", clip(f.name(), 16))
 		case st == foreOpen && f.gap >= late:
 			it.key = "伏笔/没回收/" + f.node + "/" + f.quote
-			it.text = fmt.Sprintf("「%s」%d 章没回收", clip(f.name(), 16), f.gap)
+			it.text = fmt.Sprintf("「%s」%d 章未回收", clip(f.name(), 16), f.gap)
 			it.sub += " 埋下"
 		default:
 			continue
@@ -119,8 +119,8 @@ func (a *App) pendingButton(c *ui.Context) {
 		return
 	}
 	t := a.pal.theme
-	b := ui.ButtonBase(c).Row().Margin(0, 0, 0, 6).Gap(8).AlignItems(ui.Center).Padding(4, 10).Radius(rControl).Shrink(0).
-		Background(a.pal.side).Border(1, a.pal.faint.Alpha(0.55)).Label("待处理")
+	b := ui.ButtonBase(c).Row().Height(hControlSm).Margin(0, 0, 0, 6).Gap(6).AlignItems(ui.Center).Padding(0, 8).Radius(rControl).Shrink(0).
+		Border(1, t.Border).Label("待处理")
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}
@@ -132,8 +132,8 @@ func (a *App) pendingButton(c *ui.Context) {
 		w.pendOpen = !w.pendOpen
 	}
 	ui.PopoverBase(c, b, &w.pendOpen, func(panel ui.Element) {
-		panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(10, 0, 0, 0).Width(380).Radius(rDialog).Clip().
-			Background(a.pal.canvas).Border(1, t.Border)
+		panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(4, 0, 0, 0).Width(360).Radius(rCard).Clip().
+			Background(a.pal.raised).Border(1, t.Border)
 		a.pal.pop.on(panel)
 		a.pendingList(c, groups, total, here)
 	})
@@ -144,20 +144,9 @@ func (a *App) pendingButton(c *ui.Context) {
 func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 	t := a.pal.theme
 	w := &a.write
-	ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(14, 20, 10, 20).Children(func() {
-		ui.Text(c, "待处理").FontSize(fsGroup).FontWeight(600).Grow(1)
-		seg := ui.SegmentedBase(c, &w.pendHere, 2)
-		seg.Track.Label("待处理范围").Padding(2).Radius(rControl).Background(a.pal.bubble).Children(func() {
-			for i, label := range []string{fmt.Sprintf("全部 %d", total), fmt.Sprintf("本章 %d", here)} {
-				s := seg.Segment(i).Padding(4, 10).Radius(rXs)
-				color := t.TextMuted
-				if i == w.pendHere {
-					a.pal.raise.on(s.Background(a.pal.raised))
-					color = t.Text
-				}
-				s.Children(func() { ui.Text(c, label).FontSize(fsNote).TextColor(color).SingleLine() })
-			}
-		})
+	ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(12, 14, 8, 14).Children(func() {
+		ui.Text(c, "待处理").FontSize(fsBody).FontWeight(600).Grow(1)
+		a.pal.segments(c, &w.pendHere, "待处理范围", []string{fmt.Sprintf("全部 %d", total), fmt.Sprintf("本章 %d", here)})
 	})
 	var shown []pendItem
 	ui.Box(c).FillWidth().Height(1).Background(a.pal.line)
@@ -205,7 +194,7 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 			})
 		}
 		if len(shown) == 0 {
-			ui.Text(c, "本章没有要处理的").FontSize(fsControl).TextColor(t.TextMuted).Padding(20)
+			ui.Text(c, "本章没有待处理项").FontSize(fsControl).TextColor(t.TextMuted).Padding(20)
 		}
 	})
 	ui.Box(c).FillWidth().Height(1).Background(a.pal.line)

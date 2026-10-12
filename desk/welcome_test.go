@@ -164,7 +164,7 @@ func TestShelfFindsMovedWorks(t *testing.T) {
 	}
 	a.removeBook(moved)
 	tt.Frame()
-	if !tt.HasText("从一个念头开始") {
+	if !tt.HasText("从一个想法开始") {
 		t.Fatal(tt.Texts())
 	}
 }

@@ -33,7 +33,15 @@ func (a *App) sideFoot(c *ui.Context, slim bool) {
 var prefTabs = [][2]string{{"模型", "模型设置"}, {"外观", "设置-外观"}, {"提醒与检查", "设置-提醒"}, {"备份", "设置-备份"}}
 
 // The settings dialog keeps one size whichever part is shown.
-const prefsWidth, prefsHeight = 880, 660
+const prefsWidth, prefsHeight = 900, 620
+
+// prefAbout says under each part's title what it is for.
+var prefAbout = map[string]string{
+	"模型":    "为本作品选择模型。",
+	"外观":    "仅在本机生效，适用于所有作品。",
+	"提醒与检查": "本作品的提醒规则，修改后立即生效。",
+	"备份":    "为整部作品另存一份副本，以防设备故障。",
+}
 
 // openPrefs opens the settings at the part named, or the models.
 func (a *App) openPrefs(tab string) {
@@ -58,7 +66,7 @@ func (a *App) preferences(c *ui.Context) {
 		back.Background(a.pal.scrim)
 		panel.Row().AlignItems(ui.Stretch).Width(min(prefsWidth, w-40)).Height(min(prefsHeight, h-40)).Radius(rDialog).Background(t.Background)
 		a.pal.dialog.on(panel)
-		ui.Column(c).Width(176).FillHeight().Shrink(0).Padding(20, 10).Gap(2).Radius(rDialog, 0, 0, rDialog).Background(a.pal.side).Children(func() {
+		ui.Column(c).Width(180).FillHeight().Shrink(0).Padding(20, 10).Gap(2).Radius(rDialog, 0, 0, rDialog).Background(a.pal.side).Children(func() {
 			ui.Text(c, "设置").FontSize(fsSmall).FontWeight(600).TextColor(a.pal.faint).Padding(0, 10, 8, 10)
 			for _, tl := range prefTabs {
 				tab := tl[0]
@@ -81,18 +89,27 @@ func (a *App) preferences(c *ui.Context) {
 			}
 		})
 		ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
-		ui.Scroll(c).Key("prefs-" + a.bk.tab).Grow(1).Shrink(1).FillHeight().Children(func() {
-			ui.Column(c).FillWidth().Padding(32, 40, 32, 40).Gap(24).Children(func() {
-				switch a.bk.tab {
-				case "外观":
-					a.looksView(c)
-				case "备份":
-					a.backupSettingsView(c)
-				case "提醒与检查":
-					a.remindersView(c)
-				default:
-					a.modelsView(c)
-				}
+		ui.Column(c).Grow(1).Shrink(1).FillHeight().Children(func() {
+			// The title stays where it is: what is under it scrolls up to
+			// the line, not over it and the close button.
+			ui.Column(c).FillWidth().Shrink(0).Gap(4).Padding(24, 56, 16, 32).Children(func() {
+				ui.Text(c, a.bk.tab).FontSize(fsDialog).FontWeight(700)
+				ui.Text(c, prefAbout[a.bk.tab]).FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
+			})
+			a.pal.hairline(c)
+			ui.Scroll(c).Key("prefs-" + a.bk.tab).Grow(1).Shrink(1).FillWidth().Children(func() {
+				ui.Column(c).FillWidth().Padding(12, 56, 32, 32).Gap(12).Children(func() {
+					switch a.bk.tab {
+					case "外观":
+						a.looksView(c)
+					case "备份":
+						a.backupSettingsView(c)
+					case "提醒与检查":
+						a.remindersView(c)
+					default:
+						a.modelsView(c)
+					}
+				})
 			})
 		})
 		if iconButton(c, icX, "关闭设置", ui.Color{}).Absolute().Top(12).Right(12).Clicked() {
@@ -101,30 +118,15 @@ func (a *App) preferences(c *ui.Context) {
 	})
 }
 
-// prefsHead is the title over a part of the settings.
-func (a *App) prefsHead(c *ui.Context, title, caption string) {
-	ui.Column(c).FillWidth().Gap(6).Padding(0, 32, 0, 0).Children(func() {
-		ui.Text(c, title).FontSize(fsTitle).FontWeight(700)
-		ui.Text(c, caption).FontSize(fsBody).TextColor(a.pal.theme.TextMuted).LineHeight(lhBody)
-	})
-}
-
-// prefsRow is a labeled row of the settings, between hairlines.
+// prefsRow is a labeled row of the settings.
 func (a *App) prefsRow(c *ui.Context, label string, fn func()) {
-	ui.Row(c).FillWidth().Gap(24).Padding(14, 0).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, label).FontSize(fsBody).FontWeight(500).Width(150).Shrink(0)
-		ui.Column(c).Grow(1).Shrink(1).Children(fn)
+	ui.Row(c).FillWidth().MinHeight(hControl).Gap(12).AlignItems(ui.Center).Children(func() {
+		ui.Text(c, label).FontSize(fsBody).FontWeight(500).Width(110).Shrink(0)
+		fn()
 	})
-	a.pal.hairline(c)
 }
 
 // looksView is the settings' 外观.
 func (a *App) looksView(c *ui.Context) {
-	a.prefsHead(c, "外观", "只在这台电脑上生效，所有作品都一样。")
-	ui.Column(c).FillWidth().Children(func() {
-		a.pal.hairline(c)
-		a.prefsRow(c, "颜色", func() {
-			ui.Column(c).Width(320).Children(func() { a.themeSegments(c) })
-		})
-	})
+	a.prefsRow(c, "颜色", func() { a.themeSegments(c, false) })
 }

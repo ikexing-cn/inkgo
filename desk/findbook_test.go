@@ -86,7 +86,7 @@ func TestReplaceThroughTheBook(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("把全书 2 章里的 3 处“林晚”换成“苏晴”？只改正文，设定和章纲不动；每章换之前都存一份快照。") {
+	if !tt.HasText("将全书 2 章中的 3 处“林晚”替换为“苏晴”？仅修改正文，设定和章纲不变；各章替换前均保存快照。") {
 		t.Fatal("no asking", tt.Texts())
 	}
 	if ch, _ := a.Store.ReadChapter(second); ch.Text != "门开了，林晚又看见了林晚的影子。" {
@@ -106,7 +106,7 @@ func TestReplaceThroughTheBook(t *testing.T) {
 	if snaps, err := a.Store.Snapshots(second); err != nil || len(snaps) == 0 || snaps[0].Reason != "replace" {
 		t.Fatal("no snapshot before replacing", snaps, err)
 	}
-	if !tt.HasText("全书都没有找到") {
+	if !tt.HasText("全书未找到") {
 		t.Fatal(tt.Texts())
 	}
 	a.write.ed.Undo()

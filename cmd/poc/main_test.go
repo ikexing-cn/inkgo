@@ -59,7 +59,7 @@ func TestLayoutDiscussion(t *testing.T) {
 	if a.LastChat.H < 600 || a.LastSetting.H < 600 || a.LastChat.W < 600 || a.LastSetting.W < 390 {
 		t.Fatalf("discussion bounds chat=%+v setting=%+v", a.LastChat, a.LastSetting)
 	}
-	if !tt.HasText("设定") || !tt.HasText("等你决定") || !tt.HasText("总讨论") {
+	if !tt.HasText("设定") || !tt.HasText("待确认") || !tt.HasText("总讨论") {
 		t.Fatal(tt.Texts())
 	}
 	shot(t, tt, "-m1")
@@ -90,7 +90,7 @@ func TestLayoutDiscussion(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("这部作品用") {
+	if !tt.HasText("本作品使用") {
 		t.Fatal(tt.Texts())
 	}
 	shot(t, tt, "-settings")
@@ -106,7 +106,7 @@ func TestLayoutDiscussion(t *testing.T) {
 	et := ui.NewTester(e.View, 1266, 780)
 	et.Frame()
 	et.Frame()
-	if !et.HasText("从一个念头开始") {
+	if !et.HasText("从一个想法开始") {
 		t.Fatal(et.Texts())
 	}
 	shot(t, et, "-welcome")
@@ -180,11 +180,11 @@ func TestLayoutWriting(t *testing.T) {
 	}
 	time.Sleep(2100 * time.Millisecond) // the page looks at the disk every two seconds
 	tt.Frame()
-	if !tt.HasText("保留我的") {
+	if !tt.HasText("保留当前版本") {
 		t.Fatal("the outside change was not noticed", tt.Texts())
 	}
 	shot(t, tt, "-outside")
-	if err = tt.Click("用磁盘上的"); err != nil {
+	if err = tt.Click("使用磁盘版本"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

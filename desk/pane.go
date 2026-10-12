@@ -272,7 +272,7 @@ func (a *App) paneWhere(c *ui.Context, text, label string) (clicked bool) {
 		if b.Hovered() {
 			fg = t.AccentHover
 		}
-		b.Children(func() { ui.Text(c, "看原文").FontSize(fsNote).TextColor(fg).SingleLine() })
+		b.Children(func() { ui.Text(c, "查看原文").FontSize(fsNote).TextColor(fg).SingleLine() })
 		clicked = b.Clicked()
 	})
 	return clicked

@@ -29,7 +29,7 @@ func TestLeavingAChapterSummarizesIt(t *testing.T) {
 	if len(f.asked) != 0 || a.sums.running != "" {
 		t.Fatal("summarized an unchanged chapter")
 	}
-	if tt.HasText("本章摘要 · 还没有") {
+	if tt.HasText("本章摘要 · 暂无") {
 		t.Fatal("a summary box over an empty chapter")
 	}
 	a.openNode(one)
@@ -111,7 +111,7 @@ func TestDraftOffersToFillInSummaries(t *testing.T) {
 	a.openNode(two)
 	a.openDraft()
 	tt.Frame()
-	if !tt.HasText("前面有 1 章还没有摘要，起草时 AI 不知道这些章里发生了什么。") {
+	if !tt.HasText("前文有 1 章尚无摘要，起草时 AI 无法了解这些章节的内容。") {
 		t.Fatal(tt.Texts())
 	}
 	if err := tt.Click("补齐摘要"); err != nil {
@@ -122,13 +122,13 @@ func TestDraftOffersToFillInSummaries(t *testing.T) {
 		return sum.Text != ""
 	})
 	tt.Frame()
-	if tt.HasText("还没有摘要") {
+	if tt.HasText("本章摘要 · 暂无") {
 		t.Fatal(tt.Texts())
 	}
 	a.write.draftOpen = false
 	a.openDraft()
 	tt.Frame()
-	if !tt.HasText("起草时 AI 会读前面 1 章的摘要，接上前情。") {
+	if !tt.HasText("起草时 AI 会参考前 1 章的摘要，以衔接前文。") {
 		t.Fatal(tt.Texts())
 	}
 	pw, _ := a.Pen(a.Store)

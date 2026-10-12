@@ -140,7 +140,7 @@ func (a *App) setDocHidden(hidden bool) {
 	a.savePrefs()
 }
 
-var placeNames = map[string]string{workspace.PlaceBody: "正文", workspace.PlaceOpen: "等你决定", workspace.PlaceDropped: "已删除"}
+var placeNames = map[string]string{workspace.PlaceBody: "正文", workspace.PlaceOpen: "待确认", workspace.PlaceDropped: "已删除"}
 
 // revise records the author's change and shows the setting after it.
 func (a *App) revise(ops ...workspace.Op) {
@@ -307,7 +307,7 @@ func (a *App) settingList(c *ui.Context) {
 				}
 			}
 			if len(found) == 0 {
-				a.paneEmpty(c, "没有找到", "")
+				a.paneEmpty(c, "未找到", "")
 				return
 			}
 			a.paneGroup(c, fmt.Sprintf("找到 %d 条", len(found)))
@@ -316,11 +316,11 @@ func (a *App) settingList(c *ui.Context) {
 			}
 			return
 		}
-		if len(open) > 0 && a.paneTodo(c, "等你决定", len(open)).Clicked() {
+		if len(open) > 0 && a.paneTodo(c, "待确认", len(open)).Clicked() {
 			d.todo = true
 		}
 		if a.bodyCount() == 0 {
-			a.paneEmpty(c, "还没有设定", "聊过、写过的会自动记到这里，也可以点「新增」自己记一条。")
+			a.paneEmpty(c, "暂无设定", "讨论和正文中的设定会自动收录于此，也可点击「新增」手动添加。")
 			return
 		}
 		for _, cat := range a.Store.Work().Categories {
@@ -370,7 +370,7 @@ func (a *App) ideasPage(c *ui.Context) {
 	}
 	a.panePage(c, "ideas", func() {
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, "等你决定").FontSize(fsGroup).FontWeight(600)
+			ui.Text(c, "待确认").FontSize(fsGroup).FontWeight(600)
 			ui.Spacer(c)
 			ui.Textf(c, "%d 条 AI 建议", len(open)).FontSize(fsNote).TextColor(a.pal.theme.TextMuted)
 		})
@@ -408,7 +408,7 @@ func (a *App) droppedList(c *ui.Context) {
 			}
 		}
 		if n == 0 {
-			a.paneEmpty(c, "没有删除过设定", "")
+			a.paneEmpty(c, "没有已删除的设定", "")
 		}
 	})
 }
@@ -512,7 +512,7 @@ func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 			ui.TextInput(c, &d.name).Label("名字").FillWidth().FontSize(fsBody)
 		})
 		a.paneField(c, alias, func() {
-			ui.TextInput(c, &d.names).Label("别名").Placeholder("多个用顿号隔开").FillWidth().FontSize(fsBody)
+			ui.TextInput(c, &d.names).Label("别名").Placeholder("多个别名用顿号分隔").FillWidth().FontSize(fsBody)
 		})
 		if e.ID != "" {
 			content()
@@ -570,13 +570,13 @@ func (a *App) history(c *ui.Context) {
 		ui.Column(c).FillWidth().Gap(10).Padding(16, 20, 20, 20).Children(func() {
 			ui.Text(c, "修改记录").FontSize(fsGroup).FontWeight(600)
 			if len(a.set.Revisions) == 0 {
-				a.paneNote(c, "还没有改过。聊过之后，AI 会自动整理设定。")
+				a.paneNote(c, "暂无修改记录。讨论后，AI 会自动整理设定。")
 			}
 			for n := len(a.set.Revisions) - 1; n >= 0; n-- {
 				r := a.set.Revisions[n]
 				ui.Column(c).Key(r.ID).FillWidth().Padding(10, 12).Gap(6).Radius(rCard).Background(a.pal.raised).Border(1, a.pal.line).Children(func() {
 					ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
-						who := "你改的"
+						who := "手动修改"
 						if r.By == workspace.ByBookkeeper {
 							who = "后台整理"
 							if r.Redo != "" {
@@ -593,7 +593,7 @@ func (a *App) history(c *ui.Context) {
 					if r.Failed != "" {
 						ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Start).Children(func() {
 							glyph(c, icAlert, iconSm, t.Warning)
-							ui.Text(c, "这几轮没整理成功："+r.Failed).FontSize(fsNote).TextColor(t.Warning).Grow(1).Shrink(1)
+							ui.Text(c, "最近几轮整理失败："+r.Failed).FontSize(fsNote).TextColor(t.Warning).Grow(1).Shrink(1)
 						})
 						if !a.set.Redone(r.ID) && ghost(c, "重试", t.Text).Label("重试整理-"+r.ID).Disabled(a.busy != "").Clicked() {
 							a.redo(c, r.ID)
@@ -601,16 +601,16 @@ func (a *App) history(c *ui.Context) {
 						return
 					}
 					if len(r.Ops) == 0 {
-						ui.Text(c, "没有需要改的").FontSize(fsNote).TextColor(t.TextMuted)
+						ui.Text(c, "无需修改").FontSize(fsNote).TextColor(t.TextMuted)
 					}
 					for _, op := range r.Ops {
 						ui.Text(c, a.describeOp(op)).FontSize(fsNote).LineHeight(lhBody).Selectable().FillWidth()
 					}
 					if len(r.Skipped) > 0 {
-						ui.Textf(c, "%d 处你刚改过，没有覆盖，放进了「等你决定」", len(r.Skipped)).FontSize(fsNote).TextColor(t.TextMuted)
+						ui.Textf(c, "%d 处你刚改过，没有覆盖，放进了「待确认」", len(r.Skipped)).FontSize(fsNote).TextColor(t.TextMuted)
 					}
 					if r.Reasoning != "" {
-						a.thought(c, r.ID, "整理时的思考", r.Reasoning, false)
+						a.thought(c, r.ID, "整理思考过程", r.Reasoning, false)
 					}
 				})
 			}
@@ -626,6 +626,11 @@ func (a *App) describeOp(op workspace.Op) string {
 		return fmt.Sprintf("新增到%s · %s：%s", placeNames[op.Place], op.Category, op.Text)
 	case workspace.OpEdit:
 		return "改写为：" + op.Text
+	case workspace.OpName:
+		if len(op.Names) == 0 {
+			return "移除名称：" + clip(e.Text, 24)
+		}
+		return "名称改为：" + strings.Join(op.Names, "、")
 	}
 	text := clip(e.Text, 24)
 	if op.Place != "" {
@@ -668,7 +673,7 @@ func (a *App) bookDot(c *ui.Context) {
 	}
 	label, color := "正在整理设定", a.pal.ink
 	if failed {
-		label, color = "上次整理没成功，点开看看", a.pal.theme.Warning
+		label, color = "上次整理失败，点击查看", a.pal.theme.Warning
 	}
 	b := ui.ButtonBase(c).Label(label).Tooltip(label).Padding(8).Radius(rControl)
 	if b.Hovered() {
