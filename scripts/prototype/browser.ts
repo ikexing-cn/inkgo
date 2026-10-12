@@ -17,9 +17,12 @@ export interface Page {
   click(words: string, nth?: number): Promise<void>
   /** Presses the right button at a point of the page. */
   rclick(x: number, y: number): Promise<void>
+  /** Presses the left button at one point, moves to another and lets go: how a pointer picks words. */
+  drag(from: [number, number], to: [number, number]): Promise<void>
   /** Types into the field labelled so. */
   type(label: string, words: string): Promise<void>
-  key(key: 'Enter' | 'Escape' | 'Backspace'): Promise<void>
+  /** Presses a key: one of those named in keyCodes below, or a letter or sign; ctrl holds Ctrl down with it. */
+  key(key: string, ctrl?: boolean): Promise<void>
   /** Empties the field labelled so. */
   clear(label: string): Promise<void>
   /** Saves a picture of the page, when pictures were asked for. */
@@ -101,8 +104,10 @@ export async function open(file: string, ready: string, shots?: string): Promise
     for (const type of ['mousePressed', 'mouseReleased']) await send('Input.dispatchMouseEvent', { type, x, y, button, clickCount: 1 })
     await sleep(150)
   }
-  const key: Page['key'] = async (key) => {
-    for (const type of ['keyDown', 'keyUp']) await send('Input.dispatchKeyEvent', { type, key, code: key, windowsVirtualKeyCode: { Enter: 13, Escape: 27, Backspace: 8 }[key] })
+  const keyCodes: Record<string, number> = { Enter: 13, Escape: 27, Backspace: 8, Tab: 9, F11: 122, '/': 191 }
+  const key: Page['key'] = async (key, ctrl = false) => {
+    const code = keyCodes[key] ?? key.toUpperCase().charCodeAt(0)
+    for (const type of ['rawKeyDown', 'keyUp']) await send('Input.dispatchKeyEvent', { type, key, code: key, windowsVirtualKeyCode: code, modifiers: ctrl ? 2 : 0 })
     await sleep(150)
   }
 
@@ -114,6 +119,12 @@ export async function open(file: string, ready: string, shots?: string): Promise
       await press('left', at[0], at[1])
     },
     rclick: (x, y) => press('right', x, y),
+    drag: async (from, to) => {
+      await send('Input.dispatchMouseEvent', { type: 'mousePressed', x: from[0], y: from[1], button: 'left', clickCount: 1 })
+      await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: to[0], y: to[1], button: 'left', buttons: 1 })
+      await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: to[0], y: to[1], button: 'left', clickCount: 1 })
+      await sleep(150)
+    },
     type: async (label, words) => {
       if (!(await js(`(() => { const e = ${field(label)}; if (!e) return false; e.focus(); return true })()`))) throw new Error('no field ' + label)
       await send('Input.insertText', { text: words })

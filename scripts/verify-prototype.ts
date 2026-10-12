@@ -7,6 +7,7 @@
  * Usage: node scripts/verify-prototype.ts
  * With SHOT=<dir> it also saves a picture of each step there.
  */
+import { readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { problems } from './design/check.ts'
 import { read, readRules } from './design/rules.ts'
@@ -14,7 +15,8 @@ import { open } from './prototype/browser.ts'
 import { walk } from './prototype/walk.ts'
 
 const design = readRules('desk')
-const errors = ['index.html', 'app.js'].flatMap((f) => problems(design, 'prototype/' + f, read(resolve('prototype', f)), { sheet: f.endsWith('.html') }))
+const files = ['index.html', ...readdirSync('prototype').filter((f) => f.endsWith('.js')).sort()]
+const errors = files.flatMap((f) => problems(design, 'prototype/' + f, read(resolve('prototype', f)), { sheet: f.endsWith('.html') }))
 if (errors.length) {
   for (const e of errors) console.error(e)
   console.error(`\n${errors.length} problem(s) with the design rules`)
