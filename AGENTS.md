@@ -26,6 +26,14 @@ npm run verify-notes
    - 代码用 `desk/theme.go` 里的同名常量（`fsBody`、`rControl`、`lhBody`、`iconMd`、`hControl`、`opacityDisabled`）和调色板里的阴影、遮罩（`a.pal.pop.on(e)`、`a.pal.scrim`）。`desk/tokens.css` 是设计稿那份的原样副本；`go test ./desk` 会核对常量和它是否一致，并且检查界面代码里有没有直接写 `FontSize`、`Radius`、`LineHeight`、`glyph` 大小、按钮高度的数字、`ui.RGBA(` 或 `Shadow(`，`Padding`、`Gap`、`Margin` 和透明度的数在不在刻度上。
    - 要加一级，先在「设计规范」页和 `tokens.css` 里加，再复制过来用。
 
+## 能点的原型在 `prototype/`
+
+双击 `prototype/index.html` 就开：整个窗口，章节、设定、伏笔、讨论都能点，内容是假的。纯 HTML/JS，没有依赖，不用构建：`book.js` 是那本假书，`index.html` 是样式，`app.js` 是状态、动作和画法，还点不了的写在它开头。
+
+1. 它和代码一样守上面第 4 条，样式只写 `desk/tokens.css` 里的名字。
+2. 改完跑 `npm run verify-prototype`（要本机有 Edge 或 Chrome）：先查设计规则，再在浏览器里把每个动作点一遍；加 `SHOT=<目录>` 会存下每一步的截图。动作或文案变了，`scripts/prototype/walk.ts` 里的步骤跟着改。
+3. 原型和设计稿对不上时，先说出来，不要自己决定以哪边为准。
+
 ## 重要改动必须留笔记
 
 1. 非平凡改动（改了行为、架构、跨文件契约、流程与工具链、测试策略、落盘/网络/配置格式）前，按 `.agents/skills/write-notes-like-deepseek/SKILL.md` 写或更新 `.agents/notes/` 里的笔记；机械性小改（样式、格式化、打标、不改行为的补丁）直接提交。

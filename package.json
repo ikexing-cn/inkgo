@@ -2,7 +2,7 @@
   "name": "writer-notes",
   "private": true,
   "type": "module",
-  "description": "Agent Note gates and the design tools only; the product is the Go module.",
+  "description": "Agent Note gates, the design tools and the prototype's check only; the product is the Go module.",
   "engines": {
     "node": ">=22.18"
   },
@@ -14,6 +14,7 @@
     "archive-agent-note": "node scripts/archive-agent-note.ts",
     "check-anchors": "node scripts/check-note-anchors.ts",
     "verify-design": "node scripts/verify-design.ts",
+    "verify-prototype": "node scripts/verify-prototype.ts",
     "design-normalize": "node scripts/design/normalize.ts",
     "design-system": "node scripts/design/system.ts",
     "design-render": "node scripts/design/render.ts"

@@ -61,7 +61,7 @@ Status: implemented
   - `normalize.ts <project>`：把页面里写出来的字号、圆角、阴影、行距、图标大小换成变量，间距并到刻度上；不加 `--write` 只列出要改的。
   - `system.ts <project> [--height N]`：照 `tokens.css` 生成「设计规范」页，直接写变量和刻度上的间距，生成完就能过检查；`--height` 同时改页面和 `canvas.json` 里画板的高度。
   - `render.ts <project> <out> [--against <旧 project>] [--only 页名]`：用本机的 Edge 或 Chrome 无头渲染每页，报出内容高度和画板高度；给了旧版本就数改了多少像素，并写一个左右对照的 `index.html`。PNG 用 `node:zlib` 自己解。
-  - `scripts/verify-design.ts` 也改用 `rules.ts`，并多查行距、图标大小、半透明在不在刻度上、遮罩和控件高度有没有写出数字。
+  - `scripts/verify-design.ts` 也改用 `rules.ts`，并多查行距、图标大小、半透明在不在刻度上、遮罩和控件高度有没有写出数字。逐个文件查的那部分在 `scripts/design/check.ts`，仓库里的原型（`prototype/`）也用它查，见 `implemented/process/2026-10-12-local-prototype.md`。
 - 顶栏字数照设计稿的写法：千分位，满一万字写"万字"（`words`），书架卡片也用这个写法。
 
 ## Alternatives considered
