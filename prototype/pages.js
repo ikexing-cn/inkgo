@@ -70,7 +70,7 @@ function checkPage() {
       : `<div class="fit"><div class="check-from"><div class="fit ell">可加入设定 · ${t(shown.cat)}</div></div><div class="check-card"><span class="lit">${t(shown.title)}</span>：${t(shown.as)}</div></div>`
     const add = () => { set((s) => ({ ...settle(shown.id)(s), entries: [...s.entries, { id: 'e' + s.n, place: 'body', cat: shown.cat, names: [shown.title], text: shown.as, src: { key: shown.key, quote: shown.quote } }], n: s.n + 1, log: did(s, '新增到正文 · ' + shown.cat + '：' + shown.as) })); say('已加入设定', '', 'ok') }
     const acts = shown.kind === '新出现' ? button('忽略', () => set(settle(shown.id))) + button('加入设定', add, 'primary')
-      : button('有意为之', () => set(settle(shown.id))) + (shown.kind === '不一致' && e ? button('修改设定', () => set({ page: 'write', paneOpen: true, focus: false, tab: '设定', sv: 'list', sid: e.id, form: editing(e) })) : '') + button('修改正文', seeText, 'primary')
+      : button('无需修改', () => set(settle(shown.id))) + (shown.kind === '不一致' && e ? button('修改设定', () => set({ page: 'write', paneOpen: true, focus: false, tab: '设定', sv: 'list', sid: e.id, form: editing(e) })) : '') + button('修改正文', seeText, 'primary')
     detail = '<div class="check-detail" data-k="check-detail">' +
       `<div class="check-title"><div class="fit ell">${t(shown.title)}</div><div class="side">${of.indexOf(shown) + 1} / ${of.length}</div><div class="hit muted${of.length > 1 ? '' : ' off'}"${onClick(of.length > 1 ? next : null)}>下一条</div></div>` +
       `<div class="check-sides"><div class="fit"><div class="check-from"><div class="fit ell">正文 · ${ch ? t(chapterName(ch)) : ''} 第 ${shown.para + 1} 段</div><div class="hit ink"${onClick(seeText)}>查看原文</div></div><div class="check-card">${lit(text, shown.quote)}</div></div>${right}</div>` +

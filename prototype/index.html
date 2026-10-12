@@ -447,10 +447,11 @@ body { margin: 0; }
 .dialog.prefs { width: 900px; height: 620px; flex-direction: row; gap: 0; padding: 0; overflow: hidden; }
 .prefs-nav { width: 180px; flex: none; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px; padding: 20px 10px; background: var(--side); border-right: 1px solid var(--line); }
 .prefs-nav-title { padding: 0 10px 8px; font-size: var(--fs-small); font-weight: 600; color: var(--faint); }
-.prefs-body { flex: 1; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 24px 56px 32px 32px; }
+.prefs-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.prefs-head { flex: none; display: flex; flex-direction: column; gap: 4px; padding: 24px 56px 16px 32px; border-bottom: 1px solid var(--line); } /* 标题不跟着滚，下面的内容到这条线为止 */
+.prefs-body { flex: 1; min-height: 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 12px 56px 32px 32px; }
 .prefs-body > * { flex: none; }
 .prefs-title { font-size: var(--fs-dialog); font-weight: 700; }
-.prefs-title + .note { margin-top: -8px; }
 .prefs-group { display: flex; flex-direction: column; gap: 2px; padding-top: 12px; }
 .prefs-row { display: flex; align-items: center; gap: 12px; min-height: var(--h-control); }
 .prefs-label { width: 110px; flex: none; font-weight: 500; }

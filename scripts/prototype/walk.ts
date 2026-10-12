@@ -223,6 +223,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, key, cl
 
   // Settings: the models and the services, the look, reminders, backups.
   must((await value('讨论模型')) === 'claude-sonnet-5-5', 'the settings show another model'); await shot('61-settings')
+  // The heading of the settings stays where it is: what is under it scrolls up to it, not over it.
+  must(await js(`(() => { const q = (c) => document.querySelector(c), was = q('.prefs-title').getBoundingClientRect().top; q('.prefs-body').scrollTop = 200; return q('.prefs-body').scrollTop > 0 && q('.prefs-title').getBoundingClientRect().top === was && q('.prefs-body').getBoundingClientRect().top >= q('.prefs-head').getBoundingClientRect().bottom - 1 })()`), 'the settings scroll over their heading'); await shot('61b-settings-scrolled')
   await click('沿用讨论模型'); await click('DeepSeek'); must((await value('整理模型')) === 'deepseek-chat', 'choosing a service chose no model'); must(await js(`document.querySelector('.services').innerText.split('本作品使用中').length === 3`), 'the service taken is not said to be in use')
   await click('Low'); await click('Medium'); await win('Low', false); await clear('上下文预算'); await type('上下文预算', '100'); await click('保存'); await win('上下文预算至少为 8192'); await click('关闭提示'); await click('停笔后自动续写'); must(await js(`document.querySelectorAll('.ticks .check.on').length === 2`), 'the box is not ticked')
   await click('编辑'); await win('远程服务：讨论内容将发送到该地址'); await win('key 保存在系统钥匙串中，不会写入配置文件或作品。'); await shot('62-service'); await click('获取可用模型'); await win('正在读取可用模型…'); await sleep(1400); await win('已获取模型目录保存提供商后生效')
@@ -238,8 +240,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, key, cl
   await click('重新开始'); await click('检查'); await win('已检查至番外：晴天'); await win('全部 5'); await win('1 / 5'); await win('设定 · 人物 · 林晚'); await win('其他章节的类似情况'); await shot('68-check')
   await click('下一条'); await win('2 / 5'); await click('名字有误 1'); await win('应为「周祥」'); await win('1 / 1'); await shot('69-check-name'); await click('修改正文'); await win('第84章：刻字'); must((await drawn('周翔')) === 'sel', 'the wrong name is not picked out in the prose'); await done('from a finding to the prose')
   await click('检查'); await click('新出现 2'); await win('可加入设定 · 人物'); await shot('70-check-new'); await click('加入设定'); await win('已加入设定'); await win('新出现 1'); await click('关闭提示'); await click('忽略'); await win('这一类没有待处理的'); await done('names not yet in the setting')
-  await click('不一致 2'); await click('有意为之'); await win('不一致 1'); await click('修改设定'); await pane('名字'); await pane('别名'); await win('第87章：停电'); await click('取消')
-  await click('检查'); await click('有意为之'); await win('这一类没有待处理的'); await click('名字有误 1'); await click('有意为之'); await win('没有发现不一致'); await win('写完一章后自动检查，结果显示在此处。'); await shot('71-check-none'); await done('settle every finding')
+  await click('不一致 2'); await click('无需修改'); await win('不一致 1'); await click('修改设定'); await pane('名字'); await pane('别名'); await win('第87章：停电'); await click('取消')
+  await click('检查'); await click('无需修改'); await win('这一类没有待处理的'); await click('名字有误 1'); await click('无需修改'); await win('没有发现不一致'); await win('写完一章后自动检查，结果显示在此处。'); await shot('71-check-none'); await done('settle every finding')
 
   // Categories.
   await click('作品分类'); await win('设定文档按分类分节'); await win('落点：大纲'); await shot('72-cats'); await type('分类名称', '线索'); await type('落点', '大纲'); await click('保存分类'); await win('分类“线索”已保存'); await click('关闭提示')

@@ -99,8 +99,7 @@ function settingsModel(d) {
     return alone(book) ? '整理模型已选择单独的服务，还需填写模型 ID' : alone(pen) ? '写作模型已选择单独的服务，还需填写模型 ID' : ''
   }
   const saveBudget = () => (lacks() ? say(lacks(), lacks().startsWith('讨论') ? '' : '或改回“沿用讨论模型”', 'fail') : /^\d+$/.test(S.budget.trim()) ? (Number(S.budget) < 8192 ? say('上下文预算至少为 8192，请确保不超过模型支持的窗口') : say('设置已保存，下一条消息起生效', '', 'ok')) : say('上下文预算须为整数'))
-  return '<div class="prefs-title">模型</div><div class="note">为本作品选择模型。</div>' +
-    '<div class="prefs-group"><div class="group-title">本作品使用</div><div class="note">思考程度选 Default 时由服务商决定。</div></div>' +
+  return '<div class="prefs-group"><div class="group-title">本作品使用</div><div class="note">思考程度选 Default 时由服务商决定。</div></div>' +
     `<div class="uses">${S.uses.map(use).join('')}` +
     `<div class="use-row"><div class="use-name">上下文预算</div><div class="box line budget">${typed(S.budget, (v) => set({ budget: v }), '', '上下文预算')}</div><div class="fit note">token，含回答预留</div>${button('保存', saveBudget, 'primary')}</div></div>` +
     '<div class="note">请勿超过模型的上下文窗口；未能放入的设定会列在回复下方的“AI 参考内容”中。修改自下次发送起生效。</div>' +
@@ -115,13 +114,11 @@ function settingsModel(d) {
 function settingsBackup() {
   const b = S.backup
   if (b.state === 'none') {
-    return '<div class="prefs-title">备份</div><div class="note">为整部作品另存一份副本，以防设备故障。</div>' +
-      `<div class="backup-card"><div class="fit"><div class="group-title">尚未备份</div><div class="note">作品目前仅保存在本机。</div></div>${button('选择位置…', () => set({ dialog: { kind: 'backup', place: BOOK.places[0][1], back: true }, ...SHUT }), 'primary')}</div>`
+    return `<div class="backup-card"><div class="fit"><div class="group-title">尚未备份</div><div class="note">作品目前仅保存在本机。</div></div>${button('选择位置…', () => set({ dialog: { kind: 'backup', place: BOOK.places[0][1], back: true }, ...SHUT }), 'primary')}</div>`
   }
   const title = { ok: b.at + ' 已备份', busy: '正在备份…', fail: '备份失败' }[b.state]
   const row = (label, inner) => `<div class="prefs-row"><div class="prefs-label">${label}</div>${inner}</div>`
-  return '<div class="prefs-title">备份</div><div class="note">为整部作品另存一份副本，以防设备故障。</div>' +
-    `<div class="backup-card"><div class="fit"><div class="group-title">${t(title)}</div><div class="note">${b.state === 'fail' ? backupWhy()[0] + '。' + backupWhy()[2] : `${t(S.shelf.find((x) => x.id === S.book).words)} · ${S.chapters.length} 章 · 已存 ${b.copies} 份${b.copies > 1 ? '，最早 9 月 28 日' : ''}`}</div></div>` +
+  return `<div class="backup-card"><div class="fit"><div class="group-title">${t(title)}</div><div class="note">${b.state === 'fail' ? backupWhy()[0] + '。' + backupWhy()[2] : `${t(S.shelf.find((x) => x.id === S.book).words)} · ${S.chapters.length} 章 · 已存 ${b.copies} 份${b.copies > 1 ? '，最早 9 月 28 日' : ''}`}</div></div>` +
     button(b.state === 'fail' ? '重试' : '立即备份', b.state === 'busy' ? null : backupNow, b.state === 'busy' ? 'primary off' : 'primary') + '</div>' +
     row('备份到', `<div class="fit ell">${t(b.dir)}</div>${button('更换', osAsk('选择备份文件夹'))}`) +
     row('备份时机', `<div class="ticks">${backupTimes(b, backupSet)}</div>`) +
@@ -130,19 +127,19 @@ function settingsBackup() {
 
 function settingsDialog(d) {
   const tabs = ['模型', '外观', '提醒与检查', '备份']
+  // 每一类的标题和下面那句说明留在上面不动，只有内容滚动。
+  const about = { 模型: '为本作品选择模型。', 外观: '仅在本机生效，适用于所有作品。', 提醒与检查: '本作品的提醒规则，修改后立即生效。', 备份: '为整部作品另存一份副本，以防设备故障。' }
   const lateNow = S.marks.filter((m) => m.st === 'open' && BOOK.now - m.ch >= S.late).length
   const when = [['写完一章后检查', '推荐，每章调用一次 AI'], ['手动检查', '平时不调用 AI'], ['边写边检查', '停笔即检查，调用最多']]
   const step = (by) => () => set((s) => ({ late: Math.max(5, s.late + by) }))
   const body = d.tab === '模型' ? settingsModel(d) : d.tab === '备份' ? settingsBackup()
-    : d.tab === '外观' ? '<div class="prefs-title">外观</div><div class="note">仅在本机生效，适用于所有作品。</div>' +
-      `<div class="prefs-row"><div class="prefs-label">颜色</div>${seg(S.look, [['跟随系统', 'screen'], ['浅色', 'sun'], ['深色', 'moon']], (v) => set({ look: v }), '颜色')}</div>`
-    : '<div class="prefs-title">提醒与检查</div><div class="note">本作品的提醒规则，修改后立即生效。</div>' +
-      '<div class="prefs-group"><div class="group-title">伏笔</div></div>' +
+    : d.tab === '外观' ? `<div class="prefs-row"><div class="prefs-label">颜色</div>${seg(S.look, [['跟随系统', 'screen'], ['浅色', 'sun'], ['深色', 'moon']], (v) => set({ look: v }), '颜色')}</div>`
+    : '<div class="prefs-group"><div class="group-title">伏笔</div></div>' +
       `<div class="prefs-row"><div class="fit"><div>超过多少章未回收时提醒</div><div class="note">到期后归入「久未回收」，不弹窗。</div></div><div class="stepper"><div class="hit" title="减少 5 章"${onClick(step(-5))}>−</div><div class="stepper-n">${S.late} 章</div><div class="hit" title="增加 5 章"${onClick(step(5))}>+</div></div></div>` +
       `<div class="note">当前有 ${lateNow} 个伏笔久未回收。</div>` +
       `<div class="prefs-group"><div class="group-title">检查正文和设定</div></div>${radios(S.when, when, (v) => set({ when: v }))}`
   return dialog('prefs', `<div class="prefs-nav"><div class="prefs-nav-title">设置</div>${tabs.map((name) => `<div class="nav hit${d.tab === name ? ' on' : ''}"${onClick(() => set({ dialog: { kind: 'settings', tab: name, edit: '' }, ...SHUT }))}>${name}</div>`).join('')}</div>` +
-    `<div class="prefs-body scroll" data-k="prefs-${d.tab}">${body}</div><button class="icon-btn muted prefs-close" aria-label="关闭设置" title="关闭设置"${onClick(shut)}>${icon('cross')}</button>`)
+    `<div class="prefs-main"><div class="prefs-head"><div class="prefs-title">${d.tab}</div><div class="note">${about[d.tab]}</div></div><div class="prefs-body scroll" data-k="prefs-${d.tab}">${body}</div></div><button class="icon-btn muted prefs-close" aria-label="关闭设置" title="关闭设置"${onClick(shut)}>${icon('cross')}</button>`)
 }
 
 // ───────── 正文那一页的几个对话框 ─────────
