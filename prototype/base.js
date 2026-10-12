@@ -34,10 +34,10 @@ function fresh(book = BOOK.shelf[0].id) {
     waiting: null, // AI 正在回哪段讨论、到哪一步了：{ id, step }，step 是 think 在想、reply 在写
     thoughts: {}, // 哪几条回复的「思考过程」展开了
     shelved: {}, shelvedShown: false, // 侧栏里收起来的几段讨论，和要不要把它们列出来
-    told: {}, // 讨论页里哪条回复展开了「AI 看到了什么」
+    told: {}, // 讨论页里哪条回复展开了「AI 参考内容」
     ctx: null, pick: null, bury: null, pay: null, // 正文上浮着的：右键菜单、选中的字、记伏笔、选回收哪条
     bar: null, // 选中一段字以后浮出来的那两个按钮
-    flash: null, // 「看原文」跳过去后要标出来的那句
+    flash: null, // 「查看原文」跳过去后要标出来的那句
     find: null, // 查找替换：{ q, to, all, at }
     ai: null, // AI 正在正文里做的事：续写出的一句、改写、起草
     box: '', // 标题下面展开的是「章纲」还是「摘要」
@@ -50,14 +50,14 @@ function fresh(book = BOOK.shelf[0].id) {
     tree: null, // 侧栏里右键点出来的菜单：{ key, x, y }
     todoAll: true, more: {}, ignored: [], // 待处理：看全部还是本章、哪几组展开了、忽略掉的
     kind: '全部', cid: null, checking: false, dirty: {}, // 检查：看哪一类、哪一条、正在查哪一章、哪几章查过以后又改了
-    queue: [], never: {}, failed: {}, // 检查：排着队等查的、还没查过的、没查成的几章
+    queue: [], never: {}, failed: {}, // 检查：排着队等查的、尚未检查的、没查成的几章
     catForm: { name: '', land: '' }, catDrop: '', // 作品分类：正在填的、要删的
     toasts: [],
     backup: { state: kept, at: kept === 'ok' ? '今天 10:32' : kept === 'fail' ? '昨天 21:40' : '', dir: kept === 'none' ? '' : 'E:\\写作备份', copies: kept === 'none' ? 0 : 12, close: true, daily: true, hourly: false, keep: '最近 30 份', hush: false },
     // 换一本书也不变的：外观、书架、设置里的东西。
     look: '跟随系统', shelf: structuredClone(BOOK.shelf), cards: true, library: BOOK.library,
     uses: structuredClone(BOOK.uses), services: structuredClone(BOOK.services), budget: '16000', auto: false, recap: true,
-    when: '写完一章就查', late: BOOK.late, goal: '', paneW: 0, // paneW 是右栏拖出来的宽度，没拖过是 0
+    when: '写完一章后检查', late: BOOK.late, goal: '', paneW: 0, // paneW 是右栏拖出来的宽度，没拖过是 0
   }
 }
 const KEPT = ['look', 'shelf', 'cards', 'library', 'uses', 'services', 'budget', 'auto', 'recap', 'when', 'late', 'goal', 'paneW']
@@ -169,7 +169,7 @@ const area = (value, change, hint, label, rows = 4) => `<div class="box area"><t
 const field = (label, box) => `<div class="field"><div class="label">${t(label)}</div>${box}</div>`
 const button = (label, act, cls = '') => `<div class="btn hit ${cls}"${onClick(act)}>${t(label)}</div>`
 const buttons = (...bs) => `<div class="buttons">${bs.join('')}</div>`
-const where = (text, find, see = '看原文') => `<div class="where"><div class="fit ell">${t(text)}</div><div class="see hit"${onClick(find)}>${see}</div></div>`
+const where = (text, find, see = '查看原文') => `<div class="where"><div class="fit ell">${t(text)}</div><div class="see hit"${onClick(find)}>${see}</div></div>`
 // 按回车时做 ok，按 Esc 时做 no。拼音还没选完字的回车不算。
 const keys = (ok, no) => onKey((ev) => { if (ev.key === 'Enter' && !ev.isComposing) ok(); else if (ev.key === 'Escape' && no) { ev.stopPropagation(); no() } })
 // 打勾的方框，带一句话。

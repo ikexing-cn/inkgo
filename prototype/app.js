@@ -26,8 +26,8 @@ function view() {
   const main = { write: () => editor(chapterOf(S.ch)), talk: talkPage, check: checkPage, cats: catsPage }
   const side = (S.page === 'write' && !focus) || S.page === 'talk' ? S.paneOpen : false
   return '<div class="stage">' +
-    `<div class="stage-bar">${button('重新开始', restart)}<div class="anchor left"><div class="btn hit${S.open === 'rare' ? ' soft' : ''}" title="平时碰不到的几种情况：出错的、软件外面动了稿子的"${onClick(() => set({ open: S.open === 'rare' ? '' : 'rare' }))}>少见的情况</div>` +
-    (S.open === 'rare' ? `<div class="pop rare-pop" data-k="rare-pop">${rare().map(([label, act]) => menuRow(label, act)).join('')}</div>` : '') + `</div><div class="stage-note">内容是假的，正文不能打字，AI 只回固定的几句。</div></div>` +
+    `<div class="stage-bar">${button('重新开始', restart)}<div class="anchor left"><div class="btn hit${S.open === 'rare' ? ' soft' : ''}" title="平时不易遇到的情况：出错、作品在软件外被改动"${onClick(() => set({ open: S.open === 'rare' ? '' : 'rare' }))}>少见的情况</div>` +
+    (S.open === 'rare' ? `<div class="pop rare-pop" data-k="rare-pop">${rare().map(([label, act]) => menuRow(label, act)).join('')}</div>` : '') + `</div><div class="stage-note">内容为示例，正文不可输入，AI 仅回复固定内容。</div></div>` +
     `<div id="win" class="${dark() ? 'dark' : 'light'}">` + WINDOW_BUTTONS + veil() +
     (S.page === 'shelf' ? shelfPage() : (focus ? '' : sidebar()) + main[S.page]() + (side ? pane() : '')) +
     floats() + dialogs() + toasts() + '</div></div>'

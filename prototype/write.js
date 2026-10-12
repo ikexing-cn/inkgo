@@ -144,10 +144,10 @@ const closeFloat = () => set({ ctx: null, bury: null, pay: null, pick: null, tre
 const payable = () => { const q = S.pay.q.trim(); return S.marks.filter((m) => (m.st === 'open' || m.st === 'done') && (!q || m.note.includes(q) || m.quote.includes(q))) }
 const payPick = () => { const can = payable(); return can.some((m) => m.id === S.pay.id) ? S.pay.id : can.length ? can[0].id : '' }
 
-// 问「回收的是哪个伏笔」。id 是先选好的那条，从右键菜单来的没有。
+// 问「选择要回收的伏笔」。id 是先选好的那条，从右键菜单来的没有。
 function askPay(id) {
   const pick = grab() || S.pick
-  if (!pick) { say('先在正文里选中回收伏笔的那一段'); return }
+  if (!pick) { say('请先在正文中选中回收伏笔的段落'); return }
   set({ ctx: null, bury: null, bar: null, pick, pay: { q: '', id } })
 }
 
@@ -221,16 +221,16 @@ function takeRewrite() {
     const { pick, text } = s.ai
     return { ai: null, ...snap(s, s.ch, 'AI 改动前'), ...retype(s, s.ch, (paras) => paras.map((p, i) => (i === pick.para ? p.slice(0, pick.start) + text + p.slice(pick.end) : p))) }
   })
-  say('已采纳改写', '撤销可以换回原文，原来的版本也在快照里', 'ok')
+  say('已采纳改写', '可撤销恢复原文，原版本已存入快照', 'ok')
 }
 
 function draftNow() {
   const [model, effort] = writer(), d = S.dialog, key = S.ch
-  if (d.goal.trim() && !/^[1-9]\d*$/.test(d.goal.trim())) { say('目标字数需要是正整数，或者留空', '', 'fail'); return }
+  if (d.goal.trim() && !/^[1-9]\d*$/.test(d.goal.trim())) { say('目标字数须为正整数，或留空', '', 'fail'); return }
   set((s) => ({
     dialog: null, ...SHUT, bar: null,
-    ...snap(s, key, 'AI 改动前', { head: '按章纲起草 · ' + model + ' · ' + effort + (d.goal.trim() ? ' · 约 ' + d.goal.trim() + ' 字' : ''), saw: 'AI 看到了：设定 ' + s.entries.filter((e) => e.place === 'body').length + ' 条、章纲、本章前文' }),
-    ...retype(s, key, (paras) => (d.how === '覆盖已写的内容' ? [] : paras)),
+    ...snap(s, key, 'AI 改动前', { head: '按章纲起草 · ' + model + ' · ' + effort + (d.goal.trim() ? ' · 约 ' + d.goal.trim() + ' 字' : ''), saw: 'AI 参考了：设定 ' + s.entries.filter((e) => e.place === 'body').length + ' 条、章纲、本章前文' }),
+    ...retype(s, key, (paras) => (d.how === '覆盖已有内容' ? [] : paras)),
     ai: { kind: 'drafting', key, n: 0, wrote: 0 },
   }))
   set((s) => ({ chapters: s.chapters.map((c) => (c.key === key ? { ...c, aiFrom: c.paras.length } : c)) }))
@@ -238,7 +238,7 @@ function draftNow() {
     const a = S.ai
     if (!a || a.kind !== 'drafting') return
     const words = BOOK.drafted[a.n]
-    if (!words) { set({ ai: null }); say('起草完成，写了 ' + a.wrote + ' 字', '撤销可以整段撤回，起草前的版本在快照里', 'ok'); return }
+    if (!words) { set({ ai: null }); say('起草完成，共 ' + a.wrote + ' 字', '可撤销整段撤回，起草前的版本已存入快照', 'ok'); return }
     set((s) => ({ ...retype(s, key, (paras) => [...paras, words]), ai: { ...a, n: a.n + 1, wrote: a.wrote + words.length } }))
     next()
   })
@@ -246,18 +246,18 @@ function draftNow() {
 }
 function stopDraft() {
   set({ ai: null })
-  say('已停止起草，写出的部分保留了；撤销可以整段撤回')
+  say('已停止起草，已写部分保留；可撤销整段撤回')
 }
 
 // 让 AI 给一章写摘要。
 function recap(key) {
   set((s) => ({ summaries: { ...s.summaries, [key]: { ...(s.summaries[key] || { text: '' }), busy: true } } }))
-  later(1200, () => set((s) => ({ summaries: { ...s.summaries, [key]: { text: key === String(BOOK.now) ? BOOK.recap : '这一章的摘要：' + clip(chapterOf(key).paras.join(''), 40), by: 'AI 写的 · Opus 5.5 · 刚刚' } } })))
+  later(1200, () => set((s) => ({ summaries: { ...s.summaries, [key]: { text: key === String(BOOK.now) ? BOOK.recap : '本章摘要：' + clip(chapterOf(key).paras.join(''), 40), by: 'AI 生成 · Opus 5.5 · 刚刚' } } })))
 }
 
 // Ctrl+S：马上存。AI 正在改的时候，等它改完再存。
 function saveNow() {
-  if (S.ai && (S.ai.kind === 'drafting' || S.ai.kind === 'rewriting')) { say('AI 还在改这一章，等它结束会自动保存'); return }
+  if (S.ai && (S.ai.kind === 'drafting' || S.ai.kind === 'rewriting')) { say('AI 正在修改本章，完成后自动保存'); return }
   set({ saved: true })
   say('已保存', '停笔片刻也会自动保存')
 }
@@ -266,7 +266,7 @@ function saveNow() {
 function settleOutside(disk) {
   const key = S.ch
   set((s) => ({ outside: '', ...snap(s, key, '外部改动'), ...(disk ? retype(s, key, (paras) => [...paras, BOOK.outside]) : {}) }))
-  say(disk ? '已换成磁盘上的版本，编辑器里原来的内容存了快照' : '已保留编辑器里的版本，磁盘上的内容存了快照')
+  say(disk ? '已采用磁盘版本，编辑器原内容已存为快照' : '已保留编辑器版本，磁盘内容已存为快照')
 }
 // 软件外面把开着的这一章删了、改名了：编辑器里的字存成一章新的。
 function saveLost() {
@@ -274,30 +274,30 @@ function saveLost() {
     const c = chapterOf(s.ch)
     return { outside: '', chapters: [...s.chapters.filter((x) => x !== c), { ...c, vol: '' }] }
   })
-  say('已存为新章节，放在最上层的末尾')
+  say('已存为新章节，位于最上层末尾')
 }
 
 // 让备份换一种没成功的样子。
 const failBackup = (why) => () => set((s) => ({ ...SHUT, backup: { ...s.backup, state: 'fail', why, at: s.backup.at || '昨天 21:40', dir: s.backup.dir || 'E:\\写作备份', hush: false } }))
 
-// 平时碰不到的几种情况：出错的、软件外面动了稿子的。在窗口上面那一排里点出来看。
+// 平时不易遇到的情况：出错、作品在软件外被改动。在窗口上面那一排里点出来看。
 function rare() {
   const here = (change) => () => {
-    if (!chapterOf(S.ch)) { set(SHUT); say('先打开一章'); return }
+    if (!chapterOf(S.ch)) { set(SHUT); say('请先打开一章'); return }
     set((s) => ({ page: 'write', focus: false, dialog: null, find: null, ...CLEAR, ...SHUT, ...change(s) }))
   }
-  const why = '连不上模型服务'
+  const why = '无法连接模型服务'
   return [
-    ['这一章在软件外面被改了', here(() => ({ outside: 'changed' }))],
-    ['这一章在磁盘上找不到了', here(() => ({ outside: 'lost' }))],
-    ['这一章检查没成功', here((s) => ({ failed: { ...s.failed, [s.ch]: why } }))],
-    ['这一章的摘要没生成出来', here((s) => ({ box: '摘要', summaries: { ...s.summaries, [s.ch]: { ...(s.summaries[s.ch] || { text: '' }), busy: false, fail: why } } }))],
-    ['AI 改写没成功', () => { set(SHUT); say('改写失败', '模型没有给出改写', 'fail') }],
-    ['设定没整理成功', () => set((s) => ({ ...SHUT, n: s.n + 1, log: [{ id: 'l' + s.n, who: '后台整理', model: 'Opus 5.5 · Low', at: '刚刚', lines: [], fail: '这几轮没整理成功：连不上 AI' }, ...s.log] }))],
-    ['读取模型目录没成功', () => { set(SHUT); const id = say('读取模型目录失败', why, 'fail', [['重试', () => { unsay(id); fetchModels() }], ['去设置', () => set({ dialog: { kind: 'settings', tab: '模型', edit: '' }, toasts: [], ...SHUT })]]) }],
-    ['备份文件夹找不到了', failBackup('dir')],
-    ['备份文件夹不让写', failBackup('deny')],
-    ['添加的文件夹里没有作品', () => { set(SHUT); say('这个文件夹里没有作品（缺少 work.yaml）', 'D:\\下载\\新建文件夹', 'fail') }],
+    ['本章在软件外被修改', here(() => ({ outside: 'changed' }))],
+    ['本章文件丢失', here(() => ({ outside: 'lost' }))],
+    ['本章检查失败', here((s) => ({ failed: { ...s.failed, [s.ch]: why } }))],
+    ['本章摘要生成失败', here((s) => ({ box: '摘要', summaries: { ...s.summaries, [s.ch]: { ...(s.summaries[s.ch] || { text: '' }), busy: false, fail: why } } }))],
+    ['AI 改写出错', () => { set(SHUT); say('改写失败', '模型未返回改写结果', 'fail') }],
+    ['设定整理失败', () => set((s) => ({ ...SHUT, n: s.n + 1, log: [{ id: 'l' + s.n, who: '后台整理', model: 'Opus 5.5 · Low', at: '刚刚', lines: [], fail: '最近几轮整理失败：无法连接 AI' }, ...s.log] }))],
+    ['模型目录读取失败', () => { set(SHUT); const id = say('读取模型目录失败', why, 'fail', [['重试', () => { unsay(id); fetchModels() }], ['打开设置', () => set({ dialog: { kind: 'settings', tab: '模型', edit: '' }, toasts: [], ...SHUT })]]) }],
+    ['备份文件夹丢失', failBackup('dir')],
+    ['备份文件夹不可写', failBackup('deny')],
+    ['添加的文件夹中没有作品', () => { set(SHUT); say('该文件夹中没有作品（缺少 work.yaml）', 'D:\\下载\\新建文件夹', 'fail') }],
   ]
 }
 
@@ -322,7 +322,7 @@ function swapAll() {
   const { q, to } = S.find, n = hits(chapterOf(S.ch), q).length
   if (!n) return
   set((s) => retype(s, s.ch, (paras) => paras.map((p) => p.split(q).join(to))))
-  say('已替换 ' + n + ' 处，可以撤销')
+  say('已替换 ' + n + ' 处，可撤销')
 }
 function swapBook() {
   const { q, to } = S.dialog, had = S.chapters.filter((c) => hits(c, q).length)
@@ -332,7 +332,7 @@ function swapBook() {
     for (const c of had) next = { ...next, ...snap(next, c.key, '全书替换前'), ...retype(next, c.key, (paras) => paras.map((p) => p.split(q).join(to))) }
     return next
   })
-  say('已在 ' + had.length + ' 章里替换 ' + n + ' 处，每章替换前的版本都在快照里')
+  say('已在 ' + had.length + ' 章中替换 ' + n + ' 处，各章替换前的版本已存入快照')
 }
 
 const counted = (c) => Number(sizeOf(c).replace(/,/g, ''))
@@ -357,15 +357,15 @@ function pending() {
   const list = []
   for (const c of S.checks) {
     const ch = chapterOf(c.key)
-    list.push({ id: c.id, group: '设定不一致', name: c.kind === '新出现' ? '「' + c.title + '」还不在设定里' : c.title, about: ch ? chapterName(ch) : '', key: c.key, open: () => set({ page: 'check', kind: '全部', cid: c.id, ...SHUT }) })
+    list.push({ id: c.id, group: '设定不一致', name: c.kind === '新出现' ? '「' + c.title + '」尚未加入设定' : c.title, about: ch ? chapterName(ch) : '', key: c.key, open: () => set({ page: 'check', kind: '全部', cid: c.id, ...SHUT }) })
   }
   for (const m of S.marks) {
     const gap = BOOK.now - m.ch
     const open = () => set({ paneOpen: true, focus: false, tab: '伏笔', fid: m.id, fv: 'list', renote: null, ...SHUT })
     if (m.st === 'lost') list.push({ id: m.id, group: '伏笔', name: '「' + nameOf(m) + '」原句已删', about: '第' + m.ch + '章', key: m.key, open })
-    if (m.st === 'open' && gap >= S.late) list.push({ id: m.id, group: '伏笔', name: '「' + nameOf(m) + '」' + gap + ' 章没回收', about: '第' + m.ch + '章 埋下', key: m.key, open })
+    if (m.st === 'open' && gap >= S.late) list.push({ id: m.id, group: '伏笔', name: '「' + nameOf(m) + '」' + gap + ' 章未回收', about: '第' + m.ch + '章 埋下', key: m.key, open })
   }
-  if (S.backup.state === 'fail') list.push({ id: 'backup', group: '备份', name: '备份没成功，' + backupWhy()[0], about: '点一下重试 · 上次备份 ' + S.backup.at, key: '', open: backupNow })
+  if (S.backup.state === 'fail') list.push({ id: 'backup', group: '备份', name: '备份失败，' + backupWhy()[0], about: '点击重试 · 上次备份 ' + S.backup.at, key: '', open: backupNow })
   return list.filter((x) => !S.ignored.includes(x.id))
 }
 
@@ -388,7 +388,7 @@ function sidebar() {
   const put = S.talks.filter((x) => S.shelved[x.id])
   const talkRow = (talk) => `<div class="tree-row hit${open(talk) ? ' on' : ''}${S.shelved[talk.id] ? ' put' : ''}"${onClick(() => set({ page: 'talk', tv: 'one', tid: talk.id, draft: '' }))}${menu(talk.id, true)}><div class="fit ell">${t(talk.title)}</div><div class="count">${t(talk.at)}</div></div>`
   const b = S.backup
-  const backupLine = { ok: '已备份 · ' + b.at, busy: '正在备份…', fail: '备份没成功', none: '还没备份过' }[b.state]
+  const backupLine = { ok: '已备份 · ' + b.at, busy: '正在备份…', fail: '备份失败', none: '尚未备份' }[b.state]
 
   return '<div class="sidebar">' +
     `<div class="sidebar-top"><div>${svg('icon-md', PANEL + path('M9 5v14'))}</div><div class="hit${S.step > 0 ? '' : ' off'}" title="上一个打开的章节"${onClick(() => stepBy(-1))}>${icon('left', 'sm')}</div><div class="hit${S.trail[S.step + 1] ? '' : ' off'}" title="下一个打开的章节"${onClick(() => stepBy(1))}>${icon('right', 'sm')}</div></div>` +
@@ -412,7 +412,7 @@ function treeMenu() {
   if (S.tree.talk) {
     const id = S.tree.key, flip = () => set((s) => ({ tree: null, shelved: { ...s.shelved, [id]: !s.shelved[id] } }))
     return `<div class="veil float-veil"${onClick(closeFloat)}${onMenu((ev) => { ev.preventDefault(); closeFloat() })}></div>` +
-      `<div class="ctx pop" data-k="tree-menu" style="left:${S.tree.x}px;top:${S.tree.y}px">${menuRow(S.shelved[id] ? '放回列表' : '收起这段对话', flip)}</div>`
+      `<div class="ctx pop" data-k="tree-menu" style="left:${S.tree.x}px;top:${S.tree.y}px">${menuRow(S.shelved[id] ? '移回列表' : '收起这段对话', flip)}</div>`
   }
   const key = S.tree.key, vol = S.volumes.some((v) => v[0] === key), c = chapterOf(key)
   const spots = vol ? [] : [['最上层', ''], ...S.volumes.map((v) => [v[1], v[0]])].filter(([, to]) => to !== c.vol)
@@ -463,9 +463,9 @@ function aiBar() {
   const a = S.ai, [model, effort] = writer()
   if (!a || a.kind === 'ghost' || a.kind === 'ghosting') return ''
   const drop = () => set({ ai: null })
-  if (a.kind === 'ask') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'muted')}<div class="box line fit">${typed(a.want, (v) => set((s) => ({ ai: { ...s.ai, want: v } })), '怎么改？比如：节奏放慢，多写她的犹豫', '改写要求', keys(rewrite, drop) + ' autofocus')}</div>${button('改写', rewrite, 'primary')}<button class="icon-btn muted" aria-label="关闭改写" title="关闭改写"${onClick(drop)}>${icon('cross')}</button></div>`
-  if (a.kind === 'rewriting') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'muted')}<div class="fit ell muted">AI 正在改写选中的部分 · ${t(model)}</div>${button('取消', drop)}</div>`
-  if (a.kind === 'diff') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'green')}<div class="fit ell muted">红色划掉的是原文，绿色是改写。</div>${button('放弃', drop, 'soft')}<div class="hit muted"${onClick(rewrite)}>重新改写</div>${button('采纳', takeRewrite, 'primary')}</div>`
+  if (a.kind === 'ask') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'muted')}<div class="box line fit">${typed(a.want, (v) => set((s) => ({ ai: { ...s.ai, want: v } })), '改写要求，例如：放慢节奏，多写她的犹豫', '改写要求', keys(rewrite, drop) + ' autofocus')}</div>${button('改写', rewrite, 'primary')}<button class="icon-btn muted" aria-label="关闭改写" title="关闭改写"${onClick(drop)}>${icon('cross')}</button></div>`
+  if (a.kind === 'rewriting') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'muted')}<div class="fit ell muted">AI 正在改写选中内容 · ${t(model)}</div>${button('取消', drop)}</div>`
+  if (a.kind === 'diff') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'green')}<div class="fit ell muted">红色删除线为原文，绿色为改写。</div>${button('放弃', drop, 'soft')}<div class="hit muted"${onClick(rewrite)}>重新改写</div>${button('采纳', takeRewrite, 'primary')}</div>`
   return `<div class="ai-bar" data-k="ai-bar">${icon('leaf', 'md', 'muted')}<div class="fit ell muted">AI 正在按章纲起草 · 已写 ${a.wrote} 字 · ${t(model)} · ${t(effort)}</div>${button('停止', stopDraft, 'stop')}</div>`
 }
 
@@ -475,18 +475,18 @@ function chapterMore(cur) {
   const arrow = (name) => (S.box === name ? ' ▴' : ' ▾')
   const flip = (name) => onClick(() => set({ box: S.box === name ? '' : name }))
   const has = sum && sum.text, old = has && sum.stale, warn = sum && !sum.busy && (old || sum.fail)
-  const state = sum && sum.busy ? ' · 正在生成' : !has ? ' · 还没有' : old ? ' · 可能过时' : ''
-  const about = sum && sum.busy ? 'AI 正在读这一章写摘要…' : sum && sum.fail ? '上次生成失败：' + sum.fail
-    : has ? sum.by + (old ? ' · 正文改过了' : '') : S.recap ? '正文满 200 字后，离开这一章时会自动生成；也可以自己写。' : '自动生成已关掉，可以点“生成摘要”，也可以自己写。'
+  const state = sum && sum.busy ? ' · 正在生成' : !has ? ' · 暂无' : old ? ' · 可能过时' : ''
+  const about = sum && sum.busy ? 'AI 正在阅读本章并生成摘要…' : sum && sum.fail ? '上次生成失败：' + sum.fail
+    : has ? sum.by + (old ? ' · 正文已修改' : '') : S.recap ? '正文满 200 字后，离开本章时自动生成；也可手动填写。' : '自动生成已关闭，可点击“生成摘要”，也可手动填写。'
   const short = counted(cur) < 200
   let box = ''
-  if (S.box === '章纲') box = area(outline, (v) => set((s) => ({ outlines: { ...s.outlines, [cur.key]: v } })), '写下这里要发生什么，作为你自己的提纲', '章纲', 3)
+  if (S.box === '章纲') box = area(outline, (v) => set((s) => ({ outlines: { ...s.outlines, [cur.key]: v } })), '写下这里要发生的事，作为提纲', '章纲', 3)
   if (S.box === '摘要') {
-    box = area(sum ? sum.text : '', (v) => set((s) => ({ summaries: { ...s.summaries, [cur.key]: { text: v, by: '你写的' } } })), '这一章发生了什么：起草后面的章节时，AI 会看到各章的摘要', '摘要', 3) +
+    box = area(sum ? sum.text : '', (v) => set((s) => ({ summaries: { ...s.summaries, [cur.key]: { text: v, by: '手动填写' } } })), '本章发生的事。起草后续章节时，AI 会参考各章摘要', '摘要', 3) +
       `<div class="box-foot"><div class="fit${warn ? ' amber' : ''}">${t(about)}</div>` +
-      `<div class="hit see${short || (sum && sum.busy) ? ' off' : ''}" title="${short ? '正文满 200 字才需要摘要' : '让 AI 读这一章，写一份摘要'}"${onClick(short || (sum && sum.busy) ? null : () => recap(cur.key))}>${sum && sum.text ? '重新生成' : '生成摘要'}</div></div>`
+      `<div class="hit see${short || (sum && sum.busy) ? ' off' : ''}" title="${short ? '正文满 200 字后才需要摘要' : '由 AI 阅读本章并生成摘要'}"${onClick(short || (sum && sum.busy) ? null : () => recap(cur.key))}>${sum && sum.text ? '重新生成' : '生成摘要'}</div></div>`
   }
-  return `<div class="chapter-more"><div class="hit${S.box === '章纲' ? ' on' : ''}"${flip('章纲')}>章纲${outline.trim() ? '' : ' · 空'}${arrow('章纲')}</div><div class="hit${S.box === '摘要' ? ' on' : ''}${warn ? ' amber' : ''}"${old ? ' title="摘要可能和正文对不上了"' : ''}${flip('摘要')}>本章摘要${state}${arrow('摘要')}</div></div>` +
+  return `<div class="chapter-more"><div class="hit${S.box === '章纲' ? ' on' : ''}"${flip('章纲')}>章纲${outline.trim() ? '' : ' · 空'}${arrow('章纲')}</div><div class="hit${S.box === '摘要' ? ' on' : ''}${warn ? ' amber' : ''}"${old ? ' title="摘要可能与正文不一致"' : ''}${flip('摘要')}>本章摘要${state}${arrow('摘要')}</div></div>` +
     (box ? `<div class="chapter-box" data-k="chapter-box">${box}</div>` : '')
 }
 
@@ -495,13 +495,13 @@ function findBar(cur) {
   const here = cur ? hits(cur, f.q) : []
   const had = S.chapters.map((c) => [c, hits(c, f.q)]).filter(([, h]) => h.length)
   const total = had.reduce((sum, [, h]) => sum + h.length, 0)
-  const count = !f.q ? '' : f.all ? (total ? '全书 ' + had.length + ' 章、共 ' + total + ' 处' : '全书都没有找到') : here.length ? f.at + 1 + ' / ' + here.length : '没有找到'
+  const count = !f.q ? '' : f.all ? (total ? '全书 ' + had.length + ' 章、共 ' + total + ' 处' : '全书未找到') : here.length ? f.at + 1 + ' / ' + here.length : '未找到'
   const shut = () => set({ find: null })
   const snip = (c, h) => { const p = c.paras[h.para]; return (h.a > 6 ? '…' : '') + p.slice(Math.max(h.a - 6, 0), h.a + f.q.length + 14) }
   return '<div class="find-bar" data-k="find-bar">' +
     `<div class="find-line"><div class="box line fit">${icon('find', 'sm', 'faint')}${typed(f.q, type('q'), '查找', '查找', keys(() => findStep(1), shut) + ' autofocus')}</div><div class="side find-count">${t(count)}</div>` +
     (f.all ? '' : `<button class="icon-btn muted" aria-label="上一个" title="上一个"${onClick(() => findStep(-1))}>${icon('up')}</button><button class="icon-btn muted" aria-label="下一个" title="下一个"${onClick(() => findStep(1))}>${icon('down')}</button>`) +
-    `<div class="chip hit${f.all ? ' on' : ''}" title="在所有章节里找"${onClick(() => set((s) => ({ find: { ...s.find, all: !s.find.all, at: 0 } })))}>全书</div><button class="icon-btn muted" aria-label="关闭查找" title="关闭查找"${onClick(shut)}>${icon('cross')}</button></div>` +
+    `<div class="chip hit${f.all ? ' on' : ''}" title="在全部章节中查找"${onClick(() => set((s) => ({ find: { ...s.find, all: !s.find.all, at: 0 } })))}>全书</div><button class="icon-btn muted" aria-label="关闭查找" title="关闭查找"${onClick(shut)}>${icon('cross')}</button></div>` +
     `<div class="find-line"><div class="box line fit">${typed(f.to, type('to'), '替换为', '替换为', keys(swapOne, shut))}</div>` +
     (f.all ? button('全书替换', total ? () => set({ dialog: { kind: 'swap', q: f.q, to: f.to, chapters: had.length, total } }) : null, total ? '' : 'off')
       : button('替换', here.length ? swapOne : null, here.length ? '' : 'off') + button('全部替换', here.length ? swapAll : null, here.length ? '' : 'off')) + '</div>' +
@@ -520,7 +520,7 @@ function todoPop(list) {
       const all = S.more[g] || of.length <= 3
       return `<div class="todo-group"><div class="dot grey"></div>${g}<span class="faint">${of.length}</span></div>` + (all ? of : of.slice(0, 3)).map(row).join('') +
         (of.length > 3 ? `<div class="todo-rest hit"${onClick(() => set((s) => ({ more: { ...s.more, [g]: !all } })))}>${all ? '收起' : '还有 ' + (of.length - 3) + ' 条'}</div>` : '')
-    }).join('') : '<div class="todo-rest">本章没有要处理的</div>'}</div>` +
+    }).join('') : '<div class="todo-rest">本章没有待处理项</div>'}</div>` +
     `<div class="todo-foot"><div class="hit muted"${onClick(() => set((s) => ({ ignored: [...s.ignored, ...shown.map((x) => x.id)], ...SHUT })))}>全部忽略</div></div></div>`
 }
 
@@ -531,8 +531,8 @@ function wordsOf(cur, vol) {
   const today = BOOK.days[0][1].toLocaleString('en-US')
   const count = (S.bar ? '选中 ' + S.bar.text.length + ' 字' : cur ? '本章 ' + sizeOf(cur) + ' 字' : vol ? '本卷 ' + inVol : '') + (cur || vol ? ' · ' : '') + '全书 ' + (S.book === BOOK.shelf[0].id ? BOOK.words : S.chapters.reduce((n, c) => n + counted(c), 0) + ' 字') + (S.goal.trim() ? ' · 今天 ' + today + ' / ' + S.goal.trim() : '')
   const goal = () => '<div class="pop goal-pop" data-k="goal-pop"><div class="pop-label">最近 7 天</div>' + BOOK.days.map(([day, n]) => `<div class="goal-day"><div class="grow">${day}</div><div>${n ? '+' + n.toLocaleString('en-US') : '0'} 字</div></div>`).join('') + HAIR +
-    field('每日目标', line(S.goal, (v) => set({ goal: v }), '比如 2000', '每日目标字数')) + '<div class="note">字数旁会写出今天写了多少、目标多少。留空就不设。</div></div>'
-  return `<div class="anchor up"><div class="words ell hit" title="字数。点击设每日目标"${onClick(() => set({ open: S.open === 'goal' ? '' : 'goal' }))}>${t(count)}</div>${S.open === 'goal' ? goal() : ''}</div>`
+    field('每日目标', line(S.goal, (v) => set({ goal: v }), '比如 2000', '每日目标字数')) + '<div class="note">设置后，字数旁显示今日字数和目标。留空则不设。</div></div>'
+  return `<div class="anchor up"><div class="words ell hit" title="字数。点击设置每日目标"${onClick(() => set({ open: S.open === 'goal' ? '' : 'goal' }))}>${t(count)}</div>${S.open === 'goal' ? goal() : ''}</div>`
 }
 
 function toolbar(cur, vol) {
@@ -545,20 +545,20 @@ function toolbar(cur, vol) {
   const more = () => {
     const outline = cur && (S.outlines[cur.key] || '').trim()
     return '<div class="pop more-pop" data-k="more-pop">' + menuRow('续写一句', cur ? continueText : null, 'spark', 'Ctrl+J') +
-      menuRow('起草本章', outline ? () => set({ dialog: { kind: 'draft', goal: '', how: '接在已写的后面' }, ...SHUT }) : null, 'page', outline ? '' : '先写章纲') + HAIR +
+      menuRow('起草本章', outline ? () => set({ dialog: { kind: 'draft', goal: '', how: '接在已有内容之后' }, ...SHUT }) : null, 'page', outline ? '' : '请先填写章纲') + HAIR +
       menuRow('快照', cur ? () => set({ dialog: { kind: 'snaps', id: '', diff: false }, ...SHUT }) : null, 'clock') + menuRow('导出…', () => set({ dialog: { kind: 'export', range: cur ? '本章' : '全书', indent: true }, ...SHUT }), 'save') + HAIR +
       `<div class="pop-label">外观</div><div class="pop-seg">${seg(S.look, [['跟随系统', 'screen'], ['浅色', 'sun'], ['深色', 'moon']], (v) => set({ look: v }), '外观')}</div></div>`
   }
   return `<div class="toolbar${wide ? ' wide' : ''}">` +
     (volume ? `<div class="crumb">${t(volume[1])}</div>${icon('right', 'xs', 'faint')}` : '') +
-    `<div class="crumb here ell">${cur ? t(titleOf(cur)) : vol ? t(vol[1]) : '正文'}</div>` + (cur ? `<div class="count-all">${S.saved ? '已保存' : '还没保存'}</div>` : '') +
+    `<div class="crumb here ell">${cur ? t(titleOf(cur)) : vol ? t(vol[1]) : '正文'}</div>` + (cur ? `<div class="count-all">${S.saved ? '已保存' : '未保存'}</div>` : '') +
     (S.ai && S.ai.kind === 'ghosting' ? '<div class="count-all">续写中…</div>' : S.ai && S.ai.kind === 'ghost' ? '<div class="count-all">Tab 采纳 · Esc 放弃</div>' : '') + '<div class="grow"></div><div class="tools">' +
     (wide && here && !S.focus ? `<button class="fs-btn" aria-label="本章伏笔"${onClick(() => set({ paneOpen: true, tab: '伏笔', fid: null, fv: 'list' }))}>${icon('flag')}<span>本章伏笔 ${here}</span></button>` : '') +
     (cur ? tool('查找替换', '查找替换（Ctrl+F）', 'find', () => set({ find: S.find ? null : { q: '', to: '', all: false, at: 0 } }), !!S.find) : '') +
     `<div class="anchor">${tool('更多', '续写、起草、快照、导出和外观', 'dots', flip('more'), S.open === 'more')}${S.open === 'more' ? more() : ''}</div>` +
     (S.paneOpen || S.focus ? '' : `<button class="icon-btn" aria-label="展开右栏" title="展开右栏"${onClick(() => set({ paneOpen: true }))}>${svg('icon-md', PANEL + path('M15 5v14'))}</button>`) +
-    tool(S.focus ? '退出专注' : '专注写作', S.focus ? '退出专注，回到章节树和右栏（F11）' : '只留正文，收起章节树和右栏（F11）', 'focus', () => set({ focus: !S.focus, ...SHUT }), S.focus) +
-    (S.backup.state === 'fail' && !S.backup.hush ? `<div class="anchor"><button class="warn-btn" aria-label="备份提示"${onClick(flip('chip'))}>${DOT}<span>备份没成功 · ${backupWhy()[0]}</span></button>${S.open === 'chip' ? backupPop() : ''}</div>` : '') +
+    tool(S.focus ? '退出专注' : '专注写作', S.focus ? '退出专注，恢复章节树和右栏（F11）' : '仅显示正文，收起章节树和右栏（F11）', 'focus', () => set({ focus: !S.focus, ...SHUT }), S.focus) +
+    (S.backup.state === 'fail' && !S.backup.hush ? `<div class="anchor"><button class="warn-btn" aria-label="备份提示"${onClick(flip('chip'))}>${DOT}<span>备份失败 · ${backupWhy()[0]}</span></button>${S.open === 'chip' ? backupPop() : ''}</div>` : '') +
     (list.length ? `<div class="anchor"><button class="todo-btn${S.open === 'todo' ? ' on' : ''}" aria-label="待处理"${onClick(flip('todo'))}>${DOT}<span>待处理 ${list.length}</span></button>${S.open === 'todo' ? todoPop(list) : ''}</div>` : '') +
     '</div></div>'
 }
@@ -566,31 +566,31 @@ function toolbar(cur, vol) {
 // 正文下面那一行：检查到哪了、什么时候查，右边是字数。
 function foot(cur, vol) {
   if (!cur) return `<div class="foot"><div class="grow"></div>${wordsOf(null, vol)}</div>`
-  const n = S.checks.filter((c) => c.key === cur.key).length, dirty = S.dirty[cur.key], name = cur.vol ? '第' + cur.no + '章' : '这一章'
+  const n = S.checks.filter((c) => c.key === cur.key).length, dirty = S.dirty[cur.key], name = cur.vol ? '第' + cur.no + '章' : '本章'
   const seeAll = () => set({ page: 'check', kind: '全部', cid: S.checks.find((c) => c.key === cur.key).id })
-  // 这一章查到哪了，和现在能不能点「现在查」。
-  let state = name + '查完了，没有对不上的', can = false
+  // 这一章查到哪了，和现在能不能点「立即检查」。
+  let state = name + '检查完成，未发现不一致', can = false
   if (S.checking === cur.key) state = '正在检查' + name + '…'
-  else if (S.queue.includes(cur.key)) state = name + '排队等检查'
-  else if (S.failed[cur.key]) { state = '检查没成功：' + S.failed[cur.key]; can = true }
-  else if (!S.entries.some((e) => e.place === 'body')) state = '设定还是空的，没有可以对照的'
-  else if (counted(cur) < 200) state = '满 200 字后可以检查'
-  else if (S.never[cur.key]) { state = name + '还没查过'; can = true }
-  else if (n && dirty) { state = name + '有 ' + n + ' 处要看，正文又改过了'; can = true }
-  else if (n) state = name + '查完了，有 ' + n + ' 处要看'
-  else if (dirty) { state = name + '改过，还没再查'; can = true }
+  else if (S.queue.includes(cur.key)) state = name + '等待检查'
+  else if (S.failed[cur.key]) { state = '检查失败：' + S.failed[cur.key]; can = true }
+  else if (!S.entries.some((e) => e.place === 'body')) state = '设定为空，无可对照内容'
+  else if (counted(cur) < 200) state = '满 200 字后可检查'
+  else if (S.never[cur.key]) { state = name + '尚未检查'; can = true }
+  else if (n && dirty) { state = name + '有 ' + n + ' 处待处理，正文已再次修改'; can = true }
+  else if (n) state = name + '检查完成，有 ' + n + ' 处待处理'
+  else if (dirty) { state = name + '已修改，尚未重新检查'; can = true }
   const found = n && !S.checking && !S.failed[cur.key] && !S.never[cur.key] && counted(cur) >= 200
-  const when = [['写完一章就查', '推荐，每章用一次 AI'], ['我点了才查', '平时不用 AI'], ['边写边查', '停笔就查，最费额度']]
-  return '<div class="foot">' + (found ? `<div class="state ell hit ink" title="去「检查」页逐条看"${onClick(seeAll)}>${t(state)}</div>` : `<div class="state ell">${t(state)}</div>`) +
-    (can ? `<div class="hit ink under" title="用一次 AI 对照设定检查这一章"${onClick(() => checkNow(cur.key))}>现在查</div>` : '') + '<div class="faint">·</div>' +
-    `<div class="anchor up left"><div class="hit" title="什么时候检查"${onClick(() => set({ open: S.open === 'when' ? '' : 'when' }))}>${t(S.when === '我点了才查' ? '点了才查' : S.when)} ▴</div>${S.open === 'when' ? `<div class="pop when-pop" data-k="when-pop"><div class="pop-title">什么时候检查</div>${radios(S.when, when, (v) => set({ when: v, ...SHUT }))}</div>` : ''}</div>` +
+  const when = [['写完一章后检查', '推荐，每章调用一次 AI'], ['手动检查', '平时不调用 AI'], ['边写边检查', '停笔即检查，调用最多']]
+  return '<div class="foot">' + (found ? `<div class="state ell hit ink" title="前往「检查」页逐条查看"${onClick(seeAll)}>${t(state)}</div>` : `<div class="state ell">${t(state)}</div>`) +
+    (can ? `<div class="hit ink under" title="调用一次 AI，对照设定检查本章"${onClick(() => checkNow(cur.key))}>立即检查</div>` : '') + '<div class="faint">·</div>' +
+    `<div class="anchor up left"><div class="hit" title="检查时机"${onClick(() => set({ open: S.open === 'when' ? '' : 'when' }))}>${t(S.when)} ▴</div>${S.open === 'when' ? `<div class="pop when-pop" data-k="when-pop"><div class="pop-title">检查时机</div>${radios(S.when, when, (v) => set({ when: v, ...SHUT }))}</div>` : ''}</div>` +
     `<div class="grow"></div>${wordsOf(cur)}</div>`
 }
 
 // 软件外面动了开着的这一章时，正文上面的那一条。
 function outsideBar() {
-  if (S.outside === 'changed') return `<div class="notice-bar" data-k="outside">${icon('warn')}<div class="fit">磁盘上的这一章被别的程序改过了。保留哪一边？另一边会存成快照，不会丢。</div>${button('用磁盘上的', () => settleOutside(true))}${button('保留我的', () => settleOutside(false), 'primary')}</div>`
-  if (S.outside === 'lost') return `<div class="notice-bar lost" data-k="outside">${icon('warn')}<div class="fit">磁盘上找不到这一章了：在软件外改名、移动或删除，都会被当成删掉了。编辑器里的文字还在。</div>${button('存为新章节', saveLost, 'primary')}</div>`
+  if (S.outside === 'changed') return `<div class="notice-bar" data-k="outside">${icon('warn')}<div class="fit">本章文件已被其他程序修改。请选择保留的版本，另一版本将存为快照。</div>${button('使用磁盘版本', () => settleOutside(true))}${button('保留当前版本', () => settleOutside(false), 'primary')}</div>`
+  if (S.outside === 'lost') return `<div class="notice-bar lost" data-k="outside">${icon('warn')}<div class="fit">磁盘上已找不到本章文件：在软件外改名、移动或删除，均视为删除。编辑器中的内容仍保留。</div>${button('存为新章节', saveLost, 'primary')}</div>`
   return ''
 }
 
@@ -600,8 +600,8 @@ function folderPage([key, title]) {
   const gist = (c) => (S.outlines[c.key] || '').trim() || (S.summaries[c.key] || {}).text || ''
   return '<div class="paper scroll"><div class="column folder">' +
     `<div class="chapter-title">${t(title)}</div><div class="folder-label">卷纲</div>` +
-    area(S.outlines[key] || '', (v) => set((s) => ({ outlines: { ...s.outlines, [key]: v } })), '写下这里要发生什么，作为你自己的提纲', '卷纲', 6) +
-    `<div class="folder-count"><div class="grow">${inside.length} 项</div><div class="hit ink"${onClick(newChapter)}>在这里新建章节</div></div>` +
+    area(S.outlines[key] || '', (v) => set((s) => ({ outlines: { ...s.outlines, [key]: v } })), '写下这里要发生的事，作为提纲', '卷纲', 6) +
+    `<div class="folder-count"><div class="grow">${inside.length} 项</div><div class="hit ink"${onClick(newChapter)}>在此新建章节</div></div>` +
     inside.map((c) => `<div class="folder-row hit"${onClick(goTo(c.key))}><div class="folder-name">${icon('page', 'md', 'muted')}<div class="fit ell">${t(titleOf(c))}</div><div class="count">${t(sizeOf(c))} 字</div></div>${gist(c) ? `<div class="gist">${t(gist(c))}</div>` : ''}</div>`).join('') +
     '</div></div>'
 }
@@ -610,8 +610,8 @@ function editor(cur) {
   const vol = S.volumes.find((v) => v[0] === S.vol)
   if (vol) return '<div class="editor">' + toolbar(null, vol) + folderPage(vol) + foot(null, vol) + '</div>'
   if (!cur) {
-    return `<div class="editor">${toolbar(null)}<div class="paper">` + (S.chapters.length ? blank('book', '从左边选一章开始写', '')
-      : blank('book', '还没有章节', '每一章是作品文件夹 chapters 里的一个纯文本文件，离开软件也能打开。', buttons(button('新建第一章', newChapter, 'primary'), button('新建文件夹', newFolder)))) + '</div>' + foot(null) + '</div>'
+    return `<div class="editor">${toolbar(null)}<div class="paper">` + (S.chapters.length ? blank('book', '从左侧选择一章开始写作', '')
+      : blank('book', '暂无章节', '每章是作品文件夹 chapters 中的一个纯文本文件，可用其他软件打开。', buttons(button('新建第一章', newChapter, 'primary'), button('新建文件夹', newFolder)))) + '</div>' + foot(null) + '</div>'
   }
   const focus = S.paneOpen && S.tab === '伏笔' ? S.fid : null
   const found = S.find && S.find.q && !S.find.all ? hits(cur, S.find.q) : []
@@ -619,7 +619,7 @@ function editor(cur) {
   const paras = cur.paras.map((text, i) => `<div data-para="${i}"${cur.aiFrom !== undefined && i >= cur.aiFrom ? ' class="ai"' : ''}>${pieces(cur, i, text, focus, found)}${i === cur.paras.length - 1 ? ghostly : ''}</div>`).join('')
   return '<div class="editor">' + toolbar(cur) + (S.find ? findBar(cur) : '') + outsideBar() +
     `<div class="paper scroll"${onMenu(openMenu)}${onUp(picked)}><div class="column"><div class="chapter-head"><div class="chapter-title">${t(cur.t)}</div>${chapterMore(cur)}</div>` + aiBar() +
-    `<div class="prose">${paras || (ghostly ? `<div>${ghostly}</div>` : '<div class="faint">从这里开始写…</div>')}</div></div></div>` + foot(cur) + '</div>'
+    `<div class="prose">${paras || (ghostly ? `<div>${ghostly}</div>` : '<div class="faint">在此开始写作…</div>')}</div></div></div>` + foot(cur) + '</div>'
 }
 
 // ───────── 画：正文上浮着的 ─────────
@@ -643,36 +643,36 @@ function floats() {
     const addName = (cat) => () => {
       set((s) => ({ ctx: null, pick: null, entries: [...s.entries, { id: 'e' + s.n, place: 'body', cat, names: [name], text: name }], n: s.n + 1, log: did(s, '新增到正文 · ' + cat + '：' + name) }))
       unselect()
-      say('「' + name + '」已加入设定的' + cat + '，打字时可以补全')
+      say('「' + name + '」已加入设定的' + cat + '，输入时可自动补全')
     }
     const names = !name || name.length > 12 ? menuRow('加入名字表', null)
-      : S.entries.some((e) => e.place !== 'dropped' && e.names.includes(name)) ? menuRow('已在名字表里', null)
+      : S.entries.some((e) => e.place !== 'dropped' && e.names.includes(name)) ? menuRow('已在名字表中', null)
       : `<div class="anchor wide"><div class="pop-row row${S.ctx.names ? ' on' : ''}"${onClick(() => set((s) => ({ ctx: { ...s.ctx, names: !s.ctx.names } })))}><div class="grow">加入名字表</div>${ICON.right}</div>` +
         (S.ctx.names ? `<div class="pop side-pop" data-k="ctx-names">${S.cats.filter((c) => BOOK.nameCats.includes(c)).map((c) => menuRow(c, addName(c))).join('')}</div>` : '') + '</div>'
     // 菜单宽 200，最多八行，都留在窗口里；旁边再开一列时也不出窗口。
     return veiled + `<div class="ctx pop${S.ctx.x > win.offsetWidth - 208 - 130 ? ' flip' : ''}" data-k="ctx" style="left:${Math.min(S.ctx.x, win.offsetWidth - 208)}px;top:${Math.min(S.ctx.y, win.offsetHeight - 280)}px">` +
-      menuRow('续写一句', continueText, '', 'Ctrl+J') + menuRow('AI 改写…', p ? askRewrite : null) + menuRow('拿去讨论', p ? cite : null, '', 'Ctrl+L') + menuRow('加入设定', p ? take : null) + names + HAIR +
+      menuRow('续写一句', continueText, '', 'Ctrl+J') + menuRow('AI 改写…', p ? askRewrite : null) + menuRow('引用到讨论', p ? cite : null, '', 'Ctrl+L') + menuRow('加入设定', p ? take : null) + names + HAIR +
       menuRow('记为伏笔…', p ? () => set({ ctx: null, bury: { note: '' } }) : null) + menuRow('记为回收…', p ? () => askPay('') : null) +
       (S.ctx.mark ? menuRow('查看伏笔', () => set({ ctx: null, pick: null, tab: '伏笔', fid: S.ctx.mark, fv: 'list', renote: null, paneOpen: true, focus: false, ...SHUT })) : '') + '</div>'
   }
 
   if (S.bury) {
-    return veiled + `<div class="float bury" data-k="bury" style="${by(360, 132, S.pick)}"><div class="float-head">${icon('flag', 'sm')}记为伏笔，写句备注</div>` +
-      `<div class="bury-box">${typed(S.bury.note, (v) => set({ bury: { note: v } }), '比如：小祥为什么突然改口', '伏笔备注', keys(buryNow, () => set({ bury: null, pick: null })) + ' autofocus')}</div>` +
-      `<div class="float-end"><div class="ghost hit"${onClick(closeFloat)}>取消</div><div class="solid hit"${onClick(buryNow)}>记下</div></div></div>`
+    return veiled + `<div class="float bury" data-k="bury" style="${by(360, 132, S.pick)}"><div class="float-head">${icon('flag', 'sm')}记为伏笔，填写备注</div>` +
+      `<div class="bury-box">${typed(S.bury.note, (v) => set({ bury: { note: v } }), '例如：小祥为什么突然改口', '伏笔备注', keys(buryNow, () => set({ bury: null, pick: null })) + ' autofocus')}</div>` +
+      `<div class="float-end"><div class="ghost hit"${onClick(closeFloat)}>取消</div><div class="solid hit"${onClick(buryNow)}>确定</div></div></div>`
   }
 
   if (S.pay) {
     const q = S.pay.q.trim()
     const can = payable(), id = payPick()
-    const meta = (m) => (m.pay ? '第' + m.ch + '章埋，第' + m.pay.ch + '章回收' : '第' + m.ch + '章 · ' + (BOOK.now - m.ch > 0 ? BOOK.now - m.ch + ' 章前埋下' : '本章埋下'))
-    return veiled + `<div class="float pay" data-k="pay" style="${by(380, 340, S.pick)}"><div class="float-head">${icon('link', 'sm')}回收的是哪个伏笔</div>` +
-      `<div class="pay-find">${typed(S.pay.q, (v) => set({ pay: { q: v, id } }), '搜备注或原句', '找伏笔', keys(() => payNow(id), () => set({ pay: null, pick: null })) + ' autofocus')}</div>` +
-      (can.length ? '' : `<div class="pay-none">${q ? '没有叫这个的伏笔' : '还没有埋下的伏笔。先选中一句，右键「记为伏笔」。'}</div>`) +
+    const meta = (m) => (m.pay ? '第' + m.ch + '章埋下，第' + m.pay.ch + '章回收' : '第' + m.ch + '章 · ' + (BOOK.now - m.ch > 0 ? BOOK.now - m.ch + ' 章前埋下' : '本章埋下'))
+    return veiled + `<div class="float pay" data-k="pay" style="${by(380, 340, S.pick)}"><div class="float-head">${icon('link', 'sm')}选择要回收的伏笔</div>` +
+      `<div class="pay-find">${typed(S.pay.q, (v) => set({ pay: { q: v, id } }), '搜索备注或原句', '查找伏笔', keys(() => payNow(id), () => set({ pay: null, pick: null })) + ' autofocus')}</div>` +
+      (can.length ? '' : `<div class="pay-none">${q ? '没有匹配的伏笔' : '暂无已埋下的伏笔。请先选中一句，右键选择「记为伏笔」。'}</div>`) +
       `<div class="pay-list scroll">${can.map((m) => `<div class="pay-row row${m.id === id ? ' on' : ''}"${onClick(() => set((s) => ({ pay: { ...s.pay, id: m.id } })))}><div class="pay-name ell">${t(nameOf(m))}</div><div class="pay-meta">${meta(m)}</div></div>`).join('')}</div>` +
       `<div class="float-end"><div class="ghost hit"${onClick(closeFloat)}>取消</div><div class="solid hit${id ? '' : ' off'}" title="确定回收"${onClick(() => payNow(id))}>记为回收</div></div></div>`
   }
 
   // 选中一段字以后：浮在它上面的两个按钮。
-  return `<div class="selbar pop" data-k="selbar" style="left:${Math.max(leftEdge, S.bar.left)}px;top:${Math.max(S.bar.top - 40, 44)}px"><div class="hit" title="让 AI 改写选中的部分"${onClick(askRewrite)}>${icon('pen', 'sm')}AI 改写</div><div class="hit" title="把选中的原文加入设定"${onClick(take)}>${icon('keep', 'sm')}加入设定</div></div>`
+  return `<div class="selbar pop" data-k="selbar" style="left:${Math.max(leftEdge, S.bar.left)}px;top:${Math.max(S.bar.top - 40, 44)}px"><div class="hit" title="由 AI 改写选中内容"${onClick(askRewrite)}>${icon('pen', 'sm')}AI 改写</div><div class="hit" title="将选中的原文加入设定"${onClick(take)}>${icon('keep', 'sm')}加入设定</div></div>`
 }
