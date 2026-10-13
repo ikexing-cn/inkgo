@@ -30,7 +30,7 @@ const stepBy = (d) => set((s) => {
   return to ? { ...to, trail: s.trail, step: s.step + d } : null
 })
 
-// 改一章的字：change 拿到原来的几段，交回新的几段。字数跟着变；检查过的结果、写好的摘要从此算旧的，也还没存；打字留下的撤销记录作废。
+// 改一章的字：change 拿到原来的几段，交回新的几段。字数跟着变；检查过的结果、写好的摘要从此算旧的，也还没存；撤销记录作废（要留一步好退回的用 oneStep）。
 const retype = (s, key, change) => {
   const sum = s.summaries[key]
   const typed = (c) => { const paras = change(c.paras); return { ...c, paras, c: c.c && (counted(c) + paras.join('').length - c.paras.join('').length).toLocaleString('en-US') } }
@@ -191,6 +191,11 @@ function retext(s, paras) {
   }
   return { ...retype(s, key, () => paras), marks: s.marks.map((m) => (m.pay ? { ...seat(m), pay: seat(m.pay) } : seat(m))), checks: s.checks.map(seat), bar: null, pick: null, flash: null }
 }
+// 作者下的一步改动（替换、采纳续写或改写、起草）：改之前的样子记下来，撤销一次就退回去。
+const oneStep = (s, key, change) => {
+  const u = s.undo[key] || { back: [], fwd: [] }, old = s.chapters.find((c) => c.key === key).paras
+  return { ...retype(s, key, change), undo: { ...s.undo, [key]: { back: [...u.back, old], fwd: [] } } }
+}
 // 作者改了正文：改之前的样子记下来好撤销。typing 是一个字一个字打的，紧接着的并成一步。
 function typeOver(s, paras, typing) {
   const key = s.ch, u = s.undo[key] || { back: [], fwd: [] }, old = s.chapters.find((c) => c.key === key).paras
@@ -349,7 +354,7 @@ function continueText() {
 function ghost(keep) {
   set((s) => {
     if (!s.ai || s.ai.kind !== 'ghost') return null
-    return { ai: null, ...(keep ? retype(s, s.ch, (paras) => (paras.length ? [...paras.slice(0, -1), paras.at(-1) + s.ai.text] : [s.ai.text])) : {}) }
+    return { ai: null, ...(keep ? oneStep(s, s.ch, (paras) => (paras.length ? [...paras.slice(0, -1), paras.at(-1) + s.ai.text] : [s.ai.text])) : {}) }
   })
 }
 
@@ -366,7 +371,7 @@ function rewrite() {
 function takeRewrite() {
   set((s) => {
     const { pick, text } = s.ai
-    return { ai: null, ...snap(s, s.ch, 'AI 改动前'), ...retype(s, s.ch, (paras) => paras.map((p, i) => (i === pick.para ? p.slice(0, pick.start) + text + p.slice(pick.end) : p))) }
+    return { ai: null, ...snap(s, s.ch, 'AI 改动前'), ...oneStep(s, s.ch, (paras) => paras.map((p, i) => (i === pick.para ? p.slice(0, pick.start) + text + p.slice(pick.end) : p))) }
   })
   say('已采纳改写', '可撤销恢复原文，原版本已存入快照', 'ok')
 }
@@ -377,7 +382,7 @@ function draftNow() {
   set((s) => ({
     dialog: null, ...SHUT, bar: null,
     ...snap(s, key, 'AI 改动前', { head: '按章纲起草 · ' + model + ' · ' + effort + (d.goal.trim() ? ' · 约 ' + d.goal.trim() + ' 字' : ''), saw: 'AI 参考了：设定 ' + s.entries.filter((e) => e.place === 'body').length + ' 条、章纲、本章前文' }),
-    ...retype(s, key, (paras) => (d.how === '覆盖已有内容' ? [] : paras)),
+    ...oneStep(s, key, (paras) => (d.how === '覆盖已有内容' ? [] : paras)),
     ai: { kind: 'drafting', key, n: 0, wrote: 0 },
   }))
   set((s) => ({ chapters: s.chapters.map((c) => (c.key === key ? { ...c, aiFrom: c.paras.length } : c)) }))
@@ -386,7 +391,7 @@ function draftNow() {
     if (!a || a.kind !== 'drafting') return
     const words = BOOK.drafted[a.n]
     if (!words) { set({ ai: null }); say('起草完成，共 ' + a.wrote + ' 字', '可撤销整段撤回，起草前的版本已存入快照', 'ok'); return }
-    set((s) => ({ ...retype(s, key, (paras) => [...paras, words]), ai: { ...a, n: a.n + 1, wrote: a.wrote + words.length } }))
+    set((s) => ({ ...retype(s, key, (paras) => [...paras, words]), undo: s.undo, ai: { ...a, n: a.n + 1, wrote: a.wrote + words.length } }))
     next()
   })
   next()
@@ -462,13 +467,13 @@ function swapOne() {
     const { q, to, at } = s.find, all = hits(chapterOf(s.ch), q), hit = all[at]
     if (!hit) return null
     // 换掉的是最后一处，就回到第一处。
-    return { ...retype(s, s.ch, (paras) => paras.map((p, i) => (i === hit.para ? p.slice(0, hit.a) + to + p.slice(hit.a + q.length) : p))), find: { ...s.find, at: at < all.length - 1 ? at : 0 } }
+    return { ...oneStep(s, s.ch, (paras) => paras.map((p, i) => (i === hit.para ? p.slice(0, hit.a) + to + p.slice(hit.a + q.length) : p))), find: { ...s.find, at: at < all.length - 1 ? at : 0 } }
   })
 }
 function swapAll() {
   const { q, to } = S.find, n = hits(chapterOf(S.ch), q).length
   if (!n) return
-  set((s) => retype(s, s.ch, (paras) => paras.map((p) => p.split(q).join(to))))
+  set((s) => oneStep(s, s.ch, (paras) => paras.map((p) => p.split(q).join(to))))
   say('已替换 ' + n + ' 处，可撤销')
 }
 function swapBook() {
@@ -699,7 +704,7 @@ function toolbar(cur, vol) {
   const tool = (label, title, pic, act, on) => `<button class="icon-btn${on ? ' on' : ''}" aria-label="${label}" title="${title}"${onClick(act)}>${icon(pic)}</button>`
   const flip = (name) => () => set({ open: S.open === name ? '' : name })
   const volume = cur && S.volumes.find(([key]) => key === cur.vol)
-  return '<div class="toolbar">' +
+  return `<div class="toolbar${S.focus ? ' wide' : ''}">` +
     `<div class="steps"><div class="hit${S.step > 0 ? '' : ' off'}" title="上一个打开的章节"${onClick(() => stepBy(-1))}>${icon('left', 'sm')}</div><div class="hit${S.trail[S.step + 1] ? '' : ' off'}" title="下一个打开的章节"${onClick(() => stepBy(1))}>${icon('right', 'sm')}</div></div>` +
     (volume ? `<div class="crumb">${t(volume[1])}</div>${icon('right', 'xs', 'faint')}` : '') +
     `<div class="crumb here ell">${cur ? t(titleOf(cur)) : vol ? t(vol[1]) : '正文'}</div>` +

@@ -107,6 +107,7 @@ body { margin: 0; }
 .menu-pop { width: max-content; min-width: 220px; }
 .win-body { flex: 1; min-height: 0; display: flex; }
 .window-buttons { margin-left: auto; align-self: stretch; display: flex; align-items: stretch; color: var(--ink-2); }
+#win > .window-buttons { position: absolute; top: 0; right: 0; z-index: 5; height: var(--h-bar); } /* 专注写作：没有标题栏，按钮在工具栏那一行的右端 */
 .window-buttons > div { width: 46px; display: flex; align-items: center; justify-content: center; }
 .window-buttons > div:hover { background: var(--active); }
 .window-buttons > div:last-child:hover { background: var(--danger); color: #fff; }
@@ -151,6 +152,7 @@ body { margin: 0; }
 /* 正文：工具栏 */
 .editor { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--bg); }
 .toolbar { height: var(--h-bar); box-sizing: border-box; flex: none; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 8px; padding: 0 16px 0 24px; }
+.toolbar.wide { padding-right: 150px; } /* 专注写作时，给窗口按钮让位 */
 .crumb { font-size: var(--fs-control); color: var(--muted); white-space: nowrap; }
 /* 顶栏最左边：侧栏收起时把它展开的按钮，和回到上一个、下一个打开过的章的两个箭头。 */
 .steps { flex: none; display: flex; align-items: center; gap: 2px; margin-left: -8px; color: var(--muted); }

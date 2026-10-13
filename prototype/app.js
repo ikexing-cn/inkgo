@@ -6,10 +6,11 @@ const WINDOW_BUTTONS = '<div class="window-buttons">' + ['<path d="M0 5h10"></pa
 
 // 标题栏：自己占一行。左边是侧栏的开关和菜单，右边是窗口的三个按钮；下面各栏不用给它们让位。
 // 菜单是命令的总表：哪一页用不上的那几行是灰的。开着一个的时候，指针移到旁边的名字上就换过去。
+// 专注写作时没有这一行：窗口的三个按钮回到工具栏那一行的右端。
 function titlebar() {
-  const writing = S.page === 'write', focus = S.focus && writing, cur = writing && chapterOf(S.ch)
-  const hasSide = S.page !== 'shelf' && !focus, hasPane = (writing && !focus) || S.page === 'talk', inBook = S.page !== 'shelf'
-  const outline = cur && (S.outlines[cur.key] || '').trim()
+  const writing = S.page === 'write', cur = writing && chapterOf(S.ch)
+  const inBook = S.page !== 'shelf', hasPane = writing || S.page === 'talk'
+  const outline = cur && (S.outlines[cur.key] || '').trim(), steps = (cur && !S.ai && S.undo[cur.key]) || { back: [], fwd: [] }
   const then = (act) => () => { set(SHUT); act() }
   const ask = (dialog) => () => set({ dialog, ...SHUT })
   const menus = [
@@ -17,13 +18,14 @@ function titlebar() {
       menuRow('保存', cur ? then(saveNow) : null, '', 'Ctrl+S') + menuRow('快照', cur ? ask({ kind: 'snaps', id: '', diff: false }) : null) +
       menuRow('导出…', inBook ? ask({ kind: 'export', range: cur ? '本章' : '全书', indent: true }) : null) + HAIR +
       menuRow('设置…', inBook ? ask({ kind: 'settings', tab: '模型', edit: '' }) : null)],
-    ['编辑', () => menuRow('查找替换', cur ? () => set({ find: S.find || { q: '', to: '', all: false, at: 0 }, ...SHUT }) : null, '', 'Ctrl+F') +
+    ['编辑', () => menuRow('撤销', steps.back.length ? then(() => unwrite(-1)) : null, '', 'Ctrl+Z') + menuRow('重做', steps.fwd.length ? then(() => unwrite(1)) : null, '', 'Ctrl+Y') + HAIR +
+      menuRow('查找替换', cur ? () => set({ find: S.find || { q: '', to: '', all: false, at: 0 }, ...SHUT }) : null, '', 'Ctrl+F') +
       menuRow('重命名', cur && !S.rename ? then(renameOpen) : null, '', 'F2') + HAIR +
       menuRow('续写一句', cur ? then(continueText) : null, '', 'Ctrl+J') +
       menuRow('起草本章', outline ? ask({ kind: 'draft', goal: '', how: '接在已有内容之后' }) : null, '', cur && !outline ? '请先填写章纲' : '')],
-    ['视图', () => menuRow(S.sideOpen ? '收起侧栏' : '展开侧栏', hasSide ? () => set({ sideOpen: !S.sideOpen, ...SHUT }) : null) +
+    ['视图', () => menuRow(S.sideOpen ? '收起侧栏' : '展开侧栏', inBook ? () => set({ sideOpen: !S.sideOpen, ...SHUT }) : null) +
       menuRow(S.paneOpen ? '收起右栏' : '展开右栏', hasPane ? () => set({ paneOpen: !S.paneOpen, ...SHUT }) : null) +
-      menuRow(focus ? '退出专注' : '专注写作', writing ? () => set({ focus: !S.focus, ...SHUT }) : null, '', 'F11') + HAIR +
+      menuRow('专注写作', writing ? () => set({ focus: true, ...SHUT }) : null, '', 'F11') + HAIR +
       `<div class="pop-label">外观</div><div class="pop-seg">${seg(S.look, [['跟随系统', 'screen'], ['浅色', 'sun'], ['深色', 'moon']], (v) => set({ look: v }), '外观')}</div>`],
     ['帮助', () => menuRow('快捷键…', ask({ kind: 'keys' }), '', 'Ctrl+/')],
   ]
@@ -35,7 +37,7 @@ function titlebar() {
   }
   const sideWord = S.sideOpen ? '收起侧栏' : '展开侧栏'
   return '<div class="titlebar">' +
-    `<button class="icon-btn muted${hasSide ? '' : ' off'}" aria-label="${sideWord}" title="${sideWord}"${onClick(hasSide ? () => set({ sideOpen: !S.sideOpen, ...SHUT }) : null)}>${svg('icon-md', PANEL + path('M9 5v14'))}</button>` +
+    `<button class="icon-btn muted${inBook ? '' : ' off'}" aria-label="${sideWord}" title="${sideWord}"${onClick(inBook ? () => set({ sideOpen: !S.sideOpen, ...SHUT }) : null)}>${svg('icon-md', PANEL + path('M9 5v14'))}</button>` +
     menus.map(menu).join('') + WINDOW_BUTTONS + '</div>'
 }
 
@@ -64,7 +66,7 @@ function view() {
   return '<div class="stage">' +
     `<div class="stage-bar">${button('重新开始', restart)}<div class="anchor left"><div class="btn hit${S.open === 'rare' ? ' soft' : ''}" title="平时不易遇到的情况：出错、作品在软件外被改动"${onClick(() => set({ open: S.open === 'rare' ? '' : 'rare' }))}>少见的情况</div>` +
     (S.open === 'rare' ? `<div class="pop rare-pop" data-k="rare-pop">${rare().map(([label, act]) => menuRow(label, act)).join('')}</div>` : '') + `</div><div class="stage-note">内容为示例。正文可输入，刷新后复原；AI 仅回复固定内容。</div></div>` +
-    `<div id="win" class="${dark() ? 'dark' : 'light'}">` + veil() + titlebar() +
+    `<div id="win" class="${dark() ? 'dark' : 'light'}">` + veil() + (focus ? WINDOW_BUTTONS : titlebar()) +
     '<div class="win-body">' + (S.page === 'shelf' ? shelfPage() : (bare ? '' : sidebar()) + main[S.page]() + (side ? pane() : '')) + '</div>' +
     floats() + dialogs() + toasts() + '</div></div>'
 }
