@@ -2,7 +2,7 @@
   "name": "writer-notes",
   "private": true,
   "type": "module",
-  "description": "Agent Note gates and the prototype's check only; the product is the Go module.",
+  "description": "Agent Note gates and the checks of the prototype and DESIGN.md only; the product is the Go module.",
   "engines": {
     "node": ">=22.18"
   },
@@ -13,6 +13,7 @@
     "verify-notes": "node scripts/verify-agent-note-tree.ts && node scripts/verify-agent-note-format.ts && node scripts/verify-archived-agent-notes.ts",
     "archive-agent-note": "node scripts/archive-agent-note.ts",
     "check-anchors": "node scripts/check-note-anchors.ts",
-    "verify-prototype": "node scripts/verify-prototype.ts"
+    "verify-prototype": "node scripts/verify-prototype.ts",
+    "verify-design": "npx --yes -p @google/design.md@0.4.0 designmd lint DESIGN.md"
   }
 }

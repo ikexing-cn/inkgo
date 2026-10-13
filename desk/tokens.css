@@ -6,7 +6,6 @@
   --bg: #ffffff;      /* 正文区底色 */
   --raised: #ffffff;  /* 浮层、弹出框 */
   --side: #f7f7f5;    /* 侧栏、右栏底色 */
-  --chip: #f5f5f2;    /* 工具栏里的小标签 */
   --hover: #f3f3f1;   /* 悬停、选中的标签 */
   --active: #ebebe8;  /* 当前项、按下 */
   --line: #ececE8;    /* 分隔线 */
@@ -30,7 +29,6 @@
   --bg: #191919;
   --raised: #222221;
   --side: #1f1f1e;
-  --chip: #222221;
   --hover: #252524;
   --active: #2c2c2a;
   --line: #2a2a28;
@@ -51,8 +49,8 @@
   --success: #5cb684;
 }
 
-/* 字号、圆角、阴影：见「设计规范」页。页面和代码只写这些名字，不写数字。
-   代码里 desk/theme.go 的同名常量由测试和这里逐一核对。 */
+/* 字号、圆角、阴影：页面和代码只写这些名字，不写数字，规则在 DESIGN.md。
+   DESIGN.md 开头的数值、代码里 desk/theme.go 的同名常量由测试和这里逐一核对。 */
 :root, .light {
   --fs-display: 26px;   /* 欢迎页的大字 */
   --fs-title: 22px;     /* 页标题、设置窗口标题 */

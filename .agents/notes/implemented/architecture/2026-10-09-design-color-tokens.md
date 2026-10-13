@@ -66,6 +66,9 @@ Status: implemented
   - `check.ts` 逐个文件查：有没有写出数字、用了 `tokens.css` 里没有的名字、间距和半透明在不在刻度上、控件高度有没有写成数字。
   - 原来给 artifact 用的 `normalize.ts`、`system.ts`、`render.ts`、`parts.ts` 和 `scripts/verify-design.ts` 在 2026-10-12 去掉了。
 - 顶栏字数照设计稿的写法：千分位，满一万字写"万字"（`words`），书架卡片也用这个写法。
+- 2026-10-13 起这些值在 `DESIGN.md` 开头也有一份，见[界面规范](../process/2026-10-13-design-md.md)：
+  - 那个格式要求数值写在文件里，于是值有三处：`DESIGN.md`、`desk/tokens.css`、`desk/theme.go`，`go test ./desk` 的 `TestDesignMD` 核对前两处。
+  - `--chip` 没有任何地方用，同一次删了。
 
 ## Alternatives considered
 

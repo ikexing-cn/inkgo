@@ -31,7 +31,9 @@ npm run verify-notes
 2. 原型里没有的界面功能，先在原型里做出来给作者看，确认后再开始写代码。
 3. 改完原型跑 `npm run verify-prototype`（要本机有 Edge 或 Chrome）：先查 `DESIGN.md` 里数值的规则，再在浏览器里把每个动作点一遍；加 `SHOT=<目录>` 会存下每一步的截图。动作或文案变了，`scripts/prototype/walk.ts` 里的步骤跟着改。平时碰不到的情况（出错的、软件外面动了稿子的）放进窗口上面「少见的情况」那个菜单，点一下就能摆出来看。
 4. 界面的规范在 `DESIGN.md`（数值只写名字、按钮靠右、就地输入、标签页和保存、文案……），动界面之前先读，写的时候照它来：
+   - 它按 [DESIGN.md 格式](https://github.com/google-labs-code/design.md) 写：开头是数值，后面八节的名字和先后是格式定的，新规则放进对应的那一节。
    - 它和原型对不上，以它为准，改原型。
+   - 改完它跑 `npm run verify-design`（要联网）：格式自带的检查工具，没有错误才算过。它开头的数值和 `desk/tokens.css` 是否一致由 `go test ./desk` 查。
    - 作者提了一条不只管一处的要求，先写进 `DESIGN.md`，再改原型和代码，同一次提交；能自动查的加检查，并在那条规则下面写明谁在查。
 5. 原来的设计稿在 Design artifact <https://claude.ai/artifact/RAP7UK4pSfnGArETpVtPSj>，只作存档：不再更新，也不以它为准。
 
