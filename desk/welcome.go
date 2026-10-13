@@ -305,7 +305,7 @@ func (a *App) welcome(c *ui.Context) {
 						ui.Text(c, "我的作品").FontSize(fsDisplay).FontWeight(700)
 						ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 							ui.Textf(c, "%d 部 · 作品库：%s", len(books), a.shelf.Library).FontSize(fsControl).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
-							if a.PickFolder != nil && ghost(c, "更改", a.pal.ink).Label("更改作品库").Clicked() {
+							if a.PickFolder != nil && a.pal.ghost(c, "更改", ui.Color{}).Label("更改作品库").Clicked() {
 								a.pickInto(c, "选择作品库文件夹", func(p string) {
 									a.shelf.Library = p
 									a.saveShelf()
@@ -377,6 +377,8 @@ func (a *App) viewToggle(c *ui.Context) {
 			fg := t.TextMuted
 			if on {
 				a.pal.raise.on(b.Background(a.pal.canvas))
+			}
+			if on || b.Hovered() {
 				fg = t.Text
 			}
 			b.Children(func() { glyph(c, v.icon, iconSm, fg) })
@@ -430,11 +432,11 @@ func (a *App) bookRow(c *ui.Context, b shelf.Book) {
 			a.switchWork(b.Path)
 		}
 		if gone {
-			if a.PickFolder != nil && ghost(c, "重新定位…", a.pal.ink).Label("重新定位-"+b.Name).Clicked() {
+			if a.PickFolder != nil && a.pal.ghost(c, "重新定位…", ui.Color{}).Label("重新定位-"+b.Name).Clicked() {
 				from := b.Path
 				a.pickInto(c, "选择该作品当前所在的文件夹", func(p string) { a.relocate(from, p) })
 			}
-			if ghost(c, "从书架移除", t.TextMuted).Label("移除-" + b.Name).Clicked() {
+			if a.pal.ghost(c, "从书架移除", ui.Color{}).Label("移除-" + b.Name).Clicked() {
 				a.removeBook(b.Path)
 			}
 			return
@@ -469,11 +471,11 @@ func (a *App) bookCard(c *ui.Context, b shelf.Book) {
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
 				ui.Text(c, "找不到文件夹").FontSize(fsNote).TextColor(t.Danger).SingleLine().Shrink(0)
 				ui.Spacer(c)
-				if a.PickFolder != nil && ghost(c, "定位", a.pal.ink).Label("重新定位-"+b.Name).Clicked() {
+				if a.PickFolder != nil && a.pal.ghost(c, "定位", ui.Color{}).Label("重新定位-"+b.Name).Clicked() {
 					from := b.Path
 					a.pickInto(c, "选择该作品当前所在的文件夹", func(p string) { a.relocate(from, p) })
 				}
-				if ghost(c, "移除", t.TextMuted).Label("移除-" + b.Name).Clicked() {
+				if a.pal.ghost(c, "移除", ui.Color{}).Label("移除-" + b.Name).Clicked() {
 					a.removeBook(b.Path)
 				}
 			})

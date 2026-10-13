@@ -252,7 +252,7 @@ func (a *App) sidebar(c *ui.Context) {
 				if a.showShelved {
 					label = "不显示收起的对话"
 				}
-				if ghost(c, label, a.pal.faint).Label("收起的对话").Margin(6, 0, 0, 4).Clicked() {
+				if a.pal.ghost(c, label, ui.Color{}).Label("收起的对话").Margin(6, 0, 0, 4).Clicked() {
 					a.showShelved = !a.showShelved
 				}
 			}

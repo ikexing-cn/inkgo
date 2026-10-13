@@ -677,6 +677,9 @@ func (a *App) writing(c *ui.Context) {
 	if c.Shortcut(ui.Cmd, ui.KeyN) && a.write.renaming == "" {
 		a.newNode(false)
 	}
+	if c.Shortcut(0, ui.KeyF2) && a.write.renaming == "" {
+		a.renameOpen()
+	}
 	for key, d := range map[ui.Key]int{ui.KeyEqual: 1, ui.KeyMinus: -1, ui.Key0: 0} {
 		if c.Shortcut(ui.Cmd, key) {
 			a.sizeText(d)
@@ -1227,17 +1230,17 @@ func (a *App) findBar(c *ui.Context) {
 		}
 	}
 	move := func() {
-		if ghost(c, "上一个", ui.Color{}).Disabled(none).Clicked() {
+		if iconButton(c, icChevronUp, "上一个", ui.Color{}).Disabled(none).Clicked() {
 			w.current = (w.current + len(found) - 1) % len(found)
 			show()
 		}
-		if ghost(c, "下一个", ui.Color{}).Disabled(none).Clicked() {
+		if iconButton(c, icChevronDown, "下一个", ui.Color{}).Disabled(none).Clicked() {
 			w.current = (w.current + 1) % len(found)
 			show()
 		}
 	}
 	replace := func() {
-		if ghost(c, "替换", ui.Color{}).Disabled(none || w.lost).Clicked() {
+		if a.pal.secondary(c, "替换").Disabled(none || w.lost).Clicked() {
 			if s, e := w.ed.Selection(); s == found[w.current][0] && e == found[w.current][1] {
 				w.ed.Replace(s, e, w.with)
 				if found = w.ed.Doc.Find(w.query); len(found) > 0 {
@@ -1249,22 +1252,18 @@ func (a *App) findBar(c *ui.Context) {
 			}
 		}
 		if w.wide {
-			if ghost(c, "全书替换", ui.Color{}).Disabled(w.query == "" || len(w.hits) == 0 || w.lost || w.external != nil).Clicked() {
+			if a.pal.secondary(c, "全书替换").Disabled(w.query == "" || len(w.hits) == 0 || w.lost || w.external != nil).Clicked() {
 				w.sure = !w.sure
 			}
 			return
 		}
-		if ghost(c, "全部替换", ui.Color{}).Disabled(none || w.lost).Clicked() {
+		if a.pal.secondary(c, "全部替换").Disabled(none || w.lost).Clicked() {
 			n := w.ed.ReplaceAll(w.query, w.with)
 			a.notice = fmt.Sprintf("已替换 %d 处，可撤销", n)
 		}
 	}
 	wide := func() {
-		color := ui.Color{}
-		if w.wide {
-			color = a.pal.ink
-		}
-		if ghost(c, "全书", color).Tooltip("在全部章节中查找").Clicked() {
+		if a.pal.chip(c, "全书", w.wide).Tooltip("在全部章节中查找").Clicked() {
 			w.wide, w.texts, w.sure = !w.wide, nil, false
 		}
 	}
@@ -1299,7 +1298,7 @@ func (a *App) folderView(c *ui.Context, n *workspace.Node) {
 				a.outlineBox(c, "卷纲", 160)
 				ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(8, 0, 0, 0).Children(func() {
 					ui.Textf(c, "%d 项", len(n.Children)).FontSize(fsControl).FontWeight(600).TextColor(t.TextMuted).Grow(1)
-					if ghost(c, "在此新建章节", ui.Color{}).Clicked() {
+					if a.pal.ghost(c, "在此新建章节", ui.Color{}).Clicked() {
 						a.newNode(false)
 					}
 				})
@@ -1481,6 +1480,21 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 }
 
 // nodeMenu is what a node's context menu offers.
+// renameOpen starts naming the node that is open, as F2 asks. Its row is
+// brought out first: from a folded folder, and from focus mode.
+func (a *App) renameOpen() {
+	w := &a.write
+	n, ok := w.tree.Node(w.node)
+	if !ok {
+		return
+	}
+	for p := n.Parent; p != nil; p = p.Parent {
+		delete(w.folded, p.ID)
+	}
+	w.focus = false
+	w.renaming, w.title, w.titleWas, w.offered = n.ID, n.Title, n.Title, ""
+}
+
 func (a *App) nodeMenu(m *menu, n *workspace.Node) {
 	w := &a.write
 	siblings := n.Parent.Children
@@ -1693,7 +1707,7 @@ func (a *App) trashView(c *ui.Context) {
 							if a.pal.secondary(c, "恢复").Label("恢复-" + it.Title).Clicked() {
 								a.restore(it.ID, it.Title)
 							}
-							if a.textLink(c, "彻底删除").Clicked() {
+							if a.pal.ghost(c, "彻底删除", ui.Color{}).Clicked() {
 								w.purge = it.ID
 							}
 						})

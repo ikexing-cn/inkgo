@@ -477,8 +477,7 @@ func (a *App) footBar(c *ui.Context, chapter bool) {
 		}
 		line, found, can := a.checkState()
 		if found > 0 {
-			b := ui.ButtonBase(c).Label("查看检查结果").Tooltip("前往「检查」页逐条查看").Shrink(1000)
-			b.Children(func() { ui.Text(c, line).FontSize(fsNote).TextColor(t.Text).SingleLine().Ellipsis("…") })
+			b := a.pal.ghost(c, line, ui.Color{}).Label("查看检查结果").Tooltip("前往「检查」页逐条查看").Shrink(1000)
 			if b.Clicked() {
 				for _, it := range a.checkItems(false) {
 					if it.here {
@@ -678,7 +677,7 @@ func (a *App) checkProgress(c *ui.Context) {
 			line += fmt.Sprintf("，还有 %d 章", left)
 		}
 		ui.Text(c, line).FontSize(fsNote).TextColor(t.TextMuted).SingleLine()
-		if ghost(c, "停止", ui.Color{}).Clicked() {
+		if a.pal.ghost(c, "停止", ui.Color{}).Clicked() {
 			k.queue = nil
 			if k.cancel != nil {
 				k.cancel()
@@ -697,7 +696,7 @@ func (a *App) checkProgress(c *ui.Context) {
 	if last == 0 {
 		label = "检查全书"
 	}
-	b := ghost(c, label, ui.Color{}).Label(label)
+	b := a.pal.ghost(c, label, ui.Color{}).Label(label)
 	if b.Clicked() {
 		k.due = a.checkDue()
 		switch {
@@ -792,9 +791,7 @@ func (a *App) checkCard(c *ui.Context, head, link string, spans []ui.Span) (clic
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, head).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 			if link != "" {
-				b := ui.ButtonBase(c).Label(link).Shrink(0)
-				b.Children(func() { ui.Text(c, link).FontSize(fsNote).TextColor(t.Text).SingleLine() })
-				clicked = b.Clicked()
+				clicked = a.pal.ghost(c, link, ui.Color{}).Clicked()
 			}
 		})
 		ui.RichText(c, spans...).FontSize(fsRead).LineHeight(lhRead).TextColor(t.TextMuted).FillWidth().
@@ -840,7 +837,7 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 	ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Shrink(0).DragWindow().Children(func() {
 		ui.Text(c, it.f.Title).FontSize(fsDialog).FontWeight(700).Grow(1).Shrink(1)
 		ui.Textf(c, "%d / %d", at+1, len(shown)).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Shrink(0)
-		if ghost(c, "下一条", ui.Color{}).Disabled(len(shown) < 2).Clicked() {
+		if a.pal.ghost(c, "下一条", ui.Color{}).Disabled(len(shown) < 2).Clicked() {
 			next()
 		}
 	})
@@ -904,7 +901,7 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 	})
 	a.pal.hairline(c)
 	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Shrink(0).Children(func() {
-		if ghost(c, "稍后再说", ui.Color{}).Disabled(len(shown) < 2).Clicked() {
+		if a.pal.ghost(c, "稍后再说", ui.Color{}).Disabled(len(shown) < 2).Clicked() {
 			next()
 		}
 		ui.Spacer(c)

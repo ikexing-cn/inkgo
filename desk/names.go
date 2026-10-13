@@ -123,10 +123,9 @@ func (a *App) renameNotice(c *ui.Context) {
 	if r.count == 0 {
 		return
 	}
-	t := a.pal.theme
 	ui.Row(c).FillWidth().Gap(6).Padding(6, 8, 6, 10).Radius(rCard).Background(a.pal.raised).Border(1, a.pal.line).AlignItems(ui.Center).Children(func() {
 		ui.Textf(c, "正文中仍有 %d 处「%s」", r.count, r.old).FontSize(fsNote).Grow(1).Shrink(1)
-		if ghost(c, "全书替换", t.Text).Label("将旧名替换为新名").Clicked() {
+		if a.pal.ghost(c, "全书替换", ui.Color{}).Label("将旧名替换为新名").Clicked() {
 			a.renamed = renamed{}
 			a.replaceName(r.old, r.new)
 		}

@@ -31,6 +31,7 @@ Status: implemented
 - `npm run verify-prototype` 做两件事，改了 `prototype/` 就跑：
   - 设计规则（`scripts/design/check.ts`、`rules.ts`）：`index.html` 和每份脚本对着 `desk/tokens.css` 查，样式表里的每条规则也按控件高度查。
   - 走查。`scripts/prototype/browser.ts` 用本机的 Edge 或 Chrome 无头打开 `index.html`（走 `file://`，和双击一样），经 DevTools 协议真的按鼠标、敲键盘；`walk.ts` 把 82 条流程点一遍，每条结束时还要查窗口里没有东西伸出去、页面没有报错；每点一下还要查菜单、浮层、对话框、提示条里没有东西比它们自己宽，并且把窗口里的按钮行都量一遍（见[按钮靠右](2026-10-13-buttons-at-the-right.md)），不靠右的攒到最后一起报。只用 Node 自带的 `WebSocket` 和 `fetch`。`SHOT=<目录>` 会存下每一步的截图。
+    - 2026-10-13 起每点一下还查两样：能点的东西都回应指针（见[能点的看得出能点](2026-10-13-clickable-looks-clickable.md)），对话框的宽不超过高的 2.5 倍（只问一句的用窄的一档，见 `DESIGN.md` 的 Components「对话框」）。
 - 它不进提交前的三道检查：要本机有浏览器，而且只有原型变了才有意义。
 - 窗口固定 1266×780；浮层的位置从页面上量窗口、侧栏、右栏的宽，不另记数字。
 - 只给 artifact 用的工具从仓库里去掉：`scripts/verify-design.ts`，`scripts/design/` 下的 `normalize.ts`、`system.ts`、`render.ts`、`parts.ts`，和它们的四条 npm 命令。`desk/tokens.css` 不再是谁的副本，各级的值只在它里面写。

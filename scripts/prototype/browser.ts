@@ -106,7 +106,7 @@ export async function open(file: string, ready: string, shots?: string): Promise
     for (const type of ['mousePressed', 'mouseReleased']) await send('Input.dispatchMouseEvent', { type, x, y, button, clickCount: 1 })
     await sleep(150)
   }
-  const keyCodes: Record<string, number> = { Enter: 13, Escape: 27, Backspace: 8, Delete: 46, Tab: 9, F11: 122, '/': 191 }
+  const keyCodes: Record<string, number> = { Enter: 13, Escape: 27, Backspace: 8, Delete: 46, Tab: 9, F2: 113, F11: 122, '/': 191 }
   const key: Page['key'] = async (key, ctrl = false) => {
     const code = keyCodes[key] ?? key.toUpperCase().charCodeAt(0)
     for (const type of ['rawKeyDown', 'keyUp']) await send('Input.dispatchKeyEvent', { type, key, code: key, windowsVirtualKeyCode: code, modifiers: ctrl ? 2 : 0 })

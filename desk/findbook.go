@@ -153,10 +153,10 @@ func (a *App) confirmBookReplace(c *ui.Context) {
 	ui.Row(c).FillWidth().Gap(8).Padding(8, 10).Radius(rCard).AlignItems(ui.Center).Background(t.Danger.Alpha(0.08)).Children(func() {
 		ui.Textf(c, "将全书 %d 章中的 %d 处“%s”替换为%s？仅修改正文，设定和章纲不变；各章替换前均保存快照。", len(w.hits), total, w.query, with).
 			FontSize(fsNote).LineHeight(lhBody).Grow(1).Shrink(1)
-		if ghost(c, "取消", ui.Color{}).Clicked() {
+		if a.pal.secondary(c, "取消").Clicked() {
 			w.sure = false
 		}
-		if ghost(c, "确定替换", t.Danger).Clicked() {
+		if a.pal.danger(c, "确定替换").Clicked() {
 			a.replaceInBook()
 		}
 	})

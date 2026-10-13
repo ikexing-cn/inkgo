@@ -335,7 +335,7 @@ func (a *App) aiBar(c *ui.Context) {
 		bar(func() {
 			glyph(c, icWand, iconMd, a.pal.ink)
 			ui.Textf(c, "AI 正在改写选中内容 · %s", a.modelLabel(w.run.job.Record)).FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
-			if ghost(c, "取消", ui.Color{}).Clicked() {
+			if a.pal.secondary(c, "取消").Clicked() {
 				w.run.cancel()
 			}
 		})
@@ -343,10 +343,10 @@ func (a *App) aiBar(c *ui.Context) {
 		bar(func() {
 			glyph(c, icWand, iconMd, t.Success)
 			ui.Text(c, "红色删除线为原文，绿色为改写。").FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1)
-			if ghost(c, "放弃", ui.Color{}).Clicked() {
+			if a.pal.secondary(c, "放弃").Clicked() {
 				a.dropRewrite()
 			}
-			if ghost(c, "重新改写", ui.Color{}).Clicked() {
+			if a.pal.ghost(c, "重新改写", ui.Color{}).Clicked() {
 				a.dropRewrite()
 				w.rewriting = true
 			}

@@ -27,7 +27,7 @@ function backupPop() {
   if (b.state === 'none') return '<div class="pop backup-pop" data-k="backup-pop"><div class="pop-title">尚未备份</div><div class="note">作品目前仅保存在本机。</div>' + `<div class="pop-buttons">${button('选择位置…', backupNow, 'primary')}</div></div>`
   if (b.state === 'fail') {
     return '<div class="pop backup-pop" data-k="backup-pop"><div class="pop-title">' + backupWhy()[1] + '</div>' + `<div class="note">${backupWhy()[2]}${b.at ? '上次备份于' + t(b.at) + '。' : '尚无成功的备份。'}</div>` +
-      `<div class="pop-buttons"><div class="hit muted"${onClick(() => set((s) => ({ backup: { ...s.backup, hush: true }, ...SHUT })))}>今日不再提醒</div>${button('更换位置', osAsk('选择备份文件夹'))}${button('重试', backupNow, 'primary')}</div></div>`
+      `<div class="pop-buttons"><div class="hit link"${onClick(() => set((s) => ({ backup: { ...s.backup, hush: true }, ...SHUT })))}>今日不再提醒</div>${button('更换位置', osAsk('选择备份文件夹'))}${button('重试', backupNow, 'primary')}</div></div>`
   }
   return `<div class="pop backup-pop" data-k="backup-pop"><div class="pop-title">${t(b.at)} 已备份</div><div class="note">备份至 ${t(b.dir)}<br>下次：${backupNext(b)}</div>` +
     `<div class="pop-buttons">${button('备份设置…', () => set({ dialog: { kind: 'settings', tab: '备份', edit: '' }, ...SHUT }))}${button(b.state === 'busy' ? '正在备份…' : '立即备份', b.state === 'busy' ? null : backupNow, b.state === 'busy' ? 'primary off' : 'primary')}</div></div>`
@@ -46,7 +46,7 @@ function backupDialog(d) {
     `<div class="places">${BOOK.places.map(([label, dir]) => `<div class="place hit${d.place === dir ? ' on' : ''}"${onClick(() => type({ place: dir }))}><div class="ring${d.place === dir ? ' on' : ''}"></div><div class="fit"><div>${t(label)}</div><div class="note ell">在本机检测到 · ${t(dir)}</div></div></div>`).join('')}` +
     `<div class="place hit"${onClick(osAsk('选择备份文件夹'))}><div class="ring"></div><div class="fit"><div>选择其他文件夹…</div><div class="note">移动硬盘、U 盘或其他同步文件夹</div></div></div></div>` +
     `<div class="field"><div class="label">备份时机</div><div class="ticks">${backupTimes(times, type)}</div></div>` +
-    `<div class="buttons"><div class="hit muted"${onClick(leave)}>稍后再说</div><div class="grow"></div>${button('开始备份', d.place ? start : null, d.place ? 'primary' : 'primary off')}</div>`)
+    `<div class="buttons"><div class="hit link"${onClick(leave)}>稍后再说</div><div class="grow"></div>${button('开始备份', d.place ? start : null, d.place ? 'primary' : 'primary off')}</div>`)
 }
 
 // ───────── 设置 ─────────
@@ -88,7 +88,7 @@ function settingsModel(d) {
       `<div class="pair">${field('API key', line(f.key, type('key'), '留空则保留已存的 key', 'API key', ' type="password"'))}${field('或读取环境变量', line(f.env, type('env'), '例如 DEEPSEEK_API_KEY', '环境变量名称'))}</div>` +
       `<div class="note">key 保存在系统钥匙串中，不会写入配置文件或作品。${f.env.trim() && BOOK.services.some((x) => x.env === f.env.trim()) ? '已检测到环境变量 ' + t(f.env.trim()) + '。' : ''}</div>` +
       field('可用模型（每行一个；也可在上方直接输入目录外的模型）', area(f.models, type('models'), '', '模型目录', 3)) +
-      `<div class="buttons">${d.edit === 'new' ? '' : `<div class="hit danger"${onClick(() => say('已清除保存的 key'))}>清除已保存 key</div>`}${button('获取可用模型', fetchModels)}${button('保存提供商', saveService, 'primary')}</div></div>`
+      `<div class="buttons">${d.edit === 'new' ? '' : `<div class="hit link danger"${onClick(() => say('已清除保存的 key'))}>清除已保存 key</div>`}${button('获取可用模型', fetchModels)}${button('保存提供商', saveService, 'primary')}</div></div>`
   }
   const card = (svc) => `<div class="service"><div class="service-head"><div class="fit"><div class="ell">${t(svc.name)}</div><div class="note ell">${t(svc.host)} · ${svc.models.length} 个模型${used(svc) ? ' · 本作品使用中' : ''}</div></div>` +
     button(d.edit === svc.id ? '收起' : '编辑', () => set((s) => ({ dialog: { ...s.dialog, ...(d.edit === svc.id ? { edit: '', svc: null } : editing(svc)) }, ...SHUT }))) + '</div>' + (d.edit === svc.id ? form() : '') + '</div>'
@@ -108,7 +108,7 @@ function settingsModel(d) {
     '<div class="prefs-group"><div class="group-title">模型服务</div><div class="note">保存在本机，所有作品共用</div></div>' +
     `<div class="services">${S.services.map(card).join('')}` +
     (d.edit === 'new' ? `<div class="service">${form()}</div>` : `<div class="service add hit"${onClick(() => set((s) => ({ dialog: { ...s.dialog, ...editing(null) }, ...SHUT })))}>${ICON.plus}添加服务</div>`) + '</div>' +
-    `<div class="prefs-links"><div class="hit muted"${onClick(osAsk('用记事本打开配置文件'))}>打开配置文件</div><div class="hit muted"${onClick(() => say('配置已重新读取'))}>重新加载配置</div></div>`
+    `<div class="prefs-links"><div class="hit link"${onClick(osAsk('用记事本打开配置文件'))}>打开配置文件</div><div class="hit link"${onClick(() => say('配置已重新读取'))}>重新加载配置</div></div>`
 }
 
 function settingsBackup() {
@@ -160,7 +160,7 @@ function sourceDialog(d) {
   return dialog('source', dialogHead('摘取原文', '拖选一段原文，作为已确定的设定加入正文。原文不会被修改。') +
     `<div class="source-text scroll"${onUp(read)}>${t(d.text)}</div>` +
     `<div class="source-line">${choose('source-cat', d.cat, S.cats, (v) => set((s) => ({ dialog: { ...s.dialog, cat: v } })), '摘取分类')}<div class="${d.picked ? 'ink' : 'faint'}">${d.picked ? '已选 ' + d.picked.length + ' 字' : '尚未选中文字'}</div><div class="grow"></div>` +
-    `<div class="hit muted"${onClick(shut)}>收起原文</div>${button('加入设定', add, d.picked ? 'primary' : 'primary off')}</div>`)
+    `<div class="hit link"${onClick(shut)}>收起原文</div>${button('加入设定', add, d.picked ? 'primary' : 'primary off')}</div>`)
 }
 
 function takeDialog(d) {
@@ -188,7 +188,7 @@ function draftDialog(d) {
     (cur.paras.length ? field('本章已有内容', seg(d.how, ['接在已有内容之后', '覆盖已有内容'], type('how'), '已有内容的处理方式')) : '') +
     `<div class="note">用 ${t(model)} · 推理 ${t(effort)}；可在“模型设置”中更换。</div>` +
     (before.length && d.total ? `<div class="note">正在补齐摘要：${d.total - before.length} / ${d.total}。补齐前起草，AI 只能参考已有摘要。</div>`
-      : before.length ? `<div class="warn-line"><div class="fit">前文有 ${before.length} 章尚无摘要，起草时 AI 无法了解这些章节的内容。</div><div class="hit ink"${onClick(fill)}>补齐摘要（${before.length} 次调用）</div></div>`
+      : before.length ? `<div class="warn-line"><div class="fit">前文有 ${before.length} 章尚无摘要，起草时 AI 无法了解这些章节的内容。</div><div class="hit link"${onClick(fill)}>补齐摘要（${before.length} 次调用）</div></div>`
       : had > 0 ? `<div class="note">起草时 AI 会参考前 ${had} 章的摘要，以衔接前文。</div>` : '') +
     buttons(button('取消', shut), button('开始起草', draftNow, 'primary')))
 }
@@ -237,7 +237,7 @@ function exportDialog(d) {
 
 // 全书替换前再问一句。
 function swapDialog(d) {
-  return dialog('small', dialogHead('全书替换', '将全书 ' + d.chapters + ' 章中的 ' + d.total + ' 处“' + d.q + '”替换为' + (d.to ? '“' + d.to + '”' : '空（删除）') + '？仅修改正文，设定和章纲不变；各章替换前均保存快照。') +
+  return dialog('ask', dialogHead('全书替换', '将全书 ' + d.chapters + ' 章中的 ' + d.total + ' 处“' + d.q + '”替换为' + (d.to ? '“' + d.to + '”' : '空（删除）') + '？仅修改正文，设定和章纲不变；各章替换前均保存快照。') +
     buttons(button('取消', shut), button('确定替换', swapBook, 'primary')))
 }
 
@@ -245,7 +245,7 @@ function swapDialog(d) {
 function unsavedDialog(d) {
   const drop = () => set((s) => (!s.saved && s.kept && s.kept.key === s.ch ? { ...retext(s, s.kept.paras), dirty: s.kept.dirty, summaries: s.kept.summaries } : null))
   const then = (first) => () => { first(); set({ saved: true, kept: null, dialog: null }); shutTabs(d.gone, true) }
-  return dialog('small', dialogHead('保存对「' + titleOf(chapterOf(S.ch)) + '」的修改？', '不保存将丢失上次保存后的修改。') +
+  return dialog('ask', dialogHead('保存对「' + titleOf(chapterOf(S.ch)) + '」的修改？', '不保存将丢失上次保存后的修改。') +
     buttons(button('不保存', then(drop)), button('取消', shut), button('保存', then(() => {}), 'primary')))
 }
 
@@ -261,7 +261,7 @@ function binDialog(d) {
   }
   const row = (b) => `<div class="bin-row"><div class="fit"><div class="ell">${t(b.title)}</div><div class="note">${t(b.at)} 删除${b.volume ? ' · 连同里面的 ' + b.chapters.length + ' 章' : ''}</div></div>` +
     (d.sure === b.id ? button('取消', () => set({ dialog: { kind: 'bin', sure: '' } })) + button('确认彻底删除', () => set((s) => ({ bin: s.bin.filter((x) => x !== b), dialog: { kind: 'bin', sure: '' } })), 'danger')
-      : button('恢复', back(b)) + `<div class="hit muted"${onClick(() => set({ dialog: { kind: 'bin', sure: b.id } }))}>彻底删除</div>`) + '</div>'
+      : button('恢复', back(b)) + `<div class="hit link"${onClick(() => set({ dialog: { kind: 'bin', sure: b.id } }))}>彻底删除</div>`) + '</div>'
   return dialog('small', dialogHead('回收站', '已删除的章节及其内容暂存于此，恢复后回到原文件夹末尾。') +
     `<div class="bin-rows scroll">${S.bin.length ? S.bin.map(row).join('') : '<div class="empty"><div>回收站为空</div></div>'}</div>` + buttons(button('关闭', shut)))
 }

@@ -16,7 +16,7 @@ function toasts() {
   const shown = S.toasts.slice(-3), rest = S.toasts.length - shown.length
   const pic = { ok: icon('checked', 'md', 'green'), fail: icon('warn', 'md', 'amber'), busy: icon('spin', 'md', 'muted') }
   const one = (x) => `<div class="toast" data-k="${x.id}">${pic[x.kind] || ''}<div class="fit"><div class="toast-title">${t(x.title)}</div>${x.detail ? `<div class="note">${t(x.detail)}</div>` : ''}` +
-    (x.acts.length ? `<div class="toast-acts">${[...x.acts].reverse().map(([label, act]) => `<div class="hit ink"${onClick(act)}>${t(label)}</div>`).join('')}</div>` : '') +
+    (x.acts.length ? `<div class="toast-acts">${[...x.acts].reverse().map(([label, act]) => `<div class="hit link"${onClick(act)}>${t(label)}</div>`).join('')}</div>` : '') +
     `</div><button class="icon-btn muted" aria-label="关闭提示" title="关闭提示"${onClick(() => unsay(x.id))}>${icon('cross', 'sm')}</button></div>`
   return `<div id="toasts">${shown.map(one).join('')}${rest > 0 ? `<div class="toast-rest">还有 ${rest} 条</div>` : ''}</div>`
 }
@@ -52,6 +52,7 @@ document.addEventListener('keydown', (ev) => {
   else if (ev.key === 'Tab' && S.ai && S.ai.kind === 'ghost') run(() => ghost(true))
   else if (ev.key === 'F11' && writing) run(() => set({ focus: !S.focus, ...SHUT }))
   else if (ctrl && ev.key === '/') run(() => set({ dialog: { kind: 'keys' }, ...SHUT }))
+  else if (ev.key === 'F2' && writing && chapterOf(S.ch) && !S.rename) run(renameOpen)
   else if (!ctrl || !writing || !chapterOf(S.ch)) return
   else if (ev.key === 's') run(saveNow)
   else if (ev.key === 'f') run(() => set({ find: S.find || { q: '', to: '', all: false, at: 0 } }))

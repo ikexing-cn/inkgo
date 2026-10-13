@@ -20,6 +20,7 @@ type palette struct {
 	theme                        *ui.Theme
 	canvas, side, raised, bubble ui.Color
 	line, faint, ink, onInk      ui.Color
+	control                      ui.Color // the edge of a small control, the line under a text button
 	dim                          ui.Color // what stands in for something not there
 	amber                        ui.Color // what waits on the author
 	warnBg, warnBd               ui.Color // a warning's fill and border
@@ -282,7 +283,7 @@ func paletteOf(t *ui.Theme, k map[string]ui.Color, s map[string]shadow) *palette
 	return &palette{theme: t,
 		canvas: k["bg"], side: k["side"], raised: k["raised"], bubble: k["hover"],
 		line: k["line"], faint: k["faint"], ink: k["ink"], onInk: k["on-ink"],
-		dim:   k["dim"],
+		dim: k["dim"], control: k["control"],
 		amber: k["amber"], warnBg: k["warn-bg"], warnBd: k["warn-bd"],
 		raise: s["raise"], pop: s["pop"], dialog: s["dialog"], scrim: scrim(tokensCSS)}
 }
@@ -302,23 +303,44 @@ func pill(c *ui.Context, text string, color ui.Color) ui.Element {
 	return b
 }
 
-// ghost is a borderless text button: muted until hovered.
-func ghost(c *ui.Context, text string, color ui.Color) ui.Element {
-	t := c.Theme()
-	b := ui.ButtonBase(c).Row().AlignItems(ui.Center).Gap(6).Padding(4, 8).Radius(rControl).Shrink(0)
-	fg := color
+// ghost is the text button, the one look of words to click that stand in no
+// box: ink over a thin line. Under the pointer it has a fill and the line
+// takes the color of the words. color, when given, is for the words: the
+// danger color, for what cannot be taken back.
+func (p *palette) ghost(c *ui.Context, text string, color ui.Color) ui.Element {
+	b := ui.ButtonBase(c).Column().Padding(2, 6).Radius(rXs).Shrink(0)
+	fg, line := color, p.control
 	if fg.A == 0 {
-		fg = t.TextMuted
+		fg = p.ink
 	}
 	if b.Hovered() {
-		b.Background(t.SurfaceHover)
-		if color.A == 0 {
-			fg = t.Text
-		}
+		b.Background(p.theme.SurfacePressed)
+		line = fg
 	}
 	if b.IsDisabled() {
 		pale(b)
 	}
+	b.Children(func() {
+		ui.Text(c, text).FontSize(fsNote).TextColor(fg).SingleLine().Ellipsis("…")
+		ui.Box(c).FillWidth().Height(1).Background(line).Shrink(0)
+	})
+	return b
+}
+
+// chip is a choice turned on and off: outlined, and solid ink when on.
+func (p *palette) chip(c *ui.Context, text string, on bool) ui.Element {
+	t := p.theme
+	b := ui.ButtonBase(c).Row().Center().Height(hSeg).Padding(0, 10).Radius(rControl).Shrink(0)
+	bg, edge, fg := p.canvas, t.Border, t.TextMuted
+	switch {
+	case on && b.Hovered():
+		bg, edge, fg = t.AccentHover, t.AccentHover, p.onInk
+	case on:
+		bg, edge, fg = p.ink, p.ink, p.onInk
+	case b.Hovered():
+		bg = t.SurfaceHover
+	}
+	b.Background(bg).Border(1, edge)
 	b.Children(func() { ui.Text(c, text).FontSize(fsNote).TextColor(fg).SingleLine() })
 	return b
 }
@@ -430,6 +452,9 @@ func (p *palette) primary(c *ui.Context, text string) ui.Element {
 func (p *palette) danger(c *ui.Context, text string) ui.Element {
 	t := p.theme
 	b := ui.ButtonBase(c).Row().Center().Gap(6).Height(hControlSm).Padding(0, 12).Radius(rControl).Background(t.Danger).Shrink(0)
+	if b.Hovered() {
+		b.Background(t.Danger.Alpha(0.85))
+	}
 	if b.IsDisabled() {
 		pale(b)
 	}

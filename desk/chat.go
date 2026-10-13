@@ -268,7 +268,7 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 				glyph(c, icAlert, iconSm, t.Warning)
 				ui.Text(c, "该消息尚未收到回复").FontSize(fsNote).TextColor(t.Warning)
-				if ghost(c, "重试回复", t.Text).Disabled(a.busy != "").Clicked() {
+				if a.pal.ghost(c, "重试回复", ui.Color{}).Disabled(a.busy != "").Clicked() {
 					a.retry(c, m.ID)
 				}
 			})
@@ -305,7 +305,7 @@ func (a *App) thinking(c *ui.Context) {
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
 				ui.Spinner(c)
 				ui.Text(c, status).FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1)
-				if ghost(c, "取消请求", ui.Color{}).Clicked() && a.cancel != nil {
+				if a.pal.ghost(c, "取消请求", ui.Color{}).Clicked() && a.cancel != nil {
 					a.cancel()
 				}
 			})
@@ -589,7 +589,7 @@ func (a *App) extraction(c *ui.Context) {
 					ui.Textf(c, "已选 %d 字", end-start).FontSize(fsNote).TextColor(a.pal.ink)
 				}
 				ui.Spacer(c)
-				if ghost(c, "收起原文", ui.Color{}).Clicked() {
+				if a.pal.ghost(c, "收起原文", ui.Color{}).Clicked() {
 					a.sourceOpen = false
 				}
 				if a.pal.primary(c, "加入设定").Disabled(a.busy != "" || start == end).Clicked() {

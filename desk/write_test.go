@@ -449,6 +449,53 @@ func TestDragMovesChapters(t *testing.T) {
 	}
 }
 
+// F2 names the chapter that is open, wherever the caret is: its row comes out
+// of a folded folder and out of focus mode, with the box for its name.
+func TestF2NamesTheOpenChapter(t *testing.T) {
+	a, tt, _ := writingFixture(t, "雨从傍晚开始下。")
+	folder, err := a.Store.NewChapter("", "第一卷", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, err := a.Store.NewChapter(folder, "第二章", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = a.loadTree(); err != nil {
+		t.Fatal(err)
+	}
+	a.openNode(id)
+	a.write.folded[folder], a.write.focus = true, true
+	tt.Frame()
+	if _, shown := tt.Find("章节标题"); shown {
+		t.Fatal("a name is being typed before F2")
+	}
+	tt.Key(0, ui.KeyF2)
+	tt.Frame()
+	tt.Frame()
+	if a.write.renaming != id || a.write.title != "第二章" || a.write.focus || a.write.folded[folder] {
+		t.Fatalf("F2 did not start naming the open chapter: renaming %q, title %q, focus %v, folded %v", a.write.renaming, a.write.title, a.write.focus, a.write.folded[folder])
+	}
+	if !tt.Focused("章节标题") {
+		t.Fatal("the box for the name does not have the caret")
+	}
+	tt.Type("：脚印")
+	tt.Key(0, ui.KeyEnter)
+	tt.Frame()
+	if n, _ := a.write.tree.Node(id); n.Title != "第二章：脚印" || a.write.renaming != "" {
+		t.Fatalf("the name did not take: %q, renaming %q", n.Title, a.write.renaming)
+	}
+	// While a name is being typed, F2 does not start over.
+	a.renameOpen()
+	a.write.title = "写到一半"
+	tt.Frame()
+	tt.Key(0, ui.KeyF2)
+	tt.Frame()
+	if a.write.title != "写到一半" {
+		t.Fatalf("F2 threw away what was being typed: %q", a.write.title)
+	}
+}
+
 // A new chapter's name is typed in place of the one it is given, and left
 // empty, it keeps that one.
 func TestNameANewChapter(t *testing.T) {

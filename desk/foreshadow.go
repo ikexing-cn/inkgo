@@ -443,7 +443,7 @@ func (a *App) forePopover(c *ui.Context) {
 			cancel := in.Shortcut(0, ui.KeyEscape)
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 				ui.Spacer(c)
-				if ghost(c, "取消", ui.Color{}).Label("取消记伏笔").Clicked() {
+				if a.pal.secondary(c, "取消").Label("取消记伏笔").Clicked() {
 					cancel = true
 				}
 				if a.pal.primary(c, "确定").Clicked() || in.Submitted() {
@@ -505,7 +505,7 @@ func (a *App) forePopover(c *ui.Context) {
 		a.pal.hairline(c)
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Padding(2, 4, 0, 4).Children(func() {
 			ui.Spacer(c)
-			if ghost(c, "取消", ui.Color{}).Label("取消回收选择").Clicked() {
+			if a.pal.secondary(c, "取消").Label("取消回收选择").Clicked() {
 				cancel = true
 			}
 			if a.pal.primary(c, "记为回收").Label("确定回收").Disabled(f.pick == "").Clicked() || in.Submitted() && f.pick != "" {
@@ -788,10 +788,15 @@ func (a *App) remindersView(c *ui.Context) {
 		ui.Row(c).Height(hControl).AlignItems(ui.Center).Radius(rControl).Border(1, t.Border).Shrink(0).Children(func() {
 			step := func(sign, label, tip string, off bool, to int) {
 				b := ui.ButtonBase(c).Width(hControlSm).FillHeight().Center().Label(label).Tooltip(tip).Disabled(off)
-				if off {
+				fg := t.TextMuted
+				switch {
+				case off:
 					pale(b)
+				case b.Hovered():
+					b.Background(t.SurfaceHover)
+					fg = t.Text
 				}
-				b.Children(func() { ui.Text(c, sign).FontSize(fsBody).TextColor(t.TextMuted) })
+				b.Children(func() { ui.Text(c, sign).FontSize(fsBody).TextColor(fg) })
 				if b.Clicked() {
 					set(to)
 				}

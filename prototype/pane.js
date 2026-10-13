@@ -121,7 +121,7 @@ function tool(hint, key, add, more) {
 // 详情页顶上：返回哪里，右边还能做什么。
 function back(label, goBack, actLabel, act) {
   return `<div class="back" data-k="back"><div class="back-to hit"${onClick(goBack)}>${ICON.left}<div class="ell">${t(label)}</div></div><div class="grow"></div>` +
-    (act ? `<div class="hit"${onClick(act)}>${t(actLabel)}</div>` : '') + '</div>'
+    (act ? `<div class="hit link"${onClick(act)}>${t(actLabel)}</div>` : '') + '</div>'
 }
 
 // ───────── 画：设定 ─────────
@@ -163,7 +163,7 @@ function setting() {
       `<div class="card-head"><div class="who">${t(c.who)}${c.redo ? '（重试）' : ''}</div>${c.model ? `<div class="tiny">${t(c.model)}</div>` : ''}<div class="grow"></div><div class="tiny">${t(c.at)}</div></div>` +
       (c.lines.length || c.fail ? c.lines.map((l) => `<div class="said-line">${t(l)}</div>`).join('') : '<div class="extra">无需修改</div>') +
       (c.extra ? `<div class="extra">${t(c.extra)}</div>` : '') + (c.think ? thought(c.id, c.think, false, '整理思考过程') : '') +
-      (c.fail ? `<div class="fail">${t(c.fail)}</div><div class="retry hit"${onClick(() => retry(c.id))}>重试</div>` : '') + '</div>'
+      (c.fail ? `<div class="fail">${t(c.fail)}</div><div class="retry hit link"${onClick(() => retry(c.id))}>重试</div>` : '') + '</div>'
     return back('全部设定', () => set({ sv: 'list' })) + `<div class="page log scroll" data-k="log"><div class="title">修改记录</div>${S.log.length ? S.log.map(card).join('') : '<div class="note">暂无修改记录。讨论后，AI 会自动整理设定。</div>'}</div>`
   }
 
@@ -182,7 +182,7 @@ function setting() {
     }
   }
   const r = S.named
-  if (r) list.unshift(`<div class="renamed" data-k="renamed"><div class="fit">正文中仍有 ${r.n} 处「${t(r.was)}」</div><div class="hit ink" title="将旧名替换为新名"${onClick(() => set((s) => ({ named: null, page: 'write', focus: false, find: chapterOf(s.ch) ? { q: r.was, to: r.now, all: true, at: 0 } : null })))}>全书替换</div>` +
+  if (r) list.unshift(`<div class="renamed" data-k="renamed"><div class="fit">正文中仍有 ${r.n} 处「${t(r.was)}」</div><div class="hit link" title="将旧名替换为新名"${onClick(() => set((s) => ({ named: null, page: 'write', focus: false, find: chapterOf(s.ch) ? { q: r.was, to: r.now, all: true, at: 0 } : null })))}>全书替换</div>` +
     `<button class="icon-btn muted" aria-label="保留旧名" title="不替换"${onClick(() => set({ named: null }))}>${icon('cross', 'sm')}</button></div>`)
   return tool('搜索设定', 'sq', ['新增', () => set({ form: { id: null, name: '', names: '', text: '', cat: S.cats[0] }, ...SHUT })],
     [['已删除', gone.length, () => set({ sv: 'dropped', ...SHUT })], ['修改记录', '', () => set({ sv: 'log', ...SHUT })]]) + rows(list)
@@ -291,7 +291,7 @@ function message(talk, m, i) {
     const left = last && !(S.waiting && S.waiting.id === talk.id)
     return `<div class="msg me${last ? ' last' : ''}">${m.cite ? cited(m.cite) : ''}<div class="said">${t(m.text)}</div>` +
       `<div class="reply-tools">${pull}<div class="faint">${t(talk.at)}</div></div>` +
-      (left ? `<div class="unanswered">${icon('warn', 'sm')}<div>该消息尚未收到回复</div><div class="hit ink"${onClick(() => answer(talk.id))}>重试回复</div></div>` : '') + '</div>'
+      (left ? `<div class="unanswered">${icon('warn', 'sm')}<div>该消息尚未收到回复</div><div class="hit link"${onClick(() => answer(talk.id))}>重试回复</div></div>` : '') + '</div>'
   }
   const copy = () => { if (navigator.clipboard) navigator.clipboard.writeText(m.text).catch(() => {}); say('已复制') }
   const taken = S.entries.filter((e) => e.place === 'body')
@@ -306,7 +306,7 @@ function said(talk) {
   const w = S.waiting && S.waiting.id === talk.id ? S.waiting : null
   return talk.msgs.map((m, i) => message(talk, m, i)).join('') +
     (w ? `<div class="msg last"><div class="reply-row"><div class="reply-face">${icon('spark')}</div><div class="fit">${thought('live', BOOK.think, w.step === 'think')}` +
-      `<div class="waiting">${icon('spin', 'sm')}<div class="fit">${w.step === 'think' ? '正在思考…' : '正在回复…'}</div><div class="hit"${onClick(stopReply)}>取消请求</div></div></div></div></div>` : '')
+      `<div class="waiting">${icon('spin', 'sm')}<div class="fit">${w.step === 'think' ? '正在思考…' : '正在回复…'}</div><div class="hit link"${onClick(stopReply)}>取消请求</div></div></div></div></div>` : '')
 }
 
 function discussion() {

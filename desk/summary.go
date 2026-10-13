@@ -228,7 +228,7 @@ func (a *App) summaryPanel(c *ui.Context) {
 			if short {
 				tip = fmt.Sprintf("正文满 %d 字后才需要摘要", writing.MinSummary)
 			}
-			if ghost(c, verb, a.pal.ink).Label(verb + "摘要").Tooltip(tip).Disabled(short || a.sums.running == w.node || w.lost).Clicked() {
+			if a.pal.ghost(c, verb, ui.Color{}).Label(verb + "摘要").Tooltip(tip).Disabled(short || a.sums.running == w.node || w.lost).Clicked() {
 				a.flush()
 				w.summary = w.summarySaved
 				a.queueSummary(w.node)

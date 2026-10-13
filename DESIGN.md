@@ -122,8 +122,13 @@ components:
     padding: 12px
     height: 28px
   button-text:
-    textColor: "{colors.muted}"
+    textColor: "{colors.ink}"
     typography: "{typography.note}"
+    rounded: "{rounded.xs}"
+    padding: 6px
+  button-text-hover:
+    backgroundColor: "{colors.active}"
+    textColor: "{colors.ink}"
   icon-button:
     rounded: "{rounded.control}"
     size: 28px
@@ -263,7 +268,10 @@ components:
     backgroundColor: "{colors.danger-dark}"
     textColor: "{colors.on-ink-dark}"
   button-text-dark:
-    textColor: "{colors.muted-dark}"
+    textColor: "{colors.ink-dark}"
+  button-text-hover-dark:
+    backgroundColor: "{colors.active-dark}"
+    textColor: "{colors.ink-dark}"
   icon-button-hover-dark:
     backgroundColor: "{colors.active-dark}"
   input-dark:
@@ -476,6 +484,34 @@ components:
 - `npm run verify-prototype` 每点一下就把窗口里的按钮行量一遍：最后一个贴着这一行的右边，从第一个按钮起一个挨一个，主按钮后面没有别的按钮。
 - `go test ./desk` 的 `TestButtonsAtTheRight` 读界面代码：以按钮开头的 `ui.Row` 要写 `Justify(ui.End)`，按钮不在 `ui.Spacer(c)` 左边，`primary` 后面没有别的按钮。
 
+### 文字按钮
+
+没有边框和底色、只有字的按钮（「重新检查」「下一条」「查看原文」「稍后再说」）只有一种样子：
+
+- `note` 字号，墨色的字，下面一条 `control` 色的细线。不可撤回的那一种（「清除已保存 key」）字用 `danger`。
+- 指针移上去，出现 `active` 的底色，线变成字的颜色。
+- 不用灰字、去掉线来表示次要：次要的靠位置（在主按钮左边），不能让人看不出可以点。
+- 一排按钮里的「取消」「放弃」用普通按钮，不用文字按钮。
+
+原型里是 `.link` 一个样式，软件里是 `a.pal.ghost` 一个函数，别处不另写。
+
+### 能点的都回应指针
+
+凡是能点的（按钮、图标、列表行、标签、分段、文字按钮），指针移上去都有变化：
+
+- 有边有底的换成 `hover` 的底色；墨色实心的浅一级（`ink-2`）；`danger` 实心的淡一级；只有字或图标的变成墨色；文字按钮见上。
+- 一组选项里已经选中的那一个不用再变。禁用的不回应。
+
+检查：
+
+- `npm run verify-prototype` 每点一下，把窗口里能点的都查一遍：样式表里要有对得上它的 `:hover` 规则，指针要是手形。
+- `go test ./desk` 的 `TestButtonsAnswerThePointer` 读界面代码：每个手写的 `ui.ButtonBase` 都要在画它的那几行里读 `Hovered()`。
+
+### 对话框
+
+- 只问一句的对话框（标题、一两句说明、一排按钮，如「保存对……的修改？」「全书替换」）用窄的一档，宽 360，不摊成扁扁的一条。
+- 对话框的宽不超过高的 2.5 倍。`npm run verify-prototype` 每点一下都量。
+
 ### 菜单
 
 - 菜单都是软件自己画的，不用系统的菜单：样子和原型一致。
@@ -491,12 +527,17 @@ components:
   - 新建的章接着上一章的号（上一章是「第87章：停电」，框里就是「第88章：」），光标在号后面，等着写名字；什么都不写就叫「第88章」。
   - 没有号可接的叫「新章节」，新文件夹叫「新文件夹」，重命名是现在的名字：这三种全选上，打字就整个换掉。
 - 回车确定；光标离开输入框（点了别处）也算确定，点的那一下照常生效。Esc 不改。空着确定等于没改。
+- 写了什么，标题就是什么，给的号只是默认值：
+  - 接着号写名字，得到「第88章：雨停」。
+  - 把框里的字整个换掉（「楔子」「第一章：雨」），标题就是换成的字，前面不再加号。
+  - 在给的号后面又写了一个带号的标题（「第88章：第九十一章 雪」），以后写的那个为准。
+- F2 给正开着的那一章改名字，光标在哪里都行。这一行在折起来的卷里、在专注模式里，都先摆出来。
 - 回车确定的是正开着的那一章（刚新建的就是），光标接着进正文。
 
 检查：
 
-- `npm run verify-prototype` 的「naming in the tree」：默认值、光标位置、和别的行对齐、点别处就确定。
-- `go test ./desk` 的 `TestLeavingTheNameSettlesIt`、`TestWritingSavesAsTheAuthorPauses`。
+- `npm run verify-prototype` 的「naming in the tree」：默认值、光标位置、和别的行对齐、点别处就确定、整个换掉的标题前面没有号、F2。
+- `go test ./desk` 的 `TestLeavingTheNameSettlesIt`、`TestWritingSavesAsTheAuthorPauses`、`TestNameANewChapter`、`TestF2NamesTheOpenChapter`。
 
 软件里重命名时还不能把名字全选上（工具包没有这个接口），光标在名字末尾。
 
@@ -523,5 +564,6 @@ components:
 
 - 不要在原型和代码里直接写颜色、字号、圆角、阴影的数字，写名字（见 Overview）。
 - 不要把一排按钮放在左边或者中间（见 Components 的「按钮」）。
+- 不要让能点的东西看不出能点：文字按钮只有一种样子，指针移上去都有变化（见 Components 的「文字按钮」「能点的都回应指针」）。
 - 不要用系统的菜单。
 - 不要留不再用的控件、样式、文案、代码：当次删掉，不留着备用，留着的东西每次审查都要再看一遍。

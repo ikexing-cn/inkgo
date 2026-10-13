@@ -18,8 +18,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   // After every click, each row that holds a button is looked at; what is found is told at the end, all at once.
   const loose = new Set<string>()
   const LOOSE = `(() => {
-    const out = [], seen = new Set(), shown = (e) => e.getClientRects().length > 0, isButton = (e) => e.matches('.btn, .solid, .ghost')
-    for (const b of document.querySelectorAll('#win .btn, #win .solid, #win .ghost, #win .hit.ink, #win .hit.muted')) {
+    const out = [], seen = new Set(), shown = (e) => e.getClientRects().length > 0, isButton = (e) => e.matches('.btn')
+    for (const b of document.querySelectorAll('#win .btn, #win .link')) {
       const row = b.parentElement
       if (seen.has(row) || !shown(b)) continue
       seen.add(row)
@@ -27,7 +27,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
       // Words to press count as buttons where the row holds nothing else; one after a sentence goes with the sentence.
       if (!kids.some(isButton) && !kids.every((e) => e.matches('.hit'))) continue
       const gap = box.right - parseFloat(css.paddingRight) - parseFloat(css.borderRightWidth) - last.getBoundingClientRect().right
-      const main = kids.find((e) => e.matches('.btn.primary, .btn.danger, .solid'))
+      const main = kids.find((e) => e.matches('.btn.primary, .btn.danger'))
       // From the first button on they stand one against the next: none is left of a stretch of nothing.
       const from = kids.findIndex(isButton), apart = parseFloat(css.columnGap) || 0
       const parted = from >= 0 && kids.slice(from + 1).some((e, i) => e.matches('.grow') || e.getBoundingClientRect().left - kids[from + i].getBoundingClientRect().right > apart + 1.5)
@@ -37,6 +37,33 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
     }
     return out
   })()`
+  // After every click, whatever can be clicked is looked at too: the pointer over it has to show, by a rule of the
+  // stylesheet for :hover that fits it, and the pointer has to turn into a hand. The one already chosen among a
+  // set of choices is passed over: it is where the author is.
+  const dead = new Set<string>()
+  const DEAD = `(() => {
+    const hover = []
+    for (const sheet of document.styleSheets) {
+      let rules = []
+      try { rules = [...sheet.cssRules] } catch { continue }
+      for (const rule of rules) for (const s of (rule.selectorText || '').split(',')) {
+        const at = s.indexOf(':hover')
+        if (at >= 0 && !s.slice(0, at).endsWith(':not(')) hover.push(s.slice(0, at).trim())
+      }
+    }
+    const out = []
+    for (const e of document.querySelectorAll('#win [data-click]')) {
+      if (!e.getClientRects().length || e.closest('.off') || e.matches('.scrim, .veil, .nav.on, .tab.on, .seg > .on')) continue
+      const name = (e.className || e.tagName).trim().replace(/\\s+/g, ' ')
+      if (!hover.some((s) => e.matches(s))) out.push(name + ' does not answer the pointer: ' + e.innerText.replace(/\\s+/g, ' ').slice(0, 24))
+      else if (getComputedStyle(e).cursor !== 'pointer') out.push(name + ' has no hand for a pointer')
+    }
+    return out
+  })()`
+  // And a dialog is not a flat strip: it is no wider than FLATTEST times its height.
+  const squat = new Set<string>()
+  const FLATTEST = 2.5
+  const FLAT = `[...document.querySelectorAll('#win .dialog')].map((e) => [e, e.getBoundingClientRect()]).filter(([, r]) => r.width > ${FLATTEST} * r.height).map(([e, r]) => e.className + ' is ' + Math.round(r.width) + ' by ' + Math.round(r.height) + ': ' + e.innerText.slice(0, 24))`
   // After every click, nothing may be wider than the menu, popover, dialog or toast it is in. One that holds an open
   // menu of its own is passed over: a submenu is meant to stand beside it.
   const click = async (words: string, nth = 0) => {
@@ -44,6 +71,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
     const out = await js(`(() => { const e = [...document.querySelectorAll('.pop, .float, .dialog, .toast')].find((e) => !e.querySelector('.pop') && e.scrollWidth > e.clientWidth + 1); return e ? e.className + ': ' + e.innerText.slice(0, 30) : '' })()`)
     must(!out, 'after clicking ' + words + ', something sticks out of ' + out)
     for (const row of await js(LOOSE)) loose.add(row)
+    for (const e of await js(DEAD)) dead.add(e)
+    for (const e of await js(FLAT)) squat.add(e)
   }
   // Brings the pointer over the row of the open menu saying words.
   const over = (words: string) => js(`[...document.querySelectorAll('.ctx .pop-row')].find((e) => e.innerText.includes(${JSON.stringify(words)})).dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))`)
@@ -192,10 +221,10 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   // The sidebar: back and forth, new chapters and folders, the right button, the bin.
   await click('第84章：刻字'); await click('第85章：灯数'); await click('上一个打开的章节'); await win('灯罩内侧刻着'); await click('下一个打开的章节'); await win('何主任让他们把旧城的灯重新数一遍'); await done('back and forth')
   await click('第87章：停电'); await click('新建章节（Ctrl+N）'); must(await js(`document.activeElement.getAttribute('aria-label') === '章节标题'`), 'the name of a new chapter is not ready to type in'); await shot('30-new-chapter')
-  await clear('章节标题'); await type('章节标题', '雨停'); await key('Enter'); await win('第88章：雨停'); await win('在此开始写作…'); await win('满 200 字后可检查'); await win('本章 0 字'); await done('a new chapter')
-  await rclick(...(await row('第88章：雨停'))); await win('移到回收站'); await win('最上层'); await shot('31-tree-menu'); await click('重命名'); await clear('章节标题'); await type('章节标题', '天晴'); await key('Enter'); await win('第88章：天晴'); await done('rename a chapter')
-  await rclick(...(await row('第88章：天晴'))); await click('上移'); must(await js(`(() => { const t = document.querySelector('.tree').innerText; return t.indexOf('天晴') < t.indexOf('第87章') })()`), 'the chapter did not move up')
-  await rclick(...(await row('第88章：天晴'))); await click('最上层'); await win('第88章：天晴', false); await win('天晴'); await done('move a chapter')
+  await text('雨停'); await key('Enter'); await win('第88章：雨停'); await win('在此开始写作…'); await win('满 200 字后可检查'); await win('本章 0 字'); await done('a new chapter')
+  await rclick(...(await row('第88章：雨停'))); await win('移到回收站'); await win('最上层'); await shot('31-tree-menu'); await click('重命名'); await text('天晴'); await key('Enter'); await win('天晴'); await win('第88章：天晴', false); await done('rename a chapter')
+  await rclick(...(await row('天晴'))); await click('上移'); must(await js(`(() => { const t = document.querySelector('.tree').innerText; return t.indexOf('天晴') < t.indexOf('第87章') })()`), 'the chapter did not move up')
+  await rclick(...(await row('天晴'))); await click('最上层'); await win('天晴'); await done('move a chapter')
   await rclick(...(await row('天晴'))); await click('移到回收站'); await win('「天晴」已移到回收站'); await click('关闭提示'); must(!(await js(`document.querySelector('.tree').innerText.includes('天晴')`)), 'the chapter is still in the tree')
   await click('新建文件夹'); await clear('章节标题'); await type('章节标题', '第四卷'); await key('Enter'); await win('第四卷')
   await click('回收站'); await win('已删除的章节及其内容暂存于此'); await win('第83章：旧稿'); await shot('32-bin'); await click('恢复', 0); await win('已恢复「天晴」'); await click('关闭提示')
@@ -410,6 +439,14 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await rclick(...(await row('第88章：雨停'))); await click('重命名'); box = await naming()
   must(!!box && box.value === '第88章：雨停' && box.from === 0 && box.to === 7, 'renaming does not start with the whole name picked: ' + JSON.stringify(box))
   await key('Escape'); must(!(await naming()), 'Esc left the box open'); await win('第88章：雨停')
+  // What is typed over the title is the title: a number of the author's own is not given another before it, and a
+  // title written as 第 N 章 is numbered again.
+  await rclick(...(await row('第88章：雨停'))); await click('重命名'); await text('第一章：雨'); await key('Enter'); await win('第一章：雨'); await win('第88章：第一章', false)
+  await rclick(...(await row('第一章：雨'))); await click('重命名'); await text('第90章：晴'); await key('Enter'); await win('第90章：晴'); await win('第一章', false)
+  await click('新建章节（Ctrl+N）'); await text('第九十一章 雪'); await key('Enter'); await win('第九十一章 雪'); await win('：第九十一章', false)
+  // F2 names the chapter that is open, wherever the caret is, its whole title picked.
+  await click('第84章：刻字'); await drag(inProse, inProse); await key('F2'); box = await naming()
+  must(!!box && box.value === '第84章：刻字' && box.from === 0 && box.to === 7, 'F2 does not start naming the open chapter: ' + JSON.stringify(box)); await key('Escape'); await win('第84章：刻字')
   await click('新建章节（Ctrl+N）'); await key('Enter'); must(await js(`document.activeElement.matches('.prose')`), 'named with Enter, the new chapter does not take the caret')
   await click('新建文件夹'); box = await naming(); must(!!box && box.value === '新文件夹' && box.from === 0 && box.to === 4, 'a new folder is not offered a name to type over: ' + JSON.stringify(box)); await key('Enter'); await done('naming in the tree')
 
@@ -427,4 +464,6 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('展开侧栏'); must(await js(`!!document.querySelector('.sidebar')`), 'the sidebar did not come back'); await click('讨论'); await click('收起侧栏'); await click('展开侧栏'); await click('检查'); await win('收起侧栏', false); await click('正文'); await done('the sidebar put away')
 
   must(!loose.size, 'buttons that are not at the right of their row, or not in order:\n  ' + [...loose].join('\n  '))
+  must(!dead.size, 'things to click that do not show it:\n  ' + [...dead].join('\n  '))
+  must(!squat.size, 'dialogs flatter than ' + FLATTEST + ' to 1:\n  ' + [...squat].join('\n  '))
 }

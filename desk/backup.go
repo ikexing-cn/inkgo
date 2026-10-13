@@ -372,7 +372,7 @@ func (a *App) backupCard(c *ui.Context, panel ui.Element, s backup.Settings) {
 			ui.Text(c, title).FontSize(fsBody).FontWeight(600)
 			ui.Text(c, body+lastSaid(s, now)).FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Justify(ui.End).Children(func() {
-				if a.textLink(c, "今日不再提醒").Clicked() {
+				if a.pal.ghost(c, "今日不再提醒", ui.Color{}).Clicked() {
 					s.Hush = now
 					a.setBackup(s)
 					a.bk.open, a.bk.chip = false, false
@@ -470,7 +470,7 @@ func (a *App) askView(c *ui.Context) {
 				})
 			})
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-				if a.textLink(c, "稍后再说").Clicked() {
+				if a.pal.ghost(c, "稍后再说", ui.Color{}).Clicked() {
 					a.bk.ask = false
 				}
 				ui.Spacer(c)

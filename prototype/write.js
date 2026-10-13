@@ -51,19 +51,28 @@ function newChapter(into) {
     const vol = home || (cur ? cur.vol : ''), made = { key, no: cur ? cur.no + 1 : 1, vol, t: vol ? '' : '新章节', c: '', paras: [] }
     const at = cur ? s.chapters.indexOf(cur) + 1 : s.chapters.length
     const chapters = [...s.chapters.slice(0, at), made, ...s.chapters.slice(at)]
-    return { chapters, n: s.n + 1, never: { ...s.never, [key]: true }, ...go({ ...s, chapters }, key), rename: { key, t: vol ? titleOf(made) + '：' : made.t, all: !vol } }
+    return { chapters, n: s.n + 1, never: { ...s.never, [key]: true }, ...go({ ...s, chapters }, key), rename: { key, t: vol ? titleOf(made) + '：' : made.t, all: !vol, offered: vol ? titleOf(made) + '：' : '' } }
   })
 }
 function newFolder() {
   set((s) => ({ volumes: [...s.volumes, ['v' + s.n, '新文件夹', '']], n: s.n + 1, tree: null, rename: { key: 'v' + s.n, t: '新文件夹', all: true } }))
 }
-// 名字定下来：按了回车，或者光标离开了输入框。空着就还是原来的。卷里的章写成「第 12 章：雨停」，号和名字拆开记。
+// F2：给开着的这一章改名字。它在折起来的卷里、侧栏收着，都先摆出来。
+function renameOpen() {
+  set((s) => { const c = chapterOf(s.ch); return { ...CLEAR, ...SHUT, focus: false, folds: c.vol ? { ...s.folds, [c.vol]: false } : s.folds, rename: { key: c.key, t: titleOf(c), all: true } } })
+}
+// 名字定下来：按了回车，或者光标离开了输入框。空着就还是原来的。写了什么，标题就是什么：
+// - 卷里的章写成「第 12 章：雨停」，号和名字拆开记，后面的章接着这个号；
+// - 写的不是这个样子（「第一章：雨停」「楔子」），整个记成标题，前面不再加号；
+// - 新建时框里给的「第 12 章：」后面又写了一个带号的标题，以后写的那个为准。
 function renameNow() {
   set((s) => {
     if (!s.rename) return null
-    const { key, t: title } = s.rename, name = title.trim().replace(/[：:]$/, '')
+    const { key, t: title, offered } = s.rename, typed = title.trim().replace(/[：:]$/, '')
+    const rest = offered && typed.startsWith(offered) ? typed.slice(offered.length).trim() : ''
+    const name = /^第\s*[0-9零〇一二两三四五六七八九十百千]+\s*[章回节]/.test(rest) ? rest : typed
     if (!name) return { rename: null }
-    const named = (c) => { const m = c.vol && /^第\s*(\d+)\s*章\s*[：:]?\s*(.*)$/.exec(name); return m ? { ...c, no: Number(m[1]), t: m[2] } : { ...c, t: name } }
+    const named = (c) => { const m = c.vol && /^第\s*(\d+)\s*章\s*[：:]?\s*(.*)$/.exec(name); return m ? { ...c, no: Number(m[1]), t: m[2], own: false } : { ...c, t: name, own: !!c.vol } }
     return { rename: null, chapters: s.chapters.map((c) => (c.key === key ? named(c) : c)), volumes: s.volumes.map((v) => (v[0] === key ? [key, name, v[2]] : v)) }
   })
 }
@@ -474,7 +483,7 @@ function swapBook() {
 }
 
 const counted = (c) => Number(sizeOf(c).replace(/,/g, ''))
-const chapterName = (c) => (c.vol ? '第' + c.no + '章' : c.t)
+const chapterName = (c) => (numbered(c) ? '第' + c.no + '章' : c.t)
 
 // 查一章，或者排着队一章一章查。查完的不再算没查过、改过、没查成。
 function checkNow(...keys) {
@@ -617,7 +626,7 @@ function aiBar() {
   const drop = () => set({ ai: null })
   if (a.kind === 'ask') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'muted')}<div class="box line fit">${typed(a.want, (v) => set((s) => ({ ai: { ...s.ai, want: v } })), '改写要求，例如：放慢节奏，多写她的犹豫', '改写要求', keys(rewrite, drop) + ' autofocus')}</div>${button('改写', rewrite, 'primary')}<button class="icon-btn muted" aria-label="关闭改写" title="关闭改写"${onClick(drop)}>${icon('cross')}</button></div>`
   if (a.kind === 'rewriting') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'muted')}<div class="fit ell muted">AI 正在改写选中内容 · ${t(model)}</div>${button('取消', drop)}</div>`
-  if (a.kind === 'diff') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'green')}<div class="fit ell muted">红色删除线为原文，绿色为改写。</div>${button('放弃', drop, 'soft')}<div class="hit muted"${onClick(rewrite)}>重新改写</div>${button('采纳', takeRewrite, 'primary')}</div>`
+  if (a.kind === 'diff') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'green')}<div class="fit ell muted">红色删除线为原文，绿色为改写。</div>${button('放弃', drop, 'soft')}<div class="hit link"${onClick(rewrite)}>重新改写</div>${button('采纳', takeRewrite, 'primary')}</div>`
   return `<div class="ai-bar" data-k="ai-bar">${icon('leaf', 'md', 'muted')}<div class="fit ell muted">AI 正在按章纲起草 · 已写 ${a.wrote} 字 · ${t(model)} · ${t(effort)}</div>${button('停止', stopDraft, 'stop')}</div>`
 }
 
@@ -636,7 +645,7 @@ function chapterMore(cur) {
   if (S.box === '摘要') {
     box = area(sum ? sum.text : '', (v) => set((s) => ({ summaries: { ...s.summaries, [cur.key]: { text: v, by: '手动填写' } } })), '本章发生的事。起草后续章节时，AI 会参考各章摘要', '摘要', 3) +
       `<div class="box-foot"><div class="fit${warn ? ' amber' : ''}">${t(about)}</div>` +
-      `<div class="hit see${short || (sum && sum.busy) ? ' off' : ''}" title="${short ? '正文满 200 字后才需要摘要' : '由 AI 阅读本章并生成摘要'}"${onClick(short || (sum && sum.busy) ? null : () => recap(cur.key))}>${sum && sum.text ? '重新生成' : '生成摘要'}</div></div>`
+      `<div class="hit link see${short || (sum && sum.busy) ? ' off' : ''}" title="${short ? '正文满 200 字后才需要摘要' : '由 AI 阅读本章并生成摘要'}"${onClick(short || (sum && sum.busy) ? null : () => recap(cur.key))}>${sum && sum.text ? '重新生成' : '生成摘要'}</div></div>`
   }
   return `<div class="chapter-more"><div class="hit${S.box === '章纲' ? ' on' : ''}"${flip('章纲')}>章纲${outline.trim() ? '' : ' · 空'}${arrow('章纲')}</div><div class="hit${S.box === '摘要' ? ' on' : ''}${warn ? ' amber' : ''}"${old ? ' title="摘要可能与正文不一致"' : ''}${flip('摘要')}>本章摘要${state}${arrow('摘要')}</div></div>` +
     (box ? `<div class="chapter-box" data-k="chapter-box">${box}</div>` : '')
@@ -673,7 +682,7 @@ function todoPop(list) {
       return `<div class="todo-group"><div class="dot grey"></div>${g}<span class="faint">${of.length}</span></div>` + (all ? of : of.slice(0, 3)).map(row).join('') +
         (of.length > 3 ? `<div class="todo-rest hit"${onClick(() => set((s) => ({ more: { ...s.more, [g]: !all } })))}>${all ? '收起' : '还有 ' + (of.length - 3) + ' 条'}</div>` : '')
     }).join('') : '<div class="todo-rest">本章没有待处理项</div>'}</div>` +
-    `<div class="todo-foot"><div class="hit muted"${onClick(() => set((s) => ({ ignored: [...s.ignored, ...shown.map((x) => x.id)], ...SHUT })))}>全部忽略</div></div></div>`
+    `<div class="todo-foot"><div class="hit link"${onClick(() => set((s) => ({ ignored: [...s.ignored, ...shown.map((x) => x.id)], ...SHUT })))}>全部忽略</div></div></div>`
 }
 
 // vol 是开着的那一卷：这时没有开着的章。
@@ -734,7 +743,7 @@ function sheets() {
 // 正文下面那一行：检查到哪了、什么时候查，右边是字数。
 function foot(cur, vol) {
   if (!cur) return `<div class="foot"><div class="grow"></div>${wordsOf(null, vol)}</div>`
-  const n = S.checks.filter((c) => c.key === cur.key).length, dirty = S.dirty[cur.key], name = cur.vol ? '第' + cur.no + '章' : '本章'
+  const n = S.checks.filter((c) => c.key === cur.key).length, dirty = S.dirty[cur.key], name = numbered(cur) ? '第' + cur.no + '章' : '本章'
   const seeAll = () => set({ page: 'check', kind: '全部', cid: S.checks.find((c) => c.key === cur.key).id })
   // 这一章查到哪了，和现在能不能点「立即检查」。
   let state = name + '检查完成，未发现不一致', can = false
@@ -749,8 +758,8 @@ function foot(cur, vol) {
   else if (dirty) { state = name + '已修改，尚未重新检查'; can = true }
   const found = n && !S.checking && !S.failed[cur.key] && !S.never[cur.key] && counted(cur) >= 200
   const when = [['写完一章后检查', '推荐，每章调用一次 AI'], ['手动检查', '平时不调用 AI'], ['边写边检查', '停笔即检查，调用最多']]
-  return '<div class="foot">' + (found ? `<div class="foot-state ell hit ink" title="前往「检查」页逐条查看"${onClick(seeAll)}>${t(state)}</div>` : `<div class="foot-state ell">${t(state)}</div>`) +
-    (can ? `<div class="hit ink under" title="调用一次 AI，对照设定检查本章"${onClick(() => checkNow(cur.key))}>立即检查</div>` : '') + '<div class="faint">·</div>' +
+  return '<div class="foot">' + (found ? `<div class="foot-state ell hit link" title="前往「检查」页逐条查看"${onClick(seeAll)}>${t(state)}</div>` : `<div class="foot-state ell">${t(state)}</div>`) +
+    (can ? `<div class="hit link" title="调用一次 AI，对照设定检查本章"${onClick(() => checkNow(cur.key))}>立即检查</div>` : '') + '<div class="faint">·</div>' +
     `<div class="anchor up left"><div class="hit" title="检查时机"${onClick(() => set({ open: S.open === 'when' ? '' : 'when' }))}>${t(S.when)} ▴</div>${S.open === 'when' ? `<div class="pop when-pop" data-k="when-pop"><div class="pop-title">检查时机</div>${radios(S.when, when, (v) => set({ when: v, ...SHUT }))}</div>` : ''}</div>` +
     `<div class="grow"></div>${wordsOf(cur)}</div>`
 }
@@ -769,7 +778,7 @@ function folderPage([key, title]) {
   return '<div class="paper scroll"><div class="column folder">' +
     `<div class="chapter-title">${t(title)}</div><div class="folder-label">卷纲</div>` +
     area(S.outlines[key] || '', (v) => set((s) => ({ outlines: { ...s.outlines, [key]: v } })), '写下这里要发生的事，作为提纲', '卷纲', 6) +
-    `<div class="folder-count"><div class="grow">${inside.length} 项</div><div class="hit ink"${onClick(newChapter)}>在此新建章节</div></div>` +
+    `<div class="folder-count"><div class="grow">${inside.length} 项</div><div class="hit link"${onClick(newChapter)}>在此新建章节</div></div>` +
     inside.map((c) => `<div class="folder-row hit"${onClick(goTo(c.key))}><div class="folder-name">${icon('page', 'md', 'muted')}<div class="fit ell">${t(titleOf(c))}</div><div class="count">${t(sizeOf(c))} 字</div></div>${gist(c) ? `<div class="gist">${t(gist(c))}</div>` : ''}</div>`).join('') +
     '</div></div>'
 }
@@ -844,7 +853,7 @@ function floats() {
   if (S.bury) {
     return veiled + `<div class="float bury" data-k="bury" style="${by(360, 132, S.pick)}"><div class="float-head">${icon('flag', 'sm')}记为伏笔，填写备注</div>` +
       `<div class="bury-box">${typed(S.bury.note, (v) => set({ bury: { note: v } }), '例如：小祥为什么突然改口', '伏笔备注', keys(buryNow, () => set({ bury: null, pick: null })) + ' autofocus')}</div>` +
-      `<div class="float-end"><div class="ghost hit"${onClick(closeFloat)}>取消</div><div class="solid hit"${onClick(buryNow)}>确定</div></div></div>`
+      `<div class="float-end">${button('取消', closeFloat)}${button('确定', buryNow, 'primary')}</div></div>`
   }
 
   if (S.pay) {
@@ -855,7 +864,7 @@ function floats() {
       `<div class="pay-find">${typed(S.pay.q, (v) => set({ pay: { q: v, id } }), '搜索备注或原句', '查找伏笔', keys(() => payNow(id), () => set({ pay: null, pick: null })) + ' autofocus')}</div>` +
       (can.length ? '' : `<div class="pay-none">${q ? '没有匹配的伏笔' : '暂无已埋下的伏笔。请先选中一句，右键选择「记为伏笔」。'}</div>`) +
       `<div class="pay-list scroll">${can.map((m) => `<div class="pay-row row${m.id === id ? ' on' : ''}"${onClick(() => set((s) => ({ pay: { ...s.pay, id: m.id } })))}><div class="pay-name ell">${t(nameOf(m))}</div><div class="pay-meta">${meta(m)}</div></div>`).join('')}</div>` +
-      `<div class="float-end"><div class="ghost hit"${onClick(closeFloat)}>取消</div><div class="solid hit${id ? '' : ' off'}" title="确定回收"${onClick(() => payNow(id))}>记为回收</div></div></div>`
+      `<div class="float-end">${button('取消', closeFloat)}<div class="btn hit primary${id ? '' : ' off'}" title="确定回收"${onClick(() => payNow(id))}>记为回收</div></div></div>`
   }
 
   // 选中一段字以后：浮在它上面的两个按钮。

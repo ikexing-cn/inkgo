@@ -3,7 +3,9 @@
 
 // ───────── 状态 ─────────
 
-const titleOf = (c) => (c.vol ? '第' + c.no + '章' + (c.t ? '：' + c.t : '') : c.t)
+// 卷里的章，标题是号加名字；作者自己把标题整个改写过的（own），写了什么就是什么。
+const numbered = (c) => c.vol && !c.own
+const titleOf = (c) => (numbered(c) ? '第' + c.no + '章' + (c.t ? '：' + c.t : '') : c.t)
 const chapterOf = (key) => S.chapters.find((c) => c.key === key)
 const clip = (text, n) => (text.length > n ? text.slice(0, n) + '…' : text)
 // 一章有多少字。书里带来的章写着（假的）字数，新写的照实数。
@@ -182,7 +184,7 @@ const area = (value, change, hint, label, rows = 4) => `<div class="box area"><t
 const field = (label, box) => `<div class="field"><div class="label">${t(label)}</div>${box}</div>`
 const button = (label, act, cls = '') => `<div class="btn hit ${cls}"${onClick(act)}>${t(label)}</div>`
 const buttons = (...bs) => `<div class="buttons">${bs.join('')}</div>`
-const where = (text, find, see = '查看原文') => `<div class="where"><div class="fit ell">${t(text)}</div><div class="see hit"${onClick(find)}>${see}</div></div>`
+const where = (text, find, see = '查看原文') => `<div class="where"><div class="fit ell">${t(text)}</div><div class="see hit link"${onClick(find)}>${see}</div></div>`
 // 按回车时做 ok，按 Esc 时做 no。拼音还没选完字的回车不算。
 const keys = (ok, no) => onKey((ev) => { if (ev.key === 'Enter' && !ev.isComposing) ok(); else if (ev.key === 'Escape' && no) { ev.stopPropagation(); no() } })
 // 打勾的方框，带一句话。

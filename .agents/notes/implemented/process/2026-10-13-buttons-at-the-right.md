@@ -25,6 +25,7 @@ Status: implemented
   - 设置里「打开配置文件」「重新加载配置」靠右。
   - 设置里一个服务的表单：原来「获取可用模型」「清除已保存 key」在左、「保存提供商」在右，现在三个都靠右，依次是「清除已保存 key」「获取可用模型」「保存提供商」。
   - 没有章节的空页：「新建文件夹」「新建第一章」，主按钮换到右边。
+- 2026-10-13 文字按钮统一以后（见[能点的看得出能点](2026-10-13-clickable-looks-clickable.md)），两边认的名字跟着改：原型的 `.solid`、`.ghost` 删了，按钮只有 `.btn`，文字按钮是 `.link`；代码的 `a.textLink` 并进 `a.pal.ghost`，检查认它，也认 `a.pal.danger`。
 
 ## Alternatives considered
 
@@ -40,7 +41,7 @@ Status: implemented
   - 试过：把提示条那一行改回靠左，走查报出「toast-acts is not at the right: 复制详情」；把 `desk/backup.go`、`desk/write.go` 换回改之前的，`TestButtonsAtTheRight` 报出备份浮层两行和空页那一行；服务表单那一行是收紧检查以后两边各自报出来的。
 - **代价与已知上限**：
   - 代码的检查读的是写法，不是画出来的样子：
-    - 不用 `a.pal.primary`、`a.pal.secondary`、`a.textLink` 画的按钮它看不见：提示条里的是 `ui.ButtonBase`；`ghost` 既画行内链接也画按钮，没有算进去。
+    - 不用 `a.pal.primary`、`a.pal.secondary`、`a.pal.danger`、`a.pal.ghost` 画的按钮它看不见：提示条里的是 `ui.ButtonBase`。
     - 一行里先画了一句话、按钮跟在后面，它不管；这一行如果没有写 `FillWidth` 之类把按钮推到右边，它发现不了。
     - 空页那两行写了 `Justify(ui.End)` 只是为了过检查：那一行和按钮一样宽，靠哪边看不出来。
   - 原型的检查只看走查走到的地方；没有走到的浮层不查。

@@ -32,6 +32,10 @@ body { margin: 0; }
 .danger { color: var(--danger); }
 .under { text-decoration: underline; }
 .off { opacity: var(--opacity-disabled); cursor: default; }
+/* 文字按钮只有这一种样子：墨色的字，下面一条浅线；指针移上去有底色，线变成墨色。
+   底色比字宽出一圈，这一圈用负的外边距收回去：字还在原来的位置，和上下的东西对齐。 */
+.link { flex: none; padding: 2px 6px; margin: calc(0px - 2px) calc(0px - 6px); border-radius: var(--r-xs); font-size: var(--fs-note); font-weight: 400; color: var(--ink); white-space: nowrap; text-decoration: underline; text-decoration-color: var(--control); text-underline-offset: 4px; }
+.link.danger { color: var(--danger); }
 .dot { width: 6px; height: 6px; border-radius: var(--r-round); background: var(--amber); flex: none; }
 .dot.grey { background: var(--control); }
 .hair { border-top: 1px solid var(--line); flex: none; }
@@ -198,12 +202,10 @@ body { margin: 0; }
 .chapter-box { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
 .chapter-box .box.area { min-height: 0; }
 .box-foot { display: flex; align-items: center; gap: 12px; font-size: var(--fs-note); color: var(--faint); }
-.box-foot .see { color: var(--ink); }
 /* 点开一卷：卷纲和里面的各章 */
 .column.folder { width: 720px; align-self: center; gap: 14px; padding-top: 12px; }
 .folder-label, .folder-count { font-size: var(--fs-control); font-weight: 600; color: var(--muted); }
 .folder-count { display: flex; align-items: center; padding-top: 8px; }
-.folder-count .hit { font-weight: 400; color: var(--ink); }
 .folder-row { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: var(--r-control); }
 .folder-row:hover { background: var(--hover); }
 .folder-name { display: flex; align-items: center; gap: 10px; font-size: var(--fs-body); }
@@ -258,7 +260,7 @@ body { margin: 0; }
 .tool .more.on { background: var(--active); }
 /* 详情页顶上：返回，和右边那个动作 */
 .back { flex: none; height: var(--h-control); padding: 0 20px 8px; display: flex; align-items: center; gap: 4px; font-size: var(--fs-note); color: var(--muted); }
-.back-to { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.back-to { display: flex; align-items: center; gap: 4px; min-width: 0; padding: 2px 6px 2px 2px; border-radius: var(--r-control); }
 /* 列表 */
 .rows { flex: 1; min-height: 0; padding: 0 10px 12px; display: flex; flex-direction: column; border-top: 1px solid var(--line); }
 .todo { flex: none; height: var(--h-control); box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 0 10px; margin-top: 8px; border-radius: var(--r-control); font-size: var(--fs-body); }
@@ -277,7 +279,6 @@ body { margin: 0; }
 .text { font-size: var(--fs-body); line-height: var(--lh-loose); }
 .text.dropped { color: var(--muted); }
 .where { display: flex; align-items: center; gap: 8px; font-size: var(--fs-note); color: var(--muted); }
-.where .see { flex: none; color: var(--ink); }
 .renamed { flex: none; display: flex; align-items: center; gap: 6px; margin-top: 8px; padding: 6px 8px 6px 10px; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--raised); font-size: var(--fs-note); }
 /* 右栏的左边：拖它改宽度 */
 .pane-edge { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize; z-index: 2; }
@@ -364,7 +365,6 @@ body { margin: 0; }
 .check-row.on { background: var(--active); }
 .check-detail { flex: 1; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; padding: var(--h-bar) 32px 20px; }
 .check-title { display: flex; align-items: center; gap: 12px; padding-top: 14px; font-size: var(--fs-dialog); font-weight: 700; }
-.check-title > .hit { font-size: var(--fs-note); font-weight: 400; }
 .check-sides { display: flex; gap: 16px; }
 .check-from { display: flex; align-items: center; gap: 8px; padding-bottom: 6px; font-size: var(--fs-note); color: var(--muted); }
 .check-card { padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--side); font-size: var(--fs-read); line-height: var(--lh-read); }
@@ -417,8 +417,6 @@ body { margin: 0; }
 .float { position: absolute; z-index: 7; box-sizing: border-box; background: var(--bg); border: 1px solid var(--border); box-shadow: var(--shadow-pop); display: flex; flex-direction: column; line-height: var(--lh-body); }
 .float-head { display: flex; align-items: center; gap: 6px; font-size: var(--fs-note); color: var(--muted); }
 .float-end { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
-.ghost { font-size: var(--fs-control); color: var(--muted); padding: 6px 10px; }
-.solid { font-size: var(--fs-control); color: var(--on-ink); background: var(--ink); border-radius: var(--r-control); padding: 6px 12px; }
 .bury { width: 360px; border-radius: var(--r-card); padding: 12px; gap: 10px; }
 .bury-box { border: 1px solid var(--ink); border-radius: var(--r-control); padding: 8px 10px; font-size: var(--fs-body); display: flex; align-items: center; }
 .pay { width: 380px; border-radius: var(--r-control); padding: 10px; gap: 6px; }
@@ -438,6 +436,8 @@ body { margin: 0; }
 .dialog-wrap > .veil, .dialog { pointer-events: auto; }
 .dialog { position: relative; box-sizing: border-box; max-height: calc(100% - 80px); display: flex; flex-direction: column; gap: 16px; padding: 24px; border-radius: var(--r-dialog); background: var(--raised); box-shadow: var(--shadow-dialog); font-size: var(--fs-body); }
 .dialog.small { width: 480px; }
+/* 只问一句的对话框（标题、一两句说明、一排按钮）用窄的这一档，不摊成扁扁的一条。 */
+.dialog.ask { width: 360px; gap: 20px; }
 .dialog.keys { width: 600px; }
 .dialog.wide { width: 860px; height: 580px; }
 .dialog-title { font-size: var(--fs-dialog); font-weight: 700; }
@@ -459,7 +459,6 @@ body { margin: 0; }
 .snap-text > div { flex: none; }
 .bin-rows { max-height: 320px; display: flex; flex-direction: column; border-top: 1px solid var(--line); }
 .bin-row { flex: none; display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: var(--fs-body); }
-.bin-row > .hit.muted { font-size: var(--fs-note); }
 .keys { max-height: 440px; display: flex; flex-direction: column; }
 .keys .head { padding-left: 0; }
 .key-row { flex: none; display: flex; gap: 12px; padding: 6px 0; font-size: var(--fs-control); }
@@ -511,8 +510,22 @@ body { margin: 0; }
 .toast > svg { margin-top: 2px; }
 .toast > .icon-btn { margin: -4px 0; }
 .toast-title { font-size: var(--fs-body); font-weight: 600; line-height: var(--lh-body); }
-.toast-acts { display: flex; justify-content: flex-end; gap: 14px; padding-top: 6px; font-size: var(--fs-note); }
+.toast-acts { display: flex; justify-content: flex-end; gap: 14px; padding-top: 6px; }
 .toast-rest { align-self: flex-end; font-size: var(--fs-note); color: var(--muted); }
+
+/* ───────── 能点的都回应指针 ─────────
+   有边有底的换底色；墨色实心的浅一级；只有字和图标的变成墨色；文字按钮有底色、线变深。写在最后，压过前面各自的底色。 */
+.btn:hover, .tool .add:hover, .box.line.hit:hover, .place:hover, .chip:not(.on):hover, .stepper > .hit:hover, .nav:not(.on):hover, .tab:not(.on):hover { background: var(--hover); }
+.btn.primary:hover, .send:hover, .chip.on:hover { background: var(--ink-2); }
+.btn.soft:hover { background: var(--dim); }
+.btn.danger:hover { background: var(--danger); opacity: .85; }
+.notice-bar .btn:not(.primary):hover { background: color-mix(in srgb, currentColor 12%, transparent); }
+.notice-bar .btn.primary:hover { opacity: .85; }
+.warn-btn:hover { background: var(--warn-bd); }
+.tool .more:hover, .cited:hover { background: var(--active); }
+.back-to:hover { background: var(--hover); }
+.seg > div:not(.on):hover, .stepper > .hit:hover, .attach:hover, .words:hover, .model:hover, .thought-head:hover, .tree-more:hover, .todo-rest:hover, .chapter-more > .hit:hover, .foot .anchor > .hit:hover { color: var(--ink); }
+.link:not(.off):hover { background: var(--active); text-decoration-color: currentColor; }
 </style>
 </head>
 <body>

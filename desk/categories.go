@@ -42,17 +42,15 @@ func (a *App) categories(c *ui.Context) {
 						ui.Text(c, cat.Name).FontSize(fsBody).FontWeight(600).Width(110).Shrink(0).SingleLine().Ellipsis("…")
 						ui.Text(c, "落点："+cat.Target).FontSize(fsBody).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
 						ui.Textf(c, "%d 条", counts[cat.Name]).FontSize(fsNote).TextColor(t.TextMuted).Shrink(0)
-						edit := ui.ButtonBase(c).Label("编辑-" + cat.Name).Shrink(0).Disabled(busy)
-						edit.Children(func() { ui.Text(c, "编辑").FontSize(fsBody).TextColor(a.pal.ink) })
+						edit := a.pal.ghost(c, "编辑", ui.Color{}).Label("编辑-" + cat.Name).Disabled(busy)
 						if edit.Clicked() {
 							a.categoryName, a.categoryTarget = cat.Name, cat.Target
 						}
 						// 其他 cannot go: what has no category is kept there.
-						del := ui.ButtonBase(c).Label("删除-" + cat.Name).Shrink(0).Disabled(busy || cat.Name == workspace.Other)
+						del := a.pal.ghost(c, "删除", ui.Color{}).Label("删除-" + cat.Name).Disabled(busy || cat.Name == workspace.Other)
 						if del.IsDisabled() {
 							pale(del)
 						}
-						del.Children(func() { ui.Text(c, "删除").FontSize(fsBody).TextColor(t.TextMuted) })
 						if del.Clicked() {
 							a.removeCategory = cat.Name
 						}

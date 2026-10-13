@@ -229,14 +229,14 @@ func (a *App) services(c *ui.Context) {
 		}
 	})
 	ui.Row(c).FillWidth().Gap(16).Justify(ui.End).Children(func() {
-		if a.textLink(c, "打开配置文件").Disabled(a.ConfigFile == "").Clicked() {
+		if a.pal.ghost(c, "打开配置文件", ui.Color{}).Disabled(a.ConfigFile == "").Clicked() {
 			u := url.URL{Scheme: "file", Path: filepath.ToSlash(a.ConfigFile)}
 			if len(u.Path) > 1 && u.Path[1] == ':' {
 				u.Path = "/" + u.Path
 			}
 			c.OpenURL(u.String())
 		}
-		if a.textLink(c, "重新加载配置").Disabled(busy || a.ConfigFile == "").Clicked() {
+		if a.pal.ghost(c, "重新加载配置", ui.Color{}).Disabled(busy || a.ConfigFile == "").Clicked() {
 			cfg, err := model.Load(a.ConfigFile)
 			if err == nil {
 				a.Config = cfg
@@ -249,21 +249,6 @@ func (a *App) services(c *ui.Context) {
 			a.setError(err)
 		}
 	})
-}
-
-// textLink is words to click in a line of notes: muted until hovered.
-func (a *App) textLink(c *ui.Context, text string) ui.Element {
-	t := a.pal.theme
-	b := ui.ButtonBase(c).Shrink(0)
-	fg := t.TextMuted
-	if b.Hovered() {
-		fg = t.Text
-	}
-	if b.IsDisabled() {
-		pale(b)
-	}
-	b.Children(func() { ui.Text(c, text).FontSize(fsNote).TextColor(fg).SingleLine() })
-	return b
 }
 
 // providerSelect picks a configured service, shown by its name, into *id;
@@ -415,7 +400,7 @@ func (a *App) providerForm(c *ui.Context) {
 			ui.TextArea(c, &a.models).Label("模型目录").Height(96).FillWidth().Disabled(busy)
 		})
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Justify(ui.End).Children(func() {
-			if a.providerID != "" && ghost(c, "清除已保存 key", t.Danger).Disabled(busy).Clicked() {
+			if a.providerID != "" && a.pal.ghost(c, "清除已保存 key", t.Danger).Disabled(busy).Clicked() {
 				err := model.SetKey(a.providerID, "")
 				if err == nil {
 					a.notice = "已清除保存的 key"

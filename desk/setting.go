@@ -595,7 +595,7 @@ func (a *App) history(c *ui.Context) {
 							glyph(c, icAlert, iconSm, t.Warning)
 							ui.Text(c, "最近几轮整理失败："+r.Failed).FontSize(fsNote).TextColor(t.Warning).Grow(1).Shrink(1)
 						})
-						if !a.set.Redone(r.ID) && ghost(c, "重试", t.Text).Label("重试整理-"+r.ID).Disabled(a.busy != "").Clicked() {
+						if !a.set.Redone(r.ID) && a.pal.ghost(c, "重试", ui.Color{}).Label("重试整理-"+r.ID).Disabled(a.busy != "").Clicked() {
 							a.redo(c, r.ID)
 						}
 						return

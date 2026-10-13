@@ -165,7 +165,7 @@ func TestNoLiteralSizes(t *testing.T) {
 // "稍后再说"), alone there; and no lesser button comes after the main one.
 func TestButtonsAtTheRight(t *testing.T) {
 	files, _ := filepath.Glob("*.go")
-	button := regexp.MustCompile(`a\.pal\.(primary|secondary)\(|a\.textLink\(`)
+	button := regexp.MustCompile(`a\.pal\.(primary|secondary|danger)\(|a\.pal\.ghost\(`)
 	for _, f := range files {
 		if strings.HasSuffix(f, "_test.go") {
 			continue
@@ -199,7 +199,7 @@ func TestButtonsAtTheRight(t *testing.T) {
 					continue
 				}
 				switch {
-				case k < spacer && (k > 0 || spacer > 1 || !strings.Contains(m[0], "textLink")):
+				case k < spacer && (k > 0 || spacer > 1 || !strings.Contains(m[0], "ghost")):
 					t.Errorf("%s:%d: a button left of the row's spacer: %s", f, i+1, in)
 				case k == 0 && spacer < 0 && !strings.Contains(line, "Justify(ui.End)"):
 					t.Errorf("%s:%d: a row of buttons that is not at the right: say Justify(ui.End)", f, i+1)
@@ -208,6 +208,48 @@ func TestButtonsAtTheRight(t *testing.T) {
 					t.Errorf("%s:%d: a button after the main one of its row: %s", f, i+1, in)
 				}
 				main = main || m[1] == "primary"
+			}
+		}
+	}
+}
+
+// What can be clicked answers the pointer: DESIGN.md has it as a rule. Every
+// button made here by hand says what it does when hovered, within the lines
+// that draw it; the ones of theme.go (primary, secondary, ghost, ...) are
+// made that way once.
+func TestButtonsAnswerThePointer(t *testing.T) {
+	files, _ := filepath.Glob("*.go")
+	made := regexp.MustCompile(`^\s*(\w+) :?= ui\.ButtonBase\(c\)`)
+	for _, f := range files {
+		if strings.HasSuffix(f, "_test.go") {
+			continue
+		}
+		b, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		lines := strings.Split(string(b), "\n")
+		for i, line := range lines {
+			if !strings.Contains(line, "ui.ButtonBase(c)") {
+				continue
+			}
+			m := made.FindStringSubmatch(line)
+			if m == nil {
+				t.Errorf("%s:%d: a button with no name cannot answer the pointer: %s", f, i+1, strings.TrimSpace(line))
+				continue
+			}
+			// The lines that draw it: to the end of its function, sixteen at most.
+			answers := false
+			for _, in := range lines[i+1 : min(i+17, len(lines))] {
+				if strings.HasPrefix(in, "}") {
+					break
+				}
+				if answers = strings.Contains(in, m[1]+".Hovered()"); answers {
+					break
+				}
+			}
+			if !answers {
+				t.Errorf("%s:%d: a button that does not answer the pointer (no %s.Hovered()): %s", f, i+1, m[1], strings.TrimSpace(line))
 			}
 		}
 	}
