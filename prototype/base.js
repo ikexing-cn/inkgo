@@ -109,7 +109,7 @@ const SHUT = { open: '' }
 // 每画一遍，把这一遍用到的动作记在这里，元素上只留它的号码。
 let H = []
 const hook = (kind) => (fn) => (fn ? ` data-${kind}="${H.push(fn) - 1}"` : '')
-const onClick = hook('click'), onInput = hook('input'), onKey = hook('keydown'), onMenu = hook('menu'), onUp = hook('up')
+const onClick = hook('click'), onInput = hook('input'), onKey = hook('keydown'), onMenu = hook('menu'), onUp = hook('up'), onOver = hook('over')
 
 // 书里的字、作者打的字，放进页面前都过一遍。
 const t = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
@@ -260,7 +260,7 @@ function draw() {
 }
 
 // 页面上只挂这几个听的：事情出在哪个元素上，就照它身上的号码去找动作。
-for (const [event, kind] of [['click', 'click'], ['keydown', 'keydown'], ['contextmenu', 'menu'], ['mouseup', 'up']]) {
+for (const [event, kind] of [['click', 'click'], ['keydown', 'keydown'], ['contextmenu', 'menu'], ['mouseup', 'up'], ['mouseover', 'over']]) {
   root.addEventListener(event, (ev) => { const el = ev.target.closest(`[data-${kind}]`); if (el) H[el.dataset[kind]](ev) })
 }
 root.addEventListener('input', (ev) => { const el = ev.target.closest('[data-input]'); if (el) H[el.dataset.input](el.value) })

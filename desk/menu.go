@@ -33,6 +33,7 @@ type menu struct {
 	side func()    // the list beside the menu, drawn after it
 	flip bool      // that list goes to the left: no room on the right
 	held bool      // a row of it took the focus as it opened
+	list bool      // it is the list beside a menu, not the menu
 }
 
 // hold gives the first row that can be picked the focus as the menu opens:
@@ -78,6 +79,12 @@ func (it *menuItem) Chosen() bool {
 	m.wait = nil
 	row := m.a.pal.popRow(m.c, nil, it.label, it.hint, it.off, it.on)
 	m.hold(row, it.off)
+	if !m.list && m.a.menu.sub != "" && row.Hovered() {
+		// The pointer went on to another row of the menu: the list beside
+		// it goes.
+		m.a.menu.sub = ""
+		m.c.Invalidate()
+	}
 	if !row.Clicked() {
 		return false
 	}
@@ -104,19 +111,16 @@ func (m *menu) Head(label string) {
 	m.a.pal.popHead(m.c, label)
 }
 
-// Submenu adds a row that opens a list beside the menu, which build fills.
+// Submenu adds a row that opens a list beside the menu, which build fills:
+// as the pointer comes over the row, or as it is picked.
 func (m *menu) Submenu(label string, build func(m *menu)) {
 	m.flush()
 	a, c := m.a, m.c
 	open := a.menu.sub == label
 	row := a.pal.popRow(c, icChevron, label, "", false, open)
 	m.hold(row, false)
-	if row.Clicked() {
-		open = !open
-		a.menu.sub = ""
-		if open {
-			a.menu.sub = label
-		}
+	if !open && (row.Hovered() || row.Clicked()) {
+		a.menu.sub, open = label, true
 	}
 	if !open {
 		return
@@ -129,7 +133,7 @@ func (m *menu) Submenu(label string, build func(m *menu)) {
 		if flip {
 			x = at.X - 4 - menuSide
 		}
-		list := a.pal.popPanel(c).Absolute().Left(x).Width(menuSide)
+		list := a.pal.popPanel(c.Key("菜单旁-" + a.menu.owner)).Absolute().Left(x).Width(menuSide)
 		y := at.Y - 4
 		if now := list.Bounds(); at.W == 0 || now.H == 0 {
 			list.Opacity(0) // not laid out yet: placed in the next frame
@@ -141,7 +145,7 @@ func (m *menu) Submenu(label string, build func(m *menu)) {
 		}
 		list.Top(y)
 		list.Children(func() {
-			sub := &menu{a: a, c: c}
+			sub := &menu{a: a, c: c, list: true}
 			build(sub)
 			sub.flush()
 		})
@@ -171,10 +175,13 @@ func (a *App) menuAt(c *ui.Context, key string, build func(m *menu)) {
 	}
 	a.menu.seen = true
 	ui.Overlay(c, func() {
-		veil := ui.Box(c).Absolute().Left(0).Top(0).Right(0).Bottom(0)
+		// Each part has a name: the window's overlays are told apart by
+		// their order otherwise, and one coming or going, as the list
+		// beside the menu, would hand a part the box of another.
+		veil := ui.Box(c.Key("菜单底-" + key)).Absolute().Left(0).Top(0).Right(0).Bottom(0)
 		shut := veil.Clicked() || veil.RightClicked()
 		w, h := c.Size()
-		panel := a.pal.popPanel(c).Absolute().Width(menuWide)
+		panel := a.pal.popPanel(c.Key("菜单-" + key)).Absolute().Width(menuWide)
 		x, y := a.menu.x, a.menu.y
 		if now := panel.Bounds(); now.H == 0 {
 			panel.Opacity(0) // not laid out yet: placed in the next frame
@@ -193,6 +200,10 @@ func (a *App) menuAt(c *ui.Context, key string, build func(m *menu)) {
 		if m.side != nil {
 			m.side()
 		}
+		// Tab stays in the menu, as in the system's: the arrows go
+		// through its rows.
+		panel.OverlayShortcut(0, ui.KeyTab)
+		panel.OverlayShortcut(ui.Shift, ui.KeyTab)
 		if shut || panel.OverlayShortcut(0, ui.KeyEscape) {
 			a.menu = menuState{}
 		}

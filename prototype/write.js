@@ -647,14 +647,19 @@ function floats() {
     }
     const names = !name || name.length > 12 ? menuRow('加入名字表', null)
       : S.entries.some((e) => e.place !== 'dropped' && e.names.includes(name)) ? menuRow('已在名字表中', null)
-      : `<div class="anchor wide"><div class="pop-row row${S.ctx.names ? ' on' : ''}"${onClick(() => set((s) => ({ ctx: { ...s.ctx, names: !s.ctx.names } })))}><div class="grow">加入名字表</div>${ICON.right}</div>` +
+      : `<div class="anchor wide"><div class="pop-row row${S.ctx.names ? ' on' : ''}"${onClick(() => set((s) => ({ ctx: { ...s.ctx, names: true } })))}><div class="grow">加入名字表</div>${ICON.right}</div>` +
         (S.ctx.names ? `<div class="pop side-pop" data-k="ctx-names">${S.cats.filter((c) => BOOK.nameCats.includes(c)).map((c) => menuRow(c, addName(c))).join('')}</div>` : '') + '</div>'
     // 剪贴板的四项：复制和全选是真的；原型的正文不能改，剪切和粘贴只提示一句。
     const fixed = () => { set({ ctx: null, pick: null }); say('原型的正文不能修改', '软件中此步骤会改动正文') }
     const copy = () => { if (navigator.clipboard) navigator.clipboard.writeText(p.text).catch(() => {}); set({ ctx: null, pick: null }) }
     const all = () => { set({ ctx: null, pick: null }); const first = document.querySelector('[data-para]'); if (first) getSelection().selectAllChildren(first.parentElement) }
+    // 指针移到「加入名字表」上，旁边那一列就打开；移到别的行上，它收起。
+    const over = (ev) => {
+      const row = ev.target.closest('.pop-row'), on = !!ev.target.closest('.anchor')
+      if (row && on !== !!S.ctx.names) set((s) => ({ ctx: { ...s.ctx, names: on } }))
+    }
     // 菜单宽 200，最多十二行，都留在窗口里；旁边再开一列时也不出窗口。
-    return veiled + `<div class="ctx pop${S.ctx.x > win.offsetWidth - 208 - 130 ? ' flip' : ''}" data-k="ctx" style="left:${Math.min(S.ctx.x, win.offsetWidth - 208)}px;top:${Math.min(S.ctx.y, win.offsetHeight - 430)}px">` +
+    return veiled + `<div class="ctx pop${S.ctx.x > win.offsetWidth - 208 - 130 ? ' flip' : ''}" data-k="ctx"${onOver(over)} style="left:${Math.min(S.ctx.x, win.offsetWidth - 208)}px;top:${Math.min(S.ctx.y, win.offsetHeight - 430)}px">` +
       menuRow('剪切', p ? fixed : null, '', 'Ctrl+X') + menuRow('复制', p ? copy : null, '', 'Ctrl+C') + menuRow('粘贴', fixed, '', 'Ctrl+V') + menuRow('全选', all, '', 'Ctrl+A') + HAIR +
       menuRow('续写一句', continueText, '', 'Ctrl+J') + menuRow('AI 改写…', p ? askRewrite : null) + menuRow('引用到讨论', p ? cite : null, '', 'Ctrl+L') + menuRow('加入设定', p ? take : null) + names + HAIR +
       menuRow('记为伏笔…', p ? () => set({ ctx: null, bury: { note: '' } }) : null) + menuRow('记为回收…', p ? () => askPay('') : null) +

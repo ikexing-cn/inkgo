@@ -235,3 +235,65 @@ func TestShotMenus(t *testing.T) {
 	shot("menu-talk-dark.png")
 	shut()
 }
+
+// The list beside the menu opens as the pointer comes over its row and goes
+// as it moves on to another; and in no frame is the menu or the list
+// anywhere but where it was put, whatever else comes over the window.
+func TestMenuStaysPut(t *testing.T) {
+	a, tt, _ := writingFixture(t, "沈砚推开门。")
+	// Where the frame before each one had the menu's first row, and the
+	// list's.
+	var menuX, listY []float32
+	tt = ui.NewTester(func(c *ui.Context) {
+		if r, ok := tt.Find("菜单-剪切"); ok {
+			menuX = append(menuX, r.X)
+		}
+		if r, ok := tt.Find("菜单-人物"); ok {
+			listY = append(listY, r.Y)
+		}
+		a.View(c)
+	}, 1266, 780)
+	a.write.ed.Select(0, 2)
+	tt.Frame()
+	tt.RightClickAt(520, 600)
+	tt.Frame()
+	if slices.Contains(rows(tt), "人物") {
+		t.Fatal("the list is open before the pointer came", rows(tt))
+	}
+	top, _ := tt.Find("菜单-剪切")
+	row, _ := tt.Find("菜单-加入名字表")
+	tt.Move(row.X+20, row.Y+10)
+	tt.Frame()
+	if !slices.Contains(rows(tt), "人物") {
+		t.Fatal("the pointer over the row opened nothing", rows(tt))
+	}
+	// A click on the row leaves the list open, and Tab leaves the menu be.
+	tt.ClickAt(row.X+20, row.Y+10)
+	tt.Key(0, ui.KeyTab)
+	tt.Key(ui.Shift, ui.KeyTab)
+	tt.Frame()
+	if !slices.Contains(rows(tt), "人物") {
+		t.Fatal("the list went", rows(tt))
+	}
+	// Onto the list, it stays; on to another row of the menu, it goes.
+	in, _ := tt.Find("菜单-地点")
+	tt.Move(in.X+20, in.Y+10)
+	tt.Frame()
+	if !slices.Contains(rows(tt), "人物") {
+		t.Fatal("the list went from under the pointer", rows(tt))
+	}
+	other, _ := tt.Find("菜单-全选")
+	tt.Move(other.X+20, other.Y+10)
+	tt.Frame()
+	if slices.Contains(rows(tt), "人物") || len(rows(tt)) == 0 {
+		t.Fatal("the list stayed, or the menu went", rows(tt))
+	}
+	for _, x := range menuX {
+		if x != top.X {
+			t.Fatalf("the menu moved: %v", menuX)
+		}
+	}
+	if len(listY) == 0 || slices.Min(listY) < top.Y {
+		t.Fatalf("the list was drawn away from its row: %v, the menu starts at %v", listY, top.Y)
+	}
+}

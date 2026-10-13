@@ -21,6 +21,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, key, cl
     const out = await js(`(() => { const e = [...document.querySelectorAll('.pop, .float, .dialog, .toast')].find((e) => !e.querySelector('.pop') && e.scrollWidth > e.clientWidth + 1); return e ? e.className + ': ' + e.innerText.slice(0, 30) : '' })()`)
     must(!out, 'after clicking ' + words + ', something sticks out of ' + out)
   }
+  // Brings the pointer over the row of the open menu saying words.
+  const over = (words: string) => js(`[...document.querySelectorAll('.ctx .pop-row')].find((e) => e.innerText.includes(${JSON.stringify(words)})).dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))`)
   // A flow is done when nothing in the window sticks out of it: what does can scroll the whole window aside.
   const done = async (step: string) => {
     must(await js(`(() => { const w = document.querySelector('#win'); return w.scrollWidth <= w.clientWidth && w.scrollHeight <= w.clientHeight && !w.scrollLeft && !w.scrollTop })()`), 'something sticks out of the window after: ' + step)
@@ -268,7 +270,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, key, cl
   await click('第二卷：旧城'); await win('2 项'); must((await value('卷纲')) === '林晚回到旧城，找到那把钥匙。', 'the outline of the volume is lost'); await pane('附上本卷内容', false); await click('讨论', 1); await click('新讨论'); await pane('附上本卷内容'); await click('全部讨论'); await click('设定'); await shot('82-folder-own'); await done('a volume as a page')
 
   // A short name picked in the prose goes into the setting as it is.
-  await click('第三卷：停电'); await click('第三卷：停电'); await click('第85章：灯数'); await menu(0, '何主任'); await click('加入名字表'); must(await js(`document.querySelector('.side-pop').innerText.includes('组织') && document.querySelector('.side-pop').getBoundingClientRect().left > document.querySelector('.ctx').getBoundingClientRect().right - 8`), 'the categories of names are not beside the menu'); await shot('83-name-menu'); await js(`document.querySelector('.side-pop .row').click()`)
+  await click('第三卷：停电'); await click('第三卷：停电'); await click('第85章：灯数'); await menu(0, '何主任'); await over('加入名字表'); must(await js(`!!document.querySelector('.side-pop')`), 'the pointer over the row opened nothing'); await over('加入设定'); must(await js(`!document.querySelector('.side-pop')`), 'the list stayed as the pointer went on'); await over('加入名字表'); await click('加入名字表'); must(await js(`document.querySelector('.side-pop').innerText.includes('组织') && document.querySelector('.side-pop').getBoundingClientRect().left > document.querySelector('.ctx').getBoundingClientRect().right - 8`), 'the categories of names are not beside the menu'); await shot('83-name-menu'); await js(`document.querySelector('.side-pop .row').click()`)
   await win('「何主任」已加入设定的人物输入时可自动补全'); await click('关闭提示'); await menu(0, '何主任'); await win('已在名字表中'); await key('Escape')
   await menu(0, '何主任让他们把旧城的灯重新数一遍'); must(await js(`[...document.querySelectorAll('.ctx .row')].find((e) => e.innerText.includes('加入名字表')).classList.contains('off')`), 'a long pick can be a name'); await key('Escape'); await done('a name from the prose')
 
