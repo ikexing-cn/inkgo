@@ -226,7 +226,9 @@ func (a *App) dropMenu(c *ui.Context, b ui.Element, key string, place func(panel
 	}
 	a.menu.seen = true
 	open := true
-	ui.PopoverBase(c, b, &open, func(panel ui.Element) {
+	// Named, as the parts of the other menus are: a dialog a row opens is
+	// not taken for the menu going on, and takes the focus as its own.
+	ui.PopoverBase(c.Key("菜单-"+key), b, &open, func(panel ui.Element) {
 		a.pal.popLook(panel)
 		place(panel)
 		m := &menu{a: a, c: c}

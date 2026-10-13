@@ -2,8 +2,9 @@ package desk
 
 import "testing"
 
-// The sidebar's top row goes back and forth between chapters, and its
-// foot opens the trash, from any page.
+// The chapters opened are gone back and forth between on the page of
+// prose, coming back to it from another; the sidebar's foot opens the
+// trash from any page.
 func TestSideRowsOnEveryPage(t *testing.T) {
 	a, tt, one := writingFixture(t, "整条街的灯是同时灭的。")
 	two, err := a.Store.NewChapter("", "第二章", false)
@@ -16,6 +17,13 @@ func TestSideRowsOnEveryPage(t *testing.T) {
 	a.openNode(two)
 	tt.Frame()
 	if err = tt.Click("讨论"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if _, ok := tt.Find("上一个打开的章节"); ok {
+		t.Fatal("the page of discussion goes between chapters")
+	}
+	if err = tt.Click("正文"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

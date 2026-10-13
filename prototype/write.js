@@ -546,7 +546,7 @@ function sidebar() {
   const b = S.backup
   const backupLine = { ok: '已备份 · ' + b.at, busy: '正在备份…', fail: '备份失败', none: '尚未备份' }[b.state]
 
-  return '<div class="sidebar">' +
+  return '<div class="sidebar" data-k="sidebar">' +
     `<div class="sidebar-top"><div class="anchor wide"><div class="book hit" title="切换作品"${onClick(() => set({ open: S.open === 'book' ? '' : 'book' }))}><div class="book-logo">${t(book.name[0])}</div><div class="book-name">${t(book.name)}</div>${icon('down', 'sm', 'faint')}</div>` +
     (S.open === 'book' ? `<div class="pop"><div class="pop-label">作品</div><div class="pop-row row on"><div class="grow">${t(book.name)}</div><div class="side">${t(book.kind)}</div></div>` + others.map((o) => menuRow(o.name, () => openBook(o.id), '', o.kind)).join('') + HAIR +
       menuRow('新建作品…', () => set({ page: 'shelf', dialog: { kind: 'newBook', name: '', type: BOOK.kinds[0] }, ...SHUT })) + menuRow('全部作品…', () => set({ page: 'shelf', ...SHUT })) + '</div>' : '') + '</div></div>' +
@@ -778,9 +778,9 @@ function folderPage([key, title]) {
 
 function editor(cur) {
   const vol = S.volumes.find((v) => v[0] === S.vol)
-  if (vol) return '<div class="editor">' + toolbar(null, vol) + sheets() + folderPage(vol) + foot(null, vol) + '</div>'
+  if (vol) return '<div class="editor" data-k="editor">' + toolbar(null, vol) + sheets() + folderPage(vol) + foot(null, vol) + '</div>'
   if (!cur) {
-    return `<div class="editor">${toolbar(null)}${sheets()}<div class="paper">` + (S.chapters.length ? blank('book', '从左侧选择一章开始写作', '')
+    return `<div class="editor" data-k="editor">${toolbar(null)}${sheets()}<div class="paper">` + (S.chapters.length ? blank('book', '从左侧选择一章开始写作', '')
       : blank('book', '暂无章节', '每章是作品文件夹 chapters 中的一个纯文本文件，可用其他软件打开。', buttons(button('新建文件夹', newFolder), button('新建第一章', newChapter, 'primary')))) + '</div>' + foot(null) + '</div>'
   }
   const focus = S.paneOpen && S.tab === '伏笔' ? S.fid : null
@@ -792,7 +792,7 @@ function editor(cur) {
   const hint = cur.paras.join('') || ghostly ? '' : '<div class="prose-hint">在此开始写作…</div>'
   // AI 正在改、灰字等着采纳的时候不能打字。
   const typing = S.ai ? '' : ` contenteditable="plaintext-only" spellcheck="false" aria-label="正文"${onInput(wrote)}${onKey(proseKey)}${onPaste(pasted)}`
-  return '<div class="editor">' + toolbar(cur) + sheets() + (S.find ? findBar(cur) : '') + outsideBar() +
+  return '<div class="editor" data-k="editor">' + toolbar(cur) + sheets() + (S.find ? findBar(cur) : '') + outsideBar() +
     `<div class="paper scroll"${onMenu(openMenu)}${onUp(picked)}><div class="column"><div class="chapter-head"><div class="chapter-title">${t(cur.t || titleOf(cur))}</div>${chapterMore(cur)}</div>` + aiBar() +
     `<div class="prose-box">${hint}<div class="prose" data-k="prose"${typing}>${paras}</div></div></div></div>` + foot(cur) + '</div>'
 }

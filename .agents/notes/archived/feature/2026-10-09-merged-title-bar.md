@@ -1,6 +1,7 @@
 # Agent Note: 标题栏并进各栏顶部，章节间前后跳转
 
 Status: implemented
+Archived: 2026-10-13
 
 ## Problem
 

@@ -1,50 +1,6 @@
 package desk
 
-import (
-	"strings"
-
-	"github.com/egoist/mygo/ui"
-)
-
-// moreButton is the toolbar's 「⋯」: continuing and drafting, the chapter's
-// snapshots, export, and the appearance. chapter says a chapter is shown.
-func (a *App) moreButton(c *ui.Context, chapter bool) {
-	w := &a.write
-	b := iconButton(c, icMore, "更多", ui.Color{}).Tooltip("续写、起草、快照、导出和外观")
-	if b.Clicked() {
-		w.moreOpen = !w.moreOpen
-	}
-	ui.Popover(c, b, &w.moreOpen, func() {
-		ui.Column(c).MinWidth(230).Children(func() {
-			if chapter {
-				busy := w.ed.ReadOnly() || w.lost || w.external != nil
-				if a.pal.popRow(c, icSparkle, "续写一句", modKey+"J", busy, false).Clicked() {
-					w.moreOpen = false
-					a.continueText()
-				}
-				hint := ""
-				if strings.TrimSpace(w.outline) == "" {
-					hint = "请先填写章纲"
-				}
-				if a.pal.popRow(c, icDraft, "起草本章", hint, busy || hint != "", false).Clicked() {
-					w.moreOpen = false
-					a.openDraft()
-				}
-				a.pal.popLine(c)
-				if a.pal.popRow(c, icHistory, "快照", "", busy, false).Clicked() {
-					w.moreOpen = false
-					a.openSnapshots()
-				}
-			}
-			if a.pal.popRow(c, icDownload, "导出…", "", false, false).Clicked() {
-				w.moreOpen = false
-				w.exportOpen, w.exportDone, w.exportFrom, w.exportAt = true, false, "", 0
-			}
-			a.pal.popLine(c)
-			a.themeChoice(c)
-		})
-	})
-}
+import "github.com/egoist/mygo/ui"
 
 // themeChoice picks the appearance of the whole app on this machine:
 // following the system, light or dark.

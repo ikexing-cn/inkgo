@@ -92,6 +92,12 @@ func (e *Editor) Redo() {
 	e.compOpen = false
 }
 
+// CanUndo and CanRedo report whether there is a step to take back, or to
+// put back: a menu pales the row otherwise.
+func (e *Editor) CanUndo() bool { return len(e.undo) > 0 }
+
+func (e *Editor) CanRedo() bool { return len(e.redo) > 0 }
+
 // Replace replaces runes [a, b) with s as one undoable step.
 func (e *Editor) Replace(a, b int, s string) {
 	e.replaceRange(a, b, s, false)

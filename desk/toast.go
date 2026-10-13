@@ -44,7 +44,7 @@ func (a *App) toasts(c *ui.Context) {
 		}
 	})
 	ui.ToastViewportBase(c, func(v ui.Element, list []ui.Toast) {
-		v.Justify(ui.Start).AlignItems(ui.End).Gap(8).Padding(titleHeight+12, 16, 0, 0)
+		v.Justify(ui.Start).AlignItems(ui.End).Gap(8).Padding(2*titleHeight+12, 16, 0, 0) // under the title bar and the page's top row
 		if len(list) <= toastsShown {
 			a.toastsOpen = false
 		}

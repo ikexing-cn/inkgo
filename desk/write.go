@@ -29,16 +29,14 @@ var (
 // writeView is the state of the writing page.
 type writeView struct {
 	entered bool // the page read the tree as it showed
-	stepTo  int  // a step back (-1) or forward (1) to take as the page opens
 	tree    workspace.Tree
 	counts  map[string]int
 	folded  map[string]bool // folders folded, by ID
 	node    string          // the node shown
 	// back and forward are the nodes shown before and after it, for the
-	// title bar's arrows; stepping is set while they open one.
+	// toolbar's arrows; stepping is set while they open one.
 	back, forward []string
 	stepping      bool
-	moreOpen      bool // the toolbar's 「⋯」 is open
 	ed            *editor.Editor
 	// What the disk has of the node shown, as of the last read or write.
 	saved    string
@@ -331,15 +329,6 @@ func (a *App) openNode(id string) {
 // stepHistory opens the chapter opened before the one shown, or after it
 // when going forward, as a browser goes back and forth between pages. A
 // chapter since deleted is passed over.
-// step goes back (-1) or forward (1) a chapter, from any page.
-func (a *App) step(dir int) {
-	if a.page == 3 {
-		a.stepHistory(dir > 0)
-		return
-	}
-	a.page, a.write.stepTo = 3, dir
-}
-
 func (a *App) stepHistory(forward bool) {
 	w := &a.write
 	from, to := &w.back, &w.forward
@@ -651,10 +640,6 @@ func (a *App) writing(c *ui.Context) {
 		a.write.entered = true
 		a.enterWriting()
 	}
-	if s := a.write.stepTo; s != 0 {
-		a.write.stepTo = 0
-		a.stepHistory(s > 0)
-	}
 	a.keepPen()
 	a.pollAI()
 	a.countAsTyped()
@@ -724,9 +709,6 @@ func (a *App) writing(c *ui.Context) {
 	if a.write.takeOpen {
 		a.take(c)
 	}
-	if a.write.exportOpen {
-		a.exportView(c)
-	}
 	if a.write.draftOpen {
 		a.draftView(c)
 	}
@@ -754,10 +736,9 @@ func (a *App) settingColumn(c *ui.Context) {
 	})
 }
 
-// paneTop is the top row of the right pane, which is the window's title bar
-// there: it holds the window and leaves room for the Windows buttons.
+// paneTop is the top row of the right pane.
 func paneTop(c *ui.Context) ui.Element {
-	return ui.Row(c).FillWidth().Height(titleHeight).Padding(0, 20+c.TitleBar().Right, 0, 20).Gap(4).AlignItems(ui.Center).Shrink(0).DragWindow()
+	return ui.Row(c).FillWidth().Height(titleHeight).Padding(0, 20).Gap(4).AlignItems(ui.Center).Shrink(0)
 }
 
 // countAsTyped keeps the open chapter's count up with its text, so the
@@ -899,9 +880,22 @@ func (a *App) writeTop(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
 	n, ok := w.tree.Node(w.node)
-	left, right := a.chromeRoom(c)
-	top := ui.Row(c).FillWidth().Height(titleHeight).Padding(0, 16+right, 0, 24+left).Gap(8).AlignItems(ui.Center).Shrink(0).DragWindow()
+	top := ui.Row(c).FillWidth().Height(titleHeight).Padding(0, 16, 0, 24).Gap(8).AlignItems(ui.Center).Shrink(0)
+	if w.focus {
+		// No title bar over it: this row holds the window, and keeps clear
+		// of the window's buttons.
+		bar := c.TitleBar()
+		top.Padding(0, 16+bar.Right, 0, 24+bar.Left).DragWindow()
+	}
 	top.Children(func() {
+		ui.Row(c).Gap(2).AlignItems(ui.Center).Margin(0, 0, 0, -8).Shrink(0).Children(func() {
+			if a.stepButton(c, icBack, "上一个打开的章节").Disabled(len(w.back) == 0).Clicked() {
+				a.stepHistory(false)
+			}
+			if a.stepButton(c, icForward, "下一个打开的章节").Disabled(len(w.forward) == 0).Clicked() {
+				a.stepHistory(true)
+			}
+		})
 		if ok {
 			var path []string
 			for p := n.Parent; p != nil && p.Parent != nil; p = p.Parent {
@@ -945,7 +939,6 @@ func (a *App) writeTop(c *ui.Context) {
 				}
 			}
 		}
-		a.moreButton(c, ok && !n.Folder)
 		if a.doc.hidden && !w.focus {
 			a.bookDot(c)
 			if iconButton(c, icPanel, "展开设定", ui.Color{}).Tooltip("展开设定文档").Clicked() {
@@ -963,6 +956,23 @@ func (a *App) writeTop(c *ui.Context) {
 		a.pendingButton(c)
 	})
 	a.pal.hairline(c)
+}
+
+// stepButton goes to the chapter opened before the one shown, or after it:
+// smaller than the tools at the row's other end.
+func (a *App) stepButton(c *ui.Context, s *ui.SVG, label string) ui.Element {
+	t := a.pal.theme
+	b := ui.ButtonBase(c).Size(iconLg, iconLg).Center().Radius(rControl).Shrink(0).Label(label).Tooltip(label)
+	fg := t.TextMuted
+	if b.Hovered() {
+		b.Background(t.SurfacePressed)
+		fg = t.Text
+	}
+	if b.IsDisabled() {
+		pale(b)
+	}
+	b.Children(func() { glyph(c, s, iconSm, fg) })
+	return b
 }
 
 // wordCount is at the right of the foot: the words of what is shown or
@@ -1492,7 +1502,16 @@ func (a *App) renameOpen() {
 		delete(w.folded, p.ID)
 	}
 	w.focus = false
+	a.showTree()
 	w.renaming, w.title, w.titleWas, w.offered = n.ID, n.Title, n.Title, ""
+}
+
+// showTree brings the sidebar back when it was put away: a name is typed
+// in the tree.
+func (a *App) showTree() {
+	if a.sideHidden {
+		a.setSideHidden(false)
+	}
 }
 
 func (a *App) nodeMenu(m *menu, n *workspace.Node) {
@@ -1631,6 +1650,8 @@ func (a *App) newNode(folder bool) {
 		w.counts = map[string]int{}
 	}
 	a.openNode(id)
+	w.focus = false
+	a.showTree()
 	w.renaming, w.title, w.titleWas, w.offered = id, typed, title, typed
 	// The name comes first: the caret is in its box, not in the empty prose.
 	if w.ed != nil {
@@ -1989,8 +2010,8 @@ func (a *App) exportView(c *ui.Context) {
 func (a *App) exportParts() []*workspace.Node {
 	w := &a.write
 	n, ok := w.tree.Node(w.node)
-	if !ok {
-		return nil
+	if !ok || a.page != 3 {
+		return nil // off the page of prose there is the book to export
 	}
 	var parts []*workspace.Node
 	if p := n.Parent; p != nil && p.Parent != nil {

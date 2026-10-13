@@ -49,7 +49,8 @@ type docView struct {
 // not part of the work.
 type prefs struct {
 	SettingHidden bool   `json:"setting_hidden"`
-	Chapter       string `json:"chapter,omitempty"` // the node last open
+	SideHidden    bool   `json:"side_hidden,omitempty"` // the sidebar is put away
+	Chapter       string `json:"chapter,omitempty"`     // the node last open
 	// Writing reopens the work on the writing page, where it was left.
 	Writing bool `json:"writing,omitempty"`
 	// AutoPredict continues the prose as typing pauses, not on demand.
@@ -94,6 +95,7 @@ func (a *App) loadPrefs() {
 		_ = json.Unmarshal(b, &p) // a damaged file is as good as none
 	}
 	a.doc.hidden = p.SettingHidden
+	a.sideHidden = p.SideHidden
 	a.write.node = p.Chapter
 	a.leftWriting = p.Writing
 	if p.Writing {
@@ -124,7 +126,7 @@ func (a *App) loadPrefs() {
 
 func (a *App) savePrefs() {
 	shelved := slices.Sorted(maps.Keys(a.shelved))
-	b, err := json.Marshal(prefs{Shelved: shelved, SettingHidden: a.doc.hidden, Chapter: a.write.node, Writing: a.leftWriting, AutoPredict: a.write.autoPredict,
+	b, err := json.Marshal(prefs{Shelved: shelved, SettingHidden: a.doc.hidden, SideHidden: a.sideHidden, Chapter: a.write.node, Writing: a.leftWriting, AutoPredict: a.write.autoPredict,
 		PanelWidth: a.doc.width, TalkTab: a.doc.talk, ForeTab: a.doc.fore, LateAfter: a.write.lateAfter, CheckWhen: a.ck.when, NoAttach: !a.doc.attach, NoAutoSummary: !a.write.autoSummary,
 		Day: a.write.day, DayStart: a.write.dayStart, Goal: a.write.goal, Carets: a.write.carets, Days: a.write.days, TextSize: a.write.size,
 		Ignored: a.write.ignoredKeys()})
@@ -132,6 +134,12 @@ func (a *App) savePrefs() {
 		err = os.WriteFile(a.prefsPath(), b, 0644)
 	}
 	a.warn(err)
+}
+
+// setSideHidden puts the sidebar away, on every page, or brings it back.
+func (a *App) setSideHidden(hidden bool) {
+	a.sideHidden = hidden
+	a.savePrefs()
 }
 
 // setDocHidden folds the panel away, for the talk alone, or brings it back.

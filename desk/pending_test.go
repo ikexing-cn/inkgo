@@ -145,9 +145,16 @@ func TestShotPending(t *testing.T) {
 	a.write.pendOpen = false
 	a.doc.hidden = true
 	shot("titlebar-pane-hidden.png")
-	a.write.moreOpen = true
-	shot("toolbar-more.png")
-	a.write.moreOpen = false
+	for _, name := range []string{"文件", "编辑", "视图", "帮助"} {
+		a.menu = menuState{owner: barKey + name, drop: true, seen: true}
+		shot("titlebar-menu-" + name + ".png")
+	}
+	a.menu = menuState{}
+	a.sideHidden = true
+	shot("titlebar-side-hidden.png")
+	a.sideHidden, a.write.focus = false, true
+	shot("titlebar-focus.png")
+	a.write.focus = false
 	a.write.ed.Select(17, 26)
 	shot("toolbar-selection.png")
 	tt.SetDark(true)

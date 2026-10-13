@@ -36,7 +36,7 @@ function titlebar() {
       (on ? `<div class="pop menu-pop" data-k="${id}">${rows()}</div>` : '') + '</div>'
   }
   const sideWord = S.sideOpen ? '收起侧栏' : '展开侧栏'
-  return '<div class="titlebar">' +
+  return '<div class="titlebar" data-k="titlebar">' +
     `<button class="icon-btn muted${inBook ? '' : ' off'}" aria-label="${sideWord}" title="${sideWord}"${onClick(inBook ? () => set({ sideOpen: !S.sideOpen, ...SHUT }) : null)}>${svg('icon-md', PANEL + path('M9 5v14'))}</button>` +
     menus.map(menu).join('') + WINDOW_BUTTONS + '</div>'
 }
@@ -58,6 +58,8 @@ function toasts() {
   return `<div id="toasts">${shown.map(one).join('')}${rest > 0 ? `<div class="toast-rest">还有 ${rest} 条</div>` : ''}</div>`
 }
 
+// 标题栏和它下面那一块各有名字（data-k）：前面多出一层遮罩（开了菜单、对话框）时它们还是原来那两个，
+// 正文不重建，光标留在原处。
 function view() {
   const focus = S.focus && S.page === 'write'
   const main = { write: () => editor(chapterOf(S.ch)), talk: talkPage, check: checkPage, cats: catsPage }
@@ -67,7 +69,7 @@ function view() {
     `<div class="stage-bar">${button('重新开始', restart)}<div class="anchor left"><div class="btn hit${S.open === 'rare' ? ' soft' : ''}" title="平时不易遇到的情况：出错、作品在软件外被改动"${onClick(() => set({ open: S.open === 'rare' ? '' : 'rare' }))}>少见的情况</div>` +
     (S.open === 'rare' ? `<div class="pop rare-pop" data-k="rare-pop">${rare().map(([label, act]) => menuRow(label, act)).join('')}</div>` : '') + `</div><div class="stage-note">内容为示例。正文可输入，刷新后复原；AI 仅回复固定内容。</div></div>` +
     `<div id="win" class="${dark() ? 'dark' : 'light'}">` + veil() + (focus ? WINDOW_BUTTONS : titlebar()) +
-    '<div class="win-body">' + (S.page === 'shelf' ? shelfPage() : (bare ? '' : sidebar()) + main[S.page]() + (side ? pane() : '')) + '</div>' +
+    '<div class="win-body" data-k="win-body">' + (S.page === 'shelf' ? shelfPage() : (bare ? '' : sidebar()) + main[S.page]() + (side ? pane() : '')) + '</div>' +
     floats() + dialogs() + toasts() + '</div></div>'
 }
 
@@ -106,6 +108,9 @@ root.addEventListener('dragover', (ev) => { const row = nodeAt(ev); if (row) { e
 root.addEventListener('dragleave', (ev) => { const row = ev.target.closest('[data-node]'); if (row) row.classList.remove('over') })
 root.addEventListener('drop', (ev) => { const row = nodeAt(ev); if (row) { ev.preventDefault(); dropOn(dragged, row.dataset.node) } })
 root.addEventListener('dragend', () => { dragged = ''; draw() })
+
+// 按标题栏不拿走正文的光标：开了菜单又收起、点了侧栏的开关，接着打的字还进正文。
+root.addEventListener('mousedown', (ev) => { if (ev.target.closest('.titlebar')) ev.preventDefault() })
 
 // 拖右栏的左边改它的宽度：不窄于 300，不宽过半个窗口。
 root.addEventListener('mousedown', (ev) => {

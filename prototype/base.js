@@ -175,7 +175,7 @@ const ICON = {
 const DOT = '<div class="dot"></div>'
 const HAIR = '<div class="hair"></div>'
 // 菜单开着时铺在下面的一层，点它就收起来。
-const veil = () => (S.open ? `<div class="veil"${onClick(() => set(SHUT))}></div>` : '')
+const veil = () => (S.open ? `<div class="veil" data-k="veil"${onClick(() => set(SHUT))}></div>` : '')
 
 // 输入框。change 拿到的是打完以后的字。
 const typed = (value, change, hint, label, more = '') => `<input class="in" value="${t(value)}" placeholder="${t(hint)}" aria-label="${t(label)}"${onInput(change)}${more}>`
@@ -247,8 +247,11 @@ function patch(old, next) {
 function children(parent, want) {
   const named = new Map()
   for (const c of parent.children) if (keyOf(c)) named.set(keyOf(c), c)
+  const wanted = new Set([...want.childNodes].map(keyOf))
   let at = parent.firstChild
   for (const w of [...want.childNodes]) {
+    // 有名字、这次不要了的先拿掉：后面的留在原处，不用挪到它前面去（挪一下，里面的光标就丢了）。
+    while (at && keyOf(at) && !wanted.has(keyOf(at))) { const gone = at; at = at.nextSibling; gone.remove() }
     const key = keyOf(w)
     let have = null
     if (key) { have = named.get(key) ?? null; named.delete(key) } else if (at && !keyOf(at) && at.nodeName === w.nodeName) have = at

@@ -73,7 +73,7 @@ func TestDraftAChapterFromItsOutline(t *testing.T) {
 	f := &stream{pieces: []string{"雨下了一夜。", "\n她醒了。"}, hold: make(chan struct{})}
 	penWith(a, f)
 	tt.Frame()
-	if err := clickMore(tt, "起草本章"); err != nil {
+	if err := clickMenu(tt, "编辑", "菜单-起草本章"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -129,7 +129,7 @@ func TestDraftOverWhatIsThere(t *testing.T) {
 	a.write.outline = "她醒来。"
 	tt.Frame()
 	for _, want := range []string{draftReplace, draftAppend} {
-		if err := clickMore(tt, "起草本章"); err != nil {
+		if err := clickMenu(tt, "编辑", "菜单-起草本章"); err != nil {
 			t.Fatal(err)
 		}
 		tt.Frame()
@@ -155,7 +155,7 @@ func TestStopADraftKeepsWhatCame(t *testing.T) {
 	penWith(a, f)
 	a.write.outline = "她醒来。"
 	tt.Frame()
-	if err := clickMore(tt, "起草本章"); err != nil {
+	if err := clickMenu(tt, "编辑", "菜单-起草本章"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -236,7 +236,7 @@ func TestRewriteASelection(t *testing.T) {
 	if text, _ := a.Store.SnapshotText(id, snaps[0].Name); text != "她走到井边。井里有光。" {
 		t.Fatalf("snapshot text %q", text)
 	}
-	if err := clickMore(tt, "快照"); err != nil {
+	if err := clickMenu(tt, "文件", "菜单-快照"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

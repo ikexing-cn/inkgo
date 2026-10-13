@@ -7,22 +7,22 @@ import (
 	"writer/shelf"
 )
 
-// clickMore clicks name in the toolbar's 「⋯」.
-func clickMore(tt *ui.Tester, name string) error {
-	if err := tt.Click("更多"); err != nil {
+// clickMenu clicks the row named in a menu of the title bar.
+func clickMenu(tt *ui.Tester, menu, name string) error {
+	if err := tt.Click(barKey + menu); err != nil {
 		return err
 	}
 	tt.Frame()
 	return tt.Click(name)
 }
 
-// The appearance is chosen in 「⋯」, kept on this machine and handed to the
-// window.
+// The appearance is chosen in the menu of views, kept on this machine and
+// handed to the window.
 func TestChooseTheAppearance(t *testing.T) {
 	a, tt, _ := writingFixture(t, "第一版。")
 	var got []string
 	a.Appearance = func(v string) { got = append(got, v) }
-	if err := clickMore(tt, "外观-深色"); err != nil {
+	if err := clickMenu(tt, "视图", "外观-深色"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

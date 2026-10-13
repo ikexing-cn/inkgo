@@ -593,14 +593,10 @@ func (a *App) checkPage(c *ui.Context) {
 	if at < 0 && len(shown) > 0 {
 		at, k.shown = 0, shown[0].f.ID
 	}
-	_, right := a.chromeRoom(c)
 	ui.Row(c).Fill().AlignItems(ui.Stretch).Children(func() {
 		ui.Column(c).Width(360).Shrink(0).FillHeight().Children(func() { a.checkList(c, all, shown) })
 		ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
 		ui.Column(c).Grow(1).Shrink(1).FillHeight().Padding(32, 32, 20, 32).Gap(20).Children(func() {
-			if right > 0 {
-				ui.Box(c).Height(20).Shrink(0)
-			}
 			if at < 0 {
 				a.checkEmpty(c, len(all))
 				return
@@ -615,8 +611,7 @@ func (a *App) checkPage(c *ui.Context) {
 func (a *App) checkList(c *ui.Context, all, shown []checkItem) {
 	t := a.pal.theme
 	k := &a.ck
-	// The page has no top row: its heads hold the window.
-	ui.Column(c).FillWidth().Padding(14, 20, 10, 20).Gap(10).Shrink(0).DragWindow().Children(func() {
+	ui.Column(c).FillWidth().Padding(14, 20, 10, 20).Gap(10).Shrink(0).Children(func() {
 		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, "检查").FontSize(fsTitle).FontWeight(700).Grow(1)
 			a.checkProgress(c)
@@ -834,7 +829,7 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 		a.doc.shown, a.doc.talk, a.doc.fore, a.doc.hidden = it.entry.ID, false, false, false
 		a.savePrefs()
 	}
-	ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Shrink(0).DragWindow().Children(func() {
+	ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Shrink(0).Children(func() {
 		ui.Text(c, it.f.Title).FontSize(fsDialog).FontWeight(700).Grow(1).Shrink(1)
 		ui.Textf(c, "%d / %d", at+1, len(shown)).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Shrink(0)
 		if a.pal.ghost(c, "下一条", ui.Color{}).Disabled(len(shown) < 2).Clicked() {

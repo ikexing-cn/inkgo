@@ -91,6 +91,8 @@ type App struct {
 	failed            string            // the error the last request ended with,
 	fails             int               // and how many times in a row
 	keysOpen          bool              // the shortcuts shown
+	sideHidden        bool              // the author put the sidebar away
+	bar               barState          // what the title bar keeps from frame to frame
 	menu              menuState         // the menu open
 	titled            string            // the window title last set
 	shelved           map[string]bool   // the conversations put out of the list

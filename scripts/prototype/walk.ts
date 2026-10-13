@@ -481,6 +481,10 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await pointAt('编辑'); must(await menuRows() === '撤销- 重做- 查找替换 重命名 续写一句 起草本章', 'the pointer over 编辑 did not open it: ' + await menuRows())
   await pointAt('视图'); must(await menuRows() === '收起侧栏 收起右栏 专注写作', 'the menu of the view reads: ' + await menuRows()); await win('跟随系统'); await pointAt('帮助'); must(await menuRows() === '快捷键…', 'the menu of help reads: ' + await menuRows())
   await key('Escape'); must(!(await has('.menu-pop')), 'Esc left the menu open'); await click('帮助'); await click('帮助'); must(!(await has('.menu-pop')), 'a second click on its name left the menu open')
+  // The title bar gives the caret back: a menu opened and put away, the sidebar's switch, a dialog from a menu, and the prose is typed in still.
+  const penned = (): Promise<boolean> => js(`document.activeElement === proseBox()`)
+  await caret(0, 0); await click('视图'); await key('Escape'); must(await penned(), 'a menu opened and put away took the caret from the prose'); await click('视图'); await click('视图'); must(await penned(), 'a menu shut by its name took the caret from the prose')
+  await click('收起侧栏'); await click('展开侧栏'); must(await penned(), 'the switch of the sidebar took the caret from the prose'); await click('帮助'); await click('快捷键…'); await key('Escape'); must(await penned(), 'a dialog from a menu, shut, did not leave the caret in the prose')
   await click('编辑'); await click('查找替换'); must(await has('[aria-label="查找"]') && !(await has('.menu-pop')), 'the menu did not open the find bar'); await key('Escape')
   await click('编辑'); await click('重命名'); must(await has('.tree-row.naming'), 'the menu did not start naming the chapter'); await key('Escape')
   await caret(0, 0); await text('戊'); must(await unsaved(), 'typing did not mark the chapter'); await win('戊整条街的灯')

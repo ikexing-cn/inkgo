@@ -52,11 +52,24 @@ func TestShelfKeepsTheWorks(t *testing.T) {
 		t.Fatalf("%+v", r)
 	}
 
-	// The sidebar switches straight to another work.
+	// The sidebar switches straight to another work: the one open is listed
+	// first, and the top of the sidebar says its name alone.
 	if err := tt.Click("切换作品"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
+	if r := rows(tt); len(r) != 4 || r[0] != "雨城来信" || r[1] != "测试作品" {
+		t.Fatalf("the menu of works lists %q", r)
+	}
+	kinds := 0
+	for _, s := range tt.Texts() {
+		if s == "网文" {
+			kinds++
+		}
+	}
+	if kinds != 2 {
+		t.Fatalf("the kind of a work is said %d times, not once for each in the menu", kinds)
+	}
 	if err := pick(tt, "测试作品"); err != nil {
 		t.Fatal(err, rows(tt))
 	}

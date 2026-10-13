@@ -215,7 +215,9 @@ func TestShotMenus(t *testing.T) {
 	shot("menu-work.png")
 	shut()
 
-	tt.ClickAt(1229, 56) // the dots over the setting, not the toolbar's
+	if err := tt.Click("更多"); err != nil { // the dots over the setting
+		t.Fatal(err)
+	}
 	shot("menu-pane.png")
 	shut()
 

@@ -9,8 +9,8 @@ import (
 
 func trim(s string) string { return strings.TrimSpace(s) }
 
-// titleHeight is the height of the top row of each pane, which is the
-// window's title bar there. The window buttons fill it (cmd/poc gives the
+// titleHeight is the height of the title bar, and of the top row of each
+// pane under it. The window buttons fill the title bar (cmd/poc gives the
 // window the same title bar height), so their hover covers the whole row.
 const titleHeight = hBar
 
@@ -67,31 +67,36 @@ func (a *App) View(c *ui.Context) {
 		a.savePrefs() // the work reopens on the page it was left on
 	}
 	a.shown = a.page
-	ui.Row(c).Fill().AlignItems(ui.Stretch).Background(a.pal.canvas).Children(func() {
-		if a.sideShown() {
-			a.sidebar(c)
-			ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
+	a.barAct(c)
+	if c.Shortcut(ui.Cmd, ui.KeySlash) {
+		a.keysOpen = true // Esc puts it away, as any dialog
+	}
+	ui.Column(c).Fill().Background(a.pal.canvas).Children(func() {
+		if !a.focused() {
+			a.titleBar(c)
 		}
-		ui.Column(c).Grow(1).Shrink(1).FillHeight().Children(func() {
-			if a.Store == nil || a.page == 2 {
-				// These pages have no top row of their own to hold the window
-				// by.
-				ui.Box(c).Absolute().Top(0).Left(0).Right(0).Height(titleHeight).DragWindow()
+		ui.Row(c).FillWidth().Grow(1).Shrink(1).AlignItems(ui.Stretch).Children(func() {
+			if a.sideShown() {
+				a.sidebar(c)
+				ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
 			}
-			switch {
-			case a.page == 2:
-				a.categories(c)
-			case a.page == 3:
-				a.writing(c)
-			case a.page == pageCheck && a.Store != nil:
-				a.checkPage(c)
-			case a.Store == nil:
-				a.welcome(c)
-			default:
-				a.discussion(c)
-			}
+			ui.Column(c).Grow(1).Shrink(1).FillHeight().Children(func() {
+				switch {
+				case a.page == 2:
+					a.categories(c)
+				case a.page == 3:
+					a.writing(c)
+				case a.page == pageCheck && a.Store != nil:
+					a.checkPage(c)
+				case a.Store == nil:
+					a.welcome(c)
+				default:
+					a.discussion(c)
+				}
+			})
 		})
 	})
+	a.keysHelp(c)
 	if a.sourceOpen && a.source != nil {
 		a.extraction(c)
 	}
@@ -103,30 +108,22 @@ func (a *App) View(c *ui.Context) {
 		if a.write.trashOpen { // the trash is at the foot of every page
 			a.trashView(c)
 		}
+		if a.write.exportOpen { // the menu of files exports from every page
+			a.exportView(c)
+		}
 	}
 	a.toasts(c) // over every dialog
 }
 
+// focused says the prose is shown alone: no title bar, no sidebar, no pane.
+func (a *App) focused() bool { return a.Store != nil && a.page == 3 && a.write.focus }
+
 // sideShown says whether the sidebar is on screen.
-func (a *App) sideShown() bool { return a.Store != nil && !(a.page == 3 && a.write.focus) }
+func (a *App) sideShown() bool { return a.Store != nil && !a.sideHidden && !a.focused() }
 
 // paneShown says whether the right pane is on screen.
 func (a *App) paneShown() bool {
 	return a.Store != nil && (a.page == 0 || a.page == 3 && !a.write.focus) && !a.doc.hidden
-}
-
-// chromeRoom is the room the window controls take at the ends of the top
-// row of the main column: the macOS lights when no sidebar is left of it,
-// the Windows buttons when no pane is right of it.
-func (a *App) chromeRoom(c *ui.Context) (left, right float32) {
-	bar := c.TitleBar()
-	if !a.sideShown() {
-		left = bar.Left
-	}
-	if !a.paneShown() {
-		right = bar.Right
-	}
-	return left, right
 }
 
 // sessionParts splits a session title into its date and its words.
@@ -147,30 +144,35 @@ func (a *App) sidebar(c *ui.Context) {
 		width = 60
 	}
 	busy := a.busy != ""
-	ui.Column(c).Width(width).FillHeight().Background(a.pal.side).Padding(0, 10, 14, 10).Gap(2).Shrink(0).Children(func() {
-		a.sideChrome(c, slim, width)
+	ui.Column(c).Width(width).FillHeight().Background(a.pal.side).Shrink(0).Children(func() {
 		work := a.Store.Work()
-		head := ui.ButtonBase(c).Row().FillWidth().AlignItems(ui.Center).Gap(10).Padding(4, 8).Radius(rControl).Label("切换作品").Tooltip("切换作品").Disabled(busy)
-		if head.Hovered() || a.menuOpen("作品") {
-			head.Background(t.SurfaceHover)
-		}
-		head.Children(func() {
-			ui.Box(c).Size(26, 26).Radius(rControl).Background(a.pal.ink).Center().Shrink(0).Children(func() {
-				ui.Text(c, string([]rune(work.Name + " ")[:1])).FontSize(fsControl).Bold().TextColor(a.pal.onInk)
-			})
-			if !slim {
-				ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
-					ui.Text(c, work.Name).FontSize(fsBody).FontWeight(600).SingleLine().Ellipsis("…")
-					ui.Text(c, work.Genre).FontSize(fsSmall).TextColor(t.TextMuted).SingleLine()
-				})
-				glyph(c, icChevronDown, iconSm, a.pal.faint)
+		var head ui.Element
+		// The work, on a row of its own as high as the toolbar beside it.
+		top := ui.Row(c).FillWidth().Height(titleHeight).Padding(0, 10).AlignItems(ui.Center).Shrink(0)
+		top.Children(func() {
+			head = ui.ButtonBase(c).Row().Height(hControlSm).AlignItems(ui.Center).Gap(8).Padding(0, 6, 0, 10).Radius(rControl).Shrink(1).
+				Label("切换作品").Tooltip("切换作品").Disabled(busy)
+			if head.Hovered() || a.menuOpen("作品") {
+				head.Background(t.SurfacePressed)
 			}
+			head.Children(func() {
+				ui.Box(c).Size(hTag, hTag).Radius(rXs).Background(a.pal.ink).Center().Shrink(0).Children(func() {
+					ui.Text(c, string([]rune(work.Name + " ")[:1])).FontSize(fsSmall).FontWeight(600).TextColor(a.pal.onInk)
+				})
+				if !slim {
+					ui.Text(c, work.Name).FontSize(fsBody).FontWeight(600).Shrink(1).SingleLine().Ellipsis("…")
+					glyph(c, icChevronDown, iconSm, a.pal.faint)
+				}
+			})
 		})
 		var chosen func()
 		a.dropMenu(c, head, "作品", func(panel ui.Element) {
-			// As wide as the head it hangs from, where that is wide enough.
-			panel.Margin(4, 0, 0, 0).Width(max(head.Bounds().W, menuWide))
+			// As wide as the row it hangs under, where that is wide enough.
+			panel.Margin(4, 0, 0, 0).Width(max(top.Bounds().W-20, menuWide))
 		}, func(m *menu) {
+			// The work open first, marked; each with what kind it is.
+			m.Head("作品")
+			m.Item(work.Name).Hint(work.Genre).On(true).Chosen()
 			n := 0
 			for _, b := range a.shelf.Recent() {
 				if sameFolder(b.Path, a.Store.Root()) {
@@ -179,115 +181,79 @@ func (a *App) sidebar(c *ui.Context) {
 				if n == 5 {
 					break
 				}
-				if n == 0 {
-					m.Head("切换作品")
-				}
 				n++
 				path := b.Path
 				if m.Item(b.Name).Hint(b.Genre).Disabled(a.books.missing[path]).Chosen() {
 					chosen = func() { a.switchWork(path) }
 				}
 			}
-			if n > 0 {
-				m.Separator()
-			}
+			m.Separator()
 			if m.Item("新建作品…").Chosen() {
 				chosen = a.openCreate
 			}
 			if m.Item("全部作品…").Chosen() {
 				chosen = a.closeWork
 			}
-			if m.Item("快捷键…").Hint(modKey + "/").Chosen() {
-				a.keysOpen = true
-			}
 		})
-		if c.Shortcut(ui.Cmd, ui.KeySlash) {
-			a.keysOpen = true // Esc puts it away, as any dialog
-		}
-		a.keysHelp(c)
 		if chosen != nil {
 			chosen()
 			if a.Store == nil {
 				return
 			}
 		}
-		ui.Box(c).Height(8)
-		a.navItem(c, icChat, "讨论", 0, slim, 0)
-		a.navItem(c, icBook, "正文", 3, slim, 0)
-		a.navItem(c, icDone, "检查", pageCheck, slim, len(a.checkItems(false)))
-		a.navItem(c, icTag, "作品分类", 2, slim, 0)
-		ui.Box(c).Height(20)
-		defer a.sideFoot(c, slim)
-		if a.page == 3 {
-			a.chapterTree(c)
-			return
-		}
-		if slim {
-			if iconButton(c, icPlus, "新对话", ui.Color{}).Disabled(busy).Clicked() {
-				a.newSession()
-			}
-			ui.Spacer(c)
-			return
-		}
-		ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(0, 4, 6, 10).Children(func() {
-			ui.Text(c, "总讨论").FontSize(fsNote).TextColor(t.TextMuted).Grow(1)
-			if iconButton(c, icPlus, "新对话", ui.Color{}).Disabled(busy).Clicked() {
-				a.newSession()
-			}
-		})
-		ui.Scroll(c).Key("sessions").FillWidth().Grow(1).Gap(2).Children(func() {
-			put := 0
-			for n := len(a.sessions) - 1; n >= 0; n-- {
-				id := a.sessions[n]
-				if a.shelved[id] {
-					put++
-					if !a.showShelved && id != a.session {
-						continue
-					}
-				}
-				a.sessionItem(c, id)
-			}
-			if put > 0 {
-				label := fmt.Sprintf("已收起 %d 段对话", put)
-				if a.showShelved {
-					label = "不显示收起的对话"
-				}
-				if a.pal.ghost(c, label, ui.Color{}).Label("收起的对话").Margin(6, 0, 0, 4).Clicked() {
-					a.showShelved = !a.showShelved
-				}
-			}
-		})
+		a.pal.hairline(c)
+		ui.Column(c).FillWidth().Grow(1).Padding(12, 10, 14, 10).Gap(2).Children(func() { a.sideBody(c, slim) })
 	})
 }
 
-// sideChrome is the top row of the sidebar, which is the window's title bar
-// there: it holds the window, leaves room for the macOS lights, and goes
-// back and forth between the chapters opened.
-func (a *App) sideChrome(c *ui.Context, slim bool, width float32) {
-	bar := c.TitleBar()
-	// One column, so the sidebar's gap does not part the line from the row.
-	ui.Column(c).Width(width).Margin(0, 0, 12, -10).Shrink(0).Children(func() {
-		a.sideRow(c, slim, bar)
-		ui.Box(c).FillWidth().Height(1).Background(a.pal.line)
+// sideBody is the sidebar under the work: the pages, and what the page
+// shown lists.
+func (a *App) sideBody(c *ui.Context, slim bool) {
+	t := a.pal.theme
+	busy := a.busy != ""
+	a.navItem(c, icChat, "讨论", 0, slim, 0)
+	a.navItem(c, icBook, "正文", 3, slim, 0)
+	a.navItem(c, icDone, "检查", pageCheck, slim, len(a.checkItems(false)))
+	a.navItem(c, icTag, "作品分类", 2, slim, 0)
+	ui.Box(c).Height(20)
+	defer a.sideFoot(c, slim)
+	if a.page == 3 {
+		a.chapterTree(c)
+		return
+	}
+	if slim {
+		if iconButton(c, icPlus, "新对话", ui.Color{}).Disabled(busy).Clicked() {
+			a.newSession()
+		}
+		ui.Spacer(c)
+		return
+	}
+	ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(0, 4, 6, 10).Children(func() {
+		ui.Text(c, "总讨论").FontSize(fsNote).TextColor(t.TextMuted).Grow(1)
+		if iconButton(c, icPlus, "新对话", ui.Color{}).Disabled(busy).Clicked() {
+			a.newSession()
+		}
 	})
-}
-
-func (a *App) sideRow(c *ui.Context, slim bool, bar ui.TitleBar) {
-	row := ui.Row(c).Height(titleHeight).FillWidth().Padding(0, 12, 0, max(20, bar.Left)).Gap(2).AlignItems(ui.Center).Shrink(0).DragWindow()
-	row.Children(func() {
-		if slim {
-			return
+	ui.Scroll(c).Key("sessions").FillWidth().Grow(1).Gap(2).Children(func() {
+		put := 0
+		for n := len(a.sessions) - 1; n >= 0; n-- {
+			id := a.sessions[n]
+			if a.shelved[id] {
+				put++
+				if !a.showShelved && id != a.session {
+					continue
+				}
+			}
+			a.sessionItem(c, id)
 		}
-		if bar.Left > 0 {
-			ui.Spacer(c) // after the lights, the buttons keep to the pane's edge
-		}
-		w := &a.write
-		// From another page, the step is taken as the writing page opens.
-		if iconButton(c, icBack, "上一个打开的章节", ui.Color{}).Disabled(len(w.back) == 0).Clicked() {
-			a.step(-1)
-		}
-		if iconButton(c, icForward, "下一个打开的章节", ui.Color{}).Disabled(len(w.forward) == 0).Clicked() {
-			a.step(1)
+		if put > 0 {
+			label := fmt.Sprintf("已收起 %d 段对话", put)
+			if a.showShelved {
+				label = "不显示收起的对话"
+			}
+			if a.pal.ghost(c, label, ui.Color{}).Label("收起的对话").Margin(6, 0, 0, 4).Clicked() {
+				a.showShelved = !a.showShelved
+			}
 		}
 	})
 }
