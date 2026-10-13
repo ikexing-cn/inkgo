@@ -80,6 +80,7 @@ type writeView struct {
 
 	renaming, title string
 	titleWas        string // the name kept when the title is left empty
+	titleHeld       bool   // the box for the title has had the caret: losing it settles the name
 	focus           bool   // the page alone, without the tree and the column
 	finding         bool
 	query, with     string
@@ -1391,14 +1392,41 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 	w := &a.write
 	on := n.ID == w.node
 	if w.renaming == n.ID {
-		ui.Row(c).Key("r-"+n.ID).FillWidth().AlignItems(ui.Center).Gap(4).Padding(2, 4, 2, 8+float32(depth)*14).Children(func() {
-			in := ui.TextInput(c, &w.title).Label("章节标题").Placeholder(w.titleWas).Grow(1).AutoFocus()
-			if in.Submitted() || iconButton(c, icCheck, "确定标题", ui.Color{}).Clicked() {
-				a.rename(n.ID)
+		// The row stays a row, its icon and indent where they are, and the
+		// name is a box to type in. Enter settles it, and so does leaving the
+		// box; Esc leaves the name as it was.
+		row := ui.Row(c).Key("r-"+n.ID).FillWidth().Height(hRow).AlignItems(ui.Center).Padding(0, 10, 0, 10+float32(depth)*20).Radius(rControl)
+		if on {
+			row.Background(t.SurfacePressed)
+		}
+		row.Children(func() {
+			if n.Folder {
+				s := icChevronDown
+				if w.folded[n.ID] {
+					s = icChevron
+				}
+				glyph(c, s, iconXs, t.Text)
+			} else {
+				glyph(c, nodeIcon(n), iconSm, t.Text)
 			}
-			if in.Shortcut(0, ui.KeyEscape) {
-				w.renaming = ""
-			}
+			// The box gives the row's gap of 6 back as its border and padding,
+			// so the words in it stand where the names of the other rows do.
+			ui.Row(c).Grow(1).Shrink(1).Height(hRow-6).AlignItems(ui.Center).Padding(0, 6-1).Radius(rXs).Background(a.pal.canvas).Border(1, a.pal.ink).Children(func() {
+				in := ui.TextInputBase(c, &w.title).Label("章节标题").Placeholder(w.titleWas).Grow(1).Shrink(1).FontSize(fsControl).AutoFocus()
+				switch {
+				case in.Shortcut(0, ui.KeyEscape):
+					w.renaming, w.titleHeld = "", false
+				case in.Submitted():
+					// Named, the open chapter is written: the caret goes to the prose.
+					if a.rename(n.ID); on && w.ed != nil {
+						w.ed.Focus()
+					}
+				case w.titleHeld && !in.Focused():
+					a.rename(n.ID)
+				case in.Focused():
+					w.titleHeld = true
+				}
+			})
 		})
 		return
 	}
@@ -1536,7 +1564,7 @@ func (a *App) rename(id string) {
 	if rest, ok := strings.CutPrefix(w.title, w.offered); ok && w.offered != "" && numbered.MatchString(trim(rest)) {
 		w.title = rest
 	}
-	w.offered = ""
+	w.offered, w.titleHeld = "", false
 	err := a.Store.RenameChapter(id, trim(w.title))
 	if err == nil {
 		w.renaming = ""
@@ -1590,6 +1618,10 @@ func (a *App) newNode(folder bool) {
 	}
 	a.openNode(id)
 	w.renaming, w.title, w.titleWas, w.offered = id, typed, title, typed
+	// The name comes first: the caret is in its box, not in the empty prose.
+	if w.ed != nil {
+		w.ed.Unfocus()
+	}
 }
 
 // wordsIn is a chapter's count, or for a folder all its chapters' together.

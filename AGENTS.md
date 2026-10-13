@@ -29,18 +29,11 @@ npm run verify-notes
 
 1. 新的界面功能都以原型为基准：布局、色值、字号、文案、交互照它来；和现有代码冲突时先说出来，不要自己决定以哪边为准。
 2. 原型里没有的界面功能，先在原型里做出来给作者看，确认后再开始写代码。
-3. 改完原型跑 `npm run verify-prototype`（要本机有 Edge 或 Chrome）：先查下面第 4 条的规则，再在浏览器里把每个动作点一遍；加 `SHOT=<目录>` 会存下每一步的截图。动作或文案变了，`scripts/prototype/walk.ts` 里的步骤跟着改。平时碰不到的情况（出错的、软件外面动了稿子的）放进窗口上面「少见的情况」那个菜单，点一下就能摆出来看。
-4. 颜色、字号、圆角、阴影、行距、图标大小、控件高度、禁用透明度只写名字，不写数字；间距只用 `desk/tokens.css` 里 `--space`、`--space-board` 刻度上的数，半透明只用 `--alpha` 刻度上的数，和别的东西对齐的距离写成算式：
-   - 原型写 `var(--…)`，名字都在 `desk/tokens.css`，全仓库只有这一份。
-   - 代码用 `desk/theme.go` 里的同名常量（`fsBody`、`rControl`、`lhBody`、`iconMd`、`hControl`、`opacityDisabled`）和调色板里的阴影、遮罩（`a.pal.pop.on(e)`、`a.pal.scrim`）。`go test ./desk` 会核对常量和 `desk/tokens.css` 是否一致，并且检查界面代码里有没有直接写 `FontSize`、`Radius`、`LineHeight`、`glyph` 大小、按钮高度的数字、`ui.RGBA(` 或 `Shadow(`，`Padding`、`Gap`、`Margin` 和透明度的数在不在刻度上。
-   - 要加一级，先在 `desk/tokens.css` 里加，再在 `desk/theme.go` 里加同名常量。
-5. 一排按钮靠右，主按钮在最右：「取消」之类次要的在它左边，文字样式的操作（「今日不再提醒」「复制详情」）在更左。对话框、浮层、提示条、卡片都一样。只有三种不这样：
-   - 空页正中那一段的按钮，跟着那段话居中，主按钮仍在右；
-   - 跟在一句话后面的行内链接（「查看原文」「更改」），跟着那句话；
-   - 不做决定的那一个（「稍后再说」）可以单独留在最左，和其余的分开。
-
-   两边都有检查，不靠人看：`npm run verify-prototype` 每点一下就把窗口里的按钮行都量一遍；`go test ./desk`（`TestButtonsAtTheRight`）查界面代码里以按钮开头的 `ui.Row` 写没写 `Justify(ui.End)`、主按钮后面有没有别的按钮。
-6. 原来的设计稿在 Design artifact <https://claude.ai/artifact/RAP7UK4pSfnGArETpVtPSj>，只作存档：不再更新，也不以它为准。
+3. 改完原型跑 `npm run verify-prototype`（要本机有 Edge 或 Chrome）：先查 `DESIGN.md` 里数值的规则，再在浏览器里把每个动作点一遍；加 `SHOT=<目录>` 会存下每一步的截图。动作或文案变了，`scripts/prototype/walk.ts` 里的步骤跟着改。平时碰不到的情况（出错的、软件外面动了稿子的）放进窗口上面「少见的情况」那个菜单，点一下就能摆出来看。
+4. 界面的规范在 `DESIGN.md`（数值只写名字、按钮靠右、就地输入、标签页和保存、文案……），动界面之前先读，写的时候照它来：
+   - 它和原型对不上，以它为准，改原型。
+   - 作者提了一条不只管一处的要求，先写进 `DESIGN.md`，再改原型和代码，同一次提交；能自动查的加检查，并在那条规则下面写明谁在查。
+5. 原来的设计稿在 Design artifact <https://claude.ai/artifact/RAP7UK4pSfnGArETpVtPSj>，只作存档：不再更新，也不以它为准。
 
 ## 重要改动必须留笔记
 

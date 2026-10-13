@@ -116,13 +116,15 @@ body { margin: 0; }
 .nav .count { font-size: var(--fs-small); color: var(--faint); font-weight: 400; }
 .tree-head { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 24px 10px 8px; font-size: var(--fs-note); color: var(--muted); }
 .tree-head-buttons { display: flex; align-items: center; gap: 2px; }
-.tree-head-buttons > button { all: unset; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: var(--r-control); cursor: pointer; }
+.tree-head-buttons > button { all: unset; width: var(--h-control-sm); height: var(--h-control-sm); display: flex; align-items: center; justify-content: center; border-radius: var(--r-control); cursor: pointer; }
 .tree-head-buttons > button:hover { background: var(--active); }
 .tree-row { flex: none; height: var(--h-row); display: flex; align-items: center; gap: 6px; padding: 0 10px; border-radius: var(--r-control); font-size: var(--fs-control); }
 .tree-row:hover { background: var(--hover); }
 .tree-row.deep { padding-left: calc(10px + 20px); color: var(--muted); } /* 行的内边距，加一级缩进 */
 .tree-row.on { background: var(--active); color: var(--ink); font-weight: 600; }
-.tree-row.naming { background: var(--bg); outline: 1px solid var(--ink); outline-offset: -1px; }
+/* 改名字时这一行不动，名字那一段换成一个框；框往左让出它自己的内边距，里面的字就和别的行的名字对齐 */
+.tree-row.naming { font-weight: 400; }
+.tree-row.naming .in { height: calc(var(--h-row) - 6px); box-sizing: border-box; margin-left: calc(0px - 6px); padding: 0 6px; border-radius: var(--r-xs); background: var(--bg); color: var(--ink); outline: 1px solid var(--ink); outline-offset: -1px; }
 .tree-row .count { font-size: var(--fs-small); color: var(--faint); font-weight: 400; }
 .backup-line { height: var(--h-control-sm); display: flex; align-items: center; gap: 8px; padding: 0 10px 0 14px; border-radius: var(--r-control); font-size: var(--fs-note); color: var(--faint); }
 .backup-line:hover { background: var(--hover); }
@@ -325,7 +327,7 @@ body { margin: 0; }
 .send { flex: none; color: var(--on-ink); width: var(--h-control-sm); height: var(--h-control-sm); border-radius: var(--r-round); background: var(--ink); display: flex; align-items: center; justify-content: center; }
 .attach-line { display: flex; align-items: center; gap: 6px; font-size: var(--fs-note); color: var(--muted); }
 .attach { display: flex; align-items: center; gap: 6px; }
-.check { flex: none; color: var(--on-ink); width: var(--icon-sm); height: var(--icon-sm); box-sizing: border-box; border-radius: var(--r-xs); border: 1px solid var(--control); display: flex; align-items: center; justify-content: center; }
+.check { flex: none; color: var(--on-ink); width: var(--icon-md); height: var(--icon-md); box-sizing: border-box; border-radius: var(--r-xs); border: 1px solid var(--control); display: flex; align-items: center; justify-content: center; }
 .check.on { background: var(--ink); border-color: var(--ink); }
 .model { display: flex; align-items: center; gap: 4px; font-size: var(--fs-note); color: var(--faint); }
 .model-pop { width: 220px; }

@@ -159,7 +159,7 @@ func TestNoLiteralSizes(t *testing.T) {
 }
 
 // Buttons stand at the right of their row, the one that goes ahead last:
-// AGENTS.md has it as a rule of the design. A row that begins with a button
+// DESIGN.md has it as a rule. A row that begins with a button
 // has nothing before it to push it there, so it must say Justify(ui.End). No
 // button stands left of a spacer, but for the one that decides nothing (as
 // "稍后再说"), alone there; and no lesser button comes after the main one.

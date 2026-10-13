@@ -14,7 +14,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   const pane = reads('#pane'), win = reads('#win')
   const MORE = '续写、起草、快照、导出和外观' // the toolbar's "more" button, by its title
   const must = (ok: boolean, words: string) => { if (!ok) throw new Error(words) }
-  // Buttons stand at the right of their row, the one that goes ahead last: AGENTS.md has it as a rule of the design.
+  // Buttons stand at the right of their row, the one that goes ahead last: DESIGN.md has it as a rule.
   // After every click, each row that holds a button is looked at; what is found is told at the end, all at once.
   const loose = new Set<string>()
   const LOOSE = `(() => {
@@ -302,7 +302,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await win('从一个想法开始'); await win('API key 保存在系统钥匙串中，不会写入作品文件夹。'); await shot('81-empty-shelf'); await click('新建作品'); await click('取消'); await click('重新开始'); await win('第87章：停电'); await win('已备份 · 今天 10:32'); await done('an empty shelf, and start over')
 
   // A volume as a page: its outline, what it holds, a chapter made in it.
-  await outline('第二卷：旧城'); await win('1 项'); await win('本卷 14.1 万字'); await type('卷纲', '林晚回到旧城，找到那把钥匙。'); await click('在此新建章节'); await key('Enter'); await win('第47章：新章节'); await win('满 200 字后可检查')
+  await outline('第二卷：旧城'); await win('1 项'); await win('本卷 14.1 万字'); await type('卷纲', '林晚回到旧城，找到那把钥匙。'); await click('在此新建章节'); await key('Enter'); await win('第47章'); await win('第47章：', false); await win('满 200 字后可检查')
   await click('第二卷：旧城', 1); await win('2 项'); must((await value('卷纲')) === '林晚回到旧城，找到那把钥匙。', 'the outline of the volume is lost'); await pane('附上本卷内容', false); await click('讨论', 1); await click('新讨论'); await pane('附上本卷内容'); await click('全部讨论'); await click('设定'); await shot('82-folder-own'); await done('a volume as a page')
 
   // A short name picked in the prose goes into the setting as it is.
@@ -392,6 +392,35 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('第87章：停电', 1); await caret(0, 0); await key('Enter'); must((await drawn('她往前走了一步。')) === 'doubt', 'a paragraph more above lost what the check found')
   await click('新建章节（Ctrl+N）'); await key('Enter'); await win('在此开始写作…'); await caret(0, 0); await text('雨停了'); await win('在此开始写作…', false); await win('本章 3 字'); await key('Enter'); await text('她'); must((await paras()) === 2, 'the second paragraph of a new chapter'); await win('本章 4 字')
   await key('j', true); await sleep(900); must(await js(`!document.querySelector('.prose[contenteditable]')`), 'the prose takes typing while a sentence waits to be taken'); await key('Escape'); must(await js(`!!document.querySelector('.prose[contenteditable]')`), 'the prose does not take typing again'); await done('typing')
+
+  // The name of a new chapter: its row stays a row, the number is offered with the name left to type, and leaving
+  // the box settles it as Enter does.
+  const naming = (): Promise<{ value: string, from: number, to: number, row: string, pic: boolean, off: number, high: number } | null> => js(`(() => {
+    const i = document.querySelector('.tree-row.naming .in'), other = [...document.querySelectorAll('.tree-row.deep:not(.naming) .fit')].at(-1)
+    return i && { value: i.value, from: i.selectionStart, to: i.selectionEnd, row: i.parentElement.className, pic: !!i.parentElement.querySelector('svg'), off: i.getBoundingClientRect().left + parseFloat(getComputedStyle(i).paddingLeft) - other.getBoundingClientRect().left, high: i.parentElement.offsetHeight - other.parentElement.offsetHeight }
+  })()`)
+  await click('重新开始'); await click('第87章：停电'); await click('新建章节（Ctrl+N）')
+  let box = await naming()
+  must(!!box && box.value === '第88章：' && box.from === 5 && box.to === 5, 'a new chapter is not offered its number, the name left to type: ' + JSON.stringify(box))
+  must(box!.pic && box!.row.includes('deep') && Math.abs(box!.off) < 1 && box!.high === 0, 'the box for the name is not in line with the other rows: ' + JSON.stringify(box)); await shot('99c-naming')
+  const inProse = await js(`(() => { const r = document.querySelector('.prose').getBoundingClientRect(); return [r.x + 40, r.y + 10] })()`) as [number, number]
+  await text('雨停'); await drag(inProse, inProse); must(!(await naming()), 'leaving the box did not settle the name'); await win('第88章：雨停')
+  await click('新建章节（Ctrl+N）'); await click('第84章：刻字'); must(!(await naming()), 'a click on another row did not settle the name'); await win('第89章')
+  must(await js(`document.querySelector('.sheet.on').innerText.includes('刻字')`), 'the click that settled the name did not open the row it was on')
+  await rclick(...(await row('第88章：雨停'))); await click('重命名'); box = await naming()
+  must(!!box && box.value === '第88章：雨停' && box.from === 0 && box.to === 7, 'renaming does not start with the whole name picked: ' + JSON.stringify(box))
+  await key('Escape'); must(!(await naming()), 'Esc left the box open'); await win('第88章：雨停')
+  await click('新建章节（Ctrl+N）'); await key('Enter'); must(await js(`document.activeElement.matches('.prose')`), 'named with Enter, the new chapter does not take the caret')
+  await click('新建文件夹'); box = await naming(); must(!!box && box.value === '新文件夹' && box.from === 0 && box.to === 4, 'a new folder is not offered a name to type over: ' + JSON.stringify(box)); await key('Enter'); await done('naming in the tree')
+
+  // Closing a tab whose words are not saved asks first; the saving that comes by itself waits for the answer.
+  const shutOn = () => js(`document.querySelector('.sheet.on .sheet-x').click()`)
+  const asked = '保存对「第84章：刻字」的修改？'
+  await click('重新开始'); await click('第84章：刻字'); await caret(0, 0); await text('甲乙'); await shutOn(); await win(asked); await win('不保存将丢失上次保存后的修改。'); await shot('99d-unsaved')
+  await sleep(1800); must(await unsaved(), 'the chapter saved itself while the question was open'); await click('取消'); await win(asked, false); must(await unsaved(), 'not closing lost that the chapter is unsaved'); await win('甲乙巷口那盏灯又坏了')
+  await shutOn(); await click('不保存'); await win(asked, false); must(await js(`!document.querySelector('.sheet.on') || !document.querySelector('.sheet.on').innerText.includes('刻字')`), 'the tab is still open'); await click('第84章：刻字'); await win('甲乙巷口', false); must(!(await unsaved()), 'the chapter put back is said not to be saved')
+  await caret(0, 0); await text('丙'); await shutOn(); await click('保存'); await click('第84章：刻字'); await win('丙巷口那盏灯又坏了'); must(!(await unsaved()), 'the chapter saved on closing is said not to be saved')
+  await caret(0, 0); await text('丁'); await sleep(1800); await shutOn(); await win(asked, false); await done('closing with words not saved')
 
   // The sidebar puts away, and the bar brings it back.
   await click('重新开始'); await click('收起侧栏'); must(!(await js(`!!document.querySelector('.sidebar')`)), 'the sidebar is still there'); await win('第87章：停电'); await shot('99b-no-sidebar'); await click('第84章：刻字').then(() => { throw new Error('the tree is still clickable') }, () => {})

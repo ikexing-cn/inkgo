@@ -3,7 +3,7 @@
 
 // ───────── 状态 ─────────
 
-const titleOf = (c) => (c.vol ? '第' + c.no + '章：' + c.t : c.t)
+const titleOf = (c) => (c.vol ? '第' + c.no + '章' + (c.t ? '：' + c.t : '') : c.t)
 const chapterOf = (key) => S.chapters.find((c) => c.key === key)
 const clip = (text, n) => (text.length > n ? text.slice(0, n) + '…' : text)
 // 一章有多少字。书里带来的章写着（假的）字数，新写的照实数。
@@ -46,9 +46,10 @@ function fresh(book = BOOK.shelf[0].id) {
     named: null, // 设定里改了名字，正文里还留着旧名：{ was, now, n }
     tidying: false, // AI 正在后台把刚聊的整理进设定
     saved: true, // 正文存了没有
+    kept: null, // 没存的时候，存着的那一份：{ key, paras, dirty, summaries }。关标签页选「不保存」就回到它
     undo: {}, // 每章打字前的样子：{ back, fwd }，各是几份 paras，撤销和重做用
     outside: '', // 软件外面动了开着的这一章：changed 改过、lost 找不到了
-    rename: null, // 侧栏里正在改名字的：{ key, t }
+    rename: null, // 侧栏里正在改名字的：{ key, t, all }。all 是一开始把字全选上，打字就整个换掉
     tree: null, // 右键点出来的菜单：{ key, x, y }；talk 是侧栏里的一段讨论，tab 是一个标签页，都不是就是章节树里的一行
     todoAll: true, more: {}, ignored: [], // 待处理：看全部还是本章、哪几组展开了、忽略掉的
     kind: '全部', cid: null, checking: false, dirty: {}, // 检查：看哪一类、哪一条、正在查哪一章、哪几章查过以后又改了
@@ -70,12 +71,20 @@ const timers = new Set()
 let saving = 0 // 停笔后自己存的那一下；又打了字就从头等
 let composing = false, owed = false // 拼音正在选字：这时不重画，免得把没选完的字冲掉；owed 是欠着的一遍
 
+// 停笔片刻自己存；又打了字就从头等。正问着「存不存」的时候不存，接着等。
+function autosave() {
+  clearTimeout(saving); timers.delete(saving)
+  saving = later(1500, () => (S.dialog && S.dialog.kind === 'unsaved' ? autosave() : set((s) => (s.saved ? null : { saved: true }))))
+}
+
 // change 是要改的那几项，或者一个看着现在的状态算出它们的函数；返回空就什么都不变。
 function set(change) {
   const next = typeof change === 'function' ? change(S) : change
   if (!next) return
+  const was = S
   S = { ...S, ...next }
-  if (next.saved === false) { clearTimeout(saving); timers.delete(saving); saving = later(1500, () => set((s) => (s.saved ? null : { saved: true }))) } // 停笔片刻自己存
+  if (next.saved === false && was.saved) { const c = was.chapters.find((c) => c.key === S.ch); S.kept = c ? { key: c.key, paras: c.paras, dirty: was.dirty, summaries: was.summaries } : null } // 存着的那一份留一下
+  if (next.saved === false) autosave()
   draw()
 }
 
@@ -113,7 +122,7 @@ const SHUT = { open: '' }
 // 每画一遍，把这一遍用到的动作记在这里，元素上只留它的号码。
 let H = []
 const hook = (kind) => (fn) => (fn ? ` data-${kind}="${H.push(fn) - 1}"` : '')
-const onClick = hook('click'), onInput = hook('input'), onKey = hook('keydown'), onMenu = hook('menu'), onUp = hook('up'), onOver = hook('over'), onMid = hook('mid'), onPaste = hook('paste')
+const onClick = hook('click'), onInput = hook('input'), onKey = hook('keydown'), onMenu = hook('menu'), onUp = hook('up'), onOver = hook('over'), onMid = hook('mid'), onPaste = hook('paste'), onBlur = hook('blur')
 
 // 书里的字、作者打的字，放进页面前都过一遍。
 const t = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
@@ -219,6 +228,7 @@ const blank = (pic, title, about, more = '') => `<div class="blank"><div class="
 
 const root = document.getElementById('app')
 let born = null // 这一遍新放进页面的、要把光标放进去的输入框
+let drawing = false // 正在换页面：这时输入框被拿掉而丢了光标，不算作者点了别处
 
 // 有 id 或 data-k 的元素认名字，换了位置也还是它；别的按顺序对。
 const keyOf = (n) => (n.nodeType === 1 ? n.id || n.getAttribute('data-k') : null)
@@ -257,10 +267,12 @@ function draw() {
   if (composing) { owed = true; return }
   H = []
   born = null
+  drawing = true
   const want = document.createElement('template')
   want.innerHTML = view()
   children(root, want.content)
-  if (born) { born.focus(); born.setSelectionRange(born.value.length, born.value.length) }
+  if (born) { born.focus(); if (born.hasAttribute('data-all')) born.select(); else born.setSelectionRange(born.value.length, born.value.length) }
+  drawing = false
   for (const talk of document.querySelectorAll('.talk')) talk.scrollTop = talk.scrollHeight // 讨论总是停在最新一句
   const tab = document.querySelector('.sheet.on') // 标签多到排不下时，正在看的那个总在看得见的地方
   if (tab) { const strip = tab.parentElement; strip.scrollLeft = Math.max(tab.offsetLeft + tab.offsetWidth - strip.clientWidth, Math.min(strip.scrollLeft, tab.offsetLeft)) }
@@ -270,6 +282,7 @@ function draw() {
 for (const [event, kind] of [['click', 'click'], ['keydown', 'keydown'], ['contextmenu', 'menu'], ['mouseup', 'up'], ['mouseover', 'over'], ['auxclick', 'mid'], ['paste', 'paste']]) {
   root.addEventListener(event, (ev) => { const el = ev.target.closest(`[data-${kind}]`); if (el) H[el.dataset[kind]](ev) })
 }
+root.addEventListener('focusout', (ev) => { const el = ev.target.closest('[data-blur]'); if (el && !drawing) H[el.dataset.blur](ev) }) // 光标离开了输入框
 root.addEventListener('input', (ev) => { const el = ev.target.closest('[data-input]'); if (el) H[el.dataset.input](el.value) })
 // 在正文里用拼音：选完字才把页面上的读回来。
 root.addEventListener('compositionstart', (ev) => { if (ev.target.closest('.prose')) composing = true })

@@ -34,6 +34,10 @@ func (e *Editor) View(c *ui.Context) ui.Element {
 // Focus gives the editor the keyboard focus in the next frame.
 func (e *Editor) Focus() { e.wantFocus = true }
 
+// Unfocus takes back a Focus not yet acted on. A new editor asks for the
+// focus; one opened beside a field that is to be typed in first leaves it.
+func (e *Editor) Unfocus() { e.wantFocus = false }
+
 // SetEntities sets the names that complete as they are typed.
 func (e *Editor) SetEntities(ents []Entity) {
 	e.opts.Entities = ents

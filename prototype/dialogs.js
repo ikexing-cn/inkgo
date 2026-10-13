@@ -241,6 +241,14 @@ function swapDialog(d) {
     buttons(button('取消', shut), button('确定替换', swapBook, 'primary')))
 }
 
+// 关标签页时那一章还有没存的字：存了再关、不存就关（回到存着的那一份）、或者不关。
+function unsavedDialog(d) {
+  const drop = () => set((s) => (!s.saved && s.kept && s.kept.key === s.ch ? { ...retext(s, s.kept.paras), dirty: s.kept.dirty, summaries: s.kept.summaries } : null))
+  const then = (first) => () => { first(); set({ saved: true, kept: null, dialog: null }); shutTabs(d.gone, true) }
+  return dialog('small', dialogHead('保存对「' + titleOf(chapterOf(S.ch)) + '」的修改？', '不保存将丢失上次保存后的修改。') +
+    buttons(button('不保存', then(drop)), button('取消', shut), button('保存', then(() => {}), 'primary')))
+}
+
 // ───────── 侧栏点出来的几个对话框 ─────────
 
 function binDialog(d) {
@@ -284,5 +292,5 @@ function nameBookDialog(d) {
   return dialog('small', dialogHead('重命名作品') + line(d.name, (v) => set((s) => ({ dialog: { ...s.dialog, name: v } })), '', '新作品名', keys(save) + ' autofocus') + '<div class="note">仅修改作品名，文件夹不变。</div>' + buttons(button('取消', shut), button('保存', save, 'primary')))
 }
 
-const DIALOGS = { backup: backupDialog, settings: settingsDialog, take: takeDialog, source: sourceDialog, draft: draftDialog, snaps: snapsDialog, export: exportDialog, swap: swapDialog, bin: binDialog, keys: keysDialog, newBook: newBookDialog, nameBook: nameBookDialog }
+const DIALOGS = { backup: backupDialog, settings: settingsDialog, take: takeDialog, source: sourceDialog, draft: draftDialog, snaps: snapsDialog, export: exportDialog, swap: swapDialog, unsaved: unsavedDialog, bin: binDialog, keys: keysDialog, newBook: newBookDialog, nameBook: nameBookDialog }
 const dialogs = () => (S.dialog ? DIALOGS[S.dialog.kind](S.dialog) : '')

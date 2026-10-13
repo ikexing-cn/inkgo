@@ -14,9 +14,11 @@ function go(s, key, flash) {
   const at = s.tabs.indexOf(s.ch || s.vol), tabs = s.tabs.includes(key) ? s.tabs : [...s.tabs.slice(0, at + 1), key, ...s.tabs.slice(at + 1)]
   return { page: 'write', ch: ch ? key : '', vol: vol ? key : '', tabs, trail, step: s.trail === trail ? s.step : trail.length - 1, folds: { ...s.folds, [ch ? ch.vol : key]: false }, ...CLEAR, outside: '', flash: flash || null, ...(key === (s.ch || s.vol) ? {} : { saved: true }) }
 }
-// 关掉几个标签页。关的是正看的那个，就换到它右边的，没有就左边的；一个不剩时正文空着。没存的字关之前已经存了。
-const shutTabs = (gone) => set((s) => {
+// 关掉几个标签页。关的是正看的那个，就换到它右边的，没有就左边的；一个不剩时正文空着。
+// 正看的那一章还有没存的字，先问存不存（sure 是已经问过了）。
+const shutTabs = (gone, sure) => set((s) => {
   const tabs = s.tabs.filter((k) => !gone.includes(k)), on = s.ch || s.vol, at = s.tabs.indexOf(on)
+  if (!sure && s.ch && !s.saved && gone.includes(on)) return { dialog: { kind: 'unsaved', gone }, tree: null }
   if (!gone.includes(on)) return { tabs, tree: null }
   const next = s.tabs.slice(at + 1).find((k) => tabs.includes(k)) || s.tabs.slice(0, at).reverse().find((k) => tabs.includes(k))
   return next ? { ...go({ ...s, tabs }, next), saved: true } : { tabs, ch: '', vol: '', step: s.trail.length, ...CLEAR, outside: '', saved: true } // step 停在最后一个之后：‹ 回到刚关掉的那一章
@@ -45,20 +47,24 @@ function newChapter(into) {
     // 开着一章，就建在它后面；开着一卷的卷纲，或者是在树里一卷上右键建的（into 是那一卷），就建在这一卷的末尾。
     const home = typeof into === 'string' ? into : chapterOf(s.ch) ? '' : s.vol
     const cur = home ? s.chapters.filter((c) => c.vol === home).at(-1) : chapterOf(s.ch), key = 'n' + s.n
-    const made = { key, no: cur ? cur.no + 1 : 1, vol: home || (cur ? cur.vol : ''), t: '新章节', c: '', paras: [] }
+    // 卷里的章接着上一章的号：名字先空着，标题就是「第 N 章」，输入框里号后面等着写名字。卷外的叫「新章节」，全选上等着换。
+    const vol = home || (cur ? cur.vol : ''), made = { key, no: cur ? cur.no + 1 : 1, vol, t: vol ? '' : '新章节', c: '', paras: [] }
     const at = cur ? s.chapters.indexOf(cur) + 1 : s.chapters.length
     const chapters = [...s.chapters.slice(0, at), made, ...s.chapters.slice(at)]
-    return { chapters, n: s.n + 1, never: { ...s.never, [key]: true }, ...go({ ...s, chapters }, key), rename: { key, t: made.t } }
+    return { chapters, n: s.n + 1, never: { ...s.never, [key]: true }, ...go({ ...s, chapters }, key), rename: { key, t: vol ? titleOf(made) + '：' : made.t, all: !vol } }
   })
 }
 function newFolder() {
-  set((s) => ({ volumes: [...s.volumes, ['v' + s.n, '新文件夹', '']], n: s.n + 1, tree: null, rename: { key: 'v' + s.n, t: '新文件夹' } }))
+  set((s) => ({ volumes: [...s.volumes, ['v' + s.n, '新文件夹', '']], n: s.n + 1, tree: null, rename: { key: 'v' + s.n, t: '新文件夹', all: true } }))
 }
+// 名字定下来：按了回车，或者光标离开了输入框。空着就还是原来的。卷里的章写成「第 12 章：雨停」，号和名字拆开记。
 function renameNow() {
   set((s) => {
-    const { key, t: title } = s.rename, name = title.trim()
+    if (!s.rename) return null
+    const { key, t: title } = s.rename, name = title.trim().replace(/[：:]$/, '')
     if (!name) return { rename: null }
-    return { rename: null, chapters: s.chapters.map((c) => (c.key === key ? { ...c, t: name } : c)), volumes: s.volumes.map((v) => (v[0] === key ? [key, name, v[2]] : v)) }
+    const named = (c) => { const m = c.vol && /^第\s*(\d+)\s*章\s*[：:]?\s*(.*)$/.exec(name); return m ? { ...c, no: Number(m[1]), t: m[2] } : { ...c, t: name } }
+    return { rename: null, chapters: s.chapters.map((c) => (c.key === key ? named(c) : c)), volumes: s.volumes.map((v) => (v[0] === key ? [key, name, v[2]] : v)) }
   })
 }
 // 上移、下移：和同一层里前一个、后一个换位置。
@@ -509,12 +515,16 @@ const sideButton = () => (S.sideOpen || S.focus ? '' : `<button class="icon-btn"
 function sidebar() {
   const nav = [['讨论', 'chat', 'talk'], ['正文', 'book', 'write'], ['检查', 'checked', 'check'], ['作品分类', 'tag', 'cats']]
   const to = { talk: () => set({ page: 'talk', ...(S.tv === 'all' ? { tid: S.talks[0] ? S.talks[0].id : null, tv: S.talks[0] ? 'one' : 'new' } : {}), ...SHUT }), write: () => set({ page: 'write', ...SHUT }), check: () => set({ page: 'check', ...SHUT }), cats: () => set({ page: 'cats', ...SHUT }) }
-  const naming = (key) => `<div class="tree-row naming" data-k="naming">${typed(S.rename.t, (v) => set({ rename: { key, t: v } }), '章节标题', '章节标题', keys(renameNow, () => set({ rename: null })) + ' autofocus')}</div>`
+  // 改名字的那一行还是那一行：图标、缩进都不动，只是名字换成输入框。回车和光标离开都算定了，Esc 不改。
+  // 回车定的是正开着的那一章，光标接着进正文。
+  const named = (key) => () => { renameNow(); const box = key === S.ch && proseBox(); if (box) box.focus() }
+  const naming = (key, pic, deep) => `<div class="tree-row naming${deep ? ' deep' : ''}${key === S.ch ? ' on' : ''}" data-k="node-${key}">${pic}` +
+    `${typed(S.rename.t, (v) => set((s) => (s.rename ? { rename: { ...s.rename, t: v } } : null)), '', '章节标题', keys(named(key), () => set({ rename: null })) + onBlur(renameNow) + ' autofocus' + (S.rename.all ? ' data-all' : ''))}</div>`
   const menu = (key, talk) => onMenu((ev) => { ev.preventDefault(); const [x, y] = spot(ev.clientX, ev.clientY); set({ tree: { key, x, y, talk } }) })
-  const leaf = (c) => (S.rename && S.rename.key === c.key ? naming(c.key)
-    : `<div class="tree-row hit${c.vol ? ' deep' : ''}${c.key === S.ch ? ' on' : ''}" draggable="true" data-node="${c.key}"${onClick(goTo(c.key))}${menu(c.key)}>${icon('page', 'sm')}<div class="fit ell">${t(titleOf(c))}</div><div class="count">${t(sizeOf(c))}</div></div>`)
-  const volume = ([key, title, count]) => (S.rename && S.rename.key === key ? naming(key)
-    : `<div class="tree-row hit${key === S.vol ? ' on' : ''}" data-node="${key}"${onClick(() => set((s) => ({ folds: { ...s.folds, [key]: !s.folds[key] } })))}${menu(key)}>${icon(S.folds[key] ? 'right' : 'down', 'xs')}<div class="fit ell">${t(title)}</div><div class="count">${t(count)}</div></div>`) +
+  const leaf = (c) => (S.rename && S.rename.key === c.key ? naming(c.key, icon('page', 'sm'), c.vol)
+    : `<div class="tree-row hit${c.vol ? ' deep' : ''}${c.key === S.ch ? ' on' : ''}" draggable="true" data-k="node-${c.key}" data-node="${c.key}"${onClick(goTo(c.key))}${menu(c.key)}>${icon('page', 'sm')}<div class="fit ell">${t(titleOf(c))}</div><div class="count">${t(sizeOf(c))}</div></div>`)
+  const volume = ([key, title, count]) => (S.rename && S.rename.key === key ? naming(key, icon(S.folds[key] ? 'right' : 'down', 'xs'))
+    : `<div class="tree-row hit${key === S.vol ? ' on' : ''}" data-k="node-${key}" data-node="${key}"${onClick(() => set((s) => ({ folds: { ...s.folds, [key]: !s.folds[key] } })))}${menu(key)}>${icon(S.folds[key] ? 'right' : 'down', 'xs')}<div class="fit ell">${t(title)}</div><div class="count">${t(count)}</div></div>`) +
     (S.folds[key] ? '' : listed.filter((c) => c.vol === key).map(leaf).join(''))
   const listed = S.chapters.filter((c) => S.outside !== 'lost' || c.key !== S.ch) // 磁盘上找不到的那一章，树里也没有
   const book = S.shelf.find((b) => b.id === S.book)
@@ -561,7 +571,7 @@ function treeMenu() {
   return `<div class="veil float-veil"${onClick(closeFloat)}${onMenu((ev) => { ev.preventDefault(); closeFloat() })}></div>` +
     `<div class="ctx pop" data-k="tree-menu" style="left:${S.tree.x}px;top:${Math.min(S.tree.y, win.offsetHeight - 240 - (vol ? 30 : 0) - (spots.length ? 26 + spots.length * 30 : 0))}px">` +
     (vol ? menuRow('编辑卷纲', goTo(key)) : '') + // 点一卷只是折起、展开；它的卷纲从这里打开
-    menuRow('重命名', () => set({ tree: null, rename: { key, t: vol ? S.volumes.find((v) => v[0] === key)[1] : c.t } })) + menuRow('新建章节', () => newChapter(vol ? key : undefined)) + menuRow('新建文件夹', newFolder) + HAIR +
+    menuRow('重命名', () => set({ tree: null, rename: { key, t: vol ? S.volumes.find((v) => v[0] === key)[1] : titleOf(c), all: true } })) + menuRow('新建章节', () => newChapter(vol ? key : undefined)) + menuRow('新建文件夹', newFolder) + HAIR +
     menuRow('上移', () => shift(key, -1)) + menuRow('下移', () => shift(key, 1)) +
     (spots.length ? '<div class="pop-label">移到</div>' + spots.map(([label, to]) => menuRow(label, () => moveInto(key, to))).join('') : '') + HAIR +
     menuRow('移到回收站', () => toBin(key)) + '</div>'
@@ -781,7 +791,7 @@ function editor(cur) {
   // AI 正在改、灰字等着采纳的时候不能打字。
   const typing = S.ai ? '' : ` contenteditable="plaintext-only" spellcheck="false" aria-label="正文"${onInput(wrote)}${onKey(proseKey)}${onPaste(pasted)}`
   return '<div class="editor">' + toolbar(cur) + sheets() + (S.find ? findBar(cur) : '') + outsideBar() +
-    `<div class="paper scroll"${onMenu(openMenu)}${onUp(picked)}><div class="column"><div class="chapter-head"><div class="chapter-title">${t(cur.t)}</div>${chapterMore(cur)}</div>` + aiBar() +
+    `<div class="paper scroll"${onMenu(openMenu)}${onUp(picked)}><div class="column"><div class="chapter-head"><div class="chapter-title">${t(cur.t || titleOf(cur))}</div>${chapterMore(cur)}</div>` + aiBar() +
     `<div class="prose-box">${hint}<div class="prose" data-k="prose"${typing}>${paras}</div></div></div></div>` + foot(cur) + '</div>'
 }
 

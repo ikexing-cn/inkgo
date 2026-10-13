@@ -53,6 +53,42 @@ func disk(t *testing.T, a *App, name string) string {
 	return string(b)
 }
 
+// Leaving the box a chapter is named in settles the name, as Enter does;
+// Esc leaves the name as it was.
+func TestLeavingTheNameSettlesIt(t *testing.T) {
+	a, tt, id := writingFixture(t, "整条街的灯是同时灭的。")
+	n, _ := a.write.tree.Node(id)
+	was := n.Title
+	name := func() string {
+		n, _ := a.write.tree.Node(id)
+		return n.Title
+	}
+	rename := func(to string) {
+		t.Helper()
+		id = a.write.node // a chapter is known by its file, which is named after it
+		a.write.renaming, a.write.title, a.write.titleWas, a.write.offered = id, to, name(), ""
+		tt.Frame()
+		tt.Frame()
+		if !tt.Focused("章节标题") {
+			t.Fatal("the box for the name does not have the caret")
+		}
+	}
+	rename("灯灭")
+	a.write.ed.Focus()
+	for range 4 {
+		tt.Frame()
+	}
+	if a.write.renaming != "" || name() != "灯灭" {
+		t.Fatalf("leaving the box did not settle the name: renaming %q, named %q", a.write.renaming, name())
+	}
+	rename("不要这个")
+	tt.Key(0, ui.KeyEscape)
+	tt.Frame()
+	if a.write.renaming != "" || name() != "灯灭" || was == "灯灭" {
+		t.Fatalf("Esc did not leave the name as it was: renaming %q, named %q", a.write.renaming, name())
+	}
+}
+
 // The author makes a chapter, names it and writes: the text is on disk
 // once they pause, with no saving to do.
 func TestWritingSavesAsTheAuthorPauses(t *testing.T) {
@@ -69,13 +105,23 @@ func TestWritingSavesAsTheAuthorPauses(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	a.write.title = "第一章：雨夜"
-	if err := tt.Click("确定标题"); err != nil {
-		t.Fatal(err)
+	// The name is typed in the row itself, which stays as high as the others
+	// and has no button of its own: Enter settles it.
+	if !tt.Focused("章节标题") {
+		t.Fatal("the name of a new chapter is not ready to type")
+	}
+	if box, ok := tt.Find("章节标题"); !ok || box.H > hRow {
+		t.Fatalf("the box for the name is higher than a row: %v", box)
+	}
+	tt.Type("第一章：雨夜")
+	tt.Key(0, ui.KeyEnter)
+	tt.Frame()
+	if !tt.HasText("第一章：雨夜") || a.write.renaming != "" {
+		t.Fatal("the title did not take", tt.Texts())
 	}
 	tt.Frame()
-	if !tt.HasText("第一章：雨夜") {
-		t.Fatal("the title did not take", tt.Texts())
+	if !tt.Focused("正文") {
+		t.Fatal("named, the chapter does not take the caret")
 	}
 	a.write.ed.Focus()
 	tt.Frame()

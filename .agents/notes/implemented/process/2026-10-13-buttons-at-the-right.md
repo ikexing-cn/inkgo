@@ -13,7 +13,7 @@ Status: implemented
 
 ## Decision
 
-- 规则写进 `AGENTS.md` 界面那节第 5 条：一排按钮靠右，主按钮在最右，次要的在它左边，文字样式的操作在更左。三种不这样：
+- 规则写进 `DESIGN.md` 的「按钮」一节（当天先是 `AGENTS.md` 界面那节的一条，同一天搬进新立的 `DESIGN.md`，见[界面规范](2026-10-13-design-md.md)）：一排按钮靠右，主按钮在最右，次要的在它左边，文字样式的操作在更左。三种不这样：
   - 空页正中那一段的按钮跟着那段话居中，主按钮仍在右；
   - 跟在一句话后面的行内链接（「查看原文」「更改」）跟着那句话；
   - 不做决定的那一个（「稍后再说」）可以单独留在最左，和其余的分开（现有两处：检查页一条结果的底下、第一次备份的对话框）。
@@ -48,4 +48,4 @@ Status: implemented
 ## Verification
 
 - `go test ./desk`：`TestButtonsAtTheRight`、`TestToastOverTheSettings`（「复制详情」「打开设置」在提示的字下面靠右，后者在右）、`TestBackupFails`（「今日不再提醒」在「重试」左边，都不贴着浮层左边）。
-- `npm run verify-prototype`：80 条流程，按钮行没有不靠右的。
+- `npm run verify-prototype`：按钮行没有不靠右的。
