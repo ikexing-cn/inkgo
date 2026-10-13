@@ -11,6 +11,8 @@ Status: proposed
 
 按 `AGENTS.md` 界面那节第 2 条，先在原型里做出来给作者看；这一篇记的是原型里做成的样子，确认后再写代码。
 
+同一天稍后，作者提出把标题栏拆成单独一行，「收起侧栏」跟着挪到了标题栏里，四页都能用，见 [标题栏自己占一行，放菜单](2026-10-13-title-bar-row.md)。下面讲「收起侧栏」放在哪、哪几页能收的几处，以那一篇为准；作品名那一行和 ‹ › 的位置不变。
+
 ## Proposal
 
 原型已经改了（`prototype/write.js` 的 `sidebar`、`sideButton`、`toolbar`，样式是 `.sidebar-top`、`.book`、`.steps`）：

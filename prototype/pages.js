@@ -7,7 +7,7 @@ function talkPage() {
   const talk = S.tv === 'one' ? S.talks.find((x) => x.id === S.tid) : null
   const starts = ['我想写一个总在下雨的城市', '主角有个说不出口的秘密', '这个故事的冲突在哪']
   return '<div class="editor">' +
-    `<div class="toolbar${S.paneOpen ? '' : ' wide'}">${S.sideOpen ? '' : `<div class="steps">${sideButton()}</div>`}<div class="crumb">总讨论</div>${icon('right', 'xs', 'faint')}<div class="crumb here ell">${t(talk ? talk.title : '新对话')}</div><div class="grow"></div>` +
+    `<div class="toolbar"><div class="crumb">总讨论</div>${icon('right', 'xs', 'faint')}<div class="crumb here ell">${t(talk ? talk.title : '新对话')}</div><div class="grow"></div>` +
     (talk ? `<div class="count-all">${talk.msgs.length} 条发言</div>` : '') +
     (S.paneOpen ? '' : `<button class="icon-btn muted" aria-label="展开设定" title="展开设定文档"${onClick(() => set({ paneOpen: true }))}>${svg('icon-md', PANEL + path('M15 5v14'))}</button>`) + '</div>' +
     (talk

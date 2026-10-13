@@ -12,7 +12,6 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
     if (flat(text).includes(flat(words)) !== want) throw new Error((want ? 'missing in ' : 'unexpected in ') + where + ': ' + words)
   }
   const pane = reads('#pane'), win = reads('#win')
-  const MORE = '续写、起草、快照、导出和外观' // the toolbar's "more" button, by its title
   const must = (ok: boolean, words: string) => { if (!ok) throw new Error(words) }
   // Buttons stand at the right of their row, the one that goes ahead last: DESIGN.md has it as a rule. The question
   // of saving (.asked) is the one row in the system's order, the one that goes ahead first.
@@ -78,6 +77,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   }
   // Brings the pointer over the row of the open menu saying words.
   const over = (words: string) => js(`[...document.querySelectorAll('.ctx .pop-row')].find((e) => e.innerText.includes(${JSON.stringify(words)})).dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))`)
+  // Brings the pointer over the name of a menu in the title bar.
+  const pointAt = (name: string) => js(`[...document.querySelectorAll('.menu-title')].find((e) => e.innerText === ${JSON.stringify(name)}).dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))`)
   // The tabs: the chapters open, left to right, which of them is shown, and whether its tab says it is not saved.
   const tabs = (): Promise<string> => js(`[...document.querySelectorAll('.sheet')].map((e) => e.dataset.tab + (e.classList.contains('on') ? '*' : '')).join(' ')`)
   const unsaved = (): Promise<boolean> => js(`!!document.querySelector('.sheet.on.dirty')`)
@@ -196,8 +197,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('全部讨论'); await pane('接下来可以怎么写'); await click('这一章的节奏怎么样'); await pane('前半段偏慢'); await done('discussions')
 
   // Dark, and back to how it opened.
-  await click(MORE); await click('深色'); must(await js(`document.querySelector('#win').className === 'dark'`), 'the window is not dark'); await shot('28-dark'); await key('Escape'); await click('设定'); await shot('29-dark-setting')
-  await click('重新开始'); await pane('设定4'); await pane('待确认'); await win('第87章：停电'); must(await js(`document.querySelector('#win').className === 'dark'`), 'starting over lost the look'); await click(MORE); await click('浅色'); await key('Escape'); await done('dark, and start over')
+  await click('视图'); await click('深色'); must(await js(`document.querySelector('#win').className === 'dark'`), 'the window is not dark'); await shot('28-dark'); await key('Escape'); await click('设定'); await shot('29-dark-setting')
+  await click('重新开始'); await pane('设定4'); await pane('待确认'); await win('第87章：停电'); must(await js(`document.querySelector('#win').className === 'dark'`), 'starting over lost the look'); await click('视图'); await click('浅色'); await key('Escape'); await done('dark, and start over')
 
   const has = (sel: string): Promise<boolean> => js(`!!document.querySelector(${JSON.stringify(sel)})`)
   const value = (label: string): Promise<string> => js(`document.querySelector('[aria-label=${JSON.stringify(label)}]').value`)
@@ -231,8 +232,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('新建文件夹'); await clear('章节标题'); await type('章节标题', '第四卷'); await key('Enter'); await win('第四卷')
   await click('回收站'); await win('已删除的章节及其内容暂存于此'); await win('第83章：旧稿'); await shot('32-bin'); await click('恢复', 0); await win('已恢复「天晴」'); await click('关闭提示')
   await click('彻底删除'); await click('确认彻底删除'); await win('回收站为空'); await click('关闭'); must(await js(`document.querySelector('.tree').innerText.includes('天晴')`), 'the chapter did not come back'); await done('the bin')
-  await click('切换作品'); await win('旧城灯匠'); await win('全部作品…'); await shot('33-book-menu'); await click('快捷键…'); await win('打开快捷键列表'); await win('专注写作：仅显示正文'); await shot('34-keys'); await click('关闭'); await win('打开快捷键列表', false)
-  await key('/', true); await win('打开快捷键列表'); await key('Escape'); await win('打开快捷键列表', false); await done('the book menu and the keys')
+  await click('切换作品'); await win('旧城灯匠'); await win('全部作品…'); await shot('33-book-menu'); await key('Escape'); await click('帮助'); await click('快捷键…'); await win('打开快捷键列表'); await win('专注写作：仅显示正文'); await shot('34-keys'); await click('关闭'); await win('打开快捷键列表', false)
+  await key('/', true); await win('打开快捷键列表'); await key('Escape'); await win('打开快捷键列表', false); await done('the book menu, and the keys from the menu of help')
   await click('已备份 · 今天 10:32'); await win('今天 10:32 已备份'); await win('下次：关闭作品时'); await shot('35-backup-pop'); await click('立即备份'); await win('正在备份…'); await sleep(1400); await win('已备份 · 刚刚'); await done('back up now')
 
   // The toolbar: the count and the goal, find and replace, the more menu, focus, what is pending.
@@ -243,10 +244,10 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await clear('查找'); await type('查找', '林晚'); await click('在全部章节中查找'); await win('全书 8 章、共 9 处'); await win('第1章：巷口 · 2 处'); await shot('38-find-book')
   await clear('替换为'); await type('替换为', '阿晚'); await click('全书替换'); await win('将全书 8 章中的 9 处“林晚”替换为“阿晚”？'); await shot('39-replace-book'); await click('确定替换'); await win('已在 8 章中替换 9 处'); await win('阿晚站在巷口'); await win('全书未找到')
   await click('关闭查找'); must(!(await has('.find-bar')), 'the search is still open'); await click('关闭提示'); await done('replace through the book')
-  await click(MORE); await win('Ctrl+J'); await shot('40-more'); await click('快照'); await win('快照 · 第87章：停电'); await win('全书替换前'); await win('打开时'); await shot('41-snaps')
+  await click('编辑'); await win('Ctrl+J'); await shot('40-edit-menu'); await pointAt('文件'); await win('Ctrl+S'); await win('Ctrl+J', false); await shot('40b-file-menu'); await click('快照'); await win('快照 · 第87章：停电'); await win('全书替换前'); await win('打开时'); await shot('41-snaps')
   await click('与当前对比'); await win('红色删除线为快照中有而当前没有的内容'); must(await has('.snap-text .cut') && await has('.snap-text .add'), 'the comparison shows no change'); await shot('42-snap-diff')
   await click('今天 09:58'); await click('恢复这个版本'); await win('已恢复到 今天 09:58 的版本恢复前的内容已存为快照'); await win('小祥在身后叫她', false); await win('七岁那年的那个晚上'); await click('关闭提示'); await done('snapshots')
-  await click(MORE); await click('导出…'); await win('按章节树顺序合并为一个 .txt 文件'); await click('全书'); await shot('43-export'); await click('导出'); await win('已导出到 D:\\写作\\雨城来信.txt'); await click('关闭提示'); await done('export')
+  await click('文件'); await click('导出…'); await win('按章节树顺序合并为一个 .txt 文件'); await click('全书'); await shot('43-export'); await click('导出'); await win('已导出到 D:\\写作\\雨城来信.txt'); await click('关闭提示'); await done('export')
   await click('仅显示正文，收起章节树和右栏（F11）'); must(!(await has('.sidebar')) && !(await has('#pane')), 'focus left something beside the prose'); await shot('44-focus'); await key('F11'); must(await has('.sidebar') && await has('#pane'), 'F11 did not leave focus'); await done('focus')
   await click('重新开始'); await click('待处理 8'); await win('设定不一致'); await win('「红色钥匙」', false); await win('「钥匙开哪扇门」41 章未回收'); await win('还有 2 条'); await shot('45-pending'); await click('还有 2 条'); await win('「旧城小学」尚未加入设定'); await click('收起')
   await click('本章 1'); await win('周翔', false); await win('林晚怕黑，却独自走进黑巷'); await click('全部 8'); await click('「小祥的左手」原句已删'); await pane('第 1 章的原句已删除'); await win('全部忽略', false)
@@ -256,20 +257,20 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('重新开始'); await click('章纲 ▾'); must((await value('章纲')).startsWith('全城停电'), 'the outline is not shown'); await shot('46-outline'); await click('本章摘要 · 暂无 ▾'); await win('正文满 200 字后，离开本章时自动生成；也可手动填写。')
   await click('生成摘要'); await win('AI 正在阅读本章并生成摘要…'); await sleep(1400); must((await value('摘要')).includes('小祥第一次叫她“姐”'), 'no summary came'); await win('AI 生成 · Opus 5.5 · 刚刚'); await win('重新生成'); await shot('47-summary')
   await type('摘要', '（我加的）'); await win('手动填写'); await click('本章摘要 ▴'); must(!(await has('.chapter-box')), 'the summary did not fold')
-  await click('第84章：刻字'); await win('章纲 · 空 ▾'); await click('本章摘要 · 可能过时 ▾'); await win('正文已修改'); await click(MORE); must(await js(`[...document.querySelectorAll('.more-pop .row')].find((e) => e.innerText.includes('起草本章')).classList.contains('off')`), 'drafting is not greyed without an outline'); await win('请先填写章纲'); await key('Escape'); await done('the outline and the summary')
+  await click('第84章：刻字'); await win('章纲 · 空 ▾'); await click('本章摘要 · 可能过时 ▾'); await win('正文已修改'); await click('编辑'); must(await js(`[...document.querySelectorAll('.menu-pop .row')].find((e) => e.innerText.includes('起草本章')).classList.contains('off')`), 'drafting is not greyed without an outline'); await win('请先填写章纲'); await key('Escape'); await done('the outline and the summary')
 
   // AI in the prose: a sentence more, a rewrite, a draft.
-  await click('重新开始'); await click(MORE); await click('续写一句'); await win('续写中…'); await sleep(900); await win('Tab 采纳 · Esc 放弃'); must(await has('.ghost-text'), 'no grey sentence'); await shot('48-ghost')
+  await click('重新开始'); await click('编辑'); await click('续写一句'); await win('续写中…'); await sleep(900); await win('Tab 采纳 · Esc 放弃'); must(await has('.ghost-text'), 'no grey sentence'); await shot('48-ghost')
   await key('Escape'); must(!(await has('.ghost-text')), 'Escape kept the sentence'); await win('她把手电咬在嘴里', false); await key('j', true); await sleep(900); await key('Tab'); must(!(await has('.ghost-text')), 'Tab kept it grey'); await win('她往前走了一步。她把手电咬在嘴里'); await done('a sentence more')
   await pick(2, '灯一直没有亮。'); must(await has('.selbar'), 'nothing floats over what was picked'); await win('选中 7 字'); await shot('49-selection'); await click('AI 改写'); must(await js(`document.activeElement.getAttribute('aria-label') === '改写要求'`), 'the wish is not ready to type in')
   await type('改写要求', '慢一点'); await key('Enter'); await win('AI 正在改写选中内容'); await sleep(1400); await win('红色删除线为原文，绿色为改写。'); must(await has('.prose .cut') && await has('.prose .add'), 'the rewrite is not shown against the original'); await shot('50-rewrite')
   await click('重新改写'); await win('AI 正在改写选中内容'); await sleep(1400); await click('采纳'); await win('已采纳改写'); await win('可撤销恢复原文，原版本已存入快照'); await win('她在巷口站了很久'); await win('灯一直没有亮。', false); await click('关闭提示')
   await pick(0, '同时灭的'); await click('AI 改写'); await key('Escape'); must(!(await has('.ai-bar')), 'Escape left the rewrite open'); await done('a rewrite')
-  await click(MORE); await click('起草本章'); await win('AI 仅将章纲扩写为正文'); await win('前文有 3 章尚无摘要'); await win('本章已有内容'); await shot('51-draft'); await click('补齐摘要（3 次调用）'); await win('正在补齐摘要：0 / 3。补齐前起草，AI 只能参考已有摘要。'); await sleep(2700); await win('前文有 3 章尚无摘要', false); await win('起草时 AI 会参考前 6 章的摘要，以衔接前文。')
+  await click('编辑'); await click('起草本章'); await win('AI 仅将章纲扩写为正文'); await win('前文有 3 章尚无摘要'); await win('本章已有内容'); await shot('51-draft'); await click('补齐摘要（3 次调用）'); await win('正在补齐摘要：0 / 3。补齐前起草，AI 只能参考已有摘要。'); await sleep(2700); await win('前文有 3 章尚无摘要', false); await win('起草时 AI 会参考前 6 章的摘要，以衔接前文。')
   await type('目标字数', '1500'); await click('覆盖已有内容'); await click('开始起草'); await win('AI 正在按章纲起草'); await shot('52-drafting'); await sleep(3800); await win('起草完成，共 38 字'); await win('整条街的灯是同时灭的。', false); await win('身后，小祥没有再出声。')
   must(await js(`document.querySelectorAll('.prose .ai').length === 3`), 'what the AI drafted is not marked'); await shot('53-drafted'); await click('关闭提示')
-  await click(MORE); await click('快照'); await win('AI 改动前'); await win('按章纲起草'); await win('约 1500 字'); await key('Escape')
-  await click(MORE); await click('起草本章'); await type('目标字数', '很多'); await click('开始起草'); await win('目标字数须为正整数或留空'); await win('复制详情'); await click('关闭提示'); await clear('目标字数'); await click('开始起草'); await sleep(1000); await click('停止'); await win('已停止起草已写部分保留'); await click('关闭提示'); must(!(await has('.ai-bar')), 'the draft did not stop'); await done('a draft')
+  await click('文件'); await click('快照'); await win('AI 改动前'); await win('按章纲起草'); await win('约 1500 字'); await key('Escape')
+  await click('编辑'); await click('起草本章'); await type('目标字数', '很多'); await click('开始起草'); await win('目标字数须为正整数或留空'); await win('复制详情'); await click('关闭提示'); await clear('目标字数'); await click('开始起草'); await sleep(1000); await click('停止'); await win('已停止起草已写部分保留'); await click('关闭提示'); must(!(await has('.ai-bar')), 'the draft did not stop'); await done('a draft')
 
   // What was picked goes to the setting, or to a discussion.
   await click('重新开始'); await pick(1, '手电在工具箱最底下'); await click('加入设定'); await win('选中的原文将记为出处'); must((await value('设定内容')) === '手电在工具箱最底下', 'what was picked is not in the box'); await click('人物'); await click('物品'); await shot('54-take')
@@ -297,7 +298,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   must(await js(`(() => { const q = (c) => document.querySelector(c), was = q('.prefs-title').getBoundingClientRect().top; q('.prefs-body').scrollTop = 200; return q('.prefs-body').scrollTop > 0 && q('.prefs-title').getBoundingClientRect().top === was && q('.prefs-body').getBoundingClientRect().top >= q('.prefs-head').getBoundingClientRect().bottom - 1 })()`), 'the settings scroll over their heading'); await shot('61b-settings-scrolled')
   await click('沿用讨论模型'); await click('DeepSeek'); must((await value('整理模型')) === 'deepseek-chat', 'choosing a service chose no model'); must(await js(`document.querySelector('.services').innerText.split('本作品使用中').length === 3`), 'the service taken is not said to be in use')
   await click('Low'); await click('Medium'); await win('Low', false); await clear('上下文预算'); await type('上下文预算', '100'); await click('保存'); await win('上下文预算至少为 8192'); await click('关闭提示'); await click('停笔后自动续写'); must(await js(`document.querySelectorAll('.ticks .check.on').length === 2`), 'the box is not ticked')
-  await click('编辑'); await win('远程服务：讨论内容将发送到该地址'); await win('key 保存在系统钥匙串中，不会写入配置文件或作品。'); await shot('62-service'); await click('获取可用模型'); await win('正在读取可用模型…'); await sleep(1400); await win('已获取模型目录保存提供商后生效')
+  await click('编辑', 1); await win('远程服务：讨论内容将发送到该地址'); await win('key 保存在系统钥匙串中，不会写入配置文件或作品。'); await shot('62-service'); await click('获取可用模型'); await win('正在读取可用模型…'); await sleep(1400); await win('已获取模型目录保存提供商后生效')
   await click('保存提供商'); await win('提供商已保存'); await win('收起', false); await click('添加服务'); await type('显示名称', '本地'); await type('API 地址', 'http://localhost:11434/v1'); await click('保存提供商'); await win('localhost:11434 · 0 个模型'); await sleep(3300); await done('models and services')
   await click('重新加载配置'); await click('打开配置文件'); await click('保存'); await clear('上下文预算'); await type('上下文预算', '很多'); await click('保存'); await win('上下文预算须为整数'); await win('还有 1 条'); await shot('63-toasts'); await sleep(3300); await win('还有 1 条', false); await done('more notices than fit')
   await click('外观'); await win('仅在本机生效，适用于所有作品。'); await click('深色'); must(await js(`document.querySelector('#win').className === 'dark'`), 'the window is not dark'); await shot('64-look'); await click('浅色')
@@ -315,7 +316,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
 
   // Categories.
   await click('作品分类'); await win('设定文档按分类分节'); await win('落点：大纲'); await shot('72-cats'); await type('分类名称', '线索'); await type('落点', '大纲'); await click('保存分类'); await win('分类“线索”已保存'); await click('关闭提示')
-  must(await js(`(() => { const t = document.querySelector('.cat-rows').innerText; return t.includes('线索') && t.indexOf('线索') < t.indexOf('其他') })()`), 'the new category is not before the last one'); await click('编辑'); must((await value('分类名称')) === '人物', 'the category is not ready to change')
+  must(await js(`(() => { const t = document.querySelector('.cat-rows').innerText; return t.includes('线索') && t.indexOf('线索') < t.indexOf('其他') })()`), 'the new category is not before the last one'); await click('编辑', 1); must((await value('分类名称')) === '人物', 'the category is not ready to change')
   await click('删除'); await win('5 条设定将移到“其他”'); await shot('73-cat-delete'); await click('确认删除'); await win('已删除分类“人物”'); must(!(await js(`document.querySelector('.cat-rows').innerText.includes('人物')`)), 'the category is still listed'); await click('关闭提示'); await done('categories')
 
   // The shelf, new and empty works, and the three ways a backup can stand.
@@ -348,7 +349,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   // Rare things, shown from the bar over the window: a chapter changed outside, a check and a summary that failed.
   await click('第87章：停电'); await click('少见的情况'); await click('本章在软件外被修改'); await win('本章文件已被其他程序修改。请选择保留的版本，另一版本将存为快照。'); await shot('84-outside')
   await click('使用磁盘版本'); await win('已采用磁盘版本编辑器原内容已存为快照'); await win('（这一句是在别的程序里加上的。）'); await win('本章文件已被其他程序修改', false); await click('关闭提示')
-  await click(MORE); await click('快照'); await win('外部改动'); await win('该快照与当前正文相同', false); await click('关闭')
+  await click('文件'); await click('快照'); await win('外部改动'); await win('该快照与当前正文相同', false); await click('关闭')
   await click('少见的情况'); await click('本章在软件外被修改'); await click('保留当前版本'); await win('已保留编辑器版本磁盘内容已存为快照'); await click('关闭提示'); await done('a chapter changed outside')
   await click('少见的情况'); await click('本章摘要生成失败'); await win('上次生成失败：无法连接模型服务'); await shot('85-summary-failed'); await click('生成摘要'); await win('本章摘要 · 正在生成 ▴'); await win('AI 正在阅读本章并生成摘要…'); await sleep(1500); await win('AI 生成 · Opus 5.5 · 刚刚'); await win('上次生成失败', false)
   await click('少见的情况'); await click('本章检查失败'); await win('检查失败：无法连接模型服务'); await shot('86-check-failed'); await done('a summary and a check that failed')
@@ -462,9 +463,36 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await caret(0, 0); await text('丙'); await shutOn(); await click('保存'); await click('第84章：刻字'); await win('丙巷口那盏灯又坏了'); must(!(await unsaved()), 'the chapter saved on closing is said not to be saved')
   await caret(0, 0); await text('丁'); await sleep(1800); await shutOn(); await win(asked, false); await done('closing with words not saved')
 
-  // The sidebar puts away, and the bar brings it back.
-  await click('重新开始'); await click('收起侧栏'); must(!(await js(`!!document.querySelector('.sidebar')`)), 'the sidebar is still there'); await win('第87章：停电'); await shot('99b-no-sidebar'); await click('第84章：刻字').then(() => { throw new Error('the tree is still clickable') }, () => {})
-  await click('展开侧栏'); must(await js(`!!document.querySelector('.sidebar')`), 'the sidebar did not come back'); await click('讨论'); await click('收起侧栏'); await click('展开侧栏'); await click('检查'); await win('收起侧栏', false); await click('正文'); await done('the sidebar put away')
+  // The title bar is a row of its own: the sidebar's switch and the menus at its left, the window's buttons at its right.
+  // The switch works on every page, and nothing under the bar keeps room for the window's buttons.
+  const bar = (): Promise<string> => js(`(() => { const b = document.querySelector('.titlebar').getBoundingClientRect(), w = document.querySelector('#win').getBoundingClientRect(), k = document.querySelector('.window-buttons').getBoundingClientRect(); return [b.top - w.top, b.left - w.left, w.right - b.right, w.right - k.right, k.top - b.top].map(Math.round).join(' ') + ' ' + [...document.querySelectorAll('.win-body > *')].every((e) => e.getBoundingClientRect().top >= b.bottom) })()`)
+  await click('重新开始'); must(await bar() === '0 0 0 0 0 true', 'the title bar is not a row across the top of the window, with the window buttons at its right: ' + await bar())
+  must(await js(`(() => { const r = (sel) => document.querySelector(sel).getBoundingClientRect(); return r('.toolbar').right - r('.toolbar .tools').right <= 16 && r('#pane').right - r('.tabs .icon-btn:last-child').right <= 16 })()`), 'a bar under the title bar still keeps room for the window buttons')
+  await click('收起侧栏'); must(!(await has('.sidebar')), 'the sidebar is still there'); await win('第87章：停电'); await shot('99b-no-sidebar'); await click('第84章：刻字').then(() => { throw new Error('the tree is still clickable') }, () => {})
+  await click('展开侧栏'); must(await has('.sidebar'), 'the sidebar did not come back')
+  for (const page of ['讨论', '检查', '作品分类']) { await click(page); await click('收起侧栏'); must(!(await has('.sidebar')), 'the sidebar is still there on ' + page); await click('展开侧栏'); must(await has('.sidebar'), 'the sidebar did not come back on ' + page) }
+  await click('正文'); await done('the title bar, and the sidebar put away on every page')
+
+  // The menus: every command has a row, greyed where it cannot be done; with one open, the pointer over another opens that one.
+  const menuRows = (): Promise<string> => js(`[...document.querySelectorAll('.menu-pop .pop-row')].map((e) => e.querySelector('.grow').innerText + (e.classList.contains('off') ? '-' : '')).join(' ')`)
+  await click('重新开始'); await pointAt('编辑'); must(!(await has('.menu-pop')), 'a menu opened under the pointer with none open')
+  await click('文件'); must(await menuRows() === '新建章节 新建文件夹 保存 快照 导出… 设置…', 'the menu of the file reads: ' + await menuRows())
+  await pointAt('编辑'); must(await menuRows() === '查找替换 重命名 续写一句 起草本章', 'the pointer over 编辑 did not open it: ' + await menuRows())
+  await pointAt('视图'); must(await menuRows() === '收起侧栏 收起右栏 专注写作', 'the menu of the view reads: ' + await menuRows()); await win('跟随系统'); await pointAt('帮助'); must(await menuRows() === '快捷键…', 'the menu of help reads: ' + await menuRows())
+  await key('Escape'); must(!(await has('.menu-pop')), 'Esc left the menu open'); await click('帮助'); await click('帮助'); must(!(await has('.menu-pop')), 'a second click on its name left the menu open')
+  await click('编辑'); await click('查找替换'); must(await has('[aria-label="查找"]') && !(await has('.menu-pop')), 'the menu did not open the find bar'); await key('Escape')
+  await click('编辑'); await click('重命名'); must(await has('.tree-row.naming'), 'the menu did not start naming the chapter'); await key('Escape')
+  await caret(0, 0); await text('戊'); must(await unsaved(), 'typing did not mark the chapter'); await click('文件'); await click('保存'); must(!(await unsaved()), 'the menu did not save the chapter'); await win('已保存'); await click('关闭提示')
+  await click('文件'); await click('新建章节'); must(await has('.tree-row.naming'), 'the menu did not make a chapter'); await key('Escape')
+  await click('文件'); await click('设置…'); await win('仅在本机生效，适用于所有作品。', false); await win('模型'); await click('关闭设置')
+  await click('视图'); await click('收起侧栏', 1); must(!(await has('.sidebar')), 'the menu did not put the sidebar away'); await click('视图'); must((await menuRows()).startsWith('展开侧栏 '), 'the menu does not offer the sidebar back'); await click('展开侧栏', 1); must(await has('.sidebar'), 'the menu did not bring the sidebar back')
+  await click('视图'); await click('收起右栏'); must(!(await has('#pane')), 'the menu did not put the pane away'); await click('视图'); await click('展开右栏'); must(await has('#pane'), 'the menu did not bring the pane back')
+  await click('视图'); await click('专注写作'); must(!(await has('.sidebar')) && !(await has('#pane')) && await has('.titlebar'), 'focus from the menu left something beside the prose, or took the title bar'); await shot('99c-focus-bar')
+  must(await js(`document.querySelector('.titlebar > .icon-btn').classList.contains('off')`), 'the switch of the sidebar is not greyed in focus'); await click('视图'); must(await menuRows() === '收起侧栏- 收起右栏- 退出专注', 'in focus the menu of the view reads: ' + await menuRows()); await click('退出专注'); must(await has('.sidebar'), 'the menu did not leave focus')
+  await click('检查'); await click('文件'); must(await menuRows() === '新建章节- 新建文件夹- 保存- 快照- 导出… 设置…', 'off the page of prose the menu of the file reads: ' + await menuRows()); await shot('99d-menu-greyed')
+  await pointAt('编辑'); must(await menuRows() === '查找替换- 重命名- 续写一句- 起草本章-', 'off the page of prose the menu of editing reads: ' + await menuRows()); await pointAt('视图'); must(await menuRows() === '收起侧栏 收起右栏- 专注写作-', 'on the page of checks the menu of the view reads: ' + await menuRows()); await key('Escape')
+  await click('切换作品'); await click('全部作品…'); must(await has('.titlebar') && await js(`document.querySelector('.titlebar > .icon-btn').classList.contains('off')`), 'the shelf has no title bar, or its switch of the sidebar is not greyed'); await click('文件'); must(await menuRows() === '新建章节- 新建文件夹- 保存- 快照- 导出…- 设置…-', 'on the shelf the menu of the file reads: ' + await menuRows()); await shot('99e-shelf-bar'); await key('Escape')
+  await click('帮助'); await click('快捷键…'); await win('打开快捷键列表'); await click('关闭'); await done('the menus')
 
   must(!loose.size, 'buttons that are not at the right of their row, or not in order:\n  ' + [...loose].join('\n  '))
   must(!dead.size, 'things to click that do not show it:\n  ' + [...dead].join('\n  '))

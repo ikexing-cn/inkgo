@@ -11,7 +11,7 @@ body { margin: 0; }
 .stage { min-height: 100vh; box-sizing: border-box; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 12px; background: var(--page); color: var(--ink); font-family: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif; }
 .stage-bar { width: 1266px; display: flex; align-items: center; gap: 8px; }
 .stage-note { margin-left: 8px; font-size: var(--fs-note); color: var(--muted); }
-#win { width: 1266px; height: 780px; flex: none; display: flex; background: var(--bg); color: var(--ink); border-radius: var(--r-window-win); overflow: hidden; box-shadow: var(--shadow-board); position: relative; }
+#win { width: 1266px; height: 780px; flex: none; display: flex; flex-direction: column; background: var(--bg); color: var(--ink); border-radius: var(--r-window-win); overflow: hidden; box-shadow: var(--shadow-board); position: relative; }
 
 /* 到处都用的 */
 .hit, .row { cursor: pointer; user-select: none; }
@@ -97,7 +97,16 @@ body { margin: 0; }
 .group-title { font-size: var(--fs-group); font-weight: 600; }
 
 /* 窗口右上角的三个按钮 */
-.window-buttons { position: absolute; top: 0; right: 0; z-index: 5; height: var(--h-bar); display: flex; align-items: stretch; color: var(--ink-2); }
+/* 标题栏自己占一行；菜单开着时它在那层点了就收起的底之上，指针才能从一个菜单挪到另一个。 */
+.titlebar { position: relative; z-index: 2; flex: none; height: var(--h-bar); box-sizing: border-box; display: flex; align-items: center; gap: 2px; padding-left: 10px; background: var(--side); border-bottom: 1px solid var(--line); font-size: var(--fs-control); }
+.titlebar > .icon-btn { margin-right: 4px; }
+.icon-btn.off { opacity: var(--opacity-disabled); cursor: default; }
+.icon-btn.off:hover { background: none; }
+.menu-title { height: var(--h-control-sm); display: flex; align-items: center; padding: 0 8px; border-radius: var(--r-control); }
+.menu-title:hover, .menu-title.on { background: var(--active); }
+.menu-pop { width: max-content; min-width: 220px; }
+.win-body { flex: 1; min-height: 0; display: flex; }
+.window-buttons { margin-left: auto; align-self: stretch; display: flex; align-items: stretch; color: var(--ink-2); }
 .window-buttons > div { width: 46px; display: flex; align-items: center; justify-content: center; }
 .window-buttons > div:hover { background: var(--active); }
 .window-buttons > div:last-child:hover { background: var(--danger); color: #fff; }
@@ -142,7 +151,6 @@ body { margin: 0; }
 /* 正文：工具栏 */
 .editor { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--bg); }
 .toolbar { height: var(--h-bar); box-sizing: border-box; flex: none; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 8px; padding: 0 16px 0 24px; }
-.toolbar.wide { padding-right: 150px; } /* 右栏收起时，给窗口按钮让位 */
 .crumb { font-size: var(--fs-control); color: var(--muted); white-space: nowrap; }
 /* 顶栏最左边：侧栏收起时把它展开的按钮，和回到上一个、下一个打开过的章的两个箭头。 */
 .steps { flex: none; display: flex; align-items: center; gap: 2px; margin-left: -8px; color: var(--muted); }
@@ -169,7 +177,6 @@ body { margin: 0; }
 .todo-btn { margin-left: 6px; border: 1px solid var(--border); color: var(--ink); }
 .todo-btn.on, .todo-btn:hover, .fs-btn:hover { background: var(--hover); }
 .warn-btn { margin-left: 6px; border: 1px solid var(--warn-bd); background: var(--warn-bg); color: var(--warn); }
-.more-pop { width: max-content; min-width: 230px; }
 .pop-seg { padding: 2px 6px 6px; }
 .goal-pop { width: 250px; padding: 8px; gap: 2px; }
 .goal-pop .field { padding: 4px 6px; }
@@ -246,7 +253,7 @@ body { margin: 0; }
 
 /* 右栏 */
 #pane { width: 390px; flex: none; box-sizing: border-box; background: var(--side); border-left: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; position: relative; }
-.tabs { height: var(--h-bar); box-sizing: border-box; flex: none; display: flex; align-items: center; gap: 4px; padding: 0 150px 0 20px; } /* 右边给窗口按钮让位 */
+.tabs { height: var(--h-bar); box-sizing: border-box; flex: none; display: flex; align-items: center; gap: 4px; padding: 0 16px 0 20px; }
 .tabs .icon-btn { color: var(--muted); }
 .tab { font-size: var(--fs-body); border-radius: var(--r-control); padding: 6px 10px; display: flex; gap: 6px; align-items: center; color: var(--muted); white-space: nowrap; }
 .tab.on { background: var(--active); color: var(--ink); font-weight: 600; }
@@ -283,7 +290,7 @@ body { margin: 0; }
 /* 右栏的左边：拖它改宽度 */
 .pane-edge { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize; z-index: 2; }
 /* 后台整理的记号：贴在收起按钮左边的空里，不占位置，出不出现别的都不动 */
-.tabs .tidy { position: absolute; top: 6px; right: calc(150px + var(--h-control-sm)); width: var(--icon-md); }
+.tabs .tidy { position: absolute; top: 6px; right: calc(16px + var(--h-control-sm)); width: var(--icon-md); }
 .tidy .dot { background: var(--ink); animation: breathe 1.6s ease-in-out infinite; }
 .tidy.warn .dot { background: var(--warn); animation: none; }
 @keyframes breathe { 50% { opacity: .35; } }
@@ -363,7 +370,7 @@ body { margin: 0; }
 .check-rows { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 2px; }
 .check-row { flex: none; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--r-control); font-size: var(--fs-body); }
 .check-row.on { background: var(--active); }
-.check-detail { flex: 1; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; padding: var(--h-bar) 32px 20px; }
+.check-detail { flex: 1; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; padding: 8px 32px 20px; }
 .check-title { display: flex; align-items: center; gap: 12px; padding-top: 14px; font-size: var(--fs-dialog); font-weight: 700; }
 .check-sides { display: flex; gap: 16px; }
 .check-from { display: flex; align-items: center; gap: 8px; padding-bottom: 6px; font-size: var(--fs-note); color: var(--muted); }
@@ -505,7 +512,7 @@ body { margin: 0; }
 .stepper-n { padding: 0 10px; font-size: var(--fs-control); }
 
 /* 右上角的提示 */
-#toasts { position: absolute; top: 48px; right: 12px; z-index: 10; max-width: 300px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+#toasts { position: absolute; top: calc(var(--h-bar) * 2 + 8px); right: 12px; z-index: 10; max-width: 300px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 .toast { box-sizing: border-box; min-width: 200px; max-width: 100%; display: flex; align-items: flex-start; gap: 10px; padding: 12px 10px 12px 14px; background: var(--raised); border: 1px solid var(--border); border-radius: var(--r-card); box-shadow: var(--shadow-pop); }
 .toast > svg { margin-top: 2px; }
 .toast > .icon-btn { margin: -4px 0; }

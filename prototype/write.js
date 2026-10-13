@@ -518,9 +518,6 @@ function pending() {
 
 // ───────── 画：侧栏 ─────────
 
-// 侧栏收起时，顶栏最左边把它展开的按钮。专注写作时没有：那时按 F11 回来。
-const sideButton = () => (S.sideOpen || S.focus ? '' : `<button class="icon-btn" aria-label="展开侧栏" title="展开侧栏"${onClick(() => set({ sideOpen: true }))}>${svg('icon-md', PANEL + path('M9 5v14'))}</button>`)
-
 function sidebar() {
   const nav = [['讨论', 'chat', 'talk'], ['正文', 'book', 'write'], ['检查', 'checked', 'check'], ['作品分类', 'tag', 'cats']]
   const to = { talk: () => set({ page: 'talk', ...(S.tv === 'all' ? { tid: S.talks[0] ? S.talks[0].id : null, tv: S.talks[0] ? 'one' : 'new' } : {}), ...SHUT }), write: () => set({ page: 'write', ...SHUT }), check: () => set({ page: 'check', ...SHUT }), cats: () => set({ page: 'cats', ...SHUT }) }
@@ -547,8 +544,7 @@ function sidebar() {
   return '<div class="sidebar">' +
     `<div class="sidebar-top"><div class="anchor wide"><div class="book hit" title="切换作品"${onClick(() => set({ open: S.open === 'book' ? '' : 'book' }))}><div class="book-logo">${t(book.name[0])}</div><div class="book-name">${t(book.name)}</div>${icon('down', 'sm', 'faint')}</div>` +
     (S.open === 'book' ? `<div class="pop"><div class="pop-label">作品</div><div class="pop-row row on"><div class="grow">${t(book.name)}</div><div class="side">${t(book.kind)}</div></div>` + others.map((o) => menuRow(o.name, () => openBook(o.id), '', o.kind)).join('') + HAIR +
-      menuRow('新建作品…', () => set({ page: 'shelf', dialog: { kind: 'newBook', name: '', type: BOOK.kinds[0] }, ...SHUT })) + menuRow('全部作品…', () => set({ page: 'shelf', ...SHUT })) + menuRow('快捷键…', () => set({ dialog: { kind: 'keys' }, ...SHUT }), '', 'Ctrl+/') + '</div>' : '') + '</div>' +
-    `<button class="icon-btn muted" aria-label="收起侧栏" title="收起侧栏"${onClick(() => set({ sideOpen: false, ...SHUT }))}>${svg('icon-md', PANEL + path('M9 5v14'))}</button></div>` +
+      menuRow('新建作品…', () => set({ page: 'shelf', dialog: { kind: 'newBook', name: '', type: BOOK.kinds[0] }, ...SHUT })) + menuRow('全部作品…', () => set({ page: 'shelf', ...SHUT })) + '</div>' : '') + '</div></div>' +
     `<div class="navs">${nav.map(([name, pic, page]) => `<div class="nav hit${S.page === page ? ' on' : ''}"${onClick(to[page])}>${icon(pic)}<div class="grow">${name}</div>${page === 'check' && S.checks.length ? `<div class="count">${S.checks.length}</div>` : ''}</div>`).join('')}</div>` +
     (S.page === 'write'
       ? `<div class="tree-head"><div>章节</div><div class="tree-head-buttons"><button aria-label="新建文件夹" title="新建文件夹"${onClick(newFolder)}>${svg('icon-sm', SHAPE.folder + path('M12 10.5v5M9.5 13h5'))}</button><button aria-label="新建章节" title="新建章节（Ctrl+N）"${onClick(newChapter)}>${ICON.plus}</button></div></div>` +
@@ -702,22 +698,14 @@ function toolbar(cur, vol) {
   const list = pending()
   const tool = (label, title, pic, act, on) => `<button class="icon-btn${on ? ' on' : ''}" aria-label="${label}" title="${title}"${onClick(act)}>${icon(pic)}</button>`
   const flip = (name) => () => set({ open: S.open === name ? '' : name })
-  const more = () => {
-    const outline = cur && (S.outlines[cur.key] || '').trim()
-    return '<div class="pop more-pop" data-k="more-pop">' + menuRow('续写一句', cur ? continueText : null, 'spark', 'Ctrl+J') +
-      menuRow('起草本章', outline ? () => set({ dialog: { kind: 'draft', goal: '', how: '接在已有内容之后' }, ...SHUT }) : null, 'page', outline ? '' : '请先填写章纲') + HAIR +
-      menuRow('快照', cur ? () => set({ dialog: { kind: 'snaps', id: '', diff: false }, ...SHUT }) : null, 'clock') + menuRow('导出…', () => set({ dialog: { kind: 'export', range: cur ? '本章' : '全书', indent: true }, ...SHUT }), 'save') + HAIR +
-      `<div class="pop-label">外观</div><div class="pop-seg">${seg(S.look, [['跟随系统', 'screen'], ['浅色', 'sun'], ['深色', 'moon']], (v) => set({ look: v }), '外观')}</div></div>`
-  }
   const volume = cur && S.volumes.find(([key]) => key === cur.vol)
-  return `<div class="toolbar${wide ? ' wide' : ''}">` +
-    `<div class="steps">${sideButton()}<div class="hit${S.step > 0 ? '' : ' off'}" title="上一个打开的章节"${onClick(() => stepBy(-1))}>${icon('left', 'sm')}</div><div class="hit${S.trail[S.step + 1] ? '' : ' off'}" title="下一个打开的章节"${onClick(() => stepBy(1))}>${icon('right', 'sm')}</div></div>` +
+  return '<div class="toolbar">' +
+    `<div class="steps"><div class="hit${S.step > 0 ? '' : ' off'}" title="上一个打开的章节"${onClick(() => stepBy(-1))}>${icon('left', 'sm')}</div><div class="hit${S.trail[S.step + 1] ? '' : ' off'}" title="下一个打开的章节"${onClick(() => stepBy(1))}>${icon('right', 'sm')}</div></div>` +
     (volume ? `<div class="crumb">${t(volume[1])}</div>${icon('right', 'xs', 'faint')}` : '') +
     `<div class="crumb here ell">${cur ? t(titleOf(cur)) : vol ? t(vol[1]) : '正文'}</div>` +
     (S.ai && S.ai.kind === 'ghosting' ? '<div class="count-all">续写中…</div>' : S.ai && S.ai.kind === 'ghost' ? '<div class="count-all">Tab 采纳 · Esc 放弃</div>' : '') + '<div class="grow"></div><div class="tools">' +
     (wide && here && !S.focus ? `<button class="fs-btn" aria-label="本章伏笔"${onClick(() => set({ paneOpen: true, tab: '伏笔', fid: null, fv: 'list' }))}>${icon('flag')}<span>本章伏笔 ${here}</span></button>` : '') +
     (cur ? tool('查找替换', '查找替换（Ctrl+F）', 'find', () => set({ find: S.find ? null : { q: '', to: '', all: false, at: 0 } }), !!S.find) : '') +
-    `<div class="anchor">${tool('更多', '续写、起草、快照、导出和外观', 'dots', flip('more'), S.open === 'more')}${S.open === 'more' ? more() : ''}</div>` +
     (S.paneOpen || S.focus ? '' : `<button class="icon-btn" aria-label="展开右栏" title="展开右栏"${onClick(() => set({ paneOpen: true }))}>${svg('icon-md', PANEL + path('M15 5v14'))}</button>`) +
     tool(S.focus ? '退出专注' : '专注写作', S.focus ? '退出专注，恢复章节树和右栏（F11）' : '仅显示正文，收起章节树和右栏（F11）', 'focus', () => set({ focus: !S.focus, ...SHUT }), S.focus) +
     (S.backup.state === 'fail' && !S.backup.hush ? `<div class="anchor"><button class="warn-btn" aria-label="备份提示"${onClick(flip('chip'))}>${DOT}<span>备份失败 · ${backupWhy()[0]}</span></button>${S.open === 'chip' ? backupPop() : ''}</div>` : '') +

@@ -4,6 +4,41 @@
 const WINDOW_BUTTONS = '<div class="window-buttons">' + ['<path d="M0 5h10"></path>', '<rect x=".5" y=".5" width="9" height="9" rx="1"></rect>', '<path d="M.5.5l9 9M9.5.5l-9 9"></path>']
   .map((d) => `<div><svg class="icon-xs" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1">${d}</svg></div>`).join('') + '</div>'
 
+// 标题栏：自己占一行。左边是侧栏的开关和菜单，右边是窗口的三个按钮；下面各栏不用给它们让位。
+// 菜单是命令的总表：哪一页用不上的那几行是灰的。开着一个的时候，指针移到旁边的名字上就换过去。
+function titlebar() {
+  const writing = S.page === 'write', focus = S.focus && writing, cur = writing && chapterOf(S.ch)
+  const hasSide = S.page !== 'shelf' && !focus, hasPane = (writing && !focus) || S.page === 'talk', inBook = S.page !== 'shelf'
+  const outline = cur && (S.outlines[cur.key] || '').trim()
+  const then = (act) => () => { set(SHUT); act() }
+  const ask = (dialog) => () => set({ dialog, ...SHUT })
+  const menus = [
+    ['文件', () => menuRow('新建章节', writing ? then(() => newChapter()) : null, '', 'Ctrl+N') + menuRow('新建文件夹', writing ? then(newFolder) : null) + HAIR +
+      menuRow('保存', cur ? then(saveNow) : null, '', 'Ctrl+S') + menuRow('快照', cur ? ask({ kind: 'snaps', id: '', diff: false }) : null) +
+      menuRow('导出…', inBook ? ask({ kind: 'export', range: cur ? '本章' : '全书', indent: true }) : null) + HAIR +
+      menuRow('设置…', inBook ? ask({ kind: 'settings', tab: '模型', edit: '' }) : null)],
+    ['编辑', () => menuRow('查找替换', cur ? () => set({ find: S.find || { q: '', to: '', all: false, at: 0 }, ...SHUT }) : null, '', 'Ctrl+F') +
+      menuRow('重命名', cur && !S.rename ? then(renameOpen) : null, '', 'F2') + HAIR +
+      menuRow('续写一句', cur ? then(continueText) : null, '', 'Ctrl+J') +
+      menuRow('起草本章', outline ? ask({ kind: 'draft', goal: '', how: '接在已有内容之后' }) : null, '', cur && !outline ? '请先填写章纲' : '')],
+    ['视图', () => menuRow(S.sideOpen ? '收起侧栏' : '展开侧栏', hasSide ? () => set({ sideOpen: !S.sideOpen, ...SHUT }) : null) +
+      menuRow(S.paneOpen ? '收起右栏' : '展开右栏', hasPane ? () => set({ paneOpen: !S.paneOpen, ...SHUT }) : null) +
+      menuRow(focus ? '退出专注' : '专注写作', writing ? () => set({ focus: !S.focus, ...SHUT }) : null, '', 'F11') + HAIR +
+      `<div class="pop-label">外观</div><div class="pop-seg">${seg(S.look, [['跟随系统', 'screen'], ['浅色', 'sun'], ['深色', 'moon']], (v) => set({ look: v }), '外观')}</div>`],
+    ['帮助', () => menuRow('快捷键…', ask({ kind: 'keys' }), '', 'Ctrl+/')],
+  ]
+  const inMenus = S.open.startsWith('menu-')
+  const menu = ([name, rows]) => {
+    const id = 'menu-' + name, on = S.open === id
+    return `<div class="anchor left"><div class="menu-title hit${on ? ' on' : ''}"${onClick(() => set({ open: on ? '' : id }))}${onOver(() => { if (inMenus && !on) set({ open: id }) })}>${name}</div>` +
+      (on ? `<div class="pop menu-pop" data-k="${id}">${rows()}</div>` : '') + '</div>'
+  }
+  const sideWord = S.sideOpen ? '收起侧栏' : '展开侧栏'
+  return '<div class="titlebar">' +
+    `<button class="icon-btn muted${hasSide ? '' : ' off'}" aria-label="${sideWord}" title="${sideWord}"${onClick(hasSide ? () => set({ sideOpen: !S.sideOpen, ...SHUT }) : null)}>${svg('icon-md', PANEL + path('M9 5v14'))}</button>` +
+    menus.map(menu).join('') + WINDOW_BUTTONS + '</div>'
+}
+
 // 重新开始：点过、改过的都回到刚打开的样子，只留外观。
 function restart() {
   stopAll()
@@ -25,12 +60,12 @@ function view() {
   const focus = S.focus && S.page === 'write'
   const main = { write: () => editor(chapterOf(S.ch)), talk: talkPage, check: checkPage, cats: catsPage }
   const side = (S.page === 'write' && !focus) || S.page === 'talk' ? S.paneOpen : false
-  const bare = focus || (!S.sideOpen && (S.page === 'write' || S.page === 'talk')) // 侧栏收起：只在顶栏有「展开侧栏」的两页
+  const bare = focus || !S.sideOpen
   return '<div class="stage">' +
     `<div class="stage-bar">${button('重新开始', restart)}<div class="anchor left"><div class="btn hit${S.open === 'rare' ? ' soft' : ''}" title="平时不易遇到的情况：出错、作品在软件外被改动"${onClick(() => set({ open: S.open === 'rare' ? '' : 'rare' }))}>少见的情况</div>` +
     (S.open === 'rare' ? `<div class="pop rare-pop" data-k="rare-pop">${rare().map(([label, act]) => menuRow(label, act)).join('')}</div>` : '') + `</div><div class="stage-note">内容为示例。正文可输入，刷新后复原；AI 仅回复固定内容。</div></div>` +
-    `<div id="win" class="${dark() ? 'dark' : 'light'}">` + WINDOW_BUTTONS + veil() +
-    (S.page === 'shelf' ? shelfPage() : (bare ? '' : sidebar()) + main[S.page]() + (side ? pane() : '')) +
+    `<div id="win" class="${dark() ? 'dark' : 'light'}">` + veil() + titlebar() +
+    '<div class="win-body">' + (S.page === 'shelf' ? shelfPage() : (bare ? '' : sidebar()) + main[S.page]() + (side ? pane() : '')) + '</div>' +
     floats() + dialogs() + toasts() + '</div></div>'
 }
 
