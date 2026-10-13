@@ -7,7 +7,7 @@ function talkPage() {
   const talk = S.tv === 'one' ? S.talks.find((x) => x.id === S.tid) : null
   const starts = ['我想写一个总在下雨的城市', '主角有个说不出口的秘密', '这个故事的冲突在哪']
   return '<div class="editor">' +
-    `<div class="toolbar${S.paneOpen ? '' : ' wide'}"><div class="crumb">总讨论</div>${icon('right', 'xs', 'faint')}<div class="crumb here ell">${t(talk ? talk.title : '新对话')}</div><div class="grow"></div>` +
+    `<div class="toolbar${S.paneOpen ? '' : ' wide'}">${S.sideOpen ? '' : `<div class="steps">${sideButton()}</div>`}<div class="crumb">总讨论</div>${icon('right', 'xs', 'faint')}<div class="crumb here ell">${t(talk ? talk.title : '新对话')}</div><div class="grow"></div>` +
     (talk ? `<div class="count-all">${talk.msgs.length} 条发言</div>` : '') +
     (S.paneOpen ? '' : `<button class="icon-btn muted" aria-label="展开设定" title="展开设定文档"${onClick(() => set({ paneOpen: true }))}>${svg('icon-md', PANEL + path('M15 5v14'))}</button>`) + '</div>' +
     (talk
@@ -49,7 +49,7 @@ function checkPage() {
     else set({ open: S.open === 'checkAll' ? '' : 'checkAll' })
   }
   const ask = () => `<div class="pop ask-pop" data-k="ask-pop"><div class="pop-title">${owed.length} 章未检查或有改动</div><div class="note">每章调用一次 AI，共 ${owed.length} 次。</div>` +
-    `<div class="pop-buttons"><div class="grow"></div>${button('取消', () => set(SHUT))}${button('开始检查', () => { set(SHUT); checkNow(...owed.map((c) => c.key)) }, 'primary')}</div></div>`
+    `<div class="pop-buttons">${button('取消', () => set(SHUT))}${button('开始检查', () => { set(SHUT); checkNow(...owed.map((c) => c.key)) }, 'primary')}</div></div>`
   const last = S.chapters.filter((c) => !S.never[c.key] && counted(c) >= 200).at(-1)
   const running = chapterOf(S.checking), lost = S.chapters.find((c) => S.failed[c.key])
   const none = !S.entries.some((e) => e.place === 'body') ? ['设定为空', '请先在讨论中确定设定，才能对照检查。']

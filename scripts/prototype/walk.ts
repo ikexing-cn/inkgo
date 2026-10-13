@@ -5,7 +5,7 @@
  */
 import type { Page } from './browser.ts'
 
-export async function walk({ js, shot, click: press, rclick, drag, type, key, clear, sleep }: Page, said: (step: string) => void): Promise<void> {
+export async function walk({ js, shot, click: press, rclick, drag, type, text, key, clear, sleep }: Page, said: (step: string) => void): Promise<void> {
   const flat = (t: string) => t.replace(/\s+/g, '')
   const reads = (where: string) => async (words: string, want = true) => {
     const text = await js(`(document.querySelector('${where}') || { innerText: '' }).innerText`)
@@ -14,12 +14,36 @@ export async function walk({ js, shot, click: press, rclick, drag, type, key, cl
   const pane = reads('#pane'), win = reads('#win')
   const MORE = '续写、起草、快照、导出和外观' // the toolbar's "more" button, by its title
   const must = (ok: boolean, words: string) => { if (!ok) throw new Error(words) }
+  // Buttons stand at the right of their row, the one that goes ahead last: AGENTS.md has it as a rule of the design.
+  // After every click, each row that holds a button is looked at; what is found is told at the end, all at once.
+  const loose = new Set<string>()
+  const LOOSE = `(() => {
+    const out = [], seen = new Set(), shown = (e) => e.getClientRects().length > 0, isButton = (e) => e.matches('.btn, .solid, .ghost')
+    for (const b of document.querySelectorAll('#win .btn, #win .solid, #win .ghost, #win .hit.ink, #win .hit.muted')) {
+      const row = b.parentElement
+      if (seen.has(row) || !shown(b)) continue
+      seen.add(row)
+      const kids = [...row.children].filter(shown), last = kids.at(-1), box = row.getBoundingClientRect(), css = getComputedStyle(row)
+      // Words to press count as buttons where the row holds nothing else; one after a sentence goes with the sentence.
+      if (!kids.some(isButton) && !kids.every((e) => e.matches('.hit'))) continue
+      const gap = box.right - parseFloat(css.paddingRight) - parseFloat(css.borderRightWidth) - last.getBoundingClientRect().right
+      const main = kids.find((e) => e.matches('.btn.primary, .btn.danger, .solid'))
+      // From the first button on they stand one against the next: none is left of a stretch of nothing.
+      const from = kids.findIndex(isButton), apart = parseFloat(css.columnGap) || 0
+      const parted = from >= 0 && kids.slice(from + 1).some((e, i) => e.matches('.grow') || e.getBoundingClientRect().left - kids[from + i].getBoundingClientRect().right > apart + 1.5)
+      if (gap > 1.5) out.push(row.className + ' is not at the right: ' + row.innerText.replace(/\\s+/g, ' ').slice(0, 40))
+      else if (parted) out.push(row.className + ' has a button left of a gap: ' + row.innerText.replace(/\\s+/g, ' ').slice(0, 40))
+      else if (main && kids.slice(kids.indexOf(main) + 1).some(isButton)) out.push(row.className + ' has a button after the main one: ' + row.innerText.replace(/\\s+/g, ' ').slice(0, 40))
+    }
+    return out
+  })()`
   // After every click, nothing may be wider than the menu, popover, dialog or toast it is in. One that holds an open
   // menu of its own is passed over: a submenu is meant to stand beside it.
   const click = async (words: string, nth = 0) => {
     await press(words, nth)
     const out = await js(`(() => { const e = [...document.querySelectorAll('.pop, .float, .dialog, .toast')].find((e) => !e.querySelector('.pop') && e.scrollWidth > e.clientWidth + 1); return e ? e.className + ': ' + e.innerText.slice(0, 30) : '' })()`)
     must(!out, 'after clicking ' + words + ', something sticks out of ' + out)
+    for (const row of await js(LOOSE)) loose.add(row)
   }
   // Brings the pointer over the row of the open menu saying words.
   const over = (words: string) => js(`[...document.querySelectorAll('.ctx .pop-row')].find((e) => e.innerText.includes(${JSON.stringify(words)})).dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))`)
@@ -28,6 +52,13 @@ export async function walk({ js, shot, click: press, rclick, drag, type, key, cl
   const unsaved = (): Promise<boolean> => js(`!!document.querySelector('.sheet.on.dirty')`)
   const tabAt = (key: string): Promise<[number, number]> => js(`(() => { const r = document.querySelector('[data-tab="${key}"]').getBoundingClientRect(); return [r.x + 20, r.y + r.height / 2] })()`)
   const shut = (key: string) => js(`document.querySelector('[data-tab="${key}"] .sheet-x').click()`)
+  // Where a row of the sidebar's tree is, and opening the outline of a volume from its menu: a click on it only folds it.
+  const row = (words: string): Promise<[number, number]> => js(`(() => { const r = [...document.querySelectorAll('.tree-row')].find((e) => e.innerText.replace(/\\s+/g, '').includes(${JSON.stringify(words)})).getBoundingClientRect(); return [r.x + 60, r.y + r.height / 2] })()`)
+  const outline = async (volume: string) => { await rclick(...(await row(volume))); await win('编辑卷纲'); await click('编辑卷纲') }
+  // The prose as it is typed in: how many paragraphs, where the caret is, and putting it somewhere.
+  const paras = (): Promise<number> => js(`document.querySelectorAll('[data-para]').length`)
+  const caretAt = (): Promise<string> => js(`(() => { const s = spanNow(); return s ? s[1].para + ':' + s[1].off : 'nowhere' })()`)
+  const caret = (para: number, off: number) => js(`putCaret({ para: ${para}, off: ${off} })`)
   // A flow is done when nothing in the window sticks out of it: what does can scroll the whole window aside.
   const done = async (step: string) => {
     must(await js(`(() => { const w = document.querySelector('#win'); return w.scrollWidth <= w.clientWidth && w.scrollHeight <= w.clientHeight && !w.scrollLeft && !w.scrollTop })()`), 'something sticks out of the window after: ' + step)
@@ -80,7 +111,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, key, cl
 
   // The sidebar: chapters open, volumes fold.
   await click('第84章：刻字'); await win('灯罩内侧刻着'); await win('本章 3,102 字'); await shot('10-chapter')
-  await click('第三卷：停电'); await win('卷纲'); await win('4 项'); await win('本卷 1.2 万字 · 全书 31.2 万字'); await win('林晚趁何主任不在翻档案柜'); await win('巷口的灯又坏了'); await shot('10b-folder')
+  await outline('第三卷：停电'); await win('卷纲'); await win('4 项'); await win('本卷 1.2 万字 · 全书 31.2 万字'); await win('林晚趁何主任不在翻档案柜'); await win('巷口的灯又坏了'); await shot('10b-folder')
   await click('第三卷：停电'); must(!(await js(`[...document.querySelectorAll('.tree-row')].some((r) => r.innerText.includes('第85章'))`)), 'the volume did not fold'); await click('第三卷：停电'); must((await js(`[...document.querySelectorAll('.tree-row')].some((r) => r.innerText.includes('第85章'))`)), 'the volume did not unfold'); await click('第85章：灯数'); await win('卷纲', false); await click('上一个打开的章节'); await win('卷纲')
   await click('番外：晴天'); await win('雨城一年里只有十几个晴天'); await shot('11-loose-chapter'); await done('the sidebar')
 
@@ -112,7 +143,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, key, cl
   await js('getSelection().removeAllRanges()')
   const [x, y]: [number, number] = await js(`(() => { const r = document.querySelector('[data-para="0"]').getBoundingClientRect(); return [r.x + 80, r.y + r.height / 2] })()`)
   await rclick(x, y); await win('记为伏笔…'); must(await greyed('记为伏笔…'), 'burying is not greyed'); await shot('22-nothing-picked'); await rclick(x, y); await win('记为伏笔…', false); await done('the menu with nothing picked')
-  await menu(0, '档案室在电力局二楼'); await click('剪切'); await win('原型的正文不能修改'); await click('关闭提示'); await win('粘贴', false); await done('cutting says the prototype cannot')
+  await menu(0, '档案室在电力局二楼'); await click('剪切'); await win('粘贴', false); await win('档案室在电力局二楼', false); must(await unsaved(), 'cutting left the chapter saved')
+  await key('z', true); await win('档案室在电力局二楼'); await key('y', true); await win('档案室在电力局二楼', false); await key('z', true); await win('档案室在电力局二楼'); await done('cut from the menu, undo and redo')
 
   // A foreshadowing whose sentence is gone takes a new one.
   await click('全部伏笔'); await click('原句已删'); await click('小祥的左手'); await pane('第 1 章的原句已删除'); await shot('23-lost')
@@ -139,7 +171,6 @@ export async function walk({ js, shot, click: press, rclick, drag, type, key, cl
   const has = (sel: string): Promise<boolean> => js(`!!document.querySelector(${JSON.stringify(sel)})`)
   const value = (label: string): Promise<string> => js(`document.querySelector('[aria-label=${JSON.stringify(label)}]').value`)
   // The middle of the row of the sidebar that reads so, to press the right button on.
-  const row = (words: string): Promise<[number, number]> => js(`(() => { const r = [...document.querySelectorAll('.tree-row')].find((e) => e.innerText.replace(/\\s+/g, '').includes(${JSON.stringify(words)})).getBoundingClientRect(); return [r.x + 60, r.y + r.height / 2] })()`)
   // Picks words the way a pointer does: down at their start, up at their end.
   const pick = async (para: number, words: string) => {
     const [a, b]: [[number, number], [number, number]] = await js(`(() => {
@@ -271,11 +302,11 @@ export async function walk({ js, shot, click: press, rclick, drag, type, key, cl
   await win('从一个想法开始'); await win('API key 保存在系统钥匙串中，不会写入作品文件夹。'); await shot('81-empty-shelf'); await click('新建作品'); await click('取消'); await click('重新开始'); await win('第87章：停电'); await win('已备份 · 今天 10:32'); await done('an empty shelf, and start over')
 
   // A volume as a page: its outline, what it holds, a chapter made in it.
-  await click('第二卷：旧城'); await win('1 项'); await win('本卷 14.1 万字'); await type('卷纲', '林晚回到旧城，找到那把钥匙。'); await click('在此新建章节'); await key('Enter'); await win('第47章：新章节'); await win('满 200 字后可检查')
-  await click('第二卷：旧城'); await win('2 项'); must((await value('卷纲')) === '林晚回到旧城，找到那把钥匙。', 'the outline of the volume is lost'); await pane('附上本卷内容', false); await click('讨论', 1); await click('新讨论'); await pane('附上本卷内容'); await click('全部讨论'); await click('设定'); await shot('82-folder-own'); await done('a volume as a page')
+  await outline('第二卷：旧城'); await win('1 项'); await win('本卷 14.1 万字'); await type('卷纲', '林晚回到旧城，找到那把钥匙。'); await click('在此新建章节'); await key('Enter'); await win('第47章：新章节'); await win('满 200 字后可检查')
+  await click('第二卷：旧城', 1); await win('2 项'); must((await value('卷纲')) === '林晚回到旧城，找到那把钥匙。', 'the outline of the volume is lost'); await pane('附上本卷内容', false); await click('讨论', 1); await click('新讨论'); await pane('附上本卷内容'); await click('全部讨论'); await click('设定'); await shot('82-folder-own'); await done('a volume as a page')
 
   // A short name picked in the prose goes into the setting as it is.
-  await click('第三卷：停电'); await click('第三卷：停电'); await click('第85章：灯数'); await menu(0, '何主任'); await over('加入名字表'); must(await js(`!!document.querySelector('.side-pop')`), 'the pointer over the row opened nothing'); await over('加入设定'); must(await js(`!document.querySelector('.side-pop')`), 'the list stayed as the pointer went on'); await over('加入名字表'); await click('加入名字表'); must(await js(`document.querySelector('.side-pop').innerText.includes('组织') && document.querySelector('.side-pop').getBoundingClientRect().left > document.querySelector('.ctx').getBoundingClientRect().right - 8`), 'the categories of names are not beside the menu'); await shot('83-name-menu'); await js(`document.querySelector('.side-pop .row').click()`)
+  await click('第85章：灯数'); await menu(0, '何主任'); await over('加入名字表'); must(await js(`!!document.querySelector('.side-pop')`), 'the pointer over the row opened nothing'); await over('加入设定'); must(await js(`!document.querySelector('.side-pop')`), 'the list stayed as the pointer went on'); await over('加入名字表'); await click('加入名字表'); must(await js(`document.querySelector('.side-pop').innerText.includes('组织') && document.querySelector('.side-pop').getBoundingClientRect().left > document.querySelector('.ctx').getBoundingClientRect().right - 8`), 'the categories of names are not beside the menu'); await shot('83-name-menu'); await js(`document.querySelector('.side-pop .row').click()`)
   await win('「何主任」已加入设定的人物输入时可自动补全'); await click('关闭提示'); await menu(0, '何主任'); await win('已在名字表中'); await key('Escape')
   await menu(0, '何主任让他们把旧城的灯重新数一遍'); must(await js(`[...document.querySelectorAll('.ctx .row')].find((e) => e.innerText.includes('加入名字表')).classList.contains('off')`), 'a long pick can be a name'); await key('Escape'); await done('a name from the prose')
 
@@ -337,10 +368,34 @@ export async function walk({ js, shot, click: press, rclick, drag, type, key, cl
 
   // Tabs: a chapter opened gets one beside the one shown, and they close one by one, or all but one.
   must((await tabs()) === '87*', 'a book opens with more than its last chapter: ' + (await tabs()))
+  await click('第三卷：停电'); must((await tabs()) === '87*', 'a volume clicked took a tab: ' + (await tabs())); await click('第三卷：停电')
   await click('第86章：档案室'); await click('第84章：刻字'); must((await tabs()) === '87 86 84*', 'opening two more: ' + (await tabs())); await win('巷口那盏灯又坏了'); await shot('97-tabs')
   await click('第87章：停电', 1); must((await tabs()) === '87* 86 84', 'a tab clicked: ' + (await tabs())); await win('整条街的灯是同时灭的')
   await click('第85章：灯数'); must((await tabs()) === '87 85* 86 84', 'a new one goes beside the one shown: ' + (await tabs()))
   await shut('85'); must((await tabs()) === '87 86* 84', 'the one shown closed: ' + (await tabs())); await shut('84'); must((await tabs()) === '87 86*', 'another closed: ' + (await tabs()))
   await click('第84章：刻字'); await rclick(...(await tabAt('87'))); await win('关闭其他'); await win('关闭右侧'); await shot('98-tab-menu'); await click('关闭其他'); must((await tabs()) === '87*', 'all but one closed: ' + (await tabs()))
-  await shut('87'); must((await tabs()) === '', 'the last one closed: ' + (await tabs())); await win('从左侧选择一章开始写作'); await click('上一个打开的章节'); must((await tabs()) === '87*', 'going back: ' + (await tabs())); await done('tabs')
+  await shut('87'); must((await tabs()) === '', 'the last one closed: ' + (await tabs())); await win('从左侧选择一章开始写作'); await click('上一个打开的章节'); must((await tabs()) === '87*', 'going back: ' + (await tabs()))
+  await outline('第一卷：雨季'); must((await tabs()) === '87 v1*', 'the outline of a volume has no tab: ' + (await tabs())); await win('卷纲'); await shut('v1'); await done('tabs')
+
+  // Typing in the prose. The tab says the chapter is not saved until the pause after the last key, or Ctrl+S.
+  await click('重新开始'); await click('第84章：刻字'); const had = await paras()
+  await caret(0, 4); await text('今天'); await win('巷口那盏今天灯又坏了'); must(await unsaved(), 'typing left the tab saying saved'); await win('本章 3,104 字'); must((await caretAt()) === '0:6', 'the caret is not after what was typed: ' + (await caretAt())); await shot('99-typed')
+  must((await drawn('灯罩内侧刻着一个“晚”字，笔画很浅，像是用钥匙尖划的。')) === 'fs', 'typing above a foreshadowing lost its line')
+  await key('s', true); await win('停笔片刻也会自动保存'); must(!(await unsaved()), 'Ctrl+S left the dot'); await click('关闭提示'); await caret(0, 6)
+  await text('的'); await sleep(900); await text('的'); await sleep(900); must(await unsaved(), 'saved while the author was still typing'); await sleep(1000); must(!(await unsaved()), 'not saved after the pause'); await win('巷口那盏今天的的灯又坏了')
+  await key('Enter'); must((await paras()) === had + 1, 'Enter did not start a paragraph'); must((await caretAt()) === '1:0', 'the caret is not at the head of the new paragraph: ' + (await caretAt())); must((await drawn('灯罩内侧刻着一个“晚”字，笔画很浅，像是用钥匙尖划的。')) === 'fs', 'a paragraph more lost the foreshadowing below')
+  await key('Backspace'); must((await paras()) === had, 'Backspace did not join the paragraphs'); await win('巷口那盏今天的的灯又坏了'); must((await caretAt()) === '0:8', 'the caret is not where the paragraphs joined: ' + (await caretAt()))
+  await key('Backspace'); await key('Delete'); await win('巷口那盏今天的又坏了'); await key('z', true); must((await paras()) === had + 1, 'undoing did not bring the paragraph back'); await key('z', true); await win('巷口那盏今天的的灯又坏了'); must((await caretAt()) === '0:8', 'the caret is not where the undoing ended: ' + (await caretAt()))
+  await js(`(() => { const d = new DataTransfer(); d.setData('text/plain', '甲\\r\\n乙'); document.querySelector('.prose').dispatchEvent(new ClipboardEvent('paste', { clipboardData: d, bubbles: true, cancelable: true })) })()`)
+  must((await paras()) === had + 1, 'two lines pasted are not two paragraphs'); await win('巷口那盏今天的的甲'); must((await caretAt()) === '1:1', 'the caret is not after what was pasted: ' + (await caretAt())); must(await unsaved(), 'pasting left the tab saying saved')
+  await click('第87章：停电'); must(!(await unsaved()), 'the chapter gone to is said not to be saved'); await click('第84章：刻字', 1); must(!(await unsaved()), 'the chapter left was not saved'); await win('巷口那盏今天的的甲')
+  await click('第87章：停电', 1); await caret(0, 0); await key('Enter'); must((await drawn('她往前走了一步。')) === 'doubt', 'a paragraph more above lost what the check found')
+  await click('新建章节（Ctrl+N）'); await key('Enter'); await win('在此开始写作…'); await caret(0, 0); await text('雨停了'); await win('在此开始写作…', false); await win('本章 3 字'); await key('Enter'); await text('她'); must((await paras()) === 2, 'the second paragraph of a new chapter'); await win('本章 4 字')
+  await key('j', true); await sleep(900); must(await js(`!document.querySelector('.prose[contenteditable]')`), 'the prose takes typing while a sentence waits to be taken'); await key('Escape'); must(await js(`!!document.querySelector('.prose[contenteditable]')`), 'the prose does not take typing again'); await done('typing')
+
+  // The sidebar puts away, and the bar brings it back.
+  await click('重新开始'); await click('收起侧栏'); must(!(await js(`!!document.querySelector('.sidebar')`)), 'the sidebar is still there'); await win('第87章：停电'); await shot('99b-no-sidebar'); await click('第84章：刻字').then(() => { throw new Error('the tree is still clickable') }, () => {})
+  await click('展开侧栏'); must(await js(`!!document.querySelector('.sidebar')`), 'the sidebar did not come back'); await click('讨论'); await click('收起侧栏'); await click('展开侧栏'); await click('检查'); await win('收起侧栏', false); await click('正文'); await done('the sidebar put away')
+
+  must(!loose.size, 'buttons that are not at the right of their row, or not in order:\n  ' + [...loose].join('\n  '))
 }

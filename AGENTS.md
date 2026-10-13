@@ -16,7 +16,7 @@ npm run verify-notes
 
 ## 界面设计以 `prototype/` 里的原型为准
 
-双击 `prototype/index.html` 就开：整个窗口都能点，内容是假的，正文不能打字，AI 只回固定的几句。纯 HTML/JS，没有依赖，不用构建。各文件管什么：
+双击 `prototype/index.html` 就开：整个窗口都能点，内容是假的，正文能打字（不存盘，刷新就回到原样），AI 只回固定的几句。纯 HTML/JS，没有依赖，不用构建。各文件管什么：
 
 - `index.html`：样式。
 - `book.js`：那本假书。
@@ -34,7 +34,13 @@ npm run verify-notes
    - 原型写 `var(--…)`，名字都在 `desk/tokens.css`，全仓库只有这一份。
    - 代码用 `desk/theme.go` 里的同名常量（`fsBody`、`rControl`、`lhBody`、`iconMd`、`hControl`、`opacityDisabled`）和调色板里的阴影、遮罩（`a.pal.pop.on(e)`、`a.pal.scrim`）。`go test ./desk` 会核对常量和 `desk/tokens.css` 是否一致，并且检查界面代码里有没有直接写 `FontSize`、`Radius`、`LineHeight`、`glyph` 大小、按钮高度的数字、`ui.RGBA(` 或 `Shadow(`，`Padding`、`Gap`、`Margin` 和透明度的数在不在刻度上。
    - 要加一级，先在 `desk/tokens.css` 里加，再在 `desk/theme.go` 里加同名常量。
-5. 原来的设计稿在 Design artifact <https://claude.ai/artifact/RAP7UK4pSfnGArETpVtPSj>，只作存档：不再更新，也不以它为准。
+5. 一排按钮靠右，主按钮在最右：「取消」之类次要的在它左边，文字样式的操作（「今日不再提醒」「复制详情」）在更左。对话框、浮层、提示条、卡片都一样。只有三种不这样：
+   - 空页正中那一段的按钮，跟着那段话居中，主按钮仍在右；
+   - 跟在一句话后面的行内链接（「查看原文」「更改」），跟着那句话；
+   - 不做决定的那一个（「稍后再说」）可以单独留在最左，和其余的分开。
+
+   两边都有检查，不靠人看：`npm run verify-prototype` 每点一下就把窗口里的按钮行都量一遍；`go test ./desk`（`TestButtonsAtTheRight`）查界面代码里以按钮开头的 `ui.Row` 写没写 `Justify(ui.End)`、主按钮后面有没有别的按钮。
+6. 原来的设计稿在 Design artifact <https://claude.ai/artifact/RAP7UK4pSfnGArETpVtPSj>，只作存档：不再更新，也不以它为准。
 
 ## 重要改动必须留笔记
 

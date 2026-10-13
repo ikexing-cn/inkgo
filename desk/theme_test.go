@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -152,6 +153,61 @@ func TestNoLiteralSizes(t *testing.T) {
 						t.Errorf("%s:%d: %s(%s); use fs*, r*, lh* or icon*", f, i+1, name, args)
 					}
 				}
+			}
+		}
+	}
+}
+
+// Buttons stand at the right of their row, the one that goes ahead last:
+// AGENTS.md has it as a rule of the design. A row that begins with a button
+// has nothing before it to push it there, so it must say Justify(ui.End). No
+// button stands left of a spacer, but for the one that decides nothing (as
+// "稍后再说"), alone there; and no lesser button comes after the main one.
+func TestButtonsAtTheRight(t *testing.T) {
+	files, _ := filepath.Glob("*.go")
+	button := regexp.MustCompile(`a\.pal\.(primary|secondary)\(|a\.textLink\(`)
+	for _, f := range files {
+		if strings.HasSuffix(f, "_test.go") {
+			continue
+		}
+		b, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		lines := strings.Split(string(b), "\n")
+		for i, line := range lines {
+			if !strings.Contains(line, "ui.Row(c)") || !strings.HasSuffix(strings.TrimSpace(line), ".Children(func() {") {
+				continue
+			}
+			// The row's own statements are those one tab deeper than it; of
+			// them, the ones that draw.
+			indent := line[:len(line)-len(strings.TrimLeft(line, "\t"))]
+			var own []string
+			for _, in := range lines[i+1:] {
+				if strings.HasPrefix(in, indent+"})") {
+					break
+				}
+				if strings.HasPrefix(in, indent+"\t") && !strings.HasPrefix(in, indent+"\t\t") && !strings.HasPrefix(in, indent+"\t}") && !strings.HasPrefix(in, indent+"\t//") && strings.Contains(in, "(c") {
+					own = append(own, strings.TrimSpace(in))
+				}
+			}
+			spacer := slices.Index(own, "ui.Spacer(c)")
+			main := false
+			for k, in := range own {
+				m := button.FindStringSubmatch(in)
+				if m == nil || !strings.HasPrefix(in, "if ") {
+					continue
+				}
+				switch {
+				case k < spacer && (k > 0 || spacer > 1 || !strings.Contains(m[0], "textLink")):
+					t.Errorf("%s:%d: a button left of the row's spacer: %s", f, i+1, in)
+				case k == 0 && spacer < 0 && !strings.Contains(line, "Justify(ui.End)"):
+					t.Errorf("%s:%d: a row of buttons that is not at the right: say Justify(ui.End)", f, i+1)
+				}
+				if main && m[1] != "primary" {
+					t.Errorf("%s:%d: a button after the main one of its row: %s", f, i+1, in)
+				}
+				main = main || m[1] == "primary"
 			}
 		}
 	}

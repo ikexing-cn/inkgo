@@ -371,19 +371,19 @@ func (a *App) backupCard(c *ui.Context, panel ui.Element, s backup.Settings) {
 			_, title, body := trouble(s.Dir, a.bk.err)
 			ui.Text(c, title).FontSize(fsBody).FontWeight(600)
 			ui.Text(c, body+lastSaid(s, now)).FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
-			ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-				if a.pal.primary(c, "重试").Disabled(a.bk.running).Clicked() {
+			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Justify(ui.End).Children(func() {
+				if a.textLink(c, "今日不再提醒").Clicked() {
+					s.Hush = now
+					a.setBackup(s)
 					a.bk.open, a.bk.chip = false, false
-					a.runBackup(c)
 				}
 				if a.PickFolder != nil && a.pal.secondary(c, "更换位置").Clicked() {
 					a.bk.open, a.bk.chip = false, false
 					a.pickBackupFolder(c)
 				}
-				if a.textLink(c, "今日不再提醒").Clicked() {
-					s.Hush = now
-					a.setBackup(s)
+				if a.pal.primary(c, "重试").Disabled(a.bk.running).Clicked() {
 					a.bk.open, a.bk.chip = false, false
+					a.runBackup(c)
 				}
 			})
 			return
@@ -397,17 +397,17 @@ func (a *App) backupCard(c *ui.Context, panel ui.Element, s backup.Settings) {
 			ui.Text(c, "备份至 "+s.Dir).FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
 			ui.Text(c, "下次："+next(s, now)).FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
 		})
-		ui.Row(c).Gap(8).Children(func() {
+		ui.Row(c).FillWidth().Gap(8).Justify(ui.End).Children(func() {
+			if a.pal.secondary(c, "备份设置…").Clicked() {
+				a.bk.open = false
+				a.openPrefs("备份")
+			}
 			label := "立即备份"
 			if a.bk.running {
 				label = "正在备份…"
 			}
 			if a.pal.primary(c, label).Label("立即备份").Disabled(a.bk.running).Clicked() {
 				a.runBackup(c)
-			}
-			if a.pal.secondary(c, "备份设置…").Clicked() {
-				a.bk.open = false
-				a.openPrefs("备份")
 			}
 		})
 	})

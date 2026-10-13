@@ -228,7 +228,7 @@ func (a *App) services(c *ui.Context) {
 			a.bk.edit = "+"
 		}
 	})
-	ui.Row(c).FillWidth().Gap(16).Children(func() {
+	ui.Row(c).FillWidth().Gap(16).Justify(ui.End).Children(func() {
 		if a.textLink(c, "打开配置文件").Disabled(a.ConfigFile == "").Clicked() {
 			u := url.URL{Scheme: "file", Path: filepath.ToSlash(a.ConfigFile)}
 			if len(u.Path) > 1 && u.Path[1] == ':' {
@@ -414,10 +414,7 @@ func (a *App) providerForm(c *ui.Context) {
 		labeled(c, "可用模型（每行一个；也可在上方直接输入目录外的模型）", func() {
 			ui.TextArea(c, &a.models).Label("模型目录").Height(96).FillWidth().Disabled(busy)
 		})
-		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-			if a.pal.secondary(c, "获取可用模型").Disabled(busy).Clicked() {
-				a.fetchModels(c)
-			}
+		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Justify(ui.End).Children(func() {
 			if a.providerID != "" && ghost(c, "清除已保存 key", t.Danger).Disabled(busy).Clicked() {
 				err := model.SetKey(a.providerID, "")
 				if err == nil {
@@ -426,7 +423,9 @@ func (a *App) providerForm(c *ui.Context) {
 				a.setError(err)
 				a.key = ""
 			}
-			ui.Spacer(c)
+			if a.pal.secondary(c, "获取可用模型").Disabled(busy).Clicked() {
+				a.fetchModels(c)
+			}
 			if a.pal.primary(c, "保存提供商").Disabled(busy).Clicked() {
 				err := a.saveProvider()
 				if err == nil {

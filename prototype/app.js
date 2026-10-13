@@ -10,13 +10,13 @@ function restart() {
   set({ ...fresh(), look: S.look })
 }
 
-// 右上角的提示，最多露三条，新的在下。
+// 右上角的提示，最多露三条，新的在下。提示里能点的几个靠右排，最要紧的（给的第一个）在最右。
 function toasts() {
   if (!S.toasts.length) return ''
   const shown = S.toasts.slice(-3), rest = S.toasts.length - shown.length
   const pic = { ok: icon('checked', 'md', 'green'), fail: icon('warn', 'md', 'amber'), busy: icon('spin', 'md', 'muted') }
   const one = (x) => `<div class="toast" data-k="${x.id}">${pic[x.kind] || ''}<div class="fit"><div class="toast-title">${t(x.title)}</div>${x.detail ? `<div class="note">${t(x.detail)}</div>` : ''}` +
-    (x.acts.length ? `<div class="toast-acts">${x.acts.map(([label, act]) => `<div class="hit ink"${onClick(act)}>${t(label)}</div>`).join('')}</div>` : '') +
+    (x.acts.length ? `<div class="toast-acts">${[...x.acts].reverse().map(([label, act]) => `<div class="hit ink"${onClick(act)}>${t(label)}</div>`).join('')}</div>` : '') +
     `</div><button class="icon-btn muted" aria-label="关闭提示" title="关闭提示"${onClick(() => unsay(x.id))}>${icon('cross', 'sm')}</button></div>`
   return `<div id="toasts">${shown.map(one).join('')}${rest > 0 ? `<div class="toast-rest">还有 ${rest} 条</div>` : ''}</div>`
 }
@@ -25,11 +25,12 @@ function view() {
   const focus = S.focus && S.page === 'write'
   const main = { write: () => editor(chapterOf(S.ch)), talk: talkPage, check: checkPage, cats: catsPage }
   const side = (S.page === 'write' && !focus) || S.page === 'talk' ? S.paneOpen : false
+  const bare = focus || (!S.sideOpen && (S.page === 'write' || S.page === 'talk')) // 侧栏收起：只在顶栏有「展开侧栏」的两页
   return '<div class="stage">' +
     `<div class="stage-bar">${button('重新开始', restart)}<div class="anchor left"><div class="btn hit${S.open === 'rare' ? ' soft' : ''}" title="平时不易遇到的情况：出错、作品在软件外被改动"${onClick(() => set({ open: S.open === 'rare' ? '' : 'rare' }))}>少见的情况</div>` +
-    (S.open === 'rare' ? `<div class="pop rare-pop" data-k="rare-pop">${rare().map(([label, act]) => menuRow(label, act)).join('')}</div>` : '') + `</div><div class="stage-note">内容为示例，正文不可输入，AI 仅回复固定内容。</div></div>` +
+    (S.open === 'rare' ? `<div class="pop rare-pop" data-k="rare-pop">${rare().map(([label, act]) => menuRow(label, act)).join('')}</div>` : '') + `</div><div class="stage-note">内容为示例。正文可输入，刷新后复原；AI 仅回复固定内容。</div></div>` +
     `<div id="win" class="${dark() ? 'dark' : 'light'}">` + WINDOW_BUTTONS + veil() +
-    (S.page === 'shelf' ? shelfPage() : (focus ? '' : sidebar()) + main[S.page]() + (side ? pane() : '')) +
+    (S.page === 'shelf' ? shelfPage() : (bare ? '' : sidebar()) + main[S.page]() + (side ? pane() : '')) +
     floats() + dialogs() + toasts() + '</div></div>'
 }
 

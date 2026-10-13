@@ -23,6 +23,8 @@ export interface Page {
   type(label: string, words: string): Promise<void>
   /** Presses a key: one of those named in keyCodes below, or a letter or sign; ctrl holds Ctrl down with it. */
   key(key: string, ctrl?: boolean): Promise<void>
+  /** Types words where the caret is. */
+  text(words: string): Promise<void>
   /** Empties the field labelled so. */
   clear(label: string): Promise<void>
   /** Saves a picture of the page, when pictures were asked for. */
@@ -104,7 +106,7 @@ export async function open(file: string, ready: string, shots?: string): Promise
     for (const type of ['mousePressed', 'mouseReleased']) await send('Input.dispatchMouseEvent', { type, x, y, button, clickCount: 1 })
     await sleep(150)
   }
-  const keyCodes: Record<string, number> = { Enter: 13, Escape: 27, Backspace: 8, Tab: 9, F11: 122, '/': 191 }
+  const keyCodes: Record<string, number> = { Enter: 13, Escape: 27, Backspace: 8, Delete: 46, Tab: 9, F11: 122, '/': 191 }
   const key: Page['key'] = async (key, ctrl = false) => {
     const code = keyCodes[key] ?? key.toUpperCase().charCodeAt(0)
     for (const type of ['rawKeyDown', 'keyUp']) await send('Input.dispatchKeyEvent', { type, key, code: key, windowsVirtualKeyCode: code, modifiers: ctrl ? 2 : 0 })
@@ -127,6 +129,10 @@ export async function open(file: string, ready: string, shots?: string): Promise
     },
     type: async (label, words) => {
       if (!(await js(`(() => { const e = ${field(label)}; if (!e) return false; e.focus(); return true })()`))) throw new Error('no field ' + label)
+      await send('Input.insertText', { text: words })
+      await sleep(150)
+    },
+    text: async (words) => {
       await send('Input.insertText', { text: words })
       await sleep(150)
     },

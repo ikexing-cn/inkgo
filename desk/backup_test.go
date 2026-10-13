@@ -139,6 +139,13 @@ func TestBackupFails(t *testing.T) {
 	if !tt.HasText("找不到备份文件夹，本次备份未完成") || !tt.HasText("作品未受影响，文件夹可能已被移动或改名。尚无成功的备份。") {
 		t.Fatal("no reason", tt.Texts())
 	}
+	// Its buttons at the right, the one that goes ahead last.
+	hush, _ := tt.Find("今日不再提醒")
+	again, _ := tt.Find("重试")
+	title, ok := tt.Find("找不到备份文件夹，本次备份未完成")
+	if !ok || hush.X <= title.X || again.X <= hush.X+hush.W {
+		t.Fatalf("the buttons are not at the right, the main one last: %v %v under %v", hush, again, title)
+	}
 	if err := tt.Click("今日不再提醒"); err != nil {
 		t.Fatal(err)
 	}

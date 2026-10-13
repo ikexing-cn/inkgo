@@ -352,7 +352,7 @@ func (a *App) emptyShelf(c *ui.Context) {
 				ui.Text(c, "· "+line).FontSize(fsNote).TextColor(t.TextMuted)
 			}
 		})
-		ui.Row(c).Gap(8).Padding(10, 0, 0, 0).Children(func() {
+		ui.Row(c).Gap(8).Padding(10, 0, 0, 0).Justify(ui.End).Children(func() {
 			if a.PickFolder != nil && a.pal.secondary(c, "添加已有作品…").Clicked() {
 				a.pickInto(c, "选择已有作品的文件夹", a.addBook)
 			}

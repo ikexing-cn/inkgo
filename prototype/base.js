@@ -23,9 +23,9 @@ function fresh(book = BOOK.shelf[0].id) {
     entries: of('entries', []), log: of('log', []), marks: of('marks', []), talks: of('talks', []), checks: of('checks', []),
     snaps: last ? { [last.key]: snaps } : {}, cats: [...BOOK.cats], lands: { ...BOOK.lands },
     ch: last ? last.key : '', trail: last ? [last.key] : [], step: 0, // 开着哪一章；trail 是打开过的章，step 是现在在第几个
-    tabs: last ? [last.key] : [], // 标签页：开着的几章（或卷），从左到右；ch、vol 是其中正在看的那个
+    tabs: last ? [last.key] : [], // 标签页：开着的几章（和点了「编辑卷纲」的卷），从左到右；ch、vol 是其中正在看的那个
     folds: Object.fromEntries(BOOK.volumes.map(([key]) => [key, !last || key !== last.vol])),
-    paneOpen: true, tab: '设定', focus: false, // 右栏开着吗、在哪一页；focus 是专注写作
+    paneOpen: true, sideOpen: true, tab: '设定', focus: false, // 右栏、侧栏开着吗，右栏在哪一页；focus 是专注写作
     open: '', // 开着的菜单或下拉的名字，一次只开一个
     dialog: null, // 开着的对话框：{ kind, … }
     n: 100, // 新东西的编号，用一个加一个
@@ -46,6 +46,7 @@ function fresh(book = BOOK.shelf[0].id) {
     named: null, // 设定里改了名字，正文里还留着旧名：{ was, now, n }
     tidying: false, // AI 正在后台把刚聊的整理进设定
     saved: true, // 正文存了没有
+    undo: {}, // 每章打字前的样子：{ back, fwd }，各是几份 paras，撤销和重做用
     outside: '', // 软件外面动了开着的这一章：changed 改过、lost 找不到了
     rename: null, // 侧栏里正在改名字的：{ key, t }
     tree: null, // 右键点出来的菜单：{ key, x, y }；talk 是侧栏里的一段讨论，tab 是一个标签页，都不是就是章节树里的一行
@@ -66,13 +67,15 @@ const KEPT = ['look', 'shelf', 'cards', 'library', 'uses', 'services', 'budget',
 let S = fresh()
 let sent = 0 // 作者发过几条消息，AI 按顺序回下一句
 const timers = new Set()
+let saving = 0 // 停笔后自己存的那一下；又打了字就从头等
+let composing = false, owed = false // 拼音正在选字：这时不重画，免得把没选完的字冲掉；owed 是欠着的一遍
 
 // change 是要改的那几项，或者一个看着现在的状态算出它们的函数；返回空就什么都不变。
 function set(change) {
   const next = typeof change === 'function' ? change(S) : change
   if (!next) return
   S = { ...S, ...next }
-  if (next.saved === false) later(1500, () => set((s) => (s.saved ? null : { saved: true }))) // 停笔片刻自己存
+  if (next.saved === false) { clearTimeout(saving); timers.delete(saving); saving = later(1500, () => set((s) => (s.saved ? null : { saved: true }))) } // 停笔片刻自己存
   draw()
 }
 
@@ -110,7 +113,7 @@ const SHUT = { open: '' }
 // 每画一遍，把这一遍用到的动作记在这里，元素上只留它的号码。
 let H = []
 const hook = (kind) => (fn) => (fn ? ` data-${kind}="${H.push(fn) - 1}"` : '')
-const onClick = hook('click'), onInput = hook('input'), onKey = hook('keydown'), onMenu = hook('menu'), onUp = hook('up'), onOver = hook('over'), onMid = hook('mid')
+const onClick = hook('click'), onInput = hook('input'), onKey = hook('keydown'), onMenu = hook('menu'), onUp = hook('up'), onOver = hook('over'), onMid = hook('mid'), onPaste = hook('paste')
 
 // 书里的字、作者打的字，放进页面前都过一遍。
 const t = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
@@ -251,6 +254,7 @@ function children(parent, want) {
 
 // view() 在 app.js 里：整个页面现在该是什么样。
 function draw() {
+  if (composing) { owed = true; return }
   H = []
   born = null
   const want = document.createElement('template')
@@ -263,7 +267,10 @@ function draw() {
 }
 
 // 页面上只挂这几个听的：事情出在哪个元素上，就照它身上的号码去找动作。
-for (const [event, kind] of [['click', 'click'], ['keydown', 'keydown'], ['contextmenu', 'menu'], ['mouseup', 'up'], ['mouseover', 'over'], ['auxclick', 'mid']]) {
+for (const [event, kind] of [['click', 'click'], ['keydown', 'keydown'], ['contextmenu', 'menu'], ['mouseup', 'up'], ['mouseover', 'over'], ['auxclick', 'mid'], ['paste', 'paste']]) {
   root.addEventListener(event, (ev) => { const el = ev.target.closest(`[data-${kind}]`); if (el) H[el.dataset[kind]](ev) })
 }
 root.addEventListener('input', (ev) => { const el = ev.target.closest('[data-input]'); if (el) H[el.dataset.input](el.value) })
+// 在正文里用拼音：选完字才把页面上的读回来。
+root.addEventListener('compositionstart', (ev) => { if (ev.target.closest('.prose')) composing = true })
+root.addEventListener('compositionend', () => { if (!composing) return; composing = false; wrote(); if (owed) { owed = false; draw() } })

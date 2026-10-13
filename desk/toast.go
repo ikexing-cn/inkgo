@@ -180,8 +180,11 @@ func (a *App) toastActions(c *ui.Context, ts ui.Toast) {
 		return
 	}
 	t := a.pal.theme
-	ui.Row(c).Gap(14).Padding(6, 0, 0, 0).Children(func() {
-		for i, x := range acts {
+	// At the right, as every row of buttons: the one that matters most, the
+	// first of them, stands last.
+	ui.Row(c).FillWidth().Gap(14).Padding(6, 0, 0, 0).Justify(ui.End).Children(func() {
+		for i := len(acts) - 1; i >= 0; i-- {
+			x := acts[i]
 			b := ui.ButtonBase(c).Shrink(0)
 			if x.name != "" {
 				b.Label(x.name)

@@ -5,13 +5,14 @@
 
 const CLEAR = { ctx: null, pick: null, bury: null, pay: null, bar: null, ai: null, box: '', tree: null, rename: null }
 
-// 打开一章或一卷：已经有它的标签页就切过去，没有就在正看的那个右边开一个。它所在的卷展开，上一章上面浮着的东西收掉，记进打开过的里面。
+// 打开一章，或一卷的卷纲：已经有它的标签页就切过去，没有就在正看的那个右边开一个。它所在的卷展开，上一章上面浮着的东西收掉，记进打开过的里面。
+// 换到别的章之前，没存的字先存了。
 function go(s, key, flash) {
   const ch = s.chapters.find((c) => c.key === key), vol = !ch && s.volumes.some((v) => v[0] === key)
   if (!ch && !vol) return null // 已经删了
   const trail = s.trail[s.step] === key ? s.trail : [...s.trail.slice(0, s.step + 1), key]
   const at = s.tabs.indexOf(s.ch || s.vol), tabs = s.tabs.includes(key) ? s.tabs : [...s.tabs.slice(0, at + 1), key, ...s.tabs.slice(at + 1)]
-  return { page: 'write', ch: ch ? key : '', vol: vol ? key : '', tabs, trail, step: s.trail === trail ? s.step : trail.length - 1, folds: { ...s.folds, [ch ? ch.vol : key]: false }, ...CLEAR, outside: '', flash: flash || null }
+  return { page: 'write', ch: ch ? key : '', vol: vol ? key : '', tabs, trail, step: s.trail === trail ? s.step : trail.length - 1, folds: { ...s.folds, [ch ? ch.vol : key]: false }, ...CLEAR, outside: '', flash: flash || null, ...(key === (s.ch || s.vol) ? {} : { saved: true }) }
 }
 // 关掉几个标签页。关的是正看的那个，就换到它右边的，没有就左边的；一个不剩时正文空着。没存的字关之前已经存了。
 const shutTabs = (gone) => set((s) => {
@@ -21,28 +22,30 @@ const shutTabs = (gone) => set((s) => {
   return next ? { ...go({ ...s, tabs }, next), saved: true } : { tabs, ch: '', vol: '', step: s.trail.length, ...CLEAR, outside: '', saved: true } // step 停在最后一个之后：‹ 回到刚关掉的那一章
 })
 const goTo = (key, flash) => () => set((s) => go(s, key, flash))
-// 侧栏顶上的 ‹ ›：回到上一个、下一个打开过的章。
+// 顶栏左边的 ‹ ›：回到上一个、下一个打开过的章。
 const stepBy = (d) => set((s) => {
   const to = go(s, s.trail[s.step + d])
   return to ? { ...to, trail: s.trail, step: s.step + d } : null
 })
 
-// 改一章的字：change 拿到原来的几段，交回新的几段。检查过的结果、写好的摘要从此算旧的，也还没存。
+// 改一章的字：change 拿到原来的几段，交回新的几段。字数跟着变；检查过的结果、写好的摘要从此算旧的，也还没存；打字留下的撤销记录作废。
 const retype = (s, key, change) => {
   const sum = s.summaries[key]
+  const typed = (c) => { const paras = change(c.paras); return { ...c, paras, c: c.c && (counted(c) + paras.join('').length - c.paras.join('').length).toLocaleString('en-US') } }
   return {
-    chapters: s.chapters.map((c) => (c.key === key ? { ...c, paras: change(c.paras) } : c)), dirty: { ...s.dirty, [key]: true }, saved: false,
+    chapters: s.chapters.map((c) => (c.key === key ? typed(c) : c)), dirty: { ...s.dirty, [key]: true }, saved: false, undo: { ...s.undo, [key]: null },
     summaries: sum && sum.text ? { ...s.summaries, [key]: { ...sum, stale: true } } : s.summaries,
   }
 }
 // 改之前先存一份快照。
 const snap = (s, key, kind, ai) => ({ snaps: { ...s.snaps, [key]: [{ id: 's' + s.n, at: '刚刚', kind, ai, paras: chapterOf(key).paras }, ...(s.snaps[key] || [])] }, n: s.n + 1 })
 
-function newChapter() {
+function newChapter(into) {
   set((s) => {
-    // 开着一章，就建在它后面；开着一卷，就建在这一卷的末尾。
-    const cur = chapterOf(s.ch) || (s.vol ? s.chapters.filter((c) => c.vol === s.vol).at(-1) : null), key = 'n' + s.n
-    const made = { key, no: cur ? cur.no + 1 : 1, vol: cur ? cur.vol : s.vol, t: '新章节', c: '', paras: [] }
+    // 开着一章，就建在它后面；开着一卷的卷纲，或者是在树里一卷上右键建的（into 是那一卷），就建在这一卷的末尾。
+    const home = typeof into === 'string' ? into : chapterOf(s.ch) ? '' : s.vol
+    const cur = home ? s.chapters.filter((c) => c.vol === home).at(-1) : chapterOf(s.ch), key = 'n' + s.n
+    const made = { key, no: cur ? cur.no + 1 : 1, vol: home || (cur ? cur.vol : ''), t: '新章节', c: '', paras: [] }
     const at = cur ? s.chapters.indexOf(cur) + 1 : s.chapters.length
     const chapters = [...s.chapters.slice(0, at), made, ...s.chapters.slice(at)]
     return { chapters, n: s.n + 1, never: { ...s.never, [key]: true }, ...go({ ...s, chapters }, key), rename: { key, t: made.t } }
@@ -109,6 +112,123 @@ function toBin(key) {
   say('「' + title + '」已移到回收站')
 }
 
+// ───────── 动作：在正文里打字 ─────────
+// 打字、删字由浏览器先改页面，这里把页面上的几段读回来；回车、粘贴、菜单里的剪切和粘贴自己算。原型不存盘，刷新就回到原样。
+
+let typedAt = 0 // 上一回打字是什么时候：紧接着打的并成一步撤销
+
+// 能打字的那一块正文；AI 正在改的时候没有。
+const proseBox = () => document.querySelector('.prose[contenteditable]')
+const blocks = (box) => [...box.children].filter((e) => e.nodeName !== 'BR')
+const plain = (text) => text.replace(/\r\n?/g, '\n').replace(/\n+$/, '')
+// 两串字（或两组段）开头有几个一样，除此以外结尾有几个一样。
+function shared(a, b) {
+  let p = 0, q = 0
+  while (p < a.length && p < b.length && a[p] === b[p]) p++
+  while (q < a.length - p && q < b.length - p && a[a.length - 1 - q] === b[b.length - 1 - q]) q++
+  return [p, q]
+}
+// node 里的第 offset 个位置，是第几段的第几个字后面。
+function placeOf(box, node, offset) {
+  const all = blocks(box)
+  if (node === box) return offset < all.length ? { para: offset, off: 0 } : { para: Math.max(all.length - 1, 0), off: all.length ? all.at(-1).textContent.length : 0 }
+  let top = node
+  while (top.parentNode !== box) top = top.parentNode
+  const r = document.createRange()
+  r.selectNodeContents(top)
+  r.setEnd(node, offset)
+  return { para: Math.max(all.indexOf(top), 0), off: r.toString().length }
+}
+// 选中的字的两头；没选中就是光标，两头一样。光标不在正文里时没有。
+function spanNow() {
+  const box = proseBox(), sel = getSelection()
+  if (!box || !sel.rangeCount || !box.contains(sel.anchorNode) || !box.contains(sel.focusNode)) return null
+  const r = sel.getRangeAt(0)
+  return [placeOf(box, r.startContainer, r.startOffset), placeOf(box, r.endContainer, r.endOffset)]
+}
+// 把光标放到第几段的第几个字后面；show 是顺便把那一段挪到看得见的地方。
+function putCaret({ para, off }, show) {
+  const box = proseBox(), div = box && blocks(box)[para]
+  if (!div) return
+  const walk = document.createTreeWalker(div, NodeFilter.SHOW_TEXT), r = document.createRange()
+  r.setStart(div, 0)
+  for (let n = walk.nextNode(), left = off; n; left -= n.data.length, n = walk.nextNode()) {
+    r.setStart(n, Math.min(left, n.data.length))
+    if (left <= n.data.length) break
+  }
+  r.collapse(true)
+  box.focus({ preventScroll: true })
+  const sel = getSelection()
+  sel.removeAllRanges()
+  sel.addRange(r)
+  if (show) div.scrollIntoView({ block: 'nearest' })
+}
+
+// 正文换成 paras：伏笔、检查出来的句子在第几段，跟着改。
+function retext(s, paras) {
+  const key = s.ch, old = s.chapters.find((c) => c.key === key).paras, [p, q] = shared(old, paras)
+  // 前面没动的几段不用管，后面没动的几段跟着挪；中间改了的，看那句话现在落在哪一段。
+  const seat = (x) => {
+    if (x.key !== key || x.para === undefined || x.para < p) return x
+    if (x.para >= old.length - q) return { ...x, para: x.para + paras.length - old.length }
+    const to = paras.findIndex((text, i) => i >= p && i < paras.length - q && text.includes(x.quote))
+    return to < 0 ? x : { ...x, para: to }
+  }
+  return { ...retype(s, key, () => paras), marks: s.marks.map((m) => (m.pay ? { ...seat(m), pay: seat(m.pay) } : seat(m))), checks: s.checks.map(seat), bar: null, pick: null, flash: null }
+}
+// 作者改了正文：改之前的样子记下来好撤销。typing 是一个字一个字打的，紧接着的并成一步。
+function typeOver(s, paras, typing) {
+  const key = s.ch, u = s.undo[key] || { back: [], fwd: [] }, old = s.chapters.find((c) => c.key === key).paras
+  const joined = typing && u.back.length && Date.now() - typedAt < 1000
+  typedAt = typing ? Date.now() : 0
+  return { ...retext(s, paras), undo: { ...s.undo, [key]: { back: joined ? u.back : [...u.back, old], fwd: [] } } }
+}
+// 撤销（d 是 -1）和重做（1）。光标放到改回来的那一处后面。
+function unwrite(d) {
+  const key = S.ch, u = S.undo[key], [from, to] = d < 0 ? ['back', 'fwd'] : ['fwd', 'back']
+  if (!u || !u[from].length || !proseBox()) return
+  const now = chapterOf(key).paras, paras = u[from].at(-1)
+  typedAt = 0
+  set((s) => ({ ...retext(s, paras), undo: { ...s.undo, [key]: { [from]: u[from].slice(0, -1), [to]: [...u[to], now] } } }))
+  const q = shared(now, paras)[1], i = paras.length - 1 - q, a = paras[i] || '', same = shared(a, now[now.length - 1 - q] || '')[1]
+  putCaret({ para: Math.max(i, 0), off: i < 0 ? 0 : a.length - same }, true)
+}
+
+// 浏览器替作者改了页面上的字：读回来。拼音还没选完字时先不读。
+function wrote() {
+  const box = proseBox(), cur = chapterOf(S.ch)
+  if (!box || !cur || composing) return
+  const at = spanNow(), read = blocks(box).map((e) => e.textContent.replace(/\n/g, ''))
+  const paras = !read.length ? [box.textContent].filter(Boolean) : read.length === 1 && !read[0] ? [] : read
+  if (paras.join('\n') === cur.paras.join('\n') && paras.length === cur.paras.length) return
+  set((s) => typeOver(s, paras, true))
+  if (at) putCaret(at[1])
+}
+// 把选中的换成 text，没选中就放在光标那里；text 里的换行另起一段。span 是事先记下的两头，没给就看现在的。
+function putText(text, span = spanNow()) {
+  const cur = chapterOf(S.ch)
+  if (!span || !cur || !proseBox()) return
+  const [a, b] = span, old = cur.paras.length ? cur.paras : [''], lines = text.split('\n')
+  const paras = [...old.slice(0, a.para), ...((old[a.para] || '').slice(0, a.off) + text + (old[b.para] || '').slice(b.off)).split('\n'), ...old.slice(b.para + 1)]
+  set((s) => typeOver(s, paras.length === 1 && !paras[0] ? [] : paras, false))
+  putCaret({ para: a.para + lines.length - 1, off: (lines.length > 1 ? 0 : a.off) + lines.at(-1).length }, true)
+}
+// 在正文里按键：回车另起一段，Ctrl+Z 撤销，Ctrl+Y、Ctrl+Shift+Z 重做，Tab 不让光标跑出去。
+function proseKey(ev) {
+  const ctrl = ev.ctrlKey || ev.metaKey, k = ev.key.toLowerCase()
+  const run = (act) => { ev.preventDefault(); act() }
+  if (ev.isComposing) return
+  if (ev.key === 'Enter') run(() => putText('\n'))
+  else if (ev.key === 'Tab' && !S.ai) run(() => {})
+  else if (ctrl && !ev.shiftKey && k === 'z') run(() => unwrite(-1))
+  else if (ctrl && (k === 'y' || (ev.shiftKey && k === 'z'))) run(() => unwrite(1))
+}
+// 粘贴只要字，不要别处带来的样式。
+function pasted(ev) {
+  ev.preventDefault()
+  putText(plain(ev.clipboardData.getData('text/plain')))
+}
+
 // ───────── 动作：正文里选中的字 ─────────
 
 // 屏幕上的一点，换成从窗口左上角算起的位置。
@@ -147,7 +267,7 @@ function openMenu(ev) {
   ev.preventDefault()
   const on = ev.target.closest('[data-mark]')
   const [x, y] = spot(ev.clientX, ev.clientY)
-  set({ ctx: { x, y, mark: on ? on.dataset.mark : '' }, pick: grab(), bar: null, bury: null, pay: null, flash: null })
+  set({ ctx: { x, y, mark: on ? on.dataset.mark : '', span: spanNow() }, pick: grab(), bar: null, bury: null, pay: null, flash: null }) // span：菜单一开，选中的字换了画法，光标在哪要先记下
 }
 
 const closeFloat = () => set({ ctx: null, bury: null, pay: null, pick: null, tree: null })
@@ -383,6 +503,9 @@ function pending() {
 
 // ───────── 画：侧栏 ─────────
 
+// 侧栏收起时，顶栏最左边把它展开的按钮。专注写作时没有：那时按 F11 回来。
+const sideButton = () => (S.sideOpen || S.focus ? '' : `<button class="icon-btn" aria-label="展开侧栏" title="展开侧栏"${onClick(() => set({ sideOpen: true }))}>${svg('icon-md', PANEL + path('M9 5v14'))}</button>`)
+
 function sidebar() {
   const nav = [['讨论', 'chat', 'talk'], ['正文', 'book', 'write'], ['检查', 'checked', 'check'], ['作品分类', 'tag', 'cats']]
   const to = { talk: () => set({ page: 'talk', ...(S.tv === 'all' ? { tid: S.talks[0] ? S.talks[0].id : null, tv: S.talks[0] ? 'one' : 'new' } : {}), ...SHUT }), write: () => set({ page: 'write', ...SHUT }), check: () => set({ page: 'check', ...SHUT }), cats: () => set({ page: 'cats', ...SHUT }) }
@@ -391,7 +514,7 @@ function sidebar() {
   const leaf = (c) => (S.rename && S.rename.key === c.key ? naming(c.key)
     : `<div class="tree-row hit${c.vol ? ' deep' : ''}${c.key === S.ch ? ' on' : ''}" draggable="true" data-node="${c.key}"${onClick(goTo(c.key))}${menu(c.key)}>${icon('page', 'sm')}<div class="fit ell">${t(titleOf(c))}</div><div class="count">${t(sizeOf(c))}</div></div>`)
   const volume = ([key, title, count]) => (S.rename && S.rename.key === key ? naming(key)
-    : `<div class="tree-row hit${key === S.vol ? ' on' : ''}" data-node="${key}"${onClick(() => set((s) => (s.vol === key ? { folds: { ...s.folds, [key]: !s.folds[key] } } : go(s, key))))}${menu(key)}>${icon(S.folds[key] ? 'right' : 'down', 'xs')}<div class="fit ell">${t(title)}</div><div class="count">${t(count)}</div></div>`) +
+    : `<div class="tree-row hit${key === S.vol ? ' on' : ''}" data-node="${key}"${onClick(() => set((s) => ({ folds: { ...s.folds, [key]: !s.folds[key] } })))}${menu(key)}>${icon(S.folds[key] ? 'right' : 'down', 'xs')}<div class="fit ell">${t(title)}</div><div class="count">${t(count)}</div></div>`) +
     (S.folds[key] ? '' : listed.filter((c) => c.vol === key).map(leaf).join(''))
   const listed = S.chapters.filter((c) => S.outside !== 'lost' || c.key !== S.ch) // 磁盘上找不到的那一章，树里也没有
   const book = S.shelf.find((b) => b.id === S.book)
@@ -403,10 +526,10 @@ function sidebar() {
   const backupLine = { ok: '已备份 · ' + b.at, busy: '正在备份…', fail: '备份失败', none: '尚未备份' }[b.state]
 
   return '<div class="sidebar">' +
-    `<div class="sidebar-top"><div>${svg('icon-md', PANEL + path('M9 5v14'))}</div><div class="hit${S.step > 0 ? '' : ' off'}" title="上一个打开的章节"${onClick(() => stepBy(-1))}>${icon('left', 'sm')}</div><div class="hit${S.trail[S.step + 1] ? '' : ' off'}" title="下一个打开的章节"${onClick(() => stepBy(1))}>${icon('right', 'sm')}</div></div>` +
-    `<div class="anchor wide"><div class="book hit" title="切换作品"${onClick(() => set({ open: S.open === 'book' ? '' : 'book' }))}><div class="book-logo">${t(book.name[0])}</div><div class="book-names"><div class="book-name">${t(book.name)}</div><div class="book-kind">${t(book.kind)}</div></div>${icon('down', 'sm', 'faint')}</div>` +
-    (S.open === 'book' ? '<div class="pop">' + (others.length ? '<div class="pop-label">切换作品</div>' + others.map((o) => menuRow(o.name, () => openBook(o.id), '', o.kind)).join('') + HAIR : '') +
+    `<div class="sidebar-top"><div class="anchor wide"><div class="book hit" title="切换作品"${onClick(() => set({ open: S.open === 'book' ? '' : 'book' }))}><div class="book-logo">${t(book.name[0])}</div><div class="book-name">${t(book.name)}</div>${icon('down', 'sm', 'faint')}</div>` +
+    (S.open === 'book' ? `<div class="pop"><div class="pop-label">作品</div><div class="pop-row row on"><div class="grow">${t(book.name)}</div><div class="side">${t(book.kind)}</div></div>` + others.map((o) => menuRow(o.name, () => openBook(o.id), '', o.kind)).join('') + HAIR +
       menuRow('新建作品…', () => set({ page: 'shelf', dialog: { kind: 'newBook', name: '', type: BOOK.kinds[0] }, ...SHUT })) + menuRow('全部作品…', () => set({ page: 'shelf', ...SHUT })) + menuRow('快捷键…', () => set({ dialog: { kind: 'keys' }, ...SHUT }), '', 'Ctrl+/') + '</div>' : '') + '</div>' +
+    `<button class="icon-btn muted" aria-label="收起侧栏" title="收起侧栏"${onClick(() => set({ sideOpen: false, ...SHUT }))}>${svg('icon-md', PANEL + path('M9 5v14'))}</button></div>` +
     `<div class="navs">${nav.map(([name, pic, page]) => `<div class="nav hit${S.page === page ? ' on' : ''}"${onClick(to[page])}>${icon(pic)}<div class="grow">${name}</div>${page === 'check' && S.checks.length ? `<div class="count">${S.checks.length}</div>` : ''}</div>`).join('')}</div>` +
     (S.page === 'write'
       ? `<div class="tree-head"><div>章节</div><div class="tree-head-buttons"><button aria-label="新建文件夹" title="新建文件夹"${onClick(newFolder)}>${svg('icon-sm', SHAPE.folder + path('M12 10.5v5M9.5 13h5'))}</button><button aria-label="新建章节" title="新建章节（Ctrl+N）"${onClick(newChapter)}>${ICON.plus}</button></div></div>` +
@@ -436,8 +559,9 @@ function treeMenu() {
   const spots = vol ? [] : [['最上层', ''], ...S.volumes.map((v) => [v[1], v[0]])].filter(([, to]) => to !== c.vol)
   const win = document.getElementById('win')
   return `<div class="veil float-veil"${onClick(closeFloat)}${onMenu((ev) => { ev.preventDefault(); closeFloat() })}></div>` +
-    `<div class="ctx pop" data-k="tree-menu" style="left:${S.tree.x}px;top:${Math.min(S.tree.y, win.offsetHeight - 240 - (spots.length ? 26 + spots.length * 30 : 0))}px">` +
-    menuRow('重命名', () => set({ tree: null, rename: { key, t: vol ? S.volumes.find((v) => v[0] === key)[1] : c.t } })) + menuRow('新建章节', newChapter) + menuRow('新建文件夹', newFolder) + HAIR +
+    `<div class="ctx pop" data-k="tree-menu" style="left:${S.tree.x}px;top:${Math.min(S.tree.y, win.offsetHeight - 240 - (vol ? 30 : 0) - (spots.length ? 26 + spots.length * 30 : 0))}px">` +
+    (vol ? menuRow('编辑卷纲', goTo(key)) : '') + // 点一卷只是折起、展开；它的卷纲从这里打开
+    menuRow('重命名', () => set({ tree: null, rename: { key, t: vol ? S.volumes.find((v) => v[0] === key)[1] : c.t } })) + menuRow('新建章节', () => newChapter(vol ? key : undefined)) + menuRow('新建文件夹', newFolder) + HAIR +
     menuRow('上移', () => shift(key, -1)) + menuRow('下移', () => shift(key, 1)) +
     (spots.length ? '<div class="pop-label">移到</div>' + spots.map(([label, to]) => menuRow(label, () => moveInto(key, to))).join('') : '') + HAIR +
     menuRow('移到回收站', () => toBin(key)) + '</div>'
@@ -568,6 +692,7 @@ function toolbar(cur, vol) {
   }
   const volume = cur && S.volumes.find(([key]) => key === cur.vol)
   return `<div class="toolbar${wide ? ' wide' : ''}">` +
+    `<div class="steps">${sideButton()}<div class="hit${S.step > 0 ? '' : ' off'}" title="上一个打开的章节"${onClick(() => stepBy(-1))}>${icon('left', 'sm')}</div><div class="hit${S.trail[S.step + 1] ? '' : ' off'}" title="下一个打开的章节"${onClick(() => stepBy(1))}>${icon('right', 'sm')}</div></div>` +
     (volume ? `<div class="crumb">${t(volume[1])}</div>${icon('right', 'xs', 'faint')}` : '') +
     `<div class="crumb here ell">${cur ? t(titleOf(cur)) : vol ? t(vol[1]) : '正文'}</div>` +
     (S.ai && S.ai.kind === 'ghosting' ? '<div class="count-all">续写中…</div>' : S.ai && S.ai.kind === 'ghost' ? '<div class="count-all">Tab 采纳 · Esc 放弃</div>' : '') + '<div class="grow"></div><div class="tools">' +
@@ -644,15 +769,20 @@ function editor(cur) {
   if (vol) return '<div class="editor">' + toolbar(null, vol) + sheets() + folderPage(vol) + foot(null, vol) + '</div>'
   if (!cur) {
     return `<div class="editor">${toolbar(null)}${sheets()}<div class="paper">` + (S.chapters.length ? blank('book', '从左侧选择一章开始写作', '')
-      : blank('book', '暂无章节', '每章是作品文件夹 chapters 中的一个纯文本文件，可用其他软件打开。', buttons(button('新建第一章', newChapter, 'primary'), button('新建文件夹', newFolder)))) + '</div>' + foot(null) + '</div>'
+      : blank('book', '暂无章节', '每章是作品文件夹 chapters 中的一个纯文本文件，可用其他软件打开。', buttons(button('新建文件夹', newFolder), button('新建第一章', newChapter, 'primary')))) + '</div>' + foot(null) + '</div>'
   }
   const focus = S.paneOpen && S.tab === '伏笔' ? S.fid : null
   const found = S.find && S.find.q && !S.find.all ? hits(cur, S.find.q) : []
   const ghostly = S.ai && S.ai.kind === 'ghost' ? `<span class="ghost-text">${t(S.ai.text)}</span>` : ''
-  const paras = cur.paras.map((text, i) => `<div data-para="${i}"${cur.aiFrom !== undefined && i >= cur.aiFrom ? ' class="ai"' : ''}>${pieces(cur, i, text, focus, found)}${i === cur.paras.length - 1 ? ghostly : ''}</div>`).join('')
+  // 一段不剩时也留一个空段，光标才有地方放。空段里放一个换行，它才有一行高。
+  const shown = cur.paras.length ? cur.paras : ['']
+  const paras = shown.map((text, i) => { const last = i === shown.length - 1 && ghostly; return `<div data-para="${i}"${cur.aiFrom !== undefined && i >= cur.aiFrom ? ' class="ai"' : ''}>${pieces(cur, i, text, focus, found) || (last ? '' : '<br>')}${last || ''}</div>` }).join('')
+  const hint = cur.paras.join('') || ghostly ? '' : '<div class="prose-hint">在此开始写作…</div>'
+  // AI 正在改、灰字等着采纳的时候不能打字。
+  const typing = S.ai ? '' : ` contenteditable="plaintext-only" spellcheck="false" aria-label="正文"${onInput(wrote)}${onKey(proseKey)}${onPaste(pasted)}`
   return '<div class="editor">' + toolbar(cur) + sheets() + (S.find ? findBar(cur) : '') + outsideBar() +
     `<div class="paper scroll"${onMenu(openMenu)}${onUp(picked)}><div class="column"><div class="chapter-head"><div class="chapter-title">${t(cur.t)}</div>${chapterMore(cur)}</div>` + aiBar() +
-    `<div class="prose">${paras || (ghostly ? `<div>${ghostly}</div>` : '<div class="faint">在此开始写作…</div>')}</div></div></div>` + foot(cur) + '</div>'
+    `<div class="prose-box">${hint}<div class="prose" data-k="prose"${typing}>${paras}</div></div></div></div>` + foot(cur) + '</div>'
 }
 
 // ───────── 画：正文上浮着的 ─────────
@@ -682,9 +812,11 @@ function floats() {
       : S.entries.some((e) => e.place !== 'dropped' && e.names.includes(name)) ? menuRow('已在名字表中', null)
       : `<div class="anchor wide"><div class="pop-row row${S.ctx.names ? ' on' : ''}"${onClick(() => set((s) => ({ ctx: { ...s.ctx, names: true } })))}><div class="grow">加入名字表</div>${ICON.right}</div>` +
         (S.ctx.names ? `<div class="pop side-pop" data-k="ctx-names">${S.cats.filter((c) => BOOK.nameCats.includes(c)).map((c) => menuRow(c, addName(c))).join('')}</div>` : '') + '</div>'
-    // 剪贴板的四项：复制和全选是真的；原型的正文不能改，剪切和粘贴只提示一句。
-    const fixed = () => { set({ ctx: null, pick: null }); say('原型的正文不能修改', '软件中此步骤会改动正文') }
+    // 剪贴板的四项。粘贴要浏览器肯让页面读剪贴板，不肯就提示按 Ctrl+V。AI 正在改的时候正文不能动，剪切、粘贴是灰的。
+    const span = S.ctx.span
     const copy = () => { if (navigator.clipboard) navigator.clipboard.writeText(p.text).catch(() => {}); set({ ctx: null, pick: null }) }
+    const cut = () => { copy(); putText('', span) }
+    const paste = () => { set({ ctx: null, pick: null }); (navigator.clipboard ? navigator.clipboard.readText() : Promise.reject()).then((text) => putText(plain(text), span), () => say('无法读取剪贴板', '请按 Ctrl+V 粘贴')) }
     const all = () => { set({ ctx: null, pick: null }); const first = document.querySelector('[data-para]'); if (first) getSelection().selectAllChildren(first.parentElement) }
     // 指针移到「加入名字表」上，旁边那一列就打开；移到别的行上，它收起。
     const over = (ev) => {
@@ -693,7 +825,7 @@ function floats() {
     }
     // 菜单宽 200，最多十二行，都留在窗口里；旁边再开一列时也不出窗口。
     return veiled + `<div class="ctx pop${S.ctx.x > win.offsetWidth - 208 - 130 ? ' flip' : ''}" data-k="ctx"${onOver(over)} style="left:${Math.min(S.ctx.x, win.offsetWidth - 208)}px;top:${Math.min(S.ctx.y, win.offsetHeight - 430)}px">` +
-      menuRow('剪切', p ? fixed : null, '', 'Ctrl+X') + menuRow('复制', p ? copy : null, '', 'Ctrl+C') + menuRow('粘贴', fixed, '', 'Ctrl+V') + menuRow('全选', all, '', 'Ctrl+A') + HAIR +
+      menuRow('剪切', p && span ? cut : null, '', 'Ctrl+X') + menuRow('复制', p ? copy : null, '', 'Ctrl+C') + menuRow('粘贴', span ? paste : null, '', 'Ctrl+V') + menuRow('全选', all, '', 'Ctrl+A') + HAIR +
       menuRow('续写一句', continueText, '', 'Ctrl+J') + menuRow('AI 改写…', p ? askRewrite : null) + menuRow('引用到讨论', p ? cite : null, '', 'Ctrl+L') + menuRow('加入设定', p ? take : null) + names + HAIR +
       menuRow('记为伏笔…', p ? () => set({ ctx: null, bury: { note: '' } }) : null) + menuRow('记为回收…', p ? () => askPay('') : null) +
       (S.ctx.mark ? menuRow('查看伏笔', () => set({ ctx: null, pick: null, tab: '伏笔', fid: S.ctx.mark, fv: 'list', renote: null, paneOpen: true, focus: false, ...SHUT })) : '') + '</div>'

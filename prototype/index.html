@@ -56,7 +56,7 @@ body { margin: 0; }
 .pop-row.off:hover { background: none; }
 .pop-label { padding: 6px 10px 2px; font-size: var(--fs-small); color: var(--faint); }
 .pop-title { font-size: var(--fs-body); font-weight: 600; }
-.pop-buttons { display: flex; align-items: center; gap: 8px; font-size: var(--fs-note); }
+.pop-buttons { display: flex; align-items: center; justify-content: flex-end; gap: 8px; font-size: var(--fs-note); }
 .pop > .hair { margin: 4px 0; }
 .side { flex: none; font-size: var(--fs-note); color: var(--muted); }
 .note { font-size: var(--fs-note); line-height: var(--lh-body); color: var(--muted); }
@@ -100,15 +100,14 @@ body { margin: 0; }
 
 /* 侧栏 */
 .sidebar { width: 232px; flex: none; box-sizing: border-box; background: var(--side); border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 14px 10px 12px; }
-.sidebar-top { flex: none; margin: -14px -10px 12px; height: var(--h-bar); border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 2px; padding: 0 12px 0 20px; color: var(--muted); }
-.sidebar-top > div { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: var(--r-control); }
-.sidebar-top > div:first-child { width: var(--h-control-sm); height: var(--h-control-sm); }
-.book { display: flex; align-items: center; gap: 10px; padding: 4px 8px; margin-bottom: 12px; border-radius: var(--r-control); }
-.book:hover { background: var(--hover); }
-.book-logo { flex: none; width: 26px; height: var(--h-seg); border-radius: var(--r-control); background: var(--ink); color: var(--on-ink); font-size: var(--fs-control); font-weight: 600; display: flex; align-items: center; justify-content: center; }
-.book-names { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.book-name { font-size: var(--fs-body); font-weight: 600; }
-.book-kind { font-size: var(--fs-small); color: var(--muted); }
+/* 侧栏顶上一行：左边是作品（点开换一部），右边把侧栏收起。作品的图标和下面各行的图标对齐。 */
+.sidebar-top { flex: none; margin: -14px -10px 12px; height: var(--h-bar); border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 4px; padding: 0 10px; }
+.sidebar-top > .anchor { flex: 1; }
+.sidebar-top > .anchor > .pop { right: auto; width: 212px; }
+.book { max-width: 100%; box-sizing: border-box; height: var(--h-control-sm); display: inline-flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border-radius: var(--r-control); vertical-align: top; }
+.book:hover { background: var(--active); }
+.book-logo { flex: none; width: var(--h-tag); height: var(--h-tag); border-radius: var(--r-xs); background: var(--ink); color: var(--on-ink); font-size: var(--fs-small); font-weight: 600; display: flex; align-items: center; justify-content: center; }
+.book-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-body); font-weight: 600; }
 .navs, .tree { display: flex; flex-direction: column; gap: 2px; }
 .navs { flex: none; }
 .tree { flex: 1; min-height: 0; }
@@ -139,6 +138,10 @@ body { margin: 0; }
 .toolbar { height: var(--h-bar); box-sizing: border-box; flex: none; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 8px; padding: 0 16px 0 24px; }
 .toolbar.wide { padding-right: 150px; } /* 右栏收起时，给窗口按钮让位 */
 .crumb { font-size: var(--fs-control); color: var(--muted); white-space: nowrap; }
+/* 顶栏最左边：侧栏收起时把它展开的按钮，和回到上一个、下一个打开过的章的两个箭头。 */
+.steps { flex: none; display: flex; align-items: center; gap: 2px; margin-left: -8px; color: var(--muted); }
+.steps > .hit { width: var(--icon-lg); height: var(--icon-lg); display: flex; align-items: center; justify-content: center; border-radius: var(--r-control); }
+.steps > .hit:not(.off):hover { background: var(--active); }
 /* 标签页：顶栏下面的一行。一格一个，格子之间一条线；正看的那格和正文一个底色，这一行底下的线到它那里断开。 */
 .sheets { position: relative; flex: none; height: var(--h-control); display: flex; overflow-x: auto; scrollbar-width: none; background: var(--side); }
 .sheets::after { content: ''; flex: 1; border-bottom: 1px solid var(--line); }
@@ -212,7 +215,9 @@ body { margin: 0; }
 .notice-bar.lost { border-color: color-mix(in srgb, var(--danger) 20%, transparent); background: color-mix(in srgb, var(--danger) 8%, transparent); color: var(--danger); }
 .notice-bar.lost .btn.primary { background: var(--danger); }
 .ai-bar { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 6px 8px 6px 12px; border: 1px solid var(--border); border-radius: var(--r-card); background: var(--side); font-size: var(--fs-control); }
-.prose { margin-top: 20px; font-size: var(--fs-paper); line-height: var(--lh-paper); display: flex; flex-direction: column; gap: 10px; text-indent: 2em; }
+.prose-box { position: relative; margin-top: 20px; }
+.prose { min-height: 320px; font-size: var(--fs-paper); line-height: var(--lh-paper); display: flex; flex-direction: column; gap: 10px; text-indent: 2em; white-space: pre-wrap; outline: none; caret-color: var(--ink); }
+.prose-hint { position: absolute; left: 0; top: 0; font-size: var(--fs-paper); line-height: var(--lh-paper); text-indent: 2em; color: var(--faint); pointer-events: none; } /* 还没有字时垫在第一行下面的那句 */
 /* 正文里的标记：伏笔是点线，正在看的那条加浅底，选中的字是蓝底；检查出来的是虚线，查到的词是黄底；
    AI 起草的画浅下划线，改写时原文划掉、新写的标绿，续写出来还没采纳的是灰字 */
 .prose .fs { border-bottom: 1.5px dotted var(--faint); padding-bottom: 2px; }
@@ -470,7 +475,7 @@ body { margin: 0; }
 .prefs-row { display: flex; align-items: center; gap: 12px; min-height: var(--h-control); }
 .prefs-label { width: 110px; flex: none; font-weight: 500; }
 .prefs-close { position: absolute; top: 12px; right: 12px; }
-.prefs-links { display: flex; gap: 16px; font-size: var(--fs-note); }
+.prefs-links { display: flex; justify-content: flex-end; gap: 16px; font-size: var(--fs-note); }
 .uses { display: flex; flex-direction: column; gap: 8px; }
 .use-row { display: flex; align-items: center; gap: 8px; }
 .use-name { width: 110px; flex: none; font-weight: 500; }
@@ -504,7 +509,7 @@ body { margin: 0; }
 .toast > svg { margin-top: 2px; }
 .toast > .icon-btn { margin: -4px 0; }
 .toast-title { font-size: var(--fs-body); font-weight: 600; line-height: var(--lh-body); }
-.toast-acts { display: flex; gap: 14px; padding-top: 6px; font-size: var(--fs-note); }
+.toast-acts { display: flex; justify-content: flex-end; gap: 14px; padding-top: 6px; font-size: var(--fs-note); }
 .toast-rest { align-self: flex-end; font-size: var(--fs-note); color: var(--muted); }
 </style>
 </head>

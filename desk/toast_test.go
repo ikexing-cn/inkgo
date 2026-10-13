@@ -28,6 +28,14 @@ func TestToastOverTheSettings(t *testing.T) {
 			t.Fatal(s, tt.Texts())
 		}
 	}
+	// What it offers is at the right, under the words and not from their
+	// left edge; the one that matters more last.
+	words, _ := tt.Find("检查网络和服务地址")
+	copyIt, _ := tt.Find("复制详情")
+	prefs, ok := tt.Find("打开设置")
+	if !ok || copyIt.X <= words.X || prefs.X <= copyIt.X+copyIt.W {
+		t.Fatalf("what the toast offers is not at the right: %v %v under %v", copyIt, prefs, words)
+	}
 	if err := tt.Click("复制详情"); err != nil {
 		t.Fatal(err)
 	}

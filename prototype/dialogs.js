@@ -27,10 +27,10 @@ function backupPop() {
   if (b.state === 'none') return '<div class="pop backup-pop" data-k="backup-pop"><div class="pop-title">尚未备份</div><div class="note">作品目前仅保存在本机。</div>' + `<div class="pop-buttons">${button('选择位置…', backupNow, 'primary')}</div></div>`
   if (b.state === 'fail') {
     return '<div class="pop backup-pop" data-k="backup-pop"><div class="pop-title">' + backupWhy()[1] + '</div>' + `<div class="note">${backupWhy()[2]}${b.at ? '上次备份于' + t(b.at) + '。' : '尚无成功的备份。'}</div>` +
-      `<div class="pop-buttons">${button('重试', backupNow, 'primary')}${button('更换位置', osAsk('选择备份文件夹'))}<div class="hit muted"${onClick(() => set((s) => ({ backup: { ...s.backup, hush: true }, ...SHUT })))}>今日不再提醒</div></div></div>`
+      `<div class="pop-buttons"><div class="hit muted"${onClick(() => set((s) => ({ backup: { ...s.backup, hush: true }, ...SHUT })))}>今日不再提醒</div>${button('更换位置', osAsk('选择备份文件夹'))}${button('重试', backupNow, 'primary')}</div></div>`
   }
   return `<div class="pop backup-pop" data-k="backup-pop"><div class="pop-title">${t(b.at)} 已备份</div><div class="note">备份至 ${t(b.dir)}<br>下次：${backupNext(b)}</div>` +
-    `<div class="pop-buttons">${button(b.state === 'busy' ? '正在备份…' : '立即备份', b.state === 'busy' ? null : backupNow, b.state === 'busy' ? 'primary off' : 'primary')}${button('备份设置…', () => set({ dialog: { kind: 'settings', tab: '备份', edit: '' }, ...SHUT }))}</div></div>`
+    `<div class="pop-buttons">${button('备份设置…', () => set({ dialog: { kind: 'settings', tab: '备份', edit: '' }, ...SHUT }))}${button(b.state === 'busy' ? '正在备份…' : '立即备份', b.state === 'busy' ? null : backupNow, b.state === 'busy' ? 'primary off' : 'primary')}</div></div>`
 }
 
 // 第一次备份：问放哪、备份时机。
@@ -88,7 +88,7 @@ function settingsModel(d) {
       `<div class="pair">${field('API key', line(f.key, type('key'), '留空则保留已存的 key', 'API key', ' type="password"'))}${field('或读取环境变量', line(f.env, type('env'), '例如 DEEPSEEK_API_KEY', '环境变量名称'))}</div>` +
       `<div class="note">key 保存在系统钥匙串中，不会写入配置文件或作品。${f.env.trim() && BOOK.services.some((x) => x.env === f.env.trim()) ? '已检测到环境变量 ' + t(f.env.trim()) + '。' : ''}</div>` +
       field('可用模型（每行一个；也可在上方直接输入目录外的模型）', area(f.models, type('models'), '', '模型目录', 3)) +
-      `<div class="buttons">${button('获取可用模型', fetchModels)}${d.edit === 'new' ? '' : `<div class="hit danger"${onClick(() => say('已清除保存的 key'))}>清除已保存 key</div>`}<div class="grow"></div>${button('保存提供商', saveService, 'primary')}</div></div>`
+      `<div class="buttons">${d.edit === 'new' ? '' : `<div class="hit danger"${onClick(() => say('已清除保存的 key'))}>清除已保存 key</div>`}${button('获取可用模型', fetchModels)}${button('保存提供商', saveService, 'primary')}</div></div>`
   }
   const card = (svc) => `<div class="service"><div class="service-head"><div class="fit"><div class="ell">${t(svc.name)}</div><div class="note ell">${t(svc.host)} · ${svc.models.length} 个模型${used(svc) ? ' · 本作品使用中' : ''}</div></div>` +
     button(d.edit === svc.id ? '收起' : '编辑', () => set((s) => ({ dialog: { ...s.dialog, ...(d.edit === svc.id ? { edit: '', svc: null } : editing(svc)) }, ...SHUT }))) + '</div>' + (d.edit === svc.id ? form() : '') + '</div>'

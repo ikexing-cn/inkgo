@@ -1055,12 +1055,12 @@ func (a *App) lastWeek(c *ui.Context) {
 
 func (a *App) emptyWriting(c *ui.Context) {
 	a.pal.blank(c, icBook, "暂无章节", "每章是作品文件夹 chapters 中的一个纯文本文件，可用其他软件打开。", func() {
-		ui.Row(c).Gap(8).Padding(10, 0, 0, 0).Children(func() {
-			if a.pal.primary(c, "新建第一章").Clicked() {
-				a.newNode(false)
-			}
+		ui.Row(c).Gap(8).Padding(10, 0, 0, 0).Justify(ui.End).Children(func() {
 			if a.pal.secondary(c, "新建文件夹").Clicked() {
 				a.newNode(true)
+			}
+			if a.pal.primary(c, "新建第一章").Clicked() {
+				a.newNode(false)
 			}
 		})
 	})
