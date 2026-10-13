@@ -37,7 +37,15 @@ type writeView struct {
 	// toolbar's arrows; stepping is set while they open one.
 	back, forward []string
 	stepping      bool
-	ed            *editor.Editor
+	// tabs are the nodes open, left to right, node the one of them shown;
+	// parked is what the others keep while they are not; closing, the tabs
+	// whose closing waits for an answer about the words not saved; blank,
+	// that the author closed them all.
+	tabs    []string
+	parked  map[string]*sheet
+	closing []string
+	blank   bool
+	ed      *editor.Editor
 	// What the disk has of the node shown, as of the last read or write.
 	saved    string
 	savedVer int
@@ -196,11 +204,15 @@ func (a *App) enterWriting() {
 	a.warn(err)
 	w.counts = counts
 	w.checked = time.Time{}
+	a.keepTabs()
 	if _, ok := w.tree.Node(w.node); ok {
 		if w.ed == nil && w.renaming == "" {
 			a.openNode(w.node)
 		}
 		return
+	}
+	if w.blank && w.node == "" {
+		return // every tab was closed: none opens by itself
 	}
 	w.node = ""
 	w.tree.Walk(func(n *workspace.Node, _ int) {
@@ -278,15 +290,23 @@ func (a *App) textMenu(m *menu) {
 	}
 }
 
-// openNode shows node id, saving what was shown first.
+// openNode shows node id in its tab, a new one beside the tab shown when
+// it has none, saving what was shown first. The tab left keeps its editor,
+// and the one come back to has its own again: what can be undone, the
+// caret, how far it is scrolled.
 func (a *App) openNode(id string) {
 	a.flush()
 	a.leaveCheck()
 	a.leaveChapter()
 	a.scanMarks()
 	w := &a.write
-	if !w.stepping && w.node != "" && w.node != id {
-		w.back = append(w.back, w.node)
+	w.closing = nil // the question about saving was about the node shown
+	from := w.node
+	if id != from {
+		a.park()
+	}
+	if !w.stepping && from != "" && from != id {
+		w.back = append(w.back, from)
 		if len(w.back) > 50 {
 			w.back = w.back[1:]
 		}
@@ -296,6 +316,14 @@ func (a *App) openNode(id string) {
 	w.outline, w.outlineSaved, w.outlinePrev = "", "", ""
 	w.sum, w.summary, w.summarySaved, w.changed = workspace.Summary{}, "", "", false
 	w.current = 0
+	kept := w.parked[id]
+	delete(w.parked, id)
+	if kept != nil && kept.lost {
+		// Gone from the disk, its words are only here.
+		a.unpark(kept)
+		a.savePrefs()
+		return
+	}
 	n, ok := w.tree.Node(id)
 	if !ok {
 		w.node = ""
@@ -308,7 +336,18 @@ func (a *App) openNode(id string) {
 		return
 	}
 	w.outline, w.outlineSaved, w.outlinePrev = ch.Outline, ch.Outline, ch.Outline
-	if !n.Folder {
+	switch {
+	case n.Folder:
+		w.gists = a.gistsIn(n)
+	case kept != nil && (kept.unsettled() || kept.same(ch)):
+		a.unpark(kept)
+		if !kept.unsettled() {
+			w.stamp = ch.Stamp
+		}
+		a.loadSummary(id)
+	default:
+		// Not open before, or changed on the disk while its tab was not
+		// shown: read anew.
 		w.ed = a.chapterEditor(ch.Text, ch.Marks)
 		if at, ok := w.carets[id]; ok {
 			w.ed.MoveTo(at, false)
@@ -320,9 +359,11 @@ func (a *App) openNode(id string) {
 			a.warn(err)
 		}
 		w.lastSnap = time.Now()
-	} else {
-		w.gists = a.gistsIn(n)
 	}
+	if !slices.Contains(w.tabs, id) {
+		w.tabs = slices.Insert(w.tabs, slices.Index(w.tabs, from)+1, id)
+	}
+	w.blank = false
 	a.savePrefs()
 }
 
@@ -509,6 +550,9 @@ func (a *App) saveOutline() error {
 // of the writing page.
 func (a *App) watch(c *ui.Context) {
 	w := &a.write
+	if len(w.closing) > 0 {
+		return // asked whether to save: nothing is saved until the answer
+	}
 	if w.ed != nil && w.ed.Doc.Version() != w.savedVer && w.external == nil && !w.lost {
 		if wait := saveAfter - time.Since(w.ed.LastEdit()); wait > 0 {
 			c.After(wait)
@@ -544,6 +588,7 @@ func (a *App) checkDisk() {
 		a.warn(err)
 		return
 	}
+	defer a.keepTabs()
 	if w.node == "" || w.lost {
 		return
 	}
@@ -627,6 +672,10 @@ func (a *App) saveLost() {
 		a.warn(err)
 		return
 	}
+	// The new chapter takes the tab of the one that was lost.
+	if i := slices.Index(w.tabs, w.node); i >= 0 {
+		w.tabs[i] = id
+	}
 	w.ed, w.lost = nil, false
 	a.warn(a.loadTree())
 	a.openNode(id)
@@ -679,11 +728,13 @@ func (a *App) writing(c *ui.Context) {
 	if c.Shortcut(ui.Cmd, ui.KeyPageDown) {
 		a.stepChapter(1)
 	}
+	a.tabKeys(c)
 	ui.Row(c).FillWidth().Grow(1).AlignItems(ui.Stretch).Children(func() {
 		main := ui.Column(c).Grow(1).Shrink(1).FillHeight()
 		a.LastWrite = main.Bounds()
 		main.Children(func() {
 			a.writeTop(c)
+			a.sheets(c)
 			n, ok := a.write.tree.Node(a.write.node)
 			switch {
 			case a.write.lost && a.write.ed != nil:
@@ -712,6 +763,7 @@ func (a *App) writing(c *ui.Context) {
 	if a.write.draftOpen {
 		a.draftView(c)
 	}
+	a.askToSave(c)
 }
 
 // settingColumn is the setting beside the page, unless the author hid it.
@@ -912,12 +964,6 @@ func (a *App) writeTop(c *ui.Context) {
 			ui.Text(c, "正文").FontSize(fsControl).FontWeight(600)
 		}
 		if ok && !n.Folder && w.ed != nil {
-			// Whether it is saved is said beside the title it is about.
-			saved := "已保存"
-			if w.ed.Doc.Version() != w.savedVer {
-				saved = "未保存"
-			}
-			ui.Text(c, saved).FontSize(fsNote).TextColor(a.pal.faint).SingleLine().Shrink(0).Margin(0, 0, 0, 6)
 			if w.ed.Predicting() {
 				ui.Text(c, "续写中…").FontSize(fsNote).TextColor(a.pal.faint).SingleLine().Shrink(0).Margin(0, 0, 0, 6)
 			} else if w.ed.Ghost() != "" {
@@ -941,7 +987,7 @@ func (a *App) writeTop(c *ui.Context) {
 		}
 		if a.doc.hidden && !w.focus {
 			a.bookDot(c)
-			if iconButton(c, icPanel, "展开设定", ui.Color{}).Tooltip("展开设定文档").Clicked() {
+			if iconButton(c, icPanel, "展开右栏", ui.Color{}).Tooltip("展开右栏").Clicked() {
 				a.setDocHidden(false)
 			}
 		}
@@ -1480,10 +1526,11 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 	})
 	a.contextMenu(c, row, "章节-"+n.ID, func(m *menu) { a.nodeMenu(m, n) })
 	if row.Clicked() {
-		if n.Folder && on {
+		// A folder only folds: its outline opens from its menu. The tree
+		// arranges, the tabs show.
+		if n.Folder {
 			w.folded[n.ID] = !w.folded[n.ID]
 		} else {
-			w.folded[n.ID] = false
 			a.openNode(n.ID)
 		}
 	}
@@ -1518,16 +1565,17 @@ func (a *App) nodeMenu(m *menu, n *workspace.Node) {
 	w := &a.write
 	siblings := n.Parent.Children
 	i := slices.Index(siblings, n)
+	if n.Folder && m.Item("编辑卷纲").Chosen() {
+		a.openNode(n.ID)
+	}
 	if m.Item("重命名").Chosen() {
 		w.renaming, w.title, w.titleWas, w.offered = n.ID, n.Title, n.Title, ""
 	}
 	if m.Item("新建章节").Chosen() {
-		a.openNode(n.ID)
-		a.newNode(false)
+		a.newNodeAt(false, n)
 	}
 	if m.Item("新建文件夹").Chosen() {
-		a.openNode(n.ID)
-		a.newNode(true)
+		a.newNodeAt(true, n)
 	}
 	m.Separator()
 	if m.Item("上移").Disabled(i == 0).Chosen() {
@@ -1609,9 +1657,16 @@ func (a *App) rename(id string) {
 // newNode adds a document, or a folder, beside the node shown, or inside
 // it when it is a folder, and has the author name it.
 func (a *App) newNode(folder bool) {
+	n, _ := a.write.tree.Node(a.write.node)
+	a.newNodeAt(folder, n)
+}
+
+// newNodeAt adds it after the document n, at the end of the folder n, or at
+// the end of the book without one.
+func (a *App) newNodeAt(folder bool, n *workspace.Node) {
 	w := &a.write
 	parent, index := "", -1
-	if n, ok := w.tree.Node(w.node); ok {
+	if n != nil {
 		if n.Folder {
 			parent = n.ID
 		} else {
@@ -1674,9 +1729,17 @@ func (w *writeView) wordsIn(n *workspace.Node) int {
 func (a *App) trashNode(n *workspace.Node) {
 	w := &a.write
 	a.flush()
-	if cur, ok := w.tree.Node(w.node); ok && cur.Within(n) {
-		w.node, w.ed, w.external, w.lost = "", nil, nil, false
-	}
+	// Where the node shown stands among the chapters, to open the one that
+	// takes its place if it goes and no tab is left.
+	var order []string
+	w.tree.Walk(func(d *workspace.Node, _ int) {
+		if !d.Folder {
+			order = append(order, d.ID)
+		}
+	})
+	cur, shown := w.tree.Node(w.node)
+	gone := shown && cur.Within(n)
+	at := slices.Index(w.tabs, w.node)
 	if err := a.Store.TrashChapter(n.ID); err != nil {
 		a.warn(err)
 		return
@@ -1685,6 +1748,36 @@ func (a *App) trashNode(n *workspace.Node) {
 	counts, err := a.Store.Counts()
 	a.warn(err)
 	w.counts = counts
+	if gone {
+		// Its tab goes with it: the tab beside it is shown, or with none
+		// left the chapter that stands where it stood.
+		near := slices.Index(order, w.node)
+		w.node, w.ed, w.external, w.lost = "", nil, nil, false
+		a.keepTabs()
+		next := ""
+		if len(w.tabs) > 0 {
+			next = w.tabs[min(max(at, 0), len(w.tabs)-1)]
+		} else if near >= 0 {
+			var left []string
+			before := 0
+			for i, id := range order {
+				if _, ok := w.tree.Node(id); ok {
+					left = append(left, id)
+					if i < near {
+						before++
+					}
+				}
+			}
+			if len(left) > 0 {
+				next = left[min(before, len(left)-1)]
+			}
+		}
+		w.stepping = true // the one gone is not gone back to
+		a.openNode(next)
+		w.stepping = false
+	} else {
+		a.keepTabs()
+	}
 	a.notice = fmt.Sprintf("「%s」已移到回收站", n.Title)
 }
 

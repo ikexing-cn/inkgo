@@ -220,4 +220,8 @@ func (a *App) chapterOpen() (open, busy bool) {
 func (a *App) openExport() {
 	w := &a.write
 	w.exportOpen, w.exportDone, w.exportFrom, w.exportAt = true, false, "", 0
+	// With a chapter open it is the chapter that is offered first.
+	if parts := a.exportParts(); len(parts) > 0 && !parts[len(parts)-1].Folder {
+		w.exportAt = len(parts)
+	}
 }

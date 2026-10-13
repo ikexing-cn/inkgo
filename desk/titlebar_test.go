@@ -60,7 +60,7 @@ func TestTheTitleBarHasItsOwnRow(t *testing.T) {
 		t.Fatalf("the toolbar is not the row under the title bar: %+v", r)
 	}
 	width := a.LastWrite.X + a.LastWrite.W + 1 + a.LastSetting.W
-	if got := right(t, tt, "收起设定"); got < width-buttons {
+	if got := right(t, tt, "收起右栏"); got < width-buttons {
 		t.Fatalf("the pane's row keeps room for the window's buttons: ends at %v of %v", got, width)
 	}
 	a.doc.hidden = true
@@ -286,8 +286,8 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 	}
 	shut(tt, &w.snapsOpen)
 	choose("文件", "导出")
-	if !w.exportOpen || !tt.HasText("导出正文") || !tt.HasText("本章") {
-		t.Fatal("导出 did not ask what to export", tt.Texts())
+	if !w.exportOpen || !tt.HasText("导出正文") || !tt.HasText("本章") || w.exportFrom != w.node {
+		t.Fatal("导出 did not ask what to export, the chapter open first", w.exportFrom, tt.Texts())
 	}
 	shut(tt, &w.exportOpen)
 	choose("文件", "设置")

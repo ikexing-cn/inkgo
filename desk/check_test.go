@@ -36,7 +36,7 @@ func checkFixture(t *testing.T) (*App, *ui.Tester, string, *stream) {
 // page 检查, where the author says what to do about each.
 func TestCheckAChapterAndSettleWhatItFinds(t *testing.T) {
 	a, tt, id, f := checkFixture(t)
-	if !tt.HasText("第1章尚未检查") || !tt.HasText("写完一章后检查 ▴") || !tt.HasText("已保存") {
+	if !tt.HasText("第1章尚未检查") || !tt.HasText("写完一章后检查 ▴") || tt.HasText("已保存") {
 		t.Fatal(tt.Texts())
 	}
 	if err := tt.Click("立即检查"); err != nil {

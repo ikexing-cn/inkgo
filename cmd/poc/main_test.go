@@ -188,9 +188,15 @@ func TestLayoutWriting(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if err = tt.Click("章节-第一卷：雨季"); err != nil {
+	// A folder's page opens from its menu; a click on it only folds it.
+	if err = tt.RightClick("章节-第一卷：雨季"); err != nil {
 		t.Fatal(err)
 	}
+	tt.Frame()
+	if err = tt.Click("菜单-编辑卷纲"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
 	tt.Frame()
 	shot(t, tt, "-folder")
 	if err = tt.Click("章节-第一章：路灯"); err != nil {

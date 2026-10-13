@@ -240,7 +240,7 @@ func TestFailedBookkeepingShowsInHistory(t *testing.T) {
 // opens again.
 func TestSettingPanelFoldsAndRemembers(t *testing.T) {
 	a, tt, _ := fixture(t)
-	if err := tt.Click("收起设定"); err != nil {
+	if err := tt.Click("收起右栏"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

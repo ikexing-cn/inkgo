@@ -166,6 +166,8 @@ func TestNoLiteralSizes(t *testing.T) {
 func TestButtonsAtTheRight(t *testing.T) {
 	files, _ := filepath.Glob("*.go")
 	button := regexp.MustCompile(`a\.pal\.(primary|secondary|danger)\(|a\.pal\.ghost\(`)
+	answer := regexp.MustCompile(`a\.pal\.\w+\(c, "([^"]+)"\)`)
+	asked := 0 // the rows in the system's order: the one question about saving
 	for _, f := range files {
 		if strings.HasSuffix(f, "_test.go") {
 			continue
@@ -176,6 +178,9 @@ func TestButtonsAtTheRight(t *testing.T) {
 		}
 		lines := strings.Split(string(b), "\n")
 		for i, line := range lines {
+			// The question about words not saved stands in the system's
+			// order, and its row says so: 保存 · 不保存 · 取消.
+			line, system := strings.CutSuffix(line, " // system order")
 			if !strings.Contains(line, "ui.Row(c)") || !strings.HasSuffix(strings.TrimSpace(line), ".Children(func() {") {
 				continue
 			}
@@ -204,12 +209,27 @@ func TestButtonsAtTheRight(t *testing.T) {
 				case k == 0 && spacer < 0 && !strings.Contains(line, "Justify(ui.End)"):
 					t.Errorf("%s:%d: a row of buttons that is not at the right: say Justify(ui.End)", f, i+1)
 				}
-				if main && m[1] != "primary" {
+				if main && m[1] != "primary" && !system {
 					t.Errorf("%s:%d: a button after the main one of its row: %s", f, i+1, in)
 				}
 				main = main || m[1] == "primary"
 			}
+			if system {
+				asked++
+				var said []string
+				for _, in := range own {
+					if m := answer.FindStringSubmatch(in); m != nil {
+						said = append(said, m[1])
+					}
+				}
+				if got := strings.Join(said, " · "); got != "保存 · 不保存 · 取消" || !strings.Contains(line, "Justify(ui.End)") {
+					t.Errorf("%s:%d: a row in the system's order reads %q", f, i+1, got)
+				}
+			}
 		}
+	}
+	if asked != 1 {
+		t.Errorf("%d rows stand in the system's order: it is for the one question about saving", asked)
 	}
 }
 

@@ -51,6 +51,10 @@ type prefs struct {
 	SettingHidden bool   `json:"setting_hidden"`
 	SideHidden    bool   `json:"side_hidden,omitempty"` // the sidebar is put away
 	Chapter       string `json:"chapter,omitempty"`     // the node last open
+	// Tabs are the nodes open in tabs, left to right; Chapter is the one shown.
+	Tabs []string `json:"tabs,omitempty"`
+	// Blank says the author closed every tab: none opens by itself.
+	Blank bool `json:"blank,omitempty"`
 	// Writing reopens the work on the writing page, where it was left.
 	Writing bool `json:"writing,omitempty"`
 	// AutoPredict continues the prose as typing pauses, not on demand.
@@ -96,7 +100,7 @@ func (a *App) loadPrefs() {
 	}
 	a.doc.hidden = p.SettingHidden
 	a.sideHidden = p.SideHidden
-	a.write.node = p.Chapter
+	a.write.node, a.write.tabs, a.write.blank = p.Chapter, p.Tabs, p.Blank && p.Chapter == ""
 	a.leftWriting = p.Writing
 	if p.Writing {
 		a.page = 3
@@ -126,7 +130,7 @@ func (a *App) loadPrefs() {
 
 func (a *App) savePrefs() {
 	shelved := slices.Sorted(maps.Keys(a.shelved))
-	b, err := json.Marshal(prefs{Shelved: shelved, SettingHidden: a.doc.hidden, SideHidden: a.sideHidden, Chapter: a.write.node, Writing: a.leftWriting, AutoPredict: a.write.autoPredict,
+	b, err := json.Marshal(prefs{Shelved: shelved, SettingHidden: a.doc.hidden, SideHidden: a.sideHidden, Chapter: a.write.node, Tabs: a.write.tabs, Blank: a.write.blank, Writing: a.leftWriting, AutoPredict: a.write.autoPredict,
 		PanelWidth: a.doc.width, TalkTab: a.doc.talk, ForeTab: a.doc.fore, LateAfter: a.write.lateAfter, CheckWhen: a.ck.when, NoAttach: !a.doc.attach, NoAutoSummary: !a.write.autoSummary,
 		Day: a.write.day, DayStart: a.write.dayStart, Goal: a.write.goal, Carets: a.write.carets, Days: a.write.days, TextSize: a.write.size,
 		Ignored: a.write.ignoredKeys()})
@@ -174,7 +178,7 @@ func (a *App) settingPanel(c *ui.Context) {
 		}
 		ui.Spacer(c)
 		a.bookDot(c)
-		if iconButton(c, icPanel, "收起设定", ui.Color{}).Tooltip("收起右栏").Clicked() {
+		if iconButton(c, icPanel, "收起右栏", ui.Color{}).Tooltip("收起右栏").Clicked() {
 			a.setDocHidden(true)
 		}
 	})

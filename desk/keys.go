@@ -13,6 +13,8 @@ var keyGroups = []struct {
 		{modKey + "N", "在本章之后新建章节"},
 		{"F2", "重命名当前章节"},
 		{modKey + "PgDn / PgUp", "下一章 / 上一章"},
+		{"Ctrl+Tab / Ctrl+Shift+Tab", "下一个 / 上一个标签页"},
+		{modKey + "W", "关闭当前标签页"},
 		{"F11", "专注写作：仅显示正文"},
 		{modKey + "J", "在光标处续写一句"},
 		{"Tab / Esc", "采纳 / 放弃续写"},

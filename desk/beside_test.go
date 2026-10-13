@@ -73,7 +73,7 @@ func TestTalkBesideTheProse(t *testing.T) {
 	a.write.checked = time.Time{}
 	tt.Frame()
 	tt.Frame()
-	if err := tt.Click("章节-第一卷"); err != nil {
+	if err := openOutline(tt, "第一卷"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

@@ -79,6 +79,7 @@ const (
 // The dialogs' sizes: most are small; the shortcuts, taking a setting from
 // a passage and the snapshots have their own.
 const (
+	dialogAsk    = 360 // one question and its answers
 	dialogSmall  = 480
 	dialogKeys   = 600
 	dialogSource = 620

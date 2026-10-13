@@ -370,23 +370,22 @@ func TestExportTheWork(t *testing.T) {
 	}
 	tt.Frame()
 	a.write.indent = true
+	// With a chapter open it is the chapter that is offered: alone, named
+	// after it.
 	if err := tt.Click("导出"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	b, err := os.ReadFile(filepath.Join(a.Store.Root(), "导出", "测试作品.txt"))
-	if err != nil {
-		t.Fatal(err)
+	b, err := os.ReadFile(filepath.Join(a.Store.Root(), "导出", "测试作品-第一章.txt"))
+	if err != nil || !strings.HasPrefix(string(b), "第一章\n\n　　雨下着。") {
+		t.Fatalf("chapter export %q %v", b, err)
 	}
-	if !strings.Contains(string(b), "第一章\n\n　　雨下着。") {
-		t.Fatalf("export %q", b)
-	}
-	// The chapter open alone, named after it.
+	// The whole book, when asked.
 	if err := clickMenu(tt, "文件", "菜单-导出"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if err := tt.Click("本章"); err != nil {
+	if err := tt.Click("全书"); err != nil {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
@@ -394,8 +393,8 @@ func TestExportTheWork(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if b, err = os.ReadFile(filepath.Join(a.Store.Root(), "导出", "测试作品-第一章.txt")); err != nil || !strings.HasPrefix(string(b), "第一章\n") {
-		t.Fatalf("chapter export %q %v", b, err)
+	if b, err = os.ReadFile(filepath.Join(a.Store.Root(), "导出", "测试作品.txt")); err != nil || !strings.Contains(string(b), "第一章\n\n　　雨下着。") {
+		t.Fatalf("export %q %v", b, err)
 	}
 }
 
@@ -440,7 +439,7 @@ func TestDragMovesChapters(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(a.Store.Root(), "chapters", "第一卷", "第一章.txt")); err != nil {
 		t.Fatal(err)
 	}
-	if err := tt.Click("章节-第一卷"); err != nil {
+	if err := openOutline(tt, "第一卷"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

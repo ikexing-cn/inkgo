@@ -483,7 +483,7 @@ components:
 检查：
 
 - `npm run verify-prototype` 每点一下就把窗口里的按钮行量一遍：最后一个贴着这一行的右边，从第一个按钮起一个挨一个，主按钮后面没有别的按钮（问要不要保存的那一行反过来查：主按钮是第一个）。
-- `go test ./desk` 的 `TestButtonsAtTheRight` 读界面代码：以按钮开头的 `ui.Row` 要写 `Justify(ui.End)`，按钮不在 `ui.Spacer(c)` 左边，`primary` 后面没有别的按钮。
+- `go test ./desk` 的 `TestButtonsAtTheRight` 读界面代码：以按钮开头的 `ui.Row` 要写 `Justify(ui.End)`，按钮不在 `ui.Spacer(c)` 左边，`primary` 后面没有别的按钮。问要不要保存的那一行在行尾写 `// system order`，反过来查：三个按钮正好是「保存」「不保存」「取消」，全软件只有这一行。
 
 ### 文字按钮
 
@@ -566,11 +566,16 @@ components:
 
 - 标签页自己占一行，在顶栏下面，不和功能按钮挤在一起；标签之间有分隔线，正在看的那个和正文连成一片。
 - 点章节树里的一章：已经开着就切过去，没开就新开一个标签页。
-- 点章节树里的卷只是折起、展开，不开标签页；章节树只管左边的管理。
+- 点章节树里的卷只是折起、展开，不开标签页；章节树只管左边的管理。卷纲从卷的右键菜单「编辑卷纲」打开。
+- 每个标签页留着自己的撤销记录、光标和滚到哪；开着哪几个、正看哪个记在作品里，下次打开还在。
+- 没存的那一章，标签上关闭的叉换成一个圆点，指针移上去换回叉；工具栏不写「已保存」「未保存」。
 - 停笔片刻自动保存，Ctrl+S 马上保存。切到别的标签页、别的页面不问，先存了再走。
-- 关掉的标签页里还有没存的字，先问：「保存」「不保存」「取消」（系统的顺序），主按钮是「保存」。问着的时候不自动保存；选「不保存」，这一章回到上次保存的样子。`npm run verify-prototype` 的「closing with words not saved」查。
+- 关掉的标签页里还有没存的字，先问：「保存」「不保存」「取消」（系统的顺序），主按钮是「保存」。问着的时候不自动保存；选「不保存」，这一章回到上次保存的样子。
 
-标签页现在只在原型里，还没有写进软件。
+检查：
+
+- `npm run verify-prototype` 的「closing with words not saved」。
+- `go test ./desk` 的 `tabs_test.go`：`TestChaptersOpenInTabs`（点章开标签、点卷不开）、`TestATabKeepsItsEditor`、`TestClosingAsksAboutUnsavedWords`（圆点、先问、问着不存、三个回答）、`TestTabsComeBackWithTheWork`。
 
 ## Do's and Don'ts
 
