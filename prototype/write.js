@@ -5,13 +5,21 @@
 
 const CLEAR = { ctx: null, pick: null, bury: null, pay: null, bar: null, ai: null, box: '', tree: null, rename: null }
 
-// 打开一章或一卷：它所在的卷展开，上一章上面浮着的东西收掉，记进打开过的里面。
+// 打开一章或一卷：已经有它的标签页就切过去，没有就在正看的那个右边开一个。它所在的卷展开，上一章上面浮着的东西收掉，记进打开过的里面。
 function go(s, key, flash) {
   const ch = s.chapters.find((c) => c.key === key), vol = !ch && s.volumes.some((v) => v[0] === key)
   if (!ch && !vol) return null // 已经删了
   const trail = s.trail[s.step] === key ? s.trail : [...s.trail.slice(0, s.step + 1), key]
-  return { page: 'write', ch: ch ? key : '', vol: vol ? key : '', trail, step: s.trail === trail ? s.step : trail.length - 1, folds: { ...s.folds, [ch ? ch.vol : key]: false }, ...CLEAR, outside: '', flash: flash || null }
+  const at = s.tabs.indexOf(s.ch || s.vol), tabs = s.tabs.includes(key) ? s.tabs : [...s.tabs.slice(0, at + 1), key, ...s.tabs.slice(at + 1)]
+  return { page: 'write', ch: ch ? key : '', vol: vol ? key : '', tabs, trail, step: s.trail === trail ? s.step : trail.length - 1, folds: { ...s.folds, [ch ? ch.vol : key]: false }, ...CLEAR, outside: '', flash: flash || null }
 }
+// 关掉几个标签页。关的是正看的那个，就换到它右边的，没有就左边的；一个不剩时正文空着。没存的字关之前已经存了。
+const shutTabs = (gone) => set((s) => {
+  const tabs = s.tabs.filter((k) => !gone.includes(k)), on = s.ch || s.vol, at = s.tabs.indexOf(on)
+  if (!gone.includes(on)) return { tabs, tree: null }
+  const next = s.tabs.slice(at + 1).find((k) => tabs.includes(k)) || s.tabs.slice(0, at).reverse().find((k) => tabs.includes(k))
+  return next ? { ...go({ ...s, tabs }, next), saved: true } : { tabs, ch: '', vol: '', step: s.trail.length, ...CLEAR, outside: '', saved: true } // step 停在最后一个之后：‹ 回到刚关掉的那一章
+})
 const goTo = (key, flash) => () => set((s) => go(s, key, flash))
 // 侧栏顶上的 ‹ ›：回到上一个、下一个打开过的章。
 const stepBy = (d) => set((s) => {
@@ -87,11 +95,15 @@ function toBin(key) {
   const title = vol ? vol[1] : titleOf(gone[0])
   set((s) => {
     const chapters = s.chapters.filter((c) => !gone.includes(c))
-    const next = gone.some((c) => c.key === s.ch) ? chapters[Math.min(s.chapters.indexOf(gone[0]), chapters.length - 1)] : chapterOf(s.ch)
+    // 进了回收站的，标签页也关掉。正看的那一章没了：换到旁边的标签页；没有别的标签页，就打开树里挨着它的一章。
+    const left = s.tabs.filter((k) => k !== key && !gone.some((c) => c.key === k)), on = s.ch || s.vol
+    const near = gone.some((c) => c.key === s.ch) && chapters.length ? chapters[Math.min(s.chapters.indexOf(gone[0]), chapters.length - 1)].key : ''
+    const to = left.includes(on) ? on : left[Math.min(s.tabs.indexOf(on), left.length - 1)] || near
     return {
       chapters, volumes: s.volumes.filter((v) => v !== vol), n: s.n + 1, tree: null,
       bin: [{ id: 'b' + s.n, title, at: '刚刚', volume: vol || null, chapters: gone }, ...s.bin],
-      ...(next ? { ch: next.key } : { ch: '', ...CLEAR }), vol: vol && s.vol === key ? '' : s.vol,
+      tabs: !to || left.includes(to) ? left : [...left, to],
+      ...(to === on ? {} : chapters.some((c) => c.key === to) ? { ch: to, vol: '' } : { ch: '', vol: to, ...CLEAR }),
     }
   })
   say('「' + title + '」已移到回收站')
@@ -407,8 +419,14 @@ function sidebar() {
     '</div>'
 }
 
-// 侧栏里右键一章或一卷点出来的菜单。
+// 侧栏里右键一章或一卷点出来的菜单；一段讨论、一个标签页的菜单也在这里。
 function treeMenu() {
+  if (S.tree.tab) {
+    const key = S.tree.key, others = S.tabs.filter((k) => k !== key), right = S.tabs.slice(S.tabs.indexOf(key) + 1)
+    return `<div class="veil float-veil"${onClick(closeFloat)}${onMenu((ev) => { ev.preventDefault(); closeFloat() })}></div>` +
+      `<div class="ctx pop" data-k="tree-menu" style="left:${Math.min(S.tree.x, document.getElementById('win').offsetWidth - 208)}px;top:${S.tree.y}px">` +
+      menuRow('关闭', () => shutTabs([key]), '', 'Ctrl+W') + menuRow('关闭其他', others.length ? () => shutTabs(others) : null) + menuRow('关闭右侧', right.length ? () => shutTabs(right) : null) + '</div>'
+  }
   if (S.tree.talk) {
     const id = S.tree.key, flip = () => set((s) => ({ tree: null, shelved: { ...s.shelved, [id]: !s.shelved[id] } }))
     return `<div class="veil float-veil"${onClick(closeFloat)}${onMenu((ev) => { ev.preventDefault(); closeFloat() })}></div>` +
@@ -536,7 +554,6 @@ function wordsOf(cur, vol) {
 }
 
 function toolbar(cur, vol) {
-  const volume = cur && S.volumes.find(([key]) => key === cur.vol)
   const here = cur ? S.marks.filter((m) => m.st === 'open' && m.key === cur.key).length : 0
   const wide = !S.paneOpen || S.focus
   const list = pending()
@@ -549,9 +566,18 @@ function toolbar(cur, vol) {
       menuRow('快照', cur ? () => set({ dialog: { kind: 'snaps', id: '', diff: false }, ...SHUT }) : null, 'clock') + menuRow('导出…', () => set({ dialog: { kind: 'export', range: cur ? '本章' : '全书', indent: true }, ...SHUT }), 'save') + HAIR +
       `<div class="pop-label">外观</div><div class="pop-seg">${seg(S.look, [['跟随系统', 'screen'], ['浅色', 'sun'], ['深色', 'moon']], (v) => set({ look: v }), '外观')}</div></div>`
   }
-  return `<div class="toolbar${wide ? ' wide' : ''}">` +
-    (volume ? `<div class="crumb">${t(volume[1])}</div>${icon('right', 'xs', 'faint')}` : '') +
-    `<div class="crumb here ell">${cur ? t(titleOf(cur)) : vol ? t(vol[1]) : '正文'}</div>` + (cur ? `<div class="count-all">${S.saved ? '已保存' : '未保存'}</div>` : '') +
+  // 标签页：开着的几章从左到右。没存的那个，关闭的叉换成一个圆点；别的不写「已保存」。
+  const on = S.ch || S.vol
+  const tab = (key) => {
+    const c = chapterOf(key), v = S.volumes.find((x) => x[0] === key), home = c && S.volumes.find((x) => x[0] === c.vol)
+    const name = c ? titleOf(c) : v[1], dirty = key === S.ch && !S.saved
+    const menu = onMenu((ev) => { ev.preventDefault(); const [x, y] = spot(ev.clientX, ev.clientY); set({ tree: { key, x, y, tab: true } }) })
+    return `<div class="sheet hit${key === on ? ' on' : ''}${dirty ? ' dirty' : ''}" data-tab="${key}" title="${t((home ? home[1] + ' › ' : '') + name + (dirty ? ' · 未保存' : ''))}"${onClick(goTo(key))}${menu}${onMid((ev) => { if (ev.button === 1) shutTabs([key]) })}>` +
+      `<div class="fit ell">${t(name)}</div><div class="sheet-dot"></div><div class="sheet-x" title="关闭标签页" aria-label="关闭标签页"${onClick(() => shutTabs([key]))}>${icon('cross', 'xs')}</div></div>`
+  }
+  const tabs = S.tabs.filter((k) => chapterOf(k) || S.volumes.some((x) => x[0] === k))
+  return `<div class="toolbar${wide ? ' wide' : ''}${tabs.length ? ' tabbed' : ''}">` +
+    (tabs.length ? `<div class="sheets" data-k="sheets">${tabs.map(tab).join('')}</div>` : '<div class="crumb here ell">正文</div>') +
     (S.ai && S.ai.kind === 'ghosting' ? '<div class="count-all">续写中…</div>' : S.ai && S.ai.kind === 'ghost' ? '<div class="count-all">Tab 采纳 · Esc 放弃</div>' : '') + '<div class="grow"></div><div class="tools">' +
     (wide && here && !S.focus ? `<button class="fs-btn" aria-label="本章伏笔"${onClick(() => set({ paneOpen: true, tab: '伏笔', fid: null, fv: 'list' }))}>${icon('flag')}<span>本章伏笔 ${here}</span></button>` : '') +
     (cur ? tool('查找替换', '查找替换（Ctrl+F）', 'find', () => set({ find: S.find ? null : { q: '', to: '', all: false, at: 0 } }), !!S.find) : '') +

@@ -30,7 +30,7 @@ Status: implemented
 - 平时碰不到的情况（稿子在软件外面被改了或找不到了、检查或摘要没成功、备份文件夹找不到或不让写、设定没整理成功）放在窗口上面的「少见的情况」菜单里，点一下就摆出来。这个菜单和旁边的「重新开始」只属于原型，不是软件的界面。
 - `npm run verify-prototype` 做两件事，改了 `prototype/` 就跑：
   - 设计规则（`scripts/design/check.ts`、`rules.ts`）：`index.html` 和每份脚本对着 `desk/tokens.css` 查，样式表里的每条规则也按控件高度查。
-  - 走查。`scripts/prototype/browser.ts` 用本机的 Edge 或 Chrome 无头打开 `index.html`（走 `file://`，和双击一样），经 DevTools 协议真的按鼠标、敲键盘；`walk.ts` 把 77 条流程点一遍，每条结束时还要查窗口里没有东西伸出去、页面没有报错；每点一下还要查菜单、浮层、对话框、提示条里没有东西比它们自己宽。只用 Node 自带的 `WebSocket` 和 `fetch`。`SHOT=<目录>` 会存下每一步的截图。
+  - 走查。`scripts/prototype/browser.ts` 用本机的 Edge 或 Chrome 无头打开 `index.html`（走 `file://`，和双击一样），经 DevTools 协议真的按鼠标、敲键盘；`walk.ts` 把 78 条流程点一遍，每条结束时还要查窗口里没有东西伸出去、页面没有报错；每点一下还要查菜单、浮层、对话框、提示条里没有东西比它们自己宽。只用 Node 自带的 `WebSocket` 和 `fetch`。`SHOT=<目录>` 会存下每一步的截图。
 - 它不进提交前的三道检查：要本机有浏览器，而且只有原型变了才有意义。
 - 窗口固定 1266×780；浮层的位置从页面上量窗口、侧栏、右栏的宽，不另记数字。
 - 只给 artifact 用的工具从仓库里去掉：`scripts/verify-design.ts`，`scripts/design/` 下的 `normalize.ts`、`system.ts`、`render.ts`、`parts.ts`，和它们的四条 npm 命令。`desk/tokens.css` 不再是谁的副本，各级的值只在它里面写。
@@ -78,4 +78,5 @@ Status: implemented
     - 个别尺寸是工具包自带的：勾选框 16（原型 14）、章节树标题旁的图标按钮 28（原型 22）。
     - 正文右键菜单里的「移除此处标记」原型没有，软件只在标记上才出现。
     - 讨论模型的菜单，原型只列当前服务的模型，软件列全部服务的。
+    - 正文的多标签页、标签上表示没存的圆点（2026-10-13）只在原型里，等作者确认后再写代码，见[多标签页](../../proposed/feature/2026-10-13-chapter-tabs.md)。软件顶栏还是「卷名 › 章名 已保存」。
   - 没有同步的：原型里没有的页面（全书规划、导入稿件、恢复备份）；只在截图上比过，没有在真的窗口里逐个点过。

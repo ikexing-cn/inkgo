@@ -23,6 +23,11 @@ export async function walk({ js, shot, click: press, rclick, drag, type, key, cl
   }
   // Brings the pointer over the row of the open menu saying words.
   const over = (words: string) => js(`[...document.querySelectorAll('.ctx .pop-row')].find((e) => e.innerText.includes(${JSON.stringify(words)})).dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))`)
+  // The tabs: the chapters open, left to right, which of them is shown, and whether its tab says it is not saved.
+  const tabs = (): Promise<string> => js(`[...document.querySelectorAll('.sheet')].map((e) => e.dataset.tab + (e.classList.contains('on') ? '*' : '')).join(' ')`)
+  const unsaved = (): Promise<boolean> => js(`!!document.querySelector('.sheet.on.dirty')`)
+  const tabAt = (key: string): Promise<[number, number]> => js(`(() => { const r = document.querySelector('[data-tab="${key}"]').getBoundingClientRect(); return [r.x + 20, r.y + r.height / 2] })()`)
+  const shut = (key: string) => js(`document.querySelector('[data-tab="${key}"] .sheet-x').click()`)
   // A flow is done when nothing in the window sticks out of it: what does can scroll the whole window aside.
   const done = async (step: string) => {
     must(await js(`(() => { const w = document.querySelector('#win'); return w.scrollWidth <= w.clientWidth && w.scrollHeight <= w.clientHeight && !w.scrollLeft && !w.scrollTop })()`), 'something sticks out of the window after: ' + step)
@@ -275,7 +280,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, key, cl
   await menu(0, '何主任让他们把旧城的灯重新数一遍'); must(await js(`[...document.querySelectorAll('.ctx .row')].find((e) => e.innerText.includes('加入名字表')).classList.contains('off')`), 'a long pick can be a name'); await key('Escape'); await done('a name from the prose')
 
   // Saving, and what is stale once the prose changes.
-  await click('第86章：档案室'); await win('已保存'); await key('j', true); await sleep(900); await key('Tab'); await win('未保存'); await win('第86章已修改，尚未重新检查'); await win('本章摘要 · 可能过时 ▾'); await sleep(1800); await win('已保存')
+  await click('第86章：档案室'); must(!(await unsaved()), 'a chapter just opened is not saved'); await key('j', true); await sleep(900); await key('Tab'); must(await unsaved(), 'the tab does not say the chapter is not saved'); await win('第86章已修改，尚未重新检查'); await win('本章摘要 · 可能过时 ▾'); await sleep(1800); must(!(await unsaved()), 'the chapter was not saved by itself')
   await key('s', true); await win('停笔片刻也会自动保存'); await click('关闭提示'); await done('saving')
 
   // Rare things, shown from the bar over the window: a chapter changed outside, a check and a summary that failed.
@@ -329,4 +334,13 @@ export async function walk({ js, shot, click: press, rclick, drag, type, key, cl
   await click('少见的情况'); await click('添加的文件夹中没有作品'); await win('该文件夹中没有作品（缺少 work.yaml）'); await click('关闭提示')
   await click('新建作品'); await type('作品名称', '雨城来信'); await click('创建'); await win('D:\\写作\\雨城来信 中已有文件请更换名称或位置'); await shot('96-place-taken'); await click('关闭提示'); await clear('作品位置'); await click('创建'); await win('请选择作品位置'); await click('关闭提示'); await click('取消')
   await click('更多操作'); await click('重命名…'); await clear('新作品名'); await click('保存'); await win('作品名不能为空'); await click('关闭提示'); await click('取消'); await click('重新开始'); await done('the shelf, where things go wrong')
+
+  // Tabs: a chapter opened gets one beside the one shown, and they close one by one, or all but one.
+  must((await tabs()) === '87*', 'a book opens with more than its last chapter: ' + (await tabs()))
+  await click('第86章：档案室'); await click('第84章：刻字'); must((await tabs()) === '87 86 84*', 'opening two more: ' + (await tabs())); await win('巷口那盏灯又坏了'); await shot('97-tabs')
+  await click('第87章：停电', 1); must((await tabs()) === '87* 86 84', 'a tab clicked: ' + (await tabs())); await win('整条街的灯是同时灭的')
+  await click('第85章：灯数'); must((await tabs()) === '87 85* 86 84', 'a new one goes beside the one shown: ' + (await tabs()))
+  await shut('85'); must((await tabs()) === '87 86* 84', 'the one shown closed: ' + (await tabs())); await shut('84'); must((await tabs()) === '87 86*', 'another closed: ' + (await tabs()))
+  await click('第84章：刻字'); await rclick(...(await tabAt('87'))); await win('关闭其他'); await win('关闭右侧'); await shot('98-tab-menu'); await click('关闭其他'); must((await tabs()) === '87*', 'all but one closed: ' + (await tabs()))
+  await shut('87'); must((await tabs()) === '', 'the last one closed: ' + (await tabs())); await win('从左侧选择一章开始写作'); await click('上一个打开的章节'); must((await tabs()) === '87*', 'going back: ' + (await tabs())); await done('tabs')
 }

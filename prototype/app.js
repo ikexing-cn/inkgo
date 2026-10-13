@@ -57,6 +57,8 @@ document.addEventListener('keydown', (ev) => {
   else if (ev.key === 'j') run(continueText)
   else if (ev.key === 'l') run(cite)
 })
+// 标签排不下时，滚轮在标签条上左右挪。
+document.addEventListener('wheel', (ev) => { const strip = ev.target.closest && ev.target.closest('.sheets'); if (strip) strip.scrollLeft += ev.deltaY }, { passive: true })
 // 章节树里拖一行：拖到谁上面，谁就亮一下；松手时照 dropOn 挪过去。
 let dragged = ''
 const nodeAt = (ev) => { const row = ev.target.closest('[data-node]'); return row && dragged && row.dataset.node !== dragged ? row : null }

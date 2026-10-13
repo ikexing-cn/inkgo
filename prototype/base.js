@@ -23,6 +23,7 @@ function fresh(book = BOOK.shelf[0].id) {
     entries: of('entries', []), log: of('log', []), marks: of('marks', []), talks: of('talks', []), checks: of('checks', []),
     snaps: last ? { [last.key]: snaps } : {}, cats: [...BOOK.cats], lands: { ...BOOK.lands },
     ch: last ? last.key : '', trail: last ? [last.key] : [], step: 0, // 开着哪一章；trail 是打开过的章，step 是现在在第几个
+    tabs: last ? [last.key] : [], // 标签页：开着的几章（或卷），从左到右；ch、vol 是其中正在看的那个
     folds: Object.fromEntries(BOOK.volumes.map(([key]) => [key, !last || key !== last.vol])),
     paneOpen: true, tab: '设定', focus: false, // 右栏开着吗、在哪一页；focus 是专注写作
     open: '', // 开着的菜单或下拉的名字，一次只开一个
@@ -47,7 +48,7 @@ function fresh(book = BOOK.shelf[0].id) {
     saved: true, // 正文存了没有
     outside: '', // 软件外面动了开着的这一章：changed 改过、lost 找不到了
     rename: null, // 侧栏里正在改名字的：{ key, t }
-    tree: null, // 侧栏里右键点出来的菜单：{ key, x, y }
+    tree: null, // 右键点出来的菜单：{ key, x, y }；talk 是侧栏里的一段讨论，tab 是一个标签页，都不是就是章节树里的一行
     todoAll: true, more: {}, ignored: [], // 待处理：看全部还是本章、哪几组展开了、忽略掉的
     kind: '全部', cid: null, checking: false, dirty: {}, // 检查：看哪一类、哪一条、正在查哪一章、哪几章查过以后又改了
     queue: [], never: {}, failed: {}, // 检查：排着队等查的、尚未检查的、没查成的几章
@@ -109,7 +110,7 @@ const SHUT = { open: '' }
 // 每画一遍，把这一遍用到的动作记在这里，元素上只留它的号码。
 let H = []
 const hook = (kind) => (fn) => (fn ? ` data-${kind}="${H.push(fn) - 1}"` : '')
-const onClick = hook('click'), onInput = hook('input'), onKey = hook('keydown'), onMenu = hook('menu'), onUp = hook('up'), onOver = hook('over')
+const onClick = hook('click'), onInput = hook('input'), onKey = hook('keydown'), onMenu = hook('menu'), onUp = hook('up'), onOver = hook('over'), onMid = hook('mid')
 
 // 书里的字、作者打的字，放进页面前都过一遍。
 const t = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
@@ -257,10 +258,12 @@ function draw() {
   children(root, want.content)
   if (born) { born.focus(); born.setSelectionRange(born.value.length, born.value.length) }
   for (const talk of document.querySelectorAll('.talk')) talk.scrollTop = talk.scrollHeight // 讨论总是停在最新一句
+  const tab = document.querySelector('.sheet.on') // 标签多到排不下时，正在看的那个总在看得见的地方
+  if (tab) { const strip = tab.parentElement; strip.scrollLeft = Math.max(tab.offsetLeft + tab.offsetWidth - strip.clientWidth, Math.min(strip.scrollLeft, tab.offsetLeft)) }
 }
 
 // 页面上只挂这几个听的：事情出在哪个元素上，就照它身上的号码去找动作。
-for (const [event, kind] of [['click', 'click'], ['keydown', 'keydown'], ['contextmenu', 'menu'], ['mouseup', 'up'], ['mouseover', 'over']]) {
+for (const [event, kind] of [['click', 'click'], ['keydown', 'keydown'], ['contextmenu', 'menu'], ['mouseup', 'up'], ['mouseover', 'over'], ['auxclick', 'mid']]) {
   root.addEventListener(event, (ev) => { const el = ev.target.closest(`[data-${kind}]`); if (el) H[el.dataset[kind]](ev) })
 }
 root.addEventListener('input', (ev) => { const el = ev.target.closest('[data-input]'); if (el) H[el.dataset.input](el.value) })

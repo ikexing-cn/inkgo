@@ -139,6 +139,19 @@ body { margin: 0; }
 .toolbar { height: var(--h-bar); box-sizing: border-box; flex: none; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 8px; padding: 0 16px 0 24px; }
 .toolbar.wide { padding-right: 150px; } /* 右栏收起时，给窗口按钮让位 */
 .crumb { font-size: var(--fs-control); color: var(--muted); white-space: nowrap; }
+.toolbar.tabbed { padding-left: 14px; }
+.sheets { position: relative; flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+.sheet { position: relative; flex: 0 1 auto; min-width: 96px; max-width: 180px; height: var(--h-control-sm); box-sizing: border-box; display: flex; align-items: center; gap: 4px; padding: 0 10px; border-radius: var(--r-control); font-size: var(--fs-control); color: var(--muted); white-space: nowrap; }
+.sheet:hover { background: var(--hover); }
+.sheet.on { flex: none; padding-right: 4px; background: var(--active); color: var(--ink); font-weight: 600; } /* 正看的那个不压窄，名字写全 */
+.sheet-x, .sheet-dot { flex: none; width: var(--h-tag); height: var(--h-tag); display: flex; align-items: center; justify-content: center; border-radius: var(--r-xs); color: var(--muted); }
+.sheet:not(.on) .sheet-x { display: none; position: absolute; right: 4px; background: var(--hover); } /* 别的标签页：叉在指针移上去时盖在名字末尾，不占地方 */
+.sheet:not(.on):hover .sheet-x { display: flex; }
+.sheet .sheet-x:hover { background: var(--control); color: var(--ink); }
+.sheet-dot { display: none; }
+.sheet-dot::after { content: ''; width: 6px; height: 6px; border-radius: var(--r-round); background: var(--muted); }
+.sheet.dirty:not(:hover) .sheet-dot { display: flex; } /* 没存：圆点占着叉的位置，指针移上去换回叉 */
+.sheet.dirty:not(:hover) .sheet-x { display: none; }
 .crumb.here { color: inherit; font-weight: 600; min-width: 0; }
 .count-all { margin-left: 6px; min-width: 0; font-size: var(--fs-note); color: var(--faint); white-space: nowrap; }
 .tools { display: flex; gap: 2px; color: var(--muted); align-items: center; flex: none; }
