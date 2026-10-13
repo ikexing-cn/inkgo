@@ -566,18 +566,10 @@ function toolbar(cur, vol) {
       menuRow('快照', cur ? () => set({ dialog: { kind: 'snaps', id: '', diff: false }, ...SHUT }) : null, 'clock') + menuRow('导出…', () => set({ dialog: { kind: 'export', range: cur ? '本章' : '全书', indent: true }, ...SHUT }), 'save') + HAIR +
       `<div class="pop-label">外观</div><div class="pop-seg">${seg(S.look, [['跟随系统', 'screen'], ['浅色', 'sun'], ['深色', 'moon']], (v) => set({ look: v }), '外观')}</div></div>`
   }
-  // 标签页：开着的几章从左到右。没存的那个，关闭的叉换成一个圆点；别的不写「已保存」。
-  const on = S.ch || S.vol
-  const tab = (key) => {
-    const c = chapterOf(key), v = S.volumes.find((x) => x[0] === key), home = c && S.volumes.find((x) => x[0] === c.vol)
-    const name = c ? titleOf(c) : v[1], dirty = key === S.ch && !S.saved
-    const menu = onMenu((ev) => { ev.preventDefault(); const [x, y] = spot(ev.clientX, ev.clientY); set({ tree: { key, x, y, tab: true } }) })
-    return `<div class="sheet hit${key === on ? ' on' : ''}${dirty ? ' dirty' : ''}" data-tab="${key}" title="${t((home ? home[1] + ' › ' : '') + name + (dirty ? ' · 未保存' : ''))}"${onClick(goTo(key))}${menu}${onMid((ev) => { if (ev.button === 1) shutTabs([key]) })}>` +
-      `<div class="fit ell">${t(name)}</div><div class="sheet-dot"></div><div class="sheet-x" title="关闭标签页" aria-label="关闭标签页"${onClick(() => shutTabs([key]))}>${icon('cross', 'xs')}</div></div>`
-  }
-  const tabs = S.tabs.filter((k) => chapterOf(k) || S.volumes.some((x) => x[0] === k))
-  return `<div class="toolbar${wide ? ' wide' : ''}${tabs.length ? ' tabbed' : ''}">` +
-    (tabs.length ? `<div class="sheets" data-k="sheets">${tabs.map(tab).join('')}</div>` : '<div class="crumb here ell">正文</div>') +
+  const volume = cur && S.volumes.find(([key]) => key === cur.vol)
+  return `<div class="toolbar${wide ? ' wide' : ''}">` +
+    (volume ? `<div class="crumb">${t(volume[1])}</div>${icon('right', 'xs', 'faint')}` : '') +
+    `<div class="crumb here ell">${cur ? t(titleOf(cur)) : vol ? t(vol[1]) : '正文'}</div>` +
     (S.ai && S.ai.kind === 'ghosting' ? '<div class="count-all">续写中…</div>' : S.ai && S.ai.kind === 'ghost' ? '<div class="count-all">Tab 采纳 · Esc 放弃</div>' : '') + '<div class="grow"></div><div class="tools">' +
     (wide && here && !S.focus ? `<button class="fs-btn" aria-label="本章伏笔"${onClick(() => set({ paneOpen: true, tab: '伏笔', fid: null, fv: 'list' }))}>${icon('flag')}<span>本章伏笔 ${here}</span></button>` : '') +
     (cur ? tool('查找替换', '查找替换（Ctrl+F）', 'find', () => set({ find: S.find ? null : { q: '', to: '', all: false, at: 0 } }), !!S.find) : '') +
@@ -587,6 +579,21 @@ function toolbar(cur, vol) {
     (S.backup.state === 'fail' && !S.backup.hush ? `<div class="anchor"><button class="warn-btn" aria-label="备份提示"${onClick(flip('chip'))}>${DOT}<span>备份失败 · ${backupWhy()[0]}</span></button>${S.open === 'chip' ? backupPop() : ''}</div>` : '') +
     (list.length ? `<div class="anchor"><button class="todo-btn${S.open === 'todo' ? ' on' : ''}" aria-label="待处理"${onClick(flip('todo'))}>${DOT}<span>待处理 ${list.length}</span></button>${S.open === 'todo' ? todoPop(list) : ''}</div>` : '') +
     '</div></div>'
+}
+
+// 标签页：顶栏下面单独的一行，开着的几章（或卷）从左到右，一格一个。正看的那格和正文一个底色；
+// 没存的那个，关闭的叉换成一个圆点。专注写作时这一行收起。
+function sheets() {
+  const on = S.ch || S.vol, tabs = S.tabs.filter((k) => chapterOf(k) || S.volumes.some((x) => x[0] === k))
+  if (!tabs.length || S.focus) return ''
+  const tab = (key) => {
+    const c = chapterOf(key), v = S.volumes.find((x) => x[0] === key), home = c && S.volumes.find((x) => x[0] === c.vol)
+    const name = c ? titleOf(c) : v[1], dirty = key === S.ch && !S.saved
+    const menu = onMenu((ev) => { ev.preventDefault(); const [x, y] = spot(ev.clientX, ev.clientY); set({ tree: { key, x, y, tab: true } }) })
+    return `<div class="sheet hit${key === on ? ' on' : ''}${dirty ? ' dirty' : ''}" data-tab="${key}" title="${t((home ? home[1] + ' › ' : '') + name + (dirty ? ' · 未保存' : ''))}"${onClick(goTo(key))}${menu}${onMid((ev) => { if (ev.button === 1) shutTabs([key]) })}>` +
+      `${icon(c ? 'page' : 'folder', 'sm')}<div class="fit ell">${t(name)}</div><div class="sheet-dot"></div><div class="sheet-x" title="关闭标签页" aria-label="关闭标签页"${onClick(() => shutTabs([key]))}>${icon('cross', 'xs')}</div></div>`
+  }
+  return `<div class="sheets" data-k="sheets">${tabs.map(tab).join('')}</div>`
 }
 
 // 正文下面那一行：检查到哪了、什么时候查，右边是字数。
@@ -634,16 +641,16 @@ function folderPage([key, title]) {
 
 function editor(cur) {
   const vol = S.volumes.find((v) => v[0] === S.vol)
-  if (vol) return '<div class="editor">' + toolbar(null, vol) + folderPage(vol) + foot(null, vol) + '</div>'
+  if (vol) return '<div class="editor">' + toolbar(null, vol) + sheets() + folderPage(vol) + foot(null, vol) + '</div>'
   if (!cur) {
-    return `<div class="editor">${toolbar(null)}<div class="paper">` + (S.chapters.length ? blank('book', '从左侧选择一章开始写作', '')
+    return `<div class="editor">${toolbar(null)}${sheets()}<div class="paper">` + (S.chapters.length ? blank('book', '从左侧选择一章开始写作', '')
       : blank('book', '暂无章节', '每章是作品文件夹 chapters 中的一个纯文本文件，可用其他软件打开。', buttons(button('新建第一章', newChapter, 'primary'), button('新建文件夹', newFolder)))) + '</div>' + foot(null) + '</div>'
   }
   const focus = S.paneOpen && S.tab === '伏笔' ? S.fid : null
   const found = S.find && S.find.q && !S.find.all ? hits(cur, S.find.q) : []
   const ghostly = S.ai && S.ai.kind === 'ghost' ? `<span class="ghost-text">${t(S.ai.text)}</span>` : ''
   const paras = cur.paras.map((text, i) => `<div data-para="${i}"${cur.aiFrom !== undefined && i >= cur.aiFrom ? ' class="ai"' : ''}>${pieces(cur, i, text, focus, found)}${i === cur.paras.length - 1 ? ghostly : ''}</div>`).join('')
-  return '<div class="editor">' + toolbar(cur) + (S.find ? findBar(cur) : '') + outsideBar() +
+  return '<div class="editor">' + toolbar(cur) + sheets() + (S.find ? findBar(cur) : '') + outsideBar() +
     `<div class="paper scroll"${onMenu(openMenu)}${onUp(picked)}><div class="column"><div class="chapter-head"><div class="chapter-title">${t(cur.t)}</div>${chapterMore(cur)}</div>` + aiBar() +
     `<div class="prose">${paras || (ghostly ? `<div>${ghostly}</div>` : '<div class="faint">在此开始写作…</div>')}</div></div></div>` + foot(cur) + '</div>'
 }
