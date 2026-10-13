@@ -404,7 +404,7 @@ func (a *App) initial(c *ui.Context, name string, gone bool) {
 func (a *App) bookRow(c *ui.Context, b shelf.Book) {
 	t := a.pal.theme
 	gone := a.books.missing[b.Path]
-	ui.Row(c).Key("b-" + b.Path).FillWidth().AlignItems(ui.Center).Gap(4).Children(func() {
+	ui.Row(c.Key("b-" + b.Path)).FillWidth().AlignItems(ui.Center).Gap(4).Children(func() {
 		open := ui.ButtonBase(c).Row().Grow(1).Shrink(1).AlignItems(ui.Center).Gap(14).Padding(12).Radius(rControl).Label("作品-" + b.Name)
 		if open.Hovered() && !gone {
 			open.Background(t.SurfaceHover)
@@ -448,7 +448,7 @@ func (a *App) bookRow(c *ui.Context, b shelf.Book) {
 func (a *App) bookCard(c *ui.Context, b shelf.Book) {
 	t := a.pal.theme
 	gone := a.books.missing[b.Path]
-	card := ui.ButtonBase(c).Key("c-"+b.Path).Column().Justify(ui.Start).AlignItems(ui.Stretch).Width(220).Height(168).Padding(16).Gap(8).Radius(rDialog).Border(1, t.Border).Background(t.Surface).Label("作品-" + b.Name)
+	card := ui.ButtonBase(c.Key("c-"+b.Path)).Column().Justify(ui.Start).AlignItems(ui.Stretch).Width(220).Height(168).Padding(16).Gap(8).Radius(rDialog).Border(1, t.Border).Background(t.Surface).Label("作品-" + b.Name)
 	if card.Hovered() && !gone {
 		card.Background(t.SurfaceHover)
 	}

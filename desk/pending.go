@@ -150,7 +150,7 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 	})
 	var shown []pendItem
 	ui.Box(c).FillWidth().Height(1).Background(a.pal.line)
-	ui.Scroll(c).Key("pending").FillWidth().MaxHeight(520).Children(func() {
+	ui.Scroll(c.Key("pending")).FillWidth().MaxHeight(520).Children(func() {
 		for _, g := range groups {
 			items := g.items
 			if w.pendHere == 1 {

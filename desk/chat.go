@@ -202,7 +202,7 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 	if user {
 		align = ui.End
 	}
-	box := ui.Column(c).Key(m.ID).FillWidth().AlignItems(align).Gap(8)
+	box := ui.Column(c.Key(m.ID)).FillWidth().AlignItems(align).Gap(8)
 	shown := last || box.Hovered() || box.FocusWithin()
 	box.Children(func() {
 		if user {

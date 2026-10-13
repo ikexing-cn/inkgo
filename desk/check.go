@@ -628,7 +628,7 @@ func (a *App) checkList(c *ui.Context, all, shown []checkItem) {
 		}
 		ui.Row(c).Children(func() { a.pal.segments(c, &k.tab, "检查分类", names) })
 	})
-	ui.Scroll(c).Key("checks").FillWidth().Grow(1).Shrink(1).Children(func() {
+	ui.Scroll(c.Key("checks")).FillWidth().Grow(1).Shrink(1).Children(func() {
 		ui.Column(c).FillWidth().Padding(0, 14, 12, 14).Gap(2).Children(func() {
 			for _, it := range shown {
 				sub := chapterLabel(it.ch)
@@ -640,7 +640,7 @@ func (a *App) checkList(c *ui.Context, all, shown []checkItem) {
 				case workspace.FindNew:
 					sub = it.f.Category + " · " + sub + "出现"
 				}
-				b := ui.ButtonBase(c).Key("ck-"+it.f.ID).Row().FillWidth().AlignItems(ui.Center).Gap(10).Padding(8, 10).Radius(rControl).Label("检查-" + it.f.Title)
+				b := ui.ButtonBase(c.Key("ck-"+it.f.ID)).Row().FillWidth().AlignItems(ui.Center).Gap(10).Padding(8, 10).Radius(rControl).Label("检查-" + it.f.Title)
 				if it.f.ID == k.shown {
 					b.Background(t.SurfacePressed)
 				} else if b.Hovered() {
@@ -836,7 +836,7 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 			next()
 		}
 	})
-	ui.Scroll(c).Key("check-" + it.f.ID).FillWidth().Grow(1).Shrink(1).Children(func() {
+	ui.Scroll(c.Key("check-" + it.f.ID)).FillWidth().Grow(1).Shrink(1).Children(func() {
 		ui.Column(c).FillWidth().Gap(16).Children(func() {
 			para, no := paragraphOf(k.prose, it.f.Quote)
 			head := "正文 · " + chapterLabel(it.ch)

@@ -11,7 +11,7 @@ import (
 
 // View builds the editor's element; size it as any element (Fill, Grow).
 func (e *Editor) View(c *ui.Context) ui.Element {
-	e.c, e.sv = c, c.Services()
+	e.sv = c.Services()
 	e.pollPrediction()
 	el := ui.Box(c).Focusable().FocusRing(false).Cursor(ui.CursorText).Clip().Label("正文")
 	if e.wantFocus {
@@ -359,9 +359,6 @@ func (e *Editor) Cut() {
 
 // Paste puts what the clipboard holds in place of the selection.
 func (e *Editor) Paste() {
-	if e.c == nil {
-		return
-	}
 	if s := e.sv.ReadClipboard(); s != "" {
 		if e.opts.Prose {
 			s = unindent(s)

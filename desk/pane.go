@@ -64,7 +64,7 @@ func count(n int) string {
 // paneRows is the list under the top of a tab, which scrolls.
 func (a *App) paneRows(c *ui.Context, key string, rows func()) {
 	a.pal.hairline(c)
-	ui.Scroll(c).Key(key).FillWidth().Grow(1).Shrink(1).Children(func() {
+	ui.Scroll(c.Key(key)).FillWidth().Grow(1).Shrink(1).Children(func() {
 		ui.Column(c).FillWidth().Padding(0, 10, 12, 10).Children(rows)
 	})
 }
@@ -87,6 +87,7 @@ func (a *App) paneEmpty(c *ui.Context, words, how string) {
 // paneRow is one thing of a list on one line: its name, a line of what it
 // says, what stands at its end, and a dot when it waits on the author. The
 // words of find in what it says are darker.
+// Give it a key with the context: a.paneRow(c.Key(id), ...).
 func (a *App) paneRow(c *ui.Context, label, name, gist, side, find string, waiting bool) ui.Element {
 	t := a.pal.theme
 	b := ui.ButtonBase(c).Row().FillWidth().Height(hControl).Gap(10).Padding(0, 10).AlignItems(ui.Center).Radius(rControl).Label(label)
@@ -199,7 +200,7 @@ func (a *App) paneBack(c *ui.Context, text, act string) (back, acted bool) {
 // panePage is the page of one thing under its top, which scrolls.
 func (a *App) panePage(c *ui.Context, key string, parts func()) {
 	a.pal.hairline(c)
-	ui.Scroll(c).Key(key).FillWidth().Grow(1).Shrink(1).Children(func() {
+	ui.Scroll(c.Key(key)).FillWidth().Grow(1).Shrink(1).Children(func() {
 		ui.Column(c).FillWidth().Gap(16).Padding(16, 20, 20, 20).Children(parts)
 	})
 }

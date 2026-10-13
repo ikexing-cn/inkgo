@@ -22,7 +22,7 @@ func (a *App) categories(c *ui.Context) {
 			ui.Column(c).FillWidth().Children(func() {
 				a.pal.hairline(c)
 				for _, cat := range a.Store.Work().Categories {
-					ui.Row(c).Key(cat.Name).FillWidth().Height(hBar).Padding(0, 4).Gap(14).AlignItems(ui.Center).Children(func() {
+					ui.Row(c.Key(cat.Name)).FillWidth().Height(hBar).Padding(0, 4).Gap(14).AlignItems(ui.Center).Children(func() {
 						if a.removeCategory == cat.Name {
 							ui.Textf(c, "%d 条设定将移到“其他”", counts[cat.Name]).FontSize(fsBody).Grow(1).Shrink(1)
 							if a.pal.secondary(c, "取消").Clicked() {

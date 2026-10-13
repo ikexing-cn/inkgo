@@ -37,7 +37,7 @@ func (a *App) keysHelp(c *ui.Context) {
 	a.modal(c, &a.keysOpen, func() {
 		ui.Column(c).Width(dialogKeys).Padding(dialogPad).Gap(16).Children(func() {
 			a.pal.dialogHead(c, "快捷键", "")
-			ui.Scroll(c).Key("keys").FillWidth().MaxHeight(440).Shrink(1).Children(func() {
+			ui.Scroll(c.Key("keys")).FillWidth().MaxHeight(440).Shrink(1).Children(func() {
 				ui.Column(c).FillWidth().Children(func() {
 					for _, g := range keyGroups {
 						ui.Text(c, g.Where).FontSize(fsSmall).TextColor(a.pal.faint).Padding(14, 0, 4, 0)

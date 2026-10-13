@@ -239,7 +239,10 @@ func TestButtonsAtTheRight(t *testing.T) {
 // made that way once.
 func TestButtonsAnswerThePointer(t *testing.T) {
 	files, _ := filepath.Glob("*.go")
-	made := regexp.MustCompile(`^\s*(\w+) :?= ui\.ButtonBase\(c\)`)
+	// A button is made with the context, or with the context given a key.
+	button := regexp.MustCompile(`ui\.ButtonBase\(c[).]`)
+	made := regexp.MustCompile(`^\s*(\w+) :?= ui\.ButtonBase\(c[).]`)
+	seen := 0
 	for _, f := range files {
 		if strings.HasSuffix(f, "_test.go") {
 			continue
@@ -250,9 +253,10 @@ func TestButtonsAnswerThePointer(t *testing.T) {
 		}
 		lines := strings.Split(string(b), "\n")
 		for i, line := range lines {
-			if !strings.Contains(line, "ui.ButtonBase(c)") {
+			if !button.MatchString(line) {
 				continue
 			}
+			seen++
 			m := made.FindStringSubmatch(line)
 			if m == nil {
 				t.Errorf("%s:%d: a button with no name cannot answer the pointer: %s", f, i+1, strings.TrimSpace(line))
@@ -272,6 +276,10 @@ func TestButtonsAnswerThePointer(t *testing.T) {
 				t.Errorf("%s:%d: a button that does not answer the pointer (no %s.Hovered()): %s", f, i+1, m[1], strings.TrimSpace(line))
 			}
 		}
+	}
+	// The way buttons are written changed once without this check seeing it.
+	if seen < 40 {
+		t.Errorf("%d buttons read, of the fifty and more there are: the check no longer finds them", seen)
 	}
 }
 

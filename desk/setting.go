@@ -293,7 +293,7 @@ func (a *App) settingList(c *ui.Context) {
 		if q != "" {
 			gist = nearFind(gist, q)
 		}
-		b := a.paneRow(c, "设定-"+e.ID, name, gist, "", q, waiting[e.ID]).Key(e.ID)
+		b := a.paneRow(c.Key(e.ID), "设定-"+e.ID, name, gist, "", q, waiting[e.ID])
 		// One the bookkeeper just changed is tinted for a moment.
 		if at, ok := a.flash[e.ID]; ok {
 			if left := flashFor - time.Since(at); left > 0 {
@@ -354,7 +354,7 @@ func (a *App) settingList(c *ui.Context) {
 // idea is one thing the bookkeeper suggests, with what it is about when
 // about says, and the author's word on it.
 func (a *App) idea(c *ui.Context, e workspace.Entry, about string) {
-	ui.Column(c).Key(e.ID).FillWidth().Gap(8).Children(func() {
+	ui.Column(c.Key(e.ID)).FillWidth().Gap(8).Children(func() {
 		if about != "" {
 			ui.Text(c, about).FontSize(fsNote).TextColor(a.pal.theme.TextMuted).SingleLine().Ellipsis("…").FillWidth()
 		}
@@ -415,7 +415,7 @@ func (a *App) droppedList(c *ui.Context) {
 			}
 			n++
 			name, gist := entryName(e)
-			if a.paneRow(c, "设定-"+e.ID, name, gist, "", "", false).Key(e.ID).Clicked() {
+			if a.paneRow(c.Key(e.ID), "设定-"+e.ID, name, gist, "", "", false).Clicked() {
 				d.shown = e.ID
 			}
 		}
@@ -578,7 +578,7 @@ func (a *App) history(c *ui.Context) {
 		a.doc.history = false
 	}
 	a.pal.hairline(c)
-	ui.Scroll(c).Key("history").Grow(1).FillWidth().Children(func() {
+	ui.Scroll(c.Key("history")).Grow(1).FillWidth().Children(func() {
 		ui.Column(c).FillWidth().Gap(10).Padding(16, 20, 20, 20).Children(func() {
 			ui.Text(c, "修改记录").FontSize(fsGroup).FontWeight(600)
 			if len(a.set.Revisions) == 0 {
@@ -586,7 +586,7 @@ func (a *App) history(c *ui.Context) {
 			}
 			for n := len(a.set.Revisions) - 1; n >= 0; n-- {
 				r := a.set.Revisions[n]
-				ui.Column(c).Key(r.ID).FillWidth().Padding(10, 12).Gap(6).Radius(rCard).Background(a.pal.raised).Border(1, a.pal.line).Children(func() {
+				ui.Column(c.Key(r.ID)).FillWidth().Padding(10, 12).Gap(6).Radius(rCard).Background(a.pal.raised).Border(1, a.pal.line).Children(func() {
 					ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
 						who := "手动修改"
 						if r.By == workspace.ByBookkeeper {

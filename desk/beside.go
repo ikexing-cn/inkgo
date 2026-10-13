@@ -149,7 +149,7 @@ func (a *App) talkList(c *ui.Context) {
 				a.paneGroup(c, group)
 			}
 			n++
-			if a.paneRow(c, "讨论-"+id, words, "", talkDay(when, time.Now()), "", false).Key(id).Clicked() {
+			if a.paneRow(c.Key(id), "讨论-"+id, words, "", talkDay(when, time.Now()), "", false).Clicked() {
 				a.switchSession(id)
 				d.talks = false
 			}
@@ -230,7 +230,7 @@ func (a *App) quoteToTalk() {
 // finds the words in the chapter.
 func (a *App) quoteBlock(c *ui.Context, q workspace.Quote, key string, remove func()) {
 	t := a.pal.theme
-	b := ui.ButtonBase(c).Key(key).Row().FillWidth().Gap(8).AlignItems(ui.Stretch).Padding(6, 8, 6, 0).Radius(rControl).Label("引用-" + key).Tooltip("在正文中定位此段")
+	b := ui.ButtonBase(c.Key(key)).Row().FillWidth().Gap(8).AlignItems(ui.Stretch).Padding(6, 8, 6, 0).Radius(rControl).Label("引用-" + key).Tooltip("在正文中定位此段")
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}

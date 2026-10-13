@@ -85,8 +85,7 @@ type Editor struct {
 	current int
 
 	// View state.
-	c             *ui.Context
-	sv            ui.Services // the clipboard, outside a frame
+	sv            ui.Services // the window's clipboard and redraw, also outside a frame
 	lay           layout
 	layKey        layoutKey
 	shapes        map[string]shaped

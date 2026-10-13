@@ -97,7 +97,7 @@ func (a *App) preferences(c *ui.Context) {
 				ui.Text(c, prefAbout[a.bk.tab]).FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
 			})
 			a.pal.hairline(c)
-			ui.Scroll(c).Key("prefs-" + a.bk.tab).Grow(1).Shrink(1).FillWidth().Children(func() {
+			ui.Scroll(c.Key("prefs-" + a.bk.tab)).Grow(1).Shrink(1).FillWidth().Children(func() {
 				ui.Column(c).FillWidth().Padding(12, 56, 32, 32).Gap(12).Children(func() {
 					switch a.bk.tab {
 					case "外观":

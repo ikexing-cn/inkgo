@@ -1106,7 +1106,7 @@ func (a *App) lastWeek(c *ui.Context) {
 		if k != 0 {
 			got = signed(k) + " 字"
 		}
-		ui.Row(c).Key(i).FillWidth().Padding(4, 10).Label(fmt.Sprintf("%s 写了 %d 字", day.Format("1月2日"), k)).Children(func() {
+		ui.Row(c.Key(i)).FillWidth().Padding(4, 10).Label(fmt.Sprintf("%s 写了 %d 字", day.Format("1月2日"), k)).Children(func() {
 			ui.Text(c, day.Format("1月2日")).FontSize(fsNote).TextColor(a.pal.theme.TextMuted).Grow(1)
 			ui.Text(c, got).FontSize(fsNote).TextColor(a.pal.theme.TextMuted)
 		})
@@ -1346,7 +1346,7 @@ func (a *App) findBar(c *ui.Context) {
 func (a *App) folderView(c *ui.Context, n *workspace.Node) {
 	t := a.pal.theme
 	w := &a.write
-	ui.Scroll(c).Key("folder").Grow(1).FillWidth().Children(func() {
+	ui.Scroll(c.Key("folder")).Grow(1).FillWidth().Children(func() {
 		ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(32, 32, 32, 32).Children(func() {
 			ui.Column(c).FillWidth().MaxWidth(720).Gap(14).Children(func() {
 				ui.Text(c, n.Title).FontSize(fsTitle).FontWeight(600)
@@ -1359,7 +1359,7 @@ func (a *App) folderView(c *ui.Context, n *workspace.Node) {
 					}
 				})
 				for _, child := range n.Children {
-					row := ui.ButtonBase(c).Key("f-"+child.ID).Column().FillWidth().Gap(4).Padding(10, 12).Radius(rControl).Label("打开-" + child.Title)
+					row := ui.ButtonBase(c.Key("f-"+child.ID)).Column().FillWidth().Gap(4).Padding(10, 12).Radius(rControl).Label("打开-" + child.Title)
 					if row.Hovered() {
 						row.Background(t.SurfaceHover)
 					}
@@ -1403,7 +1403,7 @@ func (a *App) chapterTree(c *ui.Context) {
 			a.newNode(false)
 		}
 	})
-	ui.Scroll(c).Key("chapters").FillWidth().Grow(1).Gap(2).Children(func() {
+	ui.Scroll(c.Key("chapters")).FillWidth().Grow(1).Gap(2).Children(func() {
 		if w.tree.Root == nil {
 			return
 		}
@@ -1450,7 +1450,7 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 		// The row stays a row, its icon and indent where they are, and the
 		// name is a box to type in. Enter settles it, and so does leaving the
 		// box; Esc leaves the name as it was.
-		row := ui.Row(c).Key("r-"+n.ID).FillWidth().Height(hRow).AlignItems(ui.Center).Padding(0, 10, 0, 10+float32(depth)*20).Radius(rControl)
+		row := ui.Row(c.Key("r-"+n.ID)).FillWidth().Height(hRow).AlignItems(ui.Center).Padding(0, 10, 0, 10+float32(depth)*20).Radius(rControl)
 		if on {
 			row.Background(t.SurfacePressed)
 		}
@@ -1485,7 +1485,7 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 		})
 		return
 	}
-	row := ui.ButtonBase(c).Key("n-"+n.ID).Row().FillWidth().Height(hRow).Justify(ui.Start).AlignItems(ui.Center).Gap(6).
+	row := ui.ButtonBase(c.Key("n-"+n.ID)).Row().FillWidth().Height(hRow).Justify(ui.Start).AlignItems(ui.Center).Gap(6).
 		Padding(0, 10, 0, 10+float32(depth)*20).Radius(rControl).Label("章节-" + n.Title)
 	row.Drag(dragNode(n.ID))
 	_, over := ui.DragOver[dragNode](row)
@@ -1795,14 +1795,14 @@ func (a *App) trashView(c *ui.Context) {
 	a.modal(c, &w.trashOpen, func() {
 		ui.Column(c).Width(dialogSmall).Padding(dialogPad).Gap(16).Children(func() {
 			a.pal.dialogHead(c, "回收站", "已删除的章节及其内容暂存于此，恢复后回到原文件夹末尾。")
-			ui.Scroll(c).Key("trash").FillWidth().MaxHeight(320).Children(func() {
+			ui.Scroll(c.Key("trash")).FillWidth().MaxHeight(320).Children(func() {
 				ui.Column(c).FillWidth().Children(func() {
 					a.pal.hairline(c)
 					if len(w.trash) == 0 {
 						ui.Text(c, "回收站为空").FontSize(fsNote).TextColor(t.TextMuted).Padding(20, 0)
 					}
 					for _, it := range w.trash {
-						ui.Row(c).Key("t-"+it.ID).FillWidth().AlignItems(ui.Center).Gap(10).Padding(10, 0).Children(func() {
+						ui.Row(c.Key("t-"+it.ID)).FillWidth().AlignItems(ui.Center).Gap(10).Padding(10, 0).Children(func() {
 							ui.Column(c).Grow(1).Shrink(1).Children(func() {
 								ui.Text(c, it.Title).FontSize(fsBody).LineHeight(lhBody).SingleLine().Ellipsis("…")
 								ui.Text(c, it.At.Local().Format("01-02 15:04")+" 删除").FontSize(fsNote).LineHeight(lhBody).TextColor(t.TextMuted)
@@ -1892,7 +1892,7 @@ func (a *App) snapshots(c *ui.Context) {
 		ui.Column(c).Width(dialogWide).Height(dialogTall).Padding(dialogPad).Gap(16).Children(func() {
 			a.pal.dialogHead(c, "快照 · "+a.shownTitle(), "打开章节时、连续写作每十分钟、恢复前、AI 起草或采纳改写前、全书替换前都会保存一份。最近七天的全部保留，更早的每天保留最后一份。")
 			ui.Row(c).FillWidth().Grow(1).Gap(16).AlignItems(ui.Stretch).Children(func() {
-				ui.Scroll(c).Key("snaps").Width(200).FillHeight().Shrink(0).Children(func() {
+				ui.Scroll(c.Key("snaps")).Width(200).FillHeight().Shrink(0).Children(func() {
 					ui.Column(c).FillWidth().Gap(2).Children(func() {
 						if len(w.snaps) == 0 {
 							ui.Text(c, "本章暂无快照").FontSize(fsControl).TextColor(a.pal.faint).Padding(8)
@@ -1900,7 +1900,7 @@ func (a *App) snapshots(c *ui.Context) {
 						for _, sn := range w.snaps {
 							on := sn.Name == w.snap
 							when := sn.At.Local().Format("01-02 15:04:05")
-							b := ui.ButtonBase(c).Key("s-"+sn.Name).Column().FillWidth().AlignItems(ui.Start).Gap(2).Padding(8, 10).Radius(rControl).Label("快照-" + when)
+							b := ui.ButtonBase(c.Key("s-"+sn.Name)).Column().FillWidth().AlignItems(ui.Start).Gap(2).Padding(8, 10).Radius(rControl).Label("快照-" + when)
 							if on {
 								b.Background(t.SurfacePressed)
 							} else if b.Hovered() {
@@ -1928,7 +1928,7 @@ func (a *App) snapshots(c *ui.Context) {
 					if i := slices.IndexFunc(w.snaps, func(s workspace.Snapshot) bool { return s.Name == w.snap }); i >= 0 && w.snaps[i].AI != nil {
 						a.aiRecord(c, w.snaps[i].AI)
 					}
-					ui.Scroll(c).Key("snap-text").FillWidth().Grow(1).Background(a.pal.canvas).Border(1, a.pal.line).Radius(rControl).Children(func() {
+					ui.Scroll(c.Key("snap-text")).FillWidth().Grow(1).Background(a.pal.canvas).Border(1, a.pal.line).Radius(rControl).Children(func() {
 						ui.Box(c).FillWidth().Padding(12, 16).Children(func() {
 							switch {
 							case w.snap == "":

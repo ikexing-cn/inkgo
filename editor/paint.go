@@ -24,9 +24,7 @@ func (e *Editor) paintIn(p *ui.Painter, r ui.Rect) {
 	t := p.Theme()
 	if r.W != e.width || r.H != e.height {
 		e.width, e.height = r.W, r.H
-		if e.c != nil {
-			e.c.Invalidate() // the caret given to input methods moved
-		}
+		e.sv.Invalidate() // the caret given to input methods moved
 	}
 	e.ensureLayout()
 	l := &e.lay

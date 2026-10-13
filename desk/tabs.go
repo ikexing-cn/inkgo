@@ -144,7 +144,7 @@ func (a *App) sheets(c *ui.Context) {
 func (a *App) sheetRow(c *ui.Context, shut *[]string) {
 	t := a.pal.theme
 	w := &a.write
-	ui.ScrollHorizontal(c).Key("标签页").Height(hControl).Shrink(1).Children(func() {
+	ui.ScrollHorizontal(c.Key("标签页")).Height(hControl).Shrink(1).Children(func() {
 		for _, id := range w.tabs {
 			on := id == w.node
 			title, path, folder := a.tabTitle(id)
@@ -153,7 +153,7 @@ func (a *App) sheetRow(c *ui.Context, shut *[]string) {
 			if dirty {
 				tip += " · 未保存"
 			}
-			tab := ui.ButtonBase(c).Key("tab-"+id).Row().Height(hControl).MaxWidth(sheetMax).AlignItems(ui.Center).Gap(6).Padding(0, 6, 0, 12).Shrink(0).
+			tab := ui.ButtonBase(c.Key("tab-"+id)).Row().Height(hControl).MaxWidth(sheetMax).AlignItems(ui.Center).Gap(6).Padding(0, 6, 0, 12).Shrink(0).
 				BorderWidth(0, 1, 1, 0).BorderColor(a.pal.line).Label("标签页-" + title).Tooltip(tip)
 			over := tab.Hovered()
 			fg, weight := t.TextMuted, 400
@@ -178,7 +178,7 @@ func (a *App) sheetRow(c *ui.Context, shut *[]string) {
 				// The cross keeps its place: shown on the tab open and on the
 				// one under the pointer. Words not saved put a dot there, till
 				// the pointer comes.
-				x := ui.ButtonBase(c).Key("x-"+id).Size(hTag, hTag).Center().Radius(rXs).Shrink(0).Label("关闭标签页-" + title).Tooltip("关闭标签页")
+				x := ui.ButtonBase(c.Key("x-"+id)).Size(hTag, hTag).Center().Radius(rXs).Shrink(0).Label("关闭标签页-" + title).Tooltip("关闭标签页")
 				mark := t.TextMuted
 				if x.Hovered() {
 					x.Background(t.SurfacePressed)

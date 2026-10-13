@@ -234,7 +234,7 @@ func (a *App) sideBody(c *ui.Context, slim bool) {
 			a.newSession()
 		}
 	})
-	ui.Scroll(c).Key("sessions").FillWidth().Grow(1).Gap(2).Children(func() {
+	ui.Scroll(c.Key("sessions")).FillWidth().Grow(1).Gap(2).Children(func() {
 		put := 0
 		for n := len(a.sessions) - 1; n >= 0; n-- {
 			id := a.sessions[n]
@@ -304,7 +304,7 @@ func (a *App) sessionItem(c *ui.Context, id string) {
 	t := a.pal.theme
 	when, words := a.sessionParts(id)
 	on := id == a.session && a.page == 0
-	b := ui.ButtonBase(c).Key("s-"+id).Row().FillWidth().Justify(ui.Start).AlignItems(ui.Center).Gap(8).Padding(6, 10).Radius(rControl).Label("对话-" + id).Disabled(a.busy != "")
+	b := ui.ButtonBase(c.Key("s-"+id)).Row().FillWidth().Justify(ui.Start).AlignItems(ui.Center).Gap(8).Padding(6, 10).Radius(rControl).Label("对话-" + id).Disabled(a.busy != "")
 	if on {
 		b.Background(t.SurfacePressed)
 	} else if b.Hovered() {

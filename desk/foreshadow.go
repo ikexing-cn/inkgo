@@ -485,7 +485,7 @@ func (a *App) forePopover(c *ui.Context) {
 			}
 			ui.Text(c, words).FontSize(fsNote).TextColor(a.pal.faint).Padding(8).LineHeight(lhBody)
 		}
-		ui.Scroll(c).Key("pay-list").FillWidth().MaxHeight(200).Children(func() {
+		ui.Scroll(c.Key("pay-list")).FillWidth().MaxHeight(200).Children(func() {
 			for _, x := range list {
 				row := ui.ButtonBase(c).Column().FillWidth().AlignItems(ui.Stretch).Padding(8).Gap(2).Radius(rControl).Label("回收-" + x.name())
 				if x.id == f.pick {
@@ -566,7 +566,7 @@ func (a *App) foreList(c *ui.Context, all []foreshadow) {
 		if f.here {
 			side = "本章"
 		}
-		if a.paneRow(c, "伏笔-"+f.name(), f.name(), "", side, "", false).Key(f.id).Clicked() {
+		if a.paneRow(c.Key(f.id), "伏笔-"+f.name(), f.name(), "", side, "", false).Clicked() {
 			a.showFore(f.id)
 		}
 	}
