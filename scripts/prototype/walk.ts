@@ -14,7 +14,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   const pane = reads('#pane'), win = reads('#win')
   const MORE = '续写、起草、快照、导出和外观' // the toolbar's "more" button, by its title
   const must = (ok: boolean, words: string) => { if (!ok) throw new Error(words) }
-  // Buttons stand at the right of their row, the one that goes ahead last: DESIGN.md has it as a rule.
+  // Buttons stand at the right of their row, the one that goes ahead last: DESIGN.md has it as a rule. The question
+  // of saving (.asked) is the one row in the system's order, the one that goes ahead first.
   // After every click, each row that holds a button is looked at; what is found is told at the end, all at once.
   const loose = new Set<string>()
   const LOOSE = `(() => {
@@ -33,7 +34,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
       const parted = from >= 0 && kids.slice(from + 1).some((e, i) => e.matches('.grow') || e.getBoundingClientRect().left - kids[from + i].getBoundingClientRect().right > apart + 1.5)
       if (gap > 1.5) out.push(row.className + ' is not at the right: ' + row.innerText.replace(/\\s+/g, ' ').slice(0, 40))
       else if (parted) out.push(row.className + ' has a button left of a gap: ' + row.innerText.replace(/\\s+/g, ' ').slice(0, 40))
-      else if (main && kids.slice(kids.indexOf(main) + 1).some(isButton)) out.push(row.className + ' has a button after the main one: ' + row.innerText.replace(/\\s+/g, ' ').slice(0, 40))
+      else if (row.matches('.asked') ? kids[0] !== main : main && kids.slice(kids.indexOf(main) + 1).some(isButton)) out.push(row.className + ' has a button after the main one: ' + row.innerText.replace(/\\s+/g, ' ').slice(0, 40))
     }
     return out
   })()`
@@ -42,8 +43,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   // set of choices is passed over: it is where the author is.
   const dead = new Set<string>()
   const DEAD = `(() => {
-    const hover = []
-    for (const sheet of document.styleSheets) {
+    const hover = window.__hover || (window.__hover = [])
+    if (!hover.length) for (const sheet of document.styleSheets) {
       let rules = []
       try { rules = [...sheet.cssRules] } catch { continue }
       for (const rule of rules) for (const s of (rule.selectorText || '').split(',')) {
@@ -66,13 +67,14 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   const FLAT = `[...document.querySelectorAll('#win .dialog')].map((e) => [e, e.getBoundingClientRect()]).filter(([, r]) => r.width > ${FLATTEST} * r.height).map(([e, r]) => e.className + ' is ' + Math.round(r.width) + ' by ' + Math.round(r.height) + ': ' + e.innerText.slice(0, 24))`
   // After every click, nothing may be wider than the menu, popover, dialog or toast it is in. One that holds an open
   // menu of its own is passed over: a submenu is meant to stand beside it.
+  const OUT = `(() => { const e = [...document.querySelectorAll('.pop, .float, .dialog, .toast')].find((e) => !e.querySelector('.pop') && e.scrollWidth > e.clientWidth + 1); return e ? e.className + ': ' + e.innerText.slice(0, 30) : '' })()`
   const click = async (words: string, nth = 0) => {
     await press(words, nth)
-    const out = await js(`(() => { const e = [...document.querySelectorAll('.pop, .float, .dialog, .toast')].find((e) => !e.querySelector('.pop') && e.scrollWidth > e.clientWidth + 1); return e ? e.className + ': ' + e.innerText.slice(0, 30) : '' })()`)
-    must(!out, 'after clicking ' + words + ', something sticks out of ' + out)
-    for (const row of await js(LOOSE)) loose.add(row)
-    for (const e of await js(DEAD)) dead.add(e)
-    for (const e of await js(FLAT)) squat.add(e)
+    const seen = await js(`({ out: ${OUT}, loose: ${LOOSE}, dead: ${DEAD}, flat: ${FLAT} })`)
+    must(!seen.out, 'after clicking ' + words + ', something sticks out of ' + seen.out)
+    for (const row of seen.loose) loose.add(row)
+    for (const e of seen.dead) dead.add(e)
+    for (const e of seen.flat) squat.add(e)
   }
   // Brings the pointer over the row of the open menu saying words.
   const over = (words: string) => js(`[...document.querySelectorAll('.ctx .pop-row')].find((e) => e.innerText.includes(${JSON.stringify(words)})).dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))`)
@@ -454,6 +456,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   const shutOn = () => js(`document.querySelector('.sheet.on .sheet-x').click()`)
   const asked = '保存对「第84章：刻字」的修改？'
   await click('重新开始'); await click('第84章：刻字'); await caret(0, 0); await text('甲乙'); await shutOn(); await win(asked); await win('不保存将丢失上次保存后的修改。'); await shot('99d-unsaved')
+  must(await js(`[...document.querySelectorAll('.dialog .buttons .btn')].map((e) => e.innerText).join(' ')`) === '保存 不保存 取消', 'the question of saving is not in the order of the system')
   await sleep(1800); must(await unsaved(), 'the chapter saved itself while the question was open'); await click('取消'); await win(asked, false); must(await unsaved(), 'not closing lost that the chapter is unsaved'); await win('甲乙巷口那盏灯又坏了')
   await shutOn(); await click('不保存'); await win(asked, false); must(await js(`!document.querySelector('.sheet.on') || !document.querySelector('.sheet.on').innerText.includes('刻字')`), 'the tab is still open'); await click('第84章：刻字'); await win('甲乙巷口', false); must(!(await unsaved()), 'the chapter put back is said not to be saved')
   await caret(0, 0); await text('丙'); await shutOn(); await click('保存'); await click('第84章：刻字'); await win('丙巷口那盏灯又坏了'); must(!(await unsaved()), 'the chapter saved on closing is said not to be saved')

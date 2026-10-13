@@ -32,7 +32,7 @@ Status: implemented
   - 设计规则（`scripts/design/check.ts`、`rules.ts`）：`index.html` 和每份脚本对着 `desk/tokens.css` 查，样式表里的每条规则也按控件高度查。
   - 走查。`scripts/prototype/browser.ts` 用本机的 Edge 或 Chrome 无头打开 `index.html`（走 `file://`，和双击一样），经 DevTools 协议真的按鼠标、敲键盘；`walk.ts` 把 82 条流程点一遍，每条结束时还要查窗口里没有东西伸出去、页面没有报错；每点一下还要查菜单、浮层、对话框、提示条里没有东西比它们自己宽，并且把窗口里的按钮行都量一遍（见[按钮靠右](2026-10-13-buttons-at-the-right.md)），不靠右的攒到最后一起报。只用 Node 自带的 `WebSocket` 和 `fetch`。`SHOT=<目录>` 会存下每一步的截图。
     - 2026-10-13 起每点一下还查两样：能点的东西都回应指针（见[能点的看得出能点](2026-10-13-clickable-looks-clickable.md)），对话框的宽不超过高的 2.5 倍（只问一句的用窄的一档，见 `DESIGN.md` 的 Components「对话框」）。
-- 它不进提交前的三道检查：要本机有浏览器，而且只有原型变了才有意义。
+- 它原来不进提交前的三道检查（要本机有浏览器，走一遍三分钟）。2026-10-13 走查降到二十秒，并进了 `npm run verify`，每次提交前都跑，见[全套检查从四分半到半分钟](2026-10-13-fast-checks.md)。
 - 窗口固定 1266×780；浮层的位置从页面上量窗口、侧栏、右栏的宽，不另记数字。
 - 只给 artifact 用的工具从仓库里去掉：`scripts/verify-design.ts`，`scripts/design/` 下的 `normalize.ts`、`system.ts`、`render.ts`、`parts.ts`，和它们的四条 npm 命令。`desk/tokens.css` 不再是谁的副本，各级的值只在它里面写。
 
@@ -54,7 +54,7 @@ Status: implemented
   - 出错和少见的状态以前只在 artifact 的画板上看得到，现在点一下就在真的窗口里摆出来。
 - **代价与已知上限**：
   - 软件改了界面，原型不会自己跟着变：没有检查能发现两边的文案或布局对不上，靠先改原型、再改代码这个顺序管着。
-  - 动作变了，`scripts/prototype/walk.ts` 里的步骤要跟着改；走查按字找东西点，改了文案也要改它。走一遍要三分钟左右。
+  - 动作变了，`scripts/prototype/walk.ts` 里的步骤要跟着改；走查按字找东西点，改了文案也要改它。走一遍原来要三分钟左右，2026-10-13 起二十秒左右：页面的定时器听走查的钟，不真等。
   - 各脚本最外层的名字共用：两个文件起了同名的 `const` 会报错，同名的 `function` 不报错，后加载的悄悄顶掉前面的。
   - 样式链的是 `../desk/tokens.css`，单把 `prototype/` 文件夹拷给别人打不开样子，要连 `desk/tokens.css` 一起。
   - AI 只回固定的几句，内容是编的；作者 2026-10-12 同意。

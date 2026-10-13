@@ -2,11 +2,12 @@
   "name": "writer-notes",
   "private": true,
   "type": "module",
-  "description": "Agent Note gates and the checks of the prototype and DESIGN.md only; the product is the Go module.",
+  "description": "The checks a commit waits for (npm run verify): Agent Note gates, the prototype, DESIGN.md, go vet and go test. The product is the Go module.",
   "engines": {
     "node": ">=22.18"
   },
   "scripts": {
+    "verify": "node scripts/verify.ts",
     "verify-agent-note-tree": "node scripts/verify-agent-note-tree.ts",
     "verify-agent-note-format": "node scripts/verify-agent-note-format.ts",
     "verify-archived": "node scripts/verify-archived-agent-notes.ts",

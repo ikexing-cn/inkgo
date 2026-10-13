@@ -2,6 +2,11 @@
  * Opens a local page in a headless Edge or Chrome and drives it over the
  * DevTools protocol, with Node's own WebSocket and fetch: clicks land where
  * a pointer would, text goes in the way typing does.
+ *
+ * The page's clock is the caller's. Its timers do not wait for the wall
+ * clock: they fire when time is let pass (sleep), at once and in order, so a
+ * wait of three seconds takes none, and nothing fires between two steps by
+ * itself. Each click, key and typing lets STEP ms pass, as a hand would.
  */
 import { spawn } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
@@ -12,6 +17,7 @@ import { pathToFileURL } from 'node:url'
 export interface Page {
   /** Evaluates an expression in the page and returns its value. */
   js(expression: string): Promise<any>
+  /** Lets ms of the page's time pass: its timers that fall due fire, in order. It does not take ms. */
   sleep(ms: number): Promise<void>
   /** Clicks the nth thing that reads exactly words (or is titled so) and takes clicks. */
   click(words: string, nth?: number): Promise<void>
@@ -43,6 +49,33 @@ const browsers = [
   '/usr/bin/chromium',
 ]
 
+/** How much of the page's time a click, a key or typing takes. */
+const STEP = 150
+
+// Put in the page before its own scripts: setTimeout, clearTimeout and Date.now go by a clock that only __pass moves.
+// __pass ends by waiting one turn of the real clock, for what the browser itself queued (focus, the selection) to land.
+const CLOCK = `(() => {
+  const wait = window.setTimeout.bind(window), start = Date.now(), due = new Map()
+  let now = 0, next = 1
+  window.setTimeout = (act, ms = 0, ...args) => { const id = next++; due.set(id, { at: now + Math.max(ms, 0), act: () => act(...args) }); return id }
+  window.clearTimeout = (id) => { due.delete(id) }
+  Date.now = () => start + now
+  window.__pass = (ms) => {
+    const until = now + ms
+    for (;;) {
+      let first = 0
+      for (const [id, t] of due) if (t.at <= until && (!first || t.at < due.get(first).at)) first = id
+      if (!first) break
+      const t = due.get(first)
+      due.delete(first)
+      now = Math.max(now, t.at)
+      t.act()
+    }
+    now = until
+    return new Promise((done) => wait(done, 0))
+  }
+})()`
+
 /** Opens file and waits for ready (a selector) to be there. shots: a folder to save pictures to. */
 export async function open(file: string, ready: string, shots?: string): Promise<Page> {
   const browser = [process.env.BROWSER, ...browsers].find((p) => p && existsSync(p))
@@ -69,7 +102,7 @@ export async function open(file: string, ready: string, shots?: string): Promise
     if (m.method === 'Runtime.exceptionThrown') errors.push(m.params.exceptionDetails.exception?.description ?? m.params.exceptionDetails.text)
   }
   const send = (method: string, params = {}) => new Promise<any>((r) => { const id = ++seq; waits.set(id, r); ws.send(JSON.stringify({ id, method, params })) })
-  const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
+  const idle = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
   const js = async (expression: string) => {
     const r = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true })
     if (r.result.exceptionDetails) throw new Error(r.result.exceptionDetails.exception?.description ?? r.result.exceptionDetails.text)
@@ -83,11 +116,13 @@ export async function open(file: string, ready: string, shots?: string): Promise
 
   await send('Runtime.enable')
   await send('Page.enable')
+  await send('Page.addScriptToEvaluateOnNewDocument', { source: CLOCK })
   await send('Page.navigate', { url: pathToFileURL(file).href })
   for (let i = 0; !(await js(`!!document.querySelector(${JSON.stringify(ready)})`)); i++) {
     if (i === 50) { close(); throw new Error(`${file} did not draw ${ready}: ${errors.join('; ') || 'no error logged'}`) }
-    await sleep(100)
+    await idle(100)
   }
+  const sleep = async (ms: number) => { await js(`__pass(${ms})`) }
 
   // What reads words: its whole text, its own words beside a count or an icon, or its title.
   const find = `(words, nth) => {
@@ -104,13 +139,13 @@ export async function open(file: string, ready: string, shots?: string): Promise
   const field = (label: string) => `document.querySelector('[aria-label=${JSON.stringify(label)}],[placeholder=${JSON.stringify(label)}]')`
   const press = async (button: 'left' | 'right', x: number, y: number) => {
     for (const type of ['mousePressed', 'mouseReleased']) await send('Input.dispatchMouseEvent', { type, x, y, button, clickCount: 1 })
-    await sleep(150)
+    await sleep(STEP)
   }
   const keyCodes: Record<string, number> = { Enter: 13, Escape: 27, Backspace: 8, Delete: 46, Tab: 9, F2: 113, F11: 122, '/': 191 }
   const key: Page['key'] = async (key, ctrl = false) => {
     const code = keyCodes[key] ?? key.toUpperCase().charCodeAt(0)
     for (const type of ['rawKeyDown', 'keyUp']) await send('Input.dispatchKeyEvent', { type, key, code: key, windowsVirtualKeyCode: code, modifiers: ctrl ? 2 : 0 })
-    await sleep(150)
+    await sleep(STEP)
   }
 
   return {
@@ -125,16 +160,16 @@ export async function open(file: string, ready: string, shots?: string): Promise
       await send('Input.dispatchMouseEvent', { type: 'mousePressed', x: from[0], y: from[1], button: 'left', clickCount: 1 })
       await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: to[0], y: to[1], button: 'left', buttons: 1 })
       await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: to[0], y: to[1], button: 'left', clickCount: 1 })
-      await sleep(150)
+      await sleep(STEP)
     },
     type: async (label, words) => {
       if (!(await js(`(() => { const e = ${field(label)}; if (!e) return false; e.focus(); return true })()`))) throw new Error('no field ' + label)
       await send('Input.insertText', { text: words })
-      await sleep(150)
+      await sleep(STEP)
     },
     text: async (words) => {
       await send('Input.insertText', { text: words })
-      await sleep(150)
+      await sleep(STEP)
     },
     clear: async (label) => {
       await js(`${field(label)}.select()`)

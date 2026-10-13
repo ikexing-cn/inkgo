@@ -242,11 +242,12 @@ function swapDialog(d) {
 }
 
 // 关标签页时那一章还有没存的字：存了再关、不存就关（回到存着的那一份）、或者不关。
+// 三个按钮照系统问「要不要保存」的顺序排：保存、不保存、取消。
 function unsavedDialog(d) {
   const drop = () => set((s) => (!s.saved && s.kept && s.kept.key === s.ch ? { ...retext(s, s.kept.paras), dirty: s.kept.dirty, summaries: s.kept.summaries } : null))
   const then = (first) => () => { first(); set({ saved: true, kept: null, dialog: null }); shutTabs(d.gone, true) }
   return dialog('ask', dialogHead('保存对「' + titleOf(chapterOf(S.ch)) + '」的修改？', '不保存将丢失上次保存后的修改。') +
-    buttons(button('不保存', then(drop)), button('取消', shut), button('保存', then(() => {}), 'primary')))
+    `<div class="buttons asked">${button('保存', then(() => {}), 'primary')}${button('不保存', then(drop))}${button('取消', shut)}</div>`)
 }
 
 // ───────── 侧栏点出来的几个对话框 ─────────

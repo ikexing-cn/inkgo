@@ -5,12 +5,18 @@
 ## 提交前
 
 ```sh
-go vet ./...
-go test ./...
-npm run verify-notes
+npm run verify
 ```
 
-三条都绿才算完成。界面改动在 `cmd/poc` 的布局测试里渲染截图核对（`SHOT=<path> go test -run TestLayout ./cmd/poc`）。
+一条命令同时跑下面几项，半分钟左右，都绿才算完成：
+
+- `go vet ./...`
+- `go test ./...`
+- `npm run verify-notes`
+- `npm run verify-prototype`（要本机有 Edge 或 Chrome）
+- `npm run verify-design`（要联网）：只在 `DESIGN.md` 改了还没提交时跑；`npm run verify -- --design` 强制跑。
+
+各项也可以单独跑。界面改动在 `cmd/poc` 的布局测试里渲染截图核对（`SHOT=<path> go test -run TestLayout ./cmd/poc`）。
 
 要一本有内容的书来试功能：`go run ./cmd/sample <目录>` 写出两本测试用的书（各 15 章，带设定、卷、章纲、伏笔，正文里故意埋了和设定对不上的地方，清单在 `cmd/sample/books/` 各文件开头），再用 `go run ./cmd/poc -work <目录>/<书名>` 打开。
 
@@ -29,7 +35,7 @@ npm run verify-notes
 
 1. 新的界面功能都以原型为基准：布局、色值、字号、文案、交互照它来；和现有代码冲突时先说出来，不要自己决定以哪边为准。
 2. 原型里没有的界面功能，先在原型里做出来给作者看，确认后再开始写代码。
-3. 改完原型跑 `npm run verify-prototype`（要本机有 Edge 或 Chrome）：先查 `DESIGN.md` 里数值的规则，再在浏览器里把每个动作点一遍；加 `SHOT=<目录>` 会存下每一步的截图。动作或文案变了，`scripts/prototype/walk.ts` 里的步骤跟着改。平时碰不到的情况（出错的、软件外面动了稿子的）放进窗口上面「少见的情况」那个菜单，点一下就能摆出来看。
+3. 改完原型跑 `npm run verify-prototype`（二十秒左右，`npm run verify` 里也有它）：先查 `DESIGN.md` 里数值的规则，再在浏览器里把每个动作点一遍；加 `SHOT=<目录>` 会存下每一步的截图。动作或文案变了，`scripts/prototype/walk.ts` 里的步骤跟着改。平时碰不到的情况（出错的、软件外面动了稿子的）放进窗口上面「少见的情况」那个菜单，点一下就能摆出来看。
 4. 界面的规范在 `DESIGN.md`（数值只写名字、按钮靠右、就地输入、标签页和保存、文案……），动界面之前先读，写的时候照它来：
    - 它按 [DESIGN.md 格式](https://github.com/google-labs-code/design.md) 写：开头是数值，后面八节的名字和先后是格式定的，新规则放进对应的那一节。
    - 它和原型对不上，以它为准，改原型。
