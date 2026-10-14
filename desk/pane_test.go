@@ -4,6 +4,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -193,5 +194,46 @@ func TestLogNames(t *testing.T) {
 	}
 	if got := a.describeOp(workspace.Op{Op: workspace.OpName}); !strings.HasPrefix(got, "移除名称：") {
 		t.Error(got)
+	}
+}
+
+// Beside the talk, the setting's count is what waits on the author, as in
+// the tab beside the prose, not how many entries there are.
+func TestTheSettingCountsWhatWaits(t *testing.T) {
+	a, tt, _ := paneFixture(t)
+	a.page = 0
+	tt.Frame()
+	texts := tt.Texts()
+	i := slices.Index(texts, "收起右栏")
+	if i < 2 || texts[i-2] != "设定" || texts[i-1] != "2" {
+		t.Fatal("the count beside the talk", texts)
+	}
+}
+
+// The setting's form comes with the keyboard in it: a new entry at its
+// text, a changed one at its name.
+func TestTheEntryFormTakesTheKeyboard(t *testing.T) {
+	a, tt, ids := paneFixture(t)
+	if err := tt.Click("新增"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Frame()
+	if !tt.Focused("设定内容") {
+		t.Fatal("a new entry starts somewhere else")
+	}
+	a.doc.editing = ""
+	tt.Frame()
+	if err := tt.Click("设定-" + ids.zhou); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err := tt.Click("修改"); err != nil {
+		t.Fatal(err, tt.Texts())
+	}
+	tt.Frame()
+	tt.Frame()
+	if !tt.Focused("名字") {
+		t.Fatal("a changed entry starts somewhere else")
 	}
 }

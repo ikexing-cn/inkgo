@@ -176,9 +176,10 @@ func (a *App) settingPanel(c *ui.Context) {
 		if a.page == 3 {
 			a.panelTabs(c)
 		} else {
+			// The count is what waits on the author, as in the tab.
 			ui.Text(c, "设定").FontSize(fsGroup).FontWeight(600)
-			if n := a.bodyCount(); n > 0 {
-				ui.Textf(c, "%d", n).FontSize(fsNote).TextColor(a.pal.faint).Padding(0, 0, 0, 4)
+			if open, _ := a.ideas(); len(open) > 0 {
+				ui.Textf(c, "%d", len(open)).FontSize(fsNote).TextColor(a.pal.faint).Padding(0, 0, 0, 4)
 			}
 		}
 		ui.Spacer(c)
@@ -517,10 +518,15 @@ func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 		d.editing = ""
 	}
 	a.panePage(c, "form-"+e.ID, func() {
+		// A new entry starts at its text, a changed one at its name: the
+		// keyboard is in that field as the form comes.
 		content := func() {
 			a.paneField(c, "内容", func() {
-				ui.TextAreaBase(c, &d.text).Label("设定内容").FillWidth().Height(96).FontSize(fsBody).LineHeight(lhLoose).
+				in := ui.TextAreaBase(c, &d.text).Label("设定内容").FillWidth().Height(96).FontSize(fsBody).LineHeight(lhLoose).
 					Padding(8, 10).Radius(rControl).Background(a.pal.canvas).Border(1, a.pal.theme.Border)
+				if e.ID == "" {
+					in.AutoFocus()
+				}
 			})
 		}
 		name, alias := "名字", "别名"
@@ -530,7 +536,10 @@ func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 			content()
 		}
 		a.paneField(c, name, func() {
-			ui.TextInput(c, &d.name).Label("名字").FillWidth().FontSize(fsBody)
+			in := ui.TextInput(c, &d.name).Label("名字").FillWidth().FontSize(fsBody)
+			if e.ID != "" {
+				in.AutoFocus()
+			}
 		})
 		a.paneField(c, alias, func() {
 			ui.TextInput(c, &d.names).Label("别名").Placeholder("多个别名用顿号分隔").FillWidth().FontSize(fsBody)

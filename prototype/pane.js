@@ -189,12 +189,12 @@ function setting() {
     [['已删除', gone.length, () => set({ sv: 'dropped', ...SHUT })], ['修改记录', '', () => set({ sv: 'log', ...SHUT })]]) + rows(list)
 }
 
-// 新增和修改用同一张表。新增先填内容，修改先看名字。
+// 新增和修改用同一张表。新增先填内容，修改先看名字：光标就在那一格里。
 function form(f) {
   const type = (key) => (value) => set((s) => ({ form: { ...s.form, [key]: value } }))
-  const name = field(f.id ? '名字' : '名字（选填）', line(f.name, type('name'), '', '名字'))
+  const name = field(f.id ? '名字' : '名字（选填）', line(f.name, type('name'), '', '名字', f.id ? ' autofocus' : ''))
   const names = field(f.id ? '别名' : '别名（选填）', line(f.names, type('names'), '多个别名用顿号分隔', '别名'))
-  const text = field('内容', area(f.text, type('text'), '', '内容'))
+  const text = field('内容', area(f.text, type('text'), '', '内容', 4, f.id ? '' : ' autofocus'))
   const cat = (label) => `<div class="pop-row row${label === f.cat ? ' on' : ''}"${onClick(() => set((s) => ({ ...SHUT, form: { ...s.form, cat: label } })))}>${t(label)}</div>`
   return '<div class="page scroll" data-k="form">' +
     (f.id ? name + names + text : '<div class="title-line"><div class="title">新增设定</div></div>' + text + name + names) +

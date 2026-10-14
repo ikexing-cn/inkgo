@@ -186,7 +186,7 @@ const veil = () => (S.open ? `<div class="veil" data-k="veil"${onClick(() => set
 // 输入框。change 拿到的是打完以后的字。
 const typed = (value, change, hint, label, more = '') => `<input class="in" value="${t(value)}" placeholder="${t(hint)}" aria-label="${t(label)}"${onInput(change)}${more}>`
 const line = (value, change, hint, label, more = '') => `<div class="box line">${typed(value, change, hint, label, more)}</div>`
-const area = (value, change, hint, label, rows = 4) => `<div class="box area"><textarea class="in" rows="${rows}" placeholder="${t(hint)}" aria-label="${t(label)}"${onInput(change)}>${t(value)}</textarea></div>`
+const area = (value, change, hint, label, rows = 4, more = '') => `<div class="box area"><textarea class="in" rows="${rows}" placeholder="${t(hint)}" aria-label="${t(label)}"${onInput(change)}${more}>${t(value)}</textarea></div>`
 const field = (label, box) => `<div class="field"><div class="label">${t(label)}</div>${box}</div>`
 const button = (label, act, cls = '') => `<div class="btn hit ${cls}"${onClick(act)}>${t(label)}</div>`
 const buttons = (...bs) => `<div class="buttons">${bs.join('')}</div>`

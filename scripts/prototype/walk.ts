@@ -138,7 +138,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('重试'); await win('正在重新整理…'); await sleep(1400); await pane('最近几轮整理失败', false); await pane('后台整理（重试）'); await done('retry')
   await click('全部设定'); await type('搜索设定', '左手'); await pane('找到 2 条'); await shot('09-find')
   await clear('搜索设定'); await pane('找到', false)
-  await click('新增'); await pane('新增设定'); await type('内容', '老周是修表的，铺子在旧城小学对面。'); await type('名字', '老周'); await click('保存'); await pane('老周'); await done('add an entry')
+  await click('新增'); await pane('新增设定'); must(await js(`document.activeElement.getAttribute('aria-label') === '内容'`), 'the text of a new entry is not ready to type in'); await type('内容', '老周是修表的，铺子在旧城小学对面。'); await type('名字', '老周'); await click('保存'); await pane('老周'); await done('add an entry')
   await click('周祥'); await click('删除设定'); await pane('左手总揣在兜里', false); await pane('物品'); await done('delete an entry')
 
   // The sidebar: chapters open, volumes fold.
