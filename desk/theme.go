@@ -226,40 +226,53 @@ func shadows(css string) (light, dark map[string]shadow) {
 	return light, dark
 }
 
-// scrim reads the --scrim of tokens.css, what dims the window behind a
-// dialog.
-func scrim(css string) ui.Color {
-	d := regexp.MustCompile(`--scrim\s*:\s*rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([0-9.]+)\s*\)`).FindStringSubmatch(css)
-	if d == nil {
-		return ui.Color{}
-	}
+// scrims reads the --scrim of tokens.css, what dims the window behind a
+// dialog; dark has its own, the light one being the color of the dark page.
+func scrims(css string) (light, dark ui.Color) {
+	decl := regexp.MustCompile(`--scrim\s*:\s*rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([0-9.]+)\s*\)`)
 	f := func(s string) float32 {
 		v, _ := strconv.ParseFloat(s, 32)
 		return float32(v)
 	}
-	return ui.RGBA(uint8(f(d[1])), uint8(f(d[2])), uint8(f(d[3])), f(d[4]))
+	var found [2]bool
+	blocks(css, func(isDark bool, body string) {
+		if d := decl.FindStringSubmatch(body); d != nil {
+			c := ui.RGBA(uint8(f(d[1])), uint8(f(d[2])), uint8(f(d[3])), f(d[4]))
+			if isDark {
+				dark, found[1] = c, true
+			} else {
+				light, found[0] = c, true
+			}
+		}
+	})
+	if !found[1] {
+		dark = light
+	}
+	return light, dark
 }
 
 func lightPalette() *palette {
 	k, _ := tokens(tokensCSS)
 	s, _ := shadows(tokensCSS)
+	scrim, _ := scrims(tokensCSS)
 	t := ui.LightTheme()
 	themeOf(t, k)
 	t.Selection = ui.RGBA(50, 120, 215, 0.2) // --sel over the page, so the text shows through
 	t.Focus = k["ink"].Alpha(0.35)
 	t.Scrollbar = ui.RGBA(0, 0, 0, 0.2)
-	return paletteOf(t, k, s)
+	return paletteOf(t, k, s, scrim)
 }
 
 func darkPalette() *palette {
 	_, k := tokens(tokensCSS)
 	_, s := shadows(tokensCSS)
+	_, scrim := scrims(tokensCSS)
 	t := ui.DarkTheme()
 	themeOf(t, k)
 	t.Selection = ui.RGBA(90, 140, 220, 0.35)
 	t.Focus = k["ink"].Alpha(0.55)
 	t.Scrollbar = ui.RGBA(255, 255, 255, 0.2)
-	return paletteOf(t, k, s)
+	return paletteOf(t, k, s, scrim)
 }
 
 func themeOf(t *ui.Theme, k map[string]ui.Color) {
@@ -280,13 +293,13 @@ func themeOf(t *ui.Theme, k map[string]ui.Color) {
 	t.Radius = rControl
 }
 
-func paletteOf(t *ui.Theme, k map[string]ui.Color, s map[string]shadow) *palette {
+func paletteOf(t *ui.Theme, k map[string]ui.Color, s map[string]shadow, scrim ui.Color) *palette {
 	return &palette{theme: t,
 		canvas: k["bg"], side: k["side"], raised: k["raised"], bubble: k["hover"],
 		line: k["line"], faint: k["faint"], ink: k["ink"], onInk: k["on-ink"],
 		dim: k["dim"], control: k["control"],
 		amber: k["amber"], warnBg: k["warn-bg"], warnBd: k["warn-bd"],
-		raise: s["raise"], pop: s["pop"], dialog: s["dialog"], scrim: scrim(tokensCSS)}
+		raise: s["raise"], pop: s["pop"], dialog: s["dialog"], scrim: scrim}
 }
 
 // dot is a small status disc.

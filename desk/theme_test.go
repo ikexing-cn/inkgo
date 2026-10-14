@@ -73,8 +73,8 @@ func TestSizeTokens(t *testing.T) {
 	if p := light["pop"]; p != (shadow{0, 8, 28, 0, ui.RGBA(0, 0, 0, 0.14)}) || dark["pop"].color != ui.RGBA(0, 0, 0, 0.4) {
 		t.Fatalf("pop = %v / %v", p, dark["pop"])
 	}
-	if s := darkPalette().scrim; s != ui.RGBA(25, 25, 25, 0.32) {
-		t.Fatalf("scrim = %v", s)
+	if l, d := lightPalette().scrim, darkPalette().scrim; l != ui.RGBA(25, 25, 25, 0.32) || d != ui.RGBA(0, 0, 0, 0.55) {
+		t.Fatalf("scrim = %v / %v", l, d)
 	}
 }
 

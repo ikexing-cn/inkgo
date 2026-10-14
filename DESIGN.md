@@ -472,7 +472,7 @@ components:
 - `--shadow-pop`：菜单、下拉、提示、待处理面板。代码里 `a.pal.pop.on(e)`。
 - `--shadow-dialog`：对话框。代码里 `a.pal.dialog.on(e)`。
 - `--shadow-focus`：聚焦的输入框。
-- `--scrim`：对话框、设置窗口后面的遮罩。代码里 `a.pal.scrim`。
+- `--scrim`：对话框、设置窗口后面的遮罩。代码里 `a.pal.scrim`。深色另有一个更深的：浅色那个和深色的底同色，盖上去看不出（待作者确认）。
 
 ## Shapes
 
