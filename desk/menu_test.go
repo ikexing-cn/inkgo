@@ -35,6 +35,67 @@ func rows(tt *ui.Tester) []string {
 	return out
 }
 
+// A menu's rows are listed, with nothing drawn, and listed again when one
+// is picked: then that row is Chosen, and no other.
+func TestMenuListsItsRows(t *testing.T) {
+	var chosen []string
+	drawn := 0
+	build := func(m *menu) {
+		m.Head("章节")
+		for _, label := range []string{"重命名", "上移", "下移"} {
+			if m.Item(label).Disabled(label == "上移").Chosen() {
+				chosen = append(chosen, label)
+			}
+		}
+		m.Separator()
+		m.Draw(func(*ui.Context) { drawn++ })
+		m.Submenu("移到", func(m *menu) {})
+		m.Item("重命名").Hint("F2")
+	}
+	m := &menu{}
+	build(m)
+	if len(m.rows) != 8 || len(chosen) != 0 || drawn != 0 {
+		t.Fatalf("%d rows, chosen %v, drawn %d", len(m.rows), chosen, drawn)
+	}
+	if it := m.rows[2]; it.kind != rowItem || it.label != "上移" || !it.off {
+		t.Fatalf("the third row is %+v", it)
+	}
+	build(&menu{pick: m.rows[3]})
+	if !slices.Equal(chosen, []string{"下移"}) || drawn != 0 {
+		t.Fatalf("chosen %v, drawn %d", chosen, drawn)
+	}
+	// The last row says what the second does: where it is tells them apart.
+	chosen = nil
+	build(&menu{pick: m.rows[7]})
+	if len(chosen) != 0 {
+		t.Fatalf("chosen %v", chosen)
+	}
+}
+
+// Were the rows others the second time, none is picked rather than the
+// one that came to stand where the picked one was.
+func TestMenuPicksNoOtherRow(t *testing.T) {
+	var chosen []string
+	more := false
+	build := func(m *menu) {
+		if more && m.Item("移到回收站").Chosen() {
+			chosen = append(chosen, "移到回收站")
+		}
+		for _, label := range []string{"重命名", "上移"} {
+			if m.Item(label).Chosen() {
+				chosen = append(chosen, label)
+			}
+		}
+	}
+	m := &menu{}
+	build(m)
+	more = true
+	build(&menu{pick: m.rows[0]})
+	if len(chosen) != 0 {
+		t.Fatalf("chosen %v", chosen)
+	}
+}
+
 // The text's menu is the app's own: it opens where the pointer asked, stays
 // in the window, and a press beside it puts it away and does nothing else.
 func TestTextMenu(t *testing.T) {

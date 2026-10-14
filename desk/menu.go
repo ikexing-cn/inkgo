@@ -24,46 +24,46 @@ type menuState struct {
 	seen  bool    // it was drawn in the last frame
 }
 
-// menu is a menu being drawn: build adds its rows in order, and a row's
-// Chosen says it was picked, which closes the menu.
+// menu lists the rows of a menu: build names them in order, and a row's
+// Chosen says it was picked, which closes the menu. It holds nothing of the
+// frame it is drawn in: the rows are drawn once build has listed them
+// (menuRows), and when one is picked build goes over them again, nothing
+// drawn, for that row's Chosen to say so. So build only lists, and acts
+// where a row is Chosen; what it would draw itself goes in a Draw row.
 type menu struct {
-	a *App
-	// The Context of the frame the menu is built in: a menu is made, built
-	// and dropped in the one call, so it is never kept past its frame. mygo
-	// vet reports any Context in a struct; scripts/verify-ui.ts lets this
-	// one through, and no other.
-	c    *ui.Context
-	wait *menuItem // the row asked for and not yet drawn
-	side func()    // the list beside the menu, drawn after it
-	flip bool      // that list goes to the left: no room on the right
-	held bool      // a row of it took the focus as it opened
-	list bool      // it is the list beside a menu, not the menu
+	rows []*menuItem
+	pick *menuItem // the row picked, as build goes over them again
 }
 
-// hold gives the first row that can be picked the focus as the menu opens:
-// the arrows then go through the rows and Enter picks one, and the focus
-// goes back where it was as the menu closes.
-func (m *menu) hold(row ui.Element, off bool) {
-	if !off && !m.held {
-		m.held = true
-		row.AutoFocus()
-	}
-}
+// The kinds of a menu's rows.
+const (
+	rowItem = iota // one to pick
+	rowLine        // a line between groups of rows
+	rowHead        // the name of the rows under it
+	rowSub         // one that opens a list beside the menu
+	rowDraw        // what the menu's owner draws itself
+)
 
 // menuItem is a row of a menu. Its methods set it up and return it, for
-// chaining; it is drawn when Chosen asks, or when the next row comes.
+// chaining.
 type menuItem struct {
 	m           *menu
+	at          int // which of the menu's rows it is
+	kind        int
 	label, hint string
 	off, on     bool
+	build       func(m *menu)       // fills the list a rowSub opens
+	draw        func(c *ui.Context) // draws a rowDraw
+}
+
+func (m *menu) add(it *menuItem) *menuItem {
+	it.m, it.at = m, len(m.rows)
+	m.rows = append(m.rows, it)
+	return it
 }
 
 // Item adds a row saying label.
-func (m *menu) Item(label string) *menuItem {
-	m.flush()
-	m.wait = &menuItem{m: m, label: label}
-	return m.wait
-}
+func (m *menu) Item(label string) *menuItem { return m.add(&menuItem{label: label}) }
 
 // Disabled pales the row when d: it cannot be picked.
 func (it *menuItem) Disabled(d bool) *menuItem { it.off = d; return it }
@@ -74,86 +74,107 @@ func (it *menuItem) Hint(s string) *menuItem { it.hint = s; return it }
 // On marks the row as the one in use.
 func (it *menuItem) On(on bool) *menuItem { it.on = on; return it }
 
-// Chosen reports that the row was picked.
+// Chosen reports that the row was picked. It is the row at the same place
+// saying the same: were build to list other rows the second time, none is
+// picked rather than another.
 func (it *menuItem) Chosen() bool {
-	m := it.m
-	if m.wait != it {
-		return false
-	}
-	m.wait = nil
-	row := m.a.pal.popRow(m.c, nil, it.label, it.hint, it.off, it.on)
-	m.hold(row, it.off)
-	if !m.list && m.a.menu.sub != "" && row.Hovered() {
-		// The pointer went on to another row of the menu: the list beside
-		// it goes.
-		m.a.menu.sub = ""
-		m.c.Invalidate()
-	}
-	if !row.Clicked() {
-		return false
-	}
-	m.a.menu = menuState{}
-	return true
+	p := it.m.pick
+	return p != nil && p.at == it.at && p.label == it.label
 }
 
-// flush draws the row no one asked about.
-func (m *menu) flush() {
-	if m.wait != nil {
-		m.wait.Chosen()
-	}
-}
-
-// Separator draws a line between groups of rows.
-func (m *menu) Separator() {
-	m.flush()
-	m.a.pal.popLine(m.c)
-}
+// Separator adds a line between groups of rows.
+func (m *menu) Separator() { m.add(&menuItem{kind: rowLine}) }
 
 // Head names the rows under it.
-func (m *menu) Head(label string) {
-	m.flush()
-	m.a.pal.popHead(m.c, label)
-}
+func (m *menu) Head(label string) { m.add(&menuItem{kind: rowHead, label: label}) }
 
 // Submenu adds a row that opens a list beside the menu, which build fills:
 // as the pointer comes over the row, or as it is picked.
 func (m *menu) Submenu(label string, build func(m *menu)) {
-	m.flush()
-	a, c := m.a, m.c
-	open := a.menu.sub == label
-	row := a.pal.popRow(c, icChevron, label, "", false, open)
-	m.hold(row, false)
-	if !open && (row.Hovered() || row.Clicked()) {
-		a.menu.sub, open = label, true
-	}
-	if !open {
-		return
-	}
-	at := row.Bounds()
-	flip := m.flip
-	m.side = func() {
-		// Its first row beside the row that opened it.
-		x := at.X + at.W + 4
-		if flip {
-			x = at.X - 4 - menuSide
+	m.add(&menuItem{kind: rowSub, label: label, build: build})
+}
+
+// Draw adds what draw draws where a row would be: a choice that is not a
+// row to pick.
+func (m *menu) Draw(draw func(c *ui.Context)) { m.add(&menuItem{kind: rowDraw, draw: draw}) }
+
+// menuRows draws the rows build lists, and has build act on the one picked.
+// list says they are the list beside a menu, which opens none of its own;
+// of a menu's rows it returns the one whose list is open, and where it is.
+func (a *App) menuRows(c *ui.Context, build func(m *menu), list bool) (open *menuItem, at ui.Rect) {
+	m := &menu{}
+	build(m)
+	var picked *menuItem
+	// The first row that can be picked has the focus as the menu opens: the
+	// arrows then go through the rows and Enter picks one, and the focus
+	// goes back where it was as the menu closes.
+	held := false
+	hold := func(row ui.Element, off bool) {
+		if !off && !held {
+			held = true
+			row.AutoFocus()
 		}
-		list := a.pal.popPanel(c.Key("菜单旁-" + a.menu.owner)).Absolute().Left(x).Width(menuSide)
-		y := at.Y - 4
-		if now := list.Bounds(); at.W == 0 || now.H == 0 {
-			list.Opacity(0) // not laid out yet: placed in the next frame
-			c.Invalidate()
-		} else {
-			// Level with its row, unless that takes it out of the window.
-			_, h := c.Size()
-			y = max(menuEdge, min(y, float32(h)-now.H-menuEdge))
-		}
-		list.Top(y)
-		list.Children(func() {
-			sub := &menu{a: a, c: c, list: true}
-			build(sub)
-			sub.flush()
-		})
 	}
+	for _, it := range m.rows {
+		switch it.kind {
+		case rowLine:
+			a.pal.popLine(c)
+		case rowHead:
+			a.pal.popHead(c, it.label)
+		case rowDraw:
+			it.draw(c)
+		case rowSub:
+			on := !list && a.menu.sub == it.label
+			row := a.pal.popRow(c, icChevron, it.label, "", false, on)
+			hold(row, false)
+			if !list && !on && (row.Hovered() || row.Clicked()) {
+				a.menu.sub, on = it.label, true
+			}
+			if on {
+				open, at = it, row.Bounds()
+			}
+		case rowItem:
+			row := a.pal.popRow(c, nil, it.label, it.hint, it.off, it.on)
+			hold(row, it.off)
+			if !list && a.menu.sub != "" && row.Hovered() {
+				// The pointer went on to another row of the menu: the list
+				// beside it goes.
+				a.menu.sub = ""
+				c.Invalidate()
+			}
+			if row.Clicked() {
+				picked = it
+			}
+		}
+	}
+	if picked == nil {
+		return open, at
+	}
+	a.menu = menuState{}
+	build(&menu{pick: picked})
+	return nil, ui.Rect{}
+}
+
+// menuBeside draws the list the row at opens, beside it: to its left when
+// flip says there is no room on the right.
+func (a *App) menuBeside(c *ui.Context, row *menuItem, at ui.Rect, flip bool) {
+	// Its first row beside the row that opened it.
+	x := at.X + at.W + 4
+	if flip {
+		x = at.X - 4 - menuSide
+	}
+	list := a.pal.popPanel(c.Key("菜单旁-" + a.menu.owner)).Absolute().Left(x).Width(menuSide)
+	y := at.Y - 4
+	if now := list.Bounds(); at.W == 0 || now.H == 0 {
+		list.Opacity(0) // not laid out yet: placed in the next frame
+		c.Invalidate()
+	} else {
+		// Level with its row, unless that takes it out of the window.
+		_, h := c.Size()
+		y = max(menuEdge, min(y, float32(h)-now.H-menuEdge))
+	}
+	list.Top(y)
+	list.Children(func() { a.menuRows(c, row.build, true) })
 }
 
 // contextMenu gives el a menu that build fills: where el is clicked with
@@ -196,13 +217,11 @@ func (a *App) menuAt(c *ui.Context, key string, build func(m *menu)) {
 			y = max(menuEdge, min(y, float32(h)-now.H-menuEdge))
 		}
 		panel.Left(x).Top(y)
-		m := &menu{a: a, c: c, flip: x+menuWide+menuSide+menuEdge > float32(w)}
-		panel.Children(func() {
-			build(m)
-			m.flush()
-		})
-		if m.side != nil {
-			m.side()
+		var open *menuItem
+		var at ui.Rect
+		panel.Children(func() { open, at = a.menuRows(c, build, false) })
+		if open != nil {
+			a.menuBeside(c, open, at, x+menuWide+menuSide+menuEdge > float32(w))
 		}
 		// Tab stays in the menu, as in the system's: the arrows go
 		// through its rows.
@@ -235,9 +254,7 @@ func (a *App) dropMenu(c *ui.Context, b ui.Element, key string, place func(panel
 	ui.PopoverBase(c.Key("菜单-"+key), b, &open, func(panel ui.Element) {
 		a.pal.popLook(panel)
 		place(panel)
-		m := &menu{a: a, c: c}
-		build(m)
-		m.flush()
+		a.menuRows(c, build, false)
 	})
 	if !open && a.menu.owner == key {
 		a.menu = menuState{}

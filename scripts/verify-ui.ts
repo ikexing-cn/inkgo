@@ -1,19 +1,13 @@
 /**
  * Runs the toolkit's own vet (mygo vet) over the packages that draw: it
  * finds values of one frame (a Context, an Element) kept past it, in a
- * struct or by a goroutine.
- * One place is let through, and only that one: the builder of our own menus
- * holds the Context while a menu is built, in the one call. A second report
- * of the kind in that file fails; when there is none, this says so, to take
- * the line out. The vet looks at the toolkit's own types only: once let
- * through, a menu or a row of it kept past the frame is not seen by it.
+ * struct or by a goroutine. Nothing is let through.
  * Usage: node scripts/verify-ui.ts
  */
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 
 const packages = ['desk', 'editor', 'cmd/poc']
-const allowed = [{ file: 'desk/menu.go', says: 'native UI build value stored in a struct', times: 1 }]
 
 // The tool is built once for each version of the toolkit and kept in .tmp:
 // linking it takes longer than all it then checks.
@@ -43,26 +37,10 @@ const runs = await Promise.all(packages.map((dir) => new Promise<{ dir: string; 
   run.on('close', (code) => done({ dir, code, said }))
 })))
 
-const found: string[] = []
-for (const { dir, code, said } of runs) {
-  const lines = said.split(/\r?\n/).filter((l) => /\.go:\d+:\d+: /.test(l))
-  if (code !== 0 && !lines.length) {
-    console.error(`mygo vet ${dir} did not run:\n${said.trim()}`)
-    process.exit(1)
-  }
-  found.push(...lines.map((l) => l.trim().replaceAll('\\', '/')))
-}
-
-const passed = (line: string) => allowed.find((a) => line.includes('/' + a.file + ':') && line.includes(a.says))
-const problems = found.filter((l) => !passed(l))
-for (const a of allowed) {
-  const lines = found.filter((l) => passed(l) === a)
-  if (!lines.length) problems.push(`${a.file} no longer has what scripts/verify-ui.ts lets through: take it out of the list`)
-  else if (lines.length !== a.times) problems.push(...lines, `${a.file}: ${lines.length} of these, where scripts/verify-ui.ts lets ${a.times} through`)
-}
-for (const p of problems) console.error(p)
-if (problems.length) {
-  console.error(`\n${problems.length} problem(s) with values kept past their frame`)
+const failed = runs.filter((r) => r.code !== 0)
+for (const r of failed) console.error(r.said.trim().replaceAll('\\', '/'))
+if (failed.length) {
+  console.error(`\nmygo vet: ${failed.map((r) => r.dir).join(', ')}`)
   process.exit(1)
 }
-console.log(`ui ok: ${packages.join(', ')}; ${allowed.length} place let through`)
+console.log(`ui ok: ${packages.join(', ')}`)

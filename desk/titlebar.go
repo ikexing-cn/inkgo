@@ -126,7 +126,7 @@ func (a *App) titleBar(c *ui.Context) {
 				act = func() { w.focus = true }
 			}
 			m.Separator()
-			a.themeChoice(c)
+			m.Draw(a.themeChoice)
 		}) || held
 		held = a.barMenu(c, "帮助", func(m *menu) {
 			if m.Item("快捷键…").Hint(modKey + "/").Chosen() {
