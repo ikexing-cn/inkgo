@@ -51,6 +51,21 @@ func TestToastOverTheSettings(t *testing.T) {
 	}
 }
 
+// Going to the settings it points at is what the toast asked for: the
+// settings open and the toast goes, as in the prototype.
+func TestOpeningTheSettingsFromAToastClearsIt(t *testing.T) {
+	a, tt, _ := fixture(t)
+	a.Error = "尚未选择讨论模型：请在“模型设置”中选择"
+	tt.Frame()
+	if err := tt.Click("打开设置"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.Error != "" || tt.HasText("尚未选择讨论模型") || !tt.HasText("关闭 AI") {
+		t.Fatal(a.Error, tt.Texts())
+	}
+}
+
 // A request that fails the same way again counts up in the one toast, which
 // can run it again.
 func TestRepeatedFailureCounts(t *testing.T) {

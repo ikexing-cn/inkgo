@@ -171,7 +171,8 @@ func (a *App) toastActions(c *ui.Context, ts ui.Toast) {
 			head = head[:i]
 		}
 		if strings.Contains(head, "模型") || strings.Contains(head, "AI") {
-			acts = append(acts, act{"打开设置", func() { a.openPrefs("AI") }, ""})
+			// What it says is done by going there: it goes, as in the prototype.
+			acts = append(acts, act{"打开设置", func() { a.Error = ""; a.openPrefs("AI") }, ""})
 		}
 		text := a.Error
 		acts = append(acts, act{"复制详情", func() { c.WriteClipboard(text) }, ""})
