@@ -73,6 +73,23 @@ func diffText(old, new string) []piece {
 	return out
 }
 
+// paragraphs gives the pieces of a text a paragraph at a time: a piece
+// running over the end of a line is cut there, and an empty line has none.
+func paragraphs(pieces []piece) [][]piece {
+	out := [][]piece{nil}
+	for _, p := range pieces {
+		for i, line := range strings.Split(p.text, "\n") {
+			if i > 0 {
+				out = append(out, nil)
+			}
+			if line != "" {
+				out[len(out)-1] = append(out[len(out)-1], piece{p.kind, line})
+			}
+		}
+	}
+	return out
+}
+
 func diffRunes(old, new string) []piece {
 	a, b := []rune(old), []rune(new)
 	if len(a)*len(b) > maxCells {

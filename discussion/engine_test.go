@@ -92,7 +92,7 @@ func setting(t *testing.T, e *Engine) workspace.Setting {
 func TestRetryUnansweredTurnDoesNotDuplicateInput(t *testing.T) {
 	e, session := setup(t)
 	e.Talk = Model{Completer: &fake{err: context.Canceled}}
-	turn, err := e.Send(context.Background(), session, "先讨论城市的天气")
+	turn, err := e.Say(context.Background(), session, workspace.Event{Text: "先讨论城市的天气"})
 	if !errors.Is(err, context.Canceled) || turn.User.ID == "" {
 		t.Fatal(turn, err)
 	}
@@ -122,7 +122,7 @@ func TestTurnWaitsForTheReplyOnly(t *testing.T) {
 	e.Talk = Model{Completer: talk, Name: "deepseek/deepseek-flash", Effort: model.EffortMax}
 	var streamed string
 	e.Progress = func(d model.Delta) { streamed += d.Reasoning + d.Text }
-	got, err := e.Send(context.Background(), session, "她做什么工作？")
+	got, err := e.Say(context.Background(), session, workspace.Event{Text: "她做什么工作？"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func TestTalkSeesTheSettingAndTheTurnsItLags(t *testing.T) {
 	}
 	talk := &fake{replies: []string{"嗯"}}
 	e.Talk = Model{Completer: talk}
-	if _, err := e.Send(context.Background(), session, "继续"); err != nil {
+	if _, err := e.Say(context.Background(), session, workspace.Event{Text: "继续"}); err != nil {
 		t.Fatal(err)
 	}
 	req := talk.calls[0]

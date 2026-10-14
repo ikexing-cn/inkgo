@@ -240,6 +240,7 @@ func (a *App) services(c *ui.Context) {
 			cfg, err := model.Load(a.ConfigFile)
 			if err == nil {
 				a.Config = cfg
+				a.modelsChanged()
 				a.bk.edit = ""
 				if len(cfg.Providers) > 0 {
 					a.chooseProvider(cfg.Providers[0].ID)
@@ -402,6 +403,7 @@ func (a *App) providerForm(c *ui.Context) {
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Justify(ui.End).Children(func() {
 			if a.providerID != "" && a.pal.ghost(c, "清除已保存 key", t.Danger).Disabled(busy).Clicked() {
 				err := model.SetKey(a.providerID, "")
+				a.modelsChanged()
 				if err == nil {
 					a.notice = "已清除保存的 key"
 				}
@@ -471,6 +473,7 @@ func (a *App) saveProvider() error {
 	a.Config = cfg
 	a.provider = p
 	a.providerID = p.ID
+	defer a.modelsChanged()
 	if a.key != "" {
 		if err := model.SetKey(p.ID, a.key); err != nil {
 			return err

@@ -1,8 +1,12 @@
 package backup
 
 import (
+	"archive/zip"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 	"time"
 )
@@ -97,5 +101,53 @@ func TestMakeMissingFolder(t *testing.T) {
 	}
 	if _, _, err = Make(fl, filepath.Join(t.TempDir(), "gone"), "x", Meta{Work: "w"}, 0, time.Now()); err == nil {
 		t.Fatal("backed up into a folder that is not there")
+	}
+}
+
+// A backup whose entries would be written outside the folder it is
+// unpacked into, or into .writer/, is not unpacked: on Windows, the other
+// separator and a drive's letter make a path of what is one name elsewhere.
+func TestUnpackKeepsToItsFolder(t *testing.T) {
+	for _, name := range []string{`..\evil.txt`, `chapters\..\..\evil.txt`, `.writer\desk.json`, `.WRITER/desk.json`, `C:evil.txt`, "../evil.txt", "/evil.txt"} {
+		outer := t.TempDir()
+		into := filepath.Join(outer, "work")
+		if err := os.Mkdir(into, 0755); err != nil {
+			t.Fatal(err)
+		}
+		p := filepath.Join(outer, "bad.zip")
+		f, err := os.Create(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		z := zip.NewWriter(f)
+		w, err := z.CreateHeader(&zip.FileHeader{Name: name})
+		if err == nil {
+			_, err = w.Write([]byte("x"))
+		}
+		if cerr := z.Close(); err == nil {
+			err = cerr
+		}
+		if cerr := f.Close(); err == nil {
+			err = cerr
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = Unpack(p, into)
+		var stray []string
+		filepath.WalkDir(outer, func(at string, d fs.DirEntry, _ error) error {
+			rel, _ := filepath.Rel(outer, at)
+			in := strings.HasPrefix(rel, "work"+string(filepath.Separator))
+			if d != nil && !d.IsDir() && rel != "bad.zip" && (!in || strings.HasPrefix(strings.ToLower(rel), filepath.Join("work", ".writer")+string(filepath.Separator))) {
+				stray = append(stray, rel)
+			}
+			return nil
+		})
+		if len(stray) > 0 {
+			t.Errorf("%q wrote %v (%v)", name, stray, err)
+		}
+		if runtime.GOOS == "windows" && err == nil {
+			t.Errorf("%q was unpacked", name)
+		}
 	}
 }

@@ -48,7 +48,19 @@ func (a *App) openPrefs(tab string) {
 	if tab == "" {
 		tab = "模型"
 	}
-	a.bk.prefs, a.bk.tab = true, tab
+	a.bk.prefs = true
+	a.showPref(tab)
+}
+
+// showPref shows a part of the settings. The reminders count the book's
+// foreshadowings from the tree and the marks the writing page reads as it
+// is entered: shown from another page, they are read here.
+func (a *App) showPref(tab string) {
+	a.bk.tab = tab
+	if tab == "提醒与检查" && a.Store != nil && !a.write.entered {
+		a.warn(a.loadTree())
+		a.scanMarks()
+	}
 }
 
 // preferences is the settings dialog: the models, the appearance, and
@@ -84,7 +96,7 @@ func (a *App) preferences(c *ui.Context) {
 				}
 				b.Children(func() { ui.Text(c, tab).FontSize(fsBody).FontWeight(weight).TextColor(fg) })
 				if b.Clicked() {
-					a.bk.tab = tab
+					a.showPref(tab)
 				}
 			}
 		})

@@ -404,7 +404,7 @@ function stopDraft() {
 // 让 AI 给一章写摘要。
 function recap(key) {
   set((s) => ({ summaries: { ...s.summaries, [key]: { ...(s.summaries[key] || { text: '' }), busy: true } } }))
-  later(1200, () => set((s) => ({ summaries: { ...s.summaries, [key]: { text: key === String(BOOK.now) ? BOOK.recap : '本章摘要：' + clip(chapterOf(key).paras.join(''), 40), by: 'AI 生成 · Opus 5.5 · 刚刚' } } })))
+  later(1200, () => set((s) => ({ part: { ...s.part, [key]: { ...s.part[key], sum: 0 } }, summaries: { ...s.summaries, [key]: { text: key === String(BOOK.now) ? BOOK.recap : '本章摘要：' + clip(chapterOf(key).paras.join(''), 40), by: 'AI 生成 · Opus 5.5 · 刚刚' } } })))
 }
 
 // Ctrl+S：马上存。AI 正在改的时候，等它改完再存。
@@ -444,6 +444,8 @@ function rare() {
     ['本章文件丢失', here(() => ({ outside: 'lost' }))],
     ['本章检查失败', here((s) => ({ failed: { ...s.failed, [s.ch]: why } }))],
     ['本章摘要生成失败', here((s) => ({ box: '摘要', summaries: { ...s.summaries, [s.ch]: { ...(s.summaries[s.ch] || { text: '' }), busy: false, fail: why } } }))],
+    ['本章过长，仅读取前文', here((s) => ({ box: '摘要', part: { ...s.part, [s.ch]: { check: 5000, sum: 9000 } }, never: { ...s.never, [s.ch]: false }, failed: { ...s.failed, [s.ch]: '' }, dirty: { ...s.dirty, [s.ch]: false },
+      summaries: { ...s.summaries, [s.ch]: { text: (s.summaries[s.ch] || {}).text || BOOK.recap, by: 'AI 生成 · Opus 5.5 · 刚刚' } } }))],
     ['AI 改写出错', () => { set(SHUT); say('改写失败', '模型未返回改写结果', 'fail') }],
     ['设定整理失败', () => set((s) => ({ ...SHUT, n: s.n + 1, log: [{ id: 'l' + s.n, who: '后台整理', model: 'Opus 5.5 · Low', at: '刚刚', lines: [], fail: '最近几轮整理失败：无法连接 AI' }, ...s.log] }))],
     ['模型目录读取失败', () => { set(SHUT); const id = say('读取模型目录失败', why, 'fail', [['重试', () => { unsay(id); fetchModels() }], ['打开设置', () => set({ dialog: { kind: 'settings', tab: '模型', edit: '' }, toasts: [], ...SHUT })]]) }],
@@ -496,7 +498,7 @@ function checkNow(...keys) {
   const next = () => later(900, () => {
     const key = S.checking
     if (!key) return // 中途停下了
-    set((s) => ({ checking: s.queue[0] || false, queue: s.queue.slice(1), dirty: { ...s.dirty, [key]: false }, never: { ...s.never, [key]: false }, failed: { ...s.failed, [key]: '' } }))
+    set((s) => ({ checking: s.queue[0] || false, queue: s.queue.slice(1), dirty: { ...s.dirty, [key]: false }, never: { ...s.never, [key]: false }, failed: { ...s.failed, [key]: '' }, part: { ...s.part, [key]: { ...s.part[key], check: 0 } } }))
     if (S.checking) next()
   })
   next()
@@ -636,10 +638,12 @@ function chapterMore(cur) {
   const outline = S.outlines[cur.key] || '', sum = S.summaries[cur.key]
   const arrow = (name) => (S.box === name ? ' ▴' : ' ▾')
   const flip = (name) => onClick(() => set({ box: S.box === name ? '' : name }))
-  const has = sum && sum.text, old = has && sum.stale, warn = sum && !sum.busy && (old || sum.fail)
-  const state = sum && sum.busy ? ' · 正在生成' : !has ? ' · 暂无' : old ? ' · 可能过时' : ''
+  const has = sum && sum.text, old = has && sum.stale
+  const part = has && sum.by !== '手动填写' && (S.part[cur.key] || {}).sum // 太长，摘要只依据前面这么多字
+  const warn = sum && !sum.busy && (old || sum.fail || part)
+  const state = sum && sum.busy ? ' · 正在生成' : !has ? ' · 暂无' : old ? ' · 可能过时' : part ? ' · 不完整' : ''
   const about = sum && sum.busy ? 'AI 正在阅读本章并生成摘要…' : sum && sum.fail ? '上次生成失败：' + sum.fail
-    : has ? sum.by + (old ? ' · 正文已修改' : '') : S.recap ? '正文满 200 字后，离开本章时自动生成；也可手动填写。' : '自动生成已关闭，可点击“生成摘要”，也可手动填写。'
+    : has ? sum.by + (part ? ' · 仅依据前 ' + part + ' 字' : '') + (old ? ' · 正文已修改' : '') : S.recap ? '正文满 200 字后，离开本章时自动生成；也可手动填写。' : '自动生成已关闭，可点击“生成摘要”，也可手动填写。'
   const short = counted(cur) < 200
   let box = ''
   if (S.box === '章纲') box = area(outline, (v) => set((s) => ({ outlines: { ...s.outlines, [cur.key]: v } })), '写下这里要发生的事，作为提纲', '章纲', 3)
@@ -648,7 +652,7 @@ function chapterMore(cur) {
       `<div class="box-foot"><div class="fit${warn ? ' amber' : ''}">${t(about)}</div>` +
       `<div class="hit link see${short || (sum && sum.busy) ? ' off' : ''}" title="${short ? '正文满 200 字后才需要摘要' : '由 AI 阅读本章并生成摘要'}"${onClick(short || (sum && sum.busy) ? null : () => recap(cur.key))}>${sum && sum.text ? '重新生成' : '生成摘要'}</div></div>`
   }
-  return `<div class="chapter-more"><div class="hit${S.box === '章纲' ? ' on' : ''}"${flip('章纲')}>章纲${outline.trim() ? '' : ' · 空'}${arrow('章纲')}</div><div class="hit${S.box === '摘要' ? ' on' : ''}${warn ? ' amber' : ''}"${old ? ' title="摘要可能与正文不一致"' : ''}${flip('摘要')}>本章摘要${state}${arrow('摘要')}</div></div>` +
+  return `<div class="chapter-more"><div class="hit${S.box === '章纲' ? ' on' : ''}"${flip('章纲')}>章纲${outline.trim() ? '' : ' · 空'}${arrow('章纲')}</div><div class="hit${S.box === '摘要' ? ' on' : ''}${warn ? ' amber' : ''}"${old ? ' title="摘要可能与正文不一致"' : part ? ` title="${t(PART)}"` : ''}${flip('摘要')}>本章摘要${state}${arrow('摘要')}</div></div>` +
     (box ? `<div class="chapter-box" data-k="chapter-box">${box}</div>` : '')
 }
 
@@ -733,13 +737,17 @@ function sheets() {
   return `<div class="sheets" data-k="sheets">${tabs.map(tab).join('')}</div>`
 }
 
+// 一章太长、AI 只读了前面一段时，那一行字上的说明。
+const PART = '后文超出上下文预算，可在设置中提高预算'
+
 // 正文下面那一行：检查到哪了、什么时候查，右边是字数。
 function foot(cur, vol) {
   if (!cur) return `<div class="foot"><div class="grow"></div>${wordsOf(null, vol)}</div>`
   const n = S.checks.filter((c) => c.key === cur.key).length, dirty = S.dirty[cur.key], name = numbered(cur) ? '第' + cur.no + '章' : '本章'
+  const part = (S.part[cur.key] || {}).check // 太长，只查了前面这么多字：不能说成全章查完了
   const seeAll = () => set({ page: 'check', kind: '全部', cid: S.checks.find((c) => c.key === cur.key).id })
   // 这一章查到哪了，和现在能不能点「立即检查」。
-  let state = name + '检查完成，未发现不一致', can = false
+  let state = name + '检查完成，未发现不一致', can = false, tip = ''
   if (S.checking === cur.key) state = '正在检查' + name + '…'
   else if (S.queue.includes(cur.key)) state = name + '等待检查'
   else if (S.failed[cur.key]) { state = '检查失败：' + S.failed[cur.key]; can = true }
@@ -747,11 +755,13 @@ function foot(cur, vol) {
   else if (counted(cur) < 200) state = '满 200 字后可检查'
   else if (S.never[cur.key]) { state = name + '尚未检查'; can = true }
   else if (n && dirty) { state = name + '有 ' + n + ' 处待处理，正文已再次修改'; can = true }
+  else if (n && part) state = name + '仅检查前 ' + part + ' 字，有 ' + n + ' 处待处理'
   else if (n) state = name + '检查完成，有 ' + n + ' 处待处理'
   else if (dirty) { state = name + '已修改，尚未重新检查'; can = true }
+  else if (part) { state = name + '仅检查前 ' + part + ' 字，未发现不一致'; tip = PART }
   const found = n && !S.checking && !S.failed[cur.key] && !S.never[cur.key] && counted(cur) >= 200
   const when = [['写完一章后检查', '推荐，每章调用一次 AI'], ['手动检查', '平时不调用 AI'], ['边写边检查', '停笔即检查，调用最多']]
-  return '<div class="foot">' + (found ? `<div class="foot-state ell hit link" title="前往「检查」页逐条查看"${onClick(seeAll)}>${t(state)}</div>` : `<div class="foot-state ell">${t(state)}</div>`) +
+  return '<div class="foot">' + (found ? `<div class="foot-state ell hit link" title="前往「检查」页逐条查看"${onClick(seeAll)}>${t(state)}</div>` : `<div class="foot-state ell"${tip ? ` title="${t(tip)}"` : ''}>${t(state)}</div>`) +
     (can ? `<div class="hit link" title="调用一次 AI，对照设定检查本章"${onClick(() => checkNow(cur.key))}>立即检查</div>` : '') + '<div class="faint">·</div>' +
     `<div class="anchor up left"><div class="hit" title="检查时机"${onClick(() => set({ open: S.open === 'when' ? '' : 'when' }))}>${t(S.when)} ▴</div>${S.open === 'when' ? `<div class="pop when-pop" data-k="when-pop"><div class="pop-title">检查时机</div>${radios(S.when, when, (v) => set({ when: v, ...SHUT }))}</div>` : ''}</div>` +
     `<div class="grow"></div>${wordsOf(cur)}</div>`

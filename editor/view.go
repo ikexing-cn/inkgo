@@ -211,11 +211,11 @@ func (e *Editor) maybePredict(c *ui.Context) {
 	ver, at := e.Doc.version, e.caret
 	from := max(0, at-2000)
 	before := e.Doc.Slice(from, at)
-	p, results := e.opts.Predictor, e.results
+	p, results, sv := e.opts.Predictor, e.results, c.Services()
 	go func() {
 		s, err := p.Predict(ctx, before)
 		results <- prediction{text: singleLine(s), err: err, ver: ver, at: at}
-		c.Invalidate()
+		sv.Invalidate()
 	}()
 }
 

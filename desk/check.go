@@ -92,7 +92,9 @@ func (a *App) loadChecks() {
 	all, err := a.Store.Checks()
 	a.warn(err)
 	k.all = all
-	if t, err := a.Store.Chapters(); err == nil {
+	t, err := a.Store.Chapters()
+	a.warn(err)
+	if err == nil {
 		k.tree = t
 	}
 	k.doubtKey = ""
@@ -204,12 +206,12 @@ func (a *App) pollChecks(c *ui.Context) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	k.running, k.cancel = id, cancel
-	store := a.Store
+	store, sv := a.Store, c.Services()
 	go func() {
 		check, err := pw.Check(ctx, id)
 		cancel()
 		k.done <- checkDone{chapter: id, store: store, check: check, err: err}
-		c.Invalidate()
+		sv.Invalidate()
 	}()
 }
 
@@ -349,16 +351,18 @@ func (a *App) setMeant(it checkItem) {
 // checkDue lists the chapters a check of the book would read: those long
 // enough, never checked or changed since.
 func (a *App) checkDue() []string {
+	texts, err := a.Store.Texts() // the book in one pass
+	if err != nil {
+		a.warn(err)
+		return nil
+	}
 	var due []string
 	a.ck.tree.Walk(func(nd *workspace.Node, _ int) {
-		if nd.Folder {
+		text, ok := texts[nd.ID]
+		if nd.Folder || !ok || workspace.Count(text) < writing.MinCheck {
 			return
 		}
-		ch, err := a.Store.ReadChapter(nd.ID)
-		if err != nil || workspace.Count(ch.Text) < writing.MinCheck {
-			return
-		}
-		if had, ok := a.ck.all[nd.ID]; !ok || had.Stale(ch.Text) {
+		if had, ok := a.ck.all[nd.ID]; !ok || had.Stale(text) {
 			due = append(due, nd.ID)
 		}
 	})
@@ -421,8 +425,9 @@ func (a *App) markDoubts() {
 }
 
 // checkState says in a line where the check of the chapter shown stands,
-// and whether there is something of it to look at.
-func (a *App) checkState() (line string, found int, can bool) {
+// whether there is something of it to look at, and what more there is to
+// say of the line, if anything.
+func (a *App) checkState() (line string, found int, can bool, tip string) {
 	w := &a.write
 	k := &a.ck
 	for _, it := range a.checkItems(false) {
@@ -438,26 +443,35 @@ func (a *App) checkState() (line string, found int, can bool) {
 	had, ok := k.all[w.node]
 	switch {
 	case k.running == w.node:
-		return "正在检查" + name + "…", 0, false
+		return "正在检查" + name + "…", 0, false, ""
 	case slices.Contains(k.queue, w.node):
-		return name + "等待检查", 0, false
+		return name + "等待检查", 0, false, ""
 	case k.failed[w.node] != "":
-		return "检查失败：" + k.failed[w.node], 0, true
+		return "检查失败：" + k.failed[w.node], 0, true, ""
 	case !a.hasSetting():
-		return "设定为空，无可对照内容", 0, false
+		return "设定为空，无可对照内容", 0, false, ""
 	case workspace.Count(text) < writing.MinCheck:
-		return fmt.Sprintf("满 %d 字后可检查", writing.MinCheck), 0, false
+		return fmt.Sprintf("满 %d 字后可检查", writing.MinCheck), 0, false, ""
 	case !ok:
-		return name + "尚未检查", 0, true
+		return name + "尚未检查", 0, true, ""
 	case found > 0 && had.Stale(text):
-		return fmt.Sprintf("%s有 %d 处待处理，正文已再次修改", name, found), found, true
+		return fmt.Sprintf("%s有 %d 处待处理，正文已再次修改", name, found), found, true, ""
+	case found > 0 && had.Read > 0:
+		return fmt.Sprintf("%s仅检查前 %d 字，有 %d 处待处理", name, had.Read, found), found, false, ""
 	case found > 0:
-		return fmt.Sprintf("%s检查完成，有 %d 处待处理", name, found), found, false
+		return fmt.Sprintf("%s检查完成，有 %d 处待处理", name, found), found, false, ""
 	case had.Stale(text):
-		return name + "已修改，尚未重新检查", 0, true
+		return name + "已修改，尚未重新检查", 0, true, ""
+	case had.Read > 0:
+		// The rest was not looked at: not to be told as nothing found.
+		return fmt.Sprintf("%s仅检查前 %d 字，未发现不一致", name, had.Read), 0, false, partNote
 	}
-	return name + "检查完成，未发现不一致", 0, false
+	return name + "检查完成，未发现不一致", 0, false, ""
 }
+
+// partNote says why the AI was given only the start of a chapter, and what
+// to do about it, where a line says it was.
+const partNote = "后文超出上下文预算，可在设置中提高预算"
 
 // footBar is the line at the foot of the writing page: of a chapter, where
 // its check stands and when chapters are checked; at the right, the words.
@@ -475,7 +489,7 @@ func (a *App) footBar(c *ui.Context, chapter bool) {
 			a.wordCount(c, roomy, wide)
 			return
 		}
-		line, found, can := a.checkState()
+		line, found, can, tip := a.checkState()
 		if found > 0 {
 			b := a.pal.ghost(c, line, ui.Color{}).Label("查看检查结果").Tooltip("前往「检查」页逐条查看").Shrink(1000)
 			if b.Clicked() {
@@ -487,7 +501,10 @@ func (a *App) footBar(c *ui.Context, chapter bool) {
 				}
 			}
 		} else {
-			ui.Text(c, line).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1000)
+			said := ui.Text(c, line).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1000)
+			if tip != "" {
+				said.Tooltip(tip)
+			}
 		}
 		if can {
 			b := ui.ButtonBase(c).Label("立即检查").Tooltip("调用一次 AI，对照设定检查本章").Shrink(0)

@@ -101,3 +101,67 @@ func TestCheckAChapterAgainstTheSetting(t *testing.T) {
 		t.Fatal("checked a chapter too short")
 	}
 }
+
+// A chapter too long to give whole is checked and summarized from its
+// start, and what is kept says how much of it that was.
+func TestAChapterReadInPartSaysSo(t *testing.T) {
+	f := &fake{}
+	w, two, _ := book(t, f)
+	s := w.Store
+	if _, err := s.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{
+		{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "主角靠维修路灯谋生，但她很怕黑。", Names: []string{"林晚"}},
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	text := strings.Repeat("她蹲下去拧开灯座。", 4000)
+	if _, err := s.WriteChapter(two, text, nil); err != nil {
+		t.Fatal(err)
+	}
+	f.pieces = []string{`{"findings":[]}`}
+	got, err := w.Check(context.Background(), two)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Words != workspace.Count(text) || got.Read <= 0 || got.Read >= got.Words {
+		t.Fatalf("read %d of %d", got.Read, got.Words)
+	}
+	said := f.got[len(f.got)-1].Messages[0].Content
+	if !strings.Contains(said, "（正文太长，只给了前面一部分）") || strings.Count(said, "她蹲下去拧开灯座。") >= 4000 {
+		t.Fatal("the model was not told, or was given the whole")
+	}
+	if err = s.WriteCheck(two, got); err != nil {
+		t.Fatal(err)
+	}
+	if kept, err := s.ReadCheck(two); err != nil || kept.Read != got.Read {
+		t.Fatalf("kept %+v, %v", kept.Read, err)
+	}
+
+	f.pieces = []string{"林晚修了一夜的灯。"}
+	sum, err := w.Summarize(context.Background(), two)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sum.Read <= 0 || sum.Read >= sum.Words {
+		t.Fatalf("summarized %d of %d", sum.Read, sum.Words)
+	}
+	if err = s.WriteSummary(two, sum); err != nil {
+		t.Fatal(err)
+	}
+	if kept, err := s.ReadSummary(two); err != nil || kept.Read != sum.Read {
+		t.Fatalf("kept %+v, %v", kept.Read, err)
+	}
+
+	// One that fits is read whole.
+	short := strings.Repeat("她蹲下去拧开灯座。", 30)
+	if _, err = s.WriteChapter(two, short, nil); err != nil {
+		t.Fatal(err)
+	}
+	f.pieces = []string{`{"findings":[]}`}
+	if got, err = w.Check(context.Background(), two); err != nil || got.Read != 0 {
+		t.Fatalf("read %d, %v", got.Read, err)
+	}
+	f.pieces = []string{"林晚修了一夜的灯。"}
+	if sum, err = w.Summarize(context.Background(), two); err != nil || sum.Read != 0 {
+		t.Fatalf("summarized %d, %v", sum.Read, err)
+	}
+}

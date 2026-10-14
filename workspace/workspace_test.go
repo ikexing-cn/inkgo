@@ -429,3 +429,41 @@ func TestEntryNames(t *testing.T) {
 		t.Error("CleanNames")
 	}
 }
+
+// What is in sessions/ and is not a session does not keep the work from
+// opening: it is passed over, and left as it is.
+func TestFilesThatAreNotSessionsArePassedOver(t *testing.T) {
+	dir := t.TempDir()
+	s, err := Create(dir, "测试作品", "非虚构")
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, err := s.NewSession()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Close()
+	strays := []string{"desktop.ini", ".DS_Store", "Thumbs.db", id + " (冲突副本).jsonl", "笔记.jsonl"}
+	for _, name := range strays {
+		if err = os.WriteFile(filepath.Join(dir, "sessions", name), []byte("x"), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err = os.Mkdir(filepath.Join(dir, "sessions", "旧的"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	s, err = Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	ids, err := s.Sessions()
+	if err != nil || len(ids) != 1 || ids[0] != id {
+		t.Fatalf("sessions %v, %v", ids, err)
+	}
+	for _, name := range strays {
+		if _, err = os.Stat(filepath.Join(dir, "sessions", name)); err != nil {
+			t.Fatalf("%s was not left alone: %v", name, err)
+		}
+	}
+}

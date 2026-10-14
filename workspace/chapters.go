@@ -54,8 +54,11 @@ func (t Tree) Node(id string) (*Node, bool) {
 }
 
 // Walk calls fn with each node in reading order, folders before what they
-// hold, and its depth from 0.
+// hold, and its depth from 0. A tree that was never read holds nothing.
 func (t Tree) Walk(fn func(n *Node, depth int)) {
+	if t.Root == nil {
+		return
+	}
 	var walk func(ns []*Node, depth int)
 	walk = func(ns []*Node, depth int) {
 		for _, n := range ns {
@@ -465,6 +468,28 @@ func companions(n *Node) []string {
 	return []string{textExt, outlineExt, marksExt, summaryExt, checkExt}
 }
 
+// rename moves a file; a test makes it fail.
+var rename = os.Rename
+
+// moveAll moves each file of from to the path beside it in to, in order.
+// Only the first has to be there. When one cannot be moved, those moved
+// before it go back, so that a node is never half in one place.
+func moveAll(from, to []string) error {
+	for i := range from {
+		err := rename(from[i], to[i])
+		if err == nil || i > 0 && errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		for j := i - 1; j >= 0; j-- {
+			if back := rename(to[j], from[j]); back != nil && !errors.Is(back, os.ErrNotExist) {
+				return errors.Join(err, back)
+			}
+		}
+		return err
+	}
+	return nil
+}
+
 // moveFiles moves n's files from its place to file in dir.
 func (s *Store) moveFiles(n *Node, dir []string, file string) error {
 	for _, ext := range companions(n) {
@@ -590,14 +615,17 @@ func (s *Store) TrashChapter(id string) error {
 	if err = atomicWrite(filepath.Join(dir, trashedFile), append(b, '\n'), false); err != nil {
 		return err
 	}
+	var from, to []string
 	for _, ext := range companions(n) {
-		from, err := s.nodePath(n, ext)
+		p, err := s.nodePath(n, ext)
 		if err != nil {
 			return err
 		}
-		if err = os.Rename(from, filepath.Join(dir, n.file+ext)); err != nil && !(ext != textExt && ext != "" && errors.Is(err, os.ErrNotExist)) {
-			return err
-		}
+		from, to = append(from, p), append(to, filepath.Join(dir, n.file+ext))
+	}
+	if err = moveAll(from, to); err != nil {
+		// Still where it was: the trash has nothing of it.
+		return errors.Join(err, os.RemoveAll(dir))
 	}
 	n.Parent.Children = slices.DeleteFunc(n.Parent.Children, func(x *Node) bool { return x == n })
 	return s.writeOrder(n.Parent)
@@ -681,6 +709,15 @@ func (s *Store) trash() ([]Trashed, error) {
 		if json.Unmarshal(b, &it) != nil || it.ID != d.Name() {
 			continue
 		}
+		// Noted as trashed and never moved here: the node is still in the
+		// tree, and its ID is its own.
+		ext := textExt
+		if it.Folder {
+			ext = ""
+		}
+		if _, err = os.Stat(filepath.Join(p, d.Name(), it.File+ext)); err != nil {
+			continue
+		}
 		items = append(items, it)
 	}
 	sort.Slice(items, func(i, j int) bool { return items[i].At.After(items[j].At) })
@@ -733,14 +770,18 @@ func (s *Store) RestoreChapter(id string) error {
 	if err = s.writeOrder(to); err != nil {
 		return err
 	}
+	var from, into []string
 	for _, ext := range companions(n) {
 		dst, err := s.nodePath(moved, ext)
 		if err != nil {
 			return err
 		}
-		if err = os.Rename(filepath.Join(dir, it.File+ext), dst); err != nil && !(ext != textExt && ext != "" && errors.Is(err, os.ErrNotExist)) {
-			return err
-		}
+		from, into = append(from, filepath.Join(dir, it.File+ext)), append(into, dst)
+	}
+	if err = moveAll(from, into); err != nil {
+		// Still in the trash: the folder does not list it.
+		to.Children = to.Children[:len(to.Children)-1]
+		return errors.Join(err, s.writeOrder(to))
 	}
 	return os.RemoveAll(dir)
 }
@@ -973,10 +1014,26 @@ func (s *Store) ChapterStamp(id string) (Stamp, error) {
 	return s.stamp(n)
 }
 
+// ErrChangedOutside tells that a document's text on disk is not the
+// version the caller last had, so nothing was written over it.
+var ErrChangedOutside = errors.New("这一章在软件外被修改过，未写入")
+
 // WriteChapter saves document id's text and marks, the quote of each mark
 // taken from text but an orphaned one's kept, and returns the text's new
 // stamp.
 func (s *Store) WriteChapter(id, text string, marks []ChapterMark) (Stamp, error) {
+	return s.writeChapter(id, text, marks, nil)
+}
+
+// WriteChapterOver saves as WriteChapter does when the text on disk is
+// still the version over, the one the caller read or wrote last. When it
+// is another, changed outside, it writes nothing and returns
+// ErrChangedOutside: the caller looks at the disk before it goes on.
+func (s *Store) WriteChapterOver(id, text string, marks []ChapterMark, over Stamp) (Stamp, error) {
+	return s.writeChapter(id, text, marks, &over)
+}
+
+func (s *Store) writeChapter(id, text string, marks []ChapterMark, over *Stamp) (Stamp, error) {
 	unlock, err := s.lock()
 	if err != nil {
 		return Stamp{}, err
@@ -989,6 +1046,15 @@ func (s *Store) WriteChapter(id, text string, marks []ChapterMark) (Stamp, error
 	n, ok := t.byID[id]
 	if !ok || n.Folder {
 		return Stamp{}, fmt.Errorf("chapters: no document %q", id)
+	}
+	if over != nil {
+		now, err := s.stamp(n)
+		if err != nil {
+			return Stamp{}, err
+		}
+		if now.Size != over.Size || !now.Mod.Equal(over.Mod) {
+			return Stamp{}, ErrChangedOutside
+		}
 	}
 	text = strings.ReplaceAll(text, "\r\n", "\n")
 	p, err := s.nodePath(n, textExt)
@@ -1070,6 +1136,20 @@ func Count(s string) int {
 
 // Counts returns the count of each document's text, by ID.
 func (s *Store) Counts() (map[string]int, error) {
+	texts, err := s.Texts()
+	if err != nil {
+		return nil, err
+	}
+	counts := map[string]int{}
+	for id, text := range texts {
+		counts[id] = Count(text)
+	}
+	return counts, nil
+}
+
+// Texts returns each document's text as ReadChapter gives it, by ID, with
+// one reading of the tree for them all.
+func (s *Store) Texts() (map[string]string, error) {
 	unlock, err := s.lock()
 	if err != nil {
 		return nil, err
@@ -1079,7 +1159,7 @@ func (s *Store) Counts() (map[string]int, error) {
 	if err != nil {
 		return nil, err
 	}
-	counts := map[string]int{}
+	texts := map[string]string{}
 	for id, n := range t.byID {
 		if n.Folder {
 			continue
@@ -1092,9 +1172,9 @@ func (s *Store) Counts() (map[string]int, error) {
 		if err != nil {
 			return nil, err
 		}
-		counts[id] = Count(string(b))
+		texts[id] = CleanProse(string(b))
 	}
-	return counts, nil
+	return texts, nil
 }
 
 // Export joins the work into one text in the tree's order, each node under

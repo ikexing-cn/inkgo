@@ -294,16 +294,6 @@ func dot(c *ui.Context, color ui.Color, size float32) ui.Element {
 	return ui.Box(c).Size(size, size).Radius(rRound).Background(color).Shrink(0)
 }
 
-// pill is a small rounded label.
-func pill(c *ui.Context, text string, color ui.Color) ui.Element {
-	if color.A == 0 {
-		color = c.Theme().TextMuted
-	}
-	b := ui.Row(c).Padding(2, 8).Radius(rXs).Background(color.Alpha(0.12)).Shrink(0)
-	b.Children(func() { ui.Text(c, text).FontSize(fsSmall).TextColor(color).SingleLine() })
-	return b
-}
-
 // ghost is the text button, the one look of words to click that stand in no
 // box: ink over a thin line. Under the pointer it has a fill and the line
 // takes the color of the words. color, when given, is for the words: the

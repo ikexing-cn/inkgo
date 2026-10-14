@@ -26,7 +26,7 @@ Status: implemented
 - 走查每点一下的四项检查（伸出去的、按钮行、回应指针、对话框宽高）并成一次往返；样式表里的 `:hover` 规则只读一遍。
 - `desk` 的测试用仓库里的临时文件夹 `.tmp/desk-tests`（`desk/main_test.go` 的 `TestMain` 设 `TMP`、`TEMP`、`TMPDIR`；`.gitignore` 加了 `/.tmp/`）。在模块里面的路径 `go test` 只看一眼，不解析链接。
 - 一条命令 `npm run verify`（`scripts/verify.ts`）把各项同时跑，哪项过了、用了多久各一行，没过的才把它的输出打出来：
-  - 每次都跑：`go vet ./...`、`go test ./...`、`verify-notes`、`verify-prototype`；
+  - 每次都跑：`go vet ./...`、`go test ./...`、`verify-notes`、`verify-prototype`；2026-10-14 加了 `verify-ui`（`mygo vet`，见 [mygo 升级那篇](2026-10-13-mygo-0.4.md)）。它单独跑约 3 秒；测试都重跑时全套量了几次，没有它 35 到 39 秒，有它 41 到 48 秒（作者同时在用这台机器，有一次 64 秒），测试不用重跑时 36 秒；
   - `verify-design` 要联网，只在 `DESIGN.md` 改了还没提交时跑，`npm run verify -- --design` 强制跑。
 - `AGENTS.md`「提交前」改成这一条命令。原型的走查原来不在必过的几条里（太慢，只在改了原型时跑），现在每次都跑。
 

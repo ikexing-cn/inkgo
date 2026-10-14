@@ -205,6 +205,7 @@ func (a *App) Open(path string) error {
 func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 	if a.Store != nil {
 		a.flush()
+		a.keepUnsettled()
 		a.remember(false)
 		a.backupNow()
 		a.stopSummaries()
@@ -245,6 +246,7 @@ func (a *App) resetView() {
 // does not inherit the last one's folder or name.
 func (a *App) closeWork() {
 	a.flush()
+	a.keepUnsettled()
 	a.remember(false)
 	a.backupNow()
 	a.stopSummaries()
@@ -262,6 +264,7 @@ func (a *App) Close() error {
 		a.cancel()
 	}
 	a.flush()
+	a.keepUnsettled()
 	a.remember(false)
 	if a.Store != nil {
 		a.backupNow()
@@ -440,6 +443,12 @@ func (a *App) flashNew() {
 // All state visible to the view is changed on the view thread. Workers own the
 // store until their result arrives; navigation/mutations are disabled meanwhile.
 func (a *App) run(c *ui.Context, label string, fn func(context.Context) (func(), error)) {
+	a.work(c.Services(), label, fn)
+}
+
+// work is run with the window's services, which outlive the frame: the
+// worker asks for the next frame through them, and so does trying again.
+func (a *App) work(sv ui.Services, label string, fn func(context.Context) (func(), error)) {
 	if a.busy != "" {
 		return
 	}
@@ -447,8 +456,8 @@ func (a *App) run(c *ui.Context, label string, fn func(context.Context) (func(),
 	a.cancel = cancel
 	a.busy = label
 	a.Error = ""
-	a.again = func() { a.run(c, label, fn) }
-	go func() { apply, err := fn(ctx); cancel(); a.results <- result{apply: apply, err: err}; c.Invalidate() }()
+	a.again = func() { a.work(sv, label, fn) }
+	go func() { apply, err := fn(ctx); cancel(); a.results <- result{apply: apply, err: err}; sv.Invalidate() }()
 }
 
 func (a *App) poll() {
@@ -493,25 +502,6 @@ func (a *App) setError(err error) {
 	} else {
 		a.Error = ""
 	}
-}
-
-// browse asks for a folder without blocking the view thread.
-func (a *App) browse(c *ui.Context, title string, into *string) {
-	pick := a.PickFolder
-	go func() {
-		path, err := pick(title)
-		a.picks <- func() {
-			if err != nil {
-				a.Error = err.Error()
-			} else if path != "" {
-				*into = path
-				if a.name == "" {
-					a.name = filepath.Base(path)
-				}
-			}
-		}
-		c.Invalidate()
-	}()
 }
 
 func (a *App) loadWork() {

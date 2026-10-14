@@ -90,6 +90,27 @@ func (a *App) keepTabs() {
 	})
 }
 
+// keepUnsettled keeps, as the work is left, the words of the tabs whose
+// chapter was changed outside and the author had not chosen between the
+// two: the disk's stay, and the editor's become a snapshot.
+func (a *App) keepUnsettled() {
+	if a.Store == nil {
+		return
+	}
+	w := &a.write
+	keep := func(id string, ed *editor.Editor, disk *workspace.Chapter) {
+		if ed == nil || disk == nil || workspace.CleanProse(ed.Doc.String()) == disk.Text {
+			return
+		}
+		_, err := a.Store.TakeSnapshot(id, workspace.SnapExternal, ed.Doc.String(), storedMarks(ed.Doc.Marks()))
+		a.warn(err)
+	}
+	keep(w.node, w.ed, w.external)
+	for id, s := range w.parked {
+		keep(id, s.ed, s.external)
+	}
+}
+
 // unsaved says the node shown has words that are not on the disk: its
 // prose, its outline or its summary, or all of it when the chapter is gone
 // from there, or was changed there and the author has not chosen between
@@ -144,6 +165,8 @@ func (a *App) sheets(c *ui.Context) {
 func (a *App) sheetRow(c *ui.Context, shut *[]string) {
 	t := a.pal.theme
 	w := &a.write
+	shown := w.node
+	defer func() { w.tabSeen = shown }()
 	ui.ScrollHorizontal(c.Key("标签页")).Height(hControl).Shrink(1).Children(func() {
 		for _, id := range w.tabs {
 			on := id == w.node
@@ -165,7 +188,9 @@ func (a *App) sheetRow(c *ui.Context, shut *[]string) {
 			case over:
 				tab.Background(t.SurfaceHover)
 			}
-			if on {
+			// Into view as it becomes the tab shown, and not after: the
+			// author may scroll the row to the others.
+			if on && w.tabSeen != id {
 				tab.ScrollIntoView()
 			}
 			tab.Children(func() {

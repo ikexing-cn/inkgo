@@ -103,9 +103,6 @@ func (e *Editor) BeginDraft(a, b int) {
 	e.edited()
 }
 
-// Drafting reports whether an AI is writing into the text.
-func (e *Editor) Drafting() bool { return e.dr.on }
-
 // DraftAppend adds s to the end of the text being drafted.
 func (e *Editor) DraftAppend(s string) {
 	if !e.dr.on {

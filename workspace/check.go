@@ -42,8 +42,11 @@ type Finding struct {
 // Check is what reading a chapter against the setting found. It knows the
 // prose it read, so it can tell when that changed.
 type Check struct {
-	Of       string    `json:"of"`
-	Words    int       `json:"words"`
+	Of    string `json:"of"`
+	Words int    `json:"words"`
+	// Read is how many of Words, from the start, the check was given,
+	// when the chapter was too long to give whole; 0 when it read all.
+	Read     int       `json:"read,omitempty"`
 	By       string    `json:"by"`
 	At       time.Time `json:"at"`
 	Findings []Finding `json:"findings,omitempty"`

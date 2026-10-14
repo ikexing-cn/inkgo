@@ -114,6 +114,9 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 	if strings.TrimSpace(text) == "" {
 		return workspace.Check{}, fmt.Errorf("上下文预算 %d 放不下这一章：请到“模型设置”里提高预算", work.TokenBudget)
 	}
+	if len(text) < len(ch.Text) {
+		out.Read = workspace.Count(text) // said with the result: the rest was not looked at
+	}
 	budget -= discussion.Estimate(text)
 	entries := slices.DeleteFunc(slices.Clone(set.Entries), func(e workspace.Entry) bool { return e.Place == workspace.PlaceOpen })
 	if !slices.ContainsFunc(entries, func(e workspace.Entry) bool { return e.Place == workspace.PlaceBody }) {
@@ -156,7 +159,7 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 		msg.WriteString("\n\n【作者说过是故意的】" + meant.String())
 	}
 	msg.WriteString("\n\n【章名】" + n.Title + "\n\n【正文】")
-	if len([]rune(text)) < len([]rune(ch.Text)) {
+	if out.Read > 0 {
 		msg.WriteString("（正文太长，只给了前面一部分）")
 	}
 	msg.WriteString("\n" + text)

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -21,15 +20,12 @@ func (s *Store) sessions() ([]string, error) {
 	}
 	ids := []string{}
 	for _, e := range entries {
-		if strings.HasPrefix(e.Name(), ".tmp-") {
+		// What is not a session is not ours, and is left alone: the file
+		// a system keeps in every folder, the copy a syncing program made
+		// of a session it could not merge.
+		id, ok := strings.CutSuffix(e.Name(), ".jsonl")
+		if e.IsDir() || !ok || validID(id) != nil {
 			continue
-		}
-		if e.IsDir() || !strings.HasSuffix(e.Name(), ".jsonl") {
-			return nil, fmt.Errorf("%s: unexpected session file", filepath.Join(p, e.Name()))
-		}
-		id := strings.TrimSuffix(e.Name(), ".jsonl")
-		if err = validID(id); err != nil {
-			return nil, fmt.Errorf("%s: %w", filepath.Join(p, e.Name()), err)
 		}
 		if _, err = s.path("sessions", e.Name()); err != nil {
 			return nil, err

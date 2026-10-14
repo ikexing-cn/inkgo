@@ -303,10 +303,15 @@ func Unpack(p, into string) error {
 		return err
 	}
 	for _, f := range z.File {
-		if !fs.ValidPath(f.Name) || strings.HasPrefix(f.Name, ".writer/") || strings.HasSuffix(f.Name, "/") {
+		// A name is taken as this system reads it: one that is a path of
+		// its own here, as with the other system's separator or a drive
+		// before it, would be written outside into, or into .writer/.
+		local := filepath.FromSlash(f.Name)
+		first, _, _ := strings.Cut(local, string(filepath.Separator))
+		if !fs.ValidPath(f.Name) || !filepath.IsLocal(local) || strings.EqualFold(first, ".writer") || strings.HasSuffix(f.Name, "/") {
 			return fmt.Errorf("%s: unexpected entry %q", p, f.Name)
 		}
-		dst := filepath.Join(into, filepath.FromSlash(f.Name))
+		dst := filepath.Join(into, local)
 		if err = os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
 			return err
 		}

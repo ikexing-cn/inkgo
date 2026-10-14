@@ -236,7 +236,7 @@ func sameFolder(x, y string) bool {
 
 // pickInto asks for a folder off the view thread and hands it to then.
 func (a *App) pickInto(c *ui.Context, title string, then func(path string)) {
-	pick := a.PickFolder
+	pick, sv := a.PickFolder, c.Services()
 	go func() {
 		path, err := pick(title)
 		a.picks <- func() {
@@ -246,7 +246,7 @@ func (a *App) pickInto(c *ui.Context, title string, then func(path string)) {
 				then(path)
 			}
 		}
-		c.Invalidate()
+		sv.Invalidate()
 	}()
 }
 

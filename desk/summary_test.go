@@ -125,6 +125,8 @@ func TestDraftOffersToFillInSummaries(t *testing.T) {
 	if tt.HasText("本章摘要 · 暂无") {
 		t.Fatal(tt.Texts())
 	}
+	// The dialog, still open, says what the draft will have now.
+	until(t, tt, "the note", func() bool { return tt.HasText("起草时 AI 会参考前 1 章的摘要，以衔接前文。") })
 	a.write.draftOpen = false
 	a.openDraft()
 	tt.Frame()

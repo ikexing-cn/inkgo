@@ -1,9 +1,11 @@
 package desk
 
 import (
+	"fmt"
 	"image/png"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -224,4 +226,40 @@ func TestShotCheck(t *testing.T) {
 	tt.SetDark(false)
 	a.openPrefs("提醒与检查")
 	shot("check-settings.png")
+}
+
+// A chapter too long for the model to be given whole is not said to be
+// checked, nor its summary to be of the chapter: both say how much was read.
+func TestAChapterReadInPartIsToldSo(t *testing.T) {
+	a, tt, id := writingFixture(t, strings.Repeat("她蹲下去拧开灯座。", 4000))
+	a.revise(workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "主角靠维修路灯谋生，但她很怕黑。", Names: []string{"林晚"}})
+	a.write.autoSummary = false
+	f := &stream{pieces: []string{`{"findings":[]}`}}
+	penWith(a, f)
+	tt.Frame()
+	if err := tt.Click("立即检查"); err != nil {
+		t.Fatal(err)
+	}
+	until(t, tt, "the check", func() bool { return a.ck.all[id].Of != "" && a.ck.running == "" })
+	tt.Frame()
+	read := a.ck.all[id].Read
+	if read <= 0 || read >= 36000 {
+		t.Fatalf("read %d", read)
+	}
+	if want := fmt.Sprintf("第1章仅检查前 %d 字，未发现不一致", read); !tt.HasText(want) || tt.HasText("第1章检查完成，未发现不一致") {
+		t.Fatal(want, tt.Texts())
+	}
+
+	f.pieces = []string{"林晚修了一夜的灯。"}
+	a.queueSummary(id)
+	until(t, tt, "the summary", func() bool { return a.write.sum.By != "" })
+	a.write.summaryOpen = true
+	tt.Frame()
+	tt.Frame()
+	if want := fmt.Sprintf(" · 仅依据前 %d 字", a.write.sum.Read); a.write.sum.Read <= 0 || !tt.HasText("本章摘要 · 不完整") || !slices.ContainsFunc(tt.Texts(), func(s string) bool { return strings.HasSuffix(s, want) }) {
+		t.Fatal(want, tt.Texts())
+	}
+	if label, _, warn := a.summaryState(); label != "本章摘要 · 不完整" || warn != partNote {
+		t.Fatal(label, warn)
+	}
 }

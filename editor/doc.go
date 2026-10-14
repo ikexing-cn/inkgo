@@ -69,7 +69,6 @@ func (d *Doc) Len() int              { return len(d.text) }
 func (d *Doc) String() string        { return string(d.text) }
 func (d *Doc) Version() int          { return d.version }
 func (d *Doc) Slice(a, b int) string { return string(d.text[a:b]) }
-func (d *Doc) Runes() []rune         { return d.text }
 
 // Marks returns a copy of the marks.
 func (d *Doc) Marks() []Mark { return slices.Clone(d.marks) }

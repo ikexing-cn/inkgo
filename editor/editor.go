@@ -162,15 +162,6 @@ func (e *Editor) Completions() []Entity {
 	return slices.Clone(e.comp)
 }
 
-// SetText replaces the whole text, forgetting the undo history.
-func (e *Editor) SetText(s string) {
-	e.Doc = NewDoc(s)
-	e.caret, e.anchor, e.scrollY = 0, 0, 0
-	e.undo, e.redo, e.ghost, e.compOpen = nil, nil, "", false
-	e.shapes = map[string]shaped{}
-	e.lay = layout{}
-}
-
 func (e *Editor) ghostValid() bool {
 	return e.ghost != "" && e.ghostAt == e.caret && e.anchor == e.caret &&
 		e.ghostVer == e.Doc.version && e.preedit == ""

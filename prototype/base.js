@@ -56,6 +56,7 @@ function fresh(book = BOOK.shelf[0].id) {
     todoAll: true, more: {}, ignored: [], // 待处理：看全部还是本章、哪几组展开了、忽略掉的
     kind: '全部', cid: null, checking: false, dirty: {}, // 检查：看哪一类、哪一条、正在查哪一章、哪几章查过以后又改了
     queue: [], never: {}, failed: {}, // 检查：排着队等查的、尚未检查的、没查成的几章
+    part: {}, // 太长、AI 只读了前面一段的几章：{ check, sum } 是检查和摘要各读了前多少字，再查、再生成一次就当它读全了
     catForm: { name: '', land: '' }, catDrop: '', // 作品分类：正在填的、要删的
     toasts: [],
     backup: { state: kept, at: kept === 'ok' ? '今天 10:32' : kept === 'fail' ? '昨天 21:40' : '', dir: kept === 'none' ? '' : 'E:\\写作备份', copies: kept === 'none' ? 0 : 12, close: true, daily: true, hourly: false, keep: '最近 30 份', hush: false },

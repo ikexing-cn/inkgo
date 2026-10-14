@@ -2,6 +2,8 @@ package desk
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -270,5 +272,79 @@ func TestContinueOnDemand(t *testing.T) {
 	tt.Key(0, ui.KeyTab)
 	if ms := ed.Doc.Marks(); ed.Doc.String() != "她推开门，屋里很暗。" || len(ms) != 1 || ms[0].Kind != editor.MarkAIAccepted || ms[0].Note != "deepseek/deepseek-flash" {
 		t.Fatalf("accepted %q %+v", ed.Doc.String(), ms)
+	}
+}
+
+// The writer the editors predict with is made anew when a service is saved
+// again: its address or its key may be another.
+func TestSavingAServiceRemakesThePredictingWriter(t *testing.T) {
+	a, tt, _ := writingFixture(t, "原来的。")
+	made := 0
+	a.Pen = func(s *workspace.Store) (*writing.Writer, error) {
+		made++
+		return nil, writing.ErrNoModel
+	}
+	a.write.penKey = ""
+	tt.Frame()
+	tt.Frame()
+	if made != 1 {
+		t.Fatalf("made %d times before anything changed", made)
+	}
+	a.provider = model.Provider{ID: "local", Name: "本机", Protocol: "chat", BaseURL: "http://127.0.0.1:1234/v1"}
+	a.models = "m1"
+	if err := a.saveProvider(); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	was := made
+	// The same service saved again, with another address.
+	a.provider.BaseURL = "http://127.0.0.1:4321/v1"
+	if err := a.saveProvider(); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Frame()
+	if made != was+1 {
+		t.Fatalf("made %d times after the service was saved again, %d before", made, was)
+	}
+}
+
+// Taking the disk's text while a rewrite is under way ends the rewrite:
+// what it would propose is about the text given up.
+func TestTakingTheDisksTextEndsTheRewrite(t *testing.T) {
+	a, tt, _ := writingFixture(t, "她走到井边。井里有光。")
+	f := &stream{pieces: []string{"她慢慢", "走到井边。"}, hold: make(chan struct{})}
+	penWith(a, f)
+	a.write.ed.Select(0, 6)
+	tt.Frame()
+	if err := tt.Click("AI 改写"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	a.write.instruction = "放慢"
+	tt.Frame()
+	if err := tt.Click("改写"); err != nil {
+		t.Fatal(err)
+	}
+	until(t, tt, "the rewrite to start", func() bool { return a.write.run != nil })
+	p := filepath.Join(a.Store.Root(), "chapters", "第一章.txt")
+	if err := os.WriteFile(p, []byte("别处改的。"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	a.lookAtText()
+	if a.write.external == nil {
+		t.Fatal("the outside change was not seen")
+	}
+	a.takeDisk()
+	close(f.hold)
+	for range 20 {
+		time.Sleep(5 * time.Millisecond)
+		tt.Frame()
+	}
+	if _, _, _, ok := a.write.ed.Proposal(); ok || a.write.proposed != nil || a.write.run != nil {
+		t.Fatal("the rewrite went on over the text taken from the disk")
+	}
+	if got := a.write.ed.Doc.String(); got != "别处改的。" {
+		t.Fatalf("the editor holds %q", got)
 	}
 }

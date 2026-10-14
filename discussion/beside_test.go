@@ -52,7 +52,7 @@ func TestTalkBesideTheProse(t *testing.T) {
 	// The next turn, from the talk page, sees the quote in the history but
 	// neither the chapter nor the rules for it.
 	e.Beside = nil
-	if _, err = e.Send(context.Background(), session, "继续"); err != nil {
+	if _, err = e.Say(context.Background(), session, workspace.Event{Text: "继续"}); err != nil {
 		t.Fatal(err)
 	}
 	r = f.calls[1]

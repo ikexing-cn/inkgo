@@ -206,6 +206,16 @@ func TestForeshadowWithoutID(t *testing.T) {
 	}
 }
 
+// foreshadowOf is the foreshadowing of id as the page has it.
+func (a *App) foreshadowOf(id string) (foreshadow, bool) {
+	for _, f := range a.foreshadows() {
+		if f.id == id {
+			return f, true
+		}
+	}
+	return foreshadow{}, false
+}
+
 func TestShotForeshadow(t *testing.T) {
 	dir := os.Getenv("SHOT")
 	if dir == "" {

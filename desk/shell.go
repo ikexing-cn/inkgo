@@ -121,11 +121,6 @@ func (a *App) focused() bool { return a.Store != nil && a.page == 3 && a.write.f
 // sideShown says whether the sidebar is on screen.
 func (a *App) sideShown() bool { return a.Store != nil && !a.sideHidden && !a.focused() }
 
-// paneShown says whether the right pane is on screen.
-func (a *App) paneShown() bool {
-	return a.Store != nil && (a.page == 0 || a.page == 3 && !a.write.focus) && !a.doc.hidden
-}
-
 // sessionParts splits a session title into its date and its words.
 func (a *App) sessionParts(id string) (when, words string) {
 	title := a.titles[id]

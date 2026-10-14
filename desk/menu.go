@@ -27,7 +27,11 @@ type menuState struct {
 // menu is a menu being drawn: build adds its rows in order, and a row's
 // Chosen says it was picked, which closes the menu.
 type menu struct {
-	a    *App
+	a *App
+	// The Context of the frame the menu is built in: a menu is made, built
+	// and dropped in the one call, so it is never kept past its frame. mygo
+	// vet reports any Context in a struct; scripts/verify-ui.ts lets this
+	// one through, and no other.
 	c    *ui.Context
 	wait *menuItem // the row asked for and not yet drawn
 	side func()    // the list beside the menu, drawn after it

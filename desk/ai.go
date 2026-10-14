@@ -49,6 +49,11 @@ func (p pen) Predict(ctx context.Context, before string) (string, error) {
 	return w.Predict(ctx, writing.Scene{Chapter: p.chapter, Before: before})
 }
 
+// modelsChanged tells that a service's address or key may be another: the
+// writer the editors predict with holds the ones it was made with, and is
+// made anew.
+func (a *App) modelsChanged() { a.write.penKey = "" }
+
 // keepPen rebuilds the writer the editors predict with when the model
 // settings change.
 func (a *App) keepPen() {
@@ -85,6 +90,7 @@ func (a *App) start(c *ui.Context, pw *writing.Writer, r *aiRun) {
 	ctx, cancel := context.WithCancel(context.Background())
 	r.cancel = cancel
 	a.write.run = r
+	sv := c.Services()
 	go func() {
 		text, err := pw.Run(ctx, r.job, func(s string) {
 			if r.op != workspace.AIDraft {
@@ -93,7 +99,7 @@ func (a *App) start(c *ui.Context, pw *writing.Writer, r *aiRun) {
 			r.mu.Lock()
 			r.chunks = append(r.chunks, s)
 			r.mu.Unlock()
-			c.Invalidate()
+			sv.Invalidate()
 		})
 		r.mu.Lock()
 		r.done, r.text, r.err = true, text, err
@@ -102,7 +108,7 @@ func (a *App) start(c *ui.Context, pw *writing.Writer, r *aiRun) {
 		}
 		r.mu.Unlock()
 		cancel()
-		c.Invalidate()
+		sv.Invalidate()
 	}()
 }
 

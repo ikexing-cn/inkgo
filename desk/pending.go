@@ -228,7 +228,7 @@ func (a *App) pendingRow(c *ui.Context, it pendItem) {
 	})
 	if r.Clicked() && it.retry {
 		a.write.pendOpen = false
-		a.runBackup(c)
+		a.runBackup(c.Services())
 	} else if r.Clicked() {
 		a.goTo(it)
 	}

@@ -52,9 +52,9 @@ func (w *Writer) Summarize(ctx context.Context, chapter string) (workspace.Summa
 	if strings.TrimSpace(text) == "" {
 		return workspace.Summary{}, fmt.Errorf("上下文预算 %d 放不下摘要的要求：请到“模型设置”里提高预算", w.Store.Work().TokenBudget)
 	}
-	note := ""
-	if len([]rune(text)) < len([]rune(ch.Text)) {
-		note = "（正文太长，只给了前面一部分）"
+	note, read := "", 0
+	if len(text) < len(ch.Text) {
+		note, read = "（正文太长，只给了前面一部分）", workspace.Count(text)
 	}
 	req := model.Request{System: summaryRules, MaxTokens: summaryOutput, Effort: model.EffortNone,
 		Messages: []model.Message{{Role: workspace.RoleUser, Content: "【章名】" + n.Title + "\n\n【正文】" + note + "\n" + text}}}
@@ -69,7 +69,7 @@ func (w *Writer) Summarize(ctx context.Context, chapter string) (workspace.Summa
 	if !finished(sum) {
 		return workspace.Summary{}, errors.New("模型给的摘要没有写完，可以重新生成")
 	}
-	return workspace.Summary{Text: sum, Of: workspace.ProseHash(ch.Text), Words: workspace.Count(ch.Text), By: w.Model.Name, At: time.Now()}, nil
+	return workspace.Summary{Text: sum, Of: workspace.ProseHash(ch.Text), Words: workspace.Count(ch.Text), Read: read, By: w.Model.Name, At: time.Now()}, nil
 }
 
 // earlier is the documents before n in the order of the tree.

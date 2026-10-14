@@ -4,6 +4,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -283,4 +284,24 @@ func TestShotBackup(t *testing.T) {
 	a.bk.prefs = false
 	a.page = 0
 	shot("discussion-dark.png")
+}
+
+// Why a backup failed is said from what was found as it failed: saying it
+// does not look for the disk again, as it is said in every frame.
+func TestTroubleSaysWhatWasFoundAsItFailed(t *testing.T) {
+	missing := &os.PathError{Op: "stat", Path: `X:\备份`, Err: os.ErrNotExist}
+	if short, _, _ := trouble(`X:\备份`, missing, true); runtime.GOOS == "windows" && short != "找不到 X 盘" {
+		t.Fatalf("with the disk gone: %q", short)
+	}
+	if short, _, _ := trouble(`X:\备份`, missing, false); short != "找不到备份文件夹" {
+		t.Fatalf("with the disk there: %q", short)
+	}
+	if volumeGone(t.TempDir()) {
+		t.Fatal("the disk of a folder that is there counts as gone")
+	}
+	a, _, _ := fixture(t)
+	a.backupDone(backup.Settings{Dir: t.TempDir()}, missing)
+	if a.bk.err == nil || a.bk.gone {
+		t.Fatalf("err %v, gone %v", a.bk.err, a.bk.gone)
+	}
 }

@@ -82,19 +82,6 @@ func (f foreshadow) meta() string {
 	return fmt.Sprintf("第%d章 · %d 章前埋下", f.ch, f.gap)
 }
 
-// chapterName names the ch-th chapter with its title: 第3章《井》, or the
-// title alone when it numbers itself.
-func chapterName(ch int, title string) string {
-	title = strings.TrimSpace(title)
-	if title == "" {
-		return fmt.Sprintf("第%d章", ch)
-	}
-	if numbered.MatchString(title) {
-		return title
-	}
-	return fmt.Sprintf("第%d章《%s》", ch, title)
-}
-
 // foreState is what the foreshadowings' column and popovers show.
 type foreState struct {
 	// status is the list shown: foreOpen for those not paid off, with
@@ -164,18 +151,6 @@ func (a *App) foreshadows() []foreshadow {
 		}
 	}
 	return out
-}
-
-func (a *App) foreshadowOf(id string) (foreshadow, bool) {
-	if id == "" {
-		return foreshadow{}, false
-	}
-	for _, f := range a.foreshadows() {
-		if f.id == id {
-			return f, true
-		}
-	}
-	return foreshadow{}, false
 }
 
 func markID() string {
@@ -290,7 +265,7 @@ func (a *App) editMark(node, id string, fn func(m *workspace.ChapterMark) (keep 
 			marks = append(marks, m)
 		}
 	}
-	_, err = a.Store.WriteChapter(node, ch.Text, marks)
+	_, err = a.Store.WriteChapterOver(node, ch.Text, marks, ch.Stamp) // over the text read just now, and no other
 	a.warn(err)
 	a.scanMarks()
 }

@@ -1,7 +1,8 @@
 /**
  * Runs the checks a commit waits for, all at once, and says which passed:
- * go vet, go test, the notes, the prototype; and DESIGN.md's own linter when
- * DESIGN.md is not as it was committed (that one needs the network).
+ * go vet, the toolkit's vet, go test, the notes, the prototype; and
+ * DESIGN.md's own linter when DESIGN.md is not as it was committed (that one
+ * needs the network).
  * What a check printed is shown only if it failed.
  * Usage: node scripts/verify.ts          every check
  *        node scripts/verify.ts --design also the linter, changed or not
@@ -10,6 +11,7 @@ import { spawn, spawnSync } from 'node:child_process'
 
 const checks: [name: string, command: string][] = [
   ['go vet', 'go vet ./...'],
+  ['ui vet', 'npm run -s verify-ui'],
   ['go test', 'go test ./...'],
   ['notes', 'npm run -s verify-notes'],
   ['prototype', 'npm run -s verify-prototype'],

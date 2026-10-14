@@ -47,14 +47,9 @@ type Turn struct {
 
 var errNoModel = errors.New("请先配置讨论模型")
 
-// Send saves the author's words, then asks for a reply. If the reply fails,
-// the words stay saved and Retry asks again without sending them twice.
-func (e *Engine) Send(ctx context.Context, session, input string) (Turn, error) {
-	return e.Say(ctx, session, workspace.Event{Text: input})
-}
-
-// Say is Send of the author's words with the prose they quote and the
-// chapter they were writing.
+// Say saves the author's words, with the prose they quote and the chapter
+// they were writing, then asks for a reply. If the reply fails, the words
+// stay saved and Retry asks again without sending them twice.
 func (e *Engine) Say(ctx context.Context, session string, words workspace.Event) (Turn, error) {
 	var turn Turn
 	if strings.TrimSpace(words.Text) == "" {

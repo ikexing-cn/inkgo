@@ -135,7 +135,12 @@ func (a *App) savePrefs() {
 		Day: a.write.day, DayStart: a.write.dayStart, Goal: a.write.goal, Carets: a.write.carets, Days: a.write.days, TextSize: a.write.size,
 		Ignored: a.write.ignoredKeys()})
 	if err == nil {
-		err = os.WriteFile(a.prefsPath(), b, 0644)
+		// Whole or not at all: a file cut short would be read as none, and
+		// the tabs, what was ignored and the days' counts would be gone.
+		temp := a.prefsPath() + ".tmp"
+		if err = os.WriteFile(temp, b, 0644); err == nil {
+			err = os.Rename(temp, a.prefsPath())
+		}
 	}
 	a.warn(err)
 }

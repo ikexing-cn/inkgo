@@ -20,6 +20,7 @@ import (
 type backupView struct {
 	running bool
 	err     error     // why the last backup failed; nil once one succeeds
+	gone    bool      // it failed with the disk of its folder not found
 	failed  time.Time // when it failed, so it is not retried every frame
 	checked time.Time // when it was last seen whether one is due
 	open    bool      // the sidebar line's popover
@@ -114,7 +115,7 @@ func (a *App) startBackups(c *ui.Context) {
 	s.Dir, s.OnClose, s.Daily, s.Hourly, s.Later = a.bk.place, a.bk.onClose, a.bk.daily, a.bk.hourly, time.Time{}
 	a.setBackup(s)
 	a.bk.ask, a.bk.err, a.bk.listed = false, nil, false
-	a.runBackup(c)
+	a.runBackup(c.Services())
 }
 
 // meta is what a backup of fl says of the work.
@@ -140,8 +141,9 @@ func (a *App) readWork() (backup.Files, error) {
 	return fl, err
 }
 
-// runBackup backs the work up off the view thread.
-func (a *App) runBackup(c *ui.Context) {
+// runBackup backs the work up off the view thread, which sv wakes as it
+// is done.
+func (a *App) runBackup(sv ui.Services) {
 	s, ok := a.backupSettings()
 	if !ok || s.Dir == "" || a.bk.running {
 		return
@@ -161,7 +163,7 @@ func (a *App) runBackup(c *ui.Context) {
 				a.backupDone(s, err)
 			}
 		}
-		c.Invalidate()
+		sv.Invalidate()
 	}()
 }
 
@@ -181,7 +183,9 @@ func (a *App) backupNow() {
 func (a *App) backupDone(s backup.Settings, err error) {
 	a.bk.listed = false
 	if err != nil {
-		a.bk.err, a.bk.failed = err, time.Now()
+		// The disk is looked for once, here: what says why draws each
+		// frame, and a disk that is away may take long to say so.
+		a.bk.err, a.bk.failed, a.bk.gone = err, time.Now(), errors.Is(err, fs.ErrNotExist) && volumeGone(s.Dir)
 		return
 	}
 	a.bk.err = nil
@@ -210,7 +214,7 @@ func (a *App) backupDue(c *ui.Context) {
 	daily := s.Daily && s.Last.Format(time.DateOnly) != now.Format(time.DateOnly)
 	hourly := s.Hourly && a.page == 3 && now.Sub(s.Last) >= time.Hour
 	if daily || hourly {
-		a.runBackup(c)
+		a.runBackup(c.Services())
 	}
 }
 
@@ -224,7 +228,7 @@ func (a *App) backupPending() (pendGroup, bool) {
 	if !ok || a.bk.err == nil || a.write.ignored[pendBackup] {
 		return pendGroup{}, false
 	}
-	short, _, _ := trouble(s.Dir, a.bk.err)
+	short, _, _ := trouble(s.Dir, a.bk.err, a.bk.gone)
 	sub := "点击重试"
 	if !s.Last.IsZero() {
 		sub += " · 上次备份 " + when(s.Last, time.Now())
@@ -247,17 +251,25 @@ func when(t, now time.Time) string {
 	}
 }
 
-// trouble says why a backup into dir failed: shortly, for the line and
-// the toolbar, then as the popover's title and what to do.
-func trouble(dir string, err error) (short, title, body string) {
+// volumeGone says the disk dir is on cannot be found, as one unplugged.
+func volumeGone(dir string) bool {
 	vol := filepath.VolumeName(dir)
+	if vol == "" {
+		return false
+	}
+	_, err := os.Stat(vol + string(filepath.Separator))
+	return err != nil
+}
+
+// trouble says why a backup into dir failed: shortly, for the line and
+// the toolbar, then as the popover's title and what to do. gone is that
+// the disk of dir was not found as it failed.
+func trouble(dir string, err error, gone bool) (short, title, body string) {
 	if errors.Is(err, fs.ErrNotExist) {
-		if vol != "" {
-			if _, e := os.Stat(vol + string(filepath.Separator)); e != nil {
-				d := strings.TrimSuffix(vol, ":")
-				return "找不到 " + d + " 盘", "找不到 " + d + " 盘，本次备份未完成",
-					"作品未受影响，请接入硬盘后重试。"
-			}
+		if gone {
+			d := strings.TrimSuffix(filepath.VolumeName(dir), ":")
+			return "找不到 " + d + " 盘", "找不到 " + d + " 盘，本次备份未完成",
+				"作品未受影响，请接入硬盘后重试。"
 		}
 		return "找不到备份文件夹", "找不到备份文件夹，本次备份未完成",
 			"作品未受影响，文件夹可能已被移动或改名。"
@@ -335,7 +347,7 @@ func (a *App) backupChip(c *ui.Context) {
 	if !ok || a.bk.err == nil || s.Hush.Format(time.DateOnly) == time.Now().Format(time.DateOnly) {
 		return
 	}
-	short, _, _ := trouble(s.Dir, a.bk.err)
+	short, _, _ := trouble(s.Dir, a.bk.err, a.bk.gone)
 	t := a.pal.theme
 	b := ui.ButtonBase(c).Row().Height(hControlSm).Margin(0, 0, 0, 6).Gap(6).AlignItems(ui.Center).Padding(0, 8).Radius(rControl).Shrink(0).
 		Background(a.pal.warnBg).Border(1, a.pal.warnBd).Label("备份提示")
@@ -368,7 +380,7 @@ func (a *App) backupCard(c *ui.Context, panel ui.Element, s backup.Settings) {
 	a.pal.pop.on(panel.MaxWidth(300).Radius(rCard).Padding(12).Gap(8).Background(bg).Border(1, t.Border))
 	panel.Children(func() {
 		if a.bk.err != nil {
-			_, title, body := trouble(s.Dir, a.bk.err)
+			_, title, body := trouble(s.Dir, a.bk.err, a.bk.gone)
 			ui.Text(c, title).FontSize(fsBody).FontWeight(600)
 			ui.Text(c, body+lastSaid(s, now)).FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Justify(ui.End).Children(func() {
@@ -383,7 +395,7 @@ func (a *App) backupCard(c *ui.Context, panel ui.Element, s backup.Settings) {
 				}
 				if a.pal.primary(c, "重试").Disabled(a.bk.running).Clicked() {
 					a.bk.open, a.bk.chip = false, false
-					a.runBackup(c)
+					a.runBackup(c.Services())
 				}
 			})
 			return
@@ -407,7 +419,7 @@ func (a *App) backupCard(c *ui.Context, panel ui.Element, s backup.Settings) {
 				label = "正在备份…"
 			}
 			if a.pal.primary(c, label).Label("立即备份").Disabled(a.bk.running).Clicked() {
-				a.runBackup(c)
+				a.runBackup(c.Services())
 			}
 		})
 	})
@@ -415,7 +427,7 @@ func (a *App) backupCard(c *ui.Context, panel ui.Element, s backup.Settings) {
 
 // pickBackupFolder asks for the folder to back up into.
 func (a *App) pickBackupFolder(c *ui.Context) {
-	pick := a.PickFolder
+	pick, sv := a.PickFolder, c.Services()
 	go func() {
 		path, err := pick("选择备份文件夹")
 		a.picks <- func() {
@@ -430,10 +442,10 @@ func (a *App) pickBackupFolder(c *ui.Context) {
 				s.Dir = path
 				a.setBackup(s)
 				a.bk.err, a.bk.listed = nil, false
-				a.runBackup(c)
+				a.runBackup(sv)
 			}
 		}
-		c.Invalidate()
+		sv.Invalidate()
 	}()
 }
 
@@ -581,7 +593,7 @@ func (a *App) backupSettingsView(c *ui.Context) {
 			case a.bk.running:
 				title = "正在备份…"
 			case a.bk.err != nil:
-				short, _, why := trouble(s.Dir, a.bk.err)
+				short, _, why := trouble(s.Dir, a.bk.err, a.bk.gone)
 				title, note, again = "备份失败", short+"。"+why, "重试"
 			case s.Last.IsZero():
 				title = "尚未备份"
@@ -592,7 +604,7 @@ func (a *App) backupSettingsView(c *ui.Context) {
 			}
 		})
 		if a.pal.primary(c, again).Label("立即备份").Disabled(a.bk.running).Clicked() {
-			a.runBackup(c)
+			a.runBackup(c.Services())
 		}
 	})
 	row := a.prefsRow

@@ -1,6 +1,7 @@
 package desk
 
 import (
+	"errors"
 	"fmt"
 	"maps"
 	"os"
@@ -40,11 +41,13 @@ type writeView struct {
 	// tabs are the nodes open, left to right, node the one of them shown;
 	// parked is what the others keep while they are not; closing, the tabs
 	// whose closing waits for an answer about the words not saved; blank,
-	// that the author closed them all.
+	// that the author closed them all; tabSeen, the tab the row last
+	// showed as the one open, which it scrolled to.
 	tabs    []string
 	parked  map[string]*sheet
 	closing []string
 	blank   bool
+	tabSeen string
 	ed      *editor.Editor
 	// What the disk has of the node shown, as of the last read or write.
 	saved    string
@@ -78,6 +81,7 @@ type writeView struct {
 	carets                map[string]int    // where the caret was in each chapter, as it was left
 	unsummarized          []string          // the chapters before without a summary, as a draft opens
 	recapped              int               // and how many before have one
+	recapStale            bool              // summaries were being written since the two were read
 	// The disk's text, changed outside while the node was open; lost, the
 	// node gone from the disk.
 	external  *workspace.Chapter
@@ -122,6 +126,7 @@ type writeView struct {
 	snap      string // the snapshot chosen
 	snapText  string
 	compare   bool
+	snapShown snapView
 
 	trashOpen bool
 	trash     []workspace.Trashed
@@ -516,7 +521,16 @@ func (a *App) saveText() error {
 	}
 	text := w.ed.Doc.String()
 	marks := storedMarks(w.ed.Doc.Marks())
-	stamp, err := a.Store.WriteChapter(w.node, text, marks)
+	stamp, err := a.Store.WriteChapterOver(w.node, text, marks, w.stamp)
+	if errors.Is(err, workspace.ErrChangedOutside) {
+		// Changed outside since the disk was last looked at. Other words
+		// there wait for the author to choose, as when the look finds
+		// them; the same words under a new date are written over.
+		if a.lookAtText(); w.external != nil {
+			return nil
+		}
+		stamp, err = a.Store.WriteChapterOver(w.node, text, marks, w.stamp)
+	}
 	if err != nil {
 		return err
 	}
@@ -603,6 +617,14 @@ func (a *App) checkDisk() {
 	if n.Folder || w.external != nil {
 		return
 	}
+	a.lookAtText()
+}
+
+// lookAtText reads the text of the chapter shown when the disk's is not
+// the version last seen. Other words than those last saved wait in
+// w.external for the author to choose between them and the editor's.
+func (a *App) lookAtText() {
+	w := &a.write
 	st, err := a.Store.ChapterStamp(w.node)
 	if err != nil {
 		a.warn(err)
@@ -631,6 +653,8 @@ func (a *App) takeDisk() {
 	if ch == nil {
 		return
 	}
+	// What the AI is writing or has proposed is about the text given up.
+	a.stopAI()
 	_, err := a.Store.TakeSnapshot(w.node, workspace.SnapExternal, w.ed.Doc.String(), storedMarks(w.ed.Doc.Marks()))
 	if err != nil {
 		a.warn(err)
@@ -656,7 +680,7 @@ func (a *App) keepMine() {
 		a.warn(err)
 		return
 	}
-	w.external, w.savedVer = nil, -1
+	w.external, w.savedVer, w.stamp = nil, -1, ch.Stamp
 	a.warn(a.saveText())
 	a.notice = "已保留编辑器版本，磁盘内容已存为快照"
 }
@@ -739,7 +763,7 @@ func (a *App) writing(c *ui.Context) {
 			switch {
 			case a.write.lost && a.write.ed != nil:
 				a.chapterView(c)
-			case !ok && len(a.write.tree.Root.Children) == 0:
+			case !ok && (a.write.tree.Root == nil || len(a.write.tree.Root.Children) == 0):
 				a.emptyWriting(c)
 				a.footBar(c, false)
 			case !ok:
@@ -1171,8 +1195,8 @@ func (a *App) chapterView(c *ui.Context) {
 				if sum {
 					label, _, warn := a.summaryState()
 					summary = a.disclosure(c, label, &w.summaryOpen)
-					if warn {
-						summary.Trigger.Tooltip("摘要可能与正文不一致")
+					if warn != "" {
+						summary.Trigger.Tooltip(warn)
 					}
 				}
 			})
@@ -1372,7 +1396,7 @@ func (a *App) folderView(c *ui.Context, n *workspace.Node) {
 							}
 						})
 						if gist := w.gists[child.ID]; gist != "" {
-							ui.Text(c, gist).FontSize(fsNote).TextColor(t.TextMuted).FillWidth().Padding(0, 0, 0, 16+10).MaxLines(2) // under the title, past the icon.Ellipsis("…")
+							ui.Text(c, gist).FontSize(fsNote).TextColor(t.TextMuted).FillWidth().Padding(0, 0, 0, 16+10).MaxLines(2).Ellipsis("…") // under the title, past the icon
 						}
 					})
 					if row.Clicked() {
@@ -1536,7 +1560,6 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 	}
 }
 
-// nodeMenu is what a node's context menu offers.
 // renameOpen starts naming the node that is open, as F2 asks. Its row is
 // brought out first: from a folded folder, and from focus mode.
 func (a *App) renameOpen() {
@@ -1884,11 +1907,74 @@ func (a *App) pickSnapshot(name string) {
 	w.snap, w.snapText = name, text
 }
 
+// snapView is the snapshot chosen as its dialog shows it: whether it is
+// the text as it stands, and its paragraphs, with what differs marked when
+// the two are compared.
+type snapView struct {
+	key   [5]any // the snapshot, comparing or not, the editor's text, the two colours
+	same  bool
+	paras [][]ui.Span
+	long  bool         // more than snapWhole: only the paragraphs in view are built
+	list  ui.ListState // where a long one is scrolled to
+}
+
+// snapWhole is the most a snapshot shows with every paragraph built, in
+// bytes of text and in paragraphs: so its text selects from end to end. A
+// longer one builds the paragraphs in view, and selects among those: built
+// whole, a frame of it took 47 ms at sixty thousand characters, and at
+// three hundred thousand the toolkit no longer kept the paragraphs' lines.
+const snapWhole, snapWholeParas = 90_000, 1000
+
+// snapView is made as the snapshot, the comparing or the text beside it
+// changes, not in each frame: comparing two chapters takes long. A
+// paragraph is an element of its own, for the toolkit keeps the lines of
+// a text only up to a size, and lays a longer one out again in every frame.
+func (a *App) snapView() *snapView {
+	t := a.pal.theme
+	w := &a.write
+	v := &w.snapShown
+	key := [5]any{w.snap, w.compare, w.ed, w.ed.Doc.Version(), [2]ui.Color{t.Danger, t.Success}}
+	if v.key == key {
+		return v
+	}
+	now := w.ed.Doc.String()
+	*v = snapView{key: key, same: w.snap != "" && w.snapText == now}
+	if w.snap == "" {
+		return v
+	}
+	pieces := []piece{{same, w.snapText}}
+	if w.compare {
+		pieces = diffText(w.snapText, now)
+	}
+	size := 0
+	for _, p := range pieces {
+		size += len(p.text)
+	}
+	paras := paragraphs(pieces)
+	v.long = size > snapWhole || len(paras) > snapWholeParas
+	for _, para := range paras {
+		spans := make([]ui.Span, len(para))
+		for i, p := range para {
+			switch p.kind {
+			case gone:
+				spans[i] = ui.Span{Text: p.text, Color: t.Danger, Strikethrough: true, Background: t.Danger.Alpha(0.12)}
+			case came:
+				spans[i] = ui.Span{Text: p.text, Color: t.Success, Background: t.Success.Alpha(0.12)}
+			default:
+				spans[i] = ui.Span{Text: p.text}
+			}
+		}
+		v.paras = append(v.paras, spans)
+	}
+	return v
+}
+
 func (a *App) snapshots(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
 	a.modal(c, &w.snapsOpen, func() {
-		same := w.snap != "" && w.snapText == w.ed.Doc.String() // nothing to restore
+		shown := a.snapView()
+		same := shown.same // nothing to restore
 		ui.Column(c).Width(dialogWide).Height(dialogTall).Padding(dialogPad).Gap(16).Children(func() {
 			a.pal.dialogHead(c, "快照 · "+a.shownTitle(), "打开章节时、连续写作每十分钟、恢复前、AI 起草或采纳改写前、全书替换前都会保存一份。最近七天的全部保留，更早的每天保留最后一份。")
 			ui.Row(c).FillWidth().Grow(1).Gap(16).AlignItems(ui.Stretch).Children(func() {
@@ -1928,28 +2014,30 @@ func (a *App) snapshots(c *ui.Context) {
 					if i := slices.IndexFunc(w.snaps, func(s workspace.Snapshot) bool { return s.Name == w.snap }); i >= 0 && w.snaps[i].AI != nil {
 						a.aiRecord(c, w.snaps[i].AI)
 					}
-					ui.Scroll(c.Key("snap-text")).FillWidth().Grow(1).Background(a.pal.canvas).Border(1, a.pal.line).Radius(rControl).Children(func() {
-						ui.Box(c).FillWidth().Padding(12, 16).Children(func() {
-							switch {
-							case w.snap == "":
-							case w.compare:
-								var spans []ui.Span
-								for _, p := range diffText(w.snapText, w.ed.Doc.String()) {
-									switch p.kind {
-									case gone:
-										spans = append(spans, ui.Span{Text: p.text, Color: t.Danger, Strikethrough: true, Background: t.Danger.Alpha(0.12)})
-									case came:
-										spans = append(spans, ui.Span{Text: p.text, Color: t.Success, Background: t.Success.Alpha(0.12)})
-									default:
-										spans = append(spans, ui.Span{Text: p.text})
-									}
-								}
-								ui.RichText(c, spans...).FontSize(fsRead).LineHeight(lhRead).FillWidth().Selectable()
-							default:
-								ui.Text(c, w.snapText).FontSize(fsRead).LineHeight(lhRead).FillWidth().Selectable()
-							}
+					// The paragraphs select as one text, and copy a line each.
+					para := func(i int) {
+						switch spans := shown.paras[i]; {
+						case len(spans) == 0: // an empty line keeps its height
+							ui.Text(c, "").FontSize(fsRead).LineHeight(lhRead).FillWidth()
+						case len(spans) == 1 && spans[0] == (ui.Span{Text: spans[0].Text}):
+							ui.Text(c, spans[0].Text).FontSize(fsRead).LineHeight(lhRead).FillWidth()
+						default:
+							ui.RichText(c, spans...).FontSize(fsRead).LineHeight(lhRead).FillWidth()
+						}
+					}
+					if shown.long {
+						ui.Box(c).FillWidth().Grow(1).Background(a.pal.canvas).Border(1, a.pal.line).Radius(rControl).Selectable().Children(func() {
+							ui.List(c, &shown.list, len(shown.paras), para).Fill().Padding(12, 16)
 						})
-					})
+					} else {
+						ui.Scroll(c.Key("snap-text")).FillWidth().Grow(1).Background(a.pal.canvas).Border(1, a.pal.line).Radius(rControl).Children(func() {
+							ui.Column(c).FillWidth().Padding(12, 16).Selectable().Children(func() {
+								for i := range shown.paras {
+									para(i)
+								}
+							})
+						})
+					}
 				})
 			})
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
@@ -2150,7 +2238,7 @@ func (a *App) export(c *ui.Context) {
 		write(filepath.Join(dir, name))
 		return
 	}
-	save := a.SaveFile
+	save, sv := a.SaveFile, c.Services()
 	go func() {
 		path, err := save("导出", name)
 		a.picks <- func() {
@@ -2160,6 +2248,6 @@ func (a *App) export(c *ui.Context) {
 			}
 			write(path)
 		}
-		c.Invalidate()
+		sv.Invalidate()
 	}()
 }

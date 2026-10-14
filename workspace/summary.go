@@ -22,6 +22,9 @@ type Summary struct {
 	// Of is the hash of the prose summarized, and Words its length.
 	Of    string `json:"of"`
 	Words int    `json:"words"`
+	// Read is how many of Words, from the start, the model was given,
+	// when the chapter was too long to give whole; 0 when it read all.
+	Read int `json:"read,omitempty"`
 	// By is the model that wrote it, empty when the author did.
 	By string    `json:"by,omitempty"`
 	At time.Time `json:"at"`

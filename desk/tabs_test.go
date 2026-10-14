@@ -545,3 +545,56 @@ func TestClosingAsksBetweenTwoTexts(t *testing.T) {
 		t.Fatalf("saved %q, tabs %q", got, tabs(a, tt))
 	}
 }
+
+// The row of tabs scrolls to the tab shown as it becomes the one shown,
+// and then stays where the author scrolls it.
+func TestTheRowOfTabsScrollsFreely(t *testing.T) {
+	a, tt, _ := writingFixture(t, "原来的。")
+	var ids []string
+	for i := 2; i <= 14; i++ {
+		id, err := a.Store.NewChapter("", fmt.Sprintf("第%d章：很长很长的一个章节名字", i), false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ids = append(ids, id)
+	}
+	a.warn(a.loadTree())
+	for _, id := range ids {
+		a.openNode(id)
+		tt.Frame()
+	}
+	tt.Frame()
+	last := "标签页-第14章：很长很长的一个章节名字"
+	inView := func(r ui.Rect) bool {
+		return r.W > 0 && r.X >= a.LastWrite.X && r.X+r.W <= a.LastWrite.X+a.LastWrite.W+1
+	}
+	shown, ok := tt.Find(last)
+	if !ok || !inView(shown) {
+		t.Fatalf("the tab opened is out of view: %+v in %+v", shown, a.LastWrite)
+	}
+	// Toward the start of the row: the tab shown goes off to the right.
+	for range 6 {
+		tt.Scroll(shown.X+10, shown.Y+10, -400, 0)
+		tt.Frame()
+	}
+	away, _ := tt.Find(last)
+	if inView(away) {
+		t.Fatalf("the row did not scroll away from the tab shown: %+v, before %+v", away, shown)
+	}
+	for range 3 {
+		tt.Frame()
+	}
+	if still, _ := tt.Find(last); still != away {
+		t.Fatalf("the row went back by itself: %+v, then %+v", away, still)
+	}
+	// Shown again, it comes back into view.
+	a.openNode(ids[0])
+	tt.Frame()
+	tt.Frame()
+	a.openNode(ids[len(ids)-1])
+	tt.Frame()
+	tt.Frame()
+	if shown, _ = tt.Find(last); !inView(shown) {
+		t.Fatalf("the tab shown again is out of view: %+v in %+v", shown, a.LastWrite)
+	}
+}

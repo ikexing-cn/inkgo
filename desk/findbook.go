@@ -20,14 +20,19 @@ type bookHit struct {
 
 // bookHits finds q in every chapter in the tree's order. The chapter open
 // is read from the editor, which may be ahead of the disk; the others are
-// read once and kept in w.texts until the search is closed.
+// read once, all in one pass over the book, and kept in w.texts until the
+// search is closed.
 func (a *App) bookHits(q string) []bookHit {
 	w := &a.write
 	if q == "" {
 		return nil
 	}
 	if w.texts == nil {
-		w.texts = map[string]string{}
+		texts, err := a.Store.Texts()
+		if a.warn(err); texts == nil {
+			texts = map[string]string{}
+		}
+		w.texts = texts
 	}
 	if w.ed != nil {
 		w.texts[w.node] = w.ed.Doc.String()
@@ -197,7 +202,8 @@ func (a *App) replaceInBook() {
 			doc := editor.NewDoc(ch.Text)
 			doc.LoadMarks(editorMarks(ch.Marks))
 			n = doc.ReplaceAll(w.query, w.with)
-			if _, err := a.Store.WriteChapter(h.ID, doc.String(), storedMarks(doc.Marks())); err != nil {
+			// Over the text read just now, and no other.
+			if _, err := a.Store.WriteChapterOver(h.ID, doc.String(), storedMarks(doc.Marks()), ch.Stamp); err != nil {
 				a.warn(err)
 				break
 			}

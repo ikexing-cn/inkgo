@@ -94,12 +94,12 @@ func (a *App) pollSummaries(c *ui.Context) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	q.running, q.store, q.cancel = id, a.Store, cancel
-	store := a.Store
+	store, sv := a.Store, c.Services()
 	go func() {
 		sum, err := pw.Summarize(ctx, id)
 		cancel()
 		q.done <- summaryDone{chapter: id, store: store, sum: sum, err: err}
-		c.Invalidate()
+		sv.Invalidate()
 	}()
 }
 
@@ -163,13 +163,14 @@ func (a *App) saveSummary() error {
 	return nil
 }
 
-// summaryState says where the summary of the chapter shown stands.
-func (a *App) summaryState() (label, line string, warn bool) {
+// summaryState says where the summary of the chapter shown stands: warn
+// is what is amiss with it, if anything.
+func (a *App) summaryState() (label, line, warn string) {
 	w := &a.write
 	q := &a.sums
 	switch {
 	case q.running == w.node:
-		return "本章摘要 · 正在生成", "AI 正在阅读本章并生成摘要…", false
+		return "本章摘要 · 正在生成", "AI 正在阅读本章并生成摘要…", ""
 	case w.sum.Text == "" && w.summary == "":
 		label = "本章摘要 · 暂无"
 		line = fmt.Sprintf("正文满 %d 字后，离开本章时自动生成；也可手动填写。", writing.MinSummary)
@@ -180,13 +181,19 @@ func (a *App) summaryState() (label, line string, warn bool) {
 		label, line = "本章摘要", "手动填写"
 	default:
 		label, line = "本章摘要", "AI 生成 · "+shortModel(w.sum.By)+" · "+w.sum.At.Local().Format("01-02 15:04")
+		if w.sum.Read > 0 {
+			// The rest of the chapter is not in it, and later chapters are
+			// drafted from it.
+			label, line, warn = "本章摘要 · 不完整", line+fmt.Sprintf(" · 仅依据前 %d 字", w.sum.Read), partNote
+		}
 	}
+	const differs = "摘要可能与正文不一致"
 	if w.sum.Text != "" && w.ed != nil && w.sum.Stale(w.ed.Doc.String()) && w.summary == w.summarySaved {
-		label, warn = "本章摘要 · 可能过时", true
+		label, warn = "本章摘要 · 可能过时", differs
 		line += " · 正文已修改"
 	}
 	if why := q.failed[w.node]; why != "" {
-		line, warn = "上次生成失败："+why, true
+		line, warn = "上次生成失败："+why, differs
 	}
 	return label, line, warn
 }
@@ -215,7 +222,7 @@ func (a *App) summaryPanel(c *ui.Context) {
 			FontSize(fsBody).LineHeight(lhLoose).Padding(10, 12).Radius(rControl).Background(a.pal.side).Disabled(w.lost || a.sums.running == w.node)
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 			color := a.pal.faint
-			if warn {
+			if warn != "" {
 				color = t.Warning
 			}
 			ui.Text(c, line).FontSize(fsNote).TextColor(color).Grow(1).Shrink(1)
@@ -247,17 +254,24 @@ func (a *App) recapNote(c *ui.Context) {
 	if q.running != "" {
 		waiting++
 	}
+	if waiting > 0 {
+		w.recapStale = true // what is being written changes which chapters lack one
+	}
 	if waiting > 0 && q.total > 0 {
 		ui.Textf(c, "正在补齐摘要：%d / %d。补齐前起草，AI 只能参考已有摘要。", q.total-waiting, q.total).FontSize(fsNote).TextColor(t.TextMuted)
 		return
 	}
-	var missing []string
-	for _, id := range w.unsummarized {
-		if sum, err := a.Store.ReadSummary(id); err == nil && sum.Text == "" {
-			missing = append(missing, id)
+	if w.recapStale {
+		// Read once as the summaries asked for are done, not in each
+		// frame: a book has many chapters.
+		w.recapStale = false
+		if missing, have, err := writing.Unsummarized(a.Store, w.node); err == nil {
+			w.unsummarized, w.recapped = missing, have
+		} else {
+			a.warn(err)
 		}
 	}
-	w.unsummarized = missing
+	missing := w.unsummarized
 	if len(missing) == 0 {
 		if w.recapped > 0 {
 			ui.Textf(c, "起草时 AI 会参考前 %d 章的摘要，以衔接前文。", w.recapped).FontSize(fsNote).TextColor(t.TextMuted)
