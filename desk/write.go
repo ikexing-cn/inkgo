@@ -1076,7 +1076,8 @@ func (a *App) wordCount(c *ui.Context, roomy, wide bool) {
 		today = ""
 	}
 	color := a.pal.faint // as the design has it, met or not: the numbers say so
-	counts := ui.ButtonBase(c).Row().Shrink(1).Label("字数").Tooltip(tip + "。点击设置每日目标")
+	// Whole, as in the prototype: the check line beside it gives way.
+	counts := ui.ButtonBase(c).Row().Shrink(0).Label("字数").Tooltip(tip + "。点击设置每日目标")
 	if counts.Hovered() {
 		color = t.Text
 	}

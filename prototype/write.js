@@ -758,7 +758,7 @@ function foot(cur, vol) {
   let state = name + '检查完成，未发现不一致', can = false, tip = ''
   if (S.checking === cur.key) state = '正在检查' + name + '…'
   else if (S.queue.includes(cur.key)) state = name + '等待检查'
-  else if (S.failed[cur.key]) { state = '检查失败：' + S.failed[cur.key]; can = true }
+  else if (S.failed[cur.key]) { state = '检查失败：' + S.failed[cur.key]; can = true; tip = state } // 出错的说明长，放不下时悬停看全
   else if (!S.entries.some((e) => e.place === 'body')) state = '设定为空，无可对照内容'
   else if (counted(cur) < 200) state = '满 200 字后可检查'
   else if (S.never[cur.key]) { state = name + '尚未检查'; can = true }

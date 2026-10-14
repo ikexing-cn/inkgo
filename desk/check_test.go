@@ -292,3 +292,15 @@ func TestShowingAChapterKeepsWhatItsCheckFound(t *testing.T) {
 		t.Fatalf("showing the chapter, what its check found went: %+v %v", k, err)
 	}
 }
+
+// A check that failed says why at the chapter's foot, and the whole of it
+// on hover where the line is cut short.
+func TestAFailedCheckSaysWhyInFull(t *testing.T) {
+	a, tt, id, _ := checkFixture(t)
+	a.ck.failed[id] = "还没有选择写作模型：请到“模型设置”里选一个，或者先选讨论模型"
+	tt.Frame()
+	line, _, can, tip := a.checkState()
+	if want := "检查失败：" + a.ck.failed[id]; line != want || tip != want || !can {
+		t.Fatalf("%q, tip %q, can %v", line, tip, can)
+	}
+}

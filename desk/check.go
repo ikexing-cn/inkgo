@@ -459,7 +459,8 @@ func (a *App) checkState() (line string, found int, can bool, tip string) {
 	case slices.Contains(k.queue, w.node):
 		return name + "等待检查", 0, false, ""
 	case k.failed[w.node] != "":
-		return "检查失败：" + k.failed[w.node], 0, true, ""
+		line := "检查失败：" + k.failed[w.node]
+		return line, 0, true, line // what went wrong is long: in full on hover
 	case !a.hasSetting():
 		return "设定为空，无可对照内容", 0, false, ""
 	case workspace.Count(text) < a.ai.MinCheck():
