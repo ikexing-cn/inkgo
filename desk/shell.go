@@ -78,12 +78,14 @@ func (a *App) View(c *ui.Context) {
 		if !a.focused() {
 			a.titleBar(c)
 		}
-		ui.Row(c).FillWidth().Grow(1).Shrink(1).AlignItems(ui.Stretch).Children(func() {
+		// Keyed, the page stays the element it was as the title bar and the
+		// sidebar come and go, and the prose keeps the keyboard.
+		ui.Row(c.Key("body")).FillWidth().Grow(1).Shrink(1).AlignItems(ui.Stretch).Children(func() {
 			if a.sideShown() {
 				a.sidebar(c)
 				ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
 			}
-			ui.Column(c).Grow(1).Shrink(1).FillHeight().Children(func() {
+			ui.Column(c.Key("page")).Grow(1).Shrink(1).FillHeight().Children(func() {
 				switch {
 				case a.page == 2:
 					a.categories(c)

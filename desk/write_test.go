@@ -280,6 +280,40 @@ func TestFindAndReplaceInAChapter(t *testing.T) {
 	}
 }
 
+// Stepping through what is found from the find bar picks it with no bar of
+// what to do with a pick over the prose; Escape puts the find bar away and
+// the caret goes back to the prose, and a second lets go of the pick.
+func TestEscapeBacksOutOfFinding(t *testing.T) {
+	a, tt, _ := writingFixture(t, "林晚说，林晚走了。")
+	tt.Key(ui.Cmd, ui.KeyF)
+	tt.Frame()
+	tt.Frame()
+	a.write.query = "林晚"
+	tt.Frame()
+	tt.Key(0, ui.KeyEnter)
+	tt.Frame()
+	if s, e := a.write.ed.Selection(); !tt.HasText("2 / 2") || s != 4 || e != 6 {
+		t.Fatalf("Enter in the find bar went to %d-%d: %q", s, e, tt.Texts())
+	}
+	if tt.HasText("加入设定") {
+		t.Error("stepping through what is found shows the bar over a pick")
+	}
+	tt.Key(0, ui.KeyEscape)
+	tt.Frame()
+	tt.Frame()
+	if a.write.finding || tt.HasText("2 / 2") || !tt.Focused("正文") {
+		t.Fatalf("Escape left the find bar: finding %v, the prose focused %v", a.write.finding, tt.Focused("正文"))
+	}
+	if !tt.HasText("加入设定") {
+		t.Fatal("what was found is no longer picked in the prose")
+	}
+	tt.Key(0, ui.KeyEscape)
+	tt.Frame()
+	if s, e := a.write.ed.Selection(); s != e || e != 6 || tt.HasText("加入设定") {
+		t.Fatalf("a second Escape left the pick %d-%d", s, e)
+	}
+}
+
 // Words of the prose go into the setting as the author's entry, quoting
 // the chapter.
 func TestTakeProseIntoTheSetting(t *testing.T) {
@@ -1301,5 +1335,36 @@ func TestALongSnapshot(t *testing.T) {
 	tt.Frame()
 	if got := disk(t, a, "第一章.txt"); got != old.String() {
 		t.Fatalf("restored %d bytes of %d", len(got), old.Len())
+	}
+}
+
+// The prose keeps the keyboard as what is around it comes and goes: the
+// title bar and the sidebar in focus mode, the sidebar hidden, the find bar
+// over it.
+func TestTheProseKeepsTheKeyboard(t *testing.T) {
+	a, tt, _ := writingFixture(t, "林晚说，林晚走了。")
+	a.write.ed.Focus()
+	tt.Frame()
+	tt.Frame()
+	steps := []struct {
+		name string
+		do   func()
+	}{
+		{"focus mode", func() { tt.Key(0, ui.KeyF11) }},
+		{"out of focus mode", func() { tt.Key(0, ui.KeyF11) }},
+		{"the sidebar hidden", func() { a.sideHidden = true }},
+		{"the sidebar shown", func() { a.sideHidden = false }},
+		{"the find bar over it", func() { a.write.finding = true; a.write.query = "林晚" }},
+	}
+	for _, s := range steps {
+		if s.name == "the find bar over it" {
+			a.write.ed.Focus() // opened from the menu, the find bar is not focused
+		}
+		s.do()
+		tt.Frame()
+		tt.Frame()
+		if !tt.Focused("正文") {
+			t.Errorf("%s: the prose lost the keyboard", s.name)
+		}
 	}
 }

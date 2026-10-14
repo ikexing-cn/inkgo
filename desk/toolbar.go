@@ -70,7 +70,8 @@ func (a *App) selectionBar(c *ui.Context) {
 	w := &a.write
 	r, ok := w.ed.SelectionTop()
 	if !ok || w.ed.ReadOnly() || w.lost || w.external != nil || w.rewriting || w.run != nil || w.proposed != nil ||
-		w.takeOpen || w.ed.Predicting() || w.fore.noting || w.fore.paying || a.menuOpen("正文") {
+		w.takeOpen || w.ed.Predicting() || w.fore.noting || w.fore.paying || a.menuOpen("正文") ||
+		w.finding && !w.ed.Focused() { // stepping through what is found picks it, the caret in the find bar
 		return
 	}
 	t := a.pal.theme

@@ -713,6 +713,16 @@ func (a *App) writing(c *ui.Context) {
 	if c.Shortcut(ui.Cmd, ui.KeyF) && a.write.ed != nil {
 		a.write.finding = true
 	}
+	// Escape backs out of the find bar first, then out of a pick in the
+	// prose, so the bar over the pick goes with it.
+	if ed := a.write.ed; ed != nil && c.Shortcut(0, ui.KeyEscape) {
+		if s, e := ed.Selection(); a.write.finding {
+			a.closeFind()
+			ed.Focus()
+		} else if s != e && ed.Focused() {
+			ed.Select(ed.Caret(), ed.Caret())
+		}
+	}
 	if a.aiOn() && c.Shortcut(ui.Cmd, ui.KeyL) {
 		a.quoteToTalk()
 	}
@@ -989,10 +999,10 @@ func (a *App) writeTop(c *ui.Context) {
 				color = a.pal.ink
 			}
 			if iconButton(c, icSearch, "查找替换", color).Tooltip("查找替换（" + modKey + "F）").Disabled(busy).Clicked() {
-				w.finding = !w.finding
-				if !w.finding {
-					w.wide, w.texts = false, nil
-					w.ed.SetFound(nil, 0)
+				if w.finding {
+					a.closeFind()
+				} else {
+					w.finding = true
 				}
 			}
 		}
@@ -1199,7 +1209,8 @@ func (a *App) chapterView(c *ui.Context) {
 		a.findBar(c)
 	}
 	a.aiBar(c)
-	ui.Box(c).Grow(1).FillWidth().Children(func() {
+	// Keyed, as the bars over it come and go: the prose keeps the keyboard.
+	ui.Box(c.Key("prose")).Grow(1).FillWidth().Children(func() {
 		w.ed.View(c).Fill()
 		a.selectionBar(c)
 		a.forePopover(c)
@@ -1258,6 +1269,16 @@ func (a *App) notice2(c *ui.Context, color ui.Color, text string, buttons func()
 			buttons()
 		})
 	})
+}
+
+// closeFind puts the find bar away, and what it found is no longer marked
+// in the prose.
+func (a *App) closeFind() {
+	w := &a.write
+	w.finding, w.wide, w.texts, w.sure = false, false, nil, false
+	if w.ed != nil {
+		w.ed.SetFound(nil, 0)
+	}
 }
 
 func (a *App) findBar(c *ui.Context) {
@@ -1336,8 +1357,7 @@ func (a *App) findBar(c *ui.Context) {
 	}
 	closer := func() {
 		if iconButton(c, icX, "关闭查找", ui.Color{}).Clicked() {
-			w.finding, w.wide, w.texts, w.sure = false, false, nil, false
-			w.ed.SetFound(nil, 0)
+			a.closeFind()
 		}
 	}
 	line := func(fn func()) { ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(fn) }

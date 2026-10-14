@@ -167,7 +167,8 @@ func (a *App) openBury() {
 		return
 	}
 	w.fore.noting, w.fore.paying, w.fore.from, w.fore.to, w.fore.note = true, false, s, e, ""
-	w.rewriting, w.finding = false, false
+	a.closeFind()
+	w.rewriting = false
 }
 
 // bury marks the range asked about as a foreshadowing with the note
@@ -199,7 +200,8 @@ func (a *App) openPay(id string) {
 		return
 	}
 	w.fore.paying, w.fore.noting, w.fore.from, w.fore.to, w.fore.payQuery, w.fore.pick = true, false, s, e, "", id
-	w.rewriting, w.finding = false, false
+	a.closeFind()
+	w.rewriting = false
 }
 
 // pay marks the range asked about as paying off the foreshadowing of id,

@@ -197,7 +197,8 @@ func (a *App) openRewrite() {
 	if s, e := w.ed.Selection(); s == e || w.run != nil || w.proposed != nil {
 		return
 	}
-	w.rewriting, w.finding = true, false
+	a.closeFind()
+	w.rewriting = true
 }
 
 func (a *App) startRewrite(c *ui.Context) {
@@ -309,7 +310,8 @@ func (a *App) startDraft(c *ui.Context) {
 	} else {
 		w.ed.BeginDraft(0, n)
 	}
-	w.draftOpen, w.finding = false, false
+	a.closeFind()
+	w.draftOpen = false
 	a.start(c, r)
 }
 
