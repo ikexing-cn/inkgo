@@ -256,7 +256,7 @@ func NewID() string {
 }
 
 func Categories(genre string) []Category {
-	c := []Category{{"人物", "设定库"}, {"关系", "设定库"}, {"地点", "设定库"}, {"组织", "设定库"}, {"物品", "设定库"}, {"规则", "设定库·世界观"}, {"情节", "大纲"}, {"主题", "作品说明"}, {"风格", "风格指南"}, {Other, "思路池"}}
+	c := []Category{{"人物", "设定库"}, {"关系", "设定库"}, {"地点", "设定库"}, {"组织", "设定库"}, {"物品", "设定库"}, {"规则", "设定库·世界观"}, {"情节", "大纲"}, {"主题", "作品说明"}, {"风格", "风格指南"}}
 	switch genre {
 	case "网文", "webnovel":
 		c = append(c, Category{"力量体系", "设定库·世界观"})
@@ -267,5 +267,15 @@ func Categories(genre string) []Category {
 	case "非虚构", "nonfiction":
 		c = append(c, Category{"论点", "大纲"}, Category{"资料", "设定库"})
 	}
-	return c
+	return append(c, Category{Other, "思路池"})
+}
+
+// AddCategory puts a new category in front of 其他, which stays last as the
+// place everything without a better home ends up.
+func AddCategory(cats []Category, add Category) []Category {
+	at := slices.IndexFunc(cats, func(c Category) bool { return c.Name == Other })
+	if at < 0 {
+		at = len(cats)
+	}
+	return slices.Insert(cats, at, add)
 }

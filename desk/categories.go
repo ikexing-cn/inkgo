@@ -13,7 +13,9 @@ func (a *App) categories(c *ui.Context) {
 	busy := a.busy != ""
 	counts := map[string]int{}
 	for _, e := range a.set.Entries {
-		counts[e.Category]++
+		if e.Place != workspace.PlaceDropped {
+			counts[e.Category]++
+		}
 	}
 	ui.Scroll(c).FillWidth().Grow(1).Children(func() {
 		ui.Column(c).FillWidth().MaxWidth(640+2*40).Padding(32, 40, 20, 40).Gap(12).Children(func() {
@@ -24,7 +26,11 @@ func (a *App) categories(c *ui.Context) {
 				for _, cat := range a.Store.Work().Categories {
 					ui.Row(c.Key(cat.Name)).FillWidth().Height(hBar).Padding(0, 4).Gap(14).AlignItems(ui.Center).Children(func() {
 						if a.removeCategory == cat.Name {
-							ui.Textf(c, "%d 条设定将移到“其他”", counts[cat.Name]).FontSize(fsBody).Grow(1).Shrink(1)
+							say := "这个分类下没有设定"
+							if n := counts[cat.Name]; n > 0 {
+								say = fmt.Sprintf("%d 条设定将移到“其他”", n)
+							}
+							ui.Text(c, say).FontSize(fsBody).Grow(1).Shrink(1)
 							if a.pal.secondary(c, "取消").Clicked() {
 								a.removeCategory = ""
 							}
@@ -91,7 +97,7 @@ func (a *App) saveCategory() error {
 		}
 	}
 	if !updated {
-		w.Categories = append(w.Categories, workspace.Category{Name: name, Target: target})
+		w.Categories = workspace.AddCategory(w.Categories, workspace.Category{Name: name, Target: target})
 	}
 	if err := a.Store.SaveWork(w); err != nil {
 		return err

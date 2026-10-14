@@ -251,6 +251,21 @@ func TestCategoryRemovalMovesEntries(t *testing.T) {
 	}
 }
 
+// 其他 stays the last category: a genre's own come before it, and so does
+// one the author adds.
+func TestOtherStaysLast(t *testing.T) {
+	for _, genre := range []string{"网文", "出版小说", "剧本", "非虚构", ""} {
+		c := Categories(genre)
+		if c[len(c)-1].Name != Other {
+			t.Fatalf("%s: %v", genre, c)
+		}
+	}
+	c := AddCategory(Categories("网文"), Category{Name: "门派", Target: "设定库"})
+	if n := len(c); c[n-1].Name != Other || c[n-2].Name != "门派" || c[n-3].Name != "力量体系" {
+		t.Fatalf("added: %v", c)
+	}
+}
+
 func TestTraversalAndDuplicateEvents(t *testing.T) {
 	s := testStore(t)
 	for _, id := range []string{"../work", "..\\work", "C:\\escape", "/absolute", "valid/../../bad", ""} {

@@ -103,7 +103,7 @@ function catsPage() {
   const count = (c) => S.entries.filter((e) => e.cat === c && e.place !== 'dropped').length
   const type = (key) => (v) => set((s) => ({ catForm: { ...s.catForm, [key]: v } }))
   const row = (c) => (S.catDrop === c
-    ? `<div class="cat-row"><div class="fit">${count(c)} 条设定将移到“其他”</div>${button('取消', () => set({ catDrop: '' }))}${button('确认删除', () => dropCat(c), 'danger')}</div>`
+    ? `<div class="cat-row"><div class="fit">${count(c) ? count(c) + ' 条设定将移到“其他”' : '这个分类下没有设定'}</div>${button('取消', () => set({ catDrop: '' }))}${button('确认删除', () => dropCat(c), 'danger')}</div>`
     : `<div class="cat-row"><div class="cat-name">${t(c)}</div><div class="fit muted">落点：${t(S.lands[c] || '设定库')}</div><div class="side">${count(c)} 条</div><div class="hit link"${onClick(() => set({ catForm: { name: c, land: S.lands[c] || '设定库' } }))}>编辑</div>` +
       (c === '其他' ? '<div class="off">删除</div>' : `<div class="hit link"${onClick(() => set({ catDrop: c }))}>删除</div>`) + '</div>')
   return '<div class="editor"><div class="paper scroll"><div class="column narrow">' +
