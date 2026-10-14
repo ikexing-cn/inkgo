@@ -188,7 +188,7 @@ func (e *Editor) Width() float32 { return e.width }
 // maybePredict asks the predictor once typing paused at the end of a
 // paragraph.
 func (e *Editor) maybePredict(c *ui.Context) {
-	if e.opts.ReadOnly || e.opts.Predictor == nil || !e.focused || e.predicting || e.caret != e.anchor || e.preedit != "" ||
+	if e.opts.ReadOnly || e.opts.Predictor == nil || e.opts.NoAI || !e.focused || e.predicting || e.caret != e.anchor || e.preedit != "" ||
 		e.predictVer == e.Doc.version && e.predictAt == e.caret {
 		return
 	}
@@ -333,7 +333,7 @@ func unindent(s string) string {
 func (e *Editor) markAt(i int) int {
 	id, size := 0, -1
 	for _, m := range e.Doc.marks {
-		if m.Start <= i && i <= m.End && m.End > m.Start && (size < 0 || m.End-m.Start < size) {
+		if m.Start <= i && i <= m.End && m.End > m.Start && !e.hidden(m) && (size < 0 || m.End-m.Start < size) {
 			id, size = m.ID, m.End-m.Start
 		}
 	}

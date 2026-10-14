@@ -42,6 +42,9 @@ type Shelf struct {
 	// Theme is the appearance chosen: "light", "dark", or empty to follow
 	// the system.
 	Theme string `json:"theme,omitempty"`
+	// NoAI turns the AI off on this machine, for every work: nothing of it
+	// shows and nothing is sent. Absent, the AI is on.
+	NoAI  bool   `json:"noAI,omitempty"`
 	Books []Book `json:"books"`
 }
 

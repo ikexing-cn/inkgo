@@ -435,15 +435,24 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 		shut(tt, &a.keysOpen)
 	}
 
-	// On the shelf there is no work: only the appearance and the shortcuts.
+	// On the shelf there is no work: only what holds for this machine, the
+	// settings of the AI and the appearance, and the shortcuts.
 	a.closeWork()
 	tt.Frame()
 	tt.Frame()
-	pale("文件", "新建章节", "新建文件夹", "保存", "快照", "导出", "设置")
+	pale("文件", "新建章节", "新建文件夹", "保存", "快照", "导出")
 	pale("视图", "收起侧栏", "收起右栏", "专注写作")
 	if a.bk.prefs || w.exportOpen || a.sideHidden {
 		t.Fatal("on the shelf a pale row did something")
 	}
+	if err := clickMenu(tt, "文件", "菜单-设置"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if _, ok := tt.Find("设置-外观"); !a.bk.prefs || !ok || tt.HasText("提醒") || tt.HasText("备份") {
+		t.Fatalf("on the shelf the settings are not those of the machine: %q", tt.Texts())
+	}
+	shut(tt, &a.bk.prefs)
 	var got []string
 	a.Appearance = func(v string) { got = append(got, v) }
 	if err := clickMenu(tt, "视图", "外观-深色"); err != nil {

@@ -630,7 +630,7 @@ func (a *App) modelMenu(m *menu, work workspace.Work) {
 			m.Item(id).On(on).Do(func() { a.setTalk(func(s *workspace.Selection) { s.Provider, s.Model = p.ID, id }) })
 		}
 	}
-	m.Item("模型设置…").Do(func() { a.openPrefs("模型") })
+	m.Item("模型设置…").Do(func() { a.openPrefs("AI") })
 	m.Separator()
 	m.Head("思考程度")
 	for _, e := range a.ai.Efforts() {

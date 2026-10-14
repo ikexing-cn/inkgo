@@ -22,6 +22,9 @@ type Options struct {
 	// PredictOnDemand asks the predictor only when the author asks, with
 	// Cmd+J, never as typing pauses.
 	PredictOnDemand bool
+	// NoAI shows nothing of the AI: the predictor is never asked, and what
+	// an AI wrote is neither underlined nor a mark at the caret.
+	NoAI bool
 	// GhostNote, if set, names what wrote a prediction the author accepts,
 	// as the note of its mark.
 	GhostNote func() string
@@ -163,7 +166,7 @@ func (e *Editor) Completions() []Entity {
 }
 
 func (e *Editor) ghostValid() bool {
-	return e.ghost != "" && e.ghostAt == e.caret && e.anchor == e.caret &&
+	return !e.opts.NoAI && e.ghost != "" && e.ghostAt == e.caret && e.anchor == e.caret &&
 		e.ghostVer == e.Doc.version && e.preedit == ""
 }
 

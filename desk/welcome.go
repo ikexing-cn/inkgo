@@ -342,13 +342,17 @@ func (a *App) welcome(c *ui.Context) {
 func (a *App) emptyShelf(c *ui.Context) {
 	t := a.pal.theme
 	_, h := c.Size()
-	a.pal.blank(c, icBook, "从一个想法开始", "与 AI 逐步讨论，内容会在后台整理为设定文档。已确定的设定会被遵守，已放弃的 AI 不再提及。", func() {
+	about, facts := "与 AI 逐步讨论，内容会在后台整理为设定文档。已确定的设定会被遵守，已放弃的 AI 不再提及。", []string{
+		"作品、对话和设定文档均为文件夹中的普通文件，可备份、同步或用其他编辑器打开。",
+		"AI 仅在你发送消息时回应，不会自行续写。",
+		"API key 保存在系统钥匙串中，不会写入作品文件夹。",
+	}
+	if !a.aiOn() { // the shelf says nothing of the AI either
+		about, facts = "新建一部作品，或添加已有的作品文件夹。", []string{"作品和设定文档均为文件夹中的普通文件，可备份、同步或用其他编辑器打开。"}
+	}
+	a.pal.blank(c, icBook, "从一个想法开始", about, func() {
 		ui.Column(c).Padding(10, 0).Gap(6).Children(func() {
-			for _, line := range []string{
-				"作品、对话和设定文档均为文件夹中的普通文件，可备份、同步或用其他编辑器打开。",
-				"AI 仅在你发送消息时回应，不会自行续写。",
-				"API key 保存在系统钥匙串中，不会写入作品文件夹。",
-			} {
+			for _, line := range facts {
 				ui.Text(c, "· "+line).FontSize(fsNote).TextColor(t.TextMuted)
 			}
 		})

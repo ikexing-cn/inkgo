@@ -244,7 +244,7 @@ func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.
 	doc := editor.NewDoc(text)
 	doc.LoadMarks(editorMarks(marks))
 	return editor.New(doc, editor.Options{Prose: true, Placeholder: "在此开始写作…", Font: ui.Font{Size: float32(a.write.textSize())}, LineHeight: lhPaper,
-		Predictor: pen{writer: &a.write.pen, chapter: a.write.node}, PredictDelay: saveAfter, PredictOnDemand: !a.write.autoPredict,
+		Predictor: pen{writer: &a.write.pen, chapter: a.write.node}, PredictDelay: saveAfter, PredictOnDemand: !a.write.autoPredict, NoAI: !a.aiOn(),
 		GhostNote: func() string {
 			if pw := a.write.pen.Load(); pw != nil {
 				return (*pw).Name()
@@ -257,7 +257,8 @@ func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.
 }
 
 // textMenu is the menu of the chapter's text: what the clipboard does, what
-// the AI and the setting do with the selection, and its foreshadowings.
+// the AI, while it is on, and the setting do with the selection, and its
+// foreshadowings.
 func (a *App) textMenu(m *menu) {
 	ed := a.write.ed
 	s, e := ed.Selection()
@@ -267,9 +268,11 @@ func (a *App) textMenu(m *menu) {
 	m.Item("粘贴").Hint(modKey + "V").Disabled(busy).Do(ed.Paste)
 	m.Item("全选").Hint(modKey + "A").Do(ed.SelectAll)
 	m.Separator()
-	m.Item("续写一句").Hint(modKey + "J").Disabled(busy).Do(a.continueText)
-	m.Item("AI 改写…").Disabled(s == e || busy).Do(a.openRewrite)
-	m.Item("引用到讨论").Hint(modKey + "L").Disabled(s == e).Do(a.quoteToTalk)
+	if a.aiOn() {
+		m.Item("续写一句").Hint(modKey + "J").Disabled(busy).Do(a.continueText)
+		m.Item("AI 改写…").Disabled(s == e || busy).Do(a.openRewrite)
+		m.Item("引用到讨论").Hint(modKey + "L").Disabled(s == e).Do(a.quoteToTalk)
+	}
 	m.Item("加入设定").Disabled(s == e).Do(a.openTake)
 	a.nameMenu(m, ed.Doc.Slice(s, e))
 	m.Separator()
@@ -710,7 +713,7 @@ func (a *App) writing(c *ui.Context) {
 	if c.Shortcut(ui.Cmd, ui.KeyF) && a.write.ed != nil {
 		a.write.finding = true
 	}
-	if c.Shortcut(ui.Cmd, ui.KeyL) {
+	if a.aiOn() && c.Shortcut(ui.Cmd, ui.KeyL) {
 		a.quoteToTalk()
 	}
 	if c.Shortcut(0, ui.KeyF11) {
@@ -787,7 +790,7 @@ func (a *App) settingColumn(c *ui.Context) {
 	panel.Children(func() {
 		if a.page == 3 && a.doc.fore {
 			a.forePanel(c)
-		} else if a.page == 3 && a.doc.talk {
+		} else if a.page == 3 && a.talkTab() {
 			a.talkPanel(c)
 		} else {
 			a.settingPanel(c)
@@ -1846,10 +1849,18 @@ func (a *App) restore(id, title string) {
 	a.notice = fmt.Sprintf("「%s」已恢复", title)
 }
 
-// snapReasons say why a snapshot was taken.
+// snapReasons say why a snapshot was taken; with the AI off, snapReason
+// tells one taken before the AI changed the prose as one before a change.
 var snapReasons = map[string]string{
 	workspace.SnapOpen: "打开时", workspace.SnapInterval: "写作中", workspace.SnapRestore: "恢复前",
 	workspace.SnapExternal: "外部改动", workspace.SnapAI: "AI 改动前", workspace.SnapReplace: "全书替换前",
+}
+
+func (a *App) snapReason(reason string) string {
+	if reason == workspace.SnapAI && !a.aiOn() {
+		return "改动前"
+	}
+	return snapReasons[reason]
 }
 
 func (a *App) openSnapshots() {
@@ -1946,7 +1957,11 @@ func (a *App) snapshots(c *ui.Context) {
 		shown := a.snapView()
 		same := shown.same // nothing to restore
 		ui.Column(c).Width(dialogWide).Height(dialogTall).Padding(dialogPad).Gap(16).Children(func() {
-			a.pal.dialogHead(c, "快照 · "+a.shownTitle(), "打开章节时、连续写作每十分钟、恢复前、AI 起草或采纳改写前、全书替换前都会保存一份。最近七天的全部保留，更早的每天保留最后一份。")
+			when := "打开章节时、连续写作每十分钟、恢复前、AI 起草或采纳改写前、全书替换前都会保存一份。最近七天的全部保留，更早的每天保留最后一份。"
+			if !a.aiOn() {
+				when = strings.Replace(when, "AI 起草或采纳改写前、", "", 1)
+			}
+			a.pal.dialogHead(c, "快照 · "+a.shownTitle(), when)
 			ui.Row(c).FillWidth().Grow(1).Gap(16).AlignItems(ui.Stretch).Children(func() {
 				ui.Scroll(c.Key("snaps")).Width(200).FillHeight().Shrink(0).Children(func() {
 					ui.Column(c).FillWidth().Gap(2).Children(func() {
@@ -1964,7 +1979,7 @@ func (a *App) snapshots(c *ui.Context) {
 							}
 							b.Children(func() {
 								ui.Text(c, when).FontSize(fsControl)
-								ui.Textf(c, "%s · %d 字", snapReasons[sn.Reason], sn.Count).FontSize(fsNote).TextColor(t.TextMuted)
+								ui.Textf(c, "%s · %d 字", a.snapReason(sn.Reason), sn.Count).FontSize(fsNote).TextColor(t.TextMuted)
 							})
 							if b.Clicked() {
 								a.pickSnapshot(sn.Name)
@@ -1981,7 +1996,7 @@ func (a *App) snapshots(c *ui.Context) {
 							ui.Text(c, "红色删除线为快照中有而当前没有的内容，绿色为当前新增的内容").FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 						}
 					})
-					if i := slices.IndexFunc(w.snaps, func(s workspace.Snapshot) bool { return s.Name == w.snap }); i >= 0 && w.snaps[i].AI != nil {
+					if i := slices.IndexFunc(w.snaps, func(s workspace.Snapshot) bool { return s.Name == w.snap }); i >= 0 && w.snaps[i].AI != nil && a.aiOn() {
 						a.aiRecord(c, w.snaps[i].AI)
 					}
 					// The paragraphs select as one text, and copy a line each.

@@ -71,7 +71,7 @@ func (a *App) titleBar(c *ui.Context) {
 			m.Item("快照").Disabled(!open || busy).Do(later(a.openSnapshots))
 			m.Item("导出…").Disabled(!inWork).Do(later(a.openExport))
 			m.Separator()
-			m.Item("设置…").Disabled(!inWork).Do(later(func() { a.openPrefs(a.bk.tab) }))
+			m.Item("设置…").Do(later(func() { a.openPrefs(a.bk.tab) }))
 		}) || held
 		held = a.barMenu(c, "编辑", func(m *menu) {
 			can := open && !busy
@@ -81,6 +81,9 @@ func (a *App) titleBar(c *ui.Context) {
 			m.Item("查找替换").Hint(modKey + "F").Disabled(!can).Do(later(func() { w.finding = true }))
 			_, shown := w.tree.Node(w.node)
 			m.Item("重命名").Hint("F2").Disabled(!writing || !shown || w.renaming != "").Do(later(a.renameOpen))
+			if !a.aiOn() {
+				return
+			}
 			m.Separator()
 			m.Item("续写一句").Hint(modKey + "J").Disabled(!can).Do(later(a.continueText))
 			hint := ""

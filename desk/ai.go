@@ -39,9 +39,14 @@ func (p pen) Predict(ctx context.Context, before string) (string, error) {
 func (a *App) modelsChanged() { a.write.penKey = "" }
 
 // keepPen rebuilds the writer the editors predict with when the model
-// settings change.
+// settings change; with the AI off, there is none.
 func (a *App) keepPen() {
 	w := &a.write
+	if !a.aiOn() {
+		w.pen.Store(nil)
+		w.penKey, w.penErr = "", nil
+		return
+	}
 	work := a.Store.Work()
 	key := fmt.Sprint(work.Writing, work.Discussion, len(a.ai.Providers()))
 	if key == w.penKey {

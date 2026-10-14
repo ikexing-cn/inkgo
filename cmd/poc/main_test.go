@@ -87,7 +87,7 @@ func TestLayoutDiscussion(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if err = tt.Click("模型设置"); err != nil {
+	if err = tt.Click("设置-AI"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -211,7 +211,6 @@ func TestLayoutWriting(t *testing.T) {
 	shot(t, tt, "-find")
 }
 
-// shot writes a screenshot beside SHOT with suffix, when SHOT is set.
 // clickMenu clicks the row named in a menu of the title bar.
 func clickMenu(tt *ui.Tester, menu, name string) error {
 	if err := tt.Click("菜单栏-" + menu); err != nil {
@@ -221,6 +220,7 @@ func clickMenu(tt *ui.Tester, menu, name string) error {
 	return tt.Click(name)
 }
 
+// shot writes a screenshot beside SHOT with suffix, when SHOT is set.
 func shot(t *testing.T, tt *ui.Tester, suffix string) {
 	t.Helper()
 	path := os.Getenv("SHOT")

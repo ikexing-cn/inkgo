@@ -2,6 +2,7 @@ package desk
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -120,11 +121,13 @@ func (a *App) hasSetting() bool {
 
 // leaveCheck is called as the author leaves the chapter shown, before its
 // summary is seen to: what the prose no longer says is no longer found,
-// and a chapter changed is checked again, when that is when to.
+// and a chapter changed is checked again, when that is when to. A chapter
+// about to be shown, its text not read yet, is no chapter left; with the
+// AI off, the checks are left as they were.
 func (a *App) leaveCheck() {
 	w := &a.write
 	k := &a.ck
-	if w.node == "" || w.lost || a.Store == nil {
+	if w.node == "" || w.ed == nil || w.lost || a.Store == nil || !a.aiOn() {
 		return
 	}
 	a.pruneCheck(w.node, w.saved)
@@ -208,6 +211,9 @@ func (a *App) pollChecks(c *ui.Context) {
 	store, sv := a.Store, c.Services()
 	go func() {
 		check, err := pw.Check(ctx, id)
+		if errors.Is(ctx.Err(), context.Canceled) {
+			err = context.Canceled // stopped, not failed
+		}
 		cancel()
 		k.done <- checkDone{chapter: id, store: store, check: check, err: err}
 		sv.Invalidate()
@@ -218,6 +224,9 @@ func (a *App) pollChecks(c *ui.Context) {
 // while it ran.
 func (a *App) keepCheck(d checkDone) {
 	k := &a.ck
+	if errors.Is(d.err, context.Canceled) {
+		return // stopped: the chapter stands as it did
+	}
 	if d.err != nil {
 		k.failed[d.chapter] = d.err.Error()
 		return
@@ -240,7 +249,8 @@ func (a *App) keepCheck(d checkDone) {
 	a.loadChecks()
 }
 
-// stopChecks drops the checks waiting, as the work closes.
+// stopChecks drops the checks waiting and stops the one running, as the
+// work closes or the AI is turned off.
 func (a *App) stopChecks() {
 	k := &a.ck
 	if k.cancel != nil {
@@ -254,7 +264,7 @@ func (a *App) stopChecks() {
 func (a *App) checkWhilePausing() {
 	w := &a.write
 	k := &a.ck
-	if k.when != checkOnPause || w.ed == nil || w.node == "" || w.lost || w.ed.Doc.Version() != w.savedVer ||
+	if k.when != checkOnPause || !a.aiOn() || w.ed == nil || w.node == "" || w.lost || w.ed.Doc.Version() != w.savedVer ||
 		time.Since(w.ed.LastEdit()) < checkPause || !a.hasSetting() {
 		return
 	}
@@ -380,6 +390,9 @@ func (a *App) openCheck(id string) {
 // checkPending is the findings as the pending list has them.
 func (a *App) checkPending() (pendGroup, bool) {
 	g := pendGroup{name: "设定不一致", color: a.pal.amber}
+	if !a.aiOn() {
+		return g, false
+	}
 	for _, it := range a.checkItems(false) {
 		p := pendItem{key: "检查/" + it.node + "/" + it.f.Kind + "/" + it.f.Quote, text: it.f.Title, sub: chapterLabel(it.ch), node: it.node, here: it.here, check: it.f.ID}
 		if it.f.Kind == workspace.FindNew {
@@ -396,7 +409,7 @@ func (a *App) checkPending() (pendGroup, bool) {
 }
 
 // markDoubts puts the light dashed line under what the checks found in the
-// chapter shown.
+// chapter shown, while the AI is on.
 func (a *App) markDoubts() {
 	w := &a.write
 	k := &a.ck
@@ -404,7 +417,7 @@ func (a *App) markDoubts() {
 	if !ok {
 		return
 	}
-	items := slices.DeleteFunc(a.checkItems(false), func(it checkItem) bool { return !it.here })
+	items := slices.DeleteFunc(a.checkItems(false), func(it checkItem) bool { return !it.here || !a.aiOn() })
 	key := fmt.Sprint(w.node, " ", k.liveVer)
 	for _, it := range items {
 		key += " " + it.f.ID
@@ -472,8 +485,9 @@ func (a *App) checkState() (line string, found int, can bool, tip string) {
 // to do about it, where a line says it was.
 const partNote = "后文超出上下文预算，可在设置中提高预算"
 
-// footBar is the line at the foot of the writing page: of a chapter, where
-// its check stands and when chapters are checked; at the right, the words.
+// footBar is the line at the foot of the writing page: of a chapter, with
+// the AI on, where its check stands and when chapters are checked; at the
+// right, the words.
 func (a *App) footBar(c *ui.Context, chapter bool) {
 	t := a.pal.theme
 	w := &a.write
@@ -483,7 +497,7 @@ func (a *App) footBar(c *ui.Context, chapter bool) {
 	roomy := foot.Bounds().W == 0 || foot.Bounds().W >= 600 // the counts give way to the check
 	wide := foot.Bounds().W == 0 || foot.Bounds().W >= 760  // and today's to the book's
 	foot.Children(func() {
-		if !chapter {
+		if !chapter || !a.aiOn() {
 			ui.Spacer(c)
 			a.wordCount(c, roomy, wide)
 			return

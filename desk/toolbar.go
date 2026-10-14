@@ -64,7 +64,8 @@ func (a *App) setTheme(v string) {
 func (a *App) Theme() string { return a.shelf.Theme }
 
 // selectionBar floats over the start of the selection with what acts on
-// it: the AI's rewrite, and taking the words into the settings.
+// it: the AI's rewrite, while it is on, and taking the words into the
+// settings.
 func (a *App) selectionBar(c *ui.Context) {
 	w := &a.write
 	r, ok := w.ed.SelectionTop()
@@ -83,7 +84,7 @@ func (a *App) selectionBar(c *ui.Context) {
 		Background(a.pal.raised).Border(1, t.Border)
 	a.pal.pop.on(bar)
 	bar.Children(func() {
-		if a.selButton(c, icPen, "AI 改写").Tooltip("由 AI 改写选中内容").Clicked() {
+		if a.aiOn() && a.selButton(c, icPen, "AI 改写").Tooltip("由 AI 改写选中内容").Clicked() {
 			a.openRewrite()
 		}
 		if a.selButton(c, icBookmark, "加入设定").Tooltip("将选中的原文加入设定").Clicked() {

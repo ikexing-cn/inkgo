@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"writer/workspace"
@@ -261,5 +262,33 @@ func TestAChapterReadInPartIsToldSo(t *testing.T) {
 	}
 	if label, _, warn := a.summaryState(); label != "本章摘要 · 不完整" || warn != partNote {
 		t.Fatal(label, warn)
+	}
+}
+
+// The page of prose opens on a chapter before its text is read: that is
+// no chapter left, and what its check found stays, on the disk and in the
+// count.
+func TestShowingAChapterKeepsWhatItsCheckFound(t *testing.T) {
+	quick(t)
+	a, tt, _ := fixture(t)
+	id, err := a.Store.NewChapter("", "第一章", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = a.Store.WriteChapter(id, checkProse, nil); err != nil {
+		t.Fatal(err)
+	}
+	found := workspace.Finding{ID: workspace.NewID(), Kind: workspace.FindName, Title: "「林婉」是不是「林晚」写错了？", Quote: "林婉", Name: "林晚"}
+	if err = a.Store.WriteCheck(id, workspace.Check{Of: workspace.ProseHash(checkProse), Words: workspace.Count(checkProse), By: "deepseek/deepseek-flash", At: time.Now(), Findings: []workspace.Finding{found}}); err != nil {
+		t.Fatal(err)
+	}
+	a.loadChecks()
+	if err = tt.Click("正文"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	k, err := a.Store.ReadCheck(id)
+	if a.write.node != id || err != nil || len(k.Findings) != 1 || len(a.ck.all[id].Findings) != 1 {
+		t.Fatalf("showing the chapter, what its check found went: %+v %v", k, err)
 	}
 }

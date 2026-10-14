@@ -332,7 +332,9 @@ function discussion() {
 
 function pane() {
   const waiting = aiOn() ? S.entries.filter((e) => e.place === 'open').length : 0, lost = S.marks.filter((m) => m.st === 'lost').length
-  const tab = (name, n) => `<div class="tab hit${name === S.tab ? ' on' : ''}"${onClick(() => set({ tab: name, ...SHUT }))}>${name}${n ? `<span class="badge">${n}</span>` : ''}</div>`
+  // 停在讨论时关掉 AI，这里显示设定；停在哪一页记着，重新开启后回到讨论。
+  const at = S.tab === '讨论' && !aiOn() ? '设定' : S.tab
+  const tab = (name, n) => `<div class="tab hit${name === at ? ' on' : ''}"${onClick(() => set({ tab: name, ...SHUT }))}>${name}${n ? `<span class="badge">${n}</span>` : ''}</div>`
   // 后台整理的记号：正在整理时一个呼吸的点，上一回没成功时一个黄点；点开是修改记录。
   const failed = aiOn() && !S.tidying && (S.log.find((c) => c.who === '后台整理') || {}).fail, sign = S.tidying ? '正在整理设定' : '上次整理失败，点击查看'
   const dot = S.tidying || failed ? `<button class="icon-btn tidy${failed ? ' warn' : ''}" aria-label="${sign}" title="${sign}"${onClick(() => set({ paneOpen: true, tab: '设定', sv: 'log', sid: null, form: null, ...SHUT }))}><div class="dot"></div></button>` : ''
@@ -341,5 +343,5 @@ function pane() {
   // 正文那一页有三页（AI 关着时没有讨论）；别的页只留设定。
   if (S.page !== 'write') return `<div id="pane"${wide}>${edge}<div class="tabs"><div class="tab on">设定${waiting ? `<span class="badge">${waiting}</span>` : ''}</div>${fold}</div>${setting()}</div>`
   return `<div id="pane"${wide}>${edge}` + `<div class="tabs">${tab('设定', waiting)}${aiOn() ? tab('讨论') : ''}${tab('伏笔', lost)}${fold}</div>` +
-    (S.tab === '设定' ? setting() : S.tab === '伏笔' ? foreshadowing() : discussion()) + '</div>'
+    (at === '设定' ? setting() : at === '伏笔' ? foreshadowing() : discussion()) + '</div>'
 }

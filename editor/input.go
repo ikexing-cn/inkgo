@@ -145,7 +145,7 @@ func (e *Editor) key(mods ui.Modifiers, k ui.Key) bool {
 			return true
 		case ui.KeyJ:
 			e.RequestPrediction()
-			return e.opts.Predictor != nil
+			return e.opts.Predictor != nil && !e.opts.NoAI
 		case ui.KeyA:
 			e.SelectAll()
 			return true

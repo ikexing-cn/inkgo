@@ -731,7 +731,8 @@ func (a *App) forePicked(c *ui.Context, f foreshadow) {
 }
 
 // remindersView is the settings' 提醒与检查: when a foreshadowing counts as
-// buried long, and when chapters are checked against the setting.
+// buried long, and with the AI on, when chapters are checked against the
+// setting.
 func (a *App) remindersView(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
@@ -776,6 +777,9 @@ func (a *App) remindersView(c *ui.Context) {
 		})
 	})
 	ui.Textf(c, "当前有 %d 个伏笔久未回收。", n).FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
+	if !a.aiOn() {
+		return
+	}
 	a.subhead(c, "检查正文和设定", "")
 	ui.Column(c).FillWidth().Gap(2).Children(func() { a.whenRows(c) })
 }

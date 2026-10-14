@@ -112,3 +112,67 @@ func TestProposalAcceptedAsOneStep(t *testing.T) {
 		t.Fatal("a proposal outlived its text")
 	}
 }
+
+// With the AI off, nothing asks the predictor and a prediction shown goes;
+// what an AI wrote is not underlined nor a mark at the caret, yet its mark
+// stays, for when the AI is back.
+func TestNoAI(t *testing.T) {
+	const text = "她推开门。窗外下雨"
+	e := New(NewDoc(text), Options{Predictor: DemoPredictor{}, PredictOnDemand: true})
+	e.Doc.AddMark(MarkAIDraft, 0, 5, "deepseek/deepseek-flash")
+	e.MoveTo(len([]rune(text)), false)
+	tt := newTester(e)
+	tt.Key(ui.Cmd, ui.KeyJ)
+	deadline := time.Now().Add(2 * time.Second)
+	for e.Ghost() == "" && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+		tt.Frame()
+	}
+	if e.Ghost() == "" {
+		t.Fatal("no prediction when asked")
+	}
+	on := pixels(tt)
+	e.SetNoAI(true)
+	tt.Frame()
+	if e.Ghost() != "" {
+		t.Fatal("the prediction stayed with the AI off")
+	}
+	tt.Key(ui.Cmd, ui.KeyJ)
+	time.Sleep(50 * time.Millisecond)
+	tt.Frame()
+	if e.Ghost() != "" || e.Predicting() {
+		t.Fatal("Cmd+J asked for a prediction with the AI off")
+	}
+	plain := New(NewDoc(text), Options{NoAI: true})
+	plain.MoveTo(len([]rune(text)), false)
+	if off := pixels(tt); off == on || off != pixels(newTester(plain)) {
+		t.Fatal("with the AI off, the draft is still underlined")
+	}
+	e.MoveTo(2, false)
+	if e.Marked() {
+		t.Fatal("the draft is a mark at the caret with the AI off")
+	}
+	e.Unmark()
+	if len(e.Doc.Marks()) != 1 {
+		t.Fatalf("the draft's mark went with the AI off: %+v", e.Doc.Marks())
+	}
+	e.SetNoAI(false)
+	if !e.Marked() {
+		t.Fatal("the draft's mark did not come back with the AI")
+	}
+}
+
+// pixels is what tt shows now.
+func pixels(tt *ui.Tester) string {
+	tt.Frame()
+	img := tt.Image()
+	b := img.Bounds()
+	out := make([]byte, 0, b.Dx()*b.Dy()*4)
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		for x := b.Min.X; x < b.Max.X; x++ {
+			r, g, bl, a := img.At(x, y).RGBA()
+			out = append(out, byte(r>>8), byte(g>>8), byte(bl>>8), byte(a>>8))
+		}
+	}
+	return string(out)
+}

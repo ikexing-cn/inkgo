@@ -26,8 +26,8 @@ const (
 // closing the toast clears it.
 func (a *App) toasts(c *ui.Context) {
 	busy := a.busy
-	if a.talking && a.talkShown() {
-		busy = "" // the turn shows its own progress
+	if a.talking && a.talkShown() || !a.aiOn() {
+		busy = "" // the turn shows its own progress; all that runs is the AI's
 	}
 	errKey := a.Error
 	if a.Error != "" && a.Error == a.failed {
@@ -171,7 +171,7 @@ func (a *App) toastActions(c *ui.Context, ts ui.Toast) {
 			head = head[:i]
 		}
 		if strings.Contains(head, "模型") || strings.Contains(head, "AI") {
-			acts = append(acts, act{"打开设置", func() { a.openPrefs("模型") }, ""})
+			acts = append(acts, act{"打开设置", func() { a.openPrefs("AI") }, ""})
 		}
 		text := a.Error
 		acts = append(acts, act{"复制详情", func() { c.WriteClipboard(text) }, ""})

@@ -16,7 +16,7 @@ import (
 // done about it; closing it clears it.
 func TestToastOverTheSettings(t *testing.T) {
 	a, tt, _ := fixture(t)
-	a.openPrefs("模型")
+	a.openPrefs("AI")
 	a.Error = "连不上 AI：检查网络和服务地址"
 	tt.Frame()
 	tt.Frame()
@@ -125,7 +125,7 @@ func TestShotToasts(t *testing.T) {
 		}
 	}
 	tt.SetDark(true)
-	a.openPrefs("模型")
+	a.openPrefs("AI")
 	a.Error = "连不上 AI：检查网络和服务地址"
 	shot("toast-settings-dark.png")
 	tt.SetDark(false)

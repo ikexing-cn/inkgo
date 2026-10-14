@@ -74,8 +74,9 @@ func labeled(c *ui.Context, caption string, fn func()) ui.Element {
 	})
 }
 
-// modelsView is the settings' 模型: which models the work uses, how the
-// writing calls them, and the services kept on this computer.
+// modelsView is the settings' AI with the AI on: which models the work
+// uses, how the writing calls them, and the services kept on this
+// computer.
 func (a *App) modelsView(c *ui.Context) {
 	if a.Store != nil {
 		a.usage(c)

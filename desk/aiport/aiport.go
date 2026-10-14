@@ -12,9 +12,12 @@ import (
 
 // Service is the AI of this machine. Catalog, Talk, Book and Pen build
 // what they give as the settings are now, on the interface's thread, and
-// fail at once when the settings name no model or no key; what they give
-// sends, off that thread.
+// fail at once when the settings name no model or no key, or the AI is
+// off; what they give sends, off that thread.
 type Service interface {
+	// SetOn turns the AI on or off. Off, Catalog, Talk, Book and Pen
+	// build nothing, and a bookkeeper still running takes nothing in.
+	SetOn(on bool)
 	// ConfigFile is where the services are configured, or empty when there
 	// is no such file.
 	ConfigFile() string

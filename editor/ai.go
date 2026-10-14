@@ -36,7 +36,7 @@ func (e *Editor) ReadOnly() bool { return e.opts.ReadOnly }
 // wherever the caret is, as a shortcut does when predictions come on
 // demand.
 func (e *Editor) RequestPrediction() {
-	if e.opts.Predictor == nil || e.opts.ReadOnly {
+	if e.opts.Predictor == nil || e.opts.ReadOnly || e.opts.NoAI {
 		return
 	}
 	e.cancelPredict()
@@ -158,3 +158,18 @@ func singleParagraphs(s string) string {
 // SetPredictOnDemand makes predictions come only when asked, or also as
 // typing pauses.
 func (e *Editor) SetPredictOnDemand(on bool) { e.opts.PredictOnDemand = on }
+
+// SetNoAI turns the AI off in the editor, dropping the prediction shown
+// or asked for, or back on.
+func (e *Editor) SetNoAI(on bool) {
+	e.opts.NoAI = on
+	if on {
+		e.DismissGhost()
+		e.asked = false
+	}
+}
+
+// hidden tells whether m is not shown: what an AI wrote, while it is off.
+func (e *Editor) hidden(m Mark) bool {
+	return e.opts.NoAI && (m.Kind == MarkAIAccepted || m.Kind == MarkAIDraft)
+}

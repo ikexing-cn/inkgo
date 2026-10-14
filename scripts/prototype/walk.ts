@@ -542,6 +542,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   const drafted = await paras(); await sleep(3000); must(await paras() === drafted, 'the draft went on with AI off'); must(await js(`S.talks[0].msgs.length === 1 && !S.waiting`), 'the reply went on with AI off')
   // Off, the page of prose and all that opens from it.
   must(await navs() === '正文 作品分类', 'with AI off the sidebar offers: ' + await navs()); must(await paneTabs() === '设定 伏笔', 'with AI off the pane offers: ' + await paneTabs())
+  must(await js(`document.querySelector('#pane .tab.on').firstChild.textContent`) === '设定', 'with AI off the pane is not on the setting')
+  must(await js(`S.tab`) === '讨论', 'with AI off the pane forgot it was on the talk, to go back to when AI is on')
   await noAI('the page of prose'); await shot('99h-ai-off-prose')
   await click('伏笔'); await noAI('the foreshadowings'); await click('设定'); await click('更多'); await click('修改记录'); await win('手动修改'); await win('后台整理', false); await noAI('the change log'); await click('全部设定')
   for (const name of ['文件', '编辑', '视图', '帮助']) { await click(name); await noAI('the menu ' + name); await key('Escape') }

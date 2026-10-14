@@ -30,23 +30,40 @@ func (a *App) sideFoot(c *ui.Context, slim bool) {
 }
 
 // prefTabs are the settings' parts, with the labels that pick them.
-var prefTabs = [][2]string{{"模型", "模型设置"}, {"外观", "设置-外观"}, {"提醒与检查", "设置-提醒"}, {"备份", "设置-备份"}}
+var prefTabs = [][2]string{{"AI", "设置-AI"}, {"外观", "设置-外观"}, {"提醒与检查", "设置-提醒"}, {"备份", "设置-备份"}}
 
 // The settings dialog keeps one size whichever part is shown.
 const prefsWidth, prefsHeight = 900, 620
 
 // prefAbout says under each part's title what it is for.
 var prefAbout = map[string]string{
-	"模型":    "为本作品选择模型。",
+	"AI":    "是否使用 AI，以及使用哪些模型。",
 	"外观":    "仅在本机生效，适用于所有作品。",
 	"提醒与检查": "本作品的提醒规则，修改后立即生效。",
 	"备份":    "为整部作品另存一份副本，以防设备故障。",
 }
 
-// openPrefs opens the settings at the part named, or the models.
+// prefName is what a part of the settings is called, and prefNote what
+// it says it is for: with the AI off, 提醒与检查 has no checks, and the
+// AI holds the switch alone.
+func (a *App) prefName(tab string) string {
+	if tab == "提醒与检查" && !a.aiOn() {
+		return "提醒"
+	}
+	return tab
+}
+
+func (a *App) prefNote(tab string) string {
+	if tab == "AI" && !a.aiOn() {
+		return "仅在本机生效，适用于所有作品。"
+	}
+	return prefAbout[tab]
+}
+
+// openPrefs opens the settings at the part named, or the AI.
 func (a *App) openPrefs(tab string) {
 	if tab == "" {
-		tab = "模型"
+		tab = "AI"
 	}
 	a.bk.prefs = true
 	a.showPref(tab)
@@ -63,15 +80,16 @@ func (a *App) showPref(tab string) {
 	}
 }
 
-// preferences is the settings dialog: the models, the appearance, and
-// the backups, over whatever page it was opened on.
+// preferences is the settings dialog: the AI, the appearance, the
+// reminders and the backups, over whatever page it was opened on; the
+// shelf has the first two, which hold for every work.
 func (a *App) preferences(c *ui.Context) {
 	if !a.bk.prefs {
 		return
 	}
 	t := a.pal.theme
-	if a.bk.tab == "" || a.bk.tab == "备份" && a.Store == nil {
-		a.bk.tab = "模型"
+	if a.bk.tab == "" || (a.bk.tab == "备份" || a.bk.tab == "提醒与检查") && a.Store == nil {
+		a.bk.tab = "AI"
 	}
 	w, h := c.Size()
 	ui.DialogBase(c, &a.bk.prefs, func(back, panel ui.Element) {
@@ -94,7 +112,7 @@ func (a *App) preferences(c *ui.Context) {
 				} else if b.Hovered() {
 					b.Background(t.SurfaceHover)
 				}
-				b.Children(func() { ui.Text(c, tab).FontSize(fsBody).FontWeight(weight).TextColor(fg) })
+				b.Children(func() { ui.Text(c, a.prefName(tab)).FontSize(fsBody).FontWeight(weight).TextColor(fg) })
 				if b.Clicked() {
 					a.showPref(tab)
 				}
@@ -105,8 +123,8 @@ func (a *App) preferences(c *ui.Context) {
 			// The title stays where it is: what is under it scrolls up to
 			// the line, not over it and the close button.
 			ui.Column(c).FillWidth().Shrink(0).Gap(4).Padding(24, 56, 16, 32).Children(func() {
-				ui.Text(c, a.bk.tab).FontSize(fsDialog).FontWeight(700)
-				ui.Text(c, prefAbout[a.bk.tab]).FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
+				ui.Text(c, a.prefName(a.bk.tab)).FontSize(fsDialog).FontWeight(700)
+				ui.Text(c, a.prefNote(a.bk.tab)).FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
 			})
 			a.pal.hairline(c)
 			ui.Scroll(c.Key("prefs-" + a.bk.tab)).Grow(1).Shrink(1).FillWidth().Children(func() {
@@ -119,7 +137,7 @@ func (a *App) preferences(c *ui.Context) {
 					case "提醒与检查":
 						a.remindersView(c)
 					default:
-						a.modelsView(c)
+						a.aiView(c)
 					}
 				})
 			})
@@ -128,6 +146,11 @@ func (a *App) preferences(c *ui.Context) {
 			a.bk.prefs = false
 		}
 	})
+	if a.bk.prefs {
+		a.askAI(c) // over the settings
+	} else {
+		a.bk.askAI = false
+	}
 }
 
 // prefsRow is a labeled row of the settings.

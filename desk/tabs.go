@@ -67,6 +67,7 @@ func (a *App) unpark(s *sheet) {
 	w.external, w.lost, w.lostTitle = s.external, s.lost, s.lostTitle
 	w.ed.SetFontSize(float32(w.textSize()))
 	w.ed.SetPredictOnDemand(!w.autoPredict)
+	w.ed.SetNoAI(!a.aiOn())
 	w.blank = false
 }
 

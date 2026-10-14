@@ -147,22 +147,19 @@ type App struct {
 }
 
 // New is the app with ai, whose configuration file says where this
-// machine keeps its settings: the shelf of works lies beside it, and with
-// none there is no shelf either, as for a test.
+// machine keeps its settings: the shelf of works lies beside it, with the
+// switch that turns the AI off, and with none there is no shelf either, as
+// for a test.
 func New(ai aiport.Service) *App {
 	a := &App{ai: ai, genre: "网文", results: make(chan result, 1), picks: make(chan func(), 1), changes: make(chan struct{}, 1),
 		light: lightPalette(), dark: darkPalette(), titles: map[string]string{}, md: mdCache{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
 	a.pal = a.light
 	if ai.ConfigFile() != "" {
-		if err := ai.Reload(); err != nil {
-			a.Error = err.Error()
-		}
-	}
-	if ps := ai.Providers(); len(ps) > 0 {
-		a.chooseProvider(ps[0].ID)
-	}
-	if ai.ConfigFile() != "" {
 		a.loadShelf()
+	}
+	ai.SetOn(a.aiOn())
+	if a.aiOn() {
+		a.loadAI()
 	}
 	return a
 }
@@ -362,6 +359,8 @@ func (a *App) flashNew() {
 
 // All state visible to the view is changed on the view thread. Workers own the
 // store until their result arrives; navigation/mutations are disabled meanwhile.
+// What runs this way is the AI's: the talk, the bookkeeper's retry and the
+// list of models.
 func (a *App) run(c *ui.Context, label string, fn func(context.Context) (func(), error)) {
 	a.work(c.Services(), label, fn)
 }
@@ -397,6 +396,9 @@ func (a *App) poll() {
 		a.cancel = nil
 		if r.apply != nil {
 			r.apply()
+		}
+		if !a.aiOn() {
+			r.err = nil // what runs is the AI's: turned off, it was stopped, and says nothing
 		}
 		if r.err != nil {
 			a.Error = r.err.Error()

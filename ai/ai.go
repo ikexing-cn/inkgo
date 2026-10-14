@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"writer/desk/aiport"
@@ -25,6 +26,9 @@ import (
 type Service struct {
 	file string
 	cfg  model.Config
+	// off is set on the interface's thread, and read on the bookkeeper's
+	// too.
+	off atomic.Bool
 	// NewWriter builds the writer of s, as the work and the services are
 	// now; tests replace it.
 	NewWriter func(s *workspace.Store) (*writing.Writer, error)
@@ -35,6 +39,10 @@ type Service struct {
 }
 
 var _ aiport.Service = (*Service)(nil)
+
+// ErrOff is what asking for anything that sends gives while the AI is
+// off.
+var ErrOff = errors.New("AI 已关闭")
 
 // ConfigPath is where this machine configures its services.
 func ConfigPath() (string, error) { return model.ConfigPath() }
@@ -49,6 +57,8 @@ func New(file string) *Service {
 }
 
 func (s *Service) ConfigFile() string { return s.file }
+
+func (s *Service) SetOn(on bool) { s.off.Store(!on) }
 
 func (s *Service) Providers() []aiport.Provider {
 	out := make([]aiport.Provider, len(s.cfg.Providers))
@@ -91,6 +101,9 @@ func (s *Service) SaveProvider(p aiport.Provider) error {
 func (s *Service) SetKey(providerID, key string) error { return model.SetKey(providerID, key) }
 
 func (s *Service) Catalog(providerID string) (aiport.Catalog, error) {
+	if s.off.Load() {
+		return nil, ErrOff
+	}
 	client, err := model.NewClient(s.cfg, providerID, "")
 	if err != nil {
 		return nil, err
@@ -122,6 +135,9 @@ func (t talk) Retry(ctx context.Context, session, userID string) error {
 }
 
 func (s *Service) Talk(st *workspace.Store, beside *aiport.Beside, progress func(reasoning, text string)) (aiport.Talk, error) {
+	if s.off.Load() {
+		return nil, ErrOff
+	}
 	work := st.Work()
 	if work.Discussion.Provider == "" || work.Discussion.Model == "" {
 		return nil, errors.New("尚未选择讨论模型：请在“模型设置”中选择")
@@ -182,7 +198,12 @@ func (b bookkeeping) Stop() { b.stop() }
 func (s *Service) Bookkeep(st *workspace.Store, changed func()) aiport.Bookkeeping {
 	ctx, stop := context.WithCancel(context.Background())
 	book := s.NewBookkeeper
-	w := discussion.NewWorker(func() (*discussion.Bookkeeper, error) { return book(st) }, bookBackoff, changed)
+	w := discussion.NewWorker(func() (*discussion.Bookkeeper, error) {
+		if s.off.Load() {
+			return nil, ErrOff
+		}
+		return book(st)
+	}, bookBackoff, changed)
 	w.Log = bookLog(filepath.Join(st.Root(), ".writer", "bookkeeper.log"))
 	go w.Run(ctx)
 	w.Kick()
@@ -204,6 +225,9 @@ func bookLog(path string) func(string) {
 }
 
 func (s *Service) Book(st *workspace.Store) (aiport.Book, error) {
+	if s.off.Load() {
+		return nil, ErrOff
+	}
 	b, err := s.NewBookkeeper(st)
 	if err != nil {
 		return nil, err
@@ -264,6 +288,9 @@ func (p pen) Check(ctx context.Context, chapter string) (workspace.Check, error)
 }
 
 func (s *Service) Pen(st *workspace.Store) (aiport.Pen, error) {
+	if s.off.Load() {
+		return nil, ErrOff
+	}
 	w, err := s.NewWriter(st)
 	if err != nil {
 		return nil, err

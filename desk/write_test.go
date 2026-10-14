@@ -572,7 +572,7 @@ func TestReopenWhereLeft(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if err := tt.Click("模型设置"); err != nil {
+	if err := tt.Click("设置-AI"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -724,7 +724,7 @@ func TestWritingSwitchesKeepAsTicked(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if err := tt.Click("模型设置"); err != nil {
+	if err := tt.Click("设置-AI"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

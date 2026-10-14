@@ -2,6 +2,7 @@ package desk
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -52,7 +53,7 @@ func (a *App) queueSummary(chapter string) {
 // changed while it was open and the summary does not say what it says now.
 func (a *App) leaveChapter() {
 	w := &a.write
-	if !w.changed || w.node == "" || w.lost || !a.write.autoSummary {
+	if !w.changed || w.node == "" || w.lost || !a.write.autoSummary || !a.aiOn() {
 		return
 	}
 	w.changed = false
@@ -96,6 +97,9 @@ func (a *App) pollSummaries(c *ui.Context) {
 	store, sv := a.Store, c.Services()
 	go func() {
 		sum, err := pw.Summarize(ctx, id)
+		if errors.Is(ctx.Err(), context.Canceled) {
+			err = context.Canceled // stopped, not failed
+		}
 		cancel()
 		q.done <- summaryDone{chapter: id, store: store, sum: sum, err: err}
 		sv.Invalidate()
@@ -106,6 +110,9 @@ func (a *App) pollSummaries(c *ui.Context) {
 // prose as it is meanwhile.
 func (a *App) keepSummary(d summaryDone) {
 	q := &a.sums
+	if errors.Is(d.err, context.Canceled) {
+		return // stopped: the summary stands as it did
+	}
 	if d.err != nil {
 		q.failed[d.chapter] = d.err.Error()
 		return
@@ -129,7 +136,8 @@ func (a *App) keepSummary(d summaryDone) {
 	}
 }
 
-// stopSummaries drops the summaries waiting, as the work closes.
+// stopSummaries drops the summaries waiting and stops the one running, as
+// the work closes or the AI is turned off.
 func (a *App) stopSummaries() {
 	q := &a.sums
 	if q.cancel != nil {
@@ -205,10 +213,10 @@ func shortModel(name string) string {
 }
 
 // summaryShown says whether the chapter shown has a summary to show: not
-// over an empty chapter that has none.
+// over an empty chapter that has none, nor with the AI off.
 func (a *App) summaryShown() bool {
 	w := &a.write
-	return w.sum.Text != "" || w.summary != "" || a.sums.running == w.node || w.ed == nil || w.ed.Doc.Len() > 0
+	return a.aiOn() && (w.sum.Text != "" || w.summary != "" || a.sums.running == w.node || w.ed == nil || w.ed.Doc.Len() > 0)
 }
 
 // summaryPanel is the summary of the chapter shown, opened under its toggle.

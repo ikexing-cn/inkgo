@@ -24,7 +24,7 @@ func (a *App) View(c *ui.Context) {
 	}
 	a.menu.seen = false
 	defer a.nameWindow()
-	if a.Store != nil && a.worker == nil {
+	if a.Store != nil && a.worker == nil && a.aiOn() {
 		a.startWorker(c)
 	}
 	a.pal = a.light
@@ -33,12 +33,15 @@ func (a *App) View(c *ui.Context) {
 	}
 	c.SetTheme(a.pal.theme)
 	if a.page == 1 || a.page == 4 { // the settings are a dialog over the page
-		tab := "模型"
+		tab := "AI"
 		if a.page == 4 {
 			tab = a.bk.tab
 		}
 		a.openPrefs(tab)
 		a.page = a.shown
+	}
+	if a.Store != nil && !a.aiOn() && (a.page == 0 || a.page == pageCheck) {
+		a.page = 3 // the talk and the checks are the AI's
 	}
 	if a.Store == nil && (a.page == 2 || a.page == 3 || a.page == pageCheck) {
 		a.page = 0
@@ -47,7 +50,7 @@ func (a *App) View(c *ui.Context) {
 		a.talking = false
 	}
 	if a.Store != nil {
-		a.pollSummaries(c)
+		a.pollSummaries(c) // with the AI off, only to take in one stopped
 		a.pollChecks(c)
 		a.backupDue(c)
 	}
@@ -133,7 +136,7 @@ func (a *App) sessionParts(id string) (when, words string) {
 func (a *App) sidebar(c *ui.Context) {
 	t := a.pal.theme
 	w, _ := c.Size()
-	slim := w < narrow && a.page != 3 // the writing page needs its tree
+	slim := w < narrow && !a.treeShown() // the tree needs the room
 	width := float32(232)
 	if slim {
 		width = 60
@@ -202,13 +205,17 @@ func (a *App) sidebar(c *ui.Context) {
 func (a *App) sideBody(c *ui.Context, slim bool) {
 	t := a.pal.theme
 	busy := a.busy != ""
-	a.navItem(c, icChat, "讨论", 0, slim, 0)
+	if a.aiOn() {
+		a.navItem(c, icChat, "讨论", 0, slim, 0)
+	}
 	a.navItem(c, icBook, "正文", 3, slim, 0)
-	a.navItem(c, icDone, "检查", pageCheck, slim, len(a.checkItems(false)))
+	if a.aiOn() {
+		a.navItem(c, icDone, "检查", pageCheck, slim, len(a.checkItems(false)))
+	}
 	a.navItem(c, icTag, "作品分类", 2, slim, 0)
 	ui.Box(c).Height(20)
 	defer a.sideFoot(c, slim)
-	if a.page == 3 {
+	if a.treeShown() {
 		a.chapterTree(c)
 		return
 	}
@@ -249,13 +256,17 @@ func (a *App) sideBody(c *ui.Context, slim bool) {
 	})
 }
 
+// treeShown tells whether the sidebar lists the chapters: on the writing
+// page, and with the AI off, on every page, there being no talks to list.
+func (a *App) treeShown() bool { return a.page == 3 || !a.aiOn() }
+
 // talkShown tells whether the discussion is on screen, on its page or
 // beside the prose.
 func (a *App) talkShown() bool {
 	if a.Store == nil {
 		return false
 	}
-	return a.page == 0 || a.page == 3 && a.doc.talk && !a.doc.fore && !a.doc.hidden
+	return a.page == 0 || a.page == 3 && a.talkTab() && !a.doc.fore && !a.doc.hidden
 }
 
 // navItem is a page of the sidebar, with how many things wait there.

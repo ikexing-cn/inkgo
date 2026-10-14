@@ -48,7 +48,7 @@ func (e *Editor) paintIn(p *ui.Painter, r ui.Rect) {
 
 	// Marks under the text.
 	for _, m := range e.Doc.marks {
-		if m.End <= m.Start {
+		if m.End <= m.Start || e.hidden(m) {
 			continue
 		}
 		a, b := l.toDisp(m.Start, true), l.toDisp(m.End, false)

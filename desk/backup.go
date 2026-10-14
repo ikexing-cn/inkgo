@@ -34,7 +34,8 @@ type backupView struct {
 	list           []backup.Info
 	listed         bool
 	prefs          bool   // the settings dialog
-	tab            string // its part shown: "模型", "外观" or "备份"
+	tab            string // its part shown: "AI", "外观", "提醒与检查" or "备份"
+	askAI          bool   // asking before the AI is turned off or on
 	edit           string // the service open in it: an ID, "+" for a new one
 	keepChoice     string
 }

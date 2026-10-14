@@ -238,9 +238,13 @@ func entryName(e workspace.Entry) (name, gist string) {
 
 // ideas are what the bookkeeper suggests and the author has not decided,
 // and for each the settled entry it is about, if it is about one: the one
-// that shares a name with it, or whose name it says.
+// that shares a name with it, or whose name it says. With the AI off,
+// there are none.
 func (a *App) ideas() (open []workspace.Entry, about map[string]string) {
 	about = map[string]string{}
+	if !a.aiOn() {
+		return nil, about
+	}
 	for _, e := range a.set.Entries {
 		if e.Place != workspace.PlaceOpen {
 			continue
@@ -333,7 +337,11 @@ func (a *App) settingList(c *ui.Context) {
 			d.todo = true
 		}
 		if a.bodyCount() == 0 {
-			a.paneEmpty(c, "暂无设定", "讨论和正文中的设定会自动收录于此，也可点击「新增」手动添加。")
+			how := "讨论和正文中的设定会自动收录于此，也可点击「新增」手动添加。"
+			if !a.aiOn() {
+				how = "可点击「新增」添加，或从正文中选中文字加入。"
+			}
+			a.paneEmpty(c, "暂无设定", how)
 			return
 		}
 		for _, cat := range a.Store.Work().Categories {
@@ -572,7 +580,7 @@ func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 
 // history lists the revisions, newest first: what changed, who changed it,
 // and for the bookkeeper's, how it reasoned. A batch it could not take in
-// can be retried here.
+// can be retried here. With the AI off, the bookkeeper's are not listed.
 func (a *App) history(c *ui.Context) {
 	t := a.pal.theme
 	if back, _ := a.paneBack(c, "全部设定", ""); back {
@@ -582,11 +590,13 @@ func (a *App) history(c *ui.Context) {
 	ui.Scroll(c.Key("history")).Grow(1).FillWidth().Children(func() {
 		ui.Column(c).FillWidth().Gap(10).Padding(16, 20, 20, 20).Children(func() {
 			ui.Text(c, "修改记录").FontSize(fsGroup).FontWeight(600)
-			if len(a.set.Revisions) == 0 {
-				a.paneNote(c, "暂无修改记录。讨论后，AI 会自动整理设定。")
-			}
+			shown := 0
 			for n := len(a.set.Revisions) - 1; n >= 0; n-- {
 				r := a.set.Revisions[n]
+				if r.By == workspace.ByBookkeeper && !a.aiOn() {
+					continue
+				}
+				shown++
 				ui.Column(c.Key(r.ID)).FillWidth().Padding(10, 12).Gap(6).Radius(rCard).Background(a.pal.raised).Border(1, a.pal.line).Children(func() {
 					ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
 						who := "手动修改"
@@ -626,6 +636,13 @@ func (a *App) history(c *ui.Context) {
 						a.thought(c, r.ID, "整理思考过程", r.Reasoning, false)
 					}
 				})
+			}
+			switch {
+			case shown > 0:
+			case a.aiOn():
+				a.paneNote(c, "暂无修改记录。讨论后，AI 会自动整理设定。")
+			default:
+				a.paneNote(c, "暂无修改记录。")
 			}
 		})
 	})
@@ -679,6 +696,9 @@ func (a *App) bookFailed() bool {
 // while it works and turns to a warning when its last batch failed. It
 // opens the history.
 func (a *App) bookDot(c *ui.Context) {
+	if !a.aiOn() {
+		return
+	}
 	busy := a.worker != nil && a.worker.Busy()
 	failed := !busy && a.bookFailed()
 	if !busy && !failed {

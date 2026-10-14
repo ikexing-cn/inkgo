@@ -275,7 +275,7 @@ func TestShotBackup(t *testing.T) {
 	tt.SetDark(true)
 	a.bk.tab, a.page = "外观", 4
 	shot("settings-look-dark.png")
-	a.bk.tab = "模型"
+	a.bk.tab = "AI"
 	shot("settings-models-dark.png")
 	a.bk.edit = "deepseek"
 	a.chooseProvider("deepseek")

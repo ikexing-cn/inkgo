@@ -55,7 +55,7 @@ func (a *App) panelTabs(c *ui.Context) {
 	}
 	open, _ := a.ideas()
 	tab := func(label string, talk, fore bool) {
-		on := a.doc.fore == fore && (fore || a.doc.talk == talk)
+		on := a.doc.fore == fore && (fore || a.talkTab() == talk)
 		b := ui.ButtonBase(c).Row().AlignItems(ui.Center).Padding(4, 10).Radius(rControl).Label("右栏-" + label)
 		if on {
 			b.Background(t.SurfacePressed)
@@ -89,10 +89,17 @@ func (a *App) panelTabs(c *ui.Context) {
 	}
 	ui.Row(c).Gap(2).AlignItems(ui.Center).Children(func() {
 		tab("设定", false, false)
-		tab("讨论", true, false)
+		if a.aiOn() {
+			tab("讨论", true, false)
+		}
 		tab("伏笔", false, true)
 	})
 }
+
+// talkTab tells whether the column beside the prose shows the talk: the
+// author chose it there, and the AI is on. Off, the choice is kept for
+// when it is back.
+func (a *App) talkTab() bool { return a.doc.talk && a.aiOn() }
 
 // talkPanel is the talk beside the prose: one talk with its turns and the
 // composer, which sends what the author is writing with their words, or

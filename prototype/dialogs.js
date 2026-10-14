@@ -146,7 +146,7 @@ function turnAI(on) {
   set((s) => (on ? { noAI: false, dialog: { ...s.dialog, ask: '' } } : {
     noAI: true, dialog: { ...s.dialog, ask: '' }, toasts: [], ai: null, tidying: false, checking: false, queue: [],
     summaries: Object.fromEntries(Object.entries(s.summaries).map(([key, sum]) => [key, sum.busy ? { ...sum, busy: false } : sum])),
-    page: s.page === 'talk' || s.page === 'check' ? 'write' : s.page, tab: s.tab === '讨论' ? '设定' : s.tab, sv: s.sv === 'ideas' ? 'list' : s.sv, box: s.box === '摘要' ? '' : s.box,
+    page: s.page === 'talk' || s.page === 'check' ? 'write' : s.page, sv: s.sv === 'ideas' ? 'list' : s.sv, box: s.box === '摘要' ? '' : s.box,
   }))
 }
 
