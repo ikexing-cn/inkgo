@@ -3,15 +3,17 @@
  * finds values of one frame (a Context, an Element) kept past it, in a
  * struct or by a goroutine.
  * One place is let through, and only that one: the builder of our own menus
- * holds the Context while a menu is built, in the one call, as the toolkit's
- * ui.Menu does. When it no longer does, this says so, to take the line out.
+ * holds the Context while a menu is built, in the one call. A second report
+ * of the kind in that file fails; when there is none, this says so, to take
+ * the line out. The vet looks at the toolkit's own types only: once let
+ * through, a menu or a row of it kept past the frame is not seen by it.
  * Usage: node scripts/verify-ui.ts
  */
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 
 const packages = ['desk', 'editor', 'cmd/poc']
-const allowed = [{ file: 'desk/menu.go', says: 'native UI build value stored in a struct' }]
+const allowed = [{ file: 'desk/menu.go', says: 'native UI build value stored in a struct', times: 1 }]
 
 // The tool is built once for each version of the toolkit and kept in .tmp:
 // linking it takes longer than all it then checks.
@@ -53,11 +55,14 @@ for (const { dir, code, said } of runs) {
 
 const passed = (line: string) => allowed.find((a) => line.includes('/' + a.file + ':') && line.includes(a.says))
 const problems = found.filter((l) => !passed(l))
-const unused = allowed.filter((a) => !found.some((l) => passed(l) === a))
+for (const a of allowed) {
+  const lines = found.filter((l) => passed(l) === a)
+  if (!lines.length) problems.push(`${a.file} no longer has what scripts/verify-ui.ts lets through: take it out of the list`)
+  else if (lines.length !== a.times) problems.push(...lines, `${a.file}: ${lines.length} of these, where scripts/verify-ui.ts lets ${a.times} through`)
+}
 for (const p of problems) console.error(p)
-for (const a of unused) console.error(`${a.file} no longer has what scripts/verify-ui.ts lets through: take it out of the list`)
-if (problems.length || unused.length) {
-  console.error(`\n${problems.length + unused.length} problem(s) with values kept past their frame`)
+if (problems.length) {
+  console.error(`\n${problems.length} problem(s) with values kept past their frame`)
   process.exit(1)
 }
 console.log(`ui ok: ${packages.join(', ')}; ${allowed.length} place let through`)
