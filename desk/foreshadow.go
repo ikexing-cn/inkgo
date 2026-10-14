@@ -369,14 +369,10 @@ func (a *App) foreMenu(m *menu) {
 	w := &a.write
 	s, e := w.ed.Selection()
 	busy := w.ed.ReadOnly()
-	if m.Item("记为伏笔…").Disabled(s == e || busy).Chosen() {
-		a.openBury()
-	}
-	if m.Item("记为回收…").Disabled(s == e || busy).Chosen() {
-		a.openPay("")
-	}
-	if id := a.foreAt(); id != "" && m.Item("查看伏笔").Chosen() {
-		a.showFore(id)
+	m.Item("记为伏笔…").Disabled(s == e || busy).Do(a.openBury)
+	m.Item("记为回收…").Disabled(s == e || busy).Do(func() { a.openPay("") })
+	if id := a.foreAt(); id != "" {
+		m.Item("查看伏笔").Do(func() { a.showFore(id) })
 	}
 }
 
@@ -564,9 +560,7 @@ func (a *App) foreList(c *ui.Context, all []foreshadow) {
 	}
 	a.paneFind(c, &s.query, "搜索伏笔", "", func(m *menu) {
 		for _, st := range []foreStatus{foreDone, foreDropped} {
-			if m.Item(foreLabels[st]).Hint(count(counts[st])).Chosen() {
-				s.status = st
-			}
+			m.Item(foreLabels[st]).Hint(count(counts[st])).Do(func() { s.status = st })
 		}
 	})
 	q := strings.TrimSpace(s.query)

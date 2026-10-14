@@ -283,12 +283,8 @@ func (a *App) settingList(c *ui.Context) {
 		}
 	}
 	if a.paneFind(c, &d.query, "搜索设定", "新增", func(m *menu) {
-		if m.Item("已删除").Hint(count(dropped)).Chosen() {
-			d.dropped = true
-		}
-		if m.Item("修改记录").Chosen() {
-			d.history = true
-		}
+		m.Item("已删除").Hint(count(dropped)).Do(func() { d.dropped = true })
+		m.Item("修改记录").Do(func() { d.history = true })
 	}) {
 		d.editing, d.text, d.category, d.name, d.names = "new", "", workspace.Other, "", ""
 	}

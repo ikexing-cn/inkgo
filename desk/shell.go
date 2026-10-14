@@ -167,7 +167,7 @@ func (a *App) sidebar(c *ui.Context) {
 		}, func(m *menu) {
 			// The work open first, marked; each with what kind it is.
 			m.Head("作品")
-			m.Item(work.Name).Hint(work.Genre).On(true).Chosen()
+			m.Item(work.Name).Hint(work.Genre).On(true)
 			n := 0
 			for _, b := range a.shelf.Recent() {
 				if sameFolder(b.Path, a.Store.Root()) {
@@ -178,17 +178,13 @@ func (a *App) sidebar(c *ui.Context) {
 				}
 				n++
 				path := b.Path
-				if m.Item(b.Name).Hint(b.Genre).Disabled(a.books.missing[path]).Chosen() {
+				m.Item(b.Name).Hint(b.Genre).Disabled(a.books.missing[path]).Do(func() {
 					chosen = func() { a.switchWork(path) }
-				}
+				})
 			}
 			m.Separator()
-			if m.Item("新建作品…").Chosen() {
-				chosen = a.openCreate
-			}
-			if m.Item("全部作品…").Chosen() {
-				chosen = a.closeWork
-			}
+			m.Item("新建作品…").Do(func() { chosen = a.openCreate })
+			m.Item("全部作品…").Do(func() { chosen = a.closeWork })
 		})
 		if chosen != nil {
 			chosen()
@@ -318,12 +314,12 @@ func (a *App) sessionItem(c *ui.Context, id string) {
 	})
 	a.contextMenu(c, b, "对话-"+id, func(m *menu) {
 		if a.shelved[id] {
-			if m.Item("移回列表").Disabled(a.busy != "").Chosen() {
+			m.Item("移回列表").Disabled(a.busy != "").Do(func() {
 				delete(a.shelved, id)
 				a.savePrefs()
-			}
-		} else if m.Item("收起这段对话").Disabled(a.busy != "").Chosen() {
-			a.shelve(id)
+			})
+		} else {
+			m.Item("收起这段对话").Disabled(a.busy != "").Do(func() { a.shelve(id) })
 		}
 	})
 	if b.Clicked() {

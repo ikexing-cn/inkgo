@@ -573,12 +573,8 @@ func (a *App) extraction(c *ui.Context) {
 			a.source.View(c).Height(220).FillWidth().Border(1, t.Border).Radius(rCard)
 			start, end := a.source.Selection()
 			a.menuAt(c, "原文", func(m *menu) {
-				if m.Item("复制").Hint(modKey + "C").Disabled(start == end).Chosen() {
-					a.source.Copy()
-				}
-				if m.Item("全选").Hint(modKey + "A").Chosen() {
-					a.source.SelectAll()
-				}
+				m.Item("复制").Hint(modKey + "C").Disabled(start == end).Do(func() { a.source.Copy() })
+				m.Item("全选").Hint(modKey + "A").Do(func() { a.source.SelectAll() })
 			})
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
 				ui.Select(c, &a.sourceCategory, a.categoryNames()).Label("摘取分类").Width(140)
@@ -637,20 +633,16 @@ func (a *App) modelMenu(m *menu, work workspace.Work) {
 		m.Head(head)
 		for _, id := range p.Models {
 			on := work.Discussion.Provider == p.ID && work.Discussion.Model == id
-			if m.Item(id).On(on).Chosen() {
-				a.setTalk(func(s *workspace.Selection) { s.Provider, s.Model = p.ID, id })
-			}
+			m.Item(id).On(on).Do(func() { a.setTalk(func(s *workspace.Selection) { s.Provider, s.Model = p.ID, id }) })
 		}
 	}
-	if m.Item("模型设置…").Chosen() {
-		a.openPrefs("模型")
-	}
+	m.Item("模型设置…").Do(func() { a.openPrefs("模型") })
 	m.Separator()
 	m.Head("思考程度")
 	for _, e := range model.Efforts {
-		if m.Item(e.Label()).On(work.Discussion.Effort == string(e)).Chosen() {
+		m.Item(e.Label()).On(work.Discussion.Effort == string(e)).Do(func() {
 			a.setTalk(func(s *workspace.Selection) { s.Effort = string(e) })
-		}
+		})
 	}
 }
 

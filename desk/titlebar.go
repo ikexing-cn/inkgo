@@ -45,7 +45,9 @@ func (a *App) titleBar(c *ui.Context) {
 	writing := inWork && a.page == 3
 	open, busy := a.chapterOpen()
 	var act func() // what was picked
-	held := false  // a button of the bar has the focus
+	// A row of the bar's menus does its part once the bar is drawn.
+	later := func(do func()) func() { return func() { act = do } }
+	held := false // a button of the bar has the focus
 	ui.Row(c).FillWidth().Height(titleHeight).Padding(0, bar.Right, 0, max(10, bar.Left)).Gap(2).AlignItems(ui.Center).
 		Background(a.pal.side).Shrink(0).DragWindow().Children(func() {
 		side := "收起侧栏"
@@ -62,76 +64,44 @@ func (a *App) titleBar(c *ui.Context) {
 		}
 		held = a.barMenu(c, "文件", func(m *menu) {
 			naming := w.renaming != ""
-			if m.Item("新建章节").Hint(modKey + "N").Disabled(!writing || naming).Chosen() {
-				act = func() { a.newNode(false) }
-			}
-			if m.Item("新建文件夹").Disabled(!writing || naming).Chosen() {
-				act = func() { a.newNode(true) }
-			}
+			m.Item("新建章节").Hint(modKey + "N").Disabled(!writing || naming).Do(later(func() { a.newNode(false) }))
+			m.Item("新建文件夹").Disabled(!writing || naming).Do(later(func() { a.newNode(true) }))
 			m.Separator()
-			if m.Item("保存").Hint(modKey + "S").Disabled(!open).Chosen() {
-				act = a.saveNow
-			}
-			if m.Item("快照").Disabled(!open || busy).Chosen() {
-				act = a.openSnapshots
-			}
-			if m.Item("导出…").Disabled(!inWork).Chosen() {
-				act = a.openExport
-			}
+			m.Item("保存").Hint(modKey + "S").Disabled(!open).Do(later(a.saveNow))
+			m.Item("快照").Disabled(!open || busy).Do(later(a.openSnapshots))
+			m.Item("导出…").Disabled(!inWork).Do(later(a.openExport))
 			m.Separator()
-			if m.Item("设置…").Disabled(!inWork).Chosen() {
-				act = func() { a.openPrefs(a.bk.tab) }
-			}
+			m.Item("设置…").Disabled(!inWork).Do(later(func() { a.openPrefs(a.bk.tab) }))
 		}) || held
 		held = a.barMenu(c, "编辑", func(m *menu) {
 			can := open && !busy
-			if m.Item("撤销").Hint(modKey + "Z").Disabled(!can || !w.ed.CanUndo()).Chosen() {
-				act = w.ed.Undo
-			}
-			if m.Item("重做").Hint(modKey + "Y").Disabled(!can || !w.ed.CanRedo()).Chosen() {
-				act = w.ed.Redo
-			}
+			m.Item("撤销").Hint(modKey + "Z").Disabled(!can || !w.ed.CanUndo()).Do(later(w.ed.Undo))
+			m.Item("重做").Hint(modKey + "Y").Disabled(!can || !w.ed.CanRedo()).Do(later(w.ed.Redo))
 			m.Separator()
-			if m.Item("查找替换").Hint(modKey + "F").Disabled(!can).Chosen() {
-				act = func() { w.finding = true }
-			}
+			m.Item("查找替换").Hint(modKey + "F").Disabled(!can).Do(later(func() { w.finding = true }))
 			_, shown := w.tree.Node(w.node)
-			if m.Item("重命名").Hint("F2").Disabled(!writing || !shown || w.renaming != "").Chosen() {
-				act = a.renameOpen
-			}
+			m.Item("重命名").Hint("F2").Disabled(!writing || !shown || w.renaming != "").Do(later(a.renameOpen))
 			m.Separator()
-			if m.Item("续写一句").Hint(modKey + "J").Disabled(!can).Chosen() {
-				act = a.continueText
-			}
+			m.Item("续写一句").Hint(modKey + "J").Disabled(!can).Do(later(a.continueText))
 			hint := ""
 			if open && strings.TrimSpace(w.outline) == "" {
 				hint = "请先填写章纲"
 			}
-			if m.Item("起草本章").Hint(hint).Disabled(!can || hint != "").Chosen() {
-				act = a.openDraft
-			}
+			m.Item("起草本章").Hint(hint).Disabled(!can || hint != "").Do(later(a.openDraft))
 		}) || held
 		held = a.barMenu(c, "视图", func(m *menu) {
-			if m.Item(side).Disabled(!inWork).Chosen() {
-				act = func() { a.setSideHidden(!a.sideHidden) }
-			}
+			m.Item(side).Disabled(!inWork).Do(later(func() { a.setSideHidden(!a.sideHidden) }))
 			pane := "收起右栏"
 			if a.doc.hidden {
 				pane = "展开右栏"
 			}
-			if m.Item(pane).Disabled(!inWork || a.page != 0 && a.page != 3).Chosen() {
-				act = func() { a.setDocHidden(!a.doc.hidden) }
-			}
-			if m.Item("专注写作").Hint("F11").Disabled(!writing).Chosen() {
-				act = func() { w.focus = true }
-			}
+			m.Item(pane).Disabled(!inWork || a.page != 0 && a.page != 3).Do(later(func() { a.setDocHidden(!a.doc.hidden) }))
+			m.Item("专注写作").Hint("F11").Disabled(!writing).Do(later(func() { w.focus = true }))
 			m.Separator()
 			m.Draw(a.themeChoice)
 		}) || held
 		held = a.barMenu(c, "帮助", func(m *menu) {
-			if m.Item("快捷键…").Hint(modKey + "/").Chosen() {
-				act = func() { a.keysOpen = true }
-			}
+			m.Item("快捷键…").Hint(modKey + "/").Do(later(func() { a.keysOpen = true }))
 		}) || held
 	})
 	a.pal.hairline(c)

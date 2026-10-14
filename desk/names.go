@@ -68,11 +68,13 @@ func (a *App) nameMenu(m *menu, sel string) {
 	}
 	m.Submenu("加入名字表", func(m *menu) {
 		for _, c := range a.Store.Work().Categories {
-			if slices.Contains(workspace.NameCategories, c.Name) && m.Item(c.Name).Chosen() {
-				a.revise(workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: c.Name, Text: name, Names: []string{name}})
-				if a.Error == "" {
-					a.notice = "「" + name + "」已加入设定的" + c.Name + "，输入时可自动补全"
-				}
+			if slices.Contains(workspace.NameCategories, c.Name) {
+				m.Item(c.Name).Do(func() {
+					a.revise(workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: c.Name, Text: name, Names: []string{name}})
+					if a.Error == "" {
+						a.notice = "「" + name + "」已加入设定的" + c.Name + "，输入时可自动补全"
+					}
+				})
 			}
 		}
 	})

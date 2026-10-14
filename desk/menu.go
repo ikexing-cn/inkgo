@@ -24,15 +24,13 @@ type menuState struct {
 	seen  bool    // it was drawn in the last frame
 }
 
-// menu lists the rows of a menu: build names them in order, and a row's
-// Chosen says it was picked, which closes the menu. It holds nothing of the
-// frame it is drawn in: the rows are drawn once build has listed them
-// (menuRows), and when one is picked build goes over them again, nothing
-// drawn, for that row's Chosen to say so. So build only lists, and acts
-// where a row is Chosen; what it would draw itself goes in a Draw row.
+// menu lists the rows of a menu: build names them in order, each with what
+// picking it does. It holds nothing of the frame it is drawn in: the rows
+// are drawn once build has listed them (menuRows), and the one picked then
+// does what it was given to Do. What build would draw itself goes in a Draw
+// row.
 type menu struct {
 	rows []*menuItem
-	pick *menuItem // the row picked, as build goes over them again
 }
 
 // The kinds of a menu's rows.
@@ -47,17 +45,15 @@ const (
 // menuItem is a row of a menu. Its methods set it up and return it, for
 // chaining.
 type menuItem struct {
-	m           *menu
-	at          int // which of the menu's rows it is
 	kind        int
 	label, hint string
 	off, on     bool
+	do          func()              // what picking a rowItem does
 	build       func(m *menu)       // fills the list a rowSub opens
 	draw        func(c *ui.Context) // draws a rowDraw
 }
 
 func (m *menu) add(it *menuItem) *menuItem {
-	it.m, it.at = m, len(m.rows)
 	m.rows = append(m.rows, it)
 	return it
 }
@@ -74,13 +70,9 @@ func (it *menuItem) Hint(s string) *menuItem { it.hint = s; return it }
 // On marks the row as the one in use.
 func (it *menuItem) On(on bool) *menuItem { it.on = on; return it }
 
-// Chosen reports that the row was picked. It is the row at the same place
-// saying the same: were build to list other rows the second time, none is
-// picked rather than another.
-func (it *menuItem) Chosen() bool {
-	p := it.m.pick
-	return p != nil && p.at == it.at && p.label == it.label
-}
+// Do has do run as the row is picked, the menu closed by then. A row given
+// nothing to do closes the menu all the same.
+func (it *menuItem) Do(do func()) { it.do = do }
 
 // Separator adds a line between groups of rows.
 func (m *menu) Separator() { m.add(&menuItem{kind: rowLine}) }
@@ -98,7 +90,7 @@ func (m *menu) Submenu(label string, build func(m *menu)) {
 // row to pick.
 func (m *menu) Draw(draw func(c *ui.Context)) { m.add(&menuItem{kind: rowDraw, draw: draw}) }
 
-// menuRows draws the rows build lists, and has build act on the one picked.
+// menuRows draws the rows build lists, and has the one picked do its part.
 // list says they are the list beside a menu, which opens none of its own;
 // of a menu's rows it returns the one whose list is open, and where it is.
 func (a *App) menuRows(c *ui.Context, build func(m *menu), list bool) (open *menuItem, at ui.Rect) {
@@ -151,7 +143,9 @@ func (a *App) menuRows(c *ui.Context, build func(m *menu), list bool) (open *men
 		return open, at
 	}
 	a.menu = menuState{}
-	build(&menu{pick: picked})
+	if picked.do != nil {
+		picked.do()
+	}
 	return nil, ui.Rect{}
 }
 

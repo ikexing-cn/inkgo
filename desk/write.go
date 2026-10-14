@@ -262,36 +262,20 @@ func (a *App) textMenu(m *menu) {
 	ed := a.write.ed
 	s, e := ed.Selection()
 	busy := ed.ReadOnly()
-	if m.Item("剪切").Hint(modKey + "X").Disabled(s == e || busy).Chosen() {
-		ed.Cut()
-	}
-	if m.Item("复制").Hint(modKey + "C").Disabled(s == e).Chosen() {
-		ed.Copy()
-	}
-	if m.Item("粘贴").Hint(modKey + "V").Disabled(busy).Chosen() {
-		ed.Paste()
-	}
-	if m.Item("全选").Hint(modKey + "A").Chosen() {
-		ed.SelectAll()
-	}
+	m.Item("剪切").Hint(modKey + "X").Disabled(s == e || busy).Do(ed.Cut)
+	m.Item("复制").Hint(modKey + "C").Disabled(s == e).Do(ed.Copy)
+	m.Item("粘贴").Hint(modKey + "V").Disabled(busy).Do(ed.Paste)
+	m.Item("全选").Hint(modKey + "A").Do(ed.SelectAll)
 	m.Separator()
-	if m.Item("续写一句").Hint(modKey + "J").Disabled(busy).Chosen() {
-		a.continueText()
-	}
-	if m.Item("AI 改写…").Disabled(s == e || busy).Chosen() {
-		a.openRewrite()
-	}
-	if m.Item("引用到讨论").Hint(modKey + "L").Disabled(s == e).Chosen() {
-		a.quoteToTalk()
-	}
-	if m.Item("加入设定").Disabled(s == e).Chosen() {
-		a.openTake()
-	}
+	m.Item("续写一句").Hint(modKey + "J").Disabled(busy).Do(a.continueText)
+	m.Item("AI 改写…").Disabled(s == e || busy).Do(a.openRewrite)
+	m.Item("引用到讨论").Hint(modKey + "L").Disabled(s == e).Do(a.quoteToTalk)
+	m.Item("加入设定").Disabled(s == e).Do(a.openTake)
 	a.nameMenu(m, ed.Doc.Slice(s, e))
 	m.Separator()
 	a.foreMenu(m)
-	if ed.Marked() && m.Item("移除此处标记").Disabled(busy).Chosen() {
-		ed.Unmark()
+	if ed.Marked() {
+		m.Item("移除此处标记").Disabled(busy).Do(ed.Unmark)
 	}
 }
 
@@ -1588,25 +1572,15 @@ func (a *App) nodeMenu(m *menu, n *workspace.Node) {
 	w := &a.write
 	siblings := n.Parent.Children
 	i := slices.Index(siblings, n)
-	if n.Folder && m.Item("编辑卷纲").Chosen() {
-		a.openNode(n.ID)
+	if n.Folder {
+		m.Item("编辑卷纲").Do(func() { a.openNode(n.ID) })
 	}
-	if m.Item("重命名").Chosen() {
-		w.renaming, w.title, w.titleWas, w.offered = n.ID, n.Title, n.Title, ""
-	}
-	if m.Item("新建章节").Chosen() {
-		a.newNodeAt(false, n)
-	}
-	if m.Item("新建文件夹").Chosen() {
-		a.newNodeAt(true, n)
-	}
+	m.Item("重命名").Do(func() { w.renaming, w.title, w.titleWas, w.offered = n.ID, n.Title, n.Title, "" })
+	m.Item("新建章节").Do(func() { a.newNodeAt(false, n) })
+	m.Item("新建文件夹").Do(func() { a.newNodeAt(true, n) })
 	m.Separator()
-	if m.Item("上移").Disabled(i == 0).Chosen() {
-		a.move(n.ID, n.Parent.ID, i-1)
-	}
-	if m.Item("下移").Disabled(i == len(siblings)-1).Chosen() {
-		a.move(n.ID, n.Parent.ID, i+1)
-	}
+	m.Item("上移").Disabled(i == 0).Do(func() { a.move(n.ID, n.Parent.ID, i-1) })
+	m.Item("下移").Disabled(i == len(siblings)-1).Do(func() { a.move(n.ID, n.Parent.ID, i+1) })
 	// Where else it can go: not where it is, nor inside itself.
 	var into []*workspace.Node
 	var depths []int
@@ -1617,19 +1591,15 @@ func (a *App) nodeMenu(m *menu, n *workspace.Node) {
 	})
 	if top := n.Parent.Parent != nil; top || len(into) > 0 {
 		m.Head("移到")
-		if top && m.Item("最上层").Chosen() {
-			a.move(n.ID, "", len(w.tree.Root.Children))
+		if top {
+			m.Item("最上层").Do(func() { a.move(n.ID, "", len(w.tree.Root.Children)) })
 		}
 		for i, f := range into {
-			if m.Item(strings.Repeat("　", depths[i]) + f.Title).Chosen() {
-				a.move(n.ID, f.ID, len(f.Children))
-			}
+			m.Item(strings.Repeat("　", depths[i]) + f.Title).Do(func() { a.move(n.ID, f.ID, len(f.Children)) })
 		}
 	}
 	m.Separator()
-	if m.Item("移到回收站").Chosen() {
-		a.trashNode(n)
-	}
+	m.Item("移到回收站").Do(func() { a.trashNode(n) })
 }
 
 func (a *App) move(id, parent string, index int) {

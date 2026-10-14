@@ -498,16 +498,14 @@ func (a *App) bookMenu(c *ui.Context, b shelf.Book) {
 	a.dropMenu(c, more, key, func(panel ui.Element) {
 		panel.AttachTo(more, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(4, 0, 0, 0).Width(180)
 	}, func(m *menu) {
-		if a.Reveal != nil && m.Item("打开所在文件夹").Chosen() {
-			a.warn(a.Reveal(b.Path))
+		if a.Reveal != nil {
+			m.Item("打开所在文件夹").Do(func() { a.warn(a.Reveal(b.Path)) })
 		}
-		if m.Item("重命名…").Chosen() {
-			a.books.renaming, a.books.name = b.Path, b.Name
-		}
-		if m.Item("从书架移除").Chosen() {
+		m.Item("重命名…").Do(func() { a.books.renaming, a.books.name = b.Path, b.Name })
+		m.Item("从书架移除").Do(func() {
 			a.removeBook(b.Path)
 			a.notice = "已从书架移除，文件夹未改动：" + b.Path
-		}
+		})
 	})
 }
 

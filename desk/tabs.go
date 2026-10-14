@@ -225,15 +225,9 @@ func (a *App) sheetRow(c *ui.Context, shut *[]string) {
 				at := slices.Index(w.tabs, id)
 				others := slices.DeleteFunc(slices.Clone(w.tabs), func(k string) bool { return k == id })
 				right := slices.Clone(w.tabs[at+1:])
-				if m.Item("关闭").Hint(modKey + "W").Chosen() {
-					*shut = []string{id}
-				}
-				if m.Item("关闭其他").Disabled(len(others) == 0).Chosen() {
-					*shut = others
-				}
-				if m.Item("关闭右侧").Disabled(len(right) == 0).Chosen() {
-					*shut = right
-				}
+				m.Item("关闭").Hint(modKey + "W").Do(func() { *shut = []string{id} })
+				m.Item("关闭其他").Disabled(len(others) == 0).Do(func() { *shut = others })
+				m.Item("关闭右侧").Disabled(len(right) == 0).Do(func() { *shut = right })
 			})
 			if tab.Clicked() && *shut == nil && !on {
 				a.openNode(id)

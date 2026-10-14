@@ -111,7 +111,7 @@ Status: implemented
 
 - 后台任务在起头的那一帧取一份 `sv := c.Services()`，做完以后叫 `sv.Invalidate()`。`Services` 是 mygo 说明里可以留到帧外的东西。连带改了两处把 `c` 留到以后再用的地方：重试（`a.again`）和选完备份文件夹以后的那一次备份。
 - 菜单构建器那一处没有改，理由见下面。`scripts/verify-ui.ts` 把 `mygo vet` 接进 `npm run verify`，只放行这一行：`desk/menu.go` 里这种报告恰好一条才过，多一条、少一条都不过。详见 [mygo 升级那篇](../process/2026-10-13-mygo-0.4.md)。
-- 同一天后来这一处也改掉了，用的不是下面放弃的那个办法：构建器改成只记下各行，不存 `Context`，画由一个拿着 `c` 的函数做，调用处不用改（见[自己画菜单那篇](../feature/2026-10-12-own-menus.md)）。`verify-ui` 不再放行任何一处。
+- 同一天后来这一处也改掉了，用的不是下面放弃的那个办法：构建器改成只记下各行，不存 `Context`，画由一个拿着 `c` 的函数做，每行把点了要做的事交给它（`m.Item(…).Do(…)`）（见[自己画菜单那篇](../feature/2026-10-12-own-menus.md)）。`verify-ui` 不再放行任何一处。
 
 ## Alternatives considered
 
