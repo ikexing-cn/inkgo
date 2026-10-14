@@ -863,7 +863,7 @@ function floats() {
 
   if (S.bury) {
     return veiled + `<div class="float bury" data-k="bury" style="${by(360, 132, S.pick)}"><div class="float-head">${icon('flag', 'sm')}记为伏笔，填写备注</div>` +
-      `<div class="bury-box">${typed(S.bury.note, (v) => set({ bury: { note: v } }), '例如：小祥为什么突然改口', '伏笔备注', keys(buryNow, () => set({ bury: null, pick: null })) + ' autofocus')}</div>` +
+      `<div class="bury-box">${typed(S.bury.note, (v) => set({ bury: { note: v } }), '例如：他为什么突然改口', '伏笔备注', keys(buryNow, () => set({ bury: null, pick: null })) + ' autofocus')}</div>` +
       `<div class="float-end">${button('取消', closeFloat)}${button('确定', buryNow, 'primary')}</div></div>`
   }
 

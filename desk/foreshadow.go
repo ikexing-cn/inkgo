@@ -412,7 +412,7 @@ func (a *App) forePopover(c *ui.Context) {
 				glyph(c, icFlag, iconXs, t.TextMuted)
 				ui.Text(c, "记为伏笔，填写备注").FontSize(fsNote).TextColor(t.TextMuted)
 			})
-			in := ui.TextInput(c, &f.note).Label("伏笔备注").Placeholder("例如：小祥为什么突然改口").FillWidth().AutoFocus()
+			in := ui.TextInput(c, &f.note).Label("伏笔备注").Placeholder("例如：他为什么突然改口").FillWidth().AutoFocus()
 			cancel := in.Shortcut(0, ui.KeyEscape)
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 				ui.Spacer(c)
