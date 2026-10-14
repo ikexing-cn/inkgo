@@ -1368,3 +1368,27 @@ func TestTheProseKeepsTheKeyboard(t *testing.T) {
 		}
 	}
 }
+
+// A chapter added between two numbered ones is not given the number of the
+// one after it: there is no number free there.
+func TestANewChapterBetweenTwoTakesNoNumber(t *testing.T) {
+	a, tt, id := writingFixture(t, "雨从傍晚开始下。")
+	if _, err := a.Store.NewChapter("", "第二章 井", false); err != nil {
+		t.Fatal(err)
+	}
+	a.warn(a.loadTree())
+	a.openNode(id)
+	tt.Frame()
+	if err := tt.Click("新建章节"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.write.title != "" {
+		t.Fatalf("offered %q", a.write.title)
+	}
+	tt.Key(0, ui.KeyEnter)
+	tt.Frame()
+	if n, _ := a.write.tree.Node(a.write.node); n.Title != "新章节" {
+		t.Fatal("numbered as the chapter after it:", n.Title)
+	}
+}

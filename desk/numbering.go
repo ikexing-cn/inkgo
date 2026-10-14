@@ -30,27 +30,31 @@ func nextTitle(before string) string {
 }
 
 // titleAfter suggests a title for the new node id from the nearest node of
-// its kind before it in the tree's order.
+// its kind before it in the tree's order; none where the nearest after it
+// has that number already, as when it goes between two chapters.
 func titleAfter(tree workspace.Tree, id string) string {
 	me, ok := tree.Node(id)
 	if !ok {
 		return ""
 	}
-	prev := ""
-	done := false
+	prev, next := "", ""
+	seen, after := false, false
 	tree.Walk(func(n *workspace.Node, _ int) {
-		if done {
-			return
-		}
-		if n.ID == id {
-			done = true
-			return
-		}
-		if n.Folder == me.Folder {
+		switch {
+		case after || n.Folder != me.Folder:
+		case n.ID == id:
+			seen = true
+		case seen:
+			next, after = n.Title, true
+		default:
 			prev = n.Title
 		}
 	})
-	return nextTitle(prev)
+	title := nextTitle(prev)
+	if title != "" && numbered.FindString(strings.TrimSpace(next)) == title {
+		return ""
+	}
+	return title
 }
 
 var hanDigits = map[rune]int{'零': 0, '〇': 0, '一': 1, '二': 2, '两': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9}
