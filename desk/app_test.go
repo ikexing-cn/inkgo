@@ -146,7 +146,8 @@ func TestTheAuthorEditsTheSetting(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if len(a.set.Entries) != 2 || a.set.Entries[1].Category != workspace.Other {
+	// A new entry starts in the first category, as in the prototype.
+	if len(a.set.Entries) != 2 || a.set.Entries[1].Category != "人物" {
 		t.Fatalf("new entry %+v", a.set.Entries)
 	}
 	for _, r := range a.set.Revisions {

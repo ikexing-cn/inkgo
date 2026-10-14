@@ -608,6 +608,16 @@ func (a *App) categoryNames() []string {
 	return names
 }
 
+// firstCategory is where an entry the author writes or takes from the
+// prose starts: the work's first category, 人物 unless they changed it.
+// What is taken from the talk starts in 其他 instead.
+func (a *App) firstCategory() string {
+	if cats := a.Store.Work().Categories; len(cats) > 0 {
+		return cats[0].Name
+	}
+	return workspace.Other
+}
+
 // modelMenu changes the discussion model and its effort without leaving the
 // conversation. Models come from each provider's catalog; one outside it
 // is set in the model settings.

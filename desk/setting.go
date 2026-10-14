@@ -291,7 +291,7 @@ func (a *App) settingList(c *ui.Context) {
 		m.Item("已删除").Hint(count(dropped)).Do(func() { d.dropped = true })
 		m.Item("修改记录").Do(func() { d.history = true })
 	}) {
-		d.editing, d.text, d.category, d.name, d.names = "new", "", workspace.Other, "", ""
+		d.editing, d.text, d.category, d.name, d.names = "new", "", a.firstCategory(), "", ""
 	}
 	q := trim(d.query)
 	row := func(e workspace.Entry) {

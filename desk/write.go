@@ -2097,7 +2097,7 @@ func (a *App) openTake() {
 	}
 	w.takeQuote, w.takeText, w.takeOpen = q, q, true
 	if w.takeCategory == "" {
-		w.takeCategory = workspace.Other
+		w.takeCategory = a.firstCategory()
 	}
 }
 
