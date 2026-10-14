@@ -8,9 +8,8 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"writer/discussion"
+	"writer/desk/aiport"
 	"writer/editor"
-	"writer/model"
 	"writer/workspace"
 )
 
@@ -233,7 +232,7 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 		acts.Children(func() {
 			if !user && !m.At.IsZero() {
 				when := m.At.Local().Format("15:04")
-				if who := modelLabel(m.Model, m.Effort); who != "" {
+				if who := a.replyLabel(m.Model, m.Effort); who != "" {
 					when += " · " + who
 				}
 				ui.Text(c, when).FontSize(fsSmall).TextColor(a.pal.faint).Padding(0, 6, 0, 0)
@@ -346,13 +345,13 @@ func (a *App) thought(c *ui.Context, key, label, reasoning string, running bool)
 	}).FillWidth()
 }
 
-// modelLabel names the model and effort a reply came from.
-func modelLabel(name, effort string) string {
+// replyLabel names the model and effort a reply came from.
+func (a *App) replyLabel(name, effort string) string {
 	if i := strings.LastIndex(name, "/"); i >= 0 {
 		name = name[i+1:]
 	}
 	if effort != "" && name != "" {
-		name += " · " + model.Effort(effort).Label()
+		name += " · " + a.ai.EffortLabel(effort)
 	}
 	return name
 }
@@ -403,7 +402,7 @@ func (a *App) composer(c *ui.Context) {
 				}
 				dot(c, color, 6)
 				ui.Text(c, work.Discussion.Model).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
-				ui.Text(c, model.Effort(work.Discussion.Effort).Label()).FontSize(fsNote).TextColor(a.pal.faint).SingleLine()
+				ui.Text(c, a.ai.EffortLabel(work.Discussion.Effort)).FontSize(fsNote).TextColor(a.pal.faint).SingleLine()
 			} else {
 				dot(c, t.Warning, 6)
 				ui.Text(c, "选择讨论模型").FontSize(fsNote).TextColor(t.Warning).SingleLine()
@@ -498,7 +497,7 @@ func (a *App) composer(c *ui.Context) {
 }
 
 func (a *App) providerURL(id string) string {
-	for _, p := range a.Config.Providers {
+	for _, p := range a.ai.Providers() {
 		if p.ID == id {
 			return p.BaseURL
 		}
@@ -510,7 +509,7 @@ func (a *App) send(c *ui.Context) {
 	if trim(a.input) == "" {
 		return
 	}
-	eng, err := a.engine(c)
+	talk, err := a.talk(c)
 	if err != nil {
 		a.setError(err)
 		return
@@ -519,15 +518,14 @@ func (a *App) send(c *ui.Context) {
 	words := workspace.Event{Text: input, Quotes: quotes}
 	if a.page == 3 {
 		words.Chapter = a.write.node
-		eng.Beside = a.beside()
 	}
 	a.pending, a.input, a.quotes = input, "", nil
 	a.chat.ScrollToEnd()
 	a.run(c, "AI 正在思考…", func(ctx context.Context) (func(), error) {
-		turn, err := eng.Say(ctx, session, words)
+		saved, err := talk.Say(ctx, session, words)
 		return func() {
 			a.pending = ""
-			if turn.User.ID == "" && a.input == "" {
+			if !saved && a.input == "" {
 				a.input, a.quotes = input, quotes // nothing was saved: give the words back
 			}
 			a.chat.ScrollToEnd()
@@ -537,17 +535,14 @@ func (a *App) send(c *ui.Context) {
 }
 
 func (a *App) retry(c *ui.Context, userID string) {
-	eng, err := a.engine(c)
+	talk, err := a.talk(c)
 	if err != nil {
 		a.setError(err)
 		return
 	}
 	session := a.session
-	if a.page == 3 {
-		eng.Beside = a.beside()
-	}
 	a.run(c, "正在重新请求回复…", func(ctx context.Context) (func(), error) {
-		_, err := eng.Retry(ctx, session, userID)
+		err := talk.Retry(ctx, session, userID)
 		return func() { a.chat.ScrollToEnd() }, err
 	})
 	a.talking = a.busy != ""
@@ -588,8 +583,7 @@ func (a *App) extraction(c *ui.Context) {
 					a.sourceOpen = false
 				}
 				if a.pal.primary(c, "加入设定").Disabled(a.busy != "" || start == end).Clicked() {
-					eng := &discussion.Engine{Store: a.Store}
-					entry, err := eng.Extract(a.session, a.sourceMessage, start, end, a.sourceCategory)
+					entry, err := a.ai.Extract(a.Store, a.session, a.sourceMessage, start, end, a.sourceCategory)
 					if err == nil {
 						a.sourceOpen = false
 						a.notice = "已加入设定正文"
@@ -618,8 +612,8 @@ func (a *App) categoryNames() []string {
 // conversation. Models come from each provider's catalog; one outside it
 // is set in the model settings.
 func (a *App) modelMenu(m *menu, work workspace.Work) {
-	var with []model.Provider
-	for _, p := range a.Config.Providers {
+	var with []aiport.Provider
+	for _, p := range a.ai.Providers() {
 		if len(p.Models) > 0 {
 			with = append(with, p)
 		}
@@ -639,9 +633,9 @@ func (a *App) modelMenu(m *menu, work workspace.Work) {
 	m.Item("模型设置…").Do(func() { a.openPrefs("模型") })
 	m.Separator()
 	m.Head("思考程度")
-	for _, e := range model.Efforts {
-		m.Item(e.Label()).On(work.Discussion.Effort == string(e)).Do(func() {
-			a.setTalk(func(s *workspace.Selection) { s.Effort = string(e) })
+	for _, e := range a.ai.Efforts() {
+		m.Item(a.ai.EffortLabel(e)).On(work.Discussion.Effort == e).Do(func() {
+			a.setTalk(func(s *workspace.Selection) { s.Effort = e })
 		})
 	}
 }

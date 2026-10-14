@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/aiport"
 	"writer/discussion"
 	"writer/editor"
 	"writer/model"
@@ -49,7 +50,7 @@ func (f *stream) Complete(ctx context.Context, r model.Request, on func(model.De
 }
 
 func penWith(a *App, f *stream) {
-	a.Pen = func(s *workspace.Store) (*writing.Writer, error) {
+	aiOf(a).NewWriter = func(s *workspace.Store) (*writing.Writer, error) {
 		return &writing.Writer{Store: s, Model: discussion.Model{Completer: f, Name: "deepseek/deepseek-flash", Effort: model.EffortHigh}}, nil
 	}
 	a.write.penKey = "" // build the editors' writer again
@@ -280,7 +281,7 @@ func TestContinueOnDemand(t *testing.T) {
 func TestSavingAServiceRemakesThePredictingWriter(t *testing.T) {
 	a, tt, _ := writingFixture(t, "原来的。")
 	made := 0
-	a.Pen = func(s *workspace.Store) (*writing.Writer, error) {
+	aiOf(a).NewWriter = func(s *workspace.Store) (*writing.Writer, error) {
 		made++
 		return nil, writing.ErrNoModel
 	}
@@ -290,7 +291,7 @@ func TestSavingAServiceRemakesThePredictingWriter(t *testing.T) {
 	if made != 1 {
 		t.Fatalf("made %d times before anything changed", made)
 	}
-	a.provider = model.Provider{ID: "local", Name: "本机", Protocol: "chat", BaseURL: "http://127.0.0.1:1234/v1"}
+	a.provider = aiport.Provider{ID: "local", Name: "本机", Protocol: "chat", BaseURL: "http://127.0.0.1:1234/v1"}
 	a.models = "m1"
 	if err := a.saveProvider(); err != nil {
 		t.Fatal(err)

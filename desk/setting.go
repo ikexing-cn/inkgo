@@ -597,7 +597,7 @@ func (a *App) history(c *ui.Context) {
 							}
 						}
 						ui.Text(c, who).FontSize(fsNote).FontWeight(600)
-						if m := modelLabel(r.Model, r.Effort); m != "" {
+						if m := a.replyLabel(r.Model, r.Effort); m != "" {
 							ui.Text(c, m).FontSize(fsSmall).TextColor(a.pal.faint).SingleLine().Ellipsis("…").Shrink(1)
 						}
 						ui.Spacer(c)
@@ -654,7 +654,7 @@ func (a *App) describeOp(op workspace.Op) string {
 
 // redo retries a batch the bookkeeper could not take in.
 func (a *App) redo(c *ui.Context, failed string) {
-	book, err := a.Book(a.Store)
+	book, err := a.ai.Book(a.Store)
 	if err != nil {
 		a.setError(err)
 		return

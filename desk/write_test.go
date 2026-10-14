@@ -147,7 +147,7 @@ func TestWritingSavesAsTheAuthorPauses(t *testing.T) {
 	// Coming back opens the chapter last written.
 	tt.Click("讨论")
 	tt.Frame()
-	b := NewWithConfig(a.ConfigFile)
+	b := newApp(a.ai.ConfigFile())
 	if err := b.Open(a.Store.Root()); err != nil {
 		t.Fatal(err)
 	}
@@ -560,7 +560,7 @@ func TestReopenWhereLeft(t *testing.T) {
 	root := a.Store.Root()
 	reopen := func() *App {
 		a.Close()
-		b := NewWithConfig(a.ConfigFile)
+		b := newApp(a.ai.ConfigFile())
 		if err := b.Open(root); err != nil {
 			t.Fatal(err)
 		}

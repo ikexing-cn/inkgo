@@ -10,6 +10,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
+	"writer/ai"
 	"writer/desk"
 	"writer/editor"
 	"writer/workspace"
@@ -48,7 +49,7 @@ func TestLayoutDiscussion(t *testing.T) {
 	if err = s.Close(); err != nil {
 		t.Fatal(err)
 	}
-	a := desk.NewWithConfig(filepath.Join(root, "providers.yaml"))
+	a := desk.New(ai.New(filepath.Join(root, "providers.yaml")))
 	if err = a.Open(filepath.Join(root, "work")); err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +95,7 @@ func TestLayoutDiscussion(t *testing.T) {
 		t.Fatal(tt.Texts())
 	}
 	shot(t, tt, "-settings")
-	w := desk.NewWithConfig(filepath.Join(root, "providers.yaml"))
+	w := desk.New(ai.New(filepath.Join(root, "providers.yaml")))
 	wt := ui.NewTester(w.View, 1266, 780)
 	wt.Frame()
 	wt.Frame()
@@ -102,7 +103,7 @@ func TestLayoutDiscussion(t *testing.T) {
 		t.Fatal(wt.Texts())
 	}
 	shot(t, wt, "-shelf")
-	e := desk.NewWithConfig(filepath.Join(t.TempDir(), "providers.yaml"))
+	e := desk.New(ai.New(filepath.Join(t.TempDir(), "providers.yaml")))
 	et := ui.NewTester(e.View, 1266, 780)
 	et.Frame()
 	et.Frame()
@@ -148,7 +149,7 @@ func TestLayoutWriting(t *testing.T) {
 	if err = s.Close(); err != nil {
 		t.Fatal(err)
 	}
-	a := desk.NewWithConfig(filepath.Join(root, "providers.yaml"))
+	a := desk.New(ai.New(filepath.Join(root, "providers.yaml")))
 	if err = a.Open(filepath.Join(root, "work")); err != nil {
 		t.Fatal(err)
 	}

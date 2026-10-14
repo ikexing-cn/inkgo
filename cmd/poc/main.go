@@ -15,6 +15,7 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 
+	"writer/ai"
 	"writer/desk"
 	"writer/editor"
 )
@@ -76,7 +77,13 @@ func main() {
 	workPath := flag.String("work", "", "打开作品文件夹")
 	flag.Parse()
 	if !*editorDemo {
-		d := desk.New()
+		// The AI keeps its services in this machine's settings folder, and
+		// the shelf of works lies beside them.
+		path, err := ai.ConfigPath()
+		d := desk.New(ai.New(path))
+		if err != nil {
+			d.Error = err.Error()
+		}
 		d.Backups = true
 		// The dialogs open over the window, asked for off the UI thread.
 		var win atomic.Pointer[mygo.Window]

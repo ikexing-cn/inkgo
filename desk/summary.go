@@ -8,7 +8,6 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/workspace"
-	"writer/writing"
 )
 
 // summaries is the summaries waiting to be written, one at a time in the
@@ -57,7 +56,7 @@ func (a *App) leaveChapter() {
 		return
 	}
 	w.changed = false
-	if workspace.Count(w.saved) < writing.MinSummary {
+	if workspace.Count(w.saved) < a.ai.MinSummary() {
 		return
 	}
 	sum := w.sum
@@ -86,7 +85,7 @@ func (a *App) pollSummaries(c *ui.Context) {
 	}
 	id := q.queue[0]
 	q.queue = q.queue[1:]
-	pw, err := a.Pen(a.Store)
+	pw, err := a.ai.Pen(a.Store)
 	if err != nil {
 		q.failed[id] = err.Error()
 		q.queue = nil
@@ -173,7 +172,7 @@ func (a *App) summaryState() (label, line, warn string) {
 		return "本章摘要 · 正在生成", "AI 正在阅读本章并生成摘要…", ""
 	case w.sum.Text == "" && w.summary == "":
 		label = "本章摘要 · 暂无"
-		line = fmt.Sprintf("正文满 %d 字后，离开本章时自动生成；也可手动填写。", writing.MinSummary)
+		line = fmt.Sprintf("正文满 %d 字后，离开本章时自动生成；也可手动填写。", a.ai.MinSummary())
 		if !w.autoSummary {
 			line = "自动生成已关闭，可点击“生成摘要”，也可手动填写。"
 		}
@@ -230,10 +229,10 @@ func (a *App) summaryPanel(c *ui.Context) {
 			if w.sum.Text == "" {
 				verb = "生成摘要"
 			}
-			short := w.ed == nil || workspace.Count(w.ed.Doc.String()) < writing.MinSummary
+			short := w.ed == nil || workspace.Count(w.ed.Doc.String()) < a.ai.MinSummary()
 			tip := "由 AI 阅读本章并生成摘要"
 			if short {
-				tip = fmt.Sprintf("正文满 %d 字后才需要摘要", writing.MinSummary)
+				tip = fmt.Sprintf("正文满 %d 字后才需要摘要", a.ai.MinSummary())
 			}
 			if a.pal.ghost(c, verb, ui.Color{}).Label(verb + "摘要").Tooltip(tip).Disabled(short || a.sums.running == w.node || w.lost).Clicked() {
 				a.flush()
@@ -265,7 +264,7 @@ func (a *App) recapNote(c *ui.Context) {
 		// Read once as the summaries asked for are done, not in each
 		// frame: a book has many chapters.
 		w.recapStale = false
-		if missing, have, err := writing.Unsummarized(a.Store, w.node); err == nil {
+		if missing, have, err := a.ai.Unsummarized(a.Store, w.node); err == nil {
 			w.unsummarized, w.recapped = missing, have
 		} else {
 			a.warn(err)

@@ -133,7 +133,7 @@ func TestDraftOffersToFillInSummaries(t *testing.T) {
 	if !tt.HasText("起草时 AI 会参考前 1 章的摘要，以衔接前文。") {
 		t.Fatal(tt.Texts())
 	}
-	pw, _ := a.Pen(a.Store)
+	pw, _ := aiOf(a).NewWriter(a.Store)
 	job, err := pw.Draft(workspaceScene(two), 0)
 	if err != nil || !strings.Contains(job.Request.Messages[0].Content, "《第一章》林晚进城。") {
 		t.Fatal(err, job.Request.Messages)

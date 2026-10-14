@@ -6,7 +6,7 @@ Status: proposed
 
 [可以整个关掉 AI](../feature/2026-10-14-disable-ai.md)要求关着 AI 时界面上看不见任何 AI 功能，也不发送任何内容。作者答「整个不显示」那一题时补了一句「因此，架构设计要做好」；问到架构怎么保证关得干净，选了拆成单独的包：「C 好一点，B还是会有一点workaround和review的复杂度考量」。
 
-现在会发送的东西和界面混在同一个包 `desk` 里：
+拆之前（`caaa5f5`），会发送的东西和界面混在同一个包 `desk` 里：
 
 - `desk` 直接引用 `model`、`discussion`、`writing`。联网的只有 `model`（[模型层](../../implemented/architecture/2026-10-08-model-layer-on-goai.md)），讨论和写作两个包拿到 `model` 的客户端才会发送；客户端在 `desk` 里 4 处新建：`desk/ai.go:30`、`desk/app.go:352`、`desk/app.go:376`、`desk/settings.go:432`。
 - 读写模型服务的配置（`providers.yaml`）、建讨论引擎、开后台整理、建续写改写用的 `writing.Writer`，都是 `*App` 的方法，夹在画界面的代码中间。
@@ -35,7 +35,7 @@ Status: proposed
 
 ### 接口清单（`aiport.Service`）
 
-| 用处 | 方法 | 现在 `desk` 里是 |
+| 用处 | 方法 | 拆之前 `desk` 里是 |
 | --- | --- | --- |
 | 模型服务的设置 | `ConfigFile`、`Providers`、`Reload`、`SaveProvider`、`SetKey`、`Catalog`（给出能 `ListModels` 的对象） | `a.Config`、`a.ConfigFile`，`model.Load`、`Save`、`SetKey`、`NewClient` 加 `ListModels`（`settings.go`、`app.go`） |
 | 推理等级的名字 | `Efforts`、`EffortLabel` | `model.Efforts`、`model.Effort(x).Label()`（`chat.go`、`settings.go`、`ai.go`） |
@@ -47,19 +47,19 @@ Status: proposed
 
 `Catalog`、`Talk`、`Book`、`Pen` 都和现在一样分两段：先在界面的线程上按作品现在的设置建好，配置上的错（没选模型、没有 key）马上报；再在后台发送。
 
-过界的小结构四个，`ai` 来回转换：
+过界的小结构四个：
 
 - `Provider`：和 `model.Provider` 一样的六项，设置页要编辑它。
 - `Beside`：和 `discussion.Writing` 一样的六项，正文旁的讨论带上的正文。
 - `Scene`：和 `writing.Scene` 一样的三项。
-- `Job`：一次改写或起草，`Record`（快照和标记要用）加一个 `Run`。`desk` 现在只用到 `writing.Job` 的 `Record`。
+- `Job`：一次改写或起草，`Record`（快照和标记要用）加一个 `Run`。`desk` 原来只用到 `writing.Job` 的 `Record`。
 
-别的都用 `workspace` 的类型、字符串和函数。
+前三个和那边的项、类型、先后都一样，`ai` 用 Go 的类型转换来回换（`aiport.Provider(p)`、`discussion.Writing(*beside)`、`writing.Scene(scene)`）：哪边多一项、少一项，`go build` 就过不去。别的都用 `workspace` 的类型、字符串和函数。
 
 ### 怎么建、测试怎么换假模型
 
-- `ai.New(配置文件)` 建 `ai.Service`，`desk.New(它)` 建界面；`cmd/poc` 把两个接起来。作品清单 `works.json` 照旧放在配置文件旁边，位置问 `ConfigFile()`。
-- 测试现在换 `App` 上的 `Pen`、`Book` 两个钩子，搬到 `ai.Service` 上，叫 `NewWriter`、`NewBookkeeper`，换法不变。`desk` 的测试引用 `ai` 和 `model` 来做假模型，不算 `desk` 的依赖（`go list -deps` 不看测试）。
+- `ai.New(配置文件)` 建 `ai.Service`，不读盘；`desk.New(它)` 建界面，有配置文件时先 `Reload` 一次，读不成的错照旧显示在界面上。`cmd/poc` 把两个接起来，找不到配置目录的错也由它交给界面。作品清单 `works.json` 照旧放在配置文件旁边，位置问 `ConfigFile()`。
+- 测试原来换 `App` 上的 `Pen`、`Book` 两个钩子，搬到 `ai.Service` 上，叫 `NewWriter`、`NewBookkeeper`，换法不变。`desk/app_test.go` 里两个小函数：`newApp(配置文件)` 建界面，`aiOf(a)` 拿到它的 `ai.Service` 好换钩子。`desk` 的测试引用 `ai` 和 `model` 来做假模型，不算 `desk` 的依赖（`go list -deps` 不看测试）。
 
 ### 关掉 AI 时（第三步）
 
@@ -76,7 +76,15 @@ Status: proposed
 
 只搬，不改行为：`desk/shot_test.go` 和 `cmd/poc` 的布局测试在搬之前、搬之后各截一套图，逐像素比；测试只改换假模型的写法，不改断言；`npm run verify` 全绿。
 
-只有一处极少见的情况会不一样：第一次启动时配置文件还没有、默认配置又存不下（配置目录写不进去）。现在启动时会列出没存下的默认服务，「重新加载配置」碰到同样的错却什么都不换；搬了以后启动和「重新加载配置」走同一条路：读不成就不换，报的错一样。后台整理碰到这种情况本来就是报错不干活。
+只有一处极少见的情况会不一样：第一次启动时配置文件还没有、默认配置又存不下（配置目录写不进去）。原来启动时会列出没存下的默认服务，「重新加载配置」碰到同样的错却什么都不换；搬了以后启动和「重新加载配置」走同一条路：读不成就不换，报的错一样。后台整理碰到这种情况本来就是报错不干活。
+
+## 第二步做完的样子
+
+- 新的两个包：`desk/aiport/aiport.go`（接口和四个小结构，只引用 `workspace`），`ai/ai.go`（实现，从 `desk` 搬来的读写配置、建客户端、讨论、后台整理和它的日志、续写改写起草、摘要、检查）。
+- `go list -deps writer/desk` 里自己的包只剩 `backup`、`workspace`、`desk/aiport`、`editor`、`shelf`；`model.NewClient` 只在 `ai/ai.go` 里。守着它的测试第三步加。
+- 和上面写的不一样的小地方：推理等级的名字要问 `ai`，原来不挂在 `App` 上的 `modelLabel`、`effortSelect` 成了 `App` 的方法，前者改叫 `replyLabel`（`ai.go` 里已经有一个 `modelLabel` 方法）；续写还没有笔时报 `desk` 自己的错，编辑器本来就不显示续写的错。
+- 顺带改正：原来 `engine` 和 `startWorker` 把那一帧的 `*ui.Context` 留进了在后台跑的回调（回复一段段到、后台整理写完一次），`mygo vet` 只查 `go` 语句和存下来的，没查出来；现在用起头那一帧取的 `c.Services()`。
+- 验过：截图（`desk` 85 张、`cmd/poc` 的布局 12 张）搬之前截两套、搬之后一套。搬之前的两套之间就有 28 张不一样；搬之后和两套都不一样的 37 张逐张看过，全是会随时间变的：消息、快照、书架上的钟点（14:56 对 15:03）、测试临时文件夹的名字、提示条的倒计时条、后台整理刚改的设定那 3 秒的淡出（按真实时间算，`desk/setting.go` 的 `flashFor`）。测试只改了建 `App`、换假模型和 `live.add` 的写法，断言没动。
 
 ## Alternatives considered
 
@@ -93,12 +101,12 @@ Status: proposed
 
 - `go list -deps writer/desk` 里没有 `writer/ai`、`writer/model`、`writer/discussion`、`writer/writing`，有测试守着，在 `npm run verify` 里。
 - `model.NewClient` 只在 `ai` 里出现。
-- 第二步搬完，截图和搬之前逐像素一样，测试不改断言照过。
+- 第二步搬完，截图和搬之前比，除了随时间变的（钟点、临时文件夹名、倒计时、淡出）逐像素一样，测试不改断言照过。（已做到，见上一节。）
 - 第三步：关着 AI 时 `ai` 一个客户端也没建；走一遍查不到 AI 的字；关了再开，作品文件夹里的文件一个没变。
 - 这一篇和[可以整个关掉 AI](../feature/2026-10-14-disable-ai.md)落地时一起转 `implemented/`。
 
 ## Risks
 
 - **「看不见」靠检查，不靠编译器**：界面里用到 AI 的入口各自看开关，漏一处就露一处；走一遍的检查只认它知道的字和它走到的地方。新做 AI 功能时要把入口和名字加进检查。
-- **三个小结构抄了一份**：`aiport.Provider`、`aiport.Beside`、`aiport.Scene` 和 `model`、`discussion`、`writing` 里的长得一样，那边加一项这边要跟着加；`ai` 的转换函数在一处，测试覆盖它。
+- **三个小结构抄了一份**：`aiport.Provider`、`aiport.Beside`、`aiport.Scene` 和 `model`、`discussion`、`writing` 里的长得一样，那边加一项这边要跟着加。漏不掉：`ai` 用类型转换来回换，两边对不上就编译不过；只是改的时候要两边一起改。
 - **偏好和模型选择照旧由 `desk` 读写**：`work.yaml` 里各用哪个模型、`.writer/desk.json` 都不变，`ai` 只从 `Store` 读模型选择。

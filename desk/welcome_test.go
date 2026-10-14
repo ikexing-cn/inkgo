@@ -112,7 +112,7 @@ func TestShelfKeepsTheWorks(t *testing.T) {
 	}
 
 	// Opening the app again returns to the work last opened.
-	b := NewWithConfig(a.ConfigFile)
+	b := newApp(a.ai.ConfigFile())
 	b.OpenLast()
 	if b.Store == nil || !sameFolder(b.Store.Root(), first) {
 		t.Fatal("did not reopen", b.Error)
@@ -189,7 +189,7 @@ func TestBrokenShelfIsNotOverwritten(t *testing.T) {
 	if err := os.WriteFile(shelf.File(config), []byte("{"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	a := NewWithConfig(config)
+	a := newApp(config)
 	if a.Error == "" {
 		t.Fatal("no error")
 	}

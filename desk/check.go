@@ -9,7 +9,6 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/workspace"
-	"writer/writing"
 )
 
 // When a chapter is checked against the setting, as the work's
@@ -129,7 +128,7 @@ func (a *App) leaveCheck() {
 		return
 	}
 	a.pruneCheck(w.node, w.saved)
-	if !w.changed || k.when != checkOnLeave || !a.hasSetting() || workspace.Count(w.saved) < writing.MinCheck {
+	if !w.changed || k.when != checkOnLeave || !a.hasSetting() || workspace.Count(w.saved) < a.ai.MinCheck() {
 		return
 	}
 	if had, ok := k.all[w.node]; !ok || had.Stale(w.saved) {
@@ -198,7 +197,7 @@ func (a *App) pollChecks(c *ui.Context) {
 	}
 	id := k.queue[0]
 	k.queue = k.queue[1:]
-	pw, err := a.Pen(a.Store)
+	pw, err := a.ai.Pen(a.Store)
 	if err != nil {
 		k.failed[id] = err.Error()
 		k.queue = nil
@@ -260,7 +259,7 @@ func (a *App) checkWhilePausing() {
 		return
 	}
 	hash := workspace.ProseHash(w.saved)
-	if k.tried[w.node] == hash || k.all[w.node].Of == hash || workspace.Count(w.saved) < writing.MinCheck {
+	if k.tried[w.node] == hash || k.all[w.node].Of == hash || workspace.Count(w.saved) < a.ai.MinCheck() {
 		return
 	}
 	k.tried[w.node] = hash
@@ -359,7 +358,7 @@ func (a *App) checkDue() []string {
 	var due []string
 	a.ck.tree.Walk(func(nd *workspace.Node, _ int) {
 		text, ok := texts[nd.ID]
-		if nd.Folder || !ok || workspace.Count(text) < writing.MinCheck {
+		if nd.Folder || !ok || workspace.Count(text) < a.ai.MinCheck() {
 			return
 		}
 		if had, ok := a.ck.all[nd.ID]; !ok || had.Stale(text) {
@@ -450,8 +449,8 @@ func (a *App) checkState() (line string, found int, can bool, tip string) {
 		return "检查失败：" + k.failed[w.node], 0, true, ""
 	case !a.hasSetting():
 		return "设定为空，无可对照内容", 0, false, ""
-	case workspace.Count(text) < writing.MinCheck:
-		return fmt.Sprintf("满 %d 字后可检查", writing.MinCheck), 0, false, ""
+	case workspace.Count(text) < a.ai.MinCheck():
+		return fmt.Sprintf("满 %d 字后可检查", a.ai.MinCheck()), 0, false, ""
 	case !ok:
 		return name + "尚未检查", 0, true, ""
 	case found > 0 && had.Stale(text):

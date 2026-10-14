@@ -10,43 +10,27 @@ import (
 	"sync/atomic"
 
 	"github.com/egoist/mygo/ui"
-	"writer/discussion"
-	"writer/model"
+	"writer/desk/aiport"
 	"writer/workspace"
-	"writer/writing"
 )
-
-// newWriter builds the writer of s with its writing model, or the
-// discussion's when the work leaves it empty.
-func (a *App) newWriter(s *workspace.Store) (*writing.Writer, error) {
-	work := s.Work()
-	sel := work.Writing
-	if sel.Provider == "" {
-		sel.Provider, sel.Model = work.Discussion.Provider, work.Discussion.Model
-	}
-	if sel.Provider == "" || sel.Model == "" {
-		return nil, writing.ErrNoModel
-	}
-	client, err := model.NewClient(a.Config, sel.Provider, sel.Model)
-	if err != nil {
-		return nil, err
-	}
-	return &writing.Writer{Store: s, Model: discussion.Model{Completer: client, Name: sel.Provider + "/" + sel.Model, Effort: model.Effort(sel.Effort)}}, nil
-}
 
 // pen continues the text of a chapter's editor with the writer the page
 // keeps up to date; it runs off the UI thread.
 type pen struct {
-	writer  *atomic.Pointer[writing.Writer]
+	writer  *atomic.Pointer[aiport.Pen]
 	chapter string
 }
+
+// errNoPen is what predicting says without a writer; the editor shows
+// nothing of it, and the page says why there is none.
+var errNoPen = errors.New("还没有写作模型")
 
 func (p pen) Predict(ctx context.Context, before string) (string, error) {
 	w := p.writer.Load()
 	if w == nil {
-		return "", writing.ErrNoModel
+		return "", errNoPen
 	}
-	return w.Predict(ctx, writing.Scene{Chapter: p.chapter, Before: before})
+	return (*w).Predict(ctx, aiport.Scene{Chapter: p.chapter, Before: before})
 }
 
 // modelsChanged tells that a service's address or key may be another: the
@@ -59,13 +43,17 @@ func (a *App) modelsChanged() { a.write.penKey = "" }
 func (a *App) keepPen() {
 	w := &a.write
 	work := a.Store.Work()
-	key := fmt.Sprint(work.Writing, work.Discussion, len(a.Config.Providers))
+	key := fmt.Sprint(work.Writing, work.Discussion, len(a.ai.Providers()))
 	if key == w.penKey {
 		return
 	}
 	w.penKey = key
-	pw, err := a.Pen(a.Store)
-	w.pen.Store(pw)
+	pw, err := a.ai.Pen(a.Store)
+	if err != nil {
+		w.pen.Store(nil)
+	} else {
+		w.pen.Store(&pw)
+	}
 	w.penErr = err
 }
 
@@ -74,7 +62,7 @@ func (a *App) keepPen() {
 type aiRun struct {
 	op     string
 	node   string
-	job    writing.Job
+	job    aiport.Job
 	cancel context.CancelFunc
 	a, b   int    // the words a rewrite replaces
 	lead   string // what goes before a draft's first words
@@ -86,13 +74,13 @@ type aiRun struct {
 	wrote  int // the characters a draft wrote so far
 }
 
-func (a *App) start(c *ui.Context, pw *writing.Writer, r *aiRun) {
+func (a *App) start(c *ui.Context, r *aiRun) {
 	ctx, cancel := context.WithCancel(context.Background())
 	r.cancel = cancel
 	a.write.run = r
 	sv := c.Services()
 	go func() {
-		text, err := pw.Run(ctx, r.job, func(s string) {
+		text, err := r.job.Run(ctx, func(s string) {
 			if r.op != workspace.AIDraft {
 				return
 			}
@@ -214,19 +202,19 @@ func (a *App) startRewrite(c *ui.Context) {
 		return
 	}
 	a.warn(a.saveText())
-	pw, err := a.Pen(a.Store)
+	pw, err := a.ai.Pen(a.Store)
 	if err != nil {
 		a.warn(err)
 		return
 	}
 	r := []rune(w.ed.Doc.String())
-	job, err := pw.Rewrite(writing.Scene{Chapter: w.node, Before: string(r[:s]), After: string(r[e:])}, string(r[s:e]), w.instruction)
+	job, err := pw.Rewrite(aiport.Scene{Chapter: w.node, Before: string(r[:s]), After: string(r[e:])}, string(r[s:e]), w.instruction)
 	if err != nil {
 		a.warn(err)
 		return
 	}
 	w.ed.SetReadOnly(true)
-	a.start(c, pw, &aiRun{op: workspace.AIRewrite, node: w.node, job: job, a: s, b: e})
+	a.start(c, &aiRun{op: workspace.AIRewrite, node: w.node, job: job, a: s, b: e})
 }
 
 // acceptRewrite keeps the text replaced as a snapshot with what the AI
@@ -263,7 +251,7 @@ func (a *App) openDraft() {
 	a.flush()
 	w.draftOpen, w.words = true, ""
 	w.draftMode, w.draftAt = draftAppend, 0
-	missing, have, err := writing.Unsummarized(a.Store, w.node)
+	missing, have, err := a.ai.Unsummarized(a.Store, w.node)
 	a.warn(err)
 	w.unsummarized, w.recapped = missing, have
 }
@@ -287,14 +275,14 @@ func (a *App) startDraft(c *ui.Context) {
 		words = n
 	}
 	a.flush()
-	pw, err := a.Pen(a.Store)
+	pw, err := a.ai.Pen(a.Store)
 	if err != nil {
 		a.warn(err)
 		return
 	}
 	text := w.ed.Doc.String()
 	appending := w.draftMode == draftAppend && strings.TrimSpace(text) != ""
-	scene := writing.Scene{Chapter: w.node}
+	scene := aiport.Scene{Chapter: w.node}
 	if appending {
 		scene.Before = text
 	}
@@ -317,7 +305,7 @@ func (a *App) startDraft(c *ui.Context) {
 		w.ed.BeginDraft(0, n)
 	}
 	w.draftOpen, w.finding = false, false
-	a.start(c, pw, r)
+	a.start(c, r)
 }
 
 // aiBar shows what the AI is doing in the chapter, and asks what the
@@ -377,7 +365,7 @@ func (a *App) aiBar(c *ui.Context) {
 }
 
 func (a *App) modelLabel(r workspace.AIRecord) string {
-	return r.Model + " · " + model.Effort(r.Effort).Label()
+	return r.Model + " · " + a.ai.EffortLabel(r.Effort)
 }
 
 func (a *App) draftView(c *ui.Context) {
@@ -401,7 +389,7 @@ func (a *App) draftView(c *ui.Context) {
 			}
 			a.recapNote(c)
 			if pw := w.pen.Load(); pw != nil {
-				ui.Textf(c, "用 %s · 推理 %s；可在“模型设置”中更换。", pw.Model.Name, pw.Model.Effort.Label()).FontSize(fsNote).TextColor(t.TextMuted)
+				ui.Textf(c, "用 %s · 推理 %s；可在“模型设置”中更换。", (*pw).Name(), a.ai.EffortLabel((*pw).Effort())).FontSize(fsNote).TextColor(t.TextMuted)
 			}
 			ui.Row(c).FillWidth().Gap(8).Children(func() {
 				ui.Spacer(c)

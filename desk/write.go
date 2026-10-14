@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/aiport"
 	"writer/editor"
 	"writer/workspace"
-	"writer/writing"
 )
 
 // The writing page saves as the author pauses, looks at the disk for
@@ -142,14 +142,14 @@ type writeView struct {
 
 	// The writing model: the writer the editors predict with, and why
 	// there is none; a request in flight; a rewrite asked for or shown.
-	pen         atomic.Pointer[writing.Writer]
+	pen         atomic.Pointer[aiport.Pen]
 	penKey      string
 	penErr      error
 	autoPredict bool
 	run         *aiRun
 	rewriting   bool
 	instruction string
-	proposed    *writing.Job
+	proposed    *aiport.Job
 	draftOpen   bool
 	words       string
 	draftMode   string
@@ -247,7 +247,7 @@ func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.
 		Predictor: pen{writer: &a.write.pen, chapter: a.write.node}, PredictDelay: saveAfter, PredictOnDemand: !a.write.autoPredict,
 		GhostNote: func() string {
 			if pw := a.write.pen.Load(); pw != nil {
-				return pw.Model.Name
+				return (*pw).Name()
 			}
 			return ""
 		},

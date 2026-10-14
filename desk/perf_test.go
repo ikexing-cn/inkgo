@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui"
-	"writer/model"
 	"writer/workspace"
 )
 
@@ -46,7 +45,7 @@ func streamingBench(b *testing.B, turns int, reasoning bool) {
 		}
 	}
 	s.Close()
-	a := NewWithConfig(filepath.Join(root, "providers.yaml"))
+	a := newApp(filepath.Join(root, "providers.yaml"))
 	if err = a.Open(filepath.Join(root, "work")); err != nil {
 		b.Fatal(err)
 	}
@@ -64,15 +63,15 @@ func streamingBench(b *testing.B, turns int, reasoning bool) {
 			// Start halfway, as a long reply is most of the time.
 			a.live.reset()
 			if reasoning {
-				a.live.add(model.Delta{Reasoning: string(reply[:len(reply)/2])})
+				a.live.add(string(reply[:len(reply)/2]), "")
 			} else {
-				a.live.add(model.Delta{Reasoning: strings.Repeat("先想想雨的来历。", 40), Text: string(reply[:len(reply)/2])})
+				a.live.add(strings.Repeat("先想想雨的来历。", 40), string(reply[:len(reply)/2]))
 			}
 		}
 		if reasoning {
-			a.live.add(model.Delta{Reasoning: string(reply[at : at+1])})
+			a.live.add(string(reply[at:at+1]), "")
 		} else {
-			a.live.add(model.Delta{Text: string(reply[len(reply)/2+at : len(reply)/2+at+1])})
+			a.live.add("", string(reply[len(reply)/2+at:len(reply)/2+at+1]))
 		}
 		tt.Frame()
 	}

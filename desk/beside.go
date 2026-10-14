@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"writer/discussion"
+	"writer/desk/aiport"
 	"writer/workspace"
 )
 
@@ -175,7 +175,7 @@ func talkDay(when string, now time.Time) string {
 
 // beside is what the author is writing, sent with a turn from the writing
 // page, or nil when nothing is open or they turned it off.
-func (a *App) beside() *discussion.Writing {
+func (a *App) beside() *aiport.Beside {
 	w := &a.write
 	if a.page != 3 || !a.doc.attach || w.node == "" || w.lost {
 		return nil
@@ -185,9 +185,9 @@ func (a *App) beside() *discussion.Writing {
 		return nil
 	}
 	if n.Folder {
-		return &discussion.Writing{Folder: true, Title: n.Title, VolumeOutline: w.outline}
+		return &aiport.Beside{Folder: true, Title: n.Title, VolumeOutline: w.outline}
 	}
-	out := &discussion.Writing{Title: n.Title, Outline: w.outline}
+	out := &aiport.Beside{Title: n.Title, Outline: w.outline}
 	if p := n.Parent; p != nil && p.Parent != nil {
 		out.Volume = p.Title
 		if vol, err := a.Store.ReadChapter(p.ID); err == nil {

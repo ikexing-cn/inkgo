@@ -33,7 +33,7 @@ type shelfView struct {
 // loadShelf reads the shelf beside the model configuration, starting one
 // from the library the first time.
 func (a *App) loadShelf() {
-	a.books.file = shelf.File(a.ConfigFile)
+	a.books.file = shelf.File(a.ai.ConfigFile())
 	s, fresh, err := shelf.Load(a.books.file)
 	if err != nil {
 		a.books.broken = true

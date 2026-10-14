@@ -3,21 +3,16 @@ package desk
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"writer/discussion"
+	"writer/desk/aiport"
 	"writer/editor"
-	"writer/model"
 	"writer/shelf"
 	"writer/workspace"
-	"writer/writing"
 )
 
 type result struct {
@@ -32,11 +27,11 @@ type live struct {
 	reasoning, text strings.Builder
 }
 
-func (l *live) add(d model.Delta) {
+func (l *live) add(reasoning, text string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.reasoning.WriteString(d.Reasoning)
-	l.text.WriteString(d.Text)
+	l.reasoning.WriteString(reasoning)
+	l.text.WriteString(text)
 }
 
 func (l *live) read() (reasoning, text string) {
@@ -55,14 +50,11 @@ func (l *live) reset() {
 // flashFor is how long an entry the bookkeeper just changed stays tinted.
 const flashFor = 3 * time.Second
 
-// bookBackoff is the waits between the bookkeeper's attempts at a batch.
-var bookBackoff = []time.Duration{10 * time.Second, time.Minute}
-
 type App struct {
-	Store      *workspace.Store
-	Config     model.Config
-	ConfigFile string
-	Error      string
+	Store *workspace.Store
+	// ai is all the AI does: what sends goes through it alone.
+	ai    aiport.Service
+	Error string
 	// PickFolder shows a native folder dialog; it runs off the UI thread.
 	// Nil hides the browse buttons (tests, platforms without dialogs).
 	PickFolder func(title string) (string, error)
@@ -129,7 +121,7 @@ type App struct {
 	chat                    ui.ListState
 	rows                    []int // the chat list's: event indexes, -1 the empty chat, -2 the turn in flight
 	providerID              string
-	provider                model.Provider
+	provider                aiport.Provider
 	key, models             string
 	talkProvider, talkModel string
 	bookProvider, bookModel string
@@ -145,14 +137,8 @@ type App struct {
 	thoughts                map[string]*bool // reasoning shown, by event or revision ID
 	doc                     docView
 	write                   writeView
-	// Book returns the bookkeeper the worker runs, as the work and the
-	// model settings are now; tests replace it.
-	Book func(*workspace.Store) (*discussion.Bookkeeper, error)
-	// Pen returns the writer of the prose, as the work and the model
-	// settings are now; tests replace it.
-	Pen                              func(*workspace.Store) (*writing.Writer, error)
-	worker                           *discussion.Worker
-	stopWorker                       context.CancelFunc
+	// The bookkeeper of the open work, running in the background.
+	worker                           aiport.Bookkeeping
 	changes                          chan struct{} // the worker wrote a revision
 	LastChat, LastSetting, LastWrite ui.Rect
 	// Appearance applies the appearance chosen: "light", "dark", or empty
@@ -160,34 +146,22 @@ type App struct {
 	Appearance func(string)
 }
 
-func New() *App {
-	path, err := model.ConfigPath()
-	if err != nil {
-		a := NewWithConfig("")
-		a.Error = err.Error()
-		return a
-	}
-	return NewWithConfig(path)
-}
-
-// NewWithConfig allows a separate profile, including isolated test profiles.
-func NewWithConfig(path string) *App {
-	a := &App{genre: "网文", results: make(chan result, 1), picks: make(chan func(), 1), changes: make(chan struct{}, 1), ConfigFile: path,
+// New is the app with ai, whose configuration file says where this
+// machine keeps its settings: the shelf of works lies beside it, and with
+// none there is no shelf either, as for a test.
+func New(ai aiport.Service) *App {
+	a := &App{ai: ai, genre: "网文", results: make(chan result, 1), picks: make(chan func(), 1), changes: make(chan struct{}, 1),
 		light: lightPalette(), dark: darkPalette(), titles: map[string]string{}, md: mdCache{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
-	a.Book = a.bookkeeper
-	a.Pen = a.newWriter
 	a.pal = a.light
-	if path != "" {
-		var err error
-		a.Config, err = model.Load(path)
-		if err != nil {
+	if ai.ConfigFile() != "" {
+		if err := ai.Reload(); err != nil {
 			a.Error = err.Error()
 		}
 	}
-	if len(a.Config.Providers) > 0 {
-		a.chooseProvider(a.Config.Providers[0].ID)
+	if ps := ai.Providers(); len(ps) > 0 {
+		a.chooseProvider(ps[0].ID)
 	}
-	if path != "" {
+	if ai.ConfigFile() != "" {
 		a.loadShelf()
 	}
 	return a
@@ -333,82 +307,28 @@ func clip(s string, n int) string {
 	return string(r)
 }
 
-// engine returns a discussion engine for the open work with the model it
-// selects, streaming the reply into the view when c is given. Without a
-// model it still returns an engine and says why.
-func (a *App) engine(c *ui.Context) (*discussion.Engine, error) {
-	e := &discussion.Engine{Store: a.Store}
-	if c != nil {
-		a.live.reset()
-		e.Progress = func(d model.Delta) {
-			a.live.add(d)
-			c.Invalidate()
-		}
-	}
-	work := a.Store.Work()
-	if work.Discussion.Provider == "" || work.Discussion.Model == "" {
-		return e, errors.New("尚未选择讨论模型：请在“模型设置”中选择")
-	}
-	talk, err := model.NewClient(a.Config, work.Discussion.Provider, work.Discussion.Model)
-	if err != nil {
-		return e, err
-	}
-	e.Talk = discussion.Model{Completer: talk, Name: work.Discussion.Provider + "/" + work.Discussion.Model, Effort: model.Effort(work.Discussion.Effort)}
-	return e, nil
-}
-
-// bookkeeper builds the bookkeeper of s from the model settings on disk:
-// it runs on the worker's goroutine, which must not read the view's state.
-// The bookkeeping model left empty is the discussion's.
-func (a *App) bookkeeper(s *workspace.Store) (*discussion.Bookkeeper, error) {
-	work := s.Work()
-	sel := work.Bookkeeping
-	if sel.Provider == "" {
-		sel.Provider, sel.Model = work.Discussion.Provider, work.Discussion.Model
-	}
-	if sel.Provider == "" || sel.Model == "" {
-		return nil, errors.New("尚未选择模型")
-	}
-	cfg, err := model.Load(a.ConfigFile)
-	if err != nil {
-		return nil, err
-	}
-	client, err := model.NewClient(cfg, sel.Provider, sel.Model)
-	if err != nil {
-		return nil, err
-	}
-	return &discussion.Bookkeeper{Store: s, Model: discussion.Model{Completer: client, Name: sel.Provider + "/" + sel.Model, Effort: model.Effort(sel.Effort)}}, nil
+// talk is the discussion of the open work with the model it selects,
+// streaming the reply into the view, and what the author is writing
+// beside it.
+func (a *App) talk(c *ui.Context) (aiport.Talk, error) {
+	a.live.reset()
+	sv := c.Services()
+	return a.ai.Talk(a.Store, a.beside(), func(reasoning, text string) {
+		a.live.add(reasoning, text)
+		sv.Invalidate()
+	})
 }
 
 // startWorker runs the bookkeeper of the open work in the background.
 func (a *App) startWorker(c *ui.Context) {
-	ctx, stop := context.WithCancel(context.Background())
-	s, book := a.Store, a.Book
-	a.worker = discussion.NewWorker(func() (*discussion.Bookkeeper, error) { return book(s) }, bookBackoff, func() {
+	sv := c.Services()
+	a.worker = a.ai.Bookkeep(a.Store, func() {
 		select {
 		case a.changes <- struct{}{}:
 		default:
 		}
-		c.Invalidate()
+		sv.Invalidate()
 	})
-	a.worker.Log = bookLog(filepath.Join(s.Root(), ".writer", "bookkeeper.log"))
-	a.stopWorker = stop
-	go a.worker.Run(ctx)
-	a.worker.Kick()
-}
-
-// bookLog appends the worker's lines to path, the newest last, keeping the
-// file short; it is for looking into a setting that does not fill.
-func bookLog(path string) func(string) {
-	return func(line string) {
-		b, _ := os.ReadFile(path)
-		lines := strings.Split(strings.TrimSpace(string(b)), "\n")
-		lines = append(lines, time.Now().Format("01-02 15:04:05 ")+line)
-		if len(lines) > 400 {
-			lines = lines[len(lines)-400:]
-		}
-		_ = os.WriteFile(path, []byte(strings.TrimSpace(strings.Join(lines, "\n"))+"\n"), 0644)
-	}
 }
 
 // kick has the bookkeeper look for turns to take in.
@@ -421,10 +341,10 @@ func (a *App) kick() {
 // halt stops the bookkeeper: what it has not written is taken in when the
 // work opens again.
 func (a *App) halt() {
-	if a.stopWorker != nil {
-		a.stopWorker()
+	if a.worker != nil {
+		a.worker.Stop()
 	}
-	a.worker, a.stopWorker = nil, nil
+	a.worker = nil
 }
 
 // flashNew tints the entries the bookkeeper changed since the view last

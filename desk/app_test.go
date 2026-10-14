@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/ai"
 	"writer/discussion"
 	"writer/model"
 	"writer/workspace"
@@ -33,7 +34,7 @@ func fixture(t *testing.T) (*App, *ui.Tester, workspace.Entry) {
 	lib, was := filepath.Join(root, "library"), Library
 	Library = func() string { return lib }
 	t.Cleanup(func() { Library = was })
-	a := NewWithConfig(filepath.Join(root, "providers.yaml"))
+	a := newApp(filepath.Join(root, "providers.yaml"))
 	if err = a.Open(filepath.Join(root, "work")); err != nil {
 		t.Fatal(err)
 	}
@@ -44,6 +45,12 @@ func fixture(t *testing.T) (*App, *ui.Tester, workspace.Entry) {
 	e, _ := a.set.Entry(r.Ops[0].Entry)
 	return a, tt, e
 }
+
+// newApp is the app on the services configured in config, or on none.
+func newApp(config string) *App { return New(ai.New(config)) }
+
+// aiOf is the AI of a, for a test to swap fake models in.
+func aiOf(a *App) *ai.Service { return a.ai.(*ai.Service) }
 
 func settle(t *testing.T, a *App, tt *ui.Tester) {
 	t.Helper()
@@ -155,7 +162,7 @@ func TestTheAuthorEditsTheSetting(t *testing.T) {
 func TestBookkeeperFillsTheSettingInTheBackground(t *testing.T) {
 	a, tt, _ := fixture(t)
 	f := &answer{replies: []string{`{"ops":[{"op":"add","place":"body","category":"规则","text":"雨从不停","sources":[{"msg":"m1","quote":"雨从不停"}]}]}`}}
-	a.Book = func(s *workspace.Store) (*discussion.Bookkeeper, error) {
+	aiOf(a).NewBookkeeper = func(s *workspace.Store) (*discussion.Bookkeeper, error) {
 		return &discussion.Bookkeeper{Store: s, Model: discussion.Model{Completer: f, Name: "deepseek/deepseek-flash"}}, nil
 	}
 	a.halt() // the next frame starts one with the bookkeeper above
@@ -220,7 +227,7 @@ func TestFailedBookkeepingShowsInHistory(t *testing.T) {
 		t.Fatal("history", tt.Texts())
 	}
 	f := &answer{replies: []string{`{"ops":[]}`}}
-	a.Book = func(s *workspace.Store) (*discussion.Bookkeeper, error) {
+	aiOf(a).NewBookkeeper = func(s *workspace.Store) (*discussion.Bookkeeper, error) {
 		return &discussion.Bookkeeper{Store: s, Model: discussion.Model{Completer: f}}, nil
 	}
 	if err = tt.Click("重试整理-" + failed.ID); err != nil {
@@ -405,12 +412,12 @@ func TestLiveTurnStreams(t *testing.T) {
 	a.pending = "她做什么工作？"
 	a.run(c, "AI 正在思考", func(ctx context.Context) (func(), error) { <-block; return nil, nil })
 	a.talking = true
-	a.live.add(model.Delta{Reasoning: "她怕黑，职业要和光有关"})
+	a.live.add("她怕黑，职业要和光有关", "")
 	tt.Frame()
 	if !tt.HasText("她怕黑，职业要和光有关") || !tt.HasText("正在思考…") {
 		t.Fatal("reasoning not streamed", tt.Texts())
 	}
-	a.live.add(model.Delta{Text: "可以让她**修灯**。"})
+	a.live.add("", "可以让她**修灯**。")
 	tt.Frame()
 	if !tt.HasText("正在回复…") || tt.HasText("**") {
 		t.Fatal("reply not streamed as markdown", tt.Texts())
@@ -482,7 +489,7 @@ func (g gate) Complete(ctx context.Context, r model.Request, on func(model.Delta
 func TestBookkeeperShowsWhileItWorks(t *testing.T) {
 	a, tt, _ := fixture(t)
 	g := gate{open: make(chan struct{})}
-	a.Book = func(s *workspace.Store) (*discussion.Bookkeeper, error) {
+	aiOf(a).NewBookkeeper = func(s *workspace.Store) (*discussion.Bookkeeper, error) {
 		return &discussion.Bookkeeper{Store: s, Model: discussion.Model{Completer: g}}, nil
 	}
 	a.halt()

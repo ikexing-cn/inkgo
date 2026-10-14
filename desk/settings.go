@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
-	"writer/model"
+	"writer/desk/aiport"
 	"writer/workspace"
 )
 
@@ -29,7 +29,7 @@ func isLocal(raw string) bool {
 }
 
 func (a *App) destination(sel workspace.Selection) string {
-	for _, p := range a.Config.Providers {
+	for _, p := range a.ai.Providers() {
 		if p.ID == sel.Provider {
 			u, err := url.Parse(p.BaseURL)
 			if err != nil {
@@ -46,7 +46,7 @@ func (a *App) destination(sel workspace.Selection) string {
 }
 
 func (a *App) chooseProvider(id string) {
-	for _, p := range a.Config.Providers {
+	for _, p := range a.ai.Providers() {
 		if p.ID == id {
 			a.providerID = id
 			a.provider = p
@@ -58,7 +58,7 @@ func (a *App) chooseProvider(id string) {
 }
 
 func (a *App) providerModels(id string) []string {
-	for _, p := range a.Config.Providers {
+	for _, p := range a.ai.Providers() {
 		if p.ID == id {
 			return p.Models
 		}
@@ -139,7 +139,7 @@ func (a *App) useRow(c *ui.Context, who, what string, provider *string, none, pr
 			modelField(c, model, a.providerModels(*provider)).Label(modelLabel).Placeholder("输入或选择模型 ID").FillWidth().Disabled(busy)
 		})
 		ui.Column(c).Width(110).Shrink(0).Children(func() {
-			effortSelect(c, effort, effortLabel, busy)
+			a.effortSelect(c, effort, effortLabel, busy)
 		})
 	})
 }
@@ -176,7 +176,7 @@ func (a *App) services(c *ui.Context) {
 		return ui.Column(c).FillWidth().Gap(12).Padding(12, 14).Radius(rCard).Border(1, a.pal.line)
 	}
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
-		for _, p := range a.Config.Providers {
+		for _, p := range a.ai.Providers() {
 			card().Key("provider-" + p.ID).Children(func() {
 				ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 					ui.Column(c).Grow(1).Shrink(1).Children(func() {
@@ -223,27 +223,26 @@ func (a *App) services(c *ui.Context) {
 		})
 		if add.Clicked() {
 			a.providerID = ""
-			a.provider = model.Provider{Protocol: "chat"}
+			a.provider = aiport.Provider{Protocol: "chat"}
 			a.key, a.models = "", ""
 			a.bk.edit = "+"
 		}
 	})
 	ui.Row(c).FillWidth().Gap(16).Justify(ui.End).Children(func() {
-		if a.pal.ghost(c, "打开配置文件", ui.Color{}).Disabled(a.ConfigFile == "").Clicked() {
-			u := url.URL{Scheme: "file", Path: filepath.ToSlash(a.ConfigFile)}
+		if a.pal.ghost(c, "打开配置文件", ui.Color{}).Disabled(a.ai.ConfigFile() == "").Clicked() {
+			u := url.URL{Scheme: "file", Path: filepath.ToSlash(a.ai.ConfigFile())}
 			if len(u.Path) > 1 && u.Path[1] == ':' {
 				u.Path = "/" + u.Path
 			}
 			c.OpenURL(u.String())
 		}
-		if a.pal.ghost(c, "重新加载配置", ui.Color{}).Disabled(busy || a.ConfigFile == "").Clicked() {
-			cfg, err := model.Load(a.ConfigFile)
+		if a.pal.ghost(c, "重新加载配置", ui.Color{}).Disabled(busy || a.ai.ConfigFile() == "").Clicked() {
+			err := a.ai.Reload()
 			if err == nil {
-				a.Config = cfg
 				a.modelsChanged()
 				a.bk.edit = ""
-				if len(cfg.Providers) > 0 {
-					a.chooseProvider(cfg.Providers[0].ID)
+				if ps := a.ai.Providers(); len(ps) > 0 {
+					a.chooseProvider(ps[0].ID)
 				}
 				a.notice = "配置已重新读取"
 			}
@@ -260,7 +259,7 @@ func (a *App) providerSelect(c *ui.Context, id *string, none, label string, disa
 		names = append(names, none)
 	}
 	chosen := none
-	for _, p := range a.Config.Providers {
+	for _, p := range a.ai.Providers() {
 		names = append(names, providerLabel(p))
 		if p.ID == *id {
 			chosen = providerLabel(p)
@@ -275,7 +274,7 @@ func (a *App) providerSelect(c *ui.Context, id *string, none, label string, disa
 		if chosen != none {
 			*id = chosen
 		}
-		for _, p := range a.Config.Providers {
+		for _, p := range a.ai.Providers() {
 			if providerLabel(p) == chosen {
 				*id = p.ID
 			}
@@ -283,7 +282,7 @@ func (a *App) providerSelect(c *ui.Context, id *string, none, label string, disa
 	}
 }
 
-func providerLabel(p model.Provider) string {
+func providerLabel(p aiport.Provider) string {
 	if p.Name != "" {
 		return p.Name
 	}
@@ -291,16 +290,17 @@ func providerLabel(p model.Provider) string {
 }
 
 // effortSelect picks an effort, shown by its label, into *value.
-func effortSelect(c *ui.Context, value *string, label string, disabled bool) {
-	names := make([]string, len(model.Efforts))
-	chosen := model.Effort(*value).Label()
-	for n, e := range model.Efforts {
-		names[n] = e.Label()
+func (a *App) effortSelect(c *ui.Context, value *string, label string, disabled bool) {
+	efforts := a.ai.Efforts()
+	names := make([]string, len(efforts))
+	chosen := a.ai.EffortLabel(*value)
+	for n, e := range efforts {
+		names[n] = a.ai.EffortLabel(e)
 	}
 	if ui.Select(c, &chosen, names).Label(label).FillWidth().MinWidth(0).Disabled(disabled).Changed() {
-		for _, e := range model.Efforts {
-			if e.Label() == chosen {
-				*value = string(e)
+		for _, e := range efforts {
+			if a.ai.EffortLabel(e) == chosen {
+				*value = e
 			}
 		}
 	}
@@ -402,7 +402,7 @@ func (a *App) providerForm(c *ui.Context) {
 		})
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Justify(ui.End).Children(func() {
 			if a.providerID != "" && a.pal.ghost(c, "清除已保存 key", t.Danger).Disabled(busy).Clicked() {
-				err := model.SetKey(a.providerID, "")
+				err := a.ai.SetKey(a.providerID, "")
 				a.modelsChanged()
 				if err == nil {
 					a.notice = "已清除保存的 key"
@@ -429,13 +429,13 @@ func (a *App) fetchModels(c *ui.Context) {
 		a.setError(err)
 		return
 	}
-	client, err := model.NewClient(a.Config, a.provider.ID, "")
+	catalog, err := a.ai.Catalog(a.provider.ID)
 	if err != nil {
 		a.setError(err)
 		return
 	}
 	a.run(c, "正在读取可用模型…", func(ctx context.Context) (func(), error) {
-		models, err := client.ListModels(ctx)
+		models, err := catalog.ListModels(ctx)
 		return func() {
 			if err == nil {
 				a.models = strings.Join(models, "\n")
@@ -454,28 +454,14 @@ func (a *App) saveProvider() error {
 			p.Models = append(p.Models, s)
 		}
 	}
-	cfg := a.Config
-	cfg.Providers = append([]model.Provider(nil), cfg.Providers...)
-	replaced := false
-	for i, old := range cfg.Providers {
-		if old.ID == p.ID {
-			cfg.Providers[i] = p
-			replaced = true
-			break
-		}
-	}
-	if !replaced {
-		cfg.Providers = append(cfg.Providers, p)
-	}
-	if err := model.Save(a.ConfigFile, cfg); err != nil {
+	if err := a.ai.SaveProvider(p); err != nil {
 		return err
 	}
-	a.Config = cfg
 	a.provider = p
 	a.providerID = p.ID
 	defer a.modelsChanged()
 	if a.key != "" {
-		if err := model.SetKey(p.ID, a.key); err != nil {
+		if err := a.ai.SetKey(p.ID, a.key); err != nil {
 			return err
 		}
 		a.key = ""
