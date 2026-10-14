@@ -64,9 +64,10 @@ function fresh(book = BOOK.shelf[0].id) {
     look: '跟随系统', shelf: structuredClone(BOOK.shelf), cards: true, library: BOOK.library,
     uses: structuredClone(BOOK.uses), services: structuredClone(BOOK.services), budget: '16000', auto: false, recap: true,
     when: '写完一章后检查', late: BOOK.late, goal: '', paneW: 0, // paneW 是右栏拖出来的宽度，没拖过是 0
+    noAI: false, // 关闭了 AI：本机的所有作品都不显示 AI 功能，也不发送任何内容
   }
 }
-const KEPT = ['look', 'shelf', 'cards', 'library', 'uses', 'services', 'budget', 'auto', 'recap', 'when', 'late', 'goal', 'paneW']
+const KEPT = ['look', 'shelf', 'cards', 'library', 'uses', 'services', 'budget', 'auto', 'recap', 'when', 'late', 'goal', 'paneW', 'noAI']
 
 let S = fresh()
 let sent = 0 // 作者发过几条消息，AI 按顺序回下一句
@@ -97,6 +98,10 @@ function later(ms, act) {
   timers.add(id)
   return id
 }
+// AI 做的事过一会儿才有结果。这时 AI 已经关了，结果就不要了。
+const aiLater = (ms, act) => later(ms, () => { if (!S.noAI) act() })
+// 开着 AI 吗。关着时，用到 AI 的地方整个不显示，不是变灰。
+const aiOn = () => !S.noAI
 function stopAll() {
   for (const id of timers) clearTimeout(id)
   timers.clear()

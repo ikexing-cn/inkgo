@@ -63,11 +63,11 @@ function saveService() {
 }
 function fetchModels() {
   const id = say('正在读取可用模型…', '', 'busy', [['取消', () => { clearTimeout(timer); unsay(id) }]])
-  const timer = later(1200, () => { unsay(id); set((s) => (s.dialog && s.dialog.svc ? { dialog: { ...s.dialog, svc: { ...s.dialog.svc, models: (BOOK.services.find((x) => x.id === s.dialog.svc.id) || BOOK.services[0]).models.join('\n') } } } : null)); say('已获取模型目录，保存提供商后生效') })
+  const timer = aiLater(1200, () => { unsay(id); set((s) => (s.dialog && s.dialog.svc ? { dialog: { ...s.dialog, svc: { ...s.dialog.svc, models: (BOOK.services.find((x) => x.id === s.dialog.svc.id) || BOOK.services[0]).models.join('\n') } } } : null)); say('已获取模型目录，保存提供商后生效') })
 }
 
 function settingsModel(d) {
-  const used = (svc) => S.uses.some((u) => u.service === svc.name)
+  const used = (svc) => S.page !== 'shelf' && S.uses.some((u) => u.service === svc.name) // 书架上没有打开的作品
   const use = (u, i) => {
     const same = u.service === '沿用讨论模型'
     const pickService = (name) => { const svc = S.services.find((x) => x.name === name); useAt(i, { service: name, model: svc ? svc.models[0] : '' }) }
@@ -99,12 +99,12 @@ function settingsModel(d) {
     return alone(book) ? '整理模型已选择单独的服务，还需填写模型 ID' : alone(pen) ? '写作模型已选择单独的服务，还需填写模型 ID' : ''
   }
   const saveBudget = () => (lacks() ? say(lacks(), lacks().startsWith('讨论') ? '' : '或改回“沿用讨论模型”', 'fail') : /^\d+$/.test(S.budget.trim()) ? (Number(S.budget) < 8192 ? say('上下文预算至少为 8192，请确保不超过模型支持的窗口') : say('设置已保存，下一条消息起生效', '', 'ok')) : say('上下文预算须为整数'))
-  return '<div class="prefs-group"><div class="group-title">本作品使用</div><div class="note">思考程度选 Default 时由服务商决定。</div></div>' +
+  return (S.page === 'shelf' ? '' : '<div class="prefs-group"><div class="group-title">本作品使用</div><div class="note">思考程度选 Default 时由服务商决定。</div></div>' +
     `<div class="uses">${S.uses.map(use).join('')}` +
     `<div class="use-row"><div class="use-name">上下文预算</div><div class="box line budget">${typed(S.budget, (v) => set({ budget: v }), '', '上下文预算')}</div><div class="fit note">token，含回答预留</div>${button('保存', saveBudget, 'primary')}</div></div>` +
     '<div class="note">请勿超过模型的上下文窗口；未能放入的设定会列在回复下方的“AI 参考内容”中。修改自下次发送起生效。</div>' +
     '<div class="prefs-group"><div class="group-title">写作时</div></div>' +
-    `<div class="ticks">${tickbox(S.auto, '停笔后自动续写', () => set({ auto: !S.auto }))}<div class="note tick-note">开启后每次停笔都会调用一次 AI。</div>${tickbox(S.recap, '章节修改后更新摘要', () => set({ recap: !S.recap }))}<div class="note tick-note">手动填写的摘要不会被覆盖。</div></div>` +
+    `<div class="ticks">${tickbox(S.auto, '停笔后自动续写', () => set({ auto: !S.auto }))}<div class="note tick-note">开启后每次停笔都会调用一次 AI。</div>${tickbox(S.recap, '章节修改后更新摘要', () => set({ recap: !S.recap }))}<div class="note tick-note">手动填写的摘要不会被覆盖。</div></div>`) +
     '<div class="prefs-group"><div class="group-title">模型服务</div><div class="note">保存在本机，所有作品共用</div></div>' +
     `<div class="services">${S.services.map(card).join('')}` +
     (d.edit === 'new' ? `<div class="service">${form()}</div>` : `<div class="service add hit"${onClick(() => set((s) => ({ dialog: { ...s.dialog, ...editing(null) }, ...SHUT })))}>${ICON.plus}添加服务</div>`) + '</div>' +
@@ -125,21 +125,48 @@ function settingsBackup() {
     row('保留份数', `<div class="keep">${choose('keep', b.keep, ['最近 10 份', '最近 30 份', '最近 90 份'], (keep) => backupSet({ keep }), '保留份数')}</div><div class="note">每份约 1.1 MB，共 ${(b.copies * 1.1).toFixed(1)} MB</div>`)
 }
 
+// 「AI」那一部分的最上面：一个开关，管本机的所有作品。点了不马上变，先问一句。
+const aiSwitch = () => `<div class="ticks">${tickbox(S.noAI, '关闭 AI', () => set((s) => ({ dialog: { ...s.dialog, ask: s.noAI ? 'on' : 'off' }, ...SHUT })))}` +
+  '<div class="note tick-note">隐藏全部 AI 功能，不发送任何内容。</div></div>'
+
+// 关闭、开启 AI 前问的那一句，浮在设置上面。
+function askAI(ask) {
+  const off = ask === 'off', back = () => set((s) => ({ dialog: { ...s.dialog, ask: '' } }))
+  const about = off ? '隐藏全部 AI 功能，不再发送任何内容；正在进行的 AI 任务会停止。讨论、摘要和检查结果不会删除，重新开启后恢复。'
+    : '重新显示 AI 功能。自动摘要和检查会按设置把章节内容发给模型服务；未配置模型服务时不发送任何内容。'
+  return `<div class="scrim top"${onClick(back)}></div><div class="dialog-wrap top"><div class="dialog ask" data-k="dialog-ask">` +
+    dialogHead(off ? '是否关闭 AI？' : '是否开启 AI？', about) + buttons(button('取消', back), button(off ? '关闭 AI' : '开启 AI', () => turnAI(!off), 'primary')) + '</div></div>'
+}
+
+// 关闭 AI：正在做的 AI 任务停下。起草停在写到的地方；没回完的那句讨论不要了，作者的话还在，和点「取消请求」一样。
+// 正开着的讨论、检查两页回到正文，右栏的讨论回到设定，标题下面的摘要收起。讨论、摘要、检查结果都还在，重新开启后照旧。
+// 提示条一并收起：上面说的多半是 AI 的事，有的还能点「重试」。
+function turnAI(on) {
+  if (!on && S.waiting) stopReply()
+  set((s) => (on ? { noAI: false, dialog: { ...s.dialog, ask: '' } } : {
+    noAI: true, dialog: { ...s.dialog, ask: '' }, toasts: [], ai: null, tidying: false, checking: false, queue: [],
+    summaries: Object.fromEntries(Object.entries(s.summaries).map(([key, sum]) => [key, sum.busy ? { ...sum, busy: false } : sum])),
+    page: s.page === 'talk' || s.page === 'check' ? 'write' : s.page, tab: s.tab === '讨论' ? '设定' : s.tab, sv: s.sv === 'ideas' ? 'list' : s.sv, box: s.box === '摘要' ? '' : s.box,
+  }))
+}
+
 function settingsDialog(d) {
-  const tabs = ['模型', '外观', '提醒与检查', '备份']
+  // 书架上没有打开的作品，只有本机的两部分。AI 关着时，「提醒与检查」里只剩提醒。
+  const remind = aiOn() ? '提醒与检查' : '提醒'
+  const tabs = S.page === 'shelf' ? ['AI', '外观'] : ['AI', '外观', remind, '备份']
   // 每一类的标题和下面那句说明留在上面不动，只有内容滚动。
-  const about = { 模型: '为本作品选择模型。', 外观: '仅在本机生效，适用于所有作品。', 提醒与检查: '本作品的提醒规则，修改后立即生效。', 备份: '为整部作品另存一份副本，以防设备故障。' }
+  const about = { AI: aiOn() ? '是否使用 AI，以及使用哪些模型。' : '仅在本机生效，适用于所有作品。', 外观: '仅在本机生效，适用于所有作品。', [remind]: '本作品的提醒规则，修改后立即生效。', 备份: '为整部作品另存一份副本，以防设备故障。' }
   const lateNow = S.marks.filter((m) => m.st === 'open' && BOOK.now - m.ch >= S.late).length
   const when = [['写完一章后检查', '推荐，每章调用一次 AI'], ['手动检查', '平时不调用 AI'], ['边写边检查', '停笔即检查，调用最多']]
   const step = (by) => () => set((s) => ({ late: Math.max(5, s.late + by) }))
-  const body = d.tab === '模型' ? settingsModel(d) : d.tab === '备份' ? settingsBackup()
+  const body = d.tab === 'AI' ? aiSwitch() + (aiOn() ? settingsModel(d) : '') : d.tab === '备份' ? settingsBackup()
     : d.tab === '外观' ? `<div class="prefs-row"><div class="prefs-label">颜色</div>${seg(S.look, [['跟随系统', 'screen'], ['浅色', 'sun'], ['深色', 'moon']], (v) => set({ look: v }), '颜色')}</div>`
     : '<div class="prefs-group"><div class="group-title">伏笔</div></div>' +
       `<div class="prefs-row"><div class="fit"><div>超过多少章未回收时提醒</div><div class="note">到期后归入「久未回收」，不弹窗。</div></div><div class="stepper"><div class="hit" title="减少 5 章"${onClick(step(-5))}>−</div><div class="stepper-n">${S.late} 章</div><div class="hit" title="增加 5 章"${onClick(step(5))}>+</div></div></div>` +
       `<div class="note">当前有 ${lateNow} 个伏笔久未回收。</div>` +
-      `<div class="prefs-group"><div class="group-title">检查正文和设定</div></div>${radios(S.when, when, (v) => set({ when: v }))}`
+      (aiOn() ? `<div class="prefs-group"><div class="group-title">检查正文和设定</div></div>${radios(S.when, when, (v) => set({ when: v }))}` : '')
   return dialog('prefs', `<div class="prefs-nav"><div class="prefs-nav-title">设置</div>${tabs.map((name) => `<div class="nav hit${d.tab === name ? ' on' : ''}"${onClick(() => set({ dialog: { kind: 'settings', tab: name, edit: '' }, ...SHUT }))}>${name}</div>`).join('')}</div>` +
-    `<div class="prefs-main"><div class="prefs-head"><div class="prefs-title">${d.tab}</div><div class="note">${about[d.tab]}</div></div><div class="prefs-body scroll" data-k="prefs-${d.tab}">${body}</div></div><button class="icon-btn muted prefs-close" aria-label="关闭设置" title="关闭设置"${onClick(shut)}>${icon('cross')}</button>`)
+    `<div class="prefs-main"><div class="prefs-head"><div class="prefs-title">${d.tab}</div><div class="note">${about[d.tab]}</div></div><div class="prefs-body scroll" data-k="prefs-${d.tab}">${body}</div></div><button class="icon-btn muted prefs-close" aria-label="关闭设置" title="关闭设置"${onClick(shut)}>${icon('cross')}</button>`) + (d.ask ? askAI(d.ask) : '')
 }
 
 // ───────── 正文那一页的几个对话框 ─────────
@@ -205,6 +232,9 @@ function compare(old, now) {
   return out.map(([cls, text]) => `<div${cls ? ` class="${cls}"` : ''}>${t(text)}</div>`).join('')
 }
 
+// 快照是在什么之前存的。AI 关着时，「AI 改动前」只写「改动前」：快照还在，不提 AI。
+const snapKind = (kind) => (kind === 'AI 改动前' && !aiOn() ? '改动前' : kind)
+
 function snapsDialog(d) {
   const cur = chapterOf(S.ch), list = S.snaps[cur.key] || []
   const shown = list.find((x) => x.id === d.id) || list[0]
@@ -214,11 +244,11 @@ function snapsDialog(d) {
     say('已恢复到 ' + shown.at + ' 的版本，恢复前的内容已存为快照')
   }
   const same = shown && shown.paras.join('\n') === cur.paras.join('\n')
-  return dialog('wide', dialogHead('快照 · ' + titleOf(cur), '打开章节时、连续写作每十分钟、恢复前、AI 起草或采纳改写前、全书替换前都会保存一份。最近七天的全部保留，更早的每天保留最后一份。') +
+  return dialog('wide', dialogHead('快照 · ' + titleOf(cur), '打开章节时、连续写作每十分钟、恢复前、' + (aiOn() ? 'AI 起草或采纳改写前、' : '') + '全书替换前都会保存一份。最近七天的全部保留，更早的每天保留最后一份。') +
     (shown
-      ? `<div class="snaps"><div class="snap-list scroll">${list.map((x) => `<div class="snap-row row${x === shown ? ' on' : ''}"${onClick(pick({ id: x.id }))}><div>${t(x.at)}</div><div class="note">${t(x.kind)} · ${x.paras.join('').length} 字</div></div>`).join('')}</div>` +
+      ? `<div class="snaps"><div class="snap-list scroll">${list.map((x) => `<div class="snap-row row${x === shown ? ' on' : ''}"${onClick(pick({ id: x.id }))}><div>${t(x.at)}</div><div class="note">${t(snapKind(x.kind))} · ${x.paras.join('').length} 字</div></div>`).join('')}</div>` +
         `<div class="snap-side"><div class="snap-tools">${tickbox(d.diff, '与当前对比', pick({ diff: !d.diff }))}<div class="fit note ell">${same ? '该快照与当前正文相同' : d.diff ? '红色删除线为快照中有而当前没有的内容，绿色为当前新增的内容' : ''}</div></div>` +
-        (shown.ai ? `<div class="card"><div class="who">${t(shown.ai.head)}</div><div class="extra">${t(shown.ai.saw)}</div>${shown.ai.left ? `<div class="fail">超出上下文预算而未放入的设定 ${shown.ai.left} 条</div>` : ''}</div>` : '') +
+        (shown.ai && aiOn() ? `<div class="card"><div class="who">${t(shown.ai.head)}</div><div class="extra">${t(shown.ai.saw)}</div>${shown.ai.left ? `<div class="fail">超出上下文预算而未放入的设定 ${shown.ai.left} 条</div>` : ''}</div>` : '') +
         `<div class="snap-text scroll">${d.diff ? compare(shown.paras, cur.paras) : shown.paras.map((p) => `<div>${t(p)}</div>`).join('') || '<div class="faint">该快照为空</div>'}</div></div></div>`
       : '<div class="empty"><div>本章暂无快照</div></div>') +
     buttons(button('关闭', shut), button('恢复这个版本', shown && !same ? restore : null, shown && !same ? 'primary' : 'primary off')))
@@ -267,8 +297,10 @@ function binDialog(d) {
     `<div class="bin-rows scroll">${S.bin.length ? S.bin.map(row).join('') : '<div class="empty"><div>回收站为空</div></div>'}</div>` + buttons(button('关闭', shut)))
 }
 
+// 第三项写着 ai 的，是 AI 的那几组、几行：AI 关着时不列。
 function keysDialog() {
-  return dialog('keys', dialogHead('快捷键') + `<div class="keys scroll">${BOOK.keys.map(([group, of]) => `<div class="head">${group}</div>` + of.map(([key, does]) => `<div class="key-row"><div class="key">${t(key)}</div><div class="fit">${t(does)}</div></div>`).join('')).join('')}</div>` + buttons(button('关闭', shut)))
+  const shown = (list) => list.filter(([, , ai]) => !ai || aiOn())
+  return dialog('keys', dialogHead('快捷键') + `<div class="keys scroll">${shown(BOOK.keys).map(([group, of]) => `<div class="head">${group}</div>` + shown(of).map(([key, does]) => `<div class="key-row"><div class="key">${t(key)}</div><div class="fit">${t(does)}</div></div>`).join('')).join('')}</div>` + buttons(button('关闭', shut)))
 }
 
 // ───────── 书架上的两个对话框 ─────────

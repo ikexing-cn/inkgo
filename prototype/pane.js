@@ -41,7 +41,7 @@ const editing = (e) => ({ id: e.id, name: e.names[0] || '', names: e.names.slice
 // AI 没整理成功的那一轮再来一次：这回成了，多出一条建议。
 function retry(id) {
   const toast = say('正在重新整理…', '', 'busy', [['取消', () => { clearTimeout(timer); timers.delete(timer); unsay(toast) }]])
-  const timer = later(1200, () => {
+  const timer = aiLater(1200, () => {
     unsay(toast)
     set((s) => ({
       n: s.n + 1,
@@ -69,7 +69,7 @@ const offer = (words) => () => { set({ draft: words }); const box = document.que
 function send() {
   const text = S.draft.trim()
   if (!text || S.waiting) return
-  if (!S.uses[0].model.trim()) { say('请先配置讨论模型', '', 'fail', [['打开设置', () => set({ dialog: { kind: 'settings', tab: '模型', edit: '' }, toasts: [], ...SHUT })]]); return }
+  if (!S.uses[0].model.trim()) { say('请先配置讨论模型', '', 'fail', [['打开设置', () => set({ dialog: { kind: 'settings', tab: 'AI', edit: '' }, toasts: [], ...SHUT })]]); return }
   const isNew = S.tv !== 'one'
   const id = isNew ? 't' + S.n : S.tid
   const add = (msg) => (talk) => (talk.id === id ? { ...talk, msgs: [...talk.msgs, msg] } : talk)
@@ -89,7 +89,7 @@ function answer(id) {
 // 每聊完一轮，AI 在后台把这一轮整理进设定，修改记录里多一条。
 function tidy() {
   set({ tidying: true })
-  later(1500, () => set((s) => ({ tidying: false, n: s.n + 1, log: [{ id: 'l' + s.n, who: '后台整理', model: 'Opus 5.5 · Low', at: '刚刚', lines: [], think: BOOK.tidy }, ...s.log] })))
+  aiLater(1500, () => set((s) => ({ tidying: false, n: s.n + 1, log: [{ id: 'l' + s.n, who: '后台整理', model: 'Opus 5.5 · Low', at: '刚刚', lines: [], think: BOOK.tidy }, ...s.log] })))
 }
 function stopReply() {
   for (const id of replying) { clearTimeout(id); timers.delete(id) }
@@ -128,7 +128,7 @@ function back(label, goBack, actLabel, act) {
 
 function setting() {
   const at = (place) => S.entries.filter((e) => e.place === place)
-  const body = at('body'), open = at('open'), gone = at('dropped')
+  const body = at('body'), open = aiOn() ? at('open') : [], gone = at('dropped') // open 是 AI 的建议，AI 关着时不显示
   const shown = S.entries.find((e) => e.id === S.sid)
   const row = (e, find = '') => item({ name: e.names[0] || e.text, about: e.names.length ? near(e.text, find) : '', find, dot: e.place === 'body' && open.some((o) => o.about === e.id), open: () => set({ sid: e.id }) })
   const idea = (o, about) => `<div class="idea">${about ? `<div class="idea-about">${t(about)}</div>` : ''}<div class="text">${t(o.text)}</div>` +
@@ -159,12 +159,13 @@ function setting() {
   if (S.sv === 'dropped') return back('全部设定', () => set({ sv: 'list' })) + rows([head('已删除'), ...(gone.length ? gone.map((e) => row(e)) : [empty('没有已删除的设定')])])
 
   if (S.sv === 'log') {
+    const log = aiOn() ? S.log : S.log.filter((c) => c.who !== '后台整理') // AI 整理的那几条，AI 关着时不列
     const card = (c) => '<div class="card">' +
       `<div class="card-head"><div class="who">${t(c.who)}${c.redo ? '（重试）' : ''}</div>${c.model ? `<div class="tiny">${t(c.model)}</div>` : ''}<div class="grow"></div><div class="tiny">${t(c.at)}</div></div>` +
       (c.lines.length || c.fail ? c.lines.map((l) => `<div class="said-line">${t(l)}</div>`).join('') : '<div class="extra">无需修改</div>') +
       (c.extra ? `<div class="extra">${t(c.extra)}</div>` : '') + (c.think ? thought(c.id, c.think, false, '整理思考过程') : '') +
       (c.fail ? `<div class="fail">${t(c.fail)}</div><div class="retry hit link"${onClick(() => retry(c.id))}>重试</div>` : '') + '</div>'
-    return back('全部设定', () => set({ sv: 'list' })) + `<div class="page log scroll" data-k="log"><div class="title">修改记录</div>${S.log.length ? S.log.map(card).join('') : '<div class="note">暂无修改记录。讨论后，AI 会自动整理设定。</div>'}</div>`
+    return back('全部设定', () => set({ sv: 'list' })) + `<div class="page log scroll" data-k="log"><div class="title">修改记录</div>${log.length ? log.map(card).join('') : `<div class="note">${aiOn() ? '暂无修改记录。讨论后，AI 会自动整理设定。' : '暂无修改记录。'}</div>`}</div>`
   }
 
   const q = S.sq.trim()
@@ -173,7 +174,7 @@ function setting() {
     const found = body.filter((e) => (e.names.join('、') + e.text).includes(q))
     list = found.length ? [head('找到 ' + found.length + ' 条'), ...found.map((e) => row(e, q))] : [empty('未找到')]
   } else if (!body.length && !open.length) {
-    list = [empty('暂无设定', '讨论和正文中的设定会自动收录于此，也可点击「新增」手动添加。')]
+    list = [empty('暂无设定', aiOn() ? '讨论和正文中的设定会自动收录于此，也可点击「新增」手动添加。' : '可点击「新增」添加，或从正文中选中文字加入。')]
   } else {
     if (open.length) list.push(todo('待确认', open.length, () => set({ sv: 'ideas' })))
     for (const cat of S.cats) {
@@ -271,7 +272,7 @@ function modelPick() {
   const pick = (change) => () => set((s) => ({ ...SHUT, uses: s.uses.map((u, i) => (i ? u : { ...u, ...change })) }))
   return `<div class="anchor up"><div class="model hit" title="当前模型"${onClick(() => set({ open: S.open === 'model' ? '' : 'model' }))}>${t(use.model || '选择讨论模型')}${icon('up', 'xs')}</div>` +
     (S.open === 'model' ? '<div class="pop model-pop" data-k="model-pop"><div class="pop-label">模型</div>' + (service ? service.models : []).map((m) => `<div class="pop-row row${m === use.model ? ' on' : ''}"${onClick(pick({ model: m }))}>${t(m)}</div>`).join('') +
-      menuRow('模型设置…', () => set({ dialog: { kind: 'settings', tab: '模型', edit: '' }, ...SHUT })) + HAIR + '<div class="pop-label">思考程度</div>' +
+      menuRow('模型设置…', () => set({ dialog: { kind: 'settings', tab: 'AI', edit: '' }, ...SHUT })) + HAIR + '<div class="pop-label">思考程度</div>' +
       BOOK.efforts.map((e) => `<div class="pop-row row${e === use.effort ? ' on' : ''}"${onClick(pick({ effort: e }))}>${e}</div>`).join('') + '</div>' : '') + '</div>'
 }
 
@@ -330,15 +331,15 @@ function discussion() {
 }
 
 function pane() {
-  const waiting = S.entries.filter((e) => e.place === 'open').length, lost = S.marks.filter((m) => m.st === 'lost').length
+  const waiting = aiOn() ? S.entries.filter((e) => e.place === 'open').length : 0, lost = S.marks.filter((m) => m.st === 'lost').length
   const tab = (name, n) => `<div class="tab hit${name === S.tab ? ' on' : ''}"${onClick(() => set({ tab: name, ...SHUT }))}>${name}${n ? `<span class="badge">${n}</span>` : ''}</div>`
   // 后台整理的记号：正在整理时一个呼吸的点，上一回没成功时一个黄点；点开是修改记录。
-  const failed = !S.tidying && (S.log.find((c) => c.who === '后台整理') || {}).fail, sign = S.tidying ? '正在整理设定' : '上次整理失败，点击查看'
+  const failed = aiOn() && !S.tidying && (S.log.find((c) => c.who === '后台整理') || {}).fail, sign = S.tidying ? '正在整理设定' : '上次整理失败，点击查看'
   const dot = S.tidying || failed ? `<button class="icon-btn tidy${failed ? ' warn' : ''}" aria-label="${sign}" title="${sign}"${onClick(() => set({ paneOpen: true, tab: '设定', sv: 'log', sid: null, form: null, ...SHUT }))}><div class="dot"></div></button>` : ''
   const edge = '<div class="pane-edge" title="调整右栏宽度"></div>', wide = S.paneW ? ` style="width:${S.paneW}px"` : ''
   const fold = `<div class="grow"></div>${dot}<button class="icon-btn" aria-label="收起右栏" title="收起右栏"${onClick(() => set({ paneOpen: false, ...SHUT }))}>${svg('icon-md', PANEL + path('M15 5v14'))}</button>`
-  // 正文那一页有三页；别的页只留设定。
+  // 正文那一页有三页（AI 关着时没有讨论）；别的页只留设定。
   if (S.page !== 'write') return `<div id="pane"${wide}>${edge}<div class="tabs"><div class="tab on">设定${waiting ? `<span class="badge">${waiting}</span>` : ''}</div>${fold}</div>${setting()}</div>`
-  return `<div id="pane"${wide}>${edge}` + `<div class="tabs">${tab('设定', waiting)}${tab('讨论')}${tab('伏笔', lost)}${fold}</div>` +
+  return `<div id="pane"${wide}>${edge}` + `<div class="tabs">${tab('设定', waiting)}${aiOn() ? tab('讨论') : ''}${tab('伏笔', lost)}${fold}</div>` +
     (S.tab === '设定' ? setting() : S.tab === '伏笔' ? foreshadowing() : discussion()) + '</div>'
 }

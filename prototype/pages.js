@@ -146,9 +146,12 @@ function shelfPage() {
     (b.gone ? `<div class="danger">找不到文件夹</div><div class="hit link"${onClick(osAsk('选择该作品当前所在的文件夹'))}>重新定位…</div><div class="hit link"${onClick(() => removeBook(b))}>从书架移除</div>` : `<div class="faint">${t(b.at)}</div>${more(b)}`) + '</div>'
   const create = button('新建作品', () => set({ dialog: { kind: 'newBook', name: '', type: BOOK.kinds[0] } }), 'primary')
   if (!all.length) {
-    return '<div class="shelf">' + blank('book', '从一个想法开始', '与 AI 逐步讨论，内容会在后台整理为设定文档。已确定的设定会被遵守，已放弃的 AI 不再提及。',
+    // AI 关着时，这一页不讲 AI。
+    return '<div class="shelf">' + (aiOn() ? blank('book', '从一个想法开始', '与 AI 逐步讨论，内容会在后台整理为设定文档。已确定的设定会被遵守，已放弃的 AI 不再提及。',
       '<div class="shelf-facts"><div>· 作品、对话和设定文档均为文件夹中的普通文件，可备份、同步或用其他编辑器打开。</div><div>· AI 仅在你发送消息时回应，不会自行续写。</div><div>· API key 保存在系统钥匙串中，不会写入作品文件夹。</div></div>' +
-      buttons(button('添加已有作品…', addBook), create)) + '</div>'
+      buttons(button('添加已有作品…', addBook), create))
+      : blank('book', '从一个想法开始', '新建一部作品，或添加已有的作品文件夹。',
+        '<div class="shelf-facts"><div>· 作品和设定文档均为文件夹中的普通文件，可备份、同步或用其他编辑器打开。</div></div>' + buttons(button('添加已有作品…', addBook), create))) + '</div>'
   }
   return '<div class="shelf scroll"><div class="shelf-column">' +
     `<div class="shelf-head"><div class="fit"><div class="shelf-title">我的作品</div><div class="shelf-sub"><span class="ell">${all.length} 部 · 作品库：${t(S.library)}</span><span class="hit link"${onClick(osAsk('选择作品库文件夹'))}>更改</span></div></div>` +

@@ -443,6 +443,7 @@ body { margin: 0; }
 .scrim { position: absolute; inset: 0; z-index: 8; background: var(--scrim); }
 .dialog-wrap { position: absolute; inset: 0; z-index: 9; display: flex; align-items: center; justify-content: center; pointer-events: none; }
 .dialog-wrap > .veil, .dialog { pointer-events: auto; }
+.scrim.top, .dialog-wrap.top { z-index: 10; } /* 浮在另一个对话框上面问的那一句 */
 .dialog { position: relative; box-sizing: border-box; max-height: calc(100% - 80px); display: flex; flex-direction: column; gap: 16px; padding: 24px; border-radius: var(--r-dialog); background: var(--raised); box-shadow: var(--shadow-dialog); font-size: var(--fs-body); }
 .dialog.small { width: 480px; }
 /* 只问一句的对话框（标题、一两句说明、一排按钮）用窄的这一档，不摊成扁扁的一条。 */

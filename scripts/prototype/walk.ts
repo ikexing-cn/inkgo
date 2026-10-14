@@ -291,7 +291,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('加入设定'); await win('已加入设定正文'); await pane('设定里只写了他是她带出来的徒弟。可以'); await click('关闭提示'); await done('what stands under a reply')
   await click('新对话'); await win('从一个初步的想法开始'); await shot('59-new-talk-page'); await click('这个故事的冲突在哪'); await win('正在思考…', false); await click('发送'); await win('正在思考…'); await sleep(1500); await win('这是原型'); await win('2 条发言')
   await type('讨论输入', '再想想'); await key('Enter', true); await win('3 条发言'); await sleep(1500); await win('先想清楚这一段要做什么'); await done('a new talk on its page')
-  await click('当前模型'); await win('思考程度'); await shot('60-model'); await click('claude-sonnet-5-5'); await win('思考程度', false); await win('claude-sonnet-5-5'); await click('当前模型'); await click('High'); await click('当前模型'); await click('模型设置…'); await win('为本作品选择模型。'); await done('the model of a discussion')
+  await click('当前模型'); await win('思考程度'); await shot('60-model'); await click('claude-sonnet-5-5'); await win('思考程度', false); await win('claude-sonnet-5-5'); await click('当前模型'); await click('High'); await click('当前模型'); await click('模型设置…'); await win('是否使用 AI，以及使用哪些模型。'); await done('the model of a discussion')
 
   // Settings: the models and the services, the look, reminders, backups.
   must((await value('讨论模型')) === 'claude-sonnet-5-5', 'the settings show another model'); await shot('61-settings')
@@ -306,7 +306,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('提醒与检查'); await win('当前有 2 个伏笔久未回收。'); await click('增加 5 章'); await click('增加 5 章'); await click('增加 5 章'); await win('45 章'); await win('当前有 1 个伏笔久未回收。'); await click('边写边检查'); await shot('65-reminders')
   await click('备份'); await win('为整部作品另存一份副本，以防设备故障。'); await win('31.2 万字 · 8 章 · 已存 12 份，最早 9 月 28 日'); await shot('66-backup'); await click('立即备份'); await win('正在备份…'); await sleep(1400); await win('刚刚 已备份'); await win('已存 13 份')
   await click('写作时每小时一次'); await click('最近 30 份'); await click('最近 90 份'); await win('最近 30 份', false); await click('关闭设置'); await win('为整部作品另存一份副本', false); await click('正文'); await win('边写边检查 ▴'); await done('the look, reminders and backups')
-  await click('设置'); await clear('讨论模型'); await click('关闭设置'); await click('讨论', 1); await click('全部讨论'); await click('新讨论'); await type('输入想讨论的内容', '在吗'); await key('Enter'); await win('请先配置讨论模型'); await sleep(3300); await win('请先配置讨论模型'); await shot('67-no-model'); await click('打开设置'); await win('为本作品选择模型。'); await win('请先配置讨论模型', false); await key('Escape'); await done('no model to talk with')
+  await click('设置'); await clear('讨论模型'); await click('关闭设置'); await click('讨论', 1); await click('全部讨论'); await click('新讨论'); await type('输入想讨论的内容', '在吗'); await key('Enter'); await win('请先配置讨论模型'); await sleep(3300); await win('请先配置讨论模型'); await shot('67-no-model'); await click('打开设置'); await win('是否使用 AI，以及使用哪些模型。'); await win('请先配置讨论模型', false); await key('Escape'); await done('no model to talk with')
 
   // The check page.
   await click('重新开始'); await click('检查'); await win('已检查至番外：晴天'); await win('全部 5'); await win('1 / 5'); await win('设定 · 人物 · 林晚'); await win('其他章节的类似情况'); await shot('68-check')
@@ -497,7 +497,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await key('f', true); await type('查找', '小祥'); await type('替换为', '阿祥'); await click('全部替换'); await win('可撤销'); await win('阿祥在身后叫她'); await click('关闭提示'); await click('编辑'); await click('撤销'); await win('小祥在身后叫她'); await win('阿祥', false); await win('戊整条街的灯'); await click('关闭查找')
   await click('文件'); await click('保存'); must(!(await unsaved()), 'the menu did not save the chapter'); await win('已保存'); await click('关闭提示')
   await click('文件'); await click('新建章节'); must(await has('.tree-row.naming'), 'the menu did not make a chapter'); await key('Escape')
-  await click('文件'); await click('设置…'); await win('仅在本机生效，适用于所有作品。', false); await win('模型'); await click('关闭设置')
+  await click('文件'); await click('设置…'); await win('仅在本机生效，适用于所有作品。', false); await win('是否使用 AI，以及使用哪些模型。'); await click('关闭设置')
   await click('视图'); await click('收起侧栏', 1); must(!(await has('.sidebar')), 'the menu did not put the sidebar away'); await click('视图'); must((await menuRows()).startsWith('展开侧栏 '), 'the menu does not offer the sidebar back'); await click('展开侧栏', 1); must(await has('.sidebar'), 'the menu did not bring the sidebar back')
   await click('视图'); await click('收起右栏'); must(!(await has('#pane')), 'the menu did not put the pane away'); await click('视图'); await click('展开右栏'); must(await has('#pane'), 'the menu did not bring the pane back')
   // Focus puts the title bar away with the rest: the window's buttons stand at the right end of the toolbar's row, clear of its tools.
@@ -506,8 +506,65 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('退出专注，恢复章节树和右栏（F11）'); must(await has('.sidebar') && await has('.titlebar'), 'leaving focus did not bring the title bar back')
   await click('检查'); await click('文件'); must(await menuRows() === '新建章节- 新建文件夹- 保存- 快照- 导出… 设置…', 'off the page of prose the menu of the file reads: ' + await menuRows()); await shot('99d-menu-greyed')
   await pointAt('编辑'); must(await menuRows() === '撤销- 重做- 查找替换- 重命名- 续写一句- 起草本章-', 'off the page of prose the menu of editing reads: ' + await menuRows()); await pointAt('视图'); must(await menuRows() === '收起侧栏 收起右栏- 专注写作-', 'on the page of checks the menu of the view reads: ' + await menuRows()); await key('Escape')
-  await click('切换作品'); await click('全部作品…'); must(await has('.titlebar') && await js(`document.querySelector('.titlebar > .icon-btn').classList.contains('off')`), 'the shelf has no title bar, or its switch of the sidebar is not greyed'); await click('文件'); must(await menuRows() === '新建章节- 新建文件夹- 保存- 快照- 导出…- 设置…-', 'on the shelf the menu of the file reads: ' + await menuRows()); await shot('99e-shelf-bar'); await key('Escape')
+  await click('切换作品'); await click('全部作品…'); must(await has('.titlebar') && await js(`document.querySelector('.titlebar > .icon-btn').classList.contains('off')`), 'the shelf has no title bar, or its switch of the sidebar is not greyed'); await click('文件'); must(await menuRows() === '新建章节- 新建文件夹- 保存- 快照- 导出…- 设置…', 'on the shelf the menu of the file reads: ' + await menuRows()); await shot('99e-shelf-bar'); await key('Escape')
   await click('帮助'); await click('快捷键…'); await win('打开快捷键列表'); await click('关闭'); await done('the menus')
+
+  // AI turned off. The settings open on the shelf too, with the two parts that hold for the whole computer; the switch
+  // is one for every work, and asks first, both ways. With it off nothing in the window offers AI or tells of it: what
+  // the author wrote (the prose) aside, no word of it is shown, nor in a tooltip. The settings, whose part named AI holds
+  // the switch alone then, are looked at by themselves.
+  const AI_WORDS = ['AI', '讨论', '检查', '续写', '改写', '起草', '摘要', '模型', '整理']
+  const aiSaid = (): Promise<string[]> => js(`(() => {
+    const out = new Set(), walk = document.createTreeWalker(document.querySelector('#win'), NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT)
+    for (let n; (n = walk.nextNode());) {
+      const e = n.nodeType === 3 ? n.parentElement : n
+      if (e.closest('.prose') || !e.getClientRects().length) continue
+      const said = (n.nodeType === 3 ? n.data : ['title', 'aria-label', 'placeholder'].map((a) => n.getAttribute(a) || '').join(' ')).split('连续写').join('') // 连续写作不是续写
+      for (const w of ${JSON.stringify(AI_WORDS)}) if (said.includes(w)) out.add(w + ' in ' + (e.className || e.tagName) + ': ' + said.trim().slice(0, 30))
+    }
+    return [...out]
+  })()`)
+  const noAI = async (where: string) => { const said = await aiSaid(); must(!said.length, 'with AI off, ' + where + ' tells of AI:\n  ' + said.join('\n  ')) }
+  const prefTabs = (): Promise<string> => js(`[...document.querySelectorAll('.prefs-nav .nav')].map((e) => e.innerText).join(' ')`)
+  const navs = (): Promise<string> => js(`[...document.querySelectorAll('.navs .nav .grow')].map((e) => e.innerText).join(' ')`)
+  const paneTabs = (): Promise<string> => js(`[...document.querySelectorAll('#pane .tab')].map((e) => e.firstChild.textContent).join(' ')`)
+  const aiOff = async () => { await click('文件'); await click('设置…'); await click('关闭 AI'); await win('是否关闭 AI？'); await click('关闭 AI', 1); await win('是否关闭 AI？', false) }
+  await click('文件'); await click('设置…'); must(await prefTabs() === 'AI 外观', 'on the shelf the settings hold: ' + await prefTabs()); await win('模型服务'); await win('本作品使用', false)
+  await click('关闭 AI'); await win('是否关闭 AI？'); await win('不再发送任何内容'); await shot('99f-ask-ai-off'); await click('取消'); await win('是否关闭 AI？', false); await win('模型服务')
+  await click('关闭 AI'); await key('Escape'); await win('是否关闭 AI？', false); must(await has('.prefs'), 'Esc on the question shut the settings under it too'); await click('关闭设置')
+  // Off while AI is at work: a draft stops where it got to; a reply is let go, and what the author said stays.
+  await click('雨城来信'); await win('第87章：停电'); const before = await paras()
+  await click('编辑'); await click('起草本章'); await click('开始起草'); await sleep(850); must(await paras() > before, 'the draft wrote nothing')
+  await click('讨论', 1); await click('新讨论'); await type('输入想讨论的内容', '灯为什么会灭'); await key('Enter'); await win('正在思考…')
+  await aiOff(); must(await prefTabs() === 'AI 外观 提醒 备份', 'with AI off the settings of a work hold: ' + await prefTabs()); await win('模型服务', false); await win('本作品使用', false)
+  must(await has('.prefs .check.on'), 'the switch is not ticked'); await win('仅在本机生效，适用于所有作品。'); await shot('99g-ai-off')
+  await click('提醒'); await win('超过多少章未回收时提醒'); await win('检查正文和设定', false); await click('关闭设置')
+  const drafted = await paras(); await sleep(3000); must(await paras() === drafted, 'the draft went on with AI off'); must(await js(`S.talks[0].msgs.length === 1 && !S.waiting`), 'the reply went on with AI off')
+  // Off, the page of prose and all that opens from it.
+  must(await navs() === '正文 作品分类', 'with AI off the sidebar offers: ' + await navs()); must(await paneTabs() === '设定 伏笔', 'with AI off the pane offers: ' + await paneTabs())
+  await noAI('the page of prose'); await shot('99h-ai-off-prose')
+  await click('伏笔'); await noAI('the foreshadowings'); await click('设定'); await click('更多'); await click('修改记录'); await win('手动修改'); await win('后台整理', false); await noAI('the change log'); await click('全部设定')
+  for (const name of ['文件', '编辑', '视图', '帮助']) { await click(name); await noAI('the menu ' + name); await key('Escape') }
+  await menu(0, '整条街的灯'); await noAI('the menu of the prose'); await key('Escape')
+  await pick(1, '手电在工具箱最底下'); must(await js(`document.querySelector('.selbar').innerText.trim()`) === '加入设定', 'with AI off the bar over picked words offers more than 加入设定'); await key('Escape')
+  await key('j', true); await key('l', true); await sleep(800); must(await js(`!S.ai && !S.cite`), 'Ctrl+J or Ctrl+L did something with AI off')
+  await key('/', true); await win('打开快捷键列表'); await noAI('the shortcuts'); await click('关闭')
+  await click(await js(`document.querySelector('.todo-btn').innerText`)); await win('伏笔'); await noAI('what waits'); await key('Escape')
+  await click('文件'); await click('快照'); await win('全书替换前都会保存一份'); await noAI('the snapshots'); await key('Escape')
+  await click('作品分类'); await noAI('the categories'); await click('正文')
+  await click('少见的情况'); must(!(await js(`[...document.querySelectorAll('.rare-pop .pop-row')].some((e) => ${JSON.stringify(AI_WORDS)}.some((w) => e.innerText.includes(w)))`)), 'with AI off the rare cases hold those of AI'); await key('Escape')
+  // On again, asked first: all is back as it was, and the reply let go waits to be tried again.
+  await click('文件'); await click('设置…'); await click('关闭 AI'); await win('是否开启 AI？'); await shot('99i-ask-ai-on'); await click('开启 AI'); await win('是否开启 AI？', false); await win('模型服务'); await click('关闭设置')
+  must(await navs() === '讨论 正文 检查 作品分类', 'with AI on again the sidebar offers: ' + await navs()); must(await paneTabs() === '设定 讨论 伏笔', 'with AI on again the pane offers: ' + await paneTabs())
+  await click('讨论', 1); await pane('该消息尚未收到回复'); await pane('重试回复')
+  // The shelf, and the shelf with nothing on it, say nothing of AI either.
+  await aiOff(); await click('关闭设置'); await click('切换作品'); await click('全部作品…'); await noAI('the shelf')
+  for (;;) {
+    if (await has('.shelf-card [aria-label="更多操作"]')) { await click('更多操作'); await click('从书架移除') } else if (await has('.shelf-gone')) await click('移除'); else break
+    await click('关闭提示')
+  }
+  await win('新建一部作品，或添加已有的作品文件夹。'); await noAI('the empty shelf'); await shot('99j-ai-off-shelf')
+  await click('重新开始'); await win('第87章：停电'); must(await navs() === '讨论 正文 检查 作品分类', 'starting over did not bring AI back: ' + await navs()); await done('AI turned off')
 
   must(!loose.size, 'buttons that are not at the right of their row, or not in order:\n  ' + [...loose].join('\n  '))
   must(!dead.size, 'things to click that do not show it:\n  ' + [...dead].join('\n  '))

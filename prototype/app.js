@@ -5,7 +5,7 @@ const WINDOW_BUTTONS = '<div class="window-buttons">' + ['<path d="M0 5h10"></pa
   .map((d) => `<div><svg class="icon-xs" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1">${d}</svg></div>`).join('') + '</div>'
 
 // 标题栏：自己占一行。左边是侧栏的开关和菜单，右边是窗口的三个按钮；下面各栏不用给它们让位。
-// 菜单是命令的总表：哪一页用不上的那几行是灰的。开着一个的时候，指针移到旁边的名字上就换过去。
+// 菜单是命令的总表：哪一页用不上的那几行是灰的；AI 关着时，AI 的那几行不显示。开着一个的时候，指针移到旁边的名字上就换过去。
 // 专注写作时没有这一行：窗口的三个按钮回到工具栏那一行的右端。
 function titlebar() {
   const writing = S.page === 'write', cur = writing && chapterOf(S.ch)
@@ -17,12 +17,12 @@ function titlebar() {
     ['文件', () => menuRow('新建章节', writing ? then(() => newChapter()) : null, '', 'Ctrl+N') + menuRow('新建文件夹', writing ? then(newFolder) : null) + HAIR +
       menuRow('保存', cur ? then(saveNow) : null, '', 'Ctrl+S') + menuRow('快照', cur ? ask({ kind: 'snaps', id: '', diff: false }) : null) +
       menuRow('导出…', inBook ? ask({ kind: 'export', range: cur ? '本章' : '全书', indent: true }) : null) + HAIR +
-      menuRow('设置…', inBook ? ask({ kind: 'settings', tab: '模型', edit: '' }) : null)],
+      menuRow('设置…', ask({ kind: 'settings', tab: 'AI', edit: '' }))],
     ['编辑', () => menuRow('撤销', steps.back.length ? then(() => unwrite(-1)) : null, '', 'Ctrl+Z') + menuRow('重做', steps.fwd.length ? then(() => unwrite(1)) : null, '', 'Ctrl+Y') + HAIR +
       menuRow('查找替换', cur ? () => set({ find: S.find || { q: '', to: '', all: false, at: 0 }, ...SHUT }) : null, '', 'Ctrl+F') +
-      menuRow('重命名', cur && !S.rename ? then(renameOpen) : null, '', 'F2') + HAIR +
+      menuRow('重命名', cur && !S.rename ? then(renameOpen) : null, '', 'F2') + (aiOn() ? HAIR +
       menuRow('续写一句', cur ? then(continueText) : null, '', 'Ctrl+J') +
-      menuRow('起草本章', outline ? ask({ kind: 'draft', goal: '', how: '接在已有内容之后' }) : null, '', cur && !outline ? '请先填写章纲' : '')],
+      menuRow('起草本章', outline ? ask({ kind: 'draft', goal: '', how: '接在已有内容之后' }) : null, '', cur && !outline ? '请先填写章纲' : '') : '')],
     ['视图', () => menuRow(S.sideOpen ? '收起侧栏' : '展开侧栏', inBook ? () => set({ sideOpen: !S.sideOpen, ...SHUT }) : null) +
       menuRow(S.paneOpen ? '收起右栏' : '展开右栏', hasPane ? () => set({ paneOpen: !S.paneOpen, ...SHUT }) : null) +
       menuRow('专注写作', writing ? () => set({ focus: true, ...SHUT }) : null, '', 'F11') + HAIR +
@@ -75,6 +75,7 @@ function view() {
 
 // 按 Esc：从最上面的一层收起。
 function backOut() {
+  if (S.dialog && S.dialog.ask) return set((s) => ({ dialog: { ...s.dialog, ask: '' } })) // 浮在设置上面的那一问
   if (S.dialog) return shut()
   if (S.open) return set(SHUT)
   if (S.ctx || S.bury || S.pay || S.tree) return closeFloat()
@@ -95,8 +96,8 @@ document.addEventListener('keydown', (ev) => {
   else if (!ctrl || !writing || !chapterOf(S.ch)) return
   else if (ev.key === 's') run(saveNow)
   else if (ev.key === 'f') run(() => set({ find: S.find || { q: '', to: '', all: false, at: 0 } }))
-  else if (ev.key === 'j') run(continueText)
-  else if (ev.key === 'l') run(cite)
+  else if (ev.key === 'j') run(() => { if (aiOn()) continueText() }) // AI 关着时按了不起作用
+  else if (ev.key === 'l') run(() => { if (aiOn()) cite() })
 })
 // 标签排不下时，滚轮在标签条上左右挪。
 document.addEventListener('wheel', (ev) => { const strip = ev.target.closest && ev.target.closest('.sheets'); if (strip) strip.scrollLeft += ev.deltaY }, { passive: true })
