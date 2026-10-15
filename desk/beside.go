@@ -147,7 +147,7 @@ func (a *App) talkList(c *ui.Context) {
 		n := 0
 		for i := len(a.sessions) - 1; i >= 0; i-- {
 			id := a.sessions[i]
-			when, words := a.sessionParts(id)
+			words := a.titles[id]
 			if a.blank[id] || a.shelved[id] && id != a.session || q != "" && !strings.Contains(words, q) {
 				continue
 			}
@@ -155,7 +155,7 @@ func (a *App) talkList(c *ui.Context) {
 				a.paneGroup(c, group)
 			}
 			n++
-			if a.paneRow(c.Key(id), "讨论-"+id, words, "", talkDay(when, time.Now()), "", false).Clicked() {
+			if a.paneRow(c.Key(id), "讨论-"+id, words, "", talkDay(id, time.Now()), "", false).Clicked() {
 				a.switchSession(id)
 				d.talks = false
 			}
@@ -164,19 +164,6 @@ func (a *App) talkList(c *ui.Context) {
 			a.paneEmpty(c, "未找到", "")
 		}
 	})
-}
-
-// talkDay is the day of a talk in the fewest words, from when as its title
-// has it: 今天, 昨天, or the month and day.
-func talkDay(when string, now time.Time) string {
-	day, _, _ := strings.Cut(when, " ")
-	switch day {
-	case now.Format("01-02"):
-		return "今天"
-	case now.AddDate(0, 0, -1).Format("01-02"):
-		return "昨天"
-	}
-	return day
 }
 
 // beside is what the author is writing, sent with a turn from the writing

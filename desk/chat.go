@@ -250,7 +250,7 @@ func (a *App) lastMessage() string {
 
 func (a *App) chatTop(c *ui.Context) {
 	t := a.pal.theme
-	_, words := a.sessionParts(a.session)
+	words := a.titles[a.session]
 	ui.Row(c).FillWidth().Height(titleHeight).Padding(0, 24).Gap(8).AlignItems(ui.Center).Shrink(0).Children(func() {
 		ui.Text(c, "总讨论").FontSize(fsControl).TextColor(t.TextMuted)
 		glyph(c, icChevron, iconSm, a.pal.faint)

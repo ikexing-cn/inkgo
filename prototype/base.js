@@ -21,6 +21,8 @@ const count = (x) => {
 }
 // 服务里的一个模型：上下文上限、最大输出先照内置表填，表里没有的用保守的数；压缩阈值是百分之几。
 const limits = (id) => { const [max, out] = BOOK.table[id] || BOOK.guess; return { id, max: size(max), out: size(out), at: '80' } }
+// 刚做的事的时间：和书里带来的「昨天 22:40」「10-08 21:14」一样写，是今天几点。
+const stamp = () => '今天 ' + BOOK.clock
 // token 数按 K、M、B 写，留一位小数（9.6K、1.7M）；不到一千的照写。
 const tokens = (n) => {
   const [unit, by] = [['B', 1e9], ['M', 1e6], ['K', 1e3]].find(([, by]) => n >= 1000 && Math.round((n / by) * 10) >= 10) || ['', 1]

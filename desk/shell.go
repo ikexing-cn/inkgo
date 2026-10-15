@@ -124,15 +124,6 @@ func (a *App) focused() bool { return a.Store != nil && a.page == 3 && a.write.f
 // sideShown says whether the sidebar is on screen.
 func (a *App) sideShown() bool { return a.Store != nil && !a.sideHidden && !a.focused() }
 
-// sessionParts splits a session title into its date and its words.
-func (a *App) sessionParts(id string) (when, words string) {
-	title := a.titles[id]
-	if n := strings.Index(title, " · "); n >= 0 {
-		return title[:n], title[n+len(" · "):]
-	}
-	return "", title
-}
-
 func (a *App) sidebar(c *ui.Context) {
 	t := a.pal.theme
 	w, _ := c.Size()
@@ -307,7 +298,7 @@ func (a *App) navItem(c *ui.Context, s *ui.SVG, label string, page int, slim boo
 
 func (a *App) sessionItem(c *ui.Context, id string) {
 	t := a.pal.theme
-	when, words := a.sessionParts(id)
+	words := a.titles[id]
 	on := id == a.session && a.page == 0
 	b := ui.ButtonBase(c.Key("s-"+id)).Row().FillWidth().Justify(ui.Start).AlignItems(ui.Center).Gap(8).Padding(6, 10).Radius(rControl).Label("对话-" + id).Disabled(a.held())
 	if on {
@@ -324,7 +315,7 @@ func (a *App) sessionItem(c *ui.Context, id string) {
 			fg = a.pal.faint
 		}
 		ui.Text(c, words).FontSize(fsControl).TextColor(fg).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
-		ui.Text(c, talkDay(when, time.Now())).FontSize(fsSmall).TextColor(a.pal.faint).SingleLine()
+		ui.Text(c, talkDay(id, time.Now())).FontSize(fsSmall).TextColor(a.pal.faint).SingleLine()
 	})
 	a.contextMenu(c, b, "对话-"+id, func(m *menu) {
 		if a.shelved[id] {

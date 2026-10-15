@@ -436,18 +436,23 @@ func (a *App) aiBar(c *ui.Context) {
 	}
 }
 
-// modelLabel names the model of r and its effort, the service by its name
-// as the settings show it, not its ID: DeepSeek/deepseek-flash · Default.
+// modelLabel names the model of r and its effort: DeepSeek/deepseek-flash ·
+// Default.
 func (a *App) modelLabel(r workspace.AIRecord) string {
-	name := r.Model
+	return a.serviceModel(r.Model) + " · " + a.ai.EffortLabel(r.Effort)
+}
+
+// serviceModel names a model, written service ID/model, with the service by
+// its name as the settings show it: DeepSeek/deepseek-flash.
+func (a *App) serviceModel(name string) string {
 	if id, m, ok := strings.Cut(name, "/"); ok {
 		for _, p := range a.ai.Providers() {
 			if p.ID == id && p.Name != "" {
-				name = p.Name + "/" + m
+				return p.Name + "/" + m
 			}
 		}
 	}
-	return name + " · " + a.ai.EffortLabel(r.Effort)
+	return name
 }
 
 func (a *App) draftView(c *ui.Context) {
@@ -471,7 +476,7 @@ func (a *App) draftView(c *ui.Context) {
 			}
 			a.recapNote(c)
 			if pw := w.pen.Load(); pw != nil {
-				ui.Textf(c, "用 %s · 推理 %s；可在设置中「AI」配置里更换。", (*pw).Name(), a.ai.EffortLabel((*pw).Effort())).FontSize(fsNote).TextColor(t.TextMuted)
+				ui.Textf(c, "用 %s · 推理 %s；可在设置中「AI」配置里更换。", a.serviceModel((*pw).Name()), a.ai.EffortLabel((*pw).Effort())).FontSize(fsNote).TextColor(t.TextMuted)
 			}
 			ui.Row(c).FillWidth().Gap(8).Children(func() {
 				ui.Spacer(c)

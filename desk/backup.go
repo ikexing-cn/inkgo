@@ -239,20 +239,6 @@ func (a *App) backupPending() (pendGroup, bool) {
 	return pendGroup{name: "备份", color: a.pal.amber, items: []pendItem{it}}, true
 }
 
-// when says when t was, from now: 今天 10:32, 昨天 23:15, 10-06 21:40.
-func when(t, now time.Time) string {
-	switch y, m, d := t.Date(); {
-	case now.Format(time.DateOnly) == t.Format(time.DateOnly):
-		return "今天 " + t.Format("15:04")
-	case now.AddDate(0, 0, -1).Format(time.DateOnly) == t.Format(time.DateOnly):
-		return "昨天 " + t.Format("15:04")
-	case y == now.Year():
-		return fmt.Sprintf("%d-%02d %s", m, d, t.Format("15:04"))
-	default:
-		return t.Format("2006-01-02 15:04")
-	}
-}
-
 // volumeGone says the disk dir is on cannot be found, as one unplugged.
 func volumeGone(dir string) bool {
 	vol := filepath.VolumeName(dir)

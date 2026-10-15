@@ -196,23 +196,6 @@ func TestBackupFails(t *testing.T) {
 	}
 }
 
-func TestWhenSaid(t *testing.T) {
-	now := time.Date(2026, 10, 9, 15, 0, 0, 0, time.Local)
-	for _, c := range []struct {
-		at   time.Time
-		want string
-	}{
-		{now.Add(-time.Hour), "今天 14:00"},
-		{now.Add(-20 * time.Hour), "昨天 19:00"},
-		{time.Date(2026, 10, 6, 21, 40, 0, 0, time.Local), "10-06 21:40"},
-		{time.Date(2025, 12, 31, 9, 5, 0, 0, time.Local), "2025-12-31 09:05"},
-	} {
-		if got := when(c.at, now); got != c.want {
-			t.Errorf("when(%v) = %q, want %q", c.at, got, c.want)
-		}
-	}
-}
-
 // TestShotBackup writes screenshots of the backups when SHOT is a
 // directory: SHOT=dir go test ./desk -run ShotBackup
 func TestShotBackup(t *testing.T) {

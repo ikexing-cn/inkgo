@@ -1830,7 +1830,7 @@ func (a *App) trashView(c *ui.Context) {
 						ui.Row(c.Key("t-"+it.ID)).FillWidth().AlignItems(ui.Center).Gap(10).Padding(10, 0).Children(func() {
 							ui.Column(c).Grow(1).Shrink(1).Children(func() {
 								ui.Text(c, it.Title).FontSize(fsBody).LineHeight(lhBody).SingleLine().Ellipsis("…")
-								ui.Text(c, it.At.Local().Format("01-02 15:04")+" 删除").FontSize(fsNote).LineHeight(lhBody).TextColor(t.TextMuted)
+								ui.Text(c, when(it.At, time.Now())+" 删除").FontSize(fsNote).LineHeight(lhBody).TextColor(t.TextMuted)
 							})
 							// Deleting for good is asked twice, in the row itself.
 							if w.purge == it.ID {
@@ -1986,11 +1986,11 @@ func (a *App) snapshots(c *ui.Context) {
 		shown := a.snapView()
 		same := shown.same // nothing to restore
 		ui.Column(c).Width(dialogWide).Height(dialogTall).Padding(dialogPad).Gap(16).Children(func() {
-			when := "打开章节时、连续写作每十分钟、恢复前、AI 起草或采纳改写前、全书替换前都会保存一份。最近七天的全部保留，更早的每天保留最后一份。"
+			kept := "打开章节时、连续写作每十分钟、恢复前、AI 起草或采纳改写前、全书替换前都会保存一份。最近七天的全部保留，更早的每天保留最后一份。"
 			if !a.aiOn() {
-				when = strings.Replace(when, "AI 起草或采纳改写前、", "", 1)
+				kept = strings.Replace(kept, "AI 起草或采纳改写前、", "", 1)
 			}
-			a.pal.dialogHead(c, "快照 · "+a.shownTitle(), when)
+			a.pal.dialogHead(c, "快照 · "+a.shownTitle(), kept)
 			ui.Row(c).FillWidth().Grow(1).Gap(16).AlignItems(ui.Stretch).Children(func() {
 				ui.Scroll(c.Key("snaps")).Width(200).FillHeight().Shrink(0).Children(func() {
 					ui.Column(c).FillWidth().Gap(2).Children(func() {
@@ -1999,15 +1999,15 @@ func (a *App) snapshots(c *ui.Context) {
 						}
 						for _, sn := range w.snaps {
 							on := sn.Name == w.snap
-							when := sn.At.Local().Format("01-02 15:04:05")
-							b := ui.ButtonBase(c.Key("s-"+sn.Name)).Column().FillWidth().AlignItems(ui.Start).Gap(2).Padding(8, 10).Radius(rControl).Label("快照-" + when)
+							at := when(sn.At, time.Now())
+							b := ui.ButtonBase(c.Key("s-"+sn.Name)).Column().FillWidth().AlignItems(ui.Start).Gap(2).Padding(8, 10).Radius(rControl).Label("快照-" + at)
 							if on {
 								b.Background(t.SurfacePressed)
 							} else if b.Hovered() {
 								b.Background(t.SurfaceHover)
 							}
 							b.Children(func() {
-								ui.Text(c, when).FontSize(fsControl)
+								ui.Text(c, at).FontSize(fsControl)
 								ui.Textf(c, "%s · %d 字", a.snapReason(sn.Reason), sn.Count).FontSize(fsNote).TextColor(t.TextMuted)
 							})
 							if b.Clicked() {
@@ -2090,7 +2090,7 @@ func (a *App) restoreSnapshot() {
 		return
 	}
 	w.snapsOpen = false
-	a.notice = "已恢复到 " + w.snaps[i].At.Local().Format("01-02 15:04") + " 的版本，恢复前的内容已存为快照"
+	a.notice = "已恢复到 " + when(w.snaps[i].At, time.Now()) + " 的版本，恢复前的内容已存为快照"
 }
 
 // openTake starts taking the selected words into the setting.

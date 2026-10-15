@@ -15,7 +15,7 @@ const backupWhy = () => BACKUP_FAILS[S.backup.why || 'disk']
 function backupNow() {
   if (S.backup.state === 'none') { set({ dialog: { kind: 'backup', place: BOOK.places[0][1] }, ...SHUT }); return }
   set((s) => ({ backup: { ...s.backup, state: 'busy' }, ...SHUT }))
-  later(1200, () => set((s) => ({ backup: { ...s.backup, state: 'ok', why: '', at: '刚刚', copies: s.backup.copies + 1 } })))
+  later(1200, () => set((s) => ({ backup: { ...s.backup, state: 'ok', why: '', at: stamp(), copies: s.backup.copies + 1 } })))
 }
 const backupSet = (change) => set((s) => ({ backup: { ...s.backup, ...change } }))
 const backupNext = (b) => (b.close ? '关闭作品时' : b.hourly ? '一小时后' : b.daily ? '明天' : '仅在点击「立即备份」时')
@@ -40,7 +40,7 @@ function backupDialog(d) {
   const leave = () => set({ dialog: d.back ? { kind: 'settings', tab: '备份', edit: '' } : null, ...SHUT })
   const start = () => {
     set((s) => ({ backup: { ...s.backup, ...times, state: 'busy', dir: d.place, copies: 0 }, dialog: d.back ? { kind: 'settings', tab: '备份', edit: '' } : null }))
-    later(1200, () => backupSet({ state: 'ok', at: '刚刚', copies: 1 }))
+    later(1200, () => backupSet({ state: 'ok', at: stamp(), copies: 1 }))
   }
   return dialog('small', dialogHead('作品目前仅保存在本机', '选择其他位置，定期保存副本。') +
     `<div class="places">${BOOK.places.map(([label, dir]) => `<div class="place hit${d.place === dir ? ' on' : ''}"${onClick(() => type({ place: dir }))}><div class="ring${d.place === dir ? ' on' : ''}"></div><div class="fit"><div>${t(label)}</div><div class="note ell">在本机检测到 · ${t(dir)}</div></div></div>`).join('')}` +
@@ -329,7 +329,7 @@ function newBookDialog(d) {
     if (!at) { say('请选择作品位置', '', 'fail'); return }
     if (S.shelf.some((b) => S.library + '\\' + b.name === at)) { say(at + ' 中已有文件，请更换名称或位置', '', 'fail'); return }
     const id = 'book' + S.n
-    set((s) => ({ shelf: [{ id, name, kind: d.type, words: '暂无正文', at: '刚刚' }, ...s.shelf], n: s.n + 1, dialog: null }))
+    set((s) => ({ shelf: [{ id, name, kind: d.type, words: '暂无正文', at: stamp() }, ...s.shelf], n: s.n + 1, dialog: null }))
     openBook(id)
   }
   return dialog('small', dialogHead('新建作品') + field('作品名称', line(d.name, type('name'), '之后可修改', '作品名称', keys(create) + ' autofocus')) + field('体裁', choose('book-kind', d.type, BOOK.kinds, type('type'), '体裁')) +

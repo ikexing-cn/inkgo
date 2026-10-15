@@ -4,7 +4,7 @@
 // ───────── 动作 ─────────
 
 // 作者对设定做的事，记在修改记录最上面。
-const did = (s, said) => [{ id: 'l' + s.n, who: '手动修改', model: '', at: '刚刚', lines: [said] }, ...s.log]
+const did = (s, said) => [{ id: 'l' + s.n, who: '手动修改', model: '', at: stamp(), lines: [said] }, ...s.log]
 
 function move(id, place) {
   set((s) => {
@@ -86,7 +86,7 @@ function answer(id) {
       const msg = { me: false, text: r.text, think: BOOK.think, look: kept ? [...r.look, ['记', said, kept.id]] : r.look, use: r.use, capped: r.capped }
       return {
         waiting: null, talks: s.talks.map((talk) => (talk.id === id ? { ...talk, msgs: [...talk.msgs, msg] } : talk)),
-        ...(kept ? { n: s.n + 1, entries: [...s.entries, kept], log: [{ id: 'l' + s.n, who: '讨论', talk: id, at: '刚刚', lines: ['新增到' + said] }, ...s.log] } : {}),
+        ...(kept ? { n: s.n + 1, entries: [...s.entries, kept], log: [{ id: 'l' + s.n, who: '讨论', talk: id, at: stamp(), lines: ['新增到' + said] }, ...s.log] } : {}),
       }
     }))]
 }

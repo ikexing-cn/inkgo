@@ -187,7 +187,7 @@ func (a *App) summaryState() (label, line, warn string) {
 	case w.sum.By == "":
 		label, line = "本章摘要", "手动填写"
 	default:
-		label, line = "本章摘要", "AI 生成 · "+shortModel(w.sum.By)+" · "+w.sum.At.Local().Format("01-02 15:04")
+		label, line = "本章摘要", "AI 生成 · "+shortModel(w.sum.By)+" · "+when(w.sum.At, time.Now())
 		if w.sum.Read > 0 {
 			// The rest of the chapter is not in it, and later chapters are
 			// drafted from it.

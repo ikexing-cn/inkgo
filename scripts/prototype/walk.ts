@@ -137,7 +137,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('更多'); await pane('修改记录'); await shot('07-menu'); await click('已删除'); await pane('老陈')
   await click('老陈'); await pane('恢复设定'); await click('查看原文'); await win('第2章：井沿'); must((await drawn('老陈把门卫室的灯拧亮。')) === 'sel', 'the deleted entry\'s sentence is not picked out')
   await click('恢复设定'); await pane('老陈', false); await pane('已删除'); await done('restore an entry')
-  await click('全部设定'); await pane('老陈'); await click('更多'); await click('修改记录'); await pane('记在「小祥和林晚是怎么认识的」'); await pane('刚刚'); await shot('08-log')
+  await click('全部设定'); await pane('老陈'); await click('更多'); await click('修改记录'); await pane('记在「小祥和林晚是怎么认识的」'); await pane('今天 10:40'); await shot('08-log')
   await click('查看讨论'); await win('2 条发言'); await win('设定里只写了他是她带出来的徒弟'); await click('正文'); await click('讨论', 1); await click('全部讨论'); await click('设定'); await done('the change log')
   await click('全部设定'); await type('搜索设定', '左手'); await pane('找到 2 条'); await shot('09-find')
   await clear('搜索设定'); await pane('找到', false)
@@ -238,7 +238,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('彻底删除'); await click('确认彻底删除'); await win('回收站为空'); await click('关闭'); must(await js(`document.querySelector('.tree').innerText.includes('天晴')`), 'the chapter did not come back'); await done('the bin')
   await click('切换作品'); await win('旧城灯匠'); await win('全部作品…'); await shot('33-book-menu'); await key('Escape'); await click('帮助'); await click('快捷键…'); await win('打开快捷键列表'); await win('专注写作：仅显示正文'); await shot('34-keys'); await click('关闭'); await win('打开快捷键列表', false)
   await key('/', true); await win('打开快捷键列表'); await key('Escape'); await win('打开快捷键列表', false); await done('the book menu, and the keys from the menu of help')
-  await click('已备份 · 今天 10:32'); await win('今天 10:32 已备份'); await win('下次：关闭作品时'); await shot('35-backup-pop'); await click('立即备份'); await win('正在备份…'); await sleep(1400); await win('已备份 · 刚刚'); await done('back up now')
+  await click('已备份 · 今天 10:32'); await win('今天 10:32 已备份'); await win('下次：关闭作品时'); await shot('35-backup-pop'); await click('立即备份'); await win('正在备份…'); await sleep(1400); await win('已备份 · 今天 10:40'); await done('back up now')
 
   // The toolbar: the count and the goal, find and replace, the more menu, focus, what is pending.
   await click('重新开始'); await click('字数。点击设置每日目标'); await win('最近 7 天'); await win('+2,846 字'); await type('每日目标字数', '3000'); await win('今天 2,846 / 3000'); await shot('36-goal'); await key('Escape'); await win('最近 7 天', false); await done('a goal for the day')
@@ -259,7 +259,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
 
   // Under the title: the outline and the summary.
   await click('重新开始'); await click('章纲 ▾'); must((await value('章纲')).startsWith('全城停电'), 'the outline is not shown'); await shot('46-outline'); await click('本章摘要 · 暂无 ▾'); await win('正文满 200 字后，离开本章时自动生成；也可手动填写。')
-  await click('生成摘要'); await win('AI 正在阅读本章并生成摘要…'); await sleep(1400); must((await value('摘要')).includes('小祥第一次叫她“姐”'), 'no summary came'); await win('AI 生成 · Opus 5.5 · 刚刚'); await win('重新生成'); await shot('47-summary')
+  await click('生成摘要'); await win('AI 正在阅读本章并生成摘要…'); await sleep(1400); must((await value('摘要')).includes('小祥第一次叫她“姐”'), 'no summary came'); await win('AI 生成 · Opus 5.5 · 今天 10:40'); await win('重新生成'); await shot('47-summary')
   await type('摘要', '（我加的）'); await win('手动填写'); await click('本章摘要 ▴'); must(!(await has('.chapter-box')), 'the summary did not fold')
   await click('第84章：刻字'); await win('章纲 · 空 ▾'); await click('本章摘要 · 可能过时 ▾'); await win('正文已修改'); await click('编辑'); must(await js(`[...document.querySelectorAll('.menu-pop .row')].find((e) => e.innerText.includes('起草本章')).classList.contains('off')`), 'drafting is not greyed without an outline'); await win('请先填写章纲'); await key('Escape'); await done('the outline and the summary')
 
@@ -326,7 +326,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('关闭提示'); await click('收起'); await done('more notices than fit')
   await click('外观'); await win('仅在本机生效，适用于所有作品。'); await click('深色'); must(await js(`document.querySelector('#win').className === 'dark'`), 'the window is not dark'); await shot('64-look'); await click('浅色')
   await click('提醒与检查'); await win('当前有 2 个伏笔久未回收。'); await click('增加 5 章'); await click('增加 5 章'); await click('增加 5 章'); await win('45 章'); await win('当前有 1 个伏笔久未回收。'); await click('边写边检查'); await shot('65-reminders')
-  await click('备份'); await win('为整部作品另存一份副本，以防设备故障。'); await win('31.2 万字 · 8 章 · 已存 12 份，最早 9 月 28 日'); await shot('66-backup'); await click('立即备份'); await win('正在备份…'); await sleep(1400); await win('刚刚 已备份'); await win('已存 13 份')
+  await click('备份'); await win('为整部作品另存一份副本，以防设备故障。'); await win('31.2 万字 · 8 章 · 已存 12 份，最早 9 月 28 日'); await shot('66-backup'); await click('立即备份'); await win('正在备份…'); await sleep(1400); await win('今天 10:40 已备份'); await win('已存 13 份')
   await click('写作时每小时一次'); await click('最近 30 份'); await click('最近 90 份'); await win('最近 30 份', false); await click('关闭设置'); await win('为整部作品另存一份副本', false); await click('正文'); await win('边写边检查 ▴'); await done('the look, reminders and backups')
   await click('设置'); await clear('讨论模型'); await click('关闭设置'); await click('讨论', 1); await click('全部讨论'); await click('新讨论'); await type('输入想讨论的内容', '在吗'); await key('Enter'); await win('请先配置讨论模型'); await sleep(3300); await win('请先配置讨论模型'); await shot('67-no-model'); await click('打开设置'); await win('是否使用 AI，以及使用哪些模型。'); await win('请先配置讨论模型', false); await key('Escape'); await done('no model to talk with')
 
@@ -350,10 +350,10 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('移除'); await win('已从书架移除文件夹未改动：早年的稿子'); await win('3 部'); await click('关闭提示'); await done('the shelf')
   await click('新建作品'); await win('将新建该文件夹；该文件夹须不存在或为空。'); must((await value('作品位置')) === 'D:\\写作\\未命名作品', 'where the work goes is not offered'); await type('作品名称', '新书'); must((await value('作品位置')) === 'D:\\写作\\新书', 'where the work goes does not follow its name'); await click('网文'); await click('剧本'); await shot('76-new-book'); await click('创建')
   await win('暂无章节'); await win('新书'); await win('尚未备份'); await pane('暂无设定'); await shot('77-empty-book'); await click('新建第一章'); await key('Enter'); await win('在此开始写作…'); await win('本章 0 字 · 全书 0 字'); await win('设定为空，无可对照内容'); await click('检查'); await click('检查全书'); await win('请先在讨论中确定设定，才能对照检查。'); await click('关闭提示'); await click('正文'); await done('a new work')
-  await click('尚未备份'); await win('作品目前仅保存在本机。'); await click('选择位置…'); await win('选择其他位置，定期保存副本。'); await win('OneDrive 同步文件夹'); await shot('78-first-backup'); await click('开始备份'); await win('正在备份…'); await sleep(1400); await win('已备份 · 刚刚'); await done('a first backup')
+  await click('尚未备份'); await win('作品目前仅保存在本机。'); await click('选择位置…'); await win('选择其他位置，定期保存副本。'); await win('OneDrive 同步文件夹'); await shot('78-first-backup'); await click('开始备份'); await win('正在备份…'); await sleep(1400); await win('已备份 · 今天 10:40'); await done('a first backup')
   await click('切换作品'); await click('井边'); await win('备份失败 · 找不到 E 盘'); await win('从左侧选择一章开始写作', false); await win('暂无章节'); await shot('79-backup-failed'); await click('待处理 1'); await win('备份失败，找不到 E 盘'); await win('点击重试 · 上次备份 昨天 21:40'); await key('Escape')
   await click('备份失败 · 找不到 E 盘'); await win('找不到 E 盘，本次备份未完成'); await win('作品未受影响，请接入硬盘后重试。'); await shot('80-backup-trouble'); await click('今日不再提醒'); must(!(await has('.warn-btn')), 'the warning is still on the toolbar')
-  await click('备份失败'); await click('重试'); await sleep(1400); await win('已备份 · 刚刚'); must(!(await has('.todo-btn')), 'the failed backup is still pending'); await done('a backup that failed')
+  await click('备份失败'); await click('重试'); await sleep(1400); await win('已备份 · 今天 10:40'); must(!(await has('.todo-btn')), 'the failed backup is still pending'); await done('a backup that failed')
   await click('切换作品'); await click('旧城灯匠'); await click('设置'); await click('备份'); await win('尚未备份'); await click('选择位置…'); await click('稍后再说'); await win('尚未备份'); await click('关闭设置')
   await click('切换作品'); await click('全部作品…'); for (let i = 0; i < 4; i++) { await click('更多操作'); await click('从书架移除'); await click('关闭提示') }
   await win('从一个想法开始'); await win('API key 保存在系统钥匙串中，不会写入作品文件夹。'); await shot('81-empty-shelf'); await click('新建作品'); await click('取消'); await click('重新开始'); await win('第87章：停电'); await win('已备份 · 今天 10:32'); await done('an empty shelf, and start over')
@@ -376,9 +376,9 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('使用磁盘版本'); await win('已采用磁盘版本编辑器原内容已存为快照'); await win('（这一句是在别的程序里加上的。）'); await win('本章文件已被其他程序修改', false); await click('关闭提示')
   await click('文件'); await click('快照'); await win('外部改动'); await win('该快照与当前正文相同', false); await click('关闭')
   await click('少见的情况'); await click('本章在软件外被修改'); await click('保留当前版本'); await win('已保留编辑器版本磁盘内容已存为快照'); await click('关闭提示'); await done('a chapter changed outside')
-  await click('少见的情况'); await click('本章摘要生成失败'); await win('上次生成失败：无法连接模型服务'); await shot('85-summary-failed'); await click('生成摘要'); await win('本章摘要 · 正在生成 ▴'); await win('AI 正在阅读本章并生成摘要…'); await sleep(1500); await win('AI 生成 · Opus 5.5 · 刚刚'); await win('上次生成失败', false)
+  await click('少见的情况'); await click('本章摘要生成失败'); await win('上次生成失败：无法连接模型服务'); await shot('85-summary-failed'); await click('生成摘要'); await win('本章摘要 · 正在生成 ▴'); await win('AI 正在阅读本章并生成摘要…'); await sleep(1500); await win('AI 生成 · Opus 5.5 · 今天 10:40'); await win('上次生成失败', false)
   // A chapter too long for the model: the check and the summary say how much of it was read.
-  await click('少见的情况'); await click('本章过长，仅读取前文'); await win('仅检查前 5000 字'); await win('检查失败', false); await win('检查完成', false); await win('本章摘要 · 不完整 ▴'); await win('AI 生成 · Opus 5.5 · 刚刚 · 仅依据前 9000 字')
+  await click('少见的情况'); await click('本章过长，仅读取前文'); await win('仅检查前 5000 字'); await win('检查失败', false); await win('检查完成', false); await win('本章摘要 · 不完整 ▴'); await win('AI 生成 · Opus 5.5 · 今天 10:40 · 仅依据前 9000 字')
   must(await has('.chapter-more .amber[title="后文超出模型的上下文上限，可在设置中「AI」配置里调整"]'), 'the summary read in part does not say why'); await shot('86-read-in-part'); await done('a chapter read in part')
   await click('少见的情况'); await click('本章检查失败'); await win('检查失败：无法连接模型服务'); await shot('86-check-failed'); await done('a summary and a check that failed')
   await click('少见的情况'); await click('未选择写作模型'); await win('检查失败：请在设置中「AI」配置里选择写作模型'); await done('no model to write with')
@@ -425,7 +425,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
 
   // Backups that fail in the other two ways.
   await click('少见的情况'); await click('备份文件夹丢失'); await click('备份失败 · 找不到备份文件夹'); await win('找不到备份文件夹，本次备份未完成'); await win('作品未受影响，文件夹可能已被移动或改名。上次备份于今天 10:32。'); await key('Escape')
-  await click('少见的情况'); await click('备份文件夹不可写'); await click('备份失败 · 没有权限写入'); await win('备份文件夹无法写入，本次备份未完成'); await win('作品未受影响，该文件夹没有写入权限。'); await shot('95-backup-denied'); await click('重试'); await sleep(1400); await win('已备份 · 刚刚'); await done('backups that fail otherwise')
+  await click('少见的情况'); await click('备份文件夹不可写'); await click('备份失败 · 没有权限写入'); await win('备份文件夹无法写入，本次备份未完成'); await win('作品未受影响，该文件夹没有写入权限。'); await shot('95-backup-denied'); await click('重试'); await sleep(1400); await win('已备份 · 今天 10:40'); await done('backups that fail otherwise')
 
   // The shelf: a work added from disk, a place taken, a name left empty.
   await click('切换作品'); await click('全部作品…'); await click('添加已有作品…'); await win('已加入书架'); await win('井边的旧稿'); await win('尚未打开'); await win('5 部'); await click('关闭提示'); await click('添加已有作品…'); await win('该作品已在书架上'); await click('关闭提示')

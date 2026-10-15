@@ -40,7 +40,7 @@ const retype = (s, key, change) => {
   }
 }
 // 改之前先存一份快照。
-const snap = (s, key, kind, ai) => ({ snaps: { ...s.snaps, [key]: [{ id: 's' + s.n, at: '刚刚', kind, ai, paras: chapterOf(key).paras }, ...(s.snaps[key] || [])] }, n: s.n + 1 })
+const snap = (s, key, kind, ai) => ({ snaps: { ...s.snaps, [key]: [{ id: 's' + s.n, at: stamp(), kind, ai, paras: chapterOf(key).paras }, ...(s.snaps[key] || [])] }, n: s.n + 1 })
 
 function newChapter(into) {
   set((s) => {
@@ -119,7 +119,7 @@ function toBin(key) {
     const to = left.includes(on) ? on : left[Math.min(s.tabs.indexOf(on), left.length - 1)] || near
     return {
       chapters, volumes: s.volumes.filter((v) => v !== vol), n: s.n + 1, tree: null,
-      bin: [{ id: 'b' + s.n, title, at: '刚刚', volume: vol || null, chapters: gone }, ...s.bin],
+      bin: [{ id: 'b' + s.n, title, at: stamp(), volume: vol || null, chapters: gone }, ...s.bin],
       tabs: !to || left.includes(to) ? left : [...left, to],
       ...(to === on ? {} : chapters.some((c) => c.key === to) ? { ch: to, vol: '' } : { ch: '', vol: to, ...CLEAR }),
     }
@@ -423,7 +423,7 @@ function takeDraft() {
 // 让 AI 给一章写摘要。
 function recap(key) {
   set((s) => ({ summaries: { ...s.summaries, [key]: { ...(s.summaries[key] || { text: '' }), busy: true } } }))
-  aiLater(1200, () => set((s) => ({ part: { ...s.part, [key]: { ...s.part[key], sum: 0 } }, summaries: { ...s.summaries, [key]: { text: key === String(BOOK.now) ? BOOK.recap : '本章摘要：' + clip(chapterOf(key).paras.join(''), 40), by: 'AI 生成 · Opus 5.5 · 刚刚' } } })))
+  aiLater(1200, () => set((s) => ({ part: { ...s.part, [key]: { ...s.part[key], sum: 0 } }, summaries: { ...s.summaries, [key]: { text: key === String(BOOK.now) ? BOOK.recap : '本章摘要：' + clip(chapterOf(key).paras.join(''), 40), by: 'AI 生成 · Opus 5.5 · ' + stamp() } } })))
 }
 
 // Ctrl+S：马上存。AI 写的还没采纳，不在正文里，不用等它。
@@ -480,7 +480,7 @@ function aiRare(here) {
     ['未选择写作模型', here((s) => ({ failed: { ...s.failed, [s.ch]: '请在设置中「AI」配置里选择写作模型' } }))],
     ['本章摘要生成失败', here((s) => ({ box: '摘要', summaries: { ...s.summaries, [s.ch]: { ...(s.summaries[s.ch] || { text: '' }), busy: false, fail: why } } }))],
     ['本章过长，仅读取前文', here((s) => ({ box: '摘要', part: { ...s.part, [s.ch]: { check: 5000, sum: 9000 } }, never: { ...s.never, [s.ch]: false }, failed: { ...s.failed, [s.ch]: '' }, dirty: { ...s.dirty, [s.ch]: false },
-      summaries: { ...s.summaries, [s.ch]: { text: (s.summaries[s.ch] || {}).text || BOOK.recap, by: 'AI 生成 · Opus 5.5 · 刚刚' } } }))],
+      summaries: { ...s.summaries, [s.ch]: { text: (s.summaries[s.ch] || {}).text || BOOK.recap, by: 'AI 生成 · Opus 5.5 · ' + stamp() } } }))],
     ['AI 改写出错', () => { set(SHUT); say('改写失败', '模型未返回改写结果', 'fail') }],
     ['回复超出最大输出', () => { set(SHUT); say('回复超出模型的最大输出 128K（含思考）', '请在设置中「AI」配置里调大', 'fail', [['打开设置', () => set({ dialog: { kind: 'settings', tab: 'AI', edit: '' }, toasts: [], ...SHUT })]]) }],
     ['讨论查阅达到上限', here((s) => ({ paneOpen: true, tab: '讨论', tv: 'one', tid: 't1', talks: s.talks.map((talk) => (talk.id !== 't1' ? talk : { ...talk, msgs: [...talk.msgs, ...capped()] })) }))],

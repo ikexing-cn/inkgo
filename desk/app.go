@@ -276,7 +276,7 @@ func (a *App) refresh() error {
 	if a.sessions, err = a.Store.Sessions(); err != nil {
 		return err
 	}
-	a.titles[a.session], a.blank[a.session] = sessionTitle(a.session, a.events), len(a.events) == 0
+	a.titles[a.session], a.blank[a.session] = sessionTitle(a.events), len(a.events) == 0
 	if a.talkSession != a.session {
 		delete(a.titles, a.talkSession) // the last turn may have gone on there since: read it again
 	}
@@ -286,24 +286,29 @@ func (a *App) refresh() error {
 			if err != nil {
 				return err
 			}
-			a.titles[s], a.blank[s] = sessionTitle(s, events), len(events) == 0
+			a.titles[s], a.blank[s] = sessionTitle(events), len(events) == 0
 		}
 	}
 	return nil
 }
 
-// sessionTitle names a conversation by its first words, after its date.
-func sessionTitle(id string, events []workspace.Event) string {
-	when := id
-	if t, err := time.ParseInLocation("20060102-1504", id[:min(len(id), 13)], time.Local); err == nil {
-		when = t.Format("01-02 15:04")
-	}
+// sessionTitle names a conversation by its first words.
+func sessionTitle(events []workspace.Event) string {
 	for _, e := range events {
 		if e.Role == workspace.RoleUser {
-			return when + " · " + clip(e.Text, 14)
+			return clip(e.Text, 14)
 		}
 	}
-	return when + " · 新对话"
+	return "新对话"
+}
+
+// talkDay is the day a conversation began, from its ID: 今天, 昨天, 10-06.
+func talkDay(id string, now time.Time) string {
+	t, err := time.ParseInLocation("20060102-1504", id[:min(len(id), 13)], time.Local)
+	if err != nil {
+		return ""
+	}
+	return dayOf(t, now)
 }
 
 func clip(s string, n int) string {

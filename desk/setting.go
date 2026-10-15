@@ -642,14 +642,13 @@ func (a *App) history(c *ui.Context) {
 						}
 						ui.Text(c, who).FontSize(fsNote).FontWeight(600)
 						ui.Spacer(c)
-						ui.Text(c, r.At.Local().Format("01-02 15:04")).FontSize(fsSmall).TextColor(a.pal.faint)
+						ui.Text(c, when(r.At, time.Now())).FontSize(fsSmall).TextColor(a.pal.faint)
 					})
 					for _, op := range r.Ops {
 						ui.Text(c, a.describeOp(op)).FontSize(fsNote).LineHeight(lhBody).Selectable().FillWidth()
 					}
 					if r.By != workspace.ByAuthor {
-						if _, ok := a.titles[r.Session]; ok {
-							_, words := a.sessionParts(r.Session)
+						if words, ok := a.titles[r.Session]; ok {
 							if a.paneLink(c, "记在「"+words+"」", "查看讨论", "讨论-"+r.ID) {
 								a.page = 0
 								a.switchSession(r.Session)

@@ -262,26 +262,6 @@ func RevealFolder(path string) error {
 	}
 }
 
-// opened says when a work was last opened, briefly.
-func opened(t time.Time) string {
-	if t.IsZero() {
-		return "尚未打开"
-	}
-	now := time.Now()
-	t = t.Local()
-	y1, m1, d1 := now.Date()
-	y2, m2, d2 := t.Date()
-	switch {
-	case y1 == y2 && m1 == m2 && d1 == d2:
-		return "今天 " + t.Format("15:04")
-	case now.Sub(t) < 48*time.Hour && now.AddDate(0, 0, -1).Day() == d2:
-		return "昨天 " + t.Format("15:04")
-	case y1 == y2:
-		return t.Format("01-02")
-	}
-	return t.Format("2006-01-02")
-}
-
 // length says how long a work is.
 func length(n int) string {
 	if n == 0 {
@@ -429,7 +409,7 @@ func (a *App) bookRow(c *ui.Context, b shelf.Book) {
 			if gone {
 				ui.Text(c, "找不到文件夹").FontSize(fsNote).TextColor(t.Danger)
 			} else {
-				ui.Text(c, opened(b.Opened)).FontSize(fsNote).TextColor(a.pal.faint).SingleLine()
+				ui.Text(c, opened(b.Opened, time.Now())).FontSize(fsNote).TextColor(a.pal.faint).SingleLine()
 			}
 		})
 		if open.Clicked() && !gone {
@@ -484,7 +464,7 @@ func (a *App) bookCard(c *ui.Context, b shelf.Book) {
 				}
 			})
 		} else {
-			ui.Text(c, opened(b.Opened)).FontSize(fsNote).TextColor(a.pal.faint)
+			ui.Text(c, opened(b.Opened, time.Now())).FontSize(fsNote).TextColor(a.pal.faint)
 		}
 	})
 	if card.Clicked() && !gone {
