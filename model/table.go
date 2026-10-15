@@ -84,6 +84,23 @@ func Lookup(id string) (Model, bool) {
 	return m, ok
 }
 
+// Cost is what a request to the model id that took and gave u costs by
+// the table's prices, and in what currency; ok is false when the table has
+// no price for id.
+func Cost(id string, u Usage) (cost float64, currency string, ok bool) {
+	b, ok := table[id]
+	if !ok {
+		return 0, "", false
+	}
+	p := b.price
+	if b.above > 0 && u.Input > b.above {
+		p = b.long
+	}
+	fresh := max(u.Input-u.CacheRead-u.CacheWrite, 0)
+	cost = float64(fresh)*p.Input + float64(u.CacheRead)*p.CacheRead + float64(u.CacheWrite)*p.CacheWrite + float64(u.Output)*p.Output
+	return cost / 1e6, p.Currency, true
+}
+
 // IDs are the model IDs of models.
 func IDs(models []Model) []string {
 	out := make([]string, len(models))

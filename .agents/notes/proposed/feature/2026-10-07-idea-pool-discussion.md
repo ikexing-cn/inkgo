@@ -138,7 +138,7 @@ Status: proposed
    - 上下文组装：不做检索，按分层规则全部发送，超出 token 预算时按"当前话题优先、越新越优先"截断，截掉的条目在"AI 看到了什么"里列出。
    - 相近检测：由记账模型对照放弃清单的一句话摘要来判断。
    - 预留 embedding 接口和缓存目录格式，但不接入。
-2. **M2**：embedding。2026-10-15 改为给讨论模型搜、读全书的工具，不做 embedding，见 [AI 基建](../architecture/2026-10-15-ai-infrastructure.md)；下面几条是原来的计划。
+2. **M2**：embedding。2026-10-15 改为给讨论模型搜、读全书的工具，不做 embedding，见 [AI 基建](../../implemented/architecture/2026-10-15-ai-infrastructure.md)；下面几条是原来的计划。
    - 新增第三种用途`向量`，单独配置提供商。DeepSeek 和 Anthropic 官方 API 据了解不提供 embedding，实现前要核实；Kimi 尚未确认。
    - 保留思路和已定设定按相关度召回前 K 条，再截断到 token 预算。
    - 相近检测分两步：先用向量找出最像的几条已放弃思路，再交给记账模型判断。
@@ -164,7 +164,7 @@ M1 已随代码落地，具体契约、取舍与验证见[实现笔记](../../im
 
 ### 开放问题
 
-- M2：默认 embedding 模型（本地 Ollama + bge-m3，还是 OpenAI），召回数 K，相近阈值。M2 已改为工具式检索，这一条不再需要定，见 [AI 基建](../architecture/2026-10-15-ai-infrastructure.md)。
+- M2：默认 embedding 模型（本地 Ollama + bge-m3，还是 OpenAI），召回数 K，相近阈值。M2 已改为工具式检索，这一条不再需要定，见 [AI 基建](../../implemented/architecture/2026-10-15-ai-infrastructure.md)。
 - 章节版本快照的格式，到接入编辑器时再定；在那之前先用 git。已在[正文页](../../implemented/feature/2026-10-08-writing-page-and-chapters.md)中落地，该篇是路线第 5 步的第一期；第二期见[AI 辅助写作](../../implemented/feature/2026-10-08-ai-assisted-writing.md)，也已落地。
 
 ## Alternatives considered

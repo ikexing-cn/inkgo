@@ -31,6 +31,9 @@ func (e *Editor) paintIn(p *ui.Painter, r ui.Rect) {
 	if e.reveal {
 		e.reveal = false
 		_, cy := e.caretPos()
+		if e.proposing() && e.prop.kind == MarkAIDraft && len(l.lines) > 0 {
+			cy = l.lines[l.lineOf(l.extraEnd)].y // the end of a draft as it comes
+		}
 		switch {
 		case e.typewriter && e.Doc.version != e.centered:
 			// only the text changing moves it, not a click or an arrow

@@ -32,24 +32,34 @@ func TestPredictionOnDemand(t *testing.T) {
 	}
 }
 
-// A draft streams in as the editor stays read-only, and undoes as one
-// step with what it replaced.
-func TestDraftUndoesAsOne(t *testing.T) {
+// A draft is shown as it comes, beside the text it would replace, which
+// stays as it was; accepted, it goes in marked as drafted, and undoes as
+// one step with what it replaced.
+func TestADraftWaitsToBeTaken(t *testing.T) {
 	e := New(NewDoc("旧的开头。"), Options{Prose: true})
 	tt := newTester(e)
-	e.BeginDraft(0, e.Doc.Len())
+	e.ProposeDraft(0, e.Doc.Len())
 	for _, s := range []string{"雨下", "了一夜。\n", "她醒了。"} {
-		e.DraftAppend(s)
+		e.ProposeMore(s)
 		tt.Frame()
 	}
-	tt.Type("不该进去")
-	if !e.ReadOnly() || e.Doc.String() != "雨下了一夜。\n她醒了。" {
+	if e.Doc.String() != "旧的开头。" {
 		t.Fatalf("while drafting %q", e.Doc.String())
 	}
-	e.EndDraft("deepseek/deepseek-flash")
+	if a, b, text, ok := e.Proposal(); !ok || a != 0 || b != 5 || text != "雨下了一夜。\n她醒了。" {
+		t.Fatalf("proposed %d %d %q %v", a, b, text, ok)
+	}
+	e.Propose(0, 1, "新")
+	e.ProposeMore("不是起草")
+	if _, _, text, _ := e.Proposal(); text != "新" {
+		t.Fatalf("a rewrite grew %q", text)
+	}
+	e.ProposeDraft(0, e.Doc.Len())
+	e.ProposeMore("雨下了一夜。\n她醒了。")
+	e.AcceptProposal("deepseek/deepseek-flash")
 	ms := e.Doc.Marks()
-	if e.ReadOnly() || len(ms) != 1 || ms[0].Kind != MarkAIDraft || ms[0].Start != 0 || ms[0].End != e.Doc.Len() || ms[0].Note != "deepseek/deepseek-flash" {
-		t.Fatalf("after %+v", ms)
+	if e.Doc.String() != "雨下了一夜。\n她醒了。" || len(ms) != 1 || ms[0].Kind != MarkAIDraft || ms[0].Start != 0 || ms[0].End != e.Doc.Len() || ms[0].Note != "deepseek/deepseek-flash" {
+		t.Fatalf("after %q %+v", e.Doc.String(), ms)
 	}
 	e.Undo()
 	if e.Doc.String() != "旧的开头。" || len(e.Doc.Marks()) != 0 {

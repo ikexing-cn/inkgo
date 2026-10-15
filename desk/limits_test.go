@@ -14,6 +14,8 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 	a, tt, _ := fixture(t)
 	a.openPrefs("AI")
 	tt.Frame()
+	tt.Scroll(633, 400, 0, 400) // the services, under what the work uses and spent
+	tt.Frame()
 	if err := tt.Click("提供商-deepseek"); err != nil {
 		t.Fatal(err)
 	}

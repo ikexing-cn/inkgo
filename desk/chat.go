@@ -358,6 +358,9 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 				if who := a.replyLabel(m.Model, m.Effort); who != "" {
 					when += " · " + who
 				}
+				if u := m.Usage; u != nil {
+					when += " · " + tokens.Round(u.Input+u.Output) + " token"
+				}
 				ui.Text(c, when).FontSize(fsSmall).TextColor(a.pal.faint).Padding(0, 6, 0, 0)
 			}
 			if iconButton(c, icQuote, "摘取-"+m.ID, ui.Color{}).Tooltip("摘取原文").KeepFocus().Disabled(a.busy != "").Clicked() {

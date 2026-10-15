@@ -1,29 +1,14 @@
 package editor
 
-import (
-	"slices"
-	"time"
-)
-
-// proposal is a rewrite of [a, b) shown beside the words it would replace,
-// struck through, until it is accepted or dropped. It lasts while the
-// text stays as it was.
+// proposal is what an AI wrote in place of [a, b), a rewrite or a draft,
+// shown after the words it would replace, which are struck through, until
+// it is accepted or dropped. It lasts while the text stays as it was.
 type proposal struct {
 	a, b int
 	text string
+	kind MarkKind // the mark its words take when accepted
 	ver  int
 	on   bool
-}
-
-// draft is text an AI is writing into the document at end, after it took
-// out what was in [at, end) when it began.
-type draft struct {
-	on                        bool
-	at, end                   int
-	removed                   []rune
-	marksBefore               []Mark
-	caretBefore, anchorBefore int
-	readOnly                  bool
 }
 
 // SetReadOnly allows, or stops, changes to the text.
@@ -45,10 +30,28 @@ func (e *Editor) RequestPrediction() {
 
 // Propose shows text as a rewrite of [a, b), with the caret after it.
 func (e *Editor) Propose(a, b int, text string) {
+	e.propose(a, b, singleParagraphs(text), MarkAIAccepted)
+}
+
+// ProposeDraft shows a draft to take the place of [a, b), empty until
+// ProposeMore adds what comes of it.
+func (e *Editor) ProposeDraft(a, b int) { e.propose(a, b, "", MarkAIDraft) }
+
+// ProposeMore adds s to the end of the draft shown, and keeps that end in
+// view.
+func (e *Editor) ProposeMore(s string) {
+	if !e.proposing() || e.prop.kind != MarkAIDraft {
+		return
+	}
+	e.prop.text += normalize(s)
+	e.reveal = true
+}
+
+func (e *Editor) propose(a, b int, text string, kind MarkKind) {
 	n := e.Doc.Len()
 	a, b = clamp(min(a, b), 0, n), clamp(max(a, b), 0, n)
 	e.DismissGhost()
-	e.prop = proposal{a: a, b: b, text: singleParagraphs(text), ver: e.Doc.version, on: true}
+	e.prop = proposal{a: a, b: b, text: text, kind: kind, ver: e.Doc.version, on: true}
 	e.caret, e.anchor, e.reveal = b, b, true
 }
 
@@ -62,8 +65,8 @@ func (e *Editor) Proposal() (a, b int, text string, ok bool) {
 
 func (e *Editor) proposing() bool { return e.prop.on && e.prop.ver == e.Doc.version }
 
-// AcceptProposal puts the rewrite shown in place of its words, as one
-// step, marked as accepted AI text with note.
+// AcceptProposal puts what is proposed in place of its words, as one
+// step, marked with note as accepted AI text, or as drafted.
 func (e *Editor) AcceptProposal(note string) bool {
 	if !e.proposing() {
 		return false
@@ -73,72 +76,15 @@ func (e *Editor) AcceptProposal(note string) bool {
 	e.replaceRange(p.a, p.b, p.text, false)
 	n := len([]rune(normalize(p.text)))
 	if n > 0 {
-		e.Doc.AddMark(MarkAIAccepted, p.a, p.a+n, note)
+		e.Doc.AddMark(p.kind, p.a, p.a+n, note)
 		e.undo[len(e.undo)-1].marksAfter = e.Doc.Marks()
 	}
 	e.compOpen = false
 	return true
 }
 
-// DropProposal stops showing the rewrite.
+// DropProposal stops showing what is proposed.
 func (e *Editor) DropProposal() { e.prop = proposal{} }
-
-// BeginDraft takes out [a, b) for an AI to write in its place, keeping the
-// text read-only until EndDraft.
-func (e *Editor) BeginDraft(a, b int) {
-	if e.dr.on {
-		return
-	}
-	n := e.Doc.Len()
-	a, b = clamp(min(a, b), 0, n), clamp(max(a, b), 0, n)
-	e.DismissGhost()
-	e.prop = proposal{}
-	e.dr = draft{on: true, at: a, end: a, removed: slices.Clone(e.Doc.text[a:b]), marksBefore: e.Doc.Marks(),
-		caretBefore: e.caret, anchorBefore: e.anchor, readOnly: e.opts.ReadOnly}
-	if b > a {
-		e.Doc.replace(a, b, nil)
-	}
-	e.opts.ReadOnly = true
-	e.caret, e.anchor = a, a
-	e.edited()
-}
-
-// DraftAppend adds s to the end of the text being drafted.
-func (e *Editor) DraftAppend(s string) {
-	if !e.dr.on {
-		return
-	}
-	ins := []rune(normalize(s))
-	if len(ins) == 0 {
-		return
-	}
-	e.Doc.replace(e.dr.end, e.dr.end, ins)
-	e.dr.end += len(ins)
-	e.caret, e.anchor = e.dr.end, e.dr.end
-	e.edited()
-}
-
-// EndDraft finishes the draft: what it wrote is marked as drafted with
-// note, and the whole draft, with what it took out, undoes as one step.
-func (e *Editor) EndDraft(note string) {
-	d := e.dr
-	if !d.on {
-		return
-	}
-	e.dr = draft{}
-	e.opts.ReadOnly = d.readOnly
-	if d.end == d.at && len(d.removed) == 0 {
-		return
-	}
-	if d.end > d.at {
-		e.Doc.AddMark(MarkAIDraft, d.at, d.end, note)
-	}
-	e.undo = append(e.undo, undoStep{at: d.at, removed: d.removed, inserted: slices.Clone(e.Doc.text[d.at:d.end]),
-		caretBefore: d.caretBefore, anchorBefore: d.anchorBefore, caretAfter: d.end,
-		marksBefore: d.marksBefore, marksAfter: e.Doc.Marks(), when: time.Now()})
-	e.redo = nil
-	e.edited()
-}
 
 // singleParagraphs keeps the paragraphs of s, without blank lines between.
 func singleParagraphs(s string) string {

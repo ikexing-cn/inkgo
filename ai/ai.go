@@ -148,7 +148,7 @@ func (s *Service) Talk(st *workspace.Store, beside *aiport.Beside, progress func
 	if work.Discussion.Provider == "" || work.Discussion.Model == "" {
 		return nil, errors.New("尚未选择讨论模型：请在设置中「AI」配置里选择")
 	}
-	m, err := open(s.cfg, work.Discussion)
+	m, err := open(s.cfg, work.Discussion, st)
 	if err != nil {
 		return nil, err
 	}
@@ -167,14 +167,35 @@ func (s *Service) Extract(st *workspace.Store, session, message string, start, e
 	return (&discussion.Engine{Store: st}).Extract(session, message, start, end, category)
 }
 
-// open is the model sel names, with its limits as cfg has them.
-func open(cfg model.Config, sel workspace.Selection) (discussion.Model, error) {
+// open is the model sel names, with its limits as cfg has them; what each
+// request to it takes and gives is counted as the work st spent.
+func open(cfg model.Config, sel workspace.Selection, st *workspace.Store) (discussion.Model, error) {
 	client, err := model.NewClient(cfg, sel.Provider, sel.Model)
 	if err != nil {
 		return discussion.Model{}, err
 	}
-	return discussion.Model{Completer: client, Model: cfg.Model(sel.Provider, sel.Model),
-		Name: sel.Provider + "/" + sel.Model, Effort: model.Effort(sel.Effort)}, nil
+	name := sel.Provider + "/" + sel.Model
+	return discussion.Model{Completer: counted{client, st, name, sel.Model}, Model: cfg.Model(sel.Provider, sel.Model),
+		Name: name, Effort: model.Effort(sel.Effort)}, nil
+}
+
+// counted is a model whose requests are counted as a work spent, at the
+// prices built in for the model id.
+type counted struct {
+	model.Completer
+	st       *workspace.Store
+	name, id string
+}
+
+func (c counted) Complete(ctx context.Context, req model.Request, on func(model.Delta)) (model.Reply, error) {
+	reply, err := c.Completer.Complete(ctx, req, on)
+	if u := reply.Usage; u != (model.Usage{}) {
+		cost, currency, _ := model.Cost(c.id, u)
+		// What it spent is an estimate for the author to look at: failing
+		// to count it does not fail the request.
+		_ = c.st.Spend(c.name, workspace.Usage(u), cost, currency)
+	}
+	return reply, err
 }
 
 // writer builds the writer of st with its writing model, or the
@@ -188,7 +209,7 @@ func (s *Service) writer(st *workspace.Store) (*writing.Writer, error) {
 	if sel.Provider == "" || sel.Model == "" {
 		return nil, writing.ErrNoModel
 	}
-	m, err := open(s.cfg, sel)
+	m, err := open(s.cfg, sel, st)
 	if err != nil {
 		return nil, err
 	}

@@ -151,7 +151,7 @@ type writeView struct {
 	run         *aiRun
 	rewriting   bool
 	instruction string
-	proposed    *aiport.Job
+	proposed    *aiRun
 	draftOpen   bool
 	words       string
 	draftMode   string
@@ -425,14 +425,9 @@ func (a *App) flush() {
 }
 
 // saveNow is Ctrl+S: what the page shows goes to the disk now, though it
-// would anyway as the author pauses. An AI writing or a rewrite waiting is
-// left alone; what it has written is saved when it ends.
+// would anyway as the author pauses. What the AI writes is not in the text
+// until taken, so nothing waits for it.
 func (a *App) saveNow() {
-	w := &a.write
-	if w.run != nil || w.proposed != nil {
-		a.notice = "AI 正在修改本章，完成后自动保存"
-		return
-	}
 	for _, err := range []error{a.saveText(), a.saveOutline(), a.saveSummary()} {
 		if err != nil {
 			a.warn(err)

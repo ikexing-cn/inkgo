@@ -94,7 +94,7 @@ func TestShotAI(t *testing.T) {
 	}
 	until(t, tt, "the rewrite", func() bool { return a.write.proposed != nil })
 	shot("ai-rewrite.png")
-	a.acceptRewrite()
+	a.acceptProposal()
 
 	a.write.outline = "林晚夜里去旧城修灯，发现井边的灯是被人拧坏的。"
 	a.openDraft()
@@ -104,10 +104,12 @@ func TestShotAI(t *testing.T) {
 	if err := tt.Click("开始起草"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the draft", func() bool { return strings.HasSuffix(ed.Doc.String(), "咬在嘴里，") })
+	until(t, tt, "the draft", func() bool { _, _, s, _ := ed.Proposal(); return strings.HasSuffix(s, "咬在嘴里，") })
 	shot("ai-drafting.png")
 	close(f.hold)
 	until(t, tt, "the draft to end", func() bool { return a.write.run == nil })
+	shot("ai-drafted.png")
+	a.acceptProposal()
 	a.openSnapshots()
 	shot("ai-snapshots.png")
 }

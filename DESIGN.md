@@ -434,11 +434,12 @@ components:
 - 回复下面的「AI 参考内容」列出这次发送的各部分各约多少 token、附了哪些设定（设定多到装不下时写「设定较多，本次只附目录」），和服务商算的实际用量。
 - AI 在讨论里记进设定的，修改记录里有一条，写着记在哪段讨论里。
 - 讨论长了压缩过，压缩的地方隔一行「以上 N 轮已整理成摘要」，点开是摘要全文；只能看，不能改。
+- 用了多少也看得到：每条回复下面写这次用了多少 token；作品累计的用量和按内置价格估算的花费，在设置「AI」的「本作品用量」里，只能看，不能清零。
 
 检查：
 
-- `npm run verify-prototype` 的「what the AI looked at」「what was sent」「a long talk」查原型。
-- `go test ./desk` 的 `TestTalkNotesTheSettingAsItReplies` 查软件里回复上方那一行：回复时展开、回复完折起、点开有查到的内容，「查看设定」打开记下的那一条，修改记录里那一条点「查看讨论」回到讨论；`TestWhatWasSent` 查「AI 参考内容」；`TestTheTalkShowsWhereItWasCompacted` 查「以上 N 轮已整理成摘要」那一行和点开的摘要。
+- `npm run verify-prototype` 的「what the AI looked at」「what was sent」「a long talk」「models and services」查原型。
+- `go test ./desk` 的 `TestTalkNotesTheSettingAsItReplies` 查软件里回复上方那一行：回复时展开、回复完折起、点开有查到的内容，「查看设定」打开记下的那一条，修改记录里那一条点「查看讨论」回到讨论；`TestWhatWasSent` 查「AI 参考内容」和回复下面的 token 数；`TestTheWorkShowsWhatItSpent` 查「本作品用量」；`TestTheTalkShowsWhereItWasCompacted` 查「以上 N 轮已整理成摘要」那一行和点开的摘要。
 
 ### AI 写的字要作者采纳
 
@@ -446,10 +447,12 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab，改写�
 
 - 采纳之前和正文分得开：续写是灰字；改写、起草里 AI 写的是绿色，要换掉的原文划红色删除线。这时正文不能打字，没采纳的字不存盘。
 - 采纳前存快照；采纳算一步，撤销一次就退回去。
+- 没采纳就离开这一章或关掉 AI，写好的丢掉，正文照旧。
 
 检查：
 
 - `npm run verify-prototype` 的「a sentence more」「a rewrite」「a draft」查原型。
+- `go test ./desk` 的 `TestDraftAChapterFromItsOutline`、`TestStopADraftKeepsWhatCame`、`TestRewriteASelection` 查软件：起草、改写写完，正文和磁盘都不变，采纳时才存快照、写进正文，算一步；`TestTurnTheAIOffAndOn` 查关掉 AI 时没采纳的起草丢掉。
 
 ## Colors
 

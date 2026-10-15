@@ -62,21 +62,23 @@ func (a *App) keepPen() {
 	w.penErr = err
 }
 
-// aiRun is a request of the writing model in flight: what it streams
-// waits here for the UI thread.
+// aiRun is a request of the writing model, in flight, and then what it
+// proposed until the author takes it or not: what it streams waits here
+// for the UI thread.
 type aiRun struct {
-	op     string
-	node   string
-	job    aiport.Job
-	cancel context.CancelFunc
-	a, b   int    // the words a rewrite replaces
-	lead   string // what goes before a draft's first words
-	mu     sync.Mutex
-	chunks []string
-	done   bool
-	text   string
-	err    error
-	wrote  int // the characters a draft wrote so far
+	op      string
+	node    string
+	job     aiport.Job
+	cancel  context.CancelFunc
+	a, b    int    // the words a rewrite or a draft replaces
+	lead    string // what goes before a draft's first words
+	mu      sync.Mutex
+	chunks  []string
+	done    bool
+	text    string
+	err     error
+	wrote   int  // the characters a draft wrote so far
+	stopped bool // a draft ended before it was done
 }
 
 func (a *App) start(c *ui.Context, r *aiRun) {
@@ -119,7 +121,7 @@ func (a *App) pollAI() {
 	if r.op == workspace.AIDraft {
 		for _, s := range chunks {
 			r.wrote += workspace.Count(s)
-			w.ed.DraftAppend(r.lead + s)
+			w.ed.ProposeMore(r.lead + s)
 			r.lead = ""
 		}
 	}
@@ -135,15 +137,25 @@ func (a *App) finishAI(r *aiRun) {
 	stopped := errors.Is(r.err, context.Canceled)
 	switch r.op {
 	case workspace.AIDraft:
-		w.ed.EndDraft(r.job.Record.Model)
-		a.warn(a.saveText())
+		// What it wrote waits for the author, though it stopped short; with
+		// nothing written, it is as if there was no draft.
 		switch {
-		case stopped:
-			a.notice = "已停止起草，已写部分保留；可撤销整段撤回"
+		case r.wrote == 0:
+			a.dropProposal()
+			if !stopped {
+				if r.err == nil {
+					r.err = errors.New("模型未返回内容")
+				}
+				a.Error = "起草失败：" + r.err.Error()
+			}
 		case r.err != nil:
-			a.Error = "起草" + r.err.Error() + "；已写部分保留"
+			r.stopped = true
+			w.proposed = r
+			if !stopped {
+				a.Error = "起草" + r.err.Error() + "；已写的部分可以采纳"
+			}
 		default:
-			a.notice = fmt.Sprintf("起草完成，共 %d 字；可撤销整段撤回，起草前的版本已存入快照", workspace.Count(r.text))
+			w.proposed = r
 		}
 	case workspace.AIRewrite:
 		switch {
@@ -157,13 +169,13 @@ func (a *App) finishAI(r *aiRun) {
 			a.Error = "改写失败：" + r.err.Error()
 		default:
 			w.ed.Propose(r.a, r.b, r.text)
-			w.proposed = &r.job
+			w.proposed = r
 		}
 	}
 }
 
-// stopAI stops the request in flight and what it shows, keeping what a
-// draft wrote, as leaving the chapter does.
+// stopAI stops the request in flight and drops what the AI proposed, a
+// draft as a rewrite: not taken, it is not the author's.
 func (a *App) stopAI() {
 	w := &a.write
 	if r := w.run; r != nil {
@@ -175,7 +187,7 @@ func (a *App) stopAI() {
 		}
 	}
 	if w.proposed != nil {
-		a.dropRewrite()
+		a.dropProposal()
 	}
 	w.rewriting = false
 }
@@ -223,14 +235,15 @@ func (a *App) startRewrite(c *ui.Context) {
 	a.start(c, &aiRun{op: workspace.AIRewrite, node: w.node, job: job, a: s, b: e})
 }
 
-// acceptRewrite keeps the text replaced as a snapshot with what the AI
-// did, then puts the rewrite in.
-func (a *App) acceptRewrite() {
+// acceptProposal keeps the chapter as a snapshot with what the AI did,
+// then puts in what it proposed, a rewrite or a draft.
+func (a *App) acceptProposal() {
 	w := &a.write
-	if w.proposed == nil {
+	p := w.proposed
+	if p == nil {
 		return
 	}
-	rec := w.proposed.Record
+	rec := p.job.Record
 	if err := a.Store.SnapshotForAI(w.node, w.ed.Doc.String(), storedMarks(w.ed.Doc.Marks()), rec); err != nil {
 		a.warn(err)
 		return
@@ -239,10 +252,14 @@ func (a *App) acceptRewrite() {
 	w.ed.AcceptProposal(rec.Model)
 	w.proposed, w.rewriting = nil, false
 	a.warn(a.saveText())
-	a.notice = "已采纳改写；可撤销恢复原文，原版本已存入快照"
+	what := "改写"
+	if p.op == workspace.AIDraft {
+		what = "起草"
+	}
+	a.notice = "已采纳" + what + "；可撤销恢复原文，原版本已存入快照"
 }
 
-func (a *App) dropRewrite() {
+func (a *App) dropProposal() {
 	w := &a.write
 	w.ed.DropProposal()
 	w.ed.SetReadOnly(false)
@@ -267,8 +284,8 @@ const (
 	draftReplace = "覆盖已有内容"
 )
 
-// startDraft keeps the chapter as a snapshot with what the AI is to do,
-// then has it write.
+// startDraft has the AI write the chapter from its outline, shown beside
+// the text there until the author takes it.
 func (a *App) startDraft(c *ui.Context) {
 	w := &a.write
 	words := 0
@@ -293,30 +310,26 @@ func (a *App) startDraft(c *ui.Context) {
 		scene.Before = text
 	}
 	job, err := pw.Draft(scene, words)
-	if err == nil {
-		err = a.Store.SnapshotForAI(w.node, text, storedMarks(w.ed.Doc.Marks()), job.Record)
-	}
 	if err != nil {
 		a.warn(err)
 		return
 	}
-	r := &aiRun{op: workspace.AIDraft, node: w.node, job: job}
-	n := w.ed.Doc.Len()
+	r := &aiRun{op: workspace.AIDraft, node: w.node, job: job, b: w.ed.Doc.Len()}
 	if appending {
-		w.ed.BeginDraft(n, n)
+		r.a = r.b
 		if !strings.HasSuffix(text, "\n") {
 			r.lead = "\n"
 		}
-	} else {
-		w.ed.BeginDraft(0, n)
 	}
+	w.ed.ProposeDraft(r.a, r.b)
+	w.ed.SetReadOnly(true)
 	a.closeFind()
 	w.draftOpen = false
 	a.start(c, r)
 }
 
 // aiBar shows what the AI is doing in the chapter, and asks what the
-// author makes of a rewrite.
+// author makes of a rewrite or a draft.
 func (a *App) aiBar(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
@@ -340,19 +353,41 @@ func (a *App) aiBar(c *ui.Context) {
 				w.run.cancel()
 			}
 		})
+	case w.proposed != nil && w.proposed.op == workspace.AIDraft:
+		p := w.proposed
+		bar(func() {
+			glyph(c, icFeather, iconMd, t.Success)
+			say := fmt.Sprintf("起草 %d 字，绿色为起草", p.wrote)
+			if p.stopped {
+				say = "已停止，" + say
+			}
+			if p.b > p.a {
+				say += "，红色删除线为将被覆盖的原文"
+			}
+			ui.Text(c, say+"。").FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
+			if a.pal.secondary(c, "放弃").Clicked() {
+				a.dropProposal()
+			}
+			if a.pal.ghost(c, "重新起草", ui.Color{}).Clicked() {
+				a.startDraft(c)
+			}
+			if a.pal.primary(c, "采纳").Clicked() {
+				a.acceptProposal()
+			}
+		})
 	case w.proposed != nil:
 		bar(func() {
 			glyph(c, icWand, iconMd, t.Success)
 			ui.Text(c, "红色删除线为原文，绿色为改写。").FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1)
 			if a.pal.secondary(c, "放弃").Clicked() {
-				a.dropRewrite()
+				a.dropProposal()
 			}
 			if a.pal.ghost(c, "重新改写", ui.Color{}).Clicked() {
-				a.dropRewrite()
+				a.dropProposal()
 				w.rewriting = true
 			}
 			if a.pal.primary(c, "采纳").Clicked() {
-				a.acceptRewrite()
+				a.acceptProposal()
 			}
 		})
 	case w.rewriting:
@@ -380,7 +415,7 @@ func (a *App) draftView(c *ui.Context) {
 	w := &a.write
 	a.modal(c, &w.draftOpen, func() {
 		ui.Column(c).Width(dialogSmall).Padding(dialogPad).Gap(16).Children(func() {
-			a.pal.dialogHead(c, "起草本章", "AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。起草前会保存快照；生成的文字带有“AI 起草”标记，修改过的部分不再带标记。")
+			a.pal.dialogHead(c, "起草本章", "AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。写完先供你查看，采纳后才写入正文，写入前保存快照；写入的文字带有“AI 起草”标记，修改过的部分不再带标记。")
 			ui.Box(c).FillWidth().Padding(10, 12).Radius(rControl).Background(a.pal.side).Children(func() {
 				ui.Text(c, strings.TrimSpace(w.outline)).FontSize(fsControl).TextColor(t.TextMuted).LineHeight(lhLoose).FillWidth()
 			})

@@ -3,6 +3,8 @@ package desk
 import (
 	"context"
 	"errors"
+	"fmt"
+	"math"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -92,6 +94,7 @@ func labeled(c *ui.Context, caption string, fn func()) ui.Element {
 func (a *App) modelsView(c *ui.Context) {
 	if a.Store != nil {
 		a.usage(c)
+		a.spent(c)
 		a.writingSwitches(c)
 	}
 	a.services(c)
@@ -122,6 +125,36 @@ func (a *App) usage(c *ui.Context) {
 			a.setError(err)
 		}
 	}
+}
+
+// spent shows what the work has spent on each model: the tokens as its
+// provider counted them, and the cost by the prices built in. It is only
+// to look at; nothing clears it.
+func (a *App) spent(c *ui.Context) {
+	t := a.pal.theme
+	a.subhead(c, "本作品用量", "按内置价格估算，以服务商账单为准。")
+	if len(a.bk.spent) == 0 {
+		ui.Text(c, "尚未使用 AI。").FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
+		return
+	}
+	ui.Column(c).FillWidth().Gap(4).Children(func() {
+		for _, m := range a.bk.spent {
+			used := "输入 " + tokens.Round(m.Input)
+			if m.Input > 0 {
+				used += fmt.Sprintf("，缓存命中 %d%%", int(math.Round(float64(m.CacheRead)*100/float64(m.Input))))
+			}
+			used += " · 输出 " + tokens.Round(m.Output)
+			cost := "无价格"
+			if m.Currency != "" {
+				cost = fmt.Sprintf("约 %s%.2f", m.Currency, m.Cost)
+			}
+			ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Center).Children(func() {
+				ui.Text(c, m.Model[strings.LastIndex(m.Model, "/")+1:]).FontSize(fsControl).Width(150).Shrink(0).SingleLine().Ellipsis("…")
+				ui.Text(c, used).FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
+				ui.Text(c, cost).FontSize(fsControl)
+			})
+		}
+	})
 }
 
 // useRow is one of usage's rows: who, the service, the model and the

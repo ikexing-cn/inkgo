@@ -4,7 +4,7 @@ Status: implemented
 
 ## Problem
 
-这是 [AI 基建](../../proposed/architecture/2026-10-15-ai-infrastructure.md)五步里的第三步 c，接在[每次请求由同一个拼装器装](../architecture/2026-10-15-one-budget-for-every-request.md)之后。
+这是 [AI 基建](../architecture/2026-10-15-ai-infrastructure.md)五步里的第三步 c，接在[每次请求由同一个拼装器装](../architecture/2026-10-15-one-budget-for-every-request.md)之后。
 
 - 讨论只看得到设定和最近几轮对话，书里别的地方 AI 看不到。设定多到只发目录时，连条目的全文也看不到。
 - 设定由[后台记账员](2026-10-08-setting-document-and-background-bookkeeper.md)整理。它每批都重发一遍设定和那几轮对话，讨论模型其实已经带着它们。整理落后于对话，所以要用 `Base`、`Skipped` 处理和作者修改交错的情况。作者要等后台跑完才看到记了什么。

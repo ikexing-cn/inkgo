@@ -4,7 +4,7 @@ Status: implemented
 
 ## Problem
 
-这是 [AI 基建](../../proposed/architecture/2026-10-15-ai-infrastructure.md)五步里的第二步 b，接在[上下文上限配在模型上](2026-10-15-model-limits-and-usage.md)之后。
+这是 [AI 基建](2026-10-15-ai-infrastructure.md)五步里的第二步 b，接在[上下文上限配在模型上](2026-10-15-model-limits-and-usage.md)之后。
 
 - 讨论（`discussion/context.go`）、续写改写起草（`writing/writer.go`）、检查（`writing/check.go`）、摘要（`writing/summary.go`）四处各自从可用的输入里扣，各自留余量、各自估算每行的开销。设定的拼法 `renderSetting` 和 `oneLine` 在 `discussion`、`writing` 两个包里各有一份。
 - 设定装不下时四处都按「新改的优先」逐条截掉，发出去也按新旧排。作者改一条设定，它就跑到最前面，服务商按前缀算的缓存从那里起全部失效。讨论被截掉的条目，模型不知道它们存在。

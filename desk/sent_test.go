@@ -1,11 +1,13 @@
 package desk
 
 import (
+	"strings"
 	"testing"
 
 	"writer/workspace"
 )
 
+// Under each reply, the tokens it took and gave as the provider counted.
 // What a reply was sent shows each part's tokens as estimated, what the
 // provider counted, and the setting: whole with a tick each, or as its
 // index; a reply from before lists what it left out.
@@ -41,6 +43,15 @@ func TestWhatWasSent(t *testing.T) {
 	}
 	a.setError(a.refresh())
 	tt.Frame()
+	footers := 0
+	for _, s := range tt.Texts() {
+		if strings.HasSuffix(s, " · 10.2K token") || strings.HasSuffix(s, " · 920 token") {
+			footers++
+		}
+	}
+	if footers != 2 || strings.Count(strings.Join(tt.Texts(), "\n"), " token") != 2 {
+		t.Fatal("the tokens of each reply", tt.Texts())
+	}
 
 	open := func(id string, want ...string) {
 		t.Helper()

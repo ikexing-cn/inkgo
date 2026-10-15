@@ -2,6 +2,7 @@ package desk
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,10 +20,12 @@ import (
 )
 
 // stream is a writing model that streams its pieces; with hold, it waits
-// after the first until let through or stopped.
+// after the first until let through or stopped. With fail, it fails after
+// the last.
 type stream struct {
 	pieces []string
 	hold   chan struct{}
+	fail   error
 	mu     sync.Mutex
 	asked  []model.Request
 }
@@ -46,7 +49,13 @@ func (f *stream) Complete(ctx context.Context, r model.Request, on func(model.De
 		all.WriteString(p)
 		on(model.Delta{Text: p})
 	}
-	return model.Reply{Text: all.String()}, nil
+	return model.Reply{Text: all.String()}, f.fail
+}
+
+// proposed is what the editor shows the AI proposing.
+func proposed(a *App) string {
+	_, _, s, _ := a.write.ed.Proposal()
+	return s
 }
 
 func penWith(a *App, f *stream) { penWithin(a, f, model.Builtin("deepseek-flash")) }
@@ -71,9 +80,10 @@ func until(t *testing.T, tt *ui.Tester, what string, ok func() bool) {
 	}
 }
 
-// Drafting needs an outline; the draft streams in read-only, is kept as
-// one undo step with its mark, and the chapter before it is a snapshot
-// recording what the AI saw.
+// Drafting needs an outline. The draft streams in beside the text, which
+// stays as it was and read-only, on the disk too, until the author takes
+// it: then the chapter before it is a snapshot recording what the AI saw,
+// and the draft goes in as one undo step with its mark.
 func TestDraftAChapterFromItsOutline(t *testing.T) {
 	a, tt, id := writingFixture(t, "")
 	f := &stream{pieces: []string{"雨下了一夜。", "\n她醒了。"}, hold: make(chan struct{})}
@@ -96,16 +106,30 @@ func TestDraftAChapterFromItsOutline(t *testing.T) {
 	if err := tt.Click("开始起草"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the first piece", func() bool { return a.write.ed.Doc.String() == "雨下了一夜。" })
-	if !a.write.ed.ReadOnly() || !tt.HasText("停止") {
+	until(t, tt, "the first piece", func() bool { return proposed(a) == "雨下了一夜。" })
+	if !a.write.ed.ReadOnly() || !tt.HasText("AI 正在按章纲起草 · 已写 6 字 · deepseek/deepseek-flash · High") || !tt.HasText("停止") {
 		t.Fatal("not read-only while drafting", tt.Texts())
 	}
 	tt.Type("不该进去")
 	close(f.hold)
 	until(t, tt, "the draft to end", func() bool { return a.write.run == nil })
 	ed := a.write.ed
-	if ed.Doc.String() != "雨下了一夜。\n她醒了。" || ed.ReadOnly() {
-		t.Fatalf("drafted %q", ed.Doc.String())
+	if ed.Doc.String() != "" || proposed(a) != "雨下了一夜。\n她醒了。" || !ed.ReadOnly() || !tt.HasText("起草 10 字，绿色为起草。") {
+		t.Fatalf("drafted %q beside %q", proposed(a), ed.Doc.String())
+	}
+	tt.Key(ui.Cmd, ui.KeyS)
+	if !strings.Contains(a.notice, "已保存") {
+		t.Fatalf("saving waits for the draft: %q", a.notice)
+	}
+	if snaps, _ := a.Store.Snapshots(id); len(snaps) > 0 && snaps[0].Reason == workspace.SnapAI {
+		t.Fatal("a snapshot before the draft is taken")
+	}
+	if err := tt.Click("采纳"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if ed.Doc.String() != "雨下了一夜。\n她醒了。" || ed.ReadOnly() || !strings.Contains(a.notice, "已采纳起草") {
+		t.Fatalf("taken %q %q", ed.Doc.String(), a.notice)
 	}
 	if ms := ed.Doc.Marks(); len(ms) != 1 || ms[0].Kind != editor.MarkAIDraft || ms[0].End != ed.Doc.Len() {
 		t.Fatalf("marks %+v", ms)
@@ -154,7 +178,9 @@ func TestDraftOverWhatIsThere(t *testing.T) {
 	}
 }
 
-// Stopping a draft keeps what it wrote, after the text there was.
+// Stopped, a draft keeps what it wrote, after the text there was, for the
+// author to take or not; with nothing written, it is as if there was no
+// draft. Drafting again starts it over; failing keeps what came.
 func TestStopADraftKeepsWhatCame(t *testing.T) {
 	a, tt, _ := writingFixture(t, "她醒了")
 	f := &stream{pieces: []string{"雨还在下。", "不该出现。"}, hold: make(chan struct{})}
@@ -171,16 +197,66 @@ func TestStopADraftKeepsWhatCame(t *testing.T) {
 	if err := tt.Click("开始起草"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the first piece", func() bool { return strings.HasSuffix(a.write.ed.Doc.String(), "雨还在下。") })
+	until(t, tt, "the first piece", func() bool { return proposed(a) == "\n雨还在下。" })
 	if err := tt.Click("停止"); err != nil {
 		t.Fatal(err)
 	}
 	until(t, tt, "the draft to stop", func() bool { return a.write.run == nil })
-	if got := a.write.ed.Doc.String(); got != "她醒了\n雨还在下。" {
-		t.Fatalf("after stop %q", got)
+	tt.Frame()
+	if got := a.write.ed.Doc.String(); got != "她醒了" || proposed(a) != "\n雨还在下。" || !tt.HasText("已停止，起草 5 字，绿色为起草。") {
+		t.Fatalf("after stop %q beside %q", proposed(a), got)
 	}
-	if !strings.Contains(a.notice, "已停止") {
-		t.Fatalf("notice %q", a.notice)
+	if a.Error != "" {
+		t.Fatal(a.Error)
+	}
+
+	close(f.hold)
+	if err := tt.Click("重新起草"); err != nil {
+		t.Fatal(err)
+	}
+	until(t, tt, "the draft again", func() bool { return a.write.run == nil && a.write.proposed != nil })
+	tt.Frame()
+	if proposed(a) != "\n雨还在下。不该出现。" || !tt.HasText("起草 10 字，绿色为起草。") {
+		t.Fatalf("again %q", proposed(a))
+	}
+	if err := tt.Click("放弃"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if _, _, _, ok := a.write.ed.Proposal(); ok || a.write.ed.ReadOnly() || a.write.ed.Doc.String() != "她醒了" || tt.HasText("采纳") {
+		t.Fatal("the draft was not let go", tt.Texts())
+	}
+
+	f.pieces, f.hold = []string{"", "不该出现。"}, make(chan struct{})
+	if err := clickMenu(tt, "编辑", "菜单-起草本章"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err := tt.Click("开始起草"); err != nil {
+		t.Fatal(err)
+	}
+	until(t, tt, "the draft to be asked", func() bool { f.mu.Lock(); defer f.mu.Unlock(); return len(f.asked) == 3 })
+	if err := tt.Click("停止"); err != nil {
+		t.Fatal(err)
+	}
+	until(t, tt, "the draft to stop", func() bool { return a.write.run == nil })
+	tt.Frame()
+	if _, _, _, ok := a.write.ed.Proposal(); ok || a.write.proposed != nil || a.write.ed.ReadOnly() || tt.HasText("已停止") || a.Error != "" {
+		t.Fatal("a draft that wrote nothing stays", tt.Texts())
+	}
+
+	f.pieces, f.hold, f.fail = []string{"雨还在下。"}, nil, errors.New("服务不可用")
+	if err := clickMenu(tt, "编辑", "菜单-起草本章"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err := tt.Click("开始起草"); err != nil {
+		t.Fatal(err)
+	}
+	until(t, tt, "the draft to fail", func() bool { return a.write.run == nil })
+	tt.Frame()
+	if proposed(a) != "\n雨还在下。" || a.Error != "起草没有写完：服务不可用；已写的部分可以采纳" || !tt.HasText("已停止，起草 5 字") {
+		t.Fatalf("failed %q %q", proposed(a), a.Error)
 	}
 }
 

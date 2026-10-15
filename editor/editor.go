@@ -80,7 +80,6 @@ type Editor struct {
 
 	// A rewrite shown beside its words, and a draft being written.
 	prop proposal
-	dr   draft
 
 	// Ranges found, painted under the text; the current one stronger.
 	found   [][2]int

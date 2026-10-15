@@ -4,7 +4,7 @@ Status: implemented
 
 ## Problem
 
-这是 [AI 基建](../../proposed/architecture/2026-10-15-ai-infrastructure.md)五步里的第四步 d，接在[讨论用工具查全书、当场记设定](../feature/2026-10-15-talk-looks-up-and-notes-the-setting.md)之后。
+这是 [AI 基建](2026-10-15-ai-infrastructure.md)五步里的第四步 d，接在[讨论用工具查全书、当场记设定](../feature/2026-10-15-talk-looks-up-and-notes-the-setting.md)之后。
 
 - 讨论只发最近四轮对话，更早的话模型看不到。作者早先说过的偏好、「这条线先放着」这类不算设定的话，过了四轮就丢了。
 - 只发四轮也浪费容量：DeepSeek 的窗口有十几万 token，讨论只用了一小部分。

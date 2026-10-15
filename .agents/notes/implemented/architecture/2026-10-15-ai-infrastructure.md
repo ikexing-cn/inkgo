@@ -1,12 +1,12 @@
 # Agent Note: AI 基建：模型按窗口配上限，讨论用工具查全书、当场记设定，长了就压缩
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
-路线走到第 2 步 M2（[完整产品提案](../feature/2026-10-07-idea-pool-discussion.md)），原定做 embedding 检索。作者说长篇「绝对撑不住」，不用再测，先把 AI 相关的基建做好，并要求先调研现在的 agent harness 怎么做上下文管理、工具、权限和自带密钥（BYOK）。
+路线走到第 2 步 M2（[完整产品提案](../../proposed/feature/2026-10-07-idea-pool-discussion.md)），原定做 embedding 检索。作者说长篇「绝对撑不住」，不用再测，先把 AI 相关的基建做好，并要求先调研现在的 agent harness 怎么做上下文管理、工具、权限和自带密钥（BYOK）。
 
-现在的 AI 层（[模型层](../../implemented/architecture/2026-10-08-model-layer-on-goai.md)、[把会发送的部分拆出去](../../implemented/architecture/2026-10-14-ai-out-of-the-core.md)、[设定文档与后台记账](../../implemented/feature/2026-10-08-setting-document-and-background-bookkeeper.md)）有这些问题：
+当时的 AI 层（[模型层](2026-10-08-model-layer-on-goai.md)、[把会发送的部分拆出去](2026-10-14-ai-out-of-the-core.md)、[设定文档与后台记账](../feature/2026-10-08-setting-document-and-background-bookkeeper.md)）有这些问题：
 
 - **长书装不下**。讨论只能把设定和最近几轮对话塞进上下文，书里其他地方 AI 看不到。
 - **预算和模型无关**。每部作品有一个 `token_budget`，默认 16000（`workspace/store.go`），作者手填。DeepSeek 的窗口远大于它，默认值白白浪费容量；作者换了窗口小的模型，又可能超出。
@@ -26,32 +26,15 @@ Status: proposed
 
 三家都没用向量检索找资料，都是给模型搜和读的工具，让它自己去取。我们已经在走的路和它们一致：服务商配置只写环境变量名，密钥在钥匙串（`model/keys.go`）；作品文件只引用服务商和模型的名字。
 
-## Proposal
+## Decision
 
-作者 2026-10-15 逐条定了下面的做法。代码分五步，每步单独提交，带测试，并把这篇对应的部分转进 `implemented/`。界面上的改动先一次性做进 `prototype/`，作者确认以后才写代码；原型同日确认，看原型时补定的几处写在各步里。
+作者 2026-10-15 逐条定了做法，界面先一次性做进 `prototype/`，同日确认。代码分五步，每步单独提交、带测试，各有一篇笔记写细节：
 
-### a 模型层
-
-2026-10-15 已落地，见[上下文上限配在模型上](../../implemented/architecture/2026-10-15-model-limits-and-usage.md)。「记账模型」（`Work.Bookkeeping`）已随 c 删掉。
-
-### b 共用的上下文拼装器
-
-2026-10-15 已落地，见[每次请求由同一个拼装器装](../../implemented/architecture/2026-10-15-one-budget-for-every-request.md)。讨论设定只发目录时，「AI 参考内容」那句「需要时 AI 会查全文」已随 c 加上。
-
-### c 讨论用工具，去掉记账员
-
-2026-10-15 已落地，见[讨论用工具查全书、当场记设定](../../implemented/feature/2026-10-15-talk-looks-up-and-notes-the-setting.md)。
-
-### d 压缩
-
-2026-10-15 已落地，见[讨论长了压缩成摘要](../../implemented/architecture/2026-10-15-compacting-a-long-talk.md)。
-
-### e AI 写的字要采纳，显示用量
-
-- 起草写好后和改写一样先作为提议显示，点「采纳」才进正文，采纳前存快照。写进 DESIGN.md：AI 写的字，要作者采纳才进正文，没有例外。
-- 每条讨论回复显示这次用了多少 token；作品累计的用量和估算花费显示在「AI」配置的「本作品使用」下面，只能看，不能清零。token 数按 K、M、B 写（DESIGN.md 文案那一条），不用「万」。
-- AI 关掉时，还没采纳的起草丢掉，和改写一样；原来是停在写到的地方。
-- 「AI」配置去掉预算以后没有保存按钮，不再单独查讨论模型填没填全：发送时没配讨论模型，照旧提示「请先配置讨论模型」。
+- **a 模型层**：上下文上限、最大输出、压缩阈值配在模型上，内置一张模型表；作品预算去掉；回复带回用量和工具调用。见[上下文上限配在模型上](2026-10-15-model-limits-and-usage.md)。「记账模型」（`Work.Bookkeeping`）已随 c 删掉。
+- **b 共用的上下文拼装器**：讨论、续写改写起草、检查、摘要用同一个拼装器按模型的窗口装，记下每次发了哪些部分。见[每次请求由同一个拼装器装](2026-10-15-one-budget-for-every-request.md)。讨论设定只发目录时，「AI 参考内容」那句「需要时 AI 会查全文」随 c 加上。
+- **c 讨论用工具，去掉记账员**：讨论自己搜、读全书，当场记设定。见[讨论用工具查全书、当场记设定](../feature/2026-10-15-talk-looks-up-and-notes-the-setting.md)。
+- **d 压缩**：讨论发全部还没压缩的对话，快装不下时把最早的几轮整理成摘要，原话留在日志里。见[讨论长了压缩成摘要](2026-10-15-compacting-a-long-talk.md)。
+- **e AI 写的字要采纳，显示用量**：起草和改写一样先作为提议，点「采纳」才进正文；每条讨论回复写用了多少 token，作品记下每个模型的用量和估算花费，设置里能看。见[AI 写的字等作者采纳，作品记下用量](../feature/2026-10-15-ai-text-waits-and-usage-is-kept.md)。
 
 ### 先放着的
 
@@ -62,17 +45,20 @@ Status: proposed
 ## Alternatives considered
 
 - **向量检索（原 M2 方案）**：最强的理由是能按意思找，不怕换说法；原提案为它预留了缓存目录和「向量」用途。没有用：要另配一个 embedding 服务商（原提案记着 DeepSeek、Anthropic 官方据了解不提供），纯 Go、不用 CGO 又难以带一个本地模型；索引要跟着正文修改更新；小说里要找的多是名字和事件，设定条目本来就有 `Names`，按词搜够准；三个 harness 都不用它。留一条后路：按词搜不够时把它加成一个工具。
-- **起草保留直接写入，在 DESIGN.md 注明例外**：最强的理由是作者明确点了「起草」，写进去的位置是空的或者接在后面，有快照可以撤销，少点一下。没有用：规则留了例外就说不清，「AI 写的字要作者采纳」才简单。
 
-## Acceptance criteria
+各步自己的备选写在各步的笔记里。
 
-- e：起草写完后正文不变，点「采纳」才写入；回复显示用量，设置里有累计和估算花费。
-- 每一步 `npm run verify` 全绿；界面改动先过原型，`npm run verify-prototype` 的步骤跟着改。
+## Consequences
 
-## Risks
-
-- **估算和实际不符**：拼装器仍按估算装，可能和服务商的实际计数差得多。有了 a 取到的实际用量，可以拿来对比；差太多就调整 `Estimate` 或预留空间。
-- **改动面大**：去掉记账员要改 `discussion`、`ai`、`desk`、`workspace` 和几篇笔记，提示词里的规则要搬家。分五步提交，每一步都能单独跑通。
+- **收益**：
+  - 请求的大小跟着模型走，不再有作品预算要手填；讨论能查全书、记得住压缩前的话。
+  - 每次请求发了什么、用了多少、大约花了多少，作者都看得到。
+  - AI 写的字一律要作者采纳才进正文。
+- **代价和风险**：
+  - **估算和实际不符**：拼装器仍按估算装，可能和服务商的实际计数差得多。现在回复下面有实际用量，可以拿来对比；差太多就调整 `Estimate` 或预留空间。
+  - **改动面大**：五步改了 `model`、`prompt`、`discussion`、`writing`、`ai`、`desk`、`editor`、`workspace` 和十几篇笔记。分步提交，每一步单独跑通，`npm run verify` 全绿。
+  - 五步都只用假模型和假服务测过，没有连真实服务把整套走一遍。
+- **测试**：见各步的笔记。
 
 ## Sources
 

@@ -79,9 +79,15 @@ func (a *App) openPrefs(tab string) {
 
 // showPref shows a part of the settings. The reminders count the book's
 // foreshadowings from the tree and the marks the writing page reads as it
-// is entered: shown from another page, they are read here.
+// is entered: shown from another page, they are read here. The AI's part
+// reads what the work spent.
 func (a *App) showPref(tab string) {
 	a.bk.tab = tab
+	if tab == "AI" && a.Store != nil {
+		spent, err := a.Store.Spent()
+		a.warn(err)
+		a.bk.spent = spent
+	}
 	if tab == "提醒与检查" && a.Store != nil && !a.write.entered {
 		a.warn(a.loadTree())
 		a.scanMarks()

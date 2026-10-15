@@ -527,7 +527,7 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 	if err := tt.Click("开始起草"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the first piece", func() bool { return w.ed.Doc.String() == "雨下了一夜。" })
+	until(t, tt, "the first piece", func() bool { return proposed(a) == "雨下了一夜。" })
 	words, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "灯为什么会灭"})
 	if err != nil {
 		t.Fatal(err)
@@ -542,8 +542,8 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 	switchAI(t, a, tt, false)
 	until(t, tt, "the reply let go", func() bool { return a.busy == "" })
 	tt.Frame()
-	if w.run != nil || w.ed.ReadOnly() || w.ed.Doc.String() != "雨下了一夜。" {
-		t.Fatalf("the draft did not stop where it got: %q, running %v", w.ed.Doc.String(), w.run != nil)
+	if _, _, _, ok := w.ed.Proposal(); ok || w.proposed != nil || w.run != nil || w.ed.ReadOnly() || w.ed.Doc.String() != "" {
+		t.Fatalf("the draft was not let go: %q, running %v", w.ed.Doc.String(), w.run != nil)
 	}
 	if a.Error != "" || a.notice != "" || len(aiSaid(tt)) > 0 {
 		t.Fatalf("turned off, the AI still tells of itself: %q %q %q", a.Error, a.notice, aiSaid(tt))
@@ -551,8 +551,8 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 	close(f.hold)
 	time.Sleep(50 * time.Millisecond)
 	tt.Frame()
-	if got := disk(t, a, "第一章.txt"); got != "雨下了一夜。" {
-		t.Fatalf("the draft went on with the AI off: %q", got)
+	if _, _, _, ok := w.ed.Proposal(); ok || disk(t, a, "第一章.txt") != "" {
+		t.Fatalf("the draft went on with the AI off: %q", disk(t, a, "第一章.txt"))
 	}
 	switchAI(t, a, tt, true)
 	for _, page := range []string{"讨论", "检查"} {

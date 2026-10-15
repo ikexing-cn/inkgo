@@ -4,7 +4,7 @@ Status: implemented
 
 ## Problem
 
-这是 [AI 基建](../../proposed/architecture/2026-10-15-ai-infrastructure.md)五步里的第一步 a：模型层。
+这是 [AI 基建](2026-10-15-ai-infrastructure.md)五步里的第一步 a：模型层。
 
 - 每部作品有一个 `token_budget`，默认 16000，和用哪个模型无关。DeepSeek 的窗口是它的几十倍，默认值浪费容量；换成窗口小的模型，又可能超出。
 - 讨论、续写改写起草、检查、摘要各从这个预算里扣掉一个写死的回复预留（2048、4096、1024），预留和请求实际允许的输出（讨论 32768）对不上。
@@ -34,7 +34,7 @@ Status: implemented
 - claude-haiku-5-5 输入超过 100K、三个 gpt-6 输入超过 272K 时按更贵的一档（`above`、`long`）。
 - 服务商没列缓存写价格的，按输入价算。
 - kimi-k3 的最大输出文档没写明，暂取 128K。
-- 价格这一步只存在表里，第 e 步用来估算花费。
+- 价格这一步只存在表里，第 e 步用来估算花费。2026-10-15 第 e 步加了 `model.Cost`，每次请求按它估算花费，记进作品，见[AI 写的字等作者采纳，作品记下用量](../feature/2026-10-15-ai-text-waits-and-usage-is-kept.md)。
 
 `Builtin(id)` 取表里的值；表里没有的模型用保守值：上下文上限 32000、最大输出 4096。压缩阈值一律从 80 开始；讨论怎样按它压缩，见[讨论长了压缩成摘要](2026-10-15-compacting-a-long-talk.md)。
 
@@ -80,7 +80,7 @@ Status: implemented
 ## Consequences
 
 - **收益**：默认的 DeepSeek 一次能发近 62 万 token 的输入，原来是 16000 减预留；换了小窗口的模型，请求自动跟着缩，不会被服务端以超长拒绝。用量有了，第 e 步能显示、第 b 步能拿实际数和估算对比。工具调用备好了，第 c 步只写循环和工具。
-- **代价**：内置表会过期，新模型和改价要发版；表外的模型按 32000 起步，作者要自己填。价格写在表里但这一步还没用上。窗口大以后一次请求可能很贵，第 e 步显示用量之前作者看不到。
+- **代价**：内置表会过期，新模型和改价要发版；表外的模型按 32000 起步，作者要自己填。价格写在表里但这一步还没用上。窗口大以后一次请求可能很贵，第 e 步显示用量之前作者看不到（第 e 步已显示，见[AI 写的字等作者采纳，作品记下用量](../feature/2026-10-15-ai-text-waits-and-usage-is-kept.md)）。
 - **还没做**：chat 协议的工具轮要把推理内容（DeepSeek 的 `reasoning_content`）发回去，GoAI 的 compat 层不带这个字段，第 c 步处理。
 - **测试**：`go test ./model` 的 `TestBuiltinLimits`、`TestModelYAML`（写法、只写 ID、缺项补齐）、`TestModelValidation`（每条规则和 `Load` 的报错）、`TestToolCallsAndUsage`（三种协议各发一次带工具的请求，核对发出的工具定义、读回的调用和用量，以及坏请求被拒）；`go test ./workspace` 的 `TestTheOldBudgetIsIgnored`；`go test ./discussion` 核对 `MaxTokens` 被压到最大输出、回复事件带用量；`go test ./desk` 的 `TestModelLimitsInTheServiceForm`（每条校验、K/M 写回、移除和添加、填已知 ID 换数）和 `TestIncompleteFormsExplainInChinese`（没选全不存、选全才存）；`cmd/poc` 的布局测试多截一张服务商表单。
 
