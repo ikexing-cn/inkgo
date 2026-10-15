@@ -45,8 +45,8 @@ func TestSizeTokens(t *testing.T) {
 		"opacity-disabled": opacityDisabled,
 		"h-control":        hControl, "h-control-sm": hControlSm, "h-row": hRow, "h-seg": hSeg, "h-tag": hTag, "h-bar": hBar,
 	}
-	// Only the design's boards use these: its notes and window frames.
-	board := map[string]bool{"fs-board-title": true, "fs-board-h2": true, "r-window": true, "r-window-win": true}
+	// The prototype's window frame is not the software's.
+	board := map[string]bool{"r-window-win": true}
 	seen := map[string]bool{}
 	blocks(tokensCSS, func(_ bool, body string) {
 		for _, d := range regexp.MustCompile(`--((?:fs|r|lh|icon|opacity|h)-[a-z-]+)\s*:\s*([0-9.]+)(?:px)?;`).FindAllStringSubmatch(body, -1) {
