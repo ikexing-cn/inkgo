@@ -94,3 +94,49 @@ func TestToolCallsAndUsage(t *testing.T) {
 		}
 	}
 }
+
+// Within a reply that calls tools, the thinking of a turn goes back as each
+// protocol takes it: as reasoning_content on Chat Completions, as signed
+// blocks on Anthropic, and not at all on Responses. A last turn may keep
+// the tools and be told to call none.
+func TestThinkingGoesBackWithTheCalls(t *testing.T) {
+	want := map[string][]string{
+		"chat":      {`"reasoning_content":"想过了"`, `"tool_choice":"none"`},
+		"anthropic": {`"thinking":"想过了"`, `"signature":"sig"`, `"tool_choice":{"type":"none"}`},
+		"responses": {`"tool_choice":"none"`},
+	}
+	for _, protocol := range []string{"chat", "responses", "anthropic"} {
+		t.Run(protocol, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				raw, _ := io.ReadAll(r.Body)
+				body := string(raw)
+				for _, s := range want[protocol] {
+					if !strings.Contains(body, s) {
+						t.Errorf("request lacks %s: %s", s, body)
+					}
+				}
+				if protocol == "responses" && strings.Contains(body, "想过了") {
+					t.Errorf("the thinking went back as text: %s", body)
+				}
+				sse(w, streams[protocol]...)
+			}))
+			defer server.Close()
+			client, err := NewClientWithKey(testProvider(server.URL, protocol), "m", "secret", server.Client())
+			if err != nil {
+				t.Fatal(err)
+			}
+			req := Request{
+				Messages: []Message{
+					{Role: "user", Content: "井边出过什么事"},
+					{Role: "assistant", Thinking: []Thought{{Text: "想过了", Signature: "sig"}}, Calls: []Call{{ID: "call_0", Name: "search", Input: json.RawMessage(`{"q":"井边"}`)}}},
+					{Role: "tool", CallID: "call_0", Content: "第3章：井边的灯"},
+				},
+				Tools:   []Tool{{Name: "search", Description: "在全书里搜", Schema: json.RawMessage(`{"type":"object","properties":{"q":{"type":"string"}}}`)}},
+				NoCalls: true,
+			}
+			if _, err := client.Complete(context.Background(), req, nil); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}

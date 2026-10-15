@@ -39,7 +39,7 @@ func TestLayoutDiscussion(t *testing.T) {
 	src := func(m workspace.Event, q string) []workspace.Source {
 		return []workspace.Source{{Session: session, Message: m.ID, Quote: q}}
 	}
-	if _, err = s.Revise(workspace.Revision{By: workspace.ByBookkeeper, Session: session, From: user.ID, Through: reply.ID, Ops: []workspace.Op{
+	if _, err = s.Revise(workspace.Revision{By: workspace.ByTalk, Session: session, Turn: user.ID, Ops: []workspace.Op{
 		{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "规则", Text: "故事发生在一个总在下雨的城市。", Sources: src(user, "总在下雨的城市")},
 		{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "主角靠维修路灯谋生，但她很怕黑。", Sources: src(user, "主角修路灯，但她其实很怕黑")},
 		{Op: workspace.OpAdd, Place: workspace.PlaceOpen, Category: "人物", Text: "她宁可绕路，沿着亮着的灯走回家。", Sources: src(reply, "她也宁可绕上半个城区")},
@@ -79,7 +79,7 @@ func TestLayoutDiscussion(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("后台整理") {
+	if !tt.HasText("记在「") {
 		t.Fatal("history not shown", tt.Texts())
 	}
 	shot(t, tt, "-history")

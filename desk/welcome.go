@@ -342,7 +342,7 @@ func (a *App) welcome(c *ui.Context) {
 func (a *App) emptyShelf(c *ui.Context) {
 	t := a.pal.theme
 	_, h := c.Size()
-	about, facts := "与 AI 逐步讨论，内容会在后台整理为设定文档。已确定的设定会被遵守，已放弃的 AI 不再提及。", []string{
+	about, facts := "与 AI 逐步讨论，定下的内容当场记进设定文档。已确定的设定会被遵守，已放弃的 AI 不再提及。", []string{
 		"作品、对话和设定文档均为文件夹中的普通文件，可备份、同步或用其他编辑器打开。",
 		"AI 仅在你发送消息时回应，不会自行续写。",
 		"API key 保存在系统钥匙串中，不会写入作品文件夹。",

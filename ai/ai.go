@@ -1,17 +1,13 @@
 // Package ai is the part of the writing software that sends: it keeps the
-// services of models this machine has, and makes the talk, the bookkeeper
-// and the pen of a work with them. It draws nothing; the interface reaches
+// services of models this machine has, and makes the talk and the pen of
+// a work with them. It draws nothing; the interface reaches
 // it through aiport alone.
 package ai
 
 import (
 	"context"
 	"errors"
-	"os"
-	"path/filepath"
-	"strings"
 	"sync/atomic"
-	"time"
 
 	"writer/desk/aiport"
 	"writer/discussion"
@@ -26,16 +22,10 @@ import (
 type Service struct {
 	file string
 	cfg  model.Config
-	// off is set on the interface's thread, and read on the bookkeeper's
-	// too.
-	off atomic.Bool
+	off  atomic.Bool
 	// NewWriter builds the writer of s, as the work and the services are
 	// now; tests replace it.
 	NewWriter func(s *workspace.Store) (*writing.Writer, error)
-	// NewBookkeeper builds the bookkeeper of s, as the work and the
-	// services on disk are now: it runs on the worker's goroutine. Tests
-	// replace it.
-	NewBookkeeper func(s *workspace.Store) (*discussion.Bookkeeper, error)
 }
 
 var _ aiport.Service = (*Service)(nil)
@@ -52,7 +42,6 @@ func ConfigPath() (string, error) { return model.ConfigPath() }
 func New(file string) *Service {
 	s := &Service{file: file}
 	s.NewWriter = s.writer
-	s.NewBookkeeper = s.bookkeeper
 	return s
 }
 
@@ -151,7 +140,7 @@ func (t talk) Retry(ctx context.Context, session, userID string) error {
 	return err
 }
 
-func (s *Service) Talk(st *workspace.Store, beside *aiport.Beside, progress func(reasoning, text string)) (aiport.Talk, error) {
+func (s *Service) Talk(st *workspace.Store, beside *aiport.Beside, progress func(reasoning, text string), step func(workspace.Event)) (aiport.Talk, error) {
 	if s.off.Load() {
 		return nil, ErrOff
 	}
@@ -163,7 +152,7 @@ func (s *Service) Talk(st *workspace.Store, beside *aiport.Beside, progress func
 	if err != nil {
 		return nil, err
 	}
-	e := &discussion.Engine{Store: st, Talk: m}
+	e := &discussion.Engine{Store: st, Talk: m, Step: step}
 	if progress != nil {
 		e.Progress = func(d model.Delta) { progress(d.Reasoning, d.Text) }
 	}
@@ -186,80 +175,6 @@ func open(cfg model.Config, sel workspace.Selection) (discussion.Model, error) {
 	}
 	return discussion.Model{Completer: client, Model: cfg.Model(sel.Provider, sel.Model),
 		Name: sel.Provider + "/" + sel.Model, Effort: model.Effort(sel.Effort)}, nil
-}
-
-// bookBackoff is the waits between the bookkeeper's attempts at a batch.
-var bookBackoff = []time.Duration{10 * time.Second, time.Minute}
-
-// bookkeeper builds the bookkeeper of st from the services on disk: it
-// runs on the worker's goroutine, which must not read what the interface's
-// thread changes. The bookkeeping model left empty is the discussion's.
-func (s *Service) bookkeeper(st *workspace.Store) (*discussion.Bookkeeper, error) {
-	work := st.Work()
-	sel := work.Bookkeeping
-	if sel.Provider == "" {
-		sel.Provider, sel.Model = work.Discussion.Provider, work.Discussion.Model
-	}
-	if sel.Provider == "" || sel.Model == "" {
-		return nil, errors.New("尚未选择模型")
-	}
-	cfg, err := model.Load(s.file)
-	if err != nil {
-		return nil, err
-	}
-	m, err := open(cfg, sel)
-	if err != nil {
-		return nil, err
-	}
-	return &discussion.Bookkeeper{Store: st, Model: m}, nil
-}
-
-// bookkeeping is the bookkeeper's worker as aiport has it.
-type bookkeeping struct {
-	*discussion.Worker
-	stop context.CancelFunc
-}
-
-func (b bookkeeping) Stop() { b.stop() }
-
-func (s *Service) Bookkeep(st *workspace.Store, changed func()) aiport.Bookkeeping {
-	ctx, stop := context.WithCancel(context.Background())
-	book := s.NewBookkeeper
-	w := discussion.NewWorker(func() (*discussion.Bookkeeper, error) {
-		if s.off.Load() {
-			return nil, ErrOff
-		}
-		return book(st)
-	}, bookBackoff, changed)
-	w.Log = bookLog(filepath.Join(st.Root(), ".writer", "bookkeeper.log"))
-	go w.Run(ctx)
-	w.Kick()
-	return bookkeeping{w, stop}
-}
-
-// bookLog appends the worker's lines to path, the newest last, keeping the
-// file short; it is for looking into a setting that does not fill.
-func bookLog(path string) func(string) {
-	return func(line string) {
-		b, _ := os.ReadFile(path)
-		lines := strings.Split(strings.TrimSpace(string(b)), "\n")
-		lines = append(lines, time.Now().Format("01-02 15:04:05 ")+line)
-		if len(lines) > 400 {
-			lines = lines[len(lines)-400:]
-		}
-		_ = os.WriteFile(path, []byte(strings.TrimSpace(strings.Join(lines, "\n"))+"\n"), 0644)
-	}
-}
-
-func (s *Service) Book(st *workspace.Store) (aiport.Book, error) {
-	if s.off.Load() {
-		return nil, ErrOff
-	}
-	b, err := s.NewBookkeeper(st)
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
 }
 
 // writer builds the writer of st with its writing model, or the

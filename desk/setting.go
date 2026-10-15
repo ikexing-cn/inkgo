@@ -1,11 +1,9 @@
 package desk
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"maps"
-	"math"
 	"os"
 	"path/filepath"
 	"slices"
@@ -184,7 +182,6 @@ func (a *App) settingPanel(c *ui.Context) {
 			}
 		}
 		ui.Spacer(c)
-		a.bookDot(c)
 		if iconButton(c, icPanel, "收起右栏", ui.Color{}).Tooltip("收起右栏").Clicked() {
 			a.setDocHidden(true)
 		}
@@ -241,7 +238,7 @@ func entryName(e workspace.Entry) (name, gist string) {
 	return clip(e.Names[0], 12), text
 }
 
-// ideas are what the bookkeeper suggests and the author has not decided,
+// ideas are what the AI suggests and the author has not decided,
 // and for each the settled entry it is about, if it is about one: the one
 // that shares a name with it, or whose name it says. With the AI off,
 // there are none.
@@ -304,7 +301,7 @@ func (a *App) settingList(c *ui.Context) {
 			gist = nearFind(gist, q)
 		}
 		b := a.paneRow(c.Key(e.ID), "设定-"+e.ID, name, gist, "", q, waiting[e.ID])
-		// One the bookkeeper just changed is tinted for a moment.
+		// One a talk just noted is tinted for a moment.
 		if at, ok := a.flash[e.ID]; ok {
 			if left := flashFor - time.Since(at); left > 0 {
 				b.Background(a.pal.ink.Alpha(0.2 * float32(left) / float32(flashFor)))
@@ -366,13 +363,13 @@ func (a *App) settingList(c *ui.Context) {
 }
 
 // asks tells whether e, waiting on the author, asks them something: the
-// bookkeeper writes a question with a question mark at its end.
+// AI writes a question with a question mark at its end.
 func asks(e workspace.Entry) bool {
 	text := strings.TrimSpace(e.Text)
 	return strings.HasSuffix(text, "？") || strings.HasSuffix(text, "?")
 }
 
-// idea is one thing the bookkeeper suggests, with what it is about when
+// idea is one thing the AI suggests, with what it is about when
 // about says, and the author's word on it: a question is not a setting to
 // take, its answer is.
 func (a *App) idea(c *ui.Context, e workspace.Entry, about string) {
@@ -453,7 +450,7 @@ func (a *App) droppedList(c *ui.Context) {
 }
 
 // entryPage is one entry: all it says, where it comes from, and what the
-// bookkeeper suggests about it.
+// AI suggests about it.
 func (a *App) entryPage(c *ui.Context, e workspace.Entry) {
 	d := &a.doc
 	from, act := "全部设定", "删除设定"
@@ -619,11 +616,10 @@ func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 	})
 }
 
-// history lists the revisions, newest first: what changed, who changed it,
-// and for the bookkeeper's, how it reasoned. A batch it could not take in
-// can be retried here. With the AI off, the bookkeeper's are not listed.
+// history lists the revisions, newest first: what changed and who
+// changed it; what a talk noted links to the talk. With the AI off, what
+// talks noted is not listed.
 func (a *App) history(c *ui.Context) {
-	t := a.pal.theme
 	if back, _ := a.paneBack(c, "全部设定", ""); back {
 		a.doc.history = false
 	}
@@ -634,54 +630,38 @@ func (a *App) history(c *ui.Context) {
 			shown := 0
 			for n := len(a.set.Revisions) - 1; n >= 0; n-- {
 				r := a.set.Revisions[n]
-				if r.By == workspace.ByBookkeeper && !a.aiOn() {
-					continue
+				if len(r.Ops) == 0 || r.By != workspace.ByAuthor && !a.aiOn() {
+					continue // the bookkeeper's that failed changed nothing
 				}
 				shown++
 				ui.Column(c.Key(r.ID)).FillWidth().Padding(10, 12).Gap(6).Radius(rCard).Background(a.pal.raised).Border(1, a.pal.line).Children(func() {
 					ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
 						who := "手动修改"
-						if r.By == workspace.ByBookkeeper {
-							who = "后台整理"
-							if r.Redo != "" {
-								who += "（重试）"
-							}
+						if r.By != workspace.ByAuthor {
+							who = "讨论"
 						}
 						ui.Text(c, who).FontSize(fsNote).FontWeight(600)
-						if m := a.replyLabel(r.Model, r.Effort); m != "" {
-							ui.Text(c, m).FontSize(fsSmall).TextColor(a.pal.faint).SingleLine().Ellipsis("…").Shrink(1)
-						}
 						ui.Spacer(c)
 						ui.Text(c, r.At.Local().Format("01-02 15:04")).FontSize(fsSmall).TextColor(a.pal.faint)
 					})
-					if r.Failed != "" {
-						ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Start).Children(func() {
-							glyph(c, icAlert, iconSm, t.Warning)
-							ui.Text(c, "最近几轮整理失败："+r.Failed).FontSize(fsNote).TextColor(t.Warning).Grow(1).Shrink(1)
-						})
-						if !a.set.Redone(r.ID) && a.pal.ghost(c, "重试", ui.Color{}).Label("重试整理-"+r.ID).Disabled(a.busy != "").Clicked() {
-							a.redo(c, r.ID)
-						}
-						return
-					}
-					if len(r.Ops) == 0 {
-						ui.Text(c, "无需修改").FontSize(fsNote).TextColor(t.TextMuted)
-					}
 					for _, op := range r.Ops {
 						ui.Text(c, a.describeOp(op)).FontSize(fsNote).LineHeight(lhBody).Selectable().FillWidth()
 					}
-					if len(r.Skipped) > 0 {
-						ui.Textf(c, "%d 处你刚改过，没有覆盖，放进了「待确认」", len(r.Skipped)).FontSize(fsNote).TextColor(t.TextMuted)
-					}
-					if r.Reasoning != "" {
-						a.thought(c, r.ID, "整理思考过程", r.Reasoning, false)
+					if r.By != workspace.ByAuthor {
+						if _, ok := a.titles[r.Session]; ok {
+							_, words := a.sessionParts(r.Session)
+							if a.paneLink(c, "记在「"+words+"」", "查看讨论", "讨论-"+r.ID) {
+								a.page = 0
+								a.switchSession(r.Session)
+							}
+						}
 					}
 				})
 			}
 			switch {
 			case shown > 0:
 			case a.aiOn():
-				a.paneNote(c, "暂无修改记录。讨论后，AI 会自动整理设定。")
+				a.paneNote(c, "暂无修改记录。讨论中 AI 记下的也列在这里。")
 			default:
 				a.paneNote(c, "暂无修改记录。")
 			}
@@ -711,67 +691,3 @@ func (a *App) describeOp(op workspace.Op) string {
 	}
 	return fmt.Sprintf("改归%s：%s", op.Category, text)
 }
-
-// redo retries a batch the bookkeeper could not take in.
-func (a *App) redo(c *ui.Context, failed string) {
-	book, err := a.ai.Book(a.Store)
-	if err != nil {
-		a.setError(err)
-		return
-	}
-	a.run(c, "正在重新整理…", func(ctx context.Context) (func(), error) {
-		return nil, book.Redo(ctx, failed)
-	})
-}
-
-// bookFailed reports whether the bookkeeper's latest batch failed and has
-// not been retried; a later batch that went through clears it.
-func (a *App) bookFailed() bool {
-	for n := len(a.set.Revisions) - 1; n >= 0; n-- {
-		if r := a.set.Revisions[n]; r.By == workspace.ByBookkeeper {
-			return r.Failed != "" && !a.set.Redone(r.ID)
-		}
-	}
-	return false
-}
-
-// bookDot is the one sign of the background bookkeeper: a dot that breathes
-// while it works and turns to a warning when its last batch failed. It
-// opens the history.
-func (a *App) bookDot(c *ui.Context) {
-	if !a.aiOn() {
-		return
-	}
-	busy := a.worker != nil && a.worker.Busy()
-	failed := !busy && a.bookFailed()
-	if !busy && !failed {
-		return
-	}
-	label, color := "正在整理设定", a.pal.ink
-	if failed {
-		label, color = "上次整理失败，点击查看", a.pal.theme.Warning
-	}
-	b := ui.ButtonBase(c).Label(label).Tooltip(label).Padding(8).Radius(rControl)
-	if b.Hovered() {
-		b.Background(a.pal.theme.SurfaceHover)
-	}
-	b.Children(func() {
-		d := dot(c, color, 7)
-		if busy {
-			phase := float64(time.Now().UnixMilli()%breath) / float64(breath)
-			d.Opacity(float32(0.3 + 0.7*(0.5+0.5*math.Cos(2*math.Pi*phase))))
-			c.After(breathStep)
-		}
-	})
-	if b.Clicked() {
-		a.setDocHidden(false)
-		a.doc.history, a.doc.fore, a.doc.talk = true, false, false
-	}
-}
-
-// The dot breathes once in breath, redrawn every breathStep: slow enough
-// not to pull the eye from the talk, and to cost next to nothing.
-const (
-	breath     = 1800
-	breathStep = 90 * time.Millisecond
-)

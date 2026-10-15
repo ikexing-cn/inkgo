@@ -1009,7 +1009,6 @@ func (a *App) writeTop(c *ui.Context) {
 			}
 		}
 		if a.doc.hidden && !w.focus {
-			a.bookDot(c)
 			if iconButton(c, icPanel, "展开右栏", ui.Color{}).Tooltip("展开右栏").Clicked() {
 				a.setDocHidden(false)
 			}

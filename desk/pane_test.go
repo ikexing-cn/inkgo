@@ -12,20 +12,20 @@ import (
 	"writer/workspace"
 )
 
-// paneIDs are the entries of paneFixture: two people, what the bookkeeper
+// paneIDs are the entries of paneFixture: two people, what a talk
 // suggests about one of them, and a suggestion about none.
 type paneIDs struct{ lin, zhou, about, fresh string }
 
 // paneFixture is the writing page of a work whose setting names two
-// people and a thing, with two suggestions of the bookkeeper's.
+// people and a thing, with two suggestions a talk noted.
 func paneFixture(t *testing.T) (*App, *ui.Tester, paneIDs) {
 	t.Helper()
 	a, tt, _ := writingFixture(t, "小祥把左手揣回兜里。\n林晚没有回头。")
 	u, _ := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "小祥是谁"})
 	add := func(by, place, category, text string, names ...string) string {
 		rev := workspace.Revision{By: by}
-		if by == workspace.ByBookkeeper {
-			rev.Session, rev.From, rev.Through = a.session, u.ID, u.ID
+		if by == workspace.ByTalk {
+			rev.Session, rev.Turn = a.session, u.ID
 		}
 		rev.Ops = []workspace.Op{{Op: workspace.OpAdd, Place: place, Category: category, Text: text, Names: names,
 			Sources: []workspace.Source{{Chapter: a.write.node, Quote: "小祥把左手揣回兜里。"}}}}
@@ -39,8 +39,8 @@ func paneFixture(t *testing.T) (*App, *ui.Tester, paneIDs) {
 	ids.lin = add(workspace.ByAuthor, workspace.PlaceBody, "人物", "主角，靠维修路灯谋生，但她很怕黑。", "林晚", "晚晚")
 	ids.zhou = add(workspace.ByAuthor, workspace.PlaceBody, "人物", "配角，林晚的同事。左手总揣在兜里，从来不拿出来。", "周祥", "小祥", "saki")
 	add(workspace.ByAuthor, workspace.PlaceBody, "物品", "一直挂在林晚脖子上，不知道开哪扇门。", "铜钥匙")
-	ids.about = add(workspace.ByBookkeeper, workspace.PlaceOpen, "人物", "“小祥”是顺口的叫法，谁都能喊；“saki”只有特定圈子里的人才用。")
-	ids.fresh = add(workspace.ByBookkeeper, workspace.PlaceOpen, workspace.Other, "第一章开头只交代了天气，人物和事件还没出现。")
+	ids.about = add(workspace.ByTalk, workspace.PlaceOpen, "人物", "“小祥”是顺口的叫法，谁都能喊；“saki”只有特定圈子里的人才用。")
+	ids.fresh = add(workspace.ByTalk, workspace.PlaceOpen, workspace.Other, "第一章开头只交代了天气，人物和事件还没出现。")
 	if err := a.refresh(); err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func paneFixture(t *testing.T) (*App, *ui.Tester, paneIDs) {
 }
 
 // The setting is a list of one-line rows; a row opens the page of its
-// entry, where what the bookkeeper suggests about it is decided.
+// entry, where what a talk suggests about it is decided.
 func TestSettingListAndPage(t *testing.T) {
 	a, tt, ids := paneFixture(t)
 	if !tt.HasText("待确认") || !tt.HasText("周祥") || !tt.HasText("物品") || tt.HasText("第一章开头只交代了天气，人物和事件还没出现。") {

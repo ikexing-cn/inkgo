@@ -3,6 +3,7 @@ package workspace
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -116,12 +117,12 @@ func TestOldWorksAreRefused(t *testing.T) {
 	}
 }
 
-// A work written when it had a budget of its own opens without it, and is
-// written back without it.
-func TestTheOldBudgetIsIgnored(t *testing.T) {
+// A work written when it had a budget of its own, or a model for the
+// bookkeeper, opens without them, and is written back without them.
+func TestTheOldBudgetAndBookkeeperAreIgnored(t *testing.T) {
 	s := testStore(t)
 	p := filepath.Join(s.Root(), "work.yaml")
-	putBytes(t, p, append(readBytes(t, p), "token_budget: 16000\n"...))
+	putBytes(t, p, append(readBytes(t, p), "token_budget: 16000\nbookkeeping:\n    provider: deepseek\n    model: deepseek-flash\n"...))
 	s.Close()
 	again, err := Open(s.Root())
 	if err != nil {
@@ -131,8 +132,46 @@ func TestTheOldBudgetIsIgnored(t *testing.T) {
 	if err := again.SaveWork(again.Work()); err != nil {
 		t.Fatal(err)
 	}
-	if bytes.Contains(readBytes(t, p), []byte("token_budget")) {
-		t.Fatal("the budget was written back")
+	if b := readBytes(t, p); bytes.Contains(b, []byte("token_budget")) || bytes.Contains(b, []byte("bookkeeping")) {
+		t.Fatal("the budget or the bookkeeper was written back")
+	}
+}
+
+// What the bookkeeper wrote before a talk noted the setting itself still
+// builds the setting: the work opens with its entries, and what failed is
+// read too. The bookkeeper writes no more.
+func TestTheBookkeepersRevisionsAreRead(t *testing.T) {
+	s := testStore(t)
+	session, err := s.NewSession()
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, err := s.Append(session, Event{Role: RoleUser, Text: "城市总在下雨。"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := filepath.Join(s.Root(), "setting.jsonl")
+	lines := fmt.Sprintf(`{"schema":2,"id":"20261010-1200-aaaa","at":"2026-10-10T12:00:00Z","by":"bookkeeper","ops":[{"op":"add","entry":"20261010-1200-bbbb","place":"body","category":"规则","text":"城市总在下雨","sources":[{"session":%q,"message":%q,"quote":"城市总在下雨"}]}],"base":0,"skipped":[],"session":%q,"from":%q,"through":%q,"model":"deepseek/deepseek-flash","effort":"low","reasoning":"作者定了雨"}
+{"schema":2,"id":"20261010-1201-cccc","at":"2026-10-10T12:01:00Z","by":"bookkeeper","ops":[],"session":%q,"from":%q,"through":%q,"redo":"","failed":"超时"}
+`, session, u.ID, session, u.ID, u.ID, session, u.ID, u.ID)
+	putBytes(t, p, append(readBytes(t, p), lines...))
+	s.Close()
+	again, err := Open(s.Root())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer again.Close()
+	set, err := again.Setting()
+	if err != nil || len(set.Entries) != 1 || set.Entries[0].Text != "城市总在下雨" || len(set.Revisions) != 2 {
+		t.Fatalf("%v %+v", err, set)
+	}
+	if _, err := again.Revise(Revision{By: ByBookkeeper, Session: session, Ops: []Op{{Op: OpAdd, Place: PlaceBody, Category: "规则", Text: "雨"}}}); err == nil {
+		t.Fatal("the bookkeeper wrote")
+	}
+	// Only the bookkeeper's keep what it recorded beside its ops.
+	putBytes(t, p, bytes.Replace(readBytes(t, p), []byte(`"by":"bookkeeper","ops":[]`), []byte(`"by":"author","ops":[]`), 1))
+	if _, err := again.Setting(); err == nil || !strings.Contains(err.Error(), "unknown field") {
+		t.Fatalf("the author's revision kept a batch: %v", err)
 	}
 }
 
@@ -185,11 +224,11 @@ func TestRevisionsCheckOpsAndSources(t *testing.T) {
 	u := mustEvent(t, s, session, Event{Role: RoleUser, Text: "主角怕黑🙂，却修路灯"})
 	a := mustEvent(t, s, session, Event{Role: RoleAssistant, Text: "可以让她绕路回家", ReplyTo: u.ID})
 	src := Source{Session: session, Message: u.ID, Quote: "主角怕黑🙂"}
-	add := mustRevise(t, s, Revision{By: ByBookkeeper, Session: session, From: u.ID, Through: a.ID,
-		Ops: []Op{{Op: OpAdd, Place: PlaceBody, Category: "人物", Text: "主角怕黑", Sources: []Source{src}}}, Model: "deepseek/deepseek-flash", Effort: "high", Reasoning: "她说的"})
+	add := mustRevise(t, s, Revision{By: ByTalk, Session: session, Turn: u.ID,
+		Ops: []Op{{Op: OpAdd, Place: PlaceBody, Category: "人物", Text: "主角怕黑", Sources: []Source{src}}}, Model: "deepseek/deepseek-flash", Effort: "high"})
 	id := add.Ops[0].Entry
 	if e := entry(t, s, id); e.Author || e.Sources[0] != src {
-		t.Fatalf("bookkeeper's entry: %+v", e)
+		t.Fatalf("the talk's entry: %+v", e)
 	}
 	for _, tc := range []struct {
 		name string
@@ -202,9 +241,11 @@ func TestRevisionsCheckOpsAndSources(t *testing.T) {
 		{"edit moves", Revision{By: ByAuthor, Ops: []Op{{Op: OpEdit, Entry: id, Text: "x", Place: PlaceOpen}}}},
 		{"empty move", Revision{By: ByAuthor, Ops: []Op{{Op: OpMove, Entry: id}}}},
 		{"no ops", Revision{By: ByAuthor}},
-		{"failed with ops", Revision{By: ByBookkeeper, Session: session, From: u.ID, Through: a.ID, Failed: "超时", Ops: []Op{{Op: OpMove, Entry: id, Place: PlaceOpen}}}},
-		{"redo of nothing", Revision{By: ByBookkeeper, Session: session, From: u.ID, Through: a.ID, Redo: add.ID}},
-		{"through unknown", Revision{By: ByBookkeeper, Session: session, From: u.ID, Through: NewID()}},
+		{"the author's with a model", Revision{By: ByAuthor, Model: "deepseek/deepseek-flash", Ops: []Op{{Op: OpMove, Entry: id, Place: PlaceOpen}}}},
+		{"a talk's with no turn", Revision{By: ByTalk, Session: session, Ops: []Op{{Op: OpMove, Entry: id, Place: PlaceOpen}}}},
+		{"a talk's turn unknown", Revision{By: ByTalk, Session: session, Turn: NewID(), Ops: []Op{{Op: OpMove, Entry: id, Place: PlaceOpen}}}},
+		{"a talk's turn a reply", Revision{By: ByTalk, Session: session, Turn: a.ID, Ops: []Op{{Op: OpMove, Entry: id, Place: PlaceOpen}}}},
+		{"a talk's with nothing", Revision{By: ByTalk, Session: session, Turn: u.ID}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if _, err := s.Revise(tc.r); err == nil {
@@ -215,40 +256,6 @@ func TestRevisionsCheckOpsAndSources(t *testing.T) {
 	mustRevise(t, s, Revision{By: ByAuthor, Ops: []Op{{Op: OpEdit, Entry: id, Text: "主角怕黑，但不说"}}})
 	if e := entry(t, s, id); !e.Author || e.Text != "主角怕黑，但不说" || e.Rev != 2 {
 		t.Fatalf("author's edit: %+v", e)
-	}
-	set, err := s.Setting()
-	if err != nil || set.Processed(session, []Event{u, a}) != 2 {
-		t.Fatalf("processed: %v", err)
-	}
-	failed := mustRevise(t, s, Revision{By: ByBookkeeper, Session: session, From: u.ID, Through: a.ID, Failed: "超时"})
-	mustRevise(t, s, Revision{By: ByBookkeeper, Session: session, From: u.ID, Through: a.ID, Redo: failed.ID})
-	if set, _ = s.Setting(); !set.Redone(failed.ID) {
-		t.Fatal("a successful redo does not count")
-	}
-}
-
-// What the author changed while the bookkeeper worked stands: its ops on
-// that entry are skipped and become open entries.
-func TestBookkeeperDefersToTheAuthorsConcurrentEdit(t *testing.T) {
-	s := testStore(t)
-	session := mustSession(t, s)
-	u := mustEvent(t, s, session, Event{Role: RoleUser, Text: "雨从不停"})
-	first := mustRevise(t, s, Revision{By: ByAuthor, Ops: []Op{{Op: OpAdd, Place: PlaceBody, Category: "规则", Text: "雨从不停"}, {Op: OpAdd, Place: PlaceBody, Category: "规则", Text: "晴天是传说"}}})
-	rain, sun := first.Ops[0].Entry, first.Ops[1].Entry
-	mustRevise(t, s, Revision{By: ByAuthor, Ops: []Op{{Op: OpEdit, Entry: rain, Text: "雨每年停一天"}}})
-	r := mustRevise(t, s, Revision{By: ByBookkeeper, Base: 1, Session: session, From: u.ID, Through: u.ID,
-		Ops: []Op{{Op: OpEdit, Entry: rain, Text: "雨从不停，连一天也不停"}, {Op: OpMove, Entry: sun, Place: PlaceOpen}}})
-	if len(r.Skipped) != 1 || r.Skipped[0].Entry != rain || len(r.Ops) != 2 || r.Ops[0].Op != OpAdd || r.Ops[0].Place != PlaceOpen {
-		t.Fatalf("revision: %+v", r)
-	}
-	if e := entry(t, s, rain); e.Text != "雨每年停一天" {
-		t.Fatalf("the author's edit was overwritten: %+v", e)
-	}
-	if e := entry(t, s, sun); e.Place != PlaceOpen {
-		t.Fatalf("an untouched entry was not moved: %+v", e)
-	}
-	if e := entry(t, s, r.Ops[0].Entry); !strings.Contains(e.Text, "雨从不停，连一天也不停") {
-		t.Fatalf("open entry: %+v", e)
 	}
 }
 
@@ -409,14 +416,39 @@ func TestModelOutputKeepsReasoningForReview(t *testing.T) {
 	if _, err = s.Append(session, Event{Role: RoleAssistant, Text: "x", ReplyTo: user.ID, Effort: "medium"}); err == nil {
 		t.Fatal("accepted an effort not offered")
 	}
+	// A step of a reply calls tools and each call's result names it; the
+	// author's words and a reply call none.
+	call := Call{ID: "call_1", Name: "search_book", Input: []byte(`{"query":"井"}`), Label: "搜了全书「井」"}
+	for _, bad := range []Event{
+		{Role: RoleCall, Calls: []Call{call}},
+		{Role: RoleCall, ReplyTo: user.ID},
+		{Role: RoleCall, ReplyTo: user.ID, Calls: []Call{{ID: "c", Name: "x", Input: []byte("{")}}},
+		{Role: RoleResult, ReplyTo: user.ID, Text: "x"},
+		{Role: RoleUser, Text: "x", Calls: []Call{call}},
+		{Role: RoleAssistant, Text: "x", ReplyTo: user.ID, Call: "call_1"},
+		{Role: RoleResult, ReplyTo: user.ID, Call: "call_1", Capped: true},
+	} {
+		if _, err = s.Append(session, bad); err == nil {
+			t.Errorf("accepted %+v", bad)
+		}
+	}
+	if _, err = s.Append(session, Event{Role: RoleCall, ReplyTo: user.ID, Calls: []Call{call}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.Append(session, Event{Role: RoleResult, ReplyTo: user.ID, Call: "call_1", Text: "第一章第 2 段", Failed: true}); err != nil {
+		t.Fatal(err)
+	}
+	if events, err = s.Events(session); err != nil || events[len(events)-2].Calls[0].Label != call.Label || !events[len(events)-1].Failed {
+		t.Fatalf("the calls were not kept: %+v %v", events, err)
+	}
 	w := s.Work()
 	w.Discussion = Selection{Provider: "deepseek", Model: "deepseek-flash", Effort: "high"}
-	w.Bookkeeping = Selection{Effort: "low"}
+	w.Writing = Selection{Effort: "low"}
 	if err = s.SaveWork(w); err != nil {
 		t.Fatal(err)
 	}
-	if s.Work().Bookkeeping.Effort != "low" {
-		t.Fatal("bookkeeping effort lost")
+	if s.Work().Writing.Effort != "low" {
+		t.Fatal("writing effort lost")
 	}
 	w.Discussion.Effort = "xhigh"
 	if err = s.SaveWork(w); err == nil {
@@ -490,8 +522,8 @@ func TestAnAnswerTakesTheQuestionsPlace(t *testing.T) {
 		}
 	}
 	open := []Entry{{ID: "q", Place: PlaceOpen, Category: Other, Text: q}}
-	if _, err := applyOps(open, Revision{By: ByBookkeeper, Ops: []Op{{Op: OpAnswer, Entry: "q", Category: Other, Text: "x"}}}, 1); err == nil {
-		t.Error("the bookkeeper answered")
+	if _, err := applyOps(open, Revision{By: ByTalk, Ops: []Op{{Op: OpAnswer, Entry: "q", Category: Other, Text: "x"}}}, 1); err == nil {
+		t.Error("a talk answered")
 	}
 	if _, err := applyOps(open, Revision{By: ByAuthor, Ops: []Op{{Op: OpAnswer, Entry: "q", Category: Other}}}, 1); err == nil {
 		t.Error("an answer without text")

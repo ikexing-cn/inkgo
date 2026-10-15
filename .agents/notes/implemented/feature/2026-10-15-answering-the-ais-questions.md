@@ -14,7 +14,7 @@ Status: implemented
 - **按钮**：提问下面是「忽略」「回答」，别的建议仍是「忽略」「采纳」。「回答」打开新增设定那张表，标题「回答」，下面一行是问题，返回写「待确认」，分类取问题的分类，光标在「内容」。
 - **落盘：新操作 `answer`**（`workspace.OpAnswer`）。`Entry` 是那条提问，`Text`、`Category`、`Names` 是答案。应用时那一条就地变成答案：`Text` 换成答案，原来的问题记进 `Entry.Asked`，`Place` 变 `body`，`Author` 置上。只有作者的修订能用，只能答 `open` 的条目，要有内容和分类，不带 `Sources`。修改记录里写「新增到正文 · 分类：答案」，和原型一样。
 - **条目页**：有 `Asked` 的，正文下面一行「回答：问题」。
-- **记账员**：给它看的条目带 `asked`；规则加一句：AI 问作者、答案会定下故事内容、作者还没回答的，放 `open`，写成以「？」结尾的问句；条目里有 `asked` 的不要再问。
+- **记账员**：给它看的条目带 `asked`；规则加一句：AI 问作者、答案会定下故事内容、作者还没回答的，放 `open`，写成以「？」结尾的问句；条目里有 `asked` 的不要再问。2026-10-15 起记账员去掉了，这条规则搬进了讨论规则的「记设定」，AI 在下一轮记下自己问过的问题（见[讨论用工具查全书、当场记设定](2026-10-15-talk-looks-up-and-notes-the-setting.md)）。讨论看到的设定只有条目文字，不带 `asked`：答过的问题已经是正文里的答案。
 
 ## Alternatives considered
 
@@ -36,6 +36,6 @@ Status: implemented
 
 ## Verification
 
-- `TestAnAnswerTakesTheQuestionsPlace`（`workspace`）：答完那一条在 `body`，内容是答案，`Asked` 是问题，`Author` 为真；答正文里的、答过的、不存在的都拒绝；记账员的修订、没有内容的答案拒绝。
+- `TestAnAnswerTakesTheQuestionsPlace`（`workspace`）：答完那一条在 `body`，内容是答案，`Asked` 是问题，`Author` 为真；答正文里的、答过的、不存在的都拒绝；讨论的修订（原来是记账员的）、没有内容的答案拒绝。
 - `TestAQuestionIsAnswered`（`desk`）：问句下面是「回答」不是「采纳」；点了出「回答」表、问题、光标在「设定内容」；存了以后条目变成答案并记着问题，回到「待确认」还剩两条；条目页有「回答：问题」。
 - `npm run verify-prototype`：右栏待确认里点「回答」、存、条目页有「回答：…」，没有待确认时回到全部设定。

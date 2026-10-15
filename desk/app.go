@@ -19,11 +19,13 @@ type result struct {
 	err   error
 }
 
-// live is what the reply in flight has streamed so far. The worker writes
-// it as output arrives; the view reads it each frame.
+// live is what the reply in flight has streamed so far, and the events it
+// wrote looking things up. The worker writes it as output arrives; the view
+// reads it each frame.
 type live struct {
 	mu              sync.Mutex
 	reasoning, text strings.Builder
+	steps           []workspace.Event
 }
 
 func (l *live) add(reasoning, text string) {
@@ -33,10 +35,19 @@ func (l *live) add(reasoning, text string) {
 	l.text.WriteString(text)
 }
 
-func (l *live) read() (reasoning, text string) {
+func (l *live) step(e workspace.Event) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	return l.reasoning.String(), l.text.String()
+	l.steps = append(l.steps, e)
+	// What a step said before its calls is not the reply: the reply is
+	// what streams after the last of them.
+	l.text.Reset()
+}
+
+func (l *live) read() (reasoning, text string, steps []workspace.Event) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.reasoning.String(), l.text.String(), l.steps
 }
 
 func (l *live) reset() {
@@ -44,9 +55,10 @@ func (l *live) reset() {
 	defer l.mu.Unlock()
 	l.reasoning.Reset()
 	l.text.Reset()
+	l.steps = nil
 }
 
-// flashFor is how long an entry the bookkeeper just changed stays tinted.
+// flashFor is how long an entry a talk just noted stays tinted.
 const flashFor = 3 * time.Second
 
 type App struct {
@@ -112,34 +124,31 @@ type App struct {
 	pending           string // the author's words while their turn is in flight
 	// Prose the author quoted for their next turn, and whether the talk
 	// beside the prose should take the keyboard.
-	quotes                  []workspace.Quote
-	focusTalk               bool
-	cancel                  context.CancelFunc
-	results                 chan result
-	picks                   chan func()
-	chat                    ui.ListState
-	rows                    []int // the chat list's: event indexes, -1 the empty chat, -2 the turn in flight
-	providerID              string
-	provider                aiport.Provider
-	key                     string
-	limits                  []limitRow // the models of the service in the form
-	limitKeys               int
-	talkProvider, talkModel string
-	bookProvider, bookModel string
-	categoryName            string
-	categoryTarget          string
-	removeCategory          string
-	talkEffort, bookEffort  string
-	penProvider, penModel   string
-	penEffort               string
-	live                    live
-	md                      mdCache
-	thoughts                map[string]*bool // reasoning shown, by event or revision ID
-	doc                     docView
-	write                   writeView
-	// The bookkeeper of the open work, running in the background.
-	worker                           aiport.Bookkeeping
-	changes                          chan struct{} // the worker wrote a revision
+	quotes                           []workspace.Quote
+	focusTalk                        bool
+	cancel                           context.CancelFunc
+	results                          chan result
+	picks                            chan func()
+	chat                             ui.ListState
+	rows                             []int // the chat list's: event indexes, -1 the empty chat, -2 the turn in flight
+	providerID                       string
+	provider                         aiport.Provider
+	key                              string
+	limits                           []limitRow // the models of the service in the form
+	limitKeys                        int
+	talkProvider, talkModel          string
+	categoryName                     string
+	categoryTarget                   string
+	removeCategory                   string
+	talkEffort                       string
+	penProvider, penModel            string
+	penEffort                        string
+	live                             live
+	md                               mdCache
+	thoughts                         map[string]*bool // reasoning shown, by event or revision ID
+	doc                              docView
+	write                            writeView
+	changes                          chan struct{} // the talk noted the setting
 	LastChat, LastSetting, LastWrite ui.Rect
 	// Appearance applies the appearance chosen: "light", "dark", or empty
 	// to follow the system. cmd/poc hands it to the window.
@@ -181,7 +190,6 @@ func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 		a.backupNow()
 		a.stopSummaries()
 		a.stopChecks()
-		a.halt()
 		a.Store.Close()
 	}
 	a.Store, a.path = s, path
@@ -222,7 +230,6 @@ func (a *App) closeWork() {
 	a.backupNow()
 	a.stopSummaries()
 	a.stopChecks()
-	a.halt()
 	a.setError(a.Store.Close())
 	a.Store = nil
 	a.path, a.name = "", ""
@@ -240,7 +247,6 @@ func (a *App) Close() error {
 	if a.Store != nil {
 		a.backupNow()
 	}
-	a.halt()
 	// Window shutdown exits the process. A cancelled worker may still be
 	// saving what it already has, so leave the store open for it.
 	if a.Store != nil && a.busy == "" {
@@ -305,51 +311,38 @@ func clip(s string, n int) string {
 }
 
 // talk is the discussion of the open work with the model it selects,
-// streaming the reply into the view, and what the author is writing
-// beside it.
+// streaming the reply into the view with what it looks up on the way, and
+// what the author is writing beside it. What it notes in the setting
+// shows at once.
 func (a *App) talk(c *ui.Context) (aiport.Talk, error) {
 	a.live.reset()
 	sv := c.Services()
 	return a.ai.Talk(a.Store, a.beside(), func(reasoning, text string) {
 		a.live.add(reasoning, text)
 		sv.Invalidate()
-	})
+	}, func(e workspace.Event) { a.stepped(sv, e) })
 }
 
-// startWorker runs the bookkeeper of the open work in the background.
-func (a *App) startWorker(c *ui.Context) {
-	sv := c.Services()
-	a.worker = a.ai.Bookkeep(a.Store, func() {
+// stepped hears an event the reply in flight wrote on its way, off the
+// interface's thread: what it looked up shows as it goes, and what it
+// noted in the setting at once.
+func (a *App) stepped(sv ui.Services, e workspace.Event) {
+	a.live.step(e)
+	if e.Revision != "" {
 		select {
 		case a.changes <- struct{}{}:
 		default:
 		}
-		sv.Invalidate()
-	})
-}
-
-// kick has the bookkeeper look for turns to take in.
-func (a *App) kick() {
-	if a.worker != nil {
-		a.worker.Kick()
 	}
+	sv.Invalidate()
 }
 
-// halt stops the bookkeeper: what it has not written is taken in when the
-// work opens again.
-func (a *App) halt() {
-	if a.worker != nil {
-		a.worker.Stop()
-	}
-	a.worker = nil
-}
-
-// flashNew tints the entries the bookkeeper changed since the view last
-// looked; the revisions there were when the work opened are not news.
+// flashNew tints the entries a talk noted since the view last looked; the
+// revisions there were when the work opened are not news.
 func (a *App) flashNew() {
 	if a.seen >= 0 {
 		for _, e := range a.set.Entries {
-			if e.Rev > a.seen && a.set.Revisions[e.Rev-1].By == workspace.ByBookkeeper {
+			if e.Rev > a.seen && a.set.Revisions[e.Rev-1].By == workspace.ByTalk {
 				a.flash[e.ID] = time.Now()
 			}
 		}
@@ -359,8 +352,7 @@ func (a *App) flashNew() {
 
 // All state visible to the view is changed on the view thread. Workers own the
 // store until their result arrives; navigation/mutations are disabled meanwhile.
-// What runs this way is the AI's: the talk, the bookkeeper's retry and the
-// list of models.
+// What runs this way is the AI's: the talk and the list of models.
 func (a *App) run(c *ui.Context, label string, fn func(context.Context) (func(), error)) {
 	a.work(c.Services(), label, fn)
 }
@@ -413,7 +405,6 @@ func (a *App) poll() {
 		if err := a.refresh(); err != nil {
 			a.Error = err.Error()
 		}
-		a.kick() // a turn may have been saved
 	default:
 	}
 }
@@ -430,10 +421,6 @@ func (a *App) loadWork() {
 	w := a.Store.Work()
 	a.talkProvider = w.Discussion.Provider
 	a.talkModel = w.Discussion.Model
-	a.bookProvider = w.Bookkeeping.Provider
-	a.bookModel = w.Bookkeeping.Model
 	a.talkEffort = w.Discussion.Effort
-	a.bookEffort = w.Bookkeeping.Effort
 	a.penProvider, a.penModel, a.penEffort = w.Writing.Provider, w.Writing.Model, w.Writing.Effort
-	a.kick() // the models may have changed
 }

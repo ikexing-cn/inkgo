@@ -264,6 +264,12 @@ func (a *App) paneNote(c *ui.Context, text string) {
 // paneWhere is a line that says where in the book something is, and the
 // link that opens it there.
 func (a *App) paneWhere(c *ui.Context, text, label string) (clicked bool) {
+	return a.paneLink(c, text, "查看原文", label)
+}
+
+// paneLink is a line that says where something is, and the link see that
+// opens it; label names the link, and empty leaves it out.
+func (a *App) paneLink(c *ui.Context, text, see, label string) (clicked bool) {
 	t := a.pal.theme
 	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, text).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
@@ -275,7 +281,7 @@ func (a *App) paneWhere(c *ui.Context, text, label string) (clicked bool) {
 		if b.Hovered() {
 			fg = t.AccentHover
 		}
-		b.Children(func() { ui.Text(c, "查看原文").FontSize(fsNote).TextColor(fg).SingleLine() })
+		b.Children(func() { ui.Text(c, see).FontSize(fsNote).TextColor(fg).SingleLine() })
 		clicked = b.Clicked()
 	})
 	return clicked

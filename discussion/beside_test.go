@@ -61,9 +61,9 @@ func TestTalkBesideTheProse(t *testing.T) {
 	}
 }
 
-// Words the bookkeeper quotes from prose the author quoted name its
-// chapter, and stay a source in the message after the chapter changes.
-func TestBookkeeperQuotesTheProseQuoted(t *testing.T) {
+// Words a note quotes from prose the author quoted name its chapter, and
+// stay a source in the message after the chapter changes.
+func TestNoteQuotesTheProseQuoted(t *testing.T) {
 	e, session := setup(t)
 	id, err := e.Store.NewChapter("", "第一章", false)
 	if err != nil {
@@ -77,20 +77,12 @@ func TestBookkeeperQuotesTheProseQuoted(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = e.Store.Append(session, workspace.Event{Role: workspace.RoleAssistant, Text: "记下了。", ReplyTo: u.ID}); err != nil {
-		t.Fatal(err)
-	}
 	if _, err = e.Store.WriteChapter(id, "她改了。", nil); err != nil {
 		t.Fatal(err)
 	}
-	b, f := book(e, ops(
-		map[string]any{"op": "add", "place": "body", "category": "人物", "text": "她怕黑，从不在夜里出门", "sources": []map[string]string{{"msg": "m1", "quote": "她从不在夜里出门"}, {"msg": "m1", "quote": "这说明她怕黑"}}},
-	))
-	if did, err := b.Run(context.Background(), session); err != nil || !did {
-		t.Fatal(did, err)
-	}
-	if !strings.Contains(f.calls[0].Messages[0].Content, "【引用正文《第一章》】") {
-		t.Fatal("the bookkeeper did not see the quote")
+	box := &toolbox{store: e.Store, session: session, turn: u.ID, model: Model{Name: "deepseek/deepseek-flash"}}
+	if out := box.note(input{Op: "add", Place: "body", Category: "人物", Text: "她怕黑，从不在夜里出门", Sources: []string{"她从不在夜里出门", "这说明她怕黑"}}); out.failed {
+		t.Fatal(out.text)
 	}
 	src := setting(t, e).Entries[0].Sources
 	if len(src) != 2 || src[0].Chapter != id || src[0].Message != u.ID || src[1].Chapter != "" {

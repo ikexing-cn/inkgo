@@ -13,7 +13,6 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/ai"
-	"writer/discussion"
 	"writer/model"
 	"writer/workspace"
 )
@@ -152,95 +151,105 @@ func TestTheAuthorEditsTheSetting(t *testing.T) {
 	}
 	for _, r := range a.set.Revisions {
 		if r.By != workspace.ByAuthor {
-			t.Fatal("an author's change recorded as the bookkeeper's")
+			t.Fatal("an author's change recorded as a talk's")
 		}
 	}
 }
 
-// The bookkeeper works in the background: a turn saved brings the setting
-// up to date without the author doing anything, and what it changed is
-// tinted for a moment.
-func TestBookkeeperFillsTheSettingInTheBackground(t *testing.T) {
+// A reply looks things up and notes the setting on its way: what it
+// noted shows at once, tinted, and the reply folds above it what it looked
+// up, open while it looks. The history says the talk noted it and goes
+// back to the talk.
+func TestTalkNotesTheSettingAsItReplies(t *testing.T) {
 	a, tt, _ := fixture(t)
-	f := &answer{replies: []string{`{"ops":[{"op":"add","place":"body","category":"规则","text":"雨从不停","sources":[{"msg":"m1","quote":"雨从不停"}]}]}`}}
-	aiOf(a).NewBookkeeper = func(s *workspace.Store) (*discussion.Bookkeeper, error) {
-		return &discussion.Bookkeeper{Store: s, Model: discussion.Model{Model: model.Builtin("deepseek-flash"), Completer: f, Name: "deepseek/deepseek-flash"}}, nil
-	}
-	a.halt() // the next frame starts one with the bookkeeper above
-	tt.Frame()
 	var c *ui.Context
 	tt = ui.NewTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
+	tt.SetPreferences(ui.Preferences{ReduceMotion: true}) // the fold opens at once
 	tt.Frame()
-	// A turn saved the way a send saves it; nothing else wakes the bookkeeper.
-	a.run(c, "AI 正在思考…", func(context.Context) (func(), error) {
-		u, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "这座城市雨从不停。"})
-		if err == nil {
-			_, err = a.Store.Append(a.session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "好"})
+	session := a.session
+	block := make(chan struct{})
+	var rev workspace.Revision
+	var reply workspace.Event
+	sv := c.Services()
+	a.pending = "这座城市雨从不停。"
+	a.run(c, "AI 正在思考", func(context.Context) (func(), error) {
+		// What the engine writes, in its order, the way a reply writes it.
+		u, err := a.Store.Append(session, workspace.Event{Role: workspace.RoleUser, Text: "这座城市雨从不停。"})
+		if err != nil {
+			return nil, err
 		}
+		call, err := a.Store.Append(session, workspace.Event{Role: workspace.RoleCall, ReplyTo: u.ID, Calls: []workspace.Call{
+			{ID: "c1", Name: "search_book", Input: []byte(`{"query":"雨"}`), Label: "搜了全书「雨」"},
+			{ID: "c2", Name: "note_setting", Input: []byte(`{"op":"add"}`), Label: "记下：正文 · 规则：雨从不停"},
+		}})
+		if err != nil {
+			return nil, err
+		}
+		a.stepped(sv, call)
+		found, err := a.Store.Append(session, workspace.Event{Role: workspace.RoleResult, ReplyTo: u.ID, Call: "c1", Text: "全书的正文里没有「雨」。"})
+		if err != nil {
+			return nil, err
+		}
+		a.stepped(sv, found)
+		if rev, err = a.Store.Revise(workspace.Revision{By: workspace.ByTalk, Session: session, Turn: u.ID, Model: "deepseek/deepseek-flash", Ops: []workspace.Op{
+			{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "规则", Text: "雨从不停", Sources: []workspace.Source{{Session: session, Message: u.ID, Quote: "雨从不停"}}},
+		}}); err != nil {
+			return nil, err
+		}
+		noted, err := a.Store.Append(session, workspace.Event{Role: workspace.RoleResult, ReplyTo: u.ID, Call: "c2", Text: "已记下，编号 2：正文 · 规则：雨从不停", Revision: rev.ID})
+		if err != nil {
+			return nil, err
+		}
+		a.stepped(sv, noted)
+		<-block
+		reply, err = a.Store.Append(session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "那就让雨一直下。"})
 		return nil, err
 	})
+	a.talking = true
+	until(t, tt, "the note", func() bool { return len(a.set.Entries) == 2 })
+	if _, ok := a.flash[a.set.Entries[1].ID]; !ok || !tt.HasText("雨从不停") {
+		t.Fatal("what the talk noted is not shown and tinted", tt.Texts())
+	}
+	if !tt.HasText("正在查阅…") || !tt.HasText("全书的正文里没有「雨」。") {
+		t.Fatal("what the reply looks up is not open as it looks", tt.Texts())
+	}
+	close(block)
 	settle(t, a, tt)
-	deadline := time.Now().Add(3 * time.Second)
-	for len(a.set.Entries) < 2 && time.Now().Before(deadline) {
-		time.Sleep(5 * time.Millisecond)
-		tt.Frame()
+	a.talking = false
+	tt.Frame()
+	if !tt.HasText("那就让雨一直下。") || !tt.HasText("搜了全书「雨」，记下：正文 · 规则：雨从不停") || tt.HasText("全书的正文里没有「雨」。") || !tt.HasText("2 条发言") {
+		t.Fatal("the reply does not fold what it looked up", tt.Texts())
 	}
-	if len(a.set.Entries) != 2 || !tt.HasText("雨从不停") {
-		t.Fatalf("setting %+v %q", a.set.Entries, a.Error)
-	}
-	if _, ok := a.flash[a.set.Entries[1].ID]; !ok {
-		t.Fatal("the bookkeeper's change is not tinted")
-	}
-	if err := tt.Click("更多"); err != nil {
+	if err := tt.Click("搜了全书「雨」，记下：正文 · 规则：雨从不停"); err != nil {
 		t.Fatal(err)
 	}
-	if err := pick(tt, "修改记录"); err != nil {
-		t.Fatal(err, rows(tt))
+	tt.Frame()
+	if !tt.HasText("全书的正文里没有「雨」。") {
+		t.Fatal("the fold does not open", tt.Texts())
+	}
+	if err := tt.Click(fmt.Sprintf("查看设定-look-%s-1", reply.ID)); err != nil {
+		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("后台整理") || !tt.HasText("新增到正文 · 规则：雨从不停") || !tt.HasText("整理思考过程") {
+	if a.doc.shown != a.set.Entries[1].ID {
+		t.Fatal("the link does not open what was noted")
+	}
+	a.doc.shown, a.doc.history = "", true
+	tt.Frame()
+	if !tt.HasText("讨论") || !tt.HasText("新增到正文 · 规则：雨从不停") || !tt.HasText("记在「这座城市雨从不停。」") {
 		t.Fatal("history", tt.Texts())
 	}
-}
-
-// A batch the bookkeeper could not take in shows in the history only, with
-// a retry.
-func TestFailedBookkeepingShowsInHistory(t *testing.T) {
-	a, tt, _ := fixture(t)
-	u, _ := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "雨从不停。"})
-	r, _ := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "好"})
-	failed, err := a.Store.Revise(workspace.Revision{By: workspace.ByBookkeeper, Session: a.session, From: u.ID, Through: r.ID, Failed: "服务暂时不可用"})
+	other, err := a.Store.NewSession()
 	if err != nil {
 		t.Fatal(err)
 	}
-	a.setError(a.refresh())
+	a.switchSession(other)
 	tt.Frame()
-	if tt.HasText("最近几轮整理失败：服务暂时不可用") {
-		t.Fatal("a failure shows outside the history")
-	}
-	a.doc.hidden = true
-	tt.Frame()
-	if err = tt.Click("上次整理失败，点击查看"); err != nil {
-		t.Fatal("no sign of the failure", err)
-	}
-	tt.Frame()
-	if !a.doc.history || a.doc.hidden || !tt.HasText("最近几轮整理失败：服务暂时不可用") {
-		t.Fatal("history", tt.Texts())
-	}
-	f := &answer{replies: []string{`{"ops":[]}`}}
-	aiOf(a).NewBookkeeper = func(s *workspace.Store) (*discussion.Bookkeeper, error) {
-		return &discussion.Bookkeeper{Store: s, Model: discussion.Model{Model: model.Builtin("deepseek-flash"), Completer: f}}, nil
-	}
-	if err = tt.Click("重试整理-" + failed.ID); err != nil {
+	if err := tt.Click("讨论-" + rev.ID); err != nil {
 		t.Fatal(err)
 	}
-	settle(t, a, tt)
-	if !a.set.Redone(failed.ID) || a.Error != "" {
-		t.Fatalf("redo %q", a.Error)
-	}
-	tt.Frame()
-	if _, ok := tt.Find("上次整理失败，点击查看"); ok {
-		t.Fatal("the sign outlived the retry")
+	if a.session != session || a.page != 0 {
+		t.Fatal("the link does not go back to the talk")
 	}
 }
 
@@ -364,7 +373,7 @@ func TestIncompleteFormsExplainInChinese(t *testing.T) {
 		if err == nil {
 			t.Fatalf("%s: accepted", name)
 		}
-		for _, field := range []string{"discussion:", "bookkeeping:", "categories:"} {
+		for _, field := range []string{"discussion:", "writing:", "categories:"} {
 			if strings.Contains(err.Error(), field) {
 				t.Fatalf("%s: store error leaked: %v", name, err)
 			}
@@ -372,17 +381,17 @@ func TestIncompleteFormsExplainInChinese(t *testing.T) {
 	}
 	was := a.Store.Work()
 	a.talkProvider, a.talkModel = "deepseek", ""
-	a.bookProvider, a.bookModel = "deepseek", ""
+	a.penProvider, a.penModel = "deepseek", ""
 	if err := a.saveUsage(); err != nil || a.Store.Work().Discussion != was.Discussion {
 		t.Fatalf("a service without a model: %v %+v", err, a.Store.Work().Discussion)
 	}
 	a.talkModel = "deepseek-flash"
 	if err := a.saveUsage(); err != nil || a.Store.Work().Discussion != was.Discussion {
-		t.Fatalf("the bookkeeping's service without a model: %v %+v", err, a.Store.Work().Discussion)
+		t.Fatalf("the writing's service without a model: %v %+v", err, a.Store.Work().Discussion)
 	}
-	a.bookModel = "deepseek-v4-pro"
-	if err := a.saveUsage(); err != nil || a.Store.Work().Bookkeeping.Model != "deepseek-v4-pro" {
-		t.Fatalf("complete: %v %+v", err, a.Store.Work().Bookkeeping)
+	a.penModel = "deepseek-v4-pro"
+	if err := a.saveUsage(); err != nil || a.Store.Work().Writing.Model != "deepseek-v4-pro" {
+		t.Fatalf("complete: %v %+v", err, a.Store.Work().Writing)
 	}
 	a.categoryName, a.categoryTarget = "伏笔", ""
 	check("category target", a.saveCategory())
@@ -483,47 +492,6 @@ func TestReplyTextSelectsAcrossBlocksAndCopies(t *testing.T) {
 	if tt.Clipboard() != reply {
 		t.Fatalf("copied %q", tt.Clipboard())
 	}
-}
-
-// gate is a model that answers once let through.
-type gate struct{ open chan struct{} }
-
-func (g gate) Complete(ctx context.Context, r model.Request, on func(model.Delta)) (model.Reply, error) {
-	select {
-	case <-g.open:
-		return model.Reply{Text: `{"ops":[]}`}, nil
-	case <-ctx.Done():
-		return model.Reply{}, ctx.Err()
-	}
-}
-
-// While the bookkeeper works, a dot says so; it goes when the work is done.
-func TestBookkeeperShowsWhileItWorks(t *testing.T) {
-	a, tt, _ := fixture(t)
-	g := gate{open: make(chan struct{})}
-	aiOf(a).NewBookkeeper = func(s *workspace.Store) (*discussion.Bookkeeper, error) {
-		return &discussion.Bookkeeper{Store: s, Model: discussion.Model{Model: model.Builtin("deepseek-flash"), Completer: g}}, nil
-	}
-	a.halt()
-	tt.Frame()
-	u, _ := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "雨从不停。"})
-	a.Store.Append(a.session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "好"})
-	a.kick()
-	shown := func(want bool) {
-		t.Helper()
-		for deadline := time.Now().Add(3 * time.Second); time.Now().Before(deadline); time.Sleep(5 * time.Millisecond) {
-			tt.Frame()
-			if _, ok := tt.Find("正在整理设定"); ok == want {
-				return
-			}
-		}
-		t.Fatalf("dot shown should be %v", want)
-	}
-	shown(true)
-	a.setDocHidden(true)
-	shown(true) // beside the button that brings the panel back
-	close(g.open)
-	shown(false)
 }
 
 // Services are chosen by the names the author gave them, and kept by ID.

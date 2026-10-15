@@ -118,6 +118,11 @@ func TestStreamsReasoningAndReply(t *testing.T) {
 			if streamed.Text != "hello" || strings.TrimSpace(streamed.Reasoning) != "先想一下" {
 				t.Fatalf("streamed %+v", streamed)
 			}
+			// The reasoning comes back in its blocks too, signed by Anthropic.
+			if want := map[string]Thought{"chat": {Text: "先想一下"}, "anthropic": {Text: "先想一下", Signature: "sig"}}[protocol]; want != (Thought{}) &&
+				(len(got.Thinking) != 1 || got.Thinking[0] != want) {
+				t.Fatalf("thinking %+v", got.Thinking)
+			}
 			if len(messages) != 3 || messages[0].Role != "user" {
 				t.Fatal("caller messages mutated")
 			}

@@ -40,8 +40,10 @@ func (a *App) chatList(c *ui.Context, side bool) {
 	if !a.hasMessages() && a.pending == "" {
 		rows = append(rows, -1)
 	}
-	for n := range a.events {
-		rows = append(rows, n)
+	for n, e := range a.events {
+		if said(e) {
+			rows = append(rows, n)
+		}
 	}
 	if a.talking {
 		rows = append(rows, -2)
@@ -81,13 +83,32 @@ func (a *App) chatList(c *ui.Context, side bool) {
 	}
 }
 
-func (a *App) hasMessages() bool { return len(a.events) > 0 }
+// said tells the author's words and the replies from what a reply looked
+// up on its way, which folds into the reply.
+func said(e workspace.Event) bool {
+	return e.Role == workspace.RoleUser || e.Role == workspace.RoleAssistant
+}
+
+// spoken is how many events of the talk are its words and replies.
+func (a *App) spoken() int {
+	n := 0
+	for _, e := range a.events {
+		if said(e) {
+			n++
+		}
+	}
+	return n
+}
+
+func (a *App) hasMessages() bool { return a.spoken() > 0 }
 
 func (a *App) lastMessage() string {
-	if len(a.events) == 0 {
-		return ""
+	for n := len(a.events) - 1; n >= 0; n-- {
+		if said(a.events[n]) {
+			return a.events[n].ID
+		}
 	}
-	return a.events[len(a.events)-1].ID
+	return ""
 }
 
 func (a *App) chatTop(c *ui.Context) {
@@ -98,11 +119,8 @@ func (a *App) chatTop(c *ui.Context) {
 		glyph(c, icChevron, iconSm, a.pal.faint)
 		ui.Text(c, words).FontSize(fsBody).FontWeight(600).SingleLine().Ellipsis("…").Shrink(1)
 		ui.Spacer(c)
-		if n := len(a.events); n > 0 {
+		if n := a.spoken(); n > 0 {
 			ui.Textf(c, "%d 条发言", n).FontSize(fsNote).TextColor(a.pal.faint)
-		}
-		if a.doc.hidden {
-			a.bookDot(c)
 		}
 		if a.doc.hidden && iconButton(c, icPanel, "展开设定", ui.Color{}).Tooltip("展开设定文档").Clicked() {
 			a.setDocHidden(false)
@@ -135,7 +153,7 @@ func (a *App) switchSession(id string) {
 
 func (a *App) emptyChat(c *ui.Context) {
 	t := a.pal.theme
-	title, about := "从一个初步的想法开始", "写下初步的想法。讨论内容会在后台整理为右侧的设定文档；已确定的设定将作为后续讨论的依据，已放弃的不再提及。"
+	title, about := "从一个初步的想法开始", "写下初步的想法。讨论中定下的内容，AI 会当场记进右侧的设定文档；已确定的设定将作为后续讨论的依据，已放弃的不再提及。"
 	starts := []string{"我想写一个总在下雨的城市", "主角有个说不出口的秘密", "这个故事的冲突在哪"}
 	if a.page == 3 { // beside the prose the talk is about the page in front of the author
 		unit := a.openUnit()
@@ -220,7 +238,13 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 					if m.Reasoning != "" {
 						a.thought(c, m.ID, "思考过程", m.Reasoning, false)
 					}
+					if found := looks(a.events, m.ReplyTo); len(found) > 0 {
+						a.looked(c, "look-"+m.ID, found, false)
+					}
 					a.markdown(c, m.Text, 14.5)
+					if m.Capped {
+						ui.Text(c, "已达到本次查阅上限，以上回答仅依据已查到的内容。").FontSize(fsNote).TextColor(t.TextMuted).FillWidth()
+					}
 				})
 			})
 		}
@@ -282,24 +306,32 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 }
 
 // thinking shows a turn in flight as it streams: the reply forming under
-// its reasoning.
+// its reasoning and what it looked up, which stays open while it looks.
 func (a *App) thinking(c *ui.Context) {
 	t := a.pal.theme
 	if a.pending != "" {
 		ui.Column(c).FillWidth().AlignItems(ui.End).Children(func() { a.userBubble(c, a.pending) })
 	}
-	reasoning, text := a.live.read()
+	reasoning, text, steps := a.live.read()
+	found := looks(steps, "")
 	ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Start).Children(func() {
 		a.aiMark(c)
 		ui.Column(c).Grow(1).Shrink(1).Gap(10).Children(func() {
 			if reasoning != "" {
-				a.thought(c, "live-reply", "思考过程", reasoning, text == "")
+				a.thought(c, "live-reply", "思考过程", reasoning, text == "" && len(found) == 0)
+			}
+			if len(found) > 0 {
+				a.looked(c, "live-look", found, text == "")
 			}
 			if text != "" {
 				a.liveMarkdown(c, text, 14.5)
 			}
 			status := "正在回复…"
-			if text == "" {
+			switch {
+			case text != "":
+			case len(found) > 0:
+				status = "正在查阅…"
+			default:
 				status = "正在思考…"
 			}
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
@@ -347,6 +379,100 @@ func (a *App) thought(c *ui.Context, key, label, reasoning string, running bool)
 	}).FillWidth()
 }
 
+// look is one thing a reply looked up or noted on its way: what it did,
+// and what came back, empty while it runs.
+type look struct {
+	label  string
+	result workspace.Event
+}
+
+// looks are what the reply to the author's words userID looked up among
+// events, in the order it did; for "" all of them, as the turn in flight
+// has them.
+func looks(events []workspace.Event, userID string) []look {
+	results := map[string]workspace.Event{}
+	for _, e := range events {
+		if e.Role == workspace.RoleResult && (userID == "" || e.ReplyTo == userID) {
+			results[e.Call] = e
+		}
+	}
+	var out []look
+	for _, e := range events {
+		if e.Role == workspace.RoleCall && (userID == "" || e.ReplyTo == userID) {
+			for _, call := range e.Calls {
+				out = append(out, look{call.Label, results[call.ID]})
+			}
+		}
+	}
+	return out
+}
+
+// looked folds what a reply looked up above it, as thought folds its
+// reasoning: the head says what it did, and open, each thing shows what
+// came back. What it noted links to the entry. It stays open while the
+// reply looks.
+func (a *App) looked(c *ui.Context, key string, found []look, running bool) {
+	t := a.pal.theme
+	open := a.thoughts[key]
+	if open == nil || running {
+		v := running
+		open = &v
+		a.thoughts[key] = open
+	}
+	label := "正在查阅"
+	if !running {
+		labels := make([]string, len(found))
+		for n, l := range found {
+			labels[n] = l.label
+		}
+		label = strings.Join(labels, "，")
+	}
+	ui.Collapsible(c, label, open, func() {
+		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Stretch).Padding(4, 0, 2, 2).Children(func() {
+			ui.Box(c).Width(2).Radius(rRound).Background(a.pal.line).Shrink(0)
+			ui.Column(c).Grow(1).Shrink(1).Gap(8).Children(func() {
+				for n, l := range found {
+					if r := l.result.Revision; r != "" {
+						if a.paneLink(c, l.label, "查看设定", fmt.Sprintf("查看设定-%s-%d", key, n)) {
+							a.showNoted(r)
+						}
+						continue
+					}
+					ui.Column(c).FillWidth().Gap(2).Children(func() {
+						ui.Text(c, l.label).FontSize(fsControl).TextColor(t.TextMuted).Selectable().FillWidth()
+						if l.result.Text != "" {
+							ui.Text(c, l.result.Text).FontSize(fsNote).LineHeight(lhBody).TextColor(a.pal.faint).Selectable().FillWidth()
+						}
+					})
+				}
+			})
+		})
+	}).FillWidth()
+}
+
+// showNoted opens in the setting the entry revision r of a talk changed:
+// in what waits on the author when it is open, or on its page.
+func (a *App) showNoted(r string) {
+	var entry string
+	for _, rev := range a.set.Revisions {
+		if rev.ID == r && len(rev.Ops) > 0 {
+			entry = rev.Ops[0].Entry
+		}
+	}
+	e, ok := a.set.Entry(entry)
+	if !ok {
+		return
+	}
+	d := &a.doc
+	a.setDocHidden(false)
+	d.history, d.fore, d.talk, d.talks, d.dropped, d.editing = false, false, false, false, false, ""
+	if e.Place == workspace.PlaceOpen {
+		d.todo, d.shown = true, ""
+	} else {
+		d.todo, d.shown = false, e.ID
+	}
+}
+
 // replyLabel names the model and effort a reply came from.
 func (a *App) replyLabel(name, effort string) string {
 	if i := strings.LastIndex(name, "/"); i >= 0 {
@@ -364,6 +490,7 @@ var partNames = map[string]string{
 	workspace.PartIndex:   "设定目录",
 	workspace.PartOutline: "卷纲和章纲",
 	workspace.PartRecap:   "前情提要",
+	workspace.PartLooked:  "查阅结果",
 	workspace.PartTalk:    "之前的对话",
 	workspace.PartProse:   "附上的正文",
 	workspace.PartInput:   "本次发言",
@@ -427,6 +554,9 @@ func (a *App) audit(c *ui.Context, m workspace.Event) {
 				head = fmt.Sprintf("回复时附带 %d 条设定，因上下文上限省略 %d 条", len(setting), len(m.Omitted))
 			}
 			ui.Text(c, head).FontSize(fsNote).FontWeight(600)
+			if index {
+				note("目录只有分类、名字和第一句；需要时 AI 会查全文。")
+			}
 			if len(setting) == 0 && len(m.Omitted) == 0 {
 				note("设定文档暂无内容。")
 			}

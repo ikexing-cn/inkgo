@@ -13,14 +13,14 @@ M1 的模型客户端是自己写的三种协议的非流式请求。实际使�
 
 第一次选用的 Fantasy 让程序体积从 13.6 MB 涨到 60.8 MB（Windows/amd64，去掉调试信息），而且它走 Responses 协议时会丢掉 DeepSeek 的推理内容，所以改用 GoAI。Fantasy 的落地只存在于提交 `bcbb8b2`，这里不再单独保留笔记，测量结果和否决理由都写在下文"被否方案"里。
 
-本篇取代 [M1 实现笔记](../feature/2026-10-07-m1-discussion.md)中"API 不流式，单次请求最长两分钟"的决定；该篇的上下文、预算、记账与凭据规则继续有效。模型看到的思路形式沿用[短编号与讨论规则](../feature/2026-10-08-model-facing-refs-and-talk-rules.md)。下文的冲突检查、`Progress(step, delta)` 的步骤、记账事件和"正在把这一轮整理成思路卡片"已由[设定文档与后台记账](../feature/2026-10-08-setting-document-and-background-bookkeeper.md)取代：`Progress` 只转发回复的增量，记账在后台进行，它的模型、等级和推理记在修订里。
+本篇取代 [M1 实现笔记](../feature/2026-10-07-m1-discussion.md)中"API 不流式，单次请求最长两分钟"的决定；该篇的上下文、预算、记账与凭据规则继续有效。模型看到的思路形式沿用[短编号与讨论规则](../feature/2026-10-08-model-facing-refs-and-talk-rules.md)。下文的冲突检查、`Progress(step, delta)` 的步骤、记账事件和"正在把这一轮整理成思路卡片"已由[设定文档与后台记账](../feature/2026-10-08-setting-document-and-background-bookkeeper.md)取代：`Progress` 只转发回复的增量，记账在后台进行，它的模型、等级和推理记在修订里。2026-10-15 起记账员也去掉了，讨论用工具当场记设定，工具调用的循环由 `discussion` 自己跑，见[讨论用工具查全书、当场记设定](../feature/2026-10-15-talk-looks-up-and-notes-the-setting.md)。
 
 ## Decision
 
 ### 模型层
 
 - `model.Client` 通过 `github.com/zendev-sh/goai`（MIT 许可，核心只依赖标准库）的 `StreamText` 发请求，三种协议分别对应：
-  - `chat` 用 `provider/compat`，`reasoning_effort` 等未知参数原样写进请求体；
+  - `chat` 用 `provider/deepseek`，`reasoning_effort` 等未知参数原样写进请求体。它就是 `provider/compat` 的 Chat Completions，另外在工具调用的那几轮把回复给出的 `reasoning_content` 发回去，DeepSeek、Kimi 要求这样；2026-10-15 以前用的是 `provider/compat`，见[讨论用工具查全书、当场记设定](../feature/2026-10-15-talk-looks-up-and-notes-the-setting.md)；
   - `responses` 用 `provider/openai`，这个包默认就走 Responses API；
   - `anthropic` 用 `provider/anthropic`，它会自己补 `/v1/messages`，所以配置里 API 地址末尾的 `/v1` 要去掉。
 
@@ -53,7 +53,7 @@ GoAI 在没传 key 时会读 `OPENAI_API_KEY`、`ANTHROPIC_API_KEY`，使用默�
 | Low / High / Max | `reasoning_effort: low/high/max` | `reasoning.effort: low/high/max`，`summary: auto` | `output_config.effort`，加 `thinking: {type: adaptive, display: summarized}` |
 | None（只供程序内部用，不出现在下拉框） | `thinking: {type: disabled}` | `reasoning.effort: none` | 不发送（不开 thinking 就不推理） |
 
-- 讨论、整理和写作分别设推理等级，存在 `work.yaml` 的 `discussion.effort`、`bookkeeping.effort`、`writing.effort`（空、`low`、`high`、`max`）。整理或写作沿用讨论模型时，可以单独设一个更低的等级。
+- 讨论和写作分别设推理等级，存在 `work.yaml` 的 `discussion.effort`、`writing.effort`（空、`low`、`high`、`max`）。写作沿用讨论模型时，可以单独设一个更低的等级。原来还有整理的 `bookkeeping.effort`，2026-10-15 随记账员删了。
 - None 给[续写](../feature/2026-10-08-ai-assisted-writing.md)用。Responses 上不能靠"不发送"：2026-10-08 实测 DeepSeek 走 Responses 时，不发送和 `minimal` 都会推理（推理不流出，却占满 400 token 的输出额度，回复被截断），发 `none` 才不推理。较新的 OpenAI 模型也认 `none`。
 - 输入框下方的模型标签显示"模型 ID + 等级"，点开是菜单：按提供商列出目录里的模型，下面一组是推理等级，当前项有底色；选中后立即写回作品配置。（原来是系统菜单，分「模型 ›」「推理等级 ›」两个子菜单；2026-10-12 改成[自己画的菜单](../feature/2026-10-12-own-menus.md)，一列到底。）设置页也提供同样的两个下拉框。
 

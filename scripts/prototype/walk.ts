@@ -392,7 +392,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('存为新章节'); await win('已存为新章节位于最上层末尾'); await win('磁盘上已找不到本章文件', false); must(await js(`document.querySelector('.tree').lastElementChild.innerText.includes('停电')`), 'the chapter was not kept at the end'); await click('关闭提示')
   await click('少见的情况'); await click('AI 改写出错'); await win('模型未返回改写结果'); await win('复制详情'); await click('关闭提示'); await click('重新开始'); await done('a chapter the disk lost')
 
-  // The pane: a renamed entry and the prose, the bookkeeper's sign, its width.
+  // The pane: a renamed entry and the prose, its width.
   await click('林晚'); await click('修改'); await clear('名字'); await type('名字', '林婉'); await click('保存'); await click('全部设定'); await pane('处「林晚」'); await shot('89-renamed')
   await click('全书替换'); must((await value('查找')) === '林晚' && (await value('替换为')) === '林婉', 'the old name is not ready to replace'); await win('全书 '); await pane('处「林晚」', false); await click('关闭查找')
   await click('周祥'); await click('修改'); await clear('名字'); await type('名字', '周详'); await click('保存'); await click('全部设定'); await click('不替换'); await pane('正文中仍有', false); await done('a name changed in the setting')

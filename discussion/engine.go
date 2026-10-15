@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"writer/model"
+	"writer/prompt"
 	"writer/workspace"
 )
 
@@ -35,16 +37,18 @@ func ask(ctx context.Context, m Model, req model.Request, on func(model.Delta)) 
 	return m.Complete(ctx, req, on)
 }
 
-// Engine runs the talk of one work: a turn waits for the reply only, and
-// the bookkeeper brings the setting up to date in the background. Its
-// owner serializes calls; Talk may be unset when no model is configured,
-// which only the calls that need a model refuse.
+// Engine runs the talk of one work: a reply may look things up in the book
+// and note the setting with tools, a step at a time. Its owner serializes
+// calls; Talk may be unset when no model is configured, which only the
+// calls that need a model refuse.
 type Engine struct {
 	Store *workspace.Store
 	Talk  Model
-	// Progress, when set, hears what the reply streams, never empty. It
-	// runs on the caller's goroutine.
+	// Progress, when set, hears what the reply streams, never empty, and
+	// Step each step's calls and each call's result as they are written.
+	// Both run on the caller's goroutine.
 	Progress func(model.Delta)
+	Step     func(workspace.Event)
 	// Beside, when set, is what the author is writing as they talk, sent
 	// with the turn.
 	Beside *Writing
@@ -123,23 +127,102 @@ func (e *Engine) assemble(session string, before int, input string) (Context, er
 	if before >= 0 {
 		events = events[:before]
 	}
-	return Assemble(e.Store.Work(), e.Talk.Input(), set, events, set.Processed(session, events), input, e.Beside)
+	return Assemble(e.Store.Work(), e.Talk.Input(), set, events, input, e.Beside)
 }
 
+// maxSteps bounds the requests of one reply: the last one may call no tool
+// and answers from what was found.
+const maxSteps = 10
+
+// capNote tells the model of the last step it may look nothing more up.
+const capNote = "\n\n（已达到本次查阅的上限，不能再查了，请用已经查到的内容回答。）"
+
+// fullNote stands for what a tool returned when there is no room left for it.
+const fullNote = "（这次查到的内容太多，放不下了；不能再查了，请用已经查到的内容回答。）"
+
+// respond asks for the reply, one step at a time: each step's calls are
+// written before they run and each result after, then the next step sees
+// them. The reply records what all its steps used.
 func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembled Context) (Turn, error) {
-	reply, err := ask(ctx, e.Talk, assembled.Request, e.Progress)
-	if err != nil {
-		return turn, fmt.Errorf("讨论失败，原文已保存：%w", err)
+	box := &toolbox{store: e.Store, session: session, turn: turn.User.ID, model: e.Talk}
+	req := assembled.Request
+	var used model.Usage
+	var thought []string
+	looked, capped := 0, false
+	write := func(ev workspace.Event) error {
+		ev.ReplyTo = turn.User.ID
+		ev, err := e.Store.Append(session, ev)
+		if err == nil && e.Step != nil {
+			e.Step(ev)
+		}
+		return err
 	}
-	if strings.TrimSpace(reply.Text) == "" {
-		return turn, errors.New("模型返回空回复，原文已保存")
+	for step := 1; ; step++ {
+		capped = step == maxSteps
+		req.NoCalls = req.NoCalls || capped
+		reply, err := ask(ctx, e.Talk, req, e.Progress)
+		if err != nil {
+			return turn, fmt.Errorf("讨论失败，原文已保存：%w", err)
+		}
+		used = used.Add(reply.Usage)
+		if r := strings.TrimSpace(reply.Reasoning); r != "" {
+			thought = append(thought, r)
+		}
+		if len(reply.Calls) == 0 || req.NoCalls {
+			if strings.TrimSpace(reply.Text) == "" {
+				return turn, errors.New("模型返回空回复，原文已保存")
+			}
+			sent := withLooked(assembled.Sent, looked)
+			turn.Reply, err = e.Store.Append(session, workspace.Event{
+				Role: workspace.RoleAssistant, Text: reply.Text, ReplyTo: turn.User.ID,
+				Context: assembled.Included, Sent: sent, Capped: capped,
+				Model: e.Talk.Name, Effort: string(e.Talk.Effort), Reasoning: strings.Join(thought, "\n\n"), Usage: (*workspace.Usage)(&used),
+			})
+			return turn, err
+		}
+		calls := make([]workspace.Call, len(reply.Calls))
+		for n, c := range reply.Calls {
+			calls[n] = workspace.Call{ID: c.ID, Name: c.Name, Input: c.Input, Label: box.label(c)}
+		}
+		if err = write(workspace.Event{Role: workspace.RoleCall, Text: reply.Text, Calls: calls, Model: e.Talk.Name, Effort: string(e.Talk.Effort)}); err != nil {
+			return turn, err
+		}
+		req.Messages = append(slices.Clip(req.Messages), model.Message{Role: workspace.RoleAssistant, Content: reply.Text, Calls: reply.Calls, Thinking: reply.Thinking})
+		for _, c := range reply.Calls {
+			if ctx.Err() != nil {
+				return turn, fmt.Errorf("讨论失败，原文已保存：%w", ctx.Err())
+			}
+			out := box.run(c)
+			if err = write(workspace.Event{Role: workspace.RoleResult, Call: c.ID, Text: out.text, Failed: out.failed, Revision: out.revision}); err != nil {
+				return turn, err
+			}
+			told := out.text
+			if looked+prompt.Estimate(told) > assembled.Left {
+				told, req.NoCalls = fullNote, true
+			}
+			looked += prompt.Estimate(told)
+			req.Messages = append(req.Messages, model.Message{Role: "tool", CallID: c.ID, Content: told})
+		}
+		if step+1 == maxSteps {
+			last := &req.Messages[len(req.Messages)-1]
+			last.Content += capNote
+		}
 	}
-	turn.Reply, err = e.Store.Append(session, workspace.Event{
-		Role: workspace.RoleAssistant, Text: reply.Text, ReplyTo: turn.User.ID,
-		Context: assembled.Included, Sent: assembled.Sent,
-		Model: e.Talk.Name, Effort: string(e.Talk.Effort), Reasoning: reply.Reasoning, Usage: (*workspace.Usage)(&reply.Usage),
+}
+
+// withLooked is sent with what the tools returned, in its place among the
+// parts.
+func withLooked(sent *workspace.Sent, looked int) *workspace.Sent {
+	if sent == nil || looked == 0 {
+		return sent
+	}
+	out := *sent
+	out.Parts = append([]workspace.Part{}, sent.Parts...)
+	out.Parts = append(out.Parts, workspace.Part{Name: workspace.PartLooked, Tokens: looked})
+	slices.SortStableFunc(out.Parts, func(a, b workspace.Part) int {
+		return slices.Index(workspace.Parts, a.Name) - slices.Index(workspace.Parts, b.Name)
 	})
-	return turn, err
+	return &out
 }
 
 // Extract adds the selected runes of a message to the setting's body as

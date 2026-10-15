@@ -6,6 +6,7 @@ package workspace
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"slices"
 	"strings"
@@ -18,10 +19,13 @@ import (
 const Schema = 2
 const Other = "其他"
 
-// Message roles of a session file.
+// Roles of the events of a session file: the author's words, a reply, and
+// on the way to a reply, the tools a model called and what each returned.
 const (
 	RoleUser      = "user"
 	RoleAssistant = "assistant"
+	RoleCall      = "call"
+	RoleResult    = "result"
 )
 
 type Category struct {
@@ -37,13 +41,12 @@ type Selection struct {
 	Effort   string `yaml:"effort,omitempty" json:"effort,omitempty"`
 }
 type Work struct {
-	Schema      int        `yaml:"schema" json:"schema"`
-	ID          string     `yaml:"id" json:"id"`
-	Name        string     `yaml:"name" json:"name"`
-	Genre       string     `yaml:"genre" json:"genre"`
-	Categories  []Category `yaml:"categories" json:"categories"`
-	Discussion  Selection  `yaml:"discussion" json:"discussion"`
-	Bookkeeping Selection  `yaml:"bookkeeping" json:"bookkeeping"`
+	Schema     int        `yaml:"schema" json:"schema"`
+	ID         string     `yaml:"id" json:"id"`
+	Name       string     `yaml:"name" json:"name"`
+	Genre      string     `yaml:"genre" json:"genre"`
+	Categories []Category `yaml:"categories" json:"categories"`
+	Discussion Selection  `yaml:"discussion" json:"discussion"`
 	// Writing continues, rewrites and drafts the prose; left empty, it is
 	// the discussion's model.
 	Writing Selection `yaml:"writing,omitempty" json:"writing,omitempty"`
@@ -82,14 +85,15 @@ const (
 	PartSetting = "setting"
 	PartIndex   = "index" // the setting as an index, too big to send whole
 	PartOutline = "outline"
-	PartRecap   = "recap" // the summaries of the chapters before
+	PartRecap   = "recap"  // the summaries of the chapters before
+	PartLooked  = "looked" // what the tools a reply called returned
 	PartTalk    = "talk"
 	PartProse   = "prose"
 	PartInput   = "input"
 )
 
 // Parts is every part, in order.
-var Parts = []string{PartRules, PartSetting, PartIndex, PartOutline, PartRecap, PartTalk, PartProse, PartInput}
+var Parts = []string{PartRules, PartSetting, PartIndex, PartOutline, PartRecap, PartLooked, PartTalk, PartProse, PartInput}
 
 // Part is the tokens part took, 0 when the request had none.
 func (s Sent) Part(name string) int {
@@ -109,7 +113,9 @@ type ContextItem struct {
 	Reason string `json:"reason"`
 }
 
-// Event is a message of a session.
+// Event is a message of a session. A reply that called tools has, before
+// it, an event of the calls of each step, written before they run, and one
+// of what each returned; all of them answer the author's words ReplyTo.
 type Event struct {
 	Schema  int           `json:"schema"`
 	ID      string        `json:"id"`
@@ -132,6 +138,23 @@ type Event struct {
 	// were writing, and the prose they quoted.
 	Chapter string  `json:"chapter,omitempty"`
 	Quotes  []Quote `json:"quotes,omitempty"`
+	// A step's calls; a result names its call, says whether it failed,
+	// and the revision a call to note the setting wrote. Capped is a reply
+	// that had no more steps to look things up.
+	Calls    []Call `json:"calls,omitempty"`
+	Call     string `json:"call,omitempty"`
+	Failed   bool   `json:"failed,omitempty"`
+	Revision string `json:"revision,omitempty"`
+	Capped   bool   `json:"capped,omitempty"`
+}
+
+// Call is a tool a model called, with the input it wrote, and what it does
+// in the author's words, as 搜了全书「停电」.
+type Call struct {
+	ID    string          `json:"id"`
+	Name  string          `json:"name"`
+	Input json.RawMessage `json:"input"`
+	Label string          `json:"label"`
 }
 
 // Quote is prose the author brought into the talk, with the chapter it
@@ -211,8 +234,8 @@ type Entry struct {
 	// prose is typed.
 	Names   []string `json:"names,omitempty"`
 	Sources []Source `json:"sources,omitempty"`
-	// Author is set once the author wrote or edited the entry: the
-	// bookkeeper changes it only on the author's word.
+	// Author is set once the author wrote or edited the entry: a talk
+	// changes it only on the author's word.
 	Author bool `json:"author,omitempty"`
 	// Asked is the question of the AI's that the entry answers: the
 	// author's answer took the question's place.
@@ -278,33 +301,27 @@ type Op struct {
 	Sources  []Source `json:"sources,omitempty"`
 }
 
-// Who writes a revision.
+// Who writes a revision: the author, or a model in a talk. The bookkeeper
+// noted the setting after the talk before a talk noted it itself: what it
+// wrote is read, so the setting it built stands, and never written again.
 const (
 	ByAuthor     = "author"
+	ByTalk       = "talk"
 	ByBookkeeper = "bookkeeper"
 )
 
-// Revision is one change of the setting document. The bookkeeper's cover
-// the messages of a session from From through Through; one that failed
-// has no ops and says why, and Redo names the failed one a retry redoes.
+// Revision is one change of the setting document. A talk's names the
+// session and the author's words its model was answering, and the model.
 type Revision struct {
-	Schema int       `json:"schema"`
-	ID     string    `json:"id"`
-	At     time.Time `json:"at"`
-	By     string    `json:"by"`
-	Ops    []Op      `json:"ops"`
-	// Base is how many revisions the bookkeeper saw: ops on entries the
-	// author changed after them are skipped, and listed here.
-	Base      int    `json:"base,omitempty"`
-	Skipped   []Op   `json:"skipped,omitempty"`
-	Session   string `json:"session,omitempty"`
-	From      string `json:"from,omitempty"`
-	Through   string `json:"through,omitempty"`
-	Redo      string `json:"redo,omitempty"`
-	Failed    string `json:"failed,omitempty"`
-	Model     string `json:"model,omitempty"`
-	Effort    string `json:"effort,omitempty"`
-	Reasoning string `json:"reasoning,omitempty"`
+	Schema  int       `json:"schema"`
+	ID      string    `json:"id"`
+	At      time.Time `json:"at"`
+	By      string    `json:"by"`
+	Ops     []Op      `json:"ops"`
+	Session string    `json:"session,omitempty"`
+	Turn    string    `json:"turn,omitempty"`
+	Model   string    `json:"model,omitempty"`
+	Effort  string    `json:"effort,omitempty"`
 }
 
 // NewID uses cryptographically secure randomness. Creation methods retry an ID

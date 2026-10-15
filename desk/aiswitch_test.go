@@ -94,19 +94,9 @@ func (s *spy) Catalog(provider string) (aiport.Catalog, error) {
 	return s.Service.Catalog(provider)
 }
 
-func (s *spy) Talk(st *workspace.Store, beside *aiport.Beside, progress func(reasoning, text string)) (aiport.Talk, error) {
+func (s *spy) Talk(st *workspace.Store, beside *aiport.Beside, progress func(reasoning, text string), step func(workspace.Event)) (aiport.Talk, error) {
 	s.note("Talk")
-	return s.Service.Talk(st, beside, progress)
-}
-
-func (s *spy) Bookkeep(st *workspace.Store, changed func()) aiport.Bookkeeping {
-	s.note("Bookkeep")
-	return s.Service.Bookkeep(st, changed)
-}
-
-func (s *spy) Book(st *workspace.Store) (aiport.Book, error) {
-	s.note("Book")
-	return s.Service.Book(st)
+	return s.Service.Talk(st, beside, progress, step)
 }
 
 func (s *spy) Pen(st *workspace.Store) (aiport.Pen, error) {
@@ -117,8 +107,8 @@ func (s *spy) Pen(st *workspace.Store) (aiport.Pen, error) {
 const aiProse = "整条街的灯是同时灭的。\n林婉站在巷口，手电在工具箱最底下。\n"
 
 // aiWork is a work the AI has been at, in root/work: a chapter it drafted,
-// with the snapshot from before, its summary and its check; a talk; the
-// setting it brought up to date and an entry it suggests. Of the author: an
+// with the snapshot from before, its summary and its check; a talk, which
+// noted the setting and an entry it suggests. Of the author: an
 // entry, and a foreshadowing whose sentence is gone, which waits on them.
 // Neither the prose nor the names of the work and the chapter tell of the
 // AI.
@@ -152,12 +142,17 @@ func aiWork(t *testing.T) (root, chapter string) {
 	must(err)
 	u, err := s.Append(session, workspace.Event{Role: workspace.RoleUser, Text: "灯为什么会灭"})
 	must(err)
-	r, err := s.Append(session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "因为停电。"})
+	_, err = s.Append(session, workspace.Event{Role: workspace.RoleCall, ReplyTo: u.ID, Calls: []workspace.Call{
+		{ID: "c1", Name: "note_setting", Input: []byte(`{"op":"add"}`), Label: "记下：正文 · 规则：雨从不停"}}})
 	must(err)
-	_, err = s.Revise(workspace.Revision{By: workspace.ByBookkeeper, Session: session, From: u.ID, Through: r.ID, Model: "deepseek/deepseek-flash", Reasoning: "她靠修灯过活", Ops: []workspace.Op{
+	for _, op := range []workspace.Op{
 		{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "规则", Text: "雨从不停"},
 		{Op: workspace.OpAdd, Place: workspace.PlaceOpen, Category: "人物", Text: "老周修了三十年路灯", Names: []string{"老周"}},
-	}})
+	} {
+		_, err = s.Revise(workspace.Revision{By: workspace.ByTalk, Session: session, Turn: u.ID, Model: "deepseek/deepseek-flash", Ops: []workspace.Op{op}})
+		must(err)
+	}
+	_, err = s.Append(session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "因为停电。"})
 	must(err)
 	s.Close()
 	return root, chapter
@@ -273,7 +268,7 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 	}
 	look("the change log")
 	if !a.doc.history || !tt.HasText("林晚怕黑") || tt.HasText("雨从不停") {
-		t.Errorf("with the AI off, the change log lists the bookkeeper's or not the author's: %q", tt.Texts())
+		t.Errorf("with the AI off, the change log lists what a talk noted or not the author's: %q", tt.Texts())
 	}
 	if err := tt.Click("全部设定"); err != nil {
 		t.Fatal(err)
@@ -507,12 +502,7 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 	if now, _ := os.ReadFile(config); string(now) != string(services) {
 		t.Error("the services changed off and on")
 	}
-	// The bookkeeper notes in its log each time it starts and finds no
-	// model chosen, as here; that is no file of the work.
 	after := files(t, a.Store.Root())
-	log := filepath.Join(a.Store.Root(), ".writer", "bookkeeper.log")
-	delete(before, log)
-	delete(after, log)
 	for p, b := range before {
 		if after[p] != b {
 			t.Errorf("%s changed off and on", p)

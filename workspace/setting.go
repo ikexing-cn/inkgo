@@ -24,33 +24,6 @@ func (s Setting) Entry(id string) (Entry, bool) {
 	return Entry{}, false
 }
 
-// Processed returns the index after the last message of session that a
-// bookkeeping revision covered, failed ones included, in its events.
-func (s Setting) Processed(session string, events []Event) int {
-	at := map[string]int{}
-	for n, e := range events {
-		at[e.ID] = n + 1
-	}
-	done := 0
-	for _, r := range s.Revisions {
-		if r.By == ByBookkeeper && r.Session == session {
-			done = max(done, at[r.Through])
-		}
-	}
-	return done
-}
-
-// Redone reports whether a later revision redid the failed revision id
-// successfully.
-func (s Setting) Redone(id string) bool {
-	for _, r := range s.Revisions {
-		if r.Redo == id && r.Failed == "" {
-			return true
-		}
-	}
-	return false
-}
-
 func validPlace(p string) bool { return p == PlaceBody || p == PlaceOpen || p == PlaceDropped }
 
 // applyOps applies revision n, from 1, to entries, checking each op's shape
@@ -159,34 +132,47 @@ func validateRevision(r Revision) error {
 	}
 	switch r.By {
 	case ByAuthor:
-		if r.Session != "" || r.From != "" || r.Through != "" || r.Redo != "" || r.Failed != "" || r.Base != 0 ||
-			len(r.Skipped) > 0 || r.Model != "" || r.Effort != "" || r.Reasoning != "" {
+		if r.Session != "" || r.Turn != "" || r.Model != "" || r.Effort != "" {
 			return fmt.Errorf("by: the author's revisions record only ops")
 		}
-		if len(r.Ops) == 0 {
-			return fmt.Errorf("ops: an author's revision changes something")
-		}
-	case ByBookkeeper:
-		for field, id := range map[string]string{"session": r.Session, "from": r.From, "through": r.Through} {
+	case ByTalk:
+		for field, id := range map[string]string{"session": r.Session, "turn": r.Turn} {
 			if err := validID(id); err != nil {
 				return fmt.Errorf("%s: %w", field, err)
 			}
 		}
-		if r.Redo != "" {
-			if err := validID(r.Redo); err != nil {
-				return fmt.Errorf("redo: %w", err)
-			}
-		}
-		if r.Failed != "" && len(r.Ops) > 0 {
-			return fmt.Errorf("failed: a failed revision has no ops")
-		}
 		if !validEffort(r.Effort) {
 			return fmt.Errorf("effort: invalid %q", r.Effort)
 		}
+	case ByBookkeeper:
+		if err := validID(r.Session); err != nil {
+			return fmt.Errorf("session: %w", err)
+		}
+		if r.Turn != "" {
+			return fmt.Errorf("turn: the bookkeeper answered no words")
+		}
+		return nil // one that failed changed nothing
 	default:
-		return fmt.Errorf("by: must be %s or %s", ByAuthor, ByBookkeeper)
+		return fmt.Errorf("by: must be %s or %s", ByAuthor, ByTalk)
+	}
+	if len(r.Ops) == 0 {
+		return fmt.Errorf("ops: a revision changes something")
 	}
 	return nil
+}
+
+// kept is a revision as the bookkeeper wrote it: what it recorded beside
+// its ops, which batch, its reasoning and how it failed, is read and
+// dropped.
+type kept struct {
+	Revision
+	Base      int    `json:"base"`
+	Skipped   []Op   `json:"skipped"`
+	From      string `json:"from"`
+	Through   string `json:"through"`
+	Redo      string `json:"redo"`
+	Failed    string `json:"failed"`
+	Reasoning string `json:"reasoning"`
 }
 
 // setting reads setting.jsonl and replays it, returning the length of its
@@ -202,16 +188,17 @@ func (s *Store) setting(sc *scan) (Setting, int64, error) {
 	prefix, err := readJSONL(p, func(raw []byte) error {
 		var r Revision
 		if err := decodeStrict(raw, &r); err != nil {
-			return err
+			var k kept
+			if decodeStrict(raw, &k) != nil || k.By != ByBookkeeper {
+				return err
+			}
+			r = k.Revision
 		}
 		if err := validateRevision(r); err != nil {
 			return err
 		}
 		if seen[r.ID] {
 			return fmt.Errorf("id: duplicate %q", r.ID)
-		}
-		if r.Redo != "" && !seen[r.Redo] {
-			return fmt.Errorf("redo: unknown earlier revision %q", r.Redo)
 		}
 		entries, err := applyOps(set.Entries, r, len(set.Revisions)+1)
 		if err != nil {
@@ -233,18 +220,17 @@ func (s *Store) setting(sc *scan) (Setting, int64, error) {
 	return set, prefix, nil
 }
 
-// checkRevision checks what r points to in the sessions: its messages, and
-// that each source quotes its message verbatim.
+// checkRevision checks what r points to in the sessions: the author's
+// words a talk's answered, and that each source quotes its message
+// verbatim.
 func (s *Store) checkRevision(r Revision, sc *scan) error {
-	if r.By == ByBookkeeper {
+	if r.By == ByTalk {
 		events, err := sc.events(s, r.Session)
 		if err != nil {
 			return fmt.Errorf("session: %w", err)
 		}
-		for field, id := range map[string]string{"from": r.From, "through": r.Through} {
-			if !slices.ContainsFunc(events, func(e Event) bool { return e.ID == id }) {
-				return fmt.Errorf("%s: unknown message %q", field, id)
-			}
+		if !slices.ContainsFunc(events, func(e Event) bool { return e.ID == r.Turn && e.Role == RoleUser }) {
+			return fmt.Errorf("turn: unknown words of the author %q", r.Turn)
 		}
 	}
 	for k, op := range r.Ops {
@@ -281,10 +267,6 @@ func (s *Store) Setting() (Setting, error) {
 
 // Revise appends revision r and returns it as written: its ID, time and
 // schema filled in, and an ID for each entry it adds.
-//
-// The bookkeeper works from the first r.Base revisions. Its ops on entries
-// a later revision changed are skipped, the author's change standing, and
-// each becomes an open entry saying what it would have done.
 func (s *Store) Revise(r Revision) (Revision, error) {
 	unlock, err := s.lock()
 	if err != nil {
@@ -316,30 +298,20 @@ func (s *Store) Revise(r Revision) (Revision, error) {
 		used[id] = true
 		return id
 	}
+	if r.By == ByBookkeeper {
+		return Revision{}, fmt.Errorf("by: the bookkeeper writes no more")
+	}
 	if r.ID == "" {
 		r.ID = fresh()
 	}
-	if r.Base > len(set.Revisions) {
-		return Revision{}, fmt.Errorf("base: only %d revisions", len(set.Revisions))
-	}
-	var ops []Op
-	for _, op := range r.Ops {
+	r.Ops = slices.Clone(r.Ops)
+	for k, op := range r.Ops {
 		if op.Op == OpAdd && op.Entry == "" {
-			op.Entry = fresh()
+			r.Ops[k].Entry = fresh()
 		}
-		if e, ok := set.Entry(op.Entry); ok && r.By == ByBookkeeper && e.Rev > r.Base {
-			r.Skipped = append(r.Skipped, op)
-			ops = append(ops, Op{Op: OpAdd, Entry: fresh(), Place: PlaceOpen, Category: e.Category, Text: stale(e, op)})
-			continue
-		}
-		ops = append(ops, op)
 	}
-	r.Ops = ops
 	if err = validateRevision(r); err != nil {
 		return Revision{}, err
-	}
-	if r.Redo != "" && !slices.ContainsFunc(set.Revisions, func(x Revision) bool { return x.ID == r.Redo && x.Failed != "" }) {
-		return Revision{}, fmt.Errorf("redo: no failed revision %q", r.Redo)
 	}
 	categories := map[string]bool{}
 	for _, c := range s.work.Categories {
@@ -364,19 +336,6 @@ func (s *Store) Revise(r Revision) (Revision, error) {
 		return Revision{}, err
 	}
 	return r, appendJSONL(p, prefix, r)
-}
-
-// stale says what the bookkeeper would have done to e, which the author
-// changed while it worked.
-func stale(e Entry, op Op) string {
-	switch {
-	case op.Op == OpEdit:
-		return fmt.Sprintf("「%s」：整理时想改成「%s」，但你刚改过这一条。", e.Text, op.Text)
-	case op.Place == PlaceDropped:
-		return fmt.Sprintf("「%s」：整理时想放弃这一条，但你刚改过它。", e.Text)
-	default:
-		return fmt.Sprintf("「%s」：整理时想移动这一条，但你刚改过它。", e.Text)
-	}
 }
 
 // checkChapters checks that each source in a chapter quotes its text as it

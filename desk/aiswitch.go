@@ -76,7 +76,6 @@ func (a *App) turnAI(on bool) {
 	if on {
 		a.loadAI()
 	} else {
-		a.halt()
 		if a.cancel != nil {
 			a.cancel()
 		}

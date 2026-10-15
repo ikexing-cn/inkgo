@@ -108,17 +108,16 @@ func (a *App) subhead(c *ui.Context, title, caption string) {
 }
 
 // usage chooses which configured models this work talks to: one row each
-// for the discussion, the bookkeeping and the writing. A choice is kept as
+// for the discussion and the writing. A choice is kept as
 // it is made, a model ID typed once the caret leaves it.
 func (a *App) usage(c *ui.Context) {
 	a.subhead(c, "本作品使用", "思考程度选 Default 时由服务商决定。修改自下次发送起生效。")
-	var typing [3]bool
+	var typing [2]bool
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
 		typing[0] = a.useRow(c, "讨论", "与你讨论故事", &a.talkProvider, "", "讨论提供商", &a.talkModel, "讨论模型", &a.talkEffort, "讨论推理等级")
-		typing[1] = a.useRow(c, "整理", "将讨论整理为设定", &a.bookProvider, sameAsTalk, "记账提供商", &a.bookModel, "记账模型", &a.bookEffort, "整理推理等级")
-		typing[2] = a.useRow(c, "写作", "续写、改写、起草", &a.penProvider, sameAsTalk, "写作提供商", &a.penModel, "写作模型", &a.penEffort, "写作推理等级")
+		typing[1] = a.useRow(c, "写作", "续写、改写、起草", &a.penProvider, sameAsTalk, "写作提供商", &a.penModel, "写作模型", &a.penEffort, "写作推理等级")
 	})
-	if typing == [3]bool{} {
+	if typing == [2]bool{} {
 		if err := a.saveUsage(); err != nil {
 			a.setError(err)
 		}
@@ -330,19 +329,15 @@ func (a *App) saveUsage() error {
 	w := a.Store.Work()
 	was := w
 	w.Discussion = workspace.Selection{Provider: trim(a.talkProvider), Model: trim(a.talkModel), Effort: a.talkEffort}
-	w.Bookkeeping = workspace.Selection{Provider: trim(a.bookProvider), Model: trim(a.bookModel), Effort: a.bookEffort}
-	if w.Bookkeeping.Provider == "" {
-		w.Bookkeeping.Model = ""
-	}
 	w.Writing = workspace.Selection{Provider: trim(a.penProvider), Model: trim(a.penModel), Effort: a.penEffort}
 	if w.Writing.Provider == "" {
 		w.Writing.Model = ""
 	}
-	if w.Discussion == was.Discussion && w.Bookkeeping == was.Bookkeeping && w.Writing == was.Writing {
+	if w.Discussion == was.Discussion && w.Writing == was.Writing {
 		return nil
 	}
 	// The store takes a service only with a model.
-	for _, s := range []workspace.Selection{w.Discussion, w.Bookkeeping, w.Writing} {
+	for _, s := range []workspace.Selection{w.Discussion, w.Writing} {
 		if s.Provider != "" && s.Model == "" {
 			return nil
 		}
@@ -350,7 +345,6 @@ func (a *App) saveUsage() error {
 	err := a.Store.SaveWork(w)
 	if err == nil {
 		clear(a.sums.failed) // what failed for want of a model may work now
-		a.kick()             // a model that now works takes in what waited
 	}
 	return err
 }

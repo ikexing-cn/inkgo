@@ -15,7 +15,7 @@ import (
 	"github.com/zendev-sh/goai"
 	"github.com/zendev-sh/goai/provider"
 	"github.com/zendev-sh/goai/provider/anthropic"
-	"github.com/zendev-sh/goai/provider/compat"
+	"github.com/zendev-sh/goai/provider/deepseek"
 	"github.com/zendev-sh/goai/provider/openai"
 )
 
@@ -95,11 +95,23 @@ func (e Effort) Valid() bool {
 // Message is a turn of a conversation. An assistant turn may call tools
 // as well as, or instead of, saying something; a "tool" turn is what one
 // call returned, and names it by CallID.
+//
+// An assistant turn that called tools goes back with the thinking it
+// showed: within a reply that calls tools, DeepSeek and Kimi want its text
+// again and Anthropic its signed blocks. The Responses protocol takes
+// neither back.
 type Message struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-	Calls   []Call `json:"calls,omitempty"`
-	CallID  string `json:"call_id,omitempty"`
+	Role     string    `json:"role"`
+	Content  string    `json:"content"`
+	Calls    []Call    `json:"calls,omitempty"`
+	CallID   string    `json:"call_id,omitempty"`
+	Thinking []Thought `json:"thinking,omitempty"`
+}
+
+// Thought is a block of a reply's reasoning, signed by Anthropic.
+type Thought struct {
+	Text      string `json:"text"`
+	Signature string `json:"signature,omitempty"`
 }
 
 // Tool is something the model may ask the caller to do, its input
@@ -116,10 +128,14 @@ type Call struct {
 	Input json.RawMessage `json:"input"`
 }
 
+// Request is what one call to a model sends. NoCalls keeps the tools in
+// it but has the model answer without them, which a turn that called tools
+// before needs: Anthropic refuses tool turns in a request with no tools.
 type Request struct {
 	System    string
 	Messages  []Message
 	Tools     []Tool
+	NoCalls   bool
 	MaxTokens int
 	Effort    Effort
 }
@@ -135,7 +151,9 @@ type Delta struct {
 type Reply struct {
 	Text, Reasoning string
 	Calls           []Call
-	Usage           Usage
+	// Thinking is the reasoning in its blocks, to send back with the calls.
+	Thinking []Thought
+	Usage    Usage
 }
 
 // Usage is what a request took and gave, as the provider counts it. Input
@@ -147,6 +165,12 @@ type Usage struct {
 	CacheWrite int `json:"cache_write,omitempty"`
 	Output     int `json:"output"`
 	Reasoning  int `json:"reasoning,omitempty"`
+}
+
+// Add is u and v together, as the steps of a reply.
+func (u Usage) Add(v Usage) Usage {
+	return Usage{Input: u.Input + v.Input, CacheRead: u.CacheRead + v.CacheRead, CacheWrite: u.CacheWrite + v.CacheWrite,
+		Output: u.Output + v.Output, Reasoning: u.Reasoning + v.Reasoning}
 }
 
 // usage counts as Usage does what goai reports: goai leaves cached input
@@ -240,7 +264,11 @@ func (c *Client) languageModel() provider.LanguageModel {
 		return anthropic.Chat(c.modelID, anthropic.WithBaseURL(strings.TrimSuffix(base, "/v1")), anthropic.WithAPIKey(key),
 			anthropic.WithSkipEnvResolve(), anthropic.WithHTTPClient(c.http))
 	default:
-		return compat.Chat(c.modelID, compat.WithBaseURL(base), compat.WithAPIKey(key), compat.WithHTTPClient(c.http))
+		// goai's DeepSeek model is its plain Chat Completions one that also
+		// sends back the reasoning_content a reply gave, which DeepSeek and
+		// Kimi ask for on the turns of a tool call; a service that gives no
+		// reasoning is sent none.
+		return deepseek.Chat(c.modelID, deepseek.WithBaseURL(base), deepseek.WithAPIKey(key), deepseek.WithHTTPClient(c.http))
 	}
 }
 
@@ -290,7 +318,7 @@ func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta))
 	size := len(req.System)
 	messages := make([]provider.Message, 0, len(req.Messages))
 	for _, m := range req.Messages {
-		msg, n, err := message(m)
+		msg, n, err := message(m, c.provider.Protocol)
 		if err != nil {
 			return Reply{}, err
 		}
@@ -327,6 +355,9 @@ func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta))
 	if len(tools) > 0 {
 		// goai runs no tool itself, so a reply that calls one ends there.
 		opts = append(opts, goai.WithTools(tools...))
+		if req.NoCalls {
+			opts = append(opts, goai.WithToolChoice(goai.ToolChoiceNone))
+		}
 	}
 	stream, err := goai.StreamText(ctx, c.languageModel(), opts...)
 	if err != nil {
@@ -334,12 +365,23 @@ func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta))
 	}
 	var text, reasoning strings.Builder
 	var calls []Call
+	var thinking []Thought
+	block := "" // the block of reasoning streaming, as Anthropic names it
 	var used provider.Usage
 	finished := false
 	for chunk := range stream.Stream() {
 		var d Delta
 		switch chunk.Type {
 		case provider.ChunkReasoning:
+			id, _ := chunk.Metadata["blockId"].(string)
+			if len(thinking) == 0 || id != block {
+				thinking = append(thinking, Thought{})
+				block = id
+			}
+			thinking[len(thinking)-1].Text += chunk.Text
+			if sig, _ := chunk.Metadata["signature"].(string); sig != "" {
+				thinking[len(thinking)-1].Signature = sig
+			}
 			d.Reasoning = chunk.Text
 			reasoning.WriteString(chunk.Text)
 		case provider.ChunkText:
@@ -396,24 +438,36 @@ func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta))
 	if !finished {
 		return Reply{}, errors.New("模型回复没有完成")
 	}
-	reply := Reply{Text: text.String(), Reasoning: strings.TrimSpace(reasoning.String()), Calls: calls, Usage: usage(used)}
+	reply := Reply{Text: text.String(), Reasoning: strings.TrimSpace(reasoning.String()), Calls: calls, Thinking: thinking, Usage: usage(used)}
 	if strings.TrimSpace(reply.Text) == "" && len(calls) == 0 {
 		return Reply{}, errors.New("模型服务没有返回文字")
 	}
 	return reply, nil
 }
 
-// message is m as goai takes it, and how many bytes it sends.
-func message(m Message) (provider.Message, int, error) {
+// message is m as goai takes it on protocol, and how many bytes it sends.
+func message(m Message, protocol string) (provider.Message, int, error) {
 	switch m.Role {
 	case "user":
 		return provider.Message{Role: provider.RoleUser, Content: []provider.Part{{Type: provider.PartText, Text: m.Content}}}, len(m.Content), nil
 	case "assistant":
 		var parts []provider.Part
+		n := 0
+		for _, t := range m.Thinking {
+			switch {
+			case protocol == "anthropic" && t.Signature != "":
+				parts = append(parts, provider.Part{Type: provider.PartReasoning, Text: t.Text, ProviderOptions: map[string]any{"signature": t.Signature}})
+			case protocol == "chat" && t.Text != "":
+				parts = append(parts, provider.Part{Type: provider.PartReasoning, Text: t.Text})
+			default:
+				continue
+			}
+			n += len(t.Text) + len(t.Signature)
+		}
 		if m.Content != "" || len(m.Calls) == 0 {
 			parts = append(parts, provider.Part{Type: provider.PartText, Text: m.Content})
 		}
-		n := len(m.Content)
+		n += len(m.Content)
 		for _, c := range m.Calls {
 			parts = append(parts, provider.Part{Type: provider.PartToolCall, ToolCallID: c.ID, ToolName: c.Name, ToolInput: c.Input})
 			n += len(c.ID) + len(c.Name) + len(c.Input)

@@ -190,10 +190,13 @@ func (s *Store) reloadWork() error {
 		return err
 	}
 	// token_budget was the work's budget for a request, before each model
-	// had its own limits; a work that has it is read without it.
+	// had its own limits, and bookkeeping the model of the bookkeeper, before
+	// the talk noted the setting itself; a work that has them is read
+	// without them.
 	var w struct {
-		Work   `yaml:",inline"`
-		Budget int `yaml:"token_budget"`
+		Work        `yaml:",inline"`
+		Budget      int       `yaml:"token_budget"`
+		Bookkeeping Selection `yaml:"bookkeeping"`
 	}
 	if err = decodeYAML(b, &w); err == nil {
 		err = validateWork(w.Work)

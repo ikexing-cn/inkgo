@@ -1,6 +1,7 @@
 package workspace
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -56,7 +57,7 @@ func validateWork(w Work) error {
 	if !seen[Other] {
 		return fmt.Errorf("categories: must include %q", Other)
 	}
-	for name, sel := range map[string]Selection{"discussion": w.Discussion, "bookkeeping": w.Bookkeeping, "writing": w.Writing} {
+	for name, sel := range map[string]Selection{"discussion": w.Discussion, "writing": w.Writing} {
 		if (sel.Provider == "") != (sel.Model == "") {
 			return fmt.Errorf("%s: provider and model must be specified together", name)
 		}
@@ -76,8 +77,34 @@ func validateEvent(e Event) error {
 	if e.At.IsZero() {
 		return fmt.Errorf("at: missing timestamp")
 	}
-	if e.Role != RoleUser && e.Role != RoleAssistant {
+	switch e.Role {
+	case RoleUser, RoleAssistant:
+		if len(e.Calls) > 0 || e.Call != "" || e.Failed || e.Revision != "" {
+			return fmt.Errorf("calls: only a step of a reply calls tools")
+		}
+	case RoleCall:
+		if e.ReplyTo == "" || len(e.Calls) == 0 || e.Call != "" || e.Failed || e.Revision != "" {
+			return fmt.Errorf("calls: a step answers the author's words and calls tools")
+		}
+		for _, c := range e.Calls {
+			if c.ID == "" || c.Name == "" || !json.Valid(c.Input) {
+				return fmt.Errorf("calls: a call has an ID, a name and its input as JSON")
+			}
+		}
+	case RoleResult:
+		if e.ReplyTo == "" || e.Call == "" || len(e.Calls) > 0 {
+			return fmt.Errorf("call: a result answers the author's words and names its call")
+		}
+		if e.Revision != "" {
+			if err := validID(e.Revision); err != nil {
+				return fmt.Errorf("revision: %w", err)
+			}
+		}
+	default:
 		return fmt.Errorf("role: invalid message role %q", e.Role)
+	}
+	if e.Capped && e.Role != RoleAssistant {
+		return fmt.Errorf("capped: only a reply is capped")
 	}
 	if !validEffort(e.Effort) {
 		return fmt.Errorf("effort: invalid %q", e.Effort)

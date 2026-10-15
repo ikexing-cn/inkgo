@@ -24,9 +24,6 @@ func (a *App) View(c *ui.Context) {
 	}
 	a.menu.seen = false
 	defer a.nameWindow()
-	if a.Store != nil && a.worker == nil && a.aiOn() {
-		a.startWorker(c)
-	}
 	a.pal = a.light
 	if c.Theme().Dark {
 		a.pal = a.dark

@@ -67,7 +67,7 @@ Status: implemented
   - 看一条设定的全文要多点一次；以前整面文字虽然乱，但不用点。
   - 设定列表不再显示 `open` 和 `dropped` 的条目，搜索也只搜正文里的；要找被删的得进「已删除」。
   - 建议"关于谁"是按名字猜的：内容里提到两个人时算到名字长的那个头上，可能不对。
-  - 一条建议太长时「等你决定」一屏放不了几条；后台整理写出的建议现在没有长度限制。
+  - 一条建议太长时「等你决定」一屏放不了几条；AI 写出的建议现在没有长度限制（2026-10-15 起由讨论当场记下，见[讨论用工具查全书、当场记设定](2026-10-15-talk-looks-up-and-notes-the-setting.md)）。
   - 伏笔的"最近埋下的在前"排序没有了。
   - 右栏的空讨论不再解释"勾着时正在写的内容会一起发过去"，只剩勾选框上的悬停说明。
 - **和设计稿的差别**：「···」当时是系统菜单（现在不是了，见上）；空讨论的三行起头在上面，设计稿画在输入框上方；「已删除」的列表、「修改记录」页、已放弃伏笔的详情设计稿没有画，照同一个形状做的。
@@ -76,7 +76,7 @@ Status: implemented
 
 - `TestSettingListAndPage`：列表有「等你决定」和分类；建议算到共用名字的那条头上，另一条是"新设定"；搜索只筛选不改数据；详情有别名、出处、AI 建议和「删除设定」；采纳后建议消失；「等你决定」里忽略最后一条后回到列表。
 - `TestTheAuthorEditsTheSetting`：点一行、「修改」、保存；「删除设定」；从「···」的「已删除」里恢复；「新增」。
-- `TestBookkeeperFillsTheSettingInTheBackground`、`TestLayout`：「···」里的「修改记录」。
+- `TestLayout`：「···」里的「修改记录」。原来还有 `TestBookkeeperFillsTheSettingInTheBackground`，2026-10-15 随记账员删了，讨论记下的那几条现在由 `TestTalkNotesTheSettingAsItReplies` 查。
 - `TestForeshadowBuryAndPay`、`TestForeshadowLost`：新的详情文字、「看原文」「取消回收」「放弃伏笔」「恢复伏笔」「原句已删」「换个原句」。
 - `TestTalkList`：「全部讨论」、「新讨论」开一条并回到讨论、点一行打开旧的。
 - `TestTalkBesideTheProse`：空讨论的起头和「附上本章内容」。

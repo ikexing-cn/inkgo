@@ -109,7 +109,6 @@ func (a *App) talkPanel(c *ui.Context) {
 	paneTop(c).Children(func() {
 		a.panelTabs(c)
 		ui.Spacer(c)
-		a.bookDot(c)
 		if iconButton(c, icPanel, "收起右栏", ui.Color{}).Tooltip("收起右栏").Clicked() {
 			a.setDocHidden(true)
 		}

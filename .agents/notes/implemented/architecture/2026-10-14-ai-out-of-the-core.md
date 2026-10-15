@@ -28,7 +28,7 @@ Status: implemented
 | --- | --- | --- |
 | `desk` | 全部界面，和拆之前一样 | `desk/aiport`、`workspace`、`editor`、`backup`、`shelf` |
 | `desk/aiport` | `desk` 要 AI 做的事：几个接口，和过界要用的几个小结构 | 只有 `workspace` |
-| `ai` | 实现 `aiport`：读写 `providers.yaml`、建客户端、讨论、后台整理和它的日志、续写改写起草、摘要、检查 | `desk/aiport`、`model`、`discussion`、`writing`、`workspace` |
+| `ai` | 实现 `aiport`：读写 `providers.yaml`、建客户端、讨论、续写改写起草、摘要、检查（原来还有后台整理和它的日志，2026-10-15 随记账员删了，见[讨论用工具查全书、当场记设定](../feature/2026-10-15-talk-looks-up-and-notes-the-setting.md)） | `desk/aiport`、`model`、`discussion`、`writing`、`workspace` |
 | `cmd/poc` | 建一个 `ai` 交给 `desk` | `desk`、`ai` |
 
 `aiport` 单独成包，是因为 `desk` 的测试要用真的 `ai`（配假的模型）：接口要是放在 `desk` 里，`ai` 就得引用 `desk`，`desk` 的测试再引用 `ai` 就成环了，Go 不让。
@@ -41,8 +41,8 @@ Status: implemented
 | --- | --- | --- |
 | 模型服务的设置 | `ConfigFile`、`Providers`、`Reload`、`SaveProvider`、`SetKey`、`Catalog`（给出能 `ListModels` 的对象） | `a.Config`、`a.ConfigFile`，`model.Load`、`Save`、`SetKey`、`NewClient` 加 `ListModels`（`settings.go`、`app.go`） |
 | 推理等级的名字 | `Efforts`、`EffortLabel` | `model.Efforts`、`model.Effort(x).Label()`（`chat.go`、`settings.go`、`ai.go`） |
-| 讨论 | `Talk(作品, 正文旁, 进度)` 给出能 `Say`、`Retry` 的对象；`Extract` | `a.engine`、`eng.Say`、`eng.Retry`、`eng.Extract`（`app.go`、`chat.go`） |
-| 后台整理 | `Bookkeep(作品, 有变化时)` 给出 `Kick`、`Busy`、`Stop`；`Book(作品)` 给出能 `Redo` 的对象 | `a.Book`、`a.bookkeeper`、`discussion.NewWorker`、`startWorker`、`kick`、`halt`、`redo`（`app.go`、`setting.go`） |
+| 讨论 | `Talk(作品, 正文旁, 进度, 每一步)` 给出能 `Say`、`Retry` 的对象；`Extract`。「每一步」是 2026-10-15 加的，回复每写一条工具调用或结果就交给界面 | `a.engine`、`eng.Say`、`eng.Retry`、`eng.Extract`（`app.go`、`chat.go`） |
+| 后台整理 | 原来是 `Bookkeep(作品, 有变化时)` 给出 `Kick`、`Busy`、`Stop`，`Book(作品)` 给出能 `Redo` 的对象；2026-10-15 随记账员删了 | `a.Book`、`a.bookkeeper`、`discussion.NewWorker`、`startWorker`、`kick`、`halt`、`redo`（`app.go`、`setting.go`） |
 | 续写、改写、起草、摘要、检查 | `Pen(作品)` 给出一支笔：`Name`、`Effort`、`Predict`、`Rewrite`、`Draft`、`Summarize`、`Check`；改写和起草给出 `Job` | `a.Pen`、`a.newWriter`、`writing.Writer` 的各个方法（`ai.go`、`summary.go`、`check.go`） |
 | 不发送的 | `Unsummarized`、`MinSummary`、`MinCheck` | `writing.Unsummarized`、`writing.MinSummary`、`writing.MinCheck`（`summary.go`、`check.go`、`ai.go`） |
 | 开关 | `SetOn` | 没有 |
@@ -61,13 +61,13 @@ Status: implemented
 ### 怎么建、测试怎么换假模型
 
 - `ai.New(配置文件)` 建 `ai.Service`，不读盘；`desk.New(它)` 建界面：先读作品清单 `works.json`，把开关告诉 `ai`（`SetOn`），AI 开着而且有配置文件时 `Reload` 一次，读不成的错照旧显示在界面上。`cmd/poc` 把两个接起来，找不到配置目录的错也由它交给界面。`works.json` 照旧放在配置文件旁边，位置问 `ConfigFile()`。
-- 测试换 `ai.Service` 上的 `NewWriter`、`NewBookkeeper` 两个钩子（拆之前是 `App` 上的 `Pen`、`Book`）。`desk/app_test.go` 里两个小函数：`newApp(配置文件)` 建界面，`aiOf(a)` 拿到它的 `ai.Service` 好换钩子。`desk` 的测试引用 `ai` 和 `model` 来做假模型，不算 `desk` 的依赖（`go list -deps` 不看测试）。要数 `desk` 向 AI 要了什么，`desk/aiswitch_test.go` 的 `spy` 包住一个 `aiport.Service`，记下 `Catalog`、`Talk`、`Bookkeep`、`Book`、`Pen` 的每一次。
+- 测试换 `ai.Service` 上的 `NewWriter` 钩子（拆之前是 `App` 上的 `Pen`；原来还有换记账员的 `NewBookkeeper`，2026-10-15 删了）。`desk/app_test.go` 里两个小函数：`newApp(配置文件)` 建界面，`aiOf(a)` 拿到它的 `ai.Service` 好换钩子。`desk` 的测试引用 `ai` 和 `model` 来做假模型，不算 `desk` 的依赖（`go list -deps` 不看测试）。要数 `desk` 向 AI 要了什么，`desk/aiswitch_test.go` 的 `spy` 包住一个 `aiport.Service`，记下 `Catalog`、`Talk`、`Pen` 的每一次。
 
 ### 关着 AI 时
 
-- `ai` 停用：`SetOn(false)` 以后，`Catalog`、`Talk`、`Book`、`Pen` 和后台整理要用的那支笔，头一件事就是返回 `ai.ErrOff`（「AI 已关闭」），一个客户端也不建；已经开着的后台整理，下一回要笔时也拿到它，记进 `.writer/bookkeeper.log`，不干活。正在跑的回复、起草、摘要、检查由 `desk` 在开关的那一刻停下（取消各自的 context），`ai` 不记它们。
+- `ai` 停用：`SetOn(false)` 以后，`Catalog`、`Talk`、`Pen` 头一件事就是返回 `ai.ErrOff`（「AI 已关闭」），一个客户端也不建。（原来 `Book` 和后台整理要用的那支笔也这样，2026-10-15 随记账员删了。）正在跑的回复、起草、摘要、检查由 `desk` 在开关的那一刻停下（取消各自的 context），`ai` 不记它们。
 - 界面照原型，用到 AI 的地方看 `a.aiOn()`，关着就不显示；细节见[可以整个关掉 AI](../feature/2026-10-14-disable-ai.md)的「代码里怎么做」。
-- `desk` 里只有 AI 的活走 `a.run`（讨论、后台整理的重做、读模型目录），关着时这条路上到达的报错不显示。
+- `desk` 里只有 AI 的活走 `a.run`（讨论、读模型目录；原来还有后台整理的重做），关着时这条路上到达的报错不显示。
 
 ### 搬家时的小变化
 
@@ -101,7 +101,7 @@ Status: implemented
 - **「看不见」靠检查，不靠编译器**：界面里用到 AI 的入口各自看开关，漏一处就露一处；走一遍的检查只认它知道的字和它走到的地方。新做 AI 功能时要把入口和名字加进检查。
 - **三个小结构抄了一份**：`aiport.Provider`、`aiport.Beside`、`aiport.Scene` 和 `model`、`discussion`、`writing` 里的长得一样，那边加一项这边要跟着加。漏不掉：`ai` 用类型转换来回换，两边对不上就编译不过；只是改的时候要两边一起改。
 - **偏好和模型选择照旧由 `desk` 读写**：`work.yaml` 里各用哪个模型、`.writer/desk.json` 都不变，`ai` 只从 `Store` 读模型选择。
-- **`ai` 不记谁在跑**：停下正在跑的回复、起草、摘要、检查，靠 `desk` 记着各自的 cancel；以后 `ai` 里自己起后台任务，要像后台整理那样每回先查开关。
+- **`ai` 不记谁在跑**：停下正在跑的回复、起草、摘要、检查，靠 `desk` 记着各自的 cancel；以后 `ai` 里自己起后台任务，要像原来的后台整理那样每回先查开关。
 
 ## Verification
 

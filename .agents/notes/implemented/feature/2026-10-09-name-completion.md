@@ -34,7 +34,7 @@ Status: implemented
 - **改名**：作者在面板里改了正名（比如"林晚"改成"苏晴"），补全立即改用新名。如果正文里还有旧名，设定面板顶上出现"正文里还有 N 处「林晚」"，点"全书替换"会切到正文页，打开查找栏，开好"全书"，旧名、新名都已填好。要不要换，仍由作者在[全书替换](2026-10-09-find-in-the-whole-book.md)的确认条上决定。
 - 代码：
   - `workspace/types.go`、`workspace/setting.go`：名称字段和 `name` 操作；
-  - `discussion/bookkeep.go`、`discussion/prompts.go`：整理时给出名字；
+  - `discussion/bookkeep.go`、`discussion/prompts.go`：整理时给出名字。2026-10-15 起记账员去掉了，名字由讨论记设定时给出（`note_setting` 的 `names` 和 `name` 操作），规则不变，代码在 `discussion/note.go`，见[讨论用工具查全书、当场记设定](2026-10-15-talk-looks-up-and-notes-the-setting.md)；
   - `desk/names.go`：补全数据、右键菜单、改名提示；
   - `desk/setting.go`：面板里的名称栏；
   - `editor/`：`Entity.Of`、`SetEntities`、候选上限，以及 Enter、Tab、自动续写的规则。
