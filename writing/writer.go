@@ -1,16 +1,15 @@
 package writing
 
 import (
-	"cmp"
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 	"strings"
 	"unicode"
 
 	"writer/discussion"
 	"writer/model"
+	"writer/prompt"
 	"writer/workspace"
 )
 
@@ -21,8 +20,14 @@ const (
 	beforeCap   = 6000
 	afterCap    = 1000
 	previousCap = 3000
-	lineCost    = 8
 )
+
+// writePlaces are the places of the setting as the prose sees them: what
+// is open is not the author's yet.
+var writePlaces = []prompt.Place{
+	{Place: workspace.PlaceBody, Label: "正文", Heading: "设定正文（作者定下的，必须遵守）："},
+	{Place: workspace.PlaceDropped, Label: "已放弃", Heading: "已放弃（不能出现在正文里）："},
+}
 
 // Writer writes the prose of one work with one model.
 type Writer struct {
@@ -74,69 +79,61 @@ func (w *Writer) prepare(op, task string, scene Scene, tail string) (Job, error)
 	if err != nil {
 		return job, err
 	}
-	system := rules + "\n\n" + task
-	remaining := w.Model.Input() - discussion.Estimate(system) - discussion.Estimate(tail) - 512
+	b := prompt.NewBudget(w.Model.Input())
+	b.Must(workspace.PartRules, rules+task)
+	b.Must(workspace.PartInput, tail)
 	// The parts of the message, in the order it reads; each says what it
 	// shows for the record.
 	type part struct{ heading, text, shown string }
 	var volume, recap, outline, prev, near, far part
-	take := func(p *part, heading, text, shown string) {
+	take := func(p *part, kind, heading, text, shown string) {
 		*p = part{heading, text, shown}
-		remaining -= discussion.Estimate(heading + text)
+		b.Must(kind, heading+text)
 	}
 	// The outlines go whole, or the request does not.
 	if p := n.Parent; p != nil && p.Parent != nil {
 		if vol, err := w.Store.ReadChapter(p.ID); err == nil && strings.TrimSpace(vol.Outline) != "" {
-			take(&volume, "【所在卷："+p.Title+"】卷纲：", strings.TrimSpace(vol.Outline), "卷纲："+p.Title)
+			take(&volume, workspace.PartOutline, "【所在卷："+p.Title+"】卷纲：", strings.TrimSpace(vol.Outline), "卷纲："+p.Title)
 		}
 	}
 	if strings.TrimSpace(ch.Outline) != "" {
-		take(&outline, "【本章："+n.Title+"】章纲：", strings.TrimSpace(ch.Outline), "章纲："+n.Title)
+		take(&outline, workspace.PartOutline, "【本章："+n.Title+"】章纲：", strings.TrimSpace(ch.Outline), "章纲："+n.Title)
 	} else {
 		outline = part{heading: "【本章：" + n.Title + "】"}
 	}
-	if remaining < 0 {
+	if b.Left() < 0 {
 		return job, errors.New("纲和要求超出了模型的上下文上限：请缩短，或在设置中「AI」配置里调大上下文上限")
 	}
-	if t := fit(lastRunes(scene.Before, beforeCap), remaining, true); strings.TrimSpace(t) != "" {
-		take(&near, "【本章前文】", t, fmt.Sprintf("本章前文 %d 字", len([]rune(t))))
+	if t := fit(lastRunes(scene.Before, beforeCap), b.Left(), true); strings.TrimSpace(t) != "" {
+		take(&near, workspace.PartProse, "【本章前文】", t, fmt.Sprintf("本章前文 %d 字", len([]rune(t))))
 	}
-	if t := fit(firstRunes(scene.After, afterCap), remaining, false); strings.TrimSpace(t) != "" {
-		take(&far, "【本章后文】", t, fmt.Sprintf("本章后文 %d 字", len([]rune(t))))
+	if t := fit(firstRunes(scene.After, afterCap), b.Left(), false); strings.TrimSpace(t) != "" {
+		take(&far, workspace.PartProse, "【本章后文】", t, fmt.Sprintf("本章后文 %d 字", len([]rune(t))))
 	}
 
 	// The setting: the body binds the prose, then what the author dropped;
 	// the newest first when it does not all fit.
-	shown := map[string]bool{}
-	for _, place := range []string{workspace.PlaceBody, workspace.PlaceDropped} {
-		entries := slices.Clone(set.Entries)
-		slices.SortStableFunc(entries, func(a, b workspace.Entry) int { return cmp.Compare(b.Rev, a.Rev) })
-		for _, e := range entries {
-			if e.Place != place {
-				continue
+	shown, left := b.Fit(set, []string{workspace.PlaceBody, workspace.PlaceDropped}, prompt.Whole)
+	for _, p := range writePlaces {
+		for _, e := range prompt.Ordered(work, set.Entries) {
+			if e.Place == p.Place && shown[e.ID] {
+				job.Record.Setting = append(job.Record.Setting, p.Item(e, prompt.Whole))
 			}
-			text := oneLine(e.Text)
-			label := "正文"
-			if place == workspace.PlaceDropped {
-				label = "已放弃"
-			}
-			item := workspace.ContextItem{ID: e.ID, Text: label + "：" + text}
-			if cost := discussion.Estimate(text) + lineCost; cost <= remaining {
-				remaining -= cost
-				shown[e.ID] = true
-				job.Record.Setting = append(job.Record.Setting, item)
-			} else {
+		}
+		for _, e := range left {
+			if e.Place == p.Place {
+				item := p.Item(e, prompt.Whole)
 				item.Reason = "超出上下文上限"
 				job.Record.Omitted = append(job.Record.Omitted, item)
 			}
 		}
 	}
-	system += "\n\n" + renderSetting(work, set, shown)
+	system := rules + "\n\n" + prompt.Render(work, set, writePlaces, shown, prompt.Whole) + "\n\n" + task
 
 	// What the chapters before told, for a draft, which sees no more of
 	// them than the previous one's end.
 	if op == workspace.AIDraft {
-		text, chapters, stale, err := w.recap(tree, n, remaining-previousCap/2)
+		text, chapters, stale, err := w.recap(tree, n, b.Left()-previousCap/2)
 		if err != nil {
 			return job, err
 		}
@@ -145,15 +142,15 @@ func (w *Writer) prepare(op, task string, scene Scene, tail string) (Job, error)
 			if stale > 0 {
 				shown += fmt.Sprintf("（其中 %d 章正文改过，摘要可能过时）", stale)
 			}
-			take(&recap, "【前情提要】（前面各章的摘要，按顺序）", text, shown)
+			take(&recap, workspace.PartRecap, "【前情提要】（前面各章的摘要，按顺序）", text, shown)
 		}
 	}
 
 	// The previous chapter's end, while this one has little before.
 	if p, ok := previous(tree, n); ok && len([]rune(scene.Before)) < beforeCap {
 		if pc, err := w.Store.ReadChapter(p.ID); err == nil {
-			if t := fit(lastRunes(pc.Text, previousCap), remaining-64, true); strings.TrimSpace(t) != "" {
-				take(&prev, "【上一章《"+p.Title+"》的结尾】", t, fmt.Sprintf("上一章《%s》结尾 %d 字", p.Title, len([]rune(t))))
+			if t := fit(lastRunes(pc.Text, previousCap), b.Left()-64, true); strings.TrimSpace(t) != "" {
+				take(&prev, workspace.PartProse, "【上一章《"+p.Title+"》的结尾】", t, fmt.Sprintf("上一章《%s》结尾 %d 字", p.Title, len([]rune(t))))
 			}
 		}
 	}
@@ -171,6 +168,7 @@ func (w *Writer) prepare(op, task string, scene Scene, tail string) (Job, error)
 		}
 	}
 	job.Request = model.Request{System: system, Messages: []model.Message{{Role: workspace.RoleUser, Content: strings.Join(parts, "\n\n")}}}
+	job.Record.Sent = b.Sent(rules+task, set)
 	return job, nil
 }
 
@@ -281,41 +279,6 @@ func previous(t workspace.Tree, n *workspace.Node) (*workspace.Node, bool) {
 	return found, found != nil
 }
 
-// renderSetting lists the entries shown: the body by category in the
-// work's order, then what was dropped.
-func renderSetting(w workspace.Work, set workspace.Setting, shown map[string]bool) string {
-	var body, dropped []string
-	for _, c := range w.Categories {
-		first := true
-		for _, e := range set.Entries {
-			if shown[e.ID] && e.Place == workspace.PlaceBody && e.Category == c.Name {
-				if first {
-					body = append(body, "【"+c.Name+"】")
-					first = false
-				}
-				body = append(body, "- "+oneLine(e.Text))
-			}
-		}
-	}
-	for _, e := range set.Entries {
-		if shown[e.ID] && e.Place == workspace.PlaceDropped {
-			dropped = append(dropped, "- "+oneLine(e.Text))
-		}
-	}
-	var b strings.Builder
-	b.WriteString("设定正文（作者定下的，必须遵守）：\n")
-	if len(body) == 0 {
-		b.WriteString("（还没有）")
-	}
-	b.WriteString(strings.Join(body, "\n"))
-	if len(dropped) > 0 {
-		b.WriteString("\n\n已放弃（不能出现在正文里）：\n" + strings.Join(dropped, "\n"))
-	}
-	return b.String()
-}
-
-func oneLine(s string) string { return strings.Join(strings.Fields(s), " ") }
-
 func lastRunes(s string, n int) string {
 	r := []rune(s)
 	return string(r[max(0, len(r)-n):])
@@ -328,9 +291,9 @@ func firstRunes(s string, n int) string {
 
 // fit cuts s to what budget tokens hold, keeping its end, or its start.
 func fit(s string, budget int, end bool) string {
-	for s != "" && discussion.Estimate(s) > budget {
+	for s != "" && prompt.Estimate(s) > budget {
 		r := []rune(s)
-		k := max(len(r)*2/3, len(r)-max((discussion.Estimate(s)-budget)*2/3, 1))
+		k := max(len(r)*2/3, len(r)-max((prompt.Estimate(s)-budget)*2/3, 1))
 		if end {
 			s = string(r[len(r)-k:])
 		} else {

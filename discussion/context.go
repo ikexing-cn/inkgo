@@ -3,83 +3,67 @@
 package discussion
 
 import (
-	"cmp"
 	"errors"
-	"slices"
-	"strings"
-	"unicode/utf8"
 
 	"writer/model"
+	"writer/prompt"
 	"writer/workspace"
 )
 
-// Context is what one talk request sends, and which entries it had to
-// leave out.
+// Context is what one talk request sends, the entries of the setting and
+// the prose it showed, and what each part took.
 type Context struct {
 	Request  model.Request
 	Included []workspace.ContextItem
-	Omitted  []workspace.ContextItem
+	Sent     *workspace.Sent
 }
 
 const (
 	talkOutput  = 32768 // what the request allows, reasoning included
-	docSlack    = 512   // headings and per-message overhead
-	lineCost    = 8     // a "- " and a newline
 	recentTurns = 4
 )
 
-// Estimate bounds the tokens of s without the provider's tokenizer: one for
-// every three ASCII bytes, and one and a half for every other character,
-// above what the tokenizers we know of spend on Chinese. It is never
-// reported as an exact count.
-func Estimate(s string) int {
-	ascii, other := 0, 0
-	for _, r := range s {
-		if r < utf8.RuneSelf {
-			ascii++
-		} else {
-			other++
-		}
-	}
-	return (ascii+2)/3 + (other*3+1)/2 + 16
+// talkPlaces are the places of the setting as the talk shows them, in the
+// order it does.
+var talkPlaces = []prompt.Place{
+	{Place: workspace.PlaceBody, Heading: "设定正文（作者定下的，必须遵守）："},
+	{Place: workspace.PlaceDropped, Label: "已放弃", Heading: "已放弃（不要再推荐，换个说法也不行）："},
+	{Place: workspace.PlaceOpen, Label: "悬而未决", Heading: "悬而未决（作者还没表态，可以讨论）："},
 }
 
-// places order the setting in the prompt and decide what goes first when
-// it does not all fit: the body binds the reply, then what the author
-// dropped, then what is open.
-var places = []struct {
-	place, label, heading string
-}{
-	{workspace.PlaceBody, "正文", "设定正文（作者定下的，必须遵守）："},
-	{workspace.PlaceDropped, "已放弃", "已放弃（不要再推荐，换个说法也不行）："},
-	{workspace.PlaceOpen, "悬而未决", "悬而未决（作者还没表态，可以讨论）："},
-}
+// indexNote opens the setting when it goes as an index.
+const indexNote = "设定较多，这里只列目录：每条的分类、名字和第一句。"
 
-func oneLine(s string) string { return strings.Join(strings.Fields(s), " ") }
-
-// Assemble builds a talk request of at most room tokens: the rules, the
-// setting as far as room allows, newest entries first within each place, and the last few
+// Assemble builds a talk request of at most room tokens, in the order a
+// provider's cache can reuse: the rules, the setting, the last few
 // complete exchanges, which include every one the bookkeeper has not yet
-// taken in: done is the number of events it covered.
+// taken in (done is the number of events it covered), and the author's
+// words. The setting goes whole when it fits after the talk, and as an
+// index when it does not; the index must fit.
 func Assemble(w workspace.Work, room int, set workspace.Setting, events []workspace.Event, done int, input string, beside *Writing) (Context, error) {
 	out := Context{Request: model.Request{MaxTokens: talkOutput}}
 	rules := talkRules
 	if beside != nil {
 		rules += "\n\n" + besideRules
 	}
-	remaining := room - Estimate(rules) - Estimate(input) - docSlack
-	if remaining < 0 {
-		return out, errors.New("当前发言超出模型的上下文上限；请缩短，或在设置中「AI」配置里调大上下文上限")
+	tooLong := errors.New("当前发言超出模型的上下文上限；请缩短，或在设置中「AI」配置里调大上下文上限")
+	b := prompt.NewBudget(room)
+	if !b.Must(workspace.PartRules, rules) || !b.Must(workspace.PartInput, input) {
+		return out, tooLong
 	}
-	// What the author is writing comes first, before the talk and the
-	// setting: they asked beside it.
+	index := indexNote + "\n\n" + prompt.Render(w, set, talkPlaces, nil, prompt.Short)
+	if !b.Must(workspace.PartIndex, index) {
+		return out, errors.New("设定的目录超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限")
+	}
+	// What the author is writing goes with their words: they asked beside it.
 	if beside != nil {
-		attached, items, cost := beside.render(remaining)
-		remaining -= cost
+		attached, items := beside.render(b)
+		if b.Left() < 0 {
+			return out, tooLong
+		}
 		input = attached + input
 		out.Included = append(out.Included, items...)
 	}
-	// The exchanges the setting lags behind come before the setting itself.
 	pairs := exchanges(events)
 	keep := recentTurns
 	for n := len(pairs) - 1; n >= 0 && pairs[n].at >= done; n-- {
@@ -87,76 +71,28 @@ func Assemble(w workspace.Work, room int, set workspace.Setting, events []worksp
 	}
 	var msgs []model.Message
 	for n := len(pairs) - 1; n >= 0 && n >= len(pairs)-keep; n-- {
-		cost := Estimate(pairs[n].user.Content) + Estimate(pairs[n].reply.Content)
-		if cost > remaining {
+		if !b.Take(workspace.PartTalk, pairs[n].user.Content+"\n"+pairs[n].reply.Content) {
 			break
 		}
-		remaining -= cost
 		msgs = append([]model.Message{pairs[n].user, pairs[n].reply}, msgs...)
 	}
-	shown := map[string]bool{}
-	for _, p := range places {
-		entries := slices.Clone(set.Entries)
-		slices.SortStableFunc(entries, func(a, b workspace.Entry) int { return cmp.Compare(b.Rev, a.Rev) })
-		for _, e := range entries {
-			if e.Place != p.place {
-				continue
-			}
-			text := oneLine(e.Text)
-			item := workspace.ContextItem{ID: e.ID, Text: p.label + "：" + text}
-			if cost := Estimate(text) + lineCost; cost <= remaining {
-				remaining -= cost
-				shown[e.ID] = true
-				out.Included = append(out.Included, item)
-			} else {
-				item.Reason = "超出上下文上限"
-				out.Omitted = append(out.Omitted, item)
+	b.Return(workspace.PartIndex)
+	setting, line := prompt.Render(w, set, talkPlaces, nil, prompt.Whole), prompt.Line(prompt.Whole)
+	if !b.Take(workspace.PartSetting, setting) {
+		b.Must(workspace.PartIndex, index)
+		setting, line = index, prompt.Short
+	}
+	for _, p := range talkPlaces {
+		for _, e := range prompt.Ordered(w, set.Entries) {
+			if e.Place == p.Place {
+				out.Included = append(out.Included, p.Item(e, line))
 			}
 		}
 	}
-	out.Request.System = rules + "\n\n" + renderSetting(w, set, shown)
+	out.Request.System = rules + "\n\n" + setting
 	out.Request.Messages = append(msgs, model.Message{Role: workspace.RoleUser, Content: input})
+	out.Sent = b.Sent(rules, set)
 	return out, nil
-}
-
-// renderSetting lists the entries shown, the body by category in the
-// work's order, in the order they were added.
-func renderSetting(w workspace.Work, set workspace.Setting, shown map[string]bool) string {
-	if len(shown) == 0 {
-		return "设定文档还是空的。"
-	}
-	var b strings.Builder
-	for _, p := range places {
-		var lines []string
-		if p.place == workspace.PlaceBody {
-			for _, c := range w.Categories {
-				first := true
-				for _, e := range set.Entries {
-					if shown[e.ID] && e.Place == p.place && e.Category == c.Name {
-						if first {
-							lines = append(lines, "【"+c.Name+"】")
-							first = false
-						}
-						lines = append(lines, "- "+oneLine(e.Text))
-					}
-				}
-			}
-		} else {
-			for _, e := range set.Entries {
-				if shown[e.ID] && e.Place == p.place {
-					lines = append(lines, "- "+oneLine(e.Text))
-				}
-			}
-		}
-		if len(lines) == 0 {
-			continue
-		}
-		if b.Len() > 0 {
-			b.WriteString("\n\n")
-		}
-		b.WriteString(p.heading + "\n" + strings.Join(lines, "\n"))
-	}
-	return b.String()
 }
 
 type exchange struct {

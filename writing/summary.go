@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"writer/discussion"
 	"writer/model"
+	"writer/prompt"
 	"writer/workspace"
 )
 
@@ -47,8 +47,9 @@ func (w *Writer) Summarize(ctx context.Context, chapter string) (workspace.Summa
 	if workspace.Count(ch.Text) < MinSummary {
 		return workspace.Summary{}, fmt.Errorf("这一章还不到 %d 字，不用摘要", MinSummary)
 	}
-	budget := w.Model.Input() - discussion.Estimate(summaryRules) - 256
-	text := fit(ch.Text, budget, false)
+	b := prompt.NewBudget(w.Model.Input())
+	b.Must(workspace.PartRules, summaryRules)
+	text := fit(ch.Text, b.Left(), false)
 	if strings.TrimSpace(text) == "" {
 		return workspace.Summary{}, errors.New("模型的上下文上限放不下摘要的要求：请在设置中「AI」配置里调大上下文上限")
 	}
@@ -56,6 +57,7 @@ func (w *Writer) Summarize(ctx context.Context, chapter string) (workspace.Summa
 	if len(text) < len(ch.Text) {
 		note, read = "（正文太长，只给了前面一部分）", workspace.Count(text)
 	}
+	b.Must(workspace.PartProse, text)
 	req := model.Request{System: summaryRules, MaxTokens: summaryOutput, Effort: model.EffortNone,
 		Messages: []model.Message{{Role: workspace.RoleUser, Content: "【章名】" + n.Title + "\n\n【正文】" + note + "\n" + text}}}
 	var out strings.Builder
@@ -69,7 +71,7 @@ func (w *Writer) Summarize(ctx context.Context, chapter string) (workspace.Summa
 	if !finished(sum) {
 		return workspace.Summary{}, errors.New("模型给的摘要没有写完，可以重新生成")
 	}
-	return workspace.Summary{Text: sum, Of: workspace.ProseHash(ch.Text), Words: workspace.Count(ch.Text), Read: read, By: w.Model.Name, At: time.Now()}, nil
+	return workspace.Summary{Text: sum, Of: workspace.ProseHash(ch.Text), Words: workspace.Count(ch.Text), Read: read, By: w.Model.Name, At: time.Now(), Sent: b.Sent(summaryRules, workspace.Setting{})}, nil
 }
 
 // earlier is the documents before n in the order of the tree.
@@ -133,8 +135,8 @@ func (w *Writer) recap(t workspace.Tree, n *workspace.Node, budget int) (text st
 		if !ok {
 			continue
 		}
-		line := "《" + m.Title + "》" + oneLine(sum.Text)
-		cost := discussion.Estimate(line) + lineCost
+		line := "《" + m.Title + "》" + prompt.OneLine(sum.Text)
+		cost := prompt.Estimate(line)
 		if size+len([]rune(line)) > recapCap || cost > budget {
 			break
 		}

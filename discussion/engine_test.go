@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"writer/model"
+	"writer/prompt"
 	"writer/workspace"
 )
 
@@ -178,29 +179,56 @@ func TestTalkSeesTheSettingAndTheTurnsItLags(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if reply := events[len(events)-1]; len(reply.Context) != 3 || reply.Context[0].Text != "正文：主角怕黑" {
+	if reply := events[len(events)-1]; len(reply.Context) != 3 || reply.Context[0].Text != "主角怕黑" {
 		t.Fatalf("snapshot %+v", reply.Context)
 	}
 }
 
+// The setting goes whole while it fits after the talk, and as an index
+// when it does not; the index must fit, and so must the author's words.
 func TestContextBudget(t *testing.T) {
 	w := workspace.Work{Categories: workspace.Categories("网文")}
 	set := workspace.Setting{Entries: []workspace.Entry{
-		{ID: "old", Place: workspace.PlaceBody, Category: "人物", Text: strings.Repeat("旧", 30), Rev: 1},
-		{ID: "new", Place: workspace.PlaceBody, Category: "人物", Text: strings.Repeat("新", 30), Rev: 2},
-	}}
-	room := Estimate(talkRules) + Estimate("问") + docSlack + Estimate(strings.Repeat("新", 30)) + lineCost
+		{ID: "old", Place: workspace.PlaceBody, Category: "人物", Names: []string{"林晚"}, Text: "林晚怕黑。" + strings.Repeat("旧", 300), Rev: 1},
+		{ID: "new", Place: workspace.PlaceOpen, Category: "人物", Text: "她有个妹妹？" + strings.Repeat("新", 300), Rev: 2},
+	}, Revisions: make([]workspace.Revision, 2)}
+	whole := prompt.Render(w, set, talkPlaces, nil, prompt.Whole)
+	room := 512 + prompt.Estimate(talkRules) + prompt.Estimate("问") + prompt.Estimate(whole)
 	got, err := Assemble(w, room, set, nil, 0, "问", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got.Included) != 1 || got.Included[0].ID != "new" || len(got.Omitted) != 1 || got.Omitted[0].ID != "old" {
-		t.Fatalf("%+v", got)
+	if !strings.HasSuffix(got.Request.System, whole) || len(got.Included) != 2 || got.Included[0] != (workspace.ContextItem{ID: "old", Text: set.Entries[0].Text}) || got.Included[1].Text != "悬而未决："+set.Entries[1].Text {
+		t.Fatalf("whole: %+v", got.Included)
 	}
+	if s := got.Sent; s.Setting != 2 || s.Part(workspace.PartSetting) != prompt.Estimate(whole) || s.Part(workspace.PartIndex) != 0 || s.Part(workspace.PartRules) == 0 || s.Part(workspace.PartInput) == 0 {
+		t.Fatalf("sent %+v", s)
+	}
+
+	got, err = Assemble(w, room-1, set, nil, 0, "问", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(got.Request.System, indexNote+"\n\n设定正文（作者定下的，必须遵守）：\n【人物】\n- 人物 · 林晚：林晚怕黑\n\n悬而未决（作者还没表态，可以讨论）：\n- 人物：她有个妹妹？") ||
+		strings.Contains(got.Request.System, "旧旧") || got.Sent.Part(workspace.PartIndex) == 0 || got.Sent.Part(workspace.PartSetting) != 0 ||
+		len(got.Included) != 2 || got.Included[0].Text != "人物 · 林晚：林晚怕黑" {
+		t.Fatalf("index:\n%s\n%+v", got.Request.System, got.Included)
+	}
+
+	// The talk comes before the whole setting: with it, the index goes.
+	events := []workspace.Event{{ID: "u", Role: "user", Text: "问"}, {ID: "a", Role: "assistant", Text: "答", ReplyTo: "u"}, {Role: "user", Text: "失败的请求"}}
+	got, err = Assemble(w, room, set, events, 0, "问", nil)
+	if err != nil || len(got.Request.Messages) != 3 || got.Sent.Part(workspace.PartTalk) == 0 || got.Sent.Part(workspace.PartIndex) == 0 {
+		t.Fatalf("talk %v %+v", err, got.Sent)
+	}
+
 	if _, err = Assemble(w, 8192, set, nil, 0, strings.Repeat("大", 9000), nil); err == nil || !strings.Contains(err.Error(), "设置中「AI」配置里调大上下文上限") {
 		t.Fatalf("oversized current input: %v", err)
 	}
-	events := []workspace.Event{{ID: "u", Role: "user", Text: "问"}, {ID: "a", Role: "assistant", Text: "答", ReplyTo: "u"}, {Role: "user", Text: "失败的请求"}}
+	index := indexNote + "\n\n" + prompt.Render(w, set, talkPlaces, nil, prompt.Short)
+	if _, err = Assemble(w, 512+prompt.Estimate(talkRules)+prompt.Estimate("问")+prompt.Estimate(index)-1, set, nil, 0, "问", nil); err == nil || !strings.Contains(err.Error(), "设定的目录超出模型的上下文上限") {
+		t.Fatalf("an index too big: %v", err)
+	}
 	got, err = Assemble(w, 16000, workspace.Setting{}, events, 0, "本轮", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -473,15 +501,6 @@ func TestBookkeeperSeesTheExchangeBefore(t *testing.T) {
 }
 
 // Chinese counts by the character, not by its three UTF-8 bytes.
-func TestEstimateCountsCharacters(t *testing.T) {
-	if got := Estimate(strings.Repeat("雨", 1000)); got != 1516 {
-		t.Fatalf("1000 汉字 = %d", got)
-	}
-	if got := Estimate(strings.Repeat("rain ", 300)); got != 516 {
-		t.Fatalf("1500 ASCII bytes = %d", got)
-	}
-}
-
 // A backlog too long for one request is taken in a turn at a time, oldest
 // first, instead of failing.
 func TestBookkeeperSplitsALongBacklog(t *testing.T) {
@@ -490,7 +509,7 @@ func TestBookkeeperSplitsALongBacklog(t *testing.T) {
 	u1, r1 := turn(t, e, session, "第一轮", long)
 	u2, r2 := turn(t, e, session, "第二轮", long)
 	b, _ := book(e, `{"ops":[]}`, `{"ops":[]}`)
-	b.Model.Window = b.Model.Output + Estimate(bookRules) + bookReserve + Estimate(long) + 600
+	b.Model.Window = b.Model.Output + prompt.Estimate(bookRules) + bookReserve + prompt.Estimate(long) + 600
 	for range 2 {
 		if did, err := b.Run(context.Background(), session); !did || err != nil {
 			t.Fatal(did, err)

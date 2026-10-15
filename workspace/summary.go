@@ -26,8 +26,9 @@ type Summary struct {
 	// when the chapter was too long to give whole; 0 when it read all.
 	Read int `json:"read,omitempty"`
 	// By is the model that wrote it, empty when the author did.
-	By string    `json:"by,omitempty"`
-	At time.Time `json:"at"`
+	By   string    `json:"by,omitempty"`
+	At   time.Time `json:"at"`
+	Sent *Sent     `json:"sent,omitempty"`
 }
 
 // ProseHash identifies a chapter's prose as it is stored.

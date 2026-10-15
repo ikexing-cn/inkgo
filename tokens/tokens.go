@@ -3,6 +3,7 @@
 package tokens
 
 import (
+	"math"
 	"strconv"
 	"strings"
 )
@@ -67,4 +68,18 @@ func digits(s string) bool {
 		}
 	}
 	return true
+}
+
+// Round writes n to be read rather than typed: from a thousand on, to one
+// decimal place of K, M or B, as 9.6K and 1.7M; below, in digits.
+func Round(n int) string {
+	for _, u := range []struct {
+		unit string
+		by   float64
+	}{{"B", 1e9}, {"M", 1e6}, {"K", 1e3}} {
+		if tenths := math.Round(float64(n) / u.by * 10); n >= 1000 && tenths >= 10 {
+			return strconv.FormatFloat(tenths/10, 'f', -1, 64) + u.unit
+		}
+	}
+	return strconv.Itoa(n)
 }

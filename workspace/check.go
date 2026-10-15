@@ -50,6 +50,7 @@ type Check struct {
 	By       string    `json:"by"`
 	At       time.Time `json:"at"`
 	Findings []Finding `json:"findings,omitempty"`
+	Sent     *Sent     `json:"sent,omitempty"`
 }
 
 // Stale tells whether text is not the prose the check read.

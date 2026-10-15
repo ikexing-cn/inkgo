@@ -65,6 +65,7 @@ type AIRecord struct {
 	Shown   []string      `json:"shown,omitempty"`
 	Setting []ContextItem `json:"setting,omitempty"`
 	Omitted []ContextItem `json:"omitted,omitempty"`
+	Sent    *Sent         `json:"sent,omitempty"`
 }
 
 func (s *Store) historyPath(id string, name ...string) (string, error) {

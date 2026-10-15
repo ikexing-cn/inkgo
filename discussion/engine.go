@@ -136,7 +136,7 @@ func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembl
 	}
 	turn.Reply, err = e.Store.Append(session, workspace.Event{
 		Role: workspace.RoleAssistant, Text: reply.Text, ReplyTo: turn.User.ID,
-		Context: assembled.Included, Omitted: assembled.Omitted,
+		Context: assembled.Included, Sent: assembled.Sent,
 		Model: e.Talk.Name, Effort: string(e.Talk.Effort), Reasoning: reply.Reasoning, Usage: (*workspace.Usage)(&reply.Usage),
 	})
 	return turn, err

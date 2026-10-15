@@ -11,6 +11,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/aiport"
 	"writer/editor"
+	"writer/tokens"
 	"writer/workspace"
 )
 
@@ -357,19 +358,80 @@ func (a *App) replyLabel(name, effort string) string {
 	return name
 }
 
+// partNames name the parts of a talk request as the author reads them.
+var partNames = map[string]string{
+	workspace.PartRules:   "规则",
+	workspace.PartIndex:   "设定目录",
+	workspace.PartOutline: "卷纲和章纲",
+	workspace.PartRecap:   "前情提要",
+	workspace.PartTalk:    "之前的对话",
+	workspace.PartProse:   "附上的正文",
+	workspace.PartInput:   "本次发言",
+}
+
+// audit is what a reply was sent: each part's tokens as estimated, what
+// the provider counted, and the setting, whole or as its index.
 func (a *App) audit(c *ui.Context, m workspace.Event) {
 	t := a.pal.theme
+	var setting, beside []workspace.ContextItem
+	for _, item := range m.Context {
+		if item.ID == "" {
+			beside = append(beside, item)
+		} else {
+			setting = append(setting, item)
+		}
+	}
+	index := m.Sent != nil && m.Sent.Part(workspace.PartIndex) > 0
+	note := func(s string) {
+		ui.Text(c, s).FontSize(fsNote).TextColor(t.TextMuted).Selectable().FillWidth()
+	}
+	row := func(text string, tick bool) {
+		ui.Row(c).FillWidth().Gap(8).Children(func() {
+			if tick {
+				glyph(c, icCheck, iconSm, t.Success)
+			}
+			ui.Text(c, text).FontSize(fsNote).LineHeight(lhBody).Selectable().Grow(1).Shrink(1)
+		})
+	}
 	ui.Column(c).FillWidth().Padding(0, 0, 0, replyIndent).Children(func() {
 		ui.Column(c).FillWidth().Padding(12, 14).Gap(8).Radius(rCard).Background(a.pal.side).Border(1, a.pal.line).Children(func() {
-			ui.Textf(c, "回复时附带 %d 条设定，因上下文上限省略 %d 条", len(m.Context), len(m.Omitted)).FontSize(fsNote).FontWeight(600)
-			if len(m.Context) == 0 && len(m.Omitted) == 0 {
-				ui.Text(c, "仅参考了最近几轮对话，设定文档暂无内容。").FontSize(fsNote).TextColor(t.TextMuted)
+			if s := m.Sent; s != nil {
+				total := 0
+				var parts []string
+				for _, p := range s.Parts {
+					total += p.Tokens
+					name := partNames[p.Name]
+					if p.Name == workspace.PartSetting {
+						name = fmt.Sprintf("设定 %d 条", len(setting))
+					}
+					parts = append(parts, name+" "+tokens.Round(p.Tokens))
+				}
+				ui.Textf(c, "本次发送约 %s token", tokens.Round(total)).FontSize(fsNote).FontWeight(600)
+				note(strings.Join(parts, " · "))
 			}
-			for _, item := range m.Context {
-				ui.Row(c).FillWidth().Gap(8).Children(func() {
-					glyph(c, icCheck, iconSm, t.Success)
-					ui.Text(c, item.Text).FontSize(fsNote).Selectable().Grow(1).Shrink(1)
-				})
+			if u := m.Usage; u != nil {
+				used := "实际用量：输入 " + tokens.Round(u.Input)
+				if u.CacheRead > 0 {
+					used += "，其中缓存命中 " + tokens.Round(u.CacheRead)
+				}
+				note(used + "；输出 " + tokens.Round(u.Output))
+			}
+			for _, item := range beside {
+				row(item.Text, true)
+			}
+			head := fmt.Sprintf("附带全部 %d 条设定", len(setting))
+			switch {
+			case index:
+				head = "设定较多，本次只附目录"
+			case len(m.Omitted) > 0: // a reply from before the setting went whole or as an index
+				head = fmt.Sprintf("回复时附带 %d 条设定，因上下文上限省略 %d 条", len(setting), len(m.Omitted))
+			}
+			ui.Text(c, head).FontSize(fsNote).FontWeight(600)
+			if len(setting) == 0 && len(m.Omitted) == 0 {
+				note("设定文档暂无内容。")
+			}
+			for _, item := range setting {
+				row(item.Text, !index)
 			}
 			for _, item := range m.Omitted {
 				ui.Row(c).FillWidth().Gap(8).Children(func() {

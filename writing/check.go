@@ -1,7 +1,6 @@
 package writing
 
 import (
-	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -13,6 +12,7 @@ import (
 
 	"writer/discussion"
 	"writer/model"
+	"writer/prompt"
 	"writer/workspace"
 )
 
@@ -108,39 +108,41 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 	}
 
 	// The chapter goes whole when it can; the setting takes what is left,
-	// the newest first.
-	budget := w.Model.Input() - discussion.Estimate(checkRules) - discussion.Estimate(meant.String()) - 512
-	text := fit(ch.Text, budget*3/4, false)
+	// the newest first, and reads in the work's order.
+	b := prompt.NewBudget(w.Model.Input())
+	b.Must(workspace.PartRules, checkRules)
+	b.Must(workspace.PartProse, meant.String())
+	text := fit(ch.Text, b.Left()*3/4, false)
 	if strings.TrimSpace(text) == "" {
 		return workspace.Check{}, errors.New("模型的上下文上限放不下这一章：请在设置中「AI」配置里调大上下文上限")
 	}
 	if len(text) < len(ch.Text) {
 		out.Read = workspace.Count(text) // said with the result: the rest was not looked at
 	}
-	budget -= discussion.Estimate(text)
-	entries := slices.DeleteFunc(slices.Clone(set.Entries), func(e workspace.Entry) bool { return e.Place == workspace.PlaceOpen })
-	if !slices.ContainsFunc(entries, func(e workspace.Entry) bool { return e.Place == workspace.PlaceBody }) {
+	b.Must(workspace.PartProse, text)
+	if !slices.ContainsFunc(set.Entries, func(e workspace.Entry) bool { return e.Place == workspace.PlaceBody }) {
 		return workspace.Check{}, ErrNoSetting
 	}
-	slices.SortStableFunc(entries, func(a, b workspace.Entry) int { return cmp.Compare(b.Rev, a.Rev) })
+	line := func(e workspace.Entry) string {
+		s := "（" + e.Category
+		if e.Place == workspace.PlaceDropped {
+			s += "｜已放弃"
+		}
+		if len(e.Names) > 0 {
+			s += "｜" + strings.Join(e.Names, "、")
+		}
+		return s + "）" + prompt.OneLine(e.Text)
+	}
+	taken, _ := b.Fit(set, []string{workspace.PlaceBody, workspace.PlaceDropped}, line)
 	var shown []workspace.Entry
 	var lines []string
 	names := map[string]bool{}
-	for _, e := range entries {
-		line := "[" + strconv.Itoa(len(shown)+1) + "]（" + e.Category
-		if e.Place == workspace.PlaceDropped {
-			line += "｜已放弃"
-		}
-		if len(e.Names) > 0 {
-			line += "｜" + strings.Join(e.Names, "、")
-		}
-		line += "）" + oneLine(e.Text)
-		cost := discussion.Estimate(line) + lineCost
-		if cost > budget {
+	for _, e := range prompt.Ordered(work, set.Entries) {
+		if !taken[e.ID] {
 			continue
 		}
-		budget -= cost
-		shown, lines = append(shown, e), append(lines, line)
+		shown = append(shown, e)
+		lines = append(lines, "["+strconv.Itoa(len(shown))+"]"+line(e))
 		for _, name := range e.Names {
 			names[name] = true
 		}
@@ -166,6 +168,7 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 
 	req := model.Request{System: checkRules, MaxTokens: checkOutput, Effort: w.Model.Effort,
 		Messages: []model.Message{{Role: workspace.RoleUser, Content: msg.String()}}}
+	out.Sent = b.Sent(checkRules, set)
 	var said strings.Builder
 	if _, err = w.Model.Complete(ctx, req, func(d model.Delta) { said.WriteString(d.Text) }); err != nil {
 		return workspace.Check{}, err
@@ -182,7 +185,7 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 		if !ok {
 			continue // not the prose's words
 		}
-		f := workspace.Finding{ID: workspace.NewID(), Kind: g.Kind, Quote: quote, Title: clipRunes(oneLine(g.Title), titleRunes)}
+		f := workspace.Finding{ID: workspace.NewID(), Kind: g.Kind, Quote: quote, Title: clipRunes(prompt.OneLine(g.Title), titleRunes)}
 		name := strings.TrimSpace(g.Name)
 		switch g.Kind {
 		case workspace.FindConflict:
@@ -203,7 +206,7 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 			if name == "" || names[name] || utf8.RuneCountInString(name) > nameRunes || !strings.Contains(ch.Text, name) {
 				continue
 			}
-			f.Name, f.Text, f.Category = name, oneLine(g.Text), workspace.Other
+			f.Name, f.Text, f.Category = name, prompt.OneLine(g.Text), workspace.Other
 			if slices.Contains(categories, g.Category) {
 				f.Category = g.Category
 			}

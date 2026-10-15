@@ -26,7 +26,7 @@ func TestCheckAChapterAgainstTheSetting(t *testing.T) {
 		t.Fatal(err)
 	}
 	f.pieces = []string{"```json\n", `{"findings":[
-		{"kind":"conflict","title":"林晚怕黑，这里却一个人进了黑巷子","quote":"一个人走进了“没有灯”的巷子","entry":1,"says":"但她很怕黑"},
+		{"kind":"conflict","title":"林晚怕黑，这里却一个人进了黑巷子","quote":"一个人走进了“没有灯”的巷子","entry":2,"says":"但她很怕黑"},
 		{"kind":"conflict","title":"编的","quote":"她飞了起来","entry":1,"says":"但她很怕黑"},
 		{"kind":"conflict","title":"没有这一条","quote":"天晴得发白","entry":99},
 		{"kind":"name","title":"「林婉」是不是「林晚」写错了？","quote":"林婉","name":"林晚"},
@@ -42,6 +42,9 @@ func TestCheckAChapterAgainstTheSetting(t *testing.T) {
 	}
 	if got.Of != workspace.ProseHash(text) || got.By != "deepseek/deepseek-flash" || len(got.Findings) != 3 {
 		t.Fatalf("%+v", got)
+	}
+	if got.Sent == nil || got.Sent.Part(workspace.PartSetting) == 0 || got.Sent.Part(workspace.PartProse) == 0 {
+		t.Fatalf("sent %+v", got.Sent)
 	}
 	set, _ := s.Setting()
 	var lin workspace.Entry
@@ -62,8 +65,8 @@ func TestCheckAChapterAgainstTheSetting(t *testing.T) {
 	}
 	req := f.got[0]
 	msg := req.Messages[0].Content
-	if req.System != checkRules || req.Effort != model.EffortHigh || !strings.Contains(msg, "[1]（人物｜林晚）主角靠维修路灯谋生") ||
-		!strings.Contains(msg, "｜已放弃）主角会飞") || strings.Contains(msg, "她有个妹妹") || !strings.Contains(msg, "【章名】第二章") {
+	// The entries are numbered in the work's order, not the newest first.
+	if req.System != checkRules || req.Effort != model.EffortHigh || !strings.Contains(msg, "[1]（人物｜已放弃）主角会飞\n[2]（人物｜林晚）主角靠维修路灯谋生") || strings.Contains(msg, "她有个妹妹") || !strings.Contains(msg, "【章名】第二章") {
 		t.Fatalf("%+v", req)
 	}
 	for _, id := range append([]string{two, lin.ID}, r.Ops[0].Entry) {
@@ -82,7 +85,7 @@ func TestCheckAChapterAgainstTheSetting(t *testing.T) {
 	if _, err = s.WriteChapter(two, text, nil); err != nil {
 		t.Fatal(err)
 	}
-	f.pieces = []string{`{"findings":[{"kind":"conflict","title":"又来","quote":"一个人走进了没有灯的巷子","entry":1,"says":"但她很怕黑"}]}`}
+	f.pieces = []string{`{"findings":[{"kind":"conflict","title":"又来","quote":"一个人走进了没有灯的巷子","entry":2,"says":"但她很怕黑"}]}`}
 	again, err := w.Check(context.Background(), two)
 	if err != nil || len(again.Findings) != 1 || !again.Findings[0].Meant || again.Findings[0].ID != c.ID {
 		t.Fatalf("%+v %v", again, err)

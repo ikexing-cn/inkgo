@@ -28,3 +28,11 @@ func TestParse(t *testing.T) {
 		}
 	}
 }
+
+func TestRound(t *testing.T) {
+	for n, want := range map[int]string{0: "0", 268: "268", 999: "999", 1000: "1K", 9600: "9.6K", 9649: "9.6K", 10_140: "10.1K", 59_200: "59.2K", 999_960: "1M", 1_700_000: "1.7M", 2_500_000_000: "2.5B"} {
+		if got := Round(n); got != want {
+			t.Errorf("Round(%d) = %q, want %q", n, got, want)
+		}
+	}
+}

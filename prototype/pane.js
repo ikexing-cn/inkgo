@@ -298,18 +298,21 @@ function looked(key, look, running) {
 
 // 「AI 参考内容」：这次发给 AI 的各部分各约多少 token，附了哪些设定，服务商算的实际用量。
 function outgoing(talk, m, i) {
-  const [input, cached, output] = m.use, body = S.entries.filter((e) => e.place === 'body')
+  // 发出去的是整份设定：正文、已放弃、悬而未决都在，后两种写明是哪一种。目录每条只有分类、第一个名字和第一句。
+  const [input, cached, output] = m.use, sent = ['body', 'dropped', 'open'].flatMap((p) => S.entries.filter((e) => e.place === p))
+  const label = { body: '', dropped: '已放弃：', open: '悬而未决：' }
+  const first = (text) => clip(text.match(/^[^。！？；\n]*[！？]?/)[0], 60)
   const digested = talk.digest && i >= talk.digest.after
-  const parts = [['规则', 1100], [S.crowded ? '设定目录' : '设定 ' + body.length + ' 条', S.crowded ? body.length * 40 : body.length * 260], ...(digested ? [['讨论摘要', 820]] : []), ['查阅结果', (m.look || []).length * 640], ['本次发言', 40]]
+  const parts = [['规则', 1100], [S.crowded ? '设定目录' : '设定 ' + sent.length + ' 条', S.crowded ? sent.length * 40 : sent.length * 260], ...(digested ? [['讨论摘要', 820]] : []), ['查阅结果', (m.look || []).length * 640], ['本次发言', 40]]
   parts.splice(parts.length - 1, 0, ['之前的对话', Math.max(Math.round(input * 0.97) - parts.reduce((n, [, x]) => n + x, 0), 0)])
-  const head = S.crowded ? '设定较多，本次只附目录' : '附带全部 ' + body.length + ' 条设定'
-  const rows = S.crowded ? body.map((e) => `<div class="saw-row"><div class="fit">${t(e.cat + ' · ' + (e.names[0] || clip(e.text, 8)) + '：' + e.text.split('。')[0])}</div></div>`).join('')
-    : body.map((e) => `<div class="saw-row">${icon('tick', 'sm', 'green')}<div class="fit">${t(e.text)}</div></div>`).join('')
+  const head = S.crowded ? '设定较多，本次只附目录' : '附带全部 ' + sent.length + ' 条设定'
+  const rows = S.crowded ? sent.map((e) => `<div class="saw-row"><div class="fit">${t(label[e.place] + e.cat + (e.names[0] ? ' · ' + e.names[0] : '') + '：' + first(e.text))}</div></div>`).join('')
+    : sent.map((e) => `<div class="saw-row">${icon('tick', 'sm', 'green')}<div class="fit">${t(label[e.place] + e.text)}</div></div>`).join('')
   return '<div class="reply-saw">' +
     `<div class="saw-title">本次发送约 ${tokens(parts.reduce((n, [, x]) => n + x, 0))} token</div><div class="note">${parts.filter(([, x]) => x).map(([name, x]) => t(name) + ' ' + tokens(x)).join(' · ')}</div>` +
     `<div class="note">实际用量：输入 ${tokens(input)}${cached ? '，其中缓存命中 ' + tokens(cached) : ''}；输出 ${tokens(output)}</div>` +
     `<div class="saw-title">${head}</div>${S.crowded ? '<div class="note">目录只有分类、名字和第一句；需要时 AI 会查全文。</div>' : ''}` +
-    (body.length ? rows : '<div class="note">设定文档暂无内容。</div>') + '</div>'
+    (sent.length ? rows : '<div class="note">设定文档暂无内容。</div>') + '</div>'
 }
 
 // 讨论长了压缩过的地方：前面几轮整理成了一份摘要，原文还在上面。点开看摘要，只能看不能改。

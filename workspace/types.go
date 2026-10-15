@@ -60,6 +60,47 @@ type Usage struct {
 	Reasoning  int `json:"reasoning,omitempty"`
 }
 
+// Sent is what a request sent, for review afterwards: the rules by a
+// digest of their text, the setting as of its revision numbered Setting,
+// and the tokens each part took, as estimated, in the order of Parts. The
+// text itself is not kept.
+type Sent struct {
+	Rules   string `json:"rules"`
+	Setting int    `json:"setting,omitempty"`
+	Parts   []Part `json:"parts"`
+}
+
+// Part is a part of a request and its estimated tokens.
+type Part struct {
+	Name   string `json:"name"`
+	Tokens int    `json:"tokens"`
+}
+
+// The parts of a request, in the order Sent lists them.
+const (
+	PartRules   = "rules"
+	PartSetting = "setting"
+	PartIndex   = "index" // the setting as an index, too big to send whole
+	PartOutline = "outline"
+	PartRecap   = "recap" // the summaries of the chapters before
+	PartTalk    = "talk"
+	PartProse   = "prose"
+	PartInput   = "input"
+)
+
+// Parts is every part, in order.
+var Parts = []string{PartRules, PartSetting, PartIndex, PartOutline, PartRecap, PartTalk, PartProse, PartInput}
+
+// Part is the tokens part took, 0 when the request had none.
+func (s Sent) Part(name string) int {
+	for _, p := range s.Parts {
+		if p.Name == name {
+			return p.Tokens
+		}
+	}
+	return 0
+}
+
 // ContextItem is an entry of the setting as one request showed it, or
 // why it left the entry out.
 type ContextItem struct {
@@ -86,6 +127,7 @@ type Event struct {
 	// Usage is what the request for a reply took and gave, as the
 	// provider counted it.
 	Usage *Usage `json:"usage,omitempty"`
+	Sent  *Sent  `json:"sent,omitempty"`
 	// The author's words may come from the writing page: the chapter they
 	// were writing, and the prose they quoted.
 	Chapter string  `json:"chapter,omitempty"`

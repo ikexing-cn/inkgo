@@ -12,7 +12,7 @@ Status: implemented
 
 ## Decision
 
-- `discussion.Estimate` 按字符计：
+- `discussion.Estimate`（2026-10-15 起是 `prompt.Estimate`，见[每次请求由同一个拼装器装](2026-10-15-one-budget-for-every-request.md)）按字符计：
   - 每 3 个 ASCII 字节算 1 个 token，英文常见是约 4 个字符一个 token，留了余量；
   - 其他字符每个算 1.5 个 token，高于已知 tokenizer 对汉字的用量；
   - 每段另加 16 个 token 的开销。

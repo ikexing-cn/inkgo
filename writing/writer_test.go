@@ -9,6 +9,7 @@ import (
 
 	"writer/discussion"
 	"writer/model"
+	"writer/prompt"
 	"writer/workspace"
 )
 
@@ -105,6 +106,16 @@ func TestDraftShowsWhatItRecords(t *testing.T) {
 	}
 	if len(job.Record.Setting) != 3 || job.Record.Op != workspace.AIDraft || job.Record.Model != "deepseek/deepseek-flash" || job.Record.Instruction != "约 800 字" {
 		t.Errorf("record %+v", job.Record)
+	}
+	// The setting comes before the task, so drafts and rewrites share the
+	// start a provider caches; the record has what each part took.
+	if s, task := strings.Index(req.System, "城市总在下雨"), strings.Index(req.System, "这次的任务是"); s < 0 || task < s {
+		t.Errorf("the task comes before the setting:\n%s", req.System)
+	}
+	for _, part := range []string{workspace.PartRules, workspace.PartSetting, workspace.PartOutline, workspace.PartProse, workspace.PartInput} {
+		if job.Record.Sent == nil || job.Record.Sent.Part(part) == 0 {
+			t.Errorf("the record has no %s: %+v", part, job.Record.Sent)
+		}
 	}
 	var streamed []string
 	text, err := w.Run(context.Background(), job, func(s string) { streamed = append(streamed, s) })
@@ -207,8 +218,8 @@ func TestBudgetCutsTheTextBeforeFromItsStart(t *testing.T) {
 		t.Fatal(err)
 	}
 	msg := job.Request.Messages[0].Content
-	if !strings.Contains(msg, "最后一句。") || discussion.Estimate(job.Request.System+msg) > w.Model.Input() {
-		t.Fatalf("estimate %d", discussion.Estimate(job.Request.System+msg))
+	if !strings.Contains(msg, "最后一句。") || prompt.Estimate(job.Request.System+msg) > w.Model.Input() {
+		t.Fatalf("estimate %d", prompt.Estimate(job.Request.System+msg))
 	}
 }
 

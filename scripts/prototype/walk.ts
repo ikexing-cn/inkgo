@@ -292,7 +292,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await win('读了「第87章：停电」第 1–6 段，读了摘要「第86章：档案室」'); await click('以上 2 轮已整理成摘要'); await win('作者的态度和偏好'); await win('摘要由 AI 写成，有误可在对话中指出。'); await shot('58a-digest'); await click('以上 2 轮已整理成摘要'); await win('作者的态度和偏好', false); await done('a long talk')
   { const [x, y] = await row('主角有个说不出口的秘密'); await rclick(x, y); await click('收起这段对话'); await win('已收起 1 段对话'); await win('主角有个说不出口的秘密', false); await click('已收起 1 段对话'); await win('不显示收起的对话') }
   { const [x, y] = await row('主角有个说不出口的秘密'); await rclick(x, y); await click('移回列表'); await win('不显示收起的对话', false); await win('主角有个说不出口的秘密'); await done('a talk put away and back') }
-  await click('小祥和林晚是怎么认识的'); await win('2 条发言'); await win('268 token', false); await win('10.1K token'); await click('AI 参考内容'); await win('本次发送约 9.6K token'); await win('规则 1.1K · 设定 4 条 1K'); await win('实际用量：输入 9.9K；输出 268'); await win('附带全部 4 条设定'); await shot('58c-sent'); await done('what was sent')
+  await click('小祥和林晚是怎么认识的'); await win('2 条发言'); await win('268 token', false); await win('10.1K token'); await click('AI 参考内容'); await win('本次发送约 9.6K token'); await win('规则 1.1K · 设定 12 条 3.1K'); await win('实际用量：输入 9.9K；输出 268'); await win('附带全部 12 条设定'); await win('已放弃：电力局的门卫，早先想让他知道井的事。后来这条线并给了周祥。'); await shot('58c-sent'); await done('what was sent')
   await click('查了设定「周祥」，搜了全书「小祥」，记下：待确认 · 人物：“小祥”是顺口的叫法，谁都能喊。'); await win('5 处，在「第1章：巷口」'); await click('查看设定'); await pane('“小祥”是顺口的叫法，谁都能喊'); await click('全部设定'); await done('what the AI looked at')
   await click('复制全文'); await win('已复制'); await click('关闭提示')
   await win('设定里只写了他是她带出来的徒弟', true); await click('摘取原文', 1); await win('拖选一段原文，作为已确定的设定加入正文。原文不会被修改。'); await win('尚未选中文字'); await click('收起原文'); await win('尚未选中文字', false); await click('摘取原文', 1)
@@ -397,7 +397,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('全书替换'); must((await value('查找')) === '林晚' && (await value('替换为')) === '林婉', 'the old name is not ready to replace'); await win('全书 '); await pane('处「林晚」', false); await click('关闭查找')
   await click('周祥'); await click('修改'); await clear('名字'); await type('名字', '周详'); await click('保存'); await click('全部设定'); await click('不替换'); await pane('正文中仍有', false); await done('a name changed in the setting')
   await click('少见的情况'); await click('讨论查阅达到上限'); await pane('已达到本次查阅上限，以上回答仅依据已查到的内容。'); await pane('搜了全书「井」'); await shot('90-capped'); await done('a reply that looked as far as it may')
-  await click('少见的情况'); await click('设定较多，只附目录'); await pane('设定较多，本次只附目录'); await pane('人物 · 林婉：主角，靠维修路灯谋生，但她很怕黑'); await shot('90b-crowded'); await click('设定'); await done('a setting too big to send whole')
+  await click('少见的情况'); await click('设定较多，只附目录'); await pane('设定较多，本次只附目录'); await pane('人物 · 林婉：主角，靠维修路灯谋生，但她很怕黑'); await pane('悬而未决：地点：旧城小学对面有一家钟表铺，老周在那里修表'); await shot('90b-crowded'); await click('设定'); await done('a setting too big to send whole')
   { const [x, y] = await js(`(() => { const r = document.querySelector('.pane-edge').getBoundingClientRect(); return [r.x + 3, r.y + 300] })()`) as [number, number]; await drag([x, y], [x - 120, y]); must((await js(`document.getElementById('pane').offsetWidth`)) === 510, 'the pane is not wider'); await shot('91-pane-wide')
     await drag([x - 120, y], [x + 400, y]); must((await js(`document.getElementById('pane').offsetWidth`)) === 300, 'the pane is narrower than it may be'); await drag([x + 90, y], [x, y]); await done('the width of the pane') }
 
