@@ -12,12 +12,13 @@ import (
 	"writer/workspace"
 )
 
-// digester writes the next digest when one is asked for, and replies
-// otherwise; it keeps what it was asked.
+// digester writes the next digest when one is asked for, and replies,
+// counted as used, otherwise; it keeps what it was asked.
 type digester struct {
 	calls   []model.Request
 	digests int
 	err     error
+	used    model.Usage
 }
 
 func (d *digester) Complete(ctx context.Context, r model.Request, on func(model.Delta)) (model.Reply, error) {
@@ -29,7 +30,7 @@ func (d *digester) Complete(ctx context.Context, r model.Request, on func(model.
 		d.digests++
 		return model.Reply{Text: fmt.Sprintf("## 在聊什么\n第%d份摘要", d.digests), Reasoning: "先理一理", Usage: model.Usage{Input: 9000, CacheRead: 8000, Output: 300}}, nil
 	}
-	return model.Reply{Text: "好"}, nil
+	return model.Reply{Text: "好", Usage: d.used}, nil
 }
 
 // long appends n exchanges whose replies are size characters, about one
@@ -156,6 +157,43 @@ func TestCompactionTakesWhatOneRequestHolds(t *testing.T) {
 	}
 	if last := talk.calls[len(talk.calls)-1]; at[got[len(got)-1].Through] != 17 || len(last.Messages) != 5 {
 		t.Fatalf("the reply read %d messages, after turn %d", len(last.Messages), at[got[len(got)-1].Through])
+	}
+}
+
+// How big the talk is goes by what the provider counted for the last
+// reply, which may be more than estimated; once the setting has changed
+// since, by the estimate alone. Each digest goes to Step with no ID as it
+// is asked for, then as written.
+func TestCompactionGoesByWhatWasCounted(t *testing.T) {
+	for _, changed := range []bool{false, true} {
+		e, session := setup(t)
+		long(t, e, session, 6, 700, "第0轮")
+		talk := &digester{used: model.Usage{Input: 17000, Output: 100}}
+		e.Talk = Model{Model: limits, Completer: talk}
+		var stepped []workspace.Event
+		e.Step = func(ev workspace.Event) { stepped = append(stepped, ev) }
+		if _, err := e.Say(context.Background(), session, workspace.Event{Text: "接着说"}); err != nil {
+			t.Fatal(err)
+		}
+		if len(digests(t, e, session)) != 0 {
+			t.Fatal("compacted by the estimate")
+		}
+		if changed {
+			revise(t, e, workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "林晚怕黑。"})
+		}
+		if _, err := e.Say(context.Background(), session, workspace.Event{Text: "再说说"}); err != nil {
+			t.Fatal(err)
+		}
+		got := digests(t, e, session)
+		if changed {
+			if len(got) != 0 || len(stepped) != 0 {
+				t.Fatalf("compacted by a count from before the setting changed: %d", len(got))
+			}
+			continue
+		}
+		if len(got) != 1 || len(stepped) != 2 || stepped[0].Role != workspace.RoleDigest || stepped[0].ID != "" || stepped[1].ID != got[0].ID {
+			t.Fatalf("%d digests, stepped %+v", len(got), stepped)
+		}
 	}
 }
 

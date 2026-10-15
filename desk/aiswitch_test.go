@@ -537,7 +537,7 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 		<-ctx.Done()
 		return func() { a.pending = "" }, errors.New("讨论失败，原文已保存")
 	})
-	a.talking = true
+	a.talking, a.talkSession = true, a.session
 	tt.Frame()
 	switchAI(t, a, tt, false)
 	until(t, tt, "the reply let go", func() bool { return a.busy == "" })

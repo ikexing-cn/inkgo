@@ -194,7 +194,7 @@ func TestTalkBesideShowsItsOwnProgress(t *testing.T) {
 	block := make(chan struct{})
 	a.pending = "这一章怎么样？"
 	a.run(c, "AI 正在思考", func(ctx context.Context) (func(), error) { <-block; return nil, nil })
-	a.talking = true
+	a.talking, a.talkSession = true, a.session
 	tt.Frame()
 	if !tt.HasText("正在思考…") || tt.HasText("AI 正在思考") {
 		t.Fatal("the progress is shown twice", tt.Texts())

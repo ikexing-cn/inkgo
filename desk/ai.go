@@ -385,12 +385,17 @@ func (a *App) aiBar(c *ui.Context) {
 		bar(func() {
 			glyph(c, icWand, iconMd, t.Success)
 			ui.Text(c, "红色删除线为原文，绿色为改写。").FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1)
-			if a.pal.secondary(c, "放弃").Clicked() { // the instruction comes back, for another try
+			if a.pal.secondary(c, "放弃").Clicked() {
 				a.dropProposal()
+				w.rewriting = false
+				w.ed.Focus()
 			}
-			if a.pal.ghost(c, "重新改写", ui.Color{}).Clicked() {
+			if a.pal.ghost(c, "重新改写", ui.Color{}).Clicked() { // the same words, as asked before
+				p := w.proposed
 				a.dropProposal()
-				w.rewriting = true
+				w.ed.Select(p.a, p.b)
+				a.startRewrite(c)
+				w.ed.Focus()
 			}
 			if a.pal.primary(c, "采纳").Clicked() {
 				a.acceptProposal()

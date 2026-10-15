@@ -24,9 +24,6 @@ type Context struct {
 	Left     int
 }
 
-// talkOutput is what a talk request allows its reply, reasoning included.
-const talkOutput = 32768
-
 // talkPlaces are the places of the setting as the talk shows them, in the
 // order it does.
 var talkPlaces = []prompt.Place{
@@ -77,7 +74,7 @@ type talk struct {
 // lay builds a request of at most room tokens for t, as Assemble tells,
 // and how many of its turns went.
 func lay(w workspace.Work, room int, set workspace.Setting, t talk) (Context, int, error) {
-	out := Context{Request: model.Request{MaxTokens: talkOutput}}
+	out := Context{} // the reply may take all the model gives: its output is kept out of the room
 	rules := talkRules
 	if t.near {
 		rules += "\n\n" + besideRules

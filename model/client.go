@@ -167,11 +167,9 @@ type Usage struct {
 	Reasoning  int `json:"reasoning,omitempty"`
 }
 
-// Add is u and v together, as the steps of a reply.
-func (u Usage) Add(v Usage) Usage {
-	return Usage{Input: u.Input + v.Input, CacheRead: u.CacheRead + v.CacheRead, CacheWrite: u.CacheWrite + v.CacheWrite,
-		Output: u.Output + v.Output, Reasoning: u.Reasoning + v.Reasoning}
-}
+// ErrTruncated is a reply cut off at the output its request allowed,
+// reasoning included.
+var ErrTruncated = errors.New("模型回复被截断")
 
 // usage counts as Usage does what goai reports: goai leaves cached input
 // out of InputTokens.
@@ -415,7 +413,7 @@ func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta))
 			switch chunk.FinishReason {
 			case "":
 			case provider.FinishLength:
-				short = errors.New("模型回复被截断")
+				short = ErrTruncated
 			case provider.FinishContentFilter:
 				short = errors.New("模型回复被内容过滤")
 			case provider.FinishError:

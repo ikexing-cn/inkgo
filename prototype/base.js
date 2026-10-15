@@ -50,7 +50,7 @@ function fresh(book = BOOK.shelf[0].id) {
     sv: 'list', sid: null, sq: '', form: null, // 设定：在哪一页、看哪一条、搜什么、正在填的表
     fv: 'list', fid: null, fq: '', renote: null, // 伏笔：同上，renote 是正在改的备注
     tv: 'all', tid: null, tq: '', draft: '', attach: true, cite: null, // 讨论；cite 是从正文拿来的一段
-    waiting: null, // AI 正在回哪段讨论、到哪一步了：{ id, step }，step 是 think 在想、reply 在写
+    waiting: null, // AI 正在回哪段讨论、到哪一步了：{ id, step }，step 是 pack 在压缩、think 在想、look 在查、reply 在写
     thoughts: {}, // 哪几条回复的「思考过程」展开了
     shelved: {}, shelvedShown: false, // 侧栏里收起来的几段讨论，和要不要把它们列出来
     told: {}, // 讨论页里哪条回复展开了「AI 参考内容」

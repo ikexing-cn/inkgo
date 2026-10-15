@@ -194,7 +194,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   // Discussions.
   await click('讨论', 1); await pane('最近'); await click('新讨论'); await pane('示例问题'); await shot('26-new-talk')
   await click('接下来可以怎么写'); await pane('正在思考…', false); await key('Enter'); await pane('正在思考…'); await pane('取消请求'); await sleep(800); await pane('正在回复…'); await sleep(700); await pane('这是原型'); await pane('正在回复…', false)
-  await type('输入消息', '那下一章呢'); await key('Enter'); await pane('那下一章呢'); await sleep(1500); await pane('先想清楚这一段要做什么'); await shot('27-talk')
+  await type('输入消息', '那下一章呢'); await key('Enter'); await pane('那下一章呢'); must(await js(`document.querySelector('.book').classList.contains('off')`), 'the work can be switched while the AI replies')
+  await click('作品分类'); await win('设定文档按分类分节'); await click('正文'); await sleep(1500); await pane('先想清楚这一段要做什么'); await shot('27-talk'); await done('the rest free while the AI replies')
   await type('输入消息', '再说一句'); await key('Enter'); await click('取消请求'); await pane('该消息尚未收到回复'); await pane('正在思考', false); await shot('27b-unanswered'); await click('重试回复'); await pane('该消息尚未收到回复', false); await sleep(1500); await pane('我会先留着')
   await pane('先看设定里和这句话有关的几条', false); await click('思考过程'); await pane('先看设定里和这句话有关的几条'); await shot('27c-thought'); await click('思考过程'); await pane('先看设定里和这句话有关的几条', false); await done('a reply cancelled and asked for again')
   await click('全部讨论'); await pane('接下来可以怎么写'); await click('这一章的节奏怎么样'); await pane('前半段偏慢'); await done('discussions')
@@ -266,8 +267,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('重新开始'); await click('编辑'); await click('续写一句'); await win('续写中…'); await sleep(900); await win('Tab 采纳 · Esc 放弃'); must(await has('.ghost-text'), 'no grey sentence'); await shot('48-ghost')
   await key('Escape'); must(!(await has('.ghost-text')), 'Escape kept the sentence'); await win('她把手电咬在嘴里', false); await key('j', true); await sleep(900); await key('Tab'); must(!(await has('.ghost-text')), 'Tab kept it grey'); await win('她往前走了一步。她把手电咬在嘴里'); await done('a sentence more')
   await pick(2, '灯一直没有亮。'); must(await has('.selbar'), 'nothing floats over what was picked'); await win('选中 7 字'); await shot('49-selection'); await click('AI 改写'); must(await js(`document.activeElement.getAttribute('aria-label') === '改写要求'`), 'the wish is not ready to type in')
-  await type('改写要求', '慢一点'); await key('Enter'); await win('AI 正在改写选中内容'); await sleep(1400); await win('红色删除线为原文，绿色为改写。'); must(await has('.prose .cut') && await has('.prose .add'), 'the rewrite is not shown against the original'); await shot('50-rewrite')
-  await click('重新改写'); await win('AI 正在改写选中内容'); await sleep(1400); await click('采纳'); await win('已采纳改写'); await win('可撤销恢复原文，原版本已存入快照'); await win('她在巷口站了很久'); await win('灯一直没有亮。', false)
+  await type('改写要求', '慢一点'); await key('Enter'); await win('AI 正在改写选中内容'); await sleep(1800); await win('红色删除线为原文，绿色为改写。'); must(await has('.prose .cut') && await has('.prose .add'), 'the rewrite is not shown against the original'); await shot('50-rewrite')
+  await click('重新改写'); await win('AI 正在改写选中内容'); await sleep(1400); await click('采纳'); await win('红色删除线为原文，绿色为改写。'); await win('已采纳改写', false); await sleep(500); await click('采纳'); await win('已采纳改写'); await win('可撤销恢复原文，原版本已存入快照'); await win('她在巷口站了很久'); await win('灯一直没有亮。', false)
   await key('z', true); await win('灯一直没有亮。'); await key('y', true); await win('她在巷口站了很久'); await win('灯一直没有亮。', false); await click('关闭提示')
   await pick(0, '同时灭的'); await click('AI 改写'); await key('Escape'); must(!(await has('.ai-bar')), 'Escape left the rewrite open'); must(await js(`document.activeElement === proseBox()`), 'Escape did not give the keyboard back to the prose'); await done('a rewrite')
   await click('编辑'); await click('起草本章'); await win('AI 仅将章纲扩写为正文'); await win('前文有 3 章尚无摘要'); await win('本章已有内容'); await shot('51-draft'); await click('补齐摘要（3 次调用）'); await win('正在补齐摘要：0 / 3。补齐前起草，AI 只能参考已有摘要。'); await sleep(2700); await win('前文有 3 章尚无摘要', false); await win('起草时 AI 会参考前 6 章的摘要，以衔接前文。')
@@ -279,7 +280,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('编辑'); await click('撤销'); await win('整条街的灯是同时灭的。'); await win('身后，小祥没有再出声。', false); await click('编辑'); await click('重做'); await win('身后，小祥没有再出声。'); await win('整条街的灯是同时灭的。', false)
   await click('文件'); await click('快照'); await win('AI 改动前'); await win('按章纲起草'); await win('约 1500 字'); await key('Escape')
   await click('编辑'); await click('起草本章'); await type('目标字数', '很多'); await click('开始起草'); await win('目标字数须为正整数或留空'); await win('复制详情'); await click('关闭提示'); await clear('目标字数'); await click('开始起草'); await sleep(1000); await click('停止'); await win('已停止，起草 9 字'); await sleep(1000); await win('已停止，起草 9 字')
-  await click('重新起草'); await win('AI 正在按章纲起草'); await sleep(3400); await win('起草 38 字'); await click('放弃'); must(!(await has('.ai-bar')) && !(await has('[data-draft]')), 'the draft was not let go'); await done('a draft')
+  await click('重新起草'); await win('AI 正在按章纲起草'); await sleep(3800); await win('起草 38 字'); await click('放弃'); must(!(await has('.ai-bar')) && !(await has('[data-draft]')), 'the draft was not let go'); await done('a draft')
 
   // What was picked goes to the setting, or to a discussion.
   await click('重新开始'); await pick(1, '手电在工具箱最底下'); await click('加入设定'); await win('选中的原文将记为出处'); must((await value('设定内容')) === '手电在工具箱最底下', 'what was picked is not in the box'); await click('人物'); await click('物品'); await shot('54-take')
@@ -291,10 +292,13 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
 
   // The discussion page: a talk, what stands under a reply, a new talk, the model.
   await click('重新开始'); await click('讨论'); await win('总讨论'); await win('8 条发言'); await win('前半段偏慢'); await pane('待确认'); await pane('伏笔', false); await shot('58-talk-page')
-  await win('读了「第87章：停电」第 1–6 段，读了摘要「第86章：档案室」'); await click('以上 2 轮已整理成摘要'); await win('作者的态度和偏好'); await win('摘要由 AI 写成，有误可在对话中指出。'); await shot('58a-digest'); await click('以上 2 轮已整理成摘要'); await win('作者的态度和偏好', false); await done('a long talk')
+  await win('读了「第87章：停电」第 1–6 段，读了摘要「第86章：档案室」'); await click('以上 2 轮已整理成摘要'); await win('作者的态度和偏好'); await win('摘要由 AI 写成，有误可在对话中指出。'); await win('和停电时「林晚」想起七岁那晚的写法。'); await win('和「林晚怕黑，是不是和她母亲有关」一起定。'); await win('[1]', false); await shot('58a-digest')
+  await click('林晚'); await pane('主角，靠维修路灯谋生'); await click('周祥'); await pane('配角，林晚的同事'); await click('林晚怕黑，是不是和她母亲有关'); await pane('林晚怕黑，是不是和她母亲有关？'); await click('以上 2 轮已整理成摘要'); await win('作者的态度和偏好', false)
+  await type('讨论输入', '先改哪一段'); await key('Enter', true); await win('正在压缩上下文…'); await win('正在思考', false); await shot('58d-compacting'); await sleep(1000); await win('以上 4 轮已整理成摘要'); await win('以上 2 轮已整理成摘要', false); await win('正在思考…')
+  await click('取消请求'); await win('该消息尚未收到回复'); await win('以上 4 轮已整理成摘要'); await done('a long talk')
   { const [x, y] = await row('主角有个说不出口的秘密'); await rclick(x, y); await click('收起这段对话'); await win('已收起 1 段对话'); await win('主角有个说不出口的秘密', false); await click('已收起 1 段对话'); await win('不显示收起的对话') }
   { const [x, y] = await row('主角有个说不出口的秘密'); await rclick(x, y); await click('移回列表'); await win('不显示收起的对话', false); await win('主角有个说不出口的秘密'); await done('a talk put away and back') }
-  await click('小祥和林晚是怎么认识的'); await win('2 条发言'); await win('268 token', false); await win('10.1K token'); await click('AI 参考内容'); await win('本次发送约 9.6K token'); await win('规则 1.1K · 设定 12 条 3.1K'); await win('实际用量：输入 9.9K；输出 268'); await win('附带全部 12 条设定'); await win('已放弃：电力局的门卫，早先想让他知道井的事。后来这条线并给了周祥。'); await shot('58c-sent'); await done('what was sent')
+  await click('小祥和林晚是怎么认识的'); await win('2 条发言'); await win('268 token', false); await win('28.3K token'); await click('AI 参考内容'); await win('本次发送约 9.6K token'); await win('这一轮共 3 次请求，这是最后一次。'); await win('规则 1.1K · 设定 12 条 3.1K'); await win('实际用量：输入 9.9K，其中缓存命中 9.3K；输出 268'); await win('附带全部 12 条设定'); await win('已放弃：电力局的门卫，早先想让他知道井的事。后来这条线并给了周祥。'); await shot('58c-sent'); await done('what was sent')
   await click('查了设定「周祥」，搜了全书「小祥」，记下：待确认 · 人物：“小祥”是顺口的叫法，谁都能喊。'); await win('5 处，在「第1章：巷口」'); await click('查看设定'); await pane('“小祥”是顺口的叫法，谁都能喊'); await click('全部设定'); await done('what the AI looked at')
   await click('复制全文'); await win('已复制'); await click('关闭提示')
   await win('设定里只写了他是她带出来的徒弟', true); await click('摘取原文', 1); await win('拖选一段原文，作为已确定的设定加入正文。原文不会被修改。'); await win('尚未选中文字'); await click('收起原文'); await win('尚未选中文字', false); await click('摘取原文', 1)
@@ -392,7 +396,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   // A chapter the disk lost: what is in the editor becomes a chapter of its own.
   await click('少见的情况'); await click('本章文件丢失'); await win('磁盘上已找不到本章文件：在软件外改名、移动或删除，均视为删除。编辑器中的内容仍保留。'); must(!(await js(`[...document.querySelectorAll('.tree-row')].some((r) => r.innerText.includes('第87章'))`)), 'the lost chapter is still in the tree'); await shot('88-lost')
   await click('存为新章节'); await win('已存为新章节位于最上层末尾'); await win('磁盘上已找不到本章文件', false); must(await js(`document.querySelector('.tree').lastElementChild.innerText.includes('停电')`), 'the chapter was not kept at the end'); await click('关闭提示')
-  await click('少见的情况'); await click('AI 改写出错'); await win('模型未返回改写结果'); await win('复制详情'); await click('关闭提示'); await click('重新开始'); await done('a chapter the disk lost')
+  await click('少见的情况'); await click('AI 改写出错'); await win('模型未返回改写结果'); await win('复制详情'); await click('关闭提示');
+  await click('少见的情况'); await click('回复超出最大输出'); await win('回复超出模型的最大输出 128K（含思考）'); await win('请在设置中「AI」配置里调大'); await click('打开设置'); await win('本作品的模型'); await key('Escape'); await click('重新开始'); await done('a chapter the disk lost')
 
   // The pane: a renamed entry and the prose, its width.
   await click('林晚'); await click('修改'); await clear('名字'); await type('名字', '林婉'); await click('保存'); await click('全部设定'); await pane('处「林晚」'); await shot('89-renamed')
@@ -557,14 +562,14 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   const navs = (): Promise<string> => js(`[...document.querySelectorAll('.navs .nav .grow')].map((e) => e.innerText).join(' ')`)
   const paneTabs = (): Promise<string> => js(`[...document.querySelectorAll('#pane .tab')].map((e) => e.firstChild.textContent).join(' ')`)
   const aiOff = async () => { await click('文件'); await click('设置…'); await click('关闭 AI'); await win('是否关闭 AI？'); await click('关闭 AI', 1); await win('是否关闭 AI？', false) }
-  await click('文件'); await click('设置…'); must(await prefTabs() === 'AI 外观', 'on the shelf the settings hold: ' + await prefTabs()); await win('模型服务'); await win('本作品使用', false)
+  await click('文件'); await click('设置…'); must(await prefTabs() === 'AI 外观', 'on the shelf the settings hold: ' + await prefTabs()); await win('模型服务'); await win('本作品的模型', false)
   await click('关闭 AI'); await win('是否关闭 AI？'); await win('不再发送任何内容'); await shot('99f-ask-ai-off'); await click('取消'); await win('是否关闭 AI？', false); await win('模型服务')
   await click('关闭 AI'); must(await js(`getComputedStyle(document.querySelector('.scrim:not(.top)')).backgroundColor === 'rgba(0, 0, 0, 0)'`), 'the question over the settings shades the window twice'); await key('Escape'); await win('是否关闭 AI？', false); must(await has('.prefs'), 'Esc on the question shut the settings under it too'); await click('关闭设置')
   // Off while AI is at work: a draft not taken is let go, as a rewrite is; so is a reply, and what the author said stays.
   await click('雨城来信'); await win('第87章：停电'); const before = await paras()
   await click('编辑'); await click('起草本章'); await click('开始起草'); await sleep(850); must(await has('[data-draft]'), 'the draft wrote nothing')
   await click('讨论', 1); await click('新讨论'); await type('输入想讨论的内容', '灯为什么会灭'); await key('Enter'); await win('正在思考…')
-  await aiOff(); must(await prefTabs() === 'AI 外观 提醒 备份', 'with AI off the settings of a work hold: ' + await prefTabs()); await win('模型服务', false); await win('本作品使用', false)
+  await aiOff(); must(await prefTabs() === 'AI 外观 提醒 备份', 'with AI off the settings of a work hold: ' + await prefTabs()); await win('模型服务', false); await win('本作品的模型', false)
   must(await has('.prefs .check.on'), 'the switch is not ticked'); await win('仅在本机生效，适用于所有作品。'); await shot('99g-ai-off')
   await click('提醒'); await win('超过多少章未回收时提醒'); await win('检查正文和设定', false); await click('关闭设置')
   await sleep(3000); must(await paras() === before && !(await has('[data-draft]')), 'the draft went on or stayed with AI off'); must(await js(`S.talks[0].msgs.length === 1 && !S.waiting`), 'the reply went on with AI off')

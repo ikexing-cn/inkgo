@@ -162,7 +162,7 @@ func (a *App) spent(c *ui.Context) {
 // service chosen brings its first model with it. It reports whether the
 // model ID is being typed.
 func (a *App) useRow(c *ui.Context, who, what string, provider *string, none, providerLabel string, model *string, modelLabel string, effort *string, effortLabel string) (typing bool) {
-	busy := a.busy != ""
+	busy := a.held()
 	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Column(c).Width(110).Shrink(0).Children(func() {
 			ui.Text(c, who).FontSize(fsBody).FontWeight(500)
@@ -194,7 +194,7 @@ func (a *App) useRow(c *ui.Context, who, what string, provider *string, none, pr
 // writingSwitches are the writing page's calls to the models, kept as
 // they are ticked.
 func (a *App) writingSwitches(c *ui.Context) {
-	busy := a.busy != ""
+	busy := a.held()
 	a.subhead(c, "写作时", "")
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
 		if ui.Checkbox(c, &a.write.autoPredict, "停笔后自动续写").Disabled(busy).Changed() {
@@ -217,7 +217,7 @@ func (a *App) tickNote(c *ui.Context, text string) {
 // service's form in place, and so does adding one.
 func (a *App) services(c *ui.Context) {
 	t := a.pal.theme
-	busy := a.busy != ""
+	busy := a.held()
 	a.subhead(c, "模型服务", "保存在本机，所有作品共用")
 	card := func() ui.Element {
 		return ui.Column(c).FillWidth().Gap(12).Padding(12, 14).Radius(rCard).Border(1, a.pal.line)
@@ -386,7 +386,7 @@ func (a *App) saveUsage() error {
 // its row.
 func (a *App) providerForm(c *ui.Context) {
 	t := a.pal.theme
-	busy := a.busy != ""
+	busy := a.held()
 	ui.Column(c).FillWidth().Gap(12).Children(func() {
 		ui.Row(c).FillWidth().Gap(12).Children(func() {
 			labeled(c, "ID（小写字母、数字、- _）", func() {
@@ -448,7 +448,7 @@ func (a *App) providerForm(c *ui.Context) {
 				m, _ := a.ai.Limits("")
 				a.limits = append(a.limits, a.limitRow(m))
 			}
-			if a.pal.secondary(c, "获取可用模型").Disabled(busy).Clicked() {
+			if a.pal.secondary(c, "获取可用模型").Disabled(a.busy != "").Clicked() { // it waits for a turn in flight: one request at a time
 				a.fetchModels(c)
 			}
 			if a.pal.primary(c, "保存提供商").Disabled(busy).Clicked() {
@@ -480,7 +480,7 @@ func (a *App) limitRow(m aiport.Model) limitRow {
 // brings its numbers.
 func (a *App) limitTable(c *ui.Context) {
 	t := a.pal.theme
-	busy := a.busy != ""
+	busy := a.held()
 	if len(a.limits) == 0 {
 		ui.Text(c, "尚无模型，可获取可用模型或手动添加。").FontSize(fsNote).TextColor(t.TextMuted)
 		return

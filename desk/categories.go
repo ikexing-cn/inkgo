@@ -10,7 +10,7 @@ import (
 
 func (a *App) categories(c *ui.Context) {
 	t := a.pal.theme
-	busy := a.busy != ""
+	busy := a.held()
 	counts := map[string]int{}
 	for _, e := range a.set.Entries {
 		if e.Place != workspace.PlaceDropped {

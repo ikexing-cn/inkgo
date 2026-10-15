@@ -1,8 +1,11 @@
 package desk
 
 import (
+	"context"
 	"slices"
 	"testing"
+
+	"github.com/egoist/mygo/ui"
 
 	"writer/workspace"
 )
@@ -77,6 +80,65 @@ func TestTheTalkShowsWhereItWasCompacted(t *testing.T) {
 	if !tt.HasText("以上 3 轮已整理成摘要") || tt.HasText("以上 2 轮已整理成摘要") {
 		t.Fatal("the later digest", tt.Texts())
 	}
+}
+
+// While the talk is compacted before a reply, the reply says so; the line
+// shows once the digest is written, and the author's words, read back
+// with it, show once.
+func TestCompactingShowsItself(t *testing.T) {
+	a, _, _ := fixture(t)
+	var c *ui.Context
+	tt := ui.NewTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
+	tt.Frame()
+	session := a.session
+	u, err := a.Store.Append(session, workspace.Event{Role: workspace.RoleUser, Text: "停电这一章想写得紧一点"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := a.Store.Append(session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "紧，靠的是少交代。"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.setError(a.refresh())
+	tt.Frame()
+	once := func() bool {
+		n := 0
+		for _, s := range tt.Texts() {
+			if s == "回忆那段会不会拖" {
+				n++
+			}
+		}
+		return n == 1
+	}
+	sv := c.Services()
+	asked, block := make(chan struct{}), make(chan struct{})
+	a.pending = "回忆那段会不会拖"
+	a.run(c, "AI 正在思考…", func(context.Context) (func(), error) {
+		if _, err := a.Store.Append(session, workspace.Event{Role: workspace.RoleUser, Text: "回忆那段会不会拖"}); err != nil {
+			return nil, err
+		}
+		a.stepped(sv, workspace.Event{Role: workspace.RoleDigest})
+		<-asked
+		d, err := a.Store.Append(session, workspace.Event{Role: workspace.RoleDigest, Through: r.ID, Text: "## 在聊什么\n停电那一章。"})
+		if err != nil {
+			return nil, err
+		}
+		a.stepped(sv, d)
+		<-block
+		return func() { a.pending = "" }, nil
+	})
+	a.talking, a.talkSession = true, session
+	until(t, tt, "compacting", func() bool { return tt.HasText("正在压缩上下文…") })
+	if tt.HasText("正在思考…") || tt.HasText("以上 1 轮已整理成摘要") || !once() {
+		t.Fatal("compacting", tt.Texts())
+	}
+	close(asked)
+	until(t, tt, "the digest", func() bool { return tt.HasText("以上 1 轮已整理成摘要") })
+	if !tt.HasText("正在思考…") || tt.HasText("正在压缩上下文…") || !once() {
+		t.Fatal("compacted", tt.Texts())
+	}
+	close(block)
+	settle(t, a, tt)
 }
 
 func TestADigestSplitsAtItsHeadings(t *testing.T) {

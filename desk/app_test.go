@@ -205,7 +205,7 @@ func TestTalkNotesTheSettingAsItReplies(t *testing.T) {
 		reply, err = a.Store.Append(session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "那就让雨一直下。"})
 		return nil, err
 	})
-	a.talking = true
+	a.talking, a.talkSession = true, a.session
 	until(t, tt, "the note", func() bool { return len(a.set.Entries) == 2 })
 	if _, ok := a.flash[a.set.Entries[1].ID]; !ok || !tt.HasText("雨从不停") {
 		t.Fatal("what the talk noted is not shown and tinted", tt.Texts())
@@ -432,7 +432,7 @@ func TestLiveTurnStreams(t *testing.T) {
 	block := make(chan struct{})
 	a.pending = "她做什么工作？"
 	a.run(c, "AI 正在思考", func(ctx context.Context) (func(), error) { <-block; return nil, nil })
-	a.talking = true
+	a.talking, a.talkSession = true, a.session
 	a.live.add("她怕黑，职业要和光有关", "")
 	tt.Frame()
 	if !tt.HasText("她怕黑，职业要和光有关") || !tt.HasText("正在思考…") {
@@ -445,6 +445,106 @@ func TestLiveTurnStreams(t *testing.T) {
 	}
 	close(block)
 	settle(t, a, tt)
+}
+
+// While a talk replies, the rest of the window goes on: another page,
+// another talk, the words of the next turn, the model it takes. Only
+// sending, trying again and switching the work wait; the reply lands in
+// its own talk.
+func TestTalkLeavesTheRestFree(t *testing.T) {
+	a, _, _ := fixture(t)
+	var c *ui.Context
+	tt := ui.NewTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
+	session := a.session
+	other, err := a.Store.NewSession()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = a.Store.Append(other, workspace.Event{Role: workspace.RoleUser, Text: "井边的灯谁点的"}); err != nil {
+		t.Fatal(err)
+	}
+	a.setError(a.refresh())
+	tt.Frame()
+	block := make(chan struct{})
+	a.pending = "灯为什么会灭"
+	a.run(c, "AI 正在思考…", func(context.Context) (func(), error) {
+		u, err := a.Store.Append(session, workspace.Event{Role: workspace.RoleUser, Text: "灯为什么会灭"})
+		if err != nil {
+			return nil, err
+		}
+		<-block
+		_, err = a.Store.Append(session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "因为停电了。"})
+		return func() { a.pending = "" }, err
+	})
+	a.talking, a.talkSession = true, session
+	tt.Frame()
+
+	if err := tt.Click("切换作品"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if tt.HasText("新建作品…") {
+		t.Fatal("the work can be switched as the AI replies")
+	}
+	if err := tt.Click("作品分类"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.page != 2 {
+		t.Fatal("another page waits for the reply")
+	}
+	if err := tt.Click("讨论"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err := tt.Click("当前模型"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("AI 配置…") {
+		t.Fatal("the model waits for the reply", tt.Texts())
+	}
+	if err := tt.Click("当前模型"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err := tt.Click("讨论输入"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Type("再说说")
+	tt.Key(ui.Cmd, ui.KeyEnter)
+	tt.Frame()
+	if a.input != "再说说" || a.pending != "灯为什么会灭" || !tt.HasText("正在思考…") {
+		t.Fatalf("typed %q, in flight %q", a.input, a.pending)
+	}
+
+	if err := tt.Click("对话-" + other); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if _, live := tt.Find("正在思考…"); a.session != other || live || tt.HasText("灯为什么会灭") || !tt.HasText("该消息尚未收到回复") {
+		t.Fatal("another talk shows the reply in flight", tt.Texts())
+	}
+	if err := tt.Click("重试回复"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.talkSession != session || a.busy != "AI 正在思考…" {
+		t.Fatal("tried again as the AI replies")
+	}
+	close(block)
+	settle(t, a, tt)
+	tt.Frame()
+	if a.session != other || tt.HasText("因为停电了。") || a.input != "再说说" {
+		t.Fatal("the reply came to the talk shown", tt.Texts())
+	}
+	if err := tt.Click("对话-" + session); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("灯为什么会灭") || !tt.HasText("因为停电了。") || tt.HasText("该消息尚未收到回复") {
+		t.Fatal("the reply did not land in its talk", tt.Texts())
+	}
 }
 
 func TestEffortMenuSavesToWork(t *testing.T) {

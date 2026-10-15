@@ -74,9 +74,8 @@ func (e *Editor) AcceptProposal(note string) bool {
 	p := e.prop
 	e.prop = proposal{}
 	e.replaceRange(p.a, p.b, p.text, false)
-	n := len([]rune(normalize(p.text)))
-	if n > 0 {
-		e.Doc.AddMark(p.kind, p.a, p.a+n, note)
+	if from, to := words(normalize(p.text)); to > from {
+		e.Doc.AddMark(p.kind, p.a+from, p.a+to, note)
 		e.undo[len(e.undo)-1].marksAfter = e.Doc.Marks()
 	}
 	e.compOpen = false
@@ -85,6 +84,27 @@ func (e *Editor) AcceptProposal(note string) bool {
 
 // DropProposal stops showing what is proposed.
 func (e *Editor) DropProposal() { e.prop = proposal{} }
+
+// words is where the words of s begin and end, in runes: the line breaks
+// it begins or ends with are no words of it, and tinted or marked they
+// would show at the end of the paragraph before, or after its own.
+func words(s string) (from, to int) {
+	r := []rune(s)
+	from, to = 0, len(r)
+	for from < to && r[from] == '\n' {
+		from++
+	}
+	for to > from && r[to-1] == '\n' {
+		to--
+	}
+	return from, to
+}
+
+// tinted is the words proposed, as display indexes.
+func (e *Editor) tinted() (int, int) {
+	from, to := words(e.prop.text)
+	return e.lay.preEnd + from, e.lay.preEnd + to
+}
 
 // singleParagraphs keeps the paragraphs of s, without blank lines between.
 func singleParagraphs(s string) string {

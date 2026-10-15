@@ -7,7 +7,8 @@ import (
 	"writer/workspace"
 )
 
-// Under each reply, the tokens it took and gave as the provider counted.
+// Under each reply, the tokens the requests of its turn took and gave as
+// the provider counted: its own and those that looked something up.
 // What a reply was sent shows each part's tokens as estimated, what the
 // provider counted, and the setting: whole with a tick each, or as its
 // index; a reply from before lists what it left out.
@@ -15,6 +16,10 @@ func TestWhatWasSent(t *testing.T) {
 	a, tt, e := fixture(t)
 	u, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "说说"})
 	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = a.Store.Append(a.session, workspace.Event{Role: workspace.RoleCall, ReplyTo: u.ID,
+		Calls: []workspace.Call{{ID: "c1", Name: "search_book", Input: []byte(`{"query":"雨"}`), Label: "搜了全书「雨」"}}, Usage: &workspace.Usage{Input: 9200, Output: 40}}); err != nil {
 		t.Fatal(err)
 	}
 	sent := &workspace.Sent{Rules: "ab12cd34", Setting: 1, Parts: []workspace.Part{
@@ -45,7 +50,7 @@ func TestWhatWasSent(t *testing.T) {
 	tt.Frame()
 	footers := 0
 	for _, s := range tt.Texts() {
-		if strings.HasSuffix(s, " · 10.2K token") || strings.HasSuffix(s, " · 920 token") {
+		if strings.HasSuffix(s, " · 19.4K token") || strings.HasSuffix(s, " · 920 token") {
 			footers++
 		}
 	}
@@ -66,7 +71,7 @@ func TestWhatWasSent(t *testing.T) {
 		}
 	}
 	open(whole.ID, "本次发送约 9.6K token", "规则 1.1K · 设定 1 条 1K · 之前的对话 7.5K · 本次发言 40",
-		"实际用量：输入 9.9K，其中缓存命中 6K；输出 268", "所在章：第一章", "附带全部 1 条设定", "主角怕黑")
+		"实际用量：输入 19.1K，其中缓存命中 6K；输出 308", "所在章：第一章", "附带全部 1 条设定", "主角怕黑")
 	open(index.ID, "本次发送约 1.1K token", "规则 1.1K · 设定目录 30", "实际用量：输入 900；输出 20", "设定较多，本次只附目录", "人物：主角怕黑")
 	if tt.HasText("附带全部 1 条设定") {
 		t.Fatal("two replies show what they were sent")

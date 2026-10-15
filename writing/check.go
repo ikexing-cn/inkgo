@@ -19,7 +19,6 @@ import (
 const (
 	// MinCheck is the shortest prose worth checking.
 	MinCheck    = 200
-	checkOutput = 16384 // what the request allows, reasoning included
 	maxFindings = 20
 	titleRunes  = 40
 	nameRunes   = 12
@@ -166,7 +165,7 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 	}
 	msg.WriteString("\n" + text)
 
-	req := model.Request{System: checkRules, MaxTokens: checkOutput, Effort: w.Model.Effort,
+	req := model.Request{System: checkRules, Effort: w.Model.Effort, // all the output the model gives
 		Messages: []model.Message{{Role: workspace.RoleUser, Content: msg.String()}}}
 	out.Sent = b.Sent(checkRules, set)
 	var said strings.Builder

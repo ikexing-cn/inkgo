@@ -26,6 +26,7 @@ type live struct {
 	mu              sync.Mutex
 	reasoning, text strings.Builder
 	steps           []workspace.Event
+	compacting      bool // a digest of the talk is asked for
 }
 
 func (l *live) add(reasoning, text string) {
@@ -38,16 +39,20 @@ func (l *live) add(reasoning, text string) {
 func (l *live) step(e workspace.Event) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	if e.Role == workspace.RoleDigest {
+		l.compacting = e.ID == "" // asked for, or written
+		return
+	}
 	l.steps = append(l.steps, e)
 	// What a step said before its calls is not the reply: the reply is
 	// what streams after the last of them.
 	l.text.Reset()
 }
 
-func (l *live) read() (reasoning, text string, steps []workspace.Event) {
+func (l *live) read() (reasoning, text string, steps []workspace.Event, compacting bool) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	return l.reasoning.String(), l.text.String(), l.steps
+	return l.reasoning.String(), l.text.String(), l.steps, l.compacting
 }
 
 func (l *live) reset() {
@@ -55,7 +60,7 @@ func (l *live) reset() {
 	defer l.mu.Unlock()
 	l.reasoning.Reset()
 	l.text.Reset()
-	l.steps = nil
+	l.steps, l.compacting = nil, false
 }
 
 // flashFor is how long an entry a talk just noted stays tinted.
@@ -120,7 +125,8 @@ type App struct {
 	sourceCategory    string
 	contextReply      string
 	busy              string
-	talking           bool   // busy with a discussion turn, shown inline in the chat
+	talking           bool   // busy with a discussion turn, shown inline in its talk
+	talkSession       string // the talk of that turn
 	pending           string // the author's words while their turn is in flight
 	// Prose the author quoted for their next turn, and whether the talk
 	// beside the prose should take the keyboard.
@@ -328,7 +334,7 @@ func (a *App) talk(c *ui.Context) (aiport.Talk, error) {
 // noted in the setting at once.
 func (a *App) stepped(sv ui.Services, e workspace.Event) {
 	a.live.step(e)
-	if e.Revision != "" {
+	if e.Revision != "" || e.Role == workspace.RoleDigest && e.ID != "" { // the setting it noted, or the talk compacted
 		select {
 		case a.changes <- struct{}{}:
 		default:
@@ -363,7 +369,7 @@ func (a *App) work(sv ui.Services, label string, fn func(context.Context) (func(
 	if a.busy != "" {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithCancel(context.Background()) // each request has its own time limit; a turn takes as many as it needs
 	a.cancel = cancel
 	a.busy = label
 	a.Error = ""
@@ -408,6 +414,15 @@ func (a *App) poll() {
 	default:
 	}
 }
+
+// held tells whether the work in flight holds what it could be changed
+// under: the list of models holds the window. A talk turn holds only
+// sending another and switching the work; the rest goes on as it replies,
+// and a model changed meanwhile takes the next turn.
+func (a *App) held() bool { return a.busy != "" && !a.talking }
+
+// replying tells whether a turn is in flight in the talk shown.
+func (a *App) replying() bool { return a.talking && a.session == a.talkSession }
 
 func (a *App) setError(err error) {
 	if err != nil {

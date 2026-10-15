@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"unicode"
 
 	"writer/model"
 	"writer/prompt"
@@ -27,6 +28,7 @@ const (
 	maxHits    = 20   // listed by one search
 	maxRead    = 3000 // runes of prose one read returns
 	maxSummary = 10   // chapters one read of summaries takes
+	maxNear    = 5    // names offered for one the book has not
 	around     = 40   // runes shown on each side of a hit
 )
 
@@ -132,9 +134,16 @@ func (t *toolbox) run(c model.Call) outcome {
 	return failed("没有叫 %s 的工具", c.Name)
 }
 
-// label says what c does in the author's words, as the reply shows it.
+// label says what c does in the author's words, as the reply shows it,
+// naming each chapter as the book does.
 func (t *toolbox) label(c model.Call) string {
 	in, _ := read(c)
+	if b, err := t.book(); err == nil {
+		in.Chapter = b.named(in.Chapter)
+		for k, name := range in.Chapters {
+			in.Chapters[k] = b.named(name)
+		}
+	}
 	switch c.Name {
 	case toolSearchBook:
 		return "搜了全书「" + in.Query + "」"
@@ -176,6 +185,7 @@ type book struct {
 	tree   workspace.Tree
 	docs   []*workspace.Node
 	name   map[string]string
+	names  []string // each once, in reading order
 	byName map[string]*workspace.Node
 }
 
@@ -200,17 +210,103 @@ func (t *toolbox) book() (book, error) {
 		b.name[n.ID] = name
 		if _, taken := b.byName[name]; !taken {
 			b.byName[name] = n
+			b.names = append(b.names, name)
 		}
 	})
 	return b, nil
 }
 
-// find is the document the model names, taking its title or a name in
-// 「」 or 《》.
-func (b book) find(name string) (*workspace.Node, bool) {
+// find is the document the model names, taking its name, in 「」 or 《》
+// or not, or else the one name that is it but for spaces and marks, or
+// that begins with it, or that has it. Finding none, or more than one, it
+// says so for the model, with the names it may mean.
+func (b book) find(name string) (*workspace.Node, string) {
 	name = strings.Trim(strings.TrimSpace(name), "「」《》")
-	n, ok := b.byName[name]
-	return n, ok
+	if n, ok := b.byName[name]; ok {
+		return n, ""
+	}
+	key := loose(name)
+	var same, begins, has []string
+	for _, s := range b.names {
+		switch k := loose(s); {
+		case key == "":
+		case k == key:
+			same = append(same, s)
+		case strings.HasPrefix(k, key):
+			begins = append(begins, s)
+		case strings.Contains(k, key):
+			has = append(has, s)
+		}
+	}
+	for _, found := range [][]string{same, begins, has} {
+		switch {
+		case len(found) == 1:
+			return b.byName[found[0]], ""
+		case len(found) > 1:
+			return nil, "「" + name + "」对得上好几章：" + quoted(found[:min(len(found), maxNear)]) + "；写全章名。"
+		}
+	}
+	if near := b.near(key); len(near) > 0 {
+		return nil, "没有叫「" + name + "」的章；相近的有" + quoted(near) + "。"
+	}
+	return nil, "没有叫「" + name + "」的章；章名要和搜全书的结果里写的一样。"
+}
+
+// named is the name of the document the model names, or what it said
+// where that finds none.
+func (b book) named(name string) string {
+	if n, _ := b.find(name); n != nil {
+		return b.name[n.ID]
+	}
+	return strings.TrimSpace(name)
+}
+
+// near is up to maxNear names that share a run of two characters or more
+// with key, the longest run first.
+func (b book) near(key string) []string {
+	type close struct {
+		name string
+		run  int
+	}
+	var found []close
+	for _, s := range b.names {
+		if run := common([]rune(loose(s)), []rune(key)); run >= 2 {
+			found = append(found, close{s, run})
+		}
+	}
+	slices.SortStableFunc(found, func(x, y close) int { return y.run - x.run })
+	var out []string
+	for _, c := range found[:min(len(found), maxNear)] {
+		out = append(out, c.name)
+	}
+	return out
+}
+
+// loose is s without its spaces and marks, as a model may give a name in
+// other words.
+func loose(s string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) || unicode.IsPunct(r) || unicode.IsSymbol(r) {
+			return -1
+		}
+		return unicode.ToLower(r)
+	}, s)
+}
+
+// common is how long the longest run is that a and b share.
+func common(a, b []rune) int {
+	best, prev := 0, make([]int, len(b)+1)
+	for _, x := range a {
+		cur := make([]int, len(b)+1)
+		for k, y := range b {
+			if x == y {
+				cur[k+1] = prev[k] + 1
+				best = max(best, cur[k+1])
+			}
+		}
+		prev = cur
+	}
+	return best
 }
 
 // paragraphs are a chapter's lines that say something, numbered from 1.
@@ -311,16 +407,16 @@ func (t *toolbox) readProse(in input) outcome {
 	if err != nil {
 		return failed("读不出章节：%v", err)
 	}
-	n, ok := b.find(in.Chapter)
-	if !ok {
-		return failed("没有叫「%s」的章；章名要和搜全书的结果里写的一样。", in.Chapter)
+	n, missing := b.find(in.Chapter)
+	if n == nil {
+		return failed("%s", missing)
 	}
 	if n.Folder {
-		return failed("「%s」是一卷，没有正文；读它下面的章。", in.Chapter)
+		return failed("「%s」是一卷，没有正文；读它下面的章。", b.name[n.ID])
 	}
 	ch, err := t.store.ReadChapter(n.ID)
 	if err != nil {
-		return failed("读不出「%s」：%v", in.Chapter, err)
+		return failed("读不出「%s」：%v", b.name[n.ID], err)
 	}
 	ps := paragraphs(ch.Text)
 	if len(ps) == 0 {
@@ -360,9 +456,13 @@ func (t *toolbox) readSummary(in input) outcome {
 	}
 	var lines []string
 	for _, name := range in.Chapters {
-		n, ok := b.find(name)
-		if !ok || n.Folder {
-			lines = append(lines, "没有叫「"+strings.TrimSpace(name)+"」的章。")
+		n, missing := b.find(name)
+		if n == nil {
+			lines = append(lines, missing)
+			continue
+		}
+		if n.Folder {
+			lines = append(lines, "「"+b.name[n.ID]+"」是一卷，没有摘要；读它下面的章。")
 			continue
 		}
 		sum, err := t.store.ReadSummary(n.ID)

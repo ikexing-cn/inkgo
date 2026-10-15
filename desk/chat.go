@@ -38,7 +38,7 @@ func (a *App) discussion(c *ui.Context) {
 // compacted last, its digest lies under the last turn it covers.
 func (a *App) chatList(c *ui.Context, side bool) {
 	rows := a.rows[:0]
-	if !a.hasMessages() && a.pending == "" {
+	if !a.hasMessages() && !a.replying() {
 		rows = append(rows, -1)
 	}
 	digest, through := a.compacted()
@@ -50,7 +50,7 @@ func (a *App) chatList(c *ui.Context, side bool) {
 			rows = append(rows, digest)
 		}
 	}
-	if a.talking {
+	if a.replying() {
 		rows = append(rows, -2)
 	}
 	a.rows = rows
@@ -358,12 +358,12 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 				if who := a.replyLabel(m.Model, m.Effort); who != "" {
 					when += " · " + who
 				}
-				if u := m.Usage; u != nil {
+				if u, ok := spent(a.events, m); ok {
 					when += " · " + tokens.Round(u.Input+u.Output) + " token"
 				}
 				ui.Text(c, when).FontSize(fsSmall).TextColor(a.pal.faint).Padding(0, 6, 0, 0)
 			}
-			if iconButton(c, icQuote, "摘取-"+m.ID, ui.Color{}).Tooltip("摘取原文").KeepFocus().Disabled(a.busy != "").Clicked() {
+			if iconButton(c, icQuote, "摘取-"+m.ID, ui.Color{}).Tooltip("摘取原文").KeepFocus().Disabled(a.held()).Clicked() {
 				a.openSource(m, 0, 0)
 			}
 			if !user {
@@ -388,7 +388,7 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 				ui.Text(c, m.At.Local().Format("15:04")).FontSize(fsSmall).TextColor(a.pal.faint).Padding(0, 0, 0, 6)
 			}
 		})
-		if user && !a.answered(m.ID) && !a.talking {
+		if user && !a.answered(m.ID) && !a.replying() {
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 				glyph(c, icAlert, iconSm, t.Warning)
 				ui.Text(c, "该消息尚未收到回复").FontSize(fsNote).TextColor(t.Warning)
@@ -409,10 +409,10 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 // its reasoning and what it looked up, which stays open while it looks.
 func (a *App) thinking(c *ui.Context) {
 	t := a.pal.theme
-	if a.pending != "" {
+	if a.pending != "" && !a.saved() {
 		ui.Column(c).FillWidth().AlignItems(ui.End).Children(func() { a.userBubble(c, a.pending) })
 	}
-	reasoning, text, steps := a.live.read()
+	reasoning, text, steps, compacting := a.live.read()
 	found := looks(steps, "")
 	ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Start).Children(func() {
 		a.aiMark(c)
@@ -428,6 +428,8 @@ func (a *App) thinking(c *ui.Context) {
 			}
 			status := "正在回复…"
 			switch {
+			case compacting:
+				status = "正在压缩上下文…"
 			case text != "":
 			case len(found) > 0:
 				status = "正在查阅…"
@@ -443,6 +445,17 @@ func (a *App) thinking(c *ui.Context) {
 			})
 		})
 	})
+}
+
+// saved tells whether the words in flight are in the talk shown, read
+// back by what refreshed it as the reply went on.
+func (a *App) saved() bool {
+	for n := len(a.events) - 1; n >= 0; n-- {
+		if e := a.events[n]; said(e) {
+			return e.Role == workspace.RoleUser && e.Text == a.pending
+		}
+	}
+	return false
 }
 
 // thought folds what a model reasoned before it answered; it stays open
@@ -505,6 +518,22 @@ func looks(events []workspace.Event, userID string) []look {
 		}
 	}
 	return out
+}
+
+// spent is what the requests of the turn reply ends used together: its
+// own and each before it that looked something up. A reply from before
+// each request was kept apart holds them all, and those before it none.
+func spent(events []workspace.Event, reply workspace.Event) (workspace.Usage, bool) {
+	if reply.Usage == nil {
+		return workspace.Usage{}, false
+	}
+	sum := *reply.Usage
+	for _, e := range events {
+		if e.Role == workspace.RoleCall && e.ReplyTo == reply.ReplyTo && e.Usage != nil {
+			sum = sum.Add(*e.Usage)
+		}
+	}
+	return sum, true
 }
 
 // looked folds what a reply looked up above it, as thought folds its
@@ -637,7 +666,7 @@ func (a *App) audit(c *ui.Context, m workspace.Event) {
 				ui.Textf(c, "本次发送约 %s token", tokens.Round(total)).FontSize(fsNote).FontWeight(600)
 				note(strings.Join(parts, " · "))
 			}
-			if u := m.Usage; u != nil {
+			if u, ok := spent(a.events, m); ok {
 				used := "实际用量：输入 " + tokens.Round(u.Input)
 				if u.CacheRead > 0 {
 					used += "，其中缓存命中 " + tokens.Round(u.CacheRead)
@@ -684,7 +713,7 @@ func (a *App) composer(c *ui.Context) {
 	// The chip names the model and effort the next turn goes to, and
 	// opens a menu to change either; its tooltip says where the words go.
 	chip := func() {
-		chip := ui.ButtonBase(c).Row().Gap(6).AlignItems(ui.Center).Padding(4, 8).Radius(rControl).Label("当前模型").Tooltip(a.destination(work.Discussion)).Shrink(1).Disabled(a.busy != "")
+		chip := ui.ButtonBase(c).Row().Gap(6).AlignItems(ui.Center).Padding(4, 8).Radius(rControl).Label("当前模型").Tooltip(a.destination(work.Discussion)).Shrink(1).Disabled(a.held())
 		if chip.Hovered() || a.menuOpen("讨论模型") {
 			chip.Background(t.SurfaceHover)
 		}
@@ -730,7 +759,7 @@ func (a *App) composer(c *ui.Context) {
 	field := func(hint string, per, least int) ui.Element {
 		lines := strings.Count(a.input, "\n") + 1 + len([]rune(a.input))/per
 		h := float32(min(max(lines, least), 7)) * 25
-		in := ui.TextAreaBase(c, &a.input).Label("讨论输入").Placeholder(hint).Height(h).FontSize(fsRead).LineHeight(lhLoose).Disabled(a.busy != "")
+		in := ui.TextAreaBase(c, &a.input).Label("讨论输入").Placeholder(hint).Height(h).FontSize(fsRead).LineHeight(lhLoose).Disabled(a.held())
 		if a.focusTalk { // after the words offered, to go on with them
 			n := utf8.RuneCountInString(a.input)
 			in.Focus().SetTextSelection(n, n)
@@ -823,10 +852,12 @@ func (a *App) send(c *ui.Context) {
 			if !saved && a.input == "" {
 				a.input, a.quotes = input, quotes // nothing was saved: give the words back
 			}
-			a.chat.ScrollToEnd()
+			if a.session == session { // or the author went on to another talk
+				a.chat.ScrollToEnd()
+			}
 		}, err
 	})
-	a.talking = a.busy != ""
+	a.talking, a.talkSession = a.busy != "", session
 }
 
 func (a *App) retry(c *ui.Context, userID string) {
@@ -838,9 +869,13 @@ func (a *App) retry(c *ui.Context, userID string) {
 	session := a.session
 	a.run(c, "正在重新请求回复…", func(ctx context.Context) (func(), error) {
 		err := talk.Retry(ctx, session, userID)
-		return func() { a.chat.ScrollToEnd() }, err
+		return func() {
+			if a.session == session {
+				a.chat.ScrollToEnd()
+			}
+		}, err
 	})
-	a.talking = a.busy != ""
+	a.talking, a.talkSession = a.busy != "", session
 }
 
 func (a *App) openSource(m workspace.Event, start, end int) {
@@ -877,7 +912,7 @@ func (a *App) extraction(c *ui.Context) {
 				if a.pal.ghost(c, "收起原文", ui.Color{}).Clicked() {
 					a.sourceOpen = false
 				}
-				if a.pal.primary(c, "加入设定").Disabled(a.busy != "" || start == end).Clicked() {
+				if a.pal.primary(c, "加入设定").Disabled(a.held() || start == end).Clicked() {
 					entry, err := a.ai.Extract(a.Store, a.session, a.sourceMessage, start, end, a.sourceCategory)
 					if err == nil {
 						a.sourceOpen = false

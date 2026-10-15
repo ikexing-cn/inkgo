@@ -120,7 +120,8 @@ func TestRetryUnansweredTurnDoesNotDuplicateInput(t *testing.T) {
 
 // A turn waits for the reply only: it streams, is recorded with its model,
 // its reasoning and what the provider says it used, and no other model is
-// asked. The reply is asked for no more than the model gives.
+// asked. The reply is asked for all the model gives; cut off there, the
+// author is told the most it gives and where to give more.
 func TestTurnWaitsForTheReplyOnly(t *testing.T) {
 	e, session := setup(t)
 	talk := &fake{replies: []string{"可以让她修灯。"}, reasoning: "她怕黑，职业要和光有关", usage: model.Usage{Input: 900, CacheRead: 600, Output: 40, Reasoning: 12}}
@@ -141,6 +142,15 @@ func TestTurnWaitsForTheReplyOnly(t *testing.T) {
 	if r := events[1]; r.ID != got.Reply.ID || r.Reasoning != "她怕黑，职业要和光有关" || r.Model != "deepseek/deepseek-flash" || r.Effort != "max" ||
 		r.Usage == nil || *r.Usage != (workspace.Usage{Input: 900, CacheRead: 600, Output: 40, Reasoning: 12}) {
 		t.Fatalf("reply record %+v", r)
+	}
+
+	cut := Model{Model: limits, Completer: &fake{err: fmt.Errorf("deepseek: %w", model.ErrTruncated)}}
+	_, err = cut.Complete(context.Background(), model.Request{}, nil)
+	if err == nil || err.Error() != "回复超出模型的最大输出 4K（含思考）；请在设置中「AI」配置里调大" {
+		t.Fatalf("cut off at the most: %v", err)
+	}
+	if _, err = cut.Complete(context.Background(), model.Request{MaxTokens: 400}, nil); !errors.Is(err, model.ErrTruncated) || strings.Contains(err.Error(), "设置") {
+		t.Fatalf("cut off at what was asked: %v", err)
 	}
 }
 

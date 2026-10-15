@@ -30,6 +30,7 @@ Status: implemented
 
 - 模型只用章名和条目编号指东西，看不到 ID。
   - 章名就是章的标题；两章同名时，前面加卷名，写成「卷/章」。
+  - 2026-10-15 起章名写不全也找得到：一模一样、去掉标点以后一样、以它开头、含有它，一档一档找，哪一档只对上一章就是它；对上好几章或一章也对不上，告诉模型是哪几章、相近的有哪些（`book.find`，见[AI 基建第二轮](../architecture/2026-10-15-ai-second-pass.md)）。
   - 条目编号是条目加入的先后，从 1 起。条目只会移到已放弃，不会删掉，所以编号一直是那一条的。
 - 发给讨论的设定，整份和目录都在每条前面写 `[n]`。目录开头那句改成「设定较多，这里只列目录：每条的编号、分类、名字和第一句。要看全文和出处，用 look_up_setting 查。」
 - 工具的说明和参数格式算进「规则」那一部分（`PartRules`），也算进规则的摘要值。工具改了，摘要值跟着变。
@@ -79,8 +80,9 @@ Status: implemented
   - 第 10 步仍带着工具，但发 `tool_choice: none`（`Request.NoCalls`），模型只能回答。
   - 这样的回复记 `capped`，界面在回复下面写「已达到本次查阅上限，以上回答仅依据已查到的内容。」
 - 查到的内容按估算累加。超过拼装器剩下的空间（`Context.Left`）时，这一个结果在请求里换成「这次查到的内容太多，放不下了……」，下一步也不再让模型调工具。日志里存的仍是结果全文。
+  - 2026-10-15 起按服务商的计数：这一步算的输入和输出，加上这次的结果（估算），超过模型可发送的输入就换。服务商没回用量时照旧按估算（见[AI 基建第二轮](../architecture/2026-10-15-ai-second-pass.md)）。
 - 回复的事件记录：
-  - 各步用量的和；
+  - 各步用量的和；2026-10-15 起只记最后一步的，每个调用事件记它那一步的，界面加起来给作者看（见[AI 基建第二轮](../architecture/2026-10-15-ai-second-pass.md)）；
   - 各步的推理，中间空一行；
   - 「AI 参考内容」的各部分多一项「查阅结果」（`PartLooked`），排在前情提要和之前的对话之间。
 - 之后的轮次只发作者的话和回复，不重发查阅过程。最近的对话是最近四轮，从新往旧放，放不下就停。原来「记账员还没整理的轮次全放」那条随记账员去掉了。第 d 步起，还没压缩的对话全发，见[讨论长了压缩成摘要](../architecture/2026-10-15-compacting-a-long-talk.md)。
@@ -92,7 +94,7 @@ Status: implemented
 - 带工具调用的那几轮，要把那一步的推理一起发回去：DeepSeek、Kimi 要 `reasoning_content`，Anthropic 要带签名的思考块。
   - `model.Reply` 和 `model.Message` 都加了 `Thinking`，按协议发回：`chat` 发文字，`anthropic` 发带签名的块，`responses` 不发。
 - `chat` 协议从 goai 的 `provider/compat` 换成 `provider/deepseek`。它就是 compat 的 Chat Completions，另外会把推理发回去；回复里没有推理的服务，什么也不多发。
-- `Usage.Add` 把各步的用量加起来。
+- `Usage.Add` 把各步的用量加起来。2026-10-15 起用量记在各步自己的事件上，`Add` 挪到 `workspace`，只给界面加一轮的合计。
 
 ### 界面
 
@@ -162,15 +164,15 @@ DESIGN.md「模型看到的，作者也看得到」在原型那一步就写好�
   - 查阅过程只在当轮发给模型，之后的轮次还要用，就得重查。
   - 记账员时期修订里的思考过程和失败原因，读了就扔，修改记录里不再显示。
   - 工具循环只用假服务器测过，没有连真实服务验证，包括 DeepSeek 和 Kimi 回传 `reasoning_content`、Anthropic 回传签名的思考块。2026-10-15 连 DeepSeek 走过一遍（[连真实服务走了一遍](../architecture/2026-10-15-ai-infrastructure.md#连真实服务走了一遍)）：搜全书、查设定、读正文、记设定都通了，找出了样书里埋的矛盾；作者的配置里 DeepSeek 写的是 `responses` 协议，不发回推理，所以 `chat` 协议回传 `reasoning_content`、Kimi、Anthropic 仍没有测过。
-  - **讨论不知道有哪些章**：`read_prose`、`read_summary` 要完整的章名（「第九章 第八道」，不是「第九章」），请求里没有章节目录。连 DeepSeek 时模型想读某一章，先搜了一次才知道章名。要不要在讨论里发目录、或者让章名按前缀找，待作者定。
+  - **讨论不知道有哪些章**：`read_prose`、`read_summary` 要完整的章名（「第九章 第八道」，不是「第九章」），请求里没有章节目录。连 DeepSeek 时模型想读某一章，先搜了一次才知道章名。要不要在讨论里发目录、或者让章名按前缀找，待作者定。2026-10-15 定了：不发目录，章名放宽，见上面「模型只用章名」。
 - **测试**：
   - `go test ./model`：`TestToolCallsAndUsage`；`TestThinkingGoesBackWithTheCalls` 查三种协议各怎样发回推理。
   - `go test ./discussion`：
-    - `TestReplyLooksUpAndNotes`：日志里先记调用、后记结果，下一步看得到结果，记下的条目带修订，回复记各步用量的和；
+    - `TestReplyLooksUpAndNotes`：日志里先记调用、后记结果，下一步看得到结果，记下的条目带修订，调用事件和回复各记自己那一步的用量；
     - `TestReplyStopsAtTheLastStep`：第 10 步不让模型调工具，回复记 `capped`；
-    - `TestLookingUpStopsWhenTheRoomIsFull`；
+    - `TestLookingUpStopsWhenTheRoomIsFull`：按估算、按服务商的计数，放不下时结果换掉、不再让调工具；
     - `TestNoteKeepsTheRules`：每条规则都有反例，引不存在的原话被拒；拒绝的原因写要给什么、不带什么；同一句话引两次只记一条出处；
-    - `TestToolsReadTheBook`：五个只读工具的结果，章名同名时带卷名，读不完、列不完时怎样接着读，查设定时名字对上的排前面；
+    - `TestToolsReadTheBook`：五个只读工具的结果，章名同名时带卷名，章名写不全时一档一档找，读不完、列不完时怎样接着读，查设定时名字对上的排前面；
     - `TestNoteQuotesTheProseQuoted`；
     - `TestTalkSeesTheSettingAndTheTurns`：设定每条带编号，条目 ID 不发给模型，请求带六个工具；
     - `TestContextBudget`：之后的轮次不重发查阅过程。

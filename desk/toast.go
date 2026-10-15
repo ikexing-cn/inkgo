@@ -26,8 +26,8 @@ const (
 // closing the toast clears it.
 func (a *App) toasts(c *ui.Context) {
 	busy := a.busy
-	if a.talking && a.talkShown() || !a.aiOn() {
-		busy = "" // the turn shows its own progress; all that runs is the AI's
+	if a.replying() && a.talkShown() || !a.aiOn() {
+		busy = "" // the turn shows its own progress in its talk; all that runs is the AI's
 	}
 	errKey := a.Error
 	if a.Error != "" && a.Error == a.failed {

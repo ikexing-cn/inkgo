@@ -22,7 +22,7 @@ func call(id, name string, in map[string]any) model.Call {
 
 // A reply looks things up and notes the setting before it answers: each
 // step's calls are written before they run and each result after, the
-// next step sees them, and the reply records what all steps used.
+// next step sees them, and each records what its own request used.
 func TestReplyLooksUpAndNotes(t *testing.T) {
 	e, session := setup(t)
 	id, err := e.Store.NewChapter("", "第一章", false)
@@ -32,13 +32,13 @@ func TestReplyLooksUpAndNotes(t *testing.T) {
 	if _, err = e.Store.WriteChapter(id, "雨下了一夜。\n林晚点起灯，手还在抖。", nil); err != nil {
 		t.Fatal(err)
 	}
-	used := model.Usage{Input: 100, Output: 10}
+	first, last := model.Usage{Input: 100, Output: 10}, model.Usage{Input: 180, Output: 20}
 	f := &fake{steps: []model.Reply{
-		{Text: "我先翻一下。", Reasoning: "要查正文", Usage: used, Thinking: []model.Thought{{Text: "要查正文"}}, Calls: []model.Call{
+		{Text: "我先翻一下。", Reasoning: "要查正文", Usage: first, Thinking: []model.Thought{{Text: "要查正文"}}, Calls: []model.Call{
 			call("c1", toolSearchBook, map[string]any{"query": "林晚"}),
 			call("c2", toolNote, map[string]any{"op": "add", "place": "body", "category": "人物", "text": "林晚怕黑", "names": []string{"林晚"}, "sources": []string{"林晚怕黑"}}),
 		}},
-		{Text: "第一章里她点灯时手在抖，和怕黑对得上。", Reasoning: "对上了", Usage: used},
+		{Text: "第一章里她点灯时手在抖，和怕黑对得上。", Reasoning: "对上了", Usage: last},
 	}}
 	e.Talk = Model{Model: limits, Completer: f, Name: "deepseek/deepseek-flash", Effort: model.EffortHigh}
 	var stepped []workspace.Event
@@ -59,7 +59,7 @@ func TestReplyLooksUpAndNotes(t *testing.T) {
 		t.Fatalf("events %v, stepped %d", roles, len(stepped))
 	}
 	c := events[1]
-	if c.ReplyTo != got.User.ID || c.Text != "我先翻一下。" || len(c.Calls) != 2 || c.Calls[0].Label != "搜了全书「林晚」" || c.Calls[1].Label != "记下：正文 · 人物：林晚怕黑" {
+	if c.ReplyTo != got.User.ID || c.Text != "我先翻一下。" || len(c.Calls) != 2 || c.Usage == nil || *c.Usage != (workspace.Usage{Input: 100, Output: 10}) || c.Calls[0].Label != "搜了全书「林晚」" || c.Calls[1].Label != "记下：正文 · 人物：林晚怕黑" {
 		t.Fatalf("call %+v", c)
 	}
 	set := setting(t, e)
@@ -84,7 +84,7 @@ func TestReplyLooksUpAndNotes(t *testing.T) {
 	}
 	reply := got.Reply
 	if reply.Text != "第一章里她点灯时手在抖，和怕黑对得上。" || reply.Reasoning != "要查正文\n\n对上了" || reply.Capped ||
-		*reply.Usage != (workspace.Usage{Input: 200, Output: 20}) || reply.Sent.Part(workspace.PartLooked) == 0 {
+		*reply.Usage != (workspace.Usage{Input: 180, Output: 20}) || reply.Sent.Part(workspace.PartLooked) == 0 {
 		t.Fatalf("reply %+v", reply)
 	}
 	if parts := reply.Sent.Parts; parts[len(parts)-1].Name != workspace.PartInput {
@@ -122,8 +122,9 @@ func TestReplyStopsAtTheLastStep(t *testing.T) {
 	}
 }
 
-// What the tools return may take only the room the request left; past it
-// the model is told to answer and may look nothing more up.
+// What the tools return may take only the room the request left, as the
+// provider counted the request before where it did; past it the model is
+// told to answer and may look nothing more up.
 func TestLookingUpStopsWhenTheRoomIsFull(t *testing.T) {
 	e, session := setup(t)
 	id, err := e.Store.NewChapter("", "第一章", false)
@@ -155,6 +156,30 @@ func TestLookingUpStopsWhenTheRoomIsFull(t *testing.T) {
 	events, _ := e.Store.Events(session)
 	if !strings.Contains(events[2].Text, "雨下了一夜") {
 		t.Fatal("the result was not kept whole in the talk")
+	}
+
+	// Room enough by estimate, but not as counted.
+	f = &fake{steps: []model.Reply{
+		{Calls: []model.Call{call("1", toolReadProse, map[string]any{"chapter": "第一章"})}, Usage: model.Usage{Input: limits.Input() - 600, Output: 100}},
+		{Text: "雨一直下。"},
+	}}
+	e.Talk = Model{Model: limits, Completer: f}
+	if _, err = e.Say(context.Background(), session, workspace.Event{Text: "雨"}); err != nil {
+		t.Fatal(err)
+	}
+	if second = f.calls[1]; !second.NoCalls || second.Messages[len(second.Messages)-1].Content != fullNote {
+		t.Fatalf("counted %+v", second.Messages[len(second.Messages)-1])
+	}
+	f = &fake{steps: []model.Reply{
+		{Calls: []model.Call{call("1", toolReadProse, map[string]any{"chapter": "第一章"})}},
+		{Text: "雨一直下。"},
+	}}
+	e.Talk = Model{Model: limits, Completer: f}
+	if _, err = e.Say(context.Background(), session, workspace.Event{Text: "雨"}); err != nil {
+		t.Fatal(err)
+	}
+	if second = f.calls[1]; second.NoCalls {
+		t.Fatal("no room by estimate")
 	}
 }
 
@@ -211,8 +236,10 @@ func TestNoteKeepsTheRules(t *testing.T) {
 }
 
 // The tools read the book by the names the model is shown: a title, or
-// its volume's before it when two share one. A long chapter is read a
-// part at a time, and long lists a page at a time.
+// its volume's before it when two share one, or what is one name only but
+// for spaces and marks, or begins it, or is in it; for a name the book has
+// not, the model is told those it may mean. A long chapter is read a part
+// at a time, and long lists a page at a time.
 func TestToolsReadTheBook(t *testing.T) {
 	e, session := setup(t)
 	write := func(parent, title, text string) string {
@@ -229,6 +256,7 @@ func TestToolsReadTheBook(t *testing.T) {
 	v2, _ := e.Store.NewChapter("", "第二卷", true)
 	first := write(v1, "雨", strings.Repeat("灯亮着。"+strings.Repeat("雨", 600)+"\n", 6))
 	write(v2, "雨", "又下雨了。")
+	write(v2, "第三章：停电", "灯灭了。")
 	if err := e.Store.WriteSummary(first, workspace.Summary{Text: "林晚回到旧城。", Of: "旧的"}); err != nil {
 		t.Fatal(err)
 	}
@@ -245,6 +273,13 @@ func TestToolsReadTheBook(t *testing.T) {
 		{toolReadProse, map[string]any{"chapter": "第一卷/雨", "from": 2}, []string{"[2] 灯亮着", "[5] 灯亮着", "（读到第 5 段为止；接着读，from 填 6。）"}},
 		{toolReadProse, map[string]any{"chapter": "第一卷"}, []string{"是一卷，没有正文"}},
 		{toolReadSummary, map[string]any{"chapters": []string{"第一卷/雨", "第二卷/雨"}}, []string{"「第一卷/雨」：林晚回到旧城。\n（这份摘要写好以后，正文又改过。）", "「第二卷/雨」还没有摘要"}},
+		{toolReadProse, map[string]any{"chapter": "第三章 停电"}, []string{"「第三章：停电」共 1 段。\n[1] 灯灭了。"}},
+		{toolReadProse, map[string]any{"chapter": "第三章"}, []string{"「第三章：停电」共 1 段。"}},
+		{toolReadProse, map[string]any{"chapter": "停电"}, []string{"「第三章：停电」共 1 段。"}},
+		{toolReadProse, map[string]any{"chapter": "雨"}, []string{"「雨」对得上好几章：「第一卷/雨」「第二卷/雨」；写全章名。"}},
+		{toolReadProse, map[string]any{"chapter": "第三张：停电"}, []string{"没有叫「第三张：停电」的章；相近的有「第三章：停电」。"}},
+		{toolReadProse, map[string]any{"chapter": "第九章"}, []string{"没有叫「第九章」的章；章名要和搜全书的结果里写的一样。"}},
+		{toolReadSummary, map[string]any{"chapters": []string{"停电", "第一卷", "雪"}}, []string{"「第三章：停电」还没有摘要", "「第一卷」是一卷，没有摘要", "没有叫「雪」的章"}},
 		{toolSearchTalks, map[string]any{"query": "妹妹"}, []string{"共 1 处，在「这一次的讨论」。", "AI：也许是她妹妹。"}},
 	} {
 		out := box.run(call("1", c.name, c.in))
@@ -256,6 +291,9 @@ func TestToolsReadTheBook(t *testing.T) {
 	}
 	if out := box.run(call("1", toolReadProse, map[string]any{"chapter": "第一卷/雨", "from": 2})); strings.Contains(out.text, "[6]") {
 		t.Error("read past the cap")
+	}
+	if got := box.label(call("1", toolReadProse, map[string]any{"chapter": "停电"})) + box.label(call("1", toolReadSummary, map[string]any{"chapters": []string{"第三章", "雪"}})); got != "读了「第三章：停电」读了摘要「第三章：停电」「雪」" {
+		t.Errorf("labels %s", got)
 	}
 	// The setting is looked up by number, the entries a name matches first.
 	revise(t, e, workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "规则", Text: "灯是林晚的妹妹点的。"},

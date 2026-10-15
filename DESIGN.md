@@ -431,15 +431,16 @@ components:
 发给模型的东西，作者在界面上都找得到；不在作者背后往上下文里塞东西。
 
 - 讨论回复的上方，和「思考过程」一样折着一行，写这次 AI 查了什么、记了什么（「搜了全书「停电」，读了「第87章：停电」第 1–3 段」）。点开是每一项查到的内容；记进设定的那一条，点「查看设定」去看它。
-- 回复下面的「AI 参考内容」列出这次发送的各部分各约多少 token、附了哪些设定（设定多到装不下时写「设定较多，本次只附目录」），和服务商算的实际用量。
+- 回复下面的「AI 参考内容」列出这次发送的各部分各约多少 token、附了哪些设定（设定多到装不下时写「设定较多，本次只附目录」），和服务商算的实际用量。AI 查一回就多发一次请求，这里说的是最后一次，写出回复的那次；不止一次的，注明「这一轮共 N 次请求，这是最后一次。」
 - AI 在讨论里记进设定的，修改记录里有一条，写着记在哪段讨论里。
-- 讨论长了压缩过，压缩的地方隔一行「以上 N 轮已整理成摘要」，点开是摘要全文；只能看，不能改。
-- 用了多少也看得到：每条回复下面写这次用了多少 token；作品累计的用量和按内置价格估算的花费，在设置「AI」的「本作品用量」里，只能看，不能清零。
+- 讨论长了压缩过，压缩的地方隔一行「以上 N 轮已整理成摘要」，点开是摘要全文；只能看，不能改。压缩的时候，回复的地方写「正在压缩上下文…」。
+- 摘要里提到设定，模型写的是设定的编号（「[2]」），给作者看换成那一条的名字，加「」，没有名字的取第一句的开头；点它在右栏打开那一条。
+- 用了多少也看得到：每条回复下面写这一轮所有请求一共用了多少 token；作品累计的用量和按内置价格估算的花费，在设置「AI」的「本作品用量」里，只能看，不能清零。
 
 检查：
 
-- `npm run verify-prototype` 的「what the AI looked at」「what was sent」「a long talk」「models and services」查原型。
-- `go test ./desk` 的 `TestTalkNotesTheSettingAsItReplies` 查软件里回复上方那一行：回复时展开、回复完折起、点开有查到的内容，「查看设定」打开记下的那一条，修改记录里那一条点「查看讨论」回到讨论；`TestWhatWasSent` 查「AI 参考内容」和回复下面的 token 数；`TestTheWorkShowsWhatItSpent` 查「本作品用量」；`TestTheTalkShowsWhereItWasCompacted` 查「以上 N 轮已整理成摘要」那一行和点开的摘要。
+- `npm run verify-prototype` 的「what the AI looked at」「what was sent」「a long talk」「models and services」查原型：「a long talk」查摘要里的名字点了打开那一条，和发出去之前先压缩。
+- `go test ./desk` 的 `TestTalkNotesTheSettingAsItReplies` 查软件里回复上方那一行：回复时展开、回复完折起、点开有查到的内容，「查看设定」打开记下的那一条，修改记录里那一条点「查看讨论」回到讨论；`TestWhatWasSent` 查「AI 参考内容」和回复下面这一轮一共的 token 数；`TestTheWorkShowsWhatItSpent` 查「本作品用量」；`TestTheTalkShowsWhereItWasCompacted` 查「以上 N 轮已整理成摘要」那一行和点开的摘要；`TestCompactingShowsItself` 查压缩时写「正在压缩上下文…」，压缩完那一行就出来，作者刚发的话只出现一次。
 
 ### AI 写的字要作者采纳
 
@@ -447,13 +448,23 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab，改写�
 
 - 采纳之前和正文分得开：续写是灰字；改写、起草里 AI 写的是绿色，要换掉的原文划红色删除线。这时正文不能打字，没采纳的字不存盘。
 - 采纳前存快照；采纳算一步，撤销一次就退回去。
-- 点过标题下面 AI 那一行的「采纳」「停止」「取消」，放弃起草，或者按 Esc 关掉改写要求，键盘回到正文：采纳以后光标在 AI 写的字后面，马上按 Ctrl+Z 就撤销。放弃改写以后键盘去哪里待作者确认：原型收起这一行，回到正文；软件里改写要求重新出来，键盘在它里面。
+- 点过标题下面 AI 那一行的「采纳」「放弃」「停止」「取消」，或者按 Esc 关掉改写要求，这一行收起，键盘回到正文：采纳以后光标在 AI 写的字后面，马上按 Ctrl+Z 就撤销。
+- 这一行刚换成「放弃」「重新改写」「采纳」（或「重新起草」）的半秒里，点了不算：写完的那一刻正好点「停止」「取消」，不会落到同一处的「采纳」上。
 - 没采纳就离开这一章或关掉 AI，写好的丢掉，正文照旧。
 
 检查：
 
-- `npm run verify-prototype` 的「a sentence more」「a rewrite」「a draft」查原型，采纳以后按 Ctrl+Z、Ctrl+Y，按 Esc 关掉改写要求以后键盘在正文。
+- `npm run verify-prototype` 的「a sentence more」「a rewrite」「a draft」查原型，采纳以后按 Ctrl+Z、Ctrl+Y，按 Esc 关掉改写要求以后键盘在正文，改写出来马上点「采纳」不算、半秒后才算。
 - `go test ./desk` 的 `TestDraftAChapterFromItsOutline`、`TestStopADraftKeepsWhatCame`、`TestRewriteASelection` 查软件：起草、改写写完，正文和磁盘都不变，采纳时才存快照、写进正文，算一步；点过按钮以后键盘在正文，采纳以后按 Ctrl+Z 撤销。`TestTurnTheAIOffAndOn` 查关掉 AI 时没采纳的起草丢掉。
+
+### 等 AI 回复时照常用
+
+讨论里 AI 在回复，别的地方照常用：换页、翻章节、写正文、看设定、改设置都行。只有两样要等它回完或者取消：再发一句、重试回复（一次只回一句），和切换作品。回复中途改了讨论模型，下一句起才用新的。
+
+检查：
+
+- `npm run verify-prototype` 的「the rest free while the AI replies」：回复中去「作品分类」再回来，回复照样到；切换作品是灰的。
+- `go test ./desk` 的 `TestTalkLeavesTheRestFree`：回复中换页、换到别的对话、打下一句、打开模型菜单都行；发送、重试回复、切换作品点了没反应；回复落在它自己的对话里。
 
 ## Colors
 

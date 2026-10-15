@@ -9,6 +9,7 @@ import (
 
 	"writer/model"
 	"writer/prompt"
+	"writer/tokens"
 	"writer/workspace"
 )
 
@@ -23,12 +24,19 @@ type Model struct {
 
 func (m Model) ready() bool { return m.Completer != nil }
 
-// Complete asks no more of the reply than the model gives.
+// Complete asks of the reply all the model gives, or less where req asks
+// less. Cut off at all the model gives, it says so, and where to give it
+// more.
 func (m Model) Complete(ctx context.Context, req model.Request, on func(model.Delta)) (model.Reply, error) {
-	if req.MaxTokens == 0 || req.MaxTokens > m.Output {
+	whole := req.MaxTokens == 0 || req.MaxTokens >= m.Output
+	if whole {
 		req.MaxTokens = m.Output
 	}
-	return m.Completer.Complete(ctx, req, on)
+	reply, err := m.Completer.Complete(ctx, req, on)
+	if whole && errors.Is(err, model.ErrTruncated) {
+		err = fmt.Errorf("回复超出模型的最大输出 %s（含思考）；请在设置中「AI」配置里调大", tokens.Format(m.Output))
+	}
+	return reply, err
 }
 
 // ask runs a request on m, streaming to on when it is set.
@@ -45,8 +53,9 @@ type Engine struct {
 	Store *workspace.Store
 	Talk  Model
 	// Progress, when set, hears what the reply streams, never empty, and
-	// Step each step's calls and each call's result as they are written.
-	// Both run on the caller's goroutine.
+	// Step each step's calls and each call's result as they are written,
+	// and each digest compacting the talk: with no ID as it is asked for,
+	// then as written. Both run on the caller's goroutine.
 	Progress func(model.Delta)
 	Step     func(workspace.Event)
 	// Beside, when set, is what the author is writing as they talk, sent
@@ -166,11 +175,15 @@ const fullNote = "（这次查到的内容太多，放不下了；不能再查�
 
 // respond asks for the reply, one step at a time: each step's calls are
 // written before they run and each result after, then the next step sees
-// them. The reply records what all its steps used.
+// them. Each records what its request used, the reply its own.
+//
+// What the tools return goes while it leaves the next request within the
+// model's input: the request before it as the provider counted it, its
+// reply, and what came after it as estimated; or, where the provider
+// counts nothing, while it fits in the room the assembly left.
 func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembled Context) (Turn, error) {
 	box := &toolbox{store: e.Store, session: session, turn: turn.User.ID, model: e.Talk}
 	req := assembled.Request
-	var used model.Usage
 	var thought []string
 	looked, capped := 0, false
 	write := func(ev workspace.Event) error {
@@ -188,7 +201,7 @@ func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembl
 		if err != nil {
 			return turn, fmt.Errorf("讨论失败，原文已保存：%w", err)
 		}
-		used = used.Add(reply.Usage)
+		used := reply.Usage
 		if r := strings.TrimSpace(reply.Reasoning); r != "" {
 			thought = append(thought, r)
 		}
@@ -208,8 +221,12 @@ func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembl
 		for n, c := range reply.Calls {
 			calls[n] = workspace.Call{ID: c.ID, Name: c.Name, Input: c.Input, Label: box.label(c)}
 		}
-		if err = write(workspace.Event{Role: workspace.RoleCall, Text: reply.Text, Calls: calls, Model: e.Talk.Name, Effort: string(e.Talk.Effort)}); err != nil {
+		if err = write(workspace.Event{Role: workspace.RoleCall, Text: reply.Text, Calls: calls, Model: e.Talk.Name, Effort: string(e.Talk.Effort), Usage: (*workspace.Usage)(&used)}); err != nil {
 			return turn, err
+		}
+		spent := 0
+		if used.Input > 0 {
+			spent = used.Input + used.Output
 		}
 		req.Messages = append(slices.Clip(req.Messages), model.Message{Role: workspace.RoleAssistant, Content: reply.Text, Calls: reply.Calls, Thinking: reply.Thinking})
 		for _, c := range reply.Calls {
@@ -221,8 +238,11 @@ func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembl
 				return turn, err
 			}
 			told := out.text
-			if looked+prompt.Estimate(told) > assembled.Left {
+			if spent > 0 && spent+prompt.Estimate(told) > e.Talk.Input() || spent == 0 && looked+prompt.Estimate(told) > assembled.Left {
 				told, req.NoCalls = fullNote, true
+			}
+			if spent > 0 {
+				spent += prompt.Estimate(told)
 			}
 			looked += prompt.Estimate(told)
 			req.Messages = append(req.Messages, model.Message{Role: "tool", CallID: c.ID, Content: told})

@@ -13,9 +13,9 @@ import (
 	"writer/workspace"
 )
 
+// A draft and a rewrite may take all the output the model gives; a
+// sentence more takes little.
 const (
-	draftOutput = 32768
-	editOutput  = 16384
 	nextOutput  = 400 // a sentence, and what a model may say before it stops
 	beforeCap   = 6000
 	afterCap    = 1000
@@ -191,7 +191,6 @@ func (w *Writer) Draft(scene Scene, words int) (Job, error) {
 		ask += fmt.Sprintf("篇幅约 %d 字。", words)
 	}
 	job, err := w.prepare(workspace.AIDraft, draftTask, scene, "【要求】"+ask)
-	job.Request.MaxTokens = draftOutput
 	job.Request.Effort = w.Model.Effort
 	if words > 0 {
 		job.Record.Instruction = fmt.Sprintf("约 %d 字", words)
@@ -209,7 +208,6 @@ func (w *Writer) Rewrite(scene Scene, selected, instruction string) (Job, error)
 	tail := fmt.Sprintf("【选中的原文】（%d 字）\n%s\n\n【作者的要求】\n%s\n\n【篇幅】改写后不超过 %d 字，除非作者的要求里另有字数。",
 		n, selected, strings.TrimSpace(instruction), max(3*n, n+40))
 	job, err := w.prepare(workspace.AIRewrite, rewriteTask, scene, tail)
-	job.Request.MaxTokens = editOutput
 	job.Request.Effort = w.Model.Effort
 	job.Record.Instruction = strings.TrimSpace(instruction)
 	return job, err

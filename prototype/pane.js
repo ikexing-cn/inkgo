@@ -70,14 +70,17 @@ function send() {
 
 // AI 回这段讨论一句：先想，再查（搜全书、读正文、查设定），再写；写完之前可以取消。
 // 要记进设定的，AI 在这一轮里当场记下，回复上方列着记了什么，修改记录里也有一条。
+// 压缩过的讨论，摘要后面又说了两轮以上，就算长了：先把这一句以前的压进摘要，再回。压完了再取消，摘要照样留着。
 let replying = []
 function answer(id) {
   const r = BOOK.replies[sent++ % BOOK.replies.length]
-  set({ waiting: { id, step: 'think' } })
+  const talk = S.talks.find((x) => x.id === id), fold = talk.digest && talk.msgs.length - 1 - talk.digest.after >= 4, pack = fold ? 800 : 0
+  set({ waiting: { id, step: fold ? 'pack' : 'think' } })
   replying = [
-    later(400, () => set({ waiting: { id, step: r.look.length ? 'look' : 'reply', look: r.look } })),
-    later(800, () => set({ waiting: { id, step: 'reply', look: r.look } })),
-    later(1200, () => set((s) => {
+    ...(fold ? [later(pack, () => set((s) => ({ waiting: { id, step: 'think' }, talks: s.talks.map((x) => (x.id === id ? { ...x, digest: { ...x.digest, after: x.msgs.length - 1 } } : x)) })))] : []),
+    later(pack + 400, () => set({ waiting: { id, step: r.look.length ? 'look' : 'reply', look: r.look } })),
+    later(pack + 800, () => set({ waiting: { id, step: 'reply', look: r.look } })),
+    later(pack + 1200, () => set((s) => {
       const kept = r.keep ? { id: 'e' + s.n, place: 'open', cat: r.keep.cat, names: [], text: r.keep.text } : null
       const said = kept ? '待确认 · ' + kept.cat + '：' + kept.text : ''
       const msg = { me: false, text: r.text, think: BOOK.think, look: kept ? [...r.look, ['记', said, kept.id]] : r.look, use: r.use, capped: r.capped }
@@ -285,11 +288,13 @@ function thought(key, text, running, label = '思考过程') {
 // 每一项点开能看查到的；记下的那一条点一下去设定里看它。
 const LOOK = { 搜: '搜了', 读: '读了', 摘要: '读了摘要', 设定: '查了设定', 讨论: '搜了讨论', 记: '记下：' }
 const lookLine = ([act, what]) => LOOK[act] + what
+// 在右栏打开设定里的一条：等作者决定的在「AI 建议」里，别的在列表里选中它。
+const showEntry = (entry) => set({ paneOpen: true, tab: '设定', form: null, ...SHUT, ...(entry.place === 'open' ? { sv: 'ideas', sid: null } : { sv: 'list', sid: entry.id }) })
 function looked(key, look, running) {
   const open = running || S.thoughts[key]
   const row = ([act, what, got]) => {
     const entry = act === '记' && S.entries.find((e) => e.id === got)
-    return entry ? where(lookLine([act, what]), () => set({ paneOpen: true, tab: '设定', form: null, ...SHUT, ...(entry.place === 'open' ? { sv: 'ideas', sid: null } : { sv: 'list', sid: entry.id }) }), '查看设定')
+    return entry ? where(lookLine([act, what]), () => showEntry(entry), '查看设定')
       : `<div class="look-row"><div>${t(lookLine([act, what]))}</div>${got && act !== '记' ? `<div class="look-got">${t(got)}</div>` : ''}</div>`
   }
   return `<div class="thought"><div class="thought-head hit"${onClick(running ? null : () => set((s) => ({ thoughts: { ...s.thoughts, [key]: !open } })))}><div class="ell">${running ? '正在查阅' : t(look.map(lookLine).join('，'))}</div>${icon(open ? 'down' : 'right', 'xs')}</div>` +
@@ -297,9 +302,10 @@ function looked(key, look, running) {
 }
 
 // 「AI 参考内容」：这次发给 AI 的各部分各约多少 token，附了哪些设定，服务商算的实际用量。
+// 查了东西的一轮前后发了几次请求，说的都是最后一次，写出回复的那次。
 function outgoing(talk, m, i) {
   // 发出去的是整份设定：正文、已放弃、悬而未决都在，后两种写明是哪一种。目录每条只有分类、第一个名字和第一句。
-  const [input, cached, output] = m.use, sent = ['body', 'dropped', 'open'].flatMap((p) => S.entries.filter((e) => e.place === p))
+  const [input, cached, output] = m.use.at(-1), sent = ['body', 'dropped', 'open'].flatMap((p) => S.entries.filter((e) => e.place === p))
   const label = { body: '', dropped: '已放弃：', open: '悬而未决：' }
   const first = (text) => clip(text.match(/^[^。！？；\n]*[！？]?/)[0], 60)
   const digested = talk.digest && i >= talk.digest.after
@@ -309,7 +315,7 @@ function outgoing(talk, m, i) {
   const rows = S.crowded ? sent.map((e) => `<div class="saw-row"><div class="fit">${t(label[e.place] + e.cat + (e.names[0] ? ' · ' + e.names[0] : '') + '：' + first(e.text))}</div></div>`).join('')
     : sent.map((e) => `<div class="saw-row">${icon('tick', 'sm', 'green')}<div class="fit">${t(label[e.place] + e.text)}</div></div>`).join('')
   return '<div class="reply-saw">' +
-    `<div class="saw-title">本次发送约 ${tokens(parts.reduce((n, [, x]) => n + x, 0))} token</div><div class="note">${parts.filter(([, x]) => x).map(([name, x]) => t(name) + ' ' + tokens(x)).join(' · ')}</div>` +
+    `<div class="saw-title">本次发送约 ${tokens(parts.reduce((n, [, x]) => n + x, 0))} token</div>${m.use.length > 1 ? `<div class="note">这一轮共 ${m.use.length} 次请求，这是最后一次。</div>` : ''}<div class="note">${parts.filter(([, x]) => x).map(([name, x]) => t(name) + ' ' + tokens(x)).join(' · ')}</div>` +
     `<div class="note">实际用量：输入 ${tokens(input)}${cached ? '，其中缓存命中 ' + tokens(cached) : ''}；输出 ${tokens(output)}</div>` +
     `<div class="saw-title">${head}</div>${S.crowded ? '<div class="note">目录只有分类、名字和第一句；需要时 AI 会查全文。</div>' : ''}` +
     (sent.length ? rows : '<div class="note">设定文档暂无内容。</div>') + '</div>'
@@ -319,7 +325,17 @@ function outgoing(talk, m, i) {
 function digest(talk) {
   const d = talk.digest, key = 'digest-' + talk.id, open = S.thoughts[key]
   return `<div class="digest"><div class="digest-head hit"${onClick(() => set((s) => ({ thoughts: { ...s.thoughts, [key]: !open } })))}>以上 ${d.after / 2} 轮已整理成摘要${icon(open ? 'down' : 'right', 'xs')}</div>` +
-    (open ? `<div class="digest-text">${d.text.map(([name, said]) => `<div><div class="saw-title">${t(name)}</div><div>${t(said)}</div></div>`).join('')}<div class="note">摘要由 AI 写成，有误可在对话中指出。</div></div>` : '') + '</div>'
+    (open ? `<div class="digest-text">${d.text.map(([name, said]) => `<div><div class="saw-title">${t(name)}</div><div>${named(said)}</div></div>`).join('')}<div class="note">摘要由 AI 写成，有误可在对话中指出。</div></div>` : '') + '</div>'
+}
+
+// 摘要里提到设定，存的是设定的编号「[2]」（设定只增不删，编号一直是那一条的）。给作者看换成那一条的名字，
+// 没有名字的取第一句的开头；点它在右栏打开那一条。
+function named(text) {
+  return text.split(/\[(\d+)\]/).map((part, i) => {
+    if (i % 2 === 0) return part ? `<span>${t(part)}</span>` : ''
+    const e = S.entries[part - 1]
+    return e ? `「<span class="hit link"${onClick(() => showEntry(e))}>${t(e.names[0] || clip(e.text.match(/^[^。！？；\n]*/)[0], 16))}</span>」` : `<span>${t('[' + part + ']')}</span>`
+  }).join('')
 }
 
 // 讨论里的一句。右栏和「讨论」那一页画的是同一个样子；下面那排小按钮只在最后一句和鼠标指着的那句上露出来。
@@ -331,10 +347,10 @@ function message(talk, m, i) {
     const left = last && !(S.waiting && S.waiting.id === talk.id)
     return `<div class="msg me${last ? ' last' : ''}">${m.cite ? cited(m.cite) : ''}<div class="said">${t(m.text)}</div>` +
       `<div class="reply-tools">${pull}<div class="faint">${t(talk.at)}</div></div>` +
-      (left ? `<div class="unanswered">${icon('warn', 'sm')}<div>该消息尚未收到回复</div><div class="hit link"${onClick(() => answer(talk.id))}>重试回复</div></div>` : '') + '</div>'
+      (left ? `<div class="unanswered">${icon('warn', 'sm')}<div>该消息尚未收到回复</div><div class="hit link${S.waiting ? ' off' : ''}"${onClick(S.waiting ? null : () => answer(talk.id))}>重试回复</div></div>` : '') + '</div>'
   }
   const copy = () => { if (navigator.clipboard) navigator.clipboard.writeText(m.text).catch(() => {}); say('已复制') }
-  const use = m.use ? ' · ' + tokens(m.use[0] + m.use[2]) + ' token' : ''
+  const use = m.use ? ' · ' + tokens(m.use.reduce((n, [input, , output]) => n + input + output, 0)) + ' token' : '' // 这一轮所有请求的合计
   return `<div class="msg${last ? ' last' : ''}"><div class="reply-row"><div class="reply-face">${icon('spark')}</div><div class="fit">${m.think ? thought(key, m.think) : ''}${m.look && m.look.length ? looked('look-' + key, m.look) : ''}<div class="reply" data-reply="${i}">${t(m.text)}</div>` +
     (m.capped ? '<div class="note">已达到本次查阅上限，以上回答仅依据已查到的内容。</div>' : '') +
     `<div class="reply-tools"><div class="faint">${t(talk.at)} · ${t(S.uses[0].model)}${use}</div>${pull}${tool('复制全文', 'copy', copy)}${m.use ? tool('AI 参考内容', 'eye', () => set((s) => ({ told: { ...s.told, [key]: !saw } })), saw) : ''}</div>` +
@@ -344,8 +360,8 @@ function message(talk, m, i) {
 function said(talk) {
   const w = S.waiting && S.waiting.id === talk.id ? S.waiting : null
   return talk.msgs.map((m, i) => message(talk, m, i) + (talk.digest && i === talk.digest.after - 1 ? digest(talk) : '')).join('') +
-    (w ? `<div class="msg last"><div class="reply-row"><div class="reply-face">${icon('spark')}</div><div class="fit">${thought('live', BOOK.think, w.step === 'think')}${w.step !== 'think' && w.look.length ? looked('live-look', w.look, w.step === 'look') : ''}` +
-      `<div class="waiting">${icon('spin', 'sm')}<div class="fit">${{ think: '正在思考…', look: '正在查阅…', reply: '正在回复…' }[w.step]}</div><div class="hit link"${onClick(stopReply)}>取消请求</div></div></div></div></div>` : '')
+    (w ? `<div class="msg last"><div class="reply-row"><div class="reply-face">${icon('spark')}</div><div class="fit">${w.step === 'pack' ? '' : thought('live', BOOK.think, w.step === 'think')}${w.look && w.look.length ? looked('live-look', w.look, w.step === 'look') : ''}` +
+      `<div class="waiting">${icon('spin', 'sm')}<div class="fit">${{ pack: '正在压缩上下文…', think: '正在思考…', look: '正在查阅…', reply: '正在回复…' }[w.step]}</div><div class="hit link"${onClick(stopReply)}>取消请求</div></div></div></div></div>` : '')
 }
 
 function discussion() {

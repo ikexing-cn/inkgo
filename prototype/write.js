@@ -367,7 +367,7 @@ function askRewrite() {
 }
 function rewrite() {
   set((s) => ({ ai: { ...s.ai, kind: 'rewriting' } }))
-  later(1200, () => set((s) => (s.ai && s.ai.kind === 'rewriting' ? { ai: { ...s.ai, kind: 'diff', text: BOOK.rewrite } } : null)))
+  later(1200, () => set((s) => (s.ai && s.ai.kind === 'rewriting' ? { ai: { ...s.ai, kind: 'diff', text: BOOK.rewrite, at: Date.now() } } : null)))
 }
 function takeRewrite() {
   const { pick, text } = S.ai
@@ -397,13 +397,13 @@ function draft(a) {
     const a = S.ai
     if (!a || a.kind !== 'drafting') return
     const words = BOOK.drafted[a.paras.length]
-    set({ ai: words ? { ...a, paras: [...a.paras, words] } : { ...a, kind: 'drafted' } })
+    set({ ai: words ? { ...a, paras: [...a.paras, words] } : { ...a, kind: 'drafted', at: Date.now() } })
     if (words) next()
   })
   next()
 }
 // 停下来：写了的留着等作者定，一个字没写就当没起草。
-const stopDraft = () => { set((s) => ({ ai: s.ai.paras.length ? { ...s.ai, kind: 'drafted', stopped: true } : null })); if (!S.ai) caretToEnd() }
+const stopDraft = () => { set((s) => ({ ai: s.ai.paras.length ? { ...s.ai, kind: 'drafted', stopped: true, at: Date.now() } : null })); if (!S.ai) caretToEnd() }
 // 采纳起草：先存快照再写进正文，算一步，撤销一次就退回去。写进去的那几段带「AI 起草」的记号。
 function takeDraft() {
   set((s) => {
@@ -466,7 +466,7 @@ function rare() {
 }
 // 一次回复查到了上限：查了 BOOK.limit 次还没查完，照查到的回答。
 const capped = () => [{ me: true, text: '全书写到井的地方，前后对得上吗' }, {
-  me: false, text: '已查到的几处里，井沿的刻痕前后一致：「第2章：井沿」写三道，「第85章：灯数」也数出三道。还有几处没来得及读，不能说全书都对得上。', capped: true, use: [96400, 18420, 520],
+  me: false, text: '已查到的几处里，井沿的刻痕前后一致：「第2章：井沿」写三道，「第85章：灯数」也数出三道。还有几处没来得及读，不能说全书都对得上。', capped: true, use: [[19100, 18420, 60], [27300, 19100, 70], [35800, 27300, 64], [44200, 35800, 66], [52900, 44200, 62], [61400, 52900, 71], [69800, 61400, 58], [78300, 69800, 66], [86900, 78300, 63], [96400, 86900, 520]],
   look: [['搜', '全书「井」', '9 处，在 5 章'], ...['1', '2', '46', '84', '85', '86', '87'].map((key) => ['读', '「' + chTitle(key) + '」全章', clip(chapterOf(key).paras.join(''), 40)]), ['设定', '「铜钥匙」', '一直挂在林晚脖子上，不知道开哪扇门。'], ['讨论', '「井」', '没有找到']].slice(0, BOOK.limit),
 }]
 
@@ -480,6 +480,7 @@ function aiRare(here) {
     ['本章过长，仅读取前文', here((s) => ({ box: '摘要', part: { ...s.part, [s.ch]: { check: 5000, sum: 9000 } }, never: { ...s.never, [s.ch]: false }, failed: { ...s.failed, [s.ch]: '' }, dirty: { ...s.dirty, [s.ch]: false },
       summaries: { ...s.summaries, [s.ch]: { text: (s.summaries[s.ch] || {}).text || BOOK.recap, by: 'AI 生成 · Opus 5.5 · 刚刚' } } }))],
     ['AI 改写出错', () => { set(SHUT); say('改写失败', '模型未返回改写结果', 'fail') }],
+    ['回复超出最大输出', () => { set(SHUT); say('回复超出模型的最大输出 128K（含思考）', '请在设置中「AI」配置里调大', 'fail', [['打开设置', () => set({ dialog: { kind: 'settings', tab: 'AI', edit: '' }, toasts: [], ...SHUT })]]) }],
     ['讨论查阅达到上限', here((s) => ({ paneOpen: true, tab: '讨论', tv: 'one', tid: 't1', talks: s.talks.map((talk) => (talk.id !== 't1' ? talk : { ...talk, msgs: [...talk.msgs, ...capped()] })) }))],
     ['设定较多，只附目录', here(() => ({ paneOpen: true, tab: '讨论', tv: 'one', tid: 't2', crowded: true, told: { 't2-1': true } }))],
     ['模型目录读取失败', () => { set(SHUT); const id = say('读取模型目录失败', why, 'fail', [['重试', () => { unsay(id); fetchModels() }], ['打开设置', () => set({ dialog: { kind: 'settings', tab: 'AI', edit: '' }, toasts: [], ...SHUT })]]) }],
@@ -581,11 +582,13 @@ function sidebar() {
   // 点作品名出来的菜单：这一部在最上，再是别的几部。
   const bookMenu = S.open !== 'book' ? '' : `<div class="pop"><div class="pop-label">作品</div><div class="pop-row row on"><div class="grow">${t(book.name)}</div><div class="side">${t(book.kind)}</div></div>` + others.map((o) => menuRow(o.name, () => openBook(o.id), '', o.kind)).join('') + HAIR +
     menuRow('新建作品…', () => set({ page: 'shelf', dialog: { kind: 'newBook', name: '', type: BOOK.kinds[0] }, ...SHUT })) + menuRow('全部作品…', () => set({ page: 'shelf', ...SHUT })) + '</div>'
+  // AI 正在回讨论时不能换作品，别的照常：回完或者取消了再换。
+  const pickBook = onClick(S.waiting ? null : () => set({ open: S.open === 'book' ? '' : 'book' })), off = S.waiting ? ' off' : ''
   // 窗口窄了，讨论要留出能读的宽度：侧栏收成一列图标。列章节的时候不收，树要那么宽。
   const tree = S.page === 'write' || !aiOn() // AI 关着时没有讨论，哪一页都列章节
   if (S.narrow && !tree) {
     return '<div class="sidebar slim" data-k="sidebar">' +
-      `<div class="sidebar-top"><div class="anchor"><div class="book hit" title="切换作品"${onClick(() => set({ open: S.open === 'book' ? '' : 'book' }))}><div class="book-logo">${t(book.name[0])}</div></div>` +
+      `<div class="sidebar-top"><div class="anchor"><div class="book hit${off}" title="切换作品"${pickBook}><div class="book-logo">${t(book.name[0])}</div></div>` +
       bookMenu + '</div></div>' +
       `<div class="navs">${nav.map(([name, pic, page]) => `<div class="nav hit${S.page === page ? ' on' : ''}" title="${name}"${onClick(to[page])}>${icon(pic)}</div>`).join('')}</div>` +
       `<button class="icon-btn muted" aria-label="新对话" title="新对话"${onClick(() => set({ page: 'talk', tv: 'new', tid: null, draft: '' }))}>${ICON.plus}</button><div class="grow"></div>` +
@@ -594,7 +597,7 @@ function sidebar() {
   }
 
   return '<div class="sidebar" data-k="sidebar">' +
-    `<div class="sidebar-top"><div class="anchor wide"><div class="book hit" title="切换作品"${onClick(() => set({ open: S.open === 'book' ? '' : 'book' }))}><div class="book-logo">${t(book.name[0])}</div><div class="book-name">${t(book.name)}</div>${icon('down', 'sm', 'faint')}</div>` +
+    `<div class="sidebar-top"><div class="anchor wide"><div class="book hit${off}" title="切换作品"${pickBook}><div class="book-logo">${t(book.name[0])}</div><div class="book-name">${t(book.name)}</div>${icon('down', 'sm', 'faint')}</div>` +
     bookMenu + '</div></div>' +
     `<div class="navs">${nav.map(([name, pic, page]) => `<div class="nav hit${S.page === page ? ' on' : ''}"${onClick(to[page])}>${icon(pic)}<div class="grow">${name}</div>${page === 'check' && S.checks.length ? `<div class="count">${S.checks.length}</div>` : ''}</div>`).join('')}</div>` +
     (tree
@@ -666,6 +669,10 @@ function pieces(cur, i, text, focus, found) {
   return at < text.length ? out + span(text.slice(at)) : out
 }
 
+// 这一行刚换成「放弃」「重新……」「采纳」，半秒内的点击不算：写完的那一刻点「停止」「取消」，不能落到同一处的「采纳」上。
+const SETTLE = 500
+const settled = (fn) => () => { if (S.ai && Date.now() - S.ai.at >= SETTLE) fn() }
+
 // 标题下面那一行：AI 正在做什么，或者等作者说怎么改。
 function aiBar() {
   const a = S.ai, [model, effort] = writer()
@@ -673,9 +680,9 @@ function aiBar() {
   const drop = dropAI
   if (a.kind === 'ask') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'muted')}<div class="box line fit">${typed(a.want, (v) => set((s) => ({ ai: { ...s.ai, want: v } })), '改写要求，例如：放慢节奏，多写她的犹豫', '改写要求', keys(rewrite, drop) + ' autofocus')}</div>${button('改写', rewrite, 'primary')}<button class="icon-btn muted" aria-label="关闭改写" title="关闭改写"${onClick(drop)}>${icon('cross')}</button></div>`
   if (a.kind === 'rewriting') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'muted')}<div class="fit ell muted">AI 正在改写选中内容 · ${t(model)}</div>${button('取消', drop)}</div>`
-  if (a.kind === 'diff') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'green')}<div class="fit ell muted">红色删除线为原文，绿色为改写。</div>${button('放弃', drop, 'soft')}<div class="hit link"${onClick(rewrite)}>重新改写</div>${button('采纳', takeRewrite, 'primary')}</div>`
+  if (a.kind === 'diff') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'green')}<div class="fit ell muted">红色删除线为原文，绿色为改写。</div>${button('放弃', settled(drop), 'soft')}<div class="hit link"${onClick(settled(rewrite))}>重新改写</div>${button('采纳', settled(takeRewrite), 'primary')}</div>`
   const wrote = a.paras.join('').length
-  if (a.kind === 'drafted') return `<div class="ai-bar" data-k="ai-bar">${icon('leaf', 'md', 'green')}<div class="fit ell muted">${a.stopped ? '已停止，' : ''}起草 ${wrote} 字，绿色为起草${a.over ? '，红色删除线为将被覆盖的原文' : ''}。</div>${button('放弃', drop, 'soft')}<div class="hit link"${onClick(() => draft(a))}>重新起草</div>${button('采纳', takeDraft, 'primary')}</div>`
+  if (a.kind === 'drafted') return `<div class="ai-bar" data-k="ai-bar">${icon('leaf', 'md', 'green')}<div class="fit ell muted">${a.stopped ? '已停止，' : ''}起草 ${wrote} 字，绿色为起草${a.over ? '，红色删除线为将被覆盖的原文' : ''}。</div>${button('放弃', settled(drop), 'soft')}<div class="hit link"${onClick(settled(() => draft(a)))}>重新起草</div>${button('采纳', settled(takeDraft), 'primary')}</div>`
   return `<div class="ai-bar" data-k="ai-bar">${icon('leaf', 'md', 'muted')}<div class="fit ell muted">AI 正在按章纲起草 · 已写 ${wrote} 字 · ${t(model)} · ${t(effort)}</div>${button('停止', stopDraft, 'stop')}</div>`
 }
 

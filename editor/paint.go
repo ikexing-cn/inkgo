@@ -126,7 +126,8 @@ func (e *Editor) paintIn(p *ui.Painter, r ui.Rect) {
 				p.Line(ox+x0, mid, ox+x1, mid, 1.2, t.Danger.Alpha(0.8))
 			}
 		})
-		l.ranges(l.preEnd, l.extraEnd, func(x0, x1, y float32) {
+		from, to := e.tinted()
+		l.ranges(from, to, func(x0, x1, y float32) {
 			if y >= top && y <= bottom {
 				p.Fill(ui.Rect{X: ox + x0, Y: oy + y + 3, W: x1 - x0, H: l.lineH - 6}, t.Success.Alpha(0.14), 0)
 			}

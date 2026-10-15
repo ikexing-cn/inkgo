@@ -71,6 +71,27 @@ func TestADraftWaitsToBeTaken(t *testing.T) {
 	}
 }
 
+// A draft after the text tints its own words, not the end of the
+// paragraph before it; taken, it is marked from its first word.
+func TestADraftAfterTheTextTintsItsWordsOnly(t *testing.T) {
+	e := New(NewDoc("雨下了一夜。"), Options{Prose: true})
+	tt := newTester(e)
+	n := e.Doc.Len()
+	e.ProposeDraft(n, n)
+	e.ProposeMore("\n她醒了。\n")
+	tt.Frame()
+	var ys []float32
+	from, to := e.tinted()
+	e.lay.ranges(from, to, func(_, _, y float32) { ys = append(ys, y) })
+	if len(ys) != 1 || ys[0] == e.lay.lines[0].y {
+		t.Fatalf("tinted on lines at %v; the text is at %v", ys, e.lay.lines[0].y)
+	}
+	e.AcceptProposal("m")
+	if ms := e.Doc.Marks(); e.Doc.String() != "雨下了一夜。\n她醒了。\n" || len(ms) != 1 || e.Doc.Slice(ms[0].Start, ms[0].End) != "她醒了。" {
+		t.Fatalf("taken %q %+v", e.Doc.String(), ms)
+	}
+}
+
 // Words the author changes leave the draft; what is around stays marked.
 func TestDraftMarkLetsGoOfEditedWords(t *testing.T) {
 	d := NewDoc("雨下了一夜，她醒了。")

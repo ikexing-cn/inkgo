@@ -117,7 +117,7 @@ func (a *App) talkPanel(c *ui.Context) {
 		a.talkList(c)
 		return
 	}
-	if back, _ := a.paneBack(c, "全部讨论", ""); back && a.busy == "" {
+	if back, _ := a.paneBack(c, "全部讨论", ""); back && !a.held() {
 		d.talks = true
 	}
 	a.pal.hairline(c)

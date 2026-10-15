@@ -203,7 +203,7 @@ func (a *App) pollChecks(c *ui.Context) {
 		k.queue = nil
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	ctx, cancel := context.WithCancel(context.Background()) // the request has its own time limit
 	k.running, k.cancel = id, cancel
 	store, sv := a.Store, c.Services()
 	go func() {

@@ -118,7 +118,7 @@ function settingsModel(d) {
   }
   const card = (svc) => `<div class="service"><div class="service-head"><div class="fit"><div class="ell">${t(svc.name)}</div><div class="note ell">${t(svc.host)} · ${svc.models.length} 个模型${used(svc) ? ' · 本作品使用中' : ''}</div></div>` +
     button(d.edit === svc.id ? '收起' : '编辑', () => set((s) => ({ dialog: { ...s.dialog, ...(d.edit === svc.id ? { edit: '', svc: null } : editing(svc)) }, ...SHUT }))) + '</div>' + (d.edit === svc.id ? form() : '') + '</div>'
-  return (S.page === 'shelf' ? '' : '<div class="prefs-group"><div class="group-title">本作品使用</div><div class="note">思考程度选 Default 时由服务商决定。修改自下次发送起生效。</div></div>' +
+  return (S.page === 'shelf' ? '' : '<div class="prefs-group"><div class="group-title">本作品的模型</div><div class="note">思考程度选 Default 时由服务商决定。修改自下次发送起生效。</div></div>' +
     `<div class="uses">${S.uses.map(use).join('')}</div>` + spent() +
     '<div class="prefs-group"><div class="group-title">写作时</div></div>' +
     `<div class="ticks">${tickbox(S.auto, '停笔后自动续写', () => set({ auto: !S.auto }))}<div class="note tick-note">开启后每次停笔都会调用一次 AI。</div>${tickbox(S.recap, '章节修改后更新摘要', () => set({ recap: !S.recap }))}<div class="note tick-note">手动填写的摘要不会被覆盖。</div></div>`) +

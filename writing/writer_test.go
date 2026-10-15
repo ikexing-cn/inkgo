@@ -125,7 +125,7 @@ func TestDraftShowsWhatItRecords(t *testing.T) {
 	if text != "灯亮了。\n她笑了。" || strings.Join(streamed, "") != text {
 		t.Fatalf("text %q streamed %q", text, streamed)
 	}
-	if f.got[0].Effort != model.EffortHigh || f.got[0].MaxTokens != min(draftOutput, limits.Output) {
+	if f.got[0].Effort != model.EffortHigh || f.got[0].MaxTokens != limits.Output {
 		t.Fatalf("request %+v", f.got[0])
 	}
 }

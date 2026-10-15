@@ -263,9 +263,9 @@ func TestStopADraftKeepsWhatCame(t *testing.T) {
 }
 
 // A rewrite is shown beside the words selected; dropping it changes
-// nothing, accepting it keeps the words replaced as a snapshot. Asked for,
-// taken, or closed, it gives the keyboard back to the prose; dropped, to
-// the instruction.
+// nothing, asking again rewrites the same words as asked, and accepting it
+// keeps the words replaced as a snapshot. Asked for, dropped, taken, or
+// closed, it gives the keyboard back to the prose.
 func TestRewriteASelection(t *testing.T) {
 	a, tt, id := writingFixture(t, "她走到井边。井里有光。")
 	f := &stream{pieces: []string{"她慢慢", "走到井边。"}}
@@ -292,30 +292,38 @@ func TestRewriteASelection(t *testing.T) {
 	if a.write.ed.Doc.String() != "她走到井边。井里有光。" || len(a.write.ed.Doc.Marks()) != 0 || a.write.ed.ReadOnly() {
 		t.Fatal("dropping changed the text")
 	}
-	if !tt.Focused("改写要求") {
-		t.Fatal("dropped, the instruction is not where the keyboard is")
+	if a.write.rewriting || !tt.Focused("正文") {
+		t.Fatalf("dropped: rewriting %v, the prose focused %v", a.write.rewriting, tt.Focused("正文"))
 	}
 	before, _ := a.Store.Snapshots(id)
 
 	a.write.ed.Select(0, 6)
 	tt.Frame()
-	if !a.write.rewriting { // dropping keeps the rewrite open, for another try
-		t.Fatal("the rewrite closed")
+	if err := tt.Click("AI 改写"); err != nil {
+		t.Fatal(err)
 	}
 	tt.Frame()
 	if err := tt.Click("改写"); err != nil {
 		t.Fatal(err)
 	}
 	until(t, tt, "the rewrite", func() bool { return a.write.proposed != nil })
+	f.pieces = []string{"她缓缓", "走到井边。"}
+	if err := tt.Click("重新改写"); err != nil {
+		t.Fatal(err)
+	}
+	until(t, tt, "the rewrite again", func() bool { return proposed(a) == "她缓缓走到井边。" })
+	if len(f.asked) != 3 || f.asked[2].Messages[len(f.asked[2].Messages)-1].Content != f.asked[1].Messages[len(f.asked[1].Messages)-1].Content || !tt.Focused("正文") {
+		t.Fatalf("asked again %d times, the prose focused %v", len(f.asked), tt.Focused("正文"))
+	}
 	if err := tt.Click("采纳"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
 	ed := a.write.ed
-	if ed.Doc.String() != "她慢慢走到井边。井里有光。" {
+	if ed.Doc.String() != "她缓缓走到井边。井里有光。" {
 		t.Fatalf("accepted %q", ed.Doc.String())
 	}
-	if ms := ed.Doc.Marks(); len(ms) != 1 || ms[0].Kind != editor.MarkAIAccepted || ed.Doc.Slice(ms[0].Start, ms[0].End) != "她慢慢走到井边。" {
+	if ms := ed.Doc.Marks(); len(ms) != 1 || ms[0].Kind != editor.MarkAIAccepted || ed.Doc.Slice(ms[0].Start, ms[0].End) != "她缓缓走到井边。" {
 		t.Fatalf("marks %+v", ms)
 	}
 	if !tt.Focused("正文") {

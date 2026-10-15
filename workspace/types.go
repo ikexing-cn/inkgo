@@ -65,6 +65,12 @@ type Usage struct {
 	Reasoning  int `json:"reasoning,omitempty"`
 }
 
+// Add is u and v together, as the requests of a turn.
+func (u Usage) Add(v Usage) Usage {
+	return Usage{Input: u.Input + v.Input, CacheRead: u.CacheRead + v.CacheRead, CacheWrite: u.CacheWrite + v.CacheWrite,
+		Output: u.Output + v.Output, Reasoning: u.Reasoning + v.Reasoning}
+}
+
 // Sent is what a request sent, for review afterwards: the rules by a
 // digest of their text, the setting as of its revision numbered Setting,
 // and the tokens each part took, as estimated, in the order of Parts. The
