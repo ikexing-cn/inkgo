@@ -130,7 +130,7 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 		if len(e.Names) > 0 {
 			s += "｜" + strings.Join(e.Names, "、")
 		}
-		return s + "）" + prompt.OneLine(e.Text)
+		return s + "）" + prompt.Text(e)
 	}
 	taken, _ := b.Fit(set, []string{workspace.PlaceBody, workspace.PlaceDropped}, line)
 	var shown []workspace.Entry

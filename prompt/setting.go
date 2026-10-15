@@ -21,9 +21,19 @@ type Line func(workspace.Entry) string
 // as the text of an entry under a name need not say the name.
 func Whole(e workspace.Entry) string {
 	if len(e.Names) == 0 {
+		return Text(e)
+	}
+	return strings.Join(e.Names, "、") + "：" + Text(e)
+}
+
+// Text is an entry's text on one line; an answer of the author's to a
+// question the AI asked has the question after it, as the pane shows it,
+// for an answer such as 缺了两根 says little alone.
+func Text(e workspace.Entry) string {
+	if e.Asked == "" {
 		return OneLine(e.Text)
 	}
-	return strings.Join(e.Names, "、") + "：" + OneLine(e.Text)
+	return OneLine(e.Text) + "（回答：" + OneLine(e.Asked) + "）"
 }
 
 // Short is an entry in an index: its category, its first name, and its

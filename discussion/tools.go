@@ -494,14 +494,14 @@ func (t *toolbox) lookUp(in input) outcome {
 	var named, said []string
 	for n, e := range set.Entries {
 		if !slices.ContainsFunc(e.Names, func(name string) bool { return strings.Contains(name, in.Query) || strings.Contains(in.Query, name) }) &&
-			!strings.Contains(e.Text, in.Query) {
+			!strings.Contains(prompt.Text(e), in.Query) {
 			continue
 		}
 		head := fmt.Sprintf("[%d]（%s｜%s", n+1, placeNames[e.Place], e.Category)
 		if len(e.Names) > 0 {
 			head += "｜" + strings.Join(e.Names, "、")
 		}
-		lines := []string{head + "）" + e.Text}
+		lines := []string{head + "）" + prompt.Text(e)}
 		for _, src := range e.Sources[:min(len(e.Sources), 3)] {
 			where := ""
 			switch {

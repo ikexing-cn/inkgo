@@ -46,6 +46,23 @@ func TestBudgetRecordsItsParts(t *testing.T) {
 	}
 }
 
+// An answer of the author's to the AI's question goes with the question,
+// as the pane shows it: alone, 缺了两根 says nothing of whose hand.
+func TestAnAnswerKeepsItsQuestion(t *testing.T) {
+	e := workspace.Entry{Category: "人物", Text: "缺了两根，小时候被机器轧的。", Asked: "周祥的左手是不是缺了两根手指？"}
+	if got, want := Whole(e), "缺了两根，小时候被机器轧的。（回答：周祥的左手是不是缺了两根手指？）"; got != want {
+		t.Fatal(got)
+	}
+	e.Names = []string{"周祥"}
+	if got, want := Whole(e), "周祥：缺了两根，小时候被机器轧的。（回答：周祥的左手是不是缺了两根手指？）"; got != want {
+		t.Fatal(got)
+	}
+	// The index has the first sentence of the answer; look_up_setting has the rest.
+	if got, want := Short(e), "人物 · 周祥：缺了两根，小时候被机器轧的"; got != want {
+		t.Fatal("the index line", got)
+	}
+}
+
 // The setting reads by category in the work's order, then as entries
 // were added, whatever changed last; whole, an entry has its names before
 // its text; the index has each entry's category, first name and first
