@@ -341,7 +341,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('检查'); await click('无需修改'); await win('这一类没有待处理的'); await click('名字有误 1'); await click('无需修改'); await win('没有发现不一致'); await win('写完一章后自动检查，结果显示在此处。'); await shot('71-check-none'); await done('settle every finding')
 
   // Categories.
-  await click('作品分类'); await win('设定文档按分类分节'); await win('落点：大纲'); await shot('72-cats'); await type('分类名称', '线索'); await type('落点', '大纲'); await click('保存分类'); await win('分类“线索”已保存'); await click('关闭提示')
+  await click('作品分类'); await win('设定文档按分类分节'); await win('落点：大纲'); await shot('72-cats'); await type('分类名称', '线索'); must(await has('.cat-form .btn.primary.off'), 'a category with no target can be saved'); await type('落点', '大纲'); must(!(await has('.cat-form .btn.off')), 'a category filled in cannot be saved'); await click('保存分类'); await win('分类“线索”已保存'); await click('关闭提示')
   must(await js(`(() => { const t = document.querySelector('.cat-rows').innerText; return t.includes('线索') && t.indexOf('线索') < t.indexOf('其他') })()`), 'the new category is not before the last one'); await click('编辑', 1); must((await value('分类名称')) === '人物', 'the category is not ready to change')
   await click('删除'); await win('6 条设定将移到“其他”'); await shot('73-cat-delete'); await click('确认删除'); await win('已删除分类“人物”'); must(!(await js(`document.querySelector('.cat-rows').innerText.includes('人物')`)), 'the category is still listed'); await click('关闭提示')
   // An empty one goes at once: nothing to move, nothing to ask.

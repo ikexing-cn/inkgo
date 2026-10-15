@@ -67,7 +67,7 @@ func (a *App) categories(c *ui.Context) {
 				labeled(c, "落点", func() {
 					ui.TextInput(c, &a.categoryTarget).Label("落点").Placeholder("例如 设定库").FillWidth().Disabled(busy)
 				}).Grow(1).Basis(0)
-				if a.pal.primary(c, "保存分类").Height(hControl).Disabled(busy || trim(a.categoryName) == "").Clicked() {
+				if a.pal.primary(c, "保存分类").Height(hControl).Disabled(busy || trim(a.categoryName) == "" || trim(a.categoryTarget) == "").Clicked() {
 					a.setError(a.saveCategory())
 				}
 			})

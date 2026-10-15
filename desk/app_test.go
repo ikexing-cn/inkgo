@@ -474,6 +474,34 @@ func TestIncompleteFormsExplainInChinese(t *testing.T) {
 	}
 }
 
+// A category can be saved once it has a name and a target; till then its
+// button cannot be pressed, as the other forms' cannot.
+func TestACategorySavesOnceFilledIn(t *testing.T) {
+	a, tt, _ := fixture(t)
+	if err := tt.Click("作品分类"); err != nil {
+		t.Fatal(err)
+	}
+	was := len(a.Store.Work().Categories)
+	a.categoryName = "线索"
+	tt.Frame()
+	if err := tt.Click("保存分类"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.hint != "" || len(a.Store.Work().Categories) != was {
+		t.Fatalf("pressed with no target: %q", a.hint)
+	}
+	a.categoryTarget = "大纲"
+	tt.Frame()
+	if err := tt.Click("保存分类"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if len(a.Store.Work().Categories) != was+1 || !tt.HasText("分类“线索”已保存") {
+		t.Fatal(tt.Texts())
+	}
+}
+
 func TestMarkdownBlocks(t *testing.T) {
 	src := "# 标题\n\n有**粗体**、*斜体*、`代码`和[链接](https://example.com)。\n\n- 一\n- 二\n\n1. 甲\n\n> 引用\n\n```\ncode\n```\n\n| 列 | 值 |\n|---|---|\n| 甲 | 1 |\n\n<script>x</script>\n\n---\n"
 	blocks := mdCache{}.get(src)

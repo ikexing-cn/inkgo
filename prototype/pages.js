@@ -115,7 +115,7 @@ function catsPage() {
     '<div class="page-title">作品分类</div><div class="note">设定文档按分类分节，每条设定只归入一个分类。“落点”指设定成熟后的去处，例如设定库或大纲。</div>' +
     `<div class="cat-rows">${S.cats.map(row).join('')}</div>` +
     '<div class="group-title">添加或修改分类</div>' +
-    `<div class="cat-form">${field('名称（同名即修改）', line(S.catForm.name, type('name'), '', '分类名称'))}${field('落点', line(S.catForm.land, type('land'), '例如 设定库', '落点', keys(saveCat)))}${button('保存分类', saveCat, 'primary')}</div>` +
+    `<div class="cat-form">${field('名称（同名即修改）', line(S.catForm.name, type('name'), '', '分类名称'))}${field('落点', line(S.catForm.land, type('land'), '例如 设定库', '落点', keys(saveCat)))}${button('保存分类', saveCat, S.catForm.name.trim() && S.catForm.land.trim() ? 'primary' : 'primary off')}</div>` +
     '</div></div></div>'
 }
 
