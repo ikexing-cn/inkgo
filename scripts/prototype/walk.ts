@@ -137,8 +137,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('更多'); await pane('修改记录'); await shot('07-menu'); await click('已删除'); await pane('老陈')
   await click('老陈'); await pane('恢复设定'); await click('查看原文'); await win('第2章：井沿'); must((await drawn('老陈把门卫室的灯拧亮。')) === 'sel', 'the deleted entry\'s sentence is not picked out')
   await click('恢复设定'); await pane('老陈', false); await pane('已删除'); await done('restore an entry')
-  await click('全部设定'); await pane('老陈'); await click('更多'); await click('修改记录'); await pane('最近几轮整理失败'); await pane('刚刚'); await shot('08-log')
-  await click('重试'); await win('正在重新整理…'); await sleep(1400); await pane('最近几轮整理失败', false); await pane('后台整理（重试）'); await done('retry')
+  await click('全部设定'); await pane('老陈'); await click('更多'); await click('修改记录'); await pane('记在「小祥和林晚是怎么认识的」'); await pane('刚刚'); await shot('08-log')
+  await click('查看讨论'); await win('2 条发言'); await win('设定里只写了他是她带出来的徒弟'); await click('正文'); await click('讨论', 1); await click('全部讨论'); await click('设定'); await done('the change log')
   await click('全部设定'); await type('搜索设定', '左手'); await pane('找到 2 条'); await shot('09-find')
   await clear('搜索设定'); await pane('找到', false)
   await click('新增'); await pane('新增设定'); must(await js(`document.activeElement.getAttribute('aria-label') === '内容'`), 'the text of a new entry is not ready to type in'); await type('内容', '老周是修表的，铺子在旧城小学对面。'); await type('名字', '老周'); await click('保存'); await pane('老周'); await done('add an entry')
@@ -270,11 +270,14 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('重新改写'); await win('AI 正在改写选中内容'); await sleep(1400); await click('采纳'); await win('已采纳改写'); await win('可撤销恢复原文，原版本已存入快照'); await win('她在巷口站了很久'); await win('灯一直没有亮。', false); await click('关闭提示')
   await pick(0, '同时灭的'); await click('AI 改写'); await key('Escape'); must(!(await has('.ai-bar')), 'Escape left the rewrite open'); await done('a rewrite')
   await click('编辑'); await click('起草本章'); await win('AI 仅将章纲扩写为正文'); await win('前文有 3 章尚无摘要'); await win('本章已有内容'); await shot('51-draft'); await click('补齐摘要（3 次调用）'); await win('正在补齐摘要：0 / 3。补齐前起草，AI 只能参考已有摘要。'); await sleep(2700); await win('前文有 3 章尚无摘要', false); await win('起草时 AI 会参考前 6 章的摘要，以衔接前文。')
-  await type('目标字数', '1500'); await click('覆盖已有内容'); await click('开始起草'); await win('AI 正在按章纲起草'); await shot('52-drafting'); await sleep(3800); await win('起草完成，共 38 字'); await win('整条街的灯是同时灭的。', false); await win('身后，小祥没有再出声。')
-  must(await js(`document.querySelectorAll('.prose .ai').length === 3`), 'what the AI drafted is not marked'); await shot('53-drafted'); await click('关闭提示')
+  await type('目标字数', '1500'); await click('覆盖已有内容'); await click('开始起草'); await win('AI 正在按章纲起草'); await shot('52-drafting'); await sleep(3800); await win('起草 38 字，绿色为起草，红色删除线为将被覆盖的原文。')
+  must(await js(`document.querySelectorAll('.prose .add').length === 3 && document.querySelectorAll('.prose > .cut').length === 6`), 'the draft is not shown against the prose'); must(await js(`S.chapters.find((c) => c.key === S.ch).paras[0] === '整条街的灯是同时灭的。' && !S.snaps[S.ch][0].ai`), 'the draft went into the prose before it was taken'); await shot('53-drafted')
+  await click('采纳'); await win('已采纳起草'); await win('整条街的灯是同时灭的。', false); await win('身后，小祥没有再出声。')
+  must(await js(`document.querySelectorAll('.prose .ai').length === 3`), 'what the AI drafted is not marked'); await click('关闭提示')
   await click('编辑'); await click('撤销'); await win('整条街的灯是同时灭的。'); await win('身后，小祥没有再出声。', false); await click('编辑'); await click('重做'); await win('身后，小祥没有再出声。'); await win('整条街的灯是同时灭的。', false)
   await click('文件'); await click('快照'); await win('AI 改动前'); await win('按章纲起草'); await win('约 1500 字'); await key('Escape')
-  await click('编辑'); await click('起草本章'); await type('目标字数', '很多'); await click('开始起草'); await win('目标字数须为正整数或留空'); await win('复制详情'); await click('关闭提示'); await clear('目标字数'); await click('开始起草'); await sleep(1000); await click('停止'); await win('已停止起草已写部分保留'); await click('关闭提示'); must(!(await has('.ai-bar')), 'the draft did not stop'); await done('a draft')
+  await click('编辑'); await click('起草本章'); await type('目标字数', '很多'); await click('开始起草'); await win('目标字数须为正整数或留空'); await win('复制详情'); await click('关闭提示'); await clear('目标字数'); await click('开始起草'); await sleep(1000); await click('停止'); await win('已停止，起草 9 字'); await sleep(1000); await win('已停止，起草 9 字')
+  await click('重新起草'); await win('AI 正在按章纲起草'); await sleep(3400); await win('起草 38 字'); await click('放弃'); must(!(await has('.ai-bar')) && !(await has('[data-draft]')), 'the draft was not let go'); await done('a draft')
 
   // What was picked goes to the setting, or to a discussion.
   await click('重新开始'); await pick(1, '手电在工具箱最底下'); await click('加入设定'); await win('选中的原文将记为出处'); must((await value('设定内容')) === '手电在工具箱最底下', 'what was picked is not in the box'); await click('人物'); await click('物品'); await shot('54-take')
@@ -285,26 +288,35 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('写完一章后检查 ▴'); await win('检查时机'); await shot('57-when'); await click('手动检查'); await win('手动检查 ▴'); await done('the line under the prose')
 
   // The discussion page: a talk, what stands under a reply, a new talk, the model.
-  await click('重新开始'); await click('讨论'); await win('总讨论'); await win('4 条发言'); await win('前半段偏慢'); await pane('待确认'); await pane('伏笔', false); await shot('58-talk-page')
+  await click('重新开始'); await click('讨论'); await win('总讨论'); await win('8 条发言'); await win('前半段偏慢'); await pane('待确认'); await pane('伏笔', false); await shot('58-talk-page')
+  await win('读了「第87章：停电」第 1–6 段，读了摘要「第86章：档案室」'); await click('以上 2 轮已整理成摘要'); await win('作者的态度和偏好'); await win('摘要由 AI 写成，有误可在对话中指出。'); await shot('58a-digest'); await click('以上 2 轮已整理成摘要'); await win('作者的态度和偏好', false); await done('a long talk')
   { const [x, y] = await row('主角有个说不出口的秘密'); await rclick(x, y); await click('收起这段对话'); await win('已收起 1 段对话'); await win('主角有个说不出口的秘密', false); await click('已收起 1 段对话'); await win('不显示收起的对话') }
   { const [x, y] = await row('主角有个说不出口的秘密'); await rclick(x, y); await click('移回列表'); await win('不显示收起的对话', false); await win('主角有个说不出口的秘密'); await done('a talk put away and back') }
-  await click('小祥和林晚是怎么认识的'); await win('2 条发言'); await click('AI 参考内容'); await win('回复时附带 4 条设定，因预算不足省略 0 条'); await click('复制全文'); await win('已复制'); await click('关闭提示')
+  await click('小祥和林晚是怎么认识的'); await win('2 条发言'); await win('268 token', false); await win('10.1K token'); await click('AI 参考内容'); await win('本次发送约 9.6K token'); await win('规则 1.1K · 设定 4 条 1K'); await win('实际用量：输入 9.9K；输出 268'); await win('附带全部 4 条设定'); await shot('58c-sent'); await done('what was sent')
+  await click('查了设定「周祥」，搜了全书「小祥」，记下：待确认 · 人物：“小祥”是顺口的叫法，谁都能喊。'); await win('5 处，在「第1章：巷口」'); await click('查看设定'); await pane('“小祥”是顺口的叫法，谁都能喊'); await click('全部设定'); await done('what the AI looked at')
+  await click('复制全文'); await win('已复制'); await click('关闭提示')
   await win('设定里只写了他是她带出来的徒弟', true); await click('摘取原文', 1); await win('拖选一段原文，作为已确定的设定加入正文。原文不会被修改。'); await win('尚未选中文字'); await click('收起原文'); await win('尚未选中文字', false); await click('摘取原文', 1)
   await js(`(() => { const box = document.querySelector('.source-text'), r = document.createRange(); r.setStart(box.firstChild, 0); r.setEnd(box.firstChild, 18); const s = getSelection(); s.removeAllRanges(); s.addRange(r); box.dispatchEvent(new MouseEvent('mouseup', { bubbles: true })) })()`); await win('已选 18 字'); await shot('58b-source')
   await click('加入设定'); await win('已加入设定正文'); await pane('设定里只写了他是她带出来的徒弟。可以'); await click('关闭提示'); await done('what stands under a reply')
   await click('新对话'); await win('从一个初步的想法开始'); await shot('59-new-talk-page'); await click('这个故事的冲突在哪'); await win('正在思考…', false); must(await js(`(() => { const b = document.activeElement; return b.tagName === 'TEXTAREA' && b.value === '这个故事的冲突在哪' && b.selectionStart === b.value.length })()`), 'the words offered are not in the box with the caret after them'); await click('发送'); await win('正在思考…'); await sleep(1500); await win('这是原型'); await win('2 条发言')
-  await type('讨论输入', '再想想'); await key('Enter', true); await win('3 条发言'); await sleep(1500); await win('先想清楚这一段要做什么'); await done('a new talk on its page')
+  await type('讨论输入', '再想想'); await key('Enter', true); await win('3 条发言'); await sleep(500); await win('正在查阅…'); await win('搜了讨论「停电」'); await sleep(1000); await win('先想清楚这一段要做什么'); await done('a new talk on its page')
+  await win('记下：待确认 · 情节：小祥改口叫“姐”，是因为他知道井边的事？'); await pane('待确认'); await pane('3 条 AI 建议', false); await click('待确认'); await pane('小祥改口叫“姐”，是因为他知道井边的事？'); await click('全部设定'); await done('what the AI keeps as it talks')
   await click('当前模型'); await win('思考程度'); await shot('60-model'); await click('claude-sonnet-5-5'); await win('思考程度', false); await win('claude-sonnet-5-5'); await click('当前模型'); await click('High'); await click('当前模型'); await click('AI 配置…'); await win('是否使用 AI，以及使用哪些模型。'); await done('the model of a discussion')
 
   // Settings: the models and the services, the look, reminders, backups.
   must((await value('讨论模型')) === 'claude-sonnet-5-5', 'the settings show another model'); await shot('61-settings')
   // The heading of the settings stays where it is: what is under it scrolls up to it, not over it.
   must(await js(`(() => { const q = (c) => document.querySelector(c), was = q('.prefs-title').getBoundingClientRect().top; q('.prefs-body').scrollTop = 200; return q('.prefs-body').scrollTop > 0 && q('.prefs-title').getBoundingClientRect().top === was && q('.prefs-body').getBoundingClientRect().top >= q('.prefs-head').getBoundingClientRect().bottom - 1 })()`), 'the settings scroll over their heading'); await shot('61b-settings-scrolled')
-  await click('沿用讨论模型'); await click('DeepSeek'); must((await value('整理模型')) === 'deepseek-chat', 'choosing a service chose no model'); must(await js(`document.querySelector('.services').innerText.split('本作品使用中').length === 3`), 'the service taken is not said to be in use')
-  await click('Low'); await click('Medium'); await win('Low', false); await clear('上下文预算'); await type('上下文预算', '100'); await click('保存'); await win('上下文预算至少为 8192'); await click('关闭提示'); await click('停笔后自动续写'); must(await js(`document.querySelectorAll('.ticks .check.on').length === 2`), 'the box is not ticked')
-  await click('编辑', 1); await win('远程服务：讨论内容将发送到该地址'); await win('key 保存在系统钥匙串中，不会写入配置文件或作品。'); await shot('62-service'); await click('获取可用模型'); await win('正在读取可用模型…'); await sleep(1400); await win('已获取模型目录保存提供商后生效')
-  await click('保存提供商'); await win('提供商已保存'); await win('收起', false); await click('添加服务'); await type('显示名称', '本地'); await type('API 地址', 'http://localhost:11434/v1'); await click('保存提供商'); await win('localhost:11434 · 0 个模型'); await sleep(3300); await done('models and services')
-  await click('重新加载配置'); await click('打开配置文件'); await click('保存'); await clear('上下文预算'); await type('上下文预算', '很多'); await click('保存'); await win('上下文预算须为整数'); await win('还有 1 条'); await shot('63-toasts'); await sleep(3300); await win('还有 1 条', false); await done('more notices than fit')
+  await win('上下文预算', false); await click('沿用讨论模型'); await click('DeepSeek'); must((await value('写作模型')) === 'deepseek-flash', 'choosing a service chose no model'); must(await js(`document.querySelector('.services').innerText.split('本作品使用中').length === 3`), 'the service taken is not said to be in use')
+  await click('High', 1); await click('Medium'); must(await js(`S.uses[1].effort`) === 'Medium', 'the effort of writing did not change'); await win('本作品用量'); await win('输入 1.7M，缓存命中 72% · 输出 59.2K'); await win('约 $4.44'); await win('约 $0.02'); await click('停笔后自动续写'); must(await js(`document.querySelectorAll('.ticks .check.on').length === 2`), 'the box is not ticked')
+  await click('编辑', 1); await win('远程服务：讨论内容将发送到该地址'); await win('key 保存在系统钥匙串中，不会写入配置文件或作品。'); await win('上下文上限'); await win('压缩阈值 %'); must(await js(`[...document.querySelectorAll('[aria-label="上下文上限"]')].map((e) => e.value).join(' ')`) === '1M 1M 200K', 'the numbers of the models are not from the table'); await shot('62-service')
+  await clear('最大输出'); await type('最大输出', '2M'); await click('保存提供商'); await win('claude-opus-5-5的最大输出须小于上下文上限'); await click('关闭提示'); await click('移除模型'); must(await js(`document.querySelectorAll('[aria-label="模型 ID"]').length`) === 2, 'the model was not taken off'); await click('获取可用模型'); await win('正在读取可用模型…'); await sleep(1400); await win('已获取模型目录保存提供商后生效')
+  await click('保存提供商'); await win('提供商已保存'); await win('收起', false); await click('添加服务'); await type('显示名称', '本地'); await type('API 地址', 'http://localhost:11434/v1'); await click('添加模型'); await type('模型 ID', 'qwen3')
+  must((await value('上下文上限')) === '32K' && (await value('最大输出')) === '4096' && (await value('压缩阈值')) === '80', 'a model not in the table does not start from the careful numbers')
+  await clear('上下文上限'); await type('上下文上限', '一百万'); await click('保存提供商'); await win('qwen3的上下文上限和最大输出须为正整数'); must(await js(`S.toasts.at(-1).detail`) === '可写成 128K、1M', 'the toast does not say how the numbers may be written'); await js(`[...document.querySelectorAll('#toasts .toast')].at(-1).querySelector('[aria-label="关闭提示"]').click()`); await win('qwen3的上下文上限和最大输出须为正整数', false)
+  await clear('上下文上限'); await type('上下文上限', '131072'); await clear('最大输出'); await type('最大输出', '8k'); await click('保存提供商'); must(await js(`S.services.at(-1).models.map((m) => m.max + ' ' + m.out).join()`) === '131072 8K', 'the numbers written as 8k are not kept as 8K'); await win('localhost:11434 · 1 个模型'); await sleep(3300); await done('models and services')
+  await click('重新加载配置'); await click('打开配置文件'); await click('编辑', 1); await click('清除已保存 key'); await clear('压缩阈值'); await type('压缩阈值', '99'); await click('保存提供商'); await win('的压缩阈值须在 50% 到 95% 之间'); await win('还有 1 条'); await shot('63-toasts'); await sleep(3300); await win('还有 1 条', false)
+  await click('关闭提示'); await click('收起'); await done('more notices than fit')
   await click('外观'); await win('仅在本机生效，适用于所有作品。'); await click('深色'); must(await js(`document.querySelector('#win').className === 'dark'`), 'the window is not dark'); await shot('64-look'); await click('浅色')
   await click('提醒与检查'); await win('当前有 2 个伏笔久未回收。'); await click('增加 5 章'); await click('增加 5 章'); await click('增加 5 章'); await win('45 章'); await win('当前有 1 个伏笔久未回收。'); await click('边写边检查'); await shot('65-reminders')
   await click('备份'); await win('为整部作品另存一份副本，以防设备故障。'); await win('31.2 万字 · 8 章 · 已存 12 份，最早 9 月 28 日'); await shot('66-backup'); await click('立即备份'); await win('正在备份…'); await sleep(1400); await win('刚刚 已备份'); await win('已存 13 份')
@@ -360,7 +372,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('少见的情况'); await click('本章摘要生成失败'); await win('上次生成失败：无法连接模型服务'); await shot('85-summary-failed'); await click('生成摘要'); await win('本章摘要 · 正在生成 ▴'); await win('AI 正在阅读本章并生成摘要…'); await sleep(1500); await win('AI 生成 · Opus 5.5 · 刚刚'); await win('上次生成失败', false)
   // A chapter too long for the model: the check and the summary say how much of it was read.
   await click('少见的情况'); await click('本章过长，仅读取前文'); await win('仅检查前 5000 字'); await win('检查失败', false); await win('检查完成', false); await win('本章摘要 · 不完整 ▴'); await win('AI 生成 · Opus 5.5 · 刚刚 · 仅依据前 9000 字')
-  must(await has('.chapter-more .amber[title="后文超出上下文预算，可在设置中「AI」配置里提高预算"]'), 'the summary read in part does not say why'); await shot('86-read-in-part'); await done('a chapter read in part')
+  must(await has('.chapter-more .amber[title="后文超出模型的上下文上限，可在设置中「AI」配置里调整"]'), 'the summary read in part does not say why'); await shot('86-read-in-part'); await done('a chapter read in part')
   await click('少见的情况'); await click('本章检查失败'); await win('检查失败：无法连接模型服务'); await shot('86-check-failed'); await done('a summary and a check that failed')
   await click('少见的情况'); await click('未选择写作模型'); await win('检查失败：请在设置中「AI」配置里选择写作模型'); await done('no model to write with')
 
@@ -384,9 +396,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('林晚'); await click('修改'); await clear('名字'); await type('名字', '林婉'); await click('保存'); await click('全部设定'); await pane('处「林晚」'); await shot('89-renamed')
   await click('全书替换'); must((await value('查找')) === '林晚' && (await value('替换为')) === '林婉', 'the old name is not ready to replace'); await win('全书 '); await pane('处「林晚」', false); await click('关闭查找')
   await click('周祥'); await click('修改'); await clear('名字'); await type('名字', '周详'); await click('保存'); await click('全部设定'); await click('不替换'); await pane('正文中仍有', false); await done('a name changed in the setting')
-  await click('讨论', 1); await click('新讨论'); await type('输入想讨论的内容', '这一章慢不慢'); await key('Enter'); await sleep(1400); must(await has('.tidy'), 'no sign of the bookkeeper at work'); await sleep(1700); must(!(await has('.tidy')), 'the bookkeeper never ends')
-  await click('设定'); await click('更多'); await click('修改记录'); await pane('无需修改'); await click('整理思考过程'); await pane('没有确定新的设定'); await shot('90-log')
-  await click('少见的情况'); await click('设定整理失败'); must(await has('.tidy.warn'), 'no warning of the bookkeeping that failed'); await click('全部设定'); await click('上次整理失败，点击查看'); await pane('最近几轮整理失败：无法连接 AI'); await done('the bookkeeper')
+  await click('少见的情况'); await click('讨论查阅达到上限'); await pane('已达到本次查阅上限，以上回答仅依据已查到的内容。'); await pane('搜了全书「井」'); await shot('90-capped'); await done('a reply that looked as far as it may')
+  await click('少见的情况'); await click('设定较多，只附目录'); await pane('设定较多，本次只附目录'); await pane('人物 · 林婉：主角，靠维修路灯谋生，但她很怕黑'); await shot('90b-crowded'); await click('设定'); await done('a setting too big to send whole')
   { const [x, y] = await js(`(() => { const r = document.querySelector('.pane-edge').getBoundingClientRect(); return [r.x + 3, r.y + 300] })()`) as [number, number]; await drag([x, y], [x - 120, y]); must((await js(`document.getElementById('pane').offsetWidth`)) === 510, 'the pane is not wider'); await shot('91-pane-wide')
     await drag([x - 120, y], [x + 400, y]); must((await js(`document.getElementById('pane').offsetWidth`)) === 300, 'the pane is narrower than it may be'); await drag([x + 90, y], [x, y]); await done('the width of the pane') }
 
@@ -399,8 +410,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await pull('87', 'v2'); must(await js(`document.querySelector('[data-node="87"]').classList.contains('deep') && document.querySelector('[data-node="87"]').previousElementSibling.dataset.node === '46'`), 'the chapter is not at the end of the volume')
   await pull('87', '46'); must(await js(`document.querySelector('[data-node="87"]').nextElementSibling.dataset.node === '46'`), 'the chapter is not before the other'); await shot('93-dragged'); await done('chapters dragged')
 
-  // Settings: models not filled in, a local service, a variable found.
-  await click('设置'); await clear('讨论模型'); await click('保存'); await win('讨论模型需要同时选择服务和填写模型 ID'); await click('关闭提示'); await type('讨论模型', 'claude-opus-5-5')
+  // Settings: a local service, a variable found.
+  await click('设置')
   await click('添加服务'); await win('ID（小写字母、数字、- _）'); await win('将发送到该地址', false); await type('API 地址', 'http://localhost:11434/v1'); await win('本机地址：请确认该服务不会转发到云端'); await type('环境变量名称', 'DEEPSEEK_API_KEY'); await win('已检测到环境变量 DEEPSEEK_API_KEY。'); await shot('94-service-local')
   await click('少见的情况'); await click('模型目录读取失败'); await win('读取模型目录失败'); await win('打开设置'); await click('重试'); await win('读取模型目录失败', false); await win('正在读取可用模型…'); await sleep(1400); await click('关闭提示'); await click('关闭设置'); await done('settings that do not hold')
 
@@ -547,20 +558,20 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('文件'); await click('设置…'); must(await prefTabs() === 'AI 外观', 'on the shelf the settings hold: ' + await prefTabs()); await win('模型服务'); await win('本作品使用', false)
   await click('关闭 AI'); await win('是否关闭 AI？'); await win('不再发送任何内容'); await shot('99f-ask-ai-off'); await click('取消'); await win('是否关闭 AI？', false); await win('模型服务')
   await click('关闭 AI'); must(await js(`getComputedStyle(document.querySelector('.scrim:not(.top)')).backgroundColor === 'rgba(0, 0, 0, 0)'`), 'the question over the settings shades the window twice'); await key('Escape'); await win('是否关闭 AI？', false); must(await has('.prefs'), 'Esc on the question shut the settings under it too'); await click('关闭设置')
-  // Off while AI is at work: a draft stops where it got to; a reply is let go, and what the author said stays.
+  // Off while AI is at work: a draft not taken is let go, as a rewrite is; so is a reply, and what the author said stays.
   await click('雨城来信'); await win('第87章：停电'); const before = await paras()
-  await click('编辑'); await click('起草本章'); await click('开始起草'); await sleep(850); must(await paras() > before, 'the draft wrote nothing')
+  await click('编辑'); await click('起草本章'); await click('开始起草'); await sleep(850); must(await has('[data-draft]'), 'the draft wrote nothing')
   await click('讨论', 1); await click('新讨论'); await type('输入想讨论的内容', '灯为什么会灭'); await key('Enter'); await win('正在思考…')
   await aiOff(); must(await prefTabs() === 'AI 外观 提醒 备份', 'with AI off the settings of a work hold: ' + await prefTabs()); await win('模型服务', false); await win('本作品使用', false)
   must(await has('.prefs .check.on'), 'the switch is not ticked'); await win('仅在本机生效，适用于所有作品。'); await shot('99g-ai-off')
   await click('提醒'); await win('超过多少章未回收时提醒'); await win('检查正文和设定', false); await click('关闭设置')
-  const drafted = await paras(); await sleep(3000); must(await paras() === drafted, 'the draft went on with AI off'); must(await js(`S.talks[0].msgs.length === 1 && !S.waiting`), 'the reply went on with AI off')
+  await sleep(3000); must(await paras() === before && !(await has('[data-draft]')), 'the draft went on or stayed with AI off'); must(await js(`S.talks[0].msgs.length === 1 && !S.waiting`), 'the reply went on with AI off')
   // Off, the page of prose and all that opens from it.
   must(await navs() === '正文 作品分类', 'with AI off the sidebar offers: ' + await navs()); must(await paneTabs() === '设定 伏笔', 'with AI off the pane offers: ' + await paneTabs())
   must(await js(`document.querySelector('#pane .tab.on').firstChild.textContent`) === '设定', 'with AI off the pane is not on the setting')
   must(await js(`S.tab`) === '讨论', 'with AI off the pane forgot it was on the talk, to go back to when AI is on')
   await noAI('the page of prose'); await shot('99h-ai-off-prose')
-  await click('伏笔'); await noAI('the foreshadowings'); await click('设定'); await click('更多'); await click('修改记录'); await win('手动修改'); await win('后台整理', false); await noAI('the change log'); await click('全部设定')
+  await click('伏笔'); await noAI('the foreshadowings'); await click('设定'); await click('更多'); await click('修改记录'); await win('手动修改'); await win('查看讨论', false); await noAI('the change log'); await click('全部设定')
   for (const name of ['文件', '编辑', '视图', '帮助']) { await click(name); await noAI('the menu ' + name); await key('Escape') }
   await menu(0, '整条街的灯'); await noAI('the menu of the prose'); await key('Escape')
   await pick(1, '手电在工具箱最底下'); must(await js(`document.querySelector('.selbar').innerText.trim()`) === '加入设定', 'with AI off the bar over picked words offers more than 加入设定'); await key('Escape')

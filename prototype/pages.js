@@ -12,7 +12,7 @@ function talkPage() {
     (S.paneOpen ? '' : `<button class="icon-btn muted" aria-label="展开设定" title="展开设定文档"${onClick(() => set({ paneOpen: true }))}>${svg('icon-md', PANEL + path('M15 5v14'))}</button>`) + '</div>' +
     (talk
       ? `<div class="talk big scroll" id="talk-page">${said(talk)}</div>`
-      : '<div class="paper">' + blank('spark', '从一个初步的想法开始', '写下初步的想法。讨论内容会在后台整理为右侧的设定文档；已确定的设定将作为后续讨论的依据，已放弃的不再提及。',
+      : '<div class="paper">' + blank('spark', '从一个初步的想法开始', '写下初步的想法。讨论中定下的内容，AI 会当场记进右侧的设定文档；已确定的设定将作为后续讨论的依据，已放弃的不再提及。',
         `<div class="starts">${starts.map((words) => `<div class="hit"${onClick(offer(words))}>${words}</div>`).join('')}</div>`) + '</div>') +
     '<div class="composer big" data-k="composer-page"><div class="box send-box">' +
     `<textarea class="in" rows="2" placeholder="输入想法，或向 AI 提问…" aria-label="讨论输入"${onInput((v) => set({ draft: v }))}${onKey((ev) => { if (ev.key === 'Enter' && ev.ctrlKey) send() })}>${t(S.draft)}</textarea>` +
@@ -148,7 +148,7 @@ function shelfPage() {
   const create = button('新建作品', () => set({ dialog: { kind: 'newBook', name: '', type: BOOK.kinds[0] } }), 'primary')
   if (!all.length) {
     // AI 关着时，这一页不讲 AI。
-    return '<div class="shelf">' + (aiOn() ? blank('book', '从一个想法开始', '与 AI 逐步讨论，内容会在后台整理为设定文档。已确定的设定会被遵守，已放弃的 AI 不再提及。',
+    return '<div class="shelf">' + (aiOn() ? blank('book', '从一个想法开始', '与 AI 逐步讨论，定下的内容当场记进设定文档。已确定的设定会被遵守，已放弃的 AI 不再提及。',
       '<div class="shelf-facts"><div>· 作品、对话和设定文档均为文件夹中的普通文件，可备份、同步或用其他编辑器打开。</div><div>· AI 仅在你发送消息时回应，不会自行续写。</div><div>· API key 保存在系统钥匙串中，不会写入作品文件夹。</div></div>' +
       buttons(button('添加已有作品…', addBook), create))
       : blank('book', '从一个想法开始', '新建一部作品，或添加已有的作品文件夹。',

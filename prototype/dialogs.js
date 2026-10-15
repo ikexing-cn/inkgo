@@ -57,27 +57,51 @@ const PROTOCOLS = ['OpenAI Chat Completions（多数兼容服务）', 'OpenAI Re
 function saveService() {
   const f = S.dialog.svc, name = f.name.trim()
   if (!name || !f.url.trim()) { say('显示名称和 API 地址为必填项'); return }
-  const made = { id: f.id.trim() || name.toLowerCase(), name, url: f.url.trim(), host: f.url.trim().replace(/^https?:\/\//, '').split('/')[0], proto: f.proto, env: f.env.trim(), models: f.models.split('\n').map((m) => m.trim()).filter(Boolean) }
+  const models = f.models.filter((m) => m.id.trim()).map((m) => ({ ...m, id: m.id.trim() }))
+  // 上下文上限和最大输出是正整数（可写 128K、1M），最大输出小于上下文上限；压缩阈值是整数，在一半到九成五之间。
+  const wrong = [
+    [(m) => !count(m.max) || !count(m.out), '的上下文上限和最大输出须为正整数，可写成 128K、1M'],
+    [(m) => !/^\d+$/.test(m.at.trim()), '的压缩阈值须为整数'],
+    [(m) => count(m.out) >= count(m.max), '的最大输出须小于上下文上限'],
+    [(m) => Number(m.at) < 50 || Number(m.at) > 95, '的压缩阈值须在 50% 到 95% 之间'],
+  ].map(([bad, why]) => [models.find(bad), why]).find(([m]) => m)
+  if (wrong) { say(wrong[0].id + wrong[1], '', 'fail'); return }
+  const made = { id: f.id.trim() || name.toLowerCase(), name, url: f.url.trim(), host: f.url.trim().replace(/^https?:\/\//, '').split('/')[0], proto: f.proto, env: f.env.trim(), models: models.map((m) => ({ ...m, max: size(count(m.max)), out: size(count(m.out)), at: m.at.trim() })) }
   set((s) => ({ services: s.dialog.edit === 'new' ? [...s.services, made] : s.services.map((x) => (x.id === made.id ? made : x)), dialog: { ...s.dialog, edit: '', svc: null } }))
   say('提供商已保存', '', 'ok')
 }
 function fetchModels() {
   const id = say('正在读取可用模型…', '', 'busy', [['取消', () => { clearTimeout(timer); unsay(id) }]])
-  const timer = aiLater(1200, () => { unsay(id); set((s) => (s.dialog && s.dialog.svc ? { dialog: { ...s.dialog, svc: { ...s.dialog.svc, models: (BOOK.services.find((x) => x.id === s.dialog.svc.id) || BOOK.services[0]).models.join('\n') } } } : null)); say('已获取模型目录，保存提供商后生效') })
+  const timer = aiLater(1200, () => { unsay(id); set((s) => (s.dialog && s.dialog.svc ? { dialog: { ...s.dialog, svc: { ...s.dialog.svc, models: (BOOK.services.find((x) => x.id === s.dialog.svc.id) || BOOK.services[0]).models.map(limits) } } } : null)); say('已获取模型目录，保存提供商后生效') })
+}
+
+// 这部作品累计用了多少 token，按内置价格估算花费；表里没有价格的模型不估。
+function spent() {
+  const used = S.book === BOOK.shelf[0].id ? BOOK.spent : []
+  const cost = (id, input, cached, output) => { const p = (BOOK.table[id] || [])[2]; return p ? '约 ' + p[3] + (((input - cached) * p[0] + cached * p[1] + output * p[2]) / 1e6).toFixed(2) : '无价格' }
+  const row = ([id, input, cached, output]) => `<div class="spent-row"><div class="ell">${t(id)}</div><div class="fit ell">输入 ${tokens(input)}，缓存命中 ${Math.round((cached / input) * 100)}% · 输出 ${tokens(output)}</div><div>${cost(id, input, cached, output)}</div></div>`
+  return '<div class="prefs-group"><div class="group-title">本作品用量</div><div class="note">按内置价格估算，以服务商账单为准。</div></div>' +
+    (used.length ? `<div class="spent">${used.map(row).join('')}</div>` : '<div class="note">尚未使用 AI。</div>')
 }
 
 function settingsModel(d) {
   const used = (svc) => S.page !== 'shelf' && S.uses.some((u) => u.service === svc.name) // 书架上没有打开的作品
   const use = (u, i) => {
     const same = u.service === '沿用讨论模型'
-    const pickService = (name) => { const svc = S.services.find((x) => x.name === name); useAt(i, { service: name, model: svc ? svc.models[0] : '' }) }
+    const pickService = (name) => { const svc = S.services.find((x) => x.name === name); useAt(i, { service: name, model: svc && svc.models[0] ? svc.models[0].id : '' }) }
     return `<div class="use-row"><div class="use-name"><div>${t(u.job)}</div><div class="note ell">${t(u.about)}</div></div>` +
       choose('service-' + i, u.service, [...(i ? ['沿用讨论模型'] : []), ...S.services.map((x) => x.name)], pickService, u.job + '使用的服务') +
       (same ? '<div class="fit use-same">与讨论使用同一模型</div>' : `<div class="box line fit">${typed(u.model, (v) => useAt(i, { model: v }), '输入或选择模型 ID', u.job + '模型')}</div>`) +
       choose('effort-' + i, u.effort, BOOK.efforts, (e) => useAt(i, { effort: e }), u.job + '的思考程度') + '</div>'
   }
   const type = (key) => (v) => set((s) => ({ dialog: { ...s.dialog, svc: { ...s.dialog.svc, [key]: v } } }))
-  const editing = (svc) => ({ edit: svc ? svc.id : 'new', svc: svc ? { id: svc.id, name: svc.name, url: svc.url, proto: svc.proto || PROTOCOLS[0], key: '', env: svc.env, models: svc.models.join('\n') } : { id: '', name: '', url: '', proto: PROTOCOLS[0], key: '', env: '', models: '' } })
+  // 改服务里的模型。ID 改成内置表里有的，三个数照表重填。
+  const models = (change) => set((s) => ({ dialog: { ...s.dialog, svc: { ...s.dialog.svc, models: change(s.dialog.svc.models) } } }))
+  const typeModel = (i, key) => (v) => models((list) => list.map((m, n) => (n !== i ? m : key === 'id' && BOOK.table[v.trim()] ? { ...limits(v.trim()), id: v } : { ...m, [key]: v })))
+  const editing = (svc) => ({ edit: svc ? svc.id : 'new', svc: svc ? { id: svc.id, name: svc.name, url: svc.url, proto: svc.proto || PROTOCOLS[0], key: '', env: svc.env, models: svc.models.map((m) => ({ ...m })) } : { id: '', name: '', url: '', proto: PROTOCOLS[0], key: '', env: '', models: [] } })
+  const limitRow = (m, i) => `<div class="limit-row"><div class="box line fit">${typed(m.id, typeModel(i, 'id'), '模型 ID', '模型 ID')}</div>` +
+    `<div class="box line num">${typed(m.max, typeModel(i, 'max'), '', '上下文上限')}</div><div class="box line num">${typed(m.out, typeModel(i, 'out'), '', '最大输出')}</div><div class="box line pct">${typed(m.at, typeModel(i, 'at'), '', '压缩阈值')}</div>` +
+    `<button class="icon-btn muted" aria-label="移除模型" title="移除模型"${onClick(() => models((list) => list.filter((_, n) => n !== i)))}>${icon('cross', 'sm')}</button></div>`
   const form = () => {
     const f = d.svc
     return '<div class="service-form">' +
@@ -87,22 +111,15 @@ function settingsModel(d) {
       field('接口协议', choose('proto', f.proto, PROTOCOLS, type('proto'), 'API 协议')) +
       `<div class="pair">${field('API key', line(f.key, type('key'), '留空则保留已存的 key', 'API key', ' type="password"'))}${field('或读取环境变量', line(f.env, type('env'), '例如 DEEPSEEK_API_KEY', '环境变量名称'))}</div>` +
       `<div class="note">key 保存在系统钥匙串中，不会写入配置文件或作品。${f.env.trim() && BOOK.services.some((x) => x.env === f.env.trim()) ? '已检测到环境变量 ' + t(f.env.trim()) + '。' : ''}</div>` +
-      field('可用模型（每行一个；也可在上方直接输入目录外的模型）', area(f.models, type('models'), '', '模型目录', 3)) +
-      `<div class="buttons">${d.edit === 'new' ? '' : `<div class="hit link danger"${onClick(() => say('已清除保存的 key'))}>清除已保存 key</div>`}${button('获取可用模型', fetchModels)}${button('保存提供商', saveService, 'primary')}</div></div>`
+      '<div class="field"><div class="label">可用模型</div><div class="limits">' +
+      (f.models.length ? '<div class="limit-row limit-head"><div class="fit">模型 ID</div><div class="num">上下文上限</div><div class="num">最大输出</div><div class="pct">压缩阈值 %</div><div class="gap"></div></div>' + f.models.map(limitRow).join('') : '<div class="note">尚无模型，可获取可用模型或手动添加。</div>') + '</div></div>' +
+      '<div class="note">数值默认取自内置模型表，表中没有的模型按保守值填写；上下文上限和最大输出可写成 128K、1M。讨论超过压缩阈值时，较早的对话会整理成摘要。</div>' +
+      `<div class="buttons">${d.edit === 'new' ? '' : `<div class="hit link danger"${onClick(() => say('已清除保存的 key'))}>清除已保存 key</div>`}${button('添加模型', () => models((list) => [...list, limits('')]))}${button('获取可用模型', fetchModels)}${button('保存提供商', saveService, 'primary')}</div></div>`
   }
   const card = (svc) => `<div class="service"><div class="service-head"><div class="fit"><div class="ell">${t(svc.name)}</div><div class="note ell">${t(svc.host)} · ${svc.models.length} 个模型${used(svc) ? ' · 本作品使用中' : ''}</div></div>` +
     button(d.edit === svc.id ? '收起' : '编辑', () => set((s) => ({ dialog: { ...s.dialog, ...(d.edit === svc.id ? { edit: '', svc: null } : editing(svc)) }, ...SHUT }))) + '</div>' + (d.edit === svc.id ? form() : '') + '</div>'
-  // 保存前先看三处模型填全了没有。
-  const lacks = () => {
-    const [talk, book, pen] = S.uses, alone = (u) => u.service !== '沿用讨论模型' && !u.model.trim()
-    if (!talk.model.trim()) return '讨论模型需要同时选择服务和填写模型 ID'
-    return alone(book) ? '整理模型已选择单独的服务，还需填写模型 ID' : alone(pen) ? '写作模型已选择单独的服务，还需填写模型 ID' : ''
-  }
-  const saveBudget = () => (lacks() ? say(lacks(), lacks().startsWith('讨论') ? '' : '或改回“沿用讨论模型”', 'fail') : /^\d+$/.test(S.budget.trim()) ? (Number(S.budget) < 8192 ? say('上下文预算至少为 8192，请确保不超过模型支持的窗口') : say('设置已保存，下一条消息起生效', '', 'ok')) : say('上下文预算须为整数'))
-  return (S.page === 'shelf' ? '' : '<div class="prefs-group"><div class="group-title">本作品使用</div><div class="note">思考程度选 Default 时由服务商决定。</div></div>' +
-    `<div class="uses">${S.uses.map(use).join('')}` +
-    `<div class="use-row"><div class="use-name">上下文预算</div><div class="box line budget">${typed(S.budget, (v) => set({ budget: v }), '', '上下文预算')}</div><div class="fit note">token，含回答预留</div>${button('保存', saveBudget, 'primary')}</div></div>` +
-    '<div class="note">请勿超过模型的上下文窗口；未能放入的设定会列在回复下方的“AI 参考内容”中。修改自下次发送起生效。</div>' +
+  return (S.page === 'shelf' ? '' : '<div class="prefs-group"><div class="group-title">本作品使用</div><div class="note">思考程度选 Default 时由服务商决定。修改自下次发送起生效。</div></div>' +
+    `<div class="uses">${S.uses.map(use).join('')}</div>` + spent() +
     '<div class="prefs-group"><div class="group-title">写作时</div></div>' +
     `<div class="ticks">${tickbox(S.auto, '停笔后自动续写', () => set({ auto: !S.auto }))}<div class="note tick-note">开启后每次停笔都会调用一次 AI。</div>${tickbox(S.recap, '章节修改后更新摘要', () => set({ recap: !S.recap }))}<div class="note tick-note">手动填写的摘要不会被覆盖。</div></div>`) +
     '<div class="prefs-group"><div class="group-title">模型服务</div><div class="note">保存在本机，所有作品共用</div></div>' +
@@ -144,7 +161,7 @@ function askAI(ask) {
 function turnAI(on) {
   if (!on && S.waiting) stopReply()
   set((s) => (on ? { noAI: false, dialog: { ...s.dialog, ask: '' } } : {
-    noAI: true, dialog: { ...s.dialog, ask: '' }, toasts: [], ai: null, tidying: false, checking: false, queue: [],
+    noAI: true, dialog: { ...s.dialog, ask: '' }, toasts: [], ai: null, checking: false, queue: [],
     summaries: Object.fromEntries(Object.entries(s.summaries).map(([key, sum]) => [key, sum.busy ? { ...sum, busy: false } : sum])),
     page: s.page === 'talk' || s.page === 'check' ? 'write' : s.page, sv: s.sv === 'ideas' ? 'list' : s.sv, box: s.box === '摘要' ? '' : s.box,
   }))
@@ -209,7 +226,7 @@ function draftDialog(d) {
   const before = S.chapters.slice(0, S.chapters.indexOf(cur)).filter((c) => !S.summaries[c.key] || !S.summaries[c.key].text)
   const had = S.chapters.indexOf(cur) - before.length
   const fill = () => { set((s) => ({ dialog: { ...s.dialog, total: before.length } })); before.forEach((c, i) => later(i * 500, () => recap(c.key))) }
-  return dialog('small', dialogHead('起草本章', 'AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。起草前会保存快照；生成的文字带有“AI 起草”标记，修改过的部分不再带标记。') +
+  return dialog('small', dialogHead('起草本章', 'AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。写完先供你查看，采纳后才写入正文，写入前保存快照；写入的文字带有“AI 起草”标记，修改过的部分不再带标记。') +
     `<div class="quote">${t(S.outlines[cur.key])}</div>` +
     field('目标字数（选填）', line(d.goal, type('goal'), '由 AI 按章纲判断', '目标字数')) +
     (cur.paras.length ? field('本章已有内容', seg(d.how, ['接在已有内容之后', '覆盖已有内容'], type('how'), '已有内容的处理方式')) : '') +
@@ -244,11 +261,11 @@ function snapsDialog(d) {
     say('已恢复到 ' + shown.at + ' 的版本，恢复前的内容已存为快照')
   }
   const same = shown && shown.paras.join('\n') === cur.paras.join('\n')
-  return dialog('wide', dialogHead('快照 · ' + titleOf(cur), '打开章节时、连续写作每十分钟、恢复前、' + (aiOn() ? 'AI 起草或采纳改写前、' : '') + '全书替换前都会保存一份。最近七天的全部保留，更早的每天保留最后一份。') +
+  return dialog('wide', dialogHead('快照 · ' + titleOf(cur), '打开章节时、连续写作每十分钟、恢复前、' + (aiOn() ? '采纳 AI 起草或改写前、' : '') + '全书替换前都会保存一份。最近七天的全部保留，更早的每天保留最后一份。') +
     (shown
       ? `<div class="snaps"><div class="snap-list scroll">${list.map((x) => `<div class="snap-row row${x === shown ? ' on' : ''}"${onClick(pick({ id: x.id }))}><div>${t(x.at)}</div><div class="note">${t(snapKind(x.kind))} · ${x.paras.join('').length} 字</div></div>`).join('')}</div>` +
         `<div class="snap-side"><div class="snap-tools">${tickbox(d.diff, '与当前对比', pick({ diff: !d.diff }))}<div class="fit note ell">${same ? '该快照与当前正文相同' : d.diff ? '红色删除线为快照中有而当前没有的内容，绿色为当前新增的内容' : ''}</div></div>` +
-        (shown.ai && aiOn() ? `<div class="card"><div class="who">${t(shown.ai.head)}</div><div class="extra">${t(shown.ai.saw)}</div>${shown.ai.left ? `<div class="fail">超出上下文预算而未放入的设定 ${shown.ai.left} 条</div>` : ''}</div>` : '') +
+        (shown.ai && aiOn() ? `<div class="card"><div class="who">${t(shown.ai.head)}</div><div class="extra">${t(shown.ai.saw)}</div></div>` : '') +
         `<div class="snap-text scroll">${d.diff ? compare(shown.paras, cur.paras) : shown.paras.map((p) => `<div>${t(p)}</div>`).join('') || '<div class="faint">该快照为空</div>'}</div></div></div>`
       : '<div class="empty"><div>本章暂无快照</div></div>') +
     buttons(button('关闭', shut), button('恢复这个版本', shown && !same ? restore : null, shown && !same ? 'primary' : 'primary off')))

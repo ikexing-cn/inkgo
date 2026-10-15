@@ -13,6 +13,20 @@ const clip = (text, n) => (text.length > n ? text.slice(0, n) + '…' : text)
 // 一章有多少字。书里带来的章写着（假的）字数，新写的照实数。
 const sizeOf = (c) => c.c || String(c.paras.join('').length)
 
+// 上下文上限和最大输出：整千写成 K，整百万写成 M；作者也可以这样填，K 是一千。填得不对得 NaN。
+const size = (n) => (n % 1e6 === 0 ? n / 1e6 + 'M' : n % 1000 === 0 ? n / 1000 + 'K' : String(n))
+const count = (x) => {
+  const m = /^(\d+(?:\.\d+)?)\s*([km]?)$/i.exec(x.trim()), v = m ? Number(m[1]) * { '': 1, k: 1e3, m: 1e6 }[m[2].toLowerCase()] : NaN, n = Math.round(v)
+  return n > 0 && Math.abs(n - v) < 1e-6 ? n : NaN
+}
+// 服务里的一个模型：上下文上限、最大输出先照内置表填，表里没有的用保守的数；压缩阈值是百分之几。
+const limits = (id) => { const [max, out] = BOOK.table[id] || BOOK.guess; return { id, max: size(max), out: size(out), at: '80' } }
+// token 数按 K、M、B 写，留一位小数（9.6K、1.7M）；不到一千的照写。
+const tokens = (n) => {
+  const [unit, by] = [['B', 1e9], ['M', 1e6], ['K', 1e3]].find(([, by]) => n >= 1000 && Math.round((n / by) * 10) >= 10) || ['', 1]
+  return Math.round((n / by) * 10) / 10 + unit
+}
+
 // 刚打开一本书的样子。书架上只有第一本有内容，别的是空书。
 function fresh(book = BOOK.shelf[0].id) {
   const full = book === BOOK.shelf[0].id
@@ -48,7 +62,7 @@ function fresh(book = BOOK.shelf[0].id) {
     box: '', // 标题下面展开的是「章纲」还是「摘要」
     vol: '', // 开着的是哪一卷；开着一章时空着
     named: null, // 设定里改了名字，正文里还留着旧名：{ was, now, n }
-    tidying: false, // AI 正在后台把刚聊的整理进设定
+    crowded: false, // 设定多到装不下，讨论只附目录
     saved: true, // 正文存了没有
     kept: null, // 没存的时候，存着的那一份：{ key, paras, dirty, summaries }。关标签页选「不保存」就回到它
     undo: {}, // 每章打字前的样子：{ back, fwd }，各是几份 paras，撤销和重做用
@@ -64,12 +78,12 @@ function fresh(book = BOOK.shelf[0].id) {
     backup: { state: kept, at: kept === 'ok' ? '今天 10:32' : kept === 'fail' ? '昨天 21:40' : '', dir: kept === 'none' ? '' : 'E:\\写作备份', copies: kept === 'none' ? 0 : 12, close: true, daily: true, hourly: false, keep: '最近 30 份', hush: false },
     // 换一本书也不变的：外观、书架、设置里的东西。
     look: '跟随系统', shelf: structuredClone(BOOK.shelf), cards: true, library: BOOK.library,
-    uses: structuredClone(BOOK.uses), services: structuredClone(BOOK.services), budget: '16000', auto: false, recap: true,
+    uses: structuredClone(BOOK.uses), services: BOOK.services.map((x) => ({ ...x, models: x.models.map(limits) })), auto: false, recap: true,
     when: '写完一章后检查', late: BOOK.late, goal: '', paneW: 0, // paneW 是右栏拖出来的宽度，没拖过是 0
     noAI: false, // 关闭了 AI：本机的所有作品都不显示 AI 功能，也不发送任何内容
   }
 }
-const KEPT = ['look', 'shelf', 'cards', 'library', 'uses', 'services', 'budget', 'auto', 'recap', 'when', 'late', 'goal', 'paneW', 'noAI']
+const KEPT = ['look', 'shelf', 'cards', 'library', 'uses', 'services', 'auto', 'recap', 'when', 'late', 'goal', 'paneW', 'noAI']
 
 let S = fresh()
 let sent = 0 // 作者发过几条消息，AI 按顺序回下一句

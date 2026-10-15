@@ -344,7 +344,7 @@ function take() {
 
 // ───────── 动作：AI 在正文里写 ─────────
 
-const writer = () => { const u = S.uses[2].model ? S.uses[2] : S.uses[0]; return [u.service + '/' + u.model, S.uses[2].effort] }
+const writer = () => { const u = S.uses[1].model ? S.uses[1] : S.uses[0]; return [u.service + '/' + u.model, S.uses[1].effort] }
 
 function continueText() {
   if (!chapterOf(S.ch) || S.ai) return
@@ -377,29 +377,37 @@ function takeRewrite() {
   say('已采纳改写', '可撤销恢复原文，原版本已存入快照', 'ok')
 }
 
+// 按章纲起草。写出来的先摆在正文后面（覆盖已有内容时，原文划掉），和改写一样，点「采纳」才写进正文。
 function draftNow() {
-  const [model, effort] = writer(), d = S.dialog, key = S.ch
+  const [model, effort] = writer(), d = S.dialog
   if (d.goal.trim() && !/^[1-9]\d*$/.test(d.goal.trim())) { say('目标字数须为正整数，或留空', '', 'fail'); return }
-  set((s) => ({
-    dialog: null, ...SHUT, bar: null,
-    ...snap(s, key, 'AI 改动前', { head: '按章纲起草 · ' + model + ' · ' + effort + (d.goal.trim() ? ' · 约 ' + d.goal.trim() + ' 字' : ''), saw: 'AI 参考了：设定 ' + s.entries.filter((e) => e.place === 'body').length + ' 条、章纲、本章前文' }),
-    ...oneStep(s, key, (paras) => (d.how === '覆盖已有内容' ? [] : paras)),
-    ai: { kind: 'drafting', key, n: 0, wrote: 0 },
-  }))
-  set((s) => ({ chapters: s.chapters.map((c) => (c.key === key ? { ...c, aiFrom: c.paras.length } : c)) }))
+  set({ dialog: null, ...SHUT, bar: null })
+  draft({ key: S.ch, over: d.how === '覆盖已有内容', head: '按章纲起草 · ' + model + ' · ' + effort + (d.goal.trim() ? ' · 约 ' + d.goal.trim() + ' 字' : '') })
+}
+function draft(a) {
+  set({ ai: { ...a, kind: 'drafting', paras: [], stopped: false } })
   const next = () => later(800, () => {
     const a = S.ai
     if (!a || a.kind !== 'drafting') return
-    const words = BOOK.drafted[a.n]
-    if (!words) { set({ ai: null }); say('起草完成，共 ' + a.wrote + ' 字', '可撤销整段撤回，起草前的版本已存入快照', 'ok'); return }
-    set((s) => ({ ...retype(s, key, (paras) => [...paras, words]), undo: s.undo, ai: { ...a, n: a.n + 1, wrote: a.wrote + words.length } }))
-    next()
+    const words = BOOK.drafted[a.paras.length]
+    set({ ai: words ? { ...a, paras: [...a.paras, words] } : { ...a, kind: 'drafted' } })
+    if (words) next()
   })
   next()
 }
-function stopDraft() {
-  set({ ai: null })
-  say('已停止起草，已写部分保留；可撤销整段撤回')
+// 停下来：写了的留着等作者定，一个字没写就当没起草。
+const stopDraft = () => set((s) => ({ ai: s.ai.paras.length ? { ...s.ai, kind: 'drafted', stopped: true } : null }))
+// 采纳起草：先存快照再写进正文，算一步，撤销一次就退回去。写进去的那几段带「AI 起草」的记号。
+function takeDraft() {
+  set((s) => {
+    const { key, over, head, paras } = s.ai, was = chapterOf(key).paras
+    const step = oneStep(s, key, () => (over ? paras : [...was, ...paras]))
+    return {
+      ai: null, ...snap(s, key, 'AI 改动前', { head, saw: 'AI 参考了：设定 ' + s.entries.filter((e) => e.place === 'body').length + ' 条、章纲、本章前文' }),
+      ...step, chapters: step.chapters.map((c) => (c.key === key ? { ...c, aiFrom: over ? 0 : was.length } : c)),
+    }
+  })
+  say('已采纳起草', '可撤销恢复原文，原版本已存入快照', 'ok')
 }
 
 // 让 AI 给一章写摘要。
@@ -408,9 +416,8 @@ function recap(key) {
   aiLater(1200, () => set((s) => ({ part: { ...s.part, [key]: { ...s.part[key], sum: 0 } }, summaries: { ...s.summaries, [key]: { text: key === String(BOOK.now) ? BOOK.recap : '本章摘要：' + clip(chapterOf(key).paras.join(''), 40), by: 'AI 生成 · Opus 5.5 · 刚刚' } } })))
 }
 
-// Ctrl+S：马上存。AI 正在改的时候，等它改完再存。
+// Ctrl+S：马上存。AI 写的还没采纳，不在正文里，不用等它。
 function saveNow() {
-  if (S.ai && (S.ai.kind === 'drafting' || S.ai.kind === 'rewriting')) { say('AI 正在修改本章，完成后自动保存'); return }
   set({ saved: true })
   say('已保存', '停笔片刻也会自动保存')
 }
@@ -449,6 +456,12 @@ function rare() {
     ['添加的文件夹中没有作品', () => { set(SHUT); say('该文件夹中没有作品（缺少 work.yaml）', 'D:\\下载\\新建文件夹', 'fail') }],
   ]
 }
+// 一次回复查到了上限：查了 BOOK.limit 次还没查完，照查到的回答。
+const capped = () => [{ me: true, text: '全书写到井的地方，前后对得上吗' }, {
+  me: false, text: '已查到的几处里，井沿的刻痕前后一致：「第2章：井沿」写三道，「第85章：灯数」也数出三道。还有几处没来得及读，不能说全书都对得上。', capped: true, use: [96400, 18420, 520],
+  look: [['搜', '全书「井」', '9 处，在 5 章'], ...['1', '2', '46', '84', '85', '86', '87'].map((key) => ['读', '「' + chTitle(key) + '」全章', clip(chapterOf(key).paras.join(''), 40)]), ['设定', '「铜钥匙」', '一直挂在林晚脖子上，不知道开哪扇门。'], ['讨论', '「井」', '没有找到']].slice(0, BOOK.limit),
+}]
+
 // AI 出错的那几种：AI 关着时用不上，菜单里也不列。
 function aiRare(here) {
   const why = '无法连接模型服务'
@@ -459,7 +472,8 @@ function aiRare(here) {
     ['本章过长，仅读取前文', here((s) => ({ box: '摘要', part: { ...s.part, [s.ch]: { check: 5000, sum: 9000 } }, never: { ...s.never, [s.ch]: false }, failed: { ...s.failed, [s.ch]: '' }, dirty: { ...s.dirty, [s.ch]: false },
       summaries: { ...s.summaries, [s.ch]: { text: (s.summaries[s.ch] || {}).text || BOOK.recap, by: 'AI 生成 · Opus 5.5 · 刚刚' } } }))],
     ['AI 改写出错', () => { set(SHUT); say('改写失败', '模型未返回改写结果', 'fail') }],
-    ['设定整理失败', () => set((s) => ({ ...SHUT, n: s.n + 1, log: [{ id: 'l' + s.n, who: '后台整理', model: 'Opus 5.5 · Low', at: '刚刚', lines: [], fail: '最近几轮整理失败：无法连接 AI' }, ...s.log] }))],
+    ['讨论查阅达到上限', here((s) => ({ paneOpen: true, tab: '讨论', tv: 'one', tid: 't1', talks: s.talks.map((talk) => (talk.id !== 't1' ? talk : { ...talk, msgs: [...talk.msgs, ...capped()] })) }))],
+    ['设定较多，只附目录', here(() => ({ paneOpen: true, tab: '讨论', tv: 'one', tid: 't2', crowded: true, told: { 't2-1': true } }))],
     ['模型目录读取失败', () => { set(SHUT); const id = say('读取模型目录失败', why, 'fail', [['重试', () => { unsay(id); fetchModels() }], ['打开设置', () => set({ dialog: { kind: 'settings', tab: 'AI', edit: '' }, toasts: [], ...SHUT })]]) }],
   ]
 }
@@ -652,7 +666,9 @@ function aiBar() {
   if (a.kind === 'ask') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'muted')}<div class="box line fit">${typed(a.want, (v) => set((s) => ({ ai: { ...s.ai, want: v } })), '改写要求，例如：放慢节奏，多写她的犹豫', '改写要求', keys(rewrite, drop) + ' autofocus')}</div>${button('改写', rewrite, 'primary')}<button class="icon-btn muted" aria-label="关闭改写" title="关闭改写"${onClick(drop)}>${icon('cross')}</button></div>`
   if (a.kind === 'rewriting') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'muted')}<div class="fit ell muted">AI 正在改写选中内容 · ${t(model)}</div>${button('取消', drop)}</div>`
   if (a.kind === 'diff') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'green')}<div class="fit ell muted">红色删除线为原文，绿色为改写。</div>${button('放弃', drop, 'soft')}<div class="hit link"${onClick(rewrite)}>重新改写</div>${button('采纳', takeRewrite, 'primary')}</div>`
-  return `<div class="ai-bar" data-k="ai-bar">${icon('leaf', 'md', 'muted')}<div class="fit ell muted">AI 正在按章纲起草 · 已写 ${a.wrote} 字 · ${t(model)} · ${t(effort)}</div>${button('停止', stopDraft, 'stop')}</div>`
+  const wrote = a.paras.join('').length
+  if (a.kind === 'drafted') return `<div class="ai-bar" data-k="ai-bar">${icon('leaf', 'md', 'green')}<div class="fit ell muted">${a.stopped ? '已停止，' : ''}起草 ${wrote} 字，绿色为起草${a.over ? '，红色删除线为将被覆盖的原文' : ''}。</div>${button('放弃', drop, 'soft')}<div class="hit link"${onClick(() => draft(a))}>重新起草</div>${button('采纳', takeDraft, 'primary')}</div>`
+  return `<div class="ai-bar" data-k="ai-bar">${icon('leaf', 'md', 'muted')}<div class="fit ell muted">AI 正在按章纲起草 · 已写 ${wrote} 字 · ${t(model)} · ${t(effort)}</div>${button('停止', stopDraft, 'stop')}</div>`
 }
 
 // 标题下面的「章纲」和「本章摘要」，点开是一个能写字的框。摘要是给 AI 起草时看的：AI 关着时只有章纲。
@@ -761,7 +777,7 @@ function sheets() {
 }
 
 // 一章太长、AI 只读了前面一段时，那一行字上的说明。
-const PART = '后文超出上下文预算，可在设置中「AI」配置里提高预算'
+const PART = '后文超出模型的上下文上限，可在设置中「AI」配置里调整'
 
 // 正文下面那一行：检查到哪了、什么时候查，右边是字数。AI 关着时只有字数。
 function foot(cur, vol) {
@@ -820,9 +836,13 @@ function editor(cur) {
   const found = S.find && S.find.q && !S.find.all ? hits(cur, S.find.q) : []
   const ghostly = S.ai && S.ai.kind === 'ghost' ? `<span class="ghost-text">${t(S.ai.text)}</span>` : ''
   // 一段不剩时也留一个空段，光标才有地方放。空段里放一个换行，它才有一行高。
-  const shown = cur.paras.length ? cur.paras : ['']
-  const paras = shown.map((text, i) => { const last = i === shown.length - 1 && ghostly; return `<div data-para="${i}"${aiOn() && cur.aiFrom !== undefined && i >= cur.aiFrom ? ' class="ai"' : ''}>${pieces(cur, i, text, focus, found) || (last ? '' : '<br>')}${last || ''}</div>` }).join('')
-  const hint = cur.paras.join('') || ghostly ? '' : '<div class="prose-hint">在此开始写作…</div>'
+  // 起草了还没采纳的，绿色接在后面；要覆盖的原文划掉。
+  const drafted = S.ai && S.ai.paras && S.ai.key === cur.key ? S.ai : null
+  const shown = cur.paras.length || drafted ? cur.paras : ['']
+  const cls = (i) => (drafted && drafted.over ? ' class="cut"' : aiOn() && cur.aiFrom !== undefined && i >= cur.aiFrom ? ' class="ai"' : '')
+  const paras = shown.map((text, i) => { const last = i === shown.length - 1 && ghostly; return `<div data-para="${i}"${cls(i)}>${pieces(cur, i, text, focus, found) || (last ? '' : '<br>')}${last || ''}</div>` }).join('') +
+    (drafted ? drafted.paras.map((text) => `<div class="add" data-draft>${t(text)}</div>`).join('') : '')
+  const hint = cur.paras.join('') || ghostly || drafted ? '' : '<div class="prose-hint">在此开始写作…</div>'
   // AI 正在改、灰字等着采纳的时候不能打字。
   const typing = S.ai ? '' : ` contenteditable="plaintext-only" spellcheck="false" aria-label="正文"${onInput(wrote)}${onKey(proseKey)}${onPaste(pasted)}`
   return '<div class="editor" data-k="editor">' + toolbar(cur) + sheets() + (S.find ? findBar(cur) : '') + outsideBar() +

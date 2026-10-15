@@ -299,11 +299,6 @@ body { margin: 0; }
 .renamed { flex: none; display: flex; align-items: center; gap: 6px; margin-top: 8px; padding: 6px 8px 6px 10px; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--raised); font-size: var(--fs-note); }
 /* 右栏的左边：拖它改宽度 */
 .pane-edge { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize; z-index: 2; }
-/* 后台整理的记号：贴在收起按钮左边的空里，不占位置，出不出现别的都不动 */
-.tabs .tidy { position: absolute; top: 6px; right: calc(16px + var(--h-control-sm)); width: var(--icon-md); }
-.tidy .dot { background: var(--ink); animation: breathe 1.6s ease-in-out infinite; }
-.tidy.warn .dot { background: var(--warn); animation: none; }
-@keyframes breathe { 50% { opacity: .35; } }
 .ai-head { display: flex; align-items: center; gap: 8px; font-size: var(--fs-note); font-weight: 600; }
 .idea { display: flex; flex-direction: column; gap: 8px; }
 .idea-about { font-size: var(--fs-note); color: var(--muted); }
@@ -317,8 +312,6 @@ body { margin: 0; }
 .card .tiny { font-size: var(--fs-small); color: var(--faint); }
 .card .said-line { line-height: var(--lh-body); }
 .card .extra { color: var(--muted); }
-.card .fail { color: var(--warn); }
-.card .retry { align-self: flex-start; }
 .quote { background: var(--hover); border-radius: var(--r-control); padding: 10px 12px; font-size: var(--fs-body); line-height: var(--lh-loose); }
 .quote.gone { text-decoration: line-through; color: var(--faint); }
 .state { font-size: var(--fs-body); font-weight: 600; }
@@ -335,7 +328,15 @@ body { margin: 0; }
 .waiting { display: flex; align-items: center; gap: 10px; font-size: var(--fs-control); color: var(--muted); }
 .unanswered { display: flex; align-items: center; gap: 6px; font-size: var(--fs-note); color: var(--warn); }
 .thought { margin-bottom: 10px; }
-.thought-head { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-control); color: var(--muted); }
+.thought-head { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; font-size: var(--fs-control); color: var(--muted); }
+/* 回复前查了什么、记了什么：每一项一行，查到的跟在下面 */
+.thought-text .look-row { display: flex; flex-direction: column; gap: 2px; padding: 2px 0; }
+.look-got { font-size: var(--fs-note); color: var(--faint); }
+/* 讨论压缩过的地方：一行字隔开，点开是摘要 */
+.digest { flex: none; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.digest-head { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-note); color: var(--faint); }
+.digest-head:hover { color: var(--ink); }
+.digest-text { align-self: stretch; padding: 12px 14px; border-radius: var(--r-card); background: var(--side); border: 1px solid var(--line); font-size: var(--fs-note); line-height: var(--lh-body); display: flex; flex-direction: column; gap: 8px; }
 .thought-text { margin-top: 6px; padding-left: 10px; border-left: 2px solid var(--line); font-size: var(--fs-control); line-height: var(--lh-loose); color: var(--muted); }
 .cited { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border-radius: var(--r-control); background: var(--hover); font-size: var(--fs-note); }
 .cited-from { font-weight: 600; }
@@ -502,7 +503,18 @@ body { margin: 0; }
 .use-name .note { font-weight: 400; }
 .use-same { padding: 0 10px; font-size: var(--fs-control); color: var(--faint); }
 .use-row .choose:last-child { width: 110px; }
-.budget { width: 150px; flex: none; }
+.spent { display: flex; flex-direction: column; gap: 4px; }
+.spent-row { display: flex; align-items: center; gap: 12px; font-size: var(--fs-control); }
+.spent-row > :first-child { width: 150px; flex: none; }
+.spent-row > .fit { color: var(--muted); }
+/* 服务里的模型：一行一个，三个数跟在 ID 后面 */
+.limits { display: flex; flex-direction: column; gap: 6px; }
+.limit-row { display: flex; align-items: center; gap: 8px; }
+.limit-row > .fit { min-width: 0; }
+.limit-row > .num { width: 96px; flex: none; }
+.limit-row > .pct { width: 72px; flex: none; }
+.limit-row > .gap { width: var(--h-control-sm); flex: none; }
+.limit-head { font-size: var(--fs-note); color: var(--muted); }
 .services { display: flex; flex-direction: column; gap: 8px; }
 .service { display: flex; flex-direction: column; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-card); }
 .service-head { display: flex; align-items: center; gap: 8px; font-weight: 500; }
