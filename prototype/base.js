@@ -7,6 +7,8 @@
 const numbered = (c) => c.vol && !c.own
 const titleOf = (c) => (numbered(c) ? '第' + c.no + '章' + (c.t ? '：' + c.t : '') : c.t)
 const chapterOf = (key) => S.chapters.find((c) => c.key === key)
+// 指某一章的地方都写它的标题，不另编号：标题是作者写的。
+const chTitle = (key) => { const c = chapterOf(key); return c ? titleOf(c) : '已删除的章' }
 const clip = (text, n) => (text.length > n ? text.slice(0, n) + '…' : text)
 // 一章有多少字。书里带来的章写着（假的）字数，新写的照实数。
 const sizeOf = (c) => c.c || String(c.paras.join('').length)
@@ -228,7 +230,7 @@ const rows = (list) => `<div class="rows scroll" data-k="rows">${list.join('')}<
 const head = (label) => `<div class="head">${t(label)}</div>`
 const empty = (words, how) => `<div class="empty"><div>${t(words)}</div>${how ? `<div class="note">${t(how)}</div>` : ''}</div>`
 const todo = (label, n, open) => `<div class="todo row"${onClick(open)}>${DOT}<div class="grow">${t(label)}</div><div class="side">${n}</div>${ICON.right}</div>`
-const item = ({ name, about = '', find = '', dot, side, open }) => `<div class="item row"${onClick(open)}><div class="name ell">${t(name)}</div><div class="about ell">${marked(about, find)}</div>${dot ? DOT : ''}${side ? `<div class="side">${t(side)}</div>` : ''}${ICON.right}</div>`
+const item = ({ name, about = '', find = '', dot, side, open }) => `<div class="item row"${onClick(open)}><div class="name ell">${t(name)}</div><div class="about ell">${marked(about, find)}</div>${dot ? DOT : ''}${side ? `<div class="side ell">${t(side)}</div>` : ''}${ICON.right}</div>`
 // 一页正中的一段话：图标、标题、说明，下面可以放按钮。
 const blank = (pic, title, about, more = '') => `<div class="blank"><div class="blank-icon">${icon(pic, 'lg')}</div><div class="blank-title">${t(title)}</div><div class="blank-about">${t(about)}</div>${more}</div>`
 

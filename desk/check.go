@@ -70,13 +70,10 @@ type checkDone struct {
 // checkItem is a finding with where it is.
 type checkItem struct {
 	node, title string
-	ch          int
 	here        bool // in the chapter open
 	f           workspace.Finding
 	entry       workspace.Entry
 }
-
-func chapterLabel(ch int) string { return fmt.Sprintf("第%d章", ch) }
 
 // entryTitle names an entry the way the setting lists it: 人物 · 林晚.
 func entryTitle(e workspace.Entry) string {
@@ -299,18 +296,16 @@ func (a *App) checkItems(meant bool) []checkItem {
 	}
 	live, open := a.liveText()
 	var out []checkItem
-	n := 0
 	tree.Walk(func(nd *workspace.Node, _ int) {
 		if nd.Folder {
 			return
 		}
-		n++
 		here := open && nd.ID == a.write.node
 		for _, f := range k.all[nd.ID].Findings {
 			if f.Meant && !meant || here && !strings.Contains(live, f.Quote) {
 				continue
 			}
-			it := checkItem{node: nd.ID, title: nd.Title, ch: n, here: here, f: f}
+			it := checkItem{node: nd.ID, title: nd.Title, here: here, f: f}
 			switch f.Kind {
 			case workspace.FindConflict:
 				e, ok := a.set.Entry(f.Entry)
@@ -394,7 +389,7 @@ func (a *App) checkPending() (pendGroup, bool) {
 		return g, false
 	}
 	for _, it := range a.checkItems(false) {
-		p := pendItem{key: "检查/" + it.node + "/" + it.f.Kind + "/" + it.f.Quote, text: it.f.Title, sub: chapterLabel(it.ch), node: it.node, here: it.here, check: it.f.ID}
+		p := pendItem{key: "检查/" + it.node + "/" + it.f.Kind + "/" + it.f.Quote, text: it.f.Title, sub: it.title, node: it.node, here: it.here, check: it.f.ID}
 		if it.f.Kind == workspace.FindNew {
 			p.text = fmt.Sprintf("「%s」尚未加入设定", it.f.Name)
 		}
@@ -447,10 +442,7 @@ func (a *App) checkState() (line string, found int, can bool, tip string) {
 			found++
 		}
 	}
-	name := "本章"
-	if n := a.chapterNo(w.node); n > 0 {
-		name = chapterLabel(n)
-	}
+	const name = "本章"
 	text, _ := a.liveText()
 	had, ok := k.all[w.node]
 	switch {
@@ -484,7 +476,7 @@ func (a *App) checkState() (line string, found int, can bool, tip string) {
 
 // partNote says why the AI was given only the start of a chapter, and what
 // to do about it, where a line says it was.
-const partNote = "后文超出上下文预算，可在设置中提高预算"
+const partNote = "后文超出上下文预算，可在设置中「AI」配置里提高预算"
 
 // footBar is the line at the foot of the writing page: of a chapter, with
 // the AI on, where its check stands and when chapters are checked; at the
@@ -662,14 +654,14 @@ func (a *App) checkList(c *ui.Context, all, shown []checkItem) {
 	ui.Scroll(c.Key("checks")).FillWidth().Grow(1).Shrink(1).Children(func() {
 		ui.Column(c).FillWidth().Padding(0, 14, 12, 14).Gap(2).Children(func() {
 			for _, it := range shown {
-				sub := chapterLabel(it.ch)
+				sub := it.title
 				switch it.f.Kind {
 				case workspace.FindConflict:
 					sub += " ↔ 设定「" + entryTitle(it.entry) + "」"
 				case workspace.FindName:
 					sub += " · 应为「" + it.f.Name + "」"
 				case workspace.FindNew:
-					sub = it.f.Category + " · " + sub + "出现"
+					sub = it.f.Category + " · 「" + sub + "」起出现"
 				}
 				b := ui.ButtonBase(c.Key("ck-"+it.f.ID)).Row().FillWidth().AlignItems(ui.Center).Gap(10).Padding(8, 10).Radius(rControl).Label("检查-" + it.f.Title)
 				if it.f.ID == k.shown {
@@ -698,7 +690,8 @@ func (a *App) checkProgress(c *ui.Context) {
 	k := &a.ck
 	if k.running != "" {
 		left := len(k.queue)
-		line := "正在检查" + chapterLabel(a.checkNo(k.running))
+		_, title := a.checkAt(k.running)
+		line := "正在检查「" + title + "」"
 		if left > 0 {
 			line += fmt.Sprintf("，还有 %d 章", left)
 		}
@@ -711,12 +704,14 @@ func (a *App) checkProgress(c *ui.Context) {
 		}
 		return
 	}
-	last := 0
+	last, lastTitle := 0, ""
 	for id := range k.all {
-		last = max(last, a.checkNo(id))
+		if no, title := a.checkAt(id); no > last {
+			last, lastTitle = no, title
+		}
 	}
 	if last > 0 {
-		ui.Text(c, "已检查至"+chapterLabel(last)).FontSize(fsNote).TextColor(t.TextMuted).SingleLine()
+		ui.Text(c, "已检查至「"+lastTitle+"」").FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
 	}
 	label := "重新检查"
 	if last == 0 {
@@ -755,18 +750,20 @@ func (a *App) checkProgress(c *ui.Context) {
 	})
 }
 
-// checkNo is which chapter of the book node is, as the checks number them.
-func (a *App) checkNo(node string) int {
-	n, at := 0, 0
+// checkAt is which chapter of the book node is, as the checks number
+// them, and its title; a chapter no longer in the book is 0, 已删除的章.
+func (a *App) checkAt(node string) (no int, title string) {
+	n := 0
+	title = "已删除的章"
 	a.ck.tree.Walk(func(nd *workspace.Node, _ int) {
 		if !nd.Folder {
 			n++
 			if nd.ID == node {
-				at = n
+				no, title = n, nd.Title
 			}
 		}
 	})
-	return at
+	return no, title
 }
 
 // checkEmpty is the page's right with nothing to show.
@@ -786,7 +783,8 @@ func (a *App) checkEmpty(c *ui.Context, all int) {
 		how = "当前为「手动检查」，需要时点击「重新检查」。"
 	}
 	for id, why := range k.failed {
-		how = chapterLabel(a.checkNo(id)) + "检查失败：" + why
+		_, title := a.checkAt(id)
+		how = "「" + title + "」检查失败：" + why
 	}
 	a.pal.blank(c, icDone, words, how, nil)
 }
@@ -870,9 +868,9 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 	ui.Scroll(c.Key("check-" + it.f.ID)).FillWidth().Grow(1).Shrink(1).Children(func() {
 		ui.Column(c).FillWidth().Gap(16).Children(func() {
 			para, no := paragraphOf(k.prose, it.f.Quote)
-			head := "正文 · " + chapterLabel(it.ch)
+			head := "正文 · " + it.title
 			if no > 0 {
-				head += fmt.Sprintf(" 第 %d 段", no)
+				head += fmt.Sprintf(" · 第 %d 段", no)
 			}
 			ui.Row(c).FillWidth().Gap(16).AlignItems(ui.Start).Children(func() {
 				if a.checkCard(c, head, "查看原文", a.quoted(para, it.f.Quote)) {
@@ -916,7 +914,7 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 							said = "已标为「无需修改」"
 						}
 						ui.Row(c).FillWidth().Gap(12).Padding(8, 12).Radius(rControl).Background(t.SurfaceHover).AlignItems(ui.Center).Children(func() {
-							ui.Text(c, chapterLabel(o.ch)).FontSize(fsControl).TextColor(t.TextMuted).SingleLine().Shrink(0)
+							ui.Text(c, o.title).FontSize(fsControl).TextColor(t.TextMuted).SingleLine().Shrink(0)
 							ui.Text(c, o.f.Quote).FontSize(fsControl).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 							ui.Text(c, said).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Shrink(0)
 						})

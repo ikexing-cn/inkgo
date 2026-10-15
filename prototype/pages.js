@@ -36,9 +36,9 @@ function checkPage() {
   const shown = of.find((c) => c.id === S.cid) || of[0]
   const count = (k) => (k === '全部' ? S.checks.length : S.checks.filter((c) => c.kind === k).length)
   const about = (c) => {
-    const ch = chapterOf(c.key), at = ch ? chapterName(ch) : '已删除的章'
+    const ch = chapterOf(c.key), at = chTitle(c.key)
     if (c.kind === '不一致') { const e = S.entries.find((x) => x.id === c.entry); return at + ' ↔ 设定「' + (e ? e.cat + ' · ' + (e.names[0] || clip(e.text, 8)) : '已删除') + '」' }
-    return c.kind === '名字有误' ? at + ' · 应为「' + c.right + '」' : c.cat + ' · ' + at + '起出现 ' + c.times + ' 次'
+    return c.kind === '名字有误' ? at + ' · 应为「' + c.right + '」' : c.cat + ' · 「' + at + '」起出现 ' + c.times + ' 次'
   }
   const row = (c) => `<div class="check-row row${shown && c.id === shown.id ? ' on' : ''}"${onClick(() => set({ cid: c.id }))}><div class="fit"><div class="ell">${t(c.title)}</div><div class="note ell">${t(about(c))}</div></div><div class="side">${c.kind}</div></div>`
   // 「检查全书」：先数出该查几章，问一句再开始。
@@ -55,7 +55,7 @@ function checkPage() {
   const none = !S.entries.some((e) => e.place === 'body') ? ['设定为空', '请先在讨论中确定设定，才能对照检查。']
     : S.checks.length ? ['这一类没有待处理的', ''] : !last ? ['尚未检查', '点击左上角「检查全书」，或写完一章后自动检查。']
     : ['没有发现不一致', S.when === '手动检查' ? '当前为「手动检查」，需要时点击「重新检查」。' : '写完一章后自动检查，结果显示在此处。']
-  if (lost && !S.checking) none[1] = chapterName(lost) + '检查失败：' + S.failed[lost.key]
+  if (lost && !S.checking) none[1] = '「' + titleOf(lost) + '」检查失败：' + S.failed[lost.key]
 
   let detail = `<div class="check-detail">${blank('checked', S.checking ? '正在检查…' : none[0], S.checking ? '检查结果将显示在左侧。' : none[1])}</div>`
   if (shown) {
@@ -73,14 +73,14 @@ function checkPage() {
       : button('无需修改', () => set(settle(shown.id))) + (shown.kind === '不一致' && e ? button('修改设定', () => set({ page: 'write', paneOpen: true, focus: false, tab: '设定', sv: 'list', sid: e.id, form: editing(e) })) : '') + button('修改正文', seeText, 'primary')
     detail = '<div class="check-detail" data-k="check-detail">' +
       `<div class="check-title"><div class="fit ell">${t(shown.title)}</div><div class="side">${of.indexOf(shown) + 1} / ${of.length}</div><div class="hit link${of.length > 1 ? '' : ' off'}"${onClick(of.length > 1 ? next : null)}>下一条</div></div>` +
-      `<div class="check-sides"><div class="fit"><div class="check-from"><div class="fit ell">正文 · ${ch ? t(chapterName(ch)) : ''} 第 ${shown.para + 1} 段</div><div class="hit link"${onClick(seeText)}>查看原文</div></div><div class="check-card">${lit(text, shown.quote)}</div></div>${right}</div>` +
+      `<div class="check-sides"><div class="fit"><div class="check-from"><div class="fit ell">正文 · ${ch ? t(titleOf(ch)) + ' · ' : ''}第 ${shown.para + 1} 段</div><div class="hit link"${onClick(seeText)}>查看原文</div></div><div class="check-card">${lit(text, shown.quote)}</div></div>${right}</div>` +
       (shown.also ? '<div class="check-also">其他章节的类似情况</div>' + shown.also.map((a) => `<div class="check-more"><div class="side">${t(a.at)}</div><div class="fit">${t(a.text)}</div><div class="side">${t(a.note)}</div></div>`).join('') : '') +
       `<div class="grow"></div><div class="check-foot"><div class="hit link${of.length > 1 ? '' : ' off'}"${onClick(of.length > 1 ? next : null)}>稍后再说</div><div class="grow"></div>${acts}</div></div>`
   }
   return '<div class="check-list">' +
     `<div class="check-head"><div class="page-title">检查</div><div class="grow"></div>` +
-    (running ? `<div class="muted">正在检查${t(chapterName(running))}${S.queue.length ? '，还有 ' + S.queue.length + ' 章' : ''}</div><div class="hit link"${onClick(() => set({ checking: false, queue: [] }))}>停止</div>`
-      : `<div class="muted">${last ? '已检查至' + t(chapterName(last)) : ''}</div><div class="anchor"><div class="hit link"${onClick(again)}>${last ? '重新检查' : '检查全书'}</div>${S.open === 'checkAll' ? ask() : ''}</div>`) + '</div>' +
+    (running ? `<div class="muted">正在检查「${t(titleOf(running))}」${S.queue.length ? '，还有 ' + S.queue.length + ' 章' : ''}</div><div class="hit link"${onClick(() => set({ checking: false, queue: [] }))}>停止</div>`
+      : `<div class="muted">${last ? '已检查至「' + t(titleOf(last)) + '」' : ''}</div><div class="anchor"><div class="hit link"${onClick(again)}>${last ? '重新检查' : '检查全书'}</div>${S.open === 'checkAll' ? ask() : ''}</div>`) + '</div>' +
     seg(S.kind + ' ' + count(S.kind), KINDS.map((k) => k + ' ' + count(k)), (v) => set({ kind: v.split(' ')[0], cid: null }), '检查分类') +
     `<div class="check-rows scroll">${of.map(row).join('')}</div></div>` + detail
 }
@@ -99,13 +99,14 @@ function dropCat(name) {
   say('已删除分类“' + name + '”')
 }
 
+// 删除分类：有设定的先问一句（设定要移到「其他」），空的直接删。
 function catsPage() {
   const count = (c) => S.entries.filter((e) => e.cat === c && e.place !== 'dropped').length
   const type = (key) => (v) => set((s) => ({ catForm: { ...s.catForm, [key]: v } }))
   const row = (c) => (S.catDrop === c
-    ? `<div class="cat-row"><div class="fit">${count(c) ? count(c) + ' 条设定将移到“其他”' : '这个分类下没有设定'}</div>${button('取消', () => set({ catDrop: '' }))}${button('确认删除', () => dropCat(c), 'danger')}</div>`
+    ? `<div class="cat-row"><div class="fit">${count(c)} 条设定将移到“其他”</div>${button('取消', () => set({ catDrop: '' }))}${button('确认删除', () => dropCat(c), 'danger')}</div>`
     : `<div class="cat-row"><div class="cat-name">${t(c)}</div><div class="fit muted">落点：${t(S.lands[c] || '设定库')}</div><div class="side">${count(c)} 条</div><div class="hit link"${onClick(() => set({ catForm: { name: c, land: S.lands[c] || '设定库' } }))}>编辑</div>` +
-      (c === '其他' ? '<div class="off">删除</div>' : `<div class="hit link"${onClick(() => set({ catDrop: c }))}>删除</div>`) + '</div>')
+      (c === '其他' ? '<div class="off">删除</div>' : `<div class="hit link"${onClick(() => (count(c) ? set({ catDrop: c }) : dropCat(c)))}>删除</div>`) + '</div>')
   return '<div class="editor"><div class="paper scroll"><div class="column narrow">' +
     '<div class="page-title">作品分类</div><div class="note">设定文档按分类分节，每条设定只归入一个分类。“落点”指设定成熟后的去处，例如设定库或大纲。</div>' +
     `<div class="cat-rows">${S.cats.map(row).join('')}</div>` +

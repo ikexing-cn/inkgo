@@ -26,6 +26,7 @@ type docView struct {
 	todo    bool   // what waits on the author is shown
 	dropped bool   // the deleted entries are listed
 	editing string // the entry being edited, "new" for a new one
+	asking  string // with editing "new", the AI's question it answers
 	// The form: the entry's text, category, name, and what else it is
 	// called as the author writes them, apart by spaces or 、
 	text     string
@@ -193,6 +194,9 @@ func (a *App) settingPanel(c *ui.Context) {
 			d.editing = ""
 		}
 	}
+	if q, ok := a.set.Entry(d.asking); d.asking != "" && (!ok || q.Place != workspace.PlaceOpen) {
+		d.editing, d.asking = "", "" // the question is gone
+	}
 	shown, ok := a.set.Entry(d.shown)
 	if !ok {
 		d.shown = ""
@@ -291,7 +295,7 @@ func (a *App) settingList(c *ui.Context) {
 		m.Item("已删除").Hint(count(dropped)).Do(func() { d.dropped = true })
 		m.Item("修改记录").Do(func() { d.history = true })
 	}) {
-		d.editing, d.text, d.category, d.name, d.names = "new", "", a.firstCategory(), "", ""
+		d.editing, d.asking, d.text, d.category, d.name, d.names = "new", "", "", a.firstCategory(), "", ""
 	}
 	q := trim(d.query)
 	row := func(e workspace.Entry) {
@@ -361,9 +365,18 @@ func (a *App) settingList(c *ui.Context) {
 	})
 }
 
+// asks tells whether e, waiting on the author, asks them something: the
+// bookkeeper writes a question with a question mark at its end.
+func asks(e workspace.Entry) bool {
+	text := strings.TrimSpace(e.Text)
+	return strings.HasSuffix(text, "？") || strings.HasSuffix(text, "?")
+}
+
 // idea is one thing the bookkeeper suggests, with what it is about when
-// about says, and the author's word on it.
+// about says, and the author's word on it: a question is not a setting to
+// take, its answer is.
 func (a *App) idea(c *ui.Context, e workspace.Entry, about string) {
+	d := &a.doc
 	ui.Column(c.Key(e.ID)).FillWidth().Gap(8).Children(func() {
 		if about != "" {
 			ui.Text(c, about).FontSize(fsNote).TextColor(a.pal.theme.TextMuted).SingleLine().Ellipsis("…").FillWidth()
@@ -373,7 +386,11 @@ func (a *App) idea(c *ui.Context, e workspace.Entry, about string) {
 			if a.paneButton(c, "忽略", false).Label("忽略-" + e.ID).Clicked() {
 				a.revise(workspace.Op{Op: workspace.OpMove, Entry: e.ID, Place: workspace.PlaceDropped})
 			}
-			if a.paneButton(c, "采纳", true).Label("采纳-" + e.ID).Clicked() {
+			if asks(e) {
+				if a.paneButton(c, "回答", true).Label("回答-" + e.ID).Clicked() {
+					d.editing, d.asking, d.text, d.category, d.name, d.names = "new", e.ID, "", e.Category, "", ""
+				}
+			} else if a.paneButton(c, "采纳", true).Label("采纳-" + e.ID).Clicked() {
 				a.revise(workspace.Op{Op: workspace.OpMove, Entry: e.ID, Place: workspace.PlaceBody})
 			}
 		})
@@ -468,7 +485,7 @@ func (a *App) entryPage(c *ui.Context, e workspace.Entry) {
 			}
 		}
 		if a.paneTitle(c, name, sub, "修改") {
-			d.editing, d.text, d.category, d.name, d.names = e.ID, e.Text, e.Category, "", ""
+			d.editing, d.asking, d.text, d.category, d.name, d.names = e.ID, "", e.Text, e.Category, "", ""
 			if len(e.Names) > 0 {
 				d.name, d.names = e.Names[0], strings.Join(e.Names[1:], "、")
 			}
@@ -477,11 +494,14 @@ func (a *App) entryPage(c *ui.Context, e workspace.Entry) {
 		if e.Place == workspace.PlaceDropped {
 			text.TextColor(a.pal.theme.TextMuted)
 		}
+		if e.Asked != "" {
+			a.paneNote(c, "回答："+e.Asked)
+		}
 		if i := slices.IndexFunc(e.Sources, func(s workspace.Source) bool { return s.Chapter != "" }); i >= 0 {
 			src := e.Sources[i]
 			where := "“" + src.Quote + "”"
-			if n := a.chapterNo(src.Chapter); n > 0 {
-				where = fmt.Sprintf("第 %d 章%s", n, where)
+			if title, ok := a.chapterTitle(src.Chapter); ok {
+				where = "「" + title + "」" + where
 			}
 			if a.paneWhere(c, where, "原文-"+e.ID) {
 				a.findInChapter(src.Chapter, src.Quote)
@@ -506,16 +526,21 @@ func (a *App) entryPage(c *ui.Context, e workspace.Entry) {
 }
 
 // entryForm changes e's name, text and category, or writes a new entry
-// when e is empty.
+// when e is empty: the answer to the AI's question when one is asked.
 func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 	d := &a.doc
+	q, asked := a.set.Entry(d.asking)
+	asked = asked && d.asking != "" && e.ID == ""
 	from := "全部设定"
-	if e.ID != "" {
+	switch {
+	case e.ID != "":
 		from, _ = entryName(e)
 		from = clip(from, 16)
+	case asked:
+		from = "待确认"
 	}
 	if back, _ := a.paneBack(c, from, ""); back {
-		d.editing = ""
+		d.editing, d.asking = "", ""
 	}
 	a.panePage(c, "form-"+e.ID, func() {
 		// A new entry starts at its text, a changed one at its name: the
@@ -531,7 +556,12 @@ func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 		}
 		name, alias := "名字", "别名"
 		if e.ID == "" {
-			ui.Text(c, "新增设定").FontSize(fsGroup).FontWeight(600)
+			if asked {
+				ui.Text(c, "回答").FontSize(fsGroup).FontWeight(600)
+				a.paneNote(c, q.Text)
+			} else {
+				ui.Text(c, "新增设定").FontSize(fsGroup).FontWeight(600)
+			}
 			name, alias = "名字（选填）", "别名（选填）"
 			content()
 		}
@@ -554,13 +584,15 @@ func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 		names := splitNames(d.name + "、" + d.names)
 		paneButtons(c, func() {
 			if a.paneButton(c, "取消", false).Clicked() {
-				d.editing = ""
+				d.editing, d.asking = "", ""
 			}
 			if !a.paneButton(c, "保存", true).Disabled(text == "").Clicked() {
 				return
 			}
 			var ops []workspace.Op
 			switch {
+			case asked:
+				ops = append(ops, workspace.Op{Op: workspace.OpAnswer, Entry: q.ID, Category: d.category, Text: text, Names: names})
 			case e.ID == "":
 				ops = append(ops, workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: d.category, Text: text, Names: names})
 			default:
@@ -578,7 +610,7 @@ func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 				a.revise(ops...)
 			}
 			if a.Error == "" {
-				d.editing = ""
+				d.editing, d.asking = "", ""
 				if len(e.Names) > 0 && len(names) > 0 {
 					a.noteRename(e.Names[0], names[0])
 				}
@@ -663,6 +695,8 @@ func (a *App) describeOp(op workspace.Op) string {
 	switch op.Op {
 	case workspace.OpAdd:
 		return fmt.Sprintf("新增到%s · %s：%s", placeNames[op.Place], op.Category, op.Text)
+	case workspace.OpAnswer:
+		return fmt.Sprintf("新增到%s · %s：%s", placeNames[workspace.PlaceBody], op.Category, op.Text)
 	case workspace.OpEdit:
 		return "改写为：" + op.Text
 	case workspace.OpName:

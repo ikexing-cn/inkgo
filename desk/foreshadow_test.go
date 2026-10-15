@@ -60,7 +60,7 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 	w.ed.Select(0, 18)
 	a.openPay("")
 	tt.Frame()
-	if !tt.HasText("选择要回收的伏笔") || !tt.HasText("第1章 · 1 章前埋下") || w.fore.pick != id {
+	if !tt.HasText("选择要回收的伏笔") || !tt.HasText("第一章 · 1 章前埋下") || w.fore.pick != id {
 		t.Fatal("nothing to pick", w.fore.pick, tt.Texts())
 	}
 	if err = tt.Click("确定回收"); err != nil {
@@ -71,7 +71,7 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 	if f.status() != foreDone || len(f.pays) != 1 || f.pays[0].node != two || f.pays[0].quote != "七岁那年的那个晚上，她也是这样站着。" || f.gap != 1 {
 		t.Fatalf("paid off %+v", f)
 	}
-	if !a.doc.fore || !tt.HasText("取消回收") || !tt.HasText("第 2 章回收，相隔 1 章") || !tt.HasText("第 1 章埋下") {
+	if !a.doc.fore || !tt.HasText("取消回收") || !tt.HasText("回收在「停电」，相隔 1 章") || !tt.HasText("埋在「第一章」") {
 		t.Fatal("the two are not shown together", tt.Texts())
 	}
 	if ch, _ = a.Store.ReadChapter(two); len(ch.Marks) != 1 || ch.Marks[0].Kind != workspace.MarkPayoff || ch.Marks[0].Of != id {
@@ -130,6 +130,41 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 	tt.Frame()
 	if !tt.HasText("未找到") {
 		t.Fatal("found what is not there", tt.Texts())
+	}
+}
+
+// The picker lists what the chapter or those before it buried, counting
+// back from the chapter: what a later chapter buries is not there yet.
+func TestThePickerListsWhatCameBefore(t *testing.T) {
+	a, tt, one := writingFixture(t, "她修了七年路灯，却不敢走进没有灯的巷子。")
+	w := &a.write
+	two, err := a.Store.NewChapter("", "停电", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	later := []workspace.ChapterMark{{Kind: workspace.MarkForeshadow, Start: 0, End: 8, Quote: "井边有一把钥匙。", Note: "钥匙开哪扇门", ID: "key"}}
+	if _, err = a.Store.WriteChapter(two, "井边有一把钥匙。", later); err != nil {
+		t.Fatal(err)
+	}
+	if err = a.loadTree(); err != nil {
+		t.Fatal(err)
+	}
+	a.openNode(one)
+	tt.Frame()
+	w.ed.Select(0, 8)
+	a.openPay("")
+	tt.Frame()
+	if !tt.HasText("选择要回收的伏笔") || tt.HasText("钥匙开哪扇门") || w.fore.pick != "" {
+		t.Fatal("a later chapter's is listed", tt.Texts())
+	}
+	w.fore.paying = false
+	a.openNode(two)
+	tt.Frame()
+	w.ed.Select(0, 8)
+	a.openPay("")
+	tt.Frame()
+	if !tt.HasText("钥匙开哪扇门") || !tt.HasText("本章埋下") || w.fore.pick != "key" {
+		t.Fatal("the chapter's own is not listed", tt.Texts())
 	}
 }
 

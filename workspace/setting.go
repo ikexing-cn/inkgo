@@ -87,6 +87,20 @@ func applyOps(entries []Entry, r Revision, n int) ([]Entry, error) {
 			}
 			entries = append(entries, Entry{ID: op.Entry, Place: op.Place, Category: op.Category, Text: op.Text,
 				Names: slices.Clone(op.Names), Sources: slices.Clone(op.Sources), Author: r.By == ByAuthor, Rev: n})
+		case OpAnswer:
+			i := index(op.Entry)
+			if i < 0 {
+				return nil, fail("unknown entry %q", op.Entry)
+			}
+			e := &entries[i]
+			if r.By != ByAuthor || e.Place != PlaceOpen {
+				return nil, fail("answer is the author's, to an open entry")
+			}
+			if op.Place != "" || strings.TrimSpace(op.Category) == "" || strings.TrimSpace(op.Text) == "" || len(op.Sources) > 0 {
+				return nil, fail("answer needs a category and text")
+			}
+			e.Asked, e.Text, e.Category, e.Names, e.Place = e.Text, op.Text, op.Category, slices.Clone(op.Names), PlaceBody
+			e.Author, e.Rev = true, n
 		case OpEdit, OpMove, OpName:
 			i := index(op.Entry)
 			if i < 0 {

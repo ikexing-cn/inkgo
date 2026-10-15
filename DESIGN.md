@@ -612,6 +612,8 @@ components:
 - 要一眼能看懂：名称 2–4 个字，说明不超过 20 个字。
 - 思考程度的几档要留英文（Default、Low、Medium、High）；不要在前面加「思考：」。
 - 软件还没有名字，界面和文档里要写「写作软件」；不要把测试用的作品名当成软件名。
+- 要用章标题指某一章（「第四章 钟表铺」），说的是正开着的那一章写「本章」；不要另算「第 N 章」这种按位置编的号，删一章、插一章它就和作者写的标题对不上了。标题在句子里加「」（「埋在「第四章 钟表铺」，已过 3 章」），单独摆着的不加（列表右边、选择框里那一行）；放不下就截断。讲距离的「已过 3 章」「相隔 3 章」「3 章前」照旧按位置数。`npm run verify-prototype` 的伏笔、检查、设定出处那几段查原型的说法，`go test ./desk` 的 `TestForeshadowBuryAndPay`、`TestCheckOnlyWhenAsked`、`TestSettingListAndPage` 查软件里的。
+- 要让文案里提到的地方和界面上的名字一字不差：设置左边那一栏叫「AI」，指它一律写「设置中「AI」配置」（「请在设置中「AI」配置里选择写作模型」），菜单里去那儿的一行叫「AI 配置…」；不写界面上没有的「模型设置」。`npm run verify-prototype` 的「no model to write with」查原型那一句，`go test ./desk` 的 `TestCopySaysWhereTheModelsAre` 查软件里的。
 
 别的：
 

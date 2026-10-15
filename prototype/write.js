@@ -293,7 +293,8 @@ function openMenu(ev) {
 const closeFloat = () => set({ ctx: null, bury: null, pay: null, pick: null, tree: null })
 
 // 选回收哪个伏笔时列出来的那些，和眼下选中的那一个：没点过就是头一个。
-const payable = () => { const q = S.pay.q.trim(); return S.marks.filter((m) => (m.st === 'open' || m.st === 'done') && (!q || m.note.includes(q) || m.quote.includes(q))) }
+// 能在这一章回收的：这一章和它前面埋下的。后面才埋的还没有，不列。
+const payable = () => { const q = S.pay.q.trim(), here = chapterOf(S.ch).no; return S.marks.filter((m) => (m.st === 'open' || m.st === 'done') && m.ch <= here && (!q || m.note.includes(q) || m.quote.includes(q))) }
 const payPick = () => { const can = payable(); return can.some((m) => m.id === S.pay.id) ? S.pay.id : can.length ? can[0].id : '' }
 
 // 问「选择要回收的伏笔」。id 是先选好的那条，从右键菜单来的没有。
@@ -444,6 +445,7 @@ function rare() {
     ...(aiOn() ? aiRare(here) : []),
     ['备份文件夹丢失', failBackup('dir')],
     ['备份文件夹不可写', failBackup('deny')],
+    [S.narrow ? '窗口恢复原宽' : '窗口变窄', () => set((s) => ({ narrow: !s.narrow, ...SHUT }))],
     ['添加的文件夹中没有作品', () => { set(SHUT); say('该文件夹中没有作品（缺少 work.yaml）', 'D:\\下载\\新建文件夹', 'fail') }],
   ]
 }
@@ -452,6 +454,7 @@ function aiRare(here) {
   const why = '无法连接模型服务'
   return [
     ['本章检查失败', here((s) => ({ failed: { ...s.failed, [s.ch]: why } }))],
+    ['未选择写作模型', here((s) => ({ failed: { ...s.failed, [s.ch]: '请在设置中「AI」配置里选择写作模型' } }))],
     ['本章摘要生成失败', here((s) => ({ box: '摘要', summaries: { ...s.summaries, [s.ch]: { ...(s.summaries[s.ch] || { text: '' }), busy: false, fail: why } } }))],
     ['本章过长，仅读取前文', here((s) => ({ box: '摘要', part: { ...s.part, [s.ch]: { check: 5000, sum: 9000 } }, never: { ...s.never, [s.ch]: false }, failed: { ...s.failed, [s.ch]: '' }, dirty: { ...s.dirty, [s.ch]: false },
       summaries: { ...s.summaries, [s.ch]: { text: (s.summaries[s.ch] || {}).text || BOOK.recap, by: 'AI 生成 · Opus 5.5 · 刚刚' } } }))],
@@ -496,7 +499,6 @@ function swapBook() {
 }
 
 const counted = (c) => Number(sizeOf(c).replace(/,/g, ''))
-const chapterName = (c) => (numbered(c) ? '第' + c.no + '章' : c.t)
 
 // 查一章，或者排着队一章一章查。查完的不再算没查过、改过、没查成。
 function checkNow(...keys) {
@@ -517,13 +519,13 @@ function pending() {
   const list = []
   for (const c of aiOn() ? S.checks : []) {
     const ch = chapterOf(c.key)
-    list.push({ id: c.id, group: '设定不一致', name: c.kind === '新出现' ? '「' + c.title + '」尚未加入设定' : c.title, about: ch ? chapterName(ch) : '', key: c.key, open: () => set({ page: 'check', kind: '全部', cid: c.id, ...SHUT }) })
+    list.push({ id: c.id, group: '设定不一致', name: c.kind === '新出现' ? '「' + c.title + '」尚未加入设定' : c.title, about: ch ? titleOf(ch) : '', key: c.key, open: () => set({ page: 'check', kind: '全部', cid: c.id, ...SHUT }) })
   }
   for (const m of S.marks) {
     const gap = BOOK.now - m.ch
     const open = () => set({ paneOpen: true, focus: false, tab: '伏笔', fid: m.id, fv: 'list', renote: null, ...SHUT })
-    if (m.st === 'lost') list.push({ id: m.id, group: '伏笔', name: '「' + nameOf(m) + '」原句已删', about: '第' + m.ch + '章', key: m.key, open })
-    if (m.st === 'open' && gap >= S.late) list.push({ id: m.id, group: '伏笔', name: '「' + nameOf(m) + '」' + gap + ' 章未回收', about: '第' + m.ch + '章 埋下', key: m.key, open })
+    if (m.st === 'lost') list.push({ id: m.id, group: '伏笔', name: '「' + nameOf(m) + '」原句已删', about: chTitle(m.key), key: m.key, open })
+    if (m.st === 'open' && gap >= S.late) list.push({ id: m.id, group: '伏笔', name: '「' + nameOf(m) + '」' + gap + ' 章未回收', about: chTitle(m.key) + ' 埋下', key: m.key, open })
   }
   if (S.backup.state === 'fail') list.push({ id: 'backup', group: '备份', name: '备份失败，' + backupWhy()[0], about: '点击重试 · 上次备份 ' + S.backup.at, key: '', open: backupNow })
   return list.filter((x) => !S.ignored.includes(x.id))
@@ -554,13 +556,26 @@ function sidebar() {
   const talkRow = (talk) => `<div class="tree-row hit${open(talk) ? ' on' : ''}${S.shelved[talk.id] ? ' put' : ''}"${onClick(() => set({ page: 'talk', tv: 'one', tid: talk.id, draft: '' }))}${menu(talk.id, true)}><div class="fit ell">${t(talk.title)}</div><div class="count">${t(talk.at)}</div></div>`
   const b = S.backup
   const backupLine = { ok: '已备份 · ' + b.at, busy: '正在备份…', fail: '备份失败', none: '尚未备份' }[b.state]
+  // 点作品名出来的菜单：这一部在最上，再是别的几部。
+  const bookMenu = S.open !== 'book' ? '' : `<div class="pop"><div class="pop-label">作品</div><div class="pop-row row on"><div class="grow">${t(book.name)}</div><div class="side">${t(book.kind)}</div></div>` + others.map((o) => menuRow(o.name, () => openBook(o.id), '', o.kind)).join('') + HAIR +
+    menuRow('新建作品…', () => set({ page: 'shelf', dialog: { kind: 'newBook', name: '', type: BOOK.kinds[0] }, ...SHUT })) + menuRow('全部作品…', () => set({ page: 'shelf', ...SHUT })) + '</div>'
+  // 窗口窄了，讨论要留出能读的宽度：侧栏收成一列图标。列章节的时候不收，树要那么宽。
+  const tree = S.page === 'write' || !aiOn() // AI 关着时没有讨论，哪一页都列章节
+  if (S.narrow && !tree) {
+    return '<div class="sidebar slim" data-k="sidebar">' +
+      `<div class="sidebar-top"><div class="anchor"><div class="book hit" title="切换作品"${onClick(() => set({ open: S.open === 'book' ? '' : 'book' }))}><div class="book-logo">${t(book.name[0])}</div></div>` +
+      bookMenu + '</div></div>' +
+      `<div class="navs">${nav.map(([name, pic, page]) => `<div class="nav hit${S.page === page ? ' on' : ''}" title="${name}"${onClick(to[page])}>${icon(pic)}</div>`).join('')}</div>` +
+      `<button class="icon-btn muted" aria-label="新对话" title="新对话"${onClick(() => set({ page: 'talk', tv: 'new', tid: null, draft: '' }))}>${ICON.plus}</button><div class="grow"></div>` +
+      `<div class="sidebar-end"><div class="bin hit" title="回收站" data-keep${onClick(() => set({ dialog: { kind: 'bin', sure: '' }, ...SHUT }))}>${icon('bin')}</div><div class="gear hit" title="设置" data-keep${onClick(() => set({ dialog: { kind: 'settings', tab: 'AI', edit: '' }, ...SHUT }))}>${icon('gear')}</div></div>` +
+      '</div>'
+  }
 
   return '<div class="sidebar" data-k="sidebar">' +
     `<div class="sidebar-top"><div class="anchor wide"><div class="book hit" title="切换作品"${onClick(() => set({ open: S.open === 'book' ? '' : 'book' }))}><div class="book-logo">${t(book.name[0])}</div><div class="book-name">${t(book.name)}</div>${icon('down', 'sm', 'faint')}</div>` +
-    (S.open === 'book' ? `<div class="pop"><div class="pop-label">作品</div><div class="pop-row row on"><div class="grow">${t(book.name)}</div><div class="side">${t(book.kind)}</div></div>` + others.map((o) => menuRow(o.name, () => openBook(o.id), '', o.kind)).join('') + HAIR +
-      menuRow('新建作品…', () => set({ page: 'shelf', dialog: { kind: 'newBook', name: '', type: BOOK.kinds[0] }, ...SHUT })) + menuRow('全部作品…', () => set({ page: 'shelf', ...SHUT })) + '</div>' : '') + '</div></div>' +
+    bookMenu + '</div></div>' +
     `<div class="navs">${nav.map(([name, pic, page]) => `<div class="nav hit${S.page === page ? ' on' : ''}"${onClick(to[page])}>${icon(pic)}<div class="grow">${name}</div>${page === 'check' && S.checks.length ? `<div class="count">${S.checks.length}</div>` : ''}</div>`).join('')}</div>` +
-    (S.page === 'write' || !aiOn() // AI 关着时没有讨论，哪一页都列章节
+    (tree
       ? `<div class="tree-head"><div>章节</div><div class="tree-head-buttons"><button aria-label="新建文件夹" title="新建文件夹"${onClick(newFolder)}>${svg('icon-sm', SHAPE.folder + path('M12 10.5v5M9.5 13h5'))}</button><button aria-label="新建章节" title="新建章节（Ctrl+N）"${onClick(newChapter)}>${ICON.plus}</button></div></div>` +
         `<div class="tree scroll">${S.volumes.map(volume).join('')}${listed.filter((c) => !c.vol).map(leaf).join('')}</div>`
       : `<div class="tree-head"><div>总讨论</div><div class="tree-head-buttons"><button aria-label="新对话" title="新对话"${onClick(() => set({ page: 'talk', tv: 'new', tid: null, draft: '' }))}>${ICON.plus}</button></div></div>` +
@@ -746,12 +761,12 @@ function sheets() {
 }
 
 // 一章太长、AI 只读了前面一段时，那一行字上的说明。
-const PART = '后文超出上下文预算，可在设置中提高预算'
+const PART = '后文超出上下文预算，可在设置中「AI」配置里提高预算'
 
 // 正文下面那一行：检查到哪了、什么时候查，右边是字数。AI 关着时只有字数。
 function foot(cur, vol) {
   if (!cur || !aiOn()) return `<div class="foot"><div class="grow"></div>${wordsOf(cur, vol)}</div>` // 检查要用 AI
-  const n = S.checks.filter((c) => c.key === cur.key).length, dirty = S.dirty[cur.key], name = numbered(cur) ? '第' + cur.no + '章' : '本章'
+  const n = S.checks.filter((c) => c.key === cur.key).length, dirty = S.dirty[cur.key], name = '本章'
   const part = (S.part[cur.key] || {}).check // 太长，只查了前面这么多字：不能说成全章查完了
   const seeAll = () => set({ page: 'check', kind: '全部', cid: S.checks.find((c) => c.key === cur.key).id })
   // 这一章查到哪了，和现在能不能点「立即检查」。
@@ -870,11 +885,12 @@ function floats() {
   if (S.pay) {
     const q = S.pay.q.trim()
     const can = payable(), id = payPick()
-    const meta = (m) => (m.pay ? '第' + m.ch + '章埋下，第' + m.pay.ch + '章回收' : '第' + m.ch + '章 · ' + (BOOK.now - m.ch > 0 ? BOOK.now - m.ch + ' 章前埋下' : '本章埋下'))
+    const here = chapterOf(S.ch).no // 「N 章前」从回收的这一章往前数
+    const meta = (m) => (m.key === S.ch ? (m.pay ? '本章 · 已回收' : '本章埋下') : chTitle(m.key) + ' · ' + (m.pay ? '已回收' : Math.max(here - m.ch, 0) + ' 章前埋下'))
     return veiled + `<div class="float pay" data-k="pay" style="${by(380, 340, S.pick)}"><div class="float-head">${icon('link', 'sm')}选择要回收的伏笔</div>` +
       `<div class="pay-find">${typed(S.pay.q, (v) => set({ pay: { q: v, id } }), '搜索备注或原句', '查找伏笔', keys(() => payNow(id), () => set({ pay: null, pick: null })) + ' autofocus')}</div>` +
       (can.length ? '' : `<div class="pay-none">${q ? '没有匹配的伏笔' : '暂无已埋下的伏笔。请先选中一句，右键选择「记为伏笔」。'}</div>`) +
-      `<div class="pay-list scroll">${can.map((m) => `<div class="pay-row row${m.id === id ? ' on' : ''}"${onClick(() => set((s) => ({ pay: { ...s.pay, id: m.id } })))}><div class="pay-name ell">${t(nameOf(m))}</div><div class="pay-meta">${meta(m)}</div></div>`).join('')}</div>` +
+      `<div class="pay-list scroll">${can.map((m) => `<div class="pay-row row${m.id === id ? ' on' : ''}"${onClick(() => set((s) => ({ pay: { ...s.pay, id: m.id } })))}><div class="pay-name ell">${t(nameOf(m))}</div><div class="pay-meta ell">${t(meta(m))}</div></div>`).join('')}</div>` +
       `<div class="float-end">${button('取消', closeFloat)}<div class="btn hit primary${id ? '' : ' off'}" title="确定回收"${onClick(() => payNow(id))}>记为回收</div></div></div>`
   }
 

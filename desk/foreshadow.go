@@ -71,15 +71,19 @@ func (f foreshadow) name() string {
 	return clip(f.quote, 24)
 }
 
-// meta tells where it was buried and how long ago, as the list does.
-func (f foreshadow) meta() string {
+// meta tells where it was buried and how long before chapter here, which
+// pays it off, as the picker lists it; the chapter open is 本章.
+func (f foreshadow) meta(here int) string {
+	paid := len(f.pays) > 0
 	switch {
-	case len(f.pays) > 0:
-		return fmt.Sprintf("第%d章埋下，第%d章回收", f.ch, f.pays[0].ch)
-	case f.gap == 0:
-		return fmt.Sprintf("第%d章 · 本章埋下", f.ch)
+	case f.here && paid:
+		return "本章 · 已回收"
+	case f.here:
+		return "本章埋下"
+	case paid:
+		return f.title + " · 已回收"
 	}
-	return fmt.Sprintf("第%d章 · %d 章前埋下", f.ch, f.gap)
+	return fmt.Sprintf("%s · %d 章前埋下", f.title, max(here-f.ch, 0))
 }
 
 // foreState is what the foreshadowings' column and popovers show.
@@ -220,20 +224,30 @@ func (a *App) pay(id string) {
 	w.ed.Focus()
 }
 
-// candidates are the foreshadowings a passage may pay off, those matching
-// the search: all but the lost and the dropped.
-func (a *App) candidates() []foreshadow {
-	q := strings.TrimSpace(a.write.fore.payQuery)
-	var out []foreshadow
+// candidates are the foreshadowings a passage of the chapter open may pay
+// off, those matching the search: all buried in it or before it but the
+// lost and the dropped. here counts the chapters up to the open one.
+func (a *App) candidates() (out []foreshadow, here int) {
+	w := &a.write
+	q := strings.TrimSpace(w.fore.payQuery)
+	n := 0
+	w.tree.Walk(func(nd *workspace.Node, _ int) {
+		if !nd.Folder {
+			n++
+			if nd.ID == w.node {
+				here = n
+			}
+		}
+	})
 	for _, f := range a.foreshadows() {
-		if st := f.status(); st == foreLost || st == foreDropped {
+		if st := f.status(); st == foreLost || st == foreDropped || f.ch > here {
 			continue
 		}
 		if q == "" || strings.Contains(f.note, q) || strings.Contains(f.quote, q) {
 			out = append(out, f)
 		}
 	}
-	return out
+	return out, here
 }
 
 // editMark changes the mark of id in chapter node as fn does, removing it
@@ -430,7 +444,7 @@ func (a *App) forePopover(c *ui.Context) {
 		})
 		return
 	}
-	list := a.candidates()
+	list, here := a.candidates()
 	if !slices.ContainsFunc(list, func(x foreshadow) bool { return x.id == f.pick }) {
 		f.pick = ""
 		if len(list) > 0 {
@@ -468,7 +482,7 @@ func (a *App) forePopover(c *ui.Context) {
 				}
 				row.Children(func() {
 					ui.Text(c, x.name()).FontSize(fsBody).FontWeight(500).SingleLine().Ellipsis("…").FillWidth()
-					ui.Text(c, x.meta()).FontSize(fsSmall).TextColor(t.TextMuted).SingleLine()
+					ui.Text(c, x.meta(here)).FontSize(fsSmall).TextColor(t.TextMuted).SingleLine().Ellipsis("…").FillWidth()
 				})
 				if row.Clicked() {
 					f.pick = x.id
@@ -535,7 +549,7 @@ func (a *App) foreList(c *ui.Context, all []foreshadow) {
 		counts[f.status()]++
 	}
 	row := func(f foreshadow) {
-		side := fmt.Sprintf("第 %d 章", f.ch)
+		side := f.title
 		if f.here {
 			side = "本章"
 		}
@@ -669,10 +683,10 @@ func (a *App) foreDetail(c *ui.Context, f foreshadow) {
 				s.renoting, s.renote = true, f.note
 			}
 		}
-		where, link := fmt.Sprintf("第 %d 章埋下", f.ch), "查看原文"
+		where, link := "埋在「"+f.title+"」", "查看原文"
 		switch {
 		case st == foreLost:
-			where = fmt.Sprintf("第 %d 章的原句已删除", f.ch)
+			where = "「" + f.title + "」里的原句已删除"
 			if f.here {
 				link = "" // the chapter is open, and the sentence is not in it
 			}
@@ -707,7 +721,7 @@ func (a *App) foreDetail(c *ui.Context, f foreshadow) {
 			if st != foreDone {
 				break
 			}
-			if a.paneWhere(c, fmt.Sprintf("第 %d 章回收，相隔 %d 章", p.ch, max(p.ch-f.ch, 0)), fmt.Sprintf("看回收-%d", i+1)) {
+			if a.paneWhere(c, fmt.Sprintf("回收在「%s」，相隔 %d 章", p.title, max(p.ch-f.ch, 0)), fmt.Sprintf("看回收-%d", i+1)) {
 				a.showMark(p.node, p.id)
 			}
 			a.paneQuote(c, p.quote, false)
@@ -720,14 +734,14 @@ func (a *App) foreDetail(c *ui.Context, f foreshadow) {
 func (a *App) forePicked(c *ui.Context, f foreshadow) {
 	a.panePage(c, "fore-picked", func() {
 		a.paneTitle(c, f.name(), "", "")
-		where := fmt.Sprintf("第 %d 章埋下", f.ch)
+		where := "埋在「" + f.title + "」"
 		if f.gap > 0 && len(f.pays) == 0 {
 			where += fmt.Sprintf("，已过 %d 章", f.gap)
 		}
 		a.paneWhere(c, where, "")
 		a.paneQuote(c, f.quote, false)
 		for _, p := range f.pays {
-			a.paneNote(c, fmt.Sprintf("第 %d 章已有一处回收", p.ch))
+			a.paneNote(c, "「"+p.title+"」里已有一处回收")
 		}
 	})
 }

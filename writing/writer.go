@@ -47,7 +47,7 @@ type Job struct {
 // Errors the author can act on.
 var (
 	ErrNoOutline = errors.New("章纲是空的：先写下这一章要发生什么，再让 AI 起草")
-	ErrNoModel   = errors.New("还没有选择写作模型：请到“模型设置”里选一个，或者先选讨论模型")
+	ErrNoModel   = errors.New("请在设置中「AI」配置里选择写作模型")
 )
 
 // prepare builds the request of task for scene: the rules and the setting
@@ -97,7 +97,7 @@ func (w *Writer) prepare(op, task string, scene Scene, tail string) (Job, error)
 		outline = part{heading: "【本章：" + n.Title + "】"}
 	}
 	if remaining < 0 {
-		return job, fmt.Errorf("纲和要求超出了上下文预算 %d：请缩短，或到“模型设置”里提高预算", work.TokenBudget)
+		return job, fmt.Errorf("纲和要求超出了上下文预算 %d：请缩短，或在设置中「AI」配置里提高预算", work.TokenBudget)
 	}
 	if t := fit(lastRunes(scene.Before, beforeCap), remaining, true); strings.TrimSpace(t) != "" {
 		take(&near, "【本章前文】", t, fmt.Sprintf("本章前文 %d 字", len([]rune(t))))

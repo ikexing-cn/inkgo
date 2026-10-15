@@ -103,7 +103,7 @@ func (a *App) paneRow(c *ui.Context, label, name, gist, side, find string, waiti
 			ui.RichText(c, marked(gist, find, t.Text)...).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 		}
 		if side != "" {
-			ui.Text(c, side).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Shrink(0)
+			ui.Text(c, side).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1) // a long title is cut, not the name
 		}
 		if waiting {
 			dot(c, a.pal.amber, 6)
@@ -298,18 +298,13 @@ func (a *App) paneField(c *ui.Context, label string, field func()) {
 	})
 }
 
-// chapterNo counts the chapters of the book up to node, from 1, or is 0
-// when the book has no such chapter.
-func (a *App) chapterNo(node string) int {
-	n, at := 0, 0
+// chapterTitle is the title of chapter node, if the book has it.
+func (a *App) chapterTitle(node string) (string, bool) {
+	title, ok := "", false
 	a.write.tree.Walk(func(nd *workspace.Node, _ int) {
-		if nd.Folder {
-			return
-		}
-		n++
-		if nd.ID == node {
-			at = n
+		if !nd.Folder && nd.ID == node {
+			title, ok = nd.Title, true
 		}
 	})
-	return at
+	return title, ok
 }

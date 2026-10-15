@@ -25,23 +25,15 @@ func (a *App) categories(c *ui.Context) {
 				a.pal.hairline(c)
 				for _, cat := range a.Store.Work().Categories {
 					ui.Row(c.Key(cat.Name)).FillWidth().Height(hBar).Padding(0, 4).Gap(14).AlignItems(ui.Center).Children(func() {
-						if a.removeCategory == cat.Name {
-							say := "这个分类下没有设定"
-							if n := counts[cat.Name]; n > 0 {
-								say = fmt.Sprintf("%d 条设定将移到“其他”", n)
-							}
-							ui.Text(c, say).FontSize(fsBody).Grow(1).Shrink(1)
+						// One with entries asks first, as they will move to 其他;
+						// an empty one goes at the click.
+						if a.removeCategory == cat.Name && counts[cat.Name] > 0 {
+							ui.Textf(c, "%d 条设定将移到“其他”", counts[cat.Name]).FontSize(fsBody).Grow(1).Shrink(1)
 							if a.pal.secondary(c, "取消").Clicked() {
 								a.removeCategory = ""
 							}
 							if a.pal.danger(c, "确认删除").Disabled(busy).Clicked() {
-								err := a.Store.RemoveCategory(cat.Name)
-								if err == nil {
-									a.notice = "已删除分类“" + cat.Name + "”"
-									err = a.refresh()
-								}
-								a.removeCategory = ""
-								a.setError(err)
+								a.dropCategory(cat.Name)
 							}
 							return
 						}
@@ -58,7 +50,11 @@ func (a *App) categories(c *ui.Context) {
 							pale(del)
 						}
 						if del.Clicked() {
-							a.removeCategory = cat.Name
+							if counts[cat.Name] > 0 {
+								a.removeCategory = cat.Name
+							} else {
+								a.dropCategory(cat.Name)
+							}
 						}
 					})
 					a.pal.hairline(c)
@@ -105,4 +101,15 @@ func (a *App) saveCategory() error {
 	a.notice = fmt.Sprintf("分类“%s”已保存", name)
 	a.categoryName, a.categoryTarget = "", ""
 	return nil
+}
+
+// dropCategory removes the category name, its entries going to 其他.
+func (a *App) dropCategory(name string) {
+	err := a.Store.RemoveCategory(name)
+	if err == nil {
+		a.notice = "已删除分类“" + name + "”"
+		err = a.refresh()
+	}
+	a.removeCategory = ""
+	a.setError(err)
 }

@@ -148,6 +148,13 @@ body { margin: 0; }
 .bin { flex: 1; height: var(--h-control); display: flex; align-items: center; gap: 10px; padding: 0 10px; border-radius: var(--r-control); font-size: var(--fs-body); color: var(--muted); }
 .gear { width: var(--h-control-sm); height: var(--h-control-sm); flex: none; display: flex; align-items: center; justify-content: center; border-radius: var(--r-control); color: var(--muted); }
 .bin:hover, .gear:hover { background: var(--hover); }
+#win.narrow { width: 1100px; } /* 软件里窗口窄过 1180，侧栏收成一列图标 */
+.sidebar.slim { width: 60px; align-items: stretch; }
+.slim .sidebar-top > .anchor > .pop { width: 212px; }
+.slim .nav { justify-content: center; padding: 0; }
+.slim .sidebar-end { flex-direction: column; gap: 2px; padding-right: 0; }
+.slim .bin { flex: none; width: var(--h-control-sm); height: var(--h-control-sm); padding: 0; justify-content: center; }
+.slim .icon-btn { align-self: center; }
 
 /* 正文：工具栏 */
 .editor { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--bg); }
@@ -277,6 +284,7 @@ body { margin: 0; }
 .item { flex: none; height: var(--h-control); box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 10px; border-radius: var(--r-control); font-size: var(--fs-body); }
 .item .name { flex: 0 1 auto; min-width: 0; }
 .item .about { flex: 1; min-width: 0; font-size: var(--fs-note); color: var(--muted); }
+.item .side { flex: 0 1 auto; min-width: 0; } /* 长的章标题截断，不把名字挤没 */
 .found { color: var(--ink); font-weight: 600; }
 .empty { padding: 20px 10px; display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-body); }
 /* 详情页 */

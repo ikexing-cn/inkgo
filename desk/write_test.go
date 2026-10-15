@@ -660,6 +660,26 @@ func TestNarrowWindowKeepsThePage(t *testing.T) {
 	}
 }
 
+// A window too narrow for the sidebar and a readable talk folds the
+// sidebar to icons; the trash is one of them, over the gear.
+func TestASlimSidebarKeepsTheTrash(t *testing.T) {
+	a, _, _ := writingFixture(t, "雨从傍晚开始下。")
+	a.page = 0
+	tt := ui.NewTester(a.View, 1100, 700)
+	tt.Frame()
+	tt.Frame()
+	if tt.HasText("测试作品") || !tt.HasText("回收站") || !tt.HasText("设置") {
+		t.Fatal("the slim sidebar", tt.Texts())
+	}
+	if err := tt.Click("回收站"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("已删除的章节及其内容暂存于此，恢复后回到原文件夹末尾。") {
+		t.Fatal("the trash did not open", tt.Texts())
+	}
+}
+
 // A snapshot the same as the chapter says so and has nothing to restore.
 func TestASnapshotLikeTheChapter(t *testing.T) {
 	a, tt, _ := writingFixture(t, "第一版。")

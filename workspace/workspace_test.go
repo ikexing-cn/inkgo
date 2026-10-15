@@ -445,6 +445,44 @@ func TestEntryNames(t *testing.T) {
 	}
 }
 
+// The author answers an open entry that asks them something: it becomes
+// the answer, settled, and keeps the question. Only the author answers,
+// and only what is open.
+func TestAnAnswerTakesTheQuestionsPlace(t *testing.T) {
+	s := testStore(t)
+	const q = "林晚怕黑，是不是和她母亲有关？"
+	r := mustRevise(t, s, Revision{By: ByAuthor, Ops: []Op{
+		{Op: OpAdd, Place: PlaceOpen, Category: Other, Text: q},
+		{Op: OpAdd, Place: PlaceBody, Category: "人物", Text: "林晚，修路灯的"},
+	}})
+	id, body := r.Ops[0].Entry, r.Ops[1].Entry
+	mustRevise(t, s, Revision{By: ByAuthor, Ops: []Op{{Op: OpAnswer, Entry: id, Category: "人物", Text: "是。她母亲死在停电的那一夜。", Names: []string{"林晚"}}}})
+	set, err := s.Setting()
+	if err != nil {
+		t.Fatal(err)
+	}
+	e, _ := set.Entry(id)
+	if e.Place != PlaceBody || e.Text != "是。她母亲死在停电的那一夜。" || e.Asked != q || e.Category != "人物" || !e.Author || !slices.Equal(e.Names, []string{"林晚"}) {
+		t.Fatalf("answered %+v", e)
+	}
+	for _, op := range []Op{
+		{Op: OpAnswer, Entry: body, Category: "人物", Text: "x"}, // settled already
+		{Op: OpAnswer, Entry: id, Category: "人物", Text: "x"},   // answered already
+		{Op: OpAnswer, Entry: "nope", Category: "人物", Text: "x"},
+	} {
+		if _, err := s.Revise(Revision{By: ByAuthor, Ops: []Op{op}}); err == nil {
+			t.Errorf("took %+v", op)
+		}
+	}
+	open := []Entry{{ID: "q", Place: PlaceOpen, Category: Other, Text: q}}
+	if _, err := applyOps(open, Revision{By: ByBookkeeper, Ops: []Op{{Op: OpAnswer, Entry: "q", Category: Other, Text: "x"}}}, 1); err == nil {
+		t.Error("the bookkeeper answered")
+	}
+	if _, err := applyOps(open, Revision{By: ByAuthor, Ops: []Op{{Op: OpAnswer, Entry: "q", Category: Other}}}, 1); err == nil {
+		t.Error("an answer without text")
+	}
+}
+
 // What is in sessions/ and is not a session does not keep the work from
 // opening: it is passed over, and left as it is.
 func TestFilesThatAreNotSessionsArePassedOver(t *testing.T) {

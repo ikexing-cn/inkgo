@@ -73,7 +73,7 @@ func TestSettingListAndPage(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("别名 小祥、saki") || !tt.HasText("第 1 章“小祥把左手揣回兜里。”") || !tt.HasText("AI 建议") || !tt.HasText("删除设定") {
+	if !tt.HasText("别名 小祥、saki") || !tt.HasText("「第一章」“小祥把左手揣回兜里。”") || !tt.HasText("AI 建议") || !tt.HasText("删除设定") {
 		t.Fatal("the page", tt.Texts())
 	}
 	if err := tt.Click("采纳-" + ids.about); err != nil {
@@ -103,6 +103,54 @@ func TestSettingListAndPage(t *testing.T) {
 	tt.Frame()
 	if e, _ := a.set.Entry(ids.fresh); e.Place != workspace.PlaceDropped || a.doc.todo || tt.HasText("待确认") {
 		t.Fatal("not ignored", e.Place, a.doc.todo, tt.Texts())
+	}
+}
+
+// What the AI asks the author is answered, not taken: the answer, written
+// in the form, takes the question's place in the setting, which keeps the
+// question beside it.
+func TestAQuestionIsAnswered(t *testing.T) {
+	a, tt, _ := paneFixture(t)
+	const q = "林晚怕黑，是不是和她母亲有关？"
+	r, err := a.Store.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{{Op: workspace.OpAdd, Place: workspace.PlaceOpen, Category: "人物", Text: q}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := r.Ops[0].Entry
+	if err = a.refresh(); err != nil {
+		t.Fatal(err)
+	}
+	a.doc.todo = true
+	tt.Frame()
+	if !tt.HasText(q) || !tt.HasText("回答-"+id) || tt.HasText("采纳-"+id) {
+		t.Fatal("the question", tt.Texts())
+	}
+	if err = tt.Click("回答-" + id); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Frame()
+	if !tt.HasText("回答") || !tt.HasText(q) || tt.HasText("新增设定") || !tt.Focused("设定内容") {
+		t.Fatal("the form", tt.Texts())
+	}
+	const answer = "是。她母亲死在停电的那一夜。"
+	a.doc.text = answer
+	tt.Frame()
+	if err = tt.Click("保存"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	e, _ := a.set.Entry(id)
+	if e.Place != workspace.PlaceBody || e.Text != answer || e.Asked != q || e.Category != "人物" || a.doc.editing != "" {
+		t.Fatalf("answered %+v", e)
+	}
+	if !a.doc.todo || !tt.HasText("2 条 AI 建议") {
+		t.Fatal("back to what waits", tt.Texts())
+	}
+	a.doc.todo, a.doc.shown = false, id
+	tt.Frame()
+	if !tt.HasText(answer) || !tt.HasText("回答："+q) {
+		t.Fatal("the entry", tt.Texts())
 	}
 }
 

@@ -53,7 +53,7 @@ func TestSideRowsOnEveryPage(t *testing.T) {
 }
 
 // A category counts the entries the author still has, not the deleted
-// ones; removing one with none says so rather than "0 条".
+// ones; one with none goes at the click, with nothing to move to 其他.
 func TestCategoriesCountWhatIsKept(t *testing.T) {
 	a, tt, _ := writingFixture(t, "")
 	if _, err := a.Store.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{
@@ -83,7 +83,7 @@ func TestCategoriesCountWhatIsKept(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("这个分类下没有设定") {
-		t.Fatal("an empty category", tt.Texts())
+	if tt.HasText("删除-地点") || !tt.HasText("已删除分类“地点”") {
+		t.Fatal("an empty category is asked about", tt.Texts())
 	}
 }

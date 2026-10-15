@@ -65,7 +65,7 @@ const BOOK = {
   ],
 
   // 设定。place：'body' 是设定正文，'open' 是等作者决定的 AI 建议（about 是它说的哪一条，没有就是新设定），
-  // 'dropped' 是已删除。src 是「查看原文」要去的那一句。
+  // 'dropped' 是已删除。src 是「查看原文」要去的那一句。asked 是作者回答的那个提问。
   entries: [
     { id: 'lin', place: 'body', cat: '人物', names: ['林晚', '晚晚', '林林宝'], text: '主角，靠维修路灯谋生，但她很怕黑。她是左撇子，左手虎口有一道疤。' },
     { id: 'zhou', place: 'body', cat: '人物', names: ['周祥', '小祥', 'saki'], text: '配角，林晚的同事。左手总揣在兜里，从来不拿出来。比林晚小三岁，是她带出来的徒弟。', src: { key: '1', quote: '小祥把左手揣回兜里。' } },
@@ -75,6 +75,7 @@ const BOOK = {
     { id: 'i2', place: 'open', cat: '人物', names: [], about: 'zhou', text: '“小祥”是顺口的叫法，谁都能喊；“saki”只有特定圈子里的人才用。' },
     { id: 'i3', place: 'open', cat: '其他', names: [], text: '第一章开头只交代了天气，人物和事件还没出现。' },
     { id: 'i4', place: 'open', cat: '地点', names: [], text: '旧城小学对面有一家钟表铺，老周在那里修表。' },
+    { id: 'i5', place: 'open', cat: '人物', names: [], about: 'lin', text: '林晚怕黑，是不是和她母亲有关？' }, // AI 的提问：问号结尾的，要作者回答
     { id: 'chen', place: 'dropped', cat: '人物', names: ['老陈'], text: '电力局的门卫，早先想让他知道井的事。后来这条线并给了周祥。', src: { key: '2', quote: '老陈把门卫室的灯拧亮。' } },
     { id: 'red', place: 'dropped', cat: '物品', names: ['红色钥匙'], text: '原来设想开的是档案室的门。' },
     { id: 'dark', place: 'dropped', cat: '其他', names: [], text: '旧城每逢初一停电一整夜。' },
@@ -148,7 +149,7 @@ const BOOK = {
   // 名字有误的：right 是应该写成什么。新出现的：as 是可以记成的设定，cat 是分类。
   checks: [
     { id: 'c1', kind: '不一致', title: '林晚怕黑，却独自走进黑巷', key: '87', para: 5, quote: '她往前走了一步。', entry: 'lin', says: '但她很怕黑',
-      also: [{ at: '第30章', text: '她一个人穿过停电的菜市场，没有停。', note: '已标为「无需修改」' }, { at: '第52章', text: '她摸黑下了地窖，一只手扶着墙。', note: '尚未处理' }] },
+      also: [{ at: '第30章：菜市场', text: '她一个人穿过停电的菜市场，没有停。', note: '已标为「无需修改」' }, { at: '第52章：地窖', text: '她摸黑下了地窖，一只手扶着墙。', note: '尚未处理' }] },
     { id: 'c2', kind: '不一致', title: '周祥左手从不外露，却拿着两根冰棍', key: 'x', para: 2, quote: '小祥买了两根冰棍', entry: 'zhou', says: '左手总揣在兜里，从来不拿出来' },
     { id: 'c3', kind: '名字有误', title: '「周翔」疑为「周祥」', key: '84', para: 5, quote: '周翔', right: '周祥' },
     { id: 'c4', kind: '新出现', title: '何主任', key: '85', para: 0, quote: '何主任让他们把旧城的灯重新数一遍', as: '电力局的主任，档案柜的钥匙挂在他腰上。', cat: '人物', times: 4 },

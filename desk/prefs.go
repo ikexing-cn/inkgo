@@ -2,19 +2,13 @@ package desk
 
 import "github.com/egoist/mygo/ui"
 
-// sideFoot is the bottom of the sidebar: how the backups go, the trash
-// on the writing page, and the gear to the settings.
+// sideFoot is the bottom of the sidebar: how the backups go, the trash,
+// and the gear to the settings; slim, the trash is an icon over the gear.
 func (a *App) sideFoot(c *ui.Context, slim bool) {
 	if a.Store == nil {
 		return
 	}
-	if !slim {
-		a.backupLine(c)
-	}
-	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(4).Padding(0, 4, 0, 0).Shrink(0).Children(func() {
-		if !slim {
-			a.trashRow(c)
-		}
+	gear := func() {
 		color := ui.Color{}
 		if a.bk.prefs {
 			color = a.pal.ink
@@ -26,6 +20,20 @@ func (a *App) sideFoot(c *ui.Context, slim bool) {
 		if b.Clicked() {
 			a.openPrefs(a.bk.tab)
 		}
+	}
+	if slim {
+		ui.Column(c).FillWidth().AlignItems(ui.Center).Gap(2).Shrink(0).Children(func() {
+			if iconButton(c, icTrash, "回收站", ui.Color{}).Tooltip("回收站").KeepFocus().Clicked() {
+				a.openTrash()
+			}
+			gear()
+		})
+		return
+	}
+	a.backupLine(c)
+	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(4).Padding(0, 4, 0, 0).Shrink(0).Children(func() {
+		a.trashRow(c)
+		gear()
 	})
 }
 

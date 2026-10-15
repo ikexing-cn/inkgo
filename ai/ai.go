@@ -140,7 +140,7 @@ func (s *Service) Talk(st *workspace.Store, beside *aiport.Beside, progress func
 	}
 	work := st.Work()
 	if work.Discussion.Provider == "" || work.Discussion.Model == "" {
-		return nil, errors.New("尚未选择讨论模型：请在“模型设置”中选择")
+		return nil, errors.New("尚未选择讨论模型：请在设置中「AI」配置里选择")
 	}
 	client, err := model.NewClient(s.cfg, work.Discussion.Provider, work.Discussion.Model)
 	if err != nil {

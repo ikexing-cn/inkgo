@@ -112,7 +112,7 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 	budget := work.TokenBudget - checkOutput/4 - discussion.Estimate(checkRules) - discussion.Estimate(meant.String()) - 512
 	text := fit(ch.Text, budget*3/4, false)
 	if strings.TrimSpace(text) == "" {
-		return workspace.Check{}, fmt.Errorf("上下文预算 %d 放不下这一章：请到“模型设置”里提高预算", work.TokenBudget)
+		return workspace.Check{}, fmt.Errorf("上下文预算 %d 放不下这一章：请在设置中「AI」配置里提高预算", work.TokenBudget)
 	}
 	if len(text) < len(ch.Text) {
 		out.Read = workspace.Count(text) // said with the result: the rest was not looked at
@@ -146,7 +146,7 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 		}
 	}
 	if len(shown) == 0 {
-		return workspace.Check{}, fmt.Errorf("上下文预算 %d 放不下设定：请到“模型设置”里提高预算", work.TokenBudget)
+		return workspace.Check{}, fmt.Errorf("上下文预算 %d 放不下设定：请在设置中「AI」配置里提高预算", work.TokenBudget)
 	}
 	var categories []string
 	for _, c := range work.Categories {

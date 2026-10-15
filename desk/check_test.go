@@ -39,13 +39,13 @@ func checkFixture(t *testing.T) (*App, *ui.Tester, string, *stream) {
 // page 检查, where the author says what to do about each.
 func TestCheckAChapterAndSettleWhatItFinds(t *testing.T) {
 	a, tt, id, f := checkFixture(t)
-	if !tt.HasText("第1章尚未检查") || !tt.HasText("写完一章后检查 ▴") || tt.HasText("已保存") {
+	if !tt.HasText("本章尚未检查") || !tt.HasText("写完一章后检查 ▴") || tt.HasText("已保存") {
 		t.Fatal(tt.Texts())
 	}
 	if err := tt.Click("立即检查"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the check", func() bool { return tt.HasText("第1章检查完成，有 3 处待处理") })
+	until(t, tt, "the check", func() bool { return tt.HasText("本章检查完成，有 3 处待处理") })
 	if len(f.asked) != 1 || !tt.HasText("待处理 3") || !exists(a, "第一章.check.json") {
 		t.Fatal(len(f.asked), tt.Texts())
 	}
@@ -170,7 +170,7 @@ func TestCheckOnlyWhenAsked(t *testing.T) {
 		t.Fatal(err)
 	}
 	until(t, tt, "the check of the book", func() bool { return tt.HasText("全部 3") })
-	if !tt.HasText("已检查至第1章") || !tt.HasText("重新检查") {
+	if !tt.HasText("已检查至「第一章」") || !tt.HasText("重新检查") {
 		t.Fatal(tt.Texts())
 	}
 	if err := tt.Click("重新检查"); err != nil {
@@ -212,7 +212,7 @@ func TestShotCheck(t *testing.T) {
 	if err := tt.Click("立即检查"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the check", func() bool { return tt.HasText("第1章检查完成，有 3 处待处理") })
+	until(t, tt, "the check", func() bool { return tt.HasText("本章检查完成，有 3 处待处理") })
 	a.ck.whenOpen = true
 	shot("check-foot.png")
 	a.ck.whenOpen = false
@@ -247,7 +247,7 @@ func TestAChapterReadInPartIsToldSo(t *testing.T) {
 	if read <= 0 || read >= 36000 {
 		t.Fatalf("read %d", read)
 	}
-	if want := fmt.Sprintf("第1章仅检查前 %d 字，未发现不一致", read); !tt.HasText(want) || tt.HasText("第1章检查完成，未发现不一致") {
+	if want := fmt.Sprintf("本章仅检查前 %d 字，未发现不一致", read); !tt.HasText(want) || tt.HasText("本章检查完成，未发现不一致") {
 		t.Fatal(want, tt.Texts())
 	}
 
@@ -297,7 +297,7 @@ func TestShowingAChapterKeepsWhatItsCheckFound(t *testing.T) {
 // on hover where the line is cut short.
 func TestAFailedCheckSaysWhyInFull(t *testing.T) {
 	a, tt, id, _ := checkFixture(t)
-	a.ck.failed[id] = "还没有选择写作模型：请到“模型设置”里选一个，或者先选讨论模型"
+	a.ck.failed[id] = "请在设置中「AI」配置里选择写作模型"
 	tt.Frame()
 	line, _, can, tip := a.checkState()
 	if want := "检查失败：" + a.ck.failed[id]; line != want || tip != want || !can {

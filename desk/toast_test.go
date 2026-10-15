@@ -55,7 +55,7 @@ func TestToastOverTheSettings(t *testing.T) {
 // settings open and the toast goes, as in the prototype.
 func TestOpeningTheSettingsFromAToastClearsIt(t *testing.T) {
 	a, tt, _ := fixture(t)
-	a.Error = "尚未选择讨论模型：请在“模型设置”中选择"
+	a.Error = "尚未选择讨论模型：请在设置中「AI」配置里选择"
 	tt.Frame()
 	if err := tt.Click("打开设置"); err != nil {
 		t.Fatal(err)

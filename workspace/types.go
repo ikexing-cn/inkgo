@@ -159,6 +159,9 @@ type Entry struct {
 	// Author is set once the author wrote or edited the entry: the
 	// bookkeeper changes it only on the author's word.
 	Author bool `json:"author,omitempty"`
+	// Asked is the question of the AI's that the entry answers: the
+	// author's answer took the question's place.
+	Asked string `json:"asked,omitempty"`
 	// Rev is the number of the last revision that changed it, from 1.
 	Rev int `json:"-"`
 }
@@ -169,6 +172,10 @@ const (
 	OpEdit = "edit" // Entry's Text, and Sources added to its own
 	OpMove = "move" // Entry to Place, or Category, or both, and Sources added
 	OpName = "name" // Entry's Names, none to clear them
+	// OpAnswer is the author's answer to an open entry that asks them
+	// something: Entry becomes the answer, Text, of Category and Names,
+	// settled, the question kept as its Asked.
+	OpAnswer = "answer"
 )
 
 // NameCategories are the categories whose entries name something: a

@@ -50,7 +50,7 @@ func (w *Writer) Summarize(ctx context.Context, chapter string) (workspace.Summa
 	budget := w.Store.Work().TokenBudget - summaryOutput - discussion.Estimate(summaryRules) - 256
 	text := fit(ch.Text, budget, false)
 	if strings.TrimSpace(text) == "" {
-		return workspace.Summary{}, fmt.Errorf("上下文预算 %d 放不下摘要的要求：请到“模型设置”里提高预算", w.Store.Work().TokenBudget)
+		return workspace.Summary{}, fmt.Errorf("上下文预算 %d 放不下摘要的要求：请在设置中「AI」配置里提高预算", w.Store.Work().TokenBudget)
 	}
 	note, read := "", 0
 	if len(text) < len(ch.Text) {

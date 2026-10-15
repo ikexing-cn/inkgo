@@ -147,7 +147,7 @@ func NewClient(cfg Config, providerID, modelID string) (*Client, error) {
 		}
 		return NewClientWithKey(p, modelID, key, nil)
 	}
-	return nil, fmt.Errorf("本机没有配置提供商 %q，请在模型设置里重新选择", providerID)
+	return nil, fmt.Errorf("本机没有配置提供商 %q，请在设置中「AI」配置里重新选择", providerID)
 }
 
 // NewClientWithKey permits custom transports and credential-free local servers.

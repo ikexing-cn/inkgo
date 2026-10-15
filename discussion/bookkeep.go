@@ -262,6 +262,7 @@ func (b *Bookkeeper) input(set workspace.Setting, bt batch) (string, []string, e
 		Text     string   `json:"text"`
 		Names    []string `json:"names,omitempty"`
 		Author   bool     `json:"author,omitempty"`
+		Asked    string   `json:"asked,omitempty"`
 	}
 	type shownMessage struct {
 		Ref     string `json:"ref"`
@@ -275,7 +276,7 @@ func (b *Bookkeeper) input(set workspace.Setting, bt batch) (string, []string, e
 		Messages   []shownMessage `json:"messages"`
 	}{Categories: categories, Setting: []shownEntry{}}
 	for n, e := range set.Entries {
-		in.Setting = append(in.Setting, shownEntry{fmt.Sprintf("e%d", n+1), e.Place, e.Category, e.Text, e.Names, e.Author})
+		in.Setting = append(in.Setting, shownEntry{fmt.Sprintf("e%d", n+1), e.Place, e.Category, e.Text, e.Names, e.Author, e.Asked})
 	}
 	for n, e := range bt.messages() {
 		who := "ai"
