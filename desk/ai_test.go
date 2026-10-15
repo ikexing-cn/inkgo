@@ -111,7 +111,7 @@ func TestDraftAChapterFromItsOutline(t *testing.T) {
 		t.Fatal(err)
 	}
 	until(t, tt, "the first piece", func() bool { return proposed(a) == "雨下了一夜。" })
-	if !a.write.ed.ReadOnly() || !tt.HasText("AI 正在按章纲起草 · 已写 6 字 · deepseek/deepseek-flash · High") || !tt.HasText("停止") {
+	if !a.write.ed.ReadOnly() || !tt.HasText("AI 正在按章纲起草 · 已写 6 字 · DeepSeek/deepseek-flash · High") || !tt.HasText("停止") {
 		t.Fatal("not read-only while drafting", tt.Texts())
 	}
 	tt.Type("不该进去")
@@ -372,7 +372,7 @@ func TestRewriteASelection(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("改写 · deepseek/deepseek-flash · High · 放慢") {
+	if !tt.HasText("改写 · DeepSeek/deepseek-flash · High · 放慢") {
 		t.Fatal("the AI record is not shown", tt.Texts())
 	}
 }

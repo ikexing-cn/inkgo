@@ -436,8 +436,18 @@ func (a *App) aiBar(c *ui.Context) {
 	}
 }
 
+// modelLabel names the model of r and its effort, the service by its name
+// as the settings show it, not its ID: DeepSeek/deepseek-flash · Default.
 func (a *App) modelLabel(r workspace.AIRecord) string {
-	return r.Model + " · " + a.ai.EffortLabel(r.Effort)
+	name := r.Model
+	if id, m, ok := strings.Cut(name, "/"); ok {
+		for _, p := range a.ai.Providers() {
+			if p.ID == id && p.Name != "" {
+				name = p.Name + "/" + m
+			}
+		}
+	}
+	return name + " · " + a.ai.EffortLabel(r.Effort)
 }
 
 func (a *App) draftView(c *ui.Context) {

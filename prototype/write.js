@@ -365,7 +365,9 @@ function askRewrite() {
   set({ ctx: null, pick: null, bar: null, ai: { kind: 'ask', pick, want: '' } })
   unselect()
 }
+// 改写要写明要求：空着时按钮不可点，回车也不发。
 function rewrite() {
+  if (!S.ai.want.trim()) return
   set((s) => ({ ai: { ...s.ai, kind: 'rewriting' } }))
   later(1200, () => set((s) => (s.ai && s.ai.kind === 'rewriting' ? { ai: { ...s.ai, kind: 'diff', text: BOOK.rewrite, at: Date.now() } } : null)))
 }
@@ -678,7 +680,7 @@ function aiBar() {
   const a = S.ai, [model, effort] = writer()
   if (!a || a.kind === 'ghost' || a.kind === 'ghosting') return ''
   const drop = dropAI
-  if (a.kind === 'ask') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'muted')}<div class="box line fit">${typed(a.want, (v) => set((s) => ({ ai: { ...s.ai, want: v } })), '改写要求，例如：放慢节奏，多写她的犹豫', '改写要求', keys(rewrite, drop) + ' autofocus')}</div>${button('改写', rewrite, 'primary')}<button class="icon-btn muted" aria-label="关闭改写" title="关闭改写"${onClick(drop)}>${icon('cross')}</button></div>`
+  if (a.kind === 'ask') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'muted')}<div class="box line fit">${typed(a.want, (v) => set((s) => ({ ai: { ...s.ai, want: v } })), '改写要求，例如：放慢节奏，多写她的犹豫', '改写要求', keys(rewrite, drop) + ' autofocus')}</div>${button('改写', a.want.trim() ? rewrite : null, a.want.trim() ? 'primary' : 'primary off')}<button class="icon-btn muted" aria-label="关闭改写" title="关闭改写"${onClick(drop)}>${icon('cross')}</button></div>`
   if (a.kind === 'rewriting') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'muted')}<div class="fit ell muted">AI 正在改写选中内容 · ${t(model)}</div>${button('取消', drop)}</div>`
   if (a.kind === 'diff') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'green')}<div class="fit ell muted">红色删除线为原文，绿色为改写。</div>${button('放弃', settled(drop), 'soft')}<div class="hit link"${onClick(settled(rewrite))}>重新改写</div>${button('采纳', settled(takeRewrite), 'primary')}</div>`
   const wrote = a.paras.join('').length
