@@ -55,6 +55,9 @@ function rehang(id) {
 // 点一句示例：填进输入框，由作者自己发出去。
 const offer = (words) => () => { set({ draft: words }); const box = document.querySelector('.send-box .in'); if (box) box.focus() }
 
+// 两处输入框都是 Ctrl+Enter 发出去，回车只是换行：一段话常要分几行写。
+const sendKey = (ev) => { if (ev.key === 'Enter' && ev.ctrlKey && !ev.isComposing) send() }
+
 // 发一句话。右栏的讨论和「讨论」那一页用的是同一份。
 function send() {
   const text = S.draft.trim()
@@ -385,7 +388,7 @@ function discussion() {
       ? `<div class="talk scroll" id="talk">${said(talk)}</div>`
       : `<div class="asks" data-k="asks">${head('示例问题')}${BOOK.asks.map((text) => `<div class="item row"${onClick(offer(text))}><div class="name ell">${t(text)}</div><div class="grow"></div>${ICON.right}</div>`).join('')}</div>`) +
     '<div class="composer" data-k="composer">' +
-    `<div class="box send-box">${S.cite ? cited(S.cite, () => set({ cite: null })) : ''}<div class="send-line">${typed(S.draft, (v) => set({ draft: v }), hint, hint, keys(() => send()))}<div class="send hit${S.draft.trim() && !S.waiting ? '' : ' off'}" title="发送"${onClick(() => send())}>${ICON.send}</div></div></div>` +
+    `<div class="box send-box">${S.cite ? cited(S.cite, () => set({ cite: null })) : ''}<div class="send-line"><textarea class="in" rows="1" placeholder="${hint}，Ctrl+Enter 发送" aria-label="${hint}"${onInput((v) => set({ draft: v }))}${onKey(sendKey)}>${t(S.draft)}</textarea><div class="send hit${S.draft.trim() && !S.waiting ? '' : ' off'}" title="发送（Ctrl+Enter）"${onClick(() => send())}>${ICON.send}</div></div></div>` +
     `<div class="attach-line">${tickbox(S.attach, S.vol ? '附上本卷内容' : '附上本章内容', () => set({ attach: !S.attach }), S.vol ? '将卷纲一并发送给 AI' : '将章纲和光标前约 2000 字一并发送给 AI')}<div class="grow"></div>${modelPick()}</div>` +
     '</div>'
 }

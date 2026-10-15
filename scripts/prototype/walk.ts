@@ -193,10 +193,10 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
 
   // Discussions.
   await click('讨论', 1); await pane('最近'); await click('新讨论'); await pane('示例问题'); await shot('26-new-talk')
-  await click('接下来可以怎么写'); await pane('正在思考…', false); await key('Enter'); await pane('正在思考…'); await pane('取消请求'); await sleep(800); await pane('正在回复…'); await sleep(700); await pane('这是原型'); await pane('正在回复…', false)
-  await type('输入消息', '那下一章呢'); await key('Enter'); await pane('那下一章呢'); must(await js(`document.querySelector('.book').classList.contains('off')`), 'the work can be switched while the AI replies')
+  await click('接下来可以怎么写'); await pane('正在思考…', false); await key('Enter', true); await pane('正在思考…'); await pane('取消请求'); await sleep(800); await pane('正在回复…'); await sleep(700); await pane('这是原型'); await pane('正在回复…', false)
+  await type('输入消息', '那下一章呢'); await key('Enter', true); await pane('那下一章呢'); must(await js(`document.querySelector('.book').classList.contains('off')`), 'the work can be switched while the AI replies')
   await click('作品分类'); await win('设定文档按分类分节'); await win('AI 正在思考…'); await click('正文'); await win('AI 正在思考…', false); await sleep(1500); await pane('先想清楚这一段要做什么'); await shot('27-talk'); await done('the rest free while the AI replies')
-  await type('输入消息', '再说一句'); await key('Enter'); await click('取消请求'); await pane('该消息尚未收到回复'); await pane('正在思考', false); await shot('27b-unanswered'); await click('重试回复'); await pane('该消息尚未收到回复', false); await sleep(1500); await pane('我会先留着')
+  await type('输入消息', '再说一句'); await key('Enter', true); await click('取消请求'); await pane('该消息尚未收到回复'); await pane('正在思考', false); await shot('27b-unanswered'); await click('重试回复'); await pane('该消息尚未收到回复', false); await sleep(1500); await pane('我会先留着')
   await pane('先看设定里和这句话有关的几条', false); await click('思考过程'); await pane('先看设定里和这句话有关的几条'); await shot('27c-thought'); await click('思考过程'); await pane('先看设定里和这句话有关的几条', false); await done('a reply cancelled and asked for again')
   await click('全部讨论'); await pane('接下来可以怎么写'); await click('这一章的节奏怎么样'); await pane('前半段偏慢'); await done('discussions')
 
@@ -287,7 +287,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('重新开始'); await pick(1, '手电在工具箱最底下'); await click('加入设定'); await win('选中的原文将记为出处'); must((await value('设定内容')) === '手电在工具箱最底下', 'what was picked is not in the box'); await click('人物'); await click('物品'); await shot('54-take')
   await click('加入'); await win('已加入设定正文'); await pane('手电在工具箱最底下'); await click('关闭提示'); await click('手电在工具箱最底下'); await pane('「第87章：停电」“手电在工具箱最底下”'); await done('into the setting')
   await menu(3, '姐，你别进去。'); await win('AI 改写…'); await win('Ctrl+L'); await shot('55-menu'); await click('引用到讨论'); await pane('《第87章：停电》'); await pane('姐，你别进去。'); await shot('56-cited')
-  await type('输入想讨论的内容', '这句要不要留'); await key('Enter'); await pane('这句要不要留'); await pane('《第87章：停电》'); await sleep(1500); await pane('这是原型'); await done('to a discussion')
+  await type('输入想讨论的内容', '这句要不要留'); await key('Enter'); await pane('这句要不要留', false); must(await js(`document.querySelector('#pane textarea').placeholder === '输入想讨论的内容，Ctrl+Enter 发送'`), 'the box beside the prose does not say what sends'); await key('Enter', true); await pane('这句要不要留'); await pane('《第87章：停电》'); await sleep(1500); await pane('这是原型'); await done('to a discussion')
   await click('本章检查完成，有 1 处待处理'); await win('其他章节的类似情况'); await click('正文'); must((await drawn('她往前走了一步。')) === 'doubt', 'what the check found is not marked in the prose')
   await click('写完一章后检查 ▴'); await win('检查时机'); await shot('57-when'); await click('手动检查'); await win('手动检查 ▴'); await done('the line under the prose')
 
@@ -305,7 +305,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await win('设定里只写了他是她带出来的徒弟', true); await click('摘取原文', 1); await win('拖选一段原文，作为已确定的设定加入正文。原文不会被修改。'); await win('尚未选中文字'); await click('收起原文'); await win('尚未选中文字', false); await click('摘取原文', 1)
   await js(`(() => { const box = document.querySelector('.source-text'), r = document.createRange(); r.setStart(box.firstChild, 0); r.setEnd(box.firstChild, 18); const s = getSelection(); s.removeAllRanges(); s.addRange(r); box.dispatchEvent(new MouseEvent('mouseup', { bubbles: true })) })()`); await win('已选 18 字'); await shot('58b-source')
   await click('加入设定'); await win('已加入设定正文'); await pane('设定里只写了他是她带出来的徒弟。可以'); await click('关闭提示'); await done('what stands under a reply')
-  await click('新对话'); await win('从一个初步的想法开始'); await shot('59-new-talk-page'); await click('这个故事的冲突在哪'); await win('正在思考…', false); must(await js(`(() => { const b = document.activeElement; return b.tagName === 'TEXTAREA' && b.value === '这个故事的冲突在哪' && b.selectionStart === b.value.length })()`), 'the words offered are not in the box with the caret after them'); await click('发送'); await win('正在思考…'); await sleep(1500); await win('这是原型'); await win('2 条发言')
+  await click('新对话'); await win('从一个初步的想法开始'); await shot('59-new-talk-page'); await click('这个故事的冲突在哪'); await win('正在思考…', false); must(await js(`(() => { const b = document.activeElement; return b.tagName === 'TEXTAREA' && b.value === '这个故事的冲突在哪' && b.selectionStart === b.value.length })()`), 'the words offered are not in the box with the caret after them'); await click('发送（Ctrl+Enter）'); await win('正在思考…'); await sleep(1500); await win('这是原型'); await win('2 条发言')
   await type('讨论输入', '再想想'); await key('Enter', true); await win('3 条发言'); await sleep(500); await win('正在查阅…'); await win('搜了讨论「停电」'); await sleep(1000); await win('先想清楚这一段要做什么'); await done('a new talk on its page')
   await win('记下：待确认 · 情节：小祥改口叫“姐”，是因为他知道井边的事？'); await pane('待确认'); await pane('3 条 AI 建议', false); await click('待确认'); await pane('小祥改口叫“姐”，是因为他知道井边的事？'); await click('全部设定'); await done('what the AI keeps as it talks')
   await click('当前模型'); await win('思考程度'); await shot('60-model'); await click('claude-sonnet-5-5'); await win('思考程度', false); await win('claude-sonnet-5-5'); await click('当前模型'); await click('High'); await click('当前模型'); await click('AI 配置…'); await win('是否使用 AI，以及使用哪些模型。'); await done('the model of a discussion')
@@ -328,7 +328,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('提醒与检查'); await win('当前有 2 个伏笔久未回收。'); await click('增加 5 章'); await click('增加 5 章'); await click('增加 5 章'); await win('45 章'); await win('当前有 1 个伏笔久未回收。'); await click('边写边检查'); await shot('65-reminders')
   await click('备份'); await win('为整部作品另存一份副本，以防设备故障。'); await win('31.2 万字 · 8 章 · 已存 12 份，最早 9 月 28 日'); await shot('66-backup'); await click('立即备份'); await win('正在备份…'); await sleep(1400); await win('今天 10:40 已备份'); await win('已存 13 份')
   await click('写作时每小时一次'); await click('最近 30 份'); await click('最近 90 份'); await win('最近 30 份', false); await click('关闭设置'); await win('为整部作品另存一份副本', false); await click('正文'); await win('边写边检查 ▴'); await done('the look, reminders and backups')
-  await click('设置'); await clear('讨论模型'); await click('关闭设置'); await click('讨论', 1); await click('全部讨论'); await click('新讨论'); await type('输入想讨论的内容', '在吗'); await key('Enter'); await win('请先配置讨论模型'); await sleep(3300); await win('请先配置讨论模型'); await shot('67-no-model'); await click('打开设置'); await win('是否使用 AI，以及使用哪些模型。'); await win('请先配置讨论模型', false); await key('Escape'); await done('no model to talk with')
+  await click('设置'); await clear('讨论模型'); await click('关闭设置'); await click('讨论', 1); await click('全部讨论'); await click('新讨论'); await type('输入想讨论的内容', '在吗'); await key('Enter', true); await win('请先配置讨论模型'); await sleep(3300); await win('请先配置讨论模型'); await shot('67-no-model'); await click('打开设置'); await win('是否使用 AI，以及使用哪些模型。'); await win('请先配置讨论模型', false); await key('Escape'); await done('no model to talk with')
 
   // The check page.
   await click('重新开始'); await click('检查'); await win('已检查至「番外：晴天」'); await win('全部 5'); await win('1 / 5'); await win('设定 · 人物 · 林晚'); await win('其他章节的类似情况'); await shot('68-check')
@@ -569,7 +569,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   // Off while AI is at work: a draft not taken is let go, as a rewrite is; so is a reply, and what the author said stays.
   await click('雨城来信'); await win('第87章：停电'); const before = await paras()
   await click('编辑'); await click('起草本章'); await click('开始起草'); await sleep(850); must(await has('[data-draft]'), 'the draft wrote nothing')
-  await click('讨论', 1); await click('新讨论'); await type('输入想讨论的内容', '灯为什么会灭'); await key('Enter'); await win('正在思考…')
+  await click('讨论', 1); await click('新讨论'); await type('输入想讨论的内容', '灯为什么会灭'); await key('Enter', true); await win('正在思考…')
   await aiOff(); must(await prefTabs() === 'AI 外观 提醒 备份', 'with AI off the settings of a work hold: ' + await prefTabs()); await win('模型服务', false); await win('本作品的模型', false)
   must(await has('.prefs .check.on'), 'the switch is not ticked'); await win('仅在本机生效，适用于所有作品。'); await shot('99g-ai-off')
   await click('提醒'); await win('超过多少章未回收时提醒'); await win('检查正文和设定', false); await click('关闭设置')

@@ -799,7 +799,7 @@ func (a *App) composer(c *ui.Context) {
 	}
 	send := func() {
 		can := a.busy == "" && trim(a.input) != ""
-		send := ui.ButtonBase(c).Size(hControl, hControl).Radius(rRound).Center().Label("发送").Tooltip("发送").Disabled(!can).Shrink(0)
+		send := ui.ButtonBase(c).Size(hControl, hControl).Radius(rRound).Center().Label("发送").Tooltip("发送（"+modKey+"Enter）").Disabled(!can).Shrink(0)
 		bg := a.pal.ink
 		if !can {
 			bg = t.SurfacePressed
@@ -842,11 +842,13 @@ func (a *App) composer(c *ui.Context) {
 			box.Children(func() {
 				quotes()
 				ui.Row(c).FillWidth().Gap(10).AlignItems(ui.End).Children(func() {
+					// Enter is a new line here as on the page: the key that
+					// sends is said, there being no room to show it beside.
 					hint := "输入消息"
 					if !a.hasMessages() {
 						hint = "输入想讨论的内容"
 					}
-					field(hint, 16, 1).Grow(1).Shrink(1)
+					field(hint+"，"+modKey+"Enter 发送", 16, 1).Grow(1).Shrink(1)
 					send()
 				})
 			})

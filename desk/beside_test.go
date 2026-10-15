@@ -42,6 +42,17 @@ func TestTalkBesideTheProse(t *testing.T) {
 	if !tt.HasText("这一章的节奏怎么样") || tt.HasText("右边的设定文档") {
 		t.Fatal("the empty talk is not about the chapter", tt.Texts())
 	}
+	// Enter is a new line here as on the page.
+	if err := tt.Click("讨论输入"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Type("雨")
+	tt.Key(0, ui.KeyEnter)
+	tt.Frame()
+	if a.input != "雨\n" || a.busy != "" {
+		t.Fatalf("Enter in the column: input %q, busy %q", a.input, a.busy)
+	}
+	a.input = ""
 
 	// Dragging the column's edge left widens it; the width is kept once
 	// the author lets go.

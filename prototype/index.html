@@ -343,6 +343,8 @@ body { margin: 0; }
 .composer { flex: none; padding: 0 20px 14px; display: flex; flex-direction: column; gap: 8px; }
 .send-box { border-radius: var(--r-dialog); padding: 10px 10px 10px 14px; flex-direction: column; gap: 8px; font-size: var(--fs-read); }
 .send-line { display: flex; align-items: center; gap: 10px; }
+/* 输入框跟着字长高，最多七行，再多就在框里滚。 */
+.send-box textarea.in { field-sizing: content; max-height: 7lh; }
 .send { flex: none; color: var(--on-ink); width: var(--h-control-sm); height: var(--h-control-sm); border-radius: var(--r-round); background: var(--ink); display: flex; align-items: center; justify-content: center; }
 .attach-line { display: flex; align-items: center; gap: 6px; font-size: var(--fs-note); color: var(--muted); }
 .attach { display: flex; align-items: center; gap: 6px; }
@@ -372,6 +374,7 @@ body { margin: 0; }
 .starts > div:hover { background: var(--hover); color: var(--ink); }
 .composer.big { padding: 0 80px 20px; }
 .composer.big .send-box { padding: 12px 12px 10px 16px; }
+.composer.big textarea.in { min-height: 2lh; }
 .composer.big .send-line { font-size: var(--fs-small); }
 
 /* 「检查」那一页：左边一列要看的，右边是正在看的那一条 */
