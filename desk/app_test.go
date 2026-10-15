@@ -360,7 +360,8 @@ func TestNewWorkDoesNotInheritLastWork(t *testing.T) {
 	if a.path != "" || a.name != "" {
 		t.Fatalf("welcome form kept the last work: %q %q", a.path, a.name)
 	}
-	a.path = filepath.Join(t.TempDir(), "雨城来信")
+	a.openCreate()
+	a.books.at = filepath.Join(t.TempDir(), "雨城来信")
 	if err := a.create(); err != nil {
 		t.Fatal(err)
 	}

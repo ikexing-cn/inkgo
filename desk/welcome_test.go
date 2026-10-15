@@ -120,6 +120,66 @@ func TestShelfKeepsTheWorks(t *testing.T) {
 	b.Close()
 }
 
+// The new-work dialog says what is at the place before the work is made: a
+// folder with files in it is said in red and 创建 cannot be pressed, so the
+// author is not told only after pressing it.
+func TestANewWorkSaysWhereItGoes(t *testing.T) {
+	a, tt, _ := fixture(t)
+	old, empty := filepath.Join(Library(), "旧稿"), filepath.Join(Library(), "空文件夹")
+	for _, dir := range []string{old, empty} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(old, "笔记.txt"), []byte("雨"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	red := func(s string) bool {
+		r, _ := tt.Find(s)
+		img := tt.Image()
+		for y := int(r.Y); y < int(r.Y+r.H); y++ {
+			for x := int(r.X); x < int(r.X+r.W); x++ {
+				if c := img.RGBAAt(x, y); int(c.R) > int(c.G)+60 && int(c.R) > int(c.B)+60 {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	a.openCreate()
+	for _, c := range []struct {
+		name, say string
+		fits      bool
+	}{
+		{"新书", "将新建该文件夹。", true},
+		{"空文件夹", "该文件夹为空，作品将建在其中。", true},
+		{"旧稿", "该文件夹中已有文件，请更换名称或位置。", false},
+	} {
+		a.name = c.name
+		tt.Frame()
+		tt.Frame()
+		if !tt.HasText(c.say) || red(c.say) == c.fits {
+			t.Fatalf("%s: red %v, %q", c.name, red(c.say), tt.Texts())
+		}
+	}
+	if err := tt.Click("创建作品"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !a.books.creating || a.Error != "" || a.Store.Work().Name != "测试作品" {
+		t.Fatal("pressed where there are files:", a.Error)
+	}
+	a.name = "空文件夹"
+	tt.Frame()
+	if err := tt.Click("创建作品"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.books.creating || !sameFolder(a.Store.Root(), empty) {
+		t.Fatal("not made in the empty folder:", a.Error)
+	}
+}
+
 // A work whose folder moved shows greyed until it is found again or taken
 // off; renaming changes its name, not its folder.
 func TestShelfFindsMovedWorks(t *testing.T) {

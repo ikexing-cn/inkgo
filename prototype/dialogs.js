@@ -325,21 +325,24 @@ function keysDialog() {
 function newBookDialog(d) {
   const type = (key) => (v) => set((s) => ({ dialog: { ...s.dialog, [key]: v } }))
   const name = d.name.trim() || '未命名作品', at = (d.at ?? S.library + '\\' + name).trim()
+  // 位置下面说那里是什么；书架上的作品都在作品库里，同名的文件夹里已有文件。
+  const taken = S.shelf.some((b) => S.library + '\\' + b.name === at), fits = at && !taken
+  const where = !at ? '<div class="note">请填写作品位置。</div>' : taken ? '<div class="note danger">该文件夹中已有文件，请更换名称或位置。</div>' : '<div class="note">将新建该文件夹。</div>'
   const create = () => {
-    if (!at) { say('请选择作品位置', '', 'fail'); return }
-    if (S.shelf.some((b) => S.library + '\\' + b.name === at)) { say(at + ' 中已有文件，请更换名称或位置', '', 'fail'); return }
+    if (!fits) return
     const id = 'book' + S.n
     set((s) => ({ shelf: [{ id, name, kind: d.type, words: '暂无正文', at: stamp() }, ...s.shelf], n: s.n + 1, dialog: null }))
     openBook(id)
   }
   return dialog('small', dialogHead('新建作品') + field('作品名称', line(d.name, type('name'), '之后可修改', '作品名称', keys(create) + ' autofocus')) + field('体裁', choose('book-kind', d.type, BOOK.kinds, type('type'), '体裁')) +
-    `<div class="field"><div class="label">位置</div><div class="pick-line"><div class="box line fit">${typed(d.at ?? S.library + '\\' + name, type('at'), '', '作品位置', keys(create))}</div>${button('更改…', osAsk('选择新作品所在的文件夹'))}</div><div class="note">将新建该文件夹；该文件夹须不存在或为空。</div></div>` +
-    buttons(button('取消', shut), button('创建', create, 'primary')))
+    `<div class="field"><div class="label">位置</div><div class="pick-line"><div class="box line fit">${typed(d.at ?? S.library + '\\' + name, type('at'), '', '作品位置', keys(create))}</div>${button('更改…', osAsk('选择新作品所在的文件夹'))}</div>${where}</div>` +
+    buttons(button('取消', shut), button('创建', fits ? create : null, fits ? 'primary' : 'primary off')))
 }
 
 function nameBookDialog(d) {
-  const save = () => { const name = d.name.trim(); if (!name) say('作品名不能为空', '', 'fail'); else set((s) => ({ shelf: s.shelf.map((b) => (b.id === d.id ? { ...b, name } : b)), dialog: null })) }
-  return dialog('small', dialogHead('重命名作品') + line(d.name, (v) => set((s) => ({ dialog: { ...s.dialog, name: v } })), '', '新作品名', keys(save) + ' autofocus') + '<div class="note">仅修改作品名，文件夹不变。</div>' + buttons(button('取消', shut), button('保存', save, 'primary')))
+  const name = d.name.trim()
+  const save = () => { if (name) set((s) => ({ shelf: s.shelf.map((b) => (b.id === d.id ? { ...b, name } : b)), dialog: null })) }
+  return dialog('small', dialogHead('重命名作品') + line(d.name, (v) => set((s) => ({ dialog: { ...s.dialog, name: v } })), '', '新作品名', keys(save) + ' autofocus') + '<div class="note">仅修改作品名，文件夹不变。</div>' + buttons(button('取消', shut), button('保存', name ? save : null, name ? 'primary' : 'primary off')))
 }
 
 const DIALOGS = { backup: backupDialog, settings: settingsDialog, take: takeDialog, source: sourceDialog, draft: draftDialog, snaps: snapsDialog, export: exportDialog, swap: swapDialog, unsaved: unsavedDialog, bin: binDialog, keys: keysDialog, newBook: newBookDialog, nameBook: nameBookDialog }

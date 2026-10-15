@@ -1,7 +1,9 @@
 package desk
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -25,9 +27,12 @@ type shelfView struct {
 	broken  bool // works.json did not read: it is never written over
 	missing map[string]bool
 	// The new-work dialog: where it goes, and whether the author chose it
-	// rather than following the name.
+	// rather than following the name; what is there, as last looked at.
 	creating bool
 	at, auto string
+	looked   string
+	place    string
+	fits     bool
 	// The work being renamed and its new name.
 	renaming, name string
 }
@@ -130,20 +135,38 @@ func (a *App) switchWork(path string) {
 // openCreate starts the new-work dialog.
 func (a *App) openCreate() {
 	a.name, a.genre = "", "网文"
-	a.books.creating, a.books.at, a.books.auto = true, "", ""
+	a.books.creating, a.books.at, a.books.auto, a.books.place = true, "", "", ""
+}
+
+// placeFor says what is at the folder a new work would go in, and whether
+// the work can go there: a folder not made yet, or an empty one.
+func placeFor(dir string) (say string, fits bool) {
+	if dir == "" {
+		return "请填写作品位置。", false
+	}
+	fi, err := os.Stat(dir)
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		return "将新建该文件夹。", true
+	case err == nil && !fi.IsDir():
+		return "该位置是一个文件，请更换名称或位置。", false
+	}
+	f, err := os.Open(dir)
+	if err != nil {
+		return "无法打开该文件夹，请更换名称或位置。", false
+	}
+	defer f.Close()
+	if names, _ := f.Readdirnames(1); len(names) > 0 {
+		return "该文件夹中已有文件，请更换名称或位置。", false
+	}
+	return "该文件夹为空，作品将建在其中。", true
 }
 
 // create makes a work where the dialog says.
 func (a *App) create() error {
-	dir := trim(a.path)
-	if a.books.creating {
-		dir = trim(a.books.at)
-	}
-	if dir == "" {
-		return fmt.Errorf("请选择作品位置")
-	}
-	if entries, err := os.ReadDir(dir); err == nil && len(entries) > 0 {
-		return fmt.Errorf("%s 中已有文件，请更换名称或位置", dir)
+	dir := trim(a.books.at)
+	if say, fits := placeFor(dir); !fits {
+		return errors.New(say)
 	}
 	name := trim(a.name)
 	if name == "" {
@@ -540,6 +563,10 @@ func (a *App) createDialog(c *ui.Context) {
 	if auto := filepath.Join(a.shelf.Library, name); v.at == v.auto {
 		v.at, v.auto = auto, auto
 	}
+	if dir := trim(v.at); dir != v.looked || v.place == "" {
+		v.looked = dir
+		v.place, v.fits = placeFor(dir)
+	}
 	a.modal(c, &v.creating, func() {
 		ui.Column(c).Width(dialogSmall).Padding(dialogPad).Gap(16).Children(func() {
 			a.pal.dialogHead(c, "新建作品", "")
@@ -558,14 +585,17 @@ func (a *App) createDialog(c *ui.Context) {
 						})
 					}
 				})
-				ui.Text(c, "将新建该文件夹；该文件夹须不存在或为空。").FontSize(fsNote).TextColor(t.TextMuted)
+				say := ui.Text(c, v.place).FontSize(fsNote).TextColor(t.TextMuted)
+				if !v.fits && v.looked != "" {
+					say.TextColor(t.Danger)
+				}
 			})
 			ui.Row(c).FillWidth().Gap(8).Children(func() {
 				ui.Spacer(c)
 				if a.pal.secondary(c, "取消").Clicked() {
 					v.creating = false
 				}
-				if a.pal.primary(c, "创建").Label("创建作品").Disabled(trim(v.at) == "").Clicked() {
+				if a.pal.primary(c, "创建").Label("创建作品").Disabled(!v.fits).Clicked() {
 					a.setError(a.create())
 				}
 			})
