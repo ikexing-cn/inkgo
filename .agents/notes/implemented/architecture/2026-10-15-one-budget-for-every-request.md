@@ -20,7 +20,7 @@ Status: implemented
 - `Budget` 是一次请求的空间：`NewBudget(room)` 先留 512 给标题和每条消息的开销；`Take` 放得下才记账，`Must` 不管放不放得下都记账（规则、作者的话、纲这些必须发的），`Return` 退回某一部分。每一部分记在一个名字下。
 - `Sent` 把账写成记录：规则按全文的 SHA-256 前 4 字节记成 8 位十六进制，设定记修订号（`len(Revisions)`），各部分按固定的先后列出估算的 token。只记这些，不存请求全文。
 - 设定只有一种拼法 `Render`：按位置分段，正文按作品分类的顺序、同一分类按加入的顺序，已放弃和悬而未决也按这个顺序。这个顺序只在设定本身变了的地方变，前面的部分缓存照样命中。`Fit` 是装不下时逐条挑：新改的优先，挑中的仍按 `Render` 的顺序发。
-- 条目的写法两种：`Whole` 是全文一行，`Short` 是目录行「分类 · 第一个名字：第一句」，没有名字就是「分类：第一句」。第一句到第一个「。」「；」或换行为止（不含），或到第一个「！」「？」为止（含），超过 60 字截断加「…」。
+- 条目的写法两种：`Whole` 是全文一行，有名字的条目前面是它的全部名字（顿号隔开）和冒号（2026-10-16 加，见 `feature/2026-10-16-hands-on-pass.md`），`Short` 是目录行「分类 · 第一个名字：第一句」，没有名字就是「分类：第一句」。第一句到第一个「。」「；」或换行为止（不含），或到第一个「！」「？」为止（含），超过 60 字截断加「…」。
 
 记录的类型在 `workspace`：`Sent{Rules, Setting, Parts}`、`Part{Name, Tokens}`，部分的名字是 `PartRules`、`PartSetting`、`PartIndex`、`PartDigest`（第 d 步加的）、`PartOutline`、`PartRecap`、`PartTalk`、`PartProse`、`PartInput`，`Parts` 是它们的先后。讨论回复的事件、写作的 `AIRecord`、`.check.json`、`.summary.json` 各多一个 `sent`。
 

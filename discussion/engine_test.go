@@ -211,7 +211,7 @@ func TestContextBudget(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasSuffix(got.Request.System, whole) || len(got.Included) != 2 || got.Included[0] != (workspace.ContextItem{ID: "old", Text: set.Entries[0].Text}) || got.Included[1].Text != "悬而未决："+set.Entries[1].Text {
+	if !strings.HasSuffix(got.Request.System, whole) || len(got.Included) != 2 || got.Included[0] != (workspace.ContextItem{ID: "old", Text: "林晚：" + set.Entries[0].Text}) || got.Included[1].Text != "悬而未决："+set.Entries[1].Text {
 		t.Fatalf("whole: %+v", got.Included)
 	}
 	if s := got.Sent; s.Setting != 2 || s.Part(workspace.PartSetting) != prompt.Estimate(whole) || s.Part(workspace.PartIndex) != 0 || s.Part(workspace.PartRules) != rules || s.Part(workspace.PartInput) == 0 || got.Left != 0 {

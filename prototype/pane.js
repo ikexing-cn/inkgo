@@ -307,7 +307,7 @@ function looked(key, look, running) {
 // 「AI 参考内容」：这次发给 AI 的各部分各约多少 token，附了哪些设定，服务商算的实际用量。
 // 查了东西的一轮前后发了几次请求，说的都是最后一次，写出回复的那次。
 function outgoing(talk, m, i) {
-  // 发出去的是整份设定：正文、已放弃、悬而未决都在，后两种写明是哪一种。目录每条只有分类、第一个名字和第一句。
+  // 发出去的是整份设定：正文、已放弃、悬而未决都在，后两种写明是哪一种；有名字的条目，名字在内容前面。目录每条只有分类、第一个名字和第一句。
   const [input, cached, output] = m.use.at(-1), sent = ['body', 'dropped', 'open'].flatMap((p) => S.entries.filter((e) => e.place === p))
   const label = { body: '', dropped: '已放弃：', open: '悬而未决：' }
   const first = (text) => clip(text.match(/^[^。！？；\n]*[！？]?/)[0], 60)
@@ -316,7 +316,7 @@ function outgoing(talk, m, i) {
   parts.splice(parts.length - 1, 0, ['之前的对话', Math.max(Math.round(input * 0.97) - parts.reduce((n, [, x]) => n + x, 0), 0)])
   const head = S.crowded ? '设定较多，本次只附目录' : '附带全部 ' + sent.length + ' 条设定'
   const rows = S.crowded ? sent.map((e) => `<div class="saw-row"><div class="fit">${t(label[e.place] + e.cat + (e.names[0] ? ' · ' + e.names[0] : '') + '：' + first(e.text))}</div></div>`).join('')
-    : sent.map((e) => `<div class="saw-row">${icon('tick', 'sm', 'green')}<div class="fit">${t(label[e.place] + e.text)}</div></div>`).join('')
+    : sent.map((e) => `<div class="saw-row">${icon('tick', 'sm', 'green')}<div class="fit">${t(label[e.place] + (e.names.length ? e.names.join('、') + '：' : '') + e.text)}</div></div>`).join('')
   return '<div class="reply-saw">' +
     `<div class="saw-title">本次发送约 ${tokens(parts.reduce((n, [, x]) => n + x, 0))} token</div>${m.use.length > 1 ? `<div class="note">这一轮共 ${m.use.length} 次请求，这是最后一次。</div>` : ''}<div class="note">${parts.filter(([, x]) => x).map(([name, x]) => t(name) + ' ' + tokens(x)).join(' · ')}</div>` +
     `<div class="note">实际用量：输入 ${tokens(input)}${cached ? '，其中缓存命中 ' + tokens(cached) : ''}；输出 ${tokens(output)}</div>` +

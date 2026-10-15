@@ -47,8 +47,9 @@ func TestBudgetRecordsItsParts(t *testing.T) {
 }
 
 // The setting reads by category in the work's order, then as entries
-// were added, whatever changed last; the index has each entry's category,
-// first name and first sentence; a budget too small keeps the newest.
+// were added, whatever changed last; whole, an entry has its names before
+// its text; the index has each entry's category, first name and first
+// sentence; a budget too small keeps the newest.
 func TestTheSettingReadsInAStableOrder(t *testing.T) {
 	w := workspace.Work{Categories: workspace.Categories("网文")}
 	set := workspace.Setting{Entries: []workspace.Entry{
@@ -58,7 +59,7 @@ func TestTheSettingReadsInAStableOrder(t *testing.T) {
 		{ID: "d", Place: workspace.PlaceBody, Category: "人物", Text: "周祥是她的徒弟？还是同事。", Rev: 4},
 	}}
 	places := []Place{{Place: workspace.PlaceBody, Heading: "正文："}, {Place: workspace.PlaceDropped, Label: "已放弃", Heading: "已放弃："}}
-	if got, want := Render(w, set, places, nil, Whole), "正文：\n【人物】\n- 林晚怕黑。 她是左撇子。\n- 周祥是她的徒弟？还是同事。\n【物品】\n- 铜钥匙挂在她脖子上。不知道开哪扇门。\n\n已放弃：\n- 林晚会飞"; got != want {
+	if got, want := Render(w, set, places, nil, Whole), "正文：\n【人物】\n- 林晚、晚晚：林晚怕黑。 她是左撇子。\n- 周祥是她的徒弟？还是同事。\n【物品】\n- 铜钥匙：铜钥匙挂在她脖子上。不知道开哪扇门。\n\n已放弃：\n- 林晚会飞"; got != want {
 		t.Fatalf("whole:\n%s", got)
 	}
 	if got, want := Render(w, set, places, nil, Short), "正文：\n【人物】\n- 人物 · 林晚：林晚怕黑\n- 人物：周祥是她的徒弟？\n【物品】\n- 物品 · 铜钥匙：铜钥匙挂在她脖子上\n\n已放弃：\n- 人物：林晚会飞"; got != want {

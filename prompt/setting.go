@@ -17,8 +17,14 @@ type Place struct {
 // Line is an entry as a request shows it.
 type Line func(workspace.Entry) string
 
-// Whole is an entry's text, on one line.
-func Whole(e workspace.Entry) string { return OneLine(e.Text) }
+// Whole is an entry on one line: its names, if it has any, then its text,
+// as the text of an entry under a name need not say the name.
+func Whole(e workspace.Entry) string {
+	if len(e.Names) == 0 {
+		return OneLine(e.Text)
+	}
+	return strings.Join(e.Names, "、") + "：" + OneLine(e.Text)
+}
 
 // Short is an entry in an index: its category, its first name, and its
 // first sentence.
