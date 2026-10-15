@@ -194,7 +194,7 @@ func (a *App) addBook(path string) {
 		return
 	}
 	if a.shelf.Find(path) >= 0 {
-		a.notice = "该作品已在书架上"
+		a.hint = "该作品已在书架上"
 		return
 	}
 	b, err := describe(path)

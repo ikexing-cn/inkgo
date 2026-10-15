@@ -90,7 +90,7 @@ func (a *App) turnAI(on bool) {
 		w := &a.write
 		w.draftOpen, w.summaryOpen = false, false
 		a.doc.todo = false // what waits on the author there is the AI's
-		a.Error, a.failed, a.fails, a.again, a.notice = "", "", 0, nil, ""
+		a.Error, a.failed, a.fails, a.again, a.notice, a.hint = "", "", 0, nil, "", ""
 	}
 	if ed := a.write.ed; ed != nil {
 		ed.SetNoAI(!on)

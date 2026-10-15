@@ -119,6 +119,19 @@ func TestToastsFold(t *testing.T) {
 	}
 }
 
+// A word on what to do first has no mark: it is neither done nor wrong.
+func TestAHintHasNoMark(t *testing.T) {
+	a, tt, _ := fixture(t)
+	a.notice, a.hint = "已经存好", "请先选中"
+	tt.Frame()
+	tt.Frame()
+	done, ok := tt.Find("已经存好")
+	hint, ok2 := tt.Find("请先选中")
+	if !ok || !ok2 || hint.X > done.X-iconMd {
+		t.Fatal(done, hint, tt.Texts())
+	}
+}
+
 // TestShotToasts writes screenshots of the toasts when SHOT is a directory:
 // SHOT=dir go test ./desk -run ShotToasts
 func TestShotToasts(t *testing.T) {

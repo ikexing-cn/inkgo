@@ -452,17 +452,6 @@ func TestNewWorkKeepsTheModels(t *testing.T) {
 // a service chosen without a model waits for one, unsaved.
 func TestIncompleteFormsExplainInChinese(t *testing.T) {
 	a, _, _ := fixture(t)
-	check := func(name string, err error) {
-		t.Helper()
-		if err == nil {
-			t.Fatalf("%s: accepted", name)
-		}
-		for _, field := range []string{"discussion:", "writing:", "categories:"} {
-			if strings.Contains(err.Error(), field) {
-				t.Fatalf("%s: store error leaked: %v", name, err)
-			}
-		}
-	}
 	was := a.Store.Work()
 	a.talkProvider, a.talkModel = "deepseek", ""
 	a.penProvider, a.penModel = "deepseek", ""
@@ -477,8 +466,12 @@ func TestIncompleteFormsExplainInChinese(t *testing.T) {
 	if err := a.saveUsage(); err != nil || a.Store.Work().Writing.Model != "deepseek-v4-pro" {
 		t.Fatalf("complete: %v %+v", err, a.Store.Work().Writing)
 	}
+	// A category without its target is not saved, and is told as what is
+	// left to fill in, not as a failure.
 	a.categoryName, a.categoryTarget = "伏笔", ""
-	check("category target", a.saveCategory())
+	if err := a.saveCategory(); err != nil || a.hint != "请填写落点，例如“设定库”或“大纲”" || len(a.Store.Work().Categories) != len(was.Categories) {
+		t.Fatalf("category target: %v %q", err, a.hint)
+	}
 }
 
 func TestMarkdownBlocks(t *testing.T) {

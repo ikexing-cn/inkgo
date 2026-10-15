@@ -244,8 +244,8 @@ func TestCheckOnlyWhenAsked(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if len(f.asked) != 1 || a.notice != "各章均已检查，正文无新改动" {
-		t.Fatal(len(f.asked), a.notice)
+	if len(f.asked) != 1 || a.hint != "各章均已检查，正文无新改动" {
+		t.Fatal(len(f.asked), a.hint)
 	}
 
 	// The choice is kept with the work.

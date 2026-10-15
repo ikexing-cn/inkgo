@@ -124,7 +124,7 @@ function toBin(key) {
       ...(to === on ? {} : chapters.some((c) => c.key === to) ? { ch: to, vol: '' } : { ch: '', vol: to, ...CLEAR }),
     }
   })
-  say('「' + title + '」已移到回收站')
+  say('「' + title + '」已移到回收站', '', 'ok')
 }
 
 // ───────── 动作：在正文里打字 ─────────
@@ -429,14 +429,14 @@ function recap(key) {
 // Ctrl+S：马上存。AI 写的还没采纳，不在正文里，不用等它。
 function saveNow() {
   set({ saved: true })
-  say('已保存', '停笔片刻也会自动保存')
+  say('已保存', '停笔片刻也会自动保存', 'ok')
 }
 
 // 软件外面改了开着的这一章：留磁盘上的还是编辑器里的，另一边存成快照。
 function settleOutside(disk) {
   const key = S.ch
   set((s) => ({ outside: '', ...snap(s, key, '外部改动'), ...(disk ? retype(s, key, (paras) => [...paras, BOOK.outside]) : {}) }))
-  say(disk ? '已采用磁盘版本，编辑器原内容已存为快照' : '已保留编辑器版本，磁盘内容已存为快照')
+  say(disk ? '已采用磁盘版本，编辑器原内容已存为快照' : '已保留编辑器版本，磁盘内容已存为快照', '', 'ok')
 }
 // 软件外面把开着的这一章删了、改名了：编辑器里的字存成一章新的。
 function saveLost() {
@@ -444,7 +444,7 @@ function saveLost() {
     const c = chapterOf(s.ch)
     return { outside: '', chapters: [...s.chapters.filter((x) => x !== c), { ...c, vol: '' }] }
   })
-  say('已存为新章节，位于最上层末尾')
+  say('已存为新章节，位于最上层末尾', '', 'ok')
 }
 
 // 让备份换一种没成功的样子。
@@ -522,7 +522,7 @@ function swapAll() {
   const { q, to } = S.find, n = hits(chapterOf(S.ch), q).length
   if (!n) return
   set((s) => oneStep(s, s.ch, (paras) => paras.map((p) => p.split(q).join(to))))
-  say('已替换 ' + n + ' 处，可撤销')
+  say('已替换 ' + n + ' 处，可撤销', '', 'ok')
 }
 function swapBook() {
   const { q, to } = S.dialog, had = S.chapters.filter((c) => hits(c, q).length)
@@ -532,7 +532,7 @@ function swapBook() {
     for (const c of had) next = { ...next, ...snap(next, c.key, '全书替换前'), ...retype(next, c.key, (paras) => paras.map((p) => p.split(q).join(to))) }
     return next
   })
-  say('已在 ' + had.length + ' 章中替换 ' + n + ' 处，各章替换前的版本已存入快照')
+  say('已在 ' + had.length + ' 章中替换 ' + n + ' 处，各章替换前的版本已存入快照', '', 'ok')
 }
 
 const counted = (c) => Number(sizeOf(c).replace(/,/g, ''))
@@ -900,7 +900,7 @@ function floats() {
     const addName = (cat) => () => {
       set((s) => ({ ctx: null, pick: null, entries: [...s.entries, { id: 'e' + s.n, place: 'body', cat, names: [name], text: name }], n: s.n + 1, log: did(s, '新增到正文 · ' + cat + '：' + name) }))
       unselect()
-      say('「' + name + '」已加入设定的' + cat + '，输入时可自动补全')
+      say('「' + name + '」已加入设定的' + cat + '，输入时可自动补全', '', 'ok')
     }
     const names = !name || name.length > 12 ? menuRow('加入名字表', null)
       : S.entries.some((e) => e.place !== 'dropped' && e.names.includes(name)) ? menuRow('已在名字表中', null)

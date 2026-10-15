@@ -53,10 +53,10 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 		t.Fatalf("from the next chapter %+v", f)
 	}
 	a.openPay("") // nothing selected: nothing to pay off with
-	if w.fore.paying || a.notice == "" {
+	if w.fore.paying || a.hint == "" {
 		t.Fatal("paying off without a passage")
 	}
-	a.notice = "" // the notice floats over the top of the column
+	a.hint = "" // the hint floats over the top of the column
 	w.ed.Select(0, 18)
 	a.openPay("")
 	tt.Frame()
@@ -194,9 +194,9 @@ func TestForeshadowLost(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	a.notice = ""
+	a.hint = ""
 	a.rehang(f)
-	if a.notice == "" {
+	if a.hint == "" {
 		t.Fatal("hung on nothing")
 	}
 	text := w.ed.Doc.String()

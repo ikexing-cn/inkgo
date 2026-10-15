@@ -95,11 +95,11 @@ function saveCat() {
   if (!name) { say('分类名称不能为空'); return }
   if (!land) { say('请填写落点，例如“设定库”或“大纲”'); return }
   set((s) => ({ cats: s.cats.includes(name) ? s.cats : [...s.cats.filter((c) => c !== '其他'), name, '其他'], lands: { ...s.lands, [name]: land }, catForm: { name: '', land: '' } }))
-  say('分类“' + name + '”已保存')
+  say('分类“' + name + '”已保存', '', 'ok')
 }
 function dropCat(name) {
   set((s) => ({ cats: s.cats.filter((c) => c !== name), entries: s.entries.map((e) => (e.cat === name ? { ...e, cat: '其他' } : e)), catDrop: '' }))
-  say('已删除分类“' + name + '”')
+  say('已删除分类“' + name + '”', '', 'ok')
 }
 
 // 删除分类：有设定的先问一句（设定要移到「其他」），空的直接删。
@@ -127,7 +127,7 @@ const osAsk = (what) => () => say('原型不会打开系统窗口', '软件中�
 function addBook() {
   if (S.shelf.some((b) => b.id === 'found')) { say('该作品已在书架上'); return }
   set((s) => ({ shelf: [...s.shelf, { id: 'found', name: BOOK.found, kind: '出版小说', words: '2.1 万字', at: '尚未打开' }] }))
-  say('已加入书架', BOOK.found)
+  say('已加入书架', BOOK.found, 'ok')
 }
 
 // 换一本书：外观、书架、设置里的东西带过去，别的照那本书刚打开的样子。
@@ -142,7 +142,7 @@ function shelfPage() {
   const about = (b) => b.kind + ' · ' + b.words
   const more = (b) => `<div class="anchor"><button class="icon-btn muted" aria-label="更多操作" title="更多操作"${onClick(() => set({ open: S.open === 'book-' + b.id ? '' : 'book-' + b.id }))}>${ICON.dots}</button>` +
     (S.open === 'book-' + b.id ? '<div class="pop shelf-pop">' + menuRow('打开所在文件夹', () => { set(SHUT); osAsk('在资源管理器中显示这部作品的文件夹')() }) + menuRow('重命名…', () => set({ dialog: { kind: 'nameBook', id: b.id, name: b.name }, ...SHUT })) + menuRow('从书架移除', () => removeBook(b)) + '</div>' : '') + '</div>'
-  const removeBook = (b) => { set((s) => ({ shelf: s.shelf.filter((x) => x.id !== b.id), ...SHUT })); say('已从书架移除，文件夹未改动：' + b.name) }
+  const removeBook = (b) => { set((s) => ({ shelf: s.shelf.filter((x) => x.id !== b.id), ...SHUT })); say('已从书架移除，文件夹未改动：' + b.name, '', 'ok') }
   const card = (b) => `<div class="shelf-card${b.gone ? ' gone' : ' hit'}"${open(b)}><div class="shelf-card-top"><div class="shelf-logo">${t(b.name[0])}</div><div class="grow"></div>${b.gone ? '' : more(b)}</div>` +
     `<div class="shelf-name ell">${t(b.name)}</div><div class="note">${t(about(b))}</div><div class="grow"></div>` +
     (b.gone ? `<div class="shelf-gone"><div class="fit danger">找不到文件夹</div><div class="hit link"${onClick(osAsk('选择该作品当前所在的文件夹'))}>定位</div><div class="hit link"${onClick(() => removeBook(b))}>移除</div></div>` : `<div class="faint">${t(b.at)}</div>`) + '</div>'

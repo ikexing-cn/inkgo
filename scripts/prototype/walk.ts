@@ -13,6 +13,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   }
   const pane = reads('#pane'), win = reads('#win')
   const must = (ok: boolean, words: string) => { if (!ok) throw new Error(words) }
+  // The mark a toast wears: the class of its icon, 'none', or 'gone' when no toast says words.
+  const toastMark = (words: string): Promise<string> => js(`(() => { const t = [...document.querySelectorAll('.toast')].find((x) => x.textContent.includes(${JSON.stringify(words)})); const m = t && t.querySelector(':scope > svg'); return t ? (m ? m.getAttribute('class') : 'none') : 'gone' })()`)
   // Buttons stand at the right of their row, the one that goes ahead last: DESIGN.md has it as a rule. The question
   // of saving (.asked) is the one row in the system's order, the one that goes ahead first.
   // After every click, each row that holds a button is looked at; what is found is told at the end, all at once.
@@ -154,7 +156,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('伏笔'); await pane('久未回收'); await pane('未回收'); await shot('12-foreshadowings')
   await click('她怕黑的真正原因'); await pane('埋在「第1章：巷口」，已过 86 章'); await click('查看原文'); await win('第1章：巷口')
   must((await drawn('她修了七年路灯，却从来不敢在天黑以后走进没有灯的巷子。')) === 'fs on', 'the open foreshadowing is not lit'); await shot('13-mark-source')
-  await click('记为回收'); await win('请先在正文中选中回收伏笔的段落'); await shot('14-toast'); await sleep(3300); await win('请先在正文中选中回收伏笔的段落', false); await done('pay off with nothing picked')
+  await click('记为回收'); await win('请先在正文中选中回收伏笔的段落'); must(await toastMark('请先在正文中选中回收伏笔的段落') === 'none', 'a word on what to do first wears a mark'); await shot('14-toast'); await sleep(3300); await win('请先在正文中选中回收伏笔的段落', false); await done('pay off with nothing picked')
   await click('第87章：停电'); await select(5, '她往前走了一步。'); await click('记为回收'); await win('选择要回收的伏笔'); await win('86 章前埋下'); await shot('15-pay-from-pane')
   await click('确定回收'); await win('选择要回收的伏笔', false); await pane('回收在「第87章：停电」，相隔 86 章'); await pane('取消回收'); await pane('她往前走了一步。')
   must((await drawn('她往前走了一步。')) === 'fs on', 'the payoff is not lit'); await shot('16-paid'); await done('pay off from the pane')
@@ -302,7 +304,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   { const [x, y] = await row('主角有个说不出口的秘密'); await rclick(x, y); await click('移回列表'); await win('不显示收起的对话', false); await win('主角有个说不出口的秘密'); await done('a talk put away and back') }
   await click('小祥和林晚是怎么认识的'); await win('2 条发言'); await win('268 token', false); await win('28.3K token'); await click('AI 参考内容'); await win('本次发送约 9.6K token'); await win('这一轮共 3 次请求，这是最后一次。'); await win('规则 1.1K · 设定 12 条 3.1K'); await win('实际用量：输入 9.9K，其中缓存命中 9.3K；输出 268'); await win('附带全部 12 条设定'); await win('已放弃：电力局的门卫，早先想让他知道井的事。后来这条线并给了周祥。'); await shot('58c-sent'); await done('what was sent')
   await click('查了设定「周祥」，搜了全书「小祥」，记下：待确认 · 人物：“小祥”是顺口的叫法，谁都能喊。'); await win('5 处，在「第1章：巷口」'); await click('查看设定'); await pane('“小祥”是顺口的叫法，谁都能喊'); await click('全部设定'); await done('what the AI looked at')
-  await click('复制全文'); await win('已复制'); await click('关闭提示')
+  await click('复制全文'); await win('已复制'); must((await toastMark('已复制')).includes('green'), 'what was done has no tick'); await click('关闭提示')
   await win('设定里只写了他是她带出来的徒弟', true); await click('摘取原文', 1); await win('拖选一段原文，作为已确定的设定加入正文。原文不会被修改。'); await win('尚未选中文字'); await click('收起原文'); await win('尚未选中文字', false); await click('摘取原文', 1)
   await js(`(() => { const box = document.querySelector('.source-text'), r = document.createRange(); r.setStart(box.firstChild, 0); r.setEnd(box.firstChild, 18); const s = getSelection(); s.removeAllRanges(); s.addRange(r); box.dispatchEvent(new MouseEvent('mouseup', { bubbles: true })) })()`); await win('已选 18 字'); await shot('58b-source')
   await click('加入设定'); await win('已加入设定正文'); await pane('设定里只写了他是她带出来的徒弟。可以'); await click('关闭提示'); await done('what stands under a reply')

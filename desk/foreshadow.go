@@ -200,7 +200,7 @@ func (a *App) openPay(id string) {
 	}
 	s, e := w.ed.Selection()
 	if s == e {
-		a.notice = "请先在正文中选中回收伏笔的段落"
+		a.hint = "请先在正文中选中回收伏笔的段落"
 		return
 	}
 	w.fore.paying, w.fore.noting, w.fore.from, w.fore.to, w.fore.payQuery, w.fore.pick = true, false, s, e, "", id
@@ -318,7 +318,7 @@ func (a *App) rehang(f foreshadow) {
 	}
 	s, e := w.ed.Selection()
 	if s == e {
-		a.notice = "请先在正文中选中要关联的句子"
+		a.hint = "请先在正文中选中要关联的句子"
 		return
 	}
 	if f.node == w.node {

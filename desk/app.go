@@ -90,9 +90,10 @@ type App struct {
 	light, dark *palette
 	pal         *palette
 
-	page              int // 0 discussion, 1 models, 2 categories, 3 writing, 5 checks
-	shown             int // the page the last frame showed
-	notice            string
+	page              int               // 0 discussion, 1 models, 2 categories, 3 writing, 5 checks
+	shown             int               // the page the last frame showed
+	notice            string            // what was done
+	hint              string            // what to do first, or that there was nothing to do
 	renamed           renamed           // a name the prose still has after the author renamed it
 	leftWriting       bool              // the work was last on the writing page, not the discussion
 	toastShown        map[string]string // what each toast shows, by its id

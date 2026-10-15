@@ -267,7 +267,7 @@ func (a *App) findInChapter(chapter, text string) {
 	}
 	at := strings.Index(ed.Doc.String(), text)
 	if at < 0 {
-		a.notice = "该段原文已修改，在本章中未找到"
+		a.hint = "该段原文已修改，在本章中未找到"
 		return
 	}
 	s := len([]rune(ed.Doc.String()[:at]))

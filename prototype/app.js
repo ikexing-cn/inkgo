@@ -56,7 +56,7 @@ function toasts() {
   const list = w && !here ? [...S.toasts, { id: 'busy-talk', kind: 'busy', title: 'AI 正在思考…', acts: [['取消', stopReply]] }] : S.toasts
   if (!list.length) return ''
   const shown = list.slice(-3), rest = list.length - shown.length
-  const pic = { ok: icon('checked', 'md', 'green'), fail: icon('warn', 'md', 'amber'), busy: icon('spin', 'md', 'muted') }
+  const pic = { ok: icon('checked', 'md', 'green'), fail: icon('warn', 'md', 'danger'), busy: icon('spin', 'md', 'muted') }
   const one = (x) => `<div class="toast" data-k="${x.id}">${pic[x.kind] || ''}<div class="fit"><div class="toast-title">${t(x.title)}</div>${x.detail ? `<div class="note">${t(x.detail)}</div>` : ''}` +
     (x.acts.length ? `<div class="toast-acts" data-keep>${[...x.acts].reverse().map(([label, act]) => `<div class="hit link"${onClick(act)}>${t(label)}</div>`).join('')}</div>` : '') +
     // 正在做的不能关：它做完自己收起，不要了点「取消」。

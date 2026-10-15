@@ -1,7 +1,6 @@
 package desk
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/egoist/mygo/ui"
@@ -78,11 +77,13 @@ func (a *App) categories(c *ui.Context) {
 
 func (a *App) saveCategory() error {
 	name, target := trim(a.categoryName), trim(a.categoryTarget)
-	if name == "" {
-		return errors.New("分类名称不能为空")
-	}
-	if target == "" {
-		return errors.New("请填写落点，例如“设定库”或“大纲”")
+	switch { // what is left to fill in is not a failure
+	case name == "":
+		a.hint = "分类名称不能为空"
+		return nil
+	case target == "":
+		a.hint = "请填写落点，例如“设定库”或“大纲”"
+		return nil
 	}
 	w := a.Store.Work()
 	updated := false

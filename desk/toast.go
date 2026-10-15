@@ -20,8 +20,9 @@ const (
 	toastsShown = 2
 )
 
-// toasts float the error, the request running and the confirmation at the
-// top right, over every page and dialog: none of them pushes the page down.
+// toasts float the error, the request running, what was done and what to
+// do first at the top right, over every page and dialog: none of them pushes
+// the page down.
 // The fields stay the state; a toast shows each while it is set, and
 // closing the toast clears it.
 func (a *App) toasts(c *ui.Context) {
@@ -41,6 +42,12 @@ func (a *App) toasts(c *ui.Context) {
 	a.syncToast(c, "notice", notice, notice, noticeFor, func() {
 		if a.notice == notice {
 			a.notice = ""
+		}
+	})
+	hint := a.hint
+	a.syncToast(c, "hint", hint, hint, noticeFor, func() {
+		if a.hint == hint {
+			a.hint = ""
 		}
 	})
 	ui.ToastViewportBase(c, func(v ui.Element, list []ui.Toast) {
@@ -105,16 +112,18 @@ func (a *App) toastCard(c *ui.Context, ts ui.Toast) {
 		Background(a.pal.raised).Border(1, t.Border).Clip()
 	a.pal.pop.on(box)
 	box.Children(func() {
-		ui.Box(c).Padding(2, 0, 0, 0).Shrink(0).Children(func() {
-			switch ts.Type {
-			case "busy":
-				ui.Spinner(c).Size(iconMd, iconMd)
-			case "error":
-				glyph(c, icAlert, iconMd, t.Danger)
-			default:
-				glyph(c, icDone, iconMd, t.Success)
-			}
-		})
+		if ts.Type != "hint" { // a word on what to do is neither done nor wrong
+			ui.Box(c).Padding(2, 0, 0, 0).Shrink(0).Children(func() {
+				switch ts.Type {
+				case "busy":
+					ui.Spinner(c).Size(iconMd, iconMd)
+				case "error":
+					glyph(c, icAlert, iconMd, t.Danger)
+				default:
+					glyph(c, icDone, iconMd, t.Success)
+				}
+			})
+		}
 		ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 				ui.Text(c, ts.Title).FontSize(fsBody).FontWeight(600).Shrink(1)

@@ -72,7 +72,7 @@ function saveService() {
 }
 function fetchModels() {
   const id = say('正在读取可用模型…', '', 'busy', [['取消', () => { clearTimeout(timer); unsay(id) }]])
-  const timer = aiLater(1200, () => { unsay(id); set((s) => (s.dialog && s.dialog.svc ? { dialog: { ...s.dialog, svc: { ...s.dialog.svc, models: (BOOK.services.find((x) => x.id === s.dialog.svc.id) || BOOK.services[0]).models.map(limits) } } } : null)); say('已获取模型目录，保存提供商后生效') })
+  const timer = aiLater(1200, () => { unsay(id); set((s) => (s.dialog && s.dialog.svc ? { dialog: { ...s.dialog, svc: { ...s.dialog.svc, models: (BOOK.services.find((x) => x.id === s.dialog.svc.id) || BOOK.services[0]).models.map(limits) } } } : null)); say('已获取模型目录，保存提供商后生效', '', 'ok') })
 }
 
 // 这部作品累计用了多少 token，按内置价格估算花费；表里没有价格的模型不估。
@@ -114,7 +114,7 @@ function settingsModel(d) {
       '<div class="field"><div class="label">可用模型</div><div class="limits">' +
       (f.models.length ? '<div class="limit-row limit-head"><div class="fit">模型 ID</div><div class="num">上下文上限</div><div class="num">最大输出</div><div class="pct">压缩阈值 %</div><div class="gap"></div></div>' + f.models.map(limitRow).join('') : '<div class="note">尚无模型，可获取可用模型或手动添加。</div>') + '</div></div>' +
       '<div class="note">数值默认取自内置模型表，表中没有的模型按保守值填写；上下文上限和最大输出可写成 128K、1M。讨论超过压缩阈值时，较早的对话会整理成摘要。</div>' +
-      `<div class="buttons">${d.edit === 'new' ? '' : `<div class="hit link danger"${onClick(() => say('已清除保存的 key'))}>清除已保存 key</div>`}${button('添加模型', () => models((list) => [...list, limits('')]))}${button('获取可用模型', fetchModels)}${button('保存提供商', saveService, 'primary')}</div></div>`
+      `<div class="buttons">${d.edit === 'new' ? '' : `<div class="hit link danger"${onClick(() => say('已清除保存的 key', '', 'ok'))}>清除已保存 key</div>`}${button('添加模型', () => models((list) => [...list, limits('')]))}${button('获取可用模型', fetchModels)}${button('保存提供商', saveService, 'primary')}</div></div>`
   }
   const card = (svc) => `<div class="service"><div class="service-head"><div class="fit"><div class="ell">${t(svc.name)}</div><div class="note ell">${t(svc.host)} · ${svc.models.length} 个模型${used(svc) ? ' · 本作品使用中' : ''}</div></div>` +
     button(d.edit === svc.id ? '收起' : '编辑', () => set((s) => ({ dialog: { ...s.dialog, ...(d.edit === svc.id ? { edit: '', svc: null } : editing(svc)) }, ...SHUT }))) + '</div>' + (d.edit === svc.id ? form() : '') + '</div>'
@@ -125,7 +125,7 @@ function settingsModel(d) {
     '<div class="prefs-group"><div class="group-title">模型服务</div><div class="note">保存在本机，所有作品共用</div></div>' +
     `<div class="services">${S.services.map(card).join('')}` +
     (d.edit === 'new' ? `<div class="service">${form()}</div>` : `<div class="service add hit"${onClick(() => set((s) => ({ dialog: { ...s.dialog, ...editing(null) }, ...SHUT })))}>${ICON.plus}添加服务</div>`) + '</div>' +
-    `<div class="prefs-links"><div class="hit link"${onClick(osAsk('用记事本打开配置文件'))}>打开配置文件</div><div class="hit link"${onClick(() => say('配置已重新读取'))}>重新加载配置</div></div>`
+    `<div class="prefs-links"><div class="hit link"${onClick(osAsk('用记事本打开配置文件'))}>打开配置文件</div><div class="hit link"${onClick(() => say('配置已重新读取', '', 'ok'))}>重新加载配置</div></div>`
 }
 
 function settingsBackup() {
@@ -258,7 +258,7 @@ function snapsDialog(d) {
   const pick = (change) => () => set((s) => ({ dialog: { ...s.dialog, ...change } }))
   const restore = () => {
     set((s) => ({ dialog: null, ...snap(s, cur.key, '恢复前'), ...retype(s, cur.key, () => shown.paras) }))
-    say('已恢复到 ' + shown.at + ' 的版本，恢复前的内容已存为快照')
+    say('已恢复到 ' + shown.at + ' 的版本，恢复前的内容已存为快照', '', 'ok')
   }
   const same = shown && shown.paras.join('\n') === cur.paras.join('\n')
   return dialog('wide', dialogHead('快照 · ' + titleOf(cur), '打开章节时、连续写作每十分钟、恢复前、' + (aiOn() ? '采纳 AI 起草或改写前、' : '') + '全书替换前都会保存一份。最近七天的全部保留，更早的每天保留最后一份。') +
@@ -276,7 +276,7 @@ function exportDialog(d) {
   const ranges = ['全书', ...(cur && cur.vol ? ['本卷'] : []), ...(cur ? ['本章'] : [])]
   const type = (key) => (v) => set((s) => ({ dialog: { ...s.dialog, [key]: v } }))
   const name = d.range === '本章' ? titleOf(cur) : d.range === '本卷' ? S.volumes.find((v) => v[0] === cur.vol)[1] : book.name
-  const out = () => { set({ dialog: null, ...SHUT }); say('已导出到 ' + S.library + '\\' + name.replace('：', ' ') + '.txt') }
+  const out = () => { set({ dialog: null, ...SHUT }); say('已导出到 ' + S.library + '\\' + name.replace('：', ' ') + '.txt', '', 'ok') }
   return dialog('small', dialogHead('导出正文', '按章节树顺序合并为一个 .txt 文件，各文件夹和章节前加上标题。') +
     field('导出范围', seg(d.range, ranges, type('range'), '导出范围')) + tickbox(d.indent, '段首加两个全角空格', () => type('indent')(!d.indent)) +
     buttons(button('取消', shut), button('导出', out, 'primary')))
@@ -305,7 +305,7 @@ function binDialog(d) {
       const vol = b.volume, home = (c) => (vol || s.volumes.some((v) => v[0] === c.vol) ? c.vol : '')
       return { bin: s.bin.filter((x) => x !== b), volumes: vol ? [...s.volumes, vol] : s.volumes, chapters: [...s.chapters, ...b.chapters.map((c) => ({ ...c, vol: home(c) }))] }
     })
-    say('已恢复「' + b.title + '」')
+    say('已恢复「' + b.title + '」', '', 'ok')
   }
   const row = (b) => `<div class="bin-row"><div class="fit"><div class="ell">${t(b.title)}</div><div class="note">${t(b.at)} 删除${b.volume ? ' · 连同里面的 ' + b.chapters.length + ' 章' : ''}</div></div>` +
     (d.sure === b.id ? button('取消', () => set({ dialog: { kind: 'bin', sure: '' } })) + button('确认彻底删除', () => set((s) => ({ bin: s.bin.filter((x) => x !== b), dialog: { kind: 'bin', sure: '' } })), 'danger')
