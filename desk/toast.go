@@ -186,7 +186,7 @@ func (a *App) toastActions(c *ui.Context, ts ui.Toast) {
 	ui.Row(c).FillWidth().Gap(14).Padding(6, 0, 0, 0).Justify(ui.End).Children(func() {
 		for i := len(acts) - 1; i >= 0; i-- {
 			x := acts[i]
-			b := ui.ButtonBase(c).Shrink(0)
+			b := ui.ButtonBase(c).Shrink(0).KeepFocus()
 			if x.name != "" {
 				b.Label(x.name)
 			}

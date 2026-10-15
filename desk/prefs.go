@@ -19,7 +19,7 @@ func (a *App) sideFoot(c *ui.Context, slim bool) {
 		if a.bk.prefs {
 			color = a.pal.ink
 		}
-		b := iconButton(c, icGear, "设置", color).Tooltip("设置")
+		b := iconButton(c, icGear, "设置", color).Tooltip("设置").KeepFocus()
 		if a.bk.prefs {
 			b.Background(a.pal.theme.SurfacePressed)
 		}
@@ -93,7 +93,11 @@ func (a *App) preferences(c *ui.Context) {
 	}
 	w, h := c.Size()
 	ui.DialogBase(c, &a.bk.prefs, func(back, panel ui.Element) {
-		back.Background(a.pal.scrim)
+		// What is asked over the settings shades the window, them with it:
+		// one shade, not two.
+		if !a.bk.askAI && !(a.bk.ask && a.Store != nil) {
+			back.Background(a.pal.scrim)
+		}
 		panel.Row().AlignItems(ui.Stretch).Width(min(prefsWidth, w-40)).Height(min(prefsHeight, h-40)).Radius(rDialog).Background(t.Background)
 		a.pal.dialog.on(panel)
 		ui.Column(c).Width(180).FillHeight().Shrink(0).Padding(20, 10).Gap(2).Radius(rDialog, 0, 0, rDialog).Background(a.pal.side).Children(func() {

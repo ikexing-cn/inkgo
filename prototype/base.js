@@ -236,6 +236,7 @@ const blank = (pic, title, about, more = '') => `<div class="blank"><div class="
 
 const root = document.getElementById('app')
 let born = null // 这一遍新放进页面的、要把光标放进去的输入框
+let opener = null // 对话框出来那一刻光标在哪（元素和选区），它关掉时还回去
 let drawing = false // 正在换页面：这时输入框被拿掉而丢了光标，不算作者点了别处
 
 // 有 id 或 data-k 的元素认名字，换了位置也还是它；别的按顺序对。
@@ -276,6 +277,8 @@ function children(parent, want) {
 // view() 在 app.js 里：整个页面现在该是什么样。
 function draw() {
   if (composing) { owed = true; return }
+  const shut = !root.querySelector('.dialog-wrap'), was = document.activeElement, sel = getSelection()
+  const range = sel.rangeCount && was && was.contains(sel.anchorNode) ? sel.getRangeAt(0).cloneRange() : null
   H = []
   born = null
   drawing = true
@@ -283,6 +286,13 @@ function draw() {
   want.innerHTML = view()
   children(root, want.content)
   if (born) { born.focus(); if (born.hasAttribute('data-all')) born.select(); else born.setSelectionRange(born.value.length, born.value.length) }
+  // 关掉对话框，光标回到打开它之前所在的地方。
+  const open = !!root.querySelector('.dialog-wrap')
+  if (open && shut) opener = { el: was, range }
+  else if (!open && opener) {
+    if (!born && opener.el && opener.el !== document.body && opener.el.isConnected) { opener.el.focus(); if (opener.range) { sel.removeAllRanges(); sel.addRange(opener.range) } }
+    opener = null
+  }
   drawing = false
   for (const talk of document.querySelectorAll('.talk')) talk.scrollTop = talk.scrollHeight // 讨论总是停在最新一句
   const tab = document.querySelector('.sheet.on') // 标签多到排不下时，正在看的那个总在看得见的地方

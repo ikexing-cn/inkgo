@@ -286,8 +286,8 @@ function thought(key, text, running, label = '思考过程') {
 // 讨论里的一句。右栏和「讨论」那一页画的是同一个样子；下面那排小按钮只在最后一句和鼠标指着的那句上露出来。
 function message(talk, m, i) {
   const key = talk.id + '-' + i, last = i === talk.msgs.length - 1, saw = S.told[key]
-  const tool = (label, pic, act, on) => `<button class="icon-btn ${on ? 'ink' : 'muted'}" aria-label="${label}" title="${label}"${onClick(act)}>${icon(pic)}</button>`
-  const pull = tool('摘取原文', 'lines', () => set({ dialog: { kind: 'source', text: m.text, cat: S.cats.at(-1), picked: '' }, ...SHUT }))
+  const tool = (label, pic, act, on, keep = '') => `<button class="icon-btn ${on ? 'ink' : 'muted'}" aria-label="${label}" title="${label}"${keep}${onClick(act)}>${icon(pic)}</button>`
+  const pull = tool('摘取原文', 'lines', () => set({ dialog: { kind: 'source', text: m.text, cat: S.cats.at(-1), picked: '' }, ...SHUT }), false, ' data-keep')
   if (m.me) {
     const left = last && !(S.waiting && S.waiting.id === talk.id)
     return `<div class="msg me${last ? ' last' : ''}">${m.cite ? cited(m.cite) : ''}<div class="said">${t(m.text)}</div>` +

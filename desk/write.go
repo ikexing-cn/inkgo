@@ -1461,7 +1461,7 @@ func (a *App) chapterTree(c *ui.Context) {
 // trashRow opens the trash.
 func (a *App) trashRow(c *ui.Context) {
 	t := a.pal.theme
-	b := ui.ButtonBase(c).Row().Grow(1).Shrink(1).Justify(ui.Start).AlignItems(ui.Center).Gap(10).Padding(8, 10).Radius(rControl).Label("回收站")
+	b := ui.ButtonBase(c).Row().Grow(1).Shrink(1).Justify(ui.Start).AlignItems(ui.Center).Gap(10).Padding(8, 10).Radius(rControl).Label("回收站").KeepFocus()
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}

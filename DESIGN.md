@@ -537,6 +537,10 @@ components:
 
 - 只问一句的对话框（标题、一两句说明、一排按钮，如「保存对……的修改？」「全书替换」）用窄的一档，宽 360，不摊成扁扁的一条。
 - 对话框的宽不超过高的 2.5 倍。`npm run verify-prototype` 每点一下都量。
+- 一个对话框上面再问一句（如设置里「是否关闭 AI？」），遮罩只盖一层：上面那一句的遮罩连页面带下面的对话框一起盖住，下面的对话框不再另盖。`go test ./desk` 的 `TestAQuestionOverTheSettingsShadesOnce`、`npm run verify-prototype` 的「AI turned off」查。
+- 关掉对话框，键盘回到打开它之前所在的地方：在正文里打着字，点齿轮、回收站、选区浮条、提示里的「打开设置」、讨论里的「摘取原文」或标题栏的菜单打开一个对话框，关掉以后接着打的字还进正文，光标在原处。打开对话框和菜单的按钮按下时不拿走键盘（代码里 `KeepFocus`，原型里 `data-keep`），关的时候把焦点还回原处。别的按钮照常拿走键盘：正在改的章名、设定这些，点别的按钮就算改完。
+
+  检查：`go test ./desk` 的 `TestDialogsGiveTheKeyboardBack`（每个入口打开、按 Esc 或点「关闭」关掉）、`TestARenameEndsAtAnotherButton`；`npm run verify-prototype` 的「the title bar, and the sidebar put away on every page」。
 
 ### 标题栏
 

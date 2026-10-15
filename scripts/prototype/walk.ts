@@ -488,6 +488,9 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   const penned = (): Promise<boolean> => js(`document.activeElement === proseBox()`)
   await caret(0, 0); await click('视图'); await key('Escape'); must(await penned(), 'a menu opened and put away took the caret from the prose'); await click('视图'); await click('视图'); must(await penned(), 'a menu shut by its name took the caret from the prose')
   await click('收起侧栏'); await click('展开侧栏'); must(await penned(), 'the switch of the sidebar took the caret from the prose'); await click('帮助'); await click('快捷键…'); await key('Escape'); must(await penned(), 'a dialog from a menu, shut, did not leave the caret in the prose')
+  // So does every button that opens a dialog: the caret comes back where it was.
+  await caret(0, 2); await click('设置'); await key('Escape'); must(await penned() && await caretAt() === '0:2', 'the settings from the gear, shut, did not give the caret back: ' + await caretAt())
+  await click('回收站'); await key('Escape'); must(await penned() && await caretAt() === '0:2', 'the trash, shut, did not give the caret back: ' + await caretAt())
   await click('编辑'); await click('查找替换'); must(await has('[aria-label="查找"]') && !(await has('.menu-pop')), 'the menu did not open the find bar'); await key('Escape')
   await click('编辑'); await click('重命名'); must(await has('.tree-row.naming'), 'the menu did not start naming the chapter'); await key('Escape')
   await caret(0, 0); await text('戊'); must(await unsaved(), 'typing did not mark the chapter'); await win('戊整条街的灯')
@@ -531,7 +534,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   const aiOff = async () => { await click('文件'); await click('设置…'); await click('关闭 AI'); await win('是否关闭 AI？'); await click('关闭 AI', 1); await win('是否关闭 AI？', false) }
   await click('文件'); await click('设置…'); must(await prefTabs() === 'AI 外观', 'on the shelf the settings hold: ' + await prefTabs()); await win('模型服务'); await win('本作品使用', false)
   await click('关闭 AI'); await win('是否关闭 AI？'); await win('不再发送任何内容'); await shot('99f-ask-ai-off'); await click('取消'); await win('是否关闭 AI？', false); await win('模型服务')
-  await click('关闭 AI'); await key('Escape'); await win('是否关闭 AI？', false); must(await has('.prefs'), 'Esc on the question shut the settings under it too'); await click('关闭设置')
+  await click('关闭 AI'); must(await js(`getComputedStyle(document.querySelector('.scrim:not(.top)')).backgroundColor === 'rgba(0, 0, 0, 0)'`), 'the question over the settings shades the window twice'); await key('Escape'); await win('是否关闭 AI？', false); must(await has('.prefs'), 'Esc on the question shut the settings under it too'); await click('关闭设置')
   // Off while AI is at work: a draft stops where it got to; a reply is let go, and what the author said stays.
   await click('雨城来信'); await win('第87章：停电'); const before = await paras()
   await click('编辑'); await click('起草本章'); await click('开始起草'); await sleep(850); must(await paras() > before, 'the draft wrote nothing')

@@ -96,7 +96,7 @@ func (a *App) selectionBar(c *ui.Context) {
 
 func (a *App) selButton(c *ui.Context, s *ui.SVG, text string) ui.Element {
 	t := a.pal.theme
-	b := ui.ButtonBase(c).Row().Height(hSeg).Padding(0, 8).Gap(6).AlignItems(ui.Center).Radius(rControl).Label(text)
+	b := ui.ButtonBase(c).Row().Height(hSeg).Padding(0, 8).Gap(6).AlignItems(ui.Center).Radius(rControl).Label(text).KeepFocus()
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}

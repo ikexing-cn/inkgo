@@ -567,7 +567,7 @@ function sidebar() {
         `<div class="tree scroll">${S.talks.filter((x) => !S.shelved[x.id] || S.shelvedShown || open(x)).map(talkRow).join('')}` +
         (put.length ? `<div class="tree-more hit"${onClick(() => set({ shelvedShown: !S.shelvedShown }))}>${S.shelvedShown ? '不显示收起的对话' : '已收起 ' + put.length + ' 段对话'}</div>` : '') + '</div>') +
     `<div class="anchor up wide"><div class="backup-line hit"${onClick(() => set({ open: S.open === 'backup' ? '' : 'backup' }))}><div class="dot${b.state === 'ok' || b.state === 'busy' ? ' grey' : ''}"></div><div class="fit ell">${t(backupLine)}</div></div>${S.open === 'backup' ? backupPop() : ''}</div>` +
-    `<div class="sidebar-end"><div class="bin hit"${onClick(() => set({ dialog: { kind: 'bin', sure: '' }, ...SHUT }))}>${icon('bin')}<div>回收站</div></div><div class="gear hit" title="设置"${onClick(() => set({ dialog: { kind: 'settings', tab: 'AI', edit: '' }, ...SHUT }))}>${icon('gear')}</div></div>` +
+    `<div class="sidebar-end"><div class="bin hit" data-keep${onClick(() => set({ dialog: { kind: 'bin', sure: '' }, ...SHUT }))}>${icon('bin')}<div>回收站</div></div><div class="gear hit" title="设置" data-keep${onClick(() => set({ dialog: { kind: 'settings', tab: 'AI', edit: '' }, ...SHUT }))}>${icon('gear')}</div></div>` +
     '</div>'
 }
 
@@ -879,5 +879,5 @@ function floats() {
   }
 
   // 选中一段字以后：浮在它上面的两个按钮，AI 关着时一个。
-  return `<div class="selbar pop" data-k="selbar" style="left:${Math.max(leftEdge, S.bar.left)}px;top:${Math.max(S.bar.top - 40, 44)}px">${aiOn() ? `<div class="hit" title="由 AI 改写选中内容"${onClick(askRewrite)}>${icon('pen', 'sm')}AI 改写</div>` : ''}<div class="hit" title="将选中的原文加入设定"${onClick(take)}>${icon('keep', 'sm')}加入设定</div></div>`
+  return `<div class="selbar pop" data-k="selbar" data-keep style="left:${Math.max(leftEdge, S.bar.left)}px;top:${Math.max(S.bar.top - 40, 44)}px">${aiOn() ? `<div class="hit" title="由 AI 改写选中内容"${onClick(askRewrite)}>${icon('pen', 'sm')}AI 改写</div>` : ''}<div class="hit" title="将选中的原文加入设定"${onClick(take)}>${icon('keep', 'sm')}加入设定</div></div>`
 }

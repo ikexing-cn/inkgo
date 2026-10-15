@@ -53,7 +53,7 @@ function toasts() {
   const shown = S.toasts.slice(-3), rest = S.toasts.length - shown.length
   const pic = { ok: icon('checked', 'md', 'green'), fail: icon('warn', 'md', 'amber'), busy: icon('spin', 'md', 'muted') }
   const one = (x) => `<div class="toast" data-k="${x.id}">${pic[x.kind] || ''}<div class="fit"><div class="toast-title">${t(x.title)}</div>${x.detail ? `<div class="note">${t(x.detail)}</div>` : ''}` +
-    (x.acts.length ? `<div class="toast-acts">${[...x.acts].reverse().map(([label, act]) => `<div class="hit link"${onClick(act)}>${t(label)}</div>`).join('')}</div>` : '') +
+    (x.acts.length ? `<div class="toast-acts" data-keep>${[...x.acts].reverse().map(([label, act]) => `<div class="hit link"${onClick(act)}>${t(label)}</div>`).join('')}</div>` : '') +
     `</div><button class="icon-btn muted" aria-label="关闭提示" title="关闭提示"${onClick(() => unsay(x.id))}>${icon('cross', 'sm')}</button></div>`
   return `<div id="toasts">${shown.map(one).join('')}${rest > 0 ? `<div class="toast-rest">还有 ${rest} 条</div>` : ''}</div>`
 }
@@ -110,8 +110,8 @@ root.addEventListener('dragleave', (ev) => { const row = ev.target.closest('[dat
 root.addEventListener('drop', (ev) => { const row = nodeAt(ev); if (row) { ev.preventDefault(); dropOn(dragged, row.dataset.node) } })
 root.addEventListener('dragend', () => { dragged = ''; draw() })
 
-// 按标题栏不拿走正文的光标：开了菜单又收起、点了侧栏的开关，接着打的字还进正文。
-root.addEventListener('mousedown', (ev) => { if (ev.target.closest('.titlebar')) ev.preventDefault() })
+// 按标题栏和打开对话框的按钮（data-keep）不拿走正文的光标：开了菜单又收起、点了侧栏的开关、对话框关掉，接着打的字还进正文。
+root.addEventListener('mousedown', (ev) => { if (ev.target.closest('.titlebar, [data-keep]')) ev.preventDefault() })
 
 // 拖右栏的左边改它的宽度：不窄于 300，不宽过半个窗口。
 root.addEventListener('mousedown', (ev) => {
