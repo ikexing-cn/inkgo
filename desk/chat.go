@@ -158,23 +158,7 @@ func (a *App) digest(c *ui.Context, d workspace.Event, through int) {
 					if s[0] != "" {
 						ui.Text(c, s[0]).FontSize(fsNote).FontWeight(600).LineHeight(lhBody).FillWidth()
 					}
-					ui.RichText(c).FontSize(fsNote).LineHeight(lhBody).Selectable().FillWidth().Children(func() {
-						for _, m := range a.mentions(s[1]) {
-							if m.entry == nil {
-								ui.Text(c, m.text)
-								continue
-							}
-							ui.Text(c, "「")
-							name := ui.Text(c, m.text).TextColor(a.pal.ink).Underline().DecorationColor(a.pal.control)
-							if name.Hovered() {
-								name.Background(t.SurfacePressed).DecorationColor(a.pal.ink)
-							}
-							if name.Clicked() {
-								a.showEntry(*m.entry)
-							}
-							ui.Text(c, "」")
-						}
-					})
+					a.markdown(c, s[1], digestText)
 				})
 			}
 			ui.Text(c, "摘要由 AI 写成，有误可在对话中指出。").FontSize(fsNote).LineHeight(lhBody).TextColor(t.TextMuted).FillWidth()
@@ -394,7 +378,7 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 					if found := looks(a.events, m.ReplyTo); len(found) > 0 {
 						a.looked(c, "look-"+m.ID, found, false)
 					}
-					a.markdown(c, m.Text, 14.5)
+					a.markdown(c, m.Text, replyText)
 					if m.Capped {
 						ui.Text(c, "已达到本次查阅上限，以上回答仅依据已查到的内容。").FontSize(fsNote).TextColor(t.TextMuted).FillWidth()
 					}
@@ -480,7 +464,7 @@ func (a *App) thinking(c *ui.Context) {
 				a.looked(c, "live-look", found, text == "")
 			}
 			if text != "" {
-				a.liveMarkdown(c, text, 14.5)
+				a.liveMarkdown(c, text, replyText)
 			}
 			status := "正在回复…"
 			switch {

@@ -196,43 +196,57 @@ func mdInline(parent ast.Node, src []byte, style mdSpan) []mdSpan {
 	return out
 }
 
-// markdown draws s as the body of a reply.
-func (a *App) markdown(c *ui.Context, s string, size float32) ui.Element {
-	return ui.Column(c).FillWidth().Gap(size * 0.7).Children(func() {
-		a.mdDraw(c, a.md.get(s), size)
+// mdStyle is how Markdown is drawn: its size and line height, and whether
+// the entries it names by number show by their names.
+type mdStyle struct {
+	size, lh float32
+	named    bool
+}
+
+var (
+	replyText  = mdStyle{size: 14.5, lh: lhRead}
+	digestText = mdStyle{size: fsNote, lh: lhBody, named: true} // what the talk's model wrote for itself, of the setting by number
+)
+
+// markdown draws s as st.
+func (a *App) markdown(c *ui.Context, s string, st mdStyle) ui.Element {
+	return ui.Column(c).FillWidth().Gap(st.size * 0.7).Children(func() {
+		a.mdDraw(c, a.md.get(s), st)
 	})
 }
 
 // liveMarkdown draws a reply still streaming. Laying out one text costs
 // as much as its length, so the blocks written stand apart from the last,
 // which grows: they keep their text, and their layout, until it is done.
-func (a *App) liveMarkdown(c *ui.Context, s string, size float32) ui.Element {
+func (a *App) liveMarkdown(c *ui.Context, s string, st mdStyle) ui.Element {
+	size := st.size
 	return ui.Column(c).FillWidth().Gap(size * 0.7).Children(func() {
 		blocks := a.md.get(s)
 		n := len(blocks) - 1
 		if n <= 0 {
-			a.mdDraw(c, blocks, size)
+			a.mdDraw(c, blocks, st)
 			return
 		}
-		a.mdDraw(c, blocks[:n], size)
+		a.mdDraw(c, blocks[:n], st)
 		tail := ui.Column(c).FillWidth()
 		if mdFlows(blocks[n-1]) && mdFlows(blocks[n]) {
 			// The blank line the two would have between them.
-			tail.Padding(size*1.8-size*0.7, 0, 0, 0)
+			tail.Padding(size*st.lh-size*0.7, 0, 0, 0)
 		}
-		tail.Children(func() { a.mdDraw(c, blocks[n:], size) })
+		tail.Children(func() { a.mdDraw(c, blocks[n:], st) })
 	})
 }
 
 // mdDraw draws blocks. Paragraphs, headings and lists of text run
 // together as one text, so the author can select across them; quotes,
 // code and tables stand apart, and a selection stops at them.
-func (a *App) mdDraw(c *ui.Context, blocks []mdBlock, size float32) {
+func (a *App) mdDraw(c *ui.Context, blocks []mdBlock, st mdStyle) {
 	t := a.pal.theme
+	size := st.size
 	var flow []ui.Span
 	flush := func() {
 		if len(flow) > 0 {
-			ui.RichText(c, flow...).FillWidth().FontSize(size).LineHeight(lhRead).TextColor(t.Text).Selectable()
+			a.mdText(c, flow, st.named, size, st.lh)
 			flow = nil
 		}
 	}
@@ -253,14 +267,14 @@ func (a *App) mdDraw(c *ui.Context, blocks []mdBlock, size float32) {
 				for n, item := range b.items {
 					ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Start).Children(func() {
 						ui.Text(c, mdMark(b, n)).FontSize(size).LineHeight(lhRead).TextColor(t.TextMuted).Width(size * 1.4).TextAlign(ui.End).Shrink(0)
-						ui.Column(c).Grow(1).Shrink(1).Gap(size * 0.35).Children(func() { a.mdDraw(c, item, size) })
+						ui.Column(c).Grow(1).Shrink(1).Gap(size * 0.35).Children(func() { a.mdDraw(c, item, st) })
 					})
 				}
 			})
 		case mdQuote:
 			ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Stretch).Children(func() {
 				ui.Box(c).Width(3).Radius(rRound).Background(a.pal.line).Shrink(0)
-				ui.Column(c).Grow(1).Shrink(1).Gap(size * 0.5).Opacity(0.85).Children(func() { a.mdDraw(c, b.blocks, size) })
+				ui.Column(c).Grow(1).Shrink(1).Gap(size * 0.5).Opacity(0.85).Children(func() { a.mdDraw(c, b.blocks, st) })
 			})
 		case mdCode:
 			ui.ScrollHorizontal(c).FillWidth().Radius(rControl).Background(a.pal.side).Border(1, a.pal.line).Children(func() {
@@ -277,7 +291,7 @@ func (a *App) mdDraw(c *ui.Context, blocks []mdBlock, size float32) {
 					ui.Row(c).FillWidth().AlignItems(ui.Stretch).Children(func() {
 						for _, cell := range row {
 							ui.Column(c).Grow(1).Shrink(1).Basis(0).Padding(8, 10).Children(func() {
-								ui.RichText(c, a.mdRuns(nil, cell, size*0.93)...).FillWidth().FontSize(size * 0.93).LineHeight(lhBody).TextColor(t.Text).Selectable()
+								a.mdText(c, a.mdRuns(nil, cell, size*0.93), st.named, size*0.93, lhBody)
 							})
 						}
 					})
@@ -351,6 +365,70 @@ func mdMark(b mdBlock, n int) string {
 		return strconv.Itoa(b.start+n) + "."
 	}
 	return "•"
+}
+
+// mdText draws runs as one text. Named, the entries they name by number
+// show by their names between 「」, and open in the setting when clicked;
+// code stays as written.
+func (a *App) mdText(c *ui.Context, runs []ui.Span, named bool, size, lh float32) {
+	t := a.pal.theme
+	if !named {
+		ui.RichText(c, runs...).FillWidth().FontSize(size).LineHeight(lh).TextColor(t.Text).Selectable()
+		return
+	}
+	ui.RichText(c).FillWidth().FontSize(size).LineHeight(lh).TextColor(t.Text).Selectable().Children(func() {
+		for _, r := range runs {
+			if r.Font == "monospace" {
+				spanText(c, r, r.Text)
+				continue
+			}
+			for _, m := range a.mentions(r.Text) {
+				if m.entry == nil {
+					spanText(c, r, m.text)
+					continue
+				}
+				spanText(c, r, "「")
+				name := spanText(c, r, m.text).TextColor(a.pal.ink).Underline().DecorationColor(a.pal.control)
+				if name.Hovered() {
+					name.Background(t.SurfacePressed).DecorationColor(a.pal.ink)
+				}
+				if name.Clicked() {
+					a.showEntry(*m.entry)
+				}
+				spanText(c, r, "」")
+			}
+		}
+	})
+}
+
+// spanText is words inline in a text, styled as r.
+func spanText(c *ui.Context, r ui.Span, words string) ui.Element {
+	e := ui.Text(c, words)
+	if r.Font != "" {
+		e.Font(r.Font)
+	}
+	if r.Size != 0 {
+		e.FontSize(r.Size)
+	}
+	if r.Weight != 0 {
+		e.FontWeight(r.Weight)
+	}
+	if r.Italic {
+		e.Italic()
+	}
+	if r.Strikethrough {
+		e.Strikethrough()
+	}
+	if r.Underline {
+		e.Underline()
+	}
+	if r.Color != (ui.Color{}) {
+		e.TextColor(r.Color)
+	}
+	if r.Background != (ui.Color{}) {
+		e.Background(r.Background)
+	}
+	return e
 }
 
 // mdRuns appends styled runs of text at size to out.

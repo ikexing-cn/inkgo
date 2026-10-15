@@ -41,7 +41,7 @@ func TestTheTalkShowsWhereItWasCompacted(t *testing.T) {
 	second := exchange("回忆那段会不会拖", "和眼前的黑写在同一段里，就不拖。", nil)
 	third := exchange("这一章的节奏怎么样", "前半段偏慢。", &workspace.Sent{Parts: []workspace.Part{
 		{Name: workspace.PartRules, Tokens: 1100}, {Name: workspace.PartDigest, Tokens: 820}, {Name: workspace.PartInput, Tokens: 40}}})
-	digest(second, "## 在聊什么\n停电那一章的节奏。\n\n## 作者的态度和偏好\n回忆不写成旁白。[2] 怕黑，写进 [1] 里；[9] 先不管。\n## 还在商量的\n无\n## 下一步\n作者先改前半段。")
+	digest(second, "## 在聊什么\n停电那一章的节奏。\n\n## 作者的态度和偏好\n回忆不写成旁白。[2] 怕黑，写进 [1] 里；[9] 先不管。\n## 还在商量的\n无\n## 下一步\n- 作者先改前半段。\n- 再看 [2] 那句。")
 	a.setError(a.refresh())
 	tt.Frame()
 	if !tt.HasText("以上 2 轮已整理成摘要") || tt.HasText("作者的态度和偏好") || !tt.HasText("6 条发言") {
@@ -65,6 +65,9 @@ func TestTheTalkShowsWhereItWasCompacted(t *testing.T) {
 	}
 	if !tt.HasText("回忆不写成旁白。「林晚」 怕黑，写进 「主角怕黑」 里；[9] 先不管。") {
 		t.Fatal("the entries by their names", tt.Texts())
+	}
+	if !tt.HasText("• 作者先改前半段。") || !tt.HasText("• 再看 「林晚」 那句。") || tt.HasText("- 作者") {
+		t.Fatal("a list in the digest is not laid out as in a reply", tt.Texts())
 	}
 	if err := tt.Click("林晚"); err != nil {
 		t.Fatal(err)

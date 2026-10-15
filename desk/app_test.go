@@ -490,13 +490,16 @@ func TestTalkLeavesTheRestFree(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.page != 2 {
-		t.Fatal("another page waits for the reply")
+	if _, toast := tt.Find("AI 正在思考…"); a.page != 2 || !toast {
+		t.Fatal("another page waits for the reply, or does not say it runs")
 	}
 	if err := tt.Click("讨论"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
+	if _, toast := tt.Find("AI 正在思考…"); toast {
+		t.Fatal("the talk replying is in view and the top says it again")
+	}
 	if err := tt.Click("当前模型"); err != nil {
 		t.Fatal(err)
 	}
@@ -524,6 +527,9 @@ func TestTalkLeavesTheRestFree(t *testing.T) {
 	tt.Frame()
 	if _, live := tt.Find("正在思考…"); a.session != other || live || tt.HasText("灯为什么会灭") || !tt.HasText("该消息尚未收到回复") {
 		t.Fatal("another talk shows the reply in flight", tt.Texts())
+	}
+	if _, toast := tt.Find("AI 正在思考…"); !toast {
+		t.Fatal("another talk does not say one is replying", tt.Texts())
 	}
 	if err := tt.Click("重试回复"); err != nil {
 		t.Fatal(err)

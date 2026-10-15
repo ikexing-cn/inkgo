@@ -325,7 +325,13 @@ function outgoing(talk, m, i) {
 function digest(talk) {
   const d = talk.digest, key = 'digest-' + talk.id, open = S.thoughts[key]
   return `<div class="digest"><div class="digest-head hit"${onClick(() => set((s) => ({ thoughts: { ...s.thoughts, [key]: !open } })))}>以上 ${d.after / 2} 轮已整理成摘要${icon(open ? 'down' : 'right', 'xs')}</div>` +
-    (open ? `<div class="digest-text">${d.text.map(([name, said]) => `<div><div class="saw-title">${t(name)}</div><div>${named(said)}</div></div>`).join('')}<div class="note">摘要由 AI 写成，有误可在对话中指出。</div></div>` : '') + '</div>'
+    (open ? `<div class="digest-text">${d.text.map(([name, said]) => `<div><div class="saw-title">${t(name)}</div><div>${said.split('\n').map(digestLine).join('')}</div></div>`).join('')}<div class="note">摘要由 AI 写成，有误可在对话中指出。</div></div>` : '') + '</div>'
+}
+
+// 摘要的一行和回复里一样排：「- 」起头的是列表的一项，画成圆点。
+function digestLine(line) {
+  const item = line.match(/^[-*] (.*)$/)
+  return `<div>${item ? '<span class="muted">• </span>' + named(item[1]) : named(line)}</div>`
 }
 
 // 摘要里提到设定，存的是设定的编号「[2]」（设定只增不删，编号一直是那一条的）。给作者看换成那一条的名字，

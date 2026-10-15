@@ -438,7 +438,7 @@ func (t *toolbox) readProse(in input) outcome {
 			break
 		}
 		runes += len([]rune(p))
-		lines = append(lines, fmt.Sprintf("[%d] %s", k, p))
+		lines = append(lines, fmt.Sprintf("第 %d 段：%s", k, p)) // not "[k]", which names an entry
 	}
 	return outcome{text: strings.Join(lines, "\n")}
 }

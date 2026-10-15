@@ -204,6 +204,24 @@ func TestTalkBesideShowsItsOwnProgress(t *testing.T) {
 	if !tt.HasText("AI 正在思考") {
 		t.Fatal("with the column shut the progress is not shown", tt.Texts())
 	}
+	a.setDocHidden(false)
+	tt.Frame()
+	if tt.HasText("AI 正在思考") {
+		t.Fatal("the talk is back and the top still says it", tt.Texts())
+	}
+	if err := tt.Click("全部讨论"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("AI 正在思考") {
+		t.Fatal("with the talks listed the progress is not shown", tt.Texts())
+	}
+	a.doc.talks = false
+	tt.Key(0, ui.KeyF11)
+	tt.Frame()
+	if !a.focused() || !tt.HasText("AI 正在思考") {
+		t.Fatal("with the prose alone the progress is not shown", tt.Texts())
+	}
 	close(block)
 	settle(t, a, tt)
 }

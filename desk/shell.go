@@ -260,12 +260,12 @@ func (a *App) sideBody(c *ui.Context, slim bool) {
 func (a *App) treeShown() bool { return a.page == 3 || !a.aiOn() }
 
 // talkShown tells whether the discussion is on screen, on its page or
-// beside the prose.
+// beside the prose: not the list of talks there, nor the prose alone.
 func (a *App) talkShown() bool {
 	if a.Store == nil {
 		return false
 	}
-	return a.page == 0 || a.page == 3 && a.talkTab() && !a.doc.fore && !a.doc.hidden
+	return a.page == 0 || a.page == 3 && a.talkTab() && !a.doc.fore && !a.doc.hidden && !a.doc.talks && !a.focused()
 }
 
 // navItem is a page of the sidebar, with how many things wait there.

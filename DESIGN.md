@@ -434,13 +434,13 @@ components:
 - 回复下面的「AI 参考内容」列出这次发送的各部分各约多少 token、附了哪些设定（设定多到装不下时写「设定较多，本次只附目录」），和服务商算的实际用量。AI 查一回就多发一次请求，这里说的是最后一次，写出回复的那次；不止一次的，注明「这一轮共 N 次请求，这是最后一次。」
 - AI 在讨论里记进设定的，修改记录里有一条，写着记在哪段讨论里。
 - 讨论长了压缩过，压缩的地方隔一行「以上 N 轮已整理成摘要」，点开是摘要全文；只能看，不能改。压缩的时候，回复的地方写「正在压缩上下文…」。
-- 摘要里提到设定，模型写的是设定的编号（「[2]」），给作者看换成那一条的名字，加「」，没有名字的取第一句的开头；点它在右栏打开那一条。
+- 摘要里提到设定，模型写的是设定的编号（「[2]」），给作者看换成那一条的名字，加「」，没有名字的取第一句的开头；点它在右栏打开那一条。摘要的排法和回复一样：模型写的列表画成圆点，不露出「-」。
 - 用了多少也看得到：每条回复下面写这一轮所有请求一共用了多少 token；作品累计的用量和按内置价格估算的花费，在设置「AI」的「本作品用量」里，只能看，不能清零。
 
 检查：
 
-- `npm run verify-prototype` 的「what the AI looked at」「what was sent」「a long talk」「models and services」查原型：「a long talk」查摘要里的名字点了打开那一条，和发出去之前先压缩。
-- `go test ./desk` 的 `TestTalkNotesTheSettingAsItReplies` 查软件里回复上方那一行：回复时展开、回复完折起、点开有查到的内容，「查看设定」打开记下的那一条，修改记录里那一条点「查看讨论」回到讨论；`TestWhatWasSent` 查「AI 参考内容」说的是最后一次请求、「这一轮共 N 次请求」，和回复下面这一轮一共的 token 数；`TestTheWorkShowsWhatItSpent` 查「本作品用量」；`TestTheTalkShowsWhereItWasCompacted` 查「以上 N 轮已整理成摘要」那一行和点开的摘要，摘要里设定的名字点了打开那一条；`TestCompactingShowsItself` 查压缩时写「正在压缩上下文…」，压缩完那一行就出来，作者刚发的话只出现一次。
+- `npm run verify-prototype` 的「what the AI looked at」「what was sent」「a long talk」「models and services」查原型：「a long talk」查摘要里的名字点了打开那一条、列表画成圆点，和发出去之前先压缩。
+- `go test ./desk` 的 `TestTalkNotesTheSettingAsItReplies` 查软件里回复上方那一行：回复时展开、回复完折起、点开有查到的内容，「查看设定」打开记下的那一条，修改记录里那一条点「查看讨论」回到讨论；`TestWhatWasSent` 查「AI 参考内容」说的是最后一次请求、「这一轮共 N 次请求」，和回复下面这一轮一共的 token 数；`TestTheWorkShowsWhatItSpent` 查「本作品用量」；`TestTheTalkShowsWhereItWasCompacted` 查「以上 N 轮已整理成摘要」那一行和点开的摘要，摘要里设定的名字点了打开那一条，列表画成圆点；`TestCompactingShowsItself` 查压缩时写「正在压缩上下文…」，压缩完那一行就出来，作者刚发的话只出现一次。
 
 ### AI 写的字要作者采纳
 
@@ -461,10 +461,12 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab，改写�
 
 讨论里 AI 在回复，别的地方照常用：换页、翻章节、写正文、看设定、改设置都行。只有两样要等它回完或者取消：再发一句、重试回复（一次只回一句），和切换作品。回复中途改了讨论模型，下一句起才用新的。
 
+- 在回复的那段讨论不在眼前（看着别的讨论或讨论列表、在别的页、右栏收起或在别的标签、专注写作）时，右上角的提示条写「AI 正在思考…」，带「取消」；回到那段讨论，提示条收起，那里有它自己的进度。正在做的提示条没有关闭的叉，做完自己收起。
+
 检查：
 
-- `npm run verify-prototype` 的「the rest free while the AI replies」：回复中去「作品分类」再回来，回复照样到；切换作品是灰的。
-- `go test ./desk` 的 `TestTalkLeavesTheRestFree`：回复中换页、换到别的对话、打下一句、打开模型菜单都行；发送、重试回复、切换作品点了没反应；回复落在它自己的对话里。
+- `npm run verify-prototype` 的「the rest free while the AI replies」：回复中去「作品分类」再回来，回复照样到，在「作品分类」时右上角有「AI 正在思考…」，回来就没有；切换作品是灰的。
+- `go test ./desk` 的 `TestTalkLeavesTheRestFree`：回复中换页、换到别的对话、打下一句、打开模型菜单都行；发送、重试回复、切换作品点了没反应；回复落在它自己的对话里；别的页、别的对话有「AI 正在思考…」，它自己的对话里没有。`TestTalkBesideShowsItsOwnProgress` 查正文旁边的讨论：右栏收起、看讨论列表、专注写作时有这个提示条，讨论回到眼前时没有。
 
 ## Colors
 
