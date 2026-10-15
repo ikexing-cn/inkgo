@@ -20,12 +20,14 @@ const Schema = 2
 const Other = "其他"
 
 // Roles of the events of a session file: the author's words, a reply, and
-// on the way to a reply, the tools a model called and what each returned.
+// on the way to a reply, the tools a model called and what each returned;
+// and once the talk grew long, a digest of it.
 const (
 	RoleUser      = "user"
 	RoleAssistant = "assistant"
 	RoleCall      = "call"
 	RoleResult    = "result"
+	RoleDigest    = "digest"
 )
 
 type Category struct {
@@ -83,7 +85,8 @@ type Part struct {
 const (
 	PartRules   = "rules"
 	PartSetting = "setting"
-	PartIndex   = "index" // the setting as an index, too big to send whole
+	PartIndex   = "index"  // the setting as an index, too big to send whole
+	PartDigest  = "digest" // of the talk compacted
 	PartOutline = "outline"
 	PartRecap   = "recap"  // the summaries of the chapters before
 	PartLooked  = "looked" // what the tools a reply called returned
@@ -93,7 +96,7 @@ const (
 )
 
 // Parts is every part, in order.
-var Parts = []string{PartRules, PartSetting, PartIndex, PartOutline, PartRecap, PartLooked, PartTalk, PartProse, PartInput}
+var Parts = []string{PartRules, PartSetting, PartIndex, PartDigest, PartOutline, PartRecap, PartLooked, PartTalk, PartProse, PartInput}
 
 // Part is the tokens part took, 0 when the request had none.
 func (s Sent) Part(name string) int {
@@ -146,6 +149,9 @@ type Event struct {
 	Failed   bool   `json:"failed,omitempty"`
 	Revision string `json:"revision,omitempty"`
 	Capped   bool   `json:"capped,omitempty"`
+	// A digest stands in the requests after it for the talk through the
+	// event Through, which stays as it was said.
+	Through string `json:"through,omitempty"`
 }
 
 // Call is a tool a model called, with the input it wrote, and what it does

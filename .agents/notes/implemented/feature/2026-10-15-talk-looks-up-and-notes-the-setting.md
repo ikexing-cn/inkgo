@@ -81,7 +81,7 @@ Status: implemented
   - 各步用量的和；
   - 各步的推理，中间空一行；
   - 「AI 参考内容」的各部分多一项「查阅结果」（`PartLooked`），排在前情提要和之前的对话之间。
-- 之后的轮次只发作者的话和回复，不重发查阅过程。最近的对话是最近四轮，从新往旧放，放不下就停。原来「记账员还没整理的轮次全放」那条随记账员去掉了。
+- 之后的轮次只发作者的话和回复，不重发查阅过程。最近的对话是最近四轮，从新往旧放，放不下就停。原来「记账员还没整理的轮次全放」那条随记账员去掉了。第 d 步起，还没压缩的对话全发，见[讨论长了压缩成摘要](../architecture/2026-10-15-compacting-a-long-talk.md)。
 
 ### 模型层
 
@@ -169,7 +169,7 @@ DESIGN.md「模型看到的，作者也看得到」在原型那一步就写好�
     - `TestNoteKeepsTheRules`：每条规则都有反例，引不存在的原话被拒；
     - `TestToolsReadTheBook`：五个只读工具的结果，章名同名时带卷名，读不完、列不完时怎样接着读，查设定时名字对上的排前面；
     - `TestNoteQuotesTheProseQuoted`；
-    - `TestTalkSeesTheSettingAndTheRecentTurns`：设定每条带编号，条目 ID 不发给模型，请求带六个工具；
+    - `TestTalkSeesTheSettingAndTheTurns`：设定每条带编号，条目 ID 不发给模型，请求带六个工具；
     - `TestContextBudget`：之后的轮次不重发查阅过程。
   - `go test ./workspace`：
     - `TestModelOutputKeepsReasoningForReview` 查调用和结果事件的校验；

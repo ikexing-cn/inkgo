@@ -73,6 +73,16 @@ func (b *Budget) Return(part string) {
 	delete(b.taken, part)
 }
 
+// Size is what a request of the parts s records takes, its headings and
+// the overhead of its messages included.
+func Size(s *workspace.Sent) int {
+	n := slack
+	for _, p := range s.Parts {
+		n += p.Tokens
+	}
+	return n
+}
+
 // Sent records the parts taken, in their order, with the rules the
 // request had and the revision of set it read.
 func (b *Budget) Sent(rules string, set workspace.Setting) *workspace.Sent {

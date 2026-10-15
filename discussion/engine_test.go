@@ -145,8 +145,8 @@ func TestTurnWaitsForTheReplyOnly(t *testing.T) {
 }
 
 // The talk sees the setting, each entry under its number and never its
-// ID, the last four exchanges, and the tools.
-func TestTalkSeesTheSettingAndTheRecentTurns(t *testing.T) {
+// ID, every exchange not compacted, and the tools.
+func TestTalkSeesTheSettingAndTheTurns(t *testing.T) {
 	e, session := setup(t)
 	r := revise(t, e,
 		workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "主角怕黑"},
@@ -174,7 +174,7 @@ func TestTalkSeesTheSettingAndTheRecentTurns(t *testing.T) {
 			t.Fatal("an entry ID reached the model")
 		}
 	}
-	if len(req.Messages) != 9 || req.Messages[0].Content != users[2] || len(req.Tools) != 6 || req.NoCalls {
+	if len(req.Messages) != 13 || req.Messages[0].Content != users[0] || len(req.Tools) != 6 || req.NoCalls {
 		t.Fatalf("messages %+v", req.Messages)
 	}
 	events, err := e.Store.Events(session)

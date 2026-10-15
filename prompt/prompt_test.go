@@ -35,6 +35,9 @@ func TestBudgetRecordsItsParts(t *testing.T) {
 		got.Parts[0] != (workspace.Part{Name: workspace.PartRules, Tokens: Estimate("规则")}) || got.Part(workspace.PartInput) != Estimate("问") {
 		t.Fatalf("%+v", got)
 	}
+	if Size(got) != slack+Estimate("规则")+Estimate("问") {
+		t.Fatalf("size %d", Size(got))
+	}
 	if other := b.Sent("别的规则", workspace.Setting{}); other.Rules == got.Rules {
 		t.Fatal("two rules, one digest")
 	}

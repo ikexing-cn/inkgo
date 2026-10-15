@@ -34,15 +34,20 @@ func (a *App) discussion(c *ui.Context) {
 }
 
 // chatList builds only the messages in view: laying out a long session
-// whole each frame made streaming and scrolling stutter.
+// whole each frame made streaming and scrolling stutter. Where the talk was
+// compacted last, its digest lies under the last turn it covers.
 func (a *App) chatList(c *ui.Context, side bool) {
 	rows := a.rows[:0]
 	if !a.hasMessages() && a.pending == "" {
 		rows = append(rows, -1)
 	}
+	digest, through := a.compacted()
 	for n, e := range a.events {
 		if said(e) {
 			rows = append(rows, n)
+		}
+		if n == through {
+			rows = append(rows, digest)
 		}
 	}
 	if a.talking {
@@ -71,7 +76,11 @@ func (a *App) chatList(c *ui.Context, side bool) {
 				case -2:
 					a.thinking(c)
 				default:
-					a.message(c, a.events[r], a.events[r].ID == last)
+					if a.events[r].Role == workspace.RoleDigest {
+						a.digest(c, a.events[r], through)
+					} else {
+						a.message(c, a.events[r], a.events[r].ID == last)
+					}
 				}
 			})
 		})
@@ -87,6 +96,94 @@ func (a *App) chatList(c *ui.Context, side bool) {
 // up on its way, which folds into the reply.
 func said(e workspace.Event) bool {
 	return e.Role == workspace.RoleUser || e.Role == workspace.RoleAssistant
+}
+
+// compacted is where the latest digest of the talk is among its events,
+// and the event it runs through; -1 for both when there is none.
+func (a *App) compacted() (int, int) {
+	for n := len(a.events) - 1; n >= 0; n-- {
+		if d := a.events[n]; d.Role == workspace.RoleDigest {
+			for m, e := range a.events {
+				if e.ID == d.Through {
+					return n, m
+				}
+			}
+			break
+		}
+	}
+	return -1, -1
+}
+
+// digest is a line where the talk above it was compacted, which opens the
+// digest that stands for it: to read, not to change.
+func (a *App) digest(c *ui.Context, d workspace.Event, through int) {
+	t := a.pal.theme
+	turns := 0
+	for _, e := range a.events[:through+1] {
+		if e.Role == workspace.RoleAssistant {
+			turns++
+		}
+	}
+	key := "digest-" + d.ID
+	open := a.thoughts[key]
+	if open == nil {
+		open = new(bool)
+		a.thoughts[key] = open
+	}
+	ui.Column(c.Key(d.ID)).FillWidth().AlignItems(ui.Center).Gap(8).Children(func() {
+		label := fmt.Sprintf("以上 %d 轮已整理成摘要", turns)
+		head := ui.ButtonBase(c).Row().Gap(4).AlignItems(ui.Center).Label(label)
+		fg, mark := a.pal.faint, icChevron
+		if head.Hovered() {
+			fg = a.pal.ink
+		}
+		if *open {
+			mark = icChevronDown
+		}
+		head.Children(func() {
+			ui.Text(c, label).FontSize(fsNote).TextColor(fg)
+			glyph(c, mark, iconXs, fg)
+		})
+		if head.Clicked() {
+			*open = !*open
+		}
+		if !*open {
+			return
+		}
+		ui.Column(c).FillWidth().Padding(12, 14).Gap(8).Radius(rCard).Background(a.pal.side).Border(1, a.pal.line).Children(func() {
+			for _, s := range sections(d.Text) {
+				ui.Column(c).FillWidth().Children(func() {
+					if s[0] != "" {
+						ui.Text(c, s[0]).FontSize(fsNote).FontWeight(600).LineHeight(lhBody).FillWidth()
+					}
+					ui.Text(c, s[1]).FontSize(fsNote).LineHeight(lhBody).Selectable().FillWidth()
+				})
+			}
+			ui.Text(c, "摘要由 AI 写成，有误可在对话中指出。").FontSize(fsNote).LineHeight(lhBody).TextColor(t.TextMuted).FillWidth()
+		})
+	})
+}
+
+// sections split a digest at its headings, the lines that open with "## ",
+// into each heading and what is under it; what comes before the first has
+// none.
+func sections(text string) [][2]string {
+	var out [][2]string
+	for _, line := range strings.Split(strings.TrimSpace(text), "\n") {
+		if head, ok := strings.CutPrefix(strings.TrimSpace(line), "## "); ok {
+			out = append(out, [2]string{strings.TrimSpace(head), ""})
+			continue
+		}
+		if len(out) == 0 {
+			out = append(out, [2]string{})
+		}
+		s := &out[len(out)-1]
+		s[1] = strings.TrimPrefix(s[1]+"\n"+line, "\n")
+	}
+	for n := range out {
+		out[n][1] = strings.TrimSpace(out[n][1])
+	}
+	return out
 }
 
 // spoken is how many events of the talk are its words and replies.
@@ -488,6 +585,7 @@ func (a *App) replyLabel(name, effort string) string {
 var partNames = map[string]string{
 	workspace.PartRules:   "规则",
 	workspace.PartIndex:   "设定目录",
+	workspace.PartDigest:  "讨论摘要",
 	workspace.PartOutline: "卷纲和章纲",
 	workspace.PartRecap:   "前情提要",
 	workspace.PartLooked:  "查阅结果",

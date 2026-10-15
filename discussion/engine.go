@@ -73,15 +73,15 @@ func (e *Engine) Say(ctx context.Context, session string, words workspace.Event)
 		return turn, errNoModel
 	}
 	words = workspace.Event{Role: workspace.RoleUser, Text: words.Text, Quotes: words.Quotes, Chapter: words.Chapter}
-	assembled, err := e.assemble(session, -1, words.Said())
+	if _, err := e.assemble(session, -1, words.Said()); err != nil {
+		return turn, err
+	}
+	user, err := e.Store.Append(session, words)
 	if err != nil {
 		return turn, err
 	}
-	turn.User, err = e.Store.Append(session, words)
-	if err != nil {
-		return turn, err
-	}
-	return e.respond(ctx, session, turn, assembled)
+	turn.User = user
+	return e.answer(ctx, session, turn, -1)
 }
 
 // Retry resumes an unanswered saved turn without appending a duplicate user message.
@@ -106,7 +106,17 @@ func (e *Engine) Retry(ctx context.Context, session, userID string) (Turn, error
 	if pos < 0 {
 		return turn, errors.New("找不到待重试的发言")
 	}
-	assembled, err := e.assemble(session, pos, turn.User.Said())
+	return e.answer(ctx, session, turn, pos)
+}
+
+// answer brings the talk before event before, or all of it for -1, within
+// the model's threshold, then asks for the reply to the turn.
+func (e *Engine) answer(ctx context.Context, session string, turn Turn, before int) (Turn, error) {
+	input := turn.User.Said()
+	if err := e.compact(ctx, session, before, input); err != nil {
+		return turn, fmt.Errorf("整理之前的讨论失败，原文已保存：%w", err)
+	}
+	assembled, err := e.assemble(session, before, input)
 	if err != nil {
 		return turn, err
 	}
@@ -116,18 +126,32 @@ func (e *Engine) Retry(ctx context.Context, session, userID string) (Turn, error
 // assemble builds the request for input from the setting and the talk
 // before event before, or all of it for -1.
 func (e *Engine) assemble(session string, before int, input string) (Context, error) {
-	set, err := e.Store.Setting()
+	set, events, err := e.read(session, before)
 	if err != nil {
 		return Context{}, err
-	}
-	events, err := e.Store.Events(session)
-	if err != nil {
-		return Context{}, err
-	}
-	if before >= 0 {
-		events = events[:before]
 	}
 	return Assemble(e.Store.Work(), e.Talk.Input(), set, events, input, e.Beside)
+}
+
+// read is the setting and the talk before event before, or all of it for
+// -1. The digests written after it come along: a turn retried may have
+// been compacted for.
+func (e *Engine) read(session string, before int) (workspace.Setting, []workspace.Event, error) {
+	set, err := e.Store.Setting()
+	if err != nil {
+		return set, nil, err
+	}
+	events, err := e.Store.Events(session)
+	if err != nil || before < 0 {
+		return set, events, err
+	}
+	talk := slices.Clip(events[:before])
+	for _, ev := range events[before:] {
+		if ev.Role == workspace.RoleDigest {
+			talk = append(talk, ev)
+		}
+	}
+	return set, talk, nil
 }
 
 // maxSteps bounds the requests of one reply: the last one may call no tool

@@ -100,8 +100,18 @@ func validateEvent(e Event) error {
 				return fmt.Errorf("revision: %w", err)
 			}
 		}
+	case RoleDigest:
+		if strings.TrimSpace(e.Text) == "" || e.ReplyTo != "" || len(e.Calls) > 0 || e.Call != "" || e.Failed || e.Revision != "" {
+			return fmt.Errorf("text: a digest is text and answers no words")
+		}
+		if err := validID(e.Through); err != nil {
+			return fmt.Errorf("through: %w", err)
+		}
 	default:
 		return fmt.Errorf("role: invalid message role %q", e.Role)
+	}
+	if e.Through != "" && e.Role != RoleDigest {
+		return fmt.Errorf("through: only a digest covers the talk")
 	}
 	if e.Capped && e.Role != RoleAssistant {
 		return fmt.Errorf("capped: only a reply is capped")

@@ -417,7 +417,8 @@ func TestModelOutputKeepsReasoningForReview(t *testing.T) {
 		t.Fatal("accepted an effort not offered")
 	}
 	// A step of a reply calls tools and each call's result names it; the
-	// author's words and a reply call none.
+	// author's words and a reply call none. A digest covers the talk
+	// through an event, and only a digest does.
 	call := Call{ID: "call_1", Name: "search_book", Input: []byte(`{"query":"井"}`), Label: "搜了全书「井」"}
 	for _, bad := range []Event{
 		{Role: RoleCall, Calls: []Call{call}},
@@ -427,6 +428,10 @@ func TestModelOutputKeepsReasoningForReview(t *testing.T) {
 		{Role: RoleUser, Text: "x", Calls: []Call{call}},
 		{Role: RoleAssistant, Text: "x", ReplyTo: user.ID, Call: "call_1"},
 		{Role: RoleResult, ReplyTo: user.ID, Call: "call_1", Capped: true},
+		{Role: RoleDigest, Text: "## 在聊什么"},
+		{Role: RoleDigest, Through: user.ID},
+		{Role: RoleDigest, Text: "## 在聊什么", Through: user.ID, ReplyTo: user.ID},
+		{Role: RoleAssistant, Text: "x", ReplyTo: user.ID, Through: user.ID},
 	} {
 		if _, err = s.Append(session, bad); err == nil {
 			t.Errorf("accepted %+v", bad)
@@ -440,6 +445,12 @@ func TestModelOutputKeepsReasoningForReview(t *testing.T) {
 	}
 	if events, err = s.Events(session); err != nil || events[len(events)-2].Calls[0].Label != call.Label || !events[len(events)-1].Failed {
 		t.Fatalf("the calls were not kept: %+v %v", events, err)
+	}
+	if _, err = s.Append(session, Event{Role: RoleDigest, Text: "## 在聊什么\n雨", Through: user.ID, Model: "deepseek/deepseek-flash"}); err != nil {
+		t.Fatal(err)
+	}
+	if events, err = s.Events(session); err != nil || events[len(events)-1].Through != user.ID {
+		t.Fatalf("the digest was not kept: %+v %v", events, err)
 	}
 	w := s.Work()
 	w.Discussion = Selection{Provider: "deepseek", Model: "deepseek-flash", Effort: "high"}
