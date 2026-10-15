@@ -27,7 +27,7 @@ M1 的模型客户端是自己写的三种协议的非流式请求。实际使�
   只有 `model` 包导入 GoAI。
 - **Responses 推理补丁**：DeepSeek 的 Responses API 用 `response.reasoning_text.delta` 发送完整推理（OpenAI SDK 里的 `ResponseReasoningTextDeltaEvent`），GoAI v0.10.6 只认摘要事件。补丁 [zendev-sh/goai#183](https://github.com/zendev-sh/goai/pull/183) 已合并进上游 v0.10.7；2026-10-10 起 `go.mod` 直接依赖 v0.10.7，不再用 `replace` 指向作者的 fork。
 - 所有请求都走流式。`Completer.Complete(ctx, req, onDelta)` 逐段回调推理和正文增量（不回调空增量），结束后返回 `Reply{Text, Reasoning}`。GoAI 把模型停下的原因放在 `step_finish` 块上，最后的 `finish` 块可能不带原因。所以：
-  - 截断、内容过滤或错误都返回错误；
+  - 截断、内容过滤或错误都返回错误；2026-10-15 起读完整个流再返回，错误之外带上用量：`chat` 协议的用量在停下原因之后的最后一块里，原来见到原因就返回，这次请求就没记账（连 DeepSeek 时回复被截断才发现）；
   - 没有出现过带原因的结束块，说明流是半途断开的，也返回错误；
   - 不把半截回复当成功。
 - 请求出错、尚未开始回复时，GoAI 默认重试 2 次；测试里通过包内字段关掉重试。

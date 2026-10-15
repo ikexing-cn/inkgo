@@ -83,7 +83,8 @@ func until(t *testing.T, tt *ui.Tester, what string, ok func() bool) {
 // Drafting needs an outline. The draft streams in beside the text, which
 // stays as it was and read-only, on the disk too, until the author takes
 // it: then the chapter before it is a snapshot recording what the AI saw,
-// and the draft goes in as one undo step with its mark.
+// and the draft goes in as one undo step with its mark, the keyboard back
+// in the prose to undo it.
 func TestDraftAChapterFromItsOutline(t *testing.T) {
 	a, tt, id := writingFixture(t, "")
 	f := &stream{pieces: []string{"雨下了一夜。", "\n她醒了。"}, hold: make(chan struct{})}
@@ -128,8 +129,8 @@ func TestDraftAChapterFromItsOutline(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if ed.Doc.String() != "雨下了一夜。\n她醒了。" || ed.ReadOnly() || !strings.Contains(a.notice, "已采纳起草") {
-		t.Fatalf("taken %q %q", ed.Doc.String(), a.notice)
+	if ed.Doc.String() != "雨下了一夜。\n她醒了。" || ed.ReadOnly() || !strings.Contains(a.notice, "已采纳起草") || !tt.Focused("正文") {
+		t.Fatalf("taken %q %q, the prose focused %v", ed.Doc.String(), a.notice, tt.Focused("正文"))
 	}
 	if ms := ed.Doc.Marks(); len(ms) != 1 || ms[0].Kind != editor.MarkAIDraft || ms[0].End != ed.Doc.Len() {
 		t.Fatalf("marks %+v", ms)
@@ -145,7 +146,7 @@ func TestDraftAChapterFromItsOutline(t *testing.T) {
 	if !strings.Contains(f.asked[0].Messages[len(f.asked[0].Messages)-1].Content, "她在雨夜醒来。") {
 		t.Fatal("the outline was not sent")
 	}
-	ed.Undo()
+	tt.Key(ui.Cmd, ui.KeyZ)
 	if ed.Doc.String() != "" {
 		t.Fatalf("one undo left %q", ed.Doc.String())
 	}
@@ -180,7 +181,8 @@ func TestDraftOverWhatIsThere(t *testing.T) {
 
 // Stopped, a draft keeps what it wrote, after the text there was, for the
 // author to take or not; with nothing written, it is as if there was no
-// draft. Drafting again starts it over; failing keeps what came.
+// draft. Drafting again starts it over; failing keeps what came. The
+// buttons give the keyboard back to the prose.
 func TestStopADraftKeepsWhatCame(t *testing.T) {
 	a, tt, _ := writingFixture(t, "她醒了")
 	f := &stream{pieces: []string{"雨还在下。", "不该出现。"}, hold: make(chan struct{})}
@@ -203,8 +205,8 @@ func TestStopADraftKeepsWhatCame(t *testing.T) {
 	}
 	until(t, tt, "the draft to stop", func() bool { return a.write.run == nil })
 	tt.Frame()
-	if got := a.write.ed.Doc.String(); got != "她醒了" || proposed(a) != "\n雨还在下。" || !tt.HasText("已停止，起草 5 字，绿色为起草。") {
-		t.Fatalf("after stop %q beside %q", proposed(a), got)
+	if got := a.write.ed.Doc.String(); got != "她醒了" || proposed(a) != "\n雨还在下。" || !tt.HasText("已停止，起草 5 字，绿色为起草。") || !tt.Focused("正文") {
+		t.Fatalf("after stop %q beside %q, the prose focused %v", proposed(a), got, tt.Focused("正文"))
 	}
 	if a.Error != "" {
 		t.Fatal(a.Error)
@@ -223,7 +225,7 @@ func TestStopADraftKeepsWhatCame(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if _, _, _, ok := a.write.ed.Proposal(); ok || a.write.ed.ReadOnly() || a.write.ed.Doc.String() != "她醒了" || tt.HasText("采纳") {
+	if _, _, _, ok := a.write.ed.Proposal(); ok || a.write.ed.ReadOnly() || a.write.ed.Doc.String() != "她醒了" || tt.HasText("采纳") || !tt.Focused("正文") {
 		t.Fatal("the draft was not let go", tt.Texts())
 	}
 
@@ -261,7 +263,9 @@ func TestStopADraftKeepsWhatCame(t *testing.T) {
 }
 
 // A rewrite is shown beside the words selected; dropping it changes
-// nothing, accepting it keeps the words replaced as a snapshot.
+// nothing, accepting it keeps the words replaced as a snapshot. Asked for,
+// taken, or closed, it gives the keyboard back to the prose; dropped, to
+// the instruction.
 func TestRewriteASelection(t *testing.T) {
 	a, tt, id := writingFixture(t, "她走到井边。井里有光。")
 	f := &stream{pieces: []string{"她慢慢", "走到井边。"}}
@@ -278,8 +282,8 @@ func TestRewriteASelection(t *testing.T) {
 		t.Fatal(err)
 	}
 	until(t, tt, "the rewrite", func() bool { return a.write.proposed != nil })
-	if _, _, text, ok := a.write.ed.Proposal(); !ok || text != "她慢慢走到井边。" {
-		t.Fatalf("proposal %q", text)
+	if _, _, text, ok := a.write.ed.Proposal(); !ok || text != "她慢慢走到井边。" || !tt.Focused("正文") {
+		t.Fatalf("proposal %q, the prose focused %v", text, tt.Focused("正文"))
 	}
 	if err := tt.Click("放弃"); err != nil {
 		t.Fatal(err)
@@ -287,6 +291,9 @@ func TestRewriteASelection(t *testing.T) {
 	tt.Frame()
 	if a.write.ed.Doc.String() != "她走到井边。井里有光。" || len(a.write.ed.Doc.Marks()) != 0 || a.write.ed.ReadOnly() {
 		t.Fatal("dropping changed the text")
+	}
+	if !tt.Focused("改写要求") {
+		t.Fatal("dropped, the instruction is not where the keyboard is")
 	}
 	before, _ := a.Store.Snapshots(id)
 
@@ -311,12 +318,30 @@ func TestRewriteASelection(t *testing.T) {
 	if ms := ed.Doc.Marks(); len(ms) != 1 || ms[0].Kind != editor.MarkAIAccepted || ed.Doc.Slice(ms[0].Start, ms[0].End) != "她慢慢走到井边。" {
 		t.Fatalf("marks %+v", ms)
 	}
+	if !tt.Focused("正文") {
+		t.Fatal("taken, the keyboard is not in the prose")
+	}
 	snaps, _ := a.Store.Snapshots(id)
 	if len(snaps) != len(before)+1 || snaps[0].AI == nil || snaps[0].AI.Op != workspace.AIRewrite || snaps[0].AI.Instruction != "放慢" {
 		t.Fatalf("snapshots %+v", snaps)
 	}
 	if text, _ := a.Store.SnapshotText(id, snaps[0].Name); text != "她走到井边。井里有光。" {
 		t.Fatalf("snapshot text %q", text)
+	}
+	tt.Key(ui.Cmd, ui.KeyZ)
+	if ed.Doc.String() != "她走到井边。井里有光。" {
+		t.Fatalf("one undo left %q", ed.Doc.String())
+	}
+	ed.Select(0, 6)
+	tt.Frame()
+	if err := tt.Click("AI 改写"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Key(0, ui.KeyEscape)
+	tt.Frame()
+	if a.write.rewriting || !tt.Focused("正文") {
+		t.Fatalf("Escape: rewriting %v, the prose focused %v", a.write.rewriting, tt.Focused("正文"))
 	}
 	if err := clickMenu(tt, "文件", "菜单-快照"); err != nil {
 		t.Fatal(err)

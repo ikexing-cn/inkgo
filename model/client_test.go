@@ -216,19 +216,24 @@ func TestListModels(t *testing.T) {
 	}
 }
 
+// A failed request says why without what the service said, returns no
+// text, and returns what it used when the service told it, as a reply cut
+// off at its length does.
 func TestHTTPErrorSecrecyAndBounds(t *testing.T) {
+	used := `data: {"id":"c1","object":"chat.completion.chunk","created":1,"model":"m","choices":[],"usage":{"prompt_tokens":100,"completion_tokens":20,"total_tokens":120}}` + "\n\n"
 	for _, tc := range []struct {
 		name   string
 		status int
 		body   []string
 		want   string
+		input  int
 	}{
-		{"authentication", 401, []string{`{"error":{"message":"secret-credential"}}`}, "HTTP 401"},
-		{"not found", 404, []string{`{"error":{"message":"secret-credential"}}`}, "模型 ID 不对"},
-		{"mid-stream error", 200, []string{`data: {"error":{"message":"secret-credential"}}` + "\n\n"}, "返回了错误"},
-		{"empty", 200, []string{chatChunk(`{"content":""}`, "stop"), "data: [DONE]\n\n"}, "没有返回文字"},
-		{"truncated", 200, []string{chatChunk(`{"content":"partial"}`, "length"), "data: [DONE]\n\n"}, "截断"},
-		{"cut off", 200, []string{chatChunk(`{"content":"partial"}`, "")}, "没有完成"},
+		{"authentication", 401, []string{`{"error":{"message":"secret-credential"}}`}, "HTTP 401", 0},
+		{"not found", 404, []string{`{"error":{"message":"secret-credential"}}`}, "模型 ID 不对", 0},
+		{"mid-stream error", 200, []string{`data: {"error":{"message":"secret-credential"}}` + "\n\n"}, "返回了错误", 0},
+		{"empty", 200, []string{chatChunk(`{"content":""}`, "stop"), "data: [DONE]\n\n"}, "没有返回文字", 0},
+		{"truncated", 200, []string{chatChunk(`{"content":"partial"}`, "length"), used, "data: [DONE]\n\n"}, "截断", 100},
+		{"cut off", 200, []string{chatChunk(`{"content":"partial"}`, "")}, "没有完成", 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -251,6 +256,9 @@ func TestHTTPErrorSecrecyAndBounds(t *testing.T) {
 			}
 			if got.Text != "" {
 				t.Fatalf("failed reply returned text %q", got.Text)
+			}
+			if got.Usage.Input != tc.input {
+				t.Fatalf("usage %+v", got.Usage)
 			}
 		})
 	}

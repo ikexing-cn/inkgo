@@ -370,11 +370,18 @@ function rewrite() {
   later(1200, () => set((s) => (s.ai && s.ai.kind === 'rewriting' ? { ai: { ...s.ai, kind: 'diff', text: BOOK.rewrite } } : null)))
 }
 function takeRewrite() {
-  set((s) => {
-    const { pick, text } = s.ai
-    return { ai: null, ...snap(s, s.ch, 'AI 改动前'), ...oneStep(s, s.ch, (paras) => paras.map((p, i) => (i === pick.para ? p.slice(0, pick.start) + text + p.slice(pick.end) : p))) }
-  })
+  const { pick, text } = S.ai
+  set((s) => ({ ai: null, ...snap(s, s.ch, 'AI 改动前'), ...oneStep(s, s.ch, (paras) => paras.map((p, i) => (i === pick.para ? p.slice(0, pick.start) + text + p.slice(pick.end) : p))) }))
   say('已采纳改写', '可撤销恢复原文，原版本已存入快照', 'ok')
+  putCaret({ para: pick.para, off: pick.start + text.length }, true)
+}
+// AI 那一行上的按钮点过，键盘回到正文：采纳了马上按 Ctrl+Z 就撤销。光标放在改写的那一处，或者起草的末尾。
+const caretToEnd = () => { const paras = chapterOf(S.ch).paras; putCaret({ para: Math.max(paras.length - 1, 0), off: (paras.at(-1) || '').length }, true) }
+function dropAI() {
+  const pick = S.ai.pick
+  set({ ai: null })
+  if (pick) putCaret({ para: pick.para, off: pick.end }, true)
+  else caretToEnd()
 }
 
 // 按章纲起草。写出来的先摆在正文后面（覆盖已有内容时，原文划掉），和改写一样，点「采纳」才写进正文。
@@ -396,7 +403,7 @@ function draft(a) {
   next()
 }
 // 停下来：写了的留着等作者定，一个字没写就当没起草。
-const stopDraft = () => set((s) => ({ ai: s.ai.paras.length ? { ...s.ai, kind: 'drafted', stopped: true } : null }))
+const stopDraft = () => { set((s) => ({ ai: s.ai.paras.length ? { ...s.ai, kind: 'drafted', stopped: true } : null })); if (!S.ai) caretToEnd() }
 // 采纳起草：先存快照再写进正文，算一步，撤销一次就退回去。写进去的那几段带「AI 起草」的记号。
 function takeDraft() {
   set((s) => {
@@ -408,6 +415,7 @@ function takeDraft() {
     }
   })
   say('已采纳起草', '可撤销恢复原文，原版本已存入快照', 'ok')
+  caretToEnd()
 }
 
 // 让 AI 给一章写摘要。
@@ -662,7 +670,7 @@ function pieces(cur, i, text, focus, found) {
 function aiBar() {
   const a = S.ai, [model, effort] = writer()
   if (!a || a.kind === 'ghost' || a.kind === 'ghosting') return ''
-  const drop = () => set({ ai: null })
+  const drop = dropAI
   if (a.kind === 'ask') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'muted')}<div class="box line fit">${typed(a.want, (v) => set((s) => ({ ai: { ...s.ai, want: v } })), '改写要求，例如：放慢节奏，多写她的犹豫', '改写要求', keys(rewrite, drop) + ' autofocus')}</div>${button('改写', rewrite, 'primary')}<button class="icon-btn muted" aria-label="关闭改写" title="关闭改写"${onClick(drop)}>${icon('cross')}</button></div>`
   if (a.kind === 'rewriting') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'muted')}<div class="fit ell muted">AI 正在改写选中内容 · ${t(model)}</div>${button('取消', drop)}</div>`
   if (a.kind === 'diff') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'green')}<div class="fit ell muted">红色删除线为原文，绿色为改写。</div>${button('放弃', drop, 'soft')}<div class="hit link"${onClick(rewrite)}>重新改写</div>${button('采纳', takeRewrite, 'primary')}</div>`

@@ -105,10 +105,10 @@ func (w *Writer) prepare(op, task string, scene Scene, tail string) (Job, error)
 		return job, errors.New("纲和要求超出了模型的上下文上限：请缩短，或在设置中「AI」配置里调大上下文上限")
 	}
 	if t := fit(lastRunes(scene.Before, beforeCap), b.Left(), true); strings.TrimSpace(t) != "" {
-		take(&near, workspace.PartProse, "【本章前文】", t, fmt.Sprintf("本章前文 %d 字", len([]rune(t))))
+		take(&near, workspace.PartProse, "【本章前文】", t, fmt.Sprintf("本章前文 %d 字", workspace.Count(t)))
 	}
 	if t := fit(firstRunes(scene.After, afterCap), b.Left(), false); strings.TrimSpace(t) != "" {
-		take(&far, workspace.PartProse, "【本章后文】", t, fmt.Sprintf("本章后文 %d 字", len([]rune(t))))
+		take(&far, workspace.PartProse, "【本章后文】", t, fmt.Sprintf("本章后文 %d 字", workspace.Count(t)))
 	}
 
 	// The setting: the body binds the prose, then what the author dropped;
@@ -150,7 +150,7 @@ func (w *Writer) prepare(op, task string, scene Scene, tail string) (Job, error)
 	if p, ok := previous(tree, n); ok && len([]rune(scene.Before)) < beforeCap {
 		if pc, err := w.Store.ReadChapter(p.ID); err == nil {
 			if t := fit(lastRunes(pc.Text, previousCap), b.Left()-64, true); strings.TrimSpace(t) != "" {
-				take(&prev, workspace.PartProse, "【上一章《"+p.Title+"》的结尾】", t, fmt.Sprintf("上一章《%s》结尾 %d 字", p.Title, len([]rune(t))))
+				take(&prev, workspace.PartProse, "【上一章《"+p.Title+"》的结尾】", t, fmt.Sprintf("上一章《%s》结尾 %d 字", p.Title, workspace.Count(t)))
 			}
 		}
 	}

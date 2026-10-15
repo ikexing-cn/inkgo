@@ -104,10 +104,17 @@ func (t *toolbox) note(in input) outcome {
 		return workspace.Source{}, false
 	}
 	out := workspace.Op{Op: in.Op, Place: in.Place, Category: in.Category, Text: strings.TrimSpace(in.Text), Names: workspace.CleanNames(in.Names)}
+	// cite keeps a source once, though sources and author_said quote the
+	// same words.
+	cite := func(s workspace.Source) {
+		if !slices.Contains(out.Sources, s) {
+			out.Sources = append(out.Sources, s)
+		}
+	}
 	fromAuthor := false
 	for _, q := range in.Sources {
 		if s, ok := source(q, "sources 里的", false); ok {
-			out.Sources = append(out.Sources, s)
+			cite(s)
 			fromAuthor = fromAuthor || slices.ContainsFunc(said, func(m workspace.Event) bool { return m.ID == s.Message && m.Role == workspace.RoleUser })
 		}
 	}
@@ -116,7 +123,7 @@ func (t *toolbox) note(in input) outcome {
 		if strings.TrimSpace(in.AuthorSaid) == "" {
 			bad = append(bad, "要在 author_said 里引作者拍板、接受、拒绝或改口的原话")
 		} else if s, ok := source(in.AuthorSaid, "author_said", true); ok {
-			out.Sources = append(out.Sources, s)
+			cite(s)
 		}
 	}
 	if in.Category != "" && !slices.ContainsFunc(t.store.Work().Categories, func(c workspace.Category) bool { return c.Name == in.Category }) {
@@ -148,15 +155,15 @@ func (t *toolbox) note(in input) outcome {
 		switch in.Op {
 		case workspace.OpEdit:
 			if out.Text == "" || in.Place != "" || in.Category != "" {
-				bad = append(bad, "edit 只改 text（可附 sources）")
+				bad = append(bad, "edit 要有改好的 text，不带 place、category（换位置或分类用 move）")
 			}
 		case workspace.OpMove:
 			if in.Place == "" && in.Category == "" || out.Text != "" || len(in.Sources) > 0 {
-				bad = append(bad, "move 只改 place 或 category")
+				bad = append(bad, "move 要有 place 或 category，不带 text、sources（改写用 edit）")
 			}
 		case workspace.OpName:
 			if len(out.Names) == 0 || out.Text != "" || in.Place != "" || in.Category != "" || len(in.Sources) > 0 {
-				bad = append(bad, "name 只给 names")
+				bad = append(bad, "name 要有 names，不带 text、place、category、sources")
 			} else if len(out.Names) < len(e.Names) || !slices.Equal(out.Names[:len(e.Names)], e.Names) {
 				bad = append(bad, fmt.Sprintf("name 只在原有名字后面加别名，原有名字 %s 要原样排在前面", strings.Join(e.Names, "、")))
 			}

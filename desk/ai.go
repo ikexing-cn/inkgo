@@ -329,7 +329,8 @@ func (a *App) startDraft(c *ui.Context) {
 }
 
 // aiBar shows what the AI is doing in the chapter, and asks what the
-// author makes of a rewrite or a draft.
+// author makes of a rewrite or a draft. Its buttons give the keyboard back
+// to the prose as the bar changes under them: taken, an undo takes it back.
 func (a *App) aiBar(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
@@ -343,6 +344,7 @@ func (a *App) aiBar(c *ui.Context) {
 			ui.Textf(c, "AI 正在按章纲起草 · 已写 %d 字 · %s", w.run.wrote, a.modelLabel(w.run.job.Record)).FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
 			if action(c, "停止", t.Danger, false).Clicked() {
 				w.run.cancel()
+				w.ed.Focus()
 			}
 		})
 	case w.run != nil:
@@ -351,6 +353,7 @@ func (a *App) aiBar(c *ui.Context) {
 			ui.Textf(c, "AI 正在改写选中内容 · %s", a.modelLabel(w.run.job.Record)).FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
 			if a.pal.secondary(c, "取消").Clicked() {
 				w.run.cancel()
+				w.ed.Focus()
 			}
 		})
 	case w.proposed != nil && w.proposed.op == workspace.AIDraft:
@@ -367,19 +370,22 @@ func (a *App) aiBar(c *ui.Context) {
 			ui.Text(c, say+"。").FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
 			if a.pal.secondary(c, "放弃").Clicked() {
 				a.dropProposal()
+				w.ed.Focus()
 			}
 			if a.pal.ghost(c, "重新起草", ui.Color{}).Clicked() {
 				a.startDraft(c)
+				w.ed.Focus()
 			}
 			if a.pal.primary(c, "采纳").Clicked() {
 				a.acceptProposal()
+				w.ed.Focus()
 			}
 		})
 	case w.proposed != nil:
 		bar(func() {
 			glyph(c, icWand, iconMd, t.Success)
 			ui.Text(c, "红色删除线为原文，绿色为改写。").FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1)
-			if a.pal.secondary(c, "放弃").Clicked() {
+			if a.pal.secondary(c, "放弃").Clicked() { // the instruction comes back, for another try
 				a.dropProposal()
 			}
 			if a.pal.ghost(c, "重新改写", ui.Color{}).Clicked() {
@@ -388,6 +394,7 @@ func (a *App) aiBar(c *ui.Context) {
 			}
 			if a.pal.primary(c, "采纳").Clicked() {
 				a.acceptProposal()
+				w.ed.Focus()
 			}
 		})
 	case w.rewriting:
@@ -398,9 +405,11 @@ func (a *App) aiBar(c *ui.Context) {
 			go_ := a.pal.primary(c, "改写").Disabled(s == e || strings.TrimSpace(w.instruction) == "")
 			if (in.Submitted() || go_.Clicked()) && s != e && strings.TrimSpace(w.instruction) != "" {
 				a.startRewrite(c)
+				w.ed.Focus()
 			}
 			if iconButton(c, icX, "关闭改写", ui.Color{}).Clicked() || in.Shortcut(0, ui.KeyEscape) {
 				w.rewriting = false
+				w.ed.Focus()
 			}
 		})
 	}

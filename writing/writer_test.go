@@ -101,7 +101,7 @@ func TestDraftShowsWhatItRecords(t *testing.T) {
 			t.Errorf("the request shows the ID %s", id)
 		}
 	}
-	if got := strings.Join(job.Record.Shown, "|"); got != "卷纲：第一卷|章纲：第二章|上一章《第一章》结尾 13 字" {
+	if got := strings.Join(job.Record.Shown, "|"); got != "卷纲：第一卷|章纲：第二章|上一章《第一章》结尾 12 字" {
 		t.Errorf("shown %q", got)
 	}
 	if len(job.Record.Setting) != 3 || job.Record.Op != workspace.AIDraft || job.Record.Model != "deepseek/deepseek-flash" || job.Record.Instruction != "约 800 字" {
@@ -156,7 +156,7 @@ func TestDraftCutOffKeepsWhatCame(t *testing.T) {
 func TestRewriteShowsTheWordsAround(t *testing.T) {
 	f := &fake{pieces: []string{"她慢慢走到井边。"}}
 	w, two, _ := book(t, f)
-	job, err := w.Rewrite(Scene{Chapter: two, Before: "雨停了。", After: "井里有光。"}, "她站在井边。", "写慢一点")
+	job, err := w.Rewrite(Scene{Chapter: two, Before: "雨停了。\n\n", After: "井里有光。"}, "她站在井边。", "写慢一点")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,7 +171,7 @@ func TestRewriteShowsTheWordsAround(t *testing.T) {
 	if !(at("雨停了。") < at("她站在井边。") && at("她站在井边。") < at("写慢一点") && at("写慢一点") < at("井里有光。")) {
 		t.Fatal(msg)
 	}
-	if got := strings.Join(job.Record.Shown, "|"); got != "卷纲：第一卷|章纲：第二章|上一章《第一章》结尾 13 字|本章前文 4 字|本章后文 5 字" {
+	if got := strings.Join(job.Record.Shown, "|"); got != "卷纲：第一卷|章纲：第二章|上一章《第一章》结尾 12 字|本章前文 4 字|本章后文 5 字" {
 		t.Errorf("shown %q", got)
 	}
 	if _, err = w.Rewrite(Scene{Chapter: two}, "x", " "); err == nil {

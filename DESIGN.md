@@ -447,12 +447,13 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab，改写�
 
 - 采纳之前和正文分得开：续写是灰字；改写、起草里 AI 写的是绿色，要换掉的原文划红色删除线。这时正文不能打字，没采纳的字不存盘。
 - 采纳前存快照；采纳算一步，撤销一次就退回去。
+- 点过标题下面 AI 那一行的「采纳」「停止」「取消」，放弃起草，或者按 Esc 关掉改写要求，键盘回到正文：采纳以后光标在 AI 写的字后面，马上按 Ctrl+Z 就撤销。放弃改写以后键盘去哪里待作者确认：原型收起这一行，回到正文；软件里改写要求重新出来，键盘在它里面。
 - 没采纳就离开这一章或关掉 AI，写好的丢掉，正文照旧。
 
 检查：
 
-- `npm run verify-prototype` 的「a sentence more」「a rewrite」「a draft」查原型。
-- `go test ./desk` 的 `TestDraftAChapterFromItsOutline`、`TestStopADraftKeepsWhatCame`、`TestRewriteASelection` 查软件：起草、改写写完，正文和磁盘都不变，采纳时才存快照、写进正文，算一步；`TestTurnTheAIOffAndOn` 查关掉 AI 时没采纳的起草丢掉。
+- `npm run verify-prototype` 的「a sentence more」「a rewrite」「a draft」查原型，采纳以后按 Ctrl+Z、Ctrl+Y，按 Esc 关掉改写要求以后键盘在正文。
+- `go test ./desk` 的 `TestDraftAChapterFromItsOutline`、`TestStopADraftKeepsWhatCame`、`TestRewriteASelection` 查软件：起草、改写写完，正文和磁盘都不变，采纳时才存快照、写进正文，算一步；点过按钮以后键盘在正文，采纳以后按 Ctrl+Z 撤销。`TestTurnTheAIOffAndOn` 查关掉 AI 时没采纳的起草丢掉。
 
 ## Colors
 

@@ -160,7 +160,8 @@ func TestLookingUpStopsWhenTheRoomIsFull(t *testing.T) {
 
 // A note keeps to its rules: verbatim quotes of what
 // was said before, the author's words for what settles, the work's
-// categories, and names given once.
+// categories, and names given once. A refusal says what to give and what
+// not, and words quoted twice are kept once.
 func TestNoteKeepsTheRules(t *testing.T) {
 	e, session := setup(t)
 	u, _ := turn(t, e, session, "主角叫林晚，她怕黑。", "也许她小时候在矿井里迷过路？")
@@ -185,12 +186,14 @@ func TestNoteKeepsTheRules(t *testing.T) {
 		{input{Op: "add", Place: "open", Category: "规则", Text: "雨不会停", Names: []string{"雨"}, Sources: []string{"雨不会停"}}, "只有人物、"},
 		{input{Op: "edit", Entry: 1, Text: "林晚是女主角"}, "author_said"},
 		{input{Op: "edit", Entry: 9, Text: "林晚是女主角"}, "没有编号 9"},
+		{input{Op: "edit", Entry: 1, Category: "人物", Text: "林晚是女主角", AuthorSaid: "矿井这个好，就这样"}, "edit 要有改好的 text，不带 place、category（换位置或分类用 move）。"},
 		{input{Op: "name", Entry: 1, Names: []string{"晚"}}, "原有名字 林晚 要原样排在前面"},
 		{input{Op: "move", Entry: 2, Place: "dropped"}, "author_said"},
 		{input{Op: "add", Place: "body", Category: "人物", Text: "她小时候在矿井里迷过路", Sources: []string{"她小时候在矿井里迷过路"}, AuthorSaid: "矿井这个好，就这样"}, ""},
 		{input{Op: "move", Entry: 2, Place: "dropped", AuthorSaid: "雨不会停"}, ""},
 		{input{Op: "add", Place: "body", Category: "规则", Text: "雨不会停", Sources: []string{"雨不会停"}}, ""},
 		{input{Op: "name", Entry: 1, Names: []string{"林晚", "主角"}}, ""},
+		{input{Op: "add", Place: "dropped", Category: "规则", Text: "雨会停", Sources: []string{"雨不会停"}, AuthorSaid: "雨不会停"}, ""},
 	} {
 		out := box.note(c.in)
 		if c.want == "" && out.failed || c.want != "" && (!out.failed || !strings.Contains(out.text, c.want)) {
@@ -198,7 +201,7 @@ func TestNoteKeepsTheRules(t *testing.T) {
 		}
 	}
 	set := setting(t, e)
-	if len(set.Entries) != 4 || set.Entries[1].Place != workspace.PlaceDropped || set.Entries[0].Names[1] != "主角" {
+	if len(set.Entries) != 5 || set.Entries[1].Place != workspace.PlaceDropped || set.Entries[0].Names[1] != "主角" || len(set.Entries[4].Sources) != 1 {
 		t.Fatalf("%+v", set.Entries)
 	}
 	mine := set.Entries[2].Sources

@@ -369,6 +369,7 @@ func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta))
 	block := "" // the block of reasoning streaming, as Anthropic names it
 	var used provider.Usage
 	finished := false
+	var short error // why the model stopped short, told once the stream has brought what it used
 	for chunk := range stream.Stream() {
 		var d Delta
 		switch chunk.Type {
@@ -407,17 +408,18 @@ func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta))
 			if chunk.Usage != (provider.Usage{}) {
 				used = chunk.Usage
 			}
-			// goai reports why the model stopped on the step's finish; the
-			// stream's last finish may carry no reason, and a stream cut off
-			// before the model stopped brings none at all.
+			// goai reports why the model stopped on the step's finish, before
+			// the stream's last finish brings the usage; that may carry no
+			// reason, and a stream cut off before the model stopped brings
+			// none at all.
 			switch chunk.FinishReason {
 			case "":
 			case provider.FinishLength:
-				return Reply{}, errors.New("模型回复被截断")
+				short = errors.New("模型回复被截断")
 			case provider.FinishContentFilter:
-				return Reply{}, errors.New("模型回复被内容过滤")
+				short = errors.New("模型回复被内容过滤")
 			case provider.FinishError:
-				return Reply{}, errors.New("模型回复没有完成")
+				short = errors.New("模型回复没有完成")
 			default:
 				finished = true
 			}
@@ -434,6 +436,10 @@ func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta))
 	}
 	if err := ctx.Err(); err != nil {
 		return Reply{}, safeError(ctx, err)
+	}
+	if short != nil {
+		// What it used is billed all the same.
+		return Reply{Usage: usage(used)}, short
 	}
 	if !finished {
 		return Reply{}, errors.New("模型回复没有完成")

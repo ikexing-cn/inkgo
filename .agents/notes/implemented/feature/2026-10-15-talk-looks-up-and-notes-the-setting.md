@@ -55,7 +55,9 @@ Status: implemented
 结果分两种：
 
 - 不合规则：这次调用返回「没有记下：……」，列出每一条原因，模型可以改了再调。
+  - 2026-10-15 起每条原因写要给什么、不带什么，比如「edit 要有改好的 text，不带 place、category（换位置或分类用 move）」。原来写「edit 只改 text（可附 sources）」：连 DeepSeek 试的时候，模型给 edit 带了 category 被拒，读成连 `author_said` 也不能带，去掉以后又因为没有 `author_said` 被拒，一轮多花了两次请求。`move`、`name` 的那两句同样改了。
 - 合规则：当场写一次修订，`by: talk`，带上会话、作者那句话的 ID（`turn`）、模型和等级。返回「已记下，编号 N：……」。
+  - `sources` 和 `author_said` 引到同一句话时，出处只记一次（2026-10-15 起；原来修订里会有两条一样的出处，`add` 的条目也跟着有两条）。
 
 修订当场写进当时的设定，不会和作者的修改交错，所以 `Base`、`Skipped` 都删掉了。
 
@@ -159,14 +161,15 @@ DESIGN.md「模型看到的，作者也看得到」在原型那一步就写好�
   - AI 在这一次回复里提的点子，要等作者下次开口才能记，因为只能引已经说过的话。
   - 查阅过程只在当轮发给模型，之后的轮次还要用，就得重查。
   - 记账员时期修订里的思考过程和失败原因，读了就扔，修改记录里不再显示。
-  - 工具循环只用假服务器测过，没有连真实服务验证，包括 DeepSeek 和 Kimi 回传 `reasoning_content`、Anthropic 回传签名的思考块。
+  - 工具循环只用假服务器测过，没有连真实服务验证，包括 DeepSeek 和 Kimi 回传 `reasoning_content`、Anthropic 回传签名的思考块。2026-10-15 连 DeepSeek 走过一遍（[连真实服务走了一遍](../architecture/2026-10-15-ai-infrastructure.md#连真实服务走了一遍)）：搜全书、查设定、读正文、记设定都通了，找出了样书里埋的矛盾；作者的配置里 DeepSeek 写的是 `responses` 协议，不发回推理，所以 `chat` 协议回传 `reasoning_content`、Kimi、Anthropic 仍没有测过。
+  - **讨论不知道有哪些章**：`read_prose`、`read_summary` 要完整的章名（「第九章 第八道」，不是「第九章」），请求里没有章节目录。连 DeepSeek 时模型想读某一章，先搜了一次才知道章名。要不要在讨论里发目录、或者让章名按前缀找，待作者定。
 - **测试**：
   - `go test ./model`：`TestToolCallsAndUsage`；`TestThinkingGoesBackWithTheCalls` 查三种协议各怎样发回推理。
   - `go test ./discussion`：
     - `TestReplyLooksUpAndNotes`：日志里先记调用、后记结果，下一步看得到结果，记下的条目带修订，回复记各步用量的和；
     - `TestReplyStopsAtTheLastStep`：第 10 步不让模型调工具，回复记 `capped`；
     - `TestLookingUpStopsWhenTheRoomIsFull`；
-    - `TestNoteKeepsTheRules`：每条规则都有反例，引不存在的原话被拒；
+    - `TestNoteKeepsTheRules`：每条规则都有反例，引不存在的原话被拒；拒绝的原因写要给什么、不带什么；同一句话引两次只记一条出处；
     - `TestToolsReadTheBook`：五个只读工具的结果，章名同名时带卷名，读不完、列不完时怎样接着读，查设定时名字对上的排前面；
     - `TestNoteQuotesTheProseQuoted`；
     - `TestTalkSeesTheSettingAndTheTurns`：设定每条带编号，条目 ID 不发给模型，请求带六个工具；
