@@ -210,7 +210,7 @@ func (a *App) sideBody(c *ui.Context, slim bool) {
 	}
 	a.navItem(c, icBook, "正文", 3, slim, 0)
 	if a.aiOn() {
-		a.navItem(c, icDone, "检查", pageCheck, slim, len(a.checkItems(false)))
+		a.navItem(c, icDone, "检查", pageCheck, slim, len(a.listedChecks()))
 	}
 	a.navItem(c, icTag, "作品分类", 2, slim, 0)
 	ui.Box(c).Height(20)

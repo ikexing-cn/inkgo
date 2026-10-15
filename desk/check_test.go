@@ -128,6 +128,72 @@ func TestCheckAChapterAndSettleWhatItFinds(t *testing.T) {
 	}
 }
 
+// A new name the checks find in several chapters is listed once, where it
+// first comes, with the other chapters under it; left out of the setting
+// once, it is gone from all of them.
+func TestANewNameIsListedOnce(t *testing.T) {
+	a, tt, _, _ := checkFixture(t)
+	if err := tt.Click("立即检查"); err != nil {
+		t.Fatal(err)
+	}
+	until(t, tt, "the check", func() bool { return tt.HasText("本章检查完成，有 3 处待处理") })
+	text := "老周把旧灯泡放在窗台上。" + strings.Repeat("雨一直下。", 40)
+	second, err := a.Store.NewChapter("", "第二章", false)
+	if err == nil {
+		_, err = a.Store.WriteChapter(second, text, nil)
+	}
+	if err == nil {
+		err = a.Store.WriteCheck(second, workspace.Check{Of: workspace.ProseHash(text), Words: workspace.Count(text), By: "test", At: time.Now(),
+			Findings: []workspace.Finding{{ID: "n2", Kind: workspace.FindNew, Title: "老周", Quote: "老周把旧灯泡放在窗台上", Name: "老周", Category: "人物"}}})
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.warn(a.loadTree())
+	a.loadChecks()
+	if err := tt.Click("检查"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("全部 3") || !tt.HasText("新出现 1") || !tt.HasText("人物 · 「第一章」起出现，共 2 章") {
+		t.Fatal(tt.Texts())
+	}
+	if err := tt.Click("检查-老周"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("其他章节中也出现") || !tt.HasText("老周把旧灯泡放在窗台上") {
+		t.Fatal(tt.Texts())
+	}
+	if err := tt.Click("忽略"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("全部 2") || !tt.HasText("新出现 0") {
+		t.Fatal("left out in one chapter, still listed for another", tt.Texts())
+	}
+}
+
+// Findings on one entry are alike where they hold to one sentence of it.
+func TestAlikeHoldToOneSentence(t *testing.T) {
+	const text = "主角，二十六岁，旧城电力局的路灯维修工。怕黑，天黑以后不进没有灯的巷子。左撇子。"
+	for _, c := range []struct {
+		x, y string
+		want bool
+	}{
+		{"怕黑", "天黑以后不进没有灯的巷子", true},
+		{"怕黑", "怕黑，天黑以后", true},
+		{"怕黑", "左撇子", false},
+		{"路灯维修工", "左撇子", false},
+		{"左撇子", "", true},
+		{"左撇子", "右撇子", true},
+	} {
+		if got := overlap(text, c.x, c.y); got != c.want {
+			t.Errorf("%s / %s: %v", c.x, c.y, got)
+		}
+	}
+}
+
 func exists(a *App, name string) bool {
 	_, err := os.Stat(filepath.Join(a.Store.Root(), "chapters", name))
 	return err == nil

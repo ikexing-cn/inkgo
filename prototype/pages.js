@@ -38,7 +38,7 @@ function checkPage() {
   const about = (c) => {
     const ch = chapterOf(c.key), at = chTitle(c.key)
     if (c.kind === '不一致') { const e = S.entries.find((x) => x.id === c.entry); return at + ' ↔ 设定「' + (e ? e.cat + ' · ' + (e.names[0] || clip(e.text, 8)) : '已删除') + '」' }
-    return c.kind === '名字有误' ? at + ' · 应为「' + c.right + '」' : c.cat + ' · 「' + at + '」起出现 ' + c.times + ' 次'
+    return c.kind === '名字有误' ? at + ' · 应为「' + c.right + '」' : c.cat + ' · 「' + at + '」起出现' + (c.also ? '，共 ' + (c.also.length + 1) + ' 章' : '')
   }
   const row = (c) => `<div class="check-row row${shown && c.id === shown.id ? ' on' : ''}"${onClick(() => set({ cid: c.id }))}><div class="fit"><div class="ell">${t(c.title)}</div><div class="note ell">${t(about(c))}</div></div><div class="side">${c.kind}</div></div>`
   // 「检查全书」：先数出该查几章，问一句再开始。
@@ -74,7 +74,7 @@ function checkPage() {
     detail = '<div class="check-detail" data-k="check-detail">' +
       `<div class="check-title"><div class="fit ell">${t(shown.title)}</div><div class="side">${of.indexOf(shown) + 1} / ${of.length}</div><div class="hit link${of.length > 1 ? '' : ' off'}"${onClick(of.length > 1 ? next : null)}>下一条</div></div>` +
       `<div class="check-sides"><div class="fit"><div class="check-from"><div class="fit ell">正文 · ${ch ? t(titleOf(ch)) + ' · ' : ''}第 ${shown.para + 1} 段</div><div class="hit link"${onClick(seeText)}>查看原文</div></div><div class="check-card">${lit(text, shown.quote)}</div></div>${right}</div>` +
-      (shown.also ? '<div class="check-also">其他章节的类似情况</div>' + shown.also.map((a) => `<div class="check-more"><div class="side">${t(a.at)}</div><div class="fit">${t(a.text)}</div><div class="side">${t(a.note)}</div></div>`).join('') : '') +
+      (shown.also ? `<div class="check-also">${shown.kind === '新出现' ? '其他章节中也出现' : '其他章节的类似情况'}</div>` + shown.also.map((a) => `<div class="check-more"><div class="side">${t(a.at)}</div><div class="fit">${t(a.text)}</div><div class="side">${t(a.note)}</div></div>`).join('') : '') +
       `<div class="grow"></div><div class="check-foot"><div class="hit link${of.length > 1 ? '' : ' off'}"${onClick(of.length > 1 ? next : null)}>稍后再说</div><div class="grow"></div>${acts}</div></div>`
   }
   return '<div class="check-list">' +

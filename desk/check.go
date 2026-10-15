@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/egoist/mygo/ui"
 	"writer/workspace"
@@ -73,6 +74,7 @@ type checkItem struct {
 	here        bool // in the chapter open
 	f           workspace.Finding
 	entry       workspace.Entry
+	also        []checkItem // a new name found in later chapters too, listed here once
 }
 
 // entryTitle names an entry the way the setting lists it: 人物 · 林晚.
@@ -287,7 +289,8 @@ func (a *App) liveText() (string, bool) {
 }
 
 // checkItems is what the checks found and still holds, in the book's
-// order: with meant, also what the author said is as meant.
+// order: with meant, also what the author said is as meant. A new name the
+// author left out of the setting once is left out in every chapter.
 func (a *App) checkItems(meant bool) []checkItem {
 	k := &a.ck
 	tree := k.tree
@@ -295,6 +298,14 @@ func (a *App) checkItems(meant bool) []checkItem {
 		tree = a.write.tree
 	}
 	live, open := a.liveText()
+	left := map[string]bool{}
+	for _, had := range k.all {
+		for _, f := range had.Findings {
+			if f.Kind == workspace.FindNew && f.Meant {
+				left[f.Name] = true
+			}
+		}
+	}
 	var out []checkItem
 	tree.Walk(func(nd *workspace.Node, _ int) {
 		if nd.Folder {
@@ -325,13 +336,32 @@ func (a *App) checkItems(meant bool) []checkItem {
 			case workspace.FindNew:
 				if slices.ContainsFunc(a.set.Entries, func(e workspace.Entry) bool {
 					return e.Place != workspace.PlaceDropped && slices.Contains(e.Names, f.Name)
-				}) {
-					continue // taken into the setting
+				}) || left[f.Name] && !meant {
+					continue // taken into the setting, or left out of it
 				}
 			}
 			out = append(out, it)
 		}
 	})
+	return out
+}
+
+// listedChecks is what the checks found as the author goes through it: a
+// new name found in several chapters is one, where it first comes, since
+// it is taken into the setting or left out once.
+func (a *App) listedChecks() []checkItem {
+	var out []checkItem
+	first := map[string]int{}
+	for _, it := range a.checkItems(false) {
+		if it.f.Kind == workspace.FindNew {
+			if i, ok := first[it.f.Name]; ok {
+				out[i].also = append(out[i].also, it)
+				continue
+			}
+			first[it.f.Name] = len(out)
+		}
+		out = append(out, it)
+	}
 	return out
 }
 
@@ -388,8 +418,13 @@ func (a *App) checkPending() (pendGroup, bool) {
 	if !a.aiOn() {
 		return g, false
 	}
-	for _, it := range a.checkItems(false) {
+	for _, it := range a.listedChecks() {
 		p := pendItem{key: "检查/" + it.node + "/" + it.f.Kind + "/" + it.f.Quote, text: it.f.Title, sub: it.title, node: it.node, here: it.here, check: it.f.ID}
+		for _, o := range it.also {
+			if o.here && !p.here { // a name found here too is of this chapter
+				p.sub, p.node, p.here, p.check = o.title, o.node, true, o.f.ID
+			}
+		}
 		if it.f.Kind == workspace.FindNew {
 			p.text = fmt.Sprintf("「%s」尚未加入设定", it.f.Name)
 		}
@@ -605,16 +640,21 @@ func kindLabel(kind string) string {
 // chosen on the right, the prose beside the setting.
 func (a *App) checkPage(c *ui.Context) {
 	k := &a.ck
-	all := a.checkItems(false)
+	all := a.listedChecks()
 	var shown []checkItem
 	for _, it := range all {
 		if kind := checkKinds[k.tab].kind; kind == "" || kind == it.f.Kind {
 			shown = append(shown, it)
 		}
 	}
-	at := slices.IndexFunc(shown, func(it checkItem) bool { return it.f.ID == k.shown })
-	if at < 0 && len(shown) > 0 {
-		at, k.shown = 0, shown[0].f.ID
+	at := slices.IndexFunc(shown, func(it checkItem) bool {
+		return it.f.ID == k.shown || slices.ContainsFunc(it.also, func(o checkItem) bool { return o.f.ID == k.shown })
+	})
+	if at < 0 {
+		at = min(0, len(shown)-1)
+	}
+	if at >= 0 {
+		k.shown = shown[at].f.ID
 	}
 	ui.Row(c).Fill().AlignItems(ui.Stretch).Children(func() {
 		ui.Column(c).Width(360).Shrink(0).FillHeight().Children(func() { a.checkList(c, all, shown) })
@@ -662,6 +702,9 @@ func (a *App) checkList(c *ui.Context, all, shown []checkItem) {
 					sub += " · 应为「" + it.f.Name + "」"
 				case workspace.FindNew:
 					sub = it.f.Category + " · 「" + sub + "」起出现"
+					if len(it.also) > 0 {
+						sub += fmt.Sprintf("，共 %d 章", len(it.also)+1)
+					}
 				}
 				b := ui.ButtonBase(c.Key("ck-"+it.f.ID)).Row().FillWidth().AlignItems(ui.Center).Gap(10).Padding(8, 10).Radius(rControl).Label("检查-" + it.f.Title)
 				if it.f.ID == k.shown {
@@ -812,7 +855,8 @@ func (a *App) quoted(text, quote string) []ui.Span {
 func (a *App) checkCard(c *ui.Context, head, link string, spans []ui.Span) (clicked bool) {
 	t := a.pal.theme
 	ui.Column(c).Grow(1).Shrink(1).Basis(0).Gap(6).Children(func() {
-		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+		// As tall without the link as with it, so cards side by side line up.
+		ui.Row(c).FillWidth().MinHeight(22).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, head).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 			if link != "" {
 				clicked = a.pal.ghost(c, link, ui.Color{}).Clicked()
@@ -822,6 +866,37 @@ func (a *App) checkCard(c *ui.Context, head, link string, spans []ui.Span) (clic
 			Padding(12, 14).Radius(rCard).Background(a.pal.side).Border(1, a.pal.line).Selectable()
 	})
 	return clicked
+}
+
+// overlap tells whether two parts of text are in one sentence of it:
+// findings on one entry are alike where they hold to the same of it, not
+// where one is of her fear of the dark and the other of her left hand. A
+// part not given, or not found, may be any.
+func overlap(text, x, y string) bool {
+	i, j := strings.Index(text, x), strings.Index(text, y)
+	if x == "" || y == "" || i < 0 || j < 0 {
+		return true
+	}
+	s1, e1 := sentences(text, i, i+len(x))
+	s2, e2 := sentences(text, j, j+len(y))
+	return s1 < e2 && s2 < e1
+}
+
+// sentences widens text[from:to] to the sentences it is in.
+func sentences(text string, from, to int) (int, int) {
+	const ends = "。！？；\n"
+	if k := strings.LastIndexAny(text[:from], ends); k >= 0 {
+		_, n := utf8.DecodeRuneInString(text[k:])
+		from = k + n
+	} else {
+		from = 0
+	}
+	if k := strings.IndexAny(text[to:], ends); k >= 0 {
+		to += k
+	} else {
+		to = len(text)
+	}
+	return from, to
 }
 
 // paragraphOf is the paragraph of text that has quote, and which it is.
@@ -893,30 +968,32 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 					a.checkCard(c, "可加入设定 · "+it.f.Category, "", a.quoted(text, it.f.Name))
 				}
 			})
-			if it.f.Kind != workspace.FindConflict {
-				return
-			}
-			var alike []checkItem
-			for _, o := range a.checkItems(true) {
-				if o.f.Kind == workspace.FindConflict && o.f.Entry == it.f.Entry && o.f.ID != it.f.ID {
-					alike = append(alike, o)
+			head, alike := "其他章节中也出现", it.also
+			if it.f.Kind == workspace.FindConflict {
+				head = "其他章节的类似情况"
+				for _, o := range a.checkItems(true) {
+					if o.f.Kind == workspace.FindConflict && o.f.Entry == it.f.Entry && o.f.ID != it.f.ID && overlap(it.entry.Text, it.f.Says, o.f.Says) {
+						alike = append(alike, o)
+					}
 				}
 			}
 			if len(alike) == 0 {
 				return
 			}
 			ui.Column(c).FillWidth().Gap(8).Children(func() {
-				ui.Text(c, "其他章节的类似情况").FontSize(fsNote).TextColor(t.TextMuted)
+				ui.Text(c, head).FontSize(fsNote).TextColor(t.TextMuted)
 				ui.Column(c).FillWidth().Gap(8).Children(func() {
 					for _, o := range alike {
-						said := "尚未处理"
-						if o.f.Meant {
-							said = "已标为「无需修改」"
-						}
 						ui.Row(c).FillWidth().Gap(12).Padding(8, 12).Radius(rControl).Background(t.SurfaceHover).AlignItems(ui.Center).Children(func() {
 							ui.Text(c, o.title).FontSize(fsControl).TextColor(t.TextMuted).SingleLine().Shrink(0)
 							ui.Text(c, o.f.Quote).FontSize(fsControl).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
-							ui.Text(c, said).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Shrink(0)
+							if o.f.Kind == workspace.FindConflict {
+								said := "尚未处理"
+								if o.f.Meant {
+									said = "已标为「无需修改」"
+								}
+								ui.Text(c, said).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Shrink(0)
+							}
 						})
 					}
 				})
