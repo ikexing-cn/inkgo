@@ -799,7 +799,7 @@ func (a *App) composer(c *ui.Context) {
 	}
 	send := func() {
 		can := a.busy == "" && trim(a.input) != ""
-		send := ui.ButtonBase(c).Size(hControl, hControl).Radius(rRound).Center().Label("发送").Tooltip("发送（"+modKey+"Enter）").Disabled(!can).Shrink(0)
+		send := ui.ButtonBase(c).Size(hControl, hControl).Radius(rRound).Center().Label("发送").Tooltip("发送（" + modKey + "Enter）").Disabled(!can).Shrink(0)
 		bg := a.pal.ink
 		if !can {
 			bg = t.SurfacePressed

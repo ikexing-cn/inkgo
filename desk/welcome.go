@@ -6,9 +6,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/aiport"
 	"writer/shelf"
 	"writer/workspace"
 )
@@ -151,8 +153,38 @@ func (a *App) create() error {
 	if err != nil {
 		return err
 	}
+	if talk, pen := a.lastModels(); talk.Provider != "" {
+		w := s.Work()
+		w.Discussion, w.Writing = talk, pen
+		a.warn(s.SaveWork(w))
+	}
 	a.books.creating = false
 	return a.attach(s, dir, true)
+}
+
+// lastModels are the models a new work starts with: the open work's, or
+// else those of the work last opened, so the author does not choose the
+// same model again for each work. A service since removed is not carried.
+func (a *App) lastModels() (talk, pen workspace.Selection) {
+	known := func(sel workspace.Selection) bool {
+		return sel.Model != "" && slices.ContainsFunc(a.ai.Providers(), func(p aiport.Provider) bool { return p.ID == sel.Provider })
+	}
+	var works []func() (workspace.Work, error)
+	if a.Store != nil {
+		works = append(works, func() (workspace.Work, error) { return a.Store.Work(), nil })
+	}
+	for _, b := range a.shelf.Recent() {
+		works = append(works, func() (workspace.Work, error) { return workspace.ReadWork(b.Path) })
+	}
+	for _, read := range works {
+		if w, err := read(); err == nil && known(w.Discussion) {
+			if !known(w.Writing) {
+				w.Writing = workspace.Selection{}
+			}
+			return w.Discussion, w.Writing
+		}
+	}
+	return
 }
 
 // addBook puts a work already on disk on the shelf.

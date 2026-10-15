@@ -364,6 +364,41 @@ func TestNewWorkDoesNotInheritLastWork(t *testing.T) {
 	}
 }
 
+// A new work starts with the models of the work open, or of the one last
+// opened; a work whose service is no longer set up gives none.
+func TestNewWorkKeepsTheModels(t *testing.T) {
+	a, _, _ := fixture(t)
+	a.talkProvider, a.talkModel, a.talkEffort = "deepseek", "deepseek-flash", "high"
+	a.penProvider, a.penModel = "deepseek", "deepseek-v4-pro"
+	if err := a.saveUsage(); err != nil {
+		t.Fatal(err)
+	}
+	want := a.Store.Work()
+	create := func(name string) workspace.Work {
+		t.Helper()
+		a.openCreate()
+		a.name, a.books.at = name, filepath.Join(t.TempDir(), name)
+		if err := a.create(); err != nil || a.Error != "" {
+			t.Fatal(err, a.Error)
+		}
+		return a.Store.Work()
+	}
+	if w := create("雨城来信"); w.Discussion != want.Discussion || w.Writing != want.Writing {
+		t.Fatalf("from the work open: %+v %+v", w.Discussion, w.Writing)
+	}
+	// The work just made goes to a service since removed; the shelf's
+	// next work still has one set up.
+	w := a.Store.Work()
+	w.Discussion, w.Writing = workspace.Selection{Provider: "gone", Model: "m"}, workspace.Selection{}
+	if err := a.Store.SaveWork(w); err != nil {
+		t.Fatal(err)
+	}
+	a.closeWork()
+	if w := create("旧城"); w.Discussion != want.Discussion || w.Writing != want.Writing {
+		t.Fatalf("from the shelf: %+v %+v", w.Discussion, w.Writing)
+	}
+}
+
 // Inputs the store would reject are caught first, in words the author reads;
 // a service chosen without a model waits for one, unsaved.
 func TestIncompleteFormsExplainInChinese(t *testing.T) {

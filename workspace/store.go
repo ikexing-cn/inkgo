@@ -180,6 +180,19 @@ func decodeYAML(data []byte, out any) error {
 	return nil
 }
 
+// ReadWork reads the work.yaml of the work in dir without opening the work.
+func ReadWork(dir string) (Work, error) {
+	root, err := filepath.Abs(dir)
+	if err != nil {
+		return Work{}, err
+	}
+	s := &Store{root: root}
+	if err = s.reloadWork(); err != nil {
+		return Work{}, err
+	}
+	return s.work, nil
+}
+
 func (s *Store) reloadWork() error {
 	p, err := s.path("work.yaml")
 	if err != nil {
