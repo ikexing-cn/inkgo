@@ -29,6 +29,10 @@ type Service interface {
 	// SaveProvider saves p in place of the service with its ID, or after
 	// the others when none has it.
 	SaveProvider(p Provider) error
+	// Limits are the limits model id starts with when it is added to a
+	// service: as the table built in has them, when known says it has the
+	// model, or careful ones.
+	Limits(id string) (m Model, known bool)
 	// SetKey keeps the API key of a service in the system's keychain;
 	// empty removes it.
 	SetKey(providerID, key string) error
@@ -71,7 +75,15 @@ type Provider struct {
 	BaseURL  string
 	Protocol string
 	Env      string // the environment variable holding the key, if any
-	Models   []string
+	Models   []Model
+}
+
+// Model is a model of a service and its limits, in tokens: a request and
+// its reply together take at most Window of them, the reply at most
+// Output; a talk is compacted at CompactAt percent of Window.
+type Model struct {
+	ID                        string
+	Window, Output, CompactAt int
 }
 
 // Catalog lists the models a service offers.

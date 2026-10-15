@@ -63,9 +63,26 @@ func (s *Service) SetOn(on bool) { s.off.Store(!on) }
 func (s *Service) Providers() []aiport.Provider {
 	out := make([]aiport.Provider, len(s.cfg.Providers))
 	for i, p := range s.cfg.Providers {
-		out[i] = aiport.Provider(p)
+		out[i] = aiport.Provider{ID: p.ID, Name: p.Name, BaseURL: p.BaseURL, Protocol: p.Protocol, Env: p.Env, Models: make([]aiport.Model, len(p.Models))}
+		for j, m := range p.Models {
+			out[i].Models[j] = aiport.Model(m)
+		}
 	}
 	return out
+}
+
+// provider is p as package model has it.
+func provider(p aiport.Provider) model.Provider {
+	out := model.Provider{ID: p.ID, Name: p.Name, BaseURL: p.BaseURL, Protocol: p.Protocol, Env: p.Env, Models: make([]model.Model, len(p.Models))}
+	for i, m := range p.Models {
+		out.Models[i] = model.Model(m)
+	}
+	return out
+}
+
+func (s *Service) Limits(id string) (aiport.Model, bool) {
+	m, ok := model.Lookup(id)
+	return aiport.Model(m), ok
 }
 
 func (s *Service) Reload() error {
@@ -83,13 +100,13 @@ func (s *Service) SaveProvider(p aiport.Provider) error {
 	replaced := false
 	for i, old := range cfg.Providers {
 		if old.ID == p.ID {
-			cfg.Providers[i] = model.Provider(p)
+			cfg.Providers[i] = provider(p)
 			replaced = true
 			break
 		}
 	}
 	if !replaced {
-		cfg.Providers = append(cfg.Providers, model.Provider(p))
+		cfg.Providers = append(cfg.Providers, provider(p))
 	}
 	if err := model.Save(s.file, cfg); err != nil {
 		return err
@@ -142,11 +159,11 @@ func (s *Service) Talk(st *workspace.Store, beside *aiport.Beside, progress func
 	if work.Discussion.Provider == "" || work.Discussion.Model == "" {
 		return nil, errors.New("尚未选择讨论模型：请在设置中「AI」配置里选择")
 	}
-	client, err := model.NewClient(s.cfg, work.Discussion.Provider, work.Discussion.Model)
+	m, err := open(s.cfg, work.Discussion)
 	if err != nil {
 		return nil, err
 	}
-	e := &discussion.Engine{Store: st, Talk: discussion.Model{Completer: client, Name: work.Discussion.Provider + "/" + work.Discussion.Model, Effort: model.Effort(work.Discussion.Effort)}}
+	e := &discussion.Engine{Store: st, Talk: m}
 	if progress != nil {
 		e.Progress = func(d model.Delta) { progress(d.Reasoning, d.Text) }
 	}
@@ -159,6 +176,16 @@ func (s *Service) Talk(st *workspace.Store, beside *aiport.Beside, progress func
 
 func (s *Service) Extract(st *workspace.Store, session, message string, start, end int, category string) (workspace.Entry, error) {
 	return (&discussion.Engine{Store: st}).Extract(session, message, start, end, category)
+}
+
+// open is the model sel names, with its limits as cfg has them.
+func open(cfg model.Config, sel workspace.Selection) (discussion.Model, error) {
+	client, err := model.NewClient(cfg, sel.Provider, sel.Model)
+	if err != nil {
+		return discussion.Model{}, err
+	}
+	return discussion.Model{Completer: client, Model: cfg.Model(sel.Provider, sel.Model),
+		Name: sel.Provider + "/" + sel.Model, Effort: model.Effort(sel.Effort)}, nil
 }
 
 // bookBackoff is the waits between the bookkeeper's attempts at a batch.
@@ -180,11 +207,11 @@ func (s *Service) bookkeeper(st *workspace.Store) (*discussion.Bookkeeper, error
 	if err != nil {
 		return nil, err
 	}
-	client, err := model.NewClient(cfg, sel.Provider, sel.Model)
+	m, err := open(cfg, sel)
 	if err != nil {
 		return nil, err
 	}
-	return &discussion.Bookkeeper{Store: st, Model: discussion.Model{Completer: client, Name: sel.Provider + "/" + sel.Model, Effort: model.Effort(sel.Effort)}}, nil
+	return &discussion.Bookkeeper{Store: st, Model: m}, nil
 }
 
 // bookkeeping is the bookkeeper's worker as aiport has it.
@@ -246,11 +273,11 @@ func (s *Service) writer(st *workspace.Store) (*writing.Writer, error) {
 	if sel.Provider == "" || sel.Model == "" {
 		return nil, writing.ErrNoModel
 	}
-	client, err := model.NewClient(s.cfg, sel.Provider, sel.Model)
+	m, err := open(s.cfg, sel)
 	if err != nil {
 		return nil, err
 	}
-	return &writing.Writer{Store: st, Model: discussion.Model{Completer: client, Name: sel.Provider + "/" + sel.Model, Effort: model.Effort(sel.Effort)}}, nil
+	return &writing.Writer{Store: st, Model: m}, nil
 }
 
 // pen is a writer as aiport has it.

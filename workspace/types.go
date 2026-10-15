@@ -46,8 +46,18 @@ type Work struct {
 	Bookkeeping Selection  `yaml:"bookkeeping" json:"bookkeeping"`
 	// Writing continues, rewrites and drafts the prose; left empty, it is
 	// the discussion's model.
-	Writing     Selection `yaml:"writing,omitempty" json:"writing,omitempty"`
-	TokenBudget int       `yaml:"token_budget" json:"token_budget"`
+	Writing Selection `yaml:"writing,omitempty" json:"writing,omitempty"`
+}
+
+// Usage is what a request took and gave, in tokens. Input counts all that
+// was sent, what the provider read from or wrote to its cache among it;
+// Reasoning is part of Output.
+type Usage struct {
+	Input      int `json:"input"`
+	CacheRead  int `json:"cache_read,omitempty"`
+	CacheWrite int `json:"cache_write,omitempty"`
+	Output     int `json:"output"`
+	Reasoning  int `json:"reasoning,omitempty"`
 }
 
 // ContextItem is an entry of the setting as one request showed it, or
@@ -73,6 +83,9 @@ type Event struct {
 	Model     string `json:"model,omitempty"`
 	Effort    string `json:"effort,omitempty"`
 	Reasoning string `json:"reasoning,omitempty"`
+	// Usage is what the request for a reply took and gave, as the
+	// provider counted it.
+	Usage *Usage `json:"usage,omitempty"`
 	// The author's words may come from the writing page: the chapter they
 	// were writing, and the prose they quoted.
 	Chapter string  `json:"chapter,omitempty"`

@@ -10,14 +10,24 @@ import (
 	"writer/workspace"
 )
 
-// Model is a model client with the settings it runs at.
+// Model is a model client with the settings it runs at. A request sends
+// at most Input tokens, and its reply is cut at Output.
 type Model struct {
 	model.Completer
+	model.Model
 	Name   string // provider/model, recorded with what it writes
 	Effort model.Effort
 }
 
 func (m Model) ready() bool { return m.Completer != nil }
+
+// Complete asks no more of the reply than the model gives.
+func (m Model) Complete(ctx context.Context, req model.Request, on func(model.Delta)) (model.Reply, error) {
+	if req.MaxTokens == 0 || req.MaxTokens > m.Output {
+		req.MaxTokens = m.Output
+	}
+	return m.Completer.Complete(ctx, req, on)
+}
 
 // ask runs a request on m, streaming to on when it is set.
 func ask(ctx context.Context, m Model, req model.Request, on func(model.Delta)) (model.Reply, error) {
@@ -113,7 +123,7 @@ func (e *Engine) assemble(session string, before int, input string) (Context, er
 	if before >= 0 {
 		events = events[:before]
 	}
-	return Assemble(e.Store.Work(), set, events, set.Processed(session, events), input, e.Beside)
+	return Assemble(e.Store.Work(), e.Talk.Input(), set, events, set.Processed(session, events), input, e.Beside)
 }
 
 func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembled Context) (Turn, error) {
@@ -127,7 +137,7 @@ func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembl
 	turn.Reply, err = e.Store.Append(session, workspace.Event{
 		Role: workspace.RoleAssistant, Text: reply.Text, ReplyTo: turn.User.ID,
 		Context: assembled.Included, Omitted: assembled.Omitted,
-		Model: e.Talk.Name, Effort: string(e.Talk.Effort), Reasoning: reply.Reasoning,
+		Model: e.Talk.Name, Effort: string(e.Talk.Effort), Reasoning: reply.Reasoning, Usage: (*workspace.Usage)(&reply.Usage),
 	})
 	return turn, err
 }

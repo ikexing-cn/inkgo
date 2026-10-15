@@ -164,7 +164,7 @@ func TestBookkeeperFillsTheSettingInTheBackground(t *testing.T) {
 	a, tt, _ := fixture(t)
 	f := &answer{replies: []string{`{"ops":[{"op":"add","place":"body","category":"规则","text":"雨从不停","sources":[{"msg":"m1","quote":"雨从不停"}]}]}`}}
 	aiOf(a).NewBookkeeper = func(s *workspace.Store) (*discussion.Bookkeeper, error) {
-		return &discussion.Bookkeeper{Store: s, Model: discussion.Model{Completer: f, Name: "deepseek/deepseek-flash"}}, nil
+		return &discussion.Bookkeeper{Store: s, Model: discussion.Model{Model: model.Builtin("deepseek-flash"), Completer: f, Name: "deepseek/deepseek-flash"}}, nil
 	}
 	a.halt() // the next frame starts one with the bookkeeper above
 	tt.Frame()
@@ -229,7 +229,7 @@ func TestFailedBookkeepingShowsInHistory(t *testing.T) {
 	}
 	f := &answer{replies: []string{`{"ops":[]}`}}
 	aiOf(a).NewBookkeeper = func(s *workspace.Store) (*discussion.Bookkeeper, error) {
-		return &discussion.Bookkeeper{Store: s, Model: discussion.Model{Completer: f}}, nil
+		return &discussion.Bookkeeper{Store: s, Model: discussion.Model{Model: model.Builtin("deepseek-flash"), Completer: f}}, nil
 	}
 	if err = tt.Click("重试整理-" + failed.ID); err != nil {
 		t.Fatal(err)
@@ -355,7 +355,8 @@ func TestNewWorkDoesNotInheritLastWork(t *testing.T) {
 	}
 }
 
-// Inputs the store would reject are caught first, in words the author reads.
+// Inputs the store would reject are caught first, in words the author reads;
+// a service chosen without a model waits for one, unsaved.
 func TestIncompleteFormsExplainInChinese(t *testing.T) {
 	a, _, _ := fixture(t)
 	check := func(name string, err error) {
@@ -369,10 +370,20 @@ func TestIncompleteFormsExplainInChinese(t *testing.T) {
 			}
 		}
 	}
+	was := a.Store.Work()
 	a.talkProvider, a.talkModel = "deepseek", ""
-	check("discussion model", a.saveUsage())
-	a.talkModel, a.bookProvider, a.bookModel = "deepseek-flash", "deepseek", ""
-	check("bookkeeping model", a.saveUsage())
+	a.bookProvider, a.bookModel = "deepseek", ""
+	if err := a.saveUsage(); err != nil || a.Store.Work().Discussion != was.Discussion {
+		t.Fatalf("a service without a model: %v %+v", err, a.Store.Work().Discussion)
+	}
+	a.talkModel = "deepseek-flash"
+	if err := a.saveUsage(); err != nil || a.Store.Work().Discussion != was.Discussion {
+		t.Fatalf("the bookkeeping's service without a model: %v %+v", err, a.Store.Work().Discussion)
+	}
+	a.bookModel = "deepseek-v4-pro"
+	if err := a.saveUsage(); err != nil || a.Store.Work().Bookkeeping.Model != "deepseek-v4-pro" {
+		t.Fatalf("complete: %v %+v", err, a.Store.Work().Bookkeeping)
+	}
 	a.categoryName, a.categoryTarget = "伏笔", ""
 	check("category target", a.saveCategory())
 }
@@ -491,7 +502,7 @@ func TestBookkeeperShowsWhileItWorks(t *testing.T) {
 	a, tt, _ := fixture(t)
 	g := gate{open: make(chan struct{})}
 	aiOf(a).NewBookkeeper = func(s *workspace.Store) (*discussion.Bookkeeper, error) {
-		return &discussion.Bookkeeper{Store: s, Model: discussion.Model{Completer: g}}, nil
+		return &discussion.Bookkeeper{Store: s, Model: discussion.Model{Model: model.Builtin("deepseek-flash"), Completer: g}}, nil
 	}
 	a.halt()
 	tt.Frame()
@@ -583,13 +594,25 @@ func TestPickAModelFromTheList(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Frame()
-	if a.talkModel != "deepseek-v4-pro" || tt.HasText("deepseek-flash") {
+	if a.talkModel != "deepseek-v4-pro" {
 		t.Fatal(a.talkModel, tt.Texts())
 	}
+	// The model is kept as the caret leaves it.
+	tt.Key(0, ui.KeyTab)
+	tt.Frame()
+	tt.Frame()
+	if a.Store.Work().Discussion.Model != "deepseek-v4-pro" || tt.HasText("deepseek-flash") {
+		t.Fatal(a.Store.Work().Discussion, tt.Texts())
+	}
+	if err := tt.Click("讨论模型"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
 	tt.Key(ui.Cmd, ui.KeyA)
 	tt.Type("flash")
 	tt.Frame()
-	if !tt.HasText("deepseek-flash") || tt.HasText("deepseek-v4-pro") {
+	// deepseek-v4-pro is still the model beside the chat input, not in the list.
+	if !tt.HasText("deepseek-flash") || strings.Count(strings.Join(tt.Texts(), "\n"), "deepseek-v4-pro") != 1 {
 		t.Fatal(tt.Texts())
 	}
 }

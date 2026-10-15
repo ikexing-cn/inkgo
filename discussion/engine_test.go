@@ -22,6 +22,7 @@ type fake struct {
 	reasoning string
 	calls     []model.Request
 	err       error
+	usage     model.Usage
 }
 
 func (f *fake) Complete(ctx context.Context, r model.Request, on func(model.Delta)) (model.Reply, error) {
@@ -40,7 +41,7 @@ func (f *fake) Complete(ctx context.Context, r model.Request, on func(model.Delt
 		on(model.Delta{Reasoning: f.reasoning})
 		on(model.Delta{Text: s})
 	}
-	return model.Reply{Text: s, Reasoning: f.reasoning}, nil
+	return model.Reply{Text: s, Reasoning: f.reasoning, Usage: f.usage}, nil
 }
 
 func setup(t *testing.T) (*Engine, string) {
@@ -91,13 +92,13 @@ func setting(t *testing.T, e *Engine) workspace.Setting {
 
 func TestRetryUnansweredTurnDoesNotDuplicateInput(t *testing.T) {
 	e, session := setup(t)
-	e.Talk = Model{Completer: &fake{err: context.Canceled}}
+	e.Talk = Model{Model: limits, Completer: &fake{err: context.Canceled}}
 	turn, err := e.Say(context.Background(), session, workspace.Event{Text: "先讨论城市的天气"})
 	if !errors.Is(err, context.Canceled) || turn.User.ID == "" {
 		t.Fatal(turn, err)
 	}
 	talk := &fake{replies: []string{"可以从长期下雨对城市生活的影响谈起。"}}
-	e.Talk = Model{Completer: talk}
+	e.Talk = Model{Model: limits, Completer: talk}
 	retried, err := e.Retry(context.Background(), session, turn.User.ID)
 	if err != nil {
 		t.Fatal(err)
@@ -114,26 +115,28 @@ func TestRetryUnansweredTurnDoesNotDuplicateInput(t *testing.T) {
 	}
 }
 
-// A turn waits for the reply only: it streams, is recorded with its model
-// and reasoning, and no other model is asked.
+// A turn waits for the reply only: it streams, is recorded with its model,
+// its reasoning and what the provider says it used, and no other model is
+// asked. The reply is asked for no more than the model gives.
 func TestTurnWaitsForTheReplyOnly(t *testing.T) {
 	e, session := setup(t)
-	talk := &fake{replies: []string{"可以让她修灯。"}, reasoning: "她怕黑，职业要和光有关"}
-	e.Talk = Model{Completer: talk, Name: "deepseek/deepseek-flash", Effort: model.EffortMax}
+	talk := &fake{replies: []string{"可以让她修灯。"}, reasoning: "她怕黑，职业要和光有关", usage: model.Usage{Input: 900, CacheRead: 600, Output: 40, Reasoning: 12}}
+	e.Talk = Model{Model: limits, Completer: talk, Name: "deepseek/deepseek-flash", Effort: model.EffortMax}
 	var streamed string
 	e.Progress = func(d model.Delta) { streamed += d.Reasoning + d.Text }
 	got, err := e.Say(context.Background(), session, workspace.Event{Text: "她做什么工作？"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if streamed != "她怕黑，职业要和光有关可以让她修灯。" || len(talk.calls) != 1 || talk.calls[0].Effort != model.EffortMax {
+	if streamed != "她怕黑，职业要和光有关可以让她修灯。" || len(talk.calls) != 1 || talk.calls[0].Effort != model.EffortMax || talk.calls[0].MaxTokens != limits.Output {
 		t.Fatalf("streamed %q calls %d", streamed, len(talk.calls))
 	}
 	events, err := e.Store.Events(session)
 	if err != nil || len(events) != 2 {
 		t.Fatalf("events %+v %v", events, err)
 	}
-	if r := events[1]; r.ID != got.Reply.ID || r.Reasoning != "她怕黑，职业要和光有关" || r.Model != "deepseek/deepseek-flash" || r.Effort != "max" {
+	if r := events[1]; r.ID != got.Reply.ID || r.Reasoning != "她怕黑，职业要和光有关" || r.Model != "deepseek/deepseek-flash" || r.Effort != "max" ||
+		r.Usage == nil || *r.Usage != (workspace.Usage{Input: 900, CacheRead: 600, Output: 40, Reasoning: 12}) {
 		t.Fatalf("reply record %+v", r)
 	}
 }
@@ -151,7 +154,7 @@ func TestTalkSeesTheSettingAndTheTurnsItLags(t *testing.T) {
 		turn(t, e, session, u, "好")
 	}
 	talk := &fake{replies: []string{"嗯"}}
-	e.Talk = Model{Completer: talk}
+	e.Talk = Model{Model: limits, Completer: talk}
 	if _, err := e.Say(context.Background(), session, workspace.Event{Text: "继续"}); err != nil {
 		t.Fatal(err)
 	}
@@ -186,21 +189,19 @@ func TestContextBudget(t *testing.T) {
 		{ID: "old", Place: workspace.PlaceBody, Category: "人物", Text: strings.Repeat("旧", 30), Rev: 1},
 		{ID: "new", Place: workspace.PlaceBody, Category: "人物", Text: strings.Repeat("新", 30), Rev: 2},
 	}}
-	w.TokenBudget = talkReserve + Estimate(talkRules) + Estimate("问") + docSlack + Estimate(strings.Repeat("新", 30)) + lineCost
-	got, err := Assemble(w, set, nil, 0, "问", nil)
+	room := Estimate(talkRules) + Estimate("问") + docSlack + Estimate(strings.Repeat("新", 30)) + lineCost
+	got, err := Assemble(w, room, set, nil, 0, "问", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(got.Included) != 1 || got.Included[0].ID != "new" || len(got.Omitted) != 1 || got.Omitted[0].ID != "old" {
 		t.Fatalf("%+v", got)
 	}
-	w.TokenBudget = 8192
-	if _, err = Assemble(w, set, nil, 0, strings.Repeat("大", 9000), nil); err == nil {
-		t.Fatal("oversized current input accepted")
+	if _, err = Assemble(w, 8192, set, nil, 0, strings.Repeat("大", 9000), nil); err == nil || !strings.Contains(err.Error(), "设置中「AI」配置里调大上下文上限") {
+		t.Fatalf("oversized current input: %v", err)
 	}
-	w.TokenBudget = 16000
 	events := []workspace.Event{{ID: "u", Role: "user", Text: "问"}, {ID: "a", Role: "assistant", Text: "答", ReplyTo: "u"}, {Role: "user", Text: "失败的请求"}}
-	got, err = Assemble(w, workspace.Setting{}, events, 0, "本轮", nil)
+	got, err = Assemble(w, 16000, workspace.Setting{}, events, 0, "本轮", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -230,7 +231,7 @@ func TestExtractQuotesTheSelectedRunes(t *testing.T) {
 // book returns a bookkeeper answering with replies.
 func book(e *Engine, replies ...string) (*Bookkeeper, *fake) {
 	f := &fake{replies: replies, reasoning: "想一想"}
-	return &Bookkeeper{Store: e.Store, Model: Model{Completer: f, Name: "deepseek/deepseek-flash", Effort: model.EffortLow}}, f
+	return &Bookkeeper{Store: e.Store, Model: Model{Model: limits, Completer: f, Name: "deepseek/deepseek-flash", Effort: model.EffortLow}}, f
 }
 
 func ops(v ...map[string]any) string {
@@ -377,7 +378,7 @@ func TestWorkerRetriesRecordsFailureAndRedoes(t *testing.T) {
 	var bk atomic.Pointer[Bookkeeper]
 	changed := make(chan struct{}, 8)
 	w := NewWorker(func() (*Bookkeeper, error) { return bk.Load(), nil }, []time.Duration{time.Millisecond, time.Millisecond}, func() { changed <- struct{}{} })
-	bk.Store(&Bookkeeper{Store: e.Store, Model: Model{Completer: failing}})
+	bk.Store(&Bookkeeper{Store: e.Store, Model: Model{Model: limits, Completer: failing}})
 	var mu sync.Mutex
 	var logged []string
 	w.Log = func(line string) { mu.Lock(); logged = append(logged, line); mu.Unlock() }
@@ -488,12 +489,8 @@ func TestBookkeeperSplitsALongBacklog(t *testing.T) {
 	long := strings.Repeat("雨", 2000)
 	u1, r1 := turn(t, e, session, "第一轮", long)
 	u2, r2 := turn(t, e, session, "第二轮", long)
-	w := e.Store.Work()
-	w.TokenBudget = Estimate(bookRules) + bookReserve + Estimate(long) + 600
-	if err := e.Store.SaveWork(w); err != nil {
-		t.Fatal(err)
-	}
 	b, _ := book(e, `{"ops":[]}`, `{"ops":[]}`)
+	b.Model.Window = b.Model.Output + Estimate(bookRules) + bookReserve + Estimate(long) + 600
 	for range 2 {
 		if did, err := b.Run(context.Background(), session); !did || err != nil {
 			t.Fatal(did, err)
@@ -505,3 +502,6 @@ func TestBookkeeperSplitsALongBacklog(t *testing.T) {
 		t.Fatalf("%+v", set.Revisions)
 	}
 }
+
+// limits are a test model's: room for a work of some size.
+var limits = model.Model{ID: "test", Window: 20000, Output: 4000, CompactAt: 80}

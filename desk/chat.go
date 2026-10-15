@@ -361,7 +361,7 @@ func (a *App) audit(c *ui.Context, m workspace.Event) {
 	t := a.pal.theme
 	ui.Column(c).FillWidth().Padding(0, 0, 0, replyIndent).Children(func() {
 		ui.Column(c).FillWidth().Padding(12, 14).Gap(8).Radius(rCard).Background(a.pal.side).Border(1, a.pal.line).Children(func() {
-			ui.Textf(c, "回复时附带 %d 条设定，因预算不足省略 %d 条", len(m.Context), len(m.Omitted)).FontSize(fsNote).FontWeight(600)
+			ui.Textf(c, "回复时附带 %d 条设定，因上下文上限省略 %d 条", len(m.Context), len(m.Omitted)).FontSize(fsNote).FontWeight(600)
 			if len(m.Context) == 0 && len(m.Omitted) == 0 {
 				ui.Text(c, "仅参考了最近几轮对话，设定文档暂无内容。").FontSize(fsNote).TextColor(t.TextMuted)
 			}
@@ -637,7 +637,7 @@ func (a *App) modelMenu(m *menu, work workspace.Work) {
 			head = p.Name
 		}
 		m.Head(head)
-		for _, id := range p.Models {
+		for _, id := range modelIDs(p) {
 			on := work.Discussion.Provider == p.ID && work.Discussion.Model == id
 			m.Item(id).On(on).Do(func() { a.setTalk(func(s *workspace.Selection) { s.Provider, s.Model = p.ID, id }) })
 		}

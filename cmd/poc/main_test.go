@@ -95,6 +95,16 @@ func TestLayoutDiscussion(t *testing.T) {
 		t.Fatal(tt.Texts())
 	}
 	shot(t, tt, "-settings")
+	if err = tt.Click("提供商-deepseek"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Scroll(633, 400, 0, 1200) // down to the service's models
+	tt.Frame()
+	if !tt.HasText("压缩阈值 %") {
+		t.Fatal(tt.Texts())
+	}
+	shot(t, tt, "-service")
 	w := desk.New(ai.New(filepath.Join(root, "providers.yaml")))
 	wt := ui.NewTester(w.View, 1266, 780)
 	wt.Frame()

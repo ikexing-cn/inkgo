@@ -11,6 +11,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/aiport"
+	"writer/tokens"
 	"writer/workspace"
 )
 
@@ -50,7 +51,10 @@ func (a *App) chooseProvider(id string) {
 		if p.ID == id {
 			a.providerID = id
 			a.provider = p
-			a.models = strings.Join(p.Models, "\n")
+			a.limits = nil
+			for _, m := range p.Models {
+				a.limits = append(a.limits, a.limitRow(m))
+			}
 			a.key = ""
 			return
 		}
@@ -60,10 +64,18 @@ func (a *App) chooseProvider(id string) {
 func (a *App) providerModels(id string) []string {
 	for _, p := range a.ai.Providers() {
 		if p.ID == id {
-			return p.Models
+			return modelIDs(p)
 		}
 	}
 	return nil
+}
+
+func modelIDs(p aiport.Provider) []string {
+	ids := make([]string, len(p.Models))
+	for i, m := range p.Models {
+		ids[i] = m.ID
+	}
+	return ids
 }
 
 // labeled stacks a muted caption over a control.
@@ -96,32 +108,28 @@ func (a *App) subhead(c *ui.Context, title, caption string) {
 }
 
 // usage chooses which configured models this work talks to: one row each
-// for the discussion, the bookkeeping and the writing.
+// for the discussion, the bookkeeping and the writing. A choice is kept as
+// it is made, a model ID typed once the caret leaves it.
 func (a *App) usage(c *ui.Context) {
-	t := a.pal.theme
-	busy := a.busy != ""
-	a.subhead(c, "本作品使用", "思考程度选 Default 时由服务商决定。")
+	a.subhead(c, "本作品使用", "思考程度选 Default 时由服务商决定。修改自下次发送起生效。")
+	var typing [3]bool
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
-		{
-			a.useRow(c, "讨论", "与你讨论故事", &a.talkProvider, "", "讨论提供商", &a.talkModel, "讨论模型", &a.talkEffort, "讨论推理等级")
-			a.useRow(c, "整理", "将讨论整理为设定", &a.bookProvider, sameAsTalk, "记账提供商", &a.bookModel, "记账模型", &a.bookEffort, "整理推理等级")
-			a.useRow(c, "写作", "续写、改写、起草", &a.penProvider, sameAsTalk, "写作提供商", &a.penModel, "写作模型", &a.penEffort, "写作推理等级")
-		}
-		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, "上下文预算").FontSize(fsBody).FontWeight(500).Width(110).Shrink(0)
-			ui.TextInput(c, &a.budget).Label("上下文预算").Width(150).Disabled(busy)
-			ui.Text(c, "token，含回答预留").FontSize(fsNote).TextColor(t.TextMuted).Grow(1).Shrink(1)
-			if a.pal.primary(c, "保存").Label("保存作品模型选择").Disabled(busy).Clicked() {
-				a.setError(a.saveUsage())
-			}
-		})
+		typing[0] = a.useRow(c, "讨论", "与你讨论故事", &a.talkProvider, "", "讨论提供商", &a.talkModel, "讨论模型", &a.talkEffort, "讨论推理等级")
+		typing[1] = a.useRow(c, "整理", "将讨论整理为设定", &a.bookProvider, sameAsTalk, "记账提供商", &a.bookModel, "记账模型", &a.bookEffort, "整理推理等级")
+		typing[2] = a.useRow(c, "写作", "续写、改写、起草", &a.penProvider, sameAsTalk, "写作提供商", &a.penModel, "写作模型", &a.penEffort, "写作推理等级")
 	})
-	ui.Text(c, "请勿超过模型的上下文窗口；未能放入的设定会列在回复下方的“AI 参考内容”中。修改自下次发送起生效。").FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
+	if typing == [3]bool{} {
+		if err := a.saveUsage(); err != nil {
+			a.setError(err)
+		}
+	}
 }
 
 // useRow is one of usage's rows: who, the service, the model and the
-// effort. With none, the row can go without a service of its own.
-func (a *App) useRow(c *ui.Context, who, what string, provider *string, none, providerLabel string, model *string, modelLabel string, effort *string, effortLabel string) {
+// effort. With none, the row can go without a service of its own. A
+// service chosen brings its first model with it. It reports whether the
+// model ID is being typed.
+func (a *App) useRow(c *ui.Context, who, what string, provider *string, none, providerLabel string, model *string, modelLabel string, effort *string, effortLabel string) (typing bool) {
 	busy := a.busy != ""
 	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Column(c).Width(110).Shrink(0).Children(func() {
@@ -129,7 +137,12 @@ func (a *App) useRow(c *ui.Context, who, what string, provider *string, none, pr
 			ui.Text(c, what).FontSize(fsNote).TextColor(a.pal.theme.TextMuted).LineHeight(lhBody).SingleLine().Ellipsis("…")
 		})
 		ui.Column(c).Width(150).Shrink(0).Children(func() {
-			a.providerSelect(c, provider, none, providerLabel, busy)
+			if a.providerSelect(c, provider, none, providerLabel, busy) {
+				*model = ""
+				if ids := a.providerModels(*provider); len(ids) > 0 {
+					*model = ids[0]
+				}
+			}
 		})
 		ui.Column(c).Grow(1).Shrink(1).Children(func() {
 			if none != "" && *provider == "" {
@@ -137,12 +150,13 @@ func (a *App) useRow(c *ui.Context, who, what string, provider *string, none, pr
 				*model = ""
 				return
 			}
-			modelField(c, model, a.providerModels(*provider)).Label(modelLabel).Placeholder("输入或选择模型 ID").FillWidth().Disabled(busy)
+			typing = modelField(c, model, a.providerModels(*provider)).Label(modelLabel).Placeholder("输入或选择模型 ID").FillWidth().Disabled(busy).Focused()
 		})
 		ui.Column(c).Width(110).Shrink(0).Children(func() {
 			a.effortSelect(c, effort, effortLabel, busy)
 		})
 	})
+	return typing
 }
 
 // writingSwitches are the writing page's calls to the models, kept as
@@ -225,7 +239,7 @@ func (a *App) services(c *ui.Context) {
 		if add.Clicked() {
 			a.providerID = ""
 			a.provider = aiport.Provider{Protocol: "chat"}
-			a.key, a.models = "", ""
+			a.key, a.limits = "", nil
 			a.bk.edit = "+"
 		}
 	})
@@ -253,8 +267,9 @@ func (a *App) services(c *ui.Context) {
 }
 
 // providerSelect picks a configured service, shown by its name, into *id;
-// none, when given, is the choice of no service of its own.
-func (a *App) providerSelect(c *ui.Context, id *string, none, label string, disabled bool) {
+// none, when given, is the choice of no service of its own. It reports
+// whether the choice changed.
+func (a *App) providerSelect(c *ui.Context, id *string, none, label string, disabled bool) bool {
 	var names []string
 	if none != "" {
 		names = append(names, none)
@@ -270,17 +285,19 @@ func (a *App) providerSelect(c *ui.Context, id *string, none, label string, disa
 		chosen = *id
 		names = append(names, *id)
 	}
-	if ui.Select(c, &chosen, names).Label(label).FillWidth().MinWidth(0).Disabled(disabled).Changed() {
-		*id = ""
-		if chosen != none {
-			*id = chosen
-		}
-		for _, p := range a.ai.Providers() {
-			if providerLabel(p) == chosen {
-				*id = p.ID
-			}
+	if !ui.Select(c, &chosen, names).Label(label).FillWidth().MinWidth(0).Disabled(disabled).Changed() {
+		return false
+	}
+	*id = ""
+	if chosen != none {
+		*id = chosen
+	}
+	for _, p := range a.ai.Providers() {
+		if providerLabel(p) == chosen {
+			*id = p.ID
 		}
 	}
+	return true
 }
 
 func providerLabel(p aiport.Provider) string {
@@ -307,15 +324,11 @@ func (a *App) effortSelect(c *ui.Context, value *string, label string, disabled 
 	}
 }
 
+// saveUsage keeps the models usage shows when they differ from the work's
+// and each names a model; a service chosen without one waits for it.
 func (a *App) saveUsage() error {
-	budget, err := strconv.Atoi(trim(a.budget))
-	if err != nil {
-		return errors.New("上下文预算须为整数")
-	}
-	if budget < 8192 {
-		return errors.New("上下文预算至少为 8192，请确保不超过模型支持的窗口")
-	}
 	w := a.Store.Work()
+	was := w
 	w.Discussion = workspace.Selection{Provider: trim(a.talkProvider), Model: trim(a.talkModel), Effort: a.talkEffort}
 	w.Bookkeeping = workspace.Selection{Provider: trim(a.bookProvider), Model: trim(a.bookModel), Effort: a.bookEffort}
 	if w.Bookkeeping.Provider == "" {
@@ -325,25 +338,19 @@ func (a *App) saveUsage() error {
 	if w.Writing.Provider == "" {
 		w.Writing.Model = ""
 	}
-	if w.Writing.Provider != "" && w.Writing.Model == "" {
-		return errors.New("写作模型已选择单独的服务，还需填写模型 ID；或改回“沿用讨论模型”")
+	if w.Discussion == was.Discussion && w.Bookkeeping == was.Bookkeeping && w.Writing == was.Writing {
+		return nil
 	}
-	// The store requires a provider and a model together; say which is missing.
-	if (w.Discussion.Provider == "") != (w.Discussion.Model == "") {
-		return errors.New("讨论模型需要同时选择服务和填写模型 ID")
-	}
-	if w.Bookkeeping.Provider != "" && w.Bookkeeping.Model == "" {
-		return errors.New("整理模型已选择单独的服务，还需填写模型 ID；或改回“沿用讨论模型”")
-	}
-	w.TokenBudget = budget
-	if err = a.Store.SaveWork(w); err == nil {
-		a.savePrefs()
-		if a.write.ed != nil {
-			a.write.ed.SetPredictOnDemand(!a.write.autoPredict)
+	// The store takes a service only with a model.
+	for _, s := range []workspace.Selection{w.Discussion, w.Bookkeeping, w.Writing} {
+		if s.Provider != "" && s.Model == "" {
+			return nil
 		}
-		a.notice = "设置已保存，下一条消息起生效"
+	}
+	err := a.Store.SaveWork(w)
+	if err == nil {
 		clear(a.sums.failed) // what failed for want of a model may work now
-		a.kick()             // a model or budget that now works takes in what waited
+		a.kick()             // a model that now works takes in what waited
 	}
 	return err
 }
@@ -398,9 +405,8 @@ func (a *App) providerForm(c *ui.Context) {
 			hint += "已检测到环境变量 " + env + "。"
 		}
 		ui.Text(c, hint).FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody).Margin(-6, 0, 0, 0)
-		labeled(c, "可用模型（每行一个；也可在上方直接输入目录外的模型）", func() {
-			ui.TextArea(c, &a.models).Label("模型目录").Height(96).FillWidth().Disabled(busy)
-		})
+		labeled(c, "可用模型", func() { a.limitTable(c) })
+		ui.Text(c, "数值默认取自内置模型表，表中没有的模型按保守值填写；上下文上限和最大输出可写成 128K、1M。讨论超过压缩阈值时，较早的对话会整理成摘要。").FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Justify(ui.End).Children(func() {
 			if a.providerID != "" && a.pal.ghost(c, "清除已保存 key", t.Danger).Disabled(busy).Clicked() {
 				err := a.ai.SetKey(a.providerID, "")
@@ -410,6 +416,10 @@ func (a *App) providerForm(c *ui.Context) {
 				}
 				a.setError(err)
 				a.key = ""
+			}
+			if a.pal.secondary(c, "添加模型").Disabled(busy).Clicked() {
+				m, _ := a.ai.Limits("")
+				a.limits = append(a.limits, a.limitRow(m))
 			}
 			if a.pal.secondary(c, "获取可用模型").Disabled(busy).Clicked() {
 				a.fetchModels(c)
@@ -425,6 +435,97 @@ func (a *App) providerForm(c *ui.Context) {
 		})
 	})
 }
+
+// limitRow is a model of the service in the form, as typed; key keeps
+// its fields its own as rows above it go.
+type limitRow struct {
+	key                    int
+	id, window, output, at string
+}
+
+func (a *App) limitRow(m aiport.Model) limitRow {
+	a.limitKeys++
+	return limitRow{a.limitKeys, m.ID, tokens.Format(m.Window), tokens.Format(m.Output), strconv.Itoa(m.CompactAt)}
+}
+
+// limitTable edits the models of the service in the form, one row each:
+// the ID and three numbers. An ID typed that the table built in knows
+// brings its numbers.
+func (a *App) limitTable(c *ui.Context) {
+	t := a.pal.theme
+	busy := a.busy != ""
+	if len(a.limits) == 0 {
+		ui.Text(c, "尚无模型，可获取可用模型或手动添加。").FontSize(fsNote).TextColor(t.TextMuted)
+		return
+	}
+	gone := -1
+	ui.Column(c).FillWidth().Gap(6).Children(func() {
+		ui.Row(c).FillWidth().Gap(8).Children(func() {
+			head := func(s string) ui.Element { return ui.Text(c, s).FontSize(fsNote).TextColor(t.TextMuted).Shrink(0) }
+			head("模型 ID").Grow(1).Shrink(1).MinWidth(0)
+			head("上下文上限").Width(96)
+			head("最大输出").Width(96)
+			head("压缩阈值 %").Width(72)
+			ui.Column(c).Width(hControlSm).Shrink(0)
+		})
+		for i := range a.limits {
+			r := &a.limits[i]
+			n := "-" + strconv.Itoa(i+1) // the row's fields are told apart by its place
+			ui.Row(c).Key("limit-" + strconv.Itoa(r.key)).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+				if ui.TextInput(c, &r.id).Label("模型 ID" + n).Placeholder("模型 ID").Grow(1).Shrink(1).MinWidth(0).Disabled(busy).Changed() {
+					if m, ok := a.ai.Limits(trim(r.id)); ok {
+						r.window, r.output, r.at = tokens.Format(m.Window), tokens.Format(m.Output), strconv.Itoa(m.CompactAt)
+					}
+				}
+				ui.TextInput(c, &r.window).Label("上下文上限" + n).Width(96).Shrink(0).Disabled(busy)
+				ui.TextInput(c, &r.output).Label("最大输出" + n).Width(96).Shrink(0).Disabled(busy)
+				ui.TextInput(c, &r.at).Label("压缩阈值" + n).Width(72).Shrink(0).Disabled(busy)
+				if iconButton(c, icX, "移除模型"+n, ui.Color{}).Tooltip("移除模型").Disabled(busy).Clicked() {
+					gone = i
+				}
+			})
+		}
+	})
+	if gone >= 0 {
+		a.limits = append(a.limits[:gone], a.limits[gone+1:]...)
+	}
+}
+
+// models reads the rows of the form that have an ID. It names the first
+// model that breaks a rule, the rules taken in turn.
+func (a *App) models() ([]aiport.Model, error) {
+	var out []aiport.Model
+	for _, r := range a.limits {
+		id := trim(r.id)
+		if id == "" {
+			continue
+		}
+		window, _ := tokens.Parse(r.window)
+		output, _ := tokens.Parse(r.output)
+		at, err := strconv.Atoi(trim(r.at))
+		if err != nil {
+			at = -1
+		}
+		out = append(out, aiport.Model{ID: id, Window: window, Output: output, CompactAt: at})
+	}
+	for _, rule := range []struct {
+		bad func(m aiport.Model) bool
+		why string
+	}{
+		{func(m aiport.Model) bool { return m.Window == 0 || m.Output == 0 }, "的上下文上限和最大输出须为正整数，可写成 128K、1M"},
+		{func(m aiport.Model) bool { return m.CompactAt < 0 }, "的压缩阈值须为整数"},
+		{func(m aiport.Model) bool { return m.Output >= m.Window }, "的最大输出须小于上下文上限"},
+		{func(m aiport.Model) bool { return m.CompactAt < 50 || m.CompactAt > 95 }, "的压缩阈值须在 50% 到 95% 之间"},
+	} {
+		for _, m := range out {
+			if rule.bad(m) {
+				return nil, errors.New(m.ID + rule.why)
+			}
+		}
+	}
+	return out, nil
+}
+
 func (a *App) fetchModels(c *ui.Context) {
 	if err := a.saveProvider(); err != nil {
 		a.setError(err)
@@ -439,7 +540,11 @@ func (a *App) fetchModels(c *ui.Context) {
 		models, err := catalog.ListModels(ctx)
 		return func() {
 			if err == nil {
-				a.models = strings.Join(models, "\n")
+				a.limits = nil
+				for _, id := range models {
+					m, _ := a.ai.Limits(id)
+					a.limits = append(a.limits, a.limitRow(m))
+				}
 				a.notice = "已获取模型目录，保存提供商后生效"
 			}
 		}, err
@@ -449,16 +554,19 @@ func (a *App) fetchModels(c *ui.Context) {
 func (a *App) saveProvider() error {
 	p := a.provider
 	p.ID = trim(p.ID)
-	p.Models = nil
-	for _, line := range strings.Split(a.models, "\n") {
-		if s := strings.TrimSpace(line); s != "" {
-			p.Models = append(p.Models, s)
-		}
+	models, err := a.models()
+	if err != nil {
+		return err
 	}
+	p.Models = models
 	if err := a.ai.SaveProvider(p); err != nil {
 		return err
 	}
 	a.provider = p
+	a.limits = nil
+	for _, m := range p.Models {
+		a.limits = append(a.limits, a.limitRow(m))
+	}
 	a.providerID = p.ID
 	defer a.modelsChanged()
 	if a.key != "" {

@@ -19,12 +19,12 @@ const configLimit = 1 << 20
 
 // Provider describes an API endpoint. Credentials live only in the OS keychain or environment.
 type Provider struct {
-	ID       string   `yaml:"id"`
-	Name     string   `yaml:"name"`
-	BaseURL  string   `yaml:"base_url"`
-	Protocol string   `yaml:"protocol"`
-	Env      string   `yaml:"env"`
-	Models   []string `yaml:"models"`
+	ID       string  `yaml:"id"`
+	Name     string  `yaml:"name"`
+	BaseURL  string  `yaml:"base_url"`
+	Protocol string  `yaml:"protocol"`
+	Env      string  `yaml:"env"`
+	Models   []Model `yaml:"models"`
 }
 
 type Config struct {
@@ -34,11 +34,19 @@ type Config struct {
 
 func DefaultConfig() Config {
 	return Config{Schema: 1, Providers: []Provider{
-		{ID: "deepseek", Name: "DeepSeek", BaseURL: "https://api.deepseek.com/v1", Protocol: "chat", Env: "DEEPSEEK_API_KEY", Models: []string{"deepseek-flash", "deepseek-v4-pro"}},
-		{ID: "kimi", Name: "Kimi", BaseURL: "https://api.moonshot.cn/v1", Protocol: "chat", Env: "MOONSHOT_API_KEY", Models: []string{"kimi-k2.5"}},
-		{ID: "openai", Name: "OpenAI", BaseURL: "https://api.openai.com/v1", Protocol: "responses", Env: "OPENAI_API_KEY", Models: []string{}},
-		{ID: "anthropic", Name: "Anthropic", BaseURL: "https://api.anthropic.com/v1", Protocol: "anthropic", Env: "ANTHROPIC_API_KEY", Models: []string{}},
+		{ID: "deepseek", Name: "DeepSeek", BaseURL: "https://api.deepseek.com/v1", Protocol: "chat", Env: "DEEPSEEK_API_KEY", Models: builtins("deepseek-flash", "deepseek-v4-pro")},
+		{ID: "kimi", Name: "Kimi", BaseURL: "https://api.moonshot.cn/v1", Protocol: "chat", Env: "MOONSHOT_API_KEY", Models: builtins("kimi-k3")},
+		{ID: "openai", Name: "OpenAI", BaseURL: "https://api.openai.com/v1", Protocol: "responses", Env: "OPENAI_API_KEY", Models: []Model{}},
+		{ID: "anthropic", Name: "Anthropic", BaseURL: "https://api.anthropic.com/v1", Protocol: "anthropic", Env: "ANTHROPIC_API_KEY", Models: []Model{}},
 	}}
+}
+
+func builtins(ids ...string) []Model {
+	out := make([]Model, len(ids))
+	for i, id := range ids {
+		out[i] = Builtin(id)
+	}
+	return out
 }
 
 func ConfigPath() (string, error) {
@@ -72,6 +80,10 @@ func Load(path string) (Config, error) {
 	dec.KnownFields(true)
 	var cfg Config
 	if err := dec.Decode(&cfg); err != nil {
+		var limits modelError
+		if errors.As(err, &limits) {
+			return Config{}, limits
+		}
 		return Config{}, errors.New("模型配置不是合法的 YAML：请检查语法、字段名和字段类型")
 	}
 	var extra any
@@ -162,10 +174,5 @@ func validateProvider(p Provider) error {
 	if p.Env != "" && !envName.MatchString(p.Env) {
 		return errors.New("环境变量名称无效")
 	}
-	for _, id := range p.Models {
-		if strings.TrimSpace(id) == "" {
-			return errors.New("模型 ID 不能为空")
-		}
-	}
-	return nil
+	return validateModels(p.Models)
 }

@@ -116,6 +116,26 @@ func TestOldWorksAreRefused(t *testing.T) {
 	}
 }
 
+// A work written when it had a budget of its own opens without it, and is
+// written back without it.
+func TestTheOldBudgetIsIgnored(t *testing.T) {
+	s := testStore(t)
+	p := filepath.Join(s.Root(), "work.yaml")
+	putBytes(t, p, append(readBytes(t, p), "token_budget: 16000\n"...))
+	s.Close()
+	again, err := Open(s.Root())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer again.Close()
+	if err := again.SaveWork(again.Work()); err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(readBytes(t, p), []byte("token_budget")) {
+		t.Fatal("the budget was written back")
+	}
+}
+
 func TestStrictWorkAndSettingValidation(t *testing.T) {
 	s := testStore(t)
 	r := mustRevise(t, s, Revision{By: ByAuthor, Ops: []Op{{Op: OpAdd, Place: PlaceBody, Category: "人物", Text: "旧文本"}}})
@@ -360,11 +380,6 @@ func TestSaveWorkValidation(t *testing.T) {
 	if err := s.SaveWork(w); err != nil {
 		t.Fatal(err)
 	}
-	w.TokenBudget = -1
-	if err := s.SaveWork(w); err == nil {
-		t.Fatal("invalid budget persisted")
-	}
-	w = s.Work()
 	w.Categories = append(w.Categories, Category{Name: Other, Target: "duplicate"})
 	if err := s.SaveWork(w); err == nil {
 		t.Fatal("duplicate category persisted")

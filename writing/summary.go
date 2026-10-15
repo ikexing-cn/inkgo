@@ -47,10 +47,10 @@ func (w *Writer) Summarize(ctx context.Context, chapter string) (workspace.Summa
 	if workspace.Count(ch.Text) < MinSummary {
 		return workspace.Summary{}, fmt.Errorf("这一章还不到 %d 字，不用摘要", MinSummary)
 	}
-	budget := w.Store.Work().TokenBudget - summaryOutput - discussion.Estimate(summaryRules) - 256
+	budget := w.Model.Input() - discussion.Estimate(summaryRules) - 256
 	text := fit(ch.Text, budget, false)
 	if strings.TrimSpace(text) == "" {
-		return workspace.Summary{}, fmt.Errorf("上下文预算 %d 放不下摘要的要求：请在设置中「AI」配置里提高预算", w.Store.Work().TokenBudget)
+		return workspace.Summary{}, errors.New("模型的上下文上限放不下摘要的要求：请在设置中「AI」配置里调大上下文上限")
 	}
 	note, read := "", 0
 	if len(text) < len(ch.Text) {

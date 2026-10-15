@@ -476,7 +476,7 @@ func (a *App) checkState() (line string, found int, can bool, tip string) {
 
 // partNote says why the AI was given only the start of a chapter, and what
 // to do about it, where a line says it was.
-const partNote = "后文超出上下文预算，可在设置中「AI」配置里提高预算"
+const partNote = "后文超出模型的上下文上限，可在设置中「AI」配置里调整"
 
 // footBar is the line at the foot of the writing page: of a chapter, with
 // the AI on, where its check stands and when chapters are checked; at the

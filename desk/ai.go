@@ -424,7 +424,7 @@ func (a *App) aiRecord(c *ui.Context, r *workspace.AIRecord) {
 		shown := append([]string{fmt.Sprintf("设定 %d 条", len(r.Setting))}, r.Shown...)
 		ui.Text(c, "AI 参考了："+strings.Join(shown, "、")).FontSize(fsNote).TextColor(t.TextMuted).FillWidth().LineHeight(lhBody)
 		if len(r.Omitted) > 0 {
-			ui.Textf(c, "超出上下文预算而未放入的设定 %d 条", len(r.Omitted)).FontSize(fsNote).TextColor(t.Warning)
+			ui.Textf(c, "超出上下文上限而未放入的设定 %d 条", len(r.Omitted)).FontSize(fsNote).TextColor(t.Warning)
 		}
 	})
 }

@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -91,14 +92,34 @@ func (e Effort) Valid() bool {
 	return false
 }
 
+// Message is a turn of a conversation. An assistant turn may call tools
+// as well as, or instead of, saying something; a "tool" turn is what one
+// call returned, and names it by CallID.
 type Message struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
+	Calls   []Call `json:"calls,omitempty"`
+	CallID  string `json:"call_id,omitempty"`
+}
+
+// Tool is something the model may ask the caller to do, its input
+// described by a JSON Schema.
+type Tool struct {
+	Name, Description string
+	Schema            json.RawMessage
+}
+
+// Call is a model asking for a tool, its input as the JSON it wrote.
+type Call struct {
+	ID    string          `json:"id"`
+	Name  string          `json:"name"`
+	Input json.RawMessage `json:"input"`
 }
 
 type Request struct {
 	System    string
 	Messages  []Message
+	Tools     []Tool
 	MaxTokens int
 	Effort    Effort
 }
@@ -108,9 +129,31 @@ type Delta struct {
 	Reasoning, Text string
 }
 
-// Reply is a finished answer and the reasoning shown before it.
+// Reply is a finished answer and the reasoning shown before it. A reply
+// with Calls waits for what they return before it says more; the caller
+// runs them and asks again.
 type Reply struct {
 	Text, Reasoning string
+	Calls           []Call
+	Usage           Usage
+}
+
+// Usage is what a request took and gave, as the provider counts it. Input
+// counts everything sent, CacheRead and CacheWrite among it; Reasoning is
+// part of Output.
+type Usage struct {
+	Input      int `json:"input"`
+	CacheRead  int `json:"cache_read,omitempty"`
+	CacheWrite int `json:"cache_write,omitempty"`
+	Output     int `json:"output"`
+	Reasoning  int `json:"reasoning,omitempty"`
+}
+
+// usage counts as Usage does what goai reports: goai leaves cached input
+// out of InputTokens.
+func usage(u provider.Usage) Usage {
+	return Usage{Input: u.InputTokens + u.CacheReadTokens + u.CacheWriteTokens, CacheRead: u.CacheReadTokens,
+		CacheWrite: u.CacheWriteTokens, Output: u.OutputTokens, Reasoning: u.ReasoningTokens}
 }
 
 // Completer answers a request, passing each piece of output to onDelta,
@@ -176,7 +219,7 @@ func NewClientWithKey(provider Provider, modelID, key string, httpClient *http.C
 		base = http.DefaultTransport
 	}
 	hc.Transport = guard{base: base, host: u.Host, anthropic: provider.Protocol == "anthropic", key: key}
-	provider.Models = append([]string(nil), provider.Models...)
+	provider.Models = append([]Model(nil), provider.Models...)
 	return &Client{provider: provider, modelID: modelID, key: key, http: &hc, retries: 2}, nil
 }
 
@@ -247,20 +290,26 @@ func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta))
 	size := len(req.System)
 	messages := make([]provider.Message, 0, len(req.Messages))
 	for _, m := range req.Messages {
-		var role provider.Role
-		switch m.Role {
-		case "user":
-			role = provider.RoleUser
-		case "assistant":
-			role = provider.RoleAssistant
-		default:
-			return Reply{}, errors.New("消息角色只能是 user 或 assistant；系统指令放在 Request.System")
+		msg, n, err := message(m)
+		if err != nil {
+			return Reply{}, err
 		}
-		size += len(m.Content)
+		size += n
 		if size > bodyLimit {
 			return Reply{}, errTooLarge
 		}
-		messages = append(messages, provider.Message{Role: role, Content: []provider.Part{{Type: provider.PartText, Text: m.Content}}})
+		messages = append(messages, msg)
+	}
+	tools := make([]goai.Tool, len(req.Tools))
+	for i, t := range req.Tools {
+		if t.Name == "" || !json.Valid(t.Schema) {
+			return Reply{}, fmt.Errorf("工具 %q 没有名字或参数说明不是 JSON", t.Name)
+		}
+		size += len(t.Description) + len(t.Schema)
+		tools[i] = goai.Tool{Name: t.Name, Description: t.Description, InputSchema: t.Schema}
+	}
+	if size > bodyLimit {
+		return Reply{}, errTooLarge
 	}
 	tokens := req.MaxTokens
 	if tokens == 0 {
@@ -275,11 +324,17 @@ func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta))
 	if eo := c.effortOptions(req.Effort); eo != nil {
 		opts = append(opts, goai.WithProviderOptions(eo))
 	}
+	if len(tools) > 0 {
+		// goai runs no tool itself, so a reply that calls one ends there.
+		opts = append(opts, goai.WithTools(tools...))
+	}
 	stream, err := goai.StreamText(ctx, c.languageModel(), opts...)
 	if err != nil {
 		return Reply{}, safeError(ctx, err)
 	}
 	var text, reasoning strings.Builder
+	var calls []Call
+	var used provider.Usage
 	finished := false
 	for chunk := range stream.Stream() {
 		var d Delta
@@ -290,12 +345,26 @@ func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta))
 		case provider.ChunkText:
 			d.Text = chunk.Text
 			text.WriteString(chunk.Text)
+		case provider.ChunkToolCall:
+			input := json.RawMessage(chunk.ToolInput)
+			if len(input) == 0 {
+				input = json.RawMessage("{}")
+			}
+			if !json.Valid(input) {
+				return Reply{}, errors.New("模型调用工具时写的参数不是 JSON")
+			}
+			calls = append(calls, Call{ID: chunk.ToolCallID, Name: chunk.ToolName, Input: input})
+			continue
 		case provider.ChunkError:
 			if ctx.Err() == nil && text.Len()+reasoning.Len() > 0 {
 				return Reply{}, errors.New("模型回复中途断开，没有完成")
 			}
 			return Reply{}, safeError(ctx, chunk.Error)
 		case provider.ChunkStepFinish, provider.ChunkFinish:
+			// The stream's last finish has what the whole request used.
+			if chunk.Usage != (provider.Usage{}) {
+				used = chunk.Usage
+			}
 			// goai reports why the model stopped on the step's finish; the
 			// stream's last finish may carry no reason, and a stream cut off
 			// before the model stopped brings none at all.
@@ -327,11 +396,37 @@ func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta))
 	if !finished {
 		return Reply{}, errors.New("模型回复没有完成")
 	}
-	reply := Reply{Text: text.String(), Reasoning: strings.TrimSpace(reasoning.String())}
-	if strings.TrimSpace(reply.Text) == "" {
+	reply := Reply{Text: text.String(), Reasoning: strings.TrimSpace(reasoning.String()), Calls: calls, Usage: usage(used)}
+	if strings.TrimSpace(reply.Text) == "" && len(calls) == 0 {
 		return Reply{}, errors.New("模型服务没有返回文字")
 	}
 	return reply, nil
+}
+
+// message is m as goai takes it, and how many bytes it sends.
+func message(m Message) (provider.Message, int, error) {
+	switch m.Role {
+	case "user":
+		return provider.Message{Role: provider.RoleUser, Content: []provider.Part{{Type: provider.PartText, Text: m.Content}}}, len(m.Content), nil
+	case "assistant":
+		var parts []provider.Part
+		if m.Content != "" || len(m.Calls) == 0 {
+			parts = append(parts, provider.Part{Type: provider.PartText, Text: m.Content})
+		}
+		n := len(m.Content)
+		for _, c := range m.Calls {
+			parts = append(parts, provider.Part{Type: provider.PartToolCall, ToolCallID: c.ID, ToolName: c.Name, ToolInput: c.Input})
+			n += len(c.ID) + len(c.Name) + len(c.Input)
+		}
+		return provider.Message{Role: provider.RoleAssistant, Content: parts}, n, nil
+	case "tool":
+		if m.CallID == "" {
+			return provider.Message{}, 0, errors.New("工具结果没有对应的调用")
+		}
+		return provider.Message{Role: provider.RoleTool, Content: []provider.Part{{Type: provider.PartToolResult, ToolCallID: m.CallID, ToolOutput: m.Content}}},
+			len(m.Content) + len(m.CallID), nil
+	}
+	return provider.Message{}, 0, errors.New("消息角色只能是 user、assistant 或 tool；系统指令放在 Request.System")
 }
 
 // safeError reports a failed request by cause alone. Provider errors carry

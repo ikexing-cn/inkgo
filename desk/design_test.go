@@ -47,7 +47,7 @@ func TestDesignMD(t *testing.T) {
 
 	// Colors: both themes, the dark one under -dark. The page behind the
 	// prototype's window is not the software's.
-	light, dark := tokens(tokensCSS)
+	light, dark := colorTokens(tokensCSS)
 	delete(light, "page")
 	for name, want := range light {
 		for suffix, want := range map[string]ui.Color{"": want, "-dark": dark[name]} {

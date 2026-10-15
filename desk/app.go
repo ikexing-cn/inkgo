@@ -3,7 +3,6 @@ package desk
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -122,10 +121,11 @@ type App struct {
 	rows                    []int // the chat list's: event indexes, -1 the empty chat, -2 the turn in flight
 	providerID              string
 	provider                aiport.Provider
-	key, models             string
+	key                     string
+	limits                  []limitRow // the models of the service in the form
+	limitKeys               int
 	talkProvider, talkModel string
 	bookProvider, bookModel string
-	budget                  string
 	categoryName            string
 	categoryTarget          string
 	removeCategory          string
@@ -435,6 +435,5 @@ func (a *App) loadWork() {
 	a.talkEffort = w.Discussion.Effort
 	a.bookEffort = w.Bookkeeping.Effort
 	a.penProvider, a.penModel, a.penEffort = w.Writing.Provider, w.Writing.Model, w.Writing.Effort
-	a.budget = fmt.Sprint(w.TokenBudget)
 	a.kick() // the models may have changed
 }

@@ -154,9 +154,9 @@ func blocks(css string, fn func(dark bool, body string)) {
 	}
 }
 
-// tokens reads the colors of tokens.css: the light ones, and the dark ones
+// colorTokens reads the colors of tokens.css: the light ones, and the dark ones
 // over them.
-func tokens(css string) (light, dark map[string]ui.Color) {
+func colorTokens(css string) (light, dark map[string]ui.Color) {
 	light, dark = map[string]ui.Color{}, map[string]ui.Color{}
 	decl := regexp.MustCompile(`--([a-z0-9-]+)\s*:\s*(#[0-9a-fA-F]{3,6})`)
 	blocks(css, func(isDark bool, body string) {
@@ -252,7 +252,7 @@ func scrims(css string) (light, dark ui.Color) {
 }
 
 func lightPalette() *palette {
-	k, _ := tokens(tokensCSS)
+	k, _ := colorTokens(tokensCSS)
 	s, _ := shadows(tokensCSS)
 	scrim, _ := scrims(tokensCSS)
 	t := ui.LightTheme()
@@ -264,7 +264,7 @@ func lightPalette() *palette {
 }
 
 func darkPalette() *palette {
-	_, k := tokens(tokensCSS)
+	_, k := colorTokens(tokensCSS)
 	_, s := shadows(tokensCSS)
 	_, scrim := scrims(tokensCSS)
 	t := ui.DarkTheme()

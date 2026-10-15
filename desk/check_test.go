@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/model"
 	"writer/workspace"
 )
 
@@ -236,7 +237,7 @@ func TestAChapterReadInPartIsToldSo(t *testing.T) {
 	a.revise(workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "主角靠维修路灯谋生，但她很怕黑。", Names: []string{"林晚"}})
 	a.write.autoSummary = false
 	f := &stream{pieces: []string{`{"findings":[]}`}}
-	penWith(a, f)
+	penWithin(a, f, model.Model{ID: "small", Window: 20000, Output: 4000, CompactAt: 80})
 	tt.Frame()
 	if err := tt.Click("立即检查"); err != nil {
 		t.Fatal(err)

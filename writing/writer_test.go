@@ -65,7 +65,7 @@ func book(t *testing.T, f *fake) (*Writer, string, workspace.Revision) {
 	if err = s.WriteOutline(two, "她修好井边的灯。"); err != nil {
 		t.Fatal(err)
 	}
-	return &Writer{Store: s, Model: discussion.Model{Completer: f, Name: "deepseek/deepseek-flash", Effort: model.EffortHigh}}, two, r
+	return &Writer{Store: s, Model: discussion.Model{Model: limits, Completer: f, Name: "deepseek/deepseek-flash", Effort: model.EffortHigh}}, two, r
 }
 
 // What a draft shows the model is the work's words, never its IDs, and
@@ -114,7 +114,7 @@ func TestDraftShowsWhatItRecords(t *testing.T) {
 	if text != "灯亮了。\n她笑了。" || strings.Join(streamed, "") != text {
 		t.Fatalf("text %q streamed %q", text, streamed)
 	}
-	if f.got[0].Effort != model.EffortHigh || f.got[0].MaxTokens != draftOutput {
+	if f.got[0].Effort != model.EffortHigh || f.got[0].MaxTokens != min(draftOutput, limits.Output) {
 		t.Fatalf("request %+v", f.got[0])
 	}
 }
@@ -207,7 +207,10 @@ func TestBudgetCutsTheTextBeforeFromItsStart(t *testing.T) {
 		t.Fatal(err)
 	}
 	msg := job.Request.Messages[0].Content
-	if !strings.Contains(msg, "最后一句。") || discussion.Estimate(job.Request.System+msg) > w.Store.Work().TokenBudget {
+	if !strings.Contains(msg, "最后一句。") || discussion.Estimate(job.Request.System+msg) > w.Model.Input() {
 		t.Fatalf("estimate %d", discussion.Estimate(job.Request.System+msg))
 	}
 }
+
+// limits are a test model's: room for a chapter of some size.
+var limits = model.Model{ID: "test", Window: 20000, Output: 4000, CompactAt: 80}

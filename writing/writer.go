@@ -15,7 +15,6 @@ import (
 )
 
 const (
-	reserve     = 2048 // the reply's share of the context budget
 	draftOutput = 32768
 	editOutput  = 16384
 	nextOutput  = 400 // a sentence, and what a model may say before it stops
@@ -76,7 +75,7 @@ func (w *Writer) prepare(op, task string, scene Scene, tail string) (Job, error)
 		return job, err
 	}
 	system := rules + "\n\n" + task
-	remaining := work.TokenBudget - reserve - discussion.Estimate(system) - discussion.Estimate(tail) - 512
+	remaining := w.Model.Input() - discussion.Estimate(system) - discussion.Estimate(tail) - 512
 	// The parts of the message, in the order it reads; each says what it
 	// shows for the record.
 	type part struct{ heading, text, shown string }
@@ -97,7 +96,7 @@ func (w *Writer) prepare(op, task string, scene Scene, tail string) (Job, error)
 		outline = part{heading: "【本章：" + n.Title + "】"}
 	}
 	if remaining < 0 {
-		return job, fmt.Errorf("纲和要求超出了上下文预算 %d：请缩短，或在设置中「AI」配置里提高预算", work.TokenBudget)
+		return job, errors.New("纲和要求超出了模型的上下文上限：请缩短，或在设置中「AI」配置里调大上下文上限")
 	}
 	if t := fit(lastRunes(scene.Before, beforeCap), remaining, true); strings.TrimSpace(t) != "" {
 		take(&near, "【本章前文】", t, fmt.Sprintf("本章前文 %d 字", len([]rune(t))))
@@ -127,7 +126,7 @@ func (w *Writer) prepare(op, task string, scene Scene, tail string) (Job, error)
 				shown[e.ID] = true
 				job.Record.Setting = append(job.Record.Setting, item)
 			} else {
-				item.Reason = "超出上下文预算"
+				item.Reason = "超出上下文上限"
 				job.Record.Omitted = append(job.Record.Omitted, item)
 			}
 		}

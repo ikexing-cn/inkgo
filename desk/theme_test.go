@@ -15,7 +15,7 @@ import (
 
 // The palette takes every color it needs from tokens.css, in both themes.
 func TestTokens(t *testing.T) {
-	light, dark := tokens(tokensCSS)
+	light, dark := colorTokens(tokensCSS)
 	need := []string{"bg", "raised", "side", "hover", "active", "line", "border", "ink", "ink-2", "muted", "faint", "dim", "on-ink", "amber", "warn", "success", "danger"}
 	for _, name := range need {
 		if _, ok := light[name]; !ok {
@@ -313,7 +313,7 @@ func TestCopySaysWhereTheModelsAre(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, bad := range []string{"模型设置", "设置的「AI」", "在设置中提高"} {
+		for _, bad := range []string{"模型设置", "设置的「AI」", "在设置中提高", "作品预算", "提高预算"} {
 			if strings.Contains(string(b), bad) {
 				t.Errorf("%s says %s: write 设置中「AI」配置", f, bad)
 			}

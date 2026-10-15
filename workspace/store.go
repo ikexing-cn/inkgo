@@ -83,7 +83,7 @@ func Create(dir, name, genre string) (*Store, error) {
 	if len(entries) > 0 {
 		return nil, fmt.Errorf("%s: directory is not empty", root)
 	}
-	w := Work{Schema: Schema, ID: NewID(), Name: name, Genre: genre, Categories: Categories(genre), TokenBudget: 16000}
+	w := Work{Schema: Schema, ID: NewID(), Name: name, Genre: genre, Categories: Categories(genre)}
 	if err = validateWork(w); err != nil {
 		return nil, err
 	}
@@ -189,14 +189,19 @@ func (s *Store) reloadWork() error {
 	if err != nil {
 		return err
 	}
-	var w Work
+	// token_budget was the work's budget for a request, before each model
+	// had its own limits; a work that has it is read without it.
+	var w struct {
+		Work   `yaml:",inline"`
+		Budget int `yaml:"token_budget"`
+	}
 	if err = decodeYAML(b, &w); err == nil {
-		err = validateWork(w)
+		err = validateWork(w.Work)
 	}
 	if err != nil {
 		return fmt.Errorf("%s: %w", p, err)
 	}
-	s.work = w
+	s.work = w.Work
 	return nil
 }
 

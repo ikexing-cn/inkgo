@@ -49,9 +49,12 @@ func (f *stream) Complete(ctx context.Context, r model.Request, on func(model.De
 	return model.Reply{Text: all.String()}, nil
 }
 
-func penWith(a *App, f *stream) {
+func penWith(a *App, f *stream) { penWithin(a, f, model.Builtin("deepseek-flash")) }
+
+// penWithin is penWith with a model of the limits m.
+func penWithin(a *App, f *stream, m model.Model) {
 	aiOf(a).NewWriter = func(s *workspace.Store) (*writing.Writer, error) {
-		return &writing.Writer{Store: s, Model: discussion.Model{Completer: f, Name: "deepseek/deepseek-flash", Effort: model.EffortHigh}}, nil
+		return &writing.Writer{Store: s, Model: discussion.Model{Model: m, Completer: f, Name: "deepseek/deepseek-flash", Effort: model.EffortHigh}}, nil
 	}
 	a.write.penKey = "" // build the editors' writer again
 }
@@ -292,7 +295,7 @@ func TestSavingAServiceRemakesThePredictingWriter(t *testing.T) {
 		t.Fatalf("made %d times before anything changed", made)
 	}
 	a.provider = aiport.Provider{ID: "local", Name: "本机", Protocol: "chat", BaseURL: "http://127.0.0.1:1234/v1"}
-	a.models = "m1"
+	a.limits = []limitRow{{id: "m1", window: "32K", output: "4096", at: "80"}}
 	if err := a.saveProvider(); err != nil {
 		t.Fatal(err)
 	}

@@ -4,7 +4,7 @@ package discussion
 
 import (
 	"cmp"
-	"fmt"
+	"errors"
 	"slices"
 	"strings"
 	"unicode/utf8"
@@ -22,12 +22,9 @@ type Context struct {
 }
 
 const (
-	// talkReserve is the reply's share of the context budget. The request
-	// allows far more output, talkOutput, as reasoning comes out of it too.
-	talkReserve = 2048
-	talkOutput  = 32768
-	docSlack    = 512 // headings and per-message overhead
-	lineCost    = 8   // a "- " and a newline
+	talkOutput  = 32768 // what the request allows, reasoning included
+	docSlack    = 512   // headings and per-message overhead
+	lineCost    = 8     // a "- " and a newline
 	recentTurns = 4
 )
 
@@ -60,19 +57,19 @@ var places = []struct {
 
 func oneLine(s string) string { return strings.Join(strings.Fields(s), " ") }
 
-// Assemble builds a talk request: the rules, the setting as far as the
-// budget allows, newest entries first within each place, and the last few
+// Assemble builds a talk request of at most room tokens: the rules, the
+// setting as far as room allows, newest entries first within each place, and the last few
 // complete exchanges, which include every one the bookkeeper has not yet
 // taken in: done is the number of events it covered.
-func Assemble(w workspace.Work, set workspace.Setting, events []workspace.Event, done int, input string, beside *Writing) (Context, error) {
+func Assemble(w workspace.Work, room int, set workspace.Setting, events []workspace.Event, done int, input string, beside *Writing) (Context, error) {
 	out := Context{Request: model.Request{MaxTokens: talkOutput}}
 	rules := talkRules
 	if beside != nil {
 		rules += "\n\n" + besideRules
 	}
-	remaining := w.TokenBudget - talkReserve - Estimate(rules) - Estimate(input) - docSlack
+	remaining := room - Estimate(rules) - Estimate(input) - docSlack
 	if remaining < 0 {
-		return out, fmt.Errorf("当前发言超出上下文预算 %d；请缩短发言或提高作品预算", w.TokenBudget)
+		return out, errors.New("当前发言超出模型的上下文上限；请缩短，或在设置中「AI」配置里调大上下文上限")
 	}
 	// What the author is writing comes first, before the talk and the
 	// setting: they asked beside it.
@@ -112,7 +109,7 @@ func Assemble(w workspace.Work, set workspace.Setting, events []workspace.Event,
 				shown[e.ID] = true
 				out.Included = append(out.Included, item)
 			} else {
-				item.Reason = "超出上下文预算"
+				item.Reason = "超出上下文上限"
 				out.Omitted = append(out.Omitted, item)
 			}
 		}

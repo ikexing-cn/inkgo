@@ -43,9 +43,6 @@ func validateWork(w Work) error {
 	if strings.TrimSpace(w.Name) == "" {
 		return fmt.Errorf("name: must not be empty")
 	}
-	if w.TokenBudget <= 0 {
-		return fmt.Errorf("token_budget: must be positive")
-	}
 	seen := map[string]bool{}
 	for _, c := range w.Categories {
 		if strings.TrimSpace(c.Name) == "" || strings.TrimSpace(c.Target) == "" {

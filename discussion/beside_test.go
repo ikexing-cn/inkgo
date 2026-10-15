@@ -13,7 +13,7 @@ import (
 func TestTalkBesideTheProse(t *testing.T) {
 	e, session := setup(t)
 	f := &fake{replies: []string{"这里可以慢一点。", "好。"}}
-	e.Talk = Model{Completer: f, Name: "deepseek/deepseek-flash"}
+	e.Talk = Model{Model: limits, Completer: f, Name: "deepseek/deepseek-flash"}
 	id, err := e.Store.NewChapter("", "第一章", false)
 	if err != nil {
 		t.Fatal(err)

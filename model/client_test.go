@@ -16,7 +16,7 @@ import (
 )
 
 func testProvider(baseURL, protocol string) Provider {
-	return Provider{ID: "custom", Name: "Custom", BaseURL: baseURL + "/v1", Protocol: protocol, Models: []string{"catalog-only"}}
+	return Provider{ID: "custom", Name: "Custom", BaseURL: baseURL + "/v1", Protocol: protocol, Models: []Model{Builtin("catalog-only")}}
 }
 
 func sse(w http.ResponseWriter, events ...string) {
@@ -204,7 +204,7 @@ func TestListModels(t *testing.T) {
 			if err != nil || !reflect.DeepEqual(got, []string{"a", "z"}) {
 				t.Fatalf("ListModels = %#v %v", got, err)
 			}
-			if !reflect.DeepEqual(client.provider.Models, []string{"catalog-only"}) {
+			if !reflect.DeepEqual(client.provider.Models, []Model{Builtin("catalog-only")}) {
 				t.Fatal("fetch changed manual catalog")
 			}
 		})

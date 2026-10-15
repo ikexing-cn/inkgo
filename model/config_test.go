@@ -22,7 +22,7 @@ func TestConfigRoundTripAndDefaults(t *testing.T) {
 	if !reflect.DeepEqual(cfg, DefaultConfig()) {
 		t.Fatalf("unexpected defaults: %#v", cfg)
 	}
-	cfg.Providers = append(cfg.Providers, Provider{ID: "local", Name: "Local", BaseURL: "http://localhost:11434/v1", Protocol: "chat", Models: []string{"manual/model"}})
+	cfg.Providers = append(cfg.Providers, Provider{ID: "local", Name: "Local", BaseURL: "http://localhost:11434/v1", Protocol: "chat", Models: []Model{Builtin("manual/model")}})
 	if err := Save(path, cfg); err != nil {
 		t.Fatal(err)
 	}
@@ -33,8 +33,8 @@ func TestConfigRoundTripAndDefaults(t *testing.T) {
 	if !reflect.DeepEqual(cfg, loaded) {
 		t.Fatalf("round trip: %#v", loaded)
 	}
-	cfg.Providers[0].Models[0] = "changed"
-	if DefaultConfig().Providers[0].Models[0] == "changed" {
+	cfg.Providers[0].Models[0].ID = "changed"
+	if DefaultConfig().Providers[0].Models[0].ID == "changed" {
 		t.Fatal("defaults share mutable state")
 	}
 	root, err := os.UserConfigDir()

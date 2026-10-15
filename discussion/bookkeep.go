@@ -114,10 +114,10 @@ func (b *Bookkeeper) next(set workspace.Setting, session string) (batch, error) 
 	return bt, nil
 }
 
-// fits reports whether bt goes in one request within the work's budget.
+// fits reports whether bt goes in one request the model takes.
 func (b *Bookkeeper) fits(set workspace.Setting, bt batch) bool {
 	payload, _, err := b.input(set, bt)
-	return err == nil && Estimate(bookRules)+Estimate(payload)+bookReserve <= b.Store.Work().TokenBudget
+	return err == nil && Estimate(bookRules)+Estimate(payload)+bookReserve <= b.Model.Input()
 }
 
 // Pending lists the sessions with turns the bookkeeper has not covered.
@@ -218,8 +218,8 @@ func (b *Bookkeeper) draft(ctx context.Context, set workspace.Setting, bt batch)
 	if err != nil {
 		return workspace.Revision{}, err
 	}
-	if Estimate(bookRules)+Estimate(payload)+bookReserve > b.Store.Work().TokenBudget {
-		return workspace.Revision{}, errors.New("设定文档和这一轮对话超出整理预算，请提高作品预算")
+	if Estimate(bookRules)+Estimate(payload)+bookReserve > b.Model.Input() {
+		return workspace.Revision{}, errors.New("设定文档和这一轮对话超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限")
 	}
 	req := model.Request{System: bookRules, Messages: []model.Message{{Role: workspace.RoleUser, Content: payload}}, MaxTokens: bookOutput}
 	answer, err := ask(ctx, b.Model, req, nil)

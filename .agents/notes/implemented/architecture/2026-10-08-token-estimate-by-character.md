@@ -17,7 +17,7 @@ Status: implemented
   - 其他字符每个算 1.5 个 token，高于已知 tokenizer 对汉字的用量；
   - 每段另加 16 个 token 的开销。
 - 界面和笔记里仍只称它为估计，不报告为精确的 token 数。
-- 默认作品预算 16000 不变。
+- 默认作品预算 16000 不变。2026-10-15 起作品预算去掉，按模型的上下文上限装（见[上下文上限配在模型上](2026-10-15-model-limits-and-usage.md)）。
 
 ## Alternatives considered
 
