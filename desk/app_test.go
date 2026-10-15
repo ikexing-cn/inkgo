@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -361,6 +362,24 @@ func TestNewWorkDoesNotInheritLastWork(t *testing.T) {
 	}
 	if name := a.Store.Work().Name; name != "雨城来信" {
 		t.Fatalf("an unnamed work is named after its folder, got %q", name)
+	}
+}
+
+// A work that cannot be opened is named over what is wrong with it, and the
+// work open stays.
+func TestAWorkThatCannotBeOpenedIsNamed(t *testing.T) {
+	a, tt, _ := fixture(t)
+	dir := filepath.Join(t.TempDir(), "青崖问剑")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "work.yaml"), []byte("schema: 一\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	a.setError(a.Open(dir))
+	tt.Frame()
+	if !tt.HasText("打开作品「青崖问剑」失败") || !tt.HasText("work.yaml") || a.Store.Work().Name != "测试作品" {
+		t.Fatal(tt.Texts())
 	}
 }
 

@@ -15,7 +15,7 @@ func (s *Store) sessions() ([]string, error) {
 		return nil, err
 	}
 	entries, err := os.ReadDir(p)
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
 	ids := []string{}
@@ -49,6 +49,13 @@ func (s *Store) NewSession() (string, error) {
 		return "", err
 	}
 	defer unlock()
+	dir, err := s.path("sessions")
+	if err != nil {
+		return "", err
+	}
+	if err = os.MkdirAll(dir, 0755); err != nil {
+		return "", err
+	}
 	for tries := 0; tries < 128; tries++ {
 		id := NewID()
 		p, err := s.path("sessions", id+".jsonl")

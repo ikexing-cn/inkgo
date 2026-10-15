@@ -3,6 +3,8 @@ package desk
 
 import (
 	"context"
+	"fmt"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -183,7 +185,7 @@ func New(ai aiport.Service) *App {
 func (a *App) Open(path string) error {
 	s, err := workspace.Open(path)
 	if err != nil {
-		return err
+		return fmt.Errorf("打开作品「%s」失败：%w", filepath.Base(path), err)
 	}
 	return a.attach(s, path, false)
 }

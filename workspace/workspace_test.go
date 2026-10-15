@@ -578,3 +578,43 @@ func TestFilesThatAreNotSessionsArePassedOver(t *testing.T) {
 		}
 	}
 }
+
+// A work copied without its empty folders, as git copies it, opens with no
+// talks, and the first talk and chapter make their folders again.
+func TestAWorkWithoutItsEmptyFoldersOpens(t *testing.T) {
+	dir := t.TempDir()
+	s, err := Create(dir, "测试作品", "网文")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Close()
+	for _, d := range []string{"sessions", "chapters", ".writer"} {
+		if err = os.RemoveAll(filepath.Join(dir, d)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if s, err = Open(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	if ids, err := s.Sessions(); err != nil || len(ids) != 0 {
+		t.Fatalf("sessions %v, %v", ids, err)
+	}
+	id, err := s.NewSession()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.Append(id, Event{Role: RoleUser, Text: "雨城"}); err != nil {
+		t.Fatal(err)
+	}
+	ch, err := s.NewChapter("", "第一章", false)
+	if err == nil {
+		_, err = s.WriteChapter(ch, "雨。", nil)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ids, err := s.Sessions(); err != nil || len(ids) != 1 {
+		t.Fatalf("sessions %v, %v", ids, err)
+	}
+}

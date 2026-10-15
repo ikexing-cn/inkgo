@@ -122,14 +122,16 @@ func Open(dir string) (*Store, error) {
 	if err = s.reloadWork(); err != nil {
 		return nil, err
 	}
+	// A work without sessions/ has no talks yet: git keeps no empty
+	// folder, and the first talk makes it again.
 	p, err := s.path("sessions")
 	if err != nil {
 		return nil, err
 	}
-	if st, err := os.Stat(p); err != nil {
-		return nil, err
-	} else if !st.IsDir() {
+	if st, err := os.Stat(p); err == nil && !st.IsDir() {
 		return nil, fmt.Errorf("%s: expected directory", p)
+	} else if err != nil && !os.IsNotExist(err) {
+		return nil, err
 	}
 	sessions, err := s.sessions()
 	if err != nil {

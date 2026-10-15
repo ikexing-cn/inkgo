@@ -22,6 +22,7 @@ Status: implemented
 - 查找条夹在章标题和正文之间，没有底色；原型里它是标签条下面的一条带子，带底色和下边线。
 - 从一章的第一行开始选中几行，浮条「AI 改写 / 加入设定」上面放不下，就放在第一行下面，正好盖住选中的第二行。
 - 选中一个名字按 Ctrl+F，查找框是空的，还得再打一遍。
+- 用 `-work` 打开《青崖问剑》，窗口停在书架上，右下角是一句英文的系统错误，说找不到 `sessions`。那部书的文件夹里没有 `sessions/`（也没有 `.writer/`）：作品格式本来就打算放进 git，git 不留空文件夹，`.writer/` 又在 `.gitignore` 里，从仓库拿下来的书就是这样。`workspace.Open` 只要 `sessions/` 不在就整部打不开；提示也不说是哪部书出了什么事。
 
 ## Decision
 
@@ -55,6 +56,7 @@ Status: implemented
 - **选中的字就是要找的**：`openFind`（Ctrl+F、工具栏、编辑菜单都走它）在选区不跨段时拿选中的字当查找词，从选中的那一处数起（"2 / 2"）；查找框里的字全选上，接着打就换掉。查找条开着时再按 Ctrl+F，光标回到查找框。原型同样（`openFind`）。
 
 - **没开作品时窗口叫「写作软件」**：书架页和启动时的窗口标题原来写"写作"，任务栏上看像个动词；照 `DESIGN.md` 软件没名字时写"写作软件"。
+- **没有 `sessions/` 也能打开**：`workspace.Open` 只在 `sessions/` 存在却不是文件夹时报错；不在就当还没有讨论，`NewSession` 先建它。`chapters/`、`.writer/` 原来就不是非有不可。打开作品失败时，提示的标题写"打开作品「书名」失败"（取文件夹名），详情是原来的错误。
 
 ## Alternatives considered
 
@@ -72,6 +74,7 @@ Status: implemented
 - **浮条上面放不下时压到章标题上面，照原型** — 浮条总在选区上面，位置最一致。但编辑器之外是章标题和章纲那一行，浮条画过去要知道上面有多高、查找条开着时还会压住查找框；放到选区下面只看编辑器自己。
 - **Ctrl+F 不带选中的字，照原型** — 浏览器就是这样，打开的总是上次找的。但写作时找一个名字通常就是因为在正文里看到它，选中再按 Ctrl+F 省掉一遍打字；Word、VS Code 都这样。选区跨段时不带，免得把几段话塞进一行框里。
 - **快照列表照旧写到秒** — 同一分钟里存的两份（打开时一份、紧接着 AI 改写前一份）标题不会一样。但每份下面还写着"打开时""AI 改动前"和字数，分得开；到秒的六位数字让一列时间更难扫，原型也只写到分。
+- **打开时把缺的标准文件夹都补建上** — 一处补齐，之后各处写文件都不用再管文件夹在不在。但书架读作品信息（`describe`）、改名也走 `workspace.Open`，只是看一眼就往作者的文件夹里写东西不对；真正非有不可的只有 `sessions/`，在第一次新开讨论时建就够了。
 
 ## Consequences
 
@@ -98,4 +101,6 @@ Status: implemented
 - `desk/toolbar_test.go`（`TestTheSelectionBarLeavesTheSelectionInSight`）：从第一行选到第五行，浮条在选区下面。改之前它在第一行下面。
 - `desk/write_test.go`（`TestFindWhatIsPicked`）：选中第二个「林晚」按 Ctrl+F，查找词是「林晚」、"2 / 2"、光标在查找框；接着打「雨」换掉；跨段的选区不改查找词。
 - `scripts/prototype/walk.ts`：选中「小祥」按 Ctrl+F，查找框里是全选的「小祥」，"1 / 2"。
+- `workspace/workspace_test.go`（`TestAWorkWithoutItsEmptyFoldersOpens`）：删掉 `sessions/`、`chapters/`、`.writer/` 后能打开，新开讨论、写一句、新建一章并写入都行。改之前打不开。
+- `desk/app_test.go`（`TestAWorkThatCannotBeOpenedIsNamed`）：`work.yaml` 坏掉的作品，提示写"打开作品「青崖问剑」失败"和 `work.yaml`，原来开着的作品不变。
 - 真实程序（kimi-cu）：`cmd/sample` 的《雨城修灯人》检查全书（deepseek-flash，15 次），原来 14 条里「老周」占三条、「怀表」两条；改后 11 条，「老周」一条写"人物 · 「第四章 钟表铺」起出现，共 3 章"，详情列出第七章、第十二章的原句；点「忽略」后剩 10 条，三章的都没了。侧栏只剩说过话的那段讨论，写"今天"。
