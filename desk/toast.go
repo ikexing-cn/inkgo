@@ -146,9 +146,9 @@ func (a *App) toastCard(c *ui.Context, ts ui.Toast) {
 			})
 		}
 		if left := p.Left(); left > 0 {
-			// The line under it is the time left.
+			// The line under it is the time left, grey, as a hint fades too.
 			ui.Box(c).Absolute().Left(0).Right(0).Bottom(0).Height(2).Background(a.pal.line).Children(func() {
-				ui.Box(c).Height(2).WidthPercent(100 * float32(left) / float32(noticeFor)).Background(t.Success.Alpha(0.55))
+				ui.Box(c).Height(2).WidthPercent(100 * float32(left) / float32(noticeFor)).Background(a.pal.faint)
 			})
 			c.AnimationFrame()
 		}

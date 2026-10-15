@@ -812,7 +812,7 @@ func (a *App) checkAt(node string) (no int, title string) {
 // checkEmpty is the page's right with nothing to show.
 func (a *App) checkEmpty(c *ui.Context, all int) {
 	k := &a.ck
-	words, how := "没有发现不一致", "写完一章后自动检查，结果显示在此处。"
+	pic, words, how := icDone, "没有发现不一致", "写完一章后自动检查，结果显示在此处。"
 	switch {
 	case all > 0:
 		words, how = "这一类没有待处理的", ""
@@ -825,11 +825,24 @@ func (a *App) checkEmpty(c *ui.Context, all int) {
 	case k.when == checkOnDemand:
 		how = "当前为「手动检查」，需要时点击「重新检查」。"
 	}
-	for id, why := range k.failed {
-		_, title := a.checkAt(id)
-		how = "「" + title + "」检查失败：" + why
+	// One that failed is not told as one that found nothing; the first in
+	// the book is named, so it is the same one every frame.
+	if lost := a.firstFailed(); lost != "" && k.running == "" {
+		_, title := a.checkAt(lost)
+		pic, words, how = icAlert, "检查未完成", "「"+title+"」检查失败："+k.failed[lost]
 	}
-	a.pal.blank(c, icDone, words, how, nil)
+	a.pal.blank(c, pic, words, how, nil)
+}
+
+// firstFailed is the first chapter in the book whose check failed, or "".
+func (a *App) firstFailed() string {
+	first := ""
+	a.ck.tree.Walk(func(nd *workspace.Node, _ int) {
+		if _, ok := a.ck.failed[nd.ID]; ok && first == "" && !nd.Folder {
+			first = nd.ID
+		}
+	})
+	return first
 }
 
 // quoted is text in spans with its part, quote, as the design marks what

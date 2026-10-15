@@ -58,9 +58,10 @@ function checkPage() {
   const none = !S.entries.some((e) => e.place === 'body') ? ['设定为空', '请先在讨论中确定设定，才能对照检查。']
     : S.checks.length ? ['这一类没有待处理的', ''] : !last ? ['尚未检查', '点击左上角「检查全书」，或写完一章后自动检查。']
     : ['没有发现不一致', S.when === '手动检查' ? '当前为「手动检查」，需要时点击「重新检查」。' : '写完一章后自动检查，结果显示在此处。']
-  if (lost && !S.checking) none[1] = '「' + titleOf(lost) + '」检查失败：' + S.failed[lost.key]
+  const unfinished = lost && !S.checking // 失败的那章不当作没查出问题
+  if (unfinished) none.splice(0, 2, '检查未完成', '「' + titleOf(lost) + '」检查失败：' + S.failed[lost.key])
 
-  let detail = `<div class="check-detail">${blank('checked', S.checking ? '正在检查…' : none[0], S.checking ? '检查结果将显示在左侧。' : none[1])}</div>`
+  let detail = `<div class="check-detail">${blank(unfinished ? 'warn' : 'checked', S.checking ? '正在检查…' : none[0], S.checking ? '检查结果将显示在左侧。' : none[1])}</div>`
   if (shown) {
     const ch = chapterOf(shown.key), e = S.entries.find((x) => x.id === shown.entry)
     const text = ch ? ch.paras[shown.para] || '' : ''

@@ -360,6 +360,30 @@ func TestShowingAChapterKeepsWhatItsCheckFound(t *testing.T) {
 	}
 }
 
+// A check that failed is not told on the page as one that found nothing:
+// the page names the first chapter in the book that failed, the same one
+// every frame.
+func TestAFailedCheckIsNotToldAsClear(t *testing.T) {
+	a, tt, id, _ := checkFixture(t)
+	second, err := a.Store.NewChapter("", "第二章", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.warn(a.loadTree())
+	a.loadChecks()
+	a.ck.failed[second] = "请求超时"
+	a.ck.failed[id] = "无法连接模型服务"
+	if err := tt.Click("检查"); err != nil {
+		t.Fatal(err)
+	}
+	for range 8 {
+		tt.Frame()
+		if !tt.HasText("检查未完成") || !tt.HasText("「第一章」检查失败：无法连接模型服务") || tt.HasText("尚未检查") {
+			t.Fatal(tt.Texts())
+		}
+	}
+}
+
 // A check that failed says why at the chapter's foot, and the whole of it
 // on hover where the line is cut short.
 func TestAFailedCheckSaysWhyInFull(t *testing.T) {

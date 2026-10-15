@@ -383,7 +383,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   // A chapter too long for the model: the check and the summary say how much of it was read.
   await click('少见的情况'); await click('本章过长，仅读取前文'); await win('仅检查前 5000 字'); await win('检查失败', false); await win('检查完成', false); await win('本章摘要 · 不完整 ▴'); await win('AI 生成 · Opus 5.5 · 今天 10:40 · 仅依据前 9000 字')
   must(await has('.chapter-more .amber[title="后文超出模型的上下文上限，可在设置中「AI」配置里调整"]'), 'the summary read in part does not say why'); await shot('86-read-in-part'); await done('a chapter read in part')
-  await click('少见的情况'); await click('本章检查失败'); await win('检查失败：无法连接模型服务'); await shot('86-check-failed'); await done('a summary and a check that failed')
+  await click('少见的情况'); await click('本章检查失败'); await win('检查失败：无法连接模型服务'); await shot('86-check-failed'); await click('检查'); await click('名字有误 1'); await click('无需修改'); await win('检查未完成'); await win('这一类没有待处理的', false); await shot('86-check-unfinished'); await click('正文'); await done('a summary and a check that failed')
   await click('少见的情况'); await click('未选择写作模型'); await win('检查失败：请在设置中「AI」配置里选择写作模型'); await done('no model to write with')
 
   // A narrow window puts the sidebar away to a column of icons where it lists no chapters; the trash is there, over the gear.
