@@ -98,3 +98,22 @@ func TestAQuestionOverTheSettingsShadesOnce(t *testing.T) {
 		tt.Frame()
 	}
 }
+
+// The words a talk is started with are in its box with the caret after
+// them, to go on with them, as the prototype puts it.
+func TestAStarterLeavesTheCaretAfterIt(t *testing.T) {
+	a, tt, _ := writingFixture(t, "整条街的灯。")
+	if err := tt.Click("讨论"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err := tt.Click("主角有个说不出口的秘密"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Frame()
+	tt.Type("，她怕黑")
+	if a.input != "主角有个说不出口的秘密，她怕黑" {
+		t.Fatalf("typed into the words offered at %q", a.input)
+	}
+}

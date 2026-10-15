@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+	"unicode/utf8"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/aiport"
@@ -91,6 +92,7 @@ type writeView struct {
 	renaming, title string
 	titleWas        string // the name kept when the title is left empty
 	titleHeld       bool   // the box for the title has had the caret: losing it settles the name
+	titleAll        bool   // the name the box opens with is selected, to be typed over
 	focus           bool   // the page alone, without the tree and the column
 	finding         bool
 	query, with     string
@@ -1500,6 +1502,10 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 			// so the words in it stand where the names of the other rows do.
 			ui.Row(c).Grow(1).Shrink(1).Height(hRow-6).AlignItems(ui.Center).Padding(0, 6-1).Radius(rXs).Background(a.pal.canvas).Border(1, a.pal.ink).Children(func() {
 				in := ui.TextInputBase(c, &w.title).Label("章节标题").Placeholder(w.titleWas).Grow(1).Shrink(1).FontSize(fsControl).AutoFocus()
+				if w.titleAll {
+					w.titleAll = false
+					in.SetTextSelection(0, utf8.RuneCountInString(w.title))
+				}
 				switch {
 				case in.Shortcut(0, ui.KeyEscape):
 					w.renaming, w.titleHeld = "", false
@@ -1581,7 +1587,12 @@ func (a *App) renameOpen() {
 	}
 	w.focus = false
 	a.showTree()
-	w.renaming, w.title, w.titleWas, w.offered = n.ID, n.Title, n.Title, ""
+	w.nameAgain(n)
+}
+
+// nameAgain starts naming n again: its name is in the box, selected.
+func (w *writeView) nameAgain(n *workspace.Node) {
+	w.renaming, w.title, w.titleWas, w.offered, w.titleAll = n.ID, n.Title, n.Title, "", true
 }
 
 // showTree brings the sidebar back when it was put away: a name is typed
@@ -1599,7 +1610,7 @@ func (a *App) nodeMenu(m *menu, n *workspace.Node) {
 	if n.Folder {
 		m.Item("编辑卷纲").Do(func() { a.openNode(n.ID) })
 	}
-	m.Item("重命名").Do(func() { w.renaming, w.title, w.titleWas, w.offered = n.ID, n.Title, n.Title, "" })
+	m.Item("重命名").Do(func() { w.nameAgain(n) })
 	m.Item("新建章节").Do(func() { a.newNodeAt(false, n) })
 	m.Item("新建文件夹").Do(func() { a.newNodeAt(true, n) })
 	m.Separator()
@@ -1725,6 +1736,9 @@ func (a *App) newNodeAt(folder bool, n *workspace.Node) {
 	w.focus = false
 	a.showTree()
 	w.renaming, w.title, w.titleWas, w.offered = id, typed, title, typed
+	if typed == "" { // 新章节, 新文件夹: in the box selected, to be typed over
+		w.title, w.titleAll = title, true
+	}
 	// The name comes first: the caret is in its box, not in the empty prose.
 	if w.ed != nil {
 		w.ed.Unfocus()

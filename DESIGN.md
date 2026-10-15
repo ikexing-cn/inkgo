@@ -589,8 +589,6 @@ components:
 - `npm run verify-prototype` 的「naming in the tree」：默认值、光标位置、和别的行对齐、点别处就确定、整个换掉的标题前面没有号、F2。
 - `go test ./desk` 的 `TestLeavingTheNameSettlesIt`、`TestWritingSavesAsTheAuthorPauses`、`TestNameANewChapter`、`TestF2NamesTheOpenChapter`。
 
-软件里重命名时还不能把名字全选上（工具包没有这个接口），光标在名字末尾。
-
 ### 标签页和保存
 
 - 标签页自己占一行，在顶栏下面，不和功能按钮挤在一起；标签之间有分隔线，正在看的那个和正文连成一片。

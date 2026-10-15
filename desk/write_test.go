@@ -488,7 +488,8 @@ func TestDragMovesChapters(t *testing.T) {
 }
 
 // F2 names the chapter that is open, wherever the caret is: its row comes out
-// of a folded folder and out of focus mode, with the box for its name.
+// of a folded folder and out of focus mode, with the box for its name and the
+// name in it selected, as in the prototype.
 func TestF2NamesTheOpenChapter(t *testing.T) {
 	a, tt, _ := writingFixture(t, "雨从傍晚开始下。")
 	folder, err := a.Store.NewChapter("", "第一卷", true)
@@ -517,7 +518,7 @@ func TestF2NamesTheOpenChapter(t *testing.T) {
 	if !tt.Focused("章节标题") {
 		t.Fatal("the box for the name does not have the caret")
 	}
-	tt.Type("：脚印")
+	tt.Type("第二章：脚印") // over the name, not after it
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
 	if n, _ := a.write.tree.Node(id); n.Title != "第二章：脚印" || a.write.renaming != "" {
@@ -535,7 +536,8 @@ func TestF2NamesTheOpenChapter(t *testing.T) {
 }
 
 // A new chapter's name is typed in place of the one it is given, and left
-// empty, it keeps that one.
+// empty, it keeps that one. With no number to go on, 新章节 is in the box
+// selected, typed over.
 func TestNameANewChapter(t *testing.T) {
 	a, tt, _ := writingFixture(t, "雨从傍晚开始下。")
 	if err := tt.Click("新建章节"); err != nil {
@@ -586,6 +588,16 @@ func TestNameANewChapter(t *testing.T) {
 	tt.Frame()
 	if n, _ = a.write.tree.Node(a.write.node); n.Title != "新章节" {
 		t.Fatal("a title with no number is numbered", n.Title)
+	}
+	if err := tt.Click("新建章节"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Type("尾声")
+	tt.Key(0, ui.KeyEnter)
+	tt.Frame()
+	if n, _ = a.write.tree.Node(a.write.node); n.Title != "尾声" {
+		t.Fatal("新章节 is not typed over:", n.Title)
 	}
 }
 
@@ -1386,7 +1398,7 @@ func TestANewChapterBetweenTwoTakesNoNumber(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.write.title != "" {
+	if a.write.title != "新章节" {
 		t.Fatalf("offered %q", a.write.title)
 	}
 	tt.Key(0, ui.KeyEnter)

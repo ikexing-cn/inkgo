@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/aiport"
@@ -437,8 +438,9 @@ func (a *App) composer(c *ui.Context) {
 		lines := strings.Count(a.input, "\n") + 1 + len([]rune(a.input))/per
 		h := float32(min(max(lines, least), 7)) * 25
 		in := ui.TextAreaBase(c, &a.input).Label("讨论输入").Placeholder(hint).Height(h).FontSize(fsRead).LineHeight(lhLoose).Disabled(a.busy != "")
-		if a.focusTalk {
-			in.Focus()
+		if a.focusTalk { // after the words offered, to go on with them
+			n := utf8.RuneCountInString(a.input)
+			in.Focus().SetTextSelection(n, n)
 			a.focusTalk = false
 		}
 		return in
