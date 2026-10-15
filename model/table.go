@@ -192,7 +192,7 @@ func (m *Model) UnmarshalYAML(n *yaml.Node) error {
 		}
 		v, ok := tokens.Parse(*f.raw)
 		if !ok {
-			return modelError(m.ID + "的上下文上限和最大输出须为正整数，可写成 128K、1M")
+			return modelError(m.ID + " 的上下文上限和最大输出须为正整数，可写成 128K、1M")
 		}
 		*f.to = v
 	}
@@ -214,11 +214,11 @@ func validateModels(models []Model) error {
 		case seen[m.ID]:
 			return fmt.Errorf("模型 %s 重复", m.ID)
 		case m.Window < 1 || m.Output < 1:
-			return fmt.Errorf("%s的上下文上限和最大输出须为正整数，可写成 128K、1M", m.ID)
+			return fmt.Errorf("%s 的上下文上限和最大输出须为正整数，可写成 128K、1M", m.ID)
 		case m.Output >= m.Window:
-			return fmt.Errorf("%s的最大输出须小于上下文上限", m.ID)
+			return fmt.Errorf("%s 的最大输出须小于上下文上限", m.ID)
 		case m.CompactAt < 50 || m.CompactAt > 95:
-			return fmt.Errorf("%s的压缩阈值须在 50%% 到 95%% 之间", m.ID)
+			return fmt.Errorf("%s 的压缩阈值须在 50%% 到 95%% 之间", m.ID)
 		}
 		seen[m.ID] = true
 	}

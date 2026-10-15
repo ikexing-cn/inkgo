@@ -155,24 +155,46 @@ func validateConfig(cfg Config) error {
 	return nil
 }
 
-func validateProvider(p Provider) error {
+// Problems are what keep a provider from being saved, by the field each
+// is in; a field with none has nil.
+type Problems struct {
+	ID, Name, Protocol, BaseURL, Env, Models error
+}
+
+// First is the first problem in the order of the fields, or nil.
+func (p Problems) First() error {
+	for _, err := range []error{p.ID, p.Name, p.Protocol, p.BaseURL, p.Env, p.Models} {
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Check says what is wrong with each field of p, so that a form can say it
+// by the field before p is saved.
+func Check(p Provider) Problems {
+	var out Problems
 	if !providerID.MatchString(p.ID) {
-		return errIDFormat
+		out.ID = errIDFormat
 	}
 	if strings.TrimSpace(p.Name) == "" {
-		return errors.New("请填写显示名称")
+		out.Name = errors.New("请填写显示名称")
 	}
 	switch p.Protocol {
 	case "chat", "responses", "anthropic":
 	default:
-		return errors.New("协议必须是 chat、responses 或 anthropic")
+		out.Protocol = errors.New("协议必须是 chat、responses 或 anthropic")
 	}
 	u, err := url.Parse(p.BaseURL)
 	if err != nil || u == nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" || u.Opaque != "" {
-		return errors.New("API 地址必须是 http(s) 根地址，不能带账号、查询参数或锚点")
+		out.BaseURL = errors.New("API 地址必须是 http(s) 根地址，不能带账号、查询参数或锚点")
 	}
 	if p.Env != "" && !envName.MatchString(p.Env) {
-		return errors.New("环境变量名称无效")
+		out.Env = errors.New("环境变量名称无效")
 	}
-	return validateModels(p.Models)
+	out.Models = validateModels(p.Models)
+	return out
 }
+
+func validateProvider(p Provider) error { return Check(p).First() }

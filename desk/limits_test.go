@@ -9,7 +9,8 @@ import (
 
 // Each model of a service has a row of its own: the numbers start from the
 // table built in, may be written as 128K or 1M, and are written back so; a
-// row that breaks a rule is named and nothing is saved.
+// row that breaks a rule is named under the table, in red, and the form
+// cannot be saved till it is mended.
 func TestModelLimitsInTheServiceForm(t *testing.T) {
 	a, tt, _ := fixture(t)
 	a.openPrefs("AI")
@@ -40,26 +41,31 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 		tt.Type(text)
 		tt.Frame()
 	}
+	// save presses 保存提供商; when want is not "", the form says it before,
+	// and pressing does nothing.
 	save := func(want string) {
 		t.Helper()
-		a.Error = ""
+		a.Error, a.notice = "", ""
+		if want != "" && !tt.HasText(want) {
+			t.Fatalf("the form does not say %q: %q", want, tt.Texts())
+		}
 		if err := tt.Click("保存提供商"); err != nil {
 			t.Fatal(err)
 		}
 		tt.Frame()
-		if a.Error != want {
-			t.Fatalf("saving said %q, not %q", a.Error, want)
+		if saved := a.notice == "提供商已保存"; a.Error != "" || saved != (want == "") {
+			t.Fatalf("saved %v, said %q", saved, a.Error)
 		}
 	}
 	retype("最大输出-1", "2M")
-	save("deepseek-flash的最大输出须小于上下文上限")
+	save("deepseek-flash 的最大输出须小于上下文上限")
 	retype("最大输出-1", "8 k")
 	retype("压缩阈值-1", "99")
-	save("deepseek-flash的压缩阈值须在 50% 到 95% 之间")
+	save("deepseek-flash 的压缩阈值须在 50% 到 95% 之间")
 	retype("压缩阈值-1", "七十")
-	save("deepseek-flash的压缩阈值须为整数")
+	save("deepseek-flash 的压缩阈值须为整数")
 	retype("上下文上限-1", "一百万")
-	save("deepseek-flash的上下文上限和最大输出须为正整数，可写成 128K、1M")
+	save("deepseek-flash 的上下文上限和最大输出须为正整数，可写成 128K、1M")
 	if got := a.ai.Providers()[0].Models[0]; got.Window != 1_000_000 {
 		t.Fatalf("a form that broke a rule was saved: %+v", got)
 	}
@@ -98,5 +104,55 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 	save("")
 	if got := a.ai.Providers()[0].Models; len(got) != 1 || got[0].ID != "kimi-k3" {
 		t.Fatalf("saved %+v", got)
+	}
+}
+
+// A new service left without an ID takes one from its name, shown in the
+// empty field; one another service has would take its place, and is said
+// in red with the form waiting, as an address or a variable that cannot
+// be used is.
+func TestANewServiceSaysWhatIsWrongWhereItIs(t *testing.T) {
+	a, tt, _ := fixture(t)
+	a.openPrefs("AI")
+	a.bk.edit, a.providerID, a.limits = "+", "", nil
+	taken, was := a.ai.Providers()[0], len(a.ai.Providers())
+	a.provider = aiport.Provider{Name: taken.Name, BaseURL: "https://api.example.com/v1", Protocol: "chat"}
+	tt.Frame()
+	tt.Scroll(633, 400, 0, 1600) // down to the form
+	tt.Frame()
+	for _, c := range []struct {
+		say  string
+		form func(p *aiport.Provider)
+	}{
+		{"该 ID 已被「" + taken.Name + "」使用，请换一个", func(p *aiport.Provider) {}},
+		{"API 地址必须是 http(s) 根地址，不能带账号、查询参数或锚点", func(p *aiport.Provider) { p.Name, p.BaseURL = "Open Router", "api.example.com" }},
+		{"环境变量名称无效", func(p *aiport.Provider) { p.BaseURL, p.Env = "https://openrouter.ai/api/v1", "1 KEY" }},
+	} {
+		c.form(&a.provider)
+		tt.Frame()
+		if !tt.HasText(c.say) {
+			t.Fatalf("the form does not say %q: %q", c.say, tt.Texts())
+		}
+		if err := tt.Click("保存提供商"); err != nil {
+			t.Fatal(err)
+		}
+		tt.Frame()
+		if a.Error != "" || a.notice != "" || len(a.ai.Providers()) != was {
+			t.Fatalf("pressed with %q: %q %q", c.say, a.Error, a.notice)
+		}
+	}
+	a.provider.Env = "OPENROUTER_API_KEY"
+	tt.Frame()
+	if err := tt.Click("保存提供商"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if ps := a.ai.Providers(); len(ps) != was+1 || ps[was].ID != "open-router" || ps[0].Name != taken.Name || len(ps[0].Models) != len(taken.Models) {
+		t.Fatalf("saved %+v, said %q", ps, a.Error)
+	}
+	for name, id := range map[string]string{"DeepSeek": "deepseek", "月之暗面 Kimi 2": "kimi-2", "my_api-": "my_api", "通义": ""} {
+		if got := idFrom(name); got != id {
+			t.Errorf("%s: %q", name, got)
+		}
 	}
 }

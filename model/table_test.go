@@ -72,7 +72,7 @@ func TestModelYAML(t *testing.T) {
 		t.Fatalf("read as %+v", got)
 	}
 	for in, msg := range map[string]string{
-		"- id: x\n  context: 一百万\n": "x的上下文上限和最大输出须为正整数，可写成 128K、1M",
+		"- id: x\n  context: 一百万\n": "x 的上下文上限和最大输出须为正整数，可写成 128K、1M",
 		"- id: x\n  key: secret\n":  "模型只能写 id、context、max_output、compact_at 几项",
 	} {
 		var m []Model
@@ -84,9 +84,9 @@ func TestModelYAML(t *testing.T) {
 
 func TestModelValidation(t *testing.T) {
 	for msg, models := range map[string][]Model{
-		"x的最大输出须小于上下文上限":                {{"x", 8000, 8000, 80}},
-		"x的压缩阈值须在 50% 到 95% 之间":         {{"x", 8000, 4000, 96}},
-		"x的上下文上限和最大输出须为正整数，可写成 128K、1M": {{"x", 8000, 0, 80}},
+		"x 的最大输出须小于上下文上限":                {{"x", 8000, 8000, 80}},
+		"x 的压缩阈值须在 50% 到 95% 之间":         {{"x", 8000, 4000, 96}},
+		"x 的上下文上限和最大输出须为正整数，可写成 128K、1M": {{"x", 8000, 0, 80}},
 		"模型 x 重复": {Builtin("x"), Builtin("x")},
 		"模型 ID 不能为空，前后不能有空格": {Builtin(" x")},
 	} {
@@ -97,7 +97,7 @@ func TestModelValidation(t *testing.T) {
 	// Load says what is wrong with a model rather than that the YAML is.
 	path := filepath.Join(t.TempDir(), "providers.yaml")
 	cfg := "schema: 1\nproviders:\n  - id: local\n    name: Local\n    base_url: http://localhost:11434/v1\n    protocol: chat\n    models:\n      - id: qwen3\n        context: 8K\n        max_output: "
-	for out, msg := range map[string]string{"8K\n": "qwen3的最大输出须小于上下文上限", "很多\n": "qwen3的上下文上限和最大输出须为正整数"} {
+	for out, msg := range map[string]string{"8K\n": "qwen3 的最大输出须小于上下文上限", "很多\n": "qwen3 的上下文上限和最大输出须为正整数"} {
 		if err := os.WriteFile(path, []byte(cfg+out), 0600); err != nil {
 			t.Fatal(err)
 		}

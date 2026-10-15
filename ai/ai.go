@@ -83,6 +83,17 @@ func (s *Service) Reload() error {
 	return nil
 }
 
+func (s *Service) Check(p aiport.Provider) aiport.Problems {
+	got := model.Check(provider(p))
+	say := func(err error) string {
+		if err == nil {
+			return ""
+		}
+		return err.Error()
+	}
+	return aiport.Problems{ID: say(got.ID), Name: say(got.Name), BaseURL: say(got.BaseURL), Env: say(got.Env), Models: say(got.Models)}
+}
+
 func (s *Service) SaveProvider(p aiport.Provider) error {
 	cfg := s.cfg
 	cfg.Providers = append([]model.Provider(nil), cfg.Providers...)

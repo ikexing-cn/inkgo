@@ -28,6 +28,9 @@ type Service interface {
 	// SaveProvider saves p in place of the service with its ID, or after
 	// the others when none has it.
 	SaveProvider(p Provider) error
+	// Check says what keeps p from being saved, by the field each problem
+	// is in, so that a form can say it there before it is pressed.
+	Check(p Provider) Problems
 	// Limits are the limits model id starts with when it is added to a
 	// service: as the table built in has them, when known says it has the
 	// model, or careful ones.
@@ -71,6 +74,22 @@ type Provider struct {
 	Protocol string
 	Env      string // the environment variable holding the key, if any
 	Models   []Model
+}
+
+// Problems are what keep a service from being saved, by the field each is
+// in, as the author is told it; a field with none has "".
+type Problems struct {
+	ID, Name, BaseURL, Env, Models string
+}
+
+// First is the first problem in the order of the form, or "".
+func (p Problems) First() string {
+	for _, s := range []string{p.ID, p.Name, p.BaseURL, p.Env, p.Models} {
+		if s != "" {
+			return s
+		}
+	}
+	return ""
 }
 
 // Model is a model of a service and its limits, in tokens: a request and

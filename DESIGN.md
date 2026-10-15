@@ -667,6 +667,6 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab，改写�
 - 不要让能点的东西看不出能点：文字按钮只有一种样子，指针移上去都有变化（见 Components 的「文字按钮」「能点的都回应指针」）。
 - 不要用系统的菜单。
 - 要按提示条说的事给它配图标：做完了一件事（「已保存」「已加入设定」）带 `success` 的勾，出了错带 `danger` 的警告；告诉作者先做什么、或者这次没什么可做（「请先在正文中选中回收伏笔的段落」「各章均已检查，正文无新改动」）的不带图标，不要给它配勾，看着像做成了。`npm run verify-prototype` 的「pay off with nothing picked」和复制全文那一步查原型，`go test ./desk` 的 `TestAHintHasNoMark` 查软件。
-- 要在表单里就说出按下去以前就知道的事：要填的没填，主按钮是灰的；填的用不了（新建作品的文件夹里已有文件），在那一栏下面用红字写明为什么、怎么办，主按钮也是灰的。不要等作者按了才弹提示条说不行。`npm run verify-prototype` 的「categories」「the shelf, where things go wrong」查原型，`go test ./desk` 的 `TestACategorySavesOnceFilledIn`、`TestANewWorkSaysWhereItGoes` 查软件。
+- 要在表单里就说出按下去以前就知道的事：要填的没填，主按钮是灰的；填的用不了（新建作品的文件夹里已有文件，模型服务的 ID 和别的服务重了、地址不对、模型的数不合规矩），在那一栏下面用红字写明为什么、怎么办，主按钮也是灰的。不要等作者按了才弹提示条说不行。`npm run verify-prototype` 的「categories」「the shelf, where things go wrong」「models and services」查原型，`go test ./desk` 的 `TestACategorySavesOnceFilledIn`、`TestANewWorkSaysWhereItGoes`、`TestModelLimitsInTheServiceForm`、`TestANewServiceSaysWhatIsWrongWhereItIs` 查软件。
 - 不要在 AI 关着时露出 AI，也不要把 AI 的功能变灰了留着（见 Overview 的「AI 可以整个关掉」）。
 - 不要留不再用的控件、样式、文案、代码：当次删掉，不留着备用，留着的东西每次审查都要再看一遍。

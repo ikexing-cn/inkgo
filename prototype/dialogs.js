@@ -54,19 +54,37 @@ function backupDialog(d) {
 const useAt = (i, change) => set((s) => ({ uses: s.uses.map((u, n) => (n === i ? { ...u, ...change } : u)) }))
 const PROTOCOLS = ['OpenAI Chat Completions（多数兼容服务）', 'OpenAI Responses', 'Anthropic Messages']
 
-function saveService() {
-  const f = S.dialog.svc, name = f.name.trim()
-  if (!name || !f.url.trim()) { say('显示名称和 API 地址为必填项'); return }
+// 名称里的拉丁字母小写，从第一个字母起留数字、- 和 _，空格当 -：新服务没填 ID 时用它。
+const idFrom = (name) => name.toLowerCase().replace(/ +/g, '-').replace(/[^a-z0-9_-]/g, '').replace(/^[^a-z]+/, '').replace(/[-_]+$/, '')
+
+// 服务表单里哪一栏保存不了、为什么，写在那一栏下面；空着的那栏不算错，只让按钮等。
+// 上下文上限和最大输出是正整数（可写 128K、1M），最大输出小于上下文上限；压缩阈值是整数，在一半到九成五之间。
+function serviceProblems(d) {
+  const f = d.svc, fresh = d.edit === 'new', id = f.id.trim() || (fresh ? idFrom(f.name) : '')
   const models = f.models.filter((m) => m.id.trim()).map((m) => ({ ...m, id: m.id.trim() }))
-  // 上下文上限和最大输出是正整数（可写 128K、1M），最大输出小于上下文上限；压缩阈值是整数，在一半到九成五之间。
   const wrong = [
-    [(m) => !count(m.max) || !count(m.out), '的上下文上限和最大输出须为正整数，可写成 128K、1M'],
-    [(m) => !/^\d+$/.test(m.at.trim()), '的压缩阈值须为整数'],
-    [(m) => count(m.out) >= count(m.max), '的最大输出须小于上下文上限'],
-    [(m) => Number(m.at) < 50 || Number(m.at) > 95, '的压缩阈值须在 50% 到 95% 之间'],
+    [(m) => !count(m.max) || !count(m.out), (m) => m.id + ' 的上下文上限和最大输出须为正整数，可写成 128K、1M'],
+    [(m) => !/^\d+$/.test(m.at.trim()), (m) => m.id + ' 的压缩阈值须为整数'],
+    [(m) => count(m.out) >= count(m.max), (m) => m.id + ' 的最大输出须小于上下文上限'],
+    [(m) => Number(m.at) < 50 || Number(m.at) > 95, (m) => m.id + ' 的压缩阈值须在 50% 到 95% 之间'],
+    [(m) => models.filter((x) => x.id === m.id).length > 1, (m) => '模型 ' + m.id + ' 重复'],
   ].map(([bad, why]) => [models.find(bad), why]).find(([m]) => m)
-  if (wrong) { say(wrong[0].id + wrong[1], '', 'fail'); return }
-  const made = { id: f.id.trim() || name.toLowerCase(), name, url: f.url.trim(), host: f.url.trim().replace(/^https?:\/\//, '').split('/')[0], proto: f.proto, env: f.env.trim(), models: models.map((m) => ({ ...m, max: size(count(m.max)), out: size(count(m.out)), at: m.at.trim() })) }
+  const taken = fresh && S.services.find((x) => x.id === id)
+  const p = {
+    id, list: models,
+    ID: !id ? '' : taken ? '该 ID 已被「' + taken.name + '」使用，请换一个' : /^[a-z][a-z0-9_-]*$/.test(id) ? '' : '提供商 ID 只能用小写字母、数字、- 和 _，并以字母开头',
+    url: !f.url.trim() || /^https?:\/\/[^/?#@\s]+(\/[^?#\s]*)?$/.test(f.url.trim()) ? '' : 'API 地址必须是 http(s) 根地址，不能带账号、查询参数或锚点',
+    env: !f.env.trim() || /^[A-Za-z_]\w*$/.test(f.env.trim()) ? '' : '环境变量名称无效',
+    models: wrong ? wrong[1](wrong[0]) : '',
+  }
+  p.fits = !!(id && f.name.trim() && f.url.trim()) && !p.ID && !p.url && !p.env && !p.models
+  return p
+}
+
+function saveService() {
+  const f = S.dialog.svc, name = f.name.trim(), p = serviceProblems(S.dialog)
+  if (!p.fits) return
+  const made = { id: p.id, name, url: f.url.trim(), host: f.url.trim().replace(/^https?:\/\//, '').split('/')[0], proto: f.proto, env: f.env.trim(), models: p.list.map((m) => ({ ...m, max: size(count(m.max)), out: size(count(m.out)), at: m.at.trim() })) }
   set((s) => ({ services: s.dialog.edit === 'new' ? [...s.services, made] : s.services.map((x) => (x.id === made.id ? made : x)), dialog: { ...s.dialog, edit: '', svc: null } }))
   say('提供商已保存', '', 'ok')
 }
@@ -103,18 +121,18 @@ function settingsModel(d) {
     `<div class="box line num">${typed(m.max, typeModel(i, 'max'), '', '上下文上限')}</div><div class="box line num">${typed(m.out, typeModel(i, 'out'), '', '最大输出')}</div><div class="box line pct">${typed(m.at, typeModel(i, 'at'), '', '压缩阈值')}</div>` +
     `<button class="icon-btn muted" aria-label="移除模型" title="移除模型"${onClick(() => models((list) => list.filter((_, n) => n !== i)))}>${icon('cross', 'sm')}</button></div>`
   const form = () => {
-    const f = d.svc
+    const f = d.svc, p = serviceProblems(d), red = (why) => (why ? `<div class="note danger">${t(why)}</div>` : '')
     return '<div class="service-form">' +
-      `<div class="pair id-first">${field('ID（小写字母、数字、- _）', line(f.id, type('id'), '', 'Provider ID（小写）', d.edit === 'new' ? '' : ' disabled'))}${field('显示名称', line(f.name, type('name'), '', '显示名称'))}</div>` +
+      `<div class="pair id-first">${field('ID（小写字母、数字、- _）', line(f.id, type('id'), d.edit === 'new' ? p.id : '', 'Provider ID（小写）', d.edit === 'new' ? '' : ' disabled'))}${field('显示名称', line(f.name, type('name'), '', '显示名称'))}</div>` + red(p.ID) +
       field('API 地址', line(f.url, type('url'), 'https://api.example.com/v1', 'API 地址')) +
-      (!f.url.trim() ? '' : /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])([:/]|$)/.test(f.url.trim()) ? '<div class="note">本机地址：请确认该服务不会转发到云端</div>' : '<div class="note amber">远程服务：讨论内容将发送到该地址</div>') +
+      (!f.url.trim() ? '' : p.url ? red(p.url) : /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])([:/]|$)/.test(f.url.trim()) ? '<div class="note">本机地址：请确认该服务不会转发到云端</div>' : '<div class="note amber">远程服务：讨论内容将发送到该地址</div>') +
       field('接口协议', choose('proto', f.proto, PROTOCOLS, type('proto'), 'API 协议')) +
-      `<div class="pair">${field('API key', line(f.key, type('key'), '留空则保留已存的 key', 'API key', ' type="password"'))}${field('或读取环境变量', line(f.env, type('env'), '例如 DEEPSEEK_API_KEY', '环境变量名称'))}</div>` +
+      `<div class="pair">${field('API key', line(f.key, type('key'), '留空则保留已存的 key', 'API key', ' type="password"'))}${field('或读取环境变量', line(f.env, type('env'), '例如 DEEPSEEK_API_KEY', '环境变量名称') + red(p.env))}</div>` +
       `<div class="note">key 保存在系统钥匙串中，不会写入配置文件或作品。${f.env.trim() && BOOK.services.some((x) => x.env === f.env.trim()) ? '已检测到环境变量 ' + t(f.env.trim()) + '。' : ''}</div>` +
       '<div class="field"><div class="label">可用模型</div><div class="limits">' +
-      (f.models.length ? '<div class="limit-row limit-head"><div class="fit">模型 ID</div><div class="num">上下文上限</div><div class="num">最大输出</div><div class="pct">压缩阈值 %</div><div class="gap"></div></div>' + f.models.map(limitRow).join('') : '<div class="note">尚无模型，可获取可用模型或手动添加。</div>') + '</div></div>' +
+      (f.models.length ? '<div class="limit-row limit-head"><div class="fit">模型 ID</div><div class="num">上下文上限</div><div class="num">最大输出</div><div class="pct">压缩阈值 %</div><div class="gap"></div></div>' + f.models.map(limitRow).join('') : '<div class="note">尚无模型，可获取可用模型或手动添加。</div>') + '</div>' + red(p.models) + '</div>' +
       '<div class="note">数值默认取自内置模型表，表中没有的模型按保守值填写；上下文上限和最大输出可写成 128K、1M。讨论超过压缩阈值时，较早的对话会整理成摘要。</div>' +
-      `<div class="buttons">${d.edit === 'new' ? '' : `<div class="hit link danger"${onClick(() => say('已清除保存的 key', '', 'ok'))}>清除已保存 key</div>`}${button('添加模型', () => models((list) => [...list, limits('')]))}${button('获取可用模型', fetchModels)}${button('保存提供商', saveService, 'primary')}</div></div>`
+      `<div class="buttons">${d.edit === 'new' ? '' : `<div class="hit link danger"${onClick(() => say('已清除保存的 key', '', 'ok'))}>清除已保存 key</div>`}${button('添加模型', () => models((list) => [...list, limits('')]))}${button('获取可用模型', p.fits ? fetchModels : null, p.fits ? '' : 'off')}${button('保存提供商', p.fits ? saveService : null, p.fits ? 'primary' : 'primary off')}</div></div>`
   }
   const card = (svc) => `<div class="service"><div class="service-head"><div class="fit"><div class="ell">${t(svc.name)}</div><div class="note ell">${t(svc.host)} · ${svc.models.length} 个模型${used(svc) ? ' · 本作品使用中' : ''}</div></div>` +
     button(d.edit === svc.id ? '收起' : '编辑', () => set((s) => ({ dialog: { ...s.dialog, ...(d.edit === svc.id ? { edit: '', svc: null } : editing(svc)) }, ...SHUT }))) + '</div>' + (d.edit === svc.id ? form() : '') + '</div>'

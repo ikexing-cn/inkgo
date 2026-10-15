@@ -383,21 +383,32 @@ func (a *App) saveUsage() error {
 }
 
 // providerForm edits the service open in the list, or a new one, under
-// its row.
+// its row. What keeps it from being saved is said in red under the field
+// it is in, and the buttons that save it wait; a field left empty only
+// makes them wait.
 func (a *App) providerForm(c *ui.Context) {
 	t := a.pal.theme
 	busy := a.held()
+	p, bad := a.serviceInForm()
+	red := func(why string) {
+		ui.Text(c, why).FontSize(fsNote).TextColor(t.Danger).LineHeight(lhBody)
+	}
 	ui.Column(c).FillWidth().Gap(12).Children(func() {
 		ui.Row(c).FillWidth().Gap(12).Children(func() {
 			labeled(c, "ID（小写字母、数字、- _）", func() {
-				ui.TextInput(c, &a.provider.ID).Label("Provider ID（小写）").FillWidth().Disabled(busy || a.providerID != "")
+				ui.TextInput(c, &a.provider.ID).Label("Provider ID（小写）").Placeholder(p.ID).FillWidth().Disabled(busy || a.providerID != "")
 			}).Width(200)
 			labeled(c, "显示名称", func() { ui.TextInput(c, &a.provider.Name).Label("显示名称").FillWidth().Disabled(busy) }).Grow(1)
 		})
+		if bad.ID != "" && p.ID != "" {
+			red(bad.ID)
+		}
 		labeled(c, "API 地址", func() {
 			ui.TextInput(c, &a.provider.BaseURL).Label("API 地址").Placeholder("https://api.example.com/v1").FillWidth().Disabled(busy)
 			if trim(a.provider.BaseURL) != "" {
-				if isLocal(a.provider.BaseURL) {
+				if bad.BaseURL != "" {
+					red(bad.BaseURL)
+				} else if isLocal(a.provider.BaseURL) {
 					ui.Text(c, "本机地址：请确认该服务不会转发到云端").FontSize(fsNote).TextColor(t.TextMuted)
 				} else {
 					ui.Text(c, "远程服务：讨论内容将发送到该地址").FontSize(fsNote).TextColor(t.Warning)
@@ -419,12 +430,15 @@ func (a *App) providerForm(c *ui.Context) {
 				}
 			}
 		})
-		ui.Row(c).FillWidth().Gap(12).Children(func() {
+		ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Start).Children(func() {
 			labeled(c, "API key", func() {
 				ui.TextInput(c, &a.key).Label("API key").Password().Placeholder("留空则保留已存的 key").FillWidth().Disabled(busy)
 			}).Grow(1).Basis(0)
 			labeled(c, "或读取环境变量", func() {
 				ui.TextInput(c, &a.provider.Env).Label("环境变量名称").Placeholder("例如 DEEPSEEK_API_KEY").FillWidth().Disabled(busy)
+				if bad.Env != "" {
+					red(bad.Env)
+				}
 			}).Grow(1).Basis(0)
 		})
 		hint := "key 保存在系统钥匙串中，不会写入配置文件或作品。"
@@ -432,7 +446,12 @@ func (a *App) providerForm(c *ui.Context) {
 			hint += "已检测到环境变量 " + env + "。"
 		}
 		ui.Text(c, hint).FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody).Margin(-6, 0, 0, 0)
-		labeled(c, "可用模型", func() { a.limitTable(c) })
+		labeled(c, "可用模型", func() {
+			a.limitTable(c)
+			if bad.Models != "" {
+				red(bad.Models)
+			}
+		})
 		ui.Text(c, "数值默认取自内置模型表，表中没有的模型按保守值填写；上下文上限和最大输出可写成 128K、1M。讨论超过压缩阈值时，较早的对话会整理成摘要。").FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Justify(ui.End).Children(func() {
 			if a.providerID != "" && a.pal.ghost(c, "清除已保存 key", t.Danger).Disabled(busy).Clicked() {
@@ -448,10 +467,10 @@ func (a *App) providerForm(c *ui.Context) {
 				m, _ := a.ai.Limits("")
 				a.limits = append(a.limits, a.limitRow(m))
 			}
-			if a.pal.secondary(c, "获取可用模型").Disabled(a.busy != "").Clicked() { // it waits for a turn in flight: one request at a time
+			if a.pal.secondary(c, "获取可用模型").Disabled(a.busy != "" || bad.First() != "").Clicked() { // it waits for a turn in flight: one request at a time
 				a.fetchModels(c)
 			}
-			if a.pal.primary(c, "保存提供商").Disabled(busy).Clicked() {
+			if a.pal.primary(c, "保存提供商").Disabled(busy || bad.First() != "").Clicked() {
 				err := a.saveProvider()
 				if err == nil {
 					a.notice = "提供商已保存"
@@ -546,7 +565,7 @@ func (a *App) models() ([]aiport.Model, error) {
 	} {
 		for _, m := range out {
 			if rule.bad(m) {
-				return nil, errors.New(m.ID + rule.why)
+				return nil, errors.New(m.ID + " " + rule.why)
 			}
 		}
 	}
@@ -578,14 +597,52 @@ func (a *App) fetchModels(c *ui.Context) {
 	})
 }
 
-func (a *App) saveProvider() error {
+// serviceInForm is the service the form would save, and what keeps it
+// from being saved, by field. A new service left without an ID takes one
+// from its name; it may not take the ID of another, whose place it would
+// take.
+func (a *App) serviceInForm() (aiport.Provider, aiport.Problems) {
 	p := a.provider
 	p.ID = trim(p.ID)
-	models, err := a.models()
-	if err != nil {
-		return err
+	if a.providerID == "" && p.ID == "" {
+		p.ID = idFrom(p.Name)
 	}
+	models, err := a.models()
 	p.Models = models
+	bad := a.ai.Check(p)
+	if err != nil {
+		bad.Models = err.Error()
+	}
+	if a.providerID == "" {
+		for _, q := range a.ai.Providers() {
+			if q.ID == p.ID {
+				bad.ID = "该 ID 已被「" + providerLabel(q) + "」使用，请换一个"
+			}
+		}
+	}
+	return p, bad
+}
+
+// idFrom is an ID made from a name: its Latin letters in lower case, and
+// the digits, - and _ after the first of them, a space as -.
+func idFrom(name string) string {
+	var id []rune
+	for _, r := range strings.ToLower(name) {
+		switch {
+		case r >= 'a' && r <= 'z', len(id) > 0 && (r >= '0' && r <= '9' || r == '-' || r == '_'):
+			id = append(id, r)
+		case len(id) > 0 && r == ' ' && id[len(id)-1] != '-':
+			id = append(id, '-')
+		}
+	}
+	return strings.TrimRight(string(id), "-_")
+}
+
+func (a *App) saveProvider() error {
+	p, bad := a.serviceInForm()
+	if why := bad.First(); why != "" {
+		return errors.New(why)
+	}
 	if err := a.ai.SaveProvider(p); err != nil {
 		return err
 	}

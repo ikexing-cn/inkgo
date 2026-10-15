@@ -39,7 +39,7 @@ Status: implemented
 
 | 用处 | 方法 | 拆之前 `desk` 里是 |
 | --- | --- | --- |
-| 模型服务的设置 | `ConfigFile`、`Providers`、`Reload`、`SaveProvider`、`SetKey`、`Catalog`（给出能 `ListModels` 的对象） | `a.Config`、`a.ConfigFile`，`model.Load`、`Save`、`SetKey`、`NewClient` 加 `ListModels`（`settings.go`、`app.go`） |
+| 模型服务的设置 | `ConfigFile`、`Providers`、`Reload`、`SaveProvider`、`SetKey`、`Catalog`（给出能 `ListModels` 的对象）；`Check` 是 2026-10-16 加的，按栏给出一份服务存不下的原因（`aiport.Problems`），表单在按之前就说 | `a.Config`、`a.ConfigFile`，`model.Load`、`Save`、`SetKey`、`NewClient` 加 `ListModels`（`settings.go`、`app.go`） |
 | 推理等级的名字 | `Efforts`、`EffortLabel` | `model.Efforts`、`model.Effort(x).Label()`（`chat.go`、`settings.go`、`ai.go`） |
 | 讨论 | `Talk(作品, 正文旁, 进度, 每一步)` 给出能 `Say`、`Retry` 的对象；`Extract`。「每一步」是 2026-10-15 加的，回复每写一条工具调用或结果就交给界面 | `a.engine`、`eng.Say`、`eng.Retry`、`eng.Extract`（`app.go`、`chat.go`） |
 | 后台整理 | 原来是 `Bookkeep(作品, 有变化时)` 给出 `Kick`、`Busy`、`Stop`，`Book(作品)` 给出能 `Redo` 的对象；2026-10-15 随记账员删了 | `a.Book`、`a.bookkeeper`、`discussion.NewWorker`、`startWorker`、`kick`、`halt`、`redo`（`app.go`、`setting.go`） |
