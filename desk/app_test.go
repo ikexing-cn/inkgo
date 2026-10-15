@@ -525,7 +525,13 @@ func TestTalkLeavesTheRestFree(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if _, live := tt.Find("正在思考…"); a.session != other || live || tt.HasText("灯为什么会灭") || !tt.HasText("该消息尚未收到回复") {
+	said := 0 // its words name its row in the list, and only that
+	for _, s := range tt.Texts() {
+		if strings.Contains(s, "灯为什么会灭") {
+			said++
+		}
+	}
+	if _, live := tt.Find("正在思考…"); a.session != other || live || said != 1 || !tt.HasText("该消息尚未收到回复") {
 		t.Fatal("another talk shows the reply in flight", tt.Texts())
 	}
 	if _, toast := tt.Find("AI 正在思考…"); !toast {
@@ -691,11 +697,49 @@ func TestPickAModelFromTheList(t *testing.T) {
 	}
 }
 
+// A new talk is listed once something is said in it; until then, asking
+// for another new talk gives the same one, so empty ones do not pile up.
+// The list says the day, as the column beside the prose does.
+func TestANewTalkIsListedOnceSomethingIsSaid(t *testing.T) {
+	a, tt, _ := fixture(t)
+	first := a.session
+	tt.Frame()
+	if _, ok := tt.Find("对话-" + first); ok {
+		t.Fatal("an empty talk is listed", tt.Texts())
+	}
+	if err := tt.Click("新对话"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if ids, _ := a.Store.Sessions(); a.session != first || len(ids) != 1 {
+		t.Fatal("another empty talk", ids)
+	}
+	if _, err := a.Store.Append(first, workspace.Event{Role: workspace.RoleUser, Text: "灯为什么会灭"}); err != nil {
+		t.Fatal(err)
+	}
+	a.setError(a.refresh())
+	tt.Frame()
+	if _, ok := tt.Find("对话-" + first); !ok || !tt.HasText("今天") {
+		t.Fatal("the talk is not listed by its day", tt.Texts())
+	}
+	if err := tt.Click("新对话"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if ids, _ := a.Store.Sessions(); a.session == first || len(ids) != 2 {
+		t.Fatal("no new talk", ids)
+	}
+}
+
 // Shelving a conversation takes it out of the list but keeps its file;
 // the one open gives way to the latest left, and it can be put back.
 func TestShelveAConversation(t *testing.T) {
 	a, tt, _ := fixture(t)
 	old := a.session
+	if _, err := a.Store.Append(old, workspace.Event{Role: workspace.RoleUser, Text: "灯为什么会灭"}); err != nil {
+		t.Fatal(err)
+	}
+	a.setError(a.refresh())
 	a.newSession()
 	open := a.session
 	tt.Frame()

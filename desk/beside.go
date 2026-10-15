@@ -131,7 +131,7 @@ func (a *App) talkPanel(c *ui.Context) {
 func (a *App) talkList(c *ui.Context) {
 	d := &a.doc
 	if a.paneFind(c, &d.talkQuery, "搜索讨论", "新讨论", nil) {
-		if id, err := a.Store.NewSession(); err != nil {
+		if id, err := a.blankSession(); err != nil {
 			a.setError(err)
 		} else {
 			a.switchSession(id)
@@ -148,7 +148,7 @@ func (a *App) talkList(c *ui.Context) {
 		for i := len(a.sessions) - 1; i >= 0; i-- {
 			id := a.sessions[i]
 			when, words := a.sessionParts(id)
-			if a.shelved[id] && id != a.session || q != "" && !strings.Contains(words, q) {
+			if a.blank[id] || a.shelved[id] && id != a.session || q != "" && !strings.Contains(words, q) {
 				continue
 			}
 			if n == 0 {

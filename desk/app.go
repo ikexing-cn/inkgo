@@ -114,6 +114,7 @@ type App struct {
 	session           string
 	sessions          []string
 	titles            map[string]string
+	blank             map[string]bool // talks nothing was said in yet: not listed, and a new talk takes one
 	events            []workspace.Event
 	set               workspace.Setting
 	seen              int // revisions of set the view has flashed
@@ -200,7 +201,7 @@ func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 	}
 	a.Store, a.path = s, path
 	a.remember(true)
-	a.titles = map[string]string{}
+	a.titles, a.blank = map[string]string{}, map[string]bool{}
 	a.resetView()
 	a.loadPrefs()
 	a.loadWork()
@@ -275,14 +276,17 @@ func (a *App) refresh() error {
 	if a.sessions, err = a.Store.Sessions(); err != nil {
 		return err
 	}
-	a.titles[a.session] = sessionTitle(a.session, a.events)
+	a.titles[a.session], a.blank[a.session] = sessionTitle(a.session, a.events), len(a.events) == 0
+	if a.talkSession != a.session {
+		delete(a.titles, a.talkSession) // the last turn may have gone on there since: read it again
+	}
 	for _, s := range a.sessions {
 		if _, ok := a.titles[s]; !ok {
 			events, err := a.Store.Events(s)
 			if err != nil {
 				return err
 			}
-			a.titles[s] = sessionTitle(s, events)
+			a.titles[s], a.blank[s] = sessionTitle(s, events), len(events) == 0
 		}
 	}
 	return nil

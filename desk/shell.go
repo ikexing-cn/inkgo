@@ -3,6 +3,7 @@ package desk
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -235,6 +236,9 @@ func (a *App) sideBody(c *ui.Context, slim bool) {
 		put := 0
 		for n := len(a.sessions) - 1; n >= 0; n-- {
 			id := a.sessions[n]
+			if a.blank[id] {
+				continue
+			}
 			if a.shelved[id] {
 				put++
 				if !a.showShelved && id != a.session {
@@ -320,7 +324,7 @@ func (a *App) sessionItem(c *ui.Context, id string) {
 			fg = a.pal.faint
 		}
 		ui.Text(c, words).FontSize(fsControl).TextColor(fg).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
-		ui.Text(c, when).FontSize(fsSmall).TextColor(a.pal.faint).SingleLine()
+		ui.Text(c, talkDay(when, time.Now())).FontSize(fsSmall).TextColor(a.pal.faint).SingleLine()
 	})
 	a.contextMenu(c, b, "对话-"+id, func(m *menu) {
 		if a.shelved[id] {
@@ -339,13 +343,28 @@ func (a *App) sessionItem(c *ui.Context, id string) {
 }
 
 func (a *App) newSession() {
-	session, err := a.Store.NewSession()
+	session, err := a.blankSession()
 	if err != nil {
 		a.setError(err)
 		return
 	}
 	a.page = 0
 	a.switchSession(session)
+}
+
+// blankSession is a talk to start: the one open or another nothing was said
+// in yet, or else a new one, so that new talks left unused do not pile up.
+// One put away stays away.
+func (a *App) blankSession() (string, error) {
+	if a.blank[a.session] && !a.shelved[a.session] {
+		return a.session, nil
+	}
+	for _, id := range a.sessions {
+		if a.blank[id] && !a.shelved[id] {
+			return id, nil
+		}
+	}
+	return a.Store.NewSession()
 }
 
 // WindowTitle names the work shown, and on the writing page the chapter
@@ -386,8 +405,8 @@ func (a *App) shelve(id string) {
 		return
 	}
 	for n := len(a.sessions) - 1; n >= 0; n-- {
-		if !a.shelved[a.sessions[n]] {
-			a.switchSession(a.sessions[n])
+		if id := a.sessions[n]; !a.shelved[id] && !a.blank[id] {
+			a.switchSession(id)
 			return
 		}
 	}
