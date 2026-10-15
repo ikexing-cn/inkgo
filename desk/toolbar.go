@@ -77,8 +77,11 @@ func (a *App) selectionBar(c *ui.Context) {
 	t := a.pal.theme
 	const height, width = 34, 190
 	top := r.Y - height - 6
-	if top < 4 {
-		top = r.Y + r.H + 6 // under the line when there is no room above
+	if top < 4 { // no room above: under the selection, clear of its other lines
+		top = r.Y + r.H + 6
+		if box, ok := w.ed.RangeBox(w.ed.Selection()); ok && box.Y+box.H+6+height <= w.ed.Height() {
+			top = box.Y + box.H + 6
+		}
 	}
 	left := max(8, min(r.X-12, w.ed.Width()-width-8))
 	bar := ui.Row(c).Absolute().Left(left).Top(top).Height(height).Padding(4).Gap(2).AlignItems(ui.Center).Radius(rControl).

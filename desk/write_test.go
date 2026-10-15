@@ -280,6 +280,71 @@ func TestFindAndReplaceInAChapter(t *testing.T) {
 	}
 }
 
+// Words picked in a paragraph are what Ctrl+F looks for, from where they
+// are, selected in the box to be typed over; a pick over two paragraphs is
+// not looked for.
+func TestFindWhatIsPicked(t *testing.T) {
+	a, tt, _ := writingFixture(t, "林晚说，林晚走了。\n雨还在下。")
+	w := &a.write
+	w.ed.Select(4, 6)
+	tt.Frame()
+	tt.Key(ui.Cmd, ui.KeyF)
+	tt.Frame()
+	if w.query != "林晚" || !tt.HasText("2 / 2") || !tt.Focused("查找") {
+		t.Fatalf("query %q, %v, focused %v", w.query, tt.Texts(), tt.Focused("查找"))
+	}
+	tt.Type("雨")
+	tt.Frame()
+	if w.query != "雨" || !tt.HasText("1 / 1") {
+		t.Fatalf("typed over: query %q", w.query)
+	}
+	w.ed.Select(6, 12)
+	w.ed.Focus()
+	tt.Frame()
+	tt.Key(ui.Cmd, ui.KeyF)
+	tt.Frame()
+	if w.query != "雨" || !tt.Focused("查找") {
+		t.Fatalf("a pick over two paragraphs: query %q, focused %v", w.query, tt.Focused("查找"))
+	}
+}
+
+// The chapter's head and the AI's bar start where the prose starts, in a
+// window that leaves the prose narrow and in one that centers it; the find
+// bar is a band over the page.
+func TestTheHeadLinesUpWithTheProse(t *testing.T) {
+	a, tt, _ := writingFixture(t, strings.Repeat("雨从傍晚开始下。", 30))
+	a.sideHidden = true // whose 正文 is not the prose's
+	ed := a.write.ed
+	ed.Select(0, ed.Doc.Len())
+	a.openRewrite()
+	for _, width := range []int{1000, 2200} {
+		tt.SetSize(width, 780)
+		tt.Frame()
+		tt.Frame()
+		prose, _ := tt.Find("正文")
+		box, ok := ed.RangeBox(0, ed.Doc.Len())
+		head, _ := tt.Find("章纲 · 空")
+		ask, _ := tt.Find("改写要求")
+		if !ok || head.X != prose.X+box.X {
+			t.Fatalf("%d wide: the head at %v, the prose at %v", width, head.X, prose.X+box.X)
+		}
+		// The bar's card has its icon and the box in it.
+		if ask.X < prose.X+box.X || ask.X > prose.X+box.X+48 {
+			t.Fatalf("%d wide: the rewrite's box at %v, the prose at %v", width, ask.X, prose.X+box.X)
+		}
+	}
+	a.write.rewriting = false
+	if err := tt.Click("查找替换"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	find, _ := tt.Find("查找")
+	head, _ := tt.Find("章纲 · 空")
+	if find.Y > head.Y {
+		t.Fatal("the find bar is under the chapter's head")
+	}
+}
+
 // Stepping through what is found from the find bar picks it with no bar of
 // what to do with a pick over the prose; Escape puts the find bar away and
 // the caret goes back to the prose, and a second lets go of the pick.

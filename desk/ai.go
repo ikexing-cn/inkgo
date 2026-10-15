@@ -350,8 +350,11 @@ func (a *App) startDraft(c *ui.Context) {
 func (a *App) aiBar(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
+	// A card over the prose and as wide.
 	bar := func(fn func()) {
-		ui.Row(c).FillWidth().Padding(8, 16, 4, 24).Gap(8).AlignItems(ui.Center).Shrink(0).Children(fn)
+		overProse(c, 10, 0, func() {
+			ui.Row(c).FillWidth().Padding(6, 8, 6, 12).Gap(8).AlignItems(ui.Center).Radius(rCard).Border(1, t.Border).Background(a.pal.side).Children(fn)
+		})
 	}
 	switch {
 	case w.run != nil && w.run.op == workspace.AIDraft:

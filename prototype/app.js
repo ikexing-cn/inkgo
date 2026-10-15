@@ -19,7 +19,7 @@ function titlebar() {
       menuRow('导出…', inBook ? ask({ kind: 'export', range: cur ? '本章' : '全书', indent: true }) : null) + HAIR +
       menuRow('设置…', ask({ kind: 'settings', tab: 'AI', edit: '' }))],
     ['编辑', () => menuRow('撤销', steps.back.length ? then(() => unwrite(-1)) : null, '', 'Ctrl+Z') + menuRow('重做', steps.fwd.length ? then(() => unwrite(1)) : null, '', 'Ctrl+Y') + HAIR +
-      menuRow('查找替换', cur ? () => set({ find: S.find || { q: '', to: '', all: false, at: 0 }, ...SHUT }) : null, '', 'Ctrl+F') +
+      menuRow('查找替换', cur ? openFind : null, '', 'Ctrl+F') +
       menuRow('重命名', cur && !S.rename ? then(renameOpen) : null, '', 'F2') + (aiOn() ? HAIR +
       menuRow('续写一句', cur ? then(continueText) : null, '', 'Ctrl+J') +
       menuRow('起草本章', outline ? ask({ kind: 'draft', goal: '', how: '接在已有内容之后' }) : null, '', cur && !outline ? '请先填写章纲' : '') : '')],
@@ -101,7 +101,7 @@ document.addEventListener('keydown', (ev) => {
   else if (ev.key === 'F2' && writing && chapterOf(S.ch) && !S.rename) run(renameOpen)
   else if (!ctrl || !writing || !chapterOf(S.ch)) return
   else if (ev.key === 's') run(saveNow)
-  else if (ev.key === 'f') run(() => set({ find: S.find || { q: '', to: '', all: false, at: 0 } }))
+  else if (ev.key === 'f') run(openFind)
   else if (ev.key === 'j') run(() => { if (aiOn()) continueText() }) // AI 关着时按了不起作用
   else if (ev.key === 'l') run(() => { if (aiOn()) cite() })
 })

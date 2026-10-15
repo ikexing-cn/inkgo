@@ -1,6 +1,7 @@
 package desk
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -62,5 +63,25 @@ func TestTheSelectionBar(t *testing.T) {
 	tt.Frame()
 	if !a.write.rewriting || tt.HasText("加入设定") {
 		t.Fatal("the bar stays over the rewrite")
+	}
+}
+
+// Selected from the first line, with no room over it, the bar goes under
+// the selection rather than over its later lines.
+func TestTheSelectionBarLeavesTheSelectionInSight(t *testing.T) {
+	a, tt, _ := writingFixture(t, strings.Repeat("雾从海上来，港口的灯一盏接一盏地熄了。", 6))
+	a.sideHidden = true // whose 正文 is not the prose's
+	ed := a.write.ed
+	ed.Select(0, ed.Doc.Len())
+	tt.Frame()
+	tt.Frame()
+	box, ok := ed.RangeBox(ed.Selection())
+	prose, found := tt.Find("正文")
+	bar, shown := tt.Find("AI 改写")
+	if !ok || !found || !shown || box.H < 60 { // over several lines
+		t.Fatal("the selection or its bar is not there", ok, found, shown, box)
+	}
+	if bar.Y < prose.Y+box.Y+box.H {
+		t.Fatalf("the bar at %v covers the selection %v", bar.Y-prose.Y, box)
 	}
 }

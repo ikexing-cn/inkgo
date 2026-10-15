@@ -497,6 +497,18 @@ function hits(c, q) {
   if (q) c.paras.forEach((p, para) => { for (let a = p.indexOf(q); a >= 0; a = p.indexOf(q, a + q.length)) out.push({ para, a }) })
   return out
 }
+// 打开查找；开着时光标回到查找框，框里的字全选上，接着打就换掉。正文里选中了一段之内的字，就拿它去找：选中一个名字按 Ctrl+F，就是找它出现的各处。
+function openFind() {
+  const pick = grab()
+  set((s) => {
+    const was = s.find || { q: '', to: '', all: false, at: 0 }
+    if (!pick) return { find: was, ...SHUT }
+    const at = hits(chapterOf(s.ch), pick.text).findIndex((h) => h.para === pick.para && h.a === pick.start)
+    return { find: { ...was, q: pick.text, at: Math.max(at, 0) }, ...SHUT }
+  })
+  const box = document.querySelector('[aria-label="查找"]')
+  if (box) { box.focus(); box.select() }
+}
 const findStep = (d) => set((s) => { const n = hits(chapterOf(s.ch), s.find.q).length; return n ? { find: { ...s.find, at: (s.find.at + d + n) % n } } : null })
 function swapOne() {
   set((s) => {
@@ -770,7 +782,7 @@ function toolbar(cur, vol) {
     `<div class="crumb here ell">${cur ? t(titleOf(cur)) : vol ? t(vol[1]) : '正文'}</div>` +
     (S.ai && S.ai.kind === 'ghosting' ? '<div class="count-all">续写中…</div>' : S.ai && S.ai.kind === 'ghost' ? '<div class="count-all">Tab 采纳 · Esc 放弃</div>' : '') + '<div class="grow"></div><div class="tools">' +
     (wide && here && !S.focus ? `<button class="fs-btn" aria-label="本章伏笔"${onClick(() => set({ paneOpen: true, tab: '伏笔', fid: null, fv: 'list' }))}>${icon('flag')}<span>本章伏笔 ${here}</span></button>` : '') +
-    (cur ? tool('查找替换', '查找替换（Ctrl+F）', 'find', () => set({ find: S.find ? null : { q: '', to: '', all: false, at: 0 } }), !!S.find) : '') +
+    (cur ? tool('查找替换', '查找替换（Ctrl+F）', 'find', () => (S.find ? set({ find: null }) : openFind()), !!S.find) : '') +
     (S.paneOpen || S.focus ? '' : `<button class="icon-btn" aria-label="展开右栏" title="展开右栏"${onClick(() => set({ paneOpen: true }))}>${svg('icon-md', PANEL + path('M15 5v14'))}</button>`) +
     tool(S.focus ? '退出专注' : '专注写作', S.focus ? '退出专注，恢复章节树和右栏（F11）' : '仅显示正文，收起章节树和右栏（F11）', 'focus', () => set({ focus: !S.focus, ...SHUT }), S.focus) +
     (S.backup.state === 'fail' && !S.backup.hush ? `<div class="anchor"><button class="warn-btn" aria-label="备份提示"${onClick(flip('chip'))}>${DOT}<span>备份失败 · ${backupWhy()[0]}</span></button>${S.open === 'chip' ? backupPop() : ''}</div>` : '') +

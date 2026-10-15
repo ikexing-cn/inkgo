@@ -95,6 +95,7 @@ type writeView struct {
 	titleAll        bool   // the name the box opens with is selected, to be typed over
 	focus           bool   // the page alone, without the tree and the column
 	finding         bool
+	findAgain       bool // the caret goes to the find box, its words selected
 	query, with     string
 	current         int
 	wide            bool              // finding in the whole book
@@ -707,8 +708,8 @@ func (a *App) writing(c *ui.Context) {
 	a.watch(c)
 	a.checkWhilePausing()
 	a.markDoubts()
-	if c.Shortcut(ui.Cmd, ui.KeyF) && a.write.ed != nil {
-		a.write.finding = true
+	if c.Shortcut(ui.Cmd, ui.KeyF) {
+		a.openFind()
 	}
 	// Escape backs out of the find bar first, then out of a pick in the
 	// prose, so the bar over the pick goes with it.
@@ -999,7 +1000,7 @@ func (a *App) writeTop(c *ui.Context) {
 				if w.finding {
 					a.closeFind()
 				} else {
-					w.finding = true
+					a.openFind()
 				}
 			}
 		}
@@ -1155,6 +1156,9 @@ func (a *App) outlineBox(c *ui.Context, label string, height float32) {
 func (a *App) chapterView(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
+	if w.finding && !w.ed.ReadOnly() {
+		a.findBar(c)
+	}
 	if w.external != nil {
 		a.notice2(c, t.Warning, "本章文件已被其他程序修改。请选择保留的版本，另一版本将存为快照。", func() {
 			if action(c, "使用磁盘版本", t.Warning, false).Clicked() {
@@ -1172,11 +1176,10 @@ func (a *App) chapterView(c *ui.Context) {
 			}
 		})
 	}
-	// As wide as the prose at most, and over it, when the page is wide: the
-	// chapter's title, then its outline and summary side by side, each
-	// opening under the two.
-	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(24, 24, 6, 24).Shrink(0).Children(func() {
-		ui.Column(c).FillWidth().MaxWidth(editor.MaxTextWidth).Gap(8).Children(func() {
+	// The chapter's title, then its outline and summary side by side, each
+	// opening under the two. Keyed, as the bars over it come and go.
+	overProse(c.Key("head"), 24, 6, func() {
+		ui.Column(c).FillWidth().Gap(8).Children(func() {
 			ui.Text(c, heading(a.shownTitle())).FontSize(fsTitle).FontWeight(700).SingleLine().Ellipsis("…")
 			label := "章纲"
 			if strings.TrimSpace(w.outline) == "" {
@@ -1202,9 +1205,6 @@ func (a *App) chapterView(c *ui.Context) {
 			}
 		})
 	})
-	if w.finding && !w.ed.ReadOnly() {
-		a.findBar(c)
-	}
 	a.aiBar(c)
 	// Keyed, as the bars over it come and go: the prose keeps the keyboard.
 	ui.Box(c.Key("prose")).Grow(1).FillWidth().Children(func() {
@@ -1268,6 +1268,27 @@ func (a *App) notice2(c *ui.Context, color ui.Color, text string, buttons func()
 	})
 }
 
+// openFind shows the find bar, or puts the caret back in it, its words
+// selected to be typed over. Words picked within a paragraph are what it
+// looks for: a name picked is found where else it is.
+func (a *App) openFind() {
+	w := &a.write
+	if w.ed == nil {
+		return
+	}
+	if s, e := w.ed.Selection(); s != e {
+		if q := w.ed.Doc.Slice(s, e); !strings.Contains(q, "\n") {
+			w.query, w.current = q, 0
+			for i, f := range w.ed.Doc.Find(q) {
+				if f[0] == s {
+					w.current = i
+				}
+			}
+		}
+	}
+	w.finding, w.findAgain = true, true
+}
+
 // closeFind puts the find bar away, and what it found is no longer marked
 // in the prose.
 func (a *App) closeFind() {
@@ -1291,12 +1312,16 @@ func (a *App) findBar(c *ui.Context) {
 			w.ed.Select(found[w.current][0], found[w.current][1])
 		}
 	}
-	// Finding on one line and replacing on the next, so neither is
-	// squeezed in a narrow window.
-	bar := ui.Column(c).FillWidth().Padding(8, 16, 4, 24).Gap(6).Shrink(0)
+	// A band under the tabs, over the page: finding on one line and
+	// replacing on the next, so neither is squeezed in a narrow window.
+	bar := ui.Column(c).FillWidth().Padding(8, 24).Gap(6).Shrink(0).Background(a.pal.side)
 	none := len(found) == 0
 	query := func() {
 		q := ui.TextInput(c, &w.query).Label("查找").Placeholder("查找").Width(150).Shrink(1).Grow(1).AutoFocus()
+		if w.findAgain {
+			q.Focus().SetTextSelection(0, utf8.RuneCountInString(w.query))
+			w.findAgain = false
+		}
 		if q.Submitted() && !none {
 			w.current = (w.current + 1) % len(found)
 			show()
@@ -1368,6 +1393,7 @@ func (a *App) findBar(c *ui.Context) {
 			a.bookResults(c)
 		}
 	})
+	ui.Box(c).FillWidth().Height(1).Background(a.pal.line).Shrink(0)
 }
 
 // folderView shows a folder: its outline and what it holds.
@@ -1375,9 +1401,9 @@ func (a *App) folderView(c *ui.Context, n *workspace.Node) {
 	t := a.pal.theme
 	w := &a.write
 	ui.Scroll(c.Key("folder")).Grow(1).FillWidth().Children(func() {
-		ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(32, 32, 32, 32).Children(func() {
+		ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(32, editor.PadX, 32, editor.PadX).Children(func() {
 			ui.Column(c).FillWidth().MaxWidth(720).Gap(14).Children(func() {
-				ui.Text(c, n.Title).FontSize(fsTitle).FontWeight(600)
+				ui.Text(c, n.Title).FontSize(fsTitle).FontWeight(700)
 				ui.Text(c, "卷纲").FontSize(fsControl).FontWeight(600).TextColor(t.TextMuted)
 				a.outlineBox(c, "卷纲", 160)
 				ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(8, 0, 0, 0).Children(func() {
@@ -1737,6 +1763,14 @@ func (a *App) newNodeAt(folder bool, n *workspace.Node) {
 	if w.ed != nil {
 		w.ed.Unfocus()
 	}
+}
+
+// overProse lays fn out as wide as the prose under it and in line with it:
+// the chapter's head and the AI's bar over the text start where it starts.
+func overProse(c *ui.Context, top, bottom float32, fn func()) {
+	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(top, editor.PadX, bottom, editor.PadX).Shrink(0).Children(func() {
+		ui.Column(c).FillWidth().MaxWidth(editor.MaxTextWidth).Children(fn)
+	})
 }
 
 // wordsIn is a chapter's count, or for a folder all its chapters' together.

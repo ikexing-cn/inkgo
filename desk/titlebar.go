@@ -78,7 +78,7 @@ func (a *App) titleBar(c *ui.Context) {
 			m.Item("撤销").Hint(modKey + "Z").Disabled(!can || !w.ed.CanUndo()).Do(later(w.ed.Undo))
 			m.Item("重做").Hint(modKey + "Y").Disabled(!can || !w.ed.CanRedo()).Do(later(w.ed.Redo))
 			m.Separator()
-			m.Item("查找替换").Hint(modKey + "F").Disabled(!can).Do(later(func() { w.finding = true }))
+			m.Item("查找替换").Hint(modKey + "F").Disabled(!can).Do(later(a.openFind))
 			_, shown := w.tree.Node(w.node)
 			m.Item("重命名").Hint("F2").Disabled(!writing || !shown || w.renaming != "").Do(later(a.renameOpen))
 			if !a.aiOn() {

@@ -14,6 +14,9 @@ const (
 // it, and what sits over the text can line up with it.
 const MaxTextWidth = maxTextWidth
 
+// PadX is the margin beside the text, for what sits over it to line up.
+const PadX = padX
+
 // shaped is a paragraph Shape placed on one line, before it is broken.
 type shaped struct {
 	glyphs []ui.Glyph

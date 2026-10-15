@@ -242,7 +242,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
 
   // The toolbar: the count and the goal, find and replace, the more menu, focus, what is pending.
   await click('重新开始'); await click('字数。点击设置每日目标'); await win('最近 7 天'); await win('+2,846 字'); await type('每日目标字数', '3000'); await win('今天 2,846 / 3000'); await shot('36-goal'); await key('Escape'); await win('最近 7 天', false); await done('a goal for the day')
-  await key('f', true); must(await js(`document.activeElement.getAttribute('aria-label') === '查找'`), 'Ctrl+F did not open the search'); await type('查找', '小祥'); await win('1 / 2'); must((await drawn('小祥')) === 'got on', 'what was found is not marked'); await shot('37-find')
+  await pick(3, '小祥'); await key('f', true); must(await js(`document.activeElement.getAttribute('aria-label') === '查找'`), 'Ctrl+F did not open the search')
+  must((await value('查找')) === '小祥' && await js(`document.activeElement.selectionStart === 0 && document.activeElement.selectionEnd === 2`), 'the words picked are not what is looked for, ready to be typed over'); await win('1 / 2'); must((await drawn('小祥')) === 'got on', 'what was found is not marked'); await shot('37-find')
   await click('下一个'); await win('2 / 2'); await type('替换为', '阿祥'); await click('替换'); await win('阿祥从来不叫她姐'); await win('1 / 1'); await click('全部替换'); await win('已替换 1 处可撤销'); await win('阿祥在身后叫她'); await win('未找到'); await click('关闭提示')
   await win('本章有 1 处待处理，正文已再次修改'); await click('立即检查'); await win('正在检查本章…'); await sleep(1400); await win('本章检查完成，有 1 处待处理'); await done('find and replace in a chapter')
   await clear('查找'); await type('查找', '林晚'); await click('在全部章节中查找'); await win('全书 8 章、共 9 处'); await win('第1章：巷口 · 2 处'); await shot('38-find-book')
