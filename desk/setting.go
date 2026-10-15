@@ -93,8 +93,9 @@ type prefs struct {
 func (a *App) prefsPath() string { return filepath.Join(a.Store.Root(), ".writer", "desk.json") }
 
 func (a *App) loadPrefs() {
-	var p prefs
+	p := prefs{Writing: true} // a work new to this machine opens on its prose
 	if b, err := os.ReadFile(a.prefsPath()); err == nil {
+		p = prefs{}
 		_ = json.Unmarshal(b, &p) // a damaged file is as good as none
 	}
 	a.doc.hidden = p.SettingHidden
@@ -133,6 +134,10 @@ func (a *App) savePrefs() {
 		PanelWidth: a.doc.width, TalkTab: a.doc.talk, ForeTab: a.doc.fore, LateAfter: a.write.lateAfter, CheckWhen: a.ck.when, NoAttach: !a.doc.attach, NoAutoSummary: !a.write.autoSummary,
 		Day: a.write.day, DayStart: a.write.dayStart, Goal: a.write.goal, Carets: a.write.carets, Days: a.write.days, TextSize: a.write.size,
 		Ignored: a.write.ignoredKeys()})
+	if err == nil {
+		// .writer/ is kept out of git: a work fetched has none till now.
+		err = os.MkdirAll(filepath.Dir(a.prefsPath()), 0755)
+	}
 	if err == nil {
 		// Whole or not at all: a file cut short would be read as none, and
 		// the tabs, what was ignored and the days' counts would be gone.

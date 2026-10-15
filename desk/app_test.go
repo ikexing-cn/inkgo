@@ -31,6 +31,10 @@ func fixture(t *testing.T) (*App, *ui.Tester, workspace.Entry) {
 		t.Fatal(err)
 	}
 	s.Close()
+	// Left on the discussion page, where most tests start.
+	if err = os.WriteFile(filepath.Join(root, "work", ".writer", "desk.json"), []byte("{}"), 0644); err != nil {
+		t.Fatal(err)
+	}
 	lib, was := filepath.Join(root, "library"), Library
 	Library = func() string { return lib }
 	t.Cleanup(func() { Library = was })
@@ -379,6 +383,32 @@ func TestAWorkThatCannotBeOpenedIsNamed(t *testing.T) {
 	a.setError(a.Open(dir))
 	tt.Frame()
 	if !tt.HasText("打开作品「青崖问剑」失败") || !tt.HasText("work.yaml") || a.Store.Work().Name != "测试作品" {
+		t.Fatal(tt.Texts())
+	}
+}
+
+// A blank talk in a work with a setting goes on from what the work has; in
+// a new work it starts from an idea.
+func TestABlankTalkFitsTheWork(t *testing.T) {
+	a, tt, _ := fixture(t)
+	if !tt.HasText("接着聊这部作品") || tt.HasText("从一个初步的想法开始") || tt.HasText("我想写一个总在下雨的城市") {
+		t.Fatal(tt.Texts())
+	}
+	if err := tt.Click("接下来的情节怎么走"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.input != "接下来的情节怎么走" {
+		t.Fatalf("%q", a.input)
+	}
+	a.openCreate()
+	a.name, a.books.at = "新书", filepath.Join(t.TempDir(), "新书")
+	if err := a.create(); err != nil || a.Error != "" {
+		t.Fatal(err, a.Error)
+	}
+	a.page = 0
+	tt.Frame()
+	if !tt.HasText("从一个初步的想法开始") || !tt.HasText("我想写一个总在下雨的城市") || tt.HasText("接着聊这部作品") {
 		t.Fatal(tt.Texts())
 	}
 }

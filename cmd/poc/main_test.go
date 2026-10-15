@@ -49,6 +49,10 @@ func TestLayoutDiscussion(t *testing.T) {
 	if err = s.Close(); err != nil {
 		t.Fatal(err)
 	}
+	// Left on the discussion page.
+	if err = os.WriteFile(filepath.Join(root, "work", ".writer", "desk.json"), []byte("{}"), 0644); err != nil {
+		t.Fatal(err)
+	}
 	a := desk.New(ai.New(filepath.Join(root, "providers.yaml")))
 	if err = a.Open(filepath.Join(root, "work")); err != nil {
 		t.Fatal(err)

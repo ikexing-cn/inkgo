@@ -5,14 +5,17 @@
 
 function talkPage() {
   const talk = S.tv === 'one' ? S.talks.find((x) => x.id === S.tid) : null
-  const starts = ['我想写一个总在下雨的城市', '主角有个说不出口的秘密', '这个故事的冲突在哪']
+  // 设定里已经有东西的书，接着往下聊，不再从一个想法开始。
+  const begun = S.entries.length > 0
+  const [opening, about] = begun ? ['接着聊这部作品', 'AI 会参考已有的设定和正文。'] : ['从一个初步的想法开始', '写下初步的想法。讨论中定下的内容，AI 会当场记进右侧的设定文档；已确定的设定将作为后续讨论的依据，已放弃的不再提及。']
+  const starts = begun ? ['接下来的情节怎么走', '哪些设定还没想清楚', '梳理一下人物关系'] : ['我想写一个总在下雨的城市', '主角有个说不出口的秘密', '这个故事的冲突在哪']
   return '<div class="editor">' +
     `<div class="toolbar"><div class="crumb">总讨论</div>${icon('right', 'xs', 'faint')}<div class="crumb here ell">${t(talk ? talk.title : '新对话')}</div><div class="grow"></div>` +
     (talk ? `<div class="count-all">${talk.msgs.length} 条发言</div>` : '') +
     (S.paneOpen ? '' : `<button class="icon-btn muted" aria-label="展开设定" title="展开设定文档"${onClick(() => set({ paneOpen: true }))}>${svg('icon-md', PANEL + path('M15 5v14'))}</button>`) + '</div>' +
     (talk
       ? `<div class="talk big scroll" id="talk-page">${said(talk)}</div>`
-      : '<div class="paper">' + blank('spark', '从一个初步的想法开始', '写下初步的想法。讨论中定下的内容，AI 会当场记进右侧的设定文档；已确定的设定将作为后续讨论的依据，已放弃的不再提及。',
+      : '<div class="paper">' + blank('spark', opening, about,
         `<div class="starts">${starts.map((words) => `<div class="hit"${onClick(offer(words))}>${words}</div>`).join('')}</div>`) + '</div>') +
     '<div class="composer big" data-k="composer-page"><div class="box send-box">' +
     `<textarea class="in" rows="2" placeholder="输入想法，或向 AI 提问…" aria-label="讨论输入"${onInput((v) => set({ draft: v }))}${onKey(sendKey)}>${t(S.draft)}</textarea>` +

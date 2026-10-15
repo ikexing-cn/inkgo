@@ -473,7 +473,9 @@ func TestExportTheWork(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	a.write.indent = true
+	if !a.write.indent {
+		t.Fatal("paragraphs are not indented unless asked")
+	}
 	// With a chapter open it is the chapter that is offered: alone, named
 	// after it.
 	if err := tt.Click("导出"); err != nil {
@@ -704,6 +706,44 @@ func TestReopenWhereLeft(t *testing.T) {
 	tb.Frame()
 	if b = reopen(); b.page != 0 {
 		t.Fatal(b.page)
+	}
+}
+
+// A work never opened on this machine opens on its prose, as a new one
+// does, as the prototype opens every book; one fetched without .writer/
+// keeps where it was left all the same.
+func TestAWorkNewHereOpensOnItsProse(t *testing.T) {
+	a, _, _ := fixture(t)
+	root := a.Store.Root()
+	a.Close()
+	if err := os.RemoveAll(filepath.Join(root, ".writer")); err != nil {
+		t.Fatal(err)
+	}
+	b := newApp(a.ai.ConfigFile())
+	if err := b.Open(root); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { b.Close() })
+	if b.page != 3 {
+		t.Fatal("opened on", b.page)
+	}
+	// Where it was left is kept, though .writer/ was not there.
+	tb := ui.NewTester(b.View, 1266, 780)
+	tb.Frame()
+	if err := tb.Click("讨论"); err != nil {
+		t.Fatal(err)
+	}
+	tb.Frame()
+	if _, err := os.Stat(filepath.Join(root, ".writer", "desk.json")); err != nil || b.Error != "" {
+		t.Fatal(err, b.Error)
+	}
+	b.openCreate()
+	b.name, b.books.at = "新书", filepath.Join(t.TempDir(), "新书")
+	if err := b.create(); err != nil || b.Error != "" {
+		t.Fatal(err, b.Error)
+	}
+	if b.page != 3 {
+		t.Fatal("a new work opened on", b.page)
 	}
 }
 

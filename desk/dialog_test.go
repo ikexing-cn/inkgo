@@ -107,13 +107,13 @@ func TestAStarterLeavesTheCaretAfterIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if err := tt.Click("主角有个说不出口的秘密"); err != nil {
+	if err := tt.Click("哪些设定还没想清楚"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
 	tt.Frame()
 	tt.Type("，她怕黑")
-	if a.input != "主角有个说不出口的秘密，她怕黑" {
+	if a.input != "哪些设定还没想清楚，她怕黑" {
 		t.Fatalf("typed into the words offered at %q", a.input)
 	}
 }
