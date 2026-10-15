@@ -91,7 +91,7 @@ func TestLayoutDiscussion(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("本作品使用") {
+	if !tt.HasText("本作品的模型") {
 		t.Fatal(tt.Texts())
 	}
 	shot(t, tt, "-settings")

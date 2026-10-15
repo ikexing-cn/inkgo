@@ -68,6 +68,9 @@ func penWithin(a *App, f *stream, m model.Model) {
 	a.write.penKey = "" // build the editors' writer again
 }
 
+// longAgo has what was proposed come a while ago, its buttons settled.
+func longAgo(a *App) { a.write.proposed.shown = time.Time{} }
+
 func until(t *testing.T, tt *ui.Tester, what string, ok func() bool) {
 	t.Helper()
 	deadline := time.Now().Add(3 * time.Second)
@@ -125,6 +128,7 @@ func TestDraftAChapterFromItsOutline(t *testing.T) {
 	if snaps, _ := a.Store.Snapshots(id); len(snaps) > 0 && snaps[0].Reason == workspace.SnapAI {
 		t.Fatal("a snapshot before the draft is taken")
 	}
+	longAgo(a)
 	if err := tt.Click("采纳"); err != nil {
 		t.Fatal(err)
 	}
@@ -213,6 +217,7 @@ func TestStopADraftKeepsWhatCame(t *testing.T) {
 	}
 
 	close(f.hold)
+	longAgo(a)
 	if err := tt.Click("重新起草"); err != nil {
 		t.Fatal(err)
 	}
@@ -221,6 +226,7 @@ func TestStopADraftKeepsWhatCame(t *testing.T) {
 	if proposed(a) != "\n雨还在下。不该出现。" || !tt.HasText("起草 10 字，绿色为起草。") {
 		t.Fatalf("again %q", proposed(a))
 	}
+	longAgo(a)
 	if err := tt.Click("放弃"); err != nil {
 		t.Fatal(err)
 	}
@@ -265,7 +271,8 @@ func TestStopADraftKeepsWhatCame(t *testing.T) {
 // A rewrite is shown beside the words selected; dropping it changes
 // nothing, asking again rewrites the same words as asked, and accepting it
 // keeps the words replaced as a snapshot. Asked for, dropped, taken, or
-// closed, it gives the keyboard back to the prose.
+// closed, it gives the keyboard back to the prose. A click as it comes,
+// meant for 取消, does not take it.
 func TestRewriteASelection(t *testing.T) {
 	a, tt, id := writingFixture(t, "她走到井边。井里有光。")
 	f := &stream{pieces: []string{"她慢慢", "走到井边。"}}
@@ -285,6 +292,7 @@ func TestRewriteASelection(t *testing.T) {
 	if _, _, text, ok := a.write.ed.Proposal(); !ok || text != "她慢慢走到井边。" || !tt.Focused("正文") {
 		t.Fatalf("proposal %q, the prose focused %v", text, tt.Focused("正文"))
 	}
+	longAgo(a)
 	if err := tt.Click("放弃"); err != nil {
 		t.Fatal(err)
 	}
@@ -308,6 +316,7 @@ func TestRewriteASelection(t *testing.T) {
 	}
 	until(t, tt, "the rewrite", func() bool { return a.write.proposed != nil })
 	f.pieces = []string{"她缓缓", "走到井边。"}
+	longAgo(a)
 	if err := tt.Click("重新改写"); err != nil {
 		t.Fatal(err)
 	}
@@ -315,6 +324,14 @@ func TestRewriteASelection(t *testing.T) {
 	if len(f.asked) != 3 || f.asked[2].Messages[len(f.asked[2].Messages)-1].Content != f.asked[1].Messages[len(f.asked[1].Messages)-1].Content || !tt.Focused("正文") {
 		t.Fatalf("asked again %d times, the prose focused %v", len(f.asked), tt.Focused("正文"))
 	}
+	if err := tt.Click("采纳"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.write.proposed == nil {
+		t.Fatal("taken by a click as it came")
+	}
+	time.Sleep(settleFor)
 	if err := tt.Click("采纳"); err != nil {
 		t.Fatal(err)
 	}

@@ -33,11 +33,15 @@ func TestTheTalkShowsWhereItWasCompacted(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	r, err := a.Store.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Names: []string{"林晚"}, Text: "修路灯的人。"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
 	exchange("停电这一章想写得紧一点", "紧，靠的是少交代。", nil)
 	second := exchange("回忆那段会不会拖", "和眼前的黑写在同一段里，就不拖。", nil)
 	third := exchange("这一章的节奏怎么样", "前半段偏慢。", &workspace.Sent{Parts: []workspace.Part{
 		{Name: workspace.PartRules, Tokens: 1100}, {Name: workspace.PartDigest, Tokens: 820}, {Name: workspace.PartInput, Tokens: 40}}})
-	digest(second, "## 在聊什么\n停电那一章的节奏。\n\n## 作者的态度和偏好\n回忆不写成旁白。\n## 还在商量的\n无\n## 下一步\n作者先改前半段。")
+	digest(second, "## 在聊什么\n停电那一章的节奏。\n\n## 作者的态度和偏好\n回忆不写成旁白。[2] 怕黑，写进 [1] 里；[9] 先不管。\n## 还在商量的\n无\n## 下一步\n作者先改前半段。")
 	a.setError(a.refresh())
 	tt.Frame()
 	if !tt.HasText("以上 2 轮已整理成摘要") || tt.HasText("作者的态度和偏好") || !tt.HasText("6 条发言") {
@@ -58,6 +62,16 @@ func TestTheTalkShowsWhereItWasCompacted(t *testing.T) {
 	}
 	if tt.HasText("## 在聊什么") {
 		t.Fatal("a heading shows its marks")
+	}
+	if !tt.HasText("回忆不写成旁白。「林晚」 怕黑，写进 「主角怕黑」 里；[9] 先不管。") {
+		t.Fatal("the entries by their names", tt.Texts())
+	}
+	if err := tt.Click("林晚"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.doc.shown != r.Ops[0].Entry || a.doc.hidden {
+		t.Fatalf("the entry named is not open: %q", a.doc.shown)
 	}
 	if err := tt.Click("以上 2 轮已整理成摘要"); err != nil {
 		t.Fatal(err)

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/aiport"
@@ -77,8 +78,22 @@ type aiRun struct {
 	done    bool
 	text    string
 	err     error
-	wrote   int  // the characters a draft wrote so far
-	stopped bool // a draft ended before it was done
+	wrote   int       // the characters a draft wrote so far
+	stopped bool      // a draft ended before it was done
+	shown   time.Time // when what it proposed came, with the buttons to take it
+}
+
+// settleFor is how long the buttons of what was proposed take no clicks: one
+// meant for 停止 or 取消 as the request ended would land on 采纳.
+const settleFor = 500 * time.Millisecond
+
+// settled tells whether r was proposed long enough ago to be clicked on.
+func (r *aiRun) settled() bool { return time.Since(r.shown) >= settleFor }
+
+// propose shows what r proposed until the author takes it or not.
+func (a *App) propose(r *aiRun) {
+	r.shown = time.Now()
+	a.write.proposed = r
 }
 
 func (a *App) start(c *ui.Context, r *aiRun) {
@@ -150,12 +165,12 @@ func (a *App) finishAI(r *aiRun) {
 			}
 		case r.err != nil:
 			r.stopped = true
-			w.proposed = r
+			a.propose(r)
 			if !stopped {
 				a.Error = "起草" + r.err.Error() + "；已写的部分可以采纳"
 			}
 		default:
-			w.proposed = r
+			a.propose(r)
 		}
 	case workspace.AIRewrite:
 		switch {
@@ -169,7 +184,7 @@ func (a *App) finishAI(r *aiRun) {
 			a.Error = "改写失败：" + r.err.Error()
 		default:
 			w.ed.Propose(r.a, r.b, r.text)
-			w.proposed = r
+			a.propose(r)
 		}
 	}
 }
@@ -329,8 +344,9 @@ func (a *App) startDraft(c *ui.Context) {
 }
 
 // aiBar shows what the AI is doing in the chapter, and asks what the
-// author makes of a rewrite or a draft. Its buttons give the keyboard back
-// to the prose as the bar changes under them: taken, an undo takes it back.
+// author makes of a rewrite or a draft, once it settled. Its buttons give
+// the keyboard back to the prose as the bar changes under them: taken, an
+// undo takes it back.
 func (a *App) aiBar(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
@@ -368,36 +384,36 @@ func (a *App) aiBar(c *ui.Context) {
 				say += "，红色删除线为将被覆盖的原文"
 			}
 			ui.Text(c, say+"。").FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
-			if a.pal.secondary(c, "放弃").Clicked() {
+			if a.pal.secondary(c, "放弃").Clicked() && p.settled() {
 				a.dropProposal()
 				w.ed.Focus()
 			}
-			if a.pal.ghost(c, "重新起草", ui.Color{}).Clicked() {
+			if a.pal.ghost(c, "重新起草", ui.Color{}).Clicked() && p.settled() {
 				a.startDraft(c)
 				w.ed.Focus()
 			}
-			if a.pal.primary(c, "采纳").Clicked() {
+			if a.pal.primary(c, "采纳").Clicked() && p.settled() {
 				a.acceptProposal()
 				w.ed.Focus()
 			}
 		})
 	case w.proposed != nil:
+		p := w.proposed
 		bar(func() {
 			glyph(c, icWand, iconMd, t.Success)
 			ui.Text(c, "红色删除线为原文，绿色为改写。").FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1)
-			if a.pal.secondary(c, "放弃").Clicked() {
+			if a.pal.secondary(c, "放弃").Clicked() && p.settled() {
 				a.dropProposal()
 				w.rewriting = false
 				w.ed.Focus()
 			}
-			if a.pal.ghost(c, "重新改写", ui.Color{}).Clicked() { // the same words, as asked before
-				p := w.proposed
+			if a.pal.ghost(c, "重新改写", ui.Color{}).Clicked() && p.settled() { // the same words, as asked before
 				a.dropProposal()
 				w.ed.Select(p.a, p.b)
 				a.startRewrite(c)
 				w.ed.Focus()
 			}
-			if a.pal.primary(c, "采纳").Clicked() {
+			if a.pal.primary(c, "采纳").Clicked() && p.settled() {
 				a.acceptProposal()
 				w.ed.Focus()
 			}

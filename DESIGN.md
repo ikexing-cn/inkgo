@@ -440,7 +440,7 @@ components:
 检查：
 
 - `npm run verify-prototype` 的「what the AI looked at」「what was sent」「a long talk」「models and services」查原型：「a long talk」查摘要里的名字点了打开那一条，和发出去之前先压缩。
-- `go test ./desk` 的 `TestTalkNotesTheSettingAsItReplies` 查软件里回复上方那一行：回复时展开、回复完折起、点开有查到的内容，「查看设定」打开记下的那一条，修改记录里那一条点「查看讨论」回到讨论；`TestWhatWasSent` 查「AI 参考内容」和回复下面这一轮一共的 token 数；`TestTheWorkShowsWhatItSpent` 查「本作品用量」；`TestTheTalkShowsWhereItWasCompacted` 查「以上 N 轮已整理成摘要」那一行和点开的摘要；`TestCompactingShowsItself` 查压缩时写「正在压缩上下文…」，压缩完那一行就出来，作者刚发的话只出现一次。
+- `go test ./desk` 的 `TestTalkNotesTheSettingAsItReplies` 查软件里回复上方那一行：回复时展开、回复完折起、点开有查到的内容，「查看设定」打开记下的那一条，修改记录里那一条点「查看讨论」回到讨论；`TestWhatWasSent` 查「AI 参考内容」说的是最后一次请求、「这一轮共 N 次请求」，和回复下面这一轮一共的 token 数；`TestTheWorkShowsWhatItSpent` 查「本作品用量」；`TestTheTalkShowsWhereItWasCompacted` 查「以上 N 轮已整理成摘要」那一行和点开的摘要，摘要里设定的名字点了打开那一条；`TestCompactingShowsItself` 查压缩时写「正在压缩上下文…」，压缩完那一行就出来，作者刚发的话只出现一次。
 
 ### AI 写的字要作者采纳
 
@@ -455,7 +455,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab，改写�
 检查：
 
 - `npm run verify-prototype` 的「a sentence more」「a rewrite」「a draft」查原型，采纳以后按 Ctrl+Z、Ctrl+Y，按 Esc 关掉改写要求以后键盘在正文，改写出来马上点「采纳」不算、半秒后才算。
-- `go test ./desk` 的 `TestDraftAChapterFromItsOutline`、`TestStopADraftKeepsWhatCame`、`TestRewriteASelection` 查软件：起草、改写写完，正文和磁盘都不变，采纳时才存快照、写进正文，算一步；点过按钮以后键盘在正文，采纳以后按 Ctrl+Z 撤销。`TestTurnTheAIOffAndOn` 查关掉 AI 时没采纳的起草丢掉。
+- `go test ./desk` 的 `TestDraftAChapterFromItsOutline`、`TestStopADraftKeepsWhatCame`、`TestRewriteASelection` 查软件：起草、改写写完，正文和磁盘都不变，采纳时才存快照、写进正文，算一步；点过按钮以后键盘在正文，采纳以后按 Ctrl+Z 撤销；`TestRewriteASelection` 还查改写出来马上点「采纳」不算、半秒后才算。`TestTurnTheAIOffAndOn` 查关掉 AI 时没采纳的起草丢掉。
 
 ### 等 AI 回复时照常用
 

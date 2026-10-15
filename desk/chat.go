@@ -3,7 +3,9 @@ package desk
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -156,12 +158,66 @@ func (a *App) digest(c *ui.Context, d workspace.Event, through int) {
 					if s[0] != "" {
 						ui.Text(c, s[0]).FontSize(fsNote).FontWeight(600).LineHeight(lhBody).FillWidth()
 					}
-					ui.Text(c, s[1]).FontSize(fsNote).LineHeight(lhBody).Selectable().FillWidth()
+					ui.RichText(c).FontSize(fsNote).LineHeight(lhBody).Selectable().FillWidth().Children(func() {
+						for _, m := range a.mentions(s[1]) {
+							if m.entry == nil {
+								ui.Text(c, m.text)
+								continue
+							}
+							ui.Text(c, "「")
+							name := ui.Text(c, m.text).TextColor(a.pal.ink).Underline().DecorationColor(a.pal.control)
+							if name.Hovered() {
+								name.Background(t.SurfacePressed).DecorationColor(a.pal.ink)
+							}
+							if name.Clicked() {
+								a.showEntry(*m.entry)
+							}
+							ui.Text(c, "」")
+						}
+					})
 				})
 			}
 			ui.Text(c, "摘要由 AI 写成，有误可在对话中指出。").FontSize(fsNote).LineHeight(lhBody).TextColor(t.TextMuted).FillWidth()
 		})
 	})
+}
+
+// mention is a piece of a digest: words, or an entry it names.
+type mention struct {
+	text  string
+	entry *workspace.Entry
+}
+
+// entryNumber is how the talk's model names an entry: by its number.
+var entryNumber = regexp.MustCompile(`\[(\d+)\]`)
+
+// mentions splits text at the entries it names by number, each piece of
+// them showing the entry by its name, or its first words when it names
+// nothing. A number no entry has stays as it is.
+func (a *App) mentions(text string) []mention {
+	var out []mention
+	at := 0
+	for _, m := range entryNumber.FindAllStringSubmatchIndex(text, -1) {
+		n, _ := strconv.Atoi(text[m[2]:m[3]])
+		if n < 1 || n > len(a.set.Entries) {
+			continue
+		}
+		if m[0] > at {
+			out = append(out, mention{text: text[at:m[0]]})
+		}
+		e := a.set.Entries[n-1]
+		s := strings.TrimSpace(e.Text)
+		name := clip(s[:strings.IndexAny(s+"。", "。！？；")], 16) // clip ends it at a line's end too
+		if len(e.Names) > 0 {
+			name = e.Names[0]
+		}
+		out = append(out, mention{text: name, entry: &e})
+		at = m[1]
+	}
+	if at < len(text) {
+		out = append(out, mention{text: text[at:]})
+	}
+	return out
 }
 
 // sections split a digest at its headings, the lines that open with "## ",
@@ -536,6 +592,20 @@ func spent(events []workspace.Event, reply workspace.Event) (workspace.Usage, bo
 	return sum, true
 }
 
+// requests is how many requests the turn reply ends took, as far as their
+// usage tells: each step that looked something up, and the reply's own. A
+// reply from before each request was kept apart counts one, as its usage
+// is of them all.
+func requests(events []workspace.Event, reply workspace.Event) int {
+	n := 1
+	for _, e := range events {
+		if e.Role == workspace.RoleCall && e.ReplyTo == reply.ReplyTo && e.Usage != nil {
+			n++
+		}
+	}
+	return n
+}
+
 // looked folds what a reply looked up above it, as thought folds its
 // reasoning: the head says what it did, and open, each thing shows what
 // came back. What it noted links to the entry. It stays open while the
@@ -579,8 +649,7 @@ func (a *App) looked(c *ui.Context, key string, found []look, running bool) {
 	}).FillWidth()
 }
 
-// showNoted opens in the setting the entry revision r of a talk changed:
-// in what waits on the author when it is open, or on its page.
+// showNoted opens in the setting the entry revision r of a talk changed.
 func (a *App) showNoted(r string) {
 	var entry string
 	for _, rev := range a.set.Revisions {
@@ -588,10 +657,14 @@ func (a *App) showNoted(r string) {
 			entry = rev.Ops[0].Entry
 		}
 	}
-	e, ok := a.set.Entry(entry)
-	if !ok {
-		return
+	if e, ok := a.set.Entry(entry); ok {
+		a.showEntry(e)
 	}
+}
+
+// showEntry opens e in the setting: in what waits on the author when it is
+// open, or on its page.
+func (a *App) showEntry(e workspace.Entry) {
 	d := &a.doc
 	a.setDocHidden(false)
 	d.history, d.fore, d.talk, d.talks, d.dropped, d.editing = false, false, false, false, false, ""
@@ -626,8 +699,9 @@ var partNames = map[string]string{
 	workspace.PartInput:   "本次发言",
 }
 
-// audit is what a reply was sent: each part's tokens as estimated, what
-// the provider counted, and the setting, whole or as its index.
+// audit is what a reply was sent, by the request that replied when the
+// turn took more: each part's tokens as estimated, what the provider
+// counted, and the setting, whole or as its index.
 func (a *App) audit(c *ui.Context, m workspace.Event) {
 	t := a.pal.theme
 	var setting, beside []workspace.ContextItem
@@ -664,9 +738,12 @@ func (a *App) audit(c *ui.Context, m workspace.Event) {
 					parts = append(parts, name+" "+tokens.Round(p.Tokens))
 				}
 				ui.Textf(c, "本次发送约 %s token", tokens.Round(total)).FontSize(fsNote).FontWeight(600)
+				if n := requests(a.events, m); n > 1 { // what it says is of the request that replied
+					note(fmt.Sprintf("这一轮共 %d 次请求，这是最后一次。", n))
+				}
 				note(strings.Join(parts, " · "))
 			}
-			if u, ok := spent(a.events, m); ok {
+			if u := m.Usage; u != nil {
 				used := "实际用量：输入 " + tokens.Round(u.Input)
 				if u.CacheRead > 0 {
 					used += "，其中缓存命中 " + tokens.Round(u.CacheRead)
