@@ -8,20 +8,19 @@
 npm run verify
 ```
 
-一条命令同时跑下面几项，四十秒左右，都绿才算完成：
+四十秒左右，都绿才算完成。它同时跑哪几项写在 `scripts/verify.ts` 开头，各项也能单独跑。要留意的几项：
 
-- `go vet ./...`
 - `npm run verify-ui`：工具包自带的检查 `mygo vet`，查界面代码有没有把一帧里的东西（`*ui.Context`、`ui.Element`）留到帧外；后台任务要叫界面重画，用起头那一帧取的 `c.Services()`。
-- `go test ./...`
-- `npm run verify-notes`
-- `npm run verify-prototype`（要本机有 Edge 或 Chrome）
-- `npm run verify-design`（要联网）：只在 `DESIGN.md` 改了还没提交时跑；`npm run verify -- --design` 强制跑。
+- `npm run verify-prototype` 要本机有 Edge 或 Chrome。
+- `npm run verify-design` 要联网，只在 `DESIGN.md` 改了还没提交时跑；`npm run verify -- --design` 强制跑。
 
-各项也可以单独跑。界面改动在 `cmd/poc` 的布局测试里渲染截图核对（`SHOT=<path> go test -run TestLayout ./cmd/poc`）。
+界面改动在 `cmd/poc` 的布局测试里渲染截图核对（`SHOT=<path> go test -run TestLayout ./cmd/poc`）。
 
 要一本有内容的书来试功能：`go run ./cmd/sample <目录>` 写出两本测试用的书（各 15 章，带设定、卷、章纲、伏笔，正文里故意埋了和设定对不上的地方，清单在 `cmd/sample/books/` 各文件开头），再用 `go run ./cmd/poc -work <目录>/<书名>` 打开。
 
-## 界面设计以 `prototype/` 里的原型为准
+## 界面：规则在 `DESIGN.md`，样子在原型
+
+动界面之前先读 `DESIGN.md`，里面是每一处界面都要守的规则。每个界面具体的样子在 `prototype/` 的原型里。
 
 双击 `prototype/index.html` 就开：整个窗口都能点，内容是假的，正文能打字（不存盘，刷新就回到原样），AI 只回固定的几句。纯 HTML/JS，没有依赖，不用构建。各文件管什么：
 
@@ -34,15 +33,10 @@ npm run verify
 - `dialogs.js`：对话框和备份。
 - `app.js`：把窗口拼起来，标题栏和它的菜单，和不管光标在哪都管用的按键、拖动。
 
-1. 新的界面功能都以原型为基准：布局、色值、字号、文案、交互照它来；和现有代码冲突时先说出来，不要自己决定以哪边为准。
+1. 新的界面功能照原型做：布局、色值、字号、文案、交互；原型和现有代码冲突时先说出来，不要自己决定以哪边为准。
 2. 原型里没有的界面功能，先在原型里做出来给作者看，确认后再开始写代码。
-3. 改完原型跑 `npm run verify-prototype`（二十秒左右，`npm run verify` 里也有它）：先查 `DESIGN.md` 里数值的规则，再在浏览器里把每个动作点一遍；加 `SHOT=<目录>` 会存下每一步的截图。动作或文案变了，`scripts/prototype/walk.ts` 里的步骤跟着改。平时碰不到的情况（出错的、软件外面动了稿子的）放进窗口上面「少见的情况」那个菜单，点一下就能摆出来看。
-4. 界面的规范在 `DESIGN.md`（数值只写名字、按钮靠右、就地输入、标签页和保存、文案……），动界面之前先读，写的时候照它来：
-   - 它按 [DESIGN.md 格式](https://github.com/google-labs-code/design.md) 写：开头是数值，后面八节的名字和先后是格式定的，新规则放进对应的那一节。
-   - 它和原型对不上，以它为准，改原型。
-   - 改完它跑 `npm run verify-design`（要联网）：格式自带的检查工具，没有错误才算过。它开头的数值和 `desk/tokens.css` 是否一致由 `go test ./desk` 查。
-   - 作者提了一条不只管一处的要求，先写进 `DESIGN.md`，再改原型和代码，同一次提交；能自动查的加检查，并在那条规则下面写明谁在查。
-5. 原来的设计稿在 Design artifact <https://claude.ai/artifact/RAP7UK4pSfnGArETpVtPSj>，只作存档：不再更新，也不以它为准。
+3. 改完原型跑 `npm run verify-prototype`，它在浏览器里把每个动作点一遍；加 `SHOT=<目录>` 会存下每一步的截图。动作或文案变了，`scripts/prototype/walk.ts` 里的步骤跟着改。平时碰不到的情况（出错的、软件外面动了稿子的）放进窗口上面「少见的情况」那个菜单，点一下就能摆出来看。
+4. 作者提了一条不只管一处的要求（「按钮应该统一右对齐」这种），照 `DESIGN.md` 的「怎么维护」写进去。
 
 ## 重要改动必须留笔记
 

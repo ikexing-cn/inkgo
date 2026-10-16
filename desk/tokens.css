@@ -1,29 +1,28 @@
-/* 写作软件的基准色。浅色是默认值，.dark 里是深色值。
-   页面和组件只写 var(--…)，不写色值；改一处，全部画板跟着变。
-   代码里的 desk/tokens.css 是这一份的原样副本，界面颜色都从它来。 */
+/* 界面的数值：浅色在 :root，深色在 .dark 里。原型的页面和代码只写这些名字。
+   每个名字管什么、怎么用，只写在 DESIGN.md，这里只写值；
+   DESIGN.md 开头的数值和 desk/theme.go 的同名常量由 go test ./desk 和这里逐一核对。 */
 :root, .light {
-  --page: #e9e9e5;    /* 画布底色，不属于软件界面 */
-  --bg: #ffffff;      /* 正文区底色 */
-  --raised: #ffffff;  /* 浮层、弹出框 */
-  --side: #f7f7f5;    /* 侧栏、右栏底色 */
-  --hover: #f3f3f1;   /* 悬停、选中的标签 */
-  --active: #ebebe8;  /* 当前项、按下 */
-  --line: #ececE8;    /* 分隔线 */
-  --border: #e4e4e0;  /* 卡片、输入框边框 */
-  --control: #c9c9c2; /* 复选框、单选框、小标签描边 */
-  --dim: #dcdcd6;     /* 占位圆点、计划中的格子 */
-  --ink: #1d1d1b;     /* 正文、主按钮、链接 */
-  --ink-2: #3a3a37;   /* 稍弱的正文 */
-  --muted: #76766f;   /* 次要文字、图标 */
-  --faint: #a3a39c;   /* 提示、占位、伏笔点线 */
-  --on-ink: #ffffff;  /* 墨色按钮上的字 */
-  --amber: #d9a441;   /* 等作者处理的事 */
+  --bg: #ffffff;
+  --raised: #ffffff;
+  --side: #f7f7f5;
+  --hover: #f3f3f1;
+  --active: #ebebe8;
+  --line: #ececE8;
+  --border: #e4e4e0;
+  --control: #c9c9c2;
+  --dim: #dcdcd6;
+  --ink: #1d1d1b;
+  --ink-2: #3a3a37;
+  --muted: #76766f;
+  --faint: #a3a39c;
+  --on-ink: #ffffff;
+  --amber: #d9a441;
   --warn-bg: #fbf5e8;
   --warn-bd: #ecd9ac;
-  --sel: #d6e4f7;     /* 选中的文字 */
-  --danger: #c4473a;  /* 删除、出错 */
-  --warn: #b7791f;    /* 警告文字（琥珀色在白底上太浅） */
-  --success: #2f8a5b; /* 成功提示 */
+  --sel: #d6e4f7;
+  --danger: #c4473a;
+  --warn: #b7791f;
+  --success: #2f8a5b;
 }
 .dark {
   --bg: #191919;
@@ -49,63 +48,61 @@
   --success: #5cb684;
 }
 
-/* 字号、圆角、阴影：页面和代码只写这些名字，不写数字，规则在 DESIGN.md。
-   DESIGN.md 开头的数值、代码里 desk/theme.go 的同名常量由测试和这里逐一核对。 */
 :root, .light {
-  --fs-display: 26px;   /* 欢迎页的大字 */
-  --fs-title: 22px;     /* 页标题、设置窗口标题 */
-  --fs-dialog: 17px;    /* 对话框标题 */
-  --fs-group: 15px;     /* 页面里的分组标题、卡片标题 */
-  --fs-body: 13.5px;    /* 列表项、表单项、说明正文 */
-  --fs-control: 13px;   /* 按钮、输入框、下拉框里的字 */
-  --fs-note: 12.5px;    /* 次要说明、文字按钮 */
-  --fs-small: 11.5px;   /* 小标签、计数、快捷键 */
-  --fs-read: 14.5px;    /* 要读的正文：讨论气泡、快照预览 */
-  --fs-paper: 17px;     /* 正文栏稿纸的默认字号，作者可在「外观」里调 */
-  --fs-board-title: 28px; /* 画板上给作者看的标题，不属于软件界面 */
-  --fs-board-h2: 20px;    /* 画板上的小节标题 */
-  --r-xs: 4px;          /* 复选框、小标签、计数 */
-  --r-control: 6px;     /* 按钮、输入框、下拉框、列表行 */
-  --r-card: 10px;       /* 分组、卡片、菜单、提示 */
-  --r-dialog: 12px;     /* 对话框、讨论气泡和输入框 */
-  --r-round: 999px;     /* 圆点、细条 */
-  --r-window: 10px;     /* macOS 窗口外框 */
-  --r-window-win: 8px;  /* Windows 窗口外框 */
-  --shadow-raise: 0 1px 2px rgba(0,0,0,.08);    /* 分段选择里选中的一段 */
-  --shadow-pop: 0 8px 28px rgba(0,0,0,.14), 0 1px 3px rgba(0,0,0,.08); /* 菜单、下拉、提示、待处理面板 */
-  --shadow-dialog: 0 20px 60px rgba(0,0,0,.22); /* 对话框 */
-  --shadow-focus: 0 0 0 3px rgba(127,127,120,.18); /* 聚焦的输入框 */
-  --shadow-inset: inset 0 0 0 .5px rgba(0,0,0,.12); /* 窗口按钮、色块的细边 */
-  --shadow-board: 0 1px 3px rgba(0,0,0,.08), 0 10px 30px rgba(0,0,0,.06); /* 画板上的窗口外框 */
-  /* 间距只用这些值（px）：padding、margin、gap 都从这里挑，不另起名字。
-     48 以上只用于画板和整页的大块留白；100 以上的是布局尺寸，不算间距。 */
+  --fs-display: 26px;
+  --fs-title: 22px;
+  --fs-dialog: 17px;
+  --fs-group: 15px;
+  --fs-body: 13.5px;
+  --fs-control: 13px;
+  --fs-note: 12.5px;
+  --fs-small: 11.5px;
+  --fs-read: 14.5px;
+  --fs-paper: 17px;
+  --r-xs: 4px;
+  --r-control: 6px;
+  --r-card: 10px;
+  --r-dialog: 12px;
+  --r-round: 999px;
+  --shadow-raise: 0 1px 2px rgba(0,0,0,.08);
+  --shadow-pop: 0 8px 28px rgba(0,0,0,.14), 0 1px 3px rgba(0,0,0,.08);
+  --shadow-dialog: 0 20px 60px rgba(0,0,0,.22);
+  --shadow-focus: 0 0 0 3px rgba(127,127,120,.18);
   --space: 0 2 4 6 8 10 12 14 16 20 24 32 40;
   --space-board: 48 56 64 80;
-  --lh-tight: 1.4;      /* 标题、按钮、单行的字 */
-  --lh-body: 1.6;       /* 列表项、表单项、说明 */
-  --lh-loose: 1.7;      /* 成段的说明、讨论气泡 */
-  --lh-read: 1.8;       /* 要读的正文：AI 回复、快照预览、引用的原文 */
-  --lh-paper: 1.95;     /* 正文栏的稿纸 */
-  --icon-xs: 12px;      /* 箭头、行内的小记号 */
-  --icon-sm: 14px;      /* 按钮和列表行里的图标 */
-  --icon-md: 16px;      /* 默认图标、图标按钮 */
-  --icon-lg: 24px;      /* 空状态、导入区的大图标 */
-  --opacity-disabled: .4; /* 不能点的按钮和输入框 */
-  /* 半透明只用这些值：颜色的透明度（rgba、color-mix 里的百分比）和装饰用的 opacity
-     都从这里挑，不另起名字。0 和 1 不算；禁用用上面的 --opacity-disabled。 */
+  --lh-tight: 1.4;
+  --lh-body: 1.6;
+  --lh-loose: 1.7;
+  --lh-read: 1.8;
+  --lh-paper: 1.95;
+  --icon-xs: 12px;
+  --icon-sm: 14px;
+  --icon-md: 16px;
+  --icon-lg: 24px;
+  --opacity-disabled: .4;
   --alpha: .08 .12 .2 .35 .55 .85;
-  --scrim: rgba(25,25,25,.32); /* 对话框、设置窗口后面的遮罩 */
-  --h-control: 32px;    /* 按钮、输入框、下拉框 */
-  --h-control-sm: 28px; /* 图标按钮、文字按钮 */
-  --h-row: 30px;        /* 菜单里的一行 */
-  --h-seg: 26px;        /* 分段选择里的一段、工具栏里的小按钮 */
-  --h-tag: 20px;        /* 小标签、计数 */
-  --h-bar: 40px;        /* 标题栏、工具栏、窗口按钮 */
+  --scrim: rgba(25,25,25,.32);
+  --h-control: 32px;
+  --h-control-sm: 28px;
+  --h-row: 30px;
+  --h-seg: 26px;
+  --h-tag: 20px;
+  --h-bar: 40px;
 }
 .dark {
-  --scrim: rgba(0,0,0,.55); /* 浅色那个和深色的底同色，盖上去看不出 */
+  --scrim: rgba(0,0,0,.55);
   --shadow-raise: 0 1px 2px rgba(0,0,0,.35);
   --shadow-pop: 0 8px 28px rgba(0,0,0,.4);
   --shadow-dialog: 0 20px 60px rgba(0,0,0,.5);
+}
+
+/* 只属于原型的页面，不是软件的界面，DESIGN.md 里没有：
+   窗口外面的底、窗口的圆角和阴影。 */
+:root, .light {
+  --page: #e9e9e5;
+  --r-window-win: 8px;
+  --shadow-board: 0 1px 3px rgba(0,0,0,.08), 0 10px 30px rgba(0,0,0,.06);
+}
+.dark {
   --shadow-board: 0 1px 3px rgba(0,0,0,.2), 0 10px 30px rgba(0,0,0,.15);
 }

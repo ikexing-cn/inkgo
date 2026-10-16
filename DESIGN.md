@@ -373,7 +373,7 @@ components:
 
 - 这里写每一处界面都要守的规则；`prototype/` 里的原型是每个界面具体的样子。两边对不上，以这里为准，改原型。
 - 这里只写作者定下来的。还在原型里等作者看的方案在 `.agents/notes/proposed/`，定了再写进来。
-- 流程（先改原型再写代码、改完怎么验证）在 `AGENTS.md`。
+- 做界面的流程（先改原型再写代码、改完怎么验证）在 `AGENTS.md`；这份文件自己怎么改，只在下面的「怎么维护」。
 
 ### 怎么维护
 
@@ -381,7 +381,8 @@ components:
 2. 能自动查的就加检查，在那条规则下面写明谁在查；这样下一次新做的界面不守规则会自己报出来，不用作者再提一次。
 3. 规则有例外就写在规则下面，只写现有的那几处；例外是我定的而作者没说过的，标「待作者确认」。
 4. 规则改了，旧的那句直接改掉，不留「原来是……」；来龙去脉在 `.agents/notes/` 的笔记里。
-5. 改完跑 `npm run verify-design`（要联网，第一次会下载格式自带的检查工具）：没有错误才算过；它报的警告照实留着，不为了消掉警告改写法。
+5. 一条规则只写在一处：放进它该在的那一节，别的节、`AGENTS.md`、代码的注释要提到它，只指过来。Do's and Don'ts 只放前面各节放不下的。
+6. 改完跑 `npm run verify-design`（要联网，第一次会下载格式自带的检查工具）：没有错误才算过；它报的警告照实留着，不为了消掉警告改写法。
 
 ### 数值只写名字
 
@@ -393,11 +394,12 @@ components:
   - `desk/theme.go` 里的同名常量（`fsBody`、`rControl`、`lhBody`、`iconMd`、`hControl`、`opacityDisabled`）和调色板（`a.pal.ink`、`a.pal.pop.on(e)`、`a.pal.scrim`），代码用它。
 - 名字的对应：这里的 `colors.ink` 是 `--ink`，`colors.ink-dark` 是 `.dark` 里的 `--ink`；`typography.body` 的字号是 `--fs-body`；`rounded.control` 是 `--r-control`；`spacing` 是 `--space` 那一排数。
 - 这个格式里没有位置放的几样（阴影、遮罩、半透明的几级、行距的几级、禁用透明度），值只在 `desk/tokens.css`，这里只写名字和用处。
+- 每个名字管什么只写在这里；`desk/tokens.css` 和 `desk/theme.go` 只写值，不另写用处。
 - 改一个值或者加一级，三处一起改，从这里改起。
 
 检查：
 
-- `go test ./desk` 的 `TestDesignMD` 核对这里的数值和 `desk/tokens.css` 一致，八节的名字和先后对不对；`TestTokens`、`TestSizeTokens` 核对 `desk/theme.go` 和 `desk/tokens.css` 一致。
+- `go test ./desk` 的 `TestDesignMD` 核对这里的数值和 `desk/tokens.css` 一致，八节的名字和先后对不对；`TestTokens`、`TestSizeTokens` 核对 `desk/theme.go` 和 `desk/tokens.css` 一致；`TestUsesLiveInDesignMD` 查 `desk/tokens.css` 的各块、`desk/theme.go` 的调色板和尺寸常量里没有注释。
 - `go test ./desk` 的 `TestNoLiteralSizes` 查界面代码里有没有直接写 `FontSize`、`Radius`、`LineHeight`、`glyph` 大小、按钮高度的数字、`ui.RGBA(` 或 `Shadow(`，`Padding`、`Gap`、`Margin` 和透明度的数在不在刻度上。
 - `npm run verify-prototype` 先对着 `desk/tokens.css` 查原型的样式和脚本。
 
@@ -479,11 +481,11 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab，改写�
 
 半透明（颜色的透明度、装饰用的 `opacity`）只用 `--alpha` 那几级，不另起名字；不能点的控件用 `--opacity-disabled`（代码里是 `pale(b)`）。
 
-对比度不到 4.5:1（WCAG AA）的几对，`npm run verify-design` 每次都会报出来，改不改待作者定：
+对比度不到 4.5:1（WCAG AA）的几对，`npm run verify-design` 每次都会连比值一起报出来，改不改待作者定：
 
-- 提示和占位的字：`faint` 在 `bg` 上，浅色 2.54:1，深色 3.48:1。
-- 警告条：`warn` 在 `warn-bg` 上 3.35:1；警告条里的主按钮，`on-ink` 在 `warn` 上 3.64:1。
-- 成功的字：`success` 在 `bg` 上 4.28:1。
+- 提示和占位的字：`faint` 在 `bg` 上，浅色、深色都是。
+- 警告条：`warn` 在 `warn-bg` 上；警告条里的主按钮，`on-ink` 在 `warn` 上。
+- 成功的字：`success` 在 `bg` 上。
 
 ## Typography
 
@@ -509,7 +511,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab，改写�
 
 ## Elevation & Depth
 
-平的界面：区域之间靠底色（`bg`、`side`、`raised`）和 `line` 的细线分开。阴影只有这几级，写名字：
+平的界面：区域之间靠底色（`bg`、`side`、`raised`）和 `line` 的细线分开。阴影和遮罩只有这几样，写名字：
 
 - `--shadow-raise`：分段选择里选中的那一段。代码里 `a.pal.raise.on(e)`。
 - `--shadow-pop`：菜单、下拉、提示、待处理面板。代码里 `a.pal.pop.on(e)`。
@@ -533,15 +535,15 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab，改写�
 
 ### 尺寸
 
-- 高度六级：按钮、图标按钮 28（`--h-control-sm`）；输入框、下拉框，以及和输入框并排的按钮 32（`--h-control`）；菜单里的一行 30（`--h-row`）；分段选择里的一段、工具栏里的小按钮 26（`--h-seg`）；小标签、计数 20（`--h-tag`）；标题栏、工具栏 40（`--h-bar`）。
-- 图标四级：12（`--icon-xs`）箭头、行内的小记号；14（`--icon-sm`）按钮和列表行里的图标；16（`--icon-md`）默认图标；24（`--icon-lg`）空状态的大图标。
-- 定过的两样：勾选框 16 见方，图标按钮 28 见方，章节树标题旁的两个也是。
+- 高度六级：`--h-control-sm` 按钮、图标按钮；`--h-control` 输入框、下拉框，以及和输入框并排的按钮；`--h-row` 菜单里的一行；`--h-seg` 分段选择里的一段、工具栏里的小按钮；`--h-tag` 小标签、计数；`--h-bar` 标题栏、工具栏、窗口按钮。
+- 图标四级：`--icon-xs` 箭头、行内的小记号；`--icon-sm` 按钮和列表行里的图标；`--icon-md` 默认图标、勾选框；`--icon-lg` 空状态的大图标。
+- 勾选框和图标按钮都是见方的；章节树标题旁的两个按钮也是图标按钮。
 
 ### 按钮
 
 一排按钮靠右，主按钮在最右：「取消」之类次要的在它左边，文字样式的操作（「今日不再提醒」「复制详情」）在更左。对话框、浮层、提示条、卡片、表单都一样。
 
-例外只有三种：
+例外只有四种：
 
 - 空页正中那一段的按钮，跟着那段话居中，主按钮仍在右。
 - 跟在一句话后面的行内链接（「查看原文」「更改」），跟着那句话。
@@ -585,9 +587,26 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab，改写�
 
   检查：`go test ./desk` 的 `TestDialogsGiveTheKeyboardBack`（每个入口打开、按 Esc 或点「关闭」关掉）、`TestARenameEndsAtAnotherButton`；`npm run verify-prototype` 的「the title bar, and the sidebar put away on every page」。
 
-### 标题栏
+### 表单
 
-2026-10-13 在原型里做成这样，作者当天确认，软件同一天照它改了。
+- 要填的没填，主按钮是灰的。
+- 填的会动到已有的东西，在表单下面用灰字说明（作品分类的名称和已有的同名：「将修改已有的分类“人物”，现在的落点是“设定库”。」）。
+- 填的用不了（新建作品的文件夹里已有文件，模型服务的 ID 和别的服务重了、地址不对、模型的数不合规矩，目标字数不是数），在那一栏下面用红字写明为什么、怎么办，主按钮也是灰的。
+- 按下去以前就知道的事都在表单里说，不等作者按了才弹提示条说不行。
+
+检查：
+
+- `npm run verify-prototype` 的「categories」「the shelf, where things go wrong」「models and services」「a goal for the day」「a draft」。
+- `go test ./desk` 的 `TestACategorySavesOnceFilledIn`、`TestANewWorkSaysWhereItGoes`、`TestModelLimitsInTheServiceForm`、`TestANewServiceSaysWhatIsWrongWhereItIs`、`TestSetTheDaysGoal`、`TestDraftAChapterFromItsOutline`。
+
+### 提示条
+
+- 图标按提示条说的事配：做完了一件事（「已保存」「已加入设定」）带 `success` 的勾，出了错带 `danger` 的警告。
+- 告诉作者先做什么、或者这次没什么可做（「请先在正文中选中回收伏笔的段落」「各章均已检查，正文无新改动」）的不带图标：配了勾看着像做成了。
+
+检查：`npm run verify-prototype` 的「pay off with nothing picked」和复制全文那一步，`go test ./desk` 的 `TestAHintHasNoMark`。
+
+### 标题栏
 
 - 标题栏自己占窗口最上面一行，高 40（`--h-bar`）：左边是侧栏的开关和菜单，右边是窗口的三个按钮，中间空着的地方按住拖窗口。
 - 它下面各栏（侧栏、工具栏、右栏的标签行）不给窗口按钮留位置。
@@ -660,13 +679,6 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab，改写�
 - 要按离今天多远写时间：今天、昨天直接写，今年别的日子写月-日，往年的写年-月-日，要几点就跟在后面（「今天 10:32」「昨天 23:15」「10-06 21:40」「2025-10-06 21:40」）；不要单写「10-16 01:34」让作者自己算是哪天，也不要写「刚刚」。只说哪天的只写哪天：讨论列表，书架上前天以前打开的作品，字数旁「最近 7 天」各天，最早的备份（「已存 12 份，最早 09-28」）。讨论里每一句话下面也这样写（「今天 00:50 · deepseek-flash · 8K token」）。`go test ./desk` 的 `TestWhenSaid` 查软件里的写法和最早的备份，`TestWhatWasSent` 查讨论里的，`TestSetTheDaysGoal` 查最近 7 天；原型里新做的事都记在「今天 10:40」，`npm run verify-prototype` 的备份、摘要、修改记录、「what was sent」「a goal for the day」几步查。
 - 要让文案里提到的地方和界面上的名字一字不差：设置左边那一栏叫「AI」，指它一律写「设置中「AI」配置」（「请在设置中「AI」配置里选择写作模型」），菜单里去那儿的一行叫「AI 配置…」；不写界面上没有的「模型设置」。`npm run verify-prototype` 的「no model to write with」查原型那一句，`go test ./desk` 的 `TestCopySaysWhereTheModelsAre` 查软件里的。
 
-别的：
+留下的东西：
 
-- 不要在原型和代码里直接写颜色、字号、圆角、阴影的数字，写名字（见 Overview）。
-- 不要把一排按钮放在左边或者中间（见 Components 的「按钮」）。
-- 不要让能点的东西看不出能点：文字按钮只有一种样子，指针移上去都有变化（见 Components 的「文字按钮」「能点的都回应指针」）。
-- 不要用系统的菜单。
-- 要按提示条说的事给它配图标：做完了一件事（「已保存」「已加入设定」）带 `success` 的勾，出了错带 `danger` 的警告；告诉作者先做什么、或者这次没什么可做（「请先在正文中选中回收伏笔的段落」「各章均已检查，正文无新改动」）的不带图标，不要给它配勾，看着像做成了。`npm run verify-prototype` 的「pay off with nothing picked」和复制全文那一步查原型，`go test ./desk` 的 `TestAHintHasNoMark` 查软件。
-- 要在表单里就说出按下去以前就知道的事：要填的没填，主按钮是灰的；填的会动到已有的东西，在表单下面用灰字说明（作品分类的名称和已有的同名：「将修改已有的分类“人物”，现在的落点是“设定库”。」）；填的用不了（新建作品的文件夹里已有文件，模型服务的 ID 和别的服务重了、地址不对、模型的数不合规矩，目标字数不是数），在那一栏下面用红字写明为什么、怎么办，主按钮也是灰的。不要等作者按了才弹提示条说不行。`npm run verify-prototype` 的「categories」「the shelf, where things go wrong」「models and services」「a goal for the day」「a draft」查原型，`go test ./desk` 的 `TestACategorySavesOnceFilledIn`、`TestANewWorkSaysWhereItGoes`、`TestModelLimitsInTheServiceForm`、`TestANewServiceSaysWhatIsWrongWhereItIs`、`TestSetTheDaysGoal`、`TestDraftAChapterFromItsOutline` 查软件。
-- 不要在 AI 关着时露出 AI，也不要把 AI 的功能变灰了留着（见 Overview 的「AI 可以整个关掉」）。
-- 不要留不再用的控件、样式、文案、代码：当次删掉，不留着备用，留着的东西每次审查都要再看一遍。
+- 要当次删掉不再用的控件、样式、文案、代码；不要留着备用：留着的东西每次审查都要再看一遍。

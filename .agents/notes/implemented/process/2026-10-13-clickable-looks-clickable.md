@@ -14,7 +14,7 @@ Status: implemented
 
 ## Decision
 
-- 规则写进 `DESIGN.md` 的 Components：「文字按钮」「能点的都回应指针」两条，Do's and Don'ts 里一条；开头数值的 `button-text` 改成墨色，加 `button-text-hover`。
+- 规则写进 `DESIGN.md` 的 Components：「文字按钮」「能点的都回应指针」两条；开头数值的 `button-text` 改成墨色，加 `button-text-hover`。
 - 文字按钮只有一种样子：`note` 字号，墨色的字，下面一条 `control` 色的细线；指针移上去出现 `active` 的底色，线变成字的颜色。不可撤回的那一种字用 `danger`。
   - 原型里是 `.link` 一个类，原来的四种写法都换成它；底色比字宽出一圈，用负的外边距收回去，字还在原来的位置。
   - 软件里是 `a.pal.ghost` 一个函数（`desk/theme.go`）：字下面放一条 1 高的线，不用工具包的 `Underline()`（它的线只能和字同色）。`a.textLink` 删了，调用处都换成它；原来传给 `ghost` 的灰、浅灰、墨色不再传，只留 `danger`。

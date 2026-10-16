@@ -62,7 +62,8 @@ func TestDesignMD(t *testing.T) {
 
 	// Sizes, corners, line heights, icons and heights, by their prefix.
 	sizes := map[string]map[string]float64{}
-	board := map[string]bool{"fs-board-title": true, "fs-board-h2": true, "r-window": true, "r-window-win": true}
+	// The prototype's window frame is not the software's.
+	board := map[string]bool{"r-window-win": true}
 	blocks(tokensCSS, func(_ bool, body string) {
 		for _, m := range regexp.MustCompile(`--(fs|r|lh|icon|h)-([a-z0-9-]+)\s*:\s*([0-9.]+)(?:px)?;`).FindAllStringSubmatch(body, -1) {
 			if board[m[1]+"-"+m[2]] {
@@ -163,5 +164,32 @@ func TestDesignMD(t *testing.T) {
 	want := []string{"Overview", "Colors", "Typography", "Layout", "Elevation & Depth", "Shapes", "Components", "Do's and Don'ts"}
 	if !slices.Equal(sections, want) {
 		t.Errorf("sections are %q, the format has %q", sections, want)
+	}
+}
+
+// What each name is for is written once, in DESIGN.md. The blocks of
+// tokens.css, the palette and the sizes of theme.go give values only, so a
+// use changed in DESIGN.md leaves no older one beside the value to follow.
+func TestUsesLiveInDesignMD(t *testing.T) {
+	for _, b := range regexp.MustCompile(`([^{}]+)\{([^}]*)\}`).FindAllStringSubmatch(tokensCSS, -1) {
+		if strings.Contains(b[2], "/*") {
+			t.Errorf("a block of tokens.css (%s) says what its names are for; that is DESIGN.md's", strings.TrimSpace(regexp.MustCompile(`(?s)/\*.*?\*/`).ReplaceAllString(b[1], "")))
+		}
+	}
+	src, err := os.ReadFile("theme.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for what, re := range map[string]*regexp.Regexp{
+		"the palette": regexp.MustCompile(`(?s)type palette struct \{(.*?)\n\}`),
+		"the sizes":   regexp.MustCompile(`(?s)const \(\n(\tfsDisplay.*?)\n\)`),
+	} {
+		m := re.FindSubmatch(src)
+		if m == nil {
+			t.Fatalf("theme.go has no %s to look at", what)
+		}
+		if strings.Contains(string(m[1]), "//") {
+			t.Errorf("%s in theme.go: a comment says what a name is for; that is DESIGN.md's", what)
+		}
 	}
 }

@@ -9,71 +9,60 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
-// palette is the desk's design system: a neutral paper-white canvas, ink for
-// primary actions and links, greys for everything quieter, and amber for what
-// waits on the author. Everything else is typography and spacing.
-//
-// Its colors come from tokens.css, which the prototype in prototype/ styles
-// itself from too: the two name each color the same way, so one changed
-// there changes in both and nothing else moves.
+// palette is the desk's colors and shadows, light or dark. They come from
+// tokens.css, which the prototype in prototype/ styles itself from too: the
+// two name each color the same way, so one changed there changes in both and
+// nothing else moves. What each is for is written in DESIGN.md alone.
 type palette struct {
 	theme                        *ui.Theme
 	canvas, side, raised, bubble ui.Color
 	line, faint, ink, onInk      ui.Color
-	control                      ui.Color // the edge of a small control, the line under a text button
-	dim                          ui.Color // what stands in for something not there
-	amber                        ui.Color // what waits on the author
-	warnBg, warnBd               ui.Color // a warning's fill and border
-	// The shadows of the design rules, named as there: the chosen part of
-	// a segmented control; menus, popovers and toasts; dialogs.
-	raise, pop, dialog shadow
-	scrim              ui.Color // what dims the window behind a dialog
+	control, dim, amber          ui.Color
+	warnBg, warnBd               ui.Color
+	raise, pop, dialog           shadow
+	scrim                        ui.Color
 }
 
-// The sizes of the design rules: eight text sizes,
-// four corners, five line heights, four icon sizes, six control heights and
-// the disabled opacity, named as there. A size between them is not used.
-// They are the --fs-*, --r-*, --lh-*, --icon-*, --h-* and --opacity-* of
-// tokens.css, which a test holds them to; the desk writes these names, never
-// a number. An alpha is a number, one on the --alpha scale there.
+// The sizes of DESIGN.md under its names: the --fs-*, --r-*, --lh-*,
+// --icon-*, --h-* and --opacity-* of tokens.css, which a test holds them to.
+// What each is for is written in DESIGN.md alone. The desk writes these
+// names, never a number; an alpha is a number on the --alpha scale there.
 const (
-	fsDisplay = 26   // the welcome page's big words
-	fsTitle   = 22   // a page's title, the settings' too
-	fsDialog  = 17   // a dialog's title
-	fsGroup   = 15   // a group's title in a page
-	fsBody    = 13.5 // list rows, form rows
-	fsControl = 13   // what buttons, inputs and selects say
-	fsNote    = 12.5 // what explains, under or beside
-	fsSmall   = 11.5 // labels, counts, keys
-	// Prose to read, as the discussion's and a snapshot's, is apart from
-	// them, as the manuscript's own size is.
-	fsRead = 14.5
+	fsDisplay = 26
+	fsTitle   = 22
+	fsDialog  = 17
+	fsGroup   = 15
+	fsBody    = 13.5
+	fsControl = 13
+	fsNote    = 12.5
+	fsSmall   = 11.5
+	fsRead    = 14.5
 
-	rXs      = 4  // checkboxes, labels
-	rControl = 6  // buttons, inputs, selects, menu rows
-	rCard    = 10 // groups, cards, menus, toasts
-	rDialog  = 12 // dialogs, and the discussion's bubbles and box
+	rXs      = 4
+	rControl = 6
+	rCard    = 10
+	rDialog  = 12
 	rRound   = 999
 
-	lhTight = 1.4  // titles, buttons, labels: words on one line
-	lhBody  = 1.6  // list and form rows, what explains
-	lhLoose = 1.7  // paragraphs that explain, the discussion's bubbles
-	lhRead  = 1.8  // prose to read: replies, snapshots, quoted text
-	lhPaper = 1.95 // the manuscript
+	lhTight = 1.4
+	lhBody  = 1.6
+	lhLoose = 1.7
+	lhRead  = 1.8
+	lhPaper = 1.95
 
-	iconXs = 12 // arrows, small marks in a line
-	iconSm = 14 // icons beside words, in buttons and rows
-	iconMd = 16 // icons alone, as in icon buttons
-	iconLg = 24 // empty states, the welcome page
+	iconXs = 12
+	iconSm = 14
+	iconMd = 16
+	iconLg = 24
 
-	opacityDisabled = 0.4 // a button or field that can't be used
+	opacityDisabled = 0.4
 
-	hControl   = 32 // buttons, inputs, selects
-	hControlSm = 28 // icon buttons, text buttons
-	hRow       = 30 // a row of a menu
-	hSeg       = 26 // a segment of a segmented control, the toolbar's small buttons
-	hTag       = 20 // labels, counts
-	hBar       = 40 // the title bar, the toolbar
+	hControl   = 32
+	hControlSm = 28
+	hRow       = 30
+	hSeg       = 26
+	hTag       = 20
+	hBar       = 40
 )
 
 // The dialogs' sizes: most are small; the shortcuts, taking a setting from
@@ -199,8 +188,7 @@ func shadowOf(c *ui.Context, name string) shadow {
 	return shadowsLight[name]
 }
 
-// shadows reads the --shadow-* of tokens.css as tokens does the colors. An
-// inset one is left out: the desk draws none.
+// shadows reads the --shadow-* of tokens.css as tokens does the colors.
 func shadows(css string) (light, dark map[string]shadow) {
 	light, dark = map[string]shadow{}, map[string]shadow{}
 	decl := regexp.MustCompile(`--shadow-([a-z]+)\s*:\s*(-?[0-9.]+)(?:px)?\s+(-?[0-9.]+)(?:px)?\s+([0-9.]+)(?:px)?\s+(?:([0-9.]+)px\s+)?rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([0-9.]+)\s*\)`)
@@ -226,8 +214,7 @@ func shadows(css string) (light, dark map[string]shadow) {
 	return light, dark
 }
 
-// scrims reads the --scrim of tokens.css, what dims the window behind a
-// dialog; dark has its own, the light one being the color of the dark page.
+// scrims reads the --scrim of tokens.css, the light one and the dark.
 func scrims(css string) (light, dark ui.Color) {
 	decl := regexp.MustCompile(`--scrim\s*:\s*rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([0-9.]+)\s*\)`)
 	f := func(s string) float32 {

@@ -38,7 +38,7 @@ Status: implemented
 
 `prototype/` 里有设置里的开关、两个问句、关着时的每一页。`npm run verify-prototype` 的「AI turned off」把关着时的正文页、右栏、四个菜单、正文的右键菜单、选中后浮出的按钮、快捷键表、待处理、快照、作品分类、书架（有作品和没有作品）走一遍，查窗口里除了正文没有和 AI 有关的字（AI、讨论、检查、续写、改写、起草、摘要、模型、整理，提示和输入框里的字也算），Ctrl+J、Ctrl+L 按了不起作用；再打开 AI，侧栏和右栏回来，关之前没回完的那条讨论可以重试。
 
-规则在 `DESIGN.md` Overview 的「AI 可以整个关掉」，Do's and Don'ts 有一条。
+规则在 `DESIGN.md` Overview 的「AI 可以整个关掉」。
 
 ### 细处
 
