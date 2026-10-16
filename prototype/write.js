@@ -496,6 +496,7 @@ function aiRare(here) {
     ['回复超出最大输出', () => { set(SHUT); say('回复超出模型的最大输出 128K（含思考）', '请在设置中「AI」配置里调大', 'fail', [['打开设置', () => set({ dialog: { kind: 'settings', tab: 'AI', edit: '' }, toasts: [], ...SHUT })]]) }],
     ['讨论查阅达到上限', here((s) => ({ paneOpen: true, tab: '讨论', tv: 'one', tid: 't1', talks: s.talks.map((talk) => (talk.id !== 't1' ? talk : { ...talk, msgs: [...talk.msgs, ...capped()] })) }))],
     ['设定较多，只附目录', here(() => ({ paneOpen: true, tab: '讨论', tv: 'one', tid: 't2', crowded: true, told: { 't2-1': true } }))],
+    ['作品里有旧版本记的用量', here((s) => ({ records: [...s.records, ['此前', '此前', '', 'deepseek-flash', '', [], [412000, 260000, 9800], '', 37]], dialog: { kind: 'settings', tab: 'AI', edit: '' } }))],
     ['模型目录读取失败', () => { set(SHUT); const id = say('读取模型目录失败', why, 'fail', [['重试', () => { unsay(id); fetchModels() }], ['打开设置', () => set({ dialog: { kind: 'settings', tab: 'AI', edit: '' }, toasts: [], ...SHUT })]]) }],
   ]
 }

@@ -58,6 +58,10 @@ type Service interface {
 	Pen(s *workspace.Store) (Pen, error)
 	// MinCheck is the shortest prose worth a check.
 	MinCheck() int
+	// Cost is what a request that took and gave u costs on the model
+	// named provider/model, by the prices built in, in currency; known is
+	// false for a model with no price.
+	Cost(model string, u workspace.Usage) (cost float64, currency string, known bool)
 }
 
 // Provider is a service of models. Its key is kept apart, by SetKey.

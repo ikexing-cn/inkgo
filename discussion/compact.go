@@ -58,7 +58,7 @@ func (e *Engine) compact(ctx context.Context, session string, before int, input 
 		if e.Step != nil {
 			e.Step(workspace.Event{Role: workspace.RoleDigest})
 		}
-		reply, err := ask(ctx, e.Talk, asked.Request, nil)
+		reply, err := ask(e.purpose(ctx, session, asked.Sent), e.Talk, asked.Request, nil)
 		if err != nil {
 			return err
 		}

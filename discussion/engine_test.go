@@ -19,6 +19,7 @@ type fake struct {
 	replies   []string
 	reasoning string
 	calls     []model.Request
+	purposes  []workspace.Purpose // of each request, as its context tells
 	err       error
 	usage     model.Usage
 }
@@ -27,6 +28,7 @@ func (f *fake) Complete(ctx context.Context, r model.Request, on func(model.Delt
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.calls = append(f.calls, r)
+	f.purposes = append(f.purposes, workspace.PurposeOf(ctx))
 	if f.err != nil {
 		return model.Reply{}, f.err
 	}

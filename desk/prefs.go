@@ -61,12 +61,27 @@ func (a *App) prefName(tab string) string {
 	return tab
 }
 
+// prefTitle heads the part of the settings shown: its name, or the AI
+// record's, which shows in the AI's part.
+func (a *App) prefTitle(tab string) string {
+	if tab == "AI" && a.showsLog() {
+		return "AI 记录"
+	}
+	return a.prefName(tab)
+}
+
 func (a *App) prefNote(tab string) string {
-	if tab == "AI" && !a.aiOn() {
+	switch {
+	case tab == "AI" && !a.aiOn():
 		return "仅在本机生效，适用于所有作品。"
+	case tab == "AI" && a.showsLog():
+		return "本作品每次向模型发的请求记一行，失败、取消的也记；只记发了哪几部分、各多大，不存内容。"
 	}
 	return prefAbout[tab]
 }
+
+// showsLog is whether the AI's part of the settings shows the AI record.
+func (a *App) showsLog() bool { return a.bk.log && a.aiOn() && a.Store != nil }
 
 // openPrefs opens the settings at the part named, or the AI.
 func (a *App) openPrefs(tab string) {
@@ -80,13 +95,13 @@ func (a *App) openPrefs(tab string) {
 // showPref shows a part of the settings. The reminders count the book's
 // foreshadowings from the tree and the marks the writing page reads as it
 // is entered: shown from another page, they are read here. The AI's part
-// reads what the work spent.
+// reads the AI record, and shows what it adds up to.
 func (a *App) showPref(tab string) {
-	a.bk.tab = tab
+	a.bk.tab, a.bk.log = tab, false
 	if tab == "AI" && a.Store != nil {
-		spent, err := a.Store.Spent()
+		records, err := a.Store.Records()
 		a.warn(err)
-		a.bk.spent = spent
+		a.bk.records = records
 	}
 	if tab == "提醒与检查" && a.Store != nil && !a.write.entered {
 		a.warn(a.loadTree())
@@ -141,11 +156,15 @@ func (a *App) preferences(c *ui.Context) {
 			// The title stays where it is: what is under it scrolls up to
 			// the line, not over it and the close button.
 			ui.Column(c).FillWidth().Shrink(0).Gap(4).Padding(24, 56, 16, 32).Children(func() {
-				ui.Text(c, a.prefName(a.bk.tab)).FontSize(fsDialog).FontWeight(700)
+				ui.Text(c, a.prefTitle(a.bk.tab)).FontSize(fsDialog).FontWeight(700)
 				ui.Text(c, a.prefNote(a.bk.tab)).FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
 			})
 			a.pal.hairline(c)
-			ui.Scroll(c.Key("prefs-" + a.bk.tab)).Grow(1).Shrink(1).FillWidth().Children(func() {
+			key := "prefs-" + a.bk.tab
+			if a.showsLog() {
+				key = "prefs-records"
+			}
+			ui.Scroll(c.Key(key)).Grow(1).Shrink(1).FillWidth().Children(func() {
 				ui.Column(c).FillWidth().Padding(12, 56, 32, 32).Gap(12).Children(func() {
 					switch a.bk.tab {
 					case "外观":

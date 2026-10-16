@@ -6,8 +6,15 @@ package ai
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync/atomic"
+	"time"
 
 	"writer/desk/aiport"
 	"writer/discussion"
@@ -23,6 +30,10 @@ type Service struct {
 	file string
 	cfg  model.Config
 	off  atomic.Bool
+	// Trace, when set, is a folder that gets the whole of each request
+	// and its reply, a file for each; it is for tuning the prompts, and
+	// no work is written to.
+	Trace string
 	// NewWriter builds the writer of s, as the work and the services are
 	// now; tests replace it.
 	NewWriter func(s *workspace.Store) (*writing.Writer, error)
@@ -159,7 +170,7 @@ func (s *Service) Talk(st *workspace.Store, beside *aiport.Beside, progress func
 	if work.Discussion.Provider == "" || work.Discussion.Model == "" {
 		return nil, errors.New("尚未选择讨论模型：请在设置中「AI」配置里选择")
 	}
-	m, err := open(s.cfg, work.Discussion, st)
+	m, err := s.open(work.Discussion, st)
 	if err != nil {
 		return nil, err
 	}
@@ -178,35 +189,86 @@ func (s *Service) Extract(st *workspace.Store, session, message string, start, e
 	return (&discussion.Engine{Store: st}).Extract(session, message, start, end, category)
 }
 
-// open is the model sel names, with its limits as cfg has them; what each
-// request to it takes and gives is counted as the work st spent.
-func open(cfg model.Config, sel workspace.Selection, st *workspace.Store) (discussion.Model, error) {
-	client, err := model.NewClient(cfg, sel.Provider, sel.Model)
+// open is the model sel names, with its limits as the services have
+// them; each request to it is a line of the AI record of the work st.
+func (s *Service) open(sel workspace.Selection, st *workspace.Store) (discussion.Model, error) {
+	client, err := model.NewClient(s.cfg, sel.Provider, sel.Model)
 	if err != nil {
 		return discussion.Model{}, err
 	}
 	name := sel.Provider + "/" + sel.Model
-	return discussion.Model{Completer: counted{client, st, name, sel.Model}, Model: cfg.Model(sel.Provider, sel.Model),
+	return discussion.Model{Completer: counted{client, st, name, sel.Model, s.Trace}, Model: s.cfg.Model(sel.Provider, sel.Model),
 		Name: name, Effort: model.Effort(sel.Effort)}, nil
 }
 
-// counted is a model whose requests are counted as a work spent, at the
-// prices built in for the model id.
+// counted is a model whose every request goes into the AI record of a
+// work, for the purpose its context carries and at the prices built in
+// for the model id; and, with a trace folder, whole into a file there.
 type counted struct {
 	model.Completer
 	st       *workspace.Store
 	name, id string
+	trace    string
 }
 
 func (c counted) Complete(ctx context.Context, req model.Request, on func(model.Delta)) (model.Reply, error) {
+	start := time.Now()
 	reply, err := c.Completer.Complete(ctx, req, on)
-	if u := reply.Usage; u != (model.Usage{}) {
-		cost, currency, _ := model.Cost(c.id, u)
-		// What it spent is an estimate for the author to look at: failing
-		// to count it does not fail the request.
-		_ = c.st.Spend(c.name, workspace.Usage(u), cost, currency)
+	p := workspace.PurposeOf(ctx)
+	r := workspace.Record{At: start.UTC(), Took: time.Since(start).Milliseconds(), Feature: p.Feature, Chapter: p.Chapter, Talk: p.Talk,
+		Model: c.name, Effort: string(req.Effort), Parts: p.Parts, Usage: workspace.Usage(reply.Usage), Outcome: workspace.OutcomeDone}
+	r.Cost, r.Currency, _ = model.Cost(c.id, reply.Usage)
+	switch {
+	case err == nil || errors.Is(context.Cause(ctx), workspace.ErrEnough):
+	case ctx.Err() != nil:
+		r.Outcome = workspace.OutcomeCancelled
+	default:
+		r.Outcome, r.Error = workspace.OutcomeFailed, err.Error()
+	}
+	// The record is for the author to look at: failing to keep it does
+	// not fail the request.
+	_ = c.st.Log(r)
+	if c.trace != "" {
+		_ = traced(c.trace, r, req, reply, err)
 	}
 	return reply, err
+}
+
+// traced writes request req, its reply and the line r of the record into
+// a file of the folder dir, named by its time and feature.
+func traced(dir string, r workspace.Record, req model.Request, reply model.Reply, err error) error {
+	whole := struct {
+		Record  workspace.Record
+		Request model.Request
+		Reply   model.Reply
+		Error   string `json:",omitempty"`
+	}{Record: r, Request: req, Reply: reply}
+	if err != nil {
+		whole.Error = err.Error()
+	}
+	b, err := json.MarshalIndent(whole, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err = os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	name := r.At.Local().Format("20060102-150405.000") + "-" + r.Feature
+	for n := 1; ; n++ {
+		p := filepath.Join(dir, name+".json")
+		if n > 1 {
+			p = filepath.Join(dir, fmt.Sprintf("%s-%d.json", name, n))
+		}
+		f, err := os.OpenFile(p, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+		if errors.Is(err, fs.ErrExist) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		_, err = f.Write(b)
+		return errors.Join(err, f.Close())
+	}
 }
 
 // writer builds the writer of st with its writing model, or the
@@ -220,7 +282,7 @@ func (s *Service) writer(st *workspace.Store) (*writing.Writer, error) {
 	if sel.Provider == "" || sel.Model == "" {
 		return nil, writing.ErrNoModel
 	}
-	m, err := open(s.cfg, sel, st)
+	m, err := s.open(sel, st)
 	if err != nil {
 		return nil, err
 	}
@@ -269,3 +331,7 @@ func (s *Service) Pen(st *workspace.Store) (aiport.Pen, error) {
 }
 
 func (s *Service) MinCheck() int { return writing.MinCheck }
+
+func (s *Service) Cost(name string, u workspace.Usage) (float64, string, bool) {
+	return model.Cost(name[strings.LastIndex(name, "/")+1:], model.Usage(u))
+}

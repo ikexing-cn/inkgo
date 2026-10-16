@@ -15,14 +15,16 @@ import (
 // digester writes the next digest when one is asked for, and replies,
 // counted as used, otherwise; it keeps what it was asked.
 type digester struct {
-	calls   []model.Request
-	digests int
+	calls    []model.Request
+	purposes []workspace.Purpose
+	digests  int
 	err     error
 	used    model.Usage
 }
 
 func (d *digester) Complete(ctx context.Context, r model.Request, on func(model.Delta)) (model.Reply, error) {
 	d.calls = append(d.calls, r)
+	d.purposes = append(d.purposes, workspace.PurposeOf(ctx))
 	if d.err != nil {
 		return model.Reply{}, d.err
 	}
@@ -80,6 +82,11 @@ func TestALongTalkIsCompacted(t *testing.T) {
 	}
 	if len(talk.calls) != 2 {
 		t.Fatalf("%d requests", len(talk.calls))
+	}
+	for _, p := range talk.purposes {
+		if p.Feature != workspace.FeatureTalk || p.Talk != session || len(p.Parts) == 0 {
+			t.Fatalf("the record would say %+v", p)
+		}
 	}
 	asked, replied := talk.calls[0], talk.calls[1]
 	if !asked.NoCalls || len(asked.Tools) != 5 || !strings.HasPrefix(asked.System, talkRules) || asked.Effort != model.EffortHigh ||

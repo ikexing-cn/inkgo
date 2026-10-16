@@ -197,7 +197,7 @@ func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembl
 	for step := 1; ; step++ {
 		capped = step == maxSteps
 		req.NoCalls = req.NoCalls || capped
-		reply, err := ask(ctx, e.Talk, req, e.Progress)
+		reply, err := ask(e.purpose(ctx, session, withLooked(assembled.Sent, looked)), e.Talk, req, e.Progress)
 		if err != nil {
 			return turn, fmt.Errorf("讨论失败，原文已保存：%w", err)
 		}
@@ -252,6 +252,16 @@ func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembl
 			last.Content += capNote
 		}
 	}
+}
+
+// purpose is ctx telling the AI record that its requests are for the
+// talk session and send the parts of sent.
+func (e *Engine) purpose(ctx context.Context, session string, sent *workspace.Sent) context.Context {
+	p := workspace.Purpose{Feature: workspace.FeatureTalk, Talk: session}
+	if sent != nil {
+		p.Parts = sent.Parts
+	}
+	return workspace.WithPurpose(ctx, p)
 }
 
 // withLooked is sent with what the tools returned, in its place among the

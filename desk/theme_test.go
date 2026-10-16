@@ -319,7 +319,7 @@ func TestCopySaysWhereTheModelsAre(t *testing.T) {
 			}
 		}
 	}
-	if got := writing.ErrNoModel.Error(); got != "请在设置中「AI」配置里选择写作模型" {
+	if got := writing.ErrNoModel.Error(); got != "请在设置中「AI」配置里选择续写和检查模型" {
 		t.Errorf("ErrNoModel says %q, not the prototype's line", got)
 	}
 }

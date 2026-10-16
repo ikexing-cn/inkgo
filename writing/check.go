@@ -169,7 +169,7 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 		Messages: []model.Message{{Role: workspace.RoleUser, Content: msg.String()}}}
 	out.Sent = b.Sent(checkRules, set)
 	var said strings.Builder
-	if _, err = w.Model.Complete(ctx, req, func(d model.Delta) { said.WriteString(d.Text) }); err != nil {
+	if _, err = w.Model.Complete(purpose(ctx, workspace.FeatureCheck, n.ID, out.Sent), req, func(d model.Delta) { said.WriteString(d.Text) }); err != nil {
 		return workspace.Check{}, err
 	}
 	var got found

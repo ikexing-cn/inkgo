@@ -23,7 +23,7 @@ type pen struct {
 
 // errNoPen is what predicting says without a writer; the editor shows
 // nothing of it, and the page says why there is none.
-var errNoPen = errors.New("还没有写作模型")
+var errNoPen = errors.New("还没有续写和检查模型")
 
 func (p pen) Predict(ctx context.Context, before string) (string, error) {
 	w := p.writer.Load()

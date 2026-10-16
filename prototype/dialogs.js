@@ -96,29 +96,32 @@ function fetchModels() {
 
 // 这部作品用了多少：按功能各一行，请求数、token、按内置价格估的花费；表里没有价格的模型不估。
 // 每次请求都在 AI 记录里有一行，点「查看全部记录」一行一行看；只能看，不能删。
-const FEATURES = ['讨论', '起草', '改写', '续写', '检查']
+// 「此前」是旧版本记在 usage.json 里的用量，一个模型一行，不分功能和章节；它的第 9 项是请求数。
+const FEATURES = ['讨论', '起草', '改写', '续写', '检查', '此前']
+const requestsIn = (rows) => rows.reduce((n, r) => n + (r[1] === '此前' ? r[8] : 1), 0)
 const spentOn = (rows) => rows.reduce((n, r) => { const p = (BOOK.table[r[3]] || [])[2], [input, cached, output] = r[6]; return n + (p ? ((input - cached) * p[0] + cached * p[1] + output * p[2]) / 1e6 : 0) }, 0)
 function spent() {
   const all = S.records
   const row = (feature) => {
     const rows = all.filter((r) => r[1] === feature), sum = (i) => rows.reduce((n, r) => n + r[6][i], 0)
-    return `<div class="spent-row"><div>${feature}</div><div class="fit ell">${rows.length} 次请求 · 输入 ${tokens(sum(0))}，缓存命中 ${Math.round((sum(1) / sum(0)) * 100)}% · 输出 ${tokens(sum(2))}</div><div>约 $${spentOn(rows).toFixed(2)}</div></div>`
+    return `<div class="spent-row"><div>${feature}</div><div class="fit ell">${requestsIn(rows)} 次请求 · 输入 ${tokens(sum(0))}，缓存命中 ${Math.round((sum(1) / sum(0)) * 100)}% · 输出 ${tokens(sum(2))}</div><div>约 $${spentOn(rows).toFixed(2)}</div></div>`
   }
   const used = FEATURES.filter((f) => all.some((r) => r[1] === f))
   return '<div class="prefs-group"><div class="group-title">本作品用量</div><div class="note">按内置价格估算，以服务商账单为准。</div></div>' +
-    (used.length ? `<div class="spent">${used.map(row).join('')}</div><div class="prefs-links"><div class="hit link"${onClick(() => set((s) => ({ dialog: { ...s.dialog, records: true, only: '全部', row: -1 }, ...SHUT })))}>查看全部记录（${all.length} 次请求）</div></div>` : '<div class="note">尚未使用 AI。</div>')
+    (used.length ? `<div class="spent">${used.map(row).join('')}</div><div class="prefs-links"><div class="hit link"${onClick(() => set((s) => ({ dialog: { ...s.dialog, records: true, only: '全部', row: -1 }, ...SHUT })))}>查看全部记录（${requestsIn(all)} 次请求）</div></div>` : '<div class="note">尚未使用 AI。</div>')
 }
 // AI 记录：每次请求一行，新的在上，失败的、取消的也在。点一行看这次发了哪几部分、服务商算的实际用量。不存发出去的字。
 function records(d) {
   const shown = S.records.filter((r) => d.only === '全部' || r[1] === d.only)
   const pick = (change) => () => set((s) => ({ dialog: { ...s.dialog, ...change } }))
   const line = (r, i) => {
-    const [at, feature, where, model, effort, parts, [input, cached, output], end] = r, open = d.row === i, cost = price(model, [r[6]])
-    return `<div class="record${open ? ' on' : ''}"><div class="record-row hit"${onClick(pick({ row: open ? -1 : i }))}><div class="record-at">${t(at)}</div><div class="fit ell">${t(feature + ' · ' + where)}</div>` +
+    const [at, feature, where, model, effort, parts, [input, cached, output], end] = r, open = d.row === i, cost = price(model, [r[6]]), before = feature === '此前'
+    return `<div class="record${open ? ' on' : ''}"><div class="record-row hit"${onClick(pick({ row: open ? -1 : i }))}><div class="record-at">${t(at)}</div><div class="fit ell">${t(before ? '共 ' + r[8] + ' 次请求 · ' + model : feature + ' · ' + where)}</div>` +
       `<div class="record-n">${tokens(input + output)}</div><div class="record-cost">${t(cost || '—')}</div><div class="record-end ell${end === '完成' ? '' : end === '已取消' ? ' muted' : ' danger'}">${t(end)}</div>${icon(open ? 'down' : 'right', 'xs')}</div>` +
-      (open ? `<div class="record-more"><div>${t(model + ' · ' + effort)}</div><div>发送：${parts.map(([name, x]) => t(name) + ' ' + tokens(x)).join(' · ')}</div><div>实际用量：输入 ${tokens(input)}${cached ? '，其中缓存命中 ' + tokens(cached) : ''}；输出 ${tokens(output)}</div></div>` : '') + '</div>'
+      (open ? `<div class="record-more"><div>${t(before ? model : model + ' · ' + effort)}</div>${before ? '<div>此版本以前记下的用量，不分功能和章节。</div>' : `<div>发送：${parts.map(([name, x]) => t(name) + ' ' + tokens(x)).join(' · ')}</div>`}<div>实际用量：输入 ${tokens(input)}${cached ? '，其中缓存命中 ' + tokens(cached) : ''}；输出 ${tokens(output)}</div></div>` : '') + '</div>'
   }
-  return `<div class="records-head"><div class="hit link"${onClick(pick({ records: false }))}>‹ 本作品用量</div><div class="grow"></div>${seg(d.only, ['全部', ...FEATURES], (only) => set((s) => ({ dialog: { ...s.dialog, only, row: -1 } })), '按功能筛选')}</div>` +
+  const kinds = FEATURES.filter((f) => f !== '此前' || S.records.some((r) => r[1] === f))
+  return `<div class="records-head"><div class="hit link"${onClick(pick({ records: false }))}>‹ 本作品用量</div><div class="grow"></div>${seg(d.only, ['全部', ...kinds], (only) => set((s) => ({ dialog: { ...s.dialog, only, row: -1 } })), '按功能筛选')}</div>` +
     `<div class="records">${shown.length ? shown.map((r) => line(r, S.records.indexOf(r))).join('') : '<div class="note">没有这类请求。</div>'}</div>`
 }
 

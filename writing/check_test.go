@@ -2,6 +2,7 @@ package writing
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"testing"
 
@@ -39,6 +40,9 @@ func TestCheckAChapterAgainstTheSetting(t *testing.T) {
 	got, err := w.Check(context.Background(), two)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if p := f.purposes[0]; p.Feature != workspace.FeatureCheck || p.Chapter != two || got.Sent == nil || !slices.Equal(p.Parts, got.Sent.Parts) {
+		t.Fatalf("the record would say %+v", p)
 	}
 	if got.Of != workspace.ProseHash(text) || got.By != "deepseek/deepseek-flash" || len(got.Findings) != 3 {
 		t.Fatalf("%+v", got)

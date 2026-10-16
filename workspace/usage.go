@@ -1,21 +1,19 @@
 package workspace
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"strings"
 )
 
-// usageFile is what the work has spent on the AI, beside work.yaml, so
-// that a backup takes it along.
+// usageFile is what versions before the AI record counted the work spent,
+// by model; the record takes it over once and leaves it where it is.
 const usageFile = "usage.json"
 
-// Spent is what the work's requests to one model took and gave, all told,
-// and what they cost by the prices built in when each was made. Cost
-// counts only the requests that had a price.
-type Spent struct {
+// spent is what the work's requests to one model took and gave, all told,
+// as usage.json kept it.
+type spent struct {
 	Model    string `json:"model"` // provider/model
 	Requests int    `json:"requests"`
 	Usage
@@ -24,65 +22,12 @@ type Spent struct {
 }
 
 type usageDoc struct {
-	Models []Spent `json:"models"`
+	Models []spent `json:"models"`
 }
 
-// Spend adds a request to model, what it took and gave and what it cost in
-// currency, to what the work has spent. A cost in another currency than
-// the model's so far is not added.
-func (s *Store) Spend(model string, u Usage, cost float64, currency string) error {
-	if strings.TrimSpace(model) == "" {
-		return errors.New("usage: a request without its model")
-	}
-	unlock, err := s.lock()
-	if err != nil {
-		return err
-	}
-	defer unlock()
-	all, err := s.spent()
-	if err != nil {
-		return err
-	}
-	n := 0
-	for n < len(all) && all[n].Model != model {
-		n++
-	}
-	if n == len(all) {
-		all = append(all, Spent{Model: model})
-	}
-	m := &all[n]
-	m.Requests++
-	m.Input += u.Input
-	m.CacheRead += u.CacheRead
-	m.CacheWrite += u.CacheWrite
-	m.Output += u.Output
-	m.Reasoning += u.Reasoning
-	if currency != "" && (m.Currency == "" || m.Currency == currency) {
-		m.Cost += max(cost, 0)
-		m.Currency = currency
-	}
-	b, err := json.MarshalIndent(usageDoc{Models: all}, "", "  ")
-	if err != nil {
-		return err
-	}
-	p, err := s.path(usageFile)
-	if err != nil {
-		return err
-	}
-	return atomicWrite(p, append(b, '\n'), false)
-}
-
-// Spent is what the work has spent on each model, in the order first used.
-func (s *Store) Spent() ([]Spent, error) {
-	unlock, err := s.lock()
-	if err != nil {
-		return nil, err
-	}
-	defer unlock()
-	return s.spent()
-}
-
-func (s *Store) spent() ([]Spent, error) {
+// before is what usage.json counted, a line of FeatureBefore for each
+// model in the order first used, or nothing without the file.
+func (s *Store) before() ([]Record, error) {
 	p, err := s.path(usageFile)
 	if err != nil {
 		return nil, err
@@ -99,6 +44,7 @@ func (s *Store) spent() ([]Spent, error) {
 		return nil, fmt.Errorf("%s: %w", p, err)
 	}
 	seen := map[string]bool{}
+	var out []Record
 	for i, m := range doc.Models {
 		bad := ""
 		switch {
@@ -115,6 +61,8 @@ func (s *Store) spent() ([]Spent, error) {
 			return nil, fmt.Errorf("%s: models[%d]: %s", p, i, bad)
 		}
 		seen[m.Model] = true
+		out = append(out, Record{Schema: Schema, Feature: FeatureBefore, Model: m.Model, Usage: m.Usage, Requests: m.Requests,
+			Cost: m.Cost, Currency: m.Currency, Outcome: OutcomeDone})
 	}
-	return doc.Models, nil
+	return out, nil
 }

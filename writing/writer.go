@@ -42,23 +42,25 @@ type Scene struct {
 	Before, After string
 }
 
-// Job is a request ready to run, and the record of what it shows.
+// Job is a request ready to run for a chapter, and the record of what it
+// shows.
 type Job struct {
 	Request model.Request
 	Record  workspace.AIRecord
+	Chapter string
 }
 
 // Errors the author can act on.
 var (
 	ErrNoOutline = errors.New("章纲是空的：先写下这一章要发生什么，再让 AI 起草")
-	ErrNoModel   = errors.New("请在设置中「AI」配置里选择写作模型")
+	ErrNoModel   = errors.New("请在设置中「AI」配置里选择续写和检查模型")
 )
 
 // prepare builds the request of task for scene: the rules and the setting
 // in the system prompt, the outlines and the text around the place in the
 // message, as far as the budget allows.
 func (w *Writer) prepare(op, task string, scene Scene, tail string) (Job, error) {
-	job := Job{Record: workspace.AIRecord{Op: op, Model: w.Model.Name, Effort: string(w.Model.Effort)}}
+	job := Job{Record: workspace.AIRecord{Op: op, Model: w.Model.Name, Effort: string(w.Model.Effort)}, Chapter: scene.Chapter}
 	if w.Model.Completer == nil {
 		return job, ErrNoModel
 	}
@@ -203,7 +205,7 @@ func (w *Writer) Rewrite(scene Scene, selected, instruction string) (Job, error)
 func (w *Writer) Run(ctx context.Context, job Job, onText func(string)) (string, error) {
 	var p prose
 	var out strings.Builder
-	_, err := w.Model.Complete(ctx, job.Request, func(d model.Delta) {
+	_, err := w.Model.Complete(purpose(ctx, job.Record.Op, job.Chapter, job.Record.Sent), job.Request, func(d model.Delta) {
 		if s := p.feed(d.Text); s != "" {
 			out.WriteString(s)
 			if onText != nil {
@@ -226,15 +228,15 @@ func (w *Writer) Predict(ctx context.Context, scene Scene) (string, error) {
 	}
 	job.Request.MaxTokens = nextOutput
 	job.Request.Effort = model.EffortNone
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	ctx, cancel := context.WithCancelCause(purpose(ctx, workspace.FeatureContinue, scene.Chapter, job.Record.Sent))
+	defer cancel(nil)
 	var got strings.Builder
 	var line string
 	_, err = w.Model.Complete(ctx, job.Request, func(d model.Delta) {
 		got.WriteString(d.Text)
 		if s, done := sentence(got.String()); done {
 			line = s
-			cancel()
+			cancel(workspace.ErrEnough)
 		}
 	})
 	if line != "" {
@@ -245,6 +247,16 @@ func (w *Writer) Predict(ctx context.Context, scene Scene) (string, error) {
 	}
 	s, _ := sentence(got.String())
 	return s, nil
+}
+
+// purpose is ctx telling the AI record that its requests are for feature
+// in chapter and send the parts of sent.
+func purpose(ctx context.Context, feature, chapter string, sent *workspace.Sent) context.Context {
+	p := workspace.Purpose{Feature: feature, Chapter: chapter}
+	if sent != nil {
+		p.Parts = sent.Parts
+	}
+	return workspace.WithPurpose(ctx, p)
 }
 
 // previous is the document before n in the order of the tree.

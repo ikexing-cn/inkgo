@@ -8,7 +8,8 @@ import (
 )
 
 // Under each reply, the tokens the requests of its turn took and gave as
-// the provider counted: its own and those that looked something up.
+// the provider counted: its own and those that looked something up; and
+// what they cost by the prices built in, unless a model has no price.
 // What a reply was sent is of the request that replied, saying how many
 // the turn took: each part's tokens as estimated, what the provider
 // counted, and the setting, whole with a tick each, or as its index. A
@@ -21,7 +22,7 @@ func TestWhatWasSent(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err = a.Store.Append(a.session, workspace.Event{Role: workspace.RoleCall, ReplyTo: u.ID,
-		Calls: []workspace.Call{{ID: "c1", Name: "search_book", Input: []byte(`{"query":"雨"}`), Label: "搜了全书「雨」"}}, Usage: &workspace.Usage{Input: 9200, Output: 40}}); err != nil {
+		Calls: []workspace.Call{{ID: "c1", Name: "search_book", Input: []byte(`{"query":"雨"}`), Label: "搜了全书「雨」"}}, Model: "deepseek/deepseek-flash", Usage: &workspace.Usage{Input: 9200, Output: 40}}); err != nil {
 		t.Fatal(err)
 	}
 	sent := &workspace.Sent{Rules: "ab12cd34", Setting: 1, Parts: []workspace.Part{
@@ -29,7 +30,7 @@ func TestWhatWasSent(t *testing.T) {
 		{Name: workspace.PartTalk, Tokens: 7460}, {Name: workspace.PartInput, Tokens: 40}}}
 	whole, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "可以。",
 		Context: []workspace.ContextItem{{Text: "所在章：第一章"}, {ID: e.ID, Text: "主角怕黑"}},
-		Usage:   &workspace.Usage{Input: 9900, CacheRead: 6000, Output: 268}, Sent: sent})
+		Model: "deepseek/deepseek-flash", Usage: &workspace.Usage{Input: 9900, CacheRead: 6000, Output: 268}, Sent: sent})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +57,7 @@ func TestWhatWasSent(t *testing.T) {
 	tt.Frame()
 	footers, asked := 0, 0
 	for _, s := range tt.Texts() {
-		if strings.HasPrefix(s, "今天 ") && (strings.HasSuffix(s, " · 19.4K token") || strings.HasSuffix(s, " · 920 token")) {
+		if strings.HasPrefix(s, "今天 ") && (strings.HasSuffix(s, " · 19.4K token · 不到 $0.01") || strings.HasSuffix(s, " · 920 token")) {
 			footers++
 		}
 		if len(s) == len("今天 15:04") && strings.HasPrefix(s, "今天 ") {

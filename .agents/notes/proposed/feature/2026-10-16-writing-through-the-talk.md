@@ -73,7 +73,7 @@ Status: proposed
 
 - `writing.Writer` 的 `Draft`、`Rewrite`，`aiport.Pen` 的这两个方法和 `Job`。
 - 正文标题下面 AI 那一行（「放弃」「重新起草」「采纳」）；提议整章只读。
-- 快照里的 `AIRecord` 不再新写。发了什么在讨论的「AI 参考内容」和 [AI 记录](2026-10-16-ai-record-and-trace.md)里；旧快照里的照旧能看。
+- 快照里的 `AIRecord` 不再新写。发了什么在讨论的「AI 参考内容」和 [AI 记录](../../implemented/feature/2026-10-16-ai-record-and-trace.md)里；旧快照里的照旧能看。
 
 ## Alternatives considered
 

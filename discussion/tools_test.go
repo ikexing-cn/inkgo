@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 
@@ -46,6 +47,13 @@ func TestReplyLooksUpAndNotes(t *testing.T) {
 	got, err := e.Say(context.Background(), session, workspace.Event{Text: "林晚怕黑，这和第一章对得上吗？"})
 	if err != nil {
 		t.Fatal(err)
+	}
+	// Each step is a request of the talk; the second sends what was looked
+	// up.
+	if len(f.purposes) != 2 || f.purposes[0].Feature != workspace.FeatureTalk || f.purposes[1].Talk != session ||
+		slices.ContainsFunc(f.purposes[0].Parts, func(p workspace.Part) bool { return p.Name == workspace.PartLooked }) ||
+		!slices.ContainsFunc(f.purposes[1].Parts, func(p workspace.Part) bool { return p.Name == workspace.PartLooked && p.Tokens > 0 }) {
+		t.Fatalf("the record would say %+v", f.purposes)
 	}
 	events, err := e.Store.Events(session)
 	if err != nil {

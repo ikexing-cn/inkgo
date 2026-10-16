@@ -50,7 +50,7 @@ Status: implemented
 - 离开改过的一章不再在作者背后花钱。
 - 几百章以后，起草只带上一章和本卷章纲，更早的伏笔要靠 AI 自己想到去查。查不查、查得准不准，现在没有评测；等起草在讨论里用过一阵，看实际写出来的东西。
 - 作者的旧作品里改过名的章，旁边会剩下用旧名字的 `.summary.json`。软件没有发出去过，只在作者自己的测试作品里有。
-- 提案里「改过一章再离开，AI 记录里没有新行」一条：落地时先做了这一篇，AI 记录（[AI 记录和完整请求](../../proposed/feature/2026-10-16-ai-record-and-trace.md)）排在后面，所以现在由测试查「一次也没问模型」。先做这一篇，是因为它删掉一批调用模型的地方，AI 记录要挂的地方就少一些。
+- 提案里「改过一章再离开，AI 记录里没有新行」一条：落地时先做了这一篇，AI 记录（[AI 记录和完整请求](../feature/2026-10-16-ai-record-and-trace.md)）排在后面，所以现在由测试查「一次也没问模型」。先做这一篇，是因为它删掉一批调用模型的地方，AI 记录要挂的地方就少一些。
 - 测试：
   - `desk/write_test.go` 的 `TestLeavingAChangedChapterAsksNothing`：检查设成手动时，改过一章再离开，模型一次也没被问到（有摘要时这里会排一份摘要）。`TestFolderShowsTheGists`：没有章纲的章，卷页显示正文的开头。
   - `workspace/chapters_test.go` 的 `TestAnOldSummaryStaysWhereItWas`：旁边有 `.summary.json` 的章改名、进回收站、再恢复，那个文件原样留在原处；作品重新打开，章节照常。

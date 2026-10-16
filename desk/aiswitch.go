@@ -22,6 +22,10 @@ func (a *App) loadAI() {
 // aiView is the settings' AI: the switch for every work on this machine,
 // and with the AI on, the models.
 func (a *App) aiView(c *ui.Context) {
+	if a.showsLog() {
+		a.recordsView(c)
+		return
+	}
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
 		off := !a.aiOn() // the box shows the switch; it changes once asked
 		if ui.Checkbox(c, &off, "关闭 AI").Changed() {
@@ -38,9 +42,9 @@ func (a *App) aiView(c *ui.Context) {
 // and the shade put the question away, the settings staying.
 func (a *App) askAI(c *ui.Context) {
 	off := a.aiOn() // what is asked is to turn it off
-	title, about, verb := "是否开启 AI？", "重新显示 AI 功能。自动摘要和检查会按设置把章节内容发给模型服务；未配置模型服务时不发送任何内容。", "开启 AI"
+	title, about, verb := "是否开启 AI？", "重新显示 AI 功能。检查会按设置把章节内容发给模型服务；未配置模型服务时不发送任何内容。", "开启 AI"
 	if off {
-		title, about, verb = "是否关闭 AI？", "隐藏全部 AI 功能，不再发送任何内容；正在进行的 AI 任务会停止。讨论、摘要和检查结果不会删除，重新开启后恢复。", "关闭 AI"
+		title, about, verb = "是否关闭 AI？", "隐藏全部 AI 功能，不再发送任何内容；正在进行的 AI 任务会停止。讨论、检查结果和 AI 记录不会删除，重新开启后恢复。", "关闭 AI"
 	}
 	turn := false
 	a.modal(c, &a.bk.askAI, func() {

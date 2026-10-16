@@ -373,7 +373,7 @@ func TestAFailedCheckIsNotToldAsClear(t *testing.T) {
 // on hover where the line is cut short.
 func TestAFailedCheckSaysWhyInFull(t *testing.T) {
 	a, tt, id, _ := checkFixture(t)
-	a.ck.failed[id] = "请在设置中「AI」配置里选择写作模型"
+	a.ck.failed[id] = "请在设置中「AI」配置里选择续写和检查模型"
 	tt.Frame()
 	line, _, can, tip := a.checkState()
 	if want := "检查失败：" + a.ck.failed[id]; line != want || tip != want || !can {

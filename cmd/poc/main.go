@@ -75,12 +75,15 @@ func (a *app) view(c *ui.Context) {
 func main() {
 	editorDemo := flag.Bool("editor", false, "打开原有正文编辑器演示")
 	workPath := flag.String("work", "", "打开作品文件夹")
+	trace := flag.String("trace", "", "把每次请求的全文写进这个文件夹（调提示词用，不写进作品）")
 	flag.Parse()
 	if !*editorDemo {
 		// The AI keeps its services in this machine's settings folder, and
 		// the shelf of works lies beside them.
 		path, err := ai.ConfigPath()
-		d := desk.New(ai.New(path))
+		service := ai.New(path)
+		service.Trace = *trace
+		d := desk.New(service)
 		if err != nil {
 			d.Error = err.Error()
 		}

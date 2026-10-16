@@ -737,7 +737,7 @@ func TestChooseAServiceByName(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if err := tt.Click("写作提供商"); err != nil {
+	if err := tt.Click("续写和检查提供商"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

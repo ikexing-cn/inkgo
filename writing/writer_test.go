@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -15,16 +16,20 @@ import (
 
 // fake streams its reply in pieces and keeps the requests it was sent.
 type fake struct {
-	pieces []string
-	err    error
-	got    []model.Request
+	pieces   []string
+	err      error
+	got      []model.Request
+	purposes []workspace.Purpose // of each request, as its context tells
+	cause    error               // why the last request stopped early
 }
 
 func (f *fake) Complete(ctx context.Context, req model.Request, on func(model.Delta)) (model.Reply, error) {
 	f.got = append(f.got, req)
+	f.purposes = append(f.purposes, workspace.PurposeOf(ctx))
 	var all string
 	for _, p := range f.pieces {
 		if ctx.Err() != nil {
+			f.cause = context.Cause(ctx)
 			return model.Reply{}, ctx.Err()
 		}
 		all += p
@@ -128,6 +133,9 @@ func TestDraftShowsWhatItRecords(t *testing.T) {
 	if f.got[0].Effort != model.EffortHigh || f.got[0].MaxTokens != limits.Output {
 		t.Fatalf("request %+v", f.got[0])
 	}
+	if p := f.purposes[0]; p.Feature != workspace.FeatureDraft || p.Chapter != two || !slices.Equal(p.Parts, job.Record.Sent.Parts) {
+		t.Fatalf("the record would say %+v", p)
+	}
 }
 
 func TestDraftNeedsAnOutline(t *testing.T) {
@@ -174,13 +182,20 @@ func TestRewriteShowsTheWordsAround(t *testing.T) {
 	if got := strings.Join(job.Record.Shown, "|"); got != "卷纲：第一卷|章纲：第二章|上一章《第一章》结尾 12 字|本章前文 4 字|本章后文 5 字" {
 		t.Errorf("shown %q", got)
 	}
+	if _, err = w.Run(context.Background(), job, nil); err != nil {
+		t.Fatal(err)
+	}
+	if p := f.purposes[0]; p.Feature != workspace.FeatureRewrite || p.Chapter != two || len(p.Parts) == 0 {
+		t.Fatalf("the record would say %+v", p)
+	}
 	if _, err = w.Rewrite(Scene{Chapter: two}, "x", " "); err == nil {
 		t.Fatal("a rewrite without an instruction")
 	}
 }
 
 // A prediction is one sentence, asked without reasoning, and stops
-// reading once the sentence ends.
+// reading once the sentence ends, as having enough: the record counts it
+// done.
 func TestPredictOneSentence(t *testing.T) {
 	f := &fake{pieces: []string{"她推开", "门，“谁？”", "她问。然后", "又一句。"}}
 	w, two, _ := book(t, f)
@@ -193,6 +208,9 @@ func TestPredictOneSentence(t *testing.T) {
 	}
 	if f.got[0].Effort != model.EffortNone || f.got[0].MaxTokens != nextOutput {
 		t.Fatalf("request %+v", f.got[0])
+	}
+	if p := f.purposes[0]; p.Feature != workspace.FeatureContinue || p.Chapter != two || len(p.Parts) == 0 || !errors.Is(f.cause, workspace.ErrEnough) {
+		t.Fatalf("the record would say %+v, stopped for %v", p, f.cause)
 	}
 }
 

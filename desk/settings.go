@@ -3,8 +3,6 @@ package desk
 import (
 	"context"
 	"errors"
-	"fmt"
-	"math"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -111,50 +109,20 @@ func (a *App) subhead(c *ui.Context, title, caption string) {
 }
 
 // usage chooses which configured models this work talks to: one row each
-// for the discussion and the writing. A choice is kept as
+// for the discussion, and for continuing and checking. A choice is kept as
 // it is made, a model ID typed once the caret leaves it.
 func (a *App) usage(c *ui.Context) {
 	a.subhead(c, "本作品的模型", "思考程度选 Default 时由服务商决定。修改自下次发送起生效。")
 	var typing [2]bool
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
 		typing[0] = a.useRow(c, "讨论", "与你讨论故事", &a.talkProvider, "", "讨论提供商", &a.talkModel, "讨论模型", &a.talkEffort, "讨论的思考程度")
-		typing[1] = a.useRow(c, "写作", "续写、改写、起草", &a.penProvider, sameAsTalk, "写作提供商", &a.penModel, "写作模型", &a.penEffort, "写作的思考程度")
+		typing[1] = a.useRow(c, "续写和检查", "灰字续写，检查正文", &a.penProvider, sameAsTalk, "续写和检查提供商", &a.penModel, "续写和检查模型", &a.penEffort, "续写和检查的思考程度")
 	})
 	if typing == [2]bool{} {
 		if err := a.saveUsage(); err != nil {
 			a.setError(err)
 		}
 	}
-}
-
-// spent shows what the work has spent on each model: the tokens as its
-// provider counted them, and the cost by the prices built in. It is only
-// to look at; nothing clears it.
-func (a *App) spent(c *ui.Context) {
-	t := a.pal.theme
-	a.subhead(c, "本作品用量", "按内置价格估算，以服务商账单为准。")
-	if len(a.bk.spent) == 0 {
-		ui.Text(c, "尚未使用 AI。").FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
-		return
-	}
-	ui.Column(c).FillWidth().Gap(4).Children(func() {
-		for _, m := range a.bk.spent {
-			used := "输入 " + tokens.Round(m.Input)
-			if m.Input > 0 {
-				used += fmt.Sprintf("，缓存命中 %d%%", int(math.Round(float64(m.CacheRead)*100/float64(m.Input))))
-			}
-			used += " · 输出 " + tokens.Round(m.Output)
-			cost := "无价格"
-			if m.Currency != "" {
-				cost = fmt.Sprintf("约 %s%.2f", m.Currency, m.Cost)
-			}
-			ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Center).Children(func() {
-				ui.Text(c, m.Model[strings.LastIndex(m.Model, "/")+1:]).FontSize(fsControl).Width(150).Shrink(0).SingleLine().Ellipsis("…")
-				ui.Text(c, used).FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
-				ui.Text(c, cost).FontSize(fsControl)
-			})
-		}
-	})
 }
 
 // useRow is one of usage's rows: who, the service, the model and the
