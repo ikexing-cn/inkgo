@@ -39,7 +39,7 @@ NovelCrafter 的 Codex 有同样的东西（progressions）：一条设定可以
 - **检查第 N 章**（`writing/check.go`）：拿第 N 章时的设定比对。找什么、怎么报都不变。
 - **普通讨论**（`discussion/context.go`）：每条给原来的文字，下面每处变化一行「「第40章：断指」起：……」，用的是 AI 认得的章名（`bookOf` 的名字，重名的带上卷名）；AI 建议、还在待确认的写「起（悬而未决）：」。设定多到只给目录时，目录写每条最后的样子。`look_up_setting` 查到的条目也列出变化，查的词落在变化里也算查到。
 - 发出去的设定里每条的变化记在 `ContextItem.Changes`，「AI 参考内容」照着列出来。
-- 在某一章起草、改写的讨论里只给那一章时的样子，随[经由讨论起草和改写](../../proposed/feature/2026-10-16-writing-through-the-talk.md)一起做。
+- 在某一章起草、改写的讨论里只给那一章时的样子，见[起草和改写交给讨论](2026-10-16-writing-through-the-talk.md)。
 
 ### 谁来记
 

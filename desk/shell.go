@@ -106,6 +106,7 @@ func (a *App) View(c *ui.Context) {
 	a.renameDialog(c)
 	if a.Store != nil {
 		a.askView(c)
+		a.leaveView(c)
 		if a.write.trashOpen { // the trash is at the foot of every page
 			a.trashView(c)
 		}
@@ -178,7 +179,7 @@ func (a *App) sidebar(c *ui.Context) {
 			m.Item("新建作品…").Do(func() { chosen = a.openCreate })
 			m.Item("全部作品…").Do(func() { chosen = a.closeWork })
 		})
-		if chosen != nil {
+		if chosen != nil && !a.Leave(chosen) { // what the AI proposed is let go first
 			chosen()
 			if a.Store == nil {
 				return

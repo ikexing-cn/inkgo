@@ -451,6 +451,22 @@ func (p *palette) danger(c *ui.Context, text string) ui.Element {
 	return b
 }
 
+// soft is the button that lets go of what the AI does or proposed, in its
+// line under a chapter's title and after each proposal: on a pressed fill,
+// with no line round it, a step darker under the pointer.
+func (p *palette) soft(c *ui.Context, text string) ui.Element {
+	t := p.theme
+	b := ui.ButtonBase(c).Row().Center().Gap(6).Height(hControlSm).Padding(0, 12).Radius(rControl).Background(t.SurfacePressed).Shrink(0)
+	if b.Hovered() {
+		b.Background(p.dim)
+	}
+	if b.IsDisabled() {
+		pale(b)
+	}
+	b.Children(func() { ui.Text(c, text).FontSize(fsControl).SingleLine() })
+	return b
+}
+
 func (p *palette) secondary(c *ui.Context, text string) ui.Element {
 	t := p.theme
 	b := ui.ButtonBase(c).Row().Center().Gap(6).Height(hControlSm).Padding(0, 12).Radius(rControl).Border(1, t.Border).Background(p.canvas).Shrink(0)

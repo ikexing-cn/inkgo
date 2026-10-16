@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 	"writer/shelf"
 
 	"github.com/egoist/mygo/ui"
@@ -83,33 +84,82 @@ func TestShotAI(t *testing.T) {
 	shot("ai-continue.png")
 	ed.DismissGhost()
 
+	// The talk proposes in the prose; the rewrite and the draft are its
+	// first words.
+	g := &script{}
+	penWith(a, g)
+	take := func() {
+		time.Sleep(settleFor)
+		a.takeProps(a.write.props)
+	}
 	ed.Select(15, 34)
 	tt.Frame()
 	a.openRewrite()
 	a.write.instruction = "节奏放慢，多写她的犹豫"
 	shot("ai-rewrite-ask.png")
-	f.pieces = []string{"林晚背着工具箱，在亮着的灯下站了很久，", "才一盏一盏地往旧城走。"}
+	hold := g.holding()
+	g.then(proposal("第一章", "replace", ed.Doc.Slice(15, 34), "林晚背着工具箱，在亮着的灯下站了很久，才一盏一盏地往旧城走。"), []string{"放慢了：她先在灯下站了很久，再一盏一盏往旧城走，犹豫落在动作上。"})
 	if err := tt.Click("改写"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the rewrite", func() bool { return a.write.proposed != nil })
+	until(t, tt, "the rewrite", func() bool { return len(ed.Proposals()) == 1 })
+	shot("ai-rewriting.png")
+	close(hold)
+	replied(t, a, tt)
 	shot("ai-rewrite.png")
-	a.acceptProposal()
+	take()
 
 	a.write.outline = "林晚夜里去旧城修灯，发现井边的灯是被人拧坏的。"
 	a.openDraft()
 	a.write.words = "1500"
 	shot("ai-draft-ask.png")
-	f.pieces, f.hold = []string{"她把手电咬在嘴里，", "拧下灯罩。"}, make(chan struct{})
+	hold = g.holding()
+	g.then(proposal("第一章", "end", "", "她把手电咬在嘴里，拧下灯罩。灯座上的螺丝少了两颗，断口是新的。"), []string{"按章纲接着写了一段：她发现灯是被人拧坏的。"})
 	if err := tt.Click("开始起草"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the draft", func() bool { _, _, s, _ := ed.Proposal(); return strings.HasSuffix(s, "咬在嘴里，") })
+	until(t, tt, "the draft", func() bool { return len(ed.Proposals()) == 1 })
 	shot("ai-drafting.png")
-	close(f.hold)
-	until(t, tt, "the draft to end", func() bool { return a.write.run == nil })
+	close(hold)
+	replied(t, a, tt)
 	shot("ai-drafted.png")
-	a.acceptProposal()
+	take()
+
+	// Asked again in the talk: leaving the work asks about it; the words
+	// it replaces changed, it is void.
+	g.then(proposal("第一章", "replace", "井边那盏灯坏了三天。", "井边那盏灯已经坏了三天，没人来修。"), []string{"补了一句没人来修。"})
+	a.input = "最后一句补一下没人修"
+	tt.Frame()
+	if err := tt.Click("发送"); err != nil {
+		t.Fatal(err)
+	}
+	replied(t, a, tt)
+	a.Leave(func() {})
+	shot("ai-leave.png")
+	a.write.leaving = nil
+	text := ed.Doc.String()
+	at := utf8.RuneCountInString(text[:strings.Index(text, "三天")])
+	ed.Select(at, at+2)
+	ed.Insert("五天")
+	shot("ai-void.png")
+
+	// Proposed in another chapter, it opens in a tab beside.
+	two, err := a.Store.NewChapter("", "第二章", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = a.Store.WriteChapter(two, "档案室白天也要开灯。", nil); err != nil {
+		t.Fatal(err)
+	}
+	a.warn(a.loadTree())
+	g.then(proposal("第二章", "replace", "档案室白天也要开灯。", "档案室白天也得开着灯。"), []string{"第二章那句顺了一下。"})
+	a.input = "第二章开头那句顺一下"
+	tt.Frame()
+	if err := tt.Click("发送"); err != nil {
+		t.Fatal(err)
+	}
+	replied(t, a, tt)
+	shot("ai-beside.png")
 	a.openSnapshots()
 	shot("ai-snapshots.png")
 }

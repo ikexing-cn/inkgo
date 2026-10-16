@@ -95,10 +95,25 @@ func validateEvent(e Event) error {
 		if e.ReplyTo == "" || e.Call == "" || len(e.Calls) > 0 {
 			return fmt.Errorf("call: a result answers the author's words and names its call")
 		}
+		if p := e.Proposal; p != nil {
+			quoted := p.At == ProposeReplace || p.At == ProposeAfter
+			if e.Failed || validID(p.Chapter) != nil || p.At != ProposeEnd && p.At != ProposeAll && !quoted || quoted != (p.Quote != "") || p.Text == "" {
+				return fmt.Errorf("proposal: a proposal is of a chapter, says where, and has text")
+			}
+		}
 		if e.Revision != "" {
 			if err := validID(e.Revision); err != nil {
 				return fmt.Errorf("revision: %w", err)
 			}
+		}
+	case RoleFate:
+		if e.Call == "" || e.ReplyTo != "" || e.Text != "" || len(e.Calls) > 0 || e.Failed || e.Revision != "" {
+			return fmt.Errorf("fate: a fate names the call that proposed and says nothing")
+		}
+		switch e.Fate {
+		case FateTaken, FateDropped, FateReplaced, FateVoid, FateClosed, FateOff:
+		default:
+			return fmt.Errorf("fate: invalid %q", e.Fate)
 		}
 	case RoleDigest:
 		if strings.TrimSpace(e.Text) == "" || e.ReplyTo != "" || len(e.Calls) > 0 || e.Call != "" || e.Failed || e.Revision != "" {
@@ -109,6 +124,12 @@ func validateEvent(e Event) error {
 		}
 	default:
 		return fmt.Errorf("role: invalid message role %q", e.Role)
+	}
+	if e.Fate != "" && e.Role != RoleFate {
+		return fmt.Errorf("fate: only a fate event tells what came of a proposal")
+	}
+	if e.Proposal != nil && e.Role != RoleResult {
+		return fmt.Errorf("proposal: only what a call returned proposes")
 	}
 	if e.Through != "" && e.Role != RoleDigest {
 		return fmt.Errorf("through: only a digest covers the talk")
@@ -124,6 +145,12 @@ func validateEvent(e Event) error {
 	}
 	if e.Role != RoleUser && (e.Chapter != "" || len(e.Quotes) > 0) {
 		return fmt.Errorf("quotes: only the author quotes the prose")
+	}
+	if e.Role != RoleUser && (e.Origin != "" || e.Told != "") {
+		return fmt.Errorf("origin: only the author's words open a talk or are told with")
+	}
+	if e.Origin != "" && (e.Origin != AIDraft && e.Origin != AIRewrite || e.Chapter == "") {
+		return fmt.Errorf("origin: a talk is opened to draft or rewrite a chapter")
 	}
 	if e.Chapter != "" {
 		if err := validID(e.Chapter); err != nil {

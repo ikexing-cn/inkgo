@@ -38,7 +38,7 @@ func TestTalkBesideTheProse(t *testing.T) {
 	if strings.Contains(sent, id) || strings.Count(sent, "雨") != BesideCap-len([]rune("她推开门。")) {
 		t.Fatalf("sent an ID or not the last %d characters", BesideCap)
 	}
-	if !strings.Contains(r.System, "不要替作者写成段的正文") {
+	if !strings.Contains(r.System, "作者是在写正文时来找你商量的") {
 		t.Fatal("the rules do not know the author is writing")
 	}
 	var shown []string
@@ -56,7 +56,7 @@ func TestTalkBesideTheProse(t *testing.T) {
 		t.Fatal(err)
 	}
 	r = f.calls[1]
-	if !strings.Contains(r.Messages[0].Content, "【引用正文《第一章》】\n她推开门。\n\n这句太急了？") || strings.Contains(r.Messages[0].Content, "光标前") || strings.Contains(r.System, "不要替作者写成段的正文") {
+	if !strings.Contains(r.Messages[0].Content, "【引用正文《第一章》】\n她推开门。\n\n这句太急了？") || strings.Contains(r.Messages[0].Content, "光标前") || strings.Contains(r.System, "作者是在写正文时来找你商量的") {
 		t.Fatalf("history %q", r.Messages[0].Content)
 	}
 }

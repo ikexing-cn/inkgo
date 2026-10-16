@@ -21,13 +21,25 @@ const Other = "其他"
 
 // Roles of the events of a session file: the author's words, a reply, and
 // on the way to a reply, the tools a model called and what each returned;
-// and once the talk grew long, a digest of it.
+// once the talk grew long, a digest of it; and what came of a change of
+// the prose a call proposed.
 const (
 	RoleUser      = "user"
 	RoleAssistant = "assistant"
 	RoleCall      = "call"
 	RoleResult    = "result"
 	RoleDigest    = "digest"
+	RoleFate      = "fate"
+)
+
+// What came of a change of the prose an AI proposed.
+const (
+	FateTaken    = "taken"    // the author took it into the prose
+	FateDropped  = "dropped"  // the author let it go
+	FateReplaced = "replaced" // a later proposal took its place
+	FateVoid     = "void"     // the words it replaced or followed changed
+	FateClosed   = "closed"   // the work closed with it undecided
+	FateOff      = "off"      // the AI was turned off with it undecided
 )
 
 type Category struct {
@@ -82,6 +94,11 @@ type Sent struct {
 	Rules   string `json:"rules"`
 	Setting int    `json:"setting,omitempty"`
 	Parts   []Part `json:"parts"`
+	// AsOf is the chapter the setting went as it stands at, titled as
+	// then, in a talk that keeps to it; Ahead is how many of its changes
+	// come after the chapter, left out.
+	AsOf  string `json:"as_of,omitempty"`
+	Ahead int    `json:"ahead,omitempty"`
 }
 
 // Part is a part of a request and its estimated tokens.
@@ -92,20 +109,23 @@ type Part struct {
 
 // The parts of a request, in the order Sent lists them.
 const (
-	PartRules   = "rules"
-	PartSetting = "setting"
-	PartIndex   = "index"  // the setting as an index, too big to send whole
-	PartDigest  = "digest" // of the talk compacted
-	PartOutline = "outline"
-	PartRecap   = "recap"  // the summaries of the chapters before, which drafts sent while there were any
-	PartLooked  = "looked" // what the tools a reply called returned
-	PartTalk    = "talk"
-	PartProse   = "prose"
-	PartInput   = "input"
+	PartRules    = "rules"
+	PartSetting  = "setting"
+	PartIndex    = "index"  // the setting as an index, too big to send whole
+	PartDigest   = "digest" // of the talk compacted
+	PartOutline  = "outline"
+	PartOutlines = "outlines" // of the chapters before in the volume, which a draft takes
+	PartRecap    = "recap"    // the summaries of the chapters before, which drafts sent while there were any
+	PartPrevious = "previous" // the chapter before, whole, which a draft takes
+	PartChapter  = "chapter"  // the chapter rewritten, whole
+	PartLooked   = "looked"   // what the tools a reply called returned
+	PartTalk     = "talk"
+	PartProse    = "prose"
+	PartInput    = "input"
 )
 
 // Parts is every part, in order.
-var Parts = []string{PartRules, PartSetting, PartIndex, PartDigest, PartOutline, PartRecap, PartLooked, PartTalk, PartProse, PartInput}
+var Parts = []string{PartRules, PartSetting, PartIndex, PartDigest, PartOutline, PartOutlines, PartRecap, PartPrevious, PartChapter, PartLooked, PartTalk, PartProse, PartInput}
 
 // Part is the tokens part took, 0 when the request had none.
 func (s Sent) Part(name string) int {
@@ -153,18 +173,53 @@ type Event struct {
 	// were writing, and the prose they quoted.
 	Chapter string  `json:"chapter,omitempty"`
 	Quotes  []Quote `json:"quotes,omitempty"`
+	// Origin is on the first words of a talk opened to draft or rewrite
+	// Chapter: the talk keeps to that chapter. Told is what the model is
+	// told with the words of what came of what it proposed in the prose
+	// since it last heard.
+	Origin string `json:"origin,omitempty"`
+	Told   string `json:"told,omitempty"`
 	// A step's calls; a result names its call, says whether it failed,
-	// and the revision a call to note the setting wrote. Capped is a reply
-	// that had no more steps to look things up.
-	Calls    []Call `json:"calls,omitempty"`
-	Call     string `json:"call,omitempty"`
-	Failed   bool   `json:"failed,omitempty"`
-	Revision string `json:"revision,omitempty"`
-	Capped   bool   `json:"capped,omitempty"`
+	// the revision a call to note the setting wrote, and the change of the
+	// prose a call proposed. Capped is a reply that had no more steps to
+	// look things up.
+	Calls    []Call    `json:"calls,omitempty"`
+	Call     string    `json:"call,omitempty"`
+	Failed   bool      `json:"failed,omitempty"`
+	Revision string    `json:"revision,omitempty"`
+	Proposal *Proposal `json:"proposal,omitempty"`
+	Capped   bool      `json:"capped,omitempty"`
+	// Fate is what came of the change of the prose the call Call proposed,
+	// on an event of its own.
+	Fate string `json:"fate,omitempty"`
 	// A digest stands in the requests after it for the talk through the
 	// event Through, which stays as it was said.
 	Through string `json:"through,omitempty"`
 }
+
+// Proposal is a change of the prose an AI proposed in a talk, as the call
+// that proposed it found its place: in the chapter Chapter, titled Title
+// then, At says where. Quote is the chapter's own words a proposal to
+// replace or to follow; Text is the prose proposed, a line a paragraph.
+type Proposal struct {
+	Chapter string `json:"chapter"`
+	Title   string `json:"title"`
+	At      string `json:"at"`
+	Quote   string `json:"quote,omitempty"`
+	Text    string `json:"text"`
+}
+
+// ProposeTool is the tool by which a talk proposes a change of the prose:
+// its calls show as the change, not as what the talk looked up.
+const ProposeTool = "propose_edit"
+
+// Where a proposal goes.
+const (
+	ProposeReplace = "replace" // in place of Quote
+	ProposeAfter   = "after"   // after Quote
+	ProposeEnd     = "end"     // after the last paragraph
+	ProposeAll     = "all"     // in place of the whole chapter
+)
 
 // Call is a tool a model called, with the input it wrote, and what it does
 // in the author's words, as 搜了全书「停电」.
@@ -183,8 +238,9 @@ type Quote struct {
 	Text    string `json:"text"`
 }
 
-// Said is the author's words as a model reads them: the prose they quoted,
-// each under its chapter's title, then what they wrote.
+// Said is the author's words as a model reads them: what came of what it
+// proposed, the prose they quoted, each under its chapter's title, then
+// what they wrote.
 func (e Event) Said() string {
 	s, _ := e.said()
 	return s
@@ -203,7 +259,7 @@ func (e Event) QuoteAt(start, end int) (Quote, bool) {
 }
 
 func (e Event) said() (string, [][2]int) {
-	if len(e.Quotes) == 0 {
+	if len(e.Quotes) == 0 && e.Told == "" {
 		return e.Text, nil
 	}
 	var b strings.Builder
@@ -212,6 +268,9 @@ func (e Event) said() (string, [][2]int) {
 	write := func(s string) {
 		b.WriteString(s)
 		at += utf8.RuneCountInString(s)
+	}
+	if e.Told != "" {
+		write("【之前的提议】" + e.Told + "\n\n")
 	}
 	for _, q := range e.Quotes {
 		write("【引用正文《" + q.Title + "》】\n")

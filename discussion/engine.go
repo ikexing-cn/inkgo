@@ -59,8 +59,15 @@ type Engine struct {
 	Progress func(model.Delta)
 	Step     func(workspace.Event)
 	// Beside, when set, is what the author is writing as they talk, sent
-	// with the turn.
+	// with the turn; a talk opened to draft or rewrite a chapter keeps to
+	// it instead.
 	Beside *Writing
+	// Proposing, when set, hears each change of the prose a reply proposes
+	// as its call streams, by the call's ID: once its place is found, then
+	// each time its text grows. It runs on the caller's goroutine. Where a
+	// provider does not stream a call's input, the change comes whole with
+	// the result Step hears.
+	Proposing func(call string, p workspace.Proposal)
 }
 
 // Turn is one exchange: the author's words and the reply.
@@ -71,7 +78,9 @@ type Turn struct {
 var errNoModel = errors.New("请先配置讨论模型")
 
 // Say saves the author's words, with the prose they quote and the chapter
-// they were writing, then asks for a reply. If the reply fails, the words
+// they were writing, or the chapter a new talk opens to draft or rewrite,
+// then asks for a reply. The words tell the model what came of what it
+// proposed in the prose since it last heard. If the reply fails, the words
 // stay saved and Retry asks again without sending them twice.
 func (e *Engine) Say(ctx context.Context, session string, words workspace.Event) (Turn, error) {
 	var turn Turn
@@ -81,8 +90,15 @@ func (e *Engine) Say(ctx context.Context, session string, words workspace.Event)
 	if !e.Talk.ready() {
 		return turn, errNoModel
 	}
-	words = workspace.Event{Role: workspace.RoleUser, Text: words.Text, Quotes: words.Quotes, Chapter: words.Chapter}
-	if _, err := e.assemble(session, -1, words.Said()); err != nil {
+	events, err := e.Store.Events(session)
+	if err != nil {
+		return turn, err
+	}
+	if words.Origin != "" && len(events) > 0 {
+		return turn, errors.New("起草、改写要新开一段讨论")
+	}
+	words = workspace.Event{Role: workspace.RoleUser, Text: words.Text, Quotes: words.Quotes, Chapter: words.Chapter, Origin: words.Origin, Told: told(events)}
+	if _, _, err := e.assemble(session, -1, words); err != nil {
 		return turn, err
 	}
 	user, err := e.Store.Append(session, words)
@@ -121,29 +137,46 @@ func (e *Engine) Retry(ctx context.Context, session, userID string) (Turn, error
 // answer brings the talk before event before, or all of it for -1, within
 // the model's threshold, then asks for the reply to the turn.
 func (e *Engine) answer(ctx context.Context, session string, turn Turn, before int) (Turn, error) {
-	input := turn.User.Said()
-	if err := e.compact(ctx, session, before, input); err != nil {
+	if err := e.compact(ctx, session, before, turn.User); err != nil {
 		return turn, fmt.Errorf("整理之前的讨论失败，原文已保存：%w", err)
 	}
-	assembled, err := e.assemble(session, before, input)
+	assembled, along, err := e.assemble(session, before, turn.User)
 	if err != nil {
 		return turn, err
 	}
-	return e.respond(ctx, session, turn, assembled)
+	return e.respond(ctx, session, turn, assembled, along)
 }
 
-// assemble builds the request for input from the setting and the talk
-// before event before, or all of it for -1.
-func (e *Engine) assemble(session string, before int, input string) (Context, error) {
+// assemble builds the request for the author's words user from the
+// setting and the talk before event before, or all of it for -1, and
+// tells what went with them.
+func (e *Engine) assemble(session string, before int, user workspace.Event) (Context, Along, error) {
 	set, events, err := e.read(session, before)
 	if err != nil {
-		return Context{}, err
+		return Context{}, Along{}, err
 	}
 	tree, err := e.Store.Chapters()
 	if err != nil {
-		return Context{}, err
+		return Context{}, Along{}, err
 	}
-	return Assemble(e.Store.Work(), e.Talk.Input(), set, tree, events, input, e.Beside)
+	along, err := e.along(tree, events, user)
+	if err != nil {
+		return Context{}, along, err
+	}
+	out, err := Assemble(e.Store.Work(), e.Talk.Input(), set, tree, events, user.Said(), along)
+	return out, along, err
+}
+
+// along is what goes with the talk of events and the author's words user:
+// the chapter of tree it keeps to, read now, when its first words opened
+// it to draft or rewrite one, or else what the author is writing.
+func (e *Engine) along(tree workspace.Tree, events []workspace.Event, user workspace.Event) (Along, error) {
+	origin, chapter := originOf(append(slices.Clip(events), user))
+	if origin == "" {
+		return Along{Beside: e.Beside}, nil
+	}
+	f, err := fixedOf(e.Store, tree, origin, chapter)
+	return Along{Fixed: f}, err
 }
 
 // read is the setting and the talk before event before, or all of it for
@@ -185,8 +218,23 @@ const fullNote = "（这次查到的内容太多，放不下了；不能再查�
 // model's input: the request before it as the provider counted it, its
 // reply, and what came after it as estimated; or, where the provider
 // counts nothing, while it fits in the room the assembly left.
-func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembled Context) (Turn, error) {
+func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembled Context, along Along) (Turn, error) {
 	box := &toolbox{store: e.Store, session: session, turn: turn.User.ID, model: e.Talk}
+	if along.Fixed != nil {
+		box.at = along.Fixed.Chapter
+	}
+	var on func(model.Delta)
+	if e.Progress != nil || e.Proposing != nil {
+		watch := &proposing{store: e.Store, tell: e.Proposing}
+		on = func(d model.Delta) {
+			if d.Call.ID != "" {
+				watch.feed(d.Call)
+			}
+			if e.Progress != nil && (d.Reasoning != "" || d.Text != "") {
+				e.Progress(model.Delta{Reasoning: d.Reasoning, Text: d.Text})
+			}
+		}
+	}
 	req := assembled.Request
 	var thought []string
 	looked, capped := 0, false
@@ -201,7 +249,7 @@ func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembl
 	for step := 1; ; step++ {
 		capped = step == maxSteps
 		req.NoCalls = req.NoCalls || capped
-		reply, err := ask(e.purpose(ctx, session, withLooked(assembled.Sent, looked)), e.Talk, req, e.Progress)
+		reply, err := ask(e.purpose(ctx, session, withLooked(assembled.Sent, looked), along.Fixed), e.Talk, req, on)
 		if err != nil {
 			return turn, fmt.Errorf("讨论失败，原文已保存：%w", err)
 		}
@@ -238,7 +286,7 @@ func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembl
 				return turn, fmt.Errorf("讨论失败，原文已保存：%w", ctx.Err())
 			}
 			out := box.run(c)
-			if err = write(workspace.Event{Role: workspace.RoleResult, Call: c.ID, Text: out.text, Failed: out.failed, Revision: out.revision}); err != nil {
+			if err = write(workspace.Event{Role: workspace.RoleResult, Call: c.ID, Text: out.text, Failed: out.failed, Revision: out.revision, Proposal: out.proposal}); err != nil {
 				return turn, err
 			}
 			told := out.text
@@ -259,9 +307,14 @@ func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembl
 }
 
 // purpose is ctx telling the AI record that its requests are for the
-// talk session and send the parts of sent.
-func (e *Engine) purpose(ctx context.Context, session string, sent *workspace.Sent) context.Context {
+// talk session and send the parts of sent: to draft or rewrite the
+// chapter f when the talk keeps to it.
+func (e *Engine) purpose(ctx context.Context, session string, sent *workspace.Sent, f *Fixed) context.Context {
 	p := workspace.Purpose{Feature: workspace.FeatureTalk, Talk: session}
+	if f != nil {
+		p.Feature = map[string]string{workspace.AIDraft: workspace.FeatureDraft, workspace.AIRewrite: workspace.FeatureRewrite}[f.Origin]
+		p.Chapter = f.Chapter
+	}
 	if sent != nil {
 		p.Parts = sent.Parts
 	}

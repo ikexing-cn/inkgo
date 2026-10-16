@@ -1,6 +1,8 @@
 package editor
 
 import (
+	"slices"
+
 	"github.com/egoist/mygo/ui"
 )
 
@@ -24,7 +26,8 @@ type shaped struct {
 }
 
 // line is a line of the layout. Indexes are of the display text: the
-// document with the composition and the prediction inserted at the caret.
+// document with the composition and the prediction inserted at the caret,
+// and what an AI proposes after the words it replaces or follows.
 type line struct {
 	start, end int // runes [start, end), without the line break
 	pstart     int // where the paragraph starts
@@ -36,12 +39,32 @@ type line struct {
 
 type layout struct {
 	disp                []rune
+	kinds               []runeKind // what each rune of disp is
 	lines               []line
 	lineH, ascent       float32
 	left, textW, height float32
 	// The text inserted at the caret, as display indexes.
 	extraAt, preEnd, extraEnd int
+	// All that is inserted, in the order it shows; and where the room
+	// after each proposal is, by its ID.
+	ins  []insert
+	gaps map[string]int
 }
+
+// insert is text shown in the text without being in it: n runes at the
+// document index at.
+type insert struct{ at, n int }
+
+// runeKind is what a rune of the display is, which tells how it is drawn.
+type runeKind uint8
+
+const (
+	runeText   runeKind = iota // of the text, or of the composition
+	runeGhost                  // of a prediction
+	runeNew                    // of what an AI proposes
+	runeStruck                 // of the text, to be replaced by what is proposed
+	runeGap                    // the room after what is proposed
+)
 
 // buildLayout lays the text out for an element width wide.
 func (e *Editor) buildLayout(width float32) {
@@ -57,13 +80,7 @@ func (e *Editor) buildLayout(width float32) {
 	l.textW = max(min(width-2*padX, maxTextWidth), 60)
 	l.left = max((width-l.textW)/2, 0)
 
-	extra, at := e.extra()
-	pre, ghost := []rune(e.preedit), []rune(extra)
-	text := e.Doc.text
-	at = clamp(at, 0, len(text))
-	l.disp = make([]rune, 0, len(text)+len(pre)+len(ghost))
-	l.disp = append(append(append(append(l.disp, text[:at]...), pre...), ghost...), text[at:]...)
-	l.extraAt, l.preEnd, l.extraEnd = at, at+len(pre), at+len(pre)+len(ghost)
+	e.display(&l)
 
 	used := make(map[string]shaped, len(e.shapes))
 	y := float32(padTop)
@@ -77,7 +94,7 @@ func (e *Editor) buildLayout(width float32) {
 		sh, ok := used[key]
 		if !ok {
 			if sh, ok = e.shapes[key]; !ok {
-				sh = shapeText(key, f)
+				sh = shapeText(key, f, e.gap)
 			}
 			used[key] = sh
 		}
@@ -107,13 +124,107 @@ func (e *Editor) buildLayout(width float32) {
 	e.lay = l
 }
 
-func shapeText(s string, f ui.Font) shaped {
+// display builds the display text of l: the document with what shows in
+// it without being in it, the composition and the prediction at the caret
+// and what is proposed after the words it replaces or follows, the caret's
+// first where they meet.
+func (e *Editor) display(l *layout) {
+	text := e.Doc.text
+	type piece struct {
+		at    int
+		caret bool
+		p     Proposal
+	}
+	var pieces []piece
+	extra, at := e.extra()
+	pre, ghost := []rune(e.preedit), []rune(extra)
+	if len(pre)+len(ghost) > 0 {
+		pieces = append(pieces, piece{at: clamp(at, 0, len(text)), caret: true})
+	}
+	struck := map[int]bool{}
+	for _, p := range e.props {
+		pieces = append(pieces, piece{at: clamp(p.B, 0, len(text)), p: p})
+		if !p.Keep {
+			for i := clamp(p.A, 0, len(text)); i < clamp(p.B, 0, len(text)); i++ {
+				struck[i] = true
+			}
+		}
+	}
+	slices.SortStableFunc(pieces, func(a, b piece) int { return a.at - b.at })
+	l.disp = make([]rune, 0, len(text)+len(pre)+len(ghost))
+	l.gaps = map[string]int{}
+	add := func(r []rune, k runeKind) {
+		l.disp = append(l.disp, r...)
+		for range r {
+			l.kinds = append(l.kinds, k)
+		}
+	}
+	doc := func(a, b int) {
+		for i := a; i < b; i++ {
+			k := runeText
+			if struck[i] {
+				k = runeStruck
+			}
+			add(text[i:i+1], k)
+		}
+	}
+	from := 0
+	for _, pc := range pieces {
+		doc(from, pc.at)
+		from = pc.at
+		start := len(l.disp)
+		if pc.caret {
+			l.extraAt = start
+			add(pre, runeText)
+			l.preEnd = len(l.disp)
+			add(ghost, runeGhost)
+			l.extraEnd = len(l.disp)
+		} else {
+			if pc.p.Apart {
+				add([]rune{'\n'}, runeNew)
+			}
+			add([]rune(pc.p.Text), runeNew)
+			l.gaps[pc.p.ID] = len(l.disp)
+			add([]rune{gapRune}, runeGap)
+		}
+		l.ins = append(l.ins, insert{pc.at, len(l.disp) - start})
+	}
+	doc(from, len(text))
+	if len(pre)+len(ghost) == 0 {
+		at := l.toDisp(clamp(e.caret, 0, len(text)), false)
+		l.extraAt, l.preEnd, l.extraEnd = at, at, at
+	}
+}
+
+// shapeText shapes s, giving each rune that holds room after what is
+// proposed the width gap, and no glyph to draw.
+func shapeText(s string, f ui.Font, gap float32) shaped {
 	gs := ui.Shape(s, f)
 	pos := make([]glyphPos, len(gs))
 	for i, g := range gs {
 		pos[i] = glyphPos{cluster: g.Cluster, x: g.X, advance: g.Advance}
 	}
-	return shaped{glyphs: gs, xs: positions(len([]rune(s)), pos)}
+	r := []rune(s)
+	xs := positions(len(r), pos)
+	if !slices.Contains(r, gapRune) {
+		return shaped{glyphs: gs, xs: xs}
+	}
+	for k, c := range r {
+		if c != gapRune {
+			continue
+		}
+		d := gap - (xs[k+1] - xs[k])
+		for j := k + 1; j < len(xs); j++ {
+			xs[j] += d
+		}
+		for i := range gs {
+			if gs[i].Cluster > k {
+				gs[i].X += d
+			}
+		}
+	}
+	gs = slices.DeleteFunc(gs, func(g ui.Glyph) bool { return g.Cluster >= 0 && g.Cluster < len(r) && r[g.Cluster] == gapRune })
+	return shaped{glyphs: gs, xs: xs}
 }
 
 // x returns the x of display index d on line ln, relative to the text.
@@ -159,25 +270,34 @@ func (l *layout) hitLine(i int, x float32) int {
 	return best
 }
 
-// toDoc maps a display index to the document; the inserted text maps to
-// the caret.
+// toDoc maps a display index to the document; inserted text maps to the
+// index it shows at.
 func (l *layout) toDoc(d int) int {
-	switch {
-	case d <= l.extraAt:
-		return d
-	case d < l.extraEnd:
-		return l.extraAt
+	shift := 0
+	for _, in := range l.ins {
+		start := in.at + shift
+		if d < start {
+			break
+		}
+		if d < start+in.n {
+			return in.at
+		}
+		shift += in.n
 	}
-	return d - (l.extraEnd - l.extraAt)
+	return d - shift
 }
 
-// toDisp maps a document index to the display; after puts the caret's
-// own index after the inserted text.
+// toDisp maps a document index to the display; after puts it after the
+// text inserted at it.
 func (l *layout) toDisp(i int, after bool) int {
-	if i < l.extraAt || i == l.extraAt && !after {
-		return i
+	d := i
+	for _, in := range l.ins {
+		if in.at > i || in.at == i && !after {
+			break
+		}
+		d += in.n
 	}
-	return i + l.extraEnd - l.extraAt
+	return d
 }
 
 // ranges calls fn with the part of display range [a, b) on each line, in

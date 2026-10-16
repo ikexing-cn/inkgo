@@ -13,8 +13,7 @@ import (
 	"writer/workspace"
 )
 
-// A draft and a rewrite may take all the output the model gives; a
-// sentence more takes little.
+// A sentence more takes little.
 const (
 	nextOutput  = 400 // a sentence, and what a model may say before it stops
 	beforeCap   = 6000
@@ -42,44 +41,34 @@ type Scene struct {
 	Before, After string
 }
 
-// Job is a request ready to run for a chapter, and the record of what it
-// shows.
-type Job struct {
-	Request model.Request
-	Record  workspace.AIRecord
-	Chapter string
-}
-
-// Errors the author can act on.
-var (
-	ErrNoOutline = errors.New("章纲是空的：先写下这一章要发生什么，再让 AI 起草")
-	ErrNoModel   = errors.New("请在设置中「AI」配置里选择续写和检查模型")
-)
+// ErrNoModel is what the author is told when the work names no model to
+// write with.
+var ErrNoModel = errors.New("请在设置中「AI」配置里选择续写和检查模型")
 
 // prepare builds the request of task for scene: the rules and the setting
 // in the system prompt, the outlines and the text around the place in the
-// message, as far as the budget allows.
-func (w *Writer) prepare(op, task string, scene Scene, tail string) (Job, error) {
-	job := Job{Record: workspace.AIRecord{Op: op, Model: w.Model.Name, Effort: string(w.Model.Effort)}, Chapter: scene.Chapter}
+// message, as far as the budget allows; and what it sends.
+func (w *Writer) prepare(task string, scene Scene, tail string) (model.Request, *workspace.Sent, error) {
+	var req model.Request
 	if w.Model.Completer == nil {
-		return job, ErrNoModel
+		return req, nil, ErrNoModel
 	}
 	work := w.Store.Work()
 	tree, err := w.Store.Chapters()
 	if err != nil {
-		return job, err
+		return req, nil, err
 	}
 	n, ok := tree.Node(scene.Chapter)
 	if !ok || n.Folder {
-		return job, errors.New("找不到这一章")
+		return req, nil, errors.New("找不到这一章")
 	}
 	ch, err := w.Store.ReadChapter(n.ID)
 	if err != nil {
-		return job, err
+		return req, nil, err
 	}
 	set, err := w.Store.Setting()
 	if err != nil {
-		return job, err
+		return req, nil, err
 	}
 	// The prose is written to the setting as it stands at this chapter:
 	// what changes later is not told, only that something does.
@@ -92,59 +81,44 @@ func (w *Writer) prepare(op, task string, scene Scene, tail string) (Job, error)
 	b.Must(workspace.PartRules, rules+task)
 	b.Must(workspace.PartInput, tail)
 	b.Must(workspace.PartSetting, later)
-	// The parts of the message, in the order it reads; each says what it
-	// shows for the record.
-	type part struct{ heading, text, shown string }
+	// The parts of the message, in the order it reads.
+	type part struct{ heading, text string }
 	var volume, outline, prev, near, far part
-	take := func(p *part, kind, heading, text, shown string) {
-		*p = part{heading, text, shown}
+	take := func(p *part, kind, heading, text string) {
+		*p = part{heading, text}
 		b.Must(kind, heading+text)
 	}
 	// The outlines go whole, or the request does not.
 	if p := n.Parent; p != nil && p.Parent != nil {
 		if vol, err := w.Store.ReadChapter(p.ID); err == nil && strings.TrimSpace(vol.Outline) != "" {
-			take(&volume, workspace.PartOutline, "【所在卷："+p.Title+"】卷纲：", strings.TrimSpace(vol.Outline), "卷纲："+p.Title)
+			take(&volume, workspace.PartOutline, "【所在卷："+p.Title+"】卷纲：", strings.TrimSpace(vol.Outline))
 		}
 	}
 	if strings.TrimSpace(ch.Outline) != "" {
-		take(&outline, workspace.PartOutline, "【本章："+n.Title+"】章纲：", strings.TrimSpace(ch.Outline), "章纲："+n.Title)
+		take(&outline, workspace.PartOutline, "【本章："+n.Title+"】章纲：", strings.TrimSpace(ch.Outline))
 	} else {
 		outline = part{heading: "【本章：" + n.Title + "】"}
 	}
 	if b.Left() < 0 {
-		return job, errors.New("纲和要求超出了模型的上下文上限：请缩短，或在设置中「AI」配置里调大上下文上限")
+		return req, nil, errors.New("纲和要求超出了模型的上下文上限：请缩短，或在设置中「AI」配置里调大上下文上限")
 	}
 	if t := fit(lastRunes(scene.Before, beforeCap), b.Left(), true); strings.TrimSpace(t) != "" {
-		take(&near, workspace.PartProse, "【本章前文】", t, fmt.Sprintf("本章前文 %d 字", workspace.Count(t)))
+		take(&near, workspace.PartProse, "【本章前文】", t)
 	}
 	if t := fit(firstRunes(scene.After, afterCap), b.Left(), false); strings.TrimSpace(t) != "" {
-		take(&far, workspace.PartProse, "【本章后文】", t, fmt.Sprintf("本章后文 %d 字", workspace.Count(t)))
+		take(&far, workspace.PartProse, "【本章后文】", t)
 	}
 
 	// The setting: the body binds the prose, then what the author dropped;
 	// the newest first when it does not all fit.
-	shown, left := b.Fit(set, []string{workspace.PlaceBody, workspace.PlaceDropped}, prompt.Whole)
-	for _, p := range writePlaces {
-		for _, e := range prompt.Ordered(work, set.Entries) {
-			if e.Place == p.Place && shown[e.ID] {
-				job.Record.Setting = append(job.Record.Setting, p.Item(e, prompt.Whole))
-			}
-		}
-		for _, e := range left {
-			if e.Place == p.Place {
-				item := p.Item(e, prompt.Whole)
-				item.Reason = "超出上下文上限"
-				job.Record.Omitted = append(job.Record.Omitted, item)
-			}
-		}
-	}
+	shown, _ := b.Fit(set, []string{workspace.PlaceBody, workspace.PlaceDropped}, prompt.Whole)
 	system := rules + "\n\n" + prompt.Render(work, set, writePlaces, shown, prompt.Whole) + later + "\n\n" + task
 
 	// The previous chapter's end, while this one has little before.
 	if p, ok := previous(tree, n); ok && len([]rune(scene.Before)) < beforeCap {
 		if pc, err := w.Store.ReadChapter(p.ID); err == nil {
 			if t := fit(lastRunes(pc.Text, previousCap), b.Left()-64, true); strings.TrimSpace(t) != "" {
-				take(&prev, workspace.PartProse, "【上一章《"+p.Title+"》的结尾】", t, fmt.Sprintf("上一章《%s》结尾 %d 字", p.Title, workspace.Count(t)))
+				take(&prev, workspace.PartProse, "【上一章《"+p.Title+"》的结尾】", t)
 			}
 		}
 	}
@@ -157,90 +131,25 @@ func (w *Writer) prepare(op, task string, scene Scene, tail string) (Job, error)
 		default:
 			parts = append(parts, strings.TrimRight(p.heading+"\n"+p.text, "\n"))
 		}
-		if p.shown != "" {
-			job.Record.Shown = append(job.Record.Shown, p.shown)
-		}
 	}
-	job.Request = model.Request{System: system, Messages: []model.Message{{Role: workspace.RoleUser, Content: strings.Join(parts, "\n\n")}}}
-	job.Record.Sent = b.Sent(rules+task, set)
-	return job, nil
-}
-
-// Draft prepares drafting the chapter of scene from its outline, into
-// about words characters, or as many as the outline wants for 0. With
-// text before, it goes on from there.
-func (w *Writer) Draft(scene Scene, words int) (Job, error) {
-	ch, err := w.Store.ReadChapter(scene.Chapter)
-	if err != nil {
-		return Job{}, err
-	}
-	if strings.TrimSpace(ch.Outline) == "" {
-		return Job{}, ErrNoOutline
-	}
-	ask := "请按章纲写出这一章。"
-	if strings.TrimSpace(scene.Before) != "" {
-		ask = "请接着本章前文，按章纲把这一章写完；前文已经写过的情节不要重复。"
-	}
-	if words > 0 {
-		ask += fmt.Sprintf("篇幅约 %d 字。", words)
-	}
-	job, err := w.prepare(workspace.AIDraft, draftTask, scene, "【要求】"+ask)
-	job.Request.Effort = w.Model.Effort
-	if words > 0 {
-		job.Record.Instruction = fmt.Sprintf("约 %d 字", words)
-	}
-	return job, err
-}
-
-// Rewrite prepares rewriting selected, the words between the scene's
-// before and after, as the instruction asks.
-func (w *Writer) Rewrite(scene Scene, selected, instruction string) (Job, error) {
-	if strings.TrimSpace(instruction) == "" {
-		return Job{}, errors.New("请写下要怎么改")
-	}
-	n := workspace.Count(selected)
-	tail := fmt.Sprintf("【选中的原文】（%d 字）\n%s\n\n【作者的要求】\n%s\n\n【篇幅】改写后不超过 %d 字，除非作者的要求里另有字数。",
-		n, selected, strings.TrimSpace(instruction), max(3*n, n+40))
-	job, err := w.prepare(workspace.AIRewrite, rewriteTask, scene, tail)
-	job.Request.Effort = w.Model.Effort
-	job.Record.Instruction = strings.TrimSpace(instruction)
-	return job, err
-}
-
-// Run runs job, passing the prose to onText as it streams, cleaned as the
-// chapter stores it, and returns all of it. What came before a failure is
-// returned with the error.
-func (w *Writer) Run(ctx context.Context, job Job, onText func(string)) (string, error) {
-	var p prose
-	var out strings.Builder
-	_, err := w.Model.Complete(purpose(ctx, job.Record.Op, job.Chapter, job.Record.Sent), job.Request, func(d model.Delta) {
-		if s := p.feed(d.Text); s != "" {
-			out.WriteString(s)
-			if onText != nil {
-				onText(s)
-			}
-		}
-	})
-	if err != nil && out.Len() > 0 && ctx.Err() == nil {
-		err = fmt.Errorf("没有写完：%w", err)
-	}
-	return out.String(), err
+	req = model.Request{System: system, Messages: []model.Message{{Role: workspace.RoleUser, Content: strings.Join(parts, "\n\n")}}}
+	return req, b.Sent(rules+task, set), nil
 }
 
 // Predict continues the chapter of scene with one sentence. It asks for no
 // reasoning and stops reading at the sentence's end.
 func (w *Writer) Predict(ctx context.Context, scene Scene) (string, error) {
-	job, err := w.prepare("continue", continueTask, scene, "【要求】请接着本章前文写下一句。")
+	req, sent, err := w.prepare(continueTask, scene, "【要求】请接着本章前文写下一句。")
 	if err != nil {
 		return "", err
 	}
-	job.Request.MaxTokens = nextOutput
-	job.Request.Effort = model.EffortNone
-	ctx, cancel := context.WithCancelCause(purpose(ctx, workspace.FeatureContinue, scene.Chapter, job.Record.Sent))
+	req.MaxTokens = nextOutput
+	req.Effort = model.EffortNone
+	ctx, cancel := context.WithCancelCause(purpose(ctx, workspace.FeatureContinue, scene.Chapter, sent))
 	defer cancel(nil)
 	var got strings.Builder
 	var line string
-	_, err = w.Model.Complete(ctx, job.Request, func(d model.Delta) {
+	_, err = w.Model.Complete(ctx, req, func(d model.Delta) {
 		got.WriteString(d.Text)
 		if s, done := sentence(got.String()); done {
 			line = s
@@ -332,30 +241,4 @@ func sentence(s string) (string, bool) {
 		return string(r[:j]), true
 	}
 	return strings.TrimSpace(string(r)), false
-}
-
-// prose cleans streamed text as a chapter stores it: no indent, no blank
-// line, no line break at the start or the end.
-type prose struct {
-	started, newline bool
-}
-
-func (p *prose) feed(s string) string {
-	var b strings.Builder
-	for _, r := range s {
-		switch {
-		case r == '\r':
-		case r == '\n':
-			p.newline = p.started
-		case unicode.IsSpace(r) && (!p.started || p.newline):
-		default:
-			if p.newline {
-				b.WriteByte('\n')
-				p.newline = false
-			}
-			p.started = true
-			b.WriteRune(r)
-		}
-	}
-	return b.String()
 }

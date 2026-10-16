@@ -71,16 +71,16 @@ func (e *Editor) SetFontSize(px float32) {
 }
 
 type layoutKey struct {
-	ver, caret     int
-	preedit, ghost string
-	width, size    float32
+	ver, caret, props int
+	preedit, ghost    string
+	width, size       float32
 }
 
-// ensureLayout lays the text out again when it, the caret or the width
-// changed since the last time.
+// ensureLayout lays the text out again when it, the caret, what is
+// proposed or the width changed since the last time.
 func (e *Editor) ensureLayout() {
 	extra, _ := e.extra()
-	k := layoutKey{e.Doc.version, e.caret, e.preedit, extra, e.width, e.opts.Font.Size}
+	k := layoutKey{e.Doc.version, e.caret, e.propVer, e.preedit, extra, e.width, e.opts.Font.Size}
 	if k != e.layKey || e.lay.lines == nil {
 		e.buildLayout(e.width)
 		e.layKey = k
@@ -96,12 +96,9 @@ func (e *Editor) caretDisp() int {
 	return e.lay.toDisp(e.caret, false)
 }
 
-// extra is what shows in the text without being in it, besides the
-// composition: the rewrite proposed, or else the prediction; and where.
+// extra is what shows at the caret without being in the text, besides
+// the composition: the prediction; and where.
 func (e *Editor) extra() (string, int) {
-	if e.proposing() {
-		return e.prop.text, e.prop.b
-	}
 	return e.Ghost(), e.caret
 }
 

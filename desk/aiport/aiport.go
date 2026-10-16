@@ -46,11 +46,16 @@ type Service interface {
 	EffortLabel(effort string) string
 
 	// Talk talks over the work of s with its discussion model, sending
-	// what the author is writing beside when it is not nil. Off the
+	// what the author is writing beside when it is not nil, unless the
+	// talk keeps to the chapter it was opened to draft or rewrite. Off the
 	// interface's thread, progress hears the reply as it streams, and step
 	// each event it writes on the way: the calls of a step to look things
-	// up or note the setting, and what each returned.
-	Talk(s *workspace.Store, beside *Beside, progress func(reasoning, text string), step func(workspace.Event)) (Talk, error)
+	// up, note the setting or propose a change of the prose, and what each
+	// returned.
+	Talk(s *workspace.Store, beside *Beside, progress func(Progress), step func(workspace.Event)) (Talk, error)
+	// Preloaded is about how many tokens a talk opened to draft or rewrite
+	// chapter of s, by origin, sends before anything is said or looked up.
+	Preloaded(s *workspace.Store, origin, chapter string) (int, error)
 	// Extract takes the words [start, end) of a message of the talk into
 	// the setting under category.
 	Extract(s *workspace.Store, session, message string, start, end int, category string) (workspace.Entry, error)
@@ -103,6 +108,15 @@ type Catalog interface {
 	ListModels(ctx context.Context) ([]string, error)
 }
 
+// Progress is a piece of a reply as it streams: of its reasoning or its
+// text, or a change of the prose it proposes as far as it came, by the
+// call that proposes it.
+type Progress struct {
+	Reasoning, Text string
+	Call            string
+	Proposal        *workspace.Proposal
+}
+
 // Talk is the discussion of one work.
 type Talk interface {
 	// Say saves the author's words, then asks for a reply. When that
@@ -129,12 +143,6 @@ type Pen interface {
 	Effort() string
 	// Predict continues the chapter of scene with one sentence.
 	Predict(ctx context.Context, scene Scene) (string, error)
-	// Rewrite prepares rewriting selected, the words between the scene's
-	// before and after, as the instruction asks.
-	Rewrite(scene Scene, selected, instruction string) (Job, error)
-	// Draft prepares drafting the chapter of scene from its outline, into
-	// about words characters, or as many as the outline wants for 0.
-	Draft(scene Scene, words int) (Job, error)
 	// Check reads the chapter as it is on disk against the setting.
 	Check(ctx context.Context, chapter string) (workspace.Check, error)
 }
@@ -144,14 +152,4 @@ type Pen interface {
 type Scene struct {
 	Chapter       string
 	Before, After string
-}
-
-// Job is a rewrite or a draft ready to run.
-type Job struct {
-	// Record is what the snapshot taken before keeps of it.
-	Record workspace.AIRecord
-	// Run sends the request, passing the prose to onText as it streams,
-	// and returns all of it; what came before a failure is returned with
-	// the error.
-	Run func(ctx context.Context, onText func(string)) (string, error)
 }

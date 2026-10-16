@@ -142,7 +142,7 @@ func TestLookingUpStopsWhenTheRoomIsFull(t *testing.T) {
 	if _, err = e.Store.WriteChapter(id, strings.Repeat("雨下了一夜，灯一直亮着。\n", 200), nil); err != nil {
 		t.Fatal(err)
 	}
-	probe, err := Assemble(e.Store.Work(), 100000, workspace.Setting{}, workspace.Tree{}, nil, "雨", nil)
+	probe, err := Assemble(e.Store.Work(), 100000, workspace.Setting{}, workspace.Tree{}, nil, "雨", Along{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -262,7 +262,7 @@ func TestToolsReadTheBook(t *testing.T) {
 	}
 	v1, _ := e.Store.NewChapter("", "第一卷", true)
 	v2, _ := e.Store.NewChapter("", "第二卷", true)
-	write(v1, "雨", strings.Repeat("灯亮着。"+strings.Repeat("雨", 600)+"\n", 6))
+	write(v1, "雨", strings.Repeat("灯亮着。"+strings.Repeat("雨", 2000)+"\n", 6))
 	write(v2, "雨", "又下雨了。")
 	write(v2, "第三章：停电", "灯灭了。")
 	turn(t, e, session, "灯是谁点的？", "也许是她妹妹。")

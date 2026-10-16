@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"runtime"
 	"strconv"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -382,6 +383,9 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 					if found := looks(a.events, m.ReplyTo); len(found) > 0 {
 						a.looked(c, "look-"+m.ID, found, false)
 					}
+					for _, e := range proposed(a.events, m.ReplyTo) {
+						a.propCard(c, a.session, e)
+					}
 					a.markdown(c, m.Text, replyText)
 					if m.Capped {
 						ui.Text(c, "已达到本次查阅上限，以上回答仅依据已查到的内容。").FontSize(fsNote).TextColor(t.TextMuted).FillWidth()
@@ -457,19 +461,28 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 func (a *App) thinking(c *ui.Context) {
 	t := a.pal.theme
 	if a.pending != "" && !a.saved() {
-		ui.Column(c).FillWidth().AlignItems(ui.End).Children(func() { a.userBubble(c, a.pending) })
+		ui.Column(c).FillWidth().AlignItems(ui.End).Gap(8).Children(func() {
+			for n, q := range a.pendingQuotes {
+				ui.Column(c).MaxWidthPercent(82).Children(func() {
+					a.quoteBlock(c, q, fmt.Sprintf("pending-%d", n), nil)
+				})
+			}
+			a.userBubble(c, a.pending)
+		})
 	}
 	reasoning, text, steps, compacting := a.live.read()
 	found := looks(steps, "")
+	proposing, writing := len(a.live.proposals()) > 0 || len(proposed(steps, "")) > 0, a.writingProps()
 	ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Start).Children(func() {
 		a.aiMark(c)
 		ui.Column(c).Grow(1).Shrink(1).Gap(10).Children(func() {
 			if reasoning != "" {
-				a.thought(c, "live-reply", "思考过程", reasoning, text == "" && len(found) == 0)
+				a.thought(c, "live-reply", "思考过程", reasoning, text == "" && len(found) == 0 && !proposing)
 			}
 			if len(found) > 0 {
-				a.looked(c, "live-look", found, text == "")
+				a.looked(c, "live-look", found, text == "" && !proposing)
 			}
+			a.turnCards(c, steps)
 			if text != "" {
 				a.liveMarkdown(c, text, replyText)
 			}
@@ -477,6 +490,8 @@ func (a *App) thinking(c *ui.Context) {
 			switch {
 			case compacting:
 				status = "正在压缩上下文…"
+			case writing:
+				status = "正在正文中提议修改…"
 			case text != "":
 			case len(found) > 0:
 				status = "正在查阅…"
@@ -548,7 +563,8 @@ type look struct {
 
 // looks are what the reply to the author's words userID looked up among
 // events, in the order it did; for "" all of them, as the turn in flight
-// has them.
+// has them. What it proposed in the prose is not among them: that shows
+// as a card of its own.
 func looks(events []workspace.Event, userID string) []look {
 	results := map[string]workspace.Event{}
 	for _, e := range events {
@@ -560,8 +576,23 @@ func looks(events []workspace.Event, userID string) []look {
 	for _, e := range events {
 		if e.Role == workspace.RoleCall && (userID == "" || e.ReplyTo == userID) {
 			for _, call := range e.Calls {
-				out = append(out, look{call.Label, results[call.ID]})
+				if call.Name != workspace.ProposeTool {
+					out = append(out, look{call.Label, results[call.ID]})
+				}
 			}
+		}
+	}
+	return out
+}
+
+// proposed are the results of the calls by which the reply to the
+// author's words userID proposed changes in the prose, in the order it
+// proposed them; for "" all of them, as the turn in flight has them.
+func proposed(events []workspace.Event, userID string) []workspace.Event {
+	var out []workspace.Event
+	for _, e := range events {
+		if e.Role == workspace.RoleResult && e.Proposal != nil && (userID == "" || e.ReplyTo == userID) {
+			out = append(out, e)
 		}
 	}
 	return out
@@ -699,8 +730,11 @@ var partNames = map[string]string{
 	workspace.PartRules:   "规则",
 	workspace.PartIndex:   "设定目录",
 	workspace.PartDigest:  "讨论摘要",
-	workspace.PartOutline: "卷纲和章纲",
-	workspace.PartRecap:   "前情提要",
+	workspace.PartOutline:  "章纲和卷纲",
+	workspace.PartOutlines: "本卷前面各章章纲",
+	workspace.PartPrevious: "上一章全文",
+	workspace.PartChapter:  "本章全文",
+	workspace.PartRecap:    "前情提要",
 	workspace.PartLooked:  "查阅结果",
 	workspace.PartTalk:    "之前的对话",
 	workspace.PartProse:   "附上的正文",
@@ -767,10 +801,15 @@ func (a *App) audit(c *ui.Context, m workspace.Event) {
 				head = "设定较多，本次只附目录"
 			case len(m.Omitted) > 0: // a reply from before the setting went whole or as an index
 				head = fmt.Sprintf("回复时附带 %d 条设定，因上下文上限省略 %d 条", len(setting), len(m.Omitted))
+			case m.Sent != nil && m.Sent.AsOf != "": // a talk that keeps to a chapter has the setting as of it
+				head = fmt.Sprintf("附带 %d 条设定，按「%s」时的样子", len(setting), m.Sent.AsOf)
 			}
 			ui.Text(c, head).FontSize(fsNote).FontWeight(600)
 			if index {
 				note("目录只有分类、名字和第一句；需要时 AI 会查全文。")
+			}
+			if m.Sent != nil && m.Sent.Ahead > 0 {
+				note(fmt.Sprintf("后面还有 %d 处变化，未列出。", m.Sent.Ahead))
 			}
 			if len(setting) == 0 && len(m.Omitted) == 0 {
 				note("设定文档暂无内容。")
@@ -881,12 +920,19 @@ func (a *App) composer(c *ui.Context) {
 				})
 			})
 			ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
-				label, tip := "附上本章内容", "将章纲和光标前约 2000 字一并发送给 AI"
-				if a.openUnit() == "卷" {
-					label, tip = "附上本卷内容", "将卷纲一并发送给 AI"
-				}
-				if ui.Checkbox(c, &a.doc.attach, label).Tooltip(tip).Changed() {
-					a.savePrefs()
+				// A talk opened to draft or rewrite keeps to its chapter: there
+				// is nothing to choose.
+				if kept := a.keptTo(); kept != "" {
+					ui.Text(c, "跟着「"+a.nodeTitle(kept)+"」").FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1).
+						Tooltip("这段讨论附上的正文和设定都按这一章")
+				} else {
+					label, tip := "附上本章内容", "将章纲和光标前约 2000 字一并发送给 AI"
+					if a.openUnit() == "卷" {
+						label, tip = "附上本卷内容", "将卷纲一并发送给 AI"
+					}
+					if ui.Checkbox(c, &a.doc.attach, label).Tooltip(tip).Changed() {
+						a.savePrefs()
+					}
 				}
 				ui.Spacer(c)
 				chip()
@@ -924,31 +970,46 @@ func (a *App) send(c *ui.Context) {
 	if trim(a.input) == "" {
 		return
 	}
-	talk, err := a.talk(c)
-	if err != nil {
-		a.setError(err)
-		return
-	}
-	input, quotes, session := a.input, a.quotes, a.session
+	input, quotes := a.input, a.quotes
 	words := workspace.Event{Text: input, Quotes: quotes}
 	if a.page == 3 {
 		words.Chapter = a.write.node
 	}
-	a.pending, a.input, a.quotes = input, "", nil
+	a.input, a.quotes = "", nil
+	a.say(c, a.session, words, func() {
+		if a.input == "" {
+			a.input, a.quotes = input, quotes // nothing was saved: give the words back
+		}
+	})
+}
+
+// say sends the author's words to the talk session, showing them there
+// until they are saved; unsaid runs when they were not.
+func (a *App) say(c *ui.Context, session string, words workspace.Event, unsaid func()) {
+	talk, err := a.talk(c)
+	if err != nil {
+		a.setError(err)
+		if unsaid != nil {
+			unsaid()
+		}
+		return
+	}
+	words.Role = workspace.RoleUser // as they are kept
+	a.pending, a.pendingQuotes = words.Text, words.Quotes
 	a.chat.ScrollToEnd()
 	a.run(c, "AI 正在思考…", func(ctx context.Context) (func(), error) {
 		saved, err := talk.Say(ctx, session, words)
 		return func() {
-			a.pending = ""
-			if !saved && a.input == "" {
-				a.input, a.quotes = input, quotes // nothing was saved: give the words back
+			a.pending, a.pendingQuotes = "", nil
+			if !saved && unsaid != nil {
+				unsaid()
 			}
 			if a.session == session { // or the author went on to another talk
 				a.chat.ScrollToEnd()
 			}
 		}, err
 	})
-	a.talking, a.talkSession = a.busy != "", session
+	a.talking, a.talkSession, a.talkChapter = a.busy != "", session, originChapter(append(slices.Clip(a.events), words))
 }
 
 func (a *App) retry(c *ui.Context, userID string) {
@@ -966,7 +1027,30 @@ func (a *App) retry(c *ui.Context, userID string) {
 			}
 		}, err
 	})
-	a.talking, a.talkSession = a.busy != "", session
+	a.talking, a.talkSession, a.talkChapter = a.busy != "", session, originChapter(a.events)
+}
+
+// keptTo is the chapter the talk shown keeps to, when it was opened to
+// draft or rewrite it; its first words may be on their way still.
+func (a *App) keptTo() string {
+	if a.talking && a.talkSession == a.session {
+		return a.talkChapter
+	}
+	return originChapter(a.events)
+}
+
+// originChapter is the chapter the talk of events keeps to, when it was
+// opened to draft or rewrite it: its first words say.
+func originChapter(events []workspace.Event) string {
+	for _, e := range events {
+		if e.Role == workspace.RoleUser {
+			if e.Origin != "" {
+				return e.Chapter
+			}
+			return ""
+		}
+	}
+	return ""
 }
 
 func (a *App) openSource(m workspace.Event, start, end int) {

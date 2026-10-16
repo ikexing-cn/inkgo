@@ -40,7 +40,7 @@ var toolStreams = map[string][]string{
 
 // A request carries the tools and the calls made before with what they
 // returned; a reply that calls a tool comes back as a call, with what the
-// provider says it used.
+// provider says it used, its input streamed a piece at a time on the way.
 func TestToolCallsAndUsage(t *testing.T) {
 	want := map[string]Usage{
 		"chat":      {Input: 100, CacheRead: 60, Output: 20, Reasoning: 5},
@@ -72,12 +72,21 @@ func TestToolCallsAndUsage(t *testing.T) {
 				},
 				Tools: []Tool{{Name: "search", Description: "在全书里搜", Schema: json.RawMessage(`{"type":"object","properties":{"q":{"type":"string","maxLength":40}},"required":["q"]}`)}},
 			}
-			got, err := client.Complete(context.Background(), req, nil)
+			var streamed string
+			got, err := client.Complete(context.Background(), req, func(d Delta) {
+				if d.Call.ID != "call_1" || d.Call.Name != "search" {
+					t.Errorf("streamed %+v", d)
+				}
+				streamed += d.Call.Input
+			})
 			if err != nil {
 				t.Fatal(err)
 			}
 			if len(got.Calls) != 1 || got.Calls[0].ID != "call_1" || got.Calls[0].Name != "search" || string(got.Calls[0].Input) != `{"q":"井"}` {
 				t.Fatalf("calls = %+v", got.Calls)
+			}
+			if streamed != `{"q":"井"}` {
+				t.Fatalf("the input streamed as %q", streamed)
 			}
 			if got.Text != "" || got.Usage != want[protocol] {
 				t.Fatalf("reply = %+v", got)

@@ -11,9 +11,9 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"writer/discussion"
 	"writer/model"
 	"writer/workspace"
-	"writer/writing"
 )
 
 // replies is a model that gives each of its replies in turn, failing on
@@ -106,11 +106,16 @@ func TestOffBuildsNothing(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer st.Close()
+	w := st.Work()
+	w.Discussion = workspace.Selection{Provider: "deepseek", Model: "deepseek-flash"}
+	if err := st.SaveWork(w); err != nil {
+		t.Fatal(err)
+	}
 	s := New("")
 	var built atomic.Int32
-	s.NewWriter = func(*workspace.Store) (*writing.Writer, error) {
+	s.Open = func(workspace.Selection, *workspace.Store) (discussion.Model, error) {
 		built.Add(1)
-		return &writing.Writer{Store: st}, nil
+		return discussion.Model{}, nil
 	}
 	s.SetOn(false)
 	if _, err := s.Catalog("deepseek"); !errors.Is(err, ErrOff) {

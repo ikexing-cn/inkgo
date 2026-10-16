@@ -1,6 +1,8 @@
 package editor
 
 import (
+	"slices"
+
 	"github.com/egoist/mygo/ui"
 )
 
@@ -28,12 +30,28 @@ func (e *Editor) paintIn(p *ui.Painter, r ui.Rect) {
 	}
 	e.ensureLayout()
 	l := &e.lay
+	// What is proposed comes into view: its start when the host asks, its
+	// end as it grows while that is in view.
+	for _, id := range []string{e.show, e.follow} {
+		d, ok := l.gaps[id]
+		if !ok || len(l.lines) == 0 {
+			continue
+		}
+		if id == e.show {
+			d = d - len([]rune(e.props[slices.IndexFunc(e.props, func(p Proposal) bool { return p.ID == id })].Text))
+		}
+		cy := l.lines[l.lineOf(d)].y
+		switch {
+		case cy < e.scrollY:
+			e.scrollY = cy - l.lineH
+		case cy+l.lineH > e.scrollY+r.H:
+			e.scrollY = cy + 2*l.lineH - r.H
+		}
+	}
+	e.show, e.follow = "", ""
 	if e.reveal {
 		e.reveal = false
 		_, cy := e.caretPos()
-		if e.proposing() && e.prop.kind == MarkAIDraft && len(l.lines) > 0 {
-			cy = l.lines[l.lineOf(l.extraEnd)].y // the end of a draft as it comes
-		}
 		switch {
 		case e.typewriter && e.Doc.version != e.centered:
 			// only the text changing moves it, not a click or an arrow
@@ -69,10 +87,8 @@ func (e *Editor) paintIn(p *ui.Painter, r ui.Rect) {
 				}
 			case MarkPayoff:
 				dotted(p, ox+x0, ox+x1, base, t.Text.Alpha(0.55))
-			case MarkAIAccepted:
+			case MarkAI:
 				p.Line(ox+x0, base, ox+x1, base, 1, colorAI.Alpha(0.55))
-			case MarkAIDraft:
-				p.Line(ox+x0, base, ox+x1, base, 1, colorAI.Alpha(0.3))
 			}
 		})
 	}
@@ -117,28 +133,23 @@ func (e *Editor) paintIn(p *ui.Painter, r ui.Rect) {
 		})
 	}
 
-	// A rewrite proposed: its words struck through, the new ones tinted.
-	if e.proposing() {
-		l.ranges(l.toDisp(e.prop.a, true), l.toDisp(e.prop.b, false), func(x0, x1, y float32) {
-			if y >= top && y <= bottom {
-				p.Fill(ui.Rect{X: ox + x0, Y: oy + y + 3, W: x1 - x0, H: l.lineH - 6}, t.Danger.Alpha(0.1), 0)
+	// What an AI proposes to replace is struck through.
+	for _, pr := range e.props {
+		if pr.Keep {
+			continue
+		}
+		l.ranges(l.toDisp(pr.A, true), l.toDisp(pr.B, false), func(x0, x1, y float32) {
+			if y >= top && y <= bottom && x1 > x0 {
 				mid := oy + y + l.lineH/2
-				p.Line(ox+x0, mid, ox+x1, mid, 1.2, t.Danger.Alpha(0.8))
-			}
-		})
-		from, to := e.tinted()
-		l.ranges(from, to, func(x0, x1, y float32) {
-			if y >= top && y <= bottom {
-				p.Fill(ui.Rect{X: ox + x0, Y: oy + y + 3, W: x1 - x0, H: l.lineH - 6}, t.Success.Alpha(0.14), 0)
+				p.Line(ox+x0, mid, ox+x1, mid, 1.2, t.Danger)
 			}
 		})
 	}
 
-	// The text, by runs of one color.
-	ghostColor := t.TextMuted.Alpha(0.75)
-	if e.proposing() {
-		ghostColor = t.Success
-	}
+	// The text, by runs of one kind: what is proposed is green, what it
+	// replaces red, a prediction pale; the room after a proposal is the
+	// host's to fill.
+	colors := [...]ui.Color{runeText: t.Text, runeGhost: t.TextMuted.Alpha(0.75), runeNew: t.Success, runeStruck: t.Danger}
 	for i := range l.lines {
 		ln := &l.lines[i]
 		if ln.y < top || ln.y > bottom {
@@ -146,10 +157,17 @@ func (e *Editor) paintIn(p *ui.Painter, r ui.Rect) {
 		}
 		x := ox + ln.dx - ln.sh.xs[ln.start-ln.pstart]
 		y := oy + ln.y + l.ascent
-		e.drawRun(p, ln, ln.start, min(ln.end, l.extraAt), x, y, t.Text)
-		e.drawRun(p, ln, max(ln.start, l.extraAt), min(ln.end, l.preEnd), x, y, t.Text)
-		e.drawRun(p, ln, max(ln.start, l.preEnd), min(ln.end, l.extraEnd), x, y, ghostColor)
-		e.drawRun(p, ln, max(ln.start, l.extraEnd), ln.end, x, y, t.Text)
+		for a := ln.start; a < ln.end; {
+			k := l.kinds[a]
+			b := a + 1
+			for b < ln.end && l.kinds[b] == k {
+				b++
+			}
+			if k != runeGap {
+				e.drawRun(p, ln, a, b, x, y, colors[k])
+			}
+			a = b
+		}
 	}
 
 	// The composition is underlined.

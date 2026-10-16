@@ -34,9 +34,10 @@ type Service struct {
 	// and its reply, a file for each; it is for tuning the prompts, and
 	// no work is written to.
 	Trace string
-	// NewWriter builds the writer of s, as the work and the services are
-	// now; tests replace it.
-	NewWriter func(s *workspace.Store) (*writing.Writer, error)
+	// Open is the model sel names for the work st, as the services are
+	// now: each request to it goes into the AI record of st. Tests replace
+	// it.
+	Open func(sel workspace.Selection, st *workspace.Store) (discussion.Model, error)
 }
 
 var _ aiport.Service = (*Service)(nil)
@@ -52,7 +53,7 @@ func ConfigPath() (string, error) { return model.ConfigPath() }
 // empty file; Reload reads them.
 func New(file string) *Service {
 	s := &Service{file: file}
-	s.NewWriter = s.writer
+	s.Open = s.open
 	return s
 }
 
@@ -162,7 +163,7 @@ func (t talk) Retry(ctx context.Context, session, userID string) error {
 	return err
 }
 
-func (s *Service) Talk(st *workspace.Store, beside *aiport.Beside, progress func(reasoning, text string), step func(workspace.Event)) (aiport.Talk, error) {
+func (s *Service) Talk(st *workspace.Store, beside *aiport.Beside, progress func(aiport.Progress), step func(workspace.Event)) (aiport.Talk, error) {
 	if s.off.Load() {
 		return nil, ErrOff
 	}
@@ -170,19 +171,24 @@ func (s *Service) Talk(st *workspace.Store, beside *aiport.Beside, progress func
 	if work.Discussion.Provider == "" || work.Discussion.Model == "" {
 		return nil, errors.New("尚未选择讨论模型：请在设置中「AI」配置里选择")
 	}
-	m, err := s.open(work.Discussion, st)
+	m, err := s.Open(work.Discussion, st)
 	if err != nil {
 		return nil, err
 	}
 	e := &discussion.Engine{Store: st, Talk: m, Step: step}
 	if progress != nil {
-		e.Progress = func(d model.Delta) { progress(d.Reasoning, d.Text) }
+		e.Progress = func(d model.Delta) { progress(aiport.Progress{Reasoning: d.Reasoning, Text: d.Text}) }
+		e.Proposing = func(call string, p workspace.Proposal) { progress(aiport.Progress{Call: call, Proposal: &p}) }
 	}
 	if beside != nil {
 		w := discussion.Writing(*beside)
 		e.Beside = &w
 	}
 	return talk{e}, nil
+}
+
+func (s *Service) Preloaded(st *workspace.Store, origin, chapter string) (int, error) {
+	return discussion.Preloaded(st, origin, chapter)
 }
 
 func (s *Service) Extract(st *workspace.Store, session, message string, start, end int, category string) (workspace.Entry, error) {
@@ -282,7 +288,7 @@ func (s *Service) writer(st *workspace.Store) (*writing.Writer, error) {
 	if sel.Provider == "" || sel.Model == "" {
 		return nil, writing.ErrNoModel
 	}
-	m, err := s.open(sel, st)
+	m, err := s.Open(sel, st)
 	if err != nil {
 		return nil, err
 	}
@@ -299,22 +305,6 @@ func (p pen) Predict(ctx context.Context, scene aiport.Scene) (string, error) {
 	return p.w.Predict(ctx, writing.Scene(scene))
 }
 
-func (p pen) Rewrite(scene aiport.Scene, selected, instruction string) (aiport.Job, error) {
-	job, err := p.w.Rewrite(writing.Scene(scene), selected, instruction)
-	return p.job(job), err
-}
-
-func (p pen) Draft(scene aiport.Scene, words int) (aiport.Job, error) {
-	job, err := p.w.Draft(writing.Scene(scene), words)
-	return p.job(job), err
-}
-
-func (p pen) job(job writing.Job) aiport.Job {
-	return aiport.Job{Record: job.Record, Run: func(ctx context.Context, onText func(string)) (string, error) {
-		return p.w.Run(ctx, job, onText)
-	}}
-}
-
 func (p pen) Check(ctx context.Context, chapter string) (workspace.Check, error) {
 	return p.w.Check(ctx, chapter)
 }
@@ -323,7 +313,7 @@ func (s *Service) Pen(st *workspace.Store) (aiport.Pen, error) {
 	if s.off.Load() {
 		return nil, ErrOff
 	}
-	w, err := s.NewWriter(st)
+	w, err := s.writer(st)
 	if err != nil {
 		return nil, err
 	}

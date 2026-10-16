@@ -14,6 +14,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/ai"
+	"writer/desk/aiport"
 	"writer/model"
 	"writer/workspace"
 )
@@ -553,12 +554,12 @@ func TestLiveTurnStreams(t *testing.T) {
 	a.pending = "她做什么工作？"
 	a.run(c, "AI 正在思考", func(ctx context.Context) (func(), error) { <-block; return nil, nil })
 	a.talking, a.talkSession = true, a.session
-	a.live.add("她怕黑，职业要和光有关", "")
+	a.live.add(aiport.Progress{Reasoning: "她怕黑，职业要和光有关"})
 	tt.Frame()
 	if !tt.HasText("她怕黑，职业要和光有关") || !tt.HasText("正在思考…") {
 		t.Fatal("reasoning not streamed", tt.Texts())
 	}
-	a.live.add("", "可以让她**修灯**。")
+	a.live.add(aiport.Progress{Text: "可以让她**修灯**。"})
 	tt.Frame()
 	if !tt.HasText("正在回复…") || tt.HasText("**") {
 		t.Fatal("reply not streamed as markdown", tt.Texts())

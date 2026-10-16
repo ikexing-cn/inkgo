@@ -140,9 +140,19 @@ type Request struct {
 	Effort    Effort
 }
 
-// Delta is a piece of streamed output: of the reasoning or of the reply.
+// Delta is a piece of streamed output: of the reasoning or of the reply,
+// or of the input of a tool call as the model writes it.
 type Delta struct {
 	Reasoning, Text string
+	Call            CallDelta
+}
+
+// CallDelta is a piece of the input of the tool call ID, to the tool
+// Name: the input's JSON a piece at a time, as the model writes it, which
+// the call brings whole once written. A call begins with no input. Not
+// every provider streams it: there the call comes whole, and no piece.
+type CallDelta struct {
+	ID, Name, Input string
 }
 
 // Reply is a finished answer and the reasoning shown before it. A reply
@@ -396,6 +406,11 @@ func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta))
 			}
 			calls = append(calls, Call{ID: chunk.ToolCallID, Name: chunk.ToolName, Input: input})
 			continue
+		case provider.ChunkToolCallStreamStart, provider.ChunkToolCallDelta:
+			if chunk.ToolCallID == "" {
+				continue
+			}
+			d.Call = CallDelta{ID: chunk.ToolCallID, Name: chunk.ToolName, Input: chunk.ToolInput}
 		case provider.ChunkError:
 			if ctx.Err() == nil && text.Len()+reasoning.Len() > 0 {
 				return Reply{}, errors.New("模型回复中途断开，没有完成")

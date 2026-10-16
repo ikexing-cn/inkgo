@@ -1,6 +1,7 @@
 package editor
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -27,75 +28,131 @@ func TestPredictionOnDemand(t *testing.T) {
 		t.Fatal("no prediction when asked")
 	}
 	tt.Key(0, ui.KeyTab)
-	if ms := e.Doc.Marks(); len(ms) != 1 || ms[0].Kind != MarkAIAccepted {
+	if ms := e.Doc.Marks(); len(ms) != 1 || ms[0].Kind != MarkAI {
 		t.Fatalf("marks %+v", ms)
 	}
 }
 
-// A draft is shown as it comes, beside the text it would replace, which
-// stays as it was; accepted, it goes in marked as drafted, and undoes as
-// one step with what it replaced.
-func TestADraftWaitsToBeTaken(t *testing.T) {
-	e := New(NewDoc("旧的开头。"), Options{Prose: true})
+// What an AI proposes shows in the text, which stays as it was: in
+// place of the words struck, after the words it follows, or as
+// paragraphs of its own; the author goes on typing elsewhere. Taken, all
+// go in as one step, marked as the AI's, with the caret after the last.
+func TestProposalsShowAndGoInAsOneStep(t *testing.T) {
+	e := New(NewDoc("她走到井边。井里有光。\n雨停了。"), Options{Prose: true})
 	tt := newTester(e)
-	e.ProposeDraft(0, e.Doc.Len())
-	for _, s := range []string{"雨下", "了一夜。\n", "她醒了。"} {
-		e.ProposeMore(s)
-		tt.Frame()
+	ps := []Proposal{
+		{ID: "swap", A: 0, B: 6, Text: "她慢慢走到井边，\n\n停住了。"},
+		{ID: "end", A: 16, B: 16, Keep: true, Text: "\n天亮了。"},
 	}
-	if e.Doc.String() != "旧的开头。" {
-		t.Fatalf("while drafting %q", e.Doc.String())
+	e.SetProposals(ps, 80)
+	tt.Frame()
+	if e.Doc.String() != "她走到井边。井里有光。\n雨停了。" {
+		t.Fatal("a proposal changed the text")
 	}
-	if a, b, text, ok := e.Proposal(); !ok || a != 0 || b != 5 || text != "雨下了一夜。\n她醒了。" {
-		t.Fatalf("proposed %d %d %q %v", a, b, text, ok)
+	if got := string(e.lay.disp); got != "她走到井边。她慢慢走到井边，\n停住了。\uFFFC井里有光。\n雨停了。\n天亮了。\uFFFC" {
+		t.Fatalf("shown %q", got)
 	}
-	e.Propose(0, 1, "新")
-	e.ProposeMore("不是起草")
-	if _, _, text, _ := e.Proposal(); text != "新" {
-		t.Fatalf("a rewrite grew %q", text)
+	var struck, green []string
+	for i, k := range e.lay.kinds {
+		switch k {
+		case runeStruck:
+			struck = append(struck, string(e.lay.disp[i]))
+		case runeNew:
+			green = append(green, string(e.lay.disp[i]))
+		}
 	}
-	e.ProposeDraft(0, e.Doc.Len())
-	e.ProposeMore("雨下了一夜。\n她醒了。")
-	e.AcceptProposal("deepseek/deepseek-flash")
+	if strings.Join(struck, "") != "她走到井边。" || strings.Join(green, "") != "她慢慢走到井边，\n停住了。\n天亮了。" {
+		t.Fatalf("struck %q, green %q", struck, green)
+	}
+	// The room after each is as wide as asked, after its last word.
+	gap, ok := e.ProposalGap("swap")
+	if !ok || gap.W != 80 {
+		t.Fatalf("room %+v %v", gap, ok)
+	}
+	ln := &e.lay.lines[e.lay.lineOf(e.lay.gaps["swap"])]
+	if x := e.lay.x(ln, e.lay.gaps["swap"]+1) - e.lay.x(ln, e.lay.gaps["swap"]); x != 80 {
+		t.Fatalf("the room is %v wide", x)
+	}
+	// A click on the words proposed is a click at the place they show.
+	if d := e.lay.toDoc(e.lay.gaps["swap"] - 2); d != 6 {
+		t.Fatalf("maps to %d", d)
+	}
+	if d := e.lay.toDisp(7, false); string(e.lay.disp[d]) != "里" {
+		t.Fatalf("the text after shows at %d", d)
+	}
+	e.MoveTo(e.Doc.Len(), false)
+	e.Insert("后来")
+	if e.Doc.String() != "她走到井边。井里有光。\n雨停了。后来" {
+		t.Fatalf("typed %q", e.Doc.String())
+	}
+	ps[1].A, ps[1].B = e.Doc.Len(), e.Doc.Len()
+	e.Take(ps, "deepseek/deepseek-flash")
+	if e.Doc.String() != "她慢慢走到井边，\n停住了。井里有光。\n雨停了。后来\n天亮了。" {
+		t.Fatalf("taken %q", e.Doc.String())
+	}
 	ms := e.Doc.Marks()
-	if e.Doc.String() != "雨下了一夜。\n她醒了。" || len(ms) != 1 || ms[0].Kind != MarkAIDraft || ms[0].Start != 0 || ms[0].End != e.Doc.Len() || ms[0].Note != "deepseek/deepseek-flash" {
-		t.Fatalf("after %q %+v", e.Doc.String(), ms)
+	if len(ms) != 2 || ms[0].Kind != MarkAI || e.Doc.Slice(ms[0].Start, ms[0].End) != "她慢慢走到井边，\n停住了。" ||
+		e.Doc.Slice(ms[1].Start, ms[1].End) != "天亮了。" || ms[1].Note != "deepseek/deepseek-flash" || e.Caret() != e.Doc.Len() {
+		t.Fatalf("marks %+v, caret %d", ms, e.Caret())
 	}
 	e.Undo()
-	if e.Doc.String() != "旧的开头。" || len(e.Doc.Marks()) != 0 {
+	if e.Doc.String() != "她走到井边。井里有光。\n雨停了。后来" || len(e.Doc.Marks()) != 0 {
 		t.Fatalf("undo %q %+v", e.Doc.String(), e.Doc.Marks())
 	}
 	e.Redo()
-	if e.Doc.String() != "雨下了一夜。\n她醒了。" || len(e.Doc.Marks()) != 1 {
-		t.Fatalf("redo %q", e.Doc.String())
+	if e.Doc.String() != "她慢慢走到井边，\n停住了。井里有光。\n雨停了。后来\n天亮了。" || len(e.Doc.Marks()) != 2 {
+		t.Fatalf("redo %q %+v", e.Doc.String(), e.Doc.Marks())
 	}
 }
 
-// A draft after the text tints its own words, not the end of the
-// paragraph before it; taken, it is marked from its first word.
-func TestADraftAfterTheTextTintsItsWordsOnly(t *testing.T) {
-	e := New(NewDoc("雨下了一夜。"), Options{Prose: true})
+// A proposal for the whole chapter shows below the words it would
+// replace, and taken it takes their place.
+func TestAProposalOfAllShowsApart(t *testing.T) {
+	e := New(NewDoc("旧的开头。"), Options{Prose: true})
 	tt := newTester(e)
-	n := e.Doc.Len()
-	e.ProposeDraft(n, n)
-	e.ProposeMore("\n她醒了。\n")
+	e.SetProposals([]Proposal{{ID: "all", A: 0, B: 5, Apart: true, Text: "雨下了一夜。\n她醒了。"}}, 60)
 	tt.Frame()
-	var ys []float32
-	from, to := e.tinted()
-	e.lay.ranges(from, to, func(_, _, y float32) { ys = append(ys, y) })
-	if len(ys) != 1 || ys[0] == e.lay.lines[0].y {
-		t.Fatalf("tinted on lines at %v; the text is at %v", ys, e.lay.lines[0].y)
+	if got := string(e.lay.disp); got != "旧的开头。\n雨下了一夜。\n她醒了。\uFFFC" || e.lay.lines[1].y == e.lay.lines[0].y {
+		t.Fatalf("shown %q", got)
 	}
-	e.AcceptProposal("m")
-	if ms := e.Doc.Marks(); e.Doc.String() != "雨下了一夜。\n她醒了。\n" || len(ms) != 1 || e.Doc.Slice(ms[0].Start, ms[0].End) != "她醒了。" {
+	e.Take(e.Proposals(), "m")
+	if ms := e.Doc.Marks(); e.Doc.String() != "雨下了一夜。\n她醒了。" || len(ms) != 1 || ms[0].Start != 0 || ms[0].End != e.Doc.Len() {
 		t.Fatalf("taken %q %+v", e.Doc.String(), ms)
 	}
+	e.Undo()
+	if e.Doc.String() != "旧的开头。" {
+		t.Fatalf("undo %q", e.Doc.String())
+	}
 }
 
-// Words the author changes leave the draft; what is around stays marked.
-func TestDraftMarkLetsGoOfEditedWords(t *testing.T) {
+// A proposal growing at the end of the text keeps its end in view while
+// that was in view; brought into view, its start shows.
+func TestAProposalComesIntoView(t *testing.T) {
+	e := New(NewDoc(strings.Repeat("雨下了一夜。\n", 40)), Options{Prose: true})
+	tt := newTester(e)
+	n := e.Doc.Len()
+	e.SetProposals([]Proposal{{ID: "d", A: n, B: n, Keep: true, Text: "她"}}, 60)
+	tt.Frame()
+	if _, ok := e.ProposalGap("d"); ok {
+		t.Fatal("the end of a long text is in view")
+	}
+	e.RevealProposal("d")
+	tt.Frame()
+	if _, ok := e.ProposalGap("d"); !ok {
+		t.Fatal("not brought into view")
+	}
+	e.SetProposals([]Proposal{{ID: "d", A: n, B: n, Keep: true, Text: "她" + strings.Repeat("醒了。\n", 12)}}, 60)
+	tt.Frame()
+	if _, ok := e.ProposalGap("d"); !ok {
+		t.Fatal("the end went out of view as it grew")
+	}
+}
+
+// Words the author changes leave what an AI wrote; what is around stays
+// marked.
+func TestTheAIMarkLetsGoOfEditedWords(t *testing.T) {
 	d := NewDoc("雨下了一夜，她醒了。")
-	d.AddMark(MarkAIDraft, 0, 10, "")
+	d.AddMark(MarkAI, 0, 10, "")
 	d.replace(3, 5, []rune("整整一夜")) // "一夜" becomes "整整一夜"
 	ms := d.Marks()
 	if len(ms) != 2 || d.Slice(ms[0].Start, ms[0].End) != "雨下了" || d.Slice(ms[1].Start, ms[1].End) != "，她醒了。" {
@@ -111,46 +168,13 @@ func TestDraftMarkLetsGoOfEditedWords(t *testing.T) {
 	}
 }
 
-// A rewrite shows beside its words until accepted, as one step.
-func TestProposalAcceptedAsOneStep(t *testing.T) {
-	e := New(NewDoc("她走到井边。井里有光。"), Options{Prose: true})
-	tt := newTester(e)
-	e.Propose(0, 6, "她慢慢走到井边，\n\n停住了。")
-	tt.Frame()
-	if _, _, text, ok := e.Proposal(); !ok || text != "她慢慢走到井边，\n停住了。" {
-		t.Fatalf("proposal %q", text)
-	}
-	if e.Doc.String() != "她走到井边。井里有光。" {
-		t.Fatal("a proposal changed the text")
-	}
-	if !e.AcceptProposal("m") {
-		t.Fatal("not accepted")
-	}
-	if e.Doc.String() != "她慢慢走到井边，\n停住了。井里有光。" {
-		t.Fatalf("accepted %q", e.Doc.String())
-	}
-	ms := e.Doc.Marks()
-	if len(ms) != 1 || ms[0].Kind != MarkAIAccepted || e.Doc.Slice(ms[0].Start, ms[0].End) != "她慢慢走到井边，\n停住了。" {
-		t.Fatalf("marks %+v", ms)
-	}
-	e.Undo()
-	if e.Doc.String() != "她走到井边。井里有光。" || len(e.Doc.Marks()) != 0 {
-		t.Fatalf("undo %q", e.Doc.String())
-	}
-	e.Propose(0, 2, "他")
-	e.Insert("x") // the text changing drops what was proposed
-	if _, _, _, ok := e.Proposal(); ok {
-		t.Fatal("a proposal outlived its text")
-	}
-}
-
 // With the AI off, nothing asks the predictor and a prediction shown goes;
 // what an AI wrote is not underlined nor a mark at the caret, yet its mark
 // stays, for when the AI is back.
 func TestNoAI(t *testing.T) {
 	const text = "她推开门。窗外下雨"
 	e := New(NewDoc(text), Options{Predictor: DemoPredictor{}, PredictOnDemand: true})
-	e.Doc.AddMark(MarkAIDraft, 0, 5, "deepseek/deepseek-flash")
+	e.Doc.AddMark(MarkAI, 0, 5, "deepseek/deepseek-flash")
 	e.MoveTo(len([]rune(text)), false)
 	tt := newTester(e)
 	tt.Key(ui.Cmd, ui.KeyJ)

@@ -355,7 +355,6 @@ func (a *App) askToSave(c *ui.Context) {
 // open in its place.
 func (a *App) saveToClose() bool {
 	w := &a.write
-	a.stopAI()
 	switch {
 	case w.lost:
 		a.saveLost()
@@ -370,7 +369,6 @@ func (a *App) saveToClose() bool {
 // dropUnsaved puts the node shown back to what the disk has of it.
 func (a *App) dropUnsaved() {
 	w := &a.write
-	a.stopAI()
 	// Without its editor nothing of it is saved as it is left.
 	w.ed, w.external, w.lost = nil, nil, false
 	w.outline = w.outlineSaved

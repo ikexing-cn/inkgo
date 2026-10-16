@@ -114,7 +114,7 @@ func TestGhostAcceptedWithTab(t *testing.T) {
 		t.Fatalf("after Tab: %q", e.Doc.String())
 	}
 	ms := e.Doc.Marks()
-	if len(ms) != 1 || ms[0].Kind != MarkAIAccepted || e.Doc.Slice(ms[0].Start, ms[0].End) != g {
+	if len(ms) != 1 || ms[0].Kind != MarkAI || e.Doc.Slice(ms[0].Start, ms[0].End) != g {
 		t.Fatalf("accepted text not marked: %+v", ms)
 	}
 	tt.Key(ui.Cmd, ui.KeyZ)

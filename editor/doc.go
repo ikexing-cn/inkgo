@@ -12,11 +12,10 @@ type MarkKind int
 const (
 	// MarkForeshadow is a foreshadowing a human marked (canon).
 	MarkForeshadow MarkKind = iota + 1
-	// MarkAIAccepted is text an AI predicted and a human accepted with Tab.
-	MarkAIAccepted
-	// MarkAIDraft is text an AI drafted from the outline, until a human
-	// edits it.
-	MarkAIDraft
+	// MarkAI is text an AI wrote and a human took: a prediction taken with
+	// Tab, or a change proposed in a talk. What a human edits in it leaves
+	// it.
+	MarkAI
 	// MarkPayoff is where a foreshadowing, of this chapter or another, is
 	// paid off.
 	MarkPayoff
@@ -26,10 +25,8 @@ func (k MarkKind) String() string {
 	switch k {
 	case MarkForeshadow:
 		return "伏笔"
-	case MarkAIAccepted:
-		return "AI 采纳"
-	case MarkAIDraft:
-		return "AI 起草"
+	case MarkAI:
+		return "AI 写的"
 	case MarkPayoff:
 		return "回收"
 	}
@@ -174,9 +171,9 @@ func (d *Doc) replace(a, b int, ins []rune) {
 	for i := range d.marks {
 		m := &d.marks[i]
 		wasEmpty := m.End <= m.Start
-		if m.Kind == MarkAIDraft && !wasEmpty && a < m.End && b > m.Start {
-			// An edit inside a draft takes its words out of it: what is
-			// left before and after the edit stays the draft's.
+		if m.Kind == MarkAI && !wasEmpty && a < m.End && b > m.Start {
+			// An edit inside what an AI wrote takes its words out of it:
+			// what is left before and after the edit stays the AI's.
 			delta := n - (b - a)
 			before, after := m.Start < a, b < m.End
 			switch {
@@ -231,7 +228,9 @@ func mapPos(p, a, b, n int, right bool) int {
 	}
 }
 
-// normalize turns the line breaks of other systems into \n.
+// normalize turns the line breaks of other systems into \n, and drops
+// what no text holds: control characters, and the rune that holds room
+// after what is proposed.
 func normalize(s string) string {
 	out := make([]rune, 0, len(s))
 	rs := []rune(s)
@@ -246,7 +245,7 @@ func normalize(s string) string {
 		if r == '\t' {
 			r = ' '
 		}
-		if r < 0x20 && r != '\n' {
+		if r < 0x20 && r != '\n' || r == gapRune {
 			continue
 		}
 		out = append(out, r)

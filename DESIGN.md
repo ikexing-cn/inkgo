@@ -419,7 +419,7 @@ components:
 
 - 修改记录里讨论时 AI 记下的那几条整条不列，不只是不写来源。
 - 快照不写「AI 改动前」，只写「改动前」。
-- 正文里 AI 起草的那几段不画下划线。
+- 正文里 AI 写的那几段不画下划线。
 - 问句的标题末尾带问号，和「保存对……的修改？」一样；问句浮在设置上面，Esc 只关问句。
 - 关的时候停在讨论页、检查页的，回到正文页；右栏停在讨论的，显示设定，停在哪一页记着，重新开启后回到讨论（待作者确认）。
 
@@ -448,18 +448,23 @@ components:
 
 ### AI 写的字要作者采纳
 
-AI 写的字，作者点了才进正文，没有例外：续写按 Tab，改写、起草点「采纳」。
+AI 写的字，作者点了才进正文，没有例外：续写按 Tab；起草、改写和讨论里改正文，AI 都在正文里提议，点「采纳」才写进去。
 
-- 采纳之前和正文分得开：续写是灰字；改写、起草里 AI 写的是绿色，要换掉的原文划红色删除线。这时正文不能打字，没采纳的字不存盘。
-- 采纳前存快照；采纳算一步，撤销一次就退回去。
-- 点过标题下面 AI 那一行的「采纳」「放弃」「停止」「取消」，或者按 Esc 关掉改写要求，这一行收起，键盘回到正文：采纳以后光标在 AI 写的字后面，马上按 Ctrl+Z 就撤销。
-- 这一行刚换成「放弃」「重新改写」「采纳」（或「重新起草」）的半秒里，点了不算：写完的那一刻正好点「停止」「取消」，不会落到同一处的「采纳」上。
-- 没采纳就离开这一章或关掉 AI，写好的丢掉，正文照旧。
+- 起草、改写各开一段新的讨论，在正文旁边的右栏：第一句替作者说出要求（改写还引着选中的那段），标题写「起草：章名」「改写：那段的开头」，下面写「跟着「章名」」，附上的正文和设定都按这一章。想改哪里，在讨论里接着说。
+- 别的讨论也能提议改正文。提议的那一章没开着，就在旁边开一个标签页，作者在哪还在哪。
+- 提议和正文分得开：续写是灰字；提议里 AI 写的是绿色，要换掉的原文划红色删除线，后面跟「放弃」「采纳」。标题下面 AI 那一行写「本章有 N 处 AI 提议」，带「全部放弃」「全部采纳」。提议边写边显示，写着时跟「正在写…」。没采纳的字不在正文里、不存盘，正文照常能打字。
+- 讨论里每处提议一张卡片：改哪一章，换掉一句、接在一句之后、接在章末还是换掉全章，多少字，后来怎样（等你决定、已采纳、已放弃、已被新的提议替换、正文已改动，提议已作废、作品关闭时已丢弃、关闭 AI 时已丢弃）。还没决定的带「在正文中查看」。
+- 采纳前存快照，快照里写「采纳讨论「标题」里的提议」；采纳算一步，撤销一次就退回去；采纳以后光标在 AI 写的字后面。
+- 一处提议刚写完的半秒里，点它的「采纳」不算：写完的那一刻正好点「放弃」，不会落到同一处的「采纳」上。
+- 放弃一处还在写的提议，AI 跟着停下。采纳、放弃、作废了，作者下次在那段讨论里说话时告诉 AI。
+- 同一章里新的提议和还没决定的提议改的是同一处，旧的换成新的。提议要换掉的原文被作者改了，提议作废，提示「1 处 AI 提议已作废」。
+- 还有没决定的提议时离开作品（换作品、新建作品、回书架、关窗口），先问「还有 N 处 AI 提议没有处理」，点「丢弃并关闭」才走。关掉 AI，提议都丢掉，正文照旧。
+- 点过「采纳」「放弃」「取消」，或者按 Esc 关掉改写要求，键盘回到正文。
 
 检查：
 
-- `npm run verify-prototype` 的「a sentence more」「a rewrite」「a draft」查原型，采纳以后按 Ctrl+Z、Ctrl+Y，按 Esc 关掉改写要求以后键盘在正文，改写出来马上点「采纳」不算、半秒后才算。
-- `go test ./desk` 的 `TestDraftAChapterFromItsOutline`、`TestStopADraftKeepsWhatCame`、`TestRewriteASelection` 查软件：起草、改写写完，正文和磁盘都不变，采纳时才存快照、写进正文，算一步；点过按钮以后键盘在正文，采纳以后按 Ctrl+Z 撤销；`TestRewriteASelection` 还查改写出来马上点「采纳」不算、半秒后才算。`TestTurnTheAIOffAndOn` 查关掉 AI 时没采纳的起草丢掉。
+- `npm run verify-prototype` 的「a sentence more」「a rewrite」「a proposal void, and one let go」「a draft」「leave with a proposal」「a proposal in another chapter」查原型：改写和起草开的讨论、边写边显示、新提议换掉旧的、刚写完马上点「采纳」不算、采纳以后按 Ctrl+Z、Ctrl+Y、快照写哪段讨论、改了原文提议作废、放弃还在写的提议 AI 停下、离开作品先问、提议改另一章在旁边开标签页。
+- `go test ./desk` 的 `TestDraftAChapterThroughATalk`、`TestDraftOverWhatIsThere`、`TestRewriteASelectionThroughATalk`、`TestAProposalVoidAndOneLetGo`、`TestLeavingTheWorkAsksAboutProposals`、`TestAProposalInAnotherChapterOpensBeside`、`TestTakingTheDisksTextVoidsWhatItChanged` 在软件里查同样的几处，还查提议在采纳前正文和磁盘都不变、讨论的第一句和请求里写着跟着哪一章、放弃以后下次说话时 AI 被告知；`TestTurnTheAIOffAndOn` 查关掉 AI 时提议丢掉。`go test ./discussion` 的 `TestATalkOpenedToDraftKeepsToItsChapter`、`TestATalkOpenedToRewriteKeepsToItsChapter`、`TestAProposalFindsItsPlace`、`TestAProposalShowsAsItStreams` 查发给模型的和提议怎么找到它的位置。
 
 ### 等 AI 回复时照常用
 
@@ -526,7 +531,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab，改写�
 - 搜索和「新增」分开：搜索框只管找，新增是它旁边单独的按钮。
 - 能滚动的内容不越过它上面固定的那一栏（标题栏、工具栏、对话框的标题），滚到那里就被裁掉。
 - 菜单、浮层、对话框、提示条里的东西不比它们自己宽。`npm run verify-prototype` 每点一下都查。
-- 稿纸上说这一章的东西（章标题和章纲、AI 改写和起草的那条）和正文一样宽，左边对齐；查找条管整栏，是标签条下面横跨整栏的一条。`desk` 的 `TestTheHeadLinesUpWithTheProse` 在窄窗口和宽窗口各查一次。
+- 稿纸上说这一章的东西（章标题和章纲、AI 那一行）和正文一样宽，左边对齐；查找条管整栏，是标签条下面横跨整栏的一条。`desk` 的 `TestTheHeadLinesUpWithTheProse` 在窄窗口和宽窗口各查一次。
 
 ## Elevation & Depth
 
@@ -589,7 +594,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab，改写�
 
 凡是能点的（按钮、图标、列表行、标签、分段、文字按钮），指针移上去都有变化：
 
-- 有边有底的换成 `hover` 的底色；墨色实心的浅一级（`ink-2`）；`danger` 实心的淡一级；只有字或图标的变成墨色；文字按钮见上。
+- 有边有底的换成 `hover` 的底色；只有底没有边的（AI 那一行和提议后面的「放弃」）深一级，用 `dim`；墨色实心的浅一级（`ink-2`）；`danger` 实心的淡一级；只有字或图标的变成墨色；文字按钮见上。
 - 一组选项里已经选中的那一个不用再变。禁用的不回应。
 
 检查：
@@ -617,7 +622,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab，改写�
 检查：
 
 - `npm run verify-prototype` 的「categories」「the shelf, where things go wrong」「models and services」「a goal for the day」「a draft」「export」。
-- `go test ./desk` 的 `TestACategorySavesOnceFilledIn`、`TestANewWorkSaysWhereItGoes`、`TestModelLimitsInTheServiceForm`、`TestANewServiceSaysWhatIsWrongWhereItIs`、`TestSetTheDaysGoal`、`TestDraftAChapterFromItsOutline`、`TestExportTheWork`、`TestDraftOverWhatIsThere`。
+- `go test ./desk` 的 `TestACategorySavesOnceFilledIn`、`TestANewWorkSaysWhereItGoes`、`TestModelLimitsInTheServiceForm`、`TestANewServiceSaysWhatIsWrongWhereItIs`、`TestSetTheDaysGoal`、`TestDraftAChapterThroughATalk`、`TestExportTheWork`、`TestDraftOverWhatIsThere`。
 
 ### 提示条
 
@@ -634,7 +639,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab，改写�
 - 专注写作时标题栏也收起，只剩正文和它的工具栏；窗口的三个按钮回到工具栏那一行的右端，工具栏给它们让出位置。菜单这时点不到，快捷键照常；按 F11 或工具栏上的「退出专注」回来。
 - 侧栏顶上一行只放作品名，和工具栏一样高；题材写在点开的菜单里，正在写的这一部排第一。
 - 菜单四个：「文件」「编辑」「视图」「帮助」。每个命令在菜单里有一行，带它的快捷键；这一页做不了的是灰的，不拿掉。
-- 「编辑」最上面是「撤销」「重做」，没有可退、可重来的一步时是灰的。提示里说「可撤销」的改动（替换、采纳续写或改写、起草），撤销一次就整个退回。
+- 「编辑」最上面是「撤销」「重做」，没有可退、可重来的一步时是灰的。提示里说「可撤销」的改动（替换、采纳续写、采纳 AI 提议），撤销一次就整个退回。
 - 工具栏上只放这一页常用的几个，不另设「更多」：放不下的进菜单。
 - 开着一个菜单时，指针移到旁边的名字上就换过去；再点一下名字、按 Esc、点别处都收起。
 - 用过标题栏以后光标回到正文：开了菜单又收起、点了侧栏的开关、从菜单打开的对话框关掉以后，接着打的字进正文。点别处收起菜单的，焦点在点的那个地方。
@@ -692,7 +697,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab，改写�
 
 - 要用书面语；不要口语化。
 - 要一眼能看懂：名称 2–4 个字，说明不超过 20 个字。
-- 思考程度的几档要留英文（Default、Low、Medium、High），跟在模型后面（「DeepSeek/deepseek-flash · High」）；不要在前面加「思考：」「推理」。这一项在别处说起时叫「思考程度」。`go test ./desk` 的 `TestDraftAChapterFromItsOutline` 和 `npm run verify-prototype` 的「a draft」查起草对话框。
+- 思考程度的几档要留英文（Default、Low、Medium、High），跟在模型后面（「DeepSeek/deepseek-flash · High」）；不要在前面加「思考：」「推理」。这一项在别处说起时叫「思考程度」。`go test ./desk` 的 `TestDraftAChapterThroughATalk` 和 `npm run verify-prototype` 的「a draft」查起草对话框。
 - 软件叫 Inkgo（暂定），界面和文档里都写这个英文名，不另起中文名；不要把测试用的作品名当成软件名。
 - 要用章标题指某一章（「第四章 钟表铺」），说的是正开着的那一章写「本章」；不要另算「第 N 章」这种按位置编的号，删一章、插一章它就和作者写的标题对不上了。标题在句子里加「」（「埋在「第四章 钟表铺」，已过 3 章」），单独摆着的不加（列表右边、选择框里那一行）；放不下就截断。讲距离的「已过 3 章」「相隔 3 章」「3 章前」照旧按位置数。`npm run verify-prototype` 的伏笔、检查、设定出处那几段查原型的说法，`go test ./desk` 的 `TestForeshadowBuryAndPay`、`TestCheckOnlyWhenAsked`、`TestSettingListAndPage` 查软件里的。
 - 要按 K、M、B 写 token 数，K 是一千，留一位小数（「9.6K」「1.7M」），不到一千的照写；填上下文上限、最大输出时也认这种写法，保存后照这样写回（「128K」「1M」）。不要用「万」写 token，字数照旧写「万字」。`npm run verify-prototype` 的「what was sent」「models and services」查原型。

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -21,21 +22,46 @@ type result struct {
 	err   error
 }
 
-// live is what the reply in flight has streamed so far, and the events it
-// wrote looking things up. The worker writes it as output arrives; the view
-// reads it each frame.
+// live is what the reply in flight has streamed so far, the events it
+// wrote looking things up, and the changes it is proposing in the prose as
+// their text comes. The worker writes it as output arrives; the view reads
+// it each frame.
 type live struct {
 	mu              sync.Mutex
 	reasoning, text strings.Builder
 	steps           []workspace.Event
 	compacting      bool // a digest of the talk is asked for
+	proposed        []streamed
 }
 
-func (l *live) add(reasoning, text string) {
+// streamed is a change proposed in the prose by the call that proposes
+// it, as far as its text came.
+type streamed struct {
+	call string
+	p    workspace.Proposal
+}
+
+func (l *live) add(p aiport.Progress) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.reasoning.WriteString(reasoning)
-	l.text.WriteString(text)
+	if p.Proposal != nil {
+		if i := slices.IndexFunc(l.proposed, func(s streamed) bool { return s.call == p.Call }); i >= 0 {
+			l.proposed[i].p = *p.Proposal
+		} else {
+			l.proposed = append(l.proposed, streamed{p.Call, *p.Proposal})
+		}
+		return
+	}
+	l.reasoning.WriteString(p.Reasoning)
+	l.text.WriteString(p.Text)
+}
+
+// proposals are the changes the reply in flight proposed as far as they
+// came, in the order they began.
+func (l *live) proposals() []streamed {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return slices.Clone(l.proposed)
 }
 
 func (l *live) step(e workspace.Event) {
@@ -62,7 +88,7 @@ func (l *live) reset() {
 	defer l.mu.Unlock()
 	l.reasoning.Reset()
 	l.text.Reset()
-	l.steps, l.compacting = nil, false
+	l.steps, l.compacting, l.proposed = nil, false, nil
 }
 
 // flashFor is how long an entry a talk just noted stays tinted.
@@ -130,7 +156,9 @@ type App struct {
 	busy              string
 	talking           bool   // busy with a discussion turn, shown inline in its talk
 	talkSession       string // the talk of that turn
-	pending           string // the author's words while their turn is in flight
+	talkChapter       string // the chapter that talk keeps to, when it was opened to draft or rewrite it
+	pending           string // the author's words while their turn is in flight,
+	pendingQuotes     []workspace.Quote // and the prose they quote
 	// Prose the author quoted for their next turn, and whether the talk
 	// beside the prose should take the keyboard.
 	quotes                           []workspace.Quote
@@ -193,6 +221,7 @@ func (a *App) Open(path string) error {
 // attach makes s the current work, starting a session when it has none.
 func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 	if a.Store != nil {
+		a.dropProps(a.write.props, workspace.FateClosed)
 		a.flush()
 		a.keepUnsettled()
 		a.remember(false)
@@ -232,6 +261,7 @@ func (a *App) resetView() {
 // closeWork returns to the welcome page, with its form cleared so a new work
 // does not inherit the last one's folder or name.
 func (a *App) closeWork() {
+	a.dropProps(a.write.props, workspace.FateClosed)
 	a.flush()
 	a.keepUnsettled()
 	a.remember(false)
@@ -247,6 +277,9 @@ func (a *App) closeWork() {
 func (a *App) Close() error {
 	if a.cancel != nil {
 		a.cancel()
+	}
+	if a.Store != nil {
+		a.dropProps(a.write.props, workspace.FateClosed)
 	}
 	a.flush()
 	a.keepUnsettled()
@@ -276,7 +309,7 @@ func (a *App) refresh() error {
 	if a.sessions, err = a.Store.Sessions(); err != nil {
 		return err
 	}
-	a.titles[a.session], a.blank[a.session] = sessionTitle(a.events), len(a.events) == 0
+	a.titles[a.session], a.blank[a.session] = a.sessionTitle(a.events), len(a.events) == 0
 	if a.talkSession != a.session {
 		delete(a.titles, a.talkSession) // the last turn may have gone on there since: read it again
 	}
@@ -286,20 +319,53 @@ func (a *App) refresh() error {
 			if err != nil {
 				return err
 			}
-			a.titles[s], a.blank[s] = sessionTitle(events), len(events) == 0
+			a.titles[s], a.blank[s] = a.sessionTitle(events), len(events) == 0
 		}
 	}
 	return nil
 }
 
 // sessionTitle names a conversation by its first words.
-func sessionTitle(events []workspace.Event) string {
+func (a *App) sessionTitle(events []workspace.Event) string {
 	for _, e := range events {
 		if e.Role == workspace.RoleUser {
-			return clip(e.Text, 14)
+			title := a.nodeTitle(e.Chapter)
+			if title == "" {
+				title = "已删除的章"
+			}
+			return talkTitle(e, title)
 		}
 	}
 	return "新对话"
+}
+
+// talkTitle names a talk by its first words e, said at the chapter titled
+// chapter: one opened to draft or rewrite it by what it does.
+func talkTitle(e workspace.Event, chapter string) string {
+	switch {
+	case e.Origin == workspace.AIDraft:
+		return "起草：" + chapter
+	case e.Origin == workspace.AIRewrite && len(e.Quotes) > 0:
+		return "改写：" + clip(e.Quotes[0].Text, 8)
+	}
+	return clip(e.Text, 14)
+}
+
+// nodeTitle is the title of the chapter of id, as the writing page
+// has the tree or else as the disk has it; "" when the book has none.
+func (a *App) nodeTitle(id string) string {
+	if id == "" {
+		return ""
+	}
+	if n, ok := a.write.tree.Node(id); ok {
+		return n.Title
+	}
+	if t, err := a.Store.Chapters(); err == nil {
+		if n, ok := t.Node(id); ok {
+			return n.Title
+		}
+	}
+	return ""
 }
 
 // talkDay is the day a conversation began, from its ID: 今天, 昨天, 10-06.
@@ -331,9 +397,10 @@ func clip(s string, n int) string {
 // shows at once.
 func (a *App) talk(c *ui.Context) (aiport.Talk, error) {
 	a.live.reset()
+	a.write.seen = map[string]bool{}
 	sv := c.Services()
-	return a.ai.Talk(a.Store, a.beside(), func(reasoning, text string) {
-		a.live.add(reasoning, text)
+	return a.ai.Talk(a.Store, a.beside(), func(p aiport.Progress) {
+		a.live.add(p)
 		sv.Invalidate()
 	}, func(e workspace.Event) { a.stepped(sv, e) })
 }
@@ -399,11 +466,13 @@ func (a *App) poll() {
 	}
 	select {
 	case r := <-a.results:
+		a.followProps() // the reply ended: all it proposed is in
 		a.busy = ""
 		a.cancel = nil
 		if r.apply != nil {
 			r.apply()
 		}
+		a.unfinishedProps()
 		if !a.aiOn() {
 			r.err = nil // what runs is the AI's: turned off, it was stopped, and says nothing
 		}
@@ -421,6 +490,7 @@ func (a *App) poll() {
 			a.Error = err.Error()
 		}
 	default:
+		a.followProps()
 	}
 }
 

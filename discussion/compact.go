@@ -25,7 +25,7 @@ const keepPercent = 20
 // provider's cache reuses it, and takes in the digest before and as many
 // turns as the request holds; it takes as many requests as it needs. The
 // talk stays as it was said.
-func (e *Engine) compact(ctx context.Context, session string, before int, input string) error {
+func (e *Engine) compact(ctx context.Context, session string, before int, user workspace.Event) error {
 	w := e.Store.Work()
 	set, events, err := e.read(session, before)
 	if err != nil {
@@ -35,12 +35,16 @@ func (e *Engine) compact(ctx context.Context, session string, before int, input 
 	if err != nil {
 		return err
 	}
-	probe, err := Assemble(w, math.MaxInt32, set, tree, events, input, e.Beside)
+	along, err := e.along(tree, events, user)
+	if err != nil {
+		return err
+	}
+	probe, err := Assemble(w, math.MaxInt32, set, tree, events, user.Said(), along)
 	if err != nil {
 		return err
 	}
 	_, turns := uncompacted(events)
-	n := due(e.Talk.Model, probe.Sent, measured(events, probe.Sent), prompt.Estimate(talkIndex(w, set, tree)), turns)
+	n := due(e.Talk.Model, probe.Sent, measured(events, probe.Sent), prompt.Estimate(talkIndex(w, set, viewOf(set, tree, along.Fixed))), turns)
 	if n == 0 {
 		return nil
 	}
@@ -51,7 +55,7 @@ func (e *Engine) compact(ctx context.Context, session string, before int, input 
 		if n == 0 {
 			return nil
 		}
-		asked, took, err := lay(w, e.Talk.Input(), set, tree, talk{digest: digest.Text, turns: turns[:n], input: digestAsk, near: e.Beside != nil, oldest: true})
+		asked, took, err := lay(w, e.Talk.Input(), set, tree, talk{digest: digest.Text, turns: turns[:n], input: digestAsk, near: along.Beside != nil, fixed: along.Fixed, oldest: true})
 		if err != nil {
 			return err
 		}
@@ -62,7 +66,7 @@ func (e *Engine) compact(ctx context.Context, session string, before int, input 
 		if e.Step != nil {
 			e.Step(workspace.Event{Role: workspace.RoleDigest})
 		}
-		reply, err := ask(e.purpose(ctx, session, asked.Sent), e.Talk, asked.Request, nil)
+		reply, err := ask(e.purpose(ctx, session, asked.Sent, along.Fixed), e.Talk, asked.Request, nil)
 		if err != nil {
 			return err
 		}

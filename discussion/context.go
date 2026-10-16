@@ -92,16 +92,26 @@ func latest(set workspace.Setting, tree workspace.Tree) workspace.Setting {
 	return out
 }
 
+// Along is what goes with a talk besides the talk: what the author is
+// writing as they talk beside the prose, or the chapter a talk opened to
+// draft or rewrite keeps to.
+type Along struct {
+	Beside *Writing
+	Fixed  *Fixed
+}
+
 // Assemble builds a talk request of at most room tokens, in the order a
-// provider's cache can reuse: the rules, the setting, the digest of the
-// talk compacted, the complete exchanges after it, and the author's words.
-// The exchanges go from the newest as far as they fit. The setting goes
-// whole when it fits after the talk, each entry with how it changes from
-// the chapters of tree on, and as an index when it does not; the index and
-// the digest must fit.
-func Assemble(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree, events []workspace.Event, input string, beside *Writing) (Context, error) {
+// provider's cache can reuse: the rules, the setting, what goes with the
+// chapter a talk keeps to, the digest of the talk compacted, the complete
+// exchanges after it, and the author's words. The exchanges go from the
+// newest as far as they fit. The setting goes whole when it fits after the
+// talk, each entry with how it changes from the chapters of tree on, and
+// as an index when it does not; the index, the digest and what goes with
+// the chapter must fit. A talk that keeps to a chapter has the setting as
+// it stands there.
+func Assemble(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree, events []workspace.Event, input string, along Along) (Context, error) {
 	digest, turns := uncompacted(events)
-	out, _, err := lay(w, room, set, tree, talk{digest: digest.Text, turns: turns, input: input, beside: beside, near: beside != nil})
+	out, _, err := lay(w, room, set, tree, talk{digest: digest.Text, turns: turns, input: input, beside: along.Beside, near: along.Beside != nil, fixed: along.Fixed})
 	return out, err
 }
 
@@ -112,7 +122,36 @@ type talk struct {
 	input  string     // the last words, which must fit
 	beside *Writing   // what the author is writing, sent with input
 	near   bool       // the author talks beside the prose, as the rules say
+	fixed  *Fixed     // the chapter the talk keeps to, if any
 	oldest bool       // keep the oldest turns that fit, not the newest
+}
+
+// view is the setting as a talk shows it: whole, each entry with its
+// changes after it, and as an index each entry as it reads after them;
+// or, in a talk that keeps to a chapter, as it stands there either way,
+// with how many changes come after.
+type view struct {
+	whole, index workspace.Setting
+	later        map[string][]string
+	ahead        int
+	at           string // the chapter it stands at, as the model names it
+}
+
+func viewOf(set workspace.Setting, tree workspace.Tree, f *Fixed) view {
+	if f == nil {
+		return view{whole: set, index: latest(set, tree), later: changes(set, tree)}
+	}
+	at, ahead := set.At(tree.Order(), f.Chapter)
+	return view{whole: at, index: at, ahead: ahead, at: f.Title}
+}
+
+// note is what follows the setting of v: how many changes come after the
+// chapter it stands at.
+func (v view) note() string {
+	if v.ahead == 0 {
+		return ""
+	}
+	return fmt.Sprintf("\n\n以上是写到「%s」时的设定；后面的章节里还有 %d 处变化，没有列出。", v.at, v.ahead)
 }
 
 // lay builds a request of at most room tokens for t, as Assemble tells,
@@ -120,7 +159,10 @@ type talk struct {
 func lay(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree, t talk) (Context, int, error) {
 	out := Context{} // the reply may take all the model gives: its output is kept out of the room
 	rules := talkRules
-	if t.near {
+	switch {
+	case t.fixed != nil:
+		rules += "\n\n" + originRules[t.fixed.Origin]
+	case t.near:
 		rules += "\n\n" + besideRules
 	}
 	tooLong := errors.New("当前发言超出模型的上下文上限；请缩短，或在设置中「AI」配置里调大上下文上限")
@@ -131,7 +173,8 @@ func lay(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree,
 	if !b.Must(workspace.PartRules, told) || !b.Must(workspace.PartInput, input) {
 		return out, 0, tooLong
 	}
-	index := talkIndex(w, set, tree)
+	v := viewOf(set, tree, t.fixed)
+	index := talkIndex(w, set, v)
 	if !b.Must(workspace.PartIndex, index) {
 		return out, 0, errors.New("设定的目录超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限")
 	}
@@ -140,6 +183,18 @@ func lay(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree,
 		digest = "\n\n" + digestNote + "\n\n" + t.digest
 		if !b.Must(workspace.PartDigest, digest) {
 			return out, 0, errors.New("之前讨论的摘要超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限")
+		}
+	}
+	// What goes with the chapter the talk keeps to comes before the talk: it
+	// changes as the chapter does, the talk only grows.
+	var fixed string
+	if t.fixed != nil {
+		for _, p := range t.fixed.Pieces {
+			if !b.Must(p.Part, "\n\n"+p.Text) {
+				return out, 0, errors.New("这一章要带上的内容超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限")
+			}
+			fixed += "\n\n" + p.Text
+			out.Included = append(out.Included, workspace.ContextItem{Text: p.Item})
 		}
 	}
 	// What the author is writing goes with their words: they asked beside it.
@@ -153,12 +208,12 @@ func lay(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree,
 	}
 	msgs, took := fill(b, t.turns, t.oldest)
 	b.Return(workspace.PartIndex)
-	later := changes(set, tree)
-	setting := prompt.Render(w, set, talkPlaces, nil, numbered(set, timed(prompt.Whole, later)))
-	shown, line := set, prompt.Line(prompt.Whole)
+	later := v.later
+	setting := prompt.Render(w, v.whole, talkPlaces, nil, numbered(set, timed(prompt.Whole, later))) + v.note()
+	shown, line := v.whole, prompt.Line(prompt.Whole)
 	if !b.Take(workspace.PartSetting, setting) {
 		b.Must(workspace.PartIndex, index)
-		setting, shown, line, later = index, latest(set, tree), prompt.Short, nil
+		setting, shown, line, later = index, v.index, prompt.Short, nil
 	}
 	for _, p := range talkPlaces {
 		for _, e := range prompt.Ordered(w, shown.Entries) {
@@ -169,16 +224,17 @@ func lay(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree,
 			}
 		}
 	}
-	out.Request.System = rules + "\n\n" + setting + digest
+	out.Request.System = rules + "\n\n" + setting + fixed + digest
 	out.Request.Messages = append(msgs, model.Message{Role: workspace.RoleUser, Content: input})
 	out.Sent, out.Left = b.Sent(told, set), max(b.Left(), 0)
+	out.Sent.AsOf, out.Sent.Ahead = v.at, v.ahead
 	return out, took, nil
 }
 
-// talkIndex is the setting as its index, under the note that opens it:
-// each entry as it reads after the changes of tree's chapters.
-func talkIndex(w workspace.Work, set workspace.Setting, tree workspace.Tree) string {
-	return indexNote + "\n\n" + prompt.Render(w, latest(set, tree), talkPlaces, nil, numbered(set, prompt.Short))
+// talkIndex is the setting of v as its index, under the note that opens
+// it, each entry numbered as in set.
+func talkIndex(w workspace.Work, set workspace.Setting, v view) string {
+	return indexNote + "\n\n" + prompt.Render(w, v.index, talkPlaces, nil, numbered(set, prompt.Short)) + v.note()
 }
 
 // fill takes as many turns as fit in b, from the newest, or from the
@@ -244,21 +300,48 @@ func (x exchange) text() string { return x.user.Content + "\n" + x.reply.Content
 
 // exchanges are the complete turns of events, in the order of their
 // replies: an unanswered turn must not masquerade as chat context. What a
-// reply looked up on its way is not sent again.
+// reply looked up on its way is not sent again; what it proposed in the
+// prose is, after it.
 func exchanges(events []workspace.Event) []exchange {
 	said := map[string]workspace.Event{}
+	proposed := map[string][]*workspace.Proposal{}
 	var out []exchange
 	for n, e := range events {
 		switch e.Role {
 		case workspace.RoleUser:
 			said[e.ID] = e
+		case workspace.RoleResult:
+			if e.Proposal != nil {
+				proposed[e.ReplyTo] = append(proposed[e.ReplyTo], e.Proposal)
+			}
 		case workspace.RoleAssistant:
 			if u, ok := said[e.ReplyTo]; ok {
-				out = append(out, exchange{model.Message{Role: workspace.RoleUser, Content: u.Said()}, model.Message{Role: workspace.RoleAssistant, Content: e.Text}, n})
+				reply := e.Text
+				if ps := proposed[e.ReplyTo]; len(ps) > 0 {
+					reply += "\n\n【这一轮在正文里的提议】"
+					for _, p := range ps {
+						reply += "\n" + proposalLine(*p)
+					}
+				}
+				out = append(out, exchange{model.Message{Role: workspace.RoleUser, Content: u.Said()}, model.Message{Role: workspace.RoleAssistant, Content: reply}, n})
 			}
 		}
 	}
 	return out
+}
+
+// proposalLine is p as the talk is told it: where, then the prose.
+func proposalLine(p workspace.Proposal) string {
+	where := "「" + p.Title + "」"
+	switch p.At {
+	case workspace.ProposeReplace:
+		where += "换掉「" + p.Quote + "」"
+	case workspace.ProposeAfter:
+		where += "接在「" + p.Quote + "」之后"
+	default:
+		where += atNames[p.At]
+	}
+	return where + "：\n" + p.Text
 }
 
 // uncompacted is the latest digest among events, if any, and the complete

@@ -173,7 +173,6 @@ func (a *App) confirmBookReplace(c *ui.Context) {
 func (a *App) replaceInBook() {
 	w := &a.write
 	w.sure = false
-	a.stopAI()
 	if err := a.saveText(); err != nil {
 		a.warn(err)
 		return

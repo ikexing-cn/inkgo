@@ -190,7 +190,7 @@ func TestMarksFollowTheirQuote(t *testing.T) {
 	text := "井边有一把钥匙。灯灭了。"
 	if _, err := s.WriteChapter(id, text, []ChapterMark{
 		{Kind: MarkForeshadow, Start: 5, End: 7, Note: "钥匙"},
-		{Kind: MarkAIAccepted, Start: 8, End: 11},
+		{Kind: markAIDraft, Start: 8, End: 11},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -206,8 +206,8 @@ func TestMarksFollowTheirQuote(t *testing.T) {
 	if len(m) != 2 || m[0].Start != 8 || m[0].End != 10 || m[0].Orphaned || m[0].Note != "钥匙" {
 		t.Fatalf("foreshadowing: %+v", m)
 	}
-	if !m[1].Orphaned || m[1].Start != m[1].End {
-		t.Fatalf("a mark whose words are gone: %+v", m[1])
+	if !m[1].Orphaned || m[1].Start != m[1].End || m[1].Kind != MarkAI {
+		t.Fatalf("a mark whose words are gone, of what an AI wrote as it was marked before: %+v", m[1])
 	}
 	// Saved again, the orphaned one still tells what it was.
 	if _, err = s.WriteChapter(id, c.Text, m); err != nil {
@@ -233,7 +233,7 @@ func TestSnapshotsAndTheirKeeping(t *testing.T) {
 	old := now.Add(-10 * 24 * time.Hour)
 	day := time.Date(old.Year(), old.Month(), old.Day(), 9, 0, 0, 0, time.Local)
 	for i, text := range []string{"早上", "中午", "晚上"} {
-		if _, err := s.takeSnapshot(id, SnapInterval, text, nil, nil, day.Add(time.Duration(i)*4*time.Hour)); err != nil {
+		if _, err := s.takeSnapshot(id, SnapInterval, text, nil, "", day.Add(time.Duration(i)*4*time.Hour)); err != nil {
 			t.Fatal(err)
 		}
 	}

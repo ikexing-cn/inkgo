@@ -121,10 +121,19 @@ func main() {
 		mygo.Theme.SetSource(mygo.ThemeSource(d.Theme()))
 		d.Appearance = func(v string) { mygo.Theme.SetSource(mygo.ThemeSource(v)) }
 		mygo.App.WhenReady(func() {
-			win.Store(mygo.NewWindow(mygo.WindowOptions{Title: "Inkgo", Width: 1280, Height: 820, MinWidth: 1000, MinHeight: 680, StateKey: "main",
+			w := mygo.NewWindow(mygo.WindowOptions{Title: "Inkgo", Width: 1280, Height: 820, MinWidth: 1000, MinHeight: 680, StateKey: "main",
 				// The page draws its own title bar, a row over everything, as the design does.
 				// The window buttons fill that row, as high as desk's titleHeight.
-				TitleBarStyle: mygo.TitleBarHidden, TitleBarHeight: 40, Content: ui.View(d.View)}))
+				TitleBarStyle: mygo.TitleBarHidden, TitleBarHeight: 40, Content: ui.View(d.View)})
+			win.Store(w)
+			// Closed with what the AI proposed not decided on, the window asks
+			// first; let go, it closes after the frame that let it go.
+			w.OnClose(func(e *mygo.CloseEvent) {
+				if d.Leave(func() { go w.Close() }) {
+					e.PreventDefault()
+					w.Invalidate()
+				}
+			})
 		})
 		if err := mygo.App.Run(); err != nil {
 			log.Fatal(err)

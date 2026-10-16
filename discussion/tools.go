@@ -13,8 +13,9 @@ import (
 )
 
 // The tools a talk's model may call: four look things up in the book and
-// its talks, and one notes the setting. The model names a chapter by its
-// title and an entry by its number, never by an ID.
+// its talks, one notes the setting, and one proposes a change of the
+// prose. The model names a chapter by its title and an entry by its
+// number, never by an ID.
 const (
 	toolSearchBook  = "search_book"
 	toolReadProse   = "read_prose"
@@ -24,10 +25,10 @@ const (
 )
 
 const (
-	maxHits = 20   // listed by one search
-	maxRead = 3000 // runes of prose one read returns
-	maxNear = 5    // names offered for one the book has not
-	around  = 40   // runes shown on each side of a hit
+	maxHits = 20    // listed by one search
+	maxRead = 10000 // runes of prose one read returns
+	maxNear = 5     // names offered for one the book has not
+	around  = 40    // runes shown on each side of a hit
 )
 
 // tools are the tools of a talk of w: note_setting takes w's categories.
@@ -60,23 +61,28 @@ func tools(w workspace.Work) []model.Tool {
 				`"sources":{"type":"array","items":{"type":"string"},"description":"这条出自的原话，逐字复制自本次讨论里已经说过的话"},` +
 				`"author_said":{"type":"string","description":"作者拍板、接受、拒绝或改口的原话，逐字复制"}` +
 				`},"required":["op"]}`)},
+		proposeTool,
 	}
 }
 
 // toolbox runs the calls of a reply to the author's words turn in session.
+// In a talk that keeps to the chapter at, the setting is looked up as it
+// stands there.
 type toolbox struct {
 	store   *workspace.Store
 	session string
 	turn    string
 	model   Model
+	at      string
 }
 
-// outcome is what a call returns to the model, whether it failed, and the
-// revision a note wrote.
+// outcome is what a call returns to the model, whether it failed, the
+// revision a note wrote, and the change of the prose a call proposed.
 type outcome struct {
 	text     string
 	failed   bool
 	revision string
+	proposal *workspace.Proposal
 }
 
 func failed(format string, v ...any) outcome {
@@ -95,6 +101,8 @@ type input struct {
 	Place      string   `json:"place"`
 	Category   string   `json:"category"`
 	Text       string   `json:"text"`
+	At         string   `json:"at"`
+	Quote      string   `json:"quote"`
 	Names      []string `json:"names"`
 	Sources    []string `json:"sources"`
 	AuthorSaid string   `json:"author_said"`
@@ -125,6 +133,8 @@ func (t *toolbox) run(c model.Call) outcome {
 		return t.searchTalks(in)
 	case toolNote:
 		return t.note(in)
+	case toolPropose:
+		return t.propose(in)
 	}
 	return failed("没有叫 %s 的工具", c.Name)
 }
@@ -161,6 +171,8 @@ func (t *toolbox) label(c model.Call) string {
 		return "搜了讨论「" + in.Query + "」"
 	case toolNote:
 		return "记下：" + t.describe(in)
+	case toolPropose:
+		return "提议修改「" + in.Chapter + "」"
 	}
 	return c.Name
 }
@@ -459,6 +471,10 @@ func (t *toolbox) lookUp(in input) outcome {
 		return failed("读不出章节：%v", err)
 	}
 	titles, chapters, later := t.titles(), b.name, changes(set, b.tree)
+	if t.at != "" {
+		set, _ = set.At(b.tree.Order(), t.at)
+		later = nil
+	}
 	var named, said []string
 	for n, e := range set.Entries {
 		if !slices.ContainsFunc(e.Names, func(name string) bool { return strings.Contains(name, in.Query) || strings.Contains(in.Query, name) }) &&

@@ -1,7 +1,6 @@
 package desk
 
 import (
-	"context"
 	"errors"
 	"image/png"
 	"io/fs"
@@ -94,7 +93,7 @@ func (s *spy) Catalog(provider string) (aiport.Catalog, error) {
 	return s.Service.Catalog(provider)
 }
 
-func (s *spy) Talk(st *workspace.Store, beside *aiport.Beside, progress func(reasoning, text string), step func(workspace.Event)) (aiport.Talk, error) {
+func (s *spy) Talk(st *workspace.Store, beside *aiport.Beside, progress func(aiport.Progress), step func(workspace.Event)) (aiport.Talk, error) {
 	s.note("Talk")
 	return s.Service.Talk(st, beside, progress, step)
 }
@@ -110,9 +109,9 @@ const aiProse = "整条街的灯是同时灭的。\n林婉站在巷口，手电�
 const oldSummary = `{"text":"灯灭了，林婉走进巷子。","by":"deepseek/deepseek-flash"}`
 
 // aiWork is a work the AI has been at, in root/work: a chapter it drafted,
-// with the snapshot from before, its check and a summary an older version
-// wrote; a talk, which
-// noted the setting and an entry it suggests. Of the author: an
+// its check and a summary an older version wrote; a talk, which drafted
+// the chapter, with the snapshot from before, and noted the setting and an
+// entry it suggests. Of the author: an
 // entry, and a foreshadowing whose sentence is gone, which waits on them.
 // Neither the prose nor the names of the work and the chapter tell of the
 // AI.
@@ -132,11 +131,10 @@ func aiWork(t *testing.T) (root, chapter string) {
 	chapter, err = s.NewChapter("", "停电", false)
 	must(err)
 	_, err = s.WriteChapter(chapter, aiProse, []workspace.ChapterMark{
-		{Kind: workspace.MarkAIDraft, Start: 0, End: 11, Quote: "整条街的灯是同时灭的。", Note: "deepseek/deepseek-flash"},
+		{Kind: workspace.MarkAI, Start: 0, End: 11, Quote: "整条街的灯是同时灭的。", Note: "deepseek/deepseek-flash"},
 		{Kind: workspace.MarkForeshadow, Quote: "一只旧灯泡", Orphaned: true, ID: workspace.NewID()},
 	})
 	must(err)
-	must(s.SnapshotForAI(chapter, "", nil, workspace.AIRecord{Op: workspace.AIDraft, Instruction: "约 800 字", Model: "deepseek/deepseek-flash"}))
 	hash, words := workspace.ProseHash(aiProse), workspace.Count(aiProse)
 	must(os.WriteFile(filepath.Join(root, "work", "chapters", "停电.summary.json"), []byte(oldSummary), 0o644))
 	must(s.WriteCheck(chapter, workspace.Check{Of: hash, Words: words, By: "deepseek/deepseek-flash", At: time.Now(), Findings: []workspace.Finding{
@@ -144,6 +142,7 @@ func aiWork(t *testing.T) (root, chapter string) {
 	}}))
 	session, err := s.NewSession()
 	must(err)
+	must(s.SnapshotForTalk(chapter, "", nil, session))
 	u, err := s.Append(session, workspace.Event{Role: workspace.RoleUser, Text: "灯为什么会灭"})
 	must(err)
 	_, err = s.Append(session, workspace.Event{Role: workspace.RoleCall, ReplyTo: u.ID, Calls: []workspace.Call{
@@ -408,15 +407,11 @@ func files(t *testing.T, root string) map[string]string {
 // putting the question away alone. It holds for the machine: kept in the
 // shelf, and read again as the app starts, a shelf without it being on.
 // Off and on again, nothing in the work's folder or the services changed.
-// Off while the AI is at work, a draft keeps what it wrote and a reply is
-// let go, the author's words kept; on again, the talk and the checks are
-// back, and the reply waits to be tried again.
+// Off while the AI drafts in a talk, what it proposed is let go and the
+// reply with it, the author's words kept; on again, the talk and the
+// checks are back, and the reply waits to be tried again.
 func TestTurnTheAIOffAndOn(t *testing.T) {
-	a, _, _ := writingFixture(t, "")
-	var c *ui.Context
-	tt := ui.NewTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
-	tt.Frame()
-	tt.Frame()
+	a, tt, _ := writingFixture(t, "")
 	w := &a.write
 	config := a.ai.ConfigFile()
 	noAI := func() bool {
@@ -518,9 +513,11 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 		}
 	}
 
-	// Off while the AI drafts and replies.
-	f := &stream{pieces: []string{"雨下了一夜。", "\n她醒了。"}, hold: make(chan struct{})}
+	// Off while the AI drafts.
+	f := &script{}
 	penWith(a, f)
+	hold := f.holding()
+	f.then(proposal("第一章", "end", "", "雨下了一夜。\n她醒了。"))
 	w.outline = "她在雨夜醒来。"
 	tt.Frame()
 	if err := clickMenu(tt, "编辑", "菜单-起草本章"); err != nil {
@@ -531,31 +528,20 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 	if err := tt.Click("开始起草"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the first piece", func() bool { return proposed(a) == "雨下了一夜。" })
-	words, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "灯为什么会灭"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	a.pending = words.Text
-	a.run(c, "AI 正在思考…", func(ctx context.Context) (func(), error) {
-		<-ctx.Done()
-		return func() { a.pending = "" }, errors.New("讨论失败，原文已保存")
-	})
-	a.talking, a.talkSession = true, a.session
-	tt.Frame()
+	until(t, tt, "the first piece", func() bool { return slices.Equal(shownProposals(a), []string{"雨下了一夜"}) })
 	switchAI(t, a, tt, false)
 	until(t, tt, "the reply let go", func() bool { return a.busy == "" })
 	tt.Frame()
-	if _, _, _, ok := w.ed.Proposal(); ok || w.proposed != nil || w.run != nil || w.ed.ReadOnly() || w.ed.Doc.String() != "" {
-		t.Fatalf("the draft was not let go: %q, running %v", w.ed.Doc.String(), w.run != nil)
+	if len(w.ed.Proposals()) != 0 || len(w.props) != 0 || w.ed.ReadOnly() || w.ed.Doc.String() != "" {
+		t.Fatalf("the draft was not let go: %q", w.ed.Doc.String())
 	}
 	if a.Error != "" || a.notice != "" || len(aiSaid(tt)) > 0 {
 		t.Fatalf("turned off, the AI still tells of itself: %q %q %q", a.Error, a.notice, aiSaid(tt))
 	}
-	close(f.hold)
+	close(hold)
 	time.Sleep(50 * time.Millisecond)
 	tt.Frame()
-	if _, _, _, ok := w.ed.Proposal(); ok || disk(t, a, "第一章.txt") != "" {
+	if len(w.ed.Proposals()) != 0 || len(w.props) != 0 || disk(t, a, "第一章.txt") != "" {
 		t.Fatalf("the draft went on with the AI off: %q", disk(t, a, "第一章.txt"))
 	}
 	switchAI(t, a, tt, true)
@@ -568,7 +554,7 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("灯为什么会灭") || !tt.HasText("重试回复") {
+	if !tt.HasText("按章纲起草本章，约 800 字") || !tt.HasText("重试回复") {
 		t.Fatalf("on again, the reply let go does not wait to be tried again: %q", tt.Texts())
 	}
 }

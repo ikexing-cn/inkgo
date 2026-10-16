@@ -101,8 +101,10 @@ func isWordRune(r rune) bool {
 	return r < 0x2E80 && (unicode.IsLetter(r) || unicode.IsDigit(r) || r == '\'' || r == '-')
 }
 
+// noLineStart tells the runes a line may not start with: closing marks,
+// and the room after what is proposed, which keeps to the words before it.
 func noLineStart(r rune) bool {
-	return strings.ContainsRune("，。、；：？！）》」』”’…—·%,.;:?!)]}", r)
+	return r == gapRune || strings.ContainsRune("，。、；：？！）》」』”’…—·%,.;:?!)]}", r)
 }
 func noLineEnd(r rune) bool { return strings.ContainsRune("（《「『“‘([{", r) }
 

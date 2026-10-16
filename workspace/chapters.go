@@ -89,10 +89,16 @@ type orderEntry struct {
 
 // Kinds of a chapter mark.
 const (
-	MarkForeshadow = "foreshadow"  // a foreshadowing the author marked
-	MarkPayoff     = "payoff"      // where a foreshadowing is paid off
-	MarkAIAccepted = "ai-accepted" // AI text the author accepted
-	MarkAIDraft    = "ai-draft"    // AI text drafted from the outline
+	MarkForeshadow = "foreshadow" // a foreshadowing the author marked
+	MarkPayoff     = "payoff"     // where a foreshadowing is paid off
+	MarkAI         = "ai"         // what an AI wrote and the author took
+)
+
+// What an AI wrote was marked two ways while drafting was apart from the
+// rest; either is MarkAI as read.
+const (
+	markAIAccepted = "ai-accepted" // a sentence predicted, or a rewrite
+	markAIDraft    = "ai-draft"    // a chapter drafted from its outline
 )
 
 // ChapterMark is a mark of a document's text, in runes [Start, End). Quote
@@ -116,11 +122,15 @@ type ChapterMark struct {
 }
 
 // identify gives the foreshadowings of node id saved before they had IDs
-// one each, the same at every read until the chapter is saved with it.
+// one each, the same at every read until the chapter is saved with it,
+// and the marks of what an AI wrote, of either old kind, the one kind.
 func identify(id string, marks []ChapterMark) {
 	for i := range marks {
 		if marks[i].Kind == MarkForeshadow && marks[i].ID == "" {
 			marks[i].ID = fmt.Sprintf("old-%s-%d", id, i)
+		}
+		if k := marks[i].Kind; k == markAIAccepted || k == markAIDraft {
+			marks[i].Kind = MarkAI
 		}
 	}
 }

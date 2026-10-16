@@ -262,7 +262,7 @@ func (e *Editor) AcceptGhost() bool {
 	if e.opts.GhostNote != nil {
 		note = e.opts.GhostNote()
 	}
-	e.Doc.AddMark(MarkAIAccepted, at, at+n, note)
+	e.Doc.AddMark(MarkAI, at, at+n, note)
 	e.undo[len(e.undo)-1].marksAfter = e.Doc.Marks()
 	return true
 }

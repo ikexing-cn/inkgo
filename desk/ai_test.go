@@ -2,11 +2,15 @@ package desk
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -16,7 +20,6 @@ import (
 	"writer/editor"
 	"writer/model"
 	"writer/workspace"
-	"writer/writing"
 )
 
 // stream is a writing model that streams its pieces; with hold, it waits
@@ -52,24 +55,98 @@ func (f *stream) Complete(ctx context.Context, r model.Request, on func(model.De
 	return model.Reply{Text: all.String()}, f.fail
 }
 
-// proposed is what the editor shows the AI proposing.
-func proposed(a *App) string {
-	_, _, s, _ := a.write.ed.Proposal()
-	return s
+// script is a talk's model: each request takes the next of its steps,
+// a reply, or a change proposed in the prose, given as the pieces its
+// input streams in. With hold, a proposal waits before its last piece
+// until let through or stopped.
+type script struct {
+	mu    sync.Mutex
+	steps [][]string
+	hold  chan struct{}
+	asked []model.Request
 }
 
-func penWith(a *App, f *stream) { penWithin(a, f, model.Builtin("deepseek-flash")) }
+// calls numbers the calls of every script, as a provider does.
+var calls atomic.Int64
+
+// then adds steps to f: each a reply, or the pieces of a proposal.
+func (f *script) then(steps ...[]string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.steps = append(f.steps, steps...)
+}
+
+// holding has the proposals of f wait before their last piece.
+func (f *script) holding() chan struct{} {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.hold = make(chan struct{})
+	return f.hold
+}
+
+// last is the last request f was sent.
+func (f *script) last() model.Request {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.asked[len(f.asked)-1]
+}
+
+func (f *script) Complete(ctx context.Context, r model.Request, on func(model.Delta)) (model.Reply, error) {
+	f.mu.Lock()
+	f.asked = append(f.asked, r)
+	if len(f.steps) == 0 {
+		f.mu.Unlock()
+		return model.Reply{}, errors.New("unexpected model call")
+	}
+	step, hold := f.steps[0], f.hold
+	f.steps = f.steps[1:]
+	f.mu.Unlock()
+	if !strings.HasPrefix(step[0], "{") {
+		on(model.Delta{Text: step[0]})
+		return model.Reply{Text: step[0]}, nil
+	}
+	id := fmt.Sprintf("call-%d", calls.Add(1))
+	for i, p := range step {
+		if i == len(step)-1 && hold != nil {
+			select {
+			case <-hold:
+			case <-ctx.Done():
+				return model.Reply{}, ctx.Err()
+			}
+		}
+		name := ""
+		if i == 0 {
+			name = workspace.ProposeTool
+		}
+		on(model.Delta{Call: model.CallDelta{ID: id, Name: name, Input: p}})
+	}
+	return model.Reply{Calls: []model.Call{{ID: id, Name: workspace.ProposeTool, Input: json.RawMessage(strings.Join(step, ""))}}}, nil
+}
+
+// proposal is a change proposed in chapter at where, in place of or after
+// quote, as the pieces of its input: the text comes in two.
+func proposal(chapter, at, quote, text string) []string {
+	r := []rune(text)
+	head := fmt.Sprintf(`{"chapter":%q,"at":%q,"quote":%q,"text":"`, chapter, at, quote)
+	return []string{head + string(r[:len(r)/2]), strings.ReplaceAll(string(r[len(r)/2:]), "\n", `\n`) + `"}`}
+}
+
+// penWith has the work talk with f, and predict and check with it.
+func penWith(a *App, f model.Completer) { penWithin(a, f, model.Builtin("deepseek-flash")) }
 
 // penWithin is penWith with a model of the limits m.
-func penWithin(a *App, f *stream, m model.Model) {
-	aiOf(a).NewWriter = func(s *workspace.Store) (*writing.Writer, error) {
-		return &writing.Writer{Store: s, Model: discussion.Model{Model: m, Completer: f, Name: "deepseek/deepseek-flash", Effort: model.EffortHigh}}, nil
+func penWithin(a *App, f model.Completer, m model.Model) {
+	w := a.Store.Work()
+	w.Discussion = workspace.Selection{Provider: "deepseek", Model: "deepseek-flash", Effort: string(model.EffortHigh)}
+	if err := a.Store.SaveWork(w); err != nil {
+		panic(err)
+	}
+	a.loadWork()
+	aiOf(a).Open = func(workspace.Selection, *workspace.Store) (discussion.Model, error) {
+		return discussion.Model{Model: m, Completer: f, Name: "deepseek/deepseek-flash", Effort: model.EffortHigh}, nil
 	}
 	a.write.penKey = "" // build the editors' writer again
 }
-
-// longAgo has what was proposed come a while ago, its buttons settled.
-func longAgo(a *App) { a.write.proposed.shown = time.Time{} }
 
 func until(t *testing.T, tt *ui.Tester, what string, ok func() bool) {
 	t.Helper()
@@ -83,15 +160,34 @@ func until(t *testing.T, tt *ui.Tester, what string, ok func() bool) {
 	}
 }
 
-// Drafting needs an outline. The draft streams in beside the text, which
-// stays as it was and read-only, on the disk too, until the author takes
-// it: then the chapter before it is a snapshot recording what the AI saw,
-// and the draft goes in as one undo step with its mark, the keyboard back
-// in the prose to undo it.
-func TestDraftAChapterFromItsOutline(t *testing.T) {
+// replied waits for the turn in flight to end.
+func replied(t *testing.T, a *App, tt *ui.Tester) {
+	t.Helper()
+	until(t, tt, "the reply", func() bool { return a.busy == "" })
+	tt.Frame()
+}
+
+// shownProposals are the texts the editor shows proposed.
+func shownProposals(a *App) []string {
+	var out []string
+	for _, p := range a.write.ed.Proposals() {
+		out = append(out, p.Text)
+	}
+	return out
+}
+
+// Drafting needs an outline. The draft is a talk opened beside the prose,
+// its first words what the author asked in the dialog, keeping to the
+// chapter. Its AI proposes the draft in the prose, as it comes, while the
+// text stays as it was, on the disk too. Taken, after a snapshot naming
+// the talk, it goes in as one step to undo, marked as the AI's, the
+// keyboard in the prose; a click as it came does not take it.
+func TestDraftAChapterThroughATalk(t *testing.T) {
 	a, tt, id := writingFixture(t, "")
-	f := &stream{pieces: []string{"雨下了一夜。", "\n她醒了。"}, hold: make(chan struct{})}
+	f := &script{}
 	penWith(a, f)
+	hold := f.holding()
+	f.then(proposal("第一章", "end", "", "雨下了一夜。\n她醒了。"), []string{"按章纲写了两段。"})
 	tt.Frame()
 	if err := clickMenu(tt, "编辑", "菜单-起草本章"); err != nil {
 		t.Fatal(err)
@@ -106,8 +202,8 @@ func TestDraftAChapterFromItsOutline(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("用 DeepSeek/deepseek-flash · High；可在设置中「AI」配置里更换。") {
-		t.Fatal("the model not named by its service", tt.Texts())
+	if !tt.HasText("用讨论模型 deepseek-flash · High；可在设置中「AI」配置里更换。") || !strings.HasPrefix(a.write.draftNote, "将带上各卷卷纲等，约 ") {
+		t.Fatal("the dialog does not say what goes and to whom", a.write.draftNote, tt.Texts())
 	}
 	// Words not a count are said under the field, and drafting waits.
 	a.write.words = "很多"
@@ -116,7 +212,7 @@ func TestDraftAChapterFromItsOutline(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("目标字数须为正整数，或留空") || a.write.run != nil || a.Error != "" {
+	if !tt.HasText("目标字数须为正整数，或留空") || a.busy != "" || a.Error != "" {
 		t.Fatal("drafted with words not a count", a.Error, tt.Texts())
 	}
 	a.write.words = "800"
@@ -124,57 +220,76 @@ func TestDraftAChapterFromItsOutline(t *testing.T) {
 	if err := tt.Click("开始起草"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the first piece", func() bool { return proposed(a) == "雨下了一夜。" })
-	if !a.write.ed.ReadOnly() || !tt.HasText("AI 正在按章纲起草 · 已写 6 字 · DeepSeek/deepseek-flash · High") || !tt.HasText("停止") {
-		t.Fatal("not read-only while drafting", tt.Texts())
-	}
-	tt.Type("不该进去")
-	close(f.hold)
-	until(t, tt, "the draft to end", func() bool { return a.write.run == nil })
+	until(t, tt, "the draft to come", func() bool { return slices.Equal(shownProposals(a), []string{"雨下了一夜"}) })
 	ed := a.write.ed
-	if ed.Doc.String() != "" || proposed(a) != "雨下了一夜。\n她醒了。" || !ed.ReadOnly() || !tt.HasText("起草 10 字，绿色为起草。") {
-		t.Fatalf("drafted %q beside %q", proposed(a), ed.Doc.String())
+	if ed.Doc.String() != "" || disk(t, a, "第一章.txt") != "" || ed.ReadOnly() || !tt.HasText("AI 正在写提议…") || !tt.HasText("正在写…") {
+		t.Fatal("the draft is not shown beside the text as it comes", tt.Texts())
+	}
+	if !a.doc.talk || a.doc.hidden || a.titles[a.session] != "起草：第一章" || !tt.HasText("按章纲起草本章，约 800 字") || !tt.HasText("跟着「第一章」") {
+		t.Fatal("the talk is not beside the prose", a.titles[a.session], tt.Texts())
+	}
+	if !strings.Contains(f.last().System, "【这段讨论起草的章：第一章】") || !strings.Contains(f.last().System, "她在雨夜醒来。") {
+		t.Fatal("the talk does not keep to the chapter")
+	}
+	close(hold)
+	replied(t, a, tt)
+	if !slices.Equal(shownProposals(a), []string{"雨下了一夜。\n她醒了。"}) || !tt.HasText("本章有 1 处 AI 提议") || !tt.HasText("接在章末 · 10 字 · 等你决定") {
+		t.Fatal("the draft did not come whole", shownProposals(a), tt.Texts())
 	}
 	tt.Key(ui.Cmd, ui.KeyS)
-	if !strings.Contains(a.notice, "已保存") {
-		t.Fatalf("saving waits for the draft: %q", a.notice)
-	}
 	if snaps, _ := a.Store.Snapshots(id); len(snaps) > 0 && snaps[0].Reason == workspace.SnapAI {
 		t.Fatal("a snapshot before the draft is taken")
 	}
-	longAgo(a)
 	if err := tt.Click("采纳"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if ed.Doc.String() != "雨下了一夜。\n她醒了。" || ed.ReadOnly() || !strings.Contains(a.notice, "已采纳起草") || !tt.Focused("正文") {
+	if ed.Doc.String() != "" {
+		t.Fatal("taken by a click as it came")
+	}
+	time.Sleep(settleFor)
+	if err := tt.Click("采纳"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if ed.Doc.String() != "雨下了一夜。\n她醒了。" || !strings.Contains(a.notice, "已采纳 AI 提议") || !tt.Focused("正文") || ed.Caret() != ed.Doc.Len() {
 		t.Fatalf("taken %q %q, the prose focused %v", ed.Doc.String(), a.notice, tt.Focused("正文"))
 	}
-	if ms := ed.Doc.Marks(); len(ms) != 1 || ms[0].Kind != editor.MarkAIDraft || ms[0].End != ed.Doc.Len() {
+	if ms := ed.Doc.Marks(); len(ms) != 1 || ms[0].Kind != editor.MarkAI || ms[0].End != ed.Doc.Len() || ms[0].Note != "deepseek/deepseek-flash" {
 		t.Fatalf("marks %+v", ms)
 	}
 	if got := disk(t, a, "第一章.txt"); got != "雨下了一夜。\n她醒了。" {
 		t.Fatalf("on disk %q", got)
 	}
+	if len(ed.Proposals()) != 0 || !tt.HasText("接在章末 · 10 字 · 已采纳") {
+		t.Fatal("the talk does not say it was taken", tt.Texts())
+	}
 	snaps, _ := a.Store.Snapshots(id)
-	s := snaps[0]
-	if s.Reason != workspace.SnapAI || s.AI == nil || s.AI.Op != workspace.AIDraft || s.AI.Instruction != "约 800 字" || s.AI.Model != "deepseek/deepseek-flash" {
+	if s := snaps[0]; s.Reason != workspace.SnapAI || s.Talk != a.session {
 		t.Fatalf("snapshot %+v", s)
 	}
-	if !strings.Contains(f.asked[0].Messages[len(f.asked[0].Messages)-1].Content, "她在雨夜醒来。") {
-		t.Fatal("the outline was not sent")
+	if text, _ := a.Store.SnapshotText(id, snaps[0].Name); text != "" {
+		t.Fatalf("snapshot text %q", text)
 	}
 	tt.Key(ui.Cmd, ui.KeyZ)
 	if ed.Doc.String() != "" {
 		t.Fatalf("one undo left %q", ed.Doc.String())
 	}
+	if err := clickMenu(tt, "文件", "菜单-快照"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("采纳讨论「起草：第一章」里的提议") {
+		t.Fatal("the snapshot does not name the talk", tt.Texts())
+	}
 }
 
-// What becomes of the words already there is chosen in the dialog, and
-// asked afresh each time it opens.
+// What becomes of the words already there is chosen in the dialog, asked
+// afresh each time it opens, and said in the talk's first words.
 func TestDraftOverWhatIsThere(t *testing.T) {
 	a, tt, _ := writingFixture(t, "她醒了")
-	penWith(a, &stream{})
+	f := &script{}
+	penWith(a, f)
 	a.write.outline = "她醒来。"
 	tt.Frame()
 	for _, want := range []string{draftReplace, draftAppend} {
@@ -192,185 +307,99 @@ func TestDraftOverWhatIsThere(t *testing.T) {
 		if a.write.draftMode != want {
 			t.Fatalf("mode %q, want %q", a.write.draftMode, want)
 		}
+		if want == draftAppend {
+			break
+		}
 		a.write.draftOpen = false
 		tt.Frame()
 	}
-}
-
-// Stopped, a draft keeps what it wrote, after the text there was, for the
-// author to take or not; with nothing written, it is as if there was no
-// draft. Drafting again starts it over; failing keeps what came. The
-// buttons give the keyboard back to the prose.
-func TestStopADraftKeepsWhatCame(t *testing.T) {
-	a, tt, _ := writingFixture(t, "她醒了")
-	f := &stream{pieces: []string{"雨还在下。", "不该出现。"}, hold: make(chan struct{})}
-	penWith(a, f)
-	a.write.outline = "她醒来。"
-	tt.Frame()
-	if err := clickMenu(tt, "编辑", "菜单-起草本章"); err != nil {
-		t.Fatal(err)
-	}
-	tt.Frame()
-	if a.write.draftMode != draftAppend {
-		t.Fatal("drafting does not append by default")
-	}
+	f.then([]string{"先问一句：她是怎么醒的？"})
 	if err := tt.Click("开始起草"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the first piece", func() bool { return proposed(a) == "\n雨还在下。" })
-	if err := tt.Click("停止"); err != nil {
-		t.Fatal(err)
-	}
-	until(t, tt, "the draft to stop", func() bool { return a.write.run == nil })
-	tt.Frame()
-	if got := a.write.ed.Doc.String(); got != "她醒了" || proposed(a) != "\n雨还在下。" || !tt.HasText("已停止，起草 5 字，绿色为起草。") || !tt.Focused("正文") {
-		t.Fatalf("after stop %q beside %q, the prose focused %v", proposed(a), got, tt.Focused("正文"))
-	}
-	if a.Error != "" {
-		t.Fatal(a.Error)
-	}
-
-	close(f.hold)
-	longAgo(a)
-	if err := tt.Click("重新起草"); err != nil {
-		t.Fatal(err)
-	}
-	until(t, tt, "the draft again", func() bool { return a.write.run == nil && a.write.proposed != nil })
-	tt.Frame()
-	if proposed(a) != "\n雨还在下。不该出现。" || !tt.HasText("起草 10 字，绿色为起草。") {
-		t.Fatalf("again %q", proposed(a))
-	}
-	longAgo(a)
-	if err := tt.Click("放弃"); err != nil {
-		t.Fatal(err)
-	}
-	tt.Frame()
-	if _, _, _, ok := a.write.ed.Proposal(); ok || a.write.ed.ReadOnly() || a.write.ed.Doc.String() != "她醒了" || tt.HasText("采纳") || !tt.Focused("正文") {
-		t.Fatal("the draft was not let go", tt.Texts())
-	}
-
-	f.pieces, f.hold = []string{"", "不该出现。"}, make(chan struct{})
-	if err := clickMenu(tt, "编辑", "菜单-起草本章"); err != nil {
-		t.Fatal(err)
-	}
-	tt.Frame()
-	if err := tt.Click("开始起草"); err != nil {
-		t.Fatal(err)
-	}
-	until(t, tt, "the draft to be asked", func() bool { f.mu.Lock(); defer f.mu.Unlock(); return len(f.asked) == 3 })
-	if err := tt.Click("停止"); err != nil {
-		t.Fatal(err)
-	}
-	until(t, tt, "the draft to stop", func() bool { return a.write.run == nil })
-	tt.Frame()
-	if _, _, _, ok := a.write.ed.Proposal(); ok || a.write.proposed != nil || a.write.ed.ReadOnly() || tt.HasText("已停止") || a.Error != "" {
-		t.Fatal("a draft that wrote nothing stays", tt.Texts())
-	}
-
-	f.pieces, f.hold, f.fail = []string{"雨还在下。"}, nil, errors.New("服务不可用")
-	if err := clickMenu(tt, "编辑", "菜单-起草本章"); err != nil {
-		t.Fatal(err)
-	}
-	tt.Frame()
-	if err := tt.Click("开始起草"); err != nil {
-		t.Fatal(err)
-	}
-	until(t, tt, "the draft to fail", func() bool { return a.write.run == nil })
-	tt.Frame()
-	if proposed(a) != "\n雨还在下。" || a.Error != "起草没有写完：服务不可用；已写的部分可以采纳" || !tt.HasText("已停止，起草 5 字") {
-		t.Fatalf("failed %q %q", proposed(a), a.Error)
+	replied(t, a, tt)
+	if !tt.HasText("按章纲起草本章，接在已有内容之后") || !strings.Contains(f.last().System, "【本章已有的正文】\n她醒了") {
+		t.Fatal("the draft does not go on from what is there", tt.Texts())
 	}
 }
 
-// A rewrite is shown beside the words selected; dropping it changes
-// nothing, asking again rewrites the same words as asked, and accepting it
-// keeps the words replaced as a snapshot. Asked for, dropped, taken, or
-// closed, it gives the keyboard back to the prose. A click as it comes,
-// meant for 取消, does not take it.
-func TestRewriteASelection(t *testing.T) {
-	a, tt, id := writingFixture(t, "她走到井边。井里有光。")
-	f := &stream{pieces: []string{"她慢慢", "走到井边。"}}
+// A rewrite is a talk opened on the words selected, quoting them in its
+// first words with what the author asked. Its proposal strikes the words
+// through with the new ones after them, and the author writes on
+// elsewhere. Asked again in the talk, the AI's new proposal takes the old
+// one's place, which the talk says; let go, the text is as it was, and the
+// AI is told the next time the author speaks. The box that asks gives the
+// keyboard back to the prose, closed by Escape.
+func TestRewriteASelectionThroughATalk(t *testing.T) {
+	a, tt, _ := writingFixture(t, "她走到井边。井里有光。")
+	f := &script{}
 	penWith(a, f)
-	a.write.ed.Select(0, 6)
+	f.then(proposal("第一章", "replace", "她走到井边。", "她慢慢走到井边。"), []string{"放慢了。"})
+	ed := a.write.ed
+	ed.Select(0, 6)
 	tt.Frame()
 	if err := tt.Click("AI 改写"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
+	if err := tt.Click("改写"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.busy != "" {
+		t.Fatal("a rewrite went with nothing asked")
+	}
 	a.write.instruction = "放慢"
 	tt.Frame()
 	if err := tt.Click("改写"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the rewrite", func() bool { return a.write.proposed != nil })
-	if _, _, text, ok := a.write.ed.Proposal(); !ok || text != "她慢慢走到井边。" || !tt.Focused("正文") {
-		t.Fatalf("proposal %q, the prose focused %v", text, tt.Focused("正文"))
+	replied(t, a, tt)
+	ps := ed.Proposals()
+	if len(ps) != 1 || ps[0].A != 0 || ps[0].B != 6 || ps[0].Keep || ps[0].Text != "她慢慢走到井边。" || !tt.Focused("正文") {
+		t.Fatalf("proposed %+v, the prose focused %v", ps, tt.Focused("正文"))
 	}
-	longAgo(a)
+	if a.write.rewriting || a.titles[a.session] != "改写：她走到井边。" || !tt.HasText("换掉一句 · 8 字 · 等你决定") || !tt.HasText("放慢") {
+		t.Fatal("the talk is not of the rewrite", a.titles[a.session], tt.Texts())
+	}
+	if first := a.events[0]; first.Origin != workspace.AIRewrite || len(first.Quotes) != 1 || first.Quotes[0].Text != "她走到井边。" {
+		t.Fatalf("first words %+v", first)
+	}
+	ed.MoveTo(ed.Doc.Len(), false)
+	ed.Insert("后来")
+	tt.Frame()
+	if len(ed.Proposals()) != 1 {
+		t.Fatal("writing elsewhere let the proposal go")
+	}
+
+	f.then(proposal("第一章", "replace", "她走到井边。", "她缓缓走到井边。"), []string{"再慢一点。"})
+	a.input = "再慢一点"
+	tt.Frame()
+	if err := tt.Click("发送"); err != nil {
+		t.Fatal(err)
+	}
+	replied(t, a, tt)
+	if !slices.Equal(shownProposals(a), []string{"她缓缓走到井边。"}) || !tt.HasText("换掉一句 · 8 字 · 已被新的提议替换") {
+		t.Fatal("the new proposal did not take the old one's place", shownProposals(a), tt.Texts())
+	}
 	if err := tt.Click("放弃"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.write.ed.Doc.String() != "她走到井边。井里有光。" || len(a.write.ed.Doc.Marks()) != 0 || a.write.ed.ReadOnly() {
-		t.Fatal("dropping changed the text")
+	if ed.Doc.String() != "她走到井边。井里有光。后来" || len(ed.Proposals()) != 0 || !tt.HasText("换掉一句 · 8 字 · 已放弃") || !tt.Focused("正文") {
+		t.Fatal("letting go changed the text, or is not said", ed.Doc.String(), tt.Texts())
 	}
-	if a.write.rewriting || !tt.Focused("正文") {
-		t.Fatalf("dropped: rewriting %v, the prose focused %v", a.write.rewriting, tt.Focused("正文"))
+	f.then([]string{"好。"})
+	a.input = "算了"
+	tt.Frame()
+	if err := tt.Click("发送"); err != nil {
+		t.Fatal(err)
 	}
-	before, _ := a.Store.Snapshots(id)
+	replied(t, a, tt)
+	if m := f.last().Messages; !strings.Contains(m[len(m)-1].Content, "【之前的提议】「第一章」换掉「她走到井边。」的提议：被作者放弃。") {
+		t.Fatalf("the AI is not told: %q", m[len(m)-1].Content)
+	}
 
-	a.write.ed.Select(0, 6)
-	tt.Frame()
-	if err := tt.Click("AI 改写"); err != nil {
-		t.Fatal(err)
-	}
-	tt.Frame()
-	if err := tt.Click("改写"); err != nil {
-		t.Fatal(err)
-	}
-	until(t, tt, "the rewrite", func() bool { return a.write.proposed != nil })
-	f.pieces = []string{"她缓缓", "走到井边。"}
-	longAgo(a)
-	if err := tt.Click("重新改写"); err != nil {
-		t.Fatal(err)
-	}
-	until(t, tt, "the rewrite again", func() bool { return proposed(a) == "她缓缓走到井边。" })
-	if len(f.asked) != 3 || f.asked[2].Messages[len(f.asked[2].Messages)-1].Content != f.asked[1].Messages[len(f.asked[1].Messages)-1].Content || !tt.Focused("正文") {
-		t.Fatalf("asked again %d times, the prose focused %v", len(f.asked), tt.Focused("正文"))
-	}
-	if err := tt.Click("采纳"); err != nil {
-		t.Fatal(err)
-	}
-	tt.Frame()
-	if a.write.proposed == nil {
-		t.Fatal("taken by a click as it came")
-	}
-	time.Sleep(settleFor)
-	if err := tt.Click("采纳"); err != nil {
-		t.Fatal(err)
-	}
-	tt.Frame()
-	ed := a.write.ed
-	if ed.Doc.String() != "她缓缓走到井边。井里有光。" {
-		t.Fatalf("accepted %q", ed.Doc.String())
-	}
-	if ms := ed.Doc.Marks(); len(ms) != 1 || ms[0].Kind != editor.MarkAIAccepted || ed.Doc.Slice(ms[0].Start, ms[0].End) != "她缓缓走到井边。" {
-		t.Fatalf("marks %+v", ms)
-	}
-	if !tt.Focused("正文") {
-		t.Fatal("taken, the keyboard is not in the prose")
-	}
-	snaps, _ := a.Store.Snapshots(id)
-	if len(snaps) != len(before)+1 || snaps[0].AI == nil || snaps[0].AI.Op != workspace.AIRewrite || snaps[0].AI.Instruction != "放慢" {
-		t.Fatalf("snapshots %+v", snaps)
-	}
-	if text, _ := a.Store.SnapshotText(id, snaps[0].Name); text != "她走到井边。井里有光。" {
-		t.Fatalf("snapshot text %q", text)
-	}
-	tt.Key(ui.Cmd, ui.KeyZ)
-	if ed.Doc.String() != "她走到井边。井里有光。" {
-		t.Fatalf("one undo left %q", ed.Doc.String())
-	}
 	ed.Select(0, 6)
 	tt.Frame()
 	if err := tt.Click("AI 改写"); err != nil {
@@ -382,13 +411,185 @@ func TestRewriteASelection(t *testing.T) {
 	if a.write.rewriting || !tt.Focused("正文") {
 		t.Fatalf("Escape: rewriting %v, the prose focused %v", a.write.rewriting, tt.Focused("正文"))
 	}
-	if err := clickMenu(tt, "文件", "菜单-快照"); err != nil {
+}
+
+// A proposal whose words the author changes is void, which the talk says;
+// changing other words leaves it. One let go as it comes stops the AI.
+func TestAProposalVoidAndOneLetGo(t *testing.T) {
+	a, tt, _ := writingFixture(t, "她走到井边。井里有光。")
+	f := &script{}
+	penWith(a, f)
+	f.then(proposal("第一章", "replace", "井里有光。", "井里亮着。"), []string{"换了。"})
+	ed := a.write.ed
+	ed.Select(6, 11)
+	tt.Frame()
+	if err := tt.Click("AI 改写"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("改写 · DeepSeek/deepseek-flash · High · 放慢") {
-		t.Fatal("the AI record is not shown", tt.Texts())
+	a.write.instruction = "换个说法"
+	tt.Frame()
+	if err := tt.Click("改写"); err != nil {
+		t.Fatal(err)
 	}
+	replied(t, a, tt)
+	ed.MoveTo(0, false)
+	ed.Insert("那天")
+	tt.Frame()
+	if len(ed.Proposals()) != 1 {
+		t.Fatal("other words changed let the proposal go")
+	}
+	ed.Select(10, 12) // 有光
+	ed.Insert("亮")
+	tt.Frame()
+	if len(ed.Proposals()) != 0 || a.hint != "1 处 AI 提议已作废；它要换掉的原文改动了" || !tt.HasText("正文已改动，提议已作废") {
+		t.Fatal("the proposal is not void", a.hint, tt.Texts())
+	}
+
+	hold := f.holding()
+	f.then(proposal("第一章", "replace", "那天", "那一天"), []string{"不该来。"})
+	ed.Select(0, 2)
+	tt.Frame()
+	if err := tt.Click("AI 改写"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	a.write.instruction = "长一点"
+	tt.Frame()
+	if err := tt.Click("改写"); err != nil {
+		t.Fatal(err)
+	}
+	until(t, tt, "the proposal to come", func() bool { return len(ed.Proposals()) == 1 })
+	if err := tt.Click("放弃"); err != nil {
+		t.Fatal(err)
+	}
+	replied(t, a, tt)
+	close(hold)
+	tt.Frame()
+	if len(ed.Proposals()) != 0 || len(a.write.props) != 0 || ed.Doc.String() != "那天她走到井边。井里亮。" || !tt.HasText("该消息尚未收到回复") {
+		t.Fatal("letting go of a proposal as it came left the AI writing", ed.Doc.String(), tt.Texts())
+	}
+}
+
+// Leaving the work with proposals not decided on asks first; let go, what
+// came of them is in their talk.
+func TestLeavingTheWorkAsksAboutProposals(t *testing.T) {
+	a, tt, _ := writingFixture(t, "她走到井边。")
+	f := &script{}
+	penWith(a, f)
+	f.then(proposal("第一章", "end", "", "井里有光。"), []string{"接了一句。"})
+	a.write.outline = "井里有光。"
+	a.openDraft()
+	tt.Frame()
+	if err := tt.Click("开始起草"); err != nil {
+		t.Fatal(err)
+	}
+	replied(t, a, tt)
+	session := a.session
+	leave := func() {
+		t.Helper()
+		if err := tt.Click("切换作品"); err != nil {
+			t.Fatal(err)
+		}
+		tt.Frame()
+		if err := tt.Click("新建作品…"); err != nil {
+			t.Fatal(err)
+		}
+		tt.Frame()
+	}
+	leave()
+	if !tt.HasText("还有 1 处 AI 提议没有处理") || !tt.HasText("关闭后将丢弃。") || a.books.creating {
+		t.Fatal("left without asking", tt.Texts())
+	}
+	if err := tt.Click("取消"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if tt.HasText("还有 1 处 AI 提议没有处理") || len(a.write.props) != 1 || !tt.HasText("本章有 1 处 AI 提议") {
+		t.Fatal("staying let the proposal go")
+	}
+	leave()
+	if err := tt.Click("丢弃并关闭"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !a.books.creating || len(a.write.props) != 0 {
+		t.Fatal("did not leave")
+	}
+	events, _ := a.Store.Events(session)
+	if last := events[len(events)-1]; last.Role != workspace.RoleFate || last.Fate != workspace.FateClosed {
+		t.Fatalf("the talk does not say: %+v", last)
+	}
+}
+
+// A talk may propose in a chapter not open: it opens in a tab beside the
+// one shown, which stays. The talk's card shows it there.
+func TestAProposalInAnotherChapterOpensBeside(t *testing.T) {
+	a, tt, one := writingFixture(t, "第一章的字。")
+	two, err := a.Store.NewChapter("", "第二章", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = a.Store.WriteChapter(two, "档案室白天也要开灯。", nil); err != nil {
+		t.Fatal(err)
+	}
+	a.warn(a.loadTree())
+	f := &script{}
+	penWith(a, f)
+	f.then(proposal("第二章", "replace", "白天也要开灯。", "白天也得开着灯。"), []string{"顺了一下。"})
+	a.doc.talk, a.doc.hidden = true, false
+	a.input = "第二章那句顺一下"
+	tt.Frame()
+	if err := tt.Click("发送"); err != nil {
+		t.Fatal(err)
+	}
+	replied(t, a, tt)
+	if a.write.node != one || !slices.Contains(a.write.tabs, two) || !tt.HasText("提议修改「第二章」") || !tt.HasText("换掉一句 · 8 字 · 等你决定") {
+		t.Fatal("the chapter is not open beside", a.write.tabs, tt.Texts())
+	}
+	if err := tt.Click("在正文中查看"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Frame()
+	if a.write.node != two || !tt.HasText("本章有 1 处 AI 提议") || !slices.Equal(shownProposals(a), []string{"白天也得开着灯。"}) {
+		t.Fatal("the proposal is not shown", tt.Texts())
+	}
+	if err := tt.Click("全部放弃"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("换掉一句 · 8 字 · 已放弃") || tt.HasText("本章有 1 处 AI 提议") {
+		t.Fatal("letting go is not said", tt.Texts())
+	}
+}
+
+// Asked to draft with no model to talk with, or while another reply is
+// in flight, the author is told why nothing happens.
+func TestADraftWaitsForAModelAndItsTurn(t *testing.T) {
+	a, tt, _ := writingFixture(t, "")
+	a.write.outline = "她醒来。"
+	a.openDraft()
+	tt.Frame()
+	if err := tt.Click("开始起草"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.Error != "请先配置讨论模型" || !a.write.draftOpen {
+		t.Fatalf("drafted with no model: %q", a.Error)
+	}
+	a.Error = ""
+	penWith(a, &script{})
+	a.busy = "AI 正在思考…"
+	tt.Frame()
+	if err := tt.Click("开始起草"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.hint != "AI 正在回复别的讨论；等它回完或取消后再起草" || !a.write.draftOpen {
+		t.Fatalf("drafted over another reply: %q", a.hint)
+	}
+	a.busy = ""
 }
 
 // Cmd+J asks for one sentence; Tab keeps it, marked with the model.
@@ -414,7 +615,7 @@ func TestContinueOnDemand(t *testing.T) {
 		t.Fatalf("continuing reasons: %q", r.Effort)
 	}
 	tt.Key(0, ui.KeyTab)
-	if ms := ed.Doc.Marks(); ed.Doc.String() != "她推开门，屋里很暗。" || len(ms) != 1 || ms[0].Kind != editor.MarkAIAccepted || ms[0].Note != "deepseek/deepseek-flash" {
+	if ms := ed.Doc.Marks(); ed.Doc.String() != "她推开门，屋里很暗。" || len(ms) != 1 || ms[0].Kind != editor.MarkAI || ms[0].Note != "deepseek/deepseek-flash" {
 		t.Fatalf("accepted %q %+v", ed.Doc.String(), ms)
 	}
 }
@@ -423,10 +624,11 @@ func TestContinueOnDemand(t *testing.T) {
 // again: its address or its key may be another.
 func TestSavingAServiceRemakesThePredictingWriter(t *testing.T) {
 	a, tt, _ := writingFixture(t, "原来的。")
+	penWith(a, &stream{})
 	made := 0
-	aiOf(a).NewWriter = func(s *workspace.Store) (*writing.Writer, error) {
+	aiOf(a).Open = func(workspace.Selection, *workspace.Store) (discussion.Model, error) {
 		made++
-		return nil, writing.ErrNoModel
+		return discussion.Model{}, errors.New("没有模型")
 	}
 	a.write.penKey = ""
 	tt.Frame()
@@ -453,12 +655,13 @@ func TestSavingAServiceRemakesThePredictingWriter(t *testing.T) {
 	}
 }
 
-// Taking the disk's text while a rewrite is under way ends the rewrite:
-// what it would propose is about the text given up.
-func TestTakingTheDisksTextEndsTheRewrite(t *testing.T) {
+// Taking the disk's text while a proposal is shown leaves the proposal to
+// the disk's text: there, its words are gone, and it is void.
+func TestTakingTheDisksTextVoidsWhatItChanged(t *testing.T) {
 	a, tt, _ := writingFixture(t, "她走到井边。井里有光。")
-	f := &stream{pieces: []string{"她慢慢", "走到井边。"}, hold: make(chan struct{})}
+	f := &script{}
 	penWith(a, f)
+	f.then(proposal("第一章", "replace", "她走到井边。", "她慢慢走到井边。"), []string{"放慢了。"})
 	a.write.ed.Select(0, 6)
 	tt.Frame()
 	if err := tt.Click("AI 改写"); err != nil {
@@ -470,7 +673,7 @@ func TestTakingTheDisksTextEndsTheRewrite(t *testing.T) {
 	if err := tt.Click("改写"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the rewrite to start", func() bool { return a.write.run != nil })
+	replied(t, a, tt)
 	p := filepath.Join(a.Store.Root(), "chapters", "第一章.txt")
 	if err := os.WriteFile(p, []byte("别处改的。"), 0644); err != nil {
 		t.Fatal(err)
@@ -480,15 +683,8 @@ func TestTakingTheDisksTextEndsTheRewrite(t *testing.T) {
 		t.Fatal("the outside change was not seen")
 	}
 	a.takeDisk()
-	close(f.hold)
-	for range 20 {
-		time.Sleep(5 * time.Millisecond)
-		tt.Frame()
-	}
-	if _, _, _, ok := a.write.ed.Proposal(); ok || a.write.proposed != nil || a.write.run != nil {
-		t.Fatal("the rewrite went on over the text taken from the disk")
-	}
-	if got := a.write.ed.Doc.String(); got != "别处改的。" {
-		t.Fatalf("the editor holds %q", got)
+	tt.Frame()
+	if len(a.write.ed.Proposals()) != 0 || len(a.write.props) != 0 || a.write.ed.Doc.String() != "别处改的。" {
+		t.Fatalf("the proposal stayed over the text taken from the disk: %q", a.write.ed.Doc.String())
 	}
 }

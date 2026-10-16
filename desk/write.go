@@ -132,18 +132,27 @@ type writeView struct {
 	exporting           exportState
 
 	// The writing model: the writer the editors predict with, and why
-	// there is none; a request in flight; a rewrite asked for or shown.
+	// there is none.
 	pen         atomic.Pointer[aiport.Pen]
 	penKey      string
 	penErr      error
 	autoPredict bool
-	run         *aiRun
+
+	// What the AI does in the prose: the rewrite asked for, the dialog
+	// that asks for a draft, and the changes proposed in talks, the calls
+	// of the turn in flight taken in among them by talk and call, as last
+	// placed in the prose; and what waits on letting them go.
 	rewriting   bool
 	instruction string
-	proposed    *aiRun
 	draftOpen   bool
 	words       string
 	draftMode   string
+	draftNote   string
+	props       []*prop
+	propVer     int
+	seen        map[string]bool
+	placed      placedKey
+	leaving     func()
 }
 
 // dragNode is a node of the chapter tree being dragged.
@@ -151,8 +160,7 @@ type dragNode string
 
 var markKinds = map[editor.MarkKind]string{
 	editor.MarkForeshadow: workspace.MarkForeshadow,
-	editor.MarkAIAccepted: workspace.MarkAIAccepted,
-	editor.MarkAIDraft:    workspace.MarkAIDraft,
+	editor.MarkAI:         workspace.MarkAI,
 	editor.MarkPayoff:     workspace.MarkPayoff,
 }
 
@@ -400,13 +408,12 @@ func (a *App) gistsIn(n *workspace.Node) map[string]string {
 	return gists
 }
 
-// flush saves the text and the outline shown, as leaving them does; an AI
-// writing into the text stops first.
+// flush saves the text and the outline shown, as leaving them does. What
+// an AI proposes is not in the text, and stays.
 func (a *App) flush() {
 	if a.Store == nil {
 		return
 	}
-	a.stopAI()
 	a.keepCaret()
 	a.warn(a.saveText())
 	a.warn(a.saveOutline())
@@ -625,8 +632,6 @@ func (a *App) takeDisk() {
 	if ch == nil {
 		return
 	}
-	// What the AI is writing or has proposed is about the text given up.
-	a.stopAI()
 	_, err := a.Store.TakeSnapshot(w.node, workspace.SnapExternal, w.ed.Doc.String(), storedMarks(w.ed.Doc.Marks()))
 	if err != nil {
 		a.warn(err)
@@ -686,7 +691,7 @@ func (a *App) writing(c *ui.Context) {
 		a.enterWriting()
 	}
 	a.keepPen()
-	a.pollAI()
+	a.pruneProps()
 	a.countAsTyped()
 	a.feedNames()
 	if a.write.ed != nil {
@@ -1191,10 +1196,12 @@ func (a *App) chapterView(c *ui.Context) {
 			})
 		})
 	})
+	a.placeProps()
 	a.aiBar(c)
 	// Keyed, as the bars over it come and go: the prose keeps the keyboard.
 	ui.Box(c.Key("prose")).Grow(1).FillWidth().Children(func() {
 		w.ed.View(c).Fill()
+		a.propActs(c)
 		a.selectionBar(c)
 		a.forePopover(c)
 		a.menuAt(c, "正文", a.textMenu)
@@ -2006,9 +2013,9 @@ func (a *App) snapshots(c *ui.Context) {
 		shown := a.snapView()
 		same := shown.same // nothing to restore
 		ui.Column(c).Width(dialogWide).Height(dialogTall).Padding(dialogPad).Gap(16).Children(func() {
-			kept := "打开章节时、连续写作每十分钟、恢复前、AI 起草或采纳改写前、全书替换前都会保存一份。最近七天的全部保留，更早的每天保留最后一份。"
+			kept := "打开章节时、连续写作每十分钟、恢复前、采纳 AI 提议前、全书替换前都会保存一份。最近七天的全部保留，更早的每天保留最后一份。"
 			if !a.aiOn() {
-				kept = strings.Replace(kept, "AI 起草或采纳改写前、", "", 1)
+				kept = strings.Replace(kept, "采纳 AI 提议前、", "", 1)
 			}
 			a.pal.dialogHead(c, "快照 · "+a.shownTitle(), kept)
 			ui.Row(c).FillWidth().Grow(1).Gap(16).AlignItems(ui.Stretch).Children(func() {
@@ -2045,8 +2052,13 @@ func (a *App) snapshots(c *ui.Context) {
 							ui.Text(c, "红色删除线为快照中有而当前没有的内容，绿色为当前新增的内容").FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 						}
 					})
-					if i := slices.IndexFunc(w.snaps, func(s workspace.Snapshot) bool { return s.Name == w.snap }); i >= 0 && w.snaps[i].AI != nil && a.aiOn() {
-						a.aiRecord(c, w.snaps[i].AI)
+					if i := slices.IndexFunc(w.snaps, func(s workspace.Snapshot) bool { return s.Name == w.snap }); i >= 0 && a.aiOn() {
+						switch sn := w.snaps[i]; {
+						case sn.Talk != "":
+							a.talkRecord(c, sn.Talk)
+						case sn.AI != nil:
+							a.aiRecord(c, sn.AI)
+						}
 					}
 					// The paragraphs select as one text, and copy a line each.
 					para := func(i int) {

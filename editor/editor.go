@@ -78,8 +78,13 @@ type Editor struct {
 	compSel   int
 	compOpen  bool
 
-	// A rewrite shown beside its words, and a draft being written.
-	prop proposal
+	// What an AI proposes, shown in the text, with room after each; the
+	// version tells the layout they changed. follow keeps the end of one
+	// in view as it grows, and show brings the start of one into view.
+	props        []Proposal
+	gap          float32
+	propVer      int
+	follow, show string
 
 	// Ranges found, painted under the text; the current one stronger.
 	found   [][2]int
