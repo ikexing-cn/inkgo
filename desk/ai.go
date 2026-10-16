@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -303,14 +302,9 @@ const (
 // the text there until the author takes it.
 func (a *App) startDraft(c *ui.Context) {
 	w := &a.write
-	words := 0
-	if s := strings.TrimSpace(w.words); s != "" {
-		n, err := strconv.Atoi(s)
-		if err != nil || n <= 0 {
-			a.Error = "目标字数须为正整数，或留空"
-			return
-		}
-		words = n
+	words, ok := countOrNone(w.words)
+	if !ok {
+		return
 	}
 	a.flush()
 	pw, err := a.ai.Pen(a.Store)
@@ -467,8 +461,12 @@ func (a *App) draftView(c *ui.Context) {
 			ui.Box(c).FillWidth().Padding(10, 12).Radius(rControl).Background(a.pal.side).Children(func() {
 				ui.Text(c, strings.TrimSpace(w.outline)).FontSize(fsControl).TextColor(t.TextMuted).LineHeight(lhLoose).FillWidth()
 			})
+			_, fits := countOrNone(w.words)
 			labeled(c, "目标字数（选填）", func() {
 				ui.TextInput(c, &w.words).Label("目标字数").Placeholder("由 AI 按章纲判断").FillWidth()
+				if !fits {
+					ui.Text(c, "目标字数须为正整数，或留空").FontSize(fsNote).TextColor(t.Danger)
+				}
 			})
 			if strings.TrimSpace(w.ed.Doc.String()) != "" {
 				labeled(c, "本章已有内容", func() {
@@ -486,7 +484,7 @@ func (a *App) draftView(c *ui.Context) {
 				if a.pal.secondary(c, "取消").Clicked() {
 					w.draftOpen = false
 				}
-				if a.pal.primary(c, "开始起草").Clicked() {
+				if a.pal.primary(c, "开始起草").Disabled(!fits).Clicked() {
 					a.startDraft(c)
 				}
 			})

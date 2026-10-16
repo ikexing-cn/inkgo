@@ -389,7 +389,7 @@ function dropAI() {
 // 按章纲起草。写出来的先摆在正文后面（覆盖已有内容时，原文划掉），和改写一样，点「采纳」才写进正文。
 function draftNow() {
   const [model, effort] = writer(), d = S.dialog
-  if (d.goal.trim() && !/^[1-9]\d*$/.test(d.goal.trim())) { say('目标字数须为正整数，或留空', '', 'fail'); return }
+  if (!countOrNone(d.goal)) return
   set({ dialog: null, ...SHUT, bar: null })
   draft({ key: S.ch, over: d.how === '覆盖已有内容', head: '按章纲起草 · ' + model + ' · ' + effort + (d.goal.trim() ? ' · 约 ' + d.goal.trim() + ' 字' : '') })
 }
@@ -763,9 +763,9 @@ function todoPop(list) {
 function wordsOf(cur, vol) {
   const inVol = vol && (vol[2] ? vol[2].replace('万', ' 万字') : S.chapters.filter((c) => c.vol === vol[0]).reduce((n, c) => n + counted(c), 0) + ' 字')
   const today = BOOK.days[0][1].toLocaleString('en-US')
-  const count = (S.bar ? '选中 ' + S.bar.text.length + ' 字' : cur ? '本章 ' + sizeOf(cur) + ' 字' : vol ? '本卷 ' + inVol : '') + (cur || vol ? ' · ' : '') + '全书 ' + (S.book === BOOK.shelf[0].id ? BOOK.words : S.chapters.reduce((n, c) => n + counted(c), 0) + ' 字') + (S.goal.trim() ? ' · 今天 ' + today + ' / ' + S.goal.trim() : '')
+  const count = (S.bar ? '选中 ' + S.bar.text.length + ' 字' : cur ? '本章 ' + sizeOf(cur) + ' 字' : vol ? '本卷 ' + inVol : '') + (cur || vol ? ' · ' : '') + '全书 ' + (S.book === BOOK.shelf[0].id ? BOOK.words : S.chapters.reduce((n, c) => n + counted(c), 0) + ' 字') + (S.goalSet ? ' · 今天 ' + today + ' / ' + S.goalSet : '')
   const goal = () => '<div class="pop goal-pop" data-k="goal-pop"><div class="pop-label">最近 7 天</div>' + BOOK.days.map(([day, n]) => `<div class="goal-day"><div class="grow">${day}</div><div>${n ? '+' + n.toLocaleString('en-US') : '0'} 字</div></div>`).join('') + HAIR +
-    field('每日目标', line(S.goal, (v) => set({ goal: v }), '比如 2000', '每日目标字数')) + '<div class="note">设置后，字数旁显示今日字数和目标。留空则不设。</div></div>'
+    field('每日目标', line(S.goal, (v) => set({ goal: v, ...(countOrNone(v) ? { goalSet: v.trim() } : {}) }), '比如 2000', '每日目标字数')) + (countOrNone(S.goal) ? '<div class="note">设置后，字数旁显示今日字数和目标。留空则不设。</div>' : '<div class="note danger">每日目标须为正整数，留空则不设。</div>') + '</div>'
   return `<div class="anchor up"><div class="words ell hit" title="字数。点击设置每日目标"${onClick(() => set({ open: S.open === 'goal' ? '' : 'goal' }))}>${t(count)}</div>${S.open === 'goal' ? goal() : ''}</div>`
 }
 

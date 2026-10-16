@@ -243,7 +243,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('已备份 · 今天 10:32'); await win('今天 10:32 已备份'); await win('下次：关闭作品时'); await shot('35-backup-pop'); await click('立即备份'); await win('正在备份…'); await sleep(1400); await win('已备份 · 今天 10:40'); await done('back up now')
 
   // The toolbar: the count and the goal, find and replace, the more menu, focus, what is pending.
-  await click('重新开始'); await click('字数。点击设置每日目标'); await win('最近 7 天'); await win('+2,846 字'); await type('每日目标字数', '3000'); await win('今天 2,846 / 3000'); await shot('36-goal'); await key('Escape'); await win('最近 7 天', false); await done('a goal for the day')
+  await click('重新开始'); await click('字数。点击设置每日目标'); await win('最近 7 天'); await win('+2,846 字'); await type('每日目标字数', '3000'); await win('今天 2,846 / 3000'); await type('每日目标字数', '字'); await win('每日目标须为正整数，留空则不设。'); await win('今天 2,846 / 3000'); await clear('每日目标字数'); await type('每日目标字数', '3000'); await win('每日目标须为正整数', false); await shot('36-goal'); await key('Escape'); await win('最近 7 天', false); await done('a goal for the day')
   await pick(3, '小祥'); await key('f', true); must(await js(`document.activeElement.getAttribute('aria-label') === '查找'`), 'Ctrl+F did not open the search')
   must((await value('查找')) === '小祥' && await js(`document.activeElement.selectionStart === 0 && document.activeElement.selectionEnd === 2`), 'the words picked are not what is looked for, ready to be typed over'); await win('1 / 2'); must((await drawn('小祥')) === 'got on', 'what was found is not marked'); await shot('37-find')
   await click('下一个'); await win('2 / 2'); await type('替换为', '阿祥'); await click('替换'); await win('阿祥从来不叫她姐'); await win('1 / 1'); await click('全部替换'); await win('已替换 1 处可撤销'); await win('阿祥在身后叫她'); await win('未找到'); await click('关闭提示')
@@ -283,7 +283,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await key('z', true); await win('整条街的灯是同时灭的。'); await win('身后，小祥没有再出声。', false); await key('y', true); await win('身后，小祥没有再出声。'); await click('关闭提示')
   await click('编辑'); await click('撤销'); await win('整条街的灯是同时灭的。'); await win('身后，小祥没有再出声。', false); await click('编辑'); await click('重做'); await win('身后，小祥没有再出声。'); await win('整条街的灯是同时灭的。', false)
   await click('文件'); await click('快照'); await win('AI 改动前'); await win('按章纲起草'); await win('约 1500 字'); await key('Escape')
-  await click('编辑'); await click('起草本章'); await type('目标字数', '很多'); await click('开始起草'); await win('目标字数须为正整数或留空'); await win('复制详情'); await click('关闭提示'); await clear('目标字数'); await click('开始起草'); await sleep(1000); await click('停止'); await win('已停止，起草 9 字'); await sleep(1000); await win('已停止，起草 9 字')
+  await click('编辑'); await click('起草本章'); await type('目标字数', '很多'); await win('目标字数须为正整数，或留空'); must(await has('.dialog .note.danger') && await has('.dialog .btn.primary.off'), 'a draft can start with words that are not a count'); await clear('目标字数'); await click('开始起草'); await sleep(1000); await click('停止'); await win('已停止，起草 9 字'); await sleep(1000); await win('已停止，起草 9 字')
   await click('重新起草'); await win('AI 正在按章纲起草'); await sleep(3800); await win('起草 38 字'); await click('放弃'); must(!(await has('.ai-bar')) && !(await has('[data-draft]')), 'the draft was not let go'); await done('a draft')
 
   // What was picked goes to the setting, or to a discussion.

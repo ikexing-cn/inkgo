@@ -246,13 +246,13 @@ function draftDialog(d) {
   const fill = () => { set((s) => ({ dialog: { ...s.dialog, total: before.length } })); before.forEach((c, i) => later(i * 500, () => recap(c.key))) }
   return dialog('small', dialogHead('起草本章', 'AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。写完先供你查看，采纳后才写入正文，写入前保存快照；写入的文字带有“AI 起草”标记，修改过的部分不再带标记。') +
     `<div class="quote">${t(S.outlines[cur.key])}</div>` +
-    field('目标字数（选填）', line(d.goal, type('goal'), '由 AI 按章纲判断', '目标字数')) +
+    field('目标字数（选填）', line(d.goal, type('goal'), '由 AI 按章纲判断', '目标字数') + (countOrNone(d.goal) ? '' : '<div class="note danger">目标字数须为正整数，或留空</div>')) +
     (cur.paras.length ? field('本章已有内容', seg(d.how, ['接在已有内容之后', '覆盖已有内容'], type('how'), '已有内容的处理方式')) : '') +
     `<div class="note">用 ${t(model)} · 推理 ${t(effort)}；可在设置中「AI」配置里更换。</div>` +
     (before.length && d.total ? `<div class="note">正在补齐摘要：${d.total - before.length} / ${d.total}。补齐前起草，AI 只能参考已有摘要。</div>`
       : before.length ? `<div class="warn-line"><div class="fit">前文有 ${before.length} 章尚无摘要，起草时 AI 无法了解这些章节的内容。</div><div class="hit link"${onClick(fill)}>补齐摘要（${before.length} 次调用）</div></div>`
       : had > 0 ? `<div class="note">起草时 AI 会参考前 ${had} 章的摘要，以衔接前文。</div>` : '') +
-    buttons(button('取消', shut), button('开始起草', draftNow, 'primary')))
+    buttons(button('取消', shut), countOrNone(d.goal) ? button('开始起草', draftNow, 'primary') : button('开始起草', null, 'primary off')))
 }
 
 // 两份稿子并起来看：old 里有、now 里没有的划掉，now 里新写的标绿。

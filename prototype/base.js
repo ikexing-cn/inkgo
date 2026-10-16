@@ -15,6 +15,8 @@ const sizeOf = (c) => c.c || String(c.paras.join('').length)
 
 // 上下文上限和最大输出：整千写成 K，整百万写成 M；作者也可以这样填，K 是一千。填得不对得 NaN。
 const size = (n) => (n % 1e6 === 0 ? n / 1e6 + 'M' : n % 1000 === 0 ? n / 1000 + 'K' : String(n))
+// 可以留空的数（目标字数）：空着算没有，填了要是正整数。
+const countOrNone = (s) => !s.trim() || /^[1-9]\d*$/.test(s.trim())
 const count = (x) => {
   const m = /^(\d+(?:\.\d+)?)\s*([km]?)$/i.exec(x.trim()), v = m ? Number(m[1]) * { '': 1, k: 1e3, m: 1e6 }[m[2].toLowerCase()] : NaN, n = Math.round(v)
   return n > 0 && Math.abs(n - v) < 1e-6 ? n : NaN
@@ -81,7 +83,7 @@ function fresh(book = BOOK.shelf[0].id) {
     // 换一本书也不变的：外观、书架、设置里的东西。
     look: '跟随系统', shelf: structuredClone(BOOK.shelf), cards: true, library: BOOK.library,
     uses: structuredClone(BOOK.uses), services: BOOK.services.map((x) => ({ ...x, models: x.models.map(limits) })), auto: false, recap: true,
-    when: '写完一章后检查', late: BOOK.late, goal: '', paneW: 0, // paneW 是右栏拖出来的宽度，没拖过是 0
+    when: '写完一章后检查', late: BOOK.late, goal: '', goalSet: '', paneW: 0, // paneW 是右栏拖出来的宽度，没拖过是 0
     noAI: false, // 关闭了 AI：本机的所有作品都不显示 AI 功能，也不发送任何内容
   }
 }

@@ -905,17 +905,22 @@ func (a *App) stepChapter(d int) {
 // setGoal takes the day's goal as typed: a whole number of characters, or
 // nothing for none. Anything else leaves the goal as it was.
 func (a *App) setGoal(text string) {
-	w := &a.write
+	if n, ok := countOrNone(text); ok {
+		a.write.goal = n
+		a.savePrefs()
+	}
+}
+
+// countOrNone reads a count the author may leave empty, as a goal of words
+// is: none when empty, or a whole number above nought; ok is false for
+// anything else.
+func countOrNone(text string) (n int, ok bool) {
 	text = strings.TrimSpace(text)
 	if text == "" {
-		w.goal = 0
-		a.savePrefs()
-		return
+		return 0, true
 	}
-	if n, err := strconv.Atoi(text); err == nil && n >= 0 {
-		w.goal = n
-		a.savePrefs()
-	}
+	n, err := strconv.Atoi(text)
+	return n, err == nil && n > 0
 }
 
 // words says how many characters, the way the design writes them: grouped
@@ -1109,7 +1114,12 @@ func (a *App) wordCount(c *ui.Context, roomy, wide bool) {
 				w.goalOpen = false
 			}
 		})
-		ui.Text(c, "设置后，字数旁显示今日字数和目标。留空则不设。").FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody).FillWidth().Padding(0, 6, 4, 6)
+		// What is not a count leaves the goal be, and says so.
+		note, ink := "设置后，字数旁显示今日字数和目标。留空则不设。", t.TextMuted
+		if _, ok := countOrNone(w.goalText); !ok {
+			note, ink = "每日目标须为正整数，留空则不设。", t.Danger
+		}
+		ui.Text(c, note).FontSize(fsNote).TextColor(ink).LineHeight(lhBody).FillWidth().Padding(0, 6, 4, 6)
 	})
 }
 

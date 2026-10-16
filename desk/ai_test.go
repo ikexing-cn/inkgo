@@ -109,7 +109,18 @@ func TestDraftAChapterFromItsOutline(t *testing.T) {
 	if !tt.HasText("用 DeepSeek/deepseek-flash · 推理 High；可在设置中「AI」配置里更换。") {
 		t.Fatal("the model not named by its service", tt.Texts())
 	}
+	// Words not a count are said under the field, and drafting waits.
+	a.write.words = "很多"
+	tt.Frame()
+	if err := tt.Click("开始起草"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("目标字数须为正整数，或留空") || a.write.run != nil || a.Error != "" {
+		t.Fatal("drafted with words not a count", a.Error, tt.Texts())
+	}
 	a.write.words = "800"
+	tt.Frame()
 	if err := tt.Click("开始起草"); err != nil {
 		t.Fatal(err)
 	}

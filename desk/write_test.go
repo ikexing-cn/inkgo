@@ -914,7 +914,7 @@ func TestWritingSwitchesKeepAsTicked(t *testing.T) {
 }
 
 // The day's goal is set from the counts in the bar and kept with the work;
-// what is not a number leaves it be.
+// what is not a count leaves it be, and is said in red under the field.
 func TestSetTheDaysGoal(t *testing.T) {
 	a, tt, _ := writingFixture(t, "一二三")
 	if err := tt.Click("字数"); err != nil {
@@ -928,9 +928,18 @@ func TestSetTheDaysGoal(t *testing.T) {
 	if a.write.goal != 2000 || savedPrefs(t, a).Goal != 2000 {
 		t.Fatal(a.write.goal)
 	}
-	a.setGoal("两千")
-	if a.write.goal != 2000 {
-		t.Fatal("a word changed the goal", a.write.goal)
+	for _, typed := range []string{"两千", "0"} {
+		a.write.goalText = typed
+		a.setGoal(typed)
+		tt.Frame()
+		if a.write.goal != 2000 || !tt.HasText("每日目标须为正整数，留空则不设。") {
+			t.Fatal(typed, "changed the goal, or was not said to be wrong:", a.write.goal)
+		}
+	}
+	a.write.goalText = "2000"
+	tt.Frame()
+	if tt.HasText("每日目标须为正整数，留空则不设。") || !tt.HasText("设置后，字数旁显示今日字数和目标。留空则不设。") {
+		t.Fatal("a goal set right is said to be wrong", tt.Texts())
 	}
 	a.write.focus = true // room for today's count in the bar
 	tt.Frame()
