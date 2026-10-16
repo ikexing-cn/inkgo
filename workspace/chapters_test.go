@@ -1,6 +1,7 @@
 package workspace
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -282,30 +283,30 @@ func TestPurgeDeletesHistory(t *testing.T) {
 	}
 }
 
-func TestExportAndCount(t *testing.T) {
+func TestPiecesAndCount(t *testing.T) {
 	s := testStore(t)
 	vol := mustChapter(t, s, "", "第一卷", true)
 	one := mustChapter(t, s, vol, "第一章", false)
 	if _, err := s.WriteChapter(one, "雨下着。\n她 走了。", nil); err != nil {
 		t.Fatal(err)
 	}
-	two := mustChapter(t, s, "", "第二章", false)
-	if _, err := s.WriteChapter(two, "天晴了。", nil); err != nil {
+	if err := s.WriteOutline(one, "  她走了\n"); err != nil {
 		t.Fatal(err)
 	}
-	out, err := s.Export("", true)
+	mustChapter(t, s, "", "番外", false)
+	pieces, err := s.Pieces()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := "测试作品\n\n第一卷\n\n第一章\n\n　　雨下着。\n　　她 走了。\n\n第二章\n\n　　天晴了。\n"; out != want {
-		t.Fatalf("export:\n%q\nwant\n%q", out, want)
+	var got []string
+	for _, p := range pieces {
+		got = append(got, fmt.Sprintf("%s/%d/%v", p.Title, p.Depth, p.Folder))
 	}
-	// A volume alone, and a chapter alone, without the work's name.
-	if out, err = s.Export(vol, false); err != nil || out != "第一卷\n\n第一章\n\n雨下着。\n她 走了。\n" {
-		t.Fatalf("volume %q %v", out, err)
+	if want := "第一卷/0/true 第一章/1/false 番外/0/false"; strings.Join(got, " ") != want {
+		t.Fatalf("pieces %q, want %q", got, want)
 	}
-	if out, err = s.Export(two, false); err != nil || out != "第二章\n\n天晴了。\n" {
-		t.Fatalf("chapter %q %v", out, err)
+	if p := pieces[1]; p.ID != one || p.Text != "雨下着。\n她 走了。" || p.Outline != "她走了" {
+		t.Fatalf("chapter %+v", p)
 	}
 	counts, err := s.Counts()
 	if err != nil || counts[one] != 8 {

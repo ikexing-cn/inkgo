@@ -250,7 +250,7 @@ function draftDialog(d) {
   return dialog('small', dialogHead('起草本章', 'AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。写完先供你查看，采纳后才写入正文，写入前保存快照；写入的文字带有“AI 起草”标记，修改过的部分不再带标记。') +
     `<div class="quote">${t(S.outlines[cur.key])}</div>` +
     field('目标字数（选填）', line(d.goal, type('goal'), '由 AI 按章纲判断', '目标字数') + (countOrNone(d.goal) ? '' : '<div class="note danger">目标字数须为正整数，或留空</div>')) +
-    (cur.paras.length ? field('本章已有内容', seg(d.how, ['接在已有内容之后', '覆盖已有内容'], type('how'), '已有内容的处理方式')) : '') +
+    (cur.paras.length ? field('本章已有内容', dots(d.how, ['接在已有内容之后', '覆盖已有内容'], type('how'), '已有内容的处理方式')) : '') +
     `<div class="note">用 ${t(model)} · ${t(effort)}；可在设置中「AI」配置里更换。</div>` +
     (before.length && d.total ? `<div class="note">正在补齐摘要：${d.total - before.length} / ${d.total}。补齐前起草，AI 只能参考已有摘要。</div>`
       : before.length ? `<div class="warn-line"><div class="fit">前文有 ${before.length} 章尚无摘要，起草时 AI 无法了解这些章节的内容。</div><div class="hit link"${onClick(fill)}>补齐摘要（${before.length} 次调用）</div></div>`
@@ -292,15 +292,48 @@ function snapsDialog(d) {
     buttons(button('关闭', shut), button('恢复这个版本', shown && !same ? restore : null, shown && !same ? 'primary' : 'primary off')))
 }
 
+// 导出：正文、大纲、设定勾几样导几样，各成一个文件。勾的几样、格式和笔名都记着，范围每次从「全书」起。
 function exportDialog(d) {
-  const cur = chapterOf(S.ch), book = S.shelf.find((b) => b.id === S.book)
-  const ranges = ['全书', ...(cur && cur.vol ? ['本卷'] : []), ...(cur ? ['本章'] : [])]
+  const cur = chapterOf(S.ch), book = S.shelf.find((b) => b.id === S.book), list = S.chapters
   const type = (key) => (v) => set((s) => ({ dialog: { ...s.dialog, [key]: v } }))
-  const name = d.range === '本章' ? titleOf(cur) : d.range === '本卷' ? S.volumes.find((v) => v[0] === cur.vol)[1] : book.name
-  const out = () => { set({ dialog: null, ...SHUT }); say('已导出到 ' + S.library + '\\' + name.replace('：', ' ') + '.txt', '', 'ok') }
-  return dialog('small', dialogHead('导出正文', '按章节树顺序合并为一个 .txt 文件，各文件夹和章节前加上标题。') +
-    field('导出范围', seg(d.range, ranges, type('range'), '导出范围')) + tickbox(d.indent, '段首加两个全角空格', () => type('indent')(!d.indent)) +
-    buttons(button('取消', shut), button('导出', out, 'primary')))
+  const word = S.exportAs === 'Word', ticked = (what) => S.exportWhat.includes(what)
+  const flip = (what) => () => set((s) => ({ exportWhat: ['正文', '大纲', '设定'].filter((w) => (w === what) !== s.exportWhat.includes(w)) }))
+  const ranges = ['全书', ...(cur && cur.vol ? ['本卷'] : []), ...(cur ? ['本章'] : []), ...(list.length > 1 ? ['指定范围'] : [])]
+  const range = ranges.includes(d.range) ? d.range : '全书'
+  // 指定范围：从第一章起，到第三章止；「到」只列「从」那一章和它后面的。
+  const at = (key) => list.findIndex((c) => c.key === key)
+  const from = d.from ?? (list[0] || {}).key, to = d.to && at(d.to) >= at(from) ? d.to : (list[Math.min(at(from) + 2, list.length - 1)] || {}).key
+  const keyOf = (title) => list.find((c) => titleOf(c) === title).key
+  const pickFrom = (title) => { const k = keyOf(title); set((s) => ({ dialog: { ...s.dialog, from: k, to: at(to) < at(k) ? k : to } })) }
+  const within = range === '全书' ? list : range === '本卷' ? list.filter((c) => c.vol === cur.vol) : range === '本章' ? [cur] : list.slice(at(from), at(to) + 1)
+  const pen = d.pen ?? book.pen ?? S.pen
+  const written = (key) => (S.outlines[key] || '').trim()
+  // 勾了却导不出的，说一句为什么，导出时跳过它。
+  const skip = {
+    正文: !within.length && '还没有章节，不导出正文。',
+    大纲: !within.length ? '还没有章节，不导出大纲。' : !within.some((c) => written(c.key) || written(c.vol)) && '所选范围内还没有写章纲，不导出大纲。',
+    设定: !S.entries.some((e) => e.place === 'body') && '还没有已定的设定，不导出设定。',
+  }
+  const going = S.exportWhat.filter((w) => !skip[w])
+  const part = range === '全书' ? '' : range === '本卷' ? S.volumes.find((v) => v[0] === cur.vol)[1] : range === '本章' ? titleOf(cur) : titleOf(chapterOf(from)) + (from === to ? '' : '至' + titleOf(chapterOf(to)))
+  const nameOf = (what) => [book.name, what === '设定' ? '' : part, what === '正文' ? '' : what].filter(Boolean).join('-').replace(/：/g, ' ') + (word ? '.docx' : '.txt')
+  const out = () => {
+    set((s) => ({ dialog: null, ...SHUT, ...(ticked('正文') && word ? { pen, shelf: s.shelf.map((b) => (b.id === s.book ? { ...b, pen } : b)) } : {}) }))
+    say(going.length > 1 ? '已导出 ' + going.length + ' 个文件到 ' + S.library : '已导出到 ' + S.library + '\\' + nameOf(going[0]), '', 'ok')
+  }
+  const about = S.exportWhat.length > 1 ? '勾选的几项各存为一个文件，放在同一文件夹。'
+    : ticked('设定') ? '按分类列出已定的设定，不含待确认的。' : ticked('大纲') ? '按章节顺序列出各卷、各章的纲。'
+    : word ? '首页写书名、笔名和字数，每章另起一页。' : '合并为一个文件，各卷和各章前加上标题。'
+  const pickOf = (id, key, options, pick, label) => field(label, choose(id, titleOf(chapterOf(key)), options.map(titleOf), pick, label))
+  return dialog('small', dialogHead('导出', about) +
+    field('内容', `<div class="tick-row">${['正文', '大纲', '设定'].map((w) => tickbox(ticked(w), w, flip(w))).join('')}</div>`) +
+    field('格式', dots(S.exportAs, ['Word', '纯文本'], (v) => set({ exportAs: v }), '导出格式')) +
+    (ticked('正文') || ticked('大纲') ? field('范围', dots(range, ranges, type('range'), '导出范围')) +
+      (range === '指定范围' ? `<div class="pair">${pickOf('export-from', from, list, pickFrom, '从')}${pickOf('export-to', to, list.slice(at(from)), (v) => type('to')(keyOf(v)), '到')}</div>` : '') : '') +
+    (ticked('正文') && word ? field('笔名', line(pen, type('pen'), '选填，写在首页', '笔名')) : '') +
+    (ticked('正文') && !word ? tickbox(d.indent, '段首加两个全角空格', () => type('indent')(!d.indent)) : '') +
+    S.exportWhat.filter((w) => skip[w]).map((w) => `<div class="note">${t(skip[w])}</div>`).join('') +
+    buttons(button('取消', shut), button('导出', going.length ? out : null, going.length ? 'primary' : 'primary off')))
 }
 
 // 全书替换前再问一句。

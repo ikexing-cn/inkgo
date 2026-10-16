@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"maps"
-	"os"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -135,13 +133,10 @@ type writeView struct {
 	trash     []workspace.Trashed
 	purge     string // the trashed node whose purge awaits confirmation
 
-	takeOpen               bool
-	takeQuote, takeText    string
-	takeCategory           string
-	exportOpen, exportDone bool
-	indent                 bool
-	exportFrom             string // the node exported with what is in it, or "" for the book
-	exportAt, draftAt      int    // which of the dialog's choices is taken: the control writes it once the frame is drawn
+	takeOpen            bool
+	takeQuote, takeText string
+	takeCategory        string
+	exporting           exportState
 
 	// The writing model: the writer the editors predict with, and why
 	// there is none; a request in flight; a rewrite asked for or shown.
@@ -2201,111 +2196,4 @@ func (a *App) takeIn() {
 	a.flash[r.Ops[0].Entry] = time.Now()
 	w.takeOpen = false
 	a.notice = "已加入设定正文"
-}
-
-func (a *App) exportView(c *ui.Context) {
-	w := &a.write
-	a.modal(c, &w.exportOpen, func() {
-		ui.Column(c).Width(dialogSmall).Padding(dialogPad).Gap(16).Children(func() {
-			a.pal.dialogHead(c, "导出正文", "按章节树顺序合并为一个 .txt 文件，各文件夹和章节前加上标题。")
-			labeled(c, "导出范围", func() {
-				parts := a.exportParts()
-				folders := 0
-				for _, n := range parts {
-					if n.Folder {
-						folders++
-					}
-				}
-				ids, names := []string{""}, []string{"全书"}
-				for _, n := range parts {
-					name := "本章"
-					if n.Folder {
-						// Folders inside folders are told apart by their names.
-						if name = "本卷"; folders > 1 {
-							name = clip(n.Title, 8)
-						}
-					}
-					ids, names = append(ids, n.ID), append(names, name)
-				}
-				w.exportFrom = ids[min(w.exportAt, len(ids)-1)]
-				a.pal.segments(c, &w.exportAt, "导出范围", names).FillWidth()
-			})
-			ui.Checkbox(c, &w.indent, "段首加两个全角空格")
-			ui.Row(c).FillWidth().Gap(8).Children(func() {
-				ui.Spacer(c)
-				if a.pal.secondary(c, "取消").Clicked() {
-					w.exportOpen = false
-				}
-				if a.pal.primary(c, "导出").Clicked() {
-					a.export(c)
-				}
-			})
-		})
-	})
-}
-
-// exportParts are what can be exported besides the book: the volume the
-// open node is in, and the open node itself.
-func (a *App) exportParts() []*workspace.Node {
-	w := &a.write
-	n, ok := w.tree.Node(w.node)
-	if !ok || a.page != 3 {
-		return nil // off the page of prose there is the book to export
-	}
-	var parts []*workspace.Node
-	if p := n.Parent; p != nil && p.Parent != nil {
-		parts = append(parts, p)
-	}
-	return append(parts, n)
-}
-
-// export writes the work, or the part chosen, as one text where the author
-// picks, or into the work's 导出 folder when there is no dialog.
-func (a *App) export(c *ui.Context) {
-	a.flush()
-	w := &a.write
-	if _, ok := w.tree.Node(w.exportFrom); !ok {
-		w.exportFrom = ""
-	}
-	text, err := a.Store.Export(w.exportFrom, w.indent)
-	if err != nil {
-		a.warn(err)
-		return
-	}
-	name := a.Store.Work().Name + ".txt"
-	if n, ok := w.tree.Node(w.exportFrom); ok {
-		name = a.Store.Work().Name + "-" + n.Title + ".txt"
-	}
-	write := func(path string) {
-		if path == "" {
-			return
-		}
-		if err := os.WriteFile(path, []byte(text), 0644); err != nil {
-			a.warn(err)
-			return
-		}
-		a.write.exportOpen = false
-		a.notice = "已导出到 " + path
-	}
-	if a.SaveFile == nil {
-		dir := filepath.Join(a.Store.Root(), "导出")
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			a.warn(err)
-			return
-		}
-		write(filepath.Join(dir, name))
-		return
-	}
-	save, sv := a.SaveFile, c.Services()
-	go func() {
-		path, err := save("导出", name)
-		a.picks <- func() {
-			if err != nil {
-				a.warn(err)
-				return
-			}
-			write(path)
-		}
-		sv.Invalidate()
-	}()
 }

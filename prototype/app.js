@@ -16,7 +16,7 @@ function titlebar() {
   const menus = [
     ['文件', () => menuRow('新建章节', writing ? then(() => newChapter()) : null, '', 'Ctrl+N') + menuRow('新建文件夹', writing ? then(newFolder) : null) + HAIR +
       menuRow('保存', cur ? then(saveNow) : null, '', 'Ctrl+S') + menuRow('快照', cur ? ask({ kind: 'snaps', id: '', diff: false }) : null) +
-      menuRow('导出…', inBook ? ask({ kind: 'export', range: cur ? '本章' : '全书', indent: true }) : null) + HAIR +
+      menuRow('导出…', inBook ? ask({ kind: 'export', range: '全书', indent: true }) : null) + HAIR +
       menuRow('设置…', ask({ kind: 'settings', tab: 'AI', edit: '' }))],
     ['编辑', () => menuRow('撤销', steps.back.length ? then(() => unwrite(-1)) : null, '', 'Ctrl+Z') + menuRow('重做', steps.fwd.length ? then(() => unwrite(1)) : null, '', 'Ctrl+Y') + HAIR +
       menuRow('查找替换', cur ? openFind : null, '', 'Ctrl+F') +

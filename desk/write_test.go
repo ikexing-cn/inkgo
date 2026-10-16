@@ -1,7 +1,9 @@
 package desk
 
 import (
+	"archive/zip"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -12,6 +14,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/editor"
+	"writer/shelf"
 	"writer/workspace"
 )
 
@@ -467,40 +470,111 @@ func TestMarksSurviveReopening(t *testing.T) {
 	}
 }
 
+// The export writes a file for each thing ticked, here, with no dialog to
+// ask where, into the work's 导出 folder; what cannot be exported is said
+// and left out. The pen name stays with the work and this machine, what is
+// ticked and as what with this machine.
 func TestExportTheWork(t *testing.T) {
-	a, tt, _ := writingFixture(t, "雨下着。")
-	if err := clickMenu(tt, "文件", "菜单-导出"); err != nil {
+	a, tt, id := writingFixture(t, "雨下着。")
+	x := &a.write.exporting
+	open := func() {
+		t.Helper()
+		if err := clickMenu(tt, "文件", "菜单-导出"); err != nil {
+			t.Fatal(err)
+		}
+		tt.Frame()
+	}
+	// The dialog's title says 导出 too: the button is the one after 取消,
+	// past its padding and the gap between them.
+	out := func() {
+		t.Helper()
+		tt.ClickAt(right(t, tt, "取消")+32, func() float32 { r, _ := tt.Find("取消"); return r.Y + r.H/2 }())
+		tt.Frame()
+	}
+	read := func(name string) string {
+		t.Helper()
+		b, err := os.ReadFile(filepath.Join(a.Store.Root(), "导出", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(b)
+	}
+	open()
+	if !x.open || x.scope != scopeWork || !tt.HasText("笔名") || tt.HasText("段首加两个全角空格") {
+		t.Fatal("the dialog does not start from the prose of the whole work, as Word", tt.Texts())
+	}
+	x.pen = "雨声"
+	out()
+	z, err := zip.OpenReader(filepath.Join(a.Store.Root(), "导出", "测试作品.docx"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc []byte
+	for _, f := range z.File {
+		if f.Name == "word/document.xml" {
+			r, _ := f.Open()
+			doc, _ = io.ReadAll(r)
+			r.Close()
+		}
+	}
+	z.Close()
+	if x.open || !strings.Contains(string(doc), "作者：雨声") || !strings.Contains(string(doc), "雨下着。") {
+		t.Fatalf("the manuscript: %s", doc)
+	}
+	if a.Store.Work().Pen != "雨声" || a.shelf.Export.Pen != "雨声" {
+		t.Fatal("the pen name is not kept")
+	}
+
+	// The outline alone, none written: it is said, and nothing goes.
+	a.shelf.Export.Prose, a.shelf.Export.Outline = false, true
+	open()
+	if x.pen != "雨声" || !tt.HasText("所选范围内还没有写章纲，不导出大纲。") {
+		t.Fatal("the pen name or why the outline cannot go", tt.Texts())
+	}
+	out()
+	if !x.open {
+		t.Fatal("导出 went with nothing to export")
+	}
+	shut(tt, &x.open)
+
+	// The three as plain text, into one folder.
+	if err := a.Store.WriteOutline(id, "她走了"); err != nil {
+		t.Fatal(err)
+	}
+	a.shelf.Export.Prose, a.shelf.Export.Setting = true, true
+	open()
+	if err := tt.Click("纯文本"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !a.write.indent {
-		t.Fatal("paragraphs are not indented unless asked")
+	if !tt.HasText("段首加两个全角空格") || tt.HasText("笔名") {
+		t.Fatal("plain text asks for a pen name, or not about the indent", tt.Texts())
 	}
-	// With a chapter open it is the chapter that is offered: alone, named
-	// after it.
-	if err := tt.Click("导出"); err != nil {
-		t.Fatal(err)
+	out()
+	if got := read("测试作品.txt"); got != "测试作品\n\n第一章\n\n　　雨下着。\n" {
+		t.Fatalf("prose %q", got)
 	}
-	tt.Frame()
-	b, err := os.ReadFile(filepath.Join(a.Store.Root(), "导出", "测试作品-第一章.txt"))
-	if err != nil || !strings.HasPrefix(string(b), "第一章\n\n　　雨下着。") {
-		t.Fatalf("chapter export %q %v", b, err)
+	if got := read("测试作品-大纲.txt"); got != "测试作品 · 大纲\n\n第一章\n\n她走了\n" {
+		t.Fatalf("outline %q", got)
 	}
-	// The whole book, when asked.
-	if err := clickMenu(tt, "文件", "菜单-导出"); err != nil {
-		t.Fatal(err)
+	if got := read("测试作品-设定.txt"); !strings.Contains(got, "人物\n\n主角怕黑") {
+		t.Fatalf("setting %q", got)
 	}
-	tt.Frame()
-	if err := tt.Click("全书"); err != nil {
-		t.Fatal(err, tt.Texts())
+	if !strings.HasPrefix(a.notice, "已导出 3 个文件到 ") {
+		t.Fatal(a.notice)
 	}
-	tt.Frame()
-	if err := tt.Click("导出"); err != nil {
-		t.Fatal(err)
+	s, _, err := shelf.Load(a.books.file)
+	if err != nil || s.Export == nil || *s.Export != (shelf.Export{Prose: true, Outline: true, Setting: true, Text: true, Pen: "雨声"}) {
+		t.Fatalf("this machine keeps %+v %v", s.Export, err)
 	}
-	tt.Frame()
-	if b, err = os.ReadFile(filepath.Join(a.Store.Root(), "导出", "测试作品.txt")); err != nil || !strings.Contains(string(b), "第一章\n\n　　雨下着。") {
-		t.Fatalf("export %q %v", b, err)
+
+	// The chapter open, named after it.
+	a.shelf.Export.Outline, a.shelf.Export.Setting = false, false
+	open()
+	x.scope = scopeChapter
+	out()
+	if got := read("测试作品-第一章.txt"); got != "第一章\n\n　　雨下着。\n" {
+		t.Fatalf("a chapter %q", got)
 	}
 }
 

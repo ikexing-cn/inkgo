@@ -85,9 +85,10 @@ function fresh(book = BOOK.shelf[0].id) {
     uses: structuredClone(BOOK.uses), services: BOOK.services.map((x) => ({ ...x, models: x.models.map(limits) })), auto: false, recap: true,
     when: '写完一章后检查', late: BOOK.late, goal: '', goalSet: '', paneW: 0, // paneW 是右栏拖出来的宽度，没拖过是 0
     noAI: false, // 关闭了 AI：本机的所有作品都不显示 AI 功能，也不发送任何内容
+    exportWhat: ['正文'], exportAs: 'Word', pen: '', // 导出勾了哪几样、成什么格式，上次写在首页的笔名（新作品沿用它）
   }
 }
-const KEPT = ['look', 'shelf', 'cards', 'library', 'uses', 'services', 'auto', 'recap', 'when', 'late', 'goal', 'paneW', 'noAI']
+const KEPT = ['look', 'shelf', 'cards', 'library', 'uses', 'services', 'auto', 'recap', 'when', 'late', 'goal', 'paneW', 'noAI', 'exportWhat', 'exportAs', 'pen']
 
 let S = fresh()
 let sent = 0 // 作者发过几条消息，AI 按顺序回下一句
@@ -218,6 +219,9 @@ const tickbox = (on, label, flip, tip = '') => `<div class="attach hit"${tip ? `
 // 几个里选一个的一排：options 每项是字，或者 [字, 图标]。
 const seg = (value, options, pick, label) => `<div class="seg" aria-label="${t(label)}">${options.map((o) => { const [name, pic] = [].concat(o); return `<div class="hit${name === value ? ' on' : ''}"${onClick(() => pick(name))}>${pic ? icon(pic, 'sm') : ''}${t(name)}</div>` }).join('')}</div>`
 // 圆点单选的几行：options 每项是 [字, 小字]。
+// 一排圆点，几个里选一个：表单里用它，不用分段。
+const dots = (value, options, pick, label) => `<div class="tick-row" aria-label="${t(label)}">${options.map((name) => `<div class="attach hit"${onClick(() => pick(name))}><div class="ring${name === value ? ' on' : ''}"></div>${t(name)}</div>`).join('')}</div>`
+
 const radios = (value, options, pick) => `<div class="radios">${options.map(([name, about]) => `<div class="radio hit"${onClick(() => pick(name))}><div class="ring${name === value ? ' on' : ''}"></div><div><div>${t(name)}</div><div class="note">${t(about)}</div></div></div>`).join('')}</div>`
 // 下拉：id 是它的名字，开着时列出 options。
 function choose(id, value, options, pick, label) {

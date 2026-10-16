@@ -30,7 +30,7 @@ func TestShelfRoundTrip(t *testing.T) {
 		t.Fatal(fresh, err)
 	}
 	now := time.Now().Truncate(time.Second)
-	s := Shelf{Library: dir, Cards: true, Theme: "dark"}
+	s := Shelf{Library: dir, Cards: true, Theme: "dark", Export: &Export{Outline: true, Text: true, Pen: "雨声"}}
 	s.Put(Book{Path: filepath.Join(dir, "a"), Name: "甲", Opened: now.Add(-time.Hour)})
 	s.Put(Book{Path: filepath.Join(dir, "b"), Name: "乙", Opened: now})
 	s.Put(Book{Path: filepath.Join(dir, "c"), Name: "丙"})
@@ -40,7 +40,7 @@ func TestShelfRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, fresh, err := Load(path)
-	if err != nil || fresh || !got.Cards || got.Theme != "dark" || got.Library != dir || len(got.Books) != 3 {
+	if err != nil || fresh || !got.Cards || got.Theme != "dark" || got.Library != dir || len(got.Books) != 3 || *got.Export != *s.Export {
 		t.Fatalf("%+v %v %v", got, fresh, err)
 	}
 	var names []string

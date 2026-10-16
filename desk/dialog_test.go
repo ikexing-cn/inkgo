@@ -41,7 +41,7 @@ func TestDialogsGiveTheKeyboardBack(t *testing.T) {
 		tt.Frame()
 		d.open()
 		tt.Frame()
-		if tt.Focused("正文") && !a.bk.prefs && !a.keysOpen && !a.write.trashOpen && !a.write.snapsOpen && !a.write.exportOpen && !a.write.takeOpen {
+		if tt.Focused("正文") && !a.bk.prefs && !a.keysOpen && !a.write.trashOpen && !a.write.snapsOpen && !a.write.exporting.open && !a.write.takeOpen {
 			t.Fatalf("%s: no dialog opened", d.name)
 		}
 		d.close()

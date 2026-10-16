@@ -191,6 +191,23 @@ func TestLayoutWriting(t *testing.T) {
 	shot(t, tt, "-snapshots")
 	tt.Key(0, ui.KeyEscape)
 	tt.Frame()
+	if err = clickMenu(tt, "文件", "菜单-导出"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	shot(t, tt, "-export")
+	for _, s := range []string{"纯文本", "指定范围"} {
+		if err = tt.Click(s); err != nil {
+			t.Fatal(err)
+		}
+		tt.Frame()
+	}
+	if !tt.HasText("段首加两个全角空格") || !tt.HasText("番外：晴天") {
+		t.Fatal("the export as text, of chapters from one to another", tt.Texts())
+	}
+	shot(t, tt, "-export-span")
+	tt.Key(0, ui.KeyEscape)
+	tt.Frame()
 	p := filepath.Join(root, "work", "chapters", "第一卷：雨季", "第一章：路灯.txt")
 	if err = os.WriteFile(p, []byte("别处改过的一句。"), 0644); err != nil {
 		t.Fatal(err)

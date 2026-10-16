@@ -1177,40 +1177,32 @@ func (s *Store) Texts() (map[string]string, error) {
 	return texts, nil
 }
 
-// Export joins the work into one text in the tree's order, each node under
-// its title; indent puts two full-width spaces before each paragraph. With
-// from, only that node and what is in it, without the work's name.
-func (s *Store) Export(from string, indent bool) (string, error) {
+// Piece is a node of the chapter tree as it is exported: its title, how
+// deep in the tree it is, from 0, and its prose and outline.
+type Piece struct {
+	ID      string
+	Title   string
+	Depth   int
+	Folder  bool
+	Text    string
+	Outline string
+}
+
+// Pieces reads every node of the tree in its order.
+func (s *Store) Pieces() ([]Piece, error) {
 	unlock, err := s.lock()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer unlock()
 	t, err := s.tree()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	var top *Node
-	if from != "" {
-		var ok bool
-		if top, ok = t.Node(from); !ok {
-			return "", fmt.Errorf("no chapter %s", from)
-		}
-	}
-	var b strings.Builder
-	if top == nil {
-		b.WriteString(s.work.Name + "\n")
-	}
+	var pieces []Piece
 	var failed error
 	t.Walk(func(n *Node, depth int) {
-		if failed != nil || top != nil && !n.Within(top) {
-			return
-		}
-		if b.Len() > 0 {
-			b.WriteString("\n")
-		}
-		b.WriteString(n.Title + "\n")
-		if n.Folder {
+		if failed != nil {
 			return
 		}
 		ch, err := s.readChapter(n)
@@ -1218,16 +1210,7 @@ func (s *Store) Export(from string, indent bool) (string, error) {
 			failed = err
 			return
 		}
-		if strings.TrimSpace(ch.Text) == "" {
-			return
-		}
-		b.WriteString("\n")
-		for _, p := range strings.Split(strings.TrimRight(ch.Text, "\n"), "\n") {
-			if indent && strings.TrimSpace(p) != "" {
-				p = "　　" + p
-			}
-			b.WriteString(p + "\n")
-		}
+		pieces = append(pieces, Piece{ID: n.ID, Title: n.Title, Depth: depth, Folder: n.Folder, Text: ch.Text, Outline: strings.TrimSpace(ch.Outline)})
 	})
-	return b.String(), failed
+	return pieces, failed
 }

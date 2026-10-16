@@ -44,8 +44,22 @@ type Shelf struct {
 	Theme string `json:"theme,omitempty"`
 	// NoAI turns the AI off on this machine, for every work: nothing of it
 	// shows and nothing is sent. Absent, the AI is on.
-	NoAI  bool   `json:"noAI,omitempty"`
-	Books []Book `json:"books"`
+	NoAI bool `json:"noAI,omitempty"`
+	// Export is how the export dialog was last left, for every work; nil,
+	// it was never used.
+	Export *Export `json:"export,omitempty"`
+	Books  []Book  `json:"books"`
+}
+
+// Export is what the export dialog exports, of the prose, the outline and
+// the setting; Text sends plain text rather than Word documents. Pen is
+// the pen name last put on a manuscript, for a work without one.
+type Export struct {
+	Prose   bool   `json:"prose,omitempty"`
+	Outline bool   `json:"outline,omitempty"`
+	Setting bool   `json:"setting,omitempty"`
+	Text    bool   `json:"text,omitempty"`
+	Pen     string `json:"pen,omitempty"`
 }
 
 // File is the shelf beside the model configuration at config.

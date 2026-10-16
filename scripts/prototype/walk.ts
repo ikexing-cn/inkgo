@@ -208,6 +208,17 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
 
   const has = (sel: string): Promise<boolean> => js(`!!document.querySelector(${JSON.stringify(sel)})`)
   const value = (label: string): Promise<string> => js(`document.querySelector('[aria-label=${JSON.stringify(label)}]').value`)
+  // Presses words in the open dialog, passing over the same words outside it (a tab of the pane, a row of the tree).
+  const inDialog = async (words: string) => click(words, await js(`(() => {
+    const flat = (t) => (t || '').replace(/\\s+/g, ''), own = (e) => [...e.childNodes].filter((n) => n.nodeType === 3).map((n) => n.data).join('')
+    const out = []
+    for (const h of document.querySelectorAll('body *')) {
+      if (flat(h.innerText) !== ${JSON.stringify(words)} && flat(own(h)) !== ${JSON.stringify(words)}) continue
+      const e = h.closest('[data-click]')
+      if (e && !out.includes(e)) out.push(e)
+    }
+    return out.findIndex((e) => e.closest('.dialog'))
+  })()`))
   // The middle of the row of the sidebar that reads so, to press the right button on.
   // Picks words the way a pointer does: down at their start, up at their end.
   const pick = async (para: number, words: string) => {
@@ -254,7 +265,14 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('编辑'); await win('Ctrl+J'); await shot('40-edit-menu'); await pointAt('文件'); await win('Ctrl+S'); await win('Ctrl+J', false); await shot('40b-file-menu'); await click('快照'); await win('快照 · 第87章：停电'); await win('全书替换前'); await win('打开时'); await shot('41-snaps')
   await click('与当前对比'); await win('红色删除线为快照中有而当前没有的内容'); must(await has('.snap-text .cut') && await has('.snap-text .add'), 'the comparison shows no change'); await shot('42-snap-diff')
   await click('今天 09:58'); await click('恢复这个版本'); await win('已恢复到 今天 09:58 的版本恢复前的内容已存为快照'); await win('小祥在身后叫她', false); await win('七岁那年的那个晚上'); await click('关闭提示'); await done('snapshots')
-  await click('文件'); await click('导出…'); await win('按章节树顺序合并为一个 .txt 文件'); await click('全书'); await shot('43-export'); await click('导出'); await win('已导出到 D:\\写作\\雨城来信.txt'); await click('关闭提示'); await done('export')
+  await click('文件'); await click('导出…'); await win('首页写书名、笔名和字数，每章另起一页。'); await win('段首加两个全角空格', false); must((await value('笔名')) === '', 'a pen name is there before any was written')
+  await type('笔名', '雨声'); await click('指定范围'); await win('第1章：巷口'); await win('第46章：钥匙'); await inDialog('第1章：巷口'); await inDialog('第2章：井沿'); await shot('43-export')
+  await click('导出'); await win('已导出到 D:\\写作\\雨城来信-第2章 井沿至第46章 钥匙.docx'); await click('关闭提示')
+  await click('文件'); await click('导出…'); must((await value('笔名')) === '雨声', 'the pen name is not kept'); await inDialog('大纲'); await win('勾选的几项各存为一个文件，放在同一文件夹。'); await click('指定范围'); await win('所选范围内还没有写章纲，不导出大纲。')
+  await inDialog('正文'); await win('笔名', false); await win('按章节顺序列出各卷、各章的纲。'); must(await has('.dialog .btn.primary.off'), 'an outline with nothing in it can be exported'); await shot('43b-export-no-outline')
+  await click('全书'); await win('所选范围内还没有写章纲', false); await inDialog('正文'); await inDialog('设定'); await shot('43c-export-three'); await click('纯文本'); await win('段首加两个全角空格'); await click('导出'); await win('已导出 3 个文件到 D:\\写作'); await click('关闭提示')
+  await click('文件'); await click('导出…'); await win('勾选的几项各存为一个文件'); await inDialog('正文'); await inDialog('大纲'); await win('按分类列出已定的设定，不含待确认的。'); must(!(await has('[aria-label="导出范围"]')), 'the setting is offered a range')
+  await click('Word'); await click('导出'); await win('已导出到 D:\\写作\\雨城来信-设定.docx'); await click('关闭提示'); await click('文件'); await click('导出…'); await inDialog('正文'); await inDialog('设定'); await click('取消'); await done('export')
   await click('仅显示正文，收起章节树和右栏（F11）'); must(!(await has('.sidebar')) && !(await has('#pane')), 'focus left something beside the prose'); await shot('44-focus'); await key('F11'); must(await has('.sidebar') && await has('#pane'), 'F11 did not leave focus'); await done('focus')
   await click('重新开始'); await click('待处理 8'); await win('设定不一致'); await win('「红色钥匙」', false); await win('「钥匙开哪扇门」41 章未回收'); await win('还有 2 条'); await shot('45-pending'); await click('还有 2 条'); await win('「旧城小学」尚未加入设定'); await click('收起')
   await click('本章 1'); await win('周翔', false); await win('林晚怕黑，却独自走进黑巷'); await click('全部 8'); await click('「小祥的左手」原句已删'); await pane('「第1章：巷口」里的原句已删除'); await win('全部忽略', false)
@@ -353,7 +371,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('列表'); await win('重新定位…'); await win('D:\\写作\\旧城灯匠'); await shot('75-shelf-list'); await click('卡片'); await click('更多操作'); await win('打开所在文件夹'); await click('重命名…'); await win('仅修改作品名，文件夹不变。'); await clear('新作品名'); await type('新作品名', '雨城'); await click('保存'); await win('雨城来信', false)
   await click('移除'); await win('已从书架移除文件夹未改动：早年的稿子'); await win('3 部'); await click('关闭提示'); await done('the shelf')
   await click('新建作品'); await win('将新建该文件夹。'); must((await value('作品位置')) === 'D:\\写作\\未命名作品', 'where the work goes is not offered'); await type('作品名称', '新书'); must((await value('作品位置')) === 'D:\\写作\\新书', 'where the work goes does not follow its name'); await click('网文'); await click('剧本'); await shot('76-new-book'); await click('创建')
-  await win('暂无章节'); await win('新书'); await win('尚未备份'); await pane('暂无设定'); await shot('77-empty-book'); await click('新建第一章'); await key('Enter'); await win('在此开始写作…'); await win('本章 0 字 · 全书 0 字'); await win('设定为空，无可对照内容'); await click('检查'); await click('检查全书'); await win('请先在讨论中确定设定，才能对照检查。'); await click('关闭提示'); await click('讨论'); await win('从一个初步的想法开始'); await win('我想写一个总在下雨的城市'); await click('正文'); await done('a new work')
+  await win('暂无章节'); await win('新书'); await win('尚未备份'); await pane('暂无设定'); await shot('77-empty-book'); await click('新建第一章'); await key('Enter'); await win('在此开始写作…'); await win('本章 0 字 · 全书 0 字'); await win('设定为空，无可对照内容'); await click('检查'); await click('检查全书'); await win('请先在讨论中确定设定，才能对照检查。'); await click('关闭提示'); await click('文件'); await click('导出…'); await inDialog('设定'); await win('还没有已定的设定，不导出设定。'); await inDialog('正文'); must(await has('.dialog .btn.primary.off'), 'a work with nothing in it can be exported'); await inDialog('正文'); await inDialog('设定'); await click('取消'); await click('讨论'); await win('从一个初步的想法开始'); await win('我想写一个总在下雨的城市'); await click('正文'); await done('a new work')
   await click('尚未备份'); await win('作品目前仅保存在本机。'); await click('选择位置…'); await win('选择其他位置，定期保存副本。'); await win('OneDrive 同步文件夹'); await shot('78-first-backup'); await click('开始备份'); await win('正在备份…'); await sleep(1400); await win('已备份 · 今天 10:40'); await done('a first backup')
   await click('切换作品'); await click('井边'); await win('备份失败 · 找不到 E 盘'); await win('从左侧选择一章开始写作', false); await win('暂无章节'); await shot('79-backup-failed'); await click('待处理 1'); await win('备份失败，找不到 E 盘'); await win('点击重试 · 上次备份 昨天 21:40'); await key('Escape')
   await click('备份失败 · 找不到 E 盘'); await win('找不到 E 盘，本次备份未完成'); await win('作品未受影响，请接入硬盘后重试。'); await shot('80-backup-trouble'); await click('今日不再提醒'); must(!(await has('.warn-btn')), 'the warning is still on the toolbar')

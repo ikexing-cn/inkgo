@@ -43,10 +43,13 @@ type Selection struct {
 	Effort   string `yaml:"effort,omitempty" json:"effort,omitempty"`
 }
 type Work struct {
-	Schema     int        `yaml:"schema" json:"schema"`
-	ID         string     `yaml:"id" json:"id"`
-	Name       string     `yaml:"name" json:"name"`
-	Genre      string     `yaml:"genre" json:"genre"`
+	Schema int    `yaml:"schema" json:"schema"`
+	ID     string `yaml:"id" json:"id"`
+	Name   string `yaml:"name" json:"name"`
+	Genre  string `yaml:"genre" json:"genre"`
+	// Pen is the name the author writes this work under, put on the first
+	// page of what is exported; empty, none.
+	Pen        string     `yaml:"pen,omitempty" json:"pen,omitempty"`
 	Categories []Category `yaml:"categories" json:"categories"`
 	Discussion Selection  `yaml:"discussion" json:"discussion"`
 	// Writing continues, rewrites and drafts the prose; left empty, it is

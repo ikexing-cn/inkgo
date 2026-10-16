@@ -484,6 +484,20 @@ func (p *palette) segments(c *ui.Context, at *int, label string, names []string)
 	})
 }
 
+// dots is a one-of-several choice in a form: a row of radio buttons, each
+// as wide as its words, choosing among values into at; names are what
+// they say, label names the row. It says whether one was chosen.
+func dots[T comparable](c *ui.Context, at *T, label string, values []T, names []string) (changed bool) {
+	ui.RadioGroup(c, func() {
+		for i, v := range values {
+			if ui.Radio(c, at, v, names[i]).Changed() {
+				changed = true
+			}
+		}
+	}).Row().Gap(24).MinHeight(hControl).AlignItems(ui.Center).Label(label)
+	return changed
+}
+
 // group is a rounded, hairline-bordered container whose rows are separated
 // by hairlines, as in system settings.
 func (p *palette) group(c *ui.Context) ui.Element {

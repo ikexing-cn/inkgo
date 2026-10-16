@@ -25,7 +25,7 @@ Status: implemented
 - **进回收站的章，标签页跟着关**（`trashNode`、`keepTabs`）：关的是正看的，换到它旁边的标签页；一个不剩，打开树里站在它原来位置上的那一章。
 - **记在作品里**：开着哪几个（`tabs`）、正看哪个（`chapter`）、是不是全关了（`blank`），写进作品的界面偏好，下次打开还在。全关了以后回到正文页不会自己再打开第一章。
 - 快捷键表「正文」一组加了 `Ctrl+Tab / Ctrl+Shift+Tab` 和 `Ctrl+W`。
-- 同一次里顺手对齐原型的两处：菜单「导出…」在开着一章时先选「本章」（原来是「全书」）；右栏的两个按钮叫「收起右栏」「展开右栏」（原来在正文页叫「收起设定」「展开设定」）。
+- 同一次里顺手对齐原型的两处：菜单「导出…」在开着一章时先选「本章」（原来是「全书」；2026-10-16 起又一律先选「全书」，见[导出成 Word](2026-10-16-export-to-word.md)）；右栏的两个按钮叫「收起右栏」「展开右栏」（原来在正文页叫「收起设定」「展开设定」）。
 
 ## Alternatives considered
 
@@ -70,5 +70,5 @@ Status: implemented
   - `TestTheTrashTakesTheTab`、`TestFocusPutsTheTabsAway`、`TestTabsComeBackWithTheWork`、`TestTheQuestionGoesWithItsChapter`、`TestALostChapterKeepsItsTab`、`TestClosingAsksBetweenTwoTexts`。
   - `SHOT=<目录> go test ./desk -run TestShotTabs` 出九张图：平常、没存、悬停、右键菜单、询问（浅、深）、深色、十几个标签、全关。
 - `desk/theme_test.go` 的 `TestButtonsAtTheRight`：行尾写了 `// system order` 的那一行可以主按钮在前，但三个按钮必须正好是「保存」「不保存」「取消」，全软件只许有一行。
-- `desk/write_test.go` 的 `TestExportTheWork`：开着一章时导出先是本章。
+- `desk/write_test.go` 的 `TestExportTheWork`：开着一章时导出先是本章（2026-10-16 起改查先是全书，见[导出成 Word](2026-10-16-export-to-word.md)）。
 - `npm run verify` 全绿。

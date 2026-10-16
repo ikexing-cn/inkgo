@@ -111,7 +111,7 @@ func (a *App) View(c *ui.Context) {
 		if a.write.trashOpen { // the trash is at the foot of every page
 			a.trashView(c)
 		}
-		if a.write.exportOpen { // the menu of files exports from every page
+		if a.write.exporting.open { // the menu of files exports from every page
 			a.exportView(c)
 		}
 	}

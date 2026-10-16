@@ -593,11 +593,12 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab，改写�
 - 填的会动到已有的东西，在表单下面用灰字说明（作品分类的名称和已有的同名：「将修改已有的分类“人物”，现在的落点是“设定库”。」）。
 - 填的用不了（新建作品的文件夹里已有文件，模型服务的 ID 和别的服务重了、地址不对、模型的数不合规矩，目标字数不是数），在那一栏下面用红字写明为什么、怎么办，主按钮也是灰的。
 - 按下去以前就知道的事都在表单里说，不等作者按了才弹提示条说不行。
+- 几选一用一排单选圆点（导出的「格式」「范围」，起草的「本章已有内容」），几样里勾几样用一排勾选框（导出的「内容」），两种排法一样：每个只有它的字那么宽，横着排。不用分段：分段放进表单会撑满一行，一长条灰底里只有左边几个字。分段只用在点了马上换样子、不用再按按钮的地方（检查的分类、待处理的全部和本章、外观的颜色），也只有它的几段那么宽。
 
 检查：
 
-- `npm run verify-prototype` 的「categories」「the shelf, where things go wrong」「models and services」「a goal for the day」「a draft」。
-- `go test ./desk` 的 `TestACategorySavesOnceFilledIn`、`TestANewWorkSaysWhereItGoes`、`TestModelLimitsInTheServiceForm`、`TestANewServiceSaysWhatIsWrongWhereItIs`、`TestSetTheDaysGoal`、`TestDraftAChapterFromItsOutline`。
+- `npm run verify-prototype` 的「categories」「the shelf, where things go wrong」「models and services」「a goal for the day」「a draft」「export」。
+- `go test ./desk` 的 `TestACategorySavesOnceFilledIn`、`TestANewWorkSaysWhereItGoes`、`TestModelLimitsInTheServiceForm`、`TestANewServiceSaysWhatIsWrongWhereItIs`、`TestSetTheDaysGoal`、`TestDraftAChapterFromItsOutline`、`TestExportTheWork`、`TestDraftOverWhatIsThere`。
 
 ### 提示条
 

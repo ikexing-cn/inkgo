@@ -286,10 +286,10 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 	}
 	shut(tt, &w.snapsOpen)
 	choose("文件", "导出")
-	if !w.exportOpen || !tt.HasText("导出正文") || !tt.HasText("本章") || w.exportFrom != w.node {
-		t.Fatal("导出 did not ask what to export, the chapter open first", w.exportFrom, tt.Texts())
+	if !w.exporting.open || !tt.HasText("本章") || w.exporting.scope != scopeWork {
+		t.Fatal("导出 did not ask what to export, the whole work first", w.exporting.scope, tt.Texts())
 	}
-	shut(tt, &w.exportOpen)
+	shut(tt, &w.exporting.open)
 	choose("文件", "设置")
 	if !a.bk.prefs {
 		t.Fatal("设置 did not open the settings")
@@ -415,10 +415,10 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 			t.Fatal(err)
 		}
 		tt.Frame()
-		if !w.exportOpen || !tt.HasText("全书") || tt.HasText("本章") {
+		if !w.exporting.open || !tt.HasText("全书") || tt.HasText("本章") {
 			t.Fatalf("page %d: the export does not offer the book alone: %q", page, tt.Texts())
 		}
-		shut(tt, &w.exportOpen)
+		shut(tt, &w.exporting.open)
 		if err := clickMenu(tt, "文件", "菜单-设置"); err != nil {
 			t.Fatal(err)
 		}
@@ -442,7 +442,7 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 	tt.Frame()
 	pale("文件", "新建章节", "新建文件夹", "保存", "快照", "导出")
 	pale("视图", "收起侧栏", "收起右栏", "专注写作")
-	if a.bk.prefs || w.exportOpen || a.sideHidden {
+	if a.bk.prefs || w.exporting.open || a.sideHidden {
 		t.Fatal("on the shelf a pale row did something")
 	}
 	if err := clickMenu(tt, "文件", "菜单-设置"); err != nil {

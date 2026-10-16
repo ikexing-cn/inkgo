@@ -287,7 +287,7 @@ func (a *App) openDraft() {
 	}
 	a.flush()
 	w.draftOpen, w.words = true, ""
-	w.draftMode, w.draftAt = draftAppend, 0
+	w.draftMode = draftAppend
 	missing, have, err := a.ai.Unsummarized(a.Store, w.node)
 	a.warn(err)
 	w.unsummarized, w.recapped = missing, have
@@ -471,8 +471,7 @@ func (a *App) draftView(c *ui.Context) {
 			if strings.TrimSpace(w.ed.Doc.String()) != "" {
 				labeled(c, "本章已有内容", func() {
 					modes := []string{draftAppend, draftReplace}
-					w.draftMode = modes[min(w.draftAt, len(modes)-1)]
-					a.pal.segments(c, &w.draftAt, "已有内容的处理方式", modes).FillWidth()
+					dots(c, &w.draftMode, "已有内容的处理方式", modes, modes)
 				})
 			}
 			a.recapNote(c)
