@@ -501,6 +501,20 @@ func TestACategorySavesOnceFilledIn(t *testing.T) {
 	if len(a.Store.Work().Categories) != was+1 || !tt.HasText("分类“线索”已保存") {
 		t.Fatal(tt.Texts())
 	}
+	// Whether the name is a new one or one already there, the form says
+	// before it is saved, and what the one there lands in now.
+	a.categoryName = "伏线"
+	tt.Frame()
+	if !tt.HasText("将添加新分类。") {
+		t.Fatal("a new name is not told", tt.Texts())
+	}
+	if err := tt.Click("编辑-人物"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("将修改已有的分类“人物”，现在的落点是“设定库”。") {
+		t.Fatal("an existing name is not told", tt.Texts())
+	}
 }
 
 func TestMarkdownBlocks(t *testing.T) {

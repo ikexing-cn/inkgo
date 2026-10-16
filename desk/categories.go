@@ -61,7 +61,7 @@ func (a *App) categories(c *ui.Context) {
 			})
 			ui.Text(c, "添加或修改分类").FontSize(fsGroup).FontWeight(600).Padding(8, 0, 0, 0)
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.End).Children(func() {
-				labeled(c, "名称（同名即修改）", func() {
+				labeled(c, "名称", func() {
 					ui.TextInput(c, &a.categoryName).Label("分类名称").FillWidth().Disabled(busy)
 				}).Grow(1).Basis(0)
 				labeled(c, "落点", func() {
@@ -71,6 +71,17 @@ func (a *App) categories(c *ui.Context) {
 					a.setError(a.saveCategory())
 				}
 			})
+			// A name already there is changed, not added: say which, and
+			// what it lands in now, before it is saved.
+			if name := trim(a.categoryName); name != "" {
+				note := "将添加新分类。"
+				for _, cat := range a.Store.Work().Categories {
+					if cat.Name == name {
+						note = fmt.Sprintf("将修改已有的分类“%s”，现在的落点是“%s”。", name, cat.Target)
+					}
+				}
+				ui.Text(c, note).FontSize(fsNote).TextColor(t.TextMuted).FillWidth()
+			}
 		})
 	})
 }

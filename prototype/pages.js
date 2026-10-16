@@ -107,6 +107,9 @@ function dropCat(name) {
 function catsPage() {
   const count = (c) => S.entries.filter((e) => e.cat === c && e.place !== 'dropped').length
   const type = (key) => (v) => set((s) => ({ catForm: { ...s.catForm, [key]: v } }))
+  // 同名的是改那一条，不是加：按保存以前就说是哪条、现在落在哪。
+  const name = S.catForm.name.trim()
+  const what = !name ? '' : S.cats.includes(name) ? `将修改已有的分类“${name}”，现在的落点是“${S.lands[name] || '设定库'}”。` : '将添加新分类。'
   const row = (c) => (S.catDrop === c
     ? `<div class="cat-row"><div class="fit">${count(c)} 条设定将移到“其他”</div>${button('取消', () => set({ catDrop: '' }))}${button('确认删除', () => dropCat(c), 'danger')}</div>`
     : `<div class="cat-row"><div class="cat-name">${t(c)}</div><div class="fit muted">落点：${t(S.lands[c] || '设定库')}</div><div class="side">${count(c)} 条</div><div class="hit link"${onClick(() => set({ catForm: { name: c, land: S.lands[c] || '设定库' } }))}>编辑</div>` +
@@ -115,7 +118,8 @@ function catsPage() {
     '<div class="page-title">作品分类</div><div class="note">设定文档按分类分节，每条设定只归入一个分类。“落点”指设定成熟后的去处，例如设定库或大纲。</div>' +
     `<div class="cat-rows">${S.cats.map(row).join('')}</div>` +
     '<div class="group-title">添加或修改分类</div>' +
-    `<div class="cat-form">${field('名称（同名即修改）', line(S.catForm.name, type('name'), '', '分类名称'))}${field('落点', line(S.catForm.land, type('land'), '例如 设定库', '落点', keys(saveCat)))}${S.catForm.name.trim() && S.catForm.land.trim() ? button('保存分类', saveCat, 'primary') : button('保存分类', null, 'primary off')}</div>` +
+    `<div class="cat-form">${field('名称', line(S.catForm.name, type('name'), '', '分类名称'))}${field('落点', line(S.catForm.land, type('land'), '例如 设定库', '落点', keys(saveCat)))}${S.catForm.name.trim() && S.catForm.land.trim() ? button('保存分类', saveCat, 'primary') : button('保存分类', null, 'primary off')}</div>` +
+    (what ? `<div class="note">${t(what)}</div>` : '') +
     '</div></div></div>'
 }
 
