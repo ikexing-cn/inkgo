@@ -398,14 +398,14 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 		}
 		acts.Children(func() {
 			if !user && !m.At.IsZero() {
-				when := m.At.Local().Format("15:04")
+				foot := when(m.At, time.Now())
 				if who := a.replyLabel(m.Model, m.Effort); who != "" {
-					when += " · " + who
+					foot += " · " + who
 				}
 				if u, ok := spent(a.events, m); ok {
-					when += " · " + tokens.Round(u.Input+u.Output) + " token"
+					foot += " · " + tokens.Round(u.Input+u.Output) + " token"
 				}
-				ui.Text(c, when).FontSize(fsSmall).TextColor(a.pal.faint).Padding(0, 6, 0, 0)
+				ui.Text(c, foot).FontSize(fsSmall).TextColor(a.pal.faint).Padding(0, 6, 0, 0)
 			}
 			if iconButton(c, icQuote, "摘取-"+m.ID, ui.Color{}).Tooltip("摘取原文").KeepFocus().Disabled(a.held()).Clicked() {
 				a.openSource(m, 0, 0)
@@ -429,7 +429,7 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 				}
 			}
 			if user && !m.At.IsZero() {
-				ui.Text(c, m.At.Local().Format("15:04")).FontSize(fsSmall).TextColor(a.pal.faint).Padding(0, 0, 0, 6)
+				ui.Text(c, when(m.At, time.Now())).FontSize(fsSmall).TextColor(a.pal.faint).Padding(0, 0, 0, 6)
 			}
 		})
 		if user && !a.answered(m.ID) && !a.replying() {

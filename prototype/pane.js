@@ -66,7 +66,7 @@ function send() {
   const isNew = S.tv !== 'one'
   const id = isNew ? 't' + S.n : S.tid
   const add = (msg) => (talk) => (talk.id === id ? { ...talk, msgs: [...talk.msgs, msg] } : talk)
-  const talks = (isNew ? [{ id, title: text, at: '今天', msgs: [] }, ...S.talks] : S.talks).map(add({ me: true, text, cite: S.cite }))
+  const talks = (isNew ? [{ id, title: text, at: '今天', msgs: [] }, ...S.talks] : S.talks).map(add({ me: true, at: stamp(), text, cite: S.cite }))
   set({ talks, tid: id, tv: 'one', n: S.n + 1, draft: '', cite: null })
   answer(id)
 }
@@ -86,7 +86,7 @@ function answer(id) {
     later(pack + 1200, () => set((s) => {
       const kept = r.keep ? { id: 'e' + s.n, place: 'open', cat: r.keep.cat, names: [], text: r.keep.text } : null
       const said = kept ? '待确认 · ' + kept.cat + '：' + kept.text : ''
-      const msg = { me: false, text: r.text, think: BOOK.think, look: kept ? [...r.look, ['记', said, kept.id]] : r.look, use: r.use, capped: r.capped }
+      const msg = { me: false, at: stamp(), text: r.text, think: BOOK.think, look: kept ? [...r.look, ['记', said, kept.id]] : r.look, use: r.use, capped: r.capped }
       return {
         waiting: null, talks: s.talks.map((talk) => (talk.id === id ? { ...talk, msgs: [...talk.msgs, msg] } : talk)),
         ...(kept ? { n: s.n + 1, entries: [...s.entries, kept], log: [{ id: 'l' + s.n, who: '讨论', talk: id, at: stamp(), lines: ['新增到' + said] }, ...s.log] } : {}),
@@ -355,14 +355,14 @@ function message(talk, m, i) {
   if (m.me) {
     const left = last && !(S.waiting && S.waiting.id === talk.id)
     return `<div class="msg me${last ? ' last' : ''}">${m.cite ? cited(m.cite) : ''}<div class="said">${t(m.text)}</div>` +
-      `<div class="reply-tools">${pull}<div class="faint">${t(talk.at)}</div></div>` +
+      `<div class="reply-tools">${pull}<div class="faint">${t(m.at)}</div></div>` +
       (left ? `<div class="unanswered">${icon('warn', 'sm')}<div>该消息尚未收到回复</div><div class="hit link${S.waiting ? ' off' : ''}"${onClick(S.waiting ? null : () => answer(talk.id))}>重试回复</div></div>` : '') + '</div>'
   }
   const copy = () => { if (navigator.clipboard) navigator.clipboard.writeText(m.text).catch(() => {}); say('已复制', '', 'ok') }
   const use = m.use ? ' · ' + tokens(m.use.reduce((n, [input, , output]) => n + input + output, 0)) + ' token' : '' // 这一轮所有请求的合计
   return `<div class="msg${last ? ' last' : ''}"><div class="reply-row"><div class="reply-face">${icon('spark')}</div><div class="fit">${m.think ? thought(key, m.think) : ''}${m.look && m.look.length ? looked('look-' + key, m.look) : ''}<div class="reply" data-reply="${i}">${t(m.text)}</div>` +
     (m.capped ? '<div class="note">已达到本次查阅上限，以上回答仅依据已查到的内容。</div>' : '') +
-    `<div class="reply-tools"><div class="faint">${t(talk.at)} · ${t(S.uses[0].model)}${use}</div>${pull}${tool('复制全文', 'copy', copy)}${m.use ? tool('AI 参考内容', 'eye', () => set((s) => ({ told: { ...s.told, [key]: !saw } })), saw) : ''}</div>` +
+    `<div class="reply-tools"><div class="faint">${t(m.at)} · ${t(S.uses[0].model)}${use}</div>${pull}${tool('复制全文', 'copy', copy)}${m.use ? tool('AI 参考内容', 'eye', () => set((s) => ({ told: { ...s.told, [key]: !saw } })), saw) : ''}</div>` +
     (saw && m.use ? outgoing(talk, m, i) : '') + '</div></div></div>'
 }
 // 一段讨论从头到尾，AI 正在回的话接在最后。压缩过的，在压缩的地方隔一行。

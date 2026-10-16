@@ -54,14 +54,19 @@ func TestWhatWasSent(t *testing.T) {
 	}
 	a.setError(a.refresh())
 	tt.Frame()
-	footers := 0
+	footers, asked := 0, 0
 	for _, s := range tt.Texts() {
-		if strings.HasSuffix(s, " · 19.4K token") || strings.HasSuffix(s, " · 920 token") {
+		if strings.HasPrefix(s, "今天 ") && (strings.HasSuffix(s, " · 19.4K token") || strings.HasSuffix(s, " · 920 token")) {
 			footers++
 		}
+		if len(s) == len("今天 15:04") && strings.HasPrefix(s, "今天 ") {
+			asked++
+		}
 	}
-	if footers != 2 || strings.Count(strings.Join(tt.Texts(), "\n"), " token") != 2 {
-		t.Fatal("the tokens of each reply", tt.Texts())
+	// Each reply says its day as well as its time, as each question does:
+	// three questions and the reply that counted nothing.
+	if footers != 2 || strings.Count(strings.Join(tt.Texts(), "\n"), " token") != 2 || asked != 4 {
+		t.Fatal("the day and tokens of each reply", tt.Texts())
 	}
 
 	open := func(id string, want ...string) {
