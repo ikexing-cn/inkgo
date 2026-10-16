@@ -283,7 +283,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await key('z', true); await win('整条街的灯是同时灭的。'); await win('身后，小祥没有再出声。', false); await key('y', true); await win('身后，小祥没有再出声。'); await click('关闭提示')
   await click('编辑'); await click('撤销'); await win('整条街的灯是同时灭的。'); await win('身后，小祥没有再出声。', false); await click('编辑'); await click('重做'); await win('身后，小祥没有再出声。'); await win('整条街的灯是同时灭的。', false)
   await click('文件'); await click('快照'); await win('AI 改动前'); await win('按章纲起草'); await win('约 1500 字'); await key('Escape')
-  await click('编辑'); await click('起草本章'); await type('目标字数', '很多'); await win('目标字数须为正整数，或留空'); must(await has('.dialog .note.danger') && await has('.dialog .btn.primary.off'), 'a draft can start with words that are not a count'); await clear('目标字数'); await click('开始起草'); await sleep(1000); await click('停止'); await win('已停止，起草 9 字'); await sleep(1000); await win('已停止，起草 9 字')
+  await click('编辑'); await click('起草本章'); await win('推理', false); await type('目标字数', '很多'); await win('目标字数须为正整数，或留空'); must(await has('.dialog .note.danger') && await has('.dialog .btn.primary.off'), 'a draft can start with words that are not a count'); await clear('目标字数'); await click('开始起草'); await sleep(1000); await click('停止'); await win('已停止，起草 9 字'); await sleep(1000); await win('已停止，起草 9 字')
   await click('重新起草'); await win('AI 正在按章纲起草'); await sleep(3800); await win('起草 38 字'); await click('放弃'); must(!(await has('.ai-bar')) && !(await has('[data-draft]')), 'the draft was not let go'); await done('a draft')
 
   // What was picked goes to the setting, or to a discussion.

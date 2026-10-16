@@ -653,7 +653,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab，改写�
 
 - 要用书面语；不要口语化。
 - 要一眼能看懂：名称 2–4 个字，说明不超过 20 个字。
-- 思考程度的几档要留英文（Default、Low、Medium、High）；不要在前面加「思考：」。
+- 思考程度的几档要留英文（Default、Low、Medium、High），跟在模型后面（「DeepSeek/deepseek-flash · High」）；不要在前面加「思考：」「推理」。这一项在别处说起时叫「思考程度」。`go test ./desk` 的 `TestDraftAChapterFromItsOutline` 和 `npm run verify-prototype` 的「a draft」查起草对话框。
 - 软件还没有名字，界面和文档里要写「写作软件」；不要把测试用的作品名当成软件名。
 - 要用章标题指某一章（「第四章 钟表铺」），说的是正开着的那一章写「本章」；不要另算「第 N 章」这种按位置编的号，删一章、插一章它就和作者写的标题对不上了。标题在句子里加「」（「埋在「第四章 钟表铺」，已过 3 章」），单独摆着的不加（列表右边、选择框里那一行）；放不下就截断。讲距离的「已过 3 章」「相隔 3 章」「3 章前」照旧按位置数。`npm run verify-prototype` 的伏笔、检查、设定出处那几段查原型的说法，`go test ./desk` 的 `TestForeshadowBuryAndPay`、`TestCheckOnlyWhenAsked`、`TestSettingListAndPage` 查软件里的。
 - 要按 K、M、B 写 token 数，K 是一千，留一位小数（「9.6K」「1.7M」），不到一千的照写；填上下文上限、最大输出时也认这种写法，保存后照这样写回（「128K」「1M」）。不要用「万」写 token，字数照旧写「万字」。`npm run verify-prototype` 的「what was sent」「models and services」查原型。

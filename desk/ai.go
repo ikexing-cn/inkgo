@@ -477,7 +477,7 @@ func (a *App) draftView(c *ui.Context) {
 			}
 			a.recapNote(c)
 			if pw := w.pen.Load(); pw != nil {
-				ui.Textf(c, "用 %s · 推理 %s；可在设置中「AI」配置里更换。", a.serviceModel((*pw).Name()), a.ai.EffortLabel((*pw).Effort())).FontSize(fsNote).TextColor(t.TextMuted)
+				ui.Textf(c, "用 %s · %s；可在设置中「AI」配置里更换。", a.serviceModel((*pw).Name()), a.ai.EffortLabel((*pw).Effort())).FontSize(fsNote).TextColor(t.TextMuted)
 			}
 			ui.Row(c).FillWidth().Gap(8).Children(func() {
 				ui.Spacer(c)

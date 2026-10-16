@@ -117,8 +117,8 @@ func (a *App) usage(c *ui.Context) {
 	a.subhead(c, "本作品的模型", "思考程度选 Default 时由服务商决定。修改自下次发送起生效。")
 	var typing [2]bool
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
-		typing[0] = a.useRow(c, "讨论", "与你讨论故事", &a.talkProvider, "", "讨论提供商", &a.talkModel, "讨论模型", &a.talkEffort, "讨论推理等级")
-		typing[1] = a.useRow(c, "写作", "续写、改写、起草", &a.penProvider, sameAsTalk, "写作提供商", &a.penModel, "写作模型", &a.penEffort, "写作推理等级")
+		typing[0] = a.useRow(c, "讨论", "与你讨论故事", &a.talkProvider, "", "讨论提供商", &a.talkModel, "讨论模型", &a.talkEffort, "讨论的思考程度")
+		typing[1] = a.useRow(c, "写作", "续写、改写、起草", &a.penProvider, sameAsTalk, "写作提供商", &a.penModel, "写作模型", &a.penEffort, "写作的思考程度")
 	})
 	if typing == [2]bool{} {
 		if err := a.saveUsage(); err != nil {

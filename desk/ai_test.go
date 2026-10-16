@@ -106,7 +106,7 @@ func TestDraftAChapterFromItsOutline(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("用 DeepSeek/deepseek-flash · 推理 High；可在设置中「AI」配置里更换。") {
+	if !tt.HasText("用 DeepSeek/deepseek-flash · High；可在设置中「AI」配置里更换。") {
 		t.Fatal("the model not named by its service", tt.Texts())
 	}
 	// Words not a count are said under the field, and drafting waits.

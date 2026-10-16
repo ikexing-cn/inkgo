@@ -251,7 +251,7 @@ function draftDialog(d) {
     `<div class="quote">${t(S.outlines[cur.key])}</div>` +
     field('目标字数（选填）', line(d.goal, type('goal'), '由 AI 按章纲判断', '目标字数') + (countOrNone(d.goal) ? '' : '<div class="note danger">目标字数须为正整数，或留空</div>')) +
     (cur.paras.length ? field('本章已有内容', seg(d.how, ['接在已有内容之后', '覆盖已有内容'], type('how'), '已有内容的处理方式')) : '') +
-    `<div class="note">用 ${t(model)} · 推理 ${t(effort)}；可在设置中「AI」配置里更换。</div>` +
+    `<div class="note">用 ${t(model)} · ${t(effort)}；可在设置中「AI」配置里更换。</div>` +
     (before.length && d.total ? `<div class="note">正在补齐摘要：${d.total - before.length} / ${d.total}。补齐前起草，AI 只能参考已有摘要。</div>`
       : before.length ? `<div class="warn-line"><div class="fit">前文有 ${before.length} 章尚无摘要，起草时 AI 无法了解这些章节的内容。</div><div class="hit link"${onClick(fill)}>补齐摘要（${before.length} 次调用）</div></div>`
       : had > 0 ? `<div class="note">起草时 AI 会参考前 ${had} 章的摘要，以衔接前文。</div>` : '') +
