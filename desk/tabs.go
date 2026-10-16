@@ -113,7 +113,7 @@ func (a *App) keepUnsettled() {
 }
 
 // unsaved says the node shown has words that are not on the disk: its
-// prose, its outline or its summary, or all of it when the chapter is gone
+// prose or its outline, or all of it when the chapter is gone
 // from there, or was changed there and the author has not chosen between
 // the two.
 func (a *App) unsaved() bool {
@@ -121,7 +121,7 @@ func (a *App) unsaved() bool {
 	if w.node == "" {
 		return false
 	}
-	return w.lost || w.external != nil || w.ed != nil && (w.ed.Doc.Version() != w.savedVer || w.summary != w.summarySaved) || w.outline != w.outlineSaved
+	return w.lost || w.external != nil || w.ed != nil && w.ed.Doc.Version() != w.savedVer || w.outline != w.outlineSaved
 }
 
 // tabTitle is what the tab of node id says, and what its tooltip says
@@ -373,5 +373,5 @@ func (a *App) dropUnsaved() {
 	a.stopAI()
 	// Without its editor nothing of it is saved as it is left.
 	w.ed, w.external, w.lost = nil, nil, false
-	w.outline, w.summary = w.outlineSaved, w.summarySaved
+	w.outline = w.outlineSaved
 }

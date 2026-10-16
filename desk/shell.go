@@ -48,14 +48,12 @@ func (a *App) View(c *ui.Context) {
 		a.talking = false
 	}
 	if a.Store != nil {
-		a.pollSummaries(c) // with the AI off, only to take in one stopped
 		a.pollChecks(c)
 		a.backupDue(c)
 	}
 	if a.Store != nil && a.shown == 3 && a.page != 3 {
 		a.flush()
 		a.leaveCheck()
-		a.leaveChapter()
 		a.write.entered = false
 	}
 	if a.Store != nil && a.page == pageCheck && a.shown != pageCheck {

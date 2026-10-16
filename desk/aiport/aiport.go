@@ -56,13 +56,7 @@ type Service interface {
 	Extract(s *workspace.Store, session, message string, start, end int, category string) (workspace.Entry, error)
 	// Pen writes the prose of s with its writing model.
 	Pen(s *workspace.Store) (Pen, error)
-	// Unsummarized is the documents before chapter long enough for a
-	// summary that have none, in the order of the tree, and how many
-	// before it have one.
-	Unsummarized(s *workspace.Store, chapter string) (missing []string, have int, err error)
-	// MinSummary and MinCheck are the shortest prose worth a summary and
-	// a check.
-	MinSummary() int
+	// MinCheck is the shortest prose worth a check.
 	MinCheck() int
 }
 
@@ -137,8 +131,6 @@ type Pen interface {
 	// Draft prepares drafting the chapter of scene from its outline, into
 	// about words characters, or as many as the outline wants for 0.
 	Draft(scene Scene, words int) (Job, error)
-	// Summarize sums up the chapter as it is on disk.
-	Summarize(ctx context.Context, chapter string) (workspace.Summary, error)
 	// Check reads the chapter as it is on disk against the setting.
 	Check(ctx context.Context, chapter string) (workspace.Check, error)
 }

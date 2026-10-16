@@ -64,9 +64,6 @@ type prefs struct {
 	TalkTab    bool    `json:"talk_tab,omitempty"`
 	ForeTab    bool    `json:"fore_tab,omitempty"`
 	NoAttach   bool    `json:"no_attach,omitempty"`
-	// NoAutoSummary leaves a chapter's summary alone as the author leaves
-	// it changed.
-	NoAutoSummary bool `json:"no_auto_summary,omitempty"`
 	// The book's count when Day began, for how much was written today.
 	Day      string `json:"day,omitempty"`
 	DayStart int    `json:"day_start,omitempty"`
@@ -106,7 +103,6 @@ func (a *App) loadPrefs() {
 		a.page = 3
 	}
 	a.write.autoPredict = p.AutoPredict
-	a.write.autoSummary = !p.NoAutoSummary
 	a.write.day, a.write.dayStart, a.write.goal = p.Day, p.DayStart, p.Goal
 	a.write.goalText, a.write.carets, a.write.days, a.write.size = "", p.Carets, p.Days, p.TextSize
 	a.write.ignored = map[string]bool{}
@@ -131,7 +127,7 @@ func (a *App) loadPrefs() {
 func (a *App) savePrefs() {
 	shelved := slices.Sorted(maps.Keys(a.shelved))
 	b, err := json.Marshal(prefs{Shelved: shelved, SettingHidden: a.doc.hidden, SideHidden: a.sideHidden, Chapter: a.write.node, Tabs: a.write.tabs, Blank: a.write.blank, Writing: a.leftWriting, AutoPredict: a.write.autoPredict,
-		PanelWidth: a.doc.width, TalkTab: a.doc.talk, ForeTab: a.doc.fore, LateAfter: a.write.lateAfter, CheckWhen: a.ck.when, NoAttach: !a.doc.attach, NoAutoSummary: !a.write.autoSummary,
+		PanelWidth: a.doc.width, TalkTab: a.doc.talk, ForeTab: a.doc.fore, LateAfter: a.write.lateAfter, CheckWhen: a.ck.when, NoAttach: !a.doc.attach,
 		Day: a.write.day, DayStart: a.write.dayStart, Goal: a.write.goal, Carets: a.write.carets, Days: a.write.days, TextSize: a.write.size,
 		Ignored: a.write.ignoredKeys()})
 	if err == nil {

@@ -544,3 +544,47 @@ func TestTextsAreWhatReadingEachGives(t *testing.T) {
 		t.Fatal("no text")
 	}
 }
+
+// A summary an older version wrote beside a chapter stays where it is:
+// renaming the chapter, trashing it and restoring it neither move nor
+// change it, and the work opens with it as before.
+func TestAnOldSummaryStaysWhereItWas(t *testing.T) {
+	s := testStore(t)
+	id := mustChapter(t, s, "", "第一章", false)
+	if _, err := s.WriteChapter(id, "正文。", nil); err != nil {
+		t.Fatal(err)
+	}
+	const sum = `{"text":"林晚回到旧城。"}`
+	old := filepath.Join(s.Root(), "chapters", "第一章.summary.json")
+	if err := os.WriteFile(old, []byte(sum), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.RenameChapter(id, "第二章"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.TrashChapter(id); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.RestoreChapter(id); err != nil {
+		t.Fatal(err)
+	}
+	if b, err := os.ReadFile(old); err != nil || string(b) != sum {
+		t.Fatalf("the old summary is %q, %v", b, err)
+	}
+	if exists(t, s.Root(), "chapters", "第二章.summary.json") {
+		t.Fatal("the old summary moved with the chapter")
+	}
+	s.Close()
+	again, err := Open(s.Root())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer again.Close()
+	tree, err := again.Chapters()
+	if err != nil || len(tree.Root.Children) != 1 || tree.Root.Children[0].Title != "第二章" {
+		t.Fatalf("the tree is %+v, %v", tree.Root, err)
+	}
+	if ch, err := again.ReadChapter(id); err != nil || ch.Text != "正文。" {
+		t.Fatalf("read %+v, %v", ch, err)
+	}
+}

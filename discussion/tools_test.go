@@ -254,12 +254,9 @@ func TestToolsReadTheBook(t *testing.T) {
 	}
 	v1, _ := e.Store.NewChapter("", "第一卷", true)
 	v2, _ := e.Store.NewChapter("", "第二卷", true)
-	first := write(v1, "雨", strings.Repeat("灯亮着。"+strings.Repeat("雨", 600)+"\n", 6))
+	write(v1, "雨", strings.Repeat("灯亮着。"+strings.Repeat("雨", 600)+"\n", 6))
 	write(v2, "雨", "又下雨了。")
 	write(v2, "第三章：停电", "灯灭了。")
-	if err := e.Store.WriteSummary(first, workspace.Summary{Text: "林晚回到旧城。", Of: "旧的"}); err != nil {
-		t.Fatal(err)
-	}
 	turn(t, e, session, "灯是谁点的？", "也许是她妹妹。")
 	box := &toolbox{store: e.Store, session: session}
 	for _, c := range []struct {
@@ -272,14 +269,12 @@ func TestToolsReadTheBook(t *testing.T) {
 		{toolReadProse, map[string]any{"chapter": "《第二卷/雨》"}, []string{"「第二卷/雨」共 1 段。\n第 1 段：又下雨了。"}},
 		{toolReadProse, map[string]any{"chapter": "第一卷/雨", "from": 2}, []string{"第 2 段：灯亮着", "第 5 段：灯亮着", "（读到第 5 段为止；接着读，from 填 6。）"}},
 		{toolReadProse, map[string]any{"chapter": "第一卷"}, []string{"是一卷，没有正文"}},
-		{toolReadSummary, map[string]any{"chapters": []string{"第一卷/雨", "第二卷/雨"}}, []string{"「第一卷/雨」：林晚回到旧城。\n（这份摘要写好以后，正文又改过。）", "「第二卷/雨」还没有摘要"}},
 		{toolReadProse, map[string]any{"chapter": "第三章 停电"}, []string{"「第三章：停电」共 1 段。\n第 1 段：灯灭了。"}},
 		{toolReadProse, map[string]any{"chapter": "第三章"}, []string{"「第三章：停电」共 1 段。"}},
 		{toolReadProse, map[string]any{"chapter": "停电"}, []string{"「第三章：停电」共 1 段。"}},
 		{toolReadProse, map[string]any{"chapter": "雨"}, []string{"「雨」对得上好几章：「第一卷/雨」「第二卷/雨」；写全章名。"}},
 		{toolReadProse, map[string]any{"chapter": "第三张：停电"}, []string{"没有叫「第三张：停电」的章；相近的有「第三章：停电」。"}},
 		{toolReadProse, map[string]any{"chapter": "第九章"}, []string{"没有叫「第九章」的章；章名要和搜全书的结果里写的一样。"}},
-		{toolReadSummary, map[string]any{"chapters": []string{"停电", "第一卷", "雪"}}, []string{"「第三章：停电」还没有摘要", "「第一卷」是一卷，没有摘要", "没有叫「雪」的章"}},
 		{toolSearchTalks, map[string]any{"query": "妹妹"}, []string{"共 1 处，在「这一次的讨论」。", "AI：也许是她妹妹。"}},
 	} {
 		out := box.run(call("1", c.name, c.in))
@@ -292,7 +287,7 @@ func TestToolsReadTheBook(t *testing.T) {
 	if out := box.run(call("1", toolReadProse, map[string]any{"chapter": "第一卷/雨", "from": 2})); strings.Contains(out.text, "[6]") {
 		t.Error("read past the cap")
 	}
-	if got := box.label(call("1", toolReadProse, map[string]any{"chapter": "停电"})) + box.label(call("1", toolReadSummary, map[string]any{"chapters": []string{"第三章", "雪"}})); got != "读了「第三章：停电」读了摘要「第三章：停电」「雪」" {
+	if got := box.label(call("1", toolReadProse, map[string]any{"chapter": "停电"})) + box.label(call("1", "read_summary", map[string]any{"chapters": []string{"第三章", "雪"}})); got != "读了「第三章：停电」读了摘要「第三章：停电」「雪」" {
 		t.Errorf("labels %s", got)
 	}
 	// The setting is looked up by number, the entries a name matches first.

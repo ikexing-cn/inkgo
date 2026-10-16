@@ -253,10 +253,6 @@ func (p pen) job(job writing.Job) aiport.Job {
 	}}
 }
 
-func (p pen) Summarize(ctx context.Context, chapter string) (workspace.Summary, error) {
-	return p.w.Summarize(ctx, chapter)
-}
-
 func (p pen) Check(ctx context.Context, chapter string) (workspace.Check, error) {
 	return p.w.Check(ctx, chapter)
 }
@@ -272,9 +268,4 @@ func (s *Service) Pen(st *workspace.Store) (aiport.Pen, error) {
 	return pen{w}, nil
 }
 
-func (s *Service) Unsummarized(st *workspace.Store, chapter string) ([]string, int, error) {
-	return writing.Unsummarized(st, chapter)
-}
-
-func (s *Service) MinSummary() int { return writing.MinSummary }
-func (s *Service) MinCheck() int   { return writing.MinCheck }
+func (s *Service) MinCheck() int { return writing.MinCheck }

@@ -12,24 +12,22 @@ import (
 	"writer/workspace"
 )
 
-// The tools a talk's model may call: five look things up in the book and
+// The tools a talk's model may call: four look things up in the book and
 // its talks, and one notes the setting. The model names a chapter by its
 // title and an entry by its number, never by an ID.
 const (
 	toolSearchBook  = "search_book"
 	toolReadProse   = "read_prose"
-	toolReadSummary = "read_summary"
 	toolLookUp      = "look_up_setting"
 	toolSearchTalks = "search_talks"
 	toolNote        = "note_setting"
 )
 
 const (
-	maxHits    = 20   // listed by one search
-	maxRead    = 3000 // runes of prose one read returns
-	maxSummary = 10   // chapters one read of summaries takes
-	maxNear    = 5    // names offered for one the book has not
-	around     = 40   // runes shown on each side of a hit
+	maxHits = 20   // listed by one search
+	maxRead = 3000 // runes of prose one read returns
+	maxNear = 5    // names offered for one the book has not
+	around  = 40   // runes shown on each side of a hit
 )
 
 // tools are the tools of a talk of w: note_setting takes w's categories.
@@ -46,8 +44,6 @@ func tools(w workspace.Work) []model.Tool {
 			Schema: json.RawMessage(`{"type":"object","properties":{` + query + `,` + from + `},"required":["query"]}`)},
 		{Name: toolReadProse, Description: "读某一章的正文，段号从 1 起；不给段号就从头读。一次读到的字数有上限，读不完会说从哪里接着读。",
 			Schema: json.RawMessage(`{"type":"object","properties":{"chapter":{"type":"string","description":"章名，和搜全书结果里写的一样"},"from":{"type":"integer","minimum":1},"to":{"type":"integer","minimum":1}},"required":["chapter"]}`)},
-		{Name: toolReadSummary, Description: fmt.Sprintf("读一章或几章的摘要，一次最多 %d 章。", maxSummary),
-			Schema: json.RawMessage(`{"type":"object","properties":{"chapters":{"type":"array","items":{"type":"string"},"description":"章名"}},"required":["chapters"]}`)},
 		{Name: toolLookUp, Description: "按名字或词查设定，返回条目的编号、位置、分类、名字、全文和出处。",
 			Schema: json.RawMessage(`{"type":"object","properties":{` + query + `},"required":["query"]}`)},
 		{Name: toolSearchTalks, Description: "按词搜这本书所有讨论的原文，包括这一次的，返回每处在哪次讨论、是谁说的和前后的文字。",
@@ -122,8 +118,6 @@ func (t *toolbox) run(c model.Call) outcome {
 		return t.searchBook(in)
 	case toolReadProse:
 		return t.readProse(in)
-	case toolReadSummary:
-		return t.readSummary(in)
 	case toolLookUp:
 		return t.lookUp(in)
 	case toolSearchTalks:
@@ -158,7 +152,7 @@ func (t *toolbox) label(c model.Call) string {
 			return fmt.Sprintf("读了「%s」第 %d 段起", in.Chapter, in.From)
 		}
 		return "读了「" + in.Chapter + "」"
-	case toolReadSummary:
+	case "read_summary": // a tool of older versions, in the talks they had
 		return "读了摘要" + quoted(in.Chapters)
 	case toolLookUp:
 		return "查了设定「" + in.Query + "」"
@@ -441,42 +435,6 @@ func (t *toolbox) readProse(in input) outcome {
 		lines = append(lines, fmt.Sprintf("第 %d 段：%s", k, p)) // not "[k]", which names an entry
 	}
 	return outcome{text: strings.Join(lines, "\n")}
-}
-
-func (t *toolbox) readSummary(in input) outcome {
-	if len(in.Chapters) == 0 {
-		return failed("chapters 不能为空")
-	}
-	if len(in.Chapters) > maxSummary {
-		return failed("一次最多读 %d 章的摘要", maxSummary)
-	}
-	b, err := t.book()
-	if err != nil {
-		return failed("读不出章节：%v", err)
-	}
-	var lines []string
-	for _, name := range in.Chapters {
-		n, missing := b.find(name)
-		if n == nil {
-			lines = append(lines, missing)
-			continue
-		}
-		if n.Folder {
-			lines = append(lines, "「"+b.name[n.ID]+"」是一卷，没有摘要；读它下面的章。")
-			continue
-		}
-		sum, err := t.store.ReadSummary(n.ID)
-		if err != nil || strings.TrimSpace(sum.Text) == "" {
-			lines = append(lines, "「"+b.name[n.ID]+"」还没有摘要，要知道写了什么就读正文。")
-			continue
-		}
-		line := "「" + b.name[n.ID] + "」：" + strings.TrimSpace(sum.Text)
-		if ch, err := t.store.ReadChapter(n.ID); err == nil && workspace.ProseHash(ch.Text) != sum.Of {
-			line += "\n（这份摘要写好以后，正文又改过。）"
-		}
-		lines = append(lines, line)
-	}
-	return outcome{text: strings.Join(lines, "\n\n")}
 }
 
 // placeNames name the places of the setting as the talk's rules do.

@@ -2,6 +2,8 @@ package workspace
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -51,6 +53,12 @@ type Check struct {
 	At       time.Time `json:"at"`
 	Findings []Finding `json:"findings,omitempty"`
 	Sent     *Sent     `json:"sent,omitempty"`
+}
+
+// ProseHash identifies a chapter's prose as it is stored.
+func ProseHash(text string) string {
+	sum := sha256.Sum256([]byte(strings.TrimSpace(CleanProse(text))))
+	return hex.EncodeToString(sum[:])
 }
 
 // Stale tells whether text is not the prose the check read.

@@ -118,9 +118,10 @@ func (a *App) hasSetting() bool {
 	return slices.ContainsFunc(a.set.Entries, func(e workspace.Entry) bool { return e.Place == workspace.PlaceBody })
 }
 
-// leaveCheck is called as the author leaves the chapter shown, before its
-// summary is seen to: what the prose no longer says is no longer found,
-// and a chapter changed is checked again, when that is when to. A chapter
+// leaveCheck is called as the author leaves the chapter shown: what the
+// prose no longer says is no longer found, and a chapter changed is
+// checked again, when that is when to; it is not changed again until it
+// is. A chapter
 // about to be shown, its text not read yet, is no chapter left; with the
 // AI off, the checks are left as they were.
 func (a *App) leaveCheck() {
@@ -130,7 +131,9 @@ func (a *App) leaveCheck() {
 		return
 	}
 	a.pruneCheck(w.node, w.saved)
-	if !w.changed || k.when != checkOnLeave || !a.hasSetting() || workspace.Count(w.saved) < a.ai.MinCheck() {
+	changed := w.changed
+	w.changed = false
+	if !changed || k.when != checkOnLeave || !a.hasSetting() || workspace.Count(w.saved) < a.ai.MinCheck() {
 		return
 	}
 	if had, ok := k.all[w.node]; !ok || had.Stale(w.saved) {

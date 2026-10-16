@@ -65,7 +65,7 @@ func (a *App) askAI(c *ui.Context) {
 // turnAI turns the AI on or off on this machine, and keeps that in the
 // shelf. Off, what the AI is doing stops: a draft or a rewrite not taken
 // is dropped, a reply is let go as 取消请求 lets it go, the author's words kept, and the
-// summaries and checks waiting are dropped; the pages and the parts of
+// checks waiting are dropped; the pages and the parts of
 // the AI give way to the prose and the setting, and the toasts go, most
 // of them the AI's. Nothing it left is deleted: on again, it is all back,
 // the talk beside the prose too when it was there.
@@ -81,14 +81,13 @@ func (a *App) turnAI(on bool) {
 		}
 		if a.Store != nil {
 			a.stopAI()
-			a.stopSummaries()
 			a.stopChecks()
 			if a.page == 0 || a.page == pageCheck {
 				a.page = 3
 			}
 		}
 		w := &a.write
-		w.draftOpen, w.summaryOpen = false, false
+		w.draftOpen = false
 		a.doc.todo = false // what waits on the author there is the AI's
 		a.Error, a.failed, a.fails, a.again, a.notice, a.hint = "", "", 0, nil, "", ""
 	}

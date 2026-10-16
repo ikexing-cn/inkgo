@@ -61,26 +61,19 @@ type writeView struct {
 	outline, outlineSaved, outlinePrev string
 	outlineAt                          time.Time
 	outlineOpen                        bool
-	// The summary of the chapter shown, as stored and as being edited;
-	// changed, whether its prose was saved since it opened.
-	sum                   workspace.Summary
-	summary, summarySaved string
-	summaryOpen           bool
-	changed               bool
-	autoSummary           bool
-	day                   string // the local date the count below was taken
-	dayStart              int    // the book's count as that day began
-	goal                  int    // a day's goal, or 0
-	goalText              string // the goal as typed
-	goalOpen              bool
-	offered               string            // the numbered title a new node's name began with
-	days                  map[string]int    // what was written each day before, by local date
-	size                  int               // the text's size, or 0 for the default
-	gists                 map[string]string // a line on each chapter of the folder open
-	carets                map[string]int    // where the caret was in each chapter, as it was left
-	unsummarized          []string          // the chapters before without a summary, as a draft opens
-	recapped              int               // and how many before have one
-	recapStale            bool              // summaries were being written since the two were read
+	// changed, whether the prose of the chapter shown was saved since it
+	// opened.
+	changed  bool
+	day      string // the local date the count below was taken
+	dayStart int    // the book's count as that day began
+	goal     int    // a day's goal, or 0
+	goalText string // the goal as typed
+	goalOpen bool
+	offered  string            // the numbered title a new node's name began with
+	days     map[string]int    // what was written each day before, by local date
+	size     int               // the text's size, or 0 for the default
+	gists    map[string]string // a line on each chapter of the folder open
+	carets   map[string]int    // where the caret was in each chapter, as it was left
 	// The disk's text, changed outside while the node was open; lost, the
 	// node gone from the disk.
 	external  *workspace.Chapter
@@ -287,7 +280,6 @@ func (a *App) textMenu(m *menu) {
 func (a *App) openNode(id string) {
 	a.flush()
 	a.leaveCheck()
-	a.leaveChapter()
 	a.scanMarks()
 	w := &a.write
 	w.closing = nil // the question about saving was about the node shown
@@ -304,7 +296,7 @@ func (a *App) openNode(id string) {
 	}
 	w.node, w.ed, w.external, w.lost = id, nil, nil, false
 	w.outline, w.outlineSaved, w.outlinePrev = "", "", ""
-	w.sum, w.summary, w.summarySaved, w.changed = workspace.Summary{}, "", "", false
+	w.changed = false
 	w.current = 0
 	kept := w.parked[id]
 	delete(w.parked, id)
@@ -334,7 +326,6 @@ func (a *App) openNode(id string) {
 		if !kept.unsettled() {
 			w.stamp = ch.Stamp
 		}
-		a.loadSummary(id)
 	default:
 		// Not open before, or changed on the disk while its tab was not
 		// shown: read anew.
@@ -343,7 +334,6 @@ func (a *App) openNode(id string) {
 			w.ed.MoveTo(at, false)
 		}
 		w.saved, w.savedVer, w.stamp = ch.Text, w.ed.Doc.Version(), ch.Stamp
-		a.loadSummary(id)
 		if strings.TrimSpace(ch.Text) != "" {
 			_, err = a.Store.TakeSnapshot(id, workspace.SnapOpen, ch.Text, ch.Marks)
 			a.warn(err)
@@ -383,8 +373,9 @@ func (a *App) stepHistory(forward bool) {
 }
 
 // gistsIn reads a line on each chapter in a folder: the start of its
-// outline, else of its summary, so the folder reads as a plan.
+// outline, else of its prose, so the folder reads as a plan.
 func (a *App) gistsIn(n *workspace.Node) map[string]string {
+	const gistLen = 200
 	gists := map[string]string{}
 	for _, child := range n.Children {
 		if child.Folder {
@@ -396,9 +387,11 @@ func (a *App) gistsIn(n *workspace.Node) map[string]string {
 		}
 		gist := ch.Outline
 		if strings.TrimSpace(gist) == "" {
-			if s, err := a.Store.ReadSummary(child.ID); err == nil {
-				gist = s.Text
-			}
+			gist = ch.Text
+		}
+		// Two lines show of it at most.
+		if r := []rune(gist); len(r) > gistLen {
+			gist = string(r[:gistLen])
 		}
 		if gist = strings.Join(strings.Fields(gist), " "); gist != "" {
 			gists[child.ID] = gist
@@ -417,14 +410,13 @@ func (a *App) flush() {
 	a.keepCaret()
 	a.warn(a.saveText())
 	a.warn(a.saveOutline())
-	a.warn(a.saveSummary())
 }
 
 // saveNow is Ctrl+S: what the page shows goes to the disk now, though it
 // would anyway as the author pauses. What the AI writes is not in the text
 // until taken, so nothing waits for it.
 func (a *App) saveNow() {
-	for _, err := range []error{a.saveText(), a.saveOutline(), a.saveSummary()} {
+	for _, err := range []error{a.saveText(), a.saveOutline()} {
 		if err != nil {
 			a.warn(err)
 			return
@@ -1181,8 +1173,8 @@ func (a *App) chapterView(c *ui.Context) {
 			}
 		})
 	}
-	// The chapter's title, then its outline and summary side by side, each
-	// opening under the two. Keyed, as the bars over it come and go.
+	// The chapter's title, then its outline, opening under it. Keyed, as
+	// the bars over it come and go.
 	overProse(c.Key("head"), 24, 6, func() {
 		ui.Column(c).FillWidth().Gap(8).Children(func() {
 			ui.Text(c, heading(a.shownTitle())).FontSize(fsTitle).FontWeight(700).SingleLine().Ellipsis("…")
@@ -1190,24 +1182,13 @@ func (a *App) chapterView(c *ui.Context) {
 			if strings.TrimSpace(w.outline) == "" {
 				label = "章纲 · 空"
 			}
-			sum := a.summaryShown()
-			var outline, summary ui.CollapsibleParts
+			var outline ui.CollapsibleParts
 			ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
 				outline = a.disclosure(c, label, &w.outlineOpen)
-				if sum {
-					label, _, warn := a.summaryState()
-					summary = a.disclosure(c, label, &w.summaryOpen)
-					if warn != "" {
-						summary.Trigger.Tooltip(warn)
-					}
-				}
 			})
 			outline.Panel(func() {
 				ui.Box(c).FillWidth().Padding(2, 0, 4, 0).Children(func() { a.outlineBox(c, "章纲", 96) })
 			})
-			if sum {
-				summary.Panel(func() { a.summaryPanel(c) })
-			}
 		})
 	})
 	a.aiBar(c)

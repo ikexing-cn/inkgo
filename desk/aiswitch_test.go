@@ -106,8 +106,12 @@ func (s *spy) Pen(st *workspace.Store) (aiport.Pen, error) {
 
 const aiProse = "整条街的灯是同时灭的。\n林婉站在巷口，手电在工具箱最底下。\n"
 
+// oldSummary is a chapter's summary as versions before wrote them.
+const oldSummary = `{"text":"灯灭了，林婉走进巷子。","by":"deepseek/deepseek-flash"}`
+
 // aiWork is a work the AI has been at, in root/work: a chapter it drafted,
-// with the snapshot from before, its summary and its check; a talk, which
+// with the snapshot from before, its check and a summary an older version
+// wrote; a talk, which
 // noted the setting and an entry it suggests. Of the author: an
 // entry, and a foreshadowing whose sentence is gone, which waits on them.
 // Neither the prose nor the names of the work and the chapter tell of the
@@ -134,7 +138,7 @@ func aiWork(t *testing.T) (root, chapter string) {
 	must(err)
 	must(s.SnapshotForAI(chapter, "", nil, workspace.AIRecord{Op: workspace.AIDraft, Instruction: "约 800 字", Model: "deepseek/deepseek-flash"}))
 	hash, words := workspace.ProseHash(aiProse), workspace.Count(aiProse)
-	must(s.WriteSummary(chapter, workspace.Summary{Text: "灯灭了，林婉走进巷子。", Of: hash, Words: words, By: "deepseek/deepseek-flash", At: time.Now()}))
+	must(os.WriteFile(filepath.Join(root, "work", "chapters", "停电.summary.json"), []byte(oldSummary), 0o644))
 	must(s.WriteCheck(chapter, workspace.Check{Of: hash, Words: words, By: "deepseek/deepseek-flash", At: time.Now(), Findings: []workspace.Finding{
 		{ID: workspace.NewID(), Kind: workspace.FindName, Title: "「林婉」是不是「林晚」写错了？", Quote: "林婉", Name: "林晚"},
 	}}))
@@ -333,7 +337,7 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 	look("the snapshots")
 	shut(tt, &w.snapsOpen)
 
-	// The chapter changed and left: no summary, no check.
+	// The chapter changed and left: no check.
 	w.ed.Focus()
 	tt.Frame()
 	tt.Frame()
@@ -346,8 +350,8 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	look("the categories")
-	if len(a.sums.queue) > 0 || a.sums.running != "" || len(a.ck.queue) > 0 || a.ck.running != "" {
-		t.Error("a chapter left with the AI off is to be summed up or checked")
+	if len(a.ck.queue) > 0 || a.ck.running != "" {
+		t.Error("a chapter left with the AI off is to be checked")
 	}
 	a.closeWork()
 	tt.Frame()
@@ -375,10 +379,10 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer s.Close()
-	sum, _ := s.ReadSummary(chapter)
+	sum, _ := os.ReadFile(filepath.Join(root, "work", "chapters", "停电.summary.json"))
 	check, _ := s.ReadCheck(chapter)
-	if sum.Text == "" || len(check.Findings) != 1 {
-		t.Errorf("what the AI left went with it: %+v %+v", sum, check)
+	if string(sum) != oldSummary || len(check.Findings) != 1 {
+		t.Errorf("what the AI left went with it: %q %+v", sum, check)
 	}
 }
 

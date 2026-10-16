@@ -41,7 +41,7 @@ Status: proposed
 
 改写预先带上本章的章纲、卷纲和本章全文，引文在其中。
 
-不再有「前情提要」，见[去掉章节摘要](../simplification/2026-10-16-no-chapter-summaries.md)。
+不再有「前情提要」，见[去掉章节摘要](../../implemented/simplification/2026-10-16-no-chapter-summaries.md)。
 
 ### 讨论的工具
 

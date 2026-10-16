@@ -976,13 +976,11 @@ func TestWritingSwitchesKeepAsTicked(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	for _, label := range []string{"停笔后自动续写", "章节修改后更新摘要"} {
-		if err := tt.Click(label); err != nil {
-			t.Fatal(err, tt.Texts())
-		}
-		tt.Frame()
+	if err := tt.Click("停笔后自动续写"); err != nil {
+		t.Fatal(err, tt.Texts())
 	}
-	if p := savedPrefs(t, a); !p.AutoPredict || !p.NoAutoSummary {
+	tt.Frame()
+	if p := savedPrefs(t, a); !p.AutoPredict {
 		t.Fatalf("prefs %+v", p)
 	}
 }
@@ -1223,7 +1221,7 @@ func TestCountTheSelection(t *testing.T) {
 }
 
 // A folder lists each chapter with the start of its outline, or of its
-// summary when it has no outline.
+// prose when it has no outline.
 func TestFolderShowsTheGists(t *testing.T) {
 	a, tt, _ := writingFixture(t, "一")
 	vol, err := a.Store.NewChapter("", "第一卷", true)
@@ -1231,11 +1229,11 @@ func TestFolderShowsTheGists(t *testing.T) {
 		t.Fatal(err)
 	}
 	planned, _ := a.Store.NewChapter(vol, "第二章", false)
-	summed, _ := a.Store.NewChapter(vol, "第三章", false)
+	written, _ := a.Store.NewChapter(vol, "第三章", false)
 	if err = a.Store.WriteOutline(planned, "她找到\n井底的钥匙"); err != nil {
 		t.Fatal(err)
 	}
-	if err = a.Store.WriteSummary(summed, workspace.Summary{Text: "老周说出旧事。", Of: workspace.ProseHash(""), At: time.Now()}); err != nil {
+	if _, err = a.Store.WriteChapter(written, "老周说出旧事。"+strings.Repeat("雨", 300), nil); err != nil {
 		t.Fatal(err)
 	}
 	if err = a.loadTree(); err != nil {
@@ -1243,8 +1241,34 @@ func TestFolderShowsTheGists(t *testing.T) {
 	}
 	a.openNode(vol)
 	tt.Frame()
-	if !tt.HasText("她找到 井底的钥匙") || !tt.HasText("老周说出旧事。") {
+	if !tt.HasText("她找到 井底的钥匙") || !tt.HasText("老周说出旧事。"+strings.Repeat("雨", 193)) {
 		t.Fatal(tt.Texts())
+	}
+}
+
+// A chapter changed and left asks the AI nothing when it is checked only
+// on demand: there is no summary to write.
+func TestLeavingAChangedChapterAsksNothing(t *testing.T) {
+	a, tt, _ := writingFixture(t, strings.Repeat("她蹲下去拧开灯座。", 60))
+	f := &stream{pieces: []string{"不该有人问。"}}
+	penWith(a, f)
+	a.ck.when = checkOnDemand
+	two, err := a.Store.NewChapter("", "第二章", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.setError(a.loadTree())
+	a.write.ed.MoveTo(a.write.ed.Doc.Len(), false)
+	a.write.ed.Insert("她推开门。")
+	a.openNode(two)
+	for i := 0; i < 5; i++ {
+		time.Sleep(10 * time.Millisecond)
+		tt.Frame()
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if len(f.asked) > 0 {
+		t.Fatalf("leaving asked the AI %d times", len(f.asked))
 	}
 }
 

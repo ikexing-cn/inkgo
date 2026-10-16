@@ -47,6 +47,8 @@ Status: implemented
 | 不发送的 | `Unsummarized`、`MinSummary`、`MinCheck` | `writing.Unsummarized`、`writing.MinSummary`、`writing.MinCheck`（`summary.go`、`check.go`、`ai.go`） |
 | 开关 | `SetOn` | 没有 |
 
+2026-10-16 起 `Summarize`、`Unsummarized`、`MinSummary` 随章节摘要删了，见[去掉章节摘要](../simplification/2026-10-16-no-chapter-summaries.md)。
+
 `Catalog`、`Talk`、`Book`、`Pen` 都分两段：先在界面的线程上按作品现在的设置建好，配置上的错（没选模型、没有 key）马上报；再在后台发送。
 
 过界的小结构四个：

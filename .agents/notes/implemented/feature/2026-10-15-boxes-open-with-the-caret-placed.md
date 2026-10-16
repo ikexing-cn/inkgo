@@ -2,7 +2,7 @@
 
 Status: implemented
 
-取代 [章节摘要](2026-10-09-chapter-summaries.md) 里「新建时标题框留空、用灰色占位字」那条，和 [写作页与章节](2026-10-08-writing-page-and-chapters.md) 里「重命名时还不能把名字全选上」那条：两条的前提「mygo 的输入框没有全选的接口」不对。
+取代 [章节摘要](../../archived/feature/2026-10-09-chapter-summaries.md) 里「新建时标题框留空、用灰色占位字」那条，和 [写作页与章节](2026-10-08-writing-page-and-chapters.md) 里「重命名时还不能把名字全选上」那条：两条的前提「mygo 的输入框没有全选的接口」不对。
 
 ## Problem
 

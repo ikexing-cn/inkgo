@@ -288,9 +288,6 @@ func (a *App) openDraft() {
 	a.flush()
 	w.draftOpen, w.words = true, ""
 	w.draftMode = draftAppend
-	missing, have, err := a.ai.Unsummarized(a.Store, w.node)
-	a.warn(err)
-	w.unsummarized, w.recapped = missing, have
 }
 
 const (
@@ -474,7 +471,6 @@ func (a *App) draftView(c *ui.Context) {
 					dots(c, &w.draftMode, "已有内容的处理方式", modes, modes)
 				})
 			}
-			a.recapNote(c)
 			if pw := w.pen.Load(); pw != nil {
 				ui.Textf(c, "用 %s · %s；可在设置中「AI」配置里更换。", a.serviceModel((*pw).Name()), a.ai.EffortLabel((*pw).Effort())).FontSize(fsNote).TextColor(t.TextMuted)
 			}

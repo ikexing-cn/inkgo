@@ -5,7 +5,6 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -28,7 +27,6 @@ func checkFixture(t *testing.T) (*App, *ui.Tester, string, *stream) {
 	t.Helper()
 	a, tt, id := writingFixture(t, checkProse+strings.Repeat("她蹲下去拧开灯座。", 30))
 	a.revise(workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "主角靠维修路灯谋生，但她很怕黑。她宁可绕路，沿着亮着的灯走回家。", Names: []string{"林晚"}})
-	a.write.autoSummary = false // the summaries ask the same model
 	f := &stream{pieces: []string{checkAnswer}}
 	penWith(a, f)
 	tt.Frame()
@@ -297,11 +295,10 @@ func TestShotCheck(t *testing.T) {
 }
 
 // A chapter too long for the model to be given whole is not said to be
-// checked, nor its summary to be of the chapter: both say how much was read.
+// checked: the check says how much was read.
 func TestAChapterReadInPartIsToldSo(t *testing.T) {
 	a, tt, id := writingFixture(t, strings.Repeat("她蹲下去拧开灯座。", 4000))
 	a.revise(workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "主角靠维修路灯谋生，但她很怕黑。", Names: []string{"林晚"}})
-	a.write.autoSummary = false
 	f := &stream{pieces: []string{`{"findings":[]}`}}
 	penWithin(a, f, model.Model{ID: "small", Window: 20000, Output: 4000, CompactAt: 80})
 	tt.Frame()
@@ -318,18 +315,6 @@ func TestAChapterReadInPartIsToldSo(t *testing.T) {
 		t.Fatal(want, tt.Texts())
 	}
 
-	f.pieces = []string{"林晚修了一夜的灯。"}
-	a.queueSummary(id)
-	until(t, tt, "the summary", func() bool { return a.write.sum.By != "" })
-	a.write.summaryOpen = true
-	tt.Frame()
-	tt.Frame()
-	if want := fmt.Sprintf(" · 仅依据前 %d 字", a.write.sum.Read); a.write.sum.Read <= 0 || !tt.HasText("本章摘要 · 不完整") || !slices.ContainsFunc(tt.Texts(), func(s string) bool { return strings.HasSuffix(s, want) }) {
-		t.Fatal(want, tt.Texts())
-	}
-	if label, _, warn := a.summaryState(); label != "本章摘要 · 不完整" || warn != partNote {
-		t.Fatal(label, warn)
-	}
 }
 
 // The page of prose opens on a chapter before its text is read: that is

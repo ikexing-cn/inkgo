@@ -184,7 +184,7 @@ func TestTalkSeesTheSettingAndTheTurns(t *testing.T) {
 			t.Fatal("an entry ID reached the model")
 		}
 	}
-	if len(req.Messages) != 13 || req.Messages[0].Content != users[0] || len(req.Tools) != 6 || req.NoCalls {
+	if len(req.Messages) != 13 || req.Messages[0].Content != users[0] || len(req.Tools) != 5 || req.NoCalls {
 		t.Fatalf("messages %+v", req.Messages)
 	}
 	events, err := e.Store.Events(session)

@@ -97,7 +97,7 @@ const (
 	PartIndex   = "index"  // the setting as an index, too big to send whole
 	PartDigest  = "digest" // of the talk compacted
 	PartOutline = "outline"
-	PartRecap   = "recap"  // the summaries of the chapters before
+	PartRecap   = "recap"  // the summaries of the chapters before, which drafts sent while there were any
 	PartLooked  = "looked" // what the tools a reply called returned
 	PartTalk    = "talk"
 	PartProse   = "prose"

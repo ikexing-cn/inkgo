@@ -460,12 +460,14 @@ func (s *Store) usedIDs(t Tree) (map[string]bool, error) {
 	return used, nil
 }
 
-// companions are the files of n beside its own, which move with it.
+// companions are the files of n beside its own, which move with it. A
+// .summary.json an older version wrote is not among them: it stays where
+// it was.
 func companions(n *Node) []string {
 	if n.Folder {
 		return []string{"", outlineExt}
 	}
-	return []string{textExt, outlineExt, marksExt, summaryExt, checkExt}
+	return []string{textExt, outlineExt, marksExt, checkExt}
 }
 
 // rename moves a file; a test makes it fail.

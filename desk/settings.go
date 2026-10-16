@@ -201,10 +201,6 @@ func (a *App) writingSwitches(c *ui.Context) {
 			a.savePrefs() // kept as ticked, not with the models above
 		}
 		a.tickNote(c, "开启后每次停笔都会调用一次 AI。")
-		if ui.Checkbox(c, &a.write.autoSummary, "章节修改后更新摘要").Disabled(busy).Changed() {
-			a.savePrefs() // kept as ticked, not with the models above
-		}
-		a.tickNote(c, "手动填写的摘要不会被覆盖。")
 	})
 }
 
@@ -383,11 +379,7 @@ func (a *App) saveUsage() error {
 			return nil
 		}
 	}
-	err := a.Store.SaveWork(w)
-	if err == nil {
-		clear(a.sums.failed) // what failed for want of a model may work now
-	}
-	return err
+	return a.Store.SaveWork(w)
 }
 
 // providerForm edits the service open in the list, or a new one, under

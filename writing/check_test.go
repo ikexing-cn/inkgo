@@ -100,13 +100,16 @@ func TestCheckAChapterAgainstTheSetting(t *testing.T) {
 	if _, err = w.Check(context.Background(), two); err == nil {
 		t.Fatal("took prose for an answer")
 	}
-	if _, err = w.Check(context.Background(), earlierID(t, w, two)); err == nil {
+	tree, _ := s.Chapters()
+	node, _ := tree.Node(two)
+	one, _ := previous(tree, node)
+	if _, err = w.Check(context.Background(), one.ID); err == nil {
 		t.Fatal("checked a chapter too short")
 	}
 }
 
-// A chapter too long to give whole is checked and summarized from its
-// start, and what is kept says how much of it that was.
+// A chapter too long to give whole is checked from its start, and what
+// is kept says how much of it that was.
 func TestAChapterReadInPartSaysSo(t *testing.T) {
 	f := &fake{}
 	w, two, _ := book(t, f)
@@ -139,21 +142,6 @@ func TestAChapterReadInPartSaysSo(t *testing.T) {
 		t.Fatalf("kept %+v, %v", kept.Read, err)
 	}
 
-	f.pieces = []string{"林晚修了一夜的灯。"}
-	sum, err := w.Summarize(context.Background(), two)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if sum.Read <= 0 || sum.Read >= sum.Words {
-		t.Fatalf("summarized %d of %d", sum.Read, sum.Words)
-	}
-	if err = s.WriteSummary(two, sum); err != nil {
-		t.Fatal(err)
-	}
-	if kept, err := s.ReadSummary(two); err != nil || kept.Read != sum.Read {
-		t.Fatalf("kept %+v, %v", kept.Read, err)
-	}
-
 	// One that fits is read whole.
 	short := strings.Repeat("她蹲下去拧开灯座。", 30)
 	if _, err = s.WriteChapter(two, short, nil); err != nil {
@@ -162,9 +150,5 @@ func TestAChapterReadInPartSaysSo(t *testing.T) {
 	f.pieces = []string{`{"findings":[]}`}
 	if got, err = w.Check(context.Background(), two); err != nil || got.Read != 0 {
 		t.Fatalf("read %d, %v", got.Read, err)
-	}
-	f.pieces = []string{"林晚修了一夜的灯。"}
-	if sum, err = w.Summarize(context.Background(), two); err != nil || sum.Read != 0 {
-		t.Fatalf("summarized %d, %v", sum.Read, err)
 	}
 }

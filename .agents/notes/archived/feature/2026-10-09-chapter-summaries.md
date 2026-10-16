@@ -1,6 +1,7 @@
 # Agent Note: 章节摘要与起草时的前情提要
 
 Status: implemented
+Archived: 2026-10-16
 
 ## Problem
 

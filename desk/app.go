@@ -112,7 +112,6 @@ type App struct {
 	shelf             shelf.Shelf
 	bk                backupView
 	books             shelfView
-	sums              summaries
 	ck                checks
 	session           string
 	sessions          []string
@@ -198,7 +197,6 @@ func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 		a.keepUnsettled()
 		a.remember(false)
 		a.backupNow()
-		a.stopSummaries()
 		a.stopChecks()
 		a.Store.Close()
 	}
@@ -238,7 +236,6 @@ func (a *App) closeWork() {
 	a.keepUnsettled()
 	a.remember(false)
 	a.backupNow()
-	a.stopSummaries()
 	a.stopChecks()
 	a.setError(a.Store.Close())
 	a.Store = nil

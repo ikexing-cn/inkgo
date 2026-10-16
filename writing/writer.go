@@ -85,7 +85,7 @@ func (w *Writer) prepare(op, task string, scene Scene, tail string) (Job, error)
 	// The parts of the message, in the order it reads; each says what it
 	// shows for the record.
 	type part struct{ heading, text, shown string }
-	var volume, recap, outline, prev, near, far part
+	var volume, outline, prev, near, far part
 	take := func(p *part, kind, heading, text, shown string) {
 		*p = part{heading, text, shown}
 		b.Must(kind, heading+text)
@@ -130,22 +130,6 @@ func (w *Writer) prepare(op, task string, scene Scene, tail string) (Job, error)
 	}
 	system := rules + "\n\n" + prompt.Render(work, set, writePlaces, shown, prompt.Whole) + "\n\n" + task
 
-	// What the chapters before told, for a draft, which sees no more of
-	// them than the previous one's end.
-	if op == workspace.AIDraft {
-		text, chapters, stale, err := w.recap(tree, n, b.Left()-previousCap/2)
-		if err != nil {
-			return job, err
-		}
-		if chapters > 0 {
-			shown := fmt.Sprintf("前情提要 %d 章", chapters)
-			if stale > 0 {
-				shown += fmt.Sprintf("（其中 %d 章正文改过，摘要可能过时）", stale)
-			}
-			take(&recap, workspace.PartRecap, "【前情提要】（前面各章的摘要，按顺序）", text, shown)
-		}
-	}
-
 	// The previous chapter's end, while this one has little before.
 	if p, ok := previous(tree, n); ok && len([]rune(scene.Before)) < beforeCap {
 		if pc, err := w.Store.ReadChapter(p.ID); err == nil {
@@ -155,7 +139,7 @@ func (w *Writer) prepare(op, task string, scene Scene, tail string) (Job, error)
 		}
 	}
 	var parts []string
-	for _, p := range []part{volume, recap, outline, prev, near, {text: tail}, far} {
+	for _, p := range []part{volume, outline, prev, near, {text: tail}, far} {
 		switch {
 		case p.heading == "" && p.text == "":
 		case p.heading == "":
