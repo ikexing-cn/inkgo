@@ -148,7 +148,9 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   // An entry that changes from a chapter on: the list says from where beside it, the entry lists each change in the order of the
   // chapters, the one that holds for the chapter open is marked, and one whose chapter is in the trash holds nowhere.
   await pane('之后有变化'); await click('第87章：停电'); await pane('第87章起'); await click('周祥'); await pane('随章节的变化'); await pane('本章适用'); await pane('所在章节已删除 · 不起作用'); await shot('09b-timeline')
-  await click('修改', 1); await pane('周祥 · 第87章起'); await pane('删除这处变化'); await click('取消')
+  await click('修改', 1); await pane('周祥 · 第87章起'); await pane('删除这处变化')
+  // A change may start at a volume as well as a chapter: the volumes are among the chapters it may start from.
+  await js(`document.querySelector('#pane [aria-label="从哪一章起"]').click()`); must(await js(`[...document.querySelectorAll('.choose-menu .pop-row')].map((r) => r.innerText).join('|').includes('第三卷：停电|第84章：刻字')`), 'a change cannot start at a volume'); await key('Escape'); await click('取消')
   await click('第86章：档案室'); await pane('本章适用上面原来的样子。'); must(!(await js(`!!document.querySelector('#pane .tag')`)), 'a change holds before its chapter'); await click('从本章起有变化'); await pane('周祥 · 第86章起')
   { const was = await js(`document.querySelector('[aria-label="变化后的内容"]').value`); must(was.includes('左手总揣在兜里') && !was.includes('改口'), 'a new change does not start from how the entry stood before: ' + was) }; await shot('09c-change')
   await clear('变化后的内容'); await type('变化后的内容', '配角，林晚的同事。在档案室外替她望风。'); await click('保存'); await pane('在档案室外替她望风'); must(await js(`!!document.querySelector('#pane .tag')`), 'the change of the chapter open is not marked as holding'); await pane('从本章起有变化', false)
@@ -341,7 +343,10 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('取消请求'); await win('该消息尚未收到回复'); await win('以上 4 轮已整理成摘要'); await done('a long talk')
   { const [x, y] = await row('主角有个说不出口的秘密'); await rclick(x, y); await click('收起这段对话'); await win('已收起 1 段对话'); await win('主角有个说不出口的秘密', false); await click('已收起 1 段对话'); await win('不显示收起的对话') }
   { const [x, y] = await row('主角有个说不出口的秘密'); await rclick(x, y); await click('移回列表'); await win('不显示收起的对话', false); await win('主角有个说不出口的秘密'); await done('a talk put away and back') }
-  await click('小祥和林晚是怎么认识的'); await win('2 条发言'); await win('268 token', false); await win('昨天 22:11 · claude-opus-5-5 · 28.3K token'); await win('昨天 22:10'); await click('AI 参考内容'); await win('本次发送约 9.6K token'); await win('这一轮共 3 次请求，这是最后一次。'); await win('规则 1.1K · 设定 12 条 3.1K'); await win('实际用量：输入 9.9K，其中缓存命中 9.3K；输出 268'); await win('附带全部 12 条设定'); await win('林晚、晚晚、林林宝：主角，靠维修路灯谋生，但她很怕黑。'); await win('已放弃：老陈：电力局的门卫，早先想让他知道井的事。后来这条线并给了周祥。'); await shot('58c-sent'); await done('what was sent')
+  await click('小祥和林晚是怎么认识的'); await win('2 条发言'); await win('268 token', false); await win('昨天 22:11 · claude-opus-5-5 · 28.3K token'); await win('昨天 22:10'); await click('AI 参考内容'); await win('本次发送约 9.6K token'); await win('这一轮共 3 次请求，这是最后一次。'); await win('规则 1.1K · 设定 12 条 3.1K'); await win('实际用量：输入 9.9K，其中缓存命中 9.3K；输出 268'); await win('附带全部 12 条设定'); await win('林晚、晚晚、林林宝：主角，靠维修路灯谋生，但她很怕黑。'); await win('已放弃：老陈：电力局的门卫，早先想让他知道井的事。后来这条线并给了周祥。')
+  // An entry that changes is sent as it first read, each change under it: the last is not said twice, and what held before is not lost.
+  must(await js(`(() => { const r = [...document.querySelectorAll('.saw-row')].find((x) => x.innerText.includes('周祥、小祥')); return !!r && !r.querySelector('.fit > div').innerText.includes('改口') && r.innerText.includes('第87章起：') && r.innerText.includes('改口') })()`), 'a talk is not sent how an entry first read, with its changes under it')
+  await shot('58c-sent'); await done('what was sent')
   await click('查了设定「周祥」，搜了全书「小祥」，记下：待确认 · 人物：“小祥”是顺口的叫法，谁都能喊。'); await win('5 处，在「第1章：巷口」'); await click('查看设定'); await pane('“小祥”是顺口的叫法，谁都能喊'); await click('全部设定'); await done('what the AI looked at')
   await click('复制全文'); await win('已复制'); must((await toastMark('已复制')).includes('green'), 'what was done has no tick'); await click('关闭提示')
   await win('设定里只写了他是她带出来的徒弟', true); await click('摘取原文', 1); await win('拖选一段原文，作为已确定的设定加入正文。原文不会被修改。'); await win('尚未选中文字'); await click('收起原文'); await win('尚未选中文字', false); await click('摘取原文', 1)
@@ -626,6 +631,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   must(await js(`S.tab`) === '讨论', 'with AI off the pane forgot it was on the talk, to go back to when AI is on')
   await noAI('the page of prose'); await shot('99h-ai-off-prose')
   await click('伏笔'); await noAI('the foreshadowings'); await click('设定'); await click('更多'); await click('修改记录'); await win('手动修改'); await win('查看讨论', false); await noAI('the change log'); await click('全部设定')
+  await click('周祥'); await click('修改', 1); await pane('从这一章起，这一条就是下面这段话。'); await noAI('the form of a change'); await click('取消'); await click('全部设定')
   for (const name of ['文件', '编辑', '视图', '帮助']) { await click(name); await noAI('the menu ' + name); await key('Escape') }
   await menu(0, '整条街的灯'); await noAI('the menu of the prose'); await key('Escape')
   await pick(1, '手电在工具箱最底下'); must(await js(`document.querySelector('.selbar').innerText.trim()`) === '加入设定', 'with AI off the bar over picked words offers more than 加入设定'); await key('Escape')

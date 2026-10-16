@@ -28,6 +28,12 @@ func (t *toolbox) describe(in input) string {
 			return "移到" + placeLabels[in.Place] + "：" + clip(e.Text, 24)
 		}
 		return "改归" + in.Category + "：" + clip(e.Text, 24)
+	case workspace.OpChange:
+		chapter := strings.TrimSpace(in.Chapter)
+		if b, err := t.book(); err == nil {
+			chapter = b.named(chapter)
+		}
+		return placeLabels[in.Place] + " · 「" + chapter + "」起：" + text
 	}
 	return in.Op
 }
@@ -54,6 +60,9 @@ func (t *toolbox) entry(n int) (workspace.Entry, bool) {
 //  5. Names are given only to entries of NameCategories, each is said in
 //     the entry or the talk, and is no other entry's. The name op only adds
 //     names after an entry's, so needs none of the author's words.
+//  6. A change from a chapter on is of a settled entry, and holds on the
+//     author's words; the AI's waits on the author. One that holds from
+//     where one holds already takes its words.
 //
 // What breaks a rule is told to the model, which may try again.
 func (t *toolbox) note(in input) outcome {
@@ -171,6 +180,38 @@ func (t *toolbox) note(in input) outcome {
 		if in.Op != workspace.OpName && (e.Place != workspace.PlaceOpen || e.Author || in.Place == workspace.PlaceBody || in.Place == workspace.PlaceDropped) {
 			settled()
 		}
+	case workspace.OpChange:
+		if in.Entry < 1 || in.Entry > len(set.Entries) {
+			bad = append(bad, fmt.Sprintf("设定里没有编号 %d 的条目", in.Entry))
+			break
+		}
+		e = set.Entries[in.Entry-1]
+		out.Entry = e.ID
+		if e.Place != workspace.PlaceBody {
+			bad = append(bad, "change 只给设定正文里的条目记变化")
+		}
+		if out.Text == "" || in.Category != "" || len(in.Sources) == 0 || in.Place != workspace.PlaceBody && in.Place != workspace.PlaceOpen {
+			bad = append(bad, "change 要有 chapter、place（body 或 open）、text 和 sources，不带 category")
+		}
+		b, err := t.book()
+		if err != nil {
+			return failed("读不出章节：%v", err)
+		}
+		if strings.TrimSpace(in.Chapter) == "" {
+			bad = append(bad, "change 要写从哪一章起（chapter）")
+		} else if n, missing := b.find(in.Chapter); n == nil {
+			bad = append(bad, strings.TrimSuffix(missing, "。"))
+		} else {
+			out.From = n.ID
+		}
+		if in.Place == workspace.PlaceBody {
+			if !fromAuthor {
+				settled()
+			}
+			if k := slices.IndexFunc(e.Changes, func(g workspace.Change) bool { return g.Place == workspace.PlaceBody && g.From == out.From }); k >= 0 {
+				out = workspace.Op{Op: workspace.OpEditChange, Entry: e.ID, Change: e.Changes[k].ID, Text: out.Text, Sources: out.Sources}
+			}
+		}
 	default:
 		bad = append(bad, fmt.Sprintf("没有 %q 这个操作", in.Op))
 	}
@@ -183,8 +224,8 @@ func (t *toolbox) note(in input) outcome {
 			text = e.Text
 		}
 		switch {
-		case in.Op == workspace.OpMove:
-			bad = append(bad, "move 不带 names")
+		case in.Op == workspace.OpMove || in.Op == workspace.OpChange:
+			bad = append(bad, in.Op+" 不带 names")
 		case !slices.Contains(workspace.NameCategories, category):
 			bad = append(bad, fmt.Sprintf("只有%s分类的条目带 names", strings.Join(workspace.NameCategories, "、")))
 		default:

@@ -123,6 +123,9 @@ type ContextItem struct {
 	ID     string `json:"id"`
 	Text   string `json:"text"`
 	Reason string `json:"reason"`
+	// Changes are how the entry reads from chapters on, as the request
+	// said them after it.
+	Changes []string `json:"changes,omitempty"`
 }
 
 // Event is a message of a session. A reply that called tools has, before
@@ -255,8 +258,26 @@ type Entry struct {
 	// Asked is the question of the AI's that the entry answers: the
 	// author's answer took the question's place.
 	Asked string `json:"asked,omitempty"`
+	// Changes are how the entry reads from chapters on, in the order they
+	// were noted.
+	Changes []Change `json:"changes,omitempty"`
 	// Rev is the number of the last revision that changed it, from 1.
 	Rev int `json:"-"`
+}
+
+// Change is how an entry reads from a chapter on: all of it from then,
+// not a line added. From is the node it starts at, a chapter, or a folder
+// from its first chapter on; while that node is not in the tree, in the
+// trash or gone, the change does not hold.
+type Change struct {
+	ID   string `json:"id"`
+	From string `json:"from"`
+	// Place is PlaceBody for a change that holds, PlaceOpen for the AI's
+	// waiting on the author, and PlaceDropped for one refused or deleted.
+	Place   string   `json:"place"`
+	Text    string   `json:"text"`
+	Sources []Source `json:"sources,omitempty"`
+	Author  bool     `json:"author,omitempty"`
 }
 
 // Ops a revision applies.
@@ -269,6 +290,15 @@ const (
 	// something: Entry becomes the answer, Text, of Category and Names,
 	// settled, the question kept as its Asked.
 	OpAnswer = "answer"
+	// OpChange adds Change to Entry, a settled one: from the node From on,
+	// Entry reads Text; Place is body, or open for the AI's to wait on the
+	// author.
+	OpChange = "change"
+	// OpEditChange changes Change of Entry: its From, its Text, or, as the
+	// author takes an open one, its Place to body; Sources are added.
+	OpEditChange = "edit_change"
+	// OpDropChange drops Change of Entry: deleted, or the AI's refused.
+	OpDropChange = "drop_change"
 )
 
 // NameCategories are the categories whose entries name something: a
@@ -309,6 +339,8 @@ func validNames(names []string) error {
 type Op struct {
 	Op       string   `json:"op"`
 	Entry    string   `json:"entry"`
+	Change   string   `json:"change,omitempty"`
+	From     string   `json:"from,omitempty"`
 	Place    string   `json:"place,omitempty"`
 	Category string   `json:"category,omitempty"`
 	Text     string   `json:"text,omitempty"`

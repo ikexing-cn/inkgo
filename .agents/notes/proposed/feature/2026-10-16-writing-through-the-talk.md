@@ -35,7 +35,7 @@ Status: proposed
 - 前面各卷的卷纲；
 - 上一章全文。
 
-别的 AI 要用时自己查。设定按本章时的样子给（[设定可以从某一章起变](2026-10-16-setting-changes-from-a-chapter.md)）。
+别的 AI 要用时自己查。设定按本章时的样子给（[设定可以从某一章起变](../../implemented/feature/2026-10-16-setting-changes-from-a-chapter.md)）。
 
 起草对话框里写清楚带上什么、大约多少：「将带上上一章全文、本卷各章章纲等，约 1.2 万 token；AI 需要时会自己再查。」
 

@@ -31,12 +31,16 @@ func (e *Engine) compact(ctx context.Context, session string, before int, input 
 	if err != nil {
 		return err
 	}
-	probe, err := Assemble(w, math.MaxInt32, set, events, input, e.Beside)
+	tree, err := e.Store.Chapters()
+	if err != nil {
+		return err
+	}
+	probe, err := Assemble(w, math.MaxInt32, set, tree, events, input, e.Beside)
 	if err != nil {
 		return err
 	}
 	_, turns := uncompacted(events)
-	n := due(e.Talk.Model, probe.Sent, measured(events, probe.Sent), prompt.Estimate(talkIndex(w, set)), turns)
+	n := due(e.Talk.Model, probe.Sent, measured(events, probe.Sent), prompt.Estimate(talkIndex(w, set, tree)), turns)
 	if n == 0 {
 		return nil
 	}
@@ -47,7 +51,7 @@ func (e *Engine) compact(ctx context.Context, session string, before int, input 
 		if n == 0 {
 			return nil
 		}
-		asked, took, err := lay(w, e.Talk.Input(), set, talk{digest: digest.Text, turns: turns[:n], input: digestAsk, near: e.Beside != nil, oldest: true})
+		asked, took, err := lay(w, e.Talk.Input(), set, tree, talk{digest: digest.Text, turns: turns[:n], input: digestAsk, near: e.Beside != nil, oldest: true})
 		if err != nil {
 			return err
 		}

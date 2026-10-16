@@ -1,0 +1,171 @@
+package desk
+
+import (
+	"slices"
+	"testing"
+
+	"writer/workspace"
+)
+
+// On the writing page each entry of the setting reads as it does at the
+// chapter open, its row saying from where, or that it changes later; its
+// page lists how it changes from chapters on, marks the one the chapter
+// reads as, and notes, changes and deletes one. What the AI suggests
+// waits till the author takes it. A change whose chapter is in the trash
+// holds no more.
+func TestAnEntryChangesFromAChapter(t *testing.T) {
+	a, tt, ids := paneFixture(t)
+	one := a.write.node
+	node := func(title string) string {
+		id, err := a.Store.NewChapter("", title, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return id
+	}
+	two, three := node("第2章：井沿"), node("第3章：停电")
+	r, err := a.Store.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{
+		{Op: workspace.OpChange, Entry: ids.zhou, From: three, Place: workspace.PlaceBody, Text: "配角，左手的事说开了。"},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	later := r.Ops[0].Change
+	a.setError(a.loadTree())
+	a.setError(a.refresh())
+	tt.Frame()
+	has := func(why string, want ...string) {
+		t.Helper()
+		for _, s := range want {
+			if !tt.HasText(s) {
+				t.Fatalf("%s: no %q in %q", why, s, tt.Texts())
+			}
+		}
+	}
+	hasNot := func(why string, not ...string) {
+		t.Helper()
+		for _, s := range not {
+			if tt.HasText(s) {
+				t.Fatalf("%s: %q in %q", why, s, tt.Texts())
+			}
+		}
+	}
+	has("before the change", "之后有变化", "配角，林晚的同事。左手总揣在兜里，从来不拿出来。")
+	a.openNode(three)
+	tt.Frame()
+	has("at the change", "第3章起", "配角，左手的事说开了。")
+	hasNot("at the change", "之后有变化")
+
+	if err = tt.Click("设定-" + ids.zhou); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	has("the page", "配角，林晚的同事。左手总揣在兜里，从来不拿出来。", "随章节的变化", "第3章起", "本章适用")
+	hasNot("the page", "从本章起有变化")
+
+	// From a chapter before, a change starts from how the entry reads
+	// there.
+	a.openNode(two)
+	tt.Frame()
+	has("a chapter before", "本章适用上面原来的样子。", "从本章起有变化")
+	if slices.Contains(tt.Texts(), "本章适用") {
+		t.Fatal("a change holds before its chapter")
+	}
+	if err = tt.Click("从本章起有变化"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	has("the form", "周祥 · 第2章起", "从哪一章起", "从这一章起，这一条就是下面这段话；起草、改写这一章及以后的章时，AI 看到的是它。")
+	if a.doc.text != "配角，林晚的同事。左手总揣在兜里，从来不拿出来。" || a.doc.from != two {
+		t.Fatalf("the form starts at %q from %s", a.doc.text, a.doc.from)
+	}
+	hasNot("a new change", "删除这处变化")
+	a.doc.text = "配角，在井边等她。"
+	if err = tt.Click("保存"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	has("saved", "第2章起", "配角，在井边等她。", "本章适用", "第3章起")
+	e, _ := a.set.Entry(ids.zhou)
+	if len(e.Changes) != 2 || e.Changes[1].From != two || !e.Changes[1].Author {
+		t.Fatalf("%+v", e.Changes)
+	}
+	mine := e.Changes[1].ID
+
+	// The one from the third chapter, moved to the second, takes the place
+	// of the one there.
+	if err = tt.Click("修改变化-" + later); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	has("changing", "周祥 · 第3章起", "删除这处变化")
+	a.doc.from = two
+	if err = tt.Click("保存"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	e, _ = a.set.Entry(ids.zhou)
+	if hold := e.Holding(a.write.tree.Order()); len(hold) != 1 || hold[0].ID != later || hold[0].From != two || e.Changes[1].ID != mine || e.Changes[1].Place != workspace.PlaceDropped {
+		t.Fatalf("%+v", e.Changes)
+	}
+	if err = tt.Click("修改变化-" + later); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err = tt.Click("删除这处变化"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	has("deleted", "从本章起有变化")
+	hasNot("deleted", "随章节的变化", "配角，左手的事说开了。")
+
+	// What the AI suggests waits in what the author decides.
+	u, _ := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "第3章起他学会了修灯"})
+	r, err = a.Store.Revise(workspace.Revision{By: workspace.ByTalk, Session: a.session, Turn: u.ID, Ops: []workspace.Op{
+		{Op: workspace.OpChange, Entry: ids.zhou, From: three, Place: workspace.PlaceOpen, Text: "配角，学会了修灯。"},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	idea := r.Ops[0].Change
+	a.setError(a.refresh())
+	tt.Frame()
+	has("an idea on the page", "AI 建议", "第3章起", "配角，学会了修灯。")
+	hasNot("an idea on the page", "随章节的变化")
+	a.doc.shown, a.doc.todo = "", true
+	tt.Frame()
+	has("an idea waiting", "关于 周祥 · 第3章起", "配角，学会了修灯。")
+	if err = tt.Click("采纳-" + idea); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	e, _ = a.set.Entry(ids.zhou)
+	if g, ok := e.At(a.write.tree.Order(), three); !ok || g.ID != idea {
+		t.Fatalf("taken %+v", e.Changes)
+	}
+	if got := a.laterLines(e); !slices.Equal(got, []string{"第3章起：配角，学会了修灯。"}) {
+		t.Fatalf("exports %q", got)
+	}
+
+	// The chapter in the trash, the change holds no more; the history says
+	// what was done.
+	if err = a.Store.TrashChapter(three); err != nil {
+		t.Fatal(err)
+	}
+	a.setError(a.loadTree())
+	a.openNode(one)
+	a.doc.todo, a.doc.shown = false, ids.zhou
+	tt.Frame()
+	has("in the trash", "所在章节已删除 · 不起作用", "配角，学会了修灯。", "从本章起有变化")
+	a.doc.shown, a.doc.history = "", true
+	tt.Frame()
+	has("the history", "周祥 · 第2章起：配角，在井边等她。", "删除变化 · 周祥 · 第2章起", "新增到待确认 · 周祥 · 所在章节已删除：配角，学会了修灯。")
+	a.doc.history = false
+
+	// With the AI off the form says nothing of it.
+	a.turnAI(false)
+	a.doc.shown, a.doc.change, a.doc.from, a.doc.text = ids.zhou, "new", one, "x"
+	tt.Frame()
+	has("off", "从这一章起，这一条就是下面这段话。")
+	hasNot("off", "AI 看到的是它")
+}

@@ -29,8 +29,8 @@ func TestWhatWasSent(t *testing.T) {
 		{Name: workspace.PartRules, Tokens: 1100}, {Name: workspace.PartSetting, Tokens: 1000},
 		{Name: workspace.PartTalk, Tokens: 7460}, {Name: workspace.PartInput, Tokens: 40}}}
 	whole, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "可以。",
-		Context: []workspace.ContextItem{{Text: "所在章：第一章"}, {ID: e.ID, Text: "主角怕黑"}},
-		Model: "deepseek/deepseek-flash", Usage: &workspace.Usage{Input: 9900, CacheRead: 6000, Output: 268}, Sent: sent})
+		Context: []workspace.ContextItem{{Text: "所在章：第一章"}, {ID: e.ID, Text: "主角怕黑", Changes: []string{"「第三章」起：主角不怕黑了"}}},
+		Model:   "deepseek/deepseek-flash", Usage: &workspace.Usage{Input: 9900, CacheRead: 6000, Output: 268}, Sent: sent})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +83,7 @@ func TestWhatWasSent(t *testing.T) {
 		}
 	}
 	open(whole.ID, "本次发送约 9.6K token", "这一轮共 2 次请求，这是最后一次。", "规则 1.1K · 设定 1 条 1K · 之前的对话 7.5K · 本次发言 40",
-		"实际用量：输入 9.9K，其中缓存命中 6K；输出 268", "所在章：第一章", "附带全部 1 条设定", "主角怕黑")
+		"实际用量：输入 9.9K，其中缓存命中 6K；输出 268", "所在章：第一章", "附带全部 1 条设定", "主角怕黑", "「第三章」起：主角不怕黑了")
 	open(index.ID, "本次发送约 1.1K token", "规则 1.1K · 设定目录 30", "实际用量：输入 900；输出 20", "设定较多，本次只附目录", "人物：主角怕黑")
 	if tt.HasText("附带全部 1 条设定") || tt.HasText("这一轮共") {
 		t.Fatal("two replies show what they were sent, or one from before counts its requests", tt.Texts())

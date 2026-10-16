@@ -344,7 +344,7 @@ func (a *App) export(c *ui.Context, plan exportPlan) {
 			doc = export.Outline(work.Name, plan.pieces)
 			parts = append(parts, plan.part, "大纲")
 		case exportSetting:
-			doc = export.Setting(work.Name, work.Categories, a.set.Entries)
+			doc = export.Setting(work.Name, work.Categories, a.set.Entries, a.laterLines)
 			parts = append(parts, "设定")
 		}
 		data := doc.Text(what == exportProse && x.indent)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -209,18 +210,18 @@ func TestContextBudget(t *testing.T) {
 	whole := prompt.Render(w, set, talkPlaces, nil, numbered(set, prompt.Whole))
 	rules := prompt.Estimate(withTools(talkRules, tools(w)))
 	room := 512 + rules + prompt.Estimate("问") + prompt.Estimate(whole)
-	got, err := Assemble(w, room, set, nil, "问", nil)
+	got, err := Assemble(w, room, set, workspace.Tree{}, nil, "问", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasSuffix(got.Request.System, whole) || len(got.Included) != 2 || got.Included[0] != (workspace.ContextItem{ID: "old", Text: "林晚：" + set.Entries[0].Text}) || got.Included[1].Text != "悬而未决："+set.Entries[1].Text {
+	if !strings.HasSuffix(got.Request.System, whole) || len(got.Included) != 2 || !reflect.DeepEqual(got.Included[0], workspace.ContextItem{ID: "old", Text: "林晚：" + set.Entries[0].Text}) || got.Included[1].Text != "悬而未决："+set.Entries[1].Text {
 		t.Fatalf("whole: %+v", got.Included)
 	}
 	if s := got.Sent; s.Setting != 2 || s.Part(workspace.PartSetting) != prompt.Estimate(whole) || s.Part(workspace.PartIndex) != 0 || s.Part(workspace.PartRules) != rules || s.Part(workspace.PartInput) == 0 || got.Left != 0 {
 		t.Fatalf("sent %+v", s)
 	}
 
-	got, err = Assemble(w, room-1, set, nil, "问", nil)
+	got, err = Assemble(w, room-1, set, workspace.Tree{}, nil, "问", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -234,19 +235,19 @@ func TestContextBudget(t *testing.T) {
 	// What a reply looked up on its way is not sent again.
 	events := []workspace.Event{{ID: "u", Role: "user", Text: "问"}, {ID: "c", Role: "call", ReplyTo: "u", Calls: []workspace.Call{{ID: "1", Name: toolLookUp}}},
 		{ID: "r", Role: "result", ReplyTo: "u", Call: "1", Text: "查到的"}, {ID: "a", Role: "assistant", Text: "答", ReplyTo: "u"}, {Role: "user", Text: "失败的请求"}}
-	got, err = Assemble(w, room, set, events, "问", nil)
+	got, err = Assemble(w, room, set, workspace.Tree{}, events, "问", nil)
 	if err != nil || len(got.Request.Messages) != 3 || got.Sent.Part(workspace.PartTalk) == 0 || got.Sent.Part(workspace.PartIndex) == 0 {
 		t.Fatalf("talk %v %+v", err, got.Sent)
 	}
 
-	if _, err = Assemble(w, 8192, set, nil, strings.Repeat("大", 9000), nil); err == nil || !strings.Contains(err.Error(), "设置中「AI」配置里调大上下文上限") {
+	if _, err = Assemble(w, 8192, set, workspace.Tree{}, nil, strings.Repeat("大", 9000), nil); err == nil || !strings.Contains(err.Error(), "设置中「AI」配置里调大上下文上限") {
 		t.Fatalf("oversized current input: %v", err)
 	}
 	index := indexNote + "\n\n" + prompt.Render(w, set, talkPlaces, nil, numbered(set, prompt.Short))
-	if _, err = Assemble(w, 512+rules+prompt.Estimate("问")+prompt.Estimate(index)-1, set, nil, "问", nil); err == nil || !strings.Contains(err.Error(), "设定的目录超出模型的上下文上限") {
+	if _, err = Assemble(w, 512+rules+prompt.Estimate("问")+prompt.Estimate(index)-1, set, workspace.Tree{}, nil, "问", nil); err == nil || !strings.Contains(err.Error(), "设定的目录超出模型的上下文上限") {
 		t.Fatalf("an index too big: %v", err)
 	}
-	got, err = Assemble(w, 16000, workspace.Setting{}, events, "本轮", nil)
+	got, err = Assemble(w, 16000, workspace.Setting{}, workspace.Tree{}, events, "本轮", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

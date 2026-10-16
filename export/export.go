@@ -139,8 +139,9 @@ func Outline(name string, pieces []workspace.Piece) Doc {
 }
 
 // Setting is what the author decided, by category in the work's order:
-// each entry its name in bold, what else it is called, and what it says.
-func Setting(name string, categories []workspace.Category, entries []workspace.Entry) Doc {
+// each entry its name in bold, what else it is called, and what it says;
+// then what later says of it, each the way it reads from a chapter on.
+func Setting(name string, categories []workspace.Category, entries []workspace.Entry, later func(workspace.Entry) []string) Doc {
 	d := Doc{Title: name + " · 设定"}
 	for _, cat := range categories {
 		head := false
@@ -162,6 +163,14 @@ func Setting(name string, categories []workspace.Category, entries []workspace.E
 					}
 				}
 				d.Paras = append(d.Paras, p)
+			}
+			if later == nil {
+				continue
+			}
+			for _, c := range later(e) {
+				for _, l := range lines(c) {
+					d.Paras = append(d.Paras, Para{Style: Body, Text: l})
+				}
 			}
 		}
 	}

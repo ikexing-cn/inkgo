@@ -1,6 +1,7 @@
 package desk
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"maps"
@@ -25,6 +26,10 @@ type docView struct {
 	dropped bool   // the deleted entries are listed
 	editing string // the entry being edited, "new" for a new one
 	asking  string // with editing "new", the AI's question it answers
+	// change is the change of the entry shown that is being edited, "new"
+	// for a new one; from is the node it starts at in the form.
+	change string
+	from   string
 	// The form: the entry's text, category, name, and what else it is
 	// called as the author writes them, apart by spaces or 、
 	text     string
@@ -178,7 +183,7 @@ func (a *App) settingPanel(c *ui.Context) {
 		} else {
 			// The count is what waits on the author, as in the tab.
 			ui.Text(c, "设定").FontSize(fsGroup).FontWeight(600)
-			if open, _ := a.ideas(); len(open) > 0 {
+			if open := a.ideas(); len(open) > 0 {
 				ui.Textf(c, "%d", len(open)).FontSize(fsNote).TextColor(a.pal.faint).Padding(0, 0, 0, 4)
 			}
 		}
@@ -197,7 +202,10 @@ func (a *App) settingPanel(c *ui.Context) {
 	}
 	shown, ok := a.set.Entry(d.shown)
 	if !ok {
-		d.shown = ""
+		d.shown, d.change = "", ""
+	}
+	if d.change != "new" && !slices.ContainsFunc(shown.Changes, func(g workspace.Change) bool { return g.ID == d.change && g.Place == workspace.PlaceBody }) {
+		d.change = "" // the change is gone, or the entry
 	}
 	switch {
 	case d.history:
@@ -207,6 +215,8 @@ func (a *App) settingPanel(c *ui.Context) {
 	case d.editing != "":
 		e, _ := a.set.Entry(d.editing)
 		a.entryForm(c, e)
+	case ok && d.change != "":
+		a.changeForm(c, shown)
 	case ok:
 		a.entryPage(c, shown)
 	case d.todo:
@@ -239,20 +249,46 @@ func entryName(e workspace.Entry) (name, gist string) {
 	return clip(e.Names[0], 12), text
 }
 
-// ideas are what the AI suggests and the author has not decided,
-// and for each the settled entry it is about, if it is about one: the one
-// that shares a name with it, or whose name it says. With the AI off,
-// there are none.
-func (a *App) ideas() (open []workspace.Entry, about map[string]string) {
-	about = map[string]string{}
-	if !a.aiOn() {
-		return nil, about
+// idea is a thing the AI suggests that the author has not decided: an
+// entry waiting, with the settled entry it is about, if one; or a change of
+// a settled entry from a chapter on.
+type idea struct {
+	e      workspace.Entry  // the entry waiting, or the one the change is of
+	change workspace.Change // with an ID, the change
+	about  string           // the settled entry it is about
+}
+
+// id names the idea in the labels of its buttons.
+func (i idea) id() string {
+	if i.change.ID != "" {
+		return i.change.ID
 	}
+	return i.e.ID
+}
+
+// ideas are what the AI suggests and the author has not decided: the
+// entries waiting, each about the settled one that shares a name with it,
+// or whose name it says; then the changes of settled entries, each about
+// its own, while its chapter is in the tree. With the AI off, there are
+// none.
+func (a *App) ideas() []idea {
+	if !a.aiOn() {
+		return nil
+	}
+	o := a.write.tree.Order()
+	var out, changes []idea
 	for _, e := range a.set.Entries {
+		if e.Place == workspace.PlaceBody {
+			for _, g := range e.Changes {
+				if _, ok := o[g.From]; ok && g.Place == workspace.PlaceOpen {
+					changes = append(changes, idea{e: e, change: g, about: e.ID})
+				}
+			}
+		}
 		if e.Place != workspace.PlaceOpen {
 			continue
 		}
-		open = append(open, e)
+		it := idea{e: e}
 		best := 0
 		for _, b := range a.set.Entries {
 			if b.Place != workspace.PlaceBody {
@@ -266,22 +302,23 @@ func (a *App) ideas() (open []workspace.Entry, about map[string]string) {
 					continue
 				}
 				if n > best {
-					best, about[e.ID] = n, b.ID
+					best, it.about = n, b.ID
 				}
 			}
 		}
+		out = append(out, it)
 	}
-	return open, about
+	return append(out, changes...)
 }
 
 // settingList is the settled entries by category, a row each, under what
 // waits on the author; or those that say what is searched for.
 func (a *App) settingList(c *ui.Context) {
 	d := &a.doc
-	open, about := a.ideas()
+	open := a.ideas()
 	waiting := map[string]bool{}
-	for _, id := range about {
-		waiting[id] = true
+	for _, it := range open {
+		waiting[it.about] = true
 	}
 	dropped := 0
 	for _, e := range a.set.Entries {
@@ -296,12 +333,18 @@ func (a *App) settingList(c *ui.Context) {
 		d.editing, d.asking, d.text, d.category, d.name, d.names = "new", "", "", a.firstCategory(), "", ""
 	}
 	q := trim(d.query)
+	// On the writing page each entry reads as it does at the chapter open,
+	// elsewhere as it does now; the end of its row says from where.
+	tree, here := a.write.tree, a.here()
+	o := tree.Order()
 	row := func(e workspace.Entry) {
+		side := changeSide(tree, o, e, here)
+		e.Text, _, _ = reading(e, o, here)
 		name, gist := entryName(e)
 		if q != "" {
 			gist = nearFind(gist, q)
 		}
-		b := a.paneRow(c.Key(e.ID), "设定-"+e.ID, name, gist, "", q, waiting[e.ID])
+		b := a.paneRow(c.Key(e.ID), "设定-"+e.ID, name, gist, side, q, waiting[e.ID])
 		// One a talk just noted is tinted for a moment.
 		if at, ok := a.flash[e.ID]; ok {
 			if left := flashFor - time.Since(at); left > 0 {
@@ -372,24 +415,39 @@ func asks(e workspace.Entry) bool {
 
 // idea is one thing the AI suggests, with what it is about when
 // about says, and the author's word on it: a question is not a setting to
-// take, its answer is.
-func (a *App) idea(c *ui.Context, e workspace.Entry, about string) {
-	d := &a.doc
-	ui.Column(c.Key(e.ID)).FillWidth().Gap(8).Children(func() {
+// take, its answer is; a change taken holds from its chapter on.
+func (a *App) idea(c *ui.Context, it idea, about string) {
+	d, e, g := &a.doc, it.e, it.change
+	text := e.Text
+	if g.ID != "" {
+		text = g.Text
+	}
+	ui.Column(c.Key(it.id())).FillWidth().Gap(8).Children(func() {
 		if about != "" {
 			ui.Text(c, about).FontSize(fsNote).TextColor(a.pal.theme.TextMuted).SingleLine().Ellipsis("…").FillWidth()
 		}
-		ui.Text(c, e.Text).FontSize(fsBody).LineHeight(lhLoose).Selectable().FillWidth()
+		ui.Text(c, text).FontSize(fsBody).LineHeight(lhLoose).Selectable().FillWidth()
 		paneButtons(c, func() {
-			if a.paneButton(c, "忽略", false).Label("忽略-" + e.ID).Clicked() {
-				a.revise(workspace.Op{Op: workspace.OpMove, Entry: e.ID, Place: workspace.PlaceDropped})
+			if a.paneButton(c, "忽略", false).Label("忽略-" + it.id()).Clicked() {
+				if g.ID != "" {
+					a.revise(workspace.Op{Op: workspace.OpDropChange, Entry: e.ID, Change: g.ID})
+				} else {
+					a.revise(workspace.Op{Op: workspace.OpMove, Entry: e.ID, Place: workspace.PlaceDropped})
+				}
 			}
-			if asks(e) {
+			switch {
+			case g.ID != "":
+				if a.paneButton(c, "采纳", true).Label("采纳-" + it.id()).Clicked() {
+					a.takeChange(e, g)
+				}
+			case asks(e):
 				if a.paneButton(c, "回答", true).Label("回答-" + e.ID).Clicked() {
 					d.editing, d.asking, d.text, d.category, d.name, d.names = "new", e.ID, "", e.Category, "", ""
 				}
-			} else if a.paneButton(c, "采纳", true).Label("采纳-" + e.ID).Clicked() {
-				a.revise(workspace.Op{Op: workspace.OpMove, Entry: e.ID, Place: workspace.PlaceBody})
+			default:
+				if a.paneButton(c, "采纳", true).Label("采纳-" + e.ID).Clicked() {
+					a.revise(workspace.Op{Op: workspace.OpMove, Entry: e.ID, Place: workspace.PlaceBody})
+				}
 			}
 		})
 	})
@@ -401,7 +459,7 @@ func (a *App) ideasPage(c *ui.Context) {
 	if back, _ := a.paneBack(c, "全部设定", ""); back {
 		d.todo = false
 	}
-	open, about := a.ideas()
+	open := a.ideas()
 	if len(open) == 0 {
 		d.todo = false // the last was decided
 	}
@@ -411,15 +469,18 @@ func (a *App) ideasPage(c *ui.Context) {
 			ui.Spacer(c)
 			ui.Textf(c, "%d 条 AI 建议", len(open)).FontSize(fsNote).TextColor(a.pal.theme.TextMuted)
 		})
-		for i, e := range open {
+		for i, it := range open {
 			if i > 0 {
 				a.pal.hairline(c)
 			}
 			words := "新设定"
-			if b, ok := a.set.Entry(about[e.ID]); ok {
-				words = "关于 " + b.Names[0]
+			if b, ok := a.set.Entry(it.about); ok {
+				words = "关于 " + shortName(b)
+				if it.change.ID != "" {
+					words += " · " + fromLabel(a.write.tree, it.change.From)
+				}
 			}
-			a.idea(c, e, words)
+			a.idea(c, it, words)
 		}
 	})
 }
@@ -473,7 +534,7 @@ func (a *App) entryPage(c *ui.Context, e workspace.Entry) {
 		a.revise(workspace.Op{Op: workspace.OpMove, Entry: e.ID, Place: place})
 		d.shown = ""
 	}
-	open, about := a.ideas()
+	open := a.ideas()
 	a.panePage(c, "entry-"+e.ID, func() {
 		name, sub := e.Category, ""
 		if len(e.Names) > 0 {
@@ -505,9 +566,12 @@ func (a *App) entryPage(c *ui.Context, e workspace.Entry) {
 				a.findInChapter(src.Chapter, src.Quote)
 			}
 		}
+		if e.Place != workspace.PlaceDropped {
+			a.timeline(c, e)
+		}
 		first := true
-		for _, o := range open {
-			if about[o.ID] != e.ID {
+		for _, it := range open {
+			if it.about != e.ID {
 				continue
 			}
 			a.pal.hairline(c)
@@ -518,7 +582,11 @@ func (a *App) entryPage(c *ui.Context, e workspace.Entry) {
 				})
 				first = false
 			}
-			a.idea(c, o, "")
+			from := ""
+			if it.change.ID != "" {
+				from = fromLabel(a.write.tree, it.change.From)
+			}
+			a.idea(c, it, from)
 		}
 	})
 }
@@ -672,6 +740,21 @@ func (a *App) history(c *ui.Context) {
 // describeOp says what op did, in the words of the panel.
 func (a *App) describeOp(op workspace.Op) string {
 	e, _ := a.set.Entry(op.Entry)
+	if op.Op == workspace.OpChange || op.Op == workspace.OpEditChange || op.Op == workspace.OpDropChange {
+		var g workspace.Change
+		if k := slices.IndexFunc(e.Changes, func(x workspace.Change) bool { return x.ID == op.Change }); k >= 0 {
+			g = e.Changes[k]
+		}
+		from, text := cmp.Or(op.From, g.From), cmp.Or(op.Text, g.Text)
+		said := shortName(e) + " · " + fromLabel(a.write.tree, from)
+		switch {
+		case op.Op == workspace.OpDropChange:
+			return "删除变化 · " + said
+		case op.Op == workspace.OpChange && op.Place == workspace.PlaceOpen:
+			return "新增到待确认 · " + said + "：" + clip(text, 24)
+		}
+		return said + "：" + clip(text, 24)
+	}
 	switch op.Op {
 	case workspace.OpAdd:
 		return fmt.Sprintf("新增到%s · %s：%s", placeNames[op.Place], op.Category, op.Text)

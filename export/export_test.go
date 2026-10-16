@@ -45,7 +45,17 @@ func TestOutlineAndSettingAsText(t *testing.T) {
 		{Place: workspace.PlaceDropped, Category: "地点", Names: []string{"井"}, Text: "不要了。"},
 		{Place: workspace.PlaceBody, Category: "人物", Names: []string{"老陈"}, Text: "门卫。"},
 	}
-	if got, want := Setting("测试作品", cats, entries).Text(false), "测试作品 · 设定\n\n人物\n\n林晚（晚晚、阿晚）：修灯的人。\n怕黑。\n老陈：门卫。\n\n其他\n\n雨季有九个月。\n"; got != want {
+	if got, want := Setting("测试作品", cats, entries, nil).Text(false), "测试作品 · 设定\n\n人物\n\n林晚（晚晚、阿晚）：修灯的人。\n怕黑。\n老陈：门卫。\n\n其他\n\n雨季有九个月。\n"; got != want {
+		t.Fatalf("setting:\n%q\nwant\n%q", got, want)
+	}
+	// How an entry reads from a chapter on comes under it.
+	later := func(e workspace.Entry) []string {
+		if len(e.Names) > 0 && e.Names[0] == "林晚" {
+			return []string{"第40章起：不怕黑了。\n还修灯。"}
+		}
+		return nil
+	}
+	if got, want := Setting("测试作品", cats, entries, later).Text(false), "测试作品 · 设定\n\n人物\n\n林晚（晚晚、阿晚）：修灯的人。\n怕黑。\n第40章起：不怕黑了。\n还修灯。\n老陈：门卫。\n\n其他\n\n雨季有九个月。\n"; got != want {
 		t.Fatalf("setting:\n%q\nwant\n%q", got, want)
 	}
 	if Settled(entries[2:4]) || !Settled(entries) {
@@ -131,7 +141,7 @@ func TestProseAsWord(t *testing.T) {
 // The setting as Word: no cover, the name of each entry in bold.
 func TestSettingAsWord(t *testing.T) {
 	entries := []workspace.Entry{{Place: workspace.PlaceBody, Category: "人物", Names: []string{"林晚", "晚晚"}, Text: "修灯的人。"}}
-	b, err := Setting("测试作品", []workspace.Category{{Name: "人物"}}, entries).Docx()
+	b, err := Setting("测试作品", []workspace.Category{{Name: "人物"}}, entries, nil).Docx()
 	if err != nil {
 		t.Fatal(err)
 	}

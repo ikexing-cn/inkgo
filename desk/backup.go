@@ -33,15 +33,15 @@ type backupView struct {
 	asked          bool // asked already this time the work is open
 	list           []backup.Info
 	listed         bool
-	prefs          bool              // the settings dialog
-	tab            string            // its part shown: "AI", "外观", "提醒与检查" or "备份"
+	prefs          bool               // the settings dialog
+	tab            string             // its part shown: "AI", "外观", "提醒与检查" or "备份"
 	records        []workspace.Record // the work's AI record, read as the AI's part shows
 	log            bool               // the AI record shown in the AI's part, in place of the rest
 	logOnly        int                // the feature it shows: 0 for all, else the one chosen
 	logOpen        int                // the line of records open in it, or -1
-	askAI          bool              // asking before the AI is turned off or on
-	edit           string            // the service open in it: an ID, "+" for a new one
-	shown          string            // edit as of the last frame, to bring a form just opened into view
+	askAI          bool               // asking before the AI is turned off or on
+	edit           string             // the service open in it: an ID, "+" for a new one
+	shown          string             // edit as of the last frame, to bring a form just opened into view
 	keepChoice     string
 }
 

@@ -81,9 +81,17 @@ func (w *Writer) prepare(op, task string, scene Scene, tail string) (Job, error)
 	if err != nil {
 		return job, err
 	}
+	// The prose is written to the setting as it stands at this chapter:
+	// what changes later is not told, only that something does.
+	set, ahead := set.At(tree.Order(), n.ID)
+	later := ""
+	if ahead > 0 {
+		later = fmt.Sprintf("\n\n以上是写到本章时的设定；后面的章节里还有 %d 处变化，未列出。", ahead)
+	}
 	b := prompt.NewBudget(w.Model.Input())
 	b.Must(workspace.PartRules, rules+task)
 	b.Must(workspace.PartInput, tail)
+	b.Must(workspace.PartSetting, later)
 	// The parts of the message, in the order it reads; each says what it
 	// shows for the record.
 	type part struct{ heading, text, shown string }
@@ -130,7 +138,7 @@ func (w *Writer) prepare(op, task string, scene Scene, tail string) (Job, error)
 			}
 		}
 	}
-	system := rules + "\n\n" + prompt.Render(work, set, writePlaces, shown, prompt.Whole) + "\n\n" + task
+	system := rules + "\n\n" + prompt.Render(work, set, writePlaces, shown, prompt.Whole) + later + "\n\n" + task
 
 	// The previous chapter's end, while this one has little before.
 	if p, ok := previous(tree, n); ok && len([]rune(scene.Before)) < beforeCap {

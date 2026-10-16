@@ -777,6 +777,10 @@ func (a *App) audit(c *ui.Context, m workspace.Event) {
 			}
 			for _, item := range setting {
 				row(item.Text, !index)
+				// How the entry reads from chapters on, as it was sent under it.
+				for _, later := range item.Changes {
+					ui.Text(c, later).FontSize(fsNote).LineHeight(lhBody).TextColor(t.TextMuted).Selectable().FillWidth().Padding(0, 0, 0, iconSm+8)
+				}
 			}
 			for _, item := range m.Omitted {
 				ui.Row(c).FillWidth().Gap(8).Children(func() {

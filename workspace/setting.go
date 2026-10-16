@@ -1,6 +1,8 @@
 package workspace
 
 import (
+	"cmp"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -113,11 +115,149 @@ func applyOps(entries []Entry, r Revision, n int) ([]Entry, error) {
 			}
 			e.Author = e.Author || r.By == ByAuthor
 			e.Rev = n
+		case OpChange, OpEditChange, OpDropChange:
+			i := index(op.Entry)
+			if i < 0 {
+				return nil, fail("unknown entry %q", op.Entry)
+			}
+			e := &entries[i]
+			e.Changes = slices.Clone(e.Changes) // the setting before stays as it was
+			if err := changeOp(e, op, r.By == ByAuthor); err != nil {
+				return nil, fail("%v", err)
+			}
+			e.Rev = n
 		default:
 			return nil, fail("unknown op %q", op.Op)
 		}
 	}
 	return entries, nil
+}
+
+// changeOp applies op, one of the ops of a change, to e.
+func changeOp(e *Entry, op Op, author bool) error {
+	if op.Category != "" || len(op.Names) > 0 {
+		return errors.New("a change changes its text, its node or its place only")
+	}
+	k := slices.IndexFunc(e.Changes, func(g Change) bool { return g.ID == op.Change })
+	if op.Op == OpChange {
+		switch {
+		case e.Place != PlaceBody:
+			return errors.New("a change is of a settled entry")
+		case validID(op.Change) != nil || k >= 0:
+			return errors.New("change needs a new change ID")
+		case validID(op.From) != nil || strings.TrimSpace(op.Text) == "" || op.Place != PlaceBody && op.Place != PlaceOpen:
+			return errors.New("change needs a node, text, and a place, body or open")
+		}
+		e.Changes = append(e.Changes, Change{ID: op.Change, From: op.From, Place: op.Place, Text: op.Text, Sources: slices.Clone(op.Sources), Author: author})
+		k = len(e.Changes) - 1
+	} else {
+		if k < 0 {
+			return fmt.Errorf("unknown change %q", op.Change)
+		}
+		g := &e.Changes[k]
+		if g.Place == PlaceDropped {
+			return errors.New("a dropped change changes no more")
+		}
+		if op.Op == OpDropChange {
+			if op.From != "" || op.Text != "" || op.Place != "" || len(op.Sources) > 0 {
+				return errors.New("drop_change drops, only")
+			}
+			g.Place = PlaceDropped
+			return nil
+		}
+		switch {
+		case op.From == "" && op.Text == "" && op.Place == "":
+			return errors.New("edit_change changes a node, text or place")
+		case op.From != "" && validID(op.From) != nil:
+			return errors.New("edit_change names an invalid node")
+		case op.Text != "" && strings.TrimSpace(op.Text) == "":
+			return errors.New("edit_change needs text")
+		case op.Place != "" && (op.Place != PlaceBody || g.Place != PlaceOpen || e.Place != PlaceBody):
+			return errors.New("a change moves only as the author takes an open one of a settled entry")
+		}
+		if op.From != "" {
+			g.From = op.From
+		}
+		if op.Text != "" {
+			g.Text = op.Text
+		}
+		if op.Place != "" {
+			g.Place = op.Place
+		}
+		g.Sources = slices.Clone(g.Sources)
+		for _, src := range op.Sources {
+			if !slices.Contains(g.Sources, src) {
+				g.Sources = append(g.Sources, src)
+			}
+		}
+		g.Author = g.Author || author
+	}
+	// Two that hold from one node would leave which of them holds to chance.
+	if g := e.Changes[k]; g.Place == PlaceBody && slices.ContainsFunc(e.Changes, func(x Change) bool { return x.ID != g.ID && x.Place == PlaceBody && x.From == g.From }) {
+		return errors.New("the entry changes from that node already")
+	}
+	return nil
+}
+
+// Order is where each node of a tree comes in reading order, folders
+// before what they hold; what is not in the tree has no place.
+type Order map[string]int
+
+// Order is the tree's order of its nodes.
+func (t Tree) Order() Order {
+	o := Order{}
+	t.Walk(func(n *Node, _ int) { o[n.ID] = len(o) })
+	return o
+}
+
+// Holding are e's changes that hold, in the tree's order: those settled
+// whose node is in it.
+func (e Entry) Holding(o Order) []Change {
+	var out []Change
+	for _, g := range e.Changes {
+		if _, ok := o[g.From]; ok && g.Place == PlaceBody {
+			out = append(out, g)
+		}
+	}
+	slices.SortStableFunc(out, func(a, b Change) int { return cmp.Compare(o[a.From], o[b.From]) })
+	return out
+}
+
+// At is the change of e that holds at the node at: the last from it or
+// before it.
+func (e Entry) At(o Order, at string) (Change, bool) {
+	n, ok := o[at]
+	var found Change
+	for _, g := range e.Holding(o) {
+		if ok && o[g.From] <= n {
+			found = g
+		}
+	}
+	return found, found.ID != ""
+}
+
+// At is the setting as it stands at the node at, as the prose there is
+// written to it: each entry reads as its change that holds there, or as
+// itself, and has no changes; and how many changes of the body that hold
+// come after it.
+func (s Setting) At(o Order, at string) (Setting, int) {
+	out := Setting{Entries: make([]Entry, len(s.Entries)), Revisions: s.Revisions}
+	n, ahead := o[at], 0
+	for i, e := range s.Entries {
+		if g, ok := e.At(o, at); ok {
+			e.Text = g.Text
+		}
+		if e.Place == PlaceBody {
+			for _, g := range e.Holding(o) {
+				if o[g.From] > n {
+					ahead++
+				}
+			}
+		}
+		e.Changes = nil
+		out.Entries[i] = e
+	}
+	return out, ahead
 }
 
 func validateRevision(r Revision) error {
@@ -286,6 +426,9 @@ func (s *Store) Revise(r Revision) (Revision, error) {
 	used := map[string]bool{}
 	for _, e := range set.Entries {
 		used[e.ID] = true
+		for _, g := range e.Changes {
+			used[g.ID] = true
+		}
 	}
 	for _, rev := range set.Revisions {
 		used[rev.ID] = true
@@ -308,6 +451,9 @@ func (s *Store) Revise(r Revision) (Revision, error) {
 	for k, op := range r.Ops {
 		if op.Op == OpAdd && op.Entry == "" {
 			r.Ops[k].Entry = fresh()
+		}
+		if op.Op == OpChange && op.Change == "" {
+			r.Ops[k].Change = fresh()
 		}
 	}
 	if err = validateRevision(r); err != nil {
@@ -339,20 +485,34 @@ func (s *Store) Revise(r Revision) (Revision, error) {
 }
 
 // checkChapters checks that each source in a chapter quotes its text as it
-// is now; later edits of the chapter leave the source as it was.
+// is now, and that a change starts at a node in the tree; later edits of
+// the chapter leave the source as it was, and the node may go to the
+// trash.
 func (s *Store) checkChapters(r Revision) error {
 	var t *Tree
+	read := func() error {
+		if t != nil {
+			return nil
+		}
+		tree, err := s.tree()
+		t = &tree
+		return err
+	}
 	for k, op := range r.Ops {
+		if op.From != "" {
+			if err := read(); err != nil {
+				return err
+			}
+			if _, ok := t.Node(op.From); !ok {
+				return fmt.Errorf("ops[%d]: unknown node %q", k, op.From)
+			}
+		}
 		for _, src := range op.Sources {
 			if src.Chapter == "" || src.Message != "" {
 				continue // a message's quote of a chapter is checked in the message
 			}
-			if t == nil {
-				tree, err := s.tree()
-				if err != nil {
-					return err
-				}
-				t = &tree
+			if err := read(); err != nil {
+				return err
 			}
 			n, ok := t.Node(src.Chapter)
 			if !ok || n.Folder {

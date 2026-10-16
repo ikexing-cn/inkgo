@@ -243,3 +243,57 @@ func TestBudgetCutsTheTextBeforeFromItsStart(t *testing.T) {
 
 // limits are a test model's: room for a chapter of some size.
 var limits = model.Model{ID: "test", Window: 20000, Output: 4000, CompactAt: 80}
+
+// The prose of a chapter is written and checked to the setting as it
+// stands there: a change from a chapter after is not shown, only counted.
+func TestTheProseIsWrittenToTheSettingAsItStands(t *testing.T) {
+	f := &fake{}
+	w, two, r := book(t, f)
+	s := w.Store
+	three, err := s.NewChapter("", "第三章", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tree, _ := s.Chapters()
+	node, _ := tree.Node(two)
+	one, _ := previous(tree, node)
+	rain := r.Ops[0].Entry
+	if _, err = s.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{
+		{Op: workspace.OpChange, Entry: rain, From: two, Place: workspace.PlaceBody, Text: "城市的雨停了"},
+		{Op: workspace.OpChange, Entry: rain, From: three, Place: workspace.PlaceBody, Text: "雨又下了起来"},
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		at, has, ahead string
+		not            []string
+	}{
+		{one.ID, "城市总在下雨", "还有 2 处变化，未列出", []string{"雨停了", "雨又下了"}},
+		{two, "城市的雨停了", "还有 1 处变化，未列出", []string{"城市总在下雨", "雨又下了"}},
+		{three, "雨又下了起来", "", []string{"城市总在下雨", "雨停了", "处变化"}},
+	} {
+		f.pieces = []string{"她推开门。"}
+		if _, err := w.Predict(context.Background(), Scene{Chapter: c.at, Before: "雨停了吗？"}); err != nil {
+			t.Fatal(err)
+		}
+		system := f.got[len(f.got)-1].System
+		if !strings.Contains(system, c.has) || !strings.Contains(system, c.ahead) {
+			t.Errorf("at %s: %s", c.at, system)
+		}
+		for _, not := range c.not {
+			if strings.Contains(strings.ReplaceAll(system, "雨停了吗", ""), not) {
+				t.Errorf("at %s the model is told %q", c.at, not)
+			}
+		}
+	}
+	if _, err = s.WriteChapter(two, strings.Repeat("她蹲下去拧开灯座。", 30), nil); err != nil {
+		t.Fatal(err)
+	}
+	f.pieces = []string{`{"findings":[]}`}
+	if _, err = w.Check(context.Background(), two); err != nil {
+		t.Fatal(err)
+	}
+	if msg := f.got[len(f.got)-1].Messages[0].Content; !strings.Contains(msg, "城市的雨停了") || strings.Contains(msg, "城市总在下雨") || strings.Contains(msg, "雨又下了") {
+		t.Fatal(msg)
+	}
+}

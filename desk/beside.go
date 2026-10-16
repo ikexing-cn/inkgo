@@ -53,7 +53,7 @@ func (a *App) panelTabs(c *ui.Context) {
 			waiting++
 		}
 	}
-	open, _ := a.ideas()
+	open := a.ideas()
 	tab := func(label string, talk, fore bool) {
 		on := a.doc.fore == fore && (fore || a.talkTab() == talk)
 		b := ui.ButtonBase(c).Row().AlignItems(ui.Center).Padding(4, 10).Radius(rControl).Label("右栏-" + label)

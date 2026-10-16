@@ -51,6 +51,13 @@ function dropChange() {
     return { entries: s.entries.map((x) => (x.id === f.id ? { ...x, changes: x.changes.filter((y) => y.id !== f.gid) } : x)), n: s.n + 1, form: null, ...SHUT, log: did(s, '删除变化 · ' + (e.names[0] || e.cat) + ' · ' + fromWhere(g.key)) }
   })
 }
+// 忽略 AI 建议的一处变化：它不是一条设定，不进已删除。
+function dropIdea(o) {
+  set((s) => {
+    const e = s.entries.find((x) => x.id === o.about), entries = s.entries.filter((x) => x.id !== o.id)
+    return { entries, n: s.n + 1, log: did(s, '删除变化 · ' + (e.names[0] || e.cat) + ' · ' + fromWhere(o.from)), sv: s.sv === 'ideas' && !entries.some((x) => x.place === 'open') ? 'list' : s.sv }
+  })
+}
 // 采纳 AI 建议的一处变化：记到它说的那一条上，从它说的那一章起。
 function takeChange(o) {
   set((s) => {
@@ -237,7 +244,7 @@ function setting() {
   const answer = (o) => () => set({ form: { id: null, name: '', names: '', text: '', cat: o.cat, ask: o.id, q: o.text }, ...SHUT })
   // AI 建议的一处变化（from），采纳就记到它说的那一条上。
   const idea = (o, about) => `<div class="idea">${about ? `<div class="idea-about">${t(about)}</div>` : ''}${o.from && !about ? `<div class="idea-about">${t(fromWhere(o.from))}</div>` : ''}<div class="text">${t(o.text)}</div>` +
-    buttons(button('忽略', () => move(o.id, 'dropped')), asks(o) ? button('回答', answer(o), 'primary') : button('采纳', o.from ? () => takeChange(o) : () => move(o.id, 'body'), 'primary')) + '</div>'
+    buttons(button('忽略', o.from ? () => dropIdea(o) : () => move(o.id, 'dropped')), asks(o) ? button('回答', answer(o), 'primary') : button('采纳', o.from ? () => takeChange(o) : () => move(o.id, 'body'), 'primary')) + '</div>'
 
   if (S.form) return back(S.form.id ? shown.names[0] || shown.cat : S.form.ask ? '待确认' : '全部设定', () => set({ form: null, ...SHUT })) + (S.form.change ? changeForm(S.form) : form(S.form))
 
@@ -308,13 +315,20 @@ function timeline(e) {
     live.map((g) => step(fromWhere(g.key), g.text, g, on && on.id === g.id)).join('') + gone.map((g) => step('所在章节已删除 · 不起作用', g.text, g, false)).join('')
 }
 
-// 记一处变化：从哪一章起（只能选书里有的章），那以后这一条的全文。
+// 记一处变化：从哪一章或哪一卷起（只能选书里有的），那以后这一条的全文。
 function changeForm(f) {
-  const e = S.entries.find((x) => x.id === f.id), titles = S.chapters.map(titleOf), now = chapterOf(f.key)
-  const pick = (title) => set((s) => ({ form: { ...s.form, key: S.chapters[titles.indexOf(title)].key } }))
+  const e = S.entries.find((x) => x.id === f.id), nodes = []
+  for (const c of S.chapters) {
+    const v = S.volumes.find((x) => x[0] === c.vol)
+    if (v && !nodes.some((n) => n.key === v[0])) nodes.push({ key: v[0], title: v[1] })
+    nodes.push({ key: c.key, title: titleOf(c) })
+  }
+  const titles = nodes.map((n) => n.title), now = nodes.find((n) => n.key === f.key)
+  const pick = (title) => set((s) => ({ form: { ...s.form, key: nodes[titles.indexOf(title)].key } }))
+  const note = '从这一章起，这一条就是下面这段话' + (aiOn() ? '；起草、改写这一章及以后的章时，AI 看到的是它。' : '。')
   return '<div class="page scroll" data-k="change-form">' +
-    `<div class="title-line"><div class="title">${t(e.names[0] || e.cat)} · ${t(fromWhere(f.key))}</div></div><div class="note">从这一章起，这一条就是下面这段话；起草、改写这一章及以后的章时，AI 看到的是它。</div>` +
-    field('从哪一章起', choose('change-from', now ? titleOf(now) : '所在章节已删除', titles, pick, '从哪一章起')) +
+    `<div class="title-line"><div class="title">${t(e.names[0] || e.cat)} · ${t(fromWhere(f.key))}</div></div><div class="note">${note}</div>` +
+    field('从哪一章起', choose('change-from', now ? now.title : '所在章节已删除', titles, pick, '从哪一章起')) +
     field('内容', area(f.text, (v) => set((s) => ({ form: { ...s.form, text: v } })), '', '变化后的内容', 5, ' autofocus')) +
     `<div class="buttons">${f.gid ? `<div class="hit link danger"${onClick(dropChange)}>删除这处变化</div><div class="grow"></div>` : ''}${button('取消', () => set({ form: null, ...SHUT }))}${button('保存', saveChange, f.text.trim() ? 'primary' : 'primary off')}</div>` +
     '</div>'
@@ -435,7 +449,7 @@ function looked(key, look, running) {
 // 查了东西的一轮前后发了几次请求，说的都是最后一次，写出回复的那次。
 function outgoing(talk, m, i) {
   // 发出去的是整份设定：正文、已放弃、悬而未决都在，后两种写明是哪一种；有名字的条目，名字在内容前面；回答过的问题跟在答案后面。目录每条只有分类、第一个名字和第一句。
-  // 起草、改写的讨论跟着一章：设定按那一章时的样子，后面的变化不给，只说还有几处。普通讨论给最新的样子，每处变化写「第几章起」。
+  // 起草、改写的讨论跟着一章：设定按那一章时的样子，后面的变化不给，只说还有几处。普通讨论给原来的样子，下面每处变化写「第几章起」；目录给最新的样子。
   const [input, cached, output] = m.use.at(-1), sent = ['body', 'dropped', 'open'].flatMap((p) => S.entries.filter((e) => e.place === p && !e.from))
   const label = { body: '', dropped: '已放弃：', open: '悬而未决：' }
   const first = (text) => clip(text.match(/^[^。！？；\n]*[！？]?/)[0], 60)
@@ -448,7 +462,7 @@ function outgoing(talk, m, i) {
   const named = (e) => (e.names.length ? e.names.join('、') + '：' : '')
   const changes = (e) => (fixed ? '' : changesOf(e).map((g) => `<div class="note">${t(fromWhere(g.key) + '：' + g.text)}</div>`).join(''))
   const rows = S.crowded ? sent.map((e) => `<div class="saw-row"><div class="fit">${t(label[e.place] + e.cat + (e.names[0] ? ' · ' + e.names[0] : '') + '：' + first(textAt(e, fixed)))}</div></div>`).join('')
-    : sent.map((e) => `<div class="saw-row">${icon('tick', 'sm', 'green')}<div class="fit"><div>${t(label[e.place] + named(e) + textAt(e, fixed) + (e.asked ? '（回答：' + e.asked + '）' : ''))}</div>${changes(e)}</div></div>`).join('')
+    : sent.map((e) => `<div class="saw-row">${icon('tick', 'sm', 'green')}<div class="fit"><div>${t(label[e.place] + named(e) + (fixed ? textAt(e, fixed) : e.text) + (e.asked ? '（回答：' + e.asked + '）' : ''))}</div>${changes(e)}</div></div>`).join('')
   return '<div class="reply-saw">' +
     `<div class="saw-title">本次发送约 ${tokens(parts.reduce((n, [, x]) => n + x, 0))} token</div>${m.use.length > 1 ? `<div class="note">这一轮共 ${m.use.length} 次请求，这是最后一次。</div>` : ''}<div class="note">${parts.filter(([, x]) => x).map(([name, x]) => t(name) + ' ' + tokens(x)).join(' · ')}</div>` +
     `<div class="note">实际用量：输入 ${tokens(input)}${cached ? '，其中缓存命中 ' + tokens(cached) : ''}；输出 ${tokens(output)}</div>` +

@@ -139,7 +139,11 @@ func (e *Engine) assemble(session string, before int, input string) (Context, er
 	if err != nil {
 		return Context{}, err
 	}
-	return Assemble(e.Store.Work(), e.Talk.Input(), set, events, input, e.Beside)
+	tree, err := e.Store.Chapters()
+	if err != nil {
+		return Context{}, err
+	}
+	return Assemble(e.Store.Work(), e.Talk.Input(), set, tree, events, input, e.Beside)
 }
 
 // read is the setting and the talk before event before, or all of it for

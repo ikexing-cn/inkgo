@@ -55,7 +55,11 @@ func TestSettingListAndPage(t *testing.T) {
 	if !tt.HasText("待确认") || !tt.HasText("周祥") || !tt.HasText("物品") || tt.HasText("第一章开头只交代了天气，人物和事件还没出现。") {
 		t.Fatal("the list", tt.Texts())
 	}
-	if _, about := a.ideas(); about[ids.about] != ids.zhou || about[ids.fresh] != "" {
+	about := map[string]string{}
+	for _, it := range a.ideas() {
+		about[it.e.ID] = it.about
+	}
+	if about[ids.about] != ids.zhou || about[ids.fresh] != "" {
 		t.Fatal("what the suggestions are about", about)
 	}
 

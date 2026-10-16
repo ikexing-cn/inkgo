@@ -92,6 +92,7 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 	if err != nil {
 		return workspace.Check{}, err
 	}
+	set, _ = set.At(tree.Order(), chapter) // the chapter is held to the setting as it stands there
 	before, err := w.Store.ReadCheck(chapter)
 	if err != nil {
 		return workspace.Check{}, err

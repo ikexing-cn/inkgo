@@ -45,6 +45,8 @@ Status: implemented
 - `move`：换位置或分类；
 - `name`：在原有名字后面加别名。
 
+2026-10-16 起多一种 `change`：记一条设定从某一章起变成什么，见[设定可以从某一章起变](2026-10-16-setting-changes-from-a-chapter.md)。
+
 参数里用编号指条目。`sources` 和 `author_said` 是逐字复制的原话。
 
 能不能记，由程序判断（`discussion/note.go` 的 `note`），规则照搬记账员的：

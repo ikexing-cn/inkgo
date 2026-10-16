@@ -142,7 +142,7 @@ func TestLookingUpStopsWhenTheRoomIsFull(t *testing.T) {
 	if _, err = e.Store.WriteChapter(id, strings.Repeat("雨下了一夜，灯一直亮着。\n", 200), nil); err != nil {
 		t.Fatal(err)
 	}
-	probe, err := Assemble(e.Store.Work(), 100000, workspace.Setting{}, nil, "雨", nil)
+	probe, err := Assemble(e.Store.Work(), 100000, workspace.Setting{}, workspace.Tree{}, nil, "雨", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -49,15 +49,59 @@ func numbered(set workspace.Setting, line prompt.Line) prompt.Line {
 	return func(e workspace.Entry) string { return fmt.Sprintf("[%d] %s", at[e.ID], line(e)) }
 }
 
+// changes are how each entry of set reads from chapters on, by its ID, as
+// the talk tells them after it: each change that holds, then each the AI
+// suggested that waits, from the chapter of tree it starts at.
+func changes(set workspace.Setting, tree workspace.Tree) map[string][]string {
+	o, name := tree.Order(), bookOf(tree).name
+	out := map[string][]string{}
+	for _, e := range set.Entries {
+		for _, g := range e.Holding(o) {
+			out[e.ID] = append(out[e.ID], "「"+name[g.From]+"」起："+prompt.OneLine(g.Text))
+		}
+		for _, g := range e.Changes {
+			if _, ok := o[g.From]; ok && g.Place == workspace.PlaceOpen {
+				out[e.ID] = append(out[e.ID], "「"+name[g.From]+"」起（悬而未决）："+prompt.OneLine(g.Text))
+			}
+		}
+	}
+	return out
+}
+
+// timed is line with the changes of the entry after it, a line each.
+func timed(line prompt.Line, changes map[string][]string) prompt.Line {
+	return func(e workspace.Entry) string {
+		s := line(e)
+		for _, c := range changes[e.ID] {
+			s += "\n  " + c
+		}
+		return s
+	}
+}
+
+// latest is set as it reads after its last changes: the talk's index has
+// the entries as they are now.
+func latest(set workspace.Setting, tree workspace.Tree) workspace.Setting {
+	o := tree.Order()
+	out := workspace.Setting{Entries: slices.Clone(set.Entries), Revisions: set.Revisions}
+	for i, e := range out.Entries {
+		if hold := e.Holding(o); len(hold) > 0 {
+			out.Entries[i].Text = hold[len(hold)-1].Text
+		}
+	}
+	return out
+}
+
 // Assemble builds a talk request of at most room tokens, in the order a
 // provider's cache can reuse: the rules, the setting, the digest of the
 // talk compacted, the complete exchanges after it, and the author's words.
 // The exchanges go from the newest as far as they fit. The setting goes
-// whole when it fits after the talk, and as an index when it does not; the
-// index and the digest must fit.
-func Assemble(w workspace.Work, room int, set workspace.Setting, events []workspace.Event, input string, beside *Writing) (Context, error) {
+// whole when it fits after the talk, each entry with how it changes from
+// the chapters of tree on, and as an index when it does not; the index and
+// the digest must fit.
+func Assemble(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree, events []workspace.Event, input string, beside *Writing) (Context, error) {
 	digest, turns := uncompacted(events)
-	out, _, err := lay(w, room, set, talk{digest: digest.Text, turns: turns, input: input, beside: beside, near: beside != nil})
+	out, _, err := lay(w, room, set, tree, talk{digest: digest.Text, turns: turns, input: input, beside: beside, near: beside != nil})
 	return out, err
 }
 
@@ -73,7 +117,7 @@ type talk struct {
 
 // lay builds a request of at most room tokens for t, as Assemble tells,
 // and how many of its turns went.
-func lay(w workspace.Work, room int, set workspace.Setting, t talk) (Context, int, error) {
+func lay(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree, t talk) (Context, int, error) {
 	out := Context{} // the reply may take all the model gives: its output is kept out of the room
 	rules := talkRules
 	if t.near {
@@ -87,7 +131,7 @@ func lay(w workspace.Work, room int, set workspace.Setting, t talk) (Context, in
 	if !b.Must(workspace.PartRules, told) || !b.Must(workspace.PartInput, input) {
 		return out, 0, tooLong
 	}
-	index := talkIndex(w, set)
+	index := talkIndex(w, set, tree)
 	if !b.Must(workspace.PartIndex, index) {
 		return out, 0, errors.New("设定的目录超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限")
 	}
@@ -109,15 +153,19 @@ func lay(w workspace.Work, room int, set workspace.Setting, t talk) (Context, in
 	}
 	msgs, took := fill(b, t.turns, t.oldest)
 	b.Return(workspace.PartIndex)
-	setting, line := prompt.Render(w, set, talkPlaces, nil, numbered(set, prompt.Whole)), prompt.Line(prompt.Whole)
+	later := changes(set, tree)
+	setting := prompt.Render(w, set, talkPlaces, nil, numbered(set, timed(prompt.Whole, later)))
+	shown, line := set, prompt.Line(prompt.Whole)
 	if !b.Take(workspace.PartSetting, setting) {
 		b.Must(workspace.PartIndex, index)
-		setting, line = index, prompt.Short
+		setting, shown, line, later = index, latest(set, tree), prompt.Short, nil
 	}
 	for _, p := range talkPlaces {
-		for _, e := range prompt.Ordered(w, set.Entries) {
+		for _, e := range prompt.Ordered(w, shown.Entries) {
 			if e.Place == p.Place {
-				out.Included = append(out.Included, p.Item(e, line))
+				item := p.Item(e, line)
+				item.Changes = later[e.ID]
+				out.Included = append(out.Included, item)
 			}
 		}
 	}
@@ -127,9 +175,10 @@ func lay(w workspace.Work, room int, set workspace.Setting, t talk) (Context, in
 	return out, took, nil
 }
 
-// talkIndex is the setting as its index, under the note that opens it.
-func talkIndex(w workspace.Work, set workspace.Setting) string {
-	return indexNote + "\n\n" + prompt.Render(w, set, talkPlaces, nil, numbered(set, prompt.Short))
+// talkIndex is the setting as its index, under the note that opens it:
+// each entry as it reads after the changes of tree's chapters.
+func talkIndex(w workspace.Work, set workspace.Setting, tree workspace.Tree) string {
+	return indexNote + "\n\n" + prompt.Render(w, latest(set, tree), talkPlaces, nil, numbered(set, prompt.Short))
 }
 
 // fill takes as many turns as fit in b, from the newest, or from the

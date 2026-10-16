@@ -1,6 +1,7 @@
 package prompt
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -82,7 +83,7 @@ func TestTheSettingReadsInAStableOrder(t *testing.T) {
 	if got, want := Render(w, set, places, nil, Short), "正文：\n【人物】\n- 人物 · 林晚：林晚怕黑\n- 人物：周祥是她的徒弟？\n【物品】\n- 物品 · 铜钥匙：铜钥匙挂在她脖子上\n\n已放弃：\n- 人物：林晚会飞"; got != want {
 		t.Fatalf("index:\n%s", got)
 	}
-	if got := places[1].Item(set.Entries[2], Whole); got != (workspace.ContextItem{ID: "c", Text: "已放弃：林晚会飞"}) {
+	if got := places[1].Item(set.Entries[2], Whole); !reflect.DeepEqual(got, workspace.ContextItem{ID: "c", Text: "已放弃：林晚会飞"}) {
 		t.Fatalf("item %+v", got)
 	}
 	if got := Render(w, workspace.Setting{}, places, nil, Whole); got != "设定文档还是空的。" {

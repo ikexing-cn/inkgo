@@ -310,6 +310,7 @@ func (a *App) checkItems(meant bool) []checkItem {
 		}
 	}
 	var out []checkItem
+	o := tree.Order()
 	tree.Walk(func(nd *workspace.Node, _ int) {
 		if nd.Folder {
 			return
@@ -323,6 +324,7 @@ func (a *App) checkItems(meant bool) []checkItem {
 			switch f.Kind {
 			case workspace.FindConflict:
 				e, ok := a.set.Entry(f.Entry)
+				e.Text, _, _ = reading(e, o, nd.ID) // the chapter was checked against the entry as it reads there
 				if !ok || f.Says != "" && !strings.Contains(e.Text, f.Says) {
 					continue // the setting was changed
 				}

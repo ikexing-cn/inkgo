@@ -18,8 +18,8 @@ type digester struct {
 	calls    []model.Request
 	purposes []workspace.Purpose
 	digests  int
-	err     error
-	used    model.Usage
+	err      error
+	used     model.Usage
 }
 
 func (d *digester) Complete(ctx context.Context, r model.Request, on func(model.Delta)) (model.Reply, error) {

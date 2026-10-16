@@ -205,4 +205,3 @@ func TestShotShelf(t *testing.T) {
 	a.shelf.Books = nil
 	shot("shelf-empty.png")
 }
-

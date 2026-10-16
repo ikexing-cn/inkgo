@@ -48,13 +48,14 @@ func tools(w workspace.Work) []model.Tool {
 			Schema: json.RawMessage(`{"type":"object","properties":{` + query + `},"required":["query"]}`)},
 		{Name: toolSearchTalks, Description: "按词搜这本书所有讨论的原文，包括这一次的，返回每处在哪次讨论、是谁说的和前后的文字。",
 			Schema: json.RawMessage(`{"type":"object","properties":{` + query + `,` + from + `},"required":["query"]}`)},
-		{Name: toolNote, Description: "把这次讨论里定下的东西记进设定文档，一次一个操作：add 新增，edit 改写，move 换位置或分类，name 补名字。规则见系统提示里的「记设定」。",
+		{Name: toolNote, Description: "把这次讨论里定下的东西记进设定文档，一次一个操作：add 新增，edit 改写，move 换位置或分类，name 补名字，change 记一条从某一章起的变化。规则见系统提示里的「记设定」。",
 			Schema: json.RawMessage(`{"type":"object","properties":{` +
-				`"op":{"type":"string","enum":["add","edit","move","name"]},` +
-				`"entry":{"type":"integer","minimum":1,"description":"edit、move、name 改的条目的编号，即设定里方括号中的数字"},` +
+				`"op":{"type":"string","enum":["add","edit","move","name","change"]},` +
+				`"entry":{"type":"integer","minimum":1,"description":"edit、move、name、change 改的条目的编号，即设定里方括号中的数字"},` +
+				`"chapter":{"type":"string","description":"change 从哪一章（或哪一卷）起，章名和搜全书结果里写的一样"},` +
 				`"place":{"type":"string","enum":["body","open","dropped"],"description":"body 是设定正文，open 是悬而未决，dropped 是已放弃"},` +
 				`"category":{"type":"string","enum":` + string(cats) + `},` +
-				`"text":{"type":"string","description":"一句能独立成立的设定"},` +
+				`"text":{"type":"string","description":"一句能独立成立的设定；change 写从那一章起这一条的全文"},` +
 				`"names":{"type":"array","items":{"type":"string"},"description":"条目说的专有名词，第一个是正式名称"},` +
 				`"sources":{"type":"array","items":{"type":"string"},"description":"这条出自的原话，逐字复制自本次讨论里已经说过的话"},` +
 				`"author_said":{"type":"string","description":"作者拍板、接受、拒绝或改口的原话，逐字复制"}` +
@@ -188,6 +189,11 @@ func (t *toolbox) book() (book, error) {
 	if err != nil {
 		return book{}, err
 	}
+	return bookOf(tree), nil
+}
+
+// bookOf is tree as the model names its nodes.
+func bookOf(tree workspace.Tree) book {
 	b := book{tree: tree, name: map[string]string{}, byName: map[string]*workspace.Node{}}
 	count := map[string]int{}
 	tree.Walk(func(n *workspace.Node, _ int) {
@@ -207,7 +213,7 @@ func (t *toolbox) book() (book, error) {
 			b.names = append(b.names, name)
 		}
 	})
-	return b, nil
+	return b
 }
 
 // find is the document the model names, taking its name, in 「」 or 《》
@@ -448,11 +454,15 @@ func (t *toolbox) lookUp(in input) outcome {
 	if err != nil {
 		return failed("读不出设定：%v", err)
 	}
-	titles, chapters := t.titles(), t.chapterNames()
+	b, err := t.book()
+	if err != nil {
+		return failed("读不出章节：%v", err)
+	}
+	titles, chapters, later := t.titles(), b.name, changes(set, b.tree)
 	var named, said []string
 	for n, e := range set.Entries {
 		if !slices.ContainsFunc(e.Names, func(name string) bool { return strings.Contains(name, in.Query) || strings.Contains(in.Query, name) }) &&
-			!strings.Contains(prompt.Text(e), in.Query) {
+			!strings.Contains(prompt.Text(e), in.Query) && !slices.ContainsFunc(later[e.ID], func(c string) bool { return strings.Contains(c, in.Query) }) {
 			continue
 		}
 		head := fmt.Sprintf("[%d]（%s｜%s", n+1, placeNames[e.Place], e.Category)
@@ -460,6 +470,9 @@ func (t *toolbox) lookUp(in input) outcome {
 			head += "｜" + strings.Join(e.Names, "、")
 		}
 		lines := []string{head + "）" + prompt.Text(e)}
+		for _, c := range later[e.ID] {
+			lines = append(lines, "  "+c)
+		}
 		for _, src := range e.Sources[:min(len(e.Sources), 3)] {
 			where := ""
 			switch {
@@ -484,16 +497,6 @@ func (t *toolbox) lookUp(in input) outcome {
 		return outcome{text: strings.Join(found[:maxHits], "\n") + fmt.Sprintf("\n还有 %d 条没有列出，换一个更具体的词再查。", len(found)-maxHits)}
 	}
 	return outcome{text: strings.Join(found, "\n")}
-}
-
-// chapterNames are the names of the documents, by ID; what fails to read
-// names none.
-func (t *toolbox) chapterNames() map[string]string {
-	b, err := t.book()
-	if err != nil {
-		return nil
-	}
-	return b.name
 }
 
 // titles name the talks of the work by what the author said first.
