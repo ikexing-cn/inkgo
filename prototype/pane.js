@@ -36,6 +36,32 @@ function save() {
     return { entries: s.entries.map((x) => (x.id === f.id ? { ...x, names, text, cat: f.cat } : x)), n: s.n + 1, form: null, ...SHUT, log: did(s, said), named: n ? { was, now: names[0], n } : null }
   })
 }
+// 记下、改掉、删掉一条设定的一处变化：从哪一章起，那以后的全文。
+function saveChange() {
+  set((s) => {
+    const f = s.form, text = f.text.trim(), e = s.entries.find((x) => x.id === f.id)
+    if (!text) return null
+    const changes = [...(e.changes || []).filter((g) => g.id !== f.gid && g.key !== f.key), { id: f.gid || 'g' + s.n, key: f.key, text }]
+    return { entries: s.entries.map((x) => (x.id === f.id ? { ...x, changes } : x)), n: s.n + 1, form: null, ...SHUT, log: did(s, (e.names[0] || e.cat) + ' · ' + fromWhere(f.key) + '：' + clip(text, 24)) }
+  })
+}
+function dropChange() {
+  set((s) => {
+    const f = s.form, e = s.entries.find((x) => x.id === f.id), g = e.changes.find((x) => x.id === f.gid)
+    return { entries: s.entries.map((x) => (x.id === f.id ? { ...x, changes: x.changes.filter((y) => y.id !== f.gid) } : x)), n: s.n + 1, form: null, ...SHUT, log: did(s, '删除变化 · ' + (e.names[0] || e.cat) + ' · ' + fromWhere(g.key)) }
+  })
+}
+// 采纳 AI 建议的一处变化：记到它说的那一条上，从它说的那一章起。
+function takeChange(o) {
+  set((s) => {
+    const e = s.entries.find((x) => x.id === o.about), changes = [...(e.changes || []).filter((g) => g.key !== o.from), { id: 'g' + s.n, key: o.from, text: o.text }]
+    const entries = s.entries.filter((x) => x.id !== o.id).map((x) => (x.id === e.id ? { ...x, changes } : x))
+    return { entries, n: s.n + 1, log: did(s, (e.names[0] || e.cat) + ' · ' + fromWhere(o.from) + '：' + clip(o.text, 24)), sv: s.sv === 'ideas' && !entries.some((x) => x.place === 'open') ? 'list' : s.sv }
+  })
+}
+// 记一处变化的表：编辑框里先放这一条在那一章之前的样子，改完就是从那一章起的全文。
+const changing = (e, g, key) => { const before = S.chapters[rank(key) - 1]; return { change: true, id: e.id, gid: g ? g.id : '', key, text: g ? g.text : before ? textAt(e, before.key) : e.text } }
+
 // 打开一条设定的修改表。
 // AI 的提问：以问号结尾的建议。
 const asks = (e) => /[？?]$/.test(e.text.trim())
@@ -68,7 +94,33 @@ function send() {
   const add = (msg) => (talk) => (talk.id === id ? { ...talk, msgs: [...talk.msgs, msg] } : talk)
   const talks = (isNew ? [{ id, title: text, at: '今天', msgs: [] }, ...S.talks] : S.talks).map(add({ me: true, at: stamp(), text, cite: S.cite }))
   set({ talks, tid: id, tv: 'one', n: S.n + 1, draft: '', cite: null })
-  answer(id)
+  if (talks.find((x) => x.id === id).origin) write(id)
+  else answer(id)
+}
+
+// 起草、改写：新开一段讨论，替作者说出第一句，在正文页的右栏打开它。这段讨论跟着开它的那一章：附上的正文、给的设定都按那一章。
+function startTalk({ origin, key, title, text, cite, over }) {
+  if (!S.uses[0].model.trim()) { say('请先配置讨论模型', '', 'fail', [['打开设置', () => set({ dialog: { kind: 'settings', tab: 'AI', edit: '' }, toasts: [], ...SHUT })]]); return }
+  if (S.waiting) { say('AI 正在回复别的讨论', '等它回完或取消后再' + origin, 'fail'); return }
+  const id = 't' + S.n
+  set((s) => ({ talks: [{ id, title, at: '今天', origin, key, over, msgs: [{ me: true, at: stamp(), text, cite }] }, ...s.talks], n: s.n + 1, paneOpen: true, focus: false, tab: '讨论', tv: 'one', tid: id, draft: '', ...SHUT }))
+  write(id)
+}
+// 在右栏打开一段讨论。
+const openTalk = (id) => set({ page: 'write', paneOpen: true, focus: false, tab: '讨论', tv: 'one', tid: id, ...SHUT })
+
+// 每次向模型发的请求，在 AI 记录最上面记一行：一轮查了几次就是几行。讨论里的按讨论是怎么开的算：起草、改写，或者讨论。
+function logged(s, talk, use) {
+  const feature = talk.origin || '讨论', where = talk.origin ? chTitle(talk.key) : talk.title
+  const own = { 起草: [['章纲和卷纲', 260], ['本卷前面各章章纲', 310], ['上一章全文', 5060]], 改写: [['章纲和卷纲', 260], ['本章全文', 4300]] }[feature] || []
+  const parts = (input) => { const fixed = [['规则', 1100], ['设定', 1820], ...own]; return [...fixed, ['之前的对话和查阅', Math.max(input - fixed.reduce((n, [, x]) => n + x, 0), 0)]] }
+  return [...use.map((u) => [stamp(), feature, where, s.uses[0].model, s.uses[0].effort, parts(u[0]), u, '完成']).reverse(), ...s.records]
+}
+
+// 续写、检查也各记一行，用「续写和检查」那个模型。
+function noted(s, feature, where, parts, use, end = '完成') {
+  const u = s.uses[1].model ? s.uses[1] : s.uses[0]
+  return [[stamp(), feature, where, u.model, s.uses[1].effort, parts, use, end], ...s.records]
 }
 
 // AI 回这段讨论一句：先想，再查（搜全书、读正文、查设定），再写；写完之前可以取消。
@@ -88,15 +140,60 @@ function answer(id) {
       const said = kept ? '待确认 · ' + kept.cat + '：' + kept.text : ''
       const msg = { me: false, at: stamp(), text: r.text, think: BOOK.think, look: kept ? [...r.look, ['记', said, kept.id]] : r.look, use: r.use, capped: r.capped }
       return {
-        waiting: null, talks: s.talks.map((talk) => (talk.id === id ? { ...talk, msgs: [...talk.msgs, msg] } : talk)),
+        waiting: null, talks: s.talks.map((talk) => (talk.id === id ? { ...talk, msgs: [...talk.msgs, msg] } : talk)), records: logged(s, talk, r.use),
         ...(kept ? { n: s.n + 1, entries: [...s.entries, kept], log: [{ id: 'l' + s.n, who: '讨论', talk: id, at: stamp(), lines: ['新增到' + said] }, ...s.log] } : {}),
       }
     }))]
 }
+
+// 起草、改写的讨论里 AI 回一句：先想、再查，然后在正文里提议，边写边出来，写完说一句。
+// 作者在这段讨论里接着说，AI 再提议一次，换掉上一次还没定的那一处。
+function write(id) {
+  const talk = S.talks.find((x) => x.id === id), drafting = talk.origin === '起草'
+  const list = drafting ? BOOK.drafts : BOOK.rewrites, r = list[Math.min(talk.msgs.filter((m) => !m.me).length, list.length - 1)]
+  const at = drafting ? { kind: talk.over ? 'all' : 'end' } : { kind: 'swap', quote: talk.msgs[0].cite.quote }
+  const where = { end: '接在章末', all: '换掉全章', swap: '换掉一句' }[at.kind]
+  // 起草一段一段出来，改写的那一句分三截出来。
+  const bits = drafting ? r.prop : [0, 1, 2].map((n) => r.prop.slice(Math.round((r.prop.length * n) / 3), Math.round((r.prop.length * (n + 1)) / 3)))
+  const pid = 'p' + S.n, step = 600, end = 800 + step * (bits.length + 1)
+  set({ waiting: { id, step: 'think', write: true }, n: S.n + 1 })
+  replying = [
+    later(400, () => set({ waiting: { id, step: r.look.length ? 'look' : 'propose', look: r.look, write: true } })),
+    later(800, () => set((s) => {
+      const old = s.props.filter((p) => p.talk === id), gone = ruled(s, old.map((p) => p.id), '已被新的提议替换')
+      return { waiting: { id, step: 'propose', look: r.look, prop: pid, write: true }, fate: gone.fate, props: [...gone.props, { id: pid, key: talk.key, talk: id, at, paras: [], writing: true }] }
+    })),
+    ...bits.map((_, n) => later(800 + step * (n + 1), () => set((s) => ({ props: s.props.map((p) => (p.id === pid ? { ...p, paras: drafting ? bits.slice(0, n + 1) : [bits.slice(0, n + 1).join('')] } : p)) })))),
+    later(end, () => set((s) => {
+      const p = s.props.find((x) => x.id === pid)
+      if (!p) return { waiting: null }
+      const msg = { me: false, at: stamp(), text: r.text, think: BOOK.think, look: r.look, use: r.use, prop: pid, key: talk.key, where, words: p.paras.join('').length }
+      // 写的时候作者改掉了要换的那一句：写完就作废。
+      const lost = at.kind === 'swap' && !chapterOf(talk.key).paras.some((x) => x.includes(at.quote))
+      const done = { props: s.props.map((x) => (x.id === pid ? { ...x, writing: false, done: Date.now() } : x)) }
+      if (lost) later(0, () => say('AI 提议已作废', '写的时候，它要换掉的原文改动了'))
+      return { waiting: null, talks: s.talks.map((x) => (x.id === id ? { ...x, msgs: [...x.msgs, msg] } : x)), records: logged(s, talk, r.use), ...(lost ? ruled(s, [pid], '正文已改动，提议已作废') : done) }
+    })),
+  ]
+}
+
+// 少见的情况：普通的讨论里，AI 提议修改另一章。那一章没开着就在右边开一个标签页，不换过去。
+function elsewhere() {
+  const key = '86', quote = '档案室在电力局二楼，窗户朝北，白天也要开灯。', words = '档案室在电力局二楼，窗户朝北，白天也得开着灯。', pid = 'p' + S.n
+  set((s) => ({
+    n: s.n + 1, page: 'write', tabs: s.tabs.includes(key) ? s.tabs : [...s.tabs, key], paneOpen: true, focus: false, tab: '讨论', tv: 'one', tid: 't1', dialog: null,
+    props: [...s.props, { id: pid, key, talk: 't1', at: { kind: 'swap', quote }, paras: [words], writing: false, done: 0 }],
+    talks: s.talks.map((x) => (x.id !== 't1' ? x : { ...x, msgs: [...x.msgs, { me: true, at: stamp(), text: '第86章开头那句“白天也要开灯”有点硬，帮我顺一下' },
+      { me: false, at: stamp(), text: '在「第86章：档案室」提议了一处：“也要开灯”换成“也得开着灯”，读起来更像随口说的。', look: [['读', '「第86章：档案室」', '档案室在电力局二楼，窗户朝北，白天也要开灯。……']], use: [[18800, 18420, 70]], prop: pid, key, where: '换掉一句', words: words.length }] })),
+  }))
+}
+
+// 取消请求：没回完的那句不要了。正在正文里写的那一处提议跟着丢掉。
 function stopReply() {
   for (const id of replying) { clearTimeout(id); timers.delete(id) }
-  sent-- // 没回成的那一句，下次接着用
-  set({ waiting: null })
+  const w = S.waiting
+  if (w && !w.write) sent-- // 没回成的那一句，下次接着用
+  set((s) => ({ waiting: null, ...(w && w.prop ? ruled(s, [w.prop], '已放弃') : {}) }))
 }
 
 // 讨论里引用的那段正文，点一下去正文里找它。
@@ -132,13 +229,17 @@ function setting() {
   const at = (place) => S.entries.filter((e) => e.place === place)
   const body = at('body'), open = aiOn() ? at('open') : [], gone = at('dropped') // open 是 AI 的建议，AI 关着时不显示
   const shown = S.entries.find((e) => e.id === S.sid)
-  const row = (e, find = '') => item({ name: e.names[0] || e.text, about: e.names.length ? near(e.text, find) : '', find, dot: e.place === 'body' && open.some((o) => o.about === e.id), open: () => set({ sid: e.id }) })
+  // 正文页开着一章（或一卷）时，列表里每条写它在这一章时的样子；别处写最新的。是从某一章起变成这样的，右边写从哪起；这一章以后还会变的，写「之后有变化」。
+  const here = S.page === 'write' ? S.ch || S.vol : ''
+  const when = (e) => { const g = asOf(e, here); return g ? fromWhere(g.key) : here && changesOf(e).some((x) => rank(x.key) > rank(here)) ? '之后有变化' : '' }
+  const row = (e, find = '') => { const text = textAt(e, here); return item({ name: e.names[0] || text, about: e.names.length ? near(text, find) : '', find, side: e.place === 'body' ? when(e) : '', dot: e.place === 'body' && open.some((o) => o.about === e.id), open: () => set({ sid: e.id }) }) }
   // AI 的提问不是设定，答案才是：不「采纳」，「回答」。
   const answer = (o) => () => set({ form: { id: null, name: '', names: '', text: '', cat: o.cat, ask: o.id, q: o.text }, ...SHUT })
-  const idea = (o, about) => `<div class="idea">${about ? `<div class="idea-about">${t(about)}</div>` : ''}<div class="text">${t(o.text)}</div>` +
-    buttons(button('忽略', () => move(o.id, 'dropped')), asks(o) ? button('回答', answer(o), 'primary') : button('采纳', () => move(o.id, 'body'), 'primary')) + '</div>'
+  // AI 建议的一处变化（from），采纳就记到它说的那一条上。
+  const idea = (o, about) => `<div class="idea">${about ? `<div class="idea-about">${t(about)}</div>` : ''}${o.from && !about ? `<div class="idea-about">${t(fromWhere(o.from))}</div>` : ''}<div class="text">${t(o.text)}</div>` +
+    buttons(button('忽略', () => move(o.id, 'dropped')), asks(o) ? button('回答', answer(o), 'primary') : button('采纳', o.from ? () => takeChange(o) : () => move(o.id, 'body'), 'primary')) + '</div>'
 
-  if (S.form) return back(S.form.id ? shown.names[0] || shown.cat : S.form.ask ? '待确认' : '全部设定', () => set({ form: null, ...SHUT })) + form(S.form)
+  if (S.form) return back(S.form.id ? shown.names[0] || shown.cat : S.form.ask ? '待确认' : '全部设定', () => set({ form: null, ...SHUT })) + (S.form.change ? changeForm(S.form) : form(S.form))
 
   if (shown) {
     const dropped = shown.place === 'dropped'
@@ -148,7 +249,7 @@ function setting() {
       '<div class="page scroll" data-k="entry">' +
       `<div class="title-line"><div class="title ell">${t(shown.names[0] || shown.cat)}</div>${shown.names.length > 1 ? `<div class="alias ell">别名 ${t(shown.names.slice(1).join('、'))}</div>` : ''}<div class="grow"></div>${button('修改', () => set({ form: editing(shown) }))}</div>` +
       `<div class="text${dropped ? ' dropped' : ''}">${t(shown.text)}</div>` + (shown.asked ? `<div class="note">回答：${t(shown.asked)}</div>` : '') +
-      (from ? where('「' + titleOf(from) + '」“' + shown.src.quote + '”', goTo(from.key, shown.src)) : '') +
+      (from ? where('「' + titleOf(from) + '」“' + shown.src.quote + '”', goTo(from.key, shown.src)) : '') + (dropped ? '' : timeline(shown)) +
       (about.length ? HAIR + `<div class="ai-head">${DOT}AI 建议</div>` + about.map((o) => idea(o)).join('') : '') +
       '</div>'
   }
@@ -157,7 +258,7 @@ function setting() {
     const of = (o) => S.entries.find((e) => e.id === o.about)
     return back('全部设定', () => set({ sv: 'list' })) +
       `<div class="page scroll" data-k="ideas"><div class="title-line"><div class="title">待确认</div><div class="grow"></div><div class="side">${open.length} 条 AI 建议</div></div>` +
-      open.map((o, i) => (i ? HAIR : '') + idea(o, of(o) ? '关于 ' + of(o).names[0] : '新设定')).join('') + '</div>'
+      open.map((o, i) => (i ? HAIR : '') + idea(o, of(o) ? '关于 ' + of(o).names[0] + (o.from ? ' · ' + fromWhere(o.from) : '') : '新设定')).join('') + '</div>'
   }
 
   if (S.sv === 'dropped') return back('全部设定', () => set({ sv: 'list' })) + rows([head('已删除'), ...(gone.length ? gone.map((e) => row(e)) : [empty('没有已删除的设定')])])
@@ -191,6 +292,32 @@ function setting() {
     `<button class="icon-btn muted" aria-label="保留旧名" title="不替换"${onClick(() => set({ named: null }))}>${icon('cross', 'sm')}</button></div>`)
   return tool('搜索设定', 'sq', ['新增', () => set({ form: { id: null, name: '', names: '', text: '', cat: S.cats[0] }, ...SHUT })],
     [['已删除', gone.length, () => set({ sv: 'dropped', ...SHUT })], ['修改记录', '', () => set({ sv: 'log', ...SHUT })]]) + rows(list)
+}
+
+// 一条设定随章节的变化，接在原来的样子下面，照侧栏的先后排。正文页开着的那一章用的是哪一段，标「本章适用」；变化所在的章进了回收站，这处不起作用，写「所在章节已删除」。
+// 开着一章（或一卷）时，下面有「从本章起有变化」：本章已经有一处的，就是改它。
+function timeline(e) {
+  const here = S.page === 'write' ? S.ch || S.vol : '', on = asOf(e, here), all = e.changes || []
+  const gone = all.filter((g) => rank(g.key) < 0), live = changesOf(e)
+  const mine = here && all.find((g) => g.key === here)
+  const step = (label, text, g, cur) => `<div class="step${g && rank(g.key) < 0 ? ' gone' : ''}"><div class="step-head"><div class="fit ell">${t(label)}</div>${cur ? '<div class="tag">本章适用</div>' : ''}` +
+    (g ? `<div class="hit link"${onClick(() => set({ form: changing(e, g, g.key), ...SHUT }))}>修改</div>` : '') + `</div><div class="step-text">${t(text)}</div></div>`
+  const add = here && !mine ? `<div class="hit link add-change"${onClick(() => set({ form: changing(e, null, here), ...SHUT }))}>从${S.vol ? '本卷' : '本章'}起有变化</div>` : ''
+  if (!all.length) return add ? HAIR + add : ''
+  return HAIR + `<div class="ai-head"><div class="grow">随章节的变化</div>${add}</div>` + (here && !on ? '<div class="note">本章适用上面原来的样子。</div>' : '') +
+    live.map((g) => step(fromWhere(g.key), g.text, g, on && on.id === g.id)).join('') + gone.map((g) => step('所在章节已删除 · 不起作用', g.text, g, false)).join('')
+}
+
+// 记一处变化：从哪一章起（只能选书里有的章），那以后这一条的全文。
+function changeForm(f) {
+  const e = S.entries.find((x) => x.id === f.id), titles = S.chapters.map(titleOf), now = chapterOf(f.key)
+  const pick = (title) => set((s) => ({ form: { ...s.form, key: S.chapters[titles.indexOf(title)].key } }))
+  return '<div class="page scroll" data-k="change-form">' +
+    `<div class="title-line"><div class="title">${t(e.names[0] || e.cat)} · ${t(fromWhere(f.key))}</div></div><div class="note">从这一章起，这一条就是下面这段话；起草、改写这一章及以后的章时，AI 看到的是它。</div>` +
+    field('从哪一章起', choose('change-from', now ? titleOf(now) : '所在章节已删除', titles, pick, '从哪一章起')) +
+    field('内容', area(f.text, (v) => set((s) => ({ form: { ...s.form, text: v } })), '', '变化后的内容', 5, ' autofocus')) +
+    `<div class="buttons">${f.gid ? `<div class="hit link danger"${onClick(dropChange)}>删除这处变化</div><div class="grow"></div>` : ''}${button('取消', () => set({ form: null, ...SHUT }))}${button('保存', saveChange, f.text.trim() ? 'primary' : 'primary off')}</div>` +
+    '</div>'
 }
 
 // 新增和修改用同一张表。新增先填内容，修改先看名字：光标就在那一格里。
@@ -289,7 +416,7 @@ function thought(key, text, running, label = '思考过程') {
 
 // 回复前 AI 查了什么、记了什么，折在回复上面，和「思考过程」一个样子；正在查的时候开着。
 // 每一项点开能看查到的；记下的那一条点一下去设定里看它。
-const LOOK = { 搜: '搜了', 读: '读了', 摘要: '读了摘要', 设定: '查了设定', 讨论: '搜了讨论', 记: '记下：' }
+const LOOK = { 搜: '搜了', 读: '读了', 设定: '查了设定', 讨论: '搜了讨论', 记: '记下：' }
 const lookLine = ([act, what]) => LOOK[act] + what
 // 在右栏打开设定里的一条：等作者决定的在「AI 建议」里，别的在列表里选中它。
 const showEntry = (entry) => set({ paneOpen: true, tab: '设定', form: null, ...SHUT, ...(entry.place === 'open' ? { sv: 'ideas', sid: null } : { sv: 'list', sid: entry.id }) })
@@ -308,20 +435,33 @@ function looked(key, look, running) {
 // 查了东西的一轮前后发了几次请求，说的都是最后一次，写出回复的那次。
 function outgoing(talk, m, i) {
   // 发出去的是整份设定：正文、已放弃、悬而未决都在，后两种写明是哪一种；有名字的条目，名字在内容前面；回答过的问题跟在答案后面。目录每条只有分类、第一个名字和第一句。
-  const [input, cached, output] = m.use.at(-1), sent = ['body', 'dropped', 'open'].flatMap((p) => S.entries.filter((e) => e.place === p))
+  // 起草、改写的讨论跟着一章：设定按那一章时的样子，后面的变化不给，只说还有几处。普通讨论给最新的样子，每处变化写「第几章起」。
+  const [input, cached, output] = m.use.at(-1), sent = ['body', 'dropped', 'open'].flatMap((p) => S.entries.filter((e) => e.place === p && !e.from))
   const label = { body: '', dropped: '已放弃：', open: '悬而未决：' }
   const first = (text) => clip(text.match(/^[^。！？；\n]*[！？]?/)[0], 60)
+  const fixed = talk.origin ? talk.key : '', ahead = fixed ? sent.flatMap(changesOf).filter((g) => rank(g.key) > rank(fixed)).length : 0
   const digested = talk.digest && i >= talk.digest.after
-  const parts = [['规则', 1100], [S.crowded ? '设定目录' : '设定 ' + sent.length + ' 条', S.crowded ? sent.length * 40 : sent.length * 260], ...(digested ? [['讨论摘要', 820]] : []), ['查阅结果', (m.look || []).length * 640], ['本次发言', 40]]
+  const own = { 起草: [['章纲和卷纲', 260], ['本卷前面各章章纲', 310], ['上一章全文', 5060]], 改写: [['章纲和卷纲', 260], ['本章全文', 4300]] }[talk.origin] || []
+  const parts = [['规则', 1100], [S.crowded ? '设定目录' : '设定 ' + sent.length + ' 条', S.crowded ? sent.length * 40 : sent.length * 260], ...own, ...(digested ? [['讨论摘要', 820]] : []), ['查阅结果', (m.look || []).length * 640], ['本次发言', 40]]
   parts.splice(parts.length - 1, 0, ['之前的对话', Math.max(Math.round(input * 0.97) - parts.reduce((n, [, x]) => n + x, 0), 0)])
-  const head = S.crowded ? '设定较多，本次只附目录' : '附带全部 ' + sent.length + ' 条设定'
-  const rows = S.crowded ? sent.map((e) => `<div class="saw-row"><div class="fit">${t(label[e.place] + e.cat + (e.names[0] ? ' · ' + e.names[0] : '') + '：' + first(e.text))}</div></div>`).join('')
-    : sent.map((e) => `<div class="saw-row">${icon('tick', 'sm', 'green')}<div class="fit">${t(label[e.place] + (e.names.length ? e.names.join('、') + '：' : '') + e.text + (e.asked ? '（回答：' + e.asked + '）' : ''))}</div></div>`).join('')
+  const head = S.crowded ? '设定较多，本次只附目录' : fixed ? '附带 ' + sent.length + ' 条设定，按「' + chTitle(fixed) + '」时的样子' : '附带全部 ' + sent.length + ' 条设定'
+  const named = (e) => (e.names.length ? e.names.join('、') + '：' : '')
+  const changes = (e) => (fixed ? '' : changesOf(e).map((g) => `<div class="note">${t(fromWhere(g.key) + '：' + g.text)}</div>`).join(''))
+  const rows = S.crowded ? sent.map((e) => `<div class="saw-row"><div class="fit">${t(label[e.place] + e.cat + (e.names[0] ? ' · ' + e.names[0] : '') + '：' + first(textAt(e, fixed)))}</div></div>`).join('')
+    : sent.map((e) => `<div class="saw-row">${icon('tick', 'sm', 'green')}<div class="fit"><div>${t(label[e.place] + named(e) + textAt(e, fixed) + (e.asked ? '（回答：' + e.asked + '）' : ''))}</div>${changes(e)}</div></div>`).join('')
   return '<div class="reply-saw">' +
     `<div class="saw-title">本次发送约 ${tokens(parts.reduce((n, [, x]) => n + x, 0))} token</div>${m.use.length > 1 ? `<div class="note">这一轮共 ${m.use.length} 次请求，这是最后一次。</div>` : ''}<div class="note">${parts.filter(([, x]) => x).map(([name, x]) => t(name) + ' ' + tokens(x)).join(' · ')}</div>` +
     `<div class="note">实际用量：输入 ${tokens(input)}${cached ? '，其中缓存命中 ' + tokens(cached) : ''}；输出 ${tokens(output)}</div>` +
-    `<div class="saw-title">${head}</div>${S.crowded ? '<div class="note">目录只有分类、名字和第一句；需要时 AI 会查全文。</div>' : ''}` +
+    `<div class="saw-title">${t(head)}</div>${S.crowded ? '<div class="note">目录只有分类、名字和第一句；需要时 AI 会查全文。</div>' : ''}${ahead ? `<div class="note">后面还有 ${ahead} 处变化，未列出。</div>` : ''}` +
     (sent.length ? rows : '<div class="note">设定文档暂无内容。</div>') + '</div>'
+}
+
+// 回复里 AI 在正文里提的那一处：改哪一章、改哪里、多少字，作者定了没有。还没定的，点「在正文中查看」过去看。
+function propCard(m) {
+  const p = S.props.find((x) => x.id === m.prop), words = p ? p.paras.join('').length : m.words
+  const state = S.fate[m.prop] || (!p ? '已丢弃' : p.writing ? '正在写…' : '等你决定')
+  return `<div class="prop-card"><div class="prop-card-head">${icon('pen', 'sm', p ? 'green' : 'muted')}<div class="fit ell">提议修改「${t(chTitle(m.key))}」</div>` +
+    (p ? `<div class="hit link"${onClick(() => set((s) => go(s, m.key)))}>在正文中查看</div>` : '') + `</div><div class="note">${t(m.where)} · ${words} 字 · ${t(state)}</div></div>`
 }
 
 // 讨论长了压缩过的地方：前面几轮整理成了一份摘要，原文还在上面。点开看摘要，只能看不能改。
@@ -359,8 +499,9 @@ function message(talk, m, i) {
       (left ? `<div class="unanswered">${icon('warn', 'sm')}<div>该消息尚未收到回复</div><div class="hit link${S.waiting ? ' off' : ''}"${onClick(S.waiting ? null : () => answer(talk.id))}>重试回复</div></div>` : '') + '</div>'
   }
   const copy = () => { if (navigator.clipboard) navigator.clipboard.writeText(m.text).catch(() => {}); say('已复制', '', 'ok') }
-  const use = m.use ? ' · ' + tokens(m.use.reduce((n, [input, , output]) => n + input + output, 0)) + ' token' : '' // 这一轮所有请求的合计
-  return `<div class="msg${last ? ' last' : ''}"><div class="reply-row"><div class="reply-face">${icon('spark')}</div><div class="fit">${m.think ? thought(key, m.think) : ''}${m.look && m.look.length ? looked('look-' + key, m.look) : ''}<div class="reply" data-reply="${i}">${t(m.text)}</div>` +
+  // 这一轮所有请求的合计，和按内置价格估的花费；表里没有价格的模型不写花费。
+  const cost = m.use && price(S.uses[0].model, m.use), use = m.use ? ' · ' + tokens(m.use.reduce((n, [input, , output]) => n + input + output, 0)) + ' token' + (cost ? ' · ' + cost : '') : ''
+  return `<div class="msg${last ? ' last' : ''}"><div class="reply-row"><div class="reply-face">${icon('spark')}</div><div class="fit">${m.think ? thought(key, m.think) : ''}${m.look && m.look.length ? looked('look-' + key, m.look) : ''}${m.prop ? propCard(m) : ''}<div class="reply" data-reply="${i}">${t(m.text)}</div>` +
     (m.capped ? '<div class="note">已达到本次查阅上限，以上回答仅依据已查到的内容。</div>' : '') +
     `<div class="reply-tools"><div class="faint">${t(m.at)} · ${t(S.uses[0].model)}${use}</div>${pull}${tool('复制全文', 'copy', copy)}${m.use ? tool('AI 参考内容', 'eye', () => set((s) => ({ told: { ...s.told, [key]: !saw } })), saw) : ''}</div>` +
     (saw && m.use ? outgoing(talk, m, i) : '') + '</div></div></div>'
@@ -370,7 +511,8 @@ function said(talk) {
   const w = S.waiting && S.waiting.id === talk.id ? S.waiting : null
   return talk.msgs.map((m, i) => message(talk, m, i) + (talk.digest && i === talk.digest.after - 1 ? digest(talk) : '')).join('') +
     (w ? `<div class="msg last"><div class="reply-row"><div class="reply-face">${icon('spark')}</div><div class="fit">${w.step === 'pack' ? '' : thought('live', BOOK.think, w.step === 'think')}${w.look && w.look.length ? looked('live-look', w.look, w.step === 'look') : ''}` +
-      `<div class="waiting">${icon('spin', 'sm')}<div class="fit">${{ pack: '正在压缩上下文…', think: '正在思考…', look: '正在查阅…', reply: '正在回复…' }[w.step]}</div><div class="hit link"${onClick(stopReply)}>取消请求</div></div></div></div></div>` : '')
+      (w.prop ? propCard({ prop: w.prop, key: talk.key, where: { end: '接在章末', all: '换掉全章', swap: '换掉一句' }[(S.props.find((p) => p.id === w.prop) || { at: { kind: 'end' } }).at.kind] }) : '') +
+      `<div class="waiting">${icon('spin', 'sm')}<div class="fit">${{ pack: '正在压缩上下文…', think: '正在思考…', look: '正在查阅…', reply: '正在回复…', propose: '正在正文中提议修改…' }[w.step]}</div><div class="hit link"${onClick(stopReply)}>取消请求</div></div></div></div></div>` : '')
 }
 
 function discussion() {
@@ -389,7 +531,8 @@ function discussion() {
       : `<div class="asks" data-k="asks">${head('示例问题')}${BOOK.asks.map((text) => `<div class="item row"${onClick(offer(text))}><div class="name ell">${t(text)}</div><div class="grow"></div>${ICON.right}</div>`).join('')}</div>`) +
     '<div class="composer" data-k="composer">' +
     `<div class="box send-box">${S.cite ? cited(S.cite, () => set({ cite: null })) : ''}<div class="send-line"><textarea class="in" rows="1" placeholder="${hint}，Ctrl+Enter 发送" aria-label="${hint}"${onInput((v) => set({ draft: v }))}${onKey(sendKey)}>${t(S.draft)}</textarea><div class="send hit${S.draft.trim() && !S.waiting ? '' : ' off'}" title="发送（Ctrl+Enter）"${onClick(() => send())}>${ICON.send}</div></div></div>` +
-    `<div class="attach-line">${tickbox(S.attach, S.vol ? '附上本卷内容' : '附上本章内容', () => set({ attach: !S.attach }), S.vol ? '将卷纲一并发送给 AI' : '将章纲和光标前约 2000 字一并发送给 AI')}<div class="grow"></div>${modelPick()}</div>` +
+    // 起草、改写开的讨论跟着那一章，不随开着的章换，也不用选附不附。
+    `<div class="attach-line">${talk && talk.origin ? `<div class="fixed ell" title="这段讨论附上的正文和设定都按这一章">跟着「${t(chTitle(talk.key))}」</div>` : tickbox(S.attach, S.vol ? '附上本卷内容' : '附上本章内容', () => set({ attach: !S.attach }), S.vol ? '将卷纲一并发送给 AI' : '将章纲和光标前约 2000 字一并发送给 AI')}<div class="grow"></div>${modelPick()}</div>` +
     '</div>'
 }
 

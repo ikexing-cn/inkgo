@@ -86,7 +86,7 @@ function backOut() {
   if (S.open) return set(SHUT)
   if (S.ctx || S.bury || S.pay || S.tree) return closeFloat()
   if (S.rename) return set({ rename: null })
-  if (S.ai && S.ai.kind !== 'drafting') return set({ ai: null })
+  if (S.ai) return set({ ai: null })
   if (S.find) return set({ find: null })
   if (S.bar) { unselect(); return set({ bar: null }) }
 }

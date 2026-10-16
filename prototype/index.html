@@ -240,7 +240,7 @@ body { margin: 0; }
 .prose { min-height: 320px; font-size: var(--fs-paper); line-height: var(--lh-paper); display: flex; flex-direction: column; gap: 10px; text-indent: 2em; white-space: pre-wrap; outline: none; caret-color: var(--ink); }
 .prose-hint { position: absolute; left: 0; top: 0; font-size: var(--fs-paper); line-height: var(--lh-paper); text-indent: 2em; color: var(--faint); pointer-events: none; } /* 还没有字时垫在第一行下面的那句 */
 /* 正文里的标记：伏笔是点线，正在看的那条加浅底，选中的字是蓝底；检查出来的是虚线，查到的词是黄底；
-   AI 起草的画浅下划线，改写时原文划掉、新写的标绿，续写出来还没采纳的是灰字 */
+   AI 写的（采纳了的）画浅下划线；AI 提议要换掉的原文划掉、新写的标绿，跟着这一处的两个按钮；续写出来还没采纳的是灰字 */
 .prose .fs { border-bottom: 1.5px dotted var(--faint); padding-bottom: 2px; }
 .prose .fs.on { border-bottom-color: var(--muted); background: var(--hover); }
 .prose .sel { background: var(--sel); }
@@ -252,6 +252,9 @@ body { margin: 0; }
 .cut { color: var(--danger); text-decoration: line-through; }
 .add { color: var(--success); }
 .ghost-text { color: var(--faint); }
+.prop-acts { display: inline-flex; align-items: center; gap: 6px; margin: 0 10px; vertical-align: 2px; text-indent: 0; font-size: var(--fs-control); line-height: normal; color: var(--ink); user-select: none; }
+.prop-acts .btn { display: inline-flex; }
+.prop-writing { color: var(--muted); }
 /* 底栏放不下时先省检查的那句，再省字数；别的都不折行 */
 .foot > .hit, .foot > .faint, .foot > .anchor { flex: none; white-space: nowrap; }
 .foot > .foot-state { flex: 0 1000 auto; min-width: 0; }
@@ -303,6 +306,13 @@ body { margin: 0; }
 .ai-head { display: flex; align-items: center; gap: 8px; font-size: var(--fs-note); font-weight: 600; }
 .idea { display: flex; flex-direction: column; gap: 8px; }
 .idea-about { font-size: var(--fs-note); color: var(--muted); }
+/* 一条设定随章节的变化：每处一段，写从哪起；本章用的那段带一个小标签，不起作用的灰掉 */
+.step { display: flex; flex-direction: column; gap: 4px; }
+.step-head { display: flex; align-items: center; gap: 8px; font-size: var(--fs-note); color: var(--muted); }
+.step-text { font-size: var(--fs-body); line-height: var(--lh-loose); }
+.step.gone .step-text { color: var(--faint); }
+.tag { flex: none; padding: 0 6px; border-radius: var(--r-xs); background: var(--active); color: var(--ink); font-size: var(--fs-small); }
+.add-change { margin-left: 0; font-weight: 400; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field .label { font-size: var(--fs-note); color: var(--muted); }
 .field.cat { position: relative; }
@@ -363,6 +373,10 @@ body { margin: 0; }
 .reply-face { flex: none; width: var(--h-control-sm); height: var(--h-control-sm); border-radius: var(--r-round); background: var(--active); color: var(--muted); display: flex; align-items: center; justify-content: center; }
 .reply-tools { display: flex; align-items: center; gap: 2px; margin-top: 6px; font-size: var(--fs-small); }
 .reply-tools > div { margin-right: 6px; }
+/* 讨论里 AI 在正文里提的那一处：哪一章、改哪里、作者定了没有 */
+.prop-card { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--side); font-size: var(--fs-control); }
+.prop-card-head { display: flex; align-items: center; gap: 6px; }
+.fixed { min-width: 0; }
 .reply-saw { margin-top: 4px; padding: 12px 14px; border-radius: var(--r-card); background: var(--side); border: 1px solid var(--line); font-size: var(--fs-note); display: flex; flex-direction: column; gap: 8px; }
 .saw-title { font-weight: 600; }
 .saw-row { display: flex; align-items: flex-start; gap: 8px; line-height: var(--lh-body); }
@@ -513,6 +527,15 @@ body { margin: 0; }
 .spent-row { display: flex; align-items: center; gap: 12px; font-size: var(--fs-control); }
 .spent-row > :first-child { width: 150px; flex: none; }
 .spent-row > .fit { color: var(--muted); }
+/* AI 记录：一次请求一行，点开看发了哪几部分 */
+.records-head { display: flex; align-items: center; gap: 12px; }
+.records { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.record { border-bottom: 1px solid var(--line); }
+.record-row { display: flex; align-items: center; gap: 12px; min-height: var(--h-control); padding: 0 6px; font-size: var(--fs-control); }
+.record-at { width: 92px; flex: none; color: var(--muted); }
+.record-n, .record-cost { width: 64px; flex: none; text-align: right; color: var(--muted); }
+.record-end { width: 150px; flex: none; }
+.record-more { display: flex; flex-direction: column; gap: 2px; padding: 0 6px 10px 110px; font-size: var(--fs-note); color: var(--muted); }
 /* 服务里的模型：一行一个，三个数跟在 ID 后面 */
 .limits { display: flex; flex-direction: column; gap: 6px; }
 .limit-row { display: flex; align-items: center; gap: 8px; }
@@ -552,7 +575,7 @@ body { margin: 0; }
 
 /* ───────── 能点的都回应指针 ─────────
    有边有底的换底色；墨色实心的浅一级；只有字和图标的变成墨色；文字按钮有底色、线变深。写在最后，压过前面各自的底色。 */
-.btn:hover, .tool .add:hover, .box.line.hit:hover, .place:hover, .chip:not(.on):hover, .stepper > .hit:hover, .nav:not(.on):hover, .tab:not(.on):hover { background: var(--hover); }
+.btn:hover, .record-row:hover, .tool .add:hover, .box.line.hit:hover, .place:hover, .chip:not(.on):hover, .stepper > .hit:hover, .nav:not(.on):hover, .tab:not(.on):hover { background: var(--hover); }
 .btn.primary:hover, .send:hover, .chip.on:hover { background: var(--ink-2); }
 .btn.soft:hover { background: var(--dim); }
 .btn.danger:hover { background: var(--danger); opacity: .85; }

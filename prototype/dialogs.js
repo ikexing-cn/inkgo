@@ -94,13 +94,32 @@ function fetchModels() {
   const timer = aiLater(1200, () => { unsay(id); set((s) => (s.dialog && s.dialog.svc ? { dialog: { ...s.dialog, svc: { ...s.dialog.svc, models: (BOOK.services.find((x) => x.id === s.dialog.svc.id) || BOOK.services[0]).models.map(limits) } } } : null)); say('已获取模型目录，保存提供商后生效', '', 'ok') })
 }
 
-// 这部作品累计用了多少 token，按内置价格估算花费；表里没有价格的模型不估。
+// 这部作品用了多少：按功能各一行，请求数、token、按内置价格估的花费；表里没有价格的模型不估。
+// 每次请求都在 AI 记录里有一行，点「查看全部记录」一行一行看；只能看，不能删。
+const FEATURES = ['讨论', '起草', '改写', '续写', '检查']
+const spentOn = (rows) => rows.reduce((n, r) => { const p = (BOOK.table[r[3]] || [])[2], [input, cached, output] = r[6]; return n + (p ? ((input - cached) * p[0] + cached * p[1] + output * p[2]) / 1e6 : 0) }, 0)
 function spent() {
-  const used = S.book === BOOK.shelf[0].id ? BOOK.spent : []
-  const cost = (id, input, cached, output) => { const p = (BOOK.table[id] || [])[2]; return p ? '约 ' + p[3] + (((input - cached) * p[0] + cached * p[1] + output * p[2]) / 1e6).toFixed(2) : '无价格' }
-  const row = ([id, input, cached, output]) => `<div class="spent-row"><div class="ell">${t(id)}</div><div class="fit ell">输入 ${tokens(input)}，缓存命中 ${Math.round((cached / input) * 100)}% · 输出 ${tokens(output)}</div><div>${cost(id, input, cached, output)}</div></div>`
+  const all = S.records
+  const row = (feature) => {
+    const rows = all.filter((r) => r[1] === feature), sum = (i) => rows.reduce((n, r) => n + r[6][i], 0)
+    return `<div class="spent-row"><div>${feature}</div><div class="fit ell">${rows.length} 次请求 · 输入 ${tokens(sum(0))}，缓存命中 ${Math.round((sum(1) / sum(0)) * 100)}% · 输出 ${tokens(sum(2))}</div><div>约 $${spentOn(rows).toFixed(2)}</div></div>`
+  }
+  const used = FEATURES.filter((f) => all.some((r) => r[1] === f))
   return '<div class="prefs-group"><div class="group-title">本作品用量</div><div class="note">按内置价格估算，以服务商账单为准。</div></div>' +
-    (used.length ? `<div class="spent">${used.map(row).join('')}</div>` : '<div class="note">尚未使用 AI。</div>')
+    (used.length ? `<div class="spent">${used.map(row).join('')}</div><div class="prefs-links"><div class="hit link"${onClick(() => set((s) => ({ dialog: { ...s.dialog, records: true, only: '全部', row: -1 }, ...SHUT })))}>查看全部记录（${all.length} 次请求）</div></div>` : '<div class="note">尚未使用 AI。</div>')
+}
+// AI 记录：每次请求一行，新的在上，失败的、取消的也在。点一行看这次发了哪几部分、服务商算的实际用量。不存发出去的字。
+function records(d) {
+  const shown = S.records.filter((r) => d.only === '全部' || r[1] === d.only)
+  const pick = (change) => () => set((s) => ({ dialog: { ...s.dialog, ...change } }))
+  const line = (r, i) => {
+    const [at, feature, where, model, effort, parts, [input, cached, output], end] = r, open = d.row === i, cost = price(model, [r[6]])
+    return `<div class="record${open ? ' on' : ''}"><div class="record-row hit"${onClick(pick({ row: open ? -1 : i }))}><div class="record-at">${t(at)}</div><div class="fit ell">${t(feature + ' · ' + where)}</div>` +
+      `<div class="record-n">${tokens(input + output)}</div><div class="record-cost">${t(cost || '—')}</div><div class="record-end ell${end === '完成' ? '' : end === '已取消' ? ' muted' : ' danger'}">${t(end)}</div>${icon(open ? 'down' : 'right', 'xs')}</div>` +
+      (open ? `<div class="record-more"><div>${t(model + ' · ' + effort)}</div><div>发送：${parts.map(([name, x]) => t(name) + ' ' + tokens(x)).join(' · ')}</div><div>实际用量：输入 ${tokens(input)}${cached ? '，其中缓存命中 ' + tokens(cached) : ''}；输出 ${tokens(output)}</div></div>` : '') + '</div>'
+  }
+  return `<div class="records-head"><div class="hit link"${onClick(pick({ records: false }))}>‹ 本作品用量</div><div class="grow"></div>${seg(d.only, ['全部', ...FEATURES], (only) => set((s) => ({ dialog: { ...s.dialog, only, row: -1 } })), '按功能筛选')}</div>` +
+    `<div class="records">${shown.length ? shown.map((r) => line(r, S.records.indexOf(r))).join('') : '<div class="note">没有这类请求。</div>'}</div>`
 }
 
 function settingsModel(d) {
@@ -142,7 +161,7 @@ function settingsModel(d) {
   return (S.page === 'shelf' ? '' : '<div class="prefs-group"><div class="group-title">本作品的模型</div><div class="note">思考程度选 Default 时由服务商决定。修改自下次发送起生效。</div></div>' +
     `<div class="uses">${S.uses.map(use).join('')}</div>` + spent() +
     '<div class="prefs-group"><div class="group-title">写作时</div></div>' +
-    `<div class="ticks">${tickbox(S.auto, '停笔后自动续写', () => set({ auto: !S.auto }))}<div class="note tick-note">开启后每次停笔都会调用一次 AI。</div>${tickbox(S.recap, '章节修改后更新摘要', () => set({ recap: !S.recap }))}<div class="note tick-note">手动填写的摘要不会被覆盖。</div></div>`) +
+    `<div class="ticks">${tickbox(S.auto, '停笔后自动续写', () => set({ auto: !S.auto }))}<div class="note tick-note">开启后每次停笔都会调用一次 AI。</div></div>`) +
     '<div class="prefs-group"><div class="group-title">模型服务</div><div class="note">保存在本机，所有作品共用</div></div>' +
     `<div class="services">${S.services.map(card).join('')}` +
     (d.edit === 'new' ? `<div class="service" data-reveal="new">${form()}</div>` : `<div class="service add hit"${onClick(() => open(() => editing(null), 'new'))}>${ICON.plus}添加服务</div>`) + '</div>' +
@@ -170,21 +189,20 @@ const aiSwitch = () => `<div class="ticks">${tickbox(S.noAI, '关闭 AI', () => 
 // 关闭、开启 AI 前问的那一句，浮在设置上面。
 function askAI(ask) {
   const off = ask === 'off', back = () => set((s) => ({ dialog: { ...s.dialog, ask: '' } }))
-  const about = off ? '隐藏全部 AI 功能，不再发送任何内容；正在进行的 AI 任务会停止。讨论、摘要和检查结果不会删除，重新开启后恢复。'
-    : '重新显示 AI 功能。自动摘要和检查会按设置把章节内容发给模型服务；未配置模型服务时不发送任何内容。'
+  const about = off ? '隐藏全部 AI 功能，不再发送任何内容；正在进行的 AI 任务会停止，没有处理的 AI 提议会丢弃。讨论、检查结果和 AI 记录不会删除，重新开启后恢复。'
+    : '重新显示 AI 功能。检查会按设置把章节内容发给模型服务；未配置模型服务时不发送任何内容。'
   return `<div class="scrim top"${onClick(back)}></div><div class="dialog-wrap top"><div class="dialog ask" data-k="dialog-ask">` +
     dialogHead(off ? '是否关闭 AI？' : '是否开启 AI？', about) + buttons(button('取消', back), button(off ? '关闭 AI' : '开启 AI', () => turnAI(!off), 'primary')) + '</div></div>'
 }
 
-// 关闭 AI：正在做的 AI 任务停下。没采纳的起草、改写丢掉；没回完的那句讨论不要了，作者的话还在，和点「取消请求」一样。
-// 正开着的讨论、检查两页回到正文，右栏的讨论回到设定，标题下面的摘要收起。讨论、摘要、检查结果都还在，重新开启后照旧。
+// 关闭 AI：正在做的 AI 任务停下。没采纳的提议丢掉；没回完的那句讨论不要了，作者的话还在，和点「取消请求」一样。
+// 正开着的讨论、检查两页回到正文，右栏的讨论回到设定。讨论、检查结果、AI 记录都还在，重新开启后照旧。
 // 提示条一并收起：上面说的多半是 AI 的事，有的还能点「重试」。
 function turnAI(on) {
   if (!on && S.waiting) stopReply()
   set((s) => (on ? { noAI: false, dialog: { ...s.dialog, ask: '' } } : {
-    noAI: true, dialog: { ...s.dialog, ask: '' }, toasts: [], ai: null, checking: false, queue: [],
-    summaries: Object.fromEntries(Object.entries(s.summaries).map(([key, sum]) => [key, sum.busy ? { ...sum, busy: false } : sum])),
-    page: s.page === 'talk' || s.page === 'check' ? 'write' : s.page, sv: s.sv === 'ideas' ? 'list' : s.sv, box: s.box === '摘要' ? '' : s.box,
+    noAI: true, dialog: { ...s.dialog, ask: '' }, toasts: [], ai: null, checking: false, queue: [], ...ruled(s, s.props.map((p) => p.id), '关闭 AI 时已丢弃'),
+    page: s.page === 'talk' || s.page === 'check' ? 'write' : s.page, sv: s.sv === 'ideas' ? 'list' : s.sv,
   }))
 }
 
@@ -197,14 +215,15 @@ function settingsDialog(d) {
   const lateNow = S.marks.filter((m) => m.st === 'open' && BOOK.now - m.ch >= S.late).length
   const when = [['写完一章后检查', '推荐，每章调用一次 AI'], ['手动检查', '平时不调用 AI'], ['边写边检查', '停笔即检查，调用最多']]
   const step = (by) => () => set((s) => ({ late: Math.max(5, s.late + by) }))
-  const body = d.tab === 'AI' ? aiSwitch() + (aiOn() ? settingsModel(d) : '') : d.tab === '备份' ? settingsBackup()
+  const rec = d.tab === 'AI' && d.records && aiOn()
+  const body = d.tab === 'AI' ? (rec ? records(d) : aiSwitch() + (aiOn() ? settingsModel(d) : '')) : d.tab === '备份' ? settingsBackup()
     : d.tab === '外观' ? `<div class="prefs-row"><div class="prefs-label">颜色</div>${seg(S.look, [['跟随系统', 'screen'], ['浅色', 'sun'], ['深色', 'moon']], (v) => set({ look: v }), '颜色')}</div>`
     : '<div class="prefs-group"><div class="group-title">伏笔</div></div>' +
       `<div class="prefs-row"><div class="fit"><div>超过多少章未回收时提醒</div><div class="note">到期后归入「久未回收」，不弹窗。</div></div><div class="stepper"><div class="hit" title="减少 5 章"${onClick(step(-5))}>−</div><div class="stepper-n">${S.late} 章</div><div class="hit" title="增加 5 章"${onClick(step(5))}>+</div></div></div>` +
       `<div class="note">当前有 ${lateNow} 个伏笔久未回收。</div>` +
       (aiOn() ? `<div class="prefs-group"><div class="group-title">检查正文和设定</div></div>${radios(S.when, when, (v) => set({ when: v }))}` : '')
   return dialog('prefs', `<div class="prefs-nav"><div class="prefs-nav-title">设置</div>${tabs.map((name) => `<div class="nav hit${d.tab === name ? ' on' : ''}"${onClick(() => set({ dialog: { kind: 'settings', tab: name, edit: '' }, ...SHUT }))}>${name}</div>`).join('')}</div>` +
-    `<div class="prefs-main"><div class="prefs-head"><div class="prefs-title">${d.tab}</div><div class="note">${about[d.tab]}</div></div><div class="prefs-body scroll" data-k="prefs-${d.tab}">${body}</div></div><button class="icon-btn muted prefs-close" aria-label="关闭设置" title="关闭设置"${onClick(shut)}>${icon('cross')}</button>`) + (d.ask ? askAI(d.ask) : '')
+    `<div class="prefs-main"><div class="prefs-head"><div class="prefs-title">${rec ? 'AI 记录' : d.tab}</div><div class="note">${rec ? '本作品每次向模型发的请求记一行，失败、取消的也记；只记发了哪几部分、各多大，不存内容。' : about[d.tab]}</div></div><div class="prefs-body scroll" data-k="prefs-${rec ? 'records' : d.tab}">${body}</div></div><button class="icon-btn muted prefs-close" aria-label="关闭设置" title="关闭设置"${onClick(shut)}>${icon('cross')}</button>`) + (d.ask ? askAI(d.ask) : '')
 }
 
 // ───────── 正文那一页的几个对话框 ─────────
@@ -241,20 +260,17 @@ function takeDialog(d) {
     buttons(button('取消', shut), button('加入', add, d.text.trim() ? 'primary' : 'primary off')))
 }
 
+// 起草在一段新的讨论里，用讨论模型。这里说清楚 AI 预先带上什么、大约多少 token；别的它要用时自己查。不预先报价。
 function draftDialog(d) {
-  const cur = chapterOf(S.ch), [model, effort] = writer()
+  const cur = chapterOf(S.ch), use = S.uses[0], prev = S.chapters[S.chapters.indexOf(cur) - 1]
   const type = (key) => (v) => set((s) => ({ dialog: { ...s.dialog, [key]: v } }))
-  const before = S.chapters.slice(0, S.chapters.indexOf(cur)).filter((c) => !S.summaries[c.key] || !S.summaries[c.key].text)
-  const had = S.chapters.indexOf(cur) - before.length
-  const fill = () => { set((s) => ({ dialog: { ...s.dialog, total: before.length } })); before.forEach((c, i) => later(i * 500, () => recap(c.key))) }
-  return dialog('small', dialogHead('起草本章', 'AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。写完先供你查看，采纳后才写入正文，写入前保存快照；写入的文字带有“AI 起草”标记，修改过的部分不再带标记。') +
+  const sent = 1100 + S.entries.filter((e) => e.place === 'body').length * 260 + 600 + (prev ? counted(prev) : 0) // 规则、设定、章纲卷纲、上一章全文
+  return dialog('small', dialogHead('起草本章', 'AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。起草在一段新的讨论里进行：写好的先在正文里显示为提议，采纳后才写入，写入前保存快照；想改哪里，在讨论里接着说。') +
     `<div class="quote">${t(S.outlines[cur.key])}</div>` +
     field('目标字数（选填）', line(d.goal, type('goal'), '由 AI 按章纲判断', '目标字数') + (countOrNone(d.goal) ? '' : '<div class="note danger">目标字数须为正整数，或留空</div>')) +
     (cur.paras.length ? field('本章已有内容', dots(d.how, ['接在已有内容之后', '覆盖已有内容'], type('how'), '已有内容的处理方式')) : '') +
-    `<div class="note">用 ${t(model)} · ${t(effort)}；可在设置中「AI」配置里更换。</div>` +
-    (before.length && d.total ? `<div class="note">正在补齐摘要：${d.total - before.length} / ${d.total}。补齐前起草，AI 只能参考已有摘要。</div>`
-      : before.length ? `<div class="warn-line"><div class="fit">前文有 ${before.length} 章尚无摘要，起草时 AI 无法了解这些章节的内容。</div><div class="hit link"${onClick(fill)}>补齐摘要（${before.length} 次调用）</div></div>`
-      : had > 0 ? `<div class="note">起草时 AI 会参考前 ${had} 章的摘要，以衔接前文。</div>` : '') +
+    `<div class="note">将带上${prev ? '上一章全文、' : ''}${cur.vol ? '本卷各章章纲' : '各卷卷纲'}等，约 ${tokens(sent)} token；AI 需要时会自己再查。</div>` +
+    `<div class="note">用讨论模型 ${t(use.model)} · ${t(use.effort)}；可在设置中「AI」配置里更换。</div>` +
     buttons(button('取消', shut), countOrNone(d.goal) ? button('开始起草', draftNow, 'primary') : button('开始起草', null, 'primary off')))
 }
 
@@ -282,11 +298,11 @@ function snapsDialog(d) {
     say('已恢复到 ' + shown.at + ' 的版本，恢复前的内容已存为快照', '', 'ok')
   }
   const same = shown && shown.paras.join('\n') === cur.paras.join('\n')
-  return dialog('wide', dialogHead('快照 · ' + titleOf(cur), '打开章节时、连续写作每十分钟、恢复前、' + (aiOn() ? '采纳 AI 起草或改写前、' : '') + '全书替换前都会保存一份。最近七天的全部保留，更早的每天保留最后一份。') +
+  return dialog('wide', dialogHead('快照 · ' + titleOf(cur), '打开章节时、连续写作每十分钟、恢复前、' + (aiOn() ? '采纳 AI 提议前、' : '') + '全书替换前都会保存一份。最近七天的全部保留，更早的每天保留最后一份。') +
     (shown
       ? `<div class="snaps"><div class="snap-list scroll">${list.map((x) => `<div class="snap-row row${x === shown ? ' on' : ''}"${onClick(pick({ id: x.id }))}><div>${t(x.at)}</div><div class="note">${t(snapKind(x.kind))} · ${x.paras.join('').length} 字</div></div>`).join('')}</div>` +
         `<div class="snap-side"><div class="snap-tools">${tickbox(d.diff, '与当前对比', pick({ diff: !d.diff }))}<div class="fit note ell">${same ? '该快照与当前正文相同' : d.diff ? '红色删除线为快照中有而当前没有的内容，绿色为当前新增的内容' : ''}</div></div>` +
-        (shown.ai && aiOn() ? `<div class="card"><div class="who">${t(shown.ai.head)}</div><div class="extra">${t(shown.ai.saw)}</div></div>` : '') +
+        (shown.ai && aiOn() ? `<div class="card"><div class="who">${t(shown.ai.head)}</div>${shown.ai.saw ? `<div class="extra">${t(shown.ai.saw)}</div>` : ''}</div>` : '') +
         `<div class="snap-text scroll">${d.diff ? compare(shown.paras, cur.paras) : shown.paras.map((p) => `<div>${t(p)}</div>`).join('') || '<div class="faint">该快照为空</div>'}</div></div></div>`
       : '<div class="empty"><div>本章暂无快照</div></div>') +
     buttons(button('关闭', shut), button('恢复这个版本', shown && !same ? restore : null, shown && !same ? 'primary' : 'primary off')))
@@ -345,7 +361,7 @@ function swapDialog(d) {
 // 关标签页时那一章还有没存的字：存了再关、不存就关（回到存着的那一份）、或者不关。
 // 三个按钮照系统问「要不要保存」的顺序排：保存、不保存、取消。
 function unsavedDialog(d) {
-  const drop = () => set((s) => (!s.saved && s.kept && s.kept.key === s.ch ? { ...retext(s, s.kept.paras), dirty: s.kept.dirty, summaries: s.kept.summaries } : null))
+  const drop = () => set((s) => (!s.saved && s.kept && s.kept.key === s.ch ? { ...retext(s, s.kept.paras), dirty: s.kept.dirty } : null))
   const then = (first) => () => { first(); set({ saved: true, kept: null, dialog: null }); shutTabs(d.gone, true) }
   return dialog('ask', dialogHead('保存对「' + titleOf(chapterOf(S.ch)) + '」的修改？', '不保存将丢失上次保存后的修改。') +
     `<div class="buttons asked">${button('保存', then(() => {}), 'primary')}${button('不保存', then(drop))}${button('取消', shut)}</div>`)
@@ -399,5 +415,13 @@ function nameBookDialog(d) {
   return dialog('small', dialogHead('重命名作品') + line(d.name, (v) => set((s) => ({ dialog: { ...s.dialog, name: v } })), '', '新作品名', keys(save) + ' autofocus') + '<div class="note">仅修改作品名，文件夹不变。</div>' + buttons(button('取消', shut), button('保存', name ? save : null, name ? 'primary' : 'primary off')))
 }
 
-const DIALOGS = { backup: backupDialog, settings: settingsDialog, take: takeDialog, source: sourceDialog, draft: draftDialog, snaps: snapsDialog, export: exportDialog, swap: swapDialog, unsaved: unsavedDialog, bin: binDialog, keys: keysDialog, newBook: newBookDialog, nameBook: nameBookDialog }
+// 关掉作品时还有没定的 AI 提议：先问一句。提议不存盘，关了就没了；它写的字在讨论里还看得到，要的话让 AI 再提一次。
+function leaveDialog(d) {
+  const n = S.props.length, close = () => { set((s) => ({ dialog: null, ...ruled(s, s.props.map((p) => p.id), '作品关闭时已丢弃') })); d.then() }
+  return dialog('ask', dialogHead('还有 ' + n + ' 处 AI 提议没有处理', '关闭后将丢弃。') + buttons(button('取消', shut), button('丢弃并关闭', close, 'primary')))
+}
+// 要关掉这部作品（换一部、回到书架）：有没定的 AI 提议，先问。
+const leave = (then) => () => (S.props.length ? set({ dialog: { kind: 'leave', then }, ...SHUT }) : then())
+
+const DIALOGS = { leave: leaveDialog, backup: backupDialog, settings: settingsDialog, take: takeDialog, source: sourceDialog, draft: draftDialog, snaps: snapsDialog, export: exportDialog, swap: swapDialog, unsaved: unsavedDialog, bin: binDialog, keys: keysDialog, newBook: newBookDialog, nameBook: nameBookDialog }
 const dialogs = () => (S.dialog ? DIALOGS[S.dialog.kind](S.dialog) : '')

@@ -30,6 +30,25 @@ const tokens = (n) => {
   const [unit, by] = [['B', 1e9], ['M', 1e6], ['K', 1e3]].find(([, by]) => n >= 1000 && Math.round((n / by) * 10) >= 10) || ['', 1]
   return Math.round((n / by) * 10) / 10 + unit
 }
+// 按内置价格估一次或几次请求花了多少：use 每项是 [输入, 其中缓存命中, 输出]。表里没有价格的模型不估，给空。
+const price = (model, use) => {
+  const p = (BOOK.table[model] || [])[2]
+  if (!p) return ''
+  const v = use.reduce((n, [input, cached, output]) => n + (input - cached) * p[0] + cached * p[1] + output * p[2], 0) / 1e6
+  return v < 0.01 ? '不到 ' + p[3] + '0.01' : '约 ' + p[3] + v.toFixed(2)
+}
+
+// 设定随章节变：一章（或一卷的第一章）排在全书的第几个，照侧栏的先后。不在书里（进了回收站）的是 -1。
+const rank = (key) => (key ? S.chapters.findIndex((c) => c.key === key || c.vol === key) : -1)
+// 一条设定在某一章时的样子：那一章和它前面最后一处变化的全文；一处也没有就是原来的。key 空着是最新的样子。
+const changesOf = (e) => (e.changes || []).filter((g) => rank(g.key) >= 0).sort((a, b) => rank(a.key) - rank(b.key))
+const asOf = (e, key) => {
+  const at = key ? rank(key) : Infinity, live = changesOf(e).filter((g) => rank(g.key) <= at)
+  return live.length ? live.at(-1) : null
+}
+const textAt = (e, key) => (asOf(e, key) || e).text
+// 指一处变化从哪起：「第87章起」「第三卷：停电起」，那一章不在了写「所在章节已删除」。
+const fromWhere = (key) => { const c = chapterOf(key), v = S.volumes.find((x) => x[0] === key); return c ? (numbered(c) ? '第' + c.no + '章起' : titleOf(c) + '起') : v ? v[1] + '起' : '所在章节已删除' }
 
 // 刚打开一本书的样子。书架上只有第一本有内容，别的是空书。
 function fresh(book = BOOK.shelf[0].id) {
@@ -41,7 +60,7 @@ function fresh(book = BOOK.shelf[0].id) {
   const snaps = of('snaps', []).map((s) => ({ ...s, paras: last.paras.filter((_, i) => !s.less.includes(i)) }))
   return {
     book, page: 'write', // 在哪一页：write 正文、talk 讨论、check 检查、cats 作品分类、shelf 书架
-    volumes: of('volumes', []), chapters, bin: of('bin', []), outlines: of('outlines', {}), summaries: of('summaries', {}),
+    volumes: of('volumes', []), chapters, bin: of('bin', []), outlines: of('outlines', {}), records: of('records', []),
     entries: of('entries', []), log: of('log', []), marks: of('marks', []), talks: of('talks', []), checks: of('checks', []),
     snaps: last ? { [last.key]: snaps } : {}, cats: [...BOOK.cats], lands: { ...BOOK.lands },
     ch: last ? last.key : '', trail: last ? [last.key] : [], step: 0, // 开着哪一章；trail 是打开过的章，step 是现在在第几个
@@ -62,13 +81,15 @@ function fresh(book = BOOK.shelf[0].id) {
     bar: null, // 选中一段字以后浮出来的那两个按钮
     flash: null, // 「查看原文」跳过去后要标出来的那句
     find: null, // 查找替换：{ q, to, all, at }
-    ai: null, // AI 正在正文里做的事：续写出的一句、改写、起草
-    box: '', // 标题下面展开的是「章纲」还是「摘要」
+    ai: null, // AI 正在正文里做的事：续写出的一句，或者等作者写改写要求
+    props: [], // AI 在讨论里提议的修改，作者还没定的：{ id, key, talk, at, paras, writing }。at 是改哪里：{ kind: 'end' } 接在章末、{ kind: 'all' } 换掉全章、{ kind: 'swap', para, quote } 换掉一句
+    fate: {}, // 定了的提议：已采纳、已放弃、已被新的提议替换、正文已改动，提议已作废。讨论里那一条照它写
+    box: '', // 标题下面的章纲展开着吗：展开时是「章纲」
     vol: '', // 开着的是哪一卷；开着一章时空着
     named: null, // 设定里改了名字，正文里还留着旧名：{ was, now, n }
     crowded: false, // 设定多到装不下，讨论只附目录
     saved: true, // 正文存了没有
-    kept: null, // 没存的时候，存着的那一份：{ key, paras, dirty, summaries }。关标签页选「不保存」就回到它
+    kept: null, // 没存的时候，存着的那一份：{ key, paras, dirty }。关标签页选「不保存」就回到它
     undo: {}, // 每章打字前的样子：{ back, fwd }，各是几份 paras，撤销和重做用
     outside: '', // 软件外面动了开着的这一章：changed 改过、lost 找不到了
     rename: null, // 侧栏里正在改名字的：{ key, t, all }。all 是一开始把字全选上，打字就整个换掉
@@ -76,19 +97,19 @@ function fresh(book = BOOK.shelf[0].id) {
     todoAll: true, more: {}, ignored: [], // 待处理：看全部还是本章、哪几组展开了、忽略掉的
     kind: '全部', cid: null, checking: false, dirty: {}, // 检查：看哪一类、哪一条、正在查哪一章、哪几章查过以后又改了
     queue: [], never: {}, failed: {}, // 检查：排着队等查的、尚未检查的、没查成的几章
-    part: {}, // 太长、AI 只读了前面一段的几章：{ check, sum } 是检查和摘要各读了前多少字，再查、再生成一次就当它读全了
+    part: {}, // 太长、AI 只读了前面一段的几章：{ check } 是检查读了前多少字，再查一次就当它读全了
     catForm: { name: '', land: '' }, catDrop: '', // 作品分类：正在填的、要删的
     toasts: [],
     backup: { state: kept, at: kept === 'ok' ? '今天 10:32' : kept === 'fail' ? '昨天 21:40' : '', dir: kept === 'none' ? '' : 'E:\\写作备份', copies: kept === 'none' ? 0 : 12, close: true, daily: true, hourly: false, keep: '最近 30 份', hush: false },
     // 换一本书也不变的：外观、书架、设置里的东西。
     look: '跟随系统', shelf: structuredClone(BOOK.shelf), cards: true, library: BOOK.library,
-    uses: structuredClone(BOOK.uses), services: BOOK.services.map((x) => ({ ...x, models: x.models.map(limits) })), auto: false, recap: true,
+    uses: structuredClone(BOOK.uses), services: BOOK.services.map((x) => ({ ...x, models: x.models.map(limits) })), auto: false,
     when: '写完一章后检查', late: BOOK.late, goal: '', goalSet: '', paneW: 0, // paneW 是右栏拖出来的宽度，没拖过是 0
     noAI: false, // 关闭了 AI：本机的所有作品都不显示 AI 功能，也不发送任何内容
     exportWhat: ['正文'], exportAs: 'Word', pen: '', // 导出勾了哪几样、成什么格式，上次写在首页的笔名（新作品沿用它）
   }
 }
-const KEPT = ['look', 'shelf', 'cards', 'library', 'uses', 'services', 'auto', 'recap', 'when', 'late', 'goal', 'paneW', 'noAI', 'exportWhat', 'exportAs', 'pen']
+const KEPT = ['look', 'shelf', 'cards', 'library', 'uses', 'services', 'auto', 'when', 'late', 'goal', 'paneW', 'noAI', 'exportWhat', 'exportAs', 'pen']
 
 let S = fresh()
 let sent = 0 // 作者发过几条消息，AI 按顺序回下一句
@@ -108,7 +129,7 @@ function set(change) {
   if (!next) return
   const was = S
   S = { ...S, ...next }
-  if (next.saved === false && was.saved) { const c = was.chapters.find((c) => c.key === S.ch); S.kept = c ? { key: c.key, paras: c.paras, dirty: was.dirty, summaries: was.summaries } : null } // 存着的那一份留一下
+  if (next.saved === false && was.saved) { const c = was.chapters.find((c) => c.key === S.ch); S.kept = c ? { key: c.key, paras: c.paras, dirty: was.dirty } : null } // 存着的那一份留一下
   if (next.saved === false) autosave()
   draw()
 }
