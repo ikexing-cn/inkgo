@@ -186,15 +186,27 @@ func Check(p Provider) Problems {
 	default:
 		out.Protocol = errors.New("协议必须是 chat、responses 或 anthropic")
 	}
-	u, err := url.Parse(p.BaseURL)
-	if err != nil || u == nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" || u.Opaque != "" {
-		out.BaseURL = errors.New("API 地址必须是 http(s) 根地址，不能带账号、查询参数或锚点")
-	}
+	out.BaseURL = checkBaseURL(p.BaseURL)
 	if p.Env != "" && !envName.MatchString(p.Env) {
-		out.Env = errors.New("环境变量名称无效")
+		out.Env = errors.New("环境变量名只能用字母、数字和 _，不能以数字开头")
 	}
 	out.Models = validateModels(p.Models)
 	return out
 }
 
 func validateProvider(p Provider) error { return Check(p).First() }
+
+// checkBaseURL says what keeps s from being a service's address, by what
+// the author would change: its start, its host, or what follows the path.
+func checkBaseURL(s string) error {
+	u, err := url.Parse(s)
+	switch {
+	case err != nil || u == nil || (u.Scheme != "http" && u.Scheme != "https") || u.Opaque != "":
+		return errors.New("API 地址须以 http:// 或 https:// 开头")
+	case u.Host == "" || u.Hostname() == "":
+		return errors.New("API 地址里没有域名")
+	case u.User != nil || u.RawQuery != "" || u.ForceQuery || u.Fragment != "":
+		return errors.New("API 地址不能带账号、查询参数或锚点")
+	}
+	return nil
+}

@@ -73,8 +73,9 @@ function serviceProblems(d) {
   const p = {
     id, list: models,
     ID: !id ? '' : taken ? '该 ID 已被「' + taken.name + '」使用，请换一个' : /^[a-z][a-z0-9_-]*$/.test(id) ? '' : '提供商 ID 只能用小写字母、数字、- 和 _，并以字母开头',
-    url: !f.url.trim() || /^https?:\/\/[^/?#@\s]+(\/[^?#\s]*)?$/.test(f.url.trim()) ? '' : 'API 地址必须是 http(s) 根地址，不能带账号、查询参数或锚点',
-    env: !f.env.trim() || /^[A-Za-z_]\w*$/.test(f.env.trim()) ? '' : '环境变量名称无效',
+    url: !f.url.trim() ? '' : !/^https?:\/\//.test(f.url.trim()) ? 'API 地址须以 http:// 或 https:// 开头' : !/^https?:\/\/[^/?#@\s]/.test(f.url.trim()) ? 'API 地址里没有域名'
+      : /^https?:\/\/[^/?#@\s]+(\/[^?#\s]*)?$/.test(f.url.trim()) ? '' : 'API 地址不能带账号、查询参数或锚点',
+    env: !f.env.trim() || /^[A-Za-z_]\w*$/.test(f.env.trim()) ? '' : '环境变量名只能用字母、数字和 _，不能以数字开头',
     models: wrong ? wrong[1](wrong[0]) : '',
   }
   p.fits = !!(id && f.name.trim() && f.url.trim()) && !p.ID && !p.url && !p.env && !p.models
@@ -127,22 +128,24 @@ function settingsModel(d) {
       field('API 地址', line(f.url, type('url'), 'https://api.example.com/v1', 'API 地址')) +
       (!f.url.trim() ? '' : p.url ? red(p.url) : /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])([:/]|$)/.test(f.url.trim()) ? '<div class="note">本机地址：请确认该服务不会转发到云端</div>' : '<div class="note amber">远程服务：讨论内容将发送到该地址</div>') +
       field('接口协议', choose('proto', f.proto, PROTOCOLS, type('proto'), 'API 协议')) +
-      `<div class="pair">${field('API key', line(f.key, type('key'), '留空则保留已存的 key', 'API key', ' type="password"'))}${field('或读取环境变量', line(f.env, type('env'), '例如 DEEPSEEK_API_KEY', '环境变量名称') + red(p.env))}</div>` +
+      `<div class="pair">${field('API key', line(f.key, type('key'), d.edit === 'new' ? '留空则不用 key' : '留空则保留已存的 key', 'API key', ' type="password"'))}${field('或读取环境变量', line(f.env, type('env'), '例如 DEEPSEEK_API_KEY', '环境变量名称') + red(p.env))}</div>` +
       `<div class="note">key 保存在系统钥匙串中，不会写入配置文件或作品。${f.env.trim() && BOOK.services.some((x) => x.env === f.env.trim()) ? '已检测到环境变量 ' + t(f.env.trim()) + '。' : ''}</div>` +
       '<div class="field"><div class="label">可用模型</div><div class="limits">' +
       (f.models.length ? '<div class="limit-row limit-head"><div class="fit">模型 ID</div><div class="num">上下文上限</div><div class="num">最大输出</div><div class="pct">压缩阈值 %</div><div class="gap"></div></div>' + f.models.map(limitRow).join('') : '<div class="note">尚无模型，可获取可用模型或手动添加。</div>') + '</div>' + red(p.models) + '</div>' +
       '<div class="note">数值默认取自内置模型表，表中没有的模型按保守值填写；上下文上限和最大输出可写成 128K、1M。讨论超过压缩阈值时，较早的对话会整理成摘要。</div>' +
-      `<div class="buttons">${d.edit === 'new' ? '' : `<div class="hit link danger"${onClick(() => say('已清除保存的 key', '', 'ok'))}>清除已保存 key</div>`}${button('添加模型', () => models((list) => [...list, limits('')]))}${button('获取可用模型', p.fits ? fetchModels : null, p.fits ? '' : 'off')}${button('保存提供商', p.fits ? saveService : null, p.fits ? 'primary' : 'primary off')}</div></div>`
+      `<div class="buttons">${d.edit === 'new' ? button('取消', () => set((s) => ({ dialog: { ...s.dialog, edit: '', svc: null } }))) : `<div class="hit link danger"${onClick(() => say('已清除保存的 key', '', 'ok'))}>清除已保存 key</div>`}${button('添加模型', () => models((list) => [...list, limits('')]))}${button('获取可用模型', p.fits ? fetchModels : null, p.fits ? '' : 'off')}${button('保存提供商', p.fits ? saveService : null, p.fits ? 'primary' : 'primary off')}</div></div>`
   }
-  const card = (svc) => `<div class="service"><div class="service-head"><div class="fit"><div class="ell">${t(svc.name)}</div><div class="note ell">${t(svc.host)} · ${svc.models.length} 个模型${used(svc) ? ' · 本作品使用中' : ''}</div></div>` +
-    button(d.edit === svc.id ? '收起' : '编辑', () => set((s) => ({ dialog: { ...s.dialog, ...(d.edit === svc.id ? { edit: '', svc: null } : editing(svc)) }, ...SHUT }))) + '</div>' + (d.edit === svc.id ? form() : '') + '</div>'
+  // 刚打开的表单连同它那张卡片滚进视野：新加的在列表最下面，常常在看得见的地方下面。
+  const open = (change, id) => { set((s) => ({ dialog: { ...s.dialog, ...change(s) }, ...SHUT })); if (id) document.querySelector(`[data-reveal="${id}"]`).scrollIntoView({ block: 'nearest' }) }
+  const card = (svc) => `<div class="service" data-reveal="${t(svc.id)}"><div class="service-head"><div class="fit"><div class="ell">${t(svc.name)}</div><div class="note ell">${t(svc.host)} · ${svc.models.length} 个模型${used(svc) ? ' · 本作品使用中' : ''}</div></div>` +
+    button(d.edit === svc.id ? '收起' : '编辑', () => (d.edit === svc.id ? open(() => ({ edit: '', svc: null })) : open(() => editing(svc), svc.id))) + '</div>' + (d.edit === svc.id ? form() : '') + '</div>'
   return (S.page === 'shelf' ? '' : '<div class="prefs-group"><div class="group-title">本作品的模型</div><div class="note">思考程度选 Default 时由服务商决定。修改自下次发送起生效。</div></div>' +
     `<div class="uses">${S.uses.map(use).join('')}</div>` + spent() +
     '<div class="prefs-group"><div class="group-title">写作时</div></div>' +
     `<div class="ticks">${tickbox(S.auto, '停笔后自动续写', () => set({ auto: !S.auto }))}<div class="note tick-note">开启后每次停笔都会调用一次 AI。</div>${tickbox(S.recap, '章节修改后更新摘要', () => set({ recap: !S.recap }))}<div class="note tick-note">手动填写的摘要不会被覆盖。</div></div>`) +
     '<div class="prefs-group"><div class="group-title">模型服务</div><div class="note">保存在本机，所有作品共用</div></div>' +
     `<div class="services">${S.services.map(card).join('')}` +
-    (d.edit === 'new' ? `<div class="service">${form()}</div>` : `<div class="service add hit"${onClick(() => set((s) => ({ dialog: { ...s.dialog, ...editing(null) }, ...SHUT })))}>${ICON.plus}添加服务</div>`) + '</div>' +
+    (d.edit === 'new' ? `<div class="service" data-reveal="new">${form()}</div>` : `<div class="service add hit"${onClick(() => open(() => editing(null), 'new'))}>${ICON.plus}添加服务</div>`) + '</div>' +
     `<div class="prefs-links"><div class="hit link"${onClick(osAsk('用记事本打开配置文件'))}>打开配置文件</div><div class="hit link"${onClick(() => say('配置已重新读取', '', 'ok'))}>重新加载配置</div></div>`
 }
 

@@ -110,7 +110,8 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 // A new service left without an ID takes one from its name, shown in the
 // empty field; one another service has would take its place, and is said
 // in red with the form waiting, as an address or a variable that cannot
-// be used is.
+// be used is, by what to change. Its form comes into view as it is
+// added, and 取消 puts it away.
 func TestANewServiceSaysWhatIsWrongWhereItIs(t *testing.T) {
 	a, tt, _ := fixture(t)
 	a.openPrefs("AI")
@@ -125,8 +126,10 @@ func TestANewServiceSaysWhatIsWrongWhereItIs(t *testing.T) {
 		form func(p *aiport.Provider)
 	}{
 		{"该 ID 已被「" + taken.Name + "」使用，请换一个", func(p *aiport.Provider) {}},
-		{"API 地址必须是 http(s) 根地址，不能带账号、查询参数或锚点", func(p *aiport.Provider) { p.Name, p.BaseURL = "Open Router", "api.example.com" }},
-		{"环境变量名称无效", func(p *aiport.Provider) { p.BaseURL, p.Env = "https://openrouter.ai/api/v1", "1 KEY" }},
+		{"API 地址须以 http:// 或 https:// 开头", func(p *aiport.Provider) { p.Name, p.BaseURL = "Open Router", "api.example.com" }},
+		{"API 地址里没有域名", func(p *aiport.Provider) { p.BaseURL = "https://" }},
+		{"API 地址不能带账号、查询参数或锚点", func(p *aiport.Provider) { p.BaseURL = "https://openrouter.ai/api/v1?key=1" }},
+		{"环境变量名只能用字母、数字和 _，不能以数字开头", func(p *aiport.Provider) { p.BaseURL, p.Env = "https://openrouter.ai/api/v1", "1 KEY" }},
 	} {
 		c.form(&a.provider)
 		tt.Frame()
@@ -149,6 +152,28 @@ func TestANewServiceSaysWhatIsWrongWhereItIs(t *testing.T) {
 	tt.Frame()
 	if ps := a.ai.Providers(); len(ps) != was+1 || ps[was].ID != "open-router" || ps[0].Name != taken.Name || len(ps[0].Models) != len(taken.Models) {
 		t.Fatalf("saved %+v, said %q", ps, a.Error)
+	}
+	// Another is added from the foot of the list, out of sight: its form
+	// comes into view, and 取消 puts it away unsaved.
+	a.bk.edit = ""
+	tt.Frame()
+	tt.Scroll(633, 400, 0, 1600) // to the foot, 添加服务 at the bottom
+	tt.Frame()
+	if err := tt.Click("+ 添加服务"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Frame()
+	// As much of it as fits, from its top: not its first row at the bottom.
+	if r, ok := tt.Find("显示名称"); !ok || r.Y < 0 || r.Y > 390 {
+		t.Fatal("a new service opens out of sight", r, ok)
+	}
+	if err := tt.Click("取消"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.bk.edit != "" || tt.HasText("显示名称") || len(a.ai.Providers()) != was+1 {
+		t.Fatal("取消 left the new service's form", a.bk.edit)
 	}
 	for name, id := range map[string]string{"DeepSeek": "deepseek", "月之暗面 Kimi 2": "kimi-2", "my_api-": "my_api", "通义": ""} {
 		if got := idFrom(name); got != id {

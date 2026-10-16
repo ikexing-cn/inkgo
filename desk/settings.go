@@ -219,12 +219,20 @@ func (a *App) services(c *ui.Context) {
 	t := a.pal.theme
 	busy := a.held()
 	a.subhead(c, "模型服务", "保存在本机，所有作品共用")
-	card := func() ui.Element {
-		return ui.Column(c).FillWidth().Gap(12).Padding(12, 14).Radius(rCard).Border(1, a.pal.line)
+	// A form just opened comes into view with its card: one added opens at
+	// the foot of the list, below what is shown.
+	reveal := a.bk.edit != a.bk.shown
+	a.bk.shown = a.bk.edit
+	card := func(id string) ui.Element {
+		box := ui.Column(c).FillWidth().Gap(12).Padding(12, 14).Radius(rCard).Border(1, a.pal.line)
+		if reveal && a.bk.edit == id {
+			box.ScrollIntoView()
+		}
+		return box
 	}
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
 		for _, p := range a.ai.Providers() {
-			card().Key("provider-" + p.ID).Children(func() {
+			card(p.ID).Key("provider-" + p.ID).Children(func() {
 				ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 					ui.Column(c).Grow(1).Shrink(1).Children(func() {
 						ui.Text(c, providerLabel(p)).FontSize(fsBody).FontWeight(500).SingleLine().Ellipsis("…")
@@ -257,7 +265,7 @@ func (a *App) services(c *ui.Context) {
 			})
 		}
 		if a.bk.edit == "+" {
-			card().Children(func() { a.providerForm(c) })
+			card("+").Children(func() { a.providerForm(c) })
 			return
 		}
 		add := ui.ButtonBase(c).Row().FillWidth().Justify(ui.Start).Gap(8).AlignItems(ui.Center).Padding(12, 14).Radius(rCard).Border(1, a.pal.line).Label("+ 添加服务").Disabled(busy)
@@ -432,7 +440,11 @@ func (a *App) providerForm(c *ui.Context) {
 		})
 		ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Start).Children(func() {
 			labeled(c, "API key", func() {
-				ui.TextInput(c, &a.key).Label("API key").Password().Placeholder("留空则保留已存的 key").FillWidth().Disabled(busy)
+				hint := "留空则保留已存的 key"
+				if a.providerID == "" {
+					hint = "留空则不用 key" // a new service has none kept
+				}
+				ui.TextInput(c, &a.key).Label("API key").Password().Placeholder(hint).FillWidth().Disabled(busy)
 			}).Grow(1).Basis(0)
 			labeled(c, "或读取环境变量", func() {
 				ui.TextInput(c, &a.provider.Env).Label("环境变量名称").Placeholder("例如 DEEPSEEK_API_KEY").FillWidth().Disabled(busy)
@@ -462,6 +474,10 @@ func (a *App) providerForm(c *ui.Context) {
 				}
 				a.setError(err)
 				a.key = ""
+			}
+			// A new service has no 收起 above it: it is put away from here.
+			if a.providerID == "" && a.pal.secondary(c, "取消").Disabled(busy).Clicked() {
+				a.bk.edit = ""
 			}
 			if a.pal.secondary(c, "添加模型").Disabled(busy).Clicked() {
 				m, _ := a.ai.Limits("")

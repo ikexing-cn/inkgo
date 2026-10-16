@@ -38,6 +38,7 @@ type backupView struct {
 	spent          []workspace.Spent // what the work spent on the AI, read as the AI's part shows
 	askAI          bool              // asking before the AI is turned off or on
 	edit           string            // the service open in it: an ID, "+" for a new one
+	shown          string            // edit as of the last frame, to bring a form just opened into view
 	keepChoice     string
 }
 
