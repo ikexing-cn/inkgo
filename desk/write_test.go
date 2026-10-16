@@ -924,6 +924,13 @@ func TestSetTheDaysGoal(t *testing.T) {
 	if !a.write.goalOpen || !tt.HasText("每日目标") {
 		t.Fatal("no goal to set", tt.Texts())
 	}
+	// The days above it are said as every day is: 今天, 昨天, 10-14.
+	now := time.Now()
+	for _, day := range []string{"今天 写了 0 字", "昨天 写了 0 字", dayOf(now.AddDate(0, 0, -6), now) + " 写了 0 字"} {
+		if _, ok := tt.Find(day); !ok {
+			t.Fatal("the last week does not say", day, tt.Texts())
+		}
+	}
 	a.setGoal("2000")
 	if a.write.goal != 2000 || savedPrefs(t, a).Goal != 2000 {
 		t.Fatal(a.write.goal)

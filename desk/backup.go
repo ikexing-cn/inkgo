@@ -282,6 +282,16 @@ func lastSaid(s backup.Settings, now time.Time) string {
 	return "上次备份于" + when(s.Last, now) + "。"
 }
 
+// kept says what the last of the backups listed holds and how many there
+// are, newest first, with the day of the first when there are more.
+func kept(list []backup.Info, now time.Time) string {
+	note := fmt.Sprintf("%s · %d 章 · 已存 %d 份", words(list[0].Words), list[0].Chapters, len(list))
+	if len(list) > 1 {
+		note += "，最早 " + dayOf(list[len(list)-1].At, now)
+	}
+	return note
+}
+
 // next says when the next backup comes.
 func next(s backup.Settings, now time.Time) string {
 	switch {
@@ -572,11 +582,7 @@ func (a *App) backupSettingsView(c *ui.Context) {
 		ui.Column(c).Grow(1).Shrink(1).Children(func() {
 			title, note := when(s.Last, now)+" 已备份", ""
 			if len(list) > 0 {
-				first := list[len(list)-1].At
-				note = fmt.Sprintf("%s · %d 章 · 已存 %d 份", words(list[0].Words), list[0].Chapters, len(list))
-				if len(list) > 1 {
-					note += fmt.Sprintf("，最早 %d 月 %d 日", first.Month(), first.Day())
-				}
+				note = kept(list, now)
 			}
 			switch {
 			case a.bk.running:

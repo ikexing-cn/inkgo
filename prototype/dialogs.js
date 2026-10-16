@@ -156,7 +156,7 @@ function settingsBackup() {
   }
   const title = { ok: b.at + ' 已备份', busy: '正在备份…', fail: '备份失败' }[b.state]
   const row = (label, inner) => `<div class="prefs-row"><div class="prefs-label">${label}</div>${inner}</div>`
-  return `<div class="backup-card"><div class="fit"><div class="group-title">${t(title)}</div><div class="note">${b.state === 'fail' ? backupWhy()[0] + '。' + backupWhy()[2] : `${t(S.shelf.find((x) => x.id === S.book).words)} · ${S.chapters.length} 章 · 已存 ${b.copies} 份${b.copies > 1 ? '，最早 9 月 28 日' : ''}`}</div></div>` +
+  return `<div class="backup-card"><div class="fit"><div class="group-title">${t(title)}</div><div class="note">${b.state === 'fail' ? backupWhy()[0] + '。' + backupWhy()[2] : `${t(S.shelf.find((x) => x.id === S.book).words)} · ${S.chapters.length} 章 · 已存 ${b.copies} 份${b.copies > 1 ? '，最早 09-28' : ''}`}</div></div>` +
     button(b.state === 'fail' ? '重试' : '立即备份', b.state === 'busy' ? null : backupNow, b.state === 'busy' ? 'primary off' : 'primary') + '</div>' +
     row('备份到', `<div class="fit ell">${t(b.dir)}</div>${button('更换', osAsk('选择备份文件夹'))}`) +
     row('备份时机', `<div class="ticks">${backupTimes(b, backupSet)}</div>`) +

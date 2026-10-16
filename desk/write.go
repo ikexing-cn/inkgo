@@ -1135,8 +1135,8 @@ func (a *App) lastWeek(c *ui.Context) {
 		if k != 0 {
 			got = signed(k) + " 字"
 		}
-		ui.Row(c.Key(i)).FillWidth().Padding(4, 10).Label(fmt.Sprintf("%s 写了 %d 字", day.Format("1月2日"), k)).Children(func() {
-			ui.Text(c, day.Format("1月2日")).FontSize(fsNote).TextColor(a.pal.theme.TextMuted).Grow(1)
+		ui.Row(c.Key(i)).FillWidth().Padding(4, 10).Label(fmt.Sprintf("%s 写了 %d 字", dayOf(day, now), k)).Children(func() {
+			ui.Text(c, dayOf(day, now)).FontSize(fsNote).TextColor(a.pal.theme.TextMuted).Grow(1)
 			ui.Text(c, got).FontSize(fsNote).TextColor(a.pal.theme.TextMuted)
 		})
 	}
