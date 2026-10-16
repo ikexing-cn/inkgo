@@ -142,7 +142,7 @@ func aiWork(t *testing.T) (root, chapter string) {
 	}}))
 	session, err := s.NewSession()
 	must(err)
-	must(s.SnapshotForTalk(chapter, "", nil, session))
+	must(s.SnapshotForTalks(chapter, "", nil, []string{session}))
 	u, err := s.Append(session, workspace.Event{Role: workspace.RoleUser, Text: "灯为什么会灭"})
 	must(err)
 	_, err = s.Append(session, workspace.Event{Role: workspace.RoleCall, ReplyTo: u.ID, Calls: []workspace.Call{

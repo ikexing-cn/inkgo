@@ -31,7 +31,8 @@ func (e *Editor) paintIn(p *ui.Painter, r ui.Rect) {
 	e.ensureLayout()
 	l := &e.lay
 	// What is proposed comes into view: its start when the host asks, its
-	// end as it grows while that is in view.
+	// end as it grows while that is in view. Asked, it is what is seen,
+	// though the caret, as a tab comes back, would be.
 	for _, id := range []string{e.show, e.follow} {
 		d, ok := l.gaps[id]
 		if !ok || len(l.lines) == 0 {
@@ -39,6 +40,7 @@ func (e *Editor) paintIn(p *ui.Painter, r ui.Rect) {
 		}
 		if id == e.show {
 			d = d - len([]rune(e.props[slices.IndexFunc(e.props, func(p Proposal) bool { return p.ID == id })].Text))
+			e.reveal = false
 		}
 		cy := l.lines[l.lineOf(d)].y
 		switch {

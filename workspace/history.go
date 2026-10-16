@@ -43,12 +43,12 @@ type Snapshot struct {
 	Title  string        `json:"title"`
 	Count  int           `json:"count"`
 	Marks  []ChapterMark `json:"marks,omitempty"`
-	// Talk is the talk whose proposals the author was about to take, for
-	// a snapshot taken before they went in. AI is what an AI was about to
-	// do, as snapshots kept it while a draft or a rewrite asked the model
-	// once; none is written now.
-	Talk string    `json:"talk,omitempty"`
-	AI   *AIRecord `json:"ai,omitempty"`
+	// Talks are the talks whose proposals the author was about to take,
+	// for a snapshot taken before they went in. AI is what an AI was about
+	// to do, as snapshots kept it while a draft or a rewrite asked the
+	// model once; none is written now.
+	Talks []string  `json:"talks,omitempty"`
+	AI    *AIRecord `json:"ai,omitempty"`
 }
 
 // What a talk is opened to do to a chapter.
@@ -89,23 +89,23 @@ func (s *Store) TakeSnapshot(id, reason, text string, marks []ChapterMark) (bool
 		return false, err
 	}
 	defer unlock()
-	return s.takeSnapshot(id, reason, text, marks, "", time.Now())
+	return s.takeSnapshot(id, reason, text, marks, nil, time.Now())
 }
 
-// SnapshotForTalk keeps the text of document id aside before what the
-// AI proposed in the talk session goes in; it is kept even when the text
-// is the latest snapshot's, to say what came after it.
-func (s *Store) SnapshotForTalk(id, text string, marks []ChapterMark, session string) error {
+// SnapshotForTalks keeps the text of document id aside before what the
+// AI proposed in the talks sessions goes in; it is kept even when the
+// text is the latest snapshot's, to say what came after it.
+func (s *Store) SnapshotForTalks(id, text string, marks []ChapterMark, sessions []string) error {
 	unlock, err := s.lock()
 	if err != nil {
 		return err
 	}
 	defer unlock()
-	_, err = s.takeSnapshot(id, SnapAI, text, marks, session, time.Now())
+	_, err = s.takeSnapshot(id, SnapAI, text, marks, sessions, time.Now())
 	return err
 }
 
-func (s *Store) takeSnapshot(id, reason, text string, marks []ChapterMark, talk string, now time.Time) (bool, error) {
+func (s *Store) takeSnapshot(id, reason, text string, marks []ChapterMark, talks []string, now time.Time) (bool, error) {
 	t, err := s.tree()
 	if err != nil {
 		return false, err
@@ -118,7 +118,7 @@ func (s *Store) takeSnapshot(id, reason, text string, marks []ChapterMark, talk 
 	if err != nil {
 		return false, err
 	}
-	if len(snaps) > 0 && talk == "" {
+	if len(snaps) > 0 && len(talks) == 0 {
 		last, err := s.snapshotText(id, snaps[0].Name)
 		if err != nil {
 			return false, err
@@ -148,7 +148,7 @@ func (s *Store) takeSnapshot(id, reason, text string, marks []ChapterMark, talk 
 		m.Quote = string(runes[m.Start:m.End])
 		kept = append(kept, m)
 	}
-	snap := Snapshot{At: at.UTC(), Reason: reason, Title: n.Title, Count: Count(text), Marks: kept, Talk: talk}
+	snap := Snapshot{At: at.UTC(), Reason: reason, Title: n.Title, Count: Count(text), Marks: kept, Talks: talks}
 	b, err := json.MarshalIndent(snap, "", "  ")
 	if err != nil {
 		return false, err

@@ -219,7 +219,8 @@ func (a *App) letGo(ps []*prop) {
 }
 
 // takeProps puts the proposals ps of the chapter shown in its text, as one
-// step to undo, after a snapshot of it as it was; their words are marked
+// step to undo, after a snapshot of it as it was that names the talks they
+// came from; their words are marked
 // as the AI's, and the caret goes after the last. One still coming, or
 // just come, is left.
 func (a *App) takeProps(ps []*prop) {
@@ -227,18 +228,22 @@ func (a *App) takeProps(ps []*prop) {
 	text := w.ed.Doc.String()
 	var list []*prop
 	var places []editor.Proposal
+	var talks []string
 	for _, p := range ps {
 		if p.Chapter != w.node || !p.settled() {
 			continue
 		}
 		if at, ok := p.place(text); ok {
 			list, places = append(list, p), append(places, at)
+			if !slices.Contains(talks, p.session) {
+				talks = append(talks, p.session)
+			}
 		}
 	}
 	if len(list) == 0 {
 		return
 	}
-	if err := a.Store.SnapshotForTalk(w.node, text, storedMarks(w.ed.Doc.Marks()), list[0].session); err != nil {
+	if err := a.Store.SnapshotForTalks(w.node, text, storedMarks(w.ed.Doc.Marks()), talks); err != nil {
 		a.warn(err)
 		return
 	}

@@ -48,13 +48,14 @@ Status: implemented
 - 新的一处和同一章里还没决定的旧提议改的是同一处（字有重叠、同一个点，或有一处换掉全章），旧的记「已被新的提议替换」，不管旧的是哪段讨论提的。
 - 要换掉、要接在后面的那几句被作者改了，提议作废，提示一下。只有显示着的那一章查；那一章进了回收站，提议直接作废，不提示。
 - 放弃一处还在写的，取消这一轮回复。一轮结束时还没写完的（取消或出错）直接拿掉，不记结果。
-- 讨论里每处提议一张卡片（`propCard`），写改哪一章、哪种位置、多少字、后来怎样，还没决定的带「在正文中查看」。提议的那一章没开着，在旁边开一个标签页，不换过去。
-- 有没决定的提议时离开作品（换作品、新建作品、回书架，和关窗口：`cmd/poc` 在 `Window.OnClose` 里调 `App.Leave`），先问「还有 N 处 AI 提议没有处理」，「丢弃并关闭」记「作品关闭时已丢弃」再走。关掉 AI，提议都丢掉，记「关闭 AI 时已丢弃」。
+- 讨论里每处提议一张卡片（`propCard`），写改哪一章、哪种位置、多少字、后来怎样，还没决定的带「在正文中查看」。点了以后那一帧以提议为准（`editor` 的 `show` 压过 `reveal`）：换回一个已开着的标签页时，编辑器还要把光标滚进来，原来会把提议挤出去（2026-10-17 手测）。提议的那一章没开着，在旁边开一个标签页，不换过去。
+- 有没决定的提议时离开作品（换作品、新建作品、回书架，和关窗口：`cmd/poc` 在 `Window.OnClose` 里调 `App.Leave`），先问「还有 N 处 AI 提议没有处理」，「丢弃并关闭」记「作品关闭时已丢弃」再走。关掉 AI，提议都丢掉，记「关闭 AI 时已丢弃」；关 AI 的问句照原型也说「没有处理的 AI 提议会丢弃」（2026-10-17 手测发现漏了）。
 
 ### 采纳的字
 
 - 一种标记 `MarkAI`（「AI 写的」）：原来的 `ai-accepted`、`ai-draft` 合成它，读旧作品时两种都当它。作者在里面改过的字脱离标记。
-- 采纳前存快照（`Store.SnapshotForTalk`），快照记是哪段讨论（`Snapshot.Talk`），快照里写「采纳讨论「标题」里的提议」。`Snapshot.AI`（`AIRecord`）不再新写，旧快照里的照旧显示。
+- 采纳前存快照（`Store.SnapshotForTalks`），快照记提议来自哪几段讨论（`Snapshot.Talks`），快照里写「采纳讨论「标题」里的提议」；「全部采纳」时一章的提议可能来自几段讨论，就写几个标题（2026-10-17 手测发现原来只记第一处的讨论）。
+- 撤销一次采纳，光标落在第一处写进去的地方，不回到采纳前它在的地方：在旁边打开的那一章光标在章首，撤销后整页跳到开头，作者找不到刚才那处（2026-10-17 手测）。重做光标在最后一处后面，和采纳时一样。`Snapshot.AI`（`AIRecord`）不再新写，旧快照里的照旧显示。
 
 ### 去掉的
 
@@ -95,8 +96,8 @@ Status: implemented
   - 普通讨论提议了，不切到正文页：开着讨论页时，只在旁边开标签页。
   - 一处提议写完以后，要等这一轮回复全部结束、结果写进讨论，才不再是「正在写…」。
 - 测试：
-  - `go test ./desk`：`TestDraftAChapterThroughATalk`（没有章纲不能起草；对话框说带上什么、用哪个模型；字数不是数不起草；边写边显示，正文和磁盘不变；讨论的标题和第一句、请求里跟着那一章；刚写完点「采纳」不算；采纳后有快照、标记、一步撤销、光标和键盘；快照写哪段讨论）、`TestDraftOverWhatIsThere`、`TestRewriteASelectionThroughATalk`（要求空着不发；替换、别处打字不碍事、再说一次换掉旧的、放弃、下次说话告诉模型、Esc）、`TestAProposalVoidAndOneLetGo`、`TestLeavingTheWorkAsksAboutProposals`、`TestAProposalInAnotherChapterOpensBeside`、`TestTakingTheDisksTextVoidsWhatItChanged`、`TestADraftWaitsForAModelAndItsTurn`；`TestTurnTheAIOffAndOn` 查关掉 AI 时还在写的提议丢掉、回复等着重试。
+  - `go test ./desk`：`TestDraftAChapterThroughATalk`（没有章纲不能起草；对话框说带上什么、用哪个模型；字数不是数不起草；边写边显示，正文和磁盘不变；讨论的标题和第一句、请求里跟着那一章；刚写完点「采纳」不算；采纳后有快照、标记、一步撤销、光标和键盘；快照写哪段讨论）、`TestDraftOverWhatIsThere`、`TestRewriteASelectionThroughATalk`（要求空着不发；替换、别处打字不碍事、再说一次换掉旧的、放弃、下次说话告诉模型、Esc）、`TestAProposalVoidAndOneLetGo`、`TestLeavingTheWorkAsksAboutProposals`、`TestAProposalInAnotherChapterOpensBeside`、`TestTakingTheProposalsOfTwoTalks`（两段讨论的提议一起采纳，快照写两个标题）、`TestTakingTheDisksTextVoidsWhatItChanged`、`TestADraftWaitsForAModelAndItsTurn`；`TestTurnTheAIOffAndOn` 查关掉 AI 时还在写的提议丢掉、回复等着重试。
   - `go test ./discussion`：`TestATalkOpenedToDraftKeepsToItsChapter`、`TestATalkOpenedToRewriteKeepsToItsChapter`、`TestAProposalFindsItsPlace`、`TestAProposalShowsAsItStreams`、`TestPartialJSON`。
-  - `go test ./editor`：`TestProposalsShowAndGoInAsOneStep`、`TestAProposalOfAllShowsApart`、`TestAProposalComesIntoView`、`TestTheAIMarkLetsGoOfEditedWords`。
+  - `go test ./editor`：`TestProposalsShowAndGoInAsOneStep`（含撤销、重做后光标在哪）、`TestAProposalOfAllShowsApart`、`TestAProposalComesIntoView`（含同一帧光标也要滚进来时）、`TestTheAIMarkLetsGoOfEditedWords`。
   - `npm run verify-prototype` 的「a rewrite」「a proposal void, and one let go」「a draft」「leave with a proposal」「a proposal in another chapter」。
 - 还没在真的服务商上试：DeepSeek、Kimi、OpenAI、Anthropic 流不流工具参数，各要试一次；不流的，提议写完才一下出来。

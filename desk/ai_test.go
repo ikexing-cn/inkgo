@@ -265,7 +265,7 @@ func TestDraftAChapterThroughATalk(t *testing.T) {
 		t.Fatal("the talk does not say it was taken", tt.Texts())
 	}
 	snaps, _ := a.Store.Snapshots(id)
-	if s := snaps[0]; s.Reason != workspace.SnapAI || s.Talk != a.session {
+	if s := snaps[0]; s.Reason != workspace.SnapAI || !slices.Equal(s.Talks, []string{a.session}) {
 		t.Fatalf("snapshot %+v", s)
 	}
 	if text, _ := a.Store.SnapshotText(id, snaps[0].Name); text != "" {
@@ -561,6 +561,52 @@ func TestAProposalInAnotherChapterOpensBeside(t *testing.T) {
 	tt.Frame()
 	if !tt.HasText("换掉一句 · 8 字 · 已放弃") || tt.HasText("本章有 1 处 AI 提议") {
 		t.Fatal("letting go is not said", tt.Texts())
+	}
+}
+
+// Proposals of two talks taken at once go in after one snapshot, which
+// names both talks.
+func TestTakingTheProposalsOfTwoTalks(t *testing.T) {
+	a, tt, id := writingFixture(t, "她走到井边。井里有光。")
+	f := &script{}
+	penWith(a, f)
+	f.then(proposal("第一章", "replace", "她走到井边。", "她慢慢走到井边。"), []string{"慢了一点。"},
+		proposal("第一章", "end", "", "雨停了。"), []string{"接了一句。"})
+	a.doc.talk, a.doc.hidden = true, false
+	var talks []string
+	for _, said := range []string{"开头慢一点", "末尾接一句"} {
+		a.newSession()
+		a.input = said
+		tt.Frame()
+		if err := tt.Click("发送"); err != nil {
+			t.Fatal(err)
+		}
+		replied(t, a, tt)
+		talks = append(talks, a.session)
+	}
+	a.page = 3
+	tt.Frame()
+	if talks[0] == talks[1] || !tt.HasText("本章有 2 处 AI 提议") {
+		t.Fatal("two talks did not each propose", talks, tt.Texts())
+	}
+	time.Sleep(settleFor)
+	if err := tt.Click("全部采纳"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if got := a.write.ed.Doc.String(); got != "她慢慢走到井边。井里有光。\n雨停了。" {
+		t.Fatalf("taken %q", got)
+	}
+	snaps, _ := a.Store.Snapshots(id)
+	if s := snaps[0]; s.Reason != workspace.SnapAI || !slices.Equal(s.Talks, talks) {
+		t.Fatalf("snapshot %+v, talks %v", s, talks)
+	}
+	if err := clickMenu(tt, "文件", "菜单-快照"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("采纳讨论「开头慢一点」「末尾接一句」里的提议") {
+		t.Fatal("the snapshot does not name both talks", tt.Texts())
 	}
 }
 

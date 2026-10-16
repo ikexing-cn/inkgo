@@ -96,12 +96,14 @@ func TestProposalsShowAndGoInAsOneStep(t *testing.T) {
 		t.Fatalf("marks %+v, caret %d", ms, e.Caret())
 	}
 	e.Undo()
-	if e.Doc.String() != "她走到井边。井里有光。\n雨停了。后来" || len(e.Doc.Marks()) != 0 {
-		t.Fatalf("undo %q %+v", e.Doc.String(), e.Doc.Marks())
+	// Undone, the caret is where the first went in, though it was at the
+	// end before; redone, after the last.
+	if e.Doc.String() != "她走到井边。井里有光。\n雨停了。后来" || len(e.Doc.Marks()) != 0 || e.Caret() != 0 {
+		t.Fatalf("undo %q %+v, caret %d", e.Doc.String(), e.Doc.Marks(), e.Caret())
 	}
 	e.Redo()
-	if e.Doc.String() != "她慢慢走到井边，\n停住了。井里有光。\n雨停了。后来\n天亮了。" || len(e.Doc.Marks()) != 2 {
-		t.Fatalf("redo %q %+v", e.Doc.String(), e.Doc.Marks())
+	if e.Doc.String() != "她慢慢走到井边，\n停住了。井里有光。\n雨停了。后来\n天亮了。" || len(e.Doc.Marks()) != 2 || e.Caret() != e.Doc.Len() {
+		t.Fatalf("redo %q %+v, caret %d", e.Doc.String(), e.Doc.Marks(), e.Caret())
 	}
 }
 
@@ -145,6 +147,15 @@ func TestAProposalComesIntoView(t *testing.T) {
 	tt.Frame()
 	if _, ok := e.ProposalGap("d"); !ok {
 		t.Fatal("the end went out of view as it grew")
+	}
+	// Asked to show it in the frame the caret would come into view, as a
+	// tab comes back, it shows.
+	e.SetProposals([]Proposal{{ID: "d", A: n, B: n, Keep: true, Text: "她"}}, 60)
+	e.MoveTo(0, false)
+	e.RevealProposal("d")
+	tt.Frame()
+	if _, ok := e.ProposalGap("d"); !ok {
+		t.Fatal("the caret took the view from the proposal asked for")
 	}
 }
 

@@ -276,15 +276,19 @@ func (a *App) aiRecord(c *ui.Context, r *workspace.AIRecord) {
 	})
 }
 
-// talkRecord shows, with a snapshot taken before what an AI proposed in a
-// talk went in, which talk it was.
-func (a *App) talkRecord(c *ui.Context, session string) {
+// talkRecord shows, with a snapshot taken before what an AI proposed in
+// talks went in, which talks they were.
+func (a *App) talkRecord(c *ui.Context, sessions []string) {
 	t := a.pal.theme
-	title, ok := a.titles[session]
-	if !ok {
-		title = "已删除的讨论"
+	var b strings.Builder
+	for _, s := range sessions {
+		title, ok := a.titles[s]
+		if !ok {
+			title = "已删除的讨论"
+		}
+		b.WriteString("「" + title + "」")
 	}
 	ui.Column(c).FillWidth().Padding(10, 12).Radius(rControl).Border(1, t.Border).Children(func() {
-		ui.Text(c, "采纳讨论「"+title+"」里的提议").FontSize(fsNote).FontWeight(600).FillWidth()
+		ui.Text(c, "采纳讨论"+b.String()+"里的提议").FontSize(fsNote).FontWeight(600).FillWidth()
 	})
 }

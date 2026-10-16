@@ -143,7 +143,10 @@ func (e *Editor) Take(ps []Proposal, note string) {
 		caret = at + to
 		shift += len([]rune(normalize(p.Text))) - (p.B - p.A)
 	}
-	e.undo[len(e.undo)-1].marksAfter = e.Doc.Marks()
+	// Undone, the caret is where the first went in, not wherever it was
+	// before; redone, it is after the last, as now.
+	e.undo[steps].caretBefore, e.undo[steps].anchorBefore = took[0].A, took[0].A
+	e.undo[len(e.undo)-1].marksAfter, e.undo[len(e.undo)-1].caretAfter = e.Doc.Marks(), caret
 	e.caret, e.anchor, e.reveal = caret, caret, true
 	e.compOpen = false
 }

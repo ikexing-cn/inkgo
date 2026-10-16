@@ -2054,8 +2054,8 @@ func (a *App) snapshots(c *ui.Context) {
 					})
 					if i := slices.IndexFunc(w.snaps, func(s workspace.Snapshot) bool { return s.Name == w.snap }); i >= 0 && a.aiOn() {
 						switch sn := w.snaps[i]; {
-						case sn.Talk != "":
-							a.talkRecord(c, sn.Talk)
+						case len(sn.Talks) > 0:
+							a.talkRecord(c, sn.Talks)
 						case sn.AI != nil:
 							a.aiRecord(c, sn.AI)
 						}

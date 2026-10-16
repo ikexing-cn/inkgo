@@ -421,10 +421,11 @@ const ready = (p) => !p.writing && Date.now() - p.done >= SETTLE
 function takeProps(key, ids) {
   const list = S.props.filter((p) => ids.includes(p.id) && ready(p))
   if (!list.length) return
-  const talk = S.talks.find((x) => x.id === list[0].talk), words = list.flatMap((p) => p.paras)
+  // 快照里写这些提议来自哪几段讨论。
+  const talks = [...new Set(list.map((p) => p.talk))].map((id) => S.talks.find((x) => x.id === id)), words = list.flatMap((p) => p.paras)
   set((s) => {
     const step = oneStep(s, key, (paras) => list.reduce(applied, paras))
-    return { ...snap(s, key, 'AI 改动前', { head: '采纳讨论「' + (talk ? talk.title : '') + '」里的提议' }), ...step, ...ruled(s, list.map((p) => p.id), '已采纳'),
+    return { ...snap(s, key, 'AI 改动前', { head: '采纳讨论' + talks.map((x) => '「' + (x ? x.title : '已删除的讨论') + '」').join('') + '里的提议' }), ...step, ...ruled(s, list.map((p) => p.id), '已采纳'),
       chapters: step.chapters.map((c) => (c.key === key ? { ...c, ai: [...(c.ai || []), ...words] } : c)) }
   })
   say('已采纳 AI 提议', '可撤销恢复原文，原版本已存入快照', 'ok')

@@ -230,20 +230,23 @@ func TestRevisionsCheckOpsAndSources(t *testing.T) {
 	if e := entry(t, s, id); e.Author || e.Sources[0] != src {
 		t.Fatalf("the talk's entry: %+v", e)
 	}
+	// Unknown is no ID made in this test: a new one, made the same minute,
+	// is one of 65536.
+	const unknown = "19990101-0000-0000"
 	for _, tc := range []struct {
 		name string
 		r    Revision
 	}{
 		{"quote not in message", Revision{By: ByAuthor, Ops: []Op{{Op: OpAdd, Place: PlaceBody, Category: "人物", Text: "x", Sources: []Source{{Session: session, Message: u.ID, Quote: "没说过"}}}}}},
-		{"unknown message", Revision{By: ByAuthor, Ops: []Op{{Op: OpAdd, Place: PlaceBody, Category: "人物", Text: "x", Sources: []Source{{Session: session, Message: NewID(), Quote: "主角"}}}}}},
+		{"unknown message", Revision{By: ByAuthor, Ops: []Op{{Op: OpAdd, Place: PlaceBody, Category: "人物", Text: "x", Sources: []Source{{Session: session, Message: unknown, Quote: "主角"}}}}}},
 		{"unknown category", Revision{By: ByAuthor, Ops: []Op{{Op: OpAdd, Place: PlaceBody, Category: "虚构", Text: "x"}}}},
-		{"unknown entry", Revision{By: ByAuthor, Ops: []Op{{Op: OpEdit, Entry: NewID(), Text: "x"}}}},
+		{"unknown entry", Revision{By: ByAuthor, Ops: []Op{{Op: OpEdit, Entry: unknown, Text: "x"}}}},
 		{"edit moves", Revision{By: ByAuthor, Ops: []Op{{Op: OpEdit, Entry: id, Text: "x", Place: PlaceOpen}}}},
 		{"empty move", Revision{By: ByAuthor, Ops: []Op{{Op: OpMove, Entry: id}}}},
 		{"no ops", Revision{By: ByAuthor}},
 		{"the author's with a model", Revision{By: ByAuthor, Model: "deepseek/deepseek-flash", Ops: []Op{{Op: OpMove, Entry: id, Place: PlaceOpen}}}},
 		{"a talk's with no turn", Revision{By: ByTalk, Session: session, Ops: []Op{{Op: OpMove, Entry: id, Place: PlaceOpen}}}},
-		{"a talk's turn unknown", Revision{By: ByTalk, Session: session, Turn: NewID(), Ops: []Op{{Op: OpMove, Entry: id, Place: PlaceOpen}}}},
+		{"a talk's turn unknown", Revision{By: ByTalk, Session: session, Turn: unknown, Ops: []Op{{Op: OpMove, Entry: id, Place: PlaceOpen}}}},
 		{"a talk's turn a reply", Revision{By: ByTalk, Session: session, Turn: a.ID, Ops: []Op{{Op: OpMove, Entry: id, Place: PlaceOpen}}}},
 		{"a talk's with nothing", Revision{By: ByTalk, Session: session, Turn: u.ID}},
 	} {
