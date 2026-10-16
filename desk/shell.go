@@ -362,7 +362,7 @@ func (a *App) blankSession() (string, error) {
 // open in it, so that the taskbar tells windows and works apart.
 func (a *App) WindowTitle() string {
 	if a.Store == nil {
-		return "写作软件"
+		return "Inkgo"
 	}
 	title := a.Store.Work().Name
 	if a.page == 3 {

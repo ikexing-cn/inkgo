@@ -1,6 +1,6 @@
 ---
 version: alpha
-name: 写作软件
+name: Inkgo
 description: 写长篇小说用的桌面软件。纸和墨两种颜色，浅色、深色各一套；名字以 -dark 结尾的是深色那一套。
 colors:
   primary: "{colors.ink}"
@@ -353,7 +353,7 @@ components:
     backgroundColor: "{colors.dim-dark}"
 ---
 
-# 写作软件的界面规范
+# Inkgo 的界面规范
 
 这份文件按 [DESIGN.md 格式](https://github.com/google-labs-code/design.md)（`version: alpha`）写：
 
@@ -673,7 +673,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab，改写�
 - 要用书面语；不要口语化。
 - 要一眼能看懂：名称 2–4 个字，说明不超过 20 个字。
 - 思考程度的几档要留英文（Default、Low、Medium、High），跟在模型后面（「DeepSeek/deepseek-flash · High」）；不要在前面加「思考：」「推理」。这一项在别处说起时叫「思考程度」。`go test ./desk` 的 `TestDraftAChapterFromItsOutline` 和 `npm run verify-prototype` 的「a draft」查起草对话框。
-- 软件还没有名字，界面和文档里要写「写作软件」；不要把测试用的作品名当成软件名。
+- 软件叫 Inkgo（暂定），界面和文档里都写这个英文名，不另起中文名；不要把测试用的作品名当成软件名。
 - 要用章标题指某一章（「第四章 钟表铺」），说的是正开着的那一章写「本章」；不要另算「第 N 章」这种按位置编的号，删一章、插一章它就和作者写的标题对不上了。标题在句子里加「」（「埋在「第四章 钟表铺」，已过 3 章」），单独摆着的不加（列表右边、选择框里那一行）；放不下就截断。讲距离的「已过 3 章」「相隔 3 章」「3 章前」照旧按位置数。`npm run verify-prototype` 的伏笔、检查、设定出处那几段查原型的说法，`go test ./desk` 的 `TestForeshadowBuryAndPay`、`TestCheckOnlyWhenAsked`、`TestSettingListAndPage` 查软件里的。
 - 要按 K、M、B 写 token 数，K 是一千，留一位小数（「9.6K」「1.7M」），不到一千的照写；填上下文上限、最大输出时也认这种写法，保存后照这样写回（「128K」「1M」）。不要用「万」写 token，字数照旧写「万字」。`npm run verify-prototype` 的「what was sent」「models and services」查原型。
 - 要按离今天多远写时间：今天、昨天直接写，今年别的日子写月-日，往年的写年-月-日，要几点就跟在后面（「今天 10:32」「昨天 23:15」「10-06 21:40」「2025-10-06 21:40」）；不要单写「10-16 01:34」让作者自己算是哪天，也不要写「刚刚」。只说哪天的只写哪天：讨论列表，书架上前天以前打开的作品，字数旁「最近 7 天」各天，最早的备份（「已存 12 份，最早 09-28」）。讨论里每一句话下面也这样写（「今天 00:50 · deepseek-flash · 8K token」）。`go test ./desk` 的 `TestWhenSaid` 查软件里的写法和最早的备份，`TestWhatWasSent` 查讨论里的，`TestSetTheDaysGoal` 查最近 7 天；原型里新做的事都记在「今天 10:40」，`npm run verify-prototype` 的备份、摘要、修改记录、「what was sent」「a goal for the day」几步查。
