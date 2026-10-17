@@ -44,7 +44,7 @@ Status: implemented
 
 - 没决定的提议只在内存里（`desk/propose.go` 的 `writeView.props`），跟着讨论和调用 ID，换章、关标签页都还在。位置每次从那一章现在的文字重算：`replace`、`after` 找 quote，好几处时取离上次最近的；`end` 接在最后；`all` 要文字和提议时一样，否则作废。
 - 编辑器（`editor/ai.go`）同时显示好几处：`SetProposals` 给每处留出按钮的地方，`ProposalGap` 是那块地方，`Take` 把几处一次写进去、算一步撤销、标成 `MarkAI`、光标放在最后一处后面。提议以外照常能打字。
-- 写完的半秒（`settleFor`）里点「采纳」不算。
+- 写着时提议后面是「放弃」「正在写…」，写完「采纳」换掉「正在写…」；标题下那一行的「全部采纳」写着时是灰的（2026-10-17 作者同意）。写完那一刻按钮都不挪，原来「正在写…」在「放弃」前面，写完「放弃」左移、「采纳」正好落在它原来的位置，靠写完半秒内点「采纳」不算（`settleFor`）挡着，现在去掉了。
 - 新的一处和同一章里还没决定的旧提议改的是同一处（字有重叠、同一个点，或有一处换掉全章），旧的记「已被新的提议替换」，不管旧的是哪段讨论提的。
 - 要换掉、要接在后面的那几句被作者改了，提议作废，提示一下。只有显示着的那一章查；那一章进了回收站，提议直接作废，不提示。
 - 放弃一处还在写的，取消这一轮回复。一轮结束时还没写完的（取消或出错）直接拿掉，不记结果。
@@ -76,6 +76,7 @@ Status: implemented
 - **起草什么都不预先带，全让 AI 自己查** — 最便宜，AI 要什么查什么。没有用：每次起草都要上一章和章纲，让 AI 自己去拿，多一次往返，它还可能不拿。
 - **起草的讨论在讨论页打开** — 地方大。没有用：提议显示在正文里，作者要同时看着正文和讨论。
 - **AI 直接写进正文，不对就撤销** — 最快。没有用：违反「AI 写的字要作者采纳」；撤销要作者先发现哪里被改了。
+- **写完半秒内点「采纳」不算，按钮照旧挪** — 最强的理由：不改界面，写着时那一行更短，只有用得上的「放弃」。没有用：半秒是猜的，手慢一点、或者看的是上一帧，就点到「采纳」上，AI 的字进了正文（2026-10-17 手测真点上了）；按钮不挪就不用猜。
 - **两种标记都留着** — 看得出哪段是起草的、哪句是续写的。没有用：起草和改写都并进讨论以后分不清了，作者要知道的只是这几个字是不是 AI 写的。
 
 ## Consequences
@@ -96,7 +97,7 @@ Status: implemented
   - 普通讨论提议了，不切到正文页：开着讨论页时，只在旁边开标签页。
   - 一处提议写完以后，要等这一轮回复全部结束、结果写进讨论，才不再是「正在写…」。
 - 测试：
-  - `go test ./desk`：`TestDraftAChapterThroughATalk`（没有章纲不能起草；对话框说带上什么、用哪个模型；字数不是数不起草；边写边显示，正文和磁盘不变；讨论的标题和第一句、请求里跟着那一章；刚写完点「采纳」不算；采纳后有快照、标记、一步撤销、光标和键盘；快照写哪段讨论）、`TestDraftOverWhatIsThere`、`TestRewriteASelectionThroughATalk`（要求空着不发；替换、别处打字不碍事、再说一次换掉旧的、放弃、下次说话告诉模型、Esc）、`TestAProposalVoidAndOneLetGo`、`TestLeavingTheWorkAsksAboutProposals`、`TestAProposalInAnotherChapterOpensBeside`、`TestTakingTheProposalsOfTwoTalks`（两段讨论的提议一起采纳，快照写两个标题）、`TestTakingTheDisksTextVoidsWhatItChanged`、`TestADraftWaitsForAModelAndItsTurn`；`TestTurnTheAIOffAndOn` 查关掉 AI 时还在写的提议丢掉、回复等着重试。
+  - `go test ./desk`：`TestDraftAChapterThroughATalk`（没有章纲不能起草；对话框说带上什么、用哪个模型；字数不是数不起草；边写边显示，正文和磁盘不变；讨论的标题和第一句、请求里跟着那一章；写着时没有「采纳」、「全部采纳」是灰的，写完按钮不挪；采纳后有快照、标记、一步撤销、光标和键盘；快照写哪段讨论）、`TestDraftOverWhatIsThere`、`TestRewriteASelectionThroughATalk`（要求空着不发；替换、别处打字不碍事、再说一次换掉旧的、放弃、下次说话告诉模型、Esc）、`TestAProposalVoidAndOneLetGo`、`TestLeavingTheWorkAsksAboutProposals`、`TestAProposalInAnotherChapterOpensBeside`、`TestTakingTheProposalsOfTwoTalks`（两段讨论的提议一起采纳，快照写两个标题）、`TestTakingTheDisksTextVoidsWhatItChanged`、`TestADraftWaitsForAModelAndItsTurn`；`TestTurnTheAIOffAndOn` 查关掉 AI 时还在写的提议丢掉、回复等着重试。
   - `go test ./discussion`：`TestATalkOpenedToDraftKeepsToItsChapter`、`TestATalkOpenedToRewriteKeepsToItsChapter`、`TestAProposalFindsItsPlace`、`TestAProposalShowsAsItStreams`、`TestPartialJSON`。
   - `go test ./editor`：`TestProposalsShowAndGoInAsOneStep`（含撤销、重做后光标在哪）、`TestAProposalOfAllShowsApart`、`TestAProposalComesIntoView`（含同一帧光标也要滚进来时）、`TestTheAIMarkLetsGoOfEditedWords`。
   - `npm run verify-prototype` 的「a rewrite」「a proposal void, and one let go」「a draft」「leave with a proposal」「a proposal in another chapter」。

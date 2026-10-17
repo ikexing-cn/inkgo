@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	"github.com/egoist/mygo/ui"
@@ -27,7 +26,6 @@ type prop struct {
 	base          string    // the chapter's text as it was proposed, which one of all replaces
 	near          int       // where its words were last found in the chapter
 	writing       bool      // its text still comes
-	done          time.Time // when it came whole
 	fresh         bool      // came whole since it was last placed
 	placed        bool      // shows in the editor of its chapter
 	shown         bool      // was brought into view
@@ -36,15 +34,8 @@ type prop struct {
 // id names p to the editor.
 func (p *prop) id() string { return p.session + "/" + p.call }
 
-// settleFor is how long after it came whole a proposal's 采纳 takes no
-// clicks: one meant for 放弃 or 取消 as it ended would land there.
-const settleFor = 500 * time.Millisecond
-
-// settled tells whether p can be taken: it came whole long enough ago.
-func (p *prop) settled() bool { return !p.writing && time.Since(p.done) >= settleFor }
-
 // propRoom is the room after each proposal in the prose for its buttons:
-// 正在写… and 放弃 while it comes, then 放弃 and 采纳. propInset is where
+// 放弃 and 正在写… while it comes, then 放弃 and 采纳, 放弃 not moving. propInset is where
 // they begin in it.
 const (
 	propRoom  = 132
@@ -118,7 +109,7 @@ func (a *App) takeProposal(call string, p workspace.Proposal, writing bool, mode
 				w.propVer++
 			}
 		default:
-			pr.Proposal, pr.writing, pr.done, pr.fresh, pr.model = p, false, time.Now(), true, model
+			pr.Proposal, pr.writing, pr.fresh, pr.model = p, false, true, model
 			w.propVer++
 		}
 		return
@@ -128,9 +119,6 @@ func (a *App) takeProposal(call string, p workspace.Proposal, writing bool, mode
 	}
 	w.seen[key] = true
 	pr := &prop{Proposal: p, session: session, call: call, model: model, writing: writing, base: a.chapterText(p.Chapter)}
-	if !writing {
-		pr.done = time.Now()
-	}
 	var over []*prop
 	if at, ok := pr.place(pr.base); ok {
 		for _, q := range w.props {
@@ -221,8 +209,8 @@ func (a *App) letGo(ps []*prop) {
 // takeProps puts the proposals ps of the chapter shown in its text, as one
 // step to undo, after a snapshot of it as it was that names the talks they
 // came from; their words are marked
-// as the AI's, and the caret goes after the last. One still coming, or
-// just come, is left.
+// as the AI's, and the caret goes after the last. One still coming is
+// left.
 func (a *App) takeProps(ps []*prop) {
 	w := &a.write
 	text := w.ed.Doc.String()
@@ -230,7 +218,7 @@ func (a *App) takeProps(ps []*prop) {
 	var places []editor.Proposal
 	var talks []string
 	for _, p := range ps {
-		if p.Chapter != w.node || !p.settled() {
+		if p.Chapter != w.node || p.writing {
 			continue
 		}
 		if at, ok := p.place(text); ok {
@@ -411,8 +399,9 @@ func (a *App) openTalk(session string) {
 	a.switchSession(session)
 }
 
-// propActs float in the room after each proposal shown: 放弃, and once it
-// came whole 采纳; while it comes, that it does.
+// propActs float in the room after each proposal shown: 放弃, then 采纳
+// once it came whole, or while it comes that it does. 放弃 stays where it
+// is as it comes whole: a click meant for it then is not on 采纳.
 func (a *App) propActs(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
@@ -428,13 +417,14 @@ func (a *App) propActs(c *ui.Context) {
 		ui.Row(c.Key("提议-"+p.id())).Absolute().Left(r.X+propInset).Top(r.Y).Height(r.H).Gap(6).AlignItems(ui.Center).Children(func() {
 			tip := "放弃这一处提议"
 			if p.writing {
-				ui.Text(c, "正在写…").FontSize(fsControl).TextColor(t.TextMuted).SingleLine()
 				tip = "让 AI 停下，放弃这一处"
 			}
 			if a.pal.soft(c, "放弃").Tooltip(tip).KeepFocus().Clicked() {
 				drop = p
 			}
-			if !p.writing && a.pal.primary(c, "采纳").Tooltip("采纳这一处提议").KeepFocus().Clicked() && p.settled() {
+			if p.writing {
+				ui.Text(c, "正在写…").FontSize(fsControl).TextColor(t.TextMuted).SingleLine()
+			} else if a.pal.primary(c, "采纳").Tooltip("采纳这一处提议").KeepFocus().Clicked() {
 				take = p
 			}
 		})
@@ -533,7 +523,8 @@ func (a *App) aiBar(c *ui.Context) {
 			a.letGo(here)
 			w.ed.Focus()
 		}
-		if !writing && a.pal.primary(c, "全部采纳").Clicked() {
+		// Grey while one comes, so that neither moves as it is done.
+		if a.pal.primary(c, "全部采纳").Disabled(writing).Clicked() {
 			a.takeProps(here)
 		}
 	})

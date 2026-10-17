@@ -304,9 +304,11 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   must(await has('.ai-bar .btn.primary.off'), 'a rewrite can go without a wish')
   await type('改写要求', '慢一点'); await key('Enter'); await pane('《第87章：停电》'); await pane('灯一直没有亮。'); await pane('慢一点'); await pane('跟着「第87章：停电」'); await win('AI 正在思考…')
   await sleep(1500); await win('正在写…'); must(await has('.prose .cut') && await has('.prose [data-prop]'), 'the proposal is not written into the prose as it comes'); await shot('50-rewriting')
+  // As it comes, 放弃 stands where it will stay, 正在写… after it, and 全部采纳 is grey: nothing moves when it is done.
+  must(await js(`[...document.querySelector('.prop-acts').children].map((e) => e.innerText).join('|') === '放弃|正在写…'`), '放弃 is not first as the proposal comes'); must(await has('.ai-bar .btn.primary.off'), '全部采纳 is not there, grey, as the proposal comes')
   await sleep(1800); await win('本章有 1 处 AI 提议'); must(await js(`document.querySelector('.ai-bar [title]').title.includes('划掉的是会被换掉的原文')`), 'the bar does not tell what the colours are'); await pane('换掉一句 · 20 字 · 等你决定'); await prose('她在巷口站了很久'); must(await js(`S.chapters.find((c) => c.key === S.ch).paras[2].includes('灯一直没有亮。')`), 'the proposal went into the prose before it was taken'); await shot('51-rewrite')
   await type('输入消息', '再短一点'); await key('Enter', true); await sleep(1500); await pane('已被新的提议替换'); await prose('她在巷口站了很久', false); must(await proposals() === 1, 'the proposal before was kept beside the new one')
-  await sleep(1700); await click('采纳'); await win('本章有 1 处 AI 提议'); await sleep(500); await click('采纳'); await win('已采纳 AI 提议'); await win('可撤销恢复原文，原版本已存入快照'); await prose('她站了一会儿，往黑里迈了一步。'); await prose('灯一直没有亮。', false); await pane('已采纳')
+  await sleep(1700); await click('采纳'); await win('已采纳 AI 提议'); await win('可撤销恢复原文，原版本已存入快照'); await prose('她站了一会儿，往黑里迈了一步。'); await prose('灯一直没有亮。', false); await pane('已采纳')
   must(await js(`document.querySelectorAll('.prose .ai').length > 0`), 'what the AI wrote is not marked')
   await key('z', true); await prose('灯一直没有亮。'); await key('y', true); await prose('她站了一会儿'); await prose('灯一直没有亮。', false); await click('关闭提示')
   await pick(0, '同时灭的'); await click('AI 改写'); await key('Escape'); must(!(await has('.ai-bar')), 'Escape left the rewrite open'); must(await js(`document.activeElement === proseBox()`), 'Escape did not give the keyboard back to the prose'); await done('a rewrite')

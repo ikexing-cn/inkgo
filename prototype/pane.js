@@ -177,7 +177,7 @@ function write(id) {
       const msg = { me: false, at: stamp(), text: r.text, think: BOOK.think, look: r.look, use: r.use, prop: pid, key: talk.key, where, words: p.paras.join('').length }
       // 写的时候作者改掉了要换的那一句：写完就作废。
       const lost = at.kind === 'swap' && !chapterOf(talk.key).paras.some((x) => x.includes(at.quote))
-      const done = { props: s.props.map((x) => (x.id === pid ? { ...x, writing: false, done: Date.now() } : x)) }
+      const done = { props: s.props.map((x) => (x.id === pid ? { ...x, writing: false } : x)) }
       if (lost) later(0, () => say('AI 提议已作废', '写的时候，它要换掉的原文改动了'))
       return { waiting: null, talks: s.talks.map((x) => (x.id === id ? { ...x, msgs: [...x.msgs, msg] } : x)), records: logged(s, talk, r.use), ...(lost ? ruled(s, [pid], '正文已改动，提议已作废') : done) }
     })),

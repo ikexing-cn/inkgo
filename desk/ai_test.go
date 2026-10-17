@@ -231,8 +231,34 @@ func TestDraftAChapterThroughATalk(t *testing.T) {
 	if !strings.Contains(f.last().System, "【这段讨论起草的章：第一章】") || !strings.Contains(f.last().System, "她在雨夜醒来。") {
 		t.Fatal("the talk does not keep to the chapter")
 	}
+	// As it comes there is no 采纳, and 全部采纳 is grey; neither 放弃
+	// moves once it is done, so a click meant for one as it ends is not on
+	// a 采纳.
+	pid := a.write.props[0].id()
+	after := func() float32 { // where 放弃 is after the proposal's end
+		r, _ := tt.Find("放弃")
+		g, _ := ed.ProposalGap(pid)
+		return r.X - g.X
+	}
+	letGo := after()
+	letAllGo, ok := tt.Find("全部放弃")
+	if !ok || tt.Click("采纳") == nil {
+		t.Fatal("the buttons as it comes", tt.Texts())
+	}
+	if err := tt.Click("全部采纳"); err == nil {
+		tt.Frame()
+	}
+	if ed.Doc.String() != "" {
+		t.Fatal("taken by a click as it came")
+	}
 	close(hold)
 	replied(t, a, tt)
+	if x := after(); x != letGo {
+		t.Fatalf("放弃 moved from %v after the proposal to %v", letGo, x)
+	}
+	if r, _ := tt.Find("全部放弃"); r != letAllGo {
+		t.Fatalf("全部放弃 moved from %v to %v", letAllGo, r)
+	}
 	if !slices.Equal(shownProposals(a), []string{"雨下了一夜。\n她醒了。"}) || !tt.HasText("本章有 1 处 AI 提议") || !tt.HasText("接在章末 · 10 字 · 等你决定") {
 		t.Fatal("the draft did not come whole", shownProposals(a), tt.Texts())
 	}
@@ -240,14 +266,6 @@ func TestDraftAChapterThroughATalk(t *testing.T) {
 	if snaps, _ := a.Store.Snapshots(id); len(snaps) > 0 && snaps[0].Reason == workspace.SnapAI {
 		t.Fatal("a snapshot before the draft is taken")
 	}
-	if err := tt.Click("采纳"); err != nil {
-		t.Fatal(err)
-	}
-	tt.Frame()
-	if ed.Doc.String() != "" {
-		t.Fatal("taken by a click as it came")
-	}
-	time.Sleep(settleFor)
 	if err := tt.Click("采纳"); err != nil {
 		t.Fatal(err)
 	}
@@ -589,7 +607,6 @@ func TestTakingTheProposalsOfTwoTalks(t *testing.T) {
 	if talks[0] == talks[1] || !tt.HasText("本章有 2 处 AI 提议") {
 		t.Fatal("two talks did not each propose", talks, tt.Texts())
 	}
-	time.Sleep(settleFor)
 	if err := tt.Click("全部采纳"); err != nil {
 		t.Fatal(err)
 	}

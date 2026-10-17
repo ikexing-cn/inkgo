@@ -413,13 +413,11 @@ function unfit(s, key, old, paras) {
   later(0, () => say(gone.length + ' 处 AI 提议已作废', '它要换掉的原文改动了'))
   return ruled(s, gone.map((p) => p.id), '正文已改动，提议已作废')
 }
-// 一章里还没定的提议。刚写完的半秒里点「采纳」不算：写完的那一刻点「放弃」，不能落到同一处的「采纳」上。
-const SETTLE = 500
+// 一章里还没定的提议。
 const propsOf = (key) => S.props.filter((p) => p.key === key)
-const ready = (p) => !p.writing && Date.now() - p.done >= SETTLE
 // 采纳：先存快照，再写进正文，算一步，撤销一次就退回去。写进去的字带「AI 写的」记号。还在写的不能采纳。
 function takeProps(key, ids) {
-  const list = S.props.filter((p) => ids.includes(p.id) && ready(p))
+  const list = S.props.filter((p) => ids.includes(p.id) && !p.writing)
   if (!list.length) return
   // 快照里写这些提议来自哪几段讨论。
   const talks = [...new Set(list.map((p) => p.talk))].map((id) => S.talks.find((x) => x.id === id)), words = list.flatMap((p) => p.paras)
@@ -703,10 +701,10 @@ function pieces(cur, i, text, focus, found) {
 
 // AI 提议的字是绿色的，不能在里面打字，读正文时跳过它（data-prop）。
 const mine = (p) => ` data-prop="${p.id}" contenteditable="false"`
-// 一处提议后面的「放弃」「采纳」。还在写的只有「放弃」，放弃就让 AI 停下；写完以后「采纳」出现在「放弃」右边，「放弃」不挪地方。
-const propActs = (p) => `<span class="prop-acts"${mine(p)}>` + (p.writing ? '<span class="prop-writing">正在写…</span>' : '') +
+// 一处提议后面的「放弃」「采纳」。还在写的是「放弃」和后面的「正在写…」，放弃就让 AI 停下；写完以后「采纳」换掉「正在写…」，「放弃」不挪地方，写完那一刻点它不会落到「采纳」上。
+const propActs = (p) => `<span class="prop-acts"${mine(p)}>` +
   `<span class="btn hit soft" title="${p.writing ? '让 AI 停下，放弃这一处' : '放弃这一处提议'}"${onClick(() => dropProps([p.id]))}>放弃</span>` +
-  (p.writing ? '' : `<span class="btn hit primary" title="采纳这一处提议"${onClick(() => takeProps(p.key, [p.id]))}>采纳</span>`) + '</span>'
+  (p.writing ? '<span class="prop-writing">正在写…</span>' : `<span class="btn hit primary" title="采纳这一处提议"${onClick(() => takeProps(p.key, [p.id]))}>采纳</span>`) + '</span>'
 
 // 标题下面那一行：等作者写改写要求，或者本章有 AI 的提议。提议来自哪段讨论，点「查看讨论」在右栏打开它。
 function aiBar(cur) {
@@ -727,7 +725,8 @@ function aiBar(cur) {
   const shown = S.paneOpen && !S.focus && S.tab === '讨论' && S.tv === 'one' && S.tid === talk
   return `<div class="ai-bar" data-k="ai-bar">${icon('spark', 'md', writing ? 'muted' : 'green')}<div class="fit ell muted"${writing ? '' : ` title="${how}"`}>${t(what)}</div>` +
     (shown ? '' : `<div class="hit link"${onClick(() => openTalk(talk))}>查看讨论</div>`) +
-    button('全部放弃', () => dropProps(ids), 'soft') + (writing ? '' : button('全部采纳', () => takeProps(cur.key, ids), 'primary')) + '</div>'
+    // 还在写时「全部采纳」是灰的，按钮都不挪地方。
+    button('全部放弃', () => dropProps(ids), 'soft') + button('全部采纳', writing ? null : () => takeProps(cur.key, ids), writing ? 'primary off' : 'primary') + '</div>'
 }
 
 // 标题下面的「章纲」，点开是一个能写字的框。

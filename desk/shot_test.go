@@ -89,7 +89,6 @@ func TestShotAI(t *testing.T) {
 	g := &script{}
 	penWith(a, g)
 	take := func() {
-		time.Sleep(settleFor)
 		a.takeProps(a.write.props)
 	}
 	ed.Select(15, 34)
