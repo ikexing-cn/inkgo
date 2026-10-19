@@ -1,6 +1,7 @@
 package workspace
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -189,6 +190,24 @@ func TestOutlineMalformedFile(t *testing.T) {
 				t.Fatal("damaged file overwritten")
 			}
 		})
+	}
+}
+
+// A broken outline says the line it breaks on; one that reads as JSON but
+// not as an outline has no line.
+func TestOutlineErrorSaysWhere(t *testing.T) {
+	for bad, line := range map[string]int{
+		"{\n  \"schema\": 2,\n  \"cards\": [\n    {\"id\" \"x\"}\n  ]\n}\n": 4,
+		"{\n  \"schema\": \"二\"\n}\n":                                       2,
+		`{"schema":2,"cards":[{"id":"20261019-0000-0001","title":""}]}`:     0,
+	} {
+		s := testStore(t)
+		planOK(t, os.WriteFile(filepath.Join(s.Root(), "outline.json"), []byte(bad), 0600))
+		_, err := s.Plan()
+		var e *PlanError
+		if !errors.As(err, &e) || e.Line != line || !strings.HasSuffix(e.Path, "outline.json") {
+			t.Fatalf("%q: %v, want line %d", bad, err, line)
+		}
 	}
 }
 

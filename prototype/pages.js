@@ -224,7 +224,15 @@ const saveTime = () => set((s) => {
   return { events: s.events.map((e) => (col.cards.includes(e) ? { ...e, when } : e)), planTime: null, ...SHUT }
 })
 
+// 大纲文件在软件外被改坏了：整页一句话，正文和设定照常。不用「重试」：软件每两秒重读一次，改好了自己回来。
+function planBroken() {
+  return '<div class="editor"><div class="toolbar"><div class="crumb here">大纲</div></div><div class="plan-none">' +
+    blank('warn', '大纲文件读不出来', 'outline.json 可能在软件外被改过。正文和设定不受影响；改好文件后，这一页会自己重新读取。',
+      '<div class="note faint">第 12 行附近有错</div>' + buttons(button('打开所在文件夹', osAsk('在资源管理器中显示这部作品的文件夹')))) + '</div></div>'
+}
+
 function planPage() {
+  if (S.planBroken) return planBroken()
   const timeline = S.plan === '时间线', q = S.planQ.trim()
   const loose = S.events.filter((e) => !e.key).length
   // 搜着的时候，上面那一句换成找到了多少；一个也没找到，整页换成一句话和「清除搜索」，表头和下面的托盘都不留。

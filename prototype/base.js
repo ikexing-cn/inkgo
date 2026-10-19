@@ -62,7 +62,7 @@ function fresh(book = BOOK.shelf[0].id) {
     book, page: 'write', // 在哪一页：write 正文、plan 大纲、talk 讨论、check 检查、cats 作品分类、shelf 书架
     volumes: of('volumes', []), chapters, bin: of('bin', []), outlines: of('outlines', {}), records: of('records', []),
     events: of('events', []), lines: of('lines', []), // 大纲的卡片和情节线
-    plan: '按章节', planSee: null, planOutline: null, planLine: null, planTime: null, planQ: '', planPane: false, // 大纲页：看哪一种、标出来一会儿的那张卡片、正在改的章纲或卷纲、情节线的名字（{ id, name }）、时间线上一列的时间（{ i, when }），搜什么，右栏开着吗
+    plan: '按章节', planSee: null, planOutline: null, planLine: null, planTime: null, planQ: '', planPane: false, planBroken: false, // 大纲页：看哪一种、标出来一会儿的那张卡片、正在改的章纲或卷纲、情节线的名字（{ id, name }）、时间线上一列的时间（{ i, when }），搜什么，右栏开着吗，大纲文件读不出来
     entries: of('entries', []), log: of('log', []), marks: of('marks', []), talks: of('talks', []), checks: of('checks', []),
     snaps: last ? { [last.key]: snaps } : {}, cats: [...BOOK.cats], lands: { ...BOOK.lands },
     ch: last ? last.key : '', trail: last ? [last.key] : [], step: 0, // 开着哪一章；trail 是打开过的章，step 是现在在第几个

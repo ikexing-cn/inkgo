@@ -459,6 +459,9 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
 
   // The chapter says when in the story it is, under its title: clicked, the timeline opens at it.
   await click('正文'); await click('第87章：停电'); await win('故事中 二十六年前·秋 — 十月六日夜'); await click('故事中 二十六年前·秋 — 十月六日夜'); await win('已放进章节'); must((await js(`document.querySelector('.card.seen').innerText`)).includes('母亲在停电那晚失踪'), 'the timeline does not open at the chapter'); await shot('105-chapter-when'); await done('the chapter in the story')
+  // An outline file broken outside: one line in place of the page, read again as the window comes back.
+  await click('少见的情况'); await click('大纲文件读不出来'); await win('大纲文件读不出来'); await win('第 12 行附近有错'); must(!(await has('.board')) && !(await has('[aria-label="搜索大纲"]')), 'the broken outline still shows the page'); await win('重试', false); await shot('106-outline-broken')
+  await click('打开所在文件夹'); await win('原型不会打开系统窗口'); await click('关闭提示'); await js(`window.dispatchEvent(new Event('focus'))`); await win('8 章 · '); must(await has('.board'), 'the outline does not come back as the window does'); await done('an outline file broken outside')
 
   // Names of the setting in the prose: a faint dotted line; clicked, the entry opens beside; put away in the settings.
   await click('正文'); await click('第87章：停电'); must(await js(`[...document.querySelectorAll('.prose .nm')].some((e) => e.textContent === '小祥')`), 'a name in the prose is not marked')

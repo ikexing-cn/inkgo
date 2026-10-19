@@ -1,6 +1,7 @@
 package workspace
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -100,9 +101,38 @@ func (s *Store) plan() (Plan, error) {
 		err = out.validate()
 	}
 	if err != nil {
-		return Plan{}, fmt.Errorf("%s: %w", p, err)
+		return Plan{}, &PlanError{Path: p, Line: lineOf(b, err), Err: err}
 	}
 	return out, nil
+}
+
+// PlanError is an outline.json that does not read. Line is the line, from
+// 1, where the JSON itself breaks, and 0 when it reads as JSON but not as an
+// outline.
+type PlanError struct {
+	Path string
+	Line int
+	Err  error
+}
+
+func (e *PlanError) Error() string { return e.Path + ": " + e.Err.Error() }
+func (e *PlanError) Unwrap() error { return e.Err }
+
+// lineOf finds the line of b where decoding it failed with err.
+func lineOf(b []byte, err error) int {
+	var syntax *json.SyntaxError
+	var kind *json.UnmarshalTypeError
+	at := int64(-1)
+	switch {
+	case errors.As(err, &syntax):
+		at = syntax.Offset
+	case errors.As(err, &kind):
+		at = kind.Offset
+	}
+	if at < 0 {
+		return 0
+	}
+	return 1 + bytes.Count(b[:min(int(at), len(b))], []byte("\n"))
 }
 
 func (s *Store) writePlan(p Plan) error {

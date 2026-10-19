@@ -475,6 +475,7 @@ function rare() {
     ['备份文件夹丢失', failBackup('dir')],
     ['备份文件夹不可写', failBackup('deny')],
     [S.narrow ? '窗口恢复原宽' : '窗口变窄', () => set((s) => ({ narrow: !s.narrow, ...SHUT }))],
+    ['大纲文件读不出来', () => set({ page: 'plan', planBroken: true, planQ: '', dialog: null, ...SHUT })],
     ['添加的文件夹中没有作品', () => { set(SHUT); say('该文件夹中没有作品（缺少 work.yaml）', 'D:\\下载\\新建文件夹', 'fail') }],
   ]
 }

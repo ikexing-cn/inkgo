@@ -1,7 +1,9 @@
 package desk
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"slices"
 	"strings"
 	"time"
@@ -17,6 +19,7 @@ type planView struct {
 	data                   workspace.Plan
 	loaded                 bool
 	loadErr                error
+	checked                time.Time // when the outline was last read
 	index                  planIndex
 	geometry               *planGeometry
 	dragging               string
@@ -170,7 +173,11 @@ func (a *App) planCounts() (cards, nodes int) {
 
 func (a *App) outlinePage(c *ui.Context) {
 	p := &a.plan
+	if p.loadErr != nil && time.Since(p.checked) >= checkEvery {
+		p.loaded = false // a broken outline may have been put right outside
+	}
 	if !p.loaded {
+		p.checked = time.Now()
 		p.loadErr = a.loadTree()
 		p.loaded = true
 		if p.loadErr == nil {
@@ -183,16 +190,7 @@ func (a *App) outlinePage(c *ui.Context) {
 		a.indexPlan()
 	}
 	if p.loadErr != nil {
-		ui.Row(c).FillWidth().Height(titleHeight).Padding(0, 16, 0, 24).AlignItems(ui.Center).Shrink(0).BorderWidth(0, 0, 1, 0).BorderColor(a.pal.line).Label("大纲工具栏").Children(func() {
-			ui.Text(c, "大纲").FontSize(fsBody).FontWeight(600).SingleLine()
-		})
-		ui.Column(c).FillWidth().Grow(1).Padding(24).Gap(16).AlignItems(ui.Start).Children(func() {
-			a.notice2(c, a.pal.theme.Danger, "大纲无法读取："+p.loadErr.Error(), func() {})
-			ui.Text(c, "请修正文件后重试。正文仍可照常编辑。").FontSize(fsBody).TextColor(a.pal.theme.TextMuted)
-			if a.pal.secondary(c, "重试").Clicked() {
-				p.loaded = false
-			}
-		})
+		a.planBroken(c)
 		return
 	}
 	if !p.cardOpen && !p.timeOpen && p.outlineID == "" && p.lineID == "" && c.Shortcut(0, ui.KeyEscape) {
@@ -228,6 +226,36 @@ func (a *App) outlinePage(c *ui.Context) {
 		})
 		if p.pane {
 			a.settingColumn(c)
+		}
+	})
+}
+
+// planBroken stands in for the page while the outline does not read: one
+// line, as when a search finds nothing, and no retry, as the file is read
+// again as often as the open chapter is looked at on the disk.
+func (a *App) planBroken(c *ui.Context) {
+	p := &a.plan
+	c.After(checkEvery - time.Since(p.checked))
+	title, about, why := "大纲读不出来", "", p.loadErr.Error()
+	var bad *workspace.PlanError
+	if errors.As(p.loadErr, &bad) {
+		title, about, why = "大纲文件读不出来", "outline.json 可能在软件外被改过。正文和设定不受影响；改好文件后，这一页会自己重新读取。", ""
+		switch {
+		case bad.Line > 0:
+			why = fmt.Sprintf("第 %d 行附近有错", bad.Line)
+		case errors.Is(bad.Err, io.ErrUnexpectedEOF):
+			why = "文件在结尾处断了"
+		}
+	}
+	ui.Row(c).FillWidth().Height(titleHeight).Padding(0, 16, 0, 24).AlignItems(ui.Center).Shrink(0).BorderWidth(0, 0, 1, 0).BorderColor(a.pal.line).Children(func() {
+		ui.Text(c, "大纲").FontSize(fsBody).FontWeight(600).SingleLine()
+	})
+	a.pal.blank(c, icAlert, title, about, func() {
+		if why != "" {
+			ui.Text(c, why).FontSize(fsNote).TextColor(a.pal.faint).TextAlign(ui.Center).MaxWidth(440)
+		}
+		if a.Reveal != nil && a.pal.secondary(c, "打开所在文件夹").Clicked() {
+			a.warn(a.Reveal(a.Store.Root()))
 		}
 	})
 }

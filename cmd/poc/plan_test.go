@@ -120,7 +120,7 @@ func TestLayoutOutline(t *testing.T) {
 	check(os.WriteFile(filepath.Join(root, "work", "outline.json"), []byte("{"), 0600))
 	click("正文")
 	click("大纲")
-	if !tt.HasText("大纲无法读取：") || !tt.HasText("outline.json") {
+	if !tt.HasText("大纲文件读不出来") || !tt.HasText("文件在结尾处断了") {
 		t.Fatal(tt.Texts())
 	}
 	shot(t, tt, "-outline-error")

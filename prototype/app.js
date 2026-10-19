@@ -116,6 +116,8 @@ root.addEventListener('dragover', (ev) => { const row = nodeAt(ev); if (row) { e
 root.addEventListener('dragleave', (ev) => { const row = ev.target.closest('[data-node]'); if (row) row.classList.remove('over') })
 root.addEventListener('drop', (ev) => { const row = nodeAt(ev); if (row) { ev.preventDefault(); dropOn(dragged, row.dataset.node) } })
 root.addEventListener('dragend', () => { dragged = ''; draw() })
+// 软件每两秒重读一次改坏的大纲文件；原型里切回窗口，就当作已经改好了。
+window.addEventListener('focus', () => { if (S.planBroken) set({ planBroken: false }) })
 // 大纲页里拖一张卡片：按章节拖进一格，就换到那一章、那条情节线；时间线上拖进一格，就换到那个时间、那条情节线。
 let draggedCard = ''
 const cardAt = (ev) => { const at = ev.target.closest('[data-slot], [data-cell]'); return at && draggedCard ? at : null }

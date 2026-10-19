@@ -44,15 +44,23 @@ func TestOutlineReadError(t *testing.T) {
 			t.Fatal("bad outline has story time", text)
 		}
 	}
+	var shown string
+	a.Reveal = func(path string) error { shown = path; return nil }
 	planClick(t, tt, "大纲")
-	planHas(t, tt, "大纲无法读取：")
-	if toolbar, ok := tt.Find("大纲工具栏"); !ok || toolbar.H != titleHeight || toolbar.Y < titleHeight || toolbar.Y > titleHeight+1 {
-		t.Fatal("error page has no outline toolbar", toolbar)
+	planHas(t, tt, "大纲文件读不出来")
+	planHas(t, tt, "第 1 行附近有错")
+	planHas(t, tt, "改好文件后，这一页会自己重新读取。")
+	if tt.HasText("重试") || tt.HasText(file) {
+		t.Fatal("the broken outline shows a retry or the bare error", tt.Texts())
 	}
-	planHas(t, tt, file)
-	planHas(t, tt, "正文仍可照常编辑。")
-	if _, ok := tt.Find("新增情节线"); ok {
-		t.Fatal("error page still offers outline editing")
+	for _, missing := range []string{"新增情节线", "搜索大纲", "按章节"} {
+		if _, ok := tt.Find(missing); ok {
+			t.Fatal("the broken outline still offers", missing)
+		}
+	}
+	planClick(t, tt, "打开所在文件夹")
+	if shown != root {
+		t.Fatal("revealed", shown)
 	}
 	if _, err := a.Store.SaveCard(workspace.Card{Title: "不能覆盖"}, ""); err == nil {
 		t.Fatal("corrupt file accepted write")
@@ -60,13 +68,15 @@ func TestOutlineReadError(t *testing.T) {
 	if b, _ := os.ReadFile(file); string(b) != string(bad) {
 		t.Fatal("bad outline overwritten")
 	}
+	// Put right outside, the outline comes back by itself.
 	good := `{"schema":2,"lines":[],"cards":[]}`
 	if err := os.WriteFile(file, []byte(good), 0600); err != nil {
 		t.Fatal(err)
 	}
-	planClick(t, tt, "重试")
+	a.plan.checked = a.plan.checked.Add(-checkEvery) // as if checkEvery went by
+	tt.Frame()
 	if a.plan.loadErr != nil {
-		t.Fatal("retry failed", a.plan.loadErr)
+		t.Fatal("the outline was not read again", a.plan.loadErr)
 	}
 	planHas(t, tt, "新增情节线")
 }
