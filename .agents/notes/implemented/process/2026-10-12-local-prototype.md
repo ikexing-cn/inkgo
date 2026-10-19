@@ -30,7 +30,7 @@ Status: implemented
 - 平时碰不到的情况（稿子在软件外面被改了或找不到了、检查或摘要没成功、备份文件夹找不到或不让写、设定没整理成功）放在窗口上面的「少见的情况」菜单里，点一下就摆出来。这个菜单和旁边的「重新开始」只属于原型，不是软件的界面。
 - `npm run verify-prototype` 做两件事，改了 `prototype/` 就跑：
   - 设计规则（`scripts/design/check.ts`、`rules.ts`）：`index.html` 和每份脚本对着 `desk/tokens.css` 查，样式表里的每条规则也按控件高度查。
-  - 走查。`scripts/prototype/browser.ts` 用本机的 Edge 或 Chrome 无头打开 `index.html`（走 `file://`，和双击一样），经 DevTools 协议真的按鼠标、敲键盘；`walk.ts` 把 83 条流程点一遍，每条结束时还要查窗口里没有东西伸出去、页面没有报错；每点一下还要查菜单、浮层、对话框、提示条里没有东西比它们自己宽，并且把窗口里的按钮行都量一遍（见[按钮靠右](2026-10-13-buttons-at-the-right.md)），不靠右的攒到最后一起报。只用 Node 自带的 `WebSocket` 和 `fetch`。`SHOT=<目录>` 会存下每一步的截图。
+  - 走查。`scripts/prototype/browser.ts` 用本机的 Edge 或 Chrome 无头打开 `index.html`（`BROWSER` 指定的排第一；一个起不来——2026-10-19 Edge 更新到一半时就这样，没有报错就退出——换下一个）（走 `file://`，和双击一样），经 DevTools 协议真的按鼠标、敲键盘；`walk.ts` 把 83 条流程点一遍，每条结束时还要查窗口里没有东西伸出去、页面没有报错；每点一下还要查菜单、浮层、对话框、提示条里没有东西比它们自己宽，并且把窗口里的按钮行都量一遍（见[按钮靠右](2026-10-13-buttons-at-the-right.md)），不靠右的攒到最后一起报。只用 Node 自带的 `WebSocket` 和 `fetch`。`SHOT=<目录>` 会存下每一步的截图。
     - 2026-10-13 起每点一下还查两样：能点的东西都回应指针（见[能点的看得出能点](2026-10-13-clickable-looks-clickable.md)），对话框的宽不超过高的 2.5 倍（只问一句的用窄的一档，见 `DESIGN.md` 的 Components「对话框」）。
 - 它原来不进提交前的三道检查（要本机有浏览器，走一遍三分钟）。2026-10-13 走查降到二十秒，并进了 `npm run verify`，每次提交前都跑，见[全套检查从四分半到半分钟](2026-10-13-fast-checks.md)。
 - 窗口固定 1266×780；浮层的位置从页面上量窗口、侧栏、右栏的宽，不另记数字。

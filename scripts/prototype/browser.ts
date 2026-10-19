@@ -76,18 +76,43 @@ const CLOCK = `(() => {
   }
 })()`
 
-/** Opens file and waits for ready (a selector) to be there. shots: a folder to save pictures to. */
-export async function open(file: string, ready: string, shots?: string): Promise<Page> {
-  const browser = [process.env.BROWSER, ...browsers].find((p) => p && existsSync(p))
-  if (!browser) throw new Error('no Edge or Chrome found: set BROWSER to the path of one')
-  if (shots) mkdirSync(shots, { recursive: true })
+type Started = { proc: ReturnType<typeof spawn>; profile: string; wsURL: string }
+
+/** Starts browser headless with a profile of its own; it fails, and is stopped, if it does not listen within 15 seconds or quits first. */
+function start(browser: string): Promise<Started> {
   const profile = mkdtempSync(join(tmpdir(), 'prototype-'))
   const proc = spawn(browser, ['--headless=new', '--disable-gpu', '--hide-scrollbars', '--remote-debugging-port=0', `--user-data-dir=${profile}`, '--window-size=1400,1000', 'about:blank'], { stdio: ['ignore', 'ignore', 'pipe'] })
-  const wsURL = await new Promise<string>((ok, fail) => {
+  return new Promise<Started>((ok, fail) => {
     let err = ''
-    proc.stderr.on('data', (d) => { err += d; const m = err.match(/DevTools listening on (ws:\/\/\S+)/); if (m) ok(m[1]) })
-    setTimeout(() => fail(new Error('the browser did not start: ' + err.slice(0, 300))), 15000)
+    const give = (why: string) => {
+      clearTimeout(timer)
+      proc.kill()
+      try { rmSync(profile, { recursive: true, force: true }) } catch { /* the browser may still hold it */ }
+      fail(new Error(why + (err ? ': ' + err.slice(0, 300) : '')))
+    }
+    const timer = setTimeout(() => give('did not start in 15 seconds'), 15000)
+    proc.on('exit', () => give('quit before it started'))
+    proc.stderr!.on('data', (d) => {
+      err += d
+      const m = err.match(/DevTools listening on (ws:\/\/\S+)/)
+      if (m) { clearTimeout(timer); proc.removeAllListeners('exit'); ok({ proc, profile, wsURL: m[1] }) }
+    })
   })
+}
+
+/** Opens file and waits for ready (a selector) to be there. shots: a folder to save pictures to. */
+export async function open(file: string, ready: string, shots?: string): Promise<Page> {
+  const found = [process.env.BROWSER, ...browsers].filter((p): p is string => !!p && existsSync(p))
+  if (!found.length) throw new Error('no Edge or Chrome found: set BROWSER to the path of one')
+  if (shots) mkdirSync(shots, { recursive: true })
+  // One that will not start headless (an Edge mid-update does that) gives way to the next one there.
+  const failed: string[] = []
+  let started: Started | undefined
+  for (const browser of found) {
+    try { started = await start(browser); break } catch (e) { failed.push(browser + ': ' + (e as Error).message) }
+  }
+  if (!started) throw new Error('no browser started:' + failed.map((f) => '\n  ' + f).join(''))
+  const { proc, profile, wsURL } = started
   const targets = await (await fetch(`http://127.0.0.1:${new URL(wsURL).port}/json`)).json() as { type: string; webSocketDebuggerUrl: string }[]
   const ws = new WebSocket(targets.find((t) => t.type === 'page')!.webSocketDebuggerUrl)
   await new Promise((r) => (ws.onopen = r))
