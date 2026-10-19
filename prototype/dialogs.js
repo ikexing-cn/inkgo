@@ -218,7 +218,8 @@ function settingsDialog(d) {
   const step = (by) => () => set((s) => ({ late: Math.max(5, s.late + by) }))
   const rec = d.tab === 'AI' && d.records && aiOn()
   const body = d.tab === 'AI' ? (rec ? records(d) : aiSwitch() + (aiOn() ? settingsModel(d) : '')) : d.tab === '备份' ? settingsBackup()
-    : d.tab === '外观' ? `<div class="prefs-row"><div class="prefs-label">颜色</div>${seg(S.look, [['跟随系统', 'screen'], ['浅色', 'sun'], ['深色', 'moon']], (v) => set({ look: v }), '颜色')}</div>`
+    : d.tab === '外观' ? `<div class="prefs-row"><div class="prefs-label">颜色</div>${seg(S.look, [['跟随系统', 'screen'], ['浅色', 'sun'], ['深色', 'moon']], (v) => set({ look: v }), '颜色')}</div>` +
+      `<div class="prefs-row">${tickbox(S.names, '正文中标出设定的名字', () => set({ names: !S.names }))}</div><div class="note">名字下面一道虚线，点击在右栏查看这条设定。</div>`
     : '<div class="prefs-group"><div class="group-title">伏笔</div></div>' +
       `<div class="prefs-row"><div class="fit"><div>超过多少章未回收时提醒</div><div class="note">到期后归入「久未回收」，不弹窗。</div></div><div class="stepper"><div class="hit" title="减少 5 章"${onClick(step(-5))}>−</div><div class="stepper-n">${S.late} 章</div><div class="hit" title="增加 5 章"${onClick(step(5))}>+</div></div></div>` +
       `<div class="note">当前有 ${lateNow} 个伏笔久未回收。</div>` +
@@ -426,5 +427,5 @@ function leaveDialog(d) {
 // 要关掉这部作品（换一部、回到书架）：有没定的 AI 提议，先问。
 const leave = (then) => () => (S.props.length ? set({ dialog: { kind: 'leave', then }, ...SHUT }) : then())
 
-const DIALOGS = { leave: leaveDialog, backup: backupDialog, settings: settingsDialog, take: takeDialog, source: sourceDialog, draft: draftDialog, snaps: snapsDialog, export: exportDialog, swap: swapDialog, unsaved: unsavedDialog, bin: binDialog, keys: keysDialog, newBook: newBookDialog, nameBook: nameBookDialog }
+const DIALOGS = { leave: leaveDialog, backup: backupDialog, settings: settingsDialog, take: takeDialog, source: sourceDialog, draft: draftDialog, snaps: snapsDialog, export: exportDialog, swap: swapDialog, unsaved: unsavedDialog, bin: binDialog, keys: keysDialog, newBook: newBookDialog, nameBook: nameBookDialog, card: cardDialog }
 const dialogs = () => (S.dialog ? DIALOGS[S.dialog.kind](S.dialog) : '')

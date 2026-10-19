@@ -582,9 +582,9 @@ function pending() {
 // ───────── 画：侧栏 ─────────
 
 function sidebar() {
-  const nav = [['讨论', 'chat', 'talk'], ['正文', 'book', 'write'], ['检查', 'checked', 'check'], ['作品分类', 'tag', 'cats']]
+  const nav = [['讨论', 'chat', 'talk'], ['正文', 'book', 'write'], ['大纲', 'lines', 'plan'], ['检查', 'checked', 'check'], ['作品分类', 'tag', 'cats']]
     .filter(([, , page]) => aiOn() || (page !== 'talk' && page !== 'check')) // 讨论和检查两页都要用 AI
-  const to = { talk: () => set({ page: 'talk', ...(S.tv === 'all' ? { tid: S.talks[0] ? S.talks[0].id : null, tv: S.talks[0] ? 'one' : 'new' } : {}), ...SHUT }), write: () => set({ page: 'write', ...SHUT }), check: () => set({ page: 'check', ...SHUT }), cats: () => set({ page: 'cats', ...SHUT }) }
+  const to = { talk: () => set({ page: 'talk', ...(S.tv === 'all' ? { tid: S.talks[0] ? S.talks[0].id : null, tv: S.talks[0] ? 'one' : 'new' } : {}), ...SHUT }), write: () => set({ page: 'write', ...SHUT }), plan: () => set({ page: 'plan', ...SHUT }), check: () => set({ page: 'check', ...SHUT }), cats: () => set({ page: 'cats', ...SHUT }) }
   // 改名字的那一行还是那一行：图标、缩进都不动，只是名字换成输入框。回车和光标离开都算定了，Esc 不改。
   // 回车定的是正开着的那一章，光标接着进正文。
   const named = (key) => () => { renameNow(); const box = key === S.ch && proseBox(); if (box) box.focus() }
@@ -685,10 +685,12 @@ function pieces(cur, i, text, focus, found) {
   for (const c of aiOn() ? S.checks : []) if (c.key === cur.key) cut(c.quote, c.para, 'doubt', '')
   // 采纳了的 AI 的字带「AI 写的」记号，画一道下划线；作者改过的那几个字不再带。AI 关着时不画。
   for (const words of aiOn() ? cur.ai || [] : []) cut(words, undefined, 'ai', '')
+  // 设定的名字：一道很淡的虚线，点了在右栏打开那一条。排在最后，和别的记号重叠时让给它们。
+  if (S.names) for (const e of S.entries) if (e.place === 'body') for (const n of e.names) for (let at = text.indexOf(n); at >= 0; at = text.indexOf(n, at + n.length)) cuts.push({ a: at, b: at + n.length, cls: 'nm', id: '', entry: e.id })
   const kept = []
   for (const c of cuts) if (!kept.some((k) => c.a < k.b && k.a < c.b)) kept.push(c)
   kept.sort((x, y) => x.a - y.a)
-  const span = (words, c) => `<span${c && c.id ? ` data-mark="${c.id}"` : ''}${c ? ` class="${c.cls}"` : ''}>${t(words)}</span>` + ((c && c.then) || '')
+  const span = (words, c) => `<span${c && c.id ? ` data-mark="${c.id}"` : ''}${c ? ` class="${c.cls}"` : ''}${c && c.entry ? ` title="查看设定"` + onClick(seeName(c.entry)) : ''}>${t(words)}</span>` + ((c && c.then) || '')
   let out = '', at = 0
   for (const c of kept) {
     if (c.a > at) out += span(text.slice(at, c.a))
@@ -697,6 +699,9 @@ function pieces(cur, i, text, focus, found) {
   }
   return at < text.length ? out + span(text.slice(at)) : out
 }
+
+// 点正文里的名字：右栏打开那一条设定，光标留在正文里。
+const seeName = (id) => () => set({ paneOpen: true, focus: false, tab: '设定', sv: 'list', sid: id, form: null })
 
 // AI 提议的字是绿色的，不能在里面打字，读正文时跳过它（data-prop）。
 const mine = (p) => ` data-prop="${p.id}" contenteditable="false"`
@@ -732,7 +737,11 @@ function aiBar(cur) {
 function chapterMore(cur) {
   const outline = S.outlines[cur.key] || '', on = S.box === '章纲'
   const box = on ? area(outline, (v) => set((s) => ({ outlines: { ...s.outlines, [cur.key]: v } })), '写下这里要发生的事，作为提纲', '章纲', 3) : ''
-  return `<div class="chapter-more"><div class="hit${on ? ' on' : ''}"${onClick(() => set({ box: on ? '' : '章纲' }))}>章纲${outline.trim() ? '' : ' · 空'}${on ? ' ▴' : ' ▾'}</div></div>` +
+  const evs = eventsOf(cur.key), when = whenOf(evs)
+  // 到时间线上，这一章的第一张卡片标出来、挪到看得见的地方。
+  const seeWhen = () => { const id = evs.find((e) => e.when).id; set({ page: 'plan', plan: '时间线', planSee: id, planOutline: null, planLine: null, planQ: '', ...SHUT }); seeCard(id) }
+  return `<div class="chapter-more"><div class="hit${on ? ' on' : ''}"${onClick(() => set({ box: on ? '' : '章纲' }))}>章纲${outline.trim() ? '' : ' · 空'}${on ? ' ▴' : ' ▾'}</div>` +
+    (when ? `<div class="hit" title="在时间线上查看"${onClick(seeWhen)}>故事中 ${t(when)}</div>` : '') + '</div>' +
     (box ? `<div class="chapter-box" data-k="chapter-box">${box}</div>` : '')
 }
 

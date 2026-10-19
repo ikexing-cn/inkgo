@@ -59,8 +59,10 @@ function fresh(book = BOOK.shelf[0].id) {
   const last = chapters.find((c) => c.no === BOOK.now)
   const snaps = of('snaps', []).map((s) => ({ ...s, paras: last.paras.filter((_, i) => !s.less.includes(i)) }))
   return {
-    book, page: 'write', // 在哪一页：write 正文、talk 讨论、check 检查、cats 作品分类、shelf 书架
+    book, page: 'write', // 在哪一页：write 正文、plan 大纲、talk 讨论、check 检查、cats 作品分类、shelf 书架
     volumes: of('volumes', []), chapters, bin: of('bin', []), outlines: of('outlines', {}), records: of('records', []),
+    events: of('events', []), lines: of('lines', []), // 大纲的卡片和情节线
+    plan: '按章节', planSee: null, planOutline: null, planLine: null, planTime: null, planQ: '', planPane: false, // 大纲页：看哪一种、标出来一会儿的那张卡片、正在改的章纲或卷纲、情节线的名字（{ id, name }）、时间线上一列的时间（{ i, when }），搜什么，右栏开着吗
     entries: of('entries', []), log: of('log', []), marks: of('marks', []), talks: of('talks', []), checks: of('checks', []),
     snaps: last ? { [last.key]: snaps } : {}, cats: [...BOOK.cats], lands: { ...BOOK.lands },
     ch: last ? last.key : '', trail: last ? [last.key] : [], step: 0, // 开着哪一章；trail 是打开过的章，step 是现在在第几个
@@ -105,11 +107,12 @@ function fresh(book = BOOK.shelf[0].id) {
     look: '跟随系统', shelf: structuredClone(BOOK.shelf), cards: true, library: BOOK.library,
     uses: structuredClone(BOOK.uses), services: BOOK.services.map((x) => ({ ...x, models: x.models.map(limits) })), auto: false,
     when: '写完一章后检查', late: BOOK.late, goal: '', goalSet: '', paneW: 0, // paneW 是右栏拖出来的宽度，没拖过是 0
+    names: true, // 正文里标出设定的名字
     noAI: false, offFrom: '', // 关闭了 AI：本机的所有作品都不显示 AI 功能，也不发送任何内容；offFrom 是关的时候停在的讨论页、检查页
     exportWhat: ['正文'], exportAs: 'Word', pen: '', // 导出勾了哪几样、成什么格式，上次写在首页的笔名（新作品沿用它）
   }
 }
-const KEPT = ['look', 'shelf', 'cards', 'library', 'uses', 'services', 'auto', 'when', 'late', 'goal', 'paneW', 'noAI', 'exportWhat', 'exportAs', 'pen']
+const KEPT = ['look', 'names', 'shelf', 'cards', 'library', 'uses', 'services', 'auto', 'when', 'late', 'goal', 'paneW', 'noAI', 'exportWhat', 'exportAs', 'pen']
 
 let S = fresh()
 let sent = 0 // 作者发过几条消息，AI 按顺序回下一句
@@ -213,9 +216,10 @@ const SHAPE = {
   gear: path('M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z') + '<circle cx="12" cy="12" r="3"></circle>',
   focus: path('M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7'),
   dots: path('M5 12h.01M12 12h.01M19 12h.01'),
+  grip: path('M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01'),
 }
 // 一个图标：name 是上面的名字，size 是 xs、sm、md、lg，cls 是颜色之类的。
-const icon = (name, size = 'md', cls = '') => svg(`icon-${size}${cls ? ' ' + cls : ''}`, SHAPE[name], name === 'dots' ? 2.6 : 1.8)
+const icon = (name, size = 'md', cls = '') => svg(`icon-${size}${cls ? ' ' + cls : ''}`, SHAPE[name], name === 'dots' || name === 'grip' ? 2.6 : 1.8)
 const ICON = {
   left: icon('left', 'sm', 'muted'), right: icon('right', 'sm', 'faint'), down: icon('down', 'sm', 'muted'),
   find: icon('find', 'sm', 'faint'), plus: icon('plus', 'sm'), dots: icon('dots'), send: icon('send', 'sm'), check: icon('tick', 'sm'),

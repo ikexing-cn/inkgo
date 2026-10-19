@@ -399,6 +399,73 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   // An empty one goes at once: nothing to move, nothing to ask.
   await js(`[...document.querySelectorAll('.cat-row')].find((r) => r.innerText.startsWith('线索')).querySelector('.hit.link:last-child').click()`); await win('确认删除', false); await win('已删除分类“线索”'); must(!(await js(`document.querySelector('.cat-rows').innerText.includes('线索')`)), 'the empty category is still listed'); await click('关闭提示'); await done('categories')
 
+  // The outline: chapters down, plot lines across, a card where they cross. A card is written where it lands; Enter goes on to the next.
+  const order = (): Promise<string> => js(`S.events.map((e) => e.title).join('|')`) // the order in the story, which the timeline lays out left to right
+  const cellOf = (key: string, line: string): Promise<string> => js(`document.querySelector('[data-cell="${key}|${line}"]').innerText`)
+  const rowOf = (key: string): Promise<string> => js(`document.querySelector('[data-k="row-${key}"]').innerText`)
+  const focused = (): Promise<string> => js(`document.activeElement.getAttribute('aria-label')`)
+  const dragTo = (card: string, at: string) => js(`(() => {
+    const dt = new DataTransfer(), to = document.querySelector(${JSON.stringify(at)})
+    document.querySelector('[data-card="${card}"]').dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: dt }))
+    to.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: dt }))
+    to.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }))
+    document.getElementById('app').dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer: dt }))
+  })()`)
+  await click('重新开始'); await click('大纲'); await win('8 章 · 3 条情节线 · 11 张卡片，2 张未放进章节'); await win('第三卷：停电'); await win('4 章 · 十月三日 — 十月六日夜'); await win('旧城的灯一盏一盏查下去')
+  must((await rowOf('87')).includes('回溯'), 'a chapter going back in time is not told'); must(!(await rowOf('86')).includes('回溯'), 'a chapter in order is told as going back')
+  must((await rowOf('87')).includes('故事中 二十六年前·秋 — 十月六日夜'), 'a chapter does not say when it happens: ' + await rowOf('87'))
+  must((await cellOf('87', 'l3')).includes('小祥改口叫她“姐”'), 'a card is not where its chapter and line cross'); await win('何主任为什么锁着档案柜'); await shot('100-plan')
+  await js(`document.querySelector('[data-cell="85|l3"] .slot-add').click()`); await win('新卡片'); must(await focused() === '事件', 'a new card does not wait to be written'); must(await has('.dialog .btn.primary.off'), 'a card with nothing in it can be added')
+  await type('事件', '小祥数到第十三盏'); await click('继续添加'); await win('已添加「小祥数到第十三盏」，接着记下一张。'); must(await focused() === '事件' && await value('事件') === '', 'adding one more does not start the next card')
+  await type('事件', '他把数字报错了'); await shot('101-plan-card'); await inDialog('添加'); await win('新卡片', false)
+  must((await cellOf('85', 'l3')).includes('小祥数到第十三盏') && (await cellOf('85', 'l3')).includes('他把数字报错了'), 'the cards written are not in their cell')
+  await js(`document.querySelector('[data-cell="2|l1"] .slot-add').click()`); await key('Escape'); await win('新卡片', false); await win('未命名', false)
+  await js(`document.querySelector('[data-k="row-85"] .ch-gist').click()`); must(await focused() === '章纲', 'the outline does not open where it is'); await type('章纲', '何主任要一份新的灯数。'); await key('Escape'); await win('何主任要一份新的灯数。')
+  await dragTo('ev9', '[data-cell="87|l2"]'); must((await cellOf('87', 'l2')).includes('林晚下井'), 'a card dragged from below does not go into the cell'); await win('13 张卡片，1 张未放进章节')
+  await dragTo('ev9', '.tray'); await win('13 张卡片，2 张未放进章节'); must(!(await cellOf('87', 'l2')).includes('林晚下井'), 'a card dragged below stays in its chapter')
+  await click('新增情节线'); must(await focused() === '情节线的名字', 'a new plot line does not wait for its name'); await clear('情节线的名字'); await type('情节线的名字', '钥匙'); await key('Enter'); await win('4 条情节线')
+  await js(`document.querySelector('[aria-label="情节线「钥匙」的操作"]').click()`); await click('删除情节线'); await win('已删除情节线「钥匙」'); await win('3 条情节线'); await click('关闭提示')
+  await click('小祥'); await clear('情节线的名字'); await type('情节线的名字', '周祥'); await key('Enter'); await win('周祥')
+  // Scrolled sideways, the chapters stay at the left and 新增情节线 at the right.
+  const edges = (): Promise<string> => js(`[document.querySelector('.grid .board-corner').getBoundingClientRect().left, document.querySelector('[data-k="row-85"]').getBoundingClientRect().left, document.querySelector('.board-end').getBoundingClientRect().right].join()`)
+  await click('新增情节线'); await key('Enter'); const was = await edges(); await js(`document.querySelector('.grid').scrollLeft = 400`); must(await edges() === was, 'the chapters or 新增情节线 scroll away: ' + was + ' / ' + await edges()); await js(`document.querySelector('.grid').scrollLeft = 0`)
+  await js(`document.querySelector('[aria-label="情节线「新情节线」的操作"]').click()`); await click('删除情节线'); await click('关闭提示')
+  await type('搜索大纲', '何主任'); await win('第85章：灯数'); await win('第1章：巷口', false); await win('找到 2 处章名或章纲、2 张卡片'); await clear('搜索大纲')
+  // Nothing found: one line in the middle and a way back, no empty table.
+  await type('搜索大纲', '是谁让他锁'); await win('找到 1 张卡片'); await win('章节里没有「是谁让他锁」'); must(await has('.tray'), 'a card found below is hidden with the table'); await clear('搜索大纲')
+  await type('搜索大纲', '123232'); await win('没有找到「123232」'); must(!(await has('.board')) && !(await has('.tray')), 'an empty table is left when nothing is found'); await shot('100-plan-none')
+  await click('清除搜索'); await win('8 章 · 3 条情节线'); await type('搜索大纲', '123232'); await key('Escape'); must(await value('搜索大纲') === '', 'Esc does not clear the search'); await done('the outline by chapter')
+
+  // The timeline: the same cards, left to right in the order things happen in the story, one row a plot line; the time may be left out.
+  const colAt = (when: string): Promise<number> => js(`[...document.querySelectorAll('.tl-time:not(.board-corner) .tl-when')].findIndex((w) => w.textContent === ${JSON.stringify(when)})`)
+  const slot = async (when: string, line: string) => `[data-slot="${await colAt(when)}|${line}"]`
+  await click('时间线'); await win('已放进章节'); await win('「番外：晴天」还没有卡片'); must((await order()).includes('何主任让重新数灯|小祥数到第十三盏|他把数字报错了|档案室'), 'cards written in a chapter are not in its place in time: ' + await order())
+  must(await js(`[...document.querySelectorAll('.tl-when')].filter((w) => w.textContent === '十月六日夜').length`) === 1, 'cards at one time are not one column')
+  must((await js(`document.querySelector(${JSON.stringify(await slot('十月六日夜', 'l3'))}).innerText`)).includes('小祥改口叫她“姐”'), 'a card is not where its time and line cross'); must(await has('[data-card="ev11"].later'), 'a card in no chapter does not look so'); await shot('102-timeline')
+  await click('周祥来当学徒'); await win('修改卡片'); must(await value('事件') === '周祥来当学徒', 'a card does not open to change'); await inDialog('第1章：巷口'); await inDialog('番外：晴天'); await shot('103-timeline-card'); await click('保存'); await win('「番外：晴天」还没有卡片', false)
+  await click('周祥来当学徒'); await type('事件', '，跟着林晚'); await click('取消'); await win('周祥来当学徒，跟着林晚', false)
+  await click('周祥来当学徒'); await inDialog('番外：晴天'); await inDialog('第1章：巷口'); await click('保存'); await win('「番外：晴天」还没有卡片')
+  await dragTo('ev9', await slot('十月六日夜', 'l2')); must(await js(`S.events.find((e) => e.id === 'ev9').when`) === '十月六日夜', 'a card dragged to a time does not take it')
+  must((await js(`document.querySelector(${JSON.stringify(await slot('十月六日夜', 'l2'))}).innerText`)).includes('林晚下井'), 'a card dragged to a time and line is not there')
+  await js(`document.querySelector('[data-slot="end|l1"] .slot-add').click()`); await type('事件', '雨季结束'); await key('Enter'); must((await order()).endsWith('雨季结束'), 'a card added after the last is not at the end: ' + await order())
+  await click('雨季结束'); await click('删除卡片'); await win('已删除卡片「雨季结束」'); must(!(await order()).includes('雨季结束'), 'the card is not deleted'); await click('关闭提示')
+  // The time of a column is clicked to change, all its cards at once; 未写时间 too.
+  const atTime = async (when: string) => { const n = await js(`(() => { const ws = [...document.querySelectorAll('.tl-when')].filter((w) => w.textContent === ${JSON.stringify(when)}); ws.at(-1).scrollIntoView({ inline: 'center' }); return ws.length - 1 })()`); await click(when, n) } // the last column of that time
+  await atTime('未写时间'); await type('这一列的时间', '十二月'); await click('保存'); must(await js(`S.events.find((e) => e.id === 'ev11').when`) === '十二月', 'a column takes no time')
+  await atTime('十月六日夜'); await clear('这一列的时间'); await type('这一列的时间', '十月七日夜'); await key('Enter'); must(await js(`S.events.filter((e) => e.when === '十月七日夜').length`) === 3, 'not all of a column takes its new time')
+  await atTime('十月七日夜'); await clear('这一列的时间'); await type('这一列的时间', '十月六日夜'); await key('Enter')
+  await click('新增情节线'); await key('Enter'); await win('新情节线'); must(await has('.tl [data-slot="0|' + await js(`S.lines.at(-1).id`) + '"]'), 'a new line has no row on the timeline')
+  await type('搜索大纲', '停电'); must(!(await has('[data-card="ev7"].dim')) && await has('[data-card="ev9"].dim'), 'a search does not pick out the cards'); await shot('104-timeline-find'); await clear('搜索大纲'); await done('the timeline')
+
+  // The chapter says when in the story it is, under its title: clicked, the timeline opens at it.
+  await click('正文'); await click('第87章：停电'); await win('故事中 二十六年前·秋 — 十月六日夜'); await click('故事中 二十六年前·秋 — 十月六日夜'); await win('已放进章节'); must((await js(`document.querySelector('.card.seen').innerText`)).includes('母亲在停电那晚失踪'), 'the timeline does not open at the chapter'); await shot('105-chapter-when'); await done('the chapter in the story')
+
+  // Names of the setting in the prose: a faint dotted line; clicked, the entry opens beside; put away in the settings.
+  await click('正文'); await click('第87章：停电'); must(await js(`[...document.querySelectorAll('.prose .nm')].some((e) => e.textContent === '小祥')`), 'a name in the prose is not marked')
+  await js(`[...document.querySelectorAll('.prose .nm')].find((e) => e.textContent === '小祥').click()`); await pane('配角，林晚的同事'); await shot('105-name')
+  await click('设置'); await click('外观'); await click('正文中标出设定的名字'); await key('Escape'); must(!(await js(`!!document.querySelector('.prose .nm')`)), 'names are marked when put away')
+  await click('设置'); await click('外观'); await click('正文中标出设定的名字'); await key('Escape'); await done('names in the prose')
+
   // The shelf, new and empty works, and the three ways a backup can stand.
   await click('重新开始'); await click('切换作品'); await click('全部作品…'); await win('我的作品'); await win('4 部 · 作品库：D:\\写作'); await win('找不到文件夹'); await shot('74-shelf')
   await click('列表'); await win('重新定位…'); await win('D:\\写作\\旧城灯匠'); await shot('75-shelf-list'); await click('卡片'); await click('更多操作'); await win('打开所在文件夹'); await click('重命名…'); await win('仅修改作品名，文件夹不变。'); await clear('新作品名'); await type('新作品名', '雨城'); await click('保存'); await win('雨城来信', false)
@@ -629,7 +696,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('提醒'); await win('超过多少章未回收时提醒'); await win('检查正文和设定', false); await click('关闭设置')
   await sleep(3000); must(await paras() === before && !(await has('[data-prop]')), 'the draft went on or stayed with AI off'); must(await js(`S.talks[0].msgs.length === 1 && !S.waiting && !S.props.length`), 'the draft went on with AI off')
   // Off, the page of prose and all that opens from it.
-  must(await navs() === '正文 作品分类', 'with AI off the sidebar offers: ' + await navs()); must(await paneTabs() === '设定 伏笔', 'with AI off the pane offers: ' + await paneTabs())
+  must(await navs() === '正文 大纲 作品分类', 'with AI off the sidebar offers: ' + await navs()); must(await paneTabs() === '设定 伏笔', 'with AI off the pane offers: ' + await paneTabs())
   must(await js(`document.querySelector('#pane .tab.on').firstChild.textContent`) === '设定', 'with AI off the pane is not on the setting')
   must(await js(`S.tab`) === '讨论', 'with AI off the pane forgot it was on the talk, to go back to when AI is on')
   await noAI('the page of prose'); await shot('99h-ai-off-prose')
@@ -646,7 +713,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('少见的情况'); must(!(await js(`[...document.querySelectorAll('.rare-pop .pop-row')].some((e) => ${JSON.stringify(AI_WORDS)}.some((w) => e.innerText.includes(w)))`)), 'with AI off the rare cases hold those of AI'); await key('Escape')
   // On again, asked first: all is back as it was, and the reply let go waits to be tried again.
   await click('文件'); await click('设置…'); await click('关闭 AI'); await win('是否开启 AI？'); await shot('99i-ask-ai-on'); await click('开启 AI'); await win('是否开启 AI？', false); await win('模型服务'); await click('关闭设置')
-  must(await navs() === '讨论 正文 检查 作品分类', 'with AI on again the sidebar offers: ' + await navs()); must(await paneTabs() === '设定 讨论 伏笔', 'with AI on again the pane offers: ' + await paneTabs())
+  must(await navs() === '讨论 正文 大纲 检查 作品分类', 'with AI on again the sidebar offers: ' + await navs()); must(await paneTabs() === '设定 讨论 伏笔', 'with AI on again the pane offers: ' + await paneTabs())
   await click('讨论', 1); await pane('该消息尚未收到回复'); await pane('重试回复')
   // Off on the talk page, the prose shows; on again while it does, the talk page is back.
   await js(`document.querySelectorAll('.navs .nav')[0].click()`); must(await js(`S.page`) === 'talk', 'the talk page did not open')
@@ -660,7 +727,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
     await click('关闭提示')
   }
   await win('新建一部作品，或添加已有的作品文件夹。'); await noAI('the empty shelf'); await shot('99j-ai-off-shelf')
-  await click('重新开始'); await win('第87章：停电'); must(await navs() === '讨论 正文 检查 作品分类', 'starting over did not bring AI back: ' + await navs()); await done('AI turned off')
+  await click('重新开始'); await win('第87章：停电'); must(await navs() === '讨论 正文 大纲 检查 作品分类', 'starting over did not bring AI back: ' + await navs()); await done('AI turned off')
 
   must(!loose.size, 'buttons that are not at the right of their row, or not in order:\n  ' + [...loose].join('\n  '))
   must(!dead.size, 'things to click that do not show it:\n  ' + [...dead].join('\n  '))

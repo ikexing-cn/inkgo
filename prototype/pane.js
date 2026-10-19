@@ -557,7 +557,7 @@ function pane() {
   const at = S.tab === '讨论' && !aiOn() ? '设定' : S.tab
   const tab = (name, n) => `<div class="tab hit${name === at ? ' on' : ''}"${onClick(() => set({ tab: name, ...SHUT }))}>${name}${n ? `<span class="badge">${n}</span>` : ''}</div>`
   const edge = '<div class="pane-edge" title="调整右栏宽度"></div>', wide = S.paneW ? ` style="width:${S.paneW}px"` : ''
-  const fold = `<div class="grow"></div><button class="icon-btn" aria-label="收起右栏" title="收起右栏"${onClick(() => set({ paneOpen: false, ...SHUT }))}>${svg('icon-md', PANEL + path('M15 5v14'))}</button>`
+  const fold = `<div class="grow"></div><button class="icon-btn" aria-label="收起右栏" title="收起右栏"${onClick(() => set({ ...(S.page === 'plan' ? { planPane: false } : { paneOpen: false }), ...SHUT }))}>${svg('icon-md', PANEL + path('M15 5v14'))}</button>`
   // 正文那一页有三页（AI 关着时没有讨论）；别的页只留设定。
   if (S.page !== 'write') return `<div id="pane"${wide}>${edge}<div class="tabs"><div class="tab on">设定${waiting ? `<span class="badge">${waiting}</span>` : ''}</div>${fold}</div>${setting()}</div>`
   return `<div id="pane"${wide}>${edge}` + `<div class="tabs">${tab('设定', waiting)}${aiOn() ? tab('讨论') : ''}${tab('伏笔', lost)}${fold}</div>` +

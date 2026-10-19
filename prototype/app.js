@@ -68,8 +68,8 @@ function toasts() {
 // 正文不重建，光标留在原处。
 function view() {
   const focus = S.focus && S.page === 'write'
-  const main = { write: () => editor(chapterOf(S.ch)), talk: talkPage, check: checkPage, cats: catsPage }
-  const side = (S.page === 'write' && !focus) || S.page === 'talk' ? S.paneOpen : false
+  const main = { write: () => editor(chapterOf(S.ch)), plan: planPage, talk: talkPage, check: checkPage, cats: catsPage }
+  const side = (S.page === 'write' && !focus) || S.page === 'talk' ? S.paneOpen : S.page === 'plan' ? S.planPane : false
   const bare = focus || !S.sideOpen
   return '<div class="stage">' +
     `<div class="stage-bar">${button('重新开始', restart)}<div class="anchor left"><div class="btn hit${S.open === 'rare' ? ' soft' : ''}" title="平时不易遇到的情况：出错、作品在软件外被改动"${onClick(() => set({ open: S.open === 'rare' ? '' : 'rare' }))}>少见的情况</div>` +
@@ -85,6 +85,7 @@ function backOut() {
   if (S.dialog) return shut()
   if (S.open) return set(SHUT)
   if (S.ctx || S.bury || S.pay || S.tree) return closeFloat()
+  if (S.page === 'plan' && (S.planOutline || S.planLine)) return set({ planOutline: null, planLine: null })
   if (S.rename) return set({ rename: null })
   if (S.ai) return set({ ai: null })
   if (S.find) return set({ find: null })
@@ -115,6 +116,21 @@ root.addEventListener('dragover', (ev) => { const row = nodeAt(ev); if (row) { e
 root.addEventListener('dragleave', (ev) => { const row = ev.target.closest('[data-node]'); if (row) row.classList.remove('over') })
 root.addEventListener('drop', (ev) => { const row = nodeAt(ev); if (row) { ev.preventDefault(); dropOn(dragged, row.dataset.node) } })
 root.addEventListener('dragend', () => { dragged = ''; draw() })
+// 大纲页里拖一张卡片：按章节拖进一格，就换到那一章、那条情节线；时间线上拖进一格，就换到那个时间、那条情节线。
+let draggedCard = ''
+const cardAt = (ev) => { const at = ev.target.closest('[data-slot], [data-cell]'); return at && draggedCard ? at : null }
+root.addEventListener('dragstart', (ev) => { const card = ev.target.closest('[data-card]'); if (card) { draggedCard = card.dataset.card; ev.dataTransfer.effectAllowed = 'move' } })
+root.addEventListener('dragover', (ev) => { const at = cardAt(ev); if (at) { ev.preventDefault(); at.classList.add('over') } })
+root.addEventListener('dragleave', (ev) => { const at = ev.target.closest('[data-slot], [data-cell]'); if (at) at.classList.remove('over') })
+root.addEventListener('drop', (ev) => {
+  const at = cardAt(ev)
+  if (!at) return
+  ev.preventDefault()
+  if (at.dataset.slot) { const [col, line] = at.dataset.slot.split('|'); return dropAt(draggedCard, col, line) }
+  const [key, line] = at.dataset.cell.split('|')
+  placeCard(draggedCard, key, key ? line : null) // 拖进「未放进章节」的，情节线不变
+})
+root.addEventListener('dragend', () => { if (draggedCard) { draggedCard = ''; draw() } })
 
 // 按标题栏和打开对话框的按钮（data-keep）不拿走正文的光标：开了菜单又收起、点了侧栏的开关、对话框关掉，接着打的字还进正文。
 root.addEventListener('mousedown', (ev) => { if (ev.target.closest('.titlebar, [data-keep]')) ev.preventDefault() })
