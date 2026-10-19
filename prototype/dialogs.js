@@ -266,12 +266,13 @@ function takeDialog(d) {
 function draftDialog(d) {
   const cur = chapterOf(S.ch), use = S.uses[0], prev = S.chapters[S.chapters.indexOf(cur) - 1]
   const type = (key) => (v) => set((s) => ({ dialog: { ...s.dialog, [key]: v } }))
-  const sent = 1100 + S.entries.filter((e) => e.place === 'body').length * 260 + 600 + (prev ? counted(prev) : 0) // 规则、设定、章纲卷纲、上一章全文
-  return dialog('small', dialogHead('起草本章', 'AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。起草在一段新的讨论里进行：写好的先在正文里显示为提议，采纳后才写入，写入前保存快照；想改哪里，在讨论里接着说。') +
+  const cards = eventsOf(cur.key).length
+  const sent = 1100 + S.entries.filter((e) => e.place === 'body').length * 260 + 600 + cards * 45 + (prev ? counted(prev) : 0) // 规则、设定、章纲卷纲、本章的卡片、上一章全文
+  return dialog('small', dialogHead('起草本章', (cards ? 'AI 仅将章纲和本章的卡片扩写为正文，不添加这些之外的重大情节。' : 'AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。') + '起草在一段新的讨论里进行：写好的先在正文里显示为提议，采纳后才写入，写入前保存快照；想改哪里，在讨论里接着说。') +
     `<div class="quote">${t(S.outlines[cur.key])}</div>` +
     field('目标字数（选填）', line(d.goal, type('goal'), '由 AI 按章纲判断', '目标字数') + (countOrNone(d.goal) ? '' : '<div class="note danger">目标字数须为正整数，或留空</div>')) +
     (cur.paras.length ? field('本章已有内容', dots(d.how, ['接在已有内容之后', '覆盖已有内容'], type('how'), '已有内容的处理方式')) : '') +
-    `<div class="note">将带上${prev ? '上一章全文、' : ''}${cur.vol ? '本卷各章章纲' : '各卷卷纲'}等，约 ${tokens(sent)} token；AI 需要时会自己再查。</div>` +
+    `<div class="note">将带上${cards ? '本章的 ' + cards + ' 张卡片、' : ''}${prev ? '上一章全文、' : ''}${cur.vol ? '本卷各章章纲' : '各卷卷纲'}等，约 ${tokens(sent)} token；AI 需要时会自己再查。</div>` +
     `<div class="note">用讨论模型 ${t(use.model)} · ${t(use.effort)}；可在设置中「AI」配置里更换。</div>` +
     buttons(button('取消', shut), countOrNone(d.goal) ? button('开始起草', draftNow, 'primary') : button('开始起草', null, 'primary off')))
 }

@@ -431,7 +431,7 @@ function thought(key, text, running, label = '思考过程') {
 
 // 回复前 AI 查了什么、记了什么，折在回复上面，和「思考过程」一个样子；正在查的时候开着。
 // 每一项点开能看查到的；记下的那一条点一下去设定里看它。
-const LOOK = { 搜: '搜了', 读: '读了', 设定: '查了设定', 讨论: '搜了讨论', 记: '记下：' }
+const LOOK = { 搜: '搜了', 读: '读了', 设定: '查了设定', 纲: '查了大纲', 讨论: '搜了讨论', 记: '记下：' }
 const lookLine = ([act, what]) => LOOK[act] + what
 // 在右栏打开设定里的一条：等作者决定的在「AI 建议」里，别的在列表里选中它。
 const showEntry = (entry) => set({ paneOpen: true, tab: '设定', form: null, ...SHUT, ...(entry.place === 'open' ? { sv: 'ideas', sid: null } : { sv: 'list', sid: entry.id }) })
@@ -456,7 +456,9 @@ function outgoing(talk, m, i) {
   const first = (text) => clip(text.match(/^[^。！？；\n]*[！？]?/)[0], 60)
   const fixed = talk.origin ? talk.key : '', ahead = fixed ? sent.flatMap(changesOf).filter((g) => rank(g.key) > rank(fixed)).length : 0
   const digested = talk.digest && i >= talk.digest.after
-  const own = { 起草: [['章纲和卷纲', 260], ['本卷前面各章章纲', 310], ['上一章全文', 5060]], 改写: [['章纲和卷纲', 260], ['本章全文', 4300]] }[talk.origin] || []
+  // 起草、改写那一章有卡片的，带上它们：卡片是这一章要写的事。
+  const cards = fixed ? eventsOf(fixed).length : 0, owned = cards ? [['本章的卡片 ' + cards + ' 张', cards * 45]] : []
+  const own = { 起草: [['章纲和卷纲', 260], ...owned, ['本卷前面各章章纲', 310], ['上一章全文', 5060]], 改写: [['章纲和卷纲', 260], ...owned, ['本章全文', 4300]] }[talk.origin] || []
   const parts = [['规则', 1100], [S.crowded ? '设定目录' : '设定 ' + sent.length + ' 条', S.crowded ? sent.length * 40 : sent.length * 260], ...own, ...(digested ? [['讨论摘要', 820]] : []), ['查阅结果', (m.look || []).length * 640], ['本次发言', 40]]
   parts.splice(parts.length - 1, 0, ['之前的对话', Math.max(Math.round(input * 0.97) - parts.reduce((n, [, x]) => n + x, 0), 0)])
   const head = S.crowded ? '设定较多，本次只附目录' : fixed ? '附带 ' + sent.length + ' 条设定，按「' + chTitle(fixed) + '」时的样子' : '附带全部 ' + sent.length + ' 条设定'

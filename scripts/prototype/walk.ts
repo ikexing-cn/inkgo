@@ -318,7 +318,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await pick(1, '手电在工具箱最底下。'); await click('AI 改写'); await type('改写要求', '换个说法'); await key('Enter'); await sleep(3300); await win('本章有 1 处 AI 提议')
   await caret(1, 9); await text('啊'); await win('1 处 AI 提议已作废'); await win('它要换掉的原文改动了'); await win('本章有 1 处 AI 提议', false); await pane('正文已改动，提议已作废'); await shot('52-void'); await key('z', true); await prose('手电在工具箱最底下。'); await click('关闭提示')
   await pick(1, '手电在工具箱最底下。'); await click('AI 改写'); await type('改写要求', '换个说法'); await key('Enter'); await sleep(1500); await win('正在写…'); await click('放弃'); must(!(await js(`!!S.waiting`)) && await proposals() === 0, 'letting go of a proposal being written left the AI writing'); await pane('该消息尚未收到回复'); await done('a proposal void, and one let go')
-  await click('编辑'); await click('起草本章'); await win('AI 仅将章纲扩写为正文'); await win('本章已有内容'); await win('将带上上一章全文、本卷各章章纲等，约 5.7K token'); await win('用讨论模型 claude-opus-5-5'); await shot('53-draft')
+  await click('编辑'); await click('起草本章'); await win('AI 仅将章纲和本章的卡片扩写为正文'); await win('本章已有内容'); await win('将带上本章的 3 张卡片、上一章全文、本卷各章章纲等，约 5.8K token'); await win('用讨论模型 claude-opus-5-5'); await shot('53-draft')
   await type('目标字数', '1500'); await click('覆盖已有内容'); await click('开始起草'); await pane('按章纲起草本章，约 1500 字，覆盖已有内容'); await win('AI 正在思考…'); await sleep(1500); await win('AI 正在写提议…'); await shot('54-drafting'); await sleep(2500); await win('本章有 1 处 AI 提议'); must(await js(`document.querySelector('.ai-bar [title]').title.includes('划掉的是会被换掉的原文')`), 'the bar does not tell what the colours are'); await pane('换掉全章')
   must(await js(`document.querySelectorAll('.prose .add').length === 3 && document.querySelectorAll('.prose > .cut').length === 6`), 'the draft is not shown against the prose'); must(await js(`S.chapters.find((c) => c.key === S.ch).paras[0] === '整条街的灯是同时灭的。'`), 'the draft went into the prose before it was taken'); await shot('55-drafted')
   await sleep(500); await click('全部采纳'); await win('已采纳 AI 提议'); await win('整条街的灯是同时灭的。', false); await win('身后，小祥没有再出声。')
@@ -341,6 +341,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
 
   // The discussion page: a talk, what stands under a reply, a new talk, the model.
   await click('重新开始'); await click('讨论'); await win('总讨论'); await win('8 条发言'); await win('前半段偏慢'); await pane('待确认'); await pane('伏笔', false); await shot('58-talk-page')
+  // The talk reads the outline: a plot line's cards, in story order, with where each is written.
+  await click('查了大纲「小祥」这条线，搜了全书「叫她姐」'); await win('2 张卡片：周祥来当学徒（今年·四月，「第1章：巷口」）→ 小祥改口叫她“姐”（十月六日夜，「第87章：停电」）'); await shot('58e-read-outline'); await click('查了大纲「小祥」这条线，搜了全书「叫她姐」')
   await win('读了「第87章：停电」，读了「第86章：档案室」'); await click('以上 2 轮已整理成摘要'); await win('作者的态度和偏好'); await win('摘要由 AI 写成，有误可在对话中指出。'); await win('和停电时「林晚」想起七岁那晚的写法。'); await win('等作者答了「林晚的母亲」那条提问再定。'); await win('[1]', false); await win('• 作者先改前半段。'); await win('• 再回来看「周祥」叫她“姐”那句。'); await win('- 作者', false); await shot('58a-digest')
   await click('林晚'); await pane('主角，靠维修路灯谋生'); await click('周祥'); await pane('配角，林晚的同事'); await click('林晚的母亲'); await pane('林晚怕黑，是不是和她母亲有关？'); await click('以上 2 轮已整理成摘要'); await win('作者的态度和偏好', false)
   await type('讨论输入', '先改哪一段'); await key('Enter', true); await win('正在压缩上下文…'); await win('正在思考', false); await shot('58d-compacting'); await sleep(1000); await win('以上 4 轮已整理成摘要'); await win('以上 2 轮已整理成摘要', false); await win('正在思考…')
