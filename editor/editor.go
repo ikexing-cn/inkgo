@@ -87,9 +87,13 @@ type Editor struct {
 	follow, show string
 
 	// Ranges found, painted under the text; the current one stronger.
-	found   [][2]int
-	doubts  [][2]int
-	current int
+	found     [][2]int
+	doubts    [][2]int
+	current   int
+	names     []NameLink
+	namesVer  int
+	nameSpans []nameRange
+	openName  func(string)
 
 	// View state.
 	sv            ui.Services // the window's clipboard and redraw, also outside a frame

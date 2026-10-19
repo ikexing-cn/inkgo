@@ -779,7 +779,7 @@ func (a *App) writing(c *ui.Context) {
 
 // settingColumn is the setting beside the page, unless the author hid it.
 func (a *App) settingColumn(c *ui.Context) {
-	if a.doc.hidden || a.page == 3 && a.write.focus {
+	if a.page == pagePlan && !a.plan.pane || a.page != pagePlan && a.doc.hidden || a.page == 3 && a.write.focus {
 		return
 	}
 	win, _ := c.Size()
@@ -1190,6 +1190,7 @@ func (a *App) chapterView(c *ui.Context) {
 			var outline ui.CollapsibleParts
 			ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
 				outline = a.disclosure(c, label, &w.outlineOpen)
+				a.chapterStory(c)
 			})
 			outline.Panel(func() {
 				ui.Box(c).FillWidth().Padding(2, 0, 4, 0).Children(func() { a.outlineBox(c, "章纲", 96) })
@@ -1200,7 +1201,8 @@ func (a *App) chapterView(c *ui.Context) {
 	a.aiBar(c)
 	// Keyed, as the bars over it come and go: the prose keeps the keyboard.
 	ui.Box(c.Key("prose")).Grow(1).FillWidth().Children(func() {
-		w.ed.View(c).Fill()
+		prose := w.ed.View(c).Fill()
+		a.LastProse = prose.Bounds()
 		a.propActs(c)
 		a.selectionBar(c)
 		a.forePopover(c)
@@ -1582,6 +1584,9 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 		if n.Folder {
 			w.folded[n.ID] = !w.folded[n.ID]
 		} else {
+			if a.page == pagePlan {
+				a.page = 3
+			}
 			a.openNode(n.ID)
 		}
 	}

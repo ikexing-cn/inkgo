@@ -14,6 +14,9 @@ func (e *Editor) View(c *ui.Context) ui.Element {
 	e.sv = c.Services()
 	e.pollPrediction()
 	el := ui.Box(c).Focusable().FocusRing(false).Cursor(ui.CursorText).Clip().Label("正文")
+	if x, y, ok := el.PointerPosition(); ok && e.nameAt(x, y) != "" {
+		el.Tooltip("查看设定").Cursor(ui.CursorPointer)
+	}
 	if e.wantFocus {
 		el.Focus()
 		e.wantFocus = false

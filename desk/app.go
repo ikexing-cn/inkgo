@@ -188,8 +188,10 @@ type App struct {
 	thoughts                         map[string]*bool // reasoning shown, by event or revision ID
 	doc                              docView
 	write                            writeView
+	plan                             planView
 	changes                          chan struct{} // the talk noted the setting
 	LastChat, LastSetting, LastWrite ui.Rect
+	LastProse                        ui.Rect
 	// Appearance applies the appearance chosen: "light", "dark", or empty
 	// to follow the system. cmd/poc hands it to the window.
 	Appearance func(string)
@@ -258,6 +260,7 @@ func (a *App) resetView() {
 	a.source, a.sourceOpen, a.contextReply = nil, false, ""
 	a.input, a.seen, a.flash, a.doc, a.write = "", -1, map[string]time.Time{}, docView{}, writeView{}
 	a.bk = backupView{}
+	a.plan = planView{}
 	a.page, a.shown, a.offAway = 0, 0, false
 }
 

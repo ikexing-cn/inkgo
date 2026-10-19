@@ -818,6 +818,20 @@ func (s *Store) PurgeChapter(id string) error {
 	if err != nil {
 		return err
 	}
+	// A damaged auxiliary outline must not prevent emptying the trash.
+	// Leave it untouched; dangling chapter references display in the tray.
+	plan, _ := s.plan()
+	changed := false
+	for i := range plan.Cards {
+		if plan.Cards[i].Chapter == id || slices.Contains(held, plan.Cards[i].Chapter) {
+			plan.Cards[i].Chapter, changed = "", true
+		}
+	}
+	if changed {
+		if err = s.writePlan(plan); err != nil {
+			return err
+		}
+	}
 	for _, h := range append(held, id) {
 		if validID(h) != nil {
 			continue
@@ -846,6 +860,41 @@ func CleanProse(s string) string {
 		lines[i] = strings.TrimLeftFunc(l, unicode.IsSpace)
 	}
 	return strings.Join(lines, "\n")
+}
+
+// Outlines reads only the outlines of all live nodes, including folders.
+// Prose and marks are not opened; missing outline files mean empty outlines.
+func (s *Store) Outlines() (map[string]string, error) {
+	unlock, err := s.lock()
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
+	t, err := s.tree()
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]string)
+	t.Walk(func(n *Node, _ int) {
+		if err != nil {
+			return
+		}
+		var p string
+		p, err = s.nodePath(n, outlineExt)
+		if err != nil {
+			return
+		}
+		var b []byte
+		b, err = os.ReadFile(p)
+		if errors.Is(err, os.ErrNotExist) {
+			err = nil
+		}
+		out[n.ID] = strings.ReplaceAll(string(b), "\r\n", "\n")
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 // ReadChapter returns what node id holds, finding its marks again by what

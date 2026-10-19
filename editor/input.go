@@ -330,6 +330,13 @@ func (e *Editor) pointerDown(ev ui.InputEvent) bool {
 	if ev.Button != 0 {
 		return false
 	}
+	if ev.Mods == 0 && ev.Clicks <= 1 && e.openName != nil {
+		if id := e.nameAt(ev.X, ev.Y); id != "" {
+			e.openName(id)
+			e.wantFocus = true
+			return true
+		}
+	}
 	e.stable()
 	i := e.hit(ev.X, ev.Y)
 	switch {

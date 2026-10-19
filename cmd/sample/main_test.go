@@ -39,6 +39,27 @@ func TestBooksAreWritten(t *testing.T) {
 		if len(tree.Root.Children) != 2 {
 			t.Fatal(dir, len(tree.Root.Children), "volumes")
 		}
+		plan, err := s.Plan()
+		if err != nil {
+			t.Fatal(err)
+		}
+		loose, untimed := 0, 0
+		for _, c := range plan.Cards {
+			if c.Chapter == "" {
+				loose++
+			} else if _, ok := tree.Node(c.Chapter); !ok {
+				t.Fatal("card of unknown chapter", c)
+			}
+			if c.When == "" {
+				untimed++
+			}
+		}
+		if len(plan.Lines) != 3 || len(plan.Cards) != 22 || loose != 3 || untimed != 2 {
+			t.Fatal("sample outline", plan, loose, untimed)
+		}
+		if first, ok := tree.Node(plan.Cards[0].Chapter); !ok || first == tree.Root.Children[0].Children[0] {
+			t.Fatal("sample has no flashback")
+		}
 		chapters, paid, dropped, buried := 0, 0, 0, map[string]bool{}
 		var marks []workspace.ChapterMark
 		for _, v := range tree.Root.Children {

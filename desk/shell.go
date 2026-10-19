@@ -41,7 +41,7 @@ func (a *App) View(c *ui.Context) {
 	if a.Store != nil && !a.aiOn() && (a.page == 0 || a.page == pageCheck) {
 		a.page = 3 // the talk and the checks are the AI's
 	}
-	if a.Store == nil && (a.page == 2 || a.page == 3 || a.page == pageCheck) {
+	if a.Store == nil && (a.page == 2 || a.page == 3 || a.page == pageCheck || a.page == pagePlan) {
 		a.page = 0
 	}
 	if a.busy == "" {
@@ -55,6 +55,15 @@ func (a *App) View(c *ui.Context) {
 		a.flush()
 		a.leaveCheck()
 		a.write.entered = false
+	}
+	if a.Store != nil && a.shown != a.page {
+		if a.shown == pagePlan {
+			a.finishPlanOutline()
+			a.finishPlanLine()
+		}
+		if a.page == pagePlan {
+			a.plan.loaded = false
+		}
 	}
 	if a.Store != nil && a.page == pageCheck && a.shown != pageCheck {
 		a.loadChecks() // as of the disk, without what was put right meanwhile
@@ -81,8 +90,10 @@ func (a *App) View(c *ui.Context) {
 				a.sidebar(c)
 				ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
 			}
-			ui.Column(c.Key("page")).Grow(1).Shrink(1).FillHeight().Children(func() {
+			ui.Column(c.Key("page")).Grow(1).Shrink(1).MinWidth(0).FillHeight().Children(func() {
 				switch {
+				case a.page == pagePlan:
+					a.outlinePage(c)
 				case a.page == 2:
 					a.categories(c)
 				case a.page == 3:
@@ -105,6 +116,7 @@ func (a *App) View(c *ui.Context) {
 	a.createDialog(c)
 	a.renameDialog(c)
 	if a.Store != nil {
+		a.planDialog(c)
 		a.askView(c)
 		a.leaveView(c)
 		if a.write.trashOpen { // the trash is at the foot of every page
@@ -199,6 +211,7 @@ func (a *App) sideBody(c *ui.Context, slim bool) {
 		a.navItem(c, icChat, "讨论", 0, slim, 0)
 	}
 	a.navItem(c, icBook, "正文", 3, slim, 0)
+	a.navItem(c, icOutline, "大纲", pagePlan, slim, 0)
 	if a.aiOn() {
 		a.navItem(c, icDone, "检查", pageCheck, slim, len(a.listedChecks()))
 	}

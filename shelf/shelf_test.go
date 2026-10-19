@@ -97,8 +97,38 @@ func TestShelfNoAI(t *testing.T) {
 	}
 }
 
-// A shelf that does not read is an error, and is never taken for an empty
-// one.
+// Name links default to on in old shelves and share the color preference file.
+func TestShelfNameHighlights(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "works.json")
+	if err := os.WriteFile(path, []byte(`{"schema":1,"theme":"dark","books":[]}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	s, _, err := Load(path)
+	if err != nil || s.NoNames {
+		t.Fatalf("old shelf must mark names: %+v %v", s, err)
+	}
+	if err := s.Save(path); err != nil {
+		t.Fatal(err)
+	}
+	if b, _ := os.ReadFile(path); strings.Contains(string(b), "noNames") {
+		t.Fatalf("default must be omitted: %s", b)
+	}
+	s.NoNames = true
+	if err := s.Save(path); err != nil {
+		t.Fatal(err)
+	}
+	if got, _, err := Load(path); err != nil || !got.NoNames || got.Theme != "dark" {
+		t.Fatalf("names and color did not persist together: %+v %v", got, err)
+	}
+	if err := os.WriteFile(path, []byte(`{"schema":1,"noNames":"yes","books":[]}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := Load(path); err == nil {
+		t.Fatal("wrong preference type accepted")
+	}
+}
+
+// A shelf that does not read is an error, and is never taken for an empty one.
 func TestBrokenShelf(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "works.json")

@@ -45,6 +45,9 @@ type Shelf struct {
 	// NoAI turns the AI off on this machine, for every work: nothing of it
 	// shows and nothing is sent. Absent, the AI is on.
 	NoAI bool `json:"noAI,omitempty"`
+	// NoNames hides setting name links in prose on this machine. Absent,
+	// names are marked, including shelves saved before this preference.
+	NoNames bool `json:"noNames,omitempty"`
 	// Export is how the export dialog was last left, for every work; nil,
 	// it was never used.
 	Export *Export `json:"export,omitempty"`

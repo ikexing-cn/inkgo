@@ -1,6 +1,8 @@
 package desk
 
 import (
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -10,6 +12,83 @@ import (
 	"writer/editor"
 	"writer/workspace"
 )
+
+func TestNamesInTheProse(t *testing.T) {
+	a, tt, _ := writingFixture(t, "小祥跟着林晚修灯。")
+	a.revise(workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "配角，林晚的同事", Names: []string{"周祥", "小祥"}},
+		workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceOpen, Category: "人物", Text: "还没确定", Names: []string{"林晚"}})
+	id := a.set.Entries[len(a.set.Entries)-2].ID
+	tt.Frame()
+	ed := a.write.ed
+	caret := ed.Caret()
+	clickName := func() {
+		t.Helper()
+		r, ok := ed.RangeBox(0, 2)
+		if !ok {
+			t.Fatal("name not visible")
+		}
+		box := a.LastProse
+		tt.ClickAt(box.X+r.X+ed.FontSize()/2, box.Y+r.Y+r.H/2)
+		tt.Frame()
+	}
+	a.doc.hidden = true
+	tt.Frame()
+	clickName()
+	if a.doc.hidden || a.doc.shown != id || ed.Caret() != caret {
+		t.Fatal("name did not open setting", a.doc.shown, ed.Caret())
+	}
+	planHas(t, tt, "配角，林晚的同事")
+	tt.Type("雨")
+	if !strings.HasPrefix(ed.Doc.String(), "雨小祥") || !tt.Focused("正文") {
+		t.Fatal("name stole caret", ed.Doc.String())
+	}
+	tt.Key(ui.Cmd, ui.KeyZ)
+	tt.Frame()
+	planClick(t, tt, "设置")
+	planClick(t, tt, "设置-外观")
+	planHas(t, tt, "名字下面一道虚线，点击在右栏查看这条设定。")
+	planClick(t, tt, "正文中标出设定的名字")
+	tt.Key(0, ui.KeyEscape)
+	tt.Frame()
+	a.doc.shown = ""
+	clickName()
+	if a.doc.shown != "" || !a.shelf.NoNames {
+		t.Fatal("names still open")
+	}
+	b := newApp(a.ai.ConfigFile())
+	defer b.Close()
+	if !b.shelf.NoNames {
+		t.Fatal("appearance not persisted")
+	}
+	if data, err := os.ReadFile(a.books.file); err != nil || !strings.Contains(string(data), `"noNames": true`) {
+		t.Fatalf("preference missing from works.json: %s %v", data, err)
+	}
+	if _, err := os.Stat(filepath.Join(filepath.Dir(a.books.file), "appearance.json")); !os.IsNotExist(err) {
+		t.Fatalf("separate appearance file: %v", err)
+	}
+	s, err := workspace.Create(filepath.Join(t.TempDir(), "another"), "另一本", "网文")
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := s.Root()
+	s.Close()
+	if err = b.Open(root); err != nil {
+		t.Fatal(err)
+	}
+	if !b.shelf.NoNames {
+		t.Fatal("preference did not follow work switch")
+	}
+	planClick(t, tt, "设置")
+	planClick(t, tt, "设置-外观")
+	planClick(t, tt, "正文中标出设定的名字")
+	tt.Key(0, ui.KeyEscape)
+	tt.Frame()
+	a.doc.shown = ""
+	clickName()
+	if a.doc.shown != id {
+		t.Fatal("names did not return")
+	}
+}
 
 // The settled names of the categories of names complete in the prose,
 // another name showing whose it is; open ones and other categories do

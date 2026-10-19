@@ -201,4 +201,10 @@ func (a *App) prefsRow(c *ui.Context, label string, fn func()) {
 // looksView is the settings' 外观.
 func (a *App) looksView(c *ui.Context) {
 	a.prefsRow(c, "颜色", func() { a.themeSegments(c, false) })
+	on := !a.shelf.NoNames
+	if ui.Checkbox(c, &on, "正文中标出设定的名字").Changed() {
+		a.shelf.NoNames = !on
+		a.saveShelf()
+	}
+	a.tickNote(c, "名字下面一道虚线，点击在右栏查看这条设定。")
 }

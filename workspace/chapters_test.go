@@ -19,6 +19,36 @@ func mustChapter(t *testing.T, s *Store, parent, title string, folder bool) stri
 	return id
 }
 
+func TestOutlinesReadWithoutProse(t *testing.T) {
+	s := testStore(t)
+	v := mustChapter(t, s, "", "卷", true)
+	id := mustChapter(t, s, v, "章", false)
+	empty := mustChapter(t, s, "", "无纲", false)
+	planOK(t, s.WriteOutline(v, "卷纲"))
+	planOK(t, s.WriteOutline(id, "章纲\r\n第二行"))
+	tree, err := s.Chapters()
+	planOK(t, err)
+	n, _ := tree.Node(id)
+	marks, err := s.nodePath(n, marksExt)
+	planOK(t, err)
+	planOK(t, os.WriteFile(marks, []byte("{"), 0600))
+	if _, err := s.ReadChapter(id); err == nil {
+		t.Fatal("fixture should have unreadable marks")
+	}
+	out, err := s.Outlines()
+	planOK(t, err)
+	if len(out) != 3 || out[v] != "卷纲" || out[id] != "章纲\n第二行" || out[empty] != "" {
+		t.Fatal(out)
+	}
+	p, err := s.nodePath(n, outlineExt)
+	planOK(t, err)
+	planOK(t, os.Remove(p))
+	planOK(t, os.Mkdir(p, 0755))
+	if _, err := s.Outlines(); err == nil || !strings.Contains(err.Error(), p) {
+		t.Fatalf("outline error must carry its path: %v", err)
+	}
+}
+
 // shape draws the tree as titles indented by depth.
 func shape(t *testing.T, s *Store) string {
 	t.Helper()

@@ -180,6 +180,7 @@ func (b book) write(dir string) error {
 	if err != nil {
 		return err
 	}
+	defer s.Close()
 	if len(b.entries) > 0 {
 		if _, err = s.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: b.entries}); err != nil {
 			return err
@@ -188,6 +189,7 @@ func (b book) write(dir string) error {
 	at := time.Now().Format(time.RFC3339)
 	buried := map[string]string{} // a foreshadowing's ID by its note
 	volume, n := "", 0
+	var chapterIDs []string
 	for _, nd := range b.nodes {
 		parent := volume
 		if nd.volume {
@@ -206,6 +208,7 @@ func (b book) write(dir string) error {
 			volume = id
 			continue
 		}
+		chapterIDs = append(chapterIDs, id)
 		var text strings.Builder
 		var marks []workspace.ChapterMark
 		for _, p := range nd.paras {
@@ -239,5 +242,5 @@ func (b book) write(dir string) error {
 			return err
 		}
 	}
-	return nil
+	return b.writePlan(s, chapterIDs)
 }

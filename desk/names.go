@@ -44,6 +44,22 @@ func (a *App) feedNames() {
 		w.named, w.namedRevs = w.ed, len(a.set.Revisions)
 		w.ed.SetEntities(a.entities())
 	}
+	var links []editor.NameLink
+	if !a.shelf.NoNames {
+		for _, e := range a.set.Entries {
+			if e.Place == workspace.PlaceBody {
+				for _, n := range e.Names {
+					links = append(links, editor.NameLink{Name: n, Entry: e.ID})
+				}
+			}
+		}
+	}
+	w.ed.SetNameLinks(links, a.seeName)
+}
+
+func (a *App) seeName(id string) {
+	a.doc.hidden, a.write.focus, a.doc.talk, a.doc.fore = false, false, false, false
+	a.doc.shown, a.doc.editing, a.doc.history, a.doc.todo, a.doc.dropped = id, "", false, false, false
 }
 
 // named reports whether some entry already has name.

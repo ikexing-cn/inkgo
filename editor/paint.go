@@ -68,6 +68,7 @@ func (e *Editor) paintIn(p *ui.Painter, r ui.Rect) {
 	e.scrollY = clampf(e.scrollY, 0, e.maxScroll())
 	ox, oy := r.X+l.left, r.Y-e.scrollY
 	top, bottom := e.scrollY-l.lineH, e.scrollY+r.H
+	e.paintNames(p, ox, oy, top, bottom)
 
 	// Marks under the text.
 	for _, m := range e.Doc.marks {
