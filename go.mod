@@ -4,7 +4,6 @@ go 1.27.1
 
 require (
 	github.com/egoist/mygo v0.5.5
-	github.com/yuin/goldmark v1.8.6
 	github.com/zalando/go-keyring v0.2.8
 	github.com/zendev-sh/goai v0.10.8
 	go.yaml.in/yaml/v3 v3.0.5

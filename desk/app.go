@@ -184,7 +184,7 @@ type App struct {
 	penProvider, penModel            string
 	penEffort                        string
 	live                             live
-	md                               mdCache
+	md                               markdownState
 	thoughts                         map[string]*bool // reasoning shown, by event or revision ID
 	doc                              docView
 	write                            writeView
@@ -201,7 +201,7 @@ type App struct {
 // for a test.
 func New(ai aiport.Service) *App {
 	a := &App{ai: ai, genre: "网文", results: make(chan result, 1), picks: make(chan func(), 1), changes: make(chan struct{}, 1),
-		light: lightPalette(), dark: darkPalette(), titles: map[string]string{}, md: mdCache{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
+		light: lightPalette(), dark: darkPalette(), titles: map[string]string{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
 	a.pal = a.light
 	if ai.ConfigFile() != "" {
 		a.loadShelf()

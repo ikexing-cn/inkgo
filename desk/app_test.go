@@ -520,27 +520,18 @@ func TestACategorySavesOnceFilledIn(t *testing.T) {
 
 func TestMarkdownBlocks(t *testing.T) {
 	src := "# 标题\n\n有**粗体**、*斜体*、`代码`和[链接](https://example.com)。\n\n- 一\n- 二\n\n1. 甲\n\n> 引用\n\n```\ncode\n```\n\n| 列 | 值 |\n|---|---|\n| 甲 | 1 |\n\n<script>x</script>\n\n---\n"
-	blocks := mdCache{}.get(src)
-	var kinds []mdKind
-	for _, b := range blocks {
-		kinds = append(kinds, b.kind)
+	a, _, _ := fixture(t)
+	tt := ui.NewTester(func(c *ui.Context) { a.markdown(c, src, replyText) }, 720, 1200)
+	for _, text := range []string{"标题", "粗体", "斜体", "代码", "链接", "一", "二", "甲", "引用", "code", "列", "值", "1", "<script>x</script>"} {
+		if !tt.HasText(text) {
+			t.Errorf("missing %q in %q", text, tt.Texts())
+		}
 	}
-	want := []mdKind{mdHeading, mdParagraph, mdList, mdList, mdQuote, mdCode, mdTable, mdParagraph, mdRule}
-	if fmt.Sprint(kinds) != fmt.Sprint(want) {
-		t.Fatalf("kinds %v, want %v", kinds, want)
+	if err := tt.Click("链接"); err != nil {
+		t.Fatal(err)
 	}
-	styled := map[string]mdSpan{}
-	for _, s := range blocks[1].inline {
-		styled[s.text] = s
-	}
-	if !styled["粗体"].bold || !styled["斜体"].italic || !styled["代码"].code || !styled["链接"].link {
-		t.Fatalf("inline styles %+v", blocks[1].inline)
-	}
-	if !blocks[3].ordered || blocks[3].start != 1 || blocks[5].code != "code" || len(blocks[6].rows) != 2 || !blocks[6].rows[0][0][0].bold {
-		t.Fatalf("blocks %+v", blocks)
-	}
-	if blocks[7].inline[0].text != "<script>x</script>" {
-		t.Fatal("raw HTML must show as text")
+	if urls := tt.OpenedURLs(); len(urls) != 0 {
+		t.Fatalf("reply opened %q", urls)
 	}
 }
 
@@ -693,8 +684,9 @@ func TestEffortMenuSavesToWork(t *testing.T) {
 	}
 }
 
-// A reply's paragraphs, headings and lists are one text, which the author
-// selects across; Copy takes its Markdown.
+// A reply's paragraphs, headings and lists are drawn as Markdown that the
+// author selects across; Copy takes its Markdown, a code block's button
+// its code.
 func TestReplyTextSelectsAcrossBlocksAndCopies(t *testing.T) {
 	a, tt, _ := fixture(t)
 	reply := "第一段。\n\n## 小标题\n\n- 甲\n- 乙\n\n第二段。\n\n```\ncode\n```"
@@ -708,16 +700,28 @@ func TestReplyTextSelectsAcrossBlocksAndCopies(t *testing.T) {
 	}
 	a.setError(a.refresh())
 	tt.Frame()
-	if !tt.HasText("第一段。\n\n小标题\n\n• 甲\n• 乙\n\n第二段。") || !tt.HasText("code") {
-		t.Fatal("text blocks do not run together", tt.Texts())
+	for _, s := range []string{"第一段。", "小标题", "甲", "第二段。", "code"} {
+		if !tt.HasText(s) {
+			t.Fatal(s, tt.Texts())
+		}
 	}
-	flow, _ := tt.Find("第一段。\n\n小标题\n\n• 甲\n• 乙\n\n第二段。")
-	tt.Press(flow.X+2, flow.Y+4)
-	tt.Move(flow.X+flow.W/2, flow.Y+flow.H-4)
-	tt.Release(flow.X+flow.W/2, flow.Y+flow.H-4)
+	if tt.HasText("## 小标题") || tt.HasText("```") {
+		t.Fatal("the marks show", tt.Texts())
+	}
+	first, _ := tt.Find("第一段。")
+	last, _ := tt.Find("第二段。")
+	tt.Press(first.X+2, first.Y+first.H/2)
+	tt.Move(last.X+last.W-2, last.Y+last.H/2)
+	tt.Release(last.X+last.W-2, last.Y+last.H/2)
 	tt.Key(ui.Ctrl, ui.KeyC)
-	if got := tt.Clipboard(); !strings.Contains(got, "第一段。") || !strings.Contains(got, "第二段") {
+	if got := tt.Clipboard(); !strings.Contains(got, "第一段。") || !strings.Contains(got, "甲") || !strings.Contains(got, "第二段") {
 		t.Fatalf("a drag selected %q", got)
+	}
+	if err = tt.Click("复制代码"); err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.TrimSpace(tt.Clipboard()); got != "code" {
+		t.Fatalf("the code block copied %q", got)
 	}
 	if err = tt.Click("复制-" + r.ID); err != nil {
 		t.Fatal(err)

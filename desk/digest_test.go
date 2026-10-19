@@ -66,7 +66,7 @@ func TestTheTalkShowsWhereItWasCompacted(t *testing.T) {
 	if !tt.HasText("回忆不写成旁白。「林晚」 怕黑，写进 「主角怕黑」 里；[9] 先不管。") {
 		t.Fatal("the entries by their names", tt.Texts())
 	}
-	if !tt.HasText("• 作者先改前半段。") || !tt.HasText("• 再看 「林晚」 那句。") || tt.HasText("- 作者") {
+	if !tt.HasText("•") || !tt.HasText("作者先改前半段。") || !tt.HasText("再看 「林晚」 那句。") || tt.HasText("- 作者") {
 		t.Fatal("a list in the digest is not laid out as in a reply", tt.Texts())
 	}
 	if err := tt.Click("林晚"); err != nil {

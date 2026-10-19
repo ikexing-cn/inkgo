@@ -25,6 +25,8 @@ Status: implemented
   - 行是消息事件；空会话时有一行开场，一轮进行中时末尾有一行流式内容。行的键是事件 ID。
   - `FollowEnd` 让列表停在底部时跟随新内容；作者往上滚就不再跟随，滚回底部又恢复。
   - 发送、重试、完成时调用 `ScrollToEnd`；切换会话时重置 `ListState`。
+> 下面「回复文字连成一个文本」「流式内容冻结排版」两条和 Markdown 解析缓存，已由 mygo 的 `ui/markdown` 取代，见[回复和摘要的 Markdown 改用 mygo 的 ui/markdown](../architecture/2026-10-19-markdown-on-mygo.md)；虚拟列表和复制全文仍照这里。
+
 - **回复文字连成一个文本**：`mdDraw` 把相邻的段落、标题和纯文本列表合成一个可选中的 `RichText`。
   - 块之间空一行。文本引擎每行至少是基础行高，所以段落间距只能是一整行，不能更小。
   - 列表项以"•"或"1."开头，嵌套一层多缩进一个全角空格。
@@ -54,7 +56,7 @@ Status: implemented
 ## Consequences
 
 - **收益**：每帧耗时不再随会话长度增长；流式内容在作者停在底部时自动跟随；整条回复可以拖选，也能一键复制原文。
-- **代价**：
+- **代价**（前两条随改用 mygo 的 `ui/markdown` 已不存在）：
   - 列表项没有悬挂缩进，换行后的文字从左边缘开始。
   - 段落间距是一整行，比原来的块间距疏。具体疏密留到体验调整时再定。
   - 回复流式期间，选区不能跨过"写完的部分"和"正在写的那块"之间的边界。
@@ -63,9 +65,8 @@ Status: implemented
 
 ## Verification
 
-- `go test ./desk -run xxx -bench StreamingFrame -benchmem` 复现上面两张表。
+- `go test ./desk -run xxx -bench StreamingFrame -benchmem` 复现上面两张表（基准后来改成每来一个字只画一帧，数和这里的不能直接比，见新笔记）。
 - `desk/app_test.go` 的 `TestReplyTextSelectsAcrossBlocksAndCopies`：
-  - 断言段落、标题、列表合成一个文本，代码块单独成元素；
   - 从第一段拖到第二段后复制，剪贴板里两段都在；
   - "复制全文"复制的是 Markdown 原文。
 - `SHOT=<path> go test -run TestLayout ./cmd/poc`：截图里的示例回复带标题、嵌套列表、有序列表和引用，可以核对排版。

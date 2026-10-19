@@ -5,446 +5,146 @@ import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
-	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark/ast"
-	"github.com/yuin/goldmark/extension"
-	east "github.com/yuin/goldmark/extension/ast"
-	"github.com/yuin/goldmark/text"
+	"github.com/egoist/mygo/ui/markdown"
+	"github.com/egoist/mygo/ui/markdown/parser"
 )
 
-// The AI writes Markdown. It is parsed once per text into blocks, which
-// the view draws with native text: links are styled but not followed, and
-// raw HTML shows as text, so a reply cannot run anything.
-
-type mdKind uint8
+// mdStyle is which text the Markdown is: a reply in a talk, read at the
+// size of the prose, or the smaller digest, whose [N] name entries.
+type mdStyle bool
 
 const (
-	mdParagraph mdKind = iota
-	mdHeading
-	mdList
-	mdQuote
-	mdCode
-	mdRule
-	mdTable
+	replyText  mdStyle = false
+	digestText mdStyle = true
 )
 
-type mdBlock struct {
-	kind    mdKind
-	level   int // a heading's
-	inline  []mdSpan
-	code    string
-	ordered bool
-	start   int         // an ordered list's first number
-	items   [][]mdBlock // a list's
-	blocks  []mdBlock   // a quote's
-	rows    [][][]mdSpan
+// markdownState keeps options at stable addresses, shared by views of a kind.
+type markdownState struct {
+	pal           *palette
+	reply, digest markdown.Options
 }
 
-type mdSpan struct {
-	text                       string
-	bold, italic, code, strike bool
-	link                       bool
-}
-
-var md = goldmark.New(goldmark.WithExtensions(extension.Table, extension.Strikethrough))
-
-// mdCache keeps parsed texts; a streaming reply changes each frame, so it
-// is bounded rather than keyed by message.
-type mdCache map[string][]mdBlock
-
-func (m mdCache) get(s string) []mdBlock {
-	if b, ok := m[s]; ok {
-		return b
-	}
-	if len(m) > 256 {
-		clear(m)
-	}
-	src := []byte(s)
-	b := mdBlocks(md.Parser().Parse(text.NewReader(src)), src)
-	m[s] = b
-	return b
-}
-
-func mdBlocks(parent ast.Node, src []byte) []mdBlock {
-	var out []mdBlock
-	for n := parent.FirstChild(); n != nil; n = n.NextSibling() {
-		switch n := n.(type) {
-		case *ast.Paragraph, *ast.TextBlock:
-			out = append(out, mdBlock{kind: mdParagraph, inline: mdInline(n, src, mdSpan{})})
-		case *ast.Heading:
-			out = append(out, mdBlock{kind: mdHeading, level: n.Level, inline: mdInline(n, src, mdSpan{})})
-		case *ast.List:
-			b := mdBlock{kind: mdList, ordered: n.IsOrdered(), start: n.Start}
-			for item := n.FirstChild(); item != nil; item = item.NextSibling() {
-				b.items = append(b.items, mdBlocks(item, src))
-			}
-			out = append(out, b)
-		case *ast.Blockquote:
-			out = append(out, mdBlock{kind: mdQuote, blocks: mdBlocks(n, src)})
-		case *ast.FencedCodeBlock, *ast.CodeBlock:
-			var b strings.Builder
-			lines := n.Lines()
-			for i := 0; i < lines.Len(); i++ {
-				seg := lines.At(i)
-				b.Write(seg.Value(src))
-			}
-			out = append(out, mdBlock{kind: mdCode, code: strings.TrimRight(b.String(), "\n")})
-		case *ast.ThematicBreak:
-			out = append(out, mdBlock{kind: mdRule})
-		case *east.Table:
-			b := mdBlock{kind: mdTable}
-			for row := n.FirstChild(); row != nil; row = row.NextSibling() {
-				var cells [][]mdSpan
-				for cell := row.FirstChild(); cell != nil; cell = cell.NextSibling() {
-					style := mdSpan{bold: row.Kind() == east.KindTableHeader}
-					cells = append(cells, mdInline(cell, src, style))
-				}
-				b.rows = append(b.rows, cells)
-			}
-			out = append(out, b)
-		case *ast.HTMLBlock:
-			var b strings.Builder
-			lines := n.Lines()
-			for i := 0; i < lines.Len(); i++ {
-				seg := lines.At(i)
-				b.Write(seg.Value(src))
-			}
-			out = append(out, mdBlock{kind: mdParagraph, inline: []mdSpan{{text: strings.TrimRight(b.String(), "\n")}}})
-		default:
-			if n.HasChildren() {
-				out = append(out, mdBlocks(n, src)...)
-			}
-		}
-	}
-	return out
-}
-
-// mdInline flattens a block's inline content into styled runs.
-func mdInline(parent ast.Node, src []byte, style mdSpan) []mdSpan {
-	var out []mdSpan
-	add := func(s string, st mdSpan) {
-		if s == "" {
-			return
-		}
-		if n := len(out); n > 0 {
-			last := out[n-1]
-			if last.bold == st.bold && last.italic == st.italic && last.code == st.code && last.strike == st.strike && last.link == st.link {
-				out[n-1].text += s
-				return
-			}
-		}
-		st.text = s
-		out = append(out, st)
-	}
-	for n := parent.FirstChild(); n != nil; n = n.NextSibling() {
-		switch n := n.(type) {
-		case *ast.Text:
-			add(string(n.Segment.Value(src)), style)
-			if n.HardLineBreak() || n.SoftLineBreak() {
-				add("\n", style)
-			}
-		case *ast.String:
-			add(string(n.Value), style)
-		case *ast.CodeSpan:
-			st := style
-			st.code = true
-			var b strings.Builder
-			for c := n.FirstChild(); c != nil; c = c.NextSibling() {
-				if t, ok := c.(*ast.Text); ok {
-					b.Write(t.Segment.Value(src))
+// markdownOptions are the options a view of the kind is drawn with,
+// remade when the palette changes. A reply's links do nothing; a digest's
+// open the entries they name.
+func (a *App) markdownOptions(st mdStyle) *markdown.Options {
+	m := &a.md
+	if m.reply.OnLink == nil {
+		m.reply.CodeBlock, m.digest.CodeBlock = a.codeBlock, a.codeBlock
+		m.reply.OnLink = func(string) {}
+		m.digest.OnLink = func(url string) {
+			if number, ok := strings.CutPrefix(url, "inkgo-entry:"); ok {
+				n, err := strconv.Atoi(number)
+				if err == nil && n > 0 && n <= len(a.set.Entries) {
+					a.showEntry(a.set.Entries[n-1])
 				}
 			}
-			add(b.String(), st)
-		case *ast.Emphasis:
-			st := style
-			if n.Level >= 2 {
-				st.bold = true
-			} else {
-				st.italic = true
-			}
-			for _, s := range mdInline(n, src, st) {
-				add(s.text, s)
-			}
-		case *east.Strikethrough:
-			st := style
-			st.strike = true
-			for _, s := range mdInline(n, src, st) {
-				add(s.text, s)
-			}
-		case *ast.Link, *ast.AutoLink:
-			st := style
-			st.link = true
-			if a, ok := n.(*ast.AutoLink); ok {
-				add(string(a.URL(src)), st)
-				continue
-			}
-			for _, s := range mdInline(n, src, st) {
-				add(s.text, s)
-			}
-		case *ast.RawHTML:
-			segs := n.Segments
-			for i := 0; i < segs.Len(); i++ {
-				seg := segs.At(i)
-				add(string(seg.Value(src)), style)
-			}
-		default:
-			for _, s := range mdInline(n, src, style) {
-				add(s.text, s)
-			}
 		}
 	}
-	return out
+	if m.pal != a.pal {
+		m.pal = a.pal
+		m.reply.Theme = a.markdownTheme(fsRead, lhRead)
+		m.digest.Theme = a.markdownTheme(fsNote, lhBody)
+	}
+	if st == digestText {
+		return &m.digest
+	}
+	return &m.reply
 }
 
-// mdStyle is how Markdown is drawn: its size and line height, and whether
-// the entries it names by number show by their names.
-type mdStyle struct {
-	size, lh float32
-	named    bool
+// markdownTheme sets mygo's Markdown theme in the app's sizes and colors.
+func (a *App) markdownTheme(size, lh float32) *markdown.Theme {
+	t := markdown.DefaultTheme(a.pal.theme)
+	t.FontSize, t.LineHeight = size, lh
+	t.Link, t.StrongWeight = a.pal.ink, 650
+	t.CodeFont, t.CodeSize, t.CodeLineHeight = "monospace", 0.9, lhBody
+	t.CodeBackground, t.CodeBlockBackground = a.pal.side, a.pal.side
+	t.CodeBlockBorder, t.CodeBlockRadius = a.pal.line, rControl
+	t.BlockSpacing, t.ItemSpacing = 0.7, 0.35
+	t.QuoteBar, t.QuoteText = a.pal.line, a.pal.theme.Text.Alpha(0.85)
+	t.Muted, t.Rule, t.TableBorder = a.pal.theme.TextMuted, a.pal.line, a.pal.line
+	t.TableHeader = a.pal.raised
+	for i, scale := range [...]float32{1.35, 1.2, 1.08, 1, 1, 1} {
+		t.Headings[i] = markdown.HeadingStyle{Size: scale, Weight: 650, Color: t.Text, Top: 0.7, Bottom: 0.7}
+	}
+	return t
 }
 
-var (
-	replyText  = mdStyle{size: 14.5, lh: lhRead}
-	digestText = mdStyle{size: fsNote, lh: lhBody, named: true} // what the talk's model wrote for itself, of the setting by number
-)
-
-// markdown draws s as st.
+// markdown draws finished Markdown, selectable across its blocks.
 func (a *App) markdown(c *ui.Context, s string, st mdStyle) ui.Element {
-	return ui.Column(c).FillWidth().Gap(st.size * 0.7).Children(func() {
-		a.mdDraw(c, a.md.get(s), st)
-	})
+	if st == digestText {
+		s = a.digestMarkdown(s)
+	}
+	return markdown.View(c, s, a.markdownOptions(st)).FillWidth()
 }
 
-// liveMarkdown draws a reply still streaming. Laying out one text costs
-// as much as its length, so the blocks written stand apart from the last,
-// which grows: they keep their text, and their layout, until it is done.
+// liveMarkdown draws Markdown still being written: the block not yet
+// ended shows as it stands, and what comes in fades in.
 func (a *App) liveMarkdown(c *ui.Context, s string, st mdStyle) ui.Element {
-	size := st.size
-	return ui.Column(c).FillWidth().Gap(size * 0.7).Children(func() {
-		blocks := a.md.get(s)
-		n := len(blocks) - 1
-		if n <= 0 {
-			a.mdDraw(c, blocks, st)
-			return
-		}
-		a.mdDraw(c, blocks[:n], st)
-		tail := ui.Column(c).FillWidth()
-		if mdFlows(blocks[n-1]) && mdFlows(blocks[n]) {
-			// The blank line the two would have between them.
-			tail.Padding(size*st.lh-size*0.7, 0, 0, 0)
-		}
-		tail.Children(func() { a.mdDraw(c, blocks[n:], st) })
+	return markdown.Stream(c, s, a.markdownOptions(st)).FillWidth()
+}
+
+// codeBlock is a code block with its language and a button copying it,
+// in the app's words: mygo's own says Copy.
+func (a *App) codeBlock(c *ui.Context, b *markdown.CodeBlockView) {
+	ui.Column(c).Background(a.pal.side).Border(1, a.pal.line).Radius(rControl).AlignSelf(ui.Stretch).Clip().Label("代码").Children(func() {
+		ui.Row(c).AlignItems(ui.Center).Padding(4, 4, 0, 12).Children(func() {
+			ui.Text(c, b.Language).FontSize(fsSmall).TextColor(a.pal.faint).Unselectable()
+			ui.Spacer(c)
+			if iconButton(c, icCopy, "复制代码", ui.Color{}).Disabled(b.Open).Clicked() {
+				c.WriteClipboard(b.Code())
+			}
+		})
+		b.Body(c)
 	})
 }
 
-// mdDraw draws blocks. Paragraphs, headings and lists of text run
-// together as one text, so the author can select across them; quotes,
-// code and tables stand apart, and a selection stops at them.
-func (a *App) mdDraw(c *ui.Context, blocks []mdBlock, st mdStyle) {
-	t := a.pal.theme
-	size := st.size
-	var flow []ui.Span
-	flush := func() {
-		if len(flow) > 0 {
-			a.mdText(c, flow, st.named, size, st.lh)
-			flow = nil
-		}
-	}
-	for _, b := range blocks {
-		if mdFlows(b) {
-			if len(flow) > 0 {
-				// A blank line parts blocks: lines are no shorter than
-				// the text's line height, so it cannot be a smaller gap.
-				flow = append(flow, ui.Span{Text: "\n\n"})
-			}
-			flow = a.mdFlow(flow, b, size, 0)
-			continue
-		}
-		flush()
-		switch b.kind {
-		case mdList:
-			ui.Column(c).FillWidth().Gap(size * 0.35).Children(func() {
-				for n, item := range b.items {
-					ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Start).Children(func() {
-						ui.Text(c, mdMark(b, n)).FontSize(size).LineHeight(lhRead).TextColor(t.TextMuted).Width(size * 1.4).TextAlign(ui.End).Shrink(0)
-						ui.Column(c).Grow(1).Shrink(1).Gap(size * 0.35).Children(func() { a.mdDraw(c, item, st) })
-					})
-				}
-			})
-		case mdQuote:
-			ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Stretch).Children(func() {
-				ui.Box(c).Width(3).Radius(rRound).Background(a.pal.line).Shrink(0)
-				ui.Column(c).Grow(1).Shrink(1).Gap(size * 0.5).Opacity(0.85).Children(func() { a.mdDraw(c, b.blocks, st) })
-			})
-		case mdCode:
-			ui.ScrollHorizontal(c).FillWidth().Radius(rControl).Background(a.pal.side).Border(1, a.pal.line).Children(func() {
-				ui.Text(c, b.code).Font("monospace").FontSize(size*0.88).LineHeight(lhBody).NoWrap().Padding(10, 12).Selectable()
-			})
-		case mdRule:
-			a.pal.hairline(c)
-		case mdTable:
-			a.pal.group(c).Children(func() {
-				for n, row := range b.rows {
-					if n > 0 {
-						a.pal.hairline(c)
-					}
-					ui.Row(c).FillWidth().AlignItems(ui.Stretch).Children(func() {
-						for _, cell := range row {
-							ui.Column(c).Grow(1).Shrink(1).Basis(0).Padding(8, 10).Children(func() {
-								a.mdText(c, a.mdRuns(nil, cell, size*0.93), st.named, size*0.93, lhBody)
-							})
-						}
-					})
-				}
-			})
-		}
-	}
-	flush()
-}
-
-// mdFlows reports whether b is text that runs with the text around it: a
-// list does when its items hold only text, lists of text among it.
-func mdFlows(b mdBlock) bool {
-	switch b.kind {
-	case mdParagraph, mdHeading:
-		return true
-	case mdList:
-		for _, item := range b.items {
-			for _, ib := range item {
-				if ib.kind != mdParagraph && (ib.kind != mdList || !mdFlows(ib)) {
-					return false
-				}
-			}
-		}
-		return true
-	}
-	return false
-}
-
-// mdFlow appends b, which flows, to the runs of a text. A list's items
-// start lines with their marks, nested lists indented an ideographic
-// space a level;
-// without hanging indents, an item's wrapped lines start at the margin.
-func (a *App) mdFlow(out []ui.Span, b mdBlock, size float32, depth int) []ui.Span {
-	switch b.kind {
-	case mdParagraph:
-		return a.mdRuns(out, b.inline, size)
-	case mdHeading:
-		scale := map[int]float32{1: 1.35, 2: 1.2, 3: 1.08}[b.level]
-		if scale == 0 {
-			scale = 1
-		}
-		from := len(out)
-		out = a.mdRuns(out, b.inline, size*scale)
-		for i := from; i < len(out); i++ {
-			out[i].Size, out[i].Weight = size*scale, 650
-		}
-		return out
-	}
-	for n, item := range b.items {
-		if n > 0 {
-			out = append(out, ui.Span{Text: "\n"})
-		}
-		out = append(out, ui.Span{Text: strings.Repeat("　", depth) + mdMark(b, n) + " ", Color: a.pal.theme.TextMuted})
-		for k, ib := range item {
-			if k > 0 {
-				out = append(out, ui.Span{Text: "\n"})
-			}
-			if ib.kind == mdList {
-				out = a.mdFlow(out, ib, size, depth+1)
-			} else {
-				out = a.mdFlow(out, ib, size, depth)
-			}
-		}
-	}
-	return out
-}
-
-func mdMark(b mdBlock, n int) string {
-	if b.ordered {
-		return strconv.Itoa(b.start+n) + "."
-	}
-	return "•"
-}
-
-// mdText draws runs as one text. Named, the entries they name by number
-// show by their names between 「」, and open in the setting when clicked;
-// code stays as written.
-func (a *App) mdText(c *ui.Context, runs []ui.Span, named bool, size, lh float32) {
-	t := a.pal.theme
-	if !named {
-		ui.RichText(c, runs...).FillWidth().FontSize(size).LineHeight(lh).TextColor(t.Text).Selectable()
-		return
-	}
-	ui.RichText(c).FillWidth().FontSize(size).LineHeight(lh).TextColor(t.Text).Selectable().Children(func() {
-		for _, r := range runs {
-			if r.Font == "monospace" {
-				spanText(c, r, r.Text)
+// digestMarkdown names entry references in text, leaving code and link
+// destinations as written. Source offsets keep the rest of the Markdown intact.
+func (a *App) digestMarkdown(s string) string {
+	d := parser.Parse(s)
+	var out strings.Builder
+	at := 0
+	for i := 1; i < d.Len(); i++ {
+		inlines := d.Inlines(i)
+		for j := 0; j < len(inlines); j++ {
+			in := inlines[j]
+			// Links cannot contain another link.
+			if in.Kind == parser.Link || in.Kind == parser.Image {
+				j = in.Next - 1
 				continue
 			}
-			for _, m := range a.mentions(r.Text) {
-				if m.entry == nil {
-					spanText(c, r, m.text)
-					continue
+			if in.Kind != parser.Text {
+				continue
+			}
+			for _, match := range entryNumber.FindAllStringIndex(s[in.Start:in.End], -1) {
+				start, end := in.Start+match[0], in.Start+match[1]
+				for _, m := range a.mentions(s[start:end]) {
+					if m.entry == nil {
+						continue
+					}
+					out.WriteString(s[at:start])
+					out.WriteString("「[")
+					for _, r := range m.text {
+						if strings.ContainsRune("\\`*_{}[]()#+-.!|<>&~", r) {
+							out.WriteString("&#")
+							out.WriteString(strconv.Itoa(int(r)))
+							out.WriteByte(';')
+						} else {
+							out.WriteRune(r)
+						}
+					}
+					out.WriteString("](inkgo-entry:")
+					out.WriteString(s[start+1 : end-1])
+					out.WriteString(")」")
+					at = end
 				}
-				spanText(c, r, "「")
-				name := spanText(c, r, m.text).TextColor(a.pal.ink).Underline().DecorationColor(a.pal.control)
-				if name.Hovered() {
-					name.Background(t.SurfacePressed).DecorationColor(a.pal.ink)
-				}
-				if name.Clicked() {
-					a.showEntry(*m.entry)
-				}
-				spanText(c, r, "」")
 			}
 		}
-	})
-}
-
-// spanText is words inline in a text, styled as r.
-func spanText(c *ui.Context, r ui.Span, words string) ui.Element {
-	e := ui.Text(c, words)
-	if r.Font != "" {
-		e.Font(r.Font)
 	}
-	if r.Size != 0 {
-		e.FontSize(r.Size)
+	if at == 0 {
+		return s
 	}
-	if r.Weight != 0 {
-		e.FontWeight(r.Weight)
-	}
-	if r.Italic {
-		e.Italic()
-	}
-	if r.Strikethrough {
-		e.Strikethrough()
-	}
-	if r.Underline {
-		e.Underline()
-	}
-	if r.Color != (ui.Color{}) {
-		e.TextColor(r.Color)
-	}
-	if r.Background != (ui.Color{}) {
-		e.Background(r.Background)
-	}
-	return e
-}
-
-// mdRuns appends styled runs of text at size to out.
-func (a *App) mdRuns(out []ui.Span, spans []mdSpan, size float32) []ui.Span {
-	for _, s := range spans {
-		r := ui.Span{Text: s.text, Italic: s.italic, Strikethrough: s.strike}
-		if s.bold {
-			r.Weight = 650
-		}
-		if s.code {
-			r.Font, r.Size, r.Background = "monospace", size*0.9, a.pal.side
-		}
-		if s.link {
-			r.Color, r.Underline = a.pal.ink, true
-		}
-		out = append(out, r)
-	}
-	return out
+	out.WriteString(s[at:])
+	return out.String()
 }

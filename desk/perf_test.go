@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/aiport"
@@ -51,9 +52,14 @@ func streamingBench(b *testing.B, turns int, reasoning bool) {
 		b.Fatal(err)
 	}
 	b.Cleanup(func() { a.Close() })
-	tt := ui.NewTester(a.View, 1266, 780)
+	var sv ui.Services
+	tt := ui.NewTester(func(c *ui.Context) { sv = c.Services(); a.View(c) }, 1266, 780)
 	tt.Frame()
-	a.busy, a.talking = "AI 正在思考", true
+	if err = tt.Click("讨论"); err != nil {
+		b.Fatal(err)
+	}
+	tt.Frame()
+	a.busy, a.talking, a.talkSession = "AI 正在思考", true, a.session
 	a.live.reset()
 	reply := []rune(longReply(99) + longReply(100))
 	tt.Frame()
@@ -74,7 +80,11 @@ func streamingBench(b *testing.B, turns int, reasoning bool) {
 		} else {
 			a.live.add(aiport.Progress{Text: string(reply[len(reply)/2+at : len(reply)/2+at+1])})
 		}
-		tt.Frame()
+		// One refresh, as a window draws: what fades in asks for the next
+		// frame, which a Frame on a clock standing still would run at once,
+		// over and over.
+		sv.Invalidate()
+		tt.Advance(time.Second / 60)
 	}
 	b.StopTimer()
 	if !tt.HasText("正在回复…") && !tt.HasText("正在思考…") {

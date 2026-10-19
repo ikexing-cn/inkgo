@@ -67,7 +67,7 @@ GoAI 在没传 key 时会读 `OPENAI_API_KEY`、`ANTHROPIC_API_KEY`，使用默�
 
 - 一轮对话进行中，回复区按流式内容实时显示：推理阶段展开"正在思考"，正文开始后折叠，接着显示"正在把这一轮整理成思路卡片…"。工作线程写入带锁的 `live`，界面每帧读取。
 - 已保存的回复上方有可折叠的"思考过程"，默认收起；底部时间后标出"模型 · 等级"。记账时的推理在"AI 看到了什么"面板里折叠显示。
-- 回复用 goldmark（CommonMark，加表格和删除线扩展）解析成段落、标题、列表、引用、代码、分隔线、表格，再用 mygo 的 `RichText` 和行列布局画出来。链接只着色不跳转，原始 HTML 当文本显示。解析结果按文本缓存，上限 256 条。相邻的文字块怎样合成一个可选中的文本、流式时怎样冻结排版，见[回复跨段选中与流式排版](../../implemented/feature/2026-10-08-reply-selection-and-smooth-streaming.md)。
+- 回复按 Markdown 画，链接只着色不跳转。现在用的是 mygo 的 `ui/markdown`，见[回复和摘要的 Markdown 改用 mygo 的 ui/markdown](2026-10-19-markdown-on-mygo.md)；之前自己用 goldmark 画的那套，见[回复跨段选中与流式排版](../../implemented/feature/2026-10-08-reply-selection-and-smooth-streaming.md)。
 
 ### 选依赖的约束
 
