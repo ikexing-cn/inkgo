@@ -561,6 +561,39 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 
 // TestShotAIOff writes screenshots of the switch and of the window with the
 // AI off when SHOT is a directory: SHOT=dir go test ./desk -run ShotAIOff
+// Turned off on the talk or check page, the AI gives way to the prose;
+// on again while the prose shows, that page is back, and not after the
+// author went elsewhere.
+func TestTheAIComesBackToItsPage(t *testing.T) {
+	a, tt, _ := fixture(t)
+	for _, from := range []int{0, pageCheck} {
+		a.page = from
+		tt.Frame()
+		switchAI(t, a, tt, false)
+		if a.page != 3 {
+			t.Fatalf("off on page %d, page %d shows", from, a.page)
+		}
+		switchAI(t, a, tt, true)
+		if a.page != from {
+			t.Fatalf("on again, page %d shows, not %d", a.page, from)
+		}
+	}
+	a.page = 0
+	tt.Frame()
+	switchAI(t, a, tt, false)
+	a.page = 2
+	switchAI(t, a, tt, true)
+	if a.page != 2 {
+		t.Fatalf("on again, page %d took the place of the categories", a.page)
+	}
+	a.page = 3
+	switchAI(t, a, tt, false)
+	switchAI(t, a, tt, true)
+	if a.page != 3 {
+		t.Fatalf("off and on on the prose, page %d shows", a.page)
+	}
+}
+
 func TestShotAIOff(t *testing.T) {
 	dir := os.Getenv("SHOT")
 	if dir == "" {

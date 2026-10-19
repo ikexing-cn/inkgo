@@ -14,15 +14,13 @@ import (
 )
 
 // recordFeatures are the features of the AI record as the author reads
-// them, in the order the settings list them. 此前 is what versions before
-// the record counted, by model only.
+// them, in the order the settings list them.
 var recordFeatures = []struct{ id, name string }{
 	{workspace.FeatureTalk, "讨论"},
 	{workspace.FeatureDraft, "起草"},
 	{workspace.FeatureRewrite, "改写"},
 	{workspace.FeatureContinue, "续写"},
 	{workspace.FeatureCheck, "检查"},
-	{workspace.FeatureBefore, "此前"},
 }
 
 func featureName(id string) string {
@@ -74,15 +72,14 @@ func (a *App) spent(c *ui.Context) {
 	ui.Column(c).FillWidth().Gap(4).Children(func() {
 		for _, f := range recordFeatures {
 			var rows []workspace.Record
-			n := 0
 			var u workspace.Usage
 			for _, r := range a.bk.records {
 				if r.Feature == f.id {
 					rows = append(rows, r)
-					n += r.Count()
 					u = u.Add(r.Usage)
 				}
 			}
+			n := len(rows)
 			if len(rows) == 0 {
 				continue
 			}
@@ -119,9 +116,7 @@ func (a *App) recordsView(c *ui.Context) {
 	names := []string{"全部"}
 	var ids []string
 	for _, f := range recordFeatures {
-		if f.id != workspace.FeatureBefore || slices.ContainsFunc(a.bk.records, func(r workspace.Record) bool { return r.Feature == f.id }) {
-			names, ids = append(names, f.name), append(ids, f.id)
-		}
+		names, ids = append(names, f.name), append(ids, f.id)
 	}
 	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(12).Children(func() {
 		if a.pal.ghost(c, "‹ 本作品用量", ui.Color{}).Clicked() {
@@ -145,19 +140,14 @@ func (a *App) recordsView(c *ui.Context) {
 			shown++
 			a.pal.hairline(c)
 			open := a.bk.logOpen == i
-			at, where, end, endColor := "此前", r.Model[strings.LastIndex(r.Model, "/")+1:], "", t.TextMuted
-			if r.Feature != workspace.FeatureBefore {
-				at, where = when(r.At, now), featureName(r.Feature)+" · "+a.recordWhere(r)
-				switch r.Outcome {
-				case workspace.OutcomeDone:
-					end, endColor = "完成", t.Text
-				case workspace.OutcomeCancelled:
-					end = "已取消"
-				default:
-					end, endColor = "失败："+r.Error, t.Danger
-				}
-			} else {
-				where = fmt.Sprintf("共 %d 次请求 · %s", r.Requests, where)
+			at, where, end, endColor := when(r.At, now), featureName(r.Feature)+" · "+a.recordWhere(r), "", t.TextMuted
+			switch r.Outcome {
+			case workspace.OutcomeDone:
+				end, endColor = "完成", t.Text
+			case workspace.OutcomeCancelled:
+				end = "已取消"
+			default:
+				end, endColor = "失败："+r.Error, t.Danger
 			}
 			cost := costText(costOf(r))
 			if cost == "" {
@@ -205,9 +195,6 @@ func (a *App) recordMore(c *ui.Context, r workspace.Record) {
 	}
 	ui.Column(c).FillWidth().Padding(0, 6, 10, 6+92+12).Gap(2).Children(func() {
 		switch {
-		case r.Feature == workspace.FeatureBefore:
-			note(a.replyLabel(r.Model, ""))
-			note("此版本以前记下的用量，不分功能和章节。")
 		case r.Effort == "none":
 			note(a.replyLabel(r.Model, "") + " · 不思考")
 		default:

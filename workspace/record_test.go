@@ -73,68 +73,6 @@ func TestTheRecordIsChecked(t *testing.T) {
 	}
 }
 
-// What an older version counted in usage.json is a line for each model
-// before the record's own, written with the first of them; the file is
-// left as it was.
-func TestTheRecordTakesOverWhatWasSpent(t *testing.T) {
-	s := testStore(t)
-	old := `{"models": [{"model": "deepseek/deepseek-flash", "requests": 3, "input": 4010, "cache_read": 2600, "output": 100, "cost": 0.003, "currency": "$"}, {"model": "kimi/kimi-k3", "requests": 1, "input": 50, "output": 5}]}`
-	up := filepath.Join(s.Root(), "usage.json")
-	if err := os.WriteFile(up, []byte(old), 0644); err != nil {
-		t.Fatal(err)
-	}
-	want := []Record{
-		{Schema: Schema, Feature: FeatureBefore, Model: "deepseek/deepseek-flash", Requests: 3, Usage: Usage{Input: 4010, CacheRead: 2600, Output: 100}, Cost: 0.003, Currency: "$", Outcome: OutcomeDone},
-		{Schema: Schema, Feature: FeatureBefore, Model: "kimi/kimi-k3", Requests: 1, Usage: Usage{Input: 50, Output: 5}, Outcome: OutcomeDone},
-	}
-	if got, err := s.Records(); err != nil || !reflect.DeepEqual(got, want) {
-		t.Fatalf("before any request: %+v, %v", got, err)
-	}
-	if want[0].Count() != 3 || (Record{Feature: FeatureTalk}).Count() != 1 {
-		t.Fatal("counted the requests wrong")
-	}
-	now := Record{Schema: Schema, At: time.Date(2026, 10, 16, 10, 40, 0, 0, time.UTC), Feature: FeatureDraft, Chapter: "c1", Model: "kimi/kimi-k3", Outcome: OutcomeDone}
-	if err := s.Log(now); err != nil {
-		t.Fatal(err)
-	}
-	if got, err := s.Records(); err != nil || !reflect.DeepEqual(got, append(want, now)) {
-		t.Fatalf("after one: %+v, %v", got, err)
-	}
-	if b, err := os.ReadFile(up); err != nil || string(b) != old {
-		t.Fatalf("usage.json is %q, %v", b, err)
-	}
-	// From then on the record alone counts: usage.json is not read again.
-	if err := os.WriteFile(up, []byte(`{"models": [{"model": "", "requests": 1}]}`), 0644); err != nil {
-		t.Fatal(err)
-	}
-	if got, err := s.Records(); err != nil || len(got) != 3 {
-		t.Fatalf("read usage.json again: %+v, %v", got, err)
-	}
-}
-
-// A usage.json gone wrong by hand is reported with the file and the model.
-func TestWhatWasSpentIsChecked(t *testing.T) {
-	for _, c := range []struct{ file, want string }{
-		{`{"models": [{"model": "", "requests": 1, "input": 1, "output": 1}]}`, "models[0]: model is empty"},
-		{`{"models": [{"model": "a/b", "requests": 1, "input": 1, "output": 1}, {"model": "a/b", "requests": 1, "input": 1, "output": 1}]}`, `models[1]: model "a/b" is listed twice`},
-		{`{"models": [{"model": "a/b", "requests": 1, "input": -1, "output": 1}]}`, "models[0]: counts cannot be negative"},
-		{`{"models": [{"model": "a/b", "requests": 1, "input": 1, "output": 1, "cost": 1}]}`, "models[0]: cost needs its currency"},
-		{`{"models": [{"model": "a/b", "tokens": 1}]}`, `unknown field "tokens"`},
-	} {
-		s := testStore(t)
-		if err := os.WriteFile(filepath.Join(s.Root(), "usage.json"), []byte(c.file), 0644); err != nil {
-			t.Fatal(err)
-		}
-		_, err := s.Records()
-		if err == nil || !strings.Contains(err.Error(), "usage.json") || !strings.Contains(err.Error(), c.want) {
-			t.Errorf("%s: %v", c.file, err)
-		}
-		if err := s.Log(Record{At: time.Now(), Feature: FeatureTalk, Model: "a/b", Outcome: OutcomeDone}); err == nil {
-			t.Errorf("%s: logged over it", c.file)
-		}
-	}
-}
-
 // A request's purpose goes with its context.
 func TestThePurposeGoesWithTheContext(t *testing.T) {
 	if p := PurposeOf(context.Background()); !reflect.DeepEqual(p, Purpose{}) {

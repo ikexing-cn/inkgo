@@ -75,13 +75,18 @@ func (a *App) askAI(c *ui.Context) {
 // author's words kept, and the checks waiting are dropped; the pages and the parts of
 // the AI give way to the prose and the setting, and the toasts go, most
 // of them the AI's. Nothing it left is deleted: on again, it is all back,
-// the talk beside the prose too when it was there.
+// the talk beside the prose too when it was there, and the talk or check
+// page it was turned off on while the prose still shows.
 func (a *App) turnAI(on bool) {
 	a.shelf.NoAI = !on
 	a.saveShelf()
 	a.ai.SetOn(on)
 	if on {
 		a.loadAI()
+		if a.offAway && a.page == 3 {
+			a.page = a.offFrom
+		}
+		a.offAway = false
 	} else {
 		if a.cancel != nil {
 			a.cancel()
@@ -90,7 +95,7 @@ func (a *App) turnAI(on bool) {
 			a.dropProps(a.write.props, workspace.FateOff)
 			a.stopChecks()
 			if a.page == 0 || a.page == pageCheck {
-				a.page = 3
+				a.offFrom, a.offAway, a.page = a.page, true, 3
 			}
 		}
 		w := &a.write

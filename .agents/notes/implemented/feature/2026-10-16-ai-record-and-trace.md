@@ -20,7 +20,7 @@ Status: implemented
 
 - **每次向模型发请求都记一行**，完成的、失败的、作者取消的都记。作品根目录一个只追加的 `ai-log.jsonl`，和 `work.yaml` 并排，随作品备份。一行（`workspace.Record`）有：
   - `at`、`took_ms`：开始的时间和用时；
-  - `feature`：`talk`、`draft`、`rewrite`、`continue`、`check`，旧版本的累计数是 `before`（见下）；
+  - `feature`：`talk`、`draft`、`rewrite`、`continue`、`check`；
   - `chapter`、`talk`：为了哪一章、哪段讨论，存 ID，显示时换成章名、讨论的开头；
   - `model`（服务商/模型）、`effort`；
   - `parts`：发出去的各部分各约多少 token，就是 `workspace.Sent` 的 `Parts`；
@@ -31,15 +31,14 @@ Status: implemented
 - **记账还是只有一处**：`ai.open` 给客户端包的 `counted` 原来记用量，改成记这一行。为了什么由发请求的地方放进 `context`：`workspace.WithPurpose` 放、`PurposeOf` 取。讨论在 `Engine.purpose` 里放（回复的每一步、压缩那一次都算它所在的讨论），起草、改写、续写、检查在 `writing` 的 `purpose` 里放。
 - **续写拿够了就停**：`Predict` 拿到一句就用 `workspace.ErrEnough` 取消请求，`counted` 看到这个原因记「完成」，不记「已取消」。
 - **记不上不让请求失败**：记录是给作者看的。
-- **读的时候校验**：schema、模型名、数不为负、有花费就要有币种、功能和结果认识、除了 `before` 都要有时间、失败的要有原因，有不认识的字段也报错。读写走 `workspace/jsonl.go`，最后一行写了一半时丢掉那一行。
+- **读的时候校验**：schema、模型名、数不为负、有花费就要有币种、功能和结果认识、要有时间、失败的要有原因，有不认识的字段也报错。读写走 `workspace/jsonl.go`，最后一行写了一半时丢掉那一行。
 - 讨论里的请求都算「讨论」；从起草、改写入口开的讨论按来处算「起草」「改写」，见[起草和改写交给讨论](2026-10-16-writing-through-the-talk.md)。
 
 ### 旧的 `usage.json`
 
-- 不再写。还没有 `ai-log.jsonl` 时，`Records` 把 `usage.json` 读成每个模型一行 `before`：共几次请求、token 和花费，没有时间、功能、章。
-- 第一次记请求时，把这几行和新的一行一起写成 `ai-log.jsonl`（只在文件不存在时建）；`usage.json` 留在原处，之后不再读。只打开作品、只看设置，作品文件夹不变。
-- 界面上这几行叫「此前」：「本作品用量」里一行，「AI 记录」里每个模型一行「共 N 次请求 · deepseek-flash」，点开写「此版本以前记下的用量，不分功能和章节。」；没有这种行时筛选里也没有「此前」。原型里放在「少见的情况」的「作品里有旧版本记的用量」。
+- 不写，也不读：作品里有 `usage.json` 也当没有，「本作品用量」从 AI 记录的第一行算起。文件留在原处，软件不动它。
 - `workspace.Store` 的 `Spend`、`Spent` 删了。
+- 落地时（2026-10-16）原来是读的：还没有 `ai-log.jsonl` 时，把 `usage.json` 读成每个模型一行「此前」，第一次记请求时一起写进记录。2026-10-19 作者看了说：「快速迭代时期，不用管老作品的。」这一套就删了，见 Alternatives considered。
 
 ### 设置里看
 
@@ -70,7 +69,8 @@ AI 记录按功能分开以后，起草、改写要走讨论，原来的「写�
 - **在作品里存每次请求的全文** — 最强的理由是作者能看到 AI 到底读了什么，不用再从代码推。没有用：一次请求几万字，作品文件夹涨得很快，备份也跟着大；正文、设定、讨论本来都在作品里，记各部分的大小就够作者判断钱花在哪。要看全文的是调提示词的人，用 `-trace`。这一条和[每次请求由同一个拼装器装](../architecture/2026-10-15-one-budget-for-every-request.md)里否掉的是同一件事。
 - **每次用 AI 之前先报价，作者点了才发** — 最强的理由是钱花之前作者就知道。没有用：讨论查几次、回多长事先不知道，报的数会差很远，作者按它做决定反而上当；每个功能都多一步确认也烦。改成事后每一笔都看得到，起草前说清预先带上多少。
 - **`usage.json` 留着，另加记录** — 不动已经测过的累计和校验。没有用：同一件事两处记，迟早对不上；累计数从记录算只要一次加总。
-- **打开作品时就把 `usage.json` 转成记录**（提案原来这么写）— 最强的理由是转换只在一处，之后只有一种文件。没有用：只是打开作品、AI 关着也会改作品文件夹，同步盘和备份跟着动；读的时候把 `usage.json` 当成「此前」，第一次记请求时再一起写，界面上看到的一样。
+- **把 `usage.json` 读成「此前」**（落地时这么做了三天）— 最强的理由是老作品升级以后，以前花的钱还看得到，总数不会突然变小。没有用：软件还没有发给别人用，带着 `usage.json` 的只有开发时试过的几本书；为了它，记录多一种没有时间、功能、章的行，校验、显示、筛选、原型和走查各多一套分支。作者说快速迭代时期不管老作品。
+- **打开作品时就把 `usage.json` 转成记录**（提案原来这么写）— 最强的理由是转换只在一处，之后只有一种文件。没有用：只是打开作品、AI 关着也会改作品文件夹，同步盘和备份跟着动；后来连转换也不要了，见上一条。
 - **记录放在 `.writer/` 里** — 那是本机缓存，不进备份，坏了不心疼。没有用：作者要的是这部作品一直以来花了多少、花在哪，换台电脑也该在。
 - **`-trace` 做成设置里的开关** — 作者自己也能看全文。没有用：全文里有整章正文和讨论，写到哪个文件夹、留多久都得另外交代；作者要的「AI 在干什么」由 AI 记录和「AI 参考内容」回答。以后作者真要看全文，再在原型里做。
 
@@ -80,12 +80,12 @@ AI 记录按功能分开以后，起草、改写要走讨论，原来的「写�
 - 发请求的地方漏放 `WithPurpose`，那一行功能是空的，校验不过，记不上，也不报错。测试里每种功能都查了记下的功能、章、讨论和各部分。
 - `-trace` 的文件里有完整正文和 key 以外的全部请求内容，只该在本机调试时用；它不读 key，但服务商返回的报错原样写进去。
 - 「续写和检查」五个字，比 DESIGN.md「名称 2–4 个字」多一个；说明「灰字续写，检查正文」在设置那一栏里放不下，原型和软件里都显示成「灰字续写，检查…」。都留给作者看。
-- 「此前」那一行是落地时加进原型的少见情况，作者还没看过。
+- 有 `usage.json` 的作品，升级以后「本作品用量」只算之后的请求。
 - 测试：
-  - `workspace/record_test.go`：`TestTheRecordKeepsEachRequest` 一行一行记、读回来先后不变、写了一半的最后一行丢掉；`TestTheRecordIsChecked` 各条校验；`TestTheRecordTakesOverWhatWasSpent` 只有 `usage.json` 时读成「此前」、第一次记时一起写进去、`usage.json` 不变；`TestWhatWasSpentIsChecked` 坏的 `usage.json` 报哪一项；`TestThePurposeGoesWithTheContext`。原来的 `workspace/usage_test.go` 删了。
+  - `workspace/record_test.go`：`TestTheRecordKeepsEachRequest` 一行一行记、读回来先后不变、写了一半的最后一行丢掉；`TestTheRecordIsChecked` 各条校验；`TestThePurposeGoesWithTheContext`。原来的 `workspace/usage_test.go` 删了。
   - `ai/ai_test.go` 的 `TestEachRequestIsRecorded`：完成、失败、取消、拿够了停下各记成什么，花费和币种，`-trace` 的文件名和内容，记录里没有发出去的文字。
   - `writing` 的 `TestDraftShowsWhatItRecords`、`TestRewriteShowsTheWordsAround`、`TestPredictOneSentence`（还查拿够了用 `ErrEnough` 取消）、`TestCheckAChapterAgainstTheSetting`，`discussion` 的 `TestReplyLooksUpAndNotes`、`TestALongTalkIsCompacted`：查放进 `context` 的功能、章、讨论和各部分。
-  - `desk/record_test.go`：`TestTheWorkShowsWhatItSpent` 查「本作品用量」按功能的各行、「无价格」「不到 $0.01」，「AI 记录」新的在上、「已删除的章节」、结果、点开一行、一次只开一行、筛选和「没有这类请求。」，关掉 AI 后都不显示；`TestWhatWasSpentBeforeShows` 查「此前」。原来的 `desk/spent_test.go` 删了。
+  - `desk/record_test.go`：`TestTheWorkShowsWhatItSpent` 查「本作品用量」按功能的各行、「无价格」「不到 $0.01」，「AI 记录」新的在上、「已删除的章节」、结果、点开一行、一次只开一行、筛选和「没有这类请求。」，关掉 AI 后都不显示。原来的 `desk/spent_test.go` 删了。
   - `desk/sent_test.go` 的 `TestWhatWasSent`：回复下面「· 19.4K token · 不到 $0.01」。
-  - `npm run verify-prototype` 的「models and services」查按功能的各行、「AI 记录」、点开和筛选；「what was spent before the record」查「此前」。
+  - `npm run verify-prototype` 的「models and services」查按功能的各行、「AI 记录」、点开和筛选。
 - 取代[AI 写的字等作者采纳，作品记下用量](2026-10-15-ai-text-waits-and-usage-is-kept.md)里「作品记下用量」和「设置里看」两节，那一篇的其余部分照旧。

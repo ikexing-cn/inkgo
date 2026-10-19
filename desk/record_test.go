@@ -1,8 +1,6 @@
 package desk
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -120,37 +118,6 @@ func TestTheWorkShowsWhatItSpent(t *testing.T) {
 	tt.Frame()
 	if tt.HasText("AI 记录") || tt.HasText("本作品用量") || tt.HasText("检查 · 已删除的章节") {
 		t.Fatal("the record shows with the AI off", tt.Texts())
-	}
-}
-
-// What an older version counted in usage.json is 此前, by model, in the
-// usage and in the record.
-func TestWhatWasSpentBeforeShows(t *testing.T) {
-	a, tt, _ := fixture(t)
-	old := `{"models": [{"model": "deepseek/deepseek-flash", "requests": 3, "input": 4010, "cache_read": 2600, "output": 100, "cost": 0.031, "currency": "$"}]}`
-	if err := os.WriteFile(filepath.Join(a.Store.Root(), "usage.json"), []byte(old), 0644); err != nil {
-		t.Fatal(err)
-	}
-	a.openPrefs("AI")
-	tt.Frame()
-	for _, s := range []string{"此前", "3 次请求 · 输入 4K，缓存命中 65% · 输出 100", "约 $0.03", "查看全部记录（3 次请求）"} {
-		if !tt.HasText(s) {
-			t.Fatal(s, tt.Texts())
-		}
-	}
-	if err := tt.Click("查看全部记录（3 次请求）"); err != nil {
-		t.Fatal(err)
-	}
-	tt.Frame()
-	if !tt.HasText("共 3 次请求 · deepseek-flash") {
-		t.Fatal(tt.Texts())
-	}
-	if err := tt.Click("记录-此前 共 3 次请求 · deepseek-flash"); err != nil {
-		t.Fatal(err)
-	}
-	tt.Frame()
-	if !tt.HasText("此版本以前记下的用量，不分功能和章节。") || !tt.HasText("实际用量：输入 4K，其中缓存命中 2.6K；输出 100") {
-		t.Fatal(tt.Texts())
 	}
 }
 

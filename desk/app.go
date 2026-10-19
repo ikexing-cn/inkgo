@@ -117,6 +117,8 @@ type App struct {
 	pal         *palette
 
 	page              int               // 0 discussion, 1 models, 2 categories, 3 writing, 5 checks
+	offFrom           int               // the page of the AI the prose took the place of as the AI was turned off,
+	offAway           bool              // while there is one
 	shown             int               // the page the last frame showed
 	notice            string            // what was done
 	hint              string            // what to do first, or that there was nothing to do
@@ -255,7 +257,7 @@ func (a *App) resetView() {
 	a.source, a.sourceOpen, a.contextReply = nil, false, ""
 	a.input, a.seen, a.flash, a.doc, a.write = "", -1, map[string]time.Time{}, docView{}, writeView{}
 	a.bk = backupView{}
-	a.page, a.shown = 0, 0
+	a.page, a.shown, a.offAway = 0, 0, false
 }
 
 // closeWork returns to the welcome page, with its form cleared so a new work

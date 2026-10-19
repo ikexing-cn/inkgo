@@ -421,12 +421,12 @@ components:
 - 快照不写「AI 改动前」，只写「改动前」。
 - 正文里 AI 写的那几段不画下划线。
 - 问句的标题末尾带问号，和「保存对……的修改？」一样；问句浮在设置上面，Esc 只关问句。
-- 关的时候停在讨论页、检查页的，回到正文页；右栏停在讨论的，显示设定，停在哪一页记着，重新开启后回到讨论（待作者确认）。
+- 关的时候停在讨论页、检查页的，回到正文页，重新开启时还在正文页就回到那一页；右栏停在讨论的，显示设定，停在哪一页记着，重新开启后回到讨论。
 
 检查：
 
 - `npm run verify-prototype` 的「AI turned off」：关掉 AI 以后，把正文页、右栏、各个菜单、正文的右键菜单、选中后浮出的按钮、快捷键表、待处理、快照、作品分类、书架（有作品和没有作品）都看一遍，窗口里除了正文，不能有和 AI 有关的字（AI、讨论、检查、续写、改写、起草、摘要、模型、整理），提示和输入框里的字也算；按 Ctrl+J、Ctrl+L 不起作用。
-- `go test ./desk` 的 `TestAIOffShowsNothingOfIt`：在软件里把同样的地方走一遍，查同样的字（读不到悬停提示和输入框的占位字），而且一个 AI 请求也没发出；`TestTurnTheAIOffAndOn` 查两个问句、关的那一刻停下的东西、关了再开作品文件夹不变；`TestDeskImportsNothingThatSends` 查界面的包引用不到会发送的包。
+- `go test ./desk` 的 `TestAIOffShowsNothingOfIt`：在软件里把同样的地方走一遍，查同样的字（读不到悬停提示和输入框的占位字），而且一个 AI 请求也没发出；`TestTurnTheAIOffAndOn` 查两个问句、关的那一刻停下的东西、关了再开作品文件夹不变；`TestTheAIComesBackToItsPage` 查重新开启后回到关的时候停的那一页；`TestDeskImportsNothingThatSends` 查界面的包引用不到会发送的包。
 
 ### 模型看到的，作者也看得到
 
@@ -439,12 +439,11 @@ components:
 - 摘要里提到设定，模型写的是设定的编号（「[2]」），给作者看换成那一条的名字，加「」，没有名字的取第一句的开头；点它在右栏打开那一条。摘要的排法和回复一样：模型写的列表画成圆点，不露出「-」。
 - 用了多少也看得到：每条回复下面写这一轮所有请求一共用了多少 token 和按内置价格估算的花费（「· 42K token · 约 $0.08」，不到一分钱写「不到 $0.01」；这一轮用到的模型有一个不在价格表里，就只写 token）。设置「AI」的「本作品用量」按功能各一行（讨论、起草、改写、续写、检查），写请求次数、token、缓存命中多少和花费，没有价格的写「无价格」；下面「查看全部记录（N 次请求）」打开「AI 记录」。
 - 「AI 记录」是本作品向模型发的每一次请求，一次一行，新的在上，失败、取消的也记：时间，功能和为了哪里（讨论写它的开头，起草、续写、检查写章名；删掉了的写「已删除的讨论」「已删除的章节」），token，花费，结果（完成、已取消、「失败：」和原因）。上面按功能筛选。点开一行是模型和思考程度、发了哪几部分各约多少 token、服务商算的实际用量。只记这些，发出去的内容不存，也就不显示；只能看，不能清零。
-- 旧版本记下的用量不分功能和章节，记成「此前」，每个模型一行，写共几次请求；没有旧的用量就没有「此前」，筛选里也没有。
 
 检查：
 
-- `npm run verify-prototype` 的「what the AI looked at」「what was sent」「a long talk」「models and services」「what was spent before the record」查原型：「a long talk」查摘要里的名字点了打开那一条、列表画成圆点，和发出去之前先压缩；「models and services」查「本作品用量」按功能的各行、「AI 记录」里失败和取消的行、点开的一行和筛选；「what was spent before the record」查「此前」。
-- `go test ./desk` 的 `TestTalkNotesTheSettingAsItReplies` 查软件里回复上方那一行：回复时展开、回复完折起、点开有查到的内容，「查看设定」打开记下的那一条，修改记录里那一条点「查看讨论」回到讨论；`TestWhatWasSent` 查「AI 参考内容」说的是最后一次请求、「这一轮共 N 次请求」，和回复下面这一轮一共的 token 数和花费；`TestTheWorkShowsWhatItSpent` 查「本作品用量」按功能的各行、没有价格的模型、「AI 记录」的先后、在哪、结果、筛选和点开的一行，关掉 AI 后都不显示；`TestWhatWasSpentBeforeShows` 查旧版本的用量显示成「此前」；`TestTheTalkShowsWhereItWasCompacted` 查「以上 N 轮已整理成摘要」那一行和点开的摘要，摘要里设定的名字点了打开那一条，列表画成圆点；`TestCompactingShowsItself` 查压缩时写「正在压缩上下文…」，压缩完那一行就出来，作者刚发的话只出现一次。
+- `npm run verify-prototype` 的「what the AI looked at」「what was sent」「a long talk」「models and services」查原型：「a long talk」查摘要里的名字点了打开那一条、列表画成圆点，和发出去之前先压缩；「models and services」查「本作品用量」按功能的各行、「AI 记录」里失败和取消的行、点开的一行和筛选。
+- `go test ./desk` 的 `TestTalkNotesTheSettingAsItReplies` 查软件里回复上方那一行：回复时展开、回复完折起、点开有查到的内容，「查看设定」打开记下的那一条，修改记录里那一条点「查看讨论」回到讨论；`TestWhatWasSent` 查「AI 参考内容」说的是最后一次请求、「这一轮共 N 次请求」，和回复下面这一轮一共的 token 数和花费；`TestTheWorkShowsWhatItSpent` 查「本作品用量」按功能的各行、没有价格的模型、「AI 记录」的先后、在哪、结果、筛选和点开的一行，关掉 AI 后都不显示；`TestTheTalkShowsWhereItWasCompacted` 查「以上 N 轮已整理成摘要」那一行和点开的摘要，摘要里设定的名字点了打开那一条，列表画成圆点；`TestCompactingShowsItself` 查压缩时写「正在压缩上下文…」，压缩完那一行就出来，作者刚发的话只出现一次。
 
 ### AI 写的字要作者采纳
 

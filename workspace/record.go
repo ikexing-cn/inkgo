@@ -1,7 +1,6 @@
 package workspace
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -22,9 +21,6 @@ const (
 	FeatureRewrite  = "rewrite"
 	FeatureContinue = "continue"
 	FeatureCheck    = "check"
-	// FeatureBefore is what versions before the record counted of a
-	// model, all its requests in one line, with no time, chapter or talk.
-	FeatureBefore = "before"
 )
 
 // How a request ended.
@@ -39,30 +35,20 @@ const (
 // and what that cost by the prices built in, and how it ended. The text
 // sent is not kept: it is in the work.
 type Record struct {
-	Schema  int       `json:"schema"`
-	At      time.Time `json:"at,omitzero"`
-	Took    int64     `json:"took_ms,omitempty"` // milliseconds
-	Feature string    `json:"feature"`
-	Chapter string    `json:"chapter,omitempty"`
-	Talk    string    `json:"talk,omitempty"`
-	Model   string    `json:"model"` // provider/model
-	Effort  string    `json:"effort,omitempty"`
-	Parts   []Part    `json:"parts,omitempty"`
-	Usage   Usage     `json:"usage"`
-	// Requests is how many requests a line of FeatureBefore sums.
-	Requests int     `json:"requests,omitempty"`
-	Cost     float64 `json:"cost,omitempty"`
-	Currency string  `json:"currency,omitempty"`
-	Outcome  string  `json:"outcome"`
-	Error    string  `json:"error,omitempty"`
-}
-
-// Count is how many requests r stands for.
-func (r Record) Count() int {
-	if r.Feature == FeatureBefore {
-		return r.Requests
-	}
-	return 1
+	Schema   int       `json:"schema"`
+	At       time.Time `json:"at,omitzero"`
+	Took     int64     `json:"took_ms,omitempty"` // milliseconds
+	Feature  string    `json:"feature"`
+	Chapter  string    `json:"chapter,omitempty"`
+	Talk     string    `json:"talk,omitempty"`
+	Model    string    `json:"model"` // provider/model
+	Effort   string    `json:"effort,omitempty"`
+	Parts    []Part    `json:"parts,omitempty"`
+	Usage    Usage     `json:"usage"`
+	Cost     float64   `json:"cost,omitempty"`
+	Currency string    `json:"currency,omitempty"`
+	Outcome  string    `json:"outcome"`
+	Error    string    `json:"error,omitempty"`
 }
 
 // Purpose is what a request is made for, as the code making it knows:
@@ -89,9 +75,7 @@ func PurposeOf(ctx context.Context) Purpose {
 	return p
 }
 
-// Log adds r to the AI record. The first time, what an older version
-// counted in usage.json goes before it, a line for each model; that file
-// is not read again.
+// Log adds r to the AI record.
 func (s *Store) Log(r Record) error {
 	if r.Schema == 0 {
 		r.Schema = Schema
@@ -110,19 +94,11 @@ func (s *Store) Log(r Record) error {
 	}
 	_, prefix, err := s.records()
 	if errors.Is(err, os.ErrNotExist) {
-		before, err := s.before()
+		line, err := json.Marshal(r)
 		if err != nil {
 			return err
 		}
-		var lines bytes.Buffer
-		for _, x := range append(before, r) {
-			line, err := json.Marshal(x)
-			if err != nil {
-				return err
-			}
-			lines.Write(append(line, '\n'))
-		}
-		return atomicWrite(p, lines.Bytes(), true)
+		return atomicWrite(p, append(line, '\n'), true)
 	}
 	if err != nil {
 		return err
@@ -130,8 +106,7 @@ func (s *Store) Log(r Record) error {
 	return appendJSONL(p, prefix, r)
 }
 
-// Records is the AI record, the oldest first: with none kept yet, what an
-// older version counted in usage.json.
+// Records is the AI record, the oldest first.
 func (s *Store) Records() ([]Record, error) {
 	unlock, err := s.lock()
 	if err != nil {
@@ -140,7 +115,7 @@ func (s *Store) Records() ([]Record, error) {
 	defer unlock()
 	all, _, err := s.records()
 	if errors.Is(err, os.ErrNotExist) {
-		return s.before()
+		return nil, nil
 	}
 	return all, err
 }
@@ -174,7 +149,7 @@ func validRecord(r Record) error {
 	switch {
 	case strings.TrimSpace(r.Model) == "":
 		return errors.New("model: a request without its model")
-	case r.Took < 0 || r.Requests < 0 || u.Input < 0 || u.CacheRead < 0 || u.CacheWrite < 0 || u.Output < 0 || u.Reasoning < 0 || r.Cost < 0:
+	case r.Took < 0 || u.Input < 0 || u.CacheRead < 0 || u.CacheWrite < 0 || u.Output < 0 || u.Reasoning < 0 || r.Cost < 0:
 		return errors.New("counts cannot be negative")
 	case r.Cost > 0 && r.Currency == "":
 		return errors.New("cost needs its currency")
@@ -184,7 +159,6 @@ func validRecord(r Record) error {
 		if r.At.IsZero() {
 			return errors.New("at: a request without its time")
 		}
-	case FeatureBefore:
 	default:
 		return fmt.Errorf("feature: unknown %q", r.Feature)
 	}

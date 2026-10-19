@@ -432,8 +432,6 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('少见的情况'); await click('本章过长，仅检查前文'); await win('仅检查前 5000 字'); await win('检查失败', false); await win('检查完成', false); await shot('86-read-in-part'); await done('a chapter read in part')
   await click('少见的情况'); await click('本章检查失败'); await win('检查失败：无法连接模型服务'); await shot('86-check-failed'); await click('检查'); await click('名字有误 1'); await click('无需修改'); await win('检查未完成'); await win('这一类没有待处理的', false); await shot('86-check-unfinished'); await click('正文'); await done('a check that failed')
   await click('少见的情况'); await click('未选择续写和检查模型'); await win('检查失败：请在设置中「AI」配置里选择续写和检查模型'); await done('no model to write with')
-  await click('少见的情况'); await click('作品里有旧版本记的用量'); await win('本作品用量'); must(await js(`[...document.querySelectorAll('.spent > *')].map((e) => e.firstElementChild.innerText).join(' ')`) === '讨论 起草 改写 续写 检查 此前', 'what was spent before is not its own line'); await win('37 次请求'); await shot('86c-spent-before')
-  await click(await js(`[...document.querySelectorAll('.link')].find((e) => e.innerText.startsWith('查看全部记录')).innerText`)); await click('共 37 次请求 · deepseek-flash'); await win('此版本以前记下的用量，不分功能和章节。'); await win('实际用量：输入 412K，其中缓存命中 260K；输出 9.8K'); await inDialog('此前'); must(await js(`document.querySelectorAll('.record-row').length`) === 1, 'the filter shows more than what was spent before'); await shot('86d-records-before'); await key('Escape'); await done('what was spent before the record')
 
   // A narrow window puts the sidebar away to a column of icons where it lists no chapters; the trash is there, over the gear.
   await click('少见的情况'); await click('窗口变窄'); must(!(await has('.sidebar.slim')), 'the sidebar listing the chapters went slim'); await click('讨论'); must(await has('.sidebar.slim'), 'the sidebar of a narrow window is not slim')
@@ -647,6 +645,11 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('文件'); await click('设置…'); await click('关闭 AI'); await win('是否开启 AI？'); await shot('99i-ask-ai-on'); await click('开启 AI'); await win('是否开启 AI？', false); await win('模型服务'); await click('关闭设置')
   must(await navs() === '讨论 正文 检查 作品分类', 'with AI on again the sidebar offers: ' + await navs()); must(await paneTabs() === '设定 讨论 伏笔', 'with AI on again the pane offers: ' + await paneTabs())
   await click('讨论', 1); await pane('该消息尚未收到回复'); await pane('重试回复')
+  // Off on the talk page, the prose shows; on again while it does, the talk page is back.
+  await js(`document.querySelectorAll('.navs .nav')[0].click()`); must(await js(`S.page`) === 'talk', 'the talk page did not open')
+  await aiOff(); await click('关闭设置'); must(await js(`S.page`) === 'write', 'with AI off the talk page stayed')
+  await click('文件'); await click('设置…'); await click('关闭 AI'); await click('开启 AI'); await click('关闭设置'); must(await js(`S.page`) === 'talk', 'with AI on again the talk page is not back')
+  await js(`document.querySelectorAll('.navs .nav')[1].click()`); must(await js(`S.page`) === 'write', 'the prose did not open')
   // The shelf, and the shelf with nothing on it, say nothing of AI either.
   await aiOff(); await click('关闭设置'); await click('切换作品'); await click('全部作品…'); await noAI('the shelf')
   for (;;) {

@@ -105,7 +105,7 @@ function fresh(book = BOOK.shelf[0].id) {
     look: '跟随系统', shelf: structuredClone(BOOK.shelf), cards: true, library: BOOK.library,
     uses: structuredClone(BOOK.uses), services: BOOK.services.map((x) => ({ ...x, models: x.models.map(limits) })), auto: false,
     when: '写完一章后检查', late: BOOK.late, goal: '', goalSet: '', paneW: 0, // paneW 是右栏拖出来的宽度，没拖过是 0
-    noAI: false, // 关闭了 AI：本机的所有作品都不显示 AI 功能，也不发送任何内容
+    noAI: false, offFrom: '', // 关闭了 AI：本机的所有作品都不显示 AI 功能，也不发送任何内容；offFrom 是关的时候停在的讨论页、检查页
     exportWhat: ['正文'], exportAs: 'Word', pen: '', // 导出勾了哪几样、成什么格式，上次写在首页的笔名（新作品沿用它）
   }
 }
