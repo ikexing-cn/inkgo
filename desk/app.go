@@ -178,6 +178,7 @@ type App struct {
 	talkProvider, talkModel          string
 	categoryName                     string
 	categoryTarget                   string
+	categoryShow                     bool // the form was opened on a category, to come into view
 	removeCategory                   string
 	talkEffort                       string
 	penProvider, penModel            string

@@ -151,9 +151,9 @@ func TestANewWorkSaysWhereItGoes(t *testing.T) {
 		name, say string
 		fits      bool
 	}{
-		{"新书", "将新建该文件夹。", true},
-		{"空文件夹", "该文件夹为空，作品将建在其中。", true},
-		{"旧稿", "该文件夹中已有文件，请更换名称或位置。", false},
+		{"新书", "将新建文件夹「新书」。", true},
+		{"空文件夹", "文件夹「空文件夹」为空，作品将建在其中。", true},
+		{"旧稿", "文件夹「旧稿」中已有文件，请更换名称或位置。", false},
 	} {
 		a.name = c.name
 		tt.Frame()

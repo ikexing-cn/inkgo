@@ -136,7 +136,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   // A change the AI saw is taken onto its entry, from its chapter on: a step of that entry, not an entry of its own.
   await click('采纳'); await pane('1 条 AI 建议'); await pane('关于 林晚 · 第87章起', false)
   // A question of the AI's is answered, not taken: the answer is the entry, in the question's category, and says what it answers.
-  must(!(await js(`[...document.querySelectorAll('.pane .btn')].some((b) => b.innerText === '采纳')`)), 'a question can be taken as it is'); await click('回答'); await pane('林晚怕黑，是不是和她母亲有关？'); await pane('人物'); await shot('06-answer')
+  must(!(await js(`[...document.querySelectorAll('.pane .btn')].some((b) => b.innerText === '采纳')`)), 'a question can be taken as it is'); await click('回答'); await pane('林晚怕黑，是不是和她母亲有关？'); await pane('人物'); must(await js(`document.querySelector('[aria-label="名字"]').value`) === '林晚的母亲', 'the answer lost the name of the question'); await shot('06-answer')
   await type('内容', '母亲是在一次停电里出的事。'); await click('保存'); await pane('待确认', false); await click('母亲是在一次停电里出的事。'); await pane('回答：林晚怕黑，是不是和她母亲有关？'); await click('全部设定'); await done('decide the ideas')
   await click('更多'); await pane('修改记录'); await shot('07-menu'); await click('已删除'); await pane('老陈')
   await click('老陈'); await pane('恢复设定'); await click('查看原文'); await win('第2章：井沿'); must((await drawn('老陈把门卫室的灯拧亮。')) === 'sel', 'the deleted entry\'s sentence is not picked out')
@@ -169,8 +169,9 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('伏笔'); await pane('久未回收'); await pane('未回收'); await shot('12-foreshadowings')
   await click('她怕黑的真正原因'); await pane('埋在「第1章：巷口」，已过 86 章'); await click('查看原文'); await win('第1章：巷口')
   must((await drawn('她修了七年路灯，却从来不敢在天黑以后走进没有灯的巷子。')) === 'fs on', 'the open foreshadowing is not lit'); await shot('13-mark-source')
-  await click('记为回收'); await win('请先在正文中选中回收伏笔的段落'); must(await toastMark('请先在正文中选中回收伏笔的段落') === 'none', 'a word on what to do first wears a mark'); await shot('14-toast'); await sleep(3300); await win('请先在正文中选中回收伏笔的段落', false); await done('pay off with nothing picked')
-  await click('第87章：停电'); await select(5, '她往前走了一步。'); await click('记为回收'); await win('选择要回收的伏笔'); await win('86 章前埋下'); await shot('15-pay-from-pane')
+  must(await js(`[...document.querySelectorAll('#pane .btn')].find((e) => e.innerText === '记为回收').classList.contains('off')`), '记为回收 can be pressed with nothing picked'); await pane('请先在正文中选中回收的段落')
+  await js(`[...document.querySelectorAll('#pane .btn')].find((e) => e.innerText === '记为回收').click()`); await sleep(300); must(!(await js(`!!document.querySelector('.toast')`)), 'a toast says again what the pane says'); await win('选择要回收的伏笔', false); await shot('14-pay-nothing-picked'); await done('pay off with nothing picked')
+  await click('第87章：停电'); await select(5, '她往前走了一步。'); await js(`document.querySelector('[data-para="5"]').dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0 }))`); await click('记为回收'); await win('选择要回收的伏笔'); await win('86 章前埋下'); await shot('15-pay-from-pane')
   await click('确定回收'); await win('选择要回收的伏笔', false); await pane('回收在「第87章：停电」，相隔 86 章'); await pane('取消回收'); await pane('她往前走了一步。')
   must((await drawn('她往前走了一步。')) === 'fs on', 'the payoff is not lit'); await shot('16-paid'); await done('pay off from the pane')
   await click('修改备注'); await type('修改伏笔备注', '（改）'); await key('Enter'); await pane('她怕黑的真正原因（改）'); await pane('修改备注')
@@ -198,7 +199,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
 
   // A foreshadowing whose sentence is gone takes a new one.
   await click('全部伏笔'); await click('原句已删'); await click('小祥的左手'); await pane('「第1章：巷口」里的原句已删除'); await shot('23-lost')
-  await click('更换原句'); await win('请先在正文中选中要关联的句子'); await click('关闭提示'); await win('请先在正文中选中要关联的句子', false); await click('查看原文'); await select(5, '小祥把左手揣回兜里。'); await click('更换原句')
+  must(await js(`[...document.querySelectorAll('#pane .btn')].find((e) => e.innerText === '更换原句').classList.contains('off')`), '更换原句 can be pressed with nothing picked'); await click('查看原文'); await select(5, '小祥把左手揣回兜里。'); await js(`document.querySelector('[data-para="5"]').dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0 }))`)
+  must(!(await js(`[...document.querySelectorAll('#pane .btn')].find((e) => e.innerText === '更换原句').classList.contains('off')`)), '更换原句 stays grey with words picked'); await click('更换原句')
   await pane('埋在「第1章：巷口」，已过 86 章'); await pane('记为回收'); must((await drawn('小祥把左手揣回兜里。')) === 'fs on', 'the new sentence is not lit'); await done('a new sentence')
   await click('全部伏笔'); await pane('此处暂无伏笔'); await click('全部伏笔'); await click('更多'); await shot('24-foreshadowing-menu'); await click('已放弃'); await click('红色钥匙'); await pane('已放弃'); await click('恢复伏笔'); await pane('放弃伏笔'); await done('give up and take back')
 
@@ -339,8 +341,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
 
   // The discussion page: a talk, what stands under a reply, a new talk, the model.
   await click('重新开始'); await click('讨论'); await win('总讨论'); await win('8 条发言'); await win('前半段偏慢'); await pane('待确认'); await pane('伏笔', false); await shot('58-talk-page')
-  await win('读了「第87章：停电」，读了「第86章：档案室」'); await click('以上 2 轮已整理成摘要'); await win('作者的态度和偏好'); await win('摘要由 AI 写成，有误可在对话中指出。'); await win('和停电时「林晚」想起七岁那晚的写法。'); await win('和「林晚怕黑，是不是和她母亲有关」一起定。'); await win('[1]', false); await win('• 作者先改前半段。'); await win('• 再回来看「周祥」叫她“姐”那句。'); await win('- 作者', false); await shot('58a-digest')
-  await click('林晚'); await pane('主角，靠维修路灯谋生'); await click('周祥'); await pane('配角，林晚的同事'); await click('林晚怕黑，是不是和她母亲有关'); await pane('林晚怕黑，是不是和她母亲有关？'); await click('以上 2 轮已整理成摘要'); await win('作者的态度和偏好', false)
+  await win('读了「第87章：停电」，读了「第86章：档案室」'); await click('以上 2 轮已整理成摘要'); await win('作者的态度和偏好'); await win('摘要由 AI 写成，有误可在对话中指出。'); await win('和停电时「林晚」想起七岁那晚的写法。'); await win('等作者答了「林晚的母亲」那条提问再定。'); await win('[1]', false); await win('• 作者先改前半段。'); await win('• 再回来看「周祥」叫她“姐”那句。'); await win('- 作者', false); await shot('58a-digest')
+  await click('林晚'); await pane('主角，靠维修路灯谋生'); await click('周祥'); await pane('配角，林晚的同事'); await click('林晚的母亲'); await pane('林晚怕黑，是不是和她母亲有关？'); await click('以上 2 轮已整理成摘要'); await win('作者的态度和偏好', false)
   await type('讨论输入', '先改哪一段'); await key('Enter', true); await win('正在压缩上下文…'); await win('正在思考', false); await shot('58d-compacting'); await sleep(1000); await win('以上 4 轮已整理成摘要'); await win('以上 2 轮已整理成摘要', false); await win('正在思考…')
   await click('取消请求'); await win('该消息尚未收到回复'); await win('以上 4 轮已整理成摘要'); await done('a long talk')
   { const [x, y] = await row('主角有个说不出口的秘密'); await rclick(x, y); await click('收起这段对话'); await win('已收起 1 段对话'); await win('主角有个说不出口的秘密', false); await click('已收起 1 段对话'); await win('不显示收起的对话') }
@@ -392,6 +394,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   // Categories.
   await click('作品分类'); await win('设定文档按分类分节'); await win('落点：大纲'); await shot('72-cats'); await type('分类名称', '线索'); must(await has('.cat-form .btn.primary.off'), 'a category with no target can be saved'); await win('将添加新分类。'); await type('落点', '大纲'); must(!(await has('.cat-form .btn.off')), 'a category filled in cannot be saved'); await click('保存分类'); await win('分类“线索”已保存'); await click('关闭提示')
   must(await js(`(() => { const t = document.querySelector('.cat-rows').innerText; return t.includes('线索') && t.indexOf('线索') < t.indexOf('其他') })()`), 'the new category is not before the last one'); await click('编辑', 1); must((await value('分类名称')) === '人物', 'the category is not ready to change'); await win('将修改已有的分类“人物”，现在的落点是“设定库”。'); await shot('72-cat-change')
+  await click('取消'); must((await value('分类名称')) === '' && (await value('落点')) === '', 'putting the category away left the form filled in'); await click('编辑', 1)
   await click('删除'); await win('7 条设定将移到“其他”'); await shot('73-cat-delete'); await click('确认删除'); await win('已删除分类“人物”'); must(!(await js(`document.querySelector('.cat-rows').innerText.includes('人物')`)), 'the category is still listed'); await click('关闭提示')
   // An empty one goes at once: nothing to move, nothing to ask.
   await js(`[...document.querySelectorAll('.cat-row')].find((r) => r.innerText.startsWith('线索')).querySelector('.hit.link:last-child').click()`); await win('确认删除', false); await win('已删除分类“线索”'); must(!(await js(`document.querySelector('.cat-rows').innerText.includes('线索')`)), 'the empty category is still listed'); await click('关闭提示'); await done('categories')
@@ -400,7 +403,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('重新开始'); await click('切换作品'); await click('全部作品…'); await win('我的作品'); await win('4 部 · 作品库：D:\\写作'); await win('找不到文件夹'); await shot('74-shelf')
   await click('列表'); await win('重新定位…'); await win('D:\\写作\\旧城灯匠'); await shot('75-shelf-list'); await click('卡片'); await click('更多操作'); await win('打开所在文件夹'); await click('重命名…'); await win('仅修改作品名，文件夹不变。'); await clear('新作品名'); await type('新作品名', '雨城'); await click('保存'); await win('雨城来信', false)
   await click('移除'); await win('已从书架移除文件夹未改动：早年的稿子'); await win('3 部'); await click('关闭提示'); await done('the shelf')
-  await click('新建作品'); await win('将新建该文件夹。'); must((await value('作品位置')) === 'D:\\写作\\未命名作品', 'where the work goes is not offered'); await type('作品名称', '新书'); must((await value('作品位置')) === 'D:\\写作\\新书', 'where the work goes does not follow its name'); await click('网文'); await click('剧本'); await shot('76-new-book'); await click('创建')
+  await click('新建作品'); await win('将新建文件夹「未命名作品」。'); must((await value('作品位置')) === 'D:\\写作\\未命名作品', 'where the work goes is not offered'); await type('作品名称', '新书'); must((await value('作品位置')) === 'D:\\写作\\新书', 'where the work goes does not follow its name'); await click('网文'); await click('剧本'); await shot('76-new-book'); await click('创建')
   await win('暂无章节'); await win('新书'); await win('尚未备份'); await pane('暂无设定'); await shot('77-empty-book'); await click('新建第一章'); await key('Enter'); await win('在此开始写作…'); await win('本章 0 字 · 全书 0 字'); await win('设定为空，无可对照内容'); await click('检查'); await click('检查全书'); await win('请先在讨论中确定设定，才能对照检查。'); await click('关闭提示'); await click('文件'); await click('导出…'); await inDialog('设定'); await win('还没有已定的设定，不导出设定。'); await inDialog('正文'); must(await has('.dialog .btn.primary.off'), 'a work with nothing in it can be exported'); await inDialog('正文'); await inDialog('设定'); await click('取消'); await click('讨论'); await win('从一个初步的想法开始'); await win('我想写一个总在下雨的城市'); await click('正文'); await done('a new work')
   await click('尚未备份'); await win('作品目前仅保存在本机。'); await click('选择位置…'); await win('选择其他位置，定期保存副本。'); await win('OneDrive 同步文件夹'); await shot('78-first-backup'); await click('开始备份'); await win('正在备份…'); await sleep(1400); await win('已备份 · 今天 10:40'); await done('a first backup')
   await click('切换作品'); await click('井边'); await win('备份失败 · 找不到 E 盘'); await win('从左侧选择一章开始写作', false); await win('暂无章节'); await shot('79-backup-failed'); await click('待处理 1'); await win('备份失败，找不到 E 盘'); await win('点击重试 · 上次备份 昨天 21:40'); await key('Escape')
@@ -430,7 +433,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('少见的情况'); await click('本章在软件外被修改'); await click('保留当前版本'); await win('已保留编辑器版本磁盘内容已存为快照'); await click('关闭提示'); await done('a chapter changed outside')
   // A chapter too long for the model: the check says how much of it was read.
   await click('少见的情况'); await click('本章过长，仅检查前文'); await win('仅检查前 5000 字'); await win('检查失败', false); await win('检查完成', false); await shot('86-read-in-part'); await done('a chapter read in part')
-  await click('少见的情况'); await click('本章检查失败'); await win('检查失败：无法连接模型服务'); await shot('86-check-failed'); await click('检查'); await click('名字有误 1'); await click('无需修改'); await win('检查未完成'); await win('这一类没有待处理的', false); await shot('86-check-unfinished'); await click('正文'); await done('a check that failed')
+  await click('少见的情况'); await click('本章检查失败'); await win('检查失败：无法连接模型服务'); await shot('86-check-failed'); await click('检查'); await click('名字有误 1'); await click('无需修改'); await win('检查未完成'); await win('这一类没有待处理的', false); await win('章失败'); await win('已检查至', false); await shot('86-check-unfinished'); await click('正文'); await done('a check that failed')
   await click('少见的情况'); await click('未选择续写和检查模型'); await win('检查失败：请在设置中「AI」配置里选择续写和检查模型'); await done('no model to write with')
 
   // A narrow window puts the sidebar away to a column of icons where it lists no chapters; the trash is there, over the gear.
@@ -441,8 +444,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
 
   // The whole book checked: the chapters changed since, one after another.
   await click('检查'); await click('重新检查'); await win('2 章未检查或有改动'); await win('每章调用一次 AI，共 2 次。'); await shot('87-check-all'); await click('取消'); await win('2 章未检查或有改动', false)
-  await click('重新检查'); await click('开始检查'); await win('正在检查「第86章：档案室」，还有 1 章'); await sleep(1000); await win('正在检查「第87章：停电」'); await win('还有', false); await click('停止'); await win('已检查至「番外：晴天」'); await click('重新检查'); await win('1 章未检查或有改动'); await click('开始检查'); await sleep(1100)
-  await click('重新检查'); await win('各章均已检查正文无新改动'); await click('关闭提示'); await click('正文'); await win('本章检查完成，有 1 处待处理'); await done('the whole book checked')
+  await click('重新检查'); await click('开始检查'); await win('正在检查「第86章：档案室」，还有 1 章'); await sleep(1000); await win('正在检查「第87章：停电」'); await win('还有', false); await click('停止'); await win('1 章失败'); await win('已检查至', false); await click('重新检查'); await win('1 章未检查或有改动'); await click('开始检查'); await sleep(1100)
+  await click('重新检查'); await win('各章均已检查正文无新改动'); must(await toastMark('各章均已检查') === 'none', 'a word on what to do first wears a mark'); await shot('14-toast'); await click('关闭提示'); await click('正文'); await win('本章检查完成，有 1 处待处理'); await done('the whole book checked')
 
   // A chapter the disk lost: what is in the editor becomes a chapter of its own.
   await click('少见的情况'); await click('本章文件丢失'); await win('磁盘上已找不到本章文件：在软件外改名、移动或删除，均视为删除。编辑器中的内容仍保留。'); must(!(await js(`[...document.querySelectorAll('.tree-row')].some((r) => r.innerText.includes('第87章'))`)), 'the lost chapter is still in the tree'); await shot('88-lost')
@@ -482,7 +485,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   // The shelf: a work added from disk, a place taken, a name left empty.
   await click('切换作品'); await click('全部作品…'); await click('添加已有作品…'); await win('已加入书架'); await win('井边的旧稿'); await win('尚未打开'); await win('5 部'); await click('关闭提示'); await click('添加已有作品…'); await win('该作品已在书架上'); await click('关闭提示')
   await click('少见的情况'); await click('添加的文件夹中没有作品'); await win('该文件夹中没有作品（缺少 work.yaml）'); await click('关闭提示')
-  await click('新建作品'); await type('作品名称', '雨城来信'); await win('该文件夹中已有文件，请更换名称或位置。'); must(await has('.dialog .note.danger'), 'a place with files in it is not said in red'); must(await has('.dialog .btn.primary.off'), 'a work can be made where there are files'); await shot('96-place-taken'); await clear('作品位置'); await win('请填写作品位置。'); must(!(await has('.dialog .note.danger')) && await has('.dialog .btn.primary.off'), 'a work can be made nowhere'); await click('取消')
+  await click('新建作品'); await type('作品名称', '雨城来信'); await win('文件夹「雨城来信」中已有文件，请更换名称或位置。'); must(await has('.dialog .note.danger'), 'a place with files in it is not said in red'); must(await has('.dialog .btn.primary.off'), 'a work can be made where there are files'); await shot('96-place-taken'); await clear('作品位置'); await win('请填写作品位置。'); must(!(await has('.dialog .note.danger')) && await has('.dialog .btn.primary.off'), 'a work can be made nowhere'); await click('取消')
   await click('更多操作'); await click('重命名…'); await clear('新作品名'); must(await has('.dialog .btn.primary.off'), 'a work can be named nothing'); await click('取消'); await click('重新开始'); await done('the shelf, where things go wrong')
 
   // Tabs: a chapter opened gets one beside the one shown, and they close one by one, or all but one.

@@ -139,27 +139,29 @@ func (a *App) openCreate() {
 }
 
 // placeFor says what is at the folder a new work would go in, and whether
-// the work can go there: a folder not made yet, or an empty one.
+// the work can go there: a folder not made yet, or an empty one. It names
+// the folder, which a long path in the field above leaves out.
 func placeFor(dir string) (say string, fits bool) {
 	if dir == "" {
 		return "请填写作品位置。", false
 	}
+	name := "「" + filepath.Base(filepath.Clean(dir)) + "」"
 	fi, err := os.Stat(dir)
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
-		return "将新建该文件夹。", true
+		return "将新建文件夹" + name + "。", true
 	case err == nil && !fi.IsDir():
-		return "该位置是一个文件，请更换名称或位置。", false
+		return name + "是一个文件，请更换名称或位置。", false
 	}
 	f, err := os.Open(dir)
 	if err != nil {
-		return "无法打开该文件夹，请更换名称或位置。", false
+		return "无法打开文件夹" + name + "，请更换名称或位置。", false
 	}
 	defer f.Close()
 	if names, _ := f.Readdirnames(1); len(names) > 0 {
-		return "该文件夹中已有文件，请更换名称或位置。", false
+		return "文件夹" + name + "中已有文件，请更换名称或位置。", false
 	}
-	return "该文件夹为空，作品将建在其中。", true
+	return "文件夹" + name + "为空，作品将建在其中。", true
 }
 
 // create makes a work where the dialog says.

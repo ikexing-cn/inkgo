@@ -241,7 +241,8 @@ function setting() {
   const when = (e) => { const g = asOf(e, here); return g ? fromWhere(g.key) : here && changesOf(e).some((x) => rank(x.key) > rank(here)) ? '之后有变化' : '' }
   const row = (e, find = '') => { const text = textAt(e, here); return item({ name: e.names[0] || text, about: e.names.length ? near(text, find) : '', find, side: e.place === 'body' ? when(e) : '', dot: e.place === 'body' && open.some((o) => o.about === e.id), open: () => set({ sid: e.id }) }) }
   // AI 的提问不是设定，答案才是：不「采纳」，「回答」。
-  const answer = (o) => () => set({ form: { id: null, name: '', names: '', text: '', cat: o.cat, ask: o.id, q: o.text }, ...SHUT })
+  // 问题原来带着名字的，答案也带着：第一个进名字，其余进别名，作者删了才算不要。
+  const answer = (o) => () => set({ form: { id: null, name: (o.names || [])[0] || '', names: (o.names || []).slice(1).join('、'), text: '', cat: o.cat, ask: o.id, q: o.text }, ...SHUT })
   // AI 建议的一处变化（from），采纳就记到它说的那一条上。
   const idea = (o, about) => `<div class="idea">${about ? `<div class="idea-about">${t(about)}</div>` : ''}${o.from && !about ? `<div class="idea-about">${t(fromWhere(o.from))}</div>` : ''}<div class="text">${t(o.text)}</div>` +
     buttons(button('忽略', o.from ? () => dropIdea(o) : () => move(o.id, 'dropped')), asks(o) ? button('回答', answer(o), 'primary') : button('采纳', o.from ? () => takeChange(o) : () => move(o.id, 'body'), 'primary')) + '</div>'
@@ -380,9 +381,9 @@ function foreshadowing() {
         : `<div class="title-line"><div class="title ell">${t(nameOf(shown))}</div><div class="grow"></div>${st === 'lost' ? '' : button('修改备注', () => set({ renote: shown.note }))}</div>`) +
       where(st === 'lost' ? '「' + chTitle(shown.key) + '」里的原句已删除' : '埋在「' + chTitle(shown.key) + '」' + (st === 'open' && gap > 0 ? '，已过 ' + gap + ' 章' : ''), goTo(shown.key)) +
       `<div class="quote${st === 'lost' ? ' gone' : ''}">${t(shown.quote)}</div>` + HAIR +
-      (st === 'open' ? '<div class="state">未回收</div><div class="note">请先在正文中选中回收的段落</div>' + buttons(button('记为回收', () => askPay(shown.id), 'primary')) : '') +
+      (st === 'open' ? '<div class="state">未回收</div><div class="note">请先在正文中选中回收的段落</div>' + buttons(button('记为回收', S.bar ? () => askPay(shown.id) : null, S.bar ? 'primary' : 'primary off')) : '') +
       (st === 'done' ? where('回收在「' + chTitle(shown.pay.key) + '」，相隔 ' + Math.max(shown.pay.ch - shown.ch, 0) + ' 章', goTo(shown.pay.key)) + `<div class="quote">${t(shown.pay.quote)}</div>` : '') +
-      (st === 'lost' ? '<div class="note">请先在正文中选中新的句子</div>' + buttons(button('更换原句', () => rehang(shown.id), 'primary')) : '') +
+      (st === 'lost' ? '<div class="note">请先在正文中选中新的句子</div>' + buttons(button('更换原句', S.bar ? () => rehang(shown.id) : null, S.bar ? 'primary' : 'primary off')) : '') +
       (st === 'dropped' ? '<div class="state">已放弃</div>' : '') +
       '</div>'
   }

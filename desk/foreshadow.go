@@ -697,11 +697,25 @@ func (a *App) foreDetail(c *ui.Context, f foreshadow) {
 		}
 		a.paneQuote(c, f.quote, f.lost)
 		a.pal.hairline(c)
+		// What takes words picked in the prose waits for them, as the
+		// context menu does; the words above it stay as they are, so the
+		// pane does not jump while the author picks.
+		unpicked := func(b ui.Element) ui.Element {
+			none := true
+			if ed := a.write.ed; ed != nil {
+				s, e := ed.Selection()
+				none = s == e || ed.ReadOnly()
+			}
+			if none {
+				pale(b.Disabled(true))
+			}
+			return b
+		}
 		switch st {
 		case foreLost:
 			a.paneNote(c, "请先在正文中选中新的句子")
 			paneButtons(c, func() {
-				if a.paneButton(c, "更换原句", true).Clicked() {
+				if unpicked(a.paneButton(c, "更换原句", true)).Clicked() {
 					a.rehang(f)
 				}
 			})
@@ -709,7 +723,7 @@ func (a *App) foreDetail(c *ui.Context, f foreshadow) {
 			ui.Text(c, foreLabels[st]).FontSize(fsBody).FontWeight(600)
 			a.paneNote(c, "请先在正文中选中回收的段落")
 			paneButtons(c, func() {
-				if a.paneButton(c, "记为回收", true).Clicked() {
+				if unpicked(a.paneButton(c, "记为回收", true)).Clicked() {
 					a.openPay(f.id)
 				}
 			})

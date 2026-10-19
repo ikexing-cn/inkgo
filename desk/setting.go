@@ -443,6 +443,9 @@ func (a *App) idea(c *ui.Context, it idea, about string) {
 			case asks(e):
 				if a.paneButton(c, "回答", true).Label("回答-" + e.ID).Clicked() {
 					d.editing, d.asking, d.text, d.category, d.name, d.names = "new", e.ID, "", e.Category, "", ""
+					if len(e.Names) > 0 { // the answer keeps the names asked about, unless the author takes them out
+						d.name, d.names = e.Names[0], strings.Join(e.Names[1:], "、")
+					}
 				}
 			default:
 				if a.paneButton(c, "采纳", true).Label("采纳-" + e.ID).Clicked() {

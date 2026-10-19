@@ -752,13 +752,26 @@ func (a *App) checkProgress(c *ui.Context) {
 		}
 		return
 	}
-	last, lastTitle := 0, ""
+	last, lastTitle, done, failed := 0, "", 0, 0
 	for id := range k.all {
-		if no, title := a.checkAt(id); no > last {
+		no, title := a.checkAt(id)
+		if no > last {
 			last, lastTitle = no, title
 		}
+		if _, bad := k.failed[id]; no > 0 && !bad {
+			done++
+		}
 	}
-	if last > 0 {
+	for id := range k.failed {
+		if no, _ := a.checkAt(id); no > 0 {
+			failed++
+		}
+	}
+	switch {
+	case failed > 0:
+		// 已检查至 would read as all before it checked.
+		ui.Textf(c, "已检查 %d 章，%d 章失败", done, failed).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
+	case last > 0:
 		ui.Text(c, "已检查至「"+lastTitle+"」").FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
 	}
 	label := "重新检查"

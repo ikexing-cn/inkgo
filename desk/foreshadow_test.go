@@ -199,6 +199,14 @@ func TestForeshadowLost(t *testing.T) {
 	if a.hint == "" {
 		t.Fatal("hung on nothing")
 	}
+	// With nothing picked the pane's button waits, as the menu's does,
+	// rather than saying so in a toast.
+	a.hint = ""
+	_ = tt.Click("更换原句")
+	tt.Frame()
+	if f, _ = a.foreshadowOf(id); a.hint != "" || f.status() != foreLost {
+		t.Fatalf("更换原句 pressed with nothing picked: %q %+v", a.hint, f)
+	}
 	text := w.ed.Doc.String()
 	at := len([]rune(text[:strings.Index(text, "她没有去捡。")]))
 	w.ed.Select(at, at+6)
@@ -208,6 +216,22 @@ func TestForeshadowLost(t *testing.T) {
 	tt.Frame()
 	if f, _ = a.foreshadowOf(id); f.status() != foreOpen || f.quote != "她没有去捡。" || f.note != "钥匙" {
 		t.Fatalf("not hung again %+v", f)
+	}
+	w.ed.MoveTo(0, false)
+	tt.Frame()
+	_ = tt.Click("记为回收")
+	tt.Frame()
+	if a.hint != "" || w.fore.paying {
+		t.Fatalf("记为回收 pressed with nothing picked: %q", a.hint)
+	}
+	w.ed.Select(0, 2)
+	tt.Frame()
+	if err := tt.Click("记为回收"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !w.fore.paying {
+		t.Fatal("记为回收 waits with words picked")
 	}
 	ch, err := a.Store.ReadChapter(one)
 	if err != nil || len(ch.Marks) != 1 || ch.Marks[0].Orphaned || ch.Marks[0].Quote != "她没有去捡。" {

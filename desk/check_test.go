@@ -347,7 +347,8 @@ func TestShowingAChapterKeepsWhatItsCheckFound(t *testing.T) {
 
 // A check that failed is not told on the page as one that found nothing:
 // the page names the first chapter in the book that failed, the same one
-// every frame.
+// every frame, and the line above says how many failed rather than how
+// far the checks went.
 func TestAFailedCheckIsNotToldAsClear(t *testing.T) {
 	a, tt, id, _ := checkFixture(t)
 	second, err := a.Store.NewChapter("", "第二章", false)
@@ -366,6 +367,15 @@ func TestAFailedCheckIsNotToldAsClear(t *testing.T) {
 		if !tt.HasText("检查未完成") || !tt.HasText("「第一章」检查失败：无法连接模型服务") || tt.HasText("尚未检查") {
 			t.Fatal(tt.Texts())
 		}
+	}
+	said := ""
+	for _, s := range tt.Texts() {
+		if strings.HasPrefix(s, "已检查") {
+			said = s
+		}
+	}
+	if !strings.HasSuffix(said, "章，2 章失败") {
+		t.Fatalf("the line above says %q", said)
 	}
 }
 

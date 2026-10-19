@@ -2,6 +2,7 @@ package desk
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/egoist/mygo/ui"
 	"writer/workspace"
@@ -41,7 +42,7 @@ func (a *App) categories(c *ui.Context) {
 						ui.Textf(c, "%d 条", counts[cat.Name]).FontSize(fsNote).TextColor(t.TextMuted).Shrink(0)
 						edit := a.pal.ghost(c, "编辑", ui.Color{}).Label("编辑-" + cat.Name).Disabled(busy)
 						if edit.Clicked() {
-							a.categoryName, a.categoryTarget = cat.Name, cat.Target
+							a.categoryName, a.categoryTarget, a.categoryShow = cat.Name, cat.Target, true
 						}
 						// 其他 cannot go: what has no category is kept there.
 						del := a.pal.ghost(c, "删除", ui.Color{}).Label("删除-" + cat.Name).Disabled(busy || cat.Name == workspace.Other)
@@ -60,13 +61,24 @@ func (a *App) categories(c *ui.Context) {
 				}
 			})
 			ui.Text(c, "添加或修改分类").FontSize(fsGroup).FontWeight(600).Padding(8, 0, 0, 0)
-			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.End).Children(func() {
+			form := ui.Row(c).FillWidth().Gap(10).AlignItems(ui.End)
+			if a.categoryShow {
+				// Below a long list, it would open out of view.
+				form.ScrollIntoView()
+				a.categoryShow = false
+			}
+			form.Children(func() {
 				labeled(c, "名称", func() {
 					ui.TextInput(c, &a.categoryName).Label("分类名称").FillWidth().Disabled(busy)
 				}).Grow(1).Basis(0)
 				labeled(c, "落点", func() {
 					ui.TextInput(c, &a.categoryTarget).Label("落点").Placeholder("例如 设定库").FillWidth().Disabled(busy)
 				}).Grow(1).Basis(0)
+				// Opened on a category to change, it can be put away.
+				if slices.ContainsFunc(a.Store.Work().Categories, func(cat workspace.Category) bool { return cat.Name == trim(a.categoryName) }) &&
+					a.pal.secondary(c, "取消").Label("取消修改分类").Height(hControl).Disabled(busy).Clicked() {
+					a.categoryName, a.categoryTarget = "", ""
+				}
 				if a.pal.primary(c, "保存分类").Height(hControl).Disabled(busy || trim(a.categoryName) == "" || trim(a.categoryTarget) == "").Clicked() {
 					a.setError(a.saveCategory())
 				}

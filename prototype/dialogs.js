@@ -398,7 +398,9 @@ function newBookDialog(d) {
   const name = d.name.trim() || '未命名作品', at = (d.at ?? S.library + '\\' + name).trim()
   // 位置下面说那里是什么；书架上的作品都在作品库里，同名的文件夹里已有文件。
   const taken = S.shelf.some((b) => S.library + '\\' + b.name === at), fits = at && !taken
-  const where = !at ? '<div class="note">请填写作品位置。</div>' : taken ? '<div class="note danger">该文件夹中已有文件，请更换名称或位置。</div>' : '<div class="note">将新建该文件夹。</div>'
+  // 路径长了框里只露出开头，要核对的文件夹名在说明里写出来。
+  const folder = '「' + t(at.split(/[\\/]/).filter(Boolean).at(-1) || at) + '」'
+  const where = !at ? '<div class="note">请填写作品位置。</div>' : taken ? `<div class="note danger">文件夹${folder}中已有文件，请更换名称或位置。</div>` : `<div class="note">将新建文件夹${folder}。</div>`
   const create = () => {
     if (!fits) return
     const id = 'book' + S.n

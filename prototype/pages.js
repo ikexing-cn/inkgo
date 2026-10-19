@@ -58,7 +58,7 @@ function checkPage() {
   const none = !S.entries.some((e) => e.place === 'body') ? ['设定为空', '请先在讨论中确定设定，才能对照检查。']
     : S.checks.length ? ['这一类没有待处理的', ''] : !last ? ['尚未检查', '点击左上角「检查全书」，或写完一章后自动检查。']
     : ['没有发现不一致', S.when === '手动检查' ? '当前为「手动检查」，需要时点击「重新检查」。' : '写完一章后自动检查，结果显示在此处。']
-  const unfinished = lost && !S.checking // 失败的那章不当作没查出问题
+  const unfinished = lost && !S.checking // 失败的那章不当作没查出问题，上面那一行也不说「已检查至」，像是那以前都查过了
   if (unfinished) none.splice(0, 2, '检查未完成', '「' + titleOf(lost) + '」检查失败：' + S.failed[lost.key])
 
   let detail = `<div class="check-detail">${blank(unfinished ? 'warn' : 'checked', S.checking ? '正在检查…' : none[0], S.checking ? '检查结果将显示在左侧。' : none[1])}</div>`
@@ -84,7 +84,7 @@ function checkPage() {
   return '<div class="check-list">' +
     `<div class="check-head"><div class="page-title">检查</div><div class="grow"></div>` +
     (running ? `<div class="muted">正在检查「${t(titleOf(running))}」${S.queue.length ? '，还有 ' + S.queue.length + ' 章' : ''}</div><div class="hit link"${onClick(() => set({ checking: false, queue: [] }))}>停止</div>`
-      : `<div class="muted">${last ? '已检查至「' + t(titleOf(last)) + '」' : ''}</div><div class="anchor"><div class="hit link"${onClick(again)}>${last ? '重新检查' : '检查全书'}</div>${S.open === 'checkAll' ? ask() : ''}</div>`) + '</div>' +
+      : `<div class="muted">${unfinished ? '已检查 ' + S.chapters.filter((c) => !S.never[c.key] && counted(c) >= 200 && !S.failed[c.key]).length + ' 章，' + S.chapters.filter((c) => S.failed[c.key]).length + ' 章失败' : last ? '已检查至「' + t(titleOf(last)) + '」' : ''}</div><div class="anchor"><div class="hit link"${onClick(again)}>${last ? '重新检查' : '检查全书'}</div>${S.open === 'checkAll' ? ask() : ''}</div>`) + '</div>' +
     seg(S.kind + ' ' + count(S.kind), KINDS.map((k) => k + ' ' + count(k)), (v) => set({ kind: v.split(' ')[0], cid: null }), '检查分类') +
     `<div class="check-rows scroll">${of.map(row).join('')}</div></div>` + detail
 }
@@ -107,18 +107,18 @@ function dropCat(name) {
 function catsPage() {
   const count = (c) => S.entries.filter((e) => e.cat === c && e.place !== 'dropped').length
   const type = (key) => (v) => set((s) => ({ catForm: { ...s.catForm, [key]: v } }))
-  // 同名的是改那一条，不是加：按保存以前就说是哪条、现在落在哪。
+  // 同名的是改那一条，不是加：按保存以前就说是哪条、现在落在哪，也能「取消」不改了。
   const name = S.catForm.name.trim()
   const what = !name ? '' : S.cats.includes(name) ? `将修改已有的分类“${name}”，现在的落点是“${S.lands[name] || '设定库'}”。` : '将添加新分类。'
   const row = (c) => (S.catDrop === c
     ? `<div class="cat-row"><div class="fit">${count(c)} 条设定将移到“其他”</div>${button('取消', () => set({ catDrop: '' }))}${button('确认删除', () => dropCat(c), 'danger')}</div>`
-    : `<div class="cat-row"><div class="cat-name">${t(c)}</div><div class="fit muted">落点：${t(S.lands[c] || '设定库')}</div><div class="side">${count(c)} 条</div><div class="hit link"${onClick(() => set({ catForm: { name: c, land: S.lands[c] || '设定库' } }))}>编辑</div>` +
+    : `<div class="cat-row"><div class="cat-name">${t(c)}</div><div class="fit muted">落点：${t(S.lands[c] || '设定库')}</div><div class="side">${count(c)} 条</div><div class="hit link"${onClick(() => { set({ catForm: { name: c, land: S.lands[c] || '设定库' } }); document.querySelector('.cat-form').scrollIntoView({ block: 'nearest' }) })}>编辑</div>` +
       (c === '其他' ? '<div class="off">删除</div>' : `<div class="hit link"${onClick(() => (count(c) ? set({ catDrop: c }) : dropCat(c)))}>删除</div>`) + '</div>')
   return '<div class="editor"><div class="paper scroll"><div class="column narrow">' +
     '<div class="page-title">作品分类</div><div class="note">设定文档按分类分节，每条设定只归入一个分类。“落点”指设定成熟后的去处，例如设定库或大纲。</div>' +
     `<div class="cat-rows">${S.cats.map(row).join('')}</div>` +
     '<div class="group-title">添加或修改分类</div>' +
-    `<div class="cat-form">${field('名称', line(S.catForm.name, type('name'), '', '分类名称'))}${field('落点', line(S.catForm.land, type('land'), '例如 设定库', '落点', keys(saveCat)))}${S.catForm.name.trim() && S.catForm.land.trim() ? button('保存分类', saveCat, 'primary') : button('保存分类', null, 'primary off')}</div>` +
+    `<div class="cat-form">${field('名称', line(S.catForm.name, type('name'), '', '分类名称'))}${field('落点', line(S.catForm.land, type('land'), '例如 设定库', '落点', keys(saveCat)))}${S.cats.includes(name) ? button('取消', () => set({ catForm: { name: '', land: '' } })) : ''}${S.catForm.name.trim() && S.catForm.land.trim() ? button('保存分类', saveCat, 'primary') : button('保存分类', null, 'primary off')}</div>` +
     (what ? `<div class="note">${t(what)}</div>` : '') +
     '</div></div></div>'
 }

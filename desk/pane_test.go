@@ -112,11 +112,11 @@ func TestSettingListAndPage(t *testing.T) {
 
 // What the AI asks the author is answered, not taken: the answer, written
 // in the form, takes the question's place in the setting, which keeps the
-// question beside it.
+// question beside it, and the names it was asked of.
 func TestAQuestionIsAnswered(t *testing.T) {
 	a, tt, _ := paneFixture(t)
 	const q = "林晚怕黑，是不是和她母亲有关？"
-	r, err := a.Store.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{{Op: workspace.OpAdd, Place: workspace.PlaceOpen, Category: "人物", Text: q}}})
+	r, err := a.Store.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{{Op: workspace.OpAdd, Place: workspace.PlaceOpen, Category: "人物", Names: []string{"林晚", "小晚"}, Text: q}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,8 +134,8 @@ func TestAQuestionIsAnswered(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Frame()
-	if !tt.HasText("回答") || !tt.HasText(q) || tt.HasText("新增设定") || !tt.Focused("设定内容") {
-		t.Fatal("the form", tt.Texts())
+	if !tt.HasText("回答") || !tt.HasText(q) || tt.HasText("新增设定") || !tt.Focused("设定内容") || a.doc.name != "林晚" || a.doc.names != "小晚" {
+		t.Fatal("the form", a.doc.name, a.doc.names, tt.Texts())
 	}
 	const answer = "是。她母亲死在停电的那一夜。"
 	a.doc.text = answer
@@ -145,7 +145,7 @@ func TestAQuestionIsAnswered(t *testing.T) {
 	}
 	tt.Frame()
 	e, _ := a.set.Entry(id)
-	if e.Place != workspace.PlaceBody || e.Text != answer || e.Asked != q || e.Category != "人物" || a.doc.editing != "" {
+	if e.Place != workspace.PlaceBody || e.Text != answer || e.Asked != q || e.Category != "人物" || strings.Join(e.Names, "、") != "林晚、小晚" || a.doc.editing != "" {
 		t.Fatalf("answered %+v", e)
 	}
 	if !a.doc.todo || !tt.HasText("2 条 AI 建议") {
