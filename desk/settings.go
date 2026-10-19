@@ -493,7 +493,7 @@ func (a *App) limitTable(c *ui.Context) {
 		for i := range a.limits {
 			r := &a.limits[i]
 			n := "-" + strconv.Itoa(i+1) // the row's fields are told apart by its place
-			ui.Row(c).Key("limit-" + strconv.Itoa(r.key)).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+			ui.Row(c.Key("limit-" + strconv.Itoa(r.key))).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 				if ui.TextInput(c, &r.id).Label("模型 ID" + n).Placeholder("模型 ID").Grow(1).Shrink(1).MinWidth(0).Disabled(busy).Changed() {
 					if m, ok := a.ai.Limits(trim(r.id)); ok {
 						r.window, r.output, r.at = tokens.Format(m.Window), tokens.Format(m.Output), strconv.Itoa(m.CompactAt)

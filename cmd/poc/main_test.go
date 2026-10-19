@@ -266,6 +266,10 @@ func shot(t *testing.T, tt *ui.Tester, suffix string) {
 		t.Fatal(err)
 	}
 	defer f.Close()
+	// What unfolds or fades runs on the window's clock, which stands still
+	// in a test: run it past them.
+	tt.Advance(time.Second)
+	tt.Frame()
 	if err = png.Encode(f, tt.Image()); err != nil {
 		t.Fatal(err)
 	}

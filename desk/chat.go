@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"regexp"
 	"runtime"
-	"strconv"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -727,18 +727,18 @@ func (a *App) replyLabel(name, effort string) string {
 
 // partNames name the parts of a talk request as the author reads them.
 var partNames = map[string]string{
-	workspace.PartRules:   "规则",
-	workspace.PartIndex:   "设定目录",
-	workspace.PartDigest:  "讨论摘要",
+	workspace.PartRules:    "规则",
+	workspace.PartIndex:    "设定目录",
+	workspace.PartDigest:   "讨论摘要",
 	workspace.PartOutline:  "章纲和卷纲",
 	workspace.PartOutlines: "本卷前面各章章纲",
 	workspace.PartPrevious: "上一章全文",
 	workspace.PartChapter:  "本章全文",
 	workspace.PartRecap:    "前情提要",
-	workspace.PartLooked:  "查阅结果",
-	workspace.PartTalk:    "之前的对话",
-	workspace.PartProse:   "附上的正文",
-	workspace.PartInput:   "本次发言",
+	workspace.PartLooked:   "查阅结果",
+	workspace.PartTalk:     "之前的对话",
+	workspace.PartProse:    "附上的正文",
+	workspace.PartInput:    "本次发言",
 }
 
 // audit is what a reply was sent, by the request that replied when the

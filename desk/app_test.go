@@ -757,15 +757,16 @@ func TestChooseAServiceByName(t *testing.T) {
 // A confirmation goes away on its own; an error stays until dismissed.
 func TestNoticesFade(t *testing.T) {
 	a, tt, _ := fixture(t)
-	was := noticeFor
-	noticeFor = 50 * time.Millisecond
-	t.Cleanup(func() { noticeFor = was })
 	a.notice, a.Error = "已保存", "出错了"
 	tt.Frame()
 	if !tt.HasText("已保存") {
 		t.Fatal(tt.Texts())
 	}
-	until(t, tt, "the notice to fade", func() bool { return !tt.HasText("已保存") })
+	tt.Advance(noticeFor + time.Second) // the window's clock, not the wall's
+	tt.Frame()
+	if tt.HasText("已保存") {
+		t.Fatal("the notice stayed")
+	}
 	if !tt.HasText("出错了") || a.notice != "" {
 		t.Fatal(tt.Texts())
 	}

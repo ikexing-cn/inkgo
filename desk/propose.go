@@ -22,13 +22,13 @@ import (
 type prop struct {
 	workspace.Proposal
 	session, call string
-	model         string    // that proposed it, which the words taken are marked with
-	base          string    // the chapter's text as it was proposed, which one of all replaces
-	near          int       // where its words were last found in the chapter
-	writing       bool      // its text still comes
-	fresh         bool      // came whole since it was last placed
-	placed        bool      // shows in the editor of its chapter
-	shown         bool      // was brought into view
+	model         string // that proposed it, which the words taken are marked with
+	base          string // the chapter's text as it was proposed, which one of all replaces
+	near          int    // where its words were last found in the chapter
+	writing       bool   // its text still comes
+	fresh         bool   // came whole since it was last placed
+	placed        bool   // shows in the editor of its chapter
+	shown         bool   // was brought into view
 }
 
 // id names p to the editor.
@@ -414,7 +414,7 @@ func (a *App) propActs(c *ui.Context) {
 		if !ok {
 			continue
 		}
-		ui.Row(c.Key("提议-"+p.id())).Absolute().Left(r.X+propInset).Top(r.Y).Height(r.H).Gap(6).AlignItems(ui.Center).Children(func() {
+		ui.Row(c.Key("提议-" + p.id())).Absolute().Left(r.X + propInset).Top(r.Y).Height(r.H).Gap(6).AlignItems(ui.Center).Children(func() {
 			tip := "放弃这一处提议"
 			if p.writing {
 				tip = "让 AI 停下，放弃这一处"

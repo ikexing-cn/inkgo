@@ -154,10 +154,10 @@ type App struct {
 	sourceCategory    string
 	contextReply      string
 	busy              string
-	talking           bool   // busy with a discussion turn, shown inline in its talk
-	talkSession       string // the talk of that turn
-	talkChapter       string // the chapter that talk keeps to, when it was opened to draft or rewrite it
-	pending           string // the author's words while their turn is in flight,
+	talking           bool              // busy with a discussion turn, shown inline in its talk
+	talkSession       string            // the talk of that turn
+	talkChapter       string            // the chapter that talk keeps to, when it was opened to draft or rewrite it
+	pending           string            // the author's words while their turn is in flight,
 	pendingQuotes     []workspace.Quote // and the prose they quote
 	// Prose the author quoted for their next turn, and whether the talk
 	// beside the prose should take the keyboard.
