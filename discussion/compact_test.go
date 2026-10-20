@@ -89,7 +89,7 @@ func TestALongTalkIsCompacted(t *testing.T) {
 		}
 	}
 	asked, replied := talk.calls[0], talk.calls[1]
-	if !asked.NoCalls || len(asked.Tools) != 6 || !strings.HasPrefix(asked.System, talkRules) || asked.Effort != model.EffortHigh ||
+	if !asked.NoCalls || len(asked.Tools) != 7 || !strings.HasPrefix(asked.System, talkRules) || asked.Effort != model.EffortHigh ||
 		len(asked.Messages) != 19 || asked.Messages[0].Content != "井边的灯为什么不亮" || asked.Messages[17].Content != replies[8].Text {
 		t.Fatalf("the digest was asked for with %d messages:\n%s", len(asked.Messages), asked.System)
 	}

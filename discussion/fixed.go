@@ -43,7 +43,8 @@ var errGone = errors.New("这段讨论跟着的章已不在书里，不能接着
 // of tree. A draft takes the chapter's outline and its volume's, the
 // outlines of the volumes before and of the chapters before in its
 // volume, and the chapter before, whole; a rewrite takes the outlines and
-// the chapter itself, whole. Outlines left empty are left out.
+// the chapter itself, whole. Both take the chapter's cards. Outlines left
+// empty are left out.
 func fixedOf(st *workspace.Store, tree workspace.Tree, origin, chapter string) (*Fixed, error) {
 	n, ok := tree.Node(chapter)
 	if !ok || n.Folder {
@@ -79,6 +80,11 @@ func fixedOf(st *workspace.Store, tree workspace.Tree, origin, chapter string) (
 	if vol != nil {
 		if o := outline(vol.ID); o != "" {
 			add(workspace.PartOutline, "【所在卷："+b.name[vol.ID]+"】卷纲：\n"+o, "卷纲："+b.name[vol.ID])
+		}
+	}
+	if p, err := st.Plan(); err == nil {
+		if rows := chapterCards(p, b, chapter); len(rows) > 0 {
+			add(workspace.PartCards, "【本章的卡片】\n"+strings.Join(rows, "\n"), fmt.Sprintf("本章的卡片 %d 张", len(rows)))
 		}
 	}
 	if origin == workspace.AIRewrite {

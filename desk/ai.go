@@ -102,6 +102,14 @@ func (a *App) openDraft() {
 	w := &a.write
 	a.flush()
 	w.draftOpen, w.words, w.draftMode = true, "", draftAppend
+	w.draftCards = 0
+	if p, err := a.Store.Plan(); err == nil {
+		for _, card := range p.Cards {
+			if card.Chapter == w.node {
+				w.draftCards++
+			}
+		}
+	}
 	w.draftNote = a.draftNote()
 }
 
@@ -139,6 +147,9 @@ func (a *App) draftNote() string {
 	})
 	if last != nil && w.counts[last.ID] > 0 {
 		what = "上一章全文、" + what
+	}
+	if w.draftCards > 0 {
+		what = fmt.Sprintf("本章的 %d 张卡片、", w.draftCards) + what
 	}
 	return fmt.Sprintf("将带上%s等，约 %s token；AI 需要时会自己再查。", what, tokens.Round(k))
 }
@@ -221,7 +232,11 @@ func (a *App) draftView(c *ui.Context) {
 	w := &a.write
 	a.modal(c, &w.draftOpen, func() {
 		ui.Column(c).Width(dialogSmall).Padding(dialogPad).Gap(16).Children(func() {
-			a.pal.dialogHead(c, "起草本章", "AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。起草在一段新的讨论里进行：写好的先在正文里显示为提议，采纳后才写入，写入前保存快照；想改哪里，在讨论里接着说。")
+			head := "AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。"
+			if w.draftCards > 0 {
+				head = "AI 仅将章纲和本章的卡片扩写为正文，不添加这些之外的重大情节。"
+			}
+			a.pal.dialogHead(c, "起草本章", head+"起草在一段新的讨论里进行：写好的先在正文里显示为提议，采纳后才写入，写入前保存快照；想改哪里，在讨论里接着说。")
 			ui.Box(c).FillWidth().Padding(10, 12).Radius(rControl).Background(a.pal.side).Children(func() {
 				ui.Text(c, strings.TrimSpace(w.outline)).FontSize(fsControl).TextColor(t.TextMuted).LineHeight(lhLoose).FillWidth()
 			})

@@ -731,6 +731,7 @@ var partNames = map[string]string{
 	workspace.PartIndex:    "设定目录",
 	workspace.PartDigest:   "讨论摘要",
 	workspace.PartOutline:  "章纲和卷纲",
+	workspace.PartCards:    "本章的卡片",
 	workspace.PartOutlines: "本卷前面各章章纲",
 	workspace.PartPrevious: "上一章全文",
 	workspace.PartChapter:  "本章全文",

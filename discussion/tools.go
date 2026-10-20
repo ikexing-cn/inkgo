@@ -12,8 +12,8 @@ import (
 	"writer/workspace"
 )
 
-// The tools a talk's model may call: four look things up in the book and
-// its talks, one notes the setting, and one proposes a change of the
+// The tools a talk's model may call look things up in the book and
+// its talks, note the setting, and propose a change of the
 // prose. The model names a chapter by its title and an entry by its
 // number, never by an ID.
 const (
@@ -21,14 +21,16 @@ const (
 	toolReadProse   = "read_prose"
 	toolLookUp      = "look_up_setting"
 	toolSearchTalks = "search_talks"
+	toolReadOutline = "read_outline"
 	toolNote        = "note_setting"
 )
 
 const (
-	maxHits = 20    // listed by one search
-	maxRead = 10000 // runes of prose one read returns
-	maxNear = 5     // names offered for one the book has not
-	around  = 40    // runes shown on each side of a hit
+	maxHits  = 20    // listed by one search
+	maxRead  = 10000 // runes of prose one read returns
+	maxNear  = 5     // names offered for one the book has not
+	maxCards = 200   // cards listed by one outline read
+	around   = 40    // runes shown on each side of a hit
 )
 
 // tools are the tools of a talk of w: note_setting takes w's categories.
@@ -49,6 +51,8 @@ func tools(w workspace.Work) []model.Tool {
 			Schema: json.RawMessage(`{"type":"object","properties":{` + query + `},"required":["query"]}`)},
 		{Name: toolSearchTalks, Description: "按词搜这本书所有讨论的原文，包括这一次的，返回每处在哪次讨论、是谁说的和前后的文字。",
 			Schema: json.RawMessage(`{"type":"object","properties":{` + query + `,` + from + `},"required":["query"]}`)},
+		{Name: toolReadOutline, Description: "读作者在大纲里排的卡片和情节线，卡片按故事里发生的先后排，可能和章节先后不同。line 按情节线名查，chapter 按章名或卷名查并附对应的纲，query 按一个词搜发生了什么、说明和故事中的时间；都不给则先给概览再列全部卡片。多个筛选参数按 line > chapter > query 只用第一个。一次最多 200 张，from 跳过前面多少张接着查。查卷时按卷里各章的先后分组，各章内仍按故事先后；#序号始终是全书故事里的位置。",
+			Schema: json.RawMessage(`{"type":"object","properties":{"line":{"type":"string","description":"情节线名"},"chapter":{"type":"string","description":"章名或卷名，和搜全书结果里写的一样"},` + query + `,` + from + `}}`)},
 		{Name: toolNote, Description: "把这次讨论里定下的东西记进设定文档，一次一个操作：add 新增，edit 改写，move 换位置或分类，name 补名字，change 记一条从某一章起的变化。规则见系统提示里的「记设定」。",
 			Schema: json.RawMessage(`{"type":"object","properties":{` +
 				`"op":{"type":"string","enum":["add","edit","move","name","change"]},` +
@@ -91,6 +95,7 @@ func failed(format string, v ...any) outcome {
 
 // input is what the tools take, all of them together.
 type input struct {
+	Line       string   `json:"line"`
 	Query      string   `json:"query"`
 	From       int      `json:"from"`
 	To         int      `json:"to"`
@@ -112,6 +117,7 @@ func read(c model.Call) (input, error) {
 	var in input
 	err := json.Unmarshal(c.Input, &in)
 	in.Query = strings.TrimSpace(in.Query)
+	in.Line = strings.TrimSpace(in.Line)
 	in.Chapter = strings.TrimSpace(in.Chapter)
 	return in, err
 }
@@ -123,6 +129,8 @@ func (t *toolbox) run(c model.Call) outcome {
 		return failed("参数不是约定的 JSON：%v", err)
 	}
 	switch c.Name {
+	case toolReadOutline:
+		return t.readOutline(in)
 	case toolSearchBook:
 		return t.searchBook(in)
 	case toolReadProse:
@@ -150,6 +158,16 @@ func (t *toolbox) label(c model.Call) string {
 		}
 	}
 	switch c.Name {
+	case toolReadOutline:
+		switch {
+		case in.Line != "":
+			return "查了大纲「" + in.Line + "」这条线"
+		case in.Chapter != "":
+			return "查了大纲「" + in.Chapter + "」的卡片"
+		case in.Query != "":
+			return "查了大纲「" + in.Query + "」"
+		}
+		return "查了大纲"
 	case toolSearchBook:
 		return "搜了全书「" + in.Query + "」"
 	case toolReadProse:

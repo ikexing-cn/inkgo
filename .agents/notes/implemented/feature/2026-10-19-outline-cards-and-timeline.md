@@ -62,7 +62,7 @@ Status: implemented
 
 ### 不用 AI
 
-大纲整个是作者手写的，AI 关着时照常显示。这一期不从正文里抽事件。讨论读卡片见[讨论读得到大纲](../../proposed/feature/2026-10-19-talk-reads-the-outline.md)。
+大纲整个是作者手写的，AI 关着时照常显示。这一期不从正文里抽事件。讨论读卡片见[讨论读得到大纲](2026-10-19-talk-reads-the-outline.md)。
 
 ## Alternatives considered
 

@@ -114,6 +114,7 @@ const (
 	PartIndex    = "index"  // the setting as an index, too big to send whole
 	PartDigest   = "digest" // of the talk compacted
 	PartOutline  = "outline"
+	PartCards    = "cards"    // the chapter's outline cards, for drafts and rewrites
 	PartOutlines = "outlines" // of the chapters before in the volume, which a draft takes
 	PartRecap    = "recap"    // the summaries of the chapters before, which drafts sent while there were any
 	PartPrevious = "previous" // the chapter before, whole, which a draft takes
@@ -125,7 +126,7 @@ const (
 )
 
 // Parts is every part, in order.
-var Parts = []string{PartRules, PartSetting, PartIndex, PartDigest, PartOutline, PartOutlines, PartRecap, PartPrevious, PartChapter, PartLooked, PartTalk, PartProse, PartInput}
+var Parts = []string{PartRules, PartSetting, PartIndex, PartDigest, PartOutline, PartCards, PartOutlines, PartRecap, PartPrevious, PartChapter, PartLooked, PartTalk, PartProse, PartInput}
 
 // Part is the tokens part took, 0 when the request had none.
 func (s Sent) Part(name string) int {

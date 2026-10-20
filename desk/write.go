@@ -148,6 +148,7 @@ type writeView struct {
 	words       string
 	draftMode   string
 	draftNote   string
+	draftCards  int // the chapter's cards when the draft dialog opened
 	props       []*prop
 	propVer     int
 	seen        map[string]bool
