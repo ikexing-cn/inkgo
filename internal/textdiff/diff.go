@@ -1,37 +1,37 @@
-package desk
+package textdiff
 
 import "strings"
 
 // Kinds of a piece of a diff.
 const (
-	same = iota
-	gone // in the old text only
-	came // in the new text only
+	Same    = iota
+	Removed // in the old text only
+	Added   // in the new text only
 )
 
-type piece struct {
-	kind int
-	text string
+type Piece struct {
+	Kind int
+	Text string
 }
 
 // maxCells bounds the table of a character diff inside a paragraph; a
 // pair larger than that shows as replaced whole.
 const maxCells = 4_000_000
 
-// diffText compares two texts paragraph by paragraph, and the characters
+// Compare compares two texts paragraph by paragraph, and the characters
 // of a paragraph changed in place, so that a changed word shows as itself.
-func diffText(old, new string) []piece {
+func Compare(old, new string) []Piece {
 	a, b := strings.Split(old, "\n"), strings.Split(new, "\n")
-	var out []piece
+	var out []Piece
 	add := func(kind int, text string) {
 		if text == "" {
 			return
 		}
-		if n := len(out) - 1; n >= 0 && out[n].kind == kind {
-			out[n].text += text
+		if n := len(out) - 1; n >= 0 && out[n].Kind == kind {
+			out[n].Text += text
 			return
 		}
-		out = append(out, piece{kind, text})
+		out = append(out, Piece{kind, text})
 	}
 	ops := lcs(len(a), len(b), func(i, j int) bool { return a[i] == b[j] })
 	var olds, news []string
@@ -41,72 +41,72 @@ func diffText(old, new string) []piece {
 			switch {
 			case k < len(olds) && k < len(news):
 				for _, p := range diffRunes(olds[k], news[k]) {
-					add(p.kind, p.text)
+					add(p.Kind, p.Text)
 				}
-				add(same, "\n")
+				add(Same, "\n")
 			case k < len(olds):
-				add(gone, olds[k]+"\n")
+				add(Removed, olds[k]+"\n")
 			default:
-				add(came, news[k]+"\n")
+				add(Added, news[k]+"\n")
 			}
 		}
 		olds, news = nil, nil
 	}
 	for _, op := range ops {
 		switch op.kind {
-		case same:
+		case Same:
 			flush()
-			add(same, a[op.i]+"\n")
-		case gone:
+			add(Same, a[op.i]+"\n")
+		case Removed:
 			olds = append(olds, a[op.i])
-		case came:
+		case Added:
 			news = append(news, b[op.j])
 		}
 	}
 	flush()
 	if n := len(out) - 1; n >= 0 {
-		out[n].text = strings.TrimSuffix(out[n].text, "\n")
-		if out[n].text == "" {
+		out[n].Text = strings.TrimSuffix(out[n].Text, "\n")
+		if out[n].Text == "" {
 			out = out[:n]
 		}
 	}
 	return out
 }
 
-// paragraphs gives the pieces of a text a paragraph at a time: a piece
+// Paragraphs gives the pieces of a text a paragraph at a time: a piece
 // running over the end of a line is cut there, and an empty line has none.
-func paragraphs(pieces []piece) [][]piece {
-	out := [][]piece{nil}
+func Paragraphs(pieces []Piece) [][]Piece {
+	out := [][]Piece{nil}
 	for _, p := range pieces {
-		for i, line := range strings.Split(p.text, "\n") {
+		for i, line := range strings.Split(p.Text, "\n") {
 			if i > 0 {
 				out = append(out, nil)
 			}
 			if line != "" {
-				out[len(out)-1] = append(out[len(out)-1], piece{p.kind, line})
+				out[len(out)-1] = append(out[len(out)-1], Piece{p.Kind, line})
 			}
 		}
 	}
 	return out
 }
 
-func diffRunes(old, new string) []piece {
+func diffRunes(old, new string) []Piece {
 	a, b := []rune(old), []rune(new)
 	if len(a)*len(b) > maxCells {
-		return []piece{{gone, old}, {came, new}}
+		return []Piece{{Removed, old}, {Added, new}}
 	}
-	var out []piece
+	var out []Piece
 	for _, op := range lcs(len(a), len(b), func(i, j int) bool { return a[i] == b[j] }) {
 		var r rune
-		if op.kind == came {
+		if op.kind == Added {
 			r = b[op.j]
 		} else {
 			r = a[op.i]
 		}
-		if n := len(out) - 1; n >= 0 && out[n].kind == op.kind {
-			out[n].text += string(r)
+		if n := len(out) - 1; n >= 0 && out[n].Kind == op.kind {
+			out[n].Text += string(r)
 		} else {
-			out = append(out, piece{op.kind, string(r)})
+			out = append(out, Piece{op.kind, string(r)})
 		}
 	}
 	return out
@@ -115,7 +115,7 @@ func diffRunes(old, new string) []piece {
 type step struct{ kind, i, j int }
 
 // lcs returns the edit from n items to m items keeping the longest common
-// subsequence, gone before came where both apply.
+// subsequence, Removed before Added where both apply.
 func lcs(n, m int, eq func(i, j int) bool) []step {
 	// Shared ends cost nothing and keep the table small.
 	pre := 0
@@ -142,25 +142,25 @@ func lcs(n, m int, eq func(i, j int) bool) []step {
 	}
 	var out []step
 	for k := 0; k < pre; k++ {
-		out = append(out, step{same, k, k})
+		out = append(out, step{Same, k, k})
 	}
 	i, j := 0, 0
 	for i < rows || j < cols {
 		switch {
 		case i < rows && j < cols && eq(pre+i, pre+j):
-			out = append(out, step{same, pre + i, pre + j})
+			out = append(out, step{Same, pre + i, pre + j})
 			i++
 			j++
 		case j == cols || i < rows && t[i+1][j] >= t[i][j+1]:
-			out = append(out, step{gone, pre + i, 0})
+			out = append(out, step{Removed, pre + i, 0})
 			i++
 		default:
-			out = append(out, step{came, 0, pre + j})
+			out = append(out, step{Added, 0, pre + j})
 			j++
 		}
 	}
 	for k := 0; k < suf; k++ {
-		out = append(out, step{same, n - suf + k, m - suf + k})
+		out = append(out, step{Same, n - suf + k, m - suf + k})
 	}
 	return out
 }

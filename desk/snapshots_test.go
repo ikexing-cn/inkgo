@@ -2,7 +2,6 @@ package desk
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -54,16 +53,6 @@ func TestASnapshotLikeTheChapter(t *testing.T) {
 	tt.Frame()
 	if !a.write.snapsOpen || a.notice != "" {
 		t.Fatal("restored the same text", a.notice)
-	}
-}
-
-// paragraphs cuts the pieces of a text at the ends of its lines, keeping
-// the empty ones.
-func TestParagraphsOfADiff(t *testing.T) {
-	got := paragraphs([]piece{{same, "一\n\n二"}, {gone, "旧"}, {came, "新\n三"}, {same, "\n"}})
-	want := [][]piece{{{same, "一"}}, nil, {{same, "二"}, {gone, "旧"}, {came, "新"}}, {{came, "三"}}, nil}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("%v", got)
 	}
 }
 

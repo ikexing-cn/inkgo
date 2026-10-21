@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/internal/textdiff"
 	"writer/workspace"
 )
 
@@ -83,26 +84,26 @@ func (a *App) snapView() *snapView {
 	if w.snap == "" {
 		return v
 	}
-	pieces := []piece{{same, w.snapText}}
+	pieces := []textdiff.Piece{{Kind: textdiff.Same, Text: w.snapText}}
 	if w.compare {
-		pieces = diffText(w.snapText, now)
+		pieces = textdiff.Compare(w.snapText, now)
 	}
 	size := 0
 	for _, p := range pieces {
-		size += len(p.text)
+		size += len(p.Text)
 	}
-	paras := paragraphs(pieces)
+	paras := textdiff.Paragraphs(pieces)
 	v.long = size > snapWhole || len(paras) > snapWholeParas
 	for _, para := range paras {
 		spans := make([]ui.Span, len(para))
 		for i, p := range para {
-			switch p.kind {
-			case gone:
-				spans[i] = ui.Span{Text: p.text, Color: t.Danger, Strikethrough: true, Background: t.Danger.Alpha(0.12)}
-			case came:
-				spans[i] = ui.Span{Text: p.text, Color: t.Success, Background: t.Success.Alpha(0.12)}
+			switch p.Kind {
+			case textdiff.Removed:
+				spans[i] = ui.Span{Text: p.Text, Color: t.Danger, Strikethrough: true, Background: t.Danger.Alpha(0.12)}
+			case textdiff.Added:
+				spans[i] = ui.Span{Text: p.Text, Color: t.Success, Background: t.Success.Alpha(0.12)}
 			default:
-				spans[i] = ui.Span{Text: p.text}
+				spans[i] = ui.Span{Text: p.Text}
 			}
 		}
 		v.paras = append(v.paras, spans)

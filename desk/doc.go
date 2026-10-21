@@ -11,7 +11,6 @@
 // chat.go: discussion messages, reasoning, tool calls, usage, and input.
 // check.go: check queue, findings, prose marks, and the 检查 page.
 // counts.go: book and daily word counts, goals, and recent days.
-// diff.go: paragraph and character text diffs.
 // doc.go: this package index.
 // export.go: export ranges, format choices, and file writing.
 // find.go: the prose find-and-replace bar.
