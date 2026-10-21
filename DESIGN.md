@@ -713,12 +713,25 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab；起草�
 - `npm run verify-prototype` 的「closing with words not saved」。
 - `go test ./desk` 的 `tabs_test.go`：`TestChaptersOpenInTabs`（点章开标签、点卷不开）、`TestATabKeepsItsEditor`、`TestClosingAsksAboutUnsavedWords`（圆点、先问、问着不存、三个回答）、`TestTabsComeBackWithTheWork`。
 
+### 手机预览
+
+- 右栏的「预览」按读者手机上的样子排正开着的这一章，只读；AI 关着也在。「视图」菜单的「手机预览」打开它。尺寸、字号、行距、背景各档照原型。
+- 分屏用和正文同一套排版（断行、避头尾），按手机的宽排、按屏高切，不按字数估；「第 3 屏，共 8 屏」，滚动看时写「约 8 屏」。只在本章里翻，到头的「上一屏」「下一屏」变灰。
+- 跟着正文走：正文选中的字预览里也选中，没选字时在同一处画光标；翻页看时光标到了另一屏才跟过去，滚动看时随正文按比例滚；点预览里的哪个字，正文的光标放到那个字后面。
+- 一段在手机上超过 5 行，底色深一级，指针停上去写「手机上 7 行」，下面写「2 段超过 5 行，看下一处」。这是提示，不算错，不进「待处理」。
+- 排版的几项记在本机，所有作品通用；看到第几屏不记。
+
+检查：
+
+- `npm run verify-prototype` 的「the phone preview」。
+
 ## Do's and Don'ts
 
 文案：
 
 - 要用书面语；不要口语化。
 - 要一眼能看懂：名称 2–4 个字，说明不超过 20 个字。
+- 要只在作者不读就会做错、或要知道去哪儿找的地方写说明（「key 保存在系统钥匙串中」「将修改已有的分类」）；不要写读了也不会改变怎么做的说明（「只改这里的样子；读者那边屏数会有出入」）：多一行字就多一份阅读成本。控件说不清自己做什么，先改名字，不靠旁边加一句。
 - 思考程度的几档要留英文（Default、Low、Medium、High），跟在模型后面（「DeepSeek/deepseek-flash · High」）；不要在前面加「思考：」「推理」。这一项在别处说起时叫「思考程度」。`go test ./desk` 的 `TestDraftAChapterThroughATalk` 和 `npm run verify-prototype` 的「a draft」查起草对话框。
 - 软件叫 Inkgo（暂定），界面和文档里都写这个英文名，不另起中文名；不要把测试用的作品名当成软件名。
 - 要用章标题指某一章（「第四章 钟表铺」），说的是正开着的那一章写「本章」；不要另算「第 N 章」这种按位置编的号，删一章、插一章它就和作者写的标题对不上了。标题在句子里加「」（「埋在「第四章 钟表铺」，已过 3 章」），单独摆着的不加（列表右边、选择框里那一行）；放不下就截断。讲距离的「已过 3 章」「相隔 3 章」「3 章前」照旧按位置数。`npm run verify-prototype` 的伏笔、检查、设定出处那几段查原型的说法，`go test ./desk` 的 `TestForeshadowBuryAndPay`、`TestCheckOnlyWhenAsked`、`TestSettingListAndPage` 查软件里的。
