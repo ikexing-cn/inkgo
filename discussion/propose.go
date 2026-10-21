@@ -6,6 +6,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"writer/inference"
 	"writer/internal/textclip"
 	"writer/model"
 	"writer/workspace"
@@ -81,7 +82,7 @@ func place(st *workspace.Store, b book, chapter, at, quote string) (workspace.Pr
 	if err != nil {
 		return p, fmt.Sprintf("读不出「%s」：%v", name, err)
 	}
-	words, ok := locate(ch.Text, strings.TrimSpace(quote))
+	words, ok := inference.Locate(ch.Text, strings.TrimSpace(quote))
 	if !ok {
 		return p, "「" + name + "」里找不到 quote 这段原文；要逐字复制，可以先用 read_prose 读一下。"
 	}

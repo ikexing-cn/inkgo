@@ -10,7 +10,6 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"writer/discussion"
 	"writer/inference"
 	"writer/internal/textclip"
 	"writer/model"
@@ -183,7 +182,7 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 		if len(out.Findings) >= maxFindings {
 			break
 		}
-		quote, ok := discussion.Locate(ch.Text, strings.TrimSpace(g.Quote))
+		quote, ok := inference.Locate(ch.Text, strings.TrimSpace(g.Quote))
 		if !ok {
 			continue // not the prose's words
 		}
@@ -196,7 +195,7 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 			}
 			e := shown[g.Entry-1]
 			f.Entry = e.ID
-			if says, ok := discussion.Locate(e.Text, strings.TrimSpace(g.Says)); ok {
+			if says, ok := inference.Locate(e.Text, strings.TrimSpace(g.Says)); ok {
 				f.Says = says
 			}
 		case workspace.FindName:

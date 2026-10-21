@@ -6,6 +6,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"writer/inference"
 	"writer/internal/textclip"
 	"writer/workspace"
 )
@@ -84,7 +85,7 @@ func (t *toolbox) note(in input) outcome {
 			if m.Role == workspace.RoleUser {
 				text = m.Said()
 			}
-			words, ok := locate(text, q)
+			words, ok := inference.Locate(text, q)
 			if !ok {
 				continue
 			}
