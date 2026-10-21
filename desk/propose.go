@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/egoist/mygo/ui"
 	"writer/editor"
@@ -120,12 +119,12 @@ func (a *App) takeProposal(call string, p workspace.Proposal, writing bool, mode
 	w.seen[key] = true
 	pr := &prop{Proposal: p, session: session, call: call, model: model, writing: writing, base: a.chapterText(p.Chapter)}
 	var over []*prop
-	if at, ok := pr.place(pr.base); ok {
+	if at, ok := pr.forEditor(pr.base); ok {
 		for _, q := range w.props {
 			if q.Chapter != p.Chapter {
 				continue
 			}
-			if qat, ok := q.place(pr.base); ok && samePlace(at, qat, p.At == workspace.ProposeAll || q.At == workspace.ProposeAll) {
+			if qat, ok := q.forEditor(pr.base); ok && samePlace(at, qat, p.At == workspace.ProposeAll || q.At == workspace.ProposeAll) {
 				over = append(over, q)
 			}
 		}
@@ -221,7 +220,7 @@ func (a *App) takeProps(ps []*prop) {
 		if p.Chapter != w.node || p.writing {
 			continue
 		}
-		if at, ok := p.place(text); ok {
+		if at, ok := p.forEditor(text); ok {
 			list, places = append(list, p), append(places, at)
 			if !slices.Contains(talks, p.session) {
 				talks = append(talks, p.session)
@@ -259,60 +258,11 @@ func (a *App) chapterText(id string) string {
 	return ch.Text
 }
 
-// place is where p goes in text, as the editor shows it: in place of the
-// words it replaces, after those it follows, as paragraphs after the last,
-// or below the whole it replaces. It is nowhere once those words are gone,
-// or, for the whole, once the text changed.
-func (p *prop) place(text string) (editor.Proposal, bool) {
-	n := utf8.RuneCountInString(text)
-	at := editor.Proposal{ID: p.id(), Text: p.Text}
-	switch p.At {
-	case workspace.ProposeEnd:
-		at.A, at.B, at.Keep = n, n, true
-		if n > 0 && !strings.HasSuffix(text, "\n") {
-			at.Text = "\n" + p.Text
-		}
-		return at, true
-	case workspace.ProposeAll:
-		at.B, at.Apart = n, n > 0
-		return at, text == p.base
-	}
-	from, ok := p.find(text)
-	if !ok {
-		return at, false
-	}
-	at.A, at.B = from, from+utf8.RuneCountInString(p.Quote)
-	if p.At == workspace.ProposeAfter {
-		at.A, at.Keep = at.B, true
-	}
-	return at, true
+func (p *prop) forEditor(text string) (editor.Proposal, bool) {
+	at, near, ok := p.Proposal.Place(text, p.base, p.near)
+	p.near = near
+	return editor.Proposal{ID: p.id(), A: at.A, B: at.B, Keep: at.Keep, Apart: at.Apart, Text: at.Text}, ok
 }
-
-// find is where the words p quotes are in text, in runes: of several, the
-// nearest to where they were last found.
-func (p *prop) find(text string) (int, bool) {
-	if p.Quote == "" {
-		return 0, false
-	}
-	best, found := 0, false
-	for from := 0; ; {
-		i := strings.Index(text[from:], p.Quote)
-		if i < 0 {
-			break
-		}
-		at := utf8.RuneCountInString(text[:from+i])
-		if !found || abs(at-p.near) < abs(best-p.near) {
-			best, found = at, true
-		}
-		from += i + len(p.Quote)
-	}
-	if found {
-		p.near = best
-	}
-	return best, found
-}
-
-func abs(n int) int { return max(n, -n) }
 
 // placeProps shows the proposals of the chapter shown where they go in its
 // text now. One whose words the author changed is void, once it came
@@ -331,7 +281,7 @@ func (a *App) placeProps() {
 			if p.Chapter != w.node {
 				continue
 			}
-			at, ok := p.place(text)
+			at, ok := p.forEditor(text)
 			p.placed = ok
 			switch {
 			case ok:
