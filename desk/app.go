@@ -1,4 +1,3 @@
-// Package desk is the native discussion interface.
 package desk
 
 import (

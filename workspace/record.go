@@ -77,7 +77,6 @@ func PurposeOf(ctx context.Context) Purpose {
 	return p
 }
 
-// Log adds r to the AI record.
 func (s *Store) Log(r Record) error {
 	if r.Schema == 0 {
 		r.Schema = Schema

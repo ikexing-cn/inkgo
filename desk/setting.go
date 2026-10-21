@@ -20,7 +20,6 @@ const (
 	panePhone   paneTab = "phone"
 )
 
-// docView is the state of the right panel.
 type docView struct {
 	hidden  bool
 	history bool   // the revisions are shown

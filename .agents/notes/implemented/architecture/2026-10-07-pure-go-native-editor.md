@@ -11,6 +11,7 @@ Status: implemented
 ## Decision
 
 - 全部代码是 Go，`CGO_ENABLED=0` 可编译；窗口与绘制用 `github.com/egoist/mygo` 的原生 UI（Windows 走 Direct3D 11，macOS 走 Metal，Linux 走 OpenGL），不用 WebView。
+- 程序入口是 `cmd/inkgo`，只打开作品窗口；编辑器通过 `ui.Tester` 无窗口测试，预测替身只放在测试文件里。
 - 正文编辑器在 `editor/` 自己实现，不用 `ui.TextArea`：用 `HandleInput` 取按键、文字与输入法组字，`TextCaret` 告诉系统光标位置，`ui.Shape` 排字形后自己按宽度断行、自己画光标、选区、标记、灰字与补全弹层。
 - 文档模型 `editor.Doc` 只存纯文本（rune 下标）加一组 `Mark`；标记在每次替换时按位置映射移动，在标记边上打字不扩大标记，标记内文字被删光时置 `Orphaned` 而不是静默删除。`Version()` 记录文字和标记的变化；内部文字版本只使排版、名字匹配和预测失效。
 - 段落缓存保留旧 rune 切片，先从头按序号比较，未命中再按距末尾的段数比较；回车、合段和粘贴后，未改的前后段仍复用整形。每次重排多扫一遍正文数段，只在缓存未命中时生成字符串。
@@ -29,6 +30,7 @@ Status: implemented
 ## Alternatives considered
 
 - **业务用 Go，正文编辑器单独一个 WebView 窗口内嵌 CodeMirror 6** — 装饰层、补全弹窗、行内灰字、并排 diff 都有成熟实现，几天就能做出来。但用户要求纯 Go、不走 Web；且三平台 WebView 行为不一致，mygo 近期提交还在修 WebView 崩溃。
+- **保留独立的编辑器演示入口** — 最强的理由：不建作品就能试输入法、补全和灰字。没有用：正文页和编辑器的无窗口测试覆盖这些能力，演示的窗口、预测替身和专用布局测试增加了另一套入口。
 - **直接用 `ui.TextArea`** — 撤销、输入法、长文本性能都现成。但它是纯文本，没有光标坐标和行内装饰，三个核心功能都做不了。
 - **换 Wails、Tauri 或 Electron** — 生态比只有几周历史的 mygo 成熟得多。但它们都把界面交给 Web 技术，与纯 Go 的要求冲突。
 
@@ -39,4 +41,4 @@ Status: implemented
 
 ## Verification
 
-`go test ./...` 覆盖 `editor/doc_test.go`（标记映射、断行避头尾、补全匹配、撤销合并、全部替换一次撤销、`Prose` 不存缩进）、`editor/ui_test.go`（无窗口驱动真实界面）与 `cmd/inkgo/main_test.go`（编辑器占满窗口）。`GOOS=darwin|linux CGO_ENABLED=0 go build ./cmd/inkgo` 可通过。
+`go test ./...` 覆盖 `editor/doc_test.go`（标记映射、断行避头尾、补全匹配、撤销合并、全部替换一次撤销、`Prose` 不存缩进）、`editor/ui_test.go`（无窗口驱动真实界面）与 `cmd/inkgo` 的布局测试（讨论、正文、大纲和手机预览）。`SHOT=<目录> go test ./cmd/inkgo` 保存作品窗口的截图，`SHOT=<目录> go test ./desk -run Shot` 保存界面各状态的截图。`GOOS=darwin|linux CGO_ENABLED=0 go build ./cmd/inkgo` 可通过。

@@ -18,7 +18,6 @@ type Setting struct {
 	Revisions []Revision
 }
 
-// Entry returns the entry id.
 func (s Setting) Entry(id string) (Entry, bool) {
 	for _, e := range s.Entries {
 		if e.ID == id {
@@ -396,7 +395,6 @@ func (s *Store) checkRevision(r Revision, sc *scan) error {
 	return nil
 }
 
-// Setting returns the setting document.
 func (s *Store) Setting() (Setting, error) {
 	unlock, err := s.lock()
 	if err != nil {

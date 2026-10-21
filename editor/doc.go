@@ -1,4 +1,4 @@
-// Package editor is a proof-of-concept plain-text novel editor drawn with
+// Package editor is a plain-text novel editor drawn with
 // mygo's native UI: Chinese line breaking, input methods, marks that follow
 // edits (foreshadowing, AI provenance), entity completion and inline AI
 // predictions accepted with Tab.
@@ -20,18 +20,6 @@ const (
 	// paid off.
 	MarkPayoff
 )
-
-func (k MarkKind) String() string {
-	switch k {
-	case MarkForeshadow:
-		return "伏笔"
-	case MarkAI:
-		return "AI 写的"
-	case MarkPayoff:
-		return "回收"
-	}
-	return "标记"
-}
 
 // Mark is a range of the text, in runes [Start, End), that moves with edits.
 type Mark struct {

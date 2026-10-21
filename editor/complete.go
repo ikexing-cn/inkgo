@@ -1,9 +1,7 @@
 package editor
 
 import (
-	"context"
 	"strings"
-	"time"
 	"unicode"
 )
 
@@ -43,39 +41,4 @@ func candidates(before []rune, entities []Entity) ([]Entity, int) {
 		}
 	}
 	return nil, 0
-}
-
-// DemoPredictor stands in for a model: it waits Delay, then returns one of
-// a few fixed continuations, so the inline prediction can be tried
-// without one.
-type DemoPredictor struct{ Delay time.Duration }
-
-var (
-	demoSentences = []string{
-		"远处传来一声犬吠，又很快被风声吞没。",
-		"她没有回头，只是把手里的东西攥得更紧了些。",
-		"灯芯噼啪一响，屋里的影子跟着晃了晃。",
-	}
-	demoClauses = []string{
-		"，像是早就料到会有这么一天。",
-		"，却始终没有说出口。",
-		"，声音低得几乎听不见。",
-	}
-)
-
-func (d DemoPredictor) Predict(ctx context.Context, before string) (string, error) {
-	select {
-	case <-time.After(d.Delay):
-	case <-ctx.Done():
-		return "", ctx.Err()
-	}
-	rs := []rune(before)
-	if len(rs) == 0 {
-		return demoSentences[0], nil
-	}
-	i := len(rs) % 3
-	if strings.ContainsRune("。！？…”」", rs[len(rs)-1]) {
-		return demoSentences[i], nil
-	}
-	return demoClauses[i], nil
 }

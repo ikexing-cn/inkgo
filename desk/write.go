@@ -11,7 +11,6 @@ import (
 	"writer/workspace"
 )
 
-// writeView is the state of the writing page.
 type writeView struct {
 	entered bool // the page read the tree as it showed
 	tree    workspace.Tree

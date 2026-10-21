@@ -14,7 +14,7 @@ npm run verify
 - `npm run verify-prototype` 要本机有 Edge 或 Chrome。
 - `npm run verify-design` 要联网，只在 `DESIGN.md` 改了还没提交时跑；`npm run verify -- --design` 强制跑。
 
-界面改动在 `cmd/inkgo` 的布局测试里渲染截图核对（`SHOT=<目录> go test -run TestLayout ./cmd/inkgo`）。Go 测试里的 `SHOT` 都是目录，每个测试往里写自己命名的图。
+界面改动渲染截图核对：`SHOT=<目录> go test ./cmd/inkgo` 截整个窗口的几处布局，`SHOT=<目录> go test ./desk -run Shot` 截界面的各个状态。Go 测试里的 `SHOT` 都是目录，每个测试往里写自己命名的图。
 
 要一本有内容的书来试功能：`go run ./cmd/sample <目录>` 写出两本测试用的书（各 15 章，带设定、卷、章纲、伏笔，正文里故意埋了和设定对不上的地方，清单在 `cmd/sample/books/` 各文件开头），再用 `go run ./cmd/inkgo -work <目录>/<书名>` 打开。
 

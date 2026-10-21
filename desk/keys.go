@@ -33,7 +33,6 @@ var keyGroups = []struct {
 	}},
 }
 
-// keysHelp lists the shortcuts.
 func (a *App) keysHelp(c *ui.Context) {
 	t := a.pal.theme
 	a.modal(c, &a.keysOpen, func() {

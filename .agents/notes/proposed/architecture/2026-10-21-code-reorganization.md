@@ -119,7 +119,7 @@ Status: proposed
   - `footBar` 搬出 `check.go`，大纲的常量搬出 `theme.go`；
   - `workspace/chapters.go` 拆成 8 个文件：树、路径、`.order`、增删改、回收站、标记、正文、汇总。
 - 加 `desk/doc.go`：每个文件一行，写它管什么。
-- 「打开设置」改成按错误的类型来判断（`errors.Is`），不再找错误文字里的子串。
+- 「打开设置」改成按错误的类型来判断（`aiport.SetupError`，用 `errors.As`），不再找错误文字里的子串。
 - 删掉只复述代码的注释，改正两处已经过时的契约说明：`Work.Writing` 和 `Store.Open`。
 - 删掉 `read_summary` 的兼容分支和它的 `Chapters` 参数。
 - `cmd/poc` 改名为 `cmd/inkgo`：
@@ -139,7 +139,7 @@ Status: proposed
 | `export.go` 的导出范围计算（现在每帧算） | `export.Plan`，选项变时才算 |
 | 备份的到期、重试、再问策略，`trouble`，`volumeGone`；`meta` 里写死的路径 | `backup`，路径由 `workspace` 给 |
 | `welcome.go` 的书架操作，`sameFolder` | `shelf`；`work.yaml` 的判断由 `workspace.IsWork` 统一 |
-| `setting.go` 的 `desk.json` 结构、读写和旧格式迁移 | 新包 `prefs` |
+| `prefs.go` 的 `desk.json` 结构、读写和旧格式迁移 | 新包 `prefs` |
 | `ideas()` 的排序，`reading`/`readingBefore` | `workspace.Setting`、`workspace.Entry` |
 | 伏笔模型和候选 | `workspace` 的标记读取 |
 | 检查的队列、`keepCheck`、`pruneCheck` | `workspace.Check` 的方法加一个执行器 |
@@ -193,7 +193,9 @@ Status: proposed
 | 2 | 书架和 `desk.json` 写入加 `Sync`，临时文件不重名 | 看不出区别 |
 | 2 | `works.json` 和检查结果的文件，JSON 后面多出内容时报错 | 手改坏的文件会提示读不了，不再悄悄忽略多出的部分 |
 | 2 | 某章的标记或纲文件坏了，不再挡搜全书和只读纲 | 讨论照常搜到正文、读到别处的纲 |
-| 3 | 删掉 `read_summary` 的兼容分支 | 旧讨论里那条记录照常显示（存着的标签） |
+| 3 | 删掉 `read_summary` 的兼容分支 | 旧讨论里那条记录照常显示（存着的标签）；模型再调它，和调别的没有的工具一样报错 |
+| 3 | 关窗口时也停掉正在跑的检查 | 看不出区别：检查的结果只在界面收下时才存，窗口关了本来就存不下 |
+| 3 | 「打开设置」按错误的类型判断 | 超时、限流、服务端出错、回复坏了，提示里不再带「打开设置」；服务、模型、key、上下文上限的问题照旧带 |
 | 3 | 入口改名，去掉 `-editor` | 启动命令变成 `go run ./cmd/inkgo` |
 | 6 | 大纲页停顿后保存 | 和写作页一样 |
 
@@ -218,7 +220,7 @@ Status: proposed
 | --- | --- |
 | 1 编辑器 | 2026-10-21 合入 |
 | 2 存取层和共用小工具 | 2026-10-21 合入 |
-| 3 整理 | 未开始 |
+| 3 整理 | 2026-10-22 合入 |
 | 4 把规则搬出 `desk` | 未开始 |
 | 5 AI 层 | 未开始 |
 | 6 `desk` 的内部状态 | 未开始，先写提案 |

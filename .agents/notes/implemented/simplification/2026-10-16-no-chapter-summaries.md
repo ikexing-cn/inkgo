@@ -21,7 +21,7 @@ Status: implemented
 1. **离开一章不写摘要**：`desk/summary.go` 的队列、`leaveChapter`、`writing.Summarize`、`aiport.Pen.Summarize` 都删了。离开改过的一章，只有检查设成「写完一章后检查」时才发请求。
 2. **标题下面只有章纲**：没有「本章摘要」折叠区，也不能手写摘要。
 3. **起草不带前情提要**：`writing/writer.go` 里 `AIDraft` 的 `recap` 删了；起草对话框里没有「补齐摘要」和「起草时 AI 会读前面 N 章的摘要」。旧的请求记录里记着的 `recap` 部分（`workspace.PartRecap`）照旧显示成「前情提要」。
-4. **讨论的工具只剩五个**：没有 `read_summary`。旧讨论里调用过它的那一步，照旧写「读了摘要「…」」。
+4. **讨论不提供 `read_summary`**：实时调用它和调用其他未知工具一样报错；解码与标签生成不接收专用的 `Chapters` 参数。旧讨论的调用步骤直接显示 `workspace.Call.Label` 保存的标签，不按工具名重新生成。
 5. **设置里没有「章节修改后更新摘要」**：`.writer/desk.json` 不再写 `no_auto_summary`。`desk.json` 本来就宽松地读，旧文件里留着这一项也照常打开。
 
 连带的：
@@ -41,6 +41,7 @@ Status: implemented
 ## Alternatives considered
 
 - **留着摘要，只是不自动写，作者点了才写** — 最强的理由：几百章的长篇，前情提要用几千字就交代完前面的情节，比让 AI 每次去查便宜；作者也能拿它当自己的提纲。没有用：起草带上一章全文和本卷章纲、AI 需要时自己查，已经够接上前情；手写的摘要和章纲意思重叠，作者要提纲就写章纲；留着它就还要留折叠区、过时提示、`read_summary`，换来的只是一个作者不常点的按钮。
+- **为旧工具保留实时标签生成与参数转换** — 最强的理由：没有保存标签的调用也能按章名生成说明。没有用：历史事件已保存 `workspace.Call.Label`，界面直接显示它；实时接受旧参数会让代码看起来还支持这个工具。
 - **分层摘要（卷摘要、全书摘要）** — 几百章也放得下。没有用：要先有章摘要，问题一样；而且 AI 读到的是二手的概括，细节和原文对不上时作者更难察觉。
 - **把已有的 `.summary.json` 删掉** — 章节文件夹干净，不留没人管的文件。没有用：删是不能撤回的，作者写的摘要会丢；留在那里不碍事。
 - **让 `.summary.json` 照旧跟着章节改名、移动** — 改了名的章旁边不会剩下对不上名字的文件。没有用：跟着走就还要在 `companions()` 里认它、在回收站里恢复它，等于还在维护一个已经没有的功能。作者真想要回来，文件还在原处。
@@ -55,7 +56,7 @@ Status: implemented
   - `desk/write_test.go` 的 `TestLeavingAChangedChapterAsksNothing`：检查设成手动时，改过一章再离开，模型一次也没被问到（有摘要时这里会排一份摘要）。`TestFolderShowsTheGists`：没有章纲的章，卷页显示正文的开头。
   - `workspace/nodes_test.go` 的 `TestAnOldSummaryStaysWhereItWas`：旁边有 `.summary.json` 的章改名、进回收站、再恢复，那个文件原样留在原处；作品重新打开，章节照常。
   - `desk/aiswitch_test.go` 的 `TestAIOffShowsNothingOfIt`：作品里有旧版本写的 `.summary.json`，关掉 AI 走一遍，文件原样还在。
-  - `discussion` 的测试：讨论带五个工具；旧的 `read_summary` 那一步照旧有说明。
+  - `discussion/tools_test.go` 的 `TestReadSummaryIsAnUnknownTool`：实时调用 `read_summary` 返回未知工具错误，标签只回退为工具名。`desk/app_test.go` 的 `TestOldReadSummaryShowsItsSavedLabel`：旧事件从磁盘读回后，界面显示保存的标签。
   - 删掉的：`workspace/summary_test.go`、`writing/summary_test.go`、`desk/summary_test.go`、`desk/shot_test.go` 的 `TestShotSummary`。
   - 原型在上一次提交里同样去掉了，`scripts/prototype/walk.ts` 里生成摘要的几步随之删掉。「AI turned off」仍查窗口里不能有「摘要」两个字：压缩的「整理成摘要」只在讨论里，AI 关着时本来就不显示。
 - 取代[章节摘要与起草时的前情提要](../../archived/feature/2026-10-09-chapter-summaries.md)，那一篇已归档。

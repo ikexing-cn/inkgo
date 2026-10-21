@@ -16,7 +16,6 @@ import (
 	"writer/workspace"
 )
 
-// backupView is the state of backing the open work up.
 type backupView struct {
 	running bool
 	done    chan struct{}

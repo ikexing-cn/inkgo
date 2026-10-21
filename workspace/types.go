@@ -64,8 +64,9 @@ type Work struct {
 	Pen        string     `yaml:"pen,omitempty" json:"pen,omitempty"`
 	Categories []Category `yaml:"categories" json:"categories"`
 	Discussion Selection  `yaml:"discussion" json:"discussion"`
-	// Writing continues, rewrites and drafts the prose; left empty, it is
-	// the discussion's model.
+	// Writing continues the prose and checks it; left empty, it is the
+	// discussion's model. Drafts and rewrites go through the talk
+	// (writing/rules.go).
 	Writing Selection `yaml:"writing,omitempty" json:"writing,omitempty"`
 }
 
@@ -80,7 +81,6 @@ type Usage struct {
 	Reasoning  int `json:"reasoning,omitempty"`
 }
 
-// Add is u and v together, as the requests of a turn.
 func (u Usage) Add(v Usage) Usage {
 	return Usage{Input: u.Input + v.Input, CacheRead: u.CacheRead + v.CacheRead, CacheWrite: u.CacheWrite + v.CacheWrite,
 		Output: u.Output + v.Output, Reasoning: u.Reasoning + v.Reasoning}
@@ -365,7 +365,6 @@ const (
 // person, a place, a group, a thing, a rank or art of the power system.
 var NameCategories = []string{"人物", "地点", "组织", "物品", "力量体系"}
 
-// maxNameRunes bounds a name.
 const maxNameRunes = 12
 
 // CleanNames trims names and drops the empty and repeated ones.

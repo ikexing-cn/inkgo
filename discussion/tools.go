@@ -101,7 +101,6 @@ type input struct {
 	From       int      `json:"from"`
 	To         int      `json:"to"`
 	Chapter    string   `json:"chapter"`
-	Chapters   []string `json:"chapters"`
 	Op         string   `json:"op"`
 	Entry      int      `json:"entry"`
 	Place      string   `json:"place"`
@@ -160,7 +159,7 @@ func (t *toolbox) labels(calls []model.Call) []workspace.Call {
 	for i, c := range calls {
 		in, _ := read(c)
 		inputs[i] = in
-		needBook = needBook || in.Chapter != "" || len(in.Chapters) > 0
+		needBook = needBook || in.Chapter != ""
 		needSetting = needSetting || c.Name == toolNote && (in.Op == workspace.OpEdit || in.Op == workspace.OpMove)
 	}
 	var b book
@@ -176,9 +175,6 @@ func (t *toolbox) labels(calls []model.Call) []workspace.Call {
 		in := inputs[i]
 		if b.name != nil {
 			in.Chapter = b.named(in.Chapter)
-			for k, name := range in.Chapters {
-				in.Chapters[k] = b.named(name)
-			}
 		}
 		out[i] = workspace.Call{ID: c.ID, Name: c.Name, Input: c.Input, Label: label(c.Name, in, set)}
 	}
@@ -210,8 +206,6 @@ func label(name string, in input, set workspace.Setting) string {
 			return fmt.Sprintf("读了「%s」第 %d 段起", in.Chapter, in.From)
 		}
 		return "读了「" + in.Chapter + "」"
-	case "read_summary": // a tool of older versions, in the talks they had
-		return "读了摘要" + quoted(in.Chapters)
 	case toolLookUp:
 		return "查了设定「" + in.Query + "」"
 	case toolSearchTalks:

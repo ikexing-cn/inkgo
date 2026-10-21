@@ -247,7 +247,6 @@ func (s *Store) snapshotText(id, name string) (string, error) {
 	return string(b), err
 }
 
-// SnapshotText returns the text of snapshot name of document id.
 func (s *Store) SnapshotText(id, name string) (string, error) {
 	unlock, err := s.lock()
 	if err != nil {

@@ -115,8 +115,9 @@ func Create(dir, name, genre string) (*Store, error) {
 	return Open(root)
 }
 
-// Open validates every canonical file, so a hand edit gone wrong is reported
-// with its file and field before anything is written.
+// Open validates work.yaml, the sessions and the setting, so a hand edit gone
+// wrong there is reported with its file and field before anything is written.
+// Chapters, their marks and outlines are read and checked only when asked for.
 func Open(dir string) (*Store, error) {
 	root, err := filepath.Abs(dir)
 	if err != nil {

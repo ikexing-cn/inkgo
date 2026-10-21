@@ -10,7 +10,7 @@ import (
 
 // On demand, a prediction comes only when the author asks, and anywhere.
 func TestPredictionOnDemand(t *testing.T) {
-	e := New(NewDoc("她推开门。窗外下雨"), Options{Predictor: DemoPredictor{}, PredictOnDemand: true})
+	e := New(NewDoc("她推开门。窗外下雨"), Options{Predictor: testPredictor{}, PredictOnDemand: true})
 	e.MoveTo(5, false)
 	tt := newTester(e)
 	time.Sleep(30 * time.Millisecond)
@@ -184,7 +184,7 @@ func TestTheAIMarkLetsGoOfEditedWords(t *testing.T) {
 // stays, for when the AI is back.
 func TestNoAI(t *testing.T) {
 	const text = "她推开门。窗外下雨"
-	e := New(NewDoc(text), Options{Predictor: DemoPredictor{}, PredictOnDemand: true})
+	e := New(NewDoc(text), Options{Predictor: testPredictor{}, PredictOnDemand: true})
 	e.Doc.Add(Mark{Kind: MarkAI, Start: 0, End: 5, Note: "deepseek/deepseek-flash"})
 	e.MoveTo(len([]rune(text)), false)
 	tt := newTester(e)

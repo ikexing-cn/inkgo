@@ -324,6 +324,42 @@ func TestTalkNotesTheSettingAsItReplies(t *testing.T) {
 	}
 }
 
+func TestOldReadSummaryShowsItsSavedLabel(t *testing.T) {
+	a, tt, _ := fixture(t)
+	u, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "读一下旧摘要。"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	const saved = "读了摘要「第三章：旧章名」"
+	for _, event := range []workspace.Event{
+		{Role: workspace.RoleCall, ReplyTo: u.ID, Calls: []workspace.Call{
+			{ID: "old", Name: "read_summary", Input: []byte(`{"chapters":["第三章"]}`), Label: saved},
+		}},
+		{Role: workspace.RoleResult, ReplyTo: u.ID, Call: "old", Text: "旧摘要的内容。"},
+		{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "读完了。"},
+	} {
+		if _, err = a.Store.Append(a.session, event); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err = a.refresh(); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Frame()
+	if !tt.HasText(saved) {
+		t.Fatal("the old call lost its saved label", tt.Texts())
+	}
+	if err = tt.Click(saved); err != nil {
+		t.Fatal(err)
+	}
+	tt.Advance(time.Second)
+	tt.Frame()
+	if !tt.HasText(saved) || !tt.HasText("旧摘要的内容。") {
+		t.Fatal("the old call does not unfold with its saved label", tt.Texts())
+	}
+}
+
 // The panel folds away for the talk alone, and stays folded when the work
 // opens again.
 func TestSettingPanelFoldsAndRemembers(t *testing.T) {

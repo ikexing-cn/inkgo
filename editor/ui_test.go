@@ -1,6 +1,7 @@
 package editor
 
 import (
+	"context"
 	"slices"
 	"strings"
 	"testing"
@@ -8,6 +9,15 @@ import (
 
 	"github.com/egoist/mygo/ui"
 )
+
+type testPredictor struct{}
+
+func (testPredictor) Predict(ctx context.Context, _ string) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
+	return "她没有回头。", nil
+}
 
 func newTester(e *Editor) *ui.Tester {
 	tt := ui.NewTester(func(c *ui.Context) { e.View(c).Fill() }, 600, 400)
@@ -48,7 +58,7 @@ func TestTypeComposeAndKeys(t *testing.T) {
 }
 
 func TestReadOnlySourceSelection(t *testing.T) {
-	e := New(NewDoc("雨夜🌙，林晚怕黑。"), Options{ReadOnly: true, Predictor: DemoPredictor{}})
+	e := New(NewDoc("雨夜🌙，林晚怕黑。"), Options{ReadOnly: true, Predictor: testPredictor{}})
 	tt := newTester(e)
 	tt.Key(ui.Cmd, ui.KeyA)
 	if e.SelectedText() != e.Doc.String() {
@@ -94,7 +104,7 @@ func TestLongTextWraps(t *testing.T) {
 }
 
 func TestGhostAcceptedWithTab(t *testing.T) {
-	e := New(NewDoc("她推开门"), Options{Predictor: DemoPredictor{}, PredictDelay: 0})
+	e := New(NewDoc("她推开门"), Options{Predictor: testPredictor{}, PredictDelay: 0})
 	e.MoveTo(e.Doc.Len(), false)
 	tt := newTester(e)
 	deadline := time.Now().Add(2 * time.Second)
@@ -169,7 +179,7 @@ func TestCompleteAnotherName(t *testing.T) {
 // While completions are offered, no prediction comes by itself; one asked
 // for closes them.
 func TestCompletionHoldsThePrediction(t *testing.T) {
-	e := New(NewDoc(""), Options{Entities: []Entity{{Name: "沈砚"}}, Predictor: DemoPredictor{}, PredictDelay: 0})
+	e := New(NewDoc(""), Options{Entities: []Entity{{Name: "沈砚"}}, Predictor: testPredictor{}, PredictDelay: 0})
 	tt := newTester(e)
 	tt.Type("沈")
 	time.Sleep(30 * time.Millisecond)

@@ -322,7 +322,7 @@ func TestToolsReadTheBook(t *testing.T) {
 	if out := box.run(call("1", toolReadProse, map[string]any{"chapter": "第一卷/雨", "from": 2})); strings.Contains(out.text, "[6]") {
 		t.Error("read past the cap")
 	}
-	if got := box.label(call("1", toolReadProse, map[string]any{"chapter": "停电"})) + box.label(call("1", "read_summary", map[string]any{"chapters": []string{"第三章", "雪"}})); got != "读了「第三章：停电」读了摘要「第三章：停电」「雪」" {
+	if got := box.label(call("1", toolReadProse, map[string]any{"chapter": "停电"})); got != "读了「第三章：停电」" {
 		t.Errorf("labels %s", got)
 	}
 	// The setting is looked up by number, the entries a name matches first.
@@ -335,6 +335,17 @@ func TestToolsReadTheBook(t *testing.T) {
 	}
 	if out := box.run(call("1", toolLookUp, map[string]any{"query": "雪"})).text; out != "设定里没有「雪」。" {
 		t.Errorf("look up nothing: %s", out)
+	}
+}
+
+func TestReadSummaryIsAnUnknownTool(t *testing.T) {
+	box := &toolbox{}
+	c := call("old", "read_summary", map[string]any{"chapters": []string{"第三章", "雪"}})
+	if out := box.run(c); !out.failed || out.text != "没有叫 read_summary 的工具" {
+		t.Fatalf("retired tool: %+v", out)
+	}
+	if got := box.label(c); got != "read_summary" {
+		t.Fatalf("unknown tool label = %q", got)
 	}
 }
 

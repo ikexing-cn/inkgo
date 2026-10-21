@@ -15,7 +15,6 @@ const (
 	menuEdge = 8   // what a menu keeps clear of the window's edges
 )
 
-// menuState is the menu that is open.
 type menuState struct {
 	owner string  // what it belongs to, "" while none is open
 	drop  bool    // it hangs from what was pressed; else it is at x, y

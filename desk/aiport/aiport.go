@@ -110,7 +110,6 @@ type Model struct {
 	Window, Output, CompactAt int
 }
 
-// Catalog lists the models a service offers.
 type Catalog interface {
 	ListModels(ctx context.Context) ([]string, error)
 }

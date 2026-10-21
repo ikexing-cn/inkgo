@@ -10,7 +10,6 @@ import (
 
 	"writer/ai"
 	"writer/desk"
-	"writer/editor"
 	"writer/internal/testshot"
 	"writer/workspace"
 )
@@ -275,21 +274,4 @@ func shot(t *testing.T, tt *ui.Tester, suffix string) {
 	tt.Frame()
 	name := "layout" + suffix + ".png"
 	testshot.Save(t, name, tt.Image())
-}
-
-// TestLayout checks the editor fills the window, and writes a screenshot
-// when SHOT is set.
-func TestLayout(t *testing.T) {
-	a := &app{ed: editor.New(editor.NewDoc(sample), editor.Options{})}
-	var r ui.Rect
-	tt := ui.NewTester(func(c *ui.Context) {
-		a.view(c)
-		r = a.lastEditor
-	}, 1086, 680)
-	tt.Frame()
-	tt.Frame()
-	if r.Y > 1 || r.H < 600 {
-		t.Errorf("editor bounds %+v, want the full height", r)
-	}
-	testshot.Save(t, "layout.png", tt.Image())
 }

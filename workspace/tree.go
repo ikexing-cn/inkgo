@@ -20,7 +20,6 @@ type Tree struct {
 	byID map[string]*Node
 }
 
-// Node returns the node id.
 func (t Tree) Node(id string) (*Node, bool) {
 	n, ok := t.byID[id]
 	return n, ok
@@ -66,7 +65,6 @@ func (n *Node) Within(ancestor *Node) bool {
 	return false
 }
 
-// Chapters returns the chapter tree.
 func (s *Store) Chapters() (Tree, error) {
 	unlock, err := s.lock()
 	if err != nil {
