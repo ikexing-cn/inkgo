@@ -51,7 +51,7 @@ Status: implemented
 
 ### 讨论回复写上钱
 
-回复下面那一行，「· N token」后面加估算花费：「· 42K token · 约 $0.08」，不到一分钱写「不到 $0.01」。这是这一轮所有请求的和，和 token 数一样（`desk/chat.go` 的 `turnCost`，经 `aiport.Service.Cost` 按事件上记的模型算）；这一轮用到的模型有一个不在价格表里，就不写花费。
+回复下面那一行，「· N token」后面加估算花费：「· 42K token · 约 $0.08」，不到一分钱写「不到 $0.01」。这是这一轮所有请求的和，和 token 数一样（`desk/chat.go` 的 `turnCost`，经 `aiport.Settings.Cost` 按事件上记的模型算）；这一轮用到的模型有一个不在价格表里，就不写花费。
 
 不在发请求之前报价：讨论带工具，查几次、写多长事先不知道，报出来的数不准；起草对话框说清会预先带上哪些内容、约多少 token，见[起草和改写交给讨论](2026-10-16-writing-through-the-talk.md)。
 

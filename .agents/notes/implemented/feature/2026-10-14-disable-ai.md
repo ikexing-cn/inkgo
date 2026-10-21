@@ -59,11 +59,11 @@ Status: implemented
 
 ### 开关存在哪
 
-存在本机的作品清单 `works.json`（`shelf.Shelf.NoAI`，JSON 里是 `noAI`；外观 `Theme` 也存在这里），`desk` 自己读写，不经过 `ai`。没有这一项就是开着，旧的清单不用迁移；只在关着时写这一项（`omitempty`）。
+存在本机的作品清单 `works.json`（`shelf.Shelf.NoAI`，JSON 里是 `noAI`；外观 `Theme` 也存在这里），`desk` 自己读写。`desk.New` 通过 `aiport.Settings.BindSwitch` 绑定 `a.aiOn`；`ai` 构建目录、讨论或笔时在界面线程上读取这同一个字段，不复制开关，也不在后台读取它。没有这一项就是开着，旧的清单不用迁移；只在关着时写这一项（`omitempty`）。
 
 ### 代码里怎么做
 
-- `desk/aiswitch.go`：`aiOn()` 看 `works.json` 的那一项；`aiView` 是设置里的开关（框里画的是现在的状态，点了只是弹出问句）；`askAI` 是两个问句；`turnAI` 是开关的那一刻：存进 `works.json`，告诉 `ai`（`SetOn`）；关的时候放掉正在等的讨论回复（和「取消请求」同一条路）、停起草改写续写、丢掉排着的摘要和检查，讨论页、检查页回到正文，起草和摘要的框收起，清掉提示条和报错；开的时候重新读模型服务的配置。
+- `desk/aiswitch.go`：`aiOn()` 看 `works.json` 的那一项；`aiView` 是设置里的开关（框里画的是现在的状态，点了只是弹出问句）；`askAI` 是两个问句；`turnAI` 是开关的那一刻：存进 `works.json`；关的时候放掉正在等的讨论回复（和「取消请求」同一条路）、停起草改写续写、丢掉排着的摘要和检查，讨论页、检查页回到正文，起草和摘要的框收起，清掉提示条和报错；开的时候重新读模型服务的配置。
 - 用到 AI 的地方各自看 `aiOn()`，关着就不画、按键不响应：侧栏、右栏的标签、四个菜单、正文的右键菜单和选中后的按钮、工具栏的「AI 改写」、快捷键表（`keyGroups` 每行标了是不是 AI 的）、待处理、快照、设定的「待确认」「查看原文」和修改记录、章节摘要、正文底下检查的那一截、书架的空白页。
 - 编辑器：`editor.Options.NoAI` 和 `SetNoAI`：不显示也不要续写，Ctrl+J 不响应，AI 起草和采纳的标记不画下划线，光标停在上面也不算。
 - 后台：离开一章时不排摘要和检查，停笔时不检查（2026-10-16 起摘要整个去掉了，见[去掉章节摘要](../simplification/2026-10-16-no-chapter-summaries.md)）；关着时走 `a.run` 到达的结果（讨论、读模型目录），报错不显示。（原来还有后台整理的重做，打开作品时 AI 关着就不开后台整理；2026-10-15 随记账员删了。）
@@ -105,7 +105,7 @@ Status: implemented
 ## Verification
 
 - `desk/aiswitch_test.go`：
-  - `TestDeskImportsNothingThatSends`：`go list -deps writer/desk` 里有 `writer/desk/aiport`，没有 `writer/ai`、`writer/model`、`writer/discussion`、`writer/writing`。
+  - `TestDeskImportsNothingThatSends`：`go list -deps writer/desk` 里有 `writer/aiport`，没有 `writer/ai`、`writer/model`、`writer/discussion`、`writer/writing`。
   - `TestAIOffShowsNothingOfIt`：一部什么都有的作品（AI 起草的段落、原句删了的伏笔、AI 改动前的快照、摘要、检查结果、讨论、讨论时 AI 记下的修改记录和待确认），关掉 AI 后走正文页、伏笔、设定、修改记录、四个菜单、右键菜单、选中后的按钮、Ctrl+L/J/Enter、快捷键表、待处理、快照、打字后去作品分类、重开作品、书架、空书架：窗口里除了正文没有 AI 的字，替身 `ai` 一个请求也没收到，摘要和检查结果还在盘上。
   - `TestTurnTheAIOffAndOn`：「取消」和 Esc 不改任何东西，Esc 不关设置；关了再开，`works.json` 记着开关，重开软件还是关着、`Catalog` 返回 `ai.ErrOff`，`providers.yaml` 和作品文件夹不变；起草到一半、讨论回复在路上时关掉：起草停在写到的地方（2026-10-15 起是没采纳的起草丢掉，正文和磁盘不变），回复放掉、作者的话留着；再开，讨论和检查回来，那条讨论可以重试。
   - `TestShotAIOff`：`SHOT=<dir> go test ./desk -run TestShotAIOff` 出两个问句、关着时的设置、正文页（浅色、深色）、空书架的截图。

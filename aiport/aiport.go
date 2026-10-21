@@ -21,9 +21,9 @@ func (e *SetupError) Unwrap() error { return e.Err }
 // the interface's thread and fails at once for invalid settings or while
 // AI is off; the returned catalog sends off that thread.
 type Settings interface {
-	// SetOn turns the AI on or off. Off, Catalog, Talk and Pen build
-	// nothing.
-	SetOn(on bool)
+	// BindSwitch supplies the machine's switch. The function is read only
+	// while Catalog, Talk or Pen builds on the interface's thread.
+	BindSwitch(on func() bool)
 	// ConfigFile is where the services are configured, or empty when there
 	// is no such file.
 	ConfigFile() string

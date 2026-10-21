@@ -13,7 +13,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"writer/aiport"
@@ -29,7 +28,7 @@ import (
 type Service struct {
 	file string
 	cfg  model.Config
-	off  atomic.Bool
+	on   func() bool
 	// Trace, when set, is a folder that gets the whole of each request
 	// and its reply, a file for each; it is for tuning the prompts, and
 	// no work is written to.
@@ -62,7 +61,11 @@ func New(file string) *Service {
 
 func (s *Service) ConfigFile() string { return s.file }
 
-func (s *Service) SetOn(on bool) { s.off.Store(!on) }
+// BindSwitch supplies the machine's switch, read on the interface's
+// thread while Catalog, Talk or Pen builds. Unset or nil means on for
+// standalone use; desk.New binds it for every desk. Background requests
+// never read it.
+func (s *Service) BindSwitch(on func() bool) { s.on = on }
 
 func (s *Service) Providers() []aiport.Provider {
 	out := make([]aiport.Provider, len(s.cfg.Providers))
@@ -135,7 +138,7 @@ func (s *Service) SetKey(providerID, key string) error {
 }
 
 func (s *Service) Catalog(providerID string) (aiport.Catalog, error) {
-	if s.off.Load() {
+	if s.on != nil && !s.on() {
 		return nil, ErrOff
 	}
 	client, err := model.NewClient(s.cfg, providerID, "")
@@ -195,7 +198,7 @@ func (t talk) Retry(ctx context.Context, session, userID string) error {
 }
 
 func (s *Service) Talk(st *workspace.Store, beside *aiport.Beside, progress func(aiport.Progress), step func(workspace.Event)) (aiport.Talk, error) {
-	if s.off.Load() {
+	if s.on != nil && !s.on() {
 		return nil, ErrOff
 	}
 	work := st.Work()
@@ -344,7 +347,7 @@ func (p pen) Check(ctx context.Context, chapter string) (workspace.Check, error)
 }
 
 func (s *Service) Pen(st *workspace.Store) (aiport.Pen, error) {
-	if s.off.Load() {
+	if s.on != nil && !s.on() {
 		return nil, ErrOff
 	}
 	w, err := s.writer(st)

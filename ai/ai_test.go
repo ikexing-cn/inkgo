@@ -90,7 +90,7 @@ func TestSetupErrorsCrossThePort(t *testing.T) {
 			}
 		}
 	}
-	s.SetOn(false)
+	s.BindSwitch(func() bool { return false })
 	_, err = s.Catalog("missing")
 	var setup *aiport.SetupError
 	if !errors.Is(err, ErrOff) || errors.As(err, &setup) {
@@ -191,7 +191,8 @@ func TestOffBuildsNothing(t *testing.T) {
 		built.Add(1)
 		return discussion.Model{}, nil
 	}
-	s.SetOn(false)
+	on := false
+	s.BindSwitch(func() bool { return on })
 	if _, err := s.Catalog("deepseek"); !errors.Is(err, ErrOff) {
 		t.Fatalf("catalog: %v", err)
 	}
@@ -204,11 +205,75 @@ func TestOffBuildsNothing(t *testing.T) {
 	if n := built.Load(); n != 0 {
 		t.Fatalf("built %d with the AI off", n)
 	}
-	s.SetOn(true)
+	on = true
 	if _, err := s.Pen(st); err != nil {
 		t.Fatal(err)
 	}
 	if n := built.Load(); n != 1 {
 		t.Fatalf("built %d with the AI on again", n)
+	}
+}
+
+func TestSendingDoesNotReadTheSwitch(t *testing.T) {
+	st, err := workspace.Create(t.TempDir(), "雨城", "网文")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	w := st.Work()
+	w.Discussion = workspace.Selection{Provider: "deepseek", Model: "deepseek-flash"}
+	if err = st.SaveWork(w); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = st.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{
+		{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "规则", Text: "城市总在下雨"},
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	chapter, err := st.NewChapter("", "第一章", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = st.WriteChapter(chapter, strings.Repeat("雨下了一夜。", 50), nil); err != nil {
+		t.Fatal(err)
+	}
+	sent := errors.New("fake request")
+	s := New("")
+	s.Open = func(workspace.Selection, *workspace.Store) (discussion.Model, error) {
+		return discussion.Model{Completer: failingRequest{sent}, Model: model.Model{Window: 32000, Output: 4000}}, nil
+	}
+	var reads int
+	s.BindSwitch(func() bool { reads++; return true })
+	talk, err := s.Talk(st, nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pen, err := s.Pen(st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reads != 2 {
+		t.Fatalf("builders read the switch %d times", reads)
+	}
+	session, err := st.NewSession()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.BindSwitch(func() bool {
+		t.Error("a background request read the interface's switch")
+		return false
+	})
+	done := make(chan []error, 1)
+	go func() {
+		ctx := context.Background()
+		_, talkErr := talk.Say(ctx, session, workspace.Event{Text: "接着说。"})
+		_, predictErr := pen.Predict(ctx, aiport.Scene{Chapter: chapter, Before: "雨停了。"})
+		_, checkErr := pen.Check(ctx, chapter)
+		done <- []error{talkErr, predictErr, checkErr}
+	}()
+	for _, err := range <-done {
+		if !errors.Is(err, sent) {
+			t.Error(err)
+		}
 	}
 }

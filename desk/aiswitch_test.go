@@ -38,6 +38,27 @@ func TestDeskImportsNothingThatSends(t *testing.T) {
 	}
 }
 
+func TestBuildersReadTheShelfSwitch(t *testing.T) {
+	a := newApp("")
+	st, err := workspace.Create(t.TempDir(), "雨城", "网文")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	for _, off := range []bool{true, false, true} {
+		a.shelf = shelf.Shelf{NoAI: off}
+		for name, build := range map[string]func() error{
+			"catalog": func() error { _, err := a.ai.Catalog("missing"); return err },
+			"talk":    func() error { _, err := a.ai.Talk(st, nil, nil, nil); return err },
+			"pen":     func() error { _, err := a.ai.Pen(st); return err },
+		} {
+			if err := build(); errors.Is(err, ai.ErrOff) != off {
+				t.Errorf("%s: shelf.NoAI=%v: %v", name, off, err)
+			}
+		}
+	}
+}
+
 // aiWords tell of the AI: with it off, none shows in the window, what the
 // author wrote aside.
 var aiWords = []string{"AI", "讨论", "检查", "续写", "改写", "起草", "摘要", "模型", "整理"}

@@ -80,7 +80,6 @@ func (a *App) askAI(c *ui.Context) {
 func (a *App) turnAI(on bool) {
 	a.shelf.NoAI = !on
 	a.saveShelf()
-	a.ai.SetOn(on)
 	if on {
 		a.loadAI()
 		if a.offAway && a.page == pageWrite {

@@ -145,7 +145,7 @@ DESIGN.md「模型看到的，作者也看得到」在原型那一步就写好�
   - `ai` 的 `NewBookkeeper` 钩子；
   - `desk` 的 `startWorker`、`kick`、`halt`、`redo`、`bookDot`。
 - **留下的**：`Locate`、`Decode` 和放宽匹配留在 `discussion/shared.go`。「摘录」不调用模型，照旧。
-- **接口变化**：`aiport.Service.Talk` 多一个参数 `step func(workspace.Event)`。每写一条调用或结果，就交给界面：界面把它放进 `live` 里显示，带修订的就通知设定栏刷新。
+- **接口变化**：`aiport.Assistant.Talk` 多一个参数 `step func(workspace.Event)`。每写一条调用或结果，就交给界面：界面把它放进 `live` 里显示，带修订的就通知设定栏刷新。
 
 ## Alternatives considered
 

@@ -209,7 +209,7 @@ func New(ai aiport.Service) *App {
 	if ai.ConfigFile() != "" {
 		a.loadShelf()
 	}
-	ai.SetOn(a.aiOn())
+	ai.BindSwitch(a.aiOn)
 	if a.aiOn() {
 		a.loadAI()
 	}
