@@ -7,6 +7,28 @@ import (
 	"testing"
 )
 
+func TestIsProsePath(t *testing.T) {
+	for _, tc := range []struct {
+		path  string
+		prose bool
+	}{
+		{"chapters/一.txt", true},
+		{"chapters/卷/一.txt", true},
+		{"chapters/一.outline.txt", false},
+		{"chapters/卷.outline.txt", false},
+		{"chapters/一.marks.json", false},
+		{"trash/一.txt", false},
+		{"chapters-other/一.txt", false},
+		{"一.txt", false},
+		{`chapters\一.txt`, false},
+		{"chapters/一.TXT", false},
+	} {
+		if got := IsProsePath(tc.path); got != tc.prose {
+			t.Fatalf("%q: got %v, want %v", tc.path, got, tc.prose)
+		}
+	}
+}
+
 func exists(t *testing.T, parts ...string) bool {
 	t.Helper()
 	_, err := os.Stat(filepath.Join(parts...))

@@ -1,16 +1,12 @@
 package backup
 
-import (
-	"strings"
+import "writer/workspace"
 
-	"writer/workspace"
-)
-
-// Meta is what a backup of f says of the work.
+// Meta counts the live prose held by the files, identifying the work by its ID.
 func (f Files) Meta(workID string) Meta {
 	m := Meta{Work: workID}
 	for _, file := range f.List {
-		if strings.HasPrefix(file.Rel, "chapters/") && strings.HasSuffix(file.Rel, ".txt") && !strings.HasSuffix(file.Rel, ".outline.txt") {
+		if workspace.IsProsePath(file.Rel) {
 			m.Chapters++
 			m.Words += workspace.Count(string(file.Data))
 		}

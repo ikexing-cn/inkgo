@@ -136,8 +136,8 @@ Status: proposed
 | `internal/textdiff/diff.go` 的差异比较 | `internal/textdiff`，`desk` 调用 `Compare`、`Paragraphs` |
 | `workspace/numbering.go` 的章节编号 | `Tree.TitleAfter`；编号前缀由 `workspace.TitleNumber` 读取，`nextTitle` 仅供包内使用 |
 | 提议在正文里的定位 | `workspace.Proposal.Place`（`workspace/placement.go`）；`editor` 不依赖作品存取层 |
-| `export.go` 的导出范围计算（现在每帧算） | `export.Plan`，选项变时才算 |
-| 备份的到期、重试、再问策略，`trouble`，`volumeGone`；`meta` 里写死的路径 | `backup`，路径由 `workspace` 给 |
+| `export.go` 的导出范围计算（现在每帧算） | `export.Plan`（`export/plan.go`）；打开、内容格式或范围选择、当前章节变化及设定刷新时计算 |
+| 备份的到期、重试、再问策略，`trouble`，`volumeGone`；`meta` 里写死的路径 | `backup.Policy`、`Policy.Trouble`、包内 `volumeGone`（`backup/policy.go`）、`Files.Meta`（`backup/meta.go`）；正文路径由 `workspace.IsProsePath` 判断 |
 | `welcome.go` 的书架操作，`sameFolder` | `shelf.Describe`、`Shelf.Add`、`Shelf.RelocateWork`、`Shelf.Remove`、`SameFolder`；作品判断由 `workspace.IsWork` 统一 |
 | `prefs.go` 的 `desk.json` 结构、读写和旧格式迁移 | `prefs.Prefs`、`Load`、`Save`；路径由 `workspace.Store.PrefsPath` 提供 |
 | `ideas()` 的排序，`reading`/`readingBefore` | `workspace.Setting`、`workspace.Entry` |

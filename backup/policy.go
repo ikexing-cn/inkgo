@@ -64,6 +64,11 @@ func (p *Policy) ForgetFailure() {
 	p.err = nil
 }
 
+// Hushed reports whether the toolbar warning was put off for now's local date.
+func (s Settings) Hushed(now time.Time) bool {
+	return s.Hush.Format(time.DateOnly) == now.Format(time.DateOnly)
+}
+
 // retryAfter is how long a failed backup waits before it is tried again
 // unasked.
 const retryAfter = 10 * time.Minute

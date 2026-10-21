@@ -136,3 +136,37 @@ func TestForgetFailure(t *testing.T) {
 		t.Fatal("forgetting a failure changed the minute check or kept the retry delay", p)
 	}
 }
+
+func TestBackupResultAndHush(t *testing.T) {
+	now := time.Date(2041, 10, 22, 23, 59, 0, 0, time.FixedZone("local", 8*60*60))
+	missing := &os.PathError{Op: "stat", Path: "missing", Err: fs.ErrNotExist}
+	var p Policy
+	p.RecordResult(t.TempDir(), missing, now)
+	if p.err != missing || !p.failed.Equal(now) || p.gone {
+		t.Fatal(p)
+	}
+	p.RecordResult("relative", fs.ErrPermission, now.Add(time.Minute))
+	if !errors.Is(p.err, fs.ErrPermission) || p.gone || !p.failed.Equal(now.Add(time.Minute)) {
+		t.Fatal(p)
+	}
+	p.RecordResult("relative", nil, now.Add(2*time.Minute))
+	if p.err != nil {
+		t.Fatal("success kept a failure", p)
+	}
+	if !p.Due(Settings{Dir: "backup", Hourly: true, Last: now.Add(-time.Hour)}, true, now.Add(2*time.Minute)) {
+		t.Fatal("success kept the retry delay", p)
+	}
+	s := Settings{Hush: now}
+	if !s.Hushed(now.Add(-time.Hour)) || s.Hushed(now.Add(time.Minute)) || (Settings{}).Hushed(now) {
+		t.Fatal("local-day hush")
+	}
+	if runtime.GOOS == "windows" {
+		if !volumeGone("?:\\backup") {
+			t.Fatal("an invalid volume counts as present")
+		}
+		p.RecordResult("?:\\backup", missing, now)
+		if !p.gone {
+			t.Fatal(p)
+		}
+	}
+}

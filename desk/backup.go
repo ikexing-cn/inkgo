@@ -303,7 +303,7 @@ func (a *App) backupLine(c *ui.Context) {
 // the author said not today.
 func (a *App) backupChip(c *ui.Context) {
 	s, ok := a.backupSettings()
-	if !ok || !a.bk.policy.Failed() || s.Hush.Format(time.DateOnly) == time.Now().Format(time.DateOnly) {
+	if !ok || !a.bk.policy.Failed() || s.Hushed(time.Now()) {
 		return
 	}
 	short, _, _ := a.bk.policy.Trouble(s.Dir)

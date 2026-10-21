@@ -22,6 +22,12 @@ const (
 	marksExt    = ".marks.json"
 )
 
+// IsProsePath reports whether a slash-separated path under a work is live
+// chapter prose, excluding outlines and files outside the chapter tree.
+func IsProsePath(rel string) bool {
+	return strings.HasPrefix(rel, chaptersDir+"/") && strings.HasSuffix(rel, textExt) && !strings.HasSuffix(rel, outlineExt)
+}
+
 // fileName turns title into a name its directory can hold beside the names
 // taken: characters file systems refuse become their full-width forms, and
 // a name clashing with another, letter case aside, is numbered.
