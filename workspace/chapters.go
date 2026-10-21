@@ -880,7 +880,20 @@ func CleanProse(s string) string {
 
 // Outlines reads only the outlines of all live nodes, including folders.
 // Prose and marks are not opened; missing outline files mean empty outlines.
-func (s *Store) Outlines() (map[string]string, error) {
+func (s *Store) Outlines() (map[string]string, error) { return s.outlines(nil) }
+
+// OutlinesOf reads the outlines of the live nodes ids names, as Outlines
+// reads them.
+func (s *Store) OutlinesOf(ids ...string) (map[string]string, error) {
+	want := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		want[id] = true
+	}
+	return s.outlines(func(n *Node) bool { return want[n.ID] })
+}
+
+// outlines reads the outlines of the nodes pick takes, or of all for nil.
+func (s *Store) outlines(pick func(*Node) bool) (map[string]string, error) {
 	unlock, err := s.lock()
 	if err != nil {
 		return nil, err
@@ -892,7 +905,7 @@ func (s *Store) Outlines() (map[string]string, error) {
 	}
 	out := make(map[string]string)
 	t.Walk(func(n *Node, _ int) {
-		if err != nil {
+		if err != nil || pick != nil && !pick(n) {
 			return
 		}
 		var p string

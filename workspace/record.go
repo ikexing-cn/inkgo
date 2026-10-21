@@ -94,7 +94,13 @@ func (s *Store) Log(r Record) error {
 	if err != nil {
 		return err
 	}
-	_, prefix, err := s.records()
+	c, err := s.cursor(p, func(_ *jsonlCursor, raw []byte) error {
+		var record Record
+		if err := strictjson.Decode(raw, &record); err != nil {
+			return err
+		}
+		return validRecord(record)
+	})
 	if errors.Is(err, os.ErrNotExist) {
 		line, err := json.Marshal(r)
 		if err != nil {
@@ -105,7 +111,7 @@ func (s *Store) Log(r Record) error {
 	if err != nil {
 		return err
 	}
-	return appendJSONL(p, prefix, r)
+	return s.appendCursor(p, c, r)
 }
 
 // Records is the AI record, the oldest first.

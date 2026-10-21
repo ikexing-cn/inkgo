@@ -89,16 +89,9 @@ func (s *Store) events(session string) ([]Event, int64, error) {
 		if err := strictjson.Decode(raw, &e); err != nil {
 			return err
 		}
-		if err := validateEvent(e); err != nil {
+		if err := checkEvent(e, seen); err != nil {
 			return err
 		}
-		if seen[e.ID] {
-			return fmt.Errorf("id: duplicate %q", e.ID)
-		}
-		if e.ReplyTo != "" && !seen[e.ReplyTo] {
-			return fmt.Errorf("reply_to: unknown earlier event %q", e.ReplyTo)
-		}
-		seen[e.ID] = true
 		events = append(events, e)
 		return nil
 	})
@@ -124,7 +117,20 @@ func (s *Store) Append(session string, event Event) (Event, error) {
 		return Event{}, err
 	}
 	defer unlock()
-	events, prefix, err := s.events(session)
+	if err := validID(session); err != nil {
+		return Event{}, err
+	}
+	p, err := s.path("sessions", session+".jsonl")
+	if err != nil {
+		return Event{}, err
+	}
+	c, err := s.cursor(p, func(c *jsonlCursor, raw []byte) error {
+		var e Event
+		if err := strictjson.Decode(raw, &e); err != nil {
+			return err
+		}
+		return checkEvent(e, c.ids)
+	})
 	if err != nil {
 		return Event{}, err
 	}
@@ -134,10 +140,7 @@ func (s *Store) Append(session string, event Event) (Event, error) {
 	if event.At.IsZero() {
 		event.At = time.Now().UTC()
 	}
-	ids := map[string]bool{}
-	for _, e := range events {
-		ids[e.ID] = true
-	}
+	ids := c.ids
 	if event.ID == "" {
 		for n := 0; n < 128; n++ {
 			event.ID = NewID()
@@ -155,9 +158,23 @@ func (s *Store) Append(session string, event Event) (Event, error) {
 	if event.ReplyTo != "" && !ids[event.ReplyTo] {
 		return Event{}, fmt.Errorf("reply_to: unknown earlier event %q", event.ReplyTo)
 	}
-	p, err := s.path("sessions", session+".jsonl")
-	if err != nil {
-		return Event{}, err
+	if err := s.appendCursor(p, c, event); err != nil {
+		return event, err
 	}
-	return event, appendJSONL(p, prefix, event)
+	ids[event.ID] = true
+	return event, nil
+}
+
+func checkEvent(e Event, seen map[string]bool) error {
+	if err := validateEvent(e); err != nil {
+		return err
+	}
+	if seen[e.ID] {
+		return fmt.Errorf("id: duplicate %q", e.ID)
+	}
+	if e.ReplyTo != "" && !seen[e.ReplyTo] {
+		return fmt.Errorf("reply_to: unknown earlier event %q", e.ReplyTo)
+	}
+	seen[e.ID] = true
+	return nil
 }

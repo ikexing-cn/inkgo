@@ -269,10 +269,7 @@ func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembl
 			})
 			return turn, err
 		}
-		calls := make([]workspace.Call, len(reply.Calls))
-		for n, c := range reply.Calls {
-			calls[n] = workspace.Call{ID: c.ID, Name: c.Name, Input: c.Input, Label: box.label(c)}
-		}
+		calls := box.labels(reply.Calls)
 		if err = write(workspace.Event{Role: workspace.RoleCall, Text: reply.Text, Calls: calls, Model: e.Talk.Name, Effort: string(e.Talk.Effort), Usage: (*workspace.Usage)(&used)}); err != nil {
 			return turn, err
 		}

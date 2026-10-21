@@ -100,25 +100,30 @@ func (t *toolbox) readOutline(in input) outcome {
 		if n == nil {
 			return failed("%s", missing)
 		}
-		outline := func(n *workspace.Node) (string, error) {
-			ch, err := t.store.ReadChapter(n.ID)
-			if err != nil {
-				return "", err
+		ids := []string{n.ID}
+		if n.Folder {
+			for _, ch := range b.docs {
+				if ch != n && ch.Within(n) {
+					ids = append(ids, ch.ID)
+				}
 			}
+		}
+		outlines, err := t.store.OutlinesOf(ids...)
+		if err != nil {
+			return failed("读不出「%s」的纲。", b.name[n.ID])
+		}
+		outline := func(n *workspace.Node) string {
 			kind := "章纲"
 			if n.Folder {
 				kind = "卷纲"
 			}
-			text := strings.TrimSpace(ch.Outline)
+			text := strings.TrimSpace(outlines[n.ID])
 			if text == "" {
 				text = "（没有" + kind + "）"
 			}
-			return "「" + b.name[n.ID] + "」" + kind + "：\n" + text, nil
+			return "「" + b.name[n.ID] + "」" + kind + "：\n" + text
 		}
-		text, err := outline(n)
-		if err != nil {
-			return failed("读不出「%s」的纲。", b.name[n.ID])
-		}
+		text := outline(n)
 		if !n.Folder {
 			groups = append(groups, outlineGroup{text, "这一章没有卡片。", chapterCards(p, b, n.ID)})
 			break
@@ -129,10 +134,7 @@ func (t *toolbox) readOutline(in input) outcome {
 			if ch == n || !ch.Within(n) {
 				continue
 			}
-			text, err := outline(ch)
-			if err != nil {
-				return failed("读不出「%s」的纲。", b.name[ch.ID])
-			}
+			text := outline(ch)
 			rows := chapterCards(p, b, ch.ID)
 			count += len(rows)
 			if len(rows) > 0 || in.From <= 0 {

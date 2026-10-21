@@ -9,7 +9,122 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 )
+
+func appendOutside(t *testing.T, path string, data []byte) {
+	t.Helper()
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND, 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Write(data); err != nil {
+		f.Close()
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSessionCursorExternalChanges(t *testing.T) {
+	for _, mode := range []string{"append", "truncate", "replace same size", "incomplete", "corrupt complete", "edit then grow", "no newline", "duplicate tail", "unknown reply tail", "valid then corrupt"} {
+		t.Run(mode, func(t *testing.T) {
+			s := testStore(t)
+			session := mustSession(t, s)
+			first := mustEvent(t, s, session, Event{Role: RoleUser, Text: "first"})
+			second := mustEvent(t, s, session, Event{Role: RoleUser, Text: "second"})
+			path := filepath.Join(s.Root(), "sessions", session+".jsonl")
+			before := readBytes(t, path)
+			makeLine := func(e Event) []byte {
+				data, err := json.Marshal(e)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return append(data, '\n')
+			}
+			external := Event{Schema: Schema, ID: NewID(), At: time.Now().UTC(), Role: RoleAssistant, Text: "outside", ReplyTo: first.ID}
+			badLine, want := 0, 3
+			reply := first.ID
+			switch mode {
+			case "append":
+				appendOutside(t, path, makeLine(external))
+				reply = external.ID
+				want = 4
+			case "truncate":
+				if err := os.Truncate(path, int64(bytes.IndexByte(before, '\n')+1)); err != nil {
+					t.Fatal(err)
+				}
+				want = 2
+			case "replace same size":
+				st, err := os.Stat(path)
+				if err != nil {
+					t.Fatal(err)
+				}
+				tmp := path + ".replacement"
+				changed := bytes.Replace(before, []byte(`"schema":2`), []byte(`"schema":3`), 1)
+				putBytes(t, tmp, changed)
+				if err := os.Chtimes(tmp, st.ModTime(), st.ModTime()); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Rename(tmp, path); err != nil {
+					t.Fatal(err)
+				}
+				badLine = 1
+			case "incomplete":
+				appendOutside(t, path, []byte(`{"id":"cut`))
+			case "corrupt complete":
+				appendOutside(t, path, []byte("{broken}\n"))
+				badLine = 3
+			case "edit then grow":
+				putBytes(t, path, append(bytes.Replace(before, []byte(`"schema":2`), []byte(`"schema":3`), 1), makeLine(external)...))
+				badLine = 1
+			case "no newline":
+				putBytes(t, path, bytes.TrimSuffix(before, []byte("\n")))
+			case "duplicate tail":
+				appendOutside(t, path, makeLine(second))
+				badLine = 3
+			case "unknown reply tail":
+				external.ReplyTo = NewID()
+				appendOutside(t, path, makeLine(external))
+				badLine = 3
+			case "valid then corrupt":
+				appendOutside(t, path, append(makeLine(external), []byte("{}\n")...))
+				badLine = 4
+			}
+			unchanged := readBytes(t, path)
+			_, err := s.Append(session, Event{Role: RoleAssistant, Text: "next", ReplyTo: reply})
+			if badLine > 0 {
+				if err == nil || !strings.Contains(err.Error(), fmt.Sprintf("%s:%d:", path, badLine)) {
+					t.Fatalf("error = %v, want line %d", err, badLine)
+				}
+				if !bytes.Equal(unchanged, readBytes(t, path)) {
+					t.Fatal("failed append changed file")
+				}
+				putBytes(t, path, before)
+				external.ReplyTo = first.ID
+				mustEvent(t, s, session, external)
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			all, err := s.Events(session)
+			if err != nil || len(all) != want {
+				t.Fatalf("events = %d, want %d, %v", len(all), want, err)
+			}
+			if mode == "truncate" {
+				mustEvent(t, s, session, second)
+			}
+			if _, err := s.Append(session, first); err == nil {
+				t.Fatal("cached prefix lost duplicate check")
+			}
+			if _, err := s.Append(session, Event{Role: RoleAssistant, Text: "bad", ReplyTo: NewID()}); err == nil {
+				t.Fatal("cached prefix lost reply check")
+			}
+		})
+	}
+}
 
 func testStore(t *testing.T) *Store {
 	t.Helper()

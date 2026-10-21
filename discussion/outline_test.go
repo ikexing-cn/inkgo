@@ -284,3 +284,36 @@ func TestFixedCardsAndPreloaded(t *testing.T) {
 		t.Fatal("draft rules do not follow cards")
 	}
 }
+
+func TestReadOutlineIgnoresDamagedMarks(t *testing.T) {
+	e, _ := setup(t)
+	shelf(t, e)
+	path := filepath.Join(e.Store.Root(), "chapters", "第一卷", "第一章.marks.json")
+	if err := os.WriteFile(path, []byte("broken"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	box := toolbox{store: e.Store}
+	for _, chapter := range []string{"第一卷", "第一章"} {
+		out := box.readOutline(input{Chapter: chapter})
+		if out.failed || !strings.Contains(out.text, "她回到旧城。") {
+			t.Fatalf("outline-only read = %+v", out)
+		}
+	}
+}
+
+func TestReadOutlineBatchFailureNamesRequestedNode(t *testing.T) {
+	e, _ := setup(t)
+	shelf(t, e)
+	path := filepath.Join(e.Store.Root(), "chapters", "第一卷", "第一章.outline.txt")
+	if err := os.Remove(path); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(path, 0700); err != nil {
+		t.Fatal(err)
+	}
+	box := toolbox{store: e.Store}
+	out := box.readOutline(input{Chapter: "第一卷"})
+	if !out.failed || out.text != "读不出「第一卷」的纲。" {
+		t.Fatalf("outline batch failure = %+v", out)
+	}
+}

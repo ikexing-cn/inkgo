@@ -1,7 +1,10 @@
 package workspace
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -9,6 +12,109 @@ import (
 	"testing"
 	"time"
 )
+
+func TestRecordCursorExternalChanges(t *testing.T) {
+	for _, mode := range []string{"append", "truncate", "replace same size", "incomplete", "corrupt complete", "edit then grow", "no newline"} {
+		t.Run(mode, func(t *testing.T) {
+			s := testStore(t)
+			r := Record{At: time.Now().UTC(), Feature: FeatureTalk, Model: "test/model", Outcome: OutcomeDone}
+			for range 2 {
+				if err := s.Log(r); err != nil {
+					t.Fatal(err)
+				}
+			}
+			path := filepath.Join(s.Root(), logFile)
+			before := readBytes(t, path)
+			line := before[:bytes.IndexByte(before, '\n')+1]
+			want, badLine := 3, 0
+			switch mode {
+			case "append":
+				appendOutside(t, path, line)
+				want = 4
+			case "truncate":
+				if err := os.Truncate(path, int64(len(line))); err != nil {
+					t.Fatal(err)
+				}
+				want = 2
+			case "replace same size":
+				st, err := os.Stat(path)
+				if err != nil {
+					t.Fatal(err)
+				}
+				changed := bytes.Replace(before, []byte(`"schema":2`), []byte(`"schema":3`), 1)
+				tmp := path + ".replacement"
+				putBytes(t, tmp, changed)
+				if err := os.Chtimes(tmp, st.ModTime(), st.ModTime()); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Rename(tmp, path); err != nil {
+					t.Fatal(err)
+				}
+				badLine = 1
+			case "incomplete":
+				appendOutside(t, path, []byte(`{"schema":2,"at":`))
+			case "corrupt complete":
+				appendOutside(t, path, []byte("{broken}\n"))
+				badLine = 3
+			case "edit then grow":
+				changed := bytes.Replace(before, []byte(`"schema":2`), []byte(`"schema":3`), 1)
+				putBytes(t, path, append(changed, line...))
+				badLine = 1
+			case "no newline":
+				putBytes(t, path, bytes.TrimSuffix(before, []byte("\n")))
+			}
+			unchanged := readBytes(t, path)
+			err := s.Log(r)
+			if badLine > 0 {
+				if err == nil || !strings.Contains(err.Error(), fmt.Sprintf("%s:%d:", path, badLine)) {
+					t.Fatalf("error = %v, want line %d", err, badLine)
+				}
+				if !bytes.Equal(unchanged, readBytes(t, path)) {
+					t.Fatal("failed append changed file")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			all, err := s.Records()
+			if err != nil || len(all) != want {
+				t.Fatalf("records = %d, want %d, %v", len(all), want, err)
+			}
+			c := s.cursors[path]
+			if c.lines != want {
+				t.Fatalf("cursor lines %d, want %d", c.lines, want)
+			}
+		})
+	}
+}
+
+func TestRecordCursorRevalidatesAfterFailedTail(t *testing.T) {
+	s := testStore(t)
+	r := Record{Schema: Schema, At: time.Now().UTC(), Feature: FeatureTalk, Model: "test/model", Outcome: OutcomeDone}
+	for range 2 {
+		if err := s.Log(r); err != nil {
+			t.Fatal(err)
+		}
+	}
+	path := filepath.Join(s.Root(), logFile)
+	good := readBytes(t, path)
+	line, err := json.Marshal(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	appendOutside(t, path, append(append(line, '\n'), []byte("{}\n")...))
+	if err := s.Log(r); err == nil {
+		t.Fatal("corrupt tail accepted")
+	}
+	putBytes(t, path, good)
+	if err := s.Log(r); err != nil {
+		t.Fatal(err)
+	}
+	if records, err := s.Records(); err != nil || len(records) != 3 {
+		t.Fatalf("repaired = %v, %v", records, err)
+	}
+}
 
 // Each request is a line of the AI record, in the work's folder, the
 // oldest first; a line written in half is dropped.

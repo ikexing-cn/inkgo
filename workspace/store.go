@@ -19,10 +19,11 @@ import (
 // Store is one open work. Only one application instance may write a work at
 // a time; within it, the mutex serializes every operation.
 type Store struct {
-	mu     sync.Mutex
-	root   string
-	work   Work
-	closed bool
+	mu      sync.Mutex
+	root    string
+	work    Work
+	closed  bool
+	cursors map[string]*jsonlCursor
 }
 
 func (s *Store) Root() string { return s.root }
@@ -42,6 +43,7 @@ func (s *Store) Close() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.closed = true
+	s.cursors = nil
 	return nil
 }
 

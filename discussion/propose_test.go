@@ -2,9 +2,15 @@ package discussion
 
 import (
 	"context"
+	"fmt"
+	"math/rand/v2"
+	"os"
+	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"writer/model"
 	"writer/workspace"
@@ -220,4 +226,236 @@ func TestPartialJSON(t *testing.T) {
 	if got := partialJSON(`{"a":"x\u67`); got["a"] != (field{"x", false}) {
 		t.Fatalf("%+v", got)
 	}
+}
+
+// This whole-prefix oracle keeps preview behavior at incomplete escapes and
+// UTF-8 boundaries independent of the incremental parser's state machine.
+func referencePartialJSON(s string) map[string]field {
+	out := map[string]field{}
+	i := 0
+	space := func() {
+		for i < len(s) && strings.IndexByte(" \t\r\n", s[i]) >= 0 {
+			i++
+		}
+	}
+	// str reads a string at i, past its opening quote: as far as it goes,
+	// and whether it closed.
+	str := func() (string, bool) {
+		var b strings.Builder
+		for i < len(s) {
+			switch c := s[i]; c {
+			case '"':
+				i++
+				return b.String(), true
+			case '\\':
+				if i+1 >= len(s) {
+					return b.String(), false
+				}
+				switch e := s[i+1]; e {
+				case 'n':
+					b.WriteByte('\n')
+				case 't':
+					b.WriteByte('\t')
+				case 'r':
+					b.WriteByte('\r')
+				case 'b', 'f':
+				case 'u':
+					if i+6 > len(s) {
+						return b.String(), false
+					}
+					var r rune
+					if _, err := fmt.Sscanf(s[i+2:i+6], "%04x", &r); err == nil {
+						if utf8.ValidRune(r) {
+							b.WriteRune(r)
+						}
+					}
+					i += 4
+				default:
+					b.WriteByte(e)
+				}
+				i += 2
+			default:
+				b.WriteByte(c)
+				i++
+			}
+		}
+		return b.String(), false
+	}
+	// skip passes over a value not a string: up to the comma or the brace
+	// that ends it at its own depth.
+	skip := func() {
+		depth := 0
+		for i < len(s) {
+			switch s[i] {
+			case '"':
+				i++
+				str()
+				continue
+			case '{', '[':
+				depth++
+			case '}', ']':
+				if depth == 0 {
+					return
+				}
+				depth--
+			case ',':
+				if depth == 0 {
+					return
+				}
+			}
+			i++
+		}
+	}
+	space()
+	if i >= len(s) || s[i] != '{' {
+		return out
+	}
+	i++
+	for {
+		space()
+		if i >= len(s) || s[i] != '"' {
+			return out
+		}
+		i++
+		key, ok := str()
+		if !ok {
+			return out
+		}
+		space()
+		if i >= len(s) || s[i] != ':' {
+			return out
+		}
+		i++
+		space()
+		if i >= len(s) {
+			return out
+		}
+		if s[i] == '"' {
+			i++
+			v, done := str()
+			out[key] = field{v, done}
+			if !done {
+				return out
+			}
+		} else {
+			skip()
+		}
+		space()
+		if i >= len(s) || s[i] != ',' {
+			return out
+		}
+		i++
+	}
+}
+
+func TestPartialJSONChunkBoundaries(t *testing.T) {
+	samples := []string{
+		`{"chapter":"第二章","at":"after","quote":"灯灭了","text":" \n  林晚\n\n　走过雨中的街道。\r\n abc\t "}`,
+		`{"text":"\u6797\u665a\n\"灯\" \\ \/ \b\f\t\r\n\ud83d\ude00"}`,
+		`{"n": 3, "list": ["a,}", {"b": 1}], "s": "x", "text":"甲😀乙\n丙"}`,
+		`{"text":"第一段\n末尾", "text":"换成\n新段落", "at":"after"}`,
+		`{"text":"abc\u67xz\q", "skip":{"x":"\"},["},"text":""}`,
+		` { "text" : "　\r\n 甲\n\n乙 \t" } trailing`,
+		`{"text":"`, `{"text":,"later":"x"}`, `{"x":"a" "text":"b"}`, `[]`,
+	}
+	check := func(s string, chunks []int) {
+		t.Helper()
+		var parsed partialObject
+		var prose streamedProse
+		at := 0
+		for _, size := range chunks {
+			next := min(len(s), at+size)
+			parsed.feed(s[at:next])
+			got, want := parsed.fields(), referencePartialJSON(s[:next])
+			if !reflect.DeepEqual(got, want) {
+				t.Fatalf("prefix %q, chunks %v: got %+v, want %+v", s[:next], chunks, got, want)
+			}
+			lead := got["at"].value == workspace.ProposeAfter
+			if got, want := prose.clean(got["text"].value, parsed.textVersion, lead), cleanProse(want["text"].value, lead); got != want {
+				t.Fatalf("clean prefix %q: got %q, want %q", s[:next], got, want)
+			}
+			at = next
+		}
+	}
+	rng := rand.New(rand.NewPCG(3, 7))
+	for _, s := range samples {
+		for split := 0; split <= len(s); split++ {
+			check(s, []int{split, len(s) - split})
+		}
+		for range 30 {
+			var chunks []int
+			for total := 0; total < len(s); {
+				n := rng.IntN(9) + 1
+				chunks = append(chunks, n)
+				total += n
+			}
+			check(s, chunks)
+		}
+		chunks := make([]int, len(s))
+		for i := range chunks {
+			chunks[i] = 1
+		}
+		check(s, chunks)
+	}
+}
+
+func TestFixedOutlinesIgnoreDamagedMarks(t *testing.T) {
+	e, _ := setup(t)
+	_, _, _, three := shelf(t, e)
+	path := filepath.Join(e.Store.Root(), "chapters", "第一卷", "第一章.marks.json")
+	if err := os.WriteFile(path, []byte("broken"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	tree, err := e.Store.Chapters()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixed, err := fixedOf(e.Store, tree, workspace.AIDraft, three)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.ContainsFunc(fixed.Pieces, func(p Piece) bool {
+		return p.Part == workspace.PartOutlines && strings.Contains(p.Text, "她回到旧城。")
+	}) {
+		t.Fatalf("outlines = %+v", fixed.Pieces)
+	}
+}
+
+func TestFixedOmitsOutlinesOnBatchFailure(t *testing.T) {
+	e, _ := setup(t)
+	_, _, _, three := shelf(t, e)
+	path := filepath.Join(e.Store.Root(), "chapters", "第一卷", "第一章.outline.txt")
+	if err := os.Remove(path); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(path, 0700); err != nil {
+		t.Fatal(err)
+	}
+	tree, err := e.Store.Chapters()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixed, err := fixedOf(e.Store, tree, workspace.AIDraft, three)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if slices.ContainsFunc(fixed.Pieces, func(p Piece) bool {
+		return p.Part == workspace.PartOutlines || p.Part == workspace.PartOutline && !strings.HasPrefix(p.Text, "【这段讨论")
+	}) {
+		t.Fatalf("outlines survived a failed batch: %+v", fixed.Pieces)
+	}
+	if !slices.ContainsFunc(fixed.Pieces, func(p Piece) bool { return strings.HasPrefix(p.Text, "【这段讨论起草的章") }) {
+		t.Fatalf("the chapter's own outline was lost: %+v", fixed.Pieces)
+	}
+	if !slices.ContainsFunc(fixed.Pieces, func(p Piece) bool {
+		return p.Part == workspace.PartChapter && strings.Contains(p.Text, "她摸黑下楼。")
+	}) {
+		t.Fatalf("chapter was lost: %+v", fixed.Pieces)
+	}
+}
+
+func partialJSON(s string) map[string]field {
+	var p partialObject
+	p.feed(s)
+	return p.fields()
 }

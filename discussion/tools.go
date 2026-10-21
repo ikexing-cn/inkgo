@@ -151,14 +151,42 @@ func (t *toolbox) run(c model.Call) outcome {
 // label says what c does in the author's words, as the reply shows it,
 // naming each chapter as the book does.
 func (t *toolbox) label(c model.Call) string {
-	in, _ := read(c)
-	if b, err := t.book(); err == nil {
-		in.Chapter = b.named(in.Chapter)
-		for k, name := range in.Chapters {
-			in.Chapters[k] = b.named(name)
-		}
+	return t.labels([]model.Call{c})[0].Label
+}
+
+func (t *toolbox) labels(calls []model.Call) []workspace.Call {
+	inputs := make([]input, len(calls))
+	needBook, needSetting := false, false
+	for i, c := range calls {
+		in, _ := read(c)
+		inputs[i] = in
+		needBook = needBook || in.Chapter != "" || len(in.Chapters) > 0
+		needSetting = needSetting || c.Name == toolNote && (in.Op == workspace.OpEdit || in.Op == workspace.OpMove)
 	}
-	switch c.Name {
+	var b book
+	if needBook {
+		b, _ = t.book()
+	}
+	var set workspace.Setting
+	if needSetting {
+		set, _ = t.store.Setting()
+	}
+	out := make([]workspace.Call, len(calls))
+	for i, c := range calls {
+		in := inputs[i]
+		if b.name != nil {
+			in.Chapter = b.named(in.Chapter)
+			for k, name := range in.Chapters {
+				in.Chapters[k] = b.named(name)
+			}
+		}
+		out[i] = workspace.Call{ID: c.ID, Name: c.Name, Input: c.Input, Label: label(c.Name, in, set)}
+	}
+	return out
+}
+
+func label(name string, in input, set workspace.Setting) string {
+	switch name {
 	case toolReadOutline:
 		switch {
 		case in.Line != "":
@@ -189,11 +217,11 @@ func (t *toolbox) label(c model.Call) string {
 	case toolSearchTalks:
 		return "搜了讨论「" + in.Query + "」"
 	case toolNote:
-		return "记下：" + t.describe(in)
+		return "记下：" + describe(in, set)
 	case toolPropose:
 		return "提议修改「" + in.Chapter + "」"
 	}
-	return c.Name
+	return name
 }
 
 // quoted is names each in 「」.
@@ -408,12 +436,12 @@ func (t *toolbox) searchBook(in input) outcome {
 		return failed("读不出章节：%v", err)
 	}
 	var found []hit
+	texts, err := t.store.Texts()
+	if err != nil {
+		return failed("读不出正文：%v", err)
+	}
 	for _, n := range b.docs {
-		ch, err := t.store.ReadChapter(n.ID)
-		if err != nil {
-			return failed("读不出「%s」：%v", b.name[n.ID], err)
-		}
-		for k, p := range paragraphs(ch.Text) {
+		for k, p := range paragraphs(texts[n.ID]) {
 			if strings.Contains(p, in.Query) {
 				found = append(found, hit{b.name[n.ID], fmt.Sprintf("第 %d 段：%s", k+1, snippet(p, in.Query))})
 			}
@@ -478,17 +506,45 @@ func (t *toolbox) lookUp(in input) outcome {
 	if err != nil {
 		return failed("读不出章节：%v", err)
 	}
-	titles, chapters, later := t.titles(), b.name, changes(set, b.tree)
-	if t.at != "" {
-		set, _ = set.At(b.tree.Order(), t.at)
+	titles := map[string]string{}
+	title := func(session string) string {
+		if name, ok := titles[session]; ok {
+			return name
+		}
+		events, _ := t.store.Events(session)
+		name := talkTitle(events)
+		if session == t.session {
+			name = "这一次的讨论"
+		}
+		titles[session] = name
+		return name
+	}
+	return lookupSetting(in, set, b, t.at, title)
+}
+
+func lookupSetting(in input, set workspace.Setting, b book, at string, title func(string) string) outcome {
+	chapters, later := b.name, changes(set, b.tree)
+	if at != "" {
+		set, _ = set.At(b.tree.Order(), at)
 		later = nil
 	}
-	var named, said []string
+	var named, said []int
 	for n, e := range set.Entries {
-		if !slices.ContainsFunc(e.Names, func(name string) bool { return strings.Contains(name, in.Query) || strings.Contains(in.Query, name) }) &&
+		matchesName := slices.ContainsFunc(e.Names, func(name string) bool { return strings.Contains(name, in.Query) || strings.Contains(in.Query, name) })
+		if !matchesName &&
 			!strings.Contains(prompt.Text(e), in.Query) && !slices.ContainsFunc(later[e.ID], func(c string) bool { return strings.Contains(c, in.Query) }) {
 			continue
 		}
+		if matchesName {
+			named = append(named, n)
+		} else {
+			said = append(said, n)
+		}
+	}
+	matched := append(named, said...)
+	var found []string
+	for _, n := range matched[:min(len(matched), maxHits)] {
+		e := set.Entries[n]
 		head := fmt.Sprintf("[%d]（%s｜%s", n+1, placeNames[e.Place], e.Category)
 		if len(e.Names) > 0 {
 			head += "｜" + strings.Join(e.Names, "、")
@@ -501,40 +557,21 @@ func (t *toolbox) lookUp(in input) outcome {
 			where := ""
 			switch {
 			case src.Message != "":
-				where = "讨论「" + titles[src.Session] + "」"
+				where = "讨论「" + title(src.Session) + "」"
 			case src.Chapter != "":
 				where = "正文「" + chapters[src.Chapter] + "」"
 			}
 			lines = append(lines, "  出处：「"+textclip.Clip(prompt.OneLine(src.Quote), 80)+"」"+where)
 		}
-		if slices.ContainsFunc(e.Names, func(name string) bool { return strings.Contains(name, in.Query) || strings.Contains(in.Query, name) }) {
-			named = append(named, strings.Join(lines, "\n"))
-		} else {
-			said = append(said, strings.Join(lines, "\n"))
-		}
+		found = append(found, strings.Join(lines, "\n"))
 	}
-	found := append(named, said...)
 	switch {
 	case len(found) == 0:
 		return outcome{text: "设定里没有「" + in.Query + "」。"}
-	case len(found) > maxHits:
-		return outcome{text: strings.Join(found[:maxHits], "\n") + fmt.Sprintf("\n还有 %d 条没有列出，换一个更具体的词再查。", len(found)-maxHits)}
+	case len(matched) > maxHits:
+		return outcome{text: strings.Join(found, "\n") + fmt.Sprintf("\n还有 %d 条没有列出，换一个更具体的词再查。", len(matched)-maxHits)}
 	}
 	return outcome{text: strings.Join(found, "\n")}
-}
-
-// titles name the talks of the work by what the author said first.
-func (t *toolbox) titles() map[string]string {
-	out := map[string]string{}
-	sessions, _ := t.store.Sessions()
-	for _, s := range sessions {
-		events, _ := t.store.Events(s)
-		out[s] = talkTitle(events)
-		if s == t.session {
-			out[s] = "这一次的讨论"
-		}
-	}
-	return out
 }
 
 // talkTitle names a talk by what the author said first, as the talks

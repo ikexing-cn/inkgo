@@ -55,13 +55,6 @@ func fixedOf(st *workspace.Store, tree workspace.Tree, origin, chapter string) (
 	add := func(part, text, item string) {
 		f.Pieces = append(f.Pieces, Piece{part, text, item})
 	}
-	outline := func(id string) string {
-		ch, err := st.ReadChapter(id)
-		if err != nil {
-			return ""
-		}
-		return strings.TrimSpace(ch.Outline)
-	}
 	ch, err := st.ReadChapter(chapter)
 	if err != nil {
 		return nil, err
@@ -77,8 +70,33 @@ func fixedOf(st *workspace.Store, tree workspace.Tree, origin, chapter string) (
 	if vol != nil && vol.Parent == nil {
 		vol = nil // the root holds the chapters of no volume
 	}
+	var ids []string
 	if vol != nil {
-		if o := outline(vol.ID); o != "" {
+		ids = append(ids, vol.ID)
+	}
+	var volumes, chapters []*workspace.Node
+	ahead := true
+	tree.Walk(func(m *workspace.Node, _ int) {
+		if m == n {
+			ahead = false
+		}
+		if origin == workspace.AIRewrite || !ahead {
+			return
+		}
+		switch {
+		case m.Folder && (n == m || !n.Within(m)):
+			volumes = append(volumes, m)
+		case !m.Folder && vol != nil && m.Parent == vol:
+			chapters = append(chapters, m)
+		default:
+			return
+		}
+		ids = append(ids, m.ID)
+	})
+	// Outlines that cannot be read are left out, as if there were none.
+	outlines, _ := st.OutlinesOf(ids...)
+	if vol != nil {
+		if o := strings.TrimSpace(outlines[vol.ID]); o != "" {
 			add(workspace.PartOutline, "【所在卷："+b.name[vol.ID]+"】卷纲：\n"+o, "卷纲："+b.name[vol.ID])
 		}
 	}
@@ -93,29 +111,21 @@ func fixedOf(st *workspace.Store, tree workspace.Tree, origin, chapter string) (
 	}
 	// The volumes before, and the chapters before in the volume, in the
 	// order of the book.
-	var vols, chapters []string
-	ahead := true
-	tree.Walk(func(m *workspace.Node, _ int) {
-		if m == n {
-			ahead = false
-		}
-		switch {
-		case !ahead:
-		case m.Folder && (n == m || !n.Within(m)):
-			if o := outline(m.ID); o != "" {
-				vols = append(vols, b.name[m.ID]+"：\n"+o)
-			}
-		case !m.Folder && vol != nil && m.Parent == vol:
-			if o := outline(m.ID); o != "" {
-				chapters = append(chapters, b.name[m.ID]+"：\n"+o)
+	outlineRows := func(nodes []*workspace.Node) []string {
+		var rows []string
+		for _, m := range nodes {
+			if o := strings.TrimSpace(outlines[m.ID]); o != "" {
+				rows = append(rows, b.name[m.ID]+"：\n"+o)
 			}
 		}
-	})
+		return rows
+	}
+	vols, chapterRows := outlineRows(volumes), outlineRows(chapters)
 	if len(vols) > 0 {
 		add(workspace.PartOutline, "【前面各卷的卷纲】\n"+strings.Join(vols, "\n\n"), fmt.Sprintf("前面各卷的卷纲 %d 卷", len(vols)))
 	}
-	if len(chapters) > 0 {
-		add(workspace.PartOutlines, "【本卷前面各章的章纲】\n"+strings.Join(chapters, "\n\n"), fmt.Sprintf("本卷前面各章的章纲 %d 章", len(chapters)))
+	if len(chapterRows) > 0 {
+		add(workspace.PartOutlines, "【本卷前面各章的章纲】\n"+strings.Join(chapterRows, "\n\n"), fmt.Sprintf("本卷前面各章的章纲 %d 章", len(chapterRows)))
 	}
 	if p, ok := tree.Previous(n); ok {
 		if pc, err := st.ReadChapter(p.ID); err == nil && strings.TrimSpace(pc.Text) != "" {

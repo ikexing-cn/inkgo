@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -11,6 +13,31 @@ import (
 	"writer/model"
 	"writer/workspace"
 )
+
+func BenchmarkSearchBook(b *testing.B) {
+	st, err := workspace.Create(filepath.Join(b.TempDir(), "work"), "基准作品", "非虚构")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer st.Close()
+	for i := range 100 {
+		id, err := st.NewChapter("", fmt.Sprintf("第%d章", i+1), false)
+		if err != nil {
+			b.Fatal(err)
+		}
+		if _, err := st.WriteChapter(id, strings.Repeat("雨落在旧城的街道上", 300)+"林晚", nil); err != nil {
+			b.Fatal(err)
+		}
+	}
+	box := toolbox{store: st}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		if got := box.searchBook(input{Query: "林晚"}); got.failed || !strings.Contains(got.text, "共 100 处") {
+			b.Fatalf("search: %+v", got)
+		}
+	}
+}
 
 // call is a tool call of the model's, its input given as a map.
 func call(id, name string, in map[string]any) model.Call {
@@ -316,5 +343,86 @@ func TestSnippetMeasure(t *testing.T) {
 	want := "…" + strings.Repeat("甲", around-1) + " 关键 " + strings.Repeat("a", around-1) + "…"
 	if got := snippet(text, "关键"); got != want {
 		t.Fatalf("snippet = %q, want %q", got, want)
+	}
+}
+
+func TestSearchBookIgnoresDamagedCompanions(t *testing.T) {
+	for _, companion := range []string{"marks.json", "outline.txt"} {
+		t.Run(companion, func(t *testing.T) {
+			e, _ := setup(t)
+			id, err := e.Store.NewChapter("", "章节", false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := e.Store.WriteChapter(id, "雨中的林晚", nil); err != nil {
+				t.Fatal(err)
+			}
+			path := filepath.Join(e.Store.Root(), "chapters", "章节."+companion)
+			if companion == "marks.json" {
+				err = os.WriteFile(path, []byte("broken"), 0600)
+			} else {
+				err = os.Mkdir(path, 0700)
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			box := toolbox{store: e.Store}
+			out := box.searchBook(input{Query: "林晚"})
+			if out.failed || out.text != "共 1 处，在「章节」。\n「章节」第 1 段：雨中的林晚" {
+				t.Fatalf("prose-only search = %+v", out)
+			}
+		})
+	}
+}
+
+func TestLabelsWithoutUnneededReads(t *testing.T) {
+	box := toolbox{}
+	for _, c := range []struct {
+		name string
+		in   map[string]any
+		want string
+	}{
+		{toolSearchBook, map[string]any{"query": "林晚"}, "搜了全书「林晚」"},
+		{toolSearchTalks, map[string]any{"query": "雨"}, "搜了讨论「雨」"},
+		{toolReadOutline, map[string]any{"line": "主线"}, "查了大纲「主线」这条线"},
+		{toolNote, map[string]any{"op": "add", "place": "body", "category": "人物", "text": "林晚怕黑"}, "记下：正文 · 人物：林晚怕黑"},
+	} {
+		if got := box.label(call("1", c.name, c.in)); got != c.want {
+			t.Fatalf("label = %q, want %q", got, c.want)
+		}
+	}
+	set := workspace.Setting{Entries: []workspace.Entry{{Text: "旧设定"}}}
+	if got := label(toolNote, input{Op: workspace.OpEdit, Entry: 1, Text: "新设定"}, set); got != "记下：改写「旧设定」为：新设定" {
+		t.Fatal(got)
+	}
+}
+
+func TestLookupResolvesOnlyDisplayedSources(t *testing.T) {
+	var set workspace.Setting
+	for i := range maxHits + 2 {
+		e := workspace.Entry{ID: fmt.Sprint(i), Text: "林晚怕黑", Place: workspace.PlaceBody, Category: "人物"}
+		for j := range 4 {
+			e.Sources = append(e.Sources, workspace.Source{Session: fmt.Sprintf("s%d-%d", i, j), Message: "message", Quote: "林晚"})
+		}
+		if i == maxHits+1 {
+			e.Names = []string{"林晚"}
+		}
+		set.Entries = append(set.Entries, e)
+	}
+	var resolved []string
+	out := lookupSetting(input{Query: "林晚"}, set, book{tree: workspace.Tree{}}, "", func(session string) string {
+		resolved = append(resolved, session)
+		return session
+	})
+	if out.failed || !strings.HasPrefix(out.text, fmt.Sprintf("[%d]", maxHits+2)) || !strings.Contains(out.text, "还有 2 条没有列出") {
+		t.Fatalf("lookup = %+v", out)
+	}
+	if len(resolved) != maxHits*3 {
+		t.Fatalf("resolved %d sources, want %d", len(resolved), maxHits*3)
+	}
+	for _, session := range resolved {
+		if strings.HasSuffix(session, "-3") || strings.HasPrefix(session, fmt.Sprintf("s%d-", maxHits-1)) || strings.HasPrefix(session, fmt.Sprintf("s%d-", maxHits)) {
+			t.Fatalf("read undisplayed source %s", session)
+		}
 	}
 }

@@ -148,7 +148,8 @@ type proposing struct {
 // streaming is a call as its input comes.
 type streaming struct {
 	name  string
-	input strings.Builder
+	input partialObject
+	prose streamedProse
 	found *workspace.Proposal // its place, once found
 	tried string              // where it was last looked for, not to look again
 	told  *string             // the text last told, once told
@@ -166,11 +167,11 @@ func (s *proposing) feed(d model.CallDelta) {
 	if d.Name != "" {
 		c.name = d.Name
 	}
-	c.input.WriteString(d.Input)
+	c.input.feed(d.Input)
 	if c.name != toolPropose || s.tell == nil {
 		return
 	}
-	got := partialJSON(c.input.String())
+	got := c.input.fields()
 	chapter, at, quote := got["chapter"], got["at"], got["quote"]
 	if c.found == nil {
 		quoted := at.value == workspace.ProposeReplace || at.value == workspace.ProposeAfter
@@ -192,7 +193,7 @@ func (s *proposing) feed(d model.CallDelta) {
 		}
 		c.found = &p
 	}
-	text := cleanProse(got["text"].value, at.value == workspace.ProposeAfter)
+	text := c.prose.clean(got["text"].value, c.input.textVersion, at.value == workspace.ProposeAfter)
 	if c.told != nil && *c.told == text {
 		return
 	}
@@ -209,123 +210,209 @@ type field struct {
 	done  bool
 }
 
-// partialJSON reads the strings an object of JSON holds at its top level
-// from the start of it, as far as it came: the last may be cut short.
-// What is not a string it passes over.
-func partialJSON(s string) map[string]field {
-	out := map[string]field{}
-	i := 0
-	space := func() {
-		for i < len(s) && strings.IndexByte(" \t\r\n", s[i]) >= 0 {
-			i++
-		}
+type objectState uint8
+
+const (
+	objectStart objectState = iota
+	objectKey
+	objectColon
+	objectValue
+	objectAfter
+	objectSkip
+	objectStopped
+)
+
+type stringKind uint8
+
+const (
+	noString stringKind = iota
+	keyString
+	valueString
+	skippedString
+)
+
+type pendingEscape struct {
+	active  bool
+	unicode bool
+	digits  []byte
+}
+
+// partialObject deliberately has the preview's permissive string rules.
+// The tool still validates the complete JSON before it can write anything.
+type partialObject struct {
+	state       objectState
+	out         map[string]field
+	key         string
+	text        strings.Builder
+	stringKind  stringKind
+	escape      pendingEscape
+	depth       int
+	textVersion int
+}
+
+func (p *partialObject) fields() map[string]field {
+	if p.stringKind == valueString {
+		p.out[p.key] = field{p.text.String(), false}
 	}
-	// str reads a string at i, past its opening quote: as far as it goes,
-	// and whether it closed.
-	str := func() (string, bool) {
-		var b strings.Builder
-		for i < len(s) {
-			switch c := s[i]; c {
-			case '"':
-				i++
-				return b.String(), true
-			case '\\':
-				if i+1 >= len(s) {
-					return b.String(), false
+	return p.out
+}
+
+func (p *partialObject) feed(s string) {
+	if p.out == nil {
+		p.out = map[string]field{}
+	}
+	for i := 0; i < len(s); {
+		c := s[i]
+		if p.stringKind != noString {
+			i++
+			if p.escape.active {
+				if !p.escape.unicode && c == 'u' {
+					p.escape.unicode = true
+					continue
 				}
-				switch e := s[i+1]; e {
-				case 'n':
-					b.WriteByte('\n')
-				case 't':
-					b.WriteByte('\t')
-				case 'r':
-					b.WriteByte('\r')
-				case 'b', 'f':
-				case 'u':
-					if i+6 > len(s) {
-						return b.String(), false
+				if p.escape.unicode {
+					p.escape.digits = utf8.AppendRune(p.escape.digits, rune(c))
+					if len(p.escape.digits) < 4 {
+						continue
 					}
 					var r rune
-					if _, err := fmt.Sscanf(s[i+2:i+6], "%04x", &r); err == nil {
-						if utf8.ValidRune(r) {
-							b.WriteRune(r)
-						}
+					if _, err := fmt.Sscanf(string(p.escape.digits), "%04x", &r); err == nil && utf8.ValidRune(r) {
+						p.text.WriteRune(r)
 					}
-					i += 4
-				default:
-					b.WriteByte(e)
+				} else {
+					switch c {
+					case 'n':
+						p.text.WriteByte('\n')
+					case 'r':
+						p.text.WriteByte('\r')
+					case 't':
+						p.text.WriteByte('\t')
+					case 'b', 'f':
+					default:
+						p.text.WriteByte(c)
+					}
 				}
-				i += 2
-			default:
-				b.WriteByte(c)
-				i++
-			}
-		}
-		return b.String(), false
-	}
-	// skip passes over a value not a string: up to the comma or the brace
-	// that ends it at its own depth.
-	skip := func() {
-		depth := 0
-		for i < len(s) {
-			switch s[i] {
-			case '"':
-				i++
-				str()
+				p.escape = pendingEscape{}
 				continue
+			}
+			switch c {
+			case '\\':
+				p.escape.active = true
+			case '"':
+				switch p.stringKind {
+				case keyString:
+					p.key, p.state = p.text.String(), objectColon
+				case valueString:
+					p.out[p.key], p.state = field{p.text.String(), true}, objectAfter
+				}
+				p.stringKind = noString
+			default:
+				p.text.WriteByte(c)
+			}
+			continue
+		}
+		if p.state != objectSkip && strings.IndexByte(" \t\r\n", c) >= 0 {
+			i++
+			continue
+		}
+		switch p.state {
+		case objectStart:
+			if c != '{' {
+				p.state = objectStopped
+				return
+			}
+			p.state = objectKey
+		case objectKey:
+			if c != '"' {
+				p.state = objectStopped
+				return
+			}
+			p.text.Reset()
+			p.stringKind = keyString
+		case objectColon:
+			if c != ':' {
+				p.state = objectStopped
+				return
+			}
+			p.state = objectValue
+		case objectValue:
+			if c == '"' {
+				p.text.Reset()
+				p.stringKind = valueString
+				if p.key == "text" {
+					p.textVersion++
+				}
+			} else {
+				p.state, p.depth = objectSkip, 0
+				continue
+			}
+		case objectAfter:
+			if c != ',' {
+				p.state = objectStopped
+				return
+			}
+			p.state = objectKey
+		case objectSkip:
+			switch c {
+			case '"':
+				p.stringKind = skippedString
+				p.text.Reset()
 			case '{', '[':
-				depth++
+				p.depth++
 			case '}', ']':
-				if depth == 0 {
-					return
+				if p.depth == 0 {
+					p.state = objectAfter
+					continue
 				}
-				depth--
+				p.depth--
 			case ',':
-				if depth == 0 {
-					return
+				if p.depth == 0 {
+					p.state = objectAfter
+					continue
 				}
 			}
-			i++
+		case objectStopped:
+			return
 		}
+		i++
 	}
-	space()
-	if i >= len(s) || s[i] != '{' {
-		return out
+}
+
+type streamedProse struct {
+	version, read int
+	done, pending strings.Builder
+}
+
+func (p *streamedProse) clean(raw string, version int, lead bool) string {
+	if version != p.version {
+		*p = streamedProse{version: version}
 	}
-	i++
+	more := raw[p.read:]
+	p.read = len(raw)
 	for {
-		space()
-		if i >= len(s) || s[i] != '"' {
-			return out
+		line, rest, newline := strings.Cut(more, "\n")
+		p.pending.WriteString(line)
+		if !newline {
+			break
 		}
-		i++
-		key, ok := str()
-		if !ok {
-			return out
-		}
-		space()
-		if i >= len(s) || s[i] != ':' {
-			return out
-		}
-		i++
-		space()
-		if i >= len(s) {
-			return out
-		}
-		if s[i] == '"' {
-			i++
-			v, done := str()
-			out[key] = field{v, done}
-			if !done {
-				return out
+		if line := cleanProse(p.pending.String(), false); line != "" {
+			if p.done.Len() > 0 {
+				p.done.WriteByte('\n')
 			}
-		} else {
-			skip()
+			p.done.WriteString(line)
 		}
-		space()
-		if i >= len(s) || s[i] != ',' {
-			return out
-		}
-		i++
+		p.pending.Reset()
+		more = rest
 	}
+	text := p.done.String()
+	if tail := cleanProse(p.pending.String(), false); tail != "" {
+		if text != "" {
+			text += "\n"
+		}
+		text += tail
+	}
+	if lead && strings.HasPrefix(strings.TrimLeft(raw, " \t　\r"), "\n") && text != "" {
+		text = "\n" + text
+	}
+	return text
 }

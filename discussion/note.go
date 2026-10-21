@@ -14,9 +14,12 @@ import (
 var placeLabels = map[string]string{workspace.PlaceBody: "正文", workspace.PlaceOpen: "待确认", workspace.PlaceDropped: "已删除"}
 
 // describe says what a note does, in the words of the panel's history.
-func (t *toolbox) describe(in input) string {
+func describe(in input, set workspace.Setting) string {
 	text := strings.TrimSpace(in.Text)
-	e, _ := t.entry(in.Entry)
+	var e workspace.Entry
+	if in.Entry > 0 && in.Entry <= len(set.Entries) {
+		e = set.Entries[in.Entry-1]
+	}
 	switch in.Op {
 	case workspace.OpAdd:
 		return placeLabels[in.Place] + " · " + in.Category + "：" + text
@@ -31,21 +34,9 @@ func (t *toolbox) describe(in input) string {
 		return "改归" + in.Category + "：" + textclip.Clip(e.Text, 24)
 	case workspace.OpChange:
 		chapter := strings.TrimSpace(in.Chapter)
-		if b, err := t.book(); err == nil {
-			chapter = b.named(chapter)
-		}
 		return placeLabels[in.Place] + " · 「" + chapter + "」起：" + text
 	}
 	return in.Op
-}
-
-// entry is the entry numbered n, from 1, in the order entries were added.
-func (t *toolbox) entry(n int) (workspace.Entry, bool) {
-	set, err := t.store.Setting()
-	if err != nil || n < 1 || n > len(set.Entries) {
-		return workspace.Entry{}, false
-	}
-	return set.Entries[n-1], true
 }
 
 // note writes one op the model asks for into the setting, if it keeps to
@@ -205,6 +196,7 @@ func (t *toolbox) note(in input) outcome {
 		} else {
 			out.From = n.ID
 		}
+		in.Chapter = b.named(in.Chapter)
 		if in.Place == workspace.PlaceBody {
 			if !fromAuthor {
 				settled()
@@ -245,7 +237,7 @@ func (t *toolbox) note(in input) outcome {
 	if len(bad) > 0 {
 		return failed("没有记下：%s。", strings.Join(bad, "；"))
 	}
-	did := t.describe(in) // before it changes the entry
+	did := describe(in, set) // before it changes the entry
 	r, err := t.store.Revise(workspace.Revision{By: workspace.ByTalk, Session: t.session, Turn: t.turn,
 		Model: t.model.Name, Effort: string(t.model.Effort), Ops: []workspace.Op{out}})
 	if err != nil {
