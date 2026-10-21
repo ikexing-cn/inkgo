@@ -26,7 +26,7 @@
 // phone.go: phone preview panel, settings, painting, and selection.
 // plan.go: the 大纲 page, card editing, chapter table, and timeline.
 // plan_layout.go: outline-table geometry, scrolling, and drag and drop.
-// prefs.go: desk.json loading, saving, and old-format migration.
+// prefs.go: applying and collecting per-work preferences.
 // propose.go: discussion proposals in prose, accepting, dropping, and leaving.
 // record.go: AI cost totals, request records, and request details.
 // save.go: prose and 章纲 saving, disk changes, conflicts, and lost chapters.

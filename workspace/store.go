@@ -28,6 +28,8 @@ type Store struct {
 
 func (s *Store) Root() string { return s.root }
 
+func (s *Store) PrefsPath() string { return filepath.Join(s.root, ".writer", "desk.json") }
+
 func cloneWork(w Work) Work {
 	w.Categories = append([]Category(nil), w.Categories...)
 	return w

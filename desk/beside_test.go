@@ -10,13 +10,14 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/prefs"
 	"writer/workspace"
 )
 
 func TestPaneTabPreferences(t *testing.T) {
 	a, _, id := writingFixture(t, "灯灭了。")
 	config, root := a.ai.ConfigFile(), a.Store.Root()
-	path := a.prefsPath()
+	path := a.Store.PrefsPath()
 	if err := a.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -106,10 +107,10 @@ func TestPaneTabPreferences(t *testing.T) {
 	}
 }
 
-func savedPrefs(t *testing.T, a *App) prefs {
+func savedPrefs(t *testing.T, a *App) prefs.Prefs {
 	t.Helper()
-	var p prefs
-	b, err := os.ReadFile(a.prefsPath())
+	var p prefs.Prefs
+	b, err := os.ReadFile(a.Store.PrefsPath())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +131,7 @@ func TestTalkBesideTheProse(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("附上本章内容") || tt.HasText("主角怕黑") || savedPrefs(t, a).PaneTab != paneTalk {
+	if !tt.HasText("附上本章内容") || tt.HasText("主角怕黑") || paneTab(savedPrefs(t, a).PaneTab) != paneTalk {
 		t.Fatal("the talk is not shown", tt.Texts())
 	}
 	if !tt.HasText("这一章的节奏怎么样") || tt.HasText("右边的设定文档") {
