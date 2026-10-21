@@ -736,3 +736,26 @@ func TestAWorkWithoutItsEmptyFoldersOpens(t *testing.T) {
 		t.Fatalf("sessions %v, %v", ids, err)
 	}
 }
+
+func TestIsWork(t *testing.T) {
+	dir := t.TempDir()
+	if IsWork(dir) || IsWork(filepath.Join(dir, "missing")) {
+		t.Fatal("empty folder is a work")
+	}
+	path := filepath.Join(dir, "work.yaml")
+	if err := os.Mkdir(path, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if IsWork(dir) {
+		t.Fatal("directory named work.yaml is a work")
+	}
+	if err := os.Remove(path); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("not YAML"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if !IsWork(dir) {
+		t.Fatal("recognition must only check the file's presence")
+	}
+}
