@@ -18,7 +18,7 @@ mygo v0.5.5 发布了 `ui/markdown`：`View` 画写完的 Markdown，`Stream` �
   - `markdownTheme` 把 mygo 的主题换成软件的字号、行距、颜色（`fsRead`/`lhRead`、`fsNote`/`lhBody`、`a.pal.side`、`a.pal.line`、`rControl`）。标题统一 650 字重，只按 1.35、1.2、1.08 三级放大。
   - **代码块自己画**（`codeBlock`）：mygo 自带的代码块按钮写的是英文 Copy / Copied，它的文案库只有英文。我们画同样的边框和底色，左上写语言，右上一个「复制代码」图标按钮；代码正文仍用 mygo 的 `Body`。
 - **回复里的链接不跳转**：`OnLink` 什么都不做，和原来一样。
-- **摘要里的「[N]」**：`digestMarkdown` 用 mygo 的解析器找到正文里（不在代码、不在链接里）的「[N]」，换成「名字」，名字是一个指向 `inkgo-entry:N` 的 Markdown 链接，名字里的 Markdown 符号转成 HTML 实体；摘要的 `OnLink` 认 `inkgo-entry:` 打开那条设定。没有这条设定的编号原样留着。
+- **摘要里的「[N]」**：`digestMarkdown` 用 mygo 的解析器找到正文里（不在代码、不在链接里）的「[N]」，由 `workspace/mentions.go` 的 `Setting.Mentions` 解析编号、名称及原文偏移，换成「名字」，名字是一个指向 `inkgo-entry:N` 的 Markdown 链接，名字里的 Markdown 符号转成 HTML 实体；摘要的 `OnLink` 认 `inkgo-entry:` 打开那条设定。没有这条设定的编号原样留着。
 - 去掉 goldmark 依赖。
 
 ## Alternatives considered
