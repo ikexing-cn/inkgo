@@ -187,6 +187,6 @@ DESIGN.md「模型看到的，作者也看得到」在原型那一步就写好�
     - `TestTheBookkeepersRevisionsAreRead`：旧修订照常重放，失败的也能读，程序不再写，别的修订带旧字段仍被拒；
     - `TestTheOldBudgetAndBookkeeperAreIgnored`。
   - `go test ./desk`：`TestTalkNotesTheSettingAsItReplies`，查当场记下并高亮、回复进行中折叠行展开、回复后折起、点开、「查看设定」、修改记录那张卡片和「查看讨论」。
-  - `go test ./cmd/poc`：布局测试的修改记录里有「记在「」。
+  - `go test ./cmd/inkgo`：布局测试的修改记录里有「记在「」。
   - `npm run verify-prototype`：「what the AI looked at」「a reply that looked as far as it may」两步。
   - 代码里没有 `Bookkeeper`、`Worker` 这两个类型，`ByBookkeeper` 只为读旧修订；作品配置里没有「记账模型」。

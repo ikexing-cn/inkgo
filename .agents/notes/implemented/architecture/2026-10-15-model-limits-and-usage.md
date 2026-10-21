@@ -82,7 +82,7 @@ Status: implemented
 - **收益**：默认的 DeepSeek 一次能发近 62 万 token 的输入，原来是 16000 减预留；换了小窗口的模型，请求自动跟着缩，不会被服务端以超长拒绝。用量有了，第 e 步能显示、第 b 步能拿实际数和估算对比。工具调用备好了，第 c 步只写循环和工具。
 - **代价**：内置表会过期，新模型和改价要发版；表外的模型按 32000 起步，作者要自己填。价格写在表里但这一步还没用上。窗口大以后一次请求可能很贵，第 e 步显示用量之前作者看不到（第 e 步已显示，见[AI 写的字等作者采纳，作品记下用量](../feature/2026-10-15-ai-text-waits-and-usage-is-kept.md)）。
 - **还没做**：chat 协议的工具轮要把推理内容（DeepSeek 的 `reasoning_content`）发回去，GoAI 的 compat 层不带这个字段，第 c 步处理。
-- **测试**：`go test ./model` 的 `TestBuiltinLimits`、`TestModelYAML`（写法、只写 ID、缺项补齐）、`TestModelValidation`（每条规则和 `Load` 的报错）、`TestToolCallsAndUsage`（三种协议各发一次带工具的请求，核对发出的工具定义、读回的调用和用量，以及坏请求被拒）；`go test ./workspace` 的 `TestTheOldBudgetIsIgnored`；`go test ./discussion` 核对 `MaxTokens` 被压到最大输出、回复事件带用量；`go test ./desk` 的 `TestModelLimitsInTheServiceForm`（每条校验、K/M 写回、移除和添加、填已知 ID 换数）和 `TestIncompleteFormsExplainInChinese`（没选全不存、选全才存）；`cmd/poc` 的布局测试多截一张服务商表单。
+- **测试**：`go test ./model` 的 `TestBuiltinLimits`、`TestModelYAML`（写法、只写 ID、缺项补齐）、`TestModelValidation`（每条规则和 `Load` 的报错）、`TestToolCallsAndUsage`（三种协议各发一次带工具的请求，核对发出的工具定义、读回的调用和用量，以及坏请求被拒）；`go test ./workspace` 的 `TestTheOldBudgetIsIgnored`；`go test ./discussion` 核对 `MaxTokens` 被压到最大输出、回复事件带用量；`go test ./desk` 的 `TestModelLimitsInTheServiceForm`（每条校验、K/M 写回、移除和添加、填已知 ID 换数）和 `TestIncompleteFormsExplainInChinese`（没选全不存、选全才存）；`cmd/inkgo` 的布局测试多截一张服务商表单。
 
 ## Sources
 

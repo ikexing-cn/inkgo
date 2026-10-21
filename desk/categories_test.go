@@ -1,6 +1,46 @@
 package desk
 
-import "testing"
+import (
+	"testing"
+
+	"writer/workspace"
+)
+
+// A category counts the entries the author still has, not the deleted
+// ones; one with none goes at the click, with nothing to move to 其他.
+func TestCategoriesCountWhatIsKept(t *testing.T) {
+	a, tt, _ := writingFixture(t, "")
+	if _, err := a.Store.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{
+		{Op: workspace.OpAdd, Place: workspace.PlaceDropped, Category: "人物", Text: "不要了"},
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.refresh(); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.Click("作品分类"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err := tt.Click("删除-人物"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("1 条设定将移到“其他”") {
+		t.Fatal("counted the deleted entry", tt.Texts())
+	}
+	if err := tt.Click("取消"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err := tt.Click("删除-地点"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if tt.HasText("删除-地点") || !tt.HasText("已删除分类“地点”") {
+		t.Fatal("an empty category is asked about", tt.Texts())
+	}
+}
 
 // Opened on a category to change, the form can be put away, leaving the
 // category as it was; a new name has nothing to put away.

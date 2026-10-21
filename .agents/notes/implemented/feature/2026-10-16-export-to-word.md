@@ -71,4 +71,4 @@ Status: implemented
   - `go test ./export`：`.docx` 是一个 zip，各部分 XML 解得开；首页单独一节、不印页码，正文页码从 1 起；章另起一页、卷名和第一章同页；样式名、宋体黑体、缩进、行距、页码域、加粗的名字都在；纯文本的正文和原来的输出逐字一样；`Within` 跨卷挑章时每卷只出一次。
   - `go test ./workspace` 的 `TestPiecesAndCount`，`go test ./shelf` 的 `TestShelfRoundTrip`。
   - `go test ./desk` 的 `TestExportTheWork`：先是全书、Word；笔名写进首页、`work.yaml` 和本机；只勾大纲又没写纲时说为什么、按钮不动；三样一起导成三个纯文本；勾选和格式记进 `works.json`；本章导出时文件名带章名。`TestDraftOverWhatIsThere` 查起草的圆点。
-  - `go test ./cmd/poc` 的 `TestLayoutWriting` 截导出对话框两张：打开时，和纯文本、指定范围。
+  - `go test ./cmd/inkgo` 的 `TestLayoutWriting` 截导出对话框两张：打开时，和纯文本、指定范围。

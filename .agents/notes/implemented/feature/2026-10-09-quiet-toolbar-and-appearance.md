@@ -20,7 +20,7 @@ Status: implemented
   - 鼠标还在拖着选、选区开头滚出视野、正文只读、改写面板或加入设定的弹框已经开着、正在续写时都不出现。
 - 深浅色：
   - 选择存在本机的作品清单 `works.json` 的 `theme` 字段（`"light"`、`"dark"`，空为跟随系统），不跟作品走。别的值读取时报错，和清单其他字段一样不猜。
-  - `cmd/poc` 启动时先按它设好 `mygo.Theme`，切换时通过 `App.Appearance` 交给 mygo。窗口按钮、页面配色一起切。
+  - `cmd/inkgo` 启动时先按它设好 `mygo.Theme`，切换时通过 `App.Appearance` 交给 mygo。窗口按钮、页面配色一起切。
 - 图标改成意思更直的：改写用笔，起草用带字的纸，加入设定用书签加号，快照用回退的时钟。
 
 ## Alternatives considered

@@ -3,7 +3,7 @@
 // at odds with the setting here and there for the checks to find.
 //
 //	go run ./cmd/sample <目录>
-//	go run ./cmd/poc -work <目录>/<书名>
+//	go run ./cmd/inkgo -work <目录>/<书名>
 //
 // A book is a text file in books/, read a line at a time:
 //
@@ -51,7 +51,7 @@ func main() {
 	}
 	dirs, err := writeAll(os.Args[1])
 	for _, d := range dirs {
-		fmt.Printf("go run ./cmd/poc -work %q\n", d)
+		fmt.Printf("go run ./cmd/inkgo -work %q\n", d)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

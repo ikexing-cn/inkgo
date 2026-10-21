@@ -169,5 +169,5 @@ M1 每轮对话串行：先回复，再把这一轮拆成思路卡片，再查�
   - 收起状态重开后保留；
   - 整理时圆点出现，设定栏收起时在顶栏，做完消失（`TestBookkeeperShowsWhileItWorks`）；失败时圆点变色，点击打开历史，重试后消失；
   - 摘取原文加入正文。
-- `SHOT=<dir> go test -run TestLayout ./cmd/poc` 渲染文档栏和整理历史，已目视核对。
+- `SHOT=<dir> go test -run TestLayout ./cmd/inkgo` 渲染文档栏和整理历史，已目视核对。
 - 用 DeepSeek（`deepseek-flash`，low）真实跑了两轮："城市总在下雨、修路灯的女人怕黑"整理进正文；第二轮"第二个方向不错，就这么定。另外她不是怕黑，是怕安静"把选中的方向移入正文，把"怕黑"改为"怕安静"，其余点子留在悬而未决。

@@ -35,7 +35,7 @@ Status: implemented
 ### 已有的 `.summary.json`
 
 - 不删：里面可能有作者亲手写的摘要，删了找不回来。
-- 不再管：`workspace/chapters.go` 的 `companions()` 不认它，改名、移动、进回收站时它不跟着走，留在原处。`workspace/summary.go` 删了。
+- 不再管：`workspace/paths.go` 的 `companions()` 不认它，改名、移动、进回收站时它不跟着走，留在原处。`workspace/summary.go` 删了。
 - 章节文件夹里多出的 `.summary.json` 不影响读章节：章节树只认 `.order` 和正文文件。
 
 ## Alternatives considered
@@ -53,7 +53,7 @@ Status: implemented
 - 提案里「改过一章再离开，AI 记录里没有新行」一条：落地时先做了这一篇，AI 记录（[AI 记录和完整请求](../feature/2026-10-16-ai-record-and-trace.md)）排在后面，所以现在由测试查「一次也没问模型」。先做这一篇，是因为它删掉一批调用模型的地方，AI 记录要挂的地方就少一些。
 - 测试：
   - `desk/write_test.go` 的 `TestLeavingAChangedChapterAsksNothing`：检查设成手动时，改过一章再离开，模型一次也没被问到（有摘要时这里会排一份摘要）。`TestFolderShowsTheGists`：没有章纲的章，卷页显示正文的开头。
-  - `workspace/chapters_test.go` 的 `TestAnOldSummaryStaysWhereItWas`：旁边有 `.summary.json` 的章改名、进回收站、再恢复，那个文件原样留在原处；作品重新打开，章节照常。
+  - `workspace/nodes_test.go` 的 `TestAnOldSummaryStaysWhereItWas`：旁边有 `.summary.json` 的章改名、进回收站、再恢复，那个文件原样留在原处；作品重新打开，章节照常。
   - `desk/aiswitch_test.go` 的 `TestAIOffShowsNothingOfIt`：作品里有旧版本写的 `.summary.json`，关掉 AI 走一遍，文件原样还在。
   - `discussion` 的测试：讨论带五个工具；旧的 `read_summary` 那一步照旧有说明。
   - 删掉的：`workspace/summary_test.go`、`writing/summary_test.go`、`desk/summary_test.go`、`desk/shot_test.go` 的 `TestShotSummary`。

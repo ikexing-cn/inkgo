@@ -11,7 +11,7 @@ import (
 func trim(s string) string { return strings.TrimSpace(s) }
 
 // titleHeight is the height of the title bar, and of the top row of each
-// pane under it. The window buttons fill the title bar (cmd/poc gives the
+// pane under it. The window buttons fill the title bar (cmd/inkgo gives the
 // window the same title bar height), so their hover covers the whole row.
 const titleHeight = hBar
 

@@ -195,7 +195,7 @@ type App struct {
 	LastChat, LastSetting, LastWrite ui.Rect
 	LastProse                        ui.Rect
 	// Appearance applies the appearance chosen: "light", "dark", or empty
-	// to follow the system. cmd/poc hands it to the window.
+	// to follow the system. cmd/inkgo hands it to the window.
 	Appearance func(string)
 }
 

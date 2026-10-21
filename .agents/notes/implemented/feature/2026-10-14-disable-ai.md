@@ -112,4 +112,4 @@ Status: implemented
 - `editor/ai_test.go` 的 `TestNoAI`、`ai/ai_test.go` 的 `TestOffBuildsNothing`、`shelf/shelf_test.go` 的 `TestShelfNoAI`。
 - 原有的测试：只改了设置那一节的名字（「模型设置」→「设置-AI」），和 `TestMenuRowsOffThePageOfProse` 里书架上的「设置…」（原来是灰的，现在能点，打开只有「AI」「外观」）。
 - `npm run verify-prototype` 的「AI turned off」，加了一句：关着时右栏显示设定，记着原来停在讨论。
-- 截图：AI 开着，`desk` 85 张、`cmd/poc` 的布局 12 张，和上一次提交逐像素比。不一样的是设置里「模型」改名「AI」、最上面多了开关（下面的内容往下挪）、书架上的「设置…」能点；其余和上一次提交自己截两回也不一样的那些（钟点、测试临时文件夹的名字、提示条倒计时、淡出）。AI 关着时的截图和原型的 `99g`、`99h`、`99j` 对过。
+- 截图：AI 开着，`desk` 85 张、`cmd/inkgo` 的布局 12 张，和上一次提交逐像素比。不一样的是设置里「模型」改名「AI」、最上面多了开关（下面的内容往下挪）、书架上的「设置…」能点；其余和上一次提交自己截两回也不一样的那些（钟点、测试临时文件夹的名字、提示条倒计时、淡出）。AI 关着时的截图和原型的 `99g`、`99h`、`99j` 对过。

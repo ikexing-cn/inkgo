@@ -29,7 +29,7 @@ Status: implemented
 - **正文里的样子**：伏笔是浅色点线（原样）；回收的那段是深一点的点线；已放弃的伏笔点线更淡。
 - **改别的章的标记**（改备注、放弃、取消回收时，那一章可能没打开）：`editMark` 对打开的章改编辑器里的标记再存盘，对别的章读出来、改掉、写回去，再重读全书标记。
 - **埋了多久算久**：默认 30 章，设置里新的一页「提醒与检查」可以改（10 到 120，一次 5 章），存在 `desk.json` 的 `late_after`。到了这个章数（含）就算，列表标出来，待处理也列一条；已回收和已放弃的不再列。
-- 代码：`desk/foreshadow.go`（数据、浮层、右栏、设置那一页）、`desk/beside.go`（标签）、`desk/pending.go`（待处理改用同一份数据）、`workspace/chapters.go`、`editor/doc.go`、`editor/edit.go`、`editor/view.go`、`editor/paint.go`。
+- 代码：`desk/foreshadow.go`（数据、浮层、右栏、设置那一页）、`desk/beside.go`（标签）、`desk/pending.go`（待处理改用同一份数据）、`workspace/marks.go`、`editor/doc.go`、`editor/edit.go`、`editor/view.go`、`editor/paint.go`。
 
 ## Alternatives considered
 

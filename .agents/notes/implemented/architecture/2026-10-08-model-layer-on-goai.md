@@ -97,7 +97,7 @@ mygo 在初始化时调用 `bind`，用反射按名字查找方法。只要程�
   - 思考链、正文和整理过程都实时可见，推理内容随回复保存，可以回看；
   - 推理等级可以按用途、按作品选择，三种协议都会真正发送；
   - 回复的列表、强调、引用和代码正常排版；
-  - Windows/amd64、`CGO_ENABLED=0` 下，`cmd/poc` 去掉调试信息是 15.2 MB（改造前 13.6 MB，用 Fantasy 时 60.8 MB），带调试信息 21.8 MB，整个项目共 22 个模块；
+  - Windows/amd64、`CGO_ENABLED=0` 下，`cmd/inkgo` 去掉调试信息是 15.2 MB（改造前 13.6 MB，用 Fantasy 时 60.8 MB），带调试信息 21.8 MB，整个项目共 22 个模块；
   - 以后加工具调用时，可以直接用 GoAI 的工具循环；
   - SDK 从环境里读到的凭据不会发往配置以外的地址。
 - **代价与已知上限**：
@@ -114,5 +114,5 @@ mygo 在初始化时调用 `bind`，用反射按名字查找方法。只要程�
 - `discussion/engine_test.go` 的 `TestTurnRecordsReasoningAndSteps` 验证推理内容、模型名和等级都落盘，步骤顺序为回复、整理。
 - `workspace/workspace_test.go` 的 `TestModelOutputKeepsReasoningForReview` 验证新字段可以往返读写，作者发言不能带推理，未知等级被拒绝。
 - `desk/app_test.go` 覆盖 Markdown 分块、流式显示和推理等级写回作品配置。
-- `SHOT=<dir> go test -run TestLayout ./cmd/poc` 额外输出 `layout-thought.png`，展示展开的思考过程和 Markdown 回复。
-- `GOOS=darwin|linux CGO_ENABLED=0 go build ./cmd/poc` 可以通过；`go list -deps ./cmd/poc` 里没有 `text/template`、`google.golang.org` 或 AWS 的包。
+- `SHOT=<dir> go test -run TestLayout ./cmd/inkgo` 额外输出 `layout-thought.png`，展示展开的思考过程和 Markdown 回复。
+- `GOOS=darwin|linux CGO_ENABLED=0 go build ./cmd/inkgo` 可以通过；`go list -deps ./cmd/inkgo` 里没有 `text/template`、`google.golang.org` 或 AWS 的包。

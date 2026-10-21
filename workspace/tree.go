@@ -1,0 +1,92 @@
+package workspace
+
+import "fmt"
+
+// Node is a node of the chapter tree: a folder of nodes, or a document of
+// prose. Either may have an outline.
+type Node struct {
+	ID       string
+	Title    string
+	Folder   bool
+	Children []*Node
+	Parent   *Node // nil for the root
+	file     string
+	dir      []string // the directory holding it, under chapters/
+}
+
+// Tree is the chapter tree as the disk had it when it was read.
+type Tree struct {
+	Root *Node
+	byID map[string]*Node
+}
+
+// Node returns the node id.
+func (t Tree) Node(id string) (*Node, bool) {
+	n, ok := t.byID[id]
+	return n, ok
+}
+
+// Walk calls fn with each node in reading order, folders before what they
+// hold, and its depth from 0. A tree that was never read holds nothing.
+func (t Tree) Walk(fn func(n *Node, depth int)) {
+	if t.Root == nil {
+		return
+	}
+	var walk func(ns []*Node, depth int)
+	walk = func(ns []*Node, depth int) {
+		for _, n := range ns {
+			fn(n, depth)
+			walk(n.Children, depth+1)
+		}
+	}
+	walk(t.Root.Children, 0)
+}
+
+// Previous is the document before n in the order of the tree.
+func (t Tree) Previous(n *Node) (*Node, bool) {
+	var last, found *Node
+	t.Walk(func(m *Node, _ int) {
+		if m == n {
+			found = last
+		}
+		if !m.Folder {
+			last = m
+		}
+	})
+	return found, found != nil
+}
+
+// Within reports whether n is ancestor or inside it.
+func (n *Node) Within(ancestor *Node) bool {
+	for p := n; p != nil; p = p.Parent {
+		if p == ancestor {
+			return true
+		}
+	}
+	return false
+}
+
+// Chapters returns the chapter tree.
+func (s *Store) Chapters() (Tree, error) {
+	unlock, err := s.lock()
+	if err != nil {
+		return Tree{}, err
+	}
+	defer unlock()
+	return s.tree()
+}
+
+// folderOf returns the folder id, the root for "".
+func (t Tree) folderOf(id string) (*Node, error) {
+	if id == "" {
+		return t.Root, nil
+	}
+	n, ok := t.byID[id]
+	if !ok {
+		return nil, fmt.Errorf("chapters: unknown node %q", id)
+	}
+	if !n.Folder {
+		return nil, fmt.Errorf("chapters: %q is not a folder", n.Title)
+	}
+	return n, nil
+}

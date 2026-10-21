@@ -95,7 +95,7 @@ Status: implemented
   - `desk` 的 `TestThePhonePreview`：照原型 walk 走一遍，包括光标跟屏、选中、点字定位、到头变灰、长段、Aa、滚动同步、关 AI、换章、卷的空状态。
   - `TestPhonePreferencesAreLocal`、`TestPhoneParagraphCache`，以及 `desk.json` 的旧字段兼容测试。
   - `TestPhonePreviewTypingCost`：一万字以上的章，每打一个字的整帧中位数不超过 25ms。
-  - `cmd/poc` 的 `TestLayoutPhonePreview` 存白天、夜间、滚动、长段四张截图。
+  - `cmd/inkgo` 的 `TestLayoutPhonePreview` 存白天、夜间、滚动、长段四张截图。
   - `npm run verify-prototype` 的「the phone preview」。
 - 2026-10-21 由 Codex 实现，Claude 审查：返工一轮，三处都是结构问题：右栏标签改成一个字段；偏好从单独的 `phone.json` 并进 `works.json`，用词不用编号；尺寸改成手机自己的常量。
 

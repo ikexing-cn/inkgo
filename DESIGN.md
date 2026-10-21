@@ -512,7 +512,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab；起草�
 检查：
 
 - `npm run verify-prototype` 的「the outline by chapter」「the timeline」「the chapter in the story」查原型：添加、继续添加、改卡片、拖到另一格、改章纲、情节线的增删改和挪位置、改一列的时间、滚动时不动的那一列和表头、搜索的计数和什么都没找到的那一页、正文里「故事中」那一行跳到时间线；「an outline file broken outside」查大纲文件读不出来时整页只留一句话，没有「重试」，改好后自己回来。
-- `go test ./workspace` 的 `TestOutlineCardOrderAndStorage`、`TestOutlineChapterLifecycle`、`TestOutlineMalformedFile`、`TestOutlineTimeColumnsAndDrops`、`TestOutlinesReadWithoutProse`、`TestPurgeChapterWithMalformedOutline`、`TestOutlineErrorSaysWhere`；`go test ./desk` 的 `TestTheOutlineByChapter`、`TestOutlinePlotLines`、`TestOutlineSearch`、`TestTheOutlineTimeline`、`TestTheChapterInTheStory`、`TestOutlineStaysAtTheEdges`、`TestOutlineTrashAndSettingsPane`、`TestOutlineReadError`、`TestOutlineFrameCost`、`TestOutlineVirtualScrolling`、`TestOutlineVirtualDrag`、`TestNamesInTheProse`；`go test ./shelf` 的 `TestShelfNameHighlights`；`cmd/poc` 的 `TestLayoutOutline`。
+- `go test ./workspace` 的 `TestOutlineCardOrderAndStorage`、`TestOutlineChapterLifecycle`、`TestOutlineMalformedFile`、`TestOutlineTimeColumnsAndDrops`、`TestOutlinesReadWithoutProse`、`TestPurgeChapterWithMalformedOutline`、`TestOutlineErrorSaysWhere`；`go test ./desk` 的 `TestTheOutlineByChapter`、`TestOutlinePlotLines`、`TestOutlineSearch`、`TestTheOutlineTimeline`、`TestTheChapterInTheStory`、`TestOutlineStaysAtTheEdges`、`TestOutlineTrashAndSettingsPane`、`TestOutlineReadError`、`TestOutlineFrameCost`、`TestOutlineVirtualScrolling`、`TestOutlineVirtualDrag`、`TestNamesInTheProse`；`go test ./shelf` 的 `TestShelfNameHighlights`；`cmd/inkgo` 的 `TestLayoutOutline`。
 
 ## Colors
 

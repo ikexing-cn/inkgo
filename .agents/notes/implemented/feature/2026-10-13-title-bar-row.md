@@ -103,7 +103,7 @@ Status: implemented
 - `TestChapterHistory`、`TestSideRowsOnEveryPage`：‹ › 只在正文页，后退、前进、跳过已删除的章。
 - 原来点「更多」的测试改成点菜单（`clickMenu`）。
 - `npm run verify-prototype` 的「the title bar, and the sidebar put away on every page」「the menus」：原型里的同样几条，包括用过标题栏以后光标还在正文。
-- 截图核对了正文、讨论、检查、书架四处，四个菜单，侧栏收起，专注写作，设置，深色（`SHOT=<目录> go test ./desk -run TestShot`、`SHOT=<目录> go test -run TestLayout ./cmd/poc`）。
+- 截图核对了正文、讨论、检查、书架四处，四个菜单，侧栏收起，专注写作，设置，深色（`SHOT=<目录> go test ./desk -run TestShot`、`SHOT=<目录> go test -run TestLayout ./cmd/inkgo`）。
 - 没有在真的窗口里点过：系统画的窗口按钮和这一行右边留的位置对不对得上，只由测试里 `SetTitleBar` 假装的宽度查过。
 
 [历史快照：标题栏并进各栏顶部，章节间前后跳转](../../archived/feature/2026-10-09-merged-title-bar.md)

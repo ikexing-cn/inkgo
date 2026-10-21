@@ -78,20 +78,6 @@ const (
 	dialogPad    = 24
 )
 
-const (
-	planChapterWidth  = 248
-	planLaneWidth     = 168
-	planCardWidth     = 200
-	planEndWidth      = 160
-	planRowMinHeight  = 104
-	planLaneMinHeight = 56
-	planGistWidth     = 560
-	planLineMenuWidth = 140
-	planTimePopWidth  = 260
-	planTrayHeight    = 220
-	planCardTextWidth = planCardWidth - 24 - 1 - 20 - 2
-)
-
 // modal is a dialog as the design draws one: the window shaded behind it,
 // its corners and its shadow. What fn makes first gives it its size, with
 // dialogPad around what it holds.

@@ -9,6 +9,20 @@ import (
 	"writer/workspace"
 )
 
+const (
+	planChapterWidth  = 248
+	planLaneWidth     = 168
+	planCardWidth     = 200
+	planEndWidth      = 160
+	planRowMinHeight  = 104
+	planLaneMinHeight = 56
+	planGistWidth     = 560
+	planLineMenuWidth = 140
+	planTimePopWidth  = 260
+	planTrayHeight    = 220
+	planCardTextWidth = planCardWidth - 24 - 1 - 20 - 2
+)
+
 // Geometry contains data and sizes only, never elements from a previous frame.
 // Cache it until cards, outlines, search, or the open outline editor change.
 type planGeometry struct {

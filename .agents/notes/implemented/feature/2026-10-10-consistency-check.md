@@ -73,7 +73,7 @@ Status: implemented
 - **正文里**：有问题的原句下面一条浅色虚线（`Editor.SetDoubts`，不进撤销、不存盘，和伏笔的点线分开）。
 - **设置 · 提醒与检查**多一组「检查正文和设定」，同样三个选项。伏笔那一行的文字顺便改成设计稿现在的说法。
 - **待处理**多一组「设定对不上」，排在最前，点一条去「检查」页的那一条。「全部忽略」只是不在待处理里列，「检查」页里还在。
-- 代码：`workspace/check.go`、`writing/check.go`、`desk/check.go`，`editor/paint.go`（虚线），`desk/shell.go`（页面和侧栏）、`desk/write.go`（章末一行、离开时）、`desk/pending.go`、`desk/foreshadow.go`（设置）、`desk/setting.go`（`check_when`），`discussion/shared.go`（公开 `Locate`、`Decode`）。
+- 代码：`workspace/check.go`、`writing/check.go`、`desk/check.go`，`editor/paint.go`（虚线），`desk/shell.go`（页面和侧栏）、`desk/write.go`（章末一行、离开时）、`desk/pending.go`、`desk/foreshadow.go`（设置）、`desk/prefs.go`（`check_when`），`discussion/shared.go`（公开 `Locate`、`Decode`）。
 
 ### 和设计稿不一样的地方
 

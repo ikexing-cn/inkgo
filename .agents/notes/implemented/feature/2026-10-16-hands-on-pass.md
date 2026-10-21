@@ -142,18 +142,18 @@ Status: implemented
 - `desk/when_test.go`（`TestWhenSaid`，从 backup_test.go 移来）：`when`、`opened`、`talkDay` 对今天、昨天、今年别的日子、一月的日子、往年各写什么。
 - `scripts/prototype/walk.ts`：备份、生成摘要、修改记录几步核对"今天 10:40"。
 - `desk/sent_test.go`（`TestWhatWasSent`）：三句问话和一句没记用量的回复下面都是"今天 hh:mm"，两句记了用量的是"今天 hh:mm · … token"。改之前只有几点。`scripts/prototype/walk.ts` 的「what was sent」核对"昨天 22:11 · claude-opus-5-5 · 28.3K token"和"昨天 22:10"。
-- `desk/write_test.go`（`TestSetTheDaysGoal`）：打开每日目标，有"今天 写了 0 字""昨天 写了 0 字"和六天前的"10-10 写了 0 字"这样的行，改之前是"10月16日"。`desk/when_test.go`（`TestWhenSaid`）：`kept` 的最早一份是今天、今年 9 月 28 日、去年 10 月 3 日，写"今天""09-28""2025-10-03"；改回旧写法三条都错。`scripts/prototype/walk.ts` 核对"今天+2,846 字""昨天+3,120 字""10-10"和"最早 09-28"。
+- `desk/counts_test.go`（`TestSetTheDaysGoal`）：打开每日目标，有"今天 写了 0 字""昨天 写了 0 字"和六天前的"10-10 写了 0 字"这样的行，改之前是"10月16日"。`desk/when_test.go`（`TestWhenSaid`）：`kept` 的最早一份是今天、今年 9 月 28 日、去年 10 月 3 日，写"今天""09-28""2025-10-03"；改回旧写法三条都错。`scripts/prototype/walk.ts` 核对"今天+2,846 字""昨天+3,120 字""10-10"和"最早 09-28"。
 - `desk/beside_test.go`（`TestTalkBesideTheProse`）：右栏讨论框里回车是换行，什么也没发出去。
 - `scripts/prototype/walk.ts`：右栏讨论框按回车不发出、提示写"输入想讨论的内容，Ctrl+Enter 发送"，按 Ctrl+Enter 才发出；右栏其余几处发言都改按 Ctrl+Enter，讨论页按"发送（Ctrl+Enter）"那个键。
 - `desk/app_test.go`（`TestNewWorkKeepsTheModels`）：作品开着时新建，新作品的讨论、写作模型和它一样；把刚建的那部改成一个不存在的服务、关掉回到书架再新建，跳过它，用书架上再往前那部的。
 - `desk/write_test.go`（`TestTheHeadLinesUpWithTheProse`）：1000 和 2200 宽，章纲那一行和正文的左边一样，改写要求框在卡片里、离正文左边不到 48；查找条在章标题上面。改之前 1000 宽时一个 24 一个 40。
 - `desk/toolbar_test.go`（`TestTheSelectionBarLeavesTheSelectionInSight`）：从第一行选到第五行，浮条在选区下面。改之前它在第一行下面。
-- `desk/write_test.go`（`TestFindWhatIsPicked`）：选中第二个「林晚」按 Ctrl+F，查找词是「林晚」、"2 / 2"、光标在查找框；接着打「雨」换掉；跨段的选区不改查找词。
+- `desk/find_test.go`（`TestFindWhatIsPicked`）：选中第二个「林晚」按 Ctrl+F，查找词是「林晚」、"2 / 2"、光标在查找框；接着打「雨」换掉；跨段的选区不改查找词。
 - `scripts/prototype/walk.ts`：选中「小祥」按 Ctrl+F，查找框里是全选的「小祥」，"1 / 2"。
 - `workspace/workspace_test.go`（`TestAWorkWithoutItsEmptyFoldersOpens`）：删掉 `sessions/`、`chapters/`、`.writer/` 后能打开，新开讨论、写一句、新建一章并写入都行。改之前打不开。
 - `desk/app_test.go`（`TestAWorkThatCannotBeOpenedIsNamed`）：`work.yaml` 坏掉的作品，提示写"打开作品「青崖问剑」失败"和 `work.yaml`，原来开着的作品不变。
 - `desk/app_test.go`（`TestABlankTalkFitsTheWork`）：有一条设定的作品，空讨论写"接着聊这部作品"，点"接下来的情节怎么走"进了讨论框；新建的作品写"从一个初步的想法开始"和"我想写一个总在下雨的城市"。改之前第一项不过。
-- `desk/write_test.go`（`TestAWorkNewHereOpensOnItsProse`）：删掉 `.writer/` 再打开，停在正文页；新建的作品也是；没有 `.writer/` 也记得住离开时在讨论页。改之前停在讨论页，补建 `.writer/` 之前存不下 `desk.json`。`fixture` 和 `cmd/poc` 的 `TestLayoutDiscussion` 先写一份 `{}` 的 `desk.json`，即上次停在讨论页，原来从讨论页开始的测试照旧。
+- `desk/write_test.go`（`TestAWorkNewHereOpensOnItsProse`）：删掉 `.writer/` 再打开，停在正文页；新建的作品也是；没有 `.writer/` 也记得住离开时在讨论页。改之前停在讨论页，补建 `.writer/` 之前存不下 `desk.json`。`fixture` 和 `cmd/inkgo` 的 `TestLayoutDiscussion` 先写一份 `{}` 的 `desk.json`，即上次停在讨论页，原来从讨论页开始的测试照旧。
 - `desk/write_test.go`（`TestExportTheWork`）：打开导出对话框时已勾着段首空两格，导出的章和全书段首都是两个全角空格。原来测试里要自己勾上。
 - `desk/toast_test.go`（`TestAHintHasNoMark`）：同样四个字的"做完了"和"提醒"一起出来，提醒的字比做完了的靠左一个图标多。改之前提醒不显示。伏笔、正文旁讨论、检查那几个测试改查 `a.hint`；`TestIncompleteFormsExplainInChinese` 改查分类没填落点时是提醒、没有存。
 - `scripts/prototype/walk.ts`（`toastMark`）：没选段落点「记为回收」，提示不带图标；"已复制"带绿勾。
@@ -165,7 +165,7 @@ Status: implemented
 - `desk/welcome_test.go`（`TestANewWorkSaysWhereItGoes`）：作品库里放一个有文件的"旧稿"和一个空文件夹，名字依次写"新书""空文件夹""旧稿"，说明分别是"将新建该文件夹。""该文件夹为空…""该文件夹中已有文件…"，只有最后一句是红的（取截图里那几个字的像素）；"旧稿"时按「创建作品」没反应，换回空文件夹就建在里面。改之前第一步就找不到"将新建该文件夹。"。`scripts/prototype/walk.ts`：「the shelf, where things go wrong」里名字和书架上的重了，说明是红字、按钮 `off`；清空位置是"请填写作品位置。"、不红、按钮 `off`；重命名清空名字按钮 `off`。
 - `desk/limits_test.go`：`TestModelLimitsInTheServiceForm` 改成每填错一处，表单上就有那句话，按「保存提供商」既不存也不弹提示；`TestANewServiceSaysWhatIsWrongWhereItIs` 新建服务名称写已有服务的名字，ID 空着时取出的 ID 撞上它，说"该 ID 已被…"、按了不存（改之前会把那个服务换掉）；地址写成没有 http 的、环境变量写成 "1 KEY"，各自说出来、按了不存；都改好后存下 ID 为 `open-router` 的新服务，原来那个没动；`idFrom` 的几种名字。`model` 的 `TestModelValidation` 跟着报错文字加空格。`scripts/prototype/walk.ts` 的「models and services」：最大输出写 2M 表下红字、按钮 `off`，移除那一行红字没了；新服务名称写 DeepSeek，ID 框占位字是 `deepseek`、说已被使用；写"本地"后要自己填 ID；地址缺 http 红字；上下文上限写"一百万"红字（截图 `62b-service-wrong`）。「more notices than fit」原来靠那句出错的提示条凑满，改成再按一次「保存提供商」。
 - `desk/limits_test.go`（`TestANewServiceSaysWhatIsWrongWhereItIs`）又加：地址三种毛病各说各的；滚到最下面点「+ 添加服务」，"显示名称"在窗口上半截（改之前在 603，只露出第一排）；按「取消」表单收起、服务没多。改之前没有「取消」。`scripts/prototype/walk.ts` 的「models and services」核对新服务的 key 框占位字、地址三句话，「settings that do not hold」按「取消」收起新表单。原型那一步不量表单在不在视野里：走查的窗口大，新表单不滚也放得下，量了也查不出什么。
-- `desk/write_test.go`（`TestSetTheDaysGoal`）："两千"和"0"都不改目标、说明变红，改回 2000 说明恢复；`desk/ai_test.go`（`TestDraftAChapterFromItsOutline`）：目标字数"很多"时表单上有红字，按「开始起草」不起草、不弹提示。改之前这两处分别是没有红字、弹了提示条。`scripts/prototype/walk.ts` 的「a goal for the day」「a draft」同样查。
+- `desk/counts_test.go`（`TestSetTheDaysGoal`）："两千"和"0"都不改目标、说明变红，改回 2000 说明恢复；`desk/ai_test.go`（`TestDraftAChapterFromItsOutline`）：目标字数"很多"时表单上有红字，按「开始起草」不起草、不弹提示。改之前这两处分别是没有红字、弹了提示条。`scripts/prototype/walk.ts` 的「a goal for the day」「a draft」同样查。
 - `scripts/prototype/walk.ts`：「AI 参考内容」里有"林晚、晚晚、林林宝：主角……"和"已放弃：老陈：电力局的门卫……"；截图 `58c-sent`。
 - `scripts/prototype/walk.ts`：原书的新对话写"接着聊这部作品"、没有"从一个初步的想法开始"，点"接下来的情节怎么走"；新建的"新书"在讨论页写"从一个初步的想法开始"。
 - 真实程序（kimi-cu）：`cmd/sample` 的《雨城修灯人》检查全书（deepseek-flash，15 次），原来 14 条里「老周」占三条、「怀表」两条；改后 11 条，「老周」一条写"人物 · 「第四章 钟表铺」起出现，共 3 章"，详情列出第七章、第十二章的原句；点「忽略」后剩 10 条，三章的都没了。侧栏只剩说过话的那段讨论，写"今天"。

@@ -39,4 +39,4 @@ Status: implemented
 
 ## Verification
 
-`go test ./...` 覆盖 `editor/doc_test.go`（标记映射、断行避头尾、补全匹配、撤销合并、全部替换一次撤销、`Prose` 不存缩进）、`editor/ui_test.go`（无窗口驱动真实界面）与 `cmd/poc/main_test.go`（编辑器占满窗口）。`GOOS=darwin|linux CGO_ENABLED=0 go build ./cmd/poc` 可通过。
+`go test ./...` 覆盖 `editor/doc_test.go`（标记映射、断行避头尾、补全匹配、撤销合并、全部替换一次撤销、`Prose` 不存缩进）、`editor/ui_test.go`（无窗口驱动真实界面）与 `cmd/inkgo/main_test.go`（编辑器占满窗口）。`GOOS=darwin|linux CGO_ENABLED=0 go build ./cmd/inkgo` 可通过。

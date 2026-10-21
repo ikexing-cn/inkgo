@@ -8,7 +8,7 @@ Status: implemented
 
 拆之前（`caaa5f5`），会发送的东西和界面混在同一个包 `desk` 里：
 
-- `desk` 直接引用 `model`、`discussion`、`writing`。联网的只有 `model`（[模型层](2026-10-08-model-layer-on-goai.md)），讨论和写作两个包拿到 `model` 的客户端才会发送；客户端在 `desk` 里 4 处新建：`desk/ai.go:30`、`desk/app.go:352`、`desk/app.go:376`、`desk/settings.go:432`。
+- `desk` 直接引用 `model`、`discussion`、`writing`。联网的只有 `model`（[模型层](2026-10-08-model-layer-on-goai.md)），讨论和写作两个包拿到 `model` 的客户端才会发送；客户端在 `desk` 里 4 处新建：`desk/ai.go:30`、`desk/app.go:352`、`desk/app.go:376`、`desk/services.go:432`。
 - 读写模型服务的配置（`providers.yaml`）、建讨论引擎、开后台整理、建续写改写用的 `writing.Writer`，都是 `*App` 的方法，夹在画界面的代码中间。
 
 ## Decision
@@ -29,7 +29,7 @@ Status: implemented
 | `desk` | 全部界面，和拆之前一样 | `desk/aiport`、`workspace`、`editor`、`backup`、`shelf` |
 | `desk/aiport` | `desk` 要 AI 做的事：几个接口，和过界要用的几个小结构 | 只有 `workspace` |
 | `ai` | 实现 `aiport`：读写 `providers.yaml`、建客户端、讨论、续写改写起草、摘要、检查（原来还有后台整理和它的日志，2026-10-15 随记账员删了，见[讨论用工具查全书、当场记设定](../feature/2026-10-15-talk-looks-up-and-notes-the-setting.md)） | `desk/aiport`、`model`、`discussion`、`writing`、`workspace` |
-| `cmd/poc` | 建一个 `ai` 交给 `desk` | `desk`、`ai` |
+| `cmd/inkgo` | 建一个 `ai` 交给 `desk` | `desk`、`ai` |
 
 `aiport` 单独成包，是因为 `desk` 的测试要用真的 `ai`（配假的模型）：接口要是放在 `desk` 里，`ai` 就得引用 `desk`，`desk` 的测试再引用 `ai` 就成环了，Go 不让。
 
@@ -62,7 +62,7 @@ Status: implemented
 
 ### 怎么建、测试怎么换假模型
 
-- `ai.New(配置文件)` 建 `ai.Service`，不读盘；`desk.New(它)` 建界面：先读作品清单 `works.json`，把开关告诉 `ai`（`SetOn`），AI 开着而且有配置文件时 `Reload` 一次，读不成的错照旧显示在界面上。`cmd/poc` 把两个接起来，找不到配置目录的错也由它交给界面。`works.json` 照旧放在配置文件旁边，位置问 `ConfigFile()`。
+- `ai.New(配置文件)` 建 `ai.Service`，不读盘；`desk.New(它)` 建界面：先读作品清单 `works.json`，把开关告诉 `ai`（`SetOn`），AI 开着而且有配置文件时 `Reload` 一次，读不成的错照旧显示在界面上。`cmd/inkgo` 把两个接起来，找不到配置目录的错也由它交给界面。`works.json` 照旧放在配置文件旁边，位置问 `ConfigFile()`。
 - 测试换 `ai.Service` 上的 `NewWriter` 钩子（拆之前是 `App` 上的 `Pen`；原来还有换记账员的 `NewBookkeeper`，2026-10-15 删了）。`desk/app_test.go` 里两个小函数：`newApp(配置文件)` 建界面，`aiOf(a)` 拿到它的 `ai.Service` 好换钩子。`desk` 的测试引用 `ai` 和 `model` 来做假模型，不算 `desk` 的依赖（`go list -deps` 不看测试）。要数 `desk` 向 AI 要了什么，`desk/aiswitch_test.go` 的 `spy` 包住一个 `aiport.Service`，记下 `Catalog`、`Talk`、`Pen` 的每一次。
 
 ### 关着 AI 时
@@ -109,5 +109,5 @@ Status: implemented
 
 - `desk/aiswitch_test.go` 的 `TestDeskImportsNothingThatSends`：`go list -deps writer/desk` 里有 `writer/desk/aiport`，没有 `writer/ai`、`writer/model`、`writer/discussion`、`writer/writing`。在 `go test ./...` 里，也就在 `npm run verify` 里。
 - 同一个文件的 `TestAIOffShowsNothingOfIt`、`TestTurnTheAIOffAndOn`：关着 AI 时替身一个请求也没收到；重开软件开关还是关着，`Catalog` 返回 `ai.ErrOff`。`ai/ai_test.go` 的 `TestOffBuildsNothing`：关着时 `Catalog`、`Talk`、`Book`、`Pen` 都返回 `ErrOff`，没建一个客户端。
-- 第二步：`desk/shot_test.go` 和 `cmd/poc` 的布局测试在搬之前截两套、搬之后一套（`desk` 85 张、`cmd/poc` 12 张）。搬之前的两套之间就有 28 张不一样；搬之后和两套都不一样的 37 张逐张看过，全是会随时间变的：消息、快照、书架上的钟点、测试临时文件夹的名字、提示条的倒计时条、后台整理刚改的设定那 3 秒的淡出（按真实时间算，`desk/setting.go` 的 `flashFor`）。测试只改了建 `App`、换假模型和 `live.add` 的写法，断言没动。
+- 第二步：`desk/shot_test.go` 和 `cmd/inkgo` 的布局测试在搬之前截两套、搬之后一套（`desk` 85 张、`cmd/inkgo` 12 张）。搬之前的两套之间就有 28 张不一样；搬之后和两套都不一样的 37 张逐张看过，全是会随时间变的：消息、快照、书架上的钟点、测试临时文件夹的名字、提示条的倒计时条、后台整理刚改的设定那 3 秒的淡出（按真实时间算，`desk/setting.go` 的 `flashFor`）。测试只改了建 `App`、换假模型和 `live.add` 的写法，断言没动。
 - 第三步的截图对比见[可以整个关掉 AI](../feature/2026-10-14-disable-ai.md)的 Verification。

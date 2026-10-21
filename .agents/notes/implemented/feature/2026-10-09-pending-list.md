@@ -30,7 +30,7 @@ Status: implemented
   - 存盘时失去锚点的标记保留传进来的 `quote`，不再重算。
 - **点一条**：关掉浮层，跳到那一章，选中标记的文字；失去锚点的就把光标放在原来的位置。
 - **全部忽略**：只忽略当前列出来的（在"本章"下就只忽略本章的）。忽略记录存在作品文件夹的 `.writer/desk.json`（`ignored`），以后不再出现；新产生的照常出现。忽略的键是"伏笔/种类/章节 ID/标的原文"，所以作者改了标的文字，它会重新出现。没有单条忽略和撤销忽略。
-- 代码：`desk/pending.go`（数据、按钮、浮层）、`desk/write.go`（顶栏、切换章节时重读）、`desk/setting.go`（忽略记录）、`desk/theme.go`（琥珀色）、`workspace/chapters.go`（`Marks`、存盘保留原文）、`editor/doc.go`（`Mark.Quote`）。
+- 代码：`desk/pending.go`（数据、按钮、浮层）、`desk/write.go`（顶栏、切换章节时重读）、`desk/setting.go`（忽略记录）、`desk/theme.go`（琥珀色）、`workspace/paths.go`、`workspace/tree.go`、`workspace/order.go`、`workspace/nodes.go`、`workspace/trash.go`、`workspace/marks.go`、`workspace/prose.go`、`workspace/reads.go`（`Marks`、存盘保留原文）、`editor/doc.go`（`Mark.Quote`）。
 
 2026-10-14 起 AI 可以整个关掉（见[可以整个关掉 AI](2026-10-14-disable-ai.md)）：关着时待处理里只列伏笔的提醒，检查和摘要来的那几条不列。2026-10-16 起章节摘要去掉了，摘要来的那几条也就没有了，见[去掉章节摘要](../simplification/2026-10-16-no-chapter-summaries.md)。
 

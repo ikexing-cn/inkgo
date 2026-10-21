@@ -2,7 +2,7 @@
 // window drawn by mygo, with Chinese text, input methods, marks, entity
 // completion and inline predictions (from a stand-in, not a model).
 //
-//	go run ./cmd/poc
+//	go run ./cmd/inkgo
 package main
 
 import (

@@ -24,7 +24,7 @@ AI 辅助（续写、改写、按章纲起草）是第二期，见[AI 辅助写�
 
 ### 磁盘格式
 
-- 磁盘目录照搬树结构，放在 `chapters/` 下（`workspace/chapters.go`）：
+- 磁盘目录照搬树结构，放在 `chapters/` 下（`workspace/paths.go`、`workspace/order.go`、`workspace/nodes.go`）：
   - 文件夹就是文件夹；
   - 文稿是 `标题.txt`；
   - 纲是同名的 `标题.outline.txt`，为空时不留文件；
@@ -167,4 +167,4 @@ AI 辅助（续写、改写、按章纲起草）是第二期，见[AI 辅助写�
   - 拖动；
   - 标记重开后还在；
   - 导出。
-- `SHOT=<dir> go test -run TestLayoutWriting ./cmd/poc`：正文页、快照对比、外部改动提示、文件夹页、查找栏的截图。
+- `SHOT=<dir> go test -run TestLayoutWriting ./cmd/inkgo`：正文页、快照对比、外部改动提示、文件夹页、查找栏的截图。
