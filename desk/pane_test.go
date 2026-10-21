@@ -55,7 +55,7 @@ func TestSettingListAndPage(t *testing.T) {
 	}
 	about := map[string]string{}
 	for _, it := range a.ideas() {
-		about[it.e.ID] = it.about
+		about[it.Entry.ID] = it.About
 	}
 	if about[ids.about] != ids.zhou || about[ids.fresh] != "" {
 		t.Fatal("what the suggestions are about", about)

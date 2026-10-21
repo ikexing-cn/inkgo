@@ -161,7 +161,7 @@ func (a *App) settingList(c *ui.Context) {
 	open := a.ideas()
 	waiting := map[string]bool{}
 	for _, it := range open {
-		waiting[it.about] = true
+		waiting[it.About] = true
 	}
 	dropped := 0
 	for _, e := range a.set.Entries {
@@ -182,7 +182,7 @@ func (a *App) settingList(c *ui.Context) {
 	o := tree.Order()
 	row := func(e workspace.Entry) {
 		side := changeSide(tree, o, e, here)
-		e.Text, _, _ = reading(e, o, here)
+		e.Text, _, _ = e.Reading(o, here)
 		name, gist := entryName(e)
 		if q != "" {
 			gist = nearFind(gist, q)
@@ -335,7 +335,7 @@ func (a *App) entryPage(c *ui.Context, e workspace.Entry) {
 		}
 		first := true
 		for _, it := range open {
-			if it.about != e.ID {
+			if it.About != e.ID {
 				continue
 			}
 			a.pal.hairline(c)
@@ -347,8 +347,8 @@ func (a *App) entryPage(c *ui.Context, e workspace.Entry) {
 				first = false
 			}
 			from := ""
-			if it.change.ID != "" {
-				from = fromLabel(a.write.tree, it.change.From)
+			if it.Change.ID != "" {
+				from = fromLabel(a.write.tree, it.Change.From)
 			}
 			a.idea(c, it, from)
 		}

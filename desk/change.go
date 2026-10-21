@@ -43,38 +43,11 @@ func (a *App) here() string {
 	return ""
 }
 
-// reading is how e reads at the node at, or after its last change at
-// none, and the change it reads as, if one.
-func reading(e workspace.Entry, o workspace.Order, at string) (string, workspace.Change, bool) {
-	if at == "" {
-		if hold := e.Holding(o); len(hold) > 0 {
-			return hold[len(hold)-1].Text, hold[len(hold)-1], true
-		}
-		return e.Text, workspace.Change{}, false
-	}
-	if g, ok := e.At(o, at); ok {
-		return g.Text, g, true
-	}
-	return e.Text, workspace.Change{}, false
-}
-
-// readingBefore is how e reads just before the node at: what a change
-// from it starts from.
-func readingBefore(e workspace.Entry, o workspace.Order, at string) string {
-	text := e.Text
-	for _, g := range e.Holding(o) {
-		if o[g.From] < o[at] {
-			text = g.Text
-		}
-	}
-	return text
-}
-
 // changeSide is what a row of the list says at its end of how e reads at
 // the node at: from where it reads so, or, read as itself, that it
 // changes later.
 func changeSide(tree workspace.Tree, o workspace.Order, e workspace.Entry, at string) string {
-	if _, g, ok := reading(e, o, at); ok {
+	if _, g, ok := e.Reading(o, at); ok {
 		return fromLabel(tree, g.From)
 	}
 	if at != "" && slices.ContainsFunc(e.Holding(o), func(g workspace.Change) bool { return o[g.From] > o[at] }) {
@@ -123,7 +96,7 @@ func (a *App) timeline(c *ui.Context, e workspace.Entry) {
 			label = "从本卷起有变化"
 		}
 		if a.pal.ghost(c, label, ui.Color{}).Clicked() {
-			d.change, d.from, d.text = "new", here, readingBefore(e, o, here)
+			d.change, d.from, d.text = "new", here, e.ReadingBefore(o, here)
 		}
 	}
 	mine := here != "" && slices.ContainsFunc(hold, func(g workspace.Change) bool { return g.From == here })
