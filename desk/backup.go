@@ -19,6 +19,7 @@ import (
 // backupView is the state of backing the open work up.
 type backupView struct {
 	running bool
+	done    chan struct{}
 	err     error     // why the last backup failed; nil once one succeeds
 	gone    bool      // it failed with the disk of its folder not found
 	failed  time.Time // when it failed, so it is not retried every frame
@@ -43,6 +44,7 @@ type backupView struct {
 	edit           string             // the service open in it: an ID, "+" for a new one
 	shown          string             // edit as of the last frame, to bring a form just opened into view
 	keepChoice     string
+	places         []place
 }
 
 // retryAfter is how long a failed backup waits before it is tried again
@@ -110,8 +112,9 @@ func (a *App) askBackup() {
 func (a *App) openAsk() {
 	a.bk.ask, a.bk.place = true, ""
 	a.bk.onClose, a.bk.daily, a.bk.hourly = true, true, false
-	if ps := syncFolders(); len(ps) > 0 {
-		a.bk.place = ps[0].dir
+	a.bk.places = syncFolders()
+	if len(a.bk.places) > 0 {
+		a.bk.place = a.bk.places[0].dir
 	}
 }
 
@@ -125,8 +128,8 @@ func (a *App) startBackups(c *ui.Context) {
 }
 
 // meta is what a backup of fl says of the work.
-func (a *App) meta(fl backup.Files) backup.Meta {
-	m := backup.Meta{Work: a.Store.Work().ID}
+func backupMeta(work string, fl backup.Files) backup.Meta {
+	m := backup.Meta{Work: work}
 	for _, f := range fl.List {
 		if strings.HasPrefix(f.Rel, "chapters/") && strings.HasSuffix(f.Rel, ".txt") && !strings.HasSuffix(f.Rel, ".outline.txt") {
 			m.Chapters++
@@ -136,11 +139,10 @@ func (a *App) meta(fl backup.Files) backup.Meta {
 	return m
 }
 
-// readWork saves what is being written and reads the work as it is then.
-func (a *App) readWork() (backup.Files, error) {
-	a.flush()
+// readWork reads the work while the store is held still.
+func readWork(st *workspace.Store) (backup.Files, error) {
 	var fl backup.Files
-	err := a.Store.Hold(func(root string) (err error) {
+	err := st.Hold(func(root string) (err error) {
 		fl, err = backup.Read(root)
 		return err
 	})
@@ -154,17 +156,27 @@ func (a *App) runBackup(sv ui.Services) {
 	if !ok || s.Dir == "" || a.bk.running {
 		return
 	}
-	fl, err := a.readWork()
-	if err != nil {
-		a.backupDone(s, err)
-		return
-	}
+	a.flush()
+	st := a.Store
+	root, work := st.Root(), st.Work()
+	picks := a.picks
 	a.bk.running = true
-	root, name, meta := a.Store.Root(), a.Store.Work().Name, a.meta(fl)
+	done := make(chan struct{})
+	a.bk.done = done
 	go func() {
-		_, _, err := backup.Make(fl, s.Dir, name, meta, s.Kept(), time.Now())
-		a.picks <- func() {
+		fl, err := readWork(st)
+		if err == nil {
+			_, _, err = backup.Make(fl, s.Dir, work.Name, backupMeta(work.ID, fl), s.Kept(), time.Now())
+		}
+		// Done before the result is handed back: a closing work waits on
+		// done from the view thread, which takes no picks meanwhile.
+		close(done)
+		picks <- func() {
+			if a.bk.done != done {
+				return
+			}
 			a.bk.running = false
+			a.bk.done = nil
 			if a.Store != nil && sameFolder(a.Store.Root(), root) {
 				a.backupDone(s, err)
 			}
@@ -175,13 +187,21 @@ func (a *App) runBackup(sv ui.Services) {
 
 // backupNow backs the work up before it closes, waiting for it.
 func (a *App) backupNow() {
+	if a.bk.running {
+		<-a.bk.done
+		a.bk.running = false
+		a.bk.done = nil
+	}
 	s, ok := a.backupSettings()
 	if !ok || s.Dir == "" || !s.OnClose {
 		return
 	}
-	fl, err := a.readWork()
+	a.flush()
+	st := a.Store
+	work := st.Work()
+	fl, err := readWork(st)
 	if err == nil {
-		_, _, err = backup.Make(fl, s.Dir, a.Store.Work().Name, a.meta(fl), s.Kept(), time.Now())
+		_, _, err = backup.Make(fl, s.Dir, work.Name, backupMeta(work.ID, fl), s.Kept(), time.Now())
 	}
 	a.backupDone(s, err)
 }
@@ -429,26 +449,18 @@ func (a *App) backupCard(c *ui.Context, panel ui.Element, s backup.Settings) {
 
 // pickBackupFolder asks for the folder to back up into.
 func (a *App) pickBackupFolder(c *ui.Context) {
-	pick, sv := a.PickFolder, c.Services()
-	go func() {
-		path, err := pick("选择备份文件夹")
-		a.picks <- func() {
-			switch {
-			case err != nil:
-				a.Error = err.Error()
-			case path == "":
-			case a.bk.ask:
-				a.bk.place = path
-			default:
-				s, _ := a.backupSettings()
-				s.Dir = path
-				a.setBackup(s)
-				a.bk.err, a.bk.listed = nil, false
-				a.runBackup(sv)
-			}
+	sv := c.Services()
+	a.pickInto(c, "选择备份文件夹", func(path string) {
+		if a.bk.ask {
+			a.bk.place = path
+			return
 		}
-		sv.Invalidate()
-	}()
+		s, _ := a.backupSettings()
+		s.Dir = path
+		a.setBackup(s)
+		a.bk.err, a.bk.listed = nil, false
+		a.runBackup(sv)
+	})
 }
 
 // askView is the dialog asking where to back the work up.
@@ -459,7 +471,7 @@ func (a *App) askView(c *ui.Context) {
 		ui.Column(c).Width(dialogSmall).Padding(dialogPad).Gap(16).Children(func() {
 			a.pal.dialogHead(c, "作品目前仅保存在本机", "选择其他位置，定期保存副本。")
 			ui.Column(c).FillWidth().Gap(8).Children(func() {
-				places := syncFolders()
+				places := a.bk.places
 				own := true
 				for _, p := range places {
 					if p.dir == a.bk.place {

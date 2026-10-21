@@ -85,9 +85,8 @@ type Files struct {
 	Sum  string // of the paths and contents, to skip a backup like the last
 }
 
-// Read reads the work's files under root, all but .writer/, in order. It
-// is quick, so it can run while the work is held still; writing the zip,
-// to a slow disk perhaps, comes after.
+// Read reads the work's files under root, all but .writer/, in order. The
+// caller holds the Store still for a consistent snapshot.
 func Read(root string) (Files, error) {
 	var out Files
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {

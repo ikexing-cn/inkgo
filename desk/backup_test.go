@@ -88,6 +88,46 @@ func TestFirstBackup(t *testing.T) {
 	}
 }
 
+func TestBackupWaitsBeforeClosingStore(t *testing.T) {
+	a, tt, _ := fixture(t)
+	dir := t.TempDir()
+	a.setBackup(backup.Settings{Dir: dir})
+	a.bk.open = true
+	tt.Frame()
+	if err := tt.Click("立即备份"); err != nil {
+		t.Fatal(err)
+	}
+	if !a.bk.running {
+		t.Fatal("backup did not start")
+	}
+	st := a.Store
+	a.closeWork()
+	if a.Store != nil || zips(t, dir) != 1 {
+		t.Fatalf("closed store = %v, backups = %d", a.Store, zips(t, dir))
+	}
+	if err := st.Hold(func(string) error { return nil }); err == nil {
+		t.Fatal("store stayed open")
+	}
+}
+
+func TestAskBackupFindsSyncFoldersOnce(t *testing.T) {
+	a, tt, _ := fixture(t)
+	calls := 0
+	was := syncFolders
+	syncFolders = func() []place {
+		calls++
+		return []place{{label: "同步文件夹", dir: filepath.Join(t.TempDir(), "写作备份")}}
+	}
+	t.Cleanup(func() { syncFolders = was })
+	a.openAsk()
+	for range 5 {
+		tt.Frame()
+	}
+	if calls != 1 {
+		t.Fatalf("sync folders probed %d times while dialog was open", calls)
+	}
+}
+
 // Put off, the question waits a week.
 func TestBackupLater(t *testing.T) {
 	a, tt, _ := fixture(t)
