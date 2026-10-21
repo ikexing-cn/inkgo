@@ -15,7 +15,7 @@
 // export.go: export dialog choices, cached plan, and file writing.
 // find.go: the prose find-and-replace bar.
 // findbook.go: whole-book search results and replacement.
-// foreshadow.go: 伏笔, payoffs, details, candidates, and reminder settings.
+// foreshadow.go: live-mark wiring, foreshadowing column, popovers, actions, and reminders.
 // ideas.go: setting ideas, questions, and changes awaiting the author.
 // keys.go: keyboard-shortcut help.
 // markdown.go: Markdown styles, code blocks, and setting links.

@@ -13,84 +13,40 @@ import (
 	"writer/workspace"
 )
 
-// lateDefault is how many chapters may follow a foreshadowing before it is
-// listed as buried long, until the author sets another number.
-const lateDefault = 30
-
 // The least and the most the author may set that number to, and the step.
 const lateMin, lateMax, lateStep = 10, 120, 5
 
-type foreStatus int
-
-const (
-	foreOpen    foreStatus = iota // buried, not paid off
-	foreDone                      // paid off somewhere
-	foreDropped                   // given up
-	foreLost                      // its sentence was deleted
-)
-
-var foreLabels = map[foreStatus]string{foreOpen: "未回收", foreDone: "已回收", foreDropped: "已放弃", foreLost: "原句已删"}
-
-// payoff is a place that pays a foreshadowing off.
-type payoff struct {
-	id, node, title, quote, at string
-	ch, start, end             int // ch counts the chapters from 1
-	here                       bool
-}
-
-// foreshadow is a foreshadowing of the book with what pays it off, in the
-// order of the chapters.
-type foreshadow struct {
-	id, node, title, note, quote, at string
-	ch, start, end                   int
-	here, lost, dropped              bool
-	pays                             []payoff
-	// gap is how many chapters lie between its chapter and the first that
-	// pays it off, or the last of the book while none does.
-	gap int
-}
-
-func (f foreshadow) status() foreStatus {
-	switch {
-	case f.dropped:
-		return foreDropped
-	case f.lost:
-		return foreLost
-	case len(f.pays) > 0:
-		return foreDone
-	}
-	return foreOpen
-}
+var foreLabels = map[workspace.ForeshadowStatus]string{workspace.ForeOpen: "未回收", workspace.ForeDone: "已回收", workspace.ForeDropped: "已放弃", workspace.ForeLost: "原句已删"}
 
 // name is what the author called it, or the sentence when they wrote
 // nothing.
-func (f foreshadow) name() string {
-	if strings.TrimSpace(f.note) != "" {
-		return f.note
+func foreName(f workspace.Foreshadow) string {
+	if strings.TrimSpace(f.Note) != "" {
+		return f.Note
 	}
-	return clip(f.quote, 24)
+	return clip(f.Quote, 24)
 }
 
 // meta tells where it was buried and how long before chapter here, which
 // pays it off, as the picker lists it; the chapter open is 本章.
-func (f foreshadow) meta(here int) string {
-	paid := len(f.pays) > 0
+func foreMeta(f workspace.Foreshadow, here int) string {
+	paid := len(f.Payoffs) > 0
 	switch {
-	case f.here && paid:
+	case f.Here && paid:
 		return "本章 · 已回收"
-	case f.here:
+	case f.Here:
 		return "本章埋下"
 	case paid:
-		return f.title + " · 已回收"
+		return f.Title + " · 已回收"
 	}
-	return fmt.Sprintf("%s · %d 章前埋下", f.title, max(here-f.ch, 0))
+	return fmt.Sprintf("%s · %d 章前埋下", f.Title, max(here-f.Chapter, 0))
 }
 
 // foreState is what the foreshadowings' column and popovers show.
 type foreState struct {
-	// status is the list shown: foreOpen for those not paid off, with
+	// status is the list shown: workspace.ForeOpen for those not paid off, with
 	// those that wait on the author over them, or the list of another.
-	status foreStatus
+	status workspace.ForeshadowStatus
 	query  string // what the list is searched for
 	shown  string // the foreshadowing whose page is shown
 
@@ -109,52 +65,16 @@ type foreState struct {
 	renote   string
 }
 
-// late is how many chapters may follow a foreshadowing before it counts as
-// buried long.
-func (a *App) late() int {
-	if n := a.write.lateAfter; n > 0 {
-		return n
-	}
-	return lateDefault
-}
-
-// foreshadows gathers the book's foreshadowings and what pays them off:
-// the open chapter's as it is being written, the others' as of the disk.
-func (a *App) foreshadows() []foreshadow {
+// foreshadows are the book's foreshadowings and what pays them off
+// (workspace.Tree.Foreshadows), the open chapter's as it is being written.
+func (a *App) foreshadows() []workspace.Foreshadow {
 	w := &a.write
-	var out []foreshadow
-	pays := map[string][]payoff{}
-	n := 0
-	w.tree.Walk(func(nd *workspace.Node, _ int) {
-		if nd.Folder {
-			return
-		}
-		n++
-		marks := w.marks[nd.ID]
-		here := nd.ID == w.node && w.ed != nil
-		if here {
-			marks = liveMarks(w.ed.Doc)
-		}
-		for _, m := range marks {
-			switch {
-			case m.Kind == workspace.MarkForeshadow:
-				out = append(out, foreshadow{id: m.ID, node: nd.ID, title: nd.Title, note: m.Note, quote: m.Quote, at: m.At,
-					ch: n, start: m.Start, end: m.End, here: here, lost: m.Orphaned, dropped: m.Dropped})
-			case m.Kind == workspace.MarkPayoff && !m.Orphaned && m.Of != "":
-				pays[m.Of] = append(pays[m.Of], payoff{id: m.ID, node: nd.ID, title: nd.Title, quote: m.Quote, at: m.At,
-					ch: n, start: m.Start, end: m.End, here: here})
-			}
-		}
-	})
-	for i := range out {
-		f := &out[i]
-		f.pays = pays[f.id]
-		f.gap = n - f.ch
-		if len(f.pays) > 0 {
-			f.gap = max(f.pays[0].ch-f.ch, 0)
-		}
+	current := ""
+	var live []workspace.ChapterMark
+	if w.ed != nil {
+		current, live = w.node, liveMarks(w.ed.Doc)
 	}
-	return out
+	return w.tree.Foreshadows(w.marks, current, live)
 }
 
 func markID() string {
@@ -224,32 +144,6 @@ func (a *App) pay(id string) {
 	w.ed.Focus()
 }
 
-// candidates are the foreshadowings a passage of the chapter open may pay
-// off, those matching the search: all buried in it or before it but the
-// lost and the dropped. here counts the chapters up to the open one.
-func (a *App) candidates() (out []foreshadow, here int) {
-	w := &a.write
-	q := strings.TrimSpace(w.fore.payQuery)
-	n := 0
-	w.tree.Walk(func(nd *workspace.Node, _ int) {
-		if !nd.Folder {
-			n++
-			if nd.ID == w.node {
-				here = n
-			}
-		}
-	})
-	for _, f := range a.foreshadows() {
-		if st := f.status(); st == foreLost || st == foreDropped || f.ch > here {
-			continue
-		}
-		if q == "" || strings.Contains(f.note, q) || strings.Contains(f.quote, q) {
-			out = append(out, f)
-		}
-	}
-	return out, here
-}
-
 // editMark changes the mark of id in chapter node as fn does, removing it
 // when fn says not to keep it: in the editor when the chapter is open, on
 // the disk otherwise.
@@ -287,31 +181,31 @@ func (a *App) editMark(node, id string, fn func(m *workspace.ChapterMark) (keep 
 }
 
 // renote gives the foreshadowing another note.
-func (a *App) renoteFore(f foreshadow, note string) {
-	a.editMark(f.node, f.id, func(m *workspace.ChapterMark) bool {
+func (a *App) renoteFore(f workspace.Foreshadow, note string) {
+	a.editMark(f.Node, f.ID, func(m *workspace.ChapterMark) bool {
 		m.Note = strings.TrimSpace(note)
 		return true
 	})
 }
 
 // dropFore gives the foreshadowing up, or takes it up again.
-func (a *App) dropFore(f foreshadow, dropped bool) {
-	a.editMark(f.node, f.id, func(m *workspace.ChapterMark) bool {
+func (a *App) dropFore(f workspace.Foreshadow, dropped bool) {
+	a.editMark(f.Node, f.ID, func(m *workspace.ChapterMark) bool {
 		m.Dropped = dropped
 		return true
 	})
 }
 
 // unpay takes back all that pays the foreshadowing off.
-func (a *App) unpay(f foreshadow) {
-	for _, p := range f.pays {
-		a.editMark(p.node, p.id, func(*workspace.ChapterMark) bool { return false })
+func (a *App) unpay(f workspace.Foreshadow) {
+	for _, p := range f.Payoffs {
+		a.editMark(p.Node, p.ID, func(*workspace.ChapterMark) bool { return false })
 	}
 }
 
 // rehang puts a foreshadowing whose sentence was deleted on the selection,
 // in whichever chapter is open.
-func (a *App) rehang(f foreshadow) {
+func (a *App) rehang(f workspace.Foreshadow) {
 	w := &a.write
 	if w.ed == nil || w.ed.ReadOnly() {
 		return
@@ -321,15 +215,15 @@ func (a *App) rehang(f foreshadow) {
 		a.hint = "请先在正文中选中要关联的句子"
 		return
 	}
-	if f.node == w.node {
+	if f.Node == w.node {
 		for _, m := range w.ed.Doc.Marks() {
-			if m.Key == f.id {
+			if m.Key == f.ID {
 				w.ed.Doc.EditMark(m.ID, func(x *editor.Mark) { x.Start, x.End, x.Orphaned = s, e, false })
 			}
 		}
 	} else {
-		a.editMark(f.node, f.id, func(*workspace.ChapterMark) bool { return false })
-		w.ed.AddMark(editor.Mark{Kind: editor.MarkForeshadow, Start: s, End: e, Note: f.note, Key: f.id, At: f.at})
+		a.editMark(f.Node, f.ID, func(*workspace.ChapterMark) bool { return false })
+		w.ed.AddMark(editor.Mark{Kind: editor.MarkForeshadow, Start: s, End: e, Note: f.Note, Key: f.ID, At: f.At})
 	}
 	a.warn(a.saveText())
 }
@@ -444,11 +338,11 @@ func (a *App) forePopover(c *ui.Context) {
 		})
 		return
 	}
-	list, here := a.candidates()
-	if !slices.ContainsFunc(list, func(x foreshadow) bool { return x.id == f.pick }) {
+	list, here := w.tree.ForeshadowCandidates(a.foreshadows(), w.node, f.payQuery)
+	if !slices.ContainsFunc(list, func(x workspace.Foreshadow) bool { return x.ID == f.pick }) {
 		f.pick = ""
 		if len(list) > 0 {
-			f.pick = list[0].id
+			f.pick = list[0].ID
 		}
 	}
 	box.Padding(10).Gap(6).Radius(rControl).Children(func() {
@@ -458,12 +352,12 @@ func (a *App) forePopover(c *ui.Context) {
 		})
 		in := ui.TextInput(c, &f.payQuery).Label("查找伏笔").Placeholder("搜索备注或原句").FillWidth().AutoFocus()
 		cancel := in.Shortcut(0, ui.KeyEscape)
-		at := slices.IndexFunc(list, func(x foreshadow) bool { return x.id == f.pick })
+		at := slices.IndexFunc(list, func(x workspace.Foreshadow) bool { return x.ID == f.pick })
 		if in.Shortcut(0, ui.KeyDown) && at+1 < len(list) {
-			f.pick = list[at+1].id
+			f.pick = list[at+1].ID
 		}
 		if in.Shortcut(0, ui.KeyUp) && at > 0 {
-			f.pick = list[at-1].id
+			f.pick = list[at-1].ID
 		}
 		if len(list) == 0 {
 			words := "没有匹配的伏笔"
@@ -474,18 +368,18 @@ func (a *App) forePopover(c *ui.Context) {
 		}
 		ui.Scroll(c.Key("pay-list")).FillWidth().MaxHeight(200).Children(func() {
 			for _, x := range list {
-				row := ui.ButtonBase(c).Column().FillWidth().AlignItems(ui.Stretch).Padding(8).Gap(2).Radius(rControl).Label("回收-" + x.name())
-				if x.id == f.pick {
+				row := ui.ButtonBase(c).Column().FillWidth().AlignItems(ui.Stretch).Padding(8).Gap(2).Radius(rControl).Label("回收-" + foreName(x))
+				if x.ID == f.pick {
 					row.Background(a.pal.bubble)
 				} else if row.Hovered() {
 					row.Background(t.SurfaceHover)
 				}
 				row.Children(func() {
-					ui.Text(c, x.name()).FontSize(fsBody).FontWeight(500).SingleLine().Ellipsis("…").FillWidth()
-					ui.Text(c, x.meta(here)).FontSize(fsSmall).TextColor(t.TextMuted).SingleLine().Ellipsis("…").FillWidth()
+					ui.Text(c, foreName(x)).FontSize(fsBody).FontWeight(500).SingleLine().Ellipsis("…").FillWidth()
+					ui.Text(c, foreMeta(x, here)).FontSize(fsSmall).TextColor(t.TextMuted).SingleLine().Ellipsis("…").FillWidth()
 				})
 				if row.Clicked() {
-					f.pick = x.id
+					f.pick = x.ID
 				}
 			}
 		})
@@ -518,10 +412,10 @@ func (a *App) forePanel(c *ui.Context) {
 		}
 	})
 	all := a.foreshadows()
-	find := func(id string) (foreshadow, bool) {
-		i := slices.IndexFunc(all, func(f foreshadow) bool { return f.id == id })
+	find := func(id string) (workspace.Foreshadow, bool) {
+		i := slices.IndexFunc(all, func(f workspace.Foreshadow) bool { return f.ID == id })
 		if i < 0 || id == "" {
-			return foreshadow{}, false
+			return workspace.Foreshadow{}, false
 		}
 		return all[i], true
 	}
@@ -540,30 +434,30 @@ func (a *App) forePanel(c *ui.Context) {
 // foreList is the foreshadowings not paid off, a row each, under those
 // that wait on the author; the paid off and the dropped are a list each,
 // reached from the dots.
-func (a *App) foreList(c *ui.Context, all []foreshadow) {
+func (a *App) foreList(c *ui.Context, all []workspace.Foreshadow) {
 	s := &a.write.fore
-	late := a.late()
-	counts := map[foreStatus]int{}
+	late := workspace.LateThreshold(a.write.lateAfter)
+	counts := map[workspace.ForeshadowStatus]int{}
 	for _, f := range all {
-		counts[f.status()]++
+		counts[f.Status()]++
 	}
-	row := func(f foreshadow) {
-		side := f.title
-		if f.here {
+	row := func(f workspace.Foreshadow) {
+		side := f.Title
+		if f.Here {
 			side = "本章"
 		}
-		if a.paneRow(c.Key(f.id), "伏笔-"+f.name(), f.name(), "", side, "", false).Clicked() {
-			a.showFore(f.id)
+		if a.paneRow(c.Key(f.ID), "伏笔-"+foreName(f), foreName(f), "", side, "", false).Clicked() {
+			a.showFore(f.ID)
 		}
 	}
-	if s.status != foreOpen {
+	if s.status != workspace.ForeOpen {
 		if back, _ := a.paneBack(c, "全部伏笔", ""); back {
-			s.status = foreOpen
+			s.status = workspace.ForeOpen
 		}
 		a.paneRows(c, fmt.Sprintf("fore-%d", s.status), func() {
 			a.paneGroup(c, foreLabels[s.status])
 			for _, f := range all {
-				if f.status() == s.status {
+				if f.Status() == s.status {
 					row(f)
 				}
 			}
@@ -574,7 +468,7 @@ func (a *App) foreList(c *ui.Context, all []foreshadow) {
 		return
 	}
 	a.paneFind(c, &s.query, "搜索伏笔", "", func(m *menu) {
-		for _, st := range []foreStatus{foreDone, foreDropped} {
+		for _, st := range []workspace.ForeshadowStatus{workspace.ForeDone, workspace.ForeDropped} {
 			m.Item(foreLabels[st]).Hint(count(counts[st])).Do(func() { s.status = st })
 		}
 	})
@@ -585,9 +479,9 @@ func (a *App) foreList(c *ui.Context, all []foreshadow) {
 			return
 		}
 		if q != "" {
-			var found []foreshadow
+			var found []workspace.Foreshadow
 			for _, f := range all {
-				if strings.Contains(f.note, q) || strings.Contains(f.quote, q) {
+				if strings.Contains(f.Note, q) || strings.Contains(f.Quote, q) {
 					found = append(found, f)
 				}
 			}
@@ -601,24 +495,24 @@ func (a *App) foreList(c *ui.Context, all []foreshadow) {
 			}
 			return
 		}
-		var over, fresh []foreshadow
+		var over, fresh []workspace.Foreshadow
 		lost := ""
 		for _, f := range all {
-			switch st := f.status(); {
-			case st == foreLost:
-				lost = f.id
-			case st == foreOpen && f.gap >= late:
+			switch st := f.Status(); {
+			case st == workspace.ForeLost:
+				lost = f.ID
+			case st == workspace.ForeOpen && f.Gap >= late:
 				over = append(over, f)
-			case st == foreOpen:
+			case st == workspace.ForeOpen:
 				fresh = append(fresh, f)
 			}
 		}
 		slices.Reverse(fresh) // the newest of these first, as the design lists them
-		if n := counts[foreLost]; n > 0 && a.paneTodo(c, foreLabels[foreLost], n).Clicked() {
+		if n := counts[workspace.ForeLost]; n > 0 && a.paneTodo(c, foreLabels[workspace.ForeLost], n).Clicked() {
 			if n == 1 {
 				a.showFore(lost)
 			} else {
-				s.status = foreLost
+				s.status = workspace.ForeLost
 			}
 		}
 		if len(over) > 0 {
@@ -628,12 +522,12 @@ func (a *App) foreList(c *ui.Context, all []foreshadow) {
 			}
 		}
 		if len(fresh) > 0 {
-			a.paneGroup(c, foreLabels[foreOpen])
+			a.paneGroup(c, foreLabels[workspace.ForeOpen])
 			for _, f := range fresh {
 				row(f)
 			}
 		}
-		if len(over)+len(fresh)+counts[foreLost] == 0 {
+		if len(over)+len(fresh)+counts[workspace.ForeLost] == 0 {
 			a.paneEmpty(c, "没有未回收的伏笔", "")
 		}
 	})
@@ -641,28 +535,28 @@ func (a *App) foreList(c *ui.Context, all []foreshadow) {
 
 // foreDetail is the page of one foreshadowing: where it was buried, what
 // pays it off, and the one thing to do next with it.
-func (a *App) foreDetail(c *ui.Context, f foreshadow) {
+func (a *App) foreDetail(c *ui.Context, f workspace.Foreshadow) {
 	s := &a.write.fore
-	st := f.status()
-	act := map[foreStatus]string{foreOpen: "放弃伏笔", foreDone: "取消回收", foreLost: "删除伏笔", foreDropped: "恢复伏笔"}[st]
+	st := f.Status()
+	act := map[workspace.ForeshadowStatus]string{workspace.ForeOpen: "放弃伏笔", workspace.ForeDone: "取消回收", workspace.ForeLost: "删除伏笔", workspace.ForeDropped: "恢复伏笔"}[st]
 	back, acted := a.paneBack(c, "全部伏笔", act)
 	if back {
 		s.shown, s.renoting = "", false
 	}
 	if acted {
 		switch st {
-		case foreOpen:
+		case workspace.ForeOpen:
 			a.dropFore(f, true)
-		case foreDone:
+		case workspace.ForeDone:
 			a.unpay(f)
-		case foreDropped:
+		case workspace.ForeDropped:
 			a.dropFore(f, false)
-		case foreLost:
-			a.editMark(f.node, f.id, func(*workspace.ChapterMark) bool { return false })
+		case workspace.ForeLost:
+			a.editMark(f.Node, f.ID, func(*workspace.ChapterMark) bool { return false })
 			s.shown = ""
 		}
 	}
-	a.panePage(c, "fore-"+f.id, func() {
+	a.panePage(c, "fore-"+f.ID, func() {
 		switch {
 		case s.renoting:
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
@@ -675,27 +569,27 @@ func (a *App) foreDetail(c *ui.Context, f foreshadow) {
 					s.renoting = false
 				}
 			})
-		case st == foreLost:
-			a.paneTitle(c, f.name(), "", "")
+		case st == workspace.ForeLost:
+			a.paneTitle(c, foreName(f), "", "")
 		default:
-			if a.paneTitle(c, f.name(), "", "修改备注") {
-				s.renoting, s.renote = true, f.note
+			if a.paneTitle(c, foreName(f), "", "修改备注") {
+				s.renoting, s.renote = true, f.Note
 			}
 		}
-		where, link := "埋在「"+f.title+"」", "查看原文"
+		where, link := "埋在「"+f.Title+"」", "查看原文"
 		switch {
-		case st == foreLost:
-			where = "「" + f.title + "」里的原句已删除"
-			if f.here {
+		case st == workspace.ForeLost:
+			where = "「" + f.Title + "」里的原句已删除"
+			if f.Here {
 				link = "" // the chapter is open, and the sentence is not in it
 			}
-		case st == foreOpen && f.gap > 0:
-			where += fmt.Sprintf("，已过 %d 章", f.gap)
+		case st == workspace.ForeOpen && f.Gap > 0:
+			where += fmt.Sprintf("，已过 %d 章", f.Gap)
 		}
 		if a.paneWhere(c, where, link) {
-			a.showMark(f.node, f.id)
+			a.showMark(f.Node, f.ID)
 		}
-		a.paneQuote(c, f.quote, f.lost)
+		a.paneQuote(c, f.Quote, f.Lost)
 		a.pal.hairline(c)
 		// What takes words picked in the prose waits for them, as the
 		// context menu does; the words above it stay as they are, so the
@@ -712,49 +606,49 @@ func (a *App) foreDetail(c *ui.Context, f foreshadow) {
 			return b
 		}
 		switch st {
-		case foreLost:
+		case workspace.ForeLost:
 			a.paneNote(c, "请先在正文中选中新的句子")
 			paneButtons(c, func() {
 				if unpicked(a.paneButton(c, "更换原句", true)).Clicked() {
 					a.rehang(f)
 				}
 			})
-		case foreOpen:
+		case workspace.ForeOpen:
 			ui.Text(c, foreLabels[st]).FontSize(fsBody).FontWeight(600)
 			a.paneNote(c, "请先在正文中选中回收的段落")
 			paneButtons(c, func() {
 				if unpicked(a.paneButton(c, "记为回收", true)).Clicked() {
-					a.openPay(f.id)
+					a.openPay(f.ID)
 				}
 			})
-		case foreDropped:
+		case workspace.ForeDropped:
 			ui.Text(c, foreLabels[st]).FontSize(fsBody).FontWeight(600)
 		}
-		for i, p := range f.pays {
-			if st != foreDone {
+		for i, p := range f.Payoffs {
+			if st != workspace.ForeDone {
 				break
 			}
-			if a.paneWhere(c, fmt.Sprintf("回收在「%s」，相隔 %d 章", p.title, max(p.ch-f.ch, 0)), fmt.Sprintf("看回收-%d", i+1)) {
-				a.showMark(p.node, p.id)
+			if a.paneWhere(c, fmt.Sprintf("回收在「%s」，相隔 %d 章", p.Title, max(p.Chapter-f.Chapter, 0)), fmt.Sprintf("看回收-%d", i+1)) {
+				a.showMark(p.Node, p.ID)
 			}
-			a.paneQuote(c, p.quote, false)
+			a.paneQuote(c, p.Quote, false)
 		}
 	})
 }
 
 // forePicked shows the foreshadowing picked for the passage being marked,
 // so the author sees what they are about to pay off.
-func (a *App) forePicked(c *ui.Context, f foreshadow) {
+func (a *App) forePicked(c *ui.Context, f workspace.Foreshadow) {
 	a.panePage(c, "fore-picked", func() {
-		a.paneTitle(c, f.name(), "", "")
-		where := "埋在「" + f.title + "」"
-		if f.gap > 0 && len(f.pays) == 0 {
-			where += fmt.Sprintf("，已过 %d 章", f.gap)
+		a.paneTitle(c, foreName(f), "", "")
+		where := "埋在「" + f.Title + "」"
+		if f.Gap > 0 && len(f.Payoffs) == 0 {
+			where += fmt.Sprintf("，已过 %d 章", f.Gap)
 		}
 		a.paneWhere(c, where, "")
-		a.paneQuote(c, f.quote, false)
-		for _, p := range f.pays {
-			a.paneNote(c, "「"+p.title+"」里已有一处回收")
+		a.paneQuote(c, f.Quote, false)
+		for _, p := range f.Payoffs {
+			a.paneNote(c, "「"+p.Title+"」里已有一处回收")
 		}
 	})
 }
@@ -765,10 +659,10 @@ func (a *App) forePicked(c *ui.Context, f foreshadow) {
 func (a *App) remindersView(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
-	late := a.late()
+	late := workspace.LateThreshold(a.write.lateAfter)
 	n := 0
 	for _, f := range a.foreshadows() {
-		if f.status() == foreOpen && f.gap >= late {
+		if f.Status() == workspace.ForeOpen && f.Gap >= late {
 			n++
 		}
 	}

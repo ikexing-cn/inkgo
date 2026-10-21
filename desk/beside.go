@@ -50,7 +50,7 @@ func (a *App) panelTabs(c *ui.Context) {
 	// Each count is of what waits on the author there.
 	waiting := 0
 	for _, f := range a.foreshadows() {
-		if f.status() == foreLost {
+		if f.Status() == workspace.ForeLost {
 			waiting++
 		}
 	}

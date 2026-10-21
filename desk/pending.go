@@ -46,21 +46,21 @@ func (a *App) scanMarks() {
 func (a *App) pendingGroups() []pendGroup {
 	w := &a.write
 	var items []pendItem
-	late := a.late()
+	late := workspace.LateThreshold(a.write.lateAfter)
 	for _, f := range a.foreshadows() {
-		it := pendItem{node: f.node, start: f.start, end: f.end, here: f.here, sub: f.title, fore: f.id}
-		switch st := f.status(); {
-		case st == foreLost:
-			it.key = "伏笔/失去锚点/" + f.node + "/" + f.quote
-			it.text = fmt.Sprintf("「%s」原句已删", clip(f.name(), 16))
-		case st == foreOpen && f.gap >= late:
-			it.key = "伏笔/没回收/" + f.node + "/" + f.quote
-			it.text = fmt.Sprintf("「%s」%d 章未回收", clip(f.name(), 16), f.gap)
+		it := pendItem{node: f.Node, start: f.Start, end: f.End, here: f.Here, sub: f.Title, fore: f.ID}
+		switch st := f.Status(); {
+		case st == workspace.ForeLost:
+			it.key = "伏笔/失去锚点/" + f.Node + "/" + f.Quote
+			it.text = fmt.Sprintf("「%s」原句已删", clip(foreName(f), 16))
+		case st == workspace.ForeOpen && f.Gap >= late:
+			it.key = "伏笔/没回收/" + f.Node + "/" + f.Quote
+			it.text = fmt.Sprintf("「%s」%d 章未回收", clip(foreName(f), 16), f.Gap)
 			it.sub += " 埋下"
 		default:
 			continue
 		}
-		if f.here {
+		if f.Here {
 			it.sub += " · 本章"
 		}
 		if !w.ignored[it.key] {

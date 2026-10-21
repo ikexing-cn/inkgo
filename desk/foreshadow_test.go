@@ -47,7 +47,7 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 	}
 	a.openNode(two)
 	tt.Frame()
-	if f, ok := a.foreshadowOf(id); !ok || f.status() != foreOpen || f.gap != 1 || f.here {
+	if f, ok := a.foreshadowOf(id); !ok || f.Status() != workspace.ForeOpen || f.Gap != 1 || f.Here {
 		t.Fatalf("from the next chapter %+v", f)
 	}
 	a.openPay("") // nothing selected: nothing to pay off with
@@ -66,7 +66,7 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 	}
 	tt.Frame()
 	f, _ := a.foreshadowOf(id)
-	if f.status() != foreDone || len(f.pays) != 1 || f.pays[0].node != two || f.pays[0].quote != "七岁那年的那个晚上，她也是这样站着。" || f.gap != 1 {
+	if f.Status() != workspace.ForeDone || len(f.Payoffs) != 1 || f.Payoffs[0].Node != two || f.Payoffs[0].Quote != "七岁那年的那个晚上，她也是这样站着。" || f.Gap != 1 {
 		t.Fatalf("paid off %+v", f)
 	}
 	if a.doc.tab != paneFore || !tt.HasText("取消回收") || !tt.HasText("回收在「停电」，相隔 1 章") || !tt.HasText("埋在「第一章」") {
@@ -94,7 +94,7 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
-	if f, _ = a.foreshadowOf(id); f.status() != foreOpen {
+	if f, _ = a.foreshadowOf(id); f.Status() != workspace.ForeOpen {
 		t.Fatalf("still paid off %+v", f)
 	}
 	if ch, _ = a.Store.ReadChapter(two); len(ch.Marks) != 0 {
@@ -104,14 +104,14 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
-	if f, _ = a.foreshadowOf(id); f.status() != foreDropped || !tt.HasText("已放弃") {
+	if f, _ = a.foreshadowOf(id); f.Status() != workspace.ForeDropped || !tt.HasText("已放弃") {
 		t.Fatalf("not dropped %+v", f)
 	}
 	if err = tt.Click("恢复伏笔"); err != nil {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
-	if f, _ = a.foreshadowOf(id); f.status() != foreOpen {
+	if f, _ = a.foreshadowOf(id); f.Status() != workspace.ForeOpen {
 		t.Fatalf("not taken up again %+v", f)
 	}
 
@@ -180,7 +180,7 @@ func TestForeshadowLost(t *testing.T) {
 	w.ed.Insert("")
 	tt.Frame()
 	f, _ := a.foreshadowOf(id)
-	if f.status() != foreLost || f.quote != "井边有一把钥匙。" {
+	if f.Status() != workspace.ForeLost || f.Quote != "井边有一把钥匙。" {
 		t.Fatalf("not lost %+v", f)
 	}
 	a.doc.tab = paneFore
@@ -202,7 +202,7 @@ func TestForeshadowLost(t *testing.T) {
 	a.hint = ""
 	_ = tt.Click("更换原句")
 	tt.Frame()
-	if f, _ = a.foreshadowOf(id); a.hint != "" || f.status() != foreLost {
+	if f, _ = a.foreshadowOf(id); a.hint != "" || f.Status() != workspace.ForeLost {
 		t.Fatalf("更换原句 pressed with nothing picked: %q %+v", a.hint, f)
 	}
 	text := w.ed.Doc.String()
@@ -212,7 +212,7 @@ func TestForeshadowLost(t *testing.T) {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
-	if f, _ = a.foreshadowOf(id); f.status() != foreOpen || f.quote != "她没有去捡。" || f.note != "钥匙" {
+	if f, _ = a.foreshadowOf(id); f.Status() != workspace.ForeOpen || f.Quote != "她没有去捡。" || f.Note != "钥匙" {
 		t.Fatalf("not hung again %+v", f)
 	}
 	w.ed.MoveTo(0, false)
@@ -248,29 +248,29 @@ func TestForeshadowWithoutID(t *testing.T) {
 	a.openNode(one)
 	tt.Frame()
 	fs := a.foreshadows()
-	if len(fs) != 1 || fs[0].id == "" {
+	if len(fs) != 1 || fs[0].ID == "" {
 		t.Fatalf("%+v", fs)
 	}
 	m, err := a.Store.Marks()
-	if err != nil || m[one][0].ID != fs[0].id {
+	if err != nil || m[one][0].ID != fs[0].ID {
 		t.Fatalf("another id on the disk: %+v %v", m, err)
 	}
 	a.write.ed.Select(0, 4)
-	a.openPay(fs[0].id)
-	a.pay(fs[0].id)
-	if f, _ := a.foreshadowOf(fs[0].id); f.status() != foreDone {
+	a.openPay(fs[0].ID)
+	a.pay(fs[0].ID)
+	if f, _ := a.foreshadowOf(fs[0].ID); f.Status() != workspace.ForeDone {
 		t.Fatalf("not paid off %+v", f)
 	}
 }
 
 // foreshadowOf is the foreshadowing of id as the page has it.
-func (a *App) foreshadowOf(id string) (foreshadow, bool) {
+func (a *App) foreshadowOf(id string) (workspace.Foreshadow, bool) {
 	for _, f := range a.foreshadows() {
-		if f.id == id {
+		if f.ID == id {
 			return f, true
 		}
 	}
-	return foreshadow{}, false
+	return workspace.Foreshadow{}, false
 }
 
 func TestShotForeshadow(t *testing.T) {
