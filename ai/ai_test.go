@@ -13,6 +13,7 @@ import (
 
 	"writer/aiport"
 	"writer/discussion"
+	"writer/inference"
 	"writer/model"
 	"writer/workspace"
 	"writer/writing"
@@ -187,9 +188,9 @@ func TestOffBuildsNothing(t *testing.T) {
 	}
 	s := New("")
 	var built atomic.Int32
-	s.Open = func(workspace.Selection, *workspace.Store) (discussion.Model, error) {
+	s.Open = func(workspace.Selection, *workspace.Store) (inference.Model, error) {
 		built.Add(1)
-		return discussion.Model{}, nil
+		return inference.Model{}, nil
 	}
 	on := false
 	s.BindSwitch(func() bool { return on })
@@ -239,8 +240,8 @@ func TestSendingDoesNotReadTheSwitch(t *testing.T) {
 	}
 	sent := errors.New("fake request")
 	s := New("")
-	s.Open = func(workspace.Selection, *workspace.Store) (discussion.Model, error) {
-		return discussion.Model{Completer: failingRequest{sent}, Model: model.Model{Window: 32000, Output: 4000}}, nil
+	s.Open = func(workspace.Selection, *workspace.Store) (inference.Model, error) {
+		return inference.Model{Completer: failingRequest{sent}, Model: model.Model{Window: 32000, Output: 4000}}, nil
 	}
 	var reads int
 	s.BindSwitch(func() bool { reads++; return true })

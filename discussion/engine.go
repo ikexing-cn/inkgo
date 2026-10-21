@@ -7,40 +7,14 @@ import (
 	"slices"
 	"strings"
 
+	"writer/inference"
 	"writer/model"
 	"writer/prompt"
-	"writer/tokens"
 	"writer/workspace"
 )
 
-// Model is a model client with the settings it runs at. A request sends
-// at most Input tokens, and its reply is cut at Output.
-type Model struct {
-	model.Completer
-	model.Model
-	Name   string // provider/model, recorded with what it writes
-	Effort model.Effort
-}
-
-func (m Model) ready() bool { return m.Completer != nil }
-
-// Complete asks of the reply all the model gives, or less where req asks
-// less. Cut off at all the model gives, it says so, and where to give it
-// more.
-func (m Model) Complete(ctx context.Context, req model.Request, on func(model.Delta)) (model.Reply, error) {
-	whole := req.MaxTokens == 0 || req.MaxTokens >= m.Output
-	if whole {
-		req.MaxTokens = m.Output
-	}
-	reply, err := m.Completer.Complete(ctx, req, on)
-	if whole && errors.Is(err, model.ErrTruncated) {
-		err = &model.SetupError{Err: fmt.Errorf("回复超出模型的最大输出 %s（含思考）；请在设置中「AI」配置里调大", tokens.Format(m.Output))}
-	}
-	return reply, err
-}
-
 // ask runs a request on m, streaming to on when it is set.
-func ask(ctx context.Context, m Model, req model.Request, on func(model.Delta)) (model.Reply, error) {
+func ask(ctx context.Context, m inference.Model, req model.Request, on func(model.Delta)) (model.Reply, error) {
 	req.Effort = m.Effort
 	return m.Complete(ctx, req, on)
 }
@@ -51,7 +25,7 @@ func ask(ctx context.Context, m Model, req model.Request, on func(model.Delta)) 
 // calls that need a model refuse.
 type Engine struct {
 	Store *workspace.Store
-	Talk  Model
+	Talk  inference.Model
 	// Progress, when set, hears what the reply streams, never empty, and
 	// Step each step's calls and each call's result as they are written,
 	// and each digest compacting the talk: with no ID as it is asked for,
@@ -87,7 +61,7 @@ func (e *Engine) Say(ctx context.Context, session string, words workspace.Event)
 	if strings.TrimSpace(words.Text) == "" {
 		return turn, errors.New("请输入要讨论的内容")
 	}
-	if !e.Talk.ready() {
+	if !e.Talk.Ready() {
 		return turn, errNoModel
 	}
 	events, err := e.Store.Events(session)
@@ -112,7 +86,7 @@ func (e *Engine) Say(ctx context.Context, session string, words workspace.Event)
 // Retry resumes an unanswered saved turn without appending a duplicate user message.
 func (e *Engine) Retry(ctx context.Context, session, userID string) (Turn, error) {
 	var turn Turn
-	if !e.Talk.ready() {
+	if !e.Talk.Ready() {
 		return turn, errNoModel
 	}
 	events, err := e.Store.Events(session)

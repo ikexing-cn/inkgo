@@ -17,6 +17,7 @@ import (
 
 	"writer/aiport"
 	"writer/discussion"
+	"writer/inference"
 	"writer/model"
 	"writer/workspace"
 	"writer/writing"
@@ -36,7 +37,7 @@ type Service struct {
 	// Open is the model sel names for the work st, as the services are
 	// now: each request to it goes into the AI record of st. Tests replace
 	// it.
-	Open func(sel workspace.Selection, st *workspace.Store) (discussion.Model, error)
+	Open func(sel workspace.Selection, st *workspace.Store) (inference.Model, error)
 }
 
 var (
@@ -232,13 +233,13 @@ func (s *Service) Extract(st *workspace.Store, session, message string, start, e
 
 // open is the model sel names, with its limits as the services have
 // them; each request to it is a line of the AI record of the work st.
-func (s *Service) open(sel workspace.Selection, st *workspace.Store) (discussion.Model, error) {
+func (s *Service) open(sel workspace.Selection, st *workspace.Store) (inference.Model, error) {
 	client, err := model.NewClient(s.cfg, sel.Provider, sel.Model)
 	if err != nil {
-		return discussion.Model{}, setupError(err)
+		return inference.Model{}, setupError(err)
 	}
 	name := sel.Provider + "/" + sel.Model
-	return discussion.Model{Completer: counted{client, st, name, sel.Model, s.Trace}, Model: s.cfg.Model(sel.Provider, sel.Model),
+	return inference.Model{Completer: counted{client, st, name, sel.Model, s.Trace}, Model: s.cfg.Model(sel.Provider, sel.Model),
 		Name: name, Effort: model.Effort(sel.Effort)}, nil
 }
 

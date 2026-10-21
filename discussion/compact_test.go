@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"writer/inference"
 	"writer/model"
 	"writer/prompt"
 	"writer/workspace"
@@ -16,7 +17,7 @@ func TestDigestRequestBytes(t *testing.T) {
 	e, session := setup(t)
 	long(t, e, session, 12, 700, "井边的灯为什么不亮")
 	f := &digester{}
-	e.Talk = Model{Model: limits, Completer: f, Effort: model.EffortHigh}
+	e.Talk = inference.Model{Model: limits, Completer: f, Effort: model.EffortHigh}
 	if _, err := e.Say(context.Background(), session, workspace.Event{Text: "接着说"}); err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +88,7 @@ func TestALongTalkIsCompacted(t *testing.T) {
 	e, session := setup(t)
 	replies := long(t, e, session, 12, 700, "井边的灯为什么不亮")
 	talk := &digester{}
-	e.Talk = Model{Model: limits, Completer: talk, Name: "deepseek/deepseek-flash", Effort: model.EffortHigh}
+	e.Talk = inference.Model{Model: limits, Completer: talk, Name: "deepseek/deepseek-flash", Effort: model.EffortHigh}
 	if _, err := e.Say(context.Background(), session, workspace.Event{Text: "接着说"}); err != nil {
 		t.Fatal(err)
 	}
@@ -156,7 +157,7 @@ func TestCompactionTakesWhatOneRequestHolds(t *testing.T) {
 	e, session := setup(t)
 	replies := long(t, e, session, 20, 1000, "第0轮")
 	talk := &digester{}
-	e.Talk = Model{Model: limits, Completer: talk}
+	e.Talk = inference.Model{Model: limits, Completer: talk}
 	if _, err := e.Say(context.Background(), session, workspace.Event{Text: "接着说"}); err != nil {
 		t.Fatal(err)
 	}
@@ -187,7 +188,7 @@ func TestCompactionGoesByWhatWasCounted(t *testing.T) {
 		e, session := setup(t)
 		long(t, e, session, 6, 700, "第0轮")
 		talk := &digester{used: model.Usage{Input: 17000, Output: 100}}
-		e.Talk = Model{Model: limits, Completer: talk}
+		e.Talk = inference.Model{Model: limits, Completer: talk}
 		var stepped []workspace.Event
 		e.Step = func(ev workspace.Event) { stepped = append(stepped, ev) }
 		if _, err := e.Say(context.Background(), session, workspace.Event{Text: "接着说"}); err != nil {
@@ -220,13 +221,13 @@ func TestCompactionGoesByWhatWasCounted(t *testing.T) {
 func TestAFailedCompactionIsRetried(t *testing.T) {
 	e, session := setup(t)
 	long(t, e, session, 12, 700, "第0轮")
-	e.Talk = Model{Model: limits, Completer: &digester{err: errors.New("服务不可用")}}
+	e.Talk = inference.Model{Model: limits, Completer: &digester{err: errors.New("服务不可用")}}
 	turn, err := e.Say(context.Background(), session, workspace.Event{Text: "接着说"})
 	if err == nil || !strings.Contains(err.Error(), "整理之前的讨论失败，原文已保存：服务不可用") || turn.User.ID == "" || len(digests(t, e, session)) != 0 {
 		t.Fatalf("%v %+v", err, turn)
 	}
 	talk := &digester{}
-	e.Talk = Model{Model: limits, Completer: talk}
+	e.Talk = inference.Model{Model: limits, Completer: talk}
 	if _, err = e.Retry(context.Background(), session, turn.User.ID); err != nil {
 		t.Fatal(err)
 	}

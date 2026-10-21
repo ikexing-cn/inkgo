@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"writer/inference"
 	"writer/model"
 	"writer/workspace"
 )
@@ -68,7 +69,7 @@ func TestReplyLooksUpAndNotes(t *testing.T) {
 		}},
 		{Text: "第一章里她点灯时手在抖，和怕黑对得上。", Reasoning: "对上了", Usage: last},
 	}}
-	e.Talk = Model{Model: limits, Completer: f, Name: "deepseek/deepseek-flash", Effort: model.EffortHigh}
+	e.Talk = inference.Model{Model: limits, Completer: f, Name: "deepseek/deepseek-flash", Effort: model.EffortHigh}
 	var stepped []workspace.Event
 	e.Step = func(ev workspace.Event) { stepped = append(stepped, ev) }
 	got, err := e.Say(context.Background(), session, workspace.Event{Text: "林晚怕黑，这和第一章对得上吗？"})
@@ -136,7 +137,7 @@ func TestReplyStopsAtTheLastStep(t *testing.T) {
 		f.steps = append(f.steps, model.Reply{Calls: []model.Call{call(fmt.Sprint(n), toolLookUp, map[string]any{"query": "雨"})}})
 	}
 	f.steps = append(f.steps, model.Reply{Text: "就查到这些。", Calls: []model.Call{call("x", toolLookUp, map[string]any{"query": "雨"})}})
-	e.Talk = Model{Model: limits, Completer: f}
+	e.Talk = inference.Model{Model: limits, Completer: f}
 	got, err := e.Say(context.Background(), session, workspace.Event{Text: "雨的规则有哪些？"})
 	if err != nil {
 		t.Fatal(err)
@@ -179,7 +180,7 @@ func TestLookingUpStopsWhenTheRoomIsFull(t *testing.T) {
 		{Calls: []model.Call{call("1", toolReadProse, map[string]any{"chapter": "第一章"})}},
 		{Text: "雨一直下。"},
 	}}
-	e.Talk = Model{Model: small, Completer: f}
+	e.Talk = inference.Model{Model: small, Completer: f}
 	got, err := e.Say(context.Background(), session, workspace.Event{Text: "雨"})
 	if err != nil {
 		t.Fatal(err)
@@ -198,7 +199,7 @@ func TestLookingUpStopsWhenTheRoomIsFull(t *testing.T) {
 		{Calls: []model.Call{call("1", toolReadProse, map[string]any{"chapter": "第一章"})}, Usage: model.Usage{Input: limits.Input() - 600, Output: 100}},
 		{Text: "雨一直下。"},
 	}}
-	e.Talk = Model{Model: limits, Completer: f}
+	e.Talk = inference.Model{Model: limits, Completer: f}
 	if _, err = e.Say(context.Background(), session, workspace.Event{Text: "雨"}); err != nil {
 		t.Fatal(err)
 	}
@@ -209,7 +210,7 @@ func TestLookingUpStopsWhenTheRoomIsFull(t *testing.T) {
 		{Calls: []model.Call{call("1", toolReadProse, map[string]any{"chapter": "第一章"})}},
 		{Text: "雨一直下。"},
 	}}
-	e.Talk = Model{Model: limits, Completer: f}
+	e.Talk = inference.Model{Model: limits, Completer: f}
 	if _, err = e.Say(context.Background(), session, workspace.Event{Text: "雨"}); err != nil {
 		t.Fatal(err)
 	}
@@ -232,7 +233,7 @@ func TestNoteKeepsTheRules(t *testing.T) {
 	revise(t, e,
 		workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Names: []string{"林晚"}, Text: "林晚是主角"},
 		workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceOpen, Category: "规则", Text: "雨每年停一天"})
-	box := &toolbox{store: e.Store, session: session, turn: ok.ID, model: Model{Name: "deepseek/deepseek-flash"}}
+	box := &toolbox{store: e.Store, session: session, turn: ok.ID, model: inference.Model{Name: "deepseek/deepseek-flash"}}
 	for _, c := range []struct {
 		in   input
 		want string // in the refusal; empty when it is noted

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"unicode"
 
-	"writer/discussion"
+	"writer/inference"
 	"writer/internal/textclip"
 	"writer/model"
 	"writer/prompt"
@@ -32,7 +32,7 @@ var writePlaces = []prompt.Place{
 // Writer writes the prose of one work with one model.
 type Writer struct {
 	Store *workspace.Store
-	Model discussion.Model
+	Model inference.Model
 }
 
 // Scene is where in a chapter the model writes: the text before that

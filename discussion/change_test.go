@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"writer/inference"
 	"writer/workspace"
 )
 
@@ -30,7 +31,7 @@ func TestATalkTellsAndNotesHowTheSettingChanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	box := &toolbox{store: e.Store, session: session, turn: ok.ID, model: Model{Name: "deepseek/deepseek-flash"}}
+	box := &toolbox{store: e.Store, session: session, turn: ok.ID, model: inference.Model{Name: "deepseek/deepseek-flash"}}
 	for _, c := range []struct {
 		in   input
 		want string // in the refusal; empty when it is noted

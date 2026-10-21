@@ -7,6 +7,7 @@ import (
 	"strings"
 	"unicode"
 
+	"writer/inference"
 	"writer/internal/textclip"
 	"writer/model"
 	"writer/prompt"
@@ -77,7 +78,7 @@ type toolbox struct {
 	store   *workspace.Store
 	session string
 	turn    string
-	model   Model
+	model   inference.Model
 	at      string
 }
 

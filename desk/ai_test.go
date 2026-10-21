@@ -16,8 +16,8 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/aiport"
-	"writer/discussion"
 	"writer/editor"
+	"writer/inference"
 	"writer/model"
 	"writer/workspace"
 )
@@ -142,8 +142,8 @@ func penWithin(a *App, f model.Completer, m model.Model) {
 		panic(err)
 	}
 	a.loadWork()
-	aiOf(a).Open = func(workspace.Selection, *workspace.Store) (discussion.Model, error) {
-		return discussion.Model{Model: m, Completer: f, Name: "deepseek/deepseek-flash", Effort: model.EffortHigh}, nil
+	aiOf(a).Open = func(workspace.Selection, *workspace.Store) (inference.Model, error) {
+		return inference.Model{Model: m, Completer: f, Name: "deepseek/deepseek-flash", Effort: model.EffortHigh}, nil
 	}
 	a.write.penKey = "" // build the editors' writer again
 }
@@ -689,9 +689,9 @@ func TestSavingAServiceRemakesThePredictingWriter(t *testing.T) {
 	a, tt, _ := writingFixture(t, "原来的。")
 	penWith(a, &stream{})
 	made := 0
-	aiOf(a).Open = func(workspace.Selection, *workspace.Store) (discussion.Model, error) {
+	aiOf(a).Open = func(workspace.Selection, *workspace.Store) (inference.Model, error) {
 		made++
-		return discussion.Model{}, errors.New("没有模型")
+		return inference.Model{}, errors.New("没有模型")
 	}
 	a.write.penKey = ""
 	tt.Frame()

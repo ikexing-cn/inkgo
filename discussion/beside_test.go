@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"writer/inference"
 	"writer/workspace"
 )
 
@@ -13,7 +14,7 @@ import (
 func TestTalkBesideTheProse(t *testing.T) {
 	e, session := setup(t)
 	f := &fake{replies: []string{"这里可以慢一点。", "好。"}}
-	e.Talk = Model{Model: limits, Completer: f, Name: "deepseek/deepseek-flash"}
+	e.Talk = inference.Model{Model: limits, Completer: f, Name: "deepseek/deepseek-flash"}
 	id, err := e.Store.NewChapter("", "第一章", false)
 	if err != nil {
 		t.Fatal(err)
@@ -80,7 +81,7 @@ func TestNoteQuotesTheProseQuoted(t *testing.T) {
 	if _, err = e.Store.WriteChapter(id, "她改了。", nil); err != nil {
 		t.Fatal(err)
 	}
-	box := &toolbox{store: e.Store, session: session, turn: u.ID, model: Model{Name: "deepseek/deepseek-flash"}}
+	box := &toolbox{store: e.Store, session: session, turn: u.ID, model: inference.Model{Name: "deepseek/deepseek-flash"}}
 	if out := box.note(input{Op: "add", Place: "body", Category: "人物", Text: "她怕黑，从不在夜里出门", Sources: []string{"她从不在夜里出门", "这说明她怕黑"}}); out.failed {
 		t.Fatal(out.text)
 	}
