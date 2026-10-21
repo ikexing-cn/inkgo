@@ -172,7 +172,7 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 			w.folded[n.ID] = !w.folded[n.ID]
 		} else {
 			if a.page == pagePlan {
-				a.page = 3
+				a.page = pageWrite
 			}
 			a.openNode(n.ID)
 		}

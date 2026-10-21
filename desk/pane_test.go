@@ -175,7 +175,7 @@ func TestTalkList(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.session == old || a.doc.talks || a.page != 3 || !tt.HasText("示例问题") {
+	if a.session == old || a.doc.talks || a.page != pageWrite || !tt.HasText("示例问题") {
 		t.Fatal("no new talk beside the prose", a.session, a.doc.talks, a.page)
 	}
 	a.doc.talks = true
@@ -237,7 +237,7 @@ func TestLogNames(t *testing.T) {
 // the tab beside the prose, not how many entries there are.
 func TestTheSettingCountsWhatWaits(t *testing.T) {
 	a, tt, _ := paneFixture(t)
-	a.page = 0
+	a.page = pageTalk
 	tt.Frame()
 	texts := tt.Texts()
 	i := slices.Index(texts, "收起右栏")

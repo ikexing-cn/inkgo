@@ -34,7 +34,7 @@ func (m Model) Complete(ctx context.Context, req model.Request, on func(model.De
 	}
 	reply, err := m.Completer.Complete(ctx, req, on)
 	if whole && errors.Is(err, model.ErrTruncated) {
-		err = fmt.Errorf("回复超出模型的最大输出 %s（含思考）；请在设置中「AI」配置里调大", tokens.Format(m.Output))
+		err = &model.SetupError{Err: fmt.Errorf("回复超出模型的最大输出 %s（含思考）；请在设置中「AI」配置里调大", tokens.Format(m.Output))}
 	}
 	return reply, err
 }
@@ -75,7 +75,7 @@ type Turn struct {
 	User, Reply workspace.Event
 }
 
-var errNoModel = errors.New("请先配置讨论模型")
+var errNoModel = &model.SetupError{Err: errors.New("请先配置讨论模型")}
 
 // Say saves the author's words, with the prose they quote and the chapter
 // they were writing, or the chapter a new talk opens to draft or rewrite,

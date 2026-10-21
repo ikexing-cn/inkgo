@@ -34,7 +34,7 @@ func fromLabel(tree workspace.Tree, id string) string {
 // here is the node the setting is read at: the chapter or volume open on
 // the writing page; elsewhere none, and entries read as they do now.
 func (a *App) here() string {
-	if a.page != 3 {
+	if a.page != pageWrite {
 		return ""
 	}
 	if _, ok := a.write.tree.Node(a.write.node); ok {
@@ -240,7 +240,7 @@ func (a *App) changeForm(c *ui.Context, e workspace.Entry) {
 			if len(ops) > 0 {
 				a.revise(ops...)
 			}
-			if a.Error == "" {
+			if a.errorText() == "" {
 				d.change = ""
 			}
 		})

@@ -35,7 +35,7 @@ func TestShot(t *testing.T) {
 	tt.SetDark(true)
 	shot(t, tt, "chat-dark.png")
 	tt.SetDark(false)
-	a.page = 1
+	a.openPrefs("AI")
 	shot(t, tt, "settings.png")
 }
 
@@ -144,7 +144,7 @@ func TestShotBeside(t *testing.T) {
 		Quotes: []workspace.Quote{{Chapter: id, Title: "第一章", Text: "她修了七年路灯，却从来不敢在天黑以后走进没有灯的巷子。"}}})
 	_, _ = a.Store.Append(a.session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Model: "deepseek/deepseek-flash",
 		Text: "有一点。“怕黑”是她的底牌，第一章就直接说出来，后面井边那场戏就少了悬念。\n\n可以只留动作：她在巷口停住，把手电换到另一只手。读者会自己猜。"})
-	a.setError(a.refresh())
+	a.SetError(a.refresh())
 	a.doc.tab = paneTalk
 	a.write.ed.Select(15, 34)
 	tt.Frame()
@@ -153,7 +153,7 @@ func TestShotBeside(t *testing.T) {
 	shot(t, tt, "beside-talk.png")
 	a.doc.width = 560
 	shot(t, tt, "beside-wide.png")
-	a.page = 0
+	a.page = pageTalk
 	shot(t, tt, "beside-on-talk-page.png")
 }
 

@@ -81,7 +81,7 @@ func (a *App) loadPrefs() {
 	a.write.node, a.write.tabs, a.write.blank = p.Chapter, p.Tabs, p.Blank && p.Chapter == ""
 	a.leftWriting = p.Writing
 	if p.Writing {
-		a.page = 3
+		a.page = pageWrite
 	}
 	a.write.autoPredict = p.AutoPredict
 	a.write.day, a.write.dayStart, a.write.goal = p.Day, p.DayStart, p.Goal

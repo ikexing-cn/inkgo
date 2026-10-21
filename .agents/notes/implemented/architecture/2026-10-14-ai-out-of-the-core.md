@@ -65,6 +65,10 @@ Status: implemented
 - `ai.New(配置文件)` 建 `ai.Service`，不读盘；`desk.New(它)` 建界面：先读作品清单 `works.json`，把开关告诉 `ai`（`SetOn`），AI 开着而且有配置文件时 `Reload` 一次，读不成的错照旧显示在界面上。`cmd/inkgo` 把两个接起来，找不到配置目录的错也由它交给界面。`works.json` 照旧放在配置文件旁边，位置问 `ConfigFile()`。
 - 测试换 `ai.Service` 上的 `NewWriter` 钩子（拆之前是 `App` 上的 `Pen`；原来还有换记账员的 `NewBookkeeper`，2026-10-15 删了）。`desk/app_test.go` 里两个小函数：`newApp(配置文件)` 建界面，`aiOf(a)` 拿到它的 `ai.Service` 好换钩子。`desk` 的测试引用 `ai` 和 `model` 来做假模型，不算 `desk` 的依赖（`go list -deps` 不看测试）。要数 `desk` 向 AI 要了什么，`desk/aiswitch_test.go` 的 `spy` 包住一个 `aiport.Service`，记下 `Catalog`、`Talk`、`Pen` 的每一次。
 
+### 配置错误
+
+`desk/aiport.SetupError` 是 AI 端交给界面的配置错误身份，保留原文并用 `Unwrap` 保留原因。`ai` 包装配置读取、服务保存、密钥操作、客户端构建和模型未选择的错误；模型请求中的配置问题由 `model.SetupError` 标识，在 `ai` 的请求与目录适配器处转为端口类型。`desk` 保存错误值，提示条只用 `errors.As` 判断是否提供「打开设置」。
+
 ### 关着 AI 时
 
 - `ai` 停用：`SetOn(false)` 以后，`Catalog`、`Talk`、`Pen` 头一件事就是返回 `ai.ErrOff`（「AI 已关闭」），一个客户端也不建。（原来 `Book` 和后台整理要用的那支笔也这样，2026-10-15 随记账员删了。）正在跑的回复、起草、摘要、检查由 `desk` 在开关的那一刻停下（取消各自的 context），`ai` 不记它们。

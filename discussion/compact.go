@@ -60,7 +60,7 @@ func (e *Engine) compact(ctx context.Context, session string, before int, user w
 			return err
 		}
 		if took == 0 {
-			return errors.New("有一轮讨论太长，超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限")
+			return &model.SetupError{Err: errors.New("有一轮讨论太长，超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限")}
 		}
 		asked.Request.NoCalls = true
 		if e.Step != nil {

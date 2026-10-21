@@ -199,6 +199,26 @@ func TestTalkSeesTheSettingAndTheTurns(t *testing.T) {
 	}
 }
 
+func TestSetupErrorsForDiscussionLimits(t *testing.T) {
+	var setupError *model.SetupError
+	if !errors.As(errNoModel, &setupError) {
+		t.Fatal(errNoModel)
+	}
+	m := Model{Model: model.Model{Window: 8192, Output: 1024}, Completer: &fake{err: model.ErrTruncated}}
+	_, err := m.Complete(context.Background(), model.Request{}, nil)
+	if !errors.As(err, &setupError) {
+		t.Fatal("configured output limit lost its setup identity", err)
+	}
+	_, err = m.Complete(context.Background(), model.Request{MaxTokens: 10}, nil)
+	if errors.As(err, &setupError) || !errors.Is(err, model.ErrTruncated) {
+		t.Fatal("request's own output cap became a setup error", err)
+	}
+	_, err = Assemble(workspace.Work{}, 1, workspace.Setting{}, workspace.Tree{}, nil, "问题", Along{})
+	if !errors.As(err, &setupError) {
+		t.Fatal("context limit lost its setup identity", err)
+	}
+}
+
 // The setting goes whole while it fits after the talk, and as an index
 // when it does not; the index must fit, and so must the author's words.
 func TestContextBudget(t *testing.T) {

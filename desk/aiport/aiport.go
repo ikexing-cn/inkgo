@@ -9,6 +9,13 @@ import (
 	"writer/workspace"
 )
 
+// SetupError means that the service, model or key can be corrected in settings.
+// Err keeps its original text and remains available to errors.Is and errors.As.
+type SetupError struct{ Err error }
+
+func (e *SetupError) Error() string { return e.Err.Error() }
+func (e *SetupError) Unwrap() error { return e.Err }
+
 // Service is the AI of this machine. Catalog, Talk and Pen build
 // what they give as the settings are now, on the interface's thread, and
 // fail at once when the settings name no model or no key, or the AI is

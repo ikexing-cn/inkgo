@@ -12,7 +12,6 @@ import (
 	"writer/workspace"
 )
 
-const pagePlan = 6
 const planFlash = 1600 * time.Millisecond
 
 type planView struct {
@@ -97,7 +96,7 @@ func (a *App) loadPlan() {
 }
 
 func (a *App) planChange(err error) {
-	a.setError(err)
+	a.SetError(err)
 	if err == nil {
 		a.loadPlan()
 	}
@@ -367,7 +366,7 @@ func (a *App) planLine(c *ui.Context, l workspace.PlotLine) {
 			m.Separator()
 			m.Item("删除情节线").Do(func() {
 				a.planChange(a.Store.DeleteLine(l.ID))
-				if a.Error == "" {
+				if a.errorText() == "" {
 					a.notice = "已删除情节线「" + l.Name + "」"
 					if n > 0 {
 						a.hint = fmt.Sprintf("它的 %d 张卡片还在原来的章里，可在时间线上找到", n)
@@ -430,7 +429,7 @@ func (a *App) planGist(c *ui.Context, n *workspace.Node) {
 		if p.outlineText != p.gists[n.ID] {
 			p.geometry = nil
 			a.warn(a.Store.WriteOutline(n.ID, p.outlineText))
-			if a.Error == "" {
+			if a.errorText() == "" {
 				p.gists[n.ID] = p.outlineText
 				a.syncPlanOutline(n.ID, p.outlineText)
 			}
@@ -477,7 +476,7 @@ func (a *App) finishPlanOutline() {
 	p.outlineID = ""
 	if p.gists[id] != p.outlineText {
 		a.warn(a.Store.WriteOutline(id, p.outlineText))
-		if a.Error == "" {
+		if a.errorText() == "" {
 			p.gists[id] = p.outlineText
 			a.syncPlanOutline(id, p.outlineText)
 		}
@@ -605,7 +604,7 @@ func (a *App) planGridRow(c *ui.Context, row planRow, lines []workspace.PlotLine
 				}
 				b.Children(func() { a.planText(c, n.Title, false).FontWeight(600).SingleLine().Ellipsis("…") })
 				if b.Clicked() {
-					a.page = 3
+					a.page = pageWrite
 					a.openNode(n.ID)
 				}
 				if a.planBack(n.ID) {
@@ -926,7 +925,7 @@ func (a *App) planTimeHead(c *ui.Context, i int, col workspace.TimeColumn) {
 			})
 			if save {
 				a.planChange(a.Store.SaveTime(p.column, p.when))
-				if a.Error == "" {
+				if a.errorText() == "" {
 					open = false
 				}
 			}
@@ -1062,7 +1061,7 @@ func (a *App) planDialog(c *ui.Context) {
 			})
 			if drop {
 				a.planChange(a.Store.DeleteCard(p.card.ID))
-				if a.Error == "" {
+				if a.errorText() == "" {
 					a.notice = "已删除卡片「" + p.card.Title + "」"
 					p.cardOpen = false
 				}

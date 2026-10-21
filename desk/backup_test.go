@@ -279,10 +279,10 @@ func TestShotBackup(t *testing.T) {
 	a.bk.err = nil
 	s.Dir = sync
 	a.setBackup(s)
-	a.bk.tab, a.page = "备份", 4
+	a.openPrefs("备份")
 	shot(t, tt, "backup-settings.png")
 	tt.SetDark(true)
-	a.bk.tab, a.page = "外观", 4
+	a.openPrefs("外观")
 	shot(t, tt, "settings-look-dark.png")
 	a.bk.tab = "AI"
 	shot(t, tt, "settings-models-dark.png")
@@ -291,7 +291,7 @@ func TestShotBackup(t *testing.T) {
 	tt.Scroll(700, 500, 0, 600)
 	shot(t, tt, "settings-service-dark.png")
 	a.bk.prefs = false
-	a.page = 0
+	a.page = pageTalk
 	shot(t, tt, "discussion-dark.png")
 }
 

@@ -154,6 +154,19 @@ func TestSentence(t *testing.T) {
 	}
 }
 
+func TestSetupErrorsForWritingLimits(t *testing.T) {
+	var setup *model.SetupError
+	if !errors.As(ErrNoModel, &setup) {
+		t.Fatal(ErrNoModel)
+	}
+	w, id, _ := book(t, &fake{})
+	w.Model.Window, w.Model.Output = 1, 0
+	_, _, err := w.prepare("续写", Scene{Chapter: id}, "")
+	if !errors.As(err, &setup) {
+		t.Fatal("outline budget lost its setup identity", err)
+	}
+}
+
 func TestBudgetCutsTheTextBeforeFromItsStart(t *testing.T) {
 	f := &fake{pieces: []string{"她走了。"}}
 	w, two, _ := book(t, f)

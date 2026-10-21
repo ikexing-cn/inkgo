@@ -42,7 +42,7 @@ func TestTheTalkShowsWhereItWasCompacted(t *testing.T) {
 	third := exchange("这一章的节奏怎么样", "前半段偏慢。", &workspace.Sent{Parts: []workspace.Part{
 		{Name: workspace.PartRules, Tokens: 1100}, {Name: workspace.PartDigest, Tokens: 820}, {Name: workspace.PartInput, Tokens: 40}}})
 	digest(second, "## 在聊什么\n停电那一章的节奏。\n\n## 作者的态度和偏好\n回忆不写成旁白。[2] 怕黑，写进 [1] 里；[9] 先不管。\n## 还在商量的\n无\n## 下一步\n- 作者先改前半段。\n- 再看 [2] 那句。")
-	a.setError(a.refresh())
+	a.SetError(a.refresh())
 	tt.Frame()
 	if !tt.HasText("以上 2 轮已整理成摘要") || tt.HasText("作者的态度和偏好") || !tt.HasText("6 条发言") {
 		t.Fatal("the line", tt.Texts())
@@ -92,7 +92,7 @@ func TestTheTalkShowsWhereItWasCompacted(t *testing.T) {
 	}
 
 	digest(third, "## 在聊什么\n前半段的节奏。")
-	a.setError(a.refresh())
+	a.SetError(a.refresh())
 	tt.Frame()
 	if !tt.HasText("以上 3 轮已整理成摘要") || tt.HasText("以上 2 轮已整理成摘要") {
 		t.Fatal("the later digest", tt.Texts())
@@ -116,7 +116,7 @@ func TestCompactingShowsItself(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a.setError(a.refresh())
+	a.SetError(a.refresh())
 	tt.Frame()
 	once := func() bool {
 		n := 0

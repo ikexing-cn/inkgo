@@ -1006,6 +1006,3 @@ func (a *App) takeFound(it checkItem) {
 	a.flash[r.Ops[0].Entry] = time.Now()
 	a.notice = "已加入设定"
 }
-
-// pageCheck is the page of what the checks found.
-const pageCheck = 5

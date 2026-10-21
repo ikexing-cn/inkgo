@@ -98,8 +98,8 @@ const flashFor = 3 * time.Second
 type App struct {
 	Store *workspace.Store
 	// ai is all the AI does: what sends goes through it alone.
-	ai    aiport.Service
-	Error string
+	ai  aiport.Service
+	err error
 	// PickFolder shows a native folder dialog; it runs off the UI thread.
 	// Nil hides the browse buttons (tests, platforms without dialogs).
 	PickFolder func(title string) (string, error)
@@ -117,10 +117,10 @@ type App struct {
 	light, dark *palette
 	pal         *palette
 
-	page              int               // 0 discussion, 1 models, 2 categories, 3 writing, 5 checks
-	offFrom           int               // the page of the AI the prose took the place of as the AI was turned off,
+	page              page
+	offFrom           page              // the page of the AI the prose took the place of as the AI was turned off,
 	offAway           bool              // while there is one
-	shown             int               // the page the last frame showed
+	shown             page              // the page the last frame showed
 	notice            string            // what was done
 	hint              string            // what to do first, or that there was nothing to do
 	renamed           renamed           // a name the prose still has after the author renamed it
@@ -228,12 +228,7 @@ func (a *App) Open(path string) error {
 // attach makes s the current work, starting a session when it has none.
 func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 	if a.Store != nil {
-		a.dropProps(a.write.props, workspace.FateClosed)
-		a.flush()
-		a.keepUnsettled()
-		a.remember(false)
-		a.backupNow()
-		a.stopChecks()
+		a.leaveWork()
 		a.Store.Close()
 	}
 	a.Store, a.path = s, path
@@ -263,19 +258,14 @@ func (a *App) resetView() {
 	a.input, a.seen, a.flash, a.doc, a.write = "", -1, map[string]time.Time{}, docView{}, writeView{}
 	a.bk = backupView{}
 	a.plan = planView{}
-	a.page, a.shown, a.offAway = 0, 0, false
+	a.page, a.shown, a.offAway = pageTalk, pageTalk, false
 }
 
 // closeWork returns to the welcome page, with its form cleared so a new work
 // does not inherit the last one's folder or name.
 func (a *App) closeWork() {
-	a.dropProps(a.write.props, workspace.FateClosed)
-	a.flush()
-	a.keepUnsettled()
-	a.remember(false)
-	a.backupNow()
-	a.stopChecks()
-	a.setError(a.Store.Close())
+	a.leaveWork()
+	a.SetError(a.Store.Close())
 	a.Store = nil
 	a.path, a.name = "", ""
 	a.resetView()
@@ -286,15 +276,7 @@ func (a *App) Close() error {
 	if a.cancel != nil {
 		a.cancel()
 	}
-	if a.Store != nil {
-		a.dropProps(a.write.props, workspace.FateClosed)
-	}
-	a.flush()
-	a.keepUnsettled()
-	a.remember(false)
-	if a.Store != nil {
-		a.backupNow()
-	}
+	a.leaveWork()
 	// Window shutdown exits the process. A cancelled worker may still be
 	// saving what it already has, so leave the store open for it.
 	if a.Store != nil && a.busy == "" {
@@ -302,6 +284,20 @@ func (a *App) Close() error {
 	}
 	return nil
 }
+
+// leaveWork leaves the store open for each caller to close; Close keeps it for a busy worker.
+func (a *App) leaveWork() {
+	if a.Store == nil {
+		return
+	}
+	a.dropProps(a.write.props, workspace.FateClosed)
+	a.flush()
+	a.keepUnsettled()
+	a.remember(false)
+	a.backupNow()
+	a.stopChecks()
+}
+
 func (a *App) refresh() error {
 	if a.Store == nil {
 		return nil
@@ -447,7 +443,7 @@ func (a *App) work(sv ui.Services, label string, fn func(context.Context) (func(
 	ctx, cancel := context.WithCancel(context.Background()) // each request has its own time limit; a turn takes as many as it needs
 	a.cancel = cancel
 	a.busy = label
-	a.Error = ""
+	a.SetError(nil)
 	a.again = func() { a.work(sv, label, fn) }
 	go func() { apply, err := fn(ctx); cancel(); a.results <- result{apply: apply, err: err}; sv.Invalidate() }()
 }
@@ -460,7 +456,7 @@ func (a *App) poll() {
 	}
 	select {
 	case <-a.changes:
-		a.setError(a.refresh())
+		a.SetError(a.refresh())
 	default:
 	}
 	select {
@@ -476,17 +472,17 @@ func (a *App) poll() {
 			r.err = nil // what runs is the AI's: turned off, it was stopped, and says nothing
 		}
 		if r.err != nil {
-			a.Error = r.err.Error()
-			if a.Error == a.failed {
+			a.SetError(r.err)
+			if a.errorText() == a.failed {
 				a.fails++
 			} else {
-				a.failed, a.fails = a.Error, 1
+				a.failed, a.fails = a.errorText(), 1
 			}
 		} else {
 			a.failed, a.fails = "", 0
 		}
 		if err := a.refresh(); err != nil {
-			a.Error = err.Error()
+			a.SetError(err)
 		}
 	default:
 		a.followProps()
@@ -502,12 +498,14 @@ func (a *App) held() bool { return a.busy != "" && !a.talking }
 // replying tells whether a turn is in flight in the talk shown.
 func (a *App) replying() bool { return a.talking && a.session == a.talkSession }
 
-func (a *App) setError(err error) {
-	if err != nil {
-		a.Error = err.Error()
-	} else {
-		a.Error = ""
+// SetError shows err in a toast until the author closes it; nil clears it.
+func (a *App) SetError(err error) { a.err = err }
+
+func (a *App) errorText() string {
+	if a.err == nil {
+		return ""
 	}
+	return a.err.Error()
 }
 
 func (a *App) loadWork() {

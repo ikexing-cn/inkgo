@@ -214,7 +214,7 @@ func TestNameANewChapter(t *testing.T) {
 // sidebar to icons; the trash is one of them, over the gear.
 func TestASlimSidebarKeepsTheTrash(t *testing.T) {
 	a, _, _ := writingFixture(t, "雨从傍晚开始下。")
-	a.page = 0
+	a.page = pageTalk
 	tt := ui.NewTester(a.View, 1100, 700)
 	tt.Frame()
 	tt.Frame()
@@ -243,17 +243,17 @@ func TestATreeThatCannotBeRead(t *testing.T) {
 	}
 	a.loadChecks() // as the work opens
 	tt.Frame()
-	if !strings.Contains(a.Error, ".order") {
-		t.Fatalf("error %q", a.Error)
+	if !strings.Contains(a.errorText(), ".order") {
+		t.Fatalf("error %q", a.errorText())
 	}
-	a.Error = ""
+	a.SetError(nil)
 	if err := tt.Click("正文"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
 	tt.Frame()
-	if !strings.Contains(a.Error, ".order") {
-		t.Fatalf("error %q", a.Error)
+	if !strings.Contains(a.errorText(), ".order") {
+		t.Fatalf("error %q", a.errorText())
 	}
 	a.openPrefs("提醒与检查")
 	tt.Frame()
@@ -313,7 +313,7 @@ func TestSideRowsOnEveryPage(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Frame()
-	if a.page != 3 || a.write.node != one {
+	if a.page != pageWrite || a.write.node != one {
 		t.Fatalf("on page %d at %q", a.page, a.write.node)
 	}
 	if err = tt.Click("作品分类"); err != nil {

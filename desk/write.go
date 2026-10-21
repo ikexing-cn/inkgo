@@ -144,7 +144,7 @@ type writeView struct {
 // warn shows err, leaving an error shown alone when there is none.
 func (a *App) warn(err error) {
 	if err != nil {
-		a.Error = err.Error()
+		a.SetError(err)
 	}
 }
 
@@ -244,7 +244,7 @@ func (a *App) writing(c *ui.Context) {
 
 // settingColumn is the setting beside the page, unless the author hid it.
 func (a *App) settingColumn(c *ui.Context) {
-	if a.page == pagePlan && !a.plan.pane || a.page != pagePlan && a.doc.hidden || a.page == 3 && a.write.focus {
+	if a.page == pagePlan && !a.plan.pane || a.page != pagePlan && a.doc.hidden || a.page == pageWrite && a.write.focus {
 		return
 	}
 	win, _ := c.Size()
@@ -253,11 +253,11 @@ func (a *App) settingColumn(c *ui.Context) {
 	panel := ui.Column(c).Width(width).FillHeight().Background(a.pal.side).Shrink(0)
 	a.LastSetting = panel.Bounds()
 	panel.Children(func() {
-		if a.page == 3 && a.doc.tab == panePhone {
+		if a.page == pageWrite && a.doc.tab == panePhone {
 			a.phonePanel(c)
-		} else if a.page == 3 && a.doc.tab == paneFore {
+		} else if a.page == pageWrite && a.doc.tab == paneFore {
 			a.forePanel(c)
-		} else if a.page == 3 && a.talkTab() {
+		} else if a.page == pageWrite && a.talkTab() {
 			a.talkPanel(c)
 		} else {
 			a.settingPanel(c)

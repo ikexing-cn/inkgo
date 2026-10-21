@@ -76,7 +76,7 @@ func (a *App) revise(ops ...workspace.Op) {
 	if err == nil {
 		err = a.refresh()
 	}
-	a.setError(err)
+	a.SetError(err)
 }
 
 // settingPanel is the setting in the right column: its entries a row
@@ -84,7 +84,7 @@ func (a *App) revise(ops ...workspace.Op) {
 func (a *App) settingPanel(c *ui.Context) {
 	d := &a.doc
 	paneTop(c).Children(func() {
-		if a.page == 3 {
+		if a.page == pageWrite {
 			a.panelTabs(c)
 		} else {
 			// The count is what waits on the author, as in the tab.
@@ -440,7 +440,7 @@ func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 			if len(ops) > 0 {
 				a.revise(ops...)
 			}
-			if a.Error == "" {
+			if a.errorText() == "" {
 				d.editing, d.asking = "", ""
 				if len(e.Names) > 0 && len(names) > 0 {
 					a.noteRename(e.Names[0], names[0])
@@ -484,7 +484,7 @@ func (a *App) history(c *ui.Context) {
 					if r.By != workspace.ByAuthor {
 						if words, ok := a.titles[r.Session]; ok {
 							if a.paneLink(c, "记在「"+words+"」", "查看讨论", "讨论-"+r.ID) {
-								a.page = 0
+								a.page = pageTalk
 								a.switchSession(r.Session)
 							}
 						}

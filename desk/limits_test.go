@@ -45,7 +45,8 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 	// and pressing does nothing.
 	save := func(want string) {
 		t.Helper()
-		a.Error, a.notice = "", ""
+		a.SetError(nil)
+		a.notice = ""
 		if want != "" && !tt.HasText(want) {
 			t.Fatalf("the form does not say %q: %q", want, tt.Texts())
 		}
@@ -53,8 +54,8 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 			t.Fatal(err)
 		}
 		tt.Frame()
-		if saved := a.notice == "提供商已保存"; a.Error != "" || saved != (want == "") {
-			t.Fatalf("saved %v, said %q", saved, a.Error)
+		if saved := a.notice == "提供商已保存"; a.errorText() != "" || saved != (want == "") {
+			t.Fatalf("saved %v, said %q", saved, a.errorText())
 		}
 	}
 	retype("最大输出-1", "2M")
@@ -140,8 +141,8 @@ func TestANewServiceSaysWhatIsWrongWhereItIs(t *testing.T) {
 			t.Fatal(err)
 		}
 		tt.Frame()
-		if a.Error != "" || a.notice != "" || len(a.ai.Providers()) != was {
-			t.Fatalf("pressed with %q: %q %q", c.say, a.Error, a.notice)
+		if a.errorText() != "" || a.notice != "" || len(a.ai.Providers()) != was {
+			t.Fatalf("pressed with %q: %q %q", c.say, a.errorText(), a.notice)
 		}
 	}
 	a.provider.Env = "OPENROUTER_API_KEY"
@@ -151,7 +152,7 @@ func TestANewServiceSaysWhatIsWrongWhereItIs(t *testing.T) {
 	}
 	tt.Frame()
 	if ps := a.ai.Providers(); len(ps) != was+1 || ps[was].ID != "open-router" || ps[0].Name != taken.Name || len(ps[0].Models) != len(taken.Models) {
-		t.Fatalf("saved %+v, said %q", ps, a.Error)
+		t.Fatalf("saved %+v, said %q", ps, a.errorText())
 	}
 	// Another is added from the foot of the list, out of sight: its form
 	// comes into view, and 取消 puts it away unsaved.

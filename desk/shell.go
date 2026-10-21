@@ -18,6 +18,17 @@ const titleHeight = hBar
 // narrow collapses the sidebar to icons so the chat keeps a readable width.
 const narrow = 1180
 
+// page names the pages in sidebar order.
+type page int
+
+const (
+	pageTalk page = iota
+	pageWrite
+	pagePlan
+	pageCheck
+	pageCategories
+)
+
 func (a *App) View(c *ui.Context) {
 	a.poll()
 	if !a.menu.seen {
@@ -30,19 +41,11 @@ func (a *App) View(c *ui.Context) {
 		a.pal = a.dark
 	}
 	c.SetTheme(a.pal.theme)
-	if a.page == 1 || a.page == 4 { // the settings are a dialog over the page
-		tab := "AI"
-		if a.page == 4 {
-			tab = a.bk.tab
-		}
-		a.openPrefs(tab)
-		a.page = a.shown
+	if a.Store != nil && !a.aiOn() && (a.page == pageTalk || a.page == pageCheck) {
+		a.page = pageWrite // the talk and the checks are the AI's
 	}
-	if a.Store != nil && !a.aiOn() && (a.page == 0 || a.page == pageCheck) {
-		a.page = 3 // the talk and the checks are the AI's
-	}
-	if a.Store == nil && (a.page == 2 || a.page == 3 || a.page == pageCheck || a.page == pagePlan) {
-		a.page = 0
+	if a.Store == nil && (a.page == pageCategories || a.page == pageWrite || a.page == pageCheck || a.page == pagePlan) {
+		a.page = pageTalk
 	}
 	if a.busy == "" {
 		a.talking = false
@@ -51,7 +54,7 @@ func (a *App) View(c *ui.Context) {
 		a.pollChecks(c)
 		a.backupDue(c)
 	}
-	if a.Store != nil && a.shown == 3 && a.page != 3 {
+	if a.Store != nil && a.shown == pageWrite && a.page != pageWrite {
 		a.flush()
 		a.leaveCheck()
 		a.write.entered = false
@@ -70,8 +73,8 @@ func (a *App) View(c *ui.Context) {
 		a.pruneChecks()
 		a.ck.proseOf = ""
 	}
-	if a.Store != nil && a.shown != a.page && (a.page == 0 || a.page == 3) {
-		a.leftWriting = a.page == 3
+	if a.Store != nil && a.shown != a.page && (a.page == pageTalk || a.page == pageWrite) {
+		a.leftWriting = a.page == pageWrite
 		a.savePrefs() // the work reopens on the page it was left on
 	}
 	a.shown = a.page
@@ -94,9 +97,9 @@ func (a *App) View(c *ui.Context) {
 				switch {
 				case a.page == pagePlan:
 					a.outlinePage(c)
-				case a.page == 2:
+				case a.page == pageCategories:
 					a.categories(c)
-				case a.page == 3:
+				case a.page == pageWrite:
 					a.writing(c)
 				case a.page == pageCheck && a.Store != nil:
 					a.checkPage(c)
@@ -130,7 +133,7 @@ func (a *App) View(c *ui.Context) {
 }
 
 // focused says the prose is shown alone: no title bar, no sidebar, no pane.
-func (a *App) focused() bool { return a.Store != nil && a.page == 3 && a.write.focus }
+func (a *App) focused() bool { return a.Store != nil && a.page == pageWrite && a.write.focus }
 
 // sideShown says whether the sidebar is on screen.
 func (a *App) sideShown() bool { return a.Store != nil && !a.sideHidden && !a.focused() }
@@ -208,14 +211,14 @@ func (a *App) sideBody(c *ui.Context, slim bool) {
 	t := a.pal.theme
 	busy := a.held()
 	if a.aiOn() {
-		a.navItem(c, icChat, "讨论", 0, slim, 0)
+		a.navItem(c, icChat, "讨论", pageTalk, slim, 0)
 	}
-	a.navItem(c, icBook, "正文", 3, slim, 0)
+	a.navItem(c, icBook, "正文", pageWrite, slim, 0)
 	a.navItem(c, icOutline, "大纲", pagePlan, slim, 0)
 	if a.aiOn() {
 		a.navItem(c, icDone, "检查", pageCheck, slim, len(a.listedChecks()))
 	}
-	a.navItem(c, icTag, "作品分类", 2, slim, 0)
+	a.navItem(c, icTag, "作品分类", pageCategories, slim, 0)
 	ui.Box(c).Height(20)
 	defer a.sideFoot(c, slim)
 	if a.treeShown() {
@@ -264,7 +267,7 @@ func (a *App) sideBody(c *ui.Context, slim bool) {
 
 // treeShown tells whether the sidebar lists the chapters: on the writing
 // page, and with the AI off, on every page, there being no talks to list.
-func (a *App) treeShown() bool { return a.page == 3 || !a.aiOn() }
+func (a *App) treeShown() bool { return a.page == pageWrite || !a.aiOn() }
 
 // talkShown tells whether the discussion is on screen, on its page or
 // beside the prose: not the list of talks there, nor the prose alone.
@@ -272,11 +275,11 @@ func (a *App) talkShown() bool {
 	if a.Store == nil {
 		return false
 	}
-	return a.page == 0 || a.page == 3 && a.talkTab() && !a.doc.hidden && !a.doc.talks && !a.focused()
+	return a.page == pageTalk || a.page == pageWrite && a.talkTab() && !a.doc.hidden && !a.doc.talks && !a.focused()
 }
 
 // navItem is a page of the sidebar, with how many things wait there.
-func (a *App) navItem(c *ui.Context, s *ui.SVG, label string, page int, slim bool, count int) {
+func (a *App) navItem(c *ui.Context, s *ui.SVG, label string, page page, slim bool, count int) {
 	t := a.pal.theme
 	on := a.page == page
 	b := ui.ButtonBase(c).Row().FillWidth().Height(hControl).AlignItems(ui.Center).Gap(10).Padding(0, 10).Radius(rControl).Label(label).Disabled(a.held())
@@ -311,7 +314,7 @@ func (a *App) navItem(c *ui.Context, s *ui.SVG, label string, page int, slim boo
 func (a *App) sessionItem(c *ui.Context, id string) {
 	t := a.pal.theme
 	words := a.titles[id]
-	on := id == a.session && a.page == 0
+	on := id == a.session && a.page == pageTalk
 	b := ui.ButtonBase(c.Key("s-"+id)).Row().FillWidth().Justify(ui.Start).AlignItems(ui.Center).Gap(8).Padding(6, 10).Radius(rControl).Label("对话-" + id).Disabled(a.held())
 	if on {
 		b.Background(t.SurfacePressed)
@@ -340,7 +343,7 @@ func (a *App) sessionItem(c *ui.Context, id string) {
 		}
 	})
 	if b.Clicked() {
-		a.page = 0
+		a.page = pageTalk
 		a.switchSession(id)
 	}
 }
@@ -348,10 +351,10 @@ func (a *App) sessionItem(c *ui.Context, id string) {
 func (a *App) newSession() {
 	session, err := a.blankSession()
 	if err != nil {
-		a.setError(err)
+		a.SetError(err)
 		return
 	}
-	a.page = 0
+	a.page = pageTalk
 	a.switchSession(session)
 }
 
@@ -377,7 +380,7 @@ func (a *App) WindowTitle() string {
 		return "Inkgo"
 	}
 	title := a.Store.Work().Name
-	if a.page == 3 {
+	if a.page == pageWrite {
 		if n, ok := a.write.tree.Node(a.write.node); ok && n.Title != "" {
 			title = n.Title + " — " + title
 		}

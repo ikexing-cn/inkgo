@@ -213,7 +213,7 @@ func TestAWorkNewHereOpensOnItsProse(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { b.Close() })
-	if b.page != 3 {
+	if b.page != pageWrite {
 		t.Fatal("opened on", b.page)
 	}
 	// Where it was left is kept, though .writer/ was not there.
@@ -223,15 +223,15 @@ func TestAWorkNewHereOpensOnItsProse(t *testing.T) {
 		t.Fatal(err)
 	}
 	tb.Frame()
-	if _, err := os.Stat(filepath.Join(root, ".writer", "desk.json")); err != nil || b.Error != "" {
-		t.Fatal(err, b.Error)
+	if _, err := os.Stat(filepath.Join(root, ".writer", "desk.json")); err != nil || b.errorText() != "" {
+		t.Fatal(err, b.errorText())
 	}
 	b.openCreate()
 	b.name, b.books.at = "新书", filepath.Join(t.TempDir(), "新书")
-	if err := b.create(); err != nil || b.Error != "" {
-		t.Fatal(err, b.Error)
+	if err := b.create(); err != nil || b.errorText() != "" {
+		t.Fatal(err, b.errorText())
 	}
-	if b.page != 3 {
+	if b.page != pageWrite {
 		t.Fatal("a new work opened on", b.page)
 	}
 }
@@ -402,7 +402,7 @@ func TestLeavingAChangedChapterAsksNothing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a.setError(a.loadTree())
+	a.SetError(a.loadTree())
 	a.write.ed.MoveTo(a.write.ed.Doc.Len(), false)
 	a.write.ed.Insert("她推开门。")
 	a.openNode(two)

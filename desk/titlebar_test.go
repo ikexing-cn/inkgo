@@ -103,7 +103,7 @@ func TestTheTitleBarHasItsOwnRow(t *testing.T) {
 func TestTheSidebarIsPutAwayOnEveryPage(t *testing.T) {
 	a, tt, _ := writingFixture(t, "整条街的灯是同时灭的。")
 	shown := func() bool { _, ok := tt.Find("切换作品"); return ok }
-	for _, page := range []int{3, 0, pageCheck, 2} {
+	for _, page := range []page{pageWrite, pageTalk, pageCheck, pageCategories} {
 		a.page = page
 		tt.Frame()
 		tt.Frame()
@@ -134,7 +134,7 @@ func TestTheSidebarIsPutAwayOnEveryPage(t *testing.T) {
 	}
 
 	// Put away, it comes back for a name to be typed in the tree.
-	a.page = 3
+	a.page = pageWrite
 	tt.Frame()
 	if err := tt.Click("收起侧栏"); err != nil {
 		t.Fatal(err)
@@ -395,14 +395,14 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 			tt.Frame()
 		}
 	}
-	for _, page := range []int{0, pageCheck, 2} {
+	for _, page := range []page{pageTalk, pageCheck, pageCategories} {
 		a.page = page
 		tt.Frame()
 		tt.Frame()
 		pale("文件", "新建章节", "新建文件夹", "保存", "快照")
 		pale("编辑", "撤销", "重做", "查找替换", "重命名", "续写一句", "起草本章")
 		pale("视图", "专注写作", "手机预览")
-		if page != 0 {
+		if page != pageTalk {
 			pale("视图", "收起右栏")
 		}
 		if a.page != page || w.focus || w.finding || w.snapsOpen || w.renaming != "" || w.draftOpen {

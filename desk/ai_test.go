@@ -212,8 +212,8 @@ func TestDraftAChapterThroughATalk(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("目标字数须为正整数，或留空") || a.busy != "" || a.Error != "" {
-		t.Fatal("drafted with words not a count", a.Error, tt.Texts())
+	if !tt.HasText("目标字数须为正整数，或留空") || a.busy != "" || a.errorText() != "" {
+		t.Fatal("drafted with words not a count", a.errorText(), tt.Texts())
 	}
 	a.write.words = "800"
 	tt.Frame()
@@ -602,7 +602,7 @@ func TestTakingTheProposalsOfTwoTalks(t *testing.T) {
 		replied(t, a, tt)
 		talks = append(talks, a.session)
 	}
-	a.page = 3
+	a.page = pageWrite
 	tt.Frame()
 	if talks[0] == talks[1] || !tt.HasText("本章有 2 处 AI 提议") {
 		t.Fatal("two talks did not each propose", talks, tt.Texts())
@@ -638,10 +638,10 @@ func TestADraftWaitsForAModelAndItsTurn(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.Error != "请先配置讨论模型" || !a.write.draftOpen {
-		t.Fatalf("drafted with no model: %q", a.Error)
+	if a.errorText() != "请先配置讨论模型" || !a.write.draftOpen {
+		t.Fatalf("drafted with no model: %q", a.errorText())
 	}
-	a.Error = ""
+	a.SetError(nil)
 	penWith(a, &script{})
 	a.busy = "AI 正在思考…"
 	tt.Frame()

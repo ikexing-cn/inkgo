@@ -87,7 +87,7 @@ func (a *App) nameMenu(m *menu, sel string) {
 			if slices.Contains(workspace.NameCategories, c.Name) {
 				m.Item(c.Name).Do(func() {
 					a.revise(workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: c.Name, Text: name, Names: []string{name}})
-					if a.Error == "" {
+					if a.errorText() == "" {
 						a.notice = "「" + name + "」已加入设定的" + c.Name + "，输入时可自动补全"
 					}
 				})
@@ -160,7 +160,7 @@ func (a *App) replaceName(old, new string) {
 		a.write.entered = true
 		a.enterWriting()
 	}
-	a.page = 3
+	a.page = pageWrite
 	w := &a.write
 	if w.ed == nil {
 		return // no chapter to find in

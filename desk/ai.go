@@ -183,7 +183,7 @@ func (a *App) draft(c *ui.Context) {
 func (a *App) startTalk(c *ui.Context, words workspace.Event) bool {
 	w := &a.write
 	if work := a.Store.Work(); work.Discussion.Provider == "" || work.Discussion.Model == "" {
-		a.Error = "请先配置讨论模型"
+		a.SetError(&aiport.SetupError{Err: errors.New("请先配置讨论模型")})
 		return false
 	}
 	what := map[string]string{workspace.AIDraft: "起草", workspace.AIRewrite: "改写"}[words.Origin]

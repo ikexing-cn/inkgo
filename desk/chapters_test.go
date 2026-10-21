@@ -32,7 +32,7 @@ func TestReopenWhereLeft(t *testing.T) {
 	tt.Frame()
 	a.savePrefs()
 	b := reopen()
-	if b.page != 3 || b.write.node != id {
+	if b.page != pageWrite || b.write.node != id {
 		t.Fatal(b.page, b.write.node)
 	}
 	a = b
@@ -42,7 +42,7 @@ func TestReopenWhereLeft(t *testing.T) {
 		t.Fatal(err)
 	}
 	tb.Frame()
-	if b = reopen(); b.page != 0 {
+	if b = reopen(); b.page != pageTalk {
 		t.Fatal(b.page)
 	}
 }

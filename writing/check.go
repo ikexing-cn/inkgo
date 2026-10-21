@@ -115,7 +115,7 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 	b.Must(workspace.PartProse, meant.String())
 	text := fit(ch.Text, b.Left()*3/4, false)
 	if strings.TrimSpace(text) == "" {
-		return workspace.Check{}, errors.New("模型的上下文上限放不下这一章：请在设置中「AI」配置里调大上下文上限")
+		return workspace.Check{}, &model.SetupError{Err: errors.New("模型的上下文上限放不下这一章：请在设置中「AI」配置里调大上下文上限")}
 	}
 	if len(text) < len(ch.Text) {
 		out.Read = workspace.Count(text) // said with the result: the rest was not looked at
@@ -149,7 +149,7 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 		}
 	}
 	if len(shown) == 0 {
-		return workspace.Check{}, errors.New("模型的上下文上限放不下设定：请在设置中「AI」配置里调大上下文上限")
+		return workspace.Check{}, &model.SetupError{Err: errors.New("模型的上下文上限放不下设定：请在设置中「AI」配置里调大上下文上限")}
 	}
 	var categories []string
 	for _, c := range work.Categories {

@@ -44,7 +44,7 @@ type Scene struct {
 
 // ErrNoModel is what the author is told when the work names no model to
 // write with.
-var ErrNoModel = errors.New("请在设置中「AI」配置里选择续写和检查模型")
+var ErrNoModel = &model.SetupError{Err: errors.New("请在设置中「AI」配置里选择续写和检查模型")}
 
 // prepare builds the request of task for scene: the rules and the setting
 // in the system prompt, the outlines and the text around the place in the
@@ -101,7 +101,7 @@ func (w *Writer) prepare(task string, scene Scene, tail string) (model.Request, 
 		outline = part{heading: "【本章：" + n.Title + "】"}
 	}
 	if b.Left() < 0 {
-		return req, nil, errors.New("纲和要求超出了模型的上下文上限：请缩短，或在设置中「AI」配置里调大上下文上限")
+		return req, nil, &model.SetupError{Err: errors.New("纲和要求超出了模型的上下文上限：请缩短，或在设置中「AI」配置里调大上下文上限")}
 	}
 	if t := fit(textclip.Last(scene.Before, beforeCap), b.Left(), true); strings.TrimSpace(t) != "" {
 		take(&near, workspace.PartProse, "【本章前文】", t)

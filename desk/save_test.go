@@ -241,8 +241,8 @@ func TestSavingOverAFileOnlyTouched(t *testing.T) {
 	tt.Type("新字")
 	tt.Frame()
 	tt.Frame()
-	if got := disk(t, a, "第一章.txt"); got != "新字原来的。" || a.write.external != nil || a.Error != "" {
-		t.Fatalf("on disk %q, error %q", got, a.Error)
+	if got := disk(t, a, "第一章.txt"); got != "新字原来的。" || a.write.external != nil || a.errorText() != "" {
+		t.Fatalf("on disk %q, error %q", got, a.errorText())
 	}
 }
 

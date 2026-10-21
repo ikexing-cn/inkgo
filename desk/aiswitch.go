@@ -14,7 +14,7 @@ func (a *App) aiOn() bool { return !a.shelf.NoAI }
 func (a *App) loadAI() {
 	if a.ai.ConfigFile() != "" {
 		if err := a.ai.Reload(); err != nil {
-			a.Error = err.Error()
+			a.SetError(err)
 		}
 	}
 	if ps := a.ai.Providers(); len(ps) > 0 && a.providerID == "" {
@@ -83,7 +83,7 @@ func (a *App) turnAI(on bool) {
 	a.ai.SetOn(on)
 	if on {
 		a.loadAI()
-		if a.offAway && a.page == 3 {
+		if a.offAway && a.page == pageWrite {
 			a.page = a.offFrom
 		}
 		a.offAway = false
@@ -94,14 +94,15 @@ func (a *App) turnAI(on bool) {
 		if a.Store != nil {
 			a.dropProps(a.write.props, workspace.FateOff)
 			a.stopChecks()
-			if a.page == 0 || a.page == pageCheck {
-				a.offFrom, a.offAway, a.page = a.page, true, 3
+			if a.page == pageTalk || a.page == pageCheck {
+				a.offFrom, a.offAway, a.page = a.page, true, pageWrite
 			}
 		}
 		w := &a.write
 		w.draftOpen, w.rewriting = false, false
 		a.doc.todo = false // what waits on the author there is the AI's
-		a.Error, a.failed, a.fails, a.again, a.notice, a.hint = "", "", 0, nil, "", ""
+		a.SetError(nil)
+		a.failed, a.fails, a.again, a.notice, a.hint = "", 0, nil, "", ""
 	}
 	if ed := a.write.ed; ed != nil {
 		ed.SetNoAI(!on)

@@ -85,7 +85,7 @@ func main() {
 		service.Trace = *trace
 		d := desk.New(service)
 		if err != nil {
-			d.Error = err.Error()
+			d.SetError(err)
 		}
 		d.Backups = true
 		// The dialogs open over the window, asked for off the UI thread.
@@ -111,7 +111,7 @@ func main() {
 		}
 		if *workPath != "" {
 			if err := d.Open(*workPath); err != nil {
-				d.Error = err.Error()
+				d.SetError(err)
 			}
 		} else {
 			d.OpenLast()

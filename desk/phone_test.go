@@ -299,8 +299,8 @@ func TestPhonePreferencesDefaultUnknownChoices(t *testing.T) {
 			a.saveShelf()
 			b := newApp(config)
 			defer b.Close()
-			if b.Error != "" || b.phonePreferences() != defaultPhone() {
-				t.Fatalf("read defaults: %+v, error %q", b.phonePreferences(), b.Error)
+			if b.errorText() != "" || b.phonePreferences() != defaultPhone() {
+				t.Fatalf("read defaults: %+v, error %q", b.phonePreferences(), b.errorText())
 			}
 			if tc.phone == nil && b.shelf.Phone != nil {
 				t.Fatal("reading untouched preferences materialized defaults")

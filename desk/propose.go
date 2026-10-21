@@ -383,7 +383,7 @@ func (a *App) showProp(p *prop) {
 		w.entered = true
 		a.enterWriting()
 	}
-	a.page = 3
+	a.page = pageWrite
 	if w.node != p.Chapter {
 		a.openNode(p.Chapter)
 	}

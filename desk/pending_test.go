@@ -145,6 +145,6 @@ func TestShotPending(t *testing.T) {
 	shot(t, tt, "toolbar-selection-dark.png")
 	tt.SetDark(false)
 	a.write.ed.Select(0, 0)
-	a.page = 1
+	a.openPrefs("AI")
 	shot(t, tt, "titlebar-settings.png")
 }

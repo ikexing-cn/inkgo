@@ -264,6 +264,31 @@ func TestHTTPErrorSecrecyAndBounds(t *testing.T) {
 	}
 }
 
+func TestSetupErrorsAreDistinctFromRequestFailures(t *testing.T) {
+	for _, code := range []int{400, 401, 403, 404, 422, 429, 500, 503} {
+		err := statusError(code)
+		var setup *SetupError
+		want := code == 400 || code == 401 || code == 403 || code == 404 || code == 422
+		if errors.As(err, &setup) != want || !strings.Contains(err.Error(), fmt.Sprintf("HTTP %d", code)) {
+			t.Fatalf("HTTP %d: %v", code, err)
+		}
+	}
+	for _, tc := range []struct {
+		err   error
+		setup bool
+	}{
+		{safeError(context.Background(), errors.New("connection refused")), true},
+		{safeError(context.Background(), context.DeadlineExceeded), false},
+		{errTooLarge, false},
+		{ErrTruncated, false},
+	} {
+		var setup *SetupError
+		if errors.As(tc.err, &setup) != tc.setup {
+			t.Fatal(tc.err)
+		}
+	}
+}
+
 func TestCancellationAndTimeout(t *testing.T) {
 	for _, cancelRequest := range []bool{true, false} {
 		t.Run(map[bool]string{true: "cancel", false: "timeout"}[cancelRequest], func(t *testing.T) {

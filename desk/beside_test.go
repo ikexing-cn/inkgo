@@ -235,13 +235,13 @@ func TestQuotesFindTheirProse(t *testing.T) {
 		Sources: []workspace.Source{{Session: a.session, Message: u.ID, Chapter: id, Quote: "她推开门。"}}}}}); err != nil {
 		t.Fatal(err)
 	}
-	a.setError(a.refresh())
+	a.SetError(a.refresh())
 	if err = a.Store.RenameChapter(id, "雨夜"); err != nil {
 		t.Fatal(err)
 	}
 	a.warn(a.loadTree())
 	a.write.ed.MoveTo(0, false)
-	a.page = 0
+	a.page = pageTalk
 	tt.Frame()
 	tt.Frame()
 	if !tt.HasText("《雨夜》") || tt.HasText("《第一章》") {
@@ -251,7 +251,7 @@ func TestQuotesFindTheirProse(t *testing.T) {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
-	if s, e := a.write.ed.Selection(); a.page != 3 || s != 6 || e != 11 {
+	if s, e := a.write.ed.Selection(); a.page != pageWrite || s != 6 || e != 11 {
 		t.Fatalf("page %d selection %d-%d", a.page, s, e)
 	}
 

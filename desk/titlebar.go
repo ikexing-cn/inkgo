@@ -42,7 +42,7 @@ func (a *App) titleBar(c *ui.Context) {
 	bar := c.TitleBar()
 	w := &a.write
 	inWork := a.Store != nil
-	writing := inWork && a.page == 3
+	writing := inWork && a.page == pageWrite
 	open, busy := a.chapterOpen()
 	var act func() // what was picked
 	// A row of the bar's menus does its part once the bar is drawn.
@@ -98,7 +98,7 @@ func (a *App) titleBar(c *ui.Context) {
 			if a.doc.hidden {
 				pane = "展开右栏"
 			}
-			m.Item(pane).Disabled(!inWork || a.page != 0 && a.page != 3).Do(later(func() { a.setDocHidden(!a.doc.hidden) }))
+			m.Item(pane).Disabled(!inWork || a.page != pageTalk && a.page != pageWrite).Do(later(func() { a.setDocHidden(!a.doc.hidden) }))
 			m.Item("专注写作").Hint("F11").Disabled(!writing).Do(later(func() { w.focus = true }))
 			m.Item("手机预览").Disabled(!open).Do(later(a.openPhone))
 			m.Separator()
@@ -181,7 +181,7 @@ func (a *App) barMenu(c *ui.Context, name string, build func(m *menu)) bool {
 // it cannot be changed now.
 func (a *App) chapterOpen() (open, busy bool) {
 	w := &a.write
-	if a.Store == nil || a.page != 3 || w.ed == nil {
+	if a.Store == nil || a.page != pageWrite || w.ed == nil {
 		return false, false
 	}
 	if n, ok := w.tree.Node(w.node); !ok || n.Folder {

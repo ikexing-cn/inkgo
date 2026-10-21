@@ -33,7 +33,7 @@ func TestOutlineReadError(t *testing.T) {
 	if err := a.Open(root); err != nil {
 		t.Fatal("bad outline blocked opening work", err)
 	}
-	a.page = 3
+	a.page = pageWrite
 	a.openNode(f.two)
 	tt.Frame()
 	if a.write.ed == nil {
@@ -236,7 +236,7 @@ func TestTheOutlineByChapter(t *testing.T) {
 		t.Fatal("drop into tray", c)
 	}
 	click(t, tt, "打开正文-"+f.one)
-	if a.page != 3 || a.write.node != f.one || a.write.outline != "何主任要一份新的灯数。" {
+	if a.page != pageWrite || a.write.node != f.one || a.write.outline != "何主任要一份新的灯数。" {
 		t.Fatal("open prose", a.page, a.write.node, a.write.outline)
 	}
 }

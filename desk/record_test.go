@@ -27,8 +27,8 @@ func TestTheWorkShowsWhatItSpent(t *testing.T) {
 	if _, err = a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "灯为什么会灭"}); err != nil {
 		t.Fatal(err)
 	}
-	a.setError(a.refresh())
-	a.setError(a.loadTree())
+	a.SetError(a.refresh())
+	a.SetError(a.loadTree())
 	at := time.Now().Add(-time.Hour)
 	for i, r := range []workspace.Record{
 		{Feature: workspace.FeatureTalk, Talk: a.session, Model: "anthropic/claude-opus-5-5", Usage: workspace.Usage{Input: 1_682_400, CacheRead: 1_211_300, Output: 59_200}, Cost: 4.444, Currency: "$", Outcome: workspace.OutcomeDone,

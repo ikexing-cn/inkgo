@@ -57,6 +57,71 @@ func newApp(config string) *App { return New(ai.New(config)) }
 // aiOf is the AI of a, for a test to swap fake models in.
 func aiOf(a *App) *ai.Service { return a.ai.(*ai.Service) }
 
+func TestLeavingAWorkSavesItAndStopsItsChecks(t *testing.T) {
+	for _, how := range []string{"attach", "shelf", "close", "busy close"} {
+		t.Run(how, func(t *testing.T) {
+			a, _, id := writingFixture(t, "旧稿。")
+			store := a.Store
+			a.write.ed.Insert("新稿。")
+			want := a.write.ed.Doc.String()
+			check, stopCheck := context.WithCancel(context.Background())
+			defer stopCheck()
+			a.ck.cancel, a.ck.queue, a.ck.total = stopCheck, []string{id}, 1
+			worker, stopWorker := context.WithCancel(context.Background())
+			defer stopWorker()
+			if how == "busy close" {
+				a.cancel, a.busy = stopWorker, "正在回复"
+			}
+			switch how {
+			case "attach":
+				next, err := workspace.Create(filepath.Join(t.TempDir(), "next"), "另一本", "网文")
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err = a.attach(next, next.Root(), false); err != nil {
+					t.Fatal(err)
+				}
+				if a.Store != next {
+					t.Fatal("new store was not attached")
+				}
+			case "shelf":
+				a.closeWork()
+				if a.Store != nil || a.path != "" || a.name != "" {
+					t.Fatal("work did not return to shelf")
+				}
+			default:
+				if err := a.Close(); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if check.Err() != context.Canceled || len(a.ck.queue) != 0 || a.ck.total != 0 {
+				t.Fatal("checks were not stopped")
+			}
+			_, err := store.Chapters()
+			if how == "busy close" {
+				if worker.Err() != context.Canceled || err != nil {
+					t.Fatal("busy worker lost its open store", worker.Err(), err)
+				}
+				if err = store.Close(); err != nil {
+					t.Fatal(err)
+				}
+				a.busy, a.Store = "", nil
+			} else if err == nil {
+				t.Fatal("store was not closed")
+			}
+			reopened, err := workspace.Open(store.Root())
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer reopened.Close()
+			chapter, err := reopened.ReadChapter(id)
+			if err != nil || chapter.Text != workspace.CleanProse(want) {
+				t.Fatal("chapter was not saved", chapter.Text, err)
+			}
+		})
+	}
+}
+
 func settle(t *testing.T, a *App, tt *ui.Tester) {
 	t.Helper()
 	if a.busy == "" {
@@ -254,7 +319,7 @@ func TestTalkNotesTheSettingAsItReplies(t *testing.T) {
 	if err := tt.Click("讨论-" + rev.ID); err != nil {
 		t.Fatal(err)
 	}
-	if a.session != session || a.page != 0 {
+	if a.session != session || a.page != pageTalk {
 		t.Fatal("the link does not go back to the talk")
 	}
 }
@@ -308,7 +373,7 @@ func TestExtractionAddsTheAuthorsEntry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a.setError(a.refresh())
+	a.SetError(a.refresh())
 	tt.Frame()
 	a.openSource(m, 0, 2)
 	tt.Frame()
@@ -333,8 +398,8 @@ func TestCancellationKeepsUIResponsive(t *testing.T) {
 		t.Fatal(err)
 	}
 	settle(t, a, tt)
-	if a.busy != "" || a.cancel != nil || a.Error != context.Canceled.Error() {
-		t.Fatalf("cancel result %q %q", a.busy, a.Error)
+	if a.busy != "" || a.cancel != nil || a.errorText() != context.Canceled.Error() {
+		t.Fatalf("cancel result %q %q", a.busy, a.errorText())
 	}
 }
 
@@ -350,8 +415,8 @@ func TestFailureRefreshesPersistedWork(t *testing.T) {
 		return nil, errors.New("网络失败")
 	})
 	settle(t, a, tt)
-	if len(a.events) != 1 || a.Error != "网络失败" {
-		t.Fatalf("persisted partial result lost: %d %q", len(a.events), a.Error)
+	if len(a.events) != 1 || a.errorText() != "网络失败" {
+		t.Fatalf("persisted partial result lost: %d %q", len(a.events), a.errorText())
 	}
 }
 
@@ -382,7 +447,7 @@ func TestAWorkThatCannotBeOpenedIsNamed(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "work.yaml"), []byte("schema: 一\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	a.setError(a.Open(dir))
+	a.SetError(a.Open(dir))
 	tt.Frame()
 	if !tt.HasText("打开作品「青崖问剑」失败") || !tt.HasText("work.yaml") || a.Store.Work().Name != "测试作品" {
 		t.Fatal(tt.Texts())
@@ -405,10 +470,10 @@ func TestABlankTalkFitsTheWork(t *testing.T) {
 	}
 	a.openCreate()
 	a.name, a.books.at = "新书", filepath.Join(t.TempDir(), "新书")
-	if err := a.create(); err != nil || a.Error != "" {
-		t.Fatal(err, a.Error)
+	if err := a.create(); err != nil || a.errorText() != "" {
+		t.Fatal(err, a.errorText())
 	}
-	a.page = 0
+	a.page = pageTalk
 	tt.Frame()
 	if !tt.HasText("从一个初步的想法开始") || !tt.HasText("我想写一个总在下雨的城市") || tt.HasText("接着聊这部作品") {
 		t.Fatal(tt.Texts())
@@ -429,8 +494,8 @@ func TestNewWorkKeepsTheModels(t *testing.T) {
 		t.Helper()
 		a.openCreate()
 		a.name, a.books.at = name, filepath.Join(t.TempDir(), name)
-		if err := a.create(); err != nil || a.Error != "" {
-			t.Fatal(err, a.Error)
+		if err := a.create(); err != nil || a.errorText() != "" {
+			t.Fatal(err, a.errorText())
 		}
 		return a.Store.Work()
 	}
@@ -575,7 +640,7 @@ func TestTalkLeavesTheRestFree(t *testing.T) {
 	if _, err = a.Store.Append(other, workspace.Event{Role: workspace.RoleUser, Text: "井边的灯谁点的"}); err != nil {
 		t.Fatal(err)
 	}
-	a.setError(a.refresh())
+	a.SetError(a.refresh())
 	tt.Frame()
 	block := make(chan struct{})
 	a.pending = "灯为什么会灭"
@@ -602,7 +667,7 @@ func TestTalkLeavesTheRestFree(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if _, toast := tt.Find("AI 正在思考…"); a.page != 2 || !toast {
+	if _, toast := tt.Find("AI 正在思考…"); a.page != pageCategories || !toast {
 		t.Fatal("another page waits for the reply, or does not say it runs")
 	}
 	if err := tt.Click("讨论"); err != nil {
@@ -698,7 +763,7 @@ func TestReplyTextSelectsAcrossBlocksAndCopies(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a.setError(a.refresh())
+	a.SetError(a.refresh())
 	tt.Frame()
 	for _, s := range []string{"第一段。", "小标题", "甲", "第二段。", "code"} {
 		if !tt.HasText(s) {
@@ -761,7 +826,8 @@ func TestChooseAServiceByName(t *testing.T) {
 // A confirmation goes away on its own; an error stays until dismissed.
 func TestNoticesFade(t *testing.T) {
 	a, tt, _ := fixture(t)
-	a.notice, a.Error = "已保存", "出错了"
+	a.notice = "已保存"
+	a.SetError(errors.New("出错了"))
 	tt.Frame()
 	if !tt.HasText("已保存") {
 		t.Fatal(tt.Texts())
@@ -843,7 +909,7 @@ func TestANewTalkIsListedOnceSomethingIsSaid(t *testing.T) {
 	if _, err := a.Store.Append(first, workspace.Event{Role: workspace.RoleUser, Text: "灯为什么会灭"}); err != nil {
 		t.Fatal(err)
 	}
-	a.setError(a.refresh())
+	a.SetError(a.refresh())
 	tt.Frame()
 	if _, ok := tt.Find("对话-" + first); !ok || !tt.HasText("今天") {
 		t.Fatal("the talk is not listed by its day", tt.Texts())
@@ -865,7 +931,7 @@ func TestShelveAConversation(t *testing.T) {
 	if _, err := a.Store.Append(old, workspace.Event{Role: workspace.RoleUser, Text: "灯为什么会灭"}); err != nil {
 		t.Fatal(err)
 	}
-	a.setError(a.refresh())
+	a.SetError(a.refresh())
 	a.newSession()
 	open := a.session
 	tt.Frame()

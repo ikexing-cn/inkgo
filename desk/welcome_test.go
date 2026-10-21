@@ -45,7 +45,7 @@ func TestShelfKeepsTheWorks(t *testing.T) {
 	}
 	tt.Frame()
 	if a.Store == nil || a.Store.Work().Name != "雨城来信" || a.books.creating {
-		t.Fatal("the new work is not open", a.Error)
+		t.Fatal("the new work is not open", a.errorText())
 	}
 	s := readShelf(t, a)
 	if r := s.Recent(); len(r) != 2 || r[0].Name != "雨城来信" || !sameFolder(r[1].Path, first) {
@@ -115,7 +115,7 @@ func TestShelfKeepsTheWorks(t *testing.T) {
 	b := newApp(a.ai.ConfigFile())
 	b.OpenLast()
 	if b.Store == nil || !sameFolder(b.Store.Root(), first) {
-		t.Fatal("did not reopen", b.Error)
+		t.Fatal("did not reopen", b.errorText())
 	}
 	b.Close()
 }
@@ -166,8 +166,8 @@ func TestANewWorkSaysWhereItGoes(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !a.books.creating || a.Error != "" || a.Store.Work().Name != "测试作品" {
-		t.Fatal("pressed where there are files:", a.Error)
+	if !a.books.creating || a.errorText() != "" || a.Store.Work().Name != "测试作品" {
+		t.Fatal("pressed where there are files:", a.errorText())
 	}
 	a.name = "空文件夹"
 	tt.Frame()
@@ -176,7 +176,7 @@ func TestANewWorkSaysWhereItGoes(t *testing.T) {
 	}
 	tt.Frame()
 	if a.books.creating || !sameFolder(a.Store.Root(), empty) {
-		t.Fatal("not made in the empty folder:", a.Error)
+		t.Fatal("not made in the empty folder:", a.errorText())
 	}
 }
 
@@ -228,11 +228,11 @@ func TestShelfFindsMovedWorks(t *testing.T) {
 	}
 	defer s.Close()
 	if s.Work().Name != "雨夜" || readShelf(t, a).Books[0].Name != "雨夜" || a.books.renaming != "" {
-		t.Fatal("not renamed", a.Error)
+		t.Fatal("not renamed", a.errorText())
 	}
 
 	a.addBook(t.TempDir())
-	if a.Error == "" {
+	if a.errorText() == "" {
 		t.Fatal("added a folder without a work")
 	}
 	a.removeBook(moved)
@@ -250,7 +250,7 @@ func TestBrokenShelfIsNotOverwritten(t *testing.T) {
 		t.Fatal(err)
 	}
 	a := newApp(config)
-	if a.Error == "" {
+	if a.errorText() == "" {
 		t.Fatal("no error")
 	}
 	s, err := workspace.Create(filepath.Join(dir, "work"), "雨夜", "网文")

@@ -3,11 +3,13 @@ package desk
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
 
+	"writer/desk/aiport"
 	"writer/internal/testshot"
 )
 
@@ -16,7 +18,7 @@ import (
 func TestToastOverTheSettings(t *testing.T) {
 	a, tt, _ := fixture(t)
 	a.openPrefs("AI")
-	a.Error = "连不上 AI：检查网络和服务地址"
+	a.SetError(&aiport.SetupError{Err: errors.New("连不上 AI：检查网络和服务地址")})
 	tt.Frame()
 	tt.Frame()
 	if n := strings.Count(strings.Join(tt.Texts(), "\n"), "连不上 AI"); n != 1 {
@@ -38,15 +40,15 @@ func TestToastOverTheSettings(t *testing.T) {
 	if err := tt.Click("复制详情"); err != nil {
 		t.Fatal(err)
 	}
-	if tt.Clipboard() != a.Error {
+	if tt.Clipboard() != a.errorText() {
 		t.Fatalf("copied %q", tt.Clipboard())
 	}
 	if err := tt.Click("关闭提示"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.Error != "" || tt.HasText("连不上 AI") {
-		t.Fatal(a.Error, tt.Texts())
+	if a.errorText() != "" || tt.HasText("连不上 AI") {
+		t.Fatal(a.errorText(), tt.Texts())
 	}
 }
 
@@ -54,14 +56,34 @@ func TestToastOverTheSettings(t *testing.T) {
 // settings open and the toast goes, as in the prototype.
 func TestOpeningTheSettingsFromAToastClearsIt(t *testing.T) {
 	a, tt, _ := fixture(t)
-	a.Error = "尚未选择讨论模型：请在设置中「AI」配置里选择"
+	a.SetError(&aiport.SetupError{Err: errors.New("尚未选择讨论模型：请在设置中「AI」配置里选择")})
 	tt.Frame()
 	if err := tt.Click("打开设置"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.Error != "" || tt.HasText("尚未选择讨论模型") || !tt.HasText("关闭 AI") {
-		t.Fatal(a.Error, tt.Texts())
+	if a.errorText() != "" || tt.HasText("尚未选择讨论模型") || !tt.HasText("关闭 AI") {
+		t.Fatal(a.errorText(), tt.Texts())
+	}
+}
+
+func TestToastSettingsFollowTheErrorType(t *testing.T) {
+	a, tt, _ := fixture(t)
+	cause := errors.New("服务需要重新选择")
+	wrapped := fmt.Errorf("请求失败：%w", &aiport.SetupError{Err: cause})
+	a.SetError(wrapped)
+	tt.Frame()
+	tt.Frame()
+	if !tt.HasText("打开设置") || !errors.Is(a.err, cause) {
+		t.Fatal("wrapped setup error lost its settings action or cause", tt.Texts())
+	}
+	for _, err := range []error{errors.New("模型回复被截断"), errors.New("模型请求超时：太慢了"), errors.New("AI 回复不是合法 JSON")} {
+		a.SetError(err)
+		tt.Frame()
+		tt.Frame()
+		if tt.HasText("打开设置") || !tt.HasText("复制详情") {
+			t.Fatal(err, tt.Texts())
+		}
 	}
 }
 
@@ -99,7 +121,7 @@ func TestRepeatedFailureCounts(t *testing.T) {
 // More than two toasts fold the oldest into a line that opens them.
 func TestToastsFold(t *testing.T) {
 	a, tt, _ := fixture(t)
-	a.Error = "出错了"
+	a.SetError(errors.New("出错了"))
 	tt.Frame()
 	a.busy = "正在整理"
 	tt.Frame()
@@ -139,16 +161,16 @@ func TestShotToasts(t *testing.T) {
 
 	tt.SetDark(true)
 	a.openPrefs("AI")
-	a.Error = "连不上 AI：检查网络和服务地址"
+	a.SetError(&aiport.SetupError{Err: errors.New("连不上 AI：检查网络和服务地址")})
 	shot(t, tt, "toast-settings-dark.png")
 	tt.SetDark(false)
 	a.bk.prefs = false
-	a.Error = ""
+	a.SetError(nil)
 	tt.Frame()
-	a.page = 3
+	a.page = pageWrite
 	a.notice = "已保存。停笔片刻也会自动保存"
 	shot(t, tt, "toast-saved.png")
-	a.Error = "连不上 AI：检查网络和服务地址"
+	a.SetError(&aiport.SetupError{Err: errors.New("连不上 AI：检查网络和服务地址")})
 	tt.Frame()
 	a.busy = "正在读取可用模型…"
 	shot(t, tt, "toast-stack.png")

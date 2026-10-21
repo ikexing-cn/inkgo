@@ -285,7 +285,7 @@ func (a *App) switchSession(id string) {
 	}
 	a.session = id
 	a.source, a.sourceOpen, a.contextReply = nil, false, ""
-	a.setError(a.refresh())
+	a.SetError(a.refresh())
 	a.chat = ui.ListState{} // a list's place is its session's
 }
 
@@ -297,7 +297,7 @@ func (a *App) emptyChat(c *ui.Context) {
 		title, about = "接着聊这部作品", "AI 会参考已有的设定和正文。"
 		starts = []string{"接下来的情节怎么走", "哪些设定还没想清楚", "梳理一下人物关系"}
 	}
-	if a.page == 3 { // beside the prose the talk is about the page in front of the author
+	if a.page == pageWrite { // beside the prose the talk is about the page in front of the author
 		unit := a.openUnit()
 		starts = []string{"这一" + unit + "的节奏怎么样", "接下来可以怎么写", "人物的动机说得通吗"}
 		// In the column they are rows, as its lists are.
@@ -838,7 +838,7 @@ func (a *App) composer(c *ui.Context) {
 	t := a.pal.theme
 	work := a.Store.Work()
 	ready := work.Discussion.Provider != "" && work.Discussion.Model != ""
-	side := a.page == 3
+	side := a.page == pageWrite
 	// The chip names the model and effort the next turn goes to, and
 	// opens a menu to change either; its tooltip says where the words go.
 	chip := func() {
@@ -973,7 +973,7 @@ func (a *App) send(c *ui.Context) {
 	}
 	input, quotes := a.input, a.quotes
 	words := workspace.Event{Text: input, Quotes: quotes}
-	if a.page == 3 {
+	if a.page == pageWrite {
 		words.Chapter = a.write.node
 	}
 	a.input, a.quotes = "", nil
@@ -989,7 +989,7 @@ func (a *App) send(c *ui.Context) {
 func (a *App) say(c *ui.Context, session string, words workspace.Event, unsaid func()) {
 	talk, err := a.talk(c)
 	if err != nil {
-		a.setError(err)
+		a.SetError(err)
 		if unsaid != nil {
 			unsaid()
 		}
@@ -1016,7 +1016,7 @@ func (a *App) say(c *ui.Context, session string, words workspace.Event, unsaid f
 func (a *App) retry(c *ui.Context, userID string) {
 	talk, err := a.talk(c)
 	if err != nil {
-		a.setError(err)
+		a.SetError(err)
 		return
 	}
 	session := a.session
@@ -1096,7 +1096,7 @@ func (a *App) extraction(c *ui.Context) {
 						err = a.refresh()
 						a.flash[entry.ID] = time.Now()
 					}
-					a.setError(err)
+					a.SetError(err)
 				}
 			})
 		})
@@ -1164,5 +1164,5 @@ func (a *App) setTalk(change func(*workspace.Selection)) {
 	if err == nil {
 		a.loadWork()
 	}
-	a.setError(err)
+	a.SetError(err)
 }

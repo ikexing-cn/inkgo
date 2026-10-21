@@ -1,9 +1,11 @@
 package desk
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/aiport"
 )
 
 // Each way into a dialog from the prose gives the keyboard back to the
@@ -35,7 +37,11 @@ func TestDialogsGiveTheKeyboardBack(t *testing.T) {
 		{"导出", click("菜单栏-文件", "导出…"), escape},
 		{"快捷键", click("菜单栏-帮助", "快捷键…"), escape},
 		{"加入设定", func() { a.write.ed.Select(0, 3); tt.Frame(); click("加入设定")() }, escape},
-		{"提示里的打开设置", func() { a.Error = "尚未选择讨论模型"; tt.Frame(); click("打开设置")() }, escape},
+		{"提示里的打开设置", func() {
+			a.SetError(&aiport.SetupError{Err: errors.New("尚未选择讨论模型")})
+			tt.Frame()
+			click("打开设置")()
+		}, escape},
 	} {
 		a.write.ed.Focus()
 		tt.Frame()

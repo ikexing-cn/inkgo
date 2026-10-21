@@ -107,7 +107,7 @@ func (a *App) exportPlan() exportPlan {
 	// The chapter open on the page of prose, and the volume it is in, or
 	// the volume itself when that is what is open.
 	cur, vol := -1, -1
-	if a.page == 3 {
+	if a.page == pageWrite {
 		for i, p := range x.pieces {
 			if p.ID == a.write.node {
 				cur = i

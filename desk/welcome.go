@@ -44,7 +44,7 @@ func (a *App) loadShelf() {
 	s, fresh, err := shelf.Load(a.books.file)
 	if err != nil {
 		a.books.broken = true
-		a.Error = "作品清单无法读取，本次不会改动：" + err.Error()
+		a.SetError(fmt.Errorf("作品清单无法读取，本次不会改动：%w", err))
 		return
 	}
 	if fresh {
@@ -119,17 +119,17 @@ func (a *App) OpenLast() {
 	if len(recent) == 0 || recent[0].Opened.IsZero() || !shelf.IsWork(recent[0].Path) {
 		return
 	}
-	a.setError(a.Open(recent[0].Path))
+	a.SetError(a.Open(recent[0].Path))
 }
 
 // switchWork opens another work from the shelf.
 func (a *App) switchWork(path string) {
 	if !shelf.IsWork(path) {
 		a.books.missing[path] = true
-		a.Error = "找不到该作品的文件夹：" + path
+		a.SetError(errors.New("找不到该作品的文件夹：" + path))
 		return
 	}
-	a.setError(a.Open(path))
+	a.SetError(a.Open(path))
 }
 
 // openCreate starts the new-work dialog.
@@ -215,7 +215,7 @@ func (a *App) lastModels() (talk, pen workspace.Selection) {
 // addBook puts a work already on disk on the shelf.
 func (a *App) addBook(path string) {
 	if !shelf.IsWork(path) {
-		a.Error = "该文件夹中没有作品（缺少 work.yaml）：" + path
+		a.SetError(errors.New("该文件夹中没有作品（缺少 work.yaml）：" + path))
 		return
 	}
 	if a.shelf.Find(path) >= 0 {
@@ -224,7 +224,7 @@ func (a *App) addBook(path string) {
 	}
 	b, err := describe(path)
 	if err != nil {
-		a.setError(err)
+		a.SetError(err)
 		return
 	}
 	a.shelf.Put(b)
@@ -235,12 +235,12 @@ func (a *App) addBook(path string) {
 // relocate points a work whose folder moved at where it is now.
 func (a *App) relocate(from, to string) {
 	if !shelf.IsWork(to) {
-		a.Error = "该文件夹中没有作品（缺少 work.yaml）：" + to
+		a.SetError(errors.New("该文件夹中没有作品（缺少 work.yaml）：" + to))
 		return
 	}
 	b, err := describe(to)
 	if err != nil {
-		a.setError(err)
+		a.SetError(err)
 		return
 	}
 	a.shelf.Relocate(from, b.Path)
@@ -298,7 +298,7 @@ func (a *App) pickInto(c *ui.Context, title string, then func(path string)) {
 		path, err := pick(title)
 		a.picks <- func() {
 			if err != nil {
-				a.Error = err.Error()
+				a.SetError(err)
 			} else if path != "" {
 				then(path)
 			}
@@ -598,7 +598,7 @@ func (a *App) createDialog(c *ui.Context) {
 					v.creating = false
 				}
 				if a.pal.primary(c, "创建").Label("创建作品").Disabled(!v.fits).Clicked() {
-					a.setError(a.create())
+					a.SetError(a.create())
 				}
 			})
 		})
@@ -623,7 +623,7 @@ func (a *App) renameDialog(c *ui.Context) {
 				}
 				if a.pal.primary(c, "保存").Label("保存作品名").Disabled(trim(v.name) == "").Clicked() {
 					if err := a.renameBook(v.renaming, v.name); err != nil {
-						a.setError(err)
+						a.SetError(err)
 					} else {
 						open = false
 					}

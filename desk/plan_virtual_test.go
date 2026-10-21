@@ -61,7 +61,7 @@ func TestOutlineVirtualScrolling(t *testing.T) {
 	}
 	planVisibleCard(t, a, tt, added.ID)
 	// The prose jump also has to create a distant time column first.
-	a.page = 3
+	a.page = pageWrite
 	a.openNode(last.Chapter)
 	sv.Invalidate()
 	tt.Frame()

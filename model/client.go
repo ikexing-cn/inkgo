@@ -30,23 +30,37 @@ const (
 
 var errTooLarge = errors.New("模型请求超过 8 MiB")
 
+// SetupError distinguishes a service, model or key problem from a failed reply.
+type SetupError struct{ Err error }
+
+func (e *SetupError) Error() string { return e.Err.Error() }
+func (e *SetupError) Unwrap() error { return e.Err }
+
 // statusError names the likely cause of an HTTP failure. The response body
 // is never shown: some providers echo part of the key or the request.
 func statusError(code int) error {
 	var hint string
+	setup := false
 	switch {
 	case code == 401 || code == 403:
 		hint = "：API key 无效、缺失或没有权限"
+		setup = true
 	case code == 404:
 		hint = "：API 地址或模型 ID 不对"
+		setup = true
 	case code == 429:
 		hint = "：请求太频繁或额度不足"
 	case code == 400 || code == 422:
 		hint = "：请求被拒绝，常见原因是模型 ID、推理等级或参数不受支持"
+		setup = true
 	case code >= 500:
 		hint = "：服务端出错，稍后重试"
 	}
-	return fmt.Errorf("模型服务返回 HTTP %d%s", code, hint)
+	err := fmt.Errorf("模型服务返回 HTTP %d%s", code, hint)
+	if setup {
+		return &SetupError{Err: err}
+	}
+	return err
 }
 
 // Effort is how hard a model reasons before it answers. The zero value
@@ -312,7 +326,7 @@ func (c *Client) effortOptions(e Effort) map[string]any {
 
 func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta)) (Reply, error) {
 	if strings.TrimSpace(c.modelID) == "" {
-		return Reply{}, errors.New("请填写模型 ID")
+		return Reply{}, &SetupError{Err: errors.New("请填写模型 ID")}
 	}
 	if req.MaxTokens < 0 {
 		return Reply{}, errors.New("max tokens 不能为负数")
@@ -523,7 +537,7 @@ func safeError(ctx context.Context, err error) error {
 	if errors.As(err, &timeout) && timeout.Timeout() {
 		return fmt.Errorf("模型请求超时：%w", context.DeadlineExceeded)
 	}
-	return errors.New("连不上 AI：检查网络和服务地址")
+	return &SetupError{Err: errors.New("连不上 AI：检查网络和服务地址")}
 }
 
 // guard sends a request only to the provider's host, with the provider's

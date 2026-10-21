@@ -80,7 +80,7 @@ func (a *App) categories(c *ui.Context) {
 					a.categoryName, a.categoryTarget = "", ""
 				}
 				if a.pal.primary(c, "保存分类").Height(hControl).Disabled(busy || trim(a.categoryName) == "" || trim(a.categoryTarget) == "").Clicked() {
-					a.setError(a.saveCategory())
+					a.SetError(a.saveCategory())
 				}
 			})
 			// A name already there is changed, not added: say which, and
@@ -135,5 +135,5 @@ func (a *App) dropCategory(name string) {
 		err = a.refresh()
 	}
 	a.removeCategory = ""
-	a.setError(err)
+	a.SetError(err)
 }

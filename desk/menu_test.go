@@ -8,6 +8,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"writer/internal/testshot"
+	"writer/workspace"
 )
 
 // pick clicks the rows of the menu that is open along path: each but the
@@ -289,6 +290,12 @@ func TestShotMenus(t *testing.T) {
 	shot(t, tt, "menu-pane.png")
 	shut()
 
+	if _, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "城里的灯为什么亮着？"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.refresh(); err != nil {
+		t.Fatal(err)
+	}
 	if err := tt.Click("讨论"); err != nil {
 		t.Fatal(err)
 	}

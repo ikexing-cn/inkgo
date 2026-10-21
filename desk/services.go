@@ -120,7 +120,7 @@ func (a *App) usage(c *ui.Context) {
 	})
 	if typing == [2]bool{} {
 		if err := a.saveUsage(); err != nil {
-			a.setError(err)
+			a.SetError(err)
 		}
 	}
 }
@@ -265,7 +265,7 @@ func (a *App) services(c *ui.Context) {
 				}
 				a.notice = "配置已重新读取"
 			}
-			a.setError(err)
+			a.SetError(err)
 		}
 	})
 }
@@ -432,7 +432,7 @@ func (a *App) providerForm(c *ui.Context) {
 				if err == nil {
 					a.notice = "已清除保存的 key"
 				}
-				a.setError(err)
+				a.SetError(err)
 				a.key = ""
 			}
 			// A new service has no 收起 above it: it is put away from here.
@@ -452,7 +452,7 @@ func (a *App) providerForm(c *ui.Context) {
 					a.notice = "提供商已保存"
 					a.bk.edit = a.providerID
 				}
-				a.setError(err)
+				a.SetError(err)
 			}
 		})
 	})
@@ -541,7 +541,7 @@ func (a *App) models() ([]aiport.Model, error) {
 	} {
 		for _, m := range out {
 			if rule.bad(m) {
-				return nil, errors.New(m.ID + " " + rule.why)
+				return nil, &aiport.SetupError{Err: errors.New(m.ID + " " + rule.why)}
 			}
 		}
 	}
@@ -550,12 +550,12 @@ func (a *App) models() ([]aiport.Model, error) {
 
 func (a *App) fetchModels(c *ui.Context) {
 	if err := a.saveProvider(); err != nil {
-		a.setError(err)
+		a.SetError(err)
 		return
 	}
 	catalog, err := a.ai.Catalog(a.provider.ID)
 	if err != nil {
-		a.setError(err)
+		a.SetError(err)
 		return
 	}
 	a.run(c, "正在读取可用模型…", func(ctx context.Context) (func(), error) {
@@ -617,7 +617,7 @@ func idFrom(name string) string {
 func (a *App) saveProvider() error {
 	p, bad := a.serviceInForm()
 	if why := bad.First(); why != "" {
-		return errors.New(why)
+		return &aiport.SetupError{Err: errors.New(why)}
 	}
 	if err := a.ai.SaveProvider(p); err != nil {
 		return err

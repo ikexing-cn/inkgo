@@ -238,7 +238,7 @@ func (a *App) backupDue(c *ui.Context) {
 		return
 	}
 	daily := s.Daily && s.Last.Format(time.DateOnly) != now.Format(time.DateOnly)
-	hourly := s.Hourly && a.page == 3 && now.Sub(s.Last) >= time.Hour
+	hourly := s.Hourly && a.page == pageWrite && now.Sub(s.Last) >= time.Hour
 	if daily || hourly {
 		a.runBackup(c.Services())
 	}

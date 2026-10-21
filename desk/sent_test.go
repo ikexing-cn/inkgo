@@ -53,7 +53,7 @@ func TestWhatWasSent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a.setError(a.refresh())
+	a.SetError(a.refresh())
 	tt.Frame()
 	footers, asked := 0, 0
 	for _, s := range tt.Texts() {

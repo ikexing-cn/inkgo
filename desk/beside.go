@@ -1,6 +1,7 @@
 package desk
 
 import (
+	"errors"
 	"strings"
 	"time"
 
@@ -137,7 +138,7 @@ func (a *App) talkList(c *ui.Context) {
 	d := &a.doc
 	if a.paneFind(c, &d.talkQuery, "搜索讨论", "新讨论", nil) {
 		if id, err := a.blankSession(); err != nil {
-			a.setError(err)
+			a.SetError(err)
 		} else {
 			a.switchSession(id)
 			d.talks, a.focusTalk = false, true
@@ -175,7 +176,7 @@ func (a *App) talkList(c *ui.Context) {
 // page, or nil when nothing is open or they turned it off.
 func (a *App) beside() *aiport.Beside {
 	w := &a.write
-	if a.page != 3 || !a.doc.attach || w.node == "" || w.lost {
+	if a.page != pageWrite || !a.doc.attach || w.node == "" || w.lost {
 		return nil
 	}
 	n, ok := w.tree.Node(w.node)
@@ -259,10 +260,10 @@ func (a *App) findInChapter(chapter, text string) {
 		a.enterWriting()
 	}
 	if _, ok := a.write.tree.Node(chapter); !ok {
-		a.Error = "该章已不存在"
+		a.SetError(errors.New("该章已不存在"))
 		return
 	}
-	a.page = 3
+	a.page = pageWrite
 	if a.write.node != chapter {
 		a.openNode(chapter)
 	}

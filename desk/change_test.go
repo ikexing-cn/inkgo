@@ -31,8 +31,8 @@ func TestAnEntryChangesFromAChapter(t *testing.T) {
 		t.Fatal(err)
 	}
 	later := r.Ops[0].Change
-	a.setError(a.loadTree())
-	a.setError(a.refresh())
+	a.SetError(a.loadTree())
+	a.SetError(a.refresh())
 	tt.Frame()
 	has := func(why string, want ...string) {
 		t.Helper()
@@ -128,7 +128,7 @@ func TestAnEntryChangesFromAChapter(t *testing.T) {
 		t.Fatal(err)
 	}
 	idea := r.Ops[0].Change
-	a.setError(a.refresh())
+	a.SetError(a.refresh())
 	tt.Frame()
 	has("an idea on the page", "AI 建议", "第3章起", "配角，学会了修灯。")
 	hasNot("an idea on the page", "随章节的变化")
@@ -152,7 +152,7 @@ func TestAnEntryChangesFromAChapter(t *testing.T) {
 	if err = a.Store.TrashChapter(three); err != nil {
 		t.Fatal(err)
 	}
-	a.setError(a.loadTree())
+	a.SetError(a.loadTree())
 	a.openNode(one)
 	a.doc.todo, a.doc.shown = false, ids.zhou
 	tt.Frame()

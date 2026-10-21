@@ -249,7 +249,7 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 		}
 	}
 	look("the page of prose")
-	if a.page != 3 || a.doc.tab != paneTalk {
+	if a.page != pageWrite || a.doc.tab != paneTalk {
 		t.Fatalf("page %d; the talk beside the prose not kept for the AI to come back", a.page)
 	}
 	if w.ed.Marked() {
@@ -359,7 +359,7 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Frame()
-	if a.page != 3 {
+	if a.page != pageWrite {
 		t.Errorf("with the AI off, the work opens on page %d", a.page)
 	}
 	look("the work opened again")
@@ -535,8 +535,8 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 	if len(w.ed.Proposals()) != 0 || len(w.props) != 0 || w.ed.ReadOnly() || w.ed.Doc.String() != "" {
 		t.Fatalf("the draft was not let go: %q", w.ed.Doc.String())
 	}
-	if a.Error != "" || a.notice != "" || len(aiSaid(tt)) > 0 {
-		t.Fatalf("turned off, the AI still tells of itself: %q %q %q", a.Error, a.notice, aiSaid(tt))
+	if a.errorText() != "" || a.notice != "" || len(aiSaid(tt)) > 0 {
+		t.Fatalf("turned off, the AI still tells of itself: %q %q %q", a.errorText(), a.notice, aiSaid(tt))
 	}
 	close(hold)
 	time.Sleep(50 * time.Millisecond)
@@ -566,11 +566,11 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 // author went elsewhere.
 func TestTheAIComesBackToItsPage(t *testing.T) {
 	a, tt, _ := fixture(t)
-	for _, from := range []int{0, pageCheck} {
+	for _, from := range []page{pageTalk, pageCheck} {
 		a.page = from
 		tt.Frame()
 		switchAI(t, a, tt, false)
-		if a.page != 3 {
+		if a.page != pageWrite {
 			t.Fatalf("off on page %d, page %d shows", from, a.page)
 		}
 		switchAI(t, a, tt, true)
@@ -578,18 +578,18 @@ func TestTheAIComesBackToItsPage(t *testing.T) {
 			t.Fatalf("on again, page %d shows, not %d", a.page, from)
 		}
 	}
-	a.page = 0
+	a.page = pageTalk
 	tt.Frame()
 	switchAI(t, a, tt, false)
-	a.page = 2
+	a.page = pageCategories
 	switchAI(t, a, tt, true)
-	if a.page != 2 {
+	if a.page != pageCategories {
 		t.Fatalf("on again, page %d took the place of the categories", a.page)
 	}
-	a.page = 3
+	a.page = pageWrite
 	switchAI(t, a, tt, false)
 	switchAI(t, a, tt, true)
-	if a.page != 3 {
+	if a.page != pageWrite {
 		t.Fatalf("off and on on the prose, page %d shows", a.page)
 	}
 }

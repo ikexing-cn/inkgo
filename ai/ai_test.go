@@ -11,9 +11,11 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"writer/desk/aiport"
 	"writer/discussion"
 	"writer/model"
 	"writer/workspace"
+	"writer/writing"
 )
 
 // replies is a model that gives each of its replies in turn, failing on
@@ -31,6 +33,78 @@ func (r *replies) Complete(ctx context.Context, req model.Request, on func(model
 	}
 	return next, nil
 }
+
+func TestSetupErrorsCrossThePort(t *testing.T) {
+	st, err := workspace.Create(filepath.Join(t.TempDir(), "work"), "测试作品", "网文")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	s := New(filepath.Join(t.TempDir(), "bad.yaml"))
+	s.cfg = model.DefaultConfig()
+	if err = os.WriteFile(s.file, []byte("schema: ["), 0600); err != nil {
+		t.Fatal(err)
+	}
+	for name, request := range map[string]func() error{
+		"config":           s.Reload,
+		"service form":     func() error { return s.SaveProvider(aiport.Provider{}) },
+		"key":              func() error { return s.SetKey("invalid id", "unused") },
+		"catalog service":  func() error { _, err := s.Catalog("missing"); return err },
+		"talk model":       func() error { _, err := s.Talk(st, nil, nil, nil); return err },
+		"writing model":    func() error { _, err := s.Pen(st); return err },
+		"selected service": func() error { _, err := s.open(workspace.Selection{Provider: "missing", Model: "m"}, st); return err },
+		"talk runtime model": func() error {
+			_, err := (talk{&discussion.Engine{Store: st}}).Say(context.Background(), "", workspace.Event{Text: "问题"})
+			return err
+		},
+		"pen runtime model": func() error {
+			_, err := (pen{&writing.Writer{Store: st}}).Predict(context.Background(), aiport.Scene{})
+			return err
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			err := request()
+			var setup *aiport.SetupError
+			if !errors.As(err, &setup) || setup.Unwrap() == nil || setup.Error() != setup.Unwrap().Error() {
+				t.Fatalf("configuration error lost its identity or text: %v", err)
+			}
+		})
+	}
+	for _, setup := range []bool{false, true} {
+		cause := error(errors.New("模型请求失败"))
+		if setup {
+			cause = &model.SetupError{Err: cause}
+		}
+		for name, request := range map[string]func() error{
+			"request": func() error {
+				c := counted{Completer: failingRequest{cause}, st: st}
+				_, err := c.Complete(context.Background(), model.Request{}, nil)
+				return err
+			},
+			"catalog": func() error { _, err := (catalog{failingRequest{cause}}).ListModels(context.Background()); return err },
+		} {
+			err := request()
+			var config *aiport.SetupError
+			if errors.As(err, &config) != setup || !errors.Is(err, cause) || err.Error() != cause.Error() {
+				t.Fatalf("%s: setup %v: %v", name, setup, err)
+			}
+		}
+	}
+	s.SetOn(false)
+	_, err = s.Catalog("missing")
+	var setup *aiport.SetupError
+	if !errors.Is(err, ErrOff) || errors.As(err, &setup) {
+		t.Fatal("turning AI off is not a setup failure", err)
+	}
+}
+
+type failingRequest struct{ err error }
+
+func (f failingRequest) Complete(context.Context, model.Request, func(model.Delta)) (model.Reply, error) {
+	return model.Reply{}, f.err
+}
+
+func (f failingRequest) ListModels(context.Context) ([]string, error) { return nil, f.err }
 
 // Each request is a line of the AI record, for the purpose its context
 // carries and with its cost at the prices built in: done, failed,

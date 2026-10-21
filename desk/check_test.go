@@ -1,6 +1,8 @@
 package desk
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -107,7 +109,7 @@ func TestCheckAChapterAndSettleWhatItFinds(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.page != 3 || a.write.ed.SelectedText() != "林婉" {
+	if a.page != pageWrite || a.write.ed.SelectedText() != "林婉" {
 		t.Fatal(a.page, a.write.ed.SelectedText())
 	}
 	f.pieces = []string{`{"findings":[]}`}
@@ -250,6 +252,33 @@ func TestCheckOnlyWhenAsked(t *testing.T) {
 	a.loadPrefs()
 	if a.ck.when != checkOnDemand {
 		t.Fatal("the choice was not kept")
+	}
+}
+
+func TestCloseCancelsARunningCheck(t *testing.T) {
+	a, tt, id, f := checkFixture(t)
+	f.pieces, f.hold = []string{`{"findings":`, `[]}`}, make(chan struct{})
+	a.queueCheck(id)
+	tt.Frame()
+	until(t, tt, "the check request", func() bool {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		return len(f.asked) > 0
+	})
+	done, store := a.ck.done, a.Store
+	if err := a.Close(); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case result := <-done:
+		if !errors.Is(result.err, context.Canceled) || result.store != store {
+			t.Fatal("check did not stop on window close", result.err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("check kept running after window close")
+	}
+	if len(a.ck.queue) != 0 {
+		t.Fatal("queued checks survived window close")
 	}
 }
 

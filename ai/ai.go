@@ -89,7 +89,7 @@ func (s *Service) Limits(id string) (aiport.Model, bool) {
 func (s *Service) Reload() error {
 	cfg, err := model.Load(s.file)
 	if err != nil {
-		return err
+		return setupError(err)
 	}
 	s.cfg = cfg
 	return nil
@@ -121,13 +121,15 @@ func (s *Service) SaveProvider(p aiport.Provider) error {
 		cfg.Providers = append(cfg.Providers, provider(p))
 	}
 	if err := model.Save(s.file, cfg); err != nil {
-		return err
+		return setupError(err)
 	}
 	s.cfg = cfg
 	return nil
 }
 
-func (s *Service) SetKey(providerID, key string) error { return model.SetKey(providerID, key) }
+func (s *Service) SetKey(providerID, key string) error {
+	return setupError(model.SetKey(providerID, key))
+}
 
 func (s *Service) Catalog(providerID string) (aiport.Catalog, error) {
 	if s.off.Load() {
@@ -135,9 +137,35 @@ func (s *Service) Catalog(providerID string) (aiport.Catalog, error) {
 	}
 	client, err := model.NewClient(s.cfg, providerID, "")
 	if err != nil {
-		return nil, err
+		return nil, setupError(err)
 	}
-	return client, nil
+	return catalog{client}, nil
+}
+
+func setupError(err error) error {
+	if err == nil {
+		return nil
+	}
+	return &aiport.SetupError{Err: err}
+}
+
+func requestError(err error) error {
+	var port *aiport.SetupError
+	if errors.As(err, &port) {
+		return err
+	}
+	var setup *model.SetupError
+	if errors.As(err, &setup) {
+		return setupError(err)
+	}
+	return err
+}
+
+type catalog struct{ aiport.Catalog }
+
+func (c catalog) ListModels(ctx context.Context) ([]string, error) {
+	ids, err := c.Catalog.ListModels(ctx)
+	return ids, requestError(err)
 }
 
 func (s *Service) Efforts() []string {
@@ -155,12 +183,12 @@ type talk struct{ e *discussion.Engine }
 
 func (t talk) Say(ctx context.Context, session string, words workspace.Event) (bool, error) {
 	turn, err := t.e.Say(ctx, session, words)
-	return turn.User.ID != "", err
+	return turn.User.ID != "", requestError(err)
 }
 
 func (t talk) Retry(ctx context.Context, session, userID string) error {
 	_, err := t.e.Retry(ctx, session, userID)
-	return err
+	return requestError(err)
 }
 
 func (s *Service) Talk(st *workspace.Store, beside *aiport.Beside, progress func(aiport.Progress), step func(workspace.Event)) (aiport.Talk, error) {
@@ -169,7 +197,7 @@ func (s *Service) Talk(st *workspace.Store, beside *aiport.Beside, progress func
 	}
 	work := st.Work()
 	if work.Discussion.Provider == "" || work.Discussion.Model == "" {
-		return nil, errors.New("尚未选择讨论模型：请在设置中「AI」配置里选择")
+		return nil, setupError(errors.New("尚未选择讨论模型：请在设置中「AI」配置里选择"))
 	}
 	m, err := s.Open(work.Discussion, st)
 	if err != nil {
@@ -188,7 +216,8 @@ func (s *Service) Talk(st *workspace.Store, beside *aiport.Beside, progress func
 }
 
 func (s *Service) Preloaded(st *workspace.Store, origin, chapter string) (int, error) {
-	return discussion.Preloaded(st, origin, chapter)
+	n, err := discussion.Preloaded(st, origin, chapter)
+	return n, requestError(err)
 }
 
 func (s *Service) Extract(st *workspace.Store, session, message string, start, end int, category string) (workspace.Entry, error) {
@@ -200,7 +229,7 @@ func (s *Service) Extract(st *workspace.Store, session, message string, start, e
 func (s *Service) open(sel workspace.Selection, st *workspace.Store) (discussion.Model, error) {
 	client, err := model.NewClient(s.cfg, sel.Provider, sel.Model)
 	if err != nil {
-		return discussion.Model{}, err
+		return discussion.Model{}, setupError(err)
 	}
 	name := sel.Provider + "/" + sel.Model
 	return discussion.Model{Completer: counted{client, st, name, sel.Model, s.Trace}, Model: s.cfg.Model(sel.Provider, sel.Model),
@@ -237,7 +266,7 @@ func (c counted) Complete(ctx context.Context, req model.Request, on func(model.
 	if c.trace != "" {
 		_ = traced(c.trace, r, req, reply, err)
 	}
-	return reply, err
+	return reply, requestError(err)
 }
 
 // traced writes request req, its reply and the line r of the record into
@@ -286,7 +315,7 @@ func (s *Service) writer(st *workspace.Store) (*writing.Writer, error) {
 		sel.Provider, sel.Model = work.Discussion.Provider, work.Discussion.Model
 	}
 	if sel.Provider == "" || sel.Model == "" {
-		return nil, writing.ErrNoModel
+		return nil, setupError(writing.ErrNoModel)
 	}
 	m, err := s.Open(sel, st)
 	if err != nil {
@@ -302,11 +331,13 @@ func (p pen) Name() string   { return p.w.Model.Name }
 func (p pen) Effort() string { return string(p.w.Model.Effort) }
 
 func (p pen) Predict(ctx context.Context, scene aiport.Scene) (string, error) {
-	return p.w.Predict(ctx, writing.Scene(scene))
+	text, err := p.w.Predict(ctx, writing.Scene(scene))
+	return text, requestError(err)
 }
 
 func (p pen) Check(ctx context.Context, chapter string) (workspace.Check, error) {
-	return p.w.Check(ctx, chapter)
+	check, err := p.w.Check(ctx, chapter)
+	return check, requestError(err)
 }
 
 func (s *Service) Pen(st *workspace.Store) (aiport.Pen, error) {
