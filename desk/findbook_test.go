@@ -114,3 +114,12 @@ func TestReplaceThroughTheBook(t *testing.T) {
 		t.Fatal("the chapter open cannot be undone", a.write.ed.Doc.String())
 	}
 }
+
+func TestAroundMeasure(t *testing.T) {
+	if got := around("甲乙ab\n关键\ncd丙丁", "关键", 3); got != "…ab 关键 cd…" {
+		t.Fatalf("around = %q", got)
+	}
+	if got := around("甲乙", "无", 3); got != "" {
+		t.Fatalf("missing match = %q", got)
+	}
+}

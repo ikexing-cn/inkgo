@@ -183,7 +183,7 @@ func TestTheProseIsWrittenToTheSettingAsItStands(t *testing.T) {
 	}
 	tree, _ := s.Chapters()
 	node, _ := tree.Node(two)
-	one, _ := previous(tree, node)
+	one, _ := tree.Previous(node)
 	rain := r.Ops[0].Entry
 	if _, err = s.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{
 		{Op: workspace.OpChange, Entry: rain, From: two, Place: workspace.PlaceBody, Text: "城市的雨停了"},

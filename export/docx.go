@@ -23,6 +23,11 @@ const (
 // headingSizes are 标题 1 to 3: 小二, 三号, 四号.
 var headingSizes = [3]int{36, 32, 28}
 
+const xmlHeader = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n"
+
+// Word wants ind before jc.
+const centered = `<w:ind w:firstLineChars="0" w:firstLine="0"/><w:jc w:val="center"/>`
+
 const wordNS = `xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"`
 
 // esc is s as XML character data.
@@ -55,14 +60,13 @@ func (d Doc) Docx() ([]byte, error) {
 	}
 	page := fmt.Sprintf(`<w:pgSz w:w="%d" w:h="%d"/><w:pgMar w:top="%d" w:right="%d" w:bottom="%d" w:left="%d" w:header="851" w:footer="992" w:gutter="0"/>`,
 		pageWidth, pageHeight, marginY, marginX, marginY, marginX)
-	plain := `<w:ind w:firstLineChars="0" w:firstLine="0"/><w:jc w:val="center"/>` // Word wants ind before jc
 	if c := d.Cover; c != nil {
 		para(fmt.Sprintf(`<w:pStyle w:val="Title"/><w:spacing w:before="%d" w:after="1200"/>`, coverDrop), run(c.Title, false))
 		if c.Pen != "" {
-			para(plain, run("作者："+c.Pen, false))
+			para(centered, run("作者："+c.Pen, false))
 		}
 		// The cover's section ends with this paragraph; it has no footer.
-		para(plain+`<w:sectPr>`+page+`</w:sectPr>`, run("字数："+c.Words, false))
+		para(centered+`<w:sectPr>`+page+`</w:sectPr>`, run("字数："+c.Words, false))
 	} else if d.Title != "" {
 		para(`<w:pStyle w:val="Title"/>`, run(d.Title, false))
 	}
@@ -85,15 +89,15 @@ func (d Doc) Docx() ([]byte, error) {
 	files := []struct{ name, data string }{
 		{"[Content_Types].xml", contentTypes},
 		{"_rels/.rels", rootRels},
-		{"docProps/core.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n" +
+		{"docProps/core.xml", xmlHeader +
 			`<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/">` +
 			`<dc:title>` + esc(title) + `</dc:title><dc:creator>` + esc(author) + `</dc:creator></cp:coreProperties>`},
 		{"word/_rels/document.xml.rels", documentRels},
-		{"word/document.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n" +
+		{"word/document.xml", xmlHeader +
 			`<w:document ` + wordNS + `><w:body>` + body.String() + `</w:body></w:document>`},
 		{"word/styles.xml", styles()},
-		{"word/footer1.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n" +
-			`<w:ftr ` + wordNS + `><w:p><w:pPr>` + plain + `</w:pPr><w:fldSimple w:instr=" PAGE "><w:r><w:t>1</w:t></w:r></w:fldSimple></w:p></w:ftr>`},
+		{"word/footer1.xml", xmlHeader +
+			`<w:ftr ` + wordNS + `><w:p><w:pPr>` + centered + `</w:pPr><w:fldSimple w:instr=" PAGE "><w:r><w:t>1</w:t></w:r></w:fldSimple></w:p></w:ftr>`},
 	}
 	var out bytes.Buffer
 	z := zip.NewWriter(&out)
@@ -112,8 +116,7 @@ func (d Doc) Docx() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
+const contentTypes = xmlHeader + `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
 	`<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` +
 	`<Default Extension="xml" ContentType="application/xml"/>` +
 	`<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>` +
@@ -122,14 +125,14 @@ const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 	`<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>` +
 	`</Types>`
 
-const rootRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+const relationships = `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">`
+
+const rootRels = xmlHeader + relationships +
 	`<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>` +
 	`<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>` +
 	`</Relationships>`
 
-const documentRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+const documentRels = xmlHeader + relationships +
 	`<Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>` +
 	`<Relationship Id="rIdFooter" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>` +
 	`</Relationships>`
@@ -144,19 +147,18 @@ func fonts(east string) string {
 // its own, which it shows as 正文, 标题, 标题 1 to 3 in Chinese.
 func styles() string {
 	size := func(n int) string { return fmt.Sprintf(`<w:sz w:val="%d"/><w:szCs w:val="%d"/>`, n, n) }
-	flat := `<w:ind w:firstLineChars="0" w:firstLine="0"/><w:jc w:val="center"/>`
 	var b strings.Builder
-	b.WriteString(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n" + `<w:styles ` + wordNS + `>`)
+	b.WriteString(xmlHeader + `<w:styles ` + wordNS + `>`)
 	b.WriteString(`<w:docDefaults><w:rPrDefault><w:rPr>` + fonts("宋体") + size(bodySize) + `<w:lang w:val="en-US" w:eastAsia="zh-CN"/></w:rPr></w:rPrDefault>` +
 		fmt.Sprintf(`<w:pPrDefault><w:pPr><w:spacing w:line="%d" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>`, lineSpacing))
 	b.WriteString(fmt.Sprintf(`<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/>`+
 		`<w:pPr><w:ind w:firstLineChars="200" w:firstLine="%d"/><w:jc w:val="both"/></w:pPr></w:style>`, firstLine))
 	b.WriteString(`<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>` +
-		`<w:pPr><w:spacing w:after="480"/>` + flat + `</w:pPr><w:rPr>` + fonts("黑体") + size(44) + `</w:rPr></w:style>`)
+		`<w:pPr><w:spacing w:after="480"/>` + centered + `</w:pPr><w:rPr>` + fonts("黑体") + size(44) + `</w:rPr></w:style>`)
 	for i, n := range headingSizes {
 		b.WriteString(fmt.Sprintf(`<w:style w:type="paragraph" w:styleId="Heading%d"><w:name w:val="heading %d"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>`+
 			`<w:pPr><w:keepNext/><w:spacing w:before="480" w:after="360"/>%s<w:outlineLvl w:val="%d"/></w:pPr><w:rPr>%s%s</w:rPr></w:style>`,
-			i+1, i+1, flat, i, fonts("黑体"), size(n)))
+			i+1, i+1, centered, i, fonts("黑体"), size(n)))
 	}
 	b.WriteString(`</w:styles>`)
 	return b.String()

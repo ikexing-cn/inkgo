@@ -25,7 +25,37 @@ func Estimate(s string) int {
 			other++
 		}
 	}
+	return estimate(ascii, other)
+}
+
+func estimate(ascii, other int) int {
 	return (ascii+2)/3 + (other*3+1)/2 + 16
+}
+
+// CutMark ends what was cut to fit.
+const CutMark = "……（后面太长，略去）"
+
+// ClipTokens cuts s from its end to at most tokens, as estimated. If even
+// the marker does not fit, it still returns the marker, as the talk expects.
+func ClipTokens(s string, tokens int) string {
+	r := []rune(s)
+	ascii, other, cut := 0, 0, 0
+	// CutMark contains only non-ASCII runes.
+	mark := utf8.RuneCountInString(CutMark)
+	for i, ch := range r {
+		if ch < utf8.RuneSelf {
+			ascii++
+		} else {
+			other++
+		}
+		if estimate(ascii, other+mark) <= tokens {
+			cut = i + 1
+		}
+	}
+	if estimate(ascii, other) <= tokens {
+		return s
+	}
+	return string(r[:cut]) + CutMark
 }
 
 // slack is what headings and the overhead of each message may take

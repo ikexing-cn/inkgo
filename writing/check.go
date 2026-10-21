@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"writer/discussion"
+	"writer/internal/textclip"
 	"writer/model"
 	"writer/prompt"
 	"writer/workspace"
@@ -225,8 +226,8 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 }
 
 func clipRunes(s string, n int) string {
-	if r := []rune(s); len(r) > n {
-		return string(r[:n-1]) + "…"
+	if utf8.RuneCountInString(s) > n {
+		return textclip.Clip(s, n-1)
 	}
 	return s
 }

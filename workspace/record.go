@@ -8,6 +8,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"writer/internal/strictjson"
 )
 
 // logFile is the AI record of the work, beside work.yaml, so that a backup
@@ -129,7 +131,7 @@ func (s *Store) records() ([]Record, int64, error) {
 	var all []Record
 	prefix, err := readJSONL(p, func(raw []byte) error {
 		var r Record
-		if err := decodeStrict(raw, &r); err != nil {
+		if err := strictjson.Decode(raw, &r); err != nil {
 			return err
 		}
 		if err := validRecord(r); err != nil {

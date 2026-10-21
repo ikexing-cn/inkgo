@@ -1,7 +1,9 @@
 package prompt
 
 import (
+	"math/rand/v2"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 
@@ -96,5 +98,52 @@ func TestTheSettingReadsInAStableOrder(t *testing.T) {
 	}
 	if got := Render(w, set, places, shown, Whole); strings.Contains(got, "林晚") || !strings.Contains(got, "周祥") {
 		t.Fatalf("rendered what was not shown:\n%s", got)
+	}
+}
+
+func binaryClip(s string, tokens int) string {
+	if Estimate(s) <= tokens {
+		return s
+	}
+	r := []rune(s)
+	n := sort.Search(len(r)+1, func(n int) bool { return Estimate(string(r[:n])+CutMark) > tokens }) - 1
+	return string(r[:max(n, 0)]) + CutMark
+}
+
+func TestClipTokensMatchesBinarySearch(t *testing.T) {
+	check := func(s string) {
+		t.Helper()
+		for budget := -2; budget <= Estimate(s)+2; budget++ {
+			if got, want := ClipTokens(s, budget), binaryClip(s, budget); got != want {
+				t.Fatalf("ClipTokens(%q, %d) = %q, want %q", s, budget, got, want)
+			}
+		}
+	}
+	for _, mix := range []string{"a", "甲", "甲a", "ab甲cd乙", "\n\t甲 a😀", string([]byte{0xff, 'a', 0xfe})} {
+		for n := 0; n <= 100; n++ {
+			check(strings.Repeat(mix, n))
+		}
+	}
+	rng := rand.New(rand.NewPCG(1, 2))
+	alphabet := []rune("abc甲乙丙😀 \n\t")
+	for range 100 {
+		r := make([]rune, rng.IntN(200))
+		for i := range r {
+			r[i] = alphabet[rng.IntN(len(alphabet))]
+		}
+		check(string(r))
+	}
+}
+
+func TestFirstSentenceMeasure(t *testing.T) {
+	for _, c := range []struct{ text, want string }{
+		{strings.Repeat("甲", 61), strings.Repeat("甲", 60) + "…"},
+		{strings.Repeat("a", 61), strings.Repeat("a", 60) + "…"},
+		{"甲a\n乙bcdef", "甲a"},
+		{strings.Repeat("甲a", 30), strings.Repeat("甲a", 30)},
+	} {
+		if got := firstSentence(c.text); got != c.want {
+			t.Errorf("firstSentence(%q) = %q, want %q", c.text, got, c.want)
+		}
 	}
 }

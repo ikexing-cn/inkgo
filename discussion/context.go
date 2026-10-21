@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"sort"
 
 	"writer/model"
 	"writer/prompt"
@@ -260,25 +259,12 @@ func fill(b *prompt.Budget, turns []exchange, oldest bool) ([]model.Message, int
 	}
 	if took == 0 && oldest && len(turns) > 0 {
 		x, half := turns[0], b.Left()/2
-		x.user.Content, x.reply.Content = clipTo(x.user.Content, half), clipTo(x.reply.Content, half)
+		x.user.Content, x.reply.Content = prompt.ClipTokens(x.user.Content, half), prompt.ClipTokens(x.reply.Content, half)
 		if b.Take(workspace.PartTalk, x.text()) {
 			msgs, took = []model.Message{x.user, x.reply}, 1
 		}
 	}
 	return msgs, took
-}
-
-// cutMark ends what was cut to fit.
-const cutMark = "……（后面太长，略去）"
-
-// clipTo cuts s from its end to at most tokens, as estimated.
-func clipTo(s string, tokens int) string {
-	if prompt.Estimate(s) <= tokens {
-		return s
-	}
-	r := []rune(s)
-	n := sort.Search(len(r)+1, func(n int) bool { return prompt.Estimate(string(r[:n])+cutMark) > tokens }) - 1
-	return string(r[:max(n, 0)]) + cutMark
 }
 
 // told is what the model is told before the setting, every step: the

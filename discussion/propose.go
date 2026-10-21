@@ -6,6 +6,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"writer/internal/textclip"
 	"writer/model"
 	"writer/workspace"
 )
@@ -126,9 +127,9 @@ func told(events []workspace.Event) string {
 		where := atNames[p.At]
 		switch p.At {
 		case workspace.ProposeReplace:
-			where = "换掉「" + clip(p.Quote, 12) + "」"
+			where = "换掉「" + textclip.Clip(p.Quote, 12) + "」"
 		case workspace.ProposeAfter:
-			where = "接在「" + clip(p.Quote, 12) + "」之后"
+			where = "接在「" + textclip.Clip(p.Quote, 12) + "」之后"
 		}
 		lines = append(lines, "「"+p.Title+"」"+where+"的提议："+fateWords[e.Fate]+"。")
 	}

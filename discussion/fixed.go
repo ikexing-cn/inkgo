@@ -101,7 +101,7 @@ func fixedOf(st *workspace.Store, tree workspace.Tree, origin, chapter string) (
 		}
 		switch {
 		case !ahead:
-		case m.Folder && !holds(m, n):
+		case m.Folder && (n == m || !n.Within(m)):
 			if o := outline(m.ID); o != "" {
 				vols = append(vols, b.name[m.ID]+"：\n"+o)
 			}
@@ -117,7 +117,7 @@ func fixedOf(st *workspace.Store, tree workspace.Tree, origin, chapter string) (
 	if len(chapters) > 0 {
 		add(workspace.PartOutlines, "【本卷前面各章的章纲】\n"+strings.Join(chapters, "\n\n"), fmt.Sprintf("本卷前面各章的章纲 %d 章", len(chapters)))
 	}
-	if p, ok := previous(tree, n); ok {
+	if p, ok := tree.Previous(n); ok {
 		if pc, err := st.ReadChapter(p.ID); err == nil && strings.TrimSpace(pc.Text) != "" {
 			add(workspace.PartPrevious, "【上一章全文："+b.name[p.ID]+"】\n"+pc.Text, fmt.Sprintf("上一章全文：%s %d 字", b.name[p.ID], workspace.Count(pc.Text)))
 		}
@@ -127,30 +127,6 @@ func fixedOf(st *workspace.Store, tree workspace.Tree, origin, chapter string) (
 		add(workspace.PartChapter, "【本章已有的正文】\n"+ch.Text, fmt.Sprintf("本章已有正文 %d 字", workspace.Count(ch.Text)))
 	}
 	return f, nil
-}
-
-// holds tells whether folder f holds n, at any depth.
-func holds(f, n *workspace.Node) bool {
-	for p := n.Parent; p != nil; p = p.Parent {
-		if p == f {
-			return true
-		}
-	}
-	return false
-}
-
-// previous is the document before n in the order of the tree.
-func previous(t workspace.Tree, n *workspace.Node) (*workspace.Node, bool) {
-	var last, found *workspace.Node
-	t.Walk(func(m *workspace.Node, _ int) {
-		if m == n {
-			found = last
-		}
-		if !m.Folder {
-			last = m
-		}
-	})
-	return found, found != nil
 }
 
 // Preloaded is about how many tokens a talk opened to draft or rewrite

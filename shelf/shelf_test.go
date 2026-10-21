@@ -162,3 +162,15 @@ func TestStartScansTheLibrary(t *testing.T) {
 		t.Fatal("a missing library has works")
 	}
 }
+
+func TestShelfRejectsTrailingContent(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "works.json")
+	for _, tail := range []string{"{}", "null", "trailing", "{"} {
+		if err := os.WriteFile(path, []byte(`{"schema":1,"books":[]}`+tail), 0644); err != nil {
+			t.Fatal(err)
+		}
+		if _, fresh, err := Load(path); err == nil || fresh || !strings.Contains(err.Error(), path) {
+			t.Fatalf("tail %q: fresh %v, error %v", tail, fresh, err)
+		}
+	}
+}

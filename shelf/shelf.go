@@ -4,7 +4,6 @@
 package shelf
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,6 +15,8 @@ import (
 	"time"
 
 	"writer/backup"
+	"writer/internal/atomicfile"
+	"writer/internal/strictjson"
 )
 
 const Schema = 1
@@ -113,9 +114,7 @@ func Load(path string) (s Shelf, fresh bool, err error) {
 	if err != nil {
 		return Shelf{}, false, err
 	}
-	d := json.NewDecoder(bytes.NewReader(b))
-	d.DisallowUnknownFields()
-	if err = d.Decode(&s); err != nil {
+	if err = strictjson.Decode(b, &s); err != nil {
 		return Shelf{}, false, fmt.Errorf("%s: %w", path, err)
 	}
 	if s.Schema != Schema {
@@ -145,11 +144,7 @@ func (s Shelf) Save(path string) error {
 	if err = os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return err
 	}
-	tmp := path + ".tmp"
-	if err = os.WriteFile(tmp, append(b, '\n'), 0644); err != nil {
-		return err
-	}
-	return os.Rename(tmp, path)
+	return atomicfile.Write(path, append(b, '\n'), 0644)
 }
 
 // same tells whether two work paths are the same folder.

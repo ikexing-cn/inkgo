@@ -64,7 +64,7 @@ func (s *Service) SetOn(on bool) { s.off.Store(!on) }
 func (s *Service) Providers() []aiport.Provider {
 	out := make([]aiport.Provider, len(s.cfg.Providers))
 	for i, p := range s.cfg.Providers {
-		out[i] = aiport.Provider{ID: p.ID, Name: p.Name, BaseURL: p.BaseURL, Protocol: p.Protocol, Env: p.Env, Models: make([]aiport.Model, len(p.Models))}
+		out[i] = aiport.Provider{ID: p.ID, Name: p.Name, BaseURL: p.BaseURL, Protocol: string(p.Protocol), Env: p.Env, Models: make([]aiport.Model, len(p.Models))}
 		for j, m := range p.Models {
 			out[i].Models[j] = aiport.Model(m)
 		}
@@ -74,7 +74,7 @@ func (s *Service) Providers() []aiport.Provider {
 
 // provider is p as package model has it.
 func provider(p aiport.Provider) model.Provider {
-	out := model.Provider{ID: p.ID, Name: p.Name, BaseURL: p.BaseURL, Protocol: p.Protocol, Env: p.Env, Models: make([]model.Model, len(p.Models))}
+	out := model.Provider{ID: p.ID, Name: p.Name, BaseURL: p.BaseURL, Protocol: model.Protocol(p.Protocol), Env: p.Env, Models: make([]model.Model, len(p.Models))}
 	for i, m := range p.Models {
 		out.Models[i] = model.Model(m)
 	}

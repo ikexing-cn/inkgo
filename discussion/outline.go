@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"writer/internal/textclip"
 	"writer/prompt"
 	"writer/workspace"
 )
@@ -36,7 +37,7 @@ func cardLine(p workspace.Plan, b book, i int) string {
 		}
 	}
 	if about := prompt.OneLine(c.About); about != "" {
-		parts = append(parts, "说明："+clip(about, 200))
+		parts = append(parts, "说明："+textclip.Clip(about, 200))
 	}
 	return strings.Join(parts, "｜")
 }
@@ -125,7 +126,7 @@ func (t *toolbox) readOutline(in input) outcome {
 		head = text
 		count := 0
 		for _, ch := range b.docs {
-			if !holds(n, ch) {
+			if ch == n || !ch.Within(n) {
 				continue
 			}
 			text, err := outline(ch)

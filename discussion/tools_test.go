@@ -310,3 +310,11 @@ func TestToolsReadTheBook(t *testing.T) {
 		t.Errorf("look up nothing: %s", out)
 	}
 }
+
+func TestSnippetMeasure(t *testing.T) {
+	text := strings.Repeat("甲", around+1) + "\n关键\n" + strings.Repeat("a", around+1)
+	want := "…" + strings.Repeat("甲", around-1) + " 关键 " + strings.Repeat("a", around-1) + "…"
+	if got := snippet(text, "关键"); got != want {
+		t.Fatalf("snippet = %q, want %q", got, want)
+	}
+}

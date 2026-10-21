@@ -8,6 +8,7 @@ import (
 	"unicode"
 
 	"writer/discussion"
+	"writer/internal/textclip"
 	"writer/model"
 	"writer/prompt"
 	"writer/workspace"
@@ -102,10 +103,10 @@ func (w *Writer) prepare(task string, scene Scene, tail string) (model.Request, 
 	if b.Left() < 0 {
 		return req, nil, errors.New("纲和要求超出了模型的上下文上限：请缩短，或在设置中「AI」配置里调大上下文上限")
 	}
-	if t := fit(lastRunes(scene.Before, beforeCap), b.Left(), true); strings.TrimSpace(t) != "" {
+	if t := fit(textclip.Last(scene.Before, beforeCap), b.Left(), true); strings.TrimSpace(t) != "" {
 		take(&near, workspace.PartProse, "【本章前文】", t)
 	}
-	if t := fit(firstRunes(scene.After, afterCap), b.Left(), false); strings.TrimSpace(t) != "" {
+	if t := fit(textclip.First(scene.After, afterCap), b.Left(), false); strings.TrimSpace(t) != "" {
 		take(&far, workspace.PartProse, "【本章后文】", t)
 	}
 
@@ -115,9 +116,9 @@ func (w *Writer) prepare(task string, scene Scene, tail string) (model.Request, 
 	system := rules + "\n\n" + prompt.Render(work, set, writePlaces, shown, prompt.Whole) + later + "\n\n" + task
 
 	// The previous chapter's end, while this one has little before.
-	if p, ok := previous(tree, n); ok && len([]rune(scene.Before)) < beforeCap {
+	if p, ok := tree.Previous(n); ok && len([]rune(scene.Before)) < beforeCap {
 		if pc, err := w.Store.ReadChapter(p.ID); err == nil {
-			if t := fit(lastRunes(pc.Text, previousCap), b.Left()-64, true); strings.TrimSpace(t) != "" {
+			if t := fit(textclip.Last(pc.Text, previousCap), b.Left()-64, true); strings.TrimSpace(t) != "" {
 				take(&prev, workspace.PartProse, "【上一章《"+p.Title+"》的结尾】", t)
 			}
 		}
@@ -174,30 +175,6 @@ func purpose(ctx context.Context, feature, chapter string, sent *workspace.Sent)
 		p.Parts = sent.Parts
 	}
 	return workspace.WithPurpose(ctx, p)
-}
-
-// previous is the document before n in the order of the tree.
-func previous(t workspace.Tree, n *workspace.Node) (*workspace.Node, bool) {
-	var last, found *workspace.Node
-	t.Walk(func(m *workspace.Node, _ int) {
-		if m == n {
-			found = last
-		}
-		if !m.Folder {
-			last = m
-		}
-	})
-	return found, found != nil
-}
-
-func lastRunes(s string, n int) string {
-	r := []rune(s)
-	return string(r[max(0, len(r)-n):])
-}
-
-func firstRunes(s string, n int) string {
-	r := []rune(s)
-	return string(r[:min(n, len(r))])
 }
 
 // fit cuts s to what budget tokens hold, keeping its end, or its start.

@@ -16,7 +16,7 @@ import (
 )
 
 func testProvider(baseURL, protocol string) Provider {
-	return Provider{ID: "custom", Name: "Custom", BaseURL: baseURL + "/v1", Protocol: protocol, Models: []Model{Builtin("catalog-only")}}
+	return Provider{ID: "custom", Name: "Custom", BaseURL: baseURL + "/v1", Protocol: Protocol(protocol), Models: []Model{Builtin("catalog-only")}}
 }
 
 func sse(w http.ResponseWriter, events ...string) {

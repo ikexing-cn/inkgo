@@ -106,7 +106,7 @@ func TestCheckAChapterAgainstTheSetting(t *testing.T) {
 	}
 	tree, _ := s.Chapters()
 	node, _ := tree.Node(two)
-	one, _ := previous(tree, node)
+	one, _ := tree.Previous(node)
 	if _, err = w.Check(context.Background(), one.ID); err == nil {
 		t.Fatal("checked a chapter too short")
 	}
@@ -154,5 +154,18 @@ func TestAChapterReadInPartSaysSo(t *testing.T) {
 	f.pieces = []string{`{"findings":[]}`}
 	if got, err = w.Check(context.Background(), two); err != nil || got.Read != 0 {
 		t.Fatalf("read %d, %v", got.Read, err)
+	}
+}
+
+func TestClipRunesMeasure(t *testing.T) {
+	for _, c := range []struct{ text, want string }{
+		{"甲乙丙丁戊", "甲乙丙…"},
+		{"abcde", "abc…"},
+		{"甲a\n乙b", "甲a\n…"},
+		{"甲ab乙", "甲ab乙"},
+	} {
+		if got := clipRunes(c.text, 4); got != c.want {
+			t.Errorf("clipRunes(%q, 4) = %q, want %q", c.text, got, c.want)
+		}
 	}
 }

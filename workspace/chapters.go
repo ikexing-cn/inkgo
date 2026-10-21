@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 	"unicode"
+
+	"writer/internal/strictjson"
 )
 
 // The prose lives under chapters/ as the chapter tree shows it: a folder is
@@ -67,6 +69,20 @@ func (t Tree) Walk(fn func(n *Node, depth int)) {
 		}
 	}
 	walk(t.Root.Children, 0)
+}
+
+// Previous is the document before n in the order of the tree.
+func (t Tree) Previous(n *Node) (*Node, bool) {
+	var last, found *Node
+	t.Walk(func(m *Node, _ int) {
+		if m == n {
+			found = last
+		}
+		if !m.Folder {
+			last = m
+		}
+	})
+	return found, found != nil
 }
 
 // Within reports whether n is ancestor or inside it.
@@ -363,7 +379,7 @@ func (s *Store) readOrder(dir []string) ([]orderEntry, error) {
 		return nil, err
 	}
 	var order []orderEntry
-	if err = decodeStrict(b, &order); err != nil {
+	if err = strictjson.Decode(b, &order); err != nil {
 		return nil, fmt.Errorf("%s: %w", p, err)
 	}
 	return order, nil

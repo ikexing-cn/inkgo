@@ -230,10 +230,10 @@ func TestATurnTooLongIsCut(t *testing.T) {
 	long := exchange{model.Message{Role: workspace.RoleUser, Content: strings.Repeat("问", 1000)}, model.Message{Role: workspace.RoleAssistant, Content: strings.Repeat("答", 1000)}, 1}
 	b := prompt.NewBudget(1512)
 	msgs, took := fill(b, []exchange{long, long}, true)
-	if took != 1 || len(msgs) != 2 || !strings.HasSuffix(msgs[0].Content, cutMark) || !strings.HasSuffix(msgs[1].Content, cutMark) || b.Left() < 0 {
+	if took != 1 || len(msgs) != 2 || !strings.HasSuffix(msgs[0].Content, prompt.CutMark) || !strings.HasSuffix(msgs[1].Content, prompt.CutMark) || b.Left() < 0 {
 		t.Fatalf("took %d, left %d", took, b.Left())
 	}
-	if cut := clipTo(long.user.Content, 300); prompt.Estimate(cut) > 300 || prompt.Estimate(cut+"问") <= 300 || clipTo("短", 300) != "短" {
+	if cut := prompt.ClipTokens(long.user.Content, 300); prompt.Estimate(cut) > 300 || prompt.Estimate(cut+"问") <= 300 || prompt.ClipTokens("短", 300) != "短" {
 		t.Fatalf("cut to %d runes", len([]rune(cut)))
 	}
 	if _, took = fill(prompt.NewBudget(1512), []exchange{long}, false); took != 0 {

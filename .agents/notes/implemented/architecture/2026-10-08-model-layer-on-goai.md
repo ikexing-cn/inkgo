@@ -19,6 +19,7 @@ M1 的模型客户端是自己写的三种协议的非流式请求。实际使�
 
 ### 模型层
 
+- `model.Provider.Protocol` 是字符串类型 `model.Protocol`，常量为 `ProtocolChat`、`ProtocolResponses`、`ProtocolAnthropic`，YAML 写 `chat`、`responses`、`anthropic`；`desk/aiport` 的字段保留字符串，由 `ai` 转换。
 - `model.Client` 通过 `github.com/zendev-sh/goai`（MIT 许可，核心只依赖标准库）的 `StreamText` 发请求，三种协议分别对应：
   - `chat` 用 `provider/deepseek`，`reasoning_effort` 等未知参数原样写进请求体。它就是 `provider/compat` 的 Chat Completions，另外在工具调用的那几轮把回复给出的 `reasoning_content` 发回去，DeepSeek、Kimi 要求这样；2026-10-15 以前用的是 `provider/compat`，见[讨论用工具查全书、当场记设定](../feature/2026-10-15-talk-looks-up-and-notes-the-setting.md)；
   - `responses` 用 `provider/openai`，这个包默认就走 Responses API；

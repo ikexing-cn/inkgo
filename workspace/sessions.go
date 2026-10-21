@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"writer/internal/strictjson"
 )
 
 func (s *Store) sessions() ([]string, error) {
@@ -84,7 +86,7 @@ func (s *Store) events(session string) ([]Event, int64, error) {
 	seen := map[string]bool{}
 	prefix, err := readJSONL(p, func(raw []byte) error {
 		var e Event
-		if err := decodeStrict(raw, &e); err != nil {
+		if err := strictjson.Decode(raw, &e); err != nil {
 			return err
 		}
 		if err := validateEvent(e); err != nil {

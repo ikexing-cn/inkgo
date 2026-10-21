@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
+	"writer/internal/textclip"
 	"writer/workspace"
 )
 
@@ -148,7 +149,7 @@ func nearFind(text, find string) string {
 	if len(before) <= 8 {
 		return text
 	}
-	return "…" + string(before[len(before)-6:]) + text[i:]
+	return "…" + textclip.Last(text[:i], 6) + text[i:]
 }
 
 // paneTodo is the first row of a list: what waits on the author, and how

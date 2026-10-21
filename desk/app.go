@@ -13,6 +13,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/aiport"
 	"writer/editor"
+	"writer/internal/textclip"
 	"writer/shelf"
 	"writer/workspace"
 )
@@ -385,17 +386,8 @@ func talkDay(id string, now time.Time) string {
 }
 
 func clip(s string, n int) string {
-	r := []rune(s)
-	for i, ch := range r {
-		if ch == '\n' {
-			r = r[:i]
-			break
-		}
-	}
-	if len(r) > n {
-		return string(r[:n]) + "…"
-	}
-	return string(r)
+	s, _, _ = strings.Cut(s, "\n")
+	return textclip.Clip(s, n)
 }
 
 // talk is the discussion of the open work with the model it selects,

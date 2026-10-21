@@ -1,14 +1,14 @@
 package discussion
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"writer/internal/strictjson"
 )
 
 // Locate finds quote in text verbatim or, failing that, ignoring spaces
@@ -26,14 +26,11 @@ func decode(s string, v any) error {
 	if strings.HasPrefix(s, "```json\n") && strings.HasSuffix(s, "```") {
 		s = strings.TrimSuffix(strings.TrimPrefix(s, "```json\n"), "```")
 	}
-	d := json.NewDecoder(strings.NewReader(s))
-	d.DisallowUnknownFields()
-	if err := d.Decode(v); err != nil {
+	if err := strictjson.Decode([]byte(s), v); err != nil {
+		if errors.Is(err, strictjson.ErrTrailing) {
+			return errors.New("返回了多个 JSON 值或尾随内容")
+		}
 		return fmt.Errorf("JSON 不符合约定：%w", err)
-	}
-	var extra any
-	if err := d.Decode(&extra); err != io.EOF {
-		return errors.New("返回了多个 JSON 值或尾随内容")
 	}
 	return nil
 }
@@ -72,12 +69,4 @@ func locate(text, quote string) (string, bool) {
 		}
 	}
 	return "", false
-}
-
-// clip shortens s to n runes for a message.
-func clip(s string, n int) string {
-	if r := []rune(s); len(r) > n {
-		return string(r[:n]) + "…"
-	}
-	return s
 }

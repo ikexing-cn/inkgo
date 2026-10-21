@@ -1,7 +1,6 @@
 package workspace
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -10,6 +9,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"writer/internal/strictjson"
 )
 
 const checkExt = ".check.json"
@@ -95,9 +96,7 @@ func (s *Store) readCheck(n *Node) (Check, error) {
 		return Check{}, err
 	}
 	var k Check
-	d := json.NewDecoder(bytes.NewReader(b))
-	d.DisallowUnknownFields()
-	if err = d.Decode(&k); err != nil {
+	if err = strictjson.Decode(b, &k); err != nil {
 		return Check{}, fmt.Errorf("%s: %w", p, err)
 	}
 	return k, nil

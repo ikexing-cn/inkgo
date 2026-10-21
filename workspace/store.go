@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"go.yaml.in/yaml/v3"
+
+	"writer/internal/atomicfile"
 )
 
 // Store is one open work. Only one application instance may write a work at
@@ -339,22 +341,5 @@ func atomicWrite(path string, data []byte, exclusive bool) error {
 			return err
 		}
 	}
-	f, err := os.CreateTemp(filepath.Dir(path), ".tmp-")
-	if err != nil {
-		return err
-	}
-	temp := f.Name()
-	defer os.Remove(temp)
-	if _, err = f.Write(data); err != nil {
-		f.Close()
-		return err
-	}
-	if err = f.Sync(); err != nil {
-		f.Close()
-		return err
-	}
-	if err = f.Close(); err != nil {
-		return err
-	}
-	return os.Rename(temp, path)
+	return atomicfile.Write(path, data, 0600)
 }

@@ -618,3 +618,27 @@ func TestAnOldSummaryStaysWhereItWas(t *testing.T) {
 		t.Fatalf("read %+v, %v", ch, err)
 	}
 }
+
+func TestPrevious(t *testing.T) {
+	root := &Node{Folder: true}
+	volume := &Node{ID: "v", Folder: true, Parent: root}
+	one := &Node{ID: "one", Parent: volume}
+	nested := &Node{ID: "nested", Folder: true, Parent: volume}
+	two := &Node{ID: "two", Parent: nested}
+	three := &Node{ID: "three", Parent: root}
+	root.Children = []*Node{volume, three}
+	volume.Children = []*Node{one, nested}
+	nested.Children = []*Node{two}
+	tree := Tree{Root: root}
+	for _, c := range []struct{ node, want *Node }{
+		{volume, nil}, {one, nil}, {nested, one}, {two, one}, {three, two},
+		{root, nil}, {nil, nil}, {&Node{ID: "three"}, nil},
+	} {
+		if got, ok := tree.Previous(c.node); got != c.want || ok != (c.want != nil) {
+			t.Errorf("Previous(%p) = %p, %v; want %p", c.node, got, ok, c.want)
+		}
+	}
+	if got, ok := (Tree{}).Previous(one); got != nil || ok {
+		t.Fatalf("unread tree = %p, %v", got, ok)
+	}
+}

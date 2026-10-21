@@ -7,6 +7,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"writer/editor"
+	"writer/internal/textclip"
 	"writer/workspace"
 )
 
@@ -65,15 +66,8 @@ func around(text, q string, n int) string {
 	if at < 0 {
 		return ""
 	}
-	before, after := []rune(text[:at]), []rune(text[at+len(q):])
-	pre, post := "", ""
-	if len(before) > n {
-		before, pre = before[len(before)-n:], "…"
-	}
-	if len(after) > n {
-		after, post = after[:n], "…"
-	}
-	s := pre + string(before) + q + string(after) + post
+	before, after := text[:at], text[at+len(q):]
+	s := textclip.Tail(before, n) + q + textclip.Clip(after, n)
 	return strings.Join(strings.Fields(s), " ")
 }
 

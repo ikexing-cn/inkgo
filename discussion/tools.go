@@ -7,6 +7,7 @@ import (
 	"strings"
 	"unicode"
 
+	"writer/internal/textclip"
 	"writer/model"
 	"writer/prompt"
 	"writer/workspace"
@@ -355,21 +356,10 @@ func snippet(text, query string) string {
 	text = prompt.OneLine(text)
 	i := strings.Index(text, query)
 	if i < 0 {
-		return clip(text, 2*around)
+		return textclip.Clip(text, 2*around)
 	}
-	before, after := []rune(text[:i]), []rune(text[i+len(query):])
-	s := query
-	if len(before) > around {
-		s = "…" + string(before[len(before)-around:]) + s
-	} else {
-		s = string(before) + s
-	}
-	if len(after) > around {
-		s += string(after[:around]) + "…"
-	} else {
-		s += string(after)
-	}
-	return s
+	before, after := text[:i], text[i+len(query):]
+	return textclip.Tail(before, around) + query + textclip.Clip(after, around)
 }
 
 // hit is a place a search found: where, and the words around.
@@ -515,7 +505,7 @@ func (t *toolbox) lookUp(in input) outcome {
 			case src.Chapter != "":
 				where = "正文「" + chapters[src.Chapter] + "」"
 			}
-			lines = append(lines, "  出处：「"+clip(prompt.OneLine(src.Quote), 80)+"」"+where)
+			lines = append(lines, "  出处：「"+textclip.Clip(prompt.OneLine(src.Quote), 80)+"」"+where)
 		}
 		if slices.ContainsFunc(e.Names, func(name string) bool { return strings.Contains(name, in.Query) || strings.Contains(in.Query, name) }) {
 			named = append(named, strings.Join(lines, "\n"))
@@ -552,7 +542,7 @@ func (t *toolbox) titles() map[string]string {
 func talkTitle(events []workspace.Event) string {
 	for _, e := range events {
 		if e.Role == workspace.RoleUser {
-			return clip(prompt.OneLine(e.Text), 14)
+			return textclip.Clip(prompt.OneLine(e.Text), 14)
 		}
 	}
 	return "新对话"

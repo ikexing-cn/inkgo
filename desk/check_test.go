@@ -390,3 +390,11 @@ func TestAFailedCheckSaysWhyInFull(t *testing.T) {
 		t.Fatalf("%q, tip %q, can %v", line, tip, can)
 	}
 }
+
+func TestQuotedMeasure(t *testing.T) {
+	a := &App{pal: &palette{theme: &ui.Theme{}}}
+	spans := a.quoted(strings.Repeat("甲", 121)+"关键"+strings.Repeat("a", 121), "关键")
+	if len(spans) != 3 || spans[0].Text != "…"+strings.Repeat("甲", 120) || spans[1].Text != "关键" || spans[2].Text != strings.Repeat("a", 120)+"…" {
+		t.Fatalf("quoted = %+v", spans)
+	}
+}

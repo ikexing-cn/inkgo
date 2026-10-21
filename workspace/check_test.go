@@ -3,6 +3,7 @@ package workspace
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -69,5 +70,22 @@ func TestCheckFollowsItsChapter(t *testing.T) {
 	}
 	if err := s.WriteCheck(one, Check{}); err != nil || exists(t, s.Root(), "chapters", "序章.check.json") {
 		t.Fatal("an empty check stayed", err)
+	}
+}
+
+func TestCheckRejectsTrailingContent(t *testing.T) {
+	s := testStore(t)
+	id := mustChapter(t, s, "", "章节", false)
+	path := filepath.Join(s.Root(), "chapters", "章节.check.json")
+	for _, tail := range []string{"{}", "null", "trailing", "{"} {
+		if err := os.WriteFile(path, []byte(`{"of":"hash"}`+tail), 0644); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.ReadCheck(id); err == nil || !strings.Contains(err.Error(), path) {
+			t.Fatalf("ReadCheck accepted tail %q: %v", tail, err)
+		}
+		if _, err := s.Checks(); err == nil || !strings.Contains(err.Error(), path) {
+			t.Fatalf("Checks accepted tail %q: %v", tail, err)
+		}
 	}
 }

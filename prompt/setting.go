@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 
+	"writer/internal/textclip"
 	"writer/workspace"
 )
 
@@ -144,8 +145,5 @@ func firstSentence(s string) string {
 		s = s[:end]
 	}
 	s = OneLine(s)
-	if r := []rune(s); len(r) > indexRunes {
-		s = string(r[:indexRunes]) + "…"
-	}
-	return s
+	return textclip.Clip(s, indexRunes)
 }

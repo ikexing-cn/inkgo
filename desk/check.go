@@ -10,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/egoist/mygo/ui"
+	"writer/internal/textclip"
 	"writer/workspace"
 )
 
@@ -871,14 +872,8 @@ func (a *App) quoted(text, quote string) []ui.Span {
 	if quote == "" || i < 0 {
 		return []ui.Span{{Text: text}}
 	}
-	before, after := []rune(text[:i]), []rune(text[i+len(quote):])
-	if len(before) > around {
-		before = append([]rune("…"), before[len(before)-around:]...)
-	}
-	if len(after) > around {
-		after = append(after[:around], '…')
-	}
-	return []ui.Span{{Text: string(before)}, {Text: quote, Color: a.pal.theme.Text, Background: a.pal.theme.SurfacePressed}, {Text: string(after)}}
+	before, after := text[:i], text[i+len(quote):]
+	return []ui.Span{{Text: textclip.Tail(before, around)}, {Text: quote, Color: a.pal.theme.Text, Background: a.pal.theme.SurfacePressed}, {Text: textclip.Clip(after, around)}}
 }
 
 // checkCard is one side of the comparison: what it is, a link to it, and

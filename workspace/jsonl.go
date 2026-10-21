@@ -9,23 +9,6 @@ import (
 	"os"
 )
 
-// decodeStrict reads exactly one JSON value with no unknown fields.
-func decodeStrict(b []byte, v any) error {
-	d := json.NewDecoder(bytes.NewReader(b))
-	d.DisallowUnknownFields()
-	if err := d.Decode(v); err != nil {
-		return err
-	}
-	var extra any
-	if err := d.Decode(&extra); err != io.EOF {
-		if err != nil {
-			return err
-		}
-		return fmt.Errorf("multiple JSON values on one line")
-	}
-	return nil
-}
-
 // readJSONL hands each line of an append-only file to line and returns the
 // length of the recoverable prefix. Only a syntactically incomplete,
 // unterminated last line, as a crash mid-append leaves, is recoverable:

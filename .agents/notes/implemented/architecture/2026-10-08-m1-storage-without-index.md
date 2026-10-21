@@ -14,7 +14,7 @@ M1 在打开作品时重建 SQLite 索引，在 `Search`、`Counts` 之前又全
 - 一次读取全部思路时用同一个 `scan`：每个会话文件只解析一次，`conflicts`、`supersedes`、`similar` 引用在已列出的文件名里查，不逐个 `stat`。
 - 思路按 `created` 排序，时间相同时人先、再按 ID。同一轮的顺序由记账计划决定：计划里的思路已按人先排好，`created` 依次加 1 毫秒。存储层不再读会话来重排。
 - 每个公开方法通过 `Store.lock` 加锁、拒绝已关闭的 Store，并重读 `work.yaml`，让手改的分类列表立即生效。
-- 独占新建先确认目标不存在，再把写好的临时文件改名过去；目标已存在时返回 `os.ErrExist`。写入协调边界仍是单个应用实例。
+- `workspace.atomicWrite` 保留独占新建检查：先确认目标不存在，目标已存在时返回 `os.ErrExist`；随后用 `internal/atomicfile` 写唯一的临时文件、`Sync` 后改名，权限为 `0600`。模型配置和备份也用这个包；`desk.json`、`works.json` 用它按 `0644` 创建文件。写入协调边界是单个应用实例。
 
 ## Alternatives considered
 

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"writer/internal/textclip"
 	"writer/workspace"
 )
 
@@ -20,14 +21,14 @@ func (t *toolbox) describe(in input) string {
 	case workspace.OpAdd:
 		return placeLabels[in.Place] + " · " + in.Category + "：" + text
 	case workspace.OpEdit:
-		return "改写「" + clip(e.Text, 16) + "」为：" + text
+		return "改写「" + textclip.Clip(e.Text, 16) + "」为：" + text
 	case workspace.OpName:
 		return "名称改为：" + strings.Join(workspace.CleanNames(in.Names), "、")
 	case workspace.OpMove:
 		if in.Place != "" {
-			return "移到" + placeLabels[in.Place] + "：" + clip(e.Text, 24)
+			return "移到" + placeLabels[in.Place] + "：" + textclip.Clip(e.Text, 24)
 		}
-		return "改归" + in.Category + "：" + clip(e.Text, 24)
+		return "改归" + in.Category + "：" + textclip.Clip(e.Text, 24)
 	case workspace.OpChange:
 		chapter := strings.TrimSpace(in.Chapter)
 		if b, err := t.book(); err == nil {
@@ -109,7 +110,7 @@ func (t *toolbox) note(in input) outcome {
 		if author {
 			where = "作者在这次讨论里说过的话"
 		}
-		bad = append(bad, fmt.Sprintf("%s「%s」不是%s里逐字的原文；你这次回复里的话还不能引用", field, clip(q, 40), where))
+		bad = append(bad, fmt.Sprintf("%s「%s」不是%s里逐字的原文；你这次回复里的话还不能引用", field, textclip.Clip(q, 40), where))
 		return workspace.Source{}, false
 	}
 	out := workspace.Op{Op: in.Op, Place: in.Place, Category: in.Category, Text: strings.TrimSpace(in.Text), Names: workspace.CleanNames(in.Names)}

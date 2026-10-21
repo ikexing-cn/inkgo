@@ -250,7 +250,7 @@ func NewClientWithKey(provider Provider, modelID, key string, httpClient *http.C
 	if base == nil {
 		base = http.DefaultTransport
 	}
-	hc.Transport = guard{base: base, host: u.Host, anthropic: provider.Protocol == "anthropic", key: key}
+	hc.Transport = guard{base: base, host: u.Host, anthropic: provider.Protocol == ProtocolAnthropic, key: key}
 	provider.Models = append([]Model(nil), provider.Models...)
 	return &Client{provider: provider, modelID: modelID, key: key, http: &hc, retries: 2}, nil
 }
@@ -266,9 +266,9 @@ func (c *Client) languageModel() provider.LanguageModel {
 		key = "none"
 	}
 	switch c.provider.Protocol {
-	case "responses":
+	case ProtocolResponses:
 		return openai.Chat(c.modelID, openai.WithBaseURL(base), openai.WithAPIKey(key), openai.WithHTTPClient(c.http))
-	case "anthropic":
+	case ProtocolAnthropic:
 		return anthropic.Chat(c.modelID, anthropic.WithBaseURL(strings.TrimSuffix(base, "/v1")), anthropic.WithAPIKey(key),
 			anthropic.WithSkipEnvResolve(), anthropic.WithHTTPClient(c.http))
 	default:
@@ -293,17 +293,17 @@ func (c *Client) effortOptions(e Effort) map[string]any {
 	}
 	if e == EffortNone {
 		switch c.provider.Protocol {
-		case "anthropic":
+		case ProtocolAnthropic:
 			return nil
-		case "responses":
+		case ProtocolResponses:
 			return map[string]any{"reasoning_effort": "none"}
 		}
 		return map[string]any{"thinking": map[string]any{"type": "disabled"}}
 	}
 	switch c.provider.Protocol {
-	case "responses":
+	case ProtocolResponses:
 		return map[string]any{"reasoning_effort": string(e), "reasoning_summary": "auto"}
-	case "anthropic":
+	case ProtocolAnthropic:
 		return map[string]any{"effort": string(e), "thinking": map[string]any{"type": "adaptive", "display": "summarized"}}
 	default:
 		return map[string]any{"reasoning_effort": string(e)}
@@ -465,7 +465,7 @@ func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta))
 }
 
 // message is m as goai takes it on protocol, and how many bytes it sends.
-func message(m Message, protocol string) (provider.Message, int, error) {
+func message(m Message, protocol Protocol) (provider.Message, int, error) {
 	switch m.Role {
 	case "user":
 		return provider.Message{Role: provider.RoleUser, Content: []provider.Part{{Type: provider.PartText, Text: m.Content}}}, len(m.Content), nil
@@ -474,9 +474,9 @@ func message(m Message, protocol string) (provider.Message, int, error) {
 		n := 0
 		for _, t := range m.Thinking {
 			switch {
-			case protocol == "anthropic" && t.Signature != "":
+			case protocol == ProtocolAnthropic && t.Signature != "":
 				parts = append(parts, provider.Part{Type: provider.PartReasoning, Text: t.Text, ProviderOptions: map[string]any{"signature": t.Signature}})
-			case protocol == "chat" && t.Text != "":
+			case protocol == ProtocolChat && t.Text != "":
 				parts = append(parts, provider.Part{Type: provider.PartReasoning, Text: t.Text})
 			default:
 				continue

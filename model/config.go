@@ -13,18 +13,28 @@ import (
 	"strings"
 
 	"go.yaml.in/yaml/v3"
+
+	"writer/internal/atomicfile"
 )
 
 const configLimit = 1 << 20
 
+type Protocol string
+
+const (
+	ProtocolChat      Protocol = "chat"
+	ProtocolResponses Protocol = "responses"
+	ProtocolAnthropic Protocol = "anthropic"
+)
+
 // Provider describes an API endpoint. Credentials live only in the OS keychain or environment.
 type Provider struct {
-	ID       string  `yaml:"id"`
-	Name     string  `yaml:"name"`
-	BaseURL  string  `yaml:"base_url"`
-	Protocol string  `yaml:"protocol"`
-	Env      string  `yaml:"env"`
-	Models   []Model `yaml:"models"`
+	ID       string   `yaml:"id"`
+	Name     string   `yaml:"name"`
+	BaseURL  string   `yaml:"base_url"`
+	Protocol Protocol `yaml:"protocol"`
+	Env      string   `yaml:"env"`
+	Models   []Model  `yaml:"models"`
 }
 
 type Config struct {
@@ -34,10 +44,10 @@ type Config struct {
 
 func DefaultConfig() Config {
 	return Config{Schema: 1, Providers: []Provider{
-		{ID: "deepseek", Name: "DeepSeek", BaseURL: "https://api.deepseek.com/v1", Protocol: "chat", Env: "DEEPSEEK_API_KEY", Models: builtins("deepseek-flash", "deepseek-v4-pro")},
-		{ID: "kimi", Name: "Kimi", BaseURL: "https://api.moonshot.cn/v1", Protocol: "chat", Env: "MOONSHOT_API_KEY", Models: builtins("kimi-k3")},
-		{ID: "openai", Name: "OpenAI", BaseURL: "https://api.openai.com/v1", Protocol: "responses", Env: "OPENAI_API_KEY", Models: []Model{}},
-		{ID: "anthropic", Name: "Anthropic", BaseURL: "https://api.anthropic.com/v1", Protocol: "anthropic", Env: "ANTHROPIC_API_KEY", Models: []Model{}},
+		{ID: "deepseek", Name: "DeepSeek", BaseURL: "https://api.deepseek.com/v1", Protocol: ProtocolChat, Env: "DEEPSEEK_API_KEY", Models: builtins("deepseek-flash", "deepseek-v4-pro")},
+		{ID: "kimi", Name: "Kimi", BaseURL: "https://api.moonshot.cn/v1", Protocol: ProtocolChat, Env: "MOONSHOT_API_KEY", Models: builtins("kimi-k3")},
+		{ID: "openai", Name: "OpenAI", BaseURL: "https://api.openai.com/v1", Protocol: ProtocolResponses, Env: "OPENAI_API_KEY", Models: []Model{}},
+		{ID: "anthropic", Name: "Anthropic", BaseURL: "https://api.anthropic.com/v1", Protocol: ProtocolAnthropic, Env: "ANTHROPIC_API_KEY", Models: []Model{}},
 	}}
 }
 
@@ -112,23 +122,17 @@ func Save(path string, cfg Config) error {
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return fmt.Errorf("无法创建配置目录：%w", err)
 	}
-	file, err := os.CreateTemp(dir, ".providers-*.yaml")
-	if err != nil {
-		return fmt.Errorf("无法创建临时配置文件：%w", err)
-	}
-	defer os.Remove(file.Name())
-	if _, err = file.Write(data); err == nil {
-		err = file.Sync()
-	}
-	closeErr := file.Close()
-	if err != nil {
+	if err := atomicfile.Write(path, data, 0600); err != nil {
+		var step *atomicfile.Error
+		if errors.As(err, &step) {
+			switch step.Op {
+			case "create":
+				return fmt.Errorf("无法创建临时配置文件：%w", err)
+			case "rename":
+				return fmt.Errorf("无法替换模型配置：%w", err)
+			}
+		}
 		return fmt.Errorf("无法写入模型配置：%w", err)
-	}
-	if closeErr != nil {
-		return fmt.Errorf("无法写入模型配置：%w", closeErr)
-	}
-	if err := os.Rename(file.Name(), path); err != nil {
-		return fmt.Errorf("无法替换模型配置：%w", err)
 	}
 	return nil
 }
@@ -182,7 +186,7 @@ func Check(p Provider) Problems {
 		out.Name = errors.New("请填写显示名称")
 	}
 	switch p.Protocol {
-	case "chat", "responses", "anthropic":
+	case ProtocolChat, ProtocolResponses, ProtocolAnthropic:
 	default:
 		out.Protocol = errors.New("协议必须是 chat、responses 或 anthropic")
 	}

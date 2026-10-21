@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"io"
+	"slices"
 	"strings"
 	"testing"
 
@@ -195,19 +196,7 @@ func TestHeadingLevels(t *testing.T) {
 	for _, p := range Prose(Cover{}, pieces, true).Paras {
 		got = append(got, p.Level)
 	}
-	if want := []int{1, 2, 3, 3}; !slicesEqual(got, want) {
+	if want := []int{1, 2, 3, 3}; !slices.Equal(got, want) {
 		t.Fatalf("levels %v, want %v", got, want)
 	}
-}
-
-func slicesEqual(a, b []int) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }

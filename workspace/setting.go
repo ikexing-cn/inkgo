@@ -7,6 +7,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"writer/internal/strictjson"
 )
 
 // Setting is the setting document as its revisions leave it: entries in
@@ -327,9 +329,9 @@ func (s *Store) setting(sc *scan) (Setting, int64, error) {
 	seen := map[string]bool{}
 	prefix, err := readJSONL(p, func(raw []byte) error {
 		var r Revision
-		if err := decodeStrict(raw, &r); err != nil {
+		if err := strictjson.Decode(raw, &r); err != nil {
 			var k kept
-			if decodeStrict(raw, &k) != nil || k.By != ByBookkeeper {
+			if strictjson.Decode(raw, &k) != nil || k.By != ByBookkeeper {
 				return err
 			}
 			r = k.Revision
@@ -433,27 +435,19 @@ func (s *Store) Revise(r Revision) (Revision, error) {
 	for _, rev := range set.Revisions {
 		used[rev.ID] = true
 	}
-	fresh := func() string {
-		id := NewID()
-		for used[id] {
-			id = NewID()
-		}
-		used[id] = true
-		return id
-	}
 	if r.By == ByBookkeeper {
 		return Revision{}, fmt.Errorf("by: the bookkeeper writes no more")
 	}
 	if r.ID == "" {
-		r.ID = fresh()
+		r.ID = freshID(used)
 	}
 	r.Ops = slices.Clone(r.Ops)
 	for k, op := range r.Ops {
 		if op.Op == OpAdd && op.Entry == "" {
-			r.Ops[k].Entry = fresh()
+			r.Ops[k].Entry = freshID(used)
 		}
 		if op.Op == OpChange && op.Change == "" {
-			r.Ops[k].Change = fresh()
+			r.Ops[k].Change = freshID(used)
 		}
 	}
 	if err = validateRevision(r); err != nil {

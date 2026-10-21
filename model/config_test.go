@@ -189,3 +189,28 @@ func TestUnknownSelectedProvider(t *testing.T) {
 		t.Fatalf("unknown provider: %v", err)
 	}
 }
+
+func TestSaveErrorsKeepMessages(t *testing.T) {
+	dir := t.TempDir()
+	blocked := filepath.Join(dir, "file")
+	if err := os.WriteFile(blocked, nil, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := Save(filepath.Join(blocked, "providers.yaml"), DefaultConfig()); err == nil || !strings.HasPrefix(err.Error(), "无法创建配置目录：") {
+		t.Fatalf("directory error = %v", err)
+	}
+	target := filepath.Join(dir, "target")
+	if err := os.Mkdir(target, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(target, "keep"), []byte("old"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := Save(target, DefaultConfig()); err == nil || !strings.HasPrefix(err.Error(), "无法替换模型配置：") {
+		t.Fatalf("replace error = %v", err)
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil || len(entries) != 2 {
+		t.Fatalf("temporary file left: %v, %v", entries, err)
+	}
+}

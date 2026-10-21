@@ -59,7 +59,7 @@ func (c *Client) ListModels(ctx context.Context) ([]string, error) {
 			sort.Strings(models)
 			return models, nil
 		}
-		if c.provider.Protocol != "anthropic" || result.LastID == "" || cursors[result.LastID] {
+		if c.provider.Protocol != ProtocolAnthropic || result.LastID == "" || cursors[result.LastID] {
 			return nil, errors.New("模型目录的分页方式不受支持或无效")
 		}
 		cursors[result.LastID] = true
@@ -75,7 +75,7 @@ func (c *Client) get(ctx context.Context, endpoint string) ([]byte, error) {
 		return nil, errors.New("无法创建模型请求")
 	}
 	req.Header.Set("Accept", "application/json")
-	if c.provider.Protocol == "anthropic" {
+	if c.provider.Protocol == ProtocolAnthropic {
 		req.Header.Set("anthropic-version", "2023-06-01")
 	}
 	// guard adds the credential.

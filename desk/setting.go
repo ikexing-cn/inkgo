@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/internal/atomicfile"
 	"writer/workspace"
 )
 
@@ -167,12 +168,7 @@ func (a *App) savePrefs() {
 		err = os.MkdirAll(filepath.Dir(a.prefsPath()), 0755)
 	}
 	if err == nil {
-		// Whole or not at all: a file cut short would be read as none, and
-		// the tabs, what was ignored and the days' counts would be gone.
-		temp := a.prefsPath() + ".tmp"
-		if err = os.WriteFile(temp, b, 0644); err == nil {
-			err = os.Rename(temp, a.prefsPath())
-		}
+		err = atomicfile.Write(a.prefsPath(), b, 0644)
 	}
 	a.warn(err)
 }

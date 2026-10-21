@@ -8,6 +8,8 @@ import (
 	"os"
 	"slices"
 	"strings"
+
+	"writer/internal/strictjson"
 )
 
 // Plan keeps the author's story order, independently of the chapter tree.
@@ -97,7 +99,7 @@ func (s *Store) plan() (Plan, error) {
 		return Plan{}, err
 	}
 	var out Plan
-	if err = decodeStrict(b, &out); err == nil {
+	if err = strictjson.Decode(b, &out); err == nil {
 		err = out.validate()
 	}
 	if err != nil {

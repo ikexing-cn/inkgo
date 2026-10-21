@@ -17,6 +17,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"writer/internal/atomicfile"
 )
 
 // DefaultKeep is how many backups are kept when the author set nothing.
@@ -156,25 +158,19 @@ func Make(fl Files, dir, name string, meta Meta, keep int, now time.Time) (info 
 	if len(list) > 0 && list[0].Sum == meta.Sum {
 		return list[0], false, nil
 	}
-	tmp, err := os.CreateTemp(dir, ".backup-*.tmp")
+	tmp, err := atomicfile.Create(dir, 0600)
 	if err != nil {
 		return Info{}, false, err
 	}
-	defer os.Remove(tmp.Name())
-	if err = write(tmp, fl, meta); err == nil {
-		err = tmp.Sync()
-	}
-	if cerr := tmp.Close(); err == nil {
-		err = cerr
-	}
-	if err != nil {
+	defer tmp.Discard()
+	if err = write(tmp, fl, meta); err != nil {
 		return Info{}, false, err
 	}
 	p := filepath.Join(dir, base(name)+now.Format(stampLayout)+".zip")
 	for i := 2; exists(p); i++ {
 		p = filepath.Join(dir, fmt.Sprintf("%s%s (%d).zip", base(name), now.Format(stampLayout), i))
 	}
-	if err = os.Rename(tmp.Name(), p); err != nil {
+	if err = tmp.Commit(p); err != nil {
 		return Info{}, false, err
 	}
 	st, err := os.Stat(p)
