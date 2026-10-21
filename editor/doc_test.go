@@ -9,8 +9,8 @@ import (
 
 func TestMarksFollowEdits(t *testing.T) {
 	d := NewDoc("甲乙丙丁戊")
-	id := d.AddMark(MarkForeshadow, 1, 3, "") // 乙丙
-	d.replace(0, 0, []rune("前"))              // before the mark
+	id := d.Add(Mark{Kind: MarkForeshadow, Start: 1, End: 3, Note: ""}) // 乙丙
+	d.replace(0, 0, []rune("前"))                                        // before the mark
 	m := d.Marks()[0]
 	if m.Start != 2 || m.End != 4 || d.Slice(m.Start, m.End) != "乙丙" {
 		t.Fatalf("after insert before: %+v %q", m, d.String())
@@ -80,7 +80,7 @@ func TestUndoRedoTypingMerges(t *testing.T) {
 	e := New(NewDoc(""), Options{})
 	e.Insert("今")
 	e.Insert("天")
-	e.Backspace()
+	e.backspace()
 	e.Undo()
 	if e.Doc.String() != "今天" {
 		t.Fatalf("undo backspace: %q", e.Doc.String())
@@ -99,7 +99,7 @@ func TestUndoRedoTypingMerges(t *testing.T) {
 // keep to their words.
 func TestReplaceAllUndoesAsOne(t *testing.T) {
 	e := New(NewDoc("林晚说，林晚走了，林晚"), Options{})
-	id := e.Doc.AddMark(MarkForeshadow, 4, 6, "")
+	id := e.Doc.Add(Mark{Kind: MarkForeshadow, Start: 4, End: 6, Note: ""})
 	if n := e.ReplaceAll("林晚", "沈砚舟"); n != 3 {
 		t.Fatalf("replaced %d", n)
 	}
@@ -144,7 +144,7 @@ func TestProseKeepsIndentsOut(t *testing.T) {
 // Replacing every match in a document moves its marks with the text.
 func TestDocReplaceAllMovesMarks(t *testing.T) {
 	d := NewDoc("林晚说，林晚走了。")
-	id := d.AddMark(MarkForeshadow, 6, 8, "") // 走了
+	id := d.Add(Mark{Kind: MarkForeshadow, Start: 6, End: 8, Note: ""}) // 走了
 	if n := d.ReplaceAll("林晚", "苏"); n != 2 {
 		t.Fatal(n)
 	}
@@ -156,4 +156,35 @@ func TestDocReplaceAllMovesMarks(t *testing.T) {
 			t.Fatal("the mark did not move", m)
 		}
 	}
+}
+
+func TestMarkChangesKeepLayout(t *testing.T) {
+	e := New(NewDoc("林晚走过雨中的长街。"), Options{})
+	e.width = 300
+	e.ensureLayout()
+	lines, version := &e.lay.lines[0], e.Doc.Version()
+	textVersion := e.Doc.textVer
+	id := e.Doc.Add(Mark{Kind: MarkForeshadow, Start: 0, End: 2})
+	check := func() {
+		t.Helper()
+		e.ensureLayout()
+		if e.Doc.Version() == version || e.Doc.textVer != textVersion || &e.lay.lines[0] != lines {
+			t.Fatal("mark edit did not advance only the document version")
+		}
+		version = e.Doc.Version()
+	}
+	check()
+	e.Doc.EditMark(id, func(m *Mark) { m.Note = "伏笔" })
+	check()
+	e.Doc.RemoveMark(id)
+	check()
+	e.Doc.LoadMarks([]Mark{{Kind: MarkAI, Start: 2, End: 4}})
+	check()
+	e.Select(4, 6)
+	e.MarkSelection(MarkForeshadow, "")
+	check()
+	e.Undo()
+	check()
+	e.Redo()
+	check()
 }

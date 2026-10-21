@@ -45,12 +45,6 @@ func candidates(before []rune, entities []Entity) ([]Entity, int) {
 	return nil, 0
 }
 
-// Predictor predicts how the text before the caret goes on. What it
-// returns is only shown; the text changes when a human presses Tab.
-type Predictor interface {
-	Predict(ctx context.Context, before string) (string, error)
-}
-
 // DemoPredictor stands in for a model: it waits Delay, then returns one of
 // a few fixed continuations, so the inline prediction can be tried
 // without one.

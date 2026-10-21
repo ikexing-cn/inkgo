@@ -57,6 +57,7 @@ type Doc struct {
 	marks   []Mark
 	nextID  int
 	version int
+	textVer int
 }
 
 // NewDoc returns a document holding s.
@@ -72,19 +73,9 @@ func (d *Doc) Marks() []Mark { return slices.Clone(d.marks) }
 
 func (d *Doc) setMarks(m []Mark) { d.marks = slices.Clone(m) }
 
-// AddMark marks [a, b) and returns the mark's id.
-func (d *Doc) AddMark(kind MarkKind, a, b int, note string) int {
-	a, b = clamp(min(a, b), 0, len(d.text)), clamp(max(a, b), 0, len(d.text))
-	id := d.nextID
-	d.nextID++
-	d.marks = append(d.marks, Mark{ID: id, Kind: kind, Start: a, End: b, Note: note, Quote: string(d.text[a:b])})
-	d.version++
-	return id
-}
-
 // Add marks m's range with all m holds and returns the mark's id.
 func (d *Doc) Add(m Mark) int {
-	a, b := clamp(min(m.Start, m.End), 0, len(d.text)), clamp(max(m.Start, m.End), 0, len(d.text))
+	a, b := d.span(m.Start, m.End)
 	m.ID, m.Start, m.End, m.Orphaned, m.Quote = d.nextID, a, b, false, string(d.text[a:b])
 	d.nextID++
 	d.marks = append(d.marks, m)
@@ -104,7 +95,7 @@ func (d *Doc) EditMark(id int, fn func(m *Mark)) bool {
 		fn(m)
 		m.ID = id
 		if m.Start != a || m.End != b {
-			m.Start, m.End = clamp(min(m.Start, m.End), 0, len(d.text)), clamp(max(m.Start, m.End), 0, len(d.text))
+			m.Start, m.End = d.span(m.Start, m.End)
 			m.Orphaned, m.Quote = false, string(d.text[m.Start:m.End])
 		}
 		d.version++
@@ -211,6 +202,9 @@ func (d *Doc) replace(a, b int, ins []rune) {
 		d.marks = append(d.marks, m)
 	}
 	d.version++
+	if a != b || len(ins) != 0 {
+		d.textVer++
+	}
 }
 
 // mapPos maps offset p across the replacement of [a, b) by n runes; right
@@ -254,3 +248,7 @@ func normalize(s string) string {
 }
 
 func clamp(v, lo, hi int) int { return max(lo, min(v, hi)) }
+
+func (d *Doc) span(a, b int) (int, int) {
+	return clamp(min(a, b), 0, d.Len()), clamp(max(a, b), 0, d.Len())
+}

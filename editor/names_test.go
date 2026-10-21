@@ -1,8 +1,10 @@
 package editor
 
 import (
-	"github.com/egoist/mygo/ui"
+	"slices"
 	"testing"
+
+	"github.com/egoist/mygo/ui"
 )
 
 func TestNameLinksYieldToAnnotations(t *testing.T) {
@@ -63,5 +65,14 @@ func TestNameLinksFollowEditedProse(t *testing.T) {
 	tt.ClickAt(r.X+e.FontSize(), r.Y+r.H/2)
 	if opened != "" {
 		t.Fatal("hidden name opened")
+	}
+}
+
+func TestNamesKeepInputPriority(t *testing.T) {
+	e := New(NewDoc("甲乙丙甲乙丙甲乙"), Options{})
+	e.SetNameLinks([]NameLink{{"乙丙", "first"}, {"甲乙", "second"}, {"乙", "third"}}, nil)
+	want := []nameRange{{1, 3, "first"}, {4, 6, "first"}, {6, 8, "second"}}
+	if got := e.nameRanges(); !slices.Equal(got, want) {
+		t.Fatal(got)
 	}
 }

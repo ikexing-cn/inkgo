@@ -23,36 +23,19 @@ type Proposal struct {
 // there: as wide as the gap, and drawn as nothing.
 const gapRune = '￼'
 
-// SetReadOnly allows, or stops, changes to the text.
-func (e *Editor) SetReadOnly(on bool) { e.opts.ReadOnly = on }
-
-// ReadOnly reports whether the text is read-only.
 func (e *Editor) ReadOnly() bool { return e.opts.ReadOnly }
-
-// RequestPrediction asks the predictor for a prediction at the caret now,
-// wherever the caret is, as a shortcut does when predictions come on
-// demand.
-func (e *Editor) RequestPrediction() {
-	if e.opts.Predictor == nil || e.opts.ReadOnly || e.opts.NoAI {
-		return
-	}
-	e.cancelPredict()
-	e.ghost, e.asked, e.predictVer, e.compOpen = "", true, -1, false
-}
 
 // SetProposals shows ps in place of those shown, each with gap DIPs of
 // room after its text. One whose text grew while its end was in view keeps
 // its end in view as it grows.
 func (e *Editor) SetProposals(ps []Proposal, gap float32) {
-	n := e.Doc.Len()
 	ps = slices.Clone(ps)
 	for i := range ps {
 		p := &ps[i]
-		p.A, p.B = clamp(min(p.A, p.B), 0, n), clamp(max(p.A, p.B), 0, n)
-		p.Text = singleParagraphs(p.Text, true)
+		*p = e.normalizeProposal(*p)
 	}
 	if gap != e.gap {
-		e.gap, e.shapes = gap, map[string]shaped{} // shaped with the old room
+		e.gap, e.shapes = gap, nil // shaped with the old room
 		e.propVer++
 	}
 	if slices.Equal(ps, e.props) {
@@ -69,20 +52,18 @@ func (e *Editor) SetProposals(ps []Proposal, gap float32) {
 	e.propVer++
 }
 
-// Proposals are the proposals shown.
 func (e *Editor) Proposals() []Proposal { return slices.Clone(e.props) }
 
 // ProposalGap returns where the room after proposal id's text lies,
 // relative to the element. ok is false before the editor was painted, for
 // a proposal not shown, and while the room is not wholly in view.
 func (e *Editor) ProposalGap(id string) (r ui.Rect, ok bool) {
-	if e.width == 0 {
+	l, ready := e.geometry()
+	if !ready {
 		return ui.Rect{}, false
 	}
-	e.ensureLayout()
-	l := &e.lay
 	d, found := l.gaps[id]
-	if !found || len(l.lines) == 0 {
+	if !found {
 		return ui.Rect{}, false
 	}
 	ln := &l.lines[l.lineOf(d)]
@@ -103,18 +84,16 @@ func (e *Editor) RevealProposal(id string) { e.show = id }
 func (e *Editor) Take(ps []Proposal, note string) {
 	ps = slices.Clone(ps)
 	slices.SortStableFunc(ps, func(p, q Proposal) int { return p.A - q.A })
-	n := e.Doc.Len()
 	var took []Proposal
 	end := -1
 	for _, p := range ps {
-		p.A, p.B = clamp(min(p.A, p.B), 0, n), clamp(max(p.A, p.B), 0, n)
+		p = e.normalizeProposal(p)
 		if p.Keep {
 			p.A = p.B // what it follows stays
 		}
 		if p.A < end {
 			continue
 		}
-		p.Text = singleParagraphs(p.Text, true)
 		took = append(took, p)
 		end = p.B
 	}
@@ -138,7 +117,7 @@ func (e *Editor) Take(ps []Proposal, note string) {
 		at := p.A + shift
 		from, to := words(normalize(p.Text))
 		if to > from {
-			e.Doc.AddMark(MarkAI, at+from, at+to, note)
+			e.Doc.Add(Mark{Kind: MarkAI, Start: at + from, End: at + to, Note: note})
 		}
 		caret = at + to
 		shift += len([]rune(normalize(p.Text))) - (p.B - p.A)
@@ -167,12 +146,11 @@ func words(s string) (from, to int) {
 }
 
 // singleParagraphs keeps the paragraphs of s, without blank lines between
-// or after; lead keeps a line break it begins with, which starts a
-// paragraph of its own.
-func singleParagraphs(s string, lead bool) string {
+// or after, keeping an initial line break to start a paragraph of its own.
+func singleParagraphs(s string) string {
 	var out []rune
 	r := []rune(normalize(s))
-	if lead && len(r) > 0 && r[0] == '\n' {
+	if len(r) > 0 && r[0] == '\n' {
 		out = append(out, '\n')
 	}
 	for _, c := range r {
@@ -197,11 +175,17 @@ func (e *Editor) SetNoAI(on bool) {
 	e.opts.NoAI = on
 	if on {
 		e.DismissGhost()
-		e.asked = false
+		e.predict.asked = false
 	}
 }
 
 // hidden tells whether m is not shown: what an AI wrote, while it is off.
 func (e *Editor) hidden(m Mark) bool {
 	return e.opts.NoAI && m.Kind == MarkAI
+}
+
+func (e *Editor) normalizeProposal(p Proposal) Proposal {
+	p.A, p.B = e.Doc.span(p.A, p.B)
+	p.Text = singleParagraphs(p.Text)
+	return p
 }

@@ -11,8 +11,7 @@ const typingMerge = time.Second
 // replaceRange replaces [a, b) with s as one undoable step and puts the
 // caret after it. typing merges the step into the last one while typing.
 func (e *Editor) replaceRange(a, b int, s string, typing bool) {
-	n := e.Doc.Len()
-	a, b = clamp(min(a, b), 0, n), clamp(max(a, b), 0, n)
+	a, b = e.Doc.span(a, b)
 	ins := []rune(normalize(s))
 	if a == b && len(ins) == 0 {
 		return
@@ -44,8 +43,8 @@ func (e *Editor) replaceRange(a, b int, s string, typing bool) {
 func (e *Editor) edited() {
 	e.hasGoal, e.reveal = false, true
 	e.lastEdit = time.Now()
-	e.ghost = ""
-	e.cancelPredict()
+	e.predict.ghost = ""
+	e.predict.cancel()
 }
 
 // Insert types s at the caret, replacing the selection.
@@ -136,7 +135,6 @@ func (e *Editor) SetFound(ranges [][2]int, current int) {
 // light dashed line under them; nil clears them.
 func (e *Editor) SetDoubts(ranges [][2]int) { e.doubts = ranges }
 
-// LastEdit is when the text last changed.
 func (e *Editor) LastEdit() time.Time { return e.lastEdit }
 
 func (e *Editor) clampCaret() {
@@ -144,8 +142,7 @@ func (e *Editor) clampCaret() {
 	e.caret, e.anchor = clamp(e.caret, 0, n), clamp(e.anchor, 0, n)
 }
 
-// Backspace and DeleteForward delete the selection, or a rune.
-func (e *Editor) Backspace() {
+func (e *Editor) backspace() {
 	a, b := e.Selection()
 	if a == b {
 		if a == 0 {
@@ -157,7 +154,7 @@ func (e *Editor) Backspace() {
 	e.updateCompletion()
 }
 
-func (e *Editor) DeleteForward() {
+func (e *Editor) deleteForward() {
 	a, b := e.Selection()
 	if a == b {
 		if b >= e.Doc.Len() {
@@ -203,13 +200,11 @@ func (e *Editor) MoveTo(i int, extend bool) {
 	e.hasGoal, e.reveal, e.compOpen = false, true, false
 }
 
-// SelectAll selects the whole text.
 func (e *Editor) SelectAll() {
 	e.anchor, e.caret = 0, e.Doc.Len()
 	e.compOpen = false
 }
 
-// SelectedText returns the text selected.
 func (e *Editor) SelectedText() string {
 	a, b := e.Selection()
 	return e.Doc.Slice(a, b)
@@ -249,20 +244,20 @@ func (e *Editor) paragraphAt(i int) (int, int) {
 	return a, b
 }
 
-// AcceptGhost inserts the prediction shown, as one step, marking it as
+// acceptGhost inserts the prediction shown, as one step, marking it as
 // accepted AI text. It reports whether there was one.
-func (e *Editor) AcceptGhost() bool {
-	if !e.ghostValid() {
+func (e *Editor) acceptGhost() bool {
+	if !e.predict.valid(e) {
 		return false
 	}
-	s, at := e.ghost, e.caret
+	s, at := e.predict.ghost, e.caret
 	e.replaceRange(at, at, s, false)
 	n := len([]rune(s))
 	note := ""
 	if e.opts.GhostNote != nil {
 		note = e.opts.GhostNote()
 	}
-	e.Doc.AddMark(MarkAI, at, at+n, note)
+	e.Doc.Add(Mark{Kind: MarkAI, Start: at, End: at + n, Note: note})
 	e.undo[len(e.undo)-1].marksAfter = e.Doc.Marks()
 	return true
 }
@@ -274,10 +269,8 @@ func (e *Editor) MarkSelection(kind MarkKind, note string) bool {
 		return false
 	}
 	before := e.Doc.Marks()
-	e.Doc.AddMark(kind, a, b, note)
-	e.undo = append(e.undo, undoStep{at: a, caretBefore: e.caret, anchorBefore: e.anchor, caretAfter: e.caret,
-		marksBefore: before, marksAfter: e.Doc.Marks(), when: time.Now()})
-	e.redo = nil
+	e.Doc.Add(Mark{Kind: kind, Start: a, End: b, Note: note})
+	e.pushMarkStep(before).at = a
 	return true
 }
 
@@ -286,9 +279,7 @@ func (e *Editor) MarkSelection(kind MarkKind, note string) bool {
 func (e *Editor) AddMark(m Mark) int {
 	before := e.Doc.Marks()
 	id := e.Doc.Add(m)
-	e.undo = append(e.undo, undoStep{at: m.Start, caretBefore: e.caret, anchorBefore: e.anchor, caretAfter: e.caret,
-		marksBefore: before, marksAfter: e.Doc.Marks(), when: time.Now()})
-	e.redo = nil
+	e.pushMarkStep(before).at = m.Start
 	return id
 }
 
@@ -305,8 +296,7 @@ func (e *Editor) updateCompletion() {
 	e.comp, e.compTyped, e.compSel, e.compOpen = c, k, 0, true
 }
 
-// AcceptCompletion types the rest of the completion chosen.
-func (e *Editor) AcceptCompletion() bool {
+func (e *Editor) acceptCompletion() bool {
 	if !e.compOpen || e.compSel >= len(e.comp) {
 		return false
 	}
@@ -314,4 +304,10 @@ func (e *Editor) AcceptCompletion() bool {
 	e.compOpen = false
 	e.replaceRange(e.caret, e.caret, string(rest), false)
 	return true
+}
+
+func (e *Editor) pushMarkStep(before []Mark) *undoStep {
+	e.undo = append(e.undo, undoStep{at: e.caret, caretBefore: e.caret, anchorBefore: e.anchor, caretAfter: e.caret, marksBefore: before, marksAfter: e.Doc.Marks(), when: time.Now()})
+	e.redo = nil
+	return &e.undo[len(e.undo)-1]
 }

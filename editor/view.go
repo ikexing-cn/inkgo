@@ -1,9 +1,7 @@
 package editor
 
 import (
-	"context"
 	"strings"
-	"time"
 	"unicode"
 
 	"github.com/egoist/mygo/ui"
@@ -12,7 +10,7 @@ import (
 // View builds the editor's element; size it as any element (Fill, Grow).
 func (e *Editor) View(c *ui.Context) ui.Element {
 	e.sv = c.Services()
-	e.pollPrediction()
+	e.predict.poll(e)
 	el := ui.Box(c).Focusable().FocusRing(false).Cursor(ui.CursorText).Clip().Label("正文")
 	if x, y, ok := el.PointerPosition(); ok && e.nameAt(x, y) != "" {
 		el.Tooltip("查看设定").Cursor(ui.CursorPointer)
@@ -25,7 +23,7 @@ func (e *Editor) View(c *ui.Context) ui.Element {
 	if !e.focused {
 		e.preedit = "" // input methods drop their composition with the focus
 	}
-	e.maybePredict(c)
+	e.predict.ask(e, c)
 	el.HandleInput(e.input)
 	el.TextCaret(e.caretRect())
 	el.Draw(e.paint)
@@ -62,14 +60,13 @@ func (e *Editor) SetTypewriter(on bool) {
 	}
 }
 
-// FontSize is the size the text is set in.
 func (e *Editor) FontSize() float32 { return e.opts.Font.Size }
 
 // SetFontSize sets the text in px, keeping the caret in view.
 func (e *Editor) SetFontSize(px float32) {
 	if px > 0 && px != e.opts.Font.Size {
 		e.opts.Font.Size, e.reveal = px, true
-		e.shapes = map[string]shaped{} // shaped at the old size
+		e.shapes = nil // shaped at the old size
 	}
 }
 
@@ -79,11 +76,13 @@ type layoutKey struct {
 	width, size       float32
 }
 
-// ensureLayout lays the text out again when it, the caret, what is
-// proposed or the width changed since the last time.
 func (e *Editor) ensureLayout() {
 	extra, _ := e.extra()
-	k := layoutKey{e.Doc.version, e.caret, e.propVer, e.preedit, extra, e.width, e.opts.Font.Size}
+	caret := 0
+	if e.preedit != "" || extra != "" {
+		caret = e.caret
+	}
+	k := layoutKey{e.Doc.textVer, caret, e.propVer, e.preedit, extra, e.width, e.opts.Font.Size}
 	if k != e.layKey || e.lay.lines == nil {
 		e.buildLayout(e.width)
 		e.layKey = k
@@ -121,11 +120,19 @@ func (e *Editor) caretPos() (float32, float32) {
 // caretRect is where input methods show their candidates, relative to the
 // element.
 func (e *Editor) caretRect() ui.Rect {
-	if e.width == 0 {
+	if _, ok := e.geometry(); !ok {
 		return ui.Rect{}
 	}
 	x, y := e.caretPos()
 	return ui.Rect{X: x, Y: y - e.scrollY, W: 2, H: e.lay.lineH}
+}
+
+func (e *Editor) geometry() (*layout, bool) {
+	if e.width == 0 {
+		return nil, false
+	}
+	e.ensureLayout()
+	return &e.lay, len(e.lay.lines) != 0
 }
 
 // SelectionTop returns where the selection starts, relative to the
@@ -134,12 +141,11 @@ func (e *Editor) caretRect() ui.Rect {
 // is out of view.
 func (e *Editor) SelectionTop() (r ui.Rect, ok bool) {
 	a, b := e.Selection()
-	if a == b || e.dragging || e.width == 0 {
+	if a == b || e.dragging {
 		return ui.Rect{}, false
 	}
-	e.ensureLayout()
-	l := &e.lay
-	if len(l.lines) == 0 {
+	l, ready := e.geometry()
+	if !ready {
 		return ui.Rect{}, false
 	}
 	d := l.toDisp(a, true)
@@ -157,15 +163,11 @@ func (e *Editor) SelectionTop() (r ui.Rect, ok bool) {
 // last. ok is false before the editor was painted and
 // while none of the range is in view.
 func (e *Editor) RangeBox(a, b int) (r ui.Rect, ok bool) {
-	if e.width == 0 {
+	l, ready := e.geometry()
+	if !ready {
 		return ui.Rect{}, false
 	}
-	e.ensureLayout()
-	l := &e.lay
-	if len(l.lines) == 0 {
-		return ui.Rect{}, false
-	}
-	a, b = clamp(min(a, b), 0, e.Doc.Len()), clamp(max(a, b), 0, e.Doc.Len())
+	a, b = e.Doc.span(a, b)
 	d := l.toDisp(a, true)
 	first, last := &l.lines[l.lineOf(d)], &l.lines[l.lineOf(l.toDisp(b, false))]
 	top, bottom := first.y-e.scrollY, last.y+l.lineH-e.scrollY
@@ -179,79 +181,9 @@ func (e *Editor) RangeBox(a, b int) (r ui.Rect, ok bool) {
 	return ui.Rect{X: x, Y: top, H: bottom - top}, true
 }
 
-// Height is the element's height when it was last painted.
 func (e *Editor) Height() float32 { return e.height }
 
-// Width is the element's width when it was last painted.
 func (e *Editor) Width() float32 { return e.width }
-
-// maybePredict asks the predictor once typing paused at the end of a
-// paragraph.
-func (e *Editor) maybePredict(c *ui.Context) {
-	if e.opts.ReadOnly || e.opts.Predictor == nil || e.opts.NoAI || !e.focused || e.predicting || e.caret != e.anchor || e.preedit != "" ||
-		e.predictVer == e.Doc.version && e.predictAt == e.caret {
-		return
-	}
-	if e.opts.PredictOnDemand && !e.asked || e.compOpen && !e.asked {
-		return // while completions are offered, Tab is theirs
-	}
-	if !e.asked {
-		if e.caret < e.Doc.Len() && e.Doc.text[e.caret] != '\n' {
-			return // predictions continue a paragraph, not the middle of one
-		}
-		if wait := e.opts.PredictDelay - time.Since(e.lastEdit); wait > 0 {
-			c.After(wait)
-			return
-		}
-	}
-	e.asked = false
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	e.cancel, e.predicting = cancel, true
-	e.predictVer, e.predictAt = e.Doc.version, e.caret
-	ver, at := e.Doc.version, e.caret
-	from := max(0, at-2000)
-	before := e.Doc.Slice(from, at)
-	p, results, sv := e.opts.Predictor, e.results, c.Services()
-	go func() {
-		s, err := p.Predict(ctx, before)
-		results <- prediction{text: singleLine(s), err: err, ver: ver, at: at}
-		sv.Invalidate()
-	}()
-}
-
-// pollPrediction takes the predictions that came, keeping one that still
-// applies.
-func (e *Editor) pollPrediction() {
-	for {
-		select {
-		case r := <-e.results:
-			if r.ver != e.predictVer || r.at != e.predictAt {
-				continue // a request cancelled since
-			}
-			e.predicting, e.cancel = false, nil
-			if r.err == nil && r.ver == e.Doc.version && r.at == e.caret && r.text != "" {
-				e.ghost, e.ghostAt, e.ghostVer = r.text, r.at, r.ver
-			}
-		default:
-			return
-		}
-	}
-}
-
-func (e *Editor) cancelPredict() {
-	if e.cancel != nil {
-		e.cancel()
-		e.cancel = nil
-	}
-	e.predicting = false
-}
-
-// DismissGhost drops the prediction shown, without asking again here.
-func (e *Editor) DismissGhost() {
-	e.ghost = ""
-	e.cancelPredict()
-	e.predictVer, e.predictAt = e.Doc.version, e.caret
-}
 
 // contextMenu shows the editor's own menu, or tells the host that draws
 // one where it was asked for.
@@ -315,9 +247,7 @@ func (e *Editor) Unmark() {
 	}
 	before := e.Doc.Marks()
 	e.Doc.RemoveMark(id)
-	e.undo = append(e.undo, undoStep{at: e.caret, caretBefore: e.caret, anchorBefore: e.anchor, caretAfter: e.caret,
-		marksBefore: before, marksAfter: e.Doc.Marks(), when: time.Now()})
-	e.redo = nil
+	e.pushMarkStep(before)
 }
 
 // unindent drops the indent before each line of s.
@@ -340,14 +270,12 @@ func (e *Editor) markAt(i int) int {
 	return id
 }
 
-// Copy puts the selection on the clipboard.
 func (e *Editor) Copy() {
 	if s := e.SelectedText(); s != "" {
 		e.sv.WriteClipboard(s)
 	}
 }
 
-// Cut takes the selection out of the text, onto the clipboard.
 func (e *Editor) Cut() {
 	a, b := e.Selection()
 	if a == b {
@@ -357,7 +285,6 @@ func (e *Editor) Cut() {
 	e.replaceRange(a, b, "", false)
 }
 
-// Paste puts what the clipboard holds in place of the selection.
 func (e *Editor) Paste() {
 	if s := e.sv.ReadClipboard(); s != "" {
 		if e.opts.Prose {
@@ -367,4 +294,36 @@ func (e *Editor) Paste() {
 		e.replaceRange(a, b, s, false)
 		e.compOpen = false
 	}
+}
+
+// ScrollAnchor matches a fraction through the prose viewport to a
+// paragraph and a fraction of its height. A second layout can place that
+// same point at that same viewport fraction, including both endpoints.
+func (e *Editor) ScrollAnchor() (fraction float32, paragraph int, into float32) {
+	e.ensureLayout()
+	if most := e.maxScroll(); most > 0 {
+		fraction = clampf(e.scrollY/most, 0, 1)
+	}
+	y := e.scrollY + fraction*e.height
+	lines := e.lay.lines
+	for i := 0; i < len(lines); {
+		j := i + 1
+		for j < len(lines) && lines[j].pstart == lines[i].pstart {
+			j++
+		}
+		bottom := lines[j-1].y + e.lay.lineH
+		if bottom >= y || j == len(lines) {
+			// Proposed paragraphs and IME text are display-only. Locate
+			// this point in the source document before naming its paragraph.
+			paragraph = 0
+			for _, r := range e.Doc.text[:clamp(e.lay.toDoc(lines[i].pstart), 0, e.Doc.Len())] {
+				if r == '\n' {
+					paragraph++
+				}
+			}
+			return fraction, paragraph, clampf((y-lines[i].y)/max(bottom-lines[i].y, 1), 0, 1)
+		}
+		i = j
+	}
+	return
 }

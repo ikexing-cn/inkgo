@@ -35,7 +35,7 @@ func (e *Editor) input(ev ui.InputEvent) bool {
 			// Composing hides what is offered; the empty composition an
 			// input method sends once it committed the text keeps the
 			// names that text offers.
-			e.ghost, e.compOpen = "", false
+			e.predict.ghost, e.compOpen = "", false
 		}
 		e.reveal = true
 		return true
@@ -85,7 +85,7 @@ func (e *Editor) command(name string) bool {
 	case "redo":
 		e.Redo()
 	case "delete":
-		e.DeleteForward()
+		e.deleteForward()
 	default:
 		return false
 	}
@@ -125,73 +125,81 @@ func (e *Editor) key(mods ui.Modifiers, k ui.Key) bool {
 			e.compSel = (e.compSel + 1) % len(e.comp)
 			return true
 		case ui.KeyEnter:
-			return e.AcceptCompletion()
+			return e.acceptCompletion()
 		case ui.KeyEscape:
 			e.compOpen = false
 			return true
 		}
 	}
 	if base == ui.Cmd {
-		switch k {
-		case ui.KeyZ:
-			if shift {
-				e.Redo()
-			} else {
-				e.Undo()
-			}
-			return true
-		case ui.KeyY:
-			e.Redo()
-			return true
-		case ui.KeyJ:
-			e.RequestPrediction()
-			return e.opts.Predictor != nil && !e.opts.NoAI
-		case ui.KeyA:
-			e.SelectAll()
-			return true
-		case ui.KeyC:
-			e.Copy()
-			return true
-		case ui.KeyX:
-			e.Cut()
-			return true
-		case ui.KeyV:
-			e.Paste()
-			return true
-		case ui.KeyHome:
-			e.MoveTo(0, shift)
-			return true
-		case ui.KeyEnd:
-			e.MoveTo(e.Doc.Len(), shift)
-			return true
-		case ui.KeyLeft:
-			e.MoveTo(e.wordLeft(), shift)
-			return true
-		case ui.KeyRight:
-			e.MoveTo(e.wordRight(), shift)
-			return true
-		case ui.KeyBackspace:
-			e.deleteWord(false)
-			return true
-		case ui.KeyDelete:
-			e.deleteWord(true)
-			return true
-		}
-		return false
+		return e.commandKey(shift, k)
 	}
 	if base != 0 {
 		return false
 	}
+	return e.plainKey(shift, k)
+}
+
+func (e *Editor) commandKey(shift bool, k ui.Key) bool {
+	switch k {
+	case ui.KeyZ:
+		if shift {
+			e.Redo()
+		} else {
+			e.Undo()
+		}
+		return true
+	case ui.KeyY:
+		e.Redo()
+		return true
+	case ui.KeyJ:
+		e.RequestPrediction()
+		return e.canPredict()
+	case ui.KeyA:
+		e.SelectAll()
+		return true
+	case ui.KeyC:
+		e.Copy()
+		return true
+	case ui.KeyX:
+		e.Cut()
+		return true
+	case ui.KeyV:
+		e.Paste()
+		return true
+	case ui.KeyHome:
+		e.MoveTo(0, shift)
+		return true
+	case ui.KeyEnd:
+		e.MoveTo(e.Doc.Len(), shift)
+		return true
+	case ui.KeyLeft:
+		e.MoveTo(e.wordLeft(), shift)
+		return true
+	case ui.KeyRight:
+		e.MoveTo(e.wordRight(), shift)
+		return true
+	case ui.KeyBackspace:
+		e.deleteWord(false)
+		return true
+	case ui.KeyDelete:
+		e.deleteWord(true)
+		return true
+	}
+	return false
+}
+
+func (e *Editor) plainKey(shift bool, k ui.Key) bool {
 	switch k {
 	case ui.KeyTab:
 		if shift {
 			return false
 		}
-		if !e.AcceptGhost() && !e.opts.Prose {
+		if !e.acceptGhost() && !e.opts.Prose {
 			e.Insert("\u3000\u3000") // a paragraph's indent
 		}
 	case ui.KeyEscape:
-		if e.Ghost() == "" && !e.predicting {
+		if e.Ghost() == "" && !e.predict.predicting {
 			return false
 		}
 		e.DismissGhost()
@@ -200,9 +208,9 @@ func (e *Editor) key(mods ui.Modifiers, k ui.Key) bool {
 		e.replaceRange(a, b, "\n", false)
 		e.compOpen = false
 	case ui.KeyBackspace:
-		e.Backspace()
+		e.backspace()
 	case ui.KeyDelete:
-		e.DeleteForward()
+		e.deleteForward()
 	case ui.KeyLeft, ui.KeyRight:
 		a, b := e.Selection()
 		switch {
@@ -252,7 +260,7 @@ func (e *Editor) key(mods ui.Modifiers, k ui.Key) bool {
 // stable drops what the layout shows at the caret but the caret moving
 // would take away, so that the layout's indexes are the document's.
 func (e *Editor) stable() {
-	e.ghost, e.preedit = "", ""
+	e.predict.ghost, e.preedit = "", ""
 	e.ensureLayout()
 }
 
@@ -316,7 +324,7 @@ func (e *Editor) pointerDown(ev ui.InputEvent) bool {
 		row := int((ev.Y - e.popRect.Y - popPad) / popRowH)
 		if row >= 0 && row < len(e.comp) {
 			e.compSel = row
-			e.AcceptCompletion()
+			e.acceptCompletion()
 		}
 		return true
 	}

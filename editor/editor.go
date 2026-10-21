@@ -1,7 +1,6 @@
 package editor
 
 import (
-	"context"
 	"slices"
 	"strings"
 	"time"
@@ -63,16 +62,8 @@ type Editor struct {
 	preedit      string
 	preeditCaret int
 
-	// An AI prediction shown after the caret until Tab accepts it.
-	ghost             string
-	ghostAt, ghostVer int
-	predictVer        int
-	predictAt         int
-	predicting        bool
-	asked             bool // the author asked for a prediction
-	cancel            context.CancelFunc
-	results           chan prediction
-	lastEdit          time.Time
+	predict  predictor
+	lastEdit time.Time
 
 	// Entity completion.
 	comp      []Entity
@@ -89,19 +80,21 @@ type Editor struct {
 	follow, show string
 
 	// Ranges found, painted under the text; the current one stronger.
-	found     [][2]int
-	doubts    [][2]int
-	current   int
-	names     []NameLink
-	namesVer  int
-	nameSpans []nameRange
-	openName  func(string)
+	found                 [][2]int
+	doubts                [][2]int
+	current               int
+	names                 []NameLink
+	namesVer              int
+	nameSpans             []nameRange
+	nameBoxes             []nameBox
+	nameLayout, layoutVer int
+	openName              func(string)
 
 	// View state.
 	sv            ui.Services // the window's clipboard and redraw, also outside a frame
 	lay           layout
 	layKey        layoutKey
-	shapes        map[string]shaped
+	shapes        []paragraphShape
 	width, height float32
 	scrollY       float32
 	reveal        bool
@@ -116,12 +109,6 @@ type Editor struct {
 	menuKey   bool // the menu key was pressed: the host is told in View
 	focused   bool
 	popRect   ui.Rect
-}
-
-type prediction struct {
-	text    string
-	err     error
-	ver, at int
 }
 
 type undoStep struct {
@@ -145,8 +132,7 @@ func New(doc *Doc, opts Options) *Editor {
 		opts.Font.Family = defaultFontFamily
 	}
 	return &Editor{
-		Doc: doc, opts: opts, predictVer: -1,
-		results: make(chan prediction, 4), shapes: map[string]shaped{},
+		Doc: doc, opts: opts, predict: predictor{predictVer: -1, results: make(chan prediction, 4)},
 		lastEdit: time.Now(), wantFocus: true,
 	}
 }
@@ -160,12 +146,12 @@ func (e *Editor) Selection() (int, int) {
 // Preedit is the input method's composition; Ghost the prediction shown.
 func (e *Editor) Preedit() string { return e.preedit }
 func (e *Editor) Ghost() string {
-	if e.ghostValid() {
-		return e.ghost
+	if e.predict.valid(e) {
+		return e.predict.ghost
 	}
 	return ""
 }
-func (e *Editor) Predicting() bool { return e.predicting }
+func (e *Editor) Predicting() bool { return e.predict.predicting }
 
 // Completions returns the names offered at the caret, if any.
 func (e *Editor) Completions() []Entity {
@@ -173,11 +159,6 @@ func (e *Editor) Completions() []Entity {
 		return nil
 	}
 	return slices.Clone(e.comp)
-}
-
-func (e *Editor) ghostValid() bool {
-	return !e.opts.NoAI && e.ghost != "" && e.ghostAt == e.caret && e.anchor == e.caret &&
-		e.ghostVer == e.Doc.version && e.preedit == ""
 }
 
 func singleLine(s string) string { return strings.ReplaceAll(normalize(s), "\n", "") }

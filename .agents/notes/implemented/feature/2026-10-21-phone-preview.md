@@ -84,9 +84,9 @@ Status: implemented
 ## Consequences
 
 - `desk/phone.go` 是整个预览：
-  - 排版用 `editor.LayoutParagraph`（`editor/paragraph.go`），和正文共用 `shapeText`、`breakLines`（避头尾）。按段缓存：同一段文字、同样的宽、字号、行距、缩进不重排。打一个字只重排那一段。
+  - 排版用 `editor.LayoutParagraph`（`editor/paragraph.go`），和正文共用 `layoutParagraph` 整形、断行（避头尾），用 `textAscent` 计算上升高度；每行字形从 rune 边界索引直接切片。按段缓存：同一段文字、同样的宽、字号、行距、缩进不重排。打一个字只重排那一段。
   - 手机里的尺寸是开头那组 `phone…` 常量，单位是手机上的点或 em，数值照原型；不借用 `hTag` 这类桌面常量。
-  - 滚动同步用 `Editor.ScrollAnchor`，算法和原型的 `syncPhone` 一样。
+  - 滚动同步用 `Editor.ScrollAnchor`（`editor/view.go`），算法和原型的 `syncPhone` 一样。
 - 右栏开着哪页从 `talk`、`fore` 两个布尔改成一个 `docView.tab`（设定、讨论、伏笔、预览）。
   - `desk.json` 只写 `pane_tab`；老文件没有它时照 `fore_tab`、`talk_tab` 推出来，`fore_tab` 优先。
   - AI 关着时 `tab` 留着「讨论」，右栏显示设定，和以前一样。

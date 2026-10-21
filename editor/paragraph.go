@@ -23,12 +23,10 @@ func LayoutParagraph(text string, font ui.Font, width, lineHeight, indent float3
 	if font.Family == "" {
 		font.Family = defaultFontFamily
 	}
-	sh := shapeText(text, font, 0)
 	runes := []rune(text)
-	starts := breakLines(runes, sh.xs, width, indent)
-	m := font.Metrics()
-	p := &Paragraph{sh: sh, LineHeight: font.Size * lineHeight}
-	p.ascent = (p.LineHeight-m.Ascent-m.Descent)/2 + m.Ascent
+	sh, starts := layoutParagraph(runes, font, width, indent, 0, nil)
+	p := &Paragraph{sh: *sh, LineHeight: font.Size * lineHeight}
+	p.ascent = textAscent(font, p.LineHeight)
 	for i, s := range starts {
 		end := len(runes)
 		if i+1 < len(starts) {
@@ -38,15 +36,24 @@ func LayoutParagraph(text string, font ui.Font, width, lineHeight, indent float3
 		if i == 0 {
 			ln.X = indent
 		}
-		for _, g := range sh.glyphs {
-			if g.Cluster >= s && g.Cluster < end {
-				ln.glyphs = append(ln.glyphs, g)
-			}
-		}
+		ln.glyphs = sh.run(s, end)
 		p.Lines = append(p.Lines, ln)
 	}
 	p.Height = float32(len(p.Lines)) * p.LineHeight
 	return p
+}
+
+func layoutParagraph(text []rune, font ui.Font, width, indent, gap float32, sh *shaped) (*shaped, []int) {
+	if sh == nil {
+		s := shapeText(string(text), font, gap)
+		sh = &s
+	}
+	return sh, breakLines(text, sh.xs, width, indent)
+}
+
+func textAscent(font ui.Font, lineHeight float32) float32 {
+	m := font.Metrics()
+	return (lineHeight-(m.Ascent+m.Descent))/2 + m.Ascent
 }
 
 // X is the rune boundary on a measured line, relative to the paragraph.
@@ -74,36 +81,4 @@ func (p *Paragraph) HitAfter(line int, x float32) int {
 func (p *Paragraph) DrawLine(paint *ui.Painter, line int, x, y float32, color ui.Color) {
 	l := p.Lines[line]
 	paint.Glyphs(l.glyphs, x+l.X-p.sh.xs[l.Start], y+p.ascent, color)
-}
-
-// ScrollAnchor matches a fraction through the prose viewport to a
-// paragraph and a fraction of its height. A second layout can place that
-// same point at that same viewport fraction, including both endpoints.
-func (e *Editor) ScrollAnchor() (fraction float32, paragraph int, into float32) {
-	e.ensureLayout()
-	if most := e.maxScroll(); most > 0 {
-		fraction = clampf(e.scrollY/most, 0, 1)
-	}
-	y := e.scrollY + fraction*e.height
-	lines := e.lay.lines
-	for i := 0; i < len(lines); {
-		j := i + 1
-		for j < len(lines) && lines[j].pstart == lines[i].pstart {
-			j++
-		}
-		bottom := lines[j-1].y + e.lay.lineH
-		if bottom >= y || j == len(lines) {
-			// Proposed paragraphs and IME text are display-only. Locate
-			// this point in the source document before naming its paragraph.
-			paragraph = 0
-			for _, r := range e.Doc.text[:clamp(e.lay.toDoc(lines[i].pstart), 0, e.Doc.Len())] {
-				if r == '\n' {
-					paragraph++
-				}
-			}
-			return fraction, paragraph, clampf((y-lines[i].y)/max(bottom-lines[i].y, 1), 0, 1)
-		}
-		i = j
-	}
-	return
 }

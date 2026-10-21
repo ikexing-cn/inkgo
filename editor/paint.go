@@ -23,12 +23,21 @@ func (e *Editor) paint(p *ui.Painter, r ui.Rect) {
 }
 
 func (e *Editor) paintIn(p *ui.Painter, r ui.Rect) {
-	t := p.Theme()
 	if r.W != e.width || r.H != e.height {
 		e.width, e.height = r.W, r.H
 		e.sv.Invalidate() // the caret given to input methods moved
 	}
 	e.ensureLayout()
+	e.scrollIntoView(r)
+	l := &e.lay
+	ox, oy := r.X+l.left, r.Y-e.scrollY
+	top, bottom := e.scrollY-l.lineH, e.scrollY+r.H
+	e.paintDecorations(p, ox, oy, top, bottom)
+	e.paintText(p, ox, oy, top, bottom)
+	e.paintCaret(p, r, oy)
+}
+
+func (e *Editor) scrollIntoView(r ui.Rect) {
 	l := &e.lay
 	// What is proposed comes into view: its start when the host asks, its
 	// end as it grows while that is in view. Asked, it is what is seen,
@@ -66,20 +75,19 @@ func (e *Editor) paintIn(p *ui.Painter, r ui.Rect) {
 		}
 	}
 	e.scrollY = clampf(e.scrollY, 0, e.maxScroll())
-	ox, oy := r.X+l.left, r.Y-e.scrollY
-	top, bottom := e.scrollY-l.lineH, e.scrollY+r.H
+}
+
+func (e *Editor) paintDecorations(p *ui.Painter, ox, oy, top, bottom float32) {
+	t := p.Theme()
+	l := &e.lay
 	e.paintNames(p, ox, oy, top, bottom)
 
-	// Marks under the text.
 	for _, m := range e.Doc.marks {
 		if m.End <= m.Start || e.hidden(m) {
 			continue
 		}
 		a, b := l.toDisp(m.Start, true), l.toDisp(m.End, false)
-		l.ranges(a, b, func(x0, x1, y float32) {
-			if y < top || y > bottom {
-				return
-			}
+		l.eachVisible(a, b, top, bottom, func(x0, x1, y float32) {
 			base := oy + y + l.lineH - 5
 			switch m.Kind {
 			case MarkForeshadow:
@@ -96,62 +104,52 @@ func (e *Editor) paintIn(p *ui.Painter, r ui.Rect) {
 		})
 	}
 
-	// What is in doubt, under the text as the marks are.
 	for _, f := range e.doubts {
-		l.ranges(l.toDisp(f[0], true), l.toDisp(f[1], false), func(x0, x1, y float32) {
-			if y >= top && y <= bottom {
-				dashed(p, ox+x0, ox+x1, oy+y+l.lineH-5, t.TextMuted.Alpha(0.55))
-			}
+		l.eachVisible(l.toDisp(f[0], true), l.toDisp(f[1], false), top, bottom, func(x0, x1, y float32) {
+			dashed(p, ox+x0, ox+x1, oy+y+l.lineH-5, t.TextMuted.Alpha(0.55))
 		})
 	}
 
-	// What a search found.
 	for i, f := range e.found {
 		color := colorFound.Alpha(0.28)
 		if i == e.current {
 			color = colorFound.Alpha(0.6)
 		}
-		l.ranges(l.toDisp(f[0], true), l.toDisp(f[1], false), func(x0, x1, y float32) {
-			if y >= top && y <= bottom {
-				p.Fill(ui.Rect{X: ox + x0, Y: oy + y + 3, W: x1 - x0, H: l.lineH - 6}, color, 2)
-			}
+		l.eachVisible(l.toDisp(f[0], true), l.toDisp(f[1], false), top, bottom, func(x0, x1, y float32) {
+			p.Fill(ui.Rect{X: ox + x0, Y: oy + y + 3, W: x1 - x0, H: l.lineH - 6}, color, 2)
 		})
 	}
 
-	// The placeholder of an empty text.
 	if e.Doc.Len() == 0 && e.preedit == "" && e.opts.Placeholder != "" && len(l.lines) > 0 {
 		p.Text(ox+l.lines[0].dx, oy+l.lines[0].y+(l.lineH-e.opts.Font.Size*1.3)/2, e.opts.Placeholder, e.opts.Font.Size, t.TextMuted.Alpha(0.6))
 	}
 
-	// The selection.
 	if a, b := e.Selection(); a != b {
 		sel := t.Selection
 		if !e.focused {
 			sel = t.TextMuted.Alpha(0.2)
 		}
-		l.ranges(l.toDisp(a, true), l.toDisp(b, false), func(x0, x1, y float32) {
-			if y >= top && y <= bottom {
-				p.Fill(ui.Rect{X: ox + x0, Y: oy + y + 2, W: x1 - x0, H: l.lineH - 4}, sel, 0)
-			}
+		l.eachVisible(l.toDisp(a, true), l.toDisp(b, false), top, bottom, func(x0, x1, y float32) {
+			p.Fill(ui.Rect{X: ox + x0, Y: oy + y + 2, W: x1 - x0, H: l.lineH - 4}, sel, 0)
 		})
 	}
 
-	// What an AI proposes to replace is struck through.
 	for _, pr := range e.props {
 		if pr.Keep {
 			continue
 		}
-		l.ranges(l.toDisp(pr.A, true), l.toDisp(pr.B, false), func(x0, x1, y float32) {
-			if y >= top && y <= bottom && x1 > x0 {
+		l.eachVisible(l.toDisp(pr.A, true), l.toDisp(pr.B, false), top, bottom, func(x0, x1, y float32) {
+			if x1 > x0 {
 				mid := oy + y + l.lineH/2
 				p.Line(ox+x0, mid, ox+x1, mid, 1.2, t.Danger)
 			}
 		})
 	}
+}
 
-	// The text, by runs of one kind: what is proposed is green, what it
-	// replaces red, a prediction pale; the room after a proposal is the
-	// host's to fill.
+func (e *Editor) paintText(p *ui.Painter, ox, oy, top, bottom float32) {
+	t := p.Theme()
+	l := &e.lay
 	colors := [...]ui.Color{runeText: t.Text, runeGhost: t.TextMuted.Alpha(0.75), runeNew: t.Success, runeStruck: t.Danger}
 	for i := range l.lines {
 		ln := &l.lines[i]
@@ -160,10 +158,14 @@ func (e *Editor) paintIn(p *ui.Painter, r ui.Rect) {
 		}
 		x := ox + ln.dx - ln.sh.xs[ln.start-ln.pstart]
 		y := oy + ln.y + l.ascent
+		if l.kinds == nil {
+			e.drawRun(p, ln, ln.start, ln.end, x, y, t.Text)
+			continue
+		}
 		for a := ln.start; a < ln.end; {
-			k := l.kinds[a]
+			k := l.kind(a)
 			b := a + 1
-			for b < ln.end && l.kinds[b] == k {
+			for b < ln.end && l.kind(b) == k {
 				b++
 			}
 			if k != runeGap {
@@ -173,22 +175,23 @@ func (e *Editor) paintIn(p *ui.Painter, r ui.Rect) {
 		}
 	}
 
-	// The composition is underlined.
 	if l.preEnd > l.extraAt {
 		l.ranges(l.extraAt, l.preEnd, func(x0, x1, y float32) {
 			base := oy + y + l.lineH - 6
 			p.Line(ox+x0, base, ox+x1, base, 1.5, t.Text)
 		})
 	}
+}
 
-	// The caret.
+func (e *Editor) paintCaret(p *ui.Painter, r ui.Rect, oy float32) {
+	t := p.Theme()
+	l := &e.lay
 	if e.focused {
 		cx, cy := e.caretPos()
 		h := e.opts.Font.Size * 1.3
 		p.Fill(ui.Rect{X: r.X + cx - 0.5, Y: oy + cy + (l.lineH-h)/2, W: 1.5, H: h}, t.Accent, 0)
 	}
 
-	// A scrollbar, while the text is longer than the view.
 	if full := e.maxScroll() + r.H; full > r.H {
 		h := max(r.H*r.H/full, 24)
 		y := r.Y + (r.H-h)*e.scrollY/max(full-r.H, 1)
@@ -202,12 +205,7 @@ func (e *Editor) drawRun(p *ui.Painter, ln *line, a, b int, x, y float32, c ui.C
 		return
 	}
 	ra, rb := a-ln.pstart, b-ln.pstart
-	var run []ui.Glyph
-	for _, g := range ln.sh.glyphs {
-		if g.Cluster >= ra && g.Cluster < rb {
-			run = append(run, g)
-		}
-	}
+	run := ln.sh.run(ra, rb)
 	if len(run) > 0 {
 		p.Glyphs(run, x, y, c)
 	}

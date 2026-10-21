@@ -12,7 +12,11 @@ Status: implemented
 
 - 全部代码是 Go，`CGO_ENABLED=0` 可编译；窗口与绘制用 `github.com/egoist/mygo` 的原生 UI（Windows 走 Direct3D 11，macOS 走 Metal，Linux 走 OpenGL），不用 WebView。
 - 正文编辑器在 `editor/` 自己实现，不用 `ui.TextArea`：用 `HandleInput` 取按键、文字与输入法组字，`TextCaret` 告诉系统光标位置，`ui.Shape` 排字形后自己按宽度断行、自己画光标、选区、标记、灰字与补全弹层。
-- 文档模型 `editor.Doc` 只存纯文本（rune 下标）加一组 `Mark`；标记在每次替换时按位置映射移动，在标记边上打字不扩大标记，标记内文字被删光时置 `Orphaned` 而不是静默删除。
+- 文档模型 `editor.Doc` 只存纯文本（rune 下标）加一组 `Mark`；标记在每次替换时按位置映射移动，在标记边上打字不扩大标记，标记内文字被删光时置 `Orphaned` 而不是静默删除。`Version()` 记录文字和标记的变化；内部文字版本只使排版、名字匹配和预测失效。
+- 段落缓存保留旧 rune 切片，先从头按序号比较，未命中再按距末尾的段数比较；回车、合段和粘贴后，未改的前后段仍复用整形。每次重排多扫一遍正文数段，只在缓存未命中时生成字符串。
+- 整形时建立 rune 边界的字形索引，正文和手机预览按行切片；上升高度每份排版只计算一次。没有组字或灰字插入时，显示借用原文，光标移动不重排。
+- 行和范围用二分查找；名字重叠按输入名单优先，用扫线合并。名字框每次排版计算一次，命中和绘制共用；标记、选区和查找的遮盖仍即时判断。
+- 预测状态放在 `editor/predict.go`。滚动更新仍在绘制回调，保持输入法光标报告的时序；标记添加统一走 `Doc.Add`，撤销记录用 `pushMarkStep`。
 - AI 预测只显示、不写入：`Predictor` 的结果作为灰字插在显示层，按 Tab 才作为一次可撤销的编辑写入，并打 `MarkAIAccepted` 标记留下来源（`Options.GhostNote` 给出标记的备注，正文页记模型名）。`Options.PredictOnDemand` 打开时，只在 Cmd+J 或 `RequestPrediction` 时预测，光标在哪儿都行；关着时停止输入、光标在段尾才预测。补全候选只来自传入的已确认实体，不调用模型；正文页不传实体，补全不出现。
 - 改写建议和起草也在编辑器里：`Propose(a, b, text)` 把原文划掉、新文着色显示在原文后，文字一变就失效，`AcceptProposal` 一步替换并打 `MarkAIAccepted`；`BeginDraft` / `DraftAppend` / `EndDraft` 让 AI 流式写入，期间只读，结束时整段打 `MarkAIDraft`，连同被覆盖的原文算一步撤销。2026-10-15 起起草也是提议：`ProposeDraft(a, b)` 开一个空提议，`ProposeMore` 接上流来的字，`AcceptProposal` 按提议记着的种类打 `MarkAIAccepted` 或 `MarkAIDraft`；`BeginDraft` 那三个删掉，见[AI 写的字等作者采纳，作品记下用量](../feature/2026-10-15-ai-text-waits-and-usage-is-kept.md)。
 - 标记有三种：伏笔（`MarkForeshadow`）、AI 采纳（`MarkAIAccepted`）、AI 起草（`MarkAIDraft`）。替换正好覆盖一个标记的文字时，标记跟着新文字走。AI 起草标记例外：作者在它里面改字，改动的部分脱离标记，前后剩下的各自留着。

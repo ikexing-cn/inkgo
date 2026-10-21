@@ -163,7 +163,7 @@ func TestAProposalComesIntoView(t *testing.T) {
 // marked.
 func TestTheAIMarkLetsGoOfEditedWords(t *testing.T) {
 	d := NewDoc("雨下了一夜，她醒了。")
-	d.AddMark(MarkAI, 0, 10, "")
+	d.Add(Mark{Kind: MarkAI, Start: 0, End: 10, Note: ""})
 	d.replace(3, 5, []rune("整整一夜")) // "一夜" becomes "整整一夜"
 	ms := d.Marks()
 	if len(ms) != 2 || d.Slice(ms[0].Start, ms[0].End) != "雨下了" || d.Slice(ms[1].Start, ms[1].End) != "，她醒了。" {
@@ -185,7 +185,7 @@ func TestTheAIMarkLetsGoOfEditedWords(t *testing.T) {
 func TestNoAI(t *testing.T) {
 	const text = "她推开门。窗外下雨"
 	e := New(NewDoc(text), Options{Predictor: DemoPredictor{}, PredictOnDemand: true})
-	e.Doc.AddMark(MarkAI, 0, 5, "deepseek/deepseek-flash")
+	e.Doc.Add(Mark{Kind: MarkAI, Start: 0, End: 5, Note: "deepseek/deepseek-flash"})
 	e.MoveTo(len([]rune(text)), false)
 	tt := newTester(e)
 	tt.Key(ui.Cmd, ui.KeyJ)
@@ -241,4 +241,18 @@ func pixels(tt *ui.Tester) string {
 		}
 	}
 	return string(out)
+}
+
+func TestPredictionSurvivesMarkChanges(t *testing.T) {
+	e := New(NewDoc("雨"), Options{})
+	e.MoveTo(1, false)
+	e.predict.ghost, e.predict.ghostAt, e.predict.ghostVer = "停了。", 1, e.Doc.textVer
+	e.Doc.Add(Mark{Kind: MarkForeshadow, Start: 0, End: 1})
+	if e.Ghost() != "停了。" {
+		t.Fatal("mark edit invalidated ghost")
+	}
+	e.Insert("又下")
+	if e.Ghost() != "" {
+		t.Fatal("text edit left ghost valid")
+	}
 }

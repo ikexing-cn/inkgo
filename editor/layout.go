@@ -2,6 +2,7 @@ package editor
 
 import (
 	"slices"
+	"sort"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -23,6 +24,14 @@ const PadX = padX
 type shaped struct {
 	glyphs []ui.Glyph
 	xs     []float32 // x of each rune boundary
+	first  []int     // first glyph whose cluster is at least this rune
+}
+
+func (s *shaped) run(a, b int) []ui.Glyph { return s.glyphs[s.first[a]:s.first[b]] }
+
+type paragraphShape struct {
+	text []rune // Doc.replace allocates new text; cached slices stay immutable.
+	sh   *shaped
 }
 
 // line is a line of the layout. Indexes are of the display text: the
@@ -69,20 +78,25 @@ const (
 // buildLayout lays the text out for an element width wide.
 func (e *Editor) buildLayout(width float32) {
 	f := e.opts.Font
-	m := f.Metrics()
 	l := layout{}
 	lh := e.opts.LineHeight
 	if lh == 0 {
 		lh = 1.8
 	}
 	l.lineH = f.Size * lh
-	l.ascent = (l.lineH-(m.Ascent+m.Descent))/2 + m.Ascent
+	l.ascent = textAscent(f, l.lineH)
 	l.textW = max(min(width-2*padX, maxTextWidth), 60)
 	l.left = max((width-l.textW)/2, 0)
 
 	e.display(&l)
 
-	used := make(map[string]shaped, len(e.shapes))
+	paragraphs := 1
+	for _, r := range l.disp {
+		if r == '\n' {
+			paragraphs++
+		}
+	}
+	used := make([]paragraphShape, 0, paragraphs)
 	y := float32(padTop)
 	paraGap := f.Size * 0.5
 	for ps := 0; ps <= len(l.disp); {
@@ -90,20 +104,20 @@ func (e *Editor) buildLayout(width float32) {
 		for pe < len(l.disp) && l.disp[pe] != '\n' {
 			pe++
 		}
-		key := string(l.disp[ps:pe])
-		sh, ok := used[key]
-		if !ok {
-			if sh, ok = e.shapes[key]; !ok {
-				sh = shapeText(key, f, e.gap)
-			}
-			used[key] = sh
+		text := l.disp[ps:pe]
+		var cached *shaped
+		i := len(used)
+		if i < len(e.shapes) && slices.Equal(text, e.shapes[i].text) {
+			cached = e.shapes[i].sh
+		} else if j := len(e.shapes) - (paragraphs - i); j >= 0 && j < len(e.shapes) && slices.Equal(text, e.shapes[j].text) {
+			cached = e.shapes[j].sh
 		}
-		shp := &sh
 		indent := float32(0)
 		if e.opts.Prose {
 			indent = 2 * f.Size
 		}
-		starts := breakLines(l.disp[ps:pe], sh.xs, l.textW, indent)
+		shp, starts := layoutParagraph(text, f, l.textW, indent, e.gap, cached)
+		used = append(used, paragraphShape{text, shp})
 		for i, s := range starts {
 			end := pe - ps
 			if i+1 < len(starts) {
@@ -122,6 +136,7 @@ func (e *Editor) buildLayout(width float32) {
 	l.height = y - paraGap + padBottom
 	e.shapes = used
 	e.lay = l
+	e.layoutVer++
 }
 
 // display builds the display text of l: the document with what shows in
@@ -138,6 +153,10 @@ func (e *Editor) display(l *layout) {
 	var pieces []piece
 	extra, at := e.extra()
 	pre, ghost := []rune(e.preedit), []rune(extra)
+	if len(pre)+len(ghost) == 0 && len(e.props) == 0 {
+		l.disp = text
+		return
+	}
 	if len(pre)+len(ghost) > 0 {
 		pieces = append(pieces, piece{at: clamp(at, 0, len(text)), caret: true})
 	}
@@ -190,24 +209,16 @@ func (e *Editor) display(l *layout) {
 		l.ins = append(l.ins, insert{pc.at, len(l.disp) - start})
 	}
 	doc(from, len(text))
-	if len(pre)+len(ghost) == 0 {
-		at := l.toDisp(clamp(e.caret, 0, len(text)), false)
-		l.extraAt, l.preEnd, l.extraEnd = at, at, at
-	}
 }
 
 // shapeText shapes s, giving each rune that holds room after what is
 // proposed the width gap, and no glyph to draw.
 func shapeText(s string, f ui.Font, gap float32) shaped {
 	gs := ui.Shape(s, f)
-	pos := make([]glyphPos, len(gs))
-	for i, g := range gs {
-		pos[i] = glyphPos{cluster: g.Cluster, x: g.X, advance: g.Advance}
-	}
 	r := []rune(s)
-	xs := positions(len(r), pos)
+	xs := positions(len(r), gs)
 	if !slices.Contains(r, gapRune) {
-		return shaped{glyphs: gs, xs: xs}
+		return indexGlyphs(gs, xs)
 	}
 	for k, c := range r {
 		if c != gapRune {
@@ -224,7 +235,26 @@ func shapeText(s string, f ui.Font, gap float32) shaped {
 		}
 	}
 	gs = slices.DeleteFunc(gs, func(g ui.Glyph) bool { return g.Cluster >= 0 && g.Cluster < len(r) && r[g.Cluster] == gapRune })
-	return shaped{glyphs: gs, xs: xs}
+	return indexGlyphs(gs, xs)
+}
+
+func indexGlyphs(gs []ui.Glyph, xs []float32) shaped {
+	first := make([]int, len(xs))
+	i := 0
+	for r := range first {
+		for i < len(gs) && gs[i].Cluster < r {
+			i++
+		}
+		first[r] = i
+	}
+	return shaped{glyphs: gs, xs: xs, first: first}
+}
+
+func (l *layout) kind(i int) runeKind {
+	if l.kinds == nil {
+		return runeText
+	}
+	return l.kinds[i]
 }
 
 // x returns the x of display index d on line ln, relative to the text.
@@ -234,24 +264,19 @@ func (l *layout) x(ln *line, d int) float32 {
 
 // lineOf returns the line showing display index d.
 func (l *layout) lineOf(d int) int {
-	for i := range l.lines {
+	i := sort.Search(len(l.lines), func(i int) bool {
 		ln := &l.lines[i]
-		if d >= ln.start && (d < ln.end || d == ln.end && ln.last) {
-			return i
-		}
+		return ln.end > d || ln.end == d && ln.last
+	})
+	if i < len(l.lines) && d >= l.lines[i].start {
+		return i
 	}
 	return max(len(l.lines)-1, 0)
 }
 
 // lineAt returns the line at y, relative to the content.
 func (l *layout) lineAt(y float32) int {
-	best := 0
-	for i := range l.lines {
-		if l.lines[i].y <= y {
-			best = i
-		}
-	}
-	return best
+	return max(sort.Search(len(l.lines), func(i int) bool { return l.lines[i].y > y })-1, 0)
 }
 
 // hitLine returns the display index nearest to x on line i.
@@ -303,7 +328,8 @@ func (l *layout) toDisp(i int, after bool) int {
 // ranges calls fn with the part of display range [a, b) on each line, in
 // content coordinates relative to the text's left.
 func (l *layout) ranges(a, b int, fn func(x0, x1, y float32)) {
-	for i := range l.lines {
+	start := sort.Search(len(l.lines), func(i int) bool { return l.lines[i].end >= a })
+	for i := start; i < len(l.lines) && l.lines[i].start <= b; i++ {
 		ln := &l.lines[i]
 		s, t := max(a, ln.start), min(b, ln.end)
 		// The line break after a paragraph's last line counts as selected
@@ -318,4 +344,12 @@ func (l *layout) ranges(a, b int, fn func(x0, x1, y float32)) {
 		}
 		fn(x0, x1, ln.y)
 	}
+}
+
+func (l *layout) eachVisible(a, b int, top, bottom float32, fn func(x0, x1, y float32)) {
+	l.ranges(a, b, func(x0, x1, y float32) {
+		if y >= top && y <= bottom {
+			fn(x0, x1, y)
+		}
+	})
 }

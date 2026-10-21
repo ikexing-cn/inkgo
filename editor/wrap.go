@@ -3,23 +3,25 @@ package editor
 import (
 	"strings"
 	"unicode"
+
+	"github.com/egoist/mygo/ui"
 )
 
 // positions returns the x of each rune boundary of a text of n runes from
 // the glyphs Shape placed: xs[i] is where rune i starts, xs[n] the end.
 // Runes inside a cluster (ligatures) share its width evenly.
-func positions(n int, gs []glyphPos) []float32 {
+func positions(n int, gs []ui.Glyph) []float32 {
 	xs := make([]float32, n+1)
 	known := make([]bool, n+1)
 	var end float32
 	for _, g := range gs {
-		if g.cluster >= 0 && g.cluster < n {
-			if !known[g.cluster] || g.x < xs[g.cluster] {
-				xs[g.cluster] = g.x
+		if g.Cluster >= 0 && g.Cluster < n {
+			if !known[g.Cluster] || g.X < xs[g.Cluster] {
+				xs[g.Cluster] = g.X
 			}
-			known[g.cluster] = true
+			known[g.Cluster] = true
 		}
-		end = max(end, g.x+g.advance)
+		end = max(end, g.X+g.Advance)
 	}
 	xs[n], known[n] = end, true
 	if !known[0] {
@@ -39,12 +41,6 @@ func positions(n int, gs []glyphPos) []float32 {
 		xs[i] = max(xs[i], xs[i-1])
 	}
 	return xs
-}
-
-// glyphPos is what positions needs of a glyph.
-type glyphPos struct {
-	cluster    int
-	x, advance float32
 }
 
 // breakLines breaks a paragraph into lines no wider than width and returns
