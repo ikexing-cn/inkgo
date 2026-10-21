@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"writer/discussion"
+	"writer/inference"
 	"writer/internal/textclip"
 	"writer/model"
 	"writer/prompt"
@@ -175,7 +176,7 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 		return workspace.Check{}, err
 	}
 	var got found
-	if err = discussion.Decode(said.String(), &got); err != nil {
+	if err = inference.Decode(said.String(), &got); err != nil {
 		return workspace.Check{}, fmt.Errorf("模型给的检查结果读不了，可以再查一次：%w", err)
 	}
 	for _, g := range got.Findings {
