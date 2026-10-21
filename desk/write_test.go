@@ -854,7 +854,7 @@ func TestASlimSidebarKeepsTheTrash(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("已删除的章节及其内容暂存于此，恢复后回到原文件夹末尾。") {
+	if !tt.HasText("恢复后回到原文件夹末尾。") || tt.HasText("已删除的章节及其内容暂存于此") {
 		t.Fatal("the trash did not open", tt.Texts())
 	}
 }
@@ -1017,7 +1017,7 @@ func TestSetTheDaysGoal(t *testing.T) {
 	}
 	a.write.goalText = "2000"
 	tt.Frame()
-	if tt.HasText("每日目标须为正整数，留空则不设。") || !tt.HasText("设置后，字数旁显示今日字数和目标。留空则不设。") {
+	if tt.HasText("每日目标须为正整数，留空则不设。") || !tt.HasText("字数旁显示今日字数和目标。") || tt.HasText("设置后，字数旁") {
 		t.Fatal("a goal set right is said to be wrong", tt.Texts())
 	}
 	a.write.focus = true // room for today's count in the bar

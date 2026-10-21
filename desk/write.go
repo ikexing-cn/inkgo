@@ -1110,7 +1110,7 @@ func (a *App) wordCount(c *ui.Context, roomy, wide bool) {
 			}
 		})
 		// What is not a count leaves the goal be, and says so.
-		note, ink := "设置后，字数旁显示今日字数和目标。留空则不设。", t.TextMuted
+		note, ink := "字数旁显示今日字数和目标。", t.TextMuted
 		if _, ok := countOrNone(w.goalText); !ok {
 			note, ink = "每日目标须为正整数，留空则不设。", t.Danger
 		}
@@ -1854,7 +1854,7 @@ func (a *App) trashView(c *ui.Context) {
 	w := &a.write
 	a.modal(c, &w.trashOpen, func() {
 		ui.Column(c).Width(dialogSmall).Padding(dialogPad).Gap(16).Children(func() {
-			a.pal.dialogHead(c, "回收站", "已删除的章节及其内容暂存于此，恢复后回到原文件夹末尾。")
+			a.pal.dialogHead(c, "回收站", "恢复后回到原文件夹末尾。")
 			ui.Scroll(c.Key("trash")).FillWidth().MaxHeight(320).Children(func() {
 				ui.Column(c).FillWidth().Children(func() {
 					a.pal.hairline(c)

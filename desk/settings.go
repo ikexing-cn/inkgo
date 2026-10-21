@@ -112,7 +112,7 @@ func (a *App) subhead(c *ui.Context, title, caption string) {
 // for the discussion, and for continuing and checking. A choice is kept as
 // it is made, a model ID typed once the caret leaves it.
 func (a *App) usage(c *ui.Context) {
-	a.subhead(c, "本作品的模型", "思考程度选 Default 时由服务商决定。修改自下次发送起生效。")
+	a.subhead(c, "本作品的模型", "")
 	var typing [2]bool
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
 		typing[0] = a.useRow(c, "讨论", "与你讨论故事", &a.talkProvider, "", "讨论提供商", &a.talkModel, "讨论模型", &a.talkEffort, "讨论的思考程度")
@@ -424,7 +424,7 @@ func (a *App) providerForm(c *ui.Context) {
 				red(bad.Models)
 			}
 		})
-		ui.Text(c, "数值默认取自内置模型表，表中没有的模型按保守值填写；上下文上限和最大输出可写成 128K、1M。讨论超过压缩阈值时，较早的对话会整理成摘要。").FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
+		ui.Text(c, "讨论超过压缩阈值时，较早的对话会整理成摘要。").FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Justify(ui.End).Children(func() {
 			if a.providerID != "" && a.pal.ghost(c, "清除已保存 key", t.Danger).Disabled(busy).Clicked() {
 				err := a.ai.SetKey(a.providerID, "")

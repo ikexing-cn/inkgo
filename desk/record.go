@@ -63,7 +63,7 @@ func costOf(rs ...workspace.Record) map[string]float64 {
 // way to every request.
 func (a *App) spent(c *ui.Context) {
 	t := a.pal.theme
-	a.subhead(c, "本作品用量", "按内置价格估算，以服务商账单为准。")
+	a.subhead(c, "本作品用量", "")
 	if len(a.bk.records) == 0 {
 		ui.Text(c, "尚未使用 AI。").FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
 		return

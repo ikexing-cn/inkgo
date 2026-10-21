@@ -17,7 +17,7 @@ func TestTheWorkShowsWhatItSpent(t *testing.T) {
 	a, tt, _ := fixture(t)
 	a.openPrefs("AI")
 	tt.Frame()
-	if !tt.HasText("本作品用量") || !tt.HasText("按内置价格估算，以服务商账单为准。") || !tt.HasText("尚未使用 AI。") {
+	if !tt.HasText("本作品用量") || tt.HasText("按内置价格估算") || !tt.HasText("尚未使用 AI。") {
 		t.Fatal("nothing spent yet", tt.Texts())
 	}
 	chapter, err := a.Store.NewChapter("", "第一章", false)
@@ -68,13 +68,13 @@ func TestTheWorkShowsWhatItSpent(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	for _, s := range []string{"AI 记录", "本作品每次向模型发的请求记一行，失败、取消的也记；只记发了哪几部分、各多大，不存内容。",
+	for _, s := range []string{"AI 记录", "只记发了哪几部分、各多大，不存内容。",
 		"‹ 本作品用量", "检查 · 已删除的章节", "失败：无法连接模型服务", "续写 · 第一章", "已取消", "讨论 · 灯为什么会灭", "完成", "1.7M", "约 $4.44", "—"} {
 		if !tt.HasText(s) {
 			t.Fatal(s, tt.Texts())
 		}
 	}
-	if tt.HasText("关闭 AI") || tt.HasText("本作品的模型") {
+	if tt.HasText("关闭 AI") || tt.HasText("本作品的模型") || tt.HasText("本作品每次向模型发的请求") {
 		t.Fatal("the record shows with the rest", tt.Texts())
 	}
 	if texts := tt.Texts(); indexOf(texts, "检查 · 已删除的章节") > indexOf(texts, "讨论 · 灯为什么会灭") {

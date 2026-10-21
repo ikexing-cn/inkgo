@@ -43,12 +43,11 @@ var prefTabs = [][2]string{{"AI", "设置-AI"}, {"外观", "设置-外观"}, {"�
 // The settings dialog keeps one size whichever part is shown.
 const prefsWidth, prefsHeight = 900, 620
 
-// prefAbout says under each part's title what it is for.
+// prefAbout says under a part's title what the author must know of it;
+// a part with nothing such says nothing there.
 var prefAbout = map[string]string{
-	"AI":    "是否使用 AI，以及使用哪些模型。",
 	"外观":    "仅在本机生效，适用于所有作品。",
-	"提醒与检查": "本作品的提醒规则，修改后立即生效。",
-	"备份":    "为整部作品另存一份副本，以防设备故障。",
+	"提醒与检查": "仅适用于本作品。",
 }
 
 // prefName is what a part of the settings is called, and prefNote what
@@ -75,7 +74,7 @@ func (a *App) prefNote(tab string) string {
 	case tab == "AI" && !a.aiOn():
 		return "仅在本机生效，适用于所有作品。"
 	case tab == "AI" && a.showsLog():
-		return "本作品每次向模型发的请求记一行，失败、取消的也记；只记发了哪几部分、各多大，不存内容。"
+		return "只记发了哪几部分、各多大，不存内容。"
 	}
 	return prefAbout[tab]
 }
@@ -157,7 +156,9 @@ func (a *App) preferences(c *ui.Context) {
 			// the line, not over it and the close button.
 			ui.Column(c).FillWidth().Shrink(0).Gap(4).Padding(24, 56, 16, 32).Children(func() {
 				ui.Text(c, a.prefTitle(a.bk.tab)).FontSize(fsDialog).FontWeight(700)
-				ui.Text(c, a.prefNote(a.bk.tab)).FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
+				if note := a.prefNote(a.bk.tab); note != "" {
+					ui.Text(c, note).FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
+				}
 			})
 			a.pal.hairline(c)
 			key := "prefs-" + a.bk.tab
@@ -206,5 +207,4 @@ func (a *App) looksView(c *ui.Context) {
 		a.shelf.NoNames = !on
 		a.saveShelf()
 	}
-	a.tickNote(c, "名字下面一道虚线，点击在右栏查看这条设定。")
 }

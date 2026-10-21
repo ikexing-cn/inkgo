@@ -177,7 +177,7 @@ func TestBackupFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !a.bk.prefs || !tt.HasText("为整部作品另存一份副本，以防设备故障。") || !tt.HasText("11 字 · 1 章 · 已存 1 份") {
+	if !a.bk.prefs || tt.HasText("为整部作品另存一份副本") || !tt.HasText("11 字 · 1 章 · 已存 1 份") {
 		t.Fatal("settings page", tt.Texts())
 	}
 	if err := tt.Click("写作时每小时一次"); err != nil {

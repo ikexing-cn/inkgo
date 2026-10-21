@@ -774,11 +774,7 @@ func (a *App) remindersView(c *ui.Context) {
 	}
 	a.subhead(c, "伏笔", "")
 	ui.Row(c).FillWidth().MinHeight(hControl).Gap(12).AlignItems(ui.Center).Children(func() {
-		ui.Column(c).Grow(1).Shrink(1).Children(func() {
-			ui.Text(c, "超过多少章未回收时提醒").FontSize(fsBody).LineHeight(lhBody)
-			ui.Text(c, "到期后归入「久未回收」，不弹窗。").
-				FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody).FillWidth()
-		})
+		ui.Text(c, "超过多少章算久未回收").FontSize(fsBody).LineHeight(lhBody).Grow(1).Shrink(1)
 		set := func(v int) {
 			w.lateAfter = min(max(v, lateMin), lateMax)
 			a.savePrefs()

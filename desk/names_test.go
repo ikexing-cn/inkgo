@@ -46,7 +46,10 @@ func TestNamesInTheProse(t *testing.T) {
 	tt.Frame()
 	planClick(t, tt, "设置")
 	planClick(t, tt, "设置-外观")
-	planHas(t, tt, "名字下面一道虚线，点击在右栏查看这条设定。")
+	planHas(t, tt, "正文中标出设定的名字")
+	if tt.HasText("名字下面一道虚线") {
+		t.Fatal("unnecessary names note", tt.Texts())
+	}
 	planClick(t, tt, "正文中标出设定的名字")
 	tt.Key(0, ui.KeyEscape)
 	tt.Frame()

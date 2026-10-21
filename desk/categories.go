@@ -20,7 +20,7 @@ func (a *App) categories(c *ui.Context) {
 	ui.Scroll(c).FillWidth().Grow(1).Children(func() {
 		ui.Column(c).FillWidth().MaxWidth(640+2*40).Padding(32, 40, 20, 40).Gap(12).Children(func() {
 			ui.Text(c, "作品分类").FontSize(fsTitle).FontWeight(700)
-			ui.Text(c, "设定文档按分类分节，每条设定只归入一个分类。“落点”指设定成熟后的去处，例如设定库或大纲。").FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody).FillWidth()
+			ui.Text(c, "“落点”指设定成熟后的去处，例如设定库或大纲。").FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody).FillWidth()
 			ui.Column(c).FillWidth().Children(func() {
 				a.pal.hairline(c)
 				for _, cat := range a.Store.Work().Categories {
