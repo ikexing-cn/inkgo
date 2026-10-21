@@ -562,16 +562,16 @@ const SPACING = { 紧凑: 'loose', 适中: 'read', 宽松: 'paper' }
 const LONG = 5 // 一段在手机上超过几行算长
 let phoneAt = 0, phoneKey = '', phoneCaret = '', phoneScreens = 1, phoneLongAt = [] // 看到第几屏（从 0 起）、哪一章、光标上次在哪一屏、共几屏、长段各在第几屏
 const phoneSet = (change) => set((s) => ({ phone: { ...s.phone, ...change } }))
-const readOn = () => S.chapters // 连着读：上一章、下一章照侧栏的先后
 
-// 翻一屏；翻过头就到上一章的最后一屏、下一章的第一屏。
+// 翻一屏，只在这一章里翻。
 function phoneFlip(d) {
   const to = phoneAt + d
-  if (to >= 0 && to < phoneScreens) { phoneAt = to; draw(); return }
-  const list = readOn(), next = list[list.findIndex((c) => c.key === S.ch) + d]
-  if (!next) return
-  phoneAt = d < 0 ? Infinity : 0
-  set((s) => go(s, next.key))
+  if (to >= 0 && to < phoneScreens) { phoneAt = to; draw() }
+}
+// 在预览里点的是那一段的第几个字后面：正文的光标放到同一处。
+function phoneOff(ev) {
+  const r = document.caretRangeFromPoint(ev.clientX, ev.clientY)
+  return r && r.startContainer.parentElement === ev.target.closest('[data-phone]') ? r.startOffset : 0
 }
 // 跳到下一处长段所在的那一屏。
 function phoneNextLong() {
@@ -582,7 +582,7 @@ function phoneNextLong() {
 
 function phoneView() {
   const c = chapterOf(S.ch)
-  if (S.vol || !c) return `<div class="phone-view" data-k="phone-view">${empty('打开一章即可预览', '按读者手机上的样子排这一章：一屏放多少字、哪段太长。')}</div>`
+  if (S.vol || !c) return `<div class="phone-view" data-k="phone-view">${empty('打开一章即可预览')}</div>`
   const P = S.phone, [W, H] = PHONES[P.size], e = (px) => +(px / P.fs).toFixed(3) + 'em', flip = P.mode === '翻页'
   const on = S.open === 'phone-look'
   const step = (label, tip, ok, d) => `<div class="hit${ok ? '' : ' off'}" title="${tip}"${onClick(() => ok && phoneSet({ fs: P.fs + d }))}>${label}</div>`
@@ -592,30 +592,29 @@ function phoneView() {
     `<div class="pop-label">行距</div><div class="pop-seg">${seg(P.lh, Object.keys(SPACING), (v) => phoneSet({ lh: v }), '行距')}</div>` +
     `<div class="pop-label">背景</div><div class="pop-seg">${seg(P.theme, ['白天', '夜间', '护眼'], (v) => phoneSet({ theme: v }), '背景')}</div>` + HAIR +
     `<div class="phone-ticks">${tickbox(P.frame, '显示手机外框', () => phoneSet({ frame: !P.frame }))}${tickbox(P.long, `标出超过 ${LONG} 行的段落`, () => phoneSet({ long: !P.long }))}</div>` +
-    '<div class="note">只改这里的样子；读者那边按各自手机的设置排，屏数会有出入。</div>' +
     `<div class="pop-buttons"><div class="hit link"${onClick(() => set({ phone: { ...PHONE, mode: P.mode } }))}>恢复默认</div></div></div>`
   const tool = `<div class="tool phone-tool" data-k="tool">${seg(P.mode, ['翻页', '滚动'], (v) => phoneSet({ mode: v }), '看法')}<div class="grow"></div>` +
     `<div class="more hit phone-aa${on ? ' on' : ''}" title="排版"${onClick(() => set({ open: on ? '' : 'phone-look' }))}>Aa</div>${on ? look : ''}</div>`
   const title = titleOf(c).replace('：', ' ')
-  const paras = c.paras.map((p, i) => `<p data-phone="${i}"${onClick(() => putCaret({ para: i, off: 0 }, true))}>${t(p)}</p>`).join('')
+  const paras = c.paras.map((p, i) => `<p data-phone="${i}"${onClick((ev) => putCaret({ para: i, off: phoneOff(ev) }, true))}>${t(p)}</p>`).join('')
   const screen = `<div class="phone-screen ${{ 白天: 'light', 夜间: 'dark', 护眼: 'light eye' }[P.theme]}" style="width:${e(W)};height:${e(H)}">` +
     `<div class="phone-status" style="height:${e(44)};padding:0 ${e(28)}"><span>${BOOK.clock}</span><span class="phone-battery"></span></div>` +
     `<div class="phone-page${flip ? '' : ' rolled'}" style="height:${e(H - 86)};margin:${e(8)} ${e(20)} 0">` +
-    `<div class="phone-text lh-${SPACING[P.lh]}"${flip ? ` style="column-width:${e(W - 40)};column-gap:${e(40)}"` : ''}><div class="phone-title">${t(title)}</div>${paras}</div></div>` +
+    `<div class="phone-text lh-${SPACING[P.lh]}"${flip ? ` style="column-width:${e(W - 40)};column-gap:${e(40)}"` : ''}><div class="phone-title">${t(title)}</div>${paras}<i class="phone-caret" hidden></i></div></div>` +
     `<div class="phone-foot" style="height:${e(34)};padding:0 ${e(20)}"><span class="ell">${t(title)}</span><span class="phone-at"></span></div></div>`
   return '<div class="phone-view" data-k="phone-view">' + tool +
     `<div class="phone-stage"><div class="phone dark${P.frame ? ' framed' : ''}">${screen}</div></div>` +
-    (flip ? `<div class="phone-nav"><div class="hit link phone-back"${onClick(() => phoneFlip(-1))}></div><div class="phone-count"></div><div class="hit link phone-next"${onClick(() => phoneFlip(1))}></div></div>`
+    (flip ? `<div class="phone-nav"><div class="hit link phone-back"${onClick(() => phoneFlip(-1))}>‹ 上一屏</div><div class="phone-count"></div><div class="hit link phone-next"${onClick(() => phoneFlip(1))}>下一屏 ›</div></div>`
       : '<div class="phone-nav"><div class="grow"></div><div class="phone-count"></div><div class="grow"></div></div>') +
     `<div class="phone-long"><div class="hit link"${onClick(phoneNextLong)}></div></div></div>`
 }
 
-// 画完以后量：手机缩放到放得下，正文分成几屏，每段几行，光标在哪一段。只改量出来的那几处，不重画。
+// 画完以后量：手机缩放到放得下，正文分成几屏，每段几行，正文里选中的字和光标落在预览的哪儿。只改量出来的那几处，不重画。
 function fitPhone() {
   const view = document.querySelector('.phone-view .phone')
   if (!view) return
   const root = view.closest('.phone-view'), stage = root.querySelector('.phone-stage'), page = root.querySelector('.phone-page'), text = root.querySelector('.phone-text')
-  const flip = S.phone.mode === '翻页', list = readOn(), i = list.findIndex((c) => c.key === S.ch)
+  const flip = S.phone.mode === '翻页'
   view.style.transform = ''
   const k = Math.min(1, stage.clientWidth / view.offsetWidth, stage.clientHeight / view.offsetHeight)
   view.style.transform = `scale(${k})`
@@ -624,42 +623,54 @@ function fitPhone() {
   const base = text.getBoundingClientRect(), lh = parseFloat(getComputedStyle(text.querySelector('p') || text).lineHeight)
   const at = (r) => Math.floor(((flip ? r.left - base.left : r.top - base.top) / k + 1) / step) // 一处字落在第几屏
   const paras = [...text.querySelectorAll('p')]
-  const all = [...text.children].flatMap((el) => [...el.getClientRects()])
+  const all = [...text.children].filter((el) => !el.matches('.phone-caret')).flatMap((el) => [...el.getClientRects()])
   phoneScreens = Math.max(1, all.length ? Math.max(...all.map(at)) + 1 : 1)
-  // 光标落在预览的哪一处：那一段里按字数比例找。
-  const span = spanNow(), mark = span && document.activeElement === proseBox() ? span[1] : null, here = mark ? paras[mark.para] : null
-  let spot = null
-  if (here) {
-    const rects = [...here.getClientRects()], total = rects.reduce((h, r) => h + r.height, 0), len = here.textContent.length || 1
-    let left = (mark.off / len) * total
-    spot = rects.find((r) => (left -= r.height) <= 0.5) || rects.at(-1)
-  }
-  const where = spot ? (flip ? String(at(spot)) : String(Math.round((spot.top - base.top) / k))) : ''
-  // 换了一章：从第一屏看起（往回翻过来的看最后一屏），光标在哪不算挪过。
-  if (S.ch !== phoneKey) { phoneKey = S.ch; phoneCaret = where; if (phoneAt !== Infinity) phoneAt = 0 }
-  // 光标到了另一屏，预览跟过去；作者在预览里往回翻着看时，光标还在同一屏里打字，不把它拉回来。
-  if (spot && where !== phoneCaret) {
-    phoneCaret = where
-    if (flip) phoneAt = at(spot); else page.scrollTop = Math.max(0, (spot.top - base.top) / k - lh * 2)
-  }
+  // 正文里选中的字在预览里也选中；没选字时，正文有光标，预览也画一道。
+  const span = spanNow(), spot = ({ para, off }) => { const p = paras[para], n = p && p.firstChild; return n ? [n, Math.min(off, n.length)] : p ? [p, 0] : null }
+  const from = span && spot(span[0]), to = span && spot(span[1]), pick = new Range(), caret = root.querySelector('.phone-caret')
+  if (from && to) { pick.setStart(...from); pick.setEnd(...to) }
+  CSS.highlights.set('phone-pick', new Highlight(...(from && to && !pick.collapsed ? [pick] : [])))
+  const end = to && new Range()
+  if (end) { end.setStart(...to); end.collapse(true) }
+  const mark = end && (end.getClientRects()[0] || end.startContainer.getClientRects?.()[0])
+  const where = mark ? String(at(mark)) : ''
+  caret.hidden = !(mark && pick.collapsed && document.activeElement === proseBox())
+  if (mark) Object.assign(caret.style, { left: (mark.left - base.left) / k + 'px', top: (mark.top - base.top) / k + 'px', height: mark.height / k + 'px' })
+  // 换了一章：从第一屏看起，光标在哪不算挪过。
+  if (S.ch !== phoneKey) { phoneKey = S.ch; phoneCaret = where; phoneAt = 0 }
+  // 翻页看时，光标到了另一屏，预览跟过去；作者在预览里往回翻着看时，光标还在同一屏里打字，不把它拉回来。滚动看时跟着正文滚。
+  if (flip && mark && where !== phoneCaret) { phoneCaret = where; phoneAt = at(mark) }
   phoneAt = Math.min(Math.max(phoneAt, 0), phoneScreens - 1)
-  if (flip) text.style.transform = `translateX(${-phoneAt * step}px)`
+  if (flip) text.style.transform = `translateX(${-phoneAt * step}px)`; else syncPhone()
   phoneLongAt = []
-  paras.forEach((p, n) => {
+  paras.forEach((p) => {
     const rects = [...p.getClientRects()], lines = Math.round(rects.reduce((h, r) => h + r.height, 0) / k / lh)
     const long = S.phone.long && lines > LONG
     p.classList.toggle('long', long)
-    p.classList.toggle('here', p === here)
     if (long) { p.title = `手机上 ${lines} 行`; if (!phoneLongAt.includes(at(rects[0]))) phoneLongAt.push(at(rects[0])) } else p.removeAttribute('title')
   })
-  const word = (el, s, off) => { if (el) { el.textContent = s; el.classList.toggle('off', !!off) } }
+  const word = (el, s) => { if (el) el.textContent = s }
   word(root.querySelector('.phone-at'), flip ? `${phoneAt + 1}/${phoneScreens}` : '')
   word(root.querySelector('.phone-count'), flip ? `第 ${phoneAt + 1} 屏，共 ${phoneScreens} 屏` : `约 ${phoneScreens} 屏`)
-  word(root.querySelector('.phone-back'), phoneAt > 0 ? '‹ 上一屏' : '‹ 上一章', phoneAt === 0 && i <= 0)
-  word(root.querySelector('.phone-next'), phoneAt < phoneScreens - 1 ? '下一屏 ›' : '下一章 ›', phoneAt === phoneScreens - 1 && i >= list.length - 1)
+  root.querySelector('.phone-back')?.classList.toggle('off', phoneAt === 0)
+  root.querySelector('.phone-next')?.classList.toggle('off', phoneAt === phoneScreens - 1)
   const longs = paras.filter((p) => p.classList.contains('long')).length
   word(root.querySelector('.phone-long .link'), longs ? `${longs} 段超过 ${LONG} 行${flip ? '，看下一处' : ''}` : '')
 }
+
+// 滚动看时，预览跟着正文滚：正文滚到几成，就取窗口里几成高的那一处，在预览里放到同样几成高的地方。滚到顶、到底，两边一起到顶、到底。
+function syncPhone() {
+  const page = document.querySelector('.phone-page.rolled'), paper = document.querySelector('.editor .paper.scroll'), box = proseBox()
+  if (!page || !paper || !box) return
+  const max = paper.scrollHeight - paper.clientHeight, f = max > 0 ? paper.scrollTop / max : 0
+  const y = paper.getBoundingClientRect().top + f * paper.clientHeight, all = blocks(box), mine = page.querySelectorAll('p')
+  const n = all.findIndex((el) => el.getBoundingClientRect().bottom >= y)
+  if (n < 0 || !mine[n]) { page.scrollTop = page.scrollHeight; return }
+  const r = all[n].getBoundingClientRect(), into = Math.min(Math.max((y - r.top) / (r.height || 1), 0), 1)
+  page.scrollTop = n === 0 && y < r.top ? 0 : mine[n].offsetTop + into * mine[n].offsetHeight - f * page.clientHeight
+}
+document.addEventListener('scroll', (ev) => { if (ev.target.matches?.('.editor .paper')) syncPhone() }, true)
+document.addEventListener('selectionchange', () => { if (!drawing) fitPhone() })
 
 function pane() {
   const waiting = aiOn() ? S.entries.filter((e) => e.place === 'open').length : 0, lost = S.marks.filter((m) => m.st === 'lost').length

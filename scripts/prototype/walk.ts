@@ -472,20 +472,29 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('设置'); await click('外观'); await click('正文中标出设定的名字'); await key('Escape'); await done('names in the prose')
 
   // The phone preview: the chapter as a reader's phone lays it out, a screen at a time. Two long paragraphs typed at the end make it
-  // run over: it follows the caret there, marks the long ones, a paragraph clicked in it puts the caret there in the prose, and past
-  // the last screen it reads on into the next chapter.
+  // run over: it follows the caret there, shows the caret and the words picked in the prose, marks the long ones, a paragraph clicked
+  // in it puts the caret there in the prose, it flips only within the chapter, and scrolled it scrolls along with the prose.
   await click('视图'); await click('手机预览'); await win('第 1 屏，共 1 屏'); must(await has('.phone.framed'), 'the phone has no frame'); await shot('107-phone')
   const long = '雨水顺着屋檐往下淌，巷子尽头那盏灯晃了两下，终于灭了。她数着自己的脚步，一步，两步，三步，数到第十七步的时候，听见身后有人喊她的名字，声音很轻，像是怕惊动了什么。她没有回头，只是把手电攥得更紧，指节都发了白。'
   await caret((await paras()) - 1, 999); await key('Enter'); await text(long + long); await key('Enter'); await text(long + long)
   const screens = await js(`phoneScreens`); must(screens > 1, 'two long paragraphs still fit one screen'); await win(`第 ${screens} 屏，共 ${screens} 屏`)
-  must(await js(`document.querySelector('[data-phone="${(await paras()) - 1}"]').classList.contains('here')`), 'the paragraph of the caret is not marked'); await win('2 段超过 5 行，看下一处'); await shot('107-phone-long')
+  must(await js(`!document.querySelector('.phone-caret').hidden`), 'the caret is not shown in the phone'); await win('2 段超过 5 行，看下一处'); await shot('107-phone-long')
+  await select((await paras()) - 1, '她没有回头'); must(await js(`CSS.highlights.get('phone-pick').size === 1 && document.querySelector('.phone-caret').hidden`), 'the words picked in the prose are not picked in the phone'); await shot('107-phone-pick')
+  await caret((await paras()) - 1, 999); await win(`第 ${screens} 屏，共`)
   await click('‹ 上一屏'); await win(`第 ${screens - 1} 屏，共`); await click('下一屏 ›'); await win(`第 ${screens} 屏，共`)
-  await caret(0, 0); await js(`document.querySelector('[data-phone="${(await paras()) - 1}"]').click()`); must((await caretAt()).startsWith(`${(await paras()) - 1}:`), 'a paragraph clicked in the phone did not put the caret there: ' + await caretAt()); await win(`第 ${screens} 屏，共`)
-  await click('Aa'); await win('只改这里的样子；读者那边按各自手机的设置排，屏数会有出入。'); await click('A+'); await click('夜间'); must(await has('.phone-screen.dark') && await js(`S.phone.fs`) === 21, 'the night screen, a size larger, did not come'); await shot('107-phone-look')
+  // A word clicked in the phone puts the caret after the same word in the prose.
+  await caret(0, 0); await win('第 1 屏，共'); for (let n = 1; n < screens; n++) await click('下一屏 ›')
+  const [px, py] = await js(`(() => { const r = [...document.querySelector('[data-phone="${(await paras()) - 1}"]').getClientRects()].at(-1); return [r.left + r.width / 2, r.top + r.height / 2] })()`)
+  await js(`document.elementFromPoint(${px}, ${py}).dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: ${px}, clientY: ${py} }))`)
+  const [on, off] = (await caretAt()).split(':').map(Number); must(on === (await paras()) - 1 && off > 0, 'a word clicked in the phone did not put the caret there: ' + await caretAt()); await win(`第 ${screens} 屏，共`)
+  await click('Aa'); await click('A+'); await click('夜间'); must(await has('.phone-screen.dark') && await js(`S.phone.fs`) === 21, 'the night screen, a size larger, did not come'); await shot('107-phone-look')
   await click('恢复默认'); must(await has('.phone-screen.light') && await js(`S.phone.fs`) === 20, 'the defaults did not come back'); await click('Aa')
-  await click('滚动'); await win('约 '); must(await has('.phone-page.rolled'), 'scrolling does not scroll'); await shot('107-phone-scroll'); await click('翻页')
-  for (let n = 0; n < 20 && !(await js(`document.querySelector('.phone-next').textContent.startsWith('下一章')`)); n++) await click('下一屏 ›')
-  const reading = await js(`S.ch`); await click('下一章 ›'); must(await js(`S.ch`) !== reading, 'the last screen does not read on'); await win('第 1 屏，共'); await click('‹ 上一章'); must(await js(`S.ch`) === reading, 'the first screen does not read back')
+  const rolled = (to: string) => js(`(() => { const p = document.querySelector('.editor .paper.scroll'); p.scrollTop = ${to}; p.dispatchEvent(new Event('scroll')); const m = document.querySelector('.phone-page'); return [m.scrollTop, m.scrollHeight - m.clientHeight] })()`)
+  await click('滚动'); await win('约 '); must(await has('.phone-page.rolled'), 'scrolling does not scroll')
+  const [down, most] = await rolled('p.scrollHeight'); must(down > 0 && Math.abs(down - most) <= 1, `the phone did not scroll to the end with the prose: ${down} of ${most}`); await shot('107-phone-scroll')
+  must((await rolled('0'))[0] === 0, 'the phone did not scroll back to the top with the prose'); await click('翻页')
+  const reading = await js(`S.ch`); for (let n = 0; n < 20 && !(await has('.phone-next.off')); n++) await click('下一屏 ›')
+  await win(`第 ${screens} 屏，共 ${screens} 屏`); must(await js(`S.ch`) === reading && !(await js(`document.querySelector('.phone-view').innerText.includes('下一章')`)), 'the phone reads on past the chapter')
   await click('设定'); await done('the phone preview')
 
   // The shelf, new and empty works, and the three ways a backup can stand.

@@ -283,7 +283,6 @@ body { margin: 0; }
 .phone-pop .seg > .off { color: var(--faint); }
 .phone-fs { color: var(--ink); font-variant-numeric: tabular-nums; }
 .phone-ticks { display: flex; flex-direction: column; gap: 6px; padding: 6px 10px; }
-.phone-pop > .note { padding: 2px 10px 6px; }
 .phone-pop .pop-buttons { padding: 0 10px 6px; }
 .phone-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; border-top: 1px solid var(--line); }
 .phone { flex: none; box-sizing: border-box; font-size: var(--fs-paper); transform-origin: center; border: 1px solid var(--border); }
@@ -307,7 +306,10 @@ body { margin: 0; }
 .phone-text.lh-read p { margin-bottom: calc(var(--lh-read) * .5em); }
 .phone-text.lh-paper p { margin-bottom: calc(var(--lh-paper) * .5em); }
 .phone-text p.long { background: var(--active); }
-.phone-text p.here, .phone-text p:hover { background: var(--hover); }
+.phone-text p:hover { background: var(--hover); }
+::highlight(phone-pick) { background: var(--sel); }
+.phone-caret { position: absolute; width: .1em; background: currentColor; pointer-events: none; }
+.phone-caret[hidden] { display: none; }
 .phone-foot { flex: none; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 1em; font-size: .65em; color: var(--faint); }
 .phone-nav { flex: none; height: var(--h-control); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; font-size: var(--fs-note); color: var(--muted); border-top: 1px solid var(--line); }
 .phone-nav .off { color: var(--faint); pointer-events: none; }
