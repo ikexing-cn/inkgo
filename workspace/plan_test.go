@@ -270,3 +270,36 @@ func TestOutlineTimeColumnsAndDrops(t *testing.T) {
 		t.Fatal("invalid mutation accepted")
 	}
 }
+
+func TestOutlineIDsRetryCollisions(t *testing.T) {
+	const lineID = "20261022-0900-0001"
+	const cardID = "20261022-0900-0002"
+	const fresh = "20261022-0900-0003"
+	p := Plan{Schema: Schema, Lines: []PlotLine{{ID: lineID, Name: "线"}}, Cards: []Card{{ID: cardID, Title: "卡片", Line: lineID}}}
+	for _, first := range []string{lineID, cardID} {
+		candidates := []string{first, first, lineID, cardID, fresh}
+		i := 0
+		got := p.freshID(func() string {
+			if i >= len(candidates) {
+				t.Fatal("did not stop at unused ID")
+			}
+			id := candidates[i]
+			i++
+			return id
+		})
+		if got != fresh || i != len(candidates) {
+			t.Fatalf("got %q after %d candidates, want %q", got, i, fresh)
+		}
+		for _, card := range []bool{true, false} {
+			q := Plan{Schema: p.Schema, Lines: append([]PlotLine(nil), p.Lines...), Cards: append([]Card(nil), p.Cards...)}
+			if card {
+				q.Cards = append(q.Cards, Card{ID: got, Title: "新卡片"})
+			} else {
+				q.Lines = append(q.Lines, PlotLine{ID: got, Name: "新情节线"})
+			}
+			if err := q.validate(); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+}

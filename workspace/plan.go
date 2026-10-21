@@ -220,7 +220,7 @@ func (s *Store) SaveCard(c Card, after string) (Card, error) {
 		c.Title, c.When = strings.TrimSpace(c.Title), strings.TrimSpace(c.When)
 		at := placeAt(p.Cards, order, c.Chapter, after)
 		if c.ID == "" {
-			c.ID = NewID()
+			c.ID = p.freshID(NewID)
 		} else {
 			i := slices.IndexFunc(p.Cards, func(x Card) bool { return x.ID == c.ID })
 			if i < 0 {
@@ -332,7 +332,7 @@ func (s *Store) SaveLine(l PlotLine) (PlotLine, error) {
 	err := s.editPlan(func(p *Plan) error {
 		l.Name = strings.TrimSpace(l.Name)
 		if l.ID == "" {
-			l.ID = NewID()
+			l.ID = p.freshID(NewID)
 			p.Lines = append(p.Lines, l)
 		} else {
 			i := slices.IndexFunc(p.Lines, func(x PlotLine) bool { return x.ID == l.ID })
@@ -368,4 +368,21 @@ func (s *Store) DeleteLine(id string) error {
 		}
 		return nil
 	})
+}
+
+// Cards and plot lines share the ID namespace checked by validate.
+func (p Plan) freshID(next func() string) string {
+	used := map[string]bool{}
+	for _, l := range p.Lines {
+		used[l.ID] = true
+	}
+	for _, c := range p.Cards {
+		used[c.ID] = true
+	}
+	for {
+		id := next()
+		if !used[id] {
+			return id
+		}
+	}
 }

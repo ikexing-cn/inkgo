@@ -138,14 +138,14 @@ Status: proposed
 | 提议在正文里的定位 | `workspace.Proposal.Place`（`workspace/placement.go`）；`editor` 不依赖作品存取层 |
 | `export.go` 的导出范围计算（现在每帧算） | `export.Plan`，选项变时才算 |
 | 备份的到期、重试、再问策略，`trouble`，`volumeGone`；`meta` 里写死的路径 | `backup`，路径由 `workspace` 给 |
-| `welcome.go` 的书架操作，`sameFolder` | `shelf`；`work.yaml` 的判断由 `workspace.IsWork` 统一 |
-| `prefs.go` 的 `desk.json` 结构、读写和旧格式迁移 | 新包 `prefs` |
+| `welcome.go` 的书架操作，`sameFolder` | `shelf.Describe`、`Shelf.Add`、`Shelf.RelocateWork`、`Shelf.Remove`、`SameFolder`；作品判断由 `workspace.IsWork` 统一 |
+| `prefs.go` 的 `desk.json` 结构、读写和旧格式迁移 | `prefs.Prefs`、`Load`、`Save`；路径由 `workspace.Store.PrefsPath` 提供 |
 | `ideas()` 的排序，`reading`/`readingBefore` | `workspace.Setting`、`workspace.Entry` |
 | 伏笔模型和候选 | `workspace` 的标记读取 |
 | 检查的队列、`keepCheck`、`pruneCheck` | `workspace.Check` 的方法加一个执行器 |
 | `chat.go` 的 `mentions`、`sections`、`looks`、`spent`、`requests`、`fateOf` | `workspace` / `discussion` |
-| `sessionTitle`/`talkTitle` 两份 | `workspace` |
-| 每日字数和目标（`today()` 在取值时改并存偏好） | 一个计数器类型 |
+| `sessionTitle`/`talkTitle` 两份 | `workspace.TalkTitle`，从事件和章节标题读取 |
+| 每日字数和目标（`today()` 在取值时改并存偏好） | `prefs.Prefs` 嵌入 `Counter`；读取纯计算，`desk` 在计数读入后显式换日 |
 | 手机预览的分页 | `editor.PaginatedText`（`editor/pagination.go`），`desk` 提供排版参数、保管面板设置并绘制 |
 
 ### 第 5 批：AI 层

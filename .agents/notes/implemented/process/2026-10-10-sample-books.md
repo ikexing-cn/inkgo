@@ -12,6 +12,7 @@ Status: implemented
 - `go run ./cmd/sample <目录>` 用 `workspace` 的公开接口（`Create`、`Revise`、`NewChapter`、`WriteOutline`、`WriteChapter`）把每本书写成一个作品文件夹；目录里已有同名非空文件夹时报错，不覆盖。
 - 现有两本，各 15 章、两卷：《雨城修灯人》（出版小说）、《青崖问剑》（网文，带力量体系）。正文里故意埋了和设定对不上的地方、写错的名字、设定里没有的新名字，清单写在各文件开头的注释里，作为人工核对检查结果的答案。
 - 不写摘要、检查结果、讨论记录：这些留给真实模型跑出来。
+- 大纲用 `workspace.SaveCard`、`SaveLine` 创建；两者在锁内避开已有卡片和情节线的 ID，随机候选相同也不会使样例生成失败。
 - `cmd/sample` 的测试把两本书写到临时目录再读回来，核对章数、字数够检查的下限、伏笔位置和回收关系。
 
 ## Alternatives considered
