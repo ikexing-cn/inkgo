@@ -120,3 +120,8 @@ func (t Tree) ForeshadowCandidates(all []Foreshadow, current, query string) (out
 	}
 	return out, here
 }
+
+// Late reports whether an open foreshadowing has reached the preferred chapter gap.
+func (f Foreshadow) Late(after int) bool {
+	return f.Status() == ForeOpen && f.Gap >= LateThreshold(after)
+}

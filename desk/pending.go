@@ -46,14 +46,13 @@ func (a *App) scanMarks() {
 func (a *App) pendingGroups() []pendGroup {
 	w := &a.write
 	var items []pendItem
-	late := workspace.LateThreshold(a.write.lateAfter)
 	for _, f := range a.foreshadows() {
 		it := pendItem{node: f.Node, start: f.Start, end: f.End, here: f.Here, sub: f.Title, fore: f.ID}
 		switch st := f.Status(); {
 		case st == workspace.ForeLost:
 			it.key = "伏笔/失去锚点/" + f.Node + "/" + f.Quote
 			it.text = fmt.Sprintf("「%s」原句已删", clip(foreName(f), 16))
-		case st == workspace.ForeOpen && f.Gap >= late:
+		case f.Late(a.write.lateAfter):
 			it.key = "伏笔/没回收/" + f.Node + "/" + f.Quote
 			it.text = fmt.Sprintf("「%s」%d 章未回收", clip(foreName(f), 16), f.Gap)
 			it.sub += " 埋下"

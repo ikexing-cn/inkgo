@@ -436,7 +436,6 @@ func (a *App) forePanel(c *ui.Context) {
 // reached from the dots.
 func (a *App) foreList(c *ui.Context, all []workspace.Foreshadow) {
 	s := &a.write.fore
-	late := workspace.LateThreshold(a.write.lateAfter)
 	counts := map[workspace.ForeshadowStatus]int{}
 	for _, f := range all {
 		counts[f.Status()]++
@@ -501,7 +500,7 @@ func (a *App) foreList(c *ui.Context, all []workspace.Foreshadow) {
 			switch st := f.Status(); {
 			case st == workspace.ForeLost:
 				lost = f.ID
-			case st == workspace.ForeOpen && f.Gap >= late:
+			case f.Late(a.write.lateAfter):
 				over = append(over, f)
 			case st == workspace.ForeOpen:
 				fresh = append(fresh, f)
@@ -662,7 +661,7 @@ func (a *App) remindersView(c *ui.Context) {
 	late := workspace.LateThreshold(a.write.lateAfter)
 	n := 0
 	for _, f := range a.foreshadows() {
-		if f.Status() == workspace.ForeOpen && f.Gap >= late {
+		if f.Late(a.write.lateAfter) {
 			n++
 		}
 	}
