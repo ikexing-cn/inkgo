@@ -105,7 +105,7 @@ function spent() {
     return `<div class="spent-row"><div>${feature}</div><div class="fit ell">${rows.length} 次请求 · 输入 ${tokens(sum(0))}，缓存命中 ${Math.round((sum(1) / sum(0)) * 100)}% · 输出 ${tokens(sum(2))}</div><div>约 $${spentOn(rows).toFixed(2)}</div></div>`
   }
   const used = FEATURES.filter((f) => all.some((r) => r[1] === f))
-  return '<div class="prefs-group"><div class="group-title">本作品用量</div><div class="note">按内置价格估算，以服务商账单为准。</div></div>' +
+  return '<div class="prefs-group"><div class="group-title">本作品用量</div></div>' +
     (used.length ? `<div class="spent">${used.map(row).join('')}</div><div class="prefs-links"><div class="hit link"${onClick(() => set((s) => ({ dialog: { ...s.dialog, records: true, only: '全部', row: -1 }, ...SHUT })))}>查看全部记录（${all.length} 次请求）</div></div>` : '<div class="note">尚未使用 AI。</div>')
 }
 // AI 记录：每次请求一行，新的在上，失败的、取消的也在。点一行看这次发了哪几部分、服务商算的实际用量。不存发出去的字。
@@ -151,14 +151,14 @@ function settingsModel(d) {
       `<div class="note">key 保存在系统钥匙串中，不会写入配置文件或作品。${f.env.trim() && BOOK.services.some((x) => x.env === f.env.trim()) ? '已检测到环境变量 ' + t(f.env.trim()) + '。' : ''}</div>` +
       '<div class="field"><div class="label">可用模型</div><div class="limits">' +
       (f.models.length ? '<div class="limit-row limit-head"><div class="fit">模型 ID</div><div class="num">上下文上限</div><div class="num">最大输出</div><div class="pct">压缩阈值 %</div><div class="gap"></div></div>' + f.models.map(limitRow).join('') : '<div class="note">尚无模型，可获取可用模型或手动添加。</div>') + '</div>' + red(p.models) + '</div>' +
-      '<div class="note">数值默认取自内置模型表，表中没有的模型按保守值填写；上下文上限和最大输出可写成 128K、1M。讨论超过压缩阈值时，较早的对话会整理成摘要。</div>' +
+      '<div class="note">讨论超过压缩阈值时，较早的对话会整理成摘要。</div>' +
       `<div class="buttons">${d.edit === 'new' ? button('取消', () => set((s) => ({ dialog: { ...s.dialog, edit: '', svc: null } }))) : `<div class="hit link danger"${onClick(() => say('已清除保存的 key', '', 'ok'))}>清除已保存 key</div>`}${button('添加模型', () => models((list) => [...list, limits('')]))}${button('获取可用模型', p.fits ? fetchModels : null, p.fits ? '' : 'off')}${button('保存提供商', p.fits ? saveService : null, p.fits ? 'primary' : 'primary off')}</div></div>`
   }
   // 刚打开的表单连同它那张卡片滚进视野：新加的在列表最下面，常常在看得见的地方下面。
   const open = (change, id) => { set((s) => ({ dialog: { ...s.dialog, ...change(s) }, ...SHUT })); if (id) document.querySelector(`[data-reveal="${id}"]`).scrollIntoView({ block: 'nearest' }) }
   const card = (svc) => `<div class="service" data-reveal="${t(svc.id)}"><div class="service-head"><div class="fit"><div class="ell">${t(svc.name)}</div><div class="note ell">${t(svc.host)} · ${svc.models.length} 个模型${used(svc) ? ' · 本作品使用中' : ''}</div></div>` +
     button(d.edit === svc.id ? '收起' : '编辑', () => (d.edit === svc.id ? open(() => ({ edit: '', svc: null })) : open(() => editing(svc), svc.id))) + '</div>' + (d.edit === svc.id ? form() : '') + '</div>'
-  return (S.page === 'shelf' ? '' : '<div class="prefs-group"><div class="group-title">本作品的模型</div><div class="note">思考程度选 Default 时由服务商决定。修改自下次发送起生效。</div></div>' +
+  return (S.page === 'shelf' ? '' : '<div class="prefs-group"><div class="group-title">本作品的模型</div></div>' +
     `<div class="uses">${S.uses.map(use).join('')}</div>` + spent() +
     '<div class="prefs-group"><div class="group-title">写作时</div></div>' +
     `<div class="ticks">${tickbox(S.auto, '停笔后自动续写', () => set({ auto: !S.auto }))}<div class="note tick-note">开启后每次停笔都会调用一次 AI。</div></div>`) +
@@ -212,20 +212,20 @@ function settingsDialog(d) {
   const remind = aiOn() ? '提醒与检查' : '提醒'
   const tabs = S.page === 'shelf' ? ['AI', '外观'] : ['AI', '外观', remind, '备份']
   // 每一类的标题和下面那句说明留在上面不动，只有内容滚动。
-  const about = { AI: aiOn() ? '是否使用 AI，以及使用哪些模型。' : '仅在本机生效，适用于所有作品。', 外观: '仅在本机生效，适用于所有作品。', [remind]: '本作品的提醒规则，修改后立即生效。', 备份: '为整部作品另存一份副本，以防设备故障。' }
+  const about = { AI: aiOn() ? '' : '仅在本机生效，适用于所有作品。', 外观: '仅在本机生效，适用于所有作品。', [remind]: '仅适用于本作品。', 备份: '' }
   const lateNow = S.marks.filter((m) => m.st === 'open' && BOOK.now - m.ch >= S.late).length
   const when = [['写完一章后检查', '推荐，每章调用一次 AI'], ['手动检查', '平时不调用 AI'], ['边写边检查', '停笔即检查，调用最多']]
   const step = (by) => () => set((s) => ({ late: Math.max(5, s.late + by) }))
   const rec = d.tab === 'AI' && d.records && aiOn()
   const body = d.tab === 'AI' ? (rec ? records(d) : aiSwitch() + (aiOn() ? settingsModel(d) : '')) : d.tab === '备份' ? settingsBackup()
     : d.tab === '外观' ? `<div class="prefs-row"><div class="prefs-label">颜色</div>${seg(S.look, [['跟随系统', 'screen'], ['浅色', 'sun'], ['深色', 'moon']], (v) => set({ look: v }), '颜色')}</div>` +
-      `<div class="prefs-row">${tickbox(S.names, '正文中标出设定的名字', () => set({ names: !S.names }))}</div><div class="note">名字下面一道虚线，点击在右栏查看这条设定。</div>`
+      `<div class="prefs-row">${tickbox(S.names, '正文中标出设定的名字', () => set({ names: !S.names }))}</div>`
     : '<div class="prefs-group"><div class="group-title">伏笔</div></div>' +
-      `<div class="prefs-row"><div class="fit"><div>超过多少章未回收时提醒</div><div class="note">到期后归入「久未回收」，不弹窗。</div></div><div class="stepper"><div class="hit" title="减少 5 章"${onClick(step(-5))}>−</div><div class="stepper-n">${S.late} 章</div><div class="hit" title="增加 5 章"${onClick(step(5))}>+</div></div></div>` +
+      `<div class="prefs-row"><div class="fit">超过多少章算久未回收</div><div class="stepper"><div class="hit" title="减少 5 章"${onClick(step(-5))}>−</div><div class="stepper-n">${S.late} 章</div><div class="hit" title="增加 5 章"${onClick(step(5))}>+</div></div></div>` +
       `<div class="note">当前有 ${lateNow} 个伏笔久未回收。</div>` +
       (aiOn() ? `<div class="prefs-group"><div class="group-title">检查正文和设定</div></div>${radios(S.when, when, (v) => set({ when: v }))}` : '')
   return dialog('prefs', `<div class="prefs-nav"><div class="prefs-nav-title">设置</div>${tabs.map((name) => `<div class="nav hit${d.tab === name ? ' on' : ''}"${onClick(() => set({ dialog: { kind: 'settings', tab: name, edit: '' }, ...SHUT }))}>${name}</div>`).join('')}</div>` +
-    `<div class="prefs-main"><div class="prefs-head"><div class="prefs-title">${rec ? 'AI 记录' : d.tab}</div><div class="note">${rec ? '本作品每次向模型发的请求记一行，失败、取消的也记；只记发了哪几部分、各多大，不存内容。' : about[d.tab]}</div></div><div class="prefs-body scroll" data-k="prefs-${rec ? 'records' : d.tab}">${body}</div></div><button class="icon-btn muted prefs-close" aria-label="关闭设置" title="关闭设置"${onClick(shut)}>${icon('cross')}</button>`) + (d.ask ? askAI(d.ask) : '')
+    `<div class="prefs-main"><div class="prefs-head"><div class="prefs-title">${rec ? 'AI 记录' : d.tab}</div>${rec || about[d.tab] ? `<div class="note">${rec ? '只记发了哪几部分、各多大，不存内容。' : about[d.tab]}</div>` : ''}</div><div class="prefs-body scroll" data-k="prefs-${rec ? 'records' : d.tab}">${body}</div></div><button class="icon-btn muted prefs-close" aria-label="关闭设置" title="关闭设置"${onClick(shut)}>${icon('cross')}</button>`) + (d.ask ? askAI(d.ask) : '')
 }
 
 // ───────── 正文那一页的几个对话框 ─────────
@@ -383,7 +383,7 @@ function binDialog(d) {
   const row = (b) => `<div class="bin-row"><div class="fit"><div class="ell">${t(b.title)}</div><div class="note">${t(b.at)} 删除${b.volume ? ' · 连同里面的 ' + b.chapters.length + ' 章' : ''}</div></div>` +
     (d.sure === b.id ? button('取消', () => set({ dialog: { kind: 'bin', sure: '' } })) + button('确认彻底删除', () => set((s) => ({ bin: s.bin.filter((x) => x !== b), dialog: { kind: 'bin', sure: '' } })), 'danger')
       : button('恢复', back(b)) + `<div class="hit link"${onClick(() => set({ dialog: { kind: 'bin', sure: b.id } }))}>彻底删除</div>`) + '</div>'
-  return dialog('small', dialogHead('回收站', '已删除的章节及其内容暂存于此，恢复后回到原文件夹末尾。') +
+  return dialog('small', dialogHead('回收站', '恢复后回到原文件夹末尾。') +
     `<div class="bin-rows scroll">${S.bin.length ? S.bin.map(row).join('') : '<div class="empty"><div>回收站为空</div></div>'}</div>` + buttons(button('关闭', shut)))
 }
 

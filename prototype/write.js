@@ -787,7 +787,7 @@ function wordsOf(cur, vol) {
   const today = BOOK.days[0][1].toLocaleString('en-US')
   const count = (S.bar ? '选中 ' + S.bar.text.length + ' 字' : cur ? '本章 ' + sizeOf(cur) + ' 字' : vol ? '本卷 ' + inVol : '') + (cur || vol ? ' · ' : '') + '全书 ' + (S.book === BOOK.shelf[0].id ? BOOK.words : S.chapters.reduce((n, c) => n + counted(c), 0) + ' 字') + (S.goalSet ? ' · 今天 ' + today + ' / ' + S.goalSet : '')
   const goal = () => '<div class="pop goal-pop" data-k="goal-pop"><div class="pop-label">最近 7 天</div>' + BOOK.days.map(([day, n]) => `<div class="goal-day"><div class="grow">${day}</div><div>${n ? '+' + n.toLocaleString('en-US') : '0'} 字</div></div>`).join('') + HAIR +
-    field('每日目标', line(S.goal, (v) => set({ goal: v, ...(countOrNone(v) ? { goalSet: v.trim() } : {}) }), '比如 2000', '每日目标字数')) + (countOrNone(S.goal) ? '<div class="note">设置后，字数旁显示今日字数和目标。留空则不设。</div>' : '<div class="note danger">每日目标须为正整数，留空则不设。</div>') + '</div>'
+    field('每日目标', line(S.goal, (v) => set({ goal: v, ...(countOrNone(v) ? { goalSet: v.trim() } : {}) }), '比如 2000', '每日目标字数')) + (countOrNone(S.goal) ? '<div class="note">字数旁显示今日字数和目标。</div>' : '<div class="note danger">每日目标须为正整数，留空则不设。</div>') + '</div>'
   return `<div class="anchor up"><div class="words ell hit" title="字数。点击设置每日目标"${onClick(() => set({ open: S.open === 'goal' ? '' : 'goal' }))}>${t(count)}</div>${S.open === 'goal' ? goal() : ''}</div>`
 }
 
