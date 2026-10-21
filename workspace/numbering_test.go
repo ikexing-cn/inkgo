@@ -1,4 +1,4 @@
-package desk
+package workspace
 
 import "testing"
 

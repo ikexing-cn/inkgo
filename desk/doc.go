@@ -21,7 +21,6 @@
 // markdown.go: Markdown styles, code blocks, and setting links.
 // menu.go: menu state, rows, submenus, and popup placement.
 // names.go: setting-name completion, rename notices, and whole-book replacement.
-// numbering.go: Chinese chapter numbering and title suggestions.
 // pane.go: shared right-pane lists, details, forms, and quotes.
 // pending.go: pending groups, ignored items, and navigation.
 // phone.go: phone preview settings, layout, pagination, and selection.

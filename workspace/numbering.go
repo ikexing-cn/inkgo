@@ -1,16 +1,18 @@
-package desk
+package workspace
 
 import (
 	"regexp"
 	"strconv"
 	"strings"
-
-	"writer/workspace"
 )
 
 // numbered is a title that starts 第N章, 第N卷 and the like, N in Chinese or
 // in digits.
 var numbered = regexp.MustCompile(`^第([0-9]+|[零〇一二两三四五六七八九十百千]+)([章卷回节部篇集])`)
+
+func TitleNumber(title string) string {
+	return numbered.FindString(title)
+}
 
 // nextTitle is what follows the title before in its numbering — 第四章 名单
 // gives 第五章 — or "" when the title has none.
@@ -29,17 +31,17 @@ func nextTitle(before string) string {
 	return "第" + toHan(n+1) + m[2]
 }
 
-// titleAfter suggests a title for the new node id from the nearest node of
+// TitleAfter suggests a title for the new node id from the nearest node of
 // its kind before it in the tree's order; none where the nearest after it
 // has that number already, as when it goes between two chapters.
-func titleAfter(tree workspace.Tree, id string) string {
+func (tree Tree) TitleAfter(id string) string {
 	me, ok := tree.Node(id)
 	if !ok {
 		return ""
 	}
 	prev, next := "", ""
 	seen, after := false, false
-	tree.Walk(func(n *workspace.Node, _ int) {
+	tree.Walk(func(n *Node, _ int) {
 		switch {
 		case after || n.Folder != me.Folder:
 		case n.ID == id:

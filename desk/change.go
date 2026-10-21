@@ -25,7 +25,7 @@ func fromLabel(tree workspace.Tree, id string) string {
 	if !ok {
 		return "所在章节已删除"
 	}
-	if m := numbered.FindString(strings.TrimSpace(n.Title)); m != "" && !n.Folder {
+	if m := workspace.TitleNumber(strings.TrimSpace(n.Title)); m != "" && !n.Folder {
 		return m + "起"
 	}
 	return n.Title + "起"

@@ -275,7 +275,7 @@ func (a *App) rename(id string) {
 		w.title = w.titleWas
 	}
 	// A whole numbered title typed after the number offered replaces it.
-	if rest, ok := strings.CutPrefix(w.title, w.offered); ok && w.offered != "" && numbered.MatchString(trim(rest)) {
+	if rest, ok := strings.CutPrefix(w.title, w.offered); ok && w.offered != "" && workspace.TitleNumber(trim(rest)) != "" {
 		w.title = rest
 	}
 	w.offered, w.titleHeld = "", false
@@ -321,7 +321,7 @@ func (a *App) newNodeAt(folder bool, n *workspace.Node) {
 	// Numbered like the one before, the title is ready to go on with its
 	// name: 第四章 名单 gives 第五章.
 	typed := ""
-	if next := titleAfter(w.tree, id); err == nil && next != "" {
+	if next := w.tree.TitleAfter(id); err == nil && next != "" {
 		title, typed = next, next+" "
 		if err = a.Store.RenameChapter(id, title); err == nil {
 			err = a.loadTree()
