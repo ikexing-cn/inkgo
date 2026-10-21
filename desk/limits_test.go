@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui"
-	"writer/desk/aiport"
+	"writer/aiport"
 )
 
 // Each model of a service has a row of its own: the numbers start from the

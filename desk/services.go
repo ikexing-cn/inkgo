@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
-	"writer/desk/aiport"
+	"writer/aiport"
 	"writer/tokens"
 	"writer/workspace"
 )

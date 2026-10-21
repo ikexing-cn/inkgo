@@ -1,6 +1,7 @@
-// Package aiport is what the interface asks of the AI: the services of
-// models this machine has, and the talk and the pen of a work. Package desk uses the AI through it alone, so that desk imports
-// nothing that sends; package ai fills it.
+// Package aiport is the port between the interface and the AI: the
+// services of models this machine has, and the talk and the pen of a work.
+// Package desk uses the AI through it alone, so that desk imports nothing
+// that sends; package ai fills it.
 package aiport
 
 import (

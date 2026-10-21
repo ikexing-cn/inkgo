@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/egoist/mygo/ui"
-	"writer/desk/aiport"
+	"writer/aiport"
 	"writer/prefs"
 	"writer/tokens"
 	"writer/workspace"

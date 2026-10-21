@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"writer/desk/aiport"
+	"writer/aiport"
 )
 
 // noticeFor is how long a confirmation stays. The time stops while the

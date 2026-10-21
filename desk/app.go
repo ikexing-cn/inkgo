@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"writer/desk/aiport"
+	"writer/aiport"
 	"writer/editor"
 	"writer/internal/textclip"
 	"writer/shelf"

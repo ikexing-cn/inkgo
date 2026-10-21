@@ -16,7 +16,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"writer/desk/aiport"
+	"writer/aiport"
 	"writer/discussion"
 	"writer/model"
 	"writer/workspace"

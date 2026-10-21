@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"writer/desk/aiport"
+	"writer/aiport"
 	"writer/editor"
 	"writer/prefs"
 	"writer/workspace"

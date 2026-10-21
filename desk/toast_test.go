@@ -9,7 +9,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"writer/desk/aiport"
+	"writer/aiport"
 	"writer/internal/testshot"
 )
 

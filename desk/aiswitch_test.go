@@ -14,21 +14,21 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/ai"
-	"writer/desk/aiport"
+	"writer/aiport"
 	"writer/internal/testshot"
 	"writer/shelf"
 	"writer/workspace"
 )
 
 // desk draws all of the AI and sends nothing itself: what sends is in
-// package ai, which desk reaches through desk/aiport alone.
+// package ai, which desk reaches through aiport alone.
 func TestDeskImportsNothingThatSends(t *testing.T) {
 	out, err := exec.Command("go", "list", "-deps", "writer/desk").CombinedOutput()
 	if err != nil {
 		t.Fatal(err, string(out))
 	}
 	deps := strings.Fields(string(out))
-	if !slices.Contains(deps, "writer/desk/aiport") {
+	if !slices.Contains(deps, "writer/aiport") {
 		t.Fatalf("not the dependencies of desk: %q", deps)
 	}
 	for _, p := range []string{"writer/ai", "writer/model", "writer/discussion", "writer/writing"} {

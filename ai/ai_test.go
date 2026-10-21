@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"writer/desk/aiport"
+	"writer/aiport"
 	"writer/discussion"
 	"writer/model"
 	"writer/workspace"

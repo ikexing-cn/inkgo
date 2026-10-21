@@ -14,7 +14,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/ai"
-	"writer/desk/aiport"
+	"writer/aiport"
 	"writer/model"
 	"writer/workspace"
 )
