@@ -66,10 +66,7 @@ func fixedOf(st *workspace.Store, tree workspace.Tree, origin, chapter string) (
 	} else {
 		add(workspace.PartOutline, head+"\n（这一章没有章纲）", what+"的章："+f.Title)
 	}
-	vol := n.Parent
-	if vol != nil && vol.Parent == nil {
-		vol = nil // the root holds the chapters of no volume
-	}
+	vol := n.Volume()
 	var ids []string
 	if vol != nil {
 		ids = append(ids, vol.ID)

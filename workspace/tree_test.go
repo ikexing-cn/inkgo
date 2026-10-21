@@ -55,3 +55,20 @@ func TestPrevious(t *testing.T) {
 		t.Fatalf("unread tree = %p, %v", got, ok)
 	}
 }
+
+func TestVolume(t *testing.T) {
+	root := &Node{Folder: true}
+	volume := &Node{ID: "v", Folder: true, Parent: root}
+	nested := &Node{ID: "nested", Folder: true, Parent: volume}
+	for _, c := range []struct{ node, want *Node }{
+		{root, nil},
+		{volume, nil},
+		{&Node{Parent: root}, nil},
+		{&Node{Parent: volume}, volume},
+		{&Node{Parent: nested}, nested},
+	} {
+		if got := c.node.Volume(); got != c.want {
+			t.Errorf("Volume(%p) = %p; want %p", c.node, got, c.want)
+		}
+	}
+}

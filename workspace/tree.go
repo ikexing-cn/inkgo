@@ -65,6 +65,15 @@ func (n *Node) Within(ancestor *Node) bool {
 	return false
 }
 
+// Volume is the folder holding n, or nil when its parent is the tree root.
+func (n *Node) Volume() *Node {
+	vol := n.Parent
+	if vol != nil && vol.Parent == nil {
+		vol = nil // the root holds the chapters of no volume
+	}
+	return vol
+}
+
 func (s *Store) Chapters() (Tree, error) {
 	unlock, err := s.lock()
 	if err != nil {
