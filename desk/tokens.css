@@ -23,6 +23,7 @@
   --danger: #c4473a;
   --warn: #b7791f;
   --success: #2f8a5b;
+  --phone-eye: #cce8cf;
 }
 .dark {
   --bg: #191919;
@@ -46,6 +47,7 @@
   --danger: #e4675b;
   --warn: #d9a441;
   --success: #5cb684;
+  --phone-eye: #cce8cf;
 }
 
 :root, .light {

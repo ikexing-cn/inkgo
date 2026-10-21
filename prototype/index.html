@@ -273,6 +273,46 @@ body { margin: 0; }
 .tab { font-size: var(--fs-body); border-radius: var(--r-control); padding: 6px 10px; display: flex; gap: 6px; align-items: center; color: var(--muted); white-space: nowrap; }
 .tab.on { background: var(--active); color: var(--ink); font-weight: 600; }
 .tab .badge { font-size: var(--fs-small); color: var(--faint); font-weight: 400; }
+/* 右栏：手机预览。手机里写 em，1em 是手机上的一个字；整个手机再按右栏缩放 */
+.phone-view { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
+.phone-tool { align-items: center; }
+.phone-aa { font-size: var(--fs-control); font-weight: 600; }
+.phone-pop { position: absolute; right: 20px; top: 36px; width: 248px; z-index: 3; }
+.phone-pop .pop-seg .seg { width: 100%; }
+.phone-pop .pop-seg .seg > div { flex: 1; }
+.phone-pop .seg > .off { color: var(--faint); }
+.phone-fs { color: var(--ink); font-variant-numeric: tabular-nums; }
+.phone-ticks { display: flex; flex-direction: column; gap: 6px; padding: 6px 10px; }
+.phone-pop > .note { padding: 2px 10px 6px; }
+.phone-pop .pop-buttons { padding: 0 10px 6px; }
+.phone-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; border-top: 1px solid var(--line); }
+.phone { flex: none; box-sizing: border-box; font-size: var(--fs-paper); transform-origin: center; border: 1px solid var(--border); }
+.phone.framed { background: var(--border); padding: .6em; border-radius: 2.6em; }
+.phone-screen { box-sizing: border-box; overflow: hidden; background: var(--bg); color: var(--ink); display: flex; flex-direction: column; }
+.phone.framed .phone-screen { border-radius: 2em; }
+.phone-screen.eye { background: var(--phone-eye); }
+.phone-status { flex: none; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; font-size: .7em; font-weight: 600; }
+.phone-battery { width: 1.7em; height: .8em; box-sizing: border-box; border: 1px solid currentColor; border-radius: .25em; position: relative; }
+.phone-battery::after { content: ''; position: absolute; left: .12em; top: .12em; bottom: .12em; right: 35%; border-radius: .1em; background: currentColor; }
+.phone-page { flex: none; overflow: hidden; }
+.phone-page.rolled { overflow-y: auto; scrollbar-width: none; }
+.phone-text { position: relative; height: 100%; column-fill: auto; orphans: 1; widows: 1; }
+.phone-page.rolled .phone-text { height: auto; }
+.phone-text.lh-loose { line-height: var(--lh-loose); }
+.phone-text.lh-read { line-height: var(--lh-read); }
+.phone-text.lh-paper { line-height: var(--lh-paper); }
+.phone-title { font-size: 1.3em; font-weight: 700; line-height: var(--lh-tight); margin: .4em 0 1.2em; }
+.phone-text p { margin: 0; text-indent: 2em; border-radius: .2em; cursor: pointer; }
+.phone-text.lh-loose p { margin-bottom: calc(var(--lh-loose) * .5em); }
+.phone-text.lh-read p { margin-bottom: calc(var(--lh-read) * .5em); }
+.phone-text.lh-paper p { margin-bottom: calc(var(--lh-paper) * .5em); }
+.phone-text p.long { background: var(--active); }
+.phone-text p.here, .phone-text p:hover { background: var(--hover); }
+.phone-foot { flex: none; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 1em; font-size: .65em; color: var(--faint); }
+.phone-nav { flex: none; height: var(--h-control); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; font-size: var(--fs-note); color: var(--muted); border-top: 1px solid var(--line); }
+.phone-nav .off { color: var(--faint); pointer-events: none; }
+.phone-count { font-variant-numeric: tabular-nums; }
+.phone-long { flex: none; min-height: var(--h-control); display: flex; align-items: flex-start; justify-content: flex-end; padding: 0 20px; font-size: var(--fs-note); }
 /* 列表顶上：搜索、旁边的按钮、「···」里的菜单 */
 .tool { flex: none; position: relative; padding: 0 20px 12px; display: flex; gap: 8px; }
 .tool-menu { position: absolute; right: 20px; top: 36px; width: 160px; z-index: 3; }

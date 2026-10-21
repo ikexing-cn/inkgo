@@ -471,6 +471,23 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('设置'); await click('外观'); await click('正文中标出设定的名字'); await key('Escape'); must(!(await js(`!!document.querySelector('.prose .nm')`)), 'names are marked when put away')
   await click('设置'); await click('外观'); await click('正文中标出设定的名字'); await key('Escape'); await done('names in the prose')
 
+  // The phone preview: the chapter as a reader's phone lays it out, a screen at a time. Two long paragraphs typed at the end make it
+  // run over: it follows the caret there, marks the long ones, a paragraph clicked in it puts the caret there in the prose, and past
+  // the last screen it reads on into the next chapter.
+  await click('视图'); await click('手机预览'); await win('第 1 屏，共 1 屏'); must(await has('.phone.framed'), 'the phone has no frame'); await shot('107-phone')
+  const long = '雨水顺着屋檐往下淌，巷子尽头那盏灯晃了两下，终于灭了。她数着自己的脚步，一步，两步，三步，数到第十七步的时候，听见身后有人喊她的名字，声音很轻，像是怕惊动了什么。她没有回头，只是把手电攥得更紧，指节都发了白。'
+  await caret((await paras()) - 1, 999); await key('Enter'); await text(long + long); await key('Enter'); await text(long + long)
+  const screens = await js(`phoneScreens`); must(screens > 1, 'two long paragraphs still fit one screen'); await win(`第 ${screens} 屏，共 ${screens} 屏`)
+  must(await js(`document.querySelector('[data-phone="${(await paras()) - 1}"]').classList.contains('here')`), 'the paragraph of the caret is not marked'); await win('2 段超过 5 行，看下一处'); await shot('107-phone-long')
+  await click('‹ 上一屏'); await win(`第 ${screens - 1} 屏，共`); await click('下一屏 ›'); await win(`第 ${screens} 屏，共`)
+  await caret(0, 0); await js(`document.querySelector('[data-phone="${(await paras()) - 1}"]').click()`); must((await caretAt()).startsWith(`${(await paras()) - 1}:`), 'a paragraph clicked in the phone did not put the caret there: ' + await caretAt()); await win(`第 ${screens} 屏，共`)
+  await click('Aa'); await win('只改这里的样子；读者那边按各自手机的设置排，屏数会有出入。'); await click('A+'); await click('夜间'); must(await has('.phone-screen.dark') && await js(`S.phone.fs`) === 21, 'the night screen, a size larger, did not come'); await shot('107-phone-look')
+  await click('恢复默认'); must(await has('.phone-screen.light') && await js(`S.phone.fs`) === 20, 'the defaults did not come back'); await click('Aa')
+  await click('滚动'); await win('约 '); must(await has('.phone-page.rolled'), 'scrolling does not scroll'); await shot('107-phone-scroll'); await click('翻页')
+  for (let n = 0; n < 20 && !(await js(`document.querySelector('.phone-next').textContent.startsWith('下一章')`)); n++) await click('下一屏 ›')
+  const reading = await js(`S.ch`); await click('下一章 ›'); must(await js(`S.ch`) !== reading, 'the last screen does not read on'); await win('第 1 屏，共'); await click('‹ 上一章'); must(await js(`S.ch`) === reading, 'the first screen does not read back')
+  await click('设定'); await done('the phone preview')
+
   // The shelf, new and empty works, and the three ways a backup can stand.
   await click('重新开始'); await click('切换作品'); await click('全部作品…'); await win('我的作品'); await win('4 部 · 作品库：D:\\写作'); await win('找不到文件夹'); await shot('74-shelf')
   await click('列表'); await win('重新定位…'); await win('D:\\写作\\旧城灯匠'); await shot('75-shelf-list'); await click('卡片'); await click('更多操作'); await win('打开所在文件夹'); await click('重命名…'); await win('仅修改作品名，文件夹不变。'); await clear('新作品名'); await type('新作品名', '雨城'); await click('保存'); await win('雨城来信', false)
@@ -640,7 +657,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('重新开始'); await pointAt('编辑'); must(!(await has('.menu-pop')), 'a menu opened under the pointer with none open')
   await click('文件'); must(await menuRows() === '新建章节 新建文件夹 保存 快照 导出… 设置…', 'the menu of the file reads: ' + await menuRows())
   await pointAt('编辑'); must(await menuRows() === '撤销- 重做- 查找替换 重命名 续写一句 起草本章', 'the pointer over 编辑 did not open it: ' + await menuRows())
-  await pointAt('视图'); must(await menuRows() === '收起侧栏 收起右栏 专注写作', 'the menu of the view reads: ' + await menuRows()); await win('跟随系统'); await pointAt('帮助'); must(await menuRows() === '快捷键…', 'the menu of help reads: ' + await menuRows())
+  await pointAt('视图'); must(await menuRows() === '收起侧栏 收起右栏 专注写作 手机预览', 'the menu of the view reads: ' + await menuRows()); await win('跟随系统'); await pointAt('帮助'); must(await menuRows() === '快捷键…', 'the menu of help reads: ' + await menuRows())
   await key('Escape'); must(!(await has('.menu-pop')), 'Esc left the menu open'); await click('帮助'); await click('帮助'); must(!(await has('.menu-pop')), 'a second click on its name left the menu open')
   // The title bar gives the caret back: a menu opened and put away, the sidebar's switch, a dialog from a menu, and the prose is typed in still.
   const penned = (): Promise<boolean> => js(`document.activeElement === proseBox()`)
@@ -666,7 +683,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   must(await js(`(() => { const r = (sel) => document.querySelector(sel).getBoundingClientRect(), w = r('#win'), k = r('.window-buttons'), t = r('.toolbar'); return Math.round(k.top - w.top) === 0 && Math.round(w.right - k.right) === 0 && Math.round(k.bottom) === Math.round(t.bottom) && r('.toolbar .tools').right <= k.left })()`), 'in focus the window buttons are not at the right end of the toolbar, or its tools run under them')
   await click('退出专注，恢复章节树和右栏（F11）'); must(await has('.sidebar') && await has('.titlebar'), 'leaving focus did not bring the title bar back')
   await click('检查'); await click('文件'); must(await menuRows() === '新建章节- 新建文件夹- 保存- 快照- 导出… 设置…', 'off the page of prose the menu of the file reads: ' + await menuRows()); await shot('99d-menu-greyed')
-  await pointAt('编辑'); must(await menuRows() === '撤销- 重做- 查找替换- 重命名- 续写一句- 起草本章-', 'off the page of prose the menu of editing reads: ' + await menuRows()); await pointAt('视图'); must(await menuRows() === '收起侧栏 收起右栏- 专注写作-', 'on the page of checks the menu of the view reads: ' + await menuRows()); await key('Escape')
+  await pointAt('编辑'); must(await menuRows() === '撤销- 重做- 查找替换- 重命名- 续写一句- 起草本章-', 'off the page of prose the menu of editing reads: ' + await menuRows()); await pointAt('视图'); must(await menuRows() === '收起侧栏 收起右栏- 专注写作- 手机预览-', 'on the page of checks the menu of the view reads: ' + await menuRows()); await key('Escape')
   await click('切换作品'); await click('全部作品…'); must(await has('.titlebar') && await js(`document.querySelector('.titlebar > .icon-btn').classList.contains('off')`), 'the shelf has no title bar, or its switch of the sidebar is not greyed'); await click('文件'); must(await menuRows() === '新建章节- 新建文件夹- 保存- 快照- 导出…- 设置…', 'on the shelf the menu of the file reads: ' + await menuRows()); await shot('99e-shelf-bar'); await key('Escape')
   await click('帮助'); await click('快捷键…'); await win('打开快捷键列表'); await click('关闭'); await done('the menus')
 
@@ -701,7 +718,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('提醒'); await win('超过多少章未回收时提醒'); await win('检查正文和设定', false); await click('关闭设置')
   await sleep(3000); must(await paras() === before && !(await has('[data-prop]')), 'the draft went on or stayed with AI off'); must(await js(`S.talks[0].msgs.length === 1 && !S.waiting && !S.props.length`), 'the draft went on with AI off')
   // Off, the page of prose and all that opens from it.
-  must(await navs() === '正文 大纲 作品分类', 'with AI off the sidebar offers: ' + await navs()); must(await paneTabs() === '设定 伏笔', 'with AI off the pane offers: ' + await paneTabs())
+  must(await navs() === '正文 大纲 作品分类', 'with AI off the sidebar offers: ' + await navs()); must(await paneTabs() === '设定 伏笔 预览', 'with AI off the pane offers: ' + await paneTabs())
   must(await js(`document.querySelector('#pane .tab.on').firstChild.textContent`) === '设定', 'with AI off the pane is not on the setting')
   must(await js(`S.tab`) === '讨论', 'with AI off the pane forgot it was on the talk, to go back to when AI is on')
   await noAI('the page of prose'); await shot('99h-ai-off-prose')
@@ -718,7 +735,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('少见的情况'); must(!(await js(`[...document.querySelectorAll('.rare-pop .pop-row')].some((e) => ${JSON.stringify(AI_WORDS)}.some((w) => e.innerText.includes(w)))`)), 'with AI off the rare cases hold those of AI'); await key('Escape')
   // On again, asked first: all is back as it was, and the reply let go waits to be tried again.
   await click('文件'); await click('设置…'); await click('关闭 AI'); await win('是否开启 AI？'); await shot('99i-ask-ai-on'); await click('开启 AI'); await win('是否开启 AI？', false); await win('模型服务'); await click('关闭设置')
-  must(await navs() === '讨论 正文 大纲 检查 作品分类', 'with AI on again the sidebar offers: ' + await navs()); must(await paneTabs() === '设定 讨论 伏笔', 'with AI on again the pane offers: ' + await paneTabs())
+  must(await navs() === '讨论 正文 大纲 检查 作品分类', 'with AI on again the sidebar offers: ' + await navs()); must(await paneTabs() === '设定 讨论 伏笔 预览', 'with AI on again the pane offers: ' + await paneTabs())
   await click('讨论', 1); await pane('该消息尚未收到回复'); await pane('重试回复')
   // Off on the talk page, the prose shows; on again while it does, the talk page is back.
   await js(`document.querySelectorAll('.navs .nav')[0].click()`); must(await js(`S.page`) === 'talk', 'the talk page did not open')

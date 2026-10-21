@@ -25,7 +25,8 @@ function titlebar() {
       menuRow('起草本章', outline ? ask({ kind: 'draft', goal: '', how: '接在已有内容之后' }) : null, '', cur && !outline ? '请先填写章纲' : '') : '')],
     ['视图', () => menuRow(S.sideOpen ? '收起侧栏' : '展开侧栏', inBook ? () => set({ sideOpen: !S.sideOpen, ...SHUT }) : null) +
       menuRow(S.paneOpen ? '收起右栏' : '展开右栏', hasPane ? () => set({ paneOpen: !S.paneOpen, ...SHUT }) : null) +
-      menuRow('专注写作', writing ? () => set({ focus: true, ...SHUT }) : null, '', 'F11') + HAIR +
+      menuRow('专注写作', writing ? () => set({ focus: true, ...SHUT }) : null, '', 'F11') +
+      menuRow('手机预览', writing ? () => set({ paneOpen: true, tab: '预览', ...SHUT }) : null) + HAIR +
       `<div class="pop-label">外观</div><div class="pop-seg">${seg(S.look, [['跟随系统', 'screen'], ['浅色', 'sun'], ['深色', 'moon']], (v) => set({ look: v }), '外观')}</div>`],
     ['帮助', () => menuRow('快捷键…', ask({ kind: 'keys' }), '', 'Ctrl+/')],
   ]

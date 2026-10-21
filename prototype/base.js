@@ -50,6 +50,9 @@ const textAt = (e, key) => (asOf(e, key) || e).text
 // 指一处变化从哪起：「第87章起」「第三卷：停电起」，那一章不在了写「所在章节已删除」。
 const fromWhere = (key) => { const c = chapterOf(key), v = S.volumes.find((x) => x[0] === key); return c ? (numbered(c) ? '第' + c.no + '章起' : titleOf(c) + '起') : v ? v[1] + '起' : '所在章节已删除' }
 
+// 手机预览的排版，刚装好时的样子：翻页、393 宽的手机、20 号字。
+const PHONE = { mode: '翻页', size: '标准', fs: 20, lh: '适中', theme: '白天', frame: true, long: true }
+
 // 刚打开一本书的样子。书架上只有第一本有内容，别的是空书。
 function fresh(book = BOOK.shelf[0].id) {
   const full = book === BOOK.shelf[0].id
@@ -108,11 +111,12 @@ function fresh(book = BOOK.shelf[0].id) {
     uses: structuredClone(BOOK.uses), services: BOOK.services.map((x) => ({ ...x, models: x.models.map(limits) })), auto: false,
     when: '写完一章后检查', late: BOOK.late, goal: '', goalSet: '', paneW: 0, // paneW 是右栏拖出来的宽度，没拖过是 0
     names: true, // 正文里标出设定的名字
+    phone: { ...PHONE }, // 手机预览的排版：翻页还是滚动、哪种屏幕、字号、行距、背景、要不要手机外框、标不标长段
     noAI: false, offFrom: '', // 关闭了 AI：本机的所有作品都不显示 AI 功能，也不发送任何内容；offFrom 是关的时候停在的讨论页、检查页
     exportWhat: ['正文'], exportAs: 'Word', pen: '', // 导出勾了哪几样、成什么格式，上次写在首页的笔名（新作品沿用它）
   }
 }
-const KEPT = ['look', 'names', 'shelf', 'cards', 'library', 'uses', 'services', 'auto', 'when', 'late', 'goal', 'paneW', 'noAI', 'exportWhat', 'exportAs', 'pen']
+const KEPT = ['look', 'names', 'phone', 'shelf', 'cards', 'library', 'uses', 'services', 'auto', 'when', 'late', 'goal', 'paneW', 'noAI', 'exportWhat', 'exportAs', 'pen']
 
 let S = fresh()
 let sent = 0 // 作者发过几条消息，AI 按顺序回下一句
@@ -346,6 +350,7 @@ function draw() {
   for (const talk of document.querySelectorAll('.talk')) talk.scrollTop = talk.scrollHeight // 讨论总是停在最新一句
   const tab = document.querySelector('.sheet.on') // 标签多到排不下时，正在看的那个总在看得见的地方
   if (tab) { const strip = tab.parentElement; strip.scrollLeft = Math.max(tab.offsetLeft + tab.offsetWidth - strip.clientWidth, Math.min(strip.scrollLeft, tab.offsetLeft)) }
+  fitPhone() // 手机预览排好以后才知道分成几屏
 }
 
 // 页面上只挂这几个听的：事情出在哪个元素上，就照它身上的号码去找动作。

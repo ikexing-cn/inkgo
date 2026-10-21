@@ -25,6 +25,7 @@ colors:
   danger: "#c4473a"
   warn: "#b7791f"
   success: "#2f8a5b"
+  phone-eye: "#cce8cf"
   bg-dark: "#191919"
   raised-dark: "#222221"
   side-dark: "#1f1f1e"
@@ -46,6 +47,7 @@ colors:
   danger-dark: "#e4675b"
   warn-dark: "#d9a441"
   success-dark: "#5cb684"
+  phone-eye-dark: "#cce8cf"
 typography:
   display:
     fontSize: 26px
@@ -519,6 +521,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab；起草�
 - **墨**：`ink` 正文、主按钮、链接；`ink-2` 稍弱的正文；`muted` 次要文字、图标；`faint` 提示、占位、伏笔的点线；`on-ink` 墨色按钮上的字。`primary` 就是 `ink`，是格式要有的名字，界面里不单独用。
 - **纸**：`bg` 正文区的底；`side` 侧栏、右栏的底；`raised` 浮层、弹出框的底；`hover` 悬停、选中的标签；`active` 当前项、按下。
 - **线**：`line` 分隔线；`border` 卡片、输入框的边；`control` 复选框、单选框、小标签的边；`dim` 占位的圆点、计划中的格子。
+- **手机预览**：`phone-eye` 是预览里「护眼」那种背景，模仿阅读 App 的豆沙绿；深浅两套是同一个值，手机上的背景不跟着软件换。预览的「白天」「夜间」用 `bg`、`ink` 在浅色、深色两套里的值，手机的外框用深色的 `border`。
 - **有事的时候**：`amber` 等作者处理的事；`warn` 警告的字（琥珀色在白底上太浅），`warn-bg`、`warn-bd` 是警告条的底和边；`danger` 删除、出错；`success` 成功；`sel` 选中的文字。
 
 半透明（颜色的透明度、装饰用的 `opacity`）只用 `--alpha` 那几级，不另起名字；不能点的控件用 `--opacity-disabled`（代码里是 `pale(b)`）。
