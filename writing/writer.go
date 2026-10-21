@@ -51,7 +51,7 @@ var ErrNoModel = &model.SetupError{Err: errors.New("请在设置中「AI」配�
 // message, as far as the budget allows; and what it sends.
 func (w *Writer) prepare(task string, scene Scene, tail string) (model.Request, *workspace.Sent, error) {
 	var req model.Request
-	if w.Model.Completer == nil {
+	if !w.Model.Ready() {
 		return req, nil, ErrNoModel
 	}
 	work := w.Store.Work()
