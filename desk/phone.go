@@ -2,7 +2,6 @@ package desk
 
 import (
 	"fmt"
-	"math"
 	"slices"
 	"strings"
 	"time"
@@ -29,11 +28,6 @@ const (
 	phoneFrameEM             = 0.6
 	phoneFrameRadiusEM       = 2.6
 	phoneScreenRadiusEM      = 2
-	phoneTitleEM             = 1.3
-	phoneTitleTopEM          = 0.4
-	phoneTitleBottomEM       = 1.2
-	phoneIndentEM            = 2
-	phoneParaGapEM           = 0.5
 	phoneParaRadiusEM        = 0.2
 	phoneBatteryWidthEM      = 1.7
 	phoneBatteryHeightEM     = 0.8
@@ -87,45 +81,23 @@ func (a *App) phonePreferences() shelf.Phone {
 	return p
 }
 
-type phoneShapeKey struct {
-	text                  string
-	font                  ui.Font
-	width, height, indent float32
-}
-
-type phonePara struct {
-	start int
-	shape *editor.Paragraph
-	rollY float32
-}
-
 type phoneAnchor struct {
 	fraction, into float32
 	paragraph      int
 }
 
-type phoneLine struct {
-	para, line, page int // para -1 is the chapter title
-	y, rollY         float32
-}
-
 type phoneState struct {
-	prefs                        shelf.Phone
-	look                         bool
-	cache                        map[phoneShapeKey]*editor.Paragraph
-	doc                          *editor.Doc
-	version                      int
-	measured                     shelf.Phone
-	key, title                   string
-	titleShape                   *editor.Paragraph
-	paras                        []phonePara
-	lines                        []phoneLine
-	pages, at, caretPage         int
-	pageH, textW, fullH, scrollY float32
-	longPages                    []int
-	longCount                    int
-	anchor                       phoneAnchor
-	anchored                     bool
+	editor.PaginatedText
+	prefs         shelf.Phone
+	look          bool
+	doc           *editor.Doc
+	version       int
+	measured      shelf.Phone
+	key, title    string
+	at, caretPage int
+	scrollY       float32
+	anchor        phoneAnchor
+	anchored      bool
 	// Geometry is retained for input; no frame-owned UI handles escape.
 	stage, body   ui.Rect
 	ox, oy, scale float32
@@ -143,22 +115,22 @@ func (a *App) openPhone() {
 }
 
 func (s *phoneState) flip(d int) {
-	if to := s.at + d; to >= 0 && to < s.pages {
+	if to := s.at + d; to >= 0 && to < s.Pages {
 		s.at = to
 	}
 }
 
 func (s *phoneState) nextLong() {
-	if len(s.longPages) == 0 {
+	if len(s.LongPages) == 0 {
 		return
 	}
-	for _, page := range s.longPages {
+	for _, page := range s.LongPages {
 		if page > s.at {
 			s.at = page
 			return
 		}
 	}
-	s.at = s.longPages[0]
+	s.at = s.LongPages[0]
 }
 
 func (a *App) measurePhone() {
@@ -173,99 +145,16 @@ func (a *App) measurePhone() {
 	if changed {
 		s.anchored = false
 		s.doc, s.version, s.measured, s.title = ed.Doc, ed.Doc.Version(), s.prefs, title
-		s.layout(ed.Doc.String())
+		s.Layout(ed.Doc.String(), s.title, s.prefs, phoneScreens[s.prefs.Screen][0]-2*phoneTextInset, phoneScreens[s.prefs.Screen][1]-phoneChromeHeight)
 	}
-	page := s.pageOf(ed.Caret())
+	page := s.PageOf(ed.Caret())
 	key := a.path + "/" + a.write.node
 	if s.key != key {
 		s.key, s.at, s.caretPage = key, 0, page
 	} else if s.prefs.Mode == "flip" && s.caretPage != page {
 		s.caretPage, s.at = page, page
 	}
-	s.at = min(max(s.at, 0), s.pages-1)
-}
-
-func (s *phoneState) layout(text string) {
-	p := s.prefs
-	w, h := phoneScreens[p.Screen][0], phoneScreens[p.Screen][1]
-	s.textW, s.pageH = w-2*phoneTextInset, h-phoneChromeHeight
-	s.paras, s.lines, s.longPages, s.longCount = nil, nil, nil, 0
-	used := map[phoneShapeKey]*editor.Paragraph{}
-	shape := func(text string, font ui.Font, lh, indent float32) *editor.Paragraph {
-		key := phoneShapeKey{text, font, s.textW, lh, indent}
-		v := used[key]
-		if v == nil {
-			v = s.cache[key]
-		}
-		if v == nil {
-			v = editor.LayoutParagraph(text, font, s.textW, lh, indent)
-		}
-		used[key] = v
-		return v
-	}
-	fs := float32(p.Size)
-	lh := float32(lhRead)
-	switch p.Spacing {
-	case "tight":
-		lh = lhLoose
-	case "loose":
-		lh = lhPaper
-	}
-	titleSize := phoneTitleEM * fs
-	s.titleShape = shape(s.title, ui.Font{Size: titleSize, Weight: 700}, lhTight, 0)
-	y, rollY, page := titleSize*phoneTitleTopEM, titleSize*phoneTitleTopEM, 0
-	add := func(para int, sh *editor.Paragraph) {
-		for i := range sh.Lines {
-			if y+sh.LineHeight > s.pageH {
-				page++
-				y = 0
-			}
-			s.lines = append(s.lines, phoneLine{para, i, page, y, rollY})
-			y += sh.LineHeight
-			rollY += sh.LineHeight
-		}
-	}
-	add(-1, s.titleShape)
-	y += titleSize * phoneTitleBottomEM
-	rollY += titleSize * phoneTitleBottomEM
-	start := 0
-	for i, text := range strings.Split(text, "\n") {
-		sh := shape(text, ui.Font{Size: fs}, lh, phoneIndentEM*fs)
-		if y+sh.LineHeight > s.pageH {
-			page++
-			y = 0
-		}
-		s.paras = append(s.paras, phonePara{start, sh, rollY})
-		if !p.NoLong && len(sh.Lines) > 5 {
-			s.longCount++
-			if len(s.longPages) == 0 || s.longPages[len(s.longPages)-1] != page {
-				s.longPages = append(s.longPages, page)
-			}
-		}
-		add(i, sh)
-		y += sh.LineHeight * phoneParaGapEM
-		rollY += sh.LineHeight * phoneParaGapEM
-		start += len([]rune(text)) + 1
-	}
-	s.cache, s.fullH, s.pages = used, rollY, page+1
-	if p.Mode == "scroll" {
-		s.pages = max(1, int(math.Ceil(float64(s.fullH/s.pageH))))
-	}
-}
-
-func (s *phoneState) pageOf(offset int) int {
-	for _, l := range s.lines {
-		if l.para < 0 {
-			continue
-		}
-		p := s.paras[l.para]
-		ln := p.shape.Lines[l.line]
-		end := p.start + ln.End
-		if offset < end || offset == end && l.line == len(p.shape.Lines)-1 {
-			return l.page
-		}
-	}
-	return max(s.pages-1, 0)
+	s.at = min(max(s.at, 0), s.Pages-1)
 }
 
 func (a *App) phonePanel(c *ui.Context) {
@@ -315,11 +204,11 @@ func (a *App) phonePanel(c *ui.Context) {
 	s.stage = stage.Bounds()
 	s.hover = -1
 	if x, y, ok := stage.PointerPosition(); ok {
-		if para, _, ok := s.hit(x, y); ok {
+		if para, _, ok := s.Hit(x, y, s.prefs.Mode, s.at, s.scrollY, s.body, s.ox, s.oy, s.scale); ok {
 			s.hover = para
 			stage.Cursor(ui.CursorPointer)
-			if !s.prefs.NoLong && len(s.paras[para].shape.Lines) > 5 {
-				stage.Tooltip(fmt.Sprintf("手机上 %d 行", len(s.paras[para].shape.Lines)))
+			if !s.prefs.NoLong && len(s.Paras[para].Shape.Lines) > 5 {
+				stage.Tooltip(fmt.Sprintf("手机上 %d 行", len(s.Paras[para].Shape.Lines)))
 			}
 		}
 	}
@@ -332,21 +221,21 @@ func (a *App) phonePanel(c *ui.Context) {
 					s.flip(-1)
 				}
 			})
-			ui.Textf(c, "第 %d 屏，共 %d 屏", s.at+1, s.pages).FontSize(fsNote).TextColor(a.pal.theme.TextMuted).SingleLine()
-			ui.Box(c).Disabled(s.at == s.pages-1).Children(func() {
+			ui.Textf(c, "第 %d 屏，共 %d 屏", s.at+1, s.Pages).FontSize(fsNote).TextColor(a.pal.theme.TextMuted).SingleLine()
+			ui.Box(c).Disabled(s.at == s.Pages-1).Children(func() {
 				if a.pal.ghost(c, "下一屏 ›", ui.Color{}).Label("下一屏 ›").KeepFocus().Clicked() {
 					s.flip(1)
 				}
 			})
 		} else {
 			ui.Spacer(c)
-			ui.Textf(c, "约 %d 屏", s.pages).FontSize(fsNote).TextColor(a.pal.theme.TextMuted)
+			ui.Textf(c, "约 %d 屏", s.Pages).FontSize(fsNote).TextColor(a.pal.theme.TextMuted)
 			ui.Spacer(c)
 		}
 	})
 	ui.Row(c).FillWidth().MinHeight(hControl).Padding(0, 20).Justify(ui.End).Shrink(0).Children(func() {
-		if s.longCount > 0 {
-			text := fmt.Sprintf("%d 段超过 5 行", s.longCount)
+		if s.LongCount > 0 {
+			text := fmt.Sprintf("%d 段超过 5 行", s.LongCount)
 			if s.prefs.Mode == "flip" {
 				text += "，看下一处"
 			}
@@ -426,47 +315,18 @@ func (a *App) phoneSegments(c *ui.Context, at *int, label string, names []string
 func (a *App) phoneInput(ev ui.InputEvent) bool {
 	if ev.Kind == ui.InputScroll && a.phone.prefs.Mode == "scroll" && a.phone.scale > 0 {
 		s := &a.phone
-		s.scrollY = min(max(s.scrollY+ev.DY/s.scale, 0), max(s.fullH-s.pageH, 0))
+		s.scrollY = min(max(s.scrollY+ev.DY/s.scale, 0), max(s.Height-s.PageHeight, 0))
 		return true
 	}
 	if ev.Kind != ui.InputPointerDown || ev.Button != 0 {
 		return false
 	}
-	if _, offset, ok := a.phone.hit(ev.X, ev.Y); ok {
+	if _, offset, ok := a.phone.Hit(ev.X, ev.Y, a.phone.prefs.Mode, a.phone.at, a.phone.scrollY, a.phone.body, a.phone.ox, a.phone.oy, a.phone.scale); ok {
 		a.write.ed.Select(offset, offset)
 		a.write.ed.Focus()
 		return true
 	}
 	return false
-}
-
-func (s *phoneState) lineY(l phoneLine) float32 {
-	if s.prefs.Mode == "scroll" {
-		return l.rollY - s.scrollY
-	}
-	return l.y
-}
-
-func (s *phoneState) hit(x, y float32) (para, offset int, ok bool) {
-	if s.scale <= 0 {
-		return
-	}
-	x, y = (x-s.ox)/s.scale, (y-s.oy)/s.scale
-	if x < s.body.X || x > s.body.X+s.body.W || y < s.body.Y || y > s.body.Y+s.body.H {
-		return
-	}
-	x, y = x-s.body.X, y-s.body.Y
-	for _, l := range s.lines {
-		if l.para < 0 || s.prefs.Mode == "flip" && l.page != s.at {
-			continue
-		}
-		p := s.paras[l.para]
-		ly := s.lineY(l)
-		if y >= ly && y < ly+p.shape.LineHeight {
-			return l.para, p.start + p.shape.HitAfter(l.line, x), true
-		}
-	}
-	return
 }
 
 func (a *App) syncPhone() {
@@ -477,15 +337,15 @@ func (a *App) syncPhone() {
 		return
 	}
 	s.anchor, s.anchored = anchor, true
-	most := max(s.fullH-s.pageH, 0)
+	most := max(s.Height-s.PageHeight, 0)
 	switch {
 	case f <= 0:
 		s.scrollY = 0
-	case f >= 1 || n >= len(s.paras):
+	case f >= 1 || n >= len(s.Paras):
 		s.scrollY = most
 	default:
-		p := s.paras[n]
-		s.scrollY = min(max(p.rollY+into*p.shape.Height-f*s.pageH, 0), most)
+		p := s.Paras[n]
+		s.scrollY = min(max(p.RollY+into*p.Shape.Height-f*s.PageHeight, 0), most)
 	}
 }
 
@@ -507,7 +367,7 @@ func (a *App) paintPhone(p *ui.Painter, r ui.Rect) {
 	wfull, hfull := w+2*pad+2, h+2*pad+2
 	k := max(0, min(1, min(r.W/wfull, r.H/hfull)))
 	s.ox, s.oy, s.scale = (r.W-wfull*k)/2, (r.H-hfull*k)/2, k
-	s.body = ui.Rect{X: pad + 1 + phoneTextInset, Y: pad + 1 + phoneStatusHeight + phoneTextTop, W: s.textW, H: s.pageH}
+	s.body = ui.Rect{X: pad + 1 + phoneTextInset, Y: pad + 1 + phoneStatusHeight + phoneTextTop, W: s.TextWidth, H: s.PageHeight}
 	bg, ink, muted, active, hover := a.light.canvas, a.light.ink, a.light.faint, a.light.theme.SurfacePressed, a.light.theme.SurfaceHover
 	if s.prefs.Theme == "night" {
 		bg, ink, muted, active, hover = a.dark.canvas, a.dark.ink, a.dark.faint, a.dark.theme.SurfacePressed, a.dark.theme.SurfaceHover
@@ -542,7 +402,7 @@ func (a *App) paintPhone(p *ui.Painter, r ui.Rect) {
 					p.Text(foot.X, foot.Y+8, clip(s.title, 20), footSize, muted)
 				})
 				if s.prefs.Mode == "flip" {
-					at := fmt.Sprintf("%d/%d", s.at+1, s.pages)
+					at := fmt.Sprintf("%d/%d", s.at+1, s.Pages)
 					gs := ui.Shape(at, ui.Font{Size: footSize})
 					width := float32(0)
 					for _, g := range gs {
@@ -571,47 +431,47 @@ func (a *App) paintPhoneText(p *ui.Painter, ink, active, hover ui.Color) {
 		color := active
 		if s.hover == previous {
 			color = hover
-		} else if s.prefs.NoLong || len(s.paras[previous].shape.Lines) <= 5 {
+		} else if s.prefs.NoLong || len(s.Paras[previous].Shape.Lines) <= 5 {
 			return
 		}
 		p.Fill(patch, color, float32(s.prefs.Size)*phoneParaRadiusEM)
 	}
-	for _, l := range s.lines {
-		if l.para < 0 || s.prefs.Mode == "flip" && l.page != s.at {
+	for _, l := range s.Lines {
+		if l.Para < 0 || s.prefs.Mode == "flip" && l.Page != s.at {
 			continue
 		}
-		y, h := s.lineY(l), s.paras[l.para].shape.LineHeight
-		if y+h <= 0 || y >= s.pageH {
+		y, h := s.LineY(l, s.prefs.Mode, s.scrollY), s.Paras[l.Para].Shape.LineHeight
+		if y+h <= 0 || y >= s.PageHeight {
 			continue
 		}
-		if previous != l.para {
+		if previous != l.Para {
 			flush()
-			previous = l.para
-			patch = ui.Rect{X: s.body.X, Y: s.body.Y + y, W: s.textW, H: h}
+			previous = l.Para
+			patch = ui.Rect{X: s.body.X, Y: s.body.Y + y, W: s.TextWidth, H: h}
 		} else {
 			patch.H = s.body.Y + y + h - patch.Y
 		}
 	}
 	flush()
-	for _, l := range s.lines {
-		if s.prefs.Mode == "flip" && l.page != s.at {
+	for _, l := range s.Lines {
+		if s.prefs.Mode == "flip" && l.Page != s.at {
 			continue
 		}
-		y := s.lineY(l)
-		sh := s.titleShape
-		if l.para >= 0 {
-			sh = s.paras[l.para].shape
+		y := s.LineY(l, s.prefs.Mode, s.scrollY)
+		sh := s.TitleShape
+		if l.Para >= 0 {
+			sh = s.Paras[l.Para].Shape
 		}
-		if y+sh.LineHeight <= 0 || y >= s.pageH {
+		if y+sh.LineHeight <= 0 || y >= s.PageHeight {
 			continue
 		}
 		x, y := s.body.X, s.body.Y+y
-		if l.para >= 0 {
-			para := s.paras[l.para]
-			ln := sh.Lines[l.line]
-			lo, hi := max(from-para.start, ln.Start), min(to-para.start, ln.End)
+		if l.Para >= 0 {
+			para := s.Paras[l.Para]
+			ln := sh.Lines[l.Line]
+			lo, hi := max(from-para.Start, ln.Start), min(to-para.Start, ln.End)
 			if from != to && lo < hi {
-				x0, x1 := sh.X(l.line, lo), sh.X(l.line, hi)
+				x0, x1 := sh.X(l.Line, lo), sh.X(l.Line, hi)
 				pick := ui.Rect{X: x + x0, Y: y + 2, W: x1 - x0, H: sh.LineHeight - 4}
 				s.pick = append(s.pick, pick)
 				selection := a.pal.theme.Selection
@@ -620,12 +480,12 @@ func (a *App) paintPhoneText(p *ui.Painter, ink, active, hover ui.Color) {
 				}
 				p.Fill(pick, selection, 0)
 			}
-			at := ed.Caret() - para.start
-			if from == to && ed.Focused() && at >= ln.Start && (at < ln.End || at == ln.End && l.line == len(sh.Lines)-1) {
-				s.caret = ui.Rect{X: x + sh.X(l.line, at), Y: y, W: float32(s.prefs.Size) * phoneCaretWidthEM, H: sh.LineHeight}
+			at := ed.Caret() - para.Start
+			if from == to && ed.Focused() && at >= ln.Start && (at < ln.End || at == ln.End && l.Line == len(sh.Lines)-1) {
+				s.caret = ui.Rect{X: x + sh.X(l.Line, at), Y: y, W: float32(s.prefs.Size) * phoneCaretWidthEM, H: sh.LineHeight}
 				p.Fill(s.caret, ink, 0)
 			}
 		}
-		sh.DrawLine(p, l.line, x, y, ink)
+		sh.DrawLine(p, l.Line, x, y, ink)
 	}
 }

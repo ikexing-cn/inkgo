@@ -23,7 +23,7 @@
 // names.go: setting-name completion, rename notices, and whole-book replacement.
 // pane.go: shared right-pane lists, details, forms, and quotes.
 // pending.go: pending groups, ignored items, and navigation.
-// phone.go: phone preview settings, layout, pagination, and selection.
+// phone.go: phone preview panel, settings, painting, and selection.
 // plan.go: the 大纲 page, card editing, chapter table, and timeline.
 // plan_layout.go: outline-table geometry, scrolling, and drag and drop.
 // prefs.go: desk.json loading, saving, and old-format migration.

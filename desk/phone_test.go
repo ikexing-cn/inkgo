@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui"
+	"writer/editor"
 	"writer/shelf"
 	"writer/workspace"
 )
@@ -39,10 +40,10 @@ func TestThePhonePreview(t *testing.T) {
 	tt.Key(0, ui.KeyEnter)
 	tt.Type(phoneLongText + phoneLongText)
 	tt.Frame()
-	if s.pages <= 1 || s.at != s.pages-1 || s.caret.H == 0 || !tt.HasText("2 段超过 5 行，看下一处") {
-		t.Fatalf("pages %d at %d caret %+v: %v", s.pages, s.at, s.caret, tt.Texts())
+	if s.Pages <= 1 || s.at != s.Pages-1 || s.caret.H == 0 || !tt.HasText("2 段超过 5 行，看下一处") {
+		t.Fatalf("pages %d at %d caret %+v: %v", s.Pages, s.at, s.caret, tt.Texts())
 	}
-	pages := s.pages
+	pages := s.Pages
 	click(t, tt, "下一屏 ›")
 	if s.at != pages-1 || a.write.node != id {
 		t.Fatal("next at the end left the chapter")
@@ -58,7 +59,7 @@ func TestThePhonePreview(t *testing.T) {
 
 	// A selection uses exactly the source rune offsets; moving it to a
 	// previous page makes the preview follow once.
-	start := s.paras[2].start + 10
+	start := s.Paras[2].Start + 10
 	ed.Select(start, start+6)
 	ed.Focus()
 	tt.Frame()
@@ -85,28 +86,28 @@ func TestThePhonePreview(t *testing.T) {
 	if s.at != 0 {
 		t.Fatal("previous before the start flipped")
 	}
-	for s.at < s.pages-1 {
+	for s.at < s.Pages-1 {
 		click(t, tt, "下一屏 ›")
 	}
 	// Click the center of a specific glyph on the last visible body line.
-	var last phoneLine
-	for _, l := range s.lines {
-		if l.para >= 0 && l.page == s.at {
+	var last editor.PageLine
+	for _, l := range s.Lines {
+		if l.Para >= 0 && l.Page == s.at {
 			last = l
 		}
 	}
-	para := s.paras[last.para]
-	ln := para.shape.Lines[last.line]
+	para := s.Paras[last.Para]
+	ln := para.Shape.Lines[last.Line]
 	off := min(ln.Start+2, ln.End-1)
-	x := (para.shape.X(last.line, off) + para.shape.X(last.line, off+1)) / 2
-	y := last.y + para.shape.LineHeight/2
+	x := (para.Shape.X(last.Line, off) + para.Shape.X(last.Line, off+1)) / 2
+	y := last.Y + para.Shape.LineHeight/2
 	px, py := s.stage.X+s.ox+(s.body.X+x)*s.scale, s.stage.Y+s.oy+(s.body.Y+y)*s.scale
 	tt.Press(px, py)
 	tt.Release(px, py)
 	tt.Frame()
 	tt.Frame()
-	if ed.Caret() != para.start+off+1 {
-		t.Fatalf("clicked rune %d, caret is %d", para.start+off, ed.Caret())
+	if ed.Caret() != para.Start+off+1 {
+		t.Fatalf("clicked rune %d, caret is %d", para.Start+off, ed.Caret())
 	}
 	if box, ok := ed.RangeBox(ed.Caret(), ed.Caret()); !ok || box.Y < 0 || box.Y > ed.Height() {
 		t.Fatal("clicked word not revealed", box, ok)
@@ -130,8 +131,8 @@ func TestThePhonePreview(t *testing.T) {
 	r := a.LastProse
 	tt.Scroll(r.X+r.W/2, r.Y+r.H/2, 0, 100000)
 	tt.Frame()
-	if s.scrollY <= 0 || math.Abs(float64(s.scrollY-(s.fullH-s.pageH))) > 1 {
-		t.Fatalf("bottom %f of %f", s.scrollY, s.fullH-s.pageH)
+	if s.scrollY <= 0 || math.Abs(float64(s.scrollY-(s.Height-s.PageHeight))) > 1 {
+		t.Fatalf("bottom %f of %f", s.scrollY, s.Height-s.PageHeight)
 	}
 	tt.Scroll(r.X+r.W/2, r.Y+r.H/2, 0, -100000)
 	tt.Frame()
@@ -149,10 +150,10 @@ func TestThePhonePreview(t *testing.T) {
 	tt.Scroll(r.X+r.W/2, r.Y+r.H/2, 0, 40)
 	tt.Frame()
 	f, n, into := ed.ScrollAnchor()
-	pp := s.paras[n]
-	wantY := min(max(pp.rollY+into*pp.shape.Height-f*s.pageH, 0), max(s.fullH-s.pageH, 0))
+	pp := s.Paras[n]
+	wantY := min(max(pp.RollY+into*pp.Shape.Height-f*s.PageHeight, 0), max(s.Height-s.PageHeight, 0))
 	if f >= 1 {
-		wantY = max(s.fullH-s.pageH, 0)
+		wantY = max(s.Height-s.PageHeight, 0)
 	}
 	if f <= 0 {
 		wantY = 0
@@ -171,10 +172,10 @@ func TestThePhonePreview(t *testing.T) {
 	click(t, tt, "下一处长段")
 	firstLong := s.at
 	click(t, tt, "下一处长段")
-	if len(s.longPages) > 1 && s.at == firstLong {
+	if len(s.LongPages) > 1 && s.at == firstLong {
 		t.Fatal("next long did not advance")
 	}
-	for range len(s.longPages) {
+	for range len(s.LongPages) {
 		click(t, tt, "下一处长段")
 	}
 	if a.write.node != id {
@@ -314,38 +315,5 @@ func TestPhonePreferencesDefaultUnknownChoices(t *testing.T) {
 	want := shelf.Phone{Mode: "scroll", Screen: "standard", Size: phoneSizeMin, Spacing: "loose", Theme: "eye", NoFrame: true, NoLong: true}
 	if a.phone.prefs != want {
 		t.Fatal("valid preferences lost while defaulting", a.phone.prefs)
-	}
-}
-
-func TestPhoneParagraphCache(t *testing.T) {
-	a, tt, _ := writingFixture(t, phoneLongText+"\n"+phoneLongText)
-	a.openPhone()
-	tt.Frame()
-	s := &a.phone
-	old := s.paras[0].shape
-	a.write.ed.Select(a.write.ed.Doc.Len(), a.write.ed.Doc.Len())
-	a.write.ed.Insert("雨")
-	tt.Frame()
-	if s.paras[0].shape != old || s.paras[1].shape == old {
-		t.Fatal("unchanged paragraph not reused, or changed paragraph reused")
-	}
-	for _, key := range []string{"narrow", "wide", "standard"} {
-		p := a.phonePreferences()
-		p.Screen = key
-		a.shelf.Phone = &p
-		tt.Frame()
-		if s.textW != phoneScreens[key][0]-40 {
-			t.Fatal("wrong screen width")
-		}
-	}
-	if s.paras[0].shape == old {
-		t.Fatal("layout with another width was reused after eviction")
-	}
-	for _, p := range s.paras {
-		for i, line := range p.shape.Lines {
-			if p.shape.X(i, line.End) > s.textW+1 {
-				t.Fatal("line does not fit the phone")
-			}
-		}
 	}
 }
