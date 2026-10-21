@@ -12,7 +12,7 @@ func TestDecodeMessages(t *testing.T) {
 		var out struct {
 			N int `json:"n"`
 		}
-		err := decode(c.text, &out)
+		err := Decode(c.text, &out)
 		if c.want == "" {
 			if err != nil || out.N != 1 {
 				t.Fatalf("decode(%q) = %+v, %v", c.text, out, err)

@@ -10,10 +10,7 @@ import (
 
 // Decode reads exactly one strict JSON value from a model's answer,
 // allowing a ```json fence.
-func Decode(s string, v any) error { return decode(s, v) }
-
-// decode reads exactly one strict JSON value, allowing a ```json fence.
-func decode(s string, v any) error {
+func Decode(s string, v any) error {
 	s = strings.TrimSpace(s)
 	if strings.HasPrefix(s, "```json\n") && strings.HasSuffix(s, "```") {
 		s = strings.TrimSuffix(strings.TrimPrefix(s, "```json\n"), "```")
