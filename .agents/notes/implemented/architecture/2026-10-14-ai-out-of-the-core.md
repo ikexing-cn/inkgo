@@ -28,12 +28,19 @@ Status: implemented
 | --- | --- | --- |
 | `desk` | 全部界面，和拆之前一样 | `aiport`、`workspace`、`editor`、`backup`、`shelf` |
 | `aiport` | `desk` 要 AI 做的事：几个接口，和过界要用的几个小结构 | 只有 `workspace` |
-| `ai` | 实现 `aiport`：读写 `providers.yaml`、建客户端、讨论、续写改写起草、摘要、检查（原来还有后台整理和它的日志，2026-10-15 随记账员删了，见[讨论用工具查全书、当场记设定](../feature/2026-10-15-talk-looks-up-and-notes-the-setting.md)） | `aiport`、`model`、`discussion`、`writing`、`workspace` |
+| `ai` | 实现 `aiport`：读写 `providers.yaml`、建客户端、讨论、续写改写起草、摘要、检查（原来还有后台整理和它的日志，2026-10-15 随记账员删了，见[讨论用工具查全书、当场记设定](../feature/2026-10-15-talk-looks-up-and-notes-the-setting.md)） | `aiport`、`model`、`inference`、`discussion`、`writing`、`workspace` |
+| `inference` | 讨论和写作共用的模型推理与回答规则 | `model`、`tokens`、`internal/strictjson` |
 | `cmd/inkgo` | 建一个 `ai` 交给 `desk` | `desk`、`ai` |
 
 `aiport` 单独成包，是因为 `desk` 的测试要用真的 `ai`（配假的模型）：接口要是放在 `desk` 里，`ai` 就得引用 `desk`，`desk` 的测试再引用 `ai` 就成环了，Go 不让。
 
 `go list -deps writer/desk` 里自己的包只有 `backup`、`workspace`、`aiport`、`editor`、`shelf`；`model.NewClient` 只在 `ai/ai.go` 里。
+
+### 模型推理的共同规则
+
+`inference` 放讨论和写作共同使用的模型推理规则：`model.go` 的 `Model` 绑定客户端、模型上限和推理等级，`Ready` 判断客户端是否已配置；`decode.go` 的 `Decode` 读取模型回答中的一个严格 JSON 值；`locate.go` 的 `Locate` 容许模型抄引文时增删空白、Markdown 标记和引号，返回原文自己的字。名字取自模型推理，不取自调用它的讨论或写作功能。`ai` 构建 `inference.Model`，`discussion` 和 `writing` 都引用它，`writing` 不引用 `discussion`。`Ready` 在功能入口检查，`Complete` 在发送前填好最大输出并转换截断错误，`Decode`、`Locate` 在接收回答后校验，`Volume` 在拼装章节内容时取值；次数和调用位置由各功能保管。推理前后的规则不依赖界面。
+
+`workspace.Node.Volume` 在取所在卷时排除章节树根，讨论和写作共用这一条树规则。读前一章和遍历已由 `Tree.Previous`、`Tree.Walk` 提供。讨论的 `bookOf` 给模型的章名消歧，起草的 `fixedOf` 收集前卷、同卷前章和全文；写作按当前章取卷纲、章纲和前章结尾，内容范围与呈现规则各自保管。`writing.fit` 按预算迭代截正文，`discussion.Writing.render` 每次去掉四分之一前文，`prompt.ClipTokens` 按估算 token 保留最长前缀并加提示；裁剪结果不同，各自运行于请求拼装时。`writing.clipRunes` 把省略号算进字数，`textclip.Clip` 在保留的字数后加省略号；`discussion.snippet` 取命中前后文并合成一行，各自保留口径。
 
 ### 接口清单
 
@@ -79,6 +86,8 @@ Status: implemented
 - 顺带改正：原来 `engine` 和 `startWorker` 把那一帧的 `*ui.Context` 留进了在后台跑的回调（回复一段段到、后台整理写完一次），`mygo vet` 只查 `go` 语句和存下来的，没查出来；现在用起头那一帧取的 `c.Services()`。
 
 ## Alternatives considered
+
+- **模型放进 `model`，回答规则放进 `prompt` 或 `internal/textclip`** — 最强的理由是沿用已有包，少一个边界。`model` 保管协议客户端和本机服务配置，`prompt` 保管输入拼装，`textclip` 保管文字裁剪；配置好的调用模型、回答的 JSON 解码和引文核对共同服务于模型推理，放进 `inference` 后两个功能包都不必引用对方。树的所属卷判断只依赖节点结构，放进 `workspace`。
 
 - **分别保管设置与助手两个值** — 界面字段直接反映两个职责，个别调用者可只拿其中一个。`App` 同时需要两者，且由同一个服务提供；端口的 `Service` 组合让调用处只需一个名字，职责按两个接口划分。
 - **由程序绑定开关函数** — 组装代码集中在入口，`desk` 不必向服务传函数。每个程序和测试都要记住绑定，漏接会让关闭的界面建出客户端；`desk.New` 统一通过设置接口绑定，构造界面即完成接线。

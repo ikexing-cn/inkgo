@@ -151,7 +151,7 @@ Status: proposed
 ### 第 5 批：AI 层
 
 - `desk/aiport` 挪到顶层 `aiport`，拆成「设置」（服务、key、目录、价格）和「助手」（讨论、笔、检查）两个接口。
-- `writing` 和 `discussion` 共用的部分（绑好的模型、`Decode`、`Locate`、树的小工具）抽成一个小包，两边都引用它，`writing` 不再引用 `discussion`。
+- `writing` 和 `discussion` 共用的绑好的模型、`Decode`、`Locate` 放进 `inference`，名字指模型推理的共同规则，两边都引用它，`writing` 不再引用 `discussion`。所在卷的判断放进 `workspace.Node.Volume`：排除树根是章节树的规则，不属于推理。遍历和前章读取共用 `Tree.Walk`、`Tree.Previous`；讨论的章名消歧、预加载范围和各处不同口径的裁剪各自保留。
 - 跨包约定改成由拥有它的包导出解析函数：
   - 设定按序号取（`[n]`）；
   - 摘要的几节；

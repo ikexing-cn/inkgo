@@ -33,7 +33,7 @@ Status: implemented
   - 章名和正文。正文超过上下文预算的四分之三时只给前面一部分，并告诉模型。
 - 模型只回一个 JSON。读不了就报错，不存。
 - 每一条都要核对过才留下，核对不过的直接丢掉：
-  - 原句必须在正文里找得到（容许模型抄的时候多了或少了引号、空格，`discussion.Locate`），存的是正文自己的字；
+  - 原句必须在正文里找得到（容许模型抄的时候多了或少了引号、空格，`inference.Locate`），存的是正文自己的字；
   - `conflict` 的编号必须是给它看过的条目；`says` 在条目里找不到就留空；
   - `name` 的正确名字必须是设定里的名字，原句本身不能也是设定里的名字；
   - `new` 的名字必须在正文里出现，不能已经在设定里，不超过 12 个字；分类不认识就归到「其他」。
@@ -74,7 +74,7 @@ Status: implemented
 - **设置 · 提醒与检查**多一组「检查正文和设定」，同样三个选项。伏笔那一行的文字顺便改成设计稿现在的说法。
 - **待处理**多一组「设定对不上」，排在最前，点一条去「检查」页的那一条。「全部忽略」只是不在待处理里列，「检查」页里还在。
 - 完成结果由 `CheckQueue.Keep` 决定是否保留，并用 `Check.KeepMeant` 合并作者在执行期间作出的决定，再由 `desk` 保存。取消结果不保存；换作品后收到的旧作品结果不保存。结果的正文哈希保留检查时的值，正文变动后由 `Check.Stale` 判断过期；设定变化按显示问题时的现有过滤规则处理。队列规则不读盘或时钟，停笔判断使用调用方传入的编辑时间和当前时间，间隔由队列旁的 `checkPause` 定义。界面通过 `WorkChanged`、`Finished`、`CannotStart`、`Stop` 更新队列状态，只直接读写存盘结果 `All`。
-- 代码：`workspace/check.go`、`workspace/checkqueue.go`、`writing/check.go`、`desk/check.go`、`desk/checkrunner.go`，`editor/paint.go`（虚线），`desk/shell.go`（页面和侧栏）、`desk/write.go`（章末一行、离开时）、`desk/pending.go`、`desk/foreshadow.go`（设置）、`prefs/prefs.go`（`check_when`），`discussion/shared.go`（公开 `Locate`、`Decode`）。
+- 代码：`workspace/check.go`、`workspace/checkqueue.go`、`writing/check.go`、`desk/check.go`、`desk/checkrunner.go`，`editor/paint.go`（虚线），`desk/shell.go`（页面和侧栏）、`desk/write.go`（章末一行、离开时）、`desk/pending.go`、`desk/foreshadow.go`（设置）、`prefs/prefs.go`（`check_when`），`inference/locate.go`、`inference/decode.go`（`Locate`、`Decode`）。
 
 ### 和设计稿不一样的地方
 

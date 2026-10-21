@@ -157,7 +157,7 @@ M1 每轮对话串行：先回复，再把这一轮拆成思路卡片，再查�
 - `go test ./discussion`：
   - 规则表每条至少一个反例；
   - 修正一次后写入；
-  - 原文放宽匹配（`TestLocateForgivesCopyMarks`）；
+  - 原文放宽匹配（`inference/locate_test.go` 的 `TestLocateForgivesCopyMarks`）；
   - 附上前一轮消息（`TestBookkeeperSeesTheExchangeBefore`）；
   - worker 重试、写失败修订、重试成功（`TestWorkerRetriesRecordsFailureAndRedoes`）；
   - 积压过长时分批（`TestBookkeeperSplitsALongBacklog`）；

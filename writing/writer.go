@@ -90,7 +90,7 @@ func (w *Writer) prepare(task string, scene Scene, tail string) (model.Request, 
 		b.Must(kind, heading+text)
 	}
 	// The outlines go whole, or the request does not.
-	if p := n.Parent; p != nil && p.Parent != nil {
+	if p := n.Volume(); p != nil {
 		if vol, err := w.Store.ReadChapter(p.ID); err == nil && strings.TrimSpace(vol.Outline) != "" {
 			take(&volume, workspace.PartOutline, "【所在卷："+p.Title+"】卷纲：", strings.TrimSpace(vol.Outline))
 		}
