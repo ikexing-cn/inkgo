@@ -192,7 +192,10 @@ func TestExportTheWork(t *testing.T) {
 	// The chapter open, named after it.
 	a.shelf.Export.Outline, a.shelf.Export.Setting = false, false
 	open()
-	x.selection.Scope = export.ScopeChapter
+	if err := tt.Click(export.ScopeChapter); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
 	out()
 	if got := read("测试作品-第一章.txt"); got != "第一章\n\n　　雨下着。\n" {
 		t.Fatalf("a chapter %q", got)

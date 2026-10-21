@@ -12,7 +12,7 @@
 // check.go: check queue, findings, prose marks, and the 检查 page.
 // counts.go: book and daily word counts, goals, and recent days.
 // doc.go: this package index.
-// export.go: export ranges, format choices, and file writing.
+// export.go: export dialog choices, cached plan, and file writing.
 // find.go: the prose find-and-replace bar.
 // findbook.go: whole-book search results and replacement.
 // foreshadow.go: 伏笔, payoffs, details, candidates, and reminder settings.

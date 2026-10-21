@@ -1,6 +1,7 @@
 package shelf
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -172,6 +173,40 @@ func TestShelfRejectsTrailingContent(t *testing.T) {
 		}
 		if _, fresh, err := Load(path); err == nil || fresh || !strings.Contains(err.Error(), path) {
 			t.Fatalf("tail %q: fresh %v, error %v", tail, fresh, err)
+		}
+	}
+}
+
+func TestExportJSON(t *testing.T) {
+	for mask := 0; mask < 16; mask++ {
+		original := map[string]any{"pen": "雨声"}
+		for i, key := range []string{"prose", "outline", "setting", "text"} {
+			if mask&(1<<i) != 0 {
+				original[key] = true
+			}
+		}
+		data, err := json.Marshal(original)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var e Export
+		if err := json.Unmarshal(data, &e); err != nil {
+			t.Fatal(err)
+		}
+		if e.Options != (export.Options{Prose: mask&1 != 0, Outline: mask&2 != 0, Setting: mask&4 != 0, Text: mask&8 != 0}) || e.Pen != "雨声" {
+			t.Fatal(e)
+		}
+		got, err := json.Marshal(e)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var decoded map[string]any
+		if err := json.Unmarshal(got, &decoded); err != nil {
+			t.Fatal(err)
+		}
+		roundTrip, err := json.Marshal(decoded)
+		if err != nil || string(roundTrip) != string(data) {
+			t.Fatalf("%s != %s: %v", roundTrip, data, err)
 		}
 	}
 }

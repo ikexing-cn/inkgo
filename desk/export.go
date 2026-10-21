@@ -23,6 +23,7 @@ type exportState struct {
 	selection export.Selection
 	pen       string
 	indent    bool
+	plan      export.Plan
 }
 
 // exportPrefs is how the export dialog was last left on this machine; the
@@ -52,6 +53,26 @@ func (a *App) openExport() {
 		x.selection.From, x.selection.To = names[0], names[min(2, len(names)-1)]
 	}
 	a.write.exporting = x
+	a.replanExport()
+}
+
+// replanExport keeps a plan for the choices and the current chapter, using the
+// prose and outlines read when the dialog opened.
+func (a *App) replanExport() {
+	x := &a.write.exporting
+	if !x.open {
+		return
+	}
+	set := a.exportPrefs()
+	x.plan = export.BuildPlan(x.pieces, a.set.Entries, a.exportChapter(), set.Options, x.selection)
+	x.selection.Scope = x.plan.Scope
+}
+
+func (a *App) exportChapter() string {
+	if a.page == pageWrite {
+		return a.write.node
+	}
+	return ""
 }
 
 // exportView is the export dialog: of the prose, the outline and the
@@ -60,12 +81,11 @@ func (a *App) openExport() {
 func (a *App) exportView(c *ui.Context) {
 	t := a.pal.theme
 	x, set := &a.write.exporting, a.exportPrefs()
+	if x.plan.Current != a.exportChapter() {
+		a.replanExport()
+	}
 	a.modal(c, &x.open, func() {
-		current := ""
-		if a.page == pageWrite {
-			current = a.write.node
-		}
-		plan := export.BuildPlan(x.pieces, a.set.Entries, current, set.Options, x.selection)
+		plan := &x.plan
 		ui.Column(c).Width(dialogSmall).Padding(dialogPad).Gap(16).Children(func() {
 			a.pal.dialogHead(c, "导出", plan.About)
 			labeled(c, "内容", func() {
@@ -76,6 +96,7 @@ func (a *App) exportView(c *ui.Context) {
 					}{{&set.Prose, export.ProseContent}, {&set.Outline, export.OutlineContent}, {&set.Setting, export.SettingContent}} {
 						if ui.Checkbox(c, o.on, o.what).Changed() {
 							a.saveShelf()
+							a.replanExport()
 						}
 					}
 				})
@@ -83,14 +104,14 @@ func (a *App) exportView(c *ui.Context) {
 			labeled(c, "格式", func() {
 				if dots(c, &set.Text, "导出格式", []bool{false, true}, []string{"Word", "纯文本"}) {
 					a.saveShelf()
+					a.replanExport()
 				}
 			})
 			if set.Prose || set.Outline {
-				if !slices.Contains(plan.Scopes, x.selection.Scope) {
-					x.selection.Scope = export.ScopeWork
-				}
 				labeled(c, "范围", func() {
-					dots(c, &x.selection.Scope, "导出范围", plan.Scopes, plan.Scopes)
+					if dots(c, &x.selection.Scope, "导出范围", plan.Scopes, plan.Scopes) {
+						a.replanExport()
+					}
 				})
 				if x.selection.Scope == export.ScopeSpan {
 					a.exportSpan(c)
@@ -104,7 +125,7 @@ func (a *App) exportView(c *ui.Context) {
 			if set.Prose && set.Text {
 				ui.Checkbox(c, &x.indent, "段首加两个全角空格")
 			}
-			for _, what := range set.Ticked() {
+			for _, what := range plan.Ticked {
 				if note := plan.Skip[what]; note != "" {
 					ui.Text(c, note).FontSize(fsNote).TextColor(t.TextMuted)
 				}
@@ -115,7 +136,7 @@ func (a *App) exportView(c *ui.Context) {
 					x.open = false
 				}
 				if a.pal.primary(c, "导出").Disabled(len(plan.Going) == 0).Clicked() {
-					a.export(c, plan)
+					a.export(c, x.plan)
 				}
 			})
 		})
@@ -126,16 +147,21 @@ func (a *App) exportView(c *ui.Context) {
 // from those after the first.
 func (a *App) exportSpan(c *ui.Context) {
 	x := &a.write.exporting
-	names, _ := export.ChapterNames(x.pieces)
+	names := x.plan.Names
 	at := func(name string) int { return max(0, slices.Index(names, name)) }
 	ui.Row(c).FillWidth().Gap(12).Children(func() {
 		labeled(c, "从", func() {
-			if ui.Select(c, &x.selection.From, names).Label("从").FillWidth().MinWidth(0).Changed() && at(x.selection.To) < at(x.selection.From) {
-				x.selection.To = x.selection.From
+			if ui.Select(c, &x.selection.From, names).Label("从").FillWidth().MinWidth(0).Changed() {
+				if at(x.selection.To) < at(x.selection.From) {
+					x.selection.To = x.selection.From
+				}
+				a.replanExport()
 			}
 		})
 		labeled(c, "到", func() {
-			ui.Select(c, &x.selection.To, names[at(x.selection.From):]).Label("到").FillWidth().MinWidth(0)
+			if ui.Select(c, &x.selection.To, names[at(x.selection.From):]).Label("到").FillWidth().MinWidth(0).Changed() {
+				a.replanExport()
+			}
 		})
 	})
 }

@@ -57,20 +57,23 @@ type Selection struct {
 
 // Plan is what the dialog would export as it stands.
 type Plan struct {
-	Scope  string            // the chosen range, or ScopeWork when it is unavailable
-	Scopes []string          // the ranges the dialog offers
-	Pieces []workspace.Piece // of the prose and the outline, in the range
-	Whole  bool              // the range is the whole work
-	Part   string            // the range in the names of the files
-	Skip   map[string]string // why what is ticked cannot be exported
-	Going  []string          // what is ticked and can be, in the dialog's order
-	About  string            // the dialog's description
-	Words  int               // of the prose in the range
+	Scope   string            // the chosen range, or ScopeWork when it is unavailable
+	Current string            // the chapter used to plan, or empty away from the writing page
+	Names   []string          // chapter labels offered by the span selectors
+	Ticked  []string          // selected contents, including those skipped
+	Scopes  []string          // the ranges the dialog offers
+	Pieces  []workspace.Piece // of the prose and the outline, in the range
+	Whole   bool              // the range is the whole work
+	Part    string            // the range in the names of the files
+	Skip    map[string]string // why what is ticked cannot be exported
+	Going   []string          // what is ticked and can be, in the dialog's order
+	About   string            // the dialog's description
+	Words   int               // of the prose in the range
 }
 
 // BuildPlan selects the available ranges, contents and explanation for the choices.
 func BuildPlan(pieces []workspace.Piece, entries []workspace.Entry, current string, options Options, selection Selection) Plan {
-	plan := Plan{}
+	plan := Plan{Current: current}
 	scope, from, to := selection.Scope, selection.From, selection.To
 	// The chapter open on the page of prose, and the volume it is in, or
 	// the volume itself when that is what is open.
@@ -93,6 +96,7 @@ func BuildPlan(pieces []workspace.Piece, entries []workspace.Entry, current stri
 		}
 	}
 	names, ids := ChapterNames(pieces)
+	plan.Names = names
 	plan.Scopes = []string{ScopeWork}
 	if vol >= 0 {
 		plan.Scopes = append(plan.Scopes, ScopeVolume)
@@ -157,6 +161,7 @@ func BuildPlan(pieces []workspace.Piece, entries []workspace.Entry, current stri
 		plan.Skip[SettingContent] = "还没有已定的设定，不导出设定。"
 	}
 	ticked := options.Ticked()
+	plan.Ticked = ticked
 	for _, what := range ticked {
 		if plan.Skip[what] == "" {
 			plan.Going = append(plan.Going, what)

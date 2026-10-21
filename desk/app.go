@@ -301,6 +301,7 @@ func (a *App) refresh() error {
 	if a.Store == nil {
 		return nil
 	}
+	defer a.replanExport()
 	var err error
 	if a.set, err = a.Store.Setting(); err != nil {
 		return err
