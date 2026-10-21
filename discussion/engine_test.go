@@ -2,6 +2,8 @@ package discussion
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -13,6 +15,62 @@ import (
 	"writer/prompt"
 	"writer/workspace"
 )
+
+// Hash the complete requests, including tool order and raw schema bytes, so
+// moving their builders cannot silently change what a model receives.
+func requestBytes(t *testing.T, calls []model.Request, want string) {
+	t.Helper()
+	b, err := json.Marshal(calls)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, r := range calls {
+		for _, tool := range r.Tools {
+			b = append(b, tool.Schema...)
+		}
+	}
+	got := fmt.Sprintf("%x", sha256.Sum256(b))
+	if got != want {
+		t.Fatalf("request bytes: got %s, want %s\n%s", got, want, b)
+	}
+}
+
+func TestTalkRequestBytes(t *testing.T) {
+	for _, origin := range []string{"", "beside", workspace.AIDraft, workspace.AIRewrite} {
+		t.Run(origin, func(t *testing.T) {
+			e, session := setup(t)
+			_, _, two, _ := shelf(t, e)
+			revise(t, e,
+				workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "林晚怕黑", Names: []string{"林晚"}},
+				workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceOpen, Category: "规则", Text: "雨每年停一天"},
+				workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceDropped, Category: "人物", Text: "主角会飞"})
+			if origin == "" || origin == "beside" {
+				turn(t, e, session, "井边为什么没有灯？", "可以让林晚修灯。")
+			}
+			f := &fake{steps: []model.Reply{
+				{Calls: []model.Call{call("c1", toolSearchBook, map[string]any{"query": " 雨 "})}},
+				{Text: "雨下了一夜。"},
+			}}
+			e.Talk = Model{Model: limits, Completer: f, Effort: model.EffortHigh}
+			words := workspace.Event{Text: "接着说。"}
+			switch origin {
+			case "beside":
+				e.Beside = &Writing{Title: "第二章", Outline: "停电。", Volume: "第一卷", VolumeOutline: "秋天，旧城。", Before: "她推开门。"}
+			case workspace.AIDraft, workspace.AIRewrite:
+				words.Origin, words.Chapter = origin, two
+			}
+			if _, err := e.Say(context.Background(), session, words); err != nil {
+				t.Fatal(err)
+			}
+			requestBytes(t, f.calls, map[string]string{
+				"":                  "81deec4b3854e1481332a92acc2c5d2c825bf489ea6c981044814a172ac5f6c1",
+				"beside":            "a135aba3df5cf7356a5f62d82f553c02eed18f0e65f02b27c233a05530280649",
+				workspace.AIDraft:   "7489b28813ddd73e10770174bb0b28d165aaad3b6945f156099098fac1bdddf9",
+				workspace.AIRewrite: "7017e52cbf96affccad7e59d26ddacb067c25cf02c3130520f75766b899ebd5f",
+			}[origin])
+		})
+	}
+}
 
 type fake struct {
 	mu        sync.Mutex

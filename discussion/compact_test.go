@@ -12,6 +12,17 @@ import (
 	"writer/workspace"
 )
 
+func TestDigestRequestBytes(t *testing.T) {
+	e, session := setup(t)
+	long(t, e, session, 12, 700, "井边的灯为什么不亮")
+	f := &digester{}
+	e.Talk = Model{Model: limits, Completer: f, Effort: model.EffortHigh}
+	if _, err := e.Say(context.Background(), session, workspace.Event{Text: "接着说"}); err != nil {
+		t.Fatal(err)
+	}
+	requestBytes(t, f.calls, "b663cd8551745a528dd6577cb5ef4461da5accaa2106ac302e1c9a2ae959a29e")
+}
+
 // digester writes the next digest when one is asked for, and replies,
 // counted as used, otherwise; it keeps what it was asked.
 type digester struct {

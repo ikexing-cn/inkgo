@@ -2,7 +2,10 @@ package writing
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -13,6 +16,27 @@ import (
 	"writer/prompt"
 	"writer/workspace"
 )
+
+func requestBytes(t *testing.T, calls []model.Request, want string) {
+	t.Helper()
+	b, err := json.Marshal(calls)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := fmt.Sprintf("%x", sha256.Sum256(b))
+	if got != want {
+		t.Fatalf("request bytes: got %s, want %s\n%s", got, want, b)
+	}
+}
+
+func TestPredictionRequestBytes(t *testing.T) {
+	f := &fake{pieces: []string{"灯亮了。"}}
+	w, chapter, _ := book(t, f)
+	if _, err := w.Predict(context.Background(), Scene{Chapter: chapter, Before: "雨停了。", After: "井里有光。"}); err != nil {
+		t.Fatal(err)
+	}
+	requestBytes(t, f.got, "bd42c9cb0475c8cbb16cb8eee51eb4ad9c0929d8756b748ff2412de2130e3c1c")
+}
 
 // fake streams its reply in pieces and keeps the requests it was sent.
 type fake struct {

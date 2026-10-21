@@ -10,6 +10,18 @@ import (
 	"writer/workspace"
 )
 
+func TestCheckRequestBytes(t *testing.T) {
+	f := &fake{pieces: []string{`{"findings":[]}`}}
+	w, chapter, _ := book(t, f)
+	if _, err := w.Store.WriteChapter(chapter, strings.Repeat("她蹲下去拧开灯座。", 30), nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.Check(context.Background(), chapter); err != nil {
+		t.Fatal(err)
+	}
+	requestBytes(t, f.got, "a44761ce8b7dbd9d46a486d133cff04ef28df67eae36de3cad37632cf6c6e829")
+}
+
 // A check shows the model the setting by number, never by ID, and keeps
 // only what it can hold the model to: the prose's own words, an entry
 // shown, a name the setting has or has not.
