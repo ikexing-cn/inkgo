@@ -50,7 +50,7 @@ func (a *App) loadShelf() {
 	if fresh {
 		s = shelf.Start(Library())
 		for i, b := range s.Books {
-			if d, err := describe(b.Path); err == nil {
+			if d, err := shelf.Describe(b.Path); err == nil {
 				s.Books[i] = d
 			}
 		}
@@ -73,30 +73,10 @@ func (a *App) saveShelf() {
 func (a *App) lookForBooks() {
 	a.books.missing = map[string]bool{}
 	for _, b := range a.shelf.Books {
-		if !shelf.IsWork(b.Path) {
+		if !workspace.IsWork(b.Path) {
 			a.books.missing[b.Path] = true
 		}
 	}
-}
-
-// describe reads what the shelf shows of the work at path.
-func describe(path string) (shelf.Book, error) {
-	s, err := workspace.Open(path)
-	if err != nil {
-		return shelf.Book{}, err
-	}
-	defer s.Close()
-	return book(s), nil
-}
-
-func book(s *workspace.Store) shelf.Book {
-	w := s.Work()
-	b := shelf.Book{Path: s.Root(), Name: w.Name, Genre: w.Genre}
-	counts, _ := s.Counts()
-	for _, n := range counts {
-		b.Words += n
-	}
-	return b
 }
 
 // remember puts the open work on the shelf as it is now.
@@ -104,7 +84,7 @@ func (a *App) remember(opened bool) {
 	if a.Store == nil {
 		return
 	}
-	b := book(a.Store)
+	b := shelf.DescribeOpen(a.Store)
 	if opened {
 		b.Opened = time.Now()
 	}
@@ -116,7 +96,7 @@ func (a *App) remember(opened bool) {
 // OpenLast opens the work last opened, if its folder is still there.
 func (a *App) OpenLast() {
 	recent := a.shelf.Recent()
-	if len(recent) == 0 || recent[0].Opened.IsZero() || !shelf.IsWork(recent[0].Path) {
+	if len(recent) == 0 || recent[0].Opened.IsZero() || !workspace.IsWork(recent[0].Path) {
 		return
 	}
 	a.SetError(a.Open(recent[0].Path))
@@ -124,7 +104,7 @@ func (a *App) OpenLast() {
 
 // switchWork opens another work from the shelf.
 func (a *App) switchWork(path string) {
-	if !shelf.IsWork(path) {
+	if !workspace.IsWork(path) {
 		a.books.missing[path] = true
 		a.SetError(errors.New("找不到该作品的文件夹：" + path))
 		return
@@ -214,37 +194,25 @@ func (a *App) lastModels() (talk, pen workspace.Selection) {
 
 // addBook puts a work already on disk on the shelf.
 func (a *App) addBook(path string) {
-	if !shelf.IsWork(path) {
-		a.SetError(errors.New("该文件夹中没有作品（缺少 work.yaml）：" + path))
-		return
-	}
-	if a.shelf.Find(path) >= 0 {
-		a.hint = "该作品已在书架上"
-		return
-	}
-	b, err := describe(path)
+	b, added, err := a.shelf.Add(path)
 	if err != nil {
 		a.SetError(err)
 		return
 	}
-	a.shelf.Put(b)
+	if !added {
+		a.hint = "该作品已在书架上"
+		return
+	}
 	a.saveShelf()
 	a.notice = "已加入书架：" + b.Name
 }
 
 // relocate points a work whose folder moved at where it is now.
 func (a *App) relocate(from, to string) {
-	if !shelf.IsWork(to) {
-		a.SetError(errors.New("该文件夹中没有作品（缺少 work.yaml）：" + to))
-		return
-	}
-	b, err := describe(to)
-	if err != nil {
+	if err := a.shelf.RelocateWork(from, to); err != nil {
 		a.SetError(err)
 		return
 	}
-	a.shelf.Relocate(from, b.Path)
-	a.shelf.Put(b)
 	a.saveShelf()
 	a.lookForBooks()
 }
@@ -261,7 +229,7 @@ func (a *App) renameBook(path, name string) error {
 	if name == "" {
 		return fmt.Errorf("作品名不能为空")
 	}
-	if a.Store != nil && sameFolder(a.Store.Root(), path) {
+	if a.Store != nil && shelf.SameFolder(a.Store.Root(), path) {
 		w := a.Store.Work()
 		w.Name = name
 		if err := a.Store.SaveWork(w); err != nil {
@@ -280,15 +248,9 @@ func (a *App) renameBook(path, name string) error {
 	if err = s.SaveWork(w); err != nil {
 		return err
 	}
-	a.shelf.Put(book(s))
+	a.shelf.Put(shelf.DescribeOpen(s))
 	a.saveShelf()
 	return nil
-}
-
-func sameFolder(x, y string) bool {
-	var s shelf.Shelf
-	s.Put(shelf.Book{Path: x})
-	return s.Find(y) == 0
 }
 
 // pickInto asks for a folder off the view thread and hands it to then.

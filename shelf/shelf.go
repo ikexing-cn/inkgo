@@ -17,6 +17,7 @@ import (
 	"writer/backup"
 	"writer/internal/atomicfile"
 	"writer/internal/strictjson"
+	"writer/workspace"
 )
 
 const Schema = 1
@@ -147,8 +148,8 @@ func (s Shelf) Save(path string) error {
 	return atomicfile.Write(path, append(b, '\n'), 0644)
 }
 
-// same tells whether two work paths are the same folder.
-func same(a, b string) bool {
+// SameFolder tells whether two work paths are the same folder.
+func SameFolder(a, b string) bool {
 	a, b = filepath.Clean(a), filepath.Clean(b)
 	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
 		return strings.EqualFold(a, b)
@@ -158,7 +159,7 @@ func same(a, b string) bool {
 
 // Find is the index of the work at path, or -1.
 func (s *Shelf) Find(path string) int {
-	return slices.IndexFunc(s.Books, func(b Book) bool { return same(b.Path, path) })
+	return slices.IndexFunc(s.Books, func(b Book) bool { return SameFolder(b.Path, path) })
 }
 
 // Put adds the work or updates what the shelf remembers of it.
@@ -227,12 +228,6 @@ func (s *Shelf) Recent() []Book {
 	return out
 }
 
-// IsWork tells whether dir holds a work.
-func IsWork(dir string) bool {
-	st, err := os.Stat(filepath.Join(dir, "work.yaml"))
-	return err == nil && !st.IsDir()
-}
-
 // Scan is the works directly inside dir.
 func Scan(dir string) []string {
 	entries, err := os.ReadDir(dir)
@@ -241,7 +236,7 @@ func Scan(dir string) []string {
 	}
 	var out []string
 	for _, e := range entries {
-		if p := filepath.Join(dir, e.Name()); e.IsDir() && IsWork(p) {
+		if p := filepath.Join(dir, e.Name()); e.IsDir() && workspace.IsWork(p) {
 			out = append(out, p)
 		}
 	}

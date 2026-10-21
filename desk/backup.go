@@ -13,6 +13,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"writer/backup"
+	"writer/shelf"
 	"writer/workspace"
 )
 
@@ -176,7 +177,7 @@ func (a *App) runBackup(sv ui.Services) {
 			}
 			a.bk.running = false
 			a.bk.done = nil
-			if a.Store != nil && sameFolder(a.Store.Root(), root) {
+			if a.Store != nil && shelf.SameFolder(a.Store.Root(), root) {
 				a.backupDone(s, err)
 			}
 		}

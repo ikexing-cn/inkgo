@@ -75,6 +75,12 @@ func (s *Store) Hold(fn func(root string) error) error {
 	return fn(s.root)
 }
 
+// IsWork tells whether dir holds a work.
+func IsWork(dir string) bool {
+	st, err := os.Stat(filepath.Join(dir, "work.yaml"))
+	return err == nil && !st.IsDir()
+}
+
 // Create accepts a missing or empty directory. It never replaces an existing
 // workspace or adopts unrelated files in a nonempty directory.
 func Create(dir, name, genre string) (*Store, error) {

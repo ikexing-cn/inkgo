@@ -48,7 +48,7 @@ func TestShelfKeepsTheWorks(t *testing.T) {
 		t.Fatal("the new work is not open", a.errorText())
 	}
 	s := readShelf(t, a)
-	if r := s.Recent(); len(r) != 2 || r[0].Name != "雨城来信" || !sameFolder(r[1].Path, first) {
+	if r := s.Recent(); len(r) != 2 || r[0].Name != "雨城来信" || !shelf.SameFolder(r[1].Path, first) {
 		t.Fatalf("%+v", r)
 	}
 
@@ -74,7 +74,7 @@ func TestShelfKeepsTheWorks(t *testing.T) {
 		t.Fatal(err, rows(tt))
 	}
 	tt.Frame()
-	if !sameFolder(a.Store.Root(), first) {
+	if !shelf.SameFolder(a.Store.Root(), first) {
 		t.Fatal("did not switch", a.Store.Root())
 	}
 
@@ -107,14 +107,14 @@ func TestShelfKeepsTheWorks(t *testing.T) {
 	if _, shown := tt.Find("作品-雨城来信"); len(readShelf(t, a).Books) != 1 || shown {
 		t.Fatalf("%+v", readShelf(t, a).Books)
 	}
-	if !shelf.IsWork(filepath.Join(Library(), "雨城来信")) {
+	if !workspace.IsWork(filepath.Join(Library(), "雨城来信")) {
 		t.Fatal("removing from the shelf touched the folder")
 	}
 
 	// Opening the app again returns to the work last opened.
 	b := newApp(a.ai.ConfigFile())
 	b.OpenLast()
-	if b.Store == nil || !sameFolder(b.Store.Root(), first) {
+	if b.Store == nil || !shelf.SameFolder(b.Store.Root(), first) {
 		t.Fatal("did not reopen", b.errorText())
 	}
 	b.Close()
@@ -175,7 +175,7 @@ func TestANewWorkSaysWhereItGoes(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.books.creating || !sameFolder(a.Store.Root(), empty) {
+	if a.books.creating || !shelf.SameFolder(a.Store.Root(), empty) {
 		t.Fatal("not made in the empty folder:", a.errorText())
 	}
 }

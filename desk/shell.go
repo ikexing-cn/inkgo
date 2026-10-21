@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/shelf"
 )
 
 func trim(s string) string { return strings.TrimSpace(s) }
@@ -178,7 +179,7 @@ func (a *App) sidebar(c *ui.Context) {
 			m.Item(work.Name).Hint(work.Genre).On(true)
 			n := 0
 			for _, b := range a.shelf.Recent() {
-				if sameFolder(b.Path, a.Store.Root()) {
+				if shelf.SameFolder(b.Path, a.Store.Root()) {
 					continue
 				}
 				if n == 5 {

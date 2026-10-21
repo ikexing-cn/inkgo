@@ -177,7 +177,7 @@ func TestShotShelf(t *testing.T) {
 			id, _ := s.NewChapter("", "第一章", false)
 			_, _ = s.WriteChapter(id, w.text, nil)
 		}
-		b := book(s)
+		b := shelf.DescribeOpen(s)
 		b.Opened = time.Now().Add(-time.Duration(i*30+2) * time.Hour)
 		a.shelf.Put(b)
 		s.Close()
