@@ -199,8 +199,8 @@ func (a *App) startTalk(c *ui.Context, words workspace.Event) bool {
 		return false
 	}
 	a.switchSession(id)
-	words.Chapter = w.node
-	a.titles[id], a.blank[id] = workspace.TalkTitle(words, a.shownTitle()), false
+	words.Chapter, words.Role = w.node, workspace.RoleUser
+	a.titles[id], a.blank[id] = workspace.TalkTitle([]workspace.Event{words}, a.nodeTitle), false
 	d := &a.doc
 	d.hidden, d.tab, d.talks = false, paneTalk, false
 	w.focus = false

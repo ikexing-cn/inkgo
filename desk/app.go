@@ -312,7 +312,7 @@ func (a *App) refresh() error {
 	if a.sessions, err = a.Store.Sessions(); err != nil {
 		return err
 	}
-	a.titles[a.session], a.blank[a.session] = workspace.SessionTitle(a.events, a.nodeTitle), len(a.events) == 0
+	a.titles[a.session], a.blank[a.session] = workspace.TalkTitle(a.events, a.nodeTitle), len(a.events) == 0
 	if a.talkSession != a.session {
 		delete(a.titles, a.talkSession) // the last turn may have gone on there since: read it again
 	}
@@ -322,7 +322,7 @@ func (a *App) refresh() error {
 			if err != nil {
 				return err
 			}
-			a.titles[s], a.blank[s] = workspace.SessionTitle(events, a.nodeTitle), len(events) == 0
+			a.titles[s], a.blank[s] = workspace.TalkTitle(events, a.nodeTitle), len(events) == 0
 		}
 	}
 	return nil
