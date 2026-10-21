@@ -133,9 +133,9 @@ Status: proposed
 
 | 现在 | 搬到 |
 | --- | --- |
-| `internal/textdiff/diff.go` 的差异比较 | `internal/textdiff`，`desk` 调用 `Compare`、`Paragraphs` |
-| `workspace/numbering.go` 的章节编号 | `Tree.TitleAfter`；编号前缀由 `workspace.TitleNumber` 读取，`nextTitle` 仅供包内使用 |
-| 提议在正文里的定位 | `workspace.Proposal.Place`（`workspace/placement.go`）；`editor` 不依赖作品存取层 |
+| `diff.go` 的差异比较 | `internal/textdiff`，`desk` 调用 `Compare`、`Paragraphs` |
+| `numbering.go` 的章节编号 | `Tree.TitleAfter`；编号前缀由 `workspace.TitleNumber` 读取，`nextTitle` 仅供包内使用 |
+| 提议在正文里的定位（`prop.place`、`find`） | `workspace.Proposal.Place`（`workspace/placement.go`）；`editor` 不依赖作品存取层 |
 | `export.go` 的导出范围计算（现在每帧算） | `export.Plan`（`export/plan.go`）；打开、内容格式或范围选择、当前章节变化及设定刷新时计算 |
 | 备份的到期、重试、再问策略，`trouble`，`volumeGone`；`meta` 里写死的路径 | `backup.Policy`、`Policy.Trouble`、包内 `volumeGone`（`backup/policy.go`）、`Files.Meta`（`backup/meta.go`）；正文路径由 `workspace.IsProsePath` 判断 |
 | `welcome.go` 的书架操作，`sameFolder` | `shelf.Describe`、`Shelf.Add`、`Shelf.RelocateWork`、`Shelf.Remove`、`SameFolder`；作品判断由 `workspace.IsWork` 统一 |
@@ -197,6 +197,10 @@ Status: proposed
 | 3 | 关窗口时也停掉正在跑的检查 | 看不出区别：检查的结果只在界面收下时才存，窗口关了本来就存不下 |
 | 3 | 「打开设置」按错误的类型判断 | 超时、限流、服务端出错、回复坏了，提示里不再带「打开设置」；服务、模型、key、上下文上限的问题照旧带 |
 | 3 | 入口改名，去掉 `-editor` | 启动命令变成 `go run ./cmd/inkgo` |
+| 4 | 新卡片和情节线的 ID 撞上大纲里已有的就重新取 | 生成示例书不再偶尔报「cards: invalid or duplicate id/title」 |
+| 4 | `desk.json` 里 `days` 写在 `carets` 前面 | 看不出区别：键和值不变 |
+| 4 | 新开的起草、改写讨论，标题里的章名和讨论列表一样取 | 章节已从磁盘上丢失时起草，新讨论一开始就叫「起草：已删除的章」，不再先显示原来的章名 |
+| 4 | 导出范围不再提供时，马上回到「全书」 | 看不出区别：只勾设定时，范围那一行不显示 |
 | 6 | 大纲页停顿后保存 | 和写作页一样 |
 
 ### 不在这次里的
@@ -221,7 +225,7 @@ Status: proposed
 | 1 编辑器 | 2026-10-21 合入 |
 | 2 存取层和共用小工具 | 2026-10-21 合入 |
 | 3 整理 | 2026-10-22 合入 |
-| 4 把规则搬出 `desk` | 未开始 |
+| 4 把规则搬出 `desk` | 2026-10-22 合入 |
 | 5 AI 层 | 未开始 |
 | 6 `desk` 的内部状态 | 未开始，先写提案 |
 | 7 拆子包 | 未开始 |
