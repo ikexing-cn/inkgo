@@ -4,7 +4,7 @@ Status: implemented
 
 ## Problem
 
-路线走到第 2 步 M2（[完整产品提案](../../proposed/feature/2026-10-07-idea-pool-discussion.md)），原定做 embedding 检索。作者说长篇「绝对撑不住」，不用再测，先把 AI 相关的基建做好，并要求先调研现在的 agent harness 怎么做上下文管理、工具、权限和自带密钥（BYOK）。
+路线走到第 2 步 M2（[完整产品提案](../../rejected/feature/2026-10-07-idea-pool-discussion.md)），原定做 embedding 检索。作者说长篇「绝对撑不住」，不用再测，先把 AI 相关的基建做好，并要求先调研现在的 agent harness 怎么做上下文管理、工具、权限和自带密钥（BYOK）。
 
 当时的 AI 层（[模型层](2026-10-08-model-layer-on-goai.md)、[把会发送的部分拆出去](2026-10-14-ai-out-of-the-core.md)、[设定文档与后台记账](../feature/2026-10-08-setting-document-and-background-bookkeeper.md)）有这些问题：
 

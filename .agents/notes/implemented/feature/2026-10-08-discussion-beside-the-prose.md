@@ -4,7 +4,7 @@ Status: implemented
 
 ## Problem
 
-[正文页](2026-10-08-writing-page-and-chapters.md)和 [AI 辅助写作](2026-10-08-ai-assisted-writing.md)落地后，作者主要在正文页写作。写到一半想商量（这个人物该不该现在出场），要切回讨论页，讨论时 AI 也看不到正在写的正文。这是[产品路线](../../proposed/feature/2026-10-07-idea-pool-discussion.md)的第 6 步。
+[正文页](2026-10-08-writing-page-and-chapters.md)和 [AI 辅助写作](2026-10-08-ai-assisted-writing.md)落地后，作者主要在正文页写作。写到一半想商量（这个人物该不该现在出场），要切回讨论页，讨论时 AI 也看不到正在写的正文。这是[产品路线](../../rejected/feature/2026-10-07-idea-pool-discussion.md)的第 6 步。
 
 方案在 2026-10-08 与作者逐条确认。
 

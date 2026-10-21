@@ -10,7 +10,7 @@ Status: implemented
 
 同一天用一问一答把要做成什么样定了下来，共 15 题，下面「已定」都出自作者的回答（「Q3」指第 3 题）。这一篇只记产品上的行为；代码怎么拆、界面和会发送的部分之间留哪些接口，见[把会发送的部分从界面里拆出去](../architecture/2026-10-14-ai-out-of-the-core.md)。
 
-这件事和[以讨论为核心的写作 harness](../../proposed/feature/2026-10-07-idea-pool-discussion.md)的定位部分重叠：那一篇把讨论当作产品的中心，这一篇之后，关着 AI 时编辑器也要能单独用。
+这件事和[以讨论为核心的写作 harness](../../rejected/feature/2026-10-07-idea-pool-discussion.md)的定位部分重叠：那一篇把讨论当作产品的中心，这一篇之后，关着 AI 时编辑器也要能单独用。
 
 ## Decision
 

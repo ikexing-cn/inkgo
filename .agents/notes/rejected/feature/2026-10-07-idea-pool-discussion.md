@@ -1,6 +1,17 @@
 # Agent Note: 以"讨论 + 逐条取舍"为核心的写作 harness
 
-Status: proposed
+Status: rejected — 核心方向已被讨论里当场记设定取代，余下几条不再推进；联网核实事实另起提案
+
+2026-10-21 作者同意收掉这一篇。各部分的去向：
+
+- 拆思路、逐条留弃、思路池是唯一依据、从思路到设定：被[设定文档](../../implemented/feature/2026-10-08-setting-document-and-background-bookkeeper.md)和[讨论里当场记设定](../../implemented/feature/2026-10-15-talk-looks-up-and-notes-the-setting.md)取代。作者定的进正文，AI 的点子、矛盾和问题进待确认，不要的进已删除。
+- embedding 召回：被讨论的查阅工具取代，见 [AI 基建](../../implemented/architecture/2026-10-15-ai-infrastructure.md)。
+- 存储、模型接入、写作时的讨论侧栏：已落地，见各篇实现笔记。
+- 话题树、AI 帮着合并或细化：不做。讨论能跟着一章，讨论列表能搜；要改条目在讨论里说就行。
+- 放弃时写理由、相近的点子标出来：不单做。放弃时 AI 会引作者的原话，规则也不许把已删除的换个说法再提。
+- 联网核实事实、现实事实标「未核实」：另起提案，见[联网核实事实](../../proposed/feature/2026-10-21-fact-checking-on-the-web.md)。
+
+下面的「Alternatives considered」仍有用：AI 主动发散、整条回复取舍、放弃即删除，这几条以后还可能有人再提。
 
 ## Problem
 
