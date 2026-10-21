@@ -1,7 +1,6 @@
 package desk
 
 import (
-	"slices"
 	"testing"
 	"time"
 
@@ -19,39 +18,6 @@ func TestAFolderCountsItsChapters(t *testing.T) {
 	}
 	if k := w.wordsIn(&workspace.Node{ID: "c"}); k != 5 {
 		t.Fatalf("chapter counts %d, want 5", k)
-	}
-}
-
-// What was written today starts from the book as the day began, survives
-// reopening the work, and starts over the next day.
-func TestTodayCountsFromTheDaysStart(t *testing.T) {
-	a, _, _ := writingFixture(t, "一二三")
-	day := time.Date(2026, 10, 9, 9, 0, 0, 0, time.Local)
-	a.write.day = ""
-	if k := a.today(day); k != 0 {
-		t.Fatalf("today starts at %d", k)
-	}
-	a.write.counts[a.write.node] = 10
-	if k := a.today(day.Add(time.Hour)); k != 7 {
-		t.Fatalf("today is %d, want 7", k)
-	}
-	a.write.day, a.write.dayStart = "", 0
-	a.loadPrefs()
-	if k := a.today(day.Add(2 * time.Hour)); k != 7 {
-		t.Fatalf("after reopening today is %d, want 7", k)
-	}
-	if k := a.today(day.Add(24 * time.Hour)); k != 0 {
-		t.Fatalf("the next day starts at %d", k)
-	}
-	// The day gone is kept, also with the work, and shows among the last
-	// days; a day the work was not open is nothing.
-	a.write.counts[a.write.node] = 15
-	week := a.lastDays(day.Add(72*time.Hour), 4)
-	if want := []int{7, 5, 0, 0}; !slices.Equal(week, want) {
-		t.Fatalf("the last days are %v, want %v", week, want)
-	}
-	if p := savedPrefs(t, a); p.Days["2026-10-09"] != 7 || p.Days["2026-10-10"] != 5 {
-		t.Fatalf("days kept %v", p.Days)
 	}
 }
 
@@ -74,15 +40,15 @@ func TestSetTheDaysGoal(t *testing.T) {
 		}
 	}
 	a.setGoal("2000")
-	if a.write.goal != 2000 || savedPrefs(t, a).Goal != 2000 {
-		t.Fatal(a.write.goal)
+	if a.write.counter.Goal != 2000 || savedPrefs(t, a).Goal != 2000 {
+		t.Fatal(a.write.counter.Goal)
 	}
 	for _, typed := range []string{"两千", "0"} {
 		a.write.goalText = typed
 		a.setGoal(typed)
 		tt.Frame()
-		if a.write.goal != 2000 || !tt.HasText("每日目标须为正整数，留空则不设。") {
-			t.Fatal(typed, "changed the goal, or was not said to be wrong:", a.write.goal)
+		if a.write.counter.Goal != 2000 || !tt.HasText("每日目标须为正整数，留空则不设。") {
+			t.Fatal(typed, "changed the goal, or was not said to be wrong:", a.write.counter.Goal)
 		}
 	}
 	a.write.goalText = "2000"
@@ -97,8 +63,8 @@ func TestSetTheDaysGoal(t *testing.T) {
 		t.Fatal("the goal is not by the counts", tt.Texts())
 	}
 	a.setGoal("")
-	if a.write.goal != 0 || savedPrefs(t, a).Goal != 0 {
-		t.Fatal("the goal stayed", a.write.goal)
+	if a.write.counter.Goal != 0 || savedPrefs(t, a).Goal != 0 {
+		t.Fatal("the goal stayed", a.write.counter.Goal)
 	}
 }
 

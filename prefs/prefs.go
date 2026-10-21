@@ -27,15 +27,9 @@ type Prefs struct {
 	PanelWidth float32 `json:"panel_width,omitempty"`
 	PaneTab    string  `json:"pane_tab,omitempty"`
 	NoAttach   bool    `json:"no_attach,omitempty"`
-	// The book's count when Day began, for how much was written today.
-	Day      string `json:"day,omitempty"`
-	DayStart int    `json:"day_start,omitempty"`
-	// Goal is how much the author means to write a day, or 0 for none.
-	Goal int `json:"day_goal,omitempty"`
+	Counter
 	// Carets is where the caret was left in each chapter, by ID.
 	Carets map[string]int `json:"carets,omitempty"`
-	// Days is what was written on each day before today, by local date.
-	Days map[string]int `json:"days,omitempty"`
 	// TextSize is the size of the chapters' text, or 0 for the default.
 	TextSize int `json:"text_size,omitempty"`
 	// Shelved are the conversations put out of the list, still on disk.

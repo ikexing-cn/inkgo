@@ -36,7 +36,7 @@ func TestLoadPreferences(t *testing.T) {
 
 func TestPreferencesKeepJSONValues(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "desk.json")
-	p := Prefs{SettingHidden: true, Chapter: "chapter", Tabs: []string{"chapter"}, Writing: true, PaneTab: "phone", Day: "2026-10-22", DayStart: 100, Goal: 2000, Carets: map[string]int{"chapter": 3}, Days: map[string]int{"2026-10-21": 7}}
+	p := Prefs{SettingHidden: true, Chapter: "chapter", Tabs: []string{"chapter"}, Writing: true, PaneTab: "phone", Counter: Counter{Day: "2026-10-22", DayStart: 100, Goal: 2000, Days: map[string]int{"2026-10-21": 7}}, Carets: map[string]int{"chapter": 3}}
 	want := `{"setting_hidden":true,"chapter":"chapter","tabs":["chapter"],"writing":true,"pane_tab":"phone","day":"2026-10-22","day_start":100,"day_goal":2000,"carets":{"chapter":3},"days":{"2026-10-21":7}}`
 	if err := p.Save(path); err != nil {
 		t.Fatal(err)

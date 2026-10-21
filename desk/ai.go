@@ -9,6 +9,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/aiport"
+	"writer/prefs"
 	"writer/tokens"
 	"writer/workspace"
 )
@@ -159,7 +160,7 @@ func (a *App) draftNote() string {
 // in the prose.
 func (a *App) draft(c *ui.Context) {
 	w := &a.write
-	words, ok := countOrNone(w.words)
+	words, ok := prefs.CountOrNone(w.words)
 	if !ok {
 		return
 	}
@@ -240,7 +241,7 @@ func (a *App) draftView(c *ui.Context) {
 			ui.Box(c).FillWidth().Padding(10, 12).Radius(rControl).Background(a.pal.side).Children(func() {
 				ui.Text(c, strings.TrimSpace(w.outline)).FontSize(fsControl).TextColor(t.TextMuted).LineHeight(lhLoose).FillWidth()
 			})
-			_, fits := countOrNone(w.words)
+			_, fits := prefs.CountOrNone(w.words)
 			labeled(c, "目标字数（选填）", func() {
 				ui.TextInput(c, &w.words).Label("目标字数").Placeholder("由 AI 按章纲判断").FillWidth()
 				if !fits {

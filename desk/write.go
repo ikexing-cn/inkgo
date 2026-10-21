@@ -8,6 +8,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/aiport"
 	"writer/editor"
+	"writer/prefs"
 	"writer/workspace"
 )
 
@@ -48,13 +49,10 @@ type writeView struct {
 	// changed, whether the prose of the chapter shown was saved since it
 	// opened.
 	changed  bool
-	day      string // the local date the count below was taken
-	dayStart int    // the book's count as that day began
-	goal     int    // a day's goal, or 0
+	counter  prefs.Counter
 	goalText string // the goal as typed
 	goalOpen bool
 	offered  string            // the numbered title a new node's name began with
-	days     map[string]int    // what was written each day before, by local date
 	size     int               // the text's size, or 0 for the default
 	gists    map[string]string // a line on each chapter of the folder open
 	carets   map[string]int    // where the caret was in each chapter, as it was left

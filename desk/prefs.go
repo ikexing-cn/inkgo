@@ -18,8 +18,8 @@ func (a *App) loadPrefs() {
 		a.page = pageWrite
 	}
 	a.write.autoPredict = p.AutoPredict
-	a.write.day, a.write.dayStart, a.write.goal = p.Day, p.DayStart, p.Goal
-	a.write.goalText, a.write.carets, a.write.days, a.write.size = "", p.Carets, p.Days, p.TextSize
+	a.write.counter = p.Counter
+	a.write.goalText, a.write.carets, a.write.size = "", p.Carets, p.TextSize
 	a.write.ignored = map[string]bool{}
 	for _, k := range p.Ignored {
 		a.write.ignored[k] = true
@@ -48,7 +48,7 @@ func (a *App) savePrefs() {
 	shelved := slices.Sorted(maps.Keys(a.shelved))
 	p := prefs.Prefs{Shelved: shelved, SettingHidden: a.doc.hidden, SideHidden: a.sideHidden, Chapter: a.write.node, Tabs: a.write.tabs, Blank: a.write.blank, Writing: a.leftWriting, AutoPredict: a.write.autoPredict,
 		PanelWidth: a.doc.width, PaneTab: string(a.doc.tab), LateAfter: a.write.lateAfter, CheckWhen: a.ck.when, NoAttach: !a.doc.attach,
-		Day: a.write.day, DayStart: a.write.dayStart, Goal: a.write.goal, Carets: a.write.carets, Days: a.write.days, TextSize: a.write.size,
+		Counter: a.write.counter, Carets: a.write.carets, TextSize: a.write.size,
 		Ignored: a.write.ignoredKeys()}
 	a.warn(p.Save(a.Store.PrefsPath()))
 }

@@ -2,13 +2,12 @@ package desk
 
 import (
 	"fmt"
-	"maps"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/prefs"
 	"writer/workspace"
 )
 
@@ -34,67 +33,26 @@ func (a *App) total() int {
 	return n
 }
 
-// keepDays is how many days' counts are kept.
-const keepDays = 60
-
-// lastDays is what was written on each of the n days up to now, the last
-// being today; a day the work was not open is 0.
-func (a *App) lastDays(now time.Time, n int) []int {
-	out := make([]int, n)
-	k := a.today(now) // a new day keeps the last first
-	for i := range n {
-		day := now.AddDate(0, 0, i-n+1).Format(time.DateOnly)
-		out[i] = a.write.days[day]
-	}
-	out[n-1] = k
-	return out
-}
-
-// today is how much the book grew today, which the first look on a new
-// day starts from. Taking chapters out counts against it.
 func (a *App) today(now time.Time) int {
-	w := &a.write
-	if w.counts == nil {
+	if a.write.counts == nil {
 		return 0 // not read yet: a start of nothing would count the whole book
 	}
-	if day := now.Format(time.DateOnly); day != w.day {
-		if w.day != "" {
-			// What the book has now is where the last day the work was
-			// open ended.
-			if w.days == nil {
-				w.days = map[string]int{}
-			}
-			w.days[w.day] = a.total() - w.dayStart
-			for len(w.days) > keepDays {
-				delete(w.days, slices.Min(slices.Collect(maps.Keys(w.days))))
-			}
+	return a.write.counter.Today(a.total(), now, a.savePrefs)
+}
+
+func (a *App) lastDays(now time.Time, n int) []int {
+	if a.write.counts == nil {
+		days := make([]int, n)
+		for i := range n - 1 {
+			day := now.AddDate(0, 0, i-n+1).Format(time.DateOnly)
+			days[i] = a.write.counter.Days[day]
 		}
-		w.day, w.dayStart = day, a.total()
-		a.savePrefs()
+		return days
 	}
-	return a.total() - w.dayStart
+	return a.write.counter.LastDays(a.total(), now, n, a.savePrefs)
 }
 
-// setGoal takes the day's goal as typed: a whole number of characters, or
-// nothing for none. Anything else leaves the goal as it was.
-func (a *App) setGoal(text string) {
-	if n, ok := countOrNone(text); ok {
-		a.write.goal = n
-		a.savePrefs()
-	}
-}
-
-// countOrNone reads a count the author may leave empty, as a goal of words
-// is: none when empty, or a whole number above nought; ok is false for
-// anything else.
-func countOrNone(text string) (n int, ok bool) {
-	text = strings.TrimSpace(text)
-	if text == "" {
-		return 0, true
-	}
-	n, err := strconv.Atoi(text)
-	return n, err == nil && n > 0
-}
+func (a *App) setGoal(text string) { a.write.counter.SetGoal(text, a.savePrefs) }
 
 // words says how many characters, the way the design writes them: grouped
 // by thousands, and in 万 from ten thousand on.
@@ -148,9 +106,9 @@ func (a *App) wordCount(c *ui.Context, roomy, wide bool) {
 	today, tip := "", "全书 "+words(a.total())
 	k := a.today(time.Now())
 	switch {
-	case w.goal > 0:
-		today = fmt.Sprintf(" · 今天 %s / %s", signed(k), grouped(w.goal))
-		tip += "，今天 " + signed(k) + " 字，目标 " + words(w.goal)
+	case w.counter.Goal > 0:
+		today = fmt.Sprintf(" · 今天 %s / %s", signed(k), grouped(w.counter.Goal))
+		tip += "，今天 " + signed(k) + " 字，目标 " + words(w.counter.Goal)
 	case k != 0:
 		today = " · 今天 " + signed(k)
 		tip += "，今天 " + signed(k) + " 字"
@@ -197,7 +155,7 @@ func (a *App) wordCount(c *ui.Context, roomy, wide bool) {
 		})
 		// What is not a count leaves the goal be, and says so.
 		note, ink := "字数旁显示今日字数和目标。", t.TextMuted
-		if _, ok := countOrNone(w.goalText); !ok {
+		if _, ok := prefs.CountOrNone(w.goalText); !ok {
 			note, ink = "每日目标须为正整数，留空则不设。", t.Danger
 		}
 		ui.Text(c, note).FontSize(fsNote).TextColor(ink).LineHeight(lhBody).FillWidth().Padding(0, 6, 4, 6)
