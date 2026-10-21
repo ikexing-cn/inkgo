@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/export"
 	"writer/workspace"
 )
 
@@ -283,8 +284,8 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 	}
 	shut(tt, &w.snapsOpen)
 	choose("文件", "导出")
-	if !w.exporting.open || !tt.HasText("本章") || w.exporting.scope != scopeWork {
-		t.Fatal("导出 did not ask what to export, the whole work first", w.exporting.scope, tt.Texts())
+	if !w.exporting.open || !tt.HasText("本章") || w.exporting.selection.Scope != export.ScopeWork {
+		t.Fatal("导出 did not ask what to export, the whole work first", w.exporting.selection.Scope, tt.Texts())
 	}
 	shut(tt, &w.exporting.open)
 	choose("文件", "设置")

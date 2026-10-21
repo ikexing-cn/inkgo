@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"writer/backup"
+	"writer/export"
 )
 
 func work(t *testing.T, dir string) string {
@@ -30,7 +31,7 @@ func TestShelfRoundTrip(t *testing.T) {
 		t.Fatal(fresh, err)
 	}
 	now := time.Now().Truncate(time.Second)
-	s := Shelf{Library: dir, Cards: true, Theme: "dark", Export: &Export{Outline: true, Text: true, Pen: "雨声"},
+	s := Shelf{Library: dir, Cards: true, Theme: "dark", Export: &Export{Options: export.Options{Outline: true, Text: true}, Pen: "雨声"},
 		Phone: &Phone{Mode: "scroll", Screen: "wide", Size: 21, Spacing: "loose", Theme: "eye", NoFrame: true, NoLong: true}}
 	s.Put(Book{Path: filepath.Join(dir, "a"), Name: "甲", Opened: now.Add(-time.Hour)})
 	s.Put(Book{Path: filepath.Join(dir, "b"), Name: "乙", Opened: now})

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"writer/backup"
+	"writer/export"
 	"writer/internal/atomicfile"
 	"writer/internal/strictjson"
 	"writer/workspace"
@@ -76,11 +77,8 @@ type Phone struct {
 // the setting; Text sends plain text rather than Word documents. Pen is
 // the pen name last put on a manuscript, for a work without one.
 type Export struct {
-	Prose   bool   `json:"prose,omitempty"`
-	Outline bool   `json:"outline,omitempty"`
-	Setting bool   `json:"setting,omitempty"`
-	Text    bool   `json:"text,omitempty"`
-	Pen     string `json:"pen,omitempty"`
+	export.Options
+	Pen string `json:"pen,omitempty"`
 }
 
 // File is the shelf beside the model configuration at config.

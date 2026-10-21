@@ -12,6 +12,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/editor"
+	"writer/export"
 	"writer/shelf"
 	"writer/workspace"
 )
@@ -120,7 +121,7 @@ func TestExportTheWork(t *testing.T) {
 		return string(b)
 	}
 	open()
-	if !x.open || x.scope != scopeWork || !tt.HasText("笔名") || tt.HasText("段首加两个全角空格") {
+	if !x.open || x.selection.Scope != export.ScopeWork || !tt.HasText("笔名") || tt.HasText("段首加两个全角空格") {
 		t.Fatal("the dialog does not start from the prose of the whole work, as Word", tt.Texts())
 	}
 	x.pen = "雨声"
@@ -184,14 +185,14 @@ func TestExportTheWork(t *testing.T) {
 		t.Fatal(a.notice)
 	}
 	s, _, err := shelf.Load(a.books.file)
-	if err != nil || s.Export == nil || *s.Export != (shelf.Export{Prose: true, Outline: true, Setting: true, Text: true, Pen: "雨声"}) {
+	if err != nil || s.Export == nil || *s.Export != (shelf.Export{Options: export.Options{Prose: true, Outline: true, Setting: true, Text: true}, Pen: "雨声"}) {
 		t.Fatalf("this machine keeps %+v %v", s.Export, err)
 	}
 
 	// The chapter open, named after it.
 	a.shelf.Export.Outline, a.shelf.Export.Setting = false, false
 	open()
-	x.scope = scopeChapter
+	x.selection.Scope = export.ScopeChapter
 	out()
 	if got := read("测试作品-第一章.txt"); got != "第一章\n\n　　雨下着。\n" {
 		t.Fatalf("a chapter %q", got)
