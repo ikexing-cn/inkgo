@@ -3,6 +3,7 @@ package workspace
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -87,5 +88,85 @@ func TestCheckRejectsTrailingContent(t *testing.T) {
 		if _, err := s.Checks(); err == nil || !strings.Contains(err.Error(), path) {
 			t.Fatalf("Checks accepted tail %q: %v", tail, err)
 		}
+	}
+}
+
+func TestCheckPrune(t *testing.T) {
+	original := Check{Of: "hash", Words: 12, Read: 8, By: "model", At: time.Date(2041, 1, 2, 3, 4, 5, 0, time.UTC), Sent: &Sent{Setting: 7}, Findings: []Finding{
+		{ID: "one", Quote: "原句"}, {ID: "gone", Quote: "删掉了"}, {ID: "meant", Quote: "故意", Meant: true},
+	}}
+	for _, tc := range []struct {
+		text    string
+		ids     []string
+		changed bool
+	}{
+		{"原句、删掉了、故意", []string{"one", "gone", "meant"}, false},
+		{"原句。故意。", []string{"one", "meant"}, true},
+		{"原句。", []string{"one"}, true}, {"", nil, true},
+	} {
+		got, changed := original.Prune(tc.text)
+		var ids []string
+		for _, f := range got.Findings {
+			ids = append(ids, f.ID)
+		}
+		if !reflect.DeepEqual(ids, tc.ids) || changed != tc.changed {
+			t.Fatal(tc, got, changed)
+		}
+		want := original
+		want.Findings = got.Findings
+		if !reflect.DeepEqual(got, want) || len(original.Findings) != 3 || original.Findings[1].ID != "gone" {
+			t.Fatal("pruning changed metadata or source", got, original)
+		}
+	}
+	if got, changed := (Check{}).Prune(""); changed || !reflect.DeepEqual(got, Check{}) {
+		t.Fatal(got, changed)
+	}
+}
+
+func TestCheckKeepsMeant(t *testing.T) {
+	old := Finding{ID: "old", Kind: FindConflict, Quote: "原句", Entry: "entry", Name: "name", Meant: true}
+	previous := Check{Findings: []Finding{old, {ID: "not-meant", Kind: FindNew, Quote: "新名字"}}}
+	fresh := old
+	fresh.ID = "fresh"
+	fresh.Meant = false
+	fresh.Title = "新标题"
+	fresh.Says = "新解释"
+	incoming := Check{Of: "new-hash", Words: 20, By: "new-model", At: time.Date(2041, 1, 2, 0, 0, 0, 0, time.UTC), Sent: &Sent{Setting: 8}, Findings: []Finding{fresh, fresh, {ID: "not-meant", Kind: FindNew, Quote: "新名字"}}}
+	for _, kind := range []string{"kind", "quote", "entry", "name"} {
+		different := fresh
+		different.ID = kind
+		switch kind {
+		case "kind":
+			different.Kind = FindName
+		case "quote":
+			different.Quote = "别的原句"
+		case "entry":
+			different.Entry = "other"
+		case "name":
+			different.Name = "other"
+		}
+		incoming.Findings = append(incoming.Findings, different)
+	}
+	got := incoming.KeepMeant(previous)
+	for i, f := range got.Findings {
+		if f.Meant != (i < 2) {
+			t.Fatal(i, f)
+		}
+	}
+	want := incoming
+	want.Findings = got.Findings
+	if !reflect.DeepEqual(got, want) || incoming.Findings[0].Meant || !previous.Findings[0].Meant {
+		t.Fatal("merge mutated its inputs or metadata", got, incoming, previous)
+	}
+}
+
+func TestCheckStaleKeepsReadProse(t *testing.T) {
+	c := Check{Of: ProseHash("原句。"), At: time.Date(2041, 1, 2, 0, 0, 0, 0, time.UTC), Sent: &Sent{Setting: 3}}
+	if c.Stale(" 原句。\n") || !c.Stale("原句。新句。") {
+		t.Fatal(c)
+	}
+	c.Sent.Setting = 4
+	if c.Stale("原句。") {
+		t.Fatal("setting version changed the prose staleness rule")
 	}
 }

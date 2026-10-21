@@ -282,6 +282,77 @@ func TestCloseCancelsARunningCheck(t *testing.T) {
 	}
 }
 
+func TestCompletedCheckDoesNotLandInAnotherWork(t *testing.T) {
+	a, tt, id, _ := checkFixture(t)
+	oldStore := a.Store
+	a.ck.queue.Enqueue(id)
+	if _, ok := a.ck.queue.Next(); !ok {
+		t.Fatal("check did not enter the running state")
+	}
+	a.ck.runner.start(checkFunc(func(context.Context, string) (workspace.Check, error) {
+		return workspace.Check{Of: workspace.ProseHash(checkProse)}, nil
+	}), oldStore, id, ui.Services{})
+	select {
+	case result := <-a.ck.runner.done:
+		if result.err != nil || result.store != oldStore {
+			t.Fatal(result)
+		}
+		a.ck.runner.done <- result
+	case <-time.After(3 * time.Second):
+		t.Fatal("check did not complete")
+	}
+	next, err := workspace.Create(filepath.Join(t.TempDir(), "next"), "另一本", "网文")
+	if err != nil {
+		t.Fatal(err)
+	}
+	nextID, err := next.NewChapter("", "新章", false)
+	if err != nil {
+		next.Close()
+		t.Fatal(err)
+	}
+	if err := a.attach(next, next.Root(), false); err != nil {
+		next.Close()
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.ck.of != next || a.ck.queue.Running != "" || len(a.ck.queue.All) != 0 || len(a.ck.queue.Failed) != 0 {
+		t.Fatal("an old result changed the new work", a.ck)
+	}
+	if got, err := next.ReadCheck(nextID); err != nil || got.Of != "" {
+		t.Fatal("an old result was saved in the new work", got, err)
+	}
+}
+
+func TestCheckResultStaysStaleWhenProseChangesWhileRunning(t *testing.T) {
+	a, tt, id, f := checkFixture(t)
+	f.pieces, f.hold = []string{`{"findings":`, strings.TrimPrefix(checkAnswer, `{"findings":`)}, make(chan struct{})
+	before := a.write.saved
+	a.ck.queue.Enqueue(id)
+	tt.Frame()
+	until(t, tt, "the check request", func() bool {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		return len(f.asked) > 0
+	})
+	a.write.ed.Insert("另一盏灯亮了。")
+	a.flush()
+	if a.write.saved == before {
+		t.Fatal("prose was not changed during the check")
+	}
+	close(f.hold)
+	until(t, tt, "the old prose result", func() bool {
+		return a.ck.queue.All[id].Of != "" && a.ck.queue.Running == ""
+	})
+	got := a.ck.queue.All[id]
+	if got.Of != workspace.ProseHash(before) || !got.Stale(a.write.saved) {
+		t.Fatal("a completed check was relabelled as current", got, a.write.saved)
+	}
+	stored, err := a.Store.ReadCheck(id)
+	if err != nil || stored.Of != got.Of || !stored.Stale(a.write.saved) {
+		t.Fatal(stored, err)
+	}
+}
+
 // SHOT=dir go test ./desk -run TestShotCheck draws the page of the checks,
 // the foot of a chapter and the settings.
 func TestShotCheck(t *testing.T) {

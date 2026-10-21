@@ -46,14 +46,14 @@ Status: implemented
   - **写完一章就查**（默认，空值）：离开一章时，这次打开期间存过正文、够 200 字、设定不为空、没查过或查过以后改了，就排队（`leaveCheck`）；
   - **我点了才查**（`manual`）：只在作者点「现在查」「再查一次」时查；
   - **边写边查**（`always`）：停笔 8 秒、已经存盘时查；同一版正文只自动查一次，失败了不反复重试。
-- 后台队列一次一章，三分钟超时，和摘要的队列各跑各的（摘要 2026-10-16 起去掉了，见[去掉章节摘要](../simplification/2026-10-16-no-chapter-summaries.md)）（`desk/check.go` 的 `checks`）。换作品时丢掉排队的。2026-10-15 起检查要模型的最大输出，三分钟去掉了，只剩模型层每次请求的 15 分钟（见[AI 基建第二轮](../architecture/2026-10-15-ai-second-pass.md)）。
+- 后台队列一次一章，三分钟超时，和摘要的队列各跑各的（摘要 2026-10-16 起去掉了，见[去掉章节摘要](../simplification/2026-10-16-no-chapter-summaries.md)）（排队、到期、停笔去重由 `workspace/checkqueue.go` 的 `CheckQueue` 决定；`desk/checkrunner.go` 的 `checkRunner` 在首次执行时创建结果通道，保管取消函数；界面通过 `stop` 取消、通过 `finished` 非阻塞取得结果，每次执行复制检查器、作品、章 ID、通道及一帧取得的 `ui.Services`）。换作品时丢掉排队的。2026-10-15 起检查要模型的最大输出，三分钟去掉了，只剩模型层每次请求的 15 分钟（见[AI 基建第二轮](../architecture/2026-10-15-ai-second-pass.md)）。
 - 「再查一次」（还没查过时叫「检查全书」）先数出没查过或改过的章，告诉作者"有 N 章，每章用一次 AI，一共 N 次"，点「开始检查」才排队；都查过就只提示一句。检查中可以「停下」。
 
 ### 什么算解决了
 
 不存"已解决"的状态，每次按当前的正文和设定算：
 
-- 原句不在正文里了：算改好了。正在写的这一章按编辑器里的文字算，改掉的当下就不再列；离开这一章、进入「检查」页时把这些条目从文件里删掉（`pruneCheck`）。
+- 原句不在正文里了：算改好了。正在写的这一章按编辑器里的文字算，改掉的当下就不再列；离开这一章、进入「检查」页时把这些条目从文件里删掉（`workspace.Check.Prune` 决定保留哪些，`desk` 读写对应文件；批量修剪先用 `CheckQueue.Prunable` 选章）。
 - `conflict`：对应的条目没了，或者 `says` 不在条目里了，算设定改过了。
 - `name`：设定里没有这个名字了，不再列。
 - `new`：设定里有了这个名字，不再列。
@@ -73,7 +73,8 @@ Status: implemented
 - **正文里**：有问题的原句下面一条浅色虚线（`Editor.SetDoubts`，不进撤销、不存盘，和伏笔的点线分开）。
 - **设置 · 提醒与检查**多一组「检查正文和设定」，同样三个选项。伏笔那一行的文字顺便改成设计稿现在的说法。
 - **待处理**多一组「设定对不上」，排在最前，点一条去「检查」页的那一条。「全部忽略」只是不在待处理里列，「检查」页里还在。
-- 代码：`workspace/check.go`、`writing/check.go`、`desk/check.go`，`editor/paint.go`（虚线），`desk/shell.go`（页面和侧栏）、`desk/write.go`（章末一行、离开时）、`desk/pending.go`、`desk/foreshadow.go`（设置）、`prefs/prefs.go`（`check_when`），`discussion/shared.go`（公开 `Locate`、`Decode`）。
+- 完成结果由 `CheckQueue.Keep` 决定是否保留，并用 `Check.KeepMeant` 合并作者在执行期间作出的决定，再由 `desk` 保存。取消结果不保存；换作品后收到的旧作品结果不保存。结果的正文哈希保留检查时的值，正文变动后由 `Check.Stale` 判断过期；设定变化按显示问题时的现有过滤规则处理。队列规则不读盘或时钟，停笔判断使用调用方传入的编辑时间和当前时间，间隔由队列旁的 `checkPause` 定义。界面通过 `WorkChanged`、`Finished`、`CannotStart`、`Stop` 更新队列状态，只直接读写存盘结果 `All`。
+- 代码：`workspace/check.go`、`workspace/checkqueue.go`、`writing/check.go`、`desk/check.go`、`desk/checkrunner.go`，`editor/paint.go`（虚线），`desk/shell.go`（页面和侧栏）、`desk/write.go`（章末一行、离开时）、`desk/pending.go`、`desk/foreshadow.go`（设置）、`prefs/prefs.go`（`check_when`），`discussion/shared.go`（公开 `Locate`、`Decode`）。
 
 ### 和设计稿不一样的地方
 
@@ -101,7 +102,7 @@ Status: implemented
 - 误报靠两层挡：核对不过的丢掉；作者点「是故意的」后不再报。漏报没有办法，这是提示不是保证。
 - 模型抄错原句的那一条会被丢掉，作者看不到，也不知道丢了几条。
 - 正文太长时只查前面一部分。2026-10-14 起界面上说了（见[审查后的一批修正](../bug-fix/2026-10-14-review-fixes.md)）：`.check.json` 多一个可选的 `read`（模型拿到了前多少字，读全了不写），页脚写「第 N 章仅检查前 5000 字，未发现不一致」或「…，有 M 处待处理」，悬停说「后文超出上下文预算，可在设置中提高预算」（文案作者 2026-10-14 确认）。后文还是没有查。带 `read` 的文件，旧版本的程序读不了（不认识的字段会报错）。
-- 2026-10-14 改正一个从 `3bb2dc6` 起就有的丢数据的错：正文页第一次打开一章时，`enterWriting` 先设好 `w.node` 再 `openNode`，`openNode` 先叫 `leaveCheck`，这时那一章的正文还没读进来，`pruneCheck(w.node, "")` 把这一章检查找到的问题都当成原句已不在，从 `.check.json` 里删掉了。现在 `leaveCheck` 在编辑器还没建（`w.ed == nil`）时什么都不做。
+- 2026-10-14 改正一个从 `3bb2dc6` 起就有的丢数据的错：正文页第一次打开一章时，`enterWriting` 先设好 `w.node` 再 `openNode`，`openNode` 先叫 `leaveCheck`，这时那一章的正文还没读进来，`Check.Prune("")` 把这一章检查找到的问题都当成原句已不在，从 `.check.json` 里删掉了。现在 `leaveCheck` 在编辑器还没建（`w.ed == nil`）时什么都不做。
 - 没有用真实模型和真实程序走过：作者当时在用电脑，不能操作界面。提示词在真实模型上的误报率、JSON 是否稳定都还没验证。
 
 ## Testing

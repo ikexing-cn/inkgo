@@ -142,7 +142,7 @@ Status: proposed
 | `prefs.go` 的 `desk.json` 结构、读写和旧格式迁移 | `prefs.Prefs`、`Load`、`Save`；路径由 `workspace.Store.PrefsPath` 提供 |
 | `ideas()` 的排序，`reading`/`readingBefore` | `workspace/ideas.go` 的 `Setting.Ideas`；`workspace/reading.go` 的 `Entry.Reading`、`ReadingBefore` |
 | 伏笔模型和候选 | `workspace/foreshadow.go` 的伏笔和回收模型、状态、候选及逾期判断；界面传入即时标记和偏好阈值，保管文案 |
-| 检查的队列、`keepCheck`、`pruneCheck` | `workspace.Check` 的方法加一个执行器 |
+| 检查的队列、`keepCheck`、`pruneCheck` | `workspace/checkqueue.go` 的 `CheckQueue`；`workspace/check.go` 的 `Check.Prune`、`KeepMeant`、`Stale`；`desk/checkrunner.go` 的 `checkRunner` 执行并交回结果 |
 | `chat.go` 的 `mentions`、`sections`、`looks`、`spent`、`requests`、`fateOf` | `workspace/events.go` 的 `Looks`、`Spent`、`Requests`、`FateOf`；`workspace/mentions.go` 的 `Setting.Mentions`。`sections` 留在 `desk/chat.go`，第 5 批由 `discussion` 导出摘要解析器 |
 | `sessionTitle`/`talkTitle` 两份 | `workspace.TalkTitle`，从事件和章节标题读取 |
 | 每日字数和目标（`today()` 在取值时改并存偏好） | `prefs.Prefs` 嵌入 `Counter`；读取纯计算，`desk` 在计数读入后显式换日 |

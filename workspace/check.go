@@ -79,6 +79,7 @@ func (c Check) Prune(text string) (Check, bool) {
 
 // KeepMeant carries the author's decisions into a replacement result.
 func (c Check) KeepMeant(previous Check) Check {
+	c.Findings = slices.Clone(c.Findings)
 	for _, old := range previous.Findings {
 		if !old.Meant {
 			continue
