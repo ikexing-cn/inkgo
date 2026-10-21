@@ -7,18 +7,14 @@ import (
 	"unicode/utf8"
 )
 
-// Locate finds quote in text verbatim or, failing that, ignoring spaces
-// and the marks a model drops or adds copying words, and returns the
-// text's own words for it.
-func Locate(text, quote string) (string, bool) { return locate(text, quote) }
-
 // copyMarks are what a model drops or adds copying words: spaces, Markdown
 // marks and quotation marks.
 const copyMarks = "*_`#>\"'“”‘’「」"
 
-// locate finds quote in text verbatim or, failing that, ignoring copyMarks,
-// and returns the text's own words for it.
-func locate(text, quote string) (string, bool) {
+// Locate finds quote in text verbatim or, failing that, ignoring spaces
+// and the marks a model drops or adds copying words, and returns the
+// text's own words for it.
+func Locate(text, quote string) (string, bool) {
 	skip := func(r rune) bool { return unicode.IsSpace(r) || strings.ContainsRune(copyMarks, r) }
 	q := []rune(strings.Map(func(r rune) rune {
 		if skip(r) {
