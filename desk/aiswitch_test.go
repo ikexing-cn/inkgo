@@ -2,7 +2,6 @@ package desk
 
 import (
 	"errors"
-	"image/png"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -16,6 +15,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/ai"
 	"writer/desk/aiport"
+	"writer/internal/testshot"
 	"writer/shelf"
 	"writer/workspace"
 )
@@ -595,42 +595,27 @@ func TestTheAIComesBackToItsPage(t *testing.T) {
 }
 
 func TestShotAIOff(t *testing.T) {
-	dir := os.Getenv("SHOT")
-	if dir == "" {
-		t.Skip("set SHOT=dir")
-	}
+	testshot.Dir(t)
 	root, _ := aiWork(t)
 	a, tt, _ := openSpied(t, root)
-	shot := func(name string) {
-		t.Helper()
-		tt.Frame()
-		tt.Frame()
-		f, err := os.Create(filepath.Join(dir, name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer f.Close()
-		if err := png.Encode(f, tt.Image()); err != nil {
-			t.Fatal(err)
-		}
-	}
+
 	if err := tt.Click("正文"); err != nil {
 		t.Fatal(err)
 	}
 	a.openPrefs("AI")
 	a.bk.askAI = true
-	shot("ai-off-ask.png")
+	shot(t, tt, "ai-off-ask.png")
 	a.bk.askAI = false
 	a.turnAI(false)
-	shot("ai-off-settings.png")
+	shot(t, tt, "ai-off-settings.png")
 	a.bk.askAI = true
-	shot("ai-on-ask.png")
+	shot(t, tt, "ai-on-ask.png")
 	a.bk.askAI, a.bk.prefs = false, false
-	shot("ai-off-prose.png")
+	shot(t, tt, "ai-off-prose.png")
 	tt.SetDark(true)
-	shot("ai-off-prose-dark.png")
+	shot(t, tt, "ai-off-prose-dark.png")
 	tt.SetDark(false)
 	a.closeWork()
 	a.shelf.Books = nil
-	shot("ai-off-shelf-empty.png")
+	shot(t, tt, "ai-off-shelf-empty.png")
 }

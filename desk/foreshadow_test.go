@@ -2,12 +2,10 @@ package desk
 
 import (
 	"fmt"
-	"image/png"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
+	"writer/internal/testshot"
 	"writer/workspace"
 )
 
@@ -276,23 +274,9 @@ func (a *App) foreshadowOf(id string) (foreshadow, bool) {
 }
 
 func TestShotForeshadow(t *testing.T) {
-	dir := os.Getenv("SHOT")
-	if dir == "" {
-		t.Skip("set SHOT=dir")
-	}
+	testshot.Dir(t)
 	a, tt, one := writingFixture(t, "雨从傍晚开始下，一直没有停。\n林晚背着工具箱，沿着亮着的灯往旧城走。她修了七年路灯，却从来不敢在天黑以后走进没有灯的巷子。\n巷口那盏灯的灯罩上，有人用指甲刻了一个“晚”字。")
-	shot := func(name string) {
-		tt.Frame()
-		tt.Frame()
-		f, err := os.Create(filepath.Join(dir, name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer f.Close()
-		if err := png.Encode(f, tt.Image()); err != nil {
-			t.Fatal(err)
-		}
-	}
+
 	w := &a.write
 	find := func(q string) (int, int) {
 		text := w.ed.Doc.String()
@@ -300,12 +284,12 @@ func TestShotForeshadow(t *testing.T) {
 		return at, at + len([]rune(q))
 	}
 	a.doc.tab = paneFore
-	shot("fore-empty.png")
+	shot(t, tt, "fore-empty.png")
 	s, e := find("她修了七年路灯，却从来不敢在天黑以后走进没有灯的巷子。")
 	w.ed.Select(s, e)
 	a.openBury()
 	w.fore.note = "她怕黑的真正原因"
-	shot("fore-bury.png")
+	shot(t, tt, "fore-bury.png")
 	a.bury()
 	s, e = find("巷口那盏灯的灯罩上，有人用指甲刻了一个“晚”字。")
 	w.ed.Select(s, e)
@@ -334,18 +318,18 @@ func TestShotForeshadow(t *testing.T) {
 	}
 	a.write.node = ""
 	a.openNode(two)
-	shot("fore-list.png")
+	shot(t, tt, "fore-list.png")
 	s, e = find("七岁那年的那个晚上，她也是这样站着。母亲说去井边打水，让她别动，等灯亮。灯一直没有亮。")
 	w.ed.Select(s, e)
 	a.openPay("")
-	shot("fore-pay.png")
+	shot(t, tt, "fore-pay.png")
 	a.pay(w.fore.pick)
-	shot("fore-detail.png")
+	shot(t, tt, "fore-detail.png")
 	tt.SetDark(true)
-	shot("fore-detail-dark.png")
+	shot(t, tt, "fore-detail-dark.png")
 	tt.SetDark(false)
 	a.showFore("lost")
-	shot("fore-lost.png")
+	shot(t, tt, "fore-lost.png")
 	a.openPrefs("提醒与检查")
-	shot("fore-settings.png")
+	shot(t, tt, "fore-settings.png")
 }

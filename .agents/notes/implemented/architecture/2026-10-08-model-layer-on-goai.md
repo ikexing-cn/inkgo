@@ -114,5 +114,5 @@ mygo 在初始化时调用 `bind`，用反射按名字查找方法。只要程�
 - `discussion/engine_test.go` 的 `TestTurnRecordsReasoningAndSteps` 验证推理内容、模型名和等级都落盘，步骤顺序为回复、整理。
 - `workspace/workspace_test.go` 的 `TestModelOutputKeepsReasoningForReview` 验证新字段可以往返读写，作者发言不能带推理，未知等级被拒绝。
 - `desk/app_test.go` 覆盖 Markdown 分块、流式显示和推理等级写回作品配置。
-- `SHOT=<path> go test -run TestLayout ./cmd/poc` 额外输出 `-thought` 截图，展示展开的思考过程和 Markdown 回复。
+- `SHOT=<dir> go test -run TestLayout ./cmd/poc` 额外输出 `layout-thought.png`，展示展开的思考过程和 Markdown 回复。
 - `GOOS=darwin|linux CGO_ENABLED=0 go build ./cmd/poc` 可以通过；`go list -deps ./cmd/poc` 里没有 `text/template`、`google.golang.org` 或 AWS 的包。

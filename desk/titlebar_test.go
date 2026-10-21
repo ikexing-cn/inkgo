@@ -33,10 +33,7 @@ func shut(tt *ui.Tester, open *bool) {
 // right is the right edge of the element showing or labeled s.
 func right(t *testing.T, tt *ui.Tester, s string) float32 {
 	t.Helper()
-	r, ok := tt.Find(s)
-	if !ok {
-		t.Fatalf("nothing shows %q: %q", s, tt.Texts())
-	}
+	r := find(t, tt, s)
 	return r.X + r.W
 }
 

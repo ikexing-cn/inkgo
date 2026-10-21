@@ -37,20 +37,20 @@ func TestNamesInTheProse(t *testing.T) {
 	if a.doc.hidden || a.doc.shown != id || ed.Caret() != caret {
 		t.Fatal("name did not open setting", a.doc.shown, ed.Caret())
 	}
-	planHas(t, tt, "配角，林晚的同事")
+	hasText(t, tt, "配角，林晚的同事")
 	tt.Type("雨")
 	if !strings.HasPrefix(ed.Doc.String(), "雨小祥") || !tt.Focused("正文") {
 		t.Fatal("name stole caret", ed.Doc.String())
 	}
 	tt.Key(ui.Cmd, ui.KeyZ)
 	tt.Frame()
-	planClick(t, tt, "设置")
-	planClick(t, tt, "设置-外观")
-	planHas(t, tt, "正文中标出设定的名字")
+	click(t, tt, "设置")
+	click(t, tt, "设置-外观")
+	hasText(t, tt, "正文中标出设定的名字")
 	if tt.HasText("名字下面一道虚线") {
 		t.Fatal("unnecessary names note", tt.Texts())
 	}
-	planClick(t, tt, "正文中标出设定的名字")
+	click(t, tt, "正文中标出设定的名字")
 	tt.Key(0, ui.KeyEscape)
 	tt.Frame()
 	a.doc.shown = ""
@@ -81,9 +81,9 @@ func TestNamesInTheProse(t *testing.T) {
 	if !b.shelf.NoNames {
 		t.Fatal("preference did not follow work switch")
 	}
-	planClick(t, tt, "设置")
-	planClick(t, tt, "设置-外观")
-	planClick(t, tt, "正文中标出设定的名字")
+	click(t, tt, "设置")
+	click(t, tt, "设置-外观")
+	click(t, tt, "正文中标出设定的名字")
 	tt.Key(0, ui.KeyEscape)
 	tt.Frame()
 	a.doc.shown = ""

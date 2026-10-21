@@ -2,13 +2,11 @@ package desk
 
 import (
 	"fmt"
-	"image/png"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
 
+	"writer/internal/testshot"
 	"writer/workspace"
 )
 
@@ -100,10 +98,7 @@ func TestPendingForeshadowing(t *testing.T) {
 // TestShotPending writes screenshots of the pending list when SHOT is a
 // directory: SHOT=dir go test ./desk -run ShotPending
 func TestShotPending(t *testing.T) {
-	dir := os.Getenv("SHOT")
-	if dir == "" {
-		t.Skip("set SHOT=dir")
-	}
+	testshot.Dir(t)
 	text := "整条街的灯是同时灭的。\n林晚站在巷口，手电在工具箱最底下。她没有去摸。\n她把右手按在门框上，听见楼上有人在走动。"
 	a, tt, one := writingFixture(t, text)
 	if _, err := a.Store.WriteChapter(one, text, []workspace.ChapterMark{
@@ -125,42 +120,31 @@ func TestShotPending(t *testing.T) {
 	a.write.node = ""
 	a.openNode(one)
 	a.write.pendOpen = true
-	shot := func(name string) {
-		tt.Frame()
-		tt.Frame()
-		f, err := os.Create(filepath.Join(dir, name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer f.Close()
-		if err := png.Encode(f, tt.Image()); err != nil {
-			t.Fatal(err)
-		}
-	}
+
 	tt.SetTitleBar(ui.TitleBar{Height: 40, Right: 138}) // the Windows buttons
-	shot("pending-light.png")
+	shot(t, tt, "pending-light.png")
 	tt.SetDark(true)
-	shot("pending-dark.png")
+	shot(t, tt, "pending-dark.png")
 	tt.SetDark(false)
 	a.write.pendOpen = false
 	a.doc.hidden = true
-	shot("titlebar-pane-hidden.png")
+	shot(t, tt, "titlebar-pane-hidden.png")
 	for _, name := range []string{"文件", "编辑", "视图", "帮助"} {
 		a.menu = menuState{owner: barKey + name, drop: true, seen: true}
-		shot("titlebar-menu-" + name + ".png")
+		shot(t, tt, "titlebar-menu-"+name+".png")
 	}
 	a.menu = menuState{}
 	a.sideHidden = true
-	shot("titlebar-side-hidden.png")
+	shot(t, tt, "titlebar-side-hidden.png")
 	a.sideHidden, a.write.focus = false, true
-	shot("titlebar-focus.png")
+	shot(t, tt, "titlebar-focus.png")
 	a.write.focus = false
 	a.write.ed.Select(17, 26)
-	shot("toolbar-selection.png")
+	shot(t, tt, "toolbar-selection.png")
 	tt.SetDark(true)
-	shot("toolbar-selection-dark.png")
+	shot(t, tt, "toolbar-selection-dark.png")
 	tt.SetDark(false)
 	a.write.ed.Select(0, 0)
 	a.page = 1
-	shot("titlebar-settings.png")
+	shot(t, tt, "titlebar-settings.png")
 }

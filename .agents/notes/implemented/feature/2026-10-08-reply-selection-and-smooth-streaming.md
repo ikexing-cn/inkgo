@@ -69,4 +69,4 @@ Status: implemented
 - `desk/app_test.go` 的 `TestReplyTextSelectsAcrossBlocksAndCopies`：
   - 从第一段拖到第二段后复制，剪贴板里两段都在；
   - "复制全文"复制的是 Markdown 原文。
-- `SHOT=<path> go test -run TestLayout ./cmd/poc`：截图里的示例回复带标题、嵌套列表、有序列表和引用，可以核对排版。
+- `SHOT=<dir> go test -run TestLayout ./cmd/poc`：截图里的示例回复带标题、嵌套列表、有序列表和引用，可以核对排版。

@@ -67,7 +67,7 @@ func TestPaneTabPreferences(t *testing.T) {
 					t.Fatal("AI on lost the talk tab")
 				}
 			}
-			phoneClick(t, tt, "右栏-预览")
+			click(t, tt, "右栏-预览")
 			b.savePrefs()
 			data, err = os.ReadFile(path)
 			if err != nil {
@@ -94,7 +94,7 @@ func TestPaneTabPreferences(t *testing.T) {
 			if c.doc.tab != panePhone || !ct.HasText("第 1 屏，共 1 屏") {
 				t.Fatal("preview not restored", ct.Texts())
 			}
-			phoneClick(t, ct, "右栏-设定")
+			click(t, ct, "右栏-设定")
 			data, err = os.ReadFile(filepath.Join(root, ".writer", "desk.json"))
 			if err != nil {
 				t.Fatal(err)

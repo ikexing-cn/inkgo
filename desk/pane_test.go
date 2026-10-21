@@ -1,14 +1,12 @@
 package desk
 
 import (
-	"image/png"
-	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
+	"writer/internal/testshot"
 	"writer/workspace"
 )
 
@@ -194,48 +192,34 @@ func TestTalkList(t *testing.T) {
 // TestShotPane writes screenshots of the right column when SHOT is a
 // directory: SHOT=dir go test ./desk -run ShotPane
 func TestShotPane(t *testing.T) {
-	dir := os.Getenv("SHOT")
-	if dir == "" {
-		t.Skip("set SHOT=dir")
-	}
+	testshot.Dir(t)
 	a, tt, ids := paneFixture(t)
-	shot := func(name string) {
-		tt.Frame()
-		tt.Frame()
-		f, err := os.Create(filepath.Join(dir, name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer f.Close()
-		if err := png.Encode(f, tt.Image()); err != nil {
-			t.Fatal(err)
-		}
-	}
+
 	d := &a.doc
-	shot("pane-list.png")
+	shot(t, tt, "pane-list.png")
 	d.query = "左手"
-	shot("pane-find.png")
+	shot(t, tt, "pane-find.png")
 	d.query, d.shown = "", ids.zhou
-	shot("pane-entry.png")
+	shot(t, tt, "pane-entry.png")
 	e, _ := a.set.Entry(ids.zhou)
 	d.editing, d.text, d.category, d.name, d.names = e.ID, e.Text, e.Category, "周祥", "小祥、saki"
-	shot("pane-edit.png")
+	shot(t, tt, "pane-edit.png")
 	d.editing, d.shown, d.text, d.name, d.names = "new", "", "老周是修表的，铺子在旧城小学对面", "老周", ""
-	shot("pane-new.png")
+	shot(t, tt, "pane-new.png")
 	d.editing, d.todo = "", true
-	shot("pane-todo.png")
+	shot(t, tt, "pane-todo.png")
 	d.todo, d.history = false, true
-	shot("pane-history.png")
+	shot(t, tt, "pane-history.png")
 	d.history = false
 	tt.SetDark(true)
-	shot("pane-list-dark.png")
+	shot(t, tt, "pane-list-dark.png")
 	tt.SetDark(false)
 	d.tab, d.talks = paneTalk, true
-	shot("pane-talks.png")
+	shot(t, tt, "pane-talks.png")
 	if err := tt.Click("新讨论"); err != nil {
 		t.Fatal(err)
 	}
-	shot("pane-talk-new.png")
+	shot(t, tt, "pane-talk-new.png")
 }
 
 // A change of names is logged as one, not as a move to no category.

@@ -21,7 +21,7 @@ type planFixtureData struct {
 func TestOutlineReadError(t *testing.T) {
 	a, tt, f := outlineFixture(t)
 	root := a.Store.Root()
-	planClick(t, tt, "正文")
+	click(t, tt, "正文")
 	if err := a.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -46,10 +46,10 @@ func TestOutlineReadError(t *testing.T) {
 	}
 	var shown string
 	a.Reveal = func(path string) error { shown = path; return nil }
-	planClick(t, tt, "大纲")
-	planHas(t, tt, "大纲文件读不出来")
-	planHas(t, tt, "第 1 行附近有错")
-	planHas(t, tt, "改好文件后，这一页会自己重新读取。")
+	click(t, tt, "大纲")
+	hasText(t, tt, "大纲文件读不出来")
+	hasText(t, tt, "第 1 行附近有错")
+	hasText(t, tt, "改好文件后，这一页会自己重新读取。")
 	if tt.HasText("重试") || tt.HasText(file) {
 		t.Fatal("the broken outline shows a retry or the bare error", tt.Texts())
 	}
@@ -58,7 +58,7 @@ func TestOutlineReadError(t *testing.T) {
 			t.Fatal("the broken outline still offers", missing)
 		}
 	}
-	planClick(t, tt, "打开所在文件夹")
+	click(t, tt, "打开所在文件夹")
 	if shown != root {
 		t.Fatal("revealed", shown)
 	}
@@ -78,7 +78,7 @@ func TestOutlineReadError(t *testing.T) {
 	if a.plan.loadErr != nil {
 		t.Fatal("the outline was not read again", a.plan.loadErr)
 	}
-	planHas(t, tt, "新增情节线")
+	hasText(t, tt, "新增情节线")
 }
 
 func outlineFixture(t *testing.T) (*App, *ui.Tester, planFixtureData) {
@@ -130,41 +130,20 @@ func outlineFixture(t *testing.T) (*App, *ui.Tester, planFixtureData) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	planClick(t, tt, "大纲")
+	click(t, tt, "大纲")
 	tt.Frame()
 	return a, tt, f
 }
-func planClick(t *testing.T, tt *ui.Tester, label string) {
-	t.Helper()
-	if err := tt.Click(label); err != nil {
-		t.Fatal(err, tt.Texts())
-	}
-	tt.Frame()
-	tt.Frame()
-}
 func planType(t *testing.T, tt *ui.Tester, label, text string) {
 	t.Helper()
-	planClick(t, tt, label)
+	click(t, tt, label)
 	tt.Key(ui.Cmd, ui.KeyA)
 	tt.Type(text)
 	tt.Frame()
 }
-func planHas(t *testing.T, tt *ui.Tester, text string) {
-	t.Helper()
-	if !tt.HasText(text) {
-		t.Fatal("missing", text, tt.Texts())
-	}
-}
 func planDrag(t *testing.T, tt *ui.Tester, from, to string) {
 	t.Helper()
-	a, ok := tt.Find(from)
-	if !ok {
-		t.Fatal(from)
-	}
-	b, ok := tt.Find(to)
-	if !ok {
-		t.Fatal(to)
-	}
+	a, b := find(t, tt, from), find(t, tt, to)
 	x, y := a.X+a.W/2, a.Y+a.H/2
 	tx, ty := b.X+b.W/2, b.Y+b.H-12
 	tt.Press(x, y)
@@ -187,30 +166,30 @@ func planStored(t *testing.T, a *App) workspace.Plan {
 
 func TestTheOutlineByChapter(t *testing.T) {
 	a, tt, f := outlineFixture(t)
-	planHas(t, tt, "3 章 · 3 条情节线 · 6 张卡片，2 张未放进章节")
-	planHas(t, tt, "旧城的灯一盏一盏查下去")
-	planHas(t, tt, "2 章 · 十月五日 — 十月六日")
-	planHas(t, tt, "回溯")
+	hasText(t, tt, "3 章 · 3 条情节线 · 6 张卡片，2 张未放进章节")
+	hasText(t, tt, "旧城的灯一盏一盏查下去")
+	hasText(t, tt, "2 章 · 十月五日 — 十月六日")
+	hasText(t, tt, "回溯")
 	if !a.planBack(f.two) || a.planBack(f.one) {
 		t.Fatal("backtracking")
 	}
-	planClick(t, tt, fmt.Sprintf("添加卡片-%s|%s|-2", f.one, f.lines[2].ID))
+	click(t, tt, fmt.Sprintf("添加卡片-%s|%s|-2", f.one, f.lines[2].ID))
 	if !tt.Focused("事件") {
 		t.Fatal("new card has no caret")
 	}
-	planHas(t, tt, "新卡片")
-	planClick(t, tt, "保存卡片")
+	hasText(t, tt, "新卡片")
+	click(t, tt, "保存卡片")
 	if len(planStored(t, a).Cards) != 6 {
 		t.Fatal("empty title saved")
 	}
 	tt.Type("小祥数到第十三盏")
-	planClick(t, tt, "继续添加")
-	planHas(t, tt, "已添加「小祥数到第十三盏」，接着记下一张。")
+	click(t, tt, "继续添加")
+	hasText(t, tt, "已添加「小祥数到第十三盏」，接着记下一张。")
 	if !tt.Focused("事件") || a.plan.card.Title != "" {
 		t.Fatal("next card has no fresh input")
 	}
 	tt.Type("他把数字报错了")
-	planClick(t, tt, "保存卡片")
+	click(t, tt, "保存卡片")
 	if a.plan.cardOpen {
 		t.Fatal("did not close")
 	}
@@ -218,14 +197,14 @@ func TestTheOutlineByChapter(t *testing.T) {
 	if got[2].Title != "小祥数到第十三盏" || got[3].Title != "他把数字报错了" {
 		t.Fatal(got)
 	}
-	planClick(t, tt, fmt.Sprintf("添加卡片-%s|%s|-2", f.one, f.lines[2].ID))
+	click(t, tt, fmt.Sprintf("添加卡片-%s|%s|-2", f.one, f.lines[2].ID))
 	tt.Type("不保存")
 	tt.Key(0, ui.KeyEscape)
 	tt.Frame()
 	if a.plan.cardOpen || len(planStored(t, a).Cards) != 8 {
 		t.Fatal("Esc saved")
 	}
-	planClick(t, tt, "章纲-"+f.one)
+	click(t, tt, "章纲-"+f.one)
 	if !tt.Focused("章纲") {
 		t.Fatal("outline has no caret")
 	}
@@ -237,7 +216,7 @@ func TestTheOutlineByChapter(t *testing.T) {
 	if err != nil || ch.Outline != "何主任要一份新的灯数。" {
 		t.Fatal(ch, err)
 	}
-	planClick(t, tt, "卷纲-"+f.volume)
+	click(t, tt, "卷纲-"+f.volume)
 	tt.Key(ui.Cmd, ui.KeyA)
 	tt.Type("新的卷纲")
 	tt.Key(0, ui.KeyEscape)
@@ -256,7 +235,7 @@ func TestTheOutlineByChapter(t *testing.T) {
 	if c.Chapter != "" || c.Line != f.lines[1].ID {
 		t.Fatal("drop into tray", c)
 	}
-	planClick(t, tt, "打开正文-"+f.one)
+	click(t, tt, "打开正文-"+f.one)
 	if a.page != 3 || a.write.node != f.one || a.write.outline != "何主任要一份新的灯数。" {
 		t.Fatal("open prose", a.page, a.write.node, a.write.outline)
 	}
@@ -264,65 +243,65 @@ func TestTheOutlineByChapter(t *testing.T) {
 
 func TestOutlinePlotLines(t *testing.T) {
 	a, tt, f := outlineFixture(t)
-	planClick(t, tt, "新增情节线")
+	click(t, tt, "新增情节线")
 	if !tt.Focused("情节线的名字") {
 		t.Fatal("new line not focused")
 	}
 	tt.Type("钥匙")
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	planHas(t, tt, "钥匙")
+	hasText(t, tt, "钥匙")
 	l := a.plan.data.Lines[3]
-	planClick(t, tt, "情节线「钥匙」的操作")
-	planClick(t, tt, "菜单-左移")
+	click(t, tt, "情节线「钥匙」的操作")
+	click(t, tt, "菜单-左移")
 	if a.plan.data.Lines[2].ID != l.ID {
 		t.Fatal("line did not move")
 	}
-	planClick(t, tt, "钥匙")
+	click(t, tt, "钥匙")
 	tt.Type("铜钥匙")
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
 	if a.plan.data.Lines[2].Name != "铜钥匙" {
 		t.Fatal(a.plan.data.Lines)
 	}
-	planClick(t, tt, "情节线「铜钥匙」的操作")
-	planClick(t, tt, "菜单-右移")
-	planClick(t, tt, "情节线「铜钥匙」的操作")
-	planClick(t, tt, "菜单-删除情节线")
-	planHas(t, tt, "已删除情节线「铜钥匙」")
-	planClick(t, tt, "情节线「母亲」的操作")
-	planClick(t, tt, "菜单-删除情节线")
+	click(t, tt, "情节线「铜钥匙」的操作")
+	click(t, tt, "菜单-右移")
+	click(t, tt, "情节线「铜钥匙」的操作")
+	click(t, tt, "菜单-删除情节线")
+	hasText(t, tt, "已删除情节线「铜钥匙」")
+	click(t, tt, "情节线「母亲」的操作")
+	click(t, tt, "菜单-删除情节线")
 	p := planStored(t, a)
 	if len(p.Cards) != len(f.cards) || slices.ContainsFunc(p.Cards, func(c workspace.Card) bool { return c.Line == f.lines[1].ID }) {
 		t.Fatal(p)
 	}
-	planClick(t, tt, "时间线")
-	planHas(t, tt, "不分情节线")
-	planClick(t, tt, "新增情节线")
+	click(t, tt, "时间线")
+	hasText(t, tt, "不分情节线")
+	click(t, tt, "新增情节线")
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	planHas(t, tt, "新情节线")
+	hasText(t, tt, "新情节线")
 }
 
 func TestOutlineSearch(t *testing.T) {
 	a, tt, f := outlineFixture(t)
 	planType(t, tt, "搜索大纲", "何主任")
-	planHas(t, tt, "找到 1 处章名或章纲、2 张卡片")
+	hasText(t, tt, "找到 1 处章名或章纲、2 张卡片")
 	planType(t, tt, "搜索大纲", "是谁让他锁")
-	planHas(t, tt, "找到 1 张卡片")
-	planHas(t, tt, "章节里没有「是谁让他锁」")
+	hasText(t, tt, "找到 1 张卡片")
+	hasText(t, tt, "章节里没有「是谁让他锁」")
 	if _, ok := tt.Find("大纲托盘"); !ok {
 		t.Fatal("tray hidden")
 	}
 	planType(t, tt, "搜索大纲", "123232")
-	planHas(t, tt, "没有找到「123232」")
+	hasText(t, tt, "没有找到「123232」")
 	if _, ok := tt.Find("大纲托盘"); ok {
 		t.Fatal("tray on empty page")
 	}
 	if _, ok := tt.Find("大纲章节-" + f.one); ok {
 		t.Fatal("board on empty page")
 	}
-	planClick(t, tt, "空页清除搜索")
+	click(t, tt, "空页清除搜索")
 	if a.plan.query != "" {
 		t.Fatal("clear")
 	}
@@ -332,9 +311,9 @@ func TestOutlineSearch(t *testing.T) {
 	if a.plan.query != "" {
 		t.Fatal("Esc")
 	}
-	planClick(t, tt, "时间线")
+	click(t, tt, "时间线")
 	planType(t, tt, "搜索大纲", "停电")
-	planHas(t, tt, "找到 2 张卡片")
+	hasText(t, tt, "找到 2 张卡片")
 	if !a.cardFound(f.cards[0]) || a.cardFound(f.cards[4]) {
 		t.Fatal("timeline search")
 	}
@@ -342,22 +321,22 @@ func TestOutlineSearch(t *testing.T) {
 
 func TestTheOutlineTimeline(t *testing.T) {
 	a, tt, f := outlineFixture(t)
-	planClick(t, tt, "时间线")
-	planHas(t, tt, "「番外：晴天」还没有卡片")
-	planClick(t, tt, "卡片-"+f.cards[1].ID)
-	planHas(t, tt, "修改卡片")
-	planClick(t, tt, "卡片章节")
+	click(t, tt, "时间线")
+	hasText(t, tt, "「番外：晴天」还没有卡片")
+	click(t, tt, "卡片-"+f.cards[1].ID)
+	hasText(t, tt, "修改卡片")
+	click(t, tt, "卡片章节")
 	tt.Key(0, ui.KeyEnd)
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	planClick(t, tt, "保存卡片")
+	click(t, tt, "保存卡片")
 	c, _ := planStored(t, a).Card(f.cards[1].ID)
 	if c.Chapter != f.three {
 		t.Fatal(c)
 	}
-	planClick(t, tt, "卡片-"+c.ID)
+	click(t, tt, "卡片-"+c.ID)
 	planType(t, tt, "事件", "不要保存")
-	planClick(t, tt, "取消卡片")
+	click(t, tt, "取消卡片")
 	c, _ = planStored(t, a).Card(c.ID)
 	if c.Title == "不要保存" {
 		t.Fatal("cancel changed card")
@@ -374,13 +353,13 @@ func TestTheOutlineTimeline(t *testing.T) {
 	a.plan.scroll[1].X = 0
 	tt.Frame()
 	tt.Frame()
-	planClick(t, tt, "时间列-1")
+	click(t, tt, "时间列-1")
 	planType(t, tt, "这一列的时间", "十九年前")
-	planClick(t, tt, "保存时间")
+	click(t, tt, "保存时间")
 	if len(a.plan.data.Columns()[0].Cards) != 2 {
 		t.Fatal("adjacent times did not merge", a.plan.data.Columns())
 	}
-	planClick(t, tt, "时间列-1")
+	click(t, tt, "时间列-1")
 	planType(t, tt, "这一列的时间", "十月七日夜")
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
@@ -398,7 +377,7 @@ func TestTheOutlineTimeline(t *testing.T) {
 	tt.Frame()
 	cols := a.plan.data.Columns()
 	last := len(cols) - 1
-	planClick(t, tt, fmt.Sprintf("时间列-%d", last))
+	click(t, tt, fmt.Sprintf("时间列-%d", last))
 	planType(t, tt, "这一列的时间", "十二月")
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
@@ -406,7 +385,7 @@ func TestTheOutlineTimeline(t *testing.T) {
 	if c.When != "十二月" {
 		t.Fatal(c)
 	}
-	planClick(t, tt, fmt.Sprintf("添加卡片-|%s|-1", f.lines[0].ID))
+	click(t, tt, fmt.Sprintf("添加卡片-|%s|-1", f.lines[0].ID))
 	tt.Type("雨季结束")
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
@@ -421,8 +400,8 @@ func TestTheOutlineTimeline(t *testing.T) {
 	if !ok || box.W <= 0 || box.H <= 0 || box.X < a.plan.viewport.X+planLaneWidth || box.X+box.W > a.plan.viewport.X+a.plan.viewport.W || a.plan.seen != c.ID {
 		t.Fatal("new card not revealed and marked", box, a.plan.viewport, a.plan.seen)
 	}
-	planClick(t, tt, "卡片-"+c.ID)
-	planClick(t, tt, "删除卡片")
+	click(t, tt, "卡片-"+c.ID)
+	click(t, tt, "删除卡片")
 	if _, ok := planStored(t, a).Card(c.ID); ok {
 		t.Fatal("not deleted")
 	}
@@ -430,14 +409,14 @@ func TestTheOutlineTimeline(t *testing.T) {
 
 func TestTheChapterInTheStory(t *testing.T) {
 	a, tt, f := outlineFixture(t)
-	planClick(t, tt, "打开正文-"+f.two)
+	click(t, tt, "打开正文-"+f.two)
 	label := "故事中 十九年前 — 十月六日"
-	planHas(t, tt, label)
-	planClick(t, tt, label)
+	hasText(t, tt, label)
+	click(t, tt, label)
 	if a.page != pagePlan || a.plan.mode != 1 || a.plan.seen != f.cards[0].ID {
 		t.Fatal("did not open at first timed card", a.page, a.plan.mode, a.plan.seen)
 	}
-	planClick(t, tt, "正文")
+	click(t, tt, "正文")
 	a.openNode(f.three)
 	tt.Frame()
 	for _, text := range tt.Texts() {
@@ -471,7 +450,7 @@ func TestOutlineStaysAtTheEdges(t *testing.T) {
 	tt.Frame()
 	a.turnAI(false)
 	tt.Frame()
-	planHas(t, tt, "大纲")
+	hasText(t, tt, "大纲")
 	if a.page != pagePlan {
 		t.Fatal("AI switch removed outline")
 	}
@@ -482,12 +461,12 @@ func TestOutlineTrashAndSettingsPane(t *testing.T) {
 	if a.plan.pane {
 		t.Fatal("outline opens with pane")
 	}
-	planClick(t, tt, "展开右栏")
-	planHas(t, tt, "设定")
+	click(t, tt, "展开右栏")
+	hasText(t, tt, "设定")
 	if _, ok := tt.Find("讨论输入"); ok {
 		t.Fatal("outline has discussion pane")
 	}
-	planClick(t, tt, "收起右栏")
+	click(t, tt, "收起右栏")
 	if a.plan.pane {
 		t.Fatal("pane did not close")
 	}
@@ -509,8 +488,8 @@ func TestOutlineTrashAndSettingsPane(t *testing.T) {
 	if len(a.cardsOf(f.two)) != 3 {
 		t.Fatal("restored cards not back")
 	}
-	planClick(t, tt, "正文")
-	planClick(t, tt, "大纲")
+	click(t, tt, "正文")
+	click(t, tt, "大纲")
 	if a.plan.pane {
 		t.Fatal("pane state changed between pages")
 	}

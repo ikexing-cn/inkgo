@@ -1,14 +1,13 @@
 package desk
 
 import (
-	"image/png"
-	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
+
+	"writer/internal/testshot"
 )
 
 // pick clicks the rows of the menu that is open along path: each but the
@@ -247,24 +246,10 @@ func TestMenuRows(t *testing.T) {
 
 // SHOT=dir go test ./desk -run TestShotMenus draws each menu open.
 func TestShotMenus(t *testing.T) {
-	dir := os.Getenv("SHOT")
-	if dir == "" {
-		t.Skip("set SHOT=dir")
-	}
+	testshot.Dir(t)
 	a, tt, _ := writingFixture(t, "雨从傍晚开始下，一直没有停。\n林晚背着工具箱，沿着亮着的灯往旧城走。")
 	tt.SetTitleBar(ui.TitleBar{Height: 40, Right: 138})
-	shot := func(name string) {
-		tt.Frame()
-		tt.Frame()
-		f, err := os.Create(filepath.Join(dir, name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer f.Close()
-		if err := png.Encode(f, tt.Image()); err != nil {
-			t.Fatal(err)
-		}
-	}
+
 	shut := func() {
 		a.menu = menuState{}
 		tt.Frame()
@@ -272,36 +257,36 @@ func TestShotMenus(t *testing.T) {
 	a.write.ed.Select(0, 1)
 	tt.Frame()
 	tt.RightClickAt(520, 240)
-	shot("menu-text.png")
+	shot(t, tt, "menu-text.png")
 	if err := tt.Click("菜单-加入名字表"); err != nil {
 		t.Fatal(err)
 	}
-	shot("menu-names.png")
+	shot(t, tt, "menu-names.png")
 	shut()
 	tt.RightClickAt(520, 735) // at the window's foot
 	tt.Frame()
 	if err := tt.Click("菜单-加入名字表"); err != nil {
 		t.Fatal(err)
 	}
-	shot("menu-names-low.png")
+	shot(t, tt, "menu-names-low.png")
 	shut()
 
 	if err := tt.RightClick("章节-第一章"); err != nil {
 		t.Fatal(err)
 	}
-	shot("menu-tree.png")
+	shot(t, tt, "menu-tree.png")
 	shut()
 
 	if err := tt.Click("切换作品"); err != nil {
 		t.Fatal(err)
 	}
-	shot("menu-work.png")
+	shot(t, tt, "menu-work.png")
 	shut()
 
 	if err := tt.Click("更多"); err != nil { // the dots over the setting
 		t.Fatal(err)
 	}
-	shot("menu-pane.png")
+	shot(t, tt, "menu-pane.png")
 	shut()
 
 	if err := tt.Click("讨论"); err != nil {
@@ -311,13 +296,13 @@ func TestShotMenus(t *testing.T) {
 	if err := tt.Click("当前模型"); err != nil {
 		t.Fatal(err, tt.Texts())
 	}
-	shot("menu-model.png")
+	shot(t, tt, "menu-model.png")
 	shut()
 	tt.SetDark(true)
 	if err := tt.RightClick("对话-" + a.session); err != nil {
 		t.Fatal(err)
 	}
-	shot("menu-talk-dark.png")
+	shot(t, tt, "menu-talk-dark.png")
 	shut()
 }
 

@@ -41,20 +41,20 @@ func TestOutlineVirtualScrolling(t *testing.T) {
 	}
 	// Search the whole book, including rows which have never been built.
 	planType(t, tt, "搜索大纲", "事件0240")
-	planHas(t, tt, "找到 1 张卡片")
+	hasText(t, tt, "找到 1 张卡片")
 	if _, ok := tt.Find("大纲章节-" + last.Chapter); !ok {
 		t.Fatal("search missed a virtual chapter")
 	}
-	planClick(t, tt, "清除搜索")
+	click(t, tt, "清除搜索")
 	a.seePlanCard(last.ID)
 	sv.Invalidate()
 	tt.Frame()
 	tt.Frame()
 	planVisibleCard(t, a, tt, last.ID)
 	// A new card in a distant row must be built before ScrollIntoView runs.
-	planClick(t, tt, fmt.Sprintf("添加卡片-%s|%s|-2", last.Chapter, last.Line))
+	click(t, tt, fmt.Sprintf("添加卡片-%s|%s|-2", last.Chapter, last.Line))
 	tt.Type("新记在最后一章的事")
-	planClick(t, tt, "保存卡片")
+	click(t, tt, "保存卡片")
 	added, _ := p.data.Card(p.seen)
 	if added.Title != "新记在最后一章的事" {
 		t.Fatal(added)
@@ -67,7 +67,7 @@ func TestOutlineVirtualScrolling(t *testing.T) {
 	tt.Frame()
 	tt.Frame()
 	when := storyWhen(a.cardsOf(last.Chapter))
-	planClick(t, tt, "故事中 "+when)
+	click(t, tt, "故事中 "+when)
 	if p.mode != 1 {
 		t.Fatal("story jump did not select timeline")
 	}

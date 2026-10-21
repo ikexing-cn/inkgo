@@ -167,4 +167,4 @@ AI 辅助（续写、改写、按章纲起草）是第二期，见[AI 辅助写�
   - 拖动；
   - 标记重开后还在；
   - 导出。
-- `SHOT=<path> go test -run TestLayoutWriting ./cmd/poc`：正文页、快照对比、外部改动提示、文件夹页、查找栏的截图。
+- `SHOT=<dir> go test -run TestLayoutWriting ./cmd/poc`：正文页、快照对比、外部改动提示、文件夹页、查找栏的截图。

@@ -2,7 +2,6 @@ package desk
 
 import (
 	"fmt"
-	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/internal/testshot"
 	"writer/model"
 	"writer/workspace"
 )
@@ -256,42 +256,28 @@ func TestCheckOnlyWhenAsked(t *testing.T) {
 // SHOT=dir go test ./desk -run TestShotCheck draws the page of the checks,
 // the foot of a chapter and the settings.
 func TestShotCheck(t *testing.T) {
-	dir := os.Getenv("SHOT")
-	if dir == "" {
-		t.Skip("set SHOT=dir")
-	}
+	testshot.Dir(t)
 	a, tt, _, _ := checkFixture(t)
-	shot := func(name string) {
-		tt.Frame()
-		tt.Frame()
-		out, err := os.Create(filepath.Join(dir, name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer out.Close()
-		if err := png.Encode(out, tt.Image()); err != nil {
-			t.Fatal(err)
-		}
-	}
+
 	tt.SetTitleBar(ui.TitleBar{Height: 40, Right: 138}) // the Windows buttons
 	if err := tt.Click("立即检查"); err != nil {
 		t.Fatal(err)
 	}
 	until(t, tt, "the check", func() bool { return tt.HasText("本章检查完成，有 3 处待处理") })
 	a.ck.whenOpen = true
-	shot("check-foot.png")
+	shot(t, tt, "check-foot.png")
 	a.ck.whenOpen = false
 	a.page = pageCheck
-	shot("check-page.png")
+	shot(t, tt, "check-page.png")
 	a.ck.shown = ""
 	a.ck.tab = 3
-	shot("check-new.png")
+	shot(t, tt, "check-new.png")
 	a.ck.tab = 0
 	tt.SetDark(true)
-	shot("check-page-dark.png")
+	shot(t, tt, "check-page-dark.png")
 	tt.SetDark(false)
 	a.openPrefs("提醒与检查")
-	shot("check-settings.png")
+	shot(t, tt, "check-settings.png")
 }
 
 // A chapter too long for the model to be given whole is not said to be

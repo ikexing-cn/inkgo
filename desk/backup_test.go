@@ -1,7 +1,6 @@
 package desk
 
 import (
-	"image/png"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -11,6 +10,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"writer/backup"
+	"writer/internal/testshot"
 )
 
 // waitBackup runs frames until the backup in flight is done.
@@ -239,31 +239,17 @@ func TestBackupFails(t *testing.T) {
 // TestShotBackup writes screenshots of the backups when SHOT is a
 // directory: SHOT=dir go test ./desk -run ShotBackup
 func TestShotBackup(t *testing.T) {
-	dir := os.Getenv("SHOT")
-	if dir == "" {
-		t.Skip("set SHOT=dir")
-	}
+	testshot.Dir(t)
 	a, tt, _ := writingFixture(t, "整条街的灯是同时灭的。\n林晚站在巷口，手电在工具箱最底下。她没有去摸。")
 	tt.SetTitleBar(ui.TitleBar{Height: 40, Right: 138})
-	shot := func(name string) {
-		tt.Frame()
-		tt.Frame()
-		f, err := os.Create(filepath.Join(dir, name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer f.Close()
-		if err := png.Encode(f, tt.Image()); err != nil {
-			t.Fatal(err)
-		}
-	}
+
 	sync := filepath.Join(t.TempDir(), "OneDrive", "写作备份")
 	was := syncFolders
 	syncFolders = func() []place { return []place{{"OneDrive 同步文件夹", sync}} }
 	t.Cleanup(func() { syncFolders = was })
 	a.PickFolder = func(string) (string, error) { return "", nil }
 	a.openAsk()
-	shot("backup-ask.png")
+	shot(t, tt, "backup-ask.png")
 	a.bk.ask = false
 	if err := os.MkdirAll(sync, 0755); err != nil {
 		t.Fatal(err)
@@ -279,7 +265,7 @@ func TestShotBackup(t *testing.T) {
 	}
 	waitBackup(t, a, tt)
 	a.bk.open = true
-	shot("backup-line.png")
+	shot(t, tt, "backup-line.png")
 	a.bk.open = false
 	a.bk.err = &os.PathError{Op: "stat", Path: `E:\雨城来信备份`, Err: os.ErrNotExist}
 	s, _ := a.backupSettings()
@@ -287,26 +273,26 @@ func TestShotBackup(t *testing.T) {
 	a.setBackup(s)
 	tt.SetDark(true)
 	a.bk.chip = true
-	shot("backup-fail-dark.png")
+	shot(t, tt, "backup-fail-dark.png")
 	a.bk.chip = false
 	tt.SetDark(false)
 	a.bk.err = nil
 	s.Dir = sync
 	a.setBackup(s)
 	a.bk.tab, a.page = "备份", 4
-	shot("backup-settings.png")
+	shot(t, tt, "backup-settings.png")
 	tt.SetDark(true)
 	a.bk.tab, a.page = "外观", 4
-	shot("settings-look-dark.png")
+	shot(t, tt, "settings-look-dark.png")
 	a.bk.tab = "AI"
-	shot("settings-models-dark.png")
+	shot(t, tt, "settings-models-dark.png")
 	a.bk.edit = "deepseek"
 	a.chooseProvider("deepseek")
 	tt.Scroll(700, 500, 0, 600)
-	shot("settings-service-dark.png")
+	shot(t, tt, "settings-service-dark.png")
 	a.bk.prefs = false
 	a.page = 0
-	shot("discussion-dark.png")
+	shot(t, tt, "discussion-dark.png")
 }
 
 // Why a backup failed is said from what was found as it failed: saying it

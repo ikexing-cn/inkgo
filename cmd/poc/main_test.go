@@ -1,10 +1,8 @@
 package main
 
 import (
-	"image/png"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -13,15 +11,37 @@ import (
 	"writer/ai"
 	"writer/desk"
 	"writer/editor"
+	"writer/internal/testshot"
 	"writer/workspace"
 )
 
-func TestLayoutDiscussion(t *testing.T) {
-	root := t.TempDir()
+func layoutBook(t *testing.T, root string) *workspace.Store {
+	t.Helper()
 	s, err := workspace.Create(filepath.Join(root, "work"), "雨城来信", "网文")
 	if err != nil {
 		t.Fatal(err)
 	}
+	return s
+}
+
+func newLayoutApp(root string) *desk.App {
+	return desk.New(ai.New(filepath.Join(root, "providers.yaml")))
+}
+
+func openLayoutApp(t *testing.T, root string) *desk.App {
+	t.Helper()
+	a := newLayoutApp(root)
+	if err := a.Open(filepath.Join(root, "work")); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { a.Close() })
+	return a
+}
+
+func TestLayoutDiscussion(t *testing.T) {
+	root := t.TempDir()
+	s := layoutBook(t, root)
+	var err error
 	session, err := s.NewSession()
 	if err != nil {
 		t.Fatal(err)
@@ -53,11 +73,7 @@ func TestLayoutDiscussion(t *testing.T) {
 	if err = os.WriteFile(filepath.Join(root, "work", ".writer", "desk.json"), []byte("{}"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	a := desk.New(ai.New(filepath.Join(root, "providers.yaml")))
-	if err = a.Open(filepath.Join(root, "work")); err != nil {
-		t.Fatal(err)
-	}
-	defer a.Close()
+	a := openLayoutApp(t, root)
 	tt := ui.NewTester(a.View, 1266, 780)
 	tt.Frame()
 	tt.Frame()
@@ -111,7 +127,7 @@ func TestLayoutDiscussion(t *testing.T) {
 		t.Fatal(tt.Texts())
 	}
 	shot(t, tt, "-service")
-	w := desk.New(ai.New(filepath.Join(root, "providers.yaml")))
+	w := newLayoutApp(root)
 	wt := ui.NewTester(w.View, 1266, 780)
 	wt.Frame()
 	wt.Frame()
@@ -119,7 +135,7 @@ func TestLayoutDiscussion(t *testing.T) {
 		t.Fatal(wt.Texts())
 	}
 	shot(t, wt, "-shelf")
-	e := desk.New(ai.New(filepath.Join(t.TempDir(), "providers.yaml")))
+	e := newLayoutApp(t.TempDir())
 	et := ui.NewTester(e.View, 1266, 780)
 	et.Frame()
 	et.Frame()
@@ -131,10 +147,8 @@ func TestLayoutDiscussion(t *testing.T) {
 
 func TestLayoutWriting(t *testing.T) {
 	root := t.TempDir()
-	s, err := workspace.Create(filepath.Join(root, "work"), "雨城来信", "网文")
-	if err != nil {
-		t.Fatal(err)
-	}
+	s := layoutBook(t, root)
+	var err error
 	vol, err := s.NewChapter("", "第一卷：雨季", true)
 	if err != nil {
 		t.Fatal(err)
@@ -165,11 +179,7 @@ func TestLayoutWriting(t *testing.T) {
 	if err = s.Close(); err != nil {
 		t.Fatal(err)
 	}
-	a := desk.New(ai.New(filepath.Join(root, "providers.yaml")))
-	if err = a.Open(filepath.Join(root, "work")); err != nil {
-		t.Fatal(err)
-	}
-	defer a.Close()
+	a := openLayoutApp(t, root)
 	tt := ui.NewTester(a.View, 1266, 780)
 	tt.Frame()
 	if err = tt.Click("正文"); err != nil {
@@ -253,26 +263,18 @@ func clickMenu(tt *ui.Tester, menu, name string) error {
 	return tt.Click(name)
 }
 
-// shot writes a screenshot beside SHOT with suffix, when SHOT is set.
+// shot writes a named screenshot in SHOT, when set.
 func shot(t *testing.T, tt *ui.Tester, suffix string) {
 	t.Helper()
-	path := os.Getenv("SHOT")
-	if path == "" {
+	if !testshot.Enabled() {
 		return
 	}
-	ext := filepath.Ext(path)
-	f, err := os.Create(strings.TrimSuffix(path, ext) + suffix + ext)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer f.Close()
 	// What unfolds or fades runs on the window's clock, which stands still
 	// in a test: run it past them.
 	tt.Advance(time.Second)
 	tt.Frame()
-	if err = png.Encode(f, tt.Image()); err != nil {
-		t.Fatal(err)
-	}
+	name := "layout" + suffix + ".png"
+	testshot.Save(t, name, tt.Image())
 }
 
 // TestLayout checks the editor fills the window, and writes a screenshot
@@ -289,12 +291,5 @@ func TestLayout(t *testing.T) {
 	if r.Y > 1 || r.H < 600 {
 		t.Errorf("editor bounds %+v, want the full height", r)
 	}
-	if path := os.Getenv("SHOT"); path != "" {
-		f, err := os.Create(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer f.Close()
-		png.Encode(f, tt.Image())
-	}
+	testshot.Save(t, "layout.png", tt.Image())
 }

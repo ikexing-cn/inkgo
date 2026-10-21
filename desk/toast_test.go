@@ -3,13 +3,12 @@ package desk
 import (
 	"context"
 	"errors"
-	"image/png"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
+
+	"writer/internal/testshot"
 )
 
 // An error over the settings shows once, above the dialog, with what can be
@@ -135,36 +134,22 @@ func TestAHintHasNoMark(t *testing.T) {
 // TestShotToasts writes screenshots of the toasts when SHOT is a directory:
 // SHOT=dir go test ./desk -run ShotToasts
 func TestShotToasts(t *testing.T) {
-	dir := os.Getenv("SHOT")
-	if dir == "" {
-		t.Skip("set SHOT=dir")
-	}
+	testshot.Dir(t)
 	a, tt, _ := fixture(t)
-	shot := func(name string) {
-		tt.Frame()
-		tt.Frame()
-		f, err := os.Create(filepath.Join(dir, name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer f.Close()
-		if err := png.Encode(f, tt.Image()); err != nil {
-			t.Fatal(err)
-		}
-	}
+
 	tt.SetDark(true)
 	a.openPrefs("AI")
 	a.Error = "连不上 AI：检查网络和服务地址"
-	shot("toast-settings-dark.png")
+	shot(t, tt, "toast-settings-dark.png")
 	tt.SetDark(false)
 	a.bk.prefs = false
 	a.Error = ""
 	tt.Frame()
 	a.page = 3
 	a.notice = "已保存。停笔片刻也会自动保存"
-	shot("toast-saved.png")
+	shot(t, tt, "toast-saved.png")
 	a.Error = "连不上 AI：检查网络和服务地址"
 	tt.Frame()
 	a.busy = "正在读取可用模型…"
-	shot("toast-stack.png")
+	shot(t, tt, "toast-stack.png")
 }

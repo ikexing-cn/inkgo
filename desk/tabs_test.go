@@ -2,7 +2,6 @@ package desk
 
 import (
 	"fmt"
-	"image/png"
 	"os"
 	"path/filepath"
 	"slices"
@@ -11,6 +10,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/internal/testshot"
 )
 
 // openOutline opens the page of a folder from its menu in the tree.
@@ -70,17 +70,6 @@ func tabs(a *App, tt *ui.Tester) string {
 		out = append(out, name)
 	}
 	return strings.Join(out, " ")
-}
-
-func click(t *testing.T, tt *ui.Tester, labels ...string) {
-	t.Helper()
-	for _, label := range labels {
-		if err := tt.Click(label); err != nil {
-			t.Fatal(err, tt.Texts())
-		}
-		tt.Frame()
-		tt.Frame()
-	}
 }
 
 // A chapter clicked in the tree opens in a tab of its own beside the one
@@ -372,52 +361,38 @@ func TestFocusPutsTheTabsAway(t *testing.T) {
 // shown, words not saved, the pointer on another, more than fit, the menu
 // of a tab, the question about saving, and the dark of it.
 func TestShotTabs(t *testing.T) {
-	dir := os.Getenv("SHOT")
-	if dir == "" {
-		t.Skip("set SHOT=dir")
-	}
+	testshot.Dir(t)
 	a, tt, _ := tabsFixture(t)
 	tt.SetTitleBar(ui.TitleBar{Height: 40, Right: 138})
-	shot := func(name string) {
-		tt.Frame()
-		tt.Frame()
-		f, err := os.Create(filepath.Join(dir, name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer f.Close()
-		if err := png.Encode(f, tt.Image()); err != nil {
-			t.Fatal(err)
-		}
-	}
+
 	click(t, tt, "章节-第二章", "章节-第三章")
 	if err := openOutline(tt, "第一卷"); err != nil {
 		t.Fatal(err)
 	}
 	click(t, tt, "标签页-第二章")
 	tt.Move(700, 500)
-	shot("tabs.png")
+	shot(t, tt, "tabs.png")
 	a.write.ed.MoveTo(0, false)
 	a.write.ed.Focus()
 	tt.Frame()
 	tt.Type("雨还在下。")
-	shot("tabs-unsaved.png")
+	shot(t, tt, "tabs-unsaved.png")
 	r, _ := tt.Find("标签页-第三章")
 	tt.Move(r.X+30, r.Y+r.H/2)
-	shot("tabs-hover.png")
+	shot(t, tt, "tabs-hover.png")
 	if err := tt.RightClick("标签页-第三章"); err != nil {
 		t.Fatal(err)
 	}
-	shot("tabs-menu.png")
+	shot(t, tt, "tabs-menu.png")
 	a.menu = menuState{}
 	tt.Move(700, 500)
 	tt.Frame()
 	click(t, tt, "关闭标签页-第二章")
-	shot("tabs-ask.png")
+	shot(t, tt, "tabs-ask.png")
 	tt.SetDark(true)
-	shot("tabs-ask-dark.png")
+	shot(t, tt, "tabs-ask-dark.png")
 	click(t, tt, "取消")
-	shot("tabs-dark.png")
+	shot(t, tt, "tabs-dark.png")
 	tt.SetDark(false)
 	click(t, tt, "关闭标签页-第二章", "不保存")
 	for i := range 12 {
@@ -429,11 +404,11 @@ func TestShotTabs(t *testing.T) {
 		tt.Frame()
 		a.openNode(id)
 	}
-	shot("tabs-many.png")
+	shot(t, tt, "tabs-many.png")
 	click(t, tt, "关闭标签页-第15章：很长的一个章节名字")
 	tt.Key(ui.Cmd, ui.KeyW)
 	a.shutTabs(slices.Clone(a.write.tabs))
-	shot("tabs-none.png")
+	shot(t, tt, "tabs-none.png")
 }
 
 // The tabs open, and which is shown, are kept with the work: it opens again

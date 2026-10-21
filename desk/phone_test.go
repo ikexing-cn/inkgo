@@ -15,15 +15,6 @@ import (
 
 const phoneLongText = "雨水顺着屋檐往下淌，巷子尽头那盏灯晃了两下，终于灭了。她数着自己的脚步，一步，两步，三步，数到第十七步的时候，听见身后有人喊她的名字，声音很轻，像是怕惊动了什么。她没有回头，只是把手电攥得更紧，指节都发了白。"
 
-func phoneClick(t *testing.T, tt *ui.Tester, label string) {
-	t.Helper()
-	if err := tt.Click(label); err != nil {
-		t.Fatal(err)
-	}
-	tt.Frame()
-	tt.Frame()
-}
-
 // The same walk as the prototype, through actual pointer and keyboard
 // input, with assertions against the measured lines and painted ranges.
 func TestThePhonePreview(t *testing.T) {
@@ -52,15 +43,15 @@ func TestThePhonePreview(t *testing.T) {
 		t.Fatalf("pages %d at %d caret %+v: %v", s.pages, s.at, s.caret, tt.Texts())
 	}
 	pages := s.pages
-	phoneClick(t, tt, "下一屏 ›")
+	click(t, tt, "下一屏 ›")
 	if s.at != pages-1 || a.write.node != id {
 		t.Fatal("next at the end left the chapter")
 	}
-	phoneClick(t, tt, "‹ 上一屏")
+	click(t, tt, "‹ 上一屏")
 	if s.at != pages-2 {
 		t.Fatal("previous did not flip")
 	}
-	phoneClick(t, tt, "下一屏 ›")
+	click(t, tt, "下一屏 ›")
 	if s.at != pages-1 {
 		t.Fatal("next did not flip")
 	}
@@ -77,7 +68,7 @@ func TestThePhonePreview(t *testing.T) {
 	ed.Select(ed.Doc.Len(), ed.Doc.Len())
 	ed.Focus()
 	tt.Frame()
-	phoneClick(t, tt, "‹ 上一屏")
+	click(t, tt, "‹ 上一屏")
 	manual := s.at
 	ed.Insert("雨")
 	tt.Frame()
@@ -90,12 +81,12 @@ func TestThePhonePreview(t *testing.T) {
 	if s.at != 0 {
 		t.Fatal("caret crossing did not follow")
 	}
-	phoneClick(t, tt, "‹ 上一屏")
+	click(t, tt, "‹ 上一屏")
 	if s.at != 0 {
 		t.Fatal("previous before the start flipped")
 	}
 	for s.at < s.pages-1 {
-		phoneClick(t, tt, "下一屏 ›")
+		click(t, tt, "下一屏 ›")
 	}
 	// Click the center of a specific glyph on the last visible body line.
 	var last phoneLine
@@ -121,18 +112,18 @@ func TestThePhonePreview(t *testing.T) {
 		t.Fatal("clicked word not revealed", box, ok)
 	}
 
-	phoneClick(t, tt, "Aa")
-	phoneClick(t, tt, "A+")
-	phoneClick(t, tt, "夜间")
+	click(t, tt, "Aa")
+	click(t, tt, "A+")
+	click(t, tt, "夜间")
 	if s.prefs.Size != 21 || s.prefs.Theme != "night" {
 		t.Fatal("typesetting did not change", s.prefs)
 	}
-	phoneClick(t, tt, "恢复默认")
+	click(t, tt, "恢复默认")
 	if s.prefs != defaultPhone() {
 		t.Fatal("defaults not restored", s.prefs)
 	}
-	phoneClick(t, tt, "Aa")
-	phoneClick(t, tt, "滚动")
+	click(t, tt, "Aa")
+	click(t, tt, "滚动")
 	if s.prefs.Mode != "scroll" || !tt.HasText("2 段超过 5 行") || tt.HasText("2 段超过 5 行，看下一处") {
 		t.Fatal("scrolling mode", tt.Texts())
 	}
@@ -169,22 +160,22 @@ func TestThePhonePreview(t *testing.T) {
 	if math.Abs(float64(s.scrollY-wantY)) > 1 {
 		t.Fatal("interior scroll anchor", s.scrollY, wantY)
 	}
-	phoneClick(t, tt, "Aa")
-	phoneClick(t, tt, "A+")
-	phoneClick(t, tt, "恢复默认")
+	click(t, tt, "Aa")
+	click(t, tt, "A+")
+	click(t, tt, "恢复默认")
 	if s.prefs.Mode != "scroll" || s.prefs.Size != 20 {
 		t.Fatal("reset changed reading mode")
 	}
-	phoneClick(t, tt, "Aa")
-	phoneClick(t, tt, "翻页")
-	phoneClick(t, tt, "下一处长段")
+	click(t, tt, "Aa")
+	click(t, tt, "翻页")
+	click(t, tt, "下一处长段")
 	firstLong := s.at
-	phoneClick(t, tt, "下一处长段")
+	click(t, tt, "下一处长段")
 	if len(s.longPages) > 1 && s.at == firstLong {
 		t.Fatal("next long did not advance")
 	}
 	for range len(s.longPages) {
-		phoneClick(t, tt, "下一处长段")
+		click(t, tt, "下一处长段")
 	}
 	if a.write.node != id {
 		t.Fatal("long paragraph navigation changed chapter")
@@ -198,11 +189,11 @@ func TestThePhonePreview(t *testing.T) {
 	if _, ok := tt.Find("右栏-讨论"); ok {
 		t.Fatal("AI off retained talk tab")
 	}
-	phoneClick(t, tt, "右栏-设定")
+	click(t, tt, "右栏-设定")
 	if a.doc.tab != paneSetting || !tt.HasText("主角怕黑") {
 		t.Fatal("cannot leave preview")
 	}
-	phoneClick(t, tt, "右栏-预览")
+	click(t, tt, "右栏-预览")
 	// Opening another chapter starts at page one, even with a retained
 	// caret at its end. The empty/folder state has a single line.
 	other, err := a.Store.NewChapter("", "另一章", false)
@@ -242,10 +233,10 @@ func TestPhonePreferencesAreLocal(t *testing.T) {
 	}
 	a.openPhone()
 	tt.Frame()
-	phoneClick(t, tt, "滚动")
-	phoneClick(t, tt, "Aa")
+	click(t, tt, "滚动")
+	click(t, tt, "Aa")
 	for _, label := range []string{"宽屏", "A+", "宽松", "护眼", "显示手机外框", "标出超过 5 行的段落"} {
-		phoneClick(t, tt, label)
+		click(t, tt, label)
 	}
 	want := a.phonePreferences()
 	if want.Mode != "scroll" || want.Screen != "wide" || want.Size != 21 || want.Spacing != "loose" || want.Theme != "eye" || !want.NoFrame || !want.NoLong {

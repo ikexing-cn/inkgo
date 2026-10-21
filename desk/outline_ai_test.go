@@ -1,12 +1,12 @@
 package desk
 
 import (
-	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"writer/internal/testshot"
 	"writer/workspace"
 )
 
@@ -45,20 +45,7 @@ func TestDraftDialogWithCards(t *testing.T) {
 	if !tt.HasText(newHead) || tt.HasText(oldHead) || !strings.HasPrefix(a.write.draftNote, "将带上本章的 2 张卡片、各卷卷纲等，约 ") || a.write.draftCards != 2 {
 		t.Fatal("dialog does not describe its chapter's cards", tt.Texts())
 	}
-	if dir := os.Getenv("SHOT"); dir != "" {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			t.Fatal(err)
-		}
-		f, err := os.Create(filepath.Join(dir, "draft-with-cards.png"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = png.Encode(f, tt.Image())
-		closeErr := f.Close()
-		if err != nil || closeErr != nil {
-			t.Fatalf("screenshot: %v, %v", err, closeErr)
-		}
-	}
+	testshot.Save(t, "draft-with-cards.png", tt.Image())
 	note := a.write.draftNote
 	if err := os.WriteFile(filepath.Join(a.Store.Root(), "outline.json"), []byte(`{broken`), 0644); err != nil {
 		t.Fatal(err)
