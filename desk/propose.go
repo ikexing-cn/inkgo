@@ -438,7 +438,7 @@ func (a *App) aiBar(c *ui.Context) {
 		}
 		_, _, steps, _ := a.live.read()
 		say := "AI 正在思考…"
-		if len(looks(steps, "")) > 0 {
+		if len(workspace.Looks(steps, "")) > 0 {
 			say = "AI 正在查阅…"
 		}
 		bar(func() {
@@ -498,22 +498,11 @@ var whereNames = map[string]string{
 	workspace.ProposeAll:     "换掉全章",
 }
 
-// fateOf is what came of the proposal of call, as events from from on
-// tell, or "" while it is undecided.
-func fateOf(events []workspace.Event, from int, call string) string {
-	for _, e := range events[from:] {
-		if e.Role == workspace.RoleFate && e.Call == call {
-			return e.Fate
-		}
-	}
-	return ""
-}
-
 // propCard shows, in the reply of the talk session, a change it proposed
 // in the prose, by the result e of the call that proposed it.
 func (a *App) propCard(c *ui.Context, session string, e workspace.Event) {
 	from := slices.IndexFunc(a.events, func(u workspace.Event) bool { return u.ID == e.ReplyTo })
-	a.propCardOf(c, *e.Proposal, a.write.propOf(session, e.Call), fateOf(a.events, max(from, 0), e.Call))
+	a.propCardOf(c, *e.Proposal, a.write.propOf(session, e.Call), workspace.FateOf(a.events, max(from, 0), e.Call))
 }
 
 // turnCards show what the turn in flight proposed: as it comes, and as
@@ -534,7 +523,7 @@ func (a *App) turnCards(c *ui.Context, steps []workspace.Event) {
 		}
 	}
 	for _, call := range calls {
-		a.propCardOf(c, ps[call], w.propOf(a.talkSession, call), fateOf(a.events, 0, call))
+		a.propCardOf(c, ps[call], w.propOf(a.talkSession, call), workspace.FateOf(a.events, 0, call))
 	}
 }
 

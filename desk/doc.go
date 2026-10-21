@@ -8,7 +8,7 @@
 // categories.go: work-category forms and deletion confirmation.
 // change.go: setting changes from a chapter, timelines, and forms.
 // chapters.go: opening chapters, navigation, editors, and text size.
-// chat.go: discussion messages, reasoning, tool calls, usage, and input.
+// chat.go: discussion drawing, streaming replies, tool views, and digest sections.
 // check.go: check queue, findings, prose marks, and the 检查 page.
 // counts.go: book and daily word counts, goals, and recent days.
 // doc.go: this package index.

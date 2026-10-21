@@ -3,10 +3,8 @@ package desk
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"runtime"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -165,44 +163,6 @@ func (a *App) digest(c *ui.Context, d workspace.Event, through int) {
 			ui.Text(c, "摘要由 AI 写成，有误可在对话中指出。").FontSize(fsNote).LineHeight(lhBody).TextColor(t.TextMuted).FillWidth()
 		})
 	})
-}
-
-// mention is a piece of a digest: words, or an entry it names.
-type mention struct {
-	text  string
-	entry *workspace.Entry
-}
-
-// entryNumber is how the talk's model names an entry: by its number.
-var entryNumber = regexp.MustCompile(`\[(\d+)\]`)
-
-// mentions splits text at the entries it names by number, each piece of
-// them showing the entry by its name, or its first words when it names
-// nothing. A number no entry has stays as it is.
-func (a *App) mentions(text string) []mention {
-	var out []mention
-	at := 0
-	for _, m := range entryNumber.FindAllStringSubmatchIndex(text, -1) {
-		n, _ := strconv.Atoi(text[m[2]:m[3]])
-		if n < 1 || n > len(a.set.Entries) {
-			continue
-		}
-		if m[0] > at {
-			out = append(out, mention{text: text[at:m[0]]})
-		}
-		e := a.set.Entries[n-1]
-		s := strings.TrimSpace(e.Text)
-		name := clip(s[:strings.IndexAny(s+"。", "。！？；")], 16) // clip ends it at a line's end too
-		if len(e.Names) > 0 {
-			name = e.Names[0]
-		}
-		out = append(out, mention{text: name, entry: &e})
-		at = m[1]
-	}
-	if at < len(text) {
-		out = append(out, mention{text: text[at:]})
-	}
-	return out
 }
 
 // sections split a digest at its headings, the lines that open with "## ",
@@ -380,7 +340,7 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 					if m.Reasoning != "" {
 						a.thought(c, m.ID, "思考过程", m.Reasoning, false)
 					}
-					if found := looks(a.events, m.ReplyTo); len(found) > 0 {
+					if found := workspace.Looks(a.events, m.ReplyTo); len(found) > 0 {
 						a.looked(c, "look-"+m.ID, found, false)
 					}
 					for _, e := range proposed(a.events, m.ReplyTo) {
@@ -406,7 +366,7 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 				if who := a.replyLabel(m.Model, m.Effort); who != "" {
 					foot += " · " + who
 				}
-				if u, ok := spent(a.events, m); ok {
+				if u, ok := workspace.Spent(a.events, m); ok {
 					foot += " · " + tokens.Round(u.Input+u.Output) + " token"
 					if cost := a.turnCost(a.events, m); cost != "" {
 						foot += " · " + cost
@@ -471,7 +431,7 @@ func (a *App) thinking(c *ui.Context) {
 		})
 	}
 	reasoning, text, steps, compacting := a.live.read()
-	found := looks(steps, "")
+	found := workspace.Looks(steps, "")
 	proposing, writing := len(a.live.proposals()) > 0 || len(proposed(steps, "")) > 0, a.writingProps()
 	ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Start).Children(func() {
 		a.aiMark(c)
@@ -554,37 +514,6 @@ func (a *App) thought(c *ui.Context, key, label, reasoning string, running bool)
 	}).FillWidth()
 }
 
-// look is one thing a reply looked up or noted on its way: what it did,
-// and what came back, empty while it runs.
-type look struct {
-	label  string
-	result workspace.Event
-}
-
-// looks are what the reply to the author's words userID looked up among
-// events, in the order it did; for "" all of them, as the turn in flight
-// has them. What it proposed in the prose is not among them: that shows
-// as a card of its own.
-func looks(events []workspace.Event, userID string) []look {
-	results := map[string]workspace.Event{}
-	for _, e := range events {
-		if e.Role == workspace.RoleResult && (userID == "" || e.ReplyTo == userID) {
-			results[e.Call] = e
-		}
-	}
-	var out []look
-	for _, e := range events {
-		if e.Role == workspace.RoleCall && (userID == "" || e.ReplyTo == userID) {
-			for _, call := range e.Calls {
-				if call.Name != workspace.ProposeTool {
-					out = append(out, look{call.Label, results[call.ID]})
-				}
-			}
-		}
-	}
-	return out
-}
-
 // proposed are the results of the calls by which the reply to the
 // author's words userID proposed changes in the prose, in the order it
 // proposed them; for "" all of them, as the turn in flight has them.
@@ -596,22 +525,6 @@ func proposed(events []workspace.Event, userID string) []workspace.Event {
 		}
 	}
 	return out
-}
-
-// spent is what the requests of the turn reply ends used together: its
-// own and each before it that looked something up. A reply from before
-// each request was kept apart holds them all, and those before it none.
-func spent(events []workspace.Event, reply workspace.Event) (workspace.Usage, bool) {
-	if reply.Usage == nil {
-		return workspace.Usage{}, false
-	}
-	sum := *reply.Usage
-	for _, e := range events {
-		if e.Role == workspace.RoleCall && e.ReplyTo == reply.ReplyTo && e.Usage != nil {
-			sum = sum.Add(*e.Usage)
-		}
-	}
-	return sum, true
 }
 
 // turnCost is what the requests of the turn reply ends cost by the prices
@@ -631,25 +544,11 @@ func (a *App) turnCost(events []workspace.Event, reply workspace.Event) string {
 	return costText(costs)
 }
 
-// requests is how many requests the turn reply ends took, as far as their
-// usage tells: each step that looked something up, and the reply's own. A
-// reply from before each request was kept apart counts one, as its usage
-// is of them all.
-func requests(events []workspace.Event, reply workspace.Event) int {
-	n := 1
-	for _, e := range events {
-		if e.Role == workspace.RoleCall && e.ReplyTo == reply.ReplyTo && e.Usage != nil {
-			n++
-		}
-	}
-	return n
-}
-
 // looked folds what a reply looked up above it, as thought folds its
 // reasoning: the head says what it did, and open, each thing shows what
 // came back. What it noted links to the entry. It stays open while the
 // reply looks.
-func (a *App) looked(c *ui.Context, key string, found []look, running bool) {
+func (a *App) looked(c *ui.Context, key string, found []workspace.Look, running bool) {
 	t := a.pal.theme
 	open := a.thoughts[key]
 	if open == nil || running {
@@ -661,7 +560,7 @@ func (a *App) looked(c *ui.Context, key string, found []look, running bool) {
 	if !running {
 		labels := make([]string, len(found))
 		for n, l := range found {
-			labels[n] = l.label
+			labels[n] = l.Label
 		}
 		label = strings.Join(labels, "，")
 	}
@@ -670,16 +569,16 @@ func (a *App) looked(c *ui.Context, key string, found []look, running bool) {
 			ui.Box(c).Width(2).Radius(rRound).Background(a.pal.line).Shrink(0)
 			ui.Column(c).Grow(1).Shrink(1).Gap(8).Children(func() {
 				for n, l := range found {
-					if r := l.result.Revision; r != "" {
-						if a.paneLink(c, l.label, "查看设定", fmt.Sprintf("查看设定-%s-%d", key, n)) {
+					if r := l.Result.Revision; r != "" {
+						if a.paneLink(c, l.Label, "查看设定", fmt.Sprintf("查看设定-%s-%d", key, n)) {
 							a.showNoted(r)
 						}
 						continue
 					}
 					ui.Column(c).FillWidth().Gap(2).Children(func() {
-						ui.Text(c, l.label).FontSize(fsControl).TextColor(t.TextMuted).Selectable().FillWidth()
-						if l.result.Text != "" {
-							ui.Text(c, l.result.Text).FontSize(fsNote).LineHeight(lhBody).TextColor(a.pal.faint).Selectable().FillWidth()
+						ui.Text(c, l.Label).FontSize(fsControl).TextColor(t.TextMuted).Selectable().FillWidth()
+						if l.Result.Text != "" {
+							ui.Text(c, l.Result.Text).FontSize(fsNote).LineHeight(lhBody).TextColor(a.pal.faint).Selectable().FillWidth()
 						}
 					})
 				}
@@ -781,7 +680,7 @@ func (a *App) audit(c *ui.Context, m workspace.Event) {
 					parts = append(parts, name+" "+tokens.Round(p.Tokens))
 				}
 				ui.Textf(c, "本次发送约 %s token", tokens.Round(total)).FontSize(fsNote).FontWeight(600)
-				if n := requests(a.events, m); n > 1 { // what it says is of the request that replied
+				if n := workspace.Requests(a.events, m); n > 1 { // what it says is of the request that replied
 					note(fmt.Sprintf("这一轮共 %d 次请求，这是最后一次。", n))
 				}
 				note(strings.Join(parts, " · "))

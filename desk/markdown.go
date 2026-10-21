@@ -117,28 +117,26 @@ func (a *App) digestMarkdown(s string) string {
 			if in.Kind != parser.Text {
 				continue
 			}
-			for _, match := range entryNumber.FindAllStringIndex(s[in.Start:in.End], -1) {
-				start, end := in.Start+match[0], in.Start+match[1]
-				for _, m := range a.mentions(s[start:end]) {
-					if m.entry == nil {
-						continue
-					}
-					out.WriteString(s[at:start])
-					out.WriteString("「[")
-					for _, r := range m.text {
-						if strings.ContainsRune("\\`*_{}[]()#+-.!|<>&~", r) {
-							out.WriteString("&#")
-							out.WriteString(strconv.Itoa(int(r)))
-							out.WriteByte(';')
-						} else {
-							out.WriteRune(r)
-						}
-					}
-					out.WriteString("](inkgo-entry:")
-					out.WriteString(s[start+1 : end-1])
-					out.WriteString(")」")
-					at = end
+			for _, m := range a.set.Mentions(s[in.Start:in.End]) {
+				if m.Entry == nil {
+					continue
 				}
+				start, end := in.Start+m.Start, in.Start+m.End
+				out.WriteString(s[at:start])
+				out.WriteString("「[")
+				for _, r := range m.Text {
+					if strings.ContainsRune("\\`*_{}[]()#+-.!|<>&~", r) {
+						out.WriteString("&#")
+						out.WriteString(strconv.Itoa(int(r)))
+						out.WriteByte(';')
+					} else {
+						out.WriteRune(r)
+					}
+				}
+				out.WriteString("](inkgo-entry:")
+				out.WriteString(s[start+1 : end-1])
+				out.WriteString(")」")
+				at = end
 			}
 		}
 	}
