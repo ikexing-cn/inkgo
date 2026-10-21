@@ -1,9 +1,12 @@
 package desk
 
 import (
+	"reflect"
+	"slices"
 	"testing"
 	"time"
 
+	"writer/prefs"
 	"writer/workspace"
 )
 
@@ -97,5 +100,32 @@ func TestCountsMoveAsTyped(t *testing.T) {
 	tt.Frame()
 	if !tt.HasText("本章 3 字 · 全书 3 字 · 今天 +2") {
 		t.Fatal(tt.Texts())
+	}
+}
+
+func TestCountsWaitForTheBook(t *testing.T) {
+	a, _, _ := writingFixture(t, "一二三")
+	a.write.counter = prefs.Counter{Day: "2026-10-09", DayStart: 3, Days: map[string]int{"2026-10-08": 2}}
+	a.write.counts = nil
+	before := a.write.counter
+	now := time.Date(2026, 10, 10, 9, 0, 0, 0, time.Local)
+	if a.rollDay(now) || a.today(now) != 0 || a.today(now.AddDate(0, 0, -1)) != 0 {
+		t.Fatal("unread book started a day")
+	}
+	if got := a.lastDays(now, 3); !slices.Equal(got, []int{2, 0, 0}) {
+		t.Fatal(got)
+	}
+	if got := a.lastDays(now.AddDate(0, 0, -1), 2); !slices.Equal(got, []int{2, 0}) {
+		t.Fatal(got)
+	}
+	if !reflect.DeepEqual(a.write.counter, before) {
+		t.Fatal("unread book changed the counter", a.write.counter)
+	}
+	a.write.counts = map[string]int{"chapter": 10}
+	if !a.rollDay(now) || a.write.counter.Days["2026-10-09"] != 7 {
+		t.Fatal("known count did not start a day", a.write.counter)
+	}
+	if a.today(now) != 0 {
+		t.Fatal("new day did not start at zero")
 	}
 }

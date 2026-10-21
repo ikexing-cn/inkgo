@@ -37,22 +37,29 @@ func (a *App) today(now time.Time) int {
 	if a.write.counts == nil {
 		return 0 // not read yet: a start of nothing would count the whole book
 	}
-	return a.write.counter.Today(a.total(), now, a.savePrefs)
+	return a.write.counter.Today(a.total(), now)
 }
 
 func (a *App) lastDays(now time.Time, n int) []int {
+	days := a.write.counter.LastDays(a.total(), now, n)
 	if a.write.counts == nil {
-		days := make([]int, n)
-		for i := range n - 1 {
-			day := now.AddDate(0, 0, i-n+1).Format(time.DateOnly)
-			days[i] = a.write.counter.Days[day]
-		}
-		return days
+		days[n-1] = 0
 	}
-	return a.write.counter.LastDays(a.total(), now, n, a.savePrefs)
+	return days
 }
 
-func (a *App) setGoal(text string) { a.write.counter.SetGoal(text, a.savePrefs) }
+func (a *App) setGoal(text string) {
+	if a.write.counter.SetGoal(text) {
+		a.savePrefs()
+	}
+}
+
+func (a *App) rollDay(now time.Time) bool {
+	if a.write.counts == nil {
+		return false
+	}
+	return a.write.counter.Roll(a.total(), now)
+}
 
 // words says how many characters, the way the design writes them: grouped
 // by thousands, and in 万 from ten thousand on.

@@ -4,6 +4,7 @@ import (
 	"maps"
 	"slices"
 	"strconv"
+	"time"
 
 	"writer/prefs"
 )
@@ -45,6 +46,7 @@ func (a *App) loadPrefs() {
 }
 
 func (a *App) savePrefs() {
+	a.rollDay(time.Now())
 	shelved := slices.Sorted(maps.Keys(a.shelved))
 	p := prefs.Prefs{Shelved: shelved, SettingHidden: a.doc.hidden, SideHidden: a.sideHidden, Chapter: a.write.node, Tabs: a.write.tabs, Blank: a.write.blank, Writing: a.leftWriting, AutoPredict: a.write.autoPredict,
 		PanelWidth: a.doc.width, PaneTab: string(a.doc.tab), LateAfter: a.write.lateAfter, CheckWhen: a.ck.when, NoAttach: !a.doc.attach,

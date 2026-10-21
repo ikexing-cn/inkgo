@@ -94,6 +94,9 @@ func (a *App) saveOutline() error {
 // watch saves what paused long enough and looks at the disk, each frame
 // of the writing page.
 func (a *App) watch(c *ui.Context) {
+	if a.rollDay(time.Now()) {
+		a.savePrefs()
+	}
 	w := &a.write
 	if len(w.closing) > 0 {
 		return // asked whether to save: nothing is saved until the answer
