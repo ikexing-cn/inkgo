@@ -43,7 +43,7 @@ func (a *App) resizer(c *ui.Context, width float32) {
 }
 
 // panelTabs switch the writing page's right column between the setting,
-// the talk and the foreshadowings.
+// the talk, the foreshadowings and the phone preview.
 func (a *App) panelTabs(c *ui.Context) {
 	t := a.pal.theme
 	// Each count is of what waits on the author there.
@@ -54,8 +54,12 @@ func (a *App) panelTabs(c *ui.Context) {
 		}
 	}
 	open := a.ideas()
-	tab := func(label string, talk, fore bool) {
-		on := a.doc.fore == fore && (fore || a.talkTab() == talk)
+	shown := a.doc.tab
+	if shown == paneTalk && !a.aiOn() {
+		shown = paneSetting
+	}
+	tab := func(label string, kind paneTab) {
+		on := shown == kind
 		b := ui.ButtonBase(c).Row().AlignItems(ui.Center).Padding(4, 10).Radius(rControl).Label("右栏-" + label)
 		if on {
 			b.Background(t.SurfacePressed)
@@ -71,35 +75,36 @@ func (a *App) panelTabs(c *ui.Context) {
 			}
 			// The count sits inside its own tab; beside the tabs it read
 			// as unread talk.
-			n := len(open)
-			if fore {
+			n := 0
+			switch kind {
+			case paneSetting:
+				n = len(open)
+			case paneFore:
 				n = waiting
 			}
-			if n > 0 && !talk {
+			if n > 0 {
 				ui.Textf(c, "%d", n).FontSize(fsNote).TextColor(a.pal.faint).Padding(0, 0, 0, 4)
 			}
 		})
 		if b.Clicked() && !on {
-			a.doc.fore = fore
-			if !fore {
-				a.doc.talk = talk
-			}
+			a.doc.tab = kind
 			a.savePrefs()
 		}
 	}
 	ui.Row(c).Gap(2).AlignItems(ui.Center).Children(func() {
-		tab("设定", false, false)
+		tab("设定", paneSetting)
 		if a.aiOn() {
-			tab("讨论", true, false)
+			tab("讨论", paneTalk)
 		}
-		tab("伏笔", false, true)
+		tab("伏笔", paneFore)
+		tab("预览", panePhone)
 	})
 }
 
 // talkTab tells whether the column beside the prose shows the talk: the
 // author chose it there, and the AI is on. Off, the choice is kept for
 // when it is back.
-func (a *App) talkTab() bool { return a.doc.talk && a.aiOn() }
+func (a *App) talkTab() bool { return a.doc.tab == paneTalk && a.aiOn() }
 
 // talkPanel is the talk beside the prose: one talk with its turns and the
 // composer, which sends what the author is writing with their words, or
@@ -214,7 +219,7 @@ func (a *App) quoteToTalk() {
 		a.doc.hidden = false
 	}
 	w.focus = false // the talk is in the column
-	a.doc.talk, a.doc.fore = true, false
+	a.doc.tab = paneTalk
 	a.focusTalk = true
 	a.savePrefs()
 }

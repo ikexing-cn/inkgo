@@ -188,7 +188,7 @@ func TestShotBeside(t *testing.T) {
 	_, _ = a.Store.Append(a.session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Model: "deepseek/deepseek-flash",
 		Text: "有一点。“怕黑”是她的底牌，第一章就直接说出来，后面井边那场戏就少了悬念。\n\n可以只留动作：她在巷口停住，把手电换到另一只手。读者会自己猜。"})
 	a.setError(a.refresh())
-	a.doc.talk = true
+	a.doc.tab = paneTalk
 	a.write.ed.Select(15, 34)
 	tt.Frame()
 	tt.Key(ui.Cmd, ui.KeyL)

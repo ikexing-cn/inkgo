@@ -51,7 +51,23 @@ type Shelf struct {
 	// Export is how the export dialog was last left, for every work; nil,
 	// it was never used.
 	Export *Export `json:"export,omitempty"`
-	Books  []Book  `json:"books"`
+	// Phone is the phone preview's typesetting on this machine, for every
+	// work; nil, it was never changed and uses the defaults.
+	Phone *Phone `json:"phone,omitempty"`
+	Books []Book `json:"books"`
+}
+
+// Phone keeps named choices, independent of the order of UI controls.
+// Empty or unknown choices use the preview defaults. NoFrame and NoLong
+// hide the frame and long-paragraph marks; absent, both are shown.
+type Phone struct {
+	Mode    string `json:"mode,omitempty"`    // flip or scroll
+	Screen  string `json:"screen,omitempty"`  // narrow, standard or wide
+	Size    int    `json:"size,omitempty"`    // 16–24; absent or outside the range uses the default
+	Spacing string `json:"spacing,omitempty"` // tight, medium or loose
+	Theme   string `json:"theme,omitempty"`   // day, night or eye
+	NoFrame bool   `json:"noFrame,omitempty"`
+	NoLong  bool   `json:"noLong,omitempty"`
 }
 
 // Export is what the export dialog exports, of the prose, the outline and

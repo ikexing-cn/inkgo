@@ -393,7 +393,7 @@ func (a *App) showProp(p *prop) {
 // openTalk shows the talk session beside the prose.
 func (a *App) openTalk(session string) {
 	d := &a.doc
-	d.hidden, d.talk, d.fore, d.talks = false, true, false, false
+	d.hidden, d.tab, d.talks = false, paneTalk, false
 	a.write.focus = false
 	a.savePrefs()
 	a.switchSession(session)

@@ -9,6 +9,8 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
+const defaultFontFamily = "Microsoft YaHei UI, PingFang SC, Noto Sans CJK SC"
+
 // Options configure an Editor.
 type Options struct {
 	// ReadOnly allows selection and copying without changing the document.
@@ -140,7 +142,7 @@ func New(doc *Doc, opts Options) *Editor {
 		opts.Font.Size = 17
 	}
 	if opts.Font.Family == "" {
-		opts.Font.Family = "Microsoft YaHei UI, PingFang SC, Noto Sans CJK SC"
+		opts.Font.Family = defaultFontFamily
 	}
 	return &Editor{
 		Doc: doc, opts: opts, predictVer: -1,

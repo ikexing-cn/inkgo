@@ -203,7 +203,7 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 	if a.menu.owner != "" {
 		t.Fatal("clicking the menu's name again left it open")
 	}
-	if got := openMenu(t, a, tt, "视图"); !slices.Equal(got, []string{"收起侧栏", "收起右栏", "专注写作"}) || !tt.HasText("跟随系统") {
+	if got := openMenu(t, a, tt, "视图"); !slices.Equal(got, []string{"收起侧栏", "收起右栏", "专注写作", "手机预览"}) || !tt.HasText("跟随系统") {
 		t.Fatalf("视图: %q", got)
 	}
 	tt.ClickAt(a.LastWrite.X+a.LastWrite.W/2, a.LastWrite.Y+a.LastWrite.H-80) // a press elsewhere puts it away
@@ -404,7 +404,7 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 		tt.Frame()
 		pale("文件", "新建章节", "新建文件夹", "保存", "快照")
 		pale("编辑", "撤销", "重做", "查找替换", "重命名", "续写一句", "起草本章")
-		pale("视图", "专注写作")
+		pale("视图", "专注写作", "手机预览")
 		if page != 0 {
 			pale("视图", "收起右栏")
 		}
@@ -441,7 +441,7 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 	tt.Frame()
 	tt.Frame()
 	pale("文件", "新建章节", "新建文件夹", "保存", "快照", "导出")
-	pale("视图", "收起侧栏", "收起右栏", "专注写作")
+	pale("视图", "收起侧栏", "收起右栏", "专注写作", "手机预览")
 	if a.bk.prefs || w.exporting.open || a.sideHidden {
 		t.Fatal("on the shelf a pale row did something")
 	}

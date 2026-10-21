@@ -100,6 +100,7 @@ func (a *App) titleBar(c *ui.Context) {
 			}
 			m.Item(pane).Disabled(!inWork || a.page != 0 && a.page != 3).Do(later(func() { a.setDocHidden(!a.doc.hidden) }))
 			m.Item("专注写作").Hint("F11").Disabled(!writing).Do(later(func() { w.focus = true }))
+			m.Item("手机预览").Disabled(!open).Do(later(a.openPhone))
 			m.Separator()
 			m.Draw(a.themeChoice)
 		}) || held

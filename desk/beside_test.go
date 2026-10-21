@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -11,6 +12,99 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/workspace"
 )
+
+func TestPaneTabPreferences(t *testing.T) {
+	a, _, id := writingFixture(t, "灯灭了。")
+	config, root := a.ai.ConfigFile(), a.Store.Root()
+	path := a.prefsPath()
+	if err := a.Close(); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name string
+		old  map[string]any
+		want paneTab
+	}{
+		{"legacy talk", map[string]any{"talk_tab": true}, paneTalk},
+		{"legacy fore", map[string]any{"fore_tab": true}, paneFore},
+		{"legacy fore wins", map[string]any{"talk_tab": true, "fore_tab": true}, paneFore},
+		{"named phone wins", map[string]any{"pane_tab": "phone", "talk_tab": true, "fore_tab": true}, panePhone},
+		{"explicit setting wins", map[string]any{"pane_tab": "", "talk_tab": true, "fore_tab": true}, paneSetting},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.old["writing"], tc.old["chapter"] = true, id
+			data, err := json.Marshal(tc.old)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err = os.WriteFile(path, data, 0600); err != nil {
+				t.Fatal(err)
+			}
+			b := newApp(config)
+			defer b.Close()
+			if err = b.Open(root); err != nil {
+				t.Fatal(err)
+			}
+			tt := ui.NewTester(b.View, 1266, 780)
+			tt.Frame()
+			tt.Frame()
+			if b.doc.tab != tc.want {
+				t.Fatalf("tab %q want %q", b.doc.tab, tc.want)
+			}
+			text := map[paneTab]string{paneSetting: "主角怕黑", paneTalk: "附上本章内容", paneFore: "暂无伏笔", panePhone: "第 1 屏，共 1 屏"}[tc.want]
+			if !tt.HasText(text) {
+				t.Fatal("wrong visible pane", tt.Texts())
+			}
+			if tc.want == paneTalk {
+				b.shelf.NoAI = true
+				tt.Frame()
+				if b.doc.tab != paneTalk || b.talkTab() || !tt.HasText("主角怕黑") {
+					t.Fatal("AI off changed the remembered tab")
+				}
+				b.shelf.NoAI = false
+				tt.Frame()
+				if !b.talkTab() || !tt.HasText("附上本章内容") {
+					t.Fatal("AI on lost the talk tab")
+				}
+			}
+			phoneClick(t, tt, "右栏-预览")
+			b.savePrefs()
+			data, err = os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var saved map[string]json.RawMessage
+			if err = json.Unmarshal(data, &saved); err != nil {
+				t.Fatal(err)
+			}
+			if string(saved["pane_tab"]) != `"phone"` || saved["talk_tab"] != nil || saved["fore_tab"] != nil {
+				t.Fatalf("new prefs: %s", data)
+			}
+			if err = b.Close(); err != nil {
+				t.Fatal(err)
+			}
+			c := newApp(config)
+			defer c.Close()
+			if err = c.Open(root); err != nil {
+				t.Fatal(err)
+			}
+			ct := ui.NewTester(c.View, 1266, 780)
+			ct.Frame()
+			ct.Frame()
+			if c.doc.tab != panePhone || !ct.HasText("第 1 屏，共 1 屏") {
+				t.Fatal("preview not restored", ct.Texts())
+			}
+			phoneClick(t, ct, "右栏-设定")
+			data, err = os.ReadFile(filepath.Join(root, ".writer", "desk.json"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if strings.Contains(string(data), "pane_tab") || strings.Contains(string(data), "talk_tab") || strings.Contains(string(data), "fore_tab") {
+				t.Fatalf("setting should omit tab fields: %s", data)
+			}
+		})
+	}
+}
 
 func savedPrefs(t *testing.T, a *App) prefs {
 	t.Helper()
@@ -36,7 +130,7 @@ func TestTalkBesideTheProse(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("附上本章内容") || tt.HasText("主角怕黑") || !savedPrefs(t, a).TalkTab {
+	if !tt.HasText("附上本章内容") || tt.HasText("主角怕黑") || savedPrefs(t, a).PaneTab != paneTalk {
 		t.Fatal("the talk is not shown", tt.Texts())
 	}
 	if !tt.HasText("这一章的节奏怎么样") || tt.HasText("右边的设定文档") {
@@ -102,7 +196,7 @@ func TestQuoteProseIntoTheTalk(t *testing.T) {
 	tt.Frame()
 	tt.Key(ui.Cmd, ui.KeyL)
 	tt.Frame()
-	if len(a.quotes) != 1 || a.quotes[0] != (workspace.Quote{Chapter: id, Title: "第一章", Text: "她推开门。"}) || !a.doc.talk {
+	if len(a.quotes) != 1 || a.quotes[0] != (workspace.Quote{Chapter: id, Title: "第一章", Text: "她推开门。"}) || a.doc.tab != paneTalk {
 		t.Fatalf("quotes %+v", a.quotes)
 	}
 	if !tt.HasText("《第一章》") || !tt.HasText("她推开门。") {
@@ -162,7 +256,7 @@ func TestQuotesFindTheirProse(t *testing.T) {
 	}
 
 	a.write.ed.MoveTo(0, false)
-	a.doc.talk = false
+	a.doc.tab = paneSetting
 	tt.Frame()
 	var entry string
 	for _, e := range a.set.Entries {

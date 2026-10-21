@@ -19,6 +19,7 @@ type palette struct {
 	line, faint, ink, onInk      ui.Color
 	control, dim, amber          ui.Color
 	warnBg, warnBd               ui.Color
+	phoneEye                     ui.Color
 	raise, pop, dialog           shadow
 	scrim                        ui.Color
 }
@@ -298,7 +299,7 @@ func paletteOf(t *ui.Theme, k map[string]ui.Color, s map[string]shadow, scrim ui
 	return &palette{theme: t,
 		canvas: k["bg"], side: k["side"], raised: k["raised"], bubble: k["hover"],
 		line: k["line"], faint: k["faint"], ink: k["ink"], onInk: k["on-ink"],
-		dim: k["dim"], control: k["control"],
+		dim: k["dim"], control: k["control"], phoneEye: k["phone-eye"],
 		amber: k["amber"], warnBg: k["warn-bg"], warnBd: k["warn-bd"],
 		raise: s["raise"], pop: s["pop"], dialog: s["dialog"], scrim: scrim}
 }

@@ -228,10 +228,10 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	a.doc.talk = true // the talk beside the prose, kept for the work
+	a.doc.tab = paneTalk // the talk beside the prose, kept for the work
 	a.savePrefs()
 	tt.Frame()
-	if w.node != chapter || !a.doc.talk || len(aiSaid(tt)) == 0 {
+	if w.node != chapter || a.doc.tab != paneTalk || len(aiSaid(tt)) == 0 {
 		t.Fatalf("with the AI on, the page of prose tells nothing of it: %q", tt.Texts())
 	}
 	w.ed.MoveTo(2, false)
@@ -249,7 +249,7 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 		}
 	}
 	look("the page of prose")
-	if a.page != 3 || !a.doc.talk {
+	if a.page != 3 || a.doc.tab != paneTalk {
 		t.Fatalf("page %d; the talk beside the prose not kept for the AI to come back", a.page)
 	}
 	if w.ed.Marked() {

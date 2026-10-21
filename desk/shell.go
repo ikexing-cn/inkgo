@@ -272,7 +272,7 @@ func (a *App) talkShown() bool {
 	if a.Store == nil {
 		return false
 	}
-	return a.page == 0 || a.page == 3 && a.talkTab() && !a.doc.fore && !a.doc.hidden && !a.doc.talks && !a.focused()
+	return a.page == 0 || a.page == 3 && a.talkTab() && !a.doc.hidden && !a.doc.talks && !a.focused()
 }
 
 // navItem is a page of the sidebar, with how many things wait there.

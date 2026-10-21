@@ -1,6 +1,6 @@
 # Agent Note: 手机预览
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
@@ -14,9 +14,9 @@ Status: proposed
 - 起点、番茄、七猫现在默认的字号、行距查不到可靠数值。
 - 作者用它主要是看手机上什么样、查段落太长、换个环境通读改错字、连着读几章。
 
-作者同日也说过，以后可能要另做手机 App，所以这一项不急，先做原型给作者看。
+作者同日也说过，以后可能要另做手机 App，所以这一项不急，先做原型给作者看。作者看过原型、改了几处细节后，同日要求交给 Codex 做进软件。
 
-## Proposal
+## Decision
 
 右栏多一页「预览」，和设定、讨论、伏笔并排；「视图」菜单里也有「手机预览」。AI 关着时照样有：它不用 AI。
 
@@ -81,24 +81,25 @@ Status: proposed
   - 最强的理由：作者投哪家就看哪家，作家助手就是这么做的。
   - 没有用（这一期）：三家现在的默认数值都查不到，编出三套数字反而误导。等拿到可靠的样本再加。
 
-## Acceptance criteria
+## Consequences
 
-- 作者看过原型，认可样子和这几项交互。
-- 原型：`npm run verify-prototype` 的「the phone preview」走一遍：
-  - 打开、翻屏、长段的提示；
-  - 光标到另一屏预览跟过去，正文里选中的字预览里也选中，点预览里的字光标到同一处；
-  - 排版里的字号、夜间、恢复默认；
-  - 滚动，正文滚到底、回到顶，预览跟着；
-  - 最后一屏不往下一章翻。
-- 软件里：
-  - `go test ./desk` 照同样几处走一遍，分屏用真的排版；
-  - 关掉 AI 时还在；
-  - 排版的几项重开软件还在；
-  - `cmd/poc` 的布局测试存几张截图：白天、夜间、滚动、长段。
-- DESIGN.md 补一条手机预览的规则。
+- `desk/phone.go` 是整个预览：
+  - 排版用 `editor.LayoutParagraph`（`editor/paragraph.go`），和正文共用 `shapeText`、`breakLines`（避头尾）。按段缓存：同一段文字、同样的宽、字号、行距、缩进不重排。打一个字只重排那一段。
+  - 手机里的尺寸是开头那组 `phone…` 常量，单位是手机上的点或 em，数值照原型；不借用 `hTag` 这类桌面常量。
+  - 滚动同步用 `Editor.ScrollAnchor`，算法和原型的 `syncPhone` 一样。
+- 右栏开着哪页从 `talk`、`fore` 两个布尔改成一个 `docView.tab`（设定、讨论、伏笔、预览）。
+  - `desk.json` 只写 `pane_tab`；老文件没有它时照 `fore_tab`、`talk_tab` 推出来，`fore_tab` 优先。
+  - AI 关着时 `tab` 留着「讨论」，右栏显示设定，和以前一样。
+- 排版的几项记在 `works.json` 的 `phone`（`shelf.Phone`），各档用英文词（`flip`/`scroll`、`narrow`/`standard`/`wide` 等），nil 或不认识的值用默认；`NoFrame`、`NoLong` 省略即开着。
+- 检查：
+  - `desk` 的 `TestThePhonePreview`：照原型 walk 走一遍，包括光标跟屏、选中、点字定位、到头变灰、长段、Aa、滚动同步、关 AI、换章、卷的空状态。
+  - `TestPhonePreferencesAreLocal`、`TestPhoneParagraphCache`，以及 `desk.json` 的旧字段兼容测试。
+  - `TestPhonePreviewTypingCost`：一万字以上的章，每打一个字的整帧中位数不超过 25ms。
+  - `cmd/poc` 的 `TestLayoutPhonePreview` 存白天、夜间、滚动、长段四张截图。
+  - `npm run verify-prototype` 的「the phone preview」。
+- 2026-10-21 由 Codex 实现，Claude 审查：返工一轮，三处都是结构问题：右栏标签改成一个字段；偏好从单独的 `phone.json` 并进 `works.json`，用词不用编号；尺寸改成手机自己的常量。
 
 ## Risks
 
-- 软件里要用 mygo 的排版把一章排成手机的宽度，再按屏切开。mygo 有没有现成的分栏或「排到某个高度为止」，要先查 `api_gen.go`；没有就要自己按行切。
-- 长章（一万字以上）每打一个字都重排一遍，可能卡。只排光标附近的几屏，或者停笔后再排。
-- 预览和读者实际看到的不会完全一样，作者可能当真。界面上不写说明，靠「约」字和不标平台名来避免误会。
+- 预览和读者实际看到的不会完全一样：各家 App 的字体、边距、行距都不同。界面上不写说明，靠「约」字和不标平台名来避免误会。
+- 每次打字仍要把这一章的行重新分屏（只是不重新排字）。几万字的超长章若感到卡，再改成只排光标附近的几屏。

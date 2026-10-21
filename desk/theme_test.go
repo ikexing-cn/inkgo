@@ -16,7 +16,7 @@ import (
 // The palette takes every color it needs from tokens.css, in both themes.
 func TestTokens(t *testing.T) {
 	light, dark := colorTokens(tokensCSS)
-	need := []string{"bg", "raised", "side", "hover", "active", "line", "border", "ink", "ink-2", "muted", "faint", "dim", "on-ink", "amber", "warn", "success", "danger"}
+	need := []string{"bg", "raised", "side", "hover", "active", "line", "border", "ink", "ink-2", "muted", "faint", "dim", "on-ink", "amber", "warn", "success", "danger", "phone-eye"}
 	for _, name := range need {
 		if _, ok := light[name]; !ok {
 			t.Errorf("light theme lacks --%s", name)
@@ -30,6 +30,9 @@ func TestTokens(t *testing.T) {
 	}
 	if p := darkPalette(); p.side != ui.Hex("#1f1f1e") || p.theme.TextMuted != ui.Hex("#a0a09a") {
 		t.Fatalf("dark side = %v, muted = %v", p.side, p.theme.TextMuted)
+	}
+	if lightPalette().phoneEye != light["phone-eye"] || darkPalette().phoneEye != dark["phone-eye"] {
+		t.Fatal("phone-eye palette drift")
 	}
 }
 

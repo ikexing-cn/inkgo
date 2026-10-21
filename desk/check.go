@@ -961,7 +961,7 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 	toProse := func() { a.findInChapter(it.node, it.f.Quote) }
 	toEntry := func() {
 		a.findInChapter(it.node, it.f.Quote)
-		a.doc.shown, a.doc.talk, a.doc.fore, a.doc.hidden = it.entry.ID, false, false, false
+		a.doc.shown, a.doc.tab, a.doc.hidden = it.entry.ID, paneSetting, false
 		a.savePrefs()
 	}
 	ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Shrink(0).Children(func() {

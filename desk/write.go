@@ -789,7 +789,9 @@ func (a *App) settingColumn(c *ui.Context) {
 	panel := ui.Column(c).Width(width).FillHeight().Background(a.pal.side).Shrink(0)
 	a.LastSetting = panel.Bounds()
 	panel.Children(func() {
-		if a.page == 3 && a.doc.fore {
+		if a.page == 3 && a.doc.tab == panePhone {
+			a.phonePanel(c)
+		} else if a.page == 3 && a.doc.tab == paneFore {
 			a.forePanel(c)
 		} else if a.page == 3 && a.talkTab() {
 			a.talkPanel(c)

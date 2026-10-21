@@ -71,7 +71,7 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 	if f.status() != foreDone || len(f.pays) != 1 || f.pays[0].node != two || f.pays[0].quote != "七岁那年的那个晚上，她也是这样站着。" || f.gap != 1 {
 		t.Fatalf("paid off %+v", f)
 	}
-	if !a.doc.fore || !tt.HasText("取消回收") || !tt.HasText("回收在「停电」，相隔 1 章") || !tt.HasText("埋在「第一章」") {
+	if a.doc.tab != paneFore || !tt.HasText("取消回收") || !tt.HasText("回收在「停电」，相隔 1 章") || !tt.HasText("埋在「第一章」") {
 		t.Fatal("the two are not shown together", tt.Texts())
 	}
 	if ch, _ = a.Store.ReadChapter(two); len(ch.Marks) != 1 || ch.Marks[0].Kind != workspace.MarkPayoff || ch.Marks[0].Of != id {
@@ -185,7 +185,7 @@ func TestForeshadowLost(t *testing.T) {
 	if f.status() != foreLost || f.quote != "井边有一把钥匙。" {
 		t.Fatalf("not lost %+v", f)
 	}
-	a.doc.fore = true
+	a.doc.tab = paneFore
 	tt.Frame()
 	if !tt.HasText("原句已删") {
 		t.Fatal("does not wait on the author", tt.Texts())
@@ -299,7 +299,7 @@ func TestShotForeshadow(t *testing.T) {
 		at := len([]rune(text[:strings.Index(text, q)]))
 		return at, at + len([]rune(q))
 	}
-	a.doc.fore = true
+	a.doc.tab = paneFore
 	shot("fore-empty.png")
 	s, e := find("她修了七年路灯，却从来不敢在天黑以后走进没有灯的巷子。")
 	w.ed.Select(s, e)

@@ -99,6 +99,46 @@ func TestOutlineFrameCost(t *testing.T) {
 	}
 }
 
+// Typing in a chapter above ten thousand characters retains every
+// unchanged paragraph's measured glyphs and line breaks. Include the whole
+// editing frame, rather than timing a cache lookup in isolation.
+func TestPhonePreviewTypingCost(t *testing.T) {
+	pause := saveAfter
+	var body strings.Builder
+	for i := 0; i < 120; i++ {
+		fmt.Fprintf(&body, "第%d夜，%s\n", i, phoneLongText)
+	}
+	a, tt, _ := writingFixture(t, body.String())
+	// The general writing fixture saves immediately for disk assertions;
+	// typing here uses the product's paused saving instead.
+	saveAfter = pause
+	if a.write.ed.Doc.Len() <= 10000 {
+		t.Fatal("fixture must exceed ten thousand characters")
+	}
+	a.openPhone()
+	tt.Frame()
+	ed := a.write.ed
+	ed.Select(ed.Doc.Len(), ed.Doc.Len())
+	ed.Focus()
+	tt.Frame()
+	old := a.phone.paras[0].shape
+	var samples []time.Duration
+	for range 10 {
+		start := time.Now()
+		tt.Type("雨")
+		samples = append(samples, time.Since(start))
+	}
+	slices.Sort(samples)
+	median := (samples[4] + samples[5]) / 2
+	t.Logf("%d runes, %d paragraphs, median typing frame %v", ed.Doc.Len(), len(a.phone.paras), median)
+	if median > 25*time.Millisecond {
+		t.Fatalf("phone typing median %v exceeds 25 ms", median)
+	}
+	if old != a.phone.paras[0].shape {
+		t.Fatal("typing reshaped an unchanged paragraph")
+	}
+}
+
 // longReply is what a talkative model writes in one turn.
 func longReply(n int) string {
 	var b strings.Builder

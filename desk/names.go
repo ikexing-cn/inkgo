@@ -58,7 +58,7 @@ func (a *App) feedNames() {
 }
 
 func (a *App) seeName(id string) {
-	a.doc.hidden, a.write.focus, a.doc.talk, a.doc.fore = false, false, false, false
+	a.doc.hidden, a.write.focus, a.doc.tab = false, false, paneSetting
 	a.doc.shown, a.doc.editing, a.doc.history, a.doc.todo, a.doc.dropped = id, "", false, false, false
 }
 

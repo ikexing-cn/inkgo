@@ -201,7 +201,7 @@ func (a *App) startTalk(c *ui.Context, words workspace.Event) bool {
 	words.Chapter = w.node
 	a.titles[id], a.blank[id] = talkTitle(words, a.shownTitle()), false
 	d := &a.doc
-	d.hidden, d.talk, d.fore, d.talks = false, true, false, false
+	d.hidden, d.tab, d.talks = false, paneTalk, false
 	w.focus = false
 	a.savePrefs()
 	a.say(c, id, words, nil)

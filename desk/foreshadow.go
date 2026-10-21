@@ -337,8 +337,8 @@ func (a *App) rehang(f foreshadow) {
 // showFore shows the foreshadowing's details in the right column.
 func (a *App) showFore(id string) {
 	a.write.fore.shown, a.write.fore.renoting = id, false
-	if !a.doc.fore || a.doc.hidden {
-		a.doc.fore, a.doc.hidden = true, false
+	if a.doc.tab != paneFore || a.doc.hidden {
+		a.doc.tab, a.doc.hidden = paneFore, false
 		a.savePrefs()
 	}
 }

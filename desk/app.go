@@ -187,6 +187,7 @@ type App struct {
 	md                               markdownState
 	thoughts                         map[string]*bool // reasoning shown, by event or revision ID
 	doc                              docView
+	phone                            phoneState
 	write                            writeView
 	plan                             planView
 	changes                          chan struct{} // the talk noted the setting

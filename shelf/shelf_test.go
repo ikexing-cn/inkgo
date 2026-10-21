@@ -30,7 +30,8 @@ func TestShelfRoundTrip(t *testing.T) {
 		t.Fatal(fresh, err)
 	}
 	now := time.Now().Truncate(time.Second)
-	s := Shelf{Library: dir, Cards: true, Theme: "dark", Export: &Export{Outline: true, Text: true, Pen: "雨声"}}
+	s := Shelf{Library: dir, Cards: true, Theme: "dark", Export: &Export{Outline: true, Text: true, Pen: "雨声"},
+		Phone: &Phone{Mode: "scroll", Screen: "wide", Size: 21, Spacing: "loose", Theme: "eye", NoFrame: true, NoLong: true}}
 	s.Put(Book{Path: filepath.Join(dir, "a"), Name: "甲", Opened: now.Add(-time.Hour)})
 	s.Put(Book{Path: filepath.Join(dir, "b"), Name: "乙", Opened: now})
 	s.Put(Book{Path: filepath.Join(dir, "c"), Name: "丙"})
@@ -42,6 +43,9 @@ func TestShelfRoundTrip(t *testing.T) {
 	got, fresh, err := Load(path)
 	if err != nil || fresh || !got.Cards || got.Theme != "dark" || got.Library != dir || len(got.Books) != 3 || *got.Export != *s.Export {
 		t.Fatalf("%+v %v %v", got, fresh, err)
+	}
+	if got.Phone == nil || *got.Phone != *s.Phone {
+		t.Fatalf("phone preferences: %+v", got.Phone)
 	}
 	var names []string
 	for _, b := range got.Recent() {

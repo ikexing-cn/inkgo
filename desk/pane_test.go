@@ -230,7 +230,7 @@ func TestShotPane(t *testing.T) {
 	tt.SetDark(true)
 	shot("pane-list-dark.png")
 	tt.SetDark(false)
-	d.talk, d.talks = true, true
+	d.tab, d.talks = paneTalk, true
 	shot("pane-talks.png")
 	if err := tt.Click("新讨论"); err != nil {
 		t.Fatal(err)

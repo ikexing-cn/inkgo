@@ -16,7 +16,16 @@ import (
 	"writer/workspace"
 )
 
-// docView is the state of the setting panel.
+type paneTab string
+
+const (
+	paneSetting paneTab = ""
+	paneTalk    paneTab = "talk"
+	paneFore    paneTab = "fore"
+	panePhone   paneTab = "phone"
+)
+
+// docView is the state of the right panel.
 type docView struct {
 	hidden  bool
 	history bool   // the revisions are shown
@@ -37,15 +46,14 @@ type docView struct {
 	name     string
 	names    string
 	// The right column: its width as dragged, and, on the writing page,
-	// whether it shows the talk and sends the chapter with it.
+	// its selected tab and whether a talk sends the chapter with it.
 	width    float32
 	resizing bool
-	talk     bool
+	tab      paneTab
 	// The talks are listed there, not the one open, and what the list is
 	// searched for.
 	talks     bool
 	talkQuery string
-	fore      bool // the writing page shows the foreshadowings in it
 	attach    bool
 }
 
@@ -63,11 +71,10 @@ type prefs struct {
 	Writing bool `json:"writing,omitempty"`
 	// AutoPredict continues the prose as typing pauses, not on demand.
 	AutoPredict bool `json:"auto_predict,omitempty"`
-	// The right column's width, whether the writing page shows the talk
-	// in it, and whether a turn from there leaves the chapter out.
+	// The right column's width and selected tab, and whether a turn from
+	// there leaves the chapter out.
 	PanelWidth float32 `json:"panel_width,omitempty"`
-	TalkTab    bool    `json:"talk_tab,omitempty"`
-	ForeTab    bool    `json:"fore_tab,omitempty"`
+	PaneTab    paneTab `json:"pane_tab,omitempty"`
 	NoAttach   bool    `json:"no_attach,omitempty"`
 	// The book's count when Day began, for how much was written today.
 	Day      string `json:"day,omitempty"`
@@ -99,6 +106,21 @@ func (a *App) loadPrefs() {
 	if b, err := os.ReadFile(a.prefsPath()); err == nil {
 		p = prefs{}
 		_ = json.Unmarshal(b, &p) // a damaged file is as good as none
+		// The old pair is read only for files without pane_tab. In those
+		// files foreshadowings took precedence over the remembered talk.
+		var old struct {
+			PaneTab *paneTab `json:"pane_tab"`
+			TalkTab bool     `json:"talk_tab"`
+			ForeTab bool     `json:"fore_tab"`
+		}
+		_ = json.Unmarshal(b, &old)
+		if old.PaneTab == nil {
+			if old.ForeTab {
+				p.PaneTab = paneFore
+			} else if old.TalkTab {
+				p.PaneTab = paneTalk
+			}
+		}
 	}
 	a.doc.hidden = p.SettingHidden
 	a.sideHidden = p.SideHidden
@@ -121,8 +143,13 @@ func (a *App) loadPrefs() {
 	if p.Goal > 0 {
 		a.write.goalText = strconv.Itoa(p.Goal)
 	}
-	a.doc.width, a.doc.talk, a.doc.attach = p.PanelWidth, p.TalkTab, !p.NoAttach
-	a.doc.fore, a.write.lateAfter, a.write.fore = p.ForeTab, p.LateAfter, foreState{}
+	a.doc.width, a.doc.tab, a.doc.attach = p.PanelWidth, p.PaneTab, !p.NoAttach
+	switch a.doc.tab {
+	case paneSetting, paneTalk, paneFore, panePhone:
+	default:
+		a.doc.tab = paneSetting
+	}
+	a.write.lateAfter, a.write.fore = p.LateAfter, foreState{}
 	a.ck.when = checkOnLeave
 	if p.CheckWhen == checkOnDemand || p.CheckWhen == checkOnPause {
 		a.ck.when = p.CheckWhen
@@ -132,7 +159,7 @@ func (a *App) loadPrefs() {
 func (a *App) savePrefs() {
 	shelved := slices.Sorted(maps.Keys(a.shelved))
 	b, err := json.Marshal(prefs{Shelved: shelved, SettingHidden: a.doc.hidden, SideHidden: a.sideHidden, Chapter: a.write.node, Tabs: a.write.tabs, Blank: a.write.blank, Writing: a.leftWriting, AutoPredict: a.write.autoPredict,
-		PanelWidth: a.doc.width, TalkTab: a.doc.talk, ForeTab: a.doc.fore, LateAfter: a.write.lateAfter, CheckWhen: a.ck.when, NoAttach: !a.doc.attach,
+		PanelWidth: a.doc.width, PaneTab: a.doc.tab, LateAfter: a.write.lateAfter, CheckWhen: a.ck.when, NoAttach: !a.doc.attach,
 		Day: a.write.day, DayStart: a.write.dayStart, Goal: a.write.goal, Carets: a.write.carets, Days: a.write.days, TextSize: a.write.size,
 		Ignored: a.write.ignoredKeys()})
 	if err == nil {
