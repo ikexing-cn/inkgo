@@ -200,7 +200,7 @@ func (a *App) startTalk(c *ui.Context, words workspace.Event) bool {
 	}
 	a.switchSession(id)
 	words.Chapter = w.node
-	a.titles[id], a.blank[id] = talkTitle(words, a.shownTitle()), false
+	a.titles[id], a.blank[id] = workspace.TalkTitle(words, a.shownTitle()), false
 	d := &a.doc
 	d.hidden, d.tab, d.talks = false, paneTalk, false
 	w.focus = false

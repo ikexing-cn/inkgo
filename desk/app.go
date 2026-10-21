@@ -312,7 +312,7 @@ func (a *App) refresh() error {
 	if a.sessions, err = a.Store.Sessions(); err != nil {
 		return err
 	}
-	a.titles[a.session], a.blank[a.session] = a.sessionTitle(a.events), len(a.events) == 0
+	a.titles[a.session], a.blank[a.session] = workspace.SessionTitle(a.events, a.nodeTitle), len(a.events) == 0
 	if a.talkSession != a.session {
 		delete(a.titles, a.talkSession) // the last turn may have gone on there since: read it again
 	}
@@ -322,36 +322,10 @@ func (a *App) refresh() error {
 			if err != nil {
 				return err
 			}
-			a.titles[s], a.blank[s] = a.sessionTitle(events), len(events) == 0
+			a.titles[s], a.blank[s] = workspace.SessionTitle(events, a.nodeTitle), len(events) == 0
 		}
 	}
 	return nil
-}
-
-// sessionTitle names a conversation by its first words.
-func (a *App) sessionTitle(events []workspace.Event) string {
-	for _, e := range events {
-		if e.Role == workspace.RoleUser {
-			title := a.nodeTitle(e.Chapter)
-			if title == "" {
-				title = "已删除的章"
-			}
-			return talkTitle(e, title)
-		}
-	}
-	return "新对话"
-}
-
-// talkTitle names a talk by its first words e, said at the chapter titled
-// chapter: one opened to draft or rewrite it by what it does.
-func talkTitle(e workspace.Event, chapter string) string {
-	switch {
-	case e.Origin == workspace.AIDraft:
-		return "起草：" + chapter
-	case e.Origin == workspace.AIRewrite && len(e.Quotes) > 0:
-		return "改写：" + clip(e.Quotes[0].Text, 8)
-	}
-	return clip(e.Text, 14)
 }
 
 // nodeTitle is the title of the chapter of id, as the writing page
