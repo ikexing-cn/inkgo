@@ -3,7 +3,7 @@
 // ai.go: inline continuation, rewriting, drafting, and the prose AI record.
 // aiswitch.go: the machine-wide AI switch and shutdown handling.
 // app.go: App state, work lifecycle, background discussion jobs, and errors.
-// backup.go: backups, retries, folder selection, and backup settings.
+// backup.go: backup tasks, policy wiring, folder selection, and settings.
 // beside.go: right-pane width and tabs, discussion lists, and prose quotes.
 // categories.go: work-category forms and deletion confirmation.
 // change.go: setting changes from a chapter, timelines, and forms.

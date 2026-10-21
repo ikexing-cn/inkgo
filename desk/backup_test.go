@@ -3,7 +3,6 @@ package desk
 import (
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 	"time"
 
@@ -267,7 +266,7 @@ func TestShotBackup(t *testing.T) {
 	a.bk.open = true
 	shot(t, tt, "backup-line.png")
 	a.bk.open = false
-	a.bk.err = &os.PathError{Op: "stat", Path: `E:\雨城来信备份`, Err: os.ErrNotExist}
+	a.bk.policy.RecordResult(sync, &os.PathError{Op: "stat", Path: `E:\雨城来信备份`, Err: os.ErrNotExist}, time.Now())
 	s, _ := a.backupSettings()
 	s.Dir = `E:\雨城来信备份`
 	a.setBackup(s)
@@ -276,7 +275,7 @@ func TestShotBackup(t *testing.T) {
 	shot(t, tt, "backup-fail-dark.png")
 	a.bk.chip = false
 	tt.SetDark(false)
-	a.bk.err = nil
+	a.bk.policy.ForgetFailure()
 	s.Dir = sync
 	a.setBackup(s)
 	a.openPrefs("备份")
@@ -295,22 +294,13 @@ func TestShotBackup(t *testing.T) {
 	shot(t, tt, "discussion-dark.png")
 }
 
-// Why a backup failed is said from what was found as it failed: saying it
-// does not look for the disk again, as it is said in every frame.
 func TestTroubleSaysWhatWasFoundAsItFailed(t *testing.T) {
 	missing := &os.PathError{Op: "stat", Path: `X:\备份`, Err: os.ErrNotExist}
-	if short, _, _ := trouble(`X:\备份`, missing, true); runtime.GOOS == "windows" && short != "找不到 X 盘" {
-		t.Fatalf("with the disk gone: %q", short)
-	}
-	if short, _, _ := trouble(`X:\备份`, missing, false); short != "找不到备份文件夹" {
-		t.Fatalf("with the disk there: %q", short)
-	}
-	if volumeGone(t.TempDir()) {
-		t.Fatal("the disk of a folder that is there counts as gone")
-	}
 	a, _, _ := fixture(t)
-	a.backupDone(backup.Settings{Dir: t.TempDir()}, missing)
-	if a.bk.err == nil || a.bk.gone {
-		t.Fatalf("err %v, gone %v", a.bk.err, a.bk.gone)
+	s := backup.Settings{Dir: t.TempDir()}
+	a.backupDone(s, missing)
+	short, _, _ := a.bk.policy.Trouble(s.Dir)
+	if !a.bk.policy.Failed() || short != "找不到备份文件夹" {
+		t.Fatalf("failed %v, trouble %q", a.bk.policy.Failed(), short)
 	}
 }
