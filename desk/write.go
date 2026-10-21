@@ -584,7 +584,7 @@ func (a *App) footBar(c *ui.Context, chapter bool) {
 				if err := a.saveText(); err != nil {
 					a.warn(err)
 				} else {
-					a.queueCheck(w.node)
+					a.ck.queue.Enqueue(w.node)
 				}
 			}
 		}

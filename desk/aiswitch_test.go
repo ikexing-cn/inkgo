@@ -349,7 +349,7 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	look("the categories")
-	if len(a.ck.queue) > 0 || a.ck.running != "" {
+	if len(a.ck.queue.Pending) > 0 || a.ck.queue.Running != "" {
 		t.Error("a chapter left with the AI off is to be checked")
 	}
 	a.closeWork()

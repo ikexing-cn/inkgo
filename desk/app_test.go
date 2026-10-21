@@ -66,7 +66,8 @@ func TestLeavingAWorkSavesItAndStopsItsChecks(t *testing.T) {
 			want := a.write.ed.Doc.String()
 			check, stopCheck := context.WithCancel(context.Background())
 			defer stopCheck()
-			a.ck.cancel, a.ck.queue, a.ck.total = stopCheck, []string{id}, 1
+			a.ck.runner.cancel = stopCheck
+			a.ck.queue.Enqueue(id)
 			worker, stopWorker := context.WithCancel(context.Background())
 			defer stopWorker()
 			if how == "busy close" {
@@ -94,7 +95,7 @@ func TestLeavingAWorkSavesItAndStopsItsChecks(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			if check.Err() != context.Canceled || len(a.ck.queue) != 0 || a.ck.total != 0 {
+			if check.Err() != context.Canceled || len(a.ck.queue.Pending) != 0 {
 				t.Fatal("checks were not stopped")
 			}
 			_, err := store.Chapters()

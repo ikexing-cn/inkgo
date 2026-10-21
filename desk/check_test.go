@@ -121,7 +121,7 @@ func TestCheckAChapterAndSettleWhatItFinds(t *testing.T) {
 	if err := tt.Click("检查"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the check on leaving", func() bool { return len(f.asked) == 2 && a.ck.running == "" })
+	until(t, tt, "the check on leaving", func() bool { return len(f.asked) == 2 && a.ck.queue.Running == "" })
 	tt.Frame()
 	if !tt.HasText("没有发现不一致") || !strings.Contains(f.asked[1].Messages[0].Content, "【作者说过是故意的】\n- 一个人走进了没有灯的巷子") {
 		t.Fatal(tt.Texts())
@@ -223,7 +223,7 @@ func TestCheckOnlyWhenAsked(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Frame()
-	if len(f.asked) != 0 || a.ck.running != "" || !tt.HasText("尚未检查") {
+	if len(f.asked) != 0 || a.ck.queue.Running != "" || !tt.HasText("尚未检查") {
 		t.Fatal(len(f.asked), tt.Texts())
 	}
 	if err := tt.Click("检查全书"); err != nil {
@@ -258,14 +258,14 @@ func TestCheckOnlyWhenAsked(t *testing.T) {
 func TestCloseCancelsARunningCheck(t *testing.T) {
 	a, tt, id, f := checkFixture(t)
 	f.pieces, f.hold = []string{`{"findings":`, `[]}`}, make(chan struct{})
-	a.queueCheck(id)
+	a.ck.queue.Enqueue(id)
 	tt.Frame()
 	until(t, tt, "the check request", func() bool {
 		f.mu.Lock()
 		defer f.mu.Unlock()
 		return len(f.asked) > 0
 	})
-	done, store := a.ck.done, a.Store
+	done, store := a.ck.runner.done, a.Store
 	if err := a.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -277,7 +277,7 @@ func TestCloseCancelsARunningCheck(t *testing.T) {
 	case <-time.After(3 * time.Second):
 		t.Fatal("check kept running after window close")
 	}
-	if len(a.ck.queue) != 0 {
+	if len(a.ck.queue.Pending) != 0 {
 		t.Fatal("queued checks survived window close")
 	}
 }
@@ -320,9 +320,9 @@ func TestAChapterReadInPartIsToldSo(t *testing.T) {
 	if err := tt.Click("立即检查"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the check", func() bool { return a.ck.all[id].Of != "" && a.ck.running == "" })
+	until(t, tt, "the check", func() bool { return a.ck.queue.All[id].Of != "" && a.ck.queue.Running == "" })
 	tt.Frame()
-	read := a.ck.all[id].Read
+	read := a.ck.queue.All[id].Read
 	if read <= 0 || read >= 36000 {
 		t.Fatalf("read %d", read)
 	}
@@ -355,7 +355,7 @@ func TestShowingAChapterKeepsWhatItsCheckFound(t *testing.T) {
 	}
 	tt.Frame()
 	k, err := a.Store.ReadCheck(id)
-	if a.write.node != id || err != nil || len(k.Findings) != 1 || len(a.ck.all[id].Findings) != 1 {
+	if a.write.node != id || err != nil || len(k.Findings) != 1 || len(a.ck.queue.All[id].Findings) != 1 {
 		t.Fatalf("showing the chapter, what its check found went: %+v %v", k, err)
 	}
 }
@@ -372,8 +372,8 @@ func TestAFailedCheckIsNotToldAsClear(t *testing.T) {
 	}
 	a.warn(a.loadTree())
 	a.loadChecks()
-	a.ck.failed[second] = "请求超时"
-	a.ck.failed[id] = "无法连接模型服务"
+	a.ck.queue.Fail(second, errors.New("请求超时"))
+	a.ck.queue.Fail(id, errors.New("无法连接模型服务"))
 	if err := tt.Click("检查"); err != nil {
 		t.Fatal(err)
 	}
@@ -398,10 +398,10 @@ func TestAFailedCheckIsNotToldAsClear(t *testing.T) {
 // on hover where the line is cut short.
 func TestAFailedCheckSaysWhyInFull(t *testing.T) {
 	a, tt, id, _ := checkFixture(t)
-	a.ck.failed[id] = "请在设置中「AI」配置里选择续写和检查模型"
+	a.ck.queue.Fail(id, errors.New("请在设置中「AI」配置里选择续写和检查模型"))
 	tt.Frame()
 	line, _, can, tip := a.checkState()
-	if want := "检查失败：" + a.ck.failed[id]; line != want || tip != want || !can {
+	if want := "检查失败：" + a.ck.queue.Failed[id]; line != want || tip != want || !can {
 		t.Fatalf("%q, tip %q, can %v", line, tip, can)
 	}
 }

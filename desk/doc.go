@@ -9,7 +9,8 @@
 // change.go: setting changes from a chapter, timelines, and forms.
 // chapters.go: opening chapters, navigation, editors, and text size.
 // chat.go: discussion drawing, streaming replies, tool views, and digest sections.
-// check.go: check queue, findings, prose marks, and the 检查 page.
+// check.go: check scheduling and persistence wiring, findings, prose marks, and the 检查 page.
+// checkrunner.go: cancellable background checks and their result mailbox.
 // counts.go: book and daily word counts, goals, and recent days.
 // doc.go: this package index.
 // export.go: export dialog choices, cached plan, and file writing.

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -63,7 +64,33 @@ func ProseHash(text string) string {
 }
 
 // Stale tells whether text is not the prose the check read.
-func (k Check) Stale(text string) bool { return k.Of != ProseHash(text) }
+func (c Check) Stale(text string) bool { return c.Of != ProseHash(text) }
+
+// Prune removes findings whose quoted words are absent from text.
+// The bool reports whether persistence is needed.
+func (c Check) Prune(text string) (Check, bool) {
+	kept := slices.DeleteFunc(slices.Clone(c.Findings), func(f Finding) bool { return !strings.Contains(text, f.Quote) })
+	if len(kept) == len(c.Findings) {
+		return c, false
+	}
+	c.Findings = kept
+	return c, true
+}
+
+// KeepMeant carries the author's decisions into a replacement result.
+func (c Check) KeepMeant(previous Check) Check {
+	for _, old := range previous.Findings {
+		if !old.Meant {
+			continue
+		}
+		for i, f := range c.Findings {
+			if f.Kind == old.Kind && f.Quote == old.Quote && f.Entry == old.Entry && f.Name == old.Name {
+				c.Findings[i].Meant = true
+			}
+		}
+	}
+	return c
+}
 
 // ReadCheck is the check of document id, or none.
 func (s *Store) ReadCheck(id string) (Check, error) {

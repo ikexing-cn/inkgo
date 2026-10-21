@@ -71,7 +71,7 @@ func (a *App) View(c *ui.Context) {
 	}
 	if a.Store != nil && a.page == pageCheck && a.shown != pageCheck {
 		a.loadChecks() // as of the disk, without what was put right meanwhile
-		a.pruneChecks()
+		a.pruneStoredChecks()
 		a.ck.proseOf = ""
 	}
 	if a.Store != nil && a.shown != a.page && (a.page == pageTalk || a.page == pageWrite) {

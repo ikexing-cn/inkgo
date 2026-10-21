@@ -1,8 +1,6 @@
 package desk
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -22,10 +20,6 @@ const (
 	checkOnPause  = "always" // whenever the writing pauses
 )
 
-// checkPause is how long the writing rests before a chapter is checked as
-// it is written.
-const checkPause = 8 * time.Second
-
 var checkWhens = []struct{ when, label, short, sub string }{
 	{checkOnLeave, "写完一章后检查", "写完一章后检查", "推荐，每章调用一次 AI"},
 	{checkOnDemand, "手动检查", "手动检查", "平时不调用 AI"},
@@ -36,16 +30,10 @@ var checkWhens = []struct{ when, label, short, sub string }{
 // at a time in the background, what the checks found, and the page that
 // shows it.
 type checks struct {
-	queue   []string
-	running string
-	cancel  context.CancelFunc
-	done    chan checkDone
-	failed  map[string]string // why a chapter's last check failed
-	tried   map[string]string // the prose a pause last had checked, by chapter
-	total   int               // the checks asked for since the queue was empty
+	queue  workspace.CheckQueue
+	runner checkRunner
 
 	of   *workspace.Store // the work all is of
-	all  map[string]workspace.Check
 	tree workspace.Tree
 	when string
 
@@ -60,13 +48,6 @@ type checks struct {
 	liveOf         string
 	liveVer        int
 	doubtKey       string
-}
-
-type checkDone struct {
-	chapter string
-	store   *workspace.Store
-	check   workspace.Check
-	err     error
 }
 
 // checkItem is a finding with where it is.
@@ -91,27 +72,13 @@ func (a *App) loadChecks() {
 	k := &a.ck
 	all, err := a.Store.Checks()
 	a.warn(err)
-	k.all = all
+	k.queue.All = all
 	t, err := a.Store.Chapters()
 	a.warn(err)
 	if err == nil {
 		k.tree = t
 	}
 	k.doubtKey = ""
-}
-
-// queueCheck asks for chapter's check unless it is waiting or running.
-func (a *App) queueCheck(chapter string) {
-	k := &a.ck
-	if k.running == chapter || slices.Contains(k.queue, chapter) {
-		return
-	}
-	if k.running == "" && len(k.queue) == 0 {
-		k.total = 0
-	}
-	k.queue = append(k.queue, chapter)
-	k.total++
-	delete(k.failed, chapter)
 }
 
 // hasSetting tells whether there is a setting to check prose against.
@@ -131,47 +98,41 @@ func (a *App) leaveCheck() {
 	if w.node == "" || w.ed == nil || w.lost || a.Store == nil || !a.aiOn() {
 		return
 	}
-	a.pruneCheck(w.node, w.saved)
+	a.pruneStoredCheck(w.node, w.saved)
 	changed := w.changed
 	w.changed = false
-	if !changed || k.when != checkOnLeave || !a.hasSetting() || workspace.Count(w.saved) < a.ai.MinCheck() {
+	if !changed || k.when != checkOnLeave || !a.hasSetting() {
 		return
 	}
-	if had, ok := k.all[w.node]; !ok || had.Stale(w.saved) {
-		a.queueCheck(w.node)
-	}
+	k.queue.EnqueueStale(w.node, w.saved, a.ai.MinCheck())
 }
 
-// pruneCheck drops from chapter's check what its prose, text, no longer
+// pruneStoredCheck drops from chapter's check what its prose, text, no longer
 // says and the author did not call meant.
-func (a *App) pruneCheck(chapter, text string) {
+func (a *App) pruneStoredCheck(chapter, text string) {
 	k := &a.ck
-	had, ok := k.all[chapter]
+	had, ok := k.queue.All[chapter]
 	if !ok {
 		return
 	}
-	kept := slices.DeleteFunc(slices.Clone(had.Findings), func(f workspace.Finding) bool { return !strings.Contains(text, f.Quote) })
-	if len(kept) == len(had.Findings) {
+	had, changed := had.Prune(text)
+	if !changed {
 		return
 	}
-	had.Findings = kept
 	if err := a.Store.WriteCheck(chapter, had); err != nil {
 		a.warn(err)
 		return
 	}
-	k.all[chapter] = had
+	k.queue.All[chapter] = had
 	k.doubtKey = ""
 }
 
-// pruneChecks does so for every chapter with something found, as of the
+// pruneStoredChecks does so for every chapter with something found, as of the
 // disk.
-func (a *App) pruneChecks() {
-	for id, had := range a.ck.all {
-		if !slices.ContainsFunc(had.Findings, func(f workspace.Finding) bool { return !f.Meant }) {
-			continue
-		}
+func (a *App) pruneStoredChecks() {
+	for _, id := range a.ck.queue.Prunable() {
 		if ch, err := a.Store.ReadChapter(id); err == nil {
-			a.pruneCheck(id, ch.Text)
+			a.pruneStoredCheck(id, ch.Text)
 		}
 	}
 }
@@ -179,74 +140,40 @@ func (a *App) pruneChecks() {
 // pollChecks takes in a check done, and starts the next.
 func (a *App) pollChecks(c *ui.Context) {
 	k := &a.ck
-	if k.done == nil {
-		k.done = make(chan checkDone, 1)
-		k.failed, k.tried = map[string]string{}, map[string]string{}
-	}
 	if k.of != a.Store {
 		k.of = a.Store
 		k.shown, k.prose, k.proseOf, k.tab = "", "", "", 0
-		clear(k.failed)
-		clear(k.tried)
+		k.queue.WorkChanged()
 		a.loadChecks()
 	}
-	select {
-	case d := <-k.done:
-		k.running, k.cancel = "", nil
+	if d, ok := k.runner.finished(); ok {
+		k.queue.Finished()
 		if d.store == a.Store {
-			a.keepCheck(d)
+			a.saveCheckResult(d)
 		}
-	default:
 	}
-	if k.running != "" || len(k.queue) == 0 {
+	id, ok := k.queue.Next()
+	if !ok {
 		return
 	}
-	id := k.queue[0]
-	k.queue = k.queue[1:]
 	pw, err := a.ai.Pen(a.Store)
 	if err != nil {
-		k.failed[id] = err.Error()
-		k.queue = nil
+		k.queue.CannotStart(id, err)
 		return
 	}
-	ctx, cancel := context.WithCancel(context.Background()) // the request has its own time limit
-	k.running, k.cancel = id, cancel
-	store, sv := a.Store, c.Services()
-	go func() {
-		check, err := pw.Check(ctx, id)
-		if errors.Is(ctx.Err(), context.Canceled) {
-			err = context.Canceled // stopped, not failed
-		}
-		cancel()
-		k.done <- checkDone{chapter: id, store: store, check: check, err: err}
-		sv.Invalidate()
-	}()
+	k.runner.start(pw, a.Store, id, c.Services())
 }
 
-// keepCheck saves what a check found, with what the author called meant
+// saveCheckResult saves what a check found, with what the author called meant
 // while it ran.
-func (a *App) keepCheck(d checkDone) {
+func (a *App) saveCheckResult(d checkDone) {
 	k := &a.ck
-	if errors.Is(d.err, context.Canceled) {
-		return // stopped: the chapter stands as it did
-	}
-	if d.err != nil {
-		k.failed[d.chapter] = d.err.Error()
+	result, keep := k.queue.Keep(d.chapter, d.check, d.err)
+	if !keep {
 		return
 	}
-	delete(k.failed, d.chapter)
-	for _, old := range k.all[d.chapter].Findings {
-		if !old.Meant {
-			continue
-		}
-		for i, f := range d.check.Findings {
-			if f.Kind == old.Kind && f.Quote == old.Quote && f.Entry == old.Entry && f.Name == old.Name {
-				d.check.Findings[i].Meant = true
-			}
-		}
-	}
-	if err := a.Store.WriteCheck(d.chapter, d.check); err != nil {
-		k.failed[d.chapter] = err.Error()
+	if err := a.Store.WriteCheck(d.chapter, result); err != nil {
+		k.queue.Fail(d.chapter, err)
 		return
 	}
 	a.loadChecks()
@@ -256,10 +183,8 @@ func (a *App) keepCheck(d checkDone) {
 // work closes or the AI is turned off.
 func (a *App) stopChecks() {
 	k := &a.ck
-	if k.cancel != nil {
-		k.cancel()
-	}
-	k.queue, k.total = nil, 0
+	k.runner.stop()
+	k.queue.Stop()
 }
 
 // checkWhilePausing checks the chapter shown once the writing rests, when
@@ -267,16 +192,10 @@ func (a *App) stopChecks() {
 func (a *App) checkWhilePausing() {
 	w := &a.write
 	k := &a.ck
-	if k.when != checkOnPause || !a.aiOn() || w.ed == nil || w.node == "" || w.lost || w.ed.Doc.Version() != w.savedVer ||
-		time.Since(w.ed.LastEdit()) < checkPause || !a.hasSetting() {
+	if k.when != checkOnPause || !a.aiOn() || w.ed == nil || w.node == "" || w.lost || w.ed.Doc.Version() != w.savedVer || !a.hasSetting() {
 		return
 	}
-	hash := workspace.ProseHash(w.saved)
-	if k.tried[w.node] == hash || k.all[w.node].Of == hash || workspace.Count(w.saved) < a.ai.MinCheck() {
-		return
-	}
-	k.tried[w.node] = hash
-	a.queueCheck(w.node)
+	k.queue.AfterPause(w.node, w.saved, a.ai.MinCheck(), w.ed.LastEdit(), time.Now())
 }
 
 // liveText is the open chapter's text as it is being written.
@@ -303,7 +222,7 @@ func (a *App) checkItems(meant bool) []checkItem {
 	}
 	live, open := a.liveText()
 	left := map[string]bool{}
-	for _, had := range k.all {
+	for _, had := range k.queue.All {
 		for _, f := range had.Findings {
 			if f.Kind == workspace.FindNew && f.Meant {
 				left[f.Name] = true
@@ -317,7 +236,7 @@ func (a *App) checkItems(meant bool) []checkItem {
 			return
 		}
 		here := open && nd.ID == a.write.node
-		for _, f := range k.all[nd.ID].Findings {
+		for _, f := range k.queue.All[nd.ID].Findings {
 			if f.Meant && !meant || here && !strings.Contains(live, f.Quote) {
 				continue
 			}
@@ -374,7 +293,7 @@ func (a *App) listedChecks() []checkItem {
 // setMeant records that the author means what it found.
 func (a *App) setMeant(it checkItem) {
 	k := &a.ck
-	had := k.all[it.node]
+	had := k.queue.All[it.node]
 	for i := range had.Findings {
 		if had.Findings[i].ID == it.f.ID {
 			had.Findings[i].Meant = true
@@ -384,7 +303,7 @@ func (a *App) setMeant(it checkItem) {
 		a.warn(err)
 		return
 	}
-	k.all[it.node] = had
+	k.queue.All[it.node] = had
 	k.doubtKey = ""
 }
 
@@ -396,17 +315,7 @@ func (a *App) checkDue() []string {
 		a.warn(err)
 		return nil
 	}
-	var due []string
-	a.ck.tree.Walk(func(nd *workspace.Node, _ int) {
-		text, ok := texts[nd.ID]
-		if nd.Folder || !ok || workspace.Count(text) < a.ai.MinCheck() {
-			return
-		}
-		if had, ok := a.ck.all[nd.ID]; !ok || had.Stale(text) {
-			due = append(due, nd.ID)
-		}
-	})
-	return due
+	return a.ck.queue.Due(a.ck.tree, texts, a.ai.MinCheck())
 }
 
 // openCheck shows the page of the checks, at finding id when given.
@@ -485,14 +394,14 @@ func (a *App) checkState() (line string, found int, can bool, tip string) {
 	}
 	const name = "本章"
 	text, _ := a.liveText()
-	had, ok := k.all[w.node]
+	had, ok := k.queue.All[w.node]
 	switch {
-	case k.running == w.node:
+	case k.queue.Running == w.node:
 		return "正在检查" + name + "…", 0, false, ""
-	case slices.Contains(k.queue, w.node):
+	case slices.Contains(k.queue.Pending, w.node):
 		return name + "等待检查", 0, false, ""
-	case k.failed[w.node] != "":
-		line := "检查失败：" + k.failed[w.node]
+	case k.queue.Failed[w.node] != "":
+		line := "检查失败：" + k.queue.Failed[w.node]
 		return line, 0, true, line // what went wrong is long: in full on hover
 	case !a.hasSetting():
 		return "设定为空，无可对照内容", 0, false, ""
@@ -660,33 +569,31 @@ func (a *App) checkList(c *ui.Context, all, shown []checkItem) {
 func (a *App) checkProgress(c *ui.Context) {
 	t := a.pal.theme
 	k := &a.ck
-	if k.running != "" {
-		left := len(k.queue)
-		_, title := a.checkAt(k.running)
+	if k.queue.Running != "" {
+		left := len(k.queue.Pending)
+		_, title := a.checkAt(k.queue.Running)
 		line := "正在检查「" + title + "」"
 		if left > 0 {
 			line += fmt.Sprintf("，还有 %d 章", left)
 		}
 		ui.Text(c, line).FontSize(fsNote).TextColor(t.TextMuted).SingleLine()
 		if a.pal.ghost(c, "停止", ui.Color{}).Clicked() {
-			k.queue = nil
-			if k.cancel != nil {
-				k.cancel()
-			}
+			k.queue.Stop()
+			k.runner.stop()
 		}
 		return
 	}
 	last, lastTitle, done, failed := 0, "", 0, 0
-	for id := range k.all {
+	for id := range k.queue.All {
 		no, title := a.checkAt(id)
 		if no > last {
 			last, lastTitle = no, title
 		}
-		if _, bad := k.failed[id]; no > 0 && !bad {
+		if _, bad := k.queue.Failed[id]; no > 0 && !bad {
 			done++
 		}
 	}
-	for id := range k.failed {
+	for id := range k.queue.Failed {
 		if no, _ := a.checkAt(id); no > 0 {
 			failed++
 		}
@@ -728,7 +635,7 @@ func (a *App) checkProgress(c *ui.Context) {
 			if a.pal.primary(c, "开始检查").Clicked() {
 				k.askOpen = false
 				for _, id := range k.due {
-					a.queueCheck(id)
+					a.ck.queue.Enqueue(id)
 				}
 			}
 		})
@@ -760,18 +667,18 @@ func (a *App) checkEmpty(c *ui.Context, all int) {
 		words, how = "这一类没有待处理的", ""
 	case !a.hasSetting():
 		words, how = "设定为空", "请先在讨论中确定设定，才能对照检查。"
-	case len(k.all) == 0 && k.running == "":
+	case len(k.queue.All) == 0 && k.queue.Running == "":
 		words, how = "尚未检查", "点击左上角「检查全书」，或写完一章后自动检查。"
-	case k.running != "":
+	case k.queue.Running != "":
 		words, how = "正在检查…", "检查结果将显示在左侧。"
 	case k.when == checkOnDemand:
 		how = "当前为「手动检查」，需要时点击「重新检查」。"
 	}
 	// One that failed is not told as one that found nothing; the first in
 	// the book is named, so it is the same one every frame.
-	if lost := a.firstFailed(); lost != "" && k.running == "" {
+	if lost := a.firstFailed(); lost != "" && k.queue.Running == "" {
 		_, title := a.checkAt(lost)
-		pic, words, how = icAlert, "检查未完成", "「"+title+"」检查失败："+k.failed[lost]
+		pic, words, how = icAlert, "检查未完成", "「"+title+"」检查失败："+k.queue.Failed[lost]
 	}
 	a.pal.blank(c, pic, words, how, nil)
 }
@@ -780,7 +687,7 @@ func (a *App) checkEmpty(c *ui.Context, all int) {
 func (a *App) firstFailed() string {
 	first := ""
 	a.ck.tree.Walk(func(nd *workspace.Node, _ int) {
-		if _, ok := a.ck.failed[nd.ID]; ok && first == "" && !nd.Folder {
+		if _, ok := a.ck.queue.Failed[nd.ID]; ok && first == "" && !nd.Folder {
 			first = nd.ID
 		}
 	})
