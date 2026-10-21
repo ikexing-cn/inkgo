@@ -40,7 +40,10 @@ type Service struct {
 	Open func(sel workspace.Selection, st *workspace.Store) (discussion.Model, error)
 }
 
-var _ aiport.Service = (*Service)(nil)
+var (
+	_ aiport.Settings  = (*Service)(nil)
+	_ aiport.Assistant = (*Service)(nil)
+)
 
 // ErrOff is what asking for anything that sends gives while the AI is
 // off.

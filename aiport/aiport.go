@@ -17,11 +17,10 @@ type SetupError struct{ Err error }
 func (e *SetupError) Error() string { return e.Err.Error() }
 func (e *SetupError) Unwrap() error { return e.Err }
 
-// Service is the AI of this machine. Catalog, Talk and Pen build
-// what they give as the settings are now, on the interface's thread, and
-// fail at once when the settings name no model or no key, or the AI is
-// off; what they give sends, off that thread.
-type Service interface {
+// Settings configures this machine's model services. Catalog builds on
+// the interface's thread and fails at once for invalid settings or while
+// AI is off; the returned catalog sends off that thread.
+type Settings interface {
 	// SetOn turns the AI on or off. Off, Catalog, Talk and Pen build
 	// nothing.
 	SetOn(on bool)
@@ -52,7 +51,16 @@ type Service interface {
 	// names one.
 	Efforts() []string
 	EffortLabel(effort string) string
+	// Cost is what a request that took and gave u costs on the model
+	// named provider/model, by the prices built in, in currency; known is
+	// false for a model with no price.
+	Cost(model string, u workspace.Usage) (cost float64, currency string, known bool)
+}
 
+// Assistant builds a work's talk and pen on the interface's thread,
+// failing at once for invalid settings or while AI is off. The returned
+// talk and pen send off that thread.
+type Assistant interface {
 	// Talk talks over the work of s with its discussion model, sending
 	// what the author is writing beside when it is not nil, unless the
 	// talk keeps to the chapter it was opened to draft or rewrite. Off the
@@ -71,10 +79,13 @@ type Service interface {
 	Pen(s *workspace.Store) (Pen, error)
 	// MinCheck is the shortest prose worth a check.
 	MinCheck() int
-	// Cost is what a request that took and gave u costs on the model
-	// named provider/model, by the prices built in, in currency; known is
-	// false for a model with no price.
-	Cost(model string, u workspace.Usage) (cost float64, currency string, known bool)
+}
+
+// Service combines Settings and Assistant so desk holds one value for
+// the same service that fills both.
+type Service interface {
+	Settings
+	Assistant
 }
 
 // Provider is a service of models. Its key is kept apart, by SetKey.
