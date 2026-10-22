@@ -213,7 +213,7 @@ func TestNameANewChapter(t *testing.T) {
 // sidebar to icons; the trash is one of them, over the gear.
 func TestASlimSidebarKeepsTheTrash(t *testing.T) {
 	a, _, _ := writingFixture(t, "雨从傍晚开始下。")
-	a.page = pageTalk
+	showPage(a, pageTalk)
 	tt := ui.NewTester(a.View, 1100, 700)
 	tt.Frame()
 	tt.Frame()
@@ -312,8 +312,8 @@ func TestSideRowsOnEveryPage(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Frame()
-	if a.page != pageWrite || shownChapter(a) != one {
-		t.Fatalf("on page %d at %q", a.page, shownChapter(a))
+	if shownPage(a) != pageWrite || shownChapter(a) != one {
+		t.Fatalf("on page %d at %q", shownPage(a), shownChapter(a))
 	}
 	if err = tt.Click("作品分类"); err != nil {
 		t.Fatal(err)

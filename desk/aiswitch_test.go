@@ -249,10 +249,10 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	a.doc.tab = paneTalk // the talk beside the prose, kept for the work
+	showTab(a, paneTalk) // the talk beside the prose, kept for the work
 	a.savePrefs()
 	tt.Frame()
-	if shownChapter(a) != chapter || a.doc.tab != paneTalk || len(aiSaid(tt)) == 0 {
+	if shownChapter(a) != chapter || shownTab(a) != paneTalk || len(aiSaid(tt)) == 0 {
 		t.Fatalf("with the AI on, the page of prose tells nothing of it: %q", tt.Texts())
 	}
 	shownEditor(a).MoveTo(2, false)
@@ -270,8 +270,8 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 		}
 	}
 	look("the page of prose")
-	if a.page != pageWrite || a.doc.tab != paneTalk {
-		t.Fatalf("page %d; the talk beside the prose not kept for the AI to come back", a.page)
+	if shownPage(a) != pageWrite || shownTab(a) != paneTalk {
+		t.Fatalf("page %d; the talk beside the prose not kept for the AI to come back", shownPage(a))
 	}
 	if shownEditor(a).Marked() {
 		t.Error("what the AI drafted is a mark at the caret with the AI off")
@@ -380,8 +380,8 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Frame()
-	if a.page != pageWrite {
-		t.Errorf("with the AI off, the work opens on page %d", a.page)
+	if shownPage(a) != pageWrite {
+		t.Errorf("with the AI off, the work opens on page %d", shownPage(a))
 	}
 	look("the work opened again")
 	a.closeWork()
@@ -588,30 +588,30 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 func TestTheAIComesBackToItsPage(t *testing.T) {
 	a, tt, _ := fixture(t)
 	for _, from := range []page{pageTalk, pageCheck} {
-		a.page = from
+		showPage(a, from)
 		tt.Frame()
 		switchAI(t, a, tt, false)
-		if a.page != pageWrite {
-			t.Fatalf("off on page %d, page %d shows", from, a.page)
+		if shownPage(a) != pageWrite {
+			t.Fatalf("off on page %d, page %d shows", from, shownPage(a))
 		}
 		switchAI(t, a, tt, true)
-		if a.page != from {
-			t.Fatalf("on again, page %d shows, not %d", a.page, from)
+		if shownPage(a) != from {
+			t.Fatalf("on again, page %d shows, not %d", shownPage(a), from)
 		}
 	}
-	a.page = pageTalk
+	showPage(a, pageTalk)
 	tt.Frame()
 	switchAI(t, a, tt, false)
-	a.page = pageCategories
+	showPage(a, pageCategories)
 	switchAI(t, a, tt, true)
-	if a.page != pageCategories {
-		t.Fatalf("on again, page %d took the place of the categories", a.page)
+	if shownPage(a) != pageCategories {
+		t.Fatalf("on again, page %d took the place of the categories", shownPage(a))
 	}
-	a.page = pageWrite
+	showPage(a, pageWrite)
 	switchAI(t, a, tt, false)
 	switchAI(t, a, tt, true)
-	if a.page != pageWrite {
-		t.Fatalf("off and on on the prose, page %d shows", a.page)
+	if shownPage(a) != pageWrite {
+		t.Fatalf("off and on on the prose, page %d shows", shownPage(a))
 	}
 }
 

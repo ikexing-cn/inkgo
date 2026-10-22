@@ -299,7 +299,7 @@ func TestDraftAChapterThroughATalk(t *testing.T) {
 	if ed.Doc.String() != "" || disk(t, a, "第一章.txt") != "" || ed.ReadOnly() || !tt.HasText("AI 正在写提议…") || !tt.HasText("正在写…") {
 		t.Fatal("the draft is not shown beside the text as it comes", tt.Texts())
 	}
-	if a.doc.tab != paneTalk || a.doc.hidden || a.titles[a.session] != "起草：第一章" || !tt.HasText("按章纲起草本章，约 800 字") || !tt.HasText("跟着「第一章」") {
+	if shownTab(a) != paneTalk || a.doc.hidden || a.titles[a.session] != "起草：第一章" || !tt.HasText("按章纲起草本章，约 800 字") || !tt.HasText("跟着「第一章」") {
 		t.Fatal("the talk is not beside the prose", a.titles[a.session], tt.Texts())
 	}
 	if !strings.Contains(f.last().System, "【这段讨论起草的章：第一章】") || !strings.Contains(f.last().System, "她在雨夜醒来。") {
@@ -629,7 +629,8 @@ func TestAProposalInAnotherChapterOpensBeside(t *testing.T) {
 	f := &script{}
 	penWith(a, f)
 	f.then(proposal("第二章", "replace", "白天也要开灯。", "白天也得开着灯。"), []string{"顺了一下。"})
-	a.doc.tab, a.doc.hidden = paneTalk, false
+	showTab(a, paneTalk)
+	a.doc.hidden = false
 	a.input = "第二章那句顺一下"
 	tt.Frame()
 	if err := tt.Click("发送"); err != nil {
@@ -664,7 +665,8 @@ func TestTakingTheProposalsOfTwoTalks(t *testing.T) {
 	penWith(a, f)
 	f.then(proposal("第一章", "replace", "她走到井边。", "她慢慢走到井边。"), []string{"慢了一点。"},
 		proposal("第一章", "end", "", "雨停了。"), []string{"接了一句。"})
-	a.doc.tab, a.doc.hidden = paneTalk, false
+	showTab(a, paneTalk)
+	a.doc.hidden = false
 	var talks []string
 	for _, said := range []string{"开头慢一点", "末尾接一句"} {
 		a.newSession()
@@ -676,7 +678,7 @@ func TestTakingTheProposalsOfTwoTalks(t *testing.T) {
 		replied(t, a, tt)
 		talks = append(talks, a.session)
 	}
-	a.page = pageWrite
+	showPage(a, pageWrite)
 	tt.Frame()
 	if talks[0] == talks[1] || !tt.HasText("本章有 2 处 AI 提议") {
 		t.Fatal("two talks did not each propose", talks, tt.Texts())

@@ -321,7 +321,7 @@ func TestTalkNotesTheSettingAsItReplies(t *testing.T) {
 	if err := tt.Click("讨论-" + rev.ID); err != nil {
 		t.Fatal(err)
 	}
-	if a.session != session || a.page != pageTalk {
+	if a.session != session || shownPage(a) != pageTalk {
 		t.Fatal("the link does not go back to the talk")
 	}
 }
@@ -511,7 +511,7 @@ func TestABlankTalkFitsTheWork(t *testing.T) {
 	if err := a.create(); err != nil || a.errorText() != "" {
 		t.Fatal(err, a.errorText())
 	}
-	a.page = pageTalk
+	showPage(a, pageTalk)
 	tt.Frame()
 	if !tt.HasText("从一个初步的想法开始") || !tt.HasText("我想写一个总在下雨的城市") || tt.HasText("接着聊这部作品") {
 		t.Fatal(tt.Texts())
@@ -705,7 +705,7 @@ func TestTalkLeavesTheRestFree(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if _, toast := tt.Find("AI 正在思考…"); a.page != pageCategories || !toast {
+	if _, toast := tt.Find("AI 正在思考…"); shownPage(a) != pageCategories || !toast {
 		t.Fatal("another page waits for the reply, or does not say it runs")
 	}
 	if err := tt.Click("讨论"); err != nil {

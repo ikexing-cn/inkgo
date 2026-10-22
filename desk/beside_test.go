@@ -196,7 +196,7 @@ func TestQuoteProseIntoTheTalk(t *testing.T) {
 	tt.Frame()
 	tt.Key(ui.Cmd, ui.KeyL)
 	tt.Frame()
-	if len(a.quotes) != 1 || a.quotes[0] != (workspace.Quote{Chapter: id, Title: "第一章", Text: "她推开门。"}) || a.doc.tab != paneTalk {
+	if len(a.quotes) != 1 || a.quotes[0] != (workspace.Quote{Chapter: id, Title: "第一章", Text: "她推开门。"}) || shownTab(a) != paneTalk {
 		t.Fatalf("quotes %+v", a.quotes)
 	}
 	if !tt.HasText("《第一章》") || !tt.HasText("她推开门。") {
@@ -241,7 +241,7 @@ func TestQuotesFindTheirProse(t *testing.T) {
 	}
 	a.warn(a.loadTree())
 	shownEditor(a).MoveTo(0, false)
-	a.page = pageTalk
+	showPage(a, pageTalk)
 	tt.Frame()
 	tt.Frame()
 	if !tt.HasText("《雨夜》") || tt.HasText("《第一章》") {
@@ -251,12 +251,12 @@ func TestQuotesFindTheirProse(t *testing.T) {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
-	if s, e := shownEditor(a).Selection(); a.page != pageWrite || s != 6 || e != 11 {
-		t.Fatalf("page %d selection %d-%d", a.page, s, e)
+	if s, e := shownEditor(a).Selection(); shownPage(a) != pageWrite || s != 6 || e != 11 {
+		t.Fatalf("page %d selection %d-%d", shownPage(a), s, e)
 	}
 
 	shownEditor(a).MoveTo(0, false)
-	a.doc.tab = paneSetting
+	showTab(a, paneSetting)
 	tt.Frame()
 	var entry string
 	for _, e := range setting(a).Entries {

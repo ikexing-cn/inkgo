@@ -33,7 +33,7 @@ func TestOutlineReadError(t *testing.T) {
 	if err := a.Open(root); err != nil {
 		t.Fatal("bad outline blocked opening work", err)
 	}
-	a.page = pageWrite
+	showPage(a, pageWrite)
 	a.openNode(f.two)
 	tt.Frame()
 	if shownEditor(a) == nil {
@@ -236,8 +236,8 @@ func TestTheOutlineByChapter(t *testing.T) {
 		t.Fatal("drop into tray", c)
 	}
 	click(t, tt, "打开正文-"+f.one)
-	if a.page != pageWrite || shownChapter(a) != f.one || chapterOutline(a) != "何主任要一份新的灯数。" {
-		t.Fatal("open prose", a.page, shownChapter(a), chapterOutline(a))
+	if shownPage(a) != pageWrite || shownChapter(a) != f.one || chapterOutline(a) != "何主任要一份新的灯数。" {
+		t.Fatal("open prose", shownPage(a), shownChapter(a), chapterOutline(a))
 	}
 }
 
@@ -413,8 +413,8 @@ func TestTheChapterInTheStory(t *testing.T) {
 	label := "故事中 十九年前 — 十月六日"
 	hasText(t, tt, label)
 	click(t, tt, label)
-	if a.page != pagePlan || a.plan.mode != 1 || a.plan.seen != f.cards[0].ID {
-		t.Fatal("did not open at first timed card", a.page, a.plan.mode, a.plan.seen)
+	if shownPage(a) != pagePlan || a.plan.mode != 1 || a.plan.seen != f.cards[0].ID {
+		t.Fatal("did not open at first timed card", shownPage(a), a.plan.mode, a.plan.seen)
 	}
 	click(t, tt, "正文")
 	a.openNode(f.three)
@@ -451,7 +451,7 @@ func TestOutlineStaysAtTheEdges(t *testing.T) {
 	a.turnAI(false)
 	tt.Frame()
 	hasText(t, tt, "大纲")
-	if a.page != pagePlan {
+	if shownPage(a) != pagePlan {
 		t.Fatal("AI switch removed outline")
 	}
 }

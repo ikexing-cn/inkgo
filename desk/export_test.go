@@ -17,7 +17,8 @@ func TestExportPlanChangesWithChoices(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	a.page, a.sideHidden, a.doc.hidden = pageTalk, true, true
+	showPage(a, pageTalk)
+	a.sideHidden, a.doc.hidden = true, true
 	tt.Frame()
 	a.openExport()
 	tt.Frame()
@@ -88,7 +89,7 @@ func TestExportKeepsItsOpenedTextAndTracksContext(t *testing.T) {
 	if x.plan.Current != id || !slices.Equal(x.plan.Names, []string{"第一章"}) {
 		t.Fatal("deletion changed the opened export snapshot", x.plan)
 	}
-	a.page = pageTalk
+	showPage(a, pageTalk)
 	tt.Frame()
 	if x.plan.Current != "" || slices.Contains(x.plan.Scopes, export.ScopeChapter) {
 		t.Fatal("page change left a stale current chapter", x.plan)
@@ -140,12 +141,12 @@ func TestExportFallsBackWhileRangeIsHidden(t *testing.T) {
 		t.Fatal(x.plan)
 	}
 	a.exportPrefs().Options = export.Options{Setting: true}
-	a.page = pageTalk
+	showPage(a, pageTalk)
 	a.replanExport()
 	if x.selection.Scope != export.ScopeWork || x.plan.Scope != export.ScopeWork {
 		t.Fatal("hidden range did not follow the plan", x.selection, x.plan)
 	}
-	a.page = pageWrite
+	showPage(a, pageWrite)
 	a.exportPrefs().Prose = true
 	a.replanExport()
 	if x.selection.Scope != export.ScopeWork {

@@ -105,7 +105,7 @@ func TestTheSidebarIsPutAwayOnEveryPage(t *testing.T) {
 	a, tt, _ := writingFixture(t, "整条街的灯是同时灭的。")
 	shown := func() bool { _, ok := tt.Find("切换作品"); return ok }
 	for _, page := range []page{pageWrite, pageTalk, pageCheck, pageCategories} {
-		a.page = page
+		showPage(a, page)
 		tt.Frame()
 		tt.Frame()
 		if !shown() {
@@ -123,7 +123,7 @@ func TestTheSidebarIsPutAwayOnEveryPage(t *testing.T) {
 		if !a.sideHidden {
 			t.Fatalf("page %d: putting the sidebar away was not kept", page)
 		}
-		a.page = page // loadPrefs goes to the page the work was left on
+		showPage(a, page) // loadPrefs goes to the page the work was left on
 		tt.Frame()
 		if err := tt.Click("展开侧栏"); err != nil {
 			t.Fatal(page, err)
@@ -135,7 +135,7 @@ func TestTheSidebarIsPutAwayOnEveryPage(t *testing.T) {
 	}
 
 	// Put away, it comes back for a name to be typed in the tree.
-	a.page = pageWrite
+	showPage(a, pageWrite)
 	tt.Frame()
 	if err := tt.Click("收起侧栏"); err != nil {
 		t.Fatal(err)
@@ -397,7 +397,7 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 		}
 	}
 	for _, page := range []page{pageTalk, pageCheck, pageCategories} {
-		a.page = page
+		showPage(a, page)
 		tt.Frame()
 		tt.Frame()
 		pale("文件", "新建章节", "新建文件夹", "保存", "快照")
@@ -406,7 +406,7 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 		if page != pageTalk {
 			pale("视图", "收起右栏")
 		}
-		if a.page != page || w.focus || w.finding || w.snapsOpen || w.renaming != "" || w.draftOpen {
+		if shownPage(a) != page || w.focus || w.finding || w.snapsOpen || w.renaming != "" || w.draftOpen {
 			t.Fatalf("page %d: a pale row did something", page)
 		}
 		if err := clickMenu(tt, "文件", "菜单-导出"); err != nil {

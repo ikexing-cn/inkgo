@@ -168,7 +168,7 @@ func TestShotToasts(t *testing.T) {
 	a.bk.prefs = false
 	a.SetError(nil)
 	tt.Frame()
-	a.page = pageWrite
+	showPage(a, pageWrite)
 	setNotice(a, "已保存。停笔片刻也会自动保存")
 	shot(t, tt, "toast-saved.png")
 	a.SetError(&aiport.SetupError{Err: errors.New("连不上 AI：检查网络和服务地址")})

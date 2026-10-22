@@ -54,7 +54,7 @@ func outlineScale(t *testing.T, chapters int) (*App, *ui.Tester, ui.Services) {
 	data, err = json.Marshal(p)
 	check(err)
 	check(os.WriteFile(filepath.Join(a.Store.Root(), "outline.json"), data, 0600))
-	a.page = pagePlan
+	showPage(a, pagePlan)
 	var sv ui.Services
 	tt := ui.NewTester(func(c *ui.Context) { sv = c.Services(); a.View(c) }, 1266, 780)
 	tt.Frame()

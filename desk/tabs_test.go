@@ -424,7 +424,7 @@ func TestTabsComeBackWithTheWork(t *testing.T) {
 			t.Fatal(err)
 		}
 		tt.Frame()
-		if a.page != pageWrite {
+		if shownPage(a) != pageWrite {
 			click(t, tt, "正文")
 		}
 		tt.Frame()

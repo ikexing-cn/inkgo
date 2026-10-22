@@ -290,7 +290,7 @@ func TestShotBackup(t *testing.T) {
 	tt.Scroll(700, 500, 0, 600)
 	shot(t, tt, "settings-service-dark.png")
 	a.bk.prefs = false
-	a.page = pageTalk
+	showPage(a, pageTalk)
 	shot(t, tt, "discussion-dark.png")
 }
 

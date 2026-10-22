@@ -159,13 +159,13 @@ func TestTextMenu(t *testing.T) {
 		t.Fatalf("out of the window: %+v to %+v", first, last)
 	}
 	// A press outside closes it and goes no further: the page stays.
-	page := a.page
+	page := shownPage(a)
 	if err := tt.Click("讨论"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if len(rows(tt)) != 0 || a.page != page {
-		t.Fatalf("rows %q, page %d", rows(tt), a.page)
+	if len(rows(tt)) != 0 || shownPage(a) != page {
+		t.Fatalf("rows %q, page %d", rows(tt), shownPage(a))
 	}
 
 	// Escape closes it too, and the menu key opens it under the caret.

@@ -50,3 +50,9 @@ func noticeOf(a *App) string     { return a.notice }
 func setNotice(a *App, s string) { a.notice = s }
 func hintOf(a *App) string       { return a.hint }
 func setHint(a *App, s string)   { a.hint = s }
+
+// The page and the tab of the right column.
+func shownPage(a *App) page     { return a.page }
+func showPage(a *App, p page)   { a.page = p }
+func shownTab(a *App) paneTab   { return a.doc.tab }
+func showTab(a *App, t paneTab) { a.doc.tab = t }

@@ -29,7 +29,7 @@ func TestThePhonePreview(t *testing.T) {
 		tt.Frame()
 	}
 	s, ed := &a.phone, shownEditor(a)
-	if a.doc.hidden || a.doc.tab != panePhone || !tt.HasText("第 1 屏，共 1 屏") || s.prefs.NoFrame {
+	if a.doc.hidden || shownTab(a) != panePhone || !tt.HasText("第 1 屏，共 1 屏") || s.prefs.NoFrame {
 		t.Fatal("preview did not open", tt.Texts())
 	}
 	ed.Select(ed.Doc.Len(), ed.Doc.Len())
@@ -191,7 +191,7 @@ func TestThePhonePreview(t *testing.T) {
 		t.Fatal("AI off retained talk tab")
 	}
 	click(t, tt, "右栏-设定")
-	if a.doc.tab != paneSetting || !tt.HasText("主角怕黑") {
+	if shownTab(a) != paneSetting || !tt.HasText("主角怕黑") {
 		t.Fatal("cannot leave preview")
 	}
 	click(t, tt, "右栏-预览")

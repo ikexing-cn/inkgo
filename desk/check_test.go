@@ -61,8 +61,8 @@ func TestCheckAChapterAndSettleWhatItFinds(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.page != pageCheck || !tt.HasText("全部 3") || !tt.HasText("名字有误 1") || !tt.HasText("2 / 3") || !tt.HasText("设定 · 人物 · 林晚") {
-		t.Fatal(a.page, tt.Texts())
+	if shownPage(a) != pageCheck || !tt.HasText("全部 3") || !tt.HasText("名字有误 1") || !tt.HasText("2 / 3") || !tt.HasText("设定 · 人物 · 林晚") {
+		t.Fatal(shownPage(a), tt.Texts())
 	}
 
 	// 稍后再说 goes on; 加入设定 writes the entry and the finding is gone.
@@ -109,8 +109,8 @@ func TestCheckAChapterAndSettleWhatItFinds(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.page != pageWrite || shownEditor(a).SelectedText() != "林婉" {
-		t.Fatal(a.page, shownEditor(a).SelectedText())
+	if shownPage(a) != pageWrite || shownEditor(a).SelectedText() != "林婉" {
+		t.Fatal(shownPage(a), shownEditor(a).SelectedText())
 	}
 	f.pieces = []string{`{"findings":[]}`}
 	tt.Type("林晚")
@@ -367,7 +367,7 @@ func TestShotCheck(t *testing.T) {
 	a.ck.whenOpen = true
 	shot(t, tt, "check-foot.png")
 	a.ck.whenOpen = false
-	a.page = pageCheck
+	showPage(a, pageCheck)
 	shot(t, tt, "check-page.png")
 	a.ck.shown = ""
 	a.ck.tab = 3
