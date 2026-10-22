@@ -37,7 +37,7 @@ export interface Page {
   shot(name: string): Promise<void>
   /** What the page logged as an error, and what it threw. */
   errors: string[]
-  close(): void
+  close(): Promise<void>
 }
 
 const browsers = [
@@ -78,16 +78,38 @@ const CLOCK = `(() => {
 
 type Started = { proc: ReturnType<typeof spawn>; profile: string; wsURL: string }
 
+/**
+ * Stops the browser and removes its profile. Told to close over its DevTools
+ * endpoint, when there is one, the browser takes its helper processes with
+ * it; the profile can go only once they have let go of it.
+ */
+async function stop(proc: Started['proc'], profile: string, wsURL?: string) {
+  if (wsURL) {
+    try {
+      const ws = new WebSocket(wsURL)
+      await new Promise((ok, fail) => { ws.onopen = ok; ws.onerror = fail })
+      ws.send(JSON.stringify({ id: 1, method: 'Browser.close' }))
+      await new Promise<void>((r) => { const t = setTimeout(r, 5000); ws.onclose = () => { clearTimeout(t); r() } })
+    } catch { /* it is gone already */ }
+  }
+  proc.kill()
+  for (let i = 0; i < 50; i++) {
+    try { rmSync(profile, { recursive: true, force: true }); return } catch { await new Promise((r) => setTimeout(r, 100)) }
+  }
+}
+
 /** Starts browser headless with a profile of its own; it fails, and is stopped, if it does not listen within 15 seconds or quits first. */
 function start(browser: string): Promise<Started> {
   const profile = mkdtempSync(join(tmpdir(), 'prototype-'))
-  const proc = spawn(browser, ['--headless=new', '--disable-gpu', '--hide-scrollbars', '--remote-debugging-port=0', `--user-data-dir=${profile}`, '--window-size=1400,1000', 'about:blank'], { stdio: ['ignore', 'ignore', 'pipe'] })
+  // Without --edge-skip-compat-layer-relaunch, Edge starts itself again in
+  // another process and leaves: this one seems to quit, and that one runs on,
+  // out of reach, holding the profile. Chrome ignores the flag.
+  const proc = spawn(browser, ['--headless=new', '--edge-skip-compat-layer-relaunch', '--disable-gpu', '--hide-scrollbars', '--remote-debugging-port=0', `--user-data-dir=${profile}`, '--window-size=1400,1000', 'about:blank'], { stdio: ['ignore', 'ignore', 'pipe'] })
   return new Promise<Started>((ok, fail) => {
     let err = ''
     const give = (why: string) => {
       clearTimeout(timer)
-      proc.kill()
-      try { rmSync(profile, { recursive: true, force: true }) } catch { /* the browser may still hold it */ }
+      void stop(proc, profile)
       fail(new Error(why + (err ? ': ' + err.slice(0, 300) : '')))
     }
     const timer = setTimeout(() => give('did not start in 15 seconds'), 15000)
@@ -133,10 +155,9 @@ export async function open(file: string, ready: string, shots?: string): Promise
     if (r.result.exceptionDetails) throw new Error(r.result.exceptionDetails.exception?.description ?? r.result.exceptionDetails.text)
     return r.result.result.value
   }
-  const close = () => {
+  const close = async () => {
     ws.close()
-    proc.kill()
-    try { rmSync(profile, { recursive: true, force: true }) } catch { /* the browser may still hold it */ }
+    await stop(proc, profile, wsURL)
   }
 
   await send('Runtime.enable')
@@ -144,7 +165,7 @@ export async function open(file: string, ready: string, shots?: string): Promise
   await send('Page.addScriptToEvaluateOnNewDocument', { source: CLOCK })
   await send('Page.navigate', { url: pathToFileURL(file).href })
   for (let i = 0; !(await js(`!!document.querySelector(${JSON.stringify(ready)})`)); i++) {
-    if (i === 50) { close(); throw new Error(`${file} did not draw ${ready}: ${errors.join('; ') || 'no error logged'}`) }
+    if (i === 50) { await close(); throw new Error(`${file} did not draw ${ready}: ${errors.join('; ') || 'no error logged'}`) }
     await idle(100)
   }
   const sleep = async (ms: number) => { await js(`__pass(${ms})`) }

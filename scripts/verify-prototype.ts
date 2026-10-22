@@ -32,7 +32,7 @@ try {
   failed = (e as Error).message
   await page.shot('failed')
 }
-page.close()
+await page.close()
 if (failed || page.errors.length) {
   if (failed) console.error(`stopped after "${steps.at(-1) ?? 'opening'}": ${failed}`)
   for (const e of new Set(page.errors)) console.error('the page said: ' + e)
