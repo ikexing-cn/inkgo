@@ -17,11 +17,6 @@ import (
 	"writer/workspace"
 )
 
-type result struct {
-	apply func()
-	err   error
-}
-
 // live is what the reply in flight has streamed so far, the events it
 // wrote looking things up, and the changes it is proposing in the prose as
 // their text comes. The worker writes it as output arrives; the view reads
@@ -161,7 +156,6 @@ type App struct {
 	quotes                           []workspace.Quote
 	focusTalk                        bool
 	cancel                           context.CancelFunc
-	results                          chan result
 	jobs                             jobs
 	chat                             ui.ListState
 	rows                             []int // the chat list's: event indexes, -1 the empty chat, -2 the turn in flight
@@ -185,7 +179,6 @@ type App struct {
 	phone                            phoneState
 	write                            writeView
 	plan                             planView
-	changes                          chan struct{} // the talk noted the setting
 	LastChat, LastSetting, LastWrite ui.Rect
 	LastProse                        ui.Rect
 	// Appearance applies the appearance chosen: "light", "dark", or empty
@@ -198,7 +191,7 @@ type App struct {
 // switch that turns the AI off, and with none there is no shelf either, as
 // for a test.
 func New(ai aiport.Service) *App {
-	a := &App{ai: ai, genre: "网文", results: make(chan result, 1), changes: make(chan struct{}, 1),
+	a := &App{ai: ai, genre: "网文",
 		light: lightPalette(), dark: darkPalette(), titles: map[string]string{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
 	a.pal = a.light
 	if ai.ConfigFile() != "" {
@@ -375,10 +368,7 @@ func (a *App) talk(c *ui.Context) (aiport.Talk, error) {
 func (a *App) stepped(sv ui.Services, e workspace.Event) {
 	a.live.step(e)
 	if e.Revision != "" || e.Role == workspace.RoleDigest && e.ID != "" { // the setting it noted, or the talk compacted
-		select {
-		case a.changes <- struct{}{}:
-		default:
-		}
+		a.jobs.post(sv, func() { a.SetError(a.refresh()) })
 	}
 	sv.Invalidate()
 }
@@ -414,39 +404,39 @@ func (a *App) work(sv ui.Services, label string, fn func(context.Context) (func(
 	a.busy = label
 	a.SetError(nil)
 	a.status.retry(func() { a.work(sv, label, fn) })
-	go func() { apply, err := fn(ctx); cancel(); a.results <- result{apply: apply, err: err}; sv.Invalidate() }()
+	a.jobs.start(sv, func() func() {
+		apply, err := fn(ctx)
+		cancel()
+		return func() { a.finished(apply, err) }
+	})
+}
+
+// finished is what a request ended with, run on the view thread: what it
+// applied, whether it failed, and the view after it.
+func (a *App) finished(apply func(), err error) {
+	a.followProps() // the reply ended: all it proposed is in
+	a.busy = ""
+	a.cancel = nil
+	if apply != nil {
+		apply()
+	}
+	a.unfinishedProps()
+	if !a.aiOn() {
+		err = nil // what runs is the AI's: turned off, it was stopped, and says nothing
+	}
+	if err != nil {
+		a.status.fail(err)
+	} else {
+		a.status.succeed()
+	}
+	if err := a.refresh(); err != nil {
+		a.SetError(err)
+	}
 }
 
 func (a *App) poll() {
+	a.followProps() // what the reply in flight proposes, in the prose
 	a.jobs.poll()
-	select {
-	case <-a.changes:
-		a.SetError(a.refresh())
-	default:
-	}
-	select {
-	case r := <-a.results:
-		a.followProps() // the reply ended: all it proposed is in
-		a.busy = ""
-		a.cancel = nil
-		if r.apply != nil {
-			r.apply()
-		}
-		a.unfinishedProps()
-		if !a.aiOn() {
-			r.err = nil // what runs is the AI's: turned off, it was stopped, and says nothing
-		}
-		if r.err != nil {
-			a.status.fail(r.err)
-		} else {
-			a.status.succeed()
-		}
-		if err := a.refresh(); err != nil {
-			a.SetError(err)
-		}
-	default:
-		a.followProps()
-	}
 }
 
 // held tells whether the work in flight holds what it could be changed

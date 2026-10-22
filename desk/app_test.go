@@ -125,15 +125,15 @@ func TestLeavingAWorkSavesItAndStopsItsChecks(t *testing.T) {
 
 func settle(t *testing.T, a *App, tt *ui.Tester) {
 	t.Helper()
-	if a.busy == "" {
-		return
-	}
-	select {
-	case r := <-a.results:
-		a.results <- r
-		tt.Frame()
-	case <-time.After(3 * time.Second):
-		t.Fatal("worker did not finish")
+	for end := time.Now().Add(3 * time.Second); a.busy != ""; {
+		if a.jobs.pending() {
+			tt.Frame()
+		} else {
+			time.Sleep(time.Millisecond)
+		}
+		if time.Now().After(end) {
+			t.Fatal("worker did not finish")
+		}
 	}
 }
 
