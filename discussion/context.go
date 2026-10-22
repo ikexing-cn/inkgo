@@ -38,13 +38,9 @@ const indexNote = "设定较多，这里只列目录：每条的编号、分类�
 const digestNote = "之前的讨论已经整理成下面的摘要。原话还在，要用时用 search_talks 查。"
 
 // numbered is line with the entry's number before it: the talk's model
-// names an entry by it to note the setting. Entries are never removed, so
-// a number stays the entry's.
+// names an entry by it to note the setting.
 func numbered(set workspace.Setting, line prompt.Line) prompt.Line {
-	at := map[string]int{}
-	for n, e := range set.Entries {
-		at[e.ID] = n + 1
-	}
+	at := set.EntryNumbers()
 	return func(e workspace.Entry) string { return fmt.Sprintf("[%d] %s", at[e.ID], line(e)) }
 }
 

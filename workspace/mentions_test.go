@@ -1,9 +1,29 @@
 package workspace
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 )
+
+func TestEntryNumbers(t *testing.T) {
+	s := Setting{Entries: []Entry{{ID: "first", Place: PlaceDropped}, {ID: "second", Place: PlaceBody}}}
+	if got := s.EntryNumbers(); !reflect.DeepEqual(got, map[string]int{"first": 1, "second": 2}) {
+		t.Fatal(got)
+	}
+	for n := -1; n <= 3; n++ {
+		e, ok := s.EntryByNumber(n)
+		if want := n >= 1 && n <= 2; ok != want {
+			t.Fatal(n, e, ok)
+		}
+		if ok && e.ID != s.Entries[n-1].ID {
+			t.Fatal(n, e)
+		}
+	}
+	if e, ok := (Setting{}).EntryByNumber(1); ok || e.ID != "" {
+		t.Fatal(e, ok)
+	}
+}
 
 func TestSettingMentions(t *testing.T) {
 	s := Setting{Entries: []Entry{
