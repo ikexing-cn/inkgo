@@ -110,79 +110,102 @@ func (a *App) spent(c *ui.Context) {
 // recordsView is the AI record: a line for each request, the newest first,
 // those that failed or were cancelled too, filtered by feature. A line
 // opens on the model, the parts sent and what the provider counted. The
-// text sent is not kept, so not shown.
+// text sent is not kept, so not shown. The head stays above the lines as
+// they scroll.
 func (a *App) recordsView(c *ui.Context) {
 	t := a.pal.theme
 	names := []string{"全部"}
-	var ids []string
 	for _, f := range recordFeatures {
-		names, ids = append(names, f.name), append(ids, f.id)
+		names = append(names, f.name)
 	}
-	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(12).Children(func() {
-		if a.pal.ghost(c, "‹ 本作品用量", ui.Color{}).Clicked() {
-			a.bk.log = false
+	ui.Column(c).FillWidth().Grow(1).Shrink(1).Gap(12).Children(func() {
+		ui.Row(c).FillWidth().Padding(12, 56, 0, 32).Shrink(0).AlignItems(ui.Center).Gap(12).Children(func() {
+			if a.pal.ghost(c, "‹ 本作品用量", ui.Color{}).Clicked() {
+				a.bk.log = false
+			}
+			ui.Spacer(c)
+			was := a.bk.logOnly
+			a.pal.segments(c, &a.bk.logOnly, "按功能筛选", names)
+			if a.bk.logOnly != was {
+				a.bk.logOpen = -1
+			}
+		})
+		rows := a.logRowsShown()
+		if len(rows) == 0 {
+			ui.Text(c, "没有这类请求。").FontSize(fsNote).TextColor(t.TextMuted).Padding(12, 56, 12, 32)
+			return
 		}
-		ui.Spacer(c)
-		was := a.bk.logOnly
-		a.pal.segments(c, &a.bk.logOnly, "按功能筛选", names)
-		if a.bk.logOnly != was {
+		now := time.Now()
+		a.bk.logList.Key = func(i int) any { return rows[i] }
+		ui.List(c, &a.bk.logList, len(rows), func(i int) {
+			a.recordRow(c, rows[i], now)
+		}).Grow(1).FillWidth().Padding(0, 56, 32, 32)
+	})
+}
+
+// logRowsShown is the records the filter leaves, newest first, by their
+// index in the record: built when the filter changes or showPref reads
+// the record anew.
+func (a *App) logRowsShown() []int {
+	b := &a.bk
+	if b.logRows != nil && b.logRowsFor == b.logOnly {
+		return b.logRows
+	}
+	rows := make([]int, 0, len(b.records))
+	for i := len(b.records) - 1; i >= 0; i-- {
+		if b.logOnly == 0 || b.records[i].Feature == recordFeatures[b.logOnly-1].id {
+			rows = append(rows, i)
+		}
+	}
+	b.logRows, b.logRowsFor = rows, b.logOnly
+	return rows
+}
+
+// recordRow is one line of the AI record, opened on what it sent and what
+// the provider counted.
+func (a *App) recordRow(c *ui.Context, i int, now time.Time) {
+	t := a.pal.theme
+	r := a.bk.records[i]
+	a.pal.hairline(c)
+	open := a.bk.logOpen == i
+	at, where, end, endColor := when(r.At, now), featureName(r.Feature)+" · "+a.recordWhere(r), "", t.TextMuted
+	switch r.Outcome {
+	case workspace.OutcomeDone:
+		end, endColor = "完成", t.Text
+	case workspace.OutcomeCancelled:
+		end = "已取消"
+	default:
+		end, endColor = "失败："+r.Error, t.Danger
+	}
+	cost := costText(costOf(r))
+	if cost == "" {
+		cost = "—"
+	}
+	row := ui.ButtonBase(c).Row().FillWidth().MinHeight(hRow+3).Gap(12).AlignItems(ui.Center).Padding(0, 6).Radius(rXs).Label("记录-" + at + " " + where)
+	if row.Hovered() {
+		row.Background(t.SurfaceHover)
+	}
+	row.Children(func() {
+		ui.Text(c, at).FontSize(fsControl).TextColor(t.TextMuted).Width(92).Shrink(0).SingleLine()
+		ui.Text(c, where).FontSize(fsControl).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
+		ui.Text(c, tokens.Round(r.Usage.Input+r.Usage.Output)).FontSize(fsControl).TextColor(t.TextMuted).Width(48).Shrink(0).SingleLine()
+		ui.Text(c, cost).FontSize(fsControl).TextColor(t.TextMuted).Width(76).Shrink(0).SingleLine()
+		ui.Text(c, end).FontSize(fsControl).TextColor(endColor).Width(120).Shrink(0).SingleLine().Ellipsis("…")
+		chevron := icChevron
+		if open {
+			chevron = icChevronDown
+		}
+		glyph(c, chevron, iconXs, a.pal.faint)
+	})
+	if row.Clicked() {
+		a.bk.logOpen = i
+		if open {
 			a.bk.logOpen = -1
 		}
-	})
-	now := time.Now()
-	ui.Column(c).FillWidth().Children(func() {
-		shown := 0
-		for i := len(a.bk.records) - 1; i >= 0; i-- {
-			r := a.bk.records[i]
-			if a.bk.logOnly > 0 && r.Feature != ids[a.bk.logOnly-1] {
-				continue
-			}
-			shown++
-			a.pal.hairline(c)
-			open := a.bk.logOpen == i
-			at, where, end, endColor := when(r.At, now), featureName(r.Feature)+" · "+a.recordWhere(r), "", t.TextMuted
-			switch r.Outcome {
-			case workspace.OutcomeDone:
-				end, endColor = "完成", t.Text
-			case workspace.OutcomeCancelled:
-				end = "已取消"
-			default:
-				end, endColor = "失败："+r.Error, t.Danger
-			}
-			cost := costText(costOf(r))
-			if cost == "" {
-				cost = "—"
-			}
-			row := ui.ButtonBase(c).Row().FillWidth().MinHeight(hRow+3).Gap(12).AlignItems(ui.Center).Padding(0, 6).Radius(rXs).Label("记录-" + at + " " + where)
-			if row.Hovered() {
-				row.Background(t.SurfaceHover)
-			}
-			row.Children(func() {
-				ui.Text(c, at).FontSize(fsControl).TextColor(t.TextMuted).Width(92).Shrink(0).SingleLine()
-				ui.Text(c, where).FontSize(fsControl).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
-				ui.Text(c, tokens.Round(r.Usage.Input+r.Usage.Output)).FontSize(fsControl).TextColor(t.TextMuted).Width(48).Shrink(0).SingleLine()
-				ui.Text(c, cost).FontSize(fsControl).TextColor(t.TextMuted).Width(76).Shrink(0).SingleLine()
-				ui.Text(c, end).FontSize(fsControl).TextColor(endColor).Width(120).Shrink(0).SingleLine().Ellipsis("…")
-				chevron := icChevron
-				if open {
-					chevron = icChevronDown
-				}
-				glyph(c, chevron, iconXs, a.pal.faint)
-			})
-			if row.Clicked() {
-				a.bk.logOpen = i
-				if open {
-					a.bk.logOpen = -1
-				}
-			}
-			if open {
-				a.recordMore(c, r)
-			}
-		}
-		if shown == 0 {
-			ui.Text(c, "没有这类请求。").FontSize(fsNote).TextColor(t.TextMuted).Padding(12, 0)
-		}
-	})
+	}
+	if open {
+		a.recordMore(c, r)
+	}
 }
 
 // recordMore is a line of the AI record opened: the model and its effort,

@@ -25,10 +25,6 @@ func (a *App) loadAI() {
 // aiView is the settings' AI: the switch for every work on this machine,
 // and with the AI on, the models.
 func (a *App) aiView(c *ui.Context) {
-	if a.showsLog() {
-		a.recordsView(c)
-		return
-	}
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
 		off := !a.aiOn() // the box shows the switch; it changes once asked
 		if ui.Checkbox(c, &off, "关闭 AI").Changed() {

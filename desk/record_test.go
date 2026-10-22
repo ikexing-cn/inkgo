@@ -1,6 +1,7 @@
 package desk
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -129,6 +130,69 @@ func indexOf(texts []string, s string) int {
 		}
 	}
 	return -1
+}
+
+// With a long record, a frame builds only the lines in view and a few
+// beyond; a line still opens, and the filter still filters. The indices
+// of the lines are found when the record or the filter changes, not each
+// frame.
+func TestTheRecordBuildsOnlyWhatShows(t *testing.T) {
+	a, tt, _ := fixture(t)
+	a.openPrefs("AI")
+	tt.Frame()
+	a.bk.log = true
+	a.bk.records = make([]workspace.Record, 10_000)
+	at := time.Now()
+	for i := range a.bk.records {
+		a.bk.records[i] = workspace.Record{Feature: workspace.FeatureTalk, Model: "deepseek/deepseek-flash",
+			Usage: workspace.Usage{Input: 100, Output: 10}, Outcome: workspace.OutcomeDone, At: at.Add(-time.Duration(i) * time.Minute)}
+	}
+	a.bk.logRows = nil
+	a.bk.logOpen = -1
+	tt.Frame()
+	tt.Frame()
+	built := 0
+	var first string
+	for _, s := range tt.Texts() {
+		if strings.HasPrefix(s, "记录-") {
+			built++
+			if first == "" {
+				first = s
+			}
+		}
+	}
+	if built == 0 || built > 40 {
+		t.Fatalf("%d lines built of 10000", built)
+	}
+	if len(a.bk.logRows) != len(a.bk.records) {
+		t.Fatalf("%d lines found", len(a.bk.logRows))
+	}
+	rows := &a.bk.logRows[0]
+	tt.Frame()
+	if &a.bk.logRows[0] != rows {
+		t.Fatal("the lines were found again with nothing changed")
+	}
+	if err := tt.Click(first); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Frame()
+	if a.bk.logOpen != len(a.bk.records)-1 {
+		t.Fatalf("opened record %d", a.bk.logOpen)
+	}
+	if !tt.HasText("实际用量：输入 100；输出 10") {
+		t.Fatal("the line did not open", tt.Texts())
+	}
+	a.bk.logOnly = 5 // 检查, which nothing was asked for
+	tt.Frame()
+	if !tt.HasText("没有这类请求。") || len(a.bk.logRows) != 0 {
+		t.Fatalf("the filter left %d lines", len(a.bk.logRows))
+	}
+	for _, s := range tt.Texts() {
+		if strings.HasPrefix(s, "记录-") {
+			t.Fatal("a line was built for no record")
+		}
+	}
 }
 
 // SHOT=dir go test ./desk -run TestShotRecord draws the AI record, a line

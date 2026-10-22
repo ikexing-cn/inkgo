@@ -34,6 +34,9 @@ type backupView struct {
 	log            bool               // the AI record shown in the AI's part, in place of the rest
 	logOnly        int                // the feature it shows: 0 for all, else the one chosen
 	logOpen        int                // the line of records open in it, or -1
+	logRows        []int              // the records the filter leaves, newest first, by index in records
+	logRowsFor     int                // the feature logRows was built for
+	logList        ui.ListState       // where the long record is scrolled to
 	askAI          bool               // asking before the AI is turned off or on
 	edit           string             // the service open in it: an ID, "+" for a new one
 	shown          string             // edit as of the last frame, to bring a form just opened into view

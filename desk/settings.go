@@ -101,6 +101,7 @@ func (a *App) showPref(tab string) {
 		records, err := a.Store.Records()
 		a.warn(err)
 		a.bk.records = records
+		a.bk.logRows = nil // the record is new: its lines are found again
 	}
 	if tab == "提醒与检查" && a.Store != nil && !a.write.entered {
 		a.warn(a.loadTree())
@@ -161,24 +162,24 @@ func (a *App) preferences(c *ui.Context) {
 				}
 			})
 			a.pal.hairline(c)
-			key := "prefs-" + a.bk.tab
 			if a.showsLog() {
-				key = "prefs-records"
-			}
-			ui.Scroll(c.Key(key)).Grow(1).Shrink(1).FillWidth().Children(func() {
-				ui.Column(c).FillWidth().Padding(12, 56, 32, 32).Gap(12).Children(func() {
-					switch a.bk.tab {
-					case "外观":
-						a.looksView(c)
-					case "备份":
-						a.backupSettingsView(c)
-					case "提醒与检查":
-						a.remindersView(c)
-					default:
-						a.aiView(c)
-					}
+				a.recordsView(c)
+			} else {
+				ui.Scroll(c.Key("prefs-" + a.bk.tab)).Grow(1).Shrink(1).FillWidth().Children(func() {
+					ui.Column(c).FillWidth().Padding(12, 56, 32, 32).Gap(12).Children(func() {
+						switch a.bk.tab {
+						case "外观":
+							a.looksView(c)
+						case "备份":
+							a.backupSettingsView(c)
+						case "提醒与检查":
+							a.remindersView(c)
+						default:
+							a.aiView(c)
+						}
+					})
 				})
-			})
+			}
 		})
 		if iconButton(c, icX, "关闭设置", ui.Color{}).Absolute().Top(12).Right(12).Clicked() {
 			a.bk.prefs = false
