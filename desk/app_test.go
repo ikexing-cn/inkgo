@@ -62,8 +62,8 @@ func TestLeavingAWorkSavesItAndStopsItsChecks(t *testing.T) {
 		t.Run(how, func(t *testing.T) {
 			a, _, id := writingFixture(t, "旧稿。")
 			store := a.Store
-			a.write.ed.Insert("新稿。")
-			want := a.write.ed.Doc.String()
+			shownEditor(a).Insert("新稿。")
+			want := shownEditor(a).Doc.String()
 			check, stopCheck := context.WithCancel(context.Background())
 			defer stopCheck()
 			a.ck.runner.cancel = stopCheck

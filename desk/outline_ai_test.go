@@ -15,7 +15,7 @@ import (
 func TestDraftDialogWithCards(t *testing.T) {
 	a, tt, id := writingFixture(t, "")
 	penWith(a, &script{})
-	a.write.outline = "雨夜修灯。"
+	setChapterOutline(a, "雨夜修灯。")
 	other, err := a.Store.NewChapter("", "第二章", false)
 	if err != nil {
 		t.Fatal(err)

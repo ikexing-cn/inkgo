@@ -252,11 +252,11 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 	a.doc.tab = paneTalk // the talk beside the prose, kept for the work
 	a.savePrefs()
 	tt.Frame()
-	if w.node != chapter || a.doc.tab != paneTalk || len(aiSaid(tt)) == 0 {
+	if shownChapter(a) != chapter || a.doc.tab != paneTalk || len(aiSaid(tt)) == 0 {
 		t.Fatalf("with the AI on, the page of prose tells nothing of it: %q", tt.Texts())
 	}
-	w.ed.MoveTo(2, false)
-	if !w.ed.Marked() {
+	shownEditor(a).MoveTo(2, false)
+	if !shownEditor(a).Marked() {
 		t.Fatal("what the AI drafted is no mark with the AI on")
 	}
 
@@ -273,7 +273,7 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 	if a.page != pageWrite || a.doc.tab != paneTalk {
 		t.Fatalf("page %d; the talk beside the prose not kept for the AI to come back", a.page)
 	}
-	if w.ed.Marked() {
+	if shownEditor(a).Marked() {
 		t.Error("what the AI drafted is a mark at the caret with the AI off")
 	}
 	if err := tt.Click("伏笔"); err != nil {
@@ -312,23 +312,23 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 	look("the menu of the prose")
 	tt.Key(0, ui.KeyEscape)
 	tt.Frame()
-	w.ed.Select(0, 2)
+	shownEditor(a).Select(0, 2)
 	tt.Frame()
 	if !tt.HasText("加入设定") {
 		t.Fatalf("no bar over the words picked: %q", tt.Texts())
 	}
 	look("the bar over the words picked")
 	tt.Key(ui.Cmd, ui.KeyL)
-	w.ed.MoveTo(len([]rune(aiProse)), false)
-	w.ed.Focus()
+	shownEditor(a).MoveTo(len([]rune(aiProse)), false)
+	shownEditor(a).Focus()
 	tt.Frame()
 	tt.Frame()
 	tt.Key(ui.Cmd, ui.KeyJ)
 	tt.Key(ui.Cmd, ui.KeyEnter)
 	time.Sleep(50 * time.Millisecond)
 	tt.Frame()
-	if w.ed.Predicting() || w.ed.Ghost() != "" || len(a.quotes) > 0 || a.busy != "" {
-		t.Errorf("a key of the AI did something with it off: predicting %v, %q, quotes %v, busy %q", w.ed.Predicting(), w.ed.Ghost(), a.quotes, a.busy)
+	if shownEditor(a).Predicting() || shownEditor(a).Ghost() != "" || len(a.quotes) > 0 || a.busy != "" {
+		t.Errorf("a key of the AI did something with it off: predicting %v, %q, quotes %v, busy %q", shownEditor(a).Predicting(), shownEditor(a).Ghost(), a.quotes, a.busy)
 	}
 	tt.Key(ui.Cmd, ui.KeySlash)
 	tt.Frame()
@@ -358,13 +358,13 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 	shut(tt, &w.snapsOpen)
 
 	// The chapter changed and left: no check.
-	w.ed.Focus()
+	shownEditor(a).Focus()
 	tt.Frame()
 	tt.Frame()
 	tt.Type("雨还在下。")
 	tt.Frame()
-	if !strings.HasSuffix(w.ed.Doc.String(), "雨还在下。") {
-		t.Fatalf("typed into %q", w.ed.Doc.String())
+	if !strings.HasSuffix(shownEditor(a).Doc.String(), "雨还在下。") {
+		t.Fatalf("typed into %q", shownEditor(a).Doc.String())
 	}
 	if err := tt.Click("作品分类"); err != nil {
 		t.Fatal(err)
@@ -539,7 +539,7 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 	penWith(a, f)
 	hold := f.holding()
 	f.then(proposal("第一章", "end", "", "雨下了一夜。\n她醒了。"))
-	w.outline = "她在雨夜醒来。"
+	setChapterOutline(a, "她在雨夜醒来。")
 	tt.Frame()
 	if err := clickMenu(tt, "编辑", "菜单-起草本章"); err != nil {
 		t.Fatal(err)
@@ -553,8 +553,8 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 	switchAI(t, a, tt, false)
 	until(t, tt, "the reply let go", func() bool { return a.busy == "" })
 	tt.Frame()
-	if len(w.ed.Proposals()) != 0 || len(w.props) != 0 || w.ed.ReadOnly() || w.ed.Doc.String() != "" {
-		t.Fatalf("the draft was not let go: %q", w.ed.Doc.String())
+	if len(shownEditor(a).Proposals()) != 0 || len(w.props) != 0 || shownEditor(a).ReadOnly() || shownEditor(a).Doc.String() != "" {
+		t.Fatalf("the draft was not let go: %q", shownEditor(a).Doc.String())
 	}
 	if a.errorText() != "" || a.notice != "" || len(aiSaid(tt)) > 0 {
 		t.Fatalf("turned off, the AI still tells of itself: %q %q %q", a.errorText(), a.notice, aiSaid(tt))
@@ -562,7 +562,7 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 	close(hold)
 	time.Sleep(50 * time.Millisecond)
 	tt.Frame()
-	if len(w.ed.Proposals()) != 0 || len(w.props) != 0 || disk(t, a, "第一章.txt") != "" {
+	if len(shownEditor(a).Proposals()) != 0 || len(w.props) != 0 || disk(t, a, "第一章.txt") != "" {
 		t.Fatalf("the draft went on with the AI off: %q", disk(t, a, "第一章.txt"))
 	}
 	switchAI(t, a, tt, true)

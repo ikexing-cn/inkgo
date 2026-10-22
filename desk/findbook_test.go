@@ -2,7 +2,6 @@ package desk
 
 import (
 	"testing"
-	"time"
 )
 
 // Finding in the whole book lists each chapter with the query and opens
@@ -16,7 +15,7 @@ func TestFindInTheWholeBook(t *testing.T) {
 	if _, err = a.Store.WriteChapter(second, "门开了，林晚又看见了林晚的影子。", nil); err != nil {
 		t.Fatal(err)
 	}
-	a.write.checked = time.Time{}
+	markUnchecked(a)
 	tt.Frame()
 	if err = tt.Click("查找替换"); err != nil {
 		t.Fatal(err)
@@ -35,14 +34,14 @@ func TestFindInTheWholeBook(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.write.node != second || !a.write.finding {
-		t.Fatal("the chapter chosen did not open with the search", a.write.node, first)
+	if shownChapter(a) != second || !a.write.finding {
+		t.Fatal("the chapter chosen did not open with the search", shownChapter(a), first)
 	}
-	if s, e := a.write.ed.Selection(); s != 4 || e != 6 {
+	if s, e := shownEditor(a).Selection(); s != 4 || e != 6 {
 		t.Fatal("the first match is not selected", s, e)
 	}
 	// What is typed into the chapter open counts before it is saved.
-	a.write.ed.Replace(0, 0, "林晚")
+	shownEditor(a).Replace(0, 0, "林晚")
 	tt.Frame()
 	if !tt.HasText("全书 2 章、共 4 处") {
 		t.Fatal(tt.Texts())
@@ -69,7 +68,7 @@ func TestReplaceThroughTheBook(t *testing.T) {
 	if _, err = a.Store.WriteChapter(second, "门开了，林晚又看见了林晚的影子。", nil); err != nil {
 		t.Fatal(err)
 	}
-	a.write.checked = time.Time{}
+	markUnchecked(a)
 	tt.Frame()
 	if err = tt.Click("查找替换"); err != nil {
 		t.Fatal(err)
@@ -109,9 +108,9 @@ func TestReplaceThroughTheBook(t *testing.T) {
 	if !tt.HasText("全书未找到") {
 		t.Fatal(tt.Texts())
 	}
-	a.write.ed.Undo()
-	if a.write.ed.Doc.String() != "林晚走进雨里。" {
-		t.Fatal("the chapter open cannot be undone", a.write.ed.Doc.String())
+	shownEditor(a).Undo()
+	if shownEditor(a).Doc.String() != "林晚走进雨里。" {
+		t.Fatal("the chapter open cannot be undone", shownEditor(a).Doc.String())
 	}
 }
 

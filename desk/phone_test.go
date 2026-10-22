@@ -28,7 +28,7 @@ func TestThePhonePreview(t *testing.T) {
 	for range 4 {
 		tt.Frame()
 	}
-	s, ed := &a.phone, a.write.ed
+	s, ed := &a.phone, shownEditor(a)
 	if a.doc.hidden || a.doc.tab != panePhone || !tt.HasText("第 1 屏，共 1 屏") || s.prefs.NoFrame {
 		t.Fatal("preview did not open", tt.Texts())
 	}
@@ -45,7 +45,7 @@ func TestThePhonePreview(t *testing.T) {
 	}
 	pages := s.Pages
 	click(t, tt, "下一屏 ›")
-	if s.at != pages-1 || a.write.node != id {
+	if s.at != pages-1 || shownChapter(a) != id {
 		t.Fatal("next at the end left the chapter")
 	}
 	click(t, tt, "‹ 上一屏")
@@ -178,7 +178,7 @@ func TestThePhonePreview(t *testing.T) {
 	for range len(s.LongPages) {
 		click(t, tt, "下一处长段")
 	}
-	if a.write.node != id {
+	if shownChapter(a) != id {
 		t.Fatal("long paragraph navigation changed chapter")
 	}
 

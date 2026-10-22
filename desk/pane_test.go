@@ -26,7 +26,7 @@ func paneFixture(t *testing.T) (*App, *ui.Tester, paneIDs) {
 			rev.Session, rev.Turn = a.session, u.ID
 		}
 		rev.Ops = []workspace.Op{{Op: workspace.OpAdd, Place: place, Category: category, Text: text, Names: names,
-			Sources: []workspace.Source{{Chapter: a.write.node, Quote: "小祥把左手揣回兜里。"}}}}
+			Sources: []workspace.Source{{Chapter: shownChapter(a), Quote: "小祥把左手揣回兜里。"}}}}
 		r, err := a.Store.Revise(rev)
 		if err != nil {
 			t.Fatal(err)

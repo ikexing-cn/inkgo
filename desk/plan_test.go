@@ -36,7 +36,7 @@ func TestOutlineReadError(t *testing.T) {
 	a.page = pageWrite
 	a.openNode(f.two)
 	tt.Frame()
-	if a.write.ed == nil {
+	if shownEditor(a) == nil {
 		t.Fatal("prose unavailable")
 	}
 	for _, text := range tt.Texts() {
@@ -236,8 +236,8 @@ func TestTheOutlineByChapter(t *testing.T) {
 		t.Fatal("drop into tray", c)
 	}
 	click(t, tt, "打开正文-"+f.one)
-	if a.page != pageWrite || a.write.node != f.one || a.write.outline != "何主任要一份新的灯数。" {
-		t.Fatal("open prose", a.page, a.write.node, a.write.outline)
+	if a.page != pageWrite || shownChapter(a) != f.one || chapterOutline(a) != "何主任要一份新的灯数。" {
+		t.Fatal("open prose", a.page, shownChapter(a), chapterOutline(a))
 	}
 }
 

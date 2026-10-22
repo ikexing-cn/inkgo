@@ -11,8 +11,8 @@ import (
 // Snapshots list what was kept; restoring one keeps the text it replaces.
 func TestRestoreASnapshot(t *testing.T) {
 	a, tt, id := writingFixture(t, "第一版。")
-	a.write.ed.MoveTo(a.write.ed.Doc.Len(), false)
-	a.write.ed.Insert("加了一句。")
+	shownEditor(a).MoveTo(shownEditor(a).Doc.Len(), false)
+	shownEditor(a).Insert("加了一句。")
 	tt.Frame()
 	if err := clickMenu(tt, "文件", "菜单-快照"); err != nil {
 		t.Fatal(err)
@@ -25,7 +25,7 @@ func TestRestoreASnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if got := disk(t, a, "第一章.txt"); got != "第一版。" || a.write.ed.Doc.String() != "第一版。" {
+	if got := disk(t, a, "第一章.txt"); got != "第一版。" || shownEditor(a).Doc.String() != "第一版。" {
 		t.Fatalf("restored %q", got)
 	}
 	snaps, _ := a.Store.Snapshots(id)

@@ -15,7 +15,7 @@ import (
 // holds no more.
 func TestAnEntryChangesFromAChapter(t *testing.T) {
 	a, tt, ids := paneFixture(t)
-	one := a.write.node
+	one := shownChapter(a)
 	node := func(title string) string {
 		id, err := a.Store.NewChapter("", title, false)
 		if err != nil {

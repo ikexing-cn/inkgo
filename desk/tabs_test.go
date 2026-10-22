@@ -49,7 +49,7 @@ func tabsFixture(t *testing.T) (a *App, tt *ui.Tester, ids map[string]string) {
 		t.Fatal(err)
 	}
 	ids["第一卷"] = vol
-	a.write.checked = time.Time{}
+	markUnchecked(a)
 	tt.Frame()
 	tt.Frame()
 	return a, tt, ids
@@ -64,7 +64,7 @@ func tabs(a *App, tt *ui.Tester) string {
 		if !ok {
 			continue
 		}
-		if title, _, _ := a.tabTitle(a.write.node); title == name {
+		if title, _, _ := a.tabTitle(shownChapter(a)); title == name {
 			name += "*"
 		}
 		out = append(out, name)
@@ -94,7 +94,7 @@ func TestChaptersOpenInTabs(t *testing.T) {
 		t.Fatalf("two more opened: %q", got)
 	}
 	click(t, tt, "标签页-第一章")
-	if got := tabs(a, tt); got != "第一章* 第三章 第二章" || a.write.node != ids["第一章"] {
+	if got := tabs(a, tt); got != "第一章* 第三章 第二章" || shownChapter(a) != ids["第一章"] {
 		t.Fatalf("a tab clicked: %q", got)
 	}
 	// A new one stands beside the one shown, not at the end.
@@ -114,8 +114,8 @@ func TestChaptersOpenInTabs(t *testing.T) {
 	}
 	// Kept with the work: the tabs are there the next time it opens.
 	a.loadPrefs()
-	if !slices.Equal(a.write.tabs, []string{ids["第一章"], ids["第三章"], ids["第一卷"], ids["第二章"]}) || a.write.node != ids["第一卷"] {
-		t.Fatalf("kept %v, shown %q", a.write.tabs, a.write.node)
+	if !slices.Equal(openTabs(a), []string{ids["第一章"], ids["第三章"], ids["第一卷"], ids["第二章"]}) || shownChapter(a) != ids["第一卷"] {
+		t.Fatalf("kept %v, shown %q", openTabs(a), shownChapter(a))
 	}
 	// The toolbar does not say whether the chapter is saved: its tab does.
 	if tt.HasText("已保存") || tt.HasText("未保存") {
@@ -143,7 +143,7 @@ func TestClosingTabs(t *testing.T) {
 		t.Fatalf("Ctrl+W, the last of the row: %q", got)
 	}
 	click(t, tt, "章节-第二章", "章节-第三章")
-	a.write.ed.Focus() // the keys work with the caret in the prose
+	shownEditor(a).Focus() // the keys work with the caret in the prose
 	tt.Frame()
 	tt.Key(ui.Ctrl, ui.KeyTab)
 	tt.Frame()
@@ -157,7 +157,7 @@ func TestClosingTabs(t *testing.T) {
 	if got := tabs(a, tt); got != "第一章 第二章 第三章*" {
 		t.Fatalf("Ctrl+Shift+Tab goes back: %q", got)
 	}
-	a.write.ed.Focus()
+	shownEditor(a).Focus()
 	tt.Frame()
 	tt.Key(ui.Cmd, ui.KeyW)
 	tt.Frame()
@@ -186,15 +186,15 @@ func TestClosingTabs(t *testing.T) {
 		t.Fatalf("closing the others: %q", got)
 	}
 	click(t, tt, "关闭标签页-第二章")
-	if got := tabs(a, tt); got != "" || a.write.node != "" || !tt.HasText("从左侧选择一章开始写作") {
-		t.Fatalf("the last one closed: %q, shown %q", got, a.write.node)
+	if got := tabs(a, tt); got != "" || shownChapter(a) != "" || !tt.HasText("从左侧选择一章开始写作") {
+		t.Fatalf("the last one closed: %q, shown %q", got, shownChapter(a))
 	}
 	click(t, tt, "讨论", "正文")
-	if a.write.node != "" {
+	if shownChapter(a) != "" {
 		t.Fatal("coming back to the page opened a chapter by itself")
 	}
 	click(t, tt, "上一个打开的章节")
-	if got := tabs(a, tt); got != "第二章*" || a.write.node != ids["第二章"] {
+	if got := tabs(a, tt); got != "第二章*" || shownChapter(a) != ids["第二章"] {
 		t.Fatalf("going back after the last was closed: %q", got)
 	}
 }
@@ -204,7 +204,7 @@ func TestClosingTabs(t *testing.T) {
 // the disk meanwhile is read anew.
 func TestATabKeepsItsEditor(t *testing.T) {
 	a, tt, ids := tabsFixture(t)
-	ed := a.write.ed
+	ed := shownEditor(a)
 	ed.MoveTo(3, false)
 	ed.Focus()
 	tt.Frame()
@@ -215,8 +215,8 @@ func TestATabKeepsItsEditor(t *testing.T) {
 		t.Fatalf("leaving a tab did not save it: %q", got)
 	}
 	click(t, tt, "标签页-第一章")
-	if a.write.ed != ed || ed.Caret() != 4 || !ed.CanUndo() {
-		t.Fatalf("the tab did not keep its editor: same %v, caret %d, undo %v", a.write.ed == ed, ed.Caret(), ed.CanUndo())
+	if shownEditor(a) != ed || ed.Caret() != 4 || !ed.CanUndo() {
+		t.Fatalf("the tab did not keep its editor: same %v, caret %d, undo %v", shownEditor(a) == ed, ed.Caret(), ed.CanUndo())
 	}
 	ed.Undo()
 	tt.Frame()
@@ -229,8 +229,8 @@ func TestATabKeepsItsEditor(t *testing.T) {
 		t.Fatal(err)
 	}
 	click(t, tt, "标签页-第一章")
-	if a.write.ed == ed || a.write.ed.Doc.String() != "磁盘上改过的一句。" {
-		t.Fatalf("the tab kept words the disk no longer has: %q", a.write.ed.Doc.String())
+	if shownEditor(a) == ed || shownEditor(a).Doc.String() != "磁盘上改过的一句。" {
+		t.Fatalf("the tab kept words the disk no longer has: %q", shownEditor(a).Doc.String())
 	}
 }
 
@@ -243,8 +243,8 @@ func TestClosingAsksAboutUnsavedWords(t *testing.T) {
 	asked := "保存对「第一章」的修改？"
 	typeIn := func(s string) {
 		t.Helper()
-		a.write.ed.MoveTo(0, false)
-		a.write.ed.Focus()
+		shownEditor(a).MoveTo(0, false)
+		shownEditor(a).Focus()
 		tt.Frame()
 		tt.Type(s)
 		tt.Frame()
@@ -288,7 +288,7 @@ func TestClosingAsksAboutUnsavedWords(t *testing.T) {
 	}
 	saveAfter = time.Hour
 	click(t, tt, "取消")
-	if tt.HasText(asked) || tabs(a, tt) != "第一章*" || !a.unsaved() || !strings.HasPrefix(a.write.ed.Doc.String(), "甲") {
+	if tt.HasText(asked) || tabs(a, tt) != "第一章*" || !a.unsaved() || !strings.HasPrefix(shownEditor(a).Doc.String(), "甲") {
 		t.Fatal("cancelling did not leave the tab as it was", tabs(a, tt))
 	}
 	// Not saving: the tab closes, and the chapter is what the disk has.
@@ -300,7 +300,7 @@ func TestClosingAsksAboutUnsavedWords(t *testing.T) {
 		t.Fatalf("not saving saved: %q", got)
 	}
 	click(t, tt, "章节-第一章")
-	if got := a.write.ed.Doc.String(); got != "整条街的灯是同时灭的。" {
+	if got := shownEditor(a).Doc.String(); got != "整条街的灯是同时灭的。" {
 		t.Fatalf("after not saving the chapter reads %q", got)
 	}
 	// Saving: the words are on the disk, and the tab closes.
@@ -338,7 +338,7 @@ func TestTheTrashTakesTheTab(t *testing.T) {
 	a.trashNode(n)
 	tt.Frame()
 	tt.Frame()
-	if got := tabs(a, tt); got != "第一章*" || a.write.ed == nil {
+	if got := tabs(a, tt); got != "第一章*" || shownEditor(a) == nil {
 		t.Fatalf("the one shown, trashed: %q", got)
 	}
 	if len(a.write.back) > 0 && a.write.back[len(a.write.back)-1] == ids["第三章"] {
@@ -372,8 +372,8 @@ func TestShotTabs(t *testing.T) {
 	click(t, tt, "标签页-第二章")
 	tt.Move(700, 500)
 	shot(t, tt, "tabs.png")
-	a.write.ed.MoveTo(0, false)
-	a.write.ed.Focus()
+	shownEditor(a).MoveTo(0, false)
+	shownEditor(a).Focus()
 	tt.Frame()
 	tt.Type("雨还在下。")
 	shot(t, tt, "tabs-unsaved.png")
@@ -400,14 +400,14 @@ func TestShotTabs(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		a.write.checked = time.Time{}
+		markUnchecked(a)
 		tt.Frame()
 		a.openNode(id)
 	}
 	shot(t, tt, "tabs-many.png")
 	click(t, tt, "关闭标签页-第15章：很长的一个章节名字")
 	tt.Key(ui.Cmd, ui.KeyW)
-	a.shutTabs(slices.Clone(a.write.tabs))
+	a.shutTabs(slices.Clone(openTabs(a)))
 	shot(t, tt, "tabs-none.png")
 }
 
@@ -430,13 +430,13 @@ func TestTabsComeBackWithTheWork(t *testing.T) {
 		tt.Frame()
 	}
 	again()
-	if got := tabs(a, tt); got != "第一章 第三章* 第二章" || a.write.node != ids["第三章"] || a.write.ed == nil {
+	if got := tabs(a, tt); got != "第一章 第三章* 第二章" || shownChapter(a) != ids["第三章"] || shownEditor(a) == nil {
 		t.Fatalf("the work opened again with %q", got)
 	}
-	a.shutTabs(slices.Clone(a.write.tabs))
+	a.shutTabs(slices.Clone(openTabs(a)))
 	tt.Frame()
 	again()
-	if got := tabs(a, tt); got != "" || a.write.node != "" || !tt.HasText("从左侧选择一章开始写作") {
+	if got := tabs(a, tt); got != "" || shownChapter(a) != "" || !tt.HasText("从左侧选择一章开始写作") {
 		t.Fatalf("closed, every tab; opened again with %q", got)
 	}
 }
@@ -446,16 +446,16 @@ func TestTabsComeBackWithTheWork(t *testing.T) {
 func TestTheQuestionGoesWithItsChapter(t *testing.T) {
 	a, tt, _ := tabsFixture(t)
 	click(t, tt, "章节-第二章", "标签页-第一章")
-	a.write.ed.Focus()
+	shownEditor(a).Focus()
 	tt.Frame()
 	tt.Type("甲")
 	tt.Frame()
-	a.shutTabs([]string{a.write.node})
+	a.shutTabs([]string{shownChapter(a)})
 	tt.Frame()
 	if !tt.HasText("保存对「第一章」的修改？") {
 		t.Fatal("not asked", tt.Texts())
 	}
-	a.openNode(a.write.tabs[1])
+	a.openNode(openTabs(a)[1])
 	tt.Frame()
 	tt.Frame()
 	if tt.HasText("保存对「第一章」的修改？") || len(a.write.closing) > 0 || tabs(a, tt) != "第一章 第二章*" {
@@ -475,14 +475,14 @@ func TestALostChapterKeepsItsTab(t *testing.T) {
 	if err := os.Remove(filepath.Join(a.Store.Root(), "chapters", "第一章.txt")); err != nil {
 		t.Fatal(err)
 	}
-	a.write.checked = time.Time{}
+	markUnchecked(a)
 	tt.Frame()
 	tt.Frame()
-	if !a.write.lost || tabs(a, tt) != "第一章* 第二章" {
-		t.Fatalf("gone from the disk: lost %v, tabs %q", a.write.lost, tabs(a, tt))
+	if !chapterLost(a) || tabs(a, tt) != "第一章* 第二章" {
+		t.Fatalf("gone from the disk: lost %v, tabs %q", chapterLost(a), tabs(a, tt))
 	}
 	click(t, tt, "标签页-第二章", "标签页-第一章")
-	if !a.write.lost || a.write.ed == nil || a.write.ed.Doc.String() != "整条街的灯是同时灭的。" {
+	if !chapterLost(a) || shownEditor(a) == nil || shownEditor(a).Doc.String() != "整条街的灯是同时灭的。" {
 		t.Fatal("coming back to the tab, the words are not there")
 	}
 	click(t, tt, "关闭标签页-第一章")
@@ -490,8 +490,8 @@ func TestALostChapterKeepsItsTab(t *testing.T) {
 		t.Fatal("closing a chapter whose words are only here did not ask", tt.Texts())
 	}
 	click(t, tt, "保存修改")
-	if a.write.lost || a.write.node == ids["第一章"] || tabs(a, tt) != "第一章* 第二章" {
-		t.Fatalf("saved as a new chapter: lost %v, tabs %q", a.write.lost, tabs(a, tt))
+	if chapterLost(a) || shownChapter(a) == ids["第一章"] || tabs(a, tt) != "第一章* 第二章" {
+		t.Fatalf("saved as a new chapter: lost %v, tabs %q", chapterLost(a), tabs(a, tt))
 	}
 	if got := disk(t, a, "第一章.txt"); got != "整条街的灯是同时灭的。" {
 		t.Fatalf("the new chapter reads %q", got)
@@ -505,10 +505,10 @@ func TestClosingAsksBetweenTwoTexts(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(a.Store.Root(), "chapters", "第一章.txt"), []byte("别处改的一句。"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	a.write.checked = time.Time{}
+	markUnchecked(a)
 	tt.Frame()
 	tt.Frame()
-	if a.write.external == nil {
+	if !diskChanged(a) {
 		t.Fatal("the change outside was not noticed")
 	}
 	click(t, tt, "关闭标签页-第一章")

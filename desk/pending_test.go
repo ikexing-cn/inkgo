@@ -47,7 +47,7 @@ func TestPendingForeshadowing(t *testing.T) {
 	if err := a.loadTree(); err != nil {
 		t.Fatal(err)
 	}
-	a.write.node = ""
+	forgetChapter(a)
 	a.openNode(two)
 	tt.Frame()
 	if err := tt.Click("待处理"); err != nil {
@@ -68,8 +68,8 @@ func TestPendingForeshadowing(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.write.node != one || a.write.ed.SelectedText() != "钥匙" || a.write.pendOpen {
-		t.Fatalf("went to %q, selecting %q", a.write.node, a.write.ed.SelectedText())
+	if shownChapter(a) != one || shownEditor(a).SelectedText() != "钥匙" || a.write.pendOpen {
+		t.Fatalf("went to %q, selecting %q", shownChapter(a), shownEditor(a).SelectedText())
 	}
 	// Its words deleted as the chapter is written, it is lost at once.
 	tt.Key(0, ui.KeyBackspace)
@@ -117,7 +117,7 @@ func TestShotPending(t *testing.T) {
 	if err := a.loadTree(); err != nil {
 		t.Fatal(err)
 	}
-	a.write.node = ""
+	forgetChapter(a)
 	a.openNode(one)
 	a.write.pendOpen = true
 
@@ -139,12 +139,12 @@ func TestShotPending(t *testing.T) {
 	a.sideHidden, a.write.focus = false, true
 	shot(t, tt, "titlebar-focus.png")
 	a.write.focus = false
-	a.write.ed.Select(17, 26)
+	shownEditor(a).Select(17, 26)
 	shot(t, tt, "toolbar-selection.png")
 	tt.SetDark(true)
 	shot(t, tt, "toolbar-selection-dark.png")
 	tt.SetDark(false)
-	a.write.ed.Select(0, 0)
+	shownEditor(a).Select(0, 0)
 	a.openPrefs("AI")
 	shot(t, tt, "titlebar-settings.png")
 }

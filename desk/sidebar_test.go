@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -22,7 +21,7 @@ func TestLeavingTheNameSettlesIt(t *testing.T) {
 	}
 	rename := func(to string) {
 		t.Helper()
-		id = a.write.node // a chapter is known by its file, which is named after it
+		id = shownChapter(a) // a chapter is known by its file, which is named after it
 		a.write.renaming, a.write.title, a.write.titleWas, a.write.offered = id, to, name(), ""
 		tt.Frame()
 		tt.Frame()
@@ -31,7 +30,7 @@ func TestLeavingTheNameSettlesIt(t *testing.T) {
 		}
 	}
 	rename("灯灭")
-	a.write.ed.Focus()
+	shownEditor(a).Focus()
 	for range 4 {
 		tt.Frame()
 	}
@@ -58,7 +57,7 @@ func TestDragMovesChapters(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a.write.checked = time.Time{}
+	markUnchecked(a)
 	tt.Frame()
 	tt.Frame()
 	drag := func(from, to string) {
@@ -156,7 +155,7 @@ func TestNameANewChapter(t *testing.T) {
 	tt.Type("第二章 脚印")
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	n, ok := chapters(a).Node(a.write.node)
+	n, ok := chapters(a).Node(shownChapter(a))
 	if !ok || n.Title != "第二章 脚印" || a.write.renaming != "" {
 		t.Fatal(n, a.write.renaming)
 	}
@@ -166,7 +165,7 @@ func TestNameANewChapter(t *testing.T) {
 	tt.Frame()
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if n, _ = chapters(a).Node(a.write.node); n.Title != "第三章" || a.write.renaming != "" {
+	if n, _ = chapters(a).Node(shownChapter(a)); n.Title != "第三章" || a.write.renaming != "" {
 		t.Fatal("the number does not go on", n.Title, a.write.renaming)
 	}
 	if err := tt.Click("新建章节"); err != nil {
@@ -179,13 +178,13 @@ func TestNameANewChapter(t *testing.T) {
 	tt.Type("守夜人")
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if n, _ = chapters(a).Node(a.write.node); n.Title != "第四章 守夜人" {
+	if n, _ = chapters(a).Node(shownChapter(a)); n.Title != "第四章 守夜人" {
 		t.Fatal(n.Title)
 	}
 	a.openNode(chapters(a).Root.Children[0].ID)
 	chapters(a).Root.Children[0].Title = "楔子"
 	a.write.renaming = ""
-	if err := a.Store.RenameChapter(a.write.node, "楔子"); err != nil {
+	if err := a.Store.RenameChapter(shownChapter(a), "楔子"); err != nil {
 		t.Fatal(err)
 	}
 	a.warn(a.loadTree())
@@ -195,7 +194,7 @@ func TestNameANewChapter(t *testing.T) {
 	tt.Frame()
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if n, _ = chapters(a).Node(a.write.node); n.Title != "新章节" {
+	if n, _ = chapters(a).Node(shownChapter(a)); n.Title != "新章节" {
 		t.Fatal("a title with no number is numbered", n.Title)
 	}
 	if err := tt.Click("新建章节"); err != nil {
@@ -205,7 +204,7 @@ func TestNameANewChapter(t *testing.T) {
 	tt.Type("尾声")
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if n, _ = chapters(a).Node(a.write.node); n.Title != "尾声" {
+	if n, _ = chapters(a).Node(shownChapter(a)); n.Title != "尾声" {
 		t.Fatal("新章节 is not typed over:", n.Title)
 	}
 }
@@ -278,7 +277,7 @@ func TestANewChapterBetweenTwoTakesNoNumber(t *testing.T) {
 	}
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if n, _ := chapters(a).Node(a.write.node); n.Title != "新章节" {
+	if n, _ := chapters(a).Node(shownChapter(a)); n.Title != "新章节" {
 		t.Fatal("numbered as the chapter after it:", n.Title)
 	}
 }
@@ -313,8 +312,8 @@ func TestSideRowsOnEveryPage(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Frame()
-	if a.page != pageWrite || a.write.node != one {
-		t.Fatalf("on page %d at %q", a.page, a.write.node)
+	if a.page != pageWrite || shownChapter(a) != one {
+		t.Fatalf("on page %d at %q", a.page, shownChapter(a))
 	}
 	if err = tt.Click("作品分类"); err != nil {
 		t.Fatal(err)

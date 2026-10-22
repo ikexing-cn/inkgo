@@ -62,11 +62,11 @@ func TestStepThroughChapters(t *testing.T) {
 	a.warn(a.loadTree())
 	step := func(key ui.Key, want string) {
 		t.Helper()
-		a.write.ed.Focus()
+		shownEditor(a).Focus()
 		tt.Key(ui.Cmd, key)
 		tt.Frame()
-		if a.write.node != want {
-			t.Fatalf("at %s, want %s", a.write.node, want)
+		if shownChapter(a) != want {
+			t.Fatalf("at %s, want %s", shownChapter(a), want)
 		}
 	}
 	step(ui.KeyPageDown, two)
@@ -76,13 +76,13 @@ func TestStepThroughChapters(t *testing.T) {
 	a.openNode(vol)
 	tt.Frame()
 	a.stepChapter(1)
-	if a.write.node != two {
-		t.Fatal("from a folder down is not its first chapter", a.write.node)
+	if shownChapter(a) != two {
+		t.Fatal("from a folder down is not its first chapter", shownChapter(a))
 	}
 	a.openNode(vol)
 	a.stepChapter(-1)
-	if a.write.node != one {
-		t.Fatal("from a folder up is not the chapter before it", a.write.node)
+	if shownChapter(a) != one {
+		t.Fatal("from a folder up is not the chapter before it", shownChapter(a))
 	}
 }
 
@@ -95,12 +95,12 @@ func TestChapterOpensWhereItWasLeft(t *testing.T) {
 		t.Fatal(err)
 	}
 	a.warn(a.loadTree())
-	a.write.ed.MoveTo(4, false)
+	shownEditor(a).MoveTo(4, false)
 	a.openNode(two)
 	tt.Frame()
 	a.openNode(one)
 	tt.Frame()
-	if got := a.write.ed.Caret(); got != 4 {
+	if got := shownEditor(a).Caret(); got != 4 {
 		t.Fatal("caret at", got)
 	}
 	if savedPrefs(t, a).Carets[one] != 4 {
@@ -110,7 +110,7 @@ func TestChapterOpensWhereItWasLeft(t *testing.T) {
 	a.loadPrefs()
 	a.openNode(two)
 	a.openNode(one)
-	if got := a.write.ed.Caret(); got != 4 {
+	if got := shownEditor(a).Caret(); got != 4 {
 		t.Fatal("caret after opening again at", got)
 	}
 }
@@ -119,31 +119,31 @@ func TestChapterOpensWhereItWasLeft(t *testing.T) {
 // the size is kept with the work.
 func TestSizeTheText(t *testing.T) {
 	a, tt, one := writingFixture(t, "一")
-	a.write.ed.Focus()
+	shownEditor(a).Focus()
 	tt.Frame()
 	tt.Key(ui.Cmd, ui.KeyEqual)
 	tt.Key(ui.Cmd, ui.KeyEqual)
 	tt.Frame()
-	if a.write.ed.FontSize() != 19 || savedPrefs(t, a).TextSize != 19 {
-		t.Fatal("size", a.write.ed.FontSize(), savedPrefs(t, a).TextSize)
+	if shownEditor(a).FontSize() != 19 || savedPrefs(t, a).TextSize != 19 {
+		t.Fatal("size", shownEditor(a).FontSize(), savedPrefs(t, a).TextSize)
 	}
 	a.loadPrefs()
 	a.openNode(one)
-	if a.write.ed.FontSize() != 19 {
-		t.Fatal("a chapter opens at", a.write.ed.FontSize())
+	if shownEditor(a).FontSize() != 19 {
+		t.Fatal("a chapter opens at", shownEditor(a).FontSize())
 	}
 	for range 20 {
 		a.sizeText(-1)
 	}
-	if a.write.ed.FontSize() != textSizeMin {
-		t.Fatal("below the least", a.write.ed.FontSize())
+	if shownEditor(a).FontSize() != textSizeMin {
+		t.Fatal("below the least", shownEditor(a).FontSize())
 	}
-	a.write.ed.Focus()
+	shownEditor(a).Focus()
 	tt.Frame()
 	tt.Key(ui.Cmd, ui.Key0)
 	tt.Frame()
-	if a.write.ed.FontSize() != textSizeDefault || savedPrefs(t, a).TextSize != 0 {
-		t.Fatal("not back", a.write.ed.FontSize())
+	if shownEditor(a).FontSize() != textSizeDefault || savedPrefs(t, a).TextSize != 0 {
+		t.Fatal("not back", shownEditor(a).FontSize())
 	}
 }
 
@@ -172,8 +172,8 @@ func TestChapterHistory(t *testing.T) {
 			t.Fatal(err)
 		}
 		tt.Frame()
-		if a.write.node != want {
-			t.Fatalf("after %s: shown %q, want %q", label, a.write.node, want)
+		if shownChapter(a) != want {
+			t.Fatalf("after %s: shown %q, want %q", label, shownChapter(a), want)
 		}
 	}
 	step("上一个打开的章节", two)

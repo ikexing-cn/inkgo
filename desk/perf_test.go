@@ -112,12 +112,12 @@ func TestPhonePreviewTypingCost(t *testing.T) {
 	// The general writing fixture saves immediately for disk assertions;
 	// typing here uses the product's paused saving instead.
 	saveAfter = pause
-	if a.write.ed.Doc.Len() <= 10000 {
+	if shownEditor(a).Doc.Len() <= 10000 {
 		t.Fatal("fixture must exceed ten thousand characters")
 	}
 	a.openPhone()
 	tt.Frame()
-	ed := a.write.ed
+	ed := shownEditor(a)
 	ed.Select(ed.Doc.Len(), ed.Doc.Len())
 	ed.Focus()
 	tt.Frame()

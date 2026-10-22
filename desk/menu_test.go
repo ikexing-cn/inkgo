@@ -122,7 +122,7 @@ func TestMenuRowDoesItsPart(t *testing.T) {
 // in the window, and a press beside it puts it away and does nothing else.
 func TestTextMenu(t *testing.T) {
 	a, tt, _ := writingFixture(t, "雨从傍晚开始下。\n林晚背着工具箱。")
-	a.write.ed.Select(0, 1)
+	shownEditor(a).Select(0, 1)
 	tt.Frame()
 	if len(rows(tt)) != 0 {
 		t.Fatal("a menu before one was asked for", rows(tt))
@@ -176,7 +176,7 @@ func TestTextMenu(t *testing.T) {
 	if len(rows(tt)) != 0 {
 		t.Fatal("Escape left it open", rows(tt))
 	}
-	a.write.ed.Focus()
+	shownEditor(a).Focus()
 	tt.Frame()
 	tt.Key(0, ui.KeyContextMenu)
 	tt.Frame()
@@ -212,7 +212,7 @@ func TestMenuRows(t *testing.T) {
 		t.Fatalf("a row that cannot be picked is drawn with %d", darkest)
 	}
 	tt.Key(0, ui.KeyEscape)
-	a.write.ed.Select(0, 2)
+	shownEditor(a).Select(0, 2)
 	tt.Frame()
 	tt.RightClickAt(550, 300)
 	tt.Frame()
@@ -255,7 +255,7 @@ func TestShotMenus(t *testing.T) {
 		a.menu = menuState{}
 		tt.Frame()
 	}
-	a.write.ed.Select(0, 1)
+	shownEditor(a).Select(0, 1)
 	tt.Frame()
 	tt.RightClickAt(520, 240)
 	shot(t, tt, "menu-text.png")
@@ -330,7 +330,7 @@ func TestMenuStaysPut(t *testing.T) {
 		}
 		a.View(c)
 	}, 1266, 780)
-	a.write.ed.Select(0, 2)
+	shownEditor(a).Select(0, 2)
 	tt.Frame()
 	tt.RightClickAt(520, 600)
 	tt.Frame()

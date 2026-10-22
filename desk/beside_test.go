@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/egoist/mygo/ui"
 	"writer/prefs"
@@ -176,7 +175,7 @@ func TestTalkBesideTheProse(t *testing.T) {
 	if _, err := a.Store.NewChapter("", "第一卷", true); err != nil {
 		t.Fatal(err)
 	}
-	a.write.checked = time.Time{}
+	markUnchecked(a)
 	tt.Frame()
 	tt.Frame()
 	if err := openOutline(tt, "第一卷"); err != nil {
@@ -192,8 +191,8 @@ func TestTalkBesideTheProse(t *testing.T) {
 // chapter and the text before the caret unless the author turns it off.
 func TestQuoteProseIntoTheTalk(t *testing.T) {
 	a, tt, id := writingFixture(t, "雨下了一夜。她推开门。")
-	a.write.outline = "她回到旧城。"
-	a.write.ed.Select(6, 11)
+	setChapterOutline(a, "她回到旧城。")
+	shownEditor(a).Select(6, 11)
 	tt.Frame()
 	tt.Key(ui.Cmd, ui.KeyL)
 	tt.Frame()
@@ -241,7 +240,7 @@ func TestQuotesFindTheirProse(t *testing.T) {
 		t.Fatal(err)
 	}
 	a.warn(a.loadTree())
-	a.write.ed.MoveTo(0, false)
+	shownEditor(a).MoveTo(0, false)
 	a.page = pageTalk
 	tt.Frame()
 	tt.Frame()
@@ -252,11 +251,11 @@ func TestQuotesFindTheirProse(t *testing.T) {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
-	if s, e := a.write.ed.Selection(); a.page != pageWrite || s != 6 || e != 11 {
+	if s, e := shownEditor(a).Selection(); a.page != pageWrite || s != 6 || e != 11 {
 		t.Fatalf("page %d selection %d-%d", a.page, s, e)
 	}
 
-	a.write.ed.MoveTo(0, false)
+	shownEditor(a).MoveTo(0, false)
 	a.doc.tab = paneSetting
 	tt.Frame()
 	var entry string
@@ -271,11 +270,11 @@ func TestQuotesFindTheirProse(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if s, e := a.write.ed.Selection(); s != 6 || e != 11 {
+	if s, e := shownEditor(a).Selection(); s != 6 || e != 11 {
 		t.Fatalf("selection %d-%d", s, e)
 	}
-	a.write.ed.Select(6, 7)
-	a.write.ed.Insert("他")
+	shownEditor(a).Select(6, 7)
+	shownEditor(a).Insert("他")
 	tt.Frame()
 	if err := tt.Click("原文-" + entry); err != nil {
 		t.Fatal(err)

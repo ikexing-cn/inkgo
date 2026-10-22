@@ -109,8 +109,8 @@ func TestCheckAChapterAndSettleWhatItFinds(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.page != pageWrite || a.write.ed.SelectedText() != "林婉" {
-		t.Fatal(a.page, a.write.ed.SelectedText())
+	if a.page != pageWrite || shownEditor(a).SelectedText() != "林婉" {
+		t.Fatal(a.page, shownEditor(a).SelectedText())
 	}
 	f.pieces = []string{`{"findings":[]}`}
 	tt.Type("林晚")
@@ -215,7 +215,7 @@ func TestCheckOnlyWhenAsked(t *testing.T) {
 	if a.ck.when != checkOnDemand || !tt.HasText("手动检查 ▴") {
 		t.Fatal(a.ck.when, tt.Texts())
 	}
-	a.write.ed.Focus()
+	shownEditor(a).Focus()
 	tt.Type("雨。")
 	tt.Frame()
 	if err := tt.Click("检查"); err != nil {
@@ -326,7 +326,7 @@ func TestCompletedCheckDoesNotLandInAnotherWork(t *testing.T) {
 func TestCheckResultStaysStaleWhenProseChangesWhileRunning(t *testing.T) {
 	a, tt, id, f := checkFixture(t)
 	f.pieces, f.hold = []string{`{"findings":`, strings.TrimPrefix(checkAnswer, `{"findings":`)}, make(chan struct{})
-	before := a.write.saved
+	before := savedText(a)
 	a.ck.queue.Enqueue(id)
 	tt.Frame()
 	until(t, tt, "the check request", func() bool {
@@ -334,9 +334,9 @@ func TestCheckResultStaysStaleWhenProseChangesWhileRunning(t *testing.T) {
 		defer f.mu.Unlock()
 		return len(f.asked) > 0
 	})
-	a.write.ed.Insert("另一盏灯亮了。")
+	shownEditor(a).Insert("另一盏灯亮了。")
 	a.flush()
-	if a.write.saved == before {
+	if savedText(a) == before {
 		t.Fatal("prose was not changed during the check")
 	}
 	close(f.hold)
@@ -344,11 +344,11 @@ func TestCheckResultStaysStaleWhenProseChangesWhileRunning(t *testing.T) {
 		return a.ck.queue.All[id].Of != "" && a.ck.queue.Running == ""
 	})
 	got := a.ck.queue.All[id]
-	if got.Of != workspace.ProseHash(before) || !got.Stale(a.write.saved) {
-		t.Fatal("a completed check was relabelled as current", got, a.write.saved)
+	if got.Of != workspace.ProseHash(before) || !got.Stale(savedText(a)) {
+		t.Fatal("a completed check was relabelled as current", got, savedText(a))
 	}
 	stored, err := a.Store.ReadCheck(id)
-	if err != nil || stored.Of != got.Of || !stored.Stale(a.write.saved) {
+	if err != nil || stored.Of != got.Of || !stored.Stale(savedText(a)) {
 		t.Fatal(stored, err)
 	}
 }
@@ -426,7 +426,7 @@ func TestShowingAChapterKeepsWhatItsCheckFound(t *testing.T) {
 	}
 	tt.Frame()
 	k, err := a.Store.ReadCheck(id)
-	if a.write.node != id || err != nil || len(k.Findings) != 1 || len(a.ck.queue.All[id].Findings) != 1 {
+	if shownChapter(a) != id || err != nil || len(k.Findings) != 1 || len(a.ck.queue.All[id].Findings) != 1 {
 		t.Fatalf("showing the chapter, what its check found went: %+v %v", k, err)
 	}
 }

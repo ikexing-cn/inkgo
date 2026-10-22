@@ -62,7 +62,7 @@ func TestWritingSavesAsTheAuthorPauses(t *testing.T) {
 	if !tt.Focused("正文") {
 		t.Fatal("named, the chapter does not take the caret")
 	}
-	a.write.ed.Focus()
+	shownEditor(a).Focus()
 	tt.Frame()
 	tt.Type("雨下了一夜。")
 	tt.Key(0, ui.KeyEnter)
@@ -76,7 +76,7 @@ func TestWritingSavesAsTheAuthorPauses(t *testing.T) {
 	}
 	a.write.outlineOpen = true
 	tt.Frame()
-	a.write.outline = "她在雨夜里等人"
+	setChapterOutline(a, "她在雨夜里等人")
 	tt.Frame()
 	if got := disk(t, a, "第一章：雨夜.outline.txt"); got != "她在雨夜里等人" {
 		t.Fatalf("outline %q", got)
@@ -106,7 +106,7 @@ func TestOutsideChangeAsksTheAuthor(t *testing.T) {
 	if err := os.WriteFile(p, []byte("　　别处改的。"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	a.write.checked = time.Time{}
+	markUnchecked(a)
 	tt.Frame()
 	if !tt.HasText("本章文件已被其他程序修改。请选择保留的版本，另一版本将存为快照。") {
 		t.Fatal(tt.Texts())
@@ -115,7 +115,7 @@ func TestOutsideChangeAsksTheAuthor(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if got := a.write.ed.Doc.String(); got != "别处改的。" {
+	if got := shownEditor(a).Doc.String(); got != "别处改的。" {
 		t.Fatalf("editor %q", got)
 	}
 	// The snapshot of opening it already holds the editor's text.
@@ -126,7 +126,7 @@ func TestOutsideChangeAsksTheAuthor(t *testing.T) {
 	if err := os.WriteFile(p, []byte("又改了。"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	a.write.checked = time.Time{}
+	markUnchecked(a)
 	tt.Frame()
 	if err := tt.Click("保留当前版本"); err != nil {
 		t.Fatal(err)
@@ -143,9 +143,9 @@ func TestOutsideChangeAsksTheAuthor(t *testing.T) {
 	if err := os.WriteFile(p, []byte("　　别处改的。"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	a.write.checked = time.Time{}
+	markUnchecked(a)
 	tt.Frame()
-	if a.write.external != nil {
+	if diskChanged(a) {
 		t.Fatal("an indent alone asked the author")
 	}
 	// Renamed outside, the chapter is gone as far as the work knows; the
@@ -153,13 +153,13 @@ func TestOutsideChangeAsksTheAuthor(t *testing.T) {
 	if err := os.Rename(p, filepath.Join(a.Store.Root(), "chapters", "改名.txt")); err != nil {
 		t.Fatal(err)
 	}
-	a.write.checked = time.Time{}
+	markUnchecked(a)
 	tt.Frame()
 	if err := tt.Click("存为新章节"); err != nil {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
-	if got := disk(t, a, "第一章.txt"); got != "别处改的。" || a.write.lost {
+	if got := disk(t, a, "第一章.txt"); got != "别处改的。" || chapterLost(a) {
 		t.Fatalf("saved %q", got)
 	}
 }
@@ -167,16 +167,16 @@ func TestOutsideChangeAsksTheAuthor(t *testing.T) {
 // Ctrl+S saves the chapter at once and says so.
 func TestCtrlSSavesNow(t *testing.T) {
 	a, tt, one := writingFixture(t, "一")
-	a.write.ed.Focus()
+	shownEditor(a).Focus()
 	tt.Frame()
-	a.write.ed.Insert("二")
+	shownEditor(a).Insert("二")
 	tt.Key(ui.Cmd, ui.KeyS)
 	tt.Frame()
 	ch, err := a.Store.ReadChapter(one)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if ch.Text != a.write.ed.Doc.String() || !strings.Contains(ch.Text, "二") {
+	if ch.Text != shownEditor(a).Doc.String() || !strings.Contains(ch.Text, "二") {
 		t.Fatalf("disk has %q", ch.Text)
 	}
 	if !strings.HasPrefix(a.notice, "已保存") {
@@ -193,7 +193,7 @@ func TestSavingDoesNotWriteOverAnOutsideChange(t *testing.T) {
 	if err := os.WriteFile(p, []byte("别处改的，很重要。"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	a.write.ed.Focus()
+	shownEditor(a).Focus()
 	tt.Frame()
 	tt.Type("新字")
 	tt.Frame()
@@ -217,12 +217,12 @@ func TestSavingDoesNotWriteOverAnOutsideChange(t *testing.T) {
 		t.Fatalf("the disk's text was not kept: %q", text)
 	}
 	// And the next save goes through.
-	a.write.ed.Focus()
+	shownEditor(a).Focus()
 	tt.Frame()
 	tt.Type("再写")
 	tt.Frame()
 	tt.Frame()
-	if got := disk(t, a, "第一章.txt"); got != "新字再写原来的。" || a.write.external != nil {
+	if got := disk(t, a, "第一章.txt"); got != "新字再写原来的。" || diskChanged(a) {
 		t.Fatalf("on disk %q", got)
 	}
 }
@@ -236,12 +236,12 @@ func TestSavingOverAFileOnlyTouched(t *testing.T) {
 	if err := os.Chtimes(p, later, later); err != nil {
 		t.Fatal(err)
 	}
-	a.write.ed.Focus()
+	shownEditor(a).Focus()
 	tt.Frame()
 	tt.Type("新字")
 	tt.Frame()
 	tt.Frame()
-	if got := disk(t, a, "第一章.txt"); got != "新字原来的。" || a.write.external != nil || a.errorText() != "" {
+	if got := disk(t, a, "第一章.txt"); got != "新字原来的。" || diskChanged(a) || a.errorText() != "" {
 		t.Fatalf("on disk %q, error %q", got, a.errorText())
 	}
 }
@@ -251,7 +251,7 @@ func TestSavingOverAFileOnlyTouched(t *testing.T) {
 func TestLeavingWithAnOutsideChangeKeepsTheEditorsWords(t *testing.T) {
 	a, tt, id := writingFixture(t, "原来的。")
 	p := filepath.Join(a.Store.Root(), "chapters", "第一章.txt")
-	a.write.ed.Focus()
+	shownEditor(a).Focus()
 	tt.Frame()
 	if err := os.WriteFile(p, []byte("别处改的，很重要。"), 0644); err != nil {
 		t.Fatal(err)

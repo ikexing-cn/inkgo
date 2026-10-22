@@ -19,7 +19,7 @@ func TestNamesInTheProse(t *testing.T) {
 		workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceOpen, Category: "人物", Text: "还没确定", Names: []string{"林晚"}})
 	id := setting(a).Entries[len(setting(a).Entries)-2].ID
 	tt.Frame()
-	ed := a.write.ed
+	ed := shownEditor(a)
 	caret := ed.Caret()
 	clickName := func() {
 		t.Helper()
@@ -109,15 +109,15 @@ func TestNamesComplete(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	a.write.ed.Focus()
+	shownEditor(a).Focus()
 	tt.Frame()
 	tt.Type("林")
-	if c := a.write.ed.Completions(); !slices.Equal(c, []editor.Entity{{Name: "林晚", Kind: "人物"}}) {
+	if c := shownEditor(a).Completions(); !slices.Equal(c, []editor.Entity{{Name: "林晚", Kind: "人物"}}) {
 		t.Fatal("completions", c)
 	}
 	tt.Key(0, ui.KeyEnter)
 	tt.Type("和晚")
-	if c := a.write.ed.Completions(); len(c) != 1 || c[0].Of != "林晚" {
+	if c := shownEditor(a).Completions(); len(c) != 1 || c[0].Of != "林晚" {
 		t.Fatal("another name", c)
 	}
 }
@@ -125,7 +125,7 @@ func TestNamesComplete(t *testing.T) {
 // A name selected in the prose joins the setting from the context menu.
 func TestAddANameFromTheProse(t *testing.T) {
 	a, tt, _ := writingFixture(t, "沈砚推开门。")
-	a.write.ed.Select(0, 2)
+	shownEditor(a).Select(0, 2)
 	tt.Frame()
 	tt.RightClickAt(550, 300) // on the prose
 	if err := pick(tt, "加入名字表", "人物"); err != nil {
@@ -171,10 +171,10 @@ func TestRenameOffersToReplace(t *testing.T) {
 	}
 	tt.Frame()
 	w := &a.write
-	if !w.finding || !w.wide || w.query != "林晚" || w.with != "苏晴" || w.node != id {
+	if !w.finding || !w.wide || w.query != "林晚" || w.with != "苏晴" || shownChapter(a) != id {
 		t.Fatalf("find bar %v %v %q %q", w.finding, w.wide, w.query, w.with)
 	}
-	if !tt.HasText("全书 1 章、共 2 处") || strings.Contains(w.ed.Doc.String(), "苏晴") {
+	if !tt.HasText("全书 1 章、共 2 处") || strings.Contains(shownEditor(a).Doc.String(), "苏晴") {
 		t.Fatal("replaced before the confirmation", tt.Texts())
 	}
 }

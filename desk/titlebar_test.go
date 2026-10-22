@@ -230,7 +230,7 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 	}
 
 	// 编辑: undo and redo are pale until there is a step, and take it.
-	w.ed.Focus()
+	shownEditor(a).Focus()
 	tt.Frame()
 	choose("编辑", "查找替换")
 	if !w.finding {
@@ -245,36 +245,36 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 		t.Fatal("撤销 was picked with nothing to take back")
 	}
 	a.menu = menuState{}
-	w.ed.Focus()
-	w.ed.MoveTo(0, false)
+	shownEditor(a).Focus()
+	shownEditor(a).MoveTo(0, false)
 	tt.Frame()
 	tt.Type("戊")
 	tt.Frame()
-	if got := w.ed.Doc.String(); !strings.HasPrefix(got, "戊整条街") {
+	if got := shownEditor(a).Doc.String(); !strings.HasPrefix(got, "戊整条街") {
 		t.Fatalf("typed: %q", got)
 	}
 	choose("编辑", "撤销")
-	if got := w.ed.Doc.String(); got != "整条街的灯是同时灭的。" {
+	if got := shownEditor(a).Doc.String(); got != "整条街的灯是同时灭的。" {
 		t.Fatalf("after 撤销: %q", got)
 	}
 	choose("编辑", "重做")
-	if got := w.ed.Doc.String(); !strings.HasPrefix(got, "戊整条街") {
+	if got := shownEditor(a).Doc.String(); !strings.HasPrefix(got, "戊整条街") {
 		t.Fatalf("after 重做: %q", got)
 	}
 	// The caret is back in the prose once the menu is away.
 	saveAfter = time.Hour // what is typed now waits for the menu to save it
 	tt.Type("己")
 	tt.Frame()
-	if got := w.ed.Doc.String(); !strings.Contains(got, "己") {
+	if got := shownEditor(a).Doc.String(); !strings.Contains(got, "己") {
 		t.Fatalf("after the menu the prose does not take what is typed: %q", got)
 	}
 
 	// 文件
-	if w.ed.Doc.Version() == w.savedVer {
+	if shownEditor(a).Doc.Version() == savedVersion(a) {
 		t.Fatal("the chapter is not waiting to be saved")
 	}
 	choose("文件", "保存")
-	if w.ed.Doc.Version() != w.savedVer || !strings.Contains(disk(t, a, "第一章.txt"), "己") {
+	if shownEditor(a).Doc.Version() != savedVersion(a) || !strings.Contains(disk(t, a, "第一章.txt"), "己") {
 		t.Fatalf("保存 did not save: %q", disk(t, a, "第一章.txt"))
 	}
 	saveAfter = 0
@@ -302,7 +302,7 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
 	choose("文件", "新建文件夹")
-	if n, ok := chapters(a).Node(w.node); nodes() != before+2 || !ok || !n.Folder {
+	if n, ok := chapters(a).Node(shownChapter(a)); nodes() != before+2 || !ok || !n.Folder {
 		t.Fatalf("新建文件夹: %d nodes after %d", nodes(), before)
 	}
 	tt.Key(0, ui.KeyEnter)
@@ -325,7 +325,7 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 		t.Fatal("起草本章 without an outline", tt.Texts())
 	}
 	a.menu = menuState{}
-	w.outline = "林晚回到旧城。"
+	setChapterOutline(a, "林晚回到旧城。")
 	tt.Frame()
 	choose("编辑", "起草本章")
 	if !w.draftOpen {
@@ -333,12 +333,12 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 	}
 	shut(tt, &w.draftOpen)
 	penWith(a, &stream{pieces: []string{"，屋里", "很暗。"}})
-	w.ed.Focus()
-	w.ed.MoveTo(w.ed.Doc.Len(), false)
+	shownEditor(a).Focus()
+	shownEditor(a).MoveTo(shownEditor(a).Doc.Len(), false)
 	tt.Frame()
 	tt.Frame()
 	choose("编辑", "续写一句")
-	until(t, tt, "the sentence", func() bool { return w.ed.Ghost() != "" })
+	until(t, tt, "the sentence", func() bool { return shownEditor(a).Ghost() != "" })
 	tt.Key(0, ui.KeyEscape)
 	tt.Frame()
 
@@ -477,8 +477,8 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 func TestTheBarGivesTheCaretBack(t *testing.T) {
 	a, tt, _ := writingFixture(t, "整条街的灯是同时灭的。")
 	w := &a.write
-	w.ed.Focus()
-	w.ed.MoveTo(0, false)
+	shownEditor(a).Focus()
+	shownEditor(a).MoveTo(0, false)
 	tt.Frame()
 	tt.Frame()
 	typed := func(s, why string) {
@@ -486,7 +486,7 @@ func TestTheBarGivesTheCaretBack(t *testing.T) {
 		tt.Frame()
 		tt.Type(s)
 		tt.Frame()
-		if got := w.ed.Doc.String(); !strings.Contains(got, s) {
+		if got := shownEditor(a).Doc.String(); !strings.Contains(got, s) {
 			t.Fatalf("%s: the prose did not take %q: %q", why, s, got)
 		}
 	}
@@ -557,15 +557,15 @@ func TestTheBarGivesTheCaretBack(t *testing.T) {
 	if a.menu.owner != "" || !tt.Focused("搜索设定") {
 		t.Fatalf("a press on the field: menu %q, field focused %v", a.menu.owner, tt.Focused("搜索设定"))
 	}
-	before := w.ed.Doc.String()
+	before := shownEditor(a).Doc.String()
 	tt.Type("林")
 	tt.Frame()
-	if w.ed.Doc.String() != before {
+	if shownEditor(a).Doc.String() != before {
 		t.Fatal("the prose took what was typed in the field")
 	}
 
 	// What a row opens to be typed in has the focus.
-	w.ed.Focus()
+	shownEditor(a).Focus()
 	tt.Frame()
 	tt.Frame()
 	if err := clickMenu(tt, "编辑", "菜单-查找替换"); err != nil {
@@ -577,7 +577,7 @@ func TestTheBarGivesTheCaretBack(t *testing.T) {
 		t.Fatalf("查找替换: finding %v, its field focused %v", w.finding, tt.Focused("查找"))
 	}
 	shut(tt, &w.finding)
-	w.ed.Focus()
+	shownEditor(a).Focus()
 	tt.Frame()
 	tt.Frame()
 	if err := clickMenu(tt, "编辑", "菜单-重命名"); err != nil {
@@ -593,7 +593,7 @@ func TestTheBarGivesTheCaretBack(t *testing.T) {
 // A press held on a menu's name still opens the menu as it is let go.
 func TestAMenuOpensOnASlowClick(t *testing.T) {
 	a, tt, _ := writingFixture(t, "整条街的灯是同时灭的。")
-	a.write.ed.Focus()
+	shownEditor(a).Focus()
 	tt.Frame()
 	tt.Frame()
 	r, _ := tt.Find(barKey + "编辑")
@@ -610,7 +610,7 @@ func TestAMenuOpensOnASlowClick(t *testing.T) {
 	tt.Frame()
 	tt.Type("甲")
 	tt.Frame()
-	if got := a.write.ed.Doc.String(); !strings.Contains(got, "甲") {
+	if got := shownEditor(a).Doc.String(); !strings.Contains(got, "甲") {
 		t.Fatalf("after it the prose did not take what was typed: %q", got)
 	}
 }

@@ -21,11 +21,11 @@ func TestFindAndReplaceInAChapter(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if got := a.write.ed.Doc.String(); got != "沈砚说，沈砚走了。" {
+	if got := shownEditor(a).Doc.String(); got != "沈砚说，沈砚走了。" {
 		t.Fatalf("replaced %q", got)
 	}
-	a.write.ed.Undo()
-	if got := a.write.ed.Doc.String(); got != "林晚说，林晚走了。" {
+	shownEditor(a).Undo()
+	if got := shownEditor(a).Doc.String(); got != "林晚说，林晚走了。" {
 		t.Fatalf("undo %q", got)
 	}
 }
@@ -36,7 +36,7 @@ func TestFindAndReplaceInAChapter(t *testing.T) {
 func TestFindWhatIsPicked(t *testing.T) {
 	a, tt, _ := writingFixture(t, "林晚说，林晚走了。\n雨还在下。")
 	w := &a.write
-	w.ed.Select(4, 6)
+	shownEditor(a).Select(4, 6)
 	tt.Frame()
 	tt.Key(ui.Cmd, ui.KeyF)
 	tt.Frame()
@@ -48,8 +48,8 @@ func TestFindWhatIsPicked(t *testing.T) {
 	if w.query != "雨" || !tt.HasText("1 / 1") {
 		t.Fatalf("typed over: query %q", w.query)
 	}
-	w.ed.Select(6, 12)
-	w.ed.Focus()
+	shownEditor(a).Select(6, 12)
+	shownEditor(a).Focus()
 	tt.Frame()
 	tt.Key(ui.Cmd, ui.KeyF)
 	tt.Frame()
@@ -70,7 +70,7 @@ func TestEscapeBacksOutOfFinding(t *testing.T) {
 	tt.Frame()
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if s, e := a.write.ed.Selection(); !tt.HasText("2 / 2") || s != 4 || e != 6 {
+	if s, e := shownEditor(a).Selection(); !tt.HasText("2 / 2") || s != 4 || e != 6 {
 		t.Fatalf("Enter in the find bar went to %d-%d: %q", s, e, tt.Texts())
 	}
 	if tt.HasText("加入设定") {
@@ -87,7 +87,7 @@ func TestEscapeBacksOutOfFinding(t *testing.T) {
 	}
 	tt.Key(0, ui.KeyEscape)
 	tt.Frame()
-	if s, e := a.write.ed.Selection(); s != e || e != 6 || tt.HasText("加入设定") {
+	if s, e := shownEditor(a).Selection(); s != e || e != 6 || tt.HasText("加入设定") {
 		t.Fatalf("a second Escape left the pick %d-%d", s, e)
 	}
 }

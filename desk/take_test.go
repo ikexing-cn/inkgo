@@ -6,7 +6,7 @@ import "testing"
 // the chapter.
 func TestTakeProseIntoTheSetting(t *testing.T) {
 	a, tt, id := writingFixture(t, "她其实很怕黑。")
-	a.write.ed.Select(3, 7)
+	shownEditor(a).Select(3, 7)
 	tt.Frame()
 	if err := tt.Click("加入设定"); err != nil {
 		t.Fatal(err)

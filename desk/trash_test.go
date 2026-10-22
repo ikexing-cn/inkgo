@@ -2,7 +2,6 @@ package desk
 
 import (
 	"testing"
-	"time"
 )
 
 // The tree's menu trashes a chapter, and the trash brings it back.
@@ -12,7 +11,7 @@ func TestTrashAndRestoreFromTheTree(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a.write.checked = time.Time{}
+	markUnchecked(a)
 	tt.Frame()
 	tt.Frame() // the sidebar shows the tree read in the frame before
 	if err = tt.RightClick("章节-第二章"); err != nil {

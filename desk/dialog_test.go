@@ -36,14 +36,14 @@ func TestDialogsGiveTheKeyboardBack(t *testing.T) {
 		{"快照的关闭", click("菜单栏-文件", "快照"), click("关闭")},
 		{"导出", click("菜单栏-文件", "导出…"), escape},
 		{"快捷键", click("菜单栏-帮助", "快捷键…"), escape},
-		{"加入设定", func() { a.write.ed.Select(0, 3); tt.Frame(); click("加入设定")() }, escape},
+		{"加入设定", func() { shownEditor(a).Select(0, 3); tt.Frame(); click("加入设定")() }, escape},
 		{"提示里的打开设置", func() {
 			a.SetError(&aiport.SetupError{Err: errors.New("尚未选择讨论模型")})
 			tt.Frame()
 			click("打开设置")()
 		}, escape},
 	} {
-		a.write.ed.Focus()
+		shownEditor(a).Focus()
 		tt.Frame()
 		d.open()
 		tt.Frame()

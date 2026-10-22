@@ -34,7 +34,7 @@ func writingFixture(t *testing.T, text string) (*App, *ui.Tester, string) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.write.node != id || a.write.ed == nil {
+	if shownChapter(a) != id || shownEditor(a) == nil {
 		t.Fatal("the chapter did not open", tt.Texts())
 	}
 	return a, tt, id
@@ -46,7 +46,7 @@ func writingFixture(t *testing.T, text string) (*App, *ui.Tester, string) {
 func TestTheHeadLinesUpWithTheProse(t *testing.T) {
 	a, tt, _ := writingFixture(t, strings.Repeat("雨从傍晚开始下。", 30))
 	a.sideHidden = true // whose 正文 is not the prose's
-	ed := a.write.ed
+	ed := shownEditor(a)
 	ed.Select(0, ed.Doc.Len())
 	a.openRewrite()
 	for _, width := range []int{1000, 2200} {
@@ -80,13 +80,13 @@ func TestTheHeadLinesUpWithTheProse(t *testing.T) {
 // Marks are kept beside the text and come back when the chapter opens.
 func TestMarksSurviveReopening(t *testing.T) {
 	a, tt, id := writingFixture(t, "井边有一把钥匙。")
-	a.write.ed.Select(5, 7)
-	a.write.ed.MarkSelection(editor.MarkForeshadow, "")
+	shownEditor(a).Select(5, 7)
+	shownEditor(a).MarkSelection(editor.MarkForeshadow, "")
 	tt.Frame()
-	a.write.node = ""
+	forgetChapter(a)
 	a.openNode(id)
-	marks := a.write.ed.Doc.Marks()
-	if len(marks) != 1 || a.write.ed.Doc.Slice(marks[0].Start, marks[0].End) != "钥匙" {
+	marks := shownEditor(a).Doc.Marks()
+	if len(marks) != 1 || shownEditor(a).Doc.Slice(marks[0].Start, marks[0].End) != "钥匙" {
 		t.Fatalf("marks %+v", marks)
 	}
 }
@@ -277,14 +277,14 @@ func TestFocusLeavesThePageAlone(t *testing.T) {
 		t.Fatal(tt.Texts())
 	}
 	a.write.focus = true
-	a.write.ed.Select(0, 2)
+	shownEditor(a).Select(0, 2)
 	a.quoteToTalk()
 	tt.Frame()
 	if a.write.focus || !tt.HasText("右栏-讨论") {
 		t.Fatal("quoting kept the column away", tt.Texts())
 	}
 	// F11 from the prose goes in and out.
-	a.write.ed.Focus()
+	shownEditor(a).Focus()
 	tt.Key(0, ui.KeyF11)
 	tt.Frame()
 	if !a.write.focus {
@@ -321,14 +321,14 @@ func TestWritingSwitchesKeepAsTicked(t *testing.T) {
 // Ctrl+N makes a chapter after the one open, ready to be named.
 func TestCtrlNMakesAChapter(t *testing.T) {
 	a, tt, one := writingFixture(t, "一")
-	a.write.ed.Focus()
+	shownEditor(a).Focus()
 	tt.Frame()
 	tt.Key(ui.Cmd, ui.KeyN)
 	tt.Frame()
-	if a.write.node == one || a.write.renaming != a.write.node {
-		t.Fatal("no new chapter to name", a.write.node, a.write.renaming)
+	if shownChapter(a) == one || a.write.renaming != shownChapter(a) {
+		t.Fatal("no new chapter to name", shownChapter(a), a.write.renaming)
 	}
-	if n, _ := chapters(a).Node(a.write.node); n.Folder || n.Parent.Children[0].ID != one {
+	if n, _ := chapters(a).Node(shownChapter(a)); n.Folder || n.Parent.Children[0].ID != one {
 		t.Fatal("the new chapter is not after the one open")
 	}
 }
@@ -407,8 +407,8 @@ func TestLeavingAChangedChapterAsksNothing(t *testing.T) {
 		t.Fatal(err)
 	}
 	a.SetError(a.loadTree())
-	a.write.ed.MoveTo(a.write.ed.Doc.Len(), false)
-	a.write.ed.Insert("她推开门。")
+	shownEditor(a).MoveTo(shownEditor(a).Doc.Len(), false)
+	shownEditor(a).Insert("她推开门。")
 	a.openNode(two)
 	for i := 0; i < 5; i++ {
 		time.Sleep(10 * time.Millisecond)
@@ -455,7 +455,7 @@ func TestRemindersBeforeTheWritingPage(t *testing.T) {
 // over it.
 func TestTheProseKeepsTheKeyboard(t *testing.T) {
 	a, tt, _ := writingFixture(t, "林晚说，林晚走了。")
-	a.write.ed.Focus()
+	shownEditor(a).Focus()
 	tt.Frame()
 	tt.Frame()
 	steps := []struct {
@@ -470,7 +470,7 @@ func TestTheProseKeepsTheKeyboard(t *testing.T) {
 	}
 	for _, s := range steps {
 		if s.name == "the find bar over it" {
-			a.write.ed.Focus() // opened from the menu, the find bar is not focused
+			shownEditor(a).Focus() // opened from the menu, the find bar is not focused
 		}
 		s.do()
 		tt.Frame()

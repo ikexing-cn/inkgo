@@ -47,7 +47,7 @@ func TestShotAI(t *testing.T) {
 
 	f := &stream{pieces: []string{"她蹲下去拧开灯座，", "手电的光在雨里抖得厉害。"}}
 	penWith(a, f)
-	ed := a.write.ed
+	ed := shownEditor(a)
 	ed.MoveTo(ed.Doc.Len(), false)
 	ed.Focus()
 	tt.Key(ui.Cmd, ui.KeyJ)
@@ -79,7 +79,7 @@ func TestShotAI(t *testing.T) {
 	shot(t, tt, "ai-rewrite.png")
 	take()
 
-	a.write.outline = "林晚夜里去旧城修灯，发现井边的灯是被人拧坏的。"
+	setChapterOutline(a, "林晚夜里去旧城修灯，发现井边的灯是被人拧坏的。")
 	a.openDraft()
 	a.write.words = "1500"
 	shot(t, tt, "ai-draft-ask.png")
@@ -146,7 +146,7 @@ func TestShotBeside(t *testing.T) {
 		Text: "有一点。“怕黑”是她的底牌，第一章就直接说出来，后面井边那场戏就少了悬念。\n\n可以只留动作：她在巷口停住，把手电换到另一只手。读者会自己猜。"})
 	a.SetError(a.refresh())
 	a.doc.tab = paneTalk
-	a.write.ed.Select(15, 34)
+	shownEditor(a).Select(15, 34)
 	tt.Frame()
 	tt.Key(ui.Cmd, ui.KeyL)
 	a.input = "换成动作的话，放在哪里合适？"

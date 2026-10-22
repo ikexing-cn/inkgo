@@ -51,7 +51,7 @@ func TestTheSelectionBar(t *testing.T) {
 	if tt.HasText("AI 改写") {
 		t.Fatal("a selection bar without a selection")
 	}
-	a.write.ed.Select(3, 7)
+	shownEditor(a).Select(3, 7)
 	tt.Frame()
 	tt.Frame()
 	if !tt.HasText("AI 改写") || !tt.HasText("加入设定") {
@@ -71,7 +71,7 @@ func TestTheSelectionBar(t *testing.T) {
 func TestTheSelectionBarLeavesTheSelectionInSight(t *testing.T) {
 	a, tt, _ := writingFixture(t, strings.Repeat("雾从海上来，港口的灯一盏接一盏地熄了。", 6))
 	a.sideHidden = true // whose 正文 is not the prose's
-	ed := a.write.ed
+	ed := shownEditor(a)
 	ed.Select(0, ed.Doc.Len())
 	tt.Frame()
 	tt.Frame()

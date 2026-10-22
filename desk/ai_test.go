@@ -244,7 +244,7 @@ func replied(t *testing.T, a *App, tt *ui.Tester) {
 // shownProposals are the texts the editor shows proposed.
 func shownProposals(a *App) []string {
 	var out []string
-	for _, p := range a.write.ed.Proposals() {
+	for _, p := range shownEditor(a).Proposals() {
 		out = append(out, p.Text)
 	}
 	return out
@@ -270,7 +270,7 @@ func TestDraftAChapterThroughATalk(t *testing.T) {
 	if a.write.draftOpen {
 		t.Fatal("drafting opened with no outline")
 	}
-	a.write.outline = "她在雨夜醒来。"
+	setChapterOutline(a, "她在雨夜醒来。")
 	tt.Frame()
 	if err := tt.Click("起草本章"); err != nil { // the menu stayed open
 		t.Fatal(err)
@@ -295,7 +295,7 @@ func TestDraftAChapterThroughATalk(t *testing.T) {
 		t.Fatal(err)
 	}
 	until(t, tt, "the draft to come", func() bool { return slices.Equal(shownProposals(a), []string{"雨下了一夜"}) })
-	ed := a.write.ed
+	ed := shownEditor(a)
 	if ed.Doc.String() != "" || disk(t, a, "第一章.txt") != "" || ed.ReadOnly() || !tt.HasText("AI 正在写提议…") || !tt.HasText("正在写…") {
 		t.Fatal("the draft is not shown beside the text as it comes", tt.Texts())
 	}
@@ -382,7 +382,7 @@ func TestDraftOverWhatIsThere(t *testing.T) {
 	a, tt, _ := writingFixture(t, "她醒了")
 	f := &script{}
 	penWith(a, f)
-	a.write.outline = "她醒来。"
+	setChapterOutline(a, "她醒来。")
 	tt.Frame()
 	for _, want := range []string{draftReplace, draftAppend} {
 		if err := clickMenu(tt, "编辑", "菜单-起草本章"); err != nil {
@@ -427,7 +427,7 @@ func TestRewriteASelectionThroughATalk(t *testing.T) {
 	f := &script{}
 	penWith(a, f)
 	f.then(proposal("第一章", "replace", "她走到井边。", "她慢慢走到井边。"), []string{"放慢了。"})
-	ed := a.write.ed
+	ed := shownEditor(a)
 	ed.Select(0, 6)
 	tt.Frame()
 	if err := tt.Click("AI 改写"); err != nil {
@@ -512,7 +512,7 @@ func TestAProposalVoidAndOneLetGo(t *testing.T) {
 	f := &script{}
 	penWith(a, f)
 	f.then(proposal("第一章", "replace", "井里有光。", "井里亮着。"), []string{"换了。"})
-	ed := a.write.ed
+	ed := shownEditor(a)
 	ed.Select(6, 11)
 	tt.Frame()
 	if err := tt.Click("AI 改写"); err != nil {
@@ -570,7 +570,7 @@ func TestLeavingTheWorkAsksAboutProposals(t *testing.T) {
 	f := &script{}
 	penWith(a, f)
 	f.then(proposal("第一章", "end", "", "井里有光。"), []string{"接了一句。"})
-	a.write.outline = "井里有光。"
+	setChapterOutline(a, "井里有光。")
 	a.openDraft()
 	tt.Frame()
 	if err := tt.Click("开始起草"); err != nil {
@@ -636,15 +636,15 @@ func TestAProposalInAnotherChapterOpensBeside(t *testing.T) {
 		t.Fatal(err)
 	}
 	replied(t, a, tt)
-	if a.write.node != one || !slices.Contains(a.write.tabs, two) || !tt.HasText("提议修改「第二章」") || !tt.HasText("换掉一句 · 8 字 · 等你决定") {
-		t.Fatal("the chapter is not open beside", a.write.tabs, tt.Texts())
+	if shownChapter(a) != one || !slices.Contains(openTabs(a), two) || !tt.HasText("提议修改「第二章」") || !tt.HasText("换掉一句 · 8 字 · 等你决定") {
+		t.Fatal("the chapter is not open beside", openTabs(a), tt.Texts())
 	}
 	if err := tt.Click("在正文中查看"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
 	tt.Frame()
-	if a.write.node != two || !tt.HasText("本章有 1 处 AI 提议") || !slices.Equal(shownProposals(a), []string{"白天也得开着灯。"}) {
+	if shownChapter(a) != two || !tt.HasText("本章有 1 处 AI 提议") || !slices.Equal(shownProposals(a), []string{"白天也得开着灯。"}) {
 		t.Fatal("the proposal is not shown", tt.Texts())
 	}
 	if err := tt.Click("全部放弃"); err != nil {
@@ -685,7 +685,7 @@ func TestTakingTheProposalsOfTwoTalks(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if got := a.write.ed.Doc.String(); got != "她慢慢走到井边。井里有光。\n雨停了。" {
+	if got := shownEditor(a).Doc.String(); got != "她慢慢走到井边。井里有光。\n雨停了。" {
 		t.Fatalf("taken %q", got)
 	}
 	snaps, _ := a.Store.Snapshots(id)
@@ -705,7 +705,7 @@ func TestTakingTheProposalsOfTwoTalks(t *testing.T) {
 // in flight, the author is told why nothing happens.
 func TestADraftWaitsForAModelAndItsTurn(t *testing.T) {
 	a, tt, _ := writingFixture(t, "")
-	a.write.outline = "她醒来。"
+	setChapterOutline(a, "她醒来。")
 	a.openDraft()
 	tt.Frame()
 	if err := tt.Click("开始起草"); err != nil {
@@ -734,7 +734,7 @@ func TestContinueOnDemand(t *testing.T) {
 	a, tt, _ := writingFixture(t, "她推开门")
 	f := &stream{pieces: []string{"，屋里", "很暗。她", "停住了。"}}
 	penWith(a, f)
-	ed := a.write.ed
+	ed := shownEditor(a)
 	ed.MoveTo(ed.Doc.Len(), false)
 	ed.Focus()
 	tt.Frame()
@@ -799,7 +799,7 @@ func TestTakingTheDisksTextVoidsWhatItChanged(t *testing.T) {
 	f := &script{}
 	penWith(a, f)
 	f.then(proposal("第一章", "replace", "她走到井边。", "她慢慢走到井边。"), []string{"放慢了。"})
-	a.write.ed.Select(0, 6)
+	shownEditor(a).Select(0, 6)
 	tt.Frame()
 	if err := tt.Click("AI 改写"); err != nil {
 		t.Fatal(err)
@@ -816,13 +816,13 @@ func TestTakingTheDisksTextVoidsWhatItChanged(t *testing.T) {
 		t.Fatal(err)
 	}
 	a.lookAtText()
-	if a.write.external == nil {
+	if !diskChanged(a) {
 		t.Fatal("the outside change was not seen")
 	}
 	a.takeDisk()
 	tt.Frame()
-	if len(a.write.ed.Proposals()) != 0 || len(a.write.props) != 0 || a.write.ed.Doc.String() != "别处改的。" {
-		t.Fatalf("the proposal stayed over the text taken from the disk: %q", a.write.ed.Doc.String())
+	if len(shownEditor(a).Proposals()) != 0 || len(a.write.props) != 0 || shownEditor(a).Doc.String() != "别处改的。" {
+		t.Fatalf("the proposal stayed over the text taken from the disk: %q", shownEditor(a).Doc.String())
 	}
 }
 
