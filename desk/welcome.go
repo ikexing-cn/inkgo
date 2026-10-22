@@ -200,11 +200,11 @@ func (a *App) addBook(path string) {
 		return
 	}
 	if !added {
-		a.hint = "该作品已在书架上"
+		a.status.hint("该作品已在书架上")
 		return
 	}
 	a.saveShelf()
-	a.notice = "已加入书架：" + b.Name
+	a.status.did("已加入书架：" + b.Name)
 }
 
 // relocate points a work whose folder moved at where it is now.
@@ -507,7 +507,7 @@ func (a *App) bookMenu(c *ui.Context, b shelf.Book) {
 		m.Item("重命名…").Do(func() { a.books.renaming, a.books.name = b.Path, b.Name })
 		m.Item("从书架移除").Do(func() {
 			a.removeBook(b.Path)
-			a.notice = "已从书架移除，文件夹未改动：" + b.Path
+			a.status.did("已从书架移除，文件夹未改动：" + b.Path)
 		})
 	})
 }

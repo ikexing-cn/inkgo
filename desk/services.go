@@ -263,7 +263,7 @@ func (a *App) services(c *ui.Context) {
 				if ps := a.ai.Providers(); len(ps) > 0 {
 					a.chooseProvider(ps[0].ID)
 				}
-				a.notice = "配置已重新读取"
+				a.status.did("配置已重新读取")
 			}
 			a.SetError(err)
 		}
@@ -430,7 +430,7 @@ func (a *App) providerForm(c *ui.Context) {
 				err := a.ai.SetKey(a.providerID, "")
 				a.modelsChanged()
 				if err == nil {
-					a.notice = "已清除保存的 key"
+					a.status.did("已清除保存的 key")
 				}
 				a.SetError(err)
 				a.key = ""
@@ -449,7 +449,7 @@ func (a *App) providerForm(c *ui.Context) {
 			if a.pal.primary(c, "保存提供商").Disabled(busy || bad.First() != "").Clicked() {
 				err := a.saveProvider()
 				if err == nil {
-					a.notice = "提供商已保存"
+					a.status.did("提供商已保存")
 					a.bk.edit = a.providerID
 				}
 				a.SetError(err)
@@ -567,7 +567,7 @@ func (a *App) fetchModels(c *ui.Context) {
 					m, _ := a.ai.Limits(id)
 					a.limits = append(a.limits, a.limitRow(m))
 				}
-				a.notice = "已获取模型目录，保存提供商后生效"
+				a.status.did("已获取模型目录，保存提供商后生效")
 			}
 		}, err
 	})

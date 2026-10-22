@@ -96,8 +96,7 @@ func (a *App) turnAI(on bool) {
 		w := &a.write
 		w.draftOpen, w.rewriting = false, false
 		a.doc.route.closeWaiting() // what waits on the author there is the AI's
-		a.SetError(nil)
-		a.failed, a.fails, a.again, a.notice, a.hint = "", 0, nil, "", ""
+		a.status.clear()
 	}
 	if ed := a.write.ed; ed != nil {
 		ed.SetNoAI(!on)

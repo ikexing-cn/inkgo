@@ -71,5 +71,5 @@ func (a *App) takeIn() {
 	}
 	a.flash[r.Ops[0].Entry] = time.Now()
 	w.takeOpen = false
-	a.notice = "已加入设定正文"
+	a.status.did("已加入设定正文")
 }

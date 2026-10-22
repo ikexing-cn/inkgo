@@ -40,7 +40,7 @@ func (a *App) saveNow() {
 		}
 	}
 	a.keepCaret()
-	a.notice = "已保存。停笔片刻也会自动保存"
+	a.status.did("已保存。停笔片刻也会自动保存")
 }
 
 // saveText writes the text shown when it changed since the disk had it,
@@ -197,7 +197,7 @@ func (a *App) takeDisk() {
 	if w.counts != nil {
 		w.counts[w.node] = workspace.Count(ch.Text)
 	}
-	a.notice = "已采用磁盘版本，编辑器原内容已存为快照"
+	a.status.did("已采用磁盘版本，编辑器原内容已存为快照")
 }
 
 // keepMine writes the text shown over the disk's, keeping the disk's as a
@@ -214,7 +214,7 @@ func (a *App) keepMine() {
 	}
 	w.external, w.savedVer, w.stamp = nil, -1, ch.Stamp
 	a.warn(a.saveText())
-	a.notice = "已保留编辑器版本，磁盘内容已存为快照"
+	a.status.did("已保留编辑器版本，磁盘内容已存为快照")
 }
 
 // saveLost saves the text of a node gone from the disk as a new document.
@@ -235,5 +235,5 @@ func (a *App) saveLost() {
 	w.ed, w.lost = nil, false
 	a.warn(a.loadTree())
 	a.openNode(id)
-	a.notice = "已存为新章节，位于最上层末尾"
+	a.status.did("已存为新章节，位于最上层末尾")
 }

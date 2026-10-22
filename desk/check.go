@@ -614,9 +614,9 @@ func (a *App) checkProgress(c *ui.Context) {
 		k.due = a.checkDue()
 		switch {
 		case !a.hasSetting():
-			a.hint = "设定为空，无可对照内容"
+			a.status.hint("设定为空，无可对照内容")
 		case len(k.due) == 0:
-			a.hint = "各章均已检查，正文无新改动"
+			a.status.hint("各章均已检查，正文无新改动")
 		default:
 			k.askOpen = true
 		}
@@ -912,5 +912,5 @@ func (a *App) takeFound(it checkItem) {
 		return
 	}
 	a.flash[r.Ops[0].Entry] = time.Now()
-	a.notice = "已加入设定"
+	a.status.did("已加入设定")
 }

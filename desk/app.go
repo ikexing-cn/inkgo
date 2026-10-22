@@ -97,8 +97,7 @@ const flashFor = 3 * time.Second
 type App struct {
 	Store *workspace.Store
 	// ai is all the AI does: what sends goes through it alone.
-	ai  aiport.Service
-	err error
+	ai aiport.Service
 	// PickFolder shows a native folder dialog; it runs off the UI thread.
 	// Nil hides the browse buttons (tests, platforms without dialogs).
 	PickFolder func(title string) (string, error)
@@ -120,15 +119,11 @@ type App struct {
 	offFrom           page              // the page of the AI the prose took the place of as the AI was turned off,
 	offAway           bool              // while there is one
 	shown             page              // the page the last frame showed
-	notice            string            // what was done
-	hint              string            // what to do first, or that there was nothing to do
 	renamed           renamed           // a name the prose still has after the author renamed it
 	leftWriting       bool              // the work was last on the writing page, not the discussion
 	toastShown        map[string]string // what each toast shows, by its id
 	toastsOpen        bool              // the folded toasts opened
-	again             func()            // runs the last request again
-	failed            string            // the error the last request ended with,
-	fails             int               // and how many times in a row
+	status            status            // the error, the failures, and what the toasts say
 	keysOpen          bool              // the shortcuts shown
 	sideHidden        bool              // the author put the sidebar away
 	bar               barState          // what the title bar keeps from frame to frame
@@ -418,7 +413,7 @@ func (a *App) work(sv ui.Services, label string, fn func(context.Context) (func(
 	a.cancel = cancel
 	a.busy = label
 	a.SetError(nil)
-	a.again = func() { a.work(sv, label, fn) }
+	a.status.retry(func() { a.work(sv, label, fn) })
 	go func() { apply, err := fn(ctx); cancel(); a.results <- result{apply: apply, err: err}; sv.Invalidate() }()
 }
 
@@ -446,14 +441,9 @@ func (a *App) poll() {
 			r.err = nil // what runs is the AI's: turned off, it was stopped, and says nothing
 		}
 		if r.err != nil {
-			a.SetError(r.err)
-			if a.errorText() == a.failed {
-				a.fails++
-			} else {
-				a.failed, a.fails = a.errorText(), 1
-			}
+			a.status.fail(r.err)
 		} else {
-			a.failed, a.fails = "", 0
+			a.status.succeed()
 		}
 		if err := a.refresh(); err != nil {
 			a.SetError(err)
@@ -473,14 +463,10 @@ func (a *App) held() bool { return a.busy != "" && !a.talking }
 func (a *App) replying() bool { return a.talking && a.session == a.talkSession }
 
 // SetError shows err in a toast until the author closes it; nil clears it.
-func (a *App) SetError(err error) { a.err = err }
+func (a *App) SetError(err error) { a.status.setError(err) }
 
-func (a *App) errorText() string {
-	if a.err == nil {
-		return ""
-	}
-	return a.err.Error()
-}
+// errorText is the error shown, as text; "" when there is none.
+func (a *App) errorText() string { return a.status.errorText() }
 
 func (a *App) loadWork() {
 	w := a.Store.Work()

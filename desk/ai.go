@@ -179,7 +179,7 @@ func (a *App) startTalk(c *ui.Context, words workspace.Event) bool {
 	}
 	what := map[string]string{workspace.AIDraft: "起草", workspace.AIRewrite: "改写"}[words.Origin]
 	if a.busy != "" {
-		a.hint = "AI 正在回复别的讨论；等它回完或取消后再" + what
+		a.status.hint("AI 正在回复别的讨论；等它回完或取消后再" + what)
 		return false
 	}
 	a.flush() // the talk reads the chapter from the disk

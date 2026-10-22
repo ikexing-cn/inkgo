@@ -970,7 +970,7 @@ func (a *App) extraction(c *ui.Context) {
 					entry, err := a.ai.Extract(a.Store, a.session, a.sourceMessage, start, end, a.sourceCategory)
 					if err == nil {
 						a.sourceOpen = false
-						a.notice = "已加入设定正文"
+						a.status.did("已加入设定正文")
 						err = a.refresh()
 						a.flash[entry.ID] = time.Now()
 					}

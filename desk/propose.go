@@ -237,7 +237,7 @@ func (a *App) takeProps(ps []*prop) {
 	w.ed.Take(places, list[0].model)
 	a.warn(a.saveText())
 	a.dropProps(list, workspace.FateTaken)
-	a.notice = "已采纳 AI 提议；可撤销恢复原文，原版本已存入快照"
+	a.status.did("已采纳 AI 提议；可撤销恢复原文，原版本已存入快照")
 	w.ed.Focus()
 }
 
@@ -296,9 +296,9 @@ func (a *App) placeProps() {
 		w.placed = placedKey{w.ed, w.ed.Doc.Version(), w.propVer}
 		switch {
 		case len(void) == 1 && late:
-			a.hint = "AI 提议已作废；写的时候，它要换掉的原文改动了"
+			a.status.hint("AI 提议已作废；写的时候，它要换掉的原文改动了")
 		case len(void) > 0:
-			a.hint = fmt.Sprintf("%d 处 AI 提议已作废；它要换掉的原文改动了", len(void))
+			a.status.hint(fmt.Sprintf("%d 处 AI 提议已作废；它要换掉的原文改动了", len(void)))
 		}
 		a.dropProps(void, workspace.FateVoid)
 	}

@@ -208,8 +208,9 @@ func (a *App) replaceInBook() {
 	}
 	w.texts, w.hits = nil, nil
 	w.hitsFor = [3]any{}
-	a.notice = fmt.Sprintf("已在 %d 章中替换 %d 处，各章替换前的版本已存入快照", chapters, total)
+	notice := fmt.Sprintf("已在 %d 章中替换 %d 处，各章替换前的版本已存入快照", chapters, total)
 	if here {
-		a.notice += "；本章也可直接撤销"
+		notice += "；本章也可直接撤销"
 	}
+	a.status.did(notice)
 }

@@ -32,27 +32,20 @@ func (a *App) toasts(c *ui.Context) {
 	if a.replying() && a.talkShown() || !a.aiOn() {
 		busy = "" // the turn shows its own progress in its talk; all that runs is the AI's
 	}
-	errText := a.errorText()
+	errText := a.status.errorText()
 	errKey := errText
-	if errText != "" && errText == a.failed {
-		errKey += "×" + strconv.Itoa(a.fails)
+	if n := a.status.repeated(); n > 1 {
+		errKey += "×" + strconv.Itoa(n)
 	}
 	a.syncToast(c, "busy", busy, busy, -1, func() {})
-	a.syncToast(c, "error", errText, errKey, -1, func() {
-		a.SetError(nil)
-		a.failed, a.fails = "", 0
-	})
-	notice := a.notice
+	a.syncToast(c, "error", errText, errKey, -1, a.status.closeError)
+	notice := a.status.noticeText()
 	a.syncToast(c, "notice", notice, notice, noticeFor, func() {
-		if a.notice == notice {
-			a.notice = ""
-		}
+		a.status.closeNotice(notice)
 	})
-	hint := a.hint
+	hint := a.status.hintText()
 	a.syncToast(c, "hint", hint, hint, noticeFor, func() {
-		if a.hint == hint {
-			a.hint = ""
-		}
+		a.status.closeHint(hint)
 	})
 	ui.ToastViewportBase(c, func(v ui.Element, list []ui.Toast) {
 		v.Justify(ui.Start).AlignItems(ui.End).Gap(8).Padding(2*titleHeight+12, 16, 0, 0) // under the title bar and the page's top row
@@ -131,9 +124,9 @@ func (a *App) toastCard(c *ui.Context, ts ui.Toast) {
 		ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 				ui.Text(c, ts.Title).FontSize(fsBody).FontWeight(600).Shrink(1)
-				if ts.Type == "error" && a.fails > 1 && a.failed == a.errorText() {
+				if n := a.status.repeated(); ts.Type == "error" && n > 1 {
 					ui.Row(c).Padding(0, 6).Radius(rXs).Background(t.SurfaceHover).Shrink(0).Children(func() {
-						ui.Text(c, "×"+strconv.Itoa(a.fails)).FontSize(fsSmall).TextColor(t.TextMuted)
+						ui.Text(c, "×"+strconv.Itoa(n)).FontSize(fsSmall).TextColor(t.TextMuted)
 					})
 				}
 			})
@@ -175,16 +168,15 @@ func (a *App) toastActions(c *ui.Context, ts ui.Toast) {
 			}
 		}, "取消请求"})
 	case "error":
-		if a.again != nil && a.failed == a.errorText() {
-			again := a.again
+		if again := a.status.retryAction(); again != nil {
 			acts = append(acts, act{"重试", func() { a.SetError(nil); again() }, ""})
 		}
 		var setup *aiport.SetupError
-		if errors.As(a.err, &setup) {
+		if errors.As(a.status.err(), &setup) {
 			// What it says is done by going there: it goes, as in the prototype.
 			acts = append(acts, act{"打开设置", func() { a.SetError(nil); a.openPrefs("AI") }, ""})
 		}
-		text := a.errorText()
+		text := a.status.errorText()
 		acts = append(acts, act{"复制详情", func() { c.WriteClipboard(text) }, ""})
 	}
 	if len(acts) == 0 {

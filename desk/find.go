@@ -109,7 +109,7 @@ func (a *App) findBar(c *ui.Context) {
 		}
 		if a.pal.secondary(c, "全部替换").Disabled(none || w.lost).Clicked() {
 			n := w.ed.ReplaceAll(w.query, w.with)
-			a.notice = fmt.Sprintf("已替换 %d 处，可撤销", n)
+			a.status.did(fmt.Sprintf("已替换 %d 处，可撤销", n))
 		}
 	}
 	wide := func() {

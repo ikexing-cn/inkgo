@@ -88,7 +88,7 @@ func (a *App) nameMenu(m *menu, sel string) {
 				m.Item(c.Name).Do(func() {
 					a.revise(workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: c.Name, Text: name, Names: []string{name}})
 					if a.errorText() == "" {
-						a.notice = "「" + name + "」已加入设定的" + c.Name + "，输入时可自动补全"
+						a.status.did("「" + name + "」已加入设定的" + c.Name + "，输入时可自动补全")
 					}
 				})
 			}

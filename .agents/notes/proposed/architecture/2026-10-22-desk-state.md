@@ -154,9 +154,9 @@ Status: proposed
 ### 状态和后台任务
 
 - **`status`**：管错误（连错几次、再试一次）、完成提示、操作提示。
-  - 方法按发生了什么命名：出错、做完、提示、清掉。
+  - 方法按发生了什么命名：`fail`、`succeed`、`retry`、`did`、`hint`、`setError`、`clear`；toast 关上时用 `closeError`、`closeNotice`、`closeHint`。
   - `toasts` 只读它。
-  - `SetError` 留着，`cmd/inkgo` 在用。
+  - `SetError` 留着并转到它，`cmd/inkgo` 在用；`warn` 也留在 `App`。
 - **`jobs`**：一个往界面线程送结果的通道。
   - 任务在后台跑完，返回一个函数，下一帧在界面线程上调。
   - 换掉 `picks`，以及导出、书架选文件夹、备份各自的 goroutine 和通道。

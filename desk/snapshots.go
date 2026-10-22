@@ -227,5 +227,5 @@ func (a *App) restoreSnapshot() {
 		return
 	}
 	w.snapsOpen = false
-	a.notice = "已恢复到 " + when(w.snaps[i].At, time.Now()) + " 的版本，恢复前的内容已存为快照"
+	a.status.did("已恢复到 " + when(w.snaps[i].At, time.Now()) + " 的版本，恢复前的内容已存为快照")
 }

@@ -227,9 +227,9 @@ func (a *App) export(c *ui.Context, plan export.Plan) {
 			set.Pen = pen
 			a.saveShelf()
 		}
-		a.notice = "已导出到 " + path
+		a.status.did("已导出到 " + path)
 		if len(files) > 1 {
-			a.notice = fmt.Sprintf("已导出 %d 个文件到 %s", len(files), dir)
+			a.status.did(fmt.Sprintf("已导出 %d 个文件到 %s", len(files), dir))
 		}
 	}
 	if len(files) == 1 && a.SaveFile != nil {

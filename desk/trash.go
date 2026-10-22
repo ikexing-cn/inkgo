@@ -61,7 +61,7 @@ func (a *App) trashNode(n *workspace.Node) {
 	} else {
 		a.keepTabs()
 	}
-	a.notice = fmt.Sprintf("「%s」已移到回收站", n.Title)
+	a.status.did(fmt.Sprintf("「%s」已移到回收站", n.Title))
 }
 
 func (a *App) openTrash() {
@@ -133,5 +133,5 @@ func (a *App) restore(id, title string) {
 	a.warn(err)
 	w.counts = counts
 	a.openTrash()
-	a.notice = fmt.Sprintf("「%s」已恢复", title)
+	a.status.did(fmt.Sprintf("「%s」已恢复", title))
 }

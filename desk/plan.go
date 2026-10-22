@@ -367,9 +367,9 @@ func (a *App) planLine(c *ui.Context, l workspace.PlotLine) {
 			m.Item("删除情节线").Do(func() {
 				a.planChange(a.Store.DeleteLine(l.ID))
 				if a.errorText() == "" {
-					a.notice = "已删除情节线「" + l.Name + "」"
+					a.status.did("已删除情节线「" + l.Name + "」")
 					if n > 0 {
-						a.hint = fmt.Sprintf("它的 %d 张卡片还在原来的章里，可在时间线上找到", n)
+						a.status.hint(fmt.Sprintf("它的 %d 张卡片还在原来的章里，可在时间线上找到", n))
 					}
 				}
 			})
@@ -1062,7 +1062,7 @@ func (a *App) planDialog(c *ui.Context) {
 			if drop {
 				a.planChange(a.Store.DeleteCard(p.card.ID))
 				if a.errorText() == "" {
-					a.notice = "已删除卡片「" + p.card.Title + "」"
+					a.status.did("已删除卡片「" + p.card.Title + "」")
 					p.cardOpen = false
 				}
 			} else if save || more {

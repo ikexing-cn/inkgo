@@ -102,10 +102,10 @@ func (a *App) saveCategory() error {
 	name, target := trim(a.categoryName), trim(a.categoryTarget)
 	switch { // what is left to fill in is not a failure
 	case name == "":
-		a.hint = "分类名称不能为空"
+		a.status.hint("分类名称不能为空")
 		return nil
 	case target == "":
-		a.hint = "请填写落点，例如“设定库”或“大纲”"
+		a.status.hint("请填写落点，例如“设定库”或“大纲”")
 		return nil
 	}
 	w := a.Store.Work()
@@ -122,7 +122,7 @@ func (a *App) saveCategory() error {
 	if err := a.Store.SaveWork(w); err != nil {
 		return err
 	}
-	a.notice = fmt.Sprintf("分类“%s”已保存", name)
+	a.status.did(fmt.Sprintf("分类“%s”已保存", name))
 	a.categoryName, a.categoryTarget = "", ""
 	return nil
 }
@@ -131,7 +131,7 @@ func (a *App) saveCategory() error {
 func (a *App) dropCategory(name string) {
 	err := a.Store.RemoveCategory(name)
 	if err == nil {
-		a.notice = "已删除分类“" + name + "”"
+		a.status.did("已删除分类“" + name + "”")
 		err = a.refresh()
 	}
 	a.removeCategory = ""

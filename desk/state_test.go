@@ -59,11 +59,11 @@ func showTodo(a *App, on bool) {
 }
 
 // Status.
-func appError(a *App) error      { return a.err }
-func noticeOf(a *App) string     { return a.notice }
-func setNotice(a *App, s string) { a.notice = s }
-func hintOf(a *App) string       { return a.hint }
-func setHint(a *App, s string)   { a.hint = s }
+func appError(a *App) error      { return a.status.err() }
+func noticeOf(a *App) string     { return a.status.noticeText() }
+func setNotice(a *App, s string) { a.status.did(s) }
+func hintOf(a *App) string       { return a.status.hintText() }
+func setHint(a *App, s string)   { a.status.hint(s) }
 
 // The page and the tab of the right column.
 func shownPage(a *App) page     { return a.page }
