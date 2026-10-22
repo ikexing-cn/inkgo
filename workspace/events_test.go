@@ -108,3 +108,20 @@ func TestADigestSplitsAtItsHeadings(t *testing.T) {
 		t.Fatalf("%q", got)
 	}
 }
+
+func TestDigestSectionsWhitespace(t *testing.T) {
+	for _, tc := range []struct {
+		text string
+		want [][2]string
+	}{
+		{"", [][2]string{{"", ""}}},
+		{" \n\t ", [][2]string{{"", ""}}},
+		{" \n 前言 \n\t## 自定标题 \t\n 正文 \n\n 第二行 \t\n", [][2]string{{"", "前言"}, {"自定标题", "正文 \n\n 第二行"}}},
+		{"## 第一节\n## 第二节\n\t内容 \n", [][2]string{{"第一节", ""}, {"第二节", "内容"}}},
+		{"## \n##不是标题\n### 也不是", [][2]string{{"", "## \n##不是标题\n### 也不是"}}},
+	} {
+		if got := DigestSections(tc.text); !slices.Equal(got, tc.want) {
+			t.Fatalf("%q: got %q, want %q", tc.text, got, tc.want)
+		}
+	}
+}
