@@ -537,10 +537,11 @@ func lookupSetting(in input, set workspace.Setting, b book, at string, title fun
 		}
 	}
 	matched := append(named, said...)
+	numbers := set.EntryNumbers()
 	var found []string
 	for _, n := range matched[:min(len(matched), maxHits)] {
 		e := set.Entries[n]
-		head := fmt.Sprintf("[%d]（%s｜%s", n+1, placeNames[e.Place], e.Category)
+		head := workspace.EntryRef(numbers[e.ID]) + fmt.Sprintf("（%s｜%s", placeNames[e.Place], e.Category)
 		if len(e.Names) > 0 {
 			head += "｜" + strings.Join(e.Names, "、")
 		}

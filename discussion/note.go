@@ -17,10 +17,7 @@ var placeLabels = map[string]string{workspace.PlaceBody: "正文", workspace.Pla
 // describe says what a note does, in the words of the panel's history.
 func describe(in input, set workspace.Setting) string {
 	text := strings.TrimSpace(in.Text)
-	var e workspace.Entry
-	if in.Entry > 0 && in.Entry <= len(set.Entries) {
-		e = set.Entries[in.Entry-1]
-	}
+	e, _ := set.EntryByNumber(in.Entry)
 	switch in.Op {
 	case workspace.OpAdd:
 		return placeLabels[in.Place] + " · " + in.Category + "：" + text
@@ -148,11 +145,12 @@ func (t *toolbox) note(in input) outcome {
 			settled()
 		}
 	case workspace.OpEdit, workspace.OpMove, workspace.OpName:
-		if in.Entry < 1 || in.Entry > len(set.Entries) {
+		var ok bool
+		e, ok = set.EntryByNumber(in.Entry)
+		if !ok {
 			bad = append(bad, fmt.Sprintf("设定里没有编号 %d 的条目", in.Entry))
 			break
 		}
-		e = set.Entries[in.Entry-1]
 		out.Entry = e.ID
 		switch in.Op {
 		case workspace.OpEdit:
@@ -174,11 +172,12 @@ func (t *toolbox) note(in input) outcome {
 			settled()
 		}
 	case workspace.OpChange:
-		if in.Entry < 1 || in.Entry > len(set.Entries) {
+		var ok bool
+		e, ok = set.EntryByNumber(in.Entry)
+		if !ok {
 			bad = append(bad, fmt.Sprintf("设定里没有编号 %d 的条目", in.Entry))
 			break
 		}
-		e = set.Entries[in.Entry-1]
 		out.Entry = e.ID
 		if e.Place != workspace.PlaceBody {
 			bad = append(bad, "change 只给设定正文里的条目记变化")

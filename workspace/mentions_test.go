@@ -25,6 +25,14 @@ func TestEntryNumbers(t *testing.T) {
 	}
 }
 
+func TestEntryRef(t *testing.T) {
+	for n, want := range map[int]string{0: "[0]", 1: "[1]", 12: "[12]"} {
+		if got := EntryRef(n); got != want {
+			t.Fatal(n, got)
+		}
+	}
+}
+
 func TestSettingMentions(t *testing.T) {
 	s := Setting{Entries: []Entry{
 		{ID: "named", Names: []string{"林晚", "晚晚"}, Text: "不用于名字"},

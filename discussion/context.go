@@ -41,7 +41,7 @@ const digestNote = "之前的讨论已经整理成下面的摘要。原话还在
 // names an entry by it to note the setting.
 func numbered(set workspace.Setting, line prompt.Line) prompt.Line {
 	at := set.EntryNumbers()
-	return func(e workspace.Entry) string { return fmt.Sprintf("[%d] %s", at[e.ID], line(e)) }
+	return func(e workspace.Entry) string { return workspace.EntryRef(at[e.ID]) + " " + line(e) }
 }
 
 // changes are how each entry of set reads from chapters on, by its ID, as

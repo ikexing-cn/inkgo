@@ -39,6 +39,9 @@ func (s Setting) EntryByNumber(n int) (Entry, bool) {
 	return s.Entries[n-1], true
 }
 
+// EntryRef is an entry's number as the talk's model reads and writes it.
+func EntryRef(n int) string { return "[" + strconv.Itoa(n) + "]" }
+
 // Mentions splits text at the entries it names by number, each piece of
 // them showing the entry by its name, or its first words when it names
 // nothing. A number no entry has stays as it is.
