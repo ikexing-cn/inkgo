@@ -37,6 +37,64 @@ func TestServiceModel(t *testing.T) {
 	}
 }
 
+func TestDraftNoteKeepsItsOutlineSource(t *testing.T) {
+	for _, inVolume := range []bool{false, true} {
+		for _, previous := range []string{"", " \n\t", "前章正文。"} {
+			t.Run(fmt.Sprint(inVolume, previous), func(t *testing.T) {
+				a, _, one := writingFixture(t, previous)
+				parent, outlines := "", "各卷卷纲"
+				if inVolume {
+					var err error
+					parent, err = a.Store.NewChapter("", "第一卷", true)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if err := a.Store.MoveChapter(one, parent, 0); err != nil {
+						t.Fatal(err)
+					}
+					outlines = "本卷各章章纲"
+				}
+				two, err := a.Store.NewChapter(parent, "第二章", false)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := a.loadTree(); err != nil {
+					t.Fatal(err)
+				}
+				a.openNode(two)
+				a.openDraft()
+				prefix := "将带上" + outlines + "等，约 "
+				if workspace.Count(previous) > 0 {
+					prefix = "将带上上一章全文、" + outlines + "等，约 "
+				}
+				if !strings.HasPrefix(a.write.draftNote, prefix) || !strings.HasSuffix(a.write.draftNote, " token；AI 需要时会自己再查。") {
+					t.Fatal(a.write.draftNote)
+				}
+			})
+		}
+	}
+}
+
+type failedPreload struct{ aiport.Service }
+
+func (f failedPreload) Preloaded(*workspace.Store, string, string) (int, error) {
+	return 0, errors.New("preload failed")
+}
+
+func TestDraftCardsSurvivePreloadFailure(t *testing.T) {
+	a, tt, id := writingFixture(t, "")
+	if _, err := a.Store.SaveCard(workspace.Card{Title: "拧开灯座", Chapter: id}, ""); err != nil {
+		t.Fatal(err)
+	}
+	a.ai = failedPreload{a.ai}
+	a.openDraft()
+	tt.Frame()
+	head := "AI 仅将章纲和本章的卡片扩写为正文，不添加这些之外的重大情节。起草在一段新的讨论里进行：写好的先在正文里显示为提议，采纳后才写入，写入前保存快照；想改哪里，在讨论里接着说。"
+	if a.write.draftCards != 1 || a.write.draftNote != "" || !tt.HasText(head) {
+		t.Fatal(a.write.draftCards, a.write.draftNote, tt.Texts())
+	}
+}
+
 // stream is a writing model that streams its pieces; with hold, it waits
 // after the first until let through or stopped. With fail, it fails after
 // the last.
