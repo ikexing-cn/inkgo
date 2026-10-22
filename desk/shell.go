@@ -80,9 +80,6 @@ func (a *App) View(c *ui.Context) {
 	}
 	a.shown = a.page
 	a.barAct(c)
-	if c.Shortcut(ui.Cmd, ui.KeySlash) {
-		a.keysOpen = true // Esc puts it away, as any dialog
-	}
 	ui.Column(c).Fill().Background(a.pal.canvas).Children(func() {
 		if !a.focused() {
 			a.titleBar(c)
@@ -95,6 +92,7 @@ func (a *App) View(c *ui.Context) {
 				ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
 			}
 			ui.Column(c.Key("page")).Grow(1).Shrink(1).MinWidth(0).FillHeight().Children(func() {
+				a.pageTurn(c)
 				switch {
 				case a.page == pagePlan:
 					a.outlinePage(c)

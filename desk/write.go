@@ -145,9 +145,10 @@ func (a *App) warn(err error) {
 	}
 }
 
-// writing is the writing page: the node shown between the chapter tree in
-// the sidebar and the setting.
-func (a *App) writing(c *ui.Context) {
+// writingTurn is the writing page's work before its keys and its build:
+// the tree as the page shows, the editor, the counts and the names, and
+// saving as the author pauses.
+func (a *App) writingTurn(c *ui.Context) {
 	if !a.write.entered {
 		a.write.entered = true
 		a.enterWriting()
@@ -162,9 +163,11 @@ func (a *App) writing(c *ui.Context) {
 	a.watch(c)
 	a.checkWhilePausing()
 	a.markDoubts()
-	if c.Shortcut(ui.Cmd, ui.KeyF) {
-		a.openFind()
-	}
+}
+
+// writing is the writing page: the node shown between the chapter tree in
+// the sidebar and the setting.
+func (a *App) writing(c *ui.Context) {
 	// Escape backs out of the find bar first, then out of a pick in the
 	// prose, so the bar over the pick goes with it.
 	if ed := a.write.ed; ed != nil && c.Shortcut(0, ui.KeyEscape) {
@@ -175,33 +178,6 @@ func (a *App) writing(c *ui.Context) {
 			ed.Select(ed.Caret(), ed.Caret())
 		}
 	}
-	if a.aiOn() && c.Shortcut(ui.Cmd, ui.KeyL) {
-		a.quoteToTalk()
-	}
-	if c.Shortcut(0, ui.KeyF11) {
-		a.write.focus = !a.write.focus
-	}
-	if c.Shortcut(ui.Cmd, ui.KeyN) && a.write.renaming == "" {
-		a.newNode(false)
-	}
-	if c.Shortcut(0, ui.KeyF2) && a.write.renaming == "" {
-		a.renameOpen()
-	}
-	for key, d := range map[ui.Key]int{ui.KeyEqual: 1, ui.KeyMinus: -1, ui.Key0: 0} {
-		if c.Shortcut(ui.Cmd, key) {
-			a.sizeText(d)
-		}
-	}
-	if c.Shortcut(ui.Cmd, ui.KeyS) {
-		a.saveNow()
-	}
-	if c.Shortcut(ui.Cmd, ui.KeyPageUp) {
-		a.stepChapter(-1)
-	}
-	if c.Shortcut(ui.Cmd, ui.KeyPageDown) {
-		a.stepChapter(1)
-	}
-	a.tabKeys(c)
 	ui.Row(c).FillWidth().Grow(1).AlignItems(ui.Stretch).Children(func() {
 		main := ui.Column(c).Grow(1).Shrink(1).FillHeight()
 		a.LastWrite = main.Bounds()

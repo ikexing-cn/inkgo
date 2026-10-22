@@ -244,25 +244,6 @@ func (a *App) tabMenu(m *menu, id string, shut *[]string) {
 	m.Command(a, cmdCloseRight).Disabled(len(right) == 0).Do(func() { *shut = right })
 }
 
-// tabKeys are the keys of the tabs: closing the one shown, and going to
-// the next and the one before, round the row.
-func (a *App) tabKeys(c *ui.Context) {
-	w := &a.write
-	if c.Shortcut(ui.Cmd, ui.KeyW) && w.node != "" {
-		a.shutTabs([]string{w.node})
-	}
-	step := 0
-	if c.Shortcut(ui.Ctrl, ui.KeyTab) {
-		step = 1
-	}
-	if c.Shortcut(ui.Ctrl|ui.Shift, ui.KeyTab) {
-		step = -1
-	}
-	if at := slices.Index(w.tabs, w.node); step != 0 && at >= 0 && len(w.tabs) > 1 {
-		a.openNode(w.tabs[(at+step+len(w.tabs))%len(w.tabs)])
-	}
-}
-
 // shutTabs closes the tabs gone. When the one shown is among them and has
 // words not saved, the author is asked first, and it is their answer that
 // closes them. A tab left with words that could not be saved is shown and

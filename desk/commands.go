@@ -396,3 +396,32 @@ func stepTab(a *App, d int) {
 	}
 	a.openNode(w.tabs[(at+d+len(w.tabs))%len(w.tabs)])
 }
+
+// commandKeys dispatches the shortcuts of the page shown from the table,
+// before the page builds: a key of the desk's is taken before the editor
+// sees it. The AI's run only while it is on.
+func (a *App) commandKeys(c *ui.Context) {
+	for _, cmd := range commandList {
+		if cmd.key == 0 || cmd.by != byDesk || cmd.ai && !a.aiOn() {
+			continue
+		}
+		if cmd.page != pageAny && cmd.page != a.page {
+			continue
+		}
+		// The key is asked for before the condition, as each page asked
+		// for it: while the condition does not hold the key is still the
+		// desk's and goes nowhere, not on to the editor.
+		if cmd.pressed(c) && (cmd.when == nil || cmd.when(a)) && cmd.run != nil {
+			cmd.run(a)
+		}
+	}
+}
+
+// pageTurn does the page's work before its build, and then dispatches the
+// keys of the page shown.
+func (a *App) pageTurn(c *ui.Context) {
+	if a.page == pageWrite {
+		a.writingTurn(c)
+	}
+	a.commandKeys(c)
+}
