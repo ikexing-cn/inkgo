@@ -67,9 +67,11 @@ Status: implemented
 - `ai.New(配置文件)` 建 `ai.Service`，不读盘；`desk.New(它)` 建界面，先读作品清单 `works.json`，再通过 `Settings.BindSwitch(a.aiOn)` 绑定开关。`aiOn` 只读 `shelf.NoAI`。AI 开着而且有配置文件时 `Reload` 一次。构造界面不建目录、讨论或笔。程序和测试只需构造界面，不另接开关。找不到配置目录或读不成配置的错误由界面显示。`works.json` 放在配置文件旁边，位置问 `ConfigFile()`。
 - 测试换 `ai.Service` 上的 `NewWriter` 钩子（拆之前是 `App` 上的 `Pen`；原来还有换记账员的 `NewBookkeeper`，2026-10-15 删了）。`desk/app_test.go` 里两个小函数：`newApp(配置文件)` 建界面，`aiOf(a)` 拿到它的 `ai.Service` 好换钩子。`desk` 的测试引用 `ai` 和 `model` 来做假模型，不算 `desk` 的依赖（`go list -deps` 不看测试）。要数 `desk` 向 AI 要了什么，`desk/aiswitch_test.go` 的 `spy` 包住一个 `aiport.Service`，记下 `Catalog`、`Talk`、`Pen` 的每一次。
 
-### 预加载
+### 预加载与笔的保留
 
 `aiport.Preload` 给 token 数、本章卡片数、前章是否整章带上，以及各卷卷纲或所在卷各章章纲的来源种类（空纲也保留来源）。`discussion.Preloaded` 与发送共用 `fixedOf`，`fixedOf` 边加边记这几项；`ai.Service.Preloaded` 只把 `discussion.Preload.InVolume` 映射成端口种类。端口不带界面文案。`desk` 在打开对话框时格式化提示，对话框标题的卡片数另见[讨论读取大纲](../feature/2026-10-19-talk-reads-the-outline.md)。
+
+`desk/ai.go` 的 `penKey` 是写作选择、讨论选择和服务数的可比较结构；`writeView.penKey` 是指向最后一次尝试构建的键的指针，nil 表示没有可比的键（尚未构建、已失效或 AI 关闭）。`modelsChanged` 和关闭 AI 把它置 nil，`keepPen` 在正文页的同一帧比较 `==` 后构建；构建失败也保留键，下一帧不重试。重新开启 AI 后的首个正文帧构建。
 
 ### 配置错误
 

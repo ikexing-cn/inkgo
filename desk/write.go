@@ -116,7 +116,7 @@ type writeView struct {
 	// The writing model: the writer the editors predict with, and why
 	// there is none.
 	pen         atomic.Pointer[aiport.Pen]
-	penKey      string
+	penKey      *penKey // nil when there is no key to compare with
 	penErr      error
 	autoPredict bool
 

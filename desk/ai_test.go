@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/ai"
 	"writer/aiport"
 	"writer/editor"
 	"writer/inference"
@@ -218,7 +219,7 @@ func penWithin(a *App, f model.Completer, m model.Model) {
 	aiOf(a).Open = func(workspace.Selection, *workspace.Store) (inference.Model, error) {
 		return inference.Model{Model: m, Completer: f, Name: "deepseek/deepseek-flash", Effort: model.EffortHigh}, nil
 	}
-	a.write.penKey = "" // build the editors' writer again
+	a.write.penKey = nil // build the editors' writer again
 }
 
 func until(t *testing.T, tt *ui.Tester, what string, ok func() bool) {
@@ -766,7 +767,7 @@ func TestSavingAServiceRemakesThePredictingWriter(t *testing.T) {
 		made++
 		return inference.Model{}, errors.New("没有模型")
 	}
-	a.write.penKey = ""
+	a.write.penKey = nil
 	tt.Frame()
 	tt.Frame()
 	if made != 1 {
@@ -822,5 +823,86 @@ func TestTakingTheDisksTextVoidsWhatItChanged(t *testing.T) {
 	tt.Frame()
 	if len(a.write.ed.Proposals()) != 0 || len(a.write.props) != 0 || a.write.ed.Doc.String() != "别处改的。" {
 		t.Fatalf("the proposal stayed over the text taken from the disk: %q", a.write.ed.Doc.String())
+	}
+}
+
+func TestKeepPenBuildsOnlyInChangedFrames(t *testing.T) {
+	a, tt, _ := writingFixture(t, "")
+	penWith(a, &stream{})
+	tt.Frame()
+	s := &spy{Service: a.ai}
+	a.ai = s
+	frames := func(want int) {
+		t.Helper()
+		tt.Frame()
+		tt.Frame()
+		if got := len(s.heard()); got != want {
+			t.Fatalf("built %d times, want %d: %v", got, want, s.heard())
+		}
+	}
+	frames(0)
+	a.modelsChanged()
+	if len(s.heard()) != 0 {
+		t.Fatal("invalidation built the pen")
+	}
+	frames(1)
+	w := a.Store.Work()
+	for i, change := range []func(){
+		func() { w.Writing = workspace.Selection{Provider: "deepseek", Model: "deepseek-flash"} },
+		func() { w.Writing.Model = "other" },
+		func() { w.Writing.Provider = "other" },
+		func() { w.Writing.Effort = "high" },
+		func() { w.Discussion.Model = "other" },
+		func() { w.Discussion.Provider = "other" },
+		func() { w.Discussion.Effort = "low" },
+	} {
+		change()
+		if err := a.Store.SaveWork(w); err != nil {
+			t.Fatal(err)
+		}
+		frames(i + 2)
+	}
+	if err := s.Service.SaveProvider(aiport.Provider{ID: "local", Name: "Local", BaseURL: "http://127.0.0.1:1/v1", Protocol: "chat"}); err != nil {
+		t.Fatal(err)
+	}
+	frames(9)
+	a.shelf.NoAI = true
+	frames(9)
+	if a.write.pen.Load() != nil || a.write.penErr != nil {
+		t.Fatal("the disabled pen survived")
+	}
+	a.shelf.NoAI = false
+	frames(10)
+}
+
+func TestKeepPenBuildsAnEmptyConfigurationOnce(t *testing.T) {
+	a, tt, _ := writingFixture(t, "")
+	s := &spy{Service: ai.New("")}
+	a.ai = s
+	a.modelsChanged()
+	tt.Frame()
+	tt.Frame()
+	if len(s.heard()) != 1 || a.write.pen.Load() != nil || a.write.penErr == nil {
+		t.Fatal(s.heard(), a.write.penErr)
+	}
+	a.modelsChanged()
+	if len(s.heard()) != 1 {
+		t.Fatal("invalidation rebuilt the failed pen")
+	}
+	tt.Frame()
+	tt.Frame()
+	if len(s.heard()) != 2 {
+		t.Fatal(s.heard())
+	}
+	a.shelf.NoAI = true
+	tt.Frame()
+	if a.write.penErr != nil || a.write.pen.Load() != nil {
+		t.Fatal("the disabled pen survived", a.write.penErr)
+	}
+	a.shelf.NoAI = false
+	tt.Frame()
+	tt.Frame()
+	if len(s.heard()) != 3 {
+		t.Fatal(s.heard())
 	}
 }
