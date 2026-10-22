@@ -58,7 +58,7 @@ func (a *App) takeIn() {
 		a.warn(err)
 		return
 	}
-	r, err := a.Store.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{{
+	r, err := a.book.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{{
 		Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: w.takeCategory, Text: strings.TrimSpace(w.takeText),
 		Sources: []workspace.Source{{Chapter: w.node, Quote: w.takeQuote}},
 	}}})

@@ -23,12 +23,10 @@ func (a *App) trashNode(n *workspace.Node) {
 	cur, shown := a.book.Tree().Node(w.node)
 	gone := shown && cur.Within(n)
 	at := slices.Index(w.tabs, w.node)
-	if err := a.Store.TrashChapter(n.ID); err != nil {
+	if err := a.book.TrashChapter(n.ID); err != nil {
 		a.warn(err)
 		return
 	}
-	a.warn(a.loadTree())
-	a.warn(a.book.ReloadCounts())
 	if gone {
 		// Its tab goes with it: the tab beside it is shown, or with none
 		// left the chapter that stands where it stood.
@@ -94,7 +92,7 @@ func (a *App) trashView(c *ui.Context) {
 									w.purge = ""
 								}
 								if a.pal.danger(c, "确认彻底删除").Clicked() {
-									a.warn(a.Store.PurgeChapter(it.ID))
+									a.warn(a.book.PurgeChapter(it.ID))
 									a.openTrash()
 								}
 								return
@@ -121,12 +119,10 @@ func (a *App) trashView(c *ui.Context) {
 }
 
 func (a *App) restore(id, title string) {
-	if err := a.Store.RestoreChapter(id); err != nil {
+	if err := a.book.RestoreChapter(id); err != nil {
 		a.warn(err)
 		return
 	}
-	a.warn(a.loadTree())
-	a.warn(a.book.ReloadCounts())
 	a.openTrash()
 	a.status.did(fmt.Sprintf("「%s」已恢复", title))
 }

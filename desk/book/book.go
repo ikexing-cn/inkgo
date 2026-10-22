@@ -80,16 +80,6 @@ func (b *Book) PlanErr() error { return b.planErr }
 // read or write. A node with no outline has "".
 func (b *Book) Outlines() map[string]string { return b.outlines }
 
-// SetOutline keeps an outline written through the store, or one the view
-// knows the store now has.
-func (b *Book) SetOutline(id, outline string) {
-	if b.outlines == nil {
-		b.outlines = map[string]string{}
-	}
-	b.outlines[id] = outline
-	b.version++
-}
-
 // Checks is the stored check of each chapter that has one, by ID.
 func (b *Book) Checks() map[string]workspace.Check { return b.checks }
 
@@ -184,4 +174,243 @@ func (b *Book) ReloadChecks() error {
 	b.checks = checks
 	b.version++
 	return nil
+}
+
+// SaveChapter writes a chapter's prose and marks, then keeps its count and
+// reads its marks again: the store rewrites their quotes and clamps them to
+// the text, so the copy is not the one passed in.
+func (b *Book) SaveChapter(id, text string, marks []workspace.ChapterMark) (workspace.Stamp, error) {
+	return b.saveChapter(id, text, marks, nil)
+}
+
+// SaveChapterOver writes as SaveChapter does when the text on disk is still
+// the version over.
+func (b *Book) SaveChapterOver(id, text string, marks []workspace.ChapterMark, over workspace.Stamp) (workspace.Stamp, error) {
+	return b.saveChapter(id, text, marks, &over)
+}
+
+func (b *Book) saveChapter(id, text string, marks []workspace.ChapterMark, over *workspace.Stamp) (workspace.Stamp, error) {
+	var stamp workspace.Stamp
+	var err error
+	if over == nil {
+		stamp, err = b.store.WriteChapter(id, text, marks)
+	} else {
+		stamp, err = b.store.WriteChapterOver(id, text, marks, *over)
+	}
+	if err != nil {
+		return stamp, err
+	}
+	b.version++
+	b.setCount(id, workspace.Count(text))
+	ch, err := b.store.ReadChapter(id)
+	if err != nil {
+		return stamp, err
+	}
+	b.version++
+	if len(ch.Marks) == 0 {
+		delete(b.marks, id)
+	} else {
+		if b.marks == nil {
+			b.marks = map[string][]workspace.ChapterMark{}
+		}
+		b.marks[id] = ch.Marks
+	}
+	return stamp, nil
+}
+
+// SaveOutline writes a node's outline and keeps it; an empty one stays "".
+func (b *Book) SaveOutline(id, outline string) error {
+	if err := b.store.WriteOutline(id, outline); err != nil {
+		return err
+	}
+	b.version++
+	if b.outlines == nil {
+		b.outlines = map[string]string{}
+	}
+	b.outlines[id] = outline
+	return nil
+}
+
+// SaveCheck writes a chapter's check and keeps it; a check of no prose
+// removes it.
+func (b *Book) SaveCheck(id string, k workspace.Check) error {
+	if err := b.store.WriteCheck(id, k); err != nil {
+		return err
+	}
+	b.version++
+	if b.checks == nil {
+		b.checks = map[string]workspace.Check{}
+	}
+	if k.Of == "" {
+		delete(b.checks, id)
+	} else {
+		b.checks[id] = k
+	}
+	return nil
+}
+
+// Revise writes a setting revision and reads the setting again, as its
+// entries and order come out of the store.
+func (b *Book) Revise(r workspace.Revision) (workspace.Revision, error) {
+	r, err := b.store.Revise(r)
+	if err != nil {
+		return r, err
+	}
+	b.version++
+	return r, b.ReloadSetting()
+}
+
+// RemoveCategory removes a category, its entries going to 其他, and reads
+// the setting again.
+func (b *Book) RemoveCategory(name string) error {
+	if err := b.store.RemoveCategory(name); err != nil {
+		return err
+	}
+	b.version++
+	return b.ReloadSetting()
+}
+
+// NewChapter adds a document or folder and reads the tree again.
+func (b *Book) NewChapter(parent, title string, folder bool) (string, error) {
+	id, err := b.store.NewChapter(parent, title, folder)
+	if err != nil {
+		return "", err
+	}
+	b.version++
+	b.setCount(id, 0)
+	return id, b.ReloadTree()
+}
+
+// RenameChapter renames a node and reads the tree again.
+func (b *Book) RenameChapter(id, title string) error {
+	if err := b.store.RenameChapter(id, title); err != nil {
+		return err
+	}
+	b.version++
+	return b.ReloadTree()
+}
+
+// MoveChapter moves a node and reads the tree again.
+func (b *Book) MoveChapter(id, parent string, index int) error {
+	if err := b.store.MoveChapter(id, parent, index); err != nil {
+		return err
+	}
+	b.version++
+	return b.ReloadTree()
+}
+
+// TrashChapter moves a node to the trash, reads the tree again, and counts
+// the prose left.
+func (b *Book) TrashChapter(id string) error {
+	if err := b.store.TrashChapter(id); err != nil {
+		return err
+	}
+	b.version++
+	if err := b.ReloadTree(); err != nil {
+		return err
+	}
+	return b.ReloadCounts()
+}
+
+// RestoreChapter takes a node out of the trash, reads the tree again, and
+// counts the prose back in.
+func (b *Book) RestoreChapter(id string) error {
+	if err := b.store.RestoreChapter(id); err != nil {
+		return err
+	}
+	b.version++
+	if err := b.ReloadTree(); err != nil {
+		return err
+	}
+	return b.ReloadCounts()
+}
+
+// PurgeChapter deletes a trashed node for good and reads the tree again.
+func (b *Book) PurgeChapter(id string) error {
+	if err := b.store.PurgeChapter(id); err != nil {
+		return err
+	}
+	b.version++
+	return b.ReloadTree()
+}
+
+// SaveCard saves a card and reads the plan again.
+func (b *Book) SaveCard(c workspace.Card, after string) (workspace.Card, error) {
+	c, err := b.store.SaveCard(c, after)
+	if err != nil {
+		return c, err
+	}
+	b.version++
+	return c, b.ReloadPlan()
+}
+
+// DeleteCard deletes a card and reads the plan again.
+func (b *Book) DeleteCard(id string) error {
+	if err := b.store.DeleteCard(id); err != nil {
+		return err
+	}
+	b.version++
+	return b.ReloadPlan()
+}
+
+// PlaceCard puts a card in a chapter and line and reads the plan again.
+func (b *Book) PlaceCard(id, chapter string, line *string) error {
+	if err := b.store.PlaceCard(id, chapter, line); err != nil {
+		return err
+	}
+	b.version++
+	return b.ReloadPlan()
+}
+
+// DropCard puts a card in a time column and reads the plan again.
+func (b *Book) DropCard(id string, column int, line string) error {
+	if err := b.store.DropCard(id, column, line); err != nil {
+		return err
+	}
+	b.version++
+	return b.ReloadPlan()
+}
+
+// SaveTime names a time column and reads the plan again.
+func (b *Book) SaveTime(column int, when string) error {
+	if err := b.store.SaveTime(column, when); err != nil {
+		return err
+	}
+	b.version++
+	return b.ReloadPlan()
+}
+
+// SaveLine saves a plot line and reads the plan again.
+func (b *Book) SaveLine(l workspace.PlotLine) (workspace.PlotLine, error) {
+	l, err := b.store.SaveLine(l)
+	if err != nil {
+		return l, err
+	}
+	b.version++
+	return l, b.ReloadPlan()
+}
+
+// MoveLine moves a plot line and reads the plan again.
+func (b *Book) MoveLine(id string, delta int) error {
+	if err := b.store.MoveLine(id, delta); err != nil {
+		return err
+	}
+	b.version++
+	return b.ReloadPlan()
+}
+
+// DeleteLine deletes a plot line and reads the plan again.
+func (b *Book) DeleteLine(id string) error {
+	if err := b.store.DeleteLine(id); err != nil {
+		return err
+	}
+	b.version++
+	return b.ReloadPlan()
+}
+
+func (b *Book) setCount(id string, n int) {
+	if b.counts == nil {
+		b.counts = map[string]int{}
+	}
+	b.counts[id] = n
 }

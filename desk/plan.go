@@ -96,7 +96,9 @@ func (a *App) loadPlan() {
 func (a *App) planChange(err error) {
 	a.SetError(err)
 	if err == nil {
-		a.loadPlan()
+		a.plan.loadErr = nil
+		a.plan.geometry = nil
+		a.indexPlan()
 	}
 }
 
@@ -359,11 +361,11 @@ func (a *App) planLine(c *ui.Context, l workspace.PlotLine) {
 				up, down = "上移", "下移"
 			}
 			m.Item("改名").Do(func() { a.startPlanLine(l) })
-			m.Item(up).Disabled(i == 0).Do(func() { a.planChange(a.Store.MoveLine(l.ID, -1)) })
-			m.Item(down).Disabled(i == len(a.book.Plan().Lines)-1).Do(func() { a.planChange(a.Store.MoveLine(l.ID, 1)) })
+			m.Item(up).Disabled(i == 0).Do(func() { a.planChange(a.book.MoveLine(l.ID, -1)) })
+			m.Item(down).Disabled(i == len(a.book.Plan().Lines)-1).Do(func() { a.planChange(a.book.MoveLine(l.ID, 1)) })
 			m.Separator()
 			m.Item("删除情节线").Do(func() {
-				a.planChange(a.Store.DeleteLine(l.ID))
+				a.planChange(a.book.DeleteLine(l.ID))
 				if a.errorText() == "" {
 					a.status.did("已删除情节线「" + l.Name + "」")
 					if n > 0 {
@@ -388,7 +390,7 @@ func (a *App) finishPlanLine() {
 	id, name := p.lineID, trim(p.lineName)
 	p.lineID = ""
 	if name != "" {
-		_, err := a.Store.SaveLine(workspace.PlotLine{ID: id, Name: name})
+		_, err := a.book.SaveLine(workspace.PlotLine{ID: id, Name: name})
 		a.planChange(err)
 	}
 }
@@ -403,7 +405,7 @@ func (a *App) addPlanLine(c *ui.Context) {
 	})
 	if b.Clicked() {
 		a.finishPlanLine()
-		l, err := a.Store.SaveLine(workspace.PlotLine{Name: "新情节线"})
+		l, err := a.book.SaveLine(workspace.PlotLine{Name: "新情节线"})
 		a.planChange(err)
 		if err == nil {
 			a.startPlanLine(l)
@@ -426,9 +428,8 @@ func (a *App) planGist(c *ui.Context, n *workspace.Node) {
 		in := ui.TextAreaBase(c.Key("plan-outline-"+n.ID), &p.outlineText).Label(label).Placeholder(hint).FillWidth().Height(hControl*3).FontSize(fsBody).LineHeight(lhBody).Padding(6, 8).Border(1, a.pal.theme.Border).Radius(rControl).AutoFocus()
 		if p.outlineText != a.book.Outlines()[n.ID] {
 			p.geometry = nil
-			a.warn(a.Store.WriteOutline(n.ID, p.outlineText))
+			a.warn(a.book.SaveOutline(n.ID, p.outlineText))
 			if a.errorText() == "" {
-				a.book.SetOutline(n.ID, p.outlineText)
 				a.syncPlanOutline(n.ID, p.outlineText)
 			}
 		}
@@ -473,9 +474,8 @@ func (a *App) finishPlanOutline() {
 	id := p.outlineID
 	p.outlineID = ""
 	if a.book.Outlines()[id] != p.outlineText {
-		a.warn(a.Store.WriteOutline(id, p.outlineText))
+		a.warn(a.book.SaveOutline(id, p.outlineText))
 		if a.errorText() == "" {
-			a.book.SetOutline(id, p.outlineText)
 			a.syncPlanOutline(id, p.outlineText)
 		}
 	}
@@ -637,9 +637,9 @@ func (a *App) planCell(c *ui.Context, chapter, line string, col int, when, after
 	}
 	if id, ok := ui.Drop[dragCard](cell); ok {
 		if col == -2 {
-			a.planChange(a.Store.PlaceCard(string(id), chapter, &line))
+			a.planChange(a.book.PlaceCard(string(id), chapter, &line))
 		} else {
-			a.planChange(a.Store.DropCard(string(id), col, line))
+			a.planChange(a.book.DropCard(string(id), col, line))
 		}
 	}
 	cell.Children(func() {
@@ -743,7 +743,7 @@ func (a *App) planTray(c *ui.Context) {
 		tray.Background(a.pal.theme.SurfaceHover)
 	}
 	if id, ok := ui.Drop[dragCard](tray); ok {
-		a.planChange(a.Store.PlaceCard(string(id), "", nil))
+		a.planChange(a.book.PlaceCard(string(id), "", nil))
 	}
 	tray.Children(func() {
 		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
@@ -922,7 +922,7 @@ func (a *App) planTimeHead(c *ui.Context, i int, col workspace.TimeColumn) {
 				}
 			})
 			if save {
-				a.planChange(a.Store.SaveTime(p.column, p.when))
+				a.planChange(a.book.SaveTime(p.column, p.when))
 				if a.errorText() == "" {
 					open = false
 				}
@@ -948,7 +948,7 @@ func (a *App) savePlanCard(more bool) {
 		return
 	}
 	fresh := p.card.ID == ""
-	e, err := a.Store.SaveCard(p.card, p.after)
+	e, err := a.book.SaveCard(p.card, p.after)
 	a.planChange(err)
 	if err != nil {
 		return
@@ -1058,7 +1058,7 @@ func (a *App) planDialog(c *ui.Context) {
 				}
 			})
 			if drop {
-				a.planChange(a.Store.DeleteCard(p.card.ID))
+				a.planChange(a.book.DeleteCard(p.card.ID))
 				if a.errorText() == "" {
 					a.status.did("已删除卡片「" + p.card.Title + "」")
 					p.cardOpen = false

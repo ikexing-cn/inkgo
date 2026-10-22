@@ -196,12 +196,9 @@ func (a *App) replaceInBook() {
 			doc.LoadMarks(editorMarks(ch.Marks))
 			n = doc.ReplaceAll(w.query, w.with)
 			// Over the text read just now, and no other.
-			if _, err := a.Store.WriteChapterOver(h.ID, doc.String(), storedMarks(doc.Marks()), ch.Stamp); err != nil {
+			if _, err := a.book.SaveChapterOver(h.ID, doc.String(), storedMarks(doc.Marks()), ch.Stamp); err != nil {
 				a.warn(err)
 				break
-			}
-			if a.book.Counts() != nil {
-				a.book.SetCount(h.ID, workspace.Count(doc.String()))
 			}
 		}
 		chapters, total = chapters+1, total+n

@@ -175,9 +175,8 @@ func (a *App) editMark(node, id string, fn func(m *workspace.ChapterMark) (keep 
 			marks = append(marks, m)
 		}
 	}
-	_, err = a.Store.WriteChapterOver(node, ch.Text, marks, ch.Stamp) // over the text read just now, and no other
+	_, err = a.book.SaveChapterOver(node, ch.Text, marks, ch.Stamp) // over the text read just now, and no other
 	a.warn(err)
-	a.scanMarks()
 }
 
 // renote gives the foreshadowing another note.

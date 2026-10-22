@@ -129,7 +129,7 @@ func (a *App) saveCategory() error {
 
 // dropCategory removes the category name, its entries going to 其他.
 func (a *App) dropCategory(name string) {
-	err := a.Store.RemoveCategory(name)
+	err := a.book.RemoveCategory(name)
 	if err == nil {
 		a.status.did("已删除分类“" + name + "”")
 		err = a.refresh()

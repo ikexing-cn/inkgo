@@ -23,14 +23,14 @@ Status: implemented
   - 括号里是作者写的备注，没有备注就用标的原文，最多 16 个字。
   - 设定对不上、备份两组各是一个 `pendGroup`，都已接上：备份失败时列一条，点一下重试，见 [备份](2026-10-09-backup.md)；检查发现的问题每条一条，排在最前，点一下去「检查」页，见 [一致性检查](2026-10-10-consistency-check.md)。
 - **数据从哪来**：
-  - 其他章读磁盘：`Store.Marks()` 一次读出所有章的标记，按 `ReadChapter` 同样的方法重新找回位置。每次切换章节（`openNode`）时重读一遍，这时上一章刚存过盘。
+  - 其他章读磁盘：`Book.Marks()` 一次读出所有章的标记，按 `ReadChapter` 同样的方法重新找回位置。每次切换章节（`openNode`）时 `Book.ReloadMarks()` 重读一遍，这时上一章刚存过盘。2026-10-22 起存盘、改伏笔由 `Book` 只改那一章的标记，不再整本重读。
   - 正在写的这一章用编辑器里的标记，删掉伏笔文字的那一刻就会出现"原句已删"，不用等存盘。
 - **失去锚点后还记得原文**：以前存盘时每个标记的 `quote` 都按当前文字重算，失去锚点的标记 `quote` 就变成空的，说不出原来标的是什么。现在：
   - 编辑器的 `Mark` 多了 `Quote`，标记时或读入时记下所标的文字；
   - 存盘时失去锚点的标记保留传进来的 `quote`，不再重算。
 - **点一条**：关掉浮层，跳到那一章，选中标记的文字；失去锚点的就把光标放在原来的位置。
 - **全部忽略**：只忽略当前列出来的（在"本章"下就只忽略本章的）。忽略记录存在作品文件夹的 `.writer/desk.json`（`ignored`），以后不再出现；新产生的照常出现。忽略的键是"伏笔/种类/章节 ID/标的原文"，所以作者改了标的文字，它会重新出现。没有单条忽略和撤销忽略。
-- 代码：`desk/pending.go`（数据、按钮、浮层）、`desk/write.go`（顶栏、切换章节时重读）、`desk/setting.go`（忽略记录）、`desk/theme.go`（琥珀色）、`workspace/paths.go`、`workspace/tree.go`、`workspace/order.go`、`workspace/nodes.go`、`workspace/trash.go`、`workspace/marks.go`、`workspace/prose.go`、`workspace/reads.go`（`Marks`、存盘保留原文）、`editor/doc.go`（`Mark.Quote`）。
+- 代码：`desk/pending.go`（数据、按钮、浮层）、`desk/write.go`（顶栏、切换章节时 `Book.ReloadMarks`）、`desk/book`（标记）、`desk/setting.go`（忽略记录）、`desk/theme.go`（琥珀色）、`workspace/paths.go`、`workspace/tree.go`、`workspace/order.go`、`workspace/nodes.go`、`workspace/trash.go`、`workspace/marks.go`、`workspace/prose.go`、`workspace/reads.go`（`Marks`、存盘保留原文）、`editor/doc.go`（`Mark.Quote`）。
 
 2026-10-14 起 AI 可以整个关掉（见[可以整个关掉 AI](2026-10-14-disable-ai.md)）：关着时待处理里只列伏笔的提醒，检查和摘要来的那几条不列。2026-10-16 起章节摘要去掉了，摘要来的那几条也就没有了，见[去掉章节摘要](../simplification/2026-10-16-no-chapter-summaries.md)。
 
@@ -38,7 +38,7 @@ Status: implemented
 
 - **先按 `伏笔.dc.html` 把伏笔做完整（回收、列表、互跳），再做待处理** — 有了回收，"没回收"才有正常的出口，不会只能靠忽略。不这样做，是因为作者想先把汇总的地方立起来，其他功能做好后往里接；样例作品章数还少，"30 章没回收"眼下碰不到。代价写在下面。
 - **只做浮层外壳，先不接数据** — 改动最小。但没有数据的界面没法试用，也验证不了"本章"切换、跳转和忽略。
-- **每次存盘都重读全书标记** — 数据总是最新。但 300 章时每次停笔都要读几百个文件；其他章只有切换过去改了才会变，切换章节时重读就够了，正在写的这一章用编辑器里的。
+- **每次存盘都重读全书标记** — 数据总是最新。但 300 章时每次停笔都要读几百个文件；其他章只有切换过去改了才会变，切换章节时重读就够了，正在写的这一章用编辑器里的。2026-10-22 起存盘由 `Book` 只改这一章，更不用重读全书。
 - **把忽略记录存进设定或单独的文件** — 忽略是作者的决定，可以和作品数据放一起。但它只影响这个界面显示什么，和右栏宽度、每章光标位置一样是界面状态，放在已有的 `.writer/desk.json` 里最省事。
 
 ## Consequences

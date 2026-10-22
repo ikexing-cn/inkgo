@@ -209,7 +209,7 @@ var placeNames = map[string]string{workspace.PlaceBody: "正文", workspace.Plac
 
 // revise records the author's change and shows the setting after it.
 func (a *App) revise(ops ...workspace.Op) {
-	_, err := a.Store.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: ops})
+	_, err := a.book.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: ops})
 	if err == nil {
 		err = a.refresh()
 	}

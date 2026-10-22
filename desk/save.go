@@ -52,7 +52,7 @@ func (a *App) saveText() error {
 	}
 	text := w.ed.Doc.String()
 	marks := storedMarks(w.ed.Doc.Marks())
-	stamp, err := a.Store.WriteChapterOver(w.node, text, marks, w.stamp)
+	stamp, err := a.book.SaveChapterOver(w.node, text, marks, w.stamp)
 	if errors.Is(err, workspace.ErrChangedOutside) {
 		// Changed outside since the disk was last looked at. Other words
 		// there wait for the author to choose, as when the look finds
@@ -60,14 +60,13 @@ func (a *App) saveText() error {
 		if a.lookAtText(); w.external != nil {
 			return nil
 		}
-		stamp, err = a.Store.WriteChapterOver(w.node, text, marks, w.stamp)
+		stamp, err = a.book.SaveChapterOver(w.node, text, marks, w.stamp)
 	}
 	if err != nil {
 		return err
 	}
 	w.stamp, w.saved, w.savedVer = stamp, text, w.ed.Doc.Version()
 	w.changed = true
-	a.book.SetCount(w.node, workspace.Count(text))
 	if time.Since(w.lastSnap) >= snapEvery {
 		if _, err = a.Store.TakeSnapshot(w.node, workspace.SnapInterval, text, marks); err != nil {
 			return err
@@ -82,7 +81,7 @@ func (a *App) saveOutline() error {
 	if w.node == "" || w.outline == w.outlineSaved || w.lost {
 		return nil
 	}
-	if err := a.Store.WriteOutline(w.node, w.outline); err != nil {
+	if err := a.book.SaveOutline(w.node, w.outline); err != nil {
 		return err
 	}
 	w.outlineSaved = w.outline
@@ -192,7 +191,6 @@ func (a *App) takeDisk() {
 	}
 	w.ed = a.chapterEditor(ch.Text, ch.Marks)
 	w.saved, w.savedVer, w.stamp, w.external = ch.Text, w.ed.Doc.Version(), ch.Stamp, nil
-	a.book.SetCount(w.node, workspace.Count(ch.Text))
 	a.status.did("已采用磁盘版本，编辑器原内容已存为快照")
 }
 
@@ -216,9 +214,9 @@ func (a *App) keepMine() {
 // saveLost saves the text of a node gone from the disk as a new document.
 func (a *App) saveLost() {
 	w := &a.write
-	id, err := a.Store.NewChapter("", w.lostTitle, false)
+	id, err := a.book.NewChapter("", w.lostTitle, false)
 	if err == nil {
-		_, err = a.Store.WriteChapter(id, w.ed.Doc.String(), storedMarks(w.ed.Doc.Marks()))
+		_, err = a.book.SaveChapter(id, w.ed.Doc.String(), storedMarks(w.ed.Doc.Marks()))
 	}
 	if err != nil {
 		a.warn(err)
@@ -229,7 +227,6 @@ func (a *App) saveLost() {
 		w.tabs[i] = id
 	}
 	w.ed, w.lost = nil, false
-	a.warn(a.loadTree())
 	a.openNode(id)
 	a.status.did("已存为新章节，位于最上层末尾")
 }

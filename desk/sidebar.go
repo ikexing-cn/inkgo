@@ -52,8 +52,7 @@ func (a *App) chapterTree(c *ui.Context) {
 		// Dropping below the rows puts a node at the end of the top level.
 		end := ui.Box(c).FillWidth().Height(40)
 		if v, ok := ui.Drop[dragNode](end); ok {
-			a.warn(a.Store.MoveChapter(string(v), "", len(a.book.Tree().Root.Children)))
-			a.warn(a.loadTree())
+			a.warn(a.book.MoveChapter(string(v), "", len(a.book.Tree().Root.Children)))
 		}
 	})
 }
@@ -240,8 +239,7 @@ func (a *App) nodeMenu(m *menu, n *workspace.Node) {
 
 func (a *App) move(id, parent string, index int) {
 	a.flush()
-	a.warn(a.Store.MoveChapter(id, parent, index))
-	a.warn(a.loadTree())
+	a.warn(a.book.MoveChapter(id, parent, index))
 }
 
 // dropOn moves node id into folder target, or before document target.
@@ -275,10 +273,9 @@ func (a *App) rename(id string) {
 		w.title = rest
 	}
 	w.offered, w.titleHeld = "", false
-	err := a.Store.RenameChapter(id, trim(w.title))
+	err := a.book.RenameChapter(id, trim(w.title))
 	if err == nil {
 		w.renaming = ""
-		err = a.loadTree()
 	}
 	a.warn(err)
 }
@@ -307,21 +304,16 @@ func (a *App) newNodeAt(folder bool, n *workspace.Node) {
 	if folder {
 		title = "新文件夹"
 	}
-	id, err := a.Store.NewChapter(parent, title, folder)
+	id, err := a.book.NewChapter(parent, title, folder)
 	if err == nil && index >= 0 {
-		err = a.Store.MoveChapter(id, parent, index)
-	}
-	if err == nil {
-		err = a.loadTree()
+		err = a.book.MoveChapter(id, parent, index)
 	}
 	// Numbered like the one before, the title is ready to go on with its
 	// name: 第四章 名单 gives 第五章.
 	typed := ""
 	if next := a.book.Tree().TitleAfter(id); err == nil && next != "" {
 		title, typed = next, next+" "
-		if err = a.Store.RenameChapter(id, title); err == nil {
-			err = a.loadTree()
-		}
+		err = a.book.RenameChapter(id, title)
 	}
 	if err != nil {
 		a.warn(err)
@@ -330,7 +322,6 @@ func (a *App) newNodeAt(folder bool, n *workspace.Node) {
 	if parent != "" {
 		w.folded[parent] = false
 	}
-	a.book.SetCount(id, 0)
 	a.openNode(id)
 	w.focus = false
 	a.showTree()

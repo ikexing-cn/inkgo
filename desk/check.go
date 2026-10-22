@@ -113,11 +113,10 @@ func (a *App) pruneStoredCheck(chapter, text string) {
 	if !changed {
 		return
 	}
-	if err := a.Store.WriteCheck(chapter, had); err != nil {
+	if err := a.book.SaveCheck(chapter, had); err != nil {
 		a.warn(err)
 		return
 	}
-	k.queue.All[chapter] = had
 	k.doubtKey = ""
 }
 
@@ -166,11 +165,11 @@ func (a *App) saveCheckResult(d checkDone) {
 	if !keep {
 		return
 	}
-	if err := a.Store.WriteCheck(d.chapter, result); err != nil {
+	if err := a.book.SaveCheck(d.chapter, result); err != nil {
 		k.queue.Fail(d.chapter, err)
 		return
 	}
-	a.loadChecks()
+	k.doubtKey = ""
 }
 
 // stopChecks drops the checks waiting and stops the one running, as the
@@ -290,11 +289,10 @@ func (a *App) setMeant(it checkItem) {
 			had.Findings[i].Meant = true
 		}
 	}
-	if err := a.Store.WriteCheck(it.node, had); err != nil {
+	if err := a.book.SaveCheck(it.node, had); err != nil {
 		a.warn(err)
 		return
 	}
-	k.queue.All[it.node] = had
 	k.doubtKey = ""
 }
 
@@ -891,7 +889,7 @@ func (a *App) takeFound(it checkItem) {
 	if text == "" {
 		text = it.f.Name
 	}
-	r, err := a.Store.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{{
+	r, err := a.book.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{{
 		Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: it.f.Category, Text: text, Names: []string{it.f.Name},
 		Sources: []workspace.Source{{Chapter: it.node, Quote: it.f.Quote}},
 	}}})
