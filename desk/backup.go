@@ -136,19 +136,18 @@ func (a *App) runBackup(sv ui.Services) {
 	a.flush()
 	st := a.Store
 	root, work := st.Root(), st.Work()
-	picks := a.picks
 	a.bk.running = true
 	done := make(chan struct{})
 	a.bk.done = done
-	go func() {
+	a.jobs.start(sv, func() func() {
 		fl, err := readWork(st)
 		if err == nil {
 			_, _, err = backup.Make(fl, s.Dir, work.Name, fl.Meta(work.ID), s.Kept(), time.Now())
 		}
 		// Done before the result is handed back: a closing work waits on
-		// done from the view thread, which takes no picks meanwhile.
+		// done from the view thread, which runs no jobs meanwhile.
 		close(done)
-		picks <- func() {
+		return func() {
 			if a.bk.done != done {
 				return
 			}
@@ -158,8 +157,7 @@ func (a *App) runBackup(sv ui.Services) {
 				a.backupDone(s, err)
 			}
 		}
-		sv.Invalidate()
-	}()
+	})
 }
 
 // backupNow backs the work up before it closes, waiting for it.

@@ -256,17 +256,16 @@ func (a *App) renameBook(path, name string) error {
 // pickInto asks for a folder off the view thread and hands it to then.
 func (a *App) pickInto(c *ui.Context, title string, then func(path string)) {
 	pick, sv := a.PickFolder, c.Services()
-	go func() {
+	a.jobs.start(sv, func() func() {
 		path, err := pick(title)
-		a.picks <- func() {
+		return func() {
 			if err != nil {
 				a.SetError(err)
 			} else if path != "" {
 				then(path)
 			}
 		}
-		sv.Invalidate()
-	}()
+	})
 }
 
 // RevealFolder shows a folder in the system's file manager.

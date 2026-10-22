@@ -234,9 +234,9 @@ func (a *App) export(c *ui.Context, plan export.Plan) {
 	}
 	if len(files) == 1 && a.SaveFile != nil {
 		save, sv := a.SaveFile, c.Services()
-		go func() {
+		a.jobs.start(sv, func() func() {
 			path, err := save("导出", files[0].name)
-			a.picks <- func() {
+			return func() {
 				if err != nil {
 					a.warn(err)
 				} else if path != "" {
@@ -244,8 +244,7 @@ func (a *App) export(c *ui.Context, plan export.Plan) {
 					write(filepath.Dir(path))
 				}
 			}
-			sv.Invalidate()
-		}()
+		})
 		return
 	}
 	if len(files) > 1 && a.PickFolder != nil {

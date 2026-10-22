@@ -162,7 +162,7 @@ type App struct {
 	focusTalk                        bool
 	cancel                           context.CancelFunc
 	results                          chan result
-	picks                            chan func()
+	jobs                             jobs
 	chat                             ui.ListState
 	rows                             []int // the chat list's: event indexes, -1 the empty chat, -2 the turn in flight
 	providerID                       string
@@ -198,7 +198,7 @@ type App struct {
 // switch that turns the AI off, and with none there is no shelf either, as
 // for a test.
 func New(ai aiport.Service) *App {
-	a := &App{ai: ai, genre: "网文", results: make(chan result, 1), picks: make(chan func(), 1), changes: make(chan struct{}, 1),
+	a := &App{ai: ai, genre: "网文", results: make(chan result, 1), changes: make(chan struct{}, 1),
 		light: lightPalette(), dark: darkPalette(), titles: map[string]string{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
 	a.pal = a.light
 	if ai.ConfigFile() != "" {
@@ -418,11 +418,7 @@ func (a *App) work(sv ui.Services, label string, fn func(context.Context) (func(
 }
 
 func (a *App) poll() {
-	select {
-	case fn := <-a.picks:
-		fn()
-	default:
-	}
+	a.jobs.poll()
 	select {
 	case <-a.changes:
 		a.SetError(a.refresh())
