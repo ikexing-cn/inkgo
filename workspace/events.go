@@ -1,5 +1,7 @@
 package workspace
 
+import "strings"
+
 // Look is one thing a reply looked up or noted on its way: what it did,
 // and what came back, empty while it runs.
 type Look struct {
@@ -71,4 +73,26 @@ func FateOf(events []Event, from int, call string) string {
 		}
 	}
 	return ""
+}
+
+// DigestSections splits a digest at its headings, the lines that open with "## ",
+// into each heading and what is under it; what comes before the first has
+// none.
+func DigestSections(text string) [][2]string {
+	var out [][2]string
+	for _, line := range strings.Split(strings.TrimSpace(text), "\n") {
+		if head, ok := strings.CutPrefix(strings.TrimSpace(line), "## "); ok {
+			out = append(out, [2]string{strings.TrimSpace(head), ""})
+			continue
+		}
+		if len(out) == 0 {
+			out = append(out, [2]string{})
+		}
+		s := &out[len(out)-1]
+		s[1] = strings.TrimPrefix(s[1]+"\n"+line, "\n")
+	}
+	for n := range out {
+		out[n][1] = strings.TrimSpace(out[n][1])
+	}
+	return out
 }

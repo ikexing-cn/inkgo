@@ -152,7 +152,7 @@ func (a *App) digest(c *ui.Context, d workspace.Event, through int) {
 			return
 		}
 		ui.Column(c).FillWidth().Padding(12, 14).Gap(8).Radius(rCard).Background(a.pal.side).Border(1, a.pal.line).Children(func() {
-			for _, s := range sections(d.Text) {
+			for _, s := range workspace.DigestSections(d.Text) {
 				ui.Column(c).FillWidth().Children(func() {
 					if s[0] != "" {
 						ui.Text(c, s[0]).FontSize(fsNote).FontWeight(600).LineHeight(lhBody).FillWidth()
@@ -163,28 +163,6 @@ func (a *App) digest(c *ui.Context, d workspace.Event, through int) {
 			ui.Text(c, "摘要由 AI 写成，有误可在对话中指出。").FontSize(fsNote).LineHeight(lhBody).TextColor(t.TextMuted).FillWidth()
 		})
 	})
-}
-
-// sections split a digest at its headings, the lines that open with "## ",
-// into each heading and what is under it; what comes before the first has
-// none.
-func sections(text string) [][2]string {
-	var out [][2]string
-	for _, line := range strings.Split(strings.TrimSpace(text), "\n") {
-		if head, ok := strings.CutPrefix(strings.TrimSpace(line), "## "); ok {
-			out = append(out, [2]string{strings.TrimSpace(head), ""})
-			continue
-		}
-		if len(out) == 0 {
-			out = append(out, [2]string{})
-		}
-		s := &out[len(out)-1]
-		s[1] = strings.TrimPrefix(s[1]+"\n"+line, "\n")
-	}
-	for n := range out {
-		out[n][1] = strings.TrimSpace(out[n][1])
-	}
-	return out
 }
 
 // spoken is how many events of the talk are its words and replies.

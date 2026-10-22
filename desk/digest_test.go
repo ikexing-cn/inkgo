@@ -157,11 +157,3 @@ func TestCompactingShowsItself(t *testing.T) {
 	close(block)
 	settle(t, a, tt)
 }
-
-func TestADigestSplitsAtItsHeadings(t *testing.T) {
-	got := sections("开头的话\n## 在聊什么\n第一行\n\n第二行\n##不是标题\n## 下一步\n")
-	want := [][2]string{{"", "开头的话"}, {"在聊什么", "第一行\n\n第二行\n##不是标题"}, {"下一步", ""}}
-	if !slices.Equal(got, want) {
-		t.Fatalf("%q", got)
-	}
-}

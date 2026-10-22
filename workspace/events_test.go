@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -97,5 +98,13 @@ func TestFateOf(t *testing.T) {
 	}
 	if got := FateOf(nil, 0, "call"); got != "" {
 		t.Fatal(got)
+	}
+}
+
+func TestADigestSplitsAtItsHeadings(t *testing.T) {
+	got := DigestSections("开头的话\n## 在聊什么\n第一行\n\n第二行\n##不是标题\n## 下一步\n")
+	want := [][2]string{{"", "开头的话"}, {"在聊什么", "第一行\n\n第二行\n##不是标题"}, {"下一步", ""}}
+	if !slices.Equal(got, want) {
+		t.Fatalf("%q", got)
 	}
 }
