@@ -46,3 +46,23 @@ func TestCost(t *testing.T) {
 		t.Fatal("a model the table does not know has a price")
 	}
 }
+
+func TestPriceID(t *testing.T) {
+	for id, want := range map[string]string{
+		"deepseek-flash":             "deepseek-flash",
+		"vendor/deepseek-flash":      "deepseek-flash",
+		"vendor/team/deepseek-flash": "deepseek-flash",
+		"":                           "", "/": "", "vendor/": "", "/unknown": "unknown",
+	} {
+		if got := PriceID(id); got != want {
+			t.Fatal(id, got)
+		}
+	}
+	u := Usage{Input: 1_000_000}
+	if c, currency, ok := Cost(PriceID("vendor/deepseek-flash"), u); !ok || c != 0.3 || currency != "$" {
+		t.Fatal(c, currency, ok)
+	}
+	if _, _, ok := Cost("vendor/deepseek-flash", u); ok {
+		t.Fatal("the exact configured ID has no price")
+	}
+}

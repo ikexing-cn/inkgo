@@ -1,5 +1,7 @@
 package model
 
+import "strings"
+
 // Price is what a million tokens cost, in Currency. Cache writes the
 // provider does not charge for are billed as input.
 type Price struct {
@@ -78,3 +80,7 @@ func Cost(id string, u Usage) (cost float64, currency string, ok bool) {
 	cost = float64(fresh)*p.Input + float64(u.CacheRead)*p.CacheRead + float64(u.CacheWrite)*p.CacheWrite + float64(u.Output)*p.Output
 	return cost / 1e6, p.Currency, true
 }
+
+// PriceID is the final part of a routed model ID, as the price table
+// names it. Callers that price the exact configured ID use Cost directly.
+func PriceID(id string) string { return id[strings.LastIndex(id, "/")+1:] }

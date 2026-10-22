@@ -35,6 +35,58 @@ func (r *replies) Complete(ctx context.Context, req model.Request, on func(model
 	return next, nil
 }
 
+func TestRoutedModelNamesAreRecordedVerbatim(t *testing.T) {
+	st, err := workspace.Create(t.TempDir(), "雨城", "网文")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	t.Setenv("WRITER_TEST_ROUTED_KEY", "fake")
+	s := New("")
+	s.cfg = model.Config{Schema: 1, Providers: []model.Provider{{
+		ID: "test-relay", Name: "Relay", BaseURL: "http://127.0.0.1:1/v1",
+		Protocol: model.ProtocolChat, Env: "WRITER_TEST_ROUTED_KEY",
+	}}}
+	sel := workspace.Selection{Provider: "test-relay", Model: "vendor/deepseek-flash"}
+	m, err := s.open(sel, st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const name = "test-relay/vendor/deepseek-flash"
+	if m.Name != name {
+		t.Fatal(m.Name)
+	}
+	c := m.Completer.(counted)
+	c.Completer = &replies{{Text: "雨还在下。", Usage: model.Usage{Input: 1_000_000}}}
+	m.Completer = c
+	session, err := st.NewSession()
+	if err != nil {
+		t.Fatal(err)
+	}
+	e := discussion.Engine{Store: st, Talk: m}
+	turn, err := e.Say(context.Background(), session, workspace.Event{Text: "接着说。"})
+	if err != nil || turn.Reply.Model != name {
+		t.Fatal(turn, err)
+	}
+	events, err := st.Events(session)
+	if err != nil || events[len(events)-1].Model != name {
+		t.Fatal(events, err)
+	}
+	records, err := st.Records()
+	if err != nil || len(records) != 1 || records[0].Model != name || records[0].Cost != 0 || records[0].Currency != "" {
+		t.Fatal(records, err)
+	}
+	for _, file := range []string{filepath.Join("sessions", session+".jsonl"), "ai-log.jsonl"} {
+		raw, err := os.ReadFile(filepath.Join(st.Root(), file))
+		if err != nil || !strings.Contains(string(raw), `"model":"test-relay/vendor/deepseek-flash"`) {
+			t.Fatal(file, string(raw), err)
+		}
+	}
+	if cost, currency, ok := s.Cost(name, workspace.Usage{Input: 1_000_000}); !ok || cost != 0.3 || currency != "$" {
+		t.Fatal(cost, currency, ok)
+	}
+}
+
 func TestSetupErrorsCrossThePort(t *testing.T) {
 	st, err := workspace.Create(filepath.Join(t.TempDir(), "work"), "测试作品", "网文")
 	if err != nil {

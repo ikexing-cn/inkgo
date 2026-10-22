@@ -12,7 +12,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"writer/aiport"
@@ -361,5 +360,5 @@ func (s *Service) Pen(st *workspace.Store) (aiport.Pen, error) {
 func (s *Service) MinCheck() int { return writing.MinCheck }
 
 func (s *Service) Cost(name string, u workspace.Usage) (float64, string, bool) {
-	return model.Cost(name[strings.LastIndex(name, "/")+1:], model.Usage(u))
+	return model.Cost(model.PriceID(name), model.Usage(u))
 }

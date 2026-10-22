@@ -22,6 +22,21 @@ import (
 	"writer/workspace"
 )
 
+func TestServiceModel(t *testing.T) {
+	a := newApp(filepath.Join(t.TempDir(), "providers.yaml"))
+	defer a.Close()
+	for name, want := range map[string]string{
+		"deepseek/deepseek-flash":        "DeepSeek/deepseek-flash",
+		"deepseek/vendor/deepseek-flash": "DeepSeek/vendor/deepseek-flash",
+		"missing/vendor/id":              "missing/vendor/id",
+		"deepseek/":                      "DeepSeek/", "/id": "/id", "bare": "bare", "": "",
+	} {
+		if got := a.serviceModel(name); got != want {
+			t.Fatal(name, got)
+		}
+	}
+}
+
 // stream is a writing model that streams its pieces; with hold, it waits
 // after the first until let through or stopped. With fail, it fails after
 // the last.
