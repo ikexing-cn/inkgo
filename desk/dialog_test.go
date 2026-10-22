@@ -76,7 +76,7 @@ func TestARenameEndsAtAnotherButton(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Frame()
-	if got := w.tree.Root.Children[0].Title; got != "第一章 停电" {
+	if got := chapters(a).Root.Children[0].Title; got != "第一章 停电" {
 		t.Fatalf("the rename was lost: %q", got)
 	}
 }

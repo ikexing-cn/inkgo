@@ -75,8 +75,8 @@ func TestOutlineReadError(t *testing.T) {
 	}
 	a.plan.checked = a.plan.checked.Add(-checkEvery) // as if checkEvery went by
 	tt.Frame()
-	if a.plan.loadErr != nil {
-		t.Fatal("the outline was not read again", a.plan.loadErr)
+	if outlineErr(a) != nil {
+		t.Fatal("the outline was not read again", outlineErr(a))
 	}
 	hasText(t, tt, "新增情节线")
 }
@@ -251,18 +251,18 @@ func TestOutlinePlotLines(t *testing.T) {
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
 	hasText(t, tt, "钥匙")
-	l := a.plan.data.Lines[3]
+	l := outline(a).Lines[3]
 	click(t, tt, "情节线「钥匙」的操作")
 	click(t, tt, "菜单-左移")
-	if a.plan.data.Lines[2].ID != l.ID {
+	if outline(a).Lines[2].ID != l.ID {
 		t.Fatal("line did not move")
 	}
 	click(t, tt, "钥匙")
 	tt.Type("铜钥匙")
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if a.plan.data.Lines[2].Name != "铜钥匙" {
-		t.Fatal(a.plan.data.Lines)
+	if outline(a).Lines[2].Name != "铜钥匙" {
+		t.Fatal(outline(a).Lines)
 	}
 	click(t, tt, "情节线「铜钥匙」的操作")
 	click(t, tt, "菜单-右移")
@@ -356,26 +356,26 @@ func TestTheOutlineTimeline(t *testing.T) {
 	click(t, tt, "时间列-1")
 	planType(t, tt, "这一列的时间", "十九年前")
 	click(t, tt, "保存时间")
-	if len(a.plan.data.Columns()[0].Cards) != 2 {
-		t.Fatal("adjacent times did not merge", a.plan.data.Columns())
+	if len(outline(a).Columns()[0].Cards) != 2 {
+		t.Fatal("adjacent times did not merge", outline(a).Columns())
 	}
 	click(t, tt, "时间列-1")
 	planType(t, tt, "这一列的时间", "十月七日夜")
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
 	n := 0
-	for _, e := range a.plan.data.Cards {
+	for _, e := range outline(a).Cards {
 		if e.When == "十月七日夜" {
 			n++
 		}
 	}
 	if n != 3 {
-		t.Fatal("column time changed only part", n, a.plan.data.Cards)
+		t.Fatal("column time changed only part", n, outline(a).Cards)
 	}
 	a.plan.scroll[1].X = 10000
 	tt.Frame()
 	tt.Frame()
-	cols := a.plan.data.Columns()
+	cols := outline(a).Columns()
 	last := len(cols) - 1
 	click(t, tt, fmt.Sprintf("时间列-%d", last))
 	planType(t, tt, "这一列的时间", "十二月")
@@ -473,7 +473,7 @@ func TestOutlineTrashAndSettingsPane(t *testing.T) {
 	if err := a.Store.TrashChapter(f.two); err != nil {
 		t.Fatal(err)
 	}
-	a.plan.loaded = false
+	forgetOutline(a)
 	tt.Frame()
 	tt.Frame()
 	if len(a.cardsOf("")) != 5 {
@@ -482,7 +482,7 @@ func TestOutlineTrashAndSettingsPane(t *testing.T) {
 	if err := a.Store.RestoreChapter(f.two); err != nil {
 		t.Fatal(err)
 	}
-	a.plan.loaded = false
+	forgetOutline(a)
 	tt.Frame()
 	tt.Frame()
 	if len(a.cardsOf(f.two)) != 3 {

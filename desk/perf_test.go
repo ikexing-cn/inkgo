@@ -58,8 +58,8 @@ func outlineScale(t *testing.T, chapters int) (*App, *ui.Tester, ui.Services) {
 	var sv ui.Services
 	tt := ui.NewTester(func(c *ui.Context) { sv = c.Services(); a.View(c) }, 1266, 780)
 	tt.Frame()
-	if a.plan.loadErr != nil {
-		t.Fatal(a.plan.loadErr)
+	if outlineErr(a) != nil {
+		t.Fatal(outlineErr(a))
 	}
 	return a, tt, sv
 }

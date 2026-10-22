@@ -328,7 +328,7 @@ func TestCtrlNMakesAChapter(t *testing.T) {
 	if a.write.node == one || a.write.renaming != a.write.node {
 		t.Fatal("no new chapter to name", a.write.node, a.write.renaming)
 	}
-	if n, _ := a.write.tree.Node(a.write.node); n.Folder || n.Parent.Children[0].ID != one {
+	if n, _ := chapters(a).Node(a.write.node); n.Folder || n.Parent.Children[0].ID != one {
 		t.Fatal("the new chapter is not after the one open")
 	}
 }
@@ -439,7 +439,7 @@ func TestRemindersBeforeTheWritingPage(t *testing.T) {
 	if _, err := a.Store.WriteChapter(first, "钥匙在井里。", marks); err != nil {
 		t.Fatal(err)
 	}
-	if a.write.entered {
+	if treeRead(a) {
 		t.Fatal("the writing page was shown")
 	}
 	a.write.lateAfter = lateMin

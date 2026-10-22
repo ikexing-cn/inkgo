@@ -20,7 +20,7 @@ func TestTakeProseIntoTheSetting(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	e := a.set.Entries[len(a.set.Entries)-1]
+	e := setting(a).Entries[len(setting(a).Entries)-1]
 	if e.Text != "主角怕黑，从小如此" || e.Category != "关系" || len(e.Sources) != 1 || e.Sources[0].Chapter != id || e.Sources[0].Quote != "很怕黑。" {
 		t.Fatalf("entry %+v", e)
 	}

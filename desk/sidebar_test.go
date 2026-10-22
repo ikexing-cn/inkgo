@@ -14,10 +14,10 @@ import (
 // Esc leaves the name as it was.
 func TestLeavingTheNameSettlesIt(t *testing.T) {
 	a, tt, id := writingFixture(t, "整条街的灯是同时灭的。")
-	n, _ := a.write.tree.Node(id)
+	n, _ := chapters(a).Node(id)
 	was := n.Title
 	name := func() string {
-		n, _ := a.write.tree.Node(id)
+		n, _ := chapters(a).Node(id)
 		return n.Title
 	}
 	rename := func(to string) {
@@ -76,12 +76,12 @@ func TestDragMovesChapters(t *testing.T) {
 		tt.Frame()
 	}
 	drag("第二章", "第一卷")
-	if n, _ := a.write.tree.Node(two); n.Parent.ID != vol {
+	if n, _ := chapters(a).Node(two); n.Parent.ID != vol {
 		t.Fatal("not moved into the folder")
 	}
 	tt.Frame()
 	drag("第一章", "第二章")
-	if n, _ := a.write.tree.Node(one); n.Parent.ID != vol || n.Parent.Children[0].ID != one {
+	if n, _ := chapters(a).Node(one); n.Parent.ID != vol || n.Parent.Children[0].ID != one {
 		t.Fatal("not moved before the chapter")
 	}
 	if _, err := os.Stat(filepath.Join(a.Store.Root(), "chapters", "第一卷", "第一章.txt")); err != nil {
@@ -130,7 +130,7 @@ func TestF2NamesTheOpenChapter(t *testing.T) {
 	tt.Type("第二章：脚印") // over the name, not after it
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if n, _ := a.write.tree.Node(id); n.Title != "第二章：脚印" || a.write.renaming != "" {
+	if n, _ := chapters(a).Node(id); n.Title != "第二章：脚印" || a.write.renaming != "" {
 		t.Fatalf("the name did not take: %q, renaming %q", n.Title, a.write.renaming)
 	}
 	// While a name is being typed, F2 does not start over.
@@ -156,7 +156,7 @@ func TestNameANewChapter(t *testing.T) {
 	tt.Type("第二章 脚印")
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	n, ok := a.write.tree.Node(a.write.node)
+	n, ok := chapters(a).Node(a.write.node)
 	if !ok || n.Title != "第二章 脚印" || a.write.renaming != "" {
 		t.Fatal(n, a.write.renaming)
 	}
@@ -166,7 +166,7 @@ func TestNameANewChapter(t *testing.T) {
 	tt.Frame()
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if n, _ = a.write.tree.Node(a.write.node); n.Title != "第三章" || a.write.renaming != "" {
+	if n, _ = chapters(a).Node(a.write.node); n.Title != "第三章" || a.write.renaming != "" {
 		t.Fatal("the number does not go on", n.Title, a.write.renaming)
 	}
 	if err := tt.Click("新建章节"); err != nil {
@@ -179,11 +179,11 @@ func TestNameANewChapter(t *testing.T) {
 	tt.Type("守夜人")
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if n, _ = a.write.tree.Node(a.write.node); n.Title != "第四章 守夜人" {
+	if n, _ = chapters(a).Node(a.write.node); n.Title != "第四章 守夜人" {
 		t.Fatal(n.Title)
 	}
-	a.openNode(a.write.tree.Root.Children[0].ID)
-	a.write.tree.Root.Children[0].Title = "楔子"
+	a.openNode(chapters(a).Root.Children[0].ID)
+	chapters(a).Root.Children[0].Title = "楔子"
 	a.write.renaming = ""
 	if err := a.Store.RenameChapter(a.write.node, "楔子"); err != nil {
 		t.Fatal(err)
@@ -195,7 +195,7 @@ func TestNameANewChapter(t *testing.T) {
 	tt.Frame()
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if n, _ = a.write.tree.Node(a.write.node); n.Title != "新章节" {
+	if n, _ = chapters(a).Node(a.write.node); n.Title != "新章节" {
 		t.Fatal("a title with no number is numbered", n.Title)
 	}
 	if err := tt.Click("新建章节"); err != nil {
@@ -205,7 +205,7 @@ func TestNameANewChapter(t *testing.T) {
 	tt.Type("尾声")
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if n, _ = a.write.tree.Node(a.write.node); n.Title != "尾声" {
+	if n, _ = chapters(a).Node(a.write.node); n.Title != "尾声" {
 		t.Fatal("新章节 is not typed over:", n.Title)
 	}
 }
@@ -278,7 +278,7 @@ func TestANewChapterBetweenTwoTakesNoNumber(t *testing.T) {
 	}
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if n, _ := a.write.tree.Node(a.write.node); n.Title != "新章节" {
+	if n, _ := chapters(a).Node(a.write.node); n.Title != "新章节" {
 		t.Fatal("numbered as the chapter after it:", n.Title)
 	}
 }

@@ -47,7 +47,7 @@ func fixture(t *testing.T) (*App, *ui.Tester, workspace.Entry) {
 	tt := ui.NewTester(a.View, 1266, 780)
 	tt.Frame()
 	tt.Frame()
-	e, _ := a.set.Entry(r.Ops[0].Entry)
+	e, _ := setting(a).Entry(r.Ops[0].Entry)
 	return a, tt, e
 }
 
@@ -175,7 +175,7 @@ func TestTheAuthorEditsTheSetting(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	got, _ := a.set.Entry(e.ID)
+	got, _ := setting(a).Entry(e.ID)
 	if got.Text != "主角怕安静" || got.Category != "关系" || !got.Author || a.doc.editing != "" {
 		t.Fatalf("edit %+v", got)
 	}
@@ -183,7 +183,7 @@ func TestTheAuthorEditsTheSetting(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if got, _ = a.set.Entry(e.ID); got.Place != workspace.PlaceDropped {
+	if got, _ = setting(a).Entry(e.ID); got.Place != workspace.PlaceDropped {
 		t.Fatal(got.Place)
 	}
 	if err := tt.Click("更多"); err != nil {
@@ -201,7 +201,7 @@ func TestTheAuthorEditsTheSetting(t *testing.T) {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
-	if got, _ = a.set.Entry(e.ID); got.Place != workspace.PlaceBody {
+	if got, _ = setting(a).Entry(e.ID); got.Place != workspace.PlaceBody {
 		t.Fatal(got.Place)
 	}
 	if err := tt.Click("全部设定"); err != nil {
@@ -218,10 +218,10 @@ func TestTheAuthorEditsTheSetting(t *testing.T) {
 	}
 	tt.Frame()
 	// A new entry starts in the first category, as in the prototype.
-	if len(a.set.Entries) != 2 || a.set.Entries[1].Category != "人物" {
-		t.Fatalf("new entry %+v", a.set.Entries)
+	if len(setting(a).Entries) != 2 || setting(a).Entries[1].Category != "人物" {
+		t.Fatalf("new entry %+v", setting(a).Entries)
 	}
-	for _, r := range a.set.Revisions {
+	for _, r := range setting(a).Revisions {
 		if r.By != workspace.ByAuthor {
 			t.Fatal("an author's change recorded as a talk's")
 		}
@@ -278,8 +278,8 @@ func TestTalkNotesTheSettingAsItReplies(t *testing.T) {
 		return nil, err
 	})
 	a.talking, a.talkSession = true, a.session
-	until(t, tt, "the note", func() bool { return len(a.set.Entries) == 2 })
-	if _, ok := a.flash[a.set.Entries[1].ID]; !ok || !tt.HasText("雨从不停") {
+	until(t, tt, "the note", func() bool { return len(setting(a).Entries) == 2 })
+	if _, ok := a.flash[setting(a).Entries[1].ID]; !ok || !tt.HasText("雨从不停") {
 		t.Fatal("what the talk noted is not shown and tinted", tt.Texts())
 	}
 	if !tt.HasText("正在查阅…") || !tt.HasText("全书的正文里没有「雨」。") {
@@ -303,7 +303,7 @@ func TestTalkNotesTheSettingAsItReplies(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.doc.shown != a.set.Entries[1].ID {
+	if a.doc.shown != setting(a).Entries[1].ID {
 		t.Fatal("the link does not open what was noted")
 	}
 	a.doc.shown, a.doc.history = "", true
@@ -418,7 +418,7 @@ func TestExtractionAddsTheAuthorsEntry(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	last := a.set.Entries[len(a.set.Entries)-1]
+	last := setting(a).Entries[len(setting(a).Entries)-1]
 	if last.Text != "林晚" || last.Place != workspace.PlaceBody || last.Sources[0].Message != m.ID || a.sourceOpen {
 		t.Fatalf("%+v", last)
 	}

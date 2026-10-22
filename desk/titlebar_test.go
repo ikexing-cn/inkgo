@@ -293,7 +293,7 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 		t.Fatal("设置 did not open the settings")
 	}
 	shut(tt, &a.bk.prefs)
-	nodes := func() (n int) { w.tree.Walk(func(*workspace.Node, int) { n++ }); return n }
+	nodes := func() (n int) { chapters(a).Walk(func(*workspace.Node, int) { n++ }); return n }
 	before := nodes()
 	choose("文件", "新建章节")
 	if nodes() != before+1 || w.renaming == "" {
@@ -302,7 +302,7 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
 	choose("文件", "新建文件夹")
-	if n, ok := w.tree.Node(w.node); nodes() != before+2 || !ok || !n.Folder {
+	if n, ok := chapters(a).Node(w.node); nodes() != before+2 || !ok || !n.Folder {
 		t.Fatalf("新建文件夹: %d nodes after %d", nodes(), before)
 	}
 	tt.Key(0, ui.KeyEnter)

@@ -54,7 +54,7 @@ func TestDigestKeepsCode(t *testing.T) {
 func TestDigestEscapesNames(t *testing.T) {
 	a, _, _ := fixture(t)
 	name := "灯[塔]*_`\\|<&~"
-	a.set.Entries[0].Names = []string{name}
+	setting(a).Entries[0].Names = []string{name}
 	src := "**[1]**，再提到 [01] 和 [999]。\n\n| 设定 |\n|---|\n| [1] |"
 	tt := ui.NewTester(func(c *ui.Context) { a.markdown(c, src, digestText) }, 720, 800)
 	if !tt.HasText("「"+name+"」") || !tt.HasText("[999]") {

@@ -24,7 +24,7 @@ func planVisibleCard(t *testing.T, a *App, tt *ui.Tester, id string) {
 func TestOutlineVirtualScrolling(t *testing.T) {
 	a, tt, sv := outlineScale(t, 120)
 	p := &a.plan
-	last := p.data.Cards[len(p.data.Cards)-1]
+	last := outline(a).Cards[len(outline(a).Cards)-1]
 	if _, ok := tt.Find("大纲章节-" + last.Chapter); ok {
 		t.Fatal("offscreen chapter was built")
 	}
@@ -36,7 +36,7 @@ func TestOutlineVirtualScrolling(t *testing.T) {
 	if p.scroll[0].MaxY != maxY {
 		t.Fatal("placeholder changed scroll height", maxY, p.scroll[0].MaxY)
 	}
-	if _, ok := tt.Find("大纲章节-" + p.data.Cards[0].Chapter); ok {
+	if _, ok := tt.Find("大纲章节-" + outline(a).Cards[0].Chapter); ok {
 		t.Fatal("scrolled-away chapter was built")
 	}
 	// Search the whole book, including rows which have never been built.
@@ -55,7 +55,7 @@ func TestOutlineVirtualScrolling(t *testing.T) {
 	click(t, tt, fmt.Sprintf("添加卡片-%s|%s|-2", last.Chapter, last.Line))
 	tt.Type("新记在最后一章的事")
 	click(t, tt, "保存卡片")
-	added, _ := p.data.Card(p.seen)
+	added, _ := outline(a).Card(p.seen)
 	if added.Title != "新记在最后一章的事" {
 		t.Fatal(added)
 	}
@@ -126,7 +126,7 @@ func TestOutlineVirtualDrag(t *testing.T) {
 			sv.Invalidate()
 			tt.Frame()
 			tt.Frame()
-			source := p.data.Cards[0]
+			source := outline(a).Cards[0]
 			r, ok := tt.Find("卡片-" + source.ID)
 			if !ok {
 				t.Fatal("no drag source")
@@ -139,7 +139,7 @@ func TestOutlineVirtualDrag(t *testing.T) {
 			}
 			var target, wantChapter, wantWhen string
 			if mode == 0 {
-				wantChapter = p.data.Cards[119].Chapter
+				wantChapter = outline(a).Cards[119].Chapter
 				tt.Scroll(p.viewport.X+p.viewport.W/2, p.viewport.Y+p.viewport.H/2, 0, p.scroll[0].MaxY)
 				target = fmt.Sprintf("大纲格-%s|%s|-2", wantChapter, source.Line)
 			} else {

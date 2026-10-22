@@ -86,7 +86,7 @@ func TestAnEntryChangesFromAChapter(t *testing.T) {
 	}
 	tt.Frame()
 	has("saved", "第2章起", "配角，在井边等她。", "本章适用", "第3章起")
-	e, _ := a.set.Entry(ids.zhou)
+	e, _ := setting(a).Entry(ids.zhou)
 	if len(e.Changes) != 2 || e.Changes[1].From != two || !e.Changes[1].Author {
 		t.Fatalf("%+v", e.Changes)
 	}
@@ -104,8 +104,8 @@ func TestAnEntryChangesFromAChapter(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	e, _ = a.set.Entry(ids.zhou)
-	if hold := e.Holding(a.write.tree.Order()); len(hold) != 1 || hold[0].ID != later || hold[0].From != two || e.Changes[1].ID != mine || e.Changes[1].Place != workspace.PlaceDropped {
+	e, _ = setting(a).Entry(ids.zhou)
+	if hold := e.Holding(chapters(a).Order()); len(hold) != 1 || hold[0].ID != later || hold[0].From != two || e.Changes[1].ID != mine || e.Changes[1].Place != workspace.PlaceDropped {
 		t.Fatalf("%+v", e.Changes)
 	}
 	if err = tt.Click("修改变化-" + later); err != nil {
@@ -139,8 +139,8 @@ func TestAnEntryChangesFromAChapter(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	e, _ = a.set.Entry(ids.zhou)
-	if g, ok := e.At(a.write.tree.Order(), three); !ok || g.ID != idea {
+	e, _ = setting(a).Entry(ids.zhou)
+	if g, ok := e.At(chapters(a).Order(), three); !ok || g.ID != idea {
 		t.Fatalf("taken %+v", e.Changes)
 	}
 	if got := a.laterLines(e); !slices.Equal(got, []string{"第3章起：配角，学会了修灯。"}) {

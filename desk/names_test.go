@@ -17,7 +17,7 @@ func TestNamesInTheProse(t *testing.T) {
 	a, tt, _ := writingFixture(t, "小祥跟着林晚修灯。")
 	a.revise(workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "配角，林晚的同事", Names: []string{"周祥", "小祥"}},
 		workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceOpen, Category: "人物", Text: "还没确定", Names: []string{"林晚"}})
-	id := a.set.Entries[len(a.set.Entries)-2].ID
+	id := setting(a).Entries[len(setting(a).Entries)-2].ID
 	tt.Frame()
 	ed := a.write.ed
 	caret := ed.Caret()
@@ -132,7 +132,7 @@ func TestAddANameFromTheProse(t *testing.T) {
 		t.Fatal(err, rows(tt))
 	}
 	tt.Frame()
-	e := a.set.Entries[len(a.set.Entries)-1]
+	e := setting(a).Entries[len(setting(a).Entries)-1]
 	if e.Category != "人物" || e.Place != workspace.PlaceBody || !slices.Equal(e.Names, []string{"沈砚"}) {
 		t.Fatalf("entry %+v", e)
 	}
@@ -147,14 +147,14 @@ func TestAddANameFromTheProse(t *testing.T) {
 func TestRenameOffersToReplace(t *testing.T) {
 	a, tt, id := writingFixture(t, "林晚推开门。林晚笑了。")
 	a.revise(workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "主角修路灯"})
-	e := a.set.Entries[len(a.set.Entries)-1]
+	e := setting(a).Entries[len(setting(a).Entries)-1]
 	a.doc.editing, a.doc.text, a.doc.category, a.doc.names = e.ID, e.Text, e.Category, " 林晚、晚晚，林晚"
 	tt.Frame()
 	if err := tt.Click("保存"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if e, _ = a.set.Entry(e.ID); !slices.Equal(e.Names, []string{"林晚", "晚晚"}) || a.renamed.count != 0 {
+	if e, _ = setting(a).Entry(e.ID); !slices.Equal(e.Names, []string{"林晚", "晚晚"}) || a.renamed.count != 0 {
 		t.Fatal("names", e.Names, a.renamed)
 	}
 	a.doc.editing, a.doc.text, a.doc.category, a.doc.names = e.ID, e.Text, e.Category, "苏晴、晚晚"

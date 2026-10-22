@@ -62,10 +62,10 @@ func TestSettingListAndPage(t *testing.T) {
 	}
 
 	// Searching only finds.
-	n := len(a.set.Entries)
+	n := len(setting(a).Entries)
 	a.doc.query = "左手"
 	tt.Frame()
-	if !tt.HasText("找到 1 条") || tt.HasText("铜钥匙") || len(a.set.Entries) != n {
+	if !tt.HasText("找到 1 条") || tt.HasText("铜钥匙") || len(setting(a).Entries) != n {
 		t.Fatal("the search", tt.Texts())
 	}
 	a.doc.query = ""
@@ -82,7 +82,7 @@ func TestSettingListAndPage(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if e, _ := a.set.Entry(ids.about); e.Place != workspace.PlaceBody || tt.HasText("AI 建议") {
+	if e, _ := setting(a).Entry(ids.about); e.Place != workspace.PlaceBody || tt.HasText("AI 建议") {
 		t.Fatal("not taken", e.Place, tt.Texts())
 	}
 
@@ -103,7 +103,7 @@ func TestSettingListAndPage(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Frame()
-	if e, _ := a.set.Entry(ids.fresh); e.Place != workspace.PlaceDropped || a.doc.todo || tt.HasText("待确认") {
+	if e, _ := setting(a).Entry(ids.fresh); e.Place != workspace.PlaceDropped || a.doc.todo || tt.HasText("待确认") {
 		t.Fatal("not ignored", e.Place, a.doc.todo, tt.Texts())
 	}
 }
@@ -142,7 +142,7 @@ func TestAQuestionIsAnswered(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	e, _ := a.set.Entry(id)
+	e, _ := setting(a).Entry(id)
 	if e.Place != workspace.PlaceBody || e.Text != answer || e.Asked != q || e.Category != "人物" || strings.Join(e.Names, "、") != "林晚、小晚" || a.doc.editing != "" {
 		t.Fatalf("answered %+v", e)
 	}
@@ -201,7 +201,7 @@ func TestShotPane(t *testing.T) {
 	shot(t, tt, "pane-find.png")
 	d.query, d.shown = "", ids.zhou
 	shot(t, tt, "pane-entry.png")
-	e, _ := a.set.Entry(ids.zhou)
+	e, _ := setting(a).Entry(ids.zhou)
 	d.editing, d.text, d.category, d.name, d.names = e.ID, e.Text, e.Category, "周祥", "小祥、saki"
 	shot(t, tt, "pane-edit.png")
 	d.editing, d.shown, d.text, d.name, d.names = "new", "", "老周是修表的，铺子在旧城小学对面", "老周", ""

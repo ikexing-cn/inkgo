@@ -22,7 +22,7 @@ func TestTrashAndRestoreFromTheTree(t *testing.T) {
 		t.Fatal(err, rows(tt))
 	}
 	tt.Frame()
-	if _, ok := a.write.tree.Node(two); ok || tt.HasText("第二章") && !tt.HasText("「第二章」已移到回收站") {
+	if _, ok := chapters(a).Node(two); ok || tt.HasText("第二章") && !tt.HasText("「第二章」已移到回收站") {
 		t.Fatal("not trashed", tt.Texts())
 	}
 	if err = tt.Click("回收站"); err != nil {
@@ -33,7 +33,7 @@ func TestTrashAndRestoreFromTheTree(t *testing.T) {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
-	if _, ok := a.write.tree.Node(two); !ok || !tt.HasText("「第二章」已恢复") {
+	if _, ok := chapters(a).Node(two); !ok || !tt.HasText("「第二章」已恢复") {
 		t.Fatal("not restored", tt.Texts())
 	}
 	if err = tt.Click("关闭"); err != nil {
@@ -50,7 +50,7 @@ func TestTrashAndRestoreFromTheTree(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.write.tree.Root.Children[0].ID != two {
+	if chapters(a).Root.Children[0].ID != two {
 		t.Fatal("not moved up")
 	}
 }

@@ -11,7 +11,7 @@ import (
 )
 
 func TestAFolderCountsItsChapters(t *testing.T) {
-	w := &writeView{counts: map[string]int{"a": 3, "b": 4, "c": 5}}
+	w := countsView(map[string]int{"a": 3, "b": 4, "c": 5})
 	vol := &workspace.Node{ID: "v", Folder: true, Children: []*workspace.Node{
 		{ID: "a"},
 		{ID: "w", Folder: true, Children: []*workspace.Node{{ID: "b"}}},
@@ -106,7 +106,7 @@ func TestCountsMoveAsTyped(t *testing.T) {
 func TestCountsWaitForTheBook(t *testing.T) {
 	a, _, _ := writingFixture(t, "一二三")
 	a.write.counter = prefs.Counter{Day: "2026-10-09", DayStart: 3, Days: map[string]int{"2026-10-08": 2}}
-	a.write.counts = nil
+	setChapterCounts(a, nil)
 	before := a.write.counter
 	now := time.Date(2026, 10, 10, 9, 0, 0, 0, time.Local)
 	if a.rollDay(now) || a.today(now) != 0 || a.today(now.AddDate(0, 0, -1)) != 0 {
@@ -121,7 +121,7 @@ func TestCountsWaitForTheBook(t *testing.T) {
 	if !reflect.DeepEqual(a.write.counter, before) {
 		t.Fatal("unread book changed the counter", a.write.counter)
 	}
-	a.write.counts = map[string]int{"chapter": 10}
+	setChapterCounts(a, map[string]int{"chapter": 10})
 	if !a.rollDay(now) || a.write.counter.Days["2026-10-09"] != 7 {
 		t.Fatal("known count did not start a day", a.write.counter)
 	}

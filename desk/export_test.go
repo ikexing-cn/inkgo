@@ -93,7 +93,7 @@ func TestExportKeepsItsOpenedTextAndTracksContext(t *testing.T) {
 	if x.plan.Current != "" || slices.Contains(x.plan.Scopes, export.ScopeChapter) {
 		t.Fatal("page change left a stale current chapter", x.plan)
 	}
-	entry := a.set.Entries[0].ID
+	entry := setting(a).Entries[0].ID
 	if _, err := a.Store.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{{Op: workspace.OpMove, Entry: entry, Place: workspace.PlaceDropped}}}); err != nil {
 		t.Fatal(err)
 	}

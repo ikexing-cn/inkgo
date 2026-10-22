@@ -260,7 +260,7 @@ func TestQuotesFindTheirProse(t *testing.T) {
 	a.doc.tab = paneSetting
 	tt.Frame()
 	var entry string
-	for _, e := range a.set.Entries {
+	for _, e := range setting(a).Entries {
 		if e.Text == "她做事急" {
 			entry = e.ID
 		}

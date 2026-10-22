@@ -327,14 +327,14 @@ func TestClosingAsksAboutUnsavedWords(t *testing.T) {
 func TestTheTrashTakesTheTab(t *testing.T) {
 	a, tt, ids := tabsFixture(t)
 	click(t, tt, "章节-第二章", "章节-第三章")
-	n, _ := a.write.tree.Node(ids["第二章"])
+	n, _ := chapters(a).Node(ids["第二章"])
 	a.trashNode(n)
 	tt.Frame()
 	tt.Frame()
 	if got := tabs(a, tt); got != "第一章 第三章*" {
 		t.Fatalf("a tab not shown, trashed: %q", got)
 	}
-	n, _ = a.write.tree.Node(ids["第三章"])
+	n, _ = chapters(a).Node(ids["第三章"])
 	a.trashNode(n)
 	tt.Frame()
 	tt.Frame()

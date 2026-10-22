@@ -79,7 +79,7 @@ func TestCheckAChapterAndSettleWhatItFinds(t *testing.T) {
 	tt.Frame()
 	tt.Frame()
 	named := false
-	for _, e := range a.set.Entries {
+	for _, e := range setting(a).Entries {
 		if len(e.Names) == 1 && e.Names[0] == "老周" && e.Text == "在巷子那头等林晚的人" && e.Place == workspace.PlaceBody && e.Sources[0].Chapter == id {
 			named = true
 		}
