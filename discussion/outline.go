@@ -58,7 +58,21 @@ type outlineGroup struct {
 	rows       []string
 }
 
-func (t *toolbox) readOutline(in input) outcome {
+type outlineArgs struct {
+	Line    string `json:"line"`
+	Query   string `json:"query"`
+	Chapter string `json:"chapter"`
+	From    int    `json:"from"`
+}
+
+func (o outlineArgs) trim() outlineArgs {
+	o.Line = strings.TrimSpace(o.Line)
+	o.Query = strings.TrimSpace(o.Query)
+	o.Chapter = strings.TrimSpace(o.Chapter)
+	return o
+}
+
+func (t *toolbox) readOutline(in outlineArgs) outcome {
 	p, err := t.store.Plan()
 	if err != nil {
 		return failed("大纲文件读不出来，暂时不能查阅。")
@@ -172,6 +186,19 @@ func (t *toolbox) readOutline(in input) outcome {
 		groups = append(groups, g)
 	}
 	return outcome{text: outlinePage(head, groups, in.From)}
+}
+
+func readOutlineLabel(r *labelReader, in outlineArgs) string {
+	chapter := r.named(in.Chapter)
+	switch {
+	case in.Line != "":
+		return "查了大纲「" + in.Line + "」这条线"
+	case chapter != "":
+		return "查了大纲「" + chapter + "」的卡片"
+	case in.Query != "":
+		return "查了大纲「" + in.Query + "」"
+	}
+	return "查了大纲"
 }
 
 // outlinePage shares one page limit across a volume's chapters.

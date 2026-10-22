@@ -157,7 +157,7 @@ Status: proposed
   - 摘要的几节：`workspace/events.go` 的 `DigestSections` 按 `## ` 分段，保留标题前的文字并修剪标题、正文两端；摘要是存下的 `RoleDigest` 事件，读取放在 `workspace`，让 `desk` 无须引用 `discussion`。四个标题由 `discussion` 的提示词要求，分段器不列标题；
   - 「服务/模型」的拆法：`workspace/types.go` 的 `ModelRef` 与 `ParseModelRef` 按第一个 `/` 划分服务和完整模型 ID。`model/pricing.go` 的 `PriceID` 为回复估价取模型 ID 的最后一段，`desk.replyLabel` 为显示取最后一段，存储保留完整名字。
 - `Preloaded` 直接给出预加载了哪几项，`desk` 不再自己从章节树推。端口的 `Preload` 给 token 数、本章卡片数、前章是否整章带上，以及纲的来源（各卷或所在卷各章，空纲也保留来源，供对话框说「等」）；`discussion.fixedOf` 边加边记，`ai` 只把 `InVolume` 映射成端口种类。`draftCards` 在 `openDraft` 独立数卡片，预加载失败也能决定标题。`keepPen` 比较 `desk.penKey` 的指针，nil 表示没有可比的笔。
-- 讨论工具共用的 16 个字段的参数结构，拆成每个工具一个；工具表只记名字、参数格式和处理函数。
+- 讨论工具共用的 16 个字段的参数结构，拆成每个工具一个，`search_book` 和 `search_talks` 共用 `searchArgs`；工具表每项记名字、说明、参数格式、处理函数和标签，`note_setting` 的参数格式由 `noteSchema(w)` 用作品的分类生成。
 - AI 开关只存一份。
 
 ### 第 6 批：`desk` 的内部状态（动手前先把这一批单独写成提案，作者审过再做）

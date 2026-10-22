@@ -33,17 +33,17 @@ func TestATalkTellsAndNotesHowTheSettingChanges(t *testing.T) {
 	}
 	box := &toolbox{store: e.Store, session: session, turn: ok.ID, model: inference.Model{Name: "deepseek/deepseek-flash"}}
 	for _, c := range []struct {
-		in   input
+		in   noteArgs
 		want string // in the refusal; empty when it is noted
 	}{
-		{input{Op: "change", Entry: 1, Chapter: "第三章", Place: "body", Text: "林晚没了左手，用右手干活。", Sources: []string{"从第三章起她没了左手"}}, ""},
-		{input{Op: "change", Entry: 1, Chapter: "第九章", Place: "open", Text: "x", Sources: []string{"那她以后要用右手干活了"}}, "没有叫「第九章」的章"},
-		{input{Op: "change", Entry: 1, Place: "open", Text: "x", Sources: []string{"那她以后要用右手干活了"}}, "change 要写从哪一章起"},
-		{input{Op: "change", Entry: 1, Chapter: "第二卷", Place: "body", Text: "x", Sources: []string{"那她以后要用右手干活了"}}, "author_said"},
-		{input{Op: "change", Entry: 1, Chapter: "第二卷", Place: "dropped", Text: "x", Sources: []string{"那她以后要用右手干活了"}}, "place（body 或 open）"},
-		{input{Op: "change", Entry: 1, Chapter: "第二卷", Place: "open", Text: "x", Names: []string{"林晚"}, Sources: []string{"那她以后要用右手干活了"}}, "change 不带 names"},
-		{input{Op: "change", Entry: 1, Chapter: "第二卷", Place: "open", Text: "林晚学会了用右手修灯。", Sources: []string{"那她以后要用右手干活了"}}, ""},
-		{input{Op: "change", Entry: 1, Chapter: "第三章", Place: "body", Text: "林晚没了左手。", Sources: []string{"对，用右手"}}, ""},
+		{noteArgs{Op: "change", Entry: 1, Chapter: "第三章", Place: "body", Text: "林晚没了左手，用右手干活。", Sources: []string{"从第三章起她没了左手"}}, ""},
+		{noteArgs{Op: "change", Entry: 1, Chapter: "第九章", Place: "open", Text: "x", Sources: []string{"那她以后要用右手干活了"}}, "没有叫「第九章」的章"},
+		{noteArgs{Op: "change", Entry: 1, Place: "open", Text: "x", Sources: []string{"那她以后要用右手干活了"}}, "change 要写从哪一章起"},
+		{noteArgs{Op: "change", Entry: 1, Chapter: "第二卷", Place: "body", Text: "x", Sources: []string{"那她以后要用右手干活了"}}, "author_said"},
+		{noteArgs{Op: "change", Entry: 1, Chapter: "第二卷", Place: "dropped", Text: "x", Sources: []string{"那她以后要用右手干活了"}}, "place（body 或 open）"},
+		{noteArgs{Op: "change", Entry: 1, Chapter: "第二卷", Place: "open", Text: "x", Names: []string{"林晚"}, Sources: []string{"那她以后要用右手干活了"}}, "change 不带 names"},
+		{noteArgs{Op: "change", Entry: 1, Chapter: "第二卷", Place: "open", Text: "林晚学会了用右手修灯。", Sources: []string{"那她以后要用右手干活了"}}, ""},
+		{noteArgs{Op: "change", Entry: 1, Chapter: "第三章", Place: "body", Text: "林晚没了左手。", Sources: []string{"对，用右手"}}, ""},
 	} {
 		out := box.note(c.in)
 		if c.want == "" && out.failed || c.want != "" && (!out.failed || !strings.Contains(out.text, c.want)) {
@@ -77,7 +77,7 @@ func TestATalkTellsAndNotesHowTheSettingChanges(t *testing.T) {
 		t.Fatal(index)
 	}
 	for _, q := range []string{"林晚", "右手修灯"} {
-		if out := box.lookUp(input{Query: q}); !strings.Contains(out.text, "[1]") || !strings.Contains(out.text, "\n  「第三章：停电」起：林晚没了左手。") {
+		if out := box.lookUp(lookUpArgs{Query: q}); !strings.Contains(out.text, "[1]") || !strings.Contains(out.text, "\n  「第三章：停电」起：林晚没了左手。") {
 			t.Fatalf("%s: %s", q, out.text)
 		}
 	}

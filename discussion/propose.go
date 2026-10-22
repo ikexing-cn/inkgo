@@ -1,7 +1,6 @@
 package discussion
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"unicode/utf8"
@@ -16,18 +15,6 @@ import (
 // goes in only when the author takes it.
 const toolPropose = workspace.ProposeTool
 
-// proposeTool is the tool's description and input. The input lists where
-// before what: written in that order, the change shows in its place while
-// its text streams.
-var proposeTool = model.Tool{Name: toolPropose,
-	Description: "在正文里提议一处修改，显示在那一章里，作者采纳了才写进正文。一次提议一处。参数按 chapter、at、quote、text 的次序写。",
-	Schema: json.RawMessage(`{"type":"object","properties":{` +
-		`"chapter":{"type":"string","description":"改哪一章，章名和搜全书结果里写的一样"},` +
-		`"at":{"type":"string","enum":["replace","after","end","all"],"description":"replace 换掉 quote 那段原文；after 接在 quote 之后，在同一段里接着写，text 以换行开头就另起一段；end 接在章末；all 换掉全章"},` +
-		`"quote":{"type":"string","description":"at 是 replace 或 after 时，逐字复制那一章里的原文，在那一章里只出现一次"},` +
-		`"text":{"type":"string","description":"新写的正文，一段一行"}` +
-		`},"required":["chapter","at","text"]}`)}
-
 // atNames say where a proposal goes, as the model is told and the author
 // shown.
 var atNames = map[string]string{
@@ -37,11 +24,26 @@ var atNames = map[string]string{
 	workspace.ProposeAll:     "换掉全章",
 }
 
+// proposeArgs are the arguments of propose_edit. They list where before
+// what: written in that order, the change shows in its place while its text
+// streams.
+type proposeArgs struct {
+	Chapter string `json:"chapter"`
+	At      string `json:"at"`
+	Quote   string `json:"quote"`
+	Text    string `json:"text"`
+}
+
+func (p proposeArgs) trim() proposeArgs {
+	p.Chapter = strings.TrimSpace(p.Chapter)
+	return p
+}
+
 // propose finds the place of a change the model proposes: the chapter, and
 // in it the words the change replaces or follows, which must be there
 // once. Found, the change shows in the chapter until the author takes it
 // or not.
-func (t *toolbox) propose(in input) outcome {
+func (t *toolbox) propose(in proposeArgs) outcome {
 	b, err := t.book()
 	if err != nil {
 		return failed("读不出章节：%v", err)
@@ -54,6 +56,10 @@ func (t *toolbox) propose(in input) outcome {
 		return failed("text 要写新的正文")
 	}
 	return outcome{text: "已在「" + p.Title + "」的正文里显示，等作者决定；作者采纳或放弃了，下次说话时会告诉你。", proposal: &p}
+}
+
+func proposeLabel(r *labelReader, in proposeArgs) string {
+	return "提议修改「" + r.named(in.Chapter) + "」"
 }
 
 // place finds where a change of the prose goes: in the chapter named, at,

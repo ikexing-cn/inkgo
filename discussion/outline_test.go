@@ -130,7 +130,7 @@ func TestReadOutline(t *testing.T) {
 		t.Fatalf("outline changed: %v", err)
 	}
 	for _, c := range p.Cards {
-		if c.ID != "" && strings.Contains(box.readOutline(input{}).text, c.ID) {
+		if c.ID != "" && strings.Contains(box.readOutline(outlineArgs{}).text, c.ID) {
 			t.Fatal("exposed a card ID")
 		}
 	}
@@ -140,18 +140,18 @@ func TestReadOutlinePagesAndFailures(t *testing.T) {
 	e, _ := setup(t)
 	_, one, two, _ := shelf(t, e)
 	box := &toolbox{store: e.Store}
-	if out := box.readOutline(input{}); out.failed || !strings.Contains(out.text, "大纲是空的。") {
+	if out := box.readOutline(outlineArgs{}); out.failed || !strings.Contains(out.text, "大纲是空的。") {
 		t.Fatal(out)
 	}
-	if out := box.readOutline(input{Line: "小祥"}); !out.failed || !strings.Contains(out.text, "大纲还没有情节线") {
+	if out := box.readOutline(outlineArgs{Line: "小祥"}); !out.failed || !strings.Contains(out.text, "大纲还没有情节线") {
 		t.Fatal(out)
 	}
-	empty := box.readOutline(input{Chapter: "第一卷"})
+	empty := box.readOutline(outlineArgs{Chapter: "第一卷"})
 	if empty.failed || !strings.HasPrefix(empty.text, "「第一卷」卷纲：\n秋天，旧城。\n这一卷没有卡片。\n") ||
 		!strings.Contains(empty.text, "「第一章」章纲：\n她回到旧城。\n这一章没有卡片。") {
 		t.Fatalf("a volume with empty chapters lacks its empty notice: %+v", empty)
 	}
-	if out := box.readOutline(input{Chapter: "第一卷", From: 1}); out.failed || out.text != "「第一卷」卷纲：\n秋天，旧城。\n这一卷没有卡片。" {
+	if out := box.readOutline(outlineArgs{Chapter: "第一卷", From: 1}); out.failed || out.text != "「第一卷」卷纲：\n秋天，旧城。\n这一卷没有卡片。" {
 		t.Fatalf("empty chapters repeated past the first page: %+v", out)
 	}
 	p := workspace.Plan{}
@@ -165,7 +165,7 @@ func TestReadOutlinePagesAndFailures(t *testing.T) {
 	p.Cards[0].About = strings.Repeat("长", 201) + "\n结尾"
 	before := writePlan(t, e.Store, p)
 	for _, chapter := range []string{"", "第一卷", "第二章"} {
-		out := box.readOutline(input{Chapter: chapter})
+		out := box.readOutline(outlineArgs{Chapter: chapter})
 		count := 0
 		for _, line := range strings.Split(out.text, "\n") {
 			if strings.HasPrefix(line, "#") {
@@ -183,13 +183,13 @@ func TestReadOutlinePagesAndFailures(t *testing.T) {
 			t.Fatal(out.text)
 		}
 	}
-	all := box.readOutline(input{}).text
-	firstVolumePage := box.readOutline(input{Chapter: "第一卷"})
+	all := box.readOutline(outlineArgs{}).text
+	firstVolumePage := box.readOutline(outlineArgs{Chapter: "第一卷"})
 	if firstVolumePage.failed || !strings.Contains(firstVolumePage.text, "「第三章」章纲：\n（没有章纲）\n这一章没有卡片。") ||
 		strings.Contains(firstVolumePage.text, "这一卷没有卡片。") {
 		t.Fatalf("the first volume page lost its empty chapter: %+v", firstVolumePage)
 	}
-	nextVolumePage := box.readOutline(input{Chapter: "第一卷", From: maxCards})
+	nextVolumePage := box.readOutline(outlineArgs{Chapter: "第一卷", From: maxCards})
 	if nextVolumePage.failed || strings.Contains(nextVolumePage.text, "「第三章」") || strings.Contains(nextVolumePage.text, "这一章没有卡片。") ||
 		!strings.Contains(nextVolumePage.text, "#203｜") {
 		t.Fatalf("empty chapters repeated on the next volume page: %+v", nextVolumePage)
@@ -197,14 +197,14 @@ func TestReadOutlinePagesAndFailures(t *testing.T) {
 	if !strings.Contains(all, "说明："+strings.Repeat("长", 200)+"…") || strings.Contains(all, "结尾") {
 		t.Fatal("about was not shortened")
 	}
-	page := box.readOutline(input{From: maxCards}).text
+	page := box.readOutline(outlineArgs{From: maxCards}).text
 	if !strings.Contains(page, "#201｜") || !strings.Contains(page, "#203｜") || strings.Contains(page, "#200｜") || strings.Contains(page, "要看后面的") {
 		t.Fatal(page)
 	}
-	if got := box.readOutline(input{From: -5}).text; got != all {
+	if got := box.readOutline(outlineArgs{From: -5}).text; got != all {
 		t.Fatal("negative from did not start at zero")
 	}
-	if got := box.readOutline(input{From: 999}).text; !strings.Contains(got, "后面没有卡片了。") || strings.Contains(got, "第 204–203") {
+	if got := box.readOutline(outlineArgs{From: 999}).text; !strings.Contains(got, "后面没有卡片了。") || strings.Contains(got, "第 204–203") {
 		t.Fatal(got)
 	}
 	path := filepath.Join(e.Store.Root(), "outline.json")
@@ -294,7 +294,7 @@ func TestReadOutlineIgnoresDamagedMarks(t *testing.T) {
 	}
 	box := toolbox{store: e.Store}
 	for _, chapter := range []string{"第一卷", "第一章"} {
-		out := box.readOutline(input{Chapter: chapter})
+		out := box.readOutline(outlineArgs{Chapter: chapter})
 		if out.failed || !strings.Contains(out.text, "她回到旧城。") {
 			t.Fatalf("outline-only read = %+v", out)
 		}
@@ -312,7 +312,7 @@ func TestReadOutlineBatchFailureNamesRequestedNode(t *testing.T) {
 		t.Fatal(err)
 	}
 	box := toolbox{store: e.Store}
-	out := box.readOutline(input{Chapter: "第一卷"})
+	out := box.readOutline(outlineArgs{Chapter: "第一卷"})
 	if !out.failed || out.text != "读不出「第一卷」的纲。" {
 		t.Fatalf("outline batch failure = %+v", out)
 	}

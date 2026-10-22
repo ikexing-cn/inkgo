@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -34,7 +35,7 @@ func BenchmarkSearchBook(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for range b.N {
-		if got := box.searchBook(input{Query: "林晚"}); got.failed || !strings.Contains(got.text, "共 100 处") {
+		if got := box.searchBook(searchArgs{Query: "林晚"}); got.failed || !strings.Contains(got.text, "共 100 处") {
 			b.Fatalf("search: %+v", got)
 		}
 	}
@@ -235,26 +236,26 @@ func TestNoteKeepsTheRules(t *testing.T) {
 		workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceOpen, Category: "规则", Text: "雨每年停一天"})
 	box := &toolbox{store: e.Store, session: session, turn: ok.ID, model: inference.Model{Name: "deepseek/deepseek-flash"}}
 	for _, c := range []struct {
-		in   input
+		in   noteArgs
 		want string // in the refusal; empty when it is noted
 	}{
-		{input{Op: "add", Place: "body", Category: "人物", Text: "她小时候在矿井里迷过路", Sources: []string{"她小时候在矿井里迷过路"}}, "author_said"},
-		{input{Op: "add", Place: "body", Category: "人物", Text: "她小时候在矿井里迷过路", Sources: []string{"她小时候在矿井里迷过路"}, AuthorSaid: "也许她小时候"}, "作者在这次讨论里说过的话"},
-		{input{Op: "add", Place: "open", Category: "人物", Text: "她怕水", Sources: []string{"她怕水"}}, "不是这次讨论里已经说过的话里逐字的原文"},
-		{input{Op: "add", Place: "open", Category: "魔法", Text: "雨不会停", Sources: []string{"雨不会停"}}, "没有「魔法」这个分类"},
-		{input{Op: "add", Place: "open", Category: "人物", Text: "主角怕黑", Names: []string{"晚晚"}, Sources: []string{"她怕黑"}}, "名字「晚晚」没有在条目或对话里出现过"},
-		{input{Op: "add", Place: "open", Category: "人物", Text: "林晚怕黑", Names: []string{"林晚"}, Sources: []string{"她怕黑"}}, "已经在编号 1 的条目里"},
-		{input{Op: "add", Place: "open", Category: "规则", Text: "雨不会停", Names: []string{"雨"}, Sources: []string{"雨不会停"}}, "只有人物、"},
-		{input{Op: "edit", Entry: 1, Text: "林晚是女主角"}, "author_said"},
-		{input{Op: "edit", Entry: 9, Text: "林晚是女主角"}, "没有编号 9"},
-		{input{Op: "edit", Entry: 1, Category: "人物", Text: "林晚是女主角", AuthorSaid: "矿井这个好，就这样"}, "edit 要有改好的 text，不带 place、category（换位置或分类用 move）。"},
-		{input{Op: "name", Entry: 1, Names: []string{"晚"}}, "原有名字 林晚 要原样排在前面"},
-		{input{Op: "move", Entry: 2, Place: "dropped"}, "author_said"},
-		{input{Op: "add", Place: "body", Category: "人物", Text: "她小时候在矿井里迷过路", Sources: []string{"她小时候在矿井里迷过路"}, AuthorSaid: "矿井这个好，就这样"}, ""},
-		{input{Op: "move", Entry: 2, Place: "dropped", AuthorSaid: "雨不会停"}, ""},
-		{input{Op: "add", Place: "body", Category: "规则", Text: "雨不会停", Sources: []string{"雨不会停"}}, ""},
-		{input{Op: "name", Entry: 1, Names: []string{"林晚", "主角"}}, ""},
-		{input{Op: "add", Place: "dropped", Category: "规则", Text: "雨会停", Sources: []string{"雨不会停"}, AuthorSaid: "雨不会停"}, ""},
+		{noteArgs{Op: "add", Place: "body", Category: "人物", Text: "她小时候在矿井里迷过路", Sources: []string{"她小时候在矿井里迷过路"}}, "author_said"},
+		{noteArgs{Op: "add", Place: "body", Category: "人物", Text: "她小时候在矿井里迷过路", Sources: []string{"她小时候在矿井里迷过路"}, AuthorSaid: "也许她小时候"}, "作者在这次讨论里说过的话"},
+		{noteArgs{Op: "add", Place: "open", Category: "人物", Text: "她怕水", Sources: []string{"她怕水"}}, "不是这次讨论里已经说过的话里逐字的原文"},
+		{noteArgs{Op: "add", Place: "open", Category: "魔法", Text: "雨不会停", Sources: []string{"雨不会停"}}, "没有「魔法」这个分类"},
+		{noteArgs{Op: "add", Place: "open", Category: "人物", Text: "主角怕黑", Names: []string{"晚晚"}, Sources: []string{"她怕黑"}}, "名字「晚晚」没有在条目或对话里出现过"},
+		{noteArgs{Op: "add", Place: "open", Category: "人物", Text: "林晚怕黑", Names: []string{"林晚"}, Sources: []string{"她怕黑"}}, "已经在编号 1 的条目里"},
+		{noteArgs{Op: "add", Place: "open", Category: "规则", Text: "雨不会停", Names: []string{"雨"}, Sources: []string{"雨不会停"}}, "只有人物、"},
+		{noteArgs{Op: "edit", Entry: 1, Text: "林晚是女主角"}, "author_said"},
+		{noteArgs{Op: "edit", Entry: 9, Text: "林晚是女主角"}, "没有编号 9"},
+		{noteArgs{Op: "edit", Entry: 1, Category: "人物", Text: "林晚是女主角", AuthorSaid: "矿井这个好，就这样"}, "edit 要有改好的 text，不带 place、category（换位置或分类用 move）。"},
+		{noteArgs{Op: "name", Entry: 1, Names: []string{"晚"}}, "原有名字 林晚 要原样排在前面"},
+		{noteArgs{Op: "move", Entry: 2, Place: "dropped"}, "author_said"},
+		{noteArgs{Op: "add", Place: "body", Category: "人物", Text: "她小时候在矿井里迷过路", Sources: []string{"她小时候在矿井里迷过路"}, AuthorSaid: "矿井这个好，就这样"}, ""},
+		{noteArgs{Op: "move", Entry: 2, Place: "dropped", AuthorSaid: "雨不会停"}, ""},
+		{noteArgs{Op: "add", Place: "body", Category: "规则", Text: "雨不会停", Sources: []string{"雨不会停"}}, ""},
+		{noteArgs{Op: "name", Entry: 1, Names: []string{"林晚", "主角"}}, ""},
+		{noteArgs{Op: "add", Place: "dropped", Category: "规则", Text: "雨会停", Sources: []string{"雨不会停"}, AuthorSaid: "雨不会停"}, ""},
 	} {
 		out := box.note(c.in)
 		if c.want == "" && out.failed || c.want != "" && (!out.failed || !strings.Contains(out.text, c.want)) {
@@ -379,7 +380,7 @@ func TestSearchBookIgnoresDamagedCompanions(t *testing.T) {
 				t.Fatal(err)
 			}
 			box := toolbox{store: e.Store}
-			out := box.searchBook(input{Query: "林晚"})
+			out := box.searchBook(searchArgs{Query: "林晚"})
 			if out.failed || out.text != "共 1 处，在「章节」。\n「章节」第 1 段：雨中的林晚" {
 				t.Fatalf("prose-only search = %+v", out)
 			}
@@ -404,7 +405,8 @@ func TestLabelsWithoutUnneededReads(t *testing.T) {
 		}
 	}
 	set := workspace.Setting{Entries: []workspace.Entry{{Text: "旧设定"}}}
-	if got := label(toolNote, input{Op: workspace.OpEdit, Entry: 1, Text: "新设定"}, set); got != "记下：改写「旧设定」为：新设定" {
+	r := &labelReader{set: set, hasSet: true}
+	if got := noteLabel(r, noteArgs{Op: workspace.OpEdit, Entry: 1, Text: "新设定"}); got != "记下：改写「旧设定」为：新设定" {
 		t.Fatal(got)
 	}
 }
@@ -422,7 +424,7 @@ func TestLookupResolvesOnlyDisplayedSources(t *testing.T) {
 		set.Entries = append(set.Entries, e)
 	}
 	var resolved []string
-	out := lookupSetting(input{Query: "林晚"}, set, book{tree: workspace.Tree{}}, "", func(session string) string {
+	out := lookupSetting("林晚", set, book{tree: workspace.Tree{}}, "", func(session string) string {
 		resolved = append(resolved, session)
 		return session
 	})
@@ -435,6 +437,49 @@ func TestLookupResolvesOnlyDisplayedSources(t *testing.T) {
 	for _, session := range resolved {
 		if strings.HasSuffix(session, "-3") || strings.HasPrefix(session, fmt.Sprintf("s%d-", maxHits-1)) || strings.HasPrefix(session, fmt.Sprintf("s%d-", maxHits)) {
 			t.Fatalf("read undisplayed source %s", session)
+		}
+	}
+}
+
+// Every tool's schema lists exactly the fields its argument type decodes,
+// so a schema and its type cannot drift apart.
+func TestToolSchemasMatchTheirArguments(t *testing.T) {
+	args := map[string]any{
+		toolSearchBook:  searchArgs{},
+		toolReadProse:   readProseArgs{},
+		toolLookUp:      lookUpArgs{},
+		toolSearchTalks: searchArgs{},
+		toolReadOutline: outlineArgs{},
+		toolNote:        noteArgs{},
+		toolPropose:     proposeArgs{},
+	}
+	if len(args) != len(toolTable) {
+		t.Fatalf("%d argument types for %d tools", len(args), len(toolTable))
+	}
+	for _, tl := range toolTable {
+		typ, ok := args[tl.name]
+		if !ok {
+			t.Fatalf("no argument type for %s", tl.name)
+		}
+		var schema struct {
+			Properties map[string]json.RawMessage `json:"properties"`
+		}
+		if err := json.Unmarshal(tl.schema(workspace.Work{}), &schema); err != nil {
+			t.Fatalf("%s schema: %v", tl.name, err)
+		}
+		var properties []string
+		for name := range schema.Properties {
+			properties = append(properties, name)
+		}
+		var fields []string
+		rt := reflect.TypeOf(typ)
+		for i := range rt.NumField() {
+			fields = append(fields, strings.Split(rt.Field(i).Tag.Get("json"), ",")[0])
+		}
+		slices.Sort(fields)
+		slices.Sort(properties)
+		if !slices.Equal(fields, properties) {
+			t.Errorf("%s: arguments %v, schema %v", tl.name, fields, properties)
 		}
 	}
 }

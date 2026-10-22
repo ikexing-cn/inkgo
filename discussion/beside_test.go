@@ -82,7 +82,7 @@ func TestNoteQuotesTheProseQuoted(t *testing.T) {
 		t.Fatal(err)
 	}
 	box := &toolbox{store: e.Store, session: session, turn: u.ID, model: inference.Model{Name: "deepseek/deepseek-flash"}}
-	if out := box.note(input{Op: "add", Place: "body", Category: "人物", Text: "她怕黑，从不在夜里出门", Sources: []string{"她从不在夜里出门", "这说明她怕黑"}}); out.failed {
+	if out := box.note(noteArgs{Op: "add", Place: "body", Category: "人物", Text: "她怕黑，从不在夜里出门", Sources: []string{"她从不在夜里出门", "这说明她怕黑"}}); out.failed {
 		t.Fatal(out.text)
 	}
 	src := setting(t, e).Entries[0].Sources

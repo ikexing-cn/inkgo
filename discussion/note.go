@@ -14,8 +14,25 @@ import (
 // placeLabels name the places of the setting as the panel does.
 var placeLabels = map[string]string{workspace.PlaceBody: "正文", workspace.PlaceOpen: "待确认", workspace.PlaceDropped: "已删除"}
 
+type noteArgs struct {
+	Op         string   `json:"op"`
+	Entry      int      `json:"entry"`
+	Chapter    string   `json:"chapter"`
+	Place      string   `json:"place"`
+	Category   string   `json:"category"`
+	Text       string   `json:"text"`
+	Names      []string `json:"names"`
+	Sources    []string `json:"sources"`
+	AuthorSaid string   `json:"author_said"`
+}
+
+func (n noteArgs) trim() noteArgs {
+	n.Chapter = strings.TrimSpace(n.Chapter)
+	return n
+}
+
 // describe says what a note does, in the words of the panel's history.
-func describe(in input, set workspace.Setting) string {
+func describe(in noteArgs, set workspace.Setting) string {
 	text := strings.TrimSpace(in.Text)
 	e, _ := set.EntryByNumber(in.Entry)
 	switch in.Op {
@@ -55,7 +72,7 @@ func describe(in input, set workspace.Setting) string {
 //     where one holds already takes its words.
 //
 // What breaks a rule is told to the model, which may try again.
-func (t *toolbox) note(in input) outcome {
+func (t *toolbox) note(in noteArgs) outcome {
 	set, err := t.store.Setting()
 	if err != nil {
 		return failed("读不出设定：%v", err)
@@ -248,4 +265,13 @@ func (t *toolbox) note(in input) outcome {
 		n = len(set.Entries) + 1
 	}
 	return outcome{text: fmt.Sprintf("已记下，编号 %d：%s", n, did), revision: r.ID}
+}
+
+func noteLabel(r *labelReader, in noteArgs) string {
+	in.Chapter = r.named(in.Chapter)
+	var set workspace.Setting
+	if in.Op == workspace.OpEdit || in.Op == workspace.OpMove {
+		set = r.setting()
+	}
+	return "记下：" + describe(in, set)
 }

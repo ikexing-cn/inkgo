@@ -36,8 +36,9 @@ Status: implemented
 - 发给讨论的设定，整份和目录都在每条前面写 `[n]`。目录开头那句改成「设定较多，这里只列目录：每条的编号、分类、名字和第一句。要看全文和出处，用 look_up_setting 查。」
 - 工具的说明和参数格式算进「规则」那一部分（`PartRules`），也算进规则的摘要值。工具改了，摘要值跟着变。
 - 搜全书用 `Store.Texts()` 批量读取正文，按章节树的顺序和名称列出结果；标记或纲损坏不挡正文搜索。
-- 工具标签一次准备所需数据，仅命名章节的参数需要读树；标签和记设定的描述从已有数据生成。
+- 一次回复的标签按各调用自己的参数生成；只有某个调用写了章节名时才读章节树，只有某个 note_setting 在改位置或分类时才读设定，各自最多读一次。
 - 查设定先筛选并排序，只为实际展示的来源读取讨论标题，同一次查询复用已读的标题。
+- 每个工具的参数类型、处理函数和标签放在一起：`search_book`、`read_prose`、`look_up_setting`、`search_talks` 在 `discussion/tools.go`，`read_outline` 在 `outline.go`，`note_setting` 在 `note.go`，`propose_edit` 在 `propose.go`；`tools.go` 的 `toolTable` 按名字、说明、参数格式、处理函数和标签列出每个工具，`tools(w)` 从它生成发给模型的列表。
 
 ### 记设定
 

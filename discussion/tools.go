@@ -35,40 +35,145 @@ const (
 	around   = 40    // runes shown on each side of a hit
 )
 
+// queryArg and fromArg are the arguments search_book and search_talks share.
+const (
+	queryArg = `"query":{"type":"string","description":"要找的词，越具体越好，比如人名、地名、物件"}`
+	fromArg  = `"from":{"type":"integer","minimum":0,"description":"跳过前面多少处，接着上次列到的地方往下看"}`
+)
+
+// tool is one of a talk's tools: what the model is told, how a call runs,
+// and how the call reads to the author.
+type tool struct {
+	name, description string
+	schema            func(workspace.Work) json.RawMessage
+	run               func(*toolbox, model.Call) outcome
+	label             func(*labelReader, model.Call) string
+}
+
+// toolTable is every tool of a talk, in the order the model is given them.
+var toolTable = []tool{
+	{
+		name:        toolSearchBook,
+		description: "按词搜全书的正文，返回每处所在的章、段号和前后的文字。",
+		schema:      fixedSchema(`{"type":"object","properties":{` + queryArg + `,` + fromArg + `},"required":["query"]}`),
+		run:         runTool((*toolbox).searchBook),
+		label:       labelTool(searchBookLabel),
+	},
+	{
+		name:        toolReadProse,
+		description: "读某一章的正文，段号从 1 起；不给段号就从头读。一次读到的字数有上限，读不完会说从哪里接着读。",
+		schema:      fixedSchema(`{"type":"object","properties":{"chapter":{"type":"string","description":"章名，和搜全书结果里写的一样"},"from":{"type":"integer","minimum":1},"to":{"type":"integer","minimum":1}},"required":["chapter"]}`),
+		run:         runTool((*toolbox).readProse),
+		label:       labelTool(readProseLabel),
+	},
+	{
+		name:        toolLookUp,
+		description: "按名字或词查设定，返回条目的编号、位置、分类、名字、全文和出处。",
+		schema:      fixedSchema(`{"type":"object","properties":{` + queryArg + `},"required":["query"]}`),
+		run:         runTool((*toolbox).lookUp),
+		label:       labelTool(lookUpLabel),
+	},
+	{
+		name:        toolSearchTalks,
+		description: "按词搜这本书所有讨论的原文，包括这一次的，返回每处在哪次讨论、是谁说的和前后的文字。",
+		schema:      fixedSchema(`{"type":"object","properties":{` + queryArg + `,` + fromArg + `},"required":["query"]}`),
+		run:         runTool((*toolbox).searchTalks),
+		label:       labelTool(searchTalksLabel),
+	},
+	{
+		name:        toolReadOutline,
+		description: "读作者在大纲里排的卡片和情节线，卡片按故事里发生的先后排，可能和章节先后不同。line 按情节线名查，chapter 按章名或卷名查并附对应的纲，query 按一个词搜发生了什么、说明和故事中的时间；都不给则先给概览再列全部卡片。多个筛选参数按 line > chapter > query 只用第一个。一次最多 200 张，from 跳过前面多少张接着查。查卷时按卷里各章的先后分组，各章内仍按故事先后；#序号始终是全书故事里的位置。",
+		schema:      fixedSchema(`{"type":"object","properties":{"line":{"type":"string","description":"情节线名"},"chapter":{"type":"string","description":"章名或卷名，和搜全书结果里写的一样"},` + queryArg + `,` + fromArg + `}}`),
+		run:         runTool((*toolbox).readOutline),
+		label:       labelTool(readOutlineLabel),
+	},
+	{
+		name:        toolNote,
+		description: "把这次讨论里定下的东西记进设定文档，一次一个操作：add 新增，edit 改写，move 换位置或分类，name 补名字，change 记一条从某一章起的变化。规则见系统提示里的「记设定」。",
+		schema:      noteSchema,
+		run:         runTool((*toolbox).note),
+		label:       labelTool(noteLabel),
+	},
+	{
+		name:        toolPropose,
+		description: "在正文里提议一处修改，显示在那一章里，作者采纳了才写进正文。一次提议一处。参数按 chapter、at、quote、text 的次序写。",
+		schema:      fixedSchema(`{"type":"object","properties":{"chapter":{"type":"string","description":"改哪一章，章名和搜全书结果里写的一样"},"at":{"type":"string","enum":["replace","after","end","all"],"description":"replace 换掉 quote 那段原文；after 接在 quote 之后，在同一段里接着写，text 以换行开头就另起一段；end 接在章末；all 换掉全章"},"quote":{"type":"string","description":"at 是 replace 或 after 时，逐字复制那一章里的原文，在那一章里只出现一次"},"text":{"type":"string","description":"新写的正文，一段一行"}},"required":["chapter","at","text"]}`),
+		run:         runTool((*toolbox).propose),
+		label:       labelTool(proposeLabel),
+	},
+}
+
+// fixedSchema is schema for every work.
+func fixedSchema(schema string) func(workspace.Work) json.RawMessage {
+	return func(workspace.Work) json.RawMessage { return json.RawMessage(schema) }
+}
+
 // tools are the tools of a talk of w: note_setting takes w's categories.
 func tools(w workspace.Work) []model.Tool {
+	out := make([]model.Tool, len(toolTable))
+	for i, tl := range toolTable {
+		out[i] = model.Tool{Name: tl.name, Description: tl.description, Schema: tl.schema(w)}
+	}
+	return out
+}
+
+// noteSchema is note_setting's schema, its categories the work's.
+func noteSchema(w workspace.Work) json.RawMessage {
 	var categories []string
 	for _, c := range w.Categories {
 		categories = append(categories, c.Name)
 	}
 	cats, _ := json.Marshal(categories)
-	query := `"query":{"type":"string","description":"要找的词，越具体越好，比如人名、地名、物件"}`
-	from := `"from":{"type":"integer","minimum":0,"description":"跳过前面多少处，接着上次列到的地方往下看"}`
-	return []model.Tool{
-		{Name: toolSearchBook, Description: "按词搜全书的正文，返回每处所在的章、段号和前后的文字。",
-			Schema: json.RawMessage(`{"type":"object","properties":{` + query + `,` + from + `},"required":["query"]}`)},
-		{Name: toolReadProse, Description: "读某一章的正文，段号从 1 起；不给段号就从头读。一次读到的字数有上限，读不完会说从哪里接着读。",
-			Schema: json.RawMessage(`{"type":"object","properties":{"chapter":{"type":"string","description":"章名，和搜全书结果里写的一样"},"from":{"type":"integer","minimum":1},"to":{"type":"integer","minimum":1}},"required":["chapter"]}`)},
-		{Name: toolLookUp, Description: "按名字或词查设定，返回条目的编号、位置、分类、名字、全文和出处。",
-			Schema: json.RawMessage(`{"type":"object","properties":{` + query + `},"required":["query"]}`)},
-		{Name: toolSearchTalks, Description: "按词搜这本书所有讨论的原文，包括这一次的，返回每处在哪次讨论、是谁说的和前后的文字。",
-			Schema: json.RawMessage(`{"type":"object","properties":{` + query + `,` + from + `},"required":["query"]}`)},
-		{Name: toolReadOutline, Description: "读作者在大纲里排的卡片和情节线，卡片按故事里发生的先后排，可能和章节先后不同。line 按情节线名查，chapter 按章名或卷名查并附对应的纲，query 按一个词搜发生了什么、说明和故事中的时间；都不给则先给概览再列全部卡片。多个筛选参数按 line > chapter > query 只用第一个。一次最多 200 张，from 跳过前面多少张接着查。查卷时按卷里各章的先后分组，各章内仍按故事先后；#序号始终是全书故事里的位置。",
-			Schema: json.RawMessage(`{"type":"object","properties":{"line":{"type":"string","description":"情节线名"},"chapter":{"type":"string","description":"章名或卷名，和搜全书结果里写的一样"},` + query + `,` + from + `}}`)},
-		{Name: toolNote, Description: "把这次讨论里定下的东西记进设定文档，一次一个操作：add 新增，edit 改写，move 换位置或分类，name 补名字，change 记一条从某一章起的变化。规则见系统提示里的「记设定」。",
-			Schema: json.RawMessage(`{"type":"object","properties":{` +
-				`"op":{"type":"string","enum":["add","edit","move","name","change"]},` +
-				`"entry":{"type":"integer","minimum":1,"description":"edit、move、name、change 改的条目的编号，即设定里方括号中的数字"},` +
-				`"chapter":{"type":"string","description":"change 从哪一章（或哪一卷）起，章名和搜全书结果里写的一样"},` +
-				`"place":{"type":"string","enum":["body","open","dropped"],"description":"body 是设定正文，open 是悬而未决，dropped 是已放弃"},` +
-				`"category":{"type":"string","enum":` + string(cats) + `},` +
-				`"text":{"type":"string","description":"一句能独立成立的设定；change 写从那一章起这一条的全文"},` +
-				`"names":{"type":"array","items":{"type":"string"},"description":"条目说的专有名词，第一个是正式名称"},` +
-				`"sources":{"type":"array","items":{"type":"string"},"description":"这条出自的原话，逐字复制自本次讨论里已经说过的话"},` +
-				`"author_said":{"type":"string","description":"作者拍板、接受、拒绝或改口的原话，逐字复制"}` +
-				`},"required":["op"]}`)},
-		proposeTool,
+	return json.RawMessage(`{"type":"object","properties":{` +
+		`"op":{"type":"string","enum":["add","edit","move","name","change"]},` +
+		`"entry":{"type":"integer","minimum":1,"description":"edit、move、name、change 改的条目的编号，即设定里方括号中的数字"},` +
+		`"chapter":{"type":"string","description":"change 从哪一章（或哪一卷）起，章名和搜全书结果里写的一样"},` +
+		`"place":{"type":"string","enum":["body","open","dropped"],"description":"body 是设定正文，open 是悬而未决，dropped 是已放弃"},` +
+		`"category":{"type":"string","enum":` + string(cats) + `},` +
+		`"text":{"type":"string","description":"一句能独立成立的设定；change 写从那一章起这一条的全文"},` +
+		`"names":{"type":"array","items":{"type":"string"},"description":"条目说的专有名词，第一个是正式名称"},` +
+		`"sources":{"type":"array","items":{"type":"string"},"description":"这条出自的原话，逐字复制自本次讨论里已经说过的话"},` +
+		`"author_said":{"type":"string","description":"作者拍板、接受、拒绝或改口的原话，逐字复制"}` +
+		`},"required":["op"]}`)
+}
+
+// arguments is a tool's own arguments, trimmed as the talk reads them.
+type arguments[T any] interface {
+	trim() T
+}
+
+// runTool adapts a tool's typed handler: it decodes the call into T and,
+// what does not decode, tells the model, which may try again.
+func runTool[T arguments[T]](run func(*toolbox, T) outcome) func(*toolbox, model.Call) outcome {
+	return func(t *toolbox, c model.Call) outcome {
+		var in T
+		err := json.Unmarshal(c.Input, &in)
+		in = in.trim()
+		if err != nil {
+			return failed("参数不是约定的 JSON：%v", err)
+		}
+		return run(t, in)
 	}
+}
+
+// labelTool adapts a tool's typed label; a call that does not decode is
+// read as far as it came, since labels ignore that error.
+func labelTool[T arguments[T]](label func(*labelReader, T) string) func(*labelReader, model.Call) string {
+	return func(r *labelReader, c model.Call) string {
+		var in T
+		json.Unmarshal(c.Input, &in)
+		return label(r, in.trim())
+	}
+}
+
+// findTool is the tool named, if there is one.
+func findTool(name string) (tool, bool) {
+	for _, tl := range toolTable {
+		if tl.name == name {
+			return tl, true
+		}
+	}
+	return tool{}, false
 }
 
 // toolbox runs the calls of a reply to the author's words turn in session.
@@ -95,57 +200,13 @@ func failed(format string, v ...any) outcome {
 	return outcome{text: fmt.Sprintf(format, v...), failed: true}
 }
 
-// input is what the tools take, all of them together.
-type input struct {
-	Line       string   `json:"line"`
-	Query      string   `json:"query"`
-	From       int      `json:"from"`
-	To         int      `json:"to"`
-	Chapter    string   `json:"chapter"`
-	Op         string   `json:"op"`
-	Entry      int      `json:"entry"`
-	Place      string   `json:"place"`
-	Category   string   `json:"category"`
-	Text       string   `json:"text"`
-	At         string   `json:"at"`
-	Quote      string   `json:"quote"`
-	Names      []string `json:"names"`
-	Sources    []string `json:"sources"`
-	AuthorSaid string   `json:"author_said"`
-}
-
-func read(c model.Call) (input, error) {
-	var in input
-	err := json.Unmarshal(c.Input, &in)
-	in.Query = strings.TrimSpace(in.Query)
-	in.Line = strings.TrimSpace(in.Line)
-	in.Chapter = strings.TrimSpace(in.Chapter)
-	return in, err
-}
-
 // run runs c; what fails is told to the model, which may try again.
 func (t *toolbox) run(c model.Call) outcome {
-	in, err := read(c)
-	if err != nil {
-		return failed("参数不是约定的 JSON：%v", err)
+	tl, ok := findTool(c.Name)
+	if !ok {
+		return failed("没有叫 %s 的工具", c.Name)
 	}
-	switch c.Name {
-	case toolReadOutline:
-		return t.readOutline(in)
-	case toolSearchBook:
-		return t.searchBook(in)
-	case toolReadProse:
-		return t.readProse(in)
-	case toolLookUp:
-		return t.lookUp(in)
-	case toolSearchTalks:
-		return t.searchTalks(in)
-	case toolNote:
-		return t.note(in)
-	case toolPropose:
-		return t.propose(in)
-	}
-	return failed("没有叫 %s 的工具", c.Name)
+	return tl.run(t, c)
 }
 
 // label says what c does in the author's words, as the reply shows it,
@@ -154,69 +215,53 @@ func (t *toolbox) label(c model.Call) string {
 	return t.labels([]model.Call{c})[0].Label
 }
 
+// labels says what calls do in the author's words, as the reply shows
+// them, naming each chapter as the book does.
 func (t *toolbox) labels(calls []model.Call) []workspace.Call {
-	inputs := make([]input, len(calls))
-	needBook, needSetting := false, false
-	for i, c := range calls {
-		in, _ := read(c)
-		inputs[i] = in
-		needBook = needBook || in.Chapter != ""
-		needSetting = needSetting || c.Name == toolNote && (in.Op == workspace.OpEdit || in.Op == workspace.OpMove)
-	}
-	var b book
-	if needBook {
-		b, _ = t.book()
-	}
-	var set workspace.Setting
-	if needSetting {
-		set, _ = t.store.Setting()
-	}
+	r := &labelReader{t: t}
 	out := make([]workspace.Call, len(calls))
 	for i, c := range calls {
-		in := inputs[i]
-		if b.name != nil {
-			in.Chapter = b.named(in.Chapter)
+		label := c.Name
+		if tl, ok := findTool(c.Name); ok {
+			label = tl.label(r, c)
 		}
-		out[i] = workspace.Call{ID: c.ID, Name: c.Name, Input: c.Input, Label: label(c.Name, in, set)}
+		out[i] = workspace.Call{ID: c.ID, Name: c.Name, Input: c.Input, Label: label}
 	}
 	return out
 }
 
-func label(name string, in input, set workspace.Setting) string {
-	switch name {
-	case toolReadOutline:
-		switch {
-		case in.Line != "":
-			return "查了大纲「" + in.Line + "」这条线"
-		case in.Chapter != "":
-			return "查了大纲「" + in.Chapter + "」的卡片"
-		case in.Query != "":
-			return "查了大纲「" + in.Query + "」"
-		}
-		return "查了大纲"
-	case toolSearchBook:
-		return "搜了全书「" + in.Query + "」"
-	case toolReadProse:
-		switch {
-		case in.From > 0 && in.To >= in.From:
-			if in.To == in.From {
-				return fmt.Sprintf("读了「%s」第 %d 段", in.Chapter, in.From)
-			}
-			return fmt.Sprintf("读了「%s」第 %d–%d 段", in.Chapter, in.From, in.To)
-		case in.From > 1:
-			return fmt.Sprintf("读了「%s」第 %d 段起", in.Chapter, in.From)
-		}
-		return "读了「" + in.Chapter + "」"
-	case toolLookUp:
-		return "查了设定「" + in.Query + "」"
-	case toolSearchTalks:
-		return "搜了讨论「" + in.Query + "」"
-	case toolNote:
-		return "记下：" + describe(in, set)
-	case toolPropose:
-		return "提议修改「" + in.Chapter + "」"
+// labelReader reads what labels name at most once, and only when asked:
+// the book for a chapter, the setting for a note that edits or moves.
+type labelReader struct {
+	t       *toolbox
+	book    book
+	hasBook bool
+	set     workspace.Setting
+	hasSet  bool
+}
+
+// named is the name of the document the model names, or what it said
+// where that finds none.
+func (r *labelReader) named(chapter string) string {
+	if chapter == "" {
+		return ""
 	}
-	return name
+	if !r.hasBook {
+		r.hasBook = true
+		r.book, _ = r.t.book()
+	}
+	if r.book.name == nil {
+		return chapter
+	}
+	return r.book.named(chapter)
+}
+
+func (r *labelReader) setting() workspace.Setting {
+	if !r.hasSet {
+		r.hasSet = true
+		r.set, _ = r.t.store.Setting()
+	}
+	return r.set
 }
 
 // quoted is names each in 「」.
@@ -422,7 +467,18 @@ func hits(found []hit, from int, none string) string {
 	return strings.Join(lines, "\n")
 }
 
-func (t *toolbox) searchBook(in input) outcome {
+// searchArgs are the arguments of search_book and search_talks.
+type searchArgs struct {
+	Query string `json:"query"`
+	From  int    `json:"from"`
+}
+
+func (s searchArgs) trim() searchArgs {
+	s.Query = strings.TrimSpace(s.Query)
+	return s
+}
+
+func (t *toolbox) searchBook(in searchArgs) outcome {
 	if in.Query == "" {
 		return failed("query 不能为空")
 	}
@@ -445,7 +501,22 @@ func (t *toolbox) searchBook(in input) outcome {
 	return outcome{text: hits(found, in.From, "全书的正文里没有「"+in.Query+"」。")}
 }
 
-func (t *toolbox) readProse(in input) outcome {
+func searchBookLabel(_ *labelReader, in searchArgs) string {
+	return "搜了全书「" + in.Query + "」"
+}
+
+type readProseArgs struct {
+	Chapter string `json:"chapter"`
+	From    int    `json:"from"`
+	To      int    `json:"to"`
+}
+
+func (r readProseArgs) trim() readProseArgs {
+	r.Chapter = strings.TrimSpace(r.Chapter)
+	return r
+}
+
+func (t *toolbox) readProse(in readProseArgs) outcome {
 	b, err := t.book()
 	if err != nil {
 		return failed("读不出章节：%v", err)
@@ -486,10 +557,33 @@ func (t *toolbox) readProse(in input) outcome {
 	return outcome{text: strings.Join(lines, "\n")}
 }
 
+func readProseLabel(r *labelReader, in readProseArgs) string {
+	in.Chapter = r.named(in.Chapter)
+	switch {
+	case in.From > 0 && in.To >= in.From:
+		if in.To == in.From {
+			return fmt.Sprintf("读了「%s」第 %d 段", in.Chapter, in.From)
+		}
+		return fmt.Sprintf("读了「%s」第 %d–%d 段", in.Chapter, in.From, in.To)
+	case in.From > 1:
+		return fmt.Sprintf("读了「%s」第 %d 段起", in.Chapter, in.From)
+	}
+	return "读了「" + in.Chapter + "」"
+}
+
 // placeNames name the places of the setting as the talk's rules do.
 var placeNames = map[string]string{workspace.PlaceBody: "设定正文", workspace.PlaceOpen: "悬而未决", workspace.PlaceDropped: "已放弃"}
 
-func (t *toolbox) lookUp(in input) outcome {
+type lookUpArgs struct {
+	Query string `json:"query"`
+}
+
+func (l lookUpArgs) trim() lookUpArgs {
+	l.Query = strings.TrimSpace(l.Query)
+	return l
+}
+
+func (t *toolbox) lookUp(in lookUpArgs) outcome {
 	if in.Query == "" {
 		return failed("query 不能为空")
 	}
@@ -514,10 +608,14 @@ func (t *toolbox) lookUp(in input) outcome {
 		titles[session] = name
 		return name
 	}
-	return lookupSetting(in, set, b, t.at, title)
+	return lookupSetting(in.Query, set, b, t.at, title)
 }
 
-func lookupSetting(in input, set workspace.Setting, b book, at string, title func(string) string) outcome {
+func lookUpLabel(_ *labelReader, in lookUpArgs) string {
+	return "查了设定「" + in.Query + "」"
+}
+
+func lookupSetting(query string, set workspace.Setting, b book, at string, title func(string) string) outcome {
 	chapters, later := b.name, changes(set, b.tree)
 	if at != "" {
 		set, _ = set.At(b.tree.Order(), at)
@@ -525,9 +623,9 @@ func lookupSetting(in input, set workspace.Setting, b book, at string, title fun
 	}
 	var named, said []int
 	for n, e := range set.Entries {
-		matchesName := slices.ContainsFunc(e.Names, func(name string) bool { return strings.Contains(name, in.Query) || strings.Contains(in.Query, name) })
+		matchesName := slices.ContainsFunc(e.Names, func(name string) bool { return strings.Contains(name, query) || strings.Contains(query, name) })
 		if !matchesName &&
-			!strings.Contains(prompt.Text(e), in.Query) && !slices.ContainsFunc(later[e.ID], func(c string) bool { return strings.Contains(c, in.Query) }) {
+			!strings.Contains(prompt.Text(e), query) && !slices.ContainsFunc(later[e.ID], func(c string) bool { return strings.Contains(c, query) }) {
 			continue
 		}
 		if matchesName {
@@ -563,7 +661,7 @@ func lookupSetting(in input, set workspace.Setting, b book, at string, title fun
 	}
 	switch {
 	case len(found) == 0:
-		return outcome{text: "设定里没有「" + in.Query + "」。"}
+		return outcome{text: "设定里没有「" + query + "」。"}
 	case len(matched) > maxHits:
 		return outcome{text: strings.Join(found, "\n") + fmt.Sprintf("\n还有 %d 条没有列出，换一个更具体的词再查。", len(matched)-maxHits)}
 	}
@@ -581,7 +679,7 @@ func talkTitle(events []workspace.Event) string {
 	return "新对话"
 }
 
-func (t *toolbox) searchTalks(in input) outcome {
+func (t *toolbox) searchTalks(in searchArgs) outcome {
 	if in.Query == "" {
 		return failed("query 不能为空")
 	}
@@ -614,4 +712,8 @@ func (t *toolbox) searchTalks(in input) outcome {
 		}
 	}
 	return outcome{text: hits(found, in.From, "讨论里没有说过「"+in.Query+"」。")}
+}
+
+func searchTalksLabel(_ *labelReader, in searchArgs) string {
+	return "搜了讨论「" + in.Query + "」"
 }
