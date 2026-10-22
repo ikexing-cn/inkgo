@@ -54,6 +54,26 @@ type Selection struct {
 	Model    string `yaml:"model" json:"model"`
 	Effort   string `yaml:"effort,omitempty" json:"effort,omitempty"`
 }
+
+// ModelRef names a model through a provider. Model keeps its whole ID,
+// including any routing prefix; provider IDs contain no slash.
+type ModelRef struct {
+	Provider, Model string
+}
+
+// ParseModelRef splits at the first slash and reports whether it found
+// one. Without a slash, the whole name is left in Model.
+func ParseModelRef(name string) (ModelRef, bool) {
+	p, m, ok := strings.Cut(name, "/")
+	if !ok {
+		return ModelRef{Model: name}, false
+	}
+	return ModelRef{Provider: p, Model: m}, true
+}
+
+// String is the name as events and the AI record keep it.
+func (m ModelRef) String() string { return m.Provider + "/" + m.Model }
+
 type Work struct {
 	Schema int    `yaml:"schema" json:"schema"`
 	ID     string `yaml:"id" json:"id"`

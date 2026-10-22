@@ -593,6 +593,8 @@ func (a *App) showEntry(e workspace.Entry) {
 
 // replyLabel names the model and effort a reply came from.
 func (a *App) replyLabel(name, effort string) string {
+	ref, _ := workspace.ParseModelRef(name)
+	name = ref.Model
 	if i := strings.LastIndex(name, "/"); i >= 0 {
 		name = name[i+1:]
 	}

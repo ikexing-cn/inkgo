@@ -153,9 +153,9 @@ Status: proposed
 - `desk/aiport` 挪到顶层 `aiport`，拆成「设置」（服务、key、目录、价格）和「助手」（讨论、笔、检查）两个接口。
 - `writing` 和 `discussion` 共用的绑好的模型、`Decode`、`Locate` 放进 `inference`，名字指模型推理的共同规则，两边都引用它，`writing` 不再引用 `discussion`。所在卷的判断放进 `workspace.Node.Volume`：排除树根是章节树的规则，不属于推理。遍历和前章读取共用 `Tree.Walk`、`Tree.Previous`；讨论的章名消歧、预加载范围和各处不同口径的裁剪各自保留。
 - 跨包约定改成由拥有它的包导出解析函数：
-  - 设定按序号取（`[n]`）；
-  - 摘要的几节；
-  - 「服务/模型」的拆法（一个 `ModelRef`）。
+  - 设定按序号取（`[n]`）：`workspace/mentions.go` 的 `Setting.EntryNumbers`、`Setting.EntryByNumber`、`EntryRef`，讨论写编号和摘要读编号共用；检查自己的答复列表由 `writing/check.go` 编号；
+  - 摘要的几节：`workspace/events.go` 的 `DigestSections` 按 `## ` 分段，保留标题前的文字并修剪标题、正文两端；摘要是存下的 `RoleDigest` 事件，读取放在 `workspace`，让 `desk` 无须引用 `discussion`。四个标题由 `discussion` 的提示词要求，分段器不列标题；
+  - 「服务/模型」的拆法：`workspace/types.go` 的 `ModelRef` 与 `ParseModelRef` 按第一个 `/` 划分服务和完整模型 ID。`model/pricing.go` 的 `PriceID` 为回复估价取模型 ID 的最后一段，`desk.replyLabel` 为显示取最后一段，存储保留完整名字。
 - `Preloaded` 直接给出预加载了哪几项，`desk` 不再自己从章节树推。`keepPen` 改成比较有类型的值，不再比 `fmt.Sprint` 的结果。
 - 讨论工具共用的 16 个字段的参数结构，拆成每个工具一个；工具表只记名字、参数格式和处理函数。
 - AI 开关只存一份。

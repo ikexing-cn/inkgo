@@ -22,7 +22,7 @@ Status: implemented
   - `at`、`took_ms`：开始的时间和用时；
   - `feature`：`talk`、`draft`、`rewrite`、`continue`、`check`；
   - `chapter`、`talk`：为了哪一章、哪段讨论，存 ID，显示时换成章名、讨论的开头；
-  - `model`（服务商/模型）、`effort`；
+  - `model`（服务商/模型）、`effort`；名字由 `workspace/types.go` 的 `ModelRef.String` 写出，`ParseModelRef` 按第一个 `/` 读取服务和完整模型 ID。事件、会话 JSONL、AI 记录保留完整名字；
   - `parts`：发出去的各部分各约多少 token，就是 `workspace.Sent` 的 `Parts`；
   - `usage`：服务商算的输入、缓存命中、缓存写入、输出、推理；
   - `cost`、`currency`：按记账那一刻的内置价格估算（`model.Cost`），表里没有的模型不写；
@@ -51,7 +51,7 @@ Status: implemented
 
 ### 讨论回复写上钱
 
-回复下面那一行，「· N token」后面加估算花费：「· 42K token · 约 $0.08」，不到一分钱写「不到 $0.01」。这是这一轮所有请求的和，和 token 数一样（`desk/chat.go` 的 `turnCost`，经 `aiport.Settings.Cost` 按事件上记的模型算）；这一轮用到的模型有一个不在价格表里，就不写花费。
+回复下面那一行，「· N token」后面加估算花费：「· 42K token · 约 $0.08」，不到一分钱写「不到 $0.01」。这是这一轮所有请求的和，和 token 数一样（`desk/chat.go` 的 `turnCost`，经 `aiport.Settings.Cost` 按事件上记的模型算）；这一轮用到的模型有一个不在价格表里，就不写花费。`model/pricing.go` 的 `PriceID` 取模型 ID 最后一个 `/` 后的部分，所以经另一服务路由的 `vendor/id` 按 `id` 估价。AI 记录在请求结束时用配置的完整模型 ID 调 `model.Cost` 查表；这两个入口各按自己的口径查价。
 
 不在发请求之前报价：讨论带工具，查几次、写多长事先不知道，报出来的数不准；起草对话框说清会预先带上哪些内容、约多少 token，见[起草和改写交给讨论](2026-10-16-writing-through-the-talk.md)。
 

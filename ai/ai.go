@@ -237,7 +237,7 @@ func (s *Service) open(sel workspace.Selection, st *workspace.Store) (inference.
 	if err != nil {
 		return inference.Model{}, setupError(err)
 	}
-	name := sel.Provider + "/" + sel.Model
+	name := (workspace.ModelRef{Provider: sel.Provider, Model: sel.Model}).String()
 	return inference.Model{Completer: counted{client, st, name, sel.Model, s.Trace}, Model: s.cfg.Model(sel.Provider, sel.Model),
 		Name: name, Effort: model.Effort(sel.Effort)}, nil
 }
@@ -360,5 +360,6 @@ func (s *Service) Pen(st *workspace.Store) (aiport.Pen, error) {
 func (s *Service) MinCheck() int { return writing.MinCheck }
 
 func (s *Service) Cost(name string, u workspace.Usage) (float64, string, bool) {
-	return model.Cost(model.PriceID(name), model.Usage(u))
+	ref, _ := workspace.ParseModelRef(name)
+	return model.Cost(model.PriceID(ref.Model), model.Usage(u))
 }
