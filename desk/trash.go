@@ -15,12 +15,12 @@ func (a *App) trashNode(n *workspace.Node) {
 	// Where the node shown stands among the chapters, to open the one that
 	// takes its place if it goes and no tab is left.
 	var order []string
-	w.tree.Walk(func(d *workspace.Node, _ int) {
+	a.book.Tree().Walk(func(d *workspace.Node, _ int) {
 		if !d.Folder {
 			order = append(order, d.ID)
 		}
 	})
-	cur, shown := w.tree.Node(w.node)
+	cur, shown := a.book.Tree().Node(w.node)
 	gone := shown && cur.Within(n)
 	at := slices.Index(w.tabs, w.node)
 	if err := a.Store.TrashChapter(n.ID); err != nil {
@@ -28,9 +28,7 @@ func (a *App) trashNode(n *workspace.Node) {
 		return
 	}
 	a.warn(a.loadTree())
-	counts, err := a.Store.Counts()
-	a.warn(err)
-	w.counts = counts
+	a.warn(a.book.ReloadCounts())
 	if gone {
 		// Its tab goes with it: the tab beside it is shown, or with none
 		// left the chapter that stands where it stood.
@@ -44,7 +42,7 @@ func (a *App) trashNode(n *workspace.Node) {
 			var left []string
 			before := 0
 			for i, id := range order {
-				if _, ok := w.tree.Node(id); ok {
+				if _, ok := a.book.Tree().Node(id); ok {
 					left = append(left, id)
 					if i < near {
 						before++
@@ -123,15 +121,12 @@ func (a *App) trashView(c *ui.Context) {
 }
 
 func (a *App) restore(id, title string) {
-	w := &a.write
 	if err := a.Store.RestoreChapter(id); err != nil {
 		a.warn(err)
 		return
 	}
 	a.warn(a.loadTree())
-	counts, err := a.Store.Counts()
-	a.warn(err)
-	w.counts = counts
+	a.warn(a.book.ReloadCounts())
 	a.openTrash()
 	a.status.did(fmt.Sprintf("「%s」已恢复", title))
 }

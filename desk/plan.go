@@ -15,7 +15,6 @@ import (
 const planFlash = 1600 * time.Millisecond
 
 type planView struct {
-	data                   workspace.Plan
 	loaded                 bool
 	loadErr                error
 	checked                time.Time // when the outline was last read
@@ -41,7 +40,6 @@ type planView struct {
 	reveal                 bool
 	scroll                 [2]ui.ScrollState
 	viewport               ui.Rect
-	gists                  map[string]string
 }
 
 type dragCard string
@@ -58,15 +56,15 @@ type planIndex struct {
 }
 
 func (a *App) indexPlan() {
-	x := planIndex{live: map[string]bool{}, cards: map[string][]workspace.Card{}, back: map[string]bool{}, counts: map[string]int{}, columns: a.plan.data.Columns()}
-	a.write.tree.Walk(func(n *workspace.Node, _ int) {
+	x := planIndex{live: map[string]bool{}, cards: map[string][]workspace.Card{}, back: map[string]bool{}, counts: map[string]int{}, columns: a.book.Plan().Columns()}
+	a.book.Tree().Walk(func(n *workspace.Node, _ int) {
 		if !n.Folder {
 			x.chapters = append(x.chapters, n)
 			x.live[n.ID] = true
 		}
 	})
 	first, last := map[string]int{}, map[string]int{}
-	for i, e := range a.plan.data.Cards {
+	for i, e := range a.book.Plan().Cards {
 		id := e.Chapter
 		if !x.live[id] {
 			id = ""
@@ -89,8 +87,8 @@ func (a *App) indexPlan() {
 }
 
 func (a *App) loadPlan() {
-	p, err := a.Store.Plan()
-	a.plan.data, a.plan.loaded, a.plan.loadErr = p, true, err
+	a.plan.loadErr = a.book.ReloadPlan()
+	a.plan.loaded = true
 	a.plan.geometry = nil
 	a.indexPlan()
 }
@@ -143,7 +141,7 @@ func (a *App) cardFound(e workspace.Card) bool {
 		return true
 	}
 	title := ""
-	if n, ok := a.write.tree.Node(e.Chapter); ok {
+	if n, ok := a.book.Tree().Node(e.Chapter); ok {
 		title = n.Title
 	}
 	return q == "" || slices.ContainsFunc([]string{e.Title, e.When, e.About, title}, func(s string) bool { return strings.Contains(s, q) })
@@ -151,17 +149,17 @@ func (a *App) cardFound(e workspace.Card) bool {
 
 func (a *App) planNodeFound(n *workspace.Node) bool {
 	q := trim(a.plan.query)
-	return q == "" || strings.Contains(n.Title, q) || strings.Contains(a.plan.gists[n.ID], q)
+	return q == "" || strings.Contains(n.Title, q) || strings.Contains(a.book.Outlines()[n.ID], q)
 }
 
 func (a *App) planCounts() (cards, nodes int) {
-	for _, e := range a.plan.data.Cards {
+	for _, e := range a.book.Plan().Cards {
 		if a.cardFound(e) {
 			cards++
 		}
 	}
 	if a.plan.mode == 0 {
-		a.write.tree.Walk(func(n *workspace.Node, _ int) {
+		a.book.Tree().Walk(func(n *workspace.Node, _ int) {
 			if a.planNodeFound(n) {
 				nodes++
 			}
@@ -183,7 +181,7 @@ func (a *App) outlinePage(c *ui.Context) {
 			a.loadPlan()
 		}
 		if p.loadErr == nil {
-			p.gists, p.loadErr = a.Store.Outlines()
+			p.loadErr = a.book.ReloadOutlines()
 		}
 	} else {
 		a.indexPlan()
@@ -264,7 +262,7 @@ func (a *App) planTop(c *ui.Context) {
 	cards, nodes := a.planCounts()
 	chs := a.planChapters()
 	loose := len(a.cardsOf(""))
-	sum := fmt.Sprintf("%d 章 · %d 条情节线 · %d 张卡片", len(chs), len(p.data.Lines), len(p.data.Cards))
+	sum := fmt.Sprintf("%d 章 · %d 条情节线 · %d 张卡片", len(chs), len(a.book.Plan().Lines), len(a.book.Plan().Cards))
 	if loose > 0 {
 		sum += fmt.Sprintf("，%d 张未放进章节", loose)
 	}
@@ -355,14 +353,14 @@ func (a *App) planLine(c *ui.Context, l workspace.PlotLine) {
 		ui.Textf(c, "%d", n).FontSize(fsNote).TextColor(a.pal.faint)
 		more := iconButton(c, icMore, "情节线「"+l.Name+"」的操作", ui.Color{})
 		a.dropMenu(c, more, "plan-line-"+l.ID, func(panel ui.Element) { panel.Width(planLineMenuWidth) }, func(m *menu) {
-			i := slices.IndexFunc(p.data.Lines, func(x workspace.PlotLine) bool { return x.ID == l.ID })
+			i := slices.IndexFunc(a.book.Plan().Lines, func(x workspace.PlotLine) bool { return x.ID == l.ID })
 			up, down := "左移", "右移"
 			if p.mode == 1 {
 				up, down = "上移", "下移"
 			}
 			m.Item("改名").Do(func() { a.startPlanLine(l) })
 			m.Item(up).Disabled(i == 0).Do(func() { a.planChange(a.Store.MoveLine(l.ID, -1)) })
-			m.Item(down).Disabled(i == len(p.data.Lines)-1).Do(func() { a.planChange(a.Store.MoveLine(l.ID, 1)) })
+			m.Item(down).Disabled(i == len(a.book.Plan().Lines)-1).Do(func() { a.planChange(a.Store.MoveLine(l.ID, 1)) })
 			m.Separator()
 			m.Item("删除情节线").Do(func() {
 				a.planChange(a.Store.DeleteLine(l.ID))
@@ -426,11 +424,11 @@ func (a *App) planGist(c *ui.Context, n *workspace.Node) {
 	}
 	if p.outlineID == n.ID {
 		in := ui.TextAreaBase(c.Key("plan-outline-"+n.ID), &p.outlineText).Label(label).Placeholder(hint).FillWidth().Height(hControl*3).FontSize(fsBody).LineHeight(lhBody).Padding(6, 8).Border(1, a.pal.theme.Border).Radius(rControl).AutoFocus()
-		if p.outlineText != p.gists[n.ID] {
+		if p.outlineText != a.book.Outlines()[n.ID] {
 			p.geometry = nil
 			a.warn(a.Store.WriteOutline(n.ID, p.outlineText))
 			if a.errorText() == "" {
-				p.gists[n.ID] = p.outlineText
+				a.book.SetOutline(n.ID, p.outlineText)
 				a.syncPlanOutline(n.ID, p.outlineText)
 			}
 		}
@@ -441,7 +439,7 @@ func (a *App) planGist(c *ui.Context, n *workspace.Node) {
 		}
 		return
 	}
-	text := trim(p.gists[n.ID])
+	text := trim(a.book.Outlines()[n.ID])
 	empty := text == ""
 	if empty {
 		text = hint
@@ -459,7 +457,7 @@ func (a *App) planGist(c *ui.Context, n *workspace.Node) {
 	if b.Clicked() {
 		a.finishPlanLine()
 		a.finishPlanOutline()
-		p.outlineID, p.outlineText, p.outlineHeld = n.ID, p.gists[n.ID], false
+		p.outlineID, p.outlineText, p.outlineHeld = n.ID, a.book.Outlines()[n.ID], false
 	}
 }
 func (a *App) syncPlanOutline(id, text string) {
@@ -474,10 +472,10 @@ func (a *App) finishPlanOutline() {
 	}
 	id := p.outlineID
 	p.outlineID = ""
-	if p.gists[id] != p.outlineText {
+	if a.book.Outlines()[id] != p.outlineText {
 		a.warn(a.Store.WriteOutline(id, p.outlineText))
 		if a.errorText() == "" {
-			p.gists[id] = p.outlineText
+			a.book.SetOutline(id, p.outlineText)
 			a.syncPlanOutline(id, p.outlineText)
 		}
 	}
@@ -518,7 +516,7 @@ func (a *App) planSide(c *ui.Context, left float32, label string, fn func()) {
 
 func (a *App) planGrid(c *ui.Context) {
 	p := &a.plan
-	lines := slices.Clone(p.data.Lines)
+	lines := slices.Clone(a.book.Plan().Lines)
 	g := a.planGeometry(c)
 	width, height := p.viewport.W, p.viewport.H
 	if width <= 0 || height <= 0 {
@@ -541,7 +539,7 @@ func (a *App) planGrid(c *ui.Context) {
 	body.Children(func() {
 		ui.Column(c).Width(float32(planChapterWidth+planCardWidth*len(lines)+planEndWidth)).Padding(0, 0, 24, 0).Children(func() {
 			gap := float32(0)
-			held, _ := p.data.Card(p.dragging)
+			held, _ := a.book.Plan().Card(p.dragging)
 			for i, row := range g.rows {
 				pinned := row.node != nil && row.node.ID == a.cardChapter(held) && p.dragging != ""
 				if !pinned && (row.y+row.height < p.scroll[0].Y-height || row.y > p.scroll[0].Y+2*height) {
@@ -715,7 +713,7 @@ func (a *App) planCard(c *ui.Context, e workspace.Card, timeline, tray bool) {
 		if e.When != "" && !timeline {
 			text := e.When
 			if tray {
-				for _, l := range p.data.Lines {
+				for _, l := range a.book.Plan().Lines {
 					if l.ID == e.Line {
 						text += " · " + l.Name
 					}
@@ -727,7 +725,7 @@ func (a *App) planCard(c *ui.Context, e workspace.Card, timeline, tray bool) {
 		if timeline {
 			text := "未放进章节"
 			if assigned {
-				n, _ := a.write.tree.Node(e.Chapter)
+				n, _ := a.book.Tree().Node(e.Chapter)
 				text = n.Title
 			}
 			a.planText(c, text, true).TextColor(a.pal.theme.TextMuted).SingleLine().Ellipsis("…")
@@ -791,8 +789,8 @@ func (a *App) planTimeline(c *ui.Context) {
 			}
 		}
 	}
-	lanes := slices.Clone(p.data.Lines)
-	if slices.ContainsFunc(p.data.Cards, func(e workspace.Card) bool { return e.Line == "" }) {
+	lanes := slices.Clone(a.book.Plan().Lines)
+	if slices.ContainsFunc(a.book.Plan().Cards, func(e workspace.Card) bool { return e.Line == "" }) {
 		lanes = append(lanes, workspace.PlotLine{Name: "不分情节线"})
 	}
 	ui.Row(c).FillWidth().Padding(10, 24, 0, 24).Gap(16).Shrink(0).Children(func() {
@@ -844,8 +842,8 @@ func (a *App) planTimeline(c *ui.Context) {
 							a.planCell(c.Key(fmt.Sprintf("%d|%s", i, l.ID)), "", l.ID, i, col.When, col.Cards[len(col.Cards)-1].ID)
 						} else {
 							after := ""
-							if len(p.data.Cards) > 0 {
-								after = p.data.Cards[len(p.data.Cards)-1].ID
+							if len(a.book.Plan().Cards) > 0 {
+								after = a.book.Plan().Cards[len(a.book.Plan().Cards)-1].ID
 							}
 							a.planCell(c.Key("end-"+l.ID), "", l.ID, -1, "", after)
 						}
@@ -1013,7 +1011,7 @@ func (a *App) planDialog(c *ui.Context) {
 					labeled(c, "情节线", func() {
 						names, ids := []string{"不分情节线"}, map[string]string{}
 						chosen := names[0]
-						for _, l := range p.data.Lines {
+						for _, l := range a.book.Plan().Lines {
 							name := l.Name
 							for count := 2; ids[name] != ""; count++ {
 								name = fmt.Sprintf("%s (%d)", l.Name, count)

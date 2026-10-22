@@ -235,20 +235,20 @@ func (a *App) settingPanel(c *ui.Context) {
 		}
 	})
 	d := &a.doc
-	d.route.settle(a.set)
+	d.route.settle(a.book.Setting())
 	switch screen, entry, _ := d.route.screen(); screen {
 	case screenHistory:
 		a.history(c)
 	case screenNewEntry:
 		a.entryForm(c, workspace.Entry{})
 	case screenEntryForm:
-		e, _ := a.set.Entry(entry)
+		e, _ := a.book.Setting().Entry(entry)
 		a.entryForm(c, e)
 	case screenChange:
-		e, _ := a.set.Entry(entry)
+		e, _ := a.book.Setting().Entry(entry)
 		a.changeForm(c, e)
 	case screenEntry:
-		e, _ := a.set.Entry(entry)
+		e, _ := a.book.Setting().Entry(entry)
 		a.entryPage(c, e)
 	case screenWaiting:
 		a.ideasPage(c)
@@ -262,7 +262,7 @@ func (a *App) settingPanel(c *ui.Context) {
 // bodyCount is how many entries the author has settled.
 func (a *App) bodyCount() int {
 	n := 0
-	for _, e := range a.set.Entries {
+	for _, e := range a.book.Setting().Entries {
 		if e.Place == workspace.PlaceBody {
 			n++
 		}
@@ -290,7 +290,7 @@ func (a *App) settingList(c *ui.Context) {
 		waiting[it.About] = true
 	}
 	dropped := 0
-	for _, e := range a.set.Entries {
+	for _, e := range a.book.Setting().Entries {
 		if e.Place == workspace.PlaceDropped {
 			dropped++
 		}
@@ -305,7 +305,7 @@ func (a *App) settingList(c *ui.Context) {
 	q := trim(d.query)
 	// On the writing page each entry reads as it does at the chapter open,
 	// elsewhere as it does now; the end of its row says from where.
-	tree, here := a.write.tree, a.here()
+	tree, here := a.book.Tree(), a.here()
 	o := tree.Order()
 	row := func(e workspace.Entry) {
 		side := changeSide(tree, o, e, here)
@@ -334,7 +334,7 @@ func (a *App) settingList(c *ui.Context) {
 		}
 		if q != "" {
 			var found []workspace.Entry
-			for _, e := range a.set.Entries {
+			for _, e := range a.book.Setting().Entries {
 				if e.Place == workspace.PlaceBody && (strings.Contains(e.Text, q) || slices.ContainsFunc(e.Names, func(n string) bool { return strings.Contains(n, q) })) {
 					found = append(found, e)
 				}
@@ -362,7 +362,7 @@ func (a *App) settingList(c *ui.Context) {
 		}
 		for _, cat := range a.Store.Work().Categories {
 			first := true
-			for _, e := range a.set.Entries {
+			for _, e := range a.book.Setting().Entries {
 				if e.Place != workspace.PlaceBody || e.Category != cat.Name {
 					continue
 				}
@@ -386,7 +386,7 @@ func (a *App) droppedList(c *ui.Context) {
 	a.paneRows(c, "dropped", func() {
 		a.paneGroup(c, "已删除")
 		n := 0
-		for _, e := range a.set.Entries {
+		for _, e := range a.book.Setting().Entries {
 			if e.Place != workspace.PlaceDropped {
 				continue
 			}
@@ -476,7 +476,7 @@ func (a *App) entryPage(c *ui.Context, e workspace.Entry) {
 			}
 			from := ""
 			if it.Change.ID != "" {
-				from = fromLabel(a.write.tree, it.Change.From)
+				from = fromLabel(a.book.Tree(), it.Change.From)
 			}
 			a.idea(c, it, from)
 		}
@@ -488,7 +488,7 @@ func (a *App) entryPage(c *ui.Context, e workspace.Entry) {
 func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 	d := &a.doc
 	question := d.route.question()
-	q, asked := a.set.Entry(question)
+	q, asked := a.book.Setting().Entry(question)
 	asked = asked && question != "" && e.ID == ""
 	from := "全部设定"
 	switch {
@@ -590,8 +590,8 @@ func (a *App) history(c *ui.Context) {
 		ui.Column(c).FillWidth().Gap(10).Padding(16, 20, 20, 20).Children(func() {
 			ui.Text(c, "修改记录").FontSize(fsGroup).FontWeight(600)
 			shown := 0
-			for n := len(a.set.Revisions) - 1; n >= 0; n-- {
-				r := a.set.Revisions[n]
+			for n := len(a.book.Setting().Revisions) - 1; n >= 0; n-- {
+				r := a.book.Setting().Revisions[n]
 				if len(r.Ops) == 0 || r.By != workspace.ByAuthor && !a.aiOn() {
 					continue // the bookkeeper's that failed changed nothing
 				}
@@ -632,14 +632,14 @@ func (a *App) history(c *ui.Context) {
 
 // describeOp says what op did, in the words of the panel.
 func (a *App) describeOp(op workspace.Op) string {
-	e, _ := a.set.Entry(op.Entry)
+	e, _ := a.book.Setting().Entry(op.Entry)
 	if op.Op == workspace.OpChange || op.Op == workspace.OpEditChange || op.Op == workspace.OpDropChange {
 		var g workspace.Change
 		if k := slices.IndexFunc(e.Changes, func(x workspace.Change) bool { return x.ID == op.Change }); k >= 0 {
 			g = e.Changes[k]
 		}
 		from, text := cmp.Or(op.From, g.From), cmp.Or(op.Text, g.Text)
-		said := shortName(e) + " · " + fromLabel(a.write.tree, from)
+		said := shortName(e) + " · " + fromLabel(a.book.Tree(), from)
 		switch {
 		case op.Op == workspace.OpDropChange:
 			return "删除变化 · " + said

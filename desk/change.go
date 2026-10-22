@@ -37,7 +37,7 @@ func (a *App) here() string {
 	if a.page != pageWrite {
 		return ""
 	}
-	if _, ok := a.write.tree.Node(a.write.node); ok {
+	if _, ok := a.book.Tree().Node(a.write.node); ok {
 		return a.write.node
 	}
 	return ""
@@ -77,7 +77,7 @@ func nodeChoices(tree workspace.Tree) (names []string, ids map[string]string) {
 // no more. With a chapter or volume open, a change can be noted from it,
 // or the one from it is changed.
 func (a *App) timeline(c *ui.Context, e workspace.Entry) {
-	d, t, tree := &a.doc, a.pal.theme, a.write.tree
+	d, t, tree := &a.doc, a.pal.theme, a.book.Tree()
 	o, here := tree.Order(), a.here()
 	hold := e.Holding(o)
 	var gone []workspace.Change
@@ -150,7 +150,7 @@ func (a *App) timeline(c *ui.Context, e workspace.Entry) {
 // Saving one from a chapter that has one already puts it in that one's
 // place.
 func (a *App) changeForm(c *ui.Context, e workspace.Entry) {
-	d, tree := &a.doc, a.write.tree
+	d, tree := &a.doc, a.book.Tree()
 	name := shortName(e)
 	if back, _ := a.paneBack(c, name, ""); back {
 		d.route.closeChange()
@@ -239,9 +239,9 @@ func (a *App) takeChange(e workspace.Entry, g workspace.Change) {
 // them: each change that holds, from where it starts.
 func (a *App) laterLines(e workspace.Entry) []string {
 	var out []string
-	o := a.write.tree.Order()
+	o := a.book.Tree().Order()
 	for _, g := range e.Holding(o) {
-		out = append(out, fromLabel(a.write.tree, g.From)+"："+g.Text)
+		out = append(out, fromLabel(a.book.Tree(), g.From)+"："+g.Text)
 	}
 	return out
 }

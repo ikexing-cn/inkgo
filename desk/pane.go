@@ -308,7 +308,7 @@ func (a *App) paneField(c *ui.Context, label string, field func()) {
 // chapterTitle is the title of chapter node, if the book has it.
 func (a *App) chapterTitle(node string) (string, bool) {
 	title, ok := "", false
-	a.write.tree.Walk(func(nd *workspace.Node, _ int) {
+	a.book.Tree().Walk(func(nd *workspace.Node, _ int) {
 		if !nd.Folder && nd.ID == node {
 			title, ok = nd.Title, true
 		}

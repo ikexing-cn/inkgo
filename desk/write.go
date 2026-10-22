@@ -13,9 +13,7 @@ import (
 )
 
 type writeView struct {
-	entered bool // the page read the tree as it showed
-	tree    workspace.Tree
-	counts  map[string]int
+	entered bool            // the page read the tree as it showed
 	folded  map[string]bool // folders folded, by ID
 	node    string          // the node shown
 	// back and forward are the nodes shown before and after it, for the
@@ -82,10 +80,8 @@ type writeView struct {
 	named     *editor.Editor
 	namedRevs int
 
-	// What is pending: the marks of the chapters as of the disk, the list
-	// open, showing the open chapter's alone, the groups listed whole, and
-	// the keys of what the author ignored.
-	marks    map[string][]workspace.ChapterMark
+	// What is pending: the list open, showing the open chapter's alone, the
+	// groups listed whole, and the keys of what the author ignored.
 	pendOpen bool
 	pendHere int
 	pendMore map[string]bool
@@ -184,11 +180,11 @@ func (a *App) writing(c *ui.Context) {
 		main.Children(func() {
 			a.writeTop(c)
 			a.sheets(c)
-			n, ok := a.write.tree.Node(a.write.node)
+			n, ok := a.book.Tree().Node(a.write.node)
 			switch {
 			case a.write.lost && a.write.ed != nil:
 				a.chapterView(c)
-			case !ok && (a.write.tree.Root == nil || len(a.write.tree.Root.Children) == 0):
+			case !ok && (a.book.Tree().Root == nil || len(a.book.Tree().Root.Children) == 0):
 				a.emptyWriting(c)
 				a.footBar(c, false)
 			case !ok:
@@ -247,7 +243,7 @@ func paneTop(c *ui.Context) ui.Element {
 func (a *App) writeTop(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
-	n, ok := w.tree.Node(w.node)
+	n, ok := a.book.Tree().Node(w.node)
 	top := ui.Row(c).FillWidth().Height(titleHeight).Padding(0, 16, 0, 24).Gap(8).AlignItems(ui.Center).Shrink(0)
 	if w.focus {
 		// No title bar over it: this row holds the window, and keeps clear
@@ -416,7 +412,7 @@ func (a *App) chapterView(c *ui.Context) {
 // shownTitle is the title of the chapter shown.
 func (a *App) shownTitle() string {
 	w := &a.write
-	if n, ok := w.tree.Node(w.node); ok {
+	if n, ok := a.book.Tree().Node(w.node); ok {
 		return n.Title
 	}
 	if w.lost {
@@ -491,7 +487,7 @@ func (a *App) folderView(c *ui.Context, n *workspace.Node) {
 							glyph(c, nodeIcon(child), iconMd, t.TextMuted)
 							ui.Text(c, child.Title).FontSize(fsBody).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
 							if !child.Folder {
-								ui.Textf(c, "%d 字", w.counts[child.ID]).FontSize(fsNote).TextColor(a.pal.faint)
+								ui.Textf(c, "%d 字", a.book.Count(child.ID)).FontSize(fsNote).TextColor(a.pal.faint)
 							}
 						})
 						if gist := w.gists[child.ID]; gist != "" {

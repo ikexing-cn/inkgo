@@ -174,7 +174,7 @@ func (s *phoneState) point(x, y float32) (para, offset int, ok bool) {
 func (a *App) measurePhone() {
 	s, ed := &a.phone, a.write.ed
 	s.prefs = a.phonePreferences()
-	n, ok := a.write.tree.Node(a.write.node)
+	n, ok := a.book.Tree().Node(a.write.node)
 	if !ok || n.Folder || ed == nil {
 		return
 	}

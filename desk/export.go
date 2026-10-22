@@ -64,7 +64,7 @@ func (a *App) replanExport() {
 		return
 	}
 	set := a.exportPrefs()
-	x.plan = export.BuildPlan(x.pieces, a.set.Entries, a.exportChapter(), set.Options, x.selection)
+	x.plan = export.BuildPlan(x.pieces, a.book.Setting().Entries, a.exportChapter(), set.Options, x.selection)
 	x.selection.Scope = x.plan.Scope
 }
 
@@ -194,7 +194,7 @@ func (a *App) export(c *ui.Context, plan export.Plan) {
 			doc = export.Outline(work.Name, plan.Pieces)
 			parts = append(parts, plan.Part, "大纲")
 		case export.SettingContent:
-			doc = export.Setting(work.Name, work.Categories, a.set.Entries, a.laterLines)
+			doc = export.Setting(work.Name, work.Categories, a.book.Setting().Entries, a.laterLines)
 			parts = append(parts, "设定")
 		}
 		data := doc.Text(what == export.ProseContent && x.indent)

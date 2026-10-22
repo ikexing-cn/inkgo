@@ -34,7 +34,6 @@ type checks struct {
 	runner checkRunner
 
 	of   *workspace.Store // the work all is of
-	tree workspace.Tree
 	when string
 
 	tab      int
@@ -70,20 +69,15 @@ func entryTitle(e workspace.Entry) string {
 // loadChecks reads what the checks of the work found.
 func (a *App) loadChecks() {
 	k := &a.ck
-	all, err := a.Store.Checks()
-	a.warn(err)
-	k.queue.All = all
-	t, err := a.Store.Chapters()
-	a.warn(err)
-	if err == nil {
-		k.tree = t
-	}
+	a.warn(a.book.ReloadChecks())
+	k.queue.All = a.book.Checks()
+	a.warn(a.book.ReloadTree())
 	k.doubtKey = ""
 }
 
 // hasSetting tells whether there is a setting to check prose against.
 func (a *App) hasSetting() bool {
-	return slices.ContainsFunc(a.set.Entries, func(e workspace.Entry) bool { return e.Place == workspace.PlaceBody })
+	return slices.ContainsFunc(a.book.Setting().Entries, func(e workspace.Entry) bool { return e.Place == workspace.PlaceBody })
 }
 
 // leaveCheck is called as the author leaves the chapter shown: what the
@@ -216,10 +210,7 @@ func (a *App) liveText() (string, bool) {
 // author left out of the setting once is left out in every chapter.
 func (a *App) checkItems(meant bool) []checkItem {
 	k := &a.ck
-	tree := k.tree
-	if a.write.entered {
-		tree = a.write.tree
-	}
+	tree := a.book.Tree()
 	live, open := a.liveText()
 	left := map[string]bool{}
 	for _, had := range k.queue.All {
@@ -243,14 +234,14 @@ func (a *App) checkItems(meant bool) []checkItem {
 			it := checkItem{node: nd.ID, title: nd.Title, here: here, f: f}
 			switch f.Kind {
 			case workspace.FindConflict:
-				e, ok := a.set.Entry(f.Entry)
+				e, ok := a.book.Setting().Entry(f.Entry)
 				e.Text, _, _ = e.Reading(o, nd.ID) // the chapter was checked against the entry as it reads there
 				if !ok || f.Says != "" && !strings.Contains(e.Text, f.Says) {
 					continue // the setting was changed
 				}
 				it.entry = e
 			case workspace.FindName:
-				for _, e := range a.set.Entries {
+				for _, e := range a.book.Setting().Entries {
 					if slices.Contains(e.Names, f.Name) {
 						it.entry = e
 					}
@@ -259,7 +250,7 @@ func (a *App) checkItems(meant bool) []checkItem {
 					continue
 				}
 			case workspace.FindNew:
-				if slices.ContainsFunc(a.set.Entries, func(e workspace.Entry) bool {
+				if slices.ContainsFunc(a.book.Setting().Entries, func(e workspace.Entry) bool {
 					return e.Place != workspace.PlaceDropped && slices.Contains(e.Names, f.Name)
 				}) || left[f.Name] && !meant {
 					continue // taken into the setting, or left out of it
@@ -315,7 +306,7 @@ func (a *App) checkDue() []string {
 		a.warn(err)
 		return nil
 	}
-	return a.ck.queue.Due(a.ck.tree, texts, a.ai.MinCheck())
+	return a.ck.queue.Due(a.book.Tree(), texts, a.ai.MinCheck())
 }
 
 // openCheck shows the page of the checks, at finding id when given.
@@ -647,7 +638,7 @@ func (a *App) checkProgress(c *ui.Context) {
 func (a *App) checkAt(node string) (no int, title string) {
 	n := 0
 	title = "已删除的章"
-	a.ck.tree.Walk(func(nd *workspace.Node, _ int) {
+	a.book.Tree().Walk(func(nd *workspace.Node, _ int) {
 		if !nd.Folder {
 			n++
 			if nd.ID == node {
@@ -686,7 +677,7 @@ func (a *App) checkEmpty(c *ui.Context, all int) {
 // firstFailed is the first chapter in the book whose check failed, or "".
 func (a *App) firstFailed() string {
 	first := ""
-	a.ck.tree.Walk(func(nd *workspace.Node, _ int) {
+	a.book.Tree().Walk(func(nd *workspace.Node, _ int) {
 		if _, ok := a.ck.queue.Failed[nd.ID]; ok && first == "" && !nd.Folder {
 			first = nd.ID
 		}

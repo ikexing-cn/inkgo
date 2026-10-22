@@ -15,26 +15,26 @@ import (
 // counts move as the author types rather than when the text is saved.
 func (a *App) countAsTyped() {
 	w := &a.write
-	if w.ed == nil || w.counts == nil || w.lost || w.external != nil {
+	if w.ed == nil || a.book.Counts() == nil || w.lost || w.external != nil {
 		return
 	}
 	if w.ed.Doc == w.counted && w.ed.Doc.Version() == w.countedVer {
 		return
 	}
 	w.counted, w.countedVer = w.ed.Doc, w.ed.Doc.Version()
-	w.counts[w.node] = workspace.Count(w.ed.Doc.String())
+	a.book.SetCount(w.node, workspace.Count(w.ed.Doc.String()))
 }
 
 func (a *App) total() int {
 	n := 0
-	for _, k := range a.write.counts {
+	for _, k := range a.book.Counts() {
 		n += k
 	}
 	return n
 }
 
 func (a *App) today(now time.Time) int {
-	if a.write.counts == nil {
+	if a.book.Counts() == nil {
 		return 0 // not read yet: a start of nothing would count the whole book
 	}
 	return a.write.counter.Today(a.total(), now)
@@ -42,7 +42,7 @@ func (a *App) today(now time.Time) int {
 
 func (a *App) lastDays(now time.Time, n int) []int {
 	days := a.write.counter.LastDays(a.total(), now, n)
-	if a.write.counts == nil {
+	if a.book.Counts() == nil {
 		days[n-1] = 0
 	}
 	return days
@@ -55,7 +55,7 @@ func (a *App) setGoal(text string) {
 }
 
 func (a *App) rollDay(now time.Time) bool {
-	if a.write.counts == nil {
+	if a.book.Counts() == nil {
 		return false
 	}
 	return a.write.counter.Roll(a.total(), now)
@@ -97,13 +97,13 @@ func signed(n int) string {
 func (a *App) wordCount(c *ui.Context, roomy, wide bool) {
 	t := a.pal.theme
 	w := &a.write
-	n, ok := w.tree.Node(w.node)
+	n, ok := a.book.Tree().Node(w.node)
 	here, unit := 0, "本章"
 	if ok && n.Folder {
 		unit = "本卷"
 	}
 	if ok {
-		here = w.wordsIn(n)
+		here = wordsIn(a.book.Counts(), n)
 	}
 	if w.ed != nil {
 		if sel := w.ed.SelectedText(); sel != "" {
@@ -189,13 +189,13 @@ func (a *App) lastWeek(c *ui.Context) {
 }
 
 // wordsIn is a chapter's count, or for a folder all its chapters' together.
-func (w *writeView) wordsIn(n *workspace.Node) int {
+func wordsIn(counts map[string]int, n *workspace.Node) int {
 	if !n.Folder {
-		return w.counts[n.ID]
+		return counts[n.ID]
 	}
 	k := 0
 	for _, ch := range n.Children {
-		k += w.wordsIn(ch)
+		k += wordsIn(counts, ch)
 	}
 	return k
 }

@@ -35,9 +35,7 @@ type pendGroup struct {
 
 // scanMarks reads the marks of the book's chapters, as of the disk.
 func (a *App) scanMarks() {
-	m, err := a.Store.Marks()
-	a.warn(err)
-	a.write.marks = m
+	a.warn(a.book.ReloadMarks())
 }
 
 // pendingGroups gathers what is pending and not ignored, by kind: what the

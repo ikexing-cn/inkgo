@@ -314,12 +314,12 @@ func (a *App) placeProps() {
 // in the book.
 func (a *App) pruneProps() {
 	w := &a.write
-	if w.tree.Root == nil {
+	if a.book.Tree().Root == nil {
 		return
 	}
 	var gone []*prop
 	for _, p := range w.props {
-		if _, ok := w.tree.Node(p.Chapter); !ok {
+		if _, ok := a.book.Tree().Node(p.Chapter); !ok {
 			gone = append(gone, p)
 		}
 	}

@@ -67,9 +67,7 @@ func (a *App) saveText() error {
 	}
 	w.stamp, w.saved, w.savedVer = stamp, text, w.ed.Doc.Version()
 	w.changed = true
-	if w.counts != nil {
-		w.counts[w.node] = workspace.Count(text)
-	}
+	a.book.SetCount(w.node, workspace.Count(text))
 	if time.Since(w.lastSnap) >= snapEvery {
 		if _, err = a.Store.TakeSnapshot(w.node, workspace.SnapInterval, text, marks); err != nil {
 			return err
@@ -131,7 +129,7 @@ func (a *App) watch(c *ui.Context) {
 // text of the node shown.
 func (a *App) checkDisk() {
 	w := &a.write
-	old, _ := w.tree.Node(w.node)
+	old, _ := a.book.Tree().Node(w.node)
 	if err := a.loadTree(); err != nil {
 		a.warn(err)
 		return
@@ -140,7 +138,7 @@ func (a *App) checkDisk() {
 	if w.node == "" || w.lost {
 		return
 	}
-	n, ok := w.tree.Node(w.node)
+	n, ok := a.book.Tree().Node(w.node)
 	if !ok {
 		w.lost, w.lostTitle = true, "找回的章节"
 		if old != nil {
@@ -194,9 +192,7 @@ func (a *App) takeDisk() {
 	}
 	w.ed = a.chapterEditor(ch.Text, ch.Marks)
 	w.saved, w.savedVer, w.stamp, w.external = ch.Text, w.ed.Doc.Version(), ch.Stamp, nil
-	if w.counts != nil {
-		w.counts[w.node] = workspace.Count(ch.Text)
-	}
+	a.book.SetCount(w.node, workspace.Count(ch.Text))
 	a.status.did("已采用磁盘版本，编辑器原内容已存为快照")
 }
 

@@ -380,7 +380,7 @@ func (a *App) WindowTitle() string {
 	}
 	title := a.Store.Work().Name
 	if a.page == pageWrite {
-		if n, ok := a.write.tree.Node(a.write.node); ok && n.Title != "" {
+		if n, ok := a.book.Tree().Node(a.write.node); ok && n.Title != "" {
 			title = n.Title + " — " + title
 		}
 	}

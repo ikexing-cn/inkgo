@@ -13,7 +13,7 @@ func (a *App) ideas() []workspace.Idea {
 	if !a.aiOn() {
 		return nil
 	}
-	return a.set.Ideas(a.write.tree.Order())
+	return a.book.Setting().Ideas(a.book.Tree().Order())
 }
 
 // asks tells whether e, waiting on the author, asks them something: the
@@ -88,10 +88,10 @@ func (a *App) ideasPage(c *ui.Context) {
 				a.pal.hairline(c)
 			}
 			words := "新设定"
-			if b, ok := a.set.Entry(it.About); ok {
+			if b, ok := a.book.Setting().Entry(it.About); ok {
 				words = "关于 " + shortName(b)
 				if it.Change.ID != "" {
-					words += " · " + fromLabel(a.write.tree, it.Change.From)
+					words += " · " + fromLabel(a.book.Tree(), it.Change.From)
 				}
 			}
 			a.idea(c, it, words)

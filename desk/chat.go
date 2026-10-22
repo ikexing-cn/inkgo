@@ -208,7 +208,7 @@ func (a *App) chatTop(c *ui.Context) {
 // openUnit is what the writing page has open: a chapter, or a folder,
 // which the author thinks of as a volume.
 func (a *App) openUnit() string {
-	if n, ok := a.write.tree.Node(a.write.node); ok && n.Folder {
+	if n, ok := a.book.Tree().Node(a.write.node); ok && n.Folder {
 		return "卷"
 	}
 	return "章"
@@ -231,7 +231,7 @@ func (a *App) emptyChat(c *ui.Context) {
 	t := a.pal.theme
 	title, about := "从一个初步的想法开始", "写下初步的想法。讨论中定下的内容，AI 会当场记进右侧的设定文档；已确定的设定将作为后续讨论的依据，已放弃的不再提及。"
 	starts := []string{"我想写一个总在下雨的城市", "主角有个说不出口的秘密", "这个故事的冲突在哪"}
-	if len(a.set.Entries) > 0 { // a work begun goes on from what it has
+	if len(a.book.Setting().Entries) > 0 { // a work begun goes on from what it has
 		title, about = "接着聊这部作品", "AI 会参考已有的设定和正文。"
 		starts = []string{"接下来的情节怎么走", "哪些设定还没想清楚", "梳理一下人物关系"}
 	}
@@ -568,12 +568,12 @@ func (a *App) looked(c *ui.Context, key string, found []workspace.Look, running 
 // showNoted opens in the setting the entry revision r of a talk changed.
 func (a *App) showNoted(r string) {
 	var entry string
-	for _, rev := range a.set.Revisions {
+	for _, rev := range a.book.Setting().Revisions {
 		if rev.ID == r && len(rev.Ops) > 0 {
 			entry = rev.Ops[0].Entry
 		}
 	}
-	if e, ok := a.set.Entry(entry); ok {
+	if e, ok := a.book.Setting().Entry(entry); ok {
 		a.showEntry(e)
 	}
 }

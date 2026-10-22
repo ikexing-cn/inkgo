@@ -74,7 +74,7 @@ func (a *App) foreshadows() []workspace.Foreshadow {
 	if w.ed != nil {
 		current, live = w.node, liveMarks(w.ed.Doc)
 	}
-	return w.tree.Foreshadows(w.marks, current, live)
+	return a.book.Tree().Foreshadows(a.book.Marks(), current, live)
 }
 
 func markID() string {
@@ -335,7 +335,7 @@ func (a *App) forePopover(c *ui.Context) {
 		})
 		return
 	}
-	list, here := w.tree.ForeshadowCandidates(a.foreshadows(), w.node, f.payQuery)
+	list, here := a.book.Tree().ForeshadowCandidates(a.foreshadows(), w.node, f.payQuery)
 	if !slices.ContainsFunc(list, func(x workspace.Foreshadow) bool { return x.ID == f.pick }) {
 		f.pick = ""
 		if len(list) > 0 {

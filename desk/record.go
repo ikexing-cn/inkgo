@@ -259,7 +259,7 @@ func (a *App) recordWhere(r workspace.Record) string {
 		}
 		return "已删除的讨论"
 	}
-	if n, ok := a.write.tree.Node(r.Chapter); ok {
+	if n, ok := a.book.Tree().Node(r.Chapter); ok {
 		return n.Title
 	}
 	return "已删除的章节"

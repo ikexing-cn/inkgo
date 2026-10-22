@@ -179,7 +179,7 @@ func (a *App) beside() *aiport.Beside {
 	if a.page != pageWrite || !a.doc.attach || w.node == "" || w.lost {
 		return nil
 	}
-	n, ok := w.tree.Node(w.node)
+	n, ok := a.book.Tree().Node(w.node)
 	if !ok {
 		return nil
 	}
@@ -212,7 +212,7 @@ func (a *App) quoteToTalk() {
 		return
 	}
 	title := ""
-	if n, ok := w.tree.Node(w.node); ok {
+	if n, ok := a.book.Tree().Node(w.node); ok {
 		title = n.Title
 	}
 	a.quotes = append(a.quotes, workspace.Quote{Chapter: w.node, Title: title, Text: text})
@@ -237,7 +237,7 @@ func (a *App) quoteBlock(c *ui.Context, q workspace.Quote, key string, remove fu
 		ui.Box(c).Width(3).Radius(rRound).Background(a.pal.ink.Alpha(0.55)).Shrink(0)
 		ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
 			title := q.Title // as it was named then, unless the tree knows it now
-			if n, ok := a.write.tree.Node(q.Chapter); ok {
+			if n, ok := a.book.Tree().Node(q.Chapter); ok {
 				title = n.Title
 			}
 			ui.Text(c, "《"+title+"》").FontSize(fsNote).TextColor(a.pal.ink)
@@ -259,7 +259,7 @@ func (a *App) findInChapter(chapter, text string) {
 		a.write.entered = true
 		a.enterWriting()
 	}
-	if _, ok := a.write.tree.Node(chapter); !ok {
+	if _, ok := a.book.Tree().Node(chapter); !ok {
 		a.SetError(errors.New("该章已不存在"))
 		return
 	}

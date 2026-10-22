@@ -12,7 +12,7 @@ func (a *App) categories(c *ui.Context) {
 	t := a.pal.theme
 	busy := a.held()
 	counts := map[string]int{}
-	for _, e := range a.set.Entries {
+	for _, e := range a.book.Setting().Entries {
 		if e.Place != workspace.PlaceDropped {
 			counts[e.Category]++
 		}

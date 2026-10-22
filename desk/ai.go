@@ -109,8 +109,8 @@ func (a *App) openDraft() {
 	a.flush()
 	w.draftOpen, w.words, w.draftMode = true, "", draftAppend
 	w.draftCards = 0
-	if p, err := a.Store.Plan(); err == nil {
-		for _, card := range p.Cards {
+	if err := a.book.ReloadPlan(); err == nil {
+		for _, card := range a.book.Plan().Cards {
 			if card.Chapter == w.node {
 				w.draftCards++
 			}

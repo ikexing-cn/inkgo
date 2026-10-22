@@ -43,10 +43,10 @@ type planRow struct {
 
 func (a *App) planGeometry(c *ui.Context) *planGeometry {
 	p := &a.plan
-	if g := p.geometry; g != nil && g.root == a.write.tree.Root && g.query == trim(p.query) && g.editing == p.outlineID {
+	if g := p.geometry; g != nil && g.root == a.book.Tree().Root && g.query == trim(p.query) && g.editing == p.outlineID {
 		return g
 	}
-	g := &planGeometry{root: a.write.tree.Root, query: trim(p.query), editing: p.outlineID, lanes: map[string]float32{}}
+	g := &planGeometry{root: a.book.Tree().Root, query: trim(p.query), editing: p.outlineID, lanes: map[string]float32{}}
 	_, unit := c.MeasureText(0, ui.Span{Text: "字", Size: fsBody})
 	textHeight := func(text string, width float32, limit int) float32 {
 		spans := marked(text, trim(p.query), a.pal.ink)
@@ -84,7 +84,7 @@ func (a *App) planGeometry(c *ui.Context) *planGeometry {
 	}
 	var block func(*workspace.Node)
 	block = func(folder *workspace.Node) {
-		if folder == a.write.tree.Root {
+		if folder == a.book.Tree().Root {
 			for _, n := range folder.Children {
 				if n.Folder {
 					block(n)
@@ -100,24 +100,24 @@ func (a *App) planGeometry(c *ui.Context) *planGeometry {
 				}
 			}
 		}
-		if folder != a.write.tree.Root && (g.query == "" || len(shown) > 0 || a.planNodeFound(folder)) {
+		if folder != a.book.Tree().Root && (g.query == "" || len(shown) > 0 || a.planNodeFound(folder)) {
 			var cards []workspace.Card
 			for _, n := range chapters {
 				cards = append(cards, a.cardsOf(n.ID)...)
 			}
-			h := float32(16+12+1+4+4) + fsGroup*lhTight + textHeight(p.gists[folder.ID], planGistWidth-8, 3)
+			h := float32(16+12+1+4+4) + fsGroup*lhTight + textHeight(a.book.Outlines()[folder.ID], planGistWidth-8, 3)
 			if p.outlineID == folder.ID {
 				h += hControl * 3
 			}
 			appendRow(planRow{node: folder, kind: 1, height: h, count: len(chapters), when: storyWhen(cards)})
 		}
-		if folder == a.write.tree.Root && len(shown) > 0 {
+		if folder == a.book.Tree().Root && len(shown) > 0 {
 			appendRow(planRow{kind: 2, height: 16 + 12 + fsGroup*lhTight})
 		}
 		for _, n := range shown {
 			cards := a.cardsOf(n.ID)
 			when := storyWhen(cards)
-			h := float32(32+4+4+1) + fsBody*lhBody + textHeight(p.gists[n.ID], planChapterWidth-24-12-8, 3)
+			h := float32(32+4+4+1) + fsBody*lhBody + textHeight(a.book.Outlines()[n.ID], planChapterWidth-24-12-8, 3)
 			if when != "" {
 				h += 4 + fsNote*lhBody
 			}
@@ -139,12 +139,12 @@ func (a *App) planGeometry(c *ui.Context) *planGeometry {
 			appendRow(planRow{node: n, height: max(planRowMinHeight, h), when: when})
 		}
 		for _, n := range folder.Children {
-			if n.Folder && folder != a.write.tree.Root {
+			if n.Folder && folder != a.book.Tree().Root {
 				block(n)
 			}
 		}
 	}
-	block(a.write.tree.Root)
+	block(a.book.Tree().Root)
 	p.geometry = g
 	return g
 }
@@ -155,7 +155,7 @@ func (a *App) planReveal(g *planGeometry, width, height float32) {
 	if !p.reveal {
 		return
 	}
-	e, ok := p.data.Card(p.seen)
+	e, ok := a.book.Plan().Card(p.seen)
 	if !ok {
 		return
 	}
@@ -170,7 +170,7 @@ func (a *App) planReveal(g *planGeometry, width, height float32) {
 				break
 			}
 		}
-		line := slices.IndexFunc(p.data.Lines, func(l workspace.PlotLine) bool { return l.ID == e.Line })
+		line := slices.IndexFunc(a.book.Plan().Lines, func(l workspace.PlotLine) bool { return l.ID == e.Line })
 		if line >= 0 {
 			p.scroll[0].X = planOffset(p.scroll[0].X, width-planChapterWidth, float32(line*planCardWidth), planCardWidth)
 		}

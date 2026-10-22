@@ -187,7 +187,7 @@ func (a *App) chapterOpen() (open, busy bool) {
 	if a.Store == nil || a.page != pageWrite || w.ed == nil {
 		return false, false
 	}
-	if n, ok := w.tree.Node(w.node); !ok || n.Folder {
+	if n, ok := a.book.Tree().Node(w.node); !ok || n.Folder {
 		return false, false
 	}
 	return true, w.ed.ReadOnly() || w.lost || w.external != nil

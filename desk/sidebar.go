@@ -13,11 +13,7 @@ import (
 type dragNode string
 
 func (a *App) loadTree() error {
-	t, err := a.Store.Chapters()
-	if err == nil {
-		a.write.tree = t
-	}
-	return err
+	return a.book.ReloadTree()
 }
 
 func nodeIcon(n *workspace.Node) *ui.SVG {
@@ -40,7 +36,7 @@ func (a *App) chapterTree(c *ui.Context) {
 		}
 	})
 	ui.Scroll(c.Key("chapters")).FillWidth().Grow(1).Gap(2).Children(func() {
-		if w.tree.Root == nil {
+		if a.book.Tree().Root == nil {
 			return
 		}
 		var rows func(ns []*workspace.Node, depth int)
@@ -52,11 +48,11 @@ func (a *App) chapterTree(c *ui.Context) {
 				}
 			}
 		}
-		rows(w.tree.Root.Children, 0)
+		rows(a.book.Tree().Root.Children, 0)
 		// Dropping below the rows puts a node at the end of the top level.
 		end := ui.Box(c).FillWidth().Height(40)
 		if v, ok := ui.Drop[dragNode](end); ok {
-			a.warn(a.Store.MoveChapter(string(v), "", len(w.tree.Root.Children)))
+			a.warn(a.Store.MoveChapter(string(v), "", len(a.book.Tree().Root.Children)))
 			a.warn(a.loadTree())
 		}
 	})
@@ -160,7 +156,7 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 			glyph(c, nodeIcon(n), iconSm, fg)
 		}
 		ui.Text(c, n.Title).FontSize(fsControl).FontWeight(weight).TextColor(fg).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
-		if k := w.wordsIn(n); k > 0 {
+		if k := wordsIn(a.book.Counts(), n); k > 0 {
 			ui.Text(c, strings.ReplaceAll(strings.TrimSuffix(words(k), "字"), " ", "")).FontSize(fsSmall).TextColor(a.pal.faint)
 		}
 	})
@@ -183,7 +179,7 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 // brought out first: from a folded folder, and from focus mode.
 func (a *App) renameOpen() {
 	w := &a.write
-	n, ok := w.tree.Node(w.node)
+	n, ok := a.book.Tree().Node(w.node)
 	if !ok {
 		return
 	}
@@ -224,7 +220,7 @@ func (a *App) nodeMenu(m *menu, n *workspace.Node) {
 	// Where else it can go: not where it is, nor inside itself.
 	var into []*workspace.Node
 	var depths []int
-	w.tree.Walk(func(f *workspace.Node, depth int) {
+	a.book.Tree().Walk(func(f *workspace.Node, depth int) {
 		if f.Folder && f != n.Parent && !f.Within(n) {
 			into, depths = append(into, f), append(depths, depth)
 		}
@@ -232,7 +228,7 @@ func (a *App) nodeMenu(m *menu, n *workspace.Node) {
 	if top := n.Parent.Parent != nil; top || len(into) > 0 {
 		m.Head("移到")
 		if top {
-			m.Item("最上层").Do(func() { a.move(n.ID, "", len(w.tree.Root.Children)) })
+			m.Item("最上层").Do(func() { a.move(n.ID, "", len(a.book.Tree().Root.Children)) })
 		}
 		for i, f := range into {
 			m.Item(strings.Repeat("　", depths[i]) + f.Title).Do(func() { a.move(n.ID, f.ID, len(f.Children)) })
@@ -290,7 +286,7 @@ func (a *App) rename(id string) {
 // newNode adds a document, or a folder, beside the node shown, or inside
 // it when it is a folder, and has the author name it.
 func (a *App) newNode(folder bool) {
-	n, _ := a.write.tree.Node(a.write.node)
+	n, _ := a.book.Tree().Node(a.write.node)
 	a.newNodeAt(folder, n)
 }
 
@@ -321,7 +317,7 @@ func (a *App) newNodeAt(folder bool, n *workspace.Node) {
 	// Numbered like the one before, the title is ready to go on with its
 	// name: 第四章 名单 gives 第五章.
 	typed := ""
-	if next := w.tree.TitleAfter(id); err == nil && next != "" {
+	if next := a.book.Tree().TitleAfter(id); err == nil && next != "" {
 		title, typed = next, next+" "
 		if err = a.Store.RenameChapter(id, title); err == nil {
 			err = a.loadTree()
@@ -334,9 +330,7 @@ func (a *App) newNodeAt(folder bool, n *workspace.Node) {
 	if parent != "" {
 		w.folded[parent] = false
 	}
-	if w.counts == nil {
-		w.counts = map[string]int{}
-	}
+	a.book.SetCount(id, 0)
 	a.openNode(id)
 	w.focus = false
 	a.showTree()

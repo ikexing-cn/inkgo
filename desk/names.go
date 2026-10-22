@@ -18,7 +18,7 @@ import (
 // entities are the names that complete.
 func (a *App) entities() []editor.Entity {
 	var out []editor.Entity
-	for _, e := range a.set.Entries {
+	for _, e := range a.book.Setting().Entries {
 		if e.Place != workspace.PlaceBody || len(e.Names) == 0 || !slices.Contains(workspace.NameCategories, e.Category) {
 			continue
 		}
@@ -40,13 +40,13 @@ func (a *App) feedNames() {
 	if w.ed == nil {
 		return
 	}
-	if w.named != w.ed || w.namedRevs != len(a.set.Revisions) {
-		w.named, w.namedRevs = w.ed, len(a.set.Revisions)
+	if w.named != w.ed || w.namedRevs != len(a.book.Setting().Revisions) {
+		w.named, w.namedRevs = w.ed, len(a.book.Setting().Revisions)
 		w.ed.SetEntities(a.entities())
 	}
 	var links []editor.NameLink
 	if !a.shelf.NoNames {
-		for _, e := range a.set.Entries {
+		for _, e := range a.book.Setting().Entries {
 			if e.Place == workspace.PlaceBody {
 				for _, n := range e.Names {
 					links = append(links, editor.NameLink{Name: n, Entry: e.ID})
@@ -64,7 +64,7 @@ func (a *App) seeName(id string) {
 
 // named reports whether some entry already has name.
 func (a *App) named(name string) bool {
-	return slices.ContainsFunc(a.set.Entries, func(e workspace.Entry) bool {
+	return slices.ContainsFunc(a.book.Setting().Entries, func(e workspace.Entry) bool {
 		return e.Place != workspace.PlaceDropped && slices.Contains(e.Names, name)
 	})
 }

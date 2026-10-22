@@ -39,7 +39,7 @@ func (a *App) bookHits(q string) []bookHit {
 		w.texts[w.node] = w.ed.Doc.String()
 	}
 	var hits []bookHit
-	w.tree.Walk(func(n *workspace.Node, _ int) {
+	a.book.Tree().Walk(func(n *workspace.Node, _ int) {
 		if n.Folder {
 			return
 		}
@@ -200,8 +200,8 @@ func (a *App) replaceInBook() {
 				a.warn(err)
 				break
 			}
-			if w.counts != nil {
-				w.counts[h.ID] = workspace.Count(doc.String())
+			if a.book.Counts() != nil {
+				a.book.SetCount(h.ID, workspace.Count(doc.String()))
 			}
 		}
 		chapters, total = chapters+1, total+n

@@ -80,7 +80,7 @@ var (
 			if !writingPage(a) || a.write.renaming != "" {
 				return false
 			}
-			_, shown := a.write.tree.Node(a.write.node) // a folder is renamed too
+			_, shown := a.book.Tree().Node(a.write.node) // a folder is renamed too
 			return shown
 		},
 		when: func(a *App) bool { return a.write.renaming == "" },

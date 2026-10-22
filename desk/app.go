@@ -11,6 +11,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/aiport"
+	"writer/desk/book"
 	"writer/editor"
 	"writer/internal/textclip"
 	"writer/shelf"
@@ -91,6 +92,9 @@ const flashFor = 3 * time.Second
 
 type App struct {
 	Store *workspace.Store
+	// book is the work's content as the view reads it; nil while no work is
+	// open. It is used on the view thread only.
+	book *book.Book
 	// ai is all the AI does: what sends goes through it alone.
 	ai aiport.Service
 	// PickFolder shows a native folder dialog; it runs off the UI thread.
@@ -136,8 +140,7 @@ type App struct {
 	titles            map[string]string
 	blank             map[string]bool // talks nothing was said in yet: not listed, and a new talk takes one
 	events            []workspace.Event
-	set               workspace.Setting
-	seen              int // revisions of set the view has flashed
+	seen              int // revisions of the setting the view has flashed
 	flash             map[string]time.Time
 	input             string
 	source            *editor.Editor
@@ -219,6 +222,7 @@ func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 		a.Store.Close()
 	}
 	a.Store, a.path = s, path
+	a.book = book.Open(s)
 	a.remember(true)
 	a.titles, a.blank = map[string]string{}, map[string]bool{}
 	a.resetView()
@@ -254,6 +258,7 @@ func (a *App) closeWork() {
 	a.leaveWork()
 	a.SetError(a.Store.Close())
 	a.Store = nil
+	a.book = nil
 	a.path, a.name = "", ""
 	a.resetView()
 	a.lookForBooks()
@@ -291,7 +296,7 @@ func (a *App) refresh() error {
 	}
 	defer a.replanExport()
 	var err error
-	if a.set, err = a.Store.Setting(); err != nil {
+	if err = a.book.ReloadSetting(); err != nil {
 		return err
 	}
 	a.flashNew()
@@ -317,19 +322,14 @@ func (a *App) refresh() error {
 	return nil
 }
 
-// nodeTitle is the title of the chapter of id, as the writing page
-// has the tree or else as the disk has it; "" when the book has none.
+// nodeTitle is the title of the chapter of id, as the book has its tree;
+// "" when the book has none.
 func (a *App) nodeTitle(id string) string {
 	if id == "" {
 		return ""
 	}
-	if n, ok := a.write.tree.Node(id); ok {
+	if n, ok := a.book.Tree().Node(id); ok {
 		return n.Title
-	}
-	if t, err := a.Store.Chapters(); err == nil {
-		if n, ok := t.Node(id); ok {
-			return n.Title
-		}
 	}
 	return ""
 }
@@ -377,13 +377,13 @@ func (a *App) stepped(sv ui.Services, e workspace.Event) {
 // revisions there were when the work opened are not news.
 func (a *App) flashNew() {
 	if a.seen >= 0 {
-		for _, e := range a.set.Entries {
-			if e.Rev > a.seen && a.set.Revisions[e.Rev-1].By == workspace.ByTalk {
+		for _, e := range a.book.Setting().Entries {
+			if e.Rev > a.seen && a.book.Setting().Revisions[e.Rev-1].By == workspace.ByTalk {
 				a.flash[e.ID] = time.Now()
 			}
 		}
 	}
-	a.seen = len(a.set.Revisions)
+	a.seen = len(a.book.Setting().Revisions)
 }
 
 // All state visible to the view is changed on the view thread. Workers own the

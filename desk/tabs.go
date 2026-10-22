@@ -77,7 +77,7 @@ func (a *App) unpark(s *sheet) {
 func (a *App) keepTabs() {
 	w := &a.write
 	w.tabs = slices.DeleteFunc(w.tabs, func(id string) bool {
-		if _, ok := w.tree.Node(id); ok {
+		if _, ok := a.book.Tree().Node(id); ok {
 			return false
 		}
 		if id == w.node && w.lost {
@@ -128,7 +128,7 @@ func (a *App) unsaved() bool {
 // before it: the folders it is in.
 func (a *App) tabTitle(id string) (title, path string, folder bool) {
 	w := &a.write
-	n, ok := w.tree.Node(id)
+	n, ok := a.book.Tree().Node(id)
 	if !ok {
 		if s := w.parked[id]; s != nil {
 			return s.lostTitle, "", false

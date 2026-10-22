@@ -49,12 +49,10 @@ func (a *App) enterWriting() {
 		a.warn(err)
 		return
 	}
-	counts, err := a.Store.Counts()
-	a.warn(err)
-	w.counts = counts
+	a.warn(a.book.ReloadCounts())
 	w.checked = time.Time{}
 	a.keepTabs()
-	if _, ok := w.tree.Node(w.node); ok {
+	if _, ok := a.book.Tree().Node(w.node); ok {
 		if w.ed == nil && w.renaming == "" {
 			a.openNode(w.node)
 		}
@@ -64,7 +62,7 @@ func (a *App) enterWriting() {
 		return // every tab was closed: none opens by itself
 	}
 	w.node = ""
-	w.tree.Walk(func(n *workspace.Node, _ int) {
+	a.book.Tree().Walk(func(n *workspace.Node, _ int) {
 		if w.node == "" && !n.Folder {
 			w.node = n.ID
 		}
@@ -153,7 +151,7 @@ func (a *App) openNode(id string) {
 		a.savePrefs()
 		return
 	}
-	n, ok := w.tree.Node(id)
+	n, ok := a.book.Tree().Node(id)
 	if !ok {
 		w.node = ""
 		return
@@ -206,7 +204,7 @@ func (a *App) stepHistory(forward bool) {
 	for len(*from) > 0 {
 		id := (*from)[len(*from)-1]
 		*from = (*from)[:len(*from)-1]
-		if _, ok := w.tree.Node(id); !ok || id == w.node {
+		if _, ok := a.book.Tree().Node(id); !ok || id == w.node {
 			continue
 		}
 		if w.node != "" {
@@ -298,7 +296,7 @@ func (a *App) keepCaret() {
 	}
 	w.carets[w.node] = w.ed.Caret()
 	for id := range w.carets {
-		if _, ok := w.tree.Node(id); !ok && w.tree.Root != nil {
+		if _, ok := a.book.Tree().Node(id); !ok && a.book.Tree().Root != nil {
 			delete(w.carets, id) // gone from the tree
 		}
 	}
@@ -311,7 +309,7 @@ func (a *App) stepChapter(d int) {
 	w := &a.write
 	var order []string
 	at, folder := -1, false
-	w.tree.Walk(func(n *workspace.Node, _ int) {
+	a.book.Tree().Walk(func(n *workspace.Node, _ int) {
 		if n.ID == w.node {
 			at, folder = len(order), n.Folder
 		}
