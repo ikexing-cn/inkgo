@@ -87,7 +87,7 @@ Status: proposed
   - 卡片和情节线：写后重读 plan（现在也是每次写完读一遍）；
   - 设定的修订和删分类：写后重读设定（现在的 `refresh` 本来也读）。
   检查做完一章、改一个伏笔，不再整本重读。
-- **页面自己的**不算进 `Book`：大纲页正在改还没存的字（`outlineText`、`outlineID`、`loaded`、`loadErr`、`checked`），检查队列的 `Pending`、`Running`、`Failed`、`Tried`，还有展开、选中、滚动这些看的状态。`k.queue.All` 是 `Book` 那份检查结果，队列借它来算，改还是 `Book` 改。
+- **页面自己的**不算进 `Book`：大纲页正在改还没存的字（`outlineText`、`outlineID`、`loaded`、`loadErr`、`checked`），检查队列的 `Pending`、`Running`、`Failed`、`Tried`，还有展开、选中、滚动这些看的状态。检查队列不再存一份检查结果（原来的 `CheckQueue.All`）：要看结果的几处由 `desk` 把 `Book` 那份递进去（`Keep`、`EnqueueStale`、`AfterPause`，和改成函数的 `DueChapters`、`PrunableChapters`），检查结果只有 `Book` 一个主人。
 - **派生数据**按版本号缓存：
   - 用一个小的泛型 `cached[K, V]`（`get(key, build)`）。
   - 键是书的版本号；要看正在写的那一章时，再加上编辑器的版本号。

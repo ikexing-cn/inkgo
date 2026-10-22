@@ -7,8 +7,9 @@ import (
 	"time"
 )
 
-// CheckQueue is the pending and completed checks for one open work.
-// The caller owns execution, persistence and cancellation.
+// CheckQueue is the pending checks for one open work. The caller owns
+// execution, persistence and cancellation, and holds the stored results:
+// each method that weighs them is given them, by chapter.
 type CheckQueue struct {
 	// Pending is the chapters waiting in submission order.
 	Pending []string
@@ -18,13 +19,12 @@ type CheckQueue struct {
 	Failed map[string]string
 	// Tried holds the prose hash last submitted after a writing pause.
 	Tried map[string]string
-	// All holds stored results; the caller loads, updates and saves them.
-	All map[string]Check
 }
 
-// Keep returns a replacement result with the author's decisions preserved.
-// Cancelled and failed results return false; failures are recorded for display.
-func (c *CheckQueue) Keep(chapter string, result Check, err error) (Check, bool) {
+// Keep returns a replacement result with the author's decisions in had,
+// the result stored, preserved. Cancelled and failed results return false;
+// failures are recorded for display.
+func (c *CheckQueue) Keep(chapter string, had, result Check, err error) (Check, bool) {
 	if errors.Is(err, context.Canceled) {
 		return Check{}, false
 	}
@@ -33,15 +33,15 @@ func (c *CheckQueue) Keep(chapter string, result Check, err error) (Check, bool)
 		return Check{}, false
 	}
 	delete(c.Failed, chapter)
-	return result.KeepMeant(c.All[chapter]), true
+	return result.KeepMeant(had), true
 }
 
 // EnqueueStale submits changed or unchecked prose once it is long enough.
-func (c *CheckQueue) EnqueueStale(chapter, text string, minimum int) {
+func (c *CheckQueue) EnqueueStale(all map[string]Check, chapter, text string, minimum int) {
 	if Count(text) < minimum {
 		return
 	}
-	if had, ok := c.All[chapter]; !ok || had.Stale(text) {
+	if had, ok := all[chapter]; !ok || had.Stale(text) {
 		c.Enqueue(chapter)
 	}
 }
@@ -55,11 +55,12 @@ func (c *CheckQueue) Enqueue(chapter string) {
 	delete(c.Failed, chapter)
 }
 
-// Prunable lists chapters with findings the author has not called meant.
-// Read only those chapters before pruning all stored results.
-func (c *CheckQueue) Prunable() []string {
+// PrunableChapters lists the chapters of all with findings the author has
+// not called meant. Read only those chapters before pruning all stored
+// results.
+func PrunableChapters(all map[string]Check) []string {
 	var out []string
-	for id, had := range c.All {
+	for id, had := range all {
 		if !slices.ContainsFunc(had.Findings, func(f Finding) bool { return !f.Meant }) {
 			continue
 		}
@@ -107,15 +108,16 @@ func (c *CheckQueue) Fail(chapter string, err error) {
 	c.Failed[chapter] = err.Error()
 }
 
-// Due lists long-enough chapters never checked or changed since, in tree order.
-func (c *CheckQueue) Due(tree Tree, texts map[string]string, minimum int) []string {
+// DueChapters lists long-enough chapters never checked, by all, or changed
+// since, in tree order.
+func DueChapters(all map[string]Check, tree Tree, texts map[string]string, minimum int) []string {
 	var due []string
 	tree.Walk(func(n *Node, _ int) {
 		text, ok := texts[n.ID]
 		if n.Folder || !ok || Count(text) < minimum {
 			return
 		}
-		if had, ok := c.All[n.ID]; !ok || had.Stale(text) {
+		if had, ok := all[n.ID]; !ok || had.Stale(text) {
 			due = append(due, n.ID)
 		}
 	})
@@ -127,14 +129,15 @@ func (c *CheckQueue) Due(tree Tree, texts map[string]string, minimum int) []stri
 const checkPause = 8 * time.Second
 
 // AfterPause submits saved prose after eight seconds without edits, at most
-// once per prose hash, including failed attempts. The caller checks its mode,
-// whether the editor is saved, and whether a setting is available.
-func (c *CheckQueue) AfterPause(chapter, text string, minimum int, edited, now time.Time) {
+// once per prose hash, including failed attempts, unless had, the result
+// stored, is of it. The caller checks its mode, whether the editor is saved,
+// and whether a setting is available.
+func (c *CheckQueue) AfterPause(chapter, text string, had Check, minimum int, edited, now time.Time) {
 	if now.Sub(edited) < checkPause {
 		return
 	}
 	hash := ProseHash(text)
-	if c.Tried[chapter] == hash || c.All[chapter].Of == hash || Count(text) < minimum {
+	if c.Tried[chapter] == hash || had.Of == hash || Count(text) < minimum {
 		return
 	}
 	if c.Tried == nil {

@@ -33,7 +33,7 @@ type checks struct {
 	queue  workspace.CheckQueue
 	runner checkRunner
 
-	of   *workspace.Store // the work all is of
+	of   *workspace.Store // the work the queue is of
 	when string
 
 	tab      int
@@ -70,7 +70,6 @@ func entryTitle(e workspace.Entry) string {
 func (a *App) loadChecks() {
 	k := &a.ck
 	a.warn(a.book.ReloadChecks())
-	k.queue.All = a.book.Checks()
 	a.warn(a.book.ReloadTree())
 	k.doubtKey = ""
 }
@@ -98,14 +97,14 @@ func (a *App) leaveCheck() {
 	if !changed || k.when != checkOnLeave || !a.hasSetting() {
 		return
 	}
-	k.queue.EnqueueStale(w.node, w.saved, a.ai.MinCheck())
+	k.queue.EnqueueStale(a.book.Checks(), w.node, w.saved, a.ai.MinCheck())
 }
 
 // pruneStoredCheck drops from chapter's check what its prose, text, no longer
 // says and the author did not call meant.
 func (a *App) pruneStoredCheck(chapter, text string) {
 	k := &a.ck
-	had, ok := k.queue.All[chapter]
+	had, ok := a.book.Checks()[chapter]
 	if !ok {
 		return
 	}
@@ -123,7 +122,7 @@ func (a *App) pruneStoredCheck(chapter, text string) {
 // pruneStoredChecks does so for every chapter with something found, as of the
 // disk.
 func (a *App) pruneStoredChecks() {
-	for _, id := range a.ck.queue.Prunable() {
+	for _, id := range workspace.PrunableChapters(a.book.Checks()) {
 		if ch, err := a.Store.ReadChapter(id); err == nil {
 			a.pruneStoredCheck(id, ch.Text)
 		}
@@ -161,7 +160,7 @@ func (a *App) pollChecks(c *ui.Context) {
 // while it ran.
 func (a *App) saveCheckResult(d checkDone) {
 	k := &a.ck
-	result, keep := k.queue.Keep(d.chapter, d.check, d.err)
+	result, keep := k.queue.Keep(d.chapter, a.book.Checks()[d.chapter], d.check, d.err)
 	if !keep {
 		return
 	}
@@ -188,7 +187,7 @@ func (a *App) checkWhilePausing() {
 	if k.when != checkOnPause || !a.aiOn() || w.ed == nil || w.node == "" || w.lost || w.ed.Doc.Version() != w.savedVer || !a.hasSetting() {
 		return
 	}
-	k.queue.AfterPause(w.node, w.saved, a.ai.MinCheck(), w.ed.LastEdit(), time.Now())
+	k.queue.AfterPause(w.node, w.saved, a.book.Checks()[w.node], a.ai.MinCheck(), w.ed.LastEdit(), time.Now())
 }
 
 // liveText is the open chapter's text as it is being written.
@@ -208,11 +207,10 @@ func (a *App) liveText() (string, bool) {
 // order: with meant, also what the author said is as meant. A new name the
 // author left out of the setting once is left out in every chapter.
 func (a *App) checkItems(meant bool) []checkItem {
-	k := &a.ck
 	tree := a.book.Tree()
 	live, open := a.liveText()
 	left := map[string]bool{}
-	for _, had := range k.queue.All {
+	for _, had := range a.book.Checks() {
 		for _, f := range had.Findings {
 			if f.Kind == workspace.FindNew && f.Meant {
 				left[f.Name] = true
@@ -226,7 +224,7 @@ func (a *App) checkItems(meant bool) []checkItem {
 			return
 		}
 		here := open && nd.ID == a.write.node
-		for _, f := range k.queue.All[nd.ID].Findings {
+		for _, f := range a.book.Checks()[nd.ID].Findings {
 			if f.Meant && !meant || here && !strings.Contains(live, f.Quote) {
 				continue
 			}
@@ -283,7 +281,7 @@ func (a *App) listedChecks() []checkItem {
 // setMeant records that the author means what it found.
 func (a *App) setMeant(it checkItem) {
 	k := &a.ck
-	had := k.queue.All[it.node]
+	had := a.book.Checks()[it.node]
 	for i := range had.Findings {
 		if had.Findings[i].ID == it.f.ID {
 			had.Findings[i].Meant = true
@@ -304,7 +302,7 @@ func (a *App) checkDue() []string {
 		a.warn(err)
 		return nil
 	}
-	return a.ck.queue.Due(a.book.Tree(), texts, a.ai.MinCheck())
+	return workspace.DueChapters(a.book.Checks(), a.book.Tree(), texts, a.ai.MinCheck())
 }
 
 // openCheck shows the page of the checks, at finding id when given.
@@ -383,7 +381,7 @@ func (a *App) checkState() (line string, found int, can bool, tip string) {
 	}
 	const name = "本章"
 	text, _ := a.liveText()
-	had, ok := k.queue.All[w.node]
+	had, ok := a.book.Checks()[w.node]
 	switch {
 	case k.queue.Running == w.node:
 		return "正在检查" + name + "…", 0, false, ""
@@ -573,7 +571,7 @@ func (a *App) checkProgress(c *ui.Context) {
 		return
 	}
 	last, lastTitle, done, failed := 0, "", 0, 0
-	for id := range k.queue.All {
+	for id := range a.book.Checks() {
 		no, title := a.checkAt(id)
 		if no > last {
 			last, lastTitle = no, title
@@ -656,7 +654,7 @@ func (a *App) checkEmpty(c *ui.Context, all int) {
 		words, how = "这一类没有待处理的", ""
 	case !a.hasSetting():
 		words, how = "设定为空", "请先在讨论中确定设定，才能对照检查。"
-	case len(k.queue.All) == 0 && k.queue.Running == "":
+	case len(a.book.Checks()) == 0 && k.queue.Running == "":
 		words, how = "尚未检查", "点击左上角「检查全书」，或写完一章后自动检查。"
 	case k.queue.Running != "":
 		words, how = "正在检查…", "检查结果将显示在左侧。"

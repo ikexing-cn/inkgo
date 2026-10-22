@@ -53,7 +53,7 @@ Status: implemented
 
 不存"已解决"的状态，每次按当前的正文和设定算：
 
-- 原句不在正文里了：算改好了。正在写的这一章按编辑器里的文字算，改掉的当下就不再列；离开这一章、进入「检查」页时把这些条目从文件里删掉（`workspace.Check.Prune` 决定保留哪些，`desk` 读写对应文件；批量修剪先用 `CheckQueue.Prunable` 选章）。
+- 原句不在正文里了：算改好了。正在写的这一章按编辑器里的文字算，改掉的当下就不再列；离开这一章、进入「检查」页时把这些条目从文件里删掉（`workspace.Check.Prune` 决定保留哪些，`desk` 读写对应文件；批量修剪先用 `workspace.PrunableChapters` 选章）。
 - `conflict`：对应的条目没了，或者 `says` 不在条目里了，算设定改过了。
 - `name`：设定里没有这个名字了，不再列。
 - `new`：设定里有了这个名字，不再列。
@@ -73,7 +73,7 @@ Status: implemented
 - **正文里**：有问题的原句下面一条浅色虚线（`Editor.SetDoubts`，不进撤销、不存盘，和伏笔的点线分开）。
 - **设置 · 提醒与检查**多一组「检查正文和设定」，同样三个选项。伏笔那一行的文字顺便改成设计稿现在的说法。
 - **待处理**多一组「设定对不上」，排在最前，点一条去「检查」页的那一条。「全部忽略」只是不在待处理里列，「检查」页里还在。
-- 完成结果由 `CheckQueue.Keep` 决定是否保留，并用 `Check.KeepMeant` 合并作者在执行期间作出的决定，再由 `desk` 保存。取消结果不保存；换作品后收到的旧作品结果不保存。结果的正文哈希保留检查时的值，正文变动后由 `Check.Stale` 判断过期；设定变化按显示问题时的现有过滤规则处理。队列规则不读盘或时钟，停笔判断使用调用方传入的编辑时间和当前时间，间隔由队列旁的 `checkPause` 定义。界面通过 `WorkChanged`、`Finished`、`CannotStart`、`Stop` 更新队列状态，只直接读写存盘结果 `All`。
+- 完成结果由 `CheckQueue.Keep` 决定是否保留，并用 `Check.KeepMeant` 合并作者在执行期间作出的决定，再由 `desk` 保存。取消结果不保存；换作品后收到的旧作品结果不保存。结果的正文哈希保留检查时的值，正文变动后由 `Check.Stale` 判断过期；设定变化按显示问题时的现有过滤规则处理。队列规则不读盘或时钟，停笔判断使用调用方传入的编辑时间和当前时间，间隔由队列旁的 `checkPause` 定义。界面通过 `WorkChanged`、`Finished`、`CannotStart`、`Stop` 更新队列状态。存盘的结果原来是队列的 `All`，界面直接读写；2026-10-22 起队列不存它，只在 `desk/book` 的 `Book` 里，`Keep`、`EnqueueStale`、`AfterPause` 和 `DueChapters`、`PrunableChapters` 用到时由界面递进去。
 - 代码：`workspace/check.go`、`workspace/checkqueue.go`、`writing/check.go`、`desk/check.go`、`desk/checkrunner.go`，`editor/paint.go`（虚线），`desk/shell.go`（页面和侧栏）、`desk/write.go`（章末一行、离开时）、`desk/pending.go`、`desk/foreshadow.go`（设置）、`prefs/prefs.go`（`check_when`），`inference/locate.go`、`inference/decode.go`（`Locate`、`Decode`）。
 
 ### 和设计稿不一样的地方

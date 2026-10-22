@@ -315,7 +315,7 @@ func TestCompletedCheckDoesNotLandInAnotherWork(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.ck.of != next || a.ck.queue.Running != "" || len(a.ck.queue.All) != 0 || len(a.ck.queue.Failed) != 0 {
+	if a.ck.of != next || a.ck.queue.Running != "" || len(a.book.Checks()) != 0 || len(a.ck.queue.Failed) != 0 {
 		t.Fatal("an old result changed the new work", a.ck)
 	}
 	if got, err := next.ReadCheck(nextID); err != nil || got.Of != "" {
@@ -341,9 +341,9 @@ func TestCheckResultStaysStaleWhenProseChangesWhileRunning(t *testing.T) {
 	}
 	close(f.hold)
 	until(t, tt, "the old prose result", func() bool {
-		return a.ck.queue.All[id].Of != "" && a.ck.queue.Running == ""
+		return a.book.Checks()[id].Of != "" && a.ck.queue.Running == ""
 	})
-	got := a.ck.queue.All[id]
+	got := a.book.Checks()[id]
 	if got.Of != workspace.ProseHash(before) || !got.Stale(savedText(a)) {
 		t.Fatal("a completed check was relabelled as current", got, savedText(a))
 	}
@@ -391,9 +391,9 @@ func TestAChapterReadInPartIsToldSo(t *testing.T) {
 	if err := tt.Click("立即检查"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the check", func() bool { return a.ck.queue.All[id].Of != "" && a.ck.queue.Running == "" })
+	until(t, tt, "the check", func() bool { return a.book.Checks()[id].Of != "" && a.ck.queue.Running == "" })
 	tt.Frame()
-	read := a.ck.queue.All[id].Read
+	read := a.book.Checks()[id].Read
 	if read <= 0 || read >= 36000 {
 		t.Fatalf("read %d", read)
 	}
@@ -426,7 +426,7 @@ func TestShowingAChapterKeepsWhatItsCheckFound(t *testing.T) {
 	}
 	tt.Frame()
 	k, err := a.Store.ReadCheck(id)
-	if shownChapter(a) != id || err != nil || len(k.Findings) != 1 || len(a.ck.queue.All[id].Findings) != 1 {
+	if shownChapter(a) != id || err != nil || len(k.Findings) != 1 || len(a.book.Checks()[id].Findings) != 1 {
 		t.Fatalf("showing the chapter, what its check found went: %+v %v", k, err)
 	}
 }
