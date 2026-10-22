@@ -146,8 +146,8 @@ func TestATalkOpenedToRewriteKeepsToItsChapter(t *testing.T) {
 	if out := box.lookUp(input{Query: "林晚"}); !strings.Contains(out.text, "左手拧灯座") || strings.Contains(out.text, "没了左手") {
 		t.Fatalf("looked up %s", out.text)
 	}
-	if n, err := Preloaded(e.Store, workspace.AIDraft, two); err != nil || n < 1000 {
-		t.Fatalf("preloaded %d, %v", n, err)
+	if n, err := Preloaded(e.Store, workspace.AIDraft, two); err != nil || n.Tokens < 1000 {
+		t.Fatalf("preloaded %d, %v", n.Tokens, err)
 	}
 }
 

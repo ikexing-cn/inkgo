@@ -123,36 +123,21 @@ const (
 // before the AI looks anything up, and about how much.
 func (a *App) draftNote() string {
 	w := &a.write
-	n, ok := w.tree.Node(w.node)
-	if !ok {
-		return ""
-	}
-	k, err := a.ai.Preloaded(a.Store, workspace.AIDraft, w.node)
+	p, err := a.ai.Preloaded(a.Store, workspace.AIDraft, w.node)
 	if err != nil {
 		return ""
 	}
 	what := "各卷卷纲"
-	if p := n.Parent; p != nil && p.Parent != nil {
+	if p.Outlines == aiport.VolumeChapters {
 		what = "本卷各章章纲"
 	}
-	var last *workspace.Node // the chapter before it
-	done := false
-	w.tree.Walk(func(m *workspace.Node, _ int) {
-		switch {
-		case done:
-		case m == n:
-			done = true
-		case !m.Folder:
-			last = m
-		}
-	})
-	if last != nil && w.counts[last.ID] > 0 {
+	if p.Previous {
 		what = "上一章全文、" + what
 	}
-	if w.draftCards > 0 {
-		what = fmt.Sprintf("本章的 %d 张卡片、", w.draftCards) + what
+	if p.Cards > 0 {
+		what = fmt.Sprintf("本章的 %d 张卡片、", p.Cards) + what
 	}
-	return fmt.Sprintf("将带上%s等，约 %s token；AI 需要时会自己再查。", what, tokens.Round(k))
+	return fmt.Sprintf("将带上%s等，约 %s token；AI 需要时会自己再查。", what, tokens.Round(p.Tokens))
 }
 
 // draft opens a talk to draft the chapter shown from its outline, saying

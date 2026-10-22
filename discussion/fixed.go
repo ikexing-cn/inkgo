@@ -16,12 +16,23 @@ type Fixed struct {
 	Chapter string
 	Title   string // the chapter as the model names it
 	Pieces  []Piece
+	preload Preload
 }
 
 // Piece is a part of what goes with a talk: its text for the model and
 // what the author is told of it.
 type Piece struct {
 	Part, Text, Item string
+}
+
+// Preload describes what the fixed context of a talk carries: the tokens
+// it takes, the chapter's cards, whether the chapter before goes whole, and
+// whether the outlines come from the volume the chapter is in, even when
+// they are all empty.
+type Preload struct {
+	Tokens, Cards int
+	Previous      bool
+	InVolume      bool
 }
 
 // originOf is what the talk of events was opened to do, and the chapter it
@@ -67,6 +78,7 @@ func fixedOf(st *workspace.Store, tree workspace.Tree, origin, chapter string) (
 		add(workspace.PartOutline, head+"\n（这一章没有章纲）", what+"的章："+f.Title)
 	}
 	vol := n.Volume()
+	f.preload.InVolume = vol != nil
 	var ids []string
 	if vol != nil {
 		ids = append(ids, vol.ID)
@@ -99,6 +111,7 @@ func fixedOf(st *workspace.Store, tree workspace.Tree, origin, chapter string) (
 	}
 	if p, err := st.Plan(); err == nil {
 		if rows := chapterCards(p, b, chapter); len(rows) > 0 {
+			f.preload.Cards = len(rows)
 			add(workspace.PartCards, "【本章的卡片】\n"+strings.Join(rows, "\n"), fmt.Sprintf("本章的卡片 %d 张", len(rows)))
 		}
 	}
@@ -126,6 +139,7 @@ func fixedOf(st *workspace.Store, tree workspace.Tree, origin, chapter string) (
 	}
 	if p, ok := tree.Previous(n); ok {
 		if pc, err := st.ReadChapter(p.ID); err == nil && strings.TrimSpace(pc.Text) != "" {
+			f.preload.Previous = true
 			add(workspace.PartPrevious, "【上一章全文："+b.name[p.ID]+"】\n"+pc.Text, fmt.Sprintf("上一章全文：%s %d 字", b.name[p.ID], workspace.Count(pc.Text)))
 		}
 	}
@@ -136,32 +150,32 @@ func fixedOf(st *workspace.Store, tree workspace.Tree, origin, chapter string) (
 	return f, nil
 }
 
-// Preloaded is about how many tokens a talk opened to draft or rewrite
+// Preloaded describes the context a talk opened to draft or rewrite
 // chapter carries before anything is said or looked up: the rules, the
 // setting as it stands at the chapter, and what goes with the chapter.
 // The dialog that opens the talk says it.
-func Preloaded(st *workspace.Store, origin, chapter string) (int, error) {
+func Preloaded(st *workspace.Store, origin, chapter string) (Preload, error) {
 	tree, err := st.Chapters()
 	if err != nil {
-		return 0, err
+		return Preload{}, err
 	}
 	set, err := st.Setting()
 	if err != nil {
-		return 0, err
+		return Preload{}, err
 	}
 	f, err := fixedOf(st, tree, origin, chapter)
 	if err != nil {
-		return 0, err
+		return Preload{}, err
 	}
 	asked, _, err := lay(st.Work(), 1<<30, set, tree, talk{fixed: f})
 	if err != nil {
-		return 0, err
+		return Preload{}, err
 	}
-	n := 0
+	out := f.preload
 	for _, p := range asked.Sent.Parts {
-		n += p.Tokens
+		out.Tokens += p.Tokens
 	}
-	return n, nil
+	return out, nil
 }
 
 // cleanProse is s as a chapter keeps its prose: a line a paragraph, no

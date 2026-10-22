@@ -70,7 +70,7 @@ AI 关着时没有讨论，什么也不发，不用另做。
 
 - `discussion/outline.go` 是 `read_outline` 和 `cardLine`；工具排在 `search_talks` 后面、`note_setting` 前面。大纲读不出来时工具失败，说「大纲文件读不出来」；起草、改写照常，只是不带卡片。工具只读，不写 `outline.json`。
 - `workspace.PartCards` 排在 `PartOutline` 和 `PartOutlines` 之间；「AI 参考内容」写「本章的卡片 N 张」，发送的那一行写「本章的卡片」。`Preloaded` 走 `fixedOf`，起草对话框的 token 数里已经算进卡片。
-- 起草对话框打开时数一次这一章的卡片（`writeView.draftCards`），之后不每帧读文件。
+- 起草对话框打开时在 `desk/ai.go` 的 `openDraft` 数一次这一章的卡片（`writeView.draftCards`），之后不每帧读文件。`discussion.fixedOf` 记录实际带上的卡片数，`Preloaded` 连同 token 数通过端口返回；对话框标题的卡片数使用 `openDraft` 独立数的 `draftCards`，预加载失败也保留，提示里的卡片数写端口返回的实际数量。
 - 检查：
   - `discussion` 的 `TestReadOutline`、`TestReadOutlinePagesAndFailures`：四种查法、序号、未放进章节、回收站里的章、查卷的分组和分页、坏文件、label、不露 ID、不写文件。
   - `discussion` 的 `TestFixedCardsAndPreloaded`：起草和改写多出 `PartCards`，没有卡片或大纲坏了时没有，以及规则里的句子。

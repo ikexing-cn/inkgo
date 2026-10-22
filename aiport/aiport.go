@@ -69,9 +69,11 @@ type Assistant interface {
 	// up, note the setting or propose a change of the prose, and what each
 	// returned.
 	Talk(s *workspace.Store, beside *Beside, progress func(Progress), step func(workspace.Event)) (Talk, error)
-	// Preloaded is about how many tokens a talk opened to draft or rewrite
-	// chapter of s, by origin, sends before anything is said or looked up.
-	Preloaded(s *workspace.Store, origin, chapter string) (int, error)
+	// Preloaded describes what a talk opened to draft or rewrite chapter
+	// of s carries before anything is said or looked up: the tokens, the
+	// chapter's cards, whether the chapter before goes whole, and where
+	// the outlines come from.
+	Preloaded(s *workspace.Store, origin, chapter string) (Preload, error)
 	// Extract takes the words [start, end) of a message of the talk into
 	// the setting under category.
 	Extract(s *workspace.Store, session, message string, start, end int, category string) (workspace.Entry, error)
@@ -86,6 +88,26 @@ type Assistant interface {
 type Service interface {
 	Settings
 	Assistant
+}
+
+// OutlineSource says where the outlines a talk carries before its chapter
+// come from.
+type OutlineSource int
+
+const (
+	// BookVolumes is the outlines of the book's volumes.
+	BookVolumes OutlineSource = iota
+	// VolumeChapters is the outlines of the chapters before this one in its volume.
+	VolumeChapters
+)
+
+// Preload describes a talk's fixed context: the tokens it takes, the
+// chapter's cards carried, whether the chapter before goes whole, and where
+// the outlines come from, even when the outlines are all empty.
+type Preload struct {
+	Tokens, Cards int
+	Previous      bool
+	Outlines      OutlineSource
 }
 
 // Provider is a service of models. Its key is kept apart, by SetKey.

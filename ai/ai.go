@@ -221,9 +221,16 @@ func (s *Service) Talk(st *workspace.Store, beside *aiport.Beside, progress func
 	return talk{e}, nil
 }
 
-func (s *Service) Preloaded(st *workspace.Store, origin, chapter string) (int, error) {
+func (s *Service) Preloaded(st *workspace.Store, origin, chapter string) (aiport.Preload, error) {
 	n, err := discussion.Preloaded(st, origin, chapter)
-	return n, requestError(err)
+	if err != nil {
+		return aiport.Preload{}, requestError(err)
+	}
+	out := aiport.Preload{Tokens: n.Tokens, Cards: n.Cards, Previous: n.Previous, Outlines: aiport.BookVolumes}
+	if n.InVolume {
+		out.Outlines = aiport.VolumeChapters
+	}
+	return out, nil
 }
 
 func (s *Service) Extract(st *workspace.Store, session, message string, start, end int, category string) (workspace.Entry, error) {

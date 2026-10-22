@@ -253,8 +253,8 @@ func TestFixedCardsAndPreloaded(t *testing.T) {
 				t.Fatalf("context %+v, %v", ctx, err)
 			}
 			n, err := Preloaded(e.Store, origin, two)
-			if err != nil || n != baseline+ctx.Sent.Part(workspace.PartCards) {
-				t.Fatalf("preloaded %d, baseline %d, cards %d: %v", n, baseline, ctx.Sent.Part(workspace.PartCards), err)
+			if err != nil || n.Tokens != baseline.Tokens+ctx.Sent.Part(workspace.PartCards) {
+				t.Fatalf("preloaded %d, baseline %d, cards %d: %v", n.Tokens, baseline.Tokens, ctx.Sent.Part(workspace.PartCards), err)
 			}
 			for _, data := range [][]byte{writePlan(t, e.Store, workspace.Plan{Cards: p.Cards[:1]}), []byte(`{broken`)} {
 				if err := os.WriteFile(filepath.Join(e.Store.Root(), "outline.json"), data, 0644); err != nil {
@@ -264,8 +264,8 @@ func TestFixedCardsAndPreloaded(t *testing.T) {
 				if err != nil || slices.ContainsFunc(f.Pieces, func(p Piece) bool { return p.Part == workspace.PartCards }) {
 					t.Fatalf("unexpected cards: %+v, %v", f, err)
 				}
-				if n, err := Preloaded(e.Store, origin, two); err != nil || n != baseline {
-					t.Fatalf("fallback preloaded %d, want %d: %v", n, baseline, err)
+				if n, err := Preloaded(e.Store, origin, two); err != nil || n.Tokens != baseline.Tokens {
+					t.Fatalf("fallback preloaded %d, want %d: %v", n.Tokens, baseline.Tokens, err)
 				}
 			}
 		})

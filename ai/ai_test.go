@@ -23,6 +23,48 @@ import (
 // one without text or a context done.
 type replies []model.Reply
 
+// Preloaded maps the facts the talk read onto the port: its tokens, the
+// chapter's cards, whether the chapter before goes whole, and the outline
+// source.
+func TestPreloadedMapsTheTalksContext(t *testing.T) {
+	st, err := workspace.Create(t.TempDir(), "雨城", "网文")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	vol, err := st.NewChapter("", "第一卷", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	one, err := st.NewChapter(vol, "第一章", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.WriteChapter(one, "上一章的正文。", nil); err != nil {
+		t.Fatal(err)
+	}
+	two, err := st.NewChapter(vol, "第二章", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.SaveCard(workspace.Card{Title: "灯灭了", Chapter: two}, ""); err != nil {
+		t.Fatal(err)
+	}
+	s := New("")
+	got, err := s.Preloaded(st, workspace.AIDraft, two)
+	if err != nil || !got.Previous || got.Outlines != aiport.VolumeChapters || got.Tokens <= 0 || got.Cards != 1 {
+		t.Fatal(got, err)
+	}
+	got, err = s.Preloaded(st, workspace.AIRewrite, two)
+	if err != nil || got.Previous || got.Outlines != aiport.VolumeChapters || got.Tokens <= 0 || got.Cards != 1 {
+		t.Fatal(got, err)
+	}
+	got, err = s.Preloaded(st, workspace.AIDraft, one)
+	if err != nil || got.Previous {
+		t.Fatal(got, err)
+	}
+}
+
 func (r *replies) Complete(ctx context.Context, req model.Request, on func(model.Delta)) (model.Reply, error) {
 	next := (*r)[0]
 	*r = (*r)[1:]
