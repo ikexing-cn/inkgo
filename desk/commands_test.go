@@ -95,6 +95,49 @@ func TestHelpShowsTheTableRows(t *testing.T) {
 	}
 }
 
+// Every hint a menu shows is its command's, from the table.
+func TestMenuHintsComeFromCommands(t *testing.T) {
+	a, _, id := writingFixture(t, "第一章的字。")
+	shownEditor(a).Select(0, 2)
+	later := func(do func()) func() { return do }
+	check := func(m *menu) {
+		t.Helper()
+		for _, it := range m.rows {
+			if it.kind != rowItem || it.hint == "" {
+				continue
+			}
+			if it.cmd == nil {
+				t.Errorf("%q's hint %q is not from the table", it.label, it.hint)
+				continue
+			}
+			if want := it.cmd.menuHint(a); it.hint != want {
+				t.Errorf("%q shows %q, the table says %q", it.label, it.hint, want)
+			}
+			if want := it.cmd.name(a); it.label != want {
+				t.Errorf("%q is called %q in the table", it.label, want)
+			}
+		}
+	}
+	for _, bar := range []struct {
+		name  string
+		build func(m *menu)
+	}{
+		{"文件", func(m *menu) { a.fileMenu(m, later) }},
+		{"编辑", func(m *menu) { a.editMenu(m, later) }},
+		{"视图", func(m *menu) { a.viewMenu(m, later) }},
+		{"帮助", func(m *menu) { a.helpMenu(m, later) }},
+		{"正文", func(m *menu) { a.textMenu(m) }},
+		{"标签页", func(m *menu) { shut := []string(nil); a.tabMenu(m, id, &shut) }},
+	} {
+		m := &menu{}
+		bar.build(m)
+		if len(m.rows) == 0 {
+			t.Errorf("the %s menu is empty", bar.name)
+		}
+		check(m)
+	}
+}
+
 // indexFrom is the first place of s in texts at or after from.
 func indexFrom(texts []string, from int, s string) int {
 	for i := from; i < len(texts); i++ {

@@ -223,18 +223,25 @@ func (a *App) sheetRow(c *ui.Context, shut *[]string) {
 				}
 			})
 			a.contextMenu(c, tab, "标签页-"+id, func(m *menu) {
-				at := slices.Index(w.tabs, id)
-				others := slices.DeleteFunc(slices.Clone(w.tabs), func(k string) bool { return k == id })
-				right := slices.Clone(w.tabs[at+1:])
-				m.Item("关闭").Hint(modKey + "W").Do(func() { *shut = []string{id} })
-				m.Item("关闭其他").Disabled(len(others) == 0).Do(func() { *shut = others })
-				m.Item("关闭右侧").Disabled(len(right) == 0).Do(func() { *shut = right })
+				a.tabMenu(m, id, shut)
 			})
 			if tab.Clicked() && *shut == nil && !on {
 				a.openNode(id)
 			}
 		}
 	})
+}
+
+// tabMenu is the menu of the tab id: closing it, the others, or those at
+// its right. Each closes the tab clicked, not the one shown.
+func (a *App) tabMenu(m *menu, id string, shut *[]string) {
+	w := &a.write
+	at := slices.Index(w.tabs, id)
+	others := slices.DeleteFunc(slices.Clone(w.tabs), func(k string) bool { return k == id })
+	right := slices.Clone(w.tabs[at+1:])
+	m.Command(a, cmdCloseTab).Do(func() { *shut = []string{id} })
+	m.Command(a, cmdCloseOthers).Disabled(len(others) == 0).Do(func() { *shut = others })
+	m.Command(a, cmdCloseRight).Disabled(len(right) == 0).Do(func() { *shut = right })
 }
 
 // tabKeys are the keys of the tabs: closing the one shown, and going to

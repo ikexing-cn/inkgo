@@ -99,22 +99,24 @@ func (a *App) textMenu(m *menu) {
 	ed := a.write.ed
 	s, e := ed.Selection()
 	busy := ed.ReadOnly()
-	m.Item("剪切").Hint(modKey + "X").Disabled(s == e || busy).Do(ed.Cut)
-	m.Item("复制").Hint(modKey + "C").Disabled(s == e).Do(ed.Copy)
-	m.Item("粘贴").Hint(modKey + "V").Disabled(busy).Do(ed.Paste)
-	m.Item("全选").Hint(modKey + "A").Do(ed.SelectAll)
+	m.Command(a, cmdCut).Act(a)
+	m.Command(a, cmdCopy).Act(a)
+	m.Command(a, cmdPaste).Act(a)
+	m.Command(a, cmdSelectAll).Act(a)
 	m.Separator()
 	if a.aiOn() {
-		m.Item("续写一句").Hint(modKey + "J").Disabled(busy).Do(a.continueText)
-		m.Item("AI 改写…").Disabled(s == e || busy).Do(a.openRewrite)
-		m.Item("引用到讨论").Hint(modKey + "L").Disabled(s == e).Do(a.quoteToTalk)
+		// The row's own state is the editor's: it does not wait on the
+		// chapter's saves as the title bar's does.
+		m.Command(a, cmdContinue).Act(a).Disabled(busy)
+		m.Command(a, cmdRewrite).Act(a)
+		m.Command(a, cmdQuote).Act(a)
 	}
-	m.Item("加入设定").Disabled(s == e).Do(a.openTake)
+	m.Command(a, cmdTake).Act(a)
 	a.nameMenu(m, ed.Doc.Slice(s, e))
 	m.Separator()
 	a.foreMenu(m)
 	if ed.Marked() {
-		m.Item("移除此处标记").Disabled(busy).Do(ed.Unmark)
+		m.Command(a, cmdUnmark).Act(a)
 	}
 }
 

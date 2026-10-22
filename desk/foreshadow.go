@@ -276,13 +276,10 @@ func (a *App) foreAt() string {
 
 // foreMenu is what the chapter's context menu does with foreshadowings.
 func (a *App) foreMenu(m *menu) {
-	w := &a.write
-	s, e := w.ed.Selection()
-	busy := w.ed.ReadOnly()
-	m.Item("记为伏笔…").Disabled(s == e || busy).Do(a.openBury)
-	m.Item("记为回收…").Disabled(s == e || busy).Do(func() { a.openPay("") })
+	m.Command(a, cmdBury).Act(a)
+	m.Command(a, cmdPay).Act(a)
 	if id := a.foreAt(); id != "" {
-		m.Item("查看伏笔").Do(func() { a.showFore(id) })
+		m.Command(a, cmdViewFore).Do(func() { a.showFore(id) })
 	}
 }
 

@@ -42,71 +42,25 @@ func (a *App) titleBar(c *ui.Context) {
 	bar := c.TitleBar()
 	w := &a.write
 	inWork := a.Store != nil
-	writing := inWork && a.page == pageWrite
-	open, busy := a.chapterOpen()
+	open, _ := a.chapterOpen()
 	var act func() // what was picked
 	// A row of the bar's menus does its part once the bar is drawn.
 	later := func(do func()) func() { return func() { act = do } }
 	held := false // a button of the bar has the focus
 	ui.Row(c).FillWidth().Height(titleHeight).Padding(0, bar.Right, 0, max(10, bar.Left)).Gap(2).AlignItems(ui.Center).
 		Background(a.pal.side).Shrink(0).DragWindow().Children(func() {
-		side := "收起侧栏"
-		if a.sideHidden {
-			side = "展开侧栏"
-		}
 		// The shelf has no sidebar to put away: the switch stays, pale, so
 		// the menus do not move.
-		sw := iconButton(c, icSide, side, ui.Color{}).Margin(0, 4, 0, 0).Disabled(!inWork)
+		sw := iconButton(c, icSide, cmdSide.name(a), ui.Color{}).Margin(0, 4, 0, 0).Disabled(!inWork)
 		held = sw.Focused()
 		if sw.Clicked() {
 			a.setSideHidden(!a.sideHidden)
 			a.penBack()
 		}
-		held = a.barMenu(c, "文件", func(m *menu) {
-			naming := w.renaming != ""
-			m.Item("新建章节").Hint(modKey + "N").Disabled(!writing || naming).Do(later(func() { a.newNode(false) }))
-			m.Item("新建文件夹").Disabled(!writing || naming).Do(later(func() { a.newNode(true) }))
-			m.Separator()
-			m.Item("保存").Hint(modKey + "S").Disabled(!open).Do(later(a.saveNow))
-			m.Item("快照").Disabled(!open || busy).Do(later(a.openSnapshots))
-			m.Item("导出…").Disabled(!inWork).Do(later(a.openExport))
-			m.Separator()
-			m.Item("设置…").Do(later(func() { a.openPrefs(a.bk.tab) }))
-		}) || held
-		held = a.barMenu(c, "编辑", func(m *menu) {
-			can := open && !busy
-			m.Item("撤销").Hint(modKey + "Z").Disabled(!can || !w.ed.CanUndo()).Do(later(w.ed.Undo))
-			m.Item("重做").Hint(modKey + "Y").Disabled(!can || !w.ed.CanRedo()).Do(later(w.ed.Redo))
-			m.Separator()
-			m.Item("查找替换").Hint(modKey + "F").Disabled(!can).Do(later(a.openFind))
-			_, shown := w.tree.Node(w.node)
-			m.Item("重命名").Hint("F2").Disabled(!writing || !shown || w.renaming != "").Do(later(a.renameOpen))
-			if !a.aiOn() {
-				return
-			}
-			m.Separator()
-			m.Item("续写一句").Hint(modKey + "J").Disabled(!can).Do(later(a.continueText))
-			hint := ""
-			if open && strings.TrimSpace(w.outline) == "" {
-				hint = "请先填写章纲"
-			}
-			m.Item("起草本章").Hint(hint).Disabled(!can || hint != "").Do(later(a.openDraft))
-		}) || held
-		held = a.barMenu(c, "视图", func(m *menu) {
-			m.Item(side).Disabled(!inWork).Do(later(func() { a.setSideHidden(!a.sideHidden) }))
-			pane := "收起右栏"
-			if a.doc.hidden {
-				pane = "展开右栏"
-			}
-			m.Item(pane).Disabled(!inWork || a.page != pageTalk && a.page != pageWrite).Do(later(func() { a.setDocHidden(!a.doc.hidden) }))
-			m.Item("专注写作").Hint("F11").Disabled(!writing).Do(later(func() { w.focus = true }))
-			m.Item("手机预览").Disabled(!open).Do(later(a.openPhone))
-			m.Separator()
-			m.Draw(a.themeChoice)
-		}) || held
-		held = a.barMenu(c, "帮助", func(m *menu) {
-			m.Item("快捷键…").Hint(modKey + "/").Do(later(func() { a.keysOpen = true }))
-		}) || held
+		held = a.barMenu(c, "文件", func(m *menu) { a.fileMenu(m, later) }) || held
+		held = a.barMenu(c, "编辑", func(m *menu) { a.editMenu(m, later) }) || held
+		held = a.barMenu(c, "视图", func(m *menu) { a.viewMenu(m, later) }) || held
+		held = a.barMenu(c, "帮助", func(m *menu) { a.helpMenu(m, later) }) || held
 	})
 	a.pal.hairline(c)
 	switch k := &a.bar; {
@@ -130,6 +84,55 @@ func (a *App) titleBar(c *ui.Context) {
 		a.bar.act, a.bar.wait = act, true
 		c.Invalidate()
 	}
+}
+
+// fileMenu lists the title bar's 文件.
+func (a *App) fileMenu(m *menu, later func(func()) func()) {
+	a.barItem(m, later, cmdNewChapter)
+	a.barItem(m, later, cmdNewFolder)
+	m.Separator()
+	a.barItem(m, later, cmdSave)
+	a.barItem(m, later, cmdSnapshots)
+	a.barItem(m, later, cmdExport)
+	m.Separator()
+	a.barItem(m, later, cmdSettings)
+}
+
+// editMenu lists the title bar's 编辑.
+func (a *App) editMenu(m *menu, later func(func()) func()) {
+	a.barItem(m, later, cmdUndo)
+	a.barItem(m, later, cmdRedo)
+	m.Separator()
+	a.barItem(m, later, cmdFind)
+	a.barItem(m, later, cmdRename)
+	if !a.aiOn() {
+		return
+	}
+	m.Separator()
+	a.barItem(m, later, cmdContinue)
+	a.barItem(m, later, cmdDraft)
+}
+
+// viewMenu lists the title bar's 视图.
+func (a *App) viewMenu(m *menu, later func(func()) func()) {
+	a.barItem(m, later, cmdSide)
+	a.barItem(m, later, cmdPane)
+	// The key toggles focus; the row only enters it.
+	m.Command(a, cmdFocus).Do(later(func() { a.write.focus = true }))
+	a.barItem(m, later, cmdPhone)
+	m.Separator()
+	m.Draw(a.themeChoice)
+}
+
+// helpMenu lists the title bar's 帮助.
+func (a *App) helpMenu(m *menu, later func(func()) func()) {
+	a.barItem(m, later, cmdHelp)
+}
+
+// barItem adds a command to a menu of the title bar, doing its part after
+// the bar is drawn.
+func (a *App) barItem(m *menu, later func(func()) func(), cmd *command) {
+	m.Command(a, cmd).Do(later(cmd.act(a)))
 }
 
 // barAct does what was picked in a menu of the title bar, in the frame

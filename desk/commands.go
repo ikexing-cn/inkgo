@@ -94,7 +94,7 @@ var (
 			return open && !busy && strings.TrimSpace(a.write.outline) != ""
 		},
 		hint: func(a *App) string {
-			if open, busy := a.chapterOpen(); open && !busy && strings.TrimSpace(a.write.outline) == "" {
+			if open, _ := a.chapterOpen(); open && strings.TrimSpace(a.write.outline) == "" {
 				return "请先填写章纲"
 			}
 			return ""

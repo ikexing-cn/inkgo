@@ -45,6 +45,7 @@ const (
 // chaining.
 type menuItem struct {
 	kind        int
+	cmd         *command // the table's command, for a row that is one
 	label, hint string
 	off, on     bool
 	do          func()              // what picking a rowItem does
@@ -59,6 +60,16 @@ func (m *menu) add(it *menuItem) *menuItem {
 
 // Item adds a row saying label.
 func (m *menu) Item(label string) *menuItem { return m.add(&menuItem{label: label}) }
+
+// Command adds a row for cmd: what it is called, its hint, and whether it
+// can run now, all from the table. Do says what picking it does; a menu
+// whose action is its own gives that instead of the command's.
+func (m *menu) Command(a *App, cmd *command) *menuItem {
+	return m.add(&menuItem{cmd: cmd, label: cmd.name(a), hint: cmd.menuHint(a), off: !cmd.available(a)})
+}
+
+// Act has the row do what its command does.
+func (it *menuItem) Act(a *App) *menuItem { it.Do(it.cmd.act(a)); return it }
 
 // Disabled pales the row when d: it cannot be picked.
 func (it *menuItem) Disabled(d bool) *menuItem { it.off = d; return it }
