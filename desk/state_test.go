@@ -34,15 +34,29 @@ func openTabs(a *App) []string           { return a.write.tabs }
 func markUnchecked(a *App)               { a.write.checked = time.Time{} }
 
 // The setting panel.
-func shownEntry(a *App) string     { return a.doc.shown }
-func showEntry(a *App, id string)  { a.doc.shown = id }
-func historyShown(a *App) bool     { return a.doc.history }
-func showHistory(a *App, on bool)  { a.doc.history = on }
-func editingEntry(a *App) string   { return a.doc.editing }
-func editEntry(a *App, id string)  { a.doc.editing = id }
-func editChange(a *App, id string) { a.doc.change = id }
-func todoShown(a *App) bool        { return a.doc.todo }
-func showTodo(a *App, on bool)     { a.doc.todo = on }
+func shownEntry(a *App) string     { return a.doc.route.entry() }
+func showEntry(a *App, id string)  { a.doc.route.openEntry(id) }
+func historyShown(a *App) bool     { return a.doc.route.showingHistory() }
+func editingEntry(a *App) string   { return a.doc.route.editID() }
+func editEntry(a *App, id string)  { a.doc.route.editEntry(id) }
+func editChange(a *App, id string) { a.doc.route.editChange(id) }
+func todoShown(a *App) bool        { return a.doc.route.showingWaiting() }
+
+func showHistory(a *App, on bool) {
+	if on {
+		a.doc.route.showHistory()
+	} else {
+		a.doc.route.closeHistory()
+	}
+}
+
+func showTodo(a *App, on bool) {
+	if on {
+		a.doc.route.showWaiting()
+	} else {
+		a.doc.route.closeWaiting()
+	}
+}
 
 // Status.
 func appError(a *App) error      { return a.err }

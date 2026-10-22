@@ -88,7 +88,8 @@ func (a *App) timeline(c *ui.Context, e workspace.Entry) {
 	}
 	on, holds := e.At(o, here)
 	open := func(g workspace.Change) {
-		d.change, d.from, d.text = g.ID, g.From, g.Text
+		d.route.editChange(g.ID)
+		d.from, d.text = g.From, g.Text
 	}
 	add := func() {
 		label := "从本章起有变化"
@@ -96,7 +97,8 @@ func (a *App) timeline(c *ui.Context, e workspace.Entry) {
 			label = "从本卷起有变化"
 		}
 		if a.pal.ghost(c, label, ui.Color{}).Clicked() {
-			d.change, d.from, d.text = "new", here, e.ReadingBefore(o, here)
+			d.route.editChange("new")
+			d.from, d.text = here, e.ReadingBefore(o, here)
 		}
 	}
 	mine := here != "" && slices.ContainsFunc(hold, func(g workspace.Change) bool { return g.From == here })
@@ -151,7 +153,7 @@ func (a *App) changeForm(c *ui.Context, e workspace.Entry) {
 	d, tree := &a.doc, a.write.tree
 	name := shortName(e)
 	if back, _ := a.paneBack(c, name, ""); back {
-		d.change = ""
+		d.route.closeChange()
 	}
 	a.panePage(c, "change-"+e.ID, func() {
 		ui.Text(c, name+" · "+fromLabel(tree, d.from)).FontSize(fsGroup).FontWeight(600)
@@ -177,16 +179,17 @@ func (a *App) changeForm(c *ui.Context, e workspace.Entry) {
 				Padding(8, 10).Radius(rControl).Background(a.pal.canvas).Border(1, a.pal.theme.Border).AutoFocus()
 		})
 		text := trim(d.text)
-		was := slices.IndexFunc(e.Changes, func(g workspace.Change) bool { return g.ID == d.change })
+		change := d.route.changeID()
+		was := slices.IndexFunc(e.Changes, func(g workspace.Change) bool { return g.ID == change })
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 			if was >= 0 && a.pal.ghost(c, "删除这处变化", a.pal.theme.Danger).Clicked() {
-				a.revise(workspace.Op{Op: workspace.OpDropChange, Entry: e.ID, Change: d.change})
-				d.change = ""
+				a.revise(workspace.Op{Op: workspace.OpDropChange, Entry: e.ID, Change: change})
+				d.route.closeChange()
 				return
 			}
 			ui.Spacer(c)
 			if a.paneButton(c, "取消", false).Clicked() {
-				d.change = ""
+				d.route.closeChange()
 			}
 			if !a.paneButton(c, "保存", true).Disabled(text == "").Clicked() {
 				return
@@ -194,7 +197,7 @@ func (a *App) changeForm(c *ui.Context, e workspace.Entry) {
 			var ops []workspace.Op
 			_, inTree := tree.Node(d.from)
 			for _, g := range e.Changes {
-				if g.ID != d.change && g.Place == workspace.PlaceBody && g.From == d.from && inTree {
+				if g.ID != change && g.Place == workspace.PlaceBody && g.From == d.from && inTree {
 					ops = append(ops, workspace.Op{Op: workspace.OpDropChange, Entry: e.ID, Change: g.ID})
 				}
 			}
@@ -214,7 +217,7 @@ func (a *App) changeForm(c *ui.Context, e workspace.Entry) {
 				a.revise(ops...)
 			}
 			if a.errorText() == "" {
-				d.change = ""
+				d.route.closeChange()
 			}
 		})
 	})

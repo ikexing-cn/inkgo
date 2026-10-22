@@ -59,7 +59,7 @@ func (a *App) feedNames() {
 
 func (a *App) seeName(id string) {
 	a.doc.hidden, a.write.focus, a.doc.tab = false, false, paneSetting
-	a.doc.shown, a.doc.editing, a.doc.history, a.doc.todo, a.doc.dropped = id, "", false, false, false
+	a.doc.route.jumpToEntry(id)
 }
 
 // named reports whether some entry already has name.

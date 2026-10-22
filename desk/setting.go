@@ -20,21 +20,159 @@ const (
 	panePhone   paneTab = "phone"
 )
 
-type docView struct {
-	hidden  bool
-	history bool   // the revisions are shown
-	query   string // what the list is searched for
-	shown   string // the entry whose page is shown
-	todo    bool   // what waits on the author is shown
-	dropped bool   // the deleted entries are listed
+// settingBase is what lies under the setting panel's other screens: the
+// list, what waits on the author, or the deleted entries. One at a time.
+type settingBase int
+
+const (
+	baseList settingBase = iota
+	baseWaiting
+	baseDropped
+)
+
+// settingRoute is where the setting panel is: a base screen, an entry's
+// page over it, a form over that, and the revisions over everything. The
+// form's text stays in docView: it is what is typed, not where the panel
+// is.
+type settingRoute struct {
+	base    settingBase
+	shown   string // the entry whose page shows
 	editing string // the entry being edited, "new" for a new one
 	asking  string // with editing "new", the AI's question it answers
-	// change is the change of the entry shown that is being edited, "new"
-	// for a new one; from is the node it starts at in the form.
-	change string
-	from   string
-	// The form: the entry's text, category, name, and what else it is
-	// called as the author writes them, apart by spaces or 、
+	change  string // the change of the entry shown being edited, "new" for a new one
+	history bool   // the revisions show
+}
+
+// settingScreen is what the setting panel shows.
+type settingScreen int
+
+const (
+	screenList settingScreen = iota
+	screenWaiting
+	screenDropped
+	screenEntry
+	screenNewEntry
+	screenEntryForm
+	screenChange
+	screenHistory
+)
+
+// settle drops the layers that point at nothing: the form of an entry
+// gone, a new entry whose question is gone or no longer waits, the page
+// of an entry gone with its change, and a change gone or no longer in
+// the body.
+func (r *settingRoute) settle(set workspace.Setting) {
+	if r.editing != "" && r.editing != "new" {
+		if _, ok := set.Entry(r.editing); !ok {
+			r.editing, r.asking = "", ""
+		}
+	}
+	if q, ok := set.Entry(r.asking); r.asking != "" && (!ok || q.Place != workspace.PlaceOpen) {
+		r.editing, r.asking = "", "" // the question is gone
+	}
+	shown, ok := set.Entry(r.shown)
+	if !ok {
+		r.shown, r.change = "", ""
+	}
+	if r.change != "new" && !slices.ContainsFunc(shown.Changes, func(g workspace.Change) bool { return g.ID == r.change && g.Place == workspace.PlaceBody }) {
+		r.change = "" // the change is gone, or the entry
+	}
+}
+
+// screen says what the panel shows, and the entry or change it is about:
+// blank for the screens that name neither.
+func (r settingRoute) screen() (settingScreen, string, string) {
+	switch {
+	case r.history:
+		return screenHistory, "", ""
+	case r.editing == "new":
+		return screenNewEntry, "", ""
+	case r.editing != "":
+		return screenEntryForm, r.editing, ""
+	case r.shown != "" && r.change != "":
+		return screenChange, r.shown, r.change
+	case r.shown != "":
+		return screenEntry, r.shown, ""
+	case r.base == baseWaiting:
+		return screenWaiting, "", ""
+	case r.base == baseDropped:
+		return screenDropped, "", ""
+	}
+	return screenList, "", ""
+}
+
+func (r settingRoute) entry() string        { return r.shown }
+func (r settingRoute) editID() string       { return r.editing }
+func (r settingRoute) question() string     { return r.asking }
+func (r settingRoute) changeID() string     { return r.change }
+func (r settingRoute) showingHistory() bool { return r.history }
+func (r settingRoute) showingWaiting() bool { return r.base == baseWaiting }
+
+// openEntry shows an entry's page over what lies below it.
+func (r *settingRoute) openEntry(id string) { r.shown = id }
+
+// closeEntry goes back from the entry's page and its change.
+func (r *settingRoute) closeEntry() { r.shown, r.change = "", "" }
+
+// jumpToEntry shows id's page, closing every layer: a link to an entry
+// from elsewhere.
+func (r *settingRoute) jumpToEntry(id string) { *r = settingRoute{shown: id} }
+
+// jumpToWaiting shows what waits on the author, closing every layer.
+func (r *settingRoute) jumpToWaiting() { *r = settingRoute{base: baseWaiting} }
+
+// showWaiting lists what waits on the author.
+func (r *settingRoute) showWaiting() { r.base = baseWaiting }
+
+// closeWaiting goes back to the list of entries from what waits.
+func (r *settingRoute) closeWaiting() {
+	if r.base == baseWaiting {
+		r.base = baseList
+	}
+}
+
+// showDropped lists the deleted entries.
+func (r *settingRoute) showDropped() { r.base = baseDropped }
+
+// closeDropped goes back to the list of entries from the deleted ones.
+func (r *settingRoute) closeDropped() {
+	if r.base == baseDropped {
+		r.base = baseList
+	}
+}
+
+// showHistory shows the revisions, over what lies below.
+func (r *settingRoute) showHistory() { r.history = true }
+
+// closeHistory goes back from the revisions.
+func (r *settingRoute) closeHistory() { r.history = false }
+
+// newEntry opens the form for a new entry.
+func (r *settingRoute) newEntry() { r.editing, r.asking = "new", "" }
+
+// answer opens the form for a new entry answering question.
+func (r *settingRoute) answer(question string) { r.editing, r.asking = "new", question }
+
+// editEntry opens the form of entry id.
+func (r *settingRoute) editEntry(id string) { r.editing, r.asking = id, "" }
+
+// closeForm goes back from the entry's form.
+func (r *settingRoute) closeForm() { r.editing, r.asking = "", "" }
+
+// editChange opens the form of change id.
+func (r *settingRoute) editChange(id string) { r.change = id }
+
+// closeChange goes back from the change's form.
+func (r *settingRoute) closeChange() { r.change = "" }
+
+type docView struct {
+	hidden bool
+	query  string // what the list is searched for
+	route  settingRoute
+	// from is the node a change's form starts at, and the form is the
+	// entry's text, category, name, and what else it is called as the
+	// author writes them, apart by spaces or 、
+	from     string
 	text     string
 	category string
 	name     string
@@ -81,7 +219,6 @@ func (a *App) revise(ops ...workspace.Op) {
 // settingPanel is the setting in the right column: its entries a row
 // each, or the page of what a row was clicked for.
 func (a *App) settingPanel(c *ui.Context) {
-	d := &a.doc
 	paneTop(c).Children(func() {
 		if a.page == pageWrite {
 			a.panelTabs(c)
@@ -97,36 +234,25 @@ func (a *App) settingPanel(c *ui.Context) {
 			a.setDocHidden(true)
 		}
 	})
-	if d.editing != "" && d.editing != "new" {
-		if _, ok := a.set.Entry(d.editing); !ok {
-			d.editing = ""
-		}
-	}
-	if q, ok := a.set.Entry(d.asking); d.asking != "" && (!ok || q.Place != workspace.PlaceOpen) {
-		d.editing, d.asking = "", "" // the question is gone
-	}
-	shown, ok := a.set.Entry(d.shown)
-	if !ok {
-		d.shown, d.change = "", ""
-	}
-	if d.change != "new" && !slices.ContainsFunc(shown.Changes, func(g workspace.Change) bool { return g.ID == d.change && g.Place == workspace.PlaceBody }) {
-		d.change = "" // the change is gone, or the entry
-	}
-	switch {
-	case d.history:
+	d := &a.doc
+	d.route.settle(a.set)
+	switch screen, entry, _ := d.route.screen(); screen {
+	case screenHistory:
 		a.history(c)
-	case d.editing == "new":
+	case screenNewEntry:
 		a.entryForm(c, workspace.Entry{})
-	case d.editing != "":
-		e, _ := a.set.Entry(d.editing)
+	case screenEntryForm:
+		e, _ := a.set.Entry(entry)
 		a.entryForm(c, e)
-	case ok && d.change != "":
-		a.changeForm(c, shown)
-	case ok:
-		a.entryPage(c, shown)
-	case d.todo:
+	case screenChange:
+		e, _ := a.set.Entry(entry)
+		a.changeForm(c, e)
+	case screenEntry:
+		e, _ := a.set.Entry(entry)
+		a.entryPage(c, e)
+	case screenWaiting:
 		a.ideasPage(c)
-	case d.dropped:
+	case screenDropped:
 		a.droppedList(c)
 	default:
 		a.settingList(c)
@@ -170,10 +296,11 @@ func (a *App) settingList(c *ui.Context) {
 		}
 	}
 	if a.paneFind(c, &d.query, "搜索设定", "新增", func(m *menu) {
-		m.Item("已删除").Hint(count(dropped)).Do(func() { d.dropped = true })
-		m.Item("修改记录").Do(func() { d.history = true })
+		m.Item("已删除").Hint(count(dropped)).Do(d.route.showDropped)
+		m.Item("修改记录").Do(d.route.showHistory)
 	}) {
-		d.editing, d.asking, d.text, d.category, d.name, d.names = "new", "", "", a.firstCategory(), "", ""
+		d.route.newEntry()
+		d.text, d.category, d.name, d.names = "", a.firstCategory(), "", ""
 	}
 	q := trim(d.query)
 	// On the writing page each entry reads as it does at the chapter open,
@@ -198,7 +325,7 @@ func (a *App) settingList(c *ui.Context) {
 			}
 		}
 		if b.Clicked() {
-			d.shown = e.ID
+			d.route.openEntry(e.ID)
 		}
 	}
 	a.paneRows(c, "setting", func() {
@@ -223,7 +350,7 @@ func (a *App) settingList(c *ui.Context) {
 			return
 		}
 		if len(open) > 0 && a.paneTodo(c, "待确认", len(open)).Clicked() {
-			d.todo = true
+			d.route.showWaiting()
 		}
 		if a.bodyCount() == 0 {
 			how := "讨论和正文中的设定会自动收录于此，也可点击「新增」手动添加。"
@@ -254,7 +381,7 @@ func (a *App) settingList(c *ui.Context) {
 func (a *App) droppedList(c *ui.Context) {
 	d := &a.doc
 	if back, _ := a.paneBack(c, "全部设定", ""); back {
-		d.dropped = false
+		d.route.closeDropped()
 	}
 	a.paneRows(c, "dropped", func() {
 		a.paneGroup(c, "已删除")
@@ -266,7 +393,7 @@ func (a *App) droppedList(c *ui.Context) {
 			n++
 			name, gist := entryName(e)
 			if a.paneRow(c.Key(e.ID), "设定-"+e.ID, name, gist, "", "", false).Clicked() {
-				d.shown = e.ID
+				d.route.openEntry(e.ID)
 			}
 		}
 		if n == 0 {
@@ -288,7 +415,7 @@ func (a *App) entryPage(c *ui.Context, e workspace.Entry) {
 	}
 	back, acted := a.paneBack(c, from, act)
 	if back {
-		d.shown = ""
+		d.route.closeEntry()
 	}
 	if acted {
 		place := workspace.PlaceDropped
@@ -296,7 +423,7 @@ func (a *App) entryPage(c *ui.Context, e workspace.Entry) {
 			place = workspace.PlaceBody
 		}
 		a.revise(workspace.Op{Op: workspace.OpMove, Entry: e.ID, Place: place})
-		d.shown = ""
+		d.route.closeEntry()
 	}
 	open := a.ideas()
 	a.panePage(c, "entry-"+e.ID, func() {
@@ -308,7 +435,8 @@ func (a *App) entryPage(c *ui.Context, e workspace.Entry) {
 			}
 		}
 		if a.paneTitle(c, name, sub, "修改") {
-			d.editing, d.asking, d.text, d.category, d.name, d.names = e.ID, "", e.Text, e.Category, "", ""
+			d.route.editEntry(e.ID)
+			d.text, d.category, d.name, d.names = e.Text, e.Category, "", ""
 			if len(e.Names) > 0 {
 				d.name, d.names = e.Names[0], strings.Join(e.Names[1:], "、")
 			}
@@ -359,8 +487,9 @@ func (a *App) entryPage(c *ui.Context, e workspace.Entry) {
 // when e is empty: the answer to the AI's question when one is asked.
 func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 	d := &a.doc
-	q, asked := a.set.Entry(d.asking)
-	asked = asked && d.asking != "" && e.ID == ""
+	question := d.route.question()
+	q, asked := a.set.Entry(question)
+	asked = asked && question != "" && e.ID == ""
 	from := "全部设定"
 	switch {
 	case e.ID != "":
@@ -370,7 +499,7 @@ func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 		from = "待确认"
 	}
 	if back, _ := a.paneBack(c, from, ""); back {
-		d.editing, d.asking = "", ""
+		d.route.closeForm()
 	}
 	a.panePage(c, "form-"+e.ID, func() {
 		// A new entry starts at its text, a changed one at its name: the
@@ -414,7 +543,7 @@ func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 		names := splitNames(d.name + "、" + d.names)
 		paneButtons(c, func() {
 			if a.paneButton(c, "取消", false).Clicked() {
-				d.editing, d.asking = "", ""
+				d.route.closeForm()
 			}
 			if !a.paneButton(c, "保存", true).Disabled(text == "").Clicked() {
 				return
@@ -440,7 +569,7 @@ func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 				a.revise(ops...)
 			}
 			if a.errorText() == "" {
-				d.editing, d.asking = "", ""
+				d.route.closeForm()
 				if len(e.Names) > 0 && len(names) > 0 {
 					a.noteRename(e.Names[0], names[0])
 				}
@@ -454,7 +583,7 @@ func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 // talks noted is not listed.
 func (a *App) history(c *ui.Context) {
 	if back, _ := a.paneBack(c, "全部设定", ""); back {
-		a.doc.history = false
+		a.doc.route.closeHistory()
 	}
 	a.pal.hairline(c)
 	ui.Scroll(c.Key("history")).Grow(1).FillWidth().Children(func() {

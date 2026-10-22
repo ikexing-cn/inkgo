@@ -581,13 +581,12 @@ func (a *App) showNoted(r string) {
 // showEntry opens e in the setting: in what waits on the author when it is
 // open, or on its page.
 func (a *App) showEntry(e workspace.Entry) {
-	d := &a.doc
 	a.setDocHidden(false)
-	d.history, d.tab, d.talks, d.dropped, d.editing = false, paneSetting, false, false, ""
+	a.doc.tab, a.doc.talks = paneSetting, false
 	if e.Place == workspace.PlaceOpen {
-		d.todo, d.shown = true, ""
+		a.doc.route.jumpToWaiting()
 	} else {
-		d.todo, d.shown = false, e.ID
+		a.doc.route.jumpToEntry(e.ID)
 	}
 }
 

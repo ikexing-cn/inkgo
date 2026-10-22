@@ -52,7 +52,8 @@ func (a *App) idea(c *ui.Context, it workspace.Idea, about string) {
 				}
 			case asks(e):
 				if a.paneButton(c, "回答", true).Label("回答-" + e.ID).Clicked() {
-					d.editing, d.asking, d.text, d.category, d.name, d.names = "new", e.ID, "", e.Category, "", ""
+					d.route.answer(e.ID)
+					d.text, d.category, d.name, d.names = "", e.Category, "", ""
 					if len(e.Names) > 0 { // the answer keeps the names asked about, unless the author takes them out
 						d.name, d.names = e.Names[0], strings.Join(e.Names[1:], "、")
 					}
@@ -70,11 +71,11 @@ func (a *App) idea(c *ui.Context, it workspace.Idea, about string) {
 func (a *App) ideasPage(c *ui.Context) {
 	d := &a.doc
 	if back, _ := a.paneBack(c, "全部设定", ""); back {
-		d.todo = false
+		d.route.closeWaiting()
 	}
 	open := a.ideas()
 	if len(open) == 0 {
-		d.todo = false // the last was decided
+		d.route.closeWaiting() // the last was decided
 	}
 	a.panePage(c, "ideas", func() {
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
