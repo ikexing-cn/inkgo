@@ -34,8 +34,8 @@ func TestNamesInTheProse(t *testing.T) {
 	a.doc.hidden = true
 	tt.Frame()
 	clickName()
-	if a.doc.hidden || a.doc.shown != id || ed.Caret() != caret {
-		t.Fatal("name did not open setting", a.doc.shown, ed.Caret())
+	if a.doc.hidden || shownEntry(a) != id || ed.Caret() != caret {
+		t.Fatal("name did not open setting", shownEntry(a), ed.Caret())
 	}
 	hasText(t, tt, "配角，林晚的同事")
 	tt.Type("雨")
@@ -53,9 +53,9 @@ func TestNamesInTheProse(t *testing.T) {
 	click(t, tt, "正文中标出设定的名字")
 	tt.Key(0, ui.KeyEscape)
 	tt.Frame()
-	a.doc.shown = ""
+	showEntry(a, "")
 	clickName()
-	if a.doc.shown != "" || !a.shelf.NoNames {
+	if shownEntry(a) != "" || !a.shelf.NoNames {
 		t.Fatal("names still open")
 	}
 	b := newApp(a.ai.ConfigFile())
@@ -86,9 +86,9 @@ func TestNamesInTheProse(t *testing.T) {
 	click(t, tt, "正文中标出设定的名字")
 	tt.Key(0, ui.KeyEscape)
 	tt.Frame()
-	a.doc.shown = ""
+	showEntry(a, "")
 	clickName()
-	if a.doc.shown != id {
+	if shownEntry(a) != id {
 		t.Fatal("names did not return")
 	}
 }
@@ -148,7 +148,8 @@ func TestRenameOffersToReplace(t *testing.T) {
 	a, tt, id := writingFixture(t, "林晚推开门。林晚笑了。")
 	a.revise(workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "主角修路灯"})
 	e := setting(a).Entries[len(setting(a).Entries)-1]
-	a.doc.editing, a.doc.text, a.doc.category, a.doc.names = e.ID, e.Text, e.Category, " 林晚、晚晚，林晚"
+	editEntry(a, e.ID)
+	a.doc.text, a.doc.category, a.doc.names = e.Text, e.Category, " 林晚、晚晚，林晚"
 	tt.Frame()
 	if err := tt.Click("保存"); err != nil {
 		t.Fatal(err)
@@ -157,7 +158,8 @@ func TestRenameOffersToReplace(t *testing.T) {
 	if e, _ = setting(a).Entry(e.ID); !slices.Equal(e.Names, []string{"林晚", "晚晚"}) || a.renamed.count != 0 {
 		t.Fatal("names", e.Names, a.renamed)
 	}
-	a.doc.editing, a.doc.text, a.doc.category, a.doc.names = e.ID, e.Text, e.Category, "苏晴、晚晚"
+	editEntry(a, e.ID)
+	a.doc.text, a.doc.category, a.doc.names = e.Text, e.Category, "苏晴、晚晚"
 	tt.Frame()
 	if err := tt.Click("保存"); err != nil {
 		t.Fatal(err)

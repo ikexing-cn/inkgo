@@ -132,7 +132,8 @@ func TestAnEntryChangesFromAChapter(t *testing.T) {
 	tt.Frame()
 	has("an idea on the page", "AI 建议", "第3章起", "配角，学会了修灯。")
 	hasNot("an idea on the page", "随章节的变化")
-	a.doc.shown, a.doc.todo = "", true
+	showEntry(a, "")
+	showTodo(a, true)
 	tt.Frame()
 	has("an idea waiting", "关于 周祥 · 第3章起", "配角，学会了修灯。")
 	if err = tt.Click("采纳-" + idea); err != nil {
@@ -154,17 +155,21 @@ func TestAnEntryChangesFromAChapter(t *testing.T) {
 	}
 	a.SetError(a.loadTree())
 	a.openNode(one)
-	a.doc.todo, a.doc.shown = false, ids.zhou
+	showTodo(a, false)
+	showEntry(a, ids.zhou)
 	tt.Frame()
 	has("in the trash", "所在章节已删除 · 不起作用", "配角，学会了修灯。", "从本章起有变化")
-	a.doc.shown, a.doc.history = "", true
+	showEntry(a, "")
+	showHistory(a, true)
 	tt.Frame()
 	has("the history", "周祥 · 第2章起：配角，在井边等她。", "删除变化 · 周祥 · 第2章起", "新增到待确认 · 周祥 · 所在章节已删除：配角，学会了修灯。")
-	a.doc.history = false
+	showHistory(a, false)
 
 	// With the AI off the form says nothing of it.
 	a.turnAI(false)
-	a.doc.shown, a.doc.change, a.doc.from, a.doc.text = ids.zhou, "new", one, "x"
+	showEntry(a, ids.zhou)
+	editChange(a, "new")
+	a.doc.from, a.doc.text = one, "x"
 	tt.Frame()
 	has("off", "从这一章起，这一条就是下面这段话。")
 	hasNot("off", "AI 看到的是它")

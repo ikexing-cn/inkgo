@@ -291,7 +291,7 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 		t.Fatal(err, rows(tt))
 	}
 	look("the change log")
-	if !a.doc.history || !tt.HasText("林晚怕黑") || tt.HasText("雨从不停") {
+	if !historyShown(a) || !tt.HasText("林晚怕黑") || tt.HasText("雨从不停") {
 		t.Errorf("with the AI off, the change log lists what a talk noted or not the author's: %q", tt.Texts())
 	}
 	if err := tt.Click("全部设定"); err != nil {
@@ -556,8 +556,8 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 	if len(shownEditor(a).Proposals()) != 0 || len(w.props) != 0 || shownEditor(a).ReadOnly() || shownEditor(a).Doc.String() != "" {
 		t.Fatalf("the draft was not let go: %q", shownEditor(a).Doc.String())
 	}
-	if a.errorText() != "" || a.notice != "" || len(aiSaid(tt)) > 0 {
-		t.Fatalf("turned off, the AI still tells of itself: %q %q %q", a.errorText(), a.notice, aiSaid(tt))
+	if a.errorText() != "" || noticeOf(a) != "" || len(aiSaid(tt)) > 0 {
+		t.Fatalf("turned off, the AI still tells of itself: %q %q %q", a.errorText(), noticeOf(a), aiSaid(tt))
 	}
 	close(hold)
 	time.Sleep(50 * time.Millisecond)

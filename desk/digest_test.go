@@ -73,8 +73,8 @@ func TestTheTalkShowsWhereItWasCompacted(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.doc.shown != r.Ops[0].Entry || a.doc.hidden {
-		t.Fatalf("the entry named is not open: %q", a.doc.shown)
+	if shownEntry(a) != r.Ops[0].Entry || a.doc.hidden {
+		t.Fatalf("the entry named is not open: %q", shownEntry(a))
 	}
 	if err := tt.Click("以上 2 轮已整理成摘要"); err != nil {
 		t.Fatal(err)

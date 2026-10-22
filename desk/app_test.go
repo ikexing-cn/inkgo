@@ -176,7 +176,7 @@ func TestTheAuthorEditsTheSetting(t *testing.T) {
 	}
 	tt.Frame()
 	got, _ := setting(a).Entry(e.ID)
-	if got.Text != "主角怕安静" || got.Category != "关系" || !got.Author || a.doc.editing != "" {
+	if got.Text != "主角怕安静" || got.Category != "关系" || !got.Author || editingEntry(a) != "" {
 		t.Fatalf("edit %+v", got)
 	}
 	if err := tt.Click("删除设定"); err != nil {
@@ -303,10 +303,11 @@ func TestTalkNotesTheSettingAsItReplies(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.doc.shown != setting(a).Entries[1].ID {
+	if shownEntry(a) != setting(a).Entries[1].ID {
 		t.Fatal("the link does not open what was noted")
 	}
-	a.doc.shown, a.doc.history = "", true
+	showEntry(a, "")
+	showHistory(a, true)
 	tt.Frame()
 	if !tt.HasText("讨论") || !tt.HasText("新增到正文 · 规则：雨从不停") || !tt.HasText("记在「这座城市雨从不停。」") {
 		t.Fatal("history", tt.Texts())
@@ -573,8 +574,8 @@ func TestIncompleteFormsExplainInChinese(t *testing.T) {
 	// A category without its target is not saved, and is told as what is
 	// left to fill in, not as a failure.
 	a.categoryName, a.categoryTarget = "伏笔", ""
-	if err := a.saveCategory(); err != nil || a.hint != "请填写落点，例如“设定库”或“大纲”" || len(a.Store.Work().Categories) != len(was.Categories) {
-		t.Fatalf("category target: %v %q", err, a.hint)
+	if err := a.saveCategory(); err != nil || hintOf(a) != "请填写落点，例如“设定库”或“大纲”" || len(a.Store.Work().Categories) != len(was.Categories) {
+		t.Fatalf("category target: %v %q", err, hintOf(a))
 	}
 }
 
@@ -592,8 +593,8 @@ func TestACategorySavesOnceFilledIn(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.hint != "" || len(a.Store.Work().Categories) != was {
-		t.Fatalf("pressed with no target: %q", a.hint)
+	if hintOf(a) != "" || len(a.Store.Work().Categories) != was {
+		t.Fatalf("pressed with no target: %q", hintOf(a))
 	}
 	a.categoryTarget = "大纲"
 	tt.Frame()
@@ -863,7 +864,7 @@ func TestChooseAServiceByName(t *testing.T) {
 // A confirmation goes away on its own; an error stays until dismissed.
 func TestNoticesFade(t *testing.T) {
 	a, tt, _ := fixture(t)
-	a.notice = "已保存"
+	setNotice(a, "已保存")
 	a.SetError(errors.New("出错了"))
 	tt.Frame()
 	if !tt.HasText("已保存") {
@@ -874,7 +875,7 @@ func TestNoticesFade(t *testing.T) {
 	if tt.HasText("已保存") {
 		t.Fatal("the notice stayed")
 	}
-	if !tt.HasText("出错了") || a.notice != "" {
+	if !tt.HasText("出错了") || noticeOf(a) != "" {
 		t.Fatal(tt.Texts())
 	}
 }

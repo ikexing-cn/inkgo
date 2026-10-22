@@ -46,7 +46,7 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 	save := func(want string) {
 		t.Helper()
 		a.SetError(nil)
-		a.notice = ""
+		setNotice(a, "")
 		if want != "" && !tt.HasText(want) {
 			t.Fatalf("the form does not say %q: %q", want, tt.Texts())
 		}
@@ -54,7 +54,7 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 			t.Fatal(err)
 		}
 		tt.Frame()
-		if saved := a.notice == "提供商已保存"; a.errorText() != "" || saved != (want == "") {
+		if saved := noticeOf(a) == "提供商已保存"; a.errorText() != "" || saved != (want == "") {
 			t.Fatalf("saved %v, said %q", saved, a.errorText())
 		}
 	}
@@ -141,8 +141,8 @@ func TestANewServiceSaysWhatIsWrongWhereItIs(t *testing.T) {
 			t.Fatal(err)
 		}
 		tt.Frame()
-		if a.errorText() != "" || a.notice != "" || len(a.ai.Providers()) != was {
-			t.Fatalf("pressed with %q: %q %q", c.say, a.errorText(), a.notice)
+		if a.errorText() != "" || noticeOf(a) != "" || len(a.ai.Providers()) != was {
+			t.Fatalf("pressed with %q: %q %q", c.say, a.errorText(), noticeOf(a))
 		}
 	}
 	a.provider.Env = "OPENROUTER_API_KEY"

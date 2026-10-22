@@ -181,8 +181,8 @@ func TestExportTheWork(t *testing.T) {
 	if got := read("测试作品-设定.txt"); !strings.Contains(got, "人物\n\n主角怕黑") {
 		t.Fatalf("setting %q", got)
 	}
-	if !strings.HasPrefix(a.notice, "已导出 3 个文件到 ") {
-		t.Fatal(a.notice)
+	if !strings.HasPrefix(noticeOf(a), "已导出 3 个文件到 ") {
+		t.Fatal(noticeOf(a))
 	}
 	s, _, err := shelf.Load(a.books.file)
 	if err != nil || s.Export == nil || *s.Export != (shelf.Export{Options: export.Options{Prose: true, Outline: true, Setting: true, Text: true}, Pen: "雨声"}) {

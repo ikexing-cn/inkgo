@@ -51,8 +51,8 @@ func TestASnapshotLikeTheChapter(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !a.write.snapsOpen || a.notice != "" {
-		t.Fatal("restored the same text", a.notice)
+	if !a.write.snapsOpen || noticeOf(a) != "" {
+		t.Fatal("restored the same text", noticeOf(a))
 	}
 }
 

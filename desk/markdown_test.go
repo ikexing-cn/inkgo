@@ -23,14 +23,14 @@ func TestDigestNamesEntries(t *testing.T) {
 	if err := tt.Click("外部链接"); err != nil {
 		t.Fatal(err)
 	}
-	if a.doc.shown != "" {
+	if shownEntry(a) != "" {
 		t.Fatal("an external link opened an entry")
 	}
 	if err := tt.Click("主角怕黑"); err != nil {
 		t.Fatal(err)
 	}
-	if a.doc.shown != entry.ID {
-		t.Fatalf("opened entry %q, want %q", a.doc.shown, entry.ID)
+	if shownEntry(a) != entry.ID {
+		t.Fatalf("opened entry %q, want %q", shownEntry(a), entry.ID)
 	}
 	if urls := tt.OpenedURLs(); len(urls) != 0 {
 		t.Fatalf("digest opened %q", urls)

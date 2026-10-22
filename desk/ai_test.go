@@ -344,8 +344,8 @@ func TestDraftAChapterThroughATalk(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if ed.Doc.String() != "雨下了一夜。\n她醒了。" || !strings.Contains(a.notice, "已采纳 AI 提议") || !tt.Focused("正文") || ed.Caret() != ed.Doc.Len() {
-		t.Fatalf("taken %q %q, the prose focused %v", ed.Doc.String(), a.notice, tt.Focused("正文"))
+	if ed.Doc.String() != "雨下了一夜。\n她醒了。" || !strings.Contains(noticeOf(a), "已采纳 AI 提议") || !tt.Focused("正文") || ed.Caret() != ed.Doc.Len() {
+		t.Fatalf("taken %q %q, the prose focused %v", ed.Doc.String(), noticeOf(a), tt.Focused("正文"))
 	}
 	if ms := ed.Doc.Marks(); len(ms) != 1 || ms[0].Kind != editor.MarkAI || ms[0].End != ed.Doc.Len() || ms[0].Note != "deepseek/deepseek-flash" {
 		t.Fatalf("marks %+v", ms)
@@ -534,8 +534,8 @@ func TestAProposalVoidAndOneLetGo(t *testing.T) {
 	ed.Select(10, 12) // 有光
 	ed.Insert("亮")
 	tt.Frame()
-	if len(ed.Proposals()) != 0 || a.hint != "1 处 AI 提议已作废；它要换掉的原文改动了" || !tt.HasText("正文已改动，提议已作废") {
-		t.Fatal("the proposal is not void", a.hint, tt.Texts())
+	if len(ed.Proposals()) != 0 || hintOf(a) != "1 处 AI 提议已作废；它要换掉的原文改动了" || !tt.HasText("正文已改动，提议已作废") {
+		t.Fatal("the proposal is not void", hintOf(a), tt.Texts())
 	}
 
 	hold := f.holding()
@@ -723,8 +723,8 @@ func TestADraftWaitsForAModelAndItsTurn(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.hint != "AI 正在回复别的讨论；等它回完或取消后再起草" || !a.write.draftOpen {
-		t.Fatalf("drafted over another reply: %q", a.hint)
+	if hintOf(a) != "AI 正在回复别的讨论；等它回完或取消后再起草" || !a.write.draftOpen {
+		t.Fatalf("drafted over another reply: %q", hintOf(a))
 	}
 	a.busy = ""
 }

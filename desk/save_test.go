@@ -179,8 +179,8 @@ func TestCtrlSSavesNow(t *testing.T) {
 	if ch.Text != shownEditor(a).Doc.String() || !strings.Contains(ch.Text, "二") {
 		t.Fatalf("disk has %q", ch.Text)
 	}
-	if !strings.HasPrefix(a.notice, "已保存") {
-		t.Fatal(a.notice)
+	if !strings.HasPrefix(noticeOf(a), "已保存") {
+		t.Fatal(noticeOf(a))
 	}
 }
 

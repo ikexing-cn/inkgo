@@ -51,10 +51,10 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 		t.Fatalf("from the next chapter %+v", f)
 	}
 	a.openPay("") // nothing selected: nothing to pay off with
-	if w.fore.paying || a.hint == "" {
+	if w.fore.paying || hintOf(a) == "" {
 		t.Fatal("paying off without a passage")
 	}
-	a.hint = "" // the hint floats over the top of the column
+	setHint(a, "") // the hint floats over the top of the column
 	shownEditor(a).Select(0, 18)
 	a.openPay("")
 	tt.Frame()
@@ -192,18 +192,18 @@ func TestForeshadowLost(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	a.hint = ""
+	setHint(a, "")
 	a.rehang(f)
-	if a.hint == "" {
+	if hintOf(a) == "" {
 		t.Fatal("hung on nothing")
 	}
 	// With nothing picked the pane's button waits, as the menu's does,
 	// rather than saying so in a toast.
-	a.hint = ""
+	setHint(a, "")
 	_ = tt.Click("更换原句")
 	tt.Frame()
-	if f, _ = a.foreshadowOf(id); a.hint != "" || f.Status() != workspace.ForeLost {
-		t.Fatalf("更换原句 pressed with nothing picked: %q %+v", a.hint, f)
+	if f, _ = a.foreshadowOf(id); hintOf(a) != "" || f.Status() != workspace.ForeLost {
+		t.Fatalf("更换原句 pressed with nothing picked: %q %+v", hintOf(a), f)
 	}
 	text := shownEditor(a).Doc.String()
 	at := len([]rune(text[:strings.Index(text, "她没有去捡。")]))
@@ -219,8 +219,8 @@ func TestForeshadowLost(t *testing.T) {
 	tt.Frame()
 	_ = tt.Click("记为回收")
 	tt.Frame()
-	if a.hint != "" || w.fore.paying {
-		t.Fatalf("记为回收 pressed with nothing picked: %q", a.hint)
+	if hintOf(a) != "" || w.fore.paying {
+		t.Fatalf("记为回收 pressed with nothing picked: %q", hintOf(a))
 	}
 	shownEditor(a).Select(0, 2)
 	tt.Frame()

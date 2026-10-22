@@ -74,7 +74,7 @@ func TestToastSettingsFollowTheErrorType(t *testing.T) {
 	a.SetError(wrapped)
 	tt.Frame()
 	tt.Frame()
-	if !tt.HasText("打开设置") || !errors.Is(a.err, cause) {
+	if !tt.HasText("打开设置") || !errors.Is(appError(a), cause) {
 		t.Fatal("wrapped setup error lost its settings action or cause", tt.Texts())
 	}
 	for _, err := range []error{errors.New("模型回复被截断"), errors.New("模型请求超时：太慢了"), errors.New("AI 回复不是合法 JSON")} {
@@ -125,7 +125,7 @@ func TestToastsFold(t *testing.T) {
 	tt.Frame()
 	a.busy = "正在整理"
 	tt.Frame()
-	a.notice = "已保存"
+	setNotice(a, "已保存")
 	tt.Frame()
 	tt.Frame()
 	if !tt.HasText("还有 1 条") || tt.HasText("出错了") {
@@ -143,7 +143,8 @@ func TestToastsFold(t *testing.T) {
 // A word on what to do first has no mark: it is neither done nor wrong.
 func TestAHintHasNoMark(t *testing.T) {
 	a, tt, _ := fixture(t)
-	a.notice, a.hint = "已经存好", "请先选中"
+	setNotice(a, "已经存好")
+	setHint(a, "请先选中")
 	tt.Frame()
 	tt.Frame()
 	done, ok := tt.Find("已经存好")
@@ -168,7 +169,7 @@ func TestShotToasts(t *testing.T) {
 	a.SetError(nil)
 	tt.Frame()
 	a.page = pageWrite
-	a.notice = "已保存。停笔片刻也会自动保存"
+	setNotice(a, "已保存。停笔片刻也会自动保存")
 	shot(t, tt, "toast-saved.png")
 	a.SetError(&aiport.SetupError{Err: errors.New("连不上 AI：检查网络和服务地址")})
 	tt.Frame()

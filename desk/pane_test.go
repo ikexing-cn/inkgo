@@ -103,8 +103,8 @@ func TestSettingListAndPage(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Frame()
-	if e, _ := setting(a).Entry(ids.fresh); e.Place != workspace.PlaceDropped || a.doc.todo || tt.HasText("待确认") {
-		t.Fatal("not ignored", e.Place, a.doc.todo, tt.Texts())
+	if e, _ := setting(a).Entry(ids.fresh); e.Place != workspace.PlaceDropped || todoShown(a) || tt.HasText("待确认") {
+		t.Fatal("not ignored", e.Place, todoShown(a), tt.Texts())
 	}
 }
 
@@ -122,7 +122,7 @@ func TestAQuestionIsAnswered(t *testing.T) {
 	if err = a.refresh(); err != nil {
 		t.Fatal(err)
 	}
-	a.doc.todo = true
+	showTodo(a, true)
 	tt.Frame()
 	if !tt.HasText(q) || !tt.HasText("回答-"+id) || tt.HasText("采纳-"+id) {
 		t.Fatal("the question", tt.Texts())
@@ -143,13 +143,14 @@ func TestAQuestionIsAnswered(t *testing.T) {
 	}
 	tt.Frame()
 	e, _ := setting(a).Entry(id)
-	if e.Place != workspace.PlaceBody || e.Text != answer || e.Asked != q || e.Category != "人物" || strings.Join(e.Names, "、") != "林晚、小晚" || a.doc.editing != "" {
+	if e.Place != workspace.PlaceBody || e.Text != answer || e.Asked != q || e.Category != "人物" || strings.Join(e.Names, "、") != "林晚、小晚" || editingEntry(a) != "" {
 		t.Fatalf("answered %+v", e)
 	}
-	if !a.doc.todo || !tt.HasText("2 条 AI 建议") {
+	if !todoShown(a) || !tt.HasText("2 条 AI 建议") {
 		t.Fatal("back to what waits", tt.Texts())
 	}
-	a.doc.todo, a.doc.shown = false, id
+	showTodo(a, false)
+	showEntry(a, id)
 	tt.Frame()
 	if !tt.HasText(answer) || !tt.HasText("回答："+q) {
 		t.Fatal("the entry", tt.Texts())
@@ -199,18 +200,24 @@ func TestShotPane(t *testing.T) {
 	shot(t, tt, "pane-list.png")
 	d.query = "左手"
 	shot(t, tt, "pane-find.png")
-	d.query, d.shown = "", ids.zhou
+	d.query = ""
+	showEntry(a, ids.zhou)
 	shot(t, tt, "pane-entry.png")
 	e, _ := setting(a).Entry(ids.zhou)
-	d.editing, d.text, d.category, d.name, d.names = e.ID, e.Text, e.Category, "周祥", "小祥、saki"
+	editEntry(a, e.ID)
+	d.text, d.category, d.name, d.names = e.Text, e.Category, "周祥", "小祥、saki"
 	shot(t, tt, "pane-edit.png")
-	d.editing, d.shown, d.text, d.name, d.names = "new", "", "老周是修表的，铺子在旧城小学对面", "老周", ""
+	editEntry(a, "new")
+	showEntry(a, "")
+	d.text, d.name, d.names = "老周是修表的，铺子在旧城小学对面", "老周", ""
 	shot(t, tt, "pane-new.png")
-	d.editing, d.todo = "", true
+	editEntry(a, "")
+	showTodo(a, true)
 	shot(t, tt, "pane-todo.png")
-	d.todo, d.history = false, true
+	showTodo(a, false)
+	showHistory(a, true)
 	shot(t, tt, "pane-history.png")
-	d.history = false
+	showHistory(a, false)
 	tt.SetDark(true)
 	shot(t, tt, "pane-list-dark.png")
 	tt.SetDark(false)
@@ -258,7 +265,7 @@ func TestTheEntryFormTakesTheKeyboard(t *testing.T) {
 	if !tt.Focused("设定内容") {
 		t.Fatal("a new entry starts somewhere else")
 	}
-	a.doc.editing = ""
+	editEntry(a, "")
 	tt.Frame()
 	if err := tt.Click("设定-" + ids.zhou); err != nil {
 		t.Fatal(err)
