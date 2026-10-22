@@ -143,7 +143,7 @@ Status: proposed
 | `ideas()` 的排序，`reading`/`readingBefore` | `workspace/ideas.go` 的 `Setting.Ideas`；`workspace/reading.go` 的 `Entry.Reading`、`ReadingBefore` |
 | 伏笔模型和候选 | `workspace/foreshadow.go` 的伏笔和回收模型、状态、候选及逾期判断；界面传入即时标记和偏好阈值，保管文案 |
 | 检查的队列、`keepCheck`、`pruneCheck` | `workspace/checkqueue.go` 的 `CheckQueue`；`workspace/check.go` 的 `Check.Prune`、`KeepMeant`、`Stale`；`desk/checkrunner.go` 的 `checkRunner` 执行并交回结果 |
-| `chat.go` 的 `mentions`、`sections`、`looks`、`spent`、`requests`、`fateOf` | `workspace/events.go` 的 `Looks`、`Spent`、`Requests`、`FateOf`；`workspace/mentions.go` 的 `Setting.Mentions`。`sections` 留在 `desk/chat.go`，第 5 批由 `discussion` 导出摘要解析器 |
+| `chat.go` 的 `mentions`、`sections`、`looks`、`spent`、`requests`、`fateOf` | `workspace/events.go` 的 `Looks`、`Spent`、`Requests`、`FateOf`；`workspace/mentions.go` 的 `Setting.Mentions`。`sections` 第 5 批搬到 `workspace/events.go`，是 `DigestSections` |
 | `sessionTitle`/`talkTitle` 两份 | `workspace.TalkTitle`，从事件和章节标题读取 |
 | 每日字数和目标（`today()` 在取值时改并存偏好） | `prefs.Prefs` 嵌入 `Counter`；读取纯计算，`desk` 在计数读入后显式换日 |
 | 手机预览的分页 | `editor.PaginatedText`（`editor/pagination.go`），`desk` 提供排版参数、保管面板设置并绘制 |
@@ -201,6 +201,8 @@ Status: proposed
 | 4 | `desk.json` 里 `days` 写在 `carets` 前面 | 看不出区别：键和值不变 |
 | 4 | 新开的起草、改写讨论，标题里的章名和讨论列表一样取 | 章节已从磁盘上丢失时起草，新讨论一开始就叫「起草：已删除的章」，不再先显示原来的章名 |
 | 4 | 导出范围不再提供时，马上回到「全书」 | 看不出区别：只勾设定时，范围那一行不显示 |
+| 5 | 起草对话框的预加载提示，由讨论按实际带上的内容给出 | 章节刚在软件外面改过、界面还没刷新（两秒内），或上一章的文件读不出来时，提示说的是讨论实际带上的内容，不再说带上了上一章全文；别的情况措辞不变 |
+| 5 | 讨论工具各用自己的参数类型 | 看不出区别：模型给一个工具带上别的工具的参数时，和带上不认识的参数一样忽略，不再报参数错误；调用不存在的工具时，总是报「没有叫……的工具」 |
 | 6 | 大纲页停顿后保存 | 和写作页一样 |
 
 ### 不在这次里的
@@ -226,7 +228,7 @@ Status: proposed
 | 2 存取层和共用小工具 | 2026-10-21 合入 |
 | 3 整理 | 2026-10-22 合入 |
 | 4 把规则搬出 `desk` | 2026-10-22 合入 |
-| 5 AI 层 | 未开始 |
+| 5 AI 层 | 2026-10-22 合入 |
 | 6 `desk` 的内部状态 | 未开始，先写提案 |
 | 7 拆子包 | 未开始 |
 
