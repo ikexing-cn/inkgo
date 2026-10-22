@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"writer/internal/testshot"
 	"writer/workspace"
 )
 
@@ -128,4 +129,44 @@ func indexOf(texts []string, s string) int {
 		}
 	}
 	return -1
+}
+
+// SHOT=dir go test ./desk -run TestShotRecord draws the AI record, a line
+// open, and a filter that leaves nothing.
+func TestShotRecord(t *testing.T) {
+	testshot.Dir(t)
+	a, tt, _ := fixture(t)
+	chapter, err := a.Store.NewChapter("", "第一章", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "灯为什么会灭"}); err != nil {
+		t.Fatal(err)
+	}
+	a.SetError(a.refresh())
+	a.SetError(a.loadTree())
+	at := time.Now().Add(-time.Hour)
+	for i, r := range []workspace.Record{
+		{Feature: workspace.FeatureTalk, Talk: a.session, Model: "anthropic/claude-opus-5-5", Usage: workspace.Usage{Input: 1_682_400, CacheRead: 1_211_300, Output: 59_200}, Cost: 4.444, Currency: "$", Outcome: workspace.OutcomeDone,
+			Parts: []workspace.Part{{Name: workspace.PartRules, Tokens: 1100}, {Name: workspace.PartTalk, Tokens: 9600}}},
+		{Feature: workspace.FeatureContinue, Chapter: chapter, Model: "local/qwen3", Effort: "none", Usage: workspace.Usage{Input: 900, Output: 30}, Outcome: workspace.OutcomeCancelled},
+		{Feature: workspace.FeatureRewrite, Chapter: chapter, Model: "deepseek/deepseek-flash", Usage: workspace.Usage{Input: 5000, Output: 700}, Cost: 0.001, Currency: "$", Outcome: workspace.OutcomeDone},
+		{Feature: workspace.FeatureTalk, Talk: a.session, Model: "deepseek/deepseek-flash", Usage: workspace.Usage{Input: 142_000, CacheRead: 85_200, Output: 4100}, Cost: 0.021, Currency: "$", Outcome: workspace.OutcomeCancelled},
+		{Feature: workspace.FeatureCheck, Chapter: "gone", Model: "deepseek/deepseek-flash", Effort: "high", Usage: workspace.Usage{Input: 7000}, Cost: 0.002, Currency: "$", Outcome: workspace.OutcomeFailed, Error: "无法连接模型服务",
+			Parts: []workspace.Part{{Name: workspace.PartRules, Tokens: 900}, {Name: workspace.PartProse, Tokens: 4400}}},
+	} {
+		r.At = at.Add(time.Duration(i) * time.Minute)
+		if err := a.Store.Log(r); err != nil {
+			t.Fatal(err)
+		}
+	}
+	a.openPrefs("AI")
+	tt.Frame()
+	a.bk.log = true
+	a.bk.logOnly = 0
+	a.bk.logOpen = 4 // the check, whose detail is longest
+	shot(t, tt, "record.png")
+	a.bk.logOpen = -1
+	a.bk.logOnly = 2 // 起草, which nothing was asked for
+	shot(t, tt, "record-none.png")
 }
