@@ -8,15 +8,22 @@ import (
 	"writer/workspace"
 )
 
+func (a *App) categoryCounts() map[string]int {
+	return a.write.catCounts.get(a.bookKey(), func() map[string]int {
+		counts := map[string]int{}
+		for _, e := range a.book.Setting().Entries {
+			if e.Place != workspace.PlaceDropped {
+				counts[e.Category]++
+			}
+		}
+		return counts
+	})
+}
+
 func (a *App) categories(c *ui.Context) {
 	t := a.pal.theme
 	busy := a.held()
-	counts := map[string]int{}
-	for _, e := range a.book.Setting().Entries {
-		if e.Place != workspace.PlaceDropped {
-			counts[e.Category]++
-		}
-	}
+	counts := a.categoryCounts()
 	ui.Scroll(c).FillWidth().Grow(1).Children(func() {
 		ui.Column(c).FillWidth().MaxWidth(640+2*40).Padding(32, 40, 20, 40).Gap(12).Children(func() {
 			ui.Text(c, "作品分类").FontSize(fsTitle).FontWeight(700)

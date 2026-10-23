@@ -16,10 +16,11 @@ func TestAFolderCountsItsChapters(t *testing.T) {
 		{ID: "a"},
 		{ID: "w", Folder: true, Children: []*workspace.Node{{ID: "b"}}},
 	}}
-	if k := wordsIn(counts, vol); k != 7 {
+	words := nodeWords(&workspace.Node{Children: []*workspace.Node{vol, {ID: "c"}}}, counts)
+	if k := words["v"]; k != 7 {
 		t.Fatalf("folder counts %d, want 7", k)
 	}
-	if k := wordsIn(counts, &workspace.Node{ID: "c"}); k != 5 {
+	if k := words["c"]; k != 5 {
 		t.Fatalf("chapter counts %d, want 5", k)
 	}
 }

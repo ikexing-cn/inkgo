@@ -46,14 +46,18 @@ type writeView struct {
 	outlineOpen                        bool
 	// changed, whether the prose of the chapter shown was saved since it
 	// opened.
-	changed  bool
-	counter  prefs.Counter
-	goalText string // the goal as typed
-	goalOpen bool
-	offered  string            // the numbered title a new node's name began with
-	size     int               // the text's size, or 0 for the default
-	gists    map[string]string // a line on each chapter of the folder open
-	carets   map[string]int    // where the caret was in each chapter, as it was left
+	changed   bool
+	counter   prefs.Counter
+	goalText  string // the goal as typed
+	goalOpen  bool
+	offered   string            // the numbered title a new node's name began with
+	size      int               // the text's size, or 0 for the default
+	gists     map[string]string // a line on each chapter of the folder open
+	nodeWords cached[bookKey, map[string]int]
+	total     cached[bookKey, int]
+	catCounts cached[bookKey, map[string]int]
+	pane      cached[paneKey, paneNums]
+	carets    map[string]int // where the caret was in each chapter, as it was left
 	// The disk's text, changed outside while the node was open; lost, the
 	// node gone from the disk.
 	external  *workspace.Chapter
@@ -79,6 +83,7 @@ type writeView struct {
 	// of the setting.
 	named     *editor.Editor
 	namedRevs int
+	nameLinks cached[namesKey, []editor.NameLink]
 
 	// What is pending: the list open, showing the open chapter's alone, the
 	// groups listed whole, and the keys of what the author ignored.
@@ -86,11 +91,16 @@ type writeView struct {
 	pendHere int
 	pendMore map[string]bool
 	ignored  map[string]bool
+	// ignoredVer moves when the ignored keys change, for pendingGroups.
+	ignoredVer int
+	pending    cached[pendingKey, []pendGroup]
 
 	// The foreshadowings: what their column and popovers show, and how
 	// many chapters may follow one before it is buried long (0: the
 	// default).
 	fore      foreState
+	fores     cached[foreshadowKey, []workspace.Foreshadow]
+	doubts    cached[doubtKey, [][2]int]
 	lateAfter int
 
 	snapsOpen bool

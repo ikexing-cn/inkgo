@@ -191,6 +191,7 @@ func (a *App) backupDone(s backup.Settings, err error) {
 	}
 	if a.write.ignored[pendBackup] {
 		delete(a.write.ignored, pendBackup) // the next failure is pending again
+		a.write.ignoredVer++
 		a.savePrefs()
 	}
 	if cur, ok := a.backupSettings(); ok {

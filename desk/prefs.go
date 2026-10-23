@@ -25,6 +25,7 @@ func (a *App) loadPrefs() {
 	for _, k := range p.Ignored {
 		a.write.ignored[k] = true
 	}
+	a.write.ignoredVer++
 	a.shelved = map[string]bool{}
 	for _, id := range p.Shelved {
 		a.shelved[id] = true

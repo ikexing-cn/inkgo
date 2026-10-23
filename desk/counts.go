@@ -7,9 +7,18 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/book"
 	"writer/prefs"
 	"writer/workspace"
 )
+
+// bookKey is everything a count read from the book depends on.
+type bookKey struct {
+	book    *book.Book
+	version int
+}
+
+func (a *App) bookKey() bookKey { return bookKey{a.book, a.book.Version()} }
 
 // countAsTyped keeps the open chapter's count up with its text, so the
 // counts move as the author types rather than when the text is saved.
@@ -26,11 +35,21 @@ func (a *App) countAsTyped() {
 }
 
 func (a *App) total() int {
-	n := 0
-	for _, k := range a.book.Counts() {
-		n += k
-	}
-	return n
+	return a.write.total.get(a.bookKey(), func() int {
+		n := 0
+		for _, k := range a.book.Counts() {
+			n += k
+		}
+		return n
+	})
+}
+
+// wordsIn is a chapter's count, or for a folder all its chapters' together.
+func (a *App) wordsIn(n *workspace.Node) int {
+	words := a.write.nodeWords.get(a.bookKey(), func() map[string]int {
+		return nodeWords(a.book.Tree().Root, a.book.Counts())
+	})
+	return words[n.ID]
 }
 
 func (a *App) today(now time.Time) int {
@@ -103,7 +122,7 @@ func (a *App) wordCount(c *ui.Context, roomy, wide bool) {
 		unit = "本卷"
 	}
 	if ok {
-		here = wordsIn(a.book.Counts(), n)
+		here = a.wordsIn(n)
 	}
 	if w.ed != nil {
 		if sel := w.ed.SelectedText(); sel != "" {
@@ -188,14 +207,26 @@ func (a *App) lastWeek(c *ui.Context) {
 	}
 }
 
-// wordsIn is a chapter's count, or for a folder all its chapters' together.
-func wordsIn(counts map[string]int, n *workspace.Node) int {
-	if !n.Folder {
-		return counts[n.ID]
+// nodeWords is the count of every node under root: a chapter's own, or for
+// a folder all its chapters' together.
+func nodeWords(root *workspace.Node, counts map[string]int) map[string]int {
+	out := map[string]int{}
+	var add func(n *workspace.Node) int
+	add = func(n *workspace.Node) int {
+		k := counts[n.ID]
+		if n.Folder {
+			k = 0
+			for _, ch := range n.Children {
+				k += add(ch)
+			}
+		}
+		out[n.ID] = k
+		return k
 	}
-	k := 0
-	for _, ch := range n.Children {
-		k += wordsIn(counts, ch)
+	if root != nil {
+		for _, ch := range root.Children {
+			add(ch)
+		}
 	}
-	return k
+	return out
 }

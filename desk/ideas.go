@@ -4,16 +4,28 @@ import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/book"
 	"writer/workspace"
 )
+
+// ideasKey is everything ideas reads: the setting and tree, and whether
+// the AI is on.
+type ideasKey struct {
+	book    *book.Book
+	version int
+	ai      bool
+}
 
 // ideas are what the AI suggests and the author has not decided
 // (workspace.Setting.Ideas); with the AI off, there are none.
 func (a *App) ideas() []workspace.Idea {
-	if !a.aiOn() {
-		return nil
-	}
-	return a.book.Setting().Ideas(a.book.Tree().Order())
+	key := ideasKey{a.book, a.book.Version(), a.aiOn()}
+	return a.doc.ideas.get(key, func() []workspace.Idea {
+		if !a.aiOn() {
+			return nil
+		}
+		return a.book.Setting().Ideas(a.book.Tree().Order())
+	})
 }
 
 // asks tells whether e, waiting on the author, asks them something: the

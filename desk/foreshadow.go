@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/book"
 	"writer/editor"
 	"writer/workspace"
 )
@@ -65,16 +66,38 @@ type foreState struct {
 	renote   string
 }
 
+// foreshadowKey is everything foreshadows reads: the book, and the chapter
+// open with its editor's text.
+type foreshadowKey struct {
+	book    *book.Book
+	version int
+	ed      *editor.Editor
+	doc     int
+	node    string
+}
+
+func (a *App) foreshadowKey() foreshadowKey {
+	w := &a.write
+	doc := 0
+	if w.ed != nil {
+		doc = w.ed.Doc.Version()
+	}
+	return foreshadowKey{a.book, a.book.Version(), w.ed, doc, w.node}
+}
+
 // foreshadows are the book's foreshadowings and what pays them off
 // (workspace.Tree.Foreshadows), the open chapter's as it is being written.
 func (a *App) foreshadows() []workspace.Foreshadow {
 	w := &a.write
-	current := ""
-	var live []workspace.ChapterMark
-	if w.ed != nil {
-		current, live = w.node, liveMarks(w.ed.Doc)
-	}
-	return a.book.Tree().Foreshadows(a.book.Marks(), current, live)
+	key := a.foreshadowKey()
+	return w.fores.get(key, func() []workspace.Foreshadow {
+		current := ""
+		var live []workspace.ChapterMark
+		if w.ed != nil {
+			current, live = w.node, liveMarks(w.ed.Doc)
+		}
+		return a.book.Tree().Foreshadows(a.book.Marks(), current, live)
+	})
 }
 
 func markID() string {

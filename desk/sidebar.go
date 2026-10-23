@@ -155,7 +155,7 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 			glyph(c, nodeIcon(n), iconSm, fg)
 		}
 		ui.Text(c, n.Title).FontSize(fsControl).FontWeight(weight).TextColor(fg).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
-		if k := wordsIn(a.book.Counts(), n); k > 0 {
+		if k := a.wordsIn(n); k > 0 {
 			ui.Text(c, strings.ReplaceAll(strings.TrimSuffix(words(k), "字"), " ", "")).FontSize(fsSmall).TextColor(a.pal.faint)
 		}
 	})

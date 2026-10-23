@@ -32,4 +32,4 @@ Status: implemented
 - 点击调用 desk.seeName，在右栏显示对应设定，并保留正文光标和键盘；无须 AI。悬停显示「查看设定」，虚线使用现有编辑器绘图函数。
 - 外观的勾选默认开启。本机所有作品共用，和颜色一起保存到 works.json 的 Shelf.NoNames（noNames 字段，沿用 Shelf 的严格解码和临时文件重命名写入）。旧 works.json 没有此字段时按 false 读取，即默认标出名字；默认值写盘省略该字段。不另存 appearance.json。shelf.TestShelfNameHighlights 检查旧格式默认值、与颜色共同持久化和错误类型拒绝读取。
 - desk.TestNamesInTheProse 覆盖点击、继续打字、开关、重新启动和换书；editor.TestNameLinksYieldToAnnotations 和 TestNameLinksFollowEditedProse 覆盖重叠优先级、点击位置、临时性和正文变更。原有 TestNamesComplete、TestAddANameFromTheProse、TestRenameOffersToReplace 仍检查补全和名字表。
-- 名字扫描缓存按正文版本和名字列表失效，避开每帧重复扫描；大量名字和长正文的初次扫描仍有成本。单击名字会打开设定，要在名字中间编辑仍按原型用方向键或点旁边，Ctrl 点的取舍尚待作者试用。
+- 名字扫描缓存按正文版本和名字列表失效，避开每帧重复扫描；`desk/feedNames` 给编辑器的 `NameLink` 也按 `Book` 版本和 `Shelf.NoNames` 缓存。大量名字和长正文的初次扫描仍有成本。单击名字会打开设定，要在名字中间编辑仍按原型用方向键或点旁边，Ctrl 点的取舍尚待作者试用。

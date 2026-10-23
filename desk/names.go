@@ -7,6 +7,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
+	"writer/desk/book"
 	"writer/editor"
 	"writer/workspace"
 )
@@ -33,6 +34,14 @@ func (a *App) entities() []editor.Entity {
 	return out
 }
 
+// namesKey is everything the name links read: the setting and whether
+// names are shown at all.
+type namesKey struct {
+	book    *book.Book
+	version int
+	noNames bool
+}
+
 // feedNames gives the chapter's editor the names, again once the setting
 // changed.
 func (a *App) feedNames() {
@@ -44,8 +53,12 @@ func (a *App) feedNames() {
 		w.named, w.namedRevs = w.ed, len(a.book.Setting().Revisions)
 		w.ed.SetEntities(a.entities())
 	}
-	var links []editor.NameLink
-	if !a.shelf.NoNames {
+	key := namesKey{a.book, a.book.Version(), a.shelf.NoNames}
+	links := w.nameLinks.get(key, func() []editor.NameLink {
+		var links []editor.NameLink
+		if a.shelf.NoNames {
+			return links
+		}
 		for _, e := range a.book.Setting().Entries {
 			if e.Place == workspace.PlaceBody {
 				for _, n := range e.Names {
@@ -53,7 +66,8 @@ func (a *App) feedNames() {
 				}
 			}
 		}
-	}
+		return links
+	})
 	w.ed.SetNameLinks(links, a.seeName)
 }
 

@@ -182,6 +182,7 @@ type docView struct {
 	width    float32
 	resizing bool
 	tab      paneTab
+	ideas    cached[ideasKey, []workspace.Idea]
 	// The talks are listed there, not the one open, and what the list is
 	// searched for.
 	talks     bool

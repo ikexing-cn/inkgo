@@ -43,18 +43,35 @@ func (a *App) resizer(c *ui.Context, width float32) {
 	}
 }
 
+// paneKey is everything the right column's tab counts read.
+type paneKey struct {
+	fores foreshadowKey
+	ai    bool
+}
+
+type paneNums struct {
+	waiting, open int
+}
+
+func (a *App) paneCounts() paneNums {
+	key := paneKey{a.foreshadowKey(), a.aiOn()}
+	return a.write.pane.get(key, func() paneNums {
+		n := paneNums{open: len(a.ideas())}
+		for _, f := range a.foreshadows() {
+			if f.Status() == workspace.ForeLost {
+				n.waiting++
+			}
+		}
+		return n
+	})
+}
+
 // panelTabs switch the writing page's right column between the setting,
 // the talk, the foreshadowings and the phone preview.
 func (a *App) panelTabs(c *ui.Context) {
 	t := a.pal.theme
 	// Each count is of what waits on the author there.
-	waiting := 0
-	for _, f := range a.foreshadows() {
-		if f.Status() == workspace.ForeLost {
-			waiting++
-		}
-	}
-	open := a.ideas()
+	nums := a.paneCounts()
 	shown := a.doc.tab
 	if shown == paneTalk && !a.aiOn() {
 		shown = paneSetting
@@ -79,9 +96,9 @@ func (a *App) panelTabs(c *ui.Context) {
 			n := 0
 			switch kind {
 			case paneSetting:
-				n = len(open)
+				n = nums.open
 			case paneFore:
-				n = waiting
+				n = nums.waiting
 			}
 			if n > 0 {
 				ui.Textf(c, "%d", n).FontSize(fsNote).TextColor(a.pal.faint).Padding(0, 0, 0, 4)

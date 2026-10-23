@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 
+	"writer/desk/book"
 	"writer/editor"
 	"writer/workspace"
 )
@@ -38,10 +40,60 @@ func (a *App) scanMarks() {
 	a.warn(a.book.ReloadMarks())
 }
 
+// pendingBackupKey is what the backup failure in the list shows: its
+// settings, its failure, and the minute its last-backup line says.
+type pendingBackupKey struct {
+	ok      bool
+	dir     string
+	last    time.Time
+	failed  bool
+	trouble string
+	minute  int64
+}
+
+// pendingKey is everything pendingGroups reads: the book and the open
+// chapter, the AI, the late-after setting, the ignored keys, the backup
+// failure and the colours.
+type pendingKey struct {
+	book    *book.Book
+	version int
+	ed      *editor.Editor
+	doc     int
+	node    string
+	live    bool
+	ai      bool
+	late    int
+	ignored int
+	backup  pendingBackupKey
+	pal     *palette
+}
+
+func (a *App) pendingKey() pendingKey {
+	w := &a.write
+	doc := 0
+	if w.ed != nil {
+		doc = w.ed.Doc.Version()
+	}
+	b := pendingBackupKey{}
+	if s, ok := a.backupSettings(); ok {
+		b.ok, b.dir, b.last, b.failed = true, s.Dir, s.Last, a.bk.policy.Failed()
+		if b.failed {
+			b.trouble, _, _ = a.bk.policy.Trouble(s.Dir)
+			b.minute = time.Now().Unix() / 60
+		}
+	}
+	return pendingKey{a.book, a.book.Version(), w.ed, doc, w.node, a.liveChapter(),
+		a.aiOn(), w.lateAfter, w.ignoredVer, b, a.pal}
+}
+
 // pendingGroups gathers what is pending and not ignored, by kind: what the
 // checks against the setting found, the foreshadowings lost or waiting too long, the open chapter's as it is
 // being written, and a backup that failed.
 func (a *App) pendingGroups() []pendGroup {
+	return a.write.pending.get(a.pendingKey(), a.buildPendingGroups)
+}
+
+func (a *App) buildPendingGroups() []pendGroup {
 	w := &a.write
 	var items []pendItem
 	for _, f := range a.foreshadows() {
@@ -260,6 +312,7 @@ func (a *App) ignore(items []pendItem) {
 	for _, it := range items {
 		w.ignored[it.key] = true
 	}
+	w.ignoredVer++
 	a.savePrefs()
 }
 

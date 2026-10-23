@@ -8,6 +8,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/book"
+	"writer/editor"
 	"writer/internal/textclip"
 	"writer/workspace"
 )
@@ -36,6 +38,10 @@ type checks struct {
 	of   *workspace.Store // the work the queue is of
 	when string
 
+	items      cached[checkKey, []checkItem]
+	itemsMeant cached[checkKey, []checkItem]
+	listed     cached[checkKey, []checkItem]
+
 	tab      int
 	shown    string // the finding the page shows
 	whenOpen bool
@@ -46,7 +52,6 @@ type checks struct {
 	live           string // the open chapter's text, as of liveVer
 	liveOf         string
 	liveVer        int
-	doubtKey       string
 }
 
 // checkItem is a finding with where it is.
@@ -68,10 +73,8 @@ func entryTitle(e workspace.Entry) string {
 
 // loadChecks reads what the checks of the work found.
 func (a *App) loadChecks() {
-	k := &a.ck
 	a.warn(a.book.ReloadChecks())
 	a.warn(a.book.ReloadTree())
-	k.doubtKey = ""
 }
 
 // hasSetting tells whether there is a setting to check prose against.
@@ -103,7 +106,6 @@ func (a *App) leaveCheck() {
 // pruneStoredCheck drops from chapter's check what its prose, text, no longer
 // says and the author did not call meant.
 func (a *App) pruneStoredCheck(chapter, text string) {
-	k := &a.ck
 	had, ok := a.book.Checks()[chapter]
 	if !ok {
 		return
@@ -116,7 +118,6 @@ func (a *App) pruneStoredCheck(chapter, text string) {
 		a.warn(err)
 		return
 	}
-	k.doubtKey = ""
 }
 
 // pruneStoredChecks does so for every chapter with something found, as of the
@@ -168,7 +169,6 @@ func (a *App) saveCheckResult(d checkDone) {
 		k.queue.Fail(d.chapter, err)
 		return
 	}
-	k.doubtKey = ""
 }
 
 // stopChecks drops the checks waiting and stops the one running, as the
@@ -190,11 +190,44 @@ func (a *App) checkWhilePausing() {
 	k.queue.AfterPause(w.node, w.saved, a.book.Checks()[w.node], a.ai.MinCheck(), w.ed.LastEdit(), time.Now())
 }
 
+// checkKey is everything checkItems reads: the book, and the chapter open
+// with its editor's text, when that text counts as live.
+type checkKey struct {
+	book    *book.Book
+	version int
+	ed      *editor.Editor
+	doc     int
+	node    string
+	live    bool
+}
+
+func (a *App) checkKey() checkKey {
+	w := &a.write
+	doc := 0
+	if w.ed != nil {
+		doc = w.ed.Doc.Version()
+	}
+	return checkKey{a.book, a.book.Version(), w.ed, doc, w.node, a.liveChapter()}
+}
+
+// doubtKey is the check items the marks are drawn from, and whether the AI
+// is on.
+type doubtKey struct {
+	check checkKey
+	ai    bool
+}
+
+// liveChapter says the open chapter is the one shown on the writing page.
+func (a *App) liveChapter() bool {
+	w := &a.write
+	return w.ed != nil && w.node != "" && w.entered
+}
+
 // liveText is the open chapter's text as it is being written.
 func (a *App) liveText() (string, bool) {
 	w := &a.write
 	k := &a.ck
-	if w.ed == nil || w.node == "" || !w.entered {
+	if !a.liveChapter() {
 		return "", false
 	}
 	if k.liveOf != w.node || k.liveVer != w.ed.Doc.Version() || k.live == "" {
@@ -207,6 +240,14 @@ func (a *App) liveText() (string, bool) {
 // order: with meant, also what the author said is as meant. A new name the
 // author left out of the setting once is left out in every chapter.
 func (a *App) checkItems(meant bool) []checkItem {
+	c := &a.ck.items
+	if meant {
+		c = &a.ck.itemsMeant
+	}
+	return c.get(a.checkKey(), func() []checkItem { return a.buildCheckItems(meant) })
+}
+
+func (a *App) buildCheckItems(meant bool) []checkItem {
 	tree := a.book.Tree()
 	live, open := a.liveText()
 	left := map[string]bool{}
@@ -263,24 +304,25 @@ func (a *App) checkItems(meant bool) []checkItem {
 // new name found in several chapters is one, where it first comes, since
 // it is taken into the setting or left out once.
 func (a *App) listedChecks() []checkItem {
-	var out []checkItem
-	first := map[string]int{}
-	for _, it := range a.checkItems(false) {
-		if it.f.Kind == workspace.FindNew {
-			if i, ok := first[it.f.Name]; ok {
-				out[i].also = append(out[i].also, it)
-				continue
+	return a.ck.listed.get(a.checkKey(), func() []checkItem {
+		var out []checkItem
+		first := map[string]int{}
+		for _, it := range a.checkItems(false) {
+			if it.f.Kind == workspace.FindNew {
+				if i, ok := first[it.f.Name]; ok {
+					out[i].also = append(out[i].also, it)
+					continue
+				}
+				first[it.f.Name] = len(out)
 			}
-			first[it.f.Name] = len(out)
+			out = append(out, it)
 		}
-		out = append(out, it)
-	}
-	return out
+		return out
+	})
 }
 
 // setMeant records that the author means what it found.
 func (a *App) setMeant(it checkItem) {
-	k := &a.ck
 	had := a.book.Checks()[it.node]
 	for i := range had.Findings {
 		if had.Findings[i].ID == it.f.ID {
@@ -291,7 +333,6 @@ func (a *App) setMeant(it checkItem) {
 		a.warn(err)
 		return
 	}
-	k.doubtKey = ""
 }
 
 // checkDue lists the chapters a check of the book would read: those long
@@ -344,28 +385,27 @@ func (a *App) checkPending() (pendGroup, bool) {
 // chapter shown, while the AI is on.
 func (a *App) markDoubts() {
 	w := &a.write
-	k := &a.ck
-	text, ok := a.liveText()
-	if !ok {
+	if w.ed == nil {
 		return
 	}
-	items := slices.DeleteFunc(a.checkItems(false), func(it checkItem) bool { return !it.here || !a.aiOn() })
-	key := fmt.Sprint(w.node, " ", k.liveVer)
-	for _, it := range items {
-		key += " " + it.f.ID
-	}
-	if key == k.doubtKey {
-		return
-	}
-	k.doubtKey = key
-	var ranges [][2]int
-	for _, it := range items {
-		if at := strings.Index(text, it.f.Quote); at >= 0 {
-			s := len([]rune(text[:at]))
-			ranges = append(ranges, [2]int{s, s + len([]rune(it.f.Quote))})
+	key := doubtKey{a.checkKey(), a.aiOn()}
+	w.doubts.get(key, func() [][2]int {
+		text, ok := a.liveText()
+		if !ok {
+			w.ed.SetDoubts(nil)
+			return nil
 		}
-	}
-	w.ed.SetDoubts(ranges)
+		items := slices.DeleteFunc(slices.Clone(a.checkItems(false)), func(it checkItem) bool { return !it.here || !a.aiOn() })
+		var ranges [][2]int
+		for _, it := range items {
+			if at := strings.Index(text, it.f.Quote); at >= 0 {
+				s := len([]rune(text[:at]))
+				ranges = append(ranges, [2]int{s, s + len([]rune(it.f.Quote))})
+			}
+		}
+		w.ed.SetDoubts(ranges)
+		return ranges
+	})
 }
 
 // checkState says in a line where the check of the chapter shown stands,
@@ -812,7 +852,7 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 					a.checkCard(c, "可加入设定 · "+it.f.Category, "", a.quoted(text, it.f.Name))
 				}
 			})
-			head, alike := "其他章节中也出现", it.also
+			head, alike := "其他章节中也出现", slices.Clone(it.also)
 			if it.f.Kind == workspace.FindConflict {
 				head = "其他章节的类似情况"
 				for _, o := range a.checkItems(true) {

@@ -257,11 +257,29 @@ func TestWritesUpdateTheCopyAndTheDisk(t *testing.T) {
 	}
 
 	before := b.Version()
+	b.SetCount(one, b.Count(one))
+	if b.Version() != before {
+		t.Fatalf("the same count moved Version from %d to %d", before, b.Version())
+	}
+	b.SetCount(one, b.Count(one)+1)
+	if b.Version() != before+1 {
+		t.Fatalf("a changed count moved Version from %d to %d", before, b.Version())
+	}
+	treeBefore := b.Version()
 	if err := b.ReloadTree(); err != nil {
 		t.Fatal(err)
 	}
-	if b.Version() != before+1 {
-		t.Fatalf("ReloadTree moved Version from %d to %d", before, b.Version())
+	if b.Version() != treeBefore {
+		t.Fatalf("the same tree moved Version from %d to %d", treeBefore, b.Version())
+	}
+	if _, err := s.NewChapter("", "第三章", false); err != nil {
+		t.Fatal(err)
+	}
+	if err := b.ReloadTree(); err != nil {
+		t.Fatal(err)
+	}
+	if b.Version() != treeBefore+1 {
+		t.Fatalf("a changed tree moved Version from %d to %d", treeBefore, b.Version())
 	}
 }
 
@@ -316,6 +334,11 @@ func TestEveryReloadMovesVersion(t *testing.T) {
 		{"outlines", b.ReloadOutlines},
 		{"checks", b.ReloadChecks},
 	} {
+		if reload.name == "tree" {
+			if _, err := s.NewChapter("", "第二章", false); err != nil {
+				t.Fatal(err)
+			}
+		}
 		before := b.Version()
 		if err := reload.fn(); err != nil {
 			t.Fatalf("%s: %v", reload.name, err)

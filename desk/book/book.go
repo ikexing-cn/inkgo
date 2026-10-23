@@ -49,6 +49,9 @@ func (b *Book) Count(id string) int { return b.counts[id] }
 // SetCount keeps the open chapter's count up with what is typed before it
 // is saved; the prose on disk still has the word the last save gave it.
 func (b *Book) SetCount(id string, n int) {
+	if b.counts[id] == n {
+		return
+	}
 	if b.counts == nil {
 		b.counts = map[string]int{}
 	}
@@ -104,9 +107,35 @@ func (b *Book) ReloadTree() error {
 	if err != nil {
 		return err
 	}
+	if sameTree(b.tree, t) {
+		return nil
+	}
 	b.tree = t
 	b.version++
 	return nil
+}
+
+// sameTree tells whether two reads of the tree show the same chapters in
+// the same order, so a 2-second look that found nothing new moves no
+// version.
+func sameTree(a, b workspace.Tree) bool {
+	if a.Root == nil || b.Root == nil {
+		return a.Root == nil && b.Root == nil
+	}
+	return sameNodes(a.Root.Children, b.Root.Children)
+}
+
+func sameNodes(a, b []*workspace.Node) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i].ID != b[i].ID || a[i].Title != b[i].Title || a[i].Folder != b[i].Folder ||
+			!sameNodes(a[i].Children, b[i].Children) {
+			return false
+		}
+	}
+	return true
 }
 
 // ReloadCounts reads the count of every document's prose.
