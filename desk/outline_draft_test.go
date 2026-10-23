@@ -5,14 +5,15 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/book"
 )
 
 // The outline page saves its cell after a pause, not on every key.
 func TestOutlineSavesAfterAPause(t *testing.T) {
-	saved := saveAfter
-	defer func() { saveAfter = saved }()
+	saved := book.SaveAfter
+	defer func() { book.SaveAfter = saved }()
 	a, tt, f := outlineFixture(t)
-	saveAfter = time.Hour
+	book.SaveAfter = time.Hour
 	click(t, tt, "章纲-"+f.one)
 	tt.Key(ui.Cmd, ui.KeyA)
 	tt.Type("新的章纲")
@@ -20,7 +21,7 @@ func TestOutlineSavesAfterAPause(t *testing.T) {
 	if ch, err := a.Store.ReadChapter(f.one); err != nil || ch.Outline != "何主任要一份灯数。" {
 		t.Fatalf("the outline was written before the pause: %q %v", ch.Outline, err)
 	}
-	saveAfter = 0
+	book.SaveAfter = 0
 	tt.Frame()
 	if ch, err := a.Store.ReadChapter(f.one); err != nil || ch.Outline != "新的章纲" {
 		t.Fatalf("the outline was not written after the pause: %q %v", ch.Outline, err)
@@ -29,10 +30,10 @@ func TestOutlineSavesAfterAPause(t *testing.T) {
 
 // The outline page's cell is saved as the work closes.
 func TestOutlineDraftSavedOnClose(t *testing.T) {
-	saved := saveAfter
-	defer func() { saveAfter = saved }()
+	saved := book.SaveAfter
+	defer func() { book.SaveAfter = saved }()
 	a, tt, f := outlineFixture(t)
-	saveAfter = time.Hour
+	book.SaveAfter = time.Hour
 	click(t, tt, "章纲-"+f.one)
 	tt.Key(ui.Cmd, ui.KeyA)
 	tt.Type("关作品前写的章纲")

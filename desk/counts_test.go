@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"writer/desk/book"
 	"writer/desk/kit"
 	"writer/prefs"
 	"writer/workspace"
@@ -93,7 +94,7 @@ func TestCountTheSelection(t *testing.T) {
 // The counts move as the author types, before the text is saved.
 func TestCountsMoveAsTyped(t *testing.T) {
 	a, tt, _ := writingFixture(t, "一")
-	saveAfter = time.Hour
+	book.SaveAfter = time.Hour
 	a.write.focus = true
 	shownEditor(a).Focus()
 	shownEditor(a).MoveTo(1, false)

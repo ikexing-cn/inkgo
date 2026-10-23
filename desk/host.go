@@ -77,7 +77,7 @@ func (a *App) phoneColors() (*kit.Palette, *kit.Palette) { return a.light, a.dar
 func (a *App) syncPlanOutline(id, text string) {
 	if a.write.node == id {
 		d := &a.write.cur().outline
-		d.text, d.saved, d.seen = text, text, text
+		d.Text, d.Saved, d.Seen = text, text, text
 	}
 }
 

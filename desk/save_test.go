@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/book"
 	"writer/desk/kit"
 	"writer/workspace"
 )
@@ -15,9 +16,9 @@ import (
 // quick makes the writing page save at once and look at the disk only
 // when a test asks.
 func quick(t *testing.T) {
-	saved, checked := saveAfter, checkEvery
-	saveAfter, checkEvery = 0, time.Hour
-	t.Cleanup(func() { saveAfter, checkEvery = saved, checked })
+	saved, checked := book.SaveAfter, book.CheckEvery
+	book.SaveAfter, book.CheckEvery = 0, time.Hour
+	t.Cleanup(func() { book.SaveAfter, book.CheckEvery = saved, checked })
 }
 
 func disk(t *testing.T, a *App, name string) string {
@@ -257,7 +258,7 @@ func TestLeavingWithAnOutsideChangeKeepsTheEditorsWords(t *testing.T) {
 	if err := os.WriteFile(p, []byte("别处改的，很重要。"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	saveAfter = time.Hour // the words are not saved before the work is left
+	book.SaveAfter = time.Hour // the words are not saved before the work is left
 	tt.Type("新字")
 	tt.Frame()
 	store := a.Store

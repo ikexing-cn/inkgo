@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/book"
 	"writer/workspace"
 )
 
@@ -73,7 +74,7 @@ func TestOutlineReadError(t *testing.T) {
 	if err := os.WriteFile(file, []byte(good), 0600); err != nil {
 		t.Fatal(err)
 	}
-	a.plan.checked = a.plan.checked.Add(-checkEvery) // as if checkEvery went by
+	a.plan.checked = a.plan.checked.Add(-book.CheckEvery) // as if checkEvery went by
 	tt.Frame()
 	if outlineErr(a) != nil {
 		t.Fatal("the outline was not read again", outlineErr(a))

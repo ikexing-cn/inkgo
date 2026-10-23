@@ -5,16 +5,12 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/book"
 )
 
-// The writing page saves as the author pauses, looks at the disk for
-// changes made outside, and keeps a snapshot every so often while they
-// write. Tests shorten these.
-var (
-	saveAfter  = 1500 * time.Millisecond
-	checkEvery = 2 * time.Second
-	snapEvery  = 10 * time.Minute
-)
+// snapEvery is how often the writing page keeps a snapshot while the author
+// writes. Tests shorten it.
+var snapEvery = 10 * time.Minute
 
 // flush saves the text and the outline shown, as leaving them does. What
 // an AI proposes is not in the text, and stays.
@@ -53,7 +49,7 @@ func (a *App) saveOutline() error {
 	if w.node == "" || w.cur().lost {
 		return nil
 	}
-	return w.cur().outline.save(a.book)
+	return w.cur().outline.Save(a.book)
 }
 
 // watch saves what paused long enough and looks at the disk, each frame
@@ -68,27 +64,27 @@ func (a *App) watch(c *ui.Context) {
 	}
 	o := w.cur()
 	if o.ed != nil && o.ed.Doc.Version() != o.savedVer && o.external == nil && !o.lost {
-		if wait := saveAfter - time.Since(o.ed.LastEdit()); wait > 0 {
+		if wait := book.SaveAfter - time.Since(o.ed.LastEdit()); wait > 0 {
 			c.After(wait)
 		} else {
 			a.warn(a.saveText())
 		}
 	}
 	d := &o.outline
-	d.change(time.Now())
-	if wait, due := d.waits(saveAfter, time.Now()); due {
+	d.Change(time.Now())
+	if wait, due := d.Waits(book.SaveAfter, time.Now()); due {
 		if wait > 0 {
 			c.After(wait)
 		} else {
 			a.warn(a.saveOutline())
 		}
 	}
-	if wait := checkEvery - time.Since(w.checked); wait > 0 {
+	if wait := book.CheckEvery - time.Since(w.checked); wait > 0 {
 		c.After(wait)
 		return
 	}
 	w.checked = time.Now()
-	c.After(checkEvery)
+	c.After(book.CheckEvery)
 	a.checkDisk()
 }
 

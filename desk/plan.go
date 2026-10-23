@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/book"
 	"writer/desk/kit"
 	"writer/workspace"
 )
@@ -26,7 +27,7 @@ type outlinePage struct {
 	mode                int
 	query               string
 	pane                bool
-	outlineDraft        outlineDraft
+	outlineDraft        book.OutlineDraft
 	outlineHeld         bool
 	lineID, lineName    string
 	lineHeld, lineFocus bool
@@ -176,7 +177,7 @@ func (o *outlinePage) counts() (cards, nodes int) {
 
 func (o *outlinePage) view(c *ui.Context) {
 	content := o.host.content()
-	if o.loadErr != nil && time.Since(o.checked) >= checkEvery {
+	if o.loadErr != nil && time.Since(o.checked) >= book.CheckEvery {
 		o.loaded = false // a broken outline may have been put right outside
 	}
 	if !o.loaded {
@@ -196,7 +197,7 @@ func (o *outlinePage) view(c *ui.Context) {
 		o.broken(c)
 		return
 	}
-	if !o.cardOpen && !o.timeOpen && o.outlineDraft.node == "" && o.lineID == "" && c.Shortcut(0, ui.KeyEscape) {
+	if !o.cardOpen && !o.timeOpen && o.outlineDraft.Node == "" && o.lineID == "" && c.Shortcut(0, ui.KeyEscape) {
 		o.query = ""
 	}
 	if o.seen != "" {
@@ -238,7 +239,7 @@ func (o *outlinePage) view(c *ui.Context) {
 // again as often as the open chapter is looked at on the disk.
 func (o *outlinePage) broken(c *ui.Context) {
 	pal := o.host.colors()
-	c.After(checkEvery - time.Since(o.checked))
+	c.After(book.CheckEvery - time.Since(o.checked))
 	title, about, why := "大纲读不出来", "", o.loadErr.Error()
 	var bad *workspace.PlanError
 	if errors.As(o.loadErr, &bad) {
@@ -433,13 +434,13 @@ func (o *outlinePage) gist(c *ui.Context, n *workspace.Node) {
 	if n.Folder {
 		label, hint = "卷纲", "写卷纲…"
 	}
-	if o.outlineDraft.node == n.ID {
-		in := ui.TextAreaBase(c.Key("plan-outline-"+n.ID), &o.outlineDraft.text).Label(label).Placeholder(hint).FillWidth().Height(kit.HControl*3).FontSize(kit.FsBody).LineHeight(kit.LhBody).Padding(6, 8).Border(1, pal.Theme.Border).Radius(kit.RControl).AutoFocus()
+	if o.outlineDraft.Node == n.ID {
+		in := ui.TextAreaBase(c.Key("plan-outline-"+n.ID), &o.outlineDraft.Text).Label(label).Placeholder(hint).FillWidth().Height(kit.HControl*3).FontSize(kit.FsBody).LineHeight(kit.LhBody).Padding(6, 8).Border(1, pal.Theme.Border).Radius(kit.RControl).AutoFocus()
 		now := time.Now()
-		if o.outlineDraft.change(now) {
+		if o.outlineDraft.Change(now) {
 			o.geometry = nil
 		}
-		if wait, due := o.outlineDraft.waits(saveAfter, now); due {
+		if wait, due := o.outlineDraft.Waits(book.SaveAfter, now); due {
 			if wait > 0 {
 				c.After(wait)
 			} else {
@@ -472,7 +473,7 @@ func (o *outlinePage) gist(c *ui.Context, n *workspace.Node) {
 		o.finishLine()
 		o.finishOutline()
 		out := content.Outlines()[n.ID]
-		o.outlineDraft = outlineDraft{node: n.ID, text: out, saved: out, seen: out}
+		o.outlineDraft = book.OutlineDraft{Node: n.ID, Text: out, Saved: out, Seen: out}
 		o.outlineHeld = false
 	}
 }
@@ -481,22 +482,22 @@ func (o *outlinePage) gist(c *ui.Context, n *workspace.Node) {
 // writing page when it is the chapter shown.
 func (o *outlinePage) saveOutline() {
 	d := &o.outlineDraft
-	if d.node == "" {
+	if d.Node == "" {
 		return
 	}
-	if err := d.save(o.host.content()); err != nil {
+	if err := d.Save(o.host.content()); err != nil {
 		o.host.notices().Warn(err)
 		return
 	}
-	o.host.syncPlanOutline(d.node, d.text)
+	o.host.syncPlanOutline(d.Node, d.Text)
 }
 
 func (o *outlinePage) finishOutline() {
-	if o.outlineDraft.node == "" {
+	if o.outlineDraft.Node == "" {
 		return
 	}
 	o.saveOutline()
-	o.outlineDraft = outlineDraft{}
+	o.outlineDraft = book.OutlineDraft{}
 	o.outlineHeld = false
 }
 

@@ -30,49 +30,10 @@ type openChapter struct {
 	lostTitle string
 
 	// The outline, saved as the author pauses like the text.
-	outline outlineDraft
+	outline book.OutlineDraft
 
 	// changed says the prose was saved since it opened.
 	changed bool
-}
-
-// outlineDraft is one node's outline as it is being typed.
-type outlineDraft struct {
-	node, text, saved string
-	seen              string // text as of the last change
-	at                time.Time
-}
-
-// change notes when the text was last typed, and reports whether it did.
-func (d *outlineDraft) change(now time.Time) bool {
-	if d.text == d.seen {
-		return false
-	}
-	d.seen, d.at = d.text, now
-	return true
-}
-
-// waits says whether the draft waits to be saved, and for how long more.
-func (d *outlineDraft) waits(after time.Duration, now time.Time) (time.Duration, bool) {
-	if d.node == "" || d.text == d.saved {
-		return 0, false
-	}
-	if wait := after - now.Sub(d.at); wait > 0 {
-		return wait, true
-	}
-	return 0, true
-}
-
-// save writes the draft through Book.
-func (d *outlineDraft) save(b *book.Book) error {
-	if d.node == "" || d.text == d.saved {
-		return nil
-	}
-	if err := b.SaveOutline(d.node, d.text); err != nil {
-		return err
-	}
-	d.saved = d.text
-	return nil
 }
 
 // unsettled says the chapter was left with words that are not on the disk:

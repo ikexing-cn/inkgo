@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/book"
 	"writer/desk/kit"
 	"writer/editor"
 	"writer/workspace"
@@ -85,7 +86,7 @@ func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.
 	doc := editor.NewDoc(text)
 	doc.LoadMarks(editorMarks(marks))
 	return editor.New(doc, editor.Options{Prose: true, Placeholder: "在此开始写作…", Font: ui.Font{Size: float32(a.write.textSize())}, LineHeight: kit.LhPaper,
-		Predictor: pen{writer: &a.write.pen, chapter: a.write.node}, PredictDelay: saveAfter, PredictOnDemand: !a.write.autoPredict, NoAI: !a.aiOn(),
+		Predictor: pen{writer: &a.write.pen, chapter: a.write.node}, PredictDelay: book.SaveAfter, PredictOnDemand: !a.write.autoPredict, NoAI: !a.aiOn(),
 		GhostNote: func() string {
 			if pw := a.write.pen.Load(); pw != nil {
 				return (*pw).Name()
@@ -177,7 +178,7 @@ func (a *App) openNode(id string) {
 		w.node = ""
 		return
 	}
-	c.outline = outlineDraft{node: id, text: ch.Outline, saved: ch.Outline, seen: ch.Outline}
+	c.outline = book.OutlineDraft{Node: id, Text: ch.Outline, Saved: ch.Outline, Seen: ch.Outline}
 	switch {
 	case n.Folder:
 		w.gists = a.gistsIn(n)

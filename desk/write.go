@@ -357,7 +357,7 @@ func (a *App) emptyWriting(c *ui.Context) {
 // a folder.
 func (a *App) outlineBox(c *ui.Context, label string, height float32) {
 	w := &a.write
-	ui.TextAreaBase(c, &w.cur().outline.text).Label(label).Placeholder("写下这里要发生的事，作为提纲").FillWidth().Height(height).
+	ui.TextAreaBase(c, &w.cur().outline.Text).Label(label).Placeholder("写下这里要发生的事，作为提纲").FillWidth().Height(height).
 		FontSize(kit.FsBody).LineHeight(kit.LhLoose).Padding(10, 12).Radius(kit.RControl).Background(a.pal.Side).Disabled(w.cur().lost)
 }
 
@@ -390,7 +390,7 @@ func (a *App) chapterView(c *ui.Context) {
 		ui.Column(c).FillWidth().Gap(8).Children(func() {
 			ui.Text(c, kit.Heading(a.shownTitle())).FontSize(kit.FsTitle).FontWeight(700).SingleLine().Ellipsis("…")
 			label := "章纲"
-			if strings.TrimSpace(w.cur().outline.text) == "" {
+			if strings.TrimSpace(w.cur().outline.Text) == "" {
 				label = "章纲 · 空"
 			}
 			var outline ui.CollapsibleParts

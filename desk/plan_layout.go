@@ -44,10 +44,10 @@ type planRow struct {
 
 func (o *outlinePage) layout(c *ui.Context) *planGeometry {
 	content := o.host.content()
-	if g := o.geometry; g != nil && g.root == content.Tree().Root && g.query == kit.Trim(o.query) && g.editing == o.outlineDraft.node {
+	if g := o.geometry; g != nil && g.root == content.Tree().Root && g.query == kit.Trim(o.query) && g.editing == o.outlineDraft.Node {
 		return g
 	}
-	g := &planGeometry{root: content.Tree().Root, query: kit.Trim(o.query), editing: o.outlineDraft.node, lanes: map[string]float32{}}
+	g := &planGeometry{root: content.Tree().Root, query: kit.Trim(o.query), editing: o.outlineDraft.Node, lanes: map[string]float32{}}
 	_, unit := c.MeasureText(0, ui.Span{Text: "字", Size: kit.FsBody})
 	textHeight := func(text string, width float32, limit int) float32 {
 		spans := kit.Marked(text, kit.Trim(o.query), o.host.colors().Ink)
@@ -107,7 +107,7 @@ func (o *outlinePage) layout(c *ui.Context) *planGeometry {
 				cards = append(cards, o.cardsOf(n.ID)...)
 			}
 			h := float32(16+12+1+4+4) + kit.FsGroup*kit.LhTight + textHeight(content.Outlines()[folder.ID], planGistWidth-8, 3)
-			if o.outlineDraft.node == folder.ID {
+			if o.outlineDraft.Node == folder.ID {
 				h += kit.HControl * 3
 			}
 			appendRow(planRow{node: folder, kind: 1, height: h, count: len(chapters), when: storyWhen(cards)})
@@ -125,7 +125,7 @@ func (o *outlinePage) layout(c *ui.Context) *planGeometry {
 			if slices.ContainsFunc(cards, func(e workspace.Card) bool { return e.Line == "" }) {
 				h += 4 + kit.FsNote*kit.LhBody
 			}
-			if o.outlineDraft.node == n.ID {
+			if o.outlineDraft.Node == n.ID {
 				h += kit.HControl * 3
 			}
 			heights := map[string]float32{}

@@ -12,6 +12,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/aiport"
+	"writer/desk/book"
 	"writer/workspace"
 )
 
@@ -103,7 +104,7 @@ func TestOutlineFrameCost(t *testing.T) {
 // unchanged paragraph's measured glyphs and line breaks. Include the whole
 // editing frame, rather than timing a cache lookup in isolation.
 func TestPhonePreviewTypingCost(t *testing.T) {
-	pause := saveAfter
+	pause := book.SaveAfter
 	var body strings.Builder
 	for i := 0; i < 120; i++ {
 		fmt.Fprintf(&body, "第%d夜，%s\n", i, phoneLongText)
@@ -111,7 +112,7 @@ func TestPhonePreviewTypingCost(t *testing.T) {
 	a, tt, _ := writingFixture(t, body.String())
 	// The general writing fixture saves immediately for disk assertions;
 	// typing here uses the product's paused saving instead.
-	saveAfter = pause
+	book.SaveAfter = pause
 	if shownEditor(a).Doc.Len() <= 10000 {
 		t.Fatal("fixture must exceed ten thousand characters")
 	}
