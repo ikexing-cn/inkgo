@@ -169,9 +169,12 @@ func TestNoLiteralSizes(t *testing.T) {
 // "稍后再说"), alone there; and no lesser button comes after the main one.
 func TestButtonsAtTheRight(t *testing.T) {
 	files := deskSources(t)
-	button := regexp.MustCompile(`a\.pal\.(Primary|Secondary|Danger)\(|a\.pal\.Ghost\(`)
-	answer := regexp.MustCompile(`a\.pal\.\w+\(c, "([^"]+)"\)`)
+	// The palette is a.pal in desk, pal where a page took it from its host
+	// once, or the host's Colors() itself.
+	button := regexp.MustCompile(`(?:\bpal|Colors\(\))\.(Primary|Secondary|Danger)\(|(?:\bpal|Colors\(\))\.Ghost\(`)
+	answer := regexp.MustCompile(`(?:\bpal|Colors\(\))\.\w+\(c, "([^"]+)"\)`)
 	asked := 0 // the rows in the system's order: the one question about saving
+	rows := 0  // the rows with a button in them
 	for _, f := range files {
 		if strings.HasSuffix(f, "_test.go") {
 			continue
@@ -201,11 +204,14 @@ func TestButtonsAtTheRight(t *testing.T) {
 				}
 			}
 			spacer := slices.Index(own, "ui.Spacer(c)")
-			main := false
+			main, counted := false, false
 			for k, in := range own {
 				m := button.FindStringSubmatch(in)
 				if m == nil || !strings.HasPrefix(in, "if ") {
 					continue
+				}
+				if !counted {
+					rows, counted = rows+1, true
 				}
 				switch {
 				case k < spacer && (k > 0 || spacer > 1 || !strings.Contains(m[0], "Ghost")):
@@ -234,6 +240,9 @@ func TestButtonsAtTheRight(t *testing.T) {
 	}
 	if asked != 1 {
 		t.Errorf("%d rows stand in the system's order: it is for the one question about saving", asked)
+	}
+	if rows < 40 {
+		t.Errorf("%d rows of buttons read, of the forty and more there are: the check no longer finds them", rows)
 	}
 }
 
