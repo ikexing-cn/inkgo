@@ -160,7 +160,7 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 			ui.Text(c, strings.ReplaceAll(strings.TrimSuffix(kit.Words(k), "字"), " ", "")).FontSize(kit.FsSmall).TextColor(a.pal.Faint)
 		}
 	})
-	a.contextMenu(c, row, "章节-"+n.ID, func(m *menu) { a.nodeMenu(m, n) })
+	a.menu.ContextMenu(c, a.pal, row, "章节-"+n.ID, func(m *kit.Menu) { a.nodeMenu(m, n) })
 	if row.Clicked() {
 		// A folder only folds: its outline opens from its menu. The tree
 		// arranges, the tabs show.
@@ -204,7 +204,7 @@ func (a *App) showTree() {
 	}
 }
 
-func (a *App) nodeMenu(m *menu, n *workspace.Node) {
+func (a *App) nodeMenu(m *kit.Menu, n *workspace.Node) {
 	w := &a.write
 	siblings := n.Parent.Children
 	i := slices.Index(siblings, n)

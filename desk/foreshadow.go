@@ -298,11 +298,11 @@ func (a *App) foreAt() string {
 }
 
 // foreMenu is what the chapter's context menu does with foreshadowings.
-func (a *App) foreMenu(m *menu) {
-	m.Command(a, cmdBury).Act(a)
-	m.Command(a, cmdPay).Act(a)
+func (a *App) foreMenu(m *kit.Menu) {
+	cmdBury.item(a, m).Do(cmdBury.act(a))
+	cmdPay.item(a, m).Do(cmdPay.act(a))
 	if id := a.foreAt(); id != "" {
-		m.Command(a, cmdViewFore).Do(func() { a.showFore(id) })
+		cmdViewFore.item(a, m).Do(func() { a.showFore(id) })
 	}
 }
 
@@ -486,7 +486,7 @@ func (a *App) foreList(c *ui.Context, all []workspace.Foreshadow) {
 		})
 		return
 	}
-	a.paneFind(c, &s.query, "搜索伏笔", "", func(m *menu) {
+	a.paneFind(c, &s.query, "搜索伏笔", "", func(m *kit.Menu) {
 		for _, st := range []workspace.ForeshadowStatus{workspace.ForeDone, workspace.ForeDropped} {
 			m.Item(foreLabels[st]).Hint(kit.Count(counts[st])).Do(func() { s.status = st })
 		}

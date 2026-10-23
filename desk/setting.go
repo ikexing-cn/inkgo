@@ -297,7 +297,7 @@ func (a *App) settingList(c *ui.Context) {
 			dropped++
 		}
 	}
-	if a.paneFind(c, &d.query, "搜索设定", "新增", func(m *menu) {
+	if a.paneFind(c, &d.query, "搜索设定", "新增", func(m *kit.Menu) {
 		m.Item("已删除").Hint(kit.Count(dropped)).Do(d.route.showDropped)
 		m.Item("修改记录").Do(d.route.showHistory)
 	}) {

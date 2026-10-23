@@ -35,7 +35,7 @@ type host interface {
 	// showOutline switches to the outline page.
 	showOutline()
 	// dropMenu draws a menu using the host menu ownership.
-	dropMenu(*ui.Context, ui.Element, string, func(ui.Element), func(*menu))
+	dropMenu(*ui.Context, ui.Element, string, func(ui.Element), func(*kit.Menu))
 	// settingColumn draws the shared right column beside the outline page.
 	settingColumn(*ui.Context)
 	// pickInto starts a folder choice and reports whether a picker is available.
@@ -87,3 +87,7 @@ func (a *App) openWriting(id string) {
 }
 
 func (a *App) showOutline() { a.page = pagePlan }
+
+func (a *App) dropMenu(c *ui.Context, b ui.Element, key string, place func(ui.Element), build func(*kit.Menu)) {
+	a.menu.DropMenu(c, a.pal, b, key, place, build)
+}

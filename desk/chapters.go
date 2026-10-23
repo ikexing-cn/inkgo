@@ -93,35 +93,35 @@ func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.
 			return ""
 		},
 		Zoom:    a.sizeText,
-		OwnMenu: func(x, y float32) { a.menu = menuState{owner: "正文", x: x, y: y} },
+		OwnMenu: func(x, y float32) { a.menu = kit.MenuState{Owner: "正文", X: x, Y: y} },
 	})
 }
 
 // textMenu is the menu of the chapter's text: what the clipboard does, what
 // the AI, while it is on, and the setting do with the selection, and its
 // foreshadowings.
-func (a *App) textMenu(m *menu) {
+func (a *App) textMenu(m *kit.Menu) {
 	ed := a.write.cur().ed
 	s, e := ed.Selection()
 	busy := ed.ReadOnly()
-	m.Command(a, cmdCut).Act(a)
-	m.Command(a, cmdCopy).Act(a)
-	m.Command(a, cmdPaste).Act(a)
-	m.Command(a, cmdSelectAll).Act(a)
+	cmdCut.item(a, m).Do(cmdCut.act(a))
+	cmdCopy.item(a, m).Do(cmdCopy.act(a))
+	cmdPaste.item(a, m).Do(cmdPaste.act(a))
+	cmdSelectAll.item(a, m).Do(cmdSelectAll.act(a))
 	m.Separator()
 	if a.aiOn() {
 		// The row's own state is the editor's: it does not wait on the
 		// chapter's saves as the title bar's does.
-		m.Command(a, cmdContinue).Act(a).Disabled(busy)
-		m.Command(a, cmdRewrite).Act(a)
-		m.Command(a, cmdQuote).Act(a)
+		cmdContinue.item(a, m).Disabled(busy).Do(cmdContinue.act(a))
+		cmdRewrite.item(a, m).Do(cmdRewrite.act(a))
+		cmdQuote.item(a, m).Do(cmdQuote.act(a))
 	}
-	m.Command(a, cmdTake).Act(a)
+	cmdTake.item(a, m).Do(cmdTake.act(a))
 	a.nameMenu(m, ed.Doc.Slice(s, e))
 	m.Separator()
 	a.foreMenu(m)
 	if ed.Marked() {
-		m.Command(a, cmdUnmark).Act(a)
+		cmdUnmark.item(a, m).Do(cmdUnmark.act(a))
 	}
 }
 

@@ -385,7 +385,7 @@ func TestShotTabs(t *testing.T) {
 		t.Fatal(err)
 	}
 	shot(t, tt, "tabs-menu.png")
-	a.menu = menuState{}
+	a.menu = kit.MenuState{}
 	tt.Move(700, 500)
 	tt.Frame()
 	click(t, tt, "关闭标签页-第二章")

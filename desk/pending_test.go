@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui"
-
+	"writer/desk/kit"
 	"writer/internal/testshot"
 	"writer/workspace"
 )
@@ -176,10 +176,10 @@ func TestShotPending(t *testing.T) {
 	a.doc.hidden = true
 	shot(t, tt, "titlebar-pane-hidden.png")
 	for _, name := range []string{"文件", "编辑", "视图", "帮助"} {
-		a.menu = menuState{owner: barKey + name, drop: true, seen: true}
+		a.menu = kit.MenuState{Owner: barKey + name, Drop: true, Seen: true}
 		shot(t, tt, "titlebar-menu-"+name+".png")
 	}
-	a.menu = menuState{}
+	a.menu = kit.MenuState{}
 	a.sideHidden = true
 	shot(t, tt, "titlebar-side-hidden.png")
 	a.sideHidden, a.write.focus = false, true

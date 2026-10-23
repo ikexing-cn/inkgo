@@ -19,8 +19,8 @@ func openMenu(t *testing.T, a *App, tt *ui.Tester, name string) []string {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.menu.owner != barKey+name {
-		t.Fatalf("the menu %s did not open: %q is open", name, a.menu.owner)
+	if a.menu.Owner != barKey+name {
+		t.Fatalf("the menu %s did not open: %q is open", name, a.menu.Owner)
 	}
 	return rows(tt)
 }
@@ -180,7 +180,7 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 			t.Fatal(menu, row, err, rows(tt))
 		}
 		tt.Frame()
-		if a.menu.owner != "" {
+		if a.menu.Owner != "" {
 			t.Fatalf("%s › %s left the menu open", menu, row)
 		}
 	}
@@ -189,7 +189,7 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 	}
 	tt.Key(0, ui.KeyEscape)
 	tt.Frame()
-	if a.menu.owner != "" {
+	if a.menu.Owner != "" {
 		t.Fatal("Escape left the menu open")
 	}
 	if got := openMenu(t, a, tt, "编辑"); !slices.Equal(got, []string{"撤销", "重做", "查找替换", "重命名", "续写一句", "起草本章"}) {
@@ -199,7 +199,7 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.menu.owner != "" {
+	if a.menu.Owner != "" {
 		t.Fatal("clicking the menu's name again left it open")
 	}
 	if got := openMenu(t, a, tt, "视图"); !slices.Equal(got, []string{"收起侧栏", "收起右栏", "专注写作", "手机预览"}) || !tt.HasText("跟随系统") {
@@ -207,7 +207,7 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 	}
 	tt.ClickAt(a.LastWrite.X+a.LastWrite.W/2, a.LastWrite.Y+a.LastWrite.H-80) // a press elsewhere puts it away
 	tt.Frame()
-	if a.menu.owner != "" {
+	if a.menu.Owner != "" {
 		t.Fatal("a press beside the menu left it open")
 	}
 	if got := openMenu(t, a, tt, "帮助"); !slices.Equal(got, []string{"快捷键"}) {
@@ -218,15 +218,15 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 	tt.Move(over.X+over.W/2, over.Y+over.H/2)
 	tt.Frame()
 	tt.Frame()
-	if a.menu.owner != barKey+"文件" || !slices.Contains(rows(tt), "保存") || slices.Contains(rows(tt), "快捷键") {
-		t.Fatalf("the pointer over 文件 did not open it: %q open, rows %q", a.menu.owner, rows(tt))
+	if a.menu.Owner != barKey+"文件" || !slices.Contains(rows(tt), "保存") || slices.Contains(rows(tt), "快捷键") {
+		t.Fatalf("the pointer over 文件 did not open it: %q open, rows %q", a.menu.Owner, rows(tt))
 	}
-	a.menu = menuState{}
+	a.menu = kit.MenuState{}
 	tt.Frame()
 	// With none open, the pointer over a name opens nothing.
 	tt.Move(over.X+over.W/2, over.Y+over.H/2)
 	tt.Frame()
-	if a.menu.owner != "" {
+	if a.menu.Owner != "" {
 		t.Fatal("the pointer over a name opened its menu")
 	}
 
@@ -242,10 +242,10 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.menu.owner == "" {
+	if a.menu.Owner == "" {
 		t.Fatal("撤销 was picked with nothing to take back")
 	}
-	a.menu = menuState{}
+	a.menu = kit.MenuState{}
 	shownEditor(a).Focus()
 	shownEditor(a).MoveTo(0, false)
 	tt.Frame()
@@ -325,7 +325,7 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 	if w.draftOpen || !tt.HasText("请先填写章纲") {
 		t.Fatal("起草本章 without an outline", tt.Texts())
 	}
-	a.menu = menuState{}
+	a.menu = kit.MenuState{}
 	setChapterOutline(a, "林晚回到旧城。")
 	tt.Frame()
 	choose("编辑", "起草本章")
@@ -390,10 +390,10 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 				t.Fatal(menu, row, err)
 			}
 			tt.Frame()
-			if a.menu.owner != barKey+menu {
+			if a.menu.Owner != barKey+menu {
 				t.Fatalf("%s › %s was picked", menu, row)
 			}
-			a.menu = menuState{}
+			a.menu = kit.MenuState{}
 			tt.Frame()
 		}
 	}
@@ -461,7 +461,7 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 	if len(got) != 1 || got[0] != "dark" {
 		t.Fatalf("on the shelf the appearance was not chosen: %q", got)
 	}
-	a.menu = menuState{}
+	a.menu = kit.MenuState{}
 	tt.Frame()
 	if err := clickMenu(tt, "帮助", "菜单-快捷键"); err != nil {
 		t.Fatal(err)
@@ -555,8 +555,8 @@ func TestTheBarGivesTheCaretBack(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Frame()
-	if a.menu.owner != "" || !tt.Focused("搜索设定") {
-		t.Fatalf("a press on the field: menu %q, field focused %v", a.menu.owner, tt.Focused("搜索设定"))
+	if a.menu.Owner != "" || !tt.Focused("搜索设定") {
+		t.Fatalf("a press on the field: menu %q, field focused %v", a.menu.Owner, tt.Focused("搜索设定"))
 	}
 	before := shownEditor(a).Doc.String()
 	tt.Type("林")
@@ -604,8 +604,8 @@ func TestAMenuOpensOnASlowClick(t *testing.T) {
 	tt.Frame()
 	tt.Release(x, y)
 	tt.Frame()
-	if a.menu.owner != barKey+"编辑" {
-		t.Fatalf("a slow click did not open the menu: %q", a.menu.owner)
+	if a.menu.Owner != barKey+"编辑" {
+		t.Fatalf("a slow click did not open the menu: %q", a.menu.Owner)
 	}
 	tt.Key(0, ui.KeyEscape)
 	tt.Frame()

@@ -51,10 +51,10 @@ func (a *App) turnPage() {
 
 func (a *App) View(c *ui.Context) {
 	a.poll()
-	if !a.menu.seen {
-		a.menu = menuState{} // what it belonged to is no longer shown
+	if !a.menu.Seen {
+		a.menu = kit.MenuState{} // what it belonged to is no longer shown
 	}
-	a.menu.seen = false
+	a.menu.Seen = false
 	defer a.nameWindow()
 	a.pal = a.light
 	if c.Theme().Dark {
@@ -136,7 +136,7 @@ func (a *App) sidebar(c *ui.Context) {
 		top.Children(func() {
 			head = ui.ButtonBase(c).Row().Height(kit.HControlSm).AlignItems(ui.Center).Gap(8).Padding(0, 6, 0, 10).Radius(kit.RControl).Shrink(1).
 				Label("切换作品").Tooltip("切换作品").Disabled(busy)
-			if head.Hovered() || a.menuOpen("作品") {
+			if head.Hovered() || a.menu.MenuOpen("作品") {
 				head.Background(t.SurfacePressed)
 			}
 			head.Children(func() {
@@ -150,10 +150,10 @@ func (a *App) sidebar(c *ui.Context) {
 			})
 		})
 		var chosen func()
-		a.dropMenu(c, head, "作品", func(panel ui.Element) {
+		a.menu.DropMenu(c, a.pal, head, "作品", func(panel ui.Element) {
 			// As wide as the row it hangs under, where that is wide enough.
-			panel.Margin(4, 0, 0, 0).Width(max(top.Bounds().W-20, menuWide))
-		}, func(m *menu) {
+			panel.Margin(4, 0, 0, 0).Width(max(top.Bounds().W-20, kit.MenuWide))
+		}, func(m *kit.Menu) {
 			// The work open first, marked; each with what kind it is.
 			m.Head("作品")
 			m.Item(work.Name).Hint(work.Genre).On(true)
@@ -311,7 +311,7 @@ func (a *App) sessionItem(c *ui.Context, id string) {
 		ui.Text(c, words).FontSize(kit.FsControl).TextColor(fg).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 		ui.Text(c, talkDay(id, time.Now())).FontSize(kit.FsSmall).TextColor(a.pal.Faint).SingleLine()
 	})
-	a.contextMenu(c, b, "对话-"+id, func(m *menu) {
+	a.menu.ContextMenu(c, a.pal, b, "对话-"+id, func(m *kit.Menu) {
 		if a.shelved[id] {
 			m.Item("移回列表").Disabled(a.held()).Do(func() {
 				delete(a.shelved, id)

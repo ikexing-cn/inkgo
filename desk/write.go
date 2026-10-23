@@ -412,7 +412,7 @@ func (a *App) chapterView(c *ui.Context) {
 		a.propActs(c)
 		a.selectionBar(c)
 		a.forePopover(c)
-		a.menuAt(c, "正文", a.textMenu)
+		a.menu.MenuAt(c, a.pal, "正文", a.textMenu)
 	})
 	a.footBar(c, true)
 }

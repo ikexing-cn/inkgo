@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui"
-
+	"writer/desk/kit"
 	"writer/internal/testshot"
 	"writer/workspace"
 )
@@ -35,36 +35,6 @@ func rows(tt *ui.Tester) []string {
 	return out
 }
 
-// A menu's rows are listed with nothing drawn and nothing done: what a row
-// does is kept with it, for the one picked.
-func TestMenuListsItsRows(t *testing.T) {
-	var done []string
-	drawn := 0
-	m := &menu{}
-	m.Head("章节")
-	for _, label := range []string{"重命名", "上移", "下移"} {
-		m.Item(label).Disabled(label == "上移").Do(func() { done = append(done, label) })
-	}
-	m.Separator()
-	m.Draw(func(*ui.Context) { drawn++ })
-	m.Submenu("移到", func(m *menu) {})
-	m.Item("重命名").Hint("F2")
-	if len(m.rows) != 8 || len(done) != 0 || drawn != 0 {
-		t.Fatalf("%d rows, done %v, drawn %d", len(m.rows), done, drawn)
-	}
-	if it := m.rows[2]; it.kind != rowItem || it.label != "上移" || !it.off {
-		t.Fatalf("the third row is %+v", it)
-	}
-	m.rows[3].do()
-	if !slices.Equal(done, []string{"下移"}) {
-		t.Fatalf("done %v", done)
-	}
-	// A row may have nothing to do: picked, it only closes the menu.
-	if it := m.rows[7]; it.kind != rowItem || it.hint != "F2" || it.do != nil {
-		t.Fatalf("the last row is %+v", it)
-	}
-}
-
 // A row picked does its part once, the menu closed by then; one with
 // nothing to do, or that cannot be picked, closes it or leaves it.
 func TestMenuRowDoesItsPart(t *testing.T) {
@@ -74,15 +44,15 @@ func TestMenuRowDoesItsPart(t *testing.T) {
 	open := func() {
 		// As one drawn in the frame before: else it is taken for a menu of
 		// what is no longer shown, and put away.
-		a.menu = menuState{owner: "试", x: 300, y: 300, seen: true}
+		a.menu = kit.MenuState{Owner: "试", X: 300, Y: 300, Seen: true}
 		tt.Frame()
 	}
 	tt = ui.NewTester(func(c *ui.Context) {
 		before := lists
 		a.View(c)
-		a.menuAt(c, "试", func(m *menu) {
+		a.menu.MenuAt(c, a.pal, "试", func(m *kit.Menu) {
 			lists++
-			m.Item("做一件事").Do(func() { done, wasOpen = done+1, a.menu.owner != "" })
+			m.Item("做一件事").Do(func() { done, wasOpen = done+1, a.menu.Owner != "" })
 			m.Item("不能点").Disabled(true).Do(func() { done += 10 })
 			m.Item("什么也不做")
 		})
@@ -93,14 +63,14 @@ func TestMenuRowDoesItsPart(t *testing.T) {
 	if err := pick(tt, "不能点"); err != nil {
 		t.Fatal(err)
 	}
-	if done != 0 || a.menu.owner == "" {
-		t.Fatal("a row that cannot be picked was", done, a.menu.owner)
+	if done != 0 || a.menu.Owner == "" {
+		t.Fatal("a row that cannot be picked was", done, a.menu.Owner)
 	}
 	if err := tt.Click("菜单-做一件事"); err != nil {
 		t.Fatal(err)
 	}
-	if done != 1 || wasOpen || a.menu.owner != "" {
-		t.Fatal("picked:", done, wasOpen, a.menu.owner)
+	if done != 1 || wasOpen || a.menu.Owner != "" {
+		t.Fatal("picked:", done, wasOpen, a.menu.Owner)
 	}
 	// The rows are listed once a frame, that of the pick too, and not at
 	// all once the menu is closed.
@@ -113,8 +83,8 @@ func TestMenuRowDoesItsPart(t *testing.T) {
 	if err := pick(tt, "什么也不做"); err != nil {
 		t.Fatal(err)
 	}
-	if done != 1 || a.menu.owner != "" {
-		t.Fatal("a row with nothing to do:", done, a.menu.owner)
+	if done != 1 || a.menu.Owner != "" {
+		t.Fatal("a row with nothing to do:", done, a.menu.Owner)
 	}
 }
 
@@ -139,7 +109,7 @@ func TestTextMenu(t *testing.T) {
 	}
 	// The panel's corner is where the pointer was: its rows start inside
 	// its border and padding.
-	if r, ok := tt.Find("菜单-剪切"); !ok || r.X != 555 || r.Y != 305 || r.W != menuWide-10 {
+	if r, ok := tt.Find("菜单-剪切"); !ok || r.X != 555 || r.Y != 305 || r.W != kit.MenuWide-10 {
 		t.Fatalf("the menu is not where the pointer asked: %+v", r)
 	}
 	if err := pick(tt, "复制"); err != nil {
@@ -155,7 +125,7 @@ func TestTextMenu(t *testing.T) {
 	tt.Frame()
 	first, _ := tt.Find("菜单-剪切")
 	last, ok := tt.Find("菜单-记为回收")
-	if !ok || last.Y+last.H > 780-menuEdge || first.Y < menuEdge {
+	if !ok || last.Y+last.H > 780-kit.MenuEdge || first.Y < kit.MenuEdge {
 		t.Fatalf("out of the window: %+v to %+v", first, last)
 	}
 	// A press outside closes it and goes no further: the page stays.
@@ -240,7 +210,7 @@ func TestMenuRows(t *testing.T) {
 	tt.Frame()
 	names := rows(tt)
 	last, ok := tt.Find("菜单-" + names[len(names)-1])
-	if !ok || !slices.Contains(names, "人物") || last.Y+last.H > 780-menuEdge {
+	if !ok || !slices.Contains(names, "人物") || last.Y+last.H > 780-kit.MenuEdge {
 		t.Fatalf("the list goes out of the window: %q ends at %+v", names, last)
 	}
 }
@@ -252,7 +222,7 @@ func TestShotMenus(t *testing.T) {
 	tt.SetTitleBar(ui.TitleBar{Height: 40, Right: 138})
 
 	shut := func() {
-		a.menu = menuState{}
+		a.menu = kit.MenuState{}
 		tt.Frame()
 	}
 	shownEditor(a).Select(0, 1)

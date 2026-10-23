@@ -21,7 +21,7 @@
 // ideas.go: setting ideas, questions, and changes awaiting the author.
 // keys.go: keyboard-shortcut help.
 // markdown.go: Markdown styles, code blocks, and setting links.
-// menu.go: menu state, rows, submenus, and popup placement.
+// menu.go: command-table rows for the menus.
 // names.go: setting-name completion, rename notices, and whole-book replacement.
 // navigation.go: shared tab entries, availability, counts, and fallback choices.
 // pane.go: shared right-pane lists, details, forms, and quotes.

@@ -85,7 +85,7 @@ func (a *App) named(name string) bool {
 
 // nameMenu offers to make the selection, a short name, an entry of its
 // own in a category of names.
-func (a *App) nameMenu(m *menu, sel string) {
+func (a *App) nameMenu(m *kit.Menu, sel string) {
 	name := strings.TrimSpace(sel)
 	n := utf8.RuneCountInString(name)
 	if n == 0 || n > 12 || strings.ContainsAny(name, "\n\r\t") {
@@ -96,7 +96,7 @@ func (a *App) nameMenu(m *menu, sel string) {
 		m.Item("已在名字表中").Disabled(true)
 		return
 	}
-	m.Submenu("加入名字表", func(m *menu) {
+	m.Submenu("加入名字表", func(m *kit.Menu) {
 		for _, c := range a.Store.Work().Categories {
 			if slices.Contains(workspace.NameCategories, c.Name) {
 				m.Item(c.Name).Do(func() {

@@ -500,12 +500,12 @@ func (a *App) bookCard(c *ui.Context, b shelf.Book) {
 func (a *App) bookMenu(c *ui.Context, b shelf.Book) {
 	key := "作品-" + b.Path
 	more := kit.IconButton(c, kit.IcMore, "更多-"+b.Name, ui.Color{}).Tooltip("更多操作")
-	if a.menuOpen(key) {
+	if a.menu.MenuOpen(key) {
 		more.Background(a.pal.Theme.SurfacePressed)
 	}
-	a.dropMenu(c, more, key, func(panel ui.Element) {
+	a.menu.DropMenu(c, a.pal, more, key, func(panel ui.Element) {
 		panel.AttachTo(more, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(4, 0, 0, 0).Width(180)
-	}, func(m *menu) {
+	}, func(m *kit.Menu) {
 		if a.Reveal != nil {
 			m.Item("打开所在文件夹").Do(func() { a.warn(a.Reveal(b.Path)) })
 		}

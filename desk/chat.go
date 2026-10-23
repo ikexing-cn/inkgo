@@ -722,7 +722,7 @@ func (a *App) composer(c *ui.Context) {
 	// opens a menu to change either; its tooltip says where the words go.
 	chip := func() {
 		chip := ui.ButtonBase(c).Row().Gap(6).AlignItems(ui.Center).Padding(4, 8).Radius(kit.RControl).Label("当前模型").Tooltip(a.destination(work.Discussion)).Shrink(1).Disabled(a.held())
-		if chip.Hovered() || a.menuOpen("讨论模型") {
+		if chip.Hovered() || a.menu.MenuOpen("讨论模型") {
 			chip.Background(t.SurfaceHover)
 		}
 		chip.Children(func() {
@@ -740,9 +740,9 @@ func (a *App) composer(c *ui.Context) {
 			}
 			kit.Glyph(c, kit.IcChevronUp, kit.IconXs, a.pal.Faint)
 		})
-		a.dropMenu(c, chip, "讨论模型", func(panel ui.Element) {
+		a.menu.DropMenu(c, a.pal, chip, "讨论模型", func(panel ui.Element) {
 			panel.AttachTo(chip, ui.AnchorTopRight, ui.AnchorBottomRight).Margin(0, 0, 4, 0).Width(220)
-		}, func(m *menu) { a.modelMenu(m, work) })
+		}, func(m *kit.Menu) { a.modelMenu(m, work) })
 	}
 	send := func() {
 		can := a.busy == "" && kit.Trim(a.input) != ""
@@ -935,7 +935,7 @@ func originChapter(events []workspace.Event) string {
 
 func (a *App) openSource(m workspace.Event, start, end int) {
 	a.source = editor.New(editor.NewDoc(m.Text), editor.Options{ReadOnly: true, LineHeight: kit.LhRead,
-		OwnMenu: func(x, y float32) { a.menu = menuState{owner: "原文", x: x, y: y} }})
+		OwnMenu: func(x, y float32) { a.menu = kit.MenuState{Owner: "原文", X: x, Y: y} }})
 	if end > start {
 		a.source.MoveTo(start, false)
 		a.source.MoveTo(end, true)
@@ -952,7 +952,7 @@ func (a *App) extraction(c *ui.Context) {
 			a.pal.DialogHead(c, "摘取原文", "拖选一段原文，作为已确定的设定加入正文。原文不会被修改。")
 			a.source.View(c).Height(220).FillWidth().Border(1, t.Border).Radius(kit.RCard)
 			start, end := a.source.Selection()
-			a.menuAt(c, "原文", func(m *menu) {
+			a.menu.MenuAt(c, a.pal, "原文", func(m *kit.Menu) {
 				m.Item("复制").Hint(modKey + "C").Disabled(start == end).Do(func() { a.source.Copy() })
 				m.Item("全选").Hint(modKey + "A").Do(func() { a.source.SelectAll() })
 			})
@@ -1006,7 +1006,7 @@ func (a *App) firstCategory() string {
 // modelMenu changes the discussion model and its effort without leaving the
 // conversation. Models come from each provider's catalog; one outside it
 // is set in the model settings.
-func (a *App) modelMenu(m *menu, work workspace.Work) {
+func (a *App) modelMenu(m *kit.Menu, work workspace.Work) {
 	var with []aiport.Provider
 	for _, p := range a.ai.Providers() {
 		if len(p.Models) > 0 {

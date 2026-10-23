@@ -12,7 +12,7 @@ import (
 // paneFind is the top of a list: a box that only searches, the button that
 // adds beside it when add names one, and what is rarely looked at under
 // the dots when more lists it.
-func (a *App) paneFind(c *ui.Context, query *string, hint, add string, more func(m *menu)) (added bool) {
+func (a *App) paneFind(c *ui.Context, query *string, hint, add string, more func(m *kit.Menu)) (added bool) {
 	t := a.pal.Theme
 	ui.Row(c).FillWidth().Gap(8).Padding(0, 20, 12, 20).AlignItems(ui.Center).Shrink(0).Children(func() {
 		box := ui.Row(c).Grow(1).Shrink(1).Height(kit.HControl).Gap(8).Padding(0, 10).AlignItems(ui.Center).Radius(kit.RControl).Background(a.pal.Canvas).Border(1, t.Border)
@@ -39,11 +39,11 @@ func (a *App) paneFind(c *ui.Context, query *string, hint, add string, more func
 		}
 		if more != nil {
 			b := ui.ButtonBase(c).Size(kit.HControl, kit.HControl).Center().Radius(kit.RControl).Shrink(0).Label("更多").Tooltip("更多")
-			if b.Hovered() || a.menuOpen(hint) {
+			if b.Hovered() || a.menu.MenuOpen(hint) {
 				b.Background(t.SurfacePressed)
 			}
 			b.Children(func() { kit.Glyph(c, kit.IcMore, kit.IconMd, t.TextMuted) })
-			a.dropMenu(c, b, hint, func(panel ui.Element) {
+			a.menu.DropMenu(c, a.pal, b, hint, func(panel ui.Element) {
 				panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(4, 0, 0, 0).Width(160)
 			}, more)
 		}

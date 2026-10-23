@@ -58,14 +58,14 @@ func (a *App) titleBar(c *ui.Context) {
 			a.setSideHidden(!a.sideHidden)
 			a.penBack()
 		}
-		held = a.barMenu(c, "文件", func(m *menu) { a.fileMenu(m, later) }) || held
-		held = a.barMenu(c, "编辑", func(m *menu) { a.editMenu(m, later) }) || held
-		held = a.barMenu(c, "视图", func(m *menu) { a.viewMenu(m, later) }) || held
-		held = a.barMenu(c, "帮助", func(m *menu) { a.helpMenu(m, later) }) || held
+		held = a.barMenu(c, "文件", func(m *kit.Menu) { a.fileMenu(m, later) }) || held
+		held = a.barMenu(c, "编辑", func(m *kit.Menu) { a.editMenu(m, later) }) || held
+		held = a.barMenu(c, "视图", func(m *kit.Menu) { a.viewMenu(m, later) }) || held
+		held = a.barMenu(c, "帮助", func(m *kit.Menu) { a.helpMenu(m, later) }) || held
 	})
 	a.pal.Hairline(c)
 	switch k := &a.bar; {
-	case strings.HasPrefix(a.menu.owner, barKey):
+	case strings.HasPrefix(a.menu.Owner, barKey):
 		k.open = true
 	case k.open: // put away in this frame
 		if !k.outside {
@@ -88,7 +88,7 @@ func (a *App) titleBar(c *ui.Context) {
 }
 
 // fileMenu lists the title bar's 文件.
-func (a *App) fileMenu(m *menu, later func(func()) func()) {
+func (a *App) fileMenu(m *kit.Menu, later func(func()) func()) {
 	a.barItem(m, later, cmdNewChapter)
 	a.barItem(m, later, cmdNewFolder)
 	m.Separator()
@@ -100,7 +100,7 @@ func (a *App) fileMenu(m *menu, later func(func()) func()) {
 }
 
 // editMenu lists the title bar's 编辑.
-func (a *App) editMenu(m *menu, later func(func()) func()) {
+func (a *App) editMenu(m *kit.Menu, later func(func()) func()) {
 	a.barItem(m, later, cmdUndo)
 	a.barItem(m, later, cmdRedo)
 	m.Separator()
@@ -115,25 +115,25 @@ func (a *App) editMenu(m *menu, later func(func()) func()) {
 }
 
 // viewMenu lists the title bar's 视图.
-func (a *App) viewMenu(m *menu, later func(func()) func()) {
+func (a *App) viewMenu(m *kit.Menu, later func(func()) func()) {
 	a.barItem(m, later, cmdSide)
 	a.barItem(m, later, cmdPane)
 	// The key toggles focus; the row only enters it.
-	m.Command(a, cmdFocus).Do(later(func() { a.write.focus = true }))
+	cmdFocus.item(a, m).Do(later(func() { a.write.focus = true }))
 	a.barItem(m, later, cmdPhone)
 	m.Separator()
 	m.Draw(a.themeChoice)
 }
 
 // helpMenu lists the title bar's 帮助.
-func (a *App) helpMenu(m *menu, later func(func()) func()) {
+func (a *App) helpMenu(m *kit.Menu, later func(func()) func()) {
 	a.barItem(m, later, cmdHelp)
 }
 
 // barItem adds a command to a menu of the title bar, doing its part after
 // the bar is drawn.
-func (a *App) barItem(m *menu, later func(func()) func(), cmd *command) {
-	m.Command(a, cmd).Do(later(cmd.act(a)))
+func (a *App) barItem(m *kit.Menu, later func(func()) func(), cmd *command) {
+	cmd.item(a, m).Do(later(cmd.act(a)))
 }
 
 // barAct does what was picked in a menu of the title bar, in the frame
@@ -160,19 +160,19 @@ func (a *App) barAct(c *ui.Context) {
 // while it is open. With one of them open, the pointer over the name of
 // another opens that one instead. It reports whether its name has the
 // keyboard focus.
-func (a *App) barMenu(c *ui.Context, name string, build func(m *menu)) bool {
+func (a *App) barMenu(c *ui.Context, name string, build func(m *kit.Menu)) bool {
 	t := a.pal.Theme
 	key := barKey + name
 	b := ui.ButtonBase(c).Row().Height(kit.HControlSm).Padding(0, 8).Center().Radius(kit.RControl).Shrink(0).Label(key)
-	if b.Hovered() || a.menuOpen(key) {
+	if b.Hovered() || a.menu.MenuOpen(key) {
 		b.Background(t.SurfacePressed)
 	}
 	b.Children(func() { ui.Text(c, name).FontSize(kit.FsControl).TextColor(t.Text).SingleLine() })
-	if b.Hovered() && a.menu.drop && a.menu.owner != key && strings.HasPrefix(a.menu.owner, barKey) {
-		a.menu = menuState{owner: key, drop: true}
+	if b.Hovered() && a.menu.Drop && a.menu.Owner != key && strings.HasPrefix(a.menu.Owner, barKey) {
+		a.menu = kit.MenuState{Owner: key, Drop: true}
 		c.Invalidate()
 	}
-	a.dropMenu(c, b, key, func(panel ui.Element) {
+	a.menu.DropMenu(c, a.pal, b, key, func(panel ui.Element) {
 		panel.Margin(4, 0, 0, 0).MinWidth(menuBar)
 		if panel.PressedOutside() {
 			a.bar.outside = true

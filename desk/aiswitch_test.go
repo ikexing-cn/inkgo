@@ -15,6 +15,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/ai"
 	"writer/aiport"
+	"writer/desk/kit"
 	"writer/internal/testshot"
 	"writer/shelf"
 	"writer/workspace"
@@ -300,7 +301,7 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 	for _, name := range []string{"文件", "编辑", "视图", "帮助"} {
 		openMenu(t, a, tt, name)
 		look("the menu " + name)
-		a.menu = menuState{}
+		a.menu = kit.MenuState{}
 		tt.Frame()
 	}
 	tt.RightClickAt(550, 300)

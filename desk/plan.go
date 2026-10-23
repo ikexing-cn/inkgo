@@ -362,7 +362,7 @@ func (o *outlinePage) line(c *ui.Context, l workspace.PlotLine) {
 		n := o.index.counts[l.ID]
 		ui.Textf(c, "%d", n).FontSize(kit.FsNote).TextColor(o.host.colors().Faint)
 		more := kit.IconButton(c, kit.IcMore, "情节线「"+l.Name+"」的操作", ui.Color{})
-		o.host.dropMenu(c, more, "plan-line-"+l.ID, func(panel ui.Element) { panel.Width(planLineMenuWidth) }, func(m *menu) {
+		o.host.dropMenu(c, more, "plan-line-"+l.ID, func(panel ui.Element) { panel.Width(planLineMenuWidth) }, func(m *kit.Menu) {
 			i := slices.IndexFunc(content.Plan().Lines, func(x workspace.PlotLine) bool { return x.ID == l.ID })
 			up, down := "左移", "右移"
 			if o.mode == 1 {
