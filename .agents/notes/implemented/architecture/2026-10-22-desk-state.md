@@ -50,7 +50,7 @@ Status: implemented
 
 - 命令表持有名称、快捷键、帮助行、帮助分组、AI 归属、可用条件和动作。标题栏、正文菜单、标签菜单和帮助从表取名称及提示。标签菜单的目标由该行决定。
 - `View` 在页面准备之后、编辑器构建之前按表分派当前页面的快捷键。编辑器自己的键只在表中供菜单和帮助读取，桌面不重复分派；剪贴四项只供菜单提示。输入框的 Ctrl+Enter 和局部 Esc 留在各自控件。
-- `status` 持有错误、连错次数、重试动作、完成通知和提示；toast 读取它。`App.SetError` 和 `warn` 转交状态处理。
+- `kit.Status`（`desk/kit/status.go`）持有错误、连错次数、重试动作、完成通知和提示；toast 读取它。`App.SetError` 和 `warn` 转交状态处理。
 - `jobs` 运行后台任务，把返回函数按交回顺序放入带锁队列；下一帧在界面线程执行。交回不等待界面，关作品等待备份时也不阻塞后台交回。备份在交回前关闭自己的 `done`。
 - 讨论、导出、选目录、备份和设定刷新使用 `jobs`。讨论保留命名、取消和一次只运行一个任务的规则；`checkRunner` 独立管理检查取消和交回。
 - `New` 登记关 AI 的收束动作，顺序是讨论、提议、检查、起草和改写、设定待确认、状态。`turnAI` 另管开关存储、开启时加载配置、页面去留和编辑器开关。
@@ -69,7 +69,7 @@ Status: implemented
 - `host` 给出 `colors/phoneColors` 配色、`content` 书内容、`workspace` 存取层和作品路径、`notices` 状态、`shelfPrefs/saveShelf` 本机偏好，以及 `chapter` 的章 ID、编辑器和有效开章标志。章 ID 在写作页外为空。
 - `flush` 保存导出前的正文；`syncPlanOutline` 把已保存的纲同步到同 ID 当前写作草稿的 text、saved、seen；`openWriting` 打开指定章；`showOutline` 切到大纲页。
 - `startJob` 运行后台选文件，`dialogs` 给 SaveFile 和 Reveal。`pickInto` 与书架共用后台选目录的实现，返回是否有选目录回调。单文件选文件，多文件选目录，相应回调缺席时写作品的「导出」目录。
-- `dropMenu` 保留宿主的菜单所有权，`settingColumn` 绘制共享右栏。配色、状态和书内容的重复访问在方法内取一次。`host` 的签名只用 `palette`、`menu`、`status`（第 7 批搬进 `desk/kit`）和 `desk` 以外的类型；`modal` 和 `paneEmpty` 是配色方法，`laterLines` 显式接收 Book 和条目。
+- `dropMenu` 把宿主的 `kit.MenuState` 和配色交给 `DropMenu`，`settingColumn` 绘制共享右栏。配色、状态和书内容的重复访问在方法内取一次。`host` 的签名只用 `kit.Palette`、`kit.Menu`、`kit.Status` 和 `desk` 以外的类型；`Modal` 和 `PaneEmpty` 是 `kit.Palette` 的方法，`laterLines` 显式接收 Book 和条目。
 - `desk` 直接使用的边界是：导出的 show、replan、view 和 open；手机的 view；大纲页的生命周期、dialog、chapterStory、finishOutline 和 pane。AI 起草直接调用 Book.ReloadPlan 统计卡片，不改变大纲页的加载和几何状态。
 
 ### 会改行为的

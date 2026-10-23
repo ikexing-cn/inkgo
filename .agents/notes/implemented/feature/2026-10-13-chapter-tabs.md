@@ -69,6 +69,6 @@ Status: implemented
   - `TestClosingAsksAboutUnsavedWords`：圆点在叉的位置、指针上去换回叉；关时先问；三个按钮的先后；问着不自动保存；三个回答各自的结果；切标签不问。
   - `TestTheTrashTakesTheTab`、`TestFocusPutsTheTabsAway`、`TestTabsComeBackWithTheWork`、`TestTheQuestionGoesWithItsChapter`、`TestALostChapterKeepsItsTab`、`TestClosingAsksBetweenTwoTexts`。
   - `SHOT=<目录> go test ./desk -run TestShotTabs` 出九张图：平常、没存、悬停、右键菜单、询问（浅、深）、深色、十几个标签、全关。
-- `desk/theme_test.go` 的 `TestButtonsAtTheRight`：行尾写了 `// system order` 的那一行可以主按钮在前，但三个按钮必须正好是「保存」「不保存」「取消」，全软件只许有一行。
+- `desk/kit/theme_test.go` 的 `TestButtonsAtTheRight`：行尾写了 `// system order` 的那一行可以主按钮在前，但三个按钮必须正好是「保存」「不保存」「取消」，全软件只许有一行。
 - `desk/write_test.go` 的 `TestExportTheWork`：开着一章时导出先是本章（2026-10-16 起改查先是全书，见[导出成 Word](2026-10-16-export-to-word.md)）。
 - `npm run verify` 全绿。

@@ -14,7 +14,7 @@ Status: implemented
   - 新的界面功能照原型来；原型里没有的，先在原型里做出来给作者看，确认后再写代码。
   - artifact 只作存档，不更新，也不拿它对照。它里面画过、软件还没做的几页（全书规划、导入稿件、恢复备份、「写到相关人物时提醒」）没有搬进原型，要做的时候再在原型里做。
 - 原型没有库，不用构建，双击 `index.html` 就开。一份样式，七份脚本：
-  - `index.html`：样式。链的是 `../desk/tokens.css`，颜色、字号、间距只有那一份。
+  - `index.html`：样式。链的是 `../desk/kit/tokens.css`，颜色、字号、间距只有那一份。
   - `book.js`：那本假书（卷、章、设定、修改记录、伏笔、讨论、AI 的固定回复）。
   - `base.js`：状态、重画、各处都用的小零件。
   - `write.js`：侧栏、工具栏、正文。
@@ -29,12 +29,12 @@ Status: implemented
 - 软件里有的界面，原型都照着做一遍，文案一字不差地用软件的。范围是软件现在的全部页面：正文（卷当一页开、章纲、摘要、查找替换、专注、快照、起草、改写、续写、导出）、右栏三个标签、讨论、检查、作品分类、书架、设置、备份、回收站、提示。
 - 平时碰不到的情况（稿子在软件外面被改了或找不到了、检查或摘要没成功、备份文件夹找不到或不让写、设定没整理成功）放在窗口上面的「少见的情况」菜单里，点一下就摆出来。这个菜单和旁边的「重新开始」只属于原型，不是软件的界面。
 - `npm run verify-prototype` 做两件事，改了 `prototype/` 就跑：
-  - 设计规则（`scripts/design/check.ts`、`rules.ts`）：`index.html` 和每份脚本对着 `desk/tokens.css` 查，样式表里的每条规则也按控件高度查。
+  - 设计规则（`scripts/design/check.ts`、`rules.ts`）：`index.html` 和每份脚本对着 `desk/kit/tokens.css` 查，样式表里的每条规则也按控件高度查。
   - 走查。`scripts/prototype/browser.ts` 用本机的 Edge 或 Chrome 无头打开 `index.html`（`BROWSER` 指定的排第一；一个起不来——2026-10-19 Edge 更新到一半时就这样，没有报错就退出——换下一个）（走 `file://`，和双击一样），经 DevTools 协议真的按鼠标、敲键盘；`walk.ts` 把 83 条流程点一遍，每条结束时还要查窗口里没有东西伸出去、页面没有报错；每点一下还要查菜单、浮层、对话框、提示条里没有东西比它们自己宽，并且把窗口里的按钮行都量一遍（见[按钮靠右](2026-10-13-buttons-at-the-right.md)），不靠右的攒到最后一起报。只用 Node 自带的 `WebSocket` 和 `fetch`。`SHOT=<目录>` 会存下每一步的截图。
     - 2026-10-13 起每点一下还查两样：能点的东西都回应指针（见[能点的看得出能点](2026-10-13-clickable-looks-clickable.md)），对话框的宽不超过高的 2.5 倍（只问一句的用窄的一档，见 `DESIGN.md` 的 Components「对话框」）。
 - 它原来不进提交前的三道检查（要本机有浏览器，走一遍三分钟）。2026-10-13 走查降到二十秒，并进了 `npm run verify`，每次提交前都跑，见[全套检查从四分半到半分钟](2026-10-13-fast-checks.md)。
 - 窗口固定 1266×780；浮层的位置从页面上量窗口、侧栏、右栏的宽，不另记数字。
-- 只给 artifact 用的工具从仓库里去掉：`scripts/verify-design.ts`，`scripts/design/` 下的 `normalize.ts`、`system.ts`、`render.ts`、`parts.ts`，和它们的四条 npm 命令。`desk/tokens.css` 不再是谁的副本，各级的值只在它里面写。
+- 只给 artifact 用的工具从仓库里去掉：`scripts/verify-design.ts`，`scripts/design/` 下的 `normalize.ts`、`system.ts`、`render.ts`、`parts.ts`，和它们的四条 npm 命令。`desk/kit/tokens.css` 不再是谁的副本，各级的值只在它里面写。
 
 ## Alternatives considered
 
@@ -56,7 +56,7 @@ Status: implemented
   - 软件改了界面，原型不会自己跟着变：没有检查能发现两边的文案或布局对不上，靠先改原型、再改代码这个顺序管着。
   - 动作变了，`scripts/prototype/walk.ts` 里的步骤要跟着改；走查按字找东西点，改了文案也要改它。走一遍原来要三分钟左右，2026-10-13 起二十秒左右：页面的定时器听走查的钟，不真等。
   - 各脚本最外层的名字共用：两个文件起了同名的 `const` 会报错，同名的 `function` 不报错，后加载的悄悄顶掉前面的。
-  - 样式链的是 `../desk/tokens.css`，单把 `prototype/` 文件夹拷给别人打不开样子，要连 `desk/tokens.css` 一起。
+  - 样式链的是 `../desk/kit/tokens.css`，单把 `prototype/` 文件夹拷给别人打不开样子，要连 `desk/kit/tokens.css` 一起。
   - AI 只回固定的几句，内容是编的；作者 2026-10-12 同意。
   - 正文原来不能打字，作者 2026-10-13 要它能打（「正文给个编辑功能吧，我需要测试『保存』的情况」），现在能：
     - 正文那一块是 `contenteditable="plaintext-only"`。打字、删字由浏览器先改页面，`wrote` 把页面上的几段读回状态里再重画，光标按「第几段第几个字」放回去；回车、粘贴、右键菜单里的剪切和粘贴不让浏览器做，自己算（`putText`）。
@@ -72,7 +72,7 @@ Status: implemented
   - 走查只在它点到的状态下查伸出去的东西：作者 2026-10-12 看到「更多」菜单里「外观」那一排伸出了菜单，那时只查整个窗口，所以没报。没走到的状态、字被省略号截掉的地方仍然查不出来。
   - 软件照原型同步过一遍（2026-10-12，作者看过原型后要求「以原型为基准，同步我们现有的软件」）。照的是走查存下的截图：软件这边用 `desk` 的截图测试画同一页，两张上下拼在一起看。同步了的：
     - 文案：原型那近三百处书面说法搬到 `desk/`、`cmd/inkgo/`，另有三十几处只有软件才有的话照同样的说法改了。给模型的提示词、落盘的格式（`writing/`、`discussion/`、`workspace/`、`cmd/sample/`）没有动，里面的「【作者说过是故意的】」「等你决定｜」是格式的一部分。
-    - 共用的零件收进 `desk/theme.go`，各页不再各写各的：`modal`（对话框的外框：留白 `dialogPad`、圆角、阴影、遮罩，宽度 `dialogSmall` / `dialogKeys` / `dialogSource` / `dialogWide`）、`dialogHead`（标题和说明）、`segments`（分段控件）、`blank`（空状态）、`primary` / `secondary` / `danger`（按钮，高 `hControlSm`）。原来的 `small`、`cardBox`、`whenMenu`、`weekChart` 没有地方用了，删掉。
+    - 共用的零件收进 `desk/kit/theme.go`，各页不再各写各的：`modal`（对话框的外框：留白 `dialogPad`、圆角、阴影、遮罩，宽度 `dialogSmall` / `dialogKeys` / `dialogSource` / `dialogWide`）、`dialogHead`（标题和说明）、`segments`（分段控件）、`blank`（空状态）、`primary` / `secondary` / `danger`（按钮，高 `hControlSm`）。原来的 `small`、`cardBox`、`whenMenu`、`weekChart` 没有地方用了，删掉。
     - 各页：提示条、设置对话框、「更多」菜单、侧栏和章节树（卷只留箭头，字数带千分位或「万」）、顶栏标题后的「已保存 / 未保存」、每一页都有的底栏和它右边的字数、每日目标和检查时机两个浮层、备份浮层和第一次备份的对话框（备份时机是三个勾选框）、待处理、检查页、作品分类、书架（卡片、列表、空书架）、讨论页（头像、气泡、开场）、快照、回收站、快捷键、导出、起草、加入设定、新建作品。
     - 顺带改了一处错：修改记录里只改了名称的那一条原来写成「改归：…」（分类是空的），现在写「名称改为：…」或「移除名称：…」。原型里没有这句话。
   - 同步时两边对不上的几处，作者 2026-10-12 定了：

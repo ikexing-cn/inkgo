@@ -12,13 +12,13 @@ mygo v0.5.5 发布了 `ui/markdown`：`View` 画写完的 Markdown，`Stream` �
 
 ## Decision
 
-- `desk/markdown.go` 只剩一层薄壳：
+- `desk/markdown.go` 接线内容与设定链接；`desk/kit/markdown.go` 管样式、选项和代码块：
   - `markdown` 调 `markdown.View`，`liveMarkdown` 调 `markdown.Stream`。流式的分块冻结、渐显由 mygo 做。
-  - `markdownOptions` 给回复（`replyText`）和摘要（`digestText`）各一份 `markdown.Options`，存在 `App.md` 里，地址不变（mygo 按它认视图的状态）；调色板换了才重做 `Theme`。
-  - `markdownTheme` 把 mygo 的主题换成软件的字号、行距、颜色（`fsRead`/`lhRead`、`fsNote`/`lhBody`、`a.pal.side`、`a.pal.line`、`rControl`）。标题统一 650 字重，只按 1.35、1.2、1.08 三级放大。
-  - **代码块自己画**（`codeBlock`）：mygo 自带的代码块按钮写的是英文 Copy / Copied，它的文案库只有英文。我们画同样的边框和底色，左上写语言，右上一个「复制代码」图标按钮；代码正文仍用 mygo 的 `Body`。
+  - `kit.MarkdownState.MarkdownOptions` 给回复（`kit.ReplyText`）和摘要（`kit.DigestText`）各一份 `markdown.Options`，存在 `App.md` 持有的状态里，地址不变（mygo 按它认视图的状态）；调色板换了才重做 `Theme`。
+  - `kit.Palette.markdownTheme` 把 mygo 的主题换成软件的字号、行距、颜色（`FsRead`/`LhRead`、`FsNote`/`LhBody`、`Palette.Side`、`Palette.Line`、`RControl`）。标题统一 650 字重，只按 1.35、1.2、1.08 三级放大。
+  - **代码块自己画**（`kit.MarkdownState.codeBlock`）：mygo 自带的代码块按钮写的是英文 Copy / Copied，它的文案库只有英文。我们画同样的边框和底色，左上写语言，右上一个「复制代码」图标按钮；代码正文仍用 mygo 的 `Body`。
 - **回复里的链接不跳转**：`OnLink` 什么都不做，和原来一样。
-- **摘要里的「[N]」**：`digestMarkdown` 用 mygo 的解析器找到正文里（不在代码、不在链接里）的「[N]」，由 `workspace/mentions.go` 的 `Setting.Mentions` 解析编号、名称及原文偏移，换成「名字」，名字是一个指向 `inkgo-entry:N` 的 Markdown 链接，名字里的 Markdown 符号转成 HTML 实体；摘要的 `OnLink` 认 `inkgo-entry:` 打开那条设定。没有这条设定的编号原样留着。
+- **摘要里的「[N]」**：`digestMarkdown` 用 mygo 的解析器找到正文里（不在代码、不在链接里）的「[N]」，由 `workspace/mentions.go` 的 `Setting.Mentions` 解析编号、名称及原文偏移，换成「名字」，名字是一个指向 `inkgo-entry:N` 的 Markdown 链接，名字里的 Markdown 符号转成 HTML 实体；`desk/markdown.go` 在选项首次使用时给摘要接上 `OnLink`，认 `inkgo-entry:` 打开那条设定。没有这条设定的编号原样留着。
 - 去掉 goldmark 依赖。
 
 ## Alternatives considered
@@ -38,7 +38,7 @@ mygo v0.5.5 发布了 `ui/markdown`：`View` 画写完的 Markdown，`Stream` �
 
 ## Verification
 
-- `desk/markdown_test.go`：摘要把编号换成能点的名字、代码里的编号不动、名字里的符号不会变成 Markdown、流式写完后按完整的 Markdown 画、主题跟着调色板。
+- `desk/markdown_test.go`：摘要把编号换成能点的名字、代码里的编号不动、名字里的符号不会变成 Markdown、流式写完后按完整的 Markdown 画。主题跟着调色板的规则在 `desk/kit/markdown_test.go`。
 - `desk/app_test.go` 的 `TestReplyTextSelectsAcrossBlocksAndCopies`：标题和列表不露出 Markdown 符号；从第一段拖到最后一段，复制出来的有中间的列表；「复制代码」只复制代码；「复制全文」复制 Markdown 原文。
 - `desk/digest_test.go` 的 `TestTheTalkShowsWhereItWasCompacted`：摘要里的列表画成圆点，设定的名字能点开。
 - `go test ./desk -run xxx -bench StreamingFrame -benchmem` 复现上面的数。

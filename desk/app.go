@@ -180,7 +180,7 @@ type App struct {
 	penProvider, penModel            string
 	penEffort                        string
 	live                             live
-	md                               markdownState
+	md                               kit.MarkdownState
 	thoughts                         map[string]*bool // reasoning shown, by event or revision ID
 	doc                              docView
 	exporting                        exportView

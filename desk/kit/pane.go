@@ -32,7 +32,7 @@ func (p *Palette) PaneEmpty(c *ui.Context, words, how string) {
 // paneRow is one thing of a list on one line: its name, a line of what it
 // says, what stands at its end, and a dot when it waits on the author. The
 // words of find in what it says are darker.
-// Give it a key with the context: a.paneRow(c.Key(id), ...).
+// Give it a key with the context: p.PaneRow(c.Key(id), ...).
 func (p *Palette) PaneRow(c *ui.Context, label, name, gist, side, find string, waiting bool) ui.Element {
 	t := p.Theme
 	b := ui.ButtonBase(c).Row().FillWidth().Height(HControl).Gap(10).Padding(0, 10).AlignItems(ui.Center).Radius(RControl).Label(label)

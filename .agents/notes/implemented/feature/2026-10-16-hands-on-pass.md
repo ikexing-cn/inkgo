@@ -59,7 +59,7 @@ Status: implemented
 - **卡片标题行一样高**：检查详情两张卡片的标题行最低 22（带链接时的高度），有没有链接都对齐。
 - **起草对话框也写服务名**：`serviceModel` 从 `modelLabel` 拆出来，起草对话框那一行也用它。续写采纳时记在标记里的仍是 ID：那是记录，界面上不显示。
 - **时间都按离今天多远写**（`DESIGN.md` 文案一节新加一条）：
-  - `desk/when.go` 的 `dayOf` 写哪天：今天、昨天，今年的"10-06"，往年的"2025-10-06"。`when` 在后面加几点，用于备份、回收站、修改记录、摘要来源、快照列表、恢复快照的提示；`opened`（书架）今天、昨天写几点，更早的只写哪天；`talkDay`（讨论列表）只写哪天。原来分散在 backup.go、welcome.go、beside.go 的三个各写各的，合成这一处。
+  - `desk/kit/when.go` 的 `DayOf` 写哪天：今天、昨天，今年的"10-06"，往年的"2025-10-06"。`When` 在后面加几点，用于备份、回收站、修改记录、摘要来源、快照列表、恢复快照的提示；`Opened`（书架）今天、昨天写几点，更早的只写哪天；`talkDay`（讨论列表）只写哪天。原来分散在 backup.go、welcome.go、beside.go 的三个各写各的，合成这一处。
   - 讨论的标题只存第一句话，不再在前面拼"10-16 00:42 · "再由 `sessionParts` 拆开；列表上的日子由 `talkDay` 从讨论的 ID（建立的时刻）算，跨年也不会错。
   - 原型：`BOOK.clock` 是假书里的"现在"（10:40），新做的事（备份、快照、回收站、修改记录、AI 摘要、新作品）都记成"今天 10:40"，不再写"刚刚"。
   - 讨论里每一句话下面（作者的和 AI 的）也用 `when`："今天 00:50"。原型里每句话记着自己的 `at`（"昨天 22:11"），新说的记 `stamp()`；讨论自己的 `at` 只是哪天，列表里写它。
@@ -139,7 +139,7 @@ Status: implemented
 - `desk/ai_test.go`：起草进度和改写记录写"DeepSeek/deepseek-flash · High"；起草对话框写"用 DeepSeek/deepseek-flash · 推理 High"。
 - `desk/ai_test.go`（`TestDraftAChapterFromItsOutline`）：起草对话框写"用 DeepSeek/deepseek-flash · High；…"，改之前有"推理"。`scripts/prototype/walk.ts` 的「a draft」查对话框里没有"推理"。
 - `desk/app_test.go`（`TestACategorySavesOnceFilledIn`）：名称填"伏线"写"将添加新分类。"；点"编辑-人物"写"将修改已有的分类“人物”，现在的落点是“设定库”。"，改之前两句都没有。`scripts/prototype/walk.ts` 的「categories」核对这两句，截图 72-cat-change。
-- `desk/when_test.go`（`TestWhenSaid`，从 backup_test.go 移来）：`when`、`opened`、`talkDay` 对今天、昨天、今年别的日子、一月的日子、往年各写什么。
+- `desk/kit/when_test.go` 核对日期和时间的显示；`desk/when_test.go` 核对讨论和备份把这些文字接进各自的显示。
 - `scripts/prototype/walk.ts`：备份、生成摘要、修改记录几步核对"今天 10:40"。
 - `desk/sent_test.go`（`TestWhatWasSent`）：三句问话和一句没记用量的回复下面都是"今天 hh:mm"，两句记了用量的是"今天 hh:mm · … token"。改之前只有几点。`scripts/prototype/walk.ts` 的「what was sent」核对"昨天 22:11 · claude-opus-5-5 · 28.3K token"和"昨天 22:10"。
 - `desk/counts_test.go`（`TestSetTheDaysGoal`）：打开每日目标，有"今天 写了 0 字""昨天 写了 0 字"和六天前的"10-10 写了 0 字"这样的行，改之前是"10月16日"。`desk/when_test.go`（`TestWhenSaid`）：`kept` 的最早一份是今天、今年 9 月 28 日、去年 10 月 3 日，写"今天""09-28""2025-10-03"；改回旧写法三条都错。`scripts/prototype/walk.ts` 核对"今天+2,846 字""昨天+3,120 字""10-10"和"最早 09-28"。

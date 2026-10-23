@@ -158,7 +158,7 @@ func (a *App) digest(c *ui.Context, d workspace.Event, through int) {
 					if s[0] != "" {
 						ui.Text(c, s[0]).FontSize(kit.FsNote).FontWeight(600).LineHeight(kit.LhBody).FillWidth()
 					}
-					a.markdown(c, s[1], digestText)
+					a.markdown(c, s[1], kit.DigestText)
 				})
 			}
 			ui.Text(c, "摘要由 AI 写成，有误可在对话中指出。").FontSize(kit.FsNote).LineHeight(kit.LhBody).TextColor(t.TextMuted).FillWidth()
@@ -325,7 +325,7 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 					for _, e := range proposed(a.events, m.ReplyTo) {
 						a.propCard(c, a.session, e)
 					}
-					a.markdown(c, m.Text, replyText)
+					a.markdown(c, m.Text, kit.ReplyText)
 					if m.Capped {
 						ui.Text(c, "已达到本次查阅上限，以上回答仅依据已查到的内容。").FontSize(kit.FsNote).TextColor(t.TextMuted).FillWidth()
 					}
@@ -423,7 +423,7 @@ func (a *App) thinking(c *ui.Context) {
 			}
 			a.turnCards(c, steps)
 			if text != "" {
-				a.liveMarkdown(c, text, replyText)
+				a.liveMarkdown(c, text, kit.ReplyText)
 			}
 			status := "正在回复…"
 			switch {

@@ -179,9 +179,19 @@ Status: proposed
 
 ### 第 7 批：拆子包（只拆这几个）
 
-- `desk/kit`：配色、尺寸常量、图标、零件、菜单、提示条、Markdown。
+- `desk/kit` 只画通用零件，不引用 `desk` 的其他包：
+  - `theme.go` 和 `tokens.css`：调色板、尺寸、图标、按钮、对话框、空状态和表单小控件。CSS 由同目录的 `go:embed` 读取。
+  - `pane.go`：通用栏顶、列表、详情、表单、引文和搜索命中着色。
+  - `status.go`：`Status` 持有错误、连续失败、重试、完成通知和提示。
+  - `when.go`：日期和时间的显示文字。
+  - `text.go`：`Trim`、`Clip`、`Words`、`Grouped`、`Signed`、`Heading`、`FromLabel`、`Count`、`NearFind`。
+  - `menu.go`：`MenuState` 持有菜单和子菜单状态，按传入的调色板绘制；`Menu` 列出行，`MenuItem` 保存行的内容和动作。
+  - `toast.go`：提示卡片、动作行、展开更多的按钮和标题拆分。卡片接收状态、显示时长和绘制动作的回调。
+  - `markdown.go`：`MdStyle`、`MarkdownState`、主题和代码块。`MarkdownOptions` 保持选项地址，只在调色板改变时重建主题；代码块读取这次取选项时的调色板。
+  - `App` 持有调色板、状态、菜单状态和 Markdown 状态。业务菜单与命令、提示种类与动作、摘要内容与设定链接在 `desk`；`host.dropMenu` 把宿主的菜单状态和配色交给 `kit`。
+  - 依赖是标准库、mygo 的 `ui` 和 `ui/markdown`、`workspace`、`internal/textclip`。文字裁剪复用已有实现。
 - 三个独立的页面：手机预览、导出、大纲。各自只用 `kit`、书模型和那个小接口。
-- 写作页和大纲页都用的 `outlineDraft`（`opened.go`）、`saveAfter` 和 `checkEvery`（`save.go`）放到两边都能引用的包；`trim`、`clip`、`words`、`fromLabel`（`shell.go`、`app.go`、`counts.go`、`change.go`）随零件进 `kit`。
+- 写作页和大纲页都用的 `outlineDraft`（`opened.go`）、`saveAfter` 和 `checkEvery`（`save.go`）放到两边都能引用的包。
 - `aiswitch_test.go` 里的依赖检查扩大到 `go list -deps ./desk/...`：子包也不许引用 `ai`、`model`、`discussion`、`writing`。
 
 写作页、讨论、右栏、伏笔、待办、提议这一团共用打开的章节和讨论状态，留在 `desk`；硬拆的话，它们要的那个接口会有四十多个方法，等于把 `App` 换了个名字。

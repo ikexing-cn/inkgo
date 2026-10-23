@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"github.com/egoist/mygo/ui/markdown"
 	"writer/desk/kit"
 )
 
@@ -15,7 +14,7 @@ import (
 func TestDigestNamesEntries(t *testing.T) {
 	a, _, entry := fixture(t)
 	src := "提到 [1] 和 [99]。\n\n`[1]`\n\n```\n[1]\n```\n\n[外部链接](https://example.com)"
-	tt := ui.NewTester(func(c *ui.Context) { a.markdown(c, src, digestText) }, 720, 800)
+	tt := ui.NewTester(func(c *ui.Context) { a.markdown(c, src, kit.DigestText) }, 720, 800)
 	for _, text := range []string{"「主角怕黑」", "[99]", "[1]"} {
 		if !tt.HasText(text) {
 			t.Errorf("missing %q in %q", text, tt.Texts())
@@ -57,7 +56,7 @@ func TestDigestEscapesNames(t *testing.T) {
 	name := "灯[塔]*_`\\|<&~"
 	setting(a).Entries[0].Names = []string{name}
 	src := "**[1]**，再提到 [01] 和 [999]。\n\n| 设定 |\n|---|\n| [1] |"
-	tt := ui.NewTester(func(c *ui.Context) { a.markdown(c, src, digestText) }, 720, 800)
+	tt := ui.NewTester(func(c *ui.Context) { a.markdown(c, src, kit.DigestText) }, 720, 800)
 	if !tt.HasText("「"+name+"」") || !tt.HasText("[999]") {
 		t.Fatal("entry name changed the Markdown", tt.Texts())
 	}
@@ -74,9 +73,9 @@ func TestMarkdownStreamFinishes(t *testing.T) {
 	done := false
 	tt := ui.NewTester(func(c *ui.Context) {
 		if done {
-			a.markdown(c, src, replyText)
+			a.markdown(c, src, kit.ReplyText)
 		} else {
-			a.liveMarkdown(c, src, replyText)
+			a.liveMarkdown(c, src, kit.ReplyText)
 		}
 	}, 720, 800)
 	tt.Advance(time.Second)
@@ -100,33 +99,5 @@ func TestMarkdownStreamFinishes(t *testing.T) {
 	}
 	if urls := tt.OpenedURLs(); len(urls) != 0 {
 		t.Fatalf("stream opened %q", urls)
-	}
-}
-
-// The options keep their addresses, and their themes follow the palette.
-func TestMarkdownOptionsFollowThePalette(t *testing.T) {
-	a, _, _ := fixture(t)
-	reply, digest := a.markdownOptions(replyText), a.markdownOptions(digestText)
-	rt, dt := reply.Theme, digest.Theme
-	if rt.FontSize != kit.FsRead || rt.LineHeight != kit.LhRead || dt.FontSize != kit.FsNote || dt.LineHeight != kit.LhBody {
-		t.Fatal("reply and digest typography differ from their tokens")
-	}
-	if a.markdownOptions(replyText) != reply || a.markdownOptions(digestText) != digest || reply.Theme != rt || digest.Theme != dt {
-		t.Fatal("options or themes changed within the same palette")
-	}
-	a.pal = a.dark
-	if a.markdownOptions(replyText) != reply || a.markdownOptions(digestText) != digest {
-		t.Fatal("options moved when the palette changed")
-	}
-	if reply.Theme == rt || digest.Theme == dt {
-		t.Fatal("themes did not follow the palette")
-	}
-	for _, th := range []*markdown.Theme{reply.Theme, digest.Theme} {
-		if th.Link != a.pal.Ink || th.CodeBackground != a.pal.Side || th.CodeBlockBackground != a.pal.Side || th.CodeBlockBorder != a.pal.Line || th.CodeBlockRadius != kit.RControl || th.QuoteBar != a.pal.Line || th.TableBorder != a.pal.Line || th.Muted != a.pal.Theme.TextMuted {
-			t.Fatal("Markdown colors differ from the palette")
-		}
-	}
-	if reply.Reveal != nil || digest.Reveal != nil || reply.HTML != nil || digest.HTML != nil {
-		t.Fatal("reveal and raw HTML must use the defaults")
 	}
 }

@@ -17,18 +17,18 @@ Status: implemented
 - 规则写进 `DESIGN.md` 的 Components：「文字按钮」「能点的都回应指针」两条；开头数值的 `button-text` 改成墨色，加 `button-text-hover`。
 - 文字按钮只有一种样子：`note` 字号，墨色的字，下面一条 `control` 色的细线；指针移上去出现 `active` 的底色，线变成字的颜色。不可撤回的那一种字用 `danger`。
   - 原型里是 `.link` 一个类，原来的四种写法都换成它；底色比字宽出一圈，用负的外边距收回去，字还在原来的位置。
-  - 软件里是 `a.pal.ghost` 一个函数（`desk/theme.go`）：字下面放一条 1 高的线，不用工具包的 `Underline()`（它的线只能和字同色）。`a.textLink` 删了，调用处都换成它；原来传给 `ghost` 的灰、浅灰、墨色不再传，只留 `danger`。
+  - 软件里是 `a.pal.Ghost` 一个函数（`desk/kit/theme.go`）：字下面放一条 1 高的线，不用工具包的 `Underline()`（它的线只能和字同色）。`a.textLink` 删了，调用处都换成它；原来传给 `ghost` 的灰、浅灰、墨色不再传，只留 `danger`。
 - 一排按钮里的「取消」「放弃」不用文字按钮，用普通按钮：
   - 原型里记伏笔、选回收两个浮层的 `.ghost`、`.solid` 换成 `.btn`，这两个类删了。
-  - 软件里同样两个浮层、改写条的「取消」「放弃」、全书替换确认那一行的「取消」「确定替换」换成 `a.pal.secondary`、`a.pal.danger`。
+  - 软件里同样两个浮层、改写条的「取消」「放弃」、全书替换确认那一行的「取消」「确定替换」换成 `a.pal.Secondary`、`a.pal.Danger`。
 - 软件的查找条照原型改了按钮：「上一个」「下一个」是图标按钮，「替换」「全部替换」「全书替换」是普通按钮，「全书」是能开关的小标签（新的 `a.pal.chip`）。原来这六个都是 `ghost`，换成新的文字按钮会是一排带线的字。
 - 凡是能点的，指针移上去都有变化：有边有底的换 `hover` 的底色；墨色实心的浅一级（`ink-2`）；`danger` 实心的淡一级；只有字或图标的变成墨色。一组选项里已经选中的那一个不变，禁用的不回应。
   - 原型：样式表最后加了一段，按这几类各写一条 `:hover`。
-  - 软件：`a.pal.danger`、伏笔提醒章数的加减、书架的列表和卡片切换补上；作品分类的「编辑」「删除」、检查页的「查看原文」、底栏的检查结果改用 `a.pal.ghost`。
+  - 软件：`a.pal.Danger`、伏笔提醒章数的加减、书架的列表和卡片切换补上；作品分类的「编辑」「删除」、检查页的「查看原文」、底栏的检查结果改用 `a.pal.Ghost`。
 - 两个检查：
   - 走查（`scripts/prototype/walk.ts` 的 `DEAD`）：每点一下，窗口里凡是带 `data-click` 的、看得见的、没有禁用的，样式表里要有一条对得上它的 `:hover` 规则，指针要是手形。一组里已经选中的那一个（`.nav.on`、`.tab.on`、分段里的 `.on`）不查。
-  - `desk/theme_test.go` 的 `TestButtonsAnswerThePointer`：界面代码里每个 `ui.ButtonBase(c)` 都要有名字，并且在它后面十六行以内、本函数结束之前读 `名字.Hovered()`。
-- `TestButtonsAtTheRight` 原来认 `a.textLink`，现在认 `a.pal.ghost`，并把 `a.pal.danger` 也算作按钮。
+  - `desk/kit/theme_test.go` 的 `TestButtonsAnswerThePointer`：界面代码里每个 `ui.ButtonBase(c)` 都要有名字，并且在它后面十六行以内、本函数结束之前读 `名字.Hovered()`。
+- `TestButtonsAtTheRight` 原来认 `a.textLink`，现在认 `a.pal.Ghost`，并把 `a.pal.Danger` 也算作按钮。
 
 ## Alternatives considered
 
@@ -42,7 +42,7 @@ Status: implemented
 
 - **收益**：
   - 文字按钮在两边各只有一处定义，新写的不会再有第五种样子。
-  - 新加一个能点的东西而没有写指针移上去的样子，原型这边走查报、软件这边 `go test ./desk` 报。试过：把 `a.pal.danger` 里读 `Hovered()` 的三行去掉，`TestButtonsAnswerThePointer` 报出 `theme.go` 那一行；原型第一次跑 `DEAD` 报出四十来种没有回应的。
+  - 新加一个能点的东西而没有写指针移上去的样子，原型这边走查报、软件这边 `go test ./desk/kit` 报。试过：把 `a.pal.Danger` 里读 `Hovered()` 的三行去掉，`TestButtonsAnswerThePointer` 报出 `theme.go` 那一行；原型第一次跑 `DEAD` 报出四十来种没有回应的。
 - **代价与已知上限**：
   - 样子是我定的，作者只说了毛病，没有说要什么样：墨色的字加一条浅线。
   - 软件的检查读的是写法：读了 `Hovered()` 却什么都不改的它发现不了；不用 `ui.ButtonBase` 而在别的东西上读 `Clicked()` 的它看不见。

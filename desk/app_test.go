@@ -15,6 +15,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/ai"
 	"writer/aiport"
+	"writer/desk/kit"
 	"writer/model"
 	"writer/workspace"
 )
@@ -624,7 +625,7 @@ func TestACategorySavesOnceFilledIn(t *testing.T) {
 func TestMarkdownBlocks(t *testing.T) {
 	src := "# 标题\n\n有**粗体**、*斜体*、`代码`和[链接](https://example.com)。\n\n- 一\n- 二\n\n1. 甲\n\n> 引用\n\n```\ncode\n```\n\n| 列 | 值 |\n|---|---|\n| 甲 | 1 |\n\n<script>x</script>\n\n---\n"
 	a, _, _ := fixture(t)
-	tt := ui.NewTester(func(c *ui.Context) { a.markdown(c, src, replyText) }, 720, 1200)
+	tt := ui.NewTester(func(c *ui.Context) { a.markdown(c, src, kit.ReplyText) }, 720, 1200)
 	for _, text := range []string{"标题", "粗体", "斜体", "代码", "链接", "一", "二", "甲", "引用", "code", "列", "值", "1", "<script>x</script>"} {
 		if !tt.HasText(text) {
 			t.Errorf("missing %q in %q", text, tt.Texts())

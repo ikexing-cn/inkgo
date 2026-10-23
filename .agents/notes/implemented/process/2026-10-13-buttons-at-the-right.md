@@ -19,14 +19,14 @@ Status: implemented
   - 不做决定的那一个（「稍后再说」）可以单独留在最左，和其余的分开（现有两处：检查页一条结果的底下、第一次备份的对话框）。这一条原来是我定的，2026-10-13 给作者看了两处的位置，作者：「这个我同意最左」。
   - 问「要不要保存」的三个按钮照系统的顺序「保存」「不保存」「取消」，主按钮在三个里最左（作者 2026-10-13 给的图）。只有关标签页那一个对话框，原型和软件里都是（[多标签页](../feature/2026-10-13-chapter-tabs.md)）；走查对标了 `asked` 的那一行反过来查，主按钮要是第一个；代码里那一行行尾写 `// system order`，`TestButtonsAtTheRight` 查它正好是这三个、全软件只有一行。别的对话框要不要也照系统的顺序（导出会变成「导出」「取消」），2026-10-13 问过作者：不改，主按钮在最右仍是基线，这一问是唯一的例外。
 - 原型的检查在走查里（`scripts/prototype/walk.ts` 的 `LOOSE`）：每点一下，窗口里凡是装着按钮的一行（`.btn`、`.solid`、`.ghost`，或者整行都是能点的字）都量一遍，最后一个离这一行右边不能有空，从第一个按钮起后面的要一个挨一个（按钮右边不能隔着一段空），主按钮后面不能再有按钮。找到的攒起来，走完一起报，一次看全。
-- 代码的检查是 `desk/theme_test.go` 的 `TestButtonsAtTheRight`，读界面代码：一个 `ui.Row(c)` 里第一个画出来的是按钮（`a.pal.primary`、`a.pal.secondary`、`a.textLink`），这一行就要写 `Justify(ui.End)`；按钮不能在 `ui.Spacer(c)` 的左边，只有单独一个 `a.textLink`（「稍后再说」）可以；`primary` 后面不能再有 `secondary`、`textLink`。
+- 代码的检查是 `desk/kit/theme_test.go` 的 `TestButtonsAtTheRight`，读界面代码：一个 `ui.Row(c)` 里第一个画出来的是按钮（`a.pal.Primary`、`a.pal.Secondary`、`a.textLink`），这一行就要写 `Justify(ui.End)`；按钮不能在 `ui.Spacer(c)` 的左边，只有单独一个 `a.textLink`（「稍后再说」）可以；`primary` 后面不能再有 `secondary`、`textLink`。
 - 这次改过来的：
   - 备份浮层：出错时是「今日不再提醒」「更换位置」「重试」，平时是「备份设置…」「立即备份」，都靠右（原型 `backupPop`，代码 `desk/backup.go`）。
   - 提示条里能点的几个靠右，最要紧的那个（「重试」「取消」）在最右，「复制详情」在它左边（原型 `toasts`，代码 `toastActions`）。
   - 设置里「打开配置文件」「重新加载配置」靠右。
   - 设置里一个服务的表单：原来「获取可用模型」「清除已保存 key」在左、「保存提供商」在右，现在三个都靠右，依次是「清除已保存 key」「获取可用模型」「保存提供商」。
   - 没有章节的空页：「新建文件夹」「新建第一章」，主按钮换到右边。
-- 2026-10-13 文字按钮统一以后（见[能点的看得出能点](2026-10-13-clickable-looks-clickable.md)），两边认的名字跟着改：原型的 `.solid`、`.ghost` 删了，按钮只有 `.btn`，文字按钮是 `.link`；代码的 `a.textLink` 并进 `a.pal.ghost`，检查认它，也认 `a.pal.danger`。
+- 2026-10-13 文字按钮统一以后（见[能点的看得出能点](2026-10-13-clickable-looks-clickable.md)），两边认的名字跟着改：原型的 `.solid`、`.ghost` 删了，按钮只有 `.btn`，文字按钮是 `.link`；代码的 `a.textLink` 并进 `a.pal.Ghost`，检查认它，也认 `a.pal.Danger`。
 
 ## Alternatives considered
 
@@ -42,7 +42,7 @@ Status: implemented
   - 试过：把提示条那一行改回靠左，走查报出「toast-acts is not at the right: 复制详情」；把 `desk/backup.go`、`desk/write.go` 换回改之前的，`TestButtonsAtTheRight` 报出备份浮层两行和空页那一行；服务表单那一行是收紧检查以后两边各自报出来的。
 - **代价与已知上限**：
   - 代码的检查读的是写法，不是画出来的样子：
-    - 不用 `a.pal.primary`、`a.pal.secondary`、`a.pal.danger`、`a.pal.ghost` 画的按钮它看不见：提示条里的是 `ui.ButtonBase`。
+    - 不用 `a.pal.Primary`、`a.pal.Secondary`、`a.pal.Danger`、`a.pal.Ghost` 画的按钮它看不见：提示条里的是 `ui.ButtonBase`。
     - 一行里先画了一句话、按钮跟在后面，它不管；这一行如果没有写 `FillWidth` 之类把按钮推到右边，它发现不了。
     - 空页那两行写了 `Justify(ui.End)` 只是为了过检查：那一行和按钮一样宽，靠哪边看不出来。
   - 原型的检查只看走查走到的地方；没有走到的浮层不查。

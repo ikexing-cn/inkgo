@@ -20,7 +20,7 @@
 // foreshadow.go: live-mark wiring, foreshadowing column, popovers, actions, and reminders.
 // ideas.go: setting ideas, questions, and changes awaiting the author.
 // keys.go: keyboard-shortcut help.
-// markdown.go: Markdown styles, code blocks, and setting links.
+// markdown.go: Markdown views, setting links, and digest text.
 // menu.go: command-table rows for the menus.
 // names.go: setting-name completion, rename notices, and whole-book replacement.
 // navigation.go: shared tab entries, availability, counts, and fallback choices.
@@ -43,7 +43,7 @@
 // tabs.go: chapter tabs, editor parking, closing, and save confirmation.
 // take.go: taking a prose selection into the 设定.
 // titlebar.go: title bar, menu commands, and keyboard focus.
-// toast.go: errors, progress, notices, and their actions.
+// toast.go: toast selection, errors, progress, notices, and their actions.
 // toolbar.go: appearance switching and prose-selection tools.
 // trash.go: chapter trash, restoration, and permanent deletion.
 // welcome.go: 书架, work creation, opening, renaming, and relocation.
