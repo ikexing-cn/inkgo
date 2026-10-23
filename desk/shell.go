@@ -30,6 +30,44 @@ const (
 	pageCategories
 )
 
+// turnPage does what a change of page does: the page left lets go of
+// what it held, and the page come to reads what it shows. View runs it
+// before anything is built, and pageTurn again as the page is, for a page
+// chosen in the title bar or the sidebar during the frame: either way it
+// is done once, before the page is built.
+func (a *App) turnPage() {
+	if a.shown == a.page {
+		return
+	}
+	if a.Store != nil {
+		if a.shown == pageWrite {
+			a.flush()
+			a.leaveCheck()
+		}
+		if a.shown == pagePlan {
+			a.finishPlanOutline()
+			a.finishPlanLine()
+		}
+		switch a.page {
+		case pageWrite:
+			a.enterWriting()
+		case pagePlan:
+			a.plan.loaded = false
+		case pageCheck:
+			a.loadChecks() // as of the disk, without what was put right meanwhile
+			a.pruneStoredChecks()
+			a.ck.proseOf = ""
+		}
+		// After the entry, so the chapter it opened and the counts it read
+		// are what is kept.
+		if a.page == pageTalk || a.page == pageWrite {
+			a.leftWriting = a.page == pageWrite
+			a.savePrefs() // the work reopens on the page it was left on
+		}
+	}
+	a.shown = a.page
+}
+
 func (a *App) View(c *ui.Context) {
 	a.poll()
 	if !a.menu.seen {
@@ -55,30 +93,7 @@ func (a *App) View(c *ui.Context) {
 		a.pollChecks(c)
 		a.backupDue(c)
 	}
-	if a.Store != nil && a.shown == pageWrite && a.page != pageWrite {
-		a.flush()
-		a.leaveCheck()
-		a.write.entered = false
-	}
-	if a.Store != nil && a.shown != a.page {
-		if a.shown == pagePlan {
-			a.finishPlanOutline()
-			a.finishPlanLine()
-		}
-		if a.page == pagePlan {
-			a.plan.loaded = false
-		}
-	}
-	if a.Store != nil && a.page == pageCheck && a.shown != pageCheck {
-		a.loadChecks() // as of the disk, without what was put right meanwhile
-		a.pruneStoredChecks()
-		a.ck.proseOf = ""
-	}
-	if a.Store != nil && a.shown != a.page && (a.page == pageTalk || a.page == pageWrite) {
-		a.leftWriting = a.page == pageWrite
-		a.savePrefs() // the work reopens on the page it was left on
-	}
-	a.shown = a.page
+	a.turnPage()
 	a.barAct(c)
 	ui.Column(c).Fill().Background(a.pal.canvas).Children(func() {
 		if !a.focused() {

@@ -329,12 +329,8 @@ func (a *App) pruneProps() {
 // showProp shows the chapter of p on the writing page, with p in view.
 func (a *App) showProp(p *prop) {
 	w := &a.write
-	if !w.entered {
-		w.entered = true
-		a.enterWriting()
-	}
 	a.page = pageWrite
-	if w.node != p.Chapter {
+	if w.ed == nil || w.node != p.Chapter {
 		a.openNode(p.Chapter)
 	}
 	p.shown = false

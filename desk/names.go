@@ -170,12 +170,17 @@ func (a *App) renameNotice(c *ui.Context) {
 // replaceName opens the find bar on the writing page, finding old in the
 // whole book with new to replace it.
 func (a *App) replaceName(old, new string) {
-	if !a.write.entered {
-		a.write.entered = true
-		a.enterWriting()
-	}
 	a.page = pageWrite
 	w := &a.write
+	if w.ed == nil {
+		id := w.node
+		if _, ok := a.book.Tree().Node(id); !ok {
+			id = a.firstChapter()
+		}
+		if id != "" {
+			a.openNode(id)
+		}
+	}
 	if w.ed == nil {
 		return // no chapter to find in
 	}

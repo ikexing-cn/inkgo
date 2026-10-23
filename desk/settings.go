@@ -92,9 +92,8 @@ func (a *App) openPrefs(tab string) {
 }
 
 // showPref shows a part of the settings. The reminders count the book's
-// foreshadowings from the tree and the marks the writing page reads as it
-// is entered: shown from another page, they are read here. The AI's part
-// reads the AI record, and shows what it adds up to.
+// foreshadowings from the tree and the marks Book read, from any page. The
+// AI's part reads the AI record, and shows what it adds up to.
 func (a *App) showPref(tab string) {
 	a.bk.tab, a.bk.log = tab, false
 	if tab == "AI" && a.Store != nil {
@@ -102,10 +101,6 @@ func (a *App) showPref(tab string) {
 		a.warn(err)
 		a.bk.records = records
 		a.bk.logRows = nil // the record is new: its lines are found again
-	}
-	if tab == "提醒与检查" && a.Store != nil && !a.write.entered {
-		a.warn(a.loadTree())
-		a.scanMarks()
 	}
 }
 

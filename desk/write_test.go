@@ -422,7 +422,8 @@ func TestLeavingAChangedChapterAsksNothing(t *testing.T) {
 }
 
 // The settings' reminders count the foreshadowings though the writing page
-// was never shown: they read the tree and the marks themselves.
+// was never shown: Book read them when the work opened, and again here for
+// the scene made through the store.
 func TestRemindersBeforeTheWritingPage(t *testing.T) {
 	a, tt, _ := fixture(t)
 	var first string
@@ -439,9 +440,10 @@ func TestRemindersBeforeTheWritingPage(t *testing.T) {
 	if _, err := a.Store.WriteChapter(first, "钥匙在井里。", marks); err != nil {
 		t.Fatal(err)
 	}
-	if treeRead(a) {
+	if shownEditor(a) != nil {
 		t.Fatal("the writing page was shown")
 	}
+	rereadBook(a)
 	a.write.lateAfter = lateMin
 	a.openPrefs("提醒与检查")
 	tt.Frame()

@@ -220,7 +220,7 @@ type doubtKey struct {
 // liveChapter says the open chapter is the one shown on the writing page.
 func (a *App) liveChapter() bool {
 	w := &a.write
-	return w.ed != nil && w.node != "" && w.entered
+	return w.ed != nil && w.node != "" && a.page == pageWrite
 }
 
 // liveText is the open chapter's text as it is being written.
@@ -932,7 +932,7 @@ func (a *App) takeFound(it checkItem) {
 		Sources: []workspace.Source{{Chapter: it.node, Quote: it.f.Quote}},
 	}}})
 	if err == nil {
-		err = a.refresh()
+		err = a.refreshFromSetting()
 	}
 	if err != nil {
 		a.warn(err)

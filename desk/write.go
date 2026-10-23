@@ -13,9 +13,8 @@ import (
 )
 
 type writeView struct {
-	entered bool            // the page read the tree as it showed
-	folded  map[string]bool // folders folded, by ID
-	node    string          // the node shown
+	folded map[string]bool // folders folded, by ID
+	node   string          // the node shown
 	// back and forward are the nodes shown before and after it, for the
 	// toolbar's arrows; stepping is set while they open one.
 	back, forward []string
@@ -155,10 +154,6 @@ func (a *App) warn(err error) {
 // the tree as the page shows, the editor, the counts and the names, and
 // saving as the author pauses.
 func (a *App) writingTurn(c *ui.Context) {
-	if !a.write.entered {
-		a.write.entered = true
-		a.enterWriting()
-	}
 	a.keepPen()
 	a.pruneProps()
 	a.countAsTyped()

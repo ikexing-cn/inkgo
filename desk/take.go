@@ -63,7 +63,7 @@ func (a *App) takeIn() {
 		Sources: []workspace.Source{{Chapter: w.node, Quote: w.takeQuote}},
 	}}})
 	if err == nil {
-		err = a.refresh()
+		err = a.refreshFromSetting()
 	}
 	if err != nil {
 		a.warn(err)

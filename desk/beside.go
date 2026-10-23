@@ -272,16 +272,12 @@ func (a *App) quoteBlock(c *ui.Context, q workspace.Quote, key string, remove fu
 // findInChapter opens the chapter on the writing page and selects text in
 // it, if the text is still there.
 func (a *App) findInChapter(chapter, text string) {
-	if !a.write.entered {
-		a.write.entered = true
-		a.enterWriting()
-	}
 	if _, ok := a.book.Tree().Node(chapter); !ok {
 		a.SetError(errors.New("该章已不存在"))
 		return
 	}
 	a.page = pageWrite
-	if a.write.node != chapter {
+	if a.write.ed == nil || a.write.node != chapter {
 		a.openNode(chapter)
 	}
 	ed := a.write.ed

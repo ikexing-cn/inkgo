@@ -420,6 +420,7 @@ func (a *App) commandKeys(c *ui.Context) {
 // pageTurn does the page's work before its build, and then dispatches the
 // keys of the page shown.
 func (a *App) pageTurn(c *ui.Context) {
+	a.turnPage()
 	if a.page == pageWrite {
 		a.writingTurn(c)
 	}

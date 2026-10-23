@@ -139,7 +139,7 @@ func (a *App) dropCategory(name string) {
 	err := a.book.RemoveCategory(name)
 	if err == nil {
 		a.status.did("已删除分类“" + name + "”")
-		err = a.refresh()
+		err = a.refreshFromSetting()
 	}
 	a.removeCategory = ""
 	a.SetError(err)

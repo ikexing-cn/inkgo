@@ -10,6 +10,26 @@ func cacheBuilds(a *App) int {
 		a.doc.ideas.builds
 }
 
+func TestLiveTextFollowsTheWritingPage(t *testing.T) {
+	a, _, id := writingFixture(t, "正文。")
+	if _, ok := a.liveText(); !ok {
+		t.Fatal("the writing page has no live text")
+	}
+	showTab(a, paneTalk) // beside a talk on the writing page
+	if _, ok := a.liveText(); !ok {
+		t.Fatal("the talk beside the prose has no live text")
+	}
+	showPage(a, pageCheck) // after leaving the writing page
+	if _, ok := a.liveText(); ok {
+		t.Fatal("the check page has live text")
+	}
+	showPage(a, pageTalk)
+	a.findInChapter(id, "正文") // a jump to the writing page
+	if _, ok := a.liveText(); !ok {
+		t.Fatal("a jump has no live text")
+	}
+}
+
 // Ten frames with nothing changing build no derived value again. The
 // writing page is entered by writingFixture, whose quick clock puts the
 // 2-second look an hour away.

@@ -38,6 +38,17 @@ func editorMarks(ms []workspace.ChapterMark) []editor.Mark {
 	return out
 }
 
+// firstChapter is the first document in the tree, "" when there is none.
+func (a *App) firstChapter() string {
+	first := ""
+	a.book.Tree().Walk(func(n *workspace.Node, _ int) {
+		if first == "" && !n.Folder {
+			first = n.ID
+		}
+	})
+	return first
+}
+
 // enterWriting reads the tree as the page shows, and opens the node last
 // open, or the first document.
 func (a *App) enterWriting() {
@@ -61,12 +72,7 @@ func (a *App) enterWriting() {
 	if w.blank && w.node == "" {
 		return // every tab was closed: none opens by itself
 	}
-	w.node = ""
-	a.book.Tree().Walk(func(n *workspace.Node, _ int) {
-		if w.node == "" && !n.Folder {
-			w.node = n.ID
-		}
-	})
+	w.node = a.firstChapter()
 	if w.node != "" {
 		a.openNode(w.node)
 	}

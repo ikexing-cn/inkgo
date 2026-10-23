@@ -294,11 +294,20 @@ func (a *App) refresh() error {
 	if a.Store == nil {
 		return nil
 	}
-	defer a.replanExport()
-	var err error
-	if err = a.book.ReloadSetting(); err != nil {
+	if err := a.book.ReloadSetting(); err != nil {
 		return err
 	}
+	return a.refreshFromSetting()
+}
+
+// refreshFromSetting does what refresh does after the setting has been
+// read: the flash of a talk's change, and the talks' titles.
+func (a *App) refreshFromSetting() error {
+	if a.Store == nil {
+		return nil
+	}
+	defer a.replanExport()
+	var err error
 	a.flashNew()
 	if a.events, err = a.Store.Events(a.session); err != nil {
 		return err

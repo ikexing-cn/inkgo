@@ -212,7 +212,7 @@ var placeNames = map[string]string{workspace.PlaceBody: "正文", workspace.Plac
 func (a *App) revise(ops ...workspace.Op) {
 	_, err := a.book.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: ops})
 	if err == nil {
-		err = a.refresh()
+		err = a.refreshFromSetting()
 	}
 	a.SetError(err)
 }

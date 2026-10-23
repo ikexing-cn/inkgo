@@ -79,6 +79,7 @@ Status: proposed
   看盘的频率和做法这次不动（[少看几次磁盘](2026-10-13-fewer-looks-at-the-disk.md)）。
   - `nodeTitle` 不再读盘，用这一份树。
   - 打开时不挡坏的 outline：`PlanErr` 留着，大纲页照现在的样子说读不出来，别的页照常开。
+  - 写作页进入时读树和字数（`enterWriting`，见下面「`write.entered` 去掉」）。`showPref` 不再为「提醒与检查」读树和标记。
 - **写**：`desk` 改书的内容都经过 `Book`。它写 `Store`，再更新自己那份：
   - 正文保存（伏笔的改动也走这里）写完后改这一章的字数，并重读这一章的标记：`Store` 会把标记的位置夹到正文里、按正文重写 `quote`，照传进去的抄会和重读不一样；
   - 一章检查写完只改这一章的结果；
@@ -94,7 +95,7 @@ Status: proposed
   - 缓存的有：伏笔、检查项、列出来的检查、灵感、待办分组、人名链接、侧栏文件夹字数、检查标注、分类计数、全书字数、右栏标签的角标。
   - 缓存放在用它的功能旁边：待办分组带颜色，人名链接是 `editor` 的类型，`Book` 不引用它们。
   - build 返回的东西调用方不改；要排序、过滤或 append 的地方先 `slices.Clone`（`checkDetail` 的 `also`、`markDoubts` 的 `items`；待处理列表本来就这么做）。
-- **`write.entered` 去掉**：书在作品打开时就读了，哪个页面都不用先进写作页。
+- **`write.entered` 去掉**：换页要做的事收进 `turnPage`：离开的页面放下手里的（存盘、离开检查、收大纲页的编辑），进入的页面读它要显示的（写作页 `enterWriting` 读树和字数，大纲页重读，检查页 `loadChecks`），再存偏好。`View` 在建任何东西以前调一次，`pageTurn` 在建页面时再调一次，接住同一帧里标题栏或侧栏换的页；两处都只在 `a.shown != a.page` 时做事，做完把 `shown` 设成这一页，所以一次换页只做一次，第一帧仍在编辑器建出来以前。作品打开在写作页也走这里。存偏好放在进入之后，记下的是进入时打开的章和读到的字数。`findInChapter`、`replaceName`、`showProp` 自己打开要跳的章，不再调 `enterWriting`；`liveText` 看打开的章是不是在写作页上（`liveChapter`）。
 - `App.Store` 留给不是书的内容的那些读写：
   - 讨论（会话、事件、追加）；
   - AI 记录、快照、回收站列表；
