@@ -95,6 +95,52 @@ func TestPendingForeshadowing(t *testing.T) {
 	}
 }
 
+func TestPendingForeshadowingOpensPane(t *testing.T) {
+	for _, hidden := range []bool{false, true} {
+		t.Run(fmt.Sprintf("pane hidden %v", hidden), func(t *testing.T) {
+			a, tt, one := writingFixture(t, "井边有一把钥匙。")
+			if _, err := a.Store.WriteChapter(one, "井边有一把钥匙。", []workspace.ChapterMark{
+				{Kind: workspace.MarkForeshadow, Start: 5, End: 7},
+			}); err != nil {
+				t.Fatal(err)
+			}
+			two, err := a.Store.NewChapter("", "第二章", false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			a.warn(a.loadTree())
+			a.openNode(two)
+			a.write.lateAfter = 1
+			a.doc.hidden = hidden
+			showTab(a, paneSetting)
+			tt.Frame()
+			groups := a.pendingGroups()
+			if len(groups) != 1 || len(groups[0].items) != 1 {
+				t.Fatalf("pending groups = %+v", groups)
+			}
+			id := a.foreshadows()[0].ID
+			if err := tt.Click("待处理"); err != nil {
+				t.Fatal(err)
+			}
+			tt.Frame()
+			if err := tt.Click(groups[0].items[0].text); err != nil {
+				t.Fatal(err)
+			}
+			tt.Frame()
+			if a.write.pendOpen || shownChapter(a) != one || shownEditor(a).SelectedText() != "钥匙" {
+				t.Fatalf("pending foreshadowing: chapter %s, selected %q, list open %v", shownChapter(a), shownEditor(a).SelectedText(), a.write.pendOpen)
+			}
+			if hidden {
+				if !a.doc.hidden || shownTab(a) != paneSetting {
+					t.Fatal("the hidden pane changed")
+				}
+			} else if shownTab(a) != paneFore || a.write.fore.shown != id {
+				t.Fatalf("pane shows %s, foreshadowing %s, want %s", shownTab(a), a.write.fore.shown, id)
+			}
+		})
+	}
+}
+
 // TestShotPending writes screenshots of the pending list when SHOT is a
 // directory: SHOT=dir go test ./desk -run ShotPending
 func TestShotPending(t *testing.T) {

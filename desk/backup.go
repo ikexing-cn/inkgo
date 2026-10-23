@@ -228,7 +228,7 @@ func (a *App) backupPending() (pendGroup, bool) {
 	if !s.Last.IsZero() {
 		sub += " · 上次备份 " + when(s.Last, time.Now())
 	}
-	it := pendItem{key: pendBackup, text: "备份失败，" + short, sub: sub, retry: true}
+	it := pendItem{key: pendBackup, text: "备份失败，" + short, sub: sub, open: a.runBackup}
 	return pendGroup{name: "备份", color: a.pal.amber, items: []pendItem{it}}, true
 }
 

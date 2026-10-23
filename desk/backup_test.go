@@ -235,6 +235,37 @@ func TestBackupFails(t *testing.T) {
 	}
 }
 
+func TestPendingBackupRetries(t *testing.T) {
+	a, tt, _ := writingFixture(t, "雨停了。")
+	dir := filepath.Join(t.TempDir(), "备份")
+	s := backup.Settings{Dir: dir}
+	a.setBackup(s)
+	a.backupDone(s, os.ErrNotExist)
+	tt.Frame()
+	groups := a.pendingGroups()
+	if len(groups) != 1 || groups[0].name != "备份" || len(groups[0].items) != 1 {
+		t.Fatalf("pending groups = %+v", groups)
+	}
+	if err := os.Mkdir(dir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.Click("待处理"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err := tt.Click(groups[0].items[0].text); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.write.pendOpen {
+		t.Fatal("retry left the pending list open")
+	}
+	waitBackup(t, a, tt)
+	if a.bk.policy.Failed() || zips(t, dir) != 1 {
+		t.Fatal("the pending backup did not retry")
+	}
+}
+
 // TestShotBackup writes screenshots of the backups when SHOT is a
 // directory: SHOT=dir go test ./desk -run ShotBackup
 func TestShotBackup(t *testing.T) {

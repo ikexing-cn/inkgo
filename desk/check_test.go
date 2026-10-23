@@ -174,6 +174,51 @@ func TestANewNameIsListedOnce(t *testing.T) {
 	}
 }
 
+func TestPendingNameOpensCurrentFinding(t *testing.T) {
+	a, tt, _, _ := checkFixture(t)
+	if err := tt.Click("立即检查"); err != nil {
+		t.Fatal(err)
+	}
+	until(t, tt, "the check", func() bool { return tt.HasText("本章检查完成，有 3 处待处理") })
+	text := "老周把旧灯泡放在窗台上。" + strings.Repeat("雨一直下。", 40)
+	second, err := a.Store.NewChapter("", "第二章", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.Store.WriteChapter(second, text, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Store.WriteCheck(second, workspace.Check{Of: workspace.ProseHash(text), Words: workspace.Count(text), By: "test", At: time.Now(),
+		Findings: []workspace.Finding{{ID: "n2", Kind: workspace.FindNew, Title: "老周", Quote: "老周把旧灯泡放在窗台上", Name: "老周", Category: "人物"}}}); err != nil {
+		t.Fatal(err)
+	}
+	a.warn(a.loadTree())
+	a.loadChecks()
+	a.openNode(second)
+	tt.Frame()
+	group, ok := a.checkPending()
+	if !ok {
+		t.Fatal("no pending findings")
+	}
+	opened := false
+	for _, item := range group.items {
+		if item.text == "「老周」尚未加入设定" {
+			item.open(ui.Services{})
+			opened = true
+		}
+	}
+	if !opened {
+		t.Fatal("no pending 老周")
+	}
+	if shownPage(a) != pageCheck || a.ck.shown != "n2" {
+		t.Fatalf("pending name: page %s, finding %s", a.pages[shownPage(a)].name, a.ck.shown)
+	}
+	tt.Frame()
+	if !tt.HasText("其他章节中也出现") || !tt.HasText("老周把旧灯泡放在窗台上") {
+		t.Fatal("the grouped finding did not open", tt.Texts())
+	}
+}
+
 // Findings on one entry are alike where they hold to one sentence of it.
 func TestAlikeHoldToOneSentence(t *testing.T) {
 	const text = "主角，二十六岁，旧城电力局的路灯维修工。怕黑，天黑以后不进没有灯的巷子。左撇子。"

@@ -20,12 +20,8 @@ const pendShown = 3
 // ignoring it records.
 type pendItem struct {
 	key, text, sub string
-	node           string
-	start, end     int
-	here           bool   // in the chapter open
-	retry          bool   // a backup failed: choosing it backs up again
-	fore           string // the foreshadowing it is about
-	check          string // the finding of a check it is
+	here           bool // in the chapter open
+	open           func(ui.Services)
 }
 
 // pendGroup is the items of one kind.
@@ -97,7 +93,7 @@ func (a *App) buildPendingGroups() []pendGroup {
 	w := &a.write
 	var items []pendItem
 	for _, f := range a.foreshadows() {
-		it := pendItem{node: f.Node, start: f.Start, end: f.End, here: f.Here, sub: f.Title, fore: f.ID}
+		it := pendItem{here: f.Here, sub: f.Title}
 		switch st := f.Status(); {
 		case st == workspace.ForeLost:
 			it.key = "伏笔/失去锚点/" + f.Node + "/" + f.Quote
@@ -111,6 +107,18 @@ func (a *App) buildPendingGroups() []pendGroup {
 		}
 		if f.Here {
 			it.sub += " · 本章"
+		}
+		it.open = func(_ ui.Services) {
+			if w.node != f.Node {
+				a.openNode(f.Node)
+			}
+			if w.node == f.Node && w.cur().ed != nil {
+				w.cur().ed.Select(f.Start, f.End)
+				w.cur().ed.Focus()
+			}
+			if f.ID != "" && !a.doc.hidden {
+				a.showFore(f.ID)
+			}
 		}
 		if !w.ignored[it.key] {
 			items = append(items, it)
@@ -275,31 +283,9 @@ func (a *App) pendingRow(c *ui.Context, it pendItem) {
 		})
 		glyph(c, icChevron, iconSm, a.pal.faint)
 	})
-	if r.Clicked() && it.retry {
+	if r.Clicked() {
 		a.write.pendOpen = false
-		a.runBackup(c.Services())
-	} else if r.Clicked() {
-		a.goTo(it)
-	}
-}
-
-// goTo shows where a pending thing is: the text a mark covers, selected.
-func (a *App) goTo(it pendItem) {
-	w := &a.write
-	w.pendOpen = false
-	if it.check != "" {
-		a.openCheck(it.check)
-		return
-	}
-	if w.node != it.node {
-		a.openNode(it.node)
-	}
-	if w.node == it.node && w.cur().ed != nil {
-		w.cur().ed.Select(it.start, it.end)
-		w.cur().ed.Focus()
-	}
-	if it.fore != "" && !a.doc.hidden {
-		a.showFore(it.fore)
+		it.open(c.Services())
 	}
 }
 

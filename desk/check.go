@@ -362,12 +362,14 @@ func (a *App) checkPending() (pendGroup, bool) {
 		return g, false
 	}
 	for _, it := range a.listedChecks() {
-		p := pendItem{key: "检查/" + it.node + "/" + it.f.Kind + "/" + it.f.Quote, text: it.f.Title, sub: it.title, node: it.node, here: it.here, check: it.f.ID}
+		finding := it.f.ID
+		p := pendItem{key: "检查/" + it.node + "/" + it.f.Kind + "/" + it.f.Quote, text: it.f.Title, sub: it.title, here: it.here}
 		for _, o := range it.also {
 			if o.here && !p.here { // a name found here too is of this chapter
-				p.sub, p.node, p.here, p.check = o.title, o.node, true, o.f.ID
+				p.sub, p.here, finding = o.title, true, o.f.ID
 			}
 		}
+		p.open = func(_ ui.Services) { a.openCheck(finding) }
 		if it.f.Kind == workspace.FindNew {
 			p.text = fmt.Sprintf("「%s」尚未加入设定", it.f.Name)
 		}
