@@ -169,6 +169,9 @@ func singleParagraphs(s string) string {
 // typing pauses.
 func (e *Editor) SetPredictOnDemand(on bool) { e.opts.PredictOnDemand = on }
 
+// PredictOnDemand says whether predictions come only when asked.
+func (e *Editor) PredictOnDemand() bool { return e.opts.PredictOnDemand }
+
 // SetNoAI turns the AI off in the editor, dropping the prediction shown
 // or asked for, or back on.
 func (e *Editor) SetNoAI(on bool) {
@@ -178,6 +181,9 @@ func (e *Editor) SetNoAI(on bool) {
 		e.predict.asked = false
 	}
 }
+
+// NoAI says whether the AI is off in the editor.
+func (e *Editor) NoAI() bool { return e.opts.NoAI }
 
 // hidden tells whether m is not shown: what an AI wrote, while it is off.
 func (e *Editor) hidden(m Mark) bool {

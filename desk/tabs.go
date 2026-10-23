@@ -17,29 +17,6 @@ import (
 // sheetMax is the most a tab is wide: a longer name is cut.
 const sheetMax = 200
 
-// park keeps the chapter shown for its tab, as another is shown.
-func (a *App) park() {
-	w := &a.write
-	if w.cur().ed == nil || !slices.Contains(w.tabs, w.node) {
-		return
-	}
-	if w.parked == nil {
-		w.parked = map[string]*openChapter{}
-	}
-	w.cur().ed.SetFound(nil, 0)
-	w.parked[w.node] = w.cur()
-}
-
-// unpark shows a tab's chapter with the editor it kept.
-func (a *App) unpark(s *openChapter) {
-	w := &a.write
-	w.shown = s
-	s.ed.SetFontSize(float32(w.textSize()))
-	s.ed.SetPredictOnDemand(!w.autoPredict)
-	s.ed.SetNoAI(!a.aiOn())
-	w.blank = false
-}
-
 // keepTabs drops the tabs of what is no longer in the tree. The one shown
 // stays while its words are still here, gone from the disk; so does one
 // left that way.
@@ -49,13 +26,10 @@ func (a *App) keepTabs() {
 		if _, ok := a.book.Tree().Node(id); ok {
 			return false
 		}
-		if id == w.node && w.cur().lost {
+		if s := w.open[id]; s != nil && s.lost {
 			return false
 		}
-		if s := w.parked[id]; s != nil && s.lost {
-			return false
-		}
-		delete(w.parked, id)
+		delete(w.open, id)
 		return true
 	})
 }
@@ -75,8 +49,7 @@ func (a *App) keepUnsettled() {
 		_, err := a.Store.TakeSnapshot(id, workspace.SnapExternal, ed.Doc.String(), storedMarks(ed.Doc.Marks()))
 		a.warn(err)
 	}
-	keep(w.node, w.cur().ed, w.cur().external)
-	for id, s := range w.parked {
+	for id, s := range w.open {
 		keep(id, s.ed, s.external)
 	}
 }
@@ -99,10 +72,10 @@ func (a *App) tabTitle(id string) (title, path string, folder bool) {
 	w := &a.write
 	n, ok := a.book.Tree().Node(id)
 	if !ok {
-		if s := w.parked[id]; s != nil {
+		if s := w.open[id]; s != nil {
 			return s.lostTitle, "", false
 		}
-		return w.cur().lostTitle, "", false
+		return "", "", false
 	}
 	for p := n.Parent; p != nil && p.Parent != nil; p = p.Parent {
 		path = p.Title + " › " + path
@@ -222,7 +195,7 @@ func (a *App) tabMenu(m *menu, id string, shut *[]string) {
 func (a *App) shutTabs(gone []string) {
 	w := &a.write
 	for _, id := range gone {
-		s := w.parked[id]
+		s := w.open[id]
 		if id == w.node && a.unsaved() || s != nil && s.unsettled() {
 			if id != w.node {
 				a.openNode(id)
@@ -234,7 +207,7 @@ func (a *App) shutTabs(gone []string) {
 	at := slices.Index(w.tabs, w.node)
 	left := slices.DeleteFunc(slices.Clone(w.tabs), func(id string) bool { return slices.Contains(gone, id) })
 	for _, id := range gone {
-		delete(w.parked, id)
+		delete(w.open, id)
 	}
 	if at < 0 || !slices.Contains(gone, w.node) {
 		w.tabs = left

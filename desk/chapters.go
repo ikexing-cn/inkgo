@@ -136,7 +136,9 @@ func (a *App) openNode(id string) {
 	w.closing = nil // the question about saving was about the node shown
 	from := w.node
 	if id != from {
-		a.park()
+		if old := w.open[from]; old != nil && old.ed != nil {
+			old.ed.SetFound(nil, 0)
+		}
 	}
 	if !w.stepping && from != "" && from != id {
 		w.back = append(w.back, from)
@@ -145,19 +147,20 @@ func (a *App) openNode(id string) {
 		}
 		w.forward = nil
 	}
-	kept := w.parked[id]
-	delete(w.parked, id)
-	c := kept
+	c := w.open[id]
 	if c == nil {
 		c = &openChapter{id: id}
+		if w.open == nil {
+			w.open = map[string]*openChapter{}
+		}
+		w.open[id] = c
 	}
-	w.shown = c
 	w.node = id
 	w.current = 0
 	c.changed = false
-	if kept != nil && kept.lost {
+	if c.lost {
 		// Gone from the disk, its words are only here.
-		a.unpark(kept)
+		w.blank = false
 		a.savePrefs()
 		return
 	}
@@ -176,9 +179,8 @@ func (a *App) openNode(id string) {
 	switch {
 	case n.Folder:
 		w.gists = a.gistsIn(n)
-	case kept != nil && (kept.unsettled() || kept.same(ch)):
-		a.unpark(kept)
-		if !kept.unsettled() {
+	case c.ed != nil && (c.unsettled() || c.same(ch)):
+		if !c.unsettled() {
 			c.stamp = ch.Stamp
 		}
 	default:
@@ -285,8 +287,8 @@ func (a *App) sizeText(d int) {
 	if size == textSizeDefault {
 		w.size = 0
 	}
-	if w.cur().ed != nil {
-		w.cur().ed.SetFontSize(float32(size))
+	for _, ed := range w.editors() {
+		ed.SetFontSize(float32(size))
 	}
 	a.savePrefs()
 }

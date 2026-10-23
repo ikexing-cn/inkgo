@@ -12,12 +12,23 @@ import (
 	"writer/workspace"
 )
 
-// cur is the chapter shown: an empty one while no node is open.
+// cur is the chapter shown, or an empty one while none is open.
 func (w *writeView) cur() *openChapter {
-	if w.shown == nil {
-		w.shown = &openChapter{}
+	if c := w.open[w.node]; c != nil {
+		return c
 	}
-	return w.shown
+	return &openChapter{}
+}
+
+// editors are the editors of every chapter open, shown or not.
+func (w *writeView) editors() []*editor.Editor {
+	var out []*editor.Editor
+	for _, c := range w.open {
+		if c.ed != nil {
+			out = append(out, c.ed)
+		}
+	}
+	return out
 }
 
 type writeView struct {
@@ -28,13 +39,12 @@ type writeView struct {
 	back, forward []string
 	stepping      bool
 	// tabs are the nodes open, left to right, node the one of them shown;
-	// parked is what the others keep while they are not; closing, the tabs
-	// whose closing waits for an answer about the words not saved; blank,
-	// that the author closed them all; tabSeen, the tab the row last
-	// showed as the one open, which it scrolled to.
+	// open is the one openChapter each has; closing, the tabs whose closing
+	// waits for an answer about the words not saved; blank, that the author
+	// closed them all; tabSeen, the tab the row last showed as the one open,
+	// which it scrolled to.
 	tabs    []string
-	parked  map[string]*openChapter
-	shown   *openChapter
+	open    map[string]*openChapter
 	closing []string
 	blank   bool
 	tabSeen string

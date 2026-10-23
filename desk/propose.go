@@ -241,15 +241,11 @@ func (a *App) takeProps(ps []*prop) {
 	w.cur().ed.Focus()
 }
 
-// chapterText is the text of the chapter of id as the page has it: in the
-// editor shown or kept for its tab, or else on the disk.
+// chapterText is the text of the chapter of id as the page has it: in
+// its tab's editor, or else on the disk.
 func (a *App) chapterText(id string) string {
-	w := &a.write
-	if id == w.node && w.cur().ed != nil {
-		return w.cur().ed.Doc.String()
-	}
-	if s := w.parked[id]; s != nil {
-		return s.ed.Doc.String()
+	if c := a.write.open[id]; c != nil && c.ed != nil {
+		return c.ed.Doc.String()
 	}
 	ch, err := a.Store.ReadChapter(id)
 	if err != nil {

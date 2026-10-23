@@ -166,6 +166,9 @@ func (a *App) writingSwitches(c *ui.Context) {
 	a.subhead(c, "写作时", "")
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
 		if ui.Checkbox(c, &a.write.autoPredict, "停笔后自动续写").Disabled(busy).Changed() {
+			for _, ed := range a.write.editors() {
+				ed.SetPredictOnDemand(!a.write.autoPredict)
+			}
 			a.savePrefs() // kept as ticked, not with the models above
 		}
 		a.tickNote(c, "开启后每次停笔都会调用一次 AI。")
