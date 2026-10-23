@@ -106,8 +106,8 @@ func (a *App) View(c *ui.Context) {
 		if a.write.trashOpen { // the trash is at the foot of every page
 			a.trashView(c)
 		}
-		if a.exporting.open { // the menu of files exports from every page
-			a.exporting.view(c)
+		if a.exporting.Open { // the menu of files exports from every page
+			a.exporting.View(c)
 		}
 	}
 	a.toasts(c) // over every dialog

@@ -16,7 +16,7 @@ Status: implemented
 
 - `Book` 持有 `*workspace.Store`、一棵章节树、字数、标记、设定、大纲、各章的纲和存着的检查结果。它不引用界面工具包、`editor` 或 `desk`。
 - 书内容的读写经过 `Book`。它写盘后更新自己的副本，`Version()` 随内容的读取和写入递增；重复读树没有变化、打字后字数没有变化时不增加。
-- 作品打开时读一次。写作页进入时读树和字数，每 `checkEvery` 看盘时读树；换章时读标记；检查页进入时读树和检查；讨论交回设定变化时重读设定。`nodeTitle` 只查内存中的树。看盘频率见[少看几次磁盘](../../proposed/architecture/2026-10-13-fewer-looks-at-the-disk.md)。
+- 作品打开时读一次。写作页进入时读树和字数，每 `book.CheckEvery` 看盘时读树；换章时读标记；检查页进入时读树和检查；讨论交回设定变化时重读设定。`nodeTitle` 只查内存中的树。看盘频率见[少看几次磁盘](../../proposed/architecture/2026-10-13-fewer-looks-at-the-disk.md)。
 - 坏的 `outline.json` 由 `PlanErr` 保留错误，不阻止打开作品；大纲页显示错误并按看盘间隔重读。
 - 正文保存后更新这一章的字数，并从盘上重读这一章的标记。存储层会夹取标记位置和重写引文，不能直接把传入值当成写入结果。检查和章纲写后只更新对应章节。
 - 新建、改名、移动、删除和恢复后重读树；删除到回收站和恢复还重读字数。卡片和情节线写后重读大纲，设定修订和删分类后重读设定。
@@ -33,10 +33,10 @@ Status: implemented
 
 ### 打开的章节和纲草稿
 
-- `openChapter` 持有编辑器、已保存版本、盘上时间戳、快照时间、外部变化、丢失状态和这一章的 `outlineDraft`。看盘、保存、冲突处理、存为新章和标记转换是它的方法。方法接收 Store、Book 和时间，不接收 App。
+- `openChapter` 持有编辑器、已保存版本、盘上时间戳、快照时间、外部变化、丢失状态和这一章的 `book.OutlineDraft`（`desk/book/outline_draft.go`）。看盘、保存、冲突处理、存为新章和标记转换是它的方法。方法接收 Store、Book 和时间，不接收 App。
 - `writeView.open` 按 ID 保存各标签的 `*openChapter`，`node` 指向当前标签。`cur()` 从映射取得当前章；没有打开的章节时给空值。偏好恢复的标签在第一次显示时创建编辑器。
 - 字号、续写方式和 AI 开关改变时设给每个已打开的编辑器。只检查当前章的磁盘状态，切回标签时也比较一次。`changed` 随章节走，文件夹摘要 `gists` 留在写作页。
-- 写作页当前章和大纲页编辑格各持有一个 `outlineDraft`。两者都在停顿 `saveAfter` 后存，换章、离开页面和关作品时立即存，写入经过 Book。
+- 写作页当前章和大纲页编辑格各持有一个 `book.OutlineDraft`。两者都在停顿 `book.SaveAfter` 后存，换章、离开页面和关作品时立即存，写入经过 Book。`book.SaveAfter` 和 `book.CheckEvery` 位于 `desk/book/timing.go`，均为可缩短的变量；`snapEvery` 位于 `desk/save.go`。
 
 ### 页面和导航
 
@@ -62,15 +62,17 @@ Status: implemented
 
 ### 各功能的结构体
 
-- `phonePanel`（`phone.go`）持有分页、排版偏好、正文缓存、阅读位置和命中几何。右栏顶行由 `settingColumn` 绘制，`commands.go` 的 `openPhone` 负责打开右栏和保存偏好。
-- `exportView`（`export.go`）持有打开时的正文快照、范围、笔名、缩进和导出计划，放在 `App.exporting`，作品重置时清空。
+- `phone.Panel`（`desk/phone/phone.go`）持有分页、排版偏好、正文缓存、阅读位置和命中几何。右栏顶行由 `settingColumn` 绘制，`commands.go` 的 `openPhone` 负责打开右栏和保存偏好。
+- `exportdialog.Dialog`（`desk/exportdialog/export.go`）持有打开时的正文快照、范围、笔名、缩进和导出计划，放在 `App.exporting`，作品重置时清空。
 - `outlinePage`（`plan.go`、`plan_layout.go`）持有索引、布局缓存、纲草稿、卡片和情节线编辑、搜索和滚动。页面表直接绑定 `enter`、`leave`、`view`，正文旁调用它的 `chapterStory`。
-- 三者各持有 `host`，在 `New` 绑定；大纲和导出重置时保留绑定。手机保留跨作品的排版缓存。写作、讨论、右栏、伏笔、待办和提议留在 App。
-- `host` 给出 `colors/phoneColors` 配色、`content` 书内容、`workspace` 存取层和作品路径、`notices` 状态、`shelfPrefs/saveShelf` 本机偏好，以及 `chapter` 的章 ID、编辑器和有效开章标志。章 ID 在写作页外为空。
-- `flush` 保存导出前的正文；`syncPlanOutline` 把已保存的纲同步到同 ID 当前写作草稿的 text、saved、seen；`openWriting` 打开指定章；`showOutline` 切到大纲页。
-- `startJob` 运行后台选文件，`dialogs` 给 SaveFile 和 Reveal。`pickInto` 与书架共用后台选目录的实现，返回是否有选目录回调。单文件选文件，多文件选目录，相应回调缺席时写作品的「导出」目录。
-- `dropMenu` 把宿主的 `kit.MenuState` 和配色交给 `DropMenu`，`settingColumn` 绘制共享右栏。配色、状态和书内容的重复访问在方法内取一次。`host` 的签名只用 `kit.Palette`、`kit.Menu`、`kit.Status` 和 `desk` 以外的类型；`Modal` 和 `PaneEmpty` 是 `kit.Palette` 的方法，`laterLines` 显式接收 Book 和条目。
-- `desk` 直接使用的边界是：导出的 show、replan、view 和 open；手机的 view；大纲页的生命周期、dialog、chapterStory、finishOutline 和 pane。AI 起草直接调用 Book.ReloadPlan 统计卡片，不改变大纲页的加载和几何状态。
+- 手机和导出各持有本包声明的 `Host`；大纲页持有 `desk.host`。`desk/host.go` 的 `appHost` 显式持有 `*App`，用大写方法实现三个接口，`App` 不增加导出方法。`New` 绑定适配器；大纲和导出重置时重新绑定。手机保留跨作品的排版缓存。写作、讨论、右栏、伏笔、待办和提议留在 App。
+- `host` 给出 `Colors/PhoneColors` 配色、`Content` 书内容、`Workspace` 存取层和作品路径、`Notices` 状态、`ShelfPrefs/SaveShelf` 本机偏好，以及 `Chapter` 的章 ID、编辑器和有效开章标志。章 ID 在写作页外为空。
+- `Flush` 保存导出前的正文；`SyncPlanOutline` 把已保存的纲同步到同 ID 当前写作草稿的 Text、Saved、Seen；`OpenWriting` 打开指定章；`ShowOutline` 切到大纲页。
+- `StartJob` 运行后台选文件，`Dialogs` 给 SaveFile 和 Reveal。`PickInto` 与书架共用后台选目录的实现，返回是否有选目录回调。单文件选文件，多文件选目录，相应回调缺席时写作品的「导出」目录。
+- `DropMenu` 把宿主的 `kit.MenuState` 和配色交给 `DropMenu`，`SettingColumn` 绘制共享右栏。配色、状态和书内容的重复访问在方法内取一次。`host` 的签名只用 `kit.Palette`、`kit.Menu`、`kit.Status` 和 `desk` 以外的类型；`Modal` 和 `PaneEmpty` 是 `kit.Palette` 的方法，`laterLines` 在 `desk/exportdialog/export.go`，只供设定导出使用，显式接收 Book 和条目。
+- `desk` 直接使用的边界是：导出的 `Show`、`Replan`、`View` 和 `Open`；手机的 `View`；大纲页的生命周期、dialog、chapterStory、finishOutline 和 pane。AI 起草直接调用 Book.ReloadPlan 统计卡片，不改变大纲页的加载和几何状态。
+
+- `phone.Panel.Preferences` 返回逐字段默认后的本机偏好，不落盘；`exportdialog.Dialog.Plan` 和 `Selection` 返回当前持有的计划和范围，不重算计划。页面内部规则在自己的包测试，菜单、导航、落盘和刷新契约由 `desk` 测试。
 
 ### 会改行为的
 
@@ -110,7 +112,7 @@ Status: implemented
 - 书内容和打开的章节各有一个主人，页面进出和命令的规则各在一张表里。派生数据只认输入的版本，不变的帧不重建。
 - `Book` 的版本必须随书内容变：绕过它写盘，缓存就是旧的。测试直接用 `Store` 摆场景后，要让 `Book` 重读。
 - `Book` 只在界面线程用，这一条没有测试守，靠后台任务只拿 `Store`、交回后在界面线程刷新。
-- 手机预览、导出、大纲页只经 `host` 碰 `App`，`host` 的签名不带留在 `desk` 的类型，第 7 批可以把它们整个搬走。
+- 手机预览、导出和大纲页各经自己消费的接口访问 `appHost`。两个子包不引用 `desk` 或别的页面包，接口签名不带 `desk` 的私有类型。
 
 ## Testing
 

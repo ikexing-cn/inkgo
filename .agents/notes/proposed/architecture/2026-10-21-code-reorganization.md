@@ -136,7 +136,7 @@ Status: proposed
 | `diff.go` 的差异比较 | `internal/textdiff`，`desk` 调用 `Compare`、`Paragraphs` |
 | `numbering.go` 的章节编号 | `Tree.TitleAfter`；编号前缀由 `workspace.TitleNumber` 读取，`nextTitle` 仅供包内使用 |
 | 提议在正文里的定位（`prop.place`、`find`） | `workspace.Proposal.Place`（`workspace/placement.go`）；`editor` 不依赖作品存取层 |
-| `export.go` 的导出范围计算（现在每帧算） | `export.Plan`（`export/plan.go`）；打开、内容格式或范围选择、当前章节变化及设定刷新时计算 |
+| `desk/exportdialog/export.go` 的导出范围计算 | `export.Plan`（`export/plan.go`）；打开、内容格式或范围选择、当前章节变化及设定刷新时计算 |
 | 备份的到期、重试、再问策略，`trouble`，`volumeGone`；`meta` 里写死的路径 | `backup.Policy`、`Policy.Trouble`、包内 `volumeGone`（`backup/policy.go`）、`Files.Meta`（`backup/meta.go`）；正文路径由 `workspace.IsProsePath` 判断 |
 | `welcome.go` 的书架操作，`sameFolder` | `shelf.Describe`、`Shelf.Add`、`Shelf.RelocateWork`、`Shelf.Remove`、`SameFolder`；作品判断由 `workspace.IsWork` 统一 |
 | `prefs.go` 的 `desk.json` 结构、读写和旧格式迁移 | `prefs.Prefs`、`Load`、`Save`；路径由 `workspace.Store.PrefsPath` 提供 |
@@ -188,10 +188,14 @@ Status: proposed
   - `menu.go`：`MenuState` 持有菜单和子菜单状态，按传入的调色板绘制；`Menu` 列出行，`MenuItem` 保存行的内容和动作。
   - `toast.go`：提示卡片、动作行、展开更多的按钮和标题拆分。卡片接收状态、显示时长和绘制动作的回调。
   - `markdown.go`：`MdStyle`、`MarkdownState`、主题和代码块。`MarkdownOptions` 保持选项地址，只在调色板改变时重建主题；代码块读取这次取选项时的调色板。
-  - `App` 持有调色板、状态、菜单状态和 Markdown 状态。业务菜单与命令、提示种类与动作、摘要内容与设定链接在 `desk`；`host.dropMenu` 把宿主的菜单状态和配色交给 `kit`。
+  - `App` 持有调色板、状态、菜单状态和 Markdown 状态。业务菜单与命令、提示种类与动作、摘要内容与设定链接在 `desk`；`appHost.DropMenu` 把宿主的菜单状态和配色交给 `kit`。
   - 依赖是标准库、mygo 的 `ui` 和 `ui/markdown`、`workspace`、`internal/textclip`。文字裁剪复用已有实现。
-- 三个独立的页面：手机预览、导出、大纲。各自只用 `kit`、书模型和那个小接口。
-- 写作页和大纲页都用的 `outlineDraft`（`opened.go`）、`saveAfter` 和 `checkEvery`（`save.go`）放到两边都能引用的包。
+- `desk/phone` 的 `Panel` 持有手机预览、排版偏好、分页缓存、阅读位置和命中几何；`Host` 在本包声明。
+- `desk/exportdialog` 的 `Dialog` 持有打开时读入的正文和纲、范围、笔名、缩进及导出计划；`Host` 在本包声明。
+- 两个页面包只引用 `kit`、`desk/book` 和 `desk` 以外的包；大纲页在 `desk`，使用本包的 `host`。
+- `desk/book/outline_draft.go` 的 `OutlineDraft` 是写作页和大纲页共用的草稿；`desk/book/timing.go` 的 `SaveAfter` 和 `CheckEvery` 是保存停顿和看盘间隔，均为变量。
+- `desk/host.go` 的 `appHost` 显式持有 `*App`，用首字母大写的方法实现页面需要的接口；`App` 不增加导出方法。三个页面在 `New` 绑定适配器，大纲和导出在 `resetView` 重新绑定，手机缓存跨作品保留。
+- `kit/theme_test.go` 的源码检查递归读取 `desk` 下的全部 Go 包；`scripts/verify-ui.ts` 递归发现这些包，与 `editor`、`cmd/inkgo` 一起运行工具包检查。
 - `aiswitch_test.go` 里的依赖检查扩大到 `go list -deps ./desk/...`：子包也不许引用 `ai`、`model`、`discussion`、`writing`。
 
 写作页、讨论、右栏、伏笔、待办、提议这一团共用打开的章节和讨论状态，留在 `desk`；硬拆的话，它们要的那个接口会有四十多个方法，等于把 `App` 换了个名字。

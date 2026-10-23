@@ -75,7 +75,7 @@ Status: implemented
 ## Consequences
 
 - 新卡片和情节线在 Store 锁内避开大纲中两种对象的所有已有 ID；时间戳和随机部分的格式不变，碰撞时重新生成。`workspace.TestOutlineIDsRetryCollisions` 固定重复候选，覆盖卡片与情节线之间及同类对象之间的碰撞。
-- 写入持有 Store 锁，重新读取并严格解码旧文件，再用已有 atomicWrite 写临时文件、同步并重命名。坏 JSON、未知字段、重复 ID、空标题、未知情节线返回带 outline.json 路径的错误，已有坏文件不会被界面操作覆盖。workspace.Open 不校验辅助大纲；损坏时作品和正文照常打开，正文隐藏「故事中」。大纲页整页换成和「没有找到」一样的一句话：「大纲文件读不出来」、出错的行（`workspace.PlanError.Line`，JSON 本身断在哪一行；断在结尾写「文件在结尾处断了」）和「打开所在文件夹」；没有「重试」，大纲页开着时和正文一样每 `checkEvery`（2 秒）重读一次，改好了自己回来。作者 2026-10-19 看了带「重试」的那版，说太丑。
+- 写入持有 Store 锁，重新读取并严格解码旧文件，再用已有 atomicWrite 写临时文件、同步并重命名。坏 JSON、未知字段、重复 ID、空标题、未知情节线返回带 outline.json 路径的错误，已有坏文件不会被界面操作覆盖。workspace.Open 不校验辅助大纲；损坏时作品和正文照常打开，正文隐藏「故事中」。大纲页整页换成和「没有找到」一样的一句话：「大纲文件读不出来」、出错的行（`workspace.PlanError.Line`，JSON 本身断在哪一行；断在结尾写「文件在结尾处断了」）和「打开所在文件夹」；没有「重试」，大纲页开着时和正文一样每 `book.CheckEvery`（2 秒）重读一次，改好了自己回来。作者 2026-10-19 看了带「重试」的那版，说太丑。
 - SaveCard、PlaceCard、DropCard、SaveTime、SaveLine、MoveLine、DeleteLine 共同维持原型 placeAt/placeCard/dropAt/saveTime 的规则。仅相邻且非空的同一时间合为一列；改列时间只改该列全部卡片。删除情节线保留卡片和章节，只清空 line。
 - 挪章、改名不改卡片；进回收站仅由界面把失效的 chapter 显示为未放进章节，恢复后归位；PurgeChapter 在大纲可读取时清空该节点及其所有后代章节的卡片 chapter，大纲损坏时跳过这一步，仍清理回收站和章节快照，不覆盖坏文件。修好大纲后，找不到章节的卡片显示在未放进章节。待作者确认。
 - 大纲页通过 mygo Drag/DragOver/Drop 拖动卡片；表头独立于纵向滚动区，左列补偿横向滚动。ScrollIntoView 展示新增和从正文跳转的卡片，边框强调约 1.6 秒。右栏默认收起，仅显示设定。

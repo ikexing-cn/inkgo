@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/kit"
 	"writer/editor"
 	"writer/export"
 	"writer/shelf"
@@ -121,10 +122,16 @@ func TestExportTheWork(t *testing.T) {
 		return string(b)
 	}
 	open()
-	if !x.open || x.selection.Scope != export.ScopeWork || !tt.HasText("笔名") || tt.HasText("段首加两个全角空格") {
+	if !x.Open || x.Selection().Scope != export.ScopeWork || !tt.HasText("笔名") || tt.HasText("段首加两个全角空格") {
 		t.Fatal("the dialog does not start from the prose of the whole work, as Word", tt.Texts())
 	}
-	x.pen = "雨声"
+	pen, ok := tt.Find("笔名")
+	if !ok {
+		t.Fatal("笔名", tt.Texts())
+	}
+	tt.ClickAt(pen.X+30, pen.Y+pen.H+6+kit.HControl/2)
+	tt.Type("雨声")
+	tt.Frame()
 	out()
 	z, err := zip.OpenReader(filepath.Join(a.Store.Root(), "导出", "测试作品.docx"))
 	if err != nil {
@@ -139,7 +146,7 @@ func TestExportTheWork(t *testing.T) {
 		}
 	}
 	z.Close()
-	if x.open || !strings.Contains(string(doc), "作者：雨声") || !strings.Contains(string(doc), "雨下着。") {
+	if x.Open || !strings.Contains(string(doc), "作者：雨声") || !strings.Contains(string(doc), "雨下着。") {
 		t.Fatalf("the manuscript: %s", doc)
 	}
 	if a.Store.Work().Pen != "雨声" || a.shelf.Export.Pen != "雨声" {
@@ -149,14 +156,14 @@ func TestExportTheWork(t *testing.T) {
 	// The outline alone, none written: it is said, and nothing goes.
 	a.shelf.Export.Prose, a.shelf.Export.Outline = false, true
 	open()
-	if x.pen != "雨声" || !tt.HasText("所选范围内还没有写章纲，不导出大纲。") {
+	if !tt.HasText("所选范围内还没有写章纲，不导出大纲。") {
 		t.Fatal("the pen name or why the outline cannot go", tt.Texts())
 	}
 	out()
-	if !x.open {
+	if !x.Open {
 		t.Fatal("导出 went with nothing to export")
 	}
-	shut(tt, &x.open)
+	shut(tt, &x.Open)
 
 	// The three as plain text, into one folder.
 	if err := a.Store.WriteOutline(id, "她走了"); err != nil {
