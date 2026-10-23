@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui"
-
 	"writer/aiport"
+	"writer/desk/kit"
 	"writer/internal/testshot"
 )
 
@@ -149,7 +149,7 @@ func TestAHintHasNoMark(t *testing.T) {
 	tt.Frame()
 	done, ok := tt.Find("已经存好")
 	hint, ok2 := tt.Find("请先选中")
-	if !ok || !ok2 || hint.X > done.X-iconMd {
+	if !ok || !ok2 || hint.X > done.X-kit.IconMd {
 		t.Fatal(done, hint, tt.Texts())
 	}
 }

@@ -1,6 +1,9 @@
 package desk
 
-import "github.com/egoist/mygo/ui"
+import (
+	"github.com/egoist/mygo/ui"
+	"writer/desk/kit"
+)
 
 // sideFoot is the bottom of the sidebar: how the backups go, the trash,
 // and the gear to the settings; slim, the trash is an icon over the gear.
@@ -11,11 +14,11 @@ func (a *App) sideFoot(c *ui.Context, slim bool) {
 	gear := func() {
 		color := ui.Color{}
 		if a.bk.prefs {
-			color = a.pal.ink
+			color = a.pal.Ink
 		}
-		b := iconButton(c, icGear, "设置", color).Tooltip("设置").KeepFocus()
+		b := kit.IconButton(c, kit.IcGear, "设置", color).Tooltip("设置").KeepFocus()
 		if a.bk.prefs {
-			b.Background(a.pal.theme.SurfacePressed)
+			b.Background(a.pal.Theme.SurfacePressed)
 		}
 		if b.Clicked() {
 			a.openPrefs(a.bk.tab)
@@ -23,7 +26,7 @@ func (a *App) sideFoot(c *ui.Context, slim bool) {
 	}
 	if slim {
 		ui.Column(c).FillWidth().AlignItems(ui.Center).Gap(2).Shrink(0).Children(func() {
-			if iconButton(c, icTrash, "回收站", ui.Color{}).Tooltip("回收站").KeepFocus().Clicked() {
+			if kit.IconButton(c, kit.IcTrash, "回收站", ui.Color{}).Tooltip("回收站").KeepFocus().Clicked() {
 				a.openTrash()
 			}
 			gear()
@@ -110,25 +113,25 @@ func (a *App) preferences(c *ui.Context) {
 	if !a.bk.prefs {
 		return
 	}
-	t := a.pal.theme
+	t := a.pal.Theme
 	a.bk.tab = a.prefTabs.shown(a, a.bk.tab)
 	w, h := c.Size()
 	ui.DialogBase(c, &a.bk.prefs, func(back, panel ui.Element) {
 		// What is asked over the settings shades the window, them with it:
 		// one shade, not two.
 		if !a.bk.askAI && !(a.bk.ask && a.Store != nil) {
-			back.Background(a.pal.scrim)
+			back.Background(a.pal.Scrim)
 		}
-		panel.Row().AlignItems(ui.Stretch).Width(min(prefsWidth, w-40)).Height(min(prefsHeight, h-40)).Radius(rDialog).Background(t.Background)
-		a.pal.dialog.on(panel)
-		ui.Column(c).Width(180).FillHeight().Shrink(0).Padding(20, 10).Gap(2).Radius(rDialog, 0, 0, rDialog).Background(a.pal.side).Children(func() {
-			ui.Text(c, "设置").FontSize(fsSmall).FontWeight(600).TextColor(a.pal.faint).Padding(0, 10, 8, 10)
+		panel.Row().AlignItems(ui.Stretch).Width(min(prefsWidth, w-40)).Height(min(prefsHeight, h-40)).Radius(kit.RDialog).Background(t.Background)
+		a.pal.Dialog.On(panel)
+		ui.Column(c).Width(180).FillHeight().Shrink(0).Padding(20, 10).Gap(2).Radius(kit.RDialog, 0, 0, kit.RDialog).Background(a.pal.Side).Children(func() {
+			ui.Text(c, "设置").FontSize(kit.FsSmall).FontWeight(600).TextColor(a.pal.Faint).Padding(0, 10, 8, 10)
 			for _, entry := range a.prefTabs {
 				tab := entry.id
 				if !entry.available(a) {
 					continue
 				}
-				b := ui.ButtonBase(c).Row().FillWidth().Height(hControl).Justify(ui.Start).AlignItems(ui.Center).Padding(0, 10).Radius(rControl).Label(entry.label)
+				b := ui.ButtonBase(c).Row().FillWidth().Height(kit.HControl).Justify(ui.Start).AlignItems(ui.Center).Padding(0, 10).Radius(kit.RControl).Label(entry.label)
 				on := a.bk.tab == tab
 				fg, weight := t.TextMuted, 400
 				if on {
@@ -138,9 +141,9 @@ func (a *App) preferences(c *ui.Context) {
 					b.Background(t.SurfaceHover)
 				}
 				b.Children(func() {
-					ui.Text(c, entry.title(a)).FontSize(fsBody).FontWeight(weight).TextColor(fg)
+					ui.Text(c, entry.title(a)).FontSize(kit.FsBody).FontWeight(weight).TextColor(fg)
 					if n := entry.number(); n > 0 {
-						ui.Textf(c, "%d", n).FontSize(fsNote).TextColor(a.pal.faint)
+						ui.Textf(c, "%d", n).FontSize(kit.FsNote).TextColor(a.pal.Faint)
 					}
 				})
 				if b.Clicked() {
@@ -148,17 +151,17 @@ func (a *App) preferences(c *ui.Context) {
 				}
 			}
 		})
-		ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
+		ui.Box(c).Width(1).FillHeight().Background(a.pal.Line)
 		ui.Column(c).Grow(1).Shrink(1).FillHeight().Children(func() {
 			// The title stays where it is: what is under it scrolls up to
 			// the line, not over it and the close button.
 			ui.Column(c).FillWidth().Shrink(0).Gap(4).Padding(24, 56, 16, 32).Children(func() {
-				ui.Text(c, a.prefTitle(a.bk.tab)).FontSize(fsDialog).FontWeight(700)
+				ui.Text(c, a.prefTitle(a.bk.tab)).FontSize(kit.FsDialog).FontWeight(700)
 				if note := a.prefNote(a.bk.tab); note != "" {
-					ui.Text(c, note).FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
+					ui.Text(c, note).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
 				}
 			})
-			a.pal.hairline(c)
+			a.pal.Hairline(c)
 			if a.showsLog() {
 				a.recordsView(c)
 			} else {
@@ -178,7 +181,7 @@ func (a *App) preferences(c *ui.Context) {
 				})
 			}
 		})
-		if iconButton(c, icX, "关闭设置", ui.Color{}).Absolute().Top(12).Right(12).Clicked() {
+		if kit.IconButton(c, kit.IcX, "关闭设置", ui.Color{}).Absolute().Top(12).Right(12).Clicked() {
 			a.bk.prefs = false
 		}
 	})
@@ -191,8 +194,8 @@ func (a *App) preferences(c *ui.Context) {
 
 // prefsRow is a labeled row of the settings.
 func (a *App) prefsRow(c *ui.Context, label string, fn func()) {
-	ui.Row(c).FillWidth().MinHeight(hControl).Gap(12).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, label).FontSize(fsBody).FontWeight(500).Width(110).Shrink(0)
+	ui.Row(c).FillWidth().MinHeight(kit.HControl).Gap(12).AlignItems(ui.Center).Children(func() {
+		ui.Text(c, label).FontSize(kit.FsBody).FontWeight(500).Width(110).Shrink(0)
 		fn()
 	})
 }

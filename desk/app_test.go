@@ -1012,16 +1012,3 @@ func TestShelveAConversation(t *testing.T) {
 		t.Fatal("no new conversation", a.session)
 	}
 }
-
-func TestClipMeasure(t *testing.T) {
-	for _, c := range []struct{ text, want string }{
-		{"甲乙丙丁戊", "甲乙丙丁…"},
-		{"abcde", "abcd…"},
-		{"甲a\n乙bcdef", "甲a"},
-		{"甲ab乙", "甲ab乙"},
-	} {
-		if got := clip(c.text, 4); got != c.want {
-			t.Errorf("clip(%q, 4) = %q, want %q", c.text, got, c.want)
-		}
-	}
-}

@@ -8,6 +8,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/aiport"
+	"writer/desk/kit"
 )
 
 // noticeFor is how long a confirmation stays. The time stops while the
@@ -32,23 +33,23 @@ func (a *App) toasts(c *ui.Context) {
 	if a.replying() && a.talkShown() || !a.aiOn() {
 		busy = "" // the turn shows its own progress in its talk; all that runs is the AI's
 	}
-	errText := a.status.errorText()
+	errText := a.status.ErrorText()
 	errKey := errText
-	if n := a.status.repeated(); n > 1 {
+	if n := a.status.Repeated(); n > 1 {
 		errKey += "×" + strconv.Itoa(n)
 	}
 	a.syncToast(c, "busy", busy, busy, -1, func() {})
-	a.syncToast(c, "error", errText, errKey, -1, a.status.closeError)
-	notice := a.status.noticeText()
+	a.syncToast(c, "error", errText, errKey, -1, a.status.CloseError)
+	notice := a.status.NoticeText()
 	a.syncToast(c, "notice", notice, notice, noticeFor, func() {
-		a.status.closeNotice(notice)
+		a.status.CloseNotice(notice)
 	})
-	hint := a.status.hintText()
+	hint := a.status.HintText()
 	a.syncToast(c, "hint", hint, hint, noticeFor, func() {
-		a.status.closeHint(hint)
+		a.status.CloseHint(hint)
 	})
 	ui.ToastViewportBase(c, func(v ui.Element, list []ui.Toast) {
-		v.Justify(ui.Start).AlignItems(ui.End).Gap(8).Padding(2*titleHeight+12, 16, 0, 0) // under the title bar and the page's top row
+		v.Justify(ui.Start).AlignItems(ui.End).Gap(8).Padding(2*kit.TitleHeight+12, 16, 0, 0) // under the title bar and the page's top row
 		if len(list) <= toastsShown {
 			a.toastsOpen = false
 		}
@@ -103,49 +104,49 @@ func splitToast(s string) (title, detail string) {
 
 // toastCard draws one toast: only its icon carries the colour.
 func (a *App) toastCard(c *ui.Context, ts ui.Toast) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	p := ui.ToastBase(c, ts)
-	box := p.Root.Row().MinWidth(toastMin).MaxWidth(toastMax).Gap(10).Padding(12, 10, 12, 14).AlignItems(ui.Start).Radius(rCard).
-		Background(a.pal.raised).Border(1, t.Border).Clip()
-	a.pal.pop.on(box)
+	box := p.Root.Row().MinWidth(toastMin).MaxWidth(toastMax).Gap(10).Padding(12, 10, 12, 14).AlignItems(ui.Start).Radius(kit.RCard).
+		Background(a.pal.Raised).Border(1, t.Border).Clip()
+	a.pal.Pop.On(box)
 	box.Children(func() {
 		if ts.Type != "hint" { // a word on what to do is neither done nor wrong
 			ui.Box(c).Padding(2, 0, 0, 0).Shrink(0).Children(func() {
 				switch ts.Type {
 				case "busy":
-					ui.Spinner(c).Size(iconMd, iconMd)
+					ui.Spinner(c).Size(kit.IconMd, kit.IconMd)
 				case "error":
-					glyph(c, icAlert, iconMd, t.Danger)
+					kit.Glyph(c, kit.IcAlert, kit.IconMd, t.Danger)
 				default:
-					glyph(c, icDone, iconMd, t.Success)
+					kit.Glyph(c, kit.IcDone, kit.IconMd, t.Success)
 				}
 			})
 		}
 		ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
-				ui.Text(c, ts.Title).FontSize(fsBody).FontWeight(600).Shrink(1)
-				if n := a.status.repeated(); ts.Type == "error" && n > 1 {
-					ui.Row(c).Padding(0, 6).Radius(rXs).Background(t.SurfaceHover).Shrink(0).Children(func() {
-						ui.Text(c, "×"+strconv.Itoa(n)).FontSize(fsSmall).TextColor(t.TextMuted)
+				ui.Text(c, ts.Title).FontSize(kit.FsBody).FontWeight(600).Shrink(1)
+				if n := a.status.Repeated(); ts.Type == "error" && n > 1 {
+					ui.Row(c).Padding(0, 6).Radius(kit.RXs).Background(t.SurfaceHover).Shrink(0).Children(func() {
+						ui.Text(c, "×"+strconv.Itoa(n)).FontSize(kit.FsSmall).TextColor(t.TextMuted)
 					})
 				}
 			})
 			if ts.Description != "" {
-				ui.Text(c, ts.Description).FontSize(fsNote).TextColor(t.TextMuted).Selectable()
+				ui.Text(c, ts.Description).FontSize(kit.FsNote).TextColor(t.TextMuted).Selectable()
 			}
 			a.toastActions(c, ts)
 		})
 		if ts.Type != "busy" {
 			ui.Box(c).Margin(-2, -2, 0, 0).Shrink(0).Children(func() {
-				p.CloseButton().Size(hTag, hTag).Center().Radius(rXs).Label("关闭提示").Children(func() {
-					glyph(c, icX, iconSm, a.pal.faint)
+				p.CloseButton().Size(kit.HTag, kit.HTag).Center().Radius(kit.RXs).Label("关闭提示").Children(func() {
+					kit.Glyph(c, kit.IcX, kit.IconSm, a.pal.Faint)
 				})
 			})
 		}
 		if left := p.Left(); left > 0 {
 			// The line under it is the time left, grey, as a hint fades too.
-			ui.Box(c).Absolute().Left(0).Right(0).Bottom(0).Height(2).Background(a.pal.line).Children(func() {
-				ui.Box(c).Height(2).WidthPercent(100 * float32(left) / float32(noticeFor)).Background(a.pal.faint)
+			ui.Box(c).Absolute().Left(0).Right(0).Bottom(0).Height(2).Background(a.pal.Line).Children(func() {
+				ui.Box(c).Height(2).WidthPercent(100 * float32(left) / float32(noticeFor)).Background(a.pal.Faint)
 			})
 			c.AnimationFrame()
 		}
@@ -168,21 +169,21 @@ func (a *App) toastActions(c *ui.Context, ts ui.Toast) {
 			}
 		}, "取消请求"})
 	case "error":
-		if again := a.status.retryAction(); again != nil {
+		if again := a.status.RetryAction(); again != nil {
 			acts = append(acts, act{"重试", func() { a.SetError(nil); again() }, ""})
 		}
 		var setup *aiport.SetupError
-		if errors.As(a.status.err(), &setup) {
+		if errors.As(a.status.Err(), &setup) {
 			// What it says is done by going there: it goes, as in the prototype.
 			acts = append(acts, act{"打开设置", func() { a.SetError(nil); a.openPrefs("AI") }, ""})
 		}
-		text := a.status.errorText()
+		text := a.status.ErrorText()
 		acts = append(acts, act{"复制详情", func() { c.WriteClipboard(text) }, ""})
 	}
 	if len(acts) == 0 {
 		return
 	}
-	t := a.pal.theme
+	t := a.pal.Theme
 	// At the right, as every row of buttons: the one that matters most, the
 	// first of them, stands last.
 	ui.Row(c).FillWidth().Gap(14).Padding(6, 0, 0, 0).Justify(ui.End).Children(func() {
@@ -199,7 +200,7 @@ func (a *App) toastActions(c *ui.Context, ts ui.Toast) {
 			if b.Hovered() {
 				fg = t.Text
 			}
-			b.Children(func() { ui.Text(c, x.label).FontSize(fsNote).FontWeight(w).TextColor(fg) })
+			b.Children(func() { ui.Text(c, x.label).FontSize(kit.FsNote).FontWeight(w).TextColor(fg) })
 			if b.Clicked() {
 				x.fn()
 			}
@@ -209,12 +210,12 @@ func (a *App) toastActions(c *ui.Context, ts ui.Toast) {
 
 // moreToasts folds the older toasts into one line that opens them.
 func (a *App) moreToasts(c *ui.Context, n int) {
-	t := a.pal.theme
-	b := ui.ButtonBase(c).Padding(4, 10).Radius(rCard).Background(a.pal.raised).Border(1, t.Border).Shrink(0)
+	t := a.pal.Theme
+	b := ui.ButtonBase(c).Padding(4, 10).Radius(kit.RCard).Background(a.pal.Raised).Border(1, t.Border).Shrink(0)
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}
-	b.Children(func() { ui.Text(c, "还有 "+strconv.Itoa(n)+" 条").FontSize(fsSmall).TextColor(t.TextMuted) })
+	b.Children(func() { ui.Text(c, "还有 "+strconv.Itoa(n)+" 条").FontSize(kit.FsSmall).TextColor(t.TextMuted) })
 	if b.Clicked() {
 		a.toastsOpen = true
 	}

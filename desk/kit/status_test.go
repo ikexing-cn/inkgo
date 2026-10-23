@@ -1,4 +1,4 @@
-package desk
+package kit
 
 import (
 	"errors"
@@ -6,48 +6,48 @@ import (
 )
 
 func TestStatusCountsFailuresInARow(t *testing.T) {
-	s := status{}
+	s := Status{}
 	a, b := errors.New("网络失败"), errors.New("连接超时")
-	s.fail(a)
-	if n := s.repeated(); n != 1 {
+	s.Fail(a)
+	if n := s.Repeated(); n != 1 {
 		t.Fatalf("first failure counts %d", n)
 	}
-	s.fail(a)
-	if n := s.repeated(); n != 2 {
+	s.Fail(a)
+	if n := s.Repeated(); n != 2 {
 		t.Fatalf("the same failure counts %d", n)
 	}
-	s.fail(b)
-	if n := s.repeated(); n != 1 || s.errorText() != b.Error() {
-		t.Fatalf("another failure counts %d, shows %q", n, s.errorText())
+	s.Fail(b)
+	if n := s.Repeated(); n != 1 || s.ErrorText() != b.Error() {
+		t.Fatalf("another failure counts %d, shows %q", n, s.ErrorText())
 	}
 }
 
 func TestStatusASuccessEndsTheRun(t *testing.T) {
-	s := status{}
+	s := Status{}
 	a := errors.New("网络失败")
-	s.fail(a)
-	s.fail(a)
-	s.succeed()
-	if n := s.repeated(); n != 0 {
+	s.Fail(a)
+	s.Fail(a)
+	s.Succeed()
+	if n := s.Repeated(); n != 0 {
 		t.Fatalf("after a success the run counts %d", n)
 	}
-	s.fail(a)
-	if n := s.repeated(); n != 1 {
+	s.Fail(a)
+	if n := s.Repeated(); n != 1 {
 		t.Fatalf("a failure after a success counts %d", n)
 	}
 }
 
 func TestStatusClosingTheErrorClearsItsRun(t *testing.T) {
-	s := status{}
+	s := Status{}
 	a := errors.New("网络失败")
-	s.fail(a)
-	s.fail(a)
-	s.closeError()
-	if s.err() != nil || s.errorText() != "" || s.repeated() != 0 {
-		t.Fatalf("closing left %v, %q, %d", s.err(), s.errorText(), s.repeated())
+	s.Fail(a)
+	s.Fail(a)
+	s.CloseError()
+	if s.Err() != nil || s.ErrorText() != "" || s.Repeated() != 0 {
+		t.Fatalf("closing left %v, %q, %d", s.Err(), s.ErrorText(), s.Repeated())
 	}
-	s.fail(a)
-	if n := s.repeated(); n != 1 {
+	s.Fail(a)
+	if n := s.Repeated(); n != 1 {
 		t.Fatalf("a failure after closing counts %d", n)
 	}
 }
@@ -55,12 +55,12 @@ func TestStatusClosingTheErrorClearsItsRun(t *testing.T) {
 // 「再试一次」 is offered while the error shown is the last request's: not
 // for another error, and not after that request succeeded.
 func TestStatusOffersRetryForTheShownFailure(t *testing.T) {
-	s := status{}
+	s := Status{}
 	ran := false
-	s.retry(func() { ran = true })
+	s.Retry(func() { ran = true })
 	a := errors.New("网络失败")
-	s.fail(a)
-	again := s.retryAction()
+	s.Fail(a)
+	again := s.RetryAction()
 	if again == nil {
 		t.Fatal("no retry for the failure shown")
 	}
@@ -68,28 +68,28 @@ func TestStatusOffersRetryForTheShownFailure(t *testing.T) {
 	if !ran {
 		t.Fatal("the retry did not run")
 	}
-	s.setError(errors.New("连接超时"))
-	if s.retryAction() != nil {
+	s.SetError(errors.New("连接超时"))
+	if s.RetryAction() != nil {
 		t.Fatal("another error offers the retry")
 	}
-	s.setError(a)
-	if s.retryAction() == nil {
+	s.SetError(a)
+	if s.RetryAction() == nil {
 		t.Fatal("the last failure's error does not offer the retry")
 	}
-	s.succeed()
-	if s.retryAction() != nil {
+	s.Succeed()
+	if s.RetryAction() != nil {
 		t.Fatal("a success offers the retry")
 	}
 }
 
 func TestStatusClearDropsEverything(t *testing.T) {
-	s := status{}
-	s.fail(errors.New("网络失败"))
-	s.retry(func() {})
-	s.did("已保存")
-	s.hint("请先选中")
-	s.clear()
-	if s.err() != nil || s.errorText() != "" || s.noticeText() != "" || s.hintText() != "" || s.repeated() != 0 || s.retryAction() != nil {
+	s := Status{}
+	s.Fail(errors.New("网络失败"))
+	s.Retry(func() {})
+	s.Did("已保存")
+	s.Hint("请先选中")
+	s.Clear()
+	if s.Err() != nil || s.ErrorText() != "" || s.NoticeText() != "" || s.HintText() != "" || s.Repeated() != 0 || s.RetryAction() != nil {
 		t.Fatalf("clear left %+v", s)
 	}
 }

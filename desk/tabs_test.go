@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/kit"
 	"writer/internal/testshot"
 )
 
@@ -82,7 +83,7 @@ func TestChaptersOpenInTabs(t *testing.T) {
 	}
 	r, _ := tt.Find("标签页-第一章")
 	top, _ := tt.Find("查找替换")
-	if r.Y < top.Y+top.H || r.H != hControl {
+	if r.Y < top.Y+top.H || r.H != kit.HControl {
 		t.Fatalf("the tabs are not a row under the toolbar: %+v under %+v", r, top)
 	}
 	click(t, tt, "章节-第一卷")

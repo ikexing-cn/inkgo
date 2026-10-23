@@ -7,7 +7,7 @@
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 
-const packages = ['desk', 'editor', 'cmd/inkgo']
+const packages = ['desk', 'desk/kit', 'editor', 'cmd/inkgo']
 
 // The tool is built once for each version of the toolkit and kept in .tmp:
 // linking it takes longer than all it then checks.

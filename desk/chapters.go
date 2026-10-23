@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/kit"
 	"writer/editor"
 	"writer/workspace"
 )
@@ -83,7 +84,7 @@ func (a *App) enterWriting() {
 func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.Editor {
 	doc := editor.NewDoc(text)
 	doc.LoadMarks(editorMarks(marks))
-	return editor.New(doc, editor.Options{Prose: true, Placeholder: "在此开始写作…", Font: ui.Font{Size: float32(a.write.textSize())}, LineHeight: lhPaper,
+	return editor.New(doc, editor.Options{Prose: true, Placeholder: "在此开始写作…", Font: ui.Font{Size: float32(a.write.textSize())}, LineHeight: kit.LhPaper,
 		Predictor: pen{writer: &a.write.pen, chapter: a.write.node}, PredictDelay: saveAfter, PredictOnDemand: !a.write.autoPredict, NoAI: !a.aiOn(),
 		GhostNote: func() string {
 			if pw := a.write.pen.Load(); pw != nil {
@@ -258,17 +259,10 @@ func (a *App) gistsIn(n *workspace.Node) map[string]string {
 	return gists
 }
 
-// Sizes of the text: the default, and the least and most it goes to.
-const (
-	textSizeDefault = 17
-	textSizeMin     = 13
-	textSizeMax     = 28
-)
-
 // textSize is the size the chapter's text is set in.
 func (w *writeView) textSize() int {
 	if w.size == 0 {
-		return textSizeDefault
+		return kit.TextSizeDefault
 	}
 	return w.size
 }
@@ -277,15 +271,15 @@ func (w *writeView) textSize() int {
 // the default (d == 0), and keeps the size with the work.
 func (a *App) sizeText(d int) {
 	w := &a.write
-	size := textSizeDefault
+	size := kit.TextSizeDefault
 	if d != 0 {
-		size = min(max(w.textSize()+d, textSizeMin), textSizeMax)
+		size = min(max(w.textSize()+d, kit.TextSizeMin), kit.TextSizeMax)
 	}
 	if size == w.textSize() {
 		return
 	}
 	w.size = size
-	if size == textSizeDefault {
+	if size == kit.TextSizeDefault {
 		w.size = 0
 	}
 	for _, ed := range w.editors() {

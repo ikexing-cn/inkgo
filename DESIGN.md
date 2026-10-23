@@ -392,18 +392,18 @@ components:
 
 - 值写在三处，同一个名字同一个值：
   - 这份文件开头的数值；
-  - `desk/tokens.css`，原型的页面直接用它，写 `var(--ink)`、`var(--fs-body)`、`var(--r-control)`；
-  - `desk/theme.go` 里的同名常量（`fsBody`、`rControl`、`lhBody`、`iconMd`、`hControl`、`opacityDisabled`）和调色板（`a.pal.ink`、`a.pal.pop.on(e)`、`a.pal.scrim`），代码用它。
+  - `desk/kit/tokens.css`，原型的页面直接用它，写 `var(--ink)`、`var(--fs-body)`、`var(--r-control)`；
+  - `desk/kit/theme.go` 里的同名常量（`FsBody`、`RControl`、`LhBody`、`IconMd`、`HControl`、`OpacityDisabled`）和调色板（`a.pal.Ink`、`a.pal.Pop.On(e)`、`a.pal.Scrim`），代码用它。
 - 名字的对应：这里的 `colors.ink` 是 `--ink`，`colors.ink-dark` 是 `.dark` 里的 `--ink`；`typography.body` 的字号是 `--fs-body`；`rounded.control` 是 `--r-control`；`spacing` 是 `--space` 那一排数。
-- 这个格式里没有位置放的几样（阴影、遮罩、半透明的几级、行距的几级、禁用透明度），值只在 `desk/tokens.css`，这里只写名字和用处。
-- 每个名字管什么只写在这里；`desk/tokens.css` 和 `desk/theme.go` 只写值，不另写用处。
+- 这个格式里没有位置放的几样（阴影、遮罩、半透明的几级、行距的几级、禁用透明度），值只在 `desk/kit/tokens.css`，这里只写名字和用处。
+- 每个名字管什么只写在这里；`desk/kit/tokens.css` 和 `desk/kit/theme.go` 只写值，不另写用处。
 - 改一个值或者加一级，三处一起改，从这里改起。
 
 检查：
 
-- `go test ./desk` 的 `TestDesignMD` 核对这里的数值和 `desk/tokens.css` 一致，八节的名字和先后对不对；`TestTokens`、`TestSizeTokens` 核对 `desk/theme.go` 和 `desk/tokens.css` 一致；`TestUsesLiveInDesignMD` 查 `desk/tokens.css` 的各块、`desk/theme.go` 的调色板和尺寸常量里没有注释。
-- `go test ./desk` 的 `TestNoLiteralSizes` 查界面代码里有没有直接写 `FontSize`、`Radius`、`LineHeight`、`glyph` 大小、按钮高度的数字、`ui.RGBA(` 或 `Shadow(`，`Padding`、`Gap`、`Margin` 和透明度的数在不在刻度上。
-- `npm run verify-prototype` 先对着 `desk/tokens.css` 查原型的样式和脚本。
+- `go test ./desk/kit` 的 `TestDesignMD` 核对这里的数值和 `desk/kit/tokens.css` 一致，八节的名字和先后对不对；`TestTokens`、`TestSizeTokens` 核对 `desk/kit/theme.go` 和 `desk/kit/tokens.css` 一致；`TestUsesLiveInDesignMD` 查 `desk/kit/tokens.css` 的各块、`desk/kit/theme.go` 的调色板和尺寸常量里没有注释。
+- `go test ./desk/kit` 的 `TestNoLiteralSizes` 查界面代码里有没有直接写 `FontSize`、`Radius`、`LineHeight`、`glyph` 大小、按钮高度的数字、`ui.RGBA(` 或 `Shadow(`，`Padding`、`Gap`、`Margin` 和透明度的数在不在刻度上。
+- `npm run verify-prototype` 先对着 `desk/kit/tokens.css` 查原型的样式和脚本。
 
 ### AI 可以整个关掉
 
@@ -559,10 +559,10 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab；起草�
 平的界面：区域之间靠底色（`bg`、`side`、`raised`）和 `line` 的细线分开。阴影和遮罩只有这几样，写名字：
 
 - `--shadow-raise`：分段选择里选中的那一段。代码里 `a.pal.raise.on(e)`。
-- `--shadow-pop`：菜单、下拉、提示、待处理面板。代码里 `a.pal.pop.on(e)`。
+- `--shadow-pop`：菜单、下拉、提示、待处理面板。代码里 `a.pal.Pop.On(e)`。
 - `--shadow-dialog`：对话框。代码里 `a.pal.dialog.on(e)`。
 - `--shadow-focus`：聚焦的输入框。
-- `--scrim`：对话框、设置窗口后面的遮罩。代码里 `a.pal.scrim`。深色另有一个更深的：浅色那个和深色的底同色，盖上去看不出（待作者确认）。
+- `--scrim`：对话框、设置窗口后面的遮罩。代码里 `a.pal.Scrim`。深色另有一个更深的：浅色那个和深色的底同色，盖上去看不出（待作者确认）。
 
 ## Shapes
 
@@ -598,7 +598,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab；起草�
 检查：
 
 - `npm run verify-prototype` 每点一下就把窗口里的按钮行量一遍：最后一个贴着这一行的右边，从第一个按钮起一个挨一个，主按钮后面没有别的按钮（问要不要保存的那一行反过来查：主按钮是第一个）。
-- `go test ./desk` 的 `TestButtonsAtTheRight` 读界面代码：以按钮开头的 `ui.Row` 要写 `Justify(ui.End)`，按钮不在 `ui.Spacer(c)` 左边，`primary` 后面没有别的按钮。问要不要保存的那一行在行尾写 `// system order`，反过来查：三个按钮正好是「保存」「不保存」「取消」，全软件只有这一行。
+- `go test ./desk/kit` 的 `TestButtonsAtTheRight` 读界面代码：以按钮开头的 `ui.Row` 要写 `Justify(ui.End)`，按钮不在 `ui.Spacer(c)` 左边，`primary` 后面没有别的按钮。问要不要保存的那一行在行尾写 `// system order`，反过来查：三个按钮正好是「保存」「不保存」「取消」，全软件只有这一行。
 
 ### 文字按钮
 
@@ -621,7 +621,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab；起草�
 检查：
 
 - `npm run verify-prototype` 每点一下，把窗口里能点的都查一遍：样式表里要有对得上它的 `:hover` 规则，指针要是手形。
-- `go test ./desk` 的 `TestButtonsAnswerThePointer` 读界面代码：每个手写的 `ui.ButtonBase` 都要在画它的那几行里读 `Hovered()`。
+- `go test ./desk/kit` 的 `TestButtonsAnswerThePointer` 读界面代码：每个手写的 `ui.ButtonBase` 都要在画它的那几行里读 `Hovered()`。
 
 ### 对话框
 

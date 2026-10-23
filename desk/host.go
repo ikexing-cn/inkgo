@@ -3,6 +3,7 @@ package desk
 import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/book"
+	"writer/desk/kit"
 	"writer/editor"
 	"writer/shelf"
 	"writer/workspace"
@@ -10,15 +11,15 @@ import (
 
 type host interface {
 	// colors gives the current palette and its widgets.
-	colors() *palette
+	colors() *kit.Palette
 	// phoneColors gives the light and dark palettes for the phone screen.
-	phoneColors() (*palette, *palette)
+	phoneColors() (*kit.Palette, *kit.Palette)
 	// content gives the book content shared by the pages.
 	content() *book.Book
 	// workspace gives the current store and work path.
 	workspace() (*workspace.Store, string)
 	// notices gives the errors, completion notices, and hints shown by toasts.
-	notices() *status
+	notices() *kit.Status
 	// shelfPrefs gives the editable preferences shared by works on this machine.
 	shelfPrefs() *shelf.Shelf
 	// saveShelf saves the machine preferences.
@@ -45,13 +46,13 @@ type host interface {
 	dialogs() (save func(string, string) (string, error), reveal func(string) error)
 }
 
-func (a *App) colors() *palette { return a.pal }
+func (a *App) colors() *kit.Palette { return a.pal }
 
 func (a *App) content() *book.Book { return a.book }
 
 func (a *App) workspace() (*workspace.Store, string) { return a.Store, a.path }
 
-func (a *App) notices() *status { return &a.status }
+func (a *App) notices() *kit.Status { return &a.status }
 
 func (a *App) shelfPrefs() *shelf.Shelf { return &a.shelf }
 
@@ -71,7 +72,7 @@ func (a *App) dialogs() (func(string, string) (string, error), func(string) erro
 	return a.SaveFile, a.Reveal
 }
 
-func (a *App) phoneColors() (*palette, *palette) { return a.light, a.dark }
+func (a *App) phoneColors() (*kit.Palette, *kit.Palette) { return a.light, a.dark }
 
 func (a *App) syncPlanOutline(id, text string) {
 	if a.write.node == id {

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/kit"
 	"writer/editor"
 	"writer/shelf"
 )
@@ -133,19 +134,19 @@ func (p *phonePanel) nextLong() {
 
 func phonePagination(p shelf.Phone) editor.PaginationOptions {
 	fs := float32(p.Size)
-	lh := float32(lhRead)
+	lh := float32(kit.LhRead)
 	switch p.Spacing {
 	case "tight":
-		lh = lhLoose
+		lh = kit.LhLoose
 	case "loose":
-		lh = lhPaper
+		lh = kit.LhPaper
 	}
 	titleSize := phoneTitleEM * fs
 	return editor.PaginationOptions{
 		Width:  phoneScreens[p.Screen][0] - 2*phoneTextInset,
 		Height: phoneScreens[p.Screen][1] - phoneChromeHeight,
 		Font:   ui.Font{Size: fs}, TitleFont: ui.Font{Size: titleSize, Weight: 700},
-		LineHeight: lh, TitleLineHeight: lhTight,
+		LineHeight: lh, TitleLineHeight: kit.LhTight,
 		Indent: phoneIndentEM * fs, ParagraphGap: phoneParaGapEM,
 		TitleTop: titleSize * phoneTitleTopEM, TitleBottom: titleSize * phoneTitleBottomEM,
 		MarkLong: !p.NoLong, Scroll: p.Mode == "scroll",
@@ -194,27 +195,27 @@ func (p *phonePanel) view(c *ui.Context) {
 	if _, _, open := p.host.chapter(); !open {
 		p.key = ""
 		p.look = false
-		pal.paneEmpty(c, "打开一章即可预览", "")
+		pal.PaneEmpty(c, "打开一章即可预览", "")
 		return
 	}
 	p.measure()
 	before := p.prefs
 	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(8).Padding(0, 20, 12, 20).Shrink(0).Children(func() {
 		mode := phoneIndex(p.prefs.Mode, phoneModes)
-		pal.segments(c, &mode, "看法", []string{"翻页", "滚动"})
+		pal.Segments(c, &mode, "看法", []string{"翻页", "滚动"})
 		p.prefs.Mode = phoneModes[mode]
 		ui.Spacer(c)
-		b := ui.ButtonBase(c).Height(hControlSm).Padding(0, 6).Center().Radius(rControl).KeepFocus().Label("Aa").Tooltip("排版")
+		b := ui.ButtonBase(c).Height(kit.HControlSm).Padding(0, 6).Center().Radius(kit.RControl).KeepFocus().Label("Aa").Tooltip("排版")
 		if b.Hovered() || p.look {
-			b.Background(pal.theme.SurfacePressed)
+			b.Background(pal.Theme.SurfacePressed)
 		}
-		b.Children(func() { ui.Text(c, "Aa").FontSize(fsControl).FontWeight(600) })
+		b.Children(func() { ui.Text(c, "Aa").FontSize(kit.FsControl).FontWeight(600) })
 		if b.Clicked() {
 			p.look = !p.look
 		}
 		ui.PopoverBase(c, b, &p.look, func(panel ui.Element) {
-			panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(8, 0, 0, 0).Width(phonePopWidth).Column().Padding(4).Gap(2).Radius(rCard).Background(pal.raised).Border(1, pal.theme.Border)
-			pal.pop.on(panel)
+			panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(8, 0, 0, 0).Width(phonePopWidth).Column().Padding(4).Gap(2).Radius(kit.RCard).Background(pal.Raised).Border(1, pal.Theme.Border)
+			pal.Pop.On(panel)
 			p.typesetting(c)
 		})
 	})
@@ -224,7 +225,7 @@ func (p *phonePanel) view(c *ui.Context) {
 		p.host.saveShelf()
 		p.measure()
 	}
-	pal.hairline(c)
+	pal.Hairline(c)
 	stage := ui.Box(c).FillWidth().Grow(1).Shrink(1).Clip().Label("手机预览正文")
 	p.stage = stage.Bounds()
 	p.hover = -1
@@ -238,33 +239,33 @@ func (p *phonePanel) view(c *ui.Context) {
 		}
 	}
 	stage.HandleInput(p.input).Draw(p.paint)
-	pal.hairline(c)
-	ui.Row(c).FillWidth().Height(hControl).Padding(0, 20).AlignItems(ui.Center).Justify(ui.SpaceBetween).Shrink(0).Children(func() {
+	pal.Hairline(c)
+	ui.Row(c).FillWidth().Height(kit.HControl).Padding(0, 20).AlignItems(ui.Center).Justify(ui.SpaceBetween).Shrink(0).Children(func() {
 		if p.prefs.Mode == "flip" {
 			ui.Box(c).Disabled(p.at == 0).Children(func() {
-				if pal.ghost(c, "‹ 上一屏", ui.Color{}).Label("‹ 上一屏").KeepFocus().Clicked() {
+				if pal.Ghost(c, "‹ 上一屏", ui.Color{}).Label("‹ 上一屏").KeepFocus().Clicked() {
 					p.flip(-1)
 				}
 			})
-			ui.Textf(c, "第 %d 屏，共 %d 屏", p.at+1, p.Pages).FontSize(fsNote).TextColor(pal.theme.TextMuted).SingleLine()
+			ui.Textf(c, "第 %d 屏，共 %d 屏", p.at+1, p.Pages).FontSize(kit.FsNote).TextColor(pal.Theme.TextMuted).SingleLine()
 			ui.Box(c).Disabled(p.at == p.Pages-1).Children(func() {
-				if pal.ghost(c, "下一屏 ›", ui.Color{}).Label("下一屏 ›").KeepFocus().Clicked() {
+				if pal.Ghost(c, "下一屏 ›", ui.Color{}).Label("下一屏 ›").KeepFocus().Clicked() {
 					p.flip(1)
 				}
 			})
 		} else {
 			ui.Spacer(c)
-			ui.Textf(c, "约 %d 屏", p.Pages).FontSize(fsNote).TextColor(pal.theme.TextMuted)
+			ui.Textf(c, "约 %d 屏", p.Pages).FontSize(kit.FsNote).TextColor(pal.Theme.TextMuted)
 			ui.Spacer(c)
 		}
 	})
-	ui.Row(c).FillWidth().MinHeight(hControl).Padding(0, 20).Justify(ui.End).Shrink(0).Children(func() {
+	ui.Row(c).FillWidth().MinHeight(kit.HControl).Padding(0, 20).Justify(ui.End).Shrink(0).Children(func() {
 		if p.LongCount > 0 {
 			text := fmt.Sprintf("%d 段超过 5 行", p.LongCount)
 			if p.prefs.Mode == "flip" {
 				text += "，看下一处"
 			}
-			if pal.ghost(c, text, ui.Color{}).Label("下一处长段").KeepFocus().Clicked() && p.prefs.Mode == "flip" {
+			if pal.Ghost(c, text, ui.Color{}).Label("下一处长段").KeepFocus().Clicked() && p.prefs.Mode == "flip" {
 				p.nextLong()
 			}
 		}
@@ -276,37 +277,37 @@ func (p *phonePanel) typesetting(c *ui.Context) {
 	prefs := &p.prefs
 	row := func(label string, value *string, choices, names []string) {
 		at := phoneIndex(*value, choices)
-		pal.popHead(c, label)
+		pal.PopHead(c, label)
 		ui.Box(c).FillWidth().Padding(2, 6, 6, 6).Children(func() {
 			p.segments(c, &at, label, names)
 		})
 		*value = choices[at]
 	}
 	row("屏幕", &prefs.Screen, phoneScreenChoices, []string{"窄屏", "标准", "宽屏"})
-	pal.popHead(c, "字号")
+	pal.PopHead(c, "字号")
 	ui.Box(c).FillWidth().Padding(2, 6, 6, 6).Children(func() {
-		ui.Row(c).FillWidth().Padding(2).Radius(rControl).Background(pal.theme.SurfacePressed).AlignItems(ui.Center).Children(func() {
+		ui.Row(c).FillWidth().Padding(2).Radius(kit.RControl).Background(pal.Theme.SurfacePressed).AlignItems(ui.Center).Children(func() {
 			step := func(label, tip string, off bool, d int) {
-				b := ui.ButtonBase(c).Grow(1).Height(hSeg).Center().Radius(rXs).Disabled(off).Label(label).Tooltip(tip)
+				b := ui.ButtonBase(c).Grow(1).Height(kit.HSeg).Center().Radius(kit.RXs).Disabled(off).Label(label).Tooltip(tip)
 				if b.Hovered() {
-					b.Background(pal.theme.SurfaceHover)
+					b.Background(pal.Theme.SurfaceHover)
 				}
 				if off {
-					pale(b)
+					kit.Pale(b)
 				}
-				b.Children(func() { ui.Text(c, label).FontSize(fsControl) })
+				b.Children(func() { ui.Text(c, label).FontSize(kit.FsControl) })
 				if b.Clicked() {
 					prefs.Size += d
 				}
 			}
 			step("A−", "字号减小", prefs.Size <= phoneSizeMin, -1)
-			ui.Textf(c, "%d", prefs.Size).Grow(1).TextAlign(ui.Center).FontSize(fsControl)
+			ui.Textf(c, "%d", prefs.Size).Grow(1).TextAlign(ui.Center).FontSize(kit.FsControl)
 			step("A+", "字号增大", prefs.Size >= phoneSizeMax, 1)
 		})
 	})
 	row("行距", &prefs.Spacing, phoneSpacings, []string{"紧凑", "适中", "宽松"})
 	row("背景", &prefs.Theme, phoneThemes, []string{"白天", "夜间", "护眼"})
-	pal.popLine(c)
+	pal.PopLine(c)
 	ui.Column(c).FillWidth().Gap(6).Padding(6, 10).Children(func() {
 		frame, long := !prefs.NoFrame, !prefs.NoLong
 		ui.Checkbox(c, &frame, "显示手机外框")
@@ -314,7 +315,7 @@ func (p *phonePanel) typesetting(c *ui.Context) {
 		prefs.NoFrame, prefs.NoLong = !frame, !long
 	})
 	ui.Row(c).FillWidth().Justify(ui.End).Padding(0, 10, 6, 10).Children(func() {
-		if pal.ghost(c, "恢复默认", ui.Color{}).Clicked() {
+		if pal.Ghost(c, "恢复默认", ui.Color{}).Clicked() {
 			mode := prefs.Mode
 			*prefs = defaultPhone()
 			prefs.Mode = mode
@@ -324,17 +325,17 @@ func (p *phonePanel) typesetting(c *ui.Context) {
 
 func (p *phonePanel) segments(c *ui.Context, at *int, label string, names []string) {
 	pal := p.host.colors()
-	t := pal.theme
+	t := pal.Theme
 	seg := ui.SegmentedBase(c, at, len(names))
-	seg.Track.Label(label).FillWidth().Gap(2).Padding(2).Radius(rControl).Background(t.SurfacePressed).Children(func() {
+	seg.Track.Label(label).FillWidth().Gap(2).Padding(2).Radius(kit.RControl).Background(t.SurfacePressed).Children(func() {
 		for i, name := range names {
-			s := seg.Segment(i).Grow(1).Shrink(1).Height(hSeg).Center().Padding(0, 10).Radius(rXs)
+			s := seg.Segment(i).Grow(1).Shrink(1).Height(kit.HSeg).Center().Padding(0, 10).Radius(kit.RXs)
 			color, weight := t.TextMuted, 400
 			if i == *at {
-				pal.raise.on(s.Background(pal.canvas))
+				pal.Raise.On(s.Background(pal.Canvas))
 				color, weight = t.Text, 600
 			}
-			s.Children(func() { ui.Text(c, name).FontSize(fsControl).FontWeight(weight).TextColor(color).SingleLine() })
+			s.Children(func() { ui.Text(c, name).FontSize(kit.FsControl).FontWeight(weight).TextColor(color).SingleLine() })
 		}
 	})
 }
@@ -395,17 +396,17 @@ func (p *phonePanel) paint(painter *ui.Painter, r ui.Rect) {
 	p.ox, p.oy, p.scale = (r.W-wfull*k)/2, (r.H-hfull*k)/2, k
 	p.body = ui.Rect{X: pad + 1 + phoneTextInset, Y: pad + 1 + phoneStatusHeight + phoneTextTop, W: p.TextWidth, H: p.PageHeight}
 	light, dark := p.host.phoneColors()
-	bg, ink, muted, active, hover := light.canvas, light.ink, light.faint, light.theme.SurfacePressed, light.theme.SurfaceHover
+	bg, ink, muted, active, hover := light.Canvas, light.Ink, light.Faint, light.Theme.SurfacePressed, light.Theme.SurfaceHover
 	if p.prefs.Theme == "night" {
-		bg, ink, muted, active, hover = dark.canvas, dark.ink, dark.faint, dark.theme.SurfacePressed, dark.theme.SurfaceHover
+		bg, ink, muted, active, hover = dark.Canvas, dark.Ink, dark.Faint, dark.Theme.SurfacePressed, dark.Theme.SurfaceHover
 	}
 	if p.prefs.Theme == "eye" {
-		bg = light.phoneEye
+		bg = light.PhoneEye
 	}
 	p.pick, p.caret = p.pick[:0], ui.Rect{}
 	painter.Clip(r, 0, func() {
 		painter.Transform(ui.Scaling(k, k).Then(ui.Translation(r.X+p.ox, r.Y+p.oy)), 0, 0, func() {
-			painter.Fill(ui.Rect{W: wfull, H: hfull}, dark.theme.Border, radius)
+			painter.Fill(ui.Rect{W: wfull, H: hfull}, dark.Theme.Border, radius)
 			screen := ui.Rect{X: pad + 1, Y: pad + 1, W: w, H: h}
 			innerRadius := float32(0)
 			if !p.prefs.NoFrame {
@@ -426,7 +427,7 @@ func (p *phonePanel) paint(painter *ui.Painter, r ui.Rect) {
 				footSize := phoneFootSizeEM * fs
 				foot := ui.Rect{X: screen.X + phoneTextInset, Y: screen.Y + h - phoneFootHeight, W: w - 2*phoneTextInset, H: phoneFootHeight}
 				painter.Clip(foot, 0, func() {
-					painter.Text(foot.X, foot.Y+8, clip(p.title, 20), footSize, muted)
+					painter.Text(foot.X, foot.Y+8, kit.Clip(p.title, 20), footSize, muted)
 				})
 				if p.prefs.Mode == "flip" {
 					at := fmt.Sprintf("%d/%d", p.at+1, p.Pages)
@@ -501,9 +502,9 @@ func (p *phonePanel) paintText(painter *ui.Painter, ink, active, hover ui.Color)
 				x0, x1 := sh.X(l.Line, lo), sh.X(l.Line, hi)
 				pick := ui.Rect{X: x + x0, Y: y + 2, W: x1 - x0, H: sh.LineHeight - 4}
 				p.pick = append(p.pick, pick)
-				selection := p.host.colors().theme.Selection
+				selection := p.host.colors().Theme.Selection
 				if !ed.Focused() {
-					selection = p.host.colors().theme.TextMuted.Alpha(0.2)
+					selection = p.host.colors().Theme.TextMuted.Alpha(0.2)
 				}
 				painter.Fill(pick, selection, 0)
 			}

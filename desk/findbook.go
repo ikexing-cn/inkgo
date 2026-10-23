@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
-
+	"writer/desk/kit"
 	"writer/editor"
 	"writer/internal/textclip"
 	"writer/workspace"
@@ -74,7 +74,7 @@ func around(text, q string, n int) string {
 // bookResults lists the chapters where the query occurs; choosing one
 // opens it with its first match selected.
 func (a *App) bookResults(c *ui.Context) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	w := &a.write
 	if w.query == "" {
 		return
@@ -92,14 +92,14 @@ func (a *App) bookResults(c *ui.Context) {
 		total += h.Count
 	}
 	if len(hits) == 0 {
-		ui.Text(c, "全书未找到").FontSize(fsNote).TextColor(a.pal.faint)
+		ui.Text(c, "全书未找到").FontSize(kit.FsNote).TextColor(a.pal.Faint)
 		return
 	}
-	ui.Textf(c, "全书 %d 章、共 %d 处", len(hits), total).FontSize(fsNote).TextColor(t.TextMuted)
+	ui.Textf(c, "全书 %d 章、共 %d 处", len(hits), total).FontSize(kit.FsNote).TextColor(t.TextMuted)
 	ui.Scroll(c.Key("bookhits")).FillWidth().MaxHeight(200).Children(func() {
 		ui.Column(c).FillWidth().Gap(2).Children(func() {
 			for _, h := range hits {
-				row := ui.ButtonBase(c.Key(h.ID)).Column().AlignItems(ui.Start).FillWidth().Gap(2).Padding(6, 8).Radius(rControl).Label("全书结果-" + h.Title)
+				row := ui.ButtonBase(c.Key(h.ID)).Column().AlignItems(ui.Start).FillWidth().Gap(2).Padding(6, 8).Radius(kit.RControl).Label("全书结果-" + h.Title)
 				if h.ID == w.node {
 					row.Background(t.SurfacePressed)
 				} else if row.Hovered() {
@@ -107,10 +107,10 @@ func (a *App) bookResults(c *ui.Context) {
 				}
 				row.Children(func() {
 					ui.Row(c).FillWidth().Gap(8).Children(func() {
-						ui.Text(c, h.Title).FontSize(fsControl).FontWeight(600).SingleLine().Ellipsis("…").Shrink(1)
-						ui.Textf(c, "%d 处", h.Count).FontSize(fsNote).TextColor(a.pal.faint).Shrink(0)
+						ui.Text(c, h.Title).FontSize(kit.FsControl).FontWeight(600).SingleLine().Ellipsis("…").Shrink(1)
+						ui.Textf(c, "%d 处", h.Count).FontSize(kit.FsNote).TextColor(a.pal.Faint).Shrink(0)
 					})
-					ui.Text(c, h.Around).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…")
+					ui.Text(c, h.Around).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…")
 				})
 				if row.Clicked() {
 					a.openHit(h.ID)
@@ -139,7 +139,7 @@ func (a *App) openHit(id string) {
 // confirmBookReplace asks before a replace that reaches chapters the undo
 // cannot.
 func (a *App) confirmBookReplace(c *ui.Context) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	w := &a.write
 	total := 0
 	for _, h := range w.hits {
@@ -149,13 +149,13 @@ func (a *App) confirmBookReplace(c *ui.Context) {
 	if w.with == "" {
 		with = "空（删除）"
 	}
-	ui.Row(c).FillWidth().Gap(8).Padding(8, 10).Radius(rCard).AlignItems(ui.Center).Background(t.Danger.Alpha(0.08)).Children(func() {
+	ui.Row(c).FillWidth().Gap(8).Padding(8, 10).Radius(kit.RCard).AlignItems(ui.Center).Background(t.Danger.Alpha(0.08)).Children(func() {
 		ui.Textf(c, "将全书 %d 章中的 %d 处“%s”替换为%s？仅修改正文，设定和章纲不变；各章替换前均保存快照。", len(w.hits), total, w.query, with).
-			FontSize(fsNote).LineHeight(lhBody).Grow(1).Shrink(1)
-		if a.pal.secondary(c, "取消").Clicked() {
+			FontSize(kit.FsNote).LineHeight(kit.LhBody).Grow(1).Shrink(1)
+		if a.pal.Secondary(c, "取消").Clicked() {
 			w.sure = false
 		}
-		if a.pal.danger(c, "确定替换").Clicked() {
+		if a.pal.Danger(c, "确定替换").Clicked() {
 			a.replaceInBook()
 		}
 	})
@@ -209,5 +209,5 @@ func (a *App) replaceInBook() {
 	if here {
 		notice += "；本章也可直接撤销"
 	}
-	a.status.did(notice)
+	a.status.Did(notice)
 }

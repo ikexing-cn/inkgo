@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"writer/desk/kit"
 	"writer/internal/testshot"
 	"writer/workspace"
 )
@@ -82,7 +83,7 @@ func TestTheWorkShowsWhatItSpent(t *testing.T) {
 	if texts := tt.Texts(); indexOf(texts, "检查 · 已删除的章节") > indexOf(texts, "讨论 · 灯为什么会灭") {
 		t.Fatal("not the newest first", texts)
 	}
-	if err := tt.Click("记录-" + when(at.Add(3*time.Minute), time.Now()) + " 检查 · 已删除的章节"); err != nil {
+	if err := tt.Click("记录-" + kit.When(at.Add(3*time.Minute), time.Now()) + " 检查 · 已删除的章节"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -91,7 +92,7 @@ func TestTheWorkShowsWhatItSpent(t *testing.T) {
 			t.Fatal(s, tt.Texts())
 		}
 	}
-	if err := tt.Click("记录-" + when(at.Add(2*time.Minute), time.Now()) + " 续写 · 第一章"); err != nil {
+	if err := tt.Click("记录-" + kit.When(at.Add(2*time.Minute), time.Now()) + " 续写 · 第一章"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

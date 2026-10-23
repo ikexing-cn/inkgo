@@ -11,6 +11,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/aiport"
+	"writer/desk/kit"
 	"writer/editor"
 	"writer/tokens"
 	"writer/workspace"
@@ -118,7 +119,7 @@ func (a *App) compacted() (int, int) {
 // digest is a line where the talk above it was compacted, which opens the
 // digest that stands for it: to read, not to change.
 func (a *App) digest(c *ui.Context, d workspace.Event, through int) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	turns := 0
 	for _, e := range a.events[:through+1] {
 		if e.Role == workspace.RoleAssistant {
@@ -134,16 +135,16 @@ func (a *App) digest(c *ui.Context, d workspace.Event, through int) {
 	ui.Column(c.Key(d.ID)).FillWidth().AlignItems(ui.Center).Gap(8).Children(func() {
 		label := fmt.Sprintf("以上 %d 轮已整理成摘要", turns)
 		head := ui.ButtonBase(c).Row().Gap(4).AlignItems(ui.Center).Label(label)
-		fg, mark := a.pal.faint, icChevron
+		fg, mark := a.pal.Faint, kit.IcChevron
 		if head.Hovered() {
-			fg = a.pal.ink
+			fg = a.pal.Ink
 		}
 		if *open {
-			mark = icChevronDown
+			mark = kit.IcChevronDown
 		}
 		head.Children(func() {
-			ui.Text(c, label).FontSize(fsNote).TextColor(fg)
-			glyph(c, mark, iconXs, fg)
+			ui.Text(c, label).FontSize(kit.FsNote).TextColor(fg)
+			kit.Glyph(c, mark, kit.IconXs, fg)
 		})
 		if head.Clicked() {
 			*open = !*open
@@ -151,16 +152,16 @@ func (a *App) digest(c *ui.Context, d workspace.Event, through int) {
 		if !*open {
 			return
 		}
-		ui.Column(c).FillWidth().Padding(12, 14).Gap(8).Radius(rCard).Background(a.pal.side).Border(1, a.pal.line).Children(func() {
+		ui.Column(c).FillWidth().Padding(12, 14).Gap(8).Radius(kit.RCard).Background(a.pal.Side).Border(1, a.pal.Line).Children(func() {
 			for _, s := range workspace.DigestSections(d.Text) {
 				ui.Column(c).FillWidth().Children(func() {
 					if s[0] != "" {
-						ui.Text(c, s[0]).FontSize(fsNote).FontWeight(600).LineHeight(lhBody).FillWidth()
+						ui.Text(c, s[0]).FontSize(kit.FsNote).FontWeight(600).LineHeight(kit.LhBody).FillWidth()
 					}
 					a.markdown(c, s[1], digestText)
 				})
 			}
-			ui.Text(c, "摘要由 AI 写成，有误可在对话中指出。").FontSize(fsNote).LineHeight(lhBody).TextColor(t.TextMuted).FillWidth()
+			ui.Text(c, "摘要由 AI 写成，有误可在对话中指出。").FontSize(kit.FsNote).LineHeight(kit.LhBody).TextColor(t.TextMuted).FillWidth()
 		})
 	})
 }
@@ -188,21 +189,21 @@ func (a *App) lastMessage() string {
 }
 
 func (a *App) chatTop(c *ui.Context) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	words := a.titles[a.session]
-	ui.Row(c).FillWidth().Height(titleHeight).Padding(0, 24).Gap(8).AlignItems(ui.Center).Shrink(0).Children(func() {
-		ui.Text(c, "总讨论").FontSize(fsControl).TextColor(t.TextMuted)
-		glyph(c, icChevron, iconSm, a.pal.faint)
-		ui.Text(c, words).FontSize(fsBody).FontWeight(600).SingleLine().Ellipsis("…").Shrink(1)
+	ui.Row(c).FillWidth().Height(kit.TitleHeight).Padding(0, 24).Gap(8).AlignItems(ui.Center).Shrink(0).Children(func() {
+		ui.Text(c, "总讨论").FontSize(kit.FsControl).TextColor(t.TextMuted)
+		kit.Glyph(c, kit.IcChevron, kit.IconSm, a.pal.Faint)
+		ui.Text(c, words).FontSize(kit.FsBody).FontWeight(600).SingleLine().Ellipsis("…").Shrink(1)
 		ui.Spacer(c)
 		if n := a.spoken(); n > 0 {
-			ui.Textf(c, "%d 条发言", n).FontSize(fsNote).TextColor(a.pal.faint)
+			ui.Textf(c, "%d 条发言", n).FontSize(kit.FsNote).TextColor(a.pal.Faint)
 		}
-		if a.doc.hidden && iconButton(c, icPanel, "展开设定", ui.Color{}).Tooltip("展开设定文档").Clicked() {
+		if a.doc.hidden && kit.IconButton(c, kit.IcPanel, "展开设定", ui.Color{}).Tooltip("展开设定文档").Clicked() {
 			a.setDocHidden(false)
 		}
 	})
-	a.pal.hairline(c)
+	a.pal.Hairline(c)
 }
 
 // openUnit is what the writing page has open: a chapter, or a folder,
@@ -228,7 +229,7 @@ func (a *App) switchSession(id string) {
 }
 
 func (a *App) emptyChat(c *ui.Context) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	title, about := "从一个初步的想法开始", "写下初步的想法。讨论中定下的内容，AI 会当场记进右侧的设定文档；已确定的设定将作为后续讨论的依据，已放弃的不再提及。"
 	starts := []string{"我想写一个总在下雨的城市", "主角有个说不出口的秘密", "这个故事的冲突在哪"}
 	if len(a.book.Setting().Entries) > 0 { // a work begun goes on from what it has
@@ -240,25 +241,25 @@ func (a *App) emptyChat(c *ui.Context) {
 		starts = []string{"这一" + unit + "的节奏怎么样", "接下来可以怎么写", "人物的动机说得通吗"}
 		// In the column they are rows, as its lists are.
 		ui.Column(c).FillWidth().Margin(0, -10).Children(func() {
-			a.paneGroup(c, "示例问题")
+			a.pal.PaneGroup(c, "示例问题")
 			for _, s := range starts {
-				if a.paneRow(c, s, s, "", "", "", false).Clicked() {
+				if a.pal.PaneRow(c, s, s, "", "", "", false).Clicked() {
 					a.input, a.focusTalk = s, true
 				}
 			}
 		})
 		return
 	}
-	a.pal.blank(c, icSparkle, title, about, func() {
+	a.pal.Blank(c, kit.IcSparkle, title, about, func() {
 		ui.Row(c).Gap(8).Padding(10, 0, 0, 0).Wrap().Justify(ui.Center).Children(func() {
 			for _, s := range starts {
-				b := ui.ButtonBase(c).Padding(6, 12).Radius(rRound).Border(1, t.Border)
+				b := ui.ButtonBase(c).Padding(6, 12).Radius(kit.RRound).Border(1, t.Border)
 				fg := t.TextMuted
 				if b.Hovered() {
 					b.Background(t.SurfaceHover)
 					fg = t.Text
 				}
-				b.Children(func() { ui.Text(c, s).FontSize(fsControl).TextColor(fg) })
+				b.Children(func() { ui.Text(c, s).FontSize(kit.FsControl).TextColor(fg) })
 				if b.Clicked() {
 					a.input, a.focusTalk = s, true
 				}
@@ -281,21 +282,21 @@ func (a *App) answered(userID string) bool {
 const replyIndent = 24 + 12
 
 func (a *App) aiMark(c *ui.Context) {
-	ui.Box(c).Size(hControlSm, hControlSm).Radius(rRound).Background(a.pal.theme.SurfacePressed).Center().Shrink(0).Children(func() {
-		glyph(c, icSparkle, iconSm, a.pal.theme.TextMuted)
+	ui.Box(c).Size(kit.HControlSm, kit.HControlSm).Radius(kit.RRound).Background(a.pal.Theme.SurfacePressed).Center().Shrink(0).Children(func() {
+		kit.Glyph(c, kit.IcSparkle, kit.IconSm, a.pal.Theme.TextMuted)
 	})
 }
 
 func (a *App) userBubble(c *ui.Context, text string) {
-	ui.Column(c).MaxWidthPercent(82).Padding(8, 12).Radius(rDialog).Background(a.pal.theme.SurfacePressed).Children(func() {
-		ui.Text(c, text).FontSize(fsRead).LineHeight(lhLoose).Selectable()
+	ui.Column(c).MaxWidthPercent(82).Padding(8, 12).Radius(kit.RDialog).Background(a.pal.Theme.SurfacePressed).Children(func() {
+		ui.Text(c, text).FontSize(kit.FsRead).LineHeight(kit.LhLoose).Selectable()
 	})
 }
 
 // message shows the author's words as a bubble on the right and the AI's as
 // plain prose, the way a reply reads in a letter. Its actions fade in on hover.
 func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	user := m.Role == workspace.RoleUser
 	align := ui.Start
 	if user {
@@ -326,7 +327,7 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 					}
 					a.markdown(c, m.Text, replyText)
 					if m.Capped {
-						ui.Text(c, "已达到本次查阅上限，以上回答仅依据已查到的内容。").FontSize(fsNote).TextColor(t.TextMuted).FillWidth()
+						ui.Text(c, "已达到本次查阅上限，以上回答仅依据已查到的内容。").FontSize(kit.FsNote).TextColor(t.TextMuted).FillWidth()
 					}
 				})
 			})
@@ -340,7 +341,7 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 		}
 		acts.Children(func() {
 			if !user && !m.At.IsZero() {
-				foot := when(m.At, time.Now())
+				foot := kit.When(m.At, time.Now())
 				if who := a.replyLabel(m.Model, m.Effort); who != "" {
 					foot += " · " + who
 				}
@@ -350,22 +351,22 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 						foot += " · " + cost
 					}
 				}
-				ui.Text(c, foot).FontSize(fsSmall).TextColor(a.pal.faint).Padding(0, 6, 0, 0)
+				ui.Text(c, foot).FontSize(kit.FsSmall).TextColor(a.pal.Faint).Padding(0, 6, 0, 0)
 			}
-			if iconButton(c, icQuote, "摘取-"+m.ID, ui.Color{}).Tooltip("摘取原文").KeepFocus().Disabled(a.held()).Clicked() {
+			if kit.IconButton(c, kit.IcQuote, "摘取-"+m.ID, ui.Color{}).Tooltip("摘取原文").KeepFocus().Disabled(a.held()).Clicked() {
 				a.openSource(m, 0, 0)
 			}
 			if !user {
 				// Its Markdown, which keeps its structure pasted elsewhere.
-				if iconButton(c, icCopy, "复制-"+m.ID, ui.Color{}).Tooltip("复制全文").Clicked() {
+				if kit.IconButton(c, kit.IcCopy, "复制-"+m.ID, ui.Color{}).Tooltip("复制全文").Clicked() {
 					c.WriteClipboard(m.Text)
 				}
 				on := a.contextReply == m.ID
 				color := ui.Color{}
 				if on {
-					color = a.pal.ink
+					color = a.pal.Ink
 				}
-				if iconButton(c, icEye, "上下文-"+m.ID, color).Tooltip("AI 参考内容").Clicked() {
+				if kit.IconButton(c, kit.IcEye, "上下文-"+m.ID, color).Tooltip("AI 参考内容").Clicked() {
 					if on {
 						a.contextReply = ""
 					} else {
@@ -374,14 +375,14 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 				}
 			}
 			if user && !m.At.IsZero() {
-				ui.Text(c, when(m.At, time.Now())).FontSize(fsSmall).TextColor(a.pal.faint).Padding(0, 0, 0, 6)
+				ui.Text(c, kit.When(m.At, time.Now())).FontSize(kit.FsSmall).TextColor(a.pal.Faint).Padding(0, 0, 0, 6)
 			}
 		})
 		if user && !a.answered(m.ID) && !a.replying() {
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
-				glyph(c, icAlert, iconSm, t.Warning)
-				ui.Text(c, "该消息尚未收到回复").FontSize(fsNote).TextColor(t.Warning)
-				if a.pal.ghost(c, "重试回复", ui.Color{}).Disabled(a.busy != "").Clicked() {
+				kit.Glyph(c, kit.IcAlert, kit.IconSm, t.Warning)
+				ui.Text(c, "该消息尚未收到回复").FontSize(kit.FsNote).TextColor(t.Warning)
+				if a.pal.Ghost(c, "重试回复", ui.Color{}).Disabled(a.busy != "").Clicked() {
 					a.retry(c, m.ID)
 				}
 			})
@@ -397,7 +398,7 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 // thinking shows a turn in flight as it streams: the reply forming under
 // its reasoning and what it looked up, which stays open while it looks.
 func (a *App) thinking(c *ui.Context) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	if a.pending != "" && !a.saved() {
 		ui.Column(c).FillWidth().AlignItems(ui.End).Gap(8).Children(func() {
 			for n, q := range a.pendingQuotes {
@@ -438,8 +439,8 @@ func (a *App) thinking(c *ui.Context) {
 			}
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
 				ui.Spinner(c)
-				ui.Text(c, status).FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1)
-				if a.pal.ghost(c, "取消请求", ui.Color{}).Clicked() && a.cancel != nil {
+				ui.Text(c, status).FontSize(kit.FsControl).TextColor(t.TextMuted).Grow(1).Shrink(1)
+				if a.pal.Ghost(c, "取消请求", ui.Color{}).Clicked() && a.cancel != nil {
 					a.cancel()
 				}
 			})
@@ -461,7 +462,7 @@ func (a *App) saved() bool {
 // thought folds what a model reasoned before it answered; it stays open
 // while the reasoning is all that is streaming.
 func (a *App) thought(c *ui.Context, key, label, reasoning string, running bool) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	open := a.thoughts[key]
 	if open == nil || running {
 		v := running
@@ -473,9 +474,9 @@ func (a *App) thought(c *ui.Context, key, label, reasoning string, running bool)
 	}
 	ui.Collapsible(c, label, open, func() {
 		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Stretch).Padding(4, 0, 2, 2).Children(func() {
-			ui.Box(c).Width(2).Radius(rRound).Background(a.pal.line).Shrink(0)
+			ui.Box(c).Width(2).Radius(kit.RRound).Background(a.pal.Line).Shrink(0)
 			if !running {
-				ui.Text(c, reasoning).FontSize(fsControl).LineHeight(lhLoose).TextColor(t.TextMuted).Selectable().Grow(1).Shrink(1)
+				ui.Text(c, reasoning).FontSize(kit.FsControl).LineHeight(kit.LhLoose).TextColor(t.TextMuted).Selectable().Grow(1).Shrink(1)
 				return
 			}
 			// While it streams, the paragraphs written keep their layout
@@ -484,7 +485,7 @@ func (a *App) thought(c *ui.Context, key, label, reasoning string, running bool)
 				cut := strings.LastIndex(reasoning, "\n") + 1
 				for _, s := range []string{strings.TrimSuffix(reasoning[:cut], "\n"), reasoning[cut:]} {
 					if s != "" {
-						ui.Text(c, s).FontSize(fsControl).LineHeight(lhLoose).TextColor(t.TextMuted).FillWidth()
+						ui.Text(c, s).FontSize(kit.FsControl).LineHeight(kit.LhLoose).TextColor(t.TextMuted).FillWidth()
 					}
 				}
 			})
@@ -527,7 +528,7 @@ func (a *App) turnCost(events []workspace.Event, reply workspace.Event) string {
 // came back. What it noted links to the entry. It stays open while the
 // reply looks.
 func (a *App) looked(c *ui.Context, key string, found []workspace.Look, running bool) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	open := a.thoughts[key]
 	if open == nil || running {
 		v := running
@@ -544,19 +545,19 @@ func (a *App) looked(c *ui.Context, key string, found []workspace.Look, running 
 	}
 	ui.Collapsible(c, label, open, func() {
 		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Stretch).Padding(4, 0, 2, 2).Children(func() {
-			ui.Box(c).Width(2).Radius(rRound).Background(a.pal.line).Shrink(0)
+			ui.Box(c).Width(2).Radius(kit.RRound).Background(a.pal.Line).Shrink(0)
 			ui.Column(c).Grow(1).Shrink(1).Gap(8).Children(func() {
 				for n, l := range found {
 					if r := l.Result.Revision; r != "" {
-						if a.paneLink(c, l.Label, "查看设定", fmt.Sprintf("查看设定-%s-%d", key, n)) {
+						if a.pal.PaneLink(c, l.Label, "查看设定", fmt.Sprintf("查看设定-%s-%d", key, n)) {
 							a.showNoted(r)
 						}
 						continue
 					}
 					ui.Column(c).FillWidth().Gap(2).Children(func() {
-						ui.Text(c, l.Label).FontSize(fsControl).TextColor(t.TextMuted).Selectable().FillWidth()
+						ui.Text(c, l.Label).FontSize(kit.FsControl).TextColor(t.TextMuted).Selectable().FillWidth()
 						if l.Result.Text != "" {
-							ui.Text(c, l.Result.Text).FontSize(fsNote).LineHeight(lhBody).TextColor(a.pal.faint).Selectable().FillWidth()
+							ui.Text(c, l.Result.Text).FontSize(kit.FsNote).LineHeight(kit.LhBody).TextColor(a.pal.Faint).Selectable().FillWidth()
 						}
 					})
 				}
@@ -624,7 +625,7 @@ var partNames = map[string]string{
 // turn took more: each part's tokens as estimated, what the provider
 // counted, and the setting, whole or as its index.
 func (a *App) audit(c *ui.Context, m workspace.Event) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	var setting, beside []workspace.ContextItem
 	for _, item := range m.Context {
 		if item.ID == "" {
@@ -635,18 +636,18 @@ func (a *App) audit(c *ui.Context, m workspace.Event) {
 	}
 	index := m.Sent != nil && m.Sent.Part(workspace.PartIndex) > 0
 	note := func(s string) {
-		ui.Text(c, s).FontSize(fsNote).TextColor(t.TextMuted).Selectable().FillWidth()
+		ui.Text(c, s).FontSize(kit.FsNote).TextColor(t.TextMuted).Selectable().FillWidth()
 	}
 	row := func(text string, tick bool) {
 		ui.Row(c).FillWidth().Gap(8).Children(func() {
 			if tick {
-				glyph(c, icCheck, iconSm, t.Success)
+				kit.Glyph(c, kit.IcCheck, kit.IconSm, t.Success)
 			}
-			ui.Text(c, text).FontSize(fsNote).LineHeight(lhBody).Selectable().Grow(1).Shrink(1)
+			ui.Text(c, text).FontSize(kit.FsNote).LineHeight(kit.LhBody).Selectable().Grow(1).Shrink(1)
 		})
 	}
 	ui.Column(c).FillWidth().Padding(0, 0, 0, replyIndent).Children(func() {
-		ui.Column(c).FillWidth().Padding(12, 14).Gap(8).Radius(rCard).Background(a.pal.side).Border(1, a.pal.line).Children(func() {
+		ui.Column(c).FillWidth().Padding(12, 14).Gap(8).Radius(kit.RCard).Background(a.pal.Side).Border(1, a.pal.Line).Children(func() {
 			if s := m.Sent; s != nil {
 				total := 0
 				var parts []string
@@ -658,7 +659,7 @@ func (a *App) audit(c *ui.Context, m workspace.Event) {
 					}
 					parts = append(parts, name+" "+tokens.Round(p.Tokens))
 				}
-				ui.Textf(c, "本次发送约 %s token", tokens.Round(total)).FontSize(fsNote).FontWeight(600)
+				ui.Textf(c, "本次发送约 %s token", tokens.Round(total)).FontSize(kit.FsNote).FontWeight(600)
 				if n := workspace.Requests(a.events, m); n > 1 { // what it says is of the request that replied
 					note(fmt.Sprintf("这一轮共 %d 次请求，这是最后一次。", n))
 				}
@@ -683,7 +684,7 @@ func (a *App) audit(c *ui.Context, m workspace.Event) {
 			case m.Sent != nil && m.Sent.AsOf != "": // a talk that keeps to a chapter has the setting as of it
 				head = fmt.Sprintf("附带 %d 条设定，按「%s」时的样子", len(setting), m.Sent.AsOf)
 			}
-			ui.Text(c, head).FontSize(fsNote).FontWeight(600)
+			ui.Text(c, head).FontSize(kit.FsNote).FontWeight(600)
 			if index {
 				note("目录只有分类、名字和第一句；需要时 AI 会查全文。")
 			}
@@ -697,13 +698,13 @@ func (a *App) audit(c *ui.Context, m workspace.Event) {
 				row(item.Text, !index)
 				// How the entry reads from chapters on, as it was sent under it.
 				for _, later := range item.Changes {
-					ui.Text(c, later).FontSize(fsNote).LineHeight(lhBody).TextColor(t.TextMuted).Selectable().FillWidth().Padding(0, 0, 0, iconSm+8)
+					ui.Text(c, later).FontSize(kit.FsNote).LineHeight(kit.LhBody).TextColor(t.TextMuted).Selectable().FillWidth().Padding(0, 0, 0, kit.IconSm+8)
 				}
 			}
 			for _, item := range m.Omitted {
 				ui.Row(c).FillWidth().Gap(8).Children(func() {
-					glyph(c, icX, iconSm, a.pal.faint)
-					ui.Text(c, item.Text+" · "+item.Reason).FontSize(fsNote).TextColor(t.TextMuted).Selectable().Grow(1).Shrink(1)
+					kit.Glyph(c, kit.IcX, kit.IconSm, a.pal.Faint)
+					ui.Text(c, item.Text+" · "+item.Reason).FontSize(kit.FsNote).TextColor(t.TextMuted).Selectable().Grow(1).Shrink(1)
 				})
 			}
 		})
@@ -713,14 +714,14 @@ func (a *App) audit(c *ui.Context, m workspace.Event) {
 // composer is one rounded field: the text, then the model it goes to and a
 // round send button. It grows with the text up to a few lines.
 func (a *App) composer(c *ui.Context) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	work := a.Store.Work()
 	ready := work.Discussion.Provider != "" && work.Discussion.Model != ""
 	side := a.page == pageWrite
 	// The chip names the model and effort the next turn goes to, and
 	// opens a menu to change either; its tooltip says where the words go.
 	chip := func() {
-		chip := ui.ButtonBase(c).Row().Gap(6).AlignItems(ui.Center).Padding(4, 8).Radius(rControl).Label("当前模型").Tooltip(a.destination(work.Discussion)).Shrink(1).Disabled(a.held())
+		chip := ui.ButtonBase(c).Row().Gap(6).AlignItems(ui.Center).Padding(4, 8).Radius(kit.RControl).Label("当前模型").Tooltip(a.destination(work.Discussion)).Shrink(1).Disabled(a.held())
 		if chip.Hovered() || a.menuOpen("讨论模型") {
 			chip.Background(t.SurfaceHover)
 		}
@@ -728,36 +729,36 @@ func (a *App) composer(c *ui.Context) {
 			if ready {
 				color := t.Success
 				if !isLocal(a.providerURL(work.Discussion.Provider)) {
-					color = a.pal.ink
+					color = a.pal.Ink
 				}
-				dot(c, color, 6)
-				ui.Text(c, work.Discussion.Model).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
-				ui.Text(c, a.ai.EffortLabel(work.Discussion.Effort)).FontSize(fsNote).TextColor(a.pal.faint).SingleLine()
+				kit.Dot(c, color, 6)
+				ui.Text(c, work.Discussion.Model).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
+				ui.Text(c, a.ai.EffortLabel(work.Discussion.Effort)).FontSize(kit.FsNote).TextColor(a.pal.Faint).SingleLine()
 			} else {
-				dot(c, t.Warning, 6)
-				ui.Text(c, "选择讨论模型").FontSize(fsNote).TextColor(t.Warning).SingleLine()
+				kit.Dot(c, t.Warning, 6)
+				ui.Text(c, "选择讨论模型").FontSize(kit.FsNote).TextColor(t.Warning).SingleLine()
 			}
-			glyph(c, icChevronUp, iconXs, a.pal.faint)
+			kit.Glyph(c, kit.IcChevronUp, kit.IconXs, a.pal.Faint)
 		})
 		a.dropMenu(c, chip, "讨论模型", func(panel ui.Element) {
 			panel.AttachTo(chip, ui.AnchorTopRight, ui.AnchorBottomRight).Margin(0, 0, 4, 0).Width(220)
 		}, func(m *menu) { a.modelMenu(m, work) })
 	}
 	send := func() {
-		can := a.busy == "" && trim(a.input) != ""
-		send := ui.ButtonBase(c).Size(hControl, hControl).Radius(rRound).Center().Label("发送").Tooltip("发送（" + cmdSend.keys() + "）").Disabled(!can).Shrink(0)
-		bg := a.pal.ink
+		can := a.busy == "" && kit.Trim(a.input) != ""
+		send := ui.ButtonBase(c).Size(kit.HControl, kit.HControl).Radius(kit.RRound).Center().Label("发送").Tooltip("发送（" + cmdSend.keys() + "）").Disabled(!can).Shrink(0)
+		bg := a.pal.Ink
 		if !can {
 			bg = t.SurfacePressed
 		} else if send.Hovered() {
 			bg = t.AccentHover
 		}
 		send.Background(bg).Children(func() {
-			fg := a.pal.onInk
+			fg := a.pal.OnInk
 			if !can {
-				fg = a.pal.faint
+				fg = a.pal.Faint
 			}
-			glyph(c, icSend, iconMd, fg)
+			kit.Glyph(c, kit.IcSend, kit.IconMd, fg)
 		})
 		if a.busy == "" && (send.Clicked() || cmdSend.pressed(c)) {
 			a.send(c)
@@ -766,7 +767,7 @@ func (a *App) composer(c *ui.Context) {
 	field := func(hint string, per, least int) ui.Element {
 		lines := strings.Count(a.input, "\n") + 1 + len([]rune(a.input))/per
 		h := float32(min(max(lines, least), 7)) * 25
-		in := ui.TextAreaBase(c, &a.input).Label("讨论输入").Placeholder(hint).Height(h).FontSize(fsRead).LineHeight(lhLoose).Disabled(a.held())
+		in := ui.TextAreaBase(c, &a.input).Label("讨论输入").Placeholder(hint).Height(h).FontSize(kit.FsRead).LineHeight(kit.LhLoose).Disabled(a.held())
 		if a.focusTalk { // after the words offered, to go on with them
 			n := utf8.RuneCountInString(a.input)
 			in.Focus().SetTextSelection(n, n)
@@ -781,7 +782,7 @@ func (a *App) composer(c *ui.Context) {
 	}
 	if side {
 		ui.Column(c).FillWidth().Gap(8).Children(func() {
-			box := ui.Column(c).FillWidth().Padding(10, 10, 10, 14).Gap(6).Radius(rDialog).Background(a.pal.canvas).Border(1, t.Border)
+			box := ui.Column(c).FillWidth().Padding(10, 10, 10, 14).Gap(6).Radius(kit.RDialog).Background(a.pal.Canvas).Border(1, t.Border)
 			if box.FocusWithin() {
 				box.BorderColor(t.TextMuted.Alpha(0.55))
 			}
@@ -802,7 +803,7 @@ func (a *App) composer(c *ui.Context) {
 				// A talk opened to draft or rewrite keeps to its chapter: there
 				// is nothing to choose.
 				if kept := a.keptTo(); kept != "" {
-					ui.Text(c, "跟着「"+a.nodeTitle(kept)+"」").FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1).
+					ui.Text(c, "跟着「"+a.nodeTitle(kept)+"」").FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1).
 						Tooltip("这段讨论附上的正文和设定都按这一章")
 				} else {
 					label, tip := "附上本章内容", "将章纲和光标前约 2000 字一并发送给 AI"
@@ -819,8 +820,8 @@ func (a *App) composer(c *ui.Context) {
 		})
 		return
 	}
-	box := ui.Column(c).FillWidth().MaxWidth(column).Padding(12, 12, 10, 16).Gap(6).Radius(rDialog).Background(a.pal.raised).Border(1, t.Border)
-	a.pal.raise.on(box)
+	box := ui.Column(c).FillWidth().MaxWidth(column).Padding(12, 12, 10, 16).Gap(6).Radius(kit.RDialog).Background(a.pal.Raised).Border(1, t.Border)
+	a.pal.Raise.On(box)
 	if box.FocusWithin() {
 		box.BorderColor(t.TextMuted.Alpha(0.55))
 	}
@@ -830,7 +831,7 @@ func (a *App) composer(c *ui.Context) {
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 			chip()
 			ui.Spacer(c)
-			ui.Text(c, modKey+"Enter").FontSize(fsSmall).TextColor(a.pal.faint)
+			ui.Text(c, modKey+"Enter").FontSize(kit.FsSmall).TextColor(a.pal.Faint)
 			send()
 		})
 	})
@@ -846,7 +847,7 @@ func (a *App) providerURL(id string) string {
 }
 
 func (a *App) send(c *ui.Context) {
-	if trim(a.input) == "" {
+	if kit.Trim(a.input) == "" {
 		return
 	}
 	input, quotes := a.input, a.quotes
@@ -933,7 +934,7 @@ func originChapter(events []workspace.Event) string {
 }
 
 func (a *App) openSource(m workspace.Event, start, end int) {
-	a.source = editor.New(editor.NewDoc(m.Text), editor.Options{ReadOnly: true, LineHeight: lhRead,
+	a.source = editor.New(editor.NewDoc(m.Text), editor.Options{ReadOnly: true, LineHeight: kit.LhRead,
 		OwnMenu: func(x, y float32) { a.menu = menuState{owner: "原文", x: x, y: y} }})
 	if end > start {
 		a.source.MoveTo(start, false)
@@ -945,11 +946,11 @@ func (a *App) openSource(m workspace.Event, start, end int) {
 }
 
 func (a *App) extraction(c *ui.Context) {
-	t := a.pal.theme
-	a.pal.modal(c, &a.sourceOpen, func() {
-		ui.Column(c).Width(dialogSource).Padding(dialogPad).Gap(16).Children(func() {
-			a.pal.dialogHead(c, "摘取原文", "拖选一段原文，作为已确定的设定加入正文。原文不会被修改。")
-			a.source.View(c).Height(220).FillWidth().Border(1, t.Border).Radius(rCard)
+	t := a.pal.Theme
+	a.pal.Modal(c, &a.sourceOpen, func() {
+		ui.Column(c).Width(kit.DialogSource).Padding(kit.DialogPad).Gap(16).Children(func() {
+			a.pal.DialogHead(c, "摘取原文", "拖选一段原文，作为已确定的设定加入正文。原文不会被修改。")
+			a.source.View(c).Height(220).FillWidth().Border(1, t.Border).Radius(kit.RCard)
 			start, end := a.source.Selection()
 			a.menuAt(c, "原文", func(m *menu) {
 				m.Item("复制").Hint(modKey + "C").Disabled(start == end).Do(func() { a.source.Copy() })
@@ -958,19 +959,19 @@ func (a *App) extraction(c *ui.Context) {
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
 				ui.Select(c, &a.sourceCategory, a.categoryNames()).Label("摘取分类").Width(140)
 				if start == end {
-					ui.Text(c, "尚未选中文字").FontSize(fsNote).TextColor(a.pal.faint)
+					ui.Text(c, "尚未选中文字").FontSize(kit.FsNote).TextColor(a.pal.Faint)
 				} else {
-					ui.Textf(c, "已选 %d 字", end-start).FontSize(fsNote).TextColor(a.pal.ink)
+					ui.Textf(c, "已选 %d 字", end-start).FontSize(kit.FsNote).TextColor(a.pal.Ink)
 				}
 				ui.Spacer(c)
-				if a.pal.ghost(c, "收起原文", ui.Color{}).Clicked() {
+				if a.pal.Ghost(c, "收起原文", ui.Color{}).Clicked() {
 					a.sourceOpen = false
 				}
-				if a.pal.primary(c, "加入设定").Disabled(a.held() || start == end).Clicked() {
+				if a.pal.Primary(c, "加入设定").Disabled(a.held() || start == end).Clicked() {
 					entry, err := a.ai.Extract(a.Store, a.session, a.sourceMessage, start, end, a.sourceCategory)
 					if err == nil {
 						a.sourceOpen = false
-						a.status.did("已加入设定正文")
+						a.status.Did("已加入设定正文")
 						err = a.refresh()
 						a.flash[entry.ID] = time.Now()
 					}

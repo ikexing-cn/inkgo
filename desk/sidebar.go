@@ -6,6 +6,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/kit"
 	"writer/workspace"
 )
 
@@ -18,20 +19,20 @@ func (a *App) loadTree() error {
 
 func nodeIcon(n *workspace.Node) *ui.SVG {
 	if n.Folder {
-		return icFolder
+		return kit.IcFolder
 	}
-	return icDoc
+	return kit.IcDoc
 }
 
 // chapterTree is the sidebar of the writing page.
 func (a *App) chapterTree(c *ui.Context) {
 	w := &a.write
 	ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(0, 4, 6, 10).Gap(2).Children(func() {
-		ui.Text(c, "章节").FontSize(fsNote).TextColor(a.pal.theme.TextMuted).Grow(1)
-		if iconButton(c, icFolderPlus, "新建文件夹", ui.Color{}).Clicked() {
+		ui.Text(c, "章节").FontSize(kit.FsNote).TextColor(a.pal.Theme.TextMuted).Grow(1)
+		if kit.IconButton(c, kit.IcFolderPlus, "新建文件夹", ui.Color{}).Clicked() {
 			a.newNode(true)
 		}
-		if iconButton(c, icPlus, "新建章节", ui.Color{}).Tooltip("新建章节（" + modKey + "N）").Clicked() {
+		if kit.IconButton(c, kit.IcPlus, "新建章节", ui.Color{}).Tooltip("新建章节（" + modKey + "N）").Clicked() {
 			a.newNode(false)
 		}
 	})
@@ -59,14 +60,14 @@ func (a *App) chapterTree(c *ui.Context) {
 
 // trashRow opens the trash.
 func (a *App) trashRow(c *ui.Context) {
-	t := a.pal.theme
-	b := ui.ButtonBase(c).Row().Grow(1).Shrink(1).Justify(ui.Start).AlignItems(ui.Center).Gap(10).Padding(8, 10).Radius(rControl).Label("回收站").KeepFocus()
+	t := a.pal.Theme
+	b := ui.ButtonBase(c).Row().Grow(1).Shrink(1).Justify(ui.Start).AlignItems(ui.Center).Gap(10).Padding(8, 10).Radius(kit.RControl).Label("回收站").KeepFocus()
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}
 	b.Children(func() {
-		glyph(c, icTrash, iconMd, t.TextMuted)
-		ui.Text(c, "回收站").FontSize(fsControl).TextColor(t.TextMuted)
+		kit.Glyph(c, kit.IcTrash, kit.IconMd, t.TextMuted)
+		ui.Text(c, "回收站").FontSize(kit.FsControl).TextColor(t.TextMuted)
 	})
 	if b.Clicked() {
 		a.openTrash()
@@ -74,31 +75,31 @@ func (a *App) trashRow(c *ui.Context) {
 }
 
 func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	w := &a.write
 	on := n.ID == w.node
 	if w.renaming == n.ID {
 		// The row stays a row, its icon and indent where they are, and the
 		// name is a box to type in. Enter settles it, and so does leaving the
 		// box; Esc leaves the name as it was.
-		row := ui.Row(c.Key("r-"+n.ID)).FillWidth().Height(hRow).AlignItems(ui.Center).Padding(0, 10, 0, 10+float32(depth)*20).Radius(rControl)
+		row := ui.Row(c.Key("r-"+n.ID)).FillWidth().Height(kit.HRow).AlignItems(ui.Center).Padding(0, 10, 0, 10+float32(depth)*20).Radius(kit.RControl)
 		if on {
 			row.Background(t.SurfacePressed)
 		}
 		row.Children(func() {
 			if n.Folder {
-				s := icChevronDown
+				s := kit.IcChevronDown
 				if w.folded[n.ID] {
-					s = icChevron
+					s = kit.IcChevron
 				}
-				glyph(c, s, iconXs, t.Text)
+				kit.Glyph(c, s, kit.IconXs, t.Text)
 			} else {
-				glyph(c, nodeIcon(n), iconSm, t.Text)
+				kit.Glyph(c, nodeIcon(n), kit.IconSm, t.Text)
 			}
 			// The box gives the row's gap of 6 back as its border and padding,
 			// so the words in it stand where the names of the other rows do.
-			ui.Row(c).Grow(1).Shrink(1).Height(hRow-6).AlignItems(ui.Center).Padding(0, 6-1).Radius(rXs).Background(a.pal.canvas).Border(1, a.pal.ink).Children(func() {
-				in := ui.TextInputBase(c, &w.title).Label("章节标题").Placeholder(w.titleWas).Grow(1).Shrink(1).FontSize(fsControl).AutoFocus()
+			ui.Row(c).Grow(1).Shrink(1).Height(kit.HRow-6).AlignItems(ui.Center).Padding(0, 6-1).Radius(kit.RXs).Background(a.pal.Canvas).Border(1, a.pal.Ink).Children(func() {
+				in := ui.TextInputBase(c, &w.title).Label("章节标题").Placeholder(w.titleWas).Grow(1).Shrink(1).FontSize(kit.FsControl).AutoFocus()
 				if w.titleAll {
 					w.titleAll = false
 					in.SetTextSelection(0, utf8.RuneCountInString(w.title))
@@ -120,13 +121,13 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 		})
 		return
 	}
-	row := ui.ButtonBase(c.Key("n-"+n.ID)).Row().FillWidth().Height(hRow).Justify(ui.Start).AlignItems(ui.Center).Gap(6).
-		Padding(0, 10, 0, 10+float32(depth)*20).Radius(rControl).Label("章节-" + n.Title)
+	row := ui.ButtonBase(c.Key("n-"+n.ID)).Row().FillWidth().Height(kit.HRow).Justify(ui.Start).AlignItems(ui.Center).Gap(6).
+		Padding(0, 10, 0, 10+float32(depth)*20).Radius(kit.RControl).Label("章节-" + n.Title)
 	row.Drag(dragNode(n.ID))
 	_, over := ui.DragOver[dragNode](row)
 	switch {
 	case over:
-		row.Background(a.pal.ink.Alpha(0.12))
+		row.Background(a.pal.Ink.Alpha(0.12))
 	case on:
 		row.Background(t.SurfacePressed)
 	case row.Hovered():
@@ -146,17 +147,17 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 		}
 		if n.Folder {
 			// A folder is told by its arrow, which also says it is open.
-			s := icChevronDown
+			s := kit.IcChevronDown
 			if w.folded[n.ID] {
-				s = icChevron
+				s = kit.IcChevron
 			}
-			glyph(c, s, iconXs, fg)
+			kit.Glyph(c, s, kit.IconXs, fg)
 		} else {
-			glyph(c, nodeIcon(n), iconSm, fg)
+			kit.Glyph(c, nodeIcon(n), kit.IconSm, fg)
 		}
-		ui.Text(c, n.Title).FontSize(fsControl).FontWeight(weight).TextColor(fg).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
+		ui.Text(c, n.Title).FontSize(kit.FsControl).FontWeight(weight).TextColor(fg).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 		if k := a.wordsIn(n); k > 0 {
-			ui.Text(c, strings.ReplaceAll(strings.TrimSuffix(words(k), "字"), " ", "")).FontSize(fsSmall).TextColor(a.pal.faint)
+			ui.Text(c, strings.ReplaceAll(strings.TrimSuffix(kit.Words(k), "字"), " ", "")).FontSize(kit.FsSmall).TextColor(a.pal.Faint)
 		}
 	})
 	a.contextMenu(c, row, "章节-"+n.ID, func(m *menu) { a.nodeMenu(m, n) })
@@ -265,15 +266,15 @@ func (a *App) dropOn(id string, target *workspace.Node) {
 func (a *App) rename(id string) {
 	w := &a.write
 	a.flush()
-	if trim(w.title) == "" {
+	if kit.Trim(w.title) == "" {
 		w.title = w.titleWas
 	}
 	// A whole numbered title typed after the number offered replaces it.
-	if rest, ok := strings.CutPrefix(w.title, w.offered); ok && w.offered != "" && workspace.TitleNumber(trim(rest)) != "" {
+	if rest, ok := strings.CutPrefix(w.title, w.offered); ok && w.offered != "" && workspace.TitleNumber(kit.Trim(rest)) != "" {
 		w.title = rest
 	}
 	w.offered, w.titleHeld = "", false
-	err := a.book.RenameChapter(id, trim(w.title))
+	err := a.book.RenameChapter(id, kit.Trim(w.title))
 	if err == nil {
 		w.renaming = ""
 	}

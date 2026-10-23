@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/kit"
 	"writer/tokens"
 	"writer/workspace"
 )
@@ -62,10 +63,10 @@ func costOf(rs ...workspace.Record) map[string]float64 {
 // prices built in. It is only to look at; nothing clears it. Under it, the
 // way to every request.
 func (a *App) spent(c *ui.Context) {
-	t := a.pal.theme
-	a.subhead(c, "本作品用量", "")
+	t := a.pal.Theme
+	a.pal.Subhead(c, "本作品用量", "")
 	if len(a.bk.records) == 0 {
-		ui.Text(c, "尚未使用 AI。").FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
+		ui.Text(c, "尚未使用 AI。").FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
 		return
 	}
 	all := 0
@@ -94,14 +95,14 @@ func (a *App) spent(c *ui.Context) {
 				cost = "无价格"
 			}
 			ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Center).Children(func() {
-				ui.Text(c, f.name).FontSize(fsControl).Width(150).Shrink(0).SingleLine()
-				ui.Text(c, used).FontSize(fsControl).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
-				ui.Text(c, cost).FontSize(fsControl).Shrink(0)
+				ui.Text(c, f.name).FontSize(kit.FsControl).Width(150).Shrink(0).SingleLine()
+				ui.Text(c, used).FontSize(kit.FsControl).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
+				ui.Text(c, cost).FontSize(kit.FsControl).Shrink(0)
 			})
 		}
 	})
 	ui.Row(c).FillWidth().Justify(ui.End).Children(func() {
-		if a.pal.ghost(c, fmt.Sprintf("查看全部记录（%d 次请求）", all), ui.Color{}).Clicked() {
+		if a.pal.Ghost(c, fmt.Sprintf("查看全部记录（%d 次请求）", all), ui.Color{}).Clicked() {
 			a.bk.log, a.bk.logOnly, a.bk.logOpen = true, 0, -1
 		}
 	})
@@ -113,26 +114,26 @@ func (a *App) spent(c *ui.Context) {
 // text sent is not kept, so not shown. The head stays above the lines as
 // they scroll.
 func (a *App) recordsView(c *ui.Context) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	names := []string{"全部"}
 	for _, f := range recordFeatures {
 		names = append(names, f.name)
 	}
 	ui.Column(c).FillWidth().Grow(1).Shrink(1).Gap(12).Children(func() {
 		ui.Row(c).FillWidth().Padding(12, 56, 0, 32).Shrink(0).AlignItems(ui.Center).Gap(12).Children(func() {
-			if a.pal.ghost(c, "‹ 本作品用量", ui.Color{}).Clicked() {
+			if a.pal.Ghost(c, "‹ 本作品用量", ui.Color{}).Clicked() {
 				a.bk.log = false
 			}
 			ui.Spacer(c)
 			was := a.bk.logOnly
-			a.pal.segments(c, &a.bk.logOnly, "按功能筛选", names)
+			a.pal.Segments(c, &a.bk.logOnly, "按功能筛选", names)
 			if a.bk.logOnly != was {
 				a.bk.logOpen = -1
 			}
 		})
 		rows := a.logRowsShown()
 		if len(rows) == 0 {
-			ui.Text(c, "没有这类请求。").FontSize(fsNote).TextColor(t.TextMuted).Padding(12, 56, 12, 32)
+			ui.Text(c, "没有这类请求。").FontSize(kit.FsNote).TextColor(t.TextMuted).Padding(12, 56, 12, 32)
 			return
 		}
 		now := time.Now()
@@ -164,11 +165,11 @@ func (a *App) logRowsShown() []int {
 // recordRow is one line of the AI record, opened on what it sent and what
 // the provider counted.
 func (a *App) recordRow(c *ui.Context, i int, now time.Time) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	r := a.bk.records[i]
-	a.pal.hairline(c)
+	a.pal.Hairline(c)
 	open := a.bk.logOpen == i
-	at, where, end, endColor := when(r.At, now), featureName(r.Feature)+" · "+a.recordWhere(r), "", t.TextMuted
+	at, where, end, endColor := kit.When(r.At, now), featureName(r.Feature)+" · "+a.recordWhere(r), "", t.TextMuted
 	switch r.Outcome {
 	case workspace.OutcomeDone:
 		end, endColor = "完成", t.Text
@@ -181,21 +182,21 @@ func (a *App) recordRow(c *ui.Context, i int, now time.Time) {
 	if cost == "" {
 		cost = "—"
 	}
-	row := ui.ButtonBase(c).Row().FillWidth().MinHeight(hRow+3).Gap(12).AlignItems(ui.Center).Padding(0, 6).Radius(rXs).Label("记录-" + at + " " + where)
+	row := ui.ButtonBase(c).Row().FillWidth().MinHeight(kit.HRow+3).Gap(12).AlignItems(ui.Center).Padding(0, 6).Radius(kit.RXs).Label("记录-" + at + " " + where)
 	if row.Hovered() {
 		row.Background(t.SurfaceHover)
 	}
 	row.Children(func() {
-		ui.Text(c, at).FontSize(fsControl).TextColor(t.TextMuted).Width(92).Shrink(0).SingleLine()
-		ui.Text(c, where).FontSize(fsControl).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
-		ui.Text(c, tokens.Round(r.Usage.Input+r.Usage.Output)).FontSize(fsControl).TextColor(t.TextMuted).Width(48).Shrink(0).SingleLine()
-		ui.Text(c, cost).FontSize(fsControl).TextColor(t.TextMuted).Width(76).Shrink(0).SingleLine()
-		ui.Text(c, end).FontSize(fsControl).TextColor(endColor).Width(120).Shrink(0).SingleLine().Ellipsis("…")
-		chevron := icChevron
+		ui.Text(c, at).FontSize(kit.FsControl).TextColor(t.TextMuted).Width(92).Shrink(0).SingleLine()
+		ui.Text(c, where).FontSize(kit.FsControl).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
+		ui.Text(c, tokens.Round(r.Usage.Input+r.Usage.Output)).FontSize(kit.FsControl).TextColor(t.TextMuted).Width(48).Shrink(0).SingleLine()
+		ui.Text(c, cost).FontSize(kit.FsControl).TextColor(t.TextMuted).Width(76).Shrink(0).SingleLine()
+		ui.Text(c, end).FontSize(kit.FsControl).TextColor(endColor).Width(120).Shrink(0).SingleLine().Ellipsis("…")
+		chevron := kit.IcChevron
 		if open {
-			chevron = icChevronDown
+			chevron = kit.IcChevronDown
 		}
-		glyph(c, chevron, iconXs, a.pal.faint)
+		kit.Glyph(c, chevron, kit.IconXs, a.pal.Faint)
 	})
 	if row.Clicked() {
 		a.bk.logOpen = i
@@ -212,9 +213,9 @@ func (a *App) recordRow(c *ui.Context, i int, now time.Time) {
 // the parts sent with their tokens as estimated, and what the provider
 // counted.
 func (a *App) recordMore(c *ui.Context, r workspace.Record) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	note := func(s string) {
-		ui.Text(c, s).FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody).Selectable().FillWidth()
+		ui.Text(c, s).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody).Selectable().FillWidth()
 	}
 	ui.Column(c).FillWidth().Padding(0, 6, 10, 6+92+12).Gap(2).Children(func() {
 		switch {
@@ -245,7 +246,7 @@ func (a *App) recordMore(c *ui.Context, r workspace.Record) {
 		}
 		note(used + "；输出 " + tokens.Round(r.Usage.Output))
 		if r.Outcome == workspace.OutcomeFailed {
-			ui.Text(c, r.Error).FontSize(fsNote).TextColor(t.Danger).LineHeight(lhBody).Selectable().FillWidth()
+			ui.Text(c, r.Error).FontSize(kit.FsNote).TextColor(t.Danger).LineHeight(kit.LhBody).Selectable().FillWidth()
 		}
 	})
 }

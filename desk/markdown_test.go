@@ -7,6 +7,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/markdown"
+	"writer/desk/kit"
 )
 
 // A digest names the entries its [N] stand for, as links that open them;
@@ -107,7 +108,7 @@ func TestMarkdownOptionsFollowThePalette(t *testing.T) {
 	a, _, _ := fixture(t)
 	reply, digest := a.markdownOptions(replyText), a.markdownOptions(digestText)
 	rt, dt := reply.Theme, digest.Theme
-	if rt.FontSize != fsRead || rt.LineHeight != lhRead || dt.FontSize != fsNote || dt.LineHeight != lhBody {
+	if rt.FontSize != kit.FsRead || rt.LineHeight != kit.LhRead || dt.FontSize != kit.FsNote || dt.LineHeight != kit.LhBody {
 		t.Fatal("reply and digest typography differ from their tokens")
 	}
 	if a.markdownOptions(replyText) != reply || a.markdownOptions(digestText) != digest || reply.Theme != rt || digest.Theme != dt {
@@ -121,7 +122,7 @@ func TestMarkdownOptionsFollowThePalette(t *testing.T) {
 		t.Fatal("themes did not follow the palette")
 	}
 	for _, th := range []*markdown.Theme{reply.Theme, digest.Theme} {
-		if th.Link != a.pal.ink || th.CodeBackground != a.pal.side || th.CodeBlockBackground != a.pal.side || th.CodeBlockBorder != a.pal.line || th.CodeBlockRadius != rControl || th.QuoteBar != a.pal.line || th.TableBorder != a.pal.line || th.Muted != a.pal.theme.TextMuted {
+		if th.Link != a.pal.Ink || th.CodeBackground != a.pal.Side || th.CodeBlockBackground != a.pal.Side || th.CodeBlockBorder != a.pal.Line || th.CodeBlockRadius != kit.RControl || th.QuoteBar != a.pal.Line || th.TableBorder != a.pal.Line || th.Muted != a.pal.Theme.TextMuted {
 			t.Fatal("Markdown colors differ from the palette")
 		}
 	}

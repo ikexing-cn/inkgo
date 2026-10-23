@@ -6,6 +6,7 @@ import (
 	"slices"
 	"testing"
 
+	"writer/desk/kit"
 	"writer/export"
 	"writer/workspace"
 )
@@ -38,7 +39,7 @@ func TestExportPlanChangesWithChoices(t *testing.T) {
 				if !ok {
 					t.Fatal(label)
 				}
-				tt.ClickAt(r.X+30, r.Y+r.H+6+hControl/2)
+				tt.ClickAt(r.X+30, r.Y+r.H+6+kit.HControl/2)
 			} else if err := tt.Click(label); err != nil {
 				t.Fatal(err, tt.Texts())
 			}

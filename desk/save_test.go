@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/kit"
 	"writer/workspace"
 )
 
@@ -49,7 +50,7 @@ func TestWritingSavesAsTheAuthorPauses(t *testing.T) {
 	if !tt.Focused("章节标题") {
 		t.Fatal("the name of a new chapter is not ready to type")
 	}
-	if box, ok := tt.Find("章节标题"); !ok || box.H > hRow {
+	if box, ok := tt.Find("章节标题"); !ok || box.H > kit.HRow {
 		t.Fatalf("the box for the name is higher than a row: %v", box)
 	}
 	tt.Type("第一章：雨夜")

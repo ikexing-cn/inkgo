@@ -38,7 +38,7 @@ func (a *App) saveNow() {
 		}
 	}
 	a.keepCaret()
-	a.status.did("已保存。停笔片刻也会自动保存")
+	a.status.Did("已保存。停笔片刻也会自动保存")
 }
 
 // saveText writes the text shown when it changed since the disk had it,
@@ -146,7 +146,7 @@ func (a *App) takeDisk() {
 	}
 	c.ed = a.chapterEditor(ch.Text, ch.Marks)
 	c.savedVer = c.ed.Doc.Version()
-	a.status.did("已采用磁盘版本，编辑器原内容已存为快照")
+	a.status.Did("已采用磁盘版本，编辑器原内容已存为快照")
 }
 
 // keepMine writes the text shown over the disk's, keeping the disk's as a
@@ -160,7 +160,7 @@ func (a *App) keepMine() {
 		a.warn(err)
 		return
 	}
-	a.status.did("已保留编辑器版本，磁盘内容已存为快照")
+	a.status.Did("已保留编辑器版本，磁盘内容已存为快照")
 }
 
 // saveLost saves the text of a node gone from the disk as a new document.
@@ -180,5 +180,5 @@ func (a *App) saveLost() {
 	delete(w.open, old)
 	c.ed, c.lost = nil, false
 	a.openNode(id)
-	a.status.did("已存为新章节，位于最上层末尾")
+	a.status.Did("已存为新章节，位于最上层末尾")
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/book"
+	"writer/desk/kit"
 	"writer/export"
 	"writer/shelf"
 	"writer/workspace"
@@ -45,7 +46,7 @@ func (e *exportView) show() {
 	store, _ := e.host.workspace()
 	pieces, err := store.Pieces()
 	if err != nil {
-		e.host.notices().warn(err)
+		e.host.notices().Warn(err)
 		return
 	}
 	fresh := exportView{host: e.host, open: true, pieces: pieces, selection: export.Selection{Scope: export.ScopeWork}, pen: store.Work().Pen, indent: true}
@@ -76,18 +77,18 @@ func (e *exportView) replan() {
 // the prose and the outline of the range chosen.
 func (e *exportView) view(c *ui.Context) {
 	pal := e.host.colors()
-	t := pal.theme
+	t := pal.Theme
 	set := e.preferences()
 	id, _, _ := e.host.chapter()
 	if e.plan.Current != id {
 		e.replan()
 	}
-	pal.modal(c, &e.open, func() {
+	pal.Modal(c, &e.open, func() {
 		plan := &e.plan
-		ui.Column(c).Width(dialogSmall).Padding(dialogPad).Gap(16).Children(func() {
-			pal.dialogHead(c, "导出", plan.About)
-			labeled(c, "内容", func() {
-				ui.Row(c).Gap(24).MinHeight(hControl).AlignItems(ui.Center).Children(func() {
+		ui.Column(c).Width(kit.DialogSmall).Padding(kit.DialogPad).Gap(16).Children(func() {
+			pal.DialogHead(c, "导出", plan.About)
+			kit.Labeled(c, "内容", func() {
+				ui.Row(c).Gap(24).MinHeight(kit.HControl).AlignItems(ui.Center).Children(func() {
 					for _, o := range []struct {
 						on   *bool
 						what string
@@ -99,15 +100,15 @@ func (e *exportView) view(c *ui.Context) {
 					}
 				})
 			})
-			labeled(c, "格式", func() {
-				if dots(c, &set.Text, "导出格式", []bool{false, true}, []string{"Word", "纯文本"}) {
+			kit.Labeled(c, "格式", func() {
+				if kit.Dots(c, &set.Text, "导出格式", []bool{false, true}, []string{"Word", "纯文本"}) {
 					e.host.saveShelf()
 					e.replan()
 				}
 			})
 			if set.Prose || set.Outline {
-				labeled(c, "范围", func() {
-					if dots(c, &e.selection.Scope, "导出范围", plan.Scopes, plan.Scopes) {
+				kit.Labeled(c, "范围", func() {
+					if kit.Dots(c, &e.selection.Scope, "导出范围", plan.Scopes, plan.Scopes) {
 						e.replan()
 					}
 				})
@@ -116,7 +117,7 @@ func (e *exportView) view(c *ui.Context) {
 				}
 			}
 			if set.Prose && !set.Text {
-				labeled(c, "笔名", func() {
+				kit.Labeled(c, "笔名", func() {
 					ui.TextInput(c, &e.pen).Label("笔名").Placeholder("选填，写在首页").FillWidth()
 				})
 			}
@@ -125,15 +126,15 @@ func (e *exportView) view(c *ui.Context) {
 			}
 			for _, what := range plan.Ticked {
 				if note := plan.Skip[what]; note != "" {
-					ui.Text(c, note).FontSize(fsNote).TextColor(t.TextMuted)
+					ui.Text(c, note).FontSize(kit.FsNote).TextColor(t.TextMuted)
 				}
 			}
 			ui.Row(c).FillWidth().Gap(8).Children(func() {
 				ui.Spacer(c)
-				if pal.secondary(c, "取消").Clicked() {
+				if pal.Secondary(c, "取消").Clicked() {
 					e.open = false
 				}
-				if pal.primary(c, "导出").Disabled(len(plan.Going) == 0).Clicked() {
+				if pal.Primary(c, "导出").Disabled(len(plan.Going) == 0).Clicked() {
 					e.export(c, e.plan)
 				}
 			})
@@ -147,7 +148,7 @@ func (e *exportView) span(c *ui.Context) {
 	names := e.plan.Names
 	at := func(name string) int { return max(0, slices.Index(names, name)) }
 	ui.Row(c).FillWidth().Gap(12).Children(func() {
-		labeled(c, "从", func() {
+		kit.Labeled(c, "从", func() {
 			if ui.Select(c, &e.selection.From, names).Label("从").FillWidth().MinWidth(0).Changed() {
 				if at(e.selection.To) < at(e.selection.From) {
 					e.selection.To = e.selection.From
@@ -155,7 +156,7 @@ func (e *exportView) span(c *ui.Context) {
 				e.replan()
 			}
 		})
-		labeled(c, "到", func() {
+		kit.Labeled(c, "到", func() {
 			if ui.Select(c, &e.selection.To, names[at(e.selection.From):]).Label("到").FillWidth().MinWidth(0).Changed() {
 				e.replan()
 			}
@@ -188,7 +189,7 @@ func (e *exportView) export(c *ui.Context, plan export.Plan) {
 		parts := []string{work.Name}
 		switch what {
 		case export.ProseContent:
-			doc = export.Prose(export.Cover{Title: work.Name, Pen: pen, Words: words(plan.Words)}, plan.Pieces, plan.Whole)
+			doc = export.Prose(export.Cover{Title: work.Name, Pen: pen, Words: kit.Words(plan.Words)}, plan.Pieces, plan.Whole)
 			parts = append(parts, plan.Part)
 		case export.OutlineContent:
 			doc = export.Outline(work.Name, plan.Pieces)
@@ -201,7 +202,7 @@ func (e *exportView) export(c *ui.Context, plan export.Plan) {
 		if !set.Text {
 			b, err := doc.Docx()
 			if err != nil {
-				status.warn(err)
+				status.Warn(err)
 				return
 			}
 			data = string(b)
@@ -214,7 +215,7 @@ func (e *exportView) export(c *ui.Context, plan export.Plan) {
 		for _, f := range files {
 			path = filepath.Join(dir, f.name)
 			if err := os.WriteFile(path, []byte(f.data), 0644); err != nil {
-				status.warn(err)
+				status.Warn(err)
 				return
 			}
 		}
@@ -222,15 +223,15 @@ func (e *exportView) export(c *ui.Context, plan export.Plan) {
 		if set.Prose && !set.Text && pen != work.Pen {
 			work.Pen = pen
 			current, _ := e.host.workspace()
-			status.warn(current.SaveWork(work))
+			status.Warn(current.SaveWork(work))
 		}
 		if set.Prose && !set.Text && pen != set.Pen {
 			set.Pen = pen
 			e.host.saveShelf()
 		}
-		status.did("已导出到 " + path)
+		status.Did("已导出到 " + path)
 		if len(files) > 1 {
-			status.did(fmt.Sprintf("已导出 %d 个文件到 %s", len(files), dir))
+			status.Did(fmt.Sprintf("已导出 %d 个文件到 %s", len(files), dir))
 		}
 	}
 	save, _ := e.host.dialogs()
@@ -240,7 +241,7 @@ func (e *exportView) export(c *ui.Context, plan export.Plan) {
 			path, err := save("导出", files[0].name)
 			return func() {
 				if err != nil {
-					status.warn(err)
+					status.Warn(err)
 				} else if path != "" {
 					files[0].name = filepath.Base(path)
 					write(filepath.Dir(path))
@@ -254,7 +255,7 @@ func (e *exportView) export(c *ui.Context, plan export.Plan) {
 	}
 	dir := filepath.Join(store.Root(), "导出")
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		status.warn(err)
+		status.Warn(err)
 		return
 	}
 	write(dir)
@@ -266,7 +267,7 @@ func laterLines(b *book.Book, e workspace.Entry) []string {
 	var out []string
 	o := b.Tree().Order()
 	for _, g := range e.Holding(o) {
-		out = append(out, fromLabel(b.Tree(), g.From)+"："+g.Text)
+		out = append(out, kit.FromLabel(b.Tree(), g.From)+"："+g.Text)
 	}
 	return out
 }

@@ -1,4 +1,4 @@
-package desk
+package kit
 
 import (
 	"os"
@@ -9,14 +9,14 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui"
-	"go.yaml.in/yaml/v3"
+	yaml "go.yaml.in/yaml/v3"
 )
 
 // DESIGN.md is written in the DESIGN.md format: its front matter gives the
 // values of tokens.css under the format's names, and its sections are the
 // format's, in the format's order.
 func TestDesignMD(t *testing.T) {
-	raw, err := os.ReadFile("../DESIGN.md")
+	raw, err := os.ReadFile("../../DESIGN.md")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -181,8 +181,8 @@ func TestUsesLiveInDesignMD(t *testing.T) {
 		t.Fatal(err)
 	}
 	for what, re := range map[string]*regexp.Regexp{
-		"the palette": regexp.MustCompile(`(?s)type palette struct \{(.*?)\n\}`),
-		"the sizes":   regexp.MustCompile(`(?s)const \(\n(\tfsDisplay.*?)\n\)`),
+		"the palette": regexp.MustCompile(`(?s)type Palette struct \{(.*?)\n\}`),
+		"the sizes":   regexp.MustCompile(`(?s)const \(\n(\tFsDisplay.*?)\n\)`),
 	} {
 		m := re.FindSubmatch(src)
 		if m == nil {

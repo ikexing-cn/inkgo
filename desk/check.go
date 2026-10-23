@@ -9,6 +9,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/book"
+	"writer/desk/kit"
 	"writer/editor"
 	"writer/internal/textclip"
 	"writer/workspace"
@@ -357,7 +358,7 @@ func (a *App) openCheck(id string) {
 
 // checkPending is the findings as the pending list has them.
 func (a *App) checkPending() (pendGroup, bool) {
-	g := pendGroup{name: "设定不一致", color: a.pal.amber}
+	g := pendGroup{name: "设定不一致", color: a.pal.Amber}
 	if !a.aiOn() {
 		return g, false
 	}
@@ -459,27 +460,27 @@ const partNote = "后文超出模型的上下文上限，可在设置中「AI」
 
 // whenRows are the three times to check, one chosen.
 func (a *App) whenRows(c *ui.Context) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	k := &a.ck
 	for _, o := range checkWhens {
 		on := o.when == k.when
-		ring := a.pal.faint
+		ring := a.pal.Faint
 		if on {
-			ring = a.pal.ink
+			ring = a.pal.Ink
 		}
-		b := ui.ButtonBase(c).Row().FillWidth().Gap(10).Padding(6, 8).Radius(rControl).AlignItems(ui.Start).Justify(ui.Start).Label(o.label)
+		b := ui.ButtonBase(c).Row().FillWidth().Gap(10).Padding(6, 8).Radius(kit.RControl).AlignItems(ui.Start).Justify(ui.Start).Label(o.label)
 		if b.Hovered() {
 			b.Background(t.SurfaceHover)
 		}
 		b.Children(func() {
-			ui.Box(c).Size(14, 14).Margin(4, 0, 0, 0).Radius(rRound).Border(1.5, ring).Center().Shrink(0).Children(func() {
+			ui.Box(c).Size(14, 14).Margin(4, 0, 0, 0).Radius(kit.RRound).Border(1.5, ring).Center().Shrink(0).Children(func() {
 				if on {
-					dot(c, a.pal.ink, 6)
+					kit.Dot(c, a.pal.Ink, 6)
 				}
 			})
 			ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
-				ui.Text(c, o.label).FontSize(fsBody)
-				ui.Text(c, o.sub).FontSize(fsNote).TextColor(t.TextMuted)
+				ui.Text(c, o.label).FontSize(kit.FsBody)
+				ui.Text(c, o.sub).FontSize(kit.FsNote).TextColor(t.TextMuted)
 			})
 		})
 		if b.Clicked() && !on {
@@ -525,7 +526,7 @@ func (a *App) checkPage(c *ui.Context) {
 	}
 	ui.Row(c).Fill().AlignItems(ui.Stretch).Children(func() {
 		ui.Column(c).Width(360).Shrink(0).FillHeight().Children(func() { a.checkList(c, all, shown) })
-		ui.Box(c).Width(1).FillHeight().Background(a.pal.line)
+		ui.Box(c).Width(1).FillHeight().Background(a.pal.Line)
 		ui.Column(c).Grow(1).Shrink(1).FillHeight().Padding(32, 32, 20, 32).Gap(20).Children(func() {
 			if at < 0 {
 				a.checkEmpty(c, len(all))
@@ -539,11 +540,11 @@ func (a *App) checkPage(c *ui.Context) {
 // checkList is the page's left: how far the checks got, the kinds, and
 // the findings.
 func (a *App) checkList(c *ui.Context, all, shown []checkItem) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	k := &a.ck
 	ui.Column(c).FillWidth().Padding(14, 20, 10, 20).Gap(10).Shrink(0).Children(func() {
 		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, "检查").FontSize(fsTitle).FontWeight(700).Grow(1)
+			ui.Text(c, "检查").FontSize(kit.FsTitle).FontWeight(700).Grow(1)
 			a.checkProgress(c)
 		})
 		names := make([]string, len(checkKinds))
@@ -556,7 +557,7 @@ func (a *App) checkList(c *ui.Context, all, shown []checkItem) {
 			}
 			names[i] = fmt.Sprintf("%s %d", kind.label, n)
 		}
-		ui.Row(c).Children(func() { a.pal.segments(c, &k.tab, "检查分类", names) })
+		ui.Row(c).Children(func() { a.pal.Segments(c, &k.tab, "检查分类", names) })
 	})
 	ui.Scroll(c.Key("checks")).FillWidth().Grow(1).Shrink(1).Children(func() {
 		ui.Column(c).FillWidth().Padding(0, 14, 12, 14).Gap(2).Children(func() {
@@ -573,7 +574,7 @@ func (a *App) checkList(c *ui.Context, all, shown []checkItem) {
 						sub += fmt.Sprintf("，共 %d 章", len(it.also)+1)
 					}
 				}
-				b := ui.ButtonBase(c.Key("ck-"+it.f.ID)).Row().FillWidth().AlignItems(ui.Center).Gap(10).Padding(8, 10).Radius(rControl).Label("检查-" + it.f.Title)
+				b := ui.ButtonBase(c.Key("ck-"+it.f.ID)).Row().FillWidth().AlignItems(ui.Center).Gap(10).Padding(8, 10).Radius(kit.RControl).Label("检查-" + it.f.Title)
 				if it.f.ID == k.shown {
 					b.Background(t.SurfacePressed)
 				} else if b.Hovered() {
@@ -581,10 +582,10 @@ func (a *App) checkList(c *ui.Context, all, shown []checkItem) {
 				}
 				b.Children(func() {
 					ui.Column(c).Grow(1).Shrink(1).Basis(0).Children(func() {
-						ui.Text(c, it.f.Title).FontSize(fsBody).LineHeight(lhBody).SingleLine().Ellipsis("…").FillWidth()
-						ui.Text(c, sub).FontSize(fsNote).LineHeight(lhBody).TextColor(t.TextMuted).SingleLine().Ellipsis("…").FillWidth()
+						ui.Text(c, it.f.Title).FontSize(kit.FsBody).LineHeight(kit.LhBody).SingleLine().Ellipsis("…").FillWidth()
+						ui.Text(c, sub).FontSize(kit.FsNote).LineHeight(kit.LhBody).TextColor(t.TextMuted).SingleLine().Ellipsis("…").FillWidth()
 					})
-					ui.Text(c, kindLabel(it.f.Kind)).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Shrink(0)
+					ui.Text(c, kindLabel(it.f.Kind)).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Shrink(0)
 				})
 				if b.Clicked() {
 					k.shown = it.f.ID
@@ -596,7 +597,7 @@ func (a *App) checkList(c *ui.Context, all, shown []checkItem) {
 
 // checkProgress says how far the checks got, and checks the book again.
 func (a *App) checkProgress(c *ui.Context) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	k := &a.ck
 	if k.queue.Running != "" {
 		left := len(k.queue.Pending)
@@ -605,8 +606,8 @@ func (a *App) checkProgress(c *ui.Context) {
 		if left > 0 {
 			line += fmt.Sprintf("，还有 %d 章", left)
 		}
-		ui.Text(c, line).FontSize(fsNote).TextColor(t.TextMuted).SingleLine()
-		if a.pal.ghost(c, "停止", ui.Color{}).Clicked() {
+		ui.Text(c, line).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine()
+		if a.pal.Ghost(c, "停止", ui.Color{}).Clicked() {
 			k.queue.Stop()
 			k.runner.stop()
 		}
@@ -630,38 +631,38 @@ func (a *App) checkProgress(c *ui.Context) {
 	switch {
 	case failed > 0:
 		// 已检查至 would read as all before it checked.
-		ui.Textf(c, "已检查 %d 章，%d 章失败", done, failed).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
+		ui.Textf(c, "已检查 %d 章，%d 章失败", done, failed).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
 	case last > 0:
-		ui.Text(c, "已检查至「"+lastTitle+"」").FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
+		ui.Text(c, "已检查至「"+lastTitle+"」").FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
 	}
 	label := "重新检查"
 	if last == 0 {
 		label = "检查全书"
 	}
-	b := a.pal.ghost(c, label, ui.Color{}).Label(label)
+	b := a.pal.Ghost(c, label, ui.Color{}).Label(label)
 	if b.Clicked() {
 		k.due = a.checkDue()
 		switch {
 		case !a.hasSetting():
-			a.status.hint("设定为空，无可对照内容")
+			a.status.Hint("设定为空，无可对照内容")
 		case len(k.due) == 0:
-			a.status.hint("各章均已检查，正文无新改动")
+			a.status.Hint("各章均已检查，正文无新改动")
 		default:
 			k.askOpen = true
 		}
 	}
 	ui.PopoverBase(c, b, &k.askOpen, func(panel ui.Element) {
-		panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(6, 0, 0, 0).Width(280).Radius(rCard).Padding(14).Gap(12).
-			Background(a.pal.canvas).Border(1, t.Border)
-		a.pal.pop.on(panel)
-		ui.Textf(c, "%d 章未检查或有改动", len(k.due)).FontSize(fsBody).FontWeight(600)
-		ui.Textf(c, "每章调用一次 AI，共 %d 次。", len(k.due)).FontSize(fsNote).TextColor(t.TextMuted)
+		panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(6, 0, 0, 0).Width(280).Radius(kit.RCard).Padding(14).Gap(12).
+			Background(a.pal.Canvas).Border(1, t.Border)
+		a.pal.Pop.On(panel)
+		ui.Textf(c, "%d 章未检查或有改动", len(k.due)).FontSize(kit.FsBody).FontWeight(600)
+		ui.Textf(c, "每章调用一次 AI，共 %d 次。", len(k.due)).FontSize(kit.FsNote).TextColor(t.TextMuted)
 		ui.Row(c).FillWidth().Gap(8).Children(func() {
 			ui.Spacer(c)
-			if a.pal.secondary(c, "取消").Clicked() {
+			if a.pal.Secondary(c, "取消").Clicked() {
 				k.askOpen = false
 			}
-			if a.pal.primary(c, "开始检查").Clicked() {
+			if a.pal.Primary(c, "开始检查").Clicked() {
 				k.askOpen = false
 				for _, id := range k.due {
 					a.ck.queue.Enqueue(id)
@@ -690,7 +691,7 @@ func (a *App) checkAt(node string) (no int, title string) {
 // checkEmpty is the page's right with nothing to show.
 func (a *App) checkEmpty(c *ui.Context, all int) {
 	k := &a.ck
-	pic, words, how := icDone, "没有发现不一致", "写完一章后自动检查，结果显示在此处。"
+	pic, words, how := kit.IcDone, "没有发现不一致", "写完一章后自动检查，结果显示在此处。"
 	switch {
 	case all > 0:
 		words, how = "这一类没有待处理的", ""
@@ -707,9 +708,9 @@ func (a *App) checkEmpty(c *ui.Context, all int) {
 	// the book is named, so it is the same one every frame.
 	if lost := a.firstFailed(); lost != "" && k.queue.Running == "" {
 		_, title := a.checkAt(lost)
-		pic, words, how = icAlert, "检查未完成", "「"+title+"」检查失败："+k.queue.Failed[lost]
+		pic, words, how = kit.IcAlert, "检查未完成", "「"+title+"」检查失败："+k.queue.Failed[lost]
 	}
-	a.pal.blank(c, pic, words, how, nil)
+	a.pal.Blank(c, pic, words, how, nil)
 }
 
 // firstFailed is the first chapter in the book whose check failed, or "".
@@ -732,23 +733,23 @@ func (a *App) quoted(text, quote string) []ui.Span {
 		return []ui.Span{{Text: text}}
 	}
 	before, after := text[:i], text[i+len(quote):]
-	return []ui.Span{{Text: textclip.Tail(before, around)}, {Text: quote, Color: a.pal.theme.Text, Background: a.pal.theme.SurfacePressed}, {Text: textclip.Clip(after, around)}}
+	return []ui.Span{{Text: textclip.Tail(before, around)}, {Text: quote, Color: a.pal.Theme.Text, Background: a.pal.Theme.SurfacePressed}, {Text: textclip.Clip(after, around)}}
 }
 
 // checkCard is one side of the comparison: what it is, a link to it, and
 // its words.
 func (a *App) checkCard(c *ui.Context, head, link string, spans []ui.Span) (clicked bool) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	ui.Column(c).Grow(1).Shrink(1).Basis(0).Gap(6).Children(func() {
 		// As tall without the link as with it, so cards side by side line up.
 		ui.Row(c).FillWidth().MinHeight(22).Gap(8).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, head).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
+			ui.Text(c, head).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 			if link != "" {
-				clicked = a.pal.ghost(c, link, ui.Color{}).Clicked()
+				clicked = a.pal.Ghost(c, link, ui.Color{}).Clicked()
 			}
 		})
-		ui.RichText(c, spans...).FontSize(fsRead).LineHeight(lhRead).TextColor(t.TextMuted).FillWidth().
-			Padding(12, 14).Radius(rCard).Background(a.pal.side).Border(1, a.pal.line).Selectable()
+		ui.RichText(c, spans...).FontSize(kit.FsRead).LineHeight(kit.LhRead).TextColor(t.TextMuted).FillWidth().
+			Padding(12, 14).Radius(kit.RCard).Background(a.pal.Side).Border(1, a.pal.Line).Selectable()
 	})
 	return clicked
 }
@@ -802,7 +803,7 @@ func paragraphOf(text, quote string) (string, int) {
 // checkDetail is the finding chosen: the prose beside the setting, what
 // was found alike before, and what to do about it.
 func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	k := &a.ck
 	it := shown[at]
 	if k.proseOf != it.node {
@@ -820,9 +821,9 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 		a.savePrefs()
 	}
 	ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Shrink(0).Children(func() {
-		ui.Text(c, it.f.Title).FontSize(fsDialog).FontWeight(700).Grow(1).Shrink(1)
-		ui.Textf(c, "%d / %d", at+1, len(shown)).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Shrink(0)
-		if a.pal.ghost(c, "下一条", ui.Color{}).Disabled(len(shown) < 2).Clicked() {
+		ui.Text(c, it.f.Title).FontSize(kit.FsDialog).FontWeight(700).Grow(1).Shrink(1)
+		ui.Textf(c, "%d / %d", at+1, len(shown)).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Shrink(0)
+		if a.pal.Ghost(c, "下一条", ui.Color{}).Disabled(len(shown) < 2).Clicked() {
 			next()
 		}
 	})
@@ -867,18 +868,18 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 				return
 			}
 			ui.Column(c).FillWidth().Gap(8).Children(func() {
-				ui.Text(c, head).FontSize(fsNote).TextColor(t.TextMuted)
+				ui.Text(c, head).FontSize(kit.FsNote).TextColor(t.TextMuted)
 				ui.Column(c).FillWidth().Gap(8).Children(func() {
 					for _, o := range alike {
-						ui.Row(c).FillWidth().Gap(12).Padding(8, 12).Radius(rControl).Background(t.SurfaceHover).AlignItems(ui.Center).Children(func() {
-							ui.Text(c, o.title).FontSize(fsControl).TextColor(t.TextMuted).SingleLine().Shrink(0)
-							ui.Text(c, o.f.Quote).FontSize(fsControl).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
+						ui.Row(c).FillWidth().Gap(12).Padding(8, 12).Radius(kit.RControl).Background(t.SurfaceHover).AlignItems(ui.Center).Children(func() {
+							ui.Text(c, o.title).FontSize(kit.FsControl).TextColor(t.TextMuted).SingleLine().Shrink(0)
+							ui.Text(c, o.f.Quote).FontSize(kit.FsControl).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 							if o.f.Kind == workspace.FindConflict {
 								said := "尚未处理"
 								if o.f.Meant {
 									said = "已标为「无需修改」"
 								}
-								ui.Text(c, said).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Shrink(0)
+								ui.Text(c, said).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Shrink(0)
 							}
 						})
 					}
@@ -886,14 +887,14 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 			})
 		})
 	})
-	a.pal.hairline(c)
+	a.pal.Hairline(c)
 	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Shrink(0).Children(func() {
-		if a.pal.ghost(c, "稍后再说", ui.Color{}).Disabled(len(shown) < 2).Clicked() {
+		if a.pal.Ghost(c, "稍后再说", ui.Color{}).Disabled(len(shown) < 2).Clicked() {
 			next()
 		}
 		ui.Spacer(c)
 		meant := func(label string) {
-			if a.pal.secondary(c, label).Clicked() {
+			if a.pal.Secondary(c, label).Clicked() {
 				if len(shown) > 1 {
 					next()
 				}
@@ -903,20 +904,20 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 		switch it.f.Kind {
 		case workspace.FindConflict:
 			meant("无需修改")
-			if a.pal.secondary(c, "修改设定").Clicked() {
+			if a.pal.Secondary(c, "修改设定").Clicked() {
 				toEntry()
 			}
-			if a.pal.primary(c, "修改正文").Clicked() {
+			if a.pal.Primary(c, "修改正文").Clicked() {
 				toProse()
 			}
 		case workspace.FindName:
 			meant("无需修改")
-			if a.pal.primary(c, "修改正文").Clicked() {
+			if a.pal.Primary(c, "修改正文").Clicked() {
 				toProse()
 			}
 		case workspace.FindNew:
 			meant("忽略")
-			if a.pal.primary(c, "加入设定").Clicked() {
+			if a.pal.Primary(c, "加入设定").Clicked() {
 				a.takeFound(it)
 			}
 		}
@@ -941,5 +942,5 @@ func (a *App) takeFound(it checkItem) {
 		return
 	}
 	a.flash[r.Ops[0].Entry] = time.Now()
-	a.status.did("已加入设定")
+	a.status.Did("已加入设定")
 }

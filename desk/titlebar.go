@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/kit"
 )
 
 // The title bar is the first row of the window, over every page: at its
@@ -47,11 +48,11 @@ func (a *App) titleBar(c *ui.Context) {
 	// A row of the bar's menus does its part once the bar is drawn.
 	later := func(do func()) func() { return func() { act = do } }
 	held := false // a button of the bar has the focus
-	ui.Row(c).FillWidth().Height(titleHeight).Padding(0, bar.Right, 0, max(10, bar.Left)).Gap(2).AlignItems(ui.Center).
-		Background(a.pal.side).Shrink(0).DragWindow().Children(func() {
+	ui.Row(c).FillWidth().Height(kit.TitleHeight).Padding(0, bar.Right, 0, max(10, bar.Left)).Gap(2).AlignItems(ui.Center).
+		Background(a.pal.Side).Shrink(0).DragWindow().Children(func() {
 		// The shelf has no sidebar to put away: the switch stays, pale, so
 		// the menus do not move.
-		sw := iconButton(c, icSide, cmdSide.name(a), ui.Color{}).Margin(0, 4, 0, 0).Disabled(!inWork)
+		sw := kit.IconButton(c, kit.IcSide, cmdSide.name(a), ui.Color{}).Margin(0, 4, 0, 0).Disabled(!inWork)
 		held = sw.Focused()
 		if sw.Clicked() {
 			a.setSideHidden(!a.sideHidden)
@@ -62,7 +63,7 @@ func (a *App) titleBar(c *ui.Context) {
 		held = a.barMenu(c, "视图", func(m *menu) { a.viewMenu(m, later) }) || held
 		held = a.barMenu(c, "帮助", func(m *menu) { a.helpMenu(m, later) }) || held
 	})
-	a.pal.hairline(c)
+	a.pal.Hairline(c)
 	switch k := &a.bar; {
 	case strings.HasPrefix(a.menu.owner, barKey):
 		k.open = true
@@ -160,13 +161,13 @@ func (a *App) barAct(c *ui.Context) {
 // another opens that one instead. It reports whether its name has the
 // keyboard focus.
 func (a *App) barMenu(c *ui.Context, name string, build func(m *menu)) bool {
-	t := a.pal.theme
+	t := a.pal.Theme
 	key := barKey + name
-	b := ui.ButtonBase(c).Row().Height(hControlSm).Padding(0, 8).Center().Radius(rControl).Shrink(0).Label(key)
+	b := ui.ButtonBase(c).Row().Height(kit.HControlSm).Padding(0, 8).Center().Radius(kit.RControl).Shrink(0).Label(key)
 	if b.Hovered() || a.menuOpen(key) {
 		b.Background(t.SurfacePressed)
 	}
-	b.Children(func() { ui.Text(c, name).FontSize(fsControl).TextColor(t.Text).SingleLine() })
+	b.Children(func() { ui.Text(c, name).FontSize(kit.FsControl).TextColor(t.Text).SingleLine() })
 	if b.Hovered() && a.menu.drop && a.menu.owner != key && strings.HasPrefix(a.menu.owner, barKey) {
 		a.menu = menuState{owner: key, drop: true}
 		c.Invalidate()

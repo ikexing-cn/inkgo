@@ -10,6 +10,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/book"
+	"writer/desk/kit"
 	"writer/editor"
 	"writer/workspace"
 )
@@ -25,7 +26,7 @@ func foreName(f workspace.Foreshadow) string {
 	if strings.TrimSpace(f.Note) != "" {
 		return f.Note
 	}
-	return clip(f.Quote, 24)
+	return kit.Clip(f.Quote, 24)
 }
 
 // meta tells where it was buried and how long before chapter here, which
@@ -143,7 +144,7 @@ func (a *App) openPay(id string) {
 	}
 	s, e := w.cur().ed.Selection()
 	if s == e {
-		a.status.hint("请先在正文中选中回收伏笔的段落")
+		a.status.Hint("请先在正文中选中回收伏笔的段落")
 		return
 	}
 	w.fore.paying, w.fore.noting, w.fore.from, w.fore.to, w.fore.payQuery, w.fore.pick = true, false, s, e, "", id
@@ -234,7 +235,7 @@ func (a *App) rehang(f workspace.Foreshadow) {
 	}
 	s, e := w.cur().ed.Selection()
 	if s == e {
-		a.status.hint("请先在正文中选中要关联的句子")
+		a.status.Hint("请先在正文中选中要关联的句子")
 		return
 	}
 	if f.Node == w.node {
@@ -321,7 +322,7 @@ func (a *App) forePopover(c *ui.Context) {
 	if !ok {
 		return
 	}
-	t := a.pal.theme
+	t := a.pal.Theme
 	width, tall := float32(360), float32(132)
 	if f.paying {
 		width, tall = 380, 340
@@ -331,22 +332,22 @@ func (a *App) forePopover(c *ui.Context) {
 		top = r.Y - tall - 6
 	}
 	left := max(8, min(r.X, w.cur().ed.Width()-width-8))
-	box := ui.Column(c).Absolute().Left(left).Top(top).Width(width).Background(a.pal.canvas).Border(1, t.Border)
-	a.pal.pop.on(box)
+	box := ui.Column(c).Absolute().Left(left).Top(top).Width(width).Background(a.pal.Canvas).Border(1, t.Border)
+	a.pal.Pop.On(box)
 	if f.noting {
-		box.Padding(12).Gap(10).Radius(rCard).Children(func() {
+		box.Padding(12).Gap(10).Radius(kit.RCard).Children(func() {
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
-				glyph(c, icFlag, iconXs, t.TextMuted)
-				ui.Text(c, "记为伏笔，填写备注").FontSize(fsNote).TextColor(t.TextMuted)
+				kit.Glyph(c, kit.IcFlag, kit.IconXs, t.TextMuted)
+				ui.Text(c, "记为伏笔，填写备注").FontSize(kit.FsNote).TextColor(t.TextMuted)
 			})
 			in := ui.TextInput(c, &f.note).Label("伏笔备注").Placeholder("例如：他为什么突然改口").FillWidth().AutoFocus()
 			cancel := in.Shortcut(0, ui.KeyEscape)
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 				ui.Spacer(c)
-				if a.pal.secondary(c, "取消").Label("取消记伏笔").Clicked() {
+				if a.pal.Secondary(c, "取消").Label("取消记伏笔").Clicked() {
 					cancel = true
 				}
-				if a.pal.primary(c, "确定").Clicked() || in.Submitted() {
+				if a.pal.Primary(c, "确定").Clicked() || in.Submitted() {
 					a.bury()
 				}
 			})
@@ -364,10 +365,10 @@ func (a *App) forePopover(c *ui.Context) {
 			f.pick = list[0].ID
 		}
 	}
-	box.Padding(10).Gap(6).Radius(rControl).Children(func() {
+	box.Padding(10).Gap(6).Radius(kit.RControl).Children(func() {
 		ui.Row(c).Gap(6).AlignItems(ui.Center).Padding(2, 4).Children(func() {
-			glyph(c, icLink, iconXs, t.TextMuted)
-			ui.Text(c, "选择要回收的伏笔").FontSize(fsNote).TextColor(t.TextMuted)
+			kit.Glyph(c, kit.IcLink, kit.IconXs, t.TextMuted)
+			ui.Text(c, "选择要回收的伏笔").FontSize(kit.FsNote).TextColor(t.TextMuted)
 		})
 		in := ui.TextInput(c, &f.payQuery).Label("查找伏笔").Placeholder("搜索备注或原句").FillWidth().AutoFocus()
 		cancel := in.Shortcut(0, ui.KeyEscape)
@@ -383,32 +384,32 @@ func (a *App) forePopover(c *ui.Context) {
 			if strings.TrimSpace(f.payQuery) == "" {
 				words = "暂无已埋下的伏笔。请先选中一句，右键选择「记为伏笔」。"
 			}
-			ui.Text(c, words).FontSize(fsNote).TextColor(a.pal.faint).Padding(8).LineHeight(lhBody)
+			ui.Text(c, words).FontSize(kit.FsNote).TextColor(a.pal.Faint).Padding(8).LineHeight(kit.LhBody)
 		}
 		ui.Scroll(c.Key("pay-list")).FillWidth().MaxHeight(200).Children(func() {
 			for _, x := range list {
-				row := ui.ButtonBase(c).Column().FillWidth().AlignItems(ui.Stretch).Padding(8).Gap(2).Radius(rControl).Label("回收-" + foreName(x))
+				row := ui.ButtonBase(c).Column().FillWidth().AlignItems(ui.Stretch).Padding(8).Gap(2).Radius(kit.RControl).Label("回收-" + foreName(x))
 				if x.ID == f.pick {
-					row.Background(a.pal.bubble)
+					row.Background(a.pal.Bubble)
 				} else if row.Hovered() {
 					row.Background(t.SurfaceHover)
 				}
 				row.Children(func() {
-					ui.Text(c, foreName(x)).FontSize(fsBody).FontWeight(500).SingleLine().Ellipsis("…").FillWidth()
-					ui.Text(c, foreMeta(x, here)).FontSize(fsSmall).TextColor(t.TextMuted).SingleLine().Ellipsis("…").FillWidth()
+					ui.Text(c, foreName(x)).FontSize(kit.FsBody).FontWeight(500).SingleLine().Ellipsis("…").FillWidth()
+					ui.Text(c, foreMeta(x, here)).FontSize(kit.FsSmall).TextColor(t.TextMuted).SingleLine().Ellipsis("…").FillWidth()
 				})
 				if row.Clicked() {
 					f.pick = x.ID
 				}
 			}
 		})
-		a.pal.hairline(c)
+		a.pal.Hairline(c)
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Padding(2, 4, 0, 4).Children(func() {
 			ui.Spacer(c)
-			if a.pal.secondary(c, "取消").Label("取消回收选择").Clicked() {
+			if a.pal.Secondary(c, "取消").Label("取消回收选择").Clicked() {
 				cancel = true
 			}
-			if a.pal.primary(c, "记为回收").Label("确定回收").Disabled(f.pick == "").Clicked() || in.Submitted() && f.pick != "" {
+			if a.pal.Primary(c, "记为回收").Label("确定回收").Disabled(f.pick == "").Clicked() || in.Submitted() && f.pick != "" {
 				a.pay(f.pick)
 			}
 		})
@@ -423,10 +424,10 @@ func (a *App) forePopover(c *ui.Context) {
 // one, or the one being picked for a passage.
 func (a *App) forePanel(c *ui.Context) {
 	w := &a.write
-	paneTop(c).Children(func() {
+	kit.PaneTop(c).Children(func() {
 		a.panelTabs(c)
 		ui.Spacer(c)
-		if iconButton(c, icPanel, "收起右栏", ui.Color{}).Tooltip("收起右栏").Clicked() {
+		if kit.IconButton(c, kit.IcPanel, "收起右栏", ui.Color{}).Tooltip("收起右栏").Clicked() {
 			a.setDocHidden(true)
 		}
 	})
@@ -464,36 +465,36 @@ func (a *App) foreList(c *ui.Context, all []workspace.Foreshadow) {
 		if f.Here {
 			side = "本章"
 		}
-		if a.paneRow(c.Key(f.ID), "伏笔-"+foreName(f), foreName(f), "", side, "", false).Clicked() {
+		if a.pal.PaneRow(c.Key(f.ID), "伏笔-"+foreName(f), foreName(f), "", side, "", false).Clicked() {
 			a.showFore(f.ID)
 		}
 	}
 	if s.status != workspace.ForeOpen {
-		if back, _ := a.paneBack(c, "全部伏笔", ""); back {
+		if back, _ := a.pal.PaneBack(c, "全部伏笔", ""); back {
 			s.status = workspace.ForeOpen
 		}
-		a.paneRows(c, fmt.Sprintf("fore-%d", s.status), func() {
-			a.paneGroup(c, foreLabels[s.status])
+		a.pal.PaneRows(c, fmt.Sprintf("fore-%d", s.status), func() {
+			a.pal.PaneGroup(c, foreLabels[s.status])
 			for _, f := range all {
 				if f.Status() == s.status {
 					row(f)
 				}
 			}
 			if counts[s.status] == 0 {
-				a.pal.paneEmpty(c, "此处暂无伏笔", "")
+				a.pal.PaneEmpty(c, "此处暂无伏笔", "")
 			}
 		})
 		return
 	}
 	a.paneFind(c, &s.query, "搜索伏笔", "", func(m *menu) {
 		for _, st := range []workspace.ForeshadowStatus{workspace.ForeDone, workspace.ForeDropped} {
-			m.Item(foreLabels[st]).Hint(count(counts[st])).Do(func() { s.status = st })
+			m.Item(foreLabels[st]).Hint(kit.Count(counts[st])).Do(func() { s.status = st })
 		}
 	})
 	q := strings.TrimSpace(s.query)
-	a.paneRows(c, "fore", func() {
+	a.pal.PaneRows(c, "fore", func() {
 		if len(all) == 0 {
-			a.pal.paneEmpty(c, "暂无伏笔", "在正文中选中一句，右键选择「记为伏笔」")
+			a.pal.PaneEmpty(c, "暂无伏笔", "在正文中选中一句，右键选择「记为伏笔」")
 			return
 		}
 		if q != "" {
@@ -504,10 +505,10 @@ func (a *App) foreList(c *ui.Context, all []workspace.Foreshadow) {
 				}
 			}
 			if len(found) == 0 {
-				a.pal.paneEmpty(c, "未找到", "")
+				a.pal.PaneEmpty(c, "未找到", "")
 				return
 			}
-			a.paneGroup(c, fmt.Sprintf("找到 %d 条", len(found)))
+			a.pal.PaneGroup(c, fmt.Sprintf("找到 %d 条", len(found)))
 			for _, f := range found {
 				row(f)
 			}
@@ -526,7 +527,7 @@ func (a *App) foreList(c *ui.Context, all []workspace.Foreshadow) {
 			}
 		}
 		slices.Reverse(fresh) // the newest of these first, as the design lists them
-		if n := counts[workspace.ForeLost]; n > 0 && a.paneTodo(c, foreLabels[workspace.ForeLost], n).Clicked() {
+		if n := counts[workspace.ForeLost]; n > 0 && a.pal.PaneTodo(c, foreLabels[workspace.ForeLost], n).Clicked() {
 			if n == 1 {
 				a.showFore(lost)
 			} else {
@@ -534,19 +535,19 @@ func (a *App) foreList(c *ui.Context, all []workspace.Foreshadow) {
 			}
 		}
 		if len(over) > 0 {
-			a.paneGroup(c, "久未回收")
+			a.pal.PaneGroup(c, "久未回收")
 			for _, f := range over {
 				row(f)
 			}
 		}
 		if len(fresh) > 0 {
-			a.paneGroup(c, foreLabels[workspace.ForeOpen])
+			a.pal.PaneGroup(c, foreLabels[workspace.ForeOpen])
 			for _, f := range fresh {
 				row(f)
 			}
 		}
 		if len(over)+len(fresh)+counts[workspace.ForeLost] == 0 {
-			a.pal.paneEmpty(c, "没有未回收的伏笔", "")
+			a.pal.PaneEmpty(c, "没有未回收的伏笔", "")
 		}
 	})
 }
@@ -557,7 +558,7 @@ func (a *App) foreDetail(c *ui.Context, f workspace.Foreshadow) {
 	s := &a.write.fore
 	st := f.Status()
 	act := map[workspace.ForeshadowStatus]string{workspace.ForeOpen: "放弃伏笔", workspace.ForeDone: "取消回收", workspace.ForeLost: "删除伏笔", workspace.ForeDropped: "恢复伏笔"}[st]
-	back, acted := a.paneBack(c, "全部伏笔", act)
+	back, acted := a.pal.PaneBack(c, "全部伏笔", act)
 	if back {
 		s.shown, s.renoting = "", false
 	}
@@ -574,12 +575,12 @@ func (a *App) foreDetail(c *ui.Context, f workspace.Foreshadow) {
 			s.shown = ""
 		}
 	}
-	a.panePage(c, "fore-"+f.ID, func() {
+	a.pal.PanePage(c, "fore-"+f.ID, func() {
 		switch {
 		case s.renoting:
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 				in := ui.TextInput(c, &s.renote).Label("修改伏笔备注").Placeholder("备注").Grow(1).Shrink(1).AutoFocus()
-				if a.paneButton(c, "保存", true).Label("保存备注").Clicked() || in.Submitted() {
+				if a.pal.PaneButton(c, "保存", true).Label("保存备注").Clicked() || in.Submitted() {
 					a.renoteFore(f, s.renote)
 					s.renoting = false
 				}
@@ -588,9 +589,9 @@ func (a *App) foreDetail(c *ui.Context, f workspace.Foreshadow) {
 				}
 			})
 		case st == workspace.ForeLost:
-			a.paneTitle(c, foreName(f), "", "")
+			a.pal.PaneTitle(c, foreName(f), "", "")
 		default:
-			if a.paneTitle(c, foreName(f), "", "修改备注") {
+			if a.pal.PaneTitle(c, foreName(f), "", "修改备注") {
 				s.renoting, s.renote = true, f.Note
 			}
 		}
@@ -604,11 +605,11 @@ func (a *App) foreDetail(c *ui.Context, f workspace.Foreshadow) {
 		case st == workspace.ForeOpen && f.Gap > 0:
 			where += fmt.Sprintf("，已过 %d 章", f.Gap)
 		}
-		if a.paneWhere(c, where, link) {
+		if a.pal.PaneWhere(c, where, link) {
 			a.showMark(f.Node, f.ID)
 		}
-		a.paneQuote(c, f.Quote, f.Lost)
-		a.pal.hairline(c)
+		a.pal.PaneQuote(c, f.Quote, f.Lost)
+		a.pal.Hairline(c)
 		// What takes words picked in the prose waits for them, as the
 		// context menu does; the words above it stay as they are, so the
 		// pane does not jump while the author picks.
@@ -619,37 +620,37 @@ func (a *App) foreDetail(c *ui.Context, f workspace.Foreshadow) {
 				none = s == e || ed.ReadOnly()
 			}
 			if none {
-				pale(b.Disabled(true))
+				kit.Pale(b.Disabled(true))
 			}
 			return b
 		}
 		switch st {
 		case workspace.ForeLost:
-			a.paneNote(c, "请先在正文中选中新的句子")
-			paneButtons(c, func() {
-				if unpicked(a.paneButton(c, "更换原句", true)).Clicked() {
+			a.pal.PaneNote(c, "请先在正文中选中新的句子")
+			kit.PaneButtons(c, func() {
+				if unpicked(a.pal.PaneButton(c, "更换原句", true)).Clicked() {
 					a.rehang(f)
 				}
 			})
 		case workspace.ForeOpen:
-			ui.Text(c, foreLabels[st]).FontSize(fsBody).FontWeight(600)
-			a.paneNote(c, "请先在正文中选中回收的段落")
-			paneButtons(c, func() {
-				if unpicked(a.paneButton(c, "记为回收", true)).Clicked() {
+			ui.Text(c, foreLabels[st]).FontSize(kit.FsBody).FontWeight(600)
+			a.pal.PaneNote(c, "请先在正文中选中回收的段落")
+			kit.PaneButtons(c, func() {
+				if unpicked(a.pal.PaneButton(c, "记为回收", true)).Clicked() {
 					a.openPay(f.ID)
 				}
 			})
 		case workspace.ForeDropped:
-			ui.Text(c, foreLabels[st]).FontSize(fsBody).FontWeight(600)
+			ui.Text(c, foreLabels[st]).FontSize(kit.FsBody).FontWeight(600)
 		}
 		for i, p := range f.Payoffs {
 			if st != workspace.ForeDone {
 				break
 			}
-			if a.paneWhere(c, fmt.Sprintf("回收在「%s」，相隔 %d 章", p.Title, max(p.Chapter-f.Chapter, 0)), fmt.Sprintf("看回收-%d", i+1)) {
+			if a.pal.PaneWhere(c, fmt.Sprintf("回收在「%s」，相隔 %d 章", p.Title, max(p.Chapter-f.Chapter, 0)), fmt.Sprintf("看回收-%d", i+1)) {
 				a.showMark(p.Node, p.ID)
 			}
-			a.paneQuote(c, p.Quote, false)
+			a.pal.PaneQuote(c, p.Quote, false)
 		}
 	})
 }
@@ -657,16 +658,16 @@ func (a *App) foreDetail(c *ui.Context, f workspace.Foreshadow) {
 // forePicked shows the foreshadowing picked for the passage being marked,
 // so the author sees what they are about to pay off.
 func (a *App) forePicked(c *ui.Context, f workspace.Foreshadow) {
-	a.panePage(c, "fore-picked", func() {
-		a.paneTitle(c, foreName(f), "", "")
+	a.pal.PanePage(c, "fore-picked", func() {
+		a.pal.PaneTitle(c, foreName(f), "", "")
 		where := "埋在「" + f.Title + "」"
 		if f.Gap > 0 && len(f.Payoffs) == 0 {
 			where += fmt.Sprintf("，已过 %d 章", f.Gap)
 		}
-		a.paneWhere(c, where, "")
-		a.paneQuote(c, f.Quote, false)
+		a.pal.PaneWhere(c, where, "")
+		a.pal.PaneQuote(c, f.Quote, false)
 		for _, p := range f.Payoffs {
-			a.paneNote(c, "「"+p.Title+"」里已有一处回收")
+			a.pal.PaneNote(c, "「"+p.Title+"」里已有一处回收")
 		}
 	})
 }
@@ -675,7 +676,7 @@ func (a *App) forePicked(c *ui.Context, f workspace.Foreshadow) {
 // buried long, and with the AI on, when chapters are checked against the
 // setting.
 func (a *App) remindersView(c *ui.Context) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	w := &a.write
 	late := workspace.LateThreshold(a.write.lateAfter)
 	n := 0
@@ -684,39 +685,39 @@ func (a *App) remindersView(c *ui.Context) {
 			n++
 		}
 	}
-	a.subhead(c, "伏笔", "")
-	ui.Row(c).FillWidth().MinHeight(hControl).Gap(12).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, "超过多少章算久未回收").FontSize(fsBody).LineHeight(lhBody).Grow(1).Shrink(1)
+	a.pal.Subhead(c, "伏笔", "")
+	ui.Row(c).FillWidth().MinHeight(kit.HControl).Gap(12).AlignItems(ui.Center).Children(func() {
+		ui.Text(c, "超过多少章算久未回收").FontSize(kit.FsBody).LineHeight(kit.LhBody).Grow(1).Shrink(1)
 		set := func(v int) {
 			w.lateAfter = min(max(v, lateMin), lateMax)
 			a.savePrefs()
 		}
 		// One box: less, how many, more.
-		ui.Row(c).Height(hControl).AlignItems(ui.Center).Radius(rControl).Border(1, t.Border).Shrink(0).Children(func() {
+		ui.Row(c).Height(kit.HControl).AlignItems(ui.Center).Radius(kit.RControl).Border(1, t.Border).Shrink(0).Children(func() {
 			step := func(sign, label, tip string, off bool, to int) {
-				b := ui.ButtonBase(c).Width(hControlSm).FillHeight().Center().Label(label).Tooltip(tip).Disabled(off)
+				b := ui.ButtonBase(c).Width(kit.HControlSm).FillHeight().Center().Label(label).Tooltip(tip).Disabled(off)
 				fg := t.TextMuted
 				switch {
 				case off:
-					pale(b)
+					kit.Pale(b)
 				case b.Hovered():
 					b.Background(t.SurfaceHover)
 					fg = t.Text
 				}
-				b.Children(func() { ui.Text(c, sign).FontSize(fsBody).TextColor(fg) })
+				b.Children(func() { ui.Text(c, sign).FontSize(kit.FsBody).TextColor(fg) })
 				if b.Clicked() {
 					set(to)
 				}
 			}
 			step("−", "提醒章数减少", fmt.Sprintf("减少 %d 章", lateStep), late <= lateMin, late-lateStep)
-			ui.Textf(c, "%d 章", late).FontSize(fsControl).Padding(0, 10)
+			ui.Textf(c, "%d 章", late).FontSize(kit.FsControl).Padding(0, 10)
 			step("+", "提醒章数增加", fmt.Sprintf("增加 %d 章", lateStep), late >= lateMax, late+lateStep)
 		})
 	})
-	ui.Textf(c, "当前有 %d 个伏笔久未回收。", n).FontSize(fsNote).TextColor(t.TextMuted).LineHeight(lhBody)
+	ui.Textf(c, "当前有 %d 个伏笔久未回收。", n).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
 	if !a.aiOn() {
 		return
 	}
-	a.subhead(c, "检查正文和设定", "")
+	a.pal.Subhead(c, "检查正文和设定", "")
 	ui.Column(c).FillWidth().Gap(2).Children(func() { a.whenRows(c) })
 }

@@ -1,5 +1,5 @@
 /**
- * The design rules as desk/tokens.css states them: the names it declares,
+ * The design rules as desk/kit/tokens.css states them: the names it declares,
  * the value of each level, the spacing and alpha scales. The check reads the
  * levels from here, so tokens.css stays the one place they are.
  */
@@ -22,7 +22,7 @@ export interface Rules {
 export const read = (p: string) => readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
 
 export function readRules(dir: string): Rules {
-  const css = read(join(dir, 'tokens.css'))
+  const css = read(join(dir, 'kit', 'tokens.css'))
   const value = new Map<string, string>()
   const bare = css.replace(/\/\*[\s\S]*?\*\//g, '')
   for (const b of bare.matchAll(/([^{}]+)\{([^}]*)\}/g)) {

@@ -1,6 +1,6 @@
 /* 界面的数值：浅色在 :root，深色在 .dark 里。原型的页面和代码只写这些名字。
    每个名字管什么、怎么用，只写在 DESIGN.md，这里只写值；
-   DESIGN.md 开头的数值和 desk/theme.go 的同名常量由 go test ./desk 和这里逐一核对。 */
+   DESIGN.md 开头的数值和 desk/kit/theme.go 的同名常量由 go test ./desk/kit 和这里逐一核对。 */
 :root, .light {
   --bg: #ffffff;
   --raised: #ffffff;

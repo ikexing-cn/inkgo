@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/kit"
 	"writer/export"
 	"writer/workspace"
 )
@@ -47,14 +48,14 @@ func TestTheTitleBarHasItsOwnRow(t *testing.T) {
 	tt.SetTitleBar(ui.TitleBar{Height: 40, Right: buttons})
 	tt.Frame()
 	for _, name := range []string{"文件", "编辑", "视图", "帮助"} {
-		if r, ok := tt.Find(barKey + name); !ok || r.Y+r.H > titleHeight {
+		if r, ok := tt.Find(barKey + name); !ok || r.Y+r.H > kit.TitleHeight {
 			t.Fatalf("the menu %s is not in the title bar: %+v %v", name, r, ok)
 		}
 	}
-	if r, _ := tt.Find("正文"); r.Y < titleHeight {
+	if r, _ := tt.Find("正文"); r.Y < kit.TitleHeight {
 		t.Fatalf("the sidebar starts in the title bar: %+v", r)
 	}
-	if r, _ := tt.Find("上一个打开的章节"); r.Y < titleHeight || r.Y > 2*titleHeight {
+	if r, _ := tt.Find("上一个打开的章节"); r.Y < kit.TitleHeight || r.Y > 2*kit.TitleHeight {
 		t.Fatalf("the toolbar is not the row under the title bar: %+v", r)
 	}
 	width := a.LastWrite.X + a.LastWrite.W + 1 + a.LastSetting.W
@@ -75,7 +76,7 @@ func TestTheTitleBarHasItsOwnRow(t *testing.T) {
 	if _, ok := tt.Find(barKey + "文件"); ok || !a.write.focus {
 		t.Fatal("focused, the title bar is still there")
 	}
-	if r, _ := tt.Find("退出专注"); r.Y > titleHeight {
+	if r, _ := tt.Find("退出专注"); r.Y > kit.TitleHeight {
 		t.Fatalf("focused, the toolbar is not the first row: %+v", r)
 	}
 	if got := right(t, tt, "退出专注"); got > width-buttons {

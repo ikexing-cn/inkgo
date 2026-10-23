@@ -1,4 +1,5 @@
 // Package desk builds Inkgo's native interface.
+// Shared drawing controls, colors, status, and text helpers live in desk/kit.
 //
 // ai.go: inline continuation, rewriting, drafting, and the prose AI record.
 // aiswitch.go: the machine-wide AI switch and shutdown handling.
@@ -41,12 +42,10 @@
 // snapshots.go: snapshots, comparisons, and restoration.
 // tabs.go: chapter tabs, editor parking, closing, and save confirmation.
 // take.go: taking a prose selection into the 设定.
-// theme.go: palette, design dimensions, icons, and shared controls.
 // titlebar.go: title bar, menu commands, and keyboard focus.
 // toast.go: errors, progress, notices, and their actions.
 // toolbar.go: appearance switching and prose-selection tools.
 // trash.go: chapter trash, restoration, and permanent deletion.
 // welcome.go: 书架, work creation, opening, renaming, and relocation.
-// when.go: date and time display text.
 // write.go: writing-page state, frame, prose, 章纲, volumes, and footer.
 package desk

@@ -6,6 +6,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/kit"
 )
 
 // openFind shows the find bar, or puts the caret back in it, its words
@@ -40,7 +41,7 @@ func (a *App) closeFind() {
 }
 
 func (a *App) findBar(c *ui.Context) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	w := &a.write
 	found := w.cur().ed.Doc.Find(w.query)
 	if w.current >= len(found) {
@@ -54,7 +55,7 @@ func (a *App) findBar(c *ui.Context) {
 	}
 	// A band under the tabs, over the page: finding on one line and
 	// replacing on the next, so neither is squeezed in a narrow window.
-	bar := ui.Column(c).FillWidth().Padding(8, 24).Gap(6).Shrink(0).Background(a.pal.side)
+	bar := ui.Column(c).FillWidth().Padding(8, 24).Gap(6).Shrink(0).Background(a.pal.Side)
 	none := len(found) == 0
 	query := func() {
 		q := ui.TextInput(c, &w.query).Label("查找").Placeholder("查找").Width(150).Shrink(1).Grow(1).AutoFocus()
@@ -74,23 +75,23 @@ func (a *App) findBar(c *ui.Context) {
 		switch {
 		case w.query == "":
 		case none:
-			ui.Text(c, "未找到").FontSize(fsNote).TextColor(a.pal.faint).Shrink(0)
+			ui.Text(c, "未找到").FontSize(kit.FsNote).TextColor(a.pal.Faint).Shrink(0)
 		default:
-			ui.Textf(c, "%d / %d", w.current+1, len(found)).FontSize(fsNote).TextColor(t.TextMuted).Shrink(0)
+			ui.Textf(c, "%d / %d", w.current+1, len(found)).FontSize(kit.FsNote).TextColor(t.TextMuted).Shrink(0)
 		}
 	}
 	move := func() {
-		if iconButton(c, icChevronUp, "上一个", ui.Color{}).Disabled(none).Clicked() {
+		if kit.IconButton(c, kit.IcChevronUp, "上一个", ui.Color{}).Disabled(none).Clicked() {
 			w.current = (w.current + len(found) - 1) % len(found)
 			show()
 		}
-		if iconButton(c, icChevronDown, "下一个", ui.Color{}).Disabled(none).Clicked() {
+		if kit.IconButton(c, kit.IcChevronDown, "下一个", ui.Color{}).Disabled(none).Clicked() {
 			w.current = (w.current + 1) % len(found)
 			show()
 		}
 	}
 	replace := func() {
-		if a.pal.secondary(c, "替换").Disabled(none || w.cur().lost).Clicked() {
+		if a.pal.Secondary(c, "替换").Disabled(none || w.cur().lost).Clicked() {
 			if s, e := w.cur().ed.Selection(); s == found[w.current][0] && e == found[w.current][1] {
 				w.cur().ed.Replace(s, e, w.with)
 				if found = w.cur().ed.Doc.Find(w.query); len(found) > 0 {
@@ -102,23 +103,23 @@ func (a *App) findBar(c *ui.Context) {
 			}
 		}
 		if w.wide {
-			if a.pal.secondary(c, "全书替换").Disabled(w.query == "" || len(w.hits) == 0 || w.cur().lost || w.cur().external != nil).Clicked() {
+			if a.pal.Secondary(c, "全书替换").Disabled(w.query == "" || len(w.hits) == 0 || w.cur().lost || w.cur().external != nil).Clicked() {
 				w.sure = !w.sure
 			}
 			return
 		}
-		if a.pal.secondary(c, "全部替换").Disabled(none || w.cur().lost).Clicked() {
+		if a.pal.Secondary(c, "全部替换").Disabled(none || w.cur().lost).Clicked() {
 			n := w.cur().ed.ReplaceAll(w.query, w.with)
-			a.status.did(fmt.Sprintf("已替换 %d 处，可撤销", n))
+			a.status.Did(fmt.Sprintf("已替换 %d 处，可撤销", n))
 		}
 	}
 	wide := func() {
-		if a.pal.chip(c, "全书", w.wide).Tooltip("在全部章节中查找").Clicked() {
+		if a.pal.Chip(c, "全书", w.wide).Tooltip("在全部章节中查找").Clicked() {
 			w.wide, w.texts, w.sure = !w.wide, nil, false
 		}
 	}
 	closer := func() {
-		if iconButton(c, icX, "关闭查找", ui.Color{}).Clicked() {
+		if kit.IconButton(c, kit.IcX, "关闭查找", ui.Color{}).Clicked() {
 			a.closeFind()
 		}
 	}
@@ -133,5 +134,5 @@ func (a *App) findBar(c *ui.Context) {
 			a.bookResults(c)
 		}
 	})
-	ui.Box(c).FillWidth().Height(1).Background(a.pal.line).Shrink(0)
+	ui.Box(c).FillWidth().Height(1).Background(a.pal.Line).Shrink(0)
 }

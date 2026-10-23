@@ -6,8 +6,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/egoist/mygo/ui"
-
 	"writer/desk/book"
+	"writer/desk/kit"
 	"writer/editor"
 	"writer/workspace"
 )
@@ -102,7 +102,7 @@ func (a *App) nameMenu(m *menu, sel string) {
 				m.Item(c.Name).Do(func() {
 					a.revise(workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: c.Name, Text: name, Names: []string{name}})
 					if a.errorText() == "" {
-						a.status.did("「" + name + "」已加入设定的" + c.Name + "，输入时可自动补全")
+						a.status.Did("「" + name + "」已加入设定的" + c.Name + "，输入时可自动补全")
 					}
 				})
 			}
@@ -155,13 +155,13 @@ func (a *App) renameNotice(c *ui.Context) {
 	if r.count == 0 {
 		return
 	}
-	ui.Row(c).FillWidth().Gap(6).Padding(6, 8, 6, 10).Radius(rCard).Background(a.pal.raised).Border(1, a.pal.line).AlignItems(ui.Center).Children(func() {
-		ui.Textf(c, "正文中仍有 %d 处「%s」", r.count, r.old).FontSize(fsNote).Grow(1).Shrink(1)
-		if a.pal.ghost(c, "全书替换", ui.Color{}).Label("将旧名替换为新名").Clicked() {
+	ui.Row(c).FillWidth().Gap(6).Padding(6, 8, 6, 10).Radius(kit.RCard).Background(a.pal.Raised).Border(1, a.pal.Line).AlignItems(ui.Center).Children(func() {
+		ui.Textf(c, "正文中仍有 %d 处「%s」", r.count, r.old).FontSize(kit.FsNote).Grow(1).Shrink(1)
+		if a.pal.Ghost(c, "全书替换", ui.Color{}).Label("将旧名替换为新名").Clicked() {
 			a.renamed = renamed{}
 			a.replaceName(r.old, r.new)
 		}
-		if iconButton(c, icX, "保留旧名", ui.Color{}).Tooltip("不替换").Clicked() {
+		if kit.IconButton(c, kit.IcX, "保留旧名", ui.Color{}).Tooltip("不替换").Clicked() {
 			a.renamed = renamed{}
 		}
 	})

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"writer/desk/kit"
 	"writer/prefs"
 	"writer/workspace"
 )
@@ -38,7 +39,7 @@ func TestSetTheDaysGoal(t *testing.T) {
 	}
 	// The days above it are said as every day is: 今天, 昨天, 10-14.
 	now := time.Now()
-	for _, day := range []string{"今天 写了 0 字", "昨天 写了 0 字", dayOf(now.AddDate(0, 0, -6), now) + " 写了 0 字"} {
+	for _, day := range []string{"今天 写了 0 字", "昨天 写了 0 字", kit.DayOf(now.AddDate(0, 0, -6), now) + " 写了 0 字"} {
 		if _, ok := tt.Find(day); !ok {
 			t.Fatal("the last week does not say", day, tt.Texts())
 		}

@@ -281,15 +281,3 @@ func TestTheEntryFormTakesTheKeyboard(t *testing.T) {
 		t.Fatal("a changed entry starts somewhere else")
 	}
 }
-
-func TestNearFindMeasure(t *testing.T) {
-	for _, c := range []struct{ text, want string }{
-		{"甲乙abcdef关键后文", "甲乙abcdef关键后文"},
-		{"甲乙abcdefg关键后文", "…bcdefg关键后文"},
-		{"甲\n乙abcdefg关键后文", "…bcdefg关键后文"},
-	} {
-		if got := nearFind(c.text, "关键"); got != c.want {
-			t.Errorf("nearFind(%q) = %q, want %q", c.text, got, c.want)
-		}
-	}
-}

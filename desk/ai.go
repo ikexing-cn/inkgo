@@ -9,6 +9,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/aiport"
+	"writer/desk/kit"
 	"writer/prefs"
 	"writer/tokens"
 	"writer/workspace"
@@ -179,7 +180,7 @@ func (a *App) startTalk(c *ui.Context, words workspace.Event) bool {
 	}
 	what := map[string]string{workspace.AIDraft: "起草", workspace.AIRewrite: "改写"}[words.Origin]
 	if a.busy != "" {
-		a.status.hint("AI 正在回复别的讨论；等它回完或取消后再" + what)
+		a.status.Hint("AI 正在回复别的讨论；等它回完或取消后再" + what)
 		return false
 	}
 	a.flush() // the talk reads the chapter from the disk
@@ -220,43 +221,43 @@ func (a *App) serviceModel(name string) string {
 }
 
 func (a *App) draftView(c *ui.Context) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	w := &a.write
-	a.pal.modal(c, &w.draftOpen, func() {
-		ui.Column(c).Width(dialogSmall).Padding(dialogPad).Gap(16).Children(func() {
+	a.pal.Modal(c, &w.draftOpen, func() {
+		ui.Column(c).Width(kit.DialogSmall).Padding(kit.DialogPad).Gap(16).Children(func() {
 			head := "AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。"
 			if w.draftCards > 0 {
 				head = "AI 仅将章纲和本章的卡片扩写为正文，不添加这些之外的重大情节。"
 			}
-			a.pal.dialogHead(c, "起草本章", head+"起草在一段新的讨论里进行：写好的先在正文里显示为提议，采纳后才写入，写入前保存快照；想改哪里，在讨论里接着说。")
-			ui.Box(c).FillWidth().Padding(10, 12).Radius(rControl).Background(a.pal.side).Children(func() {
-				ui.Text(c, strings.TrimSpace(w.cur().outline.text)).FontSize(fsControl).TextColor(t.TextMuted).LineHeight(lhLoose).FillWidth()
+			a.pal.DialogHead(c, "起草本章", head+"起草在一段新的讨论里进行：写好的先在正文里显示为提议，采纳后才写入，写入前保存快照；想改哪里，在讨论里接着说。")
+			ui.Box(c).FillWidth().Padding(10, 12).Radius(kit.RControl).Background(a.pal.Side).Children(func() {
+				ui.Text(c, strings.TrimSpace(w.cur().outline.text)).FontSize(kit.FsControl).TextColor(t.TextMuted).LineHeight(kit.LhLoose).FillWidth()
 			})
 			_, fits := prefs.CountOrNone(w.words)
-			labeled(c, "目标字数（选填）", func() {
+			kit.Labeled(c, "目标字数（选填）", func() {
 				ui.TextInput(c, &w.words).Label("目标字数").Placeholder("由 AI 按章纲判断").FillWidth()
 				if !fits {
-					ui.Text(c, "目标字数须为正整数，或留空").FontSize(fsNote).TextColor(t.Danger)
+					ui.Text(c, "目标字数须为正整数，或留空").FontSize(kit.FsNote).TextColor(t.Danger)
 				}
 			})
 			if strings.TrimSpace(w.cur().ed.Doc.String()) != "" {
-				labeled(c, "本章已有内容", func() {
+				kit.Labeled(c, "本章已有内容", func() {
 					modes := []string{draftAppend, draftReplace}
-					dots(c, &w.draftMode, "已有内容的处理方式", modes, modes)
+					kit.Dots(c, &w.draftMode, "已有内容的处理方式", modes, modes)
 				})
 			}
 			if w.draftNote != "" {
-				ui.Text(c, w.draftNote).FontSize(fsNote).TextColor(t.TextMuted).FillWidth()
+				ui.Text(c, w.draftNote).FontSize(kit.FsNote).TextColor(t.TextMuted).FillWidth()
 			}
 			if work := a.Store.Work(); work.Discussion.Model != "" {
-				ui.Textf(c, "用讨论模型 %s · %s；可在设置中「AI」配置里更换。", work.Discussion.Model, a.ai.EffortLabel(work.Discussion.Effort)).FontSize(fsNote).TextColor(t.TextMuted).FillWidth()
+				ui.Textf(c, "用讨论模型 %s · %s；可在设置中「AI」配置里更换。", work.Discussion.Model, a.ai.EffortLabel(work.Discussion.Effort)).FontSize(kit.FsNote).TextColor(t.TextMuted).FillWidth()
 			}
 			ui.Row(c).FillWidth().Gap(8).Children(func() {
 				ui.Spacer(c)
-				if a.pal.secondary(c, "取消").Clicked() {
+				if a.pal.Secondary(c, "取消").Clicked() {
 					w.draftOpen = false
 				}
-				if a.pal.primary(c, "开始起草").Disabled(!fits).Clicked() {
+				if a.pal.Primary(c, "开始起草").Disabled(!fits).Clicked() {
 					a.draft(c)
 				}
 			})
@@ -267,18 +268,18 @@ func (a *App) draftView(c *ui.Context) {
 // aiRecord shows what an AI did, with a snapshot taken before it, as
 // snapshots kept it while a draft or a rewrite asked the model once.
 func (a *App) aiRecord(c *ui.Context, r *workspace.AIRecord) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	op := map[string]string{workspace.AIDraft: "按章纲起草", workspace.AIRewrite: "改写"}[r.Op]
-	ui.Column(c).FillWidth().Gap(4).Padding(10, 12).Radius(rControl).Border(1, t.Border).Children(func() {
+	ui.Column(c).FillWidth().Gap(4).Padding(10, 12).Radius(kit.RControl).Border(1, t.Border).Children(func() {
 		line := op + " · " + a.modelLabel(*r)
 		if r.Instruction != "" {
 			line += " · " + r.Instruction
 		}
-		ui.Text(c, line).FontSize(fsNote).FontWeight(600).FillWidth()
+		ui.Text(c, line).FontSize(kit.FsNote).FontWeight(600).FillWidth()
 		shown := append([]string{fmt.Sprintf("设定 %d 条", len(r.Setting))}, r.Shown...)
-		ui.Text(c, "AI 参考了："+strings.Join(shown, "、")).FontSize(fsNote).TextColor(t.TextMuted).FillWidth().LineHeight(lhBody)
+		ui.Text(c, "AI 参考了："+strings.Join(shown, "、")).FontSize(kit.FsNote).TextColor(t.TextMuted).FillWidth().LineHeight(kit.LhBody)
 		if len(r.Omitted) > 0 {
-			ui.Textf(c, "超出上下文上限而未放入的设定 %d 条", len(r.Omitted)).FontSize(fsNote).TextColor(t.Warning)
+			ui.Textf(c, "超出上下文上限而未放入的设定 %d 条", len(r.Omitted)).FontSize(kit.FsNote).TextColor(t.Warning)
 		}
 	})
 }
@@ -286,7 +287,7 @@ func (a *App) aiRecord(c *ui.Context, r *workspace.AIRecord) {
 // talkRecord shows, with a snapshot taken before what an AI proposed in
 // talks went in, which talks they were.
 func (a *App) talkRecord(c *ui.Context, sessions []string) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	var b strings.Builder
 	for _, s := range sessions {
 		title, ok := a.titles[s]
@@ -295,7 +296,7 @@ func (a *App) talkRecord(c *ui.Context, sessions []string) {
 		}
 		b.WriteString("「" + title + "」")
 	}
-	ui.Column(c).FillWidth().Padding(10, 12).Radius(rControl).Border(1, t.Border).Children(func() {
-		ui.Text(c, "采纳讨论"+b.String()+"里的提议").FontSize(fsNote).FontWeight(600).FillWidth()
+	ui.Column(c).FillWidth().Padding(10, 12).Radius(kit.RControl).Border(1, t.Border).Children(func() {
+		ui.Text(c, "采纳讨论"+b.String()+"里的提议").FontSize(kit.FsNote).FontWeight(600).FillWidth()
 	})
 }

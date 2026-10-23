@@ -7,6 +7,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/aiport"
+	"writer/desk/kit"
 	"writer/workspace"
 )
 
@@ -69,19 +70,19 @@ func (a *App) paneCounts() paneNums {
 // panelTabs switch the writing page's right column between the setting,
 // the talk, the foreshadowings and the phone preview.
 func (a *App) panelTabs(c *ui.Context) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	shown := a.paneTabs.shown(a, a.doc.tab)
 	tab := func(entry tabEntry[paneTab]) {
 		label := entry.title(a)
 		on := shown == entry.id
-		b := ui.ButtonBase(c).Row().AlignItems(ui.Center).Padding(4, 10).Radius(rControl).Label("右栏-" + label)
+		b := ui.ButtonBase(c).Row().AlignItems(ui.Center).Padding(4, 10).Radius(kit.RControl).Label("右栏-" + label)
 		if on {
 			b.Background(t.SurfacePressed)
 		} else if b.Hovered() {
 			b.Background(t.SurfaceHover)
 		}
 		b.Children(func() {
-			text := ui.Text(c, label).FontSize(fsBody)
+			text := ui.Text(c, label).FontSize(kit.FsBody)
 			if on {
 				text.FontWeight(600)
 			} else {
@@ -90,7 +91,7 @@ func (a *App) panelTabs(c *ui.Context) {
 			// The count sits inside its own tab; beside the tabs it read
 			// as unread talk.
 			if n := entry.number(); n > 0 {
-				ui.Textf(c, "%d", n).FontSize(fsNote).TextColor(a.pal.faint).Padding(0, 0, 0, 4)
+				ui.Textf(c, "%d", n).FontSize(kit.FsNote).TextColor(a.pal.Faint).Padding(0, 0, 0, 4)
 			}
 		})
 		if b.Clicked() && !on {
@@ -117,10 +118,10 @@ func (a *App) talkTab() bool { return a.paneTabs.shown(a, a.doc.tab) == paneTalk
 // the list of them all.
 func (a *App) talkPanel(c *ui.Context) {
 	d := &a.doc
-	paneTop(c).Children(func() {
+	kit.PaneTop(c).Children(func() {
 		a.panelTabs(c)
 		ui.Spacer(c)
-		if iconButton(c, icPanel, "收起右栏", ui.Color{}).Tooltip("收起右栏").Clicked() {
+		if kit.IconButton(c, kit.IcPanel, "收起右栏", ui.Color{}).Tooltip("收起右栏").Clicked() {
 			a.setDocHidden(true)
 		}
 	})
@@ -128,10 +129,10 @@ func (a *App) talkPanel(c *ui.Context) {
 		a.talkList(c)
 		return
 	}
-	if back, _ := a.paneBack(c, "全部讨论", ""); back && !a.held() {
+	if back, _ := a.pal.PaneBack(c, "全部讨论", ""); back && !a.held() {
 		d.talks = true
 	}
-	a.pal.hairline(c)
+	a.pal.Hairline(c)
 	ui.Column(c).FillWidth().Grow(1).Shrink(1).Padding(0, 20).Children(func() {
 		a.chatList(c, true)
 	})
@@ -149,8 +150,8 @@ func (a *App) talkList(c *ui.Context) {
 			d.talks, a.focusTalk = false, true
 		}
 	}
-	q := trim(d.talkQuery)
-	a.paneRows(c, "talks", func() {
+	q := kit.Trim(d.talkQuery)
+	a.pal.PaneRows(c, "talks", func() {
 		group := "最近"
 		if q != "" {
 			group = "找到的"
@@ -163,16 +164,16 @@ func (a *App) talkList(c *ui.Context) {
 				continue
 			}
 			if n == 0 {
-				a.paneGroup(c, group)
+				a.pal.PaneGroup(c, group)
 			}
 			n++
-			if a.paneRow(c.Key(id), "讨论-"+id, words, "", talkDay(id, time.Now()), "", false).Clicked() {
+			if a.pal.PaneRow(c.Key(id), "讨论-"+id, words, "", talkDay(id, time.Now()), "", false).Clicked() {
 				a.switchSession(id)
 				d.talks = false
 			}
 		}
 		if n == 0 {
-			a.pal.paneEmpty(c, "未找到", "")
+			a.pal.PaneEmpty(c, "未找到", "")
 		}
 	})
 }
@@ -233,22 +234,22 @@ func (a *App) quoteToTalk() {
 // quoteBlock shows prose quoted in the talk under its chapter; clicking it
 // finds the words in the chapter.
 func (a *App) quoteBlock(c *ui.Context, q workspace.Quote, key string, remove func()) {
-	t := a.pal.theme
-	b := ui.ButtonBase(c.Key(key)).Row().FillWidth().Gap(8).AlignItems(ui.Stretch).Padding(6, 8, 6, 0).Radius(rControl).Label("引用-" + key).Tooltip("在正文中定位此段")
+	t := a.pal.Theme
+	b := ui.ButtonBase(c.Key(key)).Row().FillWidth().Gap(8).AlignItems(ui.Stretch).Padding(6, 8, 6, 0).Radius(kit.RControl).Label("引用-" + key).Tooltip("在正文中定位此段")
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}
 	b.Children(func() {
-		ui.Box(c).Width(3).Radius(rRound).Background(a.pal.ink.Alpha(0.55)).Shrink(0)
+		ui.Box(c).Width(3).Radius(kit.RRound).Background(a.pal.Ink.Alpha(0.55)).Shrink(0)
 		ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
 			title := q.Title // as it was named then, unless the tree knows it now
 			if n, ok := a.book.Tree().Node(q.Chapter); ok {
 				title = n.Title
 			}
-			ui.Text(c, "《"+title+"》").FontSize(fsNote).TextColor(a.pal.ink)
-			ui.Text(c, clip(q.Text, 160)).FontSize(fsControl).LineHeight(lhBody).TextColor(t.TextMuted).FillWidth()
+			ui.Text(c, "《"+title+"》").FontSize(kit.FsNote).TextColor(a.pal.Ink)
+			ui.Text(c, kit.Clip(q.Text, 160)).FontSize(kit.FsControl).LineHeight(kit.LhBody).TextColor(t.TextMuted).FillWidth()
 		})
-		if remove != nil && iconButton(c, icX, "去掉引用-"+key, ui.Color{}).Tooltip("移除此段引用").Clicked() {
+		if remove != nil && kit.IconButton(c, kit.IcX, "去掉引用-"+key, ui.Color{}).Tooltip("移除此段引用").Clicked() {
 			remove()
 		}
 	})
@@ -274,7 +275,7 @@ func (a *App) findInChapter(chapter, text string) {
 	}
 	at := strings.Index(ed.Doc.String(), text)
 	if at < 0 {
-		a.status.hint("该段原文已修改，在本章中未找到")
+		a.status.Hint("该段原文已修改，在本章中未找到")
 		return
 	}
 	s := len([]rune(ed.Doc.String()[:at]))

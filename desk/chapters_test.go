@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/kit"
 )
 
 // A work left on the writing page reopens there, on the same chapter; left
@@ -135,14 +136,14 @@ func TestSizeTheText(t *testing.T) {
 	for range 20 {
 		a.sizeText(-1)
 	}
-	if shownEditor(a).FontSize() != textSizeMin {
+	if shownEditor(a).FontSize() != kit.TextSizeMin {
 		t.Fatal("below the least", shownEditor(a).FontSize())
 	}
 	shownEditor(a).Focus()
 	tt.Frame()
 	tt.Key(ui.Cmd, ui.Key0)
 	tt.Frame()
-	if shownEditor(a).FontSize() != textSizeDefault || savedPrefs(t, a).TextSize != 0 {
+	if shownEditor(a).FontSize() != kit.TextSizeDefault || savedPrefs(t, a).TextSize != 0 {
 		t.Fatal("not back", shownEditor(a).FontSize())
 	}
 }

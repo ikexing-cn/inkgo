@@ -3,32 +3,18 @@ package desk
 import (
 	"slices"
 	"strconv"
-	"strings"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/kit"
 	"writer/workspace"
 )
 
 // shortName names e in a few words: its name, or its category.
 func shortName(e workspace.Entry) string {
 	if len(e.Names) > 0 {
-		return clip(e.Names[0], 12)
+		return kit.Clip(e.Names[0], 12)
 	}
 	return e.Category
-}
-
-// fromLabel says where a change of the setting starts, as the panel does:
-// 第87章起 for a chapter numbered, its title for one that is not and for a
-// volume, and 所在章节已删除 for a node no longer in the tree.
-func fromLabel(tree workspace.Tree, id string) string {
-	n, ok := tree.Node(id)
-	if !ok {
-		return "所在章节已删除"
-	}
-	if m := workspace.TitleNumber(strings.TrimSpace(n.Title)); m != "" && !n.Folder {
-		return m + "起"
-	}
-	return n.Title + "起"
 }
 
 // here is the node the setting is read at: the chapter or volume open on
@@ -48,7 +34,7 @@ func (a *App) here() string {
 // changes later.
 func changeSide(tree workspace.Tree, o workspace.Order, e workspace.Entry, at string) string {
 	if _, g, ok := e.Reading(o, at); ok {
-		return fromLabel(tree, g.From)
+		return kit.FromLabel(tree, g.From)
 	}
 	if at != "" && slices.ContainsFunc(e.Holding(o), func(g workspace.Change) bool { return o[g.From] > o[at] }) {
 		return "之后有变化"
@@ -77,7 +63,7 @@ func nodeChoices(tree workspace.Tree) (names []string, ids map[string]string) {
 // no more. With a chapter or volume open, a change can be noted from it,
 // or the one from it is changed.
 func (a *App) timeline(c *ui.Context, e workspace.Entry) {
-	d, t, tree := &a.doc, a.pal.theme, a.book.Tree()
+	d, t, tree := &a.doc, a.pal.Theme, a.book.Tree()
 	o, here := tree.Order(), a.here()
 	hold := e.Holding(o)
 	var gone []workspace.Change
@@ -96,7 +82,7 @@ func (a *App) timeline(c *ui.Context, e workspace.Entry) {
 		if n, _ := tree.Node(here); n != nil && n.Folder {
 			label = "从本卷起有变化"
 		}
-		if a.pal.ghost(c, label, ui.Color{}).Clicked() {
+		if a.pal.Ghost(c, label, ui.Color{}).Clicked() {
 			d.route.editChange("new")
 			d.from, d.text = here, e.ReadingBefore(o, here)
 		}
@@ -104,41 +90,41 @@ func (a *App) timeline(c *ui.Context, e workspace.Entry) {
 	mine := here != "" && slices.ContainsFunc(hold, func(g workspace.Change) bool { return g.From == here })
 	if len(hold)+len(gone) == 0 {
 		if here != "" {
-			a.pal.hairline(c)
+			a.pal.Hairline(c)
 			ui.Row(c).FillWidth().Children(add)
 		}
 		return
 	}
-	a.pal.hairline(c)
+	a.pal.Hairline(c)
 	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, "随章节的变化").FontSize(fsNote).FontWeight(600)
+		ui.Text(c, "随章节的变化").FontSize(kit.FsNote).FontWeight(600)
 		ui.Spacer(c)
 		if here != "" && !mine {
 			add()
 		}
 	})
 	if here != "" && !holds {
-		a.paneNote(c, "本章适用上面原来的样子。")
+		a.pal.PaneNote(c, "本章适用上面原来的样子。")
 	}
 	step := func(g workspace.Change, label string, current, faded bool) {
 		ui.Column(c.Key(g.ID)).FillWidth().Gap(4).Children(func() {
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-				ui.Text(c, label).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
+				ui.Text(c, label).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 				if current {
-					ui.Text(c, "本章适用").FontSize(fsSmall).TextColor(a.pal.ink).Padding(0, 6).Radius(rXs).Background(t.SurfacePressed).Shrink(0)
+					ui.Text(c, "本章适用").FontSize(kit.FsSmall).TextColor(a.pal.Ink).Padding(0, 6).Radius(kit.RXs).Background(t.SurfacePressed).Shrink(0)
 				}
-				if a.pal.ghost(c, "修改", ui.Color{}).Label("修改变化-" + g.ID).Clicked() {
+				if a.pal.Ghost(c, "修改", ui.Color{}).Label("修改变化-" + g.ID).Clicked() {
 					open(g)
 				}
 			})
-			text := ui.Text(c, g.Text).FontSize(fsBody).LineHeight(lhLoose).Selectable().FillWidth()
+			text := ui.Text(c, g.Text).FontSize(kit.FsBody).LineHeight(kit.LhLoose).Selectable().FillWidth()
 			if faded {
-				text.TextColor(a.pal.faint)
+				text.TextColor(a.pal.Faint)
 			}
 		})
 	}
 	for _, g := range hold {
-		step(g, fromLabel(tree, g.From), holds && on.ID == g.ID, false)
+		step(g, kit.FromLabel(tree, g.From), holds && on.ID == g.ID, false)
 	}
 	for _, g := range gone {
 		step(g, "所在章节已删除 · 不起作用", false, true)
@@ -152,17 +138,17 @@ func (a *App) timeline(c *ui.Context, e workspace.Entry) {
 func (a *App) changeForm(c *ui.Context, e workspace.Entry) {
 	d, tree := &a.doc, a.book.Tree()
 	name := shortName(e)
-	if back, _ := a.paneBack(c, name, ""); back {
+	if back, _ := a.pal.PaneBack(c, name, ""); back {
 		d.route.closeChange()
 	}
-	a.panePage(c, "change-"+e.ID, func() {
-		ui.Text(c, name+" · "+fromLabel(tree, d.from)).FontSize(fsGroup).FontWeight(600)
+	a.pal.PanePage(c, "change-"+e.ID, func() {
+		ui.Text(c, name+" · "+kit.FromLabel(tree, d.from)).FontSize(kit.FsGroup).FontWeight(600)
 		note := "从这一章起，这一条就是下面这段话。"
 		if a.aiOn() {
 			note = "从这一章起，这一条就是下面这段话；起草、改写这一章及以后的章时，AI 看到的是它。"
 		}
-		a.paneNote(c, note)
-		a.paneField(c, "从哪一章起", func() {
+		a.pal.PaneNote(c, note)
+		a.pal.PaneField(c, "从哪一章起", func() {
 			names, ids := nodeChoices(tree)
 			chosen := "所在章节已删除"
 			for n, id := range ids {
@@ -174,24 +160,24 @@ func (a *App) changeForm(c *ui.Context, e workspace.Entry) {
 				d.from = ids[chosen]
 			}
 		})
-		a.paneField(c, "内容", func() {
-			ui.TextAreaBase(c, &d.text).Label("变化后的内容").FillWidth().Height(120).FontSize(fsBody).LineHeight(lhLoose).
-				Padding(8, 10).Radius(rControl).Background(a.pal.canvas).Border(1, a.pal.theme.Border).AutoFocus()
+		a.pal.PaneField(c, "内容", func() {
+			ui.TextAreaBase(c, &d.text).Label("变化后的内容").FillWidth().Height(120).FontSize(kit.FsBody).LineHeight(kit.LhLoose).
+				Padding(8, 10).Radius(kit.RControl).Background(a.pal.Canvas).Border(1, a.pal.Theme.Border).AutoFocus()
 		})
-		text := trim(d.text)
+		text := kit.Trim(d.text)
 		change := d.route.changeID()
 		was := slices.IndexFunc(e.Changes, func(g workspace.Change) bool { return g.ID == change })
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-			if was >= 0 && a.pal.ghost(c, "删除这处变化", a.pal.theme.Danger).Clicked() {
+			if was >= 0 && a.pal.Ghost(c, "删除这处变化", a.pal.Theme.Danger).Clicked() {
 				a.revise(workspace.Op{Op: workspace.OpDropChange, Entry: e.ID, Change: change})
 				d.route.closeChange()
 				return
 			}
 			ui.Spacer(c)
-			if a.paneButton(c, "取消", false).Clicked() {
+			if a.pal.PaneButton(c, "取消", false).Clicked() {
 				d.route.closeChange()
 			}
-			if !a.paneButton(c, "保存", true).Disabled(text == "").Clicked() {
+			if !a.pal.PaneButton(c, "保存", true).Disabled(text == "").Clicked() {
 				return
 			}
 			var ops []workspace.Op

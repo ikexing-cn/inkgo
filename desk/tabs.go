@@ -4,6 +4,7 @@ import (
 	"slices"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/kit"
 	"writer/editor"
 	"writer/workspace"
 )
@@ -93,11 +94,11 @@ func (a *App) sheets(c *ui.Context) {
 		return
 	}
 	var shut []string
-	row := ui.Row(c).FillWidth().Height(hControl).Background(a.pal.side).Shrink(0)
+	row := ui.Row(c).FillWidth().Height(kit.HControl).Background(a.pal.Side).Shrink(0)
 	row.Children(func() {
 		a.sheetRow(c, &shut)
 		// The line under the row runs on to the edge.
-		ui.Box(c).Grow(1).Height(hControl).BorderWidth(0, 0, 1, 0).BorderColor(a.pal.line)
+		ui.Box(c).Grow(1).Height(kit.HControl).BorderWidth(0, 0, 1, 0).BorderColor(a.pal.Line)
 	})
 	if shut != nil {
 		a.shutTabs(shut)
@@ -107,11 +108,11 @@ func (a *App) sheets(c *ui.Context) {
 // sheetRow is the tabs themselves, which scroll sideways when they are
 // more than fit; shut is given the tabs the author closes.
 func (a *App) sheetRow(c *ui.Context, shut *[]string) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	w := &a.write
 	shown := w.node
 	defer func() { w.tabSeen = shown }()
-	ui.ScrollHorizontal(c.Key("标签页")).Height(hControl).Shrink(1).Children(func() {
+	ui.ScrollHorizontal(c.Key("标签页")).Height(kit.HControl).Shrink(1).Children(func() {
 		for _, id := range w.tabs {
 			on := id == w.node
 			title, path, folder := a.tabTitle(id)
@@ -120,14 +121,14 @@ func (a *App) sheetRow(c *ui.Context, shut *[]string) {
 			if dirty {
 				tip += " · 未保存"
 			}
-			tab := ui.ButtonBase(c.Key("tab-"+id)).Row().Height(hControl).MaxWidth(sheetMax).AlignItems(ui.Center).Gap(6).Padding(0, 6, 0, 12).Shrink(0).
-				BorderWidth(0, 1, 1, 0).BorderColor(a.pal.line).Label("标签页-" + title).Tooltip(tip)
+			tab := ui.ButtonBase(c.Key("tab-"+id)).Row().Height(kit.HControl).MaxWidth(sheetMax).AlignItems(ui.Center).Gap(6).Padding(0, 6, 0, 12).Shrink(0).
+				BorderWidth(0, 1, 1, 0).BorderColor(a.pal.Line).Label("标签页-" + title).Tooltip(tip)
 			over := tab.Hovered()
 			fg, weight := t.TextMuted, 400
 			switch {
 			case on:
 				// Joined to the page: its ground, and no line under it.
-				tab.Background(a.pal.canvas).BorderWidth(0, 1, 0, 0)
+				tab.Background(a.pal.Canvas).BorderWidth(0, 1, 0, 0)
 				fg, weight = t.Text, 600
 			case over:
 				tab.Background(t.SurfaceHover)
@@ -138,16 +139,16 @@ func (a *App) sheetRow(c *ui.Context, shut *[]string) {
 				tab.ScrollIntoView()
 			}
 			tab.Children(func() {
-				pic := icDoc
+				pic := kit.IcDoc
 				if folder {
-					pic = icFolder
+					pic = kit.IcFolder
 				}
-				glyph(c, pic, iconSm, fg)
-				ui.Text(c, title).FontSize(fsControl).FontWeight(weight).TextColor(fg).SingleLine().Ellipsis("…").Shrink(1)
+				kit.Glyph(c, pic, kit.IconSm, fg)
+				ui.Text(c, title).FontSize(kit.FsControl).FontWeight(weight).TextColor(fg).SingleLine().Ellipsis("…").Shrink(1)
 				// The cross keeps its place: shown on the tab open and on the
 				// one under the pointer. Words not saved put a dot there, till
 				// the pointer comes.
-				x := ui.ButtonBase(c.Key("x-"+id)).Size(hTag, hTag).Center().Radius(rXs).Shrink(0).Label("关闭标签页-" + title).Tooltip("关闭标签页")
+				x := ui.ButtonBase(c.Key("x-"+id)).Size(kit.HTag, kit.HTag).Center().Radius(kit.RXs).Shrink(0).Label("关闭标签页-" + title).Tooltip("关闭标签页")
 				mark := t.TextMuted
 				if x.Hovered() {
 					x.Background(t.SurfacePressed)
@@ -156,9 +157,9 @@ func (a *App) sheetRow(c *ui.Context, shut *[]string) {
 				x.Children(func() {
 					switch {
 					case dirty && !over:
-						ui.Box(c).Size(6, 6).Radius(rRound).Background(t.TextMuted).Label("未保存-" + title)
+						ui.Box(c).Size(6, 6).Radius(kit.RRound).Background(t.TextMuted).Label("未保存-" + title)
 					case on || over:
-						glyph(c, icX, iconXs, mark)
+						kit.Glyph(c, kit.IcX, kit.IconXs, mark)
 					}
 				})
 				if x.Clicked() {
@@ -247,17 +248,17 @@ func (a *App) askToSave(c *ui.Context) {
 	}
 	title, _, _ := a.tabTitle(w.node)
 	answer := ""
-	a.pal.modal(c, &open, func() {
-		ui.Column(c).Width(dialogAsk).Padding(dialogPad).Gap(16).Children(func() {
-			a.pal.dialogHead(c, "保存对「"+title+"」的修改？", "不保存将丢失上次保存后的修改。")
+	a.pal.Modal(c, &open, func() {
+		ui.Column(c).Width(kit.DialogAsk).Padding(kit.DialogPad).Gap(16).Children(func() {
+			a.pal.DialogHead(c, "保存对「"+title+"」的修改？", "不保存将丢失上次保存后的修改。")
 			ui.Row(c).FillWidth().Gap(8).Justify(ui.End).Children(func() { // system order
-				if a.pal.primary(c, "保存").Label("保存修改").Clicked() {
+				if a.pal.Primary(c, "保存").Label("保存修改").Clicked() {
 					answer = "save"
 				}
-				if a.pal.secondary(c, "不保存").Clicked() {
+				if a.pal.Secondary(c, "不保存").Clicked() {
 					answer = "drop"
 				}
-				if a.pal.secondary(c, "取消").Clicked() {
+				if a.pal.Secondary(c, "取消").Clicked() {
 					answer = "stay"
 				}
 			})

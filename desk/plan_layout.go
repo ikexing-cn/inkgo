@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/kit"
 	"writer/workspace"
 )
 
@@ -43,28 +44,28 @@ type planRow struct {
 
 func (o *outlinePage) layout(c *ui.Context) *planGeometry {
 	content := o.host.content()
-	if g := o.geometry; g != nil && g.root == content.Tree().Root && g.query == trim(o.query) && g.editing == o.outlineDraft.node {
+	if g := o.geometry; g != nil && g.root == content.Tree().Root && g.query == kit.Trim(o.query) && g.editing == o.outlineDraft.node {
 		return g
 	}
-	g := &planGeometry{root: content.Tree().Root, query: trim(o.query), editing: o.outlineDraft.node, lanes: map[string]float32{}}
-	_, unit := c.MeasureText(0, ui.Span{Text: "字", Size: fsBody})
+	g := &planGeometry{root: content.Tree().Root, query: kit.Trim(o.query), editing: o.outlineDraft.node, lanes: map[string]float32{}}
+	_, unit := c.MeasureText(0, ui.Span{Text: "字", Size: kit.FsBody})
 	textHeight := func(text string, width float32, limit int) float32 {
-		spans := marked(text, trim(o.query), o.host.colors().ink)
+		spans := kit.Marked(text, kit.Trim(o.query), o.host.colors().Ink)
 		for i := range spans {
-			spans[i].Size = fsBody
+			spans[i].Size = kit.FsBody
 		}
 		_, h := c.MeasureText(width, spans...)
-		return float32(max(1, min(limit, int(math.Round(float64(h/unit)))))) * fsBody * lhBody
+		return float32(max(1, min(limit, int(math.Round(float64(h/unit)))))) * kit.FsBody * kit.LhBody
 	}
 	cardHeight := func(e workspace.Card, timeline bool) float32 {
 		h := float32(12+2) + textHeight(e.Title, planCardTextWidth, 2)
 		if timeline || e.When != "" {
-			h += 2 + fsNote*lhBody
+			h += 2 + kit.FsNote*kit.LhBody
 		}
 		return h
 	}
 	// One cell includes padding, its bottom border, and the add button.
-	base := float32(20 + 1 + hControl)
+	base := float32(20 + 1 + kit.HControl)
 	for _, col := range o.index.columns {
 		heights := map[string]float32{}
 		for _, e := range col.Cards {
@@ -105,27 +106,27 @@ func (o *outlinePage) layout(c *ui.Context) *planGeometry {
 			for _, n := range chapters {
 				cards = append(cards, o.cardsOf(n.ID)...)
 			}
-			h := float32(16+12+1+4+4) + fsGroup*lhTight + textHeight(content.Outlines()[folder.ID], planGistWidth-8, 3)
+			h := float32(16+12+1+4+4) + kit.FsGroup*kit.LhTight + textHeight(content.Outlines()[folder.ID], planGistWidth-8, 3)
 			if o.outlineDraft.node == folder.ID {
-				h += hControl * 3
+				h += kit.HControl * 3
 			}
 			appendRow(planRow{node: folder, kind: 1, height: h, count: len(chapters), when: storyWhen(cards)})
 		}
 		if folder == content.Tree().Root && len(shown) > 0 {
-			appendRow(planRow{kind: 2, height: 16 + 12 + fsGroup*lhTight})
+			appendRow(planRow{kind: 2, height: 16 + 12 + kit.FsGroup*kit.LhTight})
 		}
 		for _, n := range shown {
 			cards := o.cardsOf(n.ID)
 			when := storyWhen(cards)
-			h := float32(32+4+4+1) + fsBody*lhBody + textHeight(content.Outlines()[n.ID], planChapterWidth-24-12-8, 3)
+			h := float32(32+4+4+1) + kit.FsBody*kit.LhBody + textHeight(content.Outlines()[n.ID], planChapterWidth-24-12-8, 3)
 			if when != "" {
-				h += 4 + fsNote*lhBody
+				h += 4 + kit.FsNote*kit.LhBody
 			}
 			if slices.ContainsFunc(cards, func(e workspace.Card) bool { return e.Line == "" }) {
-				h += 4 + fsNote*lhBody
+				h += 4 + kit.FsNote*kit.LhBody
 			}
 			if o.outlineDraft.node == n.ID {
-				h += hControl * 3
+				h += kit.HControl * 3
 			}
 			heights := map[string]float32{}
 			for _, e := range cards {

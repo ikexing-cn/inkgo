@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
-
 	"writer/desk/book"
+	"writer/desk/kit"
 	"writer/editor"
 	"writer/workspace"
 )
@@ -61,7 +61,7 @@ type pendingKey struct {
 	late    int
 	ignored int
 	backup  pendingBackupKey
-	pal     *palette
+	pal     *kit.Palette
 }
 
 func (a *App) pendingKey() pendingKey {
@@ -97,10 +97,10 @@ func (a *App) buildPendingGroups() []pendGroup {
 		switch st := f.Status(); {
 		case st == workspace.ForeLost:
 			it.key = "伏笔/失去锚点/" + f.Node + "/" + f.Quote
-			it.text = fmt.Sprintf("「%s」原句已删", clip(foreName(f), 16))
+			it.text = fmt.Sprintf("「%s」原句已删", kit.Clip(foreName(f), 16))
 		case f.Late(a.write.lateAfter):
 			it.key = "伏笔/没回收/" + f.Node + "/" + f.Quote
-			it.text = fmt.Sprintf("「%s」%d 章未回收", clip(foreName(f), 16), f.Gap)
+			it.text = fmt.Sprintf("「%s」%d 章未回收", kit.Clip(foreName(f), 16), f.Gap)
 			it.sub += " 埋下"
 		default:
 			continue
@@ -137,7 +137,7 @@ func (a *App) buildPendingGroups() []pendGroup {
 		groups = append(groups, g)
 	}
 	if len(items) > 0 {
-		groups = append(groups, pendGroup{name: "伏笔", color: a.pal.faint, items: items})
+		groups = append(groups, pendGroup{name: "伏笔", color: a.pal.Faint, items: items})
 	}
 	if g, ok := a.backupPending(); ok {
 		groups = append(groups, g)
@@ -175,23 +175,23 @@ func (a *App) pendingButton(c *ui.Context) {
 		w.pendOpen = false
 		return
 	}
-	t := a.pal.theme
-	b := ui.ButtonBase(c).Row().Height(hControlSm).Margin(0, 0, 0, 6).Gap(6).AlignItems(ui.Center).Padding(0, 8).Radius(rControl).Shrink(0).
+	t := a.pal.Theme
+	b := ui.ButtonBase(c).Row().Height(kit.HControlSm).Margin(0, 0, 0, 6).Gap(6).AlignItems(ui.Center).Padding(0, 8).Radius(kit.RControl).Shrink(0).
 		Border(1, t.Border).Label("待处理")
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}
 	b.Children(func() {
-		dot(c, a.pal.amber, 6)
-		ui.Textf(c, "待处理 %d", total).FontSize(fsNote).SingleLine()
+		kit.Dot(c, a.pal.Amber, 6)
+		ui.Textf(c, "待处理 %d", total).FontSize(kit.FsNote).SingleLine()
 	})
 	if b.Clicked() {
 		w.pendOpen = !w.pendOpen
 	}
 	ui.PopoverBase(c, b, &w.pendOpen, func(panel ui.Element) {
-		panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(4, 0, 0, 0).Width(360).Radius(rCard).Clip().
-			Background(a.pal.raised).Border(1, t.Border)
-		a.pal.pop.on(panel)
+		panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(4, 0, 0, 0).Width(360).Radius(kit.RCard).Clip().
+			Background(a.pal.Raised).Border(1, t.Border)
+		a.pal.Pop.On(panel)
 		a.pendingList(c, groups, total, here)
 	})
 }
@@ -199,14 +199,14 @@ func (a *App) pendingButton(c *ui.Context) {
 // pendingList is the list the button opens: the things pending, all of
 // them or the open chapter's, by kind.
 func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	w := &a.write
 	ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(12, 14, 8, 14).Children(func() {
-		ui.Text(c, "待处理").FontSize(fsBody).FontWeight(600).Grow(1)
-		a.pal.segments(c, &w.pendHere, "待处理范围", []string{fmt.Sprintf("全部 %d", total), fmt.Sprintf("本章 %d", here)})
+		ui.Text(c, "待处理").FontSize(kit.FsBody).FontWeight(600).Grow(1)
+		a.pal.Segments(c, &w.pendHere, "待处理范围", []string{fmt.Sprintf("全部 %d", total), fmt.Sprintf("本章 %d", here)})
 	})
 	var shown []pendItem
-	ui.Box(c).FillWidth().Height(1).Background(a.pal.line)
+	ui.Box(c).FillWidth().Height(1).Background(a.pal.Line)
 	ui.Scroll(c.Key("pending")).FillWidth().MaxHeight(520).Children(func() {
 		for _, g := range groups {
 			items := g.items
@@ -219,9 +219,9 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 			shown = append(shown, items...)
 			ui.Column(c).FillWidth().Padding(0, 0, 6, 0).Children(func() {
 				ui.Row(c).Gap(8).AlignItems(ui.Center).Padding(10, 20, 4, 20).Children(func() {
-					dot(c, g.color, 6)
-					ui.Text(c, g.name).FontSize(fsNote).TextColor(t.TextMuted)
-					ui.Textf(c, "%d", len(items)).FontSize(fsNote).TextColor(a.pal.faint)
+					kit.Dot(c, g.color, 6)
+					ui.Text(c, g.name).FontSize(kit.FsNote).TextColor(t.TextMuted)
+					ui.Textf(c, "%d", len(items)).FontSize(kit.FsNote).TextColor(a.pal.Faint)
 				})
 				open := w.pendMore[g.name]
 				for i, it := range items {
@@ -240,7 +240,7 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 					if more.Hovered() {
 						color = t.Text
 					}
-					more.Children(func() { ui.Text(c, label).FontSize(fsNote).TextColor(color) })
+					more.Children(func() { ui.Text(c, label).FontSize(kit.FsNote).TextColor(color) })
 					if more.Clicked() {
 						if w.pendMore == nil {
 							w.pendMore = map[string]bool{}
@@ -251,10 +251,10 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 			})
 		}
 		if len(shown) == 0 {
-			ui.Text(c, "本章没有待处理项").FontSize(fsControl).TextColor(t.TextMuted).Padding(20)
+			ui.Text(c, "本章没有待处理项").FontSize(kit.FsControl).TextColor(t.TextMuted).Padding(20)
 		}
 	})
-	ui.Box(c).FillWidth().Height(1).Background(a.pal.line)
+	ui.Box(c).FillWidth().Height(1).Background(a.pal.Line)
 	ui.Row(c).FillWidth().Padding(12, 20).Children(func() {
 		ui.Spacer(c)
 		all := ui.ButtonBase(c).Label("全部忽略").Disabled(len(shown) == 0)
@@ -262,7 +262,7 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 		if all.Hovered() {
 			color = t.Text
 		}
-		all.Children(func() { ui.Text(c, "全部忽略").FontSize(fsNote).TextColor(color) })
+		all.Children(func() { ui.Text(c, "全部忽略").FontSize(kit.FsNote).TextColor(color) })
 		if all.Clicked() {
 			a.ignore(shown)
 		}
@@ -271,17 +271,17 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 
 // pendingRow is one thing pending; choosing it goes to where it is.
 func (a *App) pendingRow(c *ui.Context, it pendItem) {
-	t := a.pal.theme
-	r := ui.ButtonBase(c).Row().Gap(12).AlignItems(ui.Center).Margin(0, 8).Padding(10, 12).Radius(rControl).Label(it.text)
+	t := a.pal.Theme
+	r := ui.ButtonBase(c).Row().Gap(12).AlignItems(ui.Center).Margin(0, 8).Padding(10, 12).Radius(kit.RControl).Label(it.text)
 	if r.Hovered() {
 		r.Background(t.SurfaceHover)
 	}
 	r.Children(func() {
 		ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
-			ui.Text(c, it.text).FontSize(fsBody).LineHeight(lhBody).MaxLines(2).Ellipsis("…").FillWidth()
-			ui.Text(c, it.sub).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").FillWidth()
+			ui.Text(c, it.text).FontSize(kit.FsBody).LineHeight(kit.LhBody).MaxLines(2).Ellipsis("…").FillWidth()
+			ui.Text(c, it.sub).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").FillWidth()
 		})
-		glyph(c, icChevron, iconSm, a.pal.faint)
+		kit.Glyph(c, kit.IcChevron, kit.IconSm, a.pal.Faint)
 	})
 	if r.Clicked() {
 		a.write.pendOpen = false

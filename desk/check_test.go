@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/kit"
 	"writer/internal/testshot"
 	"writer/model"
 	"writer/workspace"
@@ -523,7 +524,7 @@ func TestAFailedCheckSaysWhyInFull(t *testing.T) {
 }
 
 func TestQuotedMeasure(t *testing.T) {
-	a := &App{pal: &palette{theme: &ui.Theme{}}}
+	a := &App{pal: &kit.Palette{Theme: &ui.Theme{}}}
 	spans := a.quoted(strings.Repeat("甲", 121)+"关键"+strings.Repeat("a", 121), "关键")
 	if len(spans) != 3 || spans[0].Text != "…"+strings.Repeat("甲", 120) || spans[1].Text != "关键" || spans[2].Text != strings.Repeat("a", 120)+"…" {
 		t.Fatalf("quoted = %+v", spans)

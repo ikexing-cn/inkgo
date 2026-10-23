@@ -1,9 +1,8 @@
 package desk
 
 import (
-	"strings"
-
 	"github.com/egoist/mygo/ui"
+	"writer/desk/kit"
 )
 
 // The app draws its own menus: a panel of rows, the same wherever one
@@ -120,14 +119,14 @@ func (a *App) menuRows(c *ui.Context, build func(m *menu), list bool) (open *men
 	for _, it := range m.rows {
 		switch it.kind {
 		case rowLine:
-			a.pal.popLine(c)
+			a.pal.PopLine(c)
 		case rowHead:
-			a.pal.popHead(c, it.label)
+			a.pal.PopHead(c, it.label)
 		case rowDraw:
 			it.draw(c)
 		case rowSub:
 			on := !list && a.menu.sub == it.label
-			row := a.pal.popRow(c, icChevron, it.label, "", false, on)
+			row := a.pal.PopRow(c, kit.IcChevron, it.label, "", false, on)
 			hold(row, false)
 			if !list && !on && (row.Hovered() || row.Clicked()) {
 				a.menu.sub, on = it.label, true
@@ -136,7 +135,7 @@ func (a *App) menuRows(c *ui.Context, build func(m *menu), list bool) (open *men
 				open, at = it, row.Bounds()
 			}
 		case rowItem:
-			row := a.pal.popRow(c, nil, it.label, it.hint, it.off, it.on)
+			row := a.pal.PopRow(c, nil, it.label, it.hint, it.off, it.on)
 			hold(row, it.off)
 			if !list && a.menu.sub != "" && row.Hovered() {
 				// The pointer went on to another row of the menu: the list
@@ -167,7 +166,7 @@ func (a *App) menuBeside(c *ui.Context, row *menuItem, at ui.Rect, flip bool) {
 	if flip {
 		x = at.X - 4 - menuSide
 	}
-	list := a.pal.popPanel(c.Key("菜单旁-" + a.menu.owner)).Absolute().Left(x).Width(menuSide)
+	list := a.pal.PopPanel(c.Key("菜单旁-" + a.menu.owner)).Absolute().Left(x).Width(menuSide)
 	y := at.Y - 4
 	if now := list.Bounds(); at.W == 0 || now.H == 0 {
 		list.Opacity(0) // not laid out yet: placed in the next frame
@@ -210,7 +209,7 @@ func (a *App) menuAt(c *ui.Context, key string, build func(m *menu)) {
 		veil := ui.Box(c.Key("菜单底-" + key)).Absolute().Left(0).Top(0).Right(0).Bottom(0)
 		shut := veil.Clicked() || veil.RightClicked()
 		w, h := c.Size()
-		panel := a.pal.popPanel(c.Key("菜单-" + key)).Absolute().Width(menuWide)
+		panel := a.pal.PopPanel(c.Key("菜单-" + key)).Absolute().Width(menuWide)
 		x, y := a.menu.x, a.menu.y
 		if now := panel.Bounds(); now.H == 0 {
 			panel.Opacity(0) // not laid out yet: placed in the next frame
@@ -256,7 +255,7 @@ func (a *App) dropMenu(c *ui.Context, b ui.Element, key string, place func(panel
 	// Named, as the parts of the other menus are: a dialog a row opens is
 	// not taken for the menu going on, and takes the focus as its own.
 	ui.PopoverBase(c.Key("菜单-"+key), b, &open, func(panel ui.Element) {
-		a.pal.popLook(panel)
+		a.pal.PopLook(panel)
 		place(panel)
 		a.menuRows(c, build, false)
 	})
@@ -267,54 +266,3 @@ func (a *App) dropMenu(c *ui.Context, b ui.Element, key string, place func(panel
 
 // menuOpen reports whether the menu key is open: what opens it shows it.
 func (a *App) menuOpen(key string) bool { return a.menu.owner == key }
-
-// popPanel is the panel of a menu.
-func (p *palette) popPanel(c *ui.Context) ui.Element {
-	return p.popLook(ui.Column(c))
-}
-
-// popLook gives panel the look of a menu.
-func (p *palette) popLook(panel ui.Element) ui.Element {
-	panel.Padding(4).Radius(rCard).Background(p.raised).Border(1, p.theme.Border).Role(ui.RoleMenu).FocusGroup(ui.Vertical)
-	p.pop.on(panel)
-	return panel
-}
-
-// popRow is a row of a menu: a picture if any, what it does, and at its
-// right its shortcut, a count, or why it cannot be done now. on is the
-// row in use, or the one whose list is open.
-func (p *palette) popRow(c *ui.Context, pic *ui.SVG, label, hint string, off, on bool) ui.Element {
-	t := p.theme
-	b := ui.ButtonBase(c).Row().FillWidth().Height(hRow).Padding(0, 10).Gap(8).AlignItems(ui.Center).Radius(rControl).Shrink(0).
-		Role(ui.RoleMenuItem).Label("菜单-" + strings.TrimSuffix(label, "…")).Disabled(off)
-	switch {
-	case off:
-		pale(b)
-	case on || b.Hovered():
-		b.Background(t.SurfaceHover)
-	}
-	b.Children(func() {
-		if pic != nil && pic != icChevron {
-			glyph(c, pic, iconMd, t.TextMuted)
-		}
-		// Its own ink: a disabled button would pale its words a second time.
-		ui.Text(c, label).FontSize(fsControl).TextColor(t.Text).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
-		if hint != "" {
-			ui.Text(c, hint).FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Shrink(0)
-		}
-		if pic == icChevron {
-			glyph(c, pic, iconSm, p.faint)
-		}
-	})
-	return b
-}
-
-// popHead names the rows under it.
-func (p *palette) popHead(c *ui.Context, label string) {
-	ui.Text(c, label).FontSize(fsSmall).TextColor(p.faint).Padding(6, 10, 2, 10).Shrink(0)
-}
-
-// popLine parts groups of rows.
-func (p *palette) popLine(c *ui.Context) {
-	ui.Box(c).FillWidth().Height(1).Margin(4, 0).Background(p.line).Shrink(0)
-}

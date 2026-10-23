@@ -2,12 +2,11 @@ package desk
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/book"
+	"writer/desk/kit"
 	"writer/prefs"
 	"writer/workspace"
 )
@@ -80,41 +79,12 @@ func (a *App) rollDay(now time.Time) bool {
 	return a.write.counter.Roll(a.total(), now)
 }
 
-// words says how many characters, the way the design writes them: grouped
-// by thousands, and in 万 from ten thousand on.
-func words(n int) string {
-	if n >= 10000 {
-		return strings.TrimSuffix(fmt.Sprintf("%.1f", float64(n)/10000), ".0") + " 万字"
-	}
-	return grouped(n) + " 字"
-}
-
-// grouped writes n with a comma between each three digits.
-func grouped(n int) string {
-	if n < 0 {
-		return "-" + grouped(-n)
-	}
-	s := strconv.Itoa(n)
-	for i := len(s) - 3; i > 0; i -= 3 {
-		s = s[:i] + "," + s[i:]
-	}
-	return s
-}
-
-// signed is grouped with its sign.
-func signed(n int) string {
-	if n < 0 {
-		return grouped(n)
-	}
-	return "+" + grouped(n)
-}
-
 // wordCount is at the right of the foot: the words of what is shown or
 // selected, of the book, and of today against the goal. It opens the last
 // seven days and the goal. roomy and wide say how much of it there is room
 // for.
 func (a *App) wordCount(c *ui.Context, roomy, wide bool) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	w := &a.write
 	n, ok := a.book.Tree().Node(w.node)
 	here, unit := 0, "本章"
@@ -129,20 +99,20 @@ func (a *App) wordCount(c *ui.Context, roomy, wide bool) {
 			here, unit = workspace.Count(sel), "选中"
 		}
 	}
-	today, tip := "", "全书 "+words(a.total())
+	today, tip := "", "全书 "+kit.Words(a.total())
 	k := a.today(time.Now())
 	switch {
 	case w.counter.Goal > 0:
-		today = fmt.Sprintf(" · 今天 %s / %s", signed(k), grouped(w.counter.Goal))
-		tip += "，今天 " + signed(k) + " 字，目标 " + words(w.counter.Goal)
+		today = fmt.Sprintf(" · 今天 %s / %s", kit.Signed(k), kit.Grouped(w.counter.Goal))
+		tip += "，今天 " + kit.Signed(k) + " 字，目标 " + kit.Words(w.counter.Goal)
 	case k != 0:
-		today = " · 今天 " + signed(k)
-		tip += "，今天 " + signed(k) + " 字"
+		today = " · 今天 " + kit.Signed(k)
+		tip += "，今天 " + kit.Signed(k) + " 字"
 	}
 	if !wide {
 		today = ""
 	}
-	color := a.pal.faint // as the design has it, met or not: the numbers say so
+	color := a.pal.Faint // as the design has it, met or not: the numbers say so
 	// Whole, as in the prototype: the check line beside it gives way.
 	counts := ui.ButtonBase(c).Row().Shrink(0).Label("字数").Tooltip(tip + "。点击设置每日目标")
 	if counts.Hovered() {
@@ -150,13 +120,13 @@ func (a *App) wordCount(c *ui.Context, roomy, wide bool) {
 	}
 	counts.Children(func() {
 		if ok && !roomy && unit == "选中" {
-			ui.Text(c, "选中 "+words(here)).FontSize(fsNote).TextColor(color).SingleLine()
+			ui.Text(c, "选中 "+kit.Words(here)).FontSize(kit.FsNote).TextColor(color).SingleLine()
 		} else if ok && !roomy {
-			ui.Text(c, words(here)).FontSize(fsNote).TextColor(color).SingleLine()
+			ui.Text(c, kit.Words(here)).FontSize(kit.FsNote).TextColor(color).SingleLine()
 		} else if ok {
-			ui.Text(c, unit+" "+words(here)+" · 全书 "+words(a.total())+today).FontSize(fsNote).TextColor(color).SingleLine()
+			ui.Text(c, unit+" "+kit.Words(here)+" · 全书 "+kit.Words(a.total())+today).FontSize(kit.FsNote).TextColor(color).SingleLine()
 		} else {
-			ui.Text(c, "全书 "+words(a.total())+today).FontSize(fsNote).TextColor(color).SingleLine()
+			ui.Text(c, "全书 "+kit.Words(a.total())+today).FontSize(kit.FsNote).TextColor(color).SingleLine()
 		}
 	})
 	if counts.Clicked() {
@@ -164,13 +134,13 @@ func (a *App) wordCount(c *ui.Context, roomy, wide bool) {
 	}
 	// It opens upward: the foot is the last line of the window.
 	ui.PopoverBase(c, counts, &w.goalOpen, func(panel ui.Element) {
-		panel.AttachTo(counts, ui.AnchorTopRight, ui.AnchorBottomRight).Margin(0, 0, 4, 0).Width(250).Radius(rCard).Padding(8).Gap(2).
-			Background(a.pal.raised).Border(1, t.Border)
-		a.pal.pop.on(panel)
+		panel.AttachTo(counts, ui.AnchorTopRight, ui.AnchorBottomRight).Margin(0, 0, 4, 0).Width(250).Radius(kit.RCard).Padding(8).Gap(2).
+			Background(a.pal.Raised).Border(1, t.Border)
+		a.pal.Pop.On(panel)
 		a.lastWeek(c)
-		ui.Box(c).FillWidth().Height(1).Margin(4, 0).Background(a.pal.line).Shrink(0)
+		ui.Box(c).FillWidth().Height(1).Margin(4, 0).Background(a.pal.Line).Shrink(0)
 		ui.Column(c).FillWidth().Gap(6).Padding(4, 6).Children(func() {
-			ui.Text(c, "每日目标").FontSize(fsNote).TextColor(t.TextMuted)
+			ui.Text(c, "每日目标").FontSize(kit.FsNote).TextColor(t.TextMuted)
 			in := ui.TextInput(c, &w.goalText).Label("每日目标字数").Placeholder("比如 2000").FillWidth().AutoFocus()
 			if in.Changed() {
 				a.setGoal(w.goalText)
@@ -184,7 +154,7 @@ func (a *App) wordCount(c *ui.Context, roomy, wide bool) {
 		if _, ok := prefs.CountOrNone(w.goalText); !ok {
 			note, ink = "每日目标须为正整数，留空则不设。", t.Danger
 		}
-		ui.Text(c, note).FontSize(fsNote).TextColor(ink).LineHeight(lhBody).FillWidth().Padding(0, 6, 4, 6)
+		ui.Text(c, note).FontSize(kit.FsNote).TextColor(ink).LineHeight(kit.LhBody).FillWidth().Padding(0, 6, 4, 6)
 	})
 }
 
@@ -193,16 +163,16 @@ func (a *App) wordCount(c *ui.Context, roomy, wide bool) {
 func (a *App) lastWeek(c *ui.Context) {
 	now := time.Now()
 	days := a.lastDays(now, 7)
-	ui.Text(c, "最近 7 天").FontSize(fsSmall).TextColor(a.pal.faint).Padding(6, 10, 2, 10)
+	ui.Text(c, "最近 7 天").FontSize(kit.FsSmall).TextColor(a.pal.Faint).Padding(6, 10, 2, 10)
 	for i := len(days) - 1; i >= 0; i-- {
 		day, k := now.AddDate(0, 0, i-len(days)+1), days[i]
 		got := "0 字"
 		if k != 0 {
-			got = signed(k) + " 字"
+			got = kit.Signed(k) + " 字"
 		}
-		ui.Row(c.Key(i)).FillWidth().Padding(4, 10).Label(fmt.Sprintf("%s 写了 %d 字", dayOf(day, now), k)).Children(func() {
-			ui.Text(c, dayOf(day, now)).FontSize(fsNote).TextColor(a.pal.theme.TextMuted).Grow(1)
-			ui.Text(c, got).FontSize(fsNote).TextColor(a.pal.theme.TextMuted)
+		ui.Row(c.Key(i)).FillWidth().Padding(4, 10).Label(fmt.Sprintf("%s 写了 %d 字", kit.DayOf(day, now), k)).Children(func() {
+			ui.Text(c, kit.DayOf(day, now)).FontSize(kit.FsNote).TextColor(a.pal.Theme.TextMuted).Grow(1)
+			ui.Text(c, got).FontSize(kit.FsNote).TextColor(a.pal.Theme.TextMuted)
 		})
 	}
 }

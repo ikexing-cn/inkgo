@@ -1,6 +1,6 @@
 /**
  * Checks the prototype in prototype/: that it keeps the design rules
- * (scripts/design/check.ts) against desk/tokens.css, and that everything it
+ * (scripts/design/check.ts) against desk/kit/tokens.css, and that everything it
  * can do still works, clicked through in a headless Edge or Chrome
  * (scripts/prototype/walk.ts). It opens index.html from the disk, the way a
  * double click does.

@@ -7,6 +7,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/markdown"
 	"github.com/egoist/mygo/ui/markdown/parser"
+	"writer/desk/kit"
 )
 
 // mdStyle is which text the Markdown is: a reply in a talk, read at the
@@ -20,7 +21,7 @@ const (
 
 // markdownState keeps options at stable addresses, shared by views of a kind.
 type markdownState struct {
-	pal           *palette
+	pal           *kit.Palette
 	reply, digest markdown.Options
 }
 
@@ -43,8 +44,8 @@ func (a *App) markdownOptions(st mdStyle) *markdown.Options {
 	}
 	if m.pal != a.pal {
 		m.pal = a.pal
-		m.reply.Theme = a.markdownTheme(fsRead, lhRead)
-		m.digest.Theme = a.markdownTheme(fsNote, lhBody)
+		m.reply.Theme = a.markdownTheme(kit.FsRead, kit.LhRead)
+		m.digest.Theme = a.markdownTheme(kit.FsNote, kit.LhBody)
 	}
 	if st == digestText {
 		return &m.digest
@@ -54,16 +55,16 @@ func (a *App) markdownOptions(st mdStyle) *markdown.Options {
 
 // markdownTheme sets mygo's Markdown theme in the app's sizes and colors.
 func (a *App) markdownTheme(size, lh float32) *markdown.Theme {
-	t := markdown.DefaultTheme(a.pal.theme)
+	t := markdown.DefaultTheme(a.pal.Theme)
 	t.FontSize, t.LineHeight = size, lh
-	t.Link, t.StrongWeight = a.pal.ink, 650
-	t.CodeFont, t.CodeSize, t.CodeLineHeight = "monospace", 0.9, lhBody
-	t.CodeBackground, t.CodeBlockBackground = a.pal.side, a.pal.side
-	t.CodeBlockBorder, t.CodeBlockRadius = a.pal.line, rControl
+	t.Link, t.StrongWeight = a.pal.Ink, 650
+	t.CodeFont, t.CodeSize, t.CodeLineHeight = "monospace", 0.9, kit.LhBody
+	t.CodeBackground, t.CodeBlockBackground = a.pal.Side, a.pal.Side
+	t.CodeBlockBorder, t.CodeBlockRadius = a.pal.Line, kit.RControl
 	t.BlockSpacing, t.ItemSpacing = 0.7, 0.35
-	t.QuoteBar, t.QuoteText = a.pal.line, a.pal.theme.Text.Alpha(0.85)
-	t.Muted, t.Rule, t.TableBorder = a.pal.theme.TextMuted, a.pal.line, a.pal.line
-	t.TableHeader = a.pal.raised
+	t.QuoteBar, t.QuoteText = a.pal.Line, a.pal.Theme.Text.Alpha(0.85)
+	t.Muted, t.Rule, t.TableBorder = a.pal.Theme.TextMuted, a.pal.Line, a.pal.Line
+	t.TableHeader = a.pal.Raised
 	for i, scale := range [...]float32{1.35, 1.2, 1.08, 1, 1, 1} {
 		t.Headings[i] = markdown.HeadingStyle{Size: scale, Weight: 650, Color: t.Text, Top: 0.7, Bottom: 0.7}
 	}
@@ -87,11 +88,11 @@ func (a *App) liveMarkdown(c *ui.Context, s string, st mdStyle) ui.Element {
 // codeBlock is a code block with its language and a button copying it,
 // in the app's words: mygo's own says Copy.
 func (a *App) codeBlock(c *ui.Context, b *markdown.CodeBlockView) {
-	ui.Column(c).Background(a.pal.side).Border(1, a.pal.line).Radius(rControl).AlignSelf(ui.Stretch).Clip().Label("代码").Children(func() {
+	ui.Column(c).Background(a.pal.Side).Border(1, a.pal.Line).Radius(kit.RControl).AlignSelf(ui.Stretch).Clip().Label("代码").Children(func() {
 		ui.Row(c).AlignItems(ui.Center).Padding(4, 4, 0, 12).Children(func() {
-			ui.Text(c, b.Language).FontSize(fsSmall).TextColor(a.pal.faint).Unselectable()
+			ui.Text(c, b.Language).FontSize(kit.FsSmall).TextColor(a.pal.Faint).Unselectable()
 			ui.Spacer(c)
-			if iconButton(c, icCopy, "复制代码", ui.Color{}).Disabled(b.Open).Clicked() {
+			if kit.IconButton(c, kit.IcCopy, "复制代码", ui.Color{}).Disabled(b.Open).Clicked() {
 				c.WriteClipboard(b.Code())
 			}
 		})

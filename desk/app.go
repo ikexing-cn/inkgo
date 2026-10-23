@@ -12,8 +12,8 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/aiport"
 	"writer/desk/book"
+	"writer/desk/kit"
 	"writer/editor"
-	"writer/internal/textclip"
 	"writer/shelf"
 	"writer/workspace"
 )
@@ -112,8 +112,8 @@ type App struct {
 	// yet to name; nil leaves the title as it is.
 	SetTitle func(title string) bool
 
-	light, dark *palette
-	pal         *palette
+	light, dark *kit.Palette
+	pal         *kit.Palette
 
 	page              page
 	pages             [pageCategories + 1]pageView
@@ -126,7 +126,7 @@ type App struct {
 	leftWriting       bool              // the work was last on the writing page, not the discussion
 	toastShown        map[string]string // what each toast shows, by its id
 	toastsOpen        bool              // the folded toasts opened
-	status            status            // the error, the failures, and what the toasts say
+	status            kit.Status        // the error, the failures, and what the toasts say
 	keysOpen          bool              // the shortcuts shown
 	sideHidden        bool              // the author put the sidebar away
 	bar               barState          // what the title bar keeps from frame to frame
@@ -200,7 +200,7 @@ type App struct {
 // for a test.
 func New(ai aiport.Service) *App {
 	a := &App{ai: ai, genre: "网文",
-		light: lightPalette(), dark: darkPalette(), titles: map[string]string{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
+		light: kit.LightPalette(), dark: kit.DarkPalette(), titles: map[string]string{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
 	a.exporting.host, a.phone.host, a.plan.host = a, a, a
 	a.pal = a.light
 	a.initPages()
@@ -223,7 +223,7 @@ func New(ai aiport.Service) *App {
 		},
 		func() { a.write.draftOpen, a.write.rewriting = false, false },
 		a.doc.route.closeWaiting,
-		a.status.clear,
+		a.status.Clear,
 	}
 	if ai.ConfigFile() != "" {
 		a.loadShelf()
@@ -379,12 +379,7 @@ func talkDay(id string, now time.Time) string {
 	if err != nil {
 		return ""
 	}
-	return dayOf(t, now)
-}
-
-func clip(s string, n int) string {
-	s, _, _ = strings.Cut(s, "\n")
-	return textclip.Clip(s, n)
+	return kit.DayOf(t, now)
 }
 
 // talk is the discussion of the open work with the model it selects,
@@ -442,7 +437,7 @@ func (a *App) work(sv ui.Services, label string, fn func(context.Context) (func(
 	a.cancel = cancel
 	a.busy = label
 	a.SetError(nil)
-	a.status.retry(func() { a.work(sv, label, fn) })
+	a.status.Retry(func() { a.work(sv, label, fn) })
 	a.jobs.start(sv, func() func() {
 		apply, err := fn(ctx)
 		cancel()
@@ -464,9 +459,9 @@ func (a *App) finished(apply func(), err error) {
 		err = nil // what runs is the AI's: turned off, it was stopped, and says nothing
 	}
 	if err != nil {
-		a.status.fail(err)
+		a.status.Fail(err)
 	} else {
-		a.status.succeed()
+		a.status.Succeed()
 	}
 	if err := a.refresh(); err != nil {
 		a.SetError(err)
@@ -488,10 +483,10 @@ func (a *App) held() bool { return a.busy != "" && !a.talking }
 func (a *App) replying() bool { return a.talking && a.session == a.talkSession }
 
 // SetError shows err in a toast until the author closes it; nil clears it.
-func (a *App) SetError(err error) { a.status.setError(err) }
+func (a *App) SetError(err error) { a.status.SetError(err) }
 
 // errorText is the error shown, as text; "" when there is none.
-func (a *App) errorText() string { return a.status.errorText() }
+func (a *App) errorText() string { return a.status.ErrorText() }
 
 func (a *App) loadWork() {
 	w := a.Store.Work()

@@ -1,6 +1,9 @@
 package desk
 
-import "github.com/egoist/mygo/ui"
+import (
+	"github.com/egoist/mygo/ui"
+	"writer/desk/kit"
+)
 
 // aiOn tells whether the AI is on on this machine. Off, nothing of it
 // shows, and nothing is sent.
@@ -27,7 +30,7 @@ func (a *App) aiView(c *ui.Context) {
 		if ui.Checkbox(c, &off, "关闭 AI").Changed() {
 			a.bk.askAI = true
 		}
-		a.tickNote(c, "隐藏全部 AI 功能，不发送任何内容。")
+		a.pal.TickNote(c, "隐藏全部 AI 功能，不发送任何内容。")
 	})
 	if a.aiOn() {
 		a.modelsView(c)
@@ -43,14 +46,14 @@ func (a *App) askAI(c *ui.Context) {
 		title, about, verb = "是否关闭 AI？", "隐藏全部 AI 功能，不再发送任何内容；正在进行的 AI 任务会停止，没有处理的 AI 提议会丢弃。讨论、检查结果和 AI 记录不会删除，重新开启后恢复。", "关闭 AI"
 	}
 	turn := false
-	a.pal.modal(c, &a.bk.askAI, func() {
-		ui.Column(c).Width(dialogAsk).Padding(dialogPad).Gap(16).Children(func() {
-			a.pal.dialogHead(c, title, about)
+	a.pal.Modal(c, &a.bk.askAI, func() {
+		ui.Column(c).Width(kit.DialogAsk).Padding(kit.DialogPad).Gap(16).Children(func() {
+			a.pal.DialogHead(c, title, about)
 			ui.Row(c).FillWidth().Gap(8).Justify(ui.End).Children(func() {
-				if a.pal.secondary(c, "取消").Clicked() {
+				if a.pal.Secondary(c, "取消").Clicked() {
 					a.bk.askAI = false
 				}
-				if a.pal.primary(c, verb).Label("确定" + verb).Clicked() {
+				if a.pal.Primary(c, verb).Label("确定" + verb).Clicked() {
 					turn = true
 				}
 			})

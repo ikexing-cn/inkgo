@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/kit"
 	"writer/internal/textdiff"
 	"writer/workspace"
 )
@@ -72,7 +73,7 @@ const snapWhole, snapWholeParas = 90_000, 1000
 // paragraph is an element of its own, for the toolkit keeps the lines of
 // a text only up to a size, and lays a longer one out again in every frame.
 func (a *App) snapView() *snapView {
-	t := a.pal.theme
+	t := a.pal.Theme
 	w := &a.write
 	v := &w.snapShown
 	key := [5]any{w.snap, w.compare, w.cur().ed, w.cur().ed.Doc.Version(), [2]ui.Color{t.Danger, t.Success}}
@@ -112,35 +113,35 @@ func (a *App) snapView() *snapView {
 }
 
 func (a *App) snapshots(c *ui.Context) {
-	t := a.pal.theme
+	t := a.pal.Theme
 	w := &a.write
-	a.pal.modal(c, &w.snapsOpen, func() {
+	a.pal.Modal(c, &w.snapsOpen, func() {
 		shown := a.snapView()
 		same := shown.same // nothing to restore
-		ui.Column(c).Width(dialogWide).Height(dialogTall).Padding(dialogPad).Gap(16).Children(func() {
+		ui.Column(c).Width(kit.DialogWide).Height(kit.DialogTall).Padding(kit.DialogPad).Gap(16).Children(func() {
 			kept := "打开章节时、连续写作每十分钟、恢复前、采纳 AI 提议前、全书替换前都会保存一份。最近七天的全部保留，更早的每天保留最后一份。"
 			if !a.aiOn() {
 				kept = strings.Replace(kept, "采纳 AI 提议前、", "", 1)
 			}
-			a.pal.dialogHead(c, "快照 · "+a.shownTitle(), kept)
+			a.pal.DialogHead(c, "快照 · "+a.shownTitle(), kept)
 			ui.Row(c).FillWidth().Grow(1).Gap(16).AlignItems(ui.Stretch).Children(func() {
 				ui.Scroll(c.Key("snaps")).Width(200).FillHeight().Shrink(0).Children(func() {
 					ui.Column(c).FillWidth().Gap(2).Children(func() {
 						if len(w.snaps) == 0 {
-							ui.Text(c, "本章暂无快照").FontSize(fsControl).TextColor(a.pal.faint).Padding(8)
+							ui.Text(c, "本章暂无快照").FontSize(kit.FsControl).TextColor(a.pal.Faint).Padding(8)
 						}
 						for _, sn := range w.snaps {
 							on := sn.Name == w.snap
-							at := when(sn.At, time.Now())
-							b := ui.ButtonBase(c.Key("s-"+sn.Name)).Column().FillWidth().AlignItems(ui.Start).Gap(2).Padding(8, 10).Radius(rControl).Label("快照-" + at)
+							at := kit.When(sn.At, time.Now())
+							b := ui.ButtonBase(c.Key("s-"+sn.Name)).Column().FillWidth().AlignItems(ui.Start).Gap(2).Padding(8, 10).Radius(kit.RControl).Label("快照-" + at)
 							if on {
 								b.Background(t.SurfacePressed)
 							} else if b.Hovered() {
 								b.Background(t.SurfaceHover)
 							}
 							b.Children(func() {
-								ui.Text(c, at).FontSize(fsControl)
-								ui.Textf(c, "%s · %d 字", a.snapReason(sn.Reason), sn.Count).FontSize(fsNote).TextColor(t.TextMuted)
+								ui.Text(c, at).FontSize(kit.FsControl)
+								ui.Textf(c, "%s · %d 字", a.snapReason(sn.Reason), sn.Count).FontSize(kit.FsNote).TextColor(t.TextMuted)
 							})
 							if b.Clicked() {
 								a.pickSnapshot(sn.Name)
@@ -152,9 +153,9 @@ func (a *App) snapshots(c *ui.Context) {
 					ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Center).Children(func() {
 						ui.Checkbox(c, &w.compare, "与当前对比")
 						if same {
-							ui.Text(c, "该快照与当前正文相同").FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
+							ui.Text(c, "该快照与当前正文相同").FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 						} else if w.compare {
-							ui.Text(c, "红色删除线为快照中有而当前没有的内容，绿色为当前新增的内容").FontSize(fsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
+							ui.Text(c, "红色删除线为快照中有而当前没有的内容，绿色为当前新增的内容").FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 						}
 					})
 					if i := slices.IndexFunc(w.snaps, func(s workspace.Snapshot) bool { return s.Name == w.snap }); i >= 0 && a.aiOn() {
@@ -169,19 +170,19 @@ func (a *App) snapshots(c *ui.Context) {
 					para := func(i int) {
 						switch spans := shown.paras[i]; {
 						case len(spans) == 0: // an empty line keeps its height
-							ui.Text(c, "").FontSize(fsRead).LineHeight(lhRead).FillWidth()
+							ui.Text(c, "").FontSize(kit.FsRead).LineHeight(kit.LhRead).FillWidth()
 						case len(spans) == 1 && spans[0] == (ui.Span{Text: spans[0].Text}):
-							ui.Text(c, spans[0].Text).FontSize(fsRead).LineHeight(lhRead).FillWidth()
+							ui.Text(c, spans[0].Text).FontSize(kit.FsRead).LineHeight(kit.LhRead).FillWidth()
 						default:
-							ui.RichText(c, spans...).FontSize(fsRead).LineHeight(lhRead).FillWidth()
+							ui.RichText(c, spans...).FontSize(kit.FsRead).LineHeight(kit.LhRead).FillWidth()
 						}
 					}
 					if shown.long {
-						ui.Box(c).FillWidth().Grow(1).Background(a.pal.canvas).Border(1, a.pal.line).Radius(rControl).Selectable().Children(func() {
+						ui.Box(c).FillWidth().Grow(1).Background(a.pal.Canvas).Border(1, a.pal.Line).Radius(kit.RControl).Selectable().Children(func() {
 							ui.List(c, &shown.list, len(shown.paras), para).Fill().Padding(12, 16)
 						})
 					} else {
-						ui.Scroll(c.Key("snap-text")).FillWidth().Grow(1).Background(a.pal.canvas).Border(1, a.pal.line).Radius(rControl).Children(func() {
+						ui.Scroll(c.Key("snap-text")).FillWidth().Grow(1).Background(a.pal.Canvas).Border(1, a.pal.Line).Radius(kit.RControl).Children(func() {
 							ui.Column(c).FillWidth().Padding(12, 16).Selectable().Children(func() {
 								for i := range shown.paras {
 									para(i)
@@ -193,10 +194,10 @@ func (a *App) snapshots(c *ui.Context) {
 			})
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 				ui.Spacer(c)
-				if a.pal.secondary(c, "关闭").Clicked() {
+				if a.pal.Secondary(c, "关闭").Clicked() {
 					w.snapsOpen = false
 				}
-				if a.pal.primary(c, "恢复这个版本").Disabled(w.snap == "" || same || w.cur().lost || w.cur().external != nil).Clicked() {
+				if a.pal.Primary(c, "恢复这个版本").Disabled(w.snap == "" || same || w.cur().lost || w.cur().external != nil).Clicked() {
 					a.restoreSnapshot()
 				}
 			})
@@ -227,5 +228,5 @@ func (a *App) restoreSnapshot() {
 		return
 	}
 	w.snapsOpen = false
-	a.status.did("已恢复到 " + when(w.snaps[i].At, time.Now()) + " 的版本，恢复前的内容已存为快照")
+	a.status.Did("已恢复到 " + kit.When(w.snaps[i].At, time.Now()) + " 的版本，恢复前的内容已存为快照")
 }
