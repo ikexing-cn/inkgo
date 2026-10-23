@@ -43,10 +43,10 @@ type planRow struct {
 
 func (a *App) planGeometry(c *ui.Context) *planGeometry {
 	p := &a.plan
-	if g := p.geometry; g != nil && g.root == a.book.Tree().Root && g.query == trim(p.query) && g.editing == p.outlineID {
+	if g := p.geometry; g != nil && g.root == a.book.Tree().Root && g.query == trim(p.query) && g.editing == p.outlineDraft.node {
 		return g
 	}
-	g := &planGeometry{root: a.book.Tree().Root, query: trim(p.query), editing: p.outlineID, lanes: map[string]float32{}}
+	g := &planGeometry{root: a.book.Tree().Root, query: trim(p.query), editing: p.outlineDraft.node, lanes: map[string]float32{}}
 	_, unit := c.MeasureText(0, ui.Span{Text: "字", Size: fsBody})
 	textHeight := func(text string, width float32, limit int) float32 {
 		spans := marked(text, trim(p.query), a.pal.ink)
@@ -106,7 +106,7 @@ func (a *App) planGeometry(c *ui.Context) *planGeometry {
 				cards = append(cards, a.cardsOf(n.ID)...)
 			}
 			h := float32(16+12+1+4+4) + fsGroup*lhTight + textHeight(a.book.Outlines()[folder.ID], planGistWidth-8, 3)
-			if p.outlineID == folder.ID {
+			if p.outlineDraft.node == folder.ID {
 				h += hControl * 3
 			}
 			appendRow(planRow{node: folder, kind: 1, height: h, count: len(chapters), when: storyWhen(cards)})
@@ -124,7 +124,7 @@ func (a *App) planGeometry(c *ui.Context) *planGeometry {
 			if slices.ContainsFunc(cards, func(e workspace.Card) bool { return e.Line == "" }) {
 				h += 4 + fsNote*lhBody
 			}
-			if p.outlineID == n.ID {
+			if p.outlineDraft.node == n.ID {
 				h += hControl * 3
 			}
 			heights := map[string]float32{}

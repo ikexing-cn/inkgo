@@ -284,6 +284,7 @@ func (a *App) leaveWork() {
 	}
 	a.dropProps(a.write.props, workspace.FateClosed)
 	a.flush()
+	a.finishPlanOutline()
 	a.keepUnsettled()
 	a.remember(false)
 	a.backupNow()

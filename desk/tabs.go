@@ -63,7 +63,8 @@ func (a *App) unsaved() bool {
 	if w.node == "" {
 		return false
 	}
-	return w.cur().lost || w.cur().external != nil || w.cur().ed != nil && w.cur().ed.Doc.Version() != w.cur().savedVer || w.cur().outline != w.cur().outlineSaved
+	c := w.cur()
+	return c.lost || c.external != nil || c.ed != nil && c.ed.Doc.Version() != c.savedVer || c.outline.text != c.outline.saved
 }
 
 // tabTitle is what the tab of node id says, and what its tooltip says
@@ -300,6 +301,7 @@ func (a *App) saveToClose() bool {
 func (a *App) dropUnsaved() {
 	w := &a.write
 	// Without its editor nothing of it is saved as it is left.
-	w.cur().ed, w.cur().external, w.cur().lost = nil, nil, false
-	w.cur().outline = w.cur().outlineSaved
+	c := w.cur()
+	c.ed, c.external, c.lost = nil, nil, false
+	c.outline.text, c.outline.seen = c.outline.saved, c.outline.saved
 }

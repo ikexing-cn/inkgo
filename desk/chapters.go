@@ -130,6 +130,7 @@ func (a *App) textMenu(m *menu) {
 // caret, how far it is scrolled.
 func (a *App) openNode(id string) {
 	a.flush()
+	a.finishPlanOutline()
 	a.leaveCheck()
 	a.scanMarks()
 	w := &a.write
@@ -175,7 +176,7 @@ func (a *App) openNode(id string) {
 		w.node = ""
 		return
 	}
-	c.outline, c.outlineSaved, c.outlinePrev = ch.Outline, ch.Outline, ch.Outline
+	c.outline = outlineDraft{node: id, text: ch.Outline, saved: ch.Outline, seen: ch.Outline}
 	switch {
 	case n.Folder:
 		w.gists = a.gistsIn(n)

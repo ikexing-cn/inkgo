@@ -15,31 +15,31 @@ import (
 const planFlash = 1600 * time.Millisecond
 
 type planView struct {
-	loaded                 bool
-	loadErr                error
-	checked                time.Time // when the outline was last read
-	index                  planIndex
-	geometry               *planGeometry
-	dragging               string
-	mode                   int
-	query                  string
-	pane                   bool
-	outlineID, outlineText string
-	outlineHeld            bool
-	lineID, lineName       string
-	lineHeld, lineFocus    bool
-	cardOpen               bool
-	card                   workspace.Card
-	after, lastTitle       string
-	added                  int
-	timeOpen               bool
-	column                 int
-	when                   string
-	seen                   string
-	seenAt                 time.Time
-	reveal                 bool
-	scroll                 [2]ui.ScrollState
-	viewport               ui.Rect
+	loaded              bool
+	loadErr             error
+	checked             time.Time // when the outline was last read
+	index               planIndex
+	geometry            *planGeometry
+	dragging            string
+	mode                int
+	query               string
+	pane                bool
+	outlineDraft        outlineDraft
+	outlineHeld         bool
+	lineID, lineName    string
+	lineHeld, lineFocus bool
+	cardOpen            bool
+	card                workspace.Card
+	after, lastTitle    string
+	added               int
+	timeOpen            bool
+	column              int
+	when                string
+	seen                string
+	seenAt              time.Time
+	reveal              bool
+	scroll              [2]ui.ScrollState
+	viewport            ui.Rect
 }
 
 type dragCard string
@@ -192,7 +192,7 @@ func (a *App) outlinePage(c *ui.Context) {
 		a.planBroken(c)
 		return
 	}
-	if !p.cardOpen && !p.timeOpen && p.outlineID == "" && p.lineID == "" && c.Shortcut(0, ui.KeyEscape) {
+	if !p.cardOpen && !p.timeOpen && p.outlineDraft.node == "" && p.lineID == "" && c.Shortcut(0, ui.KeyEscape) {
 		p.query = ""
 	}
 	if p.seen != "" {
@@ -424,13 +424,17 @@ func (a *App) planGist(c *ui.Context, n *workspace.Node) {
 	if n.Folder {
 		label, hint = "卷纲", "写卷纲…"
 	}
-	if p.outlineID == n.ID {
-		in := ui.TextAreaBase(c.Key("plan-outline-"+n.ID), &p.outlineText).Label(label).Placeholder(hint).FillWidth().Height(hControl*3).FontSize(fsBody).LineHeight(lhBody).Padding(6, 8).Border(1, a.pal.theme.Border).Radius(rControl).AutoFocus()
-		if p.outlineText != a.book.Outlines()[n.ID] {
+	if p.outlineDraft.node == n.ID {
+		in := ui.TextAreaBase(c.Key("plan-outline-"+n.ID), &p.outlineDraft.text).Label(label).Placeholder(hint).FillWidth().Height(hControl*3).FontSize(fsBody).LineHeight(lhBody).Padding(6, 8).Border(1, a.pal.theme.Border).Radius(rControl).AutoFocus()
+		now := time.Now()
+		if p.outlineDraft.change(now) {
 			p.geometry = nil
-			a.warn(a.book.SaveOutline(n.ID, p.outlineText))
-			if a.errorText() == "" {
-				a.syncPlanOutline(n.ID, p.outlineText)
+		}
+		if wait, due := p.outlineDraft.waits(saveAfter, now); due {
+			if wait > 0 {
+				c.After(wait)
+			} else {
+				a.savePlanOutline()
 			}
 		}
 		if in.Shortcut(0, ui.KeyEscape) || p.outlineHeld && !in.Focused() {
@@ -458,27 +462,41 @@ func (a *App) planGist(c *ui.Context, n *workspace.Node) {
 	if b.Clicked() {
 		a.finishPlanLine()
 		a.finishPlanOutline()
-		p.outlineID, p.outlineText, p.outlineHeld = n.ID, a.book.Outlines()[n.ID], false
+		out := a.book.Outlines()[n.ID]
+		p.outlineDraft = outlineDraft{node: n.ID, text: out, saved: out, seen: out}
+		p.outlineHeld = false
 	}
 }
-func (a *App) syncPlanOutline(id, text string) {
-	if a.write.node == id {
-		a.write.cur().outline, a.write.cur().outlineSaved, a.write.cur().outlinePrev = text, text, text
-	}
-}
-func (a *App) finishPlanOutline() {
-	p := &a.plan
-	if p.outlineID == "" {
+
+// savePlanOutline saves the outline page's draft and shows it on the
+// writing page when it is the chapter shown.
+func (a *App) savePlanOutline() {
+	d := &a.plan.outlineDraft
+	if d.node == "" {
 		return
 	}
-	id := p.outlineID
-	p.outlineID = ""
-	if a.book.Outlines()[id] != p.outlineText {
-		a.warn(a.book.SaveOutline(id, p.outlineText))
-		if a.errorText() == "" {
-			a.syncPlanOutline(id, p.outlineText)
-		}
+	if err := d.save(a.book); err != nil {
+		a.warn(err)
+		return
 	}
+	a.syncPlanOutline(d.node, d.text)
+}
+
+func (a *App) syncPlanOutline(id, text string) {
+	if a.write.node == id {
+		d := &a.write.cur().outline
+		d.text, d.saved, d.seen = text, text, text
+	}
+}
+
+func (a *App) finishPlanOutline() {
+	p := &a.plan
+	if p.outlineDraft.node == "" {
+		return
+	}
+	a.savePlanOutline()
+	p.outlineDraft = outlineDraft{}
+	p.outlineHeld = false
 }
 
 // The heading is outside the vertical scroller. Body side cells are

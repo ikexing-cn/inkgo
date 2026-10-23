@@ -230,7 +230,7 @@ func (a *App) draftView(c *ui.Context) {
 			}
 			a.pal.dialogHead(c, "起草本章", head+"起草在一段新的讨论里进行：写好的先在正文里显示为提议，采纳后才写入，写入前保存快照；想改哪里，在讨论里接着说。")
 			ui.Box(c).FillWidth().Padding(10, 12).Radius(rControl).Background(a.pal.side).Children(func() {
-				ui.Text(c, strings.TrimSpace(w.cur().outline)).FontSize(fsControl).TextColor(t.TextMuted).LineHeight(lhLoose).FillWidth()
+				ui.Text(c, strings.TrimSpace(w.cur().outline.text)).FontSize(fsControl).TextColor(t.TextMuted).LineHeight(lhLoose).FillWidth()
 			})
 			_, fits := prefs.CountOrNone(w.words)
 			labeled(c, "目标字数（选填）", func() {

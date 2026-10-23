@@ -91,10 +91,10 @@ var (
 	cmdDraft = &command{label: "起草本章", page: pageAny, ai: true,
 		can: func(a *App) bool {
 			open, busy := a.chapterOpen()
-			return open && !busy && strings.TrimSpace(a.write.cur().outline) != ""
+			return open && !busy && strings.TrimSpace(a.write.cur().outline.text) != ""
 		},
 		hint: func(a *App) string {
-			if open, _ := a.chapterOpen(); open && strings.TrimSpace(a.write.cur().outline) == "" {
+			if open, _ := a.chapterOpen(); open && strings.TrimSpace(a.write.cur().outline.text) == "" {
 				return "请先填写章纲"
 			}
 			return ""

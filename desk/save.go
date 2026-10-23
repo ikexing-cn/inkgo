@@ -50,14 +50,10 @@ func (a *App) saveText() error {
 
 func (a *App) saveOutline() error {
 	w := &a.write
-	if w.node == "" || w.cur().outline == w.cur().outlineSaved || w.cur().lost {
+	if w.node == "" || w.cur().lost {
 		return nil
 	}
-	if err := a.book.SaveOutline(w.node, w.cur().outline); err != nil {
-		return err
-	}
-	w.cur().outlineSaved = w.cur().outline
-	return nil
+	return w.cur().outline.save(a.book)
 }
 
 // watch saves what paused long enough and looks at the disk, each frame
@@ -78,11 +74,10 @@ func (a *App) watch(c *ui.Context) {
 			a.warn(a.saveText())
 		}
 	}
-	if w.cur().outline != w.cur().outlinePrev {
-		w.cur().outlinePrev, w.cur().outlineAt = w.cur().outline, time.Now()
-	}
-	if w.cur().outline != w.cur().outlineSaved {
-		if wait := saveAfter - time.Since(w.cur().outlineAt); wait > 0 {
+	d := &o.outline
+	d.change(time.Now())
+	if wait, due := d.waits(saveAfter, time.Now()); due {
+		if wait > 0 {
 			c.After(wait)
 		} else {
 			a.warn(a.saveOutline())

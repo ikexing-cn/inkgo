@@ -26,7 +26,7 @@ Status: proposed
 - 不显示的标签页靠 `sheet` 收着其中 9 个，切标签时由 `park`/`unpark` 来回拷。
 - 章纲有两种存法：
   - 写作页停笔片刻就存（`watch`）；
-  - 大纲页只在离开时存（`finishPlanOutline`）。
+  - 大纲页每按一个键就存（`planGist` 一帧里看到和 `Book` 的不同就存）。
 
 **页面没有统一的进出。**
 - `View` 用一个 `switch` 画页面。换页时要做的事也写在 `View` 里：存盘、离开检查、清 `entered`、收大纲页的编辑、重读检查、存偏好。
@@ -88,7 +88,7 @@ Status: proposed
   - 卡片和情节线：写后重读 plan（现在也是每次写完读一遍）；
   - 设定的修订和删分类：写后重读设定（现在的 `refresh` 本来也读）。
   检查做完一章、改一个伏笔，不再整本重读。
-- **页面自己的**不算进 `Book`：大纲页正在改还没存的字（`outlineText`、`outlineID`、`loaded`、`loadErr`、`checked`），检查队列的 `Pending`、`Running`、`Failed`、`Tried`，还有展开、选中、滚动这些看的状态。检查队列不再存一份检查结果（原来的 `CheckQueue.All`）：要看结果的几处由 `desk` 把 `Book` 那份递进去（`Keep`、`EnqueueStale`、`AfterPause`，和改成函数的 `DueChapters`、`PrunableChapters`），检查结果只有 `Book` 一个主人。
+- **页面自己的**不算进 `Book`：大纲页正在改的 `outlineDraft`、`loaded`、`loadErr`、`checked`，检查队列的 `Pending`、`Running`、`Failed`、`Tried`，还有展开、选中、滚动这些看的状态。检查队列不再存一份检查结果（原来的 `CheckQueue.All`）：要看结果的几处由 `desk` 把 `Book` 那份递进去（`Keep`、`EnqueueStale`、`AfterPause`，和改成函数的 `DueChapters`、`PrunableChapters`），检查结果只有 `Book` 一个主人。
 - **派生数据**按 key 缓存：
   - 用一个小的泛型 `cached[K, V]`（`get(key, build)`），只记住上一个 key 的值；`builds` 给帧测试数。
   - key 是这个 build 读到的全部：`Book` 指针和版本号；看正在写的这一章时再加编辑器指针、`Doc` 版本和章 ID；还要看 `aiOn`、`shelf.NoNames`、`lateAfter`、`ignored` 的版本、备份失败的样子和分钟、调色板、页面。

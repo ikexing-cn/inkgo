@@ -25,8 +25,8 @@ func shownChapter(a *App) string         { return a.write.node }
 func forgetChapter(a *App)               { a.write.node = "" }
 func savedText(a *App) string            { return a.write.cur().saved }
 func savedVersion(a *App) int            { return a.write.cur().savedVer }
-func chapterOutline(a *App) string       { return a.write.cur().outline }
-func setChapterOutline(a *App, s string) { a.write.cur().outline = s }
+func chapterOutline(a *App) string       { return a.write.cur().outline.text }
+func setChapterOutline(a *App, s string) { a.write.cur().outline.text = s }
 func diskChanged(a *App) bool            { return a.write.cur().external != nil }
 func chapterLost(a *App) bool            { return a.write.cur().lost }
 func openTabs(a *App) []string           { return a.write.tabs }
