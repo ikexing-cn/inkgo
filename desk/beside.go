@@ -70,14 +70,10 @@ func (a *App) paneCounts() paneNums {
 // the talk, the foreshadowings and the phone preview.
 func (a *App) panelTabs(c *ui.Context) {
 	t := a.pal.theme
-	// Each count is of what waits on the author there.
-	nums := a.paneCounts()
-	shown := a.doc.tab
-	if shown == paneTalk && !a.aiOn() {
-		shown = paneSetting
-	}
-	tab := func(label string, kind paneTab) {
-		on := shown == kind
+	shown := a.paneTabs.shown(a, a.doc.tab)
+	tab := func(entry tabEntry[paneTab]) {
+		label := entry.title(a)
+		on := shown == entry.id
 		b := ui.ButtonBase(c).Row().AlignItems(ui.Center).Padding(4, 10).Radius(rControl).Label("右栏-" + label)
 		if on {
 			b.Background(t.SurfacePressed)
@@ -93,36 +89,28 @@ func (a *App) panelTabs(c *ui.Context) {
 			}
 			// The count sits inside its own tab; beside the tabs it read
 			// as unread talk.
-			n := 0
-			switch kind {
-			case paneSetting:
-				n = nums.open
-			case paneFore:
-				n = nums.waiting
-			}
-			if n > 0 {
+			if n := entry.number(); n > 0 {
 				ui.Textf(c, "%d", n).FontSize(fsNote).TextColor(a.pal.faint).Padding(0, 0, 0, 4)
 			}
 		})
 		if b.Clicked() && !on {
-			a.doc.tab = kind
+			a.doc.tab = entry.id
 			a.savePrefs()
 		}
 	}
 	ui.Row(c).Gap(2).AlignItems(ui.Center).Children(func() {
-		tab("设定", paneSetting)
-		if a.aiOn() {
-			tab("讨论", paneTalk)
+		for _, entry := range a.paneTabs {
+			if entry.available(a) {
+				tab(entry)
+			}
 		}
-		tab("伏笔", paneFore)
-		tab("预览", panePhone)
 	})
 }
 
 // talkTab tells whether the column beside the prose shows the talk: the
 // author chose it there, and the AI is on. Off, the choice is kept for
 // when it is back.
-func (a *App) talkTab() bool { return a.doc.tab == paneTalk && a.aiOn() }
+func (a *App) talkTab() bool { return a.paneTabs.shown(a, a.doc.tab) == paneTalk }
 
 // talkPanel is the talk beside the prose: one talk with its turns and the
 // composer, which sends what the author is writing with their words, or

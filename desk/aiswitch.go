@@ -89,7 +89,7 @@ func (a *App) turnAI(on bool) {
 		if a.Store != nil {
 			a.dropProps(a.write.props, workspace.FateOff)
 			a.stopChecks()
-			if a.page == pageTalk || a.page == pageCheck {
+			if a.pages[a.page].ai {
 				a.offFrom, a.offAway, a.page = a.page, true, pageWrite
 			}
 		}

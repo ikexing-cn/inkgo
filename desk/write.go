@@ -229,11 +229,12 @@ func (a *App) settingColumn(c *ui.Context) {
 	panel := ui.Column(c).Width(width).FillHeight().Background(a.pal.side).Shrink(0)
 	a.LastSetting = panel.Bounds()
 	panel.Children(func() {
-		if a.page == pageWrite && a.doc.tab == panePhone {
+		shown := a.paneTabs.shown(a, a.doc.tab)
+		if a.page == pageWrite && shown == panePhone {
 			a.phonePanel(c)
-		} else if a.page == pageWrite && a.doc.tab == paneFore {
+		} else if a.page == pageWrite && shown == paneFore {
 			a.forePanel(c)
-		} else if a.page == pageWrite && a.talkTab() {
+		} else if a.page == pageWrite && shown == paneTalk {
 			a.talkPanel(c)
 		} else {
 			a.settingPanel(c)

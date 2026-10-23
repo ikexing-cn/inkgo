@@ -37,9 +37,6 @@ func (a *App) sideFoot(c *ui.Context, slim bool) {
 	})
 }
 
-// prefTabs are the settings' parts, with the labels that pick them.
-var prefTabs = [][2]string{{"AI", "设置-AI"}, {"外观", "设置-外观"}, {"提醒与检查", "设置-提醒"}, {"备份", "设置-备份"}}
-
 // The settings dialog keeps one size whichever part is shown.
 const prefsWidth, prefsHeight = 900, 620
 
@@ -54,8 +51,10 @@ var prefAbout = map[string]string{
 // it says it is for: with the AI off, 提醒与检查 has no checks, and the
 // AI holds the switch alone.
 func (a *App) prefName(tab string) string {
-	if tab == "提醒与检查" && !a.aiOn() {
-		return "提醒"
+	for _, entry := range a.prefTabs {
+		if entry.id == tab {
+			return entry.title(a)
+		}
 	}
 	return tab
 }
@@ -112,9 +111,7 @@ func (a *App) preferences(c *ui.Context) {
 		return
 	}
 	t := a.pal.theme
-	if a.bk.tab == "" || (a.bk.tab == "备份" || a.bk.tab == "提醒与检查") && a.Store == nil {
-		a.bk.tab = "AI"
-	}
+	a.bk.tab = a.prefTabs.shown(a, a.bk.tab)
 	w, h := c.Size()
 	ui.DialogBase(c, &a.bk.prefs, func(back, panel ui.Element) {
 		// What is asked over the settings shades the window, them with it:
@@ -126,12 +123,12 @@ func (a *App) preferences(c *ui.Context) {
 		a.pal.dialog.on(panel)
 		ui.Column(c).Width(180).FillHeight().Shrink(0).Padding(20, 10).Gap(2).Radius(rDialog, 0, 0, rDialog).Background(a.pal.side).Children(func() {
 			ui.Text(c, "设置").FontSize(fsSmall).FontWeight(600).TextColor(a.pal.faint).Padding(0, 10, 8, 10)
-			for _, tl := range prefTabs {
-				tab := tl[0]
-				if (tab == "备份" || tab == "提醒与检查") && a.Store == nil {
+			for _, entry := range a.prefTabs {
+				tab := entry.id
+				if !entry.available(a) {
 					continue
 				}
-				b := ui.ButtonBase(c).Row().FillWidth().Height(hControl).Justify(ui.Start).AlignItems(ui.Center).Padding(0, 10).Radius(rControl).Label(tl[1])
+				b := ui.ButtonBase(c).Row().FillWidth().Height(hControl).Justify(ui.Start).AlignItems(ui.Center).Padding(0, 10).Radius(rControl).Label(entry.label)
 				on := a.bk.tab == tab
 				fg, weight := t.TextMuted, 400
 				if on {
@@ -140,7 +137,12 @@ func (a *App) preferences(c *ui.Context) {
 				} else if b.Hovered() {
 					b.Background(t.SurfaceHover)
 				}
-				b.Children(func() { ui.Text(c, a.prefName(tab)).FontSize(fsBody).FontWeight(weight).TextColor(fg) })
+				b.Children(func() {
+					ui.Text(c, entry.title(a)).FontSize(fsBody).FontWeight(weight).TextColor(fg)
+					if n := entry.number(); n > 0 {
+						ui.Textf(c, "%d", n).FontSize(fsNote).TextColor(a.pal.faint)
+					}
+				})
 				if b.Clicked() {
 					a.showPref(tab)
 				}

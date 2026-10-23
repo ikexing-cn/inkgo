@@ -68,12 +68,7 @@ func (a *App) View(c *ui.Context) {
 		a.pal = a.dark
 	}
 	c.SetTheme(a.pal.theme)
-	if a.Store != nil && !a.aiOn() && (a.page == pageTalk || a.page == pageCheck) {
-		a.page = pageWrite // the talk and the checks are the AI's
-	}
-	if a.Store == nil && (a.page == pageCategories || a.page == pageWrite || a.page == pageCheck || a.page == pagePlan) {
-		a.page = pageTalk
-	}
+	a.page = a.pageShown()
 	if a.busy == "" {
 		a.talking = false
 	}
@@ -203,15 +198,11 @@ func (a *App) sidebar(c *ui.Context) {
 func (a *App) sideBody(c *ui.Context, slim bool) {
 	t := a.pal.theme
 	busy := a.held()
-	if a.aiOn() {
-		a.navItem(c, icChat, "讨论", pageTalk, slim, 0)
+	for _, p := range a.pages {
+		if p.available(a) {
+			a.navItem(c, p.tabEntry, slim)
+		}
 	}
-	a.navItem(c, icBook, "正文", pageWrite, slim, 0)
-	a.navItem(c, icOutline, "大纲", pagePlan, slim, 0)
-	if a.aiOn() {
-		a.navItem(c, icDone, "检查", pageCheck, slim, a.pages[pageCheck].count())
-	}
-	a.navItem(c, icTag, "作品分类", pageCategories, slim, 0)
 	ui.Box(c).Height(20)
 	defer a.sideFoot(c, slim)
 	if a.treeShown() {
@@ -272,9 +263,11 @@ func (a *App) talkShown() bool {
 }
 
 // navItem is a page of the sidebar, with how many things wait there.
-func (a *App) navItem(c *ui.Context, s *ui.SVG, label string, page page, slim bool, count int) {
+func (a *App) navItem(c *ui.Context, entry tabEntry[page], slim bool) {
 	t := a.pal.theme
-	on := a.page == page
+	on := a.page == entry.id
+	label := entry.title(a)
+	count := entry.number()
 	b := ui.ButtonBase(c).Row().FillWidth().Height(hControl).AlignItems(ui.Center).Gap(10).Padding(0, 10).Radius(rControl).Label(label).Disabled(a.held())
 	if slim {
 		b.Tooltip(label).Justify(ui.Center)
@@ -291,7 +284,7 @@ func (a *App) navItem(c *ui.Context, s *ui.SVG, label string, page page, slim bo
 		fg = t.Text
 	}
 	b.Children(func() {
-		glyph(c, s, iconMd, fg)
+		glyph(c, entry.icon, iconMd, fg)
 		if !slim {
 			ui.Text(c, label).FontSize(fsBody).TextColor(fg).FontWeight(map[bool]int{true: 600, false: 400}[on]).Grow(1)
 			if count > 0 {
@@ -300,7 +293,7 @@ func (a *App) navItem(c *ui.Context, s *ui.SVG, label string, page page, slim bo
 		}
 	})
 	if b.Clicked() {
-		a.page = page
+		a.page = entry.id
 	}
 }
 

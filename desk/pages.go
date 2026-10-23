@@ -5,16 +5,20 @@ import "github.com/egoist/mygo/ui"
 // The functions are bound once in New, so a page with its own state can
 // put its methods here directly. Nil actions do nothing; a nil count is zero.
 type pageView struct {
+	tabEntry[page]
 	enter, leave func()
 	view         func(*ui.Context)
-	count        func() int
 }
 
 func (a *App) initPages() {
 	a.pages = [...]pageView{
-		pageTalk: {view: a.discussion},
+		pageTalk: {
+			tabEntry: tabEntry[page]{name: "讨论", icon: icChat, ai: true},
+			view:     a.discussion,
+		},
 		pageWrite: {
-			enter: a.enterWriting,
+			tabEntry: tabEntry[page]{name: "正文", icon: icBook, work: true},
+			enter:    a.enterWriting,
 			leave: func() {
 				a.flush()
 				a.leaveCheck()
@@ -22,7 +26,8 @@ func (a *App) initPages() {
 			view: a.writing,
 		},
 		pagePlan: {
-			enter: func() { a.plan.loaded = false },
+			tabEntry: tabEntry[page]{name: "大纲", icon: icOutline, work: true},
+			enter:    func() { a.plan.loaded = false },
 			leave: func() {
 				a.finishPlanOutline()
 				a.finishPlanLine()
@@ -30,14 +35,21 @@ func (a *App) initPages() {
 			view: a.outlinePage,
 		},
 		pageCheck: {
+			tabEntry: tabEntry[page]{name: "检查", icon: icDone, ai: true, work: true,
+				count: func() int { return len(a.listedChecks()) }},
 			enter: func() {
 				a.loadChecks() // as of the disk, without what was put right meanwhile
 				a.pruneStoredChecks()
 				a.ck.proseOf = ""
 			},
-			view:  a.checkPage,
-			count: func() int { return len(a.listedChecks()) },
+			view: a.checkPage,
 		},
-		pageCategories: {view: a.categories},
+		pageCategories: {
+			tabEntry: tabEntry[page]{name: "作品分类", icon: icTag, work: true},
+			view:     a.categories,
+		},
+	}
+	for id := range a.pages {
+		a.pages[id].id = page(id)
 	}
 }

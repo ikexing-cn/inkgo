@@ -22,6 +22,7 @@
 // markdown.go: Markdown styles, code blocks, and setting links.
 // menu.go: menu state, rows, submenus, and popup placement.
 // names.go: setting-name completion, rename notices, and whole-book replacement.
+// navigation.go: shared tab entries, availability, counts, and fallback choices.
 // pane.go: shared right-pane lists, details, forms, and quotes.
 // pages.go: page entry, exit, drawing, and counts.
 // pending.go: pending groups, ignored items, and navigation.
