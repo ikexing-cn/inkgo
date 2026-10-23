@@ -16,7 +16,7 @@ const (
 	TextSizeMax     = 28
 )
 
-// subhead titles a block of the settings.
+// Subhead titles a block of the settings.
 func (p *Palette) Subhead(c *ui.Context, title, caption string) {
 	ui.Column(c).FillWidth().Gap(2).Padding(12, 0, 0, 0).Children(func() {
 		ui.Text(c, title).FontSize(FsGroup).FontWeight(600)
@@ -26,7 +26,7 @@ func (p *Palette) Subhead(c *ui.Context, title, caption string) {
 	})
 }
 
-// tickNote explains the tick box over it, in line with the box's words.
+// TickNote explains the tick box over it, in line with the box's words.
 func (p *Palette) TickNote(c *ui.Context, text string) {
 	ui.Text(c, text).FontSize(FsNote).TextColor(p.Theme.TextMuted).LineHeight(LhBody).Margin(-4, 0, 4, tickIndent)
 }
@@ -36,7 +36,7 @@ func (p *Palette) TickNote(c *ui.Context, text string) {
 // window the same title bar height), so their hover covers the whole row.
 const TitleHeight = HBar
 
-// palette is the desk's colors and shadows, light or dark. They come from
+// Palette is the desk's colors and shadows, light or dark. They come from
 // tokens.css, which the prototype in prototype/ styles itself from too: the
 // two name each color the same way, so one changed there changes in both and
 // nothing else moves. What each is for is written in DESIGN.md alone.
@@ -105,7 +105,7 @@ const (
 	DialogPad    = 24
 )
 
-// modal is a dialog as the design draws one: the window shaded behind it,
+// Modal is a dialog as the design draws one: the window shaded behind it,
 // its corners and its shadow. What fn makes first gives it its size, with
 // dialogPad around what it holds.
 func (p *Palette) Modal(c *ui.Context, open *bool, fn func()) {
@@ -121,7 +121,7 @@ func (p *Palette) Modal(c *ui.Context, open *bool, fn func()) {
 	})
 }
 
-// blank is what a page shows when it has nothing: a faint picture, what is
+// Blank is what a page shows when it has nothing: a faint picture, what is
 // missing, a line or two on what to do about it, and more, if any, under
 // them. It stands in the middle of the room it is given.
 func (p *Palette) Blank(c *ui.Context, pic *ui.SVG, title, about string, more func()) ui.Element {
@@ -141,10 +141,10 @@ func (p *Palette) Blank(c *ui.Context, pic *ui.SVG, title, about string, more fu
 // element by on its own.
 const disabledByKit = 0.5
 
-// pale gives b, a disabled control, the design's opacity for one.
+// Pale gives b, a disabled control, the design's opacity for one.
 func Pale(b ui.Element) ui.Element { return b.Opacity(OpacityDisabled / disabledByKit) }
 
-// dialogHead is what a dialog opens with: what it is, and under it, in a
+// DialogHead is what a dialog opens with: what it is, and under it, in a
 // line or two, what it does.
 func (p *Palette) DialogHead(c *ui.Context, title, about string) {
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
@@ -200,14 +200,14 @@ type shadow struct {
 	color              ui.Color
 }
 
-// on gives e the shadow.
+// On gives e the shadow.
 func (s shadow) On(e ui.Element) ui.Element {
 	return e.Shadow(s.x, s.y, s.blur, s.spread, s.color)
 }
 
 var shadowsLight, shadowsDark = shadows(tokensCSS)
 
-// shadowOf is the named shadow of the theme c draws with, for what draws
+// ShadowOf is the named shadow of the theme c draws with, for what draws
 // without the App's palette.
 func ShadowOf(c *ui.Context, name string) shadow {
 	if c.Theme().Dark {
@@ -317,12 +317,12 @@ func paletteOf(t *ui.Theme, k map[string]ui.Color, s map[string]shadow, scrim ui
 		Raise: s["raise"], Pop: s["pop"], Dialog: s["dialog"], Scrim: scrim}
 }
 
-// dot is a small status disc.
+// Dot is a small status disc.
 func Dot(c *ui.Context, color ui.Color, size float32) ui.Element {
 	return ui.Box(c).Size(size, size).Radius(RRound).Background(color).Shrink(0)
 }
 
-// ghost is the text button, the one look of words to click that stand in no
+// Ghost is the text button, the one look of words to click that stand in no
 // box: ink over a thin line. Under the pointer it has a fill and the line
 // takes the color of the words. color, when given, is for the words: the
 // danger color, for what cannot be taken back.
@@ -346,7 +346,7 @@ func (p *Palette) Ghost(c *ui.Context, text string, color ui.Color) ui.Element {
 	return b
 }
 
-// chip is a choice turned on and off: outlined, and solid ink when on.
+// Chip is a choice turned on and off: outlined, and solid ink when on.
 func (p *Palette) Chip(c *ui.Context, text string, on bool) ui.Element {
 	t := p.Theme
 	b := ui.ButtonBase(c).Row().Center().Height(HSeg).Padding(0, 10).Radius(RControl).Shrink(0)
@@ -418,7 +418,7 @@ var (
 	IcShrink      = icon(`<path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>`)
 )
 
-// glyph shows an icon at size in color (zero: inherit the text color).
+// Glyph shows an icon at size in color (zero: inherit the text color).
 func Glyph(c *ui.Context, s *ui.SVG, size float32, color ui.Color) ui.Element {
 	e := ui.Icon(c, s).Size(size, size).Shrink(0)
 	if color.A != 0 {
@@ -427,7 +427,7 @@ func Glyph(c *ui.Context, s *ui.SVG, size float32, color ui.Color) ui.Element {
 	return e
 }
 
-// iconButton is a square borderless button with a tooltip; label also names
+// IconButton is a square borderless button with a tooltip; label also names
 // it for tests and assistive technology.
 func IconButton(c *ui.Context, s *ui.SVG, label string, color ui.Color) ui.Element {
 	t := c.Theme()
@@ -449,7 +449,7 @@ func IconButton(c *ui.Context, s *ui.SVG, label string, color ui.Color) ui.Eleme
 	return b
 }
 
-// primary is the one solid ink button of a view.
+// Primary is the one solid ink button of a view.
 func (p *Palette) Primary(c *ui.Context, text string) ui.Element {
 	b := ui.ButtonBase(c).Row().Center().Gap(6).Height(HControlSm).Padding(0, 14).Radius(RControl).Shrink(0)
 	bg := p.Ink
@@ -480,7 +480,7 @@ func (p *Palette) Danger(c *ui.Context, text string) ui.Element {
 	return b
 }
 
-// soft is the button that lets go of what the AI does or proposed, in its
+// Soft is the button that lets go of what the AI does or proposed, in its
 // line under a chapter's title and after each proposal: on a pressed fill,
 // with no line round it, a step darker under the pointer.
 func (p *Palette) Soft(c *ui.Context, text string) ui.Element {
@@ -509,7 +509,7 @@ func (p *Palette) Secondary(c *ui.Context, text string) ui.Element {
 	return b
 }
 
-// segments is the segmented control: the choice stands raised on a darker
+// Segments is the segmented control: the choice stands raised on a darker
 // track. label names the control, names its choices; at is the one chosen.
 // The track returned takes the width it is given, its choices only their
 // words'.
@@ -529,7 +529,7 @@ func (p *Palette) Segments(c *ui.Context, at *int, label string, names []string)
 	})
 }
 
-// dots is a one-of-several choice in a form: a row of radio buttons, each
+// Dots is a one-of-several choice in a form: a row of radio buttons, each
 // as wide as its words, choosing among values into at; names are what
 // they say, label names the row. It says whether one was chosen.
 func Dots[T comparable](c *ui.Context, at *T, label string, values []T, names []string) (changed bool) {
@@ -553,7 +553,7 @@ func (p *Palette) Hairline(c *ui.Context) {
 	ui.Box(c).FillWidth().Height(1).Background(p.Line).Shrink(0)
 }
 
-// action is a tinted button; strong fills it, for destructive confirmations.
+// Action is a tinted button; strong fills it, for destructive confirmations.
 func Action(c *ui.Context, text string, color ui.Color, strong bool) ui.Element {
 	b := ui.ButtonBase(c).Row().Center().Padding(6, 12).Radius(RControl).Shrink(0)
 	bg, fg := color.Alpha(0.12), color

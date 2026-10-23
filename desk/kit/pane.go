@@ -6,7 +6,7 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
-// paneRows is the list under the top of a tab, which scrolls.
+// PaneRows is the list under the top of a tab, which scrolls.
 func (p *Palette) PaneRows(c *ui.Context, key string, rows func()) {
 	p.Hairline(c)
 	ui.Scroll(c.Key(key)).FillWidth().Grow(1).Shrink(1).Children(func() {
@@ -14,12 +14,12 @@ func (p *Palette) PaneRows(c *ui.Context, key string, rows func()) {
 	})
 }
 
-// paneGroup is the small label over the rows of one kind.
+// PaneGroup is the small label over the rows of one kind.
 func (p *Palette) PaneGroup(c *ui.Context, name string) {
 	ui.Text(c, name).FontSize(FsSmall).TextColor(p.Faint).Padding(14, 10, 4, 10).SingleLine()
 }
 
-// paneEmpty says in a list that it has nothing, and what to do about it.
+// PaneEmpty says in a list that it has nothing, and what to do about it.
 func (p *Palette) PaneEmpty(c *ui.Context, words, how string) {
 	ui.Column(c).FillWidth().Gap(6).Padding(20, 10).Children(func() {
 		ui.Text(c, words).FontSize(FsBody)
@@ -29,7 +29,7 @@ func (p *Palette) PaneEmpty(c *ui.Context, words, how string) {
 	})
 }
 
-// paneRow is one thing of a list on one line: its name, a line of what it
+// PaneRow is one thing of a list on one line: its name, a line of what it
 // says, what stands at its end, and a dot when it waits on the author. The
 // words of find in what it says are darker.
 // Give it a key with the context: p.PaneRow(c.Key(id), ...).
@@ -58,7 +58,7 @@ func (p *Palette) PaneRow(c *ui.Context, label, name, gist, side, find string, w
 	return b
 }
 
-// marked is text in spans, the words of find in it in color and bold.
+// Marked is text in spans, the words of find in it in color and bold.
 func Marked(text, find string, color ui.Color) []ui.Span {
 	if find == "" {
 		return []ui.Span{{Text: text}}
@@ -81,7 +81,7 @@ func Marked(text, find string, color ui.Color) []ui.Span {
 	return out
 }
 
-// paneTodo is the first row of a list: what waits on the author, and how
+// PaneTodo is the first row of a list: what waits on the author, and how
 // many.
 func (p *Palette) PaneTodo(c *ui.Context, label string, n int) ui.Element {
 	t := p.Theme
@@ -98,7 +98,7 @@ func (p *Palette) PaneTodo(c *ui.Context, label string, n int) ui.Element {
 	return b
 }
 
-// paneBack is the top of a page: the way back to where it was opened
+// PaneBack is the top of a page: the way back to where it was opened
 // from, and at its end the thing done to what the page shows, when act
 // names one.
 func (p *Palette) PaneBack(c *ui.Context, text, act string) (back, acted bool) {
@@ -127,7 +127,7 @@ func (p *Palette) PaneBack(c *ui.Context, text, act string) (back, acted bool) {
 	return back, acted
 }
 
-// panePage is the page of one thing under its top, which scrolls.
+// PanePage is the page of one thing under its top, which scrolls.
 func (p *Palette) PanePage(c *ui.Context, key string, parts func()) {
 	p.Hairline(c)
 	ui.Scroll(c.Key(key)).FillWidth().Grow(1).Shrink(1).Children(func() {
@@ -135,7 +135,7 @@ func (p *Palette) PanePage(c *ui.Context, key string, parts func()) {
 	})
 }
 
-// paneTitle is the name of what a page shows, a few faint words after it,
+// PaneTitle is the name of what a page shows, a few faint words after it,
 // and the button at its end when button names one.
 func (p *Palette) PaneTitle(c *ui.Context, name, sub, button string) (clicked bool) {
 	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
@@ -151,7 +151,7 @@ func (p *Palette) PaneTitle(c *ui.Context, name, sub, button string) (clicked bo
 	return clicked
 }
 
-// paneButton is a button of a page: solid ink for the one thing the page
+// PaneButton is a button of a page: solid ink for the one thing the page
 // is for, outlined otherwise.
 func (p *Palette) PaneButton(c *ui.Context, text string, primary bool) ui.Element {
 	t := p.Theme
@@ -177,7 +177,7 @@ func (p *Palette) PaneButton(c *ui.Context, text string, primary bool) ui.Elemen
 	return b
 }
 
-// paneButtons puts a page's buttons at the right, where the rest of the
+// PaneButtons puts a page's buttons at the right, where the rest of the
 // desk has them.
 func PaneButtons(c *ui.Context, buttons func()) {
 	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
@@ -186,18 +186,18 @@ func PaneButtons(c *ui.Context, buttons func()) {
 	})
 }
 
-// paneNote is a line of small grey words in a page.
+// PaneNote is a line of small grey words in a page.
 func (p *Palette) PaneNote(c *ui.Context, text string) {
 	ui.Text(c, text).FontSize(FsNote).LineHeight(LhBody).TextColor(p.Theme.TextMuted).FillWidth()
 }
 
-// paneWhere is a line that says where in the book something is, and the
+// PaneWhere is a line that says where in the book something is, and the
 // link that opens it there.
 func (p *Palette) PaneWhere(c *ui.Context, text, label string) (clicked bool) {
 	return p.PaneLink(c, text, "查看原文", label)
 }
 
-// paneLink is a line that says where something is, and the link see that
+// PaneLink is a line that says where something is, and the link see that
 // opens it; label names the link, and empty leaves it out.
 func (p *Palette) PaneLink(c *ui.Context, text, see, label string) (clicked bool) {
 	t := p.Theme
@@ -217,7 +217,7 @@ func (p *Palette) PaneLink(c *ui.Context, text, see, label string) (clicked bool
 	return clicked
 }
 
-// paneQuote is a passage of the book quoted in a page, struck through
+// PaneQuote is a passage of the book quoted in a page, struck through
 // when it is gone from the book.
 func (p *Palette) PaneQuote(c *ui.Context, text string, gone bool) {
 	q := ui.Text(c, text).FontSize(FsBody).LineHeight(LhLoose).FillWidth().Padding(10, 12).Radius(RControl).Background(p.Theme.SurfaceHover).Selectable()
@@ -226,7 +226,7 @@ func (p *Palette) PaneQuote(c *ui.Context, text string, gone bool) {
 	}
 }
 
-// paneField is a field of a form under its label.
+// PaneField is a field of a form under its label.
 func (p *Palette) PaneField(c *ui.Context, label string, field func()) {
 	ui.Column(c).FillWidth().Gap(6).Children(func() {
 		ui.Text(c, label).FontSize(FsNote).TextColor(p.Theme.TextMuted)
@@ -234,7 +234,7 @@ func (p *Palette) PaneField(c *ui.Context, label string, field func()) {
 	})
 }
 
-// labeled stacks a muted caption over a control.
+// Labeled stacks a muted caption over a control.
 func Labeled(c *ui.Context, caption string, fn func()) ui.Element {
 	return ui.Column(c).FillWidth().Gap(6).Children(func() {
 		ui.Text(c, caption).FontSize(FsNote).TextColor(c.Theme().TextMuted)
@@ -242,7 +242,7 @@ func Labeled(c *ui.Context, caption string, fn func()) ui.Element {
 	})
 }
 
-// paneTop is the top row of the right pane.
+// PaneTop is the top row of the right pane.
 func PaneTop(c *ui.Context) ui.Element {
 	return ui.Row(c).FillWidth().Height(TitleHeight).Padding(0, 20).Gap(4).AlignItems(ui.Center).Shrink(0)
 }

@@ -24,7 +24,7 @@ type MenuState struct {
 	Seen  bool    // it was drawn in the last frame
 }
 
-// menu lists the rows of a menu: build names them in order, each with what
+// Menu lists the rows of a menu: build names them in order, each with what
 // picking it does. It holds nothing of the frame it is drawn in: the rows
 // are drawn once build has listed them (menuRows), and the one picked then
 // does what it was given to Do. What build would draw itself goes in a Draw
@@ -42,7 +42,7 @@ const (
 	rowDraw        // what the menu's owner draws itself
 )
 
-// menuItem is a row of a menu. Its methods set it up and return it, for
+// MenuItem is a row of a menu. Its methods set it up and return it, for
 // chaining.
 type MenuItem struct {
 	Kind    int
@@ -174,7 +174,7 @@ func (m *MenuState) menuBeside(c *ui.Context, p *Palette, row *MenuItem, at ui.R
 	list.Children(func() { m.menuRows(c, p, row.build, true) })
 }
 
-// contextMenu gives el a menu that build fills: where el is clicked with
+// ContextMenu gives el a menu that build fills: where el is clicked with
 // the secondary button, or under it for the menu key while it has the
 // focus. key tells el's menu from the others.
 func (m *MenuState) ContextMenu(c *ui.Context, p *Palette, el ui.Element, key string, build func(m *Menu)) {
@@ -189,7 +189,7 @@ func (m *MenuState) ContextMenu(c *ui.Context, p *Palette, el ui.Element, key st
 	m.MenuAt(c, p, key, build)
 }
 
-// menuAt draws the menu key where it was asked for, while it is open. A
+// MenuAt draws the menu key where it was asked for, while it is open. A
 // press anywhere else puts it away and does nothing more, as Escape does.
 func (m *MenuState) MenuAt(c *ui.Context, p *Palette, key string, build func(m *Menu)) {
 	if m.Owner != key || m.Drop {
@@ -230,7 +230,7 @@ func (m *MenuState) MenuAt(c *ui.Context, p *Palette, key string, build func(m *
 	})
 }
 
-// dropMenu hangs a menu from b, which opens it and puts it away: place
+// DropMenu hangs a menu from b, which opens it and puts it away: place
 // sets where the panel goes and how wide it is, build fills it. key tells
 // b's menu from the others.
 func (m *MenuState) DropMenu(c *ui.Context, p *Palette, b ui.Element, key string, place func(panel ui.Element), build func(m *Menu)) {
@@ -258,7 +258,7 @@ func (m *MenuState) DropMenu(c *ui.Context, p *Palette, b ui.Element, key string
 	}
 }
 
-// menuOpen reports whether the menu key is open: what opens it shows it.
+// MenuOpen reports whether the menu key is open: what opens it shows it.
 func (m *MenuState) MenuOpen(key string) bool { return m.Owner == key }
 
 // popPanel is the panel of a menu.
@@ -302,12 +302,12 @@ func (p *Palette) popRow(c *ui.Context, pic *ui.SVG, label, hint string, off, on
 	return b
 }
 
-// popHead names the rows under it.
+// PopHead names the rows under it.
 func (p *Palette) PopHead(c *ui.Context, label string) {
 	ui.Text(c, label).FontSize(FsSmall).TextColor(p.Faint).Padding(6, 10, 2, 10).Shrink(0)
 }
 
-// popLine parts groups of rows.
+// PopLine parts groups of rows.
 func (p *Palette) PopLine(c *ui.Context) {
 	ui.Box(c).FillWidth().Height(1).Margin(4, 0).Background(p.Line).Shrink(0)
 }

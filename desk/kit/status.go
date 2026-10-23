@@ -1,6 +1,6 @@
 package kit
 
-// status is what the toasts show: the error, the failures in a row, the
+// Status is what the toasts show: the error, the failures in a row, the
 // request that can run again, and what was done or is to be done first.
 type Status struct {
 	shown  error  // the error shown
@@ -11,7 +11,7 @@ type Status struct {
 	tip    string // what to do first
 }
 
-// setError shows err in a toast until the author closes it; nil clears it.
+// SetError shows err in a toast until the author closes it; nil clears it.
 func (s *Status) SetError(err error) { s.shown = err }
 
 func (s *Status) Err() error { return s.shown }
@@ -23,7 +23,7 @@ func (s *Status) ErrorText() string {
 	return s.shown.Error()
 }
 
-// fail shows err and counts it with the failures in a row.
+// Fail shows err and counts it with the failures in a row.
 func (s *Status) Fail(err error) {
 	s.SetError(err)
 	if text := s.ErrorText(); text == s.failed {
@@ -33,10 +33,10 @@ func (s *Status) Fail(err error) {
 	}
 }
 
-// succeed ends the failures in a row.
+// Succeed ends the failures in a row.
 func (s *Status) Succeed() { s.failed, s.fails = "", 0 }
 
-// repeated is how many times in a row the error shown failed; 0 while it
+// Repeated is how many times in a row the error shown failed; 0 while it
 // is not the last request's.
 func (s *Status) Repeated() int {
 	if s.failed != s.ErrorText() {
@@ -45,10 +45,10 @@ func (s *Status) Repeated() int {
 	return s.fails
 }
 
-// retry offers fn to run the last request again.
+// Retry offers fn to run the last request again.
 func (s *Status) Retry(fn func()) { s.again = fn }
 
-// retryAction is that offer while the error shown is the last request's.
+// RetryAction is that offer while the error shown is the last request's.
 func (s *Status) RetryAction() func() {
 	if s.again == nil || s.failed != s.ErrorText() {
 		return nil
@@ -56,35 +56,35 @@ func (s *Status) RetryAction() func() {
 	return s.again
 }
 
-// did says what was done.
+// Did says what was done.
 func (s *Status) Did(what string) { s.notice = what }
 
 func (s *Status) NoticeText() string { return s.notice }
 
-// closeNotice clears what was done, if it is still what the toast said.
+// CloseNotice clears what was done, if it is still what the toast said.
 func (s *Status) CloseNotice(what string) {
 	if s.notice == what {
 		s.notice = ""
 	}
 }
 
-// hint says what to do first.
+// Hint says what to do first.
 func (s *Status) Hint(what string) { s.tip = what }
 
 func (s *Status) HintText() string { return s.tip }
 
-// closeHint clears the hint, if it is still what the toast said.
+// CloseHint clears the hint, if it is still what the toast said.
 func (s *Status) CloseHint(what string) {
 	if s.tip == what {
 		s.tip = ""
 	}
 }
 
-// closeError closes the error toast: the error goes, and a run of
+// CloseError closes the error toast: the error goes, and a run of
 // failures with it.
 func (s *Status) CloseError() { s.shown, s.failed, s.fails = nil, "", 0 }
 
-// clear drops everything, as turning the AI off does.
+// Clear drops everything, as turning the AI off does.
 func (s *Status) Clear() { *s = Status{} }
 
 func (s *Status) Warn(err error) {

@@ -21,7 +21,7 @@ type ToastAction struct {
 	Name  string // what tests and screen readers call it, when not the label
 }
 
-// splitToast puts what happened in the title and the rest under it, in
+// SplitToast puts what happened in the title and the rest under it, in
 // smaller type: a toast is as wide as its longest line, so one long
 // sentence would stretch it.
 func SplitToast(s string) (title, detail string) {
@@ -35,7 +35,7 @@ func SplitToast(s string) (title, detail string) {
 	return s, ""
 }
 
-// toastCard draws one toast: only its icon carries the colour.
+// ToastCard draws one toast: only its icon carries the colour.
 func (p *Palette) ToastCard(c *ui.Context, ts ui.Toast, status *Status, life time.Duration, actions func()) {
 	t := p.Theme
 	toast := ui.ToastBase(c, ts)
@@ -86,7 +86,7 @@ func (p *Palette) ToastCard(c *ui.Context, ts ui.Toast, status *Status, life tim
 	})
 }
 
-// toastActions are what can be done about it, the first the likely one.
+// ToastActions are what can be done about it, the first the likely one.
 func (p *Palette) ToastActions(c *ui.Context, acts []ToastAction) {
 	if len(acts) == 0 {
 		return
@@ -116,7 +116,7 @@ func (p *Palette) ToastActions(c *ui.Context, acts []ToastAction) {
 	})
 }
 
-// moreToasts folds the older toasts into one line that opens them.
+// MoreToasts folds the older toasts into one line that opens them.
 func (p *Palette) MoreToasts(c *ui.Context, n int, open *bool) {
 	t := p.Theme
 	b := ui.ButtonBase(c).Padding(4, 10).Radius(RCard).Background(p.Raised).Border(1, t.Border).Shrink(0)

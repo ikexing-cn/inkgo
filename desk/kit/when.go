@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// dayOf names the day of t from now: 今天, 昨天, another day this year by
+// DayOf names the day of t from now: 今天, 昨天, another day this year by
 // its month and day (10-06), an earlier year's in full (2025-10-06).
 func DayOf(t, now time.Time) string {
 	t, now = t.Local(), now.Local()
@@ -20,13 +20,13 @@ func DayOf(t, now time.Time) string {
 	return t.Format(time.DateOnly)
 }
 
-// when says when something happened: its day and time, 今天 10:32,
+// When says when something happened: its day and time, 今天 10:32,
 // 昨天 23:15, 10-06 21:40.
 func When(t, now time.Time) string {
 	return DayOf(t, now) + " " + t.Local().Format("15:04")
 }
 
-// opened says when a work was last opened, briefly: the time only today
+// Opened says when a work was last opened, briefly: the time only today
 // and yesterday.
 func Opened(t, now time.Time) string {
 	if t.IsZero() {

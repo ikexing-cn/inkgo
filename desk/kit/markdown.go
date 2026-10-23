@@ -14,13 +14,13 @@ const (
 	DigestText MdStyle = true
 )
 
-// markdownState keeps options at stable addresses, shared by views of a kind.
+// MarkdownState keeps options at stable addresses, shared by views of a kind.
 type MarkdownState struct {
 	pal           *Palette
 	Reply, Digest markdown.Options
 }
 
-// markdownOptions are the options a view of the kind is drawn with,
+// MarkdownOptions are the options a view of the kind is drawn with,
 // remade when the palette changes. A reply's links do nothing; a digest's
 // open the entries they name.
 func (m *MarkdownState) MarkdownOptions(p *Palette, st MdStyle) *markdown.Options {

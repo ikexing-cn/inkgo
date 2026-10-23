@@ -14,7 +14,7 @@ func Clip(s string, n int) string {
 	return textclip.Clip(s, n)
 }
 
-// fromLabel says where a change of the setting starts, as the panel does:
+// FromLabel says where a change of the setting starts, as the panel does:
 // 第87章起 for a chapter numbered, its title for one that is not and for a
 // volume, and 所在章节已删除 for a node no longer in the tree.
 func FromLabel(tree workspace.Tree, id string) string {
@@ -28,7 +28,7 @@ func FromLabel(tree workspace.Tree, id string) string {
 	return n.Title + "起"
 }
 
-// words says how many characters, the way the design writes them: grouped
+// Words says how many characters, the way the design writes them: grouped
 // by thousands, and in 万 from ten thousand on.
 func Words(n int) string {
 	if n >= 10000 {
@@ -37,7 +37,7 @@ func Words(n int) string {
 	return Grouped(n) + " 字"
 }
 
-// grouped writes n with a comma between each three digits.
+// Grouped writes n with a comma between each three digits.
 func Grouped(n int) string {
 	if n < 0 {
 		return "-" + Grouped(-n)
@@ -49,7 +49,7 @@ func Grouped(n int) string {
 	return s
 }
 
-// signed is grouped with its sign.
+// Signed is grouped with its sign.
 func Signed(n int) string {
 	if n < 0 {
 		return Grouped(n)
@@ -57,7 +57,7 @@ func Signed(n int) string {
 	return "+" + Grouped(n)
 }
 
-// count is how many a menu's row leads to, at its right, when any.
+// Count is how many a menu's row leads to, at its right, when any.
 func Count(n int) string {
 	if n == 0 {
 		return ""
@@ -65,7 +65,7 @@ func Count(n int) string {
 	return strconv.Itoa(n)
 }
 
-// nearFind is text from a little before find in it, so that a line cut
+// NearFind is text from a little before find in it, so that a line cut
 // short still shows what was found.
 func NearFind(text, find string) string {
 	text = strings.Join(strings.Fields(text), " ")
@@ -82,7 +82,7 @@ func NearFind(text, find string) string {
 
 func Trim(s string) string { return strings.TrimSpace(s) }
 
-// heading is a chapter's title over its prose: the name after 第几章, which
+// Heading is a chapter's title over its prose: the name after 第几章, which
 // the breadcrumb above already says.
 func Heading(title string) string {
 	if _, name, ok := strings.Cut(title, "："); ok && strings.TrimSpace(name) != "" {
