@@ -239,7 +239,7 @@ func TestPhonePreferencesAreLocal(t *testing.T) {
 	for _, label := range []string{"宽屏", "A+", "宽松", "护眼", "显示手机外框", "标出超过 5 行的段落"} {
 		click(t, tt, label)
 	}
-	want := a.phonePreferences()
+	want := a.phone.preferences()
 	if want.Mode != "scroll" || want.Screen != "wide" || want.Size != 21 || want.Spacing != "loose" || want.Theme != "eye" || !want.NoFrame || !want.NoLong {
 		t.Fatal(want)
 	}
@@ -264,8 +264,8 @@ func TestPhonePreferencesAreLocal(t *testing.T) {
 	}
 	b := newApp(config)
 	defer b.Close()
-	if b.phonePreferences() != want || b.phone.at != 0 {
-		t.Fatalf("reopened %+v want %+v", b.phonePreferences(), want)
+	if b.phone.preferences() != want || b.phone.at != 0 {
+		t.Fatalf("reopened %+v want %+v", b.phone.preferences(), want)
 	}
 	root := filepath.Join(t.TempDir(), "other")
 	store, err := workspace.Create(root, "另一本", "网文")
@@ -276,7 +276,7 @@ func TestPhonePreferencesAreLocal(t *testing.T) {
 	if err = b.Open(root); err != nil {
 		t.Fatal(err)
 	}
-	if b.phonePreferences() != want {
+	if b.phone.preferences() != want {
 		t.Fatal("work changed phone preferences")
 	}
 	if _, err = os.Stat(filepath.Join(root, ".writer", "phone.json")); !os.IsNotExist(err) {
@@ -300,8 +300,8 @@ func TestPhonePreferencesDefaultUnknownChoices(t *testing.T) {
 			a.saveShelf()
 			b := newApp(config)
 			defer b.Close()
-			if b.errorText() != "" || b.phonePreferences() != defaultPhone() {
-				t.Fatalf("read defaults: %+v, error %q", b.phonePreferences(), b.errorText())
+			if b.errorText() != "" || b.phone.preferences() != defaultPhone() {
+				t.Fatalf("read defaults: %+v, error %q", b.phone.preferences(), b.errorText())
 			}
 			if tc.phone == nil && b.shelf.Phone != nil {
 				t.Fatal("reading untouched preferences materialized defaults")

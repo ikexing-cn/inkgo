@@ -480,7 +480,7 @@ func (a *App) foreList(c *ui.Context, all []workspace.Foreshadow) {
 				}
 			}
 			if counts[s.status] == 0 {
-				a.paneEmpty(c, "此处暂无伏笔", "")
+				a.pal.paneEmpty(c, "此处暂无伏笔", "")
 			}
 		})
 		return
@@ -493,7 +493,7 @@ func (a *App) foreList(c *ui.Context, all []workspace.Foreshadow) {
 	q := strings.TrimSpace(s.query)
 	a.paneRows(c, "fore", func() {
 		if len(all) == 0 {
-			a.paneEmpty(c, "暂无伏笔", "在正文中选中一句，右键选择「记为伏笔」")
+			a.pal.paneEmpty(c, "暂无伏笔", "在正文中选中一句，右键选择「记为伏笔」")
 			return
 		}
 		if q != "" {
@@ -504,7 +504,7 @@ func (a *App) foreList(c *ui.Context, all []workspace.Foreshadow) {
 				}
 			}
 			if len(found) == 0 {
-				a.paneEmpty(c, "未找到", "")
+				a.pal.paneEmpty(c, "未找到", "")
 				return
 			}
 			a.paneGroup(c, fmt.Sprintf("找到 %d 条", len(found)))
@@ -546,7 +546,7 @@ func (a *App) foreList(c *ui.Context, all []workspace.Foreshadow) {
 			}
 		}
 		if len(over)+len(fresh)+counts[workspace.ForeLost] == 0 {
-			a.paneEmpty(c, "没有未回收的伏笔", "")
+			a.pal.paneEmpty(c, "没有未回收的伏笔", "")
 		}
 	})
 }

@@ -184,7 +184,7 @@ type App struct {
 	thoughts                         map[string]*bool // reasoning shown, by event or revision ID
 	doc                              docView
 	exporting                        exportView
-	phone                            phoneState
+	phone                            phonePanel
 	write                            writeView
 	plan                             planView
 	LastChat, LastSetting, LastWrite ui.Rect
@@ -201,7 +201,7 @@ type App struct {
 func New(ai aiport.Service) *App {
 	a := &App{ai: ai, genre: "网文",
 		light: lightPalette(), dark: darkPalette(), titles: map[string]string{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
-	a.exporting.host = a
+	a.exporting.host, a.phone.host = a, a
 	a.pal = a.light
 	a.initPages()
 	a.initTabs()

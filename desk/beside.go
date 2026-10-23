@@ -172,7 +172,7 @@ func (a *App) talkList(c *ui.Context) {
 			}
 		}
 		if n == 0 {
-			a.paneEmpty(c, "未找到", "")
+			a.pal.paneEmpty(c, "未找到", "")
 		}
 	})
 }

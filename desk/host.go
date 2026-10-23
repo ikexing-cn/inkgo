@@ -10,6 +10,7 @@ import (
 
 type host interface {
 	colors() *palette
+	phoneColors() (*palette, *palette)
 	Book() *book.Book
 	workspace() (*workspace.Store, string)
 	notices() *status
@@ -46,3 +47,5 @@ func (a *App) startJob(sv ui.Services, fn func() func()) { a.jobs.start(sv, fn) 
 func (a *App) dialogs() (func(string, string) (string, error), func(string) (string, error), func(string) error) {
 	return a.SaveFile, a.PickFolder, a.Reveal
 }
+
+func (a *App) phoneColors() (*palette, *palette) { return a.light, a.dark }

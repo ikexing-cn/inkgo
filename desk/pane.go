@@ -76,11 +76,11 @@ func (a *App) paneGroup(c *ui.Context, name string) {
 }
 
 // paneEmpty says in a list that it has nothing, and what to do about it.
-func (a *App) paneEmpty(c *ui.Context, words, how string) {
+func (p *palette) paneEmpty(c *ui.Context, words, how string) {
 	ui.Column(c).FillWidth().Gap(6).Padding(20, 10).Children(func() {
 		ui.Text(c, words).FontSize(fsBody)
 		if how != "" {
-			ui.Text(c, how).FontSize(fsNote).LineHeight(lhBody).TextColor(a.pal.theme.TextMuted).FillWidth()
+			ui.Text(c, how).FontSize(fsNote).LineHeight(lhBody).TextColor(p.theme.TextMuted).FillWidth()
 		}
 	})
 }

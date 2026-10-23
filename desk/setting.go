@@ -341,7 +341,7 @@ func (a *App) settingList(c *ui.Context) {
 				}
 			}
 			if len(found) == 0 {
-				a.paneEmpty(c, "未找到", "")
+				a.pal.paneEmpty(c, "未找到", "")
 				return
 			}
 			a.paneGroup(c, fmt.Sprintf("找到 %d 条", len(found)))
@@ -358,7 +358,7 @@ func (a *App) settingList(c *ui.Context) {
 			if !a.aiOn() {
 				how = "可点击「新增」添加，或从正文中选中文字加入。"
 			}
-			a.paneEmpty(c, "暂无设定", how)
+			a.pal.paneEmpty(c, "暂无设定", how)
 			return
 		}
 		for _, cat := range a.Store.Work().Categories {
@@ -398,7 +398,7 @@ func (a *App) droppedList(c *ui.Context) {
 			}
 		}
 		if n == 0 {
-			a.paneEmpty(c, "没有已删除的设定", "")
+			a.pal.paneEmpty(c, "没有已删除的设定", "")
 		}
 	})
 }

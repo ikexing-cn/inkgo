@@ -228,7 +228,14 @@ func (a *App) settingColumn(c *ui.Context) {
 	panel.Children(func() {
 		shown := a.paneTabs.shown(a, a.doc.tab)
 		if a.page == pageWrite && shown == panePhone {
-			a.phonePanel(c)
+			paneTop(c).Children(func() {
+				a.panelTabs(c)
+				ui.Spacer(c)
+				if iconButton(c, icPanel, "收起右栏", ui.Color{}).Tooltip("收起右栏").Clicked() {
+					a.setDocHidden(true)
+				}
+			})
+			a.phone.view(c)
 		} else if a.page == pageWrite && shown == paneFore {
 			a.forePanel(c)
 		} else if a.page == pageWrite && shown == paneTalk {

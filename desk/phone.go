@@ -64,26 +64,26 @@ func phoneIndex(value string, choices []string) int {
 	return max(0, slices.Index(choices, value))
 }
 
-func (a *App) phonePreferences() shelf.Phone {
+func (p *phonePanel) preferences() shelf.Phone {
 	d := defaultPhone()
-	if a.shelf.Phone == nil {
+	if p.host.shelfPrefs().Phone == nil {
 		return d
 	}
-	p := *a.shelf.Phone
+	prefs := *p.host.shelfPrefs().Phone
 	choice := func(value, fallback string, choices []string) string {
 		if slices.Contains(choices, value) {
 			return value
 		}
 		return fallback
 	}
-	p.Mode = choice(p.Mode, d.Mode, phoneModes)
-	p.Screen = choice(p.Screen, d.Screen, phoneScreenChoices)
-	p.Spacing = choice(p.Spacing, d.Spacing, phoneSpacings)
-	p.Theme = choice(p.Theme, d.Theme, phoneThemes)
-	if p.Size < phoneSizeMin || p.Size > phoneSizeMax {
-		p.Size = d.Size
+	prefs.Mode = choice(prefs.Mode, d.Mode, phoneModes)
+	prefs.Screen = choice(prefs.Screen, d.Screen, phoneScreenChoices)
+	prefs.Spacing = choice(prefs.Spacing, d.Spacing, phoneSpacings)
+	prefs.Theme = choice(prefs.Theme, d.Theme, phoneThemes)
+	if prefs.Size < phoneSizeMin || prefs.Size > phoneSizeMax {
+		prefs.Size = d.Size
 	}
-	return p
+	return prefs
 }
 
 type phoneAnchor struct {
@@ -91,7 +91,8 @@ type phoneAnchor struct {
 	paragraph      int
 }
 
-type phoneState struct {
+type phonePanel struct {
+	host host
 	editor.PaginatedText
 	prefs         shelf.Phone
 	look          bool
@@ -111,31 +112,23 @@ type phoneState struct {
 	caret         ui.Rect
 }
 
-func (a *App) openPhone() {
-	if open, _ := a.chapterOpen(); !open {
-		return
-	}
-	a.doc.hidden, a.doc.tab, a.write.focus = false, panePhone, false
-	a.savePrefs()
-}
-
-func (s *phoneState) flip(d int) {
-	if to := s.at + d; to >= 0 && to < s.Pages {
-		s.at = to
+func (p *phonePanel) flip(d int) {
+	if to := p.at + d; to >= 0 && to < p.Pages {
+		p.at = to
 	}
 }
 
-func (s *phoneState) nextLong() {
-	if len(s.LongPages) == 0 {
+func (p *phonePanel) nextLong() {
+	if len(p.LongPages) == 0 {
 		return
 	}
-	for _, page := range s.LongPages {
-		if page > s.at {
-			s.at = page
+	for _, page := range p.LongPages {
+		if page > p.at {
+			p.at = page
 			return
 		}
 	}
-	s.at = s.LongPages[0]
+	p.at = p.LongPages[0]
 }
 
 func phonePagination(p shelf.Phone) editor.PaginationOptions {
@@ -159,190 +152,183 @@ func phonePagination(p shelf.Phone) editor.PaginationOptions {
 	}
 }
 
-func (s *phoneState) point(x, y float32) (para, offset int, ok bool) {
-	if s.scale <= 0 {
+func (p *phonePanel) point(x, y float32) (para, offset int, ok bool) {
+	if p.scale <= 0 {
 		return
 	}
-	x, y = (x-s.ox)/s.scale, (y-s.oy)/s.scale
-	if x < s.body.X || x > s.body.X+s.body.W || y < s.body.Y || y > s.body.Y+s.body.H {
+	x, y = (x-p.ox)/p.scale, (y-p.oy)/p.scale
+	if x < p.body.X || x > p.body.X+p.body.W || y < p.body.Y || y > p.body.Y+p.body.H {
 		return
 	}
-	x, y = x-s.body.X, y-s.body.Y
-	return s.Hit(x, y, s.at, s.scrollY)
+	x, y = x-p.body.X, y-p.body.Y
+	return p.Hit(x, y, p.at, p.scrollY)
 }
 
-func (a *App) measurePhone() {
-	s, ed := &a.phone, a.write.cur().ed
-	s.prefs = a.phonePreferences()
-	n, ok := a.book.Tree().Node(a.write.node)
+func (p *phonePanel) measure() {
+	id, ed, _ := p.host.chapter()
+	p.prefs = p.preferences()
+	n, ok := p.host.Book().Tree().Node(id)
 	if !ok || n.Folder || ed == nil {
 		return
 	}
 	title := strings.Replace(n.Title, "：", " ", 1)
-	changed := s.doc != ed.Doc || s.version != ed.Doc.Version() || s.measured != s.prefs || s.title != title
+	changed := p.doc != ed.Doc || p.version != ed.Doc.Version() || p.measured != p.prefs || p.title != title
 	if changed {
-		s.anchored = false
-		s.doc, s.version, s.measured, s.title = ed.Doc, ed.Doc.Version(), s.prefs, title
-		s.Layout(ed.Doc.String(), s.title, phonePagination(s.prefs))
+		p.anchored = false
+		p.doc, p.version, p.measured, p.title = ed.Doc, ed.Doc.Version(), p.prefs, title
+		p.Layout(ed.Doc.String(), p.title, phonePagination(p.prefs))
 	}
-	page := s.PageOf(ed.Caret())
-	key := a.path + "/" + a.write.node
-	if s.key != key {
-		s.key, s.at, s.caretPage = key, 0, page
-	} else if s.prefs.Mode == "flip" && s.caretPage != page {
-		s.caretPage, s.at = page, page
+	page := p.PageOf(ed.Caret())
+	_, path := p.host.workspace()
+	key := path + "/" + id
+	if p.key != key {
+		p.key, p.at, p.caretPage = key, 0, page
+	} else if p.prefs.Mode == "flip" && p.caretPage != page {
+		p.caretPage, p.at = page, page
 	}
-	s.at = min(max(s.at, 0), s.Pages-1)
+	p.at = min(max(p.at, 0), p.Pages-1)
 }
 
-func (a *App) phonePanel(c *ui.Context) {
-	paneTop(c).Children(func() {
-		a.panelTabs(c)
-		ui.Spacer(c)
-		if iconButton(c, icPanel, "收起右栏", ui.Color{}).Tooltip("收起右栏").Clicked() {
-			a.setDocHidden(true)
-		}
-	})
-	if open, _ := a.chapterOpen(); !open {
-		a.phone.key = ""
-		a.phone.look = false
-		a.paneEmpty(c, "打开一章即可预览", "")
+func (p *phonePanel) view(c *ui.Context) {
+	if _, _, open := p.host.chapter(); !open {
+		p.key = ""
+		p.look = false
+		p.host.colors().paneEmpty(c, "打开一章即可预览", "")
 		return
 	}
-	a.measurePhone()
-	s := &a.phone
-	before := s.prefs
+	p.measure()
+	before := p.prefs
 	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(8).Padding(0, 20, 12, 20).Shrink(0).Children(func() {
-		mode := phoneIndex(s.prefs.Mode, phoneModes)
-		a.pal.segments(c, &mode, "看法", []string{"翻页", "滚动"})
-		s.prefs.Mode = phoneModes[mode]
+		mode := phoneIndex(p.prefs.Mode, phoneModes)
+		p.host.colors().segments(c, &mode, "看法", []string{"翻页", "滚动"})
+		p.prefs.Mode = phoneModes[mode]
 		ui.Spacer(c)
 		b := ui.ButtonBase(c).Height(hControlSm).Padding(0, 6).Center().Radius(rControl).KeepFocus().Label("Aa").Tooltip("排版")
-		if b.Hovered() || s.look {
-			b.Background(a.pal.theme.SurfacePressed)
+		if b.Hovered() || p.look {
+			b.Background(p.host.colors().theme.SurfacePressed)
 		}
 		b.Children(func() { ui.Text(c, "Aa").FontSize(fsControl).FontWeight(600) })
 		if b.Clicked() {
-			s.look = !s.look
+			p.look = !p.look
 		}
-		ui.PopoverBase(c, b, &s.look, func(panel ui.Element) {
-			panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(8, 0, 0, 0).Width(phonePopWidth).Column().Padding(4).Gap(2).Radius(rCard).Background(a.pal.raised).Border(1, a.pal.theme.Border)
-			a.pal.pop.on(panel)
-			a.phoneLook(c)
+		ui.PopoverBase(c, b, &p.look, func(panel ui.Element) {
+			panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(8, 0, 0, 0).Width(phonePopWidth).Column().Padding(4).Gap(2).Radius(rCard).Background(p.host.colors().raised).Border(1, p.host.colors().theme.Border)
+			p.host.colors().pop.on(panel)
+			p.typesetting(c)
 		})
 	})
-	if before != s.prefs {
-		p := s.prefs
-		a.shelf.Phone = &p
-		a.saveShelf()
-		a.measurePhone()
+	if before != p.prefs {
+		prefs := p.prefs
+		p.host.shelfPrefs().Phone = &prefs
+		p.host.saveShelf()
+		p.measure()
 	}
-	a.pal.hairline(c)
+	p.host.colors().hairline(c)
 	stage := ui.Box(c).FillWidth().Grow(1).Shrink(1).Clip().Label("手机预览正文")
-	s.stage = stage.Bounds()
-	s.hover = -1
+	p.stage = stage.Bounds()
+	p.hover = -1
 	if x, y, ok := stage.PointerPosition(); ok {
-		if para, _, ok := s.point(x, y); ok {
-			s.hover = para
+		if para, _, ok := p.point(x, y); ok {
+			p.hover = para
 			stage.Cursor(ui.CursorPointer)
-			if !s.prefs.NoLong && len(s.Paras[para].Shape.Lines) > 5 {
-				stage.Tooltip(fmt.Sprintf("手机上 %d 行", len(s.Paras[para].Shape.Lines)))
+			if !p.prefs.NoLong && len(p.Paras[para].Shape.Lines) > 5 {
+				stage.Tooltip(fmt.Sprintf("手机上 %d 行", len(p.Paras[para].Shape.Lines)))
 			}
 		}
 	}
-	stage.HandleInput(a.phoneInput).Draw(a.paintPhone)
-	a.pal.hairline(c)
+	stage.HandleInput(p.input).Draw(p.paint)
+	p.host.colors().hairline(c)
 	ui.Row(c).FillWidth().Height(hControl).Padding(0, 20).AlignItems(ui.Center).Justify(ui.SpaceBetween).Shrink(0).Children(func() {
-		if s.prefs.Mode == "flip" {
-			ui.Box(c).Disabled(s.at == 0).Children(func() {
-				if a.pal.ghost(c, "‹ 上一屏", ui.Color{}).Label("‹ 上一屏").KeepFocus().Clicked() {
-					s.flip(-1)
+		if p.prefs.Mode == "flip" {
+			ui.Box(c).Disabled(p.at == 0).Children(func() {
+				if p.host.colors().ghost(c, "‹ 上一屏", ui.Color{}).Label("‹ 上一屏").KeepFocus().Clicked() {
+					p.flip(-1)
 				}
 			})
-			ui.Textf(c, "第 %d 屏，共 %d 屏", s.at+1, s.Pages).FontSize(fsNote).TextColor(a.pal.theme.TextMuted).SingleLine()
-			ui.Box(c).Disabled(s.at == s.Pages-1).Children(func() {
-				if a.pal.ghost(c, "下一屏 ›", ui.Color{}).Label("下一屏 ›").KeepFocus().Clicked() {
-					s.flip(1)
+			ui.Textf(c, "第 %d 屏，共 %d 屏", p.at+1, p.Pages).FontSize(fsNote).TextColor(p.host.colors().theme.TextMuted).SingleLine()
+			ui.Box(c).Disabled(p.at == p.Pages-1).Children(func() {
+				if p.host.colors().ghost(c, "下一屏 ›", ui.Color{}).Label("下一屏 ›").KeepFocus().Clicked() {
+					p.flip(1)
 				}
 			})
 		} else {
 			ui.Spacer(c)
-			ui.Textf(c, "约 %d 屏", s.Pages).FontSize(fsNote).TextColor(a.pal.theme.TextMuted)
+			ui.Textf(c, "约 %d 屏", p.Pages).FontSize(fsNote).TextColor(p.host.colors().theme.TextMuted)
 			ui.Spacer(c)
 		}
 	})
 	ui.Row(c).FillWidth().MinHeight(hControl).Padding(0, 20).Justify(ui.End).Shrink(0).Children(func() {
-		if s.LongCount > 0 {
-			text := fmt.Sprintf("%d 段超过 5 行", s.LongCount)
-			if s.prefs.Mode == "flip" {
+		if p.LongCount > 0 {
+			text := fmt.Sprintf("%d 段超过 5 行", p.LongCount)
+			if p.prefs.Mode == "flip" {
 				text += "，看下一处"
 			}
-			if a.pal.ghost(c, text, ui.Color{}).Label("下一处长段").KeepFocus().Clicked() && s.prefs.Mode == "flip" {
-				s.nextLong()
+			if p.host.colors().ghost(c, text, ui.Color{}).Label("下一处长段").KeepFocus().Clicked() && p.prefs.Mode == "flip" {
+				p.nextLong()
 			}
 		}
 	})
 }
 
-func (a *App) phoneLook(c *ui.Context) {
-	p := &a.phone.prefs
+func (p *phonePanel) typesetting(c *ui.Context) {
+	prefs := &p.prefs
 	row := func(label string, value *string, choices, names []string) {
 		at := phoneIndex(*value, choices)
-		a.pal.popHead(c, label)
+		p.host.colors().popHead(c, label)
 		ui.Box(c).FillWidth().Padding(2, 6, 6, 6).Children(func() {
-			a.phoneSegments(c, &at, label, names)
+			p.segments(c, &at, label, names)
 		})
 		*value = choices[at]
 	}
-	row("屏幕", &p.Screen, phoneScreenChoices, []string{"窄屏", "标准", "宽屏"})
-	a.pal.popHead(c, "字号")
+	row("屏幕", &prefs.Screen, phoneScreenChoices, []string{"窄屏", "标准", "宽屏"})
+	p.host.colors().popHead(c, "字号")
 	ui.Box(c).FillWidth().Padding(2, 6, 6, 6).Children(func() {
-		ui.Row(c).FillWidth().Padding(2).Radius(rControl).Background(a.pal.theme.SurfacePressed).AlignItems(ui.Center).Children(func() {
+		ui.Row(c).FillWidth().Padding(2).Radius(rControl).Background(p.host.colors().theme.SurfacePressed).AlignItems(ui.Center).Children(func() {
 			step := func(label, tip string, off bool, d int) {
 				b := ui.ButtonBase(c).Grow(1).Height(hSeg).Center().Radius(rXs).Disabled(off).Label(label).Tooltip(tip)
 				if b.Hovered() {
-					b.Background(a.pal.theme.SurfaceHover)
+					b.Background(p.host.colors().theme.SurfaceHover)
 				}
 				if off {
 					pale(b)
 				}
 				b.Children(func() { ui.Text(c, label).FontSize(fsControl) })
 				if b.Clicked() {
-					p.Size += d
+					prefs.Size += d
 				}
 			}
-			step("A−", "字号减小", p.Size <= phoneSizeMin, -1)
-			ui.Textf(c, "%d", p.Size).Grow(1).TextAlign(ui.Center).FontSize(fsControl)
-			step("A+", "字号增大", p.Size >= phoneSizeMax, 1)
+			step("A−", "字号减小", prefs.Size <= phoneSizeMin, -1)
+			ui.Textf(c, "%d", prefs.Size).Grow(1).TextAlign(ui.Center).FontSize(fsControl)
+			step("A+", "字号增大", prefs.Size >= phoneSizeMax, 1)
 		})
 	})
-	row("行距", &p.Spacing, phoneSpacings, []string{"紧凑", "适中", "宽松"})
-	row("背景", &p.Theme, phoneThemes, []string{"白天", "夜间", "护眼"})
-	a.pal.popLine(c)
+	row("行距", &prefs.Spacing, phoneSpacings, []string{"紧凑", "适中", "宽松"})
+	row("背景", &prefs.Theme, phoneThemes, []string{"白天", "夜间", "护眼"})
+	p.host.colors().popLine(c)
 	ui.Column(c).FillWidth().Gap(6).Padding(6, 10).Children(func() {
-		frame, long := !p.NoFrame, !p.NoLong
+		frame, long := !prefs.NoFrame, !prefs.NoLong
 		ui.Checkbox(c, &frame, "显示手机外框")
 		ui.Checkbox(c, &long, "标出超过 5 行的段落")
-		p.NoFrame, p.NoLong = !frame, !long
+		prefs.NoFrame, prefs.NoLong = !frame, !long
 	})
 	ui.Row(c).FillWidth().Justify(ui.End).Padding(0, 10, 6, 10).Children(func() {
-		if a.pal.ghost(c, "恢复默认", ui.Color{}).Clicked() {
-			mode := p.Mode
-			*p = defaultPhone()
-			p.Mode = mode
+		if p.host.colors().ghost(c, "恢复默认", ui.Color{}).Clicked() {
+			mode := prefs.Mode
+			*prefs = defaultPhone()
+			prefs.Mode = mode
 		}
 	})
 }
 
-func (a *App) phoneSegments(c *ui.Context, at *int, label string, names []string) {
-	t := a.pal.theme
+func (p *phonePanel) segments(c *ui.Context, at *int, label string, names []string) {
+	t := p.host.colors().theme
 	seg := ui.SegmentedBase(c, at, len(names))
 	seg.Track.Label(label).FillWidth().Gap(2).Padding(2).Radius(rControl).Background(t.SurfacePressed).Children(func() {
 		for i, name := range names {
 			s := seg.Segment(i).Grow(1).Shrink(1).Height(hSeg).Center().Padding(0, 10).Radius(rXs)
 			color, weight := t.TextMuted, 400
 			if i == *at {
-				a.pal.raise.on(s.Background(a.pal.canvas))
+				p.host.colors().raise.on(s.Background(p.host.colors().canvas))
 				color, weight = t.Text, 600
 			}
 			s.Children(func() { ui.Text(c, name).FontSize(fsControl).FontWeight(weight).TextColor(color).SingleLine() })
@@ -350,113 +336,113 @@ func (a *App) phoneSegments(c *ui.Context, at *int, label string, names []string
 	})
 }
 
-func (a *App) phoneInput(ev ui.InputEvent) bool {
-	if ev.Kind == ui.InputScroll && a.phone.prefs.Mode == "scroll" && a.phone.scale > 0 {
-		s := &a.phone
-		s.scrollY = min(max(s.scrollY+ev.DY/s.scale, 0), max(s.Height-s.PageHeight, 0))
+func (p *phonePanel) input(ev ui.InputEvent) bool {
+	if ev.Kind == ui.InputScroll && p.prefs.Mode == "scroll" && p.scale > 0 {
+		p.scrollY = min(max(p.scrollY+ev.DY/p.scale, 0), max(p.Height-p.PageHeight, 0))
 		return true
 	}
 	if ev.Kind != ui.InputPointerDown || ev.Button != 0 {
 		return false
 	}
-	if _, offset, ok := a.phone.point(ev.X, ev.Y); ok {
-		a.write.cur().ed.Select(offset, offset)
-		a.write.cur().ed.Focus()
+	if _, offset, ok := p.point(ev.X, ev.Y); ok {
+		_, ed, _ := p.host.chapter()
+		ed.Select(offset, offset)
+		ed.Focus()
 		return true
 	}
 	return false
 }
 
-func (a *App) syncPhone() {
-	s := &a.phone
-	f, n, into := a.write.cur().ed.ScrollAnchor()
+func (p *phonePanel) sync() {
+	_, ed, _ := p.host.chapter()
+	f, n, into := ed.ScrollAnchor()
 	anchor := phoneAnchor{f, into, n}
-	if s.anchored && anchor == s.anchor {
+	if p.anchored && anchor == p.anchor {
 		return
 	}
-	s.anchor, s.anchored = anchor, true
-	most := max(s.Height-s.PageHeight, 0)
+	p.anchor, p.anchored = anchor, true
+	most := max(p.Height-p.PageHeight, 0)
 	switch {
 	case f <= 0:
-		s.scrollY = 0
-	case f >= 1 || n >= len(s.Paras):
-		s.scrollY = most
+		p.scrollY = 0
+	case f >= 1 || n >= len(p.Paras):
+		p.scrollY = most
 	default:
-		p := s.Paras[n]
-		s.scrollY = min(max(p.RollY+into*p.Shape.Height-f*s.PageHeight, 0), most)
+		para := p.Paras[n]
+		p.scrollY = min(max(para.RollY+into*para.Shape.Height-f*p.PageHeight, 0), most)
 	}
 }
 
-func (a *App) paintPhone(p *ui.Painter, r ui.Rect) {
-	s := &a.phone
-	if s.doc == nil {
+func (p *phonePanel) paint(painter *ui.Painter, r ui.Rect) {
+	if p.doc == nil {
 		return
 	}
-	if s.prefs.Mode == "scroll" {
-		a.syncPhone()
+	if p.prefs.Mode == "scroll" {
+		p.sync()
 	}
-	fs := float32(s.prefs.Size)
-	w, h := phoneScreens[s.prefs.Screen][0], phoneScreens[s.prefs.Screen][1]
+	fs := float32(p.prefs.Size)
+	w, h := phoneScreens[p.prefs.Screen][0], phoneScreens[p.prefs.Screen][1]
 	pad, radius := float32(0), float32(0)
-	if !s.prefs.NoFrame {
+	if !p.prefs.NoFrame {
 		pad = phoneFrameEM * fs
 		radius = phoneFrameRadiusEM * fs
 	}
 	wfull, hfull := w+2*pad+2, h+2*pad+2
 	k := max(0, min(1, min(r.W/wfull, r.H/hfull)))
-	s.ox, s.oy, s.scale = (r.W-wfull*k)/2, (r.H-hfull*k)/2, k
-	s.body = ui.Rect{X: pad + 1 + phoneTextInset, Y: pad + 1 + phoneStatusHeight + phoneTextTop, W: s.TextWidth, H: s.PageHeight}
-	bg, ink, muted, active, hover := a.light.canvas, a.light.ink, a.light.faint, a.light.theme.SurfacePressed, a.light.theme.SurfaceHover
-	if s.prefs.Theme == "night" {
-		bg, ink, muted, active, hover = a.dark.canvas, a.dark.ink, a.dark.faint, a.dark.theme.SurfacePressed, a.dark.theme.SurfaceHover
+	p.ox, p.oy, p.scale = (r.W-wfull*k)/2, (r.H-hfull*k)/2, k
+	p.body = ui.Rect{X: pad + 1 + phoneTextInset, Y: pad + 1 + phoneStatusHeight + phoneTextTop, W: p.TextWidth, H: p.PageHeight}
+	light, dark := p.host.phoneColors()
+	bg, ink, muted, active, hover := light.canvas, light.ink, light.faint, light.theme.SurfacePressed, light.theme.SurfaceHover
+	if p.prefs.Theme == "night" {
+		bg, ink, muted, active, hover = dark.canvas, dark.ink, dark.faint, dark.theme.SurfacePressed, dark.theme.SurfaceHover
 	}
-	if s.prefs.Theme == "eye" {
-		bg = a.light.phoneEye
+	if p.prefs.Theme == "eye" {
+		bg = light.phoneEye
 	}
-	s.pick, s.caret = s.pick[:0], ui.Rect{}
-	p.Clip(r, 0, func() {
-		p.Transform(ui.Scaling(k, k).Then(ui.Translation(r.X+s.ox, r.Y+s.oy)), 0, 0, func() {
-			p.Fill(ui.Rect{W: wfull, H: hfull}, a.dark.theme.Border, radius)
+	p.pick, p.caret = p.pick[:0], ui.Rect{}
+	painter.Clip(r, 0, func() {
+		painter.Transform(ui.Scaling(k, k).Then(ui.Translation(r.X+p.ox, r.Y+p.oy)), 0, 0, func() {
+			painter.Fill(ui.Rect{W: wfull, H: hfull}, dark.theme.Border, radius)
 			screen := ui.Rect{X: pad + 1, Y: pad + 1, W: w, H: h}
 			innerRadius := float32(0)
-			if !s.prefs.NoFrame {
+			if !p.prefs.NoFrame {
 				innerRadius = phoneScreenRadiusEM * fs
 			}
-			p.Clip(screen, innerRadius, func() {
-				p.Fill(screen, bg, innerRadius)
+			painter.Clip(screen, innerRadius, func() {
+				painter.Fill(screen, bg, innerRadius)
 				statusSize := phoneStatusSizeEM * fs
 				statusMetrics := (ui.Font{Size: statusSize}).Metrics()
-				p.Text(screen.X+phoneStatusInset, screen.Y+(phoneStatusHeight-statusMetrics.Ascent-statusMetrics.Descent)/2, time.Now().Format("15:04"), statusSize, ink)
+				painter.Text(screen.X+phoneStatusInset, screen.Y+(phoneStatusHeight-statusMetrics.Ascent-statusMetrics.Descent)/2, time.Now().Format("15:04"), statusSize, ink)
 				battery := ui.Rect{X: screen.X + w - phoneStatusInset - fs*phoneBatteryWidthEM, Y: screen.Y + (phoneStatusHeight-fs*phoneBatteryHeightEM)/2, W: fs * phoneBatteryWidthEM, H: fs * phoneBatteryHeightEM}
-				p.Stroke(battery, ink, fs*phoneBatteryRadiusEM, 1)
+				painter.Stroke(battery, ink, fs*phoneBatteryRadiusEM, 1)
 				inset := fs * phoneBatteryInsetEM
-				p.Fill(ui.Rect{X: battery.X + inset, Y: battery.Y + inset, W: battery.W*(1-phoneBatteryEmpty) - inset, H: battery.H - 2*inset}, ink, fs*phoneBatteryFillRadiusEM)
-				p.Clip(s.body, 0, func() {
-					a.paintPhoneText(p, ink, active, hover)
+				painter.Fill(ui.Rect{X: battery.X + inset, Y: battery.Y + inset, W: battery.W*(1-phoneBatteryEmpty) - inset, H: battery.H - 2*inset}, ink, fs*phoneBatteryFillRadiusEM)
+				painter.Clip(p.body, 0, func() {
+					p.paintText(painter, ink, active, hover)
 				})
 				footSize := phoneFootSizeEM * fs
 				foot := ui.Rect{X: screen.X + phoneTextInset, Y: screen.Y + h - phoneFootHeight, W: w - 2*phoneTextInset, H: phoneFootHeight}
-				p.Clip(foot, 0, func() {
-					p.Text(foot.X, foot.Y+8, clip(s.title, 20), footSize, muted)
+				painter.Clip(foot, 0, func() {
+					painter.Text(foot.X, foot.Y+8, clip(p.title, 20), footSize, muted)
 				})
-				if s.prefs.Mode == "flip" {
-					at := fmt.Sprintf("%d/%d", s.at+1, s.Pages)
+				if p.prefs.Mode == "flip" {
+					at := fmt.Sprintf("%d/%d", p.at+1, p.Pages)
 					gs := ui.Shape(at, ui.Font{Size: footSize})
 					width := float32(0)
 					for _, g := range gs {
 						width = max(width, g.X+g.Advance)
 					}
 					box := ui.Rect{X: screen.X + w - phoneTextInset - width, Y: foot.Y, W: width + 2, H: foot.H}
-					p.Fill(box, bg, 0)
-					p.Text(box.X, foot.Y+8, at, footSize, muted)
+					painter.Fill(box, bg, 0)
+					painter.Text(box.X, foot.Y+8, at, footSize, muted)
 				}
 			})
 		})
 	})
 }
 
-func (a *App) paintPhoneText(p *ui.Painter, ink, active, hover ui.Color) {
-	s, ed := &a.phone, a.write.cur().ed
+func (p *phonePanel) paintText(painter *ui.Painter, ink, active, hover ui.Color) {
+	_, ed, _ := p.host.chapter()
 	from, to := ed.Selection()
 	// A paragraph is one continuous patch, including when its lines are
 	// split across pages. Selection is drawn over it, before the glyphs.
@@ -467,63 +453,63 @@ func (a *App) paintPhoneText(p *ui.Painter, ink, active, hover ui.Color) {
 			return
 		}
 		color := active
-		if s.hover == previous {
+		if p.hover == previous {
 			color = hover
-		} else if s.prefs.NoLong || len(s.Paras[previous].Shape.Lines) <= 5 {
+		} else if p.prefs.NoLong || len(p.Paras[previous].Shape.Lines) <= 5 {
 			return
 		}
-		p.Fill(patch, color, float32(s.prefs.Size)*phoneParaRadiusEM)
+		painter.Fill(patch, color, float32(p.prefs.Size)*phoneParaRadiusEM)
 	}
-	for _, l := range s.Lines {
-		if l.Para < 0 || s.prefs.Mode == "flip" && l.Page != s.at {
+	for _, l := range p.Lines {
+		if l.Para < 0 || p.prefs.Mode == "flip" && l.Page != p.at {
 			continue
 		}
-		y, h := s.LineY(l, s.scrollY), s.Paras[l.Para].Shape.LineHeight
-		if y+h <= 0 || y >= s.PageHeight {
+		y, h := p.LineY(l, p.scrollY), p.Paras[l.Para].Shape.LineHeight
+		if y+h <= 0 || y >= p.PageHeight {
 			continue
 		}
 		if previous != l.Para {
 			flush()
 			previous = l.Para
-			patch = ui.Rect{X: s.body.X, Y: s.body.Y + y, W: s.TextWidth, H: h}
+			patch = ui.Rect{X: p.body.X, Y: p.body.Y + y, W: p.TextWidth, H: h}
 		} else {
-			patch.H = s.body.Y + y + h - patch.Y
+			patch.H = p.body.Y + y + h - patch.Y
 		}
 	}
 	flush()
-	for _, l := range s.Lines {
-		if s.prefs.Mode == "flip" && l.Page != s.at {
+	for _, l := range p.Lines {
+		if p.prefs.Mode == "flip" && l.Page != p.at {
 			continue
 		}
-		y := s.LineY(l, s.scrollY)
-		sh := s.TitleShape
+		y := p.LineY(l, p.scrollY)
+		sh := p.TitleShape
 		if l.Para >= 0 {
-			sh = s.Paras[l.Para].Shape
+			sh = p.Paras[l.Para].Shape
 		}
-		if y+sh.LineHeight <= 0 || y >= s.PageHeight {
+		if y+sh.LineHeight <= 0 || y >= p.PageHeight {
 			continue
 		}
-		x, y := s.body.X, s.body.Y+y
+		x, y := p.body.X, p.body.Y+y
 		if l.Para >= 0 {
-			para := s.Paras[l.Para]
+			para := p.Paras[l.Para]
 			ln := sh.Lines[l.Line]
 			lo, hi := max(from-para.Start, ln.Start), min(to-para.Start, ln.End)
 			if from != to && lo < hi {
 				x0, x1 := sh.X(l.Line, lo), sh.X(l.Line, hi)
 				pick := ui.Rect{X: x + x0, Y: y + 2, W: x1 - x0, H: sh.LineHeight - 4}
-				s.pick = append(s.pick, pick)
-				selection := a.pal.theme.Selection
+				p.pick = append(p.pick, pick)
+				selection := p.host.colors().theme.Selection
 				if !ed.Focused() {
-					selection = a.pal.theme.TextMuted.Alpha(0.2)
+					selection = p.host.colors().theme.TextMuted.Alpha(0.2)
 				}
-				p.Fill(pick, selection, 0)
+				painter.Fill(pick, selection, 0)
 			}
 			at := ed.Caret() - para.Start
 			if from == to && ed.Focused() && at >= ln.Start && (at < ln.End || at == ln.End && l.Line == len(sh.Lines)-1) {
-				s.caret = ui.Rect{X: x + sh.X(l.Line, at), Y: y, W: float32(s.prefs.Size) * phoneCaretWidthEM, H: sh.LineHeight}
-				p.Fill(s.caret, ink, 0)
+				p.caret = ui.Rect{X: x + sh.X(l.Line, at), Y: y, W: float32(p.prefs.Size) * phoneCaretWidthEM, H: sh.LineHeight}
+				painter.Fill(p.caret, ink, 0)
 			}
 		}
-		sh.DrawLine(p, l.Line, x, y, ink)
+		sh.DrawLine(painter, l.Line, x, y, ink)
 	}
 }

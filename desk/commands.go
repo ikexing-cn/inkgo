@@ -426,3 +426,11 @@ func (a *App) pageTurn(c *ui.Context) {
 	}
 	a.commandKeys(c)
 }
+
+func (a *App) openPhone() {
+	if open, _ := a.chapterOpen(); !open {
+		return
+	}
+	a.doc.hidden, a.doc.tab, a.write.focus = false, panePhone, false
+	a.savePrefs()
+}
