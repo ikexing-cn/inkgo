@@ -118,7 +118,6 @@ type writeView struct {
 	takeOpen            bool
 	takeQuote, takeText string
 	takeCategory        string
-	exporting           exportState
 
 	// The writing model: the writer the editors predict with, and why
 	// there is none.
@@ -147,9 +146,7 @@ type writeView struct {
 
 // warn shows err, leaving an error shown alone when there is none.
 func (a *App) warn(err error) {
-	if err != nil {
-		a.SetError(err)
-	}
+	a.status.warn(err)
 }
 
 // writingTurn is the writing page's work before its keys and its build:

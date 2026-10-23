@@ -578,7 +578,7 @@ func (a *App) leaveView(c *ui.Context) {
 		return
 	}
 	var then func()
-	a.modal(c, &open, func() {
+	a.pal.modal(c, &open, func() {
 		ui.Column(c).Width(dialogAsk).Padding(dialogPad).Gap(16).Children(func() {
 			a.pal.dialogHead(c, fmt.Sprintf("还有 %d 处 AI 提议没有处理", len(w.props)), "关闭后将丢弃。")
 			ui.Row(c).FillWidth().Gap(8).Justify(ui.End).Children(func() {

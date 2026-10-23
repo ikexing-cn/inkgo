@@ -946,7 +946,7 @@ func (a *App) openSource(m workspace.Event, start, end int) {
 
 func (a *App) extraction(c *ui.Context) {
 	t := a.pal.theme
-	a.modal(c, &a.sourceOpen, func() {
+	a.pal.modal(c, &a.sourceOpen, func() {
 		ui.Column(c).Width(dialogSource).Padding(dialogPad).Gap(16).Children(func() {
 			a.pal.dialogHead(c, "摘取原文", "拖选一段原文，作为已确定的设定加入正文。原文不会被修改。")
 			a.source.View(c).Height(220).FillWidth().Border(1, t.Border).Radius(rCard)

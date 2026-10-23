@@ -86,3 +86,9 @@ func (s *status) closeError() { s.shown, s.failed, s.fails = nil, "", 0 }
 
 // clear drops everything, as turning the AI off does.
 func (s *status) clear() { *s = status{} }
+
+func (s *status) warn(err error) {
+	if err != nil {
+		s.setError(err)
+	}
+}

@@ -8,16 +8,18 @@ import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/book"
 	"writer/export"
 	"writer/shelf"
 	"writer/workspace"
 )
 
-// exportState is the export dialog: the work as it is exported, read
+// exportView is the export dialog: the work as it is exported, read
 // when the dialog opens; the range chosen, with the first and last
 // chapters of 指定范围 by the names the drop-downs show; the pen name; and
 // whether the paragraphs of a text are indented.
-type exportState struct {
+type exportView struct {
+	host      host
 	open      bool
 	pieces    []workspace.Piece
 	selection export.Selection
@@ -26,68 +28,63 @@ type exportState struct {
 	plan      export.Plan
 }
 
-// exportPrefs is how the export dialog was last left on this machine; the
+// preferences is how the export dialog was last left on this machine; the
 // first time, the prose alone, as Word.
-func (a *App) exportPrefs() *shelf.Export {
-	if a.shelf.Export == nil {
-		a.shelf.Export = &shelf.Export{Options: export.Options{Prose: true}}
+func (e *exportView) preferences() *shelf.Export {
+	if e.host.shelfPrefs().Export == nil {
+		e.host.shelfPrefs().Export = &shelf.Export{Options: export.Options{Prose: true}}
 	}
-	return a.shelf.Export
+	return e.host.shelfPrefs().Export
 }
 
-// openExport asks what to export, starting from the whole work, the
+// show asks what to export, starting from the whole work, the
 // pen name the work had last, and 指定范围 from the first chapter to
 // the third.
-func (a *App) openExport() {
-	a.flush()
-	pieces, err := a.Store.Pieces()
+func (e *exportView) show() {
+	e.host.flush()
+	store, _ := e.host.workspace()
+	pieces, err := store.Pieces()
 	if err != nil {
-		a.warn(err)
+		e.host.notices().warn(err)
 		return
 	}
-	x := exportState{open: true, pieces: pieces, selection: export.Selection{Scope: export.ScopeWork}, pen: a.Store.Work().Pen, indent: true}
-	if x.pen == "" {
-		x.pen = a.exportPrefs().Pen
+	fresh := exportView{host: e.host, open: true, pieces: pieces, selection: export.Selection{Scope: export.ScopeWork}, pen: store.Work().Pen, indent: true}
+	if fresh.pen == "" {
+		fresh.pen = e.preferences().Pen
 	}
 	if names, _ := export.ChapterNames(pieces); len(names) > 0 {
-		x.selection.From, x.selection.To = names[0], names[min(2, len(names)-1)]
+		fresh.selection.From, fresh.selection.To = names[0], names[min(2, len(names)-1)]
 	}
-	a.write.exporting = x
-	a.replanExport()
+	*e = fresh
+	e.replan()
 }
 
-// replanExport keeps a plan for the choices and the current chapter, using the
+// replan keeps a plan for the choices and the current chapter, using the
 // prose and outlines read when the dialog opened.
-func (a *App) replanExport() {
-	x := &a.write.exporting
-	if !x.open {
+func (e *exportView) replan() {
+	if !e.open {
 		return
 	}
-	set := a.exportPrefs()
-	x.plan = export.BuildPlan(x.pieces, a.book.Setting().Entries, a.exportChapter(), set.Options, x.selection)
-	x.selection.Scope = x.plan.Scope
+	set := e.preferences()
+	id, _, _ := e.host.chapter()
+	e.plan = export.BuildPlan(e.pieces, e.host.Book().Setting().Entries, id, set.Options, e.selection)
+	e.selection.Scope = e.plan.Scope
 }
 
-func (a *App) exportChapter() string {
-	if a.page == pageWrite {
-		return a.write.node
-	}
-	return ""
-}
-
-// exportView is the export dialog: of the prose, the outline and the
+// view is the export dialog: of the prose, the outline and the
 // setting, what is ticked, each its own file, as Word or as plain text;
 // the prose and the outline of the range chosen.
-func (a *App) exportView(c *ui.Context) {
-	t := a.pal.theme
-	x, set := &a.write.exporting, a.exportPrefs()
-	if x.plan.Current != a.exportChapter() {
-		a.replanExport()
+func (e *exportView) view(c *ui.Context) {
+	t := e.host.colors().theme
+	set := e.preferences()
+	id, _, _ := e.host.chapter()
+	if e.plan.Current != id {
+		e.replan()
 	}
-	a.modal(c, &x.open, func() {
-		plan := &x.plan
+	e.host.colors().modal(c, &e.open, func() {
+		plan := &e.plan
 		ui.Column(c).Width(dialogSmall).Padding(dialogPad).Gap(16).Children(func() {
-			a.pal.dialogHead(c, "导出", plan.About)
+			e.host.colors().dialogHead(c, "导出", plan.About)
 			labeled(c, "内容", func() {
 				ui.Row(c).Gap(24).MinHeight(hControl).AlignItems(ui.Center).Children(func() {
 					for _, o := range []struct {
@@ -95,35 +92,35 @@ func (a *App) exportView(c *ui.Context) {
 						what string
 					}{{&set.Prose, export.ProseContent}, {&set.Outline, export.OutlineContent}, {&set.Setting, export.SettingContent}} {
 						if ui.Checkbox(c, o.on, o.what).Changed() {
-							a.saveShelf()
-							a.replanExport()
+							e.host.saveShelf()
+							e.replan()
 						}
 					}
 				})
 			})
 			labeled(c, "格式", func() {
 				if dots(c, &set.Text, "导出格式", []bool{false, true}, []string{"Word", "纯文本"}) {
-					a.saveShelf()
-					a.replanExport()
+					e.host.saveShelf()
+					e.replan()
 				}
 			})
 			if set.Prose || set.Outline {
 				labeled(c, "范围", func() {
-					if dots(c, &x.selection.Scope, "导出范围", plan.Scopes, plan.Scopes) {
-						a.replanExport()
+					if dots(c, &e.selection.Scope, "导出范围", plan.Scopes, plan.Scopes) {
+						e.replan()
 					}
 				})
-				if x.selection.Scope == export.ScopeSpan {
-					a.exportSpan(c)
+				if e.selection.Scope == export.ScopeSpan {
+					e.span(c)
 				}
 			}
 			if set.Prose && !set.Text {
 				labeled(c, "笔名", func() {
-					ui.TextInput(c, &x.pen).Label("笔名").Placeholder("选填，写在首页").FillWidth()
+					ui.TextInput(c, &e.pen).Label("笔名").Placeholder("选填，写在首页").FillWidth()
 				})
 			}
 			if set.Prose && set.Text {
-				ui.Checkbox(c, &x.indent, "段首加两个全角空格")
+				ui.Checkbox(c, &e.indent, "段首加两个全角空格")
 			}
 			for _, what := range plan.Ticked {
 				if note := plan.Skip[what]; note != "" {
@@ -132,35 +129,34 @@ func (a *App) exportView(c *ui.Context) {
 			}
 			ui.Row(c).FillWidth().Gap(8).Children(func() {
 				ui.Spacer(c)
-				if a.pal.secondary(c, "取消").Clicked() {
-					x.open = false
+				if e.host.colors().secondary(c, "取消").Clicked() {
+					e.open = false
 				}
-				if a.pal.primary(c, "导出").Disabled(len(plan.Going) == 0).Clicked() {
-					a.export(c, x.plan)
+				if e.host.colors().primary(c, "导出").Disabled(len(plan.Going) == 0).Clicked() {
+					e.export(c, e.plan)
 				}
 			})
 		})
 	})
 }
 
-// exportSpan is 指定范围: from one chapter to another, the second only
+// span is 指定范围: from one chapter to another, the second only
 // from those after the first.
-func (a *App) exportSpan(c *ui.Context) {
-	x := &a.write.exporting
-	names := x.plan.Names
+func (e *exportView) span(c *ui.Context) {
+	names := e.plan.Names
 	at := func(name string) int { return max(0, slices.Index(names, name)) }
 	ui.Row(c).FillWidth().Gap(12).Children(func() {
 		labeled(c, "从", func() {
-			if ui.Select(c, &x.selection.From, names).Label("从").FillWidth().MinWidth(0).Changed() {
-				if at(x.selection.To) < at(x.selection.From) {
-					x.selection.To = x.selection.From
+			if ui.Select(c, &e.selection.From, names).Label("从").FillWidth().MinWidth(0).Changed() {
+				if at(e.selection.To) < at(e.selection.From) {
+					e.selection.To = e.selection.From
 				}
-				a.replanExport()
+				e.replan()
 			}
 		})
 		labeled(c, "到", func() {
-			if ui.Select(c, &x.selection.To, names[at(x.selection.From):]).Label("到").FillWidth().MinWidth(0).Changed() {
-				a.replanExport()
+			if ui.Select(c, &e.selection.To, names[at(e.selection.From):]).Label("到").FillWidth().MinWidth(0).Changed() {
+				e.replan()
 			}
 		})
 	})
@@ -173,14 +169,15 @@ var fileName = strings.NewReplacer("：", " ", `\`, " ", "/", " ", ":", " ", "*"
 // export writes what plan exports where the author picks: a file for one
 // thing, a folder for several, or the work's 导出 folder when there is no
 // dialog to ask with.
-func (a *App) export(c *ui.Context, plan export.Plan) {
-	x, set := &a.write.exporting, a.exportPrefs()
-	work := a.Store.Work()
+func (e *exportView) export(c *ui.Context, plan export.Plan) {
+	set := e.preferences()
+	store, _ := e.host.workspace()
+	work := store.Work()
 	ext := ".docx"
 	if set.Text {
 		ext = ".txt"
 	}
-	pen := strings.TrimSpace(x.pen)
+	pen := strings.TrimSpace(e.pen)
 	type file struct{ name, data string }
 	var files []file
 	for _, what := range plan.Going {
@@ -194,14 +191,14 @@ func (a *App) export(c *ui.Context, plan export.Plan) {
 			doc = export.Outline(work.Name, plan.Pieces)
 			parts = append(parts, plan.Part, "大纲")
 		case export.SettingContent:
-			doc = export.Setting(work.Name, work.Categories, a.book.Setting().Entries, a.laterLines)
+			doc = export.Setting(work.Name, work.Categories, e.host.Book().Setting().Entries, func(entry workspace.Entry) []string { return laterLines(e.host.Book(), entry) })
 			parts = append(parts, "设定")
 		}
-		data := doc.Text(what == export.ProseContent && x.indent)
+		data := doc.Text(what == export.ProseContent && e.indent)
 		if !set.Text {
 			b, err := doc.Docx()
 			if err != nil {
-				a.warn(err)
+				e.host.notices().warn(err)
 				return
 			}
 			data = string(b)
@@ -214,31 +211,33 @@ func (a *App) export(c *ui.Context, plan export.Plan) {
 		for _, f := range files {
 			path = filepath.Join(dir, f.name)
 			if err := os.WriteFile(path, []byte(f.data), 0644); err != nil {
-				a.warn(err)
+				e.host.notices().warn(err)
 				return
 			}
 		}
-		x.open = false
+		e.open = false
 		if set.Prose && !set.Text && pen != work.Pen {
 			work.Pen = pen
-			a.warn(a.Store.SaveWork(work))
+			current, _ := e.host.workspace()
+			e.host.notices().warn(current.SaveWork(work))
 		}
 		if set.Prose && !set.Text && pen != set.Pen {
 			set.Pen = pen
-			a.saveShelf()
+			e.host.saveShelf()
 		}
-		a.status.did("已导出到 " + path)
+		e.host.notices().did("已导出到 " + path)
 		if len(files) > 1 {
-			a.status.did(fmt.Sprintf("已导出 %d 个文件到 %s", len(files), dir))
+			e.host.notices().did(fmt.Sprintf("已导出 %d 个文件到 %s", len(files), dir))
 		}
 	}
-	if len(files) == 1 && a.SaveFile != nil {
-		save, sv := a.SaveFile, c.Services()
-		a.jobs.start(sv, func() func() {
+	save, pick, _ := e.host.dialogs()
+	if len(files) == 1 && save != nil {
+		sv := c.Services()
+		e.host.startJob(sv, func() func() {
 			path, err := save("导出", files[0].name)
 			return func() {
 				if err != nil {
-					a.warn(err)
+					e.host.notices().warn(err)
 				} else if path != "" {
 					files[0].name = filepath.Base(path)
 					write(filepath.Dir(path))
@@ -247,14 +246,34 @@ func (a *App) export(c *ui.Context, plan export.Plan) {
 		})
 		return
 	}
-	if len(files) > 1 && a.PickFolder != nil {
-		a.pickInto(c, "导出到", write)
+	if len(files) > 1 && pick != nil {
+		e.host.startJob(c.Services(), func() func() {
+			path, err := pick("导出到")
+			return func() {
+				if err != nil {
+					e.host.notices().setError(err)
+				} else if path != "" {
+					write(path)
+				}
+			}
+		})
 		return
 	}
-	dir := filepath.Join(a.Store.Root(), "导出")
+	dir := filepath.Join(store.Root(), "导出")
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		a.warn(err)
+		e.host.notices().warn(err)
 		return
 	}
 	write(dir)
+}
+
+// laterLines are how e reads from chapters on, as the setting exports
+// them: each change that holds, from where it starts.
+func laterLines(b *book.Book, e workspace.Entry) []string {
+	var out []string
+	o := b.Tree().Order()
+	for _, g := range e.Holding(o) {
+		out = append(out, fromLabel(b.Tree(), g.From)+"："+g.Text)
+	}
+	return out
 }

@@ -234,14 +234,3 @@ func (a *App) takeChange(e workspace.Entry, g workspace.Change) {
 	}
 	a.revise(append(ops, workspace.Op{Op: workspace.OpEditChange, Entry: e.ID, Change: g.ID, Place: workspace.PlaceBody})...)
 }
-
-// laterLines are how e reads from chapters on, as the setting exports
-// them: each change that holds, from where it starts.
-func (a *App) laterLines(e workspace.Entry) []string {
-	var out []string
-	o := a.book.Tree().Order()
-	for _, g := range e.Holding(o) {
-		out = append(out, fromLabel(a.book.Tree(), g.From)+"："+g.Text)
-	}
-	return out
-}

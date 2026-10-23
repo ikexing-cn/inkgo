@@ -7,7 +7,7 @@ import "github.com/egoist/mygo/ui"
 // together. The AI's are not listed while it is off.
 func (a *App) keysHelp(c *ui.Context) {
 	t := a.pal.theme
-	a.modal(c, &a.keysOpen, func() {
+	a.pal.modal(c, &a.keysOpen, func() {
 		ui.Column(c).Width(dialogKeys).Padding(dialogPad).Gap(16).Children(func() {
 			a.pal.dialogHead(c, "快捷键", "")
 			ui.Scroll(c.Key("keys")).FillWidth().MaxHeight(440).Shrink(1).Children(func() {

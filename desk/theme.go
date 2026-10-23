@@ -81,15 +81,15 @@ const (
 // modal is a dialog as the design draws one: the window shaded behind it,
 // its corners and its shadow. What fn makes first gives it its size, with
 // dialogPad around what it holds.
-func (a *App) modal(c *ui.Context, open *bool, fn func()) {
+func (p *palette) modal(c *ui.Context, open *bool, fn func()) {
 	if !*open {
 		return
 	}
 	w, h := c.Size()
 	ui.DialogBase(c, open, func(back, panel ui.Element) {
-		back.Background(a.pal.scrim)
-		panel.MaxWidth(w - 2*dialogPad).MaxHeight(h - 2*dialogPad).Radius(rDialog).Background(a.pal.raised)
-		a.pal.dialog.on(panel)
+		back.Background(p.scrim)
+		panel.MaxWidth(w - 2*dialogPad).MaxHeight(h - 2*dialogPad).Radius(rDialog).Background(p.raised)
+		p.dialog.on(panel)
 		fn()
 	})
 }

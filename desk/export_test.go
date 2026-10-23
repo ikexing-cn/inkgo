@@ -20,9 +20,9 @@ func TestExportPlanChangesWithChoices(t *testing.T) {
 	showPage(a, pageTalk)
 	a.sideHidden, a.doc.hidden = true, true
 	tt.Frame()
-	a.openExport()
+	a.exporting.show()
 	tt.Frame()
-	x := &a.write.exporting
+	x := &a.exporting
 	x.plan.Skip["cache"] = "kept"
 	tt.Frame()
 	if x.plan.Skip["cache"] != "kept" {
@@ -68,8 +68,8 @@ func TestExportKeepsItsOpenedTextAndTracksContext(t *testing.T) {
 	if a.shelf.Export != nil {
 		t.Fatal("a closed export dialog created preferences")
 	}
-	a.openExport()
-	x := &a.write.exporting
+	a.exporting.show()
+	x := &a.exporting
 	if err := a.Store.RenameChapter(id, "磁盘新名"); err != nil {
 		t.Fatal(err)
 	}
@@ -126,29 +126,29 @@ func TestExportKeepsItsOpenedTextAndTracksContext(t *testing.T) {
 	if err := a.Open(other.Root()); err != nil {
 		t.Fatal(err)
 	}
-	if a.write.exporting.open {
+	if a.exporting.open {
 		t.Fatal("switching works left the export dialog open")
 	}
 }
 
 func TestExportFallsBackWhileRangeIsHidden(t *testing.T) {
 	a, _, _ := writingFixture(t, "一二三")
-	a.openExport()
-	x := &a.write.exporting
+	a.exporting.show()
+	x := &a.exporting
 	x.selection.Scope = export.ScopeChapter
-	a.replanExport()
+	a.exporting.replan()
 	if x.plan.Scope != export.ScopeChapter {
 		t.Fatal(x.plan)
 	}
-	a.exportPrefs().Options = export.Options{Setting: true}
+	a.exporting.preferences().Options = export.Options{Setting: true}
 	showPage(a, pageTalk)
-	a.replanExport()
+	a.exporting.replan()
 	if x.selection.Scope != export.ScopeWork || x.plan.Scope != export.ScopeWork {
 		t.Fatal("hidden range did not follow the plan", x.selection, x.plan)
 	}
 	showPage(a, pageWrite)
-	a.exportPrefs().Prose = true
-	a.replanExport()
+	a.exporting.preferences().Prose = true
+	a.exporting.replan()
 	if x.selection.Scope != export.ScopeWork {
 		t.Fatal(x.selection)
 	}

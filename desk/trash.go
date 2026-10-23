@@ -71,7 +71,7 @@ func (a *App) openTrash() {
 func (a *App) trashView(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
-	a.modal(c, &w.trashOpen, func() {
+	a.pal.modal(c, &w.trashOpen, func() {
 		ui.Column(c).Width(dialogSmall).Padding(dialogPad).Gap(16).Children(func() {
 			a.pal.dialogHead(c, "回收站", "恢复后回到原文件夹末尾。")
 			ui.Scroll(c.Key("trash")).FillWidth().MaxHeight(320).Children(func() {

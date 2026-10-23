@@ -990,7 +990,7 @@ func (a *App) planDialog(c *ui.Context) {
 	if !p.cardOpen {
 		return
 	}
-	a.modal(c, &p.cardOpen, func() {
+	a.pal.modal(c, &p.cardOpen, func() {
 		ui.Column(c).Width(dialogSmall).Padding(dialogPad).Gap(16).Children(func() {
 			title, about := "新卡片", "一张卡片记一件事。只有「发生了什么」要写，别的都可以以后再补。"
 			if p.card.ID != "" {

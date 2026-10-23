@@ -530,7 +530,7 @@ func (a *App) createDialog(c *ui.Context) {
 		v.looked = dir
 		v.place, v.fits = placeFor(dir)
 	}
-	a.modal(c, &v.creating, func() {
+	a.pal.modal(c, &v.creating, func() {
 		ui.Column(c).Width(dialogSmall).Padding(dialogPad).Gap(16).Children(func() {
 			a.pal.dialogHead(c, "新建作品", "")
 			labeled(c, "作品名称", func() {
@@ -572,7 +572,7 @@ func (a *App) renameDialog(c *ui.Context) {
 	if !open {
 		return
 	}
-	a.modal(c, &open, func() {
+	a.pal.modal(c, &open, func() {
 		ui.Column(c).Width(dialogSmall).Padding(dialogPad).Gap(16).Children(func() {
 			a.pal.dialogHead(c, "重命名作品", "")
 			ui.TextInput(c, &v.name).Label("新作品名").FillWidth().Focus()

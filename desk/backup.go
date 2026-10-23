@@ -407,7 +407,7 @@ func (a *App) pickBackupFolder(c *ui.Context) {
 func (a *App) askView(c *ui.Context) {
 	t := a.pal.theme
 	open := a.bk.ask
-	a.modal(c, &a.bk.ask, func() {
+	a.pal.modal(c, &a.bk.ask, func() {
 		ui.Column(c).Width(dialogSmall).Padding(dialogPad).Gap(16).Children(func() {
 			a.pal.dialogHead(c, "作品目前仅保存在本机", "选择其他位置，定期保存副本。")
 			ui.Column(c).FillWidth().Gap(8).Children(func() {

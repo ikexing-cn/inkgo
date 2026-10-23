@@ -247,7 +247,7 @@ func (a *App) askToSave(c *ui.Context) {
 	}
 	title, _, _ := a.tabTitle(w.node)
 	answer := ""
-	a.modal(c, &open, func() {
+	a.pal.modal(c, &open, func() {
 		ui.Column(c).Width(dialogAsk).Padding(dialogPad).Gap(16).Children(func() {
 			a.pal.dialogHead(c, "保存对「"+title+"」的修改？", "不保存将丢失上次保存后的修改。")
 			ui.Row(c).FillWidth().Gap(8).Justify(ui.End).Children(func() { // system order

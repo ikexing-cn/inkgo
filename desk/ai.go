@@ -222,7 +222,7 @@ func (a *App) serviceModel(name string) string {
 func (a *App) draftView(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
-	a.modal(c, &w.draftOpen, func() {
+	a.pal.modal(c, &w.draftOpen, func() {
 		ui.Column(c).Width(dialogSmall).Padding(dialogPad).Gap(16).Children(func() {
 			head := "AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。"
 			if w.draftCards > 0 {

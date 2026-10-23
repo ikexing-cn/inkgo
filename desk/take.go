@@ -27,7 +27,7 @@ func (a *App) openTake() {
 func (a *App) take(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
-	a.modal(c, &w.takeOpen, func() {
+	a.pal.modal(c, &w.takeOpen, func() {
 		ui.Column(c).Width(dialogSmall).Padding(dialogPad).Gap(16).Children(func() {
 			a.pal.dialogHead(c, "加入设定", "选中的原文将记为出处；设定内容可改用自己的表述。")
 			labeled(c, "设定内容", func() {

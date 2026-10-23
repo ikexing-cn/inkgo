@@ -114,7 +114,7 @@ func (a *App) snapView() *snapView {
 func (a *App) snapshots(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
-	a.modal(c, &w.snapsOpen, func() {
+	a.pal.modal(c, &w.snapsOpen, func() {
 		shown := a.snapView()
 		same := shown.same // nothing to restore
 		ui.Column(c).Width(dialogWide).Height(dialogTall).Padding(dialogPad).Gap(16).Children(func() {

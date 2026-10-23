@@ -144,7 +144,7 @@ func TestAnEntryChangesFromAChapter(t *testing.T) {
 	if g, ok := e.At(chapters(a).Order(), three); !ok || g.ID != idea {
 		t.Fatalf("taken %+v", e.Changes)
 	}
-	if got := a.laterLines(e); !slices.Equal(got, []string{"第3章起：配角，学会了修灯。"}) {
+	if got := laterLines(a.book, e); !slices.Equal(got, []string{"第3章起：配角，学会了修灯。"}) {
 		t.Fatalf("exports %q", got)
 	}
 

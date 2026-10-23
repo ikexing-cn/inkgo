@@ -97,7 +97,7 @@ func TestMarksSurviveReopening(t *testing.T) {
 // ticked and as what with this machine.
 func TestExportTheWork(t *testing.T) {
 	a, tt, id := writingFixture(t, "雨下着。")
-	x := &a.write.exporting
+	x := &a.exporting
 	open := func() {
 		t.Helper()
 		if err := clickMenu(tt, "文件", "菜单-导出"); err != nil {
