@@ -254,7 +254,11 @@ func (a *App) renameBook(path, name string) error {
 }
 
 // pickInto asks for a folder off the view thread and hands it to then.
-func (a *App) pickInto(c *ui.Context, title string, then func(path string)) {
+// False means no system picker is configured.
+func (a *App) pickInto(c *ui.Context, title string, then func(path string)) bool {
+	if a.PickFolder == nil {
+		return false
+	}
 	pick, sv := a.PickFolder, c.Services()
 	a.jobs.start(sv, func() func() {
 		path, err := pick(title)
@@ -266,6 +270,7 @@ func (a *App) pickInto(c *ui.Context, title string, then func(path string)) {
 			}
 		}
 	})
+	return true
 }
 
 // RevealFolder shows a folder in the system's file manager.

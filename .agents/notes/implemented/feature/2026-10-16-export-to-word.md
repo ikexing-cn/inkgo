@@ -43,7 +43,7 @@ Status: implemented
 - `workspace`：`Store.Pieces` 按章节树的顺序读出每个节点：标题、在第几层、是不是文件夹、正文和纲。原来的 `Store.Export` 去掉，拼文本的事挪到 `export` 包。
 - `export` 包：`Within` 从全书的节点里挑出一组章和装着它们的文件夹，每个文件夹只出一次；`Prose`、`Outline`、`Setting` 把它们排成一份 `Doc`（首页、一串带样式的段落），`Doc.Text` 出纯文本，`Doc.Docx` 出 `.docx`。`.docx` 用 Go 标准库的 `archive/zip` 自己写，不引入依赖，也不需要 cgo。
 - `shelf`：`works.json` 多一项 `export`（`shelf.Export`）：嵌入 `export.Options` 记勾选内容和格式，另记最后用过的笔名。没有这一项就是第一次，只勾正文、Word。勾选框和格式一改就存。
-- `desk/export.go`：对话框打开时先存下正在写的，再用 `Store.Pieces` 读一遍全书放在内存里；`export/plan.go` 的 `BuildPlan` 从这一份和设定、当前章节、`Options`、范围 `Selection` 计算 `Plan`，整体存在 `exportState`。打开弹窗，或内容、格式、范围、起止章节、当前章节变化及设定刷新时重算；普通绘制复用计划。笔名和缩进由界面保管。只勾一样时用 `SaveFile` 选文件名，几样时用 `PickFolder` 选文件夹；没有系统对话框时（测试）写进作品的 `导出` 文件夹。同名的文件直接覆盖：选文件名时系统对话框会先问，选文件夹时不问。
+- `desk/export.go`：对话框打开时先存下正在写的，再用 `Store.Pieces` 读一遍全书放在内存里；`export/plan.go` 的 `BuildPlan` 从这一份和设定、当前章节、`Options`、范围 `Selection` 计算 `Plan`，整体存在 `exportView`（`App.exporting`）。打开弹窗，或内容、格式、范围、起止章节、当前章节变化及设定刷新时重算；普通绘制复用计划。笔名和缩进由界面保管。只勾一样时用 `SaveFile` 选文件名，几样时用 `PickFolder` 选文件夹，和书架选文件夹是同一段代码（`pickInto`）；没有系统对话框时（测试）写进作品的 `导出` 文件夹。同名的文件直接覆盖：选文件名时系统对话框会先问，选文件夹时不问。
 - `desk/theme.go` 的 `dots`：表单里一排单选圆点，导出和起草对话框都用它。
 
 ## Alternatives considered

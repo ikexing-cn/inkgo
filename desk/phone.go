@@ -167,7 +167,7 @@ func (p *phonePanel) point(x, y float32) (para, offset int, ok bool) {
 func (p *phonePanel) measure() {
 	id, ed, _ := p.host.chapter()
 	p.prefs = p.preferences()
-	n, ok := p.host.Book().Tree().Node(id)
+	n, ok := p.host.content().Tree().Node(id)
 	if !ok || n.Folder || ed == nil {
 		return
 	}
@@ -190,30 +190,31 @@ func (p *phonePanel) measure() {
 }
 
 func (p *phonePanel) view(c *ui.Context) {
+	pal := p.host.colors()
 	if _, _, open := p.host.chapter(); !open {
 		p.key = ""
 		p.look = false
-		p.host.colors().paneEmpty(c, "打开一章即可预览", "")
+		pal.paneEmpty(c, "打开一章即可预览", "")
 		return
 	}
 	p.measure()
 	before := p.prefs
 	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(8).Padding(0, 20, 12, 20).Shrink(0).Children(func() {
 		mode := phoneIndex(p.prefs.Mode, phoneModes)
-		p.host.colors().segments(c, &mode, "看法", []string{"翻页", "滚动"})
+		pal.segments(c, &mode, "看法", []string{"翻页", "滚动"})
 		p.prefs.Mode = phoneModes[mode]
 		ui.Spacer(c)
 		b := ui.ButtonBase(c).Height(hControlSm).Padding(0, 6).Center().Radius(rControl).KeepFocus().Label("Aa").Tooltip("排版")
 		if b.Hovered() || p.look {
-			b.Background(p.host.colors().theme.SurfacePressed)
+			b.Background(pal.theme.SurfacePressed)
 		}
 		b.Children(func() { ui.Text(c, "Aa").FontSize(fsControl).FontWeight(600) })
 		if b.Clicked() {
 			p.look = !p.look
 		}
 		ui.PopoverBase(c, b, &p.look, func(panel ui.Element) {
-			panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(8, 0, 0, 0).Width(phonePopWidth).Column().Padding(4).Gap(2).Radius(rCard).Background(p.host.colors().raised).Border(1, p.host.colors().theme.Border)
-			p.host.colors().pop.on(panel)
+			panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(8, 0, 0, 0).Width(phonePopWidth).Column().Padding(4).Gap(2).Radius(rCard).Background(pal.raised).Border(1, pal.theme.Border)
+			pal.pop.on(panel)
 			p.typesetting(c)
 		})
 	})
@@ -223,7 +224,7 @@ func (p *phonePanel) view(c *ui.Context) {
 		p.host.saveShelf()
 		p.measure()
 	}
-	p.host.colors().hairline(c)
+	pal.hairline(c)
 	stage := ui.Box(c).FillWidth().Grow(1).Shrink(1).Clip().Label("手机预览正文")
 	p.stage = stage.Bounds()
 	p.hover = -1
@@ -237,23 +238,23 @@ func (p *phonePanel) view(c *ui.Context) {
 		}
 	}
 	stage.HandleInput(p.input).Draw(p.paint)
-	p.host.colors().hairline(c)
+	pal.hairline(c)
 	ui.Row(c).FillWidth().Height(hControl).Padding(0, 20).AlignItems(ui.Center).Justify(ui.SpaceBetween).Shrink(0).Children(func() {
 		if p.prefs.Mode == "flip" {
 			ui.Box(c).Disabled(p.at == 0).Children(func() {
-				if p.host.colors().ghost(c, "‹ 上一屏", ui.Color{}).Label("‹ 上一屏").KeepFocus().Clicked() {
+				if pal.ghost(c, "‹ 上一屏", ui.Color{}).Label("‹ 上一屏").KeepFocus().Clicked() {
 					p.flip(-1)
 				}
 			})
-			ui.Textf(c, "第 %d 屏，共 %d 屏", p.at+1, p.Pages).FontSize(fsNote).TextColor(p.host.colors().theme.TextMuted).SingleLine()
+			ui.Textf(c, "第 %d 屏，共 %d 屏", p.at+1, p.Pages).FontSize(fsNote).TextColor(pal.theme.TextMuted).SingleLine()
 			ui.Box(c).Disabled(p.at == p.Pages-1).Children(func() {
-				if p.host.colors().ghost(c, "下一屏 ›", ui.Color{}).Label("下一屏 ›").KeepFocus().Clicked() {
+				if pal.ghost(c, "下一屏 ›", ui.Color{}).Label("下一屏 ›").KeepFocus().Clicked() {
 					p.flip(1)
 				}
 			})
 		} else {
 			ui.Spacer(c)
-			ui.Textf(c, "约 %d 屏", p.Pages).FontSize(fsNote).TextColor(p.host.colors().theme.TextMuted)
+			ui.Textf(c, "约 %d 屏", p.Pages).FontSize(fsNote).TextColor(pal.theme.TextMuted)
 			ui.Spacer(c)
 		}
 	})
@@ -263,7 +264,7 @@ func (p *phonePanel) view(c *ui.Context) {
 			if p.prefs.Mode == "flip" {
 				text += "，看下一处"
 			}
-			if p.host.colors().ghost(c, text, ui.Color{}).Label("下一处长段").KeepFocus().Clicked() && p.prefs.Mode == "flip" {
+			if pal.ghost(c, text, ui.Color{}).Label("下一处长段").KeepFocus().Clicked() && p.prefs.Mode == "flip" {
 				p.nextLong()
 			}
 		}
@@ -271,23 +272,24 @@ func (p *phonePanel) view(c *ui.Context) {
 }
 
 func (p *phonePanel) typesetting(c *ui.Context) {
+	pal := p.host.colors()
 	prefs := &p.prefs
 	row := func(label string, value *string, choices, names []string) {
 		at := phoneIndex(*value, choices)
-		p.host.colors().popHead(c, label)
+		pal.popHead(c, label)
 		ui.Box(c).FillWidth().Padding(2, 6, 6, 6).Children(func() {
 			p.segments(c, &at, label, names)
 		})
 		*value = choices[at]
 	}
 	row("屏幕", &prefs.Screen, phoneScreenChoices, []string{"窄屏", "标准", "宽屏"})
-	p.host.colors().popHead(c, "字号")
+	pal.popHead(c, "字号")
 	ui.Box(c).FillWidth().Padding(2, 6, 6, 6).Children(func() {
-		ui.Row(c).FillWidth().Padding(2).Radius(rControl).Background(p.host.colors().theme.SurfacePressed).AlignItems(ui.Center).Children(func() {
+		ui.Row(c).FillWidth().Padding(2).Radius(rControl).Background(pal.theme.SurfacePressed).AlignItems(ui.Center).Children(func() {
 			step := func(label, tip string, off bool, d int) {
 				b := ui.ButtonBase(c).Grow(1).Height(hSeg).Center().Radius(rXs).Disabled(off).Label(label).Tooltip(tip)
 				if b.Hovered() {
-					b.Background(p.host.colors().theme.SurfaceHover)
+					b.Background(pal.theme.SurfaceHover)
 				}
 				if off {
 					pale(b)
@@ -304,7 +306,7 @@ func (p *phonePanel) typesetting(c *ui.Context) {
 	})
 	row("行距", &prefs.Spacing, phoneSpacings, []string{"紧凑", "适中", "宽松"})
 	row("背景", &prefs.Theme, phoneThemes, []string{"白天", "夜间", "护眼"})
-	p.host.colors().popLine(c)
+	pal.popLine(c)
 	ui.Column(c).FillWidth().Gap(6).Padding(6, 10).Children(func() {
 		frame, long := !prefs.NoFrame, !prefs.NoLong
 		ui.Checkbox(c, &frame, "显示手机外框")
@@ -312,7 +314,7 @@ func (p *phonePanel) typesetting(c *ui.Context) {
 		prefs.NoFrame, prefs.NoLong = !frame, !long
 	})
 	ui.Row(c).FillWidth().Justify(ui.End).Padding(0, 10, 6, 10).Children(func() {
-		if p.host.colors().ghost(c, "恢复默认", ui.Color{}).Clicked() {
+		if pal.ghost(c, "恢复默认", ui.Color{}).Clicked() {
 			mode := prefs.Mode
 			*prefs = defaultPhone()
 			prefs.Mode = mode
@@ -321,14 +323,15 @@ func (p *phonePanel) typesetting(c *ui.Context) {
 }
 
 func (p *phonePanel) segments(c *ui.Context, at *int, label string, names []string) {
-	t := p.host.colors().theme
+	pal := p.host.colors()
+	t := pal.theme
 	seg := ui.SegmentedBase(c, at, len(names))
 	seg.Track.Label(label).FillWidth().Gap(2).Padding(2).Radius(rControl).Background(t.SurfacePressed).Children(func() {
 		for i, name := range names {
 			s := seg.Segment(i).Grow(1).Shrink(1).Height(hSeg).Center().Padding(0, 10).Radius(rXs)
 			color, weight := t.TextMuted, 400
 			if i == *at {
-				p.host.colors().raise.on(s.Background(p.host.colors().canvas))
+				pal.raise.on(s.Background(pal.canvas))
 				color, weight = t.Text, 600
 			}
 			s.Children(func() { ui.Text(c, name).FontSize(fsControl).FontWeight(weight).TextColor(color).SingleLine() })

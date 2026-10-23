@@ -42,10 +42,11 @@ type planRow struct {
 }
 
 func (o *outlinePage) layout(c *ui.Context) *planGeometry {
-	if g := o.geometry; g != nil && g.root == o.host.Book().Tree().Root && g.query == trim(o.query) && g.editing == o.outlineDraft.node {
+	content := o.host.content()
+	if g := o.geometry; g != nil && g.root == content.Tree().Root && g.query == trim(o.query) && g.editing == o.outlineDraft.node {
 		return g
 	}
-	g := &planGeometry{root: o.host.Book().Tree().Root, query: trim(o.query), editing: o.outlineDraft.node, lanes: map[string]float32{}}
+	g := &planGeometry{root: content.Tree().Root, query: trim(o.query), editing: o.outlineDraft.node, lanes: map[string]float32{}}
 	_, unit := c.MeasureText(0, ui.Span{Text: "字", Size: fsBody})
 	textHeight := func(text string, width float32, limit int) float32 {
 		spans := marked(text, trim(o.query), o.host.colors().ink)
@@ -83,7 +84,7 @@ func (o *outlinePage) layout(c *ui.Context) *planGeometry {
 	}
 	var block func(*workspace.Node)
 	block = func(folder *workspace.Node) {
-		if folder == o.host.Book().Tree().Root {
+		if folder == content.Tree().Root {
 			for _, n := range folder.Children {
 				if n.Folder {
 					block(n)
@@ -99,24 +100,24 @@ func (o *outlinePage) layout(c *ui.Context) *planGeometry {
 				}
 			}
 		}
-		if folder != o.host.Book().Tree().Root && (g.query == "" || len(shown) > 0 || o.nodeFound(folder)) {
+		if folder != content.Tree().Root && (g.query == "" || len(shown) > 0 || o.nodeFound(folder)) {
 			var cards []workspace.Card
 			for _, n := range chapters {
 				cards = append(cards, o.cardsOf(n.ID)...)
 			}
-			h := float32(16+12+1+4+4) + fsGroup*lhTight + textHeight(o.host.Book().Outlines()[folder.ID], planGistWidth-8, 3)
+			h := float32(16+12+1+4+4) + fsGroup*lhTight + textHeight(content.Outlines()[folder.ID], planGistWidth-8, 3)
 			if o.outlineDraft.node == folder.ID {
 				h += hControl * 3
 			}
 			appendRow(planRow{node: folder, kind: 1, height: h, count: len(chapters), when: storyWhen(cards)})
 		}
-		if folder == o.host.Book().Tree().Root && len(shown) > 0 {
+		if folder == content.Tree().Root && len(shown) > 0 {
 			appendRow(planRow{kind: 2, height: 16 + 12 + fsGroup*lhTight})
 		}
 		for _, n := range shown {
 			cards := o.cardsOf(n.ID)
 			when := storyWhen(cards)
-			h := float32(32+4+4+1) + fsBody*lhBody + textHeight(o.host.Book().Outlines()[n.ID], planChapterWidth-24-12-8, 3)
+			h := float32(32+4+4+1) + fsBody*lhBody + textHeight(content.Outlines()[n.ID], planChapterWidth-24-12-8, 3)
 			if when != "" {
 				h += 4 + fsNote*lhBody
 			}
@@ -138,22 +139,23 @@ func (o *outlinePage) layout(c *ui.Context) *planGeometry {
 			appendRow(planRow{node: n, height: max(planRowMinHeight, h), when: when})
 		}
 		for _, n := range folder.Children {
-			if n.Folder && folder != o.host.Book().Tree().Root {
+			if n.Folder && folder != content.Tree().Root {
 				block(n)
 			}
 		}
 	}
-	block(o.host.Book().Tree().Root)
+	block(content.Tree().Root)
 	o.geometry = g
 	return g
 }
 
 // Move first, then build: ScrollIntoView can now find a previously virtual card.
 func (o *outlinePage) revealCard(g *planGeometry, width, height float32) {
+	content := o.host.content()
 	if !o.reveal {
 		return
 	}
-	e, ok := o.host.Book().Plan().Card(o.seen)
+	e, ok := content.Plan().Card(o.seen)
 	if !ok {
 		return
 	}
@@ -168,7 +170,7 @@ func (o *outlinePage) revealCard(g *planGeometry, width, height float32) {
 				break
 			}
 		}
-		line := slices.IndexFunc(o.host.Book().Plan().Lines, func(l workspace.PlotLine) bool { return l.ID == e.Line })
+		line := slices.IndexFunc(content.Plan().Lines, func(l workspace.PlotLine) bool { return l.ID == e.Line })
 		if line >= 0 {
 			o.scroll[0].X = planOffset(o.scroll[0].X, width-planChapterWidth, float32(line*planCardWidth), planCardWidth)
 		}

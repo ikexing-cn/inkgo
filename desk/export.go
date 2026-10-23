@@ -67,7 +67,7 @@ func (e *exportView) replan() {
 	}
 	set := e.preferences()
 	id, _, _ := e.host.chapter()
-	e.plan = export.BuildPlan(e.pieces, e.host.Book().Setting().Entries, id, set.Options, e.selection)
+	e.plan = export.BuildPlan(e.pieces, e.host.content().Setting().Entries, id, set.Options, e.selection)
 	e.selection.Scope = e.plan.Scope
 }
 
@@ -75,16 +75,17 @@ func (e *exportView) replan() {
 // setting, what is ticked, each its own file, as Word or as plain text;
 // the prose and the outline of the range chosen.
 func (e *exportView) view(c *ui.Context) {
-	t := e.host.colors().theme
+	pal := e.host.colors()
+	t := pal.theme
 	set := e.preferences()
 	id, _, _ := e.host.chapter()
 	if e.plan.Current != id {
 		e.replan()
 	}
-	e.host.colors().modal(c, &e.open, func() {
+	pal.modal(c, &e.open, func() {
 		plan := &e.plan
 		ui.Column(c).Width(dialogSmall).Padding(dialogPad).Gap(16).Children(func() {
-			e.host.colors().dialogHead(c, "导出", plan.About)
+			pal.dialogHead(c, "导出", plan.About)
 			labeled(c, "内容", func() {
 				ui.Row(c).Gap(24).MinHeight(hControl).AlignItems(ui.Center).Children(func() {
 					for _, o := range []struct {
@@ -129,10 +130,10 @@ func (e *exportView) view(c *ui.Context) {
 			}
 			ui.Row(c).FillWidth().Gap(8).Children(func() {
 				ui.Spacer(c)
-				if e.host.colors().secondary(c, "取消").Clicked() {
+				if pal.secondary(c, "取消").Clicked() {
 					e.open = false
 				}
-				if e.host.colors().primary(c, "导出").Disabled(len(plan.Going) == 0).Clicked() {
+				if pal.primary(c, "导出").Disabled(len(plan.Going) == 0).Clicked() {
 					e.export(c, e.plan)
 				}
 			})
@@ -170,6 +171,8 @@ var fileName = strings.NewReplacer("：", " ", `\`, " ", "/", " ", ":", " ", "*"
 // thing, a folder for several, or the work's 导出 folder when there is no
 // dialog to ask with.
 func (e *exportView) export(c *ui.Context, plan export.Plan) {
+	status := e.host.notices()
+	content := e.host.content()
 	set := e.preferences()
 	store, _ := e.host.workspace()
 	work := store.Work()
@@ -191,14 +194,14 @@ func (e *exportView) export(c *ui.Context, plan export.Plan) {
 			doc = export.Outline(work.Name, plan.Pieces)
 			parts = append(parts, plan.Part, "大纲")
 		case export.SettingContent:
-			doc = export.Setting(work.Name, work.Categories, e.host.Book().Setting().Entries, func(entry workspace.Entry) []string { return laterLines(e.host.Book(), entry) })
+			doc = export.Setting(work.Name, work.Categories, content.Setting().Entries, func(entry workspace.Entry) []string { return laterLines(content, entry) })
 			parts = append(parts, "设定")
 		}
 		data := doc.Text(what == export.ProseContent && e.indent)
 		if !set.Text {
 			b, err := doc.Docx()
 			if err != nil {
-				e.host.notices().warn(err)
+				status.warn(err)
 				return
 			}
 			data = string(b)
@@ -211,7 +214,7 @@ func (e *exportView) export(c *ui.Context, plan export.Plan) {
 		for _, f := range files {
 			path = filepath.Join(dir, f.name)
 			if err := os.WriteFile(path, []byte(f.data), 0644); err != nil {
-				e.host.notices().warn(err)
+				status.warn(err)
 				return
 			}
 		}
@@ -219,25 +222,25 @@ func (e *exportView) export(c *ui.Context, plan export.Plan) {
 		if set.Prose && !set.Text && pen != work.Pen {
 			work.Pen = pen
 			current, _ := e.host.workspace()
-			e.host.notices().warn(current.SaveWork(work))
+			status.warn(current.SaveWork(work))
 		}
 		if set.Prose && !set.Text && pen != set.Pen {
 			set.Pen = pen
 			e.host.saveShelf()
 		}
-		e.host.notices().did("已导出到 " + path)
+		status.did("已导出到 " + path)
 		if len(files) > 1 {
-			e.host.notices().did(fmt.Sprintf("已导出 %d 个文件到 %s", len(files), dir))
+			status.did(fmt.Sprintf("已导出 %d 个文件到 %s", len(files), dir))
 		}
 	}
-	save, pick, _ := e.host.dialogs()
+	save, _ := e.host.dialogs()
 	if len(files) == 1 && save != nil {
 		sv := c.Services()
 		e.host.startJob(sv, func() func() {
 			path, err := save("导出", files[0].name)
 			return func() {
 				if err != nil {
-					e.host.notices().warn(err)
+					status.warn(err)
 				} else if path != "" {
 					files[0].name = filepath.Base(path)
 					write(filepath.Dir(path))
@@ -246,22 +249,12 @@ func (e *exportView) export(c *ui.Context, plan export.Plan) {
 		})
 		return
 	}
-	if len(files) > 1 && pick != nil {
-		e.host.startJob(c.Services(), func() func() {
-			path, err := pick("导出到")
-			return func() {
-				if err != nil {
-					e.host.notices().setError(err)
-				} else if path != "" {
-					write(path)
-				}
-			}
-		})
+	if len(files) > 1 && e.host.pickInto(c, "导出到", write) {
 		return
 	}
 	dir := filepath.Join(store.Root(), "导出")
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		e.host.notices().warn(err)
+		status.warn(err)
 		return
 	}
 	write(dir)

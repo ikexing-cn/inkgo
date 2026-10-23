@@ -179,8 +179,9 @@ Status: proposed
 
 ### 第 7 批：拆子包（只拆这几个）
 
-- `desk/look`：配色、尺寸常量、图标、零件、菜单、提示条、Markdown。
-- 两三个独立的页面：手机预览、导出、大纲。各自只用 `look`、书模型和那个小接口。
+- `desk/kit`：配色、尺寸常量、图标、零件、菜单、提示条、Markdown。
+- 三个独立的页面：手机预览、导出、大纲。各自只用 `kit`、书模型和那个小接口。
+- 写作页和大纲页都用的 `outlineDraft`（`opened.go`）、`saveAfter` 和 `checkEvery`（`save.go`）放到两边都能引用的包；`trim`、`clip`、`words`、`fromLabel`（`shell.go`、`app.go`、`counts.go`、`change.go`）随零件进 `kit`。
 - `aiswitch_test.go` 里的依赖检查扩大到 `go list -deps ./desk/...`：子包也不许引用 `ai`、`model`、`discussion`、`writing`。
 
 写作页、讨论、右栏、伏笔、待办、提议这一团共用打开的章节和讨论状态，留在 `desk`；硬拆的话，它们要的那个接口会有四十多个方法，等于把 `App` 换了个名字。
@@ -215,7 +216,7 @@ Status: proposed
 
 - [AI 从核心里拆出去](../../implemented/architecture/2026-10-14-ai-out-of-the-core.md)：
   - 第 5 批挪动 `aiport` 的位置。那篇的理由（接口单独成包，`desk` 的测试才能用真的 `ai`）不变，落地时更新那篇的路径和接口清单。
-  - 那篇没要 `desk/look`，是因为界面不拆。第 7 批要它，是为了让几个独立的页面能拆出去，理由不同，落地时两篇互链。
+  - 那篇没要单独的零件包（当时叫 `desk/look`），是因为界面不拆。第 7 批要它，是为了让几个独立的页面能拆出去，理由不同，落地时两篇互链。
 - [纯 Go 的编辑器](../../implemented/architecture/2026-10-07-pure-go-native-editor.md)：第 3 批删掉演示，第 1 批改排版缓存，落地时就地更新那篇。
 - [手机预览](../../implemented/feature/2026-10-21-phone-preview.md)：第 1 批让它和编辑器共用排版，第 4 批搬走分页，就地更新。
 - [少看几次磁盘](2026-10-13-fewer-looks-at-the-disk.md)：只是部分重叠，见上面「不在这次里的」。
@@ -229,7 +230,7 @@ Status: proposed
 | 3 整理 | 2026-10-22 合入 |
 | 4 把规则搬出 `desk` | 2026-10-22 合入 |
 | 5 AI 层 | 2026-10-22 合入 |
-| 6 `desk` 的内部状态 | 进行中，按[提案](2026-10-22-desk-state.md)分段做；作者交代不等审，提案最后和结果一起看 |
+| 6 `desk` 的内部状态 | 进行中，按[提案](../../implemented/architecture/2026-10-22-desk-state.md)分段做；作者交代不等审，提案最后和结果一起看 |
 | 7 拆子包 | 未开始 |
 
 ## Alternatives considered

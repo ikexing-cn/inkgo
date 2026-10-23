@@ -9,27 +9,45 @@ import (
 )
 
 type host interface {
+	// colors gives the current palette and its widgets.
 	colors() *palette
+	// phoneColors gives the light and dark palettes for the phone screen.
 	phoneColors() (*palette, *palette)
-	Book() *book.Book
+	// content gives the book content shared by the pages.
+	content() *book.Book
+	// workspace gives the current store and work path.
 	workspace() (*workspace.Store, string)
+	// notices gives the errors, completion notices, and hints shown by toasts.
 	notices() *status
+	// shelfPrefs gives the editable preferences shared by works on this machine.
 	shelfPrefs() *shelf.Shelf
+	// saveShelf saves the machine preferences.
 	saveShelf()
+	// chapter gives the selected editor, its ID on the writing page, and whether a chapter is open.
 	chapter() (string, *editor.Editor, bool)
+	// flush saves the shown chapter before export reads it.
 	flush()
+	// syncPlanOutline updates the shown chapter draft after its outline is saved.
 	syncPlanOutline(string, string)
+	// openWriting switches to the writing page and opens the chapter.
 	openWriting(string)
+	// showOutline switches to the outline page.
 	showOutline()
+	// dropMenu draws a menu using the host menu ownership.
 	dropMenu(*ui.Context, ui.Element, string, func(ui.Element), func(*menu))
+	// settingColumn draws the shared right column beside the outline page.
 	settingColumn(*ui.Context)
+	// pickInto starts a folder choice and reports whether a picker is available.
+	pickInto(*ui.Context, string, func(string)) bool
+	// startJob runs work in the background and returns its result to the view thread.
 	startJob(ui.Services, func() func())
-	dialogs() (save func(string, string) (string, error), pick func(string) (string, error), reveal func(string) error)
+	// dialogs gives the optional file save and folder reveal callbacks.
+	dialogs() (save func(string, string) (string, error), reveal func(string) error)
 }
 
 func (a *App) colors() *palette { return a.pal }
 
-func (a *App) Book() *book.Book { return a.book }
+func (a *App) content() *book.Book { return a.book }
 
 func (a *App) workspace() (*workspace.Store, string) { return a.Store, a.path }
 
@@ -49,8 +67,8 @@ func (a *App) chapter() (id string, ed *editor.Editor, open bool) {
 
 func (a *App) startJob(sv ui.Services, fn func() func()) { a.jobs.start(sv, fn) }
 
-func (a *App) dialogs() (func(string, string) (string, error), func(string) (string, error), func(string) error) {
-	return a.SaveFile, a.PickFolder, a.Reveal
+func (a *App) dialogs() (func(string, string) (string, error), func(string) error) {
+	return a.SaveFile, a.Reveal
 }
 
 func (a *App) phoneColors() (*palette, *palette) { return a.light, a.dark }
