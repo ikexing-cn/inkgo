@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -87,9 +88,7 @@ func TestSizeTokens(t *testing.T) {
 // padding, gaps and margins keep to the spacing scale of tokens.css; what
 // lines up with something else is written as the sum it is.
 func TestNoLiteralSizes(t *testing.T) {
-	files, _ := filepath.Glob("*.go")
-	parents, _ := filepath.Glob("../*.go")
-	files = append(files, parents...)
+	files := deskSources(t)
 	call := regexp.MustCompile(`\.(FontSize|Radius|LineHeight)\(([^()]*)\)|\b(?:kit\.)?Glyph\(c, [^,]+, ([^,]+),`)
 	space := regexp.MustCompile(`\.(Padding|Gap|Margin)\(([^()]*)\)`)
 	alpha := regexp.MustCompile(`\.(?:Alpha|Opacity)\(([0-9.]+)\)|ui\.RGBA\([^()]*, ([0-9.]+)\)`)
@@ -169,9 +168,7 @@ func TestNoLiteralSizes(t *testing.T) {
 // button stands left of a spacer, but for the one that decides nothing (as
 // "稍后再说"), alone there; and no lesser button comes after the main one.
 func TestButtonsAtTheRight(t *testing.T) {
-	files, _ := filepath.Glob("*.go")
-	parents, _ := filepath.Glob("../*.go")
-	files = append(files, parents...)
+	files := deskSources(t)
 	button := regexp.MustCompile(`a\.pal\.(Primary|Secondary|Danger)\(|a\.pal\.Ghost\(`)
 	answer := regexp.MustCompile(`a\.pal\.\w+\(c, "([^"]+)"\)`)
 	asked := 0 // the rows in the system's order: the one question about saving
@@ -245,9 +242,7 @@ func TestButtonsAtTheRight(t *testing.T) {
 // that draw it; the ones of theme.go (primary, secondary, ghost, ...) are
 // made that way once.
 func TestButtonsAnswerThePointer(t *testing.T) {
-	files, _ := filepath.Glob("*.go")
-	parents, _ := filepath.Glob("../*.go")
-	files = append(files, parents...)
+	files := deskSources(t)
 	// A button is made with the context, or with the context given a key.
 	button := regexp.MustCompile(`ui\.ButtonBase\(c[).]`)
 	made := regexp.MustCompile(`^\s*(\w+) :?= ui\.ButtonBase\(c[).]`)
@@ -290,4 +285,34 @@ func TestButtonsAnswerThePointer(t *testing.T) {
 	if seen < 40 {
 		t.Errorf("%d buttons read, of the fifty and more there are: the check no longer finds them", seen)
 	}
+}
+
+func deskSources(t *testing.T) []string {
+	t.Helper()
+	here, err := filepath.Abs(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err := filepath.Abs("..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var files []string
+	err = filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !entry.IsDir() && strings.HasSuffix(path, ".go") {
+			relative, err := filepath.Rel(here, path)
+			if err != nil {
+				return err
+			}
+			files = append(files, relative)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return files
 }

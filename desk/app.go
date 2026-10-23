@@ -13,6 +13,7 @@ import (
 	"writer/aiport"
 	"writer/desk/book"
 	"writer/desk/kit"
+	"writer/desk/phone"
 	"writer/editor"
 	"writer/shelf"
 	"writer/workspace"
@@ -184,7 +185,7 @@ type App struct {
 	thoughts                         map[string]*bool // reasoning shown, by event or revision ID
 	doc                              docView
 	exporting                        exportView
-	phone                            phonePanel
+	phone                            phone.Panel
 	write                            writeView
 	plan                             outlinePage
 	LastChat, LastSetting, LastWrite ui.Rect
@@ -201,7 +202,7 @@ type App struct {
 func New(ai aiport.Service) *App {
 	a := &App{ai: ai, genre: "网文",
 		light: kit.LightPalette(), dark: kit.DarkPalette(), titles: map[string]string{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
-	a.exporting.host, a.phone.host, a.plan.host = appHost{a}, appHost{a}, appHost{a}
+	a.exporting.host, a.phone.Host, a.plan.host = appHost{a}, appHost{a}, appHost{a}
 	a.pal = a.light
 	a.initPages()
 	a.initTabs()

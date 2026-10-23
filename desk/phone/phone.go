@@ -1,4 +1,4 @@
-package desk
+package phone
 
 import (
 	"fmt"
@@ -59,18 +59,20 @@ func defaultPhone() shelf.Phone {
 	return shelf.Phone{Mode: "flip", Screen: "standard", Size: phoneSizeDefault, Spacing: "medium", Theme: "day"}
 }
 
-// UI indexes never leave the desk. Persisted choices keep their meaning
+// UI indexes never leave the phone package. Persisted choices keep their meaning
 // when controls are reordered; missing and unrecognized values default.
 func phoneIndex(value string, choices []string) int {
 	return max(0, slices.Index(choices, value))
 }
 
-func (p *phonePanel) preferences() shelf.Phone {
+// Preferences returns the local choices with defaults for invalid fields,
+// without storing the defaults.
+func (p *Panel) Preferences() shelf.Phone {
 	d := defaultPhone()
-	if p.host.ShelfPrefs().Phone == nil {
+	if p.Host.ShelfPrefs().Phone == nil {
 		return d
 	}
-	prefs := *p.host.ShelfPrefs().Phone
+	prefs := *p.Host.ShelfPrefs().Phone
 	choice := func(value, fallback string, choices []string) string {
 		if slices.Contains(choices, value) {
 			return value
@@ -92,8 +94,9 @@ type phoneAnchor struct {
 	paragraph      int
 }
 
-type phonePanel struct {
-	host host
+// Panel holds the phone preview, its reading position, and its layout.
+type Panel struct {
+	Host Host
 	editor.PaginatedText
 	prefs         shelf.Phone
 	look          bool
@@ -113,13 +116,13 @@ type phonePanel struct {
 	caret         ui.Rect
 }
 
-func (p *phonePanel) flip(d int) {
+func (p *Panel) flip(d int) {
 	if to := p.at + d; to >= 0 && to < p.Pages {
 		p.at = to
 	}
 }
 
-func (p *phonePanel) nextLong() {
+func (p *Panel) nextLong() {
 	if len(p.LongPages) == 0 {
 		return
 	}
@@ -153,7 +156,7 @@ func phonePagination(p shelf.Phone) editor.PaginationOptions {
 	}
 }
 
-func (p *phonePanel) point(x, y float32) (para, offset int, ok bool) {
+func (p *Panel) point(x, y float32) (para, offset int, ok bool) {
 	if p.scale <= 0 {
 		return
 	}
@@ -165,10 +168,10 @@ func (p *phonePanel) point(x, y float32) (para, offset int, ok bool) {
 	return p.Hit(x, y, p.at, p.scrollY)
 }
 
-func (p *phonePanel) measure() {
-	id, ed, _ := p.host.Chapter()
-	p.prefs = p.preferences()
-	n, ok := p.host.Content().Tree().Node(id)
+func (p *Panel) measure() {
+	id, ed, _ := p.Host.Chapter()
+	p.prefs = p.Preferences()
+	n, ok := p.Host.Content().Tree().Node(id)
 	if !ok || n.Folder || ed == nil {
 		return
 	}
@@ -180,7 +183,7 @@ func (p *phonePanel) measure() {
 		p.Layout(ed.Doc.String(), p.title, phonePagination(p.prefs))
 	}
 	page := p.PageOf(ed.Caret())
-	_, path := p.host.Workspace()
+	_, path := p.Host.Workspace()
 	key := path + "/" + id
 	if p.key != key {
 		p.key, p.at, p.caretPage = key, 0, page
@@ -190,9 +193,9 @@ func (p *phonePanel) measure() {
 	p.at = min(max(p.at, 0), p.Pages-1)
 }
 
-func (p *phonePanel) view(c *ui.Context) {
-	pal := p.host.Colors()
-	if _, _, open := p.host.Chapter(); !open {
+func (p *Panel) View(c *ui.Context) {
+	pal := p.Host.Colors()
+	if _, _, open := p.Host.Chapter(); !open {
 		p.key = ""
 		p.look = false
 		pal.PaneEmpty(c, "打开一章即可预览", "")
@@ -221,8 +224,8 @@ func (p *phonePanel) view(c *ui.Context) {
 	})
 	if before != p.prefs {
 		prefs := p.prefs
-		p.host.ShelfPrefs().Phone = &prefs
-		p.host.SaveShelf()
+		p.Host.ShelfPrefs().Phone = &prefs
+		p.Host.SaveShelf()
 		p.measure()
 	}
 	pal.Hairline(c)
@@ -272,8 +275,8 @@ func (p *phonePanel) view(c *ui.Context) {
 	})
 }
 
-func (p *phonePanel) typesetting(c *ui.Context) {
-	pal := p.host.Colors()
+func (p *Panel) typesetting(c *ui.Context) {
+	pal := p.Host.Colors()
 	prefs := &p.prefs
 	row := func(label string, value *string, choices, names []string) {
 		at := phoneIndex(*value, choices)
@@ -323,8 +326,8 @@ func (p *phonePanel) typesetting(c *ui.Context) {
 	})
 }
 
-func (p *phonePanel) segments(c *ui.Context, at *int, label string, names []string) {
-	pal := p.host.Colors()
+func (p *Panel) segments(c *ui.Context, at *int, label string, names []string) {
+	pal := p.Host.Colors()
 	t := pal.Theme
 	seg := ui.SegmentedBase(c, at, len(names))
 	seg.Track.Label(label).FillWidth().Gap(2).Padding(2).Radius(kit.RControl).Background(t.SurfacePressed).Children(func() {
@@ -340,7 +343,7 @@ func (p *phonePanel) segments(c *ui.Context, at *int, label string, names []stri
 	})
 }
 
-func (p *phonePanel) input(ev ui.InputEvent) bool {
+func (p *Panel) input(ev ui.InputEvent) bool {
 	if ev.Kind == ui.InputScroll && p.prefs.Mode == "scroll" && p.scale > 0 {
 		p.scrollY = min(max(p.scrollY+ev.DY/p.scale, 0), max(p.Height-p.PageHeight, 0))
 		return true
@@ -349,7 +352,7 @@ func (p *phonePanel) input(ev ui.InputEvent) bool {
 		return false
 	}
 	if _, offset, ok := p.point(ev.X, ev.Y); ok {
-		_, ed, _ := p.host.Chapter()
+		_, ed, _ := p.Host.Chapter()
 		ed.Select(offset, offset)
 		ed.Focus()
 		return true
@@ -357,8 +360,8 @@ func (p *phonePanel) input(ev ui.InputEvent) bool {
 	return false
 }
 
-func (p *phonePanel) sync() {
-	_, ed, _ := p.host.Chapter()
+func (p *Panel) sync() {
+	_, ed, _ := p.Host.Chapter()
 	f, n, into := ed.ScrollAnchor()
 	anchor := phoneAnchor{f, into, n}
 	if p.anchored && anchor == p.anchor {
@@ -377,7 +380,7 @@ func (p *phonePanel) sync() {
 	}
 }
 
-func (p *phonePanel) paint(painter *ui.Painter, r ui.Rect) {
+func (p *Panel) paint(painter *ui.Painter, r ui.Rect) {
 	if p.doc == nil {
 		return
 	}
@@ -395,7 +398,7 @@ func (p *phonePanel) paint(painter *ui.Painter, r ui.Rect) {
 	k := max(0, min(1, min(r.W/wfull, r.H/hfull)))
 	p.ox, p.oy, p.scale = (r.W-wfull*k)/2, (r.H-hfull*k)/2, k
 	p.body = ui.Rect{X: pad + 1 + phoneTextInset, Y: pad + 1 + phoneStatusHeight + phoneTextTop, W: p.TextWidth, H: p.PageHeight}
-	light, dark := p.host.PhoneColors()
+	light, dark := p.Host.PhoneColors()
 	bg, ink, muted, active, hover := light.Canvas, light.Ink, light.Faint, light.Theme.SurfacePressed, light.Theme.SurfaceHover
 	if p.prefs.Theme == "night" {
 		bg, ink, muted, active, hover = dark.Canvas, dark.Ink, dark.Faint, dark.Theme.SurfacePressed, dark.Theme.SurfaceHover
@@ -445,8 +448,8 @@ func (p *phonePanel) paint(painter *ui.Painter, r ui.Rect) {
 	})
 }
 
-func (p *phonePanel) paintText(painter *ui.Painter, ink, active, hover ui.Color) {
-	_, ed, _ := p.host.Chapter()
+func (p *Panel) paintText(painter *ui.Painter, ink, active, hover ui.Color) {
+	_, ed, _ := p.Host.Chapter()
 	from, to := ed.Selection()
 	// A paragraph is one continuous patch, including when its lines are
 	// split across pages. Selection is drawn over it, before the glyphs.
@@ -502,9 +505,9 @@ func (p *phonePanel) paintText(painter *ui.Painter, ink, active, hover ui.Color)
 				x0, x1 := sh.X(l.Line, lo), sh.X(l.Line, hi)
 				pick := ui.Rect{X: x + x0, Y: y + 2, W: x1 - x0, H: sh.LineHeight - 4}
 				p.pick = append(p.pick, pick)
-				selection := p.host.Colors().Theme.Selection
+				selection := p.Host.Colors().Theme.Selection
 				if !ed.Focused() {
-					selection = p.host.Colors().Theme.TextMuted.Alpha(0.2)
+					selection = p.Host.Colors().Theme.TextMuted.Alpha(0.2)
 				}
 				painter.Fill(pick, selection, 0)
 			}

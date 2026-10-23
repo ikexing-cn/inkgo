@@ -236,7 +236,7 @@ func (a *App) settingColumn(c *ui.Context) {
 					a.setDocHidden(true)
 				}
 			})
-			a.phone.view(c)
+			a.phone.View(c)
 		} else if a.page == pageWrite && shown == paneFore {
 			a.forePanel(c)
 		} else if a.page == pageWrite && shown == paneTalk {

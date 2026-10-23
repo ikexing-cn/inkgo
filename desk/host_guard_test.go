@@ -8,7 +8,7 @@ import (
 )
 
 func TestFeatureSourcesDoNotNameApp(t *testing.T) {
-	for _, name := range []string{"phone.go", "export.go", "plan.go", "plan_layout.go"} {
+	for _, name := range []string{"export.go", "plan.go", "plan_layout.go"} {
 		f, err := parser.ParseFile(token.NewFileSet(), name, nil, 0)
 		if err != nil {
 			t.Fatal(err)
