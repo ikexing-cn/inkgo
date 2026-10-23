@@ -132,18 +132,9 @@ Status: proposed
 
 ### 页面
 
-- 每个页面有 `enter`、`leave`、`view`、`count`：
-
-  ```go
-  type pageView interface {
-      enter()
-      leave()
-      view(c *ui.Context)
-      count() int // 侧栏上的数，0 不显示
-  }
-  ```
-
-- `View` 换页时调旧页的 `leave` 和新页的 `enter`。现在写在 `View` 里的换页收尾，搬进各页的这两个方法。
+- 每个页面在 `desk/pages.go` 的表 `a.pages` 里有一项 `pageView`：`enter`、`leave`、`view`、`count` 四个函数。表在 `New` 里绑定到这个 `App`；空着的进入、离开表示无事可做，空着的计数是零。
+  - 接口能让页面结构体自己实现这四个方法。这里选了绑定方法的函数表：写作、讨论、分类没有自己的页面类型，用接口就得各添一个转接类型。第 8 段大纲页的结构体，方法直接填进表项。
+- `turnPage` 调离开那页的 `leave`，再调进入那页的 `enter`，然后存偏好、记下 `shown`。`View` 在建任何东西以前调它一次，`pageTurn` 在建页面以前再调一次，接住同一帧里点的页；有 `shown`，一次换页只做一次。没有作品时 `View` 画欢迎页。
 - 侧栏的页、右栏的标签、设置的分页，用同一种表项：名字、图标、是否属于 AI、角标数。
   - 画哪几项、AI 关着时跳过哪几项、显示的那项没了换到哪项，都按表来。
   - 不再各处自己判断。

@@ -115,6 +115,7 @@ type App struct {
 	pal         *palette
 
 	page              page
+	pages             [pageCategories + 1]pageView
 	offFrom           page              // the page of the AI the prose took the place of as the AI was turned off,
 	offAway           bool              // while there is one
 	shown             page              // the page the last frame showed
@@ -197,6 +198,7 @@ func New(ai aiport.Service) *App {
 	a := &App{ai: ai, genre: "网文",
 		light: lightPalette(), dark: darkPalette(), titles: map[string]string{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
 	a.pal = a.light
+	a.initPages()
 	if ai.ConfigFile() != "" {
 		a.loadShelf()
 	}

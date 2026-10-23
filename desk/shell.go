@@ -40,23 +40,11 @@ func (a *App) turnPage() {
 		return
 	}
 	if a.Store != nil {
-		if a.shown == pageWrite {
-			a.flush()
-			a.leaveCheck()
+		if leave := a.pages[a.shown].leave; leave != nil {
+			leave()
 		}
-		if a.shown == pagePlan {
-			a.finishPlanOutline()
-			a.finishPlanLine()
-		}
-		switch a.page {
-		case pageWrite:
-			a.enterWriting()
-		case pagePlan:
-			a.plan.loaded = false
-		case pageCheck:
-			a.loadChecks() // as of the disk, without what was put right meanwhile
-			a.pruneStoredChecks()
-			a.ck.proseOf = ""
+		if enter := a.pages[a.page].enter; enter != nil {
+			enter()
 		}
 		// After the entry, so the chapter it opened and the counts it read
 		// are what is kept.
@@ -108,19 +96,10 @@ func (a *App) View(c *ui.Context) {
 			}
 			ui.Column(c.Key("page")).Grow(1).Shrink(1).MinWidth(0).FillHeight().Children(func() {
 				a.pageTurn(c)
-				switch {
-				case a.page == pagePlan:
-					a.outlinePage(c)
-				case a.page == pageCategories:
-					a.categories(c)
-				case a.page == pageWrite:
-					a.writing(c)
-				case a.page == pageCheck && a.Store != nil:
-					a.checkPage(c)
-				case a.Store == nil:
+				if a.Store == nil {
 					a.welcome(c)
-				default:
-					a.discussion(c)
+				} else {
+					a.pages[a.page].view(c)
 				}
 			})
 		})
@@ -230,7 +209,7 @@ func (a *App) sideBody(c *ui.Context, slim bool) {
 	a.navItem(c, icBook, "正文", pageWrite, slim, 0)
 	a.navItem(c, icOutline, "大纲", pagePlan, slim, 0)
 	if a.aiOn() {
-		a.navItem(c, icDone, "检查", pageCheck, slim, len(a.listedChecks()))
+		a.navItem(c, icDone, "检查", pageCheck, slim, a.pages[pageCheck].count())
 	}
 	a.navItem(c, icTag, "作品分类", pageCategories, slim, 0)
 	ui.Box(c).Height(20)

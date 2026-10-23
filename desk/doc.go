@@ -23,6 +23,7 @@
 // menu.go: menu state, rows, submenus, and popup placement.
 // names.go: setting-name completion, rename notices, and whole-book replacement.
 // pane.go: shared right-pane lists, details, forms, and quotes.
+// pages.go: page entry, exit, drawing, and counts.
 // pending.go: pending groups, ignored items, and navigation.
 // phone.go: phone preview panel, settings, painting, and selection.
 // plan.go: the 大纲 page, card editing, chapter table, and timeline.
