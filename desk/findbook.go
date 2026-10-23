@@ -35,8 +35,8 @@ func (a *App) bookHits(q string) []bookHit {
 		}
 		w.texts = texts
 	}
-	if w.ed != nil {
-		w.texts[w.node] = w.ed.Doc.String()
+	if w.cur().ed != nil {
+		w.texts[w.node] = w.cur().ed.Doc.String()
 	}
 	var hits []bookHit
 	a.book.Tree().Walk(func(n *workspace.Node, _ int) {
@@ -80,8 +80,8 @@ func (a *App) bookResults(c *ui.Context) {
 		return
 	}
 	key := [3]any{w.query, w.node, -1}
-	if w.ed != nil {
-		key[2] = w.ed.Doc.Version()
+	if w.cur().ed != nil {
+		key[2] = w.cur().ed.Doc.Version()
 	}
 	if w.texts == nil || key != w.hitsFor {
 		w.hits, w.hitsFor = a.bookHits(w.query), key
@@ -127,12 +127,12 @@ func (a *App) openHit(id string) {
 	if id != w.node {
 		a.openNode(id)
 	}
-	if w.ed == nil {
+	if w.cur().ed == nil {
 		return
 	}
 	w.current = 0
-	if found := w.ed.Doc.Find(w.query); len(found) > 0 {
-		w.ed.Select(found[0][0], found[0][1])
+	if found := w.cur().ed.Doc.Find(w.query); len(found) > 0 {
+		w.cur().ed.Select(found[0][0], found[0][1])
 	}
 }
 
@@ -176,12 +176,12 @@ func (a *App) replaceInBook() {
 	chapters, total, here := 0, 0, false
 	for _, h := range hits {
 		var n int
-		if h.ID == w.node && w.ed != nil {
-			if _, err := a.Store.TakeSnapshot(h.ID, workspace.SnapReplace, w.ed.Doc.String(), storedMarks(w.ed.Doc.Marks())); err != nil {
+		if h.ID == w.node && w.cur().ed != nil {
+			if _, err := a.Store.TakeSnapshot(h.ID, workspace.SnapReplace, w.cur().ed.Doc.String(), storedMarks(w.cur().ed.Doc.Marks())); err != nil {
 				a.warn(err)
 				break
 			}
-			n, here = w.ed.ReplaceAll(w.query, w.with), true
+			n, here = w.cur().ed.ReplaceAll(w.query, w.with), true
 			a.warn(a.saveText())
 		} else {
 			ch, err := a.Store.ReadChapter(h.ID)

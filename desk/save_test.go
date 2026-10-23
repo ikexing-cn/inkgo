@@ -93,7 +93,7 @@ func TestWritingSavesAsTheAuthorPauses(t *testing.T) {
 	bt.Frame()
 	bt.Click("正文")
 	bt.Frame()
-	if b.write.ed == nil || b.write.ed.Doc.String() != "雨下了一夜。\n她没有回答。" {
+	if b.write.cur().ed == nil || b.write.cur().ed.Doc.String() != "雨下了一夜。\n她没有回答。" {
 		t.Fatal("the chapter last open did not open again")
 	}
 }

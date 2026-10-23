@@ -31,7 +31,7 @@ type barState struct {
 
 // penBack gives the caret back to the prose, if the bar took it.
 func (a *App) penBack() {
-	if ed := a.write.ed; a.bar.pen && ed != nil {
+	if ed := a.write.cur().ed; a.bar.pen && ed != nil {
 		ed.Focus()
 	}
 }
@@ -77,7 +77,7 @@ func (a *App) titleBar(c *ui.Context) {
 		// here from the prose, which takes it.
 		a.penBack()
 	default:
-		k.pen = open && w.ed.Focused()
+		k.pen = open && w.cur().ed.Focused()
 	}
 	a.bar.outside = false
 	if act != nil {
@@ -184,11 +184,11 @@ func (a *App) barMenu(c *ui.Context, name string, build func(m *menu)) bool {
 // it cannot be changed now.
 func (a *App) chapterOpen() (open, busy bool) {
 	w := &a.write
-	if a.Store == nil || a.page != pageWrite || w.ed == nil {
+	if a.Store == nil || a.page != pageWrite || w.cur().ed == nil {
 		return false, false
 	}
 	if n, ok := a.book.Tree().Node(w.node); !ok || n.Folder {
 		return false, false
 	}
-	return true, w.ed.ReadOnly() || w.lost || w.external != nil
+	return true, w.cur().ed.ReadOnly() || w.cur().lost || w.cur().external != nil
 }

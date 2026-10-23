@@ -13,13 +13,13 @@ import (
 // looks for: a name picked is found where else it is.
 func (a *App) openFind() {
 	w := &a.write
-	if w.ed == nil {
+	if w.cur().ed == nil {
 		return
 	}
-	if s, e := w.ed.Selection(); s != e {
-		if q := w.ed.Doc.Slice(s, e); !strings.Contains(q, "\n") {
+	if s, e := w.cur().ed.Selection(); s != e {
+		if q := w.cur().ed.Doc.Slice(s, e); !strings.Contains(q, "\n") {
 			w.query, w.current = q, 0
-			for i, f := range w.ed.Doc.Find(q) {
+			for i, f := range w.cur().ed.Doc.Find(q) {
 				if f[0] == s {
 					w.current = i
 				}
@@ -34,22 +34,22 @@ func (a *App) openFind() {
 func (a *App) closeFind() {
 	w := &a.write
 	w.finding, w.wide, w.texts, w.sure = false, false, nil, false
-	if w.ed != nil {
-		w.ed.SetFound(nil, 0)
+	if w.cur().ed != nil {
+		w.cur().ed.SetFound(nil, 0)
 	}
 }
 
 func (a *App) findBar(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
-	found := w.ed.Doc.Find(w.query)
+	found := w.cur().ed.Doc.Find(w.query)
 	if w.current >= len(found) {
 		w.current = 0
 	}
-	w.ed.SetFound(found, w.current)
+	w.cur().ed.SetFound(found, w.current)
 	show := func() {
 		if len(found) > 0 {
-			w.ed.Select(found[w.current][0], found[w.current][1])
+			w.cur().ed.Select(found[w.current][0], found[w.current][1])
 		}
 	}
 	// A band under the tabs, over the page: finding on one line and
@@ -90,10 +90,10 @@ func (a *App) findBar(c *ui.Context) {
 		}
 	}
 	replace := func() {
-		if a.pal.secondary(c, "替换").Disabled(none || w.lost).Clicked() {
-			if s, e := w.ed.Selection(); s == found[w.current][0] && e == found[w.current][1] {
-				w.ed.Replace(s, e, w.with)
-				if found = w.ed.Doc.Find(w.query); len(found) > 0 {
+		if a.pal.secondary(c, "替换").Disabled(none || w.cur().lost).Clicked() {
+			if s, e := w.cur().ed.Selection(); s == found[w.current][0] && e == found[w.current][1] {
+				w.cur().ed.Replace(s, e, w.with)
+				if found = w.cur().ed.Doc.Find(w.query); len(found) > 0 {
 					w.current %= len(found)
 					show()
 				}
@@ -102,13 +102,13 @@ func (a *App) findBar(c *ui.Context) {
 			}
 		}
 		if w.wide {
-			if a.pal.secondary(c, "全书替换").Disabled(w.query == "" || len(w.hits) == 0 || w.lost || w.external != nil).Clicked() {
+			if a.pal.secondary(c, "全书替换").Disabled(w.query == "" || len(w.hits) == 0 || w.cur().lost || w.cur().external != nil).Clicked() {
 				w.sure = !w.sure
 			}
 			return
 		}
-		if a.pal.secondary(c, "全部替换").Disabled(none || w.lost).Clicked() {
-			n := w.ed.ReplaceAll(w.query, w.with)
+		if a.pal.secondary(c, "全部替换").Disabled(none || w.cur().lost).Clicked() {
+			n := w.cur().ed.ReplaceAll(w.query, w.with)
 			a.status.did(fmt.Sprintf("已替换 %d 处，可撤销", n))
 		}
 	}

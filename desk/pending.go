@@ -71,8 +71,8 @@ type pendingKey struct {
 func (a *App) pendingKey() pendingKey {
 	w := &a.write
 	doc := 0
-	if w.ed != nil {
-		doc = w.ed.Doc.Version()
+	if w.cur().ed != nil {
+		doc = w.cur().ed.Doc.Version()
 	}
 	b := pendingBackupKey{}
 	if s, ok := a.backupSettings(); ok {
@@ -82,7 +82,7 @@ func (a *App) pendingKey() pendingKey {
 			b.minute = time.Now().Unix() / 60
 		}
 	}
-	return pendingKey{a.book, a.book.Version(), w.ed, doc, w.node, a.liveChapter(),
+	return pendingKey{a.book, a.book.Version(), w.cur().ed, doc, w.node, a.liveChapter(),
 		a.aiOn(), w.lateAfter, w.ignoredVer, b, a.pal}
 }
 
@@ -294,9 +294,9 @@ func (a *App) goTo(it pendItem) {
 	if w.node != it.node {
 		a.openNode(it.node)
 	}
-	if w.node == it.node && w.ed != nil {
-		w.ed.Select(it.start, it.end)
-		w.ed.Focus()
+	if w.node == it.node && w.cur().ed != nil {
+		w.cur().ed.Select(it.start, it.end)
+		w.cur().ed.Focus()
 	}
 	if it.fore != "" && !a.doc.hidden {
 		a.showFore(it.fore)

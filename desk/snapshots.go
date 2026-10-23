@@ -75,11 +75,11 @@ func (a *App) snapView() *snapView {
 	t := a.pal.theme
 	w := &a.write
 	v := &w.snapShown
-	key := [5]any{w.snap, w.compare, w.ed, w.ed.Doc.Version(), [2]ui.Color{t.Danger, t.Success}}
+	key := [5]any{w.snap, w.compare, w.cur().ed, w.cur().ed.Doc.Version(), [2]ui.Color{t.Danger, t.Success}}
 	if v.key == key {
 		return v
 	}
-	now := w.ed.Doc.String()
+	now := w.cur().ed.Doc.String()
 	*v = snapView{key: key, same: w.snap != "" && w.snapText == now}
 	if w.snap == "" {
 		return v
@@ -196,7 +196,7 @@ func (a *App) snapshots(c *ui.Context) {
 				if a.pal.secondary(c, "关闭").Clicked() {
 					w.snapsOpen = false
 				}
-				if a.pal.primary(c, "恢复这个版本").Disabled(w.snap == "" || same || w.lost || w.external != nil).Clicked() {
+				if a.pal.primary(c, "恢复这个版本").Disabled(w.snap == "" || same || w.cur().lost || w.cur().external != nil).Clicked() {
 					a.restoreSnapshot()
 				}
 			})
@@ -216,12 +216,12 @@ func (a *App) restoreSnapshot() {
 		a.warn(err)
 		return
 	}
-	if _, err := a.Store.TakeSnapshot(w.node, workspace.SnapRestore, w.ed.Doc.String(), storedMarks(w.ed.Doc.Marks())); err != nil {
+	if _, err := a.Store.TakeSnapshot(w.node, workspace.SnapRestore, w.cur().ed.Doc.String(), storedMarks(w.cur().ed.Doc.Marks())); err != nil {
 		a.warn(err)
 		return
 	}
-	w.ed = a.chapterEditor(w.snapText, w.snaps[i].Marks)
-	w.savedVer = -1
+	w.cur().ed = a.chapterEditor(w.snapText, w.snaps[i].Marks)
+	w.cur().savedVer = -1
 	if err := a.saveText(); err != nil {
 		a.warn(err)
 		return

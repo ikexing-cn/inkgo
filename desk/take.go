@@ -11,10 +11,10 @@ import (
 // openTake starts taking the selected words into the setting.
 func (a *App) openTake() {
 	w := &a.write
-	if w.ed == nil {
+	if w.cur().ed == nil {
 		return
 	}
-	q := strings.TrimSpace(w.ed.SelectedText())
+	q := strings.TrimSpace(w.cur().ed.SelectedText())
 	if q == "" {
 		return
 	}

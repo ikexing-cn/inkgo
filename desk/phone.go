@@ -172,7 +172,7 @@ func (s *phoneState) point(x, y float32) (para, offset int, ok bool) {
 }
 
 func (a *App) measurePhone() {
-	s, ed := &a.phone, a.write.ed
+	s, ed := &a.phone, a.write.cur().ed
 	s.prefs = a.phonePreferences()
 	n, ok := a.book.Tree().Node(a.write.node)
 	if !ok || n.Folder || ed == nil {
@@ -360,8 +360,8 @@ func (a *App) phoneInput(ev ui.InputEvent) bool {
 		return false
 	}
 	if _, offset, ok := a.phone.point(ev.X, ev.Y); ok {
-		a.write.ed.Select(offset, offset)
-		a.write.ed.Focus()
+		a.write.cur().ed.Select(offset, offset)
+		a.write.cur().ed.Focus()
 		return true
 	}
 	return false
@@ -369,7 +369,7 @@ func (a *App) phoneInput(ev ui.InputEvent) bool {
 
 func (a *App) syncPhone() {
 	s := &a.phone
-	f, n, into := a.write.ed.ScrollAnchor()
+	f, n, into := a.write.cur().ed.ScrollAnchor()
 	anchor := phoneAnchor{f, into, n}
 	if s.anchored && anchor == s.anchor {
 		return
@@ -456,7 +456,7 @@ func (a *App) paintPhone(p *ui.Painter, r ui.Rect) {
 }
 
 func (a *App) paintPhoneText(p *ui.Painter, ink, active, hover ui.Color) {
-	s, ed := &a.phone, a.write.ed
+	s, ed := &a.phone, a.write.cur().ed
 	from, to := ed.Selection()
 	// A paragraph is one continuous patch, including when its lines are
 	// split across pages. Selection is drawn over it, before the glyphs.

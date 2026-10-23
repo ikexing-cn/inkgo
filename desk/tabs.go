@@ -1,9 +1,7 @@
 package desk
 
 import (
-	"reflect"
 	"slices"
-	"time"
 
 	"github.com/egoist/mygo/ui"
 	"writer/editor"
@@ -19,55 +17,26 @@ import (
 // sheetMax is the most a tab is wide: a longer name is cut.
 const sheetMax = 200
 
-// sheet is what a tab not shown keeps of its chapter.
-type sheet struct {
-	ed       *editor.Editor
-	saved    string
-	savedVer int
-	stamp    workspace.Stamp
-	lastSnap time.Time
-	// Left with the disk's text changed outside and not yet chosen
-	// between, or with the chapter gone from the disk.
-	external  *workspace.Chapter
-	lost      bool
-	lostTitle string
-}
-
-// unsettled says the tab was left with words that are not on the disk:
-// they could not be saved, or the disk has other words to choose between.
-func (s *sheet) unsettled() bool {
-	return s.external != nil || s.lost || s.ed.Doc.Version() != s.savedVer
-}
-
-// same says the disk has what the tab's editor has, so the editor goes on.
-func (s *sheet) same(ch workspace.Chapter) bool {
-	marks := storedMarks(s.ed.Doc.Marks())
-	return ch.Text == workspace.CleanProse(s.ed.Doc.String()) && (len(marks) == 0 && len(ch.Marks) == 0 || reflect.DeepEqual(marks, ch.Marks))
-}
-
-// park keeps the editor of the chapter shown for its tab, as another is
-// shown.
+// park keeps the chapter shown for its tab, as another is shown.
 func (a *App) park() {
 	w := &a.write
-	if w.ed == nil || !slices.Contains(w.tabs, w.node) {
+	if w.cur().ed == nil || !slices.Contains(w.tabs, w.node) {
 		return
 	}
 	if w.parked == nil {
-		w.parked = map[string]*sheet{}
+		w.parked = map[string]*openChapter{}
 	}
-	w.ed.SetFound(nil, 0)
-	w.parked[w.node] = &sheet{ed: w.ed, saved: w.saved, savedVer: w.savedVer, stamp: w.stamp, lastSnap: w.lastSnap,
-		external: w.external, lost: w.lost, lostTitle: w.lostTitle}
+	w.cur().ed.SetFound(nil, 0)
+	w.parked[w.node] = w.cur()
 }
 
 // unpark shows a tab's chapter with the editor it kept.
-func (a *App) unpark(s *sheet) {
+func (a *App) unpark(s *openChapter) {
 	w := &a.write
-	w.ed, w.saved, w.savedVer, w.stamp, w.lastSnap = s.ed, s.saved, s.savedVer, s.stamp, s.lastSnap
-	w.external, w.lost, w.lostTitle = s.external, s.lost, s.lostTitle
-	w.ed.SetFontSize(float32(w.textSize()))
-	w.ed.SetPredictOnDemand(!w.autoPredict)
-	w.ed.SetNoAI(!a.aiOn())
+	w.shown = s
+	s.ed.SetFontSize(float32(w.textSize()))
+	s.ed.SetPredictOnDemand(!w.autoPredict)
+	s.ed.SetNoAI(!a.aiOn())
 	w.blank = false
 }
 
@@ -80,7 +49,7 @@ func (a *App) keepTabs() {
 		if _, ok := a.book.Tree().Node(id); ok {
 			return false
 		}
-		if id == w.node && w.lost {
+		if id == w.node && w.cur().lost {
 			return false
 		}
 		if s := w.parked[id]; s != nil && s.lost {
@@ -106,7 +75,7 @@ func (a *App) keepUnsettled() {
 		_, err := a.Store.TakeSnapshot(id, workspace.SnapExternal, ed.Doc.String(), storedMarks(ed.Doc.Marks()))
 		a.warn(err)
 	}
-	keep(w.node, w.ed, w.external)
+	keep(w.node, w.cur().ed, w.cur().external)
 	for id, s := range w.parked {
 		keep(id, s.ed, s.external)
 	}
@@ -121,7 +90,7 @@ func (a *App) unsaved() bool {
 	if w.node == "" {
 		return false
 	}
-	return w.lost || w.external != nil || w.ed != nil && w.ed.Doc.Version() != w.savedVer || w.outline != w.outlineSaved
+	return w.cur().lost || w.cur().external != nil || w.cur().ed != nil && w.cur().ed.Doc.Version() != w.cur().savedVer || w.cur().outline != w.cur().outlineSaved
 }
 
 // tabTitle is what the tab of node id says, and what its tooltip says
@@ -133,7 +102,7 @@ func (a *App) tabTitle(id string) (title, path string, folder bool) {
 		if s := w.parked[id]; s != nil {
 			return s.lostTitle, "", false
 		}
-		return w.lostTitle, "", false
+		return w.cur().lostTitle, "", false
 	}
 	for p := n.Parent; p != nil && p.Parent != nil; p = p.Parent {
 		path = p.Title + " › " + path
@@ -344,10 +313,10 @@ func (a *App) askToSave(c *ui.Context) {
 func (a *App) saveToClose() bool {
 	w := &a.write
 	switch {
-	case w.lost:
+	case w.cur().lost:
 		a.saveLost()
 		return false
-	case w.external != nil:
+	case w.cur().external != nil:
 		a.keepMine()
 	}
 	a.flush()
@@ -358,6 +327,6 @@ func (a *App) saveToClose() bool {
 func (a *App) dropUnsaved() {
 	w := &a.write
 	// Without its editor nothing of it is saved as it is left.
-	w.ed, w.external, w.lost = nil, nil, false
-	w.outline = w.outlineSaved
+	w.cur().ed, w.cur().external, w.cur().lost = nil, nil, false
+	w.cur().outline = w.cur().outlineSaved
 }

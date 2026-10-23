@@ -108,8 +108,8 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 					w.renaming, w.titleHeld = "", false
 				case in.Submitted():
 					// Named, the open chapter is written: the caret goes to the prose.
-					if a.rename(n.ID); on && w.ed != nil {
-						w.ed.Focus()
+					if a.rename(n.ID); on && w.cur().ed != nil {
+						w.cur().ed.Focus()
 					}
 				case w.titleHeld && !in.Focused():
 					a.rename(n.ID)
@@ -330,7 +330,7 @@ func (a *App) newNodeAt(folder bool, n *workspace.Node) {
 		w.title, w.titleAll = title, true
 	}
 	// The name comes first: the caret is in its box, not in the empty prose.
-	if w.ed != nil {
-		w.ed.Unfocus()
+	if w.cur().ed != nil {
+		w.cur().ed.Unfocus()
 	}
 }

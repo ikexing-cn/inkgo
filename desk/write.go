@@ -12,6 +12,14 @@ import (
 	"writer/workspace"
 )
 
+// cur is the chapter shown: an empty one while no node is open.
+func (w *writeView) cur() *openChapter {
+	if w.shown == nil {
+		w.shown = &openChapter{}
+	}
+	return w.shown
+}
+
 type writeView struct {
 	folded map[string]bool // folders folded, by ID
 	node   string          // the node shown
@@ -25,43 +33,27 @@ type writeView struct {
 	// that the author closed them all; tabSeen, the tab the row last
 	// showed as the one open, which it scrolled to.
 	tabs    []string
-	parked  map[string]*sheet
+	parked  map[string]*openChapter
+	shown   *openChapter
 	closing []string
 	blank   bool
 	tabSeen string
-	ed      *editor.Editor
-	// What the disk has of the node shown, as of the last read or write.
-	saved    string
-	savedVer int
 	// counted is the text the open chapter's count was last taken of.
-	counted    *editor.Doc
-	countedVer int
-	stamp      workspace.Stamp
-	lastSnap   time.Time
-	checked    time.Time
-	// The outline, saved as the author pauses like the text.
-	outline, outlineSaved, outlinePrev string
-	outlineAt                          time.Time
-	outlineOpen                        bool
-	// changed, whether the prose of the chapter shown was saved since it
-	// opened.
-	changed   bool
-	counter   prefs.Counter
-	goalText  string // the goal as typed
-	goalOpen  bool
-	offered   string            // the numbered title a new node's name began with
-	size      int               // the text's size, or 0 for the default
-	gists     map[string]string // a line on each chapter of the folder open
-	nodeWords cached[bookKey, map[string]int]
-	total     cached[bookKey, int]
-	catCounts cached[bookKey, map[string]int]
-	pane      cached[paneKey, paneNums]
-	carets    map[string]int // where the caret was in each chapter, as it was left
-	// The disk's text, changed outside while the node was open; lost, the
-	// node gone from the disk.
-	external  *workspace.Chapter
-	lost      bool
-	lostTitle string
+	counted     *editor.Doc
+	countedVer  int
+	checked     time.Time
+	outlineOpen bool
+	counter     prefs.Counter
+	goalText    string // the goal as typed
+	goalOpen    bool
+	offered     string            // the numbered title a new node's name began with
+	size        int               // the text's size, or 0 for the default
+	gists       map[string]string // a line on each chapter of the folder open
+	nodeWords   cached[bookKey, map[string]int]
+	total       cached[bookKey, int]
+	catCounts   cached[bookKey, map[string]int]
+	pane        cached[paneKey, paneNums]
+	carets      map[string]int // where the caret was in each chapter, as it was left
 
 	renaming, title string
 	titleWas        string // the name kept when the title is left empty
@@ -158,8 +150,8 @@ func (a *App) writingTurn(c *ui.Context) {
 	a.pruneProps()
 	a.countAsTyped()
 	a.feedNames()
-	if a.write.ed != nil {
-		a.write.ed.SetTypewriter(a.write.focus) // focused, the line written on stays mid-view
+	if a.write.cur().ed != nil {
+		a.write.cur().ed.SetTypewriter(a.write.focus) // focused, the line written on stays mid-view
 	}
 	a.watch(c)
 	a.checkWhilePausing()
@@ -171,7 +163,7 @@ func (a *App) writingTurn(c *ui.Context) {
 func (a *App) writing(c *ui.Context) {
 	// Escape backs out of the find bar first, then out of a pick in the
 	// prose, so the bar over the pick goes with it.
-	if ed := a.write.ed; ed != nil && c.Shortcut(0, ui.KeyEscape) {
+	if ed := a.write.cur().ed; ed != nil && c.Shortcut(0, ui.KeyEscape) {
 		if s, e := ed.Selection(); a.write.finding {
 			a.closeFind()
 			ed.Focus()
@@ -187,7 +179,7 @@ func (a *App) writing(c *ui.Context) {
 			a.sheets(c)
 			n, ok := a.book.Tree().Node(a.write.node)
 			switch {
-			case a.write.lost && a.write.ed != nil:
+			case a.write.cur().lost && a.write.cur().ed != nil:
 				a.chapterView(c)
 			case !ok && (a.book.Tree().Root == nil || len(a.book.Tree().Root.Children) == 0):
 				a.emptyWriting(c)
@@ -275,21 +267,21 @@ func (a *App) writeTop(c *ui.Context) {
 				glyph(c, icChevron, iconSm, a.pal.faint)
 			}
 			ui.Text(c, n.Title).FontSize(fsControl).FontWeight(600).SingleLine().Ellipsis("…").Shrink(1)
-		} else if w.lost {
-			ui.Text(c, w.lostTitle).FontSize(fsControl).FontWeight(600)
+		} else if w.cur().lost {
+			ui.Text(c, w.cur().lostTitle).FontSize(fsControl).FontWeight(600)
 		} else {
 			ui.Text(c, "正文").FontSize(fsControl).FontWeight(600)
 		}
-		if ok && !n.Folder && w.ed != nil {
-			if w.ed.Predicting() {
+		if ok && !n.Folder && w.cur().ed != nil {
+			if w.cur().ed.Predicting() {
 				ui.Text(c, "续写中…").FontSize(fsNote).TextColor(a.pal.faint).SingleLine().Shrink(0).Margin(0, 0, 0, 6)
-			} else if w.ed.Ghost() != "" {
+			} else if w.cur().ed.Ghost() != "" {
 				ui.Text(c, "Tab 采纳 · Esc 放弃").FontSize(fsNote).TextColor(a.pal.faint).SingleLine().Shrink(0).Margin(0, 0, 0, 6)
 			}
 		}
 		ui.Spacer(c)
 		if ok && !n.Folder {
-			busy := w.ed.ReadOnly() || w.lost || w.external != nil
+			busy := w.cur().ed.ReadOnly() || w.cur().lost || w.cur().external != nil
 			color := ui.Color{}
 			if w.finding {
 				color = a.pal.ink
@@ -354,17 +346,17 @@ func (a *App) emptyWriting(c *ui.Context) {
 // a folder.
 func (a *App) outlineBox(c *ui.Context, label string, height float32) {
 	w := &a.write
-	ui.TextAreaBase(c, &w.outline).Label(label).Placeholder("写下这里要发生的事，作为提纲").FillWidth().Height(height).
-		FontSize(fsBody).LineHeight(lhLoose).Padding(10, 12).Radius(rControl).Background(a.pal.side).Disabled(w.lost)
+	ui.TextAreaBase(c, &w.cur().outline).Label(label).Placeholder("写下这里要发生的事，作为提纲").FillWidth().Height(height).
+		FontSize(fsBody).LineHeight(lhLoose).Padding(10, 12).Radius(rControl).Background(a.pal.side).Disabled(w.cur().lost)
 }
 
 func (a *App) chapterView(c *ui.Context) {
 	t := a.pal.theme
 	w := &a.write
-	if w.finding && !w.ed.ReadOnly() {
+	if w.finding && !w.cur().ed.ReadOnly() {
 		a.findBar(c)
 	}
-	if w.external != nil {
+	if w.cur().external != nil {
 		a.notice2(c, t.Warning, "本章文件已被其他程序修改。请选择保留的版本，另一版本将存为快照。", func() {
 			if action(c, "使用磁盘版本", t.Warning, false).Clicked() {
 				a.takeDisk()
@@ -374,7 +366,7 @@ func (a *App) chapterView(c *ui.Context) {
 			}
 		})
 	}
-	if w.lost {
+	if w.cur().lost {
 		a.notice2(c, t.Danger, "磁盘上已找不到本章文件：在软件外改名、移动或删除，均视为删除。编辑器中的内容仍保留。", func() {
 			if action(c, "存为新章节", t.Danger, true).Clicked() {
 				a.saveLost()
@@ -387,7 +379,7 @@ func (a *App) chapterView(c *ui.Context) {
 		ui.Column(c).FillWidth().Gap(8).Children(func() {
 			ui.Text(c, heading(a.shownTitle())).FontSize(fsTitle).FontWeight(700).SingleLine().Ellipsis("…")
 			label := "章纲"
-			if strings.TrimSpace(w.outline) == "" {
+			if strings.TrimSpace(w.cur().outline) == "" {
 				label = "章纲 · 空"
 			}
 			var outline ui.CollapsibleParts
@@ -404,7 +396,7 @@ func (a *App) chapterView(c *ui.Context) {
 	a.aiBar(c)
 	// Keyed, as the bars over it come and go: the prose keeps the keyboard.
 	ui.Box(c.Key("prose")).Grow(1).FillWidth().Children(func() {
-		prose := w.ed.View(c).Fill()
+		prose := w.cur().ed.View(c).Fill()
 		a.LastProse = prose.Bounds()
 		a.propActs(c)
 		a.selectionBar(c)
@@ -420,8 +412,8 @@ func (a *App) shownTitle() string {
 	if n, ok := a.book.Tree().Node(w.node); ok {
 		return n.Title
 	}
-	if w.lost {
-		return w.lostTitle
+	if w.cur().lost {
+		return w.cur().lostTitle
 	}
 	return "正文"
 }

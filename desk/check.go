@@ -91,16 +91,16 @@ func (a *App) hasSetting() bool {
 func (a *App) leaveCheck() {
 	w := &a.write
 	k := &a.ck
-	if w.node == "" || w.ed == nil || w.lost || a.Store == nil || !a.aiOn() {
+	if w.node == "" || w.cur().ed == nil || w.cur().lost || a.Store == nil || !a.aiOn() {
 		return
 	}
-	a.pruneStoredCheck(w.node, w.saved)
-	changed := w.changed
-	w.changed = false
+	a.pruneStoredCheck(w.node, w.cur().saved)
+	changed := w.cur().changed
+	w.cur().changed = false
 	if !changed || k.when != checkOnLeave || !a.hasSetting() {
 		return
 	}
-	k.queue.EnqueueStale(a.book.Checks(), w.node, w.saved, a.ai.MinCheck())
+	k.queue.EnqueueStale(a.book.Checks(), w.node, w.cur().saved, a.ai.MinCheck())
 }
 
 // pruneStoredCheck drops from chapter's check what its prose, text, no longer
@@ -184,10 +184,10 @@ func (a *App) stopChecks() {
 func (a *App) checkWhilePausing() {
 	w := &a.write
 	k := &a.ck
-	if k.when != checkOnPause || !a.aiOn() || w.ed == nil || w.node == "" || w.lost || w.ed.Doc.Version() != w.savedVer || !a.hasSetting() {
+	if k.when != checkOnPause || !a.aiOn() || w.cur().ed == nil || w.node == "" || w.cur().lost || w.cur().ed.Doc.Version() != w.cur().savedVer || !a.hasSetting() {
 		return
 	}
-	k.queue.AfterPause(w.node, w.saved, a.book.Checks()[w.node], a.ai.MinCheck(), w.ed.LastEdit(), time.Now())
+	k.queue.AfterPause(w.node, w.cur().saved, a.book.Checks()[w.node], a.ai.MinCheck(), w.cur().ed.LastEdit(), time.Now())
 }
 
 // checkKey is everything checkItems reads: the book, and the chapter open
@@ -204,10 +204,10 @@ type checkKey struct {
 func (a *App) checkKey() checkKey {
 	w := &a.write
 	doc := 0
-	if w.ed != nil {
-		doc = w.ed.Doc.Version()
+	if w.cur().ed != nil {
+		doc = w.cur().ed.Doc.Version()
 	}
-	return checkKey{a.book, a.book.Version(), w.ed, doc, w.node, a.liveChapter()}
+	return checkKey{a.book, a.book.Version(), w.cur().ed, doc, w.node, a.liveChapter()}
 }
 
 // doubtKey is the check items the marks are drawn from, and whether the AI
@@ -220,7 +220,7 @@ type doubtKey struct {
 // liveChapter says the open chapter is the one shown on the writing page.
 func (a *App) liveChapter() bool {
 	w := &a.write
-	return w.ed != nil && w.node != "" && a.page == pageWrite
+	return w.cur().ed != nil && w.node != "" && a.page == pageWrite
 }
 
 // liveText is the open chapter's text as it is being written.
@@ -230,8 +230,8 @@ func (a *App) liveText() (string, bool) {
 	if !a.liveChapter() {
 		return "", false
 	}
-	if k.liveOf != w.node || k.liveVer != w.ed.Doc.Version() || k.live == "" {
-		k.live, k.liveOf, k.liveVer = w.ed.Doc.String(), w.node, w.ed.Doc.Version()
+	if k.liveOf != w.node || k.liveVer != w.cur().ed.Doc.Version() || k.live == "" {
+		k.live, k.liveOf, k.liveVer = w.cur().ed.Doc.String(), w.node, w.cur().ed.Doc.Version()
 	}
 	return k.live, true
 }
@@ -385,14 +385,14 @@ func (a *App) checkPending() (pendGroup, bool) {
 // chapter shown, while the AI is on.
 func (a *App) markDoubts() {
 	w := &a.write
-	if w.ed == nil {
+	if w.cur().ed == nil {
 		return
 	}
 	key := doubtKey{a.checkKey(), a.aiOn()}
 	w.doubts.get(key, func() [][2]int {
 		text, ok := a.liveText()
 		if !ok {
-			w.ed.SetDoubts(nil)
+			w.cur().ed.SetDoubts(nil)
 			return nil
 		}
 		items := slices.DeleteFunc(slices.Clone(a.checkItems(false)), func(it checkItem) bool { return !it.here || !a.aiOn() })
@@ -403,7 +403,7 @@ func (a *App) markDoubts() {
 				ranges = append(ranges, [2]int{s, s + len([]rune(it.f.Quote))})
 			}
 		}
-		w.ed.SetDoubts(ranges)
+		w.cur().ed.SetDoubts(ranges)
 		return ranges
 	})
 }

@@ -47,44 +47,44 @@ func (a *App) saveNow() {
 // with a snapshot when writing has gone on long enough since the last.
 func (a *App) saveText() error {
 	w := &a.write
-	if w.ed == nil || w.external != nil || w.lost || w.ed.Doc.Version() == w.savedVer {
+	if w.cur().ed == nil || w.cur().external != nil || w.cur().lost || w.cur().ed.Doc.Version() == w.cur().savedVer {
 		return nil
 	}
-	text := w.ed.Doc.String()
-	marks := storedMarks(w.ed.Doc.Marks())
-	stamp, err := a.book.SaveChapterOver(w.node, text, marks, w.stamp)
+	text := w.cur().ed.Doc.String()
+	marks := storedMarks(w.cur().ed.Doc.Marks())
+	stamp, err := a.book.SaveChapterOver(w.node, text, marks, w.cur().stamp)
 	if errors.Is(err, workspace.ErrChangedOutside) {
 		// Changed outside since the disk was last looked at. Other words
 		// there wait for the author to choose, as when the look finds
 		// them; the same words under a new date are written over.
-		if a.lookAtText(); w.external != nil {
+		if a.lookAtText(); w.cur().external != nil {
 			return nil
 		}
-		stamp, err = a.book.SaveChapterOver(w.node, text, marks, w.stamp)
+		stamp, err = a.book.SaveChapterOver(w.node, text, marks, w.cur().stamp)
 	}
 	if err != nil {
 		return err
 	}
-	w.stamp, w.saved, w.savedVer = stamp, text, w.ed.Doc.Version()
-	w.changed = true
-	if time.Since(w.lastSnap) >= snapEvery {
+	w.cur().stamp, w.cur().saved, w.cur().savedVer = stamp, text, w.cur().ed.Doc.Version()
+	w.cur().changed = true
+	if time.Since(w.cur().lastSnap) >= snapEvery {
 		if _, err = a.Store.TakeSnapshot(w.node, workspace.SnapInterval, text, marks); err != nil {
 			return err
 		}
-		w.lastSnap = time.Now()
+		w.cur().lastSnap = time.Now()
 	}
 	return nil
 }
 
 func (a *App) saveOutline() error {
 	w := &a.write
-	if w.node == "" || w.outline == w.outlineSaved || w.lost {
+	if w.node == "" || w.cur().outline == w.cur().outlineSaved || w.cur().lost {
 		return nil
 	}
-	if err := a.book.SaveOutline(w.node, w.outline); err != nil {
+	if err := a.book.SaveOutline(w.node, w.cur().outline); err != nil {
 		return err
 	}
-	w.outlineSaved = w.outline
+	w.cur().outlineSaved = w.cur().outline
 	return nil
 }
 
@@ -98,18 +98,18 @@ func (a *App) watch(c *ui.Context) {
 	if len(w.closing) > 0 {
 		return // asked whether to save: nothing is saved until the answer
 	}
-	if w.ed != nil && w.ed.Doc.Version() != w.savedVer && w.external == nil && !w.lost {
-		if wait := saveAfter - time.Since(w.ed.LastEdit()); wait > 0 {
+	if w.cur().ed != nil && w.cur().ed.Doc.Version() != w.cur().savedVer && w.cur().external == nil && !w.cur().lost {
+		if wait := saveAfter - time.Since(w.cur().ed.LastEdit()); wait > 0 {
 			c.After(wait)
 		} else {
 			a.warn(a.saveText())
 		}
 	}
-	if w.outline != w.outlinePrev {
-		w.outlinePrev, w.outlineAt = w.outline, time.Now()
+	if w.cur().outline != w.cur().outlinePrev {
+		w.cur().outlinePrev, w.cur().outlineAt = w.cur().outline, time.Now()
 	}
-	if w.outline != w.outlineSaved {
-		if wait := saveAfter - time.Since(w.outlineAt); wait > 0 {
+	if w.cur().outline != w.cur().outlineSaved {
+		if wait := saveAfter - time.Since(w.cur().outlineAt); wait > 0 {
 			c.After(wait)
 		} else {
 			a.warn(a.saveOutline())
@@ -134,18 +134,18 @@ func (a *App) checkDisk() {
 		return
 	}
 	defer a.keepTabs()
-	if w.node == "" || w.lost {
+	if w.node == "" || w.cur().lost {
 		return
 	}
 	n, ok := a.book.Tree().Node(w.node)
 	if !ok {
-		w.lost, w.lostTitle = true, "找回的章节"
+		w.cur().lost, w.cur().lostTitle = true, "找回的章节"
 		if old != nil {
-			w.lostTitle = old.Title
+			w.cur().lostTitle = old.Title
 		}
 		return
 	}
-	if n.Folder || w.external != nil {
+	if n.Folder || w.cur().external != nil {
 		return
 	}
 	a.lookAtText()
@@ -153,7 +153,7 @@ func (a *App) checkDisk() {
 
 // lookAtText reads the text of the chapter shown when the disk's is not
 // the version last seen. Other words than those last saved wait in
-// w.external for the author to choose between them and the editor's.
+// w.cur().external for the author to choose between them and the editor's.
 func (a *App) lookAtText() {
 	w := &a.write
 	st, err := a.Store.ChapterStamp(w.node)
@@ -161,7 +161,7 @@ func (a *App) lookAtText() {
 		a.warn(err)
 		return
 	}
-	if st.Size == w.stamp.Size && st.Mod.Equal(w.stamp.Mod) {
+	if st.Size == w.cur().stamp.Size && st.Mod.Equal(w.cur().stamp.Mod) {
 		return
 	}
 	ch, err := a.Store.ReadChapter(w.node)
@@ -169,28 +169,28 @@ func (a *App) lookAtText() {
 		a.warn(err)
 		return
 	}
-	if ch.Text == workspace.CleanProse(w.saved) {
-		w.stamp = ch.Stamp
+	if ch.Text == workspace.CleanProse(w.cur().saved) {
+		w.cur().stamp = ch.Stamp
 		return
 	}
-	w.external = &ch
+	w.cur().external = &ch
 }
 
 // takeDisk replaces the text shown with the disk's, keeping the text
 // shown as a snapshot.
 func (a *App) takeDisk() {
 	w := &a.write
-	ch := w.external
+	ch := w.cur().external
 	if ch == nil {
 		return
 	}
-	_, err := a.Store.TakeSnapshot(w.node, workspace.SnapExternal, w.ed.Doc.String(), storedMarks(w.ed.Doc.Marks()))
+	_, err := a.Store.TakeSnapshot(w.node, workspace.SnapExternal, w.cur().ed.Doc.String(), storedMarks(w.cur().ed.Doc.Marks()))
 	if err != nil {
 		a.warn(err)
 		return
 	}
-	w.ed = a.chapterEditor(ch.Text, ch.Marks)
-	w.saved, w.savedVer, w.stamp, w.external = ch.Text, w.ed.Doc.Version(), ch.Stamp, nil
+	w.cur().ed = a.chapterEditor(ch.Text, ch.Marks)
+	w.cur().saved, w.cur().savedVer, w.cur().stamp, w.cur().external = ch.Text, w.cur().ed.Doc.Version(), ch.Stamp, nil
 	a.status.did("已采用磁盘版本，编辑器原内容已存为快照")
 }
 
@@ -198,7 +198,7 @@ func (a *App) takeDisk() {
 // snapshot.
 func (a *App) keepMine() {
 	w := &a.write
-	ch := w.external
+	ch := w.cur().external
 	if ch == nil {
 		return
 	}
@@ -206,7 +206,7 @@ func (a *App) keepMine() {
 		a.warn(err)
 		return
 	}
-	w.external, w.savedVer, w.stamp = nil, -1, ch.Stamp
+	w.cur().external, w.cur().savedVer, w.cur().stamp = nil, -1, ch.Stamp
 	a.warn(a.saveText())
 	a.status.did("已保留编辑器版本，磁盘内容已存为快照")
 }
@@ -214,9 +214,9 @@ func (a *App) keepMine() {
 // saveLost saves the text of a node gone from the disk as a new document.
 func (a *App) saveLost() {
 	w := &a.write
-	id, err := a.book.NewChapter("", w.lostTitle, false)
+	id, err := a.book.NewChapter("", w.cur().lostTitle, false)
 	if err == nil {
-		_, err = a.book.SaveChapter(id, w.ed.Doc.String(), storedMarks(w.ed.Doc.Marks()))
+		_, err = a.book.SaveChapter(id, w.cur().ed.Doc.String(), storedMarks(w.cur().ed.Doc.Marks()))
 	}
 	if err != nil {
 		a.warn(err)
@@ -226,7 +226,7 @@ func (a *App) saveLost() {
 	if i := slices.Index(w.tabs, w.node); i >= 0 {
 		w.tabs[i] = id
 	}
-	w.ed, w.lost = nil, false
+	w.cur().ed, w.cur().lost = nil, false
 	a.openNode(id)
 	a.status.did("已存为新章节，位于最上层末尾")
 }

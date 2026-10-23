@@ -212,7 +212,7 @@ func (a *App) letGo(ps []*prop) {
 // left.
 func (a *App) takeProps(ps []*prop) {
 	w := &a.write
-	text := w.ed.Doc.String()
+	text := w.cur().ed.Doc.String()
 	var list []*prop
 	var places []editor.Proposal
 	var talks []string
@@ -230,23 +230,23 @@ func (a *App) takeProps(ps []*prop) {
 	if len(list) == 0 {
 		return
 	}
-	if err := a.Store.SnapshotForTalks(w.node, text, storedMarks(w.ed.Doc.Marks()), talks); err != nil {
+	if err := a.Store.SnapshotForTalks(w.node, text, storedMarks(w.cur().ed.Doc.Marks()), talks); err != nil {
 		a.warn(err)
 		return
 	}
-	w.ed.Take(places, list[0].model)
+	w.cur().ed.Take(places, list[0].model)
 	a.warn(a.saveText())
 	a.dropProps(list, workspace.FateTaken)
 	a.status.did("已采纳 AI 提议；可撤销恢复原文，原版本已存入快照")
-	w.ed.Focus()
+	w.cur().ed.Focus()
 }
 
 // chapterText is the text of the chapter of id as the page has it: in the
 // editor shown or kept for its tab, or else on the disk.
 func (a *App) chapterText(id string) string {
 	w := &a.write
-	if id == w.node && w.ed != nil {
-		return w.ed.Doc.String()
+	if id == w.node && w.cur().ed != nil {
+		return w.cur().ed.Doc.String()
 	}
 	if s := w.parked[id]; s != nil {
 		return s.ed.Doc.String()
@@ -269,11 +269,11 @@ func (p *prop) forEditor(text string) (editor.Proposal, bool) {
 // whole. One shown for the first time, or asked for, comes into view.
 func (a *App) placeProps() {
 	w := &a.write
-	if w.ed == nil {
+	if w.cur().ed == nil {
 		return
 	}
-	if key := (placedKey{w.ed, w.ed.Doc.Version(), w.propVer}); key != w.placed {
-		text := w.ed.Doc.String()
+	if key := (placedKey{w.cur().ed, w.cur().ed.Doc.Version(), w.propVer}); key != w.placed {
+		text := w.cur().ed.Doc.String()
 		var shown []editor.Proposal
 		var void []*prop
 		late := false
@@ -292,8 +292,8 @@ func (a *App) placeProps() {
 				late = late || p.fresh
 			}
 		}
-		w.ed.SetProposals(shown, propRoom)
-		w.placed = placedKey{w.ed, w.ed.Doc.Version(), w.propVer}
+		w.cur().ed.SetProposals(shown, propRoom)
+		w.placed = placedKey{w.cur().ed, w.cur().ed.Doc.Version(), w.propVer}
 		switch {
 		case len(void) == 1 && late:
 			a.status.hint("AI 提议已作废；写的时候，它要换掉的原文改动了")
@@ -305,7 +305,7 @@ func (a *App) placeProps() {
 	for _, p := range w.props {
 		if p.Chapter == w.node && p.placed && !p.shown {
 			p.shown = true
-			w.ed.RevealProposal(p.id())
+			w.cur().ed.RevealProposal(p.id())
 		}
 	}
 }
@@ -330,7 +330,7 @@ func (a *App) pruneProps() {
 func (a *App) showProp(p *prop) {
 	w := &a.write
 	a.page = pageWrite
-	if w.ed == nil || w.node != p.Chapter {
+	if w.cur().ed == nil || w.node != p.Chapter {
 		a.openNode(p.Chapter)
 	}
 	p.shown = false
@@ -356,7 +356,7 @@ func (a *App) propActs(c *ui.Context) {
 		if p.Chapter != w.node {
 			continue
 		}
-		r, ok := w.ed.ProposalGap(p.id())
+		r, ok := w.cur().ed.ProposalGap(p.id())
 		if !ok {
 			continue
 		}
@@ -377,7 +377,7 @@ func (a *App) propActs(c *ui.Context) {
 	}
 	if drop != nil {
 		a.letGo([]*prop{drop})
-		w.ed.Focus()
+		w.cur().ed.Focus()
 	}
 	if take != nil {
 		a.takeProps([]*prop{take})
@@ -407,15 +407,15 @@ func (a *App) aiBar(c *ui.Context) {
 		bar(func() {
 			glyph(c, icPen, iconMd, t.TextMuted)
 			in := ui.TextInput(c, &w.instruction).Label("改写要求").Placeholder("改写要求，例如：放慢节奏，多写她的犹豫").Grow(1).Shrink(1).AutoFocus()
-			s, e := w.ed.Selection()
+			s, e := w.cur().ed.Selection()
 			can := s != e && strings.TrimSpace(w.instruction) != ""
 			if (a.pal.primary(c, "改写").Disabled(!can).Clicked() || in.Submitted()) && can {
 				a.rewrite(c)
-				w.ed.Focus()
+				w.cur().ed.Focus()
 			}
 			if iconButton(c, icX, "关闭改写", ui.Color{}).Clicked() || in.Shortcut(0, ui.KeyEscape) {
 				w.rewriting = false
-				w.ed.Focus()
+				w.cur().ed.Focus()
 			}
 		})
 		return
@@ -443,7 +443,7 @@ func (a *App) aiBar(c *ui.Context) {
 			see(a.talkSession)
 			if a.pal.soft(c, "取消").Clicked() && a.cancel != nil {
 				a.cancel()
-				w.ed.Focus()
+				w.cur().ed.Focus()
 			}
 		})
 		return
@@ -467,7 +467,7 @@ func (a *App) aiBar(c *ui.Context) {
 		see(here[len(here)-1].session)
 		if a.pal.soft(c, "全部放弃").Clicked() {
 			a.letGo(here)
-			w.ed.Focus()
+			w.cur().ed.Focus()
 		}
 		// Grey while one comes, so that neither moves as it is done.
 		if a.pal.primary(c, "全部采纳").Disabled(writing).Clicked() {

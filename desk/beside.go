@@ -193,7 +193,7 @@ func (a *App) talkList(c *ui.Context) {
 // page, or nil when nothing is open or they turned it off.
 func (a *App) beside() *aiport.Beside {
 	w := &a.write
-	if a.page != pageWrite || !a.doc.attach || w.node == "" || w.lost {
+	if a.page != pageWrite || !a.doc.attach || w.node == "" || w.cur().lost {
 		return nil
 	}
 	n, ok := a.book.Tree().Node(w.node)
@@ -201,18 +201,18 @@ func (a *App) beside() *aiport.Beside {
 		return nil
 	}
 	if n.Folder {
-		return &aiport.Beside{Folder: true, Title: n.Title, VolumeOutline: w.outline}
+		return &aiport.Beside{Folder: true, Title: n.Title, VolumeOutline: w.cur().outline}
 	}
-	out := &aiport.Beside{Title: n.Title, Outline: w.outline}
+	out := &aiport.Beside{Title: n.Title, Outline: w.cur().outline}
 	if p := n.Parent; p != nil && p.Parent != nil {
 		out.Volume = p.Title
 		if vol, err := a.Store.ReadChapter(p.ID); err == nil {
 			out.VolumeOutline = vol.Outline
 		}
 	}
-	if w.ed != nil {
-		s, _ := w.ed.Selection()
-		out.Before = string([]rune(w.ed.Doc.String())[:s])
+	if w.cur().ed != nil {
+		s, _ := w.cur().ed.Selection()
+		out.Before = string([]rune(w.cur().ed.Doc.String())[:s])
 	}
 	return out
 }
@@ -220,11 +220,11 @@ func (a *App) beside() *aiport.Beside {
 // quoteToTalk takes the words selected into the talk beside the prose.
 func (a *App) quoteToTalk() {
 	w := &a.write
-	if w.ed == nil || w.node == "" {
+	if w.cur().ed == nil || w.node == "" {
 		return
 	}
-	s, e := w.ed.Selection()
-	text := strings.TrimSpace(w.ed.Doc.Slice(s, e))
+	s, e := w.cur().ed.Selection()
+	text := strings.TrimSpace(w.cur().ed.Doc.Slice(s, e))
 	if text == "" {
 		return
 	}
@@ -277,10 +277,10 @@ func (a *App) findInChapter(chapter, text string) {
 		return
 	}
 	a.page = pageWrite
-	if a.write.ed == nil || a.write.node != chapter {
+	if a.write.cur().ed == nil || a.write.node != chapter {
 		a.openNode(chapter)
 	}
-	ed := a.write.ed
+	ed := a.write.cur().ed
 	if ed == nil {
 		return
 	}

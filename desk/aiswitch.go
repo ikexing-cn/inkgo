@@ -98,7 +98,7 @@ func (a *App) turnAI(on bool) {
 		a.doc.route.closeWaiting() // what waits on the author there is the AI's
 		a.status.clear()
 	}
-	if ed := a.write.ed; ed != nil {
+	if ed := a.write.cur().ed; ed != nil {
 		ed.SetNoAI(!on)
 	}
 }

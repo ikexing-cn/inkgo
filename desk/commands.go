@@ -67,11 +67,11 @@ var (
 
 	// The title bar's 编辑, and the prose's menu where it shares them.
 	cmdUndo = &command{label: "撤销", key: ui.KeyZ, mods: ui.Cmd, page: pageWrite, by: byEditor,
-		can: func(a *App) bool { open, busy := a.chapterOpen(); return open && !busy && a.write.ed.CanUndo() },
-		run: func(a *App) { a.write.ed.Undo() }}
+		can: func(a *App) bool { open, busy := a.chapterOpen(); return open && !busy && a.write.cur().ed.CanUndo() },
+		run: func(a *App) { a.write.cur().ed.Undo() }}
 	cmdRedo = &command{label: "重做", key: ui.KeyY, mods: ui.Cmd, page: pageWrite, by: byEditor,
-		can: func(a *App) bool { open, busy := a.chapterOpen(); return open && !busy && a.write.ed.CanRedo() },
-		run: func(a *App) { a.write.ed.Redo() }}
+		can: func(a *App) bool { open, busy := a.chapterOpen(); return open && !busy && a.write.cur().ed.CanRedo() },
+		run: func(a *App) { a.write.cur().ed.Redo() }}
 	cmdFind = &command{label: "查找替换", key: ui.KeyF, mods: ui.Cmd, page: pageWrite, by: byDesk,
 		can: func(a *App) bool { open, busy := a.chapterOpen(); return open && !busy },
 		run: func(a *App) { a.openFind() }}
@@ -91,10 +91,10 @@ var (
 	cmdDraft = &command{label: "起草本章", page: pageAny, ai: true,
 		can: func(a *App) bool {
 			open, busy := a.chapterOpen()
-			return open && !busy && strings.TrimSpace(a.write.outline) != ""
+			return open && !busy && strings.TrimSpace(a.write.cur().outline) != ""
 		},
 		hint: func(a *App) string {
-			if open, _ := a.chapterOpen(); open && strings.TrimSpace(a.write.outline) == "" {
+			if open, _ := a.chapterOpen(); open && strings.TrimSpace(a.write.cur().outline) == "" {
 				return "请先填写章纲"
 			}
 			return ""
@@ -132,16 +132,16 @@ var (
 	// The prose's menu.
 	cmdCut = &command{label: "剪切", key: ui.KeyX, mods: ui.Cmd, page: pageWrite, by: byEditor,
 		can: func(a *App) bool { return selected(a) && editable(a) },
-		run: func(a *App) { a.write.ed.Cut() }}
+		run: func(a *App) { a.write.cur().ed.Cut() }}
 	cmdCopy = &command{label: "复制", key: ui.KeyC, mods: ui.Cmd, page: pageWrite, by: byEditor,
 		can: func(a *App) bool { return selected(a) },
-		run: func(a *App) { a.write.ed.Copy() }}
+		run: func(a *App) { a.write.cur().ed.Copy() }}
 	cmdPaste = &command{label: "粘贴", key: ui.KeyV, mods: ui.Cmd, page: pageWrite, by: byEditor,
 		can: func(a *App) bool { return editable(a) },
-		run: func(a *App) { a.write.ed.Paste() }}
+		run: func(a *App) { a.write.cur().ed.Paste() }}
 	cmdSelectAll = &command{label: "全选", key: ui.KeyA, mods: ui.Cmd, page: pageWrite, by: byEditor,
 		can: func(a *App) bool { return true },
-		run: func(a *App) { a.write.ed.SelectAll() }}
+		run: func(a *App) { a.write.cur().ed.SelectAll() }}
 	cmdRewrite = &command{label: "AI 改写…", page: pageWrite, ai: true,
 		can: func(a *App) bool { return selected(a) && editable(a) },
 		run: func(a *App) { a.openRewrite() }}
@@ -160,8 +160,8 @@ var (
 	cmdViewFore = &command{label: "查看伏笔", page: pageWrite,
 		can: func(a *App) bool { return a.foreAt() != "" }}
 	cmdUnmark = &command{label: "移除此处标记", page: pageWrite,
-		can: func(a *App) bool { return editable(a) && a.write.ed.Marked() },
-		run: func(a *App) { a.write.ed.Unmark() }}
+		can: func(a *App) bool { return editable(a) && a.write.cur().ed.Marked() },
+		run: func(a *App) { a.write.cur().ed.Unmark() }}
 
 	// The tab's menu.
 	cmdCloseTab = &command{label: "关闭", key: ui.KeyW, mods: ui.Cmd, page: pageWrite, by: byDesk,
@@ -367,15 +367,15 @@ func chapterShown(a *App) bool {
 
 // selected says some of the prose is chosen.
 func selected(a *App) bool {
-	if a.write.ed == nil {
+	if a.write.cur().ed == nil {
 		return false
 	}
-	s, e := a.write.ed.Selection()
+	s, e := a.write.cur().ed.Selection()
 	return s != e
 }
 
 // editable says the prose may be changed.
-func editable(a *App) bool { return a.write.ed != nil && !a.write.ed.ReadOnly() }
+func editable(a *App) bool { return a.write.cur().ed != nil && !a.write.cur().ed.ReadOnly() }
 
 // tabAt is the place of the shown node among the open tabs, or -1.
 func tabAt(a *App) int {

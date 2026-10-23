@@ -68,10 +68,10 @@ func (a *App) Theme() string { return a.shelf.Theme }
 // settings.
 func (a *App) selectionBar(c *ui.Context) {
 	w := &a.write
-	r, ok := w.ed.SelectionTop()
-	if !ok || w.ed.ReadOnly() || w.lost || w.external != nil || w.rewriting ||
-		w.takeOpen || w.ed.Predicting() || w.fore.noting || w.fore.paying || a.menuOpen("正文") ||
-		w.finding && !w.ed.Focused() { // stepping through what is found picks it, the caret in the find bar
+	r, ok := w.cur().ed.SelectionTop()
+	if !ok || w.cur().ed.ReadOnly() || w.cur().lost || w.cur().external != nil || w.rewriting ||
+		w.takeOpen || w.cur().ed.Predicting() || w.fore.noting || w.fore.paying || a.menuOpen("正文") ||
+		w.finding && !w.cur().ed.Focused() { // stepping through what is found picks it, the caret in the find bar
 		return
 	}
 	t := a.pal.theme
@@ -79,11 +79,11 @@ func (a *App) selectionBar(c *ui.Context) {
 	top := r.Y - height - 6
 	if top < 4 { // no room above: under the selection, clear of its other lines
 		top = r.Y + r.H + 6
-		if box, ok := w.ed.RangeBox(w.ed.Selection()); ok && box.Y+box.H+6+height <= w.ed.Height() {
+		if box, ok := w.cur().ed.RangeBox(w.cur().ed.Selection()); ok && box.Y+box.H+6+height <= w.cur().ed.Height() {
 			top = box.Y + box.H + 6
 		}
 	}
-	left := max(8, min(r.X-12, w.ed.Width()-width-8))
+	left := max(8, min(r.X-12, w.cur().ed.Width()-width-8))
 	bar := ui.Row(c).Absolute().Left(left).Top(top).Height(height).Padding(4).Gap(2).AlignItems(ui.Center).Radius(rControl).
 		Background(a.pal.raised).Border(1, t.Border)
 	a.pal.pop.on(bar)

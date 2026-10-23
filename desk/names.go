@@ -46,12 +46,12 @@ type namesKey struct {
 // changed.
 func (a *App) feedNames() {
 	w := &a.write
-	if w.ed == nil {
+	if w.cur().ed == nil {
 		return
 	}
-	if w.named != w.ed || w.namedRevs != len(a.book.Setting().Revisions) {
-		w.named, w.namedRevs = w.ed, len(a.book.Setting().Revisions)
-		w.ed.SetEntities(a.entities())
+	if w.named != w.cur().ed || w.namedRevs != len(a.book.Setting().Revisions) {
+		w.named, w.namedRevs = w.cur().ed, len(a.book.Setting().Revisions)
+		w.cur().ed.SetEntities(a.entities())
 	}
 	key := namesKey{a.book, a.book.Version(), a.shelf.NoNames}
 	links := w.nameLinks.get(key, func() []editor.NameLink {
@@ -68,7 +68,7 @@ func (a *App) feedNames() {
 		}
 		return links
 	})
-	w.ed.SetNameLinks(links, a.seeName)
+	w.cur().ed.SetNameLinks(links, a.seeName)
 }
 
 func (a *App) seeName(id string) {
@@ -172,7 +172,7 @@ func (a *App) renameNotice(c *ui.Context) {
 func (a *App) replaceName(old, new string) {
 	a.page = pageWrite
 	w := &a.write
-	if w.ed == nil {
+	if w.cur().ed == nil {
 		id := w.node
 		if _, ok := a.book.Tree().Node(id); !ok {
 			id = a.firstChapter()
@@ -181,7 +181,7 @@ func (a *App) replaceName(old, new string) {
 			a.openNode(id)
 		}
 	}
-	if w.ed == nil {
+	if w.cur().ed == nil {
 		return // no chapter to find in
 	}
 	w.finding, w.query, w.with, w.wide, w.sure = true, old, new, true, false

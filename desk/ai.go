@@ -74,14 +74,14 @@ func (a *App) continueText() {
 		a.warn(w.penErr)
 		return
 	}
-	w.ed.RequestPrediction()
-	w.ed.Focus()
+	w.cur().ed.RequestPrediction()
+	w.cur().ed.Focus()
 }
 
 // openRewrite asks how to rewrite the words selected.
 func (a *App) openRewrite() {
 	w := &a.write
-	if s, e := w.ed.Selection(); s == e {
+	if s, e := w.cur().ed.Selection(); s == e {
 		return
 	}
 	a.closeFind()
@@ -92,15 +92,15 @@ func (a *App) openRewrite() {
 // its first words quote them. The AI proposes the change in the prose.
 func (a *App) rewrite(c *ui.Context) {
 	w := &a.write
-	s, e := w.ed.Selection()
-	wish, quote := strings.TrimSpace(w.instruction), strings.TrimSpace(w.ed.Doc.Slice(s, e))
+	s, e := w.cur().ed.Selection()
+	wish, quote := strings.TrimSpace(w.instruction), strings.TrimSpace(w.cur().ed.Doc.Slice(s, e))
 	if wish == "" || quote == "" {
 		return
 	}
 	q := workspace.Quote{Chapter: w.node, Title: a.shownTitle(), Text: quote}
 	if a.startTalk(c, workspace.Event{Origin: workspace.AIRewrite, Text: wish, Quotes: []workspace.Quote{q}}) {
 		w.rewriting, w.instruction = false, ""
-		w.ed.MoveTo(e, false) // the words went to the talk: the caret after them
+		w.cur().ed.MoveTo(e, false) // the words went to the talk: the caret after them
 	}
 }
 
@@ -158,7 +158,7 @@ func (a *App) draft(c *ui.Context) {
 	if words > 0 {
 		text += fmt.Sprintf("，约 %d 字", words)
 	}
-	if strings.TrimSpace(w.ed.Doc.String()) != "" {
+	if strings.TrimSpace(w.cur().ed.Doc.String()) != "" {
 		text += "，" + w.draftMode
 	}
 	if a.startTalk(c, workspace.Event{Origin: workspace.AIDraft, Text: text}) {
@@ -230,7 +230,7 @@ func (a *App) draftView(c *ui.Context) {
 			}
 			a.pal.dialogHead(c, "起草本章", head+"起草在一段新的讨论里进行：写好的先在正文里显示为提议，采纳后才写入，写入前保存快照；想改哪里，在讨论里接着说。")
 			ui.Box(c).FillWidth().Padding(10, 12).Radius(rControl).Background(a.pal.side).Children(func() {
-				ui.Text(c, strings.TrimSpace(w.outline)).FontSize(fsControl).TextColor(t.TextMuted).LineHeight(lhLoose).FillWidth()
+				ui.Text(c, strings.TrimSpace(w.cur().outline)).FontSize(fsControl).TextColor(t.TextMuted).LineHeight(lhLoose).FillWidth()
 			})
 			_, fits := prefs.CountOrNone(w.words)
 			labeled(c, "目标字数（选填）", func() {
@@ -239,7 +239,7 @@ func (a *App) draftView(c *ui.Context) {
 					ui.Text(c, "目标字数须为正整数，或留空").FontSize(fsNote).TextColor(t.Danger)
 				}
 			})
-			if strings.TrimSpace(w.ed.Doc.String()) != "" {
+			if strings.TrimSpace(w.cur().ed.Doc.String()) != "" {
 				labeled(c, "本章已有内容", func() {
 					modes := []string{draftAppend, draftReplace}
 					dots(c, &w.draftMode, "已有内容的处理方式", modes, modes)

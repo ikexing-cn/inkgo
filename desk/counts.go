@@ -24,14 +24,14 @@ func (a *App) bookKey() bookKey { return bookKey{a.book, a.book.Version()} }
 // counts move as the author types rather than when the text is saved.
 func (a *App) countAsTyped() {
 	w := &a.write
-	if w.ed == nil || a.book.Counts() == nil || w.lost || w.external != nil {
+	if w.cur().ed == nil || a.book.Counts() == nil || w.cur().lost || w.cur().external != nil {
 		return
 	}
-	if w.ed.Doc == w.counted && w.ed.Doc.Version() == w.countedVer {
+	if w.cur().ed.Doc == w.counted && w.cur().ed.Doc.Version() == w.countedVer {
 		return
 	}
-	w.counted, w.countedVer = w.ed.Doc, w.ed.Doc.Version()
-	a.book.SetCount(w.node, workspace.Count(w.ed.Doc.String()))
+	w.counted, w.countedVer = w.cur().ed.Doc, w.cur().ed.Doc.Version()
+	a.book.SetCount(w.node, workspace.Count(w.cur().ed.Doc.String()))
 }
 
 func (a *App) total() int {
@@ -124,8 +124,8 @@ func (a *App) wordCount(c *ui.Context, roomy, wide bool) {
 	if ok {
 		here = a.wordsIn(n)
 	}
-	if w.ed != nil {
-		if sel := w.ed.SelectedText(); sel != "" {
+	if w.cur().ed != nil {
+		if sel := w.cur().ed.SelectedText(); sel != "" {
 			here, unit = workspace.Count(sel), "选中"
 		}
 	}

@@ -64,7 +64,7 @@ func (a *App) enterWriting() {
 	w.checked = time.Time{}
 	a.keepTabs()
 	if _, ok := a.book.Tree().Node(w.node); ok {
-		if w.ed == nil && w.renaming == "" {
+		if w.cur().ed == nil && w.renaming == "" {
 			a.openNode(w.node)
 		}
 		return
@@ -100,7 +100,7 @@ func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.
 // the AI, while it is on, and the setting do with the selection, and its
 // foreshadowings.
 func (a *App) textMenu(m *menu) {
-	ed := a.write.ed
+	ed := a.write.cur().ed
 	s, e := ed.Selection()
 	busy := ed.ReadOnly()
 	m.Command(a, cmdCut).Act(a)
@@ -145,12 +145,16 @@ func (a *App) openNode(id string) {
 		}
 		w.forward = nil
 	}
-	w.node, w.ed, w.external, w.lost = id, nil, nil, false
-	w.outline, w.outlineSaved, w.outlinePrev = "", "", ""
-	w.changed = false
-	w.current = 0
 	kept := w.parked[id]
 	delete(w.parked, id)
+	c := kept
+	if c == nil {
+		c = &openChapter{id: id}
+	}
+	w.shown = c
+	w.node = id
+	w.current = 0
+	c.changed = false
 	if kept != nil && kept.lost {
 		// Gone from the disk, its words are only here.
 		a.unpark(kept)
@@ -168,28 +172,28 @@ func (a *App) openNode(id string) {
 		w.node = ""
 		return
 	}
-	w.outline, w.outlineSaved, w.outlinePrev = ch.Outline, ch.Outline, ch.Outline
+	c.outline, c.outlineSaved, c.outlinePrev = ch.Outline, ch.Outline, ch.Outline
 	switch {
 	case n.Folder:
 		w.gists = a.gistsIn(n)
 	case kept != nil && (kept.unsettled() || kept.same(ch)):
 		a.unpark(kept)
 		if !kept.unsettled() {
-			w.stamp = ch.Stamp
+			c.stamp = ch.Stamp
 		}
 	default:
 		// Not open before, or changed on the disk while its tab was not
 		// shown: read anew.
-		w.ed = a.chapterEditor(ch.Text, ch.Marks)
+		c.ed = a.chapterEditor(ch.Text, ch.Marks)
 		if at, ok := w.carets[id]; ok {
-			w.ed.MoveTo(at, false)
+			c.ed.MoveTo(at, false)
 		}
-		w.saved, w.savedVer, w.stamp = ch.Text, w.ed.Doc.Version(), ch.Stamp
+		c.saved, c.savedVer, c.stamp = ch.Text, c.ed.Doc.Version(), ch.Stamp
 		if strings.TrimSpace(ch.Text) != "" {
 			_, err = a.Store.TakeSnapshot(id, workspace.SnapOpen, ch.Text, ch.Marks)
 			a.warn(err)
 		}
-		w.lastSnap = time.Now()
+		c.lastSnap = time.Now()
 	}
 	if !slices.Contains(w.tabs, id) {
 		w.tabs = slices.Insert(w.tabs, slices.Index(w.tabs, from)+1, id)
@@ -281,8 +285,8 @@ func (a *App) sizeText(d int) {
 	if size == textSizeDefault {
 		w.size = 0
 	}
-	if w.ed != nil {
-		w.ed.SetFontSize(float32(size))
+	if w.cur().ed != nil {
+		w.cur().ed.SetFontSize(float32(size))
 	}
 	a.savePrefs()
 }
@@ -291,16 +295,16 @@ func (a *App) sizeText(d int) {
 // there when the chapter opens again, in this run or the next.
 func (a *App) keepCaret() {
 	w := &a.write
-	if w.ed == nil || w.node == "" {
+	if w.cur().ed == nil || w.node == "" {
 		return
 	}
-	if at, ok := w.carets[w.node]; ok && at == w.ed.Caret() {
+	if at, ok := w.carets[w.node]; ok && at == w.cur().ed.Caret() {
 		return
 	}
 	if w.carets == nil {
 		w.carets = map[string]int{}
 	}
-	w.carets[w.node] = w.ed.Caret()
+	w.carets[w.node] = w.cur().ed.Caret()
 	for id := range w.carets {
 		if _, ok := a.book.Tree().Node(id); !ok && a.book.Tree().Root != nil {
 			delete(w.carets, id) // gone from the tree

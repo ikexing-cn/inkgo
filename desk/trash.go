@@ -31,7 +31,7 @@ func (a *App) trashNode(n *workspace.Node) {
 		// Its tab goes with it: the tab beside it is shown, or with none
 		// left the chapter that stands where it stood.
 		near := slices.Index(order, w.node)
-		w.node, w.ed, w.external, w.lost = "", nil, nil, false
+		w.node, w.cur().ed, w.cur().external, w.cur().lost = "", nil, nil, false
 		a.keepTabs()
 		next := ""
 		if len(w.tabs) > 0 {

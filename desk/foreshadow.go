@@ -79,10 +79,10 @@ type foreshadowKey struct {
 func (a *App) foreshadowKey() foreshadowKey {
 	w := &a.write
 	doc := 0
-	if w.ed != nil {
-		doc = w.ed.Doc.Version()
+	if w.cur().ed != nil {
+		doc = w.cur().ed.Doc.Version()
 	}
-	return foreshadowKey{a.book, a.book.Version(), w.ed, doc, w.node}
+	return foreshadowKey{a.book, a.book.Version(), w.cur().ed, doc, w.node}
 }
 
 // foreshadows are the book's foreshadowings and what pays them off
@@ -93,8 +93,8 @@ func (a *App) foreshadows() []workspace.Foreshadow {
 	return w.fores.get(key, func() []workspace.Foreshadow {
 		current := ""
 		var live []workspace.ChapterMark
-		if w.ed != nil {
-			current, live = w.node, liveMarks(w.ed.Doc)
+		if w.cur().ed != nil {
+			current, live = w.node, liveMarks(w.cur().ed.Doc)
 		}
 		return a.book.Tree().Foreshadows(a.book.Marks(), current, live)
 	})
@@ -109,8 +109,8 @@ func markID() string {
 // openBury asks for the note of a foreshadowing on the selection.
 func (a *App) openBury() {
 	w := &a.write
-	s, e := w.ed.Selection()
-	if s == e || w.ed.ReadOnly() {
+	s, e := w.cur().ed.Selection()
+	if s == e || w.cur().ed.ReadOnly() {
 		return
 	}
 	w.fore.noting, w.fore.paying, w.fore.from, w.fore.to, w.fore.note = true, false, s, e, ""
@@ -123,25 +123,25 @@ func (a *App) openBury() {
 func (a *App) bury() {
 	w := &a.write
 	f := &w.fore
-	if !f.noting || w.ed == nil {
+	if !f.noting || w.cur().ed == nil {
 		return
 	}
 	id := markID()
-	w.ed.AddMark(editor.Mark{Kind: editor.MarkForeshadow, Start: f.from, End: f.to, Note: strings.TrimSpace(f.note),
+	w.cur().ed.AddMark(editor.Mark{Kind: editor.MarkForeshadow, Start: f.from, End: f.to, Note: strings.TrimSpace(f.note),
 		Key: id, At: time.Now().Format(time.RFC3339)})
 	f.noting = false
 	a.warn(a.saveText())
-	w.ed.Focus()
+	w.cur().ed.Focus()
 }
 
 // openPay asks which foreshadowing the selection pays off, the one of id
 // picked when there is one.
 func (a *App) openPay(id string) {
 	w := &a.write
-	if w.ed == nil || w.ed.ReadOnly() {
+	if w.cur().ed == nil || w.cur().ed.ReadOnly() {
 		return
 	}
-	s, e := w.ed.Selection()
+	s, e := w.cur().ed.Selection()
 	if s == e {
 		a.status.hint("请先在正文中选中回收伏笔的段落")
 		return
@@ -156,15 +156,15 @@ func (a *App) openPay(id string) {
 func (a *App) pay(id string) {
 	w := &a.write
 	f := &w.fore
-	if !f.paying || w.ed == nil || id == "" {
+	if !f.paying || w.cur().ed == nil || id == "" {
 		return
 	}
-	w.ed.AddMark(editor.Mark{Kind: editor.MarkPayoff, Start: f.from, End: f.to, Key: markID(), Ref: id,
+	w.cur().ed.AddMark(editor.Mark{Kind: editor.MarkPayoff, Start: f.from, End: f.to, Key: markID(), Ref: id,
 		At: time.Now().Format(time.RFC3339)})
 	f.paying = false
 	a.warn(a.saveText())
 	a.showFore(id)
-	w.ed.Focus()
+	w.cur().ed.Focus()
 }
 
 // editMark changes the mark of id in chapter node as fn does, removing it
@@ -172,16 +172,16 @@ func (a *App) pay(id string) {
 // the disk otherwise.
 func (a *App) editMark(node, id string, fn func(m *workspace.ChapterMark) (keep bool)) {
 	w := &a.write
-	if node == w.node && w.ed != nil {
-		for _, m := range w.ed.Doc.Marks() {
+	if node == w.node && w.cur().ed != nil {
+		for _, m := range w.cur().ed.Doc.Marks() {
 			if m.Key != id {
 				continue
 			}
 			cm := storedMarks([]editor.Mark{m})[0]
 			if fn(&cm) {
-				w.ed.Doc.EditMark(m.ID, func(x *editor.Mark) { x.Note, x.Dropped = cm.Note, cm.Dropped })
+				w.cur().ed.Doc.EditMark(m.ID, func(x *editor.Mark) { x.Note, x.Dropped = cm.Note, cm.Dropped })
 			} else {
-				w.ed.Doc.RemoveMark(m.ID)
+				w.cur().ed.Doc.RemoveMark(m.ID)
 			}
 		}
 		a.warn(a.saveText())
@@ -229,23 +229,23 @@ func (a *App) unpay(f workspace.Foreshadow) {
 // in whichever chapter is open.
 func (a *App) rehang(f workspace.Foreshadow) {
 	w := &a.write
-	if w.ed == nil || w.ed.ReadOnly() {
+	if w.cur().ed == nil || w.cur().ed.ReadOnly() {
 		return
 	}
-	s, e := w.ed.Selection()
+	s, e := w.cur().ed.Selection()
 	if s == e {
 		a.status.hint("请先在正文中选中要关联的句子")
 		return
 	}
 	if f.Node == w.node {
-		for _, m := range w.ed.Doc.Marks() {
+		for _, m := range w.cur().ed.Doc.Marks() {
 			if m.Key == f.ID {
-				w.ed.Doc.EditMark(m.ID, func(x *editor.Mark) { x.Start, x.End, x.Orphaned = s, e, false })
+				w.cur().ed.Doc.EditMark(m.ID, func(x *editor.Mark) { x.Start, x.End, x.Orphaned = s, e, false })
 			}
 		}
 	} else {
 		a.editMark(f.Node, f.ID, func(*workspace.ChapterMark) bool { return false })
-		w.ed.AddMark(editor.Mark{Kind: editor.MarkForeshadow, Start: s, End: e, Note: f.Note, Key: f.ID, At: f.At})
+		w.cur().ed.AddMark(editor.Mark{Kind: editor.MarkForeshadow, Start: s, End: e, Note: f.Note, Key: f.ID, At: f.At})
 	}
 	a.warn(a.saveText())
 }
@@ -265,13 +265,13 @@ func (a *App) showMark(node, id string) {
 	if w.node != node {
 		a.openNode(node)
 	}
-	if w.node != node || w.ed == nil {
+	if w.node != node || w.cur().ed == nil {
 		return
 	}
-	for _, m := range w.ed.Doc.Marks() {
+	for _, m := range w.cur().ed.Doc.Marks() {
 		if m.Key == id {
-			w.ed.Select(m.Start, m.End)
-			w.ed.Focus()
+			w.cur().ed.Select(m.Start, m.End)
+			w.cur().ed.Focus()
 		}
 	}
 }
@@ -280,9 +280,9 @@ func (a *App) showMark(node, id string) {
 // off.
 func (a *App) foreAt() string {
 	w := &a.write
-	at := w.ed.Caret()
+	at := w.cur().ed.Caret()
 	id, size := "", -1
-	for _, m := range w.ed.Doc.Marks() {
+	for _, m := range w.cur().ed.Doc.Marks() {
 		if m.Kind != editor.MarkForeshadow && m.Kind != editor.MarkPayoff || m.Start > at || at > m.End || m.End == m.Start {
 			continue
 		}
@@ -313,11 +313,11 @@ func (a *App) forePopover(c *ui.Context) {
 	if !f.noting && !f.paying {
 		return
 	}
-	if w.ed == nil || w.ed.ReadOnly() || w.lost || w.external != nil {
+	if w.cur().ed == nil || w.cur().ed.ReadOnly() || w.cur().lost || w.cur().external != nil {
 		f.noting, f.paying = false, false
 		return
 	}
-	r, ok := w.ed.RangeBox(f.from, f.to)
+	r, ok := w.cur().ed.RangeBox(f.from, f.to)
 	if !ok {
 		return
 	}
@@ -327,10 +327,10 @@ func (a *App) forePopover(c *ui.Context) {
 		width, tall = 380, 340
 	}
 	top := r.Y + r.H + 6
-	if top+tall > w.ed.Height() && r.Y-tall-6 >= 4 {
+	if top+tall > w.cur().ed.Height() && r.Y-tall-6 >= 4 {
 		top = r.Y - tall - 6
 	}
-	left := max(8, min(r.X, w.ed.Width()-width-8))
+	left := max(8, min(r.X, w.cur().ed.Width()-width-8))
 	box := ui.Column(c).Absolute().Left(left).Top(top).Width(width).Background(a.pal.canvas).Border(1, t.Border)
 	a.pal.pop.on(box)
 	if f.noting {
@@ -352,7 +352,7 @@ func (a *App) forePopover(c *ui.Context) {
 			})
 			if cancel {
 				f.noting = false
-				w.ed.Focus()
+				w.cur().ed.Focus()
 			}
 		})
 		return
@@ -414,7 +414,7 @@ func (a *App) forePopover(c *ui.Context) {
 		})
 		if cancel {
 			f.paying = false
-			w.ed.Focus()
+			w.cur().ed.Focus()
 		}
 	})
 }
@@ -614,7 +614,7 @@ func (a *App) foreDetail(c *ui.Context, f workspace.Foreshadow) {
 		// pane does not jump while the author picks.
 		unpicked := func(b ui.Element) ui.Element {
 			none := true
-			if ed := a.write.ed; ed != nil {
+			if ed := a.write.cur().ed; ed != nil {
 				s, e := ed.Selection()
 				none = s == e || ed.ReadOnly()
 			}

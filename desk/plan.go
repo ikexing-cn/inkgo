@@ -463,7 +463,7 @@ func (a *App) planGist(c *ui.Context, n *workspace.Node) {
 }
 func (a *App) syncPlanOutline(id, text string) {
 	if a.write.node == id {
-		a.write.outline, a.write.outlineSaved, a.write.outlinePrev = text, text, text
+		a.write.cur().outline, a.write.cur().outlineSaved, a.write.cur().outlinePrev = text, text, text
 	}
 }
 func (a *App) finishPlanOutline() {
