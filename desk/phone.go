@@ -67,10 +67,10 @@ func phoneIndex(value string, choices []string) int {
 
 func (p *phonePanel) preferences() shelf.Phone {
 	d := defaultPhone()
-	if p.host.shelfPrefs().Phone == nil {
+	if p.host.ShelfPrefs().Phone == nil {
 		return d
 	}
-	prefs := *p.host.shelfPrefs().Phone
+	prefs := *p.host.ShelfPrefs().Phone
 	choice := func(value, fallback string, choices []string) string {
 		if slices.Contains(choices, value) {
 			return value
@@ -166,9 +166,9 @@ func (p *phonePanel) point(x, y float32) (para, offset int, ok bool) {
 }
 
 func (p *phonePanel) measure() {
-	id, ed, _ := p.host.chapter()
+	id, ed, _ := p.host.Chapter()
 	p.prefs = p.preferences()
-	n, ok := p.host.content().Tree().Node(id)
+	n, ok := p.host.Content().Tree().Node(id)
 	if !ok || n.Folder || ed == nil {
 		return
 	}
@@ -180,7 +180,7 @@ func (p *phonePanel) measure() {
 		p.Layout(ed.Doc.String(), p.title, phonePagination(p.prefs))
 	}
 	page := p.PageOf(ed.Caret())
-	_, path := p.host.workspace()
+	_, path := p.host.Workspace()
 	key := path + "/" + id
 	if p.key != key {
 		p.key, p.at, p.caretPage = key, 0, page
@@ -191,8 +191,8 @@ func (p *phonePanel) measure() {
 }
 
 func (p *phonePanel) view(c *ui.Context) {
-	pal := p.host.colors()
-	if _, _, open := p.host.chapter(); !open {
+	pal := p.host.Colors()
+	if _, _, open := p.host.Chapter(); !open {
 		p.key = ""
 		p.look = false
 		pal.PaneEmpty(c, "打开一章即可预览", "")
@@ -221,8 +221,8 @@ func (p *phonePanel) view(c *ui.Context) {
 	})
 	if before != p.prefs {
 		prefs := p.prefs
-		p.host.shelfPrefs().Phone = &prefs
-		p.host.saveShelf()
+		p.host.ShelfPrefs().Phone = &prefs
+		p.host.SaveShelf()
 		p.measure()
 	}
 	pal.Hairline(c)
@@ -273,7 +273,7 @@ func (p *phonePanel) view(c *ui.Context) {
 }
 
 func (p *phonePanel) typesetting(c *ui.Context) {
-	pal := p.host.colors()
+	pal := p.host.Colors()
 	prefs := &p.prefs
 	row := func(label string, value *string, choices, names []string) {
 		at := phoneIndex(*value, choices)
@@ -324,7 +324,7 @@ func (p *phonePanel) typesetting(c *ui.Context) {
 }
 
 func (p *phonePanel) segments(c *ui.Context, at *int, label string, names []string) {
-	pal := p.host.colors()
+	pal := p.host.Colors()
 	t := pal.Theme
 	seg := ui.SegmentedBase(c, at, len(names))
 	seg.Track.Label(label).FillWidth().Gap(2).Padding(2).Radius(kit.RControl).Background(t.SurfacePressed).Children(func() {
@@ -349,7 +349,7 @@ func (p *phonePanel) input(ev ui.InputEvent) bool {
 		return false
 	}
 	if _, offset, ok := p.point(ev.X, ev.Y); ok {
-		_, ed, _ := p.host.chapter()
+		_, ed, _ := p.host.Chapter()
 		ed.Select(offset, offset)
 		ed.Focus()
 		return true
@@ -358,7 +358,7 @@ func (p *phonePanel) input(ev ui.InputEvent) bool {
 }
 
 func (p *phonePanel) sync() {
-	_, ed, _ := p.host.chapter()
+	_, ed, _ := p.host.Chapter()
 	f, n, into := ed.ScrollAnchor()
 	anchor := phoneAnchor{f, into, n}
 	if p.anchored && anchor == p.anchor {
@@ -395,7 +395,7 @@ func (p *phonePanel) paint(painter *ui.Painter, r ui.Rect) {
 	k := max(0, min(1, min(r.W/wfull, r.H/hfull)))
 	p.ox, p.oy, p.scale = (r.W-wfull*k)/2, (r.H-hfull*k)/2, k
 	p.body = ui.Rect{X: pad + 1 + phoneTextInset, Y: pad + 1 + phoneStatusHeight + phoneTextTop, W: p.TextWidth, H: p.PageHeight}
-	light, dark := p.host.phoneColors()
+	light, dark := p.host.PhoneColors()
 	bg, ink, muted, active, hover := light.Canvas, light.Ink, light.Faint, light.Theme.SurfacePressed, light.Theme.SurfaceHover
 	if p.prefs.Theme == "night" {
 		bg, ink, muted, active, hover = dark.Canvas, dark.Ink, dark.Faint, dark.Theme.SurfacePressed, dark.Theme.SurfaceHover
@@ -446,7 +446,7 @@ func (p *phonePanel) paint(painter *ui.Painter, r ui.Rect) {
 }
 
 func (p *phonePanel) paintText(painter *ui.Painter, ink, active, hover ui.Color) {
-	_, ed, _ := p.host.chapter()
+	_, ed, _ := p.host.Chapter()
 	from, to := ed.Selection()
 	// A paragraph is one continuous patch, including when its lines are
 	// split across pages. Selection is drawn over it, before the glyphs.
@@ -502,9 +502,9 @@ func (p *phonePanel) paintText(painter *ui.Painter, ink, active, hover ui.Color)
 				x0, x1 := sh.X(l.Line, lo), sh.X(l.Line, hi)
 				pick := ui.Rect{X: x + x0, Y: y + 2, W: x1 - x0, H: sh.LineHeight - 4}
 				p.pick = append(p.pick, pick)
-				selection := p.host.colors().Theme.Selection
+				selection := p.host.Colors().Theme.Selection
 				if !ed.Focused() {
-					selection = p.host.colors().Theme.TextMuted.Alpha(0.2)
+					selection = p.host.Colors().Theme.TextMuted.Alpha(0.2)
 				}
 				painter.Fill(pick, selection, 0)
 			}

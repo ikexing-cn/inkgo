@@ -201,7 +201,7 @@ type App struct {
 func New(ai aiport.Service) *App {
 	a := &App{ai: ai, genre: "网文",
 		light: kit.LightPalette(), dark: kit.DarkPalette(), titles: map[string]string{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
-	a.exporting.host, a.phone.host, a.plan.host = a, a, a
+	a.exporting.host, a.phone.host, a.plan.host = appHost{a}, appHost{a}, appHost{a}
 	a.pal = a.light
 	a.initPages()
 	a.initTabs()
@@ -276,8 +276,8 @@ func (a *App) resetView() {
 	a.source, a.sourceOpen, a.contextReply = nil, false, ""
 	a.input, a.seen, a.flash, a.doc, a.write = "", -1, map[string]time.Time{}, docView{}, writeView{}
 	a.bk = backupView{}
-	a.plan = outlinePage{host: a}
-	a.exporting = exportView{host: a}
+	a.plan = outlinePage{host: appHost{a}}
+	a.exporting = exportView{host: appHost{a}}
 	a.page, a.shown, a.offAway = pageTalk, pageTalk, false
 }
 

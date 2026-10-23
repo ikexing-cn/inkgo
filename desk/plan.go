@@ -59,7 +59,7 @@ type planIndex struct {
 }
 
 func (o *outlinePage) rebuildIndex() {
-	content := o.host.content()
+	content := o.host.Content()
 	x := planIndex{live: map[string]bool{}, cards: map[string][]workspace.Card{}, back: map[string]bool{}, counts: map[string]int{}, columns: content.Plan().Columns()}
 	content.Tree().Walk(func(n *workspace.Node, _ int) {
 		if !n.Folder {
@@ -91,14 +91,14 @@ func (o *outlinePage) rebuildIndex() {
 }
 
 func (o *outlinePage) load() {
-	o.loadErr = o.host.content().ReloadPlan()
+	o.loadErr = o.host.Content().ReloadPlan()
 	o.loaded = true
 	o.geometry = nil
 	o.rebuildIndex()
 }
 
 func (o *outlinePage) change(err error) {
-	o.host.notices().SetError(err)
+	o.host.Notices().SetError(err)
 	if err == nil {
 		o.loadErr = nil
 		o.geometry = nil
@@ -147,7 +147,7 @@ func (o *outlinePage) cardFound(e workspace.Card) bool {
 		return true
 	}
 	title := ""
-	if n, ok := o.host.content().Tree().Node(e.Chapter); ok {
+	if n, ok := o.host.Content().Tree().Node(e.Chapter); ok {
 		title = n.Title
 	}
 	return q == "" || slices.ContainsFunc([]string{e.Title, e.When, e.About, title}, func(s string) bool { return strings.Contains(s, q) })
@@ -155,11 +155,11 @@ func (o *outlinePage) cardFound(e workspace.Card) bool {
 
 func (o *outlinePage) nodeFound(n *workspace.Node) bool {
 	q := kit.Trim(o.query)
-	return q == "" || strings.Contains(n.Title, q) || strings.Contains(o.host.content().Outlines()[n.ID], q)
+	return q == "" || strings.Contains(n.Title, q) || strings.Contains(o.host.Content().Outlines()[n.ID], q)
 }
 
 func (o *outlinePage) counts() (cards, nodes int) {
-	content := o.host.content()
+	content := o.host.Content()
 	for _, e := range content.Plan().Cards {
 		if o.cardFound(e) {
 			cards++
@@ -176,7 +176,7 @@ func (o *outlinePage) counts() (cards, nodes int) {
 }
 
 func (o *outlinePage) view(c *ui.Context) {
-	content := o.host.content()
+	content := o.host.Content()
 	if o.loadErr != nil && time.Since(o.checked) >= book.CheckEvery {
 		o.loaded = false // a broken outline may have been put right outside
 	}
@@ -216,8 +216,8 @@ func (o *outlinePage) view(c *ui.Context) {
 				if o.mode == 1 {
 					about = "时间线上搜的是卡片：发生了什么、说明、故事中的时间和所在的章。"
 				}
-				o.host.colors().Blank(c, kit.IcSearch, "没有找到「"+q+"」", about, func() {
-					if o.host.colors().Secondary(c, "清除搜索").Label("空页清除搜索").Clicked() {
+				o.host.Colors().Blank(c, kit.IcSearch, "没有找到「"+q+"」", about, func() {
+					if o.host.Colors().Secondary(c, "清除搜索").Label("空页清除搜索").Clicked() {
 						o.query = ""
 					}
 				})
@@ -229,7 +229,7 @@ func (o *outlinePage) view(c *ui.Context) {
 			}
 		})
 		if o.pane {
-			o.host.settingColumn(c)
+			o.host.SettingColumn(c)
 		}
 	})
 }
@@ -238,7 +238,7 @@ func (o *outlinePage) view(c *ui.Context) {
 // line, as when a search finds nothing, and no retry, as the file is read
 // again as often as the open chapter is looked at on the disk.
 func (o *outlinePage) broken(c *ui.Context) {
-	pal := o.host.colors()
+	pal := o.host.Colors()
 	c.After(book.CheckEvery - time.Since(o.checked))
 	title, about, why := "大纲读不出来", "", o.loadErr.Error()
 	var bad *workspace.PlanError
@@ -258,17 +258,17 @@ func (o *outlinePage) broken(c *ui.Context) {
 		if why != "" {
 			ui.Text(c, why).FontSize(kit.FsNote).TextColor(pal.Faint).TextAlign(ui.Center).MaxWidth(440)
 		}
-		_, reveal := o.host.dialogs()
+		_, reveal := o.host.Dialogs()
 		if reveal != nil && pal.Secondary(c, "打开所在文件夹").Clicked() {
-			store, _ := o.host.workspace()
-			o.host.notices().Warn(reveal(store.Root()))
+			store, _ := o.host.Workspace()
+			o.host.Notices().Warn(reveal(store.Root()))
 		}
 	})
 }
 
 func (o *outlinePage) top(c *ui.Context) {
-	pal := o.host.colors()
-	content := o.host.content()
+	pal := o.host.Colors()
+	content := o.host.Content()
 	cards, nodes := o.counts()
 	chs := o.chapters()
 	loose := len(o.cardsOf(""))
@@ -326,13 +326,13 @@ func (o *outlinePage) text(c *ui.Context, text string, small bool) ui.Element {
 	if small {
 		size = kit.FsNote
 	}
-	return ui.RichText(c, kit.Marked(text, kit.Trim(o.query), o.host.colors().Ink)...).FontSize(size).LineHeight(kit.LhBody).FillWidth()
+	return ui.RichText(c, kit.Marked(text, kit.Trim(o.query), o.host.Colors().Ink)...).FontSize(size).LineHeight(kit.LhBody).FillWidth()
 }
 
 func (o *outlinePage) line(c *ui.Context, l workspace.PlotLine) {
-	status := o.host.notices()
-	content := o.host.content()
-	t := o.host.colors().Theme
+	status := o.host.Notices()
+	content := o.host.Content()
+	t := o.host.Colors().Theme
 	if o.lineID == l.ID {
 		in := ui.TextInputBase(c.Key("line-name-"+l.ID), &o.lineName).Label("情节线的名字").Placeholder("情节线的名字").FillWidth().Height(kit.HControlSm).FontSize(kit.FsBody).Padding(0, 6).Border(1, t.Border).Radius(kit.RControl).AutoFocus()
 		if o.lineFocus {
@@ -361,9 +361,9 @@ func (o *outlinePage) line(c *ui.Context, l workspace.PlotLine) {
 			o.startLine(l)
 		}
 		n := o.index.counts[l.ID]
-		ui.Textf(c, "%d", n).FontSize(kit.FsNote).TextColor(o.host.colors().Faint)
+		ui.Textf(c, "%d", n).FontSize(kit.FsNote).TextColor(o.host.Colors().Faint)
 		more := kit.IconButton(c, kit.IcMore, "情节线「"+l.Name+"」的操作", ui.Color{})
-		o.host.dropMenu(c, more, "plan-line-"+l.ID, func(panel ui.Element) { panel.Width(planLineMenuWidth) }, func(m *kit.Menu) {
+		o.host.DropMenu(c, more, "plan-line-"+l.ID, func(panel ui.Element) { panel.Width(planLineMenuWidth) }, func(m *kit.Menu) {
 			i := slices.IndexFunc(content.Plan().Lines, func(x workspace.PlotLine) bool { return x.ID == l.ID })
 			up, down := "左移", "右移"
 			if o.mode == 1 {
@@ -398,12 +398,12 @@ func (o *outlinePage) finishLine() {
 	id, name := o.lineID, kit.Trim(o.lineName)
 	o.lineID = ""
 	if name != "" {
-		_, err := o.host.content().SaveLine(workspace.PlotLine{ID: id, Name: name})
+		_, err := o.host.Content().SaveLine(workspace.PlotLine{ID: id, Name: name})
 		o.change(err)
 	}
 }
 func (o *outlinePage) addLine(c *ui.Context) {
-	pal := o.host.colors()
+	pal := o.host.Colors()
 	b := ui.ButtonBase(c).Row().Height(kit.HControlSm).AlignItems(ui.Center).Gap(6).Padding(0, 8, 0, 4).Radius(kit.RControl).Label("新增情节线").Tooltip("多一条情节线")
 	if b.Hovered() {
 		b.Background(pal.Theme.SurfaceHover)
@@ -414,7 +414,7 @@ func (o *outlinePage) addLine(c *ui.Context) {
 	})
 	if b.Clicked() {
 		o.finishLine()
-		l, err := o.host.content().SaveLine(workspace.PlotLine{Name: "新情节线"})
+		l, err := o.host.Content().SaveLine(workspace.PlotLine{Name: "新情节线"})
 		o.change(err)
 		if err == nil {
 			o.startLine(l)
@@ -428,8 +428,8 @@ func (o *outlinePage) addLine(c *ui.Context) {
 }
 
 func (o *outlinePage) gist(c *ui.Context, n *workspace.Node) {
-	pal := o.host.colors()
-	content := o.host.content()
+	pal := o.host.Colors()
+	content := o.host.Content()
 	label, hint := "章纲", "写章纲…"
 	if n.Folder {
 		label, hint = "卷纲", "写卷纲…"
@@ -485,11 +485,11 @@ func (o *outlinePage) saveOutline() {
 	if d.Node == "" {
 		return
 	}
-	if err := d.Save(o.host.content()); err != nil {
-		o.host.notices().Warn(err)
+	if err := d.Save(o.host.Content()); err != nil {
+		o.host.Notices().Warn(err)
 		return
 	}
-	o.host.syncPlanOutline(d.Node, d.Text)
+	o.host.SyncPlanOutline(d.Node, d.Text)
 }
 
 func (o *outlinePage) finishOutline() {
@@ -505,7 +505,7 @@ func (o *outlinePage) finishOutline() {
 // painted last and translated back by its horizontal offset, so neither
 // axis can carry the chapter names or the heading out of view.
 func (o *outlinePage) head(c *ui.Context, left float32, heads func()) {
-	pal := o.host.colors()
+	pal := o.host.Colors()
 	height := float32(kit.TitleHeight)
 	if o.mode == 1 {
 		height += kit.HTag
@@ -530,11 +530,11 @@ func (o *outlinePage) side(c *ui.Context, left float32, label string, fn func())
 	if o.mode == 1 {
 		bottom = 0
 	} // the entire lane draws its bottom border
-	ui.Column(c).Absolute().Left(0).Top(0).Bottom(0).Width(left).Translate(o.scroll[o.mode].X, 0).Padding(16, 12, 16, 24).Gap(4).Background(o.host.colors().Canvas).BorderWidth(0, 1, bottom, 0).BorderColor(o.host.colors().Line).Label(label).Children(fn)
+	ui.Column(c).Absolute().Left(0).Top(0).Bottom(0).Width(left).Translate(o.scroll[o.mode].X, 0).Padding(16, 12, 16, 24).Gap(4).Background(o.host.Colors().Canvas).BorderWidth(0, 1, bottom, 0).BorderColor(o.host.Colors().Line).Label(label).Children(fn)
 }
 
 func (o *outlinePage) grid(c *ui.Context) {
-	content := o.host.content()
+	content := o.host.Content()
 	lines := slices.Clone(content.Plan().Lines)
 	g := o.layout(c)
 	width, height := o.viewport.W, o.viewport.H
@@ -577,7 +577,7 @@ func (o *outlinePage) grid(c *ui.Context) {
 			if len(g.rows) == 0 {
 				ui.Column(c).Width(planGistWidth).Padding(32, 24).Gap(8).Children(func() {
 					ui.Text(c, "章节里没有「"+kit.Trim(o.query)+"」").FontSize(kit.FsDialog).FontWeight(600)
-					ui.Text(c, "找到的卡片在下面「未放进章节」里。").FontSize(kit.FsNote).TextColor(o.host.colors().Theme.TextMuted)
+					ui.Text(c, "找到的卡片在下面「未放进章节」里。").FontSize(kit.FsNote).TextColor(o.host.Colors().Theme.TextMuted)
 				})
 			}
 		})
@@ -585,7 +585,7 @@ func (o *outlinePage) grid(c *ui.Context) {
 }
 
 func (o *outlinePage) gridRow(c *ui.Context, row planRow, lines []workspace.PlotLine) {
-	pal := o.host.colors()
+	pal := o.host.Colors()
 	n := row.node
 	if row.kind == 2 {
 		ui.Text(c, "不在卷中").FontSize(kit.FsGroup).FontWeight(600).Padding(16, 24, 12, 24).Height(row.height).Shrink(0).Translate(o.scroll[0].X, 0).FillWidth().Background(pal.Side)
@@ -621,7 +621,7 @@ func (o *outlinePage) gridRow(c *ui.Context, row planRow, lines []workspace.Plot
 				}
 				b.Children(func() { o.text(c, n.Title, false).FontWeight(600).SingleLine().Ellipsis("…") })
 				if b.Clicked() {
-					o.host.openWriting(n.ID)
+					o.host.OpenWriting(n.ID)
 				}
 				if o.back(n.ID) {
 					ui.Text(c, "回溯").FontSize(kit.FsSmall).Padding(2, 4).Radius(kit.RXs).Border(1, pal.Line).Tooltip("这一章写到了比前面各章更早的事")
@@ -645,8 +645,8 @@ func (o *outlinePage) gridRow(c *ui.Context, row planRow, lines []workspace.Plot
 }
 
 func (o *outlinePage) cell(c *ui.Context, chapter, line string, col int, when, after string) {
-	pal := o.host.colors()
-	content := o.host.content()
+	pal := o.host.Colors()
+	content := o.host.Content()
 	cell := ui.Column(c).Width(planCardWidth).Shrink(0).Padding(10, 12).Gap(8).BorderWidth(0, 1, 1, 0).BorderColor(pal.Line).Label(fmt.Sprintf("大纲格-%s|%s|%d", chapter, line, col))
 	if col != -2 {
 		cell.BorderWidth(0, 1, 0, 0)
@@ -700,8 +700,8 @@ func (o *outlinePage) cell(c *ui.Context, chapter, line string, col int, when, a
 }
 
 func (o *outlinePage) cardView(c *ui.Context, e workspace.Card, timeline, tray bool) {
-	pal := o.host.colors()
-	content := o.host.content()
+	pal := o.host.Colors()
+	content := o.host.Content()
 	assigned := o.cardChapter(e) != ""
 	b := ui.ButtonBase(c).Column().FillWidth().Padding(6, 10).Gap(2).Radius(kit.RControl).Background(pal.Raised).Border(1, pal.Theme.Border).Label("卡片-" + e.ID).Tooltip("点击修改；拖到别的格子挪过去").Drag(dragCard(e.ID))
 	if b.Hovered() {
@@ -757,14 +757,14 @@ func (o *outlinePage) cardView(c *ui.Context, e workspace.Card, timeline, tray b
 }
 
 func (o *outlinePage) tray(c *ui.Context) {
-	pal := o.host.colors()
+	pal := o.host.Colors()
 	cards := o.cardsOf("")
 	tray := ui.Scroll(c.Key("plan-tray")).FillWidth().MaxHeight(planTrayHeight).Shrink(0).Padding(10, 24, 14, 24).Gap(8).Background(pal.Side).BorderWidth(1, 0, 0, 0).BorderColor(pal.Theme.Border).Label("大纲托盘")
 	if _, over := ui.DragOver[dragCard](tray); over {
 		tray.Background(pal.Theme.SurfaceHover)
 	}
 	if id, ok := ui.Drop[dragCard](tray); ok {
-		o.change(o.host.content().PlaceCard(string(id), "", nil))
+		o.change(o.host.Content().PlaceCard(string(id), "", nil))
 	}
 	tray.Children(func() {
 		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
@@ -789,8 +789,8 @@ func (o *outlinePage) tray(c *ui.Context) {
 }
 
 func (o *outlinePage) timeline(c *ui.Context) {
-	pal := o.host.colors()
-	content := o.host.content()
+	pal := o.host.Colors()
+	content := o.host.Content()
 	cols := o.index.columns
 	g := o.layout(c)
 	width, height := o.viewport.W, o.viewport.H
@@ -885,7 +885,7 @@ func (o *outlinePage) timeline(c *ui.Context) {
 }
 
 func (o *outlinePage) timeHead(c *ui.Context, i int, col workspace.TimeColumn) {
-	pal := o.host.colors()
+	pal := o.host.Colors()
 	ui.Column(c).Width(planCardWidth).Height(kit.TitleHeight+kit.HTag).Padding(12, 12, 0, 12).Gap(6).Shrink(0).Children(func() {
 		label := col.When
 		if label == "" {
@@ -944,8 +944,8 @@ func (o *outlinePage) timeHead(c *ui.Context, i int, col workspace.TimeColumn) {
 				}
 			})
 			if save {
-				o.change(o.host.content().SaveTime(o.column, o.when))
-				if o.host.notices().ErrorText() == "" {
+				o.change(o.host.Content().SaveTime(o.column, o.when))
+				if o.host.Notices().ErrorText() == "" {
 					open = false
 				}
 			}
@@ -971,7 +971,7 @@ func (o *outlinePage) saveCard(more bool) {
 		return
 	}
 	fresh := o.card.ID == ""
-	e, err := o.host.content().SaveCard(o.card, o.after)
+	e, err := o.host.Content().SaveCard(o.card, o.after)
 	o.change(err)
 	if err != nil {
 		return
@@ -991,9 +991,9 @@ func (o *outlinePage) saveCard(more bool) {
 }
 
 func (o *outlinePage) dialog(c *ui.Context) {
-	pal := o.host.colors()
-	status := o.host.notices()
-	content := o.host.content()
+	pal := o.host.Colors()
+	status := o.host.Notices()
+	content := o.host.Content()
 	if !o.cardOpen {
 		return
 	}
@@ -1104,14 +1104,14 @@ func (o *outlinePage) chapterStory(c *ui.Context) {
 	if o.loadErr != nil {
 		return
 	}
-	id, _, _ := o.host.chapter()
+	id, _, _ := o.host.Chapter()
 	cards := o.cardsOf(id)
 	when := storyWhen(cards)
 	if when == "" {
 		return
 	}
-	if o.host.colors().Ghost(c, "故事中 "+when, ui.Color{}).Clicked() {
-		o.host.showOutline()
+	if o.host.Colors().Ghost(c, "故事中 "+when, ui.Color{}).Clicked() {
+		o.host.ShowOutline()
 		o.mode = 1
 		o.query = ""
 		o.loaded = false

@@ -32,21 +32,21 @@ type exportView struct {
 // preferences is how the export dialog was last left on this machine; the
 // first time, the prose alone, as Word.
 func (e *exportView) preferences() *shelf.Export {
-	if e.host.shelfPrefs().Export == nil {
-		e.host.shelfPrefs().Export = &shelf.Export{Options: export.Options{Prose: true}}
+	if e.host.ShelfPrefs().Export == nil {
+		e.host.ShelfPrefs().Export = &shelf.Export{Options: export.Options{Prose: true}}
 	}
-	return e.host.shelfPrefs().Export
+	return e.host.ShelfPrefs().Export
 }
 
 // show asks what to export, starting from the whole work, the
 // pen name the work had last, and 指定范围 from the first chapter to
 // the third.
 func (e *exportView) show() {
-	e.host.flush()
-	store, _ := e.host.workspace()
+	e.host.Flush()
+	store, _ := e.host.Workspace()
 	pieces, err := store.Pieces()
 	if err != nil {
-		e.host.notices().Warn(err)
+		e.host.Notices().Warn(err)
 		return
 	}
 	fresh := exportView{host: e.host, open: true, pieces: pieces, selection: export.Selection{Scope: export.ScopeWork}, pen: store.Work().Pen, indent: true}
@@ -67,8 +67,8 @@ func (e *exportView) replan() {
 		return
 	}
 	set := e.preferences()
-	id, _, _ := e.host.chapter()
-	e.plan = export.BuildPlan(e.pieces, e.host.content().Setting().Entries, id, set.Options, e.selection)
+	id, _, _ := e.host.Chapter()
+	e.plan = export.BuildPlan(e.pieces, e.host.Content().Setting().Entries, id, set.Options, e.selection)
 	e.selection.Scope = e.plan.Scope
 }
 
@@ -76,10 +76,10 @@ func (e *exportView) replan() {
 // setting, what is ticked, each its own file, as Word or as plain text;
 // the prose and the outline of the range chosen.
 func (e *exportView) view(c *ui.Context) {
-	pal := e.host.colors()
+	pal := e.host.Colors()
 	t := pal.Theme
 	set := e.preferences()
-	id, _, _ := e.host.chapter()
+	id, _, _ := e.host.Chapter()
 	if e.plan.Current != id {
 		e.replan()
 	}
@@ -94,7 +94,7 @@ func (e *exportView) view(c *ui.Context) {
 						what string
 					}{{&set.Prose, export.ProseContent}, {&set.Outline, export.OutlineContent}, {&set.Setting, export.SettingContent}} {
 						if ui.Checkbox(c, o.on, o.what).Changed() {
-							e.host.saveShelf()
+							e.host.SaveShelf()
 							e.replan()
 						}
 					}
@@ -102,7 +102,7 @@ func (e *exportView) view(c *ui.Context) {
 			})
 			kit.Labeled(c, "格式", func() {
 				if kit.Dots(c, &set.Text, "导出格式", []bool{false, true}, []string{"Word", "纯文本"}) {
-					e.host.saveShelf()
+					e.host.SaveShelf()
 					e.replan()
 				}
 			})
@@ -172,10 +172,10 @@ var fileName = strings.NewReplacer("：", " ", `\`, " ", "/", " ", ":", " ", "*"
 // thing, a folder for several, or the work's 导出 folder when there is no
 // dialog to ask with.
 func (e *exportView) export(c *ui.Context, plan export.Plan) {
-	status := e.host.notices()
-	content := e.host.content()
+	status := e.host.Notices()
+	content := e.host.Content()
 	set := e.preferences()
-	store, _ := e.host.workspace()
+	store, _ := e.host.Workspace()
 	work := store.Work()
 	ext := ".docx"
 	if set.Text {
@@ -222,22 +222,22 @@ func (e *exportView) export(c *ui.Context, plan export.Plan) {
 		e.open = false
 		if set.Prose && !set.Text && pen != work.Pen {
 			work.Pen = pen
-			current, _ := e.host.workspace()
+			current, _ := e.host.Workspace()
 			status.Warn(current.SaveWork(work))
 		}
 		if set.Prose && !set.Text && pen != set.Pen {
 			set.Pen = pen
-			e.host.saveShelf()
+			e.host.SaveShelf()
 		}
 		status.Did("已导出到 " + path)
 		if len(files) > 1 {
 			status.Did(fmt.Sprintf("已导出 %d 个文件到 %s", len(files), dir))
 		}
 	}
-	save, _ := e.host.dialogs()
+	save, _ := e.host.Dialogs()
 	if len(files) == 1 && save != nil {
 		sv := c.Services()
-		e.host.startJob(sv, func() func() {
+		e.host.StartJob(sv, func() func() {
 			path, err := save("导出", files[0].name)
 			return func() {
 				if err != nil {
@@ -250,7 +250,7 @@ func (e *exportView) export(c *ui.Context, plan export.Plan) {
 		})
 		return
 	}
-	if len(files) > 1 && e.host.pickInto(c, "导出到", write) {
+	if len(files) > 1 && e.host.PickInto(c, "导出到", write) {
 		return
 	}
 	dir := filepath.Join(store.Root(), "导出")

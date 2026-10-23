@@ -43,14 +43,14 @@ type planRow struct {
 }
 
 func (o *outlinePage) layout(c *ui.Context) *planGeometry {
-	content := o.host.content()
+	content := o.host.Content()
 	if g := o.geometry; g != nil && g.root == content.Tree().Root && g.query == kit.Trim(o.query) && g.editing == o.outlineDraft.Node {
 		return g
 	}
 	g := &planGeometry{root: content.Tree().Root, query: kit.Trim(o.query), editing: o.outlineDraft.Node, lanes: map[string]float32{}}
 	_, unit := c.MeasureText(0, ui.Span{Text: "字", Size: kit.FsBody})
 	textHeight := func(text string, width float32, limit int) float32 {
-		spans := kit.Marked(text, kit.Trim(o.query), o.host.colors().Ink)
+		spans := kit.Marked(text, kit.Trim(o.query), o.host.Colors().Ink)
 		for i := range spans {
 			spans[i].Size = kit.FsBody
 		}
@@ -152,7 +152,7 @@ func (o *outlinePage) layout(c *ui.Context) *planGeometry {
 
 // Move first, then build: ScrollIntoView can now find a previously virtual card.
 func (o *outlinePage) revealCard(g *planGeometry, width, height float32) {
-	content := o.host.content()
+	content := o.host.Content()
 	if !o.reveal {
 		return
 	}
