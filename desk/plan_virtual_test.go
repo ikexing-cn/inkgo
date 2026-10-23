@@ -46,7 +46,7 @@ func TestOutlineVirtualScrolling(t *testing.T) {
 		t.Fatal("search missed a virtual chapter")
 	}
 	click(t, tt, "清除搜索")
-	a.plan.seePlanCard(last.ID)
+	a.plan.seeCard(last.ID)
 	sv.Invalidate()
 	tt.Frame()
 	tt.Frame()
@@ -76,7 +76,7 @@ func TestOutlineVirtualScrolling(t *testing.T) {
 	if _, ok := tt.Find("时间列-0"); ok {
 		t.Fatal("offscreen time header was built")
 	}
-	a.plan.seePlanCard(last.ID)
+	a.plan.seeCard(last.ID)
 	sv.Invalidate()
 	tt.Frame()
 	tt.Frame()

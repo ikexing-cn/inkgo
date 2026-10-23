@@ -41,7 +41,7 @@ type planRow struct {
 	when      string
 }
 
-func (o *outlinePage) planGeometry(c *ui.Context) *planGeometry {
+func (o *outlinePage) layout(c *ui.Context) *planGeometry {
 	if g := o.geometry; g != nil && g.root == o.host.Book().Tree().Root && g.query == trim(o.query) && g.editing == o.outlineDraft.node {
 		return g
 	}
@@ -94,12 +94,12 @@ func (o *outlinePage) planGeometry(c *ui.Context) *planGeometry {
 		for _, n := range folder.Children {
 			if !n.Folder {
 				chapters = append(chapters, n)
-				if o.planNodeFound(n) || slices.ContainsFunc(o.cardsOf(n.ID), o.cardFound) {
+				if o.nodeFound(n) || slices.ContainsFunc(o.cardsOf(n.ID), o.cardFound) {
 					shown = append(shown, n)
 				}
 			}
 		}
-		if folder != o.host.Book().Tree().Root && (g.query == "" || len(shown) > 0 || o.planNodeFound(folder)) {
+		if folder != o.host.Book().Tree().Root && (g.query == "" || len(shown) > 0 || o.nodeFound(folder)) {
 			var cards []workspace.Card
 			for _, n := range chapters {
 				cards = append(cards, o.cardsOf(n.ID)...)
@@ -149,7 +149,7 @@ func (o *outlinePage) planGeometry(c *ui.Context) *planGeometry {
 }
 
 // Move first, then build: ScrollIntoView can now find a previously virtual card.
-func (o *outlinePage) planReveal(g *planGeometry, width, height float32) {
+func (o *outlinePage) revealCard(g *planGeometry, width, height float32) {
 	if !o.reveal {
 		return
 	}

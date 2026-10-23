@@ -170,7 +170,7 @@ func TestTheOutlineByChapter(t *testing.T) {
 	hasText(t, tt, "旧城的灯一盏一盏查下去")
 	hasText(t, tt, "2 章 · 十月五日 — 十月六日")
 	hasText(t, tt, "回溯")
-	if !a.plan.planBack(f.two) || a.plan.planBack(f.one) {
+	if !a.plan.back(f.two) || a.plan.back(f.one) {
 		t.Fatal("backtracking")
 	}
 	click(t, tt, fmt.Sprintf("添加卡片-%s|%s|-2", f.one, f.lines[2].ID))
