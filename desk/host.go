@@ -18,6 +18,11 @@ type host interface {
 	saveShelf()
 	chapter() (string, *editor.Editor, bool)
 	flush()
+	syncPlanOutline(string, string)
+	openWriting(string)
+	showOutline()
+	dropMenu(*ui.Context, ui.Element, string, func(ui.Element), func(*menu))
+	settingColumn(*ui.Context)
 	startJob(ui.Services, func() func())
 	dialogs() (save func(string, string) (string, error), pick func(string) (string, error), reveal func(string) error)
 }
@@ -49,3 +54,17 @@ func (a *App) dialogs() (func(string, string) (string, error), func(string) (str
 }
 
 func (a *App) phoneColors() (*palette, *palette) { return a.light, a.dark }
+
+func (a *App) syncPlanOutline(id, text string) {
+	if a.write.node == id {
+		d := &a.write.cur().outline
+		d.text, d.saved, d.seen = text, text, text
+	}
+}
+
+func (a *App) openWriting(id string) {
+	a.page = pageWrite
+	a.openNode(id)
+}
+
+func (a *App) showOutline() { a.page = pagePlan }

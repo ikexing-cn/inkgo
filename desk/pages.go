@@ -27,12 +27,9 @@ func (a *App) initPages() {
 		},
 		pagePlan: {
 			tabEntry: tabEntry[page]{name: "大纲", icon: icOutline, work: true},
-			enter:    func() { a.plan.loaded = false },
-			leave: func() {
-				a.finishPlanOutline()
-				a.finishPlanLine()
-			},
-			view: a.outlinePage,
+			enter:    a.plan.enter,
+			leave:    a.plan.leave,
+			view:     a.plan.view,
 		},
 		pageCheck: {
 			tabEntry: tabEntry[page]{name: "检查", icon: icDone, ai: true, work: true,

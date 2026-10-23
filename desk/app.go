@@ -186,7 +186,7 @@ type App struct {
 	exporting                        exportView
 	phone                            phonePanel
 	write                            writeView
-	plan                             planView
+	plan                             outlinePage
 	LastChat, LastSetting, LastWrite ui.Rect
 	LastProse                        ui.Rect
 	// Appearance applies the appearance chosen: "light", "dark", or empty
@@ -201,7 +201,7 @@ type App struct {
 func New(ai aiport.Service) *App {
 	a := &App{ai: ai, genre: "网文",
 		light: lightPalette(), dark: darkPalette(), titles: map[string]string{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
-	a.exporting.host, a.phone.host = a, a
+	a.exporting.host, a.phone.host, a.plan.host = a, a, a
 	a.pal = a.light
 	a.initPages()
 	a.initTabs()
@@ -276,7 +276,7 @@ func (a *App) resetView() {
 	a.source, a.sourceOpen, a.contextReply = nil, false, ""
 	a.input, a.seen, a.flash, a.doc, a.write = "", -1, map[string]time.Time{}, docView{}, writeView{}
 	a.bk = backupView{}
-	a.plan = planView{}
+	a.plan = outlinePage{host: a}
 	a.exporting = exportView{host: a}
 	a.page, a.shown, a.offAway = pageTalk, pageTalk, false
 }
@@ -313,7 +313,7 @@ func (a *App) leaveWork() {
 	}
 	a.dropProps(a.write.props, workspace.FateClosed)
 	a.flush()
-	a.finishPlanOutline()
+	a.plan.finishPlanOutline()
 	a.keepUnsettled()
 	a.remember(false)
 	a.backupNow()

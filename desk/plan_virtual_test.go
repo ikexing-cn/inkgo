@@ -46,7 +46,7 @@ func TestOutlineVirtualScrolling(t *testing.T) {
 		t.Fatal("search missed a virtual chapter")
 	}
 	click(t, tt, "清除搜索")
-	a.seePlanCard(last.ID)
+	a.plan.seePlanCard(last.ID)
 	sv.Invalidate()
 	tt.Frame()
 	tt.Frame()
@@ -66,17 +66,17 @@ func TestOutlineVirtualScrolling(t *testing.T) {
 	sv.Invalidate()
 	tt.Frame()
 	tt.Frame()
-	when := storyWhen(a.cardsOf(last.Chapter))
+	when := storyWhen(a.plan.cardsOf(last.Chapter))
 	click(t, tt, "故事中 "+when)
 	if p.mode != 1 {
 		t.Fatal("story jump did not select timeline")
 	}
-	first := a.cardsOf(last.Chapter)[0]
+	first := a.plan.cardsOf(last.Chapter)[0]
 	planVisibleCard(t, a, tt, first.ID)
 	if _, ok := tt.Find("时间列-0"); ok {
 		t.Fatal("offscreen time header was built")
 	}
-	a.seePlanCard(last.ID)
+	a.plan.seePlanCard(last.ID)
 	sv.Invalidate()
 	tt.Frame()
 	tt.Frame()

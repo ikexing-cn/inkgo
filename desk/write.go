@@ -400,7 +400,7 @@ func (a *App) chapterView(c *ui.Context) {
 			var outline ui.CollapsibleParts
 			ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
 				outline = a.disclosure(c, label, &w.outlineOpen)
-				a.chapterStory(c)
+				a.plan.chapterStory(c)
 			})
 			outline.Panel(func() {
 				ui.Box(c).FillWidth().Padding(2, 0, 4, 0).Children(func() { a.outlineBox(c, "章纲", 96) })

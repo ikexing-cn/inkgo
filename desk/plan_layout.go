@@ -41,15 +41,14 @@ type planRow struct {
 	when      string
 }
 
-func (a *App) planGeometry(c *ui.Context) *planGeometry {
-	p := &a.plan
-	if g := p.geometry; g != nil && g.root == a.book.Tree().Root && g.query == trim(p.query) && g.editing == p.outlineDraft.node {
+func (o *outlinePage) planGeometry(c *ui.Context) *planGeometry {
+	if g := o.geometry; g != nil && g.root == o.host.Book().Tree().Root && g.query == trim(o.query) && g.editing == o.outlineDraft.node {
 		return g
 	}
-	g := &planGeometry{root: a.book.Tree().Root, query: trim(p.query), editing: p.outlineDraft.node, lanes: map[string]float32{}}
+	g := &planGeometry{root: o.host.Book().Tree().Root, query: trim(o.query), editing: o.outlineDraft.node, lanes: map[string]float32{}}
 	_, unit := c.MeasureText(0, ui.Span{Text: "字", Size: fsBody})
 	textHeight := func(text string, width float32, limit int) float32 {
-		spans := marked(text, trim(p.query), a.pal.ink)
+		spans := marked(text, trim(o.query), o.host.colors().ink)
 		for i := range spans {
 			spans[i].Size = fsBody
 		}
@@ -65,7 +64,7 @@ func (a *App) planGeometry(c *ui.Context) *planGeometry {
 	}
 	// One cell includes padding, its bottom border, and the add button.
 	base := float32(20 + 1 + hControl)
-	for _, col := range p.index.columns {
+	for _, col := range o.index.columns {
 		heights := map[string]float32{}
 		for _, e := range col.Cards {
 			heights[e.Line] += cardHeight(e, true) + 8
@@ -84,7 +83,7 @@ func (a *App) planGeometry(c *ui.Context) *planGeometry {
 	}
 	var block func(*workspace.Node)
 	block = func(folder *workspace.Node) {
-		if folder == a.book.Tree().Root {
+		if folder == o.host.Book().Tree().Root {
 			for _, n := range folder.Children {
 				if n.Folder {
 					block(n)
@@ -95,36 +94,36 @@ func (a *App) planGeometry(c *ui.Context) *planGeometry {
 		for _, n := range folder.Children {
 			if !n.Folder {
 				chapters = append(chapters, n)
-				if a.planNodeFound(n) || slices.ContainsFunc(a.cardsOf(n.ID), a.cardFound) {
+				if o.planNodeFound(n) || slices.ContainsFunc(o.cardsOf(n.ID), o.cardFound) {
 					shown = append(shown, n)
 				}
 			}
 		}
-		if folder != a.book.Tree().Root && (g.query == "" || len(shown) > 0 || a.planNodeFound(folder)) {
+		if folder != o.host.Book().Tree().Root && (g.query == "" || len(shown) > 0 || o.planNodeFound(folder)) {
 			var cards []workspace.Card
 			for _, n := range chapters {
-				cards = append(cards, a.cardsOf(n.ID)...)
+				cards = append(cards, o.cardsOf(n.ID)...)
 			}
-			h := float32(16+12+1+4+4) + fsGroup*lhTight + textHeight(a.book.Outlines()[folder.ID], planGistWidth-8, 3)
-			if p.outlineDraft.node == folder.ID {
+			h := float32(16+12+1+4+4) + fsGroup*lhTight + textHeight(o.host.Book().Outlines()[folder.ID], planGistWidth-8, 3)
+			if o.outlineDraft.node == folder.ID {
 				h += hControl * 3
 			}
 			appendRow(planRow{node: folder, kind: 1, height: h, count: len(chapters), when: storyWhen(cards)})
 		}
-		if folder == a.book.Tree().Root && len(shown) > 0 {
+		if folder == o.host.Book().Tree().Root && len(shown) > 0 {
 			appendRow(planRow{kind: 2, height: 16 + 12 + fsGroup*lhTight})
 		}
 		for _, n := range shown {
-			cards := a.cardsOf(n.ID)
+			cards := o.cardsOf(n.ID)
 			when := storyWhen(cards)
-			h := float32(32+4+4+1) + fsBody*lhBody + textHeight(a.book.Outlines()[n.ID], planChapterWidth-24-12-8, 3)
+			h := float32(32+4+4+1) + fsBody*lhBody + textHeight(o.host.Book().Outlines()[n.ID], planChapterWidth-24-12-8, 3)
 			if when != "" {
 				h += 4 + fsNote*lhBody
 			}
 			if slices.ContainsFunc(cards, func(e workspace.Card) bool { return e.Line == "" }) {
 				h += 4 + fsNote*lhBody
 			}
-			if p.outlineDraft.node == n.ID {
+			if o.outlineDraft.node == n.ID {
 				h += hControl * 3
 			}
 			heights := map[string]float32{}
@@ -139,45 +138,44 @@ func (a *App) planGeometry(c *ui.Context) *planGeometry {
 			appendRow(planRow{node: n, height: max(planRowMinHeight, h), when: when})
 		}
 		for _, n := range folder.Children {
-			if n.Folder && folder != a.book.Tree().Root {
+			if n.Folder && folder != o.host.Book().Tree().Root {
 				block(n)
 			}
 		}
 	}
-	block(a.book.Tree().Root)
-	p.geometry = g
+	block(o.host.Book().Tree().Root)
+	o.geometry = g
 	return g
 }
 
 // Move first, then build: ScrollIntoView can now find a previously virtual card.
-func (a *App) planReveal(g *planGeometry, width, height float32) {
-	p := &a.plan
-	if !p.reveal {
+func (o *outlinePage) planReveal(g *planGeometry, width, height float32) {
+	if !o.reveal {
 		return
 	}
-	e, ok := a.book.Plan().Card(p.seen)
+	e, ok := o.host.Book().Plan().Card(o.seen)
 	if !ok {
 		return
 	}
-	if p.mode == 0 {
-		chapter := a.cardChapter(e)
+	if o.mode == 0 {
+		chapter := o.cardChapter(e)
 		if chapter == "" {
 			return
 		} // the tray is built separately
 		for _, row := range g.rows {
 			if row.node != nil && row.node.ID == chapter {
-				p.scroll[0].Y = planOffset(p.scroll[0].Y, height, row.y, row.height)
+				o.scroll[0].Y = planOffset(o.scroll[0].Y, height, row.y, row.height)
 				break
 			}
 		}
-		line := slices.IndexFunc(a.book.Plan().Lines, func(l workspace.PlotLine) bool { return l.ID == e.Line })
+		line := slices.IndexFunc(o.host.Book().Plan().Lines, func(l workspace.PlotLine) bool { return l.ID == e.Line })
 		if line >= 0 {
-			p.scroll[0].X = planOffset(p.scroll[0].X, width-planChapterWidth, float32(line*planCardWidth), planCardWidth)
+			o.scroll[0].X = planOffset(o.scroll[0].X, width-planChapterWidth, float32(line*planCardWidth), planCardWidth)
 		}
 	} else {
-		for i, col := range p.index.columns {
+		for i, col := range o.index.columns {
 			if slices.ContainsFunc(col.Cards, func(x workspace.Card) bool { return x.ID == e.ID }) {
-				p.scroll[1].X = planOffset(p.scroll[1].X, width-planLaneWidth, float32(i*planCardWidth), planCardWidth)
+				o.scroll[1].X = planOffset(o.scroll[1].X, width-planLaneWidth, float32(i*planCardWidth), planCardWidth)
 				break
 			}
 		}

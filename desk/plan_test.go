@@ -170,7 +170,7 @@ func TestTheOutlineByChapter(t *testing.T) {
 	hasText(t, tt, "旧城的灯一盏一盏查下去")
 	hasText(t, tt, "2 章 · 十月五日 — 十月六日")
 	hasText(t, tt, "回溯")
-	if !a.planBack(f.two) || a.planBack(f.one) {
+	if !a.plan.planBack(f.two) || a.plan.planBack(f.one) {
 		t.Fatal("backtracking")
 	}
 	click(t, tt, fmt.Sprintf("添加卡片-%s|%s|-2", f.one, f.lines[2].ID))
@@ -314,7 +314,7 @@ func TestOutlineSearch(t *testing.T) {
 	click(t, tt, "时间线")
 	planType(t, tt, "搜索大纲", "停电")
 	hasText(t, tt, "找到 2 张卡片")
-	if !a.cardFound(f.cards[0]) || a.cardFound(f.cards[4]) {
+	if !a.plan.cardFound(f.cards[0]) || a.plan.cardFound(f.cards[4]) {
 		t.Fatal("timeline search")
 	}
 }
@@ -476,7 +476,7 @@ func TestOutlineTrashAndSettingsPane(t *testing.T) {
 	forgetOutline(a)
 	tt.Frame()
 	tt.Frame()
-	if len(a.cardsOf("")) != 5 {
+	if len(a.plan.cardsOf("")) != 5 {
 		t.Fatal("trashed cards absent from tray")
 	}
 	if err := a.Store.RestoreChapter(f.two); err != nil {
@@ -485,7 +485,7 @@ func TestOutlineTrashAndSettingsPane(t *testing.T) {
 	forgetOutline(a)
 	tt.Frame()
 	tt.Frame()
-	if len(a.cardsOf(f.two)) != 3 {
+	if len(a.plan.cardsOf(f.two)) != 3 {
 		t.Fatal("restored cards not back")
 	}
 	click(t, tt, "正文")
