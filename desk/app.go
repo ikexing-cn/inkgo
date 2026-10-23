@@ -96,7 +96,8 @@ type App struct {
 	// open. It is used on the view thread only.
 	book *book.Book
 	// ai is all the AI does: what sends goes through it alone.
-	ai aiport.Service
+	ai    aiport.Service
+	aiOff []func()
 	// PickFolder shows a native folder dialog; it runs off the UI thread.
 	// Nil hides the browse buttons (tests, platforms without dialogs).
 	PickFolder func(title string) (string, error)
@@ -202,6 +203,26 @@ func New(ai aiport.Service) *App {
 	a.pal = a.light
 	a.initPages()
 	a.initTabs()
+	a.aiOff = []func(){
+		func() {
+			if a.cancel != nil {
+				a.cancel()
+			}
+		},
+		func() {
+			if a.Store != nil {
+				a.dropProps(a.write.props, workspace.FateOff)
+			}
+		},
+		func() {
+			if a.Store != nil {
+				a.stopChecks()
+			}
+		},
+		func() { a.write.draftOpen, a.write.rewriting = false, false },
+		a.doc.route.closeWaiting,
+		a.status.clear,
+	}
 	if ai.ConfigFile() != "" {
 		a.loadShelf()
 	}

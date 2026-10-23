@@ -1,9 +1,6 @@
 package desk
 
-import (
-	"github.com/egoist/mygo/ui"
-	"writer/workspace"
-)
+import "github.com/egoist/mygo/ui"
 
 // aiOn tells whether the AI is on on this machine. Off, nothing of it
 // shows, and nothing is sent.
@@ -83,20 +80,12 @@ func (a *App) turnAI(on bool) {
 		}
 		a.offAway = false
 	} else {
-		if a.cancel != nil {
-			a.cancel()
+		for _, off := range a.aiOff {
+			off()
 		}
-		if a.Store != nil {
-			a.dropProps(a.write.props, workspace.FateOff)
-			a.stopChecks()
-			if a.pages[a.page].ai {
-				a.offFrom, a.offAway, a.page = a.page, true, pageWrite
-			}
+		if a.Store != nil && a.pages[a.page].ai {
+			a.offFrom, a.offAway, a.page = a.page, true, pageWrite
 		}
-		w := &a.write
-		w.draftOpen, w.rewriting = false, false
-		a.doc.route.closeWaiting() // what waits on the author there is the AI's
-		a.status.clear()
 	}
 	for _, ed := range a.write.editors() {
 		ed.SetNoAI(!on)

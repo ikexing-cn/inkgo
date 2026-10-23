@@ -580,6 +580,52 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 	}
 }
 
+func TestAISwitchCallsPartsInOrder(t *testing.T) {
+	a, _, _ := writingFixture(t, "雨停了。")
+	parts := []string{"talk", "proposals", "checks", "draft and rewrite dialogs", "setting waiting", "status"}
+	if len(a.aiOff) != len(parts) {
+		t.Fatalf("registered %d parts, want %v", len(a.aiOff), parts)
+	}
+	a.ck.queue.Enqueue("waiting")
+	a.write.draftOpen, a.write.rewriting = true, true
+	showTodo(a, true)
+	a.SetError(errors.New("AI failed"))
+	var calls []string
+	for i, off := range a.aiOff {
+		a.aiOff[i] = func() {
+			calls = append(calls, parts[i])
+			off()
+			if got, want := len(a.ck.queue.Pending) > 0, i < 2; got != want {
+				t.Errorf("after %s: checks waiting %v, want %v", parts[i], got, want)
+			}
+			if want := i < 3; a.write.draftOpen != want || a.write.rewriting != want {
+				t.Errorf("after %s: draft/rewrite open %v/%v, want %v", parts[i], a.write.draftOpen, a.write.rewriting, want)
+			}
+			if got, want := todoShown(a), i < 4; got != want {
+				t.Errorf("after %s: setting waiting %v, want %v", parts[i], got, want)
+			}
+			if got, want := appError(a) != nil, i < 5; got != want {
+				t.Errorf("after %s: status has error %v, want %v", parts[i], got, want)
+			}
+		}
+	}
+	a.cancel = func() {
+		if want := []string{"talk"}; !slices.Equal(calls, want) {
+			t.Errorf("talk cancelled after %v, want %v", calls, want)
+		}
+	}
+	a.turnAI(false)
+	if !slices.Equal(calls, parts) {
+		t.Fatalf("shutdown order = %v, want %v", calls, parts)
+	}
+	calls = nil
+	a.turnAI(true)
+	if len(calls) != 0 {
+		t.Fatalf("switching on stopped %v", calls)
+	}
+	a.cancel = nil
+}
+
 // TestShotAIOff writes screenshots of the switch and of the window with the
 // AI off when SHOT is a directory: SHOT=dir go test ./desk -run ShotAIOff
 // Turned off on the talk or check page, the AI gives way to the prose;
