@@ -200,7 +200,7 @@ func (a *App) setSideHidden(hidden bool) {
 // setDocHidden folds the panel away, for the talk alone, or brings it back.
 func (a *App) setDocHidden(hidden bool) {
 	if a.page == pagePlan {
-		a.plan.pane = !hidden
+		a.plan.Pane = !hidden
 		return
 	}
 	a.doc.hidden = hidden

@@ -1,4 +1,4 @@
-package desk
+package outline
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
-func planVisibleCard(t *testing.T, a *App, tt *ui.Tester, id string) {
+func planVisibleCard(t *testing.T, a *testHost, tt *ui.Tester, id string) {
 	t.Helper()
 	r, ok := tt.Find("卡片-" + id)
 	v := a.plan.viewport
@@ -61,8 +61,8 @@ func TestOutlineVirtualScrolling(t *testing.T) {
 	}
 	planVisibleCard(t, a, tt, added.ID)
 	// The prose jump also has to create a distant time column first.
-	showPage(a, pageWrite)
-	a.openNode(last.Chapter)
+	a.writing = true
+	a.current = last.Chapter
 	sv.Invalidate()
 	tt.Frame()
 	tt.Frame()

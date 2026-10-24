@@ -132,7 +132,7 @@ func (a *App) textMenu(m *kit.Menu) {
 // caret, how far it is scrolled.
 func (a *App) openNode(id string) {
 	a.flush()
-	a.plan.finishOutline()
+	a.plan.FinishOutline()
 	a.leaveCheck()
 	a.scanMarks()
 	w := &a.write

@@ -14,10 +14,7 @@ import (
 func chapters(a *App) workspace.Tree            { return a.book.Tree() }
 func setChapterCounts(a *App, n map[string]int) { a.book.SetCounts(n) }
 func setting(a *App) workspace.Setting          { return a.book.Setting() }
-func outline(a *App) workspace.Plan             { return a.book.Plan() }
 func rereadBook(a *App)                         { a.warn(a.book.ReloadAll()) }
-func forgetOutline(a *App)                      { a.plan.loaded = false }
-func outlineErr(a *App) error                   { return a.plan.loadErr }
 
 // The open chapter.
 func shownEditor(a *App) *editor.Editor  { return a.write.cur().ed }

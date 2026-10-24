@@ -1,4 +1,4 @@
-package desk
+package outline
 
 import (
 	"math"
@@ -42,15 +42,15 @@ type planRow struct {
 	when      string
 }
 
-func (o *outlinePage) layout(c *ui.Context) *planGeometry {
-	content := o.host.Content()
-	if g := o.geometry; g != nil && g.root == content.Tree().Root && g.query == kit.Trim(o.query) && g.editing == o.outlineDraft.Node {
+func (p *Page) layout(c *ui.Context) *planGeometry {
+	content := p.Host.Content()
+	if g := p.geometry; g != nil && g.root == content.Tree().Root && g.query == kit.Trim(p.query) && g.editing == p.outlineDraft.Node {
 		return g
 	}
-	g := &planGeometry{root: content.Tree().Root, query: kit.Trim(o.query), editing: o.outlineDraft.Node, lanes: map[string]float32{}}
+	g := &planGeometry{root: content.Tree().Root, query: kit.Trim(p.query), editing: p.outlineDraft.Node, lanes: map[string]float32{}}
 	_, unit := c.MeasureText(0, ui.Span{Text: "字", Size: kit.FsBody})
 	textHeight := func(text string, width float32, limit int) float32 {
-		spans := kit.Marked(text, kit.Trim(o.query), o.host.Colors().Ink)
+		spans := kit.Marked(text, kit.Trim(p.query), p.Host.Colors().Ink)
 		for i := range spans {
 			spans[i].Size = kit.FsBody
 		}
@@ -66,7 +66,7 @@ func (o *outlinePage) layout(c *ui.Context) *planGeometry {
 	}
 	// One cell includes padding, its bottom border, and the add button.
 	base := float32(20 + 1 + kit.HControl)
-	for _, col := range o.index.columns {
+	for _, col := range p.index.columns {
 		heights := map[string]float32{}
 		for _, e := range col.Cards {
 			heights[e.Line] += cardHeight(e, true) + 8
@@ -96,18 +96,18 @@ func (o *outlinePage) layout(c *ui.Context) *planGeometry {
 		for _, n := range folder.Children {
 			if !n.Folder {
 				chapters = append(chapters, n)
-				if o.nodeFound(n) || slices.ContainsFunc(o.cardsOf(n.ID), o.cardFound) {
+				if p.nodeFound(n) || slices.ContainsFunc(p.cardsOf(n.ID), p.cardFound) {
 					shown = append(shown, n)
 				}
 			}
 		}
-		if folder != content.Tree().Root && (g.query == "" || len(shown) > 0 || o.nodeFound(folder)) {
+		if folder != content.Tree().Root && (g.query == "" || len(shown) > 0 || p.nodeFound(folder)) {
 			var cards []workspace.Card
 			for _, n := range chapters {
-				cards = append(cards, o.cardsOf(n.ID)...)
+				cards = append(cards, p.cardsOf(n.ID)...)
 			}
 			h := float32(16+12+1+4+4) + kit.FsGroup*kit.LhTight + textHeight(content.Outlines()[folder.ID], planGistWidth-8, 3)
-			if o.outlineDraft.Node == folder.ID {
+			if p.outlineDraft.Node == folder.ID {
 				h += kit.HControl * 3
 			}
 			appendRow(planRow{node: folder, kind: 1, height: h, count: len(chapters), when: storyWhen(cards)})
@@ -116,7 +116,7 @@ func (o *outlinePage) layout(c *ui.Context) *planGeometry {
 			appendRow(planRow{kind: 2, height: 16 + 12 + kit.FsGroup*kit.LhTight})
 		}
 		for _, n := range shown {
-			cards := o.cardsOf(n.ID)
+			cards := p.cardsOf(n.ID)
 			when := storyWhen(cards)
 			h := float32(32+4+4+1) + kit.FsBody*kit.LhBody + textHeight(content.Outlines()[n.ID], planChapterWidth-24-12-8, 3)
 			if when != "" {
@@ -125,7 +125,7 @@ func (o *outlinePage) layout(c *ui.Context) *planGeometry {
 			if slices.ContainsFunc(cards, func(e workspace.Card) bool { return e.Line == "" }) {
 				h += 4 + kit.FsNote*kit.LhBody
 			}
-			if o.outlineDraft.Node == n.ID {
+			if p.outlineDraft.Node == n.ID {
 				h += kit.HControl * 3
 			}
 			heights := map[string]float32{}
@@ -146,39 +146,39 @@ func (o *outlinePage) layout(c *ui.Context) *planGeometry {
 		}
 	}
 	block(content.Tree().Root)
-	o.geometry = g
+	p.geometry = g
 	return g
 }
 
 // Move first, then build: ScrollIntoView can now find a previously virtual card.
-func (o *outlinePage) revealCard(g *planGeometry, width, height float32) {
-	content := o.host.Content()
-	if !o.reveal {
+func (p *Page) revealCard(g *planGeometry, width, height float32) {
+	content := p.Host.Content()
+	if !p.reveal {
 		return
 	}
-	e, ok := content.Plan().Card(o.seen)
+	e, ok := content.Plan().Card(p.seen)
 	if !ok {
 		return
 	}
-	if o.mode == 0 {
-		chapter := o.cardChapter(e)
+	if p.mode == 0 {
+		chapter := p.cardChapter(e)
 		if chapter == "" {
 			return
 		} // the tray is built separately
 		for _, row := range g.rows {
 			if row.node != nil && row.node.ID == chapter {
-				o.scroll[0].Y = planOffset(o.scroll[0].Y, height, row.y, row.height)
+				p.scroll[0].Y = planOffset(p.scroll[0].Y, height, row.y, row.height)
 				break
 			}
 		}
 		line := slices.IndexFunc(content.Plan().Lines, func(l workspace.PlotLine) bool { return l.ID == e.Line })
 		if line >= 0 {
-			o.scroll[0].X = planOffset(o.scroll[0].X, width-planChapterWidth, float32(line*planCardWidth), planCardWidth)
+			p.scroll[0].X = planOffset(p.scroll[0].X, width-planChapterWidth, float32(line*planCardWidth), planCardWidth)
 		}
 	} else {
-		for i, col := range o.index.columns {
+		for i, col := range p.index.columns {
 			if slices.ContainsFunc(col.Cards, func(x workspace.Card) bool { return x.ID == e.ID }) {
-				o.scroll[1].X = planOffset(o.scroll[1].X, width-planLaneWidth, float32(i*planCardWidth), planCardWidth)
+				p.scroll[1].X = planOffset(p.scroll[1].X, width-planLaneWidth, float32(i*planCardWidth), planCardWidth)
 				break
 			}
 		}
