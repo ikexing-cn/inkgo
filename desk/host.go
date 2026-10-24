@@ -13,43 +13,6 @@ import (
 // methods their Host interfaces name, which App does not export.
 type appHost struct{ a *App }
 
-type host interface {
-	// Colors gives the current palette and its widgets.
-	Colors() *kit.Palette
-	// PhoneColors gives the light and dark palettes for the phone screen.
-	PhoneColors() (*kit.Palette, *kit.Palette)
-	// Content gives the book content shared by the pages.
-	Content() *book.Book
-	// Workspace gives the current store and work path.
-	Workspace() (*workspace.Store, string)
-	// Notices gives the errors, completion notices, and hints shown by toasts.
-	Notices() *kit.Status
-	// ShelfPrefs gives the editable preferences shared by works on this machine.
-	ShelfPrefs() *shelf.Shelf
-	// SaveShelf saves the machine preferences.
-	SaveShelf()
-	// Chapter gives the selected editor, its ID on the writing page, and whether a chapter is open.
-	Chapter() (string, *editor.Editor, bool)
-	// Flush saves the shown chapter before export reads it.
-	Flush()
-	// SyncPlanOutline updates the shown chapter draft after its outline is saved.
-	SyncPlanOutline(string, string)
-	// OpenWriting switches to the writing page and opens the chapter.
-	OpenWriting(string)
-	// ShowOutline switches to the outline page.
-	ShowOutline()
-	// DropMenu draws a menu using the host menu ownership.
-	DropMenu(*ui.Context, ui.Element, string, func(ui.Element), func(*kit.Menu))
-	// SettingColumn draws the shared right column beside the outline page.
-	SettingColumn(*ui.Context)
-	// PickInto starts a folder choice and reports whether a picker is available.
-	PickInto(*ui.Context, string, func(string)) bool
-	// StartJob runs work in the background and returns its result to the view thread.
-	StartJob(ui.Services, func() func())
-	// Dialogs gives the optional file save and folder reveal callbacks.
-	Dialogs() (save func(string, string) (string, error), reveal func(string) error)
-}
-
 func (h appHost) Colors() *kit.Palette { return h.a.pal }
 
 func (h appHost) Content() *book.Book { return h.a.book }
