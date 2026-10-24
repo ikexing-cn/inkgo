@@ -40,7 +40,7 @@ mygo 不用 GPU 时，在内存里画好一帧（`internal/raster` 的 `Renderer
 - **代价与已知上限**：
   - 配置差的电脑暂时没有办法在设置里关掉 GPU；在终端里设 `MYGO_GPU=0` 的，照样会碰上白窗口。
   - 关着的代码要靠 `TestNoGPUWaitsForTheNextStart` 和原型的开关守着；改设置页、改 `walk.ts` 的时候要记得它们在。
-  - 原因是在 mygo 副本里加日志查出来的，没有改 mygo 本身；问题报给 mygo 之前要作者看过。
+  - 原因是在 mygo 副本里加日志查出来的，没有改 mygo 本身。作者看过以后报给了 mygo，附了上面那个改法：[egoist/mygo#690](https://github.com/egoist/mygo/issues/690)。升级 mygo 时先看它关了没有。
 
 ## Verification
 
