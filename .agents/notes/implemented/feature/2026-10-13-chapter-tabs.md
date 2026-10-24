@@ -2,6 +2,8 @@
 
 Status: implemented
 
+> 2026-10-24 起原型里改了这一处，见[页边批注这一版界面](../../proposed/feature/2026-10-24-margin-notes.md)；软件跟上之前，本篇说的仍是软件现在的样子。
+
 ## Problem
 
 作者 2026-10-13 看软件时说了两件事：

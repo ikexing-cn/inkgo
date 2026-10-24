@@ -51,20 +51,26 @@ function dropChange() {
     return { entries: s.entries.map((x) => (x.id === f.id ? { ...x, changes: x.changes.filter((y) => y.id !== f.gid) } : x)), n: s.n + 1, form: null, ...SHUT, log: did(s, '删除变化 · ' + (e.names[0] || e.cat) + ' · ' + fromWhere(g.key)) }
   })
 }
-// 忽略 AI 建议的一处变化：它不是一条设定，不进已删除。
+// 忽略 AI 建议的一处变化：它不是一条设定，不进已删除；点错了在提示条上撤销。
 function dropIdea(o) {
+  const was = { entries: S.entries, log: S.log }
   set((s) => {
     const e = s.entries.find((x) => x.id === o.about), entries = s.entries.filter((x) => x.id !== o.id)
     return { entries, n: s.n + 1, log: did(s, '删除变化 · ' + (e.names[0] || e.cat) + ' · ' + fromWhere(o.from)), sv: s.sv === 'ideas' && !entries.some((x) => x.place === 'open') ? 'list' : s.sv }
   })
+  const id = say('已忽略', '', 'ok', [['撤销', () => { unsay(id); set(was) }]])
 }
 // 采纳 AI 建议的一处变化：记到它说的那一条上，从它说的那一章起。
+// 那一章拿这一条对照查出来的不一致，设定从那一章起改了，就不再成立，一起拿掉。点错了在提示条上撤销，两样一起回来。
 function takeChange(o) {
+  const was = { entries: S.entries, checks: S.checks, log: S.log }
   set((s) => {
     const e = s.entries.find((x) => x.id === o.about), changes = [...(e.changes || []).filter((g) => g.key !== o.from), { id: 'g' + s.n, key: o.from, text: o.text }]
     const entries = s.entries.filter((x) => x.id !== o.id).map((x) => (x.id === e.id ? { ...x, changes } : x))
-    return { entries, n: s.n + 1, log: did(s, (e.names[0] || e.cat) + ' · ' + fromWhere(o.from) + '：' + clip(o.text, 24)), sv: s.sv === 'ideas' && !entries.some((x) => x.place === 'open') ? 'list' : s.sv }
+    const checks = s.checks.filter((c) => !(c.kind === '不一致' && c.entry === e.id && c.key === o.from))
+    return { entries, checks, n: s.n + 1, log: did(s, (e.names[0] || e.cat) + ' · ' + fromWhere(o.from) + '：' + clip(o.text, 24)), sv: s.sv === 'ideas' && !entries.some((x) => x.place === 'open') ? 'list' : s.sv }
   })
+  const e = S.entries.find((x) => x.id === o.about), id = say('已记到「' + (e.names[0] || e.cat) + '」· ' + fromWhere(o.from), '', 'ok', [['撤销', () => { unsay(id); set(was) }]])
 }
 // 记一处变化的表：编辑框里先放这一条在那一章之前的样子，改完就是从那一章起的全文。
 const changing = (e, g, key) => { const before = S.chapters[rank(key) - 1]; return { change: true, id: e.id, gid: g ? g.id : '', key, text: g ? g.text : before ? textAt(e, before.key) : e.text } }
@@ -299,7 +305,7 @@ function setting() {
   if (r) list.unshift(`<div class="renamed" data-k="renamed"><div class="fit">正文中仍有 ${r.n} 处「${t(r.was)}」</div><div class="hit link" title="将旧名替换为新名"${onClick(() => set((s) => ({ named: null, page: 'write', focus: false, find: chapterOf(s.ch) ? { q: r.was, to: r.now, all: true, at: 0 } : null })))}>全书替换</div>` +
     `<button class="icon-btn muted" aria-label="保留旧名" title="不替换"${onClick(() => set({ named: null }))}>${icon('cross', 'sm')}</button></div>`)
   return tool('搜索设定', 'sq', ['新增', () => set({ form: { id: null, name: '', names: '', text: '', cat: S.cats[0] }, ...SHUT })],
-    [['已删除', gone.length, () => set({ sv: 'dropped', ...SHUT })], ['修改记录', '', () => set({ sv: 'log', ...SHUT })]]) + rows(list)
+    [['已删除', gone.length, () => set({ sv: 'dropped', ...SHUT })], ['修改记录', '', () => set({ sv: 'log', ...SHUT })], ['作品分类', '', () => set({ page: 'cats', ...SHUT })]]) + rows(list)
 }
 
 // 一条设定随章节的变化，接在原来的样子下面，照侧栏的先后排。正文页开着的那一章用的是哪一段，标「本章适用」；变化所在的章进了回收站，这处不起作用，写「所在章节已删除」。
@@ -520,7 +526,7 @@ function message(talk, m, i) {
   const cost = m.use && price(S.uses[0].model, m.use), use = m.use ? ' · ' + tokens(m.use.reduce((n, [input, , output]) => n + input + output, 0)) + ' token' + (cost ? ' · ' + cost : '') : ''
   return `<div class="msg${last ? ' last' : ''}"><div class="reply-row"><div class="reply-face">${icon('spark')}</div><div class="fit">${m.think ? thought(key, m.think) : ''}${m.look && m.look.length ? looked('look-' + key, m.look) : ''}${m.prop ? propCard(m) : ''}<div class="reply" data-reply="${i}">${t(m.text)}</div>` +
     (m.capped ? '<div class="note">已达到本次查阅上限，以上回答仅依据已查到的内容。</div>' : '') +
-    `<div class="reply-tools"><div class="faint">${t(m.at)} · ${t(S.uses[0].model)}${use}</div>${pull}${tool('复制全文', 'copy', copy)}${m.use ? tool('AI 参考内容', 'eye', () => set((s) => ({ told: { ...s.told, [key]: !saw } })), saw) : ''}</div>` +
+    `<div class="reply-tools"><div class="faint ell" title="${t(m.at + ' · ' + S.uses[0].model + use)}">${t(m.at)} · ${t(S.uses[0].model)}${use}</div>${pull}${tool('复制全文', 'copy', copy)}${m.use ? tool('AI 参考内容', 'eye', () => set((s) => ({ told: { ...s.told, [key]: !saw } })), saw) : ''}</div>` +
     (saw && m.use ? outgoing(talk, m, i) : '') + '</div></div></div>'
 }
 // 一段讨论从头到尾，AI 正在回的话接在最后。压缩过的，在压缩的地方隔一行。
@@ -673,14 +679,99 @@ document.addEventListener('scroll', (ev) => { if (ev.target.matches?.('.editor .
 document.addEventListener('selectionchange', () => { if (!drawing) fitPhone() })
 
 function pane() {
-  const waiting = aiOn() ? S.entries.filter((e) => e.place === 'open').length : 0, lost = S.marks.filter((m) => m.st === 'lost').length
+  // 标签上的数是那一页里等作者处理的几条：待确认的设定；原句已删、久未回收的伏笔（和待处理里的「伏笔」同一个数）。
+  const waiting = aiOn() ? S.entries.filter((e) => e.place === 'open').length : 0, lost = S.marks.filter((m) => m.st === 'lost' || (m.st === 'open' && BOOK.now - m.ch >= S.late)).length
   // 停在讨论时关掉 AI，这里显示设定；停在哪一页记着，重新开启后回到讨论。
-  const at = S.tab === '讨论' && !aiOn() ? '设定' : S.tab
+  const at = (S.tab === '讨论' && !aiOn()) || (S.tab === '批注' && S.page !== 'write') ? '设定' : S.tab
   const tab = (name, n) => `<div class="tab hit${name === at ? ' on' : ''}"${onClick(() => set({ tab: name, ...SHUT }))}>${name}${n ? `<span class="badge">${n}</span>` : ''}</div>`
   const edge = '<div class="pane-edge" title="调整右栏宽度"></div>', wide = S.paneW ? ` style="width:${S.paneW}px"` : ''
-  const fold = `<div class="grow"></div><button class="icon-btn" aria-label="收起右栏" title="收起右栏"${onClick(() => set({ ...(S.page === 'plan' ? { planPane: false } : { paneOpen: false }), ...SHUT }))}>${svg('icon-md', PANEL + path('M15 5v14'))}</button>`
   // 正文那一页有四页（AI 关着时没有讨论）；别的页只留设定。
-  if (S.page !== 'write') return `<div id="pane"${wide}>${edge}<div class="tabs"><div class="tab on">设定${waiting ? `<span class="badge">${waiting}</span>` : ''}</div>${fold}</div>${setting()}</div>`
-  return `<div id="pane"${wide}>${edge}` + `<div class="tabs">${tab('设定', waiting)}${aiOn() ? tab('讨论') : ''}${tab('伏笔', lost)}${tab('预览')}${fold}</div>` +
-    (at === '设定' ? setting() : at === '伏笔' ? foreshadowing() : at === '预览' ? phoneView() : discussion()) + '</div>'
+  if (S.page !== 'write') return `<div id="pane"${wide}>${edge}<div class="tabs"><div class="tab on">设定${waiting ? `<span class="badge">${waiting}</span>` : ''}</div></div>${setting()}</div>`
+  // 批注不带数：几条就在页边，一眼看得到。
+  return `<div id="pane" class="${at === '批注' ? 'margin-pane' : ''}"${wide}>${edge}` + `<div class="tabs">${tab('批注')}${tab('设定', waiting)}${aiOn() ? tab('讨论') : ''}${tab('伏笔', lost)}${tab('预览')}</div>` +
+    (at === '批注' ? margin() : at === '设定' ? setting() : at === '伏笔' ? foreshadowing() : at === '预览' ? phoneView() : discussion()) + '</div>'
 }
+
+// ───────── 画：批注 ─────────
+
+// 页边的批注：开着的这一章里，对照设定查出来的、在这里埋下或回收的伏笔、AI 从这一章看出来要改的设定。
+// 每条记着它说的是第几段的第几个字起、几个字（这几个字找不到就不列），照这个顺序从上往下排。AI 关着时只有伏笔。
+function notesOf(cur) {
+  if (!cur) return []
+  const list = []
+  const find = (quote, para) => {
+    const i = para !== undefined ? para : cur.paras.findIndex((p) => p.includes(quote)), off = i >= 0 ? (cur.paras[i] || '').indexOf(quote) : -1
+    return off >= 0 ? { para: i, off, len: quote.length } : null
+  }
+  const put = (at, note) => { if (at) list.push({ ...at, ...note }) }
+  // 名字有误的只有标题：标题已经说了应为什么。
+  for (const c of aiOn() ? S.checks : []) {
+    if (c.key !== cur.key) continue
+    put(find(c.quote, c.para), { id: c.id, warn: true, kind: c.kind === '不一致' ? '与设定不一致' : c.kind, title: c.title,
+      text: c.says ? '设定里写的是“' + c.says + '”' : c.as || '', open: () => set({ page: 'check', kind: '全部', cid: c.id, ...SHUT }), acts: checkActs(c) })
+  }
+  for (const m of S.marks) {
+    const open = () => set({ tab: '伏笔', fid: m.id, fv: 'list', renote: null, ...SHUT })
+    if ((m.st === 'open' || m.st === 'done') && m.key === cur.key) put(find(m.quote, m.para), { id: m.id, kind: m.st === 'open' ? '伏笔 · 在此埋下' : '伏笔 · 在此埋下，已回收', title: nameOf(m), text: '', open })
+    if (m.st === 'done' && m.pay && m.pay.key === cur.key) put(find(m.pay.quote, m.pay.para), { id: m.id + '-pay', kind: '伏笔 · 在此回收', title: nameOf(m), text: '埋在' + chTitle(m.key), open })
+  }
+  // AI 建议的一处变化：钉在这一章头一回写到那个人（那样东西）的地方。
+  for (const o of aiOn() ? S.entries.filter((e) => e.place === 'open' && e.from === cur.key) : []) {
+    const e = S.entries.find((x) => x.id === o.about), name = e && e.names.find((n) => cur.paras.some((p) => p.includes(n)))
+    put(name ? find(name) : { para: 0, off: 0, len: 0 }, { id: o.id, warn: true, kind: '设定待确认', title: e ? e.names[0] + '的设定从本章起有变化' : '新设定', text: o.text, acts: [['忽略', () => dropIdea(o)], ['采纳', () => takeChange(o)]] })
+  }
+  return list.sort((a, b) => a.para - b.para || a.off - b.off)
+}
+
+function margin() {
+  const cur = chapterOf(S.ch), list = notesOf(cur)
+  if (!list.length) return `<div class="margin" data-k="margin"><div class="margin-none">${cur ? '本章没有批注' : '打开一章后，这里列出它的批注'}</div></div>`
+  // 换一章，这一章的几条从上往下一条接一条出来。等作者处理的几条，就在批注上处理（和检查页、设定页的按钮同一份），最后一样是主要的。
+  const act = ([label, go], i, all) => `<div class="hit link${i < all.length - 1 ? ' muted' : ''}${go ? '' : ' off'}"${onClick(go && (() => moving(go)))}>${label}</div>`
+  const note = (n) => `<div class="mnote hit" data-k="note-${cur.key}-${n.id}" data-note="${n.id}" data-at="${n.para},${n.off},${n.len}" style="view-transition-name: note-${n.id}; view-transition-class: note"${onClick(n.open || (() => set({ tab: '设定', sv: 'ideas', sid: null, form: null, ...SHUT })))}>` +
+    `<div class="mnote-kind">${n.warn ? DOT : ''}${t(n.kind)}</div><div class="mnote-title">${t(n.title)}</div>${n.text ? `<div class="mnote-text">${t(n.text)}</div>` : ''}` +
+    (n.acts ? `<div class="mnote-acts">${n.acts.map(act).join('')}</div>` : '') + '</div>'
+  return `<div class="margin" data-k="margin">${list.map(note).join('')}</div>`
+}
+
+// 批注挨着它说的那几个字：每画一遍、正文每滚一下，照那几个字现在的高度放，挤在一起的往下让。
+function placeNotes() {
+  const box = document.querySelector('.margin')
+  if (!box) return
+  const top = box.getBoundingClientRect().top
+  let floor = -Infinity
+  for (const n of box.querySelectorAll('.mnote')) {
+    const r = spanAt(n.dataset.at), y = r ? r.getBoundingClientRect().top - top : floor
+    const at = Math.max(Math.round(y) - 3, floor)
+    n.style.top = at + 'px'
+    floor = at + n.offsetHeight + 8
+  }
+}
+// 第几段第几个字起几个字，在正文里的那一截；一个字也没有的，是那一段。
+function spanAt(at) {
+  const [para, off, len] = at.split(',').map(Number), p = document.querySelector(`.prose [data-para="${para}"]`)
+  if (!p || !len) return p
+  const r = document.createRange(), walk = document.createTreeWalker(p, NodeFilter.SHOW_TEXT)
+  let n = 0, from = null
+  for (let node = walk.nextNode(); node; node = walk.nextNode()) {
+    if (proposed(node)) continue
+    const to = n + node.data.length
+    if (!from && off < to) { r.setStart(node, off - n); from = node }
+    if (from && off + len <= to) { r.setEnd(node, off + len - n); return r }
+    n = to
+  }
+  return from ? r : p
+}
+// 指针在一条批注上：正文里它说的那几个字垫上底色。指针在正文里画了线的那几个字上：它的批注也垫上底色。
+document.addEventListener('mouseover', (ev) => {
+  const el = ev.target.closest ? ev.target : null, line = el && el.closest('.prose .fs, .prose .doubt')
+  const n = el && (el.closest('.mnote') || (line && [...document.querySelectorAll('.mnote')].find((x) => { const r = spanAt(x.dataset.at); return r instanceof Range && r.intersectsNode(line) })))
+  for (const x of document.querySelectorAll('.mnote.lit')) if (x !== n) x.classList.remove('lit')
+  if (n && line) n.classList.add('lit')
+  if (!window.CSS || !CSS.highlights) return
+  const r = n && spanAt(n.dataset.at)
+  if (!r) return CSS.highlights.delete('note')
+  const range = r instanceof Range ? r : (() => { const x = document.createRange(); x.selectNodeContents(r); return x })()
+  CSS.highlights.set('note', new Highlight(range))
+})
+document.addEventListener('scroll', (ev) => { if (ev.target.classList && ev.target.classList.contains('paper')) placeNotes() }, true)

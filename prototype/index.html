@@ -99,8 +99,15 @@ body { margin: 0; }
 
 /* 窗口右上角的三个按钮 */
 /* 标题栏自己占一行；菜单开着时它在那层点了就收起的底之上，指针才能从一个菜单挪到另一个。 */
-.titlebar { position: relative; z-index: 2; flex: none; height: var(--h-bar); box-sizing: border-box; display: flex; align-items: center; gap: 2px; padding-left: 10px; background: var(--side); border-bottom: 1px solid var(--line); font-size: var(--fs-control); }
+.titlebar { position: relative; z-index: 2; flex: none; height: var(--h-bar); box-sizing: border-box; display: flex; align-items: center; gap: 2px; padding-left: 10px; background: var(--bg); font-size: var(--fs-control); }
 .titlebar > .icon-btn { margin-right: 4px; }
+.titlebar > .pane-switch { flex: none; width: var(--h-control-sm); margin: 0 8px 0 2px; } /* 右栏的开关，和最左的侧栏开关对着 */
+/* 正中换页：几页的名字，正在的那一页墨色加粗。专注写作时正中只有章名和字数 */
+.pages { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; }
+.pages > div { height: var(--h-control-sm); display: flex; align-items: center; gap: 4px; padding: 0 10px; color: var(--muted); }
+.pages > .on { color: var(--ink); } /* 顶上最深的当前项只留一处，是标签页；换页和右栏的标签只换成墨色 */
+.pages .badge { font-size: var(--fs-small); color: var(--faint); font-weight: 400; }
+.bar-title { position: absolute; left: 50%; transform: translateX(-50%); max-width: 40%; font-size: var(--fs-control); color: var(--muted); }
 .icon-btn.off { opacity: var(--opacity-disabled); cursor: default; }
 .icon-btn.off:hover { background: none; }
 .menu-title { height: var(--h-control-sm); display: flex; align-items: center; padding: 0 8px; border-radius: var(--r-control); }
@@ -114,7 +121,7 @@ body { margin: 0; }
 .window-buttons > div:last-child:hover { background: var(--danger); color: #fff; }
 
 /* 侧栏 */
-.sidebar { width: 232px; flex: none; box-sizing: border-box; background: var(--side); border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 14px 10px 12px; }
+.sidebar { width: 232px; flex: none; box-sizing: border-box; background: var(--bg); border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 14px 10px 12px; }
 /* 侧栏顶上一行：左边是作品（点开换一部），右边把侧栏收起。作品的图标和下面各行的图标对齐。 */
 .sidebar-top { flex: none; margin: -14px -10px 12px; height: var(--h-bar); border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 4px; padding: 0 10px; }
 .sidebar-top > .anchor { flex: 1; }
@@ -123,39 +130,30 @@ body { margin: 0; }
 .book:hover { background: var(--active); }
 .book-logo { flex: none; width: var(--h-tag); height: var(--h-tag); border-radius: var(--r-xs); background: var(--ink); color: var(--on-ink); font-size: var(--fs-small); font-weight: 600; display: flex; align-items: center; justify-content: center; }
 .book-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-body); font-weight: 600; }
-.navs, .tree { display: flex; flex-direction: column; gap: 2px; }
-.navs { flex: none; }
-.tree { flex: 1; min-height: 0; }
-.nav { flex: none; height: var(--h-control); display: flex; align-items: center; gap: 10px; padding: 0 10px; border-radius: var(--r-control); font-size: var(--fs-body); color: var(--muted); }
+.tree { display: flex; flex-direction: column; gap: 2px; }
+.nav { flex: none; height: var(--h-control); display: flex; align-items: center; gap: 10px; padding: 0 10px; border-radius: var(--r-control); font-size: var(--fs-body); color: var(--muted); } /* 设置左边的那一列 */
 .nav.on { background: var(--active); color: var(--ink); font-weight: 600; }
-.nav .count { font-size: var(--fs-small); color: var(--faint); font-weight: 400; }
-.tree-head { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 24px 10px 8px; font-size: var(--fs-note); color: var(--muted); }
-.tree-head-buttons { display: flex; align-items: center; gap: 2px; }
-.tree-head-buttons > button { all: unset; width: var(--h-control-sm); height: var(--h-control-sm); display: flex; align-items: center; justify-content: center; border-radius: var(--r-control); cursor: pointer; }
-.tree-head-buttons > button:hover { background: var(--active); }
+.tree { flex: 1; min-height: 0; }
 .tree-row { flex: none; height: var(--h-row); display: flex; align-items: center; gap: 6px; padding: 0 10px; border-radius: var(--r-control); font-size: var(--fs-control); }
 .tree-row:hover { background: var(--hover); }
-.tree-row.deep { padding-left: calc(10px + 20px); color: var(--muted); } /* 行的内边距，加一级缩进 */
+.tree-row.leaf { padding-left: calc(10px + var(--icon-xs) + 6px); } /* 章没有图标，名字和卷名对齐 */
+.tree-row.deep { padding-left: calc(10px + var(--icon-xs) + 6px + 12px); color: var(--muted); } /* 再缩一级 */
 .tree-row.on { background: var(--active); color: var(--ink); font-weight: 600; }
 /* 改名字时这一行不动，名字那一段换成一个框；框往左让出它自己的内边距，里面的字就和别的行的名字对齐 */
 .tree-row.naming { font-weight: 400; }
 .tree-row.naming .in { height: calc(var(--h-row) - 6px); box-sizing: border-box; margin-left: calc(0px - 6px); padding: 0 6px; border-radius: var(--r-xs); background: var(--bg); color: var(--ink); outline: 1px solid var(--ink); outline-offset: -1px; }
-.tree-row .count { font-size: var(--fs-small); color: var(--faint); font-weight: 400; }
-.backup-line { height: var(--h-control-sm); display: flex; align-items: center; gap: 8px; padding: 0 10px 0 14px; border-radius: var(--r-control); font-size: var(--fs-note); color: var(--faint); }
-.backup-line:hover { background: var(--hover); }
+.tree-row .count { font-size: var(--fs-small); color: var(--faint); font-weight: 400; visibility: hidden; } /* 字数、时间：指针移上去才出来 */
+.tree-row:hover .count { visibility: visible; }
+.backup-line { display: flex; align-items: center; gap: 6px; white-space: nowrap; color: var(--faint); }
+.foot > .backup { margin-right: 8px; } /* 和字数隔开一点：一个说作品，一个说字数 */
 .backup-pop { width: max-content; max-width: 300px; padding: 12px; gap: 8px; }
-.sidebar .backup-pop { right: auto; }
-.sidebar-end { flex: none; display: flex; align-items: center; gap: 4px; padding-right: 4px; }
-.bin { flex: 1; height: var(--h-control); display: flex; align-items: center; gap: 10px; padding: 0 10px; border-radius: var(--r-control); font-size: var(--fs-body); color: var(--muted); }
-.gear { width: var(--h-control-sm); height: var(--h-control-sm); flex: none; display: flex; align-items: center; justify-content: center; border-radius: var(--r-control); color: var(--muted); }
-.bin:hover, .gear:hover { background: var(--hover); }
-#win.narrow { width: 1100px; } /* 软件里窗口窄过 1180，侧栏收成一列图标 */
-.sidebar.slim { width: 60px; align-items: stretch; }
-.slim .sidebar-top > .anchor > .pop { width: 212px; }
-.slim .nav { justify-content: center; padding: 0; }
-.slim .sidebar-end { flex-direction: column; gap: 2px; padding-right: 0; }
-.slim .bin { flex: none; width: var(--h-control-sm); height: var(--h-control-sm); padding: 0; justify-content: center; }
-.slim .icon-btn { align-self: center; }
+#win.narrow { width: 1100px; } /* 软件里窗口窄过 1180：侧栏、右栏和纸边都窄一些，正文一行还放得下三十来个字 */
+.narrow .sidebar { width: 200px; }
+.narrow #pane { width: 320px; }
+.narrow .paper { padding: 20px 24px; }
+.narrow .sheet-row, .narrow .foot { padding-left: max(24px, calc((100% - var(--fs-paper) * 36) / 2)); }
+.narrow .talk.big { padding: 24px; }
+.narrow .composer.big { padding: 0 24px 20px; }
 
 /* 正文：工具栏 */
 .editor { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--bg); }
@@ -166,12 +164,14 @@ body { margin: 0; }
 .steps { flex: none; display: flex; align-items: center; gap: 2px; margin-left: -8px; color: var(--muted); }
 .steps > .hit { width: var(--icon-lg); height: var(--icon-lg); display: flex; align-items: center; justify-content: center; border-radius: var(--r-control); }
 .steps > .hit:not(.off):hover { background: var(--active); }
-/* 标签页：顶栏下面的一行。一格一个，格子之间一条线；正看的那格和正文一个底色，这一行底下的线到它那里断开。 */
-.sheets { position: relative; flex: none; height: var(--h-control); display: flex; overflow-x: auto; scrollbar-width: none; background: var(--side); }
-.sheets::after { content: ''; flex: 1; border-bottom: 1px solid var(--line); }
-.sheet { flex: none; max-width: 200px; box-sizing: border-box; display: flex; align-items: center; gap: 6px; padding: 0 6px 0 12px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); font-size: var(--fs-control); color: var(--muted); white-space: nowrap; }
-.sheet:hover { background: var(--hover); }
-.sheet.on { background: var(--bg); border-bottom-color: var(--bg); color: var(--ink); font-weight: 600; }
+/* 标签页：标题栏下面的一行，只有名字；正看的那个是墨色，压着这一行的底线画一道墨线。这一行、底栏和正文从同一条线起。 */
+.sheet-row { flex: none; height: var(--h-bar); box-sizing: border-box; display: flex; align-items: stretch; padding-left: max(40px, calc((100% - var(--fs-paper) * 36) / 2)); border-bottom: 1px solid var(--line); } /* 正文栏宽了居中，这一行跟着它 */
+.sheet-row > .steps { align-self: center; margin-right: 8px; }
+.sheets { flex: 1; min-width: 0; display: flex; overflow-x: auto; scrollbar-width: none; }
+.sheet { position: relative; flex: none; max-width: 200px; box-sizing: border-box; display: flex; align-items: center; gap: 4px; padding: 0 4px 0 10px; font-size: var(--fs-control); color: var(--muted); white-space: nowrap; }
+.sheet:hover { color: var(--ink); }
+.sheet.on { color: var(--ink); font-weight: 600; }
+.sheet.on::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: 0; border-bottom: 2px solid var(--ink); }
 .sheet-x, .sheet-dot { flex: none; width: var(--h-tag); height: var(--h-tag); display: flex; align-items: center; justify-content: center; border-radius: var(--r-xs); color: var(--muted); }
 .sheet-x { visibility: hidden; } /* 叉的位置一直留着，只在正看的标签页和指针下的那个上显出来 */
 .sheet.on .sheet-x, .sheet:hover .sheet-x { visibility: visible; }
@@ -201,7 +201,7 @@ body { margin: 0; }
 .todo-rest { flex: none; padding: 6px 8px 8px; font-size: var(--fs-note); color: var(--muted); }
 .todo-foot { display: flex; justify-content: flex-end; padding: 8px 14px 10px; border-top: 1px solid var(--line); font-size: var(--fs-note); }
 /* 正文：查找替换 */
-.find-bar { flex: none; display: flex; flex-direction: column; gap: 6px; padding: 8px 24px; border-bottom: 1px solid var(--line); background: var(--side); }
+.find-bar { flex: none; display: flex; flex-direction: column; gap: 6px; padding: 8px 24px; border-bottom: 1px solid var(--line); background: var(--bg); }
 .find-line { display: flex; align-items: center; gap: 6px; }
 .find-count { min-width: 64px; text-align: right; }
 .chip { flex: none; height: var(--h-seg); box-sizing: border-box; display: flex; align-items: center; padding: 0 10px; border-radius: var(--r-control); border: 1px solid var(--border); background: var(--bg); font-size: var(--fs-note); color: var(--muted); }
@@ -240,8 +240,8 @@ body { margin: 0; }
 .prose-box { position: relative; margin-top: 20px; }
 .prose { min-height: 320px; font-size: var(--fs-paper); line-height: var(--lh-paper); display: flex; flex-direction: column; gap: 10px; text-indent: 2em; white-space: pre-wrap; outline: none; caret-color: var(--ink); }
 .prose-hint { position: absolute; left: 0; top: 0; font-size: var(--fs-paper); line-height: var(--lh-paper); text-indent: 2em; color: var(--faint); pointer-events: none; } /* 还没有字时垫在第一行下面的那句 */
-/* 正文里的标记：伏笔是点线，正在看的那条加浅底，选中的字是蓝底；检查出来的是虚线，查到的词是黄底；
-   AI 写的（采纳了的）画浅下划线；AI 提议要换掉的原文划掉、新写的标绿，跟着这一处的两个按钮；续写出来还没采纳的是灰字 */
+/* 正文里的标记：伏笔是点线，正在看的那条加浅底，选中的字是蓝底；检查出来的是虚线，查到的词是黄底；这两种线在页边都有它的批注。
+   设定的名字平时不画线，指针移上去才出点线；AI 写的（采纳了的）画浅下划线；AI 提议要换掉的原文划掉、新写的标绿，跟着这一处的两个按钮；续写出来还没采纳的是灰字 */
 .prose .fs { border-bottom: 1.5px dotted var(--faint); padding-bottom: 2px; }
 .prose .fs.on { border-bottom-color: var(--muted); background: var(--hover); }
 .prose .sel { background: var(--sel); }
@@ -250,7 +250,7 @@ body { margin: 0; }
 .prose .got { background: var(--warn-bg); }
 .prose .got.on { background: var(--warn-bd); }
 .prose .ai { text-decoration: underline; text-decoration-color: var(--control); text-underline-offset: 5px; }
-.prose .nm { text-decoration: underline dotted; text-decoration-color: var(--control); text-underline-offset: 5px; cursor: pointer; }
+.prose .nm { text-decoration: underline dotted transparent; text-underline-offset: 5px; cursor: pointer; }
 .prose .nm:hover { text-decoration-color: var(--muted); }
 .cut { color: var(--danger); text-decoration: line-through; }
 .add { color: var(--success); }
@@ -260,19 +260,32 @@ body { margin: 0; }
 .prop-writing { color: var(--muted); }
 /* 底栏放不下时先省检查的那句，再省字数；别的都不折行 */
 .foot > .hit, .foot > .faint, .foot > .anchor { flex: none; white-space: nowrap; }
-.foot > .foot-state { flex: 0 1000 auto; min-width: 0; }
-.foot > .anchor:last-child { flex: 0 1 auto; }
+.foot > .foot-state { flex: 0 1 auto; min-width: 0; }
+.foot > .anchor:last-child { flex: 0 1000 auto; min-width: 0; } /* 放不下时先省字数，查出来的那句留到最后 */
 .foot .words { color: var(--faint); }
-.foot { flex: none; height: var(--h-row); box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 0 24px; border-top: 1px solid var(--line); font-size: var(--fs-note); color: var(--muted); }
+.foot { flex: none; height: var(--h-row); box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 0 24px 0 max(40px, calc((100% - var(--fs-paper) * 36) / 2)); font-size: var(--fs-note); color: var(--muted); } /* 和正文一张纸，不画线；左边和正文从同一条线起 */
 .when-pop { width: 270px; padding: 10px 6px 6px; gap: 4px; }
 .when-pop .pop-title { padding: 0 8px 4px; }
 
 /* 右栏 */
-#pane { width: 390px; flex: none; box-sizing: border-box; background: var(--side); border-left: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; position: relative; }
-.tabs { height: var(--h-bar); box-sizing: border-box; flex: none; display: flex; align-items: center; gap: 4px; padding: 0 16px 0 20px; }
-.tabs .icon-btn { color: var(--muted); }
-.tab { font-size: var(--fs-body); border-radius: var(--r-control); padding: 6px 10px; display: flex; gap: 6px; align-items: center; color: var(--muted); white-space: nowrap; }
-.tab.on { background: var(--active); color: var(--ink); font-weight: 600; }
+#pane { width: 390px; flex: none; box-sizing: border-box; background: var(--bg); border-left: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; position: relative; }
+.tabs { height: var(--h-bar); box-sizing: border-box; flex: none; display: flex; align-items: stretch; gap: 2px; padding: 0 16px 0 10px; border-bottom: 1px solid var(--line); }
+.tabs .icon-btn { align-self: center; color: var(--muted); }
+.tab { position: relative; font-size: var(--fs-control); padding: 0 10px; display: flex; gap: 6px; align-items: center; color: var(--muted); white-space: nowrap; }
+.tab.on { color: var(--ink); }
+/* 右栏在批注：和正文是同一张纸，中间不画线 */
+#pane.margin-pane { border-left-color: transparent; }
+.margin { flex: 1; min-height: 0; position: relative; overflow: hidden; }
+.margin-none { padding: 24px 20px; font-size: var(--fs-note); color: var(--faint); }
+/* 一条批注：和它说的那几个字一样高，左边一道短线指回正文 */
+.mnote { position: absolute; left: 0; right: 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px; padding: 6px 10px 8px 20px; border-radius: var(--r-control); font-size: var(--fs-note); line-height: var(--lh-body); color: var(--muted); }
+.mnote::before { content: ''; position: absolute; left: 0; top: 16px; width: 14px; border-top: 1px solid var(--faint); }
+.mnote:hover, .mnote.lit { background: var(--hover); }
+.mnote-kind { display: flex; align-items: center; gap: 6px; font-size: var(--fs-small); color: var(--muted); } /* 分得出哪条等作者处理，靠的就是这一行：不用 faint */
+.mnote-title { font-size: var(--fs-control); font-weight: 600; color: var(--ink); } /* 缩小了也数得出几条：标题是这一列里最深的 */
+.mnote-acts { display: flex; justify-content: flex-end; gap: 16px; margin-top: 6px; }
+.mnote-acts > .link.muted { color: var(--muted); }
+#win ::highlight(note) { background-color: var(--active); }
 .tab .badge { font-size: var(--fs-small); color: var(--faint); font-weight: 400; }
 /* 右栏：手机预览。手机里写 em，1em 是手机上的一个字；整个手机再按右栏缩放 */
 .phone-view { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
@@ -319,8 +332,8 @@ body { margin: 0; }
 /* 列表顶上：搜索、旁边的按钮、「···」里的菜单 */
 .tool { flex: none; position: relative; padding: 0 20px 12px; display: flex; gap: 8px; }
 .tool-menu { position: absolute; right: 20px; top: 36px; width: 160px; z-index: 3; }
-.tool .find { flex: 1; height: var(--h-control); align-items: center; gap: 8px; padding: 0 10px; }
-.tool .add { flex: none; height: var(--h-control); box-sizing: border-box; border: 1px solid var(--border); background: var(--bg); border-radius: var(--r-control); display: flex; align-items: center; gap: 6px; padding: 0 12px; font-size: var(--fs-control); }
+.tool .find { flex: 1; min-width: 0; height: var(--h-control); align-items: center; gap: 8px; padding: 0 10px; }
+.tool .add { flex: none; height: var(--h-control); box-sizing: border-box; border: 1px solid var(--border); background: var(--bg); border-radius: var(--r-control); display: flex; align-items: center; gap: 6px; padding: 0 12px; font-size: var(--fs-control); color: var(--ink); } /* 不跟正文里 AI 新写的字（.add）一起标绿 */
 .tool .more { flex: none; color: var(--muted); width: var(--h-control); height: var(--h-control); border-radius: var(--r-control); display: flex; align-items: center; justify-content: center; }
 .tool .more.on { background: var(--active); }
 /* 详情页顶上：返回，和右边那个动作 */
@@ -380,7 +393,7 @@ body { margin: 0; }
 .msg.me { align-items: flex-end; }
 .msg > .cited { max-width: 280px; box-sizing: border-box; }
 .msg .reply-tools { opacity: 0; }
-.msg:hover .reply-tools, .msg:focus-within .reply-tools, .msg.last .reply-tools { opacity: 1; }
+.msg:hover .reply-tools, .msg:focus-within .reply-tools { opacity: 1; } /* 时间、模型、用量和几个按钮，指针移到那一句上才出来 */
 .waiting { display: flex; align-items: center; gap: 10px; font-size: var(--fs-control); color: var(--muted); }
 .unanswered { display: flex; align-items: center; gap: 6px; font-size: var(--fs-note); color: var(--warn); }
 .thought { margin-bottom: 10px; }
@@ -415,9 +428,10 @@ body { margin: 0; }
 .talk.big { padding: 24px 80px; gap: 20px; border-top: 0; }
 .talk.big .said, .talk.big .msg > .cited { max-width: 520px; }
 .reply-row { flex: none; display: flex; align-items: flex-start; gap: 12px; }
-.reply-face { flex: none; width: var(--h-control-sm); height: var(--h-control-sm); border-radius: var(--r-round); background: var(--active); color: var(--muted); display: flex; align-items: center; justify-content: center; }
+.reply-face { flex: none; width: var(--h-control-sm); height: var(--h-control-sm); color: var(--faint); display: flex; align-items: center; justify-content: center; } /* 只是一个记号，不做成头像 */
 .reply-tools { display: flex; align-items: center; gap: 2px; margin-top: 6px; font-size: var(--fs-small); }
 .reply-tools > div { margin-right: 6px; }
+.reply-tools > .ell { min-width: 0; } /* 窄了先截断这一行，不折行 */
 /* 讨论里 AI 在正文里提的那一处：哪一章、改哪里、作者定了没有 */
 .prop-card { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--side); font-size: var(--fs-control); }
 .prop-card-head { display: flex; align-items: center; gap: 6px; }
@@ -462,6 +476,9 @@ body { margin: 0; }
 .cat-rows { display: flex; flex-direction: column; }
 .cat-row { height: var(--h-bar); display: flex; align-items: center; gap: 14px; padding: 0 4px; border-bottom: 1px solid var(--line); font-size: var(--fs-body); }
 .cat-name { width: 110px; font-weight: 600; }
+.cat-row.hover-acts > .link, .cat-row.hover-acts > .off { opacity: 0; } /* 编辑、删除指针移到那一行上才出来，一列下划线不常驻 */
+.cat-row.hover-acts:hover > .link, .cat-row.hover-acts:focus-within > .link { opacity: 1; }
+.cat-row.hover-acts:hover > .off { opacity: var(--opacity-disabled); }
 .cat-row.cols { height: var(--h-control); font-size: var(--fs-note); color: var(--muted); }
 .cat-row.cols .cat-name { font-weight: 400; } /* 表头：「落点」写一次，各行只写落在哪 */
 .cat-form { display: flex; align-items: flex-end; gap: 10px; }
@@ -502,7 +519,7 @@ body { margin: 0; }
 .ch-name > .hit { min-width: 0; padding: 0 4px; margin: 0 calc(0px - 4px); border-radius: var(--r-xs); }
 .ch-name > .hit:hover { text-decoration: underline; text-decoration-color: var(--control); text-underline-offset: 4px; }
 .ch-gist { padding: 2px 4px; margin: 0 calc(0px - 4px); border-radius: var(--r-xs); line-height: var(--lh-body); color: var(--ink-2); -webkit-line-clamp: 3; }
-.card { flex: none; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px; padding: 6px 10px; background: var(--raised); border: 1px solid var(--border); border-radius: var(--r-control); box-shadow: var(--shadow-raise); font-size: var(--fs-body); line-height: var(--lh-body); cursor: pointer; }
+.card { flex: none; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px; padding: 6px 10px; background: var(--raised); border: 1px solid var(--border); border-radius: var(--r-control); font-size: var(--fs-body); line-height: var(--lh-body); cursor: pointer; }
 .card:hover { transform: translateY(-2px); border-color: var(--control); box-shadow: var(--shadow-pop); } /* 停上去浮起来一点：点得开、拖得动 */
 .card.seen { border-color: var(--ink); box-shadow: var(--shadow-pop); } /* 刚添加的、从正文跳过来的那张，标出来一会儿 */
 .card.later { border-style: dashed; background: var(--bg); box-shadow: none; }
@@ -626,7 +643,7 @@ body { margin: 0; }
 .key { flex: none; width: 250px; color: var(--muted); }
 /* 设置：左边选哪一类，右边是那一类的内容 */
 .dialog.prefs { width: 900px; height: 620px; flex-direction: row; gap: 0; padding: 0; overflow: hidden; }
-.prefs-nav { width: 180px; flex: none; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px; padding: 20px 10px; background: var(--side); border-right: 1px solid var(--line); }
+.prefs-nav { width: 180px; flex: none; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px; padding: 20px 10px; background: var(--bg); border-right: 1px solid var(--line); }
 .prefs-nav-title { padding: 0 10px 8px; font-size: var(--fs-small); font-weight: 600; color: var(--faint); }
 .prefs-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .prefs-head { flex: none; display: flex; flex-direction: column; gap: 4px; padding: 24px 56px 16px 32px; border-bottom: 1px solid var(--line); } /* 标题不跟着滚，下面的内容到这条线为止 */
@@ -642,7 +659,6 @@ body { margin: 0; }
 .use-row { display: flex; align-items: center; gap: 8px; }
 .use-name { width: 120px; flex: none; font-weight: 500; } /* 设置里左边一列名字一样宽，右边的控件和用量从同一条线起 */
 .use-name .note { font-weight: 400; }
-.use-same { padding: 0 10px; font-size: var(--fs-control); color: var(--faint); }
 .use-row .choose:last-child { width: 110px; }
 .spent { display: flex; flex-direction: column; gap: 4px; }
 .spent-row { display: flex; align-items: center; gap: 8px; font-size: var(--fs-control); }
@@ -686,7 +702,7 @@ body { margin: 0; }
 .stepper-n { padding: 0 10px; font-size: var(--fs-control); }
 
 /* 右上角的提示 */
-#toasts { position: absolute; top: calc(var(--h-bar) * 2 + 8px); right: 12px; z-index: 10; max-width: 300px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+#toasts { position: absolute; bottom: calc(var(--h-row) + 8px); right: 12px; z-index: 10; max-width: 300px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 .toast { box-sizing: border-box; min-width: 200px; max-width: 100%; display: flex; align-items: flex-start; gap: 10px; padding: 12px 10px 12px 14px; background: var(--raised); border: 1px solid var(--border); border-radius: var(--r-card); box-shadow: var(--shadow-pop); }
 .toast > svg { margin-top: 2px; }
 .toast > .icon-btn { margin: -4px 0; }
@@ -696,7 +712,7 @@ body { margin: 0; }
 
 /* ───────── 能点的都回应指针 ─────────
    有边有底的换底色；墨色实心的浅一级；只有字和图标的变成墨色；文字按钮有底色、线变深。写在最后，压过前面各自的底色。 */
-.btn:hover, .record-row:hover, .tool .add:hover, .box.line.hit:hover, .place:hover, .chip:not(.on):hover, .stepper > .hit:hover, .nav:not(.on):hover, .tab:not(.on):hover { background: var(--hover); }
+.btn:hover, .record-row:hover, .tool .add:hover, .box.line.hit:hover, .place:hover, .chip:not(.on):hover, .stepper > .hit:hover, .nav:not(.on):hover { background: var(--hover); }
 .btn.primary:hover, .send:hover, .chip.on:hover { background: var(--ink-2); }
 .btn.soft:hover { background: var(--dim); }
 .btn.danger:hover { background: var(--danger); opacity: .85; }
@@ -705,14 +721,11 @@ body { margin: 0; }
 .warn-btn:hover { background: var(--warn-bd); }
 .tool .more:hover, .cited:hover { background: var(--active); }
 .back-to:hover { background: var(--hover); }
-.seg > div:not(.on):hover, .stepper > .hit:hover, .attach:hover, .words:hover, .model:hover, .thought-head:hover, .tree-more:hover, .todo-rest:hover, .chapter-more > .hit:hover, .foot .anchor > .hit:hover { color: var(--ink); }
+.seg > div:not(.on):hover, .stepper > .hit:hover, .attach:hover, .words:hover, .model:hover, .thought-head:hover, .tree-more:hover, .todo-rest:hover, .chapter-more > .hit:hover, .foot .anchor > .hit:hover, .tab:not(.on):hover, .pages > div:hover { color: var(--ink); }
 .link:not(.off):hover { background: var(--active); text-decoration-color: currentColor; }
 
-/* ───────── 按下和出现（待作者确认，DESIGN.md 里还没有） ─────────
-   按下：有边有底的按钮、列表行、侧栏和右栏的标签，按下就换成 active 的底色，是点完以后当前项的样子；按钮再缩一点，松开弹回。
-   出现：菜单、下拉、提示、浮条从点它的那一边展开；对话框和遮罩淡入；提示条从右边滑进来。只在出现的那一刻动一次，收起不动。
-   系统设了减少动态效果，都直接到位。 */
-.btn:not(.primary):not(.danger):not(.soft):not(.off):active, .tool .add:active, .row:not(.off):active, .tree-row:active, .nav:active, .tab:active { background: var(--active); }
+/* ───────── 按下和出现：规则在 DESIGN.md「动起来的地方」 ───────── */
+.btn:not(.primary):not(.danger):not(.soft):not(.off):active, .tool .add:active, .row:not(.off):active, .tree-row:active, .nav:active { background: var(--active); }
 @media (prefers-reduced-motion: no-preference) {
   .btn, .send { transition: transform 120ms ease-out; }
   .slot-add { transition: opacity 120ms ease-out; }
@@ -728,11 +741,37 @@ body { margin: 0; }
   .scrim { animation: fade-in 180ms ease-out; }
   .dialog { animation: dialog-in 200ms ease-out; }
   .toast { animation: toast-in 200ms ease-out; }
+  .menu-pop { transform-origin: top left; }
+  .mnote { animation: note-in 160ms ease-out both; } /* 错开着出来，最后一条也在 0.25 秒里停下 */
+  .mnote:nth-child(2) { animation-delay: 30ms; }
+  .mnote:nth-child(3) { animation-delay: 60ms; }
+  .mnote:nth-child(n+4) { animation-delay: 90ms; }
+  .mnote { transition: background-color 100ms ease-out; }
+  /* 收起、展开两栏，处理掉一条批注（base.js 的 moving）：正文平移到新的位置，字不跟着拉宽；收起的那一栏往它那一边退，处理掉的批注往页边退 */
+  .sidebar { view-transition-name: sidebar; }
+  #pane { view-transition-name: pane; }
+  .editor .paper > .column { view-transition-name: prose; }
+  ::view-transition-group(*) { animation-duration: 200ms; animation-timing-function: ease-out; }
+  ::view-transition-old(prose), ::view-transition-new(prose) { inline-size: auto; }
+  /* 收起、展开时一行在哪断会变：只挪新的那一份，不和旧的叠成重影 */
+  :root[data-move="fold"]::view-transition-old(prose) { animation: none; opacity: 0; }
+  :root[data-move="fold"]::view-transition-new(prose) { animation: none; }
+  ::view-transition-old(sidebar):only-child { animation: side-out 200ms ease-in both; }
+  ::view-transition-new(sidebar):only-child { animation: side-in 200ms ease-out both; }
+  ::view-transition-old(pane):only-child { animation: pane-out 200ms ease-in both; }
+  ::view-transition-new(pane):only-child { animation: pane-in 200ms ease-out both; }
+  ::view-transition-old(*.note):only-child { animation: note-out 200ms ease-in both; }
 }
 @keyframes pop-in { from { opacity: 0; transform: scale(.96); } }
 @keyframes fade-in { from { opacity: 0; } }
 @keyframes dialog-in { from { opacity: 0; transform: scale(.98); } }
 @keyframes toast-in { from { opacity: 0; transform: translateX(12px); } }
+@keyframes note-in { from { opacity: 0; transform: translateX(-8px); } }
+@keyframes note-out { to { opacity: 0; transform: translateX(16px); } }
+@keyframes side-in { from { opacity: 0; transform: translateX(-24px); } }
+@keyframes side-out { to { opacity: 0; transform: translateX(-24px); } }
+@keyframes pane-in { from { opacity: 0; transform: translateX(24px); } }
+@keyframes pane-out { to { opacity: 0; transform: translateX(24px); } }
 </style>
 </head>
 <body>

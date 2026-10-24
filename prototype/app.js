@@ -4,12 +4,16 @@
 const WINDOW_BUTTONS = '<div class="window-buttons">' + ['<path d="M0 5h10"></path>', '<rect x=".5" y=".5" width="9" height="9" rx="1"></rect>', '<path d="M.5.5l9 9M9.5.5l-9 9"></path>']
   .map((d) => `<div><svg class="icon-xs" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1">${d}</svg></div>`).join('') + '</div>'
 
-// 标题栏：自己占一行。左边是侧栏的开关和菜单，右边是窗口的三个按钮；下面各栏不用给它们让位。
+// 标题栏：自己占一行。最左是侧栏的开关，接着是菜单；写作页右边是待处理、查找、专注这几样，再右是右栏的开关，最右是窗口的三个按钮。
 // 菜单是命令的总表：哪一页用不上的那几行是灰的；AI 关着时，AI 的那几行不显示。开着一个的时候，指针移到旁边的名字上就换过去。
-// 专注写作时没有这一行：窗口的三个按钮回到工具栏那一行的右端。
+// 专注写作时这一行只剩正中的「章名 · 字数」、右边那几样和窗口的按钮。
 function titlebar() {
+  if (S.focus && S.page === 'write') {
+    const cur = chapterOf(S.ch)
+    return `<div class="titlebar bare" data-k="titlebar"><div class="bar-title ell">${cur ? t(titleOf(cur)) : ''}</div><div class="grow"></div>${tools(cur)}${paneSwitch()}${WINDOW_BUTTONS}</div>`
+  }
   const writing = S.page === 'write', cur = writing && chapterOf(S.ch)
-  const inBook = S.page !== 'shelf', hasPane = writing || S.page === 'talk'
+  const inBook = S.page !== 'shelf', [hasPane, paneOn, paneTo] = paneHere()
   const outline = cur && (S.outlines[cur.key] || '').trim(), steps = (cur && !S.ai && S.undo[cur.key]) || { back: [], fwd: [] }
   const then = (act) => () => { set(SHUT); act() }
   const ask = (dialog) => () => set({ dialog, ...SHUT })
@@ -17,14 +21,15 @@ function titlebar() {
     ['文件', () => menuRow('新建章节', writing ? then(() => newChapter()) : null, '', 'Ctrl+N') + menuRow('新建文件夹', writing ? then(newFolder) : null) + HAIR +
       menuRow('保存', cur ? then(saveNow) : null, '', 'Ctrl+S') + menuRow('快照', cur ? ask({ kind: 'snaps', id: '', diff: false }) : null) +
       menuRow('导出…', inBook ? ask({ kind: 'export', range: '全书', indent: true }) : null) + HAIR +
+      menuRow('作品分类', inBook ? toPage('cats') : null) + menuRow('回收站…', inBook ? ask({ kind: 'bin', sure: '' }) : null) + HAIR +
       menuRow('设置…', ask({ kind: 'settings', tab: 'AI', edit: '' }))],
     ['编辑', () => menuRow('撤销', steps.back.length ? then(() => unwrite(-1)) : null, '', 'Ctrl+Z') + menuRow('重做', steps.fwd.length ? then(() => unwrite(1)) : null, '', 'Ctrl+Y') + HAIR +
       menuRow('查找替换', cur ? openFind : null, '', 'Ctrl+F') +
       menuRow('重命名', cur && !S.rename ? then(renameOpen) : null, '', 'F2') + (aiOn() ? HAIR +
       menuRow('续写一句', cur ? then(continueText) : null, '', 'Ctrl+J') +
       menuRow('起草本章', outline ? ask({ kind: 'draft', goal: '', how: '接在已有内容之后' }) : null, '', cur && !outline ? '请先填写章纲' : '') : '')],
-    ['视图', () => menuRow(S.sideOpen ? '收起侧栏' : '展开侧栏', inBook ? () => set({ sideOpen: !S.sideOpen, ...SHUT }) : null) +
-      menuRow(S.paneOpen ? '收起右栏' : '展开右栏', hasPane ? () => set({ paneOpen: !S.paneOpen, ...SHUT }) : null) +
+    ['视图', () => menuRow(S.sideOpen ? '收起侧栏' : '展开侧栏', inBook ? () => moving(() => set({ sideOpen: !S.sideOpen, ...SHUT }), 'fold') : null) +
+      menuRow(paneOn ? '收起右栏' : '展开右栏', hasPane ? () => moving(() => set({ ...paneTo, ...SHUT }), 'fold') : null) +
       menuRow('专注写作', writing ? () => set({ focus: true, ...SHUT }) : null, '', 'F11') +
       menuRow('手机预览', writing ? () => set({ paneOpen: true, tab: '预览', ...SHUT }) : null) + HAIR +
       `<div class="pop-label">外观</div><div class="pop-seg">${seg(S.look, [['跟随系统', 'screen'], ['浅色', 'sun'], ['深色', 'moon']], (v) => set({ look: v }), '外观')}</div>`],
@@ -38,8 +43,32 @@ function titlebar() {
   }
   const sideWord = S.sideOpen ? '收起侧栏' : '展开侧栏'
   return '<div class="titlebar" data-k="titlebar">' +
-    `<button class="icon-btn muted${inBook ? '' : ' off'}" aria-label="${sideWord}" title="${sideWord}"${onClick(inBook ? () => set({ sideOpen: !S.sideOpen, ...SHUT }) : null)}>${svg('icon-md', PANEL + path('M9 5v14'))}</button>` +
-    menus.map(menu).join('') + WINDOW_BUTTONS + '</div>'
+    `<button class="icon-btn muted${inBook ? '' : ' off'}" aria-label="${sideWord}" title="${sideWord}"${onClick(inBook ? () => moving(() => set({ sideOpen: !S.sideOpen, ...SHUT }), 'fold') : null)}>${svg('icon-md', PANEL + path('M9 5v14'))}</button>` +
+    menus.map(menu).join('') + (inBook ? pageSwitch() : '') + '<div class="grow"></div>' + (writing ? tools(cur) : '') + paneSwitch() + WINDOW_BUTTONS + '</div>'
+}
+
+// 去哪一页。讨论页回到上次看的那一段，没看过就是最新的一段。
+const toPage = (page) => () => set({ page, ...(page === 'talk' && S.tv === 'all' ? { tid: S.talks[0] ? S.talks[0].id : null, tv: S.talks[0] ? 'one' : 'new' } : {}), ...SHUT })
+
+// 标题栏正中换页：讨论、正文、大纲、检查，正在的那一页是墨色。讨论和检查要用 AI，AI 关着时只有正文、大纲。
+// 作品分类不常去，在「文件」菜单里。
+function pageSwitch() {
+  const pages = [['讨论', 'talk'], ['正文', 'write'], ['大纲', 'plan'], ['检查', 'check']].filter(([, page]) => aiOn() || (page !== 'talk' && page !== 'check'))
+  return `<div class="pages">${pages.map(([name, page]) => `<div class="hit${S.page === page ? ' on' : ''}"${onClick(toPage(page))}>${name}${page === 'check' && S.checks.length ? `<span class="badge">${S.checks.length}</span>` : ''}</div>`).join('')}</div>`
+}
+
+// 这一页有没有右栏、开着没有、按一下怎么变。大纲页的右栏单记着开没开。
+function paneHere() {
+  const plan = S.page === 'plan', has = (S.page === 'write' && !S.focus) || S.page === 'talk' || plan, on = has && (plan ? S.planPane : S.paneOpen)
+  return [has, on, plan ? { planPane: !on } : { paneOpen: !on }]
+}
+
+// 右栏的开关：和最左的侧栏开关对着，收起、展开是同一个按钮，一直在这里不挪地方。
+// 这一页没有右栏时它灰着；专注写作时只留出它的位置，「退出专注」才和「专注写作」在同一处。
+function paneSwitch() {
+  if (S.focus && S.page === 'write') return '<div class="pane-switch"></div>'
+  const [has, on, to] = paneHere(), word = on ? '收起右栏' : '展开右栏'
+  return `<button class="icon-btn muted pane-switch${has ? '' : ' off'}" aria-label="${word}" title="${word}"${onClick(has ? () => moving(() => set({ ...to, ...SHUT }), 'fold') : null)}>${svg('icon-md', PANEL + path('M15 5v14'))}</button>`
 }
 
 // 重新开始：点过、改过的都回到刚打开的样子，只留外观。
@@ -75,7 +104,7 @@ function view() {
   return '<div class="stage">' +
     `<div class="stage-bar">${button('重新开始', restart)}<div class="anchor left"><div class="btn hit${S.open === 'rare' ? ' soft' : ''}" title="平时不易遇到的情况：出错、作品在软件外被改动"${onClick(() => set({ open: S.open === 'rare' ? '' : 'rare' }))}>少见的情况</div>` +
     (S.open === 'rare' ? `<div class="pop rare-pop" data-k="rare-pop">${rare().map(([label, act]) => menuRow(label, act)).join('')}</div>` : '') + `</div><div class="stage-note">内容为示例。正文可输入，刷新后复原；AI 仅回复固定内容。</div></div>` +
-    `<div id="win" class="${dark() ? 'dark' : 'light'}${S.narrow ? ' narrow' : ''}">` + veil() + (focus ? WINDOW_BUTTONS : titlebar()) +
+    `<div id="win" class="${dark() ? 'dark' : 'light'}${S.narrow ? ' narrow' : ''}">` + veil() + titlebar() +
     '<div class="win-body" data-k="win-body">' + (S.page === 'shelf' ? shelfPage() : (bare ? '' : sidebar()) + main[S.page]() + (side ? pane() : '')) + '</div>' +
     floats() + dialogs() + toasts() + '</div></div>'
 }

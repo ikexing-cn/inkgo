@@ -71,7 +71,7 @@ function fresh(book = BOOK.shelf[0].id) {
     ch: last ? last.key : '', trail: last ? [last.key] : [], step: 0, // 开着哪一章；trail 是打开过的章，step 是现在在第几个
     tabs: last ? [last.key] : [], // 标签页：开着的几章（和点了「编辑卷纲」的卷），从左到右；ch、vol 是其中正在看的那个
     folds: Object.fromEntries(BOOK.volumes.map(([key]) => [key, !last || key !== last.vol])),
-    paneOpen: true, sideOpen: true, tab: '设定', focus: false, // 右栏、侧栏开着吗，右栏在哪一页；focus 是专注写作
+    paneOpen: true, sideOpen: true, tab: '批注', focus: false, // 右栏、侧栏开着吗，右栏在哪一页；focus 是专注写作
     open: '', // 开着的菜单或下拉的名字，一次只开一个
     dialog: null, // 开着的对话框：{ kind, … }
     n: 100, // 新东西的编号，用一个加一个
@@ -142,6 +142,14 @@ function set(change) {
   draw()
 }
 
+// 收起、展开两栏，处理掉一条批注：东西从原来的地方挪到新的地方，不是一下跳过去（样子在 index.html 的 view-transition）。
+// 系统设了减少动态效果、浏览器不会这样画的，直接到位。
+// kind 是 'fold'（收起、展开一栏）时，正文不淡入淡出，只挪过去。
+function moving(act, kind = '') {
+  if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) return act()
+  document.documentElement.dataset.move = kind
+  document.startViewTransition(act).finished.finally(() => { delete document.documentElement.dataset.move })
+}
 // 过一会儿再做。换书、重新开始时，还没到点的都作废。
 function later(ms, act) {
   const id = setTimeout(() => { timers.delete(id); act() }, ms)
@@ -189,10 +197,8 @@ const svg = (cls, inner, width = 1.8) => `<svg class="${cls}" viewBox="0 0 24 24
 const path = (d) => `<path d="${d}"></path>`
 const PANEL = '<rect x="4" y="5" width="16" height="14" rx="2"></rect>'
 const SHAPE = {
-  chat: path('M5 5h14v10H10l-4 4v-4H5z'),
   book: path('M6 4h11a1 1 0 011 1v15H7a2 2 0 01-2-2V5a1 1 0 011-1zM5 17a2 2 0 012-2h11'),
   checked: '<circle cx="12" cy="12" r="8"></circle>' + path('M8.5 12.2l2.5 2.5 4.5-5'),
-  tag: path('M4 12V4h8l8 8-8 8z'),
   spark: path('M10 4l1.6 4.4L16 10l-4.4 1.6L10 16l-1.6-4.4L4 10l4.4-1.6zM18 15l.8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8z'),
   page: path('M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z') + path('M14 3v5h5'),
   clock: path('M4 12a8 8 0 1 0 2.5-5.8M4 5v4h4M12 8v4l3 2'),
@@ -217,8 +223,6 @@ const SHAPE = {
   flag: path('M6 20V4h10l-2 4 2 4H6'),
   link: path('M10 14l4-4M8.5 11.5l-2 2a3 3 0 004 4l2-2M15.5 12.5l2-2a3 3 0 00-4-4l-2 2'),
   folder: path('M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'),
-  bin: path('M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12'),
-  gear: path('M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z') + '<circle cx="12" cy="12" r="3"></circle>',
   focus: path('M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7'),
   dots: path('M5 12h.01M12 12h.01M19 12h.01'),
   grip: path('M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01'),
@@ -353,6 +357,7 @@ function draw() {
   if (tab) { const strip = tab.parentElement; strip.scrollLeft = Math.max(tab.offsetLeft + tab.offsetWidth - strip.clientWidth, Math.min(strip.scrollLeft, tab.offsetLeft)) }
   fitPhone() // 手机预览排好以后才知道分成几屏
   placeBar() // 选中的字排好以后才知道浮条放在哪
+  placeNotes() // 批注也是
 }
 
 // 页面上只挂这几个听的：事情出在哪个元素上，就照它身上的号码去找动作。
