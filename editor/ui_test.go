@@ -270,6 +270,33 @@ func TestTypewriterScrolling(t *testing.T) {
 	}
 }
 
+// The scroll bar's thumb drags the text and its track pages it, with an
+// arrow over the bar and the caret left where it was.
+func TestScrollBarDrags(t *testing.T) {
+	e := New(NewDoc(strings.Repeat("一行字。\n", 200)), Options{})
+	tt := newTester(e)
+	x := e.width - 4
+	tt.Move(x, 10)
+	if tt.Cursor() != ui.CursorDefault || !e.barHot {
+		t.Fatalf("cursor %v over the bar", tt.Cursor())
+	}
+	_, h := e.thumb()
+	tt.Press(x, h/2)
+	tt.Move(x, h/2+100)
+	tt.Release(x, h/2+100)
+	if want := 100 * e.maxScroll() / (e.height - h); e.scrollY < want-1 || e.scrollY > want+1 {
+		t.Fatalf("the thumb dragged 100 down scrolled %v, not %v", e.scrollY, want)
+	}
+	if e.Caret() != 0 || e.barDrag {
+		t.Fatalf("caret %d, still held %v", e.Caret(), e.barDrag)
+	}
+	at := e.scrollY
+	tt.ClickAt(x, e.height-2)
+	if e.scrollY < at+e.height*0.9-1 {
+		t.Fatalf("a click below the thumb scrolled from %v to %v", at, e.scrollY)
+	}
+}
+
 // A new size reshapes the text: the glyphs grow, not only the lines.
 func TestFontSizeReshapes(t *testing.T) {
 	e := New(NewDoc("一二三"), Options{Font: ui.Font{Size: 16}})

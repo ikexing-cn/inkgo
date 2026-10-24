@@ -262,6 +262,8 @@ Status: implemented
 | 6 `desk` 的内部状态 | 2026-10-23 合入，见[那篇](../../implemented/architecture/2026-10-22-desk-state.md)；作者交代不等审，提案和结果一起看 |
 | 7 拆子包 | 2026-10-24 合入；作者交代不等审，做完一起看 |
 
+作者 2026-10-24 看完 7 批，提出的问题和改动见[那篇](../bug-fix/2026-10-24-after-reviewing-the-reorganization.md)。
+
 ## Alternatives considered
 
 - **一次把 `desk` 拆成十来个子包**：
@@ -308,11 +310,11 @@ Status: implemented
 | 第 1 批：改标记以后不再重新排版 | `editor/doc_test.go` 的 `TestMarkChangesKeepLayout` |
 | 第 2 批：讨论搜全书批量读正文 | `workspace/reads_test.go` 的 `TestTextsAreWhatReadingEachGives`；不随章数重建章节树没有测试，审查时看的调用 |
 | 第 2 批：追加一条 AI 记录只读新增的一截 | `workspace/record_test.go` 的 `TestRecordCursorExternalChanges`、`TestRecordCursorRevalidatesAfterFailedTail`，`workspace/workspace_test.go` 的 `TestSessionCursorExternalChanges`；耗时本身没有测试 |
-| 第 2 批：写文件只剩一份实现 | `internal/atomicfile` 的测试；只剩一份是合入时 `rg` 查的。导出写到作者选的文件夹那一处（`desk/exportdialog/export.go`）仍是 `os.WriteFile`，不在当时数的 5 份里 |
+| 第 2 批：写文件只剩一份实现 | `internal/atomicfile` 的测试；只剩一份是合入时 `rg` 查的。导出写到作者选的文件夹那一处（`desk/exportdialog/export.go`）不在当时数的 5 份里，作者看完以后也改用 `atomicfile.Write`，见[那篇](../bug-fix/2026-10-24-after-reviewing-the-reorganization.md) |
 | 第 3 批：没有 `a.page == <数字>`，`cmd/poc` 不在，`workspace/chapters.go` 拆完 | 无。合入时 `rg` 和 `ls` 查的；页码是有名字的类型常量 |
 | 第 3 批：`desk/doc.go` 列出每个文件 | 无。第 7 批后对着目录重新核过一遍 |
 | 第 4 批：上表的函数不在 `desk` 里，各有不用建 `App` 的单元测试 | 各目标包的测试（`internal/textdiff`、`export`、`backup`、`shelf`、`prefs`、`workspace`、`editor`）；不在 `desk` 里是合入时 `rg` 查的 |
-| 第 5 批：`ai` 不依赖 `desk`，`writing` 不引用 `discussion` | 无。合入时 `go list -deps` 查的；`desk` 这边不依赖 `ai` 由 `TestImports` 守着 |
+| 第 5 批：`ai` 不依赖 `desk`，`writing` 不引用 `discussion` | `ai/imports_test.go`、`writing/imports_test.go` 的 `TestImports`，作者看完以后加的，见[那篇](../bug-fix/2026-10-24-after-reviewing-the-reorganization.md)；合入时是 `go list -deps` 查的。`desk` 这边不依赖 `ai` 由 `desk/imports_test.go` 守着 |
 | 第 5 批：跨包约定有导出的解析函数 | `workspace/mentions_test.go` 的 `TestEntryNumbers`、`workspace/events_test.go` 的 `TestDigestSectionsWhitespace`、`workspace/types_test.go` 的 `TestModelRef` |
 | 第 6 批：只有书模型调用 `Store` 的读接口 | `desk/book_guard_test.go` 的 `TestDeskLeavesTheBooksContentToBook` |
 | 第 6 批：`sheet`、`write.entered` 不在 | 无。合入时 `rg` 查的 |

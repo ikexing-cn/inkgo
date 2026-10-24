@@ -109,6 +109,10 @@ type Editor struct {
 	menuKey   bool // the menu key was pressed: the host is told in View
 	focused   bool
 	popRect   ui.Rect
+	// barDrag is the scroll bar's thumb held, pressed barAt down the view
+	// with the text scrolled barFrom; barHot is the pointer on the bar.
+	barDrag, barHot bool
+	barFrom, barAt  float32
 }
 
 type undoStep struct {

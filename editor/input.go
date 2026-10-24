@@ -46,6 +46,10 @@ func (e *Editor) input(ev ui.InputEvent) bool {
 	case ui.InputPointerDown:
 		return e.pointerDown(ev)
 	case ui.InputPointerMove:
+		if e.barDrag {
+			e.dragBar(ev.Y)
+			return true
+		}
 		if e.dragging && ev.Button == 0 {
 			e.caret = e.hit(ev.X, ev.Y)
 			e.reveal = true
@@ -53,8 +57,8 @@ func (e *Editor) input(ev ui.InputEvent) bool {
 		}
 		return false
 	case ui.InputPointerUp:
-		was := e.dragging
-		e.dragging = false
+		was := e.dragging || e.barDrag
+		e.dragging, e.barDrag = false, false
 		return was
 	case ui.InputScroll:
 		if ev.Mods&^ui.Shift == ui.Cmd && e.opts.Zoom != nil {
@@ -328,6 +332,10 @@ func (e *Editor) pointerDown(ev ui.InputEvent) bool {
 		}
 		return true
 	}
+	if ev.Button == 0 && e.onBar(ev.X) {
+		e.pressBar(ev.Y)
+		return true
+	}
 	if ev.Button == 1 {
 		// The context menu acts on the selection, or where it was opened.
 		if a, b := e.Selection(); a == b {
@@ -365,6 +373,42 @@ func (e *Editor) pointerDown(ev ui.InputEvent) bool {
 
 func (e *Editor) scrollBy(dy float32) {
 	e.scrollY = clampf(e.scrollY+dy, 0, e.maxScroll())
+}
+
+// barW is how far in from the editor's right edge its scroll bar takes
+// presses: on the thumb they drag the text, above or below it they page.
+const barW = 12
+
+// onBar reports whether x, across the editor's box, is on its scroll bar,
+// which is there while the text is longer than the view.
+func (e *Editor) onBar(x float32) bool { return e.maxScroll() > 0 && x >= e.width-barW }
+
+// thumb returns how far down the view the scroll bar's thumb is, and how
+// long it is.
+func (e *Editor) thumb() (y, h float32) {
+	most := e.maxScroll()
+	h = max(e.height*e.height/(most+e.height), 24)
+	return (e.height - h) * e.scrollY / max(most, 1), h
+}
+
+func (e *Editor) pressBar(y float32) {
+	top, h := e.thumb()
+	switch {
+	case y < top:
+		e.scrollBy(-e.height * 0.9)
+	case y >= top+h:
+		e.scrollBy(e.height * 0.9)
+	default:
+		e.barDrag, e.barFrom, e.barAt = true, e.scrollY, y
+	}
+}
+
+// dragBar scrolls the text as far through it as the held thumb has moved
+// along its track.
+func (e *Editor) dragBar(y float32) {
+	_, h := e.thumb()
+	most := e.maxScroll()
+	e.scrollY = clampf(e.barFrom+(y-e.barAt)*most/max(e.height-h, 1), 0, most)
 }
 
 // zoomBy takes a Ctrl+wheel scroll of dy: a wheel's notch is one step,

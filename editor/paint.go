@@ -192,10 +192,14 @@ func (e *Editor) paintCaret(p *ui.Painter, r ui.Rect, oy float32) {
 		p.Fill(ui.Rect{X: r.X + cx - 0.5, Y: oy + cy + (l.lineH-h)/2, W: 1.5, H: h}, t.Accent, 0)
 	}
 
-	if full := e.maxScroll() + r.H; full > r.H {
-		h := max(r.H*r.H/full, 24)
-		y := r.Y + (r.H-h)*e.scrollY/max(full-r.H, 1)
-		p.Fill(ui.Rect{X: r.X + r.W - 8, Y: y, W: 4, H: h}, t.Scrollbar, 2)
+	if e.maxScroll() > 0 {
+		y, h := e.thumb()
+		// Wider while the pointer is on the bar or holds it.
+		x, w := r.X+r.W-8, float32(4)
+		if e.barHot || e.barDrag {
+			x, w = r.X+r.W-10, 8
+		}
+		p.Fill(ui.Rect{X: x, Y: r.Y + y, W: w, H: h}, t.Scrollbar, w/2)
 	}
 }
 

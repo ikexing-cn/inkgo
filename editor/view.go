@@ -12,7 +12,12 @@ func (e *Editor) View(c *ui.Context) ui.Element {
 	e.sv = c.Services()
 	e.predict.poll(e)
 	el := ui.Box(c).Focusable().FocusRing(false).Cursor(ui.CursorText).Clip().Label("正文")
-	if x, y, ok := el.PointerPosition(); ok && e.nameAt(x, y) != "" {
+	x, y, over := el.PointerPosition()
+	e.barHot = over && e.onBar(x)
+	switch {
+	case e.barHot || e.barDrag:
+		el.Cursor(ui.CursorDefault)
+	case over && e.nameAt(x, y) != "":
 		el.Tooltip("查看设定").Cursor(ui.CursorPointer)
 	}
 	if e.wantFocus {

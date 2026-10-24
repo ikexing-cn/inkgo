@@ -11,6 +11,7 @@ import (
 	"writer/desk/book"
 	"writer/desk/kit"
 	"writer/export"
+	"writer/internal/atomicfile"
 	"writer/shelf"
 	"writer/workspace"
 )
@@ -214,7 +215,7 @@ func (d *Dialog) export(c *ui.Context, plan export.Plan) {
 		var path string
 		for _, f := range files {
 			path = filepath.Join(dir, f.name)
-			if err := os.WriteFile(path, []byte(f.data), 0644); err != nil {
+			if err := atomicfile.Write(path, []byte(f.data), 0644); err != nil {
 				status.Warn(err)
 				return
 			}
