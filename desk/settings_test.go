@@ -24,3 +24,46 @@ func TestSettingsSayNothingNeedless(t *testing.T) {
 		}
 	}
 }
+
+// 禁用 GPU 加速 is kept for this machine and waits for the software to open
+// again, which the settings say; the link closes them and relaunches,
+// asking first about what the AI proposed, as closing the window does.
+func TestNoGPUWaitsForTheNextStart(t *testing.T) {
+	a, tt, _ := writingFixture(t, "她走到井边。")
+	f := &script{}
+	penWith(a, f)
+	f.then(proposal("第一章", "end", "", "井里有光。"), []string{"接了一句。"})
+	setChapterOutline(a, "井里有光。")
+	a.openDraft()
+	tt.Frame()
+	click(t, tt, "开始起草")
+	replied(t, a, tt)
+
+	a.openPrefs("外观")
+	tt.Frame()
+	click(t, tt, "禁用 GPU 加速")
+	if !tt.HasText("重新打开软件后生效。") || tt.HasText("立即重新打开") {
+		t.Fatal("ticked, it does not say it waits, or offers what cannot be done", tt.Texts())
+	}
+	b := newApp(a.ai.ConfigFile())
+	if !b.NoGPU() || b.ranNoGPU != b.NoGPU() {
+		t.Fatal("not kept for the next start")
+	}
+	b.Close()
+	click(t, tt, "禁用 GPU 加速")
+	if tt.HasText("重新打开软件后生效。") {
+		t.Fatal("as the software opened, and still it waits")
+	}
+
+	relaunched := 0
+	a.Relaunch = func() { relaunched++ }
+	click(t, tt, "禁用 GPU 加速")
+	click(t, tt, "立即重新打开")
+	if relaunched != 0 || a.bk.prefs || !tt.HasText("还有 1 处 AI 提议没有处理") {
+		t.Fatal("relaunched without asking about the proposal", relaunched, tt.Texts())
+	}
+	click(t, tt, "丢弃并关闭")
+	if relaunched != 1 || len(a.write.props) != 0 {
+		t.Fatal("let go, it did not relaunch", relaunched)
+	}
+}

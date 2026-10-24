@@ -111,12 +111,13 @@ function fresh(book = BOOK.shelf[0].id) {
     uses: structuredClone(BOOK.uses), services: BOOK.services.map((x) => ({ ...x, models: x.models.map(limits) })), auto: false,
     when: '写完一章后检查', late: BOOK.late, goal: '', goalSet: '', paneW: 0, // paneW 是右栏拖出来的宽度，没拖过是 0
     names: true, // 正文里标出设定的名字
+    noGPU: false, ranNoGPU: false, // 禁用 GPU 加速：勾了没有，和这次打开软件时是不是关着（改了要重新打开才生效）
     phone: { ...PHONE }, // 手机预览的排版：翻页还是滚动、哪种屏幕、字号、行距、背景、要不要手机外框、标不标长段
     noAI: false, offFrom: '', // 关闭了 AI：本机的所有作品都不显示 AI 功能，也不发送任何内容；offFrom 是关的时候停在的讨论页、检查页
     exportWhat: ['正文'], exportAs: 'Word', pen: '', // 导出勾了哪几样、成什么格式，上次写在首页的笔名（新作品沿用它）
   }
 }
-const KEPT = ['look', 'names', 'phone', 'shelf', 'cards', 'library', 'uses', 'services', 'auto', 'when', 'late', 'goal', 'paneW', 'noAI', 'exportWhat', 'exportAs', 'pen']
+const KEPT = ['look', 'names', 'noGPU', 'ranNoGPU', 'phone', 'shelf', 'cards', 'library', 'uses', 'services', 'auto', 'when', 'late', 'goal', 'paneW', 'noAI', 'exportWhat', 'exportAs', 'pen']
 
 let S = fresh()
 let sent = 0 // 作者发过几条消息，AI 按顺序回下一句

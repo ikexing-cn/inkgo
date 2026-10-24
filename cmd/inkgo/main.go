@@ -7,6 +7,7 @@ package main
 import (
 	"flag"
 	"log"
+	"os"
 	"sync/atomic"
 
 	"github.com/egoist/mygo"
@@ -58,10 +59,18 @@ func main() {
 	} else {
 		d.OpenLast()
 	}
-	defer d.Close()
+	// The work closes once the window has, and before the software opens
+	// again when it relaunches: the one that opens finds it saved.
+	mygo.App.OnQuit(func() { d.Close() })
 	// The appearance chosen on this machine, before the window shows.
 	mygo.Theme.SetSource(mygo.ThemeSource(d.Theme()))
 	d.Appearance = func(v string) { mygo.Theme.SetSource(mygo.ThemeSource(v)) }
+	// Drawn without the GPU where this machine says so: mygo looks as the
+	// window draws its first frame, so a change waits for the next start.
+	if d.NoGPU() {
+		os.Setenv("MYGO_GPU", "0")
+	}
+	d.Relaunch = mygo.App.Relaunch
 	mygo.App.WhenReady(func() {
 		w := mygo.NewWindow(mygo.WindowOptions{Title: "Inkgo", Width: 1280, Height: 820, MinWidth: 1000, MinHeight: 680, StateKey: "main",
 			// The page draws its own title bar, a row over everything, as the design does.

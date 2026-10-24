@@ -51,6 +51,9 @@ type Shelf struct {
 	// NoNames hides setting name links in prose on this machine. Absent,
 	// names are marked, including shelves saved before this preference.
 	NoNames bool `json:"noNames,omitempty"`
+	// NoGPU draws the window without the GPU on this machine, from the next
+	// time the software opens. Absent, the GPU draws where there is one.
+	NoGPU bool `json:"noGPU,omitempty"`
 	// Export is how the export dialog was last left, for every work; nil,
 	// it was never used.
 	Export *Export `json:"export,omitempty"`

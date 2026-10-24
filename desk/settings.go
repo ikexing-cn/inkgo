@@ -208,4 +208,35 @@ func (a *App) looksView(c *ui.Context) {
 		a.shelf.NoNames = !on
 		a.saveShelf()
 	}
+	// The window is drawn as the software opened: a change waits for it to
+	// open again, which the link does at once.
+	ui.Column(c).FillWidth().Gap(8).Children(func() {
+		if ui.Checkbox(c, &a.shelf.NoGPU, "禁用 GPU 加速").Changed() {
+			a.saveShelf()
+		}
+		if a.shelf.NoGPU == a.ranNoGPU {
+			return
+		}
+		link := "立即重新打开"
+		if a.Relaunch == nil {
+			link = ""
+		}
+		if a.pal.TickNoteLink(c, "重新打开软件后生效。", link) {
+			a.relaunch()
+		}
+	})
+}
+
+// NoGPU reports whether this machine draws the window without the GPU;
+// cmd/inkgo asks before the window draws.
+func (a *App) NoGPU() bool { return a.shelf.NoGPU }
+
+// relaunch opens the software again, on the same work, from the
+// settings, which close first: what the AI proposed and is not decided
+// on is asked about over the page, as closing the window asks.
+func (a *App) relaunch() {
+	a.bk.prefs = false
+	if !a.Leave(a.Relaunch) {
+		a.Relaunch()
+	}
 }

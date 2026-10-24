@@ -139,6 +139,7 @@ type App struct {
 	showShelved       bool              // the shelved conversations listed too
 	path, name, genre string
 	shelf             shelf.Shelf
+	ranNoGPU          bool // the shelf's NoGPU as the software opened, which cmd/inkgo draws by
 	bk                backupView
 	books             shelfView
 	ck                checks
@@ -195,6 +196,10 @@ type App struct {
 	// Appearance applies the appearance chosen: "light", "dark", or empty
 	// to follow the system. cmd/inkgo hands it to the window.
 	Appearance func(string)
+	// Relaunch closes the software and opens it again, on the same work.
+	// cmd/inkgo hands it mygo's; nil, the settings only say that a change
+	// waits for the software to open again.
+	Relaunch func()
 }
 
 // New is the app with ai, whose configuration file says where this
@@ -231,6 +236,7 @@ func New(ai aiport.Service) *App {
 	if ai.ConfigFile() != "" {
 		a.loadShelf()
 	}
+	a.ranNoGPU = a.shelf.NoGPU
 	ai.BindSwitch(a.aiOn)
 	if a.aiOn() {
 		a.loadAI()

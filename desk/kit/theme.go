@@ -31,6 +31,20 @@ func (p *Palette) TickNote(c *ui.Context, text string) {
 	ui.Text(c, text).FontSize(FsNote).TextColor(p.Theme.TextMuted).LineHeight(LhBody).Margin(-4, 0, 4, tickIndent)
 }
 
+// TickNoteLink is a TickNote followed by the text button link, which acts
+// on what it says; empty leaves the button out. It reports whether the
+// button was clicked.
+func (p *Palette) TickNoteLink(c *ui.Context, text, link string) (clicked bool) {
+	// The gap and the button's own padding of 6 leave 8 before its words.
+	ui.Row(c).Gap(2).AlignItems(ui.Center).Margin(-4, 0, 4, tickIndent).Children(func() {
+		ui.Text(c, text).FontSize(FsNote).TextColor(p.Theme.TextMuted).LineHeight(LhBody)
+		if link != "" {
+			clicked = p.Ghost(c, link, ui.Color{}).Clicked()
+		}
+	})
+	return clicked
+}
+
 // titleHeight is the height of the title bar, and of the top row of each
 // pane under it. The window buttons fill the title bar (cmd/inkgo gives the
 // window the same title bar height), so their hover covers the whole row.

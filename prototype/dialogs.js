@@ -186,6 +186,14 @@ function settingsBackup() {
 const aiSwitch = () => `<div class="ticks">${tickbox(S.noAI, '关闭 AI', () => set((s) => ({ dialog: { ...s.dialog, ask: s.noAI ? 'on' : 'off' }, ...SHUT })))}` +
   '<div class="note tick-note">隐藏全部 AI 功能，不发送任何内容。</div></div>'
 
+// 「外观」的最下面：禁用 GPU 加速，管本机。界面用什么画是打开软件时定的，改了要重新打开才生效：
+// 和这次打开时不一样，说明下面多一句，跟着一个「立即重新打开」（软件里关掉窗口再打开，回到同一本书，设置不再开着）。
+function gpuSwitch() {
+  const pending = S.noGPU !== S.ranNoGPU
+  return `<div class="ticks">${tickbox(S.noGPU, '禁用 GPU 加速', () => set({ noGPU: !S.noGPU }))}` +
+    (pending ? `<div class="where tick-note"><div>重新打开软件后生效。</div><div class="hit link"${onClick(() => set((s) => ({ ranNoGPU: s.noGPU, dialog: null, ...SHUT })))}>立即重新打开</div></div>` : '') + '</div>'
+}
+
 // 关闭、开启 AI 前问的那一句，浮在设置上面。
 function askAI(ask) {
   const off = ask === 'off', back = () => set((s) => ({ dialog: { ...s.dialog, ask: '' } }))
@@ -219,7 +227,7 @@ function settingsDialog(d) {
   const rec = d.tab === 'AI' && d.records && aiOn()
   const body = d.tab === 'AI' ? (rec ? records(d) : aiSwitch() + (aiOn() ? settingsModel(d) : '')) : d.tab === '备份' ? settingsBackup()
     : d.tab === '外观' ? `<div class="prefs-row"><div class="prefs-label">颜色</div>${seg(S.look, [['跟随系统', 'screen'], ['浅色', 'sun'], ['深色', 'moon']], (v) => set({ look: v }), '颜色')}</div>` +
-      `<div class="prefs-row">${tickbox(S.names, '正文中标出设定的名字', () => set({ names: !S.names }))}</div>`
+      `<div class="prefs-row">${tickbox(S.names, '正文中标出设定的名字', () => set({ names: !S.names }))}</div>` + gpuSwitch()
     : '<div class="prefs-group"><div class="group-title">伏笔</div></div>' +
       `<div class="prefs-row"><div class="fit">超过多少章算久未回收</div><div class="stepper"><div class="hit" title="减少 5 章"${onClick(step(-5))}>−</div><div class="stepper-n">${S.late} 章</div><div class="hit" title="增加 5 章"${onClick(step(5))}>+</div></div></div>` +
       `<div class="note">当前有 ${lateNow} 个伏笔久未回收。</div>` +

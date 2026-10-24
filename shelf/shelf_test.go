@@ -134,6 +134,29 @@ func TestShelfNameHighlights(t *testing.T) {
 	}
 }
 
+// The GPU draws unless this machine was told not to, which is kept as
+// noGPU and left out while it is not.
+func TestShelfNoGPU(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "works.json")
+	s := Shelf{Schema: 1, Books: []Book{}}
+	if err := s.Save(path); err != nil {
+		t.Fatal(err)
+	}
+	if b, _ := os.ReadFile(path); strings.Contains(string(b), "noGPU") {
+		t.Fatalf("default must be omitted: %s", b)
+	}
+	s.NoGPU = true
+	if err := s.Save(path); err != nil {
+		t.Fatal(err)
+	}
+	if b, _ := os.ReadFile(path); !strings.Contains(string(b), `"noGPU": true`) {
+		t.Fatalf("not kept as noGPU: %s", b)
+	}
+	if got, _, err := Load(path); err != nil || !got.NoGPU {
+		t.Fatalf("did not persist: %+v %v", got, err)
+	}
+}
+
 // A shelf that does not read is an error, and is never taken for an empty one.
 func TestBrokenShelf(t *testing.T) {
 	dir := t.TempDir()
