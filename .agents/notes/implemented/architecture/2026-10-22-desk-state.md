@@ -8,7 +8,7 @@ Status: implemented
 
 页面进出、导航和命令也有共同规则。各处分别维护，会漏掉保存、刷新、快捷键提示或关 AI 时的收束动作。
 
-这是[理一遍代码](../../proposed/architecture/2026-10-21-code-reorganization.md)的第 6 批。
+这是[理一遍代码](../../implemented/architecture/2026-10-21-code-reorganization.md)的第 6 批。
 
 ## Decision
 
@@ -64,13 +64,13 @@ Status: implemented
 
 - `phone.Panel`（`desk/phone/phone.go`）持有分页、排版偏好、正文缓存、阅读位置和命中几何。右栏顶行由 `settingColumn` 绘制，`commands.go` 的 `openPhone` 负责打开右栏和保存偏好。
 - `exportdialog.Dialog`（`desk/exportdialog/export.go`）持有打开时的正文快照、范围、笔名、缩进和导出计划，放在 `App.exporting`，作品重置时清空。
-- `outlinePage`（`plan.go`、`plan_layout.go`）持有索引、布局缓存、纲草稿、卡片和情节线编辑、搜索和滚动。页面表直接绑定 `enter`、`leave`、`view`，正文旁调用它的 `chapterStory`。
-- 手机和导出各持有本包声明的 `Host`；大纲页持有 `desk.host`。`desk/host.go` 的 `appHost` 显式持有 `*App`，用大写方法实现三个接口，`App` 不增加导出方法。`New` 绑定适配器；大纲和导出重置时重新绑定。手机保留跨作品的排版缓存。写作、讨论、右栏、伏笔、待办和提议留在 App。
-- `host` 给出 `Colors/PhoneColors` 配色、`Content` 书内容、`Workspace` 存取层和作品路径、`Notices` 状态、`ShelfPrefs/SaveShelf` 本机偏好，以及 `Chapter` 的章 ID、编辑器和有效开章标志。章 ID 在写作页外为空。
+- `outline.Page`（`desk/outline/plan.go`、`plan_layout.go`）持有索引、布局缓存、纲草稿、卡片和情节线编辑、搜索和滚动。页面表直接绑定 `Enter`、`Leave`、`View`，正文旁调用它的 `ChapterStory`。
+- 三个页面各在自己的包里声明 `Host`，只列它调用的方法。`desk/host.go` 的 `appHost` 显式持有 `*App`，用大写方法实现这三个接口，`App` 不增加导出方法。`New` 绑定适配器；大纲和导出重置时重新绑定。手机保留跨作品的排版缓存。写作、讨论、右栏、伏笔、待办和提议留在 App。
+- `appHost` 给出 `Colors/PhoneColors` 配色、`Content` 书内容、`Workspace` 存取层和作品路径、`Notices` 状态、`ShelfPrefs/SaveShelf` 本机偏好，以及 `Chapter` 的章 ID、编辑器和有效开章标志。章 ID 在写作页外为空。
 - `Flush` 保存导出前的正文；`SyncPlanOutline` 把已保存的纲同步到同 ID 当前写作草稿的 Text、Saved、Seen；`OpenWriting` 打开指定章；`ShowOutline` 切到大纲页。
 - `StartJob` 运行后台选文件，`Dialogs` 给 SaveFile 和 Reveal。`PickInto` 与书架共用后台选目录的实现，返回是否有选目录回调。单文件选文件，多文件选目录，相应回调缺席时写作品的「导出」目录。
-- `DropMenu` 把宿主的 `kit.MenuState` 和配色交给 `DropMenu`，`SettingColumn` 绘制共享右栏。配色、状态和书内容的重复访问在方法内取一次。`host` 的签名只用 `kit.Palette`、`kit.Menu`、`kit.Status` 和 `desk` 以外的类型；`Modal` 和 `PaneEmpty` 是 `kit.Palette` 的方法，`laterLines` 在 `desk/exportdialog/export.go`，只供设定导出使用，显式接收 Book 和条目。
-- `desk` 直接使用的边界是：导出的 `Show`、`Replan`、`View` 和 `Open`；手机的 `View`；大纲页的生命周期、dialog、chapterStory、finishOutline 和 pane。AI 起草直接调用 Book.ReloadPlan 统计卡片，不改变大纲页的加载和几何状态。
+- `DropMenu` 把宿主的 `kit.MenuState` 和配色交给 `DropMenu`，`SettingColumn` 绘制共享右栏。配色、状态和书内容的重复访问在方法内取一次。三个 `Host` 的签名只用 `kit.Palette`、`kit.Menu`、`kit.Status` 和 `desk` 以外的类型；`Modal` 和 `PaneEmpty` 是 `kit.Palette` 的方法，`laterLines` 在 `desk/exportdialog/export.go`，只供设定导出使用，显式接收 Book 和条目。
+- `desk` 直接使用的边界是：导出的 `Show`、`Replan`、`View` 和 `Open`；手机的 `View`；大纲页的 `Enter`、`Leave`、`View`、`Dialog`、`ChapterStory`、`FinishOutline` 和 `Pane`。AI 起草直接调用 Book.ReloadPlan 统计卡片，不改变大纲页的加载和几何状态。
 
 - `phone.Panel.Preferences` 返回逐字段默认后的本机偏好，不落盘；`exportdialog.Dialog.Plan` 和 `Selection` 返回当前持有的计划和范围，不重算计划。页面内部规则在自己的包测试，菜单、导航、落盘和刷新契约由 `desk` 测试。
 
@@ -112,14 +112,14 @@ Status: implemented
 - 书内容和打开的章节各有一个主人，页面进出和命令的规则各在一张表里。派生数据只认输入的版本，不变的帧不重建。
 - `Book` 的版本必须随书内容变：绕过它写盘，缓存就是旧的。测试直接用 `Store` 摆场景后，要让 `Book` 重读。
 - `Book` 只在界面线程用，这一条没有测试守，靠后台任务只拿 `Store`、交回后在界面线程刷新。
-- 手机预览、导出和大纲页各经自己消费的接口访问 `appHost`。两个子包不引用 `desk` 或别的页面包，接口签名不带 `desk` 的私有类型。
+- 手机预览、导出和大纲页各经自己消费的接口访问 `appHost`。三个页面包不引用 `desk` 或别的页面包，接口签名不带 `desk` 的私有类型；这由 `desk/imports_test.go` 的 `TestImports` 守着。
 
 ## Testing
 
 - `state_test.go` 的 helper 读共享状态；测试改了状态路径时只改 helper。
 - 打开的章节、丢失和外部改动：`TestOneOpenChapterPerTab`、`TestALostChapterKeepsItsTab`、`TestOutsideChangeAsksTheAuthor`、`TestSavingDoesNotWriteOverAnOutsideChange`。
 - 关 AI 的次序和收束：`TestAISwitchCallsPartsInOrder`、`TestTurnTheAIOffAndOn`。
-- 发给模型的字节：`TestTalkRequestBytes`、`TestDigestRequestBytes`、`TestCheckRequestBytes`、`TestPredictionRequestBytes`。存储格式和 `perf_test.go` 的阈值不变。
+- 发给模型的字节：`TestTalkRequestBytes`、`TestDigestRequestBytes`、`TestCheckRequestBytes`、`TestPredictionRequestBytes`。存储格式和帧耗时测试的阈值不变，大纲页那项在 `desk/outline/plan_perf_test.go`。
 
 各项要求由哪个测试守：
 
@@ -131,7 +131,7 @@ Status: implemented
 | 菜单提示和有快捷键的命令的帮助出自命令表 | `TestMenuHintsComeFromCommands`、`TestTableHelpListsEachKeyedCommand`、`TestHelpShowsTheTableRows` |
 | 右栏设定的页面由 `settingRoute` 决定 | `TestSettingRouteScreenOrder`、`TestSettingRouteOneBase`、`TestSettingRouteDropsWhatPointsAtNothing` |
 | 一万条 AI 记录只建看得见的行 | `TestTheRecordBuildsOnlyWhatShows` |
-| 三个功能的源码不提 `App` | `TestFeatureSourcesDoNotNameApp` |
-| `desk/book` 的全部依赖不含 `mygo`、`editor` 和 `desk` | 无；`TestImports` 只查直接导入，全部依赖用 `go list -deps ./desk/book` 查过 |
+| 三个功能的源码不提 `App` | 编译器：它们在 `desk` 下的包里，引用不了 `desk` |
+| `desk/book` 的全部依赖不含 `mygo`、`editor` 和 `desk` | `desk/imports_test.go` 的 `TestImports` |
 | `write.entered`、`sheet`、`park`、`unpark`、`keyGroups` 已删 | 无；用 grep 查过 |
 | 前后截图一致 | 无；截图测试出图，前后对比在审查时做 |

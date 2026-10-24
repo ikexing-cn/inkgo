@@ -101,7 +101,7 @@ Status: implemented
 
 - **AI 的界面也搬出去（`desk/ai` 放讨论、检查、摘要的界面和逻辑，核心留二十来个接口方法）** — 我第一稿推荐这个：核心里根本没有 AI 的代码，「看不见」也由编译器保证，以后把功能分成「只有 AI 才有」和「两边都能用」时，清单现成。没有选：作者要的是同一套界面靠开关切换，「不要维护两套逻辑」；接口二十来个、约 3,500 行换包、两边共用的状态要一样样分家，作者说「不要那么极端」。「看不见」由走一遍的检查守着。
 - **零件单独建一个 `desk/look` 包** — 第一稿为了两个包都能用零件才要它。界面不拆以后用不着了，零件留在 `desk`。
-  - 页面拆包共用的零件在 `desk/kit`，见[理一遍代码的第 7 批](../../proposed/architecture/2026-10-21-code-reorganization.md)。
+  - 页面拆包共用的零件在 `desk/kit`，见[理一遍代码的第 7 批](../../implemented/architecture/2026-10-21-code-reorganization.md)。
 - **核心的依赖里也不许有 `net`、`net/http`** — 第一稿我加的：核心连联网的能力都没有，「不发送」由编译器兜底。没有选：开关管的是 AI，以后核心自己要联网的功能（比如检查更新）不该被它挡住；作者说「不要那么极端」。
 - **关着时 AI 那部分不存在（nil），打开时重新造** — 第一稿这么写的：关着时连对象都没有，最干净。没有选：作者说「关掉后，禁用就好了，同样开启就是启用」；一直在、只是停用，开关前后的状态也不用重建。
 - **接口放在 `desk` 里，`ai` 引用 `desk`** — 接口跟着用它的一方走，Go 里常见，少一个包。没有选：`desk` 的测试要用真的 `ai` 配假模型，这样就成环了，测试得另写一份替身，等于把 `ai` 的那点胶水在测试里再写一遍。
@@ -126,7 +126,7 @@ Status: implemented
 
 ## Verification
 
-- `desk/aiswitch_test.go` 的 `TestDeskImportsNothingThatSends`：`go list -deps writer/desk` 里有 `writer/aiport`，没有 `writer/ai`、`writer/model`、`writer/discussion`、`writer/writing`。在 `go test ./...` 里，也就在 `npm run verify` 里。
+- `desk/imports_test.go` 的 `TestImports`：`go list` 读出的 `desk` 下每个包（`desk` 自己和它下面的包）都不依赖 `writer/ai`、`writer/model`、`writer/discussion`、`writer/writing`，经由别的包也不行；`desk` 的依赖里有 `writer/aiport`。在 `go test ./...` 里，也就在 `npm run verify` 里。
 - 同一个文件的 `TestAIOffShowsNothingOfIt`、`TestTurnTheAIOffAndOn`：关着 AI 时替身一个请求也没收到；重开软件开关还是关着，`Catalog` 返回 `ai.ErrOff`。`ai/ai_test.go` 的 `TestOffBuildsNothing`：关着时 `Catalog`、`Talk`、`Book`、`Pen` 都返回 `ErrOff`，没建一个客户端。
 - 第二步：`desk/shot_test.go` 和 `cmd/inkgo` 的布局测试在搬之前截两套、搬之后一套（`desk` 85 张、`cmd/inkgo` 12 张）。搬之前的两套之间就有 28 张不一样；搬之后和两套都不一样的 37 张逐张看过，全是会随时间变的：消息、快照、书架上的钟点、测试临时文件夹的名字、提示条的倒计时条、后台整理刚改的设定那 3 秒的淡出（按真实时间算，`desk/setting.go` 的 `flashFor`）。测试只改了建 `App`、换假模型和 `live.add` 的写法，断言没动。
 - 第三步的截图对比见[可以整个关掉 AI](../feature/2026-10-14-disable-ai.md)的 Verification。

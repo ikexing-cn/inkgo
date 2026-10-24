@@ -1,6 +1,6 @@
-# Agent Note: 理一遍代码：分七批重构，每批作者审过再做下一批
+# Agent Note: 理一遍代码：分七批重构
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
@@ -58,15 +58,15 @@ Status: proposed
   - `workspace/chapters.go` 有 1277 行。
   - 只复述代码的注释很多：`desk` 外壳那 24 个文件里有 807 行注释。
 
-## Proposal
+## Decision
 
-分七批做，每批一个 Codex 任务（`gpt-6.1-sol`，effort high）：Claude 写任务书、审查、合入，作者审过这一批再开下一批。每批都要做到：
+分七批做完，2026-10-21 到 2026-10-24。每批由 Codex 实施（它不通的那几天，有几段改由 dsh 跑），Claude 写任务书、审查、合入。第 1 到 5 批作者逐批审过再开下一批；第 6、7 批作者交代不必等审，做完和提案一起看。每批都做到了：
 
 - `npm run verify` 全过。
 - 只挪的改动和改写的改动分开提交，挪的那次 diff 只有搬家。
-- 默认不改行为；改行为的，下面逐条列出。
-- 动到界面的批次，前后各跑一遍布局测试截图并逐张对比，变了的说明为什么变。
-- 落地时同一次提交更新相关的 implemented 笔记，并在本篇的「进度」里记一行。
+- 默认不改行为；改了的，逐条列在下面「会改行为的」。
+- 动到界面的批次，前后各跑一遍布局测试截图，逐张对比过。
+- 同一次提交更新了相关的 implemented 笔记，在本篇的「进度」里记了一行。
 
 ### 第 1 批：编辑器（只动 `editor/`）
 
@@ -109,7 +109,7 @@ Status: proposed
 ### 第 3 批：整理（挪代码、改名字）
 
 - 页码改成有名字的类型常量，删掉 `View()` 里只有测试才走的第 1、4 页分支，测试改成直接打开设置。
-- 三份关闭作品的收尾合成一个 `leaveWork()`；`Close` 是否该调 `stopChecks`，在任务里查清楚再定。
+- 三份关闭作品的收尾合成一个 `leaveWork()`，`Close` 也停掉正在跑的检查。
 - 修好 `TestShotMenus`：它只在设了 `SHOT` 时才跑，第 1 批之前就在 `desk/menu_test.go:318` 找不到讨论的元素，最后一张菜单截图出不来。
 - 文件按内容拆分、改名：
   - `setting.go` 拆成右栏状态、`desk.json`、灵感三处；
@@ -160,7 +160,9 @@ Status: proposed
 - 讨论工具共用的 16 个字段的参数结构，拆成每个工具一个，`search_book` 和 `search_talks` 共用 `searchArgs`；工具表每项记名字、说明、参数格式、处理函数和标签，`note_setting` 的参数格式由 `noteSchema(w)` 用作品的分类生成。
 - AI 开关只存一份。
 
-### 第 6 批：`desk` 的内部状态（动手前先把这一批单独写成提案，作者审过再做）
+### 第 6 批：`desk` 的内部状态
+
+这一批单独写了[一篇](../../implemented/architecture/2026-10-22-desk-state.md)，落地后的样子以那篇为准。
 
 - **书模型**：章节树、字数、标记、设定、大纲、检查放在一起，带版本号。
   - 只有它读 `Store`，页面都从它取。
@@ -175,7 +177,7 @@ Status: proposed
 - **统一的写法**：一个 `status` 管错误、提示、通知，一个 `jobs` 管后台任务和送回界面。
 - **右栏设定面板**：几个互相打架的标志改成一个 `settingRoute`。
 - **AI 记录页**：改用 `ui.List`，只画看得见的行。
-- 每个功能有自己的结构体，方法挂在它上面；共用的东西走一个十来个方法的小接口：配色、书、`Store`、开关、状态、存偏好、打开章节、换页。
+- 手机预览、导出对话框、大纲页各有自己的结构体，方法挂在它上面，经由一个小接口取 `App` 的东西：配色、书、`Store`、状态、存偏好、打开章节、换页。第 7 批把它们搬进各自的包，接口也分成每个包一个。
 
 ### 第 7 批：拆子包（只拆这几个）
 
@@ -192,11 +194,12 @@ Status: proposed
   - 依赖是标准库、mygo 的 `ui` 和 `ui/markdown`、`workspace`、`internal/textclip`。文字裁剪复用已有实现。
 - `desk/phone` 的 `Panel` 持有手机预览、排版偏好、分页缓存、阅读位置和命中几何；`Host` 在本包声明。
 - `desk/exportdialog` 的 `Dialog` 持有打开时读入的正文和纲、范围、笔名、缩进及导出计划；`Host` 在本包声明。
-- 两个页面包只引用 `kit`、`desk/book` 和 `desk` 以外的包；大纲页在 `desk`，使用本包的 `host`。
+- `desk/outline` 的 `Page` 持有大纲页：索引、布局缓存、章纲草稿、卡片和情节线的编辑、搜索、滚动和拖动；写作页章纲旁的「故事中」按钮也由它画（`ChapterStory`）。`Host` 在本包声明。
+- 三个页面包在 `desk` 下只引用 `kit` 和 `desk/book`，别的都在 `desk` 以外。`desk` 不再有自己的 `host` 接口，守着它的 `host_guard_test.go` 也去掉了：`desk` 下的包引用不了 `desk`，`App` 由编译器挡在外面。
 - `desk/book/outline_draft.go` 的 `OutlineDraft` 是写作页和大纲页共用的草稿；`desk/book/timing.go` 的 `SaveAfter` 和 `CheckEvery` 是保存停顿和看盘间隔，均为变量。
 - `desk/host.go` 的 `appHost` 显式持有 `*App`，用首字母大写的方法实现页面需要的接口；`App` 不增加导出方法。三个页面在 `New` 绑定适配器，大纲和导出在 `resetView` 重新绑定，手机缓存跨作品保留。
 - `kit/theme_test.go` 的源码检查递归读取 `desk` 下的全部 Go 包；`scripts/verify-ui.ts` 递归发现这些包，与 `editor`、`cmd/inkgo` 一起运行工具包检查。
-- `aiswitch_test.go` 里的依赖检查扩大到 `go list -deps ./desk/...`：子包也不许引用 `ai`、`model`、`discussion`、`writing`。
+- `desk/imports_test.go` 的 `TestImports` 用一次 `go list` 读出 `desk` 下每个包经由任何包的全部依赖：都不许到 `ai`、`model`、`discussion`、`writing`；`desk/book` 不许到 `desk` 下的包、mygo 和 `editor`；`kit` 不许到 `desk` 下的包；其余的包算页面，在 `desk` 下只许到 `kit` 和 `desk/book`。以后在 `desk` 下加的包不用写进测试，照页面的规矩查。原来 `aiswitch_test.go` 的依赖检查和 `desk/book` 只看直接引用的 `TestImports` 并进了这一个。
 
 写作页、讨论、右栏、伏笔、待办、提议这一团共用打开的章节和讨论状态，留在 `desk`；硬拆的话，它们要的那个接口会有四十多个方法，等于把 `App` 换了个名字。
 
@@ -228,20 +231,24 @@ Status: proposed
 | 6 | 打开「提醒与检查」不再重读章节树和标记 | 软件外面改了章节或标记，只开这一页看不到；进写作页、换章或进检查页时就有 |
 | 6 | 讨论记下的设定变化每条刷新一次 | 看不出区别：同一回合的几条以前并成一次刷新，现在在同一帧里各刷新一次 |
 
+第 7 批没有改行为的地方。
+
 ### 不在这次里的
 
-- 每 2 秒看一次磁盘。它有自己的提案[少看几次磁盘](2026-10-13-fewer-looks-at-the-disk.md)，作者说先放着。第 6 批的书模型会是它以后落地的地方，但这次不改检查的频率和做法。
+- 每 2 秒看一次磁盘。它有自己的提案[少看几次磁盘](../../proposed/architecture/2026-10-13-fewer-looks-at-the-disk.md)，作者说先放着。第 6 批的书模型是它以后落地的地方，这次没改看盘的频率和做法。
 - 文件格式：`works.json`、`work.yaml`、`desk.json`、`providers.yaml` 的内容都不变。只有第 4 批把 `desk.json` 的读写搬进 `prefs` 包。
 - 把 `desk` 整个拆成子包。
 
 ### 和其他笔记的关系
 
 - [AI 从核心里拆出去](../../implemented/architecture/2026-10-14-ai-out-of-the-core.md)：
-  - 第 5 批挪动 `aiport` 的位置。那篇的理由（接口单独成包，`desk` 的测试才能用真的 `ai`）不变，落地时更新那篇的路径和接口清单。
-  - 那篇没要单独的零件包（当时叫 `desk/look`），是因为界面不拆。第 7 批要它，是为了让几个独立的页面能拆出去，理由不同，落地时两篇互链。
-- [纯 Go 的编辑器](../../implemented/architecture/2026-10-07-pure-go-native-editor.md)：第 3 批删掉演示，第 1 批改排版缓存，落地时就地更新那篇。
-- [手机预览](../../implemented/feature/2026-10-21-phone-preview.md)：第 1 批让它和编辑器共用排版，第 4 批搬走分页，就地更新。
-- [少看几次磁盘](2026-10-13-fewer-looks-at-the-disk.md)：只是部分重叠，见上面「不在这次里的」。
+  - 第 5 批挪了 `aiport` 的位置。那篇的理由（接口单独成包，`desk` 的测试才能用真的 `ai`）不变，路径和接口清单已跟着改。
+  - 那篇没要单独的零件包（当时叫 `desk/look`），是因为界面不拆。第 7 批要了它（`desk/kit`），是为了让几个独立的页面拆出去，理由不同，两篇互链。
+- [纯 Go 的编辑器](../../implemented/architecture/2026-10-07-pure-go-native-editor.md)：第 1 批改了排版缓存，第 3 批删了演示，那篇已就地更新。
+- [手机预览](../../implemented/feature/2026-10-21-phone-preview.md)：第 1 批让它和编辑器共用排版，第 4 批搬走分页，第 7 批搬进 `desk/phone`，那篇已就地更新。
+- [导出成 Word](../../implemented/feature/2026-10-16-export-to-word.md)、[大纲页](../../implemented/feature/2026-10-19-outline-cards-and-timeline.md)：第 7 批搬进 `desk/exportdialog`、`desk/outline`，两篇已就地更新。
+- [`desk` 的内部状态](../../implemented/architecture/2026-10-22-desk-state.md)：第 6 批的提案和落地。
+- [少看几次磁盘](../../proposed/architecture/2026-10-13-fewer-looks-at-the-disk.md)：只是部分重叠，见上面「不在这次里的」。
 
 ### 进度
 
@@ -253,7 +260,7 @@ Status: proposed
 | 4 把规则搬出 `desk` | 2026-10-22 合入 |
 | 5 AI 层 | 2026-10-22 合入 |
 | 6 `desk` 的内部状态 | 2026-10-23 合入，见[那篇](../../implemented/architecture/2026-10-22-desk-state.md)；作者交代不等审，提案和结果一起看 |
-| 7 拆子包 | 未开始 |
+| 7 拆子包 | 2026-10-24 合入；作者交代不等审，做完一起看 |
 
 ## Alternatives considered
 
@@ -276,41 +283,39 @@ Status: proposed
   - 最强的理由：启动命令和文档都不用改。
   - 不选：作者 2026-10-21 同意改名；「这是不是正式程序」从名字上就该看得出来。
 
-## Acceptance criteria
+## Consequences
 
-- 每一批：
-  - `npm run verify` 全过；
-  - 布局测试截图前后逐张对比过；
-  - 只挪的提交里没有逻辑改动；
-  - 这篇的「进度」更新了，相关的 implemented 笔记同一次提交就地更新。
-- 第 1 批：基准测试前后对比，这几项明显下降：
-  - 一段 1.2 万字时一帧的耗时；
-  - 移光标的耗时，接近什么都没变时；
-  - 改标记以后不再重新排版。
-- 第 2 批：
-  - 讨论搜全书批量读正文，不随章数重复构建章节树；
-  - 追加一条 AI 记录的耗时不随历史条数增长；
-  - 写文件只剩一份实现。
-- 第 3 批：
-  - 代码里没有 `a.page == <数字>`；
-  - `cmd/poc` 不再存在；
-  - `desk/doc.go` 列出了每个文件；
-  - `workspace/chapters.go` 拆完。
-- 第 4 批：上表里的函数都不在 `desk` 里了，各自有单元测试，不用建 `App`。
-- 第 5 批：
-  - `go list -deps writer/ai` 里没有 `writer/desk`；
-  - `writing` 不引用 `discussion`；
-  - 跨包的那几处约定都有导出的解析函数。
-- 第 6 批：
-  - 只有书模型调用 `Store` 的读接口；
-  - `sheet`、`write.entered` 不再存在；
-  - 一帧里不再重算全书的派生数据，有测试守着：数一帧里调了几次书模型的重建，不变时是 0。
-- 第 7 批：拆出的子包通过扩大后的依赖检查。
+- `desk` 下的边界由编译器和 `TestImports` 守着：页面包碰不到 `App`，`kit` 和 `desk/book` 碰不到 `desk`，谁都碰不到会发送的包。审一个页面的改动，看它的包和它的 `Host` 就够。
+- 书的数据有了主人：只有 `desk/book` 读 `Store`，派生的数据按版本号缓存在一处，不变的帧不重算（第 6 批）。
+- 规则搬出了 `desk`（第 4 批），在各自的包里测试，不用建 `App`。
+- 代价：
+  - 搬家处 `git blame` 断开。只挪的提交是单独的，提交说明写了从哪搬到哪，`git log --follow` 接得上。
+  - 测试改动很大。读字段的地方改成经由 helper 或页面导出的读方法（`Panel.Preferences`、`Dialog.Plan`、`Dialog.Selection`）；页面的测试搬进页面包，用一个小的测试宿主驱动真的页面，`desk` 里留下导航、落盘、刷新和页面之间的契约。
+  - 页面包多一层：每个包一个 `Host` 接口，`desk` 里一个 `appHost` 实现它们。
+  - `TestOutlineFrameCost` 搬进 `desk/outline` 后只量大纲页本身，不再连窗口别处一起量；数字没改。
+  - 第 6、7 批作者没有逐批审，提案和结果一起看。
+- 增量校验日志保住了严格校验和「尾巴不完整时恢复」，外部改掉、截短、换掉的情形补了测试（见下表第 2 批）。
 
-## Risks
+## Testing
 
-- 搬家会让 `git blame` 断开。只挪的提交单独做，提交说明写清楚从哪搬到哪，`git log --follow` 还能接上。
-- 第 6 批会动到测试里直接读字段的 469 处，测试 diff 会很大。先给测试加一层取状态的 helper，再改实现。
-- 第 2 批的增量解析和日志游标要保住现在的严格校验和「尾巴不完整时恢复」，现有测试之外，要补文件被外部改掉、截短、换掉的用例。
-- 截断合并时容易把 n 和 n−1 的口径弄混，合并前先给每一处现在的输出补测试。
-- Codex 的中转会限流（429），断了就重试，从同一个会话接着做。
+| 验收项 | 守着它的测试，或「无」和怎么查的 |
+| --- | --- |
+| 每批 `npm run verify` 全过 | `npm run verify`。每批合入前在检查用的工作树里跑过，每个提交也单独构建、`go vet`、跑 `desk` 下的测试 |
+| 布局截图前后逐张对比 | 无。每批合入前用 `SHOT=<目录>` 跑 `desk`、`editor`、`cmd/inkgo` 的截图测试，和上一批比，超出噪声的逐张看过 |
+| 只挪的提交里没有逻辑改动 | 无。审查时按声明比较搬家前后，去掉首字母大小写、包名前缀和接收者名后只差名字 |
+| 「进度」和相关笔记同一次提交更新 | 无。`npm run verify` 的三项笔记检查只管格式和链接，内容由审查看 |
+| 第 1 批：一段 1.2 万字时一帧、移光标的耗时 | `editor/bench_test.go` 的 `BenchmarkFrameLongPara`、`BenchmarkLayoutAfterCaretMove`、`BenchmarkLayoutNoChange`；前后数字在第 1 批的交付里，基准测试不设上限 |
+| 第 1 批：改标记以后不再重新排版 | `editor/doc_test.go` 的 `TestMarkChangesKeepLayout` |
+| 第 2 批：讨论搜全书批量读正文 | `workspace/reads_test.go` 的 `TestTextsAreWhatReadingEachGives`；不随章数重建章节树没有测试，审查时看的调用 |
+| 第 2 批：追加一条 AI 记录只读新增的一截 | `workspace/record_test.go` 的 `TestRecordCursorExternalChanges`、`TestRecordCursorRevalidatesAfterFailedTail`，`workspace/workspace_test.go` 的 `TestSessionCursorExternalChanges`；耗时本身没有测试 |
+| 第 2 批：写文件只剩一份实现 | `internal/atomicfile` 的测试；只剩一份是合入时 `rg` 查的。导出写到作者选的文件夹那一处（`desk/exportdialog/export.go`）仍是 `os.WriteFile`，不在当时数的 5 份里 |
+| 第 3 批：没有 `a.page == <数字>`，`cmd/poc` 不在，`workspace/chapters.go` 拆完 | 无。合入时 `rg` 和 `ls` 查的；页码是有名字的类型常量 |
+| 第 3 批：`desk/doc.go` 列出每个文件 | 无。第 7 批后对着目录重新核过一遍 |
+| 第 4 批：上表的函数不在 `desk` 里，各有不用建 `App` 的单元测试 | 各目标包的测试（`internal/textdiff`、`export`、`backup`、`shelf`、`prefs`、`workspace`、`editor`）；不在 `desk` 里是合入时 `rg` 查的 |
+| 第 5 批：`ai` 不依赖 `desk`，`writing` 不引用 `discussion` | 无。合入时 `go list -deps` 查的；`desk` 这边不依赖 `ai` 由 `TestImports` 守着 |
+| 第 5 批：跨包约定有导出的解析函数 | `workspace/mentions_test.go` 的 `TestEntryNumbers`、`workspace/events_test.go` 的 `TestDigestSectionsWhitespace`、`workspace/types_test.go` 的 `TestModelRef` |
+| 第 6 批：只有书模型调用 `Store` 的读接口 | `desk/book_guard_test.go` 的 `TestDeskLeavesTheBooksContentToBook` |
+| 第 6 批：`sheet`、`write.entered` 不在 | 无。合入时 `rg` 查的 |
+| 第 6 批：不变的帧不重建派生数据 | `desk/frames_test.go` 的 `TestUnchangedFramesBuildNoCache` |
+| 第 7 批：子包通过依赖检查 | `desk/imports_test.go` 的 `TestImports`。合入前故意让 `kit` 引用 `desk/book`、大纲页引用 `desk/phone`、`desk/book` 引用 `editor`、手机预览引用 `writing`，四条都报了出来 |
+| 文件格式和模型请求字节不变 | 现有的格式测试，和 `TestTalkRequestBytes`、`TestDigestRequestBytes`、`TestCheckRequestBytes`、`TestPredictionRequestBytes` |

@@ -176,6 +176,9 @@ func (p *Page) counts() (cards, nodes int) {
 	return
 }
 
+// View draws the page: the chapter table with the cards not yet placed, or
+// the timeline, and the setting beside it while Pane is set. A broken
+// outline shows what is wrong instead, and is read again when it is due.
 func (p *Page) View(c *ui.Context) {
 	content := p.Host.Content()
 	if p.loadErr != nil && time.Since(p.checked) >= book.CheckEvery {
@@ -493,6 +496,7 @@ func (p *Page) saveOutline() {
 	p.Host.SyncPlanOutline(d.Node, d.Text)
 }
 
+// FinishOutline saves the 章纲 being typed and closes it.
 func (p *Page) FinishOutline() {
 	if p.outlineDraft.Node == "" {
 		return
@@ -991,6 +995,7 @@ func (p *Page) saveCard(more bool) {
 	}
 }
 
+// Dialog draws the card form while a card is open, over every page.
 func (p *Page) Dialog(c *ui.Context) {
 	pal := p.Host.Colors()
 	status := p.Host.Notices()
@@ -1096,6 +1101,9 @@ func (p *Page) Dialog(c *ui.Context) {
 	})
 }
 
+// ChapterStory draws, by the open chapter's 章纲, when the chapter is in the
+// story, from its cards; clicking it opens the timeline at the first card
+// with a time.
 func (p *Page) ChapterStory(c *ui.Context) {
 	if !p.loaded {
 		p.load()
@@ -1125,8 +1133,10 @@ func (p *Page) ChapterStory(c *ui.Context) {
 	}
 }
 
+// Enter has the outline read again when the page is next drawn.
 func (p *Page) Enter() { p.loaded = false }
 
+// Leave saves the 章纲 and the plot-line name being typed.
 func (p *Page) Leave() {
 	p.FinishOutline()
 	p.finishLine()

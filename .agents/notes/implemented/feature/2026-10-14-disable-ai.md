@@ -105,8 +105,8 @@ Status: implemented
 
 ## Verification
 
+- `desk/imports_test.go` 的 `TestImports`：`go list` 读出的 `desk` 下每个包（`desk` 自己和它下面的包）都不依赖 `writer/ai`、`writer/model`、`writer/discussion`、`writer/writing`，经由别的包也不行；`desk` 的依赖里有 `writer/aiport`。
 - `desk/aiswitch_test.go`：
-  - `TestDeskImportsNothingThatSends`：`go list -deps writer/desk` 里有 `writer/aiport`，没有 `writer/ai`、`writer/model`、`writer/discussion`、`writer/writing`。
   - `TestAIOffShowsNothingOfIt`：一部什么都有的作品（AI 起草的段落、原句删了的伏笔、AI 改动前的快照、摘要、检查结果、讨论、讨论时 AI 记下的修改记录和待确认），关掉 AI 后走正文页、伏笔、设定、修改记录、四个菜单、右键菜单、选中后的按钮、Ctrl+L/J/Enter、快捷键表、待处理、快照、打字后去作品分类、重开作品、书架、空书架：窗口里除了正文没有 AI 的字，替身 `ai` 一个请求也没收到，摘要和检查结果还在盘上。
   - `TestTurnTheAIOffAndOn`：「取消」和 Esc 不改任何东西，Esc 不关设置；关了再开，`works.json` 记着开关，重开软件还是关着、`Catalog` 返回 `ai.ErrOff`，`providers.yaml` 和作品文件夹不变；起草到一半、讨论回复在路上时关掉：起草停在写到的地方（2026-10-15 起是没采纳的起草丢掉，正文和磁盘不变），回复放掉、作者的话留着；再开，讨论和检查回来，那条讨论可以重试。
   - `TestShotAIOff`：`SHOT=<dir> go test ./desk -run TestShotAIOff` 出两个问句、关着时的设置、正文页（浅色、深色）、空书架的截图。
