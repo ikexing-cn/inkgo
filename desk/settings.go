@@ -208,8 +208,19 @@ func (a *App) looksView(c *ui.Context) {
 		a.shelf.NoNames = !on
 		a.saveShelf()
 	}
-	// The window is drawn as the software opened: a change waits for it to
-	// open again, which the link does at once.
+	if offerNoGPU {
+		a.gpuSwitch(c)
+	}
+}
+
+// offerNoGPU offers 禁用 GPU 加速 and draws by it. Off while mygo, drawing
+// without the GPU on Windows, mostly leaves the window white: whoever ticked
+// it could not see to untick it.
+var offerNoGPU = false
+
+// gpuSwitch is 禁用 GPU 加速. The window is drawn as the software opened: a
+// change waits for it to open again, which the link does at once.
+func (a *App) gpuSwitch(c *ui.Context) {
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
 		if ui.Checkbox(c, &a.shelf.NoGPU, "禁用 GPU 加速").Changed() {
 			a.saveShelf()
@@ -229,7 +240,7 @@ func (a *App) looksView(c *ui.Context) {
 
 // NoGPU reports whether this machine draws the window without the GPU;
 // cmd/inkgo asks before the window draws.
-func (a *App) NoGPU() bool { return a.shelf.NoGPU }
+func (a *App) NoGPU() bool { return offerNoGPU && a.shelf.NoGPU }
 
 // relaunch opens the software again, on the same work, from the
 // settings, which close first: what the AI proposed and is not decided
