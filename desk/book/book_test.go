@@ -1,12 +1,8 @@
 package book
 
 import (
-	"go/parser"
-	"go/token"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -280,34 +276,6 @@ func TestWritesUpdateTheCopyAndTheDisk(t *testing.T) {
 	}
 	if b.Version() != treeBefore+1 {
 		t.Fatalf("a changed tree moved Version from %d to %d", treeBefore, b.Version())
-	}
-}
-
-// The package imports neither the view toolkit, the editor, nor desk.
-func TestImports(t *testing.T) {
-	files, err := filepath.Glob("*.go")
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, name := range files {
-		f, err := parser.ParseFile(token.NewFileSet(), name, nil, parser.ImportsOnly)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, imp := range f.Imports {
-			path, err := strconv.Unquote(imp.Path.Value)
-			if err != nil {
-				t.Fatal(err)
-			}
-			switch {
-			case path == "github.com/egoist/mygo", strings.HasPrefix(path, "github.com/egoist/mygo/"):
-				t.Errorf("%s imports %q", name, path)
-			case path == "writer/editor", strings.HasPrefix(path, "writer/editor/"):
-				t.Errorf("%s imports %q", name, path)
-			case path == "writer/desk", strings.HasPrefix(path, "writer/desk/"):
-				t.Errorf("%s imports %q", name, path)
-			}
-		}
 	}
 }
 

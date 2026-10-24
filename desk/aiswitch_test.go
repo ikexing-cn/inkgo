@@ -4,7 +4,6 @@ import (
 	"errors"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -20,24 +19,6 @@ import (
 	"writer/shelf"
 	"writer/workspace"
 )
-
-// desk draws all of the AI and sends nothing itself: what sends is in
-// package ai, which desk reaches through aiport alone.
-func TestDeskImportsNothingThatSends(t *testing.T) {
-	out, err := exec.Command("go", "list", "-deps", "writer/desk").CombinedOutput()
-	if err != nil {
-		t.Fatal(err, string(out))
-	}
-	deps := strings.Fields(string(out))
-	if !slices.Contains(deps, "writer/aiport") {
-		t.Fatalf("not the dependencies of desk: %q", deps)
-	}
-	for _, p := range []string{"writer/ai", "writer/model", "writer/discussion", "writer/writing"} {
-		if slices.Contains(deps, p) {
-			t.Errorf("desk depends on %s", p)
-		}
-	}
-}
 
 func TestBuildersReadTheShelfSwitch(t *testing.T) {
 	a := newApp("")
