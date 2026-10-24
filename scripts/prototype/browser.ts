@@ -163,6 +163,9 @@ export async function open(file: string, ready: string, shots?: string): Promise
   await send('Runtime.enable')
   await send('Page.enable')
   await send('Page.addScriptToEvaluateOnNewDocument', { source: CLOCK })
+  // What moves as it appears runs by the browser's own clock, which the steps do not wait for: asked for
+  // reduced motion, the page puts everything in place at once, and what is measured and pictured is where it stays.
+  await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
   await send('Page.navigate', { url: pathToFileURL(file).href })
   for (let i = 0; !(await js(`!!document.querySelector(${JSON.stringify(ready)})`)); i++) {
     if (i === 50) { await close(); throw new Error(`${file} did not draw ${ready}: ${errors.join('; ') || 'no error logged'}`) }

@@ -896,7 +896,7 @@ function editor(cur) {
   // 灰字等着采纳、等着写改写要求的时候不能打字；有 AI 的提议时照常写，改到提议换掉的那几句，提议就作废。
   const typing = S.ai ? '' : ` contenteditable="plaintext-only" spellcheck="false" aria-label="正文"${onInput(wrote)}${onKey(proseKey)}${onPaste(pasted)}`
   return '<div class="editor" data-k="editor">' + toolbar(cur) + sheets() + (S.find ? findBar(cur) : '') + outsideBar() +
-    `<div class="paper scroll"${onMenu(openMenu)}${onUp(picked)}><div class="column"><div class="chapter-head"><div class="chapter-title">${t(cur.t || titleOf(cur))}</div>${chapterMore(cur)}</div>` + aiBar(cur) +
+    `<div class="paper scroll"${onMenu(openMenu)}${onUp(picked)}><div class="column chapter"><div class="chapter-head"><div class="chapter-title">${t(cur.t || titleOf(cur))}</div>${chapterMore(cur)}</div>` + aiBar(cur) +
     `<div class="prose-box">${hint}<div class="prose" data-k="prose"${typing}>${paras}</div></div></div></div>` + foot(cur) + '</div>'
 }
 
@@ -905,8 +905,8 @@ function editor(cur) {
 function floats() {
   if (S.tree) return treeMenu()
   if (!S.ctx && !S.bury && !S.pay && !S.bar) return ''
-  const win = document.getElementById('win'), side = document.querySelector('.sidebar'), right = document.getElementById('pane')
-  const leftEdge = (side ? side.offsetWidth : 0) + 8
+  const win = document.getElementById('win'), right = document.getElementById('pane')
+  const leftEdge = barEdge()
   // 贴着选中的字放：下面放不下就放上面，左右不出正文这一栏。
   const by = (wide, tall, p) => {
     const edge = win.offsetWidth - (right ? right.offsetWidth : 0)
@@ -965,5 +965,25 @@ function floats() {
   }
 
   // 选中一段字以后：浮在它上面的两个按钮，AI 关着时一个。
-  return `<div class="selbar pop" data-k="selbar" data-keep style="left:${Math.max(leftEdge, S.bar.left)}px;top:${Math.max(S.bar.top - 40, 44)}px">${aiOn() ? `<div class="hit" title="由 AI 改写选中内容"${onClick(askRewrite)}>${icon('pen', 'sm')}AI 改写</div>` : ''}<div class="hit" title="将选中的原文加入设定"${onClick(take)}>${icon('keep', 'sm')}加入设定</div></div>`
+  return `<div class="selbar pop" data-k="selbar" data-keep style="${barAt(S.bar)}">${aiOn() ? `<div class="hit" title="由 AI 改写选中内容"${onClick(askRewrite)}>${icon('pen', 'sm')}AI 改写</div>` : ''}<div class="hit" title="将选中的原文加入设定"${onClick(take)}>${icon('keep', 'sm')}加入设定</div></div>`
+}
+// 浮着的东西左边不越过侧栏。
+const barEdge = () => { const side = document.querySelector('.sidebar'); return (side ? side.offsetWidth : 0) + 8 }
+const barAt = (p) => `left:${Math.max(barEdge(), p.left)}px;top:${Math.max(p.top - 40, 44)}px`
+// 选中的字换了地方（专注写作、收起侧栏或右栏、拖宽右栏），浮条跟着它：每画一遍，照那几个字现在的位置放。
+// 照段号和第几个字重新量，点了别处、选区没了也量得出。
+function placeBar() {
+  const bar = document.querySelector('.selbar'), para = bar && S.bar && document.querySelector(`.prose [data-para="${S.bar.para}"]`)
+  if (!para) return
+  const r = document.createRange(), walk = document.createTreeWalker(para, NodeFilter.SHOW_TEXT)
+  let at = 0, from = null
+  for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+    const to = at + n.data.length
+    if (!from && S.bar.start <= to) { r.setStart(n, S.bar.start - at); from = n }
+    if (from && S.bar.end <= to) { r.setEnd(n, S.bar.end - at); break }
+    at = to
+  }
+  if (!from) return
+  const box = r.getBoundingClientRect(), [left, top] = spot(box.left, box.top)
+  bar.setAttribute('style', barAt({ left, top }))
 }

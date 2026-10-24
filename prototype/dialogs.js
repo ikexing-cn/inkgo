@@ -127,7 +127,7 @@ function settingsModel(d) {
   const use = (u, i) => {
     const same = u.service === '沿用讨论模型'
     const pickService = (name) => { const svc = S.services.find((x) => x.name === name); useAt(i, { service: name, model: svc && svc.models[0] ? svc.models[0].id : '' }) }
-    return `<div class="use-row"><div class="use-name"><div>${t(u.job)}</div><div class="note ell">${t(u.about)}</div></div>` +
+    return `<div class="use-row"><div class="use-name"><div>${t(u.job)}</div><div class="note">${t(u.about)}</div></div>` +
       choose('service-' + i, u.service, [...(i ? ['沿用讨论模型'] : []), ...S.services.map((x) => x.name)], pickService, u.job + '使用的服务') +
       (same ? '<div class="fit use-same">与讨论使用同一模型</div>' : `<div class="box line fit">${typed(u.model, (v) => useAt(i, { model: v }), '输入或选择模型 ID', u.job + '模型')}</div>`) +
       choose('effort-' + i, u.effort, BOOK.efforts, (e) => useAt(i, { effort: e }), u.job + '的思考程度') + '</div>'
@@ -307,7 +307,7 @@ function snapsDialog(d) {
   const shown = list.find((x) => x.id === d.id) || list[0]
   const pick = (change) => () => set((s) => ({ dialog: { ...s.dialog, ...change } }))
   const restore = () => {
-    set((s) => ({ dialog: null, ...snap(s, cur.key, '恢复前'), ...retype(s, cur.key, () => shown.paras) }))
+    set((s) => ({ dialog: null, ...snap(s, cur.key, '恢复前'), ...retype(s, cur.key, () => shown.paras), bar: null, pick: null })) // 选中的那几个字换掉了，浮条跟着收起
     say('已恢复到 ' + shown.at + ' 的版本，恢复前的内容已存为快照', '', 'ok')
   }
   const same = shown && shown.paras.join('\n') === cur.paras.join('\n')
@@ -392,7 +392,7 @@ function binDialog(d) {
   }
   const row = (b) => `<div class="bin-row"><div class="fit"><div class="ell">${t(b.title)}</div><div class="note">${t(b.at)} 删除${b.volume ? ' · 连同里面的 ' + b.chapters.length + ' 章' : ''}</div></div>` +
     (d.sure === b.id ? button('取消', () => set({ dialog: { kind: 'bin', sure: '' } })) + button('确认彻底删除', () => set((s) => ({ bin: s.bin.filter((x) => x !== b), dialog: { kind: 'bin', sure: '' } })), 'danger')
-      : button('恢复', back(b)) + `<div class="hit link"${onClick(() => set({ dialog: { kind: 'bin', sure: b.id } }))}>彻底删除</div>`) + '</div>'
+      : `<div class="hit link danger"${onClick(() => set({ dialog: { kind: 'bin', sure: b.id } }))}>彻底删除</div>` + button('恢复', back(b))) + '</div>'
   return dialog('small', dialogHead('回收站', '恢复后回到原文件夹末尾。') +
     `<div class="bin-rows scroll">${S.bin.length ? S.bin.map(row).join('') : '<div class="empty"><div>回收站为空</div></div>'}</div>` + buttons(button('关闭', shut)))
 }

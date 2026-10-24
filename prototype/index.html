@@ -210,6 +210,7 @@ body { margin: 0; }
 /* 正文：稿纸 */
 .paper { flex: 1; min-height: 0; overflow: hidden auto; padding: 20px 40px; display: flex; flex-direction: column; }
 .column { max-width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.column.chapter { width: 100%; max-width: calc(var(--fs-paper) * 36); align-self: center; } /* 一行最多 36 个字：栏宽了（收起右栏、专注写作）就居中，不往右拉长 */
 .column.narrow { width: 640px; gap: 12px; padding-top: 12px; }
 .chapter-head { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; }
 .chapter-title { font-size: var(--fs-title); font-weight: 700; }
@@ -448,6 +449,8 @@ body { margin: 0; }
 .check-detail { flex: 1; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; padding: 8px 32px 20px; }
 .check-title { display: flex; align-items: center; gap: 12px; padding-top: 14px; font-size: var(--fs-dialog); font-weight: 700; }
 .check-sides { display: flex; gap: 16px; }
+.check-sides > .fit { display: flex; flex-direction: column; }
+.check-sides .check-card { flex: 1; } /* 正文和设定并排对照，两张一样高 */
 .check-from { display: flex; align-items: center; gap: 8px; padding-bottom: 6px; font-size: var(--fs-note); color: var(--muted); }
 .check-card { padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--side); font-size: var(--fs-read); line-height: var(--lh-read); }
 .lit { background: var(--warn-bg); border-bottom: 1.5px solid var(--amber); }
@@ -456,9 +459,11 @@ body { margin: 0; }
 .check-foot { display: flex; align-items: center; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); font-size: var(--fs-control); }
 
 /* 「作品分类」那一页 */
-.cat-rows { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.cat-rows { display: flex; flex-direction: column; }
 .cat-row { height: var(--h-bar); display: flex; align-items: center; gap: 14px; padding: 0 4px; border-bottom: 1px solid var(--line); font-size: var(--fs-body); }
 .cat-name { width: 110px; font-weight: 600; }
+.cat-row.cols { height: var(--h-control); font-size: var(--fs-note); color: var(--muted); }
+.cat-row.cols .cat-name { font-weight: 400; } /* 表头：「落点」写一次，各行只写落在哪 */
 .cat-form { display: flex; align-items: flex-end; gap: 10px; }
 .cat-form > .field { flex: 1; }
 .cat-form > .btn { height: var(--h-control); }
@@ -483,7 +488,7 @@ body { margin: 0; }
 .board-head .box, .board-side .box.line { height: var(--h-control-sm); }
 .line-pop { position: absolute; top: calc(100% + 4px); right: 0; z-index: 5; width: 140px; }
 /* 格子里的「添加」：和卡片一样宽的虚线框，停在格子上才显出来。 */
-.slot-add { flex: none; box-sizing: border-box; height: var(--h-control); display: flex; align-items: center; justify-content: center; gap: 6px; border: 1px dashed var(--border); border-radius: var(--r-control); font-size: var(--fs-note); color: var(--muted); opacity: 0; transition: opacity 120ms ease-out; }
+.slot-add { flex: none; box-sizing: border-box; height: var(--h-control); display: flex; align-items: center; justify-content: center; gap: 6px; border: 1px dashed var(--border); border-radius: var(--r-control); font-size: var(--fs-note); color: var(--muted); opacity: 0; }
 .board-cell:hover .slot-add { opacity: 1; }
 .slot-add:hover { border-color: var(--control); background: var(--hover); color: var(--ink); }
 .grid-vol { grid-column: 1 / -1; padding: 16px 0 12px; background: var(--side); border-bottom: 1px solid var(--line); }
@@ -497,7 +502,7 @@ body { margin: 0; }
 .ch-name > .hit { min-width: 0; padding: 0 4px; margin: 0 calc(0px - 4px); border-radius: var(--r-xs); }
 .ch-name > .hit:hover { text-decoration: underline; text-decoration-color: var(--control); text-underline-offset: 4px; }
 .ch-gist { padding: 2px 4px; margin: 0 calc(0px - 4px); border-radius: var(--r-xs); line-height: var(--lh-body); color: var(--ink-2); -webkit-line-clamp: 3; }
-.card { flex: none; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px; padding: 6px 10px; background: var(--raised); border: 1px solid var(--border); border-radius: var(--r-control); box-shadow: var(--shadow-raise); font-size: var(--fs-body); line-height: var(--lh-body); cursor: pointer; transition: transform 120ms ease-out, box-shadow 120ms ease-out, border-color 120ms ease-out; }
+.card { flex: none; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px; padding: 6px 10px; background: var(--raised); border: 1px solid var(--border); border-radius: var(--r-control); box-shadow: var(--shadow-raise); font-size: var(--fs-body); line-height: var(--lh-body); cursor: pointer; }
 .card:hover { transform: translateY(-2px); border-color: var(--control); box-shadow: var(--shadow-pop); } /* 停上去浮起来一点：点得开、拖得动 */
 .card.seen { border-color: var(--ink); box-shadow: var(--shadow-pop); } /* 刚添加的、从正文跳过来的那张，标出来一会儿 */
 .card.later { border-style: dashed; background: var(--bg); box-shadow: none; }
@@ -541,8 +546,8 @@ body { margin: 0; }
 .shelf-head { display: flex; align-items: flex-end; gap: 8px; }
 .shelf-title { font-size: var(--fs-display); font-weight: 700; }
 .shelf-sub { display: flex; gap: 8px; padding-top: 6px; font-size: var(--fs-control); color: var(--muted); }
-.shelf-cards { display: flex; flex-wrap: wrap; gap: 16px; }
-.shelf-card { width: 220px; height: 168px; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 16px; border: 1px solid var(--border); border-radius: var(--r-dialog); background: var(--raised); font-size: var(--fs-note); }
+.shelf-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; } /* 铺满这一栏，右边和上面的按钮齐 */
+.shelf-card { height: 168px; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 16px; border: 1px solid var(--border); border-radius: var(--r-dialog); background: var(--raised); font-size: var(--fs-note); }
 .shelf-card.hit:hover { border-color: var(--control); box-shadow: var(--shadow-raise); }
 .shelf-card-top { display: flex; align-items: flex-start; }
 .shelf-logo { flex: none; width: var(--h-control); height: var(--h-control); border-radius: var(--r-control); background: var(--ink); color: var(--on-ink); font-size: var(--fs-group); font-weight: 600; display: flex; align-items: center; justify-content: center; }
@@ -630,18 +635,18 @@ body { margin: 0; }
 .prefs-title { font-size: var(--fs-dialog); font-weight: 700; }
 .prefs-group { display: flex; flex-direction: column; gap: 2px; padding-top: 12px; }
 .prefs-row { display: flex; align-items: center; gap: 12px; min-height: var(--h-control); }
-.prefs-label { width: 110px; flex: none; font-weight: 500; }
+.prefs-label { width: 120px; flex: none; font-weight: 500; }
 .prefs-close { position: absolute; top: 12px; right: 12px; }
 .prefs-links { display: flex; justify-content: flex-end; gap: 16px; font-size: var(--fs-note); }
 .uses { display: flex; flex-direction: column; gap: 8px; }
 .use-row { display: flex; align-items: center; gap: 8px; }
-.use-name { width: 110px; flex: none; font-weight: 500; }
+.use-name { width: 120px; flex: none; font-weight: 500; } /* 设置里左边一列名字一样宽，右边的控件和用量从同一条线起 */
 .use-name .note { font-weight: 400; }
 .use-same { padding: 0 10px; font-size: var(--fs-control); color: var(--faint); }
 .use-row .choose:last-child { width: 110px; }
 .spent { display: flex; flex-direction: column; gap: 4px; }
-.spent-row { display: flex; align-items: center; gap: 12px; font-size: var(--fs-control); }
-.spent-row > :first-child { width: 150px; flex: none; }
+.spent-row { display: flex; align-items: center; gap: 8px; font-size: var(--fs-control); }
+.spent-row > :first-child { width: 120px; flex: none; }
 .spent-row > .fit { color: var(--muted); }
 /* AI 记录：一次请求一行，点开看发了哪几部分 */
 .records-head { display: flex; align-items: center; gap: 12px; }
@@ -702,6 +707,32 @@ body { margin: 0; }
 .back-to:hover { background: var(--hover); }
 .seg > div:not(.on):hover, .stepper > .hit:hover, .attach:hover, .words:hover, .model:hover, .thought-head:hover, .tree-more:hover, .todo-rest:hover, .chapter-more > .hit:hover, .foot .anchor > .hit:hover { color: var(--ink); }
 .link:not(.off):hover { background: var(--active); text-decoration-color: currentColor; }
+
+/* ───────── 按下和出现（待作者确认，DESIGN.md 里还没有） ─────────
+   按下：有边有底的按钮、列表行、侧栏和右栏的标签，按下就换成 active 的底色，是点完以后当前项的样子；按钮再缩一点，松开弹回。
+   出现：菜单、下拉、提示、浮条从点它的那一边展开；对话框和遮罩淡入；提示条从右边滑进来。只在出现的那一刻动一次，收起不动。
+   系统设了减少动态效果，都直接到位。 */
+.btn:not(.primary):not(.danger):not(.soft):not(.off):active, .tool .add:active, .row:not(.off):active, .tree-row:active, .nav:active, .tab:active { background: var(--active); }
+@media (prefers-reduced-motion: no-preference) {
+  .btn, .send { transition: transform 120ms ease-out; }
+  .slot-add { transition: opacity 120ms ease-out; }
+  .card { transition: transform 120ms ease-out, box-shadow 120ms ease-out, border-color 120ms ease-out; }
+  .btn:not(.off):active, .send:active { transform: scale(.97); transition-duration: 60ms; }
+  .pop, .float { animation: pop-in 140ms ease-out; transform-origin: top right; }
+  .anchor.left > .pop, .choose-menu, .ctx, .float, .time-pop { transform-origin: top left; }
+  .anchor.up > .pop { transform-origin: bottom right; }
+  .anchor.up.left > .pop, .cat-menu { transform-origin: bottom left; }
+  .ctx .side-pop { transform-origin: top left; }
+  .ctx.flip .side-pop { transform-origin: top right; }
+  .selbar { transform-origin: center bottom; }
+  .scrim { animation: fade-in 180ms ease-out; }
+  .dialog { animation: dialog-in 200ms ease-out; }
+  .toast { animation: toast-in 200ms ease-out; }
+}
+@keyframes pop-in { from { opacity: 0; transform: scale(.96); } }
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes dialog-in { from { opacity: 0; transform: scale(.98); } }
+@keyframes toast-in { from { opacity: 0; transform: translateX(12px); } }
 </style>
 </head>
 <body>

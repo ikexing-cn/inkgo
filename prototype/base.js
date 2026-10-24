@@ -352,6 +352,7 @@ function draw() {
   const tab = document.querySelector('.sheet.on') // 标签多到排不下时，正在看的那个总在看得见的地方
   if (tab) { const strip = tab.parentElement; strip.scrollLeft = Math.max(tab.offsetLeft + tab.offsetWidth - strip.clientWidth, Math.min(strip.scrollLeft, tab.offsetLeft)) }
   fitPhone() // 手机预览排好以后才知道分成几屏
+  placeBar() // 选中的字排好以后才知道浮条放在哪
 }
 
 // 页面上只挂这几个听的：事情出在哪个元素上，就照它身上的号码去找动作。
