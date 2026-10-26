@@ -77,9 +77,9 @@ function restart() {
   set({ ...fresh(), look: S.look })
 }
 
-// 右上角的提示，最多露三条，新的在下。提示里能点的几个靠右排，最要紧的（给的第一个）在最右。
+// 右下角的提示，最多露三条，新的在下；没露的是旧的，「还有几条」写在它们上面。提示里能点的几个靠右排，最要紧的（给的第一个）在最右。
 // 讨论在回复、那段讨论又不在眼前（别的讨论、讨论列表、别的页、右栏收起或在别的标签、专注写作）时，
-// 右上角说它在想，能取消；回到那段讨论就收起，那里有它自己的进度。
+// 右下角说它在想，能取消；回到那段讨论就收起，那里有它自己的进度。
 function toasts() {
   const w = S.waiting, here = w && aiOn() && S.tv === 'one' && S.tid === w.id &&
     (S.page === 'talk' || (S.page === 'write' && !S.focus && S.paneOpen && S.tab === '讨论'))
@@ -91,7 +91,7 @@ function toasts() {
     (x.acts.length ? `<div class="toast-acts" data-keep>${[...x.acts].reverse().map(([label, act]) => `<div class="hit link"${onClick(act)}>${t(label)}</div>`).join('')}</div>` : '') +
     // 正在做的不能关：它做完自己收起，不要了点「取消」。
     `</div>${x.kind === 'busy' ? '' : `<button class="icon-btn muted" aria-label="关闭提示" title="关闭提示"${onClick(() => unsay(x.id))}>${icon('cross', 'sm')}</button>`}</div>`
-  return `<div id="toasts">${shown.map(one).join('')}${rest > 0 ? `<div class="toast-rest">还有 ${rest} 条</div>` : ''}</div>`
+  return `<div id="toasts">${rest > 0 ? `<div class="toast-rest">还有 ${rest} 条</div>` : ''}${shown.map(one).join('')}</div>`
 }
 
 // 标题栏和它下面那一块各有名字（data-k）：前面多出一层遮罩（开了菜单、对话框）时它们还是原来那两个，

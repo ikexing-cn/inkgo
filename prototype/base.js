@@ -166,7 +166,7 @@ function stopAll() {
   sent = 0
 }
 
-// 右上角的提示。kind：'' 一句话、ok 成了、fail 没成、busy 正在做；没成的和正在做的不会自己消失。
+// 右下角的提示。kind：'' 一句话、ok 成了、fail 没成、busy 正在做；没成的和正在做的不会自己消失。
 // acts 是提示里能点的几个：每个是 [字, 点了做什么]。
 function say(title, detail = '', kind = '', acts = []) {
   const id = 'toast' + Math.random().toString(36).slice(2, 8)
