@@ -330,7 +330,7 @@ body { margin: 0; }
 .phone-count { font-variant-numeric: tabular-nums; }
 .phone-long { flex: none; min-height: var(--h-control); display: flex; align-items: flex-start; justify-content: flex-end; padding: 0 20px; font-size: var(--fs-note); }
 /* 列表顶上：搜索、旁边的按钮、「···」里的菜单 */
-.tool { flex: none; position: relative; padding: 0 20px 12px; display: flex; gap: 8px; }
+.tool { flex: none; position: relative; padding: 12px 20px; display: flex; gap: 8px; } /* 上面是标签那一行的底线，不贴着它 */
 .tool-menu { position: absolute; right: 20px; top: 36px; width: 160px; z-index: 3; }
 .tool .find { flex: 1; min-width: 0; height: var(--h-control); align-items: center; gap: 8px; padding: 0 10px; }
 .tool .add { flex: none; height: var(--h-control); box-sizing: border-box; border: 1px solid var(--border); background: var(--bg); border-radius: var(--r-control); display: flex; align-items: center; gap: 6px; padding: 0 12px; font-size: var(--fs-control); color: var(--ink); } /* 不跟正文里 AI 新写的字（.add）一起标绿 */
