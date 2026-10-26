@@ -80,9 +80,6 @@ func (a *App) View(c *ui.Context) {
 		body.Children(func() {
 			if a.sideShown() || a.foldLeaving(true) {
 				a.sidebar(c)
-				if a.sideShown() {
-					ui.Box(c).Width(1).FillHeight().Background(a.pal.Line)
-				}
 			}
 			ui.Column(c.Key("page")).Grow(1).Shrink(1).MinWidth(0).FillHeight().Children(func() {
 				a.pageTurn(c)
@@ -135,19 +132,38 @@ func (a *App) sidebarWidth(win float32) float32 {
 }
 
 func (a *App) sidebar(c *ui.Context) {
-	t := a.pal.Theme
 	w, _ := c.Size()
 	width := a.sidebarWidth(w)
-	if a.foldLeaving(true) {
+	leaving := a.foldLeaving(true)
+	if leaving {
 		width = a.fold.from.sideWidth
 	}
-	busy := a.busy != ""
-	panel := ui.Column(c.Key("sidebar")).Width(width).FillHeight().Background(a.pal.Canvas).Shrink(0)
-	if a.foldLeaving(true) {
-		panel.Absolute().Left(0).Top(0)
+	// The sidebar folds with its divider. Leaving, they hang from a place of
+	// no width before the page, which draws over them: the prose passes over
+	// the sidebar going away, as in the prototype. The place is always there,
+	// so that the tree keeps its scroll as it goes.
+	place := ui.Box(c.Key("side")).FillHeight().Shrink(0)
+	if leaving {
+		place.Width(0)
 	}
-	a.foldColumn(panel, true)
-	panel.Children(func() {
+	place.Children(func() {
+		folding := ui.Row(c.Key("sidebar")).FillHeight().AlignItems(ui.Stretch)
+		if leaving {
+			folding.Absolute().Left(0).Top(0)
+		}
+		a.foldColumn(folding, true)
+		folding.Children(func() {
+			a.sidePanel(c, width)
+			ui.Box(c).Width(1).FillHeight().Background(a.pal.Line)
+		})
+	})
+}
+
+// sidePanel is the sidebar itself: the work over the chapters or talks.
+func (a *App) sidePanel(c *ui.Context, width float32) {
+	t := a.pal.Theme
+	busy := a.busy != ""
+	ui.Column(c).Width(width).FillHeight().Background(a.pal.Canvas).Shrink(0).Children(func() {
 		work := a.Store.Work()
 		var head ui.Element
 		// The work shares the tab row's height and bottom rule.

@@ -14,8 +14,9 @@ import (
 
 func paperLeft(a *App) float32 {
 	box, _ := shownEditor(a).RangeBoxUnclipped(0, 1)
-	// A paragraph's first line is indented by two characters.
-	return a.LastProse.X + box.X - 2*shownEditor(a).FontSize()
+	// A paragraph's first line is indented by two characters. The editor is
+	// laid out where it ends; folding, its picture is moved by the offset.
+	return a.LastProse.X + box.X - 2*shownEditor(a).FontSize() + a.fold.offset
 }
 
 func paperLine(a *App) (int, float32) {
@@ -70,6 +71,41 @@ func TestFoldingMovesThePaperAndRowsWithoutStretching(t *testing.T) {
 	tt.Advance(250 * time.Millisecond)
 	if a.fold.offset != 0 {
 		t.Fatal("opening did not settle")
+	}
+}
+
+// The sidebar coming back puts the prose's place to the right of where the
+// text still is: the text is drawn whole on its way there, over the
+// sidebar, and eases there as the prototype's does, not most of the way in
+// the first frames.
+func TestUnfoldingDrawsTheProseWholeAndEasesIn(t *testing.T) {
+	a, tt, _ := writingFixture(t, strings.Repeat("雨从傍晚开始下。", 80))
+	tt.SetPreferences(ui.Preferences{})
+	click(t, tt, "收起侧栏")
+	tt.Advance(time.Second)
+	from := paperLeft(a)
+	click(t, tt, "展开侧栏")
+	tt.Advance(kit.MoveTime / 5)
+	got, end := paperLeft(a), paperLeft(a)-a.fold.offset
+	if got >= a.LastProse.X {
+		t.Fatalf("the text at %v is not over the sidebar, the editor at %v", got, a.LastProse.X)
+	}
+	if way := (got - from) / (end - from); way <= 0 || way > 0.4 {
+		t.Fatalf("a fifth of the time in, the paper had gone %.2f of its way", way)
+	}
+	ed := shownEditor(a)
+	box, _ := ed.RangeBoxUnclipped(2, 3) // the first character, after the indent
+	at := image.Rect(int(got+2*ed.FontSize()), int(a.LastProse.Y+box.Y), int(got+3*ed.FontSize()), int(a.LastProse.Y+box.Y+box.H))
+	img, ink := tt.Image(), 0
+	for y := at.Min.Y; y < at.Max.Y; y++ {
+		for x := at.Min.X; x < at.Max.X; x++ {
+			if c := img.RGBAAt(x, y); c.R < 128 && c.G < 128 && c.B < 128 {
+				ink++
+			}
+		}
+	}
+	if ink < 10 {
+		t.Fatalf("the first character at %v is cut off", at)
 	}
 }
 

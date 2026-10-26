@@ -216,11 +216,13 @@ func (a *App) marginPanel(c *ui.Context) {
 	}
 	progress := float32(1)
 	if m.shifting {
-		progress = box.Animate("remove", 1, kit.MoveTime)
+		progress = box.AnimateWith("remove", 1, kit.MoveTime, ui.Linear)
 	}
 	if progress == 1 {
 		m.departed, m.shifts, m.shifting = nil, nil, false
 	}
+	// The notes below move up as one arriving; the note dealt with leaves.
+	still, gone := 1-kit.Out(progress), kit.In(progress)
 	m.departed = slices.DeleteFunc(m.departed, func(gone marginDeparture) bool {
 		return slices.ContainsFunc(list, func(n marginNote) bool { return n.id == gone.note.id })
 	})
@@ -254,11 +256,11 @@ func (a *App) marginPanel(c *ui.Context) {
 				if starting {
 					m.shifts[n.id] = m.boxes[n.id].Y - m.top - y
 				}
-				y += m.shifts[n.id] * (1 - progress)
+				y += m.shifts[n.id] * still
 			}
 			row := ui.ButtonBase(c.Key(n.id)).Column().Absolute().Left(0).Right(16).Top(y).Gap(2).Padding(6, 10, 8, 20).Radius(kit.RControl).Label("批注-" + n.id)
 			if leaving {
-				row.Disabled(true).Translate(kit.NoteExit*progress, 0).Opacity(1 - progress)
+				row.Disabled(true).Translate(kit.NoteExit*gone, 0).Opacity(1 - gone)
 			} else {
 				p := kit.Arrive(row, m.runs[n.id], kit.NoteTime, time.Duration(min(i, 3))*kit.NoteDelay)
 				row.Translate(-kit.NoteTravel*(1-p), 0).Opacity(p)
@@ -270,7 +272,7 @@ func (a *App) marginPanel(c *ui.Context) {
 				bg = a.pal.Theme.SurfaceHover
 				ed.SetNoteHighlight(n.start, n.end)
 			}
-			row.Background(row.AnimateColor("hover", bg, ui.Animation{Duration: kit.HoverTime}))
+			row.Background(row.AnimateColor("hover", bg, ui.Animation{Duration: kit.HoverTime, Ease: kit.Out}))
 			rows = append(rows, row)
 			acted := false
 			row.Children(func() {
@@ -325,7 +327,7 @@ func (a *App) marginPanel(c *ui.Context) {
 			anchor, _ := ed.RangeBoxUnclipped(n.start, n.end)
 			top := max(anchor.Y+a.LastProse.Y-3, floor)
 			floor = top + actual.H + 8
-			if math.Abs(float64(actual.Y-top-m.shifts[n.id]*(1-progress))) > 0.5 {
+			if math.Abs(float64(actual.Y-top-m.shifts[n.id]*still)) > 0.5 {
 				services.Invalidate()
 			}
 		}

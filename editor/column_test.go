@@ -71,23 +71,3 @@ func TestTextColumnKeepsTheMarginsAndScrollBar(t *testing.T) {
 		}
 	}
 }
-
-func TestTextColumnTranslatesWithoutReflow(t *testing.T) {
-	e := New(NewDoc(strings.Repeat("雨从傍晚开始下。\n", 100)), Options{Column: TextColumn{MaxWidth: 612, Margin: 24}})
-	tt := newTester(e)
-	tt.Frame()
-	lines, width, left, scroll := &e.lay.lines[0], e.lay.textW, e.lay.left, e.scrollY
-	before, _ := e.RangeBoxUnclipped(0, 2)
-	for _, offset := range []float32{-80, -40, 12, 0} {
-		e.SetTextColumn(TextColumn{MaxWidth: 612, Margin: 24, OffsetX: offset})
-		tt.Frame()
-		after, _ := e.RangeBoxUnclipped(0, 2)
-		if &e.lay.lines[0] != lines || e.lay.textW != width || e.lay.left != left+offset || e.scrollY != scroll || after.X != before.X+offset {
-			t.Fatalf("offset %v changed the layout or did not move its range: %+v", offset, after)
-		}
-		x, y := e.caretPos()
-		if got := e.hit(x+1, y-e.scrollY+1); got != e.caret {
-			t.Fatalf("translated pointer found %d, want %d", got, e.caret)
-		}
-	}
-}

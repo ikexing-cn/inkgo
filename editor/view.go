@@ -77,13 +77,6 @@ func (e *Editor) FontSize() float32 { return e.opts.Font.Size }
 // the viewport or its scroll bar.
 func (e *Editor) SetTextColumn(column TextColumn) {
 	if column != e.opts.Column {
-		was := e.opts.Column
-		if column.MaxWidth == was.MaxWidth && column.Margin == was.Margin {
-			e.lay.left += column.OffsetX - was.OffsetX
-			e.layKey.column.OffsetX = column.OffsetX
-			e.opts.Column = column
-			return
-		}
 		e.opts.Column, e.reveal = column, true
 	}
 }

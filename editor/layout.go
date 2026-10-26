@@ -24,7 +24,6 @@ const PadX = padX
 // input still use the whole viewport. Zero fields take the defaults.
 type TextColumn struct {
 	MaxWidth, Margin float32
-	OffsetX          float32 // translates the text without changing its line breaks
 }
 
 // Layout returns the text's left edge and width inside the viewport.
@@ -36,7 +35,7 @@ func (c TextColumn) Layout(width float32) (left, textWidth float32) {
 		c.Margin = padX
 	}
 	textWidth = max(min(width-2*c.Margin, c.MaxWidth), 60)
-	return max((width-textWidth)/2, 0) + c.OffsetX, textWidth
+	return max((width-textWidth)/2, 0), textWidth
 }
 
 // shaped is a paragraph Shape placed on one line, before it is broken.

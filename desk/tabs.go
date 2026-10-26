@@ -93,9 +93,9 @@ func (a *App) sheets(c *ui.Context) {
 		return
 	}
 	var shut []string
-	row := ui.Row(c).FillWidth().Height(kit.HBar).Background(a.pal.Canvas).Shrink(0).BorderWidth(0, 0, 1, 0).BorderColor(a.pal.Line).Label("标签行")
+	row := ui.Row(c).FillWidth().Height(kit.HBar).Shrink(0).BorderWidth(0, 0, 1, 0).BorderColor(a.pal.Line).Label("标签行")
 	row.Padding(0, 0, 0, a.paperInset(c)).Children(func() {
-		ui.Row(c).Gap(2).AlignItems(ui.Center).Margin(0, 8, 0, -8).Shrink(0).Children(func() {
+		a.slide(ui.Row(c).Gap(2).AlignItems(ui.Center).Margin(0, 8, 0, -8).Shrink(0)).Children(func() {
 			if a.stepButton(c, kit.IcBack, "上一个打开的章节").Disabled(len(w.back) == 0).Clicked() {
 				a.stepHistory(false)
 			}
@@ -117,7 +117,7 @@ func (a *App) sheetRow(c *ui.Context, shut *[]string) {
 	w := &a.write
 	shown := w.node
 	defer func() { w.tabSeen = shown }()
-	ui.ScrollHorizontal(c.Key("标签页")).Height(kit.HBar).Shrink(1).Children(func() {
+	a.slide(ui.ScrollHorizontal(c.Key("标签页")).Height(kit.HBar).Shrink(1)).Children(func() {
 		for _, id := range w.tabs {
 			on := id == w.node
 			title, path, folder := a.tabTitle(id)

@@ -28,6 +28,14 @@ const (
 	ColumnTravel = float32(24) // a folding column toward its own side
 )
 
+// The prototype's curves, CSS's ease-out and ease-in: what comes in or
+// moves slows as it arrives, what goes away speeds up as it leaves. mygo's
+// own EaseOut is steeper, and covers most of the way in the first frame.
+var (
+	Out = ui.CubicBezier(0, 0, 0.58, 1)
+	In  = ui.CubicBezier(0.42, 0, 1, 1)
+)
+
 // Press is a boxed button held down: the pressed fill and a squeeze.
 // Filled buttons keep their fill and only Squeeze; list rows only take
 // the fill (PressRow); words and icons do neither.
@@ -42,7 +50,7 @@ func Squeeze(b ui.Element) {
 	if b.Pressed() && !b.IsDisabled() {
 		target, duration = PressScale, PressIn
 	}
-	s := b.Animate("press", target, duration)
+	s := b.AnimateWith("press", target, duration, Out)
 	b.Scale(s, s)
 }
 
@@ -56,7 +64,7 @@ func PressRow(c *ui.Context, b ui.Element) {
 // Arrive goes from 0 to 1 once, when e is first built, and again each
 // time run changes (a margin note brought back by an undo).
 func Arrive(e ui.Element, run uint64, duration, delay time.Duration) float32 {
-	return e.Timeline("arrive", ui.TimelineOptions{Run: run, Delay: delay}).Tween(ui.Tween{From: 0, To: 1, Duration: duration})
+	return e.Timeline("arrive", ui.TimelineOptions{Run: run, Delay: delay}).Tween(ui.Tween{From: 0, To: 1, Duration: duration, Ease: Out})
 }
 
 // PopIn opens a menu or popover from (x, y), 0 to 1 across it: the

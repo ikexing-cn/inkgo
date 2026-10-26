@@ -231,14 +231,21 @@ func (a *App) settingColumn(c *ui.Context) {
 	if a.page == pageWrite && a.paneTabs.shown(a, a.doc.tab) == paneMargin {
 		line = a.pal.Canvas
 	}
-	if !a.foldLeaving(false) {
-		ui.Box(c).Width(1).FillHeight().Background(line).Label("右栏分隔线")
-	}
-	panel := ui.Column(c.Key("pane")).Width(width).FillHeight().Background(a.pal.Canvas).Shrink(0)
+	// The pane folds with its divider.
+	folding := ui.Row(c.Key("pane")).FillHeight().AlignItems(ui.Stretch).Shrink(0)
 	if a.foldLeaving(false) {
-		panel.Absolute().Right(0).Top(0)
+		folding.Absolute().Right(0).Top(0)
 	}
-	a.foldColumn(panel, false)
+	a.foldColumn(folding, false)
+	folding.Children(func() {
+		ui.Box(c).Width(1).FillHeight().Background(line).Label("右栏分隔线")
+		a.paneColumn(c, width)
+	})
+}
+
+// paneColumn is the pane itself, showing its tab.
+func (a *App) paneColumn(c *ui.Context, width float32) {
+	panel := ui.Column(c).Width(width).FillHeight().Background(a.pal.Canvas).Shrink(0)
 	a.LastSetting = panel.Bounds()
 	panel.Children(func() {
 		shown := a.paneTabs.shown(a, a.doc.tab)
@@ -414,7 +421,7 @@ func (a *App) chapterView(c *ui.Context) {
 	w.cur().ed.SetTextColumn(a.paperColumn(c))
 	w.cur().ed.SetNoteHighlight(0, 0)
 	ui.Box(c.Key("prose")).Grow(1).FillWidth().Children(func() {
-		prose := w.cur().ed.View(c).Fill()
+		prose := a.slide(w.cur().ed.View(c).Fill())
 		a.LastProse = prose.Bounds()
 		a.propActs(c)
 		a.selectionBar(c)
@@ -514,7 +521,7 @@ func (a *App) folderView(c *ui.Context, n *workspace.Node) {
 func (a *App) overProse(c *ui.Context, top, bottom float32, fn func()) {
 	column := a.paperColumn(c)
 	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(top, column.Margin, bottom, column.Margin).Shrink(0).Children(func() {
-		ui.Column(c).FillWidth().MaxWidth(column.MaxWidth).Translate(column.OffsetX, 0).Children(fn)
+		a.slide(ui.Column(c).FillWidth().MaxWidth(column.MaxWidth)).Children(fn)
 	})
 }
 
@@ -522,11 +529,26 @@ func (a *App) overProse(c *ui.Context, top, bottom float32, fn func()) {
 // the AI on, where its check stands and when chapters are checked; at the
 // right, the words.
 func (a *App) footBar(c *ui.Context, chapter bool) {
+	foot := ui.Row(c).FillWidth().Height(kit.HRow).Gap(8).AlignItems(ui.Center).Shrink(0).Label("底栏")
+	foot.Padding(0, 24, 0, a.paperInset(c))
+	foot.Children(func() {
+		if chapter && a.aiOn() {
+			// Where the check stands goes with the paper as it folds; the
+			// backup and the words keep to the right.
+			a.slide(ui.Row(c).Gap(8).AlignItems(ui.Center).Shrink(1).MinWidth(0)).Children(func() { a.footCheck(c) })
+		}
+		ui.Spacer(c)
+		a.backupLine(c)
+		a.wordCount(c)
+	})
+}
+
+// footCheck is where the check of the chapter stands, a way to it, and
+// when chapters are checked.
+func (a *App) footCheck(c *ui.Context) {
 	t := a.pal.Theme
 	w := &a.write
 	k := &a.ck
-	foot := ui.Row(c).FillWidth().Height(kit.HRow).Gap(8).AlignItems(ui.Center).Shrink(0).Label("底栏")
-	foot.Padding(0, 24, 0, a.paperInset(c))
 	line, found, can, tip := a.checkState()
 	short := checkWhens[0].short
 	for _, o := range checkWhens {
@@ -534,64 +556,53 @@ func (a *App) footBar(c *ui.Context, chapter bool) {
 			short = o.short
 		}
 	}
-	foot.Children(func() {
-		if !chapter || !a.aiOn() {
-			ui.Spacer(c)
-			a.backupLine(c)
-			a.wordCount(c)
-			return
-		}
-		if found > 0 {
-			b := a.pal.Ghost(c, line, ui.Color{}).Label("查看检查结果").Tooltip("前往「检查」页逐条查看").Shrink(1).MinWidth(0)
-			if b.Clicked() {
-				for _, it := range a.checkItems(false) {
-					if it.here {
-						a.openCheck(it.f.ID)
-						break
-					}
-				}
-			}
-		} else {
-			said := ui.Text(c, line).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
-			if tip != "" {
-				said.Tooltip(tip)
-			}
-		}
-		if can {
-			b := ui.ButtonBase(c).Label("立即检查").Tooltip("调用一次 AI，对照设定检查本章").Shrink(0)
-			color := t.TextMuted
-			if b.Hovered() {
-				color = t.Text
-			}
-			b.Children(func() { ui.Text(c, "立即检查").FontSize(kit.FsNote).TextColor(color).Underline().SingleLine() })
-			if b.Clicked() {
-				if err := a.saveText(); err != nil {
-					a.warn(err)
-				} else {
-					a.ck.queue.Enqueue(w.node)
+	if found > 0 {
+		b := a.pal.Ghost(c, line, ui.Color{}).Label("查看检查结果").Tooltip("前往「检查」页逐条查看").Shrink(1).MinWidth(0)
+		if b.Clicked() {
+			for _, it := range a.checkItems(false) {
+				if it.here {
+					a.openCheck(it.f.ID)
+					break
 				}
 			}
 		}
-		ui.Text(c, "·").FontSize(kit.FsNote).TextColor(a.pal.Faint).Shrink(0)
-		b := ui.ButtonBase(c).Label("检查时机").Shrink(0)
+	} else {
+		said := ui.Text(c, line).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
+		if tip != "" {
+			said.Tooltip(tip)
+		}
+	}
+	if can {
+		b := ui.ButtonBase(c).Label("立即检查").Tooltip("调用一次 AI，对照设定检查本章").Shrink(0)
 		color := t.TextMuted
 		if b.Hovered() {
 			color = t.Text
 		}
-		b.Children(func() { ui.Text(c, short+" ▴").FontSize(kit.FsNote).TextColor(color).SingleLine() })
+		b.Children(func() { ui.Text(c, "立即检查").FontSize(kit.FsNote).TextColor(color).Underline().SingleLine() })
 		if b.Clicked() {
-			k.whenOpen = !k.whenOpen
+			if err := a.saveText(); err != nil {
+				a.warn(err)
+			} else {
+				a.ck.queue.Enqueue(w.node)
+			}
 		}
-		kit.Popover(c, b, &k.whenOpen, 0, 1, func(panel ui.Element) {
-			panel.AttachTo(b, ui.AnchorTopLeft, ui.AnchorBottomLeft).Margin(0, 0, 4, 0).Width(270).Radius(kit.RCard).Padding(10, 6, 6, 6).Gap(4).
-				Background(a.pal.Raised).Border(1, t.Border)
-			a.pal.Pop.On(panel)
-			ui.Text(c, "检查时机").FontSize(kit.FsBody).FontWeight(600).Padding(0, 8, 4, 8)
-			ui.Column(c).FillWidth().Gap(2).Children(func() { a.whenRows(c) })
-		})
-		ui.Spacer(c)
-		a.backupLine(c)
-		a.wordCount(c)
+	}
+	ui.Text(c, "·").FontSize(kit.FsNote).TextColor(a.pal.Faint).Shrink(0)
+	b := ui.ButtonBase(c).Label("检查时机").Shrink(0)
+	color := t.TextMuted
+	if b.Hovered() {
+		color = t.Text
+	}
+	b.Children(func() { ui.Text(c, short+" ▴").FontSize(kit.FsNote).TextColor(color).SingleLine() })
+	if b.Clicked() {
+		k.whenOpen = !k.whenOpen
+	}
+	kit.Popover(c, b, &k.whenOpen, 0, 1, func(panel ui.Element) {
+		panel.AttachTo(b, ui.AnchorTopLeft, ui.AnchorBottomLeft).Margin(0, 0, 4, 0).Width(270).Radius(kit.RCard).Padding(10, 6, 6, 6).Gap(4).
+			Background(a.pal.Raised).Border(1, t.Border)
+		a.pal.Pop.On(panel)
+		ui.Text(c, "检查时机").FontSize(kit.FsBody).FontWeight(600).Padding(0, 8, 4, 8)
+		ui.Column(c).FillWidth().Gap(2).Children(func() { a.whenRows(c) })
 	})
 }
 
@@ -606,7 +617,7 @@ func (a *App) paperColumn(c *ui.Context) editor.TextColumn {
 	if win < narrow {
 		pad = 24
 	}
-	return editor.TextColumn{MaxWidth: size * 36, Margin: pad, OffsetX: a.fold.offset}
+	return editor.TextColumn{MaxWidth: size * 36, Margin: pad}
 }
 
 // paperInset is where the prose starts in the page, for the rows over and
