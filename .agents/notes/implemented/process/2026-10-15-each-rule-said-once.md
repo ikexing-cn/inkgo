@@ -2,6 +2,8 @@
 
 Status: implemented
 
+> 2026-10-26 起 `DESIGN.md` 只写每一处界面都要守的规则，不列测试的名字，见 [DESIGN.md 只写每一处界面都要守的规则](2026-10-26-design-md-only-shared-rules.md)。
+
 ## Problem
 
 作者 2026-10-15 问：「我们的 AGENTS.md 和 DESIGN.md 会不会太多冗余导致模型漂移？检查一下」。查下来篇幅不算长，`DESIGN.md` 点名的测试、走查步骤、token 和代码里的名字也都在；问题是同一件事写了两三份，有几份已经对不上了：
