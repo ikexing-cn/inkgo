@@ -41,6 +41,8 @@ func (p *Palette) ToastCard(c *ui.Context, ts ui.Toast, status *Status, life tim
 	toast := ui.ToastBase(c, ts)
 	box := toast.Root.Row().MinWidth(toastMin).MaxWidth(toastMax).Gap(10).Padding(12, 10, 12, 14).AlignItems(ui.Start).Radius(RCard).
 		Background(p.Raised).Border(1, t.Border).Clip()
+	progress := Arrive(box, 0, MoveTime, 0)
+	box.Translate(ToastTravel*(1-progress), 0).Opacity(progress)
 	p.Pop.On(box)
 	box.Children(func() {
 		if ts.Type != "hint" { // a word on what to do is neither done nor wrong

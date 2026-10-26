@@ -45,7 +45,7 @@ func fixture(t *testing.T) (*App, *ui.Tester, workspace.Entry) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { a.Close() })
-	tt := ui.NewTester(a.View, 1266, 780)
+	tt := stillTester(a.View, 1266, 780)
 	tt.Frame()
 	tt.Frame()
 	e, _ := setting(a).Entry(r.Ops[0].Entry)
@@ -236,7 +236,7 @@ func TestTheAuthorEditsTheSetting(t *testing.T) {
 func TestTalkNotesTheSettingAsItReplies(t *testing.T) {
 	a, tt, _ := fixture(t)
 	var c *ui.Context
-	tt = ui.NewTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
+	tt = stillTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
 	tt.SetPreferences(ui.Preferences{ReduceMotion: true}) // the fold opens at once
 	tt.Frame()
 	session := a.session
@@ -429,7 +429,7 @@ func TestExtractionAddsTheAuthorsEntry(t *testing.T) {
 func TestCancellationKeepsUIResponsive(t *testing.T) {
 	a, tt, _ := fixture(t)
 	var viewContext *ui.Context
-	tt = ui.NewTester(func(c *ui.Context) { viewContext = c; a.View(c) }, 1266, 780)
+	tt = stillTester(func(c *ui.Context) { viewContext = c; a.View(c) }, 1266, 780)
 	tt.Frame()
 	a.run(viewContext, "测试中的请求", func(ctx context.Context) (func(), error) { <-ctx.Done(); return nil, ctx.Err() })
 	tt.Frame()
@@ -445,7 +445,7 @@ func TestCancellationKeepsUIResponsive(t *testing.T) {
 func TestFailureRefreshesPersistedWork(t *testing.T) {
 	a, tt, _ := fixture(t)
 	var c *ui.Context
-	tt = ui.NewTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
+	tt = stillTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
 	tt.Frame()
 	a.run(c, "讨论", func(context.Context) (func(), error) {
 		if _, err := a.Store.Append(a.session, workspace.Event{Role: "user", Text: "失败前已经落盘的发言"}); err != nil {
@@ -625,7 +625,7 @@ func TestACategorySavesOnceFilledIn(t *testing.T) {
 func TestMarkdownBlocks(t *testing.T) {
 	src := "# 标题\n\n有**粗体**、*斜体*、`代码`和[链接](https://example.com)。\n\n- 一\n- 二\n\n1. 甲\n\n> 引用\n\n```\ncode\n```\n\n| 列 | 值 |\n|---|---|\n| 甲 | 1 |\n\n<script>x</script>\n\n---\n"
 	a, _, _ := fixture(t)
-	tt := ui.NewTester(func(c *ui.Context) { a.markdown(c, src, kit.ReplyText) }, 720, 1200)
+	tt := stillTester(func(c *ui.Context) { a.markdown(c, src, kit.ReplyText) }, 720, 1200)
 	for _, text := range []string{"标题", "粗体", "斜体", "代码", "链接", "一", "二", "甲", "引用", "code", "列", "值", "1", "<script>x</script>"} {
 		if !tt.HasText(text) {
 			t.Errorf("missing %q in %q", text, tt.Texts())
@@ -643,7 +643,7 @@ func TestMarkdownBlocks(t *testing.T) {
 func TestLiveTurnStreams(t *testing.T) {
 	a, tt, _ := fixture(t)
 	var c *ui.Context
-	tt = ui.NewTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
+	tt = stillTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
 	tt.Frame()
 	block := make(chan struct{})
 	a.pending = "她做什么工作？"
@@ -670,7 +670,7 @@ func TestLiveTurnStreams(t *testing.T) {
 func TestTalkLeavesTheRestFree(t *testing.T) {
 	a, _, _ := fixture(t)
 	var c *ui.Context
-	tt := ui.NewTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
+	tt := stillTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
 	session := a.session
 	other, err := a.Store.NewSession()
 	if err != nil {

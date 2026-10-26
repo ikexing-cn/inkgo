@@ -105,6 +105,7 @@ func (a *App) bookResults(c *ui.Context) {
 				} else if row.Hovered() {
 					row.Background(t.SurfaceHover)
 				}
+				kit.PressRow(c, row)
 				row.Children(func() {
 					ui.Row(c).FillWidth().Gap(8).Children(func() {
 						ui.Text(c, h.Title).FontSize(kit.FsControl).FontWeight(600).SingleLine().Ellipsis("…").Shrink(1)

@@ -128,7 +128,7 @@ func (p *Palette) Modal(c *ui.Context, open *bool, fn func()) {
 	}
 	w, h := c.Size()
 	ui.DialogBase(c, open, func(back, panel ui.Element) {
-		back.Background(p.Scrim)
+		DialogIn(back, panel, p.Scrim)
 		panel.MaxWidth(w - 2*DialogPad).MaxHeight(h - 2*DialogPad).Radius(RDialog).Background(p.Raised)
 		p.Dialog.On(panel)
 		fn()
@@ -474,6 +474,7 @@ func (p *Palette) Primary(c *ui.Context, text string) ui.Element {
 	if b.IsDisabled() {
 		Pale(b)
 	}
+	Squeeze(b)
 	b.Children(func() { ui.Text(c, text).FontSize(FsControl).TextColor(p.OnInk).SingleLine() })
 	return b
 }
@@ -490,6 +491,7 @@ func (p *Palette) Danger(c *ui.Context, text string) ui.Element {
 	if b.IsDisabled() {
 		Pale(b)
 	}
+	Squeeze(b)
 	b.Children(func() { ui.Text(c, text).FontSize(FsControl).TextColor(p.OnInk).SingleLine() })
 	return b
 }
@@ -506,6 +508,7 @@ func (p *Palette) Soft(c *ui.Context, text string) ui.Element {
 	if b.IsDisabled() {
 		Pale(b)
 	}
+	Squeeze(b)
 	b.Children(func() { ui.Text(c, text).FontSize(FsControl).SingleLine() })
 	return b
 }
@@ -519,6 +522,7 @@ func (p *Palette) Secondary(c *ui.Context, text string) ui.Element {
 	if b.IsDisabled() {
 		Pale(b)
 	}
+	Press(c, b)
 	b.Children(func() { ui.Text(c, text).FontSize(FsControl).SingleLine() })
 	return b
 }
@@ -580,6 +584,11 @@ func Action(c *ui.Context, text string, color ui.Color, strong bool) ui.Element 
 	b.Background(bg)
 	if b.IsDisabled() {
 		Pale(b)
+	}
+	if strong {
+		Squeeze(b)
+	} else {
+		Press(c, b)
 	}
 	b.Children(func() { ui.Text(c, text).FontSize(FsNote).FontWeight(600).TextColor(fg).SingleLine() })
 	return b

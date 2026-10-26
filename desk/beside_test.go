@@ -49,7 +49,7 @@ func TestPaneTabPreferences(t *testing.T) {
 			if err = b.Open(root); err != nil {
 				t.Fatal(err)
 			}
-			tt := ui.NewTester(b.View, 1266, 780)
+			tt := stillTester(b.View, 1266, 780)
 			tt.Frame()
 			tt.Frame()
 			if b.doc.tab != tc.want {
@@ -92,7 +92,7 @@ func TestPaneTabPreferences(t *testing.T) {
 			if err = c.Open(root); err != nil {
 				t.Fatal(err)
 			}
-			ct := ui.NewTester(c.View, 1266, 780)
+			ct := stillTester(c.View, 1266, 780)
 			ct.Frame()
 			ct.Frame()
 			if c.doc.tab != panePhone || !ct.HasText("第 1 屏，共 1 屏") {
@@ -294,7 +294,7 @@ func TestQuotesFindTheirProse(t *testing.T) {
 func TestTalkBesideShowsItsOwnProgress(t *testing.T) {
 	a, _, _ := writingFixture(t, "雨下了一夜。")
 	var c *ui.Context
-	tt := ui.NewTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
+	tt := stillTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
 	tt.Frame()
 	if err := tt.Click("右栏-讨论"); err != nil {
 		t.Fatal(err)

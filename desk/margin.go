@@ -5,6 +5,7 @@ import (
 	"math"
 	"slices"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/egoist/mygo/ui"
@@ -64,10 +65,24 @@ type marginNote struct {
 }
 
 type marginState struct {
-	notes cached[doubtKey, []marginNote]
-	boxes map[string]ui.Rect
-	top   float32
-	lit   string
+	notes    cached[doubtKey, []marginNote]
+	boxes    map[string]ui.Rect
+	top      float32
+	lit      string
+	visible  bool
+	chapter  string
+	runs     map[string]uint64
+	serial   uint64
+	previous []marginNote
+	action   bool
+	departed []marginDeparture
+	shifts   map[string]float32
+	shifting bool
+}
+
+type marginDeparture struct {
+	note marginNote
+	top  float32
 }
 
 // marginNotes resolves quotes only when the document or the book changes.
@@ -164,17 +179,61 @@ func (a *App) marginPanel(c *ui.Context) {
 	a.pal.PaneTop(c).Children(func() { a.panelTabs(c) })
 	m := &a.write.margin
 	list := a.marginNotes()
+	fresh := !m.visible || m.chapter != a.write.node
+	m.visible, m.chapter = true, a.write.node
+	if fresh {
+		m.previous, m.departed, m.shifts, m.runs = nil, nil, nil, nil
+		m.shifting, m.action = false, false
+	}
+	if m.runs == nil {
+		m.runs = map[string]uint64{}
+	}
+	for _, n := range list {
+		if !slices.ContainsFunc(m.previous, func(old marginNote) bool { return old.id == n.id }) {
+			m.serial++
+			m.runs[n.id] = m.serial
+		}
+	}
 	boxes := make(map[string]ui.Rect, len(list))
 	ed := a.write.cur().ed
 	services := c.Services()
 	box := ui.Box(c.Key("margin")).FillWidth().Grow(1).Shrink(1).Clip().Label("页边批注")
 	m.top = box.Bounds().Y
+	starting := false
+	if m.action {
+		for _, n := range m.previous {
+			if !slices.ContainsFunc(list, func(now marginNote) bool { return now.id == n.id }) && !c.Preferences().ReduceMotion {
+				m.departed = append(m.departed, marginDeparture{n, m.boxes[n.id].Y - m.top})
+				starting = true
+			}
+		}
+		m.action = false
+	}
+	if starting {
+		m.shifts = map[string]float32{}
+		m.shifting = true
+		box.Jump("remove", 0)
+	}
+	progress := float32(1)
+	if m.shifting {
+		progress = box.Animate("remove", 1, kit.MoveTime)
+	}
+	if progress == 1 {
+		m.departed, m.shifts, m.shifting = nil, nil, false
+	}
+	m.departed = slices.DeleteFunc(m.departed, func(gone marginDeparture) bool {
+		return slices.ContainsFunc(list, func(n marginNote) bool { return n.id == gone.note.id })
+	})
+	drawing := slices.Clone(list)
+	for _, gone := range m.departed {
+		drawing = append(drawing, gone.note)
+	}
 	floor := float32(math.Inf(-1))
 	var rows []ui.Element
 	box.Draw(func(_ *ui.Painter, r ui.Rect) { m.top = r.Y })
 	m.lit = ""
 	box.Children(func() {
-		if len(list) == 0 {
+		if len(drawing) == 0 {
 			text := "本章没有批注"
 			if ed == nil {
 				text = "打开一章后，这里列出它的批注"
@@ -183,18 +242,35 @@ func (a *App) marginPanel(c *ui.Context) {
 			return
 		}
 		ha, hb := ed.HoveredLine()
-		for i := range list {
-			n := list[i]
+		for i := range drawing {
+			n := drawing[i]
+			leaving := i >= len(list)
 			rangeBox, _ := ed.RangeBoxUnclipped(n.start, n.end)
 			y := max(rangeBox.Y+a.LastProse.Y-m.top-3, floor)
-			floor = y + m.boxes[n.id].H + 8
+			if leaving {
+				y = m.departed[i-len(list)].top
+			} else {
+				floor = y + m.boxes[n.id].H + 8
+				if starting {
+					m.shifts[n.id] = m.boxes[n.id].Y - m.top - y
+				}
+				y += m.shifts[n.id] * (1 - progress)
+			}
 			row := ui.ButtonBase(c.Key(n.id)).Column().Absolute().Left(0).Right(16).Top(y).Gap(2).Padding(6, 10, 8, 20).Radius(kit.RControl).Label("批注-" + n.id)
+			if leaving {
+				row.Disabled(true).Translate(kit.NoteExit*progress, 0).Opacity(1 - progress)
+			} else {
+				p := kit.Arrive(row, m.runs[n.id], kit.NoteTime, time.Duration(min(i, 3))*kit.NoteDelay)
+				row.Translate(-kit.NoteTravel*(1-p), 0).Opacity(p)
+			}
 			lit := hb > ha && ha < n.end && n.start < hb && m.lit == ""
-			if lit || row.Hovered() {
+			bg := a.pal.Theme.SurfaceHover.Alpha(0)
+			if !leaving && (lit || row.Hovered()) {
 				m.lit = n.id
-				row.Background(a.pal.Theme.SurfaceHover)
+				bg = a.pal.Theme.SurfaceHover
 				ed.SetNoteHighlight(n.start, n.end)
 			}
+			row.Background(row.AnimateColor("hover", bg, ui.Animation{Duration: kit.HoverTime}))
 			rows = append(rows, row)
 			acted := false
 			row.Children(func() {
@@ -225,13 +301,14 @@ func (a *App) marginPanel(c *ui.Context) {
 							button := a.pal.Ghost(c, act.label, fg).Label("批注-" + n.id + "-" + act.label)
 							if button.Clicked() {
 								acted = true
+								m.action = true
 								act.run()
 							}
 						}
 					})
 				}
 			})
-			if row.Clicked() && !acted {
+			if !leaving && row.Clicked() && !acted {
 				a.openMarginNote(n)
 			}
 		}
@@ -239,16 +316,20 @@ func (a *App) marginPanel(c *ui.Context) {
 	box.DrawOver(func(_ *ui.Painter, r ui.Rect) {
 		floor := float32(math.Inf(-1))
 		for i, row := range rows {
+			if i >= len(list) {
+				break
+			}
 			n := list[i]
 			actual := row.Bounds()
 			boxes[n.id] = actual
 			anchor, _ := ed.RangeBoxUnclipped(n.start, n.end)
 			top := max(anchor.Y+a.LastProse.Y-3, floor)
 			floor = top + actual.H + 8
-			if math.Abs(float64(actual.Y-top)) > 0.5 {
+			if math.Abs(float64(actual.Y-top-m.shifts[n.id]*(1-progress))) > 0.5 {
 				services.Invalidate()
 			}
 		}
 		m.boxes = boxes
 	})
+	m.previous = slices.Clone(list)
 }

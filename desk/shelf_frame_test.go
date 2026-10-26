@@ -23,7 +23,7 @@ func TestShelfCardsFillTheFirstFrame(t *testing.T) {
 	a.Store = nil // the shelf shows with no work open
 	for _, tc := range []struct{ width, columns int }{{1266, 4}, {1000, 4}, {780, 3}} {
 		build := 0
-		tt := ui.NewTester(func(c *ui.Context) {
+		tt := stillTester(func(c *ui.Context) {
 			c.SetTheme(a.pal.Theme)
 			ui.Column(c.Key(build)).Fill().Children(func() { a.welcome(c) })
 			build++

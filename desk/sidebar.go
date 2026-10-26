@@ -113,6 +113,7 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 	if v, ok := ui.Drop[dragNode](row); ok {
 		a.dropOn(string(v), n)
 	}
+	kit.PressRow(c, row)
 	row.Children(func() {
 		// The top level reads darker than what is inside a folder.
 		fg, weight := t.Text, 400

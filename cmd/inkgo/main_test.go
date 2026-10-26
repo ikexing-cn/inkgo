@@ -74,6 +74,7 @@ func TestLayoutDiscussion(t *testing.T) {
 	}
 	a := openLayoutApp(t, root)
 	tt := ui.NewTester(a.View, 1266, 780)
+	tt.SetPreferences(ui.Preferences{ReduceMotion: true})
 	tt.Frame()
 	tt.Frame()
 	if a.LastChat.H < 600 || a.LastSetting.H < 600 || a.LastChat.W < 600 || a.LastSetting.W < 390 {
@@ -184,6 +185,7 @@ func TestLayoutWriting(t *testing.T) {
 	}
 	a := openLayoutApp(t, root)
 	tt := ui.NewTester(a.View, 1266, 780)
+	tt.SetPreferences(ui.Preferences{ReduceMotion: true})
 	tt.Frame()
 	if err = tt.Click("正文"); err != nil {
 		t.Fatal(err)

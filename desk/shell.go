@@ -75,10 +75,14 @@ func (a *App) View(c *ui.Context) {
 		a.titleBar(c)
 		// Keyed, the page stays the element it was as the title bar and the
 		// sidebar come and go, and the prose keeps the keyboard.
-		ui.Row(c.Key("body")).FillWidth().Grow(1).Shrink(1).AlignItems(ui.Stretch).Children(func() {
-			if a.sideShown() {
+		body := ui.Row(c.Key("body")).FillWidth().Grow(1).Shrink(1).AlignItems(ui.Stretch)
+		a.foldPaper(c, body)
+		body.Children(func() {
+			if a.sideShown() || a.foldLeaving(true) {
 				a.sidebar(c)
-				ui.Box(c).Width(1).FillHeight().Background(a.pal.Line)
+				if a.sideShown() {
+					ui.Box(c).Width(1).FillHeight().Background(a.pal.Line)
+				}
 			}
 			ui.Column(c.Key("page")).Grow(1).Shrink(1).MinWidth(0).FillHeight().Children(func() {
 				a.pageTurn(c)
@@ -109,6 +113,9 @@ func (a *App) View(c *ui.Context) {
 		}
 	}
 	a.toasts(c) // over every dialog
+	if a.page != pageWrite || !a.paneOpen() && !a.foldLeaving(false) || a.focused() || a.paneTabs.shown(a, a.doc.tab) != paneMargin {
+		a.write.margin.visible = false
+	}
 }
 
 // focused says the prose is shown without the sidebar, tabs or pane.
@@ -131,8 +138,16 @@ func (a *App) sidebar(c *ui.Context) {
 	t := a.pal.Theme
 	w, _ := c.Size()
 	width := a.sidebarWidth(w)
+	if a.foldLeaving(true) {
+		width = a.fold.from.sideWidth
+	}
 	busy := a.busy != ""
-	ui.Column(c).Width(width).FillHeight().Background(a.pal.Canvas).Shrink(0).Children(func() {
+	panel := ui.Column(c.Key("sidebar")).Width(width).FillHeight().Background(a.pal.Canvas).Shrink(0)
+	if a.foldLeaving(true) {
+		panel.Absolute().Left(0).Top(0)
+	}
+	a.foldColumn(panel, true)
+	panel.Children(func() {
 		work := a.Store.Work()
 		var head ui.Element
 		// The work shares the tab row's height and bottom rule.
@@ -252,6 +267,7 @@ func (a *App) sessionItem(c *ui.Context, id string) {
 	} else if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}
+	kit.PressRow(c, b)
 	b.Children(func() {
 		fg := t.TextMuted
 		if on {

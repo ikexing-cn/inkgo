@@ -46,6 +46,7 @@ func TestLayoutMargin(t *testing.T) {
 	}
 	a := openLayoutApp(t, root)
 	tt := ui.NewTester(a.View, 1266, 780)
+	tt.SetPreferences(ui.Preferences{ReduceMotion: true})
 	tt.Frame()
 	tt.Frame()
 	if !tt.HasText("设定待确认") || !tt.HasText("与设定不一致") || !tt.HasText("伏笔 · 在此埋下") {

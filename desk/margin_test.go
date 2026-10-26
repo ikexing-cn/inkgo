@@ -308,7 +308,7 @@ func TestMarginChangeWithoutANameStartsAtTheChapter(t *testing.T) {
 func TestMarginRequestsItsOwnCorrectionInTheNextFrame(t *testing.T) {
 	a, _, _ := marginFixture(t, false)
 	var frames []bool
-	tt := ui.NewTester(func(c *ui.Context) {
+	tt := stillTester(func(c *ui.Context) {
 		ui.Box(c).Fill().Children(func() { a.View(c) }).DrawOver(func(_ *ui.Painter, _ ui.Rect) {
 			aligned := true
 			floor := float32(math.Inf(-1))
@@ -344,7 +344,7 @@ func TestTypingKeepsMarginNotesApartFromTheFirstFrame(t *testing.T) {
 	ed.Select(0, 0)
 	ed.Focus()
 	checking, frames := false, 0
-	tt := ui.NewTester(func(c *ui.Context) {
+	tt := stillTester(func(c *ui.Context) {
 		ui.Box(c).Fill().Children(func() { a.View(c) }).DrawOver(func(_ *ui.Painter, _ ui.Rect) {
 			if !checking {
 				return

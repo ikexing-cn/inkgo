@@ -105,7 +105,7 @@ func TestTheTalkShowsWhereItWasCompacted(t *testing.T) {
 func TestCompactingShowsItself(t *testing.T) {
 	a, _, _ := fixture(t)
 	var c *ui.Context
-	tt := ui.NewTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
+	tt := stillTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
 	tt.Frame()
 	session := a.session
 	u, err := a.Store.Append(session, workspace.Event{Role: workspace.RoleUser, Text: "停电这一章想写得紧一点"})

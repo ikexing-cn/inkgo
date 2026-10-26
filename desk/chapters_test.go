@@ -37,7 +37,7 @@ func TestReopenWhereLeft(t *testing.T) {
 		t.Fatal(b.page, b.write.node)
 	}
 	a = b
-	tb := ui.NewTester(a.View, 1280, 800)
+	tb := stillTester(a.View, 1280, 800)
 	tb.Frame()
 	if err := tb.Click("讨论"); err != nil {
 		t.Fatal(err)

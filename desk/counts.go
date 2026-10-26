@@ -124,7 +124,7 @@ func (a *App) wordCount(c *ui.Context) {
 		w.goalOpen = !w.goalOpen
 	}
 	// It opens upward: the foot is the last line of the window.
-	ui.PopoverBase(c, counts, &w.goalOpen, func(panel ui.Element) {
+	kit.Popover(c, counts, &w.goalOpen, 1, 1, func(panel ui.Element) {
 		panel.AttachTo(counts, ui.AnchorTopRight, ui.AnchorBottomRight).Margin(0, 0, 4, 0).Width(250).Radius(kit.RCard).Padding(8).Gap(2).
 			Background(a.pal.Raised).Border(1, t.Border)
 		a.pal.Pop.On(panel)

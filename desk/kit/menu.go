@@ -171,6 +171,11 @@ func (m *MenuState) menuBeside(c *ui.Context, p *Palette, row *MenuItem, at ui.R
 		y = max(MenuEdge, min(y, float32(h)-now.H-MenuEdge))
 	}
 	list.Top(y)
+	if flip {
+		PopIn(list, 1, 0)
+	} else {
+		PopIn(list, 0, 0)
+	}
 	list.Children(func() { m.menuRows(c, p, row.build, true) })
 }
 
@@ -214,6 +219,11 @@ func (m *MenuState) MenuAt(c *ui.Context, p *Palette, key string, build func(m *
 			y = max(MenuEdge, min(y, float32(h)-now.H-MenuEdge))
 		}
 		panel.Left(x).Top(y)
+		origin := float32(0)
+		if x < m.X {
+			origin = 1
+		}
+		PopIn(panel, origin, 0)
 		var open *MenuItem
 		var at ui.Rect
 		panel.Children(func() { open, at = m.menuRows(c, p, build, false) })
@@ -248,7 +258,7 @@ func (m *MenuState) DropMenu(c *ui.Context, p *Palette, b ui.Element, key string
 	open := true
 	// Named, as the parts of the other menus are: a dialog a row opens is
 	// not taken for the menu going on, and takes the focus as its own.
-	ui.PopoverBase(c.Key("菜单-"+key), b, &open, func(panel ui.Element) {
+	Popover(c.Key("菜单-"+key), b, &open, 0, 0, func(panel ui.Element) {
 		p.popLook(panel)
 		place(panel)
 		m.menuRows(c, p, build, false)
@@ -286,6 +296,7 @@ func (p *Palette) popRow(c *ui.Context, pic *ui.SVG, label, hint string, off, on
 	case on || b.Hovered():
 		b.Background(t.SurfaceHover)
 	}
+	PressRow(c, b)
 	b.Children(func() {
 		if pic != nil && pic != IcChevron {
 			Glyph(c, pic, IconMd, t.TextMuted)

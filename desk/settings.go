@@ -82,11 +82,13 @@ func (a *App) preferences(c *ui.Context) {
 	a.bk.tab = a.prefTabs.shown(a, a.bk.tab)
 	w, h := c.Size()
 	ui.DialogBase(c, &a.bk.prefs, func(back, panel ui.Element) {
+		scrim := ui.Color{}
 		// What is asked over the settings shades the window, them with it:
 		// one shade, not two.
 		if !a.bk.askAI && !(a.bk.ask && a.Store != nil) {
-			back.Background(a.pal.Scrim)
+			scrim = a.pal.Scrim
 		}
+		kit.DialogIn(back, panel, scrim)
 		panel.Row().AlignItems(ui.Stretch).Width(min(prefsWidth, w-40)).Height(min(prefsHeight, h-40)).Radius(kit.RDialog).Background(t.Background)
 		a.pal.Dialog.On(panel)
 		ui.Column(c).Width(180).FillHeight().Shrink(0).Padding(20, 10).Gap(2).Radius(kit.RDialog, 0, 0, kit.RDialog).Background(a.pal.Canvas).Children(func() {
@@ -105,6 +107,7 @@ func (a *App) preferences(c *ui.Context) {
 				} else if b.Hovered() {
 					b.Background(t.SurfaceHover)
 				}
+				kit.PressRow(c, b)
 				b.Children(func() {
 					ui.Text(c, entry.title(a)).FontSize(kit.FsBody).FontWeight(weight).TextColor(fg)
 					if n := entry.number(); n > 0 {

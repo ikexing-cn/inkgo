@@ -593,6 +593,7 @@ func (a *App) checkList(c *ui.Context, all, shown []checkItem) {
 				} else if b.Hovered() {
 					b.Background(t.SurfaceHover)
 				}
+				kit.PressRow(c, b)
 				b.Children(func() {
 					ui.Column(c).Grow(1).Shrink(1).Basis(0).Children(func() {
 						ui.Text(c, it.f.Title).FontSize(kit.FsBody).LineHeight(kit.LhBody).SingleLine().Ellipsis("…").FillWidth()
@@ -664,7 +665,7 @@ func (a *App) checkProgress(c *ui.Context) {
 			k.askOpen = true
 		}
 	}
-	ui.PopoverBase(c, b, &k.askOpen, func(panel ui.Element) {
+	kit.Popover(c, b, &k.askOpen, 1, 0, func(panel ui.Element) {
 		panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(6, 0, 0, 0).Width(280).Radius(kit.RCard).Padding(14).Gap(12).
 			Background(a.pal.Canvas).Border(1, t.Border)
 		a.pal.Pop.On(panel)

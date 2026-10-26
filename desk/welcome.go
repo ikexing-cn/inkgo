@@ -511,6 +511,7 @@ func (a *App) bookMenu(c *ui.Context, b shelf.Book) {
 		more.Background(a.pal.Theme.SurfacePressed)
 	}
 	a.menu.DropMenu(c, a.pal, more, key, func(panel ui.Element) {
+		panel.TransformOrigin(1, 0)
 		panel.AttachTo(more, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(4, 0, 0, 0).Width(180)
 	}, func(m *kit.Menu) {
 		if a.Reveal != nil {
@@ -550,7 +551,7 @@ func (a *App) createDialog(c *ui.Context) {
 				ui.TextInput(c, &a.name).Label("作品名称").Placeholder("之后可修改").FillWidth().Focus()
 			})
 			kit.Labeled(c, "体裁", func() {
-				ui.Select(c, &a.genre, []string{"网文", "出版小说", "剧本", "非虚构"}).Label("体裁").FillWidth()
+				a.pal.Select(c, &a.genre, []string{"网文", "出版小说", "剧本", "非虚构"}).Label("体裁").FillWidth()
 			})
 			kit.Labeled(c, "位置", func() {
 				ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {

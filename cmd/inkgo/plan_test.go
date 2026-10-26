@@ -88,6 +88,7 @@ func TestLayoutOutline(t *testing.T) {
 	check(a.Open(filepath.Join(root, "work")))
 	defer a.Close()
 	tt := ui.NewTester(a.View, 1266, 780)
+	tt.SetPreferences(ui.Preferences{ReduceMotion: true})
 	tt.Frame()
 	tt.Frame()
 	click := func(label string) { t.Helper(); check(tt.Click(label)); tt.Frame(); tt.Frame() }

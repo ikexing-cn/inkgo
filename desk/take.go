@@ -36,7 +36,7 @@ func (a *App) take(c *ui.Context) {
 					Padding(8, 10).Radius(kit.RControl).Border(1, t.Border)
 			})
 			kit.Labeled(c, "设定分类", func() {
-				ui.Select(c, &w.takeCategory, a.categoryNames()).Label("设定分类").FillWidth()
+				a.pal.Select(c, &w.takeCategory, a.categoryNames()).Label("设定分类").FillWidth()
 			})
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 				ui.Spacer(c)

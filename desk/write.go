@@ -219,17 +219,26 @@ func (a *App) writing(c *ui.Context) {
 
 // settingColumn is the setting beside the page, unless the author hid it.
 func (a *App) settingColumn(c *ui.Context) {
-	if a.page == pagePlan && !a.plan.Pane || a.page != pagePlan && a.doc.hidden || a.page == pageWrite && a.write.focus {
+	if !a.foldLeaving(false) && (a.page == pagePlan && !a.plan.Pane || a.page != pagePlan && a.doc.hidden || a.page == pageWrite && a.write.focus) {
 		return
 	}
 	win, _ := c.Size()
 	width := a.panelWidth(win)
+	if a.foldLeaving(false) {
+		width = a.fold.from.paneWidth
+	}
 	line := a.pal.Line
 	if a.page == pageWrite && a.paneTabs.shown(a, a.doc.tab) == paneMargin {
 		line = a.pal.Canvas
 	}
-	ui.Box(c).Width(1).FillHeight().Background(line).Label("右栏分隔线")
-	panel := ui.Column(c).Width(width).FillHeight().Background(a.pal.Canvas).Shrink(0)
+	if !a.foldLeaving(false) {
+		ui.Box(c).Width(1).FillHeight().Background(line).Label("右栏分隔线")
+	}
+	panel := ui.Column(c.Key("pane")).Width(width).FillHeight().Background(a.pal.Canvas).Shrink(0)
+	if a.foldLeaving(false) {
+		panel.Absolute().Right(0).Top(0)
+	}
+	a.foldColumn(panel, false)
 	a.LastSetting = panel.Bounds()
 	panel.Children(func() {
 		shown := a.paneTabs.shown(a, a.doc.tab)
@@ -505,7 +514,7 @@ func (a *App) folderView(c *ui.Context, n *workspace.Node) {
 func (a *App) overProse(c *ui.Context, top, bottom float32, fn func()) {
 	column := a.paperColumn(c)
 	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(top, column.Margin, bottom, column.Margin).Shrink(0).Children(func() {
-		ui.Column(c).FillWidth().MaxWidth(column.MaxWidth).Children(fn)
+		ui.Column(c).FillWidth().MaxWidth(column.MaxWidth).Translate(column.OffsetX, 0).Children(fn)
 	})
 }
 
@@ -573,7 +582,7 @@ func (a *App) footBar(c *ui.Context, chapter bool) {
 		if b.Clicked() {
 			k.whenOpen = !k.whenOpen
 		}
-		ui.PopoverBase(c, b, &k.whenOpen, func(panel ui.Element) {
+		kit.Popover(c, b, &k.whenOpen, 0, 1, func(panel ui.Element) {
 			panel.AttachTo(b, ui.AnchorTopLeft, ui.AnchorBottomLeft).Margin(0, 0, 4, 0).Width(270).Radius(kit.RCard).Padding(10, 6, 6, 6).Gap(4).
 				Background(a.pal.Raised).Border(1, t.Border)
 			a.pal.Pop.On(panel)
@@ -597,7 +606,7 @@ func (a *App) paperColumn(c *ui.Context) editor.TextColumn {
 	if win < narrow {
 		pad = 24
 	}
-	return editor.TextColumn{MaxWidth: size * 36, Margin: pad}
+	return editor.TextColumn{MaxWidth: size * 36, Margin: pad, OffsetX: a.fold.offset}
 }
 
 // paperInset is where the prose starts in the page, for the rows over and

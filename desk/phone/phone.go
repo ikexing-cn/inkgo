@@ -216,7 +216,7 @@ func (p *Panel) View(c *ui.Context) {
 		if b.Clicked() {
 			p.look = !p.look
 		}
-		ui.PopoverBase(c, b, &p.look, func(panel ui.Element) {
+		kit.Popover(c, b, &p.look, 1, 0, func(panel ui.Element) {
 			panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(8, 0, 0, 0).Width(phonePopWidth).Column().Padding(4).Gap(2).Radius(kit.RCard).Background(pal.Raised).Border(1, pal.Theme.Border)
 			pal.Pop.On(panel)
 			p.typesetting(c)

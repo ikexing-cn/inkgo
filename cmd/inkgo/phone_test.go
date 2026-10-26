@@ -32,6 +32,7 @@ func TestLayoutPhonePreview(t *testing.T) {
 	}
 	defer a.Close()
 	tt := ui.NewTester(a.View, 1266, 780)
+	tt.SetPreferences(ui.Preferences{ReduceMotion: true})
 	for range 3 {
 		tt.Frame()
 	}

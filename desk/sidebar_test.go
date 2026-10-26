@@ -214,7 +214,7 @@ func TestNameANewChapter(t *testing.T) {
 func TestANarrowSidebarKeepsItsLists(t *testing.T) {
 	a, _, _ := writingFixture(t, "雨从傍晚开始下。")
 	showPage(a, pageTalk)
-	tt := ui.NewTester(a.View, 1100, 700)
+	tt := stillTester(a.View, 1100, 700)
 	tt.Frame()
 	tt.Frame()
 	if !tt.HasText("测试作品") || tt.HasText("回收站") || tt.HasText("设置") {

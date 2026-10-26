@@ -90,6 +90,7 @@ func (a *App) selectionBar(c *ui.Context) {
 	bar := ui.Row(c).Absolute().Left(left).Top(top).Height(height).Padding(4).Gap(2).AlignItems(ui.Center).Radius(kit.RControl).
 		Background(a.pal.Raised).Border(1, t.Border)
 	a.pal.Pop.On(bar)
+	kit.PopIn(bar, 0.5, 1)
 	bar.Children(func() {
 		if a.aiOn() && a.selButton(c, kit.IcPen, "AI 改写").Tooltip("由 AI 改写选中内容").Clicked() {
 			a.openRewrite()

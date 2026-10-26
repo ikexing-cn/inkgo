@@ -634,6 +634,8 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab；起草�
 - 挪动：收起、展开两栏，正文从原来的地方平移到新的地方，字不跟着拉宽，新旧两种断行不叠在一起，收起的那一栏往它那一边退；处理掉的一条批注往页边退。看得出东西是从哪里来、到哪里去的。指针移到批注上，底色 0.1 秒浮起。
 - 系统设了减少动态效果，都直接到位。`npm run verify-prototype` 就在减少动态效果下点，量的、截的都是停下来的样子。
 
+检查：`go test ./desk` 的 `TestReducedMotionPutsColumnsAndNotesInPlaceAtOnce`、`TestFoldingMovesThePaperAndRowsWithoutStretching`、`TestOnlyExplicitSwitchesAnimateTheColumns`、`TestRemovingAMarginNoteMovesThoseBelowIt`、`TestMarginNotesArriveInTurnWithinAQuarterSecond`、`TestMenusAndDialogsComeInOnceAndCloseAtOnce`；`go test ./editor` 的 `TestTextColumnTranslatesWithoutReflow`；`SHOT=<目录> go test ./desk -run ShotMotion` 截收起右栏、处理掉一条批注动到一半的样子。
+
 ### 对话框
 
 - 只问一句的对话框（标题、一两句说明、一排按钮，如「保存对……的修改？」「全书替换」）用窄的一档，宽 360，不摊成扁扁的一条。

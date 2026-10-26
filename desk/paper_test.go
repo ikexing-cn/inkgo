@@ -78,7 +78,7 @@ func TestTheRowsShareThePaper(t *testing.T) {
 func TestTheRowsMoveWithThePaperAtOnce(t *testing.T) {
 	a, settled, _ := writingFixture(t, strings.Repeat("雨从傍晚开始下。", 80))
 	build := 0
-	fresh := ui.NewTester(func(c *ui.Context) {
+	fresh := stillTester(func(c *ui.Context) {
 		ui.Column(c.Key(build)).Fill().Children(func() { a.View(c) })
 		build++
 	}, 1266, 780)
@@ -335,7 +335,7 @@ func TestThePaneLeavesRoomForThePage(t *testing.T) {
 func TestThePagesAreCenteredWithoutPreviousBounds(t *testing.T) {
 	a, _, _ := writingFixture(t, "雨从傍晚开始下。")
 	build := 0
-	tt := ui.NewTester(func(c *ui.Context) {
+	tt := stillTester(func(c *ui.Context) {
 		a.titleBar(c.Key(build))
 		build++
 	}, 1266, 80)
@@ -364,7 +364,7 @@ func TestThePagesAreCenteredWithoutPreviousBounds(t *testing.T) {
 func TestThePageSwitchPassesBlankSpace(t *testing.T) {
 	a, _, _ := writingFixture(t, "雨从傍晚开始下。")
 	held := false
-	under := ui.NewTester(func(c *ui.Context) {
+	under := stillTester(func(c *ui.Context) {
 		base := ui.ButtonBase(c).Fill().Label("下面的空白")
 		base.Children(func() { a.pageSwitch(c, 1266) })
 		if base.Clicked() {

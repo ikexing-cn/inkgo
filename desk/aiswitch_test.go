@@ -178,7 +178,7 @@ func openSpied(t *testing.T, root string) (*App, *ui.Tester, *spy) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { a.Close() })
-	tt := ui.NewTester(a.View, 1266, 780)
+	tt := stillTester(a.View, 1266, 780)
 	tt.Frame()
 	tt.Frame()
 	return a, tt, sp

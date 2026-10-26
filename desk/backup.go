@@ -310,7 +310,7 @@ func (a *App) backupLine(c *ui.Context) {
 	if b.Clicked() {
 		a.bk.open = !a.bk.open
 	}
-	ui.PopoverBase(c, b, &a.bk.open, func(panel ui.Element) {
+	kit.Popover(c, b, &a.bk.open, 1, 1, func(panel ui.Element) {
 		panel.AttachTo(b, ui.AnchorTopRight, ui.AnchorBottomRight).Margin(0, 0, 4, 0)
 		a.backupCard(c, panel, s)
 	})
@@ -337,7 +337,7 @@ func (a *App) backupChip(c *ui.Context) {
 	if b.Clicked() {
 		a.bk.chip = !a.bk.chip
 	}
-	ui.PopoverBase(c, b, &a.bk.chip, func(panel ui.Element) {
+	kit.Popover(c, b, &a.bk.chip, 1, 0, func(panel ui.Element) {
 		panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(4, 0, 0, 0)
 		a.backupCard(c, panel, s)
 	})
@@ -618,7 +618,7 @@ func (a *App) backupSettingsView(c *ui.Context) {
 					names[i] = fmt.Sprintf("最近 %d 份", k)
 				}
 				a.bk.keepChoice = fmt.Sprintf("最近 %d 份", s.Kept())
-				if ui.Select(c, &a.bk.keepChoice, names).Label("保留份数").Width(140).Changed() {
+				if a.pal.Select(c, &a.bk.keepChoice, names).Label("保留份数").Width(140).Changed() {
 					for i, n := range names {
 						if n == a.bk.keepChoice {
 							s.Keep = keeps[i]

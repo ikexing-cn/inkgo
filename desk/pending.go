@@ -188,7 +188,7 @@ func (a *App) pendingButton(c *ui.Context) {
 	if b.Clicked() {
 		w.pendOpen = !w.pendOpen
 	}
-	ui.PopoverBase(c, b, &w.pendOpen, func(panel ui.Element) {
+	kit.Popover(c, b, &w.pendOpen, 1, 0, func(panel ui.Element) {
 		panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(4, 0, 0, 0).Width(360).Radius(kit.RCard).Clip().
 			Background(a.pal.Raised).Border(1, t.Border)
 		a.pal.Pop.On(panel)
@@ -276,6 +276,7 @@ func (a *App) pendingRow(c *ui.Context, it pendItem) {
 	if r.Hovered() {
 		r.Background(t.SurfaceHover)
 	}
+	kit.PressRow(c, r)
 	r.Children(func() {
 		ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
 			ui.Text(c, it.text).FontSize(kit.FsBody).LineHeight(kit.LhBody).MaxLines(2).Ellipsis("…").FillWidth()

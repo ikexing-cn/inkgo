@@ -91,7 +91,7 @@ func TestWritingSavesAsTheAuthorPauses(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer b.Close()
-	bt := ui.NewTester(b.View, 1266, 780)
+	bt := stillTester(b.View, 1266, 780)
 	bt.Frame()
 	bt.Click("正文")
 	bt.Frame()

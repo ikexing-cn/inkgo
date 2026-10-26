@@ -116,7 +116,7 @@ var (
 			return "收起侧栏"
 		},
 		can: func(a *App) bool { return a.Store != nil },
-		run: func(a *App) { a.setSideHidden(!a.sideHidden) }}
+		run: func(a *App) { a.fold.requested = true; a.setSideHidden(!a.sideHidden) }}
 	cmdPane = &command{label: "收起右栏", page: pageAny,
 		labelNow: func(a *App) string {
 			if !a.paneOpen() {
@@ -125,7 +125,7 @@ var (
 			return "收起右栏"
 		},
 		can: func(a *App) bool { return a.hasPane() },
-		run: func(a *App) { a.togglePane() }}
+		run: func(a *App) { a.fold.requested = true; a.togglePane() }}
 	cmdFocus = &command{label: "专注写作", key: ui.KeyF11, page: pageWrite, by: byDesk,
 		can: func(a *App) bool { return writingPage(a) },
 		run: func(a *App) { a.write.focus = !a.write.focus }}

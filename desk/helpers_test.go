@@ -8,6 +8,14 @@ import (
 	"writer/internal/testshot"
 )
 
+// Geometry and screenshots use the system's reduced-motion path.
+func stillTester(view func(*ui.Context), width, height int) *ui.Tester {
+	tt := ui.NewTester(view, width, height)
+	tt.SetPreferences(ui.Preferences{ReduceMotion: true})
+	tt.Frame()
+	return tt
+}
+
 func click(t *testing.T, tt *ui.Tester, labels ...string) {
 	t.Helper()
 	for _, label := range labels {

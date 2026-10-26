@@ -56,7 +56,7 @@ func (a *App) titleBar(c *ui.Context) {
 			sw := kit.IconButton(c, kit.IcSide, cmdSide.name(a), ui.Color{}).Margin(0, 4, 0, 0).Disabled(!inWork)
 			held = sw.Focused()
 			if sw.Clicked() {
-				a.setSideHidden(!a.sideHidden)
+				cmdSide.run(a)
 				a.penBack()
 			}
 			held = a.barMenu(c, "文件", func(m *kit.Menu) { a.fileMenu(m, later) }) || held
@@ -81,7 +81,7 @@ func (a *App) titleBar(c *ui.Context) {
 		if a.focused() {
 			ui.Box(c).Size(kit.HControlSm, kit.HControlSm).Margin(0, 8, 0, 2).Shrink(0)
 		} else if kit.IconButton(c, kit.IcPanel, cmdPane.name(a), ui.Color{}).Margin(0, 8, 0, 2).Disabled(!a.hasPane()).KeepFocus().Clicked() {
-			a.togglePane()
+			cmdPane.run(a)
 		}
 	})
 	switch k := &a.bar; {

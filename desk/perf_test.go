@@ -131,7 +131,7 @@ func streamingBench(b *testing.B, turns int, reasoning bool) {
 	}
 	b.Cleanup(func() { a.Close() })
 	var sv ui.Services
-	tt := ui.NewTester(func(c *ui.Context) { sv = c.Services(); a.View(c) }, 1266, 780)
+	tt := stillTester(func(c *ui.Context) { sv = c.Services(); a.View(c) }, 1266, 780)
 	tt.Frame()
 	if err = tt.Click("讨论"); err != nil {
 		b.Fatal(err)

@@ -92,7 +92,7 @@ func TestToastSettingsFollowTheErrorType(t *testing.T) {
 func TestRepeatedFailureCounts(t *testing.T) {
 	a, tt, _ := fixture(t)
 	var vc *ui.Context
-	tt = ui.NewTester(func(c *ui.Context) { vc = c; a.View(c) }, 1266, 780)
+	tt = stillTester(func(c *ui.Context) { vc = c; a.View(c) }, 1266, 780)
 	tt.Frame()
 	tries := 0
 	fail := func(context.Context) (func(), error) {

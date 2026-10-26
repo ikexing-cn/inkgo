@@ -47,7 +47,7 @@ func TestMenuRowDoesItsPart(t *testing.T) {
 		a.menu = kit.MenuState{Owner: "试", X: 300, Y: 300, Seen: true}
 		tt.Frame()
 	}
-	tt = ui.NewTester(func(c *ui.Context) {
+	tt = stillTester(func(c *ui.Context) {
 		before := lists
 		a.View(c)
 		a.menu.MenuAt(c, a.pal, "试", func(m *kit.Menu) {
@@ -292,7 +292,7 @@ func TestMenuStaysPut(t *testing.T) {
 	// Where the frame before each one had the menu's first row, and the
 	// list's.
 	var menuX, listY []float32
-	tt = ui.NewTester(func(c *ui.Context) {
+	tt = stillTester(func(c *ui.Context) {
 		if r, ok := tt.Find("菜单-剪切"); ok {
 			menuX = append(menuX, r.X)
 		}

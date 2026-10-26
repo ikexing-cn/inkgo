@@ -533,7 +533,7 @@ func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 			content()
 		}
 		a.pal.PaneField(c, "分类", func() {
-			ui.Select(c, &d.category, a.categoryNames()).Label("设定分类").FillWidth()
+			a.pal.Select(c, &d.category, a.categoryNames()).Label("设定分类").FillWidth()
 		})
 		text := kit.Trim(d.text)
 		names := splitNames(d.name + "、" + d.names)

@@ -146,11 +146,12 @@ func (d *Dialog) View(c *ui.Context) {
 // span is 指定范围: from one chapter to another, the second only
 // from those after the first.
 func (d *Dialog) span(c *ui.Context) {
+	pal := d.Host.Colors()
 	names := d.plan.Names
 	at := func(name string) int { return max(0, slices.Index(names, name)) }
 	ui.Row(c).FillWidth().Gap(12).Children(func() {
 		kit.Labeled(c, "从", func() {
-			if ui.Select(c, &d.selection.From, names).Label("从").FillWidth().MinWidth(0).Changed() {
+			if pal.Select(c, &d.selection.From, names).Label("从").FillWidth().MinWidth(0).Changed() {
 				if at(d.selection.To) < at(d.selection.From) {
 					d.selection.To = d.selection.From
 				}
@@ -158,7 +159,7 @@ func (d *Dialog) span(c *ui.Context) {
 			}
 		})
 		kit.Labeled(c, "到", func() {
-			if ui.Select(c, &d.selection.To, names[at(d.selection.From):]).Label("到").FillWidth().MinWidth(0).Changed() {
+			if pal.Select(c, &d.selection.To, names[at(d.selection.From):]).Label("到").FillWidth().MinWidth(0).Changed() {
 				d.Replan()
 			}
 		})

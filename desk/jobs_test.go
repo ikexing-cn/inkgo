@@ -69,7 +69,7 @@ func TestJobsHandBackFromManyGoroutines(t *testing.T) {
 func TestAJobAsksForAFrame(t *testing.T) {
 	var j jobs
 	var sv ui.Services
-	tt := ui.NewTester(func(c *ui.Context) { sv = c.Services(); j.poll() }, 64, 64)
+	tt := stillTester(func(c *ui.Context) { sv = c.Services(); j.poll() }, 64, 64)
 	tt.Frame()
 	j.start(sv, func() func() { return func() {} })
 	for end := time.Now().Add(3 * time.Second); !tt.FramePending(); {

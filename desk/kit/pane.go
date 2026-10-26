@@ -39,6 +39,7 @@ func (p *Palette) PaneRow(c *ui.Context, label, name, gist, side, find string, w
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}
+	PressRow(c, b)
 	b.Children(func() {
 		title := ui.Text(c, name).FontSize(FsBody).SingleLine().Ellipsis("…")
 		if gist == "" {
@@ -89,6 +90,7 @@ func (p *Palette) PaneTodo(c *ui.Context, label string, n int) ui.Element {
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}
+	PressRow(c, b)
 	b.Children(func() {
 		Dot(c, p.Amber, 6)
 		ui.Text(c, label).FontSize(FsBody).SingleLine().Grow(1).Shrink(1)
@@ -172,6 +174,11 @@ func (p *Palette) PaneButton(c *ui.Context, text string, primary bool) ui.Elemen
 	}
 	if b.IsDisabled() {
 		Pale(b)
+	}
+	if primary {
+		Squeeze(b)
+	} else {
+		Press(c, b)
 	}
 	b.Children(func() { ui.Text(c, text).FontSize(FsControl).TextColor(fg).SingleLine() })
 	return b

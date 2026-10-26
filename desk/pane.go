@@ -31,6 +31,7 @@ func (a *App) paneFind(c *ui.Context, query *string, hint, add string, more func
 			if b.IsDisabled() {
 				kit.Pale(b)
 			}
+			kit.PressRow(c, b)
 			b.Children(func() {
 				kit.Glyph(c, kit.IcPlus, kit.IconSm, t.Text)
 				ui.Text(c, add).FontSize(kit.FsControl).SingleLine()
@@ -44,6 +45,7 @@ func (a *App) paneFind(c *ui.Context, query *string, hint, add string, more func
 			}
 			b.Children(func() { kit.Glyph(c, kit.IcMore, kit.IconMd, t.TextMuted) })
 			a.menu.DropMenu(c, a.pal, b, hint, func(panel ui.Element) {
+				panel.TransformOrigin(1, 0)
 				panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(4, 0, 0, 0).Width(160)
 			}, more)
 		}

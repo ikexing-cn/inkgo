@@ -156,7 +156,7 @@ func (a *App) changeForm(c *ui.Context, e workspace.Entry) {
 					chosen = n
 				}
 			}
-			if ui.Select(c, &chosen, names).Label("从哪一章起").FillWidth().Changed() {
+			if a.pal.Select(c, &chosen, names).Label("从哪一章起").FillWidth().Changed() {
 				d.from = ids[chosen]
 			}
 		})

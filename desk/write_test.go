@@ -228,7 +228,7 @@ func TestAWorkNewHereOpensOnItsProse(t *testing.T) {
 		t.Fatal("opened on", b.page)
 	}
 	// Where it was left is kept, though .writer/ was not there.
-	tb := ui.NewTester(b.View, 1266, 780)
+	tb := stillTester(b.View, 1266, 780)
 	tb.Frame()
 	if err := tb.Click("讨论"); err != nil {
 		t.Fatal(err)
@@ -257,7 +257,7 @@ func TestNarrowWindowKeepsThePage(t *testing.T) {
 	if w := a.panelWidth(1280); w != panelWidth {
 		t.Fatal(w)
 	}
-	tt := ui.NewTester(a.View, 1000, 700)
+	tt := stillTester(a.View, 1000, 700)
 	tt.Frame()
 	tt.Frame()
 	backup, count := find(t, tt, "备份状态"), find(t, tt, "字数")

@@ -14,7 +14,7 @@ import (
 func TestDigestNamesEntries(t *testing.T) {
 	a, _, entry := fixture(t)
 	src := "提到 [1] 和 [99]。\n\n`[1]`\n\n```\n[1]\n```\n\n[外部链接](https://example.com)"
-	tt := ui.NewTester(func(c *ui.Context) { a.markdown(c, src, kit.DigestText) }, 720, 800)
+	tt := stillTester(func(c *ui.Context) { a.markdown(c, src, kit.DigestText) }, 720, 800)
 	for _, text := range []string{"「主角怕黑」", "[99]", "[1]"} {
 		if !tt.HasText(text) {
 			t.Errorf("missing %q in %q", text, tt.Texts())
@@ -56,7 +56,7 @@ func TestDigestEscapesNames(t *testing.T) {
 	name := "灯[塔]*_`\\|<&~"
 	setting(a).Entries[0].Names = []string{name}
 	src := "**[1]**，再提到 [01] 和 [999]。\n\n| 设定 |\n|---|\n| [1] |"
-	tt := ui.NewTester(func(c *ui.Context) { a.markdown(c, src, kit.DigestText) }, 720, 800)
+	tt := stillTester(func(c *ui.Context) { a.markdown(c, src, kit.DigestText) }, 720, 800)
 	if !tt.HasText("「"+name+"」") || !tt.HasText("[999]") {
 		t.Fatal("entry name changed the Markdown", tt.Texts())
 	}
@@ -71,7 +71,7 @@ func TestMarkdownStreamFinishes(t *testing.T) {
 	a, _, _ := fixture(t)
 	src := "开头。\n\n**正在写"
 	done := false
-	tt := ui.NewTester(func(c *ui.Context) {
+	tt := stillTester(func(c *ui.Context) {
 		if done {
 			a.markdown(c, src, kit.ReplyText)
 		} else {

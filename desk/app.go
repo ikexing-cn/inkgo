@@ -94,6 +94,7 @@ func (l *live) reset() {
 const flashFor = 3 * time.Second
 
 type App struct {
+	fold  foldState
 	Store *workspace.Store
 	// book is the work's content as the view reads it; nil while no work is
 	// open. It is used on the view thread only.

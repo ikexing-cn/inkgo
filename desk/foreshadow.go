@@ -333,6 +333,7 @@ func (a *App) forePopover(c *ui.Context) {
 	}
 	left := max(8, min(r.X, w.cur().ed.Width()-width-8))
 	box := ui.Column(c).Absolute().Left(left).Top(top).Width(width).Background(a.pal.Canvas).Border(1, t.Border)
+	kit.PopIn(box, 0, 0)
 	a.pal.Pop.On(box)
 	if f.noting {
 		box.Padding(12).Gap(10).Radius(kit.RCard).Children(func() {
@@ -394,6 +395,7 @@ func (a *App) forePopover(c *ui.Context) {
 				} else if row.Hovered() {
 					row.Background(t.SurfaceHover)
 				}
+				kit.PressRow(c, row)
 				row.Children(func() {
 					ui.Text(c, foreName(x)).FontSize(kit.FsBody).FontWeight(500).SingleLine().Ellipsis("…").FillWidth()
 					ui.Text(c, foreMeta(x, here)).FontSize(kit.FsSmall).TextColor(t.TextMuted).SingleLine().Ellipsis("…").FillWidth()

@@ -264,6 +264,7 @@ func (a *App) emptyChat(c *ui.Context) {
 					b.Background(t.SurfaceHover)
 					fg = t.Text
 				}
+				kit.PressRow(c, b)
 				b.Children(func() { ui.Text(c, s).FontSize(kit.FsControl).TextColor(fg) })
 				if b.Clicked() {
 					a.input, a.focusTalk = s, true
@@ -746,6 +747,7 @@ func (a *App) composer(c *ui.Context) {
 			kit.Glyph(c, kit.IcChevronUp, kit.IconXs, a.pal.Faint)
 		})
 		a.menu.DropMenu(c, a.pal, chip, "讨论模型", func(panel ui.Element) {
+			panel.TransformOrigin(1, 1)
 			panel.AttachTo(chip, ui.AnchorTopRight, ui.AnchorBottomRight).Margin(0, 0, 4, 0).Width(220)
 		}, func(m *kit.Menu) { a.modelMenu(m, work) })
 	}
@@ -758,6 +760,7 @@ func (a *App) composer(c *ui.Context) {
 		} else if send.Hovered() {
 			bg = t.AccentHover
 		}
+		kit.Squeeze(send)
 		send.Background(bg).Children(func() {
 			fg := a.pal.OnInk
 			if !can {
@@ -962,7 +965,7 @@ func (a *App) extraction(c *ui.Context) {
 				m.Item("全选").Hint(modKey + "A").Do(func() { a.source.SelectAll() })
 			})
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
-				ui.Select(c, &a.sourceCategory, a.categoryNames()).Label("摘取分类").Width(140)
+				a.pal.Select(c, &a.sourceCategory, a.categoryNames()).Label("摘取分类").Width(140)
 				if start == end {
 					ui.Text(c, "尚未选中文字").FontSize(kit.FsNote).TextColor(a.pal.Faint)
 				} else {

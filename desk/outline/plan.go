@@ -928,7 +928,7 @@ func (p *Page) timeHead(c *ui.Context, i int, col workspace.TimeColumn) {
 			}
 		})
 		open := p.timeOpen && p.column == i
-		ui.PopoverBase(c, b, &open, func(panel ui.Element) {
+		kit.Popover(c, b, &open, 0, 0, func(panel ui.Element) {
 			panel.Width(planTimePopWidth).Padding(10).Gap(8).Radius(kit.RCard).Background(pal.Raised).Border(1, pal.Theme.Border)
 			pal.Pop.On(panel)
 			ui.Textf(c, "这一列 %d 张卡片在故事中的时间", len(col.Cards)).FontSize(kit.FsNote).TextColor(pal.Theme.TextMuted)
@@ -1027,7 +1027,7 @@ func (p *Page) Dialog(c *ui.Context) {
 								chosen = name
 							}
 						}
-						if ui.Select(c, &chosen, names).Label("卡片章节").FillWidth().MinWidth(0).Changed() {
+						if pal.Select(c, &chosen, names).Label("卡片章节").FillWidth().MinWidth(0).Changed() {
 							p.card.Chapter = ids[chosen]
 						}
 					})
@@ -1047,7 +1047,7 @@ func (p *Page) Dialog(c *ui.Context) {
 								chosen = name
 							}
 						}
-						if ui.Select(c, &chosen, names).Label("卡片情节线").FillWidth().MinWidth(0).Changed() {
+						if pal.Select(c, &chosen, names).Label("卡片情节线").FillWidth().MinWidth(0).Changed() {
 							p.card.Line = ids[chosen]
 						}
 					})

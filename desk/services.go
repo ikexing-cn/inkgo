@@ -269,7 +269,7 @@ func (a *App) providerSelect(c *ui.Context, id *string, none, label string, disa
 		chosen = *id
 		names = append(names, *id)
 	}
-	if !ui.Select(c, &chosen, names).Label(label).FillWidth().MinWidth(0).Disabled(disabled).Changed() {
+	if !a.pal.Select(c, &chosen, names).Label(label).FillWidth().MinWidth(0).Disabled(disabled).Changed() {
 		return false
 	}
 	*id = ""
@@ -299,7 +299,7 @@ func (a *App) effortSelect(c *ui.Context, value *string, label string, disabled 
 	for n, e := range efforts {
 		names[n] = a.ai.EffortLabel(e)
 	}
-	if ui.Select(c, &chosen, names).Label(label).FillWidth().MinWidth(0).Disabled(disabled).Changed() {
+	if a.pal.Select(c, &chosen, names).Label(label).FillWidth().MinWidth(0).Disabled(disabled).Changed() {
 		for _, e := range efforts {
 			if a.ai.EffortLabel(e) == chosen {
 				*value = e
@@ -370,7 +370,7 @@ func (a *App) providerForm(c *ui.Context) {
 			}
 		}
 		kit.Labeled(c, "接口协议", func() {
-			if ui.Select(c, &proto, protocolNames).Label("API 协议").FillWidth().Disabled(busy).Changed() {
+			if a.pal.Select(c, &proto, protocolNames).Label("API 协议").FillWidth().Disabled(busy).Changed() {
 				for n, name := range protocolNames {
 					if name == proto {
 						a.provider.Protocol = protocols[n]
