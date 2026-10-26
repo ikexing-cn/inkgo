@@ -36,7 +36,7 @@ func zips(t *testing.T, dir string) int {
 }
 
 // The first time a work opens, the author is asked where to back it up;
-// starting backs up at once, and the sidebar says so.
+// starting backs up at once and records the successful backup.
 func TestFirstBackup(t *testing.T) {
 	a, tt, _ := fixture(t)
 	sync := filepath.Join(t.TempDir(), "OneDrive")
@@ -63,7 +63,7 @@ func TestFirstBackup(t *testing.T) {
 		t.Fatal(err)
 	}
 	waitBackup(t, a, tt)
-	if zips(t, sync) != 1 || !tt.HasText("已备份 · 今天 "+time.Now().Format("15:04")) {
+	if settings, _ := a.backupSettings(); zips(t, sync) != 1 || settings.Last.IsZero() {
 		t.Fatal("not backed up", zips(t, sync), tt.Texts())
 	}
 	s, ok := a.backupSettings()
@@ -88,14 +88,10 @@ func TestFirstBackup(t *testing.T) {
 }
 
 func TestBackupWaitsBeforeClosingStore(t *testing.T) {
-	a, tt, _ := fixture(t)
+	a, _, _ := fixture(t)
 	dir := t.TempDir()
 	a.setBackup(backup.Settings{Dir: dir})
-	a.bk.open = true
-	tt.Frame()
-	if err := tt.Click("立即备份"); err != nil {
-		t.Fatal(err)
-	}
+	a.runBackup(ui.Services{})
 	if !a.bk.running {
 		t.Fatal("backup did not start")
 	}
@@ -158,18 +154,18 @@ func TestBackupFails(t *testing.T) {
 	gone := filepath.Join(t.TempDir(), "备份")
 	a.setBackup(backup.Settings{Dir: gone, OnClose: true})
 	tt.Frame()
-	if !tt.HasText("尚未备份") {
-		t.Fatal("no line", tt.Texts())
+	if tt.HasText("备份状态") || tt.HasText("尚未备份") {
+		t.Fatal("the sidebar still shows backup status", tt.Texts())
 	}
-	if err := tt.Click("备份状态"); err != nil {
-		t.Fatal(err)
-	}
+	a.openPrefs("备份")
 	tt.Frame()
+	hasText(t, tt, "尚未备份")
 	if err := tt.Click("立即备份"); err != nil {
 		t.Fatal(err, tt.Texts())
 	}
 	waitBackup(t, a, tt)
-	if !tt.HasText("备份失败") || !tt.HasText("备份失败 · 找不到备份文件夹") || !tt.HasText("待处理 1") {
+	shut(tt, &a.bk.prefs)
+	if !a.bk.policy.Failed() || !tt.HasText("备份失败 · 找不到备份文件夹") || !tt.HasText("待处理 1") {
 		t.Fatal("failure not shown", tt.Texts())
 	}
 	if err := tt.Click("备份提示"); err != nil {
@@ -190,25 +186,24 @@ func TestBackupFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if tt.HasText("备份失败 · 找不到备份文件夹") || !tt.HasText("备份失败") {
+	if tt.HasText("备份失败 · 找不到备份文件夹") || !a.bk.policy.Failed() {
 		t.Fatal("still warned on the toolbar", tt.Texts())
 	}
 	// The folder back, trying again works, and the settings page says so.
 	if err := os.Mkdir(gone, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := tt.Click("备份状态"); err != nil {
-		t.Fatal(err)
-	}
+	a.openPrefs("备份")
 	tt.Frame()
-	if err := tt.Click("重试"); err != nil {
+	if err := tt.Click("立即备份"); err != nil {
 		t.Fatal(err, tt.Texts())
 	}
 	waitBackup(t, a, tt)
 	if tt.HasText("备份失败") || zips(t, gone) != 1 {
 		t.Fatal("not backed up", tt.Texts())
 	}
-	if err := tt.Click("设置"); err != nil {
+	shut(tt, &a.bk.prefs)
+	if err := clickMenu(tt, "文件", "菜单-设置"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -286,17 +281,14 @@ func TestShotBackup(t *testing.T) {
 	}
 	a.setBackup(backup.Settings{Dir: sync, OnClose: true, Daily: true})
 	tt.Frame()
-	if err := tt.Click("备份状态"); err != nil {
-		t.Fatal(err)
-	}
+	a.openPrefs("备份")
 	tt.Frame()
 	if err := tt.Click("立即备份"); err != nil {
 		t.Fatal(err)
 	}
 	waitBackup(t, a, tt)
-	a.bk.open = true
-	shot(t, tt, "backup-line.png")
-	a.bk.open = false
+	shot(t, tt, "backup-settings-ready.png")
+	shut(tt, &a.bk.prefs)
 	a.bk.policy.RecordResult(sync, &os.PathError{Op: "stat", Path: `E:\雨城来信备份`, Err: os.ErrNotExist}, time.Now())
 	s, _ := a.backupSettings()
 	s.Dir = `E:\雨城来信备份`

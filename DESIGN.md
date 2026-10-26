@@ -376,7 +376,7 @@ components:
 - 这里写每一处界面都要守的规则；`prototype/` 里的原型是每个界面具体的样子。两边对不上，以这里为准，改原型。
 - 这里只写作者定下来的。还在原型里等作者看的方案在 `.agents/notes/proposed/`，定了再写进来。
 - 做界面的流程（先改原型再写代码、改完怎么验证）在 `AGENTS.md`；这份文件自己怎么改，只在下面的「怎么维护」。
-- 2026-10-24「页边批注」这一版（各栏同一张纸、两边的开关、标题栏正中换页、侧栏只列东西、页边批注、底栏的备份、动起来的地方）先改在原型里，软件还没跟上：跟上之前，下面几节写的 `go test ./desk` 查的还是旧的样子。来龙去脉在 `.agents/notes/proposed/feature/2026-10-24-margin-notes.md`。
+- 2026-10-24「页边批注」这一版（各栏同一张纸、两边的开关、标题栏正中换页、侧栏只列东西、页边批注、底栏的备份、动起来的地方）先改在原型里，软件分几段跟上，还没跟完：各栏同一张纸、两边的开关、正中换页、侧栏、标签页已经跟上，底栏的备份、页边批注、动起来的地方还没有，这几样下面写的 `go test ./desk` 查的还是旧的样子。来龙去脉和跟到哪了在 `.agents/notes/proposed/feature/2026-10-24-margin-notes.md`。
 
 ### 怎么维护
 
@@ -684,7 +684,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab；起草�
 检查：
 
 - `npm run verify-prototype` 的「the title bar, and both sides put away on every page」（两个开关在每一页都在原处、右栏的开关紧挨窗口按钮、右栏里没有自己的开关）、「fold the pane」「the menus」，专注写作那几步查「退出专注」在「专注写作」原处。
-- `go test ./desk` 的 `TestTheTitleBarHasItsOwnRow`、`TestTheSidebarIsPutAwayOnEveryPage`、`TestTheMenusDoWhatTheySay`、`TestMenuRowsOffThePageOfProse`、`TestAMenuOpensOnASlowClick`、`TestTheBarGivesTheCaretBack`、`TestShelfKeepsTheWorks`（作品的菜单）。
+- `go test ./desk` 的 `TestTheTitleBarHasItsOwnRow`、`TestTheSidebarIsPutAwayOnEveryPage`、`TestThePaneSwitchStaysOnEveryPage`、`TestWritingToolsKeepTheirPlaces`、`TestTheMenusDoWhatTheySay`、`TestMenuRowsOffThePageOfProse`、`TestAMenuOpensOnASlowClick`、`TestTheBarGivesTheCaretBack`、`TestShelfKeepsTheWorks`（作品的菜单）。
 
 ### 菜单
 
@@ -701,7 +701,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab；起草�
 - 别的都不放：换页在标题栏正中，备份在底栏，新建文件夹、作品分类、回收站、设置在「文件」菜单。
 - 窗口窄了（软件里窄过 1180），侧栏、右栏、纸边都窄一些，正文一行还放得下三十来个字；侧栏照常列章节、讨论，不收成一列图标。
 
-检查：`npm run verify-prototype` 的「a narrow window」「naming in the tree」「AI turned off」。
+检查：`npm run verify-prototype` 的「a narrow window」「naming in the tree」「AI turned off」；`go test ./desk` 的 `TestANarrowSidebarKeepsItsLists`、`TestTheSidebarOnlyListsObjects`、`TestTheRowsShareThePaper`、`TestListNumbersFollowKeyboardAndMenus`、`TestThePaneLeavesRoomForThePage`。
 
 ### 底栏
 
@@ -759,7 +759,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab；起草�
 检查：
 
 - `npm run verify-prototype` 的「closing with words not saved」。
-- `go test ./desk` 的 `tabs_test.go`：`TestChaptersOpenInTabs`（点章开标签、点卷不开）、`TestATabKeepsItsEditor`、`TestClosingAsksAboutUnsavedWords`（圆点、先问、问着不存、三个回答）、`TestTabsComeBackWithTheWork`。
+- `go test ./desk` 的 `tabs_test.go`：`TestChaptersOpenInTabs`（点章开标签、点卷不开）、`TestATabKeepsItsEditor`、`TestClosingAsksAboutUnsavedWords`（圆点、先问、问着不存、三个回答）、`TestTabsComeBackWithTheWork`；`TestTheRowsShareThePaper`、`TestTheEditorFillsTheWritingArea`；`go test ./editor` 的 `TestTextColumnReflowsInsideTheViewport`、`TestTextColumnKeepsTheMarginsAndScrollBar`。
 
 ### 手机预览
 

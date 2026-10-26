@@ -247,7 +247,7 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 	look := func(where string) {
 		t.Helper()
 		tt.Frame()
-		if said := aiSaid(tt, root); len(said) > 0 {
+		if said := aiSaid(tt, root, filepath.Dir(root)); len(said) > 0 {
 			t.Errorf("with the AI off, %s tells of it: %q", where, said)
 		}
 	}
@@ -348,7 +348,7 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 	if !strings.HasSuffix(shownEditor(a).Doc.String(), "雨还在下。") {
 		t.Fatalf("typed into %q", shownEditor(a).Doc.String())
 	}
-	if err := tt.Click("作品分类"); err != nil {
+	if err := clickMenu(tt, "文件", "菜单-作品分类"); err != nil {
 		t.Fatal(err)
 	}
 	look("the categories")

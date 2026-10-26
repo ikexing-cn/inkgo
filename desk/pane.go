@@ -14,8 +14,8 @@ import (
 // the dots when more lists it.
 func (a *App) paneFind(c *ui.Context, query *string, hint, add string, more func(m *kit.Menu)) (added bool) {
 	t := a.pal.Theme
-	ui.Row(c).FillWidth().Gap(8).Padding(0, 20, 12, 20).AlignItems(ui.Center).Shrink(0).Children(func() {
-		box := ui.Row(c).Grow(1).Shrink(1).Height(kit.HControl).Gap(8).Padding(0, 10).AlignItems(ui.Center).Radius(kit.RControl).Background(a.pal.Canvas).Border(1, t.Border)
+	ui.Row(c).FillWidth().Gap(8).Padding(12, 20).AlignItems(ui.Center).Shrink(0).Children(func() {
+		box := ui.Row(c).Grow(1).Shrink(1).Height(kit.HControl).Gap(8).Padding(0, 10).AlignItems(ui.Center).Radius(kit.RControl).Background(a.pal.Canvas).Border(1, t.Border).Label(hint + "框")
 		if box.FocusWithin() {
 			box.Border(1, a.pal.Ink)
 		}

@@ -84,8 +84,8 @@ func TestChaptersOpenInTabs(t *testing.T) {
 	}
 	r, _ := tt.Find("标签页-第一章")
 	top, _ := tt.Find("查找替换")
-	if r.Y < top.Y+top.H || r.H != kit.HControl {
-		t.Fatalf("the tabs are not a row under the toolbar: %+v under %+v", r, top)
+	if r.Y < top.Y+top.H || r.H != kit.HBar {
+		t.Fatalf("the tabs are not a row under the title bar: %+v under %+v", r, top)
 	}
 	click(t, tt, "章节-第一卷")
 	if got := tabs(a, tt); got != "第一章*" || !a.write.folded[ids["第一卷"]] {

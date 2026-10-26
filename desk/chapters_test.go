@@ -23,7 +23,7 @@ func TestReopenWhereLeft(t *testing.T) {
 		return b
 	}
 	// Settings saved on the way out do not forget the writing page.
-	if err := tt.Click("设置"); err != nil {
+	if err := clickMenu(tt, "文件", "菜单-设置"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

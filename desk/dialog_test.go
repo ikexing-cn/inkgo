@@ -28,9 +28,9 @@ func TestDialogsGiveTheKeyboardBack(t *testing.T) {
 		name        string
 		open, close func()
 	}{
-		{"齿轮", click("设置"), escape},
-		{"侧栏的回收站", click("回收站"), escape},
-		{"回收站的关闭", click("回收站"), click("关闭")},
+		{"文件菜单的设置", click("菜单栏-文件", "菜单-设置"), escape},
+		{"文件菜单的回收站", click("菜单栏-文件", "菜单-回收站"), escape},
+		{"回收站的关闭", click("菜单栏-文件", "菜单-回收站"), click("关闭")},
 		{"菜单里的设置", click("菜单栏-文件", "设置…"), escape},
 		{"快照", click("菜单栏-文件", "快照"), escape},
 		{"快照的关闭", click("菜单栏-文件", "快照"), click("关闭")},

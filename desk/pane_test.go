@@ -248,8 +248,8 @@ func TestTheSettingCountsWhatWaits(t *testing.T) {
 	showPage(a, pageTalk)
 	tt.Frame()
 	texts := tt.Texts()
-	i := slices.Index(texts, "收起右栏")
-	if i < 2 || texts[i-2] != "设定" || texts[i-1] != "2" {
+	i := slices.Index(texts, "右栏设定标题")
+	if i < 0 || i+1 >= len(texts) || texts[i+1] != "2" {
 		t.Fatal("the count beside the talk", texts)
 	}
 }

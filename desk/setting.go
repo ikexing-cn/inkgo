@@ -221,19 +221,15 @@ func (a *App) revise(ops ...workspace.Op) {
 // settingPanel is the setting in the right column: its entries a row
 // each, or the page of what a row was clicked for.
 func (a *App) settingPanel(c *ui.Context) {
-	kit.PaneTop(c).Children(func() {
+	a.pal.PaneTop(c).Children(func() {
 		if a.page == pageWrite {
 			a.panelTabs(c)
 		} else {
 			// The count is what waits on the author, as in the tab.
-			ui.Text(c, "设定").FontSize(kit.FsGroup).FontWeight(600)
+			ui.Text(c, "设定").FontSize(kit.FsControl).Margin(0, 0, 0, 10).Label("右栏设定标题")
 			if open := a.ideas(); len(open) > 0 {
 				ui.Textf(c, "%d", len(open)).FontSize(kit.FsNote).TextColor(a.pal.Faint).Padding(0, 0, 0, 4)
 			}
-		}
-		ui.Spacer(c)
-		if kit.IconButton(c, kit.IcPanel, "收起右栏", ui.Color{}).Tooltip("收起右栏").Clicked() {
-			a.setDocHidden(true)
 		}
 	})
 	d := &a.doc

@@ -12,20 +12,31 @@ import (
 )
 
 const (
-	panelWidth = 392 // the right column's width until the author drags it
+	panelWidth = 390 // the right column's width until the author drags it
 	panelMin   = 300
-	pageMin    = 480 // the page between the sidebar and the column
+	pageMin    = 480
 )
 
 // panelWidth is the right column's width in a window win wide: what the
 // author dragged it to, no narrower than panelMin nor wider than half the
-// window, and narrower while the window leaves the page under pageMin.
+// window, leaving at least pageMin for the page when there is room.
 func (a *App) panelWidth(win float32) float32 {
 	w := a.doc.width
 	if w == 0 {
 		w = panelWidth
+		if win < narrow {
+			w = 320
+		}
 	}
-	return min(max(w, panelMin), max(min(win/2, win-233-pageMin), panelMin))
+	return min(max(w, panelMin), a.panelLimit(win))
+}
+
+func (a *App) panelLimit(win float32) float32 {
+	side := a.sidebarWidth(win)
+	if side > 0 {
+		side++ // the sidebar's divider
+	}
+	return max(panelMin, min(win/2, win-side-1-pageMin))
 }
 
 // resizer is the column's left edge, which the author drags to widen it;
@@ -35,7 +46,7 @@ func (a *App) resizer(c *ui.Context, width float32) {
 	edge := ui.Box(c).Absolute().Left(-4).Top(0).Width(8).FillHeight().Cursor(ui.CursorResizeEW).Label("调整右栏宽度")
 	if dx, _, ok := edge.Dragged(); ok {
 		if dx != 0 {
-			a.doc.width = min(max(width-dx, panelMin), max(win/2, panelMin))
+			a.doc.width = min(max(width-dx, panelMin), a.panelLimit(win))
 			a.doc.resizing = true
 		}
 	} else if a.doc.resizing {
@@ -76,22 +87,16 @@ func (a *App) panelTabs(c *ui.Context) {
 		label := entry.title(a)
 		on := shown == entry.id
 		b := ui.ButtonBase(c).Row().AlignItems(ui.Center).Padding(4, 10).Radius(kit.RControl).Label("右栏-" + label)
-		if on {
-			b.Background(t.SurfacePressed)
-		} else if b.Hovered() {
-			b.Background(t.SurfaceHover)
+		fg := t.TextMuted
+		if on || b.Hovered() {
+			fg = t.Text
 		}
 		b.Children(func() {
-			text := ui.Text(c, label).FontSize(kit.FsBody)
-			if on {
-				text.FontWeight(600)
-			} else {
-				text.TextColor(t.TextMuted)
-			}
+			ui.Text(c, label).FontSize(kit.FsControl).TextColor(fg).SingleLine()
 			// The count sits inside its own tab; beside the tabs it read
 			// as unread talk.
 			if n := entry.number(); n > 0 {
-				ui.Textf(c, "%d", n).FontSize(kit.FsNote).TextColor(a.pal.Faint).Padding(0, 0, 0, 4)
+				ui.Textf(c, "%d", n).FontSize(kit.FsSmall).TextColor(a.pal.Faint).Padding(0, 0, 0, 4)
 			}
 		})
 		if b.Clicked() && !on {
@@ -118,12 +123,8 @@ func (a *App) talkTab() bool { return a.paneTabs.shown(a, a.doc.tab) == paneTalk
 // the list of them all.
 func (a *App) talkPanel(c *ui.Context) {
 	d := &a.doc
-	kit.PaneTop(c).Children(func() {
+	a.pal.PaneTop(c).Children(func() {
 		a.panelTabs(c)
-		ui.Spacer(c)
-		if kit.IconButton(c, kit.IcPanel, "收起右栏", ui.Color{}).Tooltip("收起右栏").Clicked() {
-			a.setDocHidden(true)
-		}
 	})
 	if d.talks {
 		a.talkList(c)

@@ -199,9 +199,6 @@ func (a *App) chatTop(c *ui.Context) {
 		if n := a.spoken(); n > 0 {
 			ui.Textf(c, "%d 条发言", n).FontSize(kit.FsNote).TextColor(a.pal.Faint)
 		}
-		if a.doc.hidden && kit.IconButton(c, kit.IcPanel, "展开设定", ui.Color{}).Tooltip("展开设定文档").Clicked() {
-			a.setDocHidden(false)
-		}
 	})
 	a.pal.Hairline(c)
 }

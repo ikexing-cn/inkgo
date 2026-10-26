@@ -27,15 +27,6 @@ func nodeIcon(n *workspace.Node) *ui.SVG {
 // chapterTree is the sidebar of the writing page.
 func (a *App) chapterTree(c *ui.Context) {
 	w := &a.write
-	ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(0, 4, 6, 10).Gap(2).Children(func() {
-		ui.Text(c, "章节").FontSize(kit.FsNote).TextColor(a.pal.Theme.TextMuted).Grow(1)
-		if kit.IconButton(c, kit.IcFolderPlus, "新建文件夹", ui.Color{}).Clicked() {
-			a.newNode(true)
-		}
-		if kit.IconButton(c, kit.IcPlus, "新建章节", ui.Color{}).Tooltip("新建章节（" + modKey + "N）").Clicked() {
-			a.newNode(false)
-		}
-	})
 	ui.Scroll(c.Key("chapters")).FillWidth().Grow(1).Gap(2).Children(func() {
 		if a.book.Tree().Root == nil {
 			return
@@ -58,31 +49,19 @@ func (a *App) chapterTree(c *ui.Context) {
 	})
 }
 
-// trashRow opens the trash.
-func (a *App) trashRow(c *ui.Context) {
-	t := a.pal.Theme
-	b := ui.ButtonBase(c).Row().Grow(1).Shrink(1).Justify(ui.Start).AlignItems(ui.Center).Gap(10).Padding(8, 10).Radius(kit.RControl).Label("回收站").KeepFocus()
-	if b.Hovered() {
-		b.Background(t.SurfaceHover)
-	}
-	b.Children(func() {
-		kit.Glyph(c, kit.IcTrash, kit.IconMd, t.TextMuted)
-		ui.Text(c, "回收站").FontSize(kit.FsControl).TextColor(t.TextMuted)
-	})
-	if b.Clicked() {
-		a.openTrash()
-	}
-}
-
 func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 	t := a.pal.Theme
 	w := &a.write
 	on := n.ID == w.node
+	indent := float32(10 + depth*12)
+	if !n.Folder {
+		indent += kit.IconXs + 6
+	}
 	if w.renaming == n.ID {
 		// The row stays a row, its icon and indent where they are, and the
 		// name is a box to type in. Enter settles it, and so does leaving the
 		// box; Esc leaves the name as it was.
-		row := ui.Row(c.Key("r-"+n.ID)).FillWidth().Height(kit.HRow).AlignItems(ui.Center).Padding(0, 10, 0, 10+float32(depth)*20).Radius(kit.RControl)
+		row := ui.Row(c.Key("r-"+n.ID)).FillWidth().Height(kit.HRow).AlignItems(ui.Center).Padding(0, 10, 0, indent).Radius(kit.RControl)
 		if on {
 			row.Background(t.SurfacePressed)
 		}
@@ -93,12 +72,10 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 					s = kit.IcChevron
 				}
 				kit.Glyph(c, s, kit.IconXs, t.Text)
-			} else {
-				kit.Glyph(c, nodeIcon(n), kit.IconSm, t.Text)
 			}
 			// The box gives the row's gap of 6 back as its border and padding,
 			// so the words in it stand where the names of the other rows do.
-			ui.Row(c).Grow(1).Shrink(1).Height(kit.HRow-6).AlignItems(ui.Center).Padding(0, 6-1).Radius(kit.RXs).Background(a.pal.Canvas).Border(1, a.pal.Ink).Children(func() {
+			ui.Row(c).Grow(1).Shrink(1).Height(kit.HRow-6).AlignItems(ui.Center).Padding(0, 6-1).Margin(0, 0, 0, map[bool]float32{true: 0, false: -6}[n.Folder]).Radius(kit.RXs).Background(a.pal.Canvas).Border(1, a.pal.Ink).Children(func() {
 				in := ui.TextInputBase(c, &w.title).Label("章节标题").Placeholder(w.titleWas).Grow(1).Shrink(1).FontSize(kit.FsControl).AutoFocus()
 				if w.titleAll {
 					w.titleAll = false
@@ -122,7 +99,7 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 		return
 	}
 	row := ui.ButtonBase(c.Key("n-"+n.ID)).Row().FillWidth().Height(kit.HRow).Justify(ui.Start).AlignItems(ui.Center).Gap(6).
-		Padding(0, 10, 0, 10+float32(depth)*20).Radius(kit.RControl).Label("章节-" + n.Title)
+		Padding(0, 10, 0, indent).Radius(kit.RControl).Label("章节-" + n.Title)
 	row.Drag(dragNode(n.ID))
 	_, over := ui.DragOver[dragNode](row)
 	switch {
@@ -152,11 +129,9 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 				s = kit.IcChevron
 			}
 			kit.Glyph(c, s, kit.IconXs, fg)
-		} else {
-			kit.Glyph(c, nodeIcon(n), kit.IconSm, fg)
 		}
 		ui.Text(c, n.Title).FontSize(kit.FsControl).FontWeight(weight).TextColor(fg).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
-		if k := a.wordsIn(n); k > 0 {
+		if k := a.wordsIn(n); k > 0 && (row.Hovered() || row.FocusWithin() || a.menu.MenuOpen("章节-"+n.ID)) {
 			ui.Text(c, strings.ReplaceAll(strings.TrimSuffix(kit.Words(k), "字"), " ", "")).FontSize(kit.FsSmall).TextColor(a.pal.Faint)
 		}
 	})
@@ -167,9 +142,7 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 		if n.Folder {
 			w.folded[n.ID] = !w.folded[n.ID]
 		} else {
-			if a.page == pagePlan {
-				a.page = pageWrite
-			}
+			a.page = pageWrite
 			a.openNode(n.ID)
 		}
 	}

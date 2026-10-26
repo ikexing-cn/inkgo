@@ -209,18 +209,18 @@ func TestNameANewChapter(t *testing.T) {
 	}
 }
 
-// A window too narrow for the sidebar and a readable talk folds the
-// sidebar to icons; the trash is one of them, over the gear.
-func TestASlimSidebarKeepsTheTrash(t *testing.T) {
+// A narrow window keeps the work name and talks readable; the file menu
+// opens the trash.
+func TestANarrowSidebarKeepsItsLists(t *testing.T) {
 	a, _, _ := writingFixture(t, "雨从傍晚开始下。")
 	showPage(a, pageTalk)
 	tt := ui.NewTester(a.View, 1100, 700)
 	tt.Frame()
 	tt.Frame()
-	if tt.HasText("测试作品") || !tt.HasText("回收站") || !tt.HasText("设置") {
-		t.Fatal("the slim sidebar", tt.Texts())
+	if !tt.HasText("测试作品") || tt.HasText("回收站") || tt.HasText("设置") {
+		t.Fatal("the narrow sidebar", tt.Texts())
 	}
-	if err := tt.Click("回收站"); err != nil {
+	if err := clickMenu(tt, "文件", "菜单-回收站"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -315,11 +315,11 @@ func TestSideRowsOnEveryPage(t *testing.T) {
 	if shownPage(a) != pageWrite || shownChapter(a) != one {
 		t.Fatalf("on page %d at %q", shownPage(a), shownChapter(a))
 	}
-	if err = tt.Click("作品分类"); err != nil {
+	if err = clickMenu(tt, "文件", "菜单-作品分类"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if err = tt.Click("回收站"); err != nil {
+	if err = clickMenu(tt, "文件", "菜单-回收站"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

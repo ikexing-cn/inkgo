@@ -64,6 +64,12 @@ var (
 		run: func(a *App) { a.exporting.Show() }}
 	cmdSettings = &command{label: "设置…", page: pageAny,
 		run: func(a *App) { a.openPrefs(a.bk.tab) }}
+	cmdCategories = &command{label: "作品分类", page: pageAny,
+		can: func(a *App) bool { return a.Store != nil },
+		run: func(a *App) { a.page = pageCategories }}
+	cmdTrash = &command{label: "回收站…", page: pageAny,
+		can: func(a *App) bool { return a.Store != nil },
+		run: func(a *App) { a.openTrash() }}
 
 	// The title bar's 编辑, and the prose's menu where it shares them.
 	cmdUndo = &command{label: "撤销", key: ui.KeyZ, mods: ui.Cmd, page: pageWrite, by: byEditor,
@@ -113,13 +119,13 @@ var (
 		run: func(a *App) { a.setSideHidden(!a.sideHidden) }}
 	cmdPane = &command{label: "收起右栏", page: pageAny,
 		labelNow: func(a *App) string {
-			if a.doc.hidden {
+			if !a.paneOpen() {
 				return "展开右栏"
 			}
 			return "收起右栏"
 		},
-		can: func(a *App) bool { return a.Store != nil && (a.page == pageTalk || a.page == pageWrite) },
-		run: func(a *App) { a.setDocHidden(!a.doc.hidden) }}
+		can: func(a *App) bool { return a.hasPane() },
+		run: func(a *App) { a.togglePane() }}
 	cmdFocus = &command{label: "专注写作", key: ui.KeyF11, page: pageWrite, by: byDesk,
 		can: func(a *App) bool { return writingPage(a) },
 		run: func(a *App) { a.write.focus = !a.write.focus }}
@@ -208,6 +214,7 @@ var commandList = []*command{
 	cmdUndo, cmdRedo, cmdContinue, cmdCut, cmdCopy, cmdPaste, cmdSelectAll,
 	cmdDeleteWordBack, cmdDeleteWordForward, cmdTakePrediction, cmdDropPrediction,
 	cmdNewFolder, cmdSnapshots, cmdExport, cmdSettings, cmdDraft,
+	cmdCategories, cmdTrash,
 	cmdSide, cmdPane, cmdPhone, cmdRewrite, cmdTake, cmdUnmark,
 	cmdBury, cmdPay, cmdViewFore, cmdCloseOthers, cmdCloseRight, cmdSend,
 }

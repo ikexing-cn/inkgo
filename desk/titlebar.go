@@ -1,6 +1,7 @@
 package desk
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
@@ -9,9 +10,8 @@ import (
 
 // The title bar is the first row of the window, over every page: at its
 // left the switch of the sidebar and the menus, at its right the window's
-// buttons, and between them the window is held. Nothing under it keeps
-// room for those buttons. Focused, the prose has the window alone and the
-// bar is away with the rest.
+// buttons, with the pages in the middle. Nothing under it keeps room for
+// those buttons. Focused, only the chapter's name and tools remain.
 
 const (
 	barKey  = "菜单栏-" // before a menu's name: the key of its menu, and its label
@@ -49,21 +49,41 @@ func (a *App) titleBar(c *ui.Context) {
 	later := func(do func()) func() { return func() { act = do } }
 	held := false // a button of the bar has the focus
 	ui.Row(c).FillWidth().Height(kit.TitleHeight).Padding(0, bar.Right, 0, max(10, bar.Left)).Gap(2).AlignItems(ui.Center).
-		Background(a.pal.Side).Shrink(0).DragWindow().Children(func() {
-		// The shelf has no sidebar to put away: the switch stays, pale, so
-		// the menus do not move.
-		sw := kit.IconButton(c, kit.IcSide, cmdSide.name(a), ui.Color{}).Margin(0, 4, 0, 0).Disabled(!inWork)
-		held = sw.Focused()
-		if sw.Clicked() {
-			a.setSideHidden(!a.sideHidden)
-			a.penBack()
+		Background(a.pal.Canvas).Shrink(0).DragWindow().Children(func() {
+		if !a.focused() {
+			// The shelf has no sidebar to put away: the switch stays, pale, so
+			// the menus do not move.
+			sw := kit.IconButton(c, kit.IcSide, cmdSide.name(a), ui.Color{}).Margin(0, 4, 0, 0).Disabled(!inWork)
+			held = sw.Focused()
+			if sw.Clicked() {
+				a.setSideHidden(!a.sideHidden)
+				a.penBack()
+			}
+			held = a.barMenu(c, "文件", func(m *kit.Menu) { a.fileMenu(m, later) }) || held
+			held = a.barMenu(c, "编辑", func(m *kit.Menu) { a.editMenu(m, later) }) || held
+			held = a.barMenu(c, "视图", func(m *kit.Menu) { a.viewMenu(m, later) }) || held
+			held = a.barMenu(c, "帮助", func(m *kit.Menu) { a.helpMenu(m, later) }) || held
 		}
-		held = a.barMenu(c, "文件", func(m *kit.Menu) { a.fileMenu(m, later) }) || held
-		held = a.barMenu(c, "编辑", func(m *kit.Menu) { a.editMenu(m, later) }) || held
-		held = a.barMenu(c, "视图", func(m *kit.Menu) { a.viewMenu(m, later) }) || held
-		held = a.barMenu(c, "帮助", func(m *kit.Menu) { a.helpMenu(m, later) }) || held
+		if inWork {
+			width, _ := c.Size()
+			if a.focused() {
+				ui.Box(c).Absolute().Left(width/2).Translate(-width/5, 0).Width(width * 0.4).Height(kit.TitleHeight).Center().Children(func() {
+					ui.Text(c, a.shownTitle()).FontSize(kit.FsControl).TextColor(a.pal.Theme.TextMuted).SingleLine().Ellipsis("…").Shrink(1).Label("专注章名")
+				})
+			} else {
+				a.pageSwitch(c, width)
+			}
+		}
+		ui.Spacer(c)
+		if inWork && a.page == pageWrite {
+			a.writeTools(c)
+		}
+		if a.focused() {
+			ui.Box(c).Size(kit.HControlSm, kit.HControlSm).Margin(0, 8, 0, 2).Shrink(0)
+		} else if kit.IconButton(c, kit.IcPanel, cmdPane.name(a), ui.Color{}).Margin(0, 8, 0, 2).Disabled(!a.hasPane()).KeepFocus().Clicked() {
+			a.togglePane()
+		}
 	})
-	a.pal.Hairline(c)
 	switch k := &a.bar; {
 	case strings.HasPrefix(a.menu.Owner, barKey):
 		k.open = true
@@ -96,7 +116,79 @@ func (a *App) fileMenu(m *kit.Menu, later func(func()) func()) {
 	a.barItem(m, later, cmdSnapshots)
 	a.barItem(m, later, cmdExport)
 	m.Separator()
+	a.barItem(m, later, cmdCategories)
+	a.barItem(m, later, cmdTrash)
+	m.Separator()
 	a.barItem(m, later, cmdSettings)
+}
+
+// pageSwitch stays in the middle of the window, even with either side away.
+func (a *App) pageSwitch(c *ui.Context, width float32) {
+	ui.Row(c).Absolute().Left(0).Top(0).Width(width).Height(kit.HBar).Gap(4).AlignItems(ui.Center).Justify(ui.Center).PassThrough().Label("换页").Children(func() {
+		for _, p := range a.pages[:pageCategories] {
+			if !p.available(a) {
+				continue
+			}
+			b := ui.ButtonBase(c).Row().Height(kit.HControlSm).Padding(0, 10).Gap(4).AlignItems(ui.Center).Shrink(0).Label(p.title(a)).Disabled(a.held()).KeepFocus()
+			fg := a.pal.Theme.TextMuted
+			if a.page == p.id || b.Hovered() {
+				fg = a.pal.Ink
+			}
+			b.Children(func() {
+				ui.Text(c, p.title(a)).FontSize(kit.FsControl).TextColor(fg).SingleLine()
+				if n := p.number(); n > 0 {
+					ui.Textf(c, "%d", n).FontSize(kit.FsSmall).TextColor(a.pal.Faint)
+				}
+			})
+			if b.Clicked() {
+				a.page = p.id
+			}
+		}
+	})
+}
+
+// pageSwitchWidth measures this frame's words, including the check count,
+// so notices leave room without borrowing the previous frame's bounds.
+func (a *App) pageSwitchWidth(c *ui.Context) float32 {
+	width, count := float32(0), 0
+	for _, p := range a.pages[:pageCategories] {
+		if !p.available(a) {
+			continue
+		}
+		words, _ := c.MeasureText(0, ui.Span{Text: p.title(a), Size: kit.FsControl})
+		width += words + 2*10
+		if n := p.number(); n > 0 {
+			badge, _ := c.MeasureText(0, ui.Span{Text: fmt.Sprint(n), Size: kit.FsSmall})
+			width += 4 + badge
+		}
+		count++
+	}
+	return width + float32(max(0, count-1))*4
+}
+
+func (a *App) hasPane() bool {
+	return a.Store != nil && !a.focused() && (a.page == pageTalk || a.page == pageWrite || a.page == pagePlan)
+}
+
+func (a *App) paneOpen() bool {
+	if !a.hasPane() {
+		return false
+	}
+	if a.page == pagePlan {
+		return a.plan.Pane
+	}
+	return !a.doc.hidden
+}
+
+func (a *App) togglePane() {
+	if !a.hasPane() {
+		return
+	}
+	if a.page == pagePlan {
+		a.plan.Pane = !a.plan.Pane
+	} else {
+		a.setDocHidden(!a.doc.hidden)
+	}
 }
 
 // editMenu lists the title bar's 编辑.

@@ -30,6 +30,9 @@ type Options struct {
 	// as the note of its mark.
 	GhostNote func() string
 	Font      ui.Font
+	// Column limits the text inside the full editor viewport. Zero uses
+	// the default line width and margins.
+	Column TextColumn
 	// LineHeight is the height of a line as a multiple of the font's size;
 	// zero takes 1.8.
 	LineHeight float32

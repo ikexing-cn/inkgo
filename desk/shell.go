@@ -9,10 +9,10 @@ import (
 	"writer/shelf"
 )
 
-// narrow collapses the sidebar to icons so the chat keeps a readable width.
+// narrow gives both columns and the paper smaller margins.
 const narrow = 1180
 
-// page names the pages in sidebar order.
+// page names the pages in title bar order.
 type page int
 
 const (
@@ -72,9 +72,7 @@ func (a *App) View(c *ui.Context) {
 	a.turnPage()
 	a.barAct(c)
 	ui.Column(c).Fill().Background(a.pal.Canvas).Children(func() {
-		if !a.focused() {
-			a.titleBar(c)
-		}
+		a.titleBar(c)
 		// Keyed, the page stays the element it was as the title bar and the
 		// sidebar come and go, and the prose keeps the keyboard.
 		ui.Row(c.Key("body")).FillWidth().Grow(1).Shrink(1).AlignItems(ui.Stretch).Children(func() {
@@ -113,26 +111,33 @@ func (a *App) View(c *ui.Context) {
 	a.toasts(c) // over every dialog
 }
 
-// focused says the prose is shown alone: no title bar, no sidebar, no pane.
+// focused says the prose is shown without the sidebar, tabs or pane.
 func (a *App) focused() bool { return a.Store != nil && a.page == pageWrite && a.write.focus }
 
 // sideShown says whether the sidebar is on screen.
 func (a *App) sideShown() bool { return a.Store != nil && !a.sideHidden && !a.focused() }
 
+func (a *App) sidebarWidth(win float32) float32 {
+	if !a.sideShown() {
+		return 0
+	}
+	if win < narrow {
+		return 200
+	}
+	return 232
+}
+
 func (a *App) sidebar(c *ui.Context) {
 	t := a.pal.Theme
 	w, _ := c.Size()
-	slim := w < narrow && !a.treeShown() // the tree needs the room
-	width := float32(232)
-	if slim {
-		width = 60
-	}
+	width := a.sidebarWidth(w)
 	busy := a.busy != ""
-	ui.Column(c).Width(width).FillHeight().Background(a.pal.Side).Shrink(0).Children(func() {
+	ui.Column(c).Width(width).FillHeight().Background(a.pal.Canvas).Shrink(0).Children(func() {
 		work := a.Store.Work()
 		var head ui.Element
-		// The work, on a row of its own as high as the toolbar beside it.
-		top := ui.Row(c).FillWidth().Height(kit.TitleHeight).Padding(0, 10).AlignItems(ui.Center).Shrink(0)
+		// The work shares the tab row's height and bottom rule.
+		top := ui.Row(c).FillWidth().Height(kit.TitleHeight).Padding(0, 10).AlignItems(ui.Center).Shrink(0).
+			BorderWidth(0, 0, 1, 0).BorderColor(a.pal.Line).Label("侧栏标题行")
 		top.Children(func() {
 			head = ui.ButtonBase(c).Row().Height(kit.HControlSm).AlignItems(ui.Center).Gap(8).Padding(0, 6, 0, 10).Radius(kit.RControl).Shrink(1).
 				Label("切换作品").Tooltip("切换作品").Disabled(busy)
@@ -143,11 +148,18 @@ func (a *App) sidebar(c *ui.Context) {
 				ui.Box(c).Size(kit.HTag, kit.HTag).Radius(kit.RXs).Background(a.pal.Ink).Center().Shrink(0).Children(func() {
 					ui.Text(c, string([]rune(work.Name + " ")[:1])).FontSize(kit.FsSmall).FontWeight(600).TextColor(a.pal.OnInk)
 				})
-				if !slim {
-					ui.Text(c, work.Name).FontSize(kit.FsBody).FontWeight(600).Shrink(1).SingleLine().Ellipsis("…")
-					kit.Glyph(c, kit.IcChevronDown, kit.IconSm, a.pal.Faint)
-				}
+				ui.Text(c, work.Name).FontSize(kit.FsBody).FontWeight(600).Shrink(1).SingleLine().Ellipsis("…")
+				kit.Glyph(c, kit.IcChevronDown, kit.IconSm, a.pal.Faint)
 			})
+			ui.Spacer(c)
+			if a.treeShown() {
+				if kit.IconButton(c, kit.IcPlus, "新建章节", ui.Color{}).Tooltip("新建章节（" + modKey + "N）").Disabled(busy).Clicked() {
+					a.page = pageWrite
+					a.newNode(false)
+				}
+			} else if kit.IconButton(c, kit.IcPlus, "新对话", ui.Color{}).Disabled(a.held()).Clicked() {
+				a.newSession()
+			}
 		})
 		var chosen func()
 		a.menu.DropMenu(c, a.pal, head, "作品", func(panel ui.Element) {
@@ -181,40 +193,16 @@ func (a *App) sidebar(c *ui.Context) {
 				return
 			}
 		}
-		a.pal.Hairline(c)
-		ui.Column(c).FillWidth().Grow(1).Padding(12, 10, 14, 10).Gap(2).Children(func() { a.sideBody(c, slim) })
+		ui.Column(c).FillWidth().Grow(1).Padding(10).Gap(2).Children(func() { a.sideBody(c) })
 	})
 }
 
-// sideBody is the sidebar under the work: the pages, and what the page
-// shown lists.
-func (a *App) sideBody(c *ui.Context, slim bool) {
-	t := a.pal.Theme
-	busy := a.held()
-	for _, p := range a.pages {
-		if p.available(a) {
-			a.navItem(c, p.tabEntry, slim)
-		}
-	}
-	ui.Box(c).Height(20)
-	defer a.sideFoot(c, slim)
+// sideBody lists the chapters, or the talks on the discussion page.
+func (a *App) sideBody(c *ui.Context) {
 	if a.treeShown() {
 		a.chapterTree(c)
 		return
 	}
-	if slim {
-		if kit.IconButton(c, kit.IcPlus, "新对话", ui.Color{}).Disabled(busy).Clicked() {
-			a.newSession()
-		}
-		ui.Spacer(c)
-		return
-	}
-	ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(0, 4, 6, 10).Children(func() {
-		ui.Text(c, "总讨论").FontSize(kit.FsNote).TextColor(t.TextMuted).Grow(1)
-		if kit.IconButton(c, kit.IcPlus, "新对话", ui.Color{}).Disabled(busy).Clicked() {
-			a.newSession()
-		}
-	})
 	ui.Scroll(c.Key("sessions")).FillWidth().Grow(1).Gap(2).Children(func() {
 		put := 0
 		for n := len(a.sessions) - 1; n >= 0; n-- {
@@ -242,9 +230,8 @@ func (a *App) sideBody(c *ui.Context, slim bool) {
 	})
 }
 
-// treeShown tells whether the sidebar lists the chapters: on the writing
-// page, and with the AI off, on every page, there being no talks to list.
-func (a *App) treeShown() bool { return a.page == pageWrite || !a.aiOn() }
+// treeShown tells whether the sidebar lists chapters rather than talks.
+func (a *App) treeShown() bool { return a.page != pageTalk || !a.aiOn() }
 
 // talkShown tells whether the discussion is on screen, on its page or
 // beside the prose: not the list of talks there, nor the prose alone.
@@ -253,41 +240,6 @@ func (a *App) talkShown() bool {
 		return false
 	}
 	return a.page == pageTalk || a.page == pageWrite && a.talkTab() && !a.doc.hidden && !a.doc.talks && !a.focused()
-}
-
-// navItem is a page of the sidebar, with how many things wait there.
-func (a *App) navItem(c *ui.Context, entry tabEntry[page], slim bool) {
-	t := a.pal.Theme
-	on := a.page == entry.id
-	label := entry.title(a)
-	count := entry.number()
-	b := ui.ButtonBase(c).Row().FillWidth().Height(kit.HControl).AlignItems(ui.Center).Gap(10).Padding(0, 10).Radius(kit.RControl).Label(label).Disabled(a.held())
-	if slim {
-		b.Tooltip(label).Justify(ui.Center)
-	} else {
-		b.Justify(ui.Start)
-	}
-	fg := t.TextMuted
-	switch {
-	case on:
-		b.Background(t.SurfacePressed)
-		fg = t.Text
-	case b.Hovered():
-		b.Background(t.SurfaceHover)
-		fg = t.Text
-	}
-	b.Children(func() {
-		kit.Glyph(c, entry.icon, kit.IconMd, fg)
-		if !slim {
-			ui.Text(c, label).FontSize(kit.FsBody).TextColor(fg).FontWeight(map[bool]int{true: 600, false: 400}[on]).Grow(1)
-			if count > 0 {
-				ui.Textf(c, "%d", count).FontSize(kit.FsSmall).TextColor(a.pal.Faint)
-			}
-		}
-	})
-	if b.Clicked() {
-		a.page = entry.id
-	}
 }
 
 func (a *App) sessionItem(c *ui.Context, id string) {
@@ -309,7 +261,9 @@ func (a *App) sessionItem(c *ui.Context, id string) {
 			fg = a.pal.Faint
 		}
 		ui.Text(c, words).FontSize(kit.FsControl).TextColor(fg).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
-		ui.Text(c, talkDay(id, time.Now())).FontSize(kit.FsSmall).TextColor(a.pal.Faint).SingleLine()
+		if b.Hovered() || b.FocusWithin() || a.menu.MenuOpen("对话-"+id) {
+			ui.Text(c, talkDay(id, time.Now())).FontSize(kit.FsSmall).TextColor(a.pal.Faint).SingleLine()
+		}
 	})
 	a.menu.ContextMenu(c, a.pal, b, "对话-"+id, func(m *kit.Menu) {
 		if a.shelved[id] {

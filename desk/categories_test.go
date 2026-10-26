@@ -18,7 +18,7 @@ func TestCategoriesCountWhatIsKept(t *testing.T) {
 	if err := a.refresh(); err != nil {
 		t.Fatal(err)
 	}
-	if err := tt.Click("作品分类"); err != nil {
+	if err := clickMenu(tt, "文件", "菜单-作品分类"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -46,7 +46,7 @@ func TestCategoriesCountWhatIsKept(t *testing.T) {
 // category as it was; a new name has nothing to put away.
 func TestACategoryOpenedCanBePutAway(t *testing.T) {
 	a, tt, _ := fixture(t)
-	if err := tt.Click("作品分类"); err != nil {
+	if err := clickMenu(tt, "文件", "菜单-作品分类"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

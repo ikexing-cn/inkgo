@@ -98,6 +98,16 @@ Status: proposed
 - `desk/pane.go`：「批注」一页。批注的高度用 `editor` 的 `RangeBox(a, b)`，它已经能报一段字在编辑器里的位置；滚动时重排。
 - `DESIGN.md` 里列的 `go test ./desk` 有几个查的是旧样子（`TestTheTitleBarHasItsOwnRow`、`TestTheSidebarIsPutAwayOnEveryPage`、`TestMenuRowsOffThePageOfProse` 等），跟着改；`SHOT=<目录> go test ./cmd/inkgo` 截出来和原型对。
 
+分四段跟，每段交给 Codex 做、审过再合：
+
+1. 2026-10-26 已跟上：各栏同一张纸、标题栏（正中换页、两边的开关、右边的工具、专注写作只剩章名）、侧栏只列东西、标签页那一行、窄窗口不再收成图标。
+   - 一行最多 36 个字放进了编辑器自己排（`editor.TextColumn`），编辑器照旧铺满正文区。第一版在编辑器外面套框限宽，滚动条跑到了正文旁边，窄窗口里被剪掉，两边空白处滚不动。
+   - 「正文区至少 480」用侧栏这一刻的宽度算，窄窗口默认右栏 320 时照旧成立。
+   - 侧栏的备份那一行拿掉以后，`desk/backup_test.go` 几条暂时查的是内部状态，第二段备份进了底栏再改回点界面。
+2. 底栏的备份、能撤销的提示条、指针移上去才出来的东西、几页的小改。
+3. 页边批注。
+4. 动起来的地方。
+
 ## Alternatives considered
 
 - **轻改：只换白底、加动效，别的不动**（`claude/oil-ui-tweaks`）。

@@ -20,7 +20,7 @@ type backupView struct {
 	done    chan struct{}
 	policy  backup.Policy
 	open    bool // the sidebar line's popover
-	chip    bool // the writing toolbar's warning's popover
+	chip    bool // the title bar's warning popover
 	// The first-open dialog: whether it shows, the folder chosen, and when.
 	ask            bool
 	place          string
@@ -301,7 +301,7 @@ func (a *App) backupLine(c *ui.Context) {
 	})
 }
 
-// backupChip warns on the writing toolbar that a backup failed, unless
+// backupChip warns on the title bar that a backup failed, unless
 // the author said not today.
 func (a *App) backupChip(c *ui.Context) {
 	s, ok := a.backupSettings()
@@ -310,14 +310,14 @@ func (a *App) backupChip(c *ui.Context) {
 	}
 	short, _, _ := a.bk.policy.Trouble(s.Dir)
 	t := a.pal.Theme
-	b := ui.ButtonBase(c).Row().Height(kit.HControlSm).Margin(0, 0, 0, 6).Gap(6).AlignItems(ui.Center).Padding(0, 8).Radius(kit.RControl).Shrink(0).
-		Background(a.pal.WarnBg).Border(1, a.pal.WarnBd).Label("备份提示")
+	b := ui.ButtonBase(c).Row().Height(kit.HControlSm).Gap(6).AlignItems(ui.Center).Padding(0, 8).Radius(kit.RControl).Shrink(1).MinWidth(40).
+		Background(a.pal.WarnBg).Border(1, a.pal.WarnBd).Label("备份提示").Tooltip("备份失败 · " + short).KeepFocus()
 	if b.Hovered() {
 		b.Background(a.pal.WarnBd.Alpha(0.55))
 	}
 	b.Children(func() {
 		kit.Dot(c, a.pal.Amber, 6)
-		ui.Text(c, "备份失败 · "+short).FontSize(kit.FsNote).TextColor(t.Warning).SingleLine()
+		ui.Text(c, "备份失败 · "+short).FontSize(kit.FsNote).TextColor(t.Warning).SingleLine().Ellipsis("…").Shrink(1)
 	})
 	if b.Clicked() {
 		a.bk.chip = !a.bk.chip

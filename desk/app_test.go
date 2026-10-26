@@ -383,7 +383,7 @@ func TestSettingPanelFoldsAndRemembers(t *testing.T) {
 	if !a.doc.hidden {
 		t.Fatal("folding was not remembered")
 	}
-	if err := tt.Click("展开设定"); err != nil {
+	if err := tt.Click("展开右栏"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -584,7 +584,7 @@ func TestIncompleteFormsExplainInChinese(t *testing.T) {
 // button cannot be pressed, as the other forms' cannot.
 func TestACategorySavesOnceFilledIn(t *testing.T) {
 	a, tt, _ := fixture(t)
-	if err := tt.Click("作品分类"); err != nil {
+	if err := clickMenu(tt, "文件", "菜单-作品分类"); err != nil {
 		t.Fatal(err)
 	}
 	was := len(a.Store.Work().Categories)
@@ -702,7 +702,7 @@ func TestTalkLeavesTheRestFree(t *testing.T) {
 	if tt.HasText("新建作品…") {
 		t.Fatal("the work can be switched as the AI replies")
 	}
-	if err := tt.Click("作品分类"); err != nil {
+	if err := clickMenu(tt, "文件", "菜单-作品分类"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -838,7 +838,7 @@ func TestReplyTextSelectsAcrossBlocksAndCopies(t *testing.T) {
 // Services are chosen by the names the author gave them, and kept by ID.
 func TestChooseAServiceByName(t *testing.T) {
 	a, tt, _ := fixture(t)
-	if err := tt.Click("设置"); err != nil {
+	if err := clickMenu(tt, "文件", "菜单-设置"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -885,7 +885,7 @@ func TestNoticesFade(t *testing.T) {
 func TestPickAModelFromTheList(t *testing.T) {
 	a, tt, _ := fixture(t)
 	a.talkProvider, a.talkModel = "deepseek", "deepseek-flash"
-	if err := tt.Click("设置"); err != nil {
+	if err := clickMenu(tt, "文件", "菜单-设置"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

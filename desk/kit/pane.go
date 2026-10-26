@@ -243,6 +243,6 @@ func Labeled(c *ui.Context, caption string, fn func()) ui.Element {
 }
 
 // PaneTop is the top row of the right pane.
-func PaneTop(c *ui.Context) ui.Element {
-	return ui.Row(c).FillWidth().Height(TitleHeight).Padding(0, 20).Gap(4).AlignItems(ui.Center).Shrink(0)
+func (p *Palette) PaneTop(c *ui.Context) ui.Element {
+	return ui.Row(c).FillWidth().Height(TitleHeight).Padding(0, 16, 0, 10).Gap(2).AlignItems(ui.Center).Shrink(0).BorderWidth(0, 0, 1, 0).BorderColor(p.Line).Label("右栏标签行")
 }

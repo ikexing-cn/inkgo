@@ -20,6 +20,24 @@ const MaxTextWidth = maxTextWidth
 // PadX is the margin beside the text, for what sits over it to line up.
 const PadX = padX
 
+// TextColumn places text within a viewport; the scroll bar and pointer
+// input still use the whole viewport. Zero fields take the defaults.
+type TextColumn struct {
+	MaxWidth, Margin float32
+}
+
+// Layout returns the text's left edge and width inside the viewport.
+func (c TextColumn) Layout(width float32) (left, textWidth float32) {
+	if c.MaxWidth <= 0 {
+		c.MaxWidth = maxTextWidth
+	}
+	if c.Margin <= 0 {
+		c.Margin = padX
+	}
+	textWidth = max(min(width-2*c.Margin, c.MaxWidth), 60)
+	return max((width-textWidth)/2, 0), textWidth
+}
+
 // shaped is a paragraph Shape placed on one line, before it is broken.
 type shaped struct {
 	glyphs []ui.Glyph
@@ -85,8 +103,7 @@ func (e *Editor) buildLayout(width float32) {
 	}
 	l.lineH = f.Size * lh
 	l.ascent = textAscent(f, l.lineH)
-	l.textW = max(min(width-2*padX, maxTextWidth), 60)
-	l.left = max((width-l.textW)/2, 0)
+	l.left, l.textW = e.opts.Column.Layout(width)
 
 	e.display(&l)
 

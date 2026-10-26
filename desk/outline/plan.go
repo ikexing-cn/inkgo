@@ -317,11 +317,6 @@ func (p *Page) top(c *ui.Context) {
 			p.timeOpen = false
 			p.seen = ""
 		}
-		if !p.Pane {
-			if kit.IconButton(c, kit.IcPanel, "展开右栏", ui.Color{}).Tooltip("展开右栏，查看设定").Clicked() {
-				p.Pane = true
-			}
-		}
 	})
 }
 

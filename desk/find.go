@@ -55,7 +55,7 @@ func (a *App) findBar(c *ui.Context) {
 	}
 	// A band under the tabs, over the page: finding on one line and
 	// replacing on the next, so neither is squeezed in a narrow window.
-	bar := ui.Column(c).FillWidth().Padding(8, 24).Gap(6).Shrink(0).Background(a.pal.Side)
+	bar := ui.Column(c).FillWidth().Padding(8, 24).Gap(6).Shrink(0).Background(a.pal.Canvas)
 	none := len(found) == 0
 	query := func() {
 		q := ui.TextInput(c, &w.query).Label("查找").Placeholder("查找").Width(150).Shrink(1).Grow(1).AutoFocus()

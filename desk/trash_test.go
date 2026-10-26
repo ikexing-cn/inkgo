@@ -24,7 +24,7 @@ func TestTrashAndRestoreFromTheTree(t *testing.T) {
 	if _, ok := chapters(a).Node(two); ok || tt.HasText("第二章") && !tt.HasText("「第二章」已移到回收站") {
 		t.Fatal("not trashed", tt.Texts())
 	}
-	if err = tt.Click("回收站"); err != nil {
+	if err = clickMenu(tt, "文件", "菜单-回收站"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

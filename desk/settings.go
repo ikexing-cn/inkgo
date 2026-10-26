@@ -5,41 +5,6 @@ import (
 	"writer/desk/kit"
 )
 
-// sideFoot is the bottom of the sidebar: how the backups go, the trash,
-// and the gear to the settings; slim, the trash is an icon over the gear.
-func (a *App) sideFoot(c *ui.Context, slim bool) {
-	if a.Store == nil {
-		return
-	}
-	gear := func() {
-		color := ui.Color{}
-		if a.bk.prefs {
-			color = a.pal.Ink
-		}
-		b := kit.IconButton(c, kit.IcGear, "设置", color).Tooltip("设置").KeepFocus()
-		if a.bk.prefs {
-			b.Background(a.pal.Theme.SurfacePressed)
-		}
-		if b.Clicked() {
-			a.openPrefs(a.bk.tab)
-		}
-	}
-	if slim {
-		ui.Column(c).FillWidth().AlignItems(ui.Center).Gap(2).Shrink(0).Children(func() {
-			if kit.IconButton(c, kit.IcTrash, "回收站", ui.Color{}).Tooltip("回收站").KeepFocus().Clicked() {
-				a.openTrash()
-			}
-			gear()
-		})
-		return
-	}
-	a.backupLine(c)
-	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(4).Padding(0, 4, 0, 0).Shrink(0).Children(func() {
-		a.trashRow(c)
-		gear()
-	})
-}
-
 // The settings dialog keeps one size whichever part is shown.
 const prefsWidth, prefsHeight = 900, 620
 
@@ -124,7 +89,7 @@ func (a *App) preferences(c *ui.Context) {
 		}
 		panel.Row().AlignItems(ui.Stretch).Width(min(prefsWidth, w-40)).Height(min(prefsHeight, h-40)).Radius(kit.RDialog).Background(t.Background)
 		a.pal.Dialog.On(panel)
-		ui.Column(c).Width(180).FillHeight().Shrink(0).Padding(20, 10).Gap(2).Radius(kit.RDialog, 0, 0, kit.RDialog).Background(a.pal.Side).Children(func() {
+		ui.Column(c).Width(180).FillHeight().Shrink(0).Padding(20, 10).Gap(2).Radius(kit.RDialog, 0, 0, kit.RDialog).Background(a.pal.Canvas).Children(func() {
 			ui.Text(c, "设置").FontSize(kit.FsSmall).FontWeight(600).TextColor(a.pal.Faint).Padding(0, 10, 8, 10)
 			for _, entry := range a.prefTabs {
 				tab := entry.id

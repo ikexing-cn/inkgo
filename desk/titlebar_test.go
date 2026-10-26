@@ -42,7 +42,7 @@ func right(t *testing.T, tt *ui.Tester, s string) float32 {
 
 // The title bar is a row of its own at the top of the window, and it alone
 // keeps room for the window's buttons: under it the rows run to the edge.
-// Focused, the bar is away and the toolbar keeps that room instead.
+// Focused, its menus give way to the chapter name and its tools stay put.
 func TestTheTitleBarHasItsOwnRow(t *testing.T) {
 	a, tt, _ := writingFixture(t, "整条街的灯是同时灭的。")
 	const buttons = 138
@@ -53,20 +53,22 @@ func TestTheTitleBarHasItsOwnRow(t *testing.T) {
 			t.Fatalf("the menu %s is not in the title bar: %+v %v", name, r, ok)
 		}
 	}
-	if r, _ := tt.Find("正文"); r.Y < kit.TitleHeight {
+	if r := find(t, tt, "切换作品"); r.Y < kit.TitleHeight {
 		t.Fatalf("the sidebar starts in the title bar: %+v", r)
 	}
-	if r, _ := tt.Find("上一个打开的章节"); r.Y < kit.TitleHeight || r.Y > 2*kit.TitleHeight {
-		t.Fatalf("the toolbar is not the row under the title bar: %+v", r)
+	if r := find(t, tt, "上一个打开的章节"); r.Y < kit.TitleHeight || r.Y+r.H > 2*kit.TitleHeight {
+		t.Fatalf("the history is not in the tab row: %+v", r)
 	}
-	width := a.LastWrite.X + a.LastWrite.W + 1 + a.LastSetting.W
-	if got := right(t, tt, "收起右栏"); got < width-buttons {
-		t.Fatalf("the pane's row keeps room for the window's buttons: ends at %v of %v", got, width)
+	width := float32(1266)
+	pane := find(t, tt, "收起右栏")
+	focus := find(t, tt, "专注写作")
+	if pane.Y >= kit.TitleHeight || right(t, tt, "收起右栏") > width-buttons || pane.X <= focus.X {
+		t.Fatalf("the pane switch is not beside the window buttons: %+v", pane)
 	}
 	a.doc.hidden = true
 	tt.Frame()
-	if got := right(t, tt, "专注写作"); got < width-buttons {
-		t.Fatalf("the toolbar keeps room for the window's buttons: ends at %v of %v", got, width)
+	if r := find(t, tt, "展开右栏"); r != pane {
+		t.Fatalf("the switch moved when the pane closed: %+v, was %+v", r, pane)
 	}
 	if _, ok := tt.Find("更多"); ok {
 		t.Fatal("the toolbar still has its 「更多」")
@@ -75,13 +77,19 @@ func TestTheTitleBarHasItsOwnRow(t *testing.T) {
 	tt.Key(0, ui.KeyF11)
 	tt.Frame()
 	if _, ok := tt.Find(barKey + "文件"); ok || !a.write.focus {
-		t.Fatal("focused, the title bar is still there")
+		t.Fatal("focused, the menus are still there")
 	}
 	if r, _ := tt.Find("退出专注"); r.Y > kit.TitleHeight {
 		t.Fatalf("focused, the toolbar is not the first row: %+v", r)
 	}
-	if got := right(t, tt, "退出专注"); got > width-buttons {
-		t.Fatalf("focused, the toolbar runs under the window's buttons: ends at %v of %v", got, width)
+	if r := find(t, tt, "退出专注"); r != focus {
+		t.Fatalf("the focus tool moved: %+v, was %+v", r, focus)
+	}
+	if _, ok := tt.Find("专注章名"); !ok {
+		t.Fatal("focused, there is no chapter name")
+	}
+	if _, ok := tt.Find("展开右栏"); ok {
+		t.Fatal("focused, the pane switch is visible")
 	}
 	// The menus cannot be reached; the keys go on working.
 	tt.Key(ui.Cmd, ui.KeySlash)
@@ -106,7 +114,7 @@ func TestTheTitleBarHasItsOwnRow(t *testing.T) {
 func TestTheSidebarIsPutAwayOnEveryPage(t *testing.T) {
 	a, tt, _ := writingFixture(t, "整条街的灯是同时灭的。")
 	shown := func() bool { _, ok := tt.Find("切换作品"); return ok }
-	for _, page := range []page{pageWrite, pageTalk, pageCheck, pageCategories} {
+	for _, page := range []page{pageWrite, pageTalk, pagePlan, pageCheck, pageCategories} {
 		showPage(a, page)
 		tt.Frame()
 		tt.Frame()
@@ -185,7 +193,7 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 			t.Fatalf("%s › %s left the menu open", menu, row)
 		}
 	}
-	if got := openMenu(t, a, tt, "文件"); !slices.Equal(got, []string{"新建章节", "新建文件夹", "保存", "快照", "导出", "设置"}) {
+	if got := openMenu(t, a, tt, "文件"); !slices.Equal(got, []string{"新建章节", "新建文件夹", "保存", "快照", "导出", "作品分类", "回收站", "设置"}) {
 		t.Fatalf("文件: %q", got)
 	}
 	tt.Key(0, ui.KeyEscape)
@@ -406,7 +414,7 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 		pale("编辑", "撤销", "重做", "查找替换", "重命名", "续写一句", "起草本章")
 		pale("视图", "专注写作", "手机预览")
 		if page != pageTalk {
-			pale("视图", "收起右栏")
+			pale("视图", "展开右栏")
 		}
 		if shownPage(a) != page || w.focus || w.finding || w.snapsOpen || w.renaming != "" || w.draftOpen {
 			t.Fatalf("page %d: a pale row did something", page)
@@ -440,8 +448,8 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 	a.closeWork()
 	tt.Frame()
 	tt.Frame()
-	pale("文件", "新建章节", "新建文件夹", "保存", "快照", "导出")
-	pale("视图", "收起侧栏", "收起右栏", "专注写作", "手机预览")
+	pale("文件", "新建章节", "新建文件夹", "保存", "快照", "导出", "作品分类", "回收站")
+	pale("视图", "收起侧栏", "展开右栏", "专注写作", "手机预览")
 	if a.bk.prefs || a.exporting.Open || a.sideHidden {
 		t.Fatal("on the shelf a pale row did something")
 	}

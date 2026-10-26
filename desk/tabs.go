@@ -9,7 +9,7 @@ import (
 	"writer/workspace"
 )
 
-// The chapters open stand in a row of tabs under the toolbar, as many as
+// The chapters open stand in a row of tabs under the title bar, as many as
 // the author opened. One is shown. The others keep their editors, so that
 // coming back to one finds what can be undone, the caret and the scroll
 // as they were left; what they hold is saved as they are left, so only
@@ -86,19 +86,24 @@ func (a *App) tabTitle(id string) (title, path string, folder bool) {
 }
 
 // sheets is the row of tabs: one for each chapter open, or outline of a
-// folder, the one shown as light as the page under it and joined to it.
-// The row is away when nothing is open, and in focus.
+// folder, the one shown in ink and underlined. Only focus hides the row.
 func (a *App) sheets(c *ui.Context) {
 	w := &a.write
-	if len(w.tabs) == 0 || w.focus {
+	if w.focus {
 		return
 	}
 	var shut []string
-	row := ui.Row(c).FillWidth().Height(kit.HControl).Background(a.pal.Side).Shrink(0)
-	row.Children(func() {
+	row := ui.Row(c).FillWidth().Height(kit.HBar).Background(a.pal.Canvas).Shrink(0).BorderWidth(0, 0, 1, 0).BorderColor(a.pal.Line).Label("标签行")
+	row.Padding(0, 0, 0, a.paperInset(c, row.Bounds().W)).Children(func() {
+		ui.Row(c).Gap(2).AlignItems(ui.Center).Margin(0, 8, 0, -8).Shrink(0).Children(func() {
+			if a.stepButton(c, kit.IcBack, "上一个打开的章节").Disabled(len(w.back) == 0).Clicked() {
+				a.stepHistory(false)
+			}
+			if a.stepButton(c, kit.IcForward, "下一个打开的章节").Disabled(len(w.forward) == 0).Clicked() {
+				a.stepHistory(true)
+			}
+		})
 		a.sheetRow(c, &shut)
-		// The line under the row runs on to the edge.
-		ui.Box(c).Grow(1).Height(kit.HControl).BorderWidth(0, 0, 1, 0).BorderColor(a.pal.Line)
 	})
 	if shut != nil {
 		a.shutTabs(shut)
@@ -112,7 +117,7 @@ func (a *App) sheetRow(c *ui.Context, shut *[]string) {
 	w := &a.write
 	shown := w.node
 	defer func() { w.tabSeen = shown }()
-	ui.ScrollHorizontal(c.Key("标签页")).Height(kit.HControl).Shrink(1).Children(func() {
+	ui.ScrollHorizontal(c.Key("标签页")).Height(kit.HBar).Shrink(1).Children(func() {
 		for _, id := range w.tabs {
 			on := id == w.node
 			title, path, folder := a.tabTitle(id)
@@ -121,17 +126,15 @@ func (a *App) sheetRow(c *ui.Context, shut *[]string) {
 			if dirty {
 				tip += " · 未保存"
 			}
-			tab := ui.ButtonBase(c.Key("tab-"+id)).Row().Height(kit.HControl).MaxWidth(sheetMax).AlignItems(ui.Center).Gap(6).Padding(0, 6, 0, 12).Shrink(0).
-				BorderWidth(0, 1, 1, 0).BorderColor(a.pal.Line).Label("标签页-" + title).Tooltip(tip)
+			tab := ui.ButtonBase(c.Key("tab-"+id)).Row().Height(kit.HBar).MaxWidth(sheetMax).AlignItems(ui.Center).Gap(4).Padding(0, 4, 0, 10).Shrink(0).
+				Label("标签页-" + title).Tooltip(tip)
 			over := tab.Hovered()
 			fg, weight := t.TextMuted, 400
 			switch {
 			case on:
-				// Joined to the page: its ground, and no line under it.
-				tab.Background(a.pal.Canvas).BorderWidth(0, 1, 0, 0)
 				fg, weight = t.Text, 600
 			case over:
-				tab.Background(t.SurfaceHover)
+				fg = t.Text
 			}
 			// Into view as it becomes the tab shown, and not after: the
 			// author may scroll the row to the others.
@@ -139,11 +142,12 @@ func (a *App) sheetRow(c *ui.Context, shut *[]string) {
 				tab.ScrollIntoView()
 			}
 			tab.Children(func() {
-				pic := kit.IcDoc
-				if folder {
-					pic = kit.IcFolder
+				if on {
+					ui.Box(c).Absolute().Left(10).Right(10).Bottom(0).Height(2).Background(a.pal.Ink).Label("当前标签线")
 				}
-				kit.Glyph(c, pic, kit.IconSm, fg)
+				if folder {
+					kit.Glyph(c, kit.IcFolder, kit.IconSm, fg)
+				}
 				ui.Text(c, title).FontSize(kit.FsControl).FontWeight(weight).TextColor(fg).SingleLine().Ellipsis("…").Shrink(1)
 				// The cross keeps its place: shown on the tab open and on the
 				// one under the pointer. Words not saved put a dot there, till

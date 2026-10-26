@@ -176,14 +176,14 @@ func (a *App) pendingButton(c *ui.Context) {
 		return
 	}
 	t := a.pal.Theme
-	b := ui.ButtonBase(c).Row().Height(kit.HControlSm).Margin(0, 0, 0, 6).Gap(6).AlignItems(ui.Center).Padding(0, 8).Radius(kit.RControl).Shrink(0).
-		Border(1, t.Border).Label("待处理")
+	b := ui.ButtonBase(c).Row().Height(kit.HControlSm).Gap(6).AlignItems(ui.Center).Padding(0, 8).Radius(kit.RControl).Shrink(1).MinWidth(40).
+		Border(1, t.Border).Label("待处理").Tooltip(fmt.Sprintf("待处理 %d", total)).KeepFocus()
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}
 	b.Children(func() {
 		kit.Dot(c, a.pal.Amber, 6)
-		ui.Textf(c, "待处理 %d", total).FontSize(kit.FsNote).SingleLine()
+		ui.Textf(c, "待处理 %d", total).FontSize(kit.FsNote).SingleLine().Ellipsis("…").Shrink(1)
 	})
 	if b.Clicked() {
 		w.pendOpen = !w.pendOpen

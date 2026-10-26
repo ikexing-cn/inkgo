@@ -390,7 +390,7 @@ func (a *App) aiBar(c *ui.Context) {
 	t := a.pal.Theme
 	w := &a.write
 	bar := func(fn func()) {
-		overProse(c, 10, 0, func() {
+		a.overProse(c, 10, 0, func() {
 			ui.Row(c).FillWidth().Padding(6, 8, 6, 12).Gap(8).AlignItems(ui.Center).Radius(kit.RCard).Border(1, t.Border).Background(a.pal.Side).Children(fn)
 		})
 	}

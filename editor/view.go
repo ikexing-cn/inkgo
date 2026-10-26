@@ -67,6 +67,14 @@ func (e *Editor) SetTypewriter(on bool) {
 
 func (e *Editor) FontSize() float32 { return e.opts.Font.Size }
 
+// SetTextColumn changes the text's line width and margins without moving
+// the viewport or its scroll bar.
+func (e *Editor) SetTextColumn(column TextColumn) {
+	if column != e.opts.Column {
+		e.opts.Column, e.reveal = column, true
+	}
+}
+
 // SetFontSize sets the text in px, keeping the caret in view.
 func (e *Editor) SetFontSize(px float32) {
 	if px > 0 && px != e.opts.Font.Size {
@@ -79,6 +87,7 @@ type layoutKey struct {
 	ver, caret, props int
 	preedit, ghost    string
 	width, size       float32
+	column            TextColumn
 }
 
 func (e *Editor) ensureLayout() {
@@ -87,7 +96,7 @@ func (e *Editor) ensureLayout() {
 	if e.preedit != "" || extra != "" {
 		caret = e.caret
 	}
-	k := layoutKey{e.Doc.textVer, caret, e.propVer, e.preedit, extra, e.width, e.opts.Font.Size}
+	k := layoutKey{e.Doc.textVer, caret, e.propVer, e.preedit, extra, e.width, e.opts.Font.Size, e.opts.Column}
 	if k != e.layKey || e.lay.lines == nil {
 		e.buildLayout(e.width)
 		e.layKey = k

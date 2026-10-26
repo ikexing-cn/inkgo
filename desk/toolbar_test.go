@@ -76,7 +76,7 @@ func TestTheSelectionBarLeavesTheSelectionInSight(t *testing.T) {
 	tt.Frame()
 	tt.Frame()
 	box, ok := ed.RangeBox(ed.Selection())
-	prose, found := tt.Find("正文")
+	prose, found := a.LastProse, a.LastProse.W > 0
 	bar, shown := tt.Find("AI 改写")
 	if !ok || !found || !shown || box.H < 60 { // over several lines
 		t.Fatal("the selection or its bar is not there", ok, found, shown, box)

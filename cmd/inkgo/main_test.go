@@ -102,7 +102,11 @@ func TestLayoutDiscussion(t *testing.T) {
 		t.Fatal("history not shown", tt.Texts())
 	}
 	shot(t, tt, "-history")
-	if err = tt.Click("设置"); err != nil {
+	if err = tt.Click("菜单栏-文件"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err = tt.Click("菜单-设置"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

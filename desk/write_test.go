@@ -54,7 +54,7 @@ func TestTheHeadLinesUpWithTheProse(t *testing.T) {
 		tt.SetSize(width, 780)
 		tt.Frame()
 		tt.Frame()
-		prose, _ := tt.Find("正文")
+		prose := a.LastProse
 		box, ok := ed.RangeBox(0, ed.Doc.Len())
 		head, _ := tt.Find("章纲 · 空")
 		ask, _ := tt.Find("改写要求")
@@ -251,7 +251,7 @@ func TestAWorkNewHereOpensOnItsProse(t *testing.T) {
 // to the chapter's title.
 func TestNarrowWindowKeepsThePage(t *testing.T) {
 	a, _, _ := writingFixture(t, "雨从傍晚开始下。")
-	if w := a.panelWidth(1000); w != panelMin {
+	if w := a.panelWidth(1000); w != 1000-200-2-pageMin {
 		t.Fatal(w)
 	}
 	if w := a.panelWidth(1280); w != panelWidth {
@@ -308,7 +308,7 @@ func TestFocusLeavesThePageAlone(t *testing.T) {
 // only with the models' save.
 func TestWritingSwitchesKeepAsTicked(t *testing.T) {
 	a, tt, _ := writingFixture(t, "雨从傍晚开始下。")
-	if err := tt.Click("设置"); err != nil {
+	if err := clickMenu(tt, "文件", "菜单-设置"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

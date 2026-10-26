@@ -44,7 +44,7 @@ func TestNamesInTheProse(t *testing.T) {
 	}
 	tt.Key(ui.Cmd, ui.KeyZ)
 	tt.Frame()
-	click(t, tt, "设置")
+	click(t, tt, "菜单栏-文件", "菜单-设置")
 	click(t, tt, "设置-外观")
 	hasText(t, tt, "正文中标出设定的名字")
 	if tt.HasText("名字下面一道虚线") {
@@ -81,7 +81,7 @@ func TestNamesInTheProse(t *testing.T) {
 	if !b.shelf.NoNames {
 		t.Fatal("preference did not follow work switch")
 	}
-	click(t, tt, "设置")
+	click(t, tt, "菜单栏-文件", "菜单-设置")
 	click(t, tt, "设置-外观")
 	click(t, tt, "正文中标出设定的名字")
 	tt.Key(0, ui.KeyEscape)

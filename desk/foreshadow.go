@@ -424,12 +424,8 @@ func (a *App) forePopover(c *ui.Context) {
 // one, or the one being picked for a passage.
 func (a *App) forePanel(c *ui.Context) {
 	w := &a.write
-	kit.PaneTop(c).Children(func() {
+	a.pal.PaneTop(c).Children(func() {
 		a.panelTabs(c)
-		ui.Spacer(c)
-		if kit.IconButton(c, kit.IcPanel, "收起右栏", ui.Color{}).Tooltip("收起右栏").Clicked() {
-			a.setDocHidden(true)
-		}
 	})
 	all := a.foreshadows()
 	find := func(id string) (workspace.Foreshadow, bool) {

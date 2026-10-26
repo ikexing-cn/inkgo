@@ -1,6 +1,7 @@
 package desk
 
 import (
+	"fmt"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -183,7 +184,6 @@ func (a *App) writing(c *ui.Context) {
 		main := ui.Column(c).Grow(1).Shrink(1).FillHeight()
 		a.LastWrite = main.Bounds()
 		main.Children(func() {
-			a.writeTop(c)
 			a.sheets(c)
 			n, ok := a.book.Tree().Node(a.write.node)
 			switch {
@@ -224,17 +224,13 @@ func (a *App) settingColumn(c *ui.Context) {
 	win, _ := c.Size()
 	width := a.panelWidth(win)
 	ui.Box(c).Width(1).FillHeight().Background(a.pal.Line)
-	panel := ui.Column(c).Width(width).FillHeight().Background(a.pal.Side).Shrink(0)
+	panel := ui.Column(c).Width(width).FillHeight().Background(a.pal.Canvas).Shrink(0)
 	a.LastSetting = panel.Bounds()
 	panel.Children(func() {
 		shown := a.paneTabs.shown(a, a.doc.tab)
 		if a.page == pageWrite && shown == panePhone {
-			kit.PaneTop(c).Children(func() {
+			a.pal.PaneTop(c).Children(func() {
 				a.panelTabs(c)
-				ui.Spacer(c)
-				if kit.IconButton(c, kit.IcPanel, "收起右栏", ui.Color{}).Tooltip("收起右栏").Clicked() {
-					a.setDocHidden(true)
-				}
 			})
 			a.phone.View(c)
 		} else if a.page == pageWrite && shown == paneFore {
@@ -248,79 +244,72 @@ func (a *App) settingColumn(c *ui.Context) {
 	})
 }
 
-func (a *App) writeTop(c *ui.Context) {
-	t := a.pal.Theme
+// writeTools keeps changing notices before the two fixed tools.
+func (a *App) writeTools(c *ui.Context) {
 	w := &a.write
-	n, ok := a.book.Tree().Node(w.node)
-	top := ui.Row(c).FillWidth().Height(kit.TitleHeight).Padding(0, 16, 0, 24).Gap(8).AlignItems(ui.Center).Shrink(0)
+	open, busy := a.chapterOpen()
+	win, _ := c.Size()
+	// Leave the middle switch and the window buttons clear when several
+	// notices appear together; their full words remain in the tooltips.
+	// Find, focus and pane are three square buttons, with the pane's
+	// margins (2 and 8) and the three gaps between notices and buttons.
+	fixed := float32(3*kit.HControlSm + 2 + 8 + 3*2)
+	room := win/2 - a.pageSwitchWidth(c)/2 - c.TitleBar().Right - fixed
 	if w.focus {
-		// No title bar over it: this row holds the window, and keeps clear
-		// of the window's buttons.
-		bar := c.TitleBar()
-		top.Padding(0, 16+bar.Right, 0, 24+bar.Left).DragWindow()
+		room = win - c.TitleBar().Right - fixed
 	}
-	top.Children(func() {
-		ui.Row(c).Gap(2).AlignItems(ui.Center).Margin(0, 0, 0, -8).Shrink(0).Children(func() {
-			if a.stepButton(c, kit.IcBack, "上一个打开的章节").Disabled(len(w.back) == 0).Clicked() {
-				a.stepHistory(false)
-			}
-			if a.stepButton(c, kit.IcForward, "下一个打开的章节").Disabled(len(w.forward) == 0).Clicked() {
-				a.stepHistory(true)
-			}
-		})
-		if ok {
-			var path []string
-			for p := n.Parent; p != nil && p.Parent != nil; p = p.Parent {
-				path = append([]string{p.Title}, path...)
-			}
-			for _, title := range path {
-				ui.Text(c, title).FontSize(kit.FsControl).TextColor(t.TextMuted).SingleLine().Shrink(1)
-				kit.Glyph(c, kit.IcChevron, kit.IconSm, a.pal.Faint)
-			}
-			ui.Text(c, n.Title).FontSize(kit.FsControl).FontWeight(600).SingleLine().Ellipsis("…").Shrink(1)
-		} else if w.cur().lost {
-			ui.Text(c, w.cur().lostTitle).FontSize(kit.FsControl).FontWeight(600)
-		} else {
-			ui.Text(c, "正文").FontSize(kit.FsControl).FontWeight(600)
-		}
-		if ok && !n.Folder && w.cur().ed != nil {
+	ui.Row(c).MaxWidth(max(0, room)).MinWidth(0).Shrink(1).Gap(6).AlignItems(ui.Center).Children(func() {
+		if open {
 			if w.cur().ed.Predicting() {
-				ui.Text(c, "续写中…").FontSize(kit.FsNote).TextColor(a.pal.Faint).SingleLine().Shrink(0).Margin(0, 0, 0, 6)
+				ui.Text(c, "续写中…").FontSize(kit.FsNote).TextColor(a.pal.Faint).SingleLine().Ellipsis("…").Shrink(1).Tooltip("续写中…")
 			} else if w.cur().ed.Ghost() != "" {
-				ui.Text(c, "Tab 采纳 · Esc 放弃").FontSize(kit.FsNote).TextColor(a.pal.Faint).SingleLine().Shrink(0).Margin(0, 0, 0, 6)
-			}
-		}
-		ui.Spacer(c)
-		if ok && !n.Folder {
-			busy := w.cur().ed.ReadOnly() || w.cur().lost || w.cur().external != nil
-			color := ui.Color{}
-			if w.finding {
-				color = a.pal.Ink
-			}
-			if kit.IconButton(c, kit.IcSearch, "查找替换", color).Tooltip("查找替换（" + modKey + "F）").Disabled(busy).Clicked() {
-				if w.finding {
-					a.closeFind()
-				} else {
-					a.openFind()
-				}
+				ui.Text(c, "Tab 采纳 · Esc 放弃").FontSize(kit.FsNote).TextColor(a.pal.Faint).SingleLine().Ellipsis("…").Shrink(1).Tooltip("Tab 采纳 · Esc 放弃")
 			}
 		}
 		if a.doc.hidden && !w.focus {
-			if kit.IconButton(c, kit.IcPanel, "展开右栏", ui.Color{}).Tooltip("展开右栏").Clicked() {
-				a.setDocHidden(false)
+			here := 0
+			for _, f := range a.foreshadows() {
+				if f.Here && f.Status() == workspace.ForeOpen {
+					here++
+				}
 			}
-		}
-		if w.focus {
-			if kit.IconButton(c, kit.IcShrink, "退出专注", a.pal.Ink).Tooltip("退出专注，恢复章节树和右栏（F11）").Clicked() {
-				w.focus = false
+			if here > 0 {
+				b := ui.ButtonBase(c).Row().Height(kit.HControlSm).Gap(6).Padding(0, 6).AlignItems(ui.Center).Shrink(1).MinWidth(40).Label("本章伏笔").Tooltip(fmt.Sprintf("本章伏笔 %d", here)).KeepFocus()
+				fg := a.pal.Theme.TextMuted
+				if b.Hovered() {
+					fg = a.pal.Ink
+				}
+				b.Children(func() {
+					kit.Glyph(c, kit.IcFlag, kit.IconMd, fg)
+					ui.Textf(c, "本章伏笔 %d", here).FontSize(kit.FsNote).TextColor(fg).SingleLine().Ellipsis("…").Shrink(1)
+				})
+				if b.Clicked() {
+					a.doc.tab = paneFore
+					a.setDocHidden(false)
+				}
 			}
-		} else if kit.IconButton(c, kit.IcExpand, "专注写作", ui.Color{}).Tooltip("仅显示正文，收起章节树和右栏（F11）").Clicked() {
-			w.focus = true
 		}
 		a.backupChip(c)
 		a.pendingButton(c)
 	})
-	a.pal.Hairline(c)
+	color := ui.Color{}
+	if w.finding {
+		color = a.pal.Ink
+	}
+	if kit.IconButton(c, kit.IcSearch, "查找替换", color).Tooltip("查找替换（" + modKey + "F）").Disabled(!open || busy).KeepFocus().Clicked() {
+		if w.finding {
+			a.closeFind()
+		} else {
+			a.openFind()
+		}
+	}
+	if w.focus {
+		if kit.IconButton(c, kit.IcShrink, "退出专注", a.pal.Ink).Tooltip("退出专注，恢复章节树和右栏（F11）").KeepFocus().Clicked() {
+			w.focus = false
+		}
+	} else if kit.IconButton(c, kit.IcExpand, "专注写作", ui.Color{}).Tooltip("仅显示正文，收起章节树和右栏（F11）").KeepFocus().Clicked() {
+		w.focus = true
+	}
 }
 
 // stepButton goes to the chapter opened before the one shown, or after it:
@@ -336,7 +325,7 @@ func (a *App) stepButton(c *ui.Context, s *ui.SVG, label string) ui.Element {
 	if b.IsDisabled() {
 		kit.Pale(b)
 	}
-	b.Children(func() { kit.Glyph(c, s, kit.IconSm, fg) })
+	b.Children(func() { kit.Glyph(c, s, kit.IconSm, fg).Label(label + "图形") })
 	return b
 }
 
@@ -386,7 +375,7 @@ func (a *App) chapterView(c *ui.Context) {
 	}
 	// The chapter's title, then its outline, opening under it. Keyed, as
 	// the bars over it come and go.
-	overProse(c.Key("head"), 24, 6, func() {
+	a.overProse(c.Key("head"), 24, 6, func() {
 		ui.Column(c).FillWidth().Gap(8).Children(func() {
 			ui.Text(c, kit.Heading(a.shownTitle())).FontSize(kit.FsTitle).FontWeight(700).SingleLine().Ellipsis("…")
 			label := "章纲"
@@ -406,6 +395,7 @@ func (a *App) chapterView(c *ui.Context) {
 	a.placeProps()
 	a.aiBar(c)
 	// Keyed, as the bars over it come and go: the prose keeps the keyboard.
+	w.cur().ed.SetTextColumn(a.paperColumn(c))
 	ui.Box(c.Key("prose")).Grow(1).FillWidth().Children(func() {
 		prose := w.cur().ed.View(c).Fill()
 		a.LastProse = prose.Bounds()
@@ -504,9 +494,10 @@ func (a *App) folderView(c *ui.Context, n *workspace.Node) {
 
 // overProse lays fn out as wide as the prose under it and in line with it:
 // the chapter's head and the AI's bar over the text start where it starts.
-func overProse(c *ui.Context, top, bottom float32, fn func()) {
-	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(top, editor.PadX, bottom, editor.PadX).Shrink(0).Children(func() {
-		ui.Column(c).FillWidth().MaxWidth(editor.MaxTextWidth).Children(fn)
+func (a *App) overProse(c *ui.Context, top, bottom float32, fn func()) {
+	column := a.paperColumn(c)
+	ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(top, column.Margin, bottom, column.Margin).Shrink(0).Children(func() {
+		ui.Column(c).FillWidth().MaxWidth(column.MaxWidth).Children(fn)
 	})
 }
 
@@ -585,4 +576,23 @@ func (a *App) footBar(c *ui.Context, chapter bool) {
 		ui.Spacer(c)
 		a.wordCount(c, roomy, wide)
 	})
+}
+
+// paperColumn is shared by the editor, chapter head, AI bar and tab row.
+func (a *App) paperColumn(c *ui.Context) editor.TextColumn {
+	size := float32(kit.TextSizeDefault)
+	if ed := a.write.cur().ed; ed != nil {
+		size = ed.FontSize()
+	}
+	win, _ := c.Size()
+	pad := float32(editor.PadX)
+	if win < narrow {
+		pad = 24
+	}
+	return editor.TextColumn{MaxWidth: size * 36, Margin: pad}
+}
+
+func (a *App) paperInset(c *ui.Context, width float32) float32 {
+	left, _ := a.paperColumn(c).Layout(width)
+	return left
 }
