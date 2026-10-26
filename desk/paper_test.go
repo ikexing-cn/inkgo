@@ -71,6 +71,32 @@ func TestTheRowsShareThePaper(t *testing.T) {
 	}
 }
 
+// The rows over and under the prose start where it does in the frame
+// that lays it out, as on the first frame after a resize: built under a
+// fresh key each time, so nothing has bounds from a frame before, the
+// tabs are where they settle in the window as the author has it.
+func TestTheRowsMoveWithThePaperAtOnce(t *testing.T) {
+	a, settled, _ := writingFixture(t, strings.Repeat("雨从傍晚开始下。", 80))
+	build := 0
+	fresh := ui.NewTester(func(c *ui.Context) {
+		ui.Column(c.Key(build)).Fill().Children(func() { a.View(c) })
+		build++
+	}, 1266, 780)
+	for _, width := range []int{1100, 1266, 2200} {
+		for _, hidden := range []bool{false, true} {
+			a.sideHidden, a.doc.hidden = hidden, hidden
+			for _, tt := range []*ui.Tester{settled, fresh} {
+				tt.SetSize(width, 780)
+				tt.Frame()
+			}
+			want, got := find(t, settled, "上一个打开的章节图形").X, find(t, fresh, "上一个打开的章节图形").X
+			if math.Abs(float64(got-want)) > 0.5 {
+				t.Fatalf("%d wide, columns away %v: the tabs start at %v before they settle at %v", width, hidden, got, want)
+			}
+		}
+	}
+}
+
 // The two switches stay on the title bar on every page; only the pages
 // with a pane act on its switch, and the outline keeps its own choice.
 func TestThePaneSwitchStaysOnEveryPage(t *testing.T) {

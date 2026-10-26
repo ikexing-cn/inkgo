@@ -21,18 +21,27 @@ import (
 const column = 720
 
 func (a *App) discussion(c *ui.Context) {
+	pad := a.talkPadding(c)
 	ui.Row(c).FillWidth().Grow(1).AlignItems(ui.Stretch).Children(func() {
 		chat := ui.Column(c).Grow(1).Shrink(1).FillHeight()
 		a.LastChat = chat.Bounds()
 		chat.Children(func() {
 			a.chatTop(c)
 			a.chatList(c, false)
-			ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(0, 32, 20, 32).Children(func() {
+			ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(0, pad, 20, pad).Children(func() {
 				a.composer(c)
 			})
 		})
 		a.settingColumn(c)
 	})
+}
+
+func (a *App) talkPadding(c *ui.Context) float32 {
+	win, _ := c.Size()
+	if win < narrow {
+		return 24
+	}
+	return 32
 }
 
 // chatList builds only the messages in view: laying out a long session
@@ -58,10 +67,9 @@ func (a *App) chatList(c *ui.Context, side bool) {
 	a.rows = rows
 	if !side && len(rows) == 1 && rows[0] == -1 {
 		// Nothing said yet: the page opens in the middle of its room.
-		ui.Column(c).Grow(1).FillWidth().Padding(24, 32).Children(func() { a.emptyChat(c) })
+		ui.Column(c).Grow(1).FillWidth().Padding(24, a.talkPadding(c)).Children(func() { a.emptyChat(c) })
 		return
 	}
-	last := a.lastMessage()
 	a.chat.FollowEnd = true
 	a.chat.Key = func(i int) any {
 		if rows[i] < 0 {
@@ -81,7 +89,7 @@ func (a *App) chatList(c *ui.Context, side bool) {
 					if a.events[r].Role == workspace.RoleDigest {
 						a.digest(c, a.events[r], through)
 					} else {
-						a.message(c, a.events[r], a.events[r].ID == last)
+						a.message(c, a.events[r])
 					}
 				}
 			})
@@ -90,7 +98,7 @@ func (a *App) chatList(c *ui.Context, side bool) {
 	if side {
 		list.Grow(1).FillWidth().Gap(20).Padding(8, 2, 12, 2)
 	} else {
-		list.Grow(1).FillWidth().Gap(24).Padding(32, 32, 24, 32)
+		list.Grow(1).FillWidth().Gap(24).Padding(32, a.talkPadding(c), 24, a.talkPadding(c))
 	}
 }
 
@@ -279,8 +287,8 @@ func (a *App) answered(userID string) bool {
 const replyIndent = 24 + 12
 
 func (a *App) aiMark(c *ui.Context) {
-	ui.Box(c).Size(kit.HControlSm, kit.HControlSm).Radius(kit.RRound).Background(a.pal.Theme.SurfacePressed).Center().Shrink(0).Children(func() {
-		kit.Glyph(c, kit.IcSparkle, kit.IconSm, a.pal.Theme.TextMuted)
+	ui.Box(c).Size(kit.HControlSm, kit.HControlSm).Center().Shrink(0).Children(func() {
+		kit.Glyph(c, kit.IcSparkle, kit.IconSm, a.pal.Faint)
 	})
 }
 
@@ -292,7 +300,7 @@ func (a *App) userBubble(c *ui.Context, text string) {
 
 // message shows the author's words as a bubble on the right and the AI's as
 // plain prose, the way a reply reads in a letter. Its actions fade in on hover.
-func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
+func (a *App) message(c *ui.Context, m workspace.Event) {
 	t := a.pal.Theme
 	user := m.Role == workspace.RoleUser
 	align := ui.Start
@@ -300,7 +308,7 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 		align = ui.End
 	}
 	box := ui.Column(c.Key(m.ID)).FillWidth().AlignItems(align).Gap(8)
-	shown := last || box.Hovered() || box.FocusWithin()
+	shown := box.Hovered() || box.FocusWithin() || a.contextReply == m.ID
 	box.Children(func() {
 		if user {
 			for n, q := range m.Quotes {
@@ -329,7 +337,7 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 				})
 			})
 		}
-		acts := ui.Row(c).Gap(2).AlignItems(ui.Center)
+		acts := ui.Row(c).MaxWidthPercent(100).MinWidth(0).Gap(2).AlignItems(ui.Center)
 		if !user {
 			acts.Padding(0, 0, 0, replyIndent-6) // the icons, not their buttons, under the reply
 		}
@@ -348,7 +356,7 @@ func (a *App) message(c *ui.Context, m workspace.Event, last bool) {
 						foot += " · " + cost
 					}
 				}
-				ui.Text(c, foot).FontSize(kit.FsSmall).TextColor(a.pal.Faint).Padding(0, 6, 0, 0)
+				ui.Text(c, foot).FontSize(kit.FsSmall).TextColor(a.pal.Faint).Padding(0, 6, 0, 0).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0).Tooltip(foot)
 			}
 			if kit.IconButton(c, kit.IcQuote, "摘取-"+m.ID, ui.Color{}).Tooltip("摘取原文").KeepFocus().Disabled(a.held()).Clicked() {
 				a.openSource(m, 0, 0)

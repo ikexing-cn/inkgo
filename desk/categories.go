@@ -30,9 +30,14 @@ func (a *App) categories(c *ui.Context) {
 			ui.Text(c, "作品分类").FontSize(kit.FsTitle).FontWeight(700)
 			ui.Text(c, "“落点”指设定成熟后的去处，例如设定库或大纲。").FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody).FillWidth()
 			ui.Column(c).FillWidth().Children(func() {
-				a.pal.Hairline(c)
+				ui.Row(c).FillWidth().Padding(0, 4, 8, 4).Gap(14).Children(func() {
+					ui.Text(c, "名称").FontSize(kit.FsNote).TextColor(t.TextMuted).Width(110).Shrink(0)
+					ui.Text(c, "落点").FontSize(kit.FsNote).TextColor(t.TextMuted)
+				})
 				for _, cat := range a.Store.Work().Categories {
-					ui.Row(c.Key(cat.Name)).FillWidth().Height(kit.HBar).Padding(0, 4).Gap(14).AlignItems(ui.Center).Children(func() {
+					row := ui.Row(c.Key(cat.Name)).FillWidth().Height(kit.HBar).Padding(0, 4).Gap(14).AlignItems(ui.Center).Label("分类行-" + cat.Name)
+					shown := row.Hovered() || row.FocusWithin()
+					row.Children(func() {
 						// One with entries asks first, as they will move to 其他;
 						// an empty one goes at the click.
 						if a.removeCategory == cat.Name && counts[cat.Name] > 0 {
@@ -46,9 +51,12 @@ func (a *App) categories(c *ui.Context) {
 							return
 						}
 						ui.Text(c, cat.Name).FontSize(kit.FsBody).FontWeight(600).Width(110).Shrink(0).SingleLine().Ellipsis("…")
-						ui.Text(c, "落点："+cat.Target).FontSize(kit.FsBody).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
+						ui.Text(c, cat.Target).FontSize(kit.FsBody).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
 						ui.Textf(c, "%d 条", counts[cat.Name]).FontSize(kit.FsNote).TextColor(t.TextMuted).Shrink(0)
 						edit := a.pal.Ghost(c, "编辑", ui.Color{}).Label("编辑-" + cat.Name).Disabled(busy)
+						if !shown {
+							edit.Opacity(0)
+						}
 						if edit.Clicked() {
 							a.categoryName, a.categoryTarget, a.categoryShow = cat.Name, cat.Target, true
 						}
@@ -56,6 +64,9 @@ func (a *App) categories(c *ui.Context) {
 						del := a.pal.Ghost(c, "删除", ui.Color{}).Label("删除-" + cat.Name).Disabled(busy || cat.Name == workspace.Other)
 						if del.IsDisabled() {
 							kit.Pale(del)
+						}
+						if !shown {
+							del.Opacity(0)
 						}
 						if del.Clicked() {
 							if counts[cat.Name] > 0 {

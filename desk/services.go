@@ -115,9 +115,9 @@ func (a *App) usage(c *ui.Context) {
 func (a *App) useRow(c *ui.Context, who, what string, provider *string, none, providerLabel string, model *string, modelLabel string, effort *string, effortLabel string) (typing bool) {
 	busy := a.held()
 	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-		ui.Column(c).Width(110).Shrink(0).Children(func() {
+		ui.Column(c).Width(120).Shrink(0).Children(func() {
 			ui.Text(c, who).FontSize(kit.FsBody).FontWeight(500)
-			ui.Text(c, what).FontSize(kit.FsNote).TextColor(a.pal.Theme.TextMuted).LineHeight(kit.LhBody).SingleLine().Ellipsis("…")
+			ui.Text(c, what).FontSize(kit.FsNote).TextColor(a.pal.Theme.TextMuted).LineHeight(kit.LhBody)
 		})
 		ui.Column(c).Width(150).Shrink(0).Children(func() {
 			if a.providerSelect(c, provider, none, providerLabel, busy) {
@@ -129,7 +129,6 @@ func (a *App) useRow(c *ui.Context, who, what string, provider *string, none, pr
 		})
 		ui.Column(c).Grow(1).Shrink(1).Children(func() {
 			if none != "" && *provider == "" {
-				ui.Text(c, "与讨论使用同一模型").FontSize(kit.FsControl).TextColor(a.pal.Faint).Padding(0, 10)
 				*model = ""
 				return
 			}

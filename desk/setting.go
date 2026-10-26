@@ -296,6 +296,7 @@ func (a *App) settingList(c *ui.Context) {
 	if a.paneFind(c, &d.query, "搜索设定", "新增", func(m *kit.Menu) {
 		m.Item("已删除").Hint(kit.Count(dropped)).Do(d.route.showDropped)
 		m.Item("修改记录").Do(d.route.showHistory)
+		m.Item("作品分类").Do(func() { a.page = pageCategories })
 	}) {
 		d.route.newEntry()
 		d.text, d.category, d.name, d.names = "", a.firstCategory(), "", ""

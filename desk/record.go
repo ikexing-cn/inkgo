@@ -94,8 +94,8 @@ func (a *App) spent(c *ui.Context) {
 			if cost == "" {
 				cost = "无价格"
 			}
-			ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Center).Children(func() {
-				ui.Text(c, f.name).FontSize(kit.FsControl).Width(150).Shrink(0).SingleLine()
+			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+				ui.Text(c, f.name).FontSize(kit.FsControl).Width(120).Shrink(0).SingleLine()
 				ui.Text(c, used).FontSize(kit.FsControl).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
 				ui.Text(c, cost).FontSize(kit.FsControl).Shrink(0)
 			})

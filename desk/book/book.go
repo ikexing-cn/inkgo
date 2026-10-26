@@ -5,7 +5,11 @@
 // list, preferences) stays with the store.
 package book
 
-import "writer/workspace"
+import (
+	"errors"
+
+	"writer/workspace"
+)
 
 // Book is the content of one work, as of the last read. It is used on the
 // view thread only: the store is handed to background work as it was, and a
@@ -266,6 +270,32 @@ func (b *Book) SaveCheck(id string, k workspace.Check) error {
 	if err := b.store.WriteCheck(id, k); err != nil {
 		return err
 	}
+	b.keepCheck(id, k)
+	return nil
+}
+
+// SaveCheckOver replaces only the chapter result the caller acted on.
+func (b *Book) SaveCheckOver(id string, k, over workspace.Check) error {
+	if err := b.store.WriteCheckOver(id, k, over); err != nil {
+		return err
+	}
+	b.keepCheck(id, k)
+	return nil
+}
+
+// CheckUnchanged checks just this chapter on disk before a joint undo.
+func (b *Book) CheckUnchanged(id string, over workspace.Check) error {
+	now, err := b.store.ReadCheck(id)
+	if err != nil {
+		return err
+	}
+	if !now.Equal(over) {
+		return errors.New("本章检查结果已再次修改，无法撤销")
+	}
+	return nil
+}
+
+func (b *Book) keepCheck(id string, k workspace.Check) {
 	b.version++
 	if b.checks == nil {
 		b.checks = map[string]workspace.Check{}
@@ -275,7 +305,6 @@ func (b *Book) SaveCheck(id string, k workspace.Check) error {
 	} else {
 		b.checks[id] = k
 	}
-	return nil
 }
 
 // Revise writes a setting revision and reads the setting again, as its
@@ -287,6 +316,15 @@ func (b *Book) Revise(r workspace.Revision) (workspace.Revision, error) {
 	}
 	b.version++
 	return r, b.ReloadSetting()
+}
+
+// Unrevise removes the last revision and reads the setting left by it.
+func (b *Book) Unrevise(id string) error {
+	if err := b.store.Unrevise(id); err != nil {
+		return err
+	}
+	b.version++
+	return b.ReloadSetting()
 }
 
 // RemoveCategory removes a category, its entries going to 其他, and reads

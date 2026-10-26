@@ -57,6 +57,19 @@ type Check struct {
 	Sent     *Sent     `json:"sent,omitempty"`
 }
 
+// Equal compares the stored result, disregarding a clock's local zone or
+// monotonic reading and the empty slices JSON may leave nil.
+func (c Check) Equal(other Check) bool {
+	if c.Of != other.Of || c.Words != other.Words || c.Read != other.Read || c.By != other.By || !c.At.Equal(other.At) || !slices.Equal(c.Findings, other.Findings) {
+		return false
+	}
+	if c.Sent == nil || other.Sent == nil {
+		return c.Sent == other.Sent
+	}
+	x, y := c.Sent, other.Sent
+	return x.Rules == y.Rules && x.Setting == y.Setting && x.AsOf == y.AsOf && x.Ahead == y.Ahead && slices.Equal(x.Parts, y.Parts)
+}
+
 // ProseHash identifies a chapter's prose as it is stored.
 func ProseHash(text string) string {
 	sum := sha256.Sum256([]byte(strings.TrimSpace(CleanProse(text))))
@@ -159,6 +172,15 @@ func (s *Store) Checks() (map[string]Check, error) {
 
 // WriteCheck saves the check of document id; one of no prose removes it.
 func (s *Store) WriteCheck(id string, k Check) error {
+	return s.writeCheckOver(id, k, nil)
+}
+
+// WriteCheckOver saves only while the chapter still has result over.
+func (s *Store) WriteCheckOver(id string, k, over Check) error {
+	return s.writeCheckOver(id, k, &over)
+}
+
+func (s *Store) writeCheckOver(id string, k Check, over *Check) error {
 	unlock, err := s.lock()
 	if err != nil {
 		return err
@@ -171,6 +193,15 @@ func (s *Store) WriteCheck(id string, k Check) error {
 	n, ok := t.byID[id]
 	if !ok || n.Folder {
 		return fmt.Errorf("chapters: unknown document %q", id)
+	}
+	if over != nil {
+		current, err := s.readCheck(n)
+		if err != nil {
+			return err
+		}
+		if !current.Equal(*over) {
+			return errors.New("本章检查结果已再次修改，无法撤销")
+		}
 	}
 	p, err := s.nodePath(n, checkExt)
 	if err != nil {

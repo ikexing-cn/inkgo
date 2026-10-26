@@ -90,6 +90,7 @@ type Editor struct {
 	namesVer              int
 	nameSpans             []nameRange
 	nameBoxes             []nameBox
+	nameHover             nameRange
 	nameLayout, layoutVer int
 	openName              func(string)
 

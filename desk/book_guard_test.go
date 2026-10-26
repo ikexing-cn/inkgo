@@ -20,10 +20,10 @@ var storeBookMethods = map[string]bool{
 	"Checks": true, "ReadCheck": true,
 
 	"WriteChapter": true, "WriteChapterOver": true,
-	"WriteOutline": true, "WriteCheck": true,
+	"WriteOutline": true, "WriteCheck": true, "WriteCheckOver": true,
 	"NewChapter": true, "RenameChapter": true, "MoveChapter": true,
 	"TrashChapter": true, "RestoreChapter": true, "PurgeChapter": true,
-	"Revise": true, "RemoveCategory": true,
+	"Revise": true, "Unrevise": true, "RemoveCategory": true,
 
 	"SaveCard": true, "DeleteCard": true, "PlaceCard": true,
 	"DropCard": true, "SaveTime": true, "SaveLine": true,

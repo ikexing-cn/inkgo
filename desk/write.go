@@ -508,19 +508,24 @@ func (a *App) footBar(c *ui.Context, chapter bool) {
 	t := a.pal.Theme
 	w := &a.write
 	k := &a.ck
-	a.pal.Hairline(c)
-	foot := ui.Row(c).FillWidth().Height(kit.HRow).Gap(8).Padding(0, 24).AlignItems(ui.Center).Shrink(0)
-	roomy := foot.Bounds().W == 0 || foot.Bounds().W >= 600 // the counts give way to the check
-	wide := foot.Bounds().W == 0 || foot.Bounds().W >= 760  // and today's to the book's
+	foot := ui.Row(c).FillWidth().Height(kit.HRow).Gap(8).AlignItems(ui.Center).Shrink(0).Label("底栏")
+	foot.Padding(0, 24, 0, a.paperInset(c))
+	line, found, can, tip := a.checkState()
+	short := checkWhens[0].short
+	for _, o := range checkWhens {
+		if o.when == k.when {
+			short = o.short
+		}
+	}
 	foot.Children(func() {
 		if !chapter || !a.aiOn() {
 			ui.Spacer(c)
-			a.wordCount(c, roomy, wide)
+			a.backupLine(c)
+			a.wordCount(c)
 			return
 		}
-		line, found, can, tip := a.checkState()
 		if found > 0 {
-			b := a.pal.Ghost(c, line, ui.Color{}).Label("查看检查结果").Tooltip("前往「检查」页逐条查看").Shrink(1000)
+			b := a.pal.Ghost(c, line, ui.Color{}).Label("查看检查结果").Tooltip("前往「检查」页逐条查看").Shrink(1).MinWidth(0)
 			if b.Clicked() {
 				for _, it := range a.checkItems(false) {
 					if it.here {
@@ -530,7 +535,7 @@ func (a *App) footBar(c *ui.Context, chapter bool) {
 				}
 			}
 		} else {
-			said := ui.Text(c, line).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1000)
+			said := ui.Text(c, line).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
 			if tip != "" {
 				said.Tooltip(tip)
 			}
@@ -550,13 +555,7 @@ func (a *App) footBar(c *ui.Context, chapter bool) {
 				}
 			}
 		}
-		ui.Text(c, "·").FontSize(kit.FsNote).TextColor(a.pal.Faint)
-		short := checkWhens[0].short
-		for _, o := range checkWhens {
-			if o.when == k.when {
-				short = o.short
-			}
-		}
+		ui.Text(c, "·").FontSize(kit.FsNote).TextColor(a.pal.Faint).Shrink(0)
 		b := ui.ButtonBase(c).Label("检查时机").Shrink(0)
 		color := t.TextMuted
 		if b.Hovered() {
@@ -574,7 +573,8 @@ func (a *App) footBar(c *ui.Context, chapter bool) {
 			ui.Column(c).FillWidth().Gap(2).Children(func() { a.whenRows(c) })
 		})
 		ui.Spacer(c)
-		a.wordCount(c, roomy, wide)
+		a.backupLine(c)
+		a.wordCount(c)
 	})
 }
 
@@ -592,7 +592,24 @@ func (a *App) paperColumn(c *ui.Context) editor.TextColumn {
 	return editor.TextColumn{MaxWidth: size * 36, Margin: pad}
 }
 
-func (a *App) paperInset(c *ui.Context, width float32) float32 {
-	left, _ := a.paperColumn(c).Layout(width)
+// paperInset is where the prose starts in the page, for the rows over and
+// under it to start there too. It is worked out from this frame's widths,
+// as the editor lays out the text in the same frame.
+func (a *App) paperInset(c *ui.Context) float32 {
+	left, _ := a.paperColumn(c).Layout(a.pageWidth(c))
 	return left
+}
+
+// pageWidth is the room between the sidebar and the pane, with their
+// dividers.
+func (a *App) pageWidth(c *ui.Context) float32 {
+	win, _ := c.Size()
+	w := win
+	if side := a.sidebarWidth(win); side > 0 {
+		w -= side + 1
+	}
+	if a.paneOpen() {
+		w -= a.panelWidth(win) + 1
+	}
+	return max(w, 0)
 }

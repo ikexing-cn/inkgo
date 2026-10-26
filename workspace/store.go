@@ -24,6 +24,9 @@ type Store struct {
 	work    Work
 	closed  bool
 	cursors map[string]*jsonlCursor
+	// The last append's prefix excludes a delimiter Revise had to supply.
+	lastRevision   string
+	revisionPrefix int64
 }
 
 func (s *Store) Root() string { return s.root }

@@ -1,9 +1,11 @@
 package workspace
 
 import (
+	"bytes"
 	"cmp"
 	"errors"
 	"fmt"
+	"os"
 	"slices"
 	"strings"
 	"time"
@@ -473,7 +475,52 @@ func (s *Store) Revise(r Revision) (Revision, error) {
 	if err != nil {
 		return Revision{}, err
 	}
-	return r, appendJSONL(p, prefix, r)
+	if err := appendJSONL(p, prefix, r); err != nil {
+		return r, err
+	}
+	s.lastRevision, s.revisionPrefix = r.ID, prefix
+	return r, nil
+}
+
+// Unrevise removes id only while it is still the last revision. Earlier
+// lines keep their bytes, including formatting supplied by other editors.
+func (s *Store) Unrevise(id string) error {
+	unlock, err := s.lock()
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	set, prefix, err := s.setting(nil)
+	if err != nil {
+		return err
+	}
+	if id == "" || len(set.Revisions) == 0 || set.Revisions[len(set.Revisions)-1].ID != id {
+		return errors.New("设定已再次修改，无法撤销")
+	}
+	p, err := s.path("setting.jsonl")
+	if err != nil {
+		return err
+	}
+	data, err := os.ReadFile(p)
+	if err != nil {
+		return err
+	}
+	if int64(len(data)) != prefix {
+		return errors.New("设定已再次修改，无法撤销")
+	}
+	end := len(data)
+	if end > 0 && data[end-1] == '\n' {
+		end--
+	}
+	start := int64(bytes.LastIndexByte(data[:end], '\n') + 1)
+	if s.lastRevision == id && s.revisionPrefix <= start && bytes.Equal(data[s.revisionPrefix:start], []byte{'\n'}) {
+		start = s.revisionPrefix
+	}
+	if err := atomicWrite(p, data[:start], false); err != nil {
+		return err
+	}
+	s.lastRevision, s.revisionPrefix = "", 0
+	return nil
 }
 
 // checkChapters checks that each source in a chapter quotes its text as it

@@ -289,9 +289,11 @@ func (a *App) pendingRow(c *ui.Context, it pendItem) {
 	}
 }
 
-// ignore puts items out of the list for good.
+// ignore hides only these items from the list, leaving their marks alone.
 func (a *App) ignore(items []pendItem) {
 	w := &a.write
+	st := a.Store
+	was := maps.Clone(w.ignored)
 	if w.ignored == nil {
 		w.ignored = map[string]bool{}
 	}
@@ -299,7 +301,26 @@ func (a *App) ignore(items []pendItem) {
 		w.ignored[it.key] = true
 	}
 	w.ignoredVer++
-	a.savePrefs()
+	if err := a.savePrefs(); err != nil {
+		w.ignored = was
+		w.ignoredVer++
+		return
+	}
+	w.pendOpen = false
+	a.status.Did(fmt.Sprintf("已忽略 %d 条待处理", len(items)), func() error {
+		if a.Store != st {
+			return fmt.Errorf("作品已切换，无法撤销")
+		}
+		now := w.ignored
+		w.ignored = was
+		w.ignoredVer++
+		if err := a.savePrefs(); err != nil {
+			w.ignored = now
+			w.ignoredVer++
+			return err
+		}
+		return nil
+	})
 }
 
 // ignoredKeys is what is ignored, in order to be kept.

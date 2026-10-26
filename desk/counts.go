@@ -81,9 +81,8 @@ func (a *App) rollDay(now time.Time) bool {
 
 // wordCount is at the right of the foot: the words of what is shown or
 // selected, of the book, and of today against the goal. It opens the last
-// seven days and the goal. roomy and wide say how much of it there is room
-// for.
-func (a *App) wordCount(c *ui.Context, roomy, wide bool) {
+// seven days and the goal.
+func (a *App) wordCount(c *ui.Context) {
 	t := a.pal.Theme
 	w := &a.write
 	n, ok := a.book.Tree().Node(w.node)
@@ -109,24 +108,16 @@ func (a *App) wordCount(c *ui.Context, roomy, wide bool) {
 		today = " · 今天 " + kit.Signed(k)
 		tip += "，今天 " + kit.Signed(k) + " 字"
 	}
-	if !wide {
-		today = ""
-	}
 	color := a.pal.Faint // as the design has it, met or not: the numbers say so
-	// Whole, as in the prototype: the check line beside it gives way.
-	counts := ui.ButtonBase(c).Row().Shrink(0).Label("字数").Tooltip(tip + "。点击设置每日目标")
+	counts := ui.ButtonBase(c).Row().Shrink(1000).MinWidth(0).Label("字数").Tooltip(tip + "。点击设置每日目标")
 	if counts.Hovered() {
 		color = t.Text
 	}
 	counts.Children(func() {
-		if ok && !roomy && unit == "选中" {
-			ui.Text(c, "选中 "+kit.Words(here)).FontSize(kit.FsNote).TextColor(color).SingleLine()
-		} else if ok && !roomy {
-			ui.Text(c, kit.Words(here)).FontSize(kit.FsNote).TextColor(color).SingleLine()
-		} else if ok {
-			ui.Text(c, unit+" "+kit.Words(here)+" · 全书 "+kit.Words(a.total())+today).FontSize(kit.FsNote).TextColor(color).SingleLine()
+		if ok {
+			ui.Text(c, unit+" "+kit.Words(here)+" · 全书 "+kit.Words(a.total())+today).FontSize(kit.FsNote).TextColor(color).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
 		} else {
-			ui.Text(c, "全书 "+kit.Words(a.total())+today).FontSize(kit.FsNote).TextColor(color).SingleLine()
+			ui.Text(c, "全书 "+kit.Words(a.total())+today).FontSize(kit.FsNote).TextColor(color).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
 		}
 	})
 	if counts.Clicked() {

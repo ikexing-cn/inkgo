@@ -159,8 +159,8 @@ func (a *App) preferences(c *ui.Context) {
 
 // prefsRow is a labeled row of the settings.
 func (a *App) prefsRow(c *ui.Context, label string, fn func()) {
-	ui.Row(c).FillWidth().MinHeight(kit.HControl).Gap(12).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, label).FontSize(kit.FsBody).FontWeight(500).Width(110).Shrink(0)
+	ui.Row(c).FillWidth().MinHeight(kit.HControl).Gap(8).AlignItems(ui.Center).Children(func() {
+		ui.Text(c, label).FontSize(kit.FsBody).FontWeight(500).Width(120).Shrink(0)
 		fn()
 	})
 }

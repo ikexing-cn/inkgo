@@ -324,16 +324,29 @@ func (a *App) listedChecks() []checkItem {
 
 // setMeant records that the author means what it found.
 func (a *App) setMeant(it checkItem) {
-	had := a.book.Checks()[it.node]
+	before := a.book.Checks()[it.node]
+	had := before
+	had.Findings = slices.Clone(before.Findings)
 	for i := range had.Findings {
 		if had.Findings[i].ID == it.f.ID {
 			had.Findings[i].Meant = true
 		}
 	}
-	if err := a.book.SaveCheck(it.node, had); err != nil {
+	if err := a.book.SaveCheckOver(it.node, had, before); err != nil {
 		a.warn(err)
 		return
 	}
+	st := a.Store
+	what := "已标为「无需修改」"
+	if it.f.Kind == workspace.FindNew {
+		what = "已忽略"
+	}
+	a.status.Did(what, func() error {
+		if a.Store != st {
+			return fmt.Errorf("作品已切换，无法撤销")
+		}
+		return a.book.SaveCheckOver(it.node, before, had)
+	})
 }
 
 // checkDue lists the chapters a check of the book would read: those long
@@ -358,7 +371,7 @@ func (a *App) openCheck(id string) {
 
 // checkPending is the findings as the pending list has them.
 func (a *App) checkPending() (pendGroup, bool) {
-	g := pendGroup{name: "设定不一致", color: a.pal.Amber}
+	g := pendGroup{name: "检查", color: a.pal.Amber}
 	if !a.aiOn() {
 		return g, false
 	}
@@ -544,7 +557,6 @@ func (a *App) checkList(c *ui.Context, all, shown []checkItem) {
 	k := &a.ck
 	ui.Column(c).FillWidth().Padding(14, 20, 10, 20).Gap(10).Shrink(0).Children(func() {
 		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, "检查").FontSize(kit.FsTitle).FontWeight(700).Grow(1)
 			a.checkProgress(c)
 		})
 		names := make([]string, len(checkKinds))
@@ -606,7 +618,7 @@ func (a *App) checkProgress(c *ui.Context) {
 		if left > 0 {
 			line += fmt.Sprintf("，还有 %d 章", left)
 		}
-		ui.Text(c, line).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine()
+		ui.Text(c, line).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
 		if a.pal.Ghost(c, "停止", ui.Color{}).Clicked() {
 			k.queue.Stop()
 			k.runner.stop()
@@ -748,8 +760,8 @@ func (a *App) checkCard(c *ui.Context, head, link string, spans []ui.Span) (clic
 				clicked = a.pal.Ghost(c, link, ui.Color{}).Clicked()
 			}
 		})
-		ui.RichText(c, spans...).FontSize(kit.FsRead).LineHeight(kit.LhRead).TextColor(t.TextMuted).FillWidth().
-			Padding(12, 14).Radius(kit.RCard).Background(a.pal.Side).Border(1, a.pal.Line).Selectable()
+		ui.RichText(c, spans...).Label("检查对照-"+head).FontSize(kit.FsRead).LineHeight(kit.LhRead).TextColor(t.TextMuted).FillWidth().
+			Padding(12, 14).Radius(kit.RCard).Background(a.pal.Side).Border(1, a.pal.Line).Selectable().Grow(1)
 	})
 	return clicked
 }
@@ -834,7 +846,7 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 			if no > 0 {
 				head += fmt.Sprintf(" · 第 %d 段", no)
 			}
-			ui.Row(c).FillWidth().Gap(16).AlignItems(ui.Start).Children(func() {
+			ui.Row(c).FillWidth().Gap(16).AlignItems(ui.Stretch).Children(func() {
 				if a.checkCard(c, head, "查看原文", a.quoted(para, it.f.Quote)) {
 					toProse()
 				}

@@ -376,7 +376,7 @@ components:
 - 这里写每一处界面都要守的规则；`prototype/` 里的原型是每个界面具体的样子。两边对不上，以这里为准，改原型。
 - 这里只写作者定下来的。还在原型里等作者看的方案在 `.agents/notes/proposed/`，定了再写进来。
 - 做界面的流程（先改原型再写代码、改完怎么验证）在 `AGENTS.md`；这份文件自己怎么改，只在下面的「怎么维护」。
-- 2026-10-24「页边批注」这一版（各栏同一张纸、两边的开关、标题栏正中换页、侧栏只列东西、页边批注、底栏的备份、动起来的地方）先改在原型里，软件分几段跟上，还没跟完：各栏同一张纸、两边的开关、正中换页、侧栏、标签页已经跟上，底栏的备份、页边批注、动起来的地方还没有，这几样下面写的 `go test ./desk` 查的还是旧的样子。来龙去脉和跟到哪了在 `.agents/notes/proposed/feature/2026-10-24-margin-notes.md`。
+- 2026-10-24「页边批注」这一版（各栏同一张纸、两边的开关、标题栏正中换页、侧栏只列东西、页边批注、底栏的备份、动起来的地方）先改在原型里，软件分几段跟上，还没跟完：各栏同一张纸、两边的开关、正中换页、侧栏、标签页、底栏的备份已经跟上，页边批注、动起来的地方还没有，这两样下面写的 `go test ./desk` 查的还是旧的样子。来龙去脉和跟到哪了在 `.agents/notes/proposed/feature/2026-10-24-margin-notes.md`。
 
 ### 怎么维护
 
@@ -513,7 +513,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab；起草�
 检查：
 
 - `npm run verify-prototype` 的「the outline by chapter」「the timeline」「the chapter in the story」查原型：添加、继续添加、改卡片、拖到另一格、改章纲、情节线的增删改和挪位置、改一列的时间、滚动时不动的那一列和表头、搜索的计数和什么都没找到的那一页、正文里「故事中」那一行跳到时间线；「an outline file broken outside」查大纲文件读不出来时整页只留一句话，没有「重试」，改好后自己回来。
-- `go test ./workspace` 的 `TestOutlineCardOrderAndStorage`、`TestOutlineChapterLifecycle`、`TestOutlineMalformedFile`、`TestOutlineTimeColumnsAndDrops`、`TestOutlinesReadWithoutProse`、`TestPurgeChapterWithMalformedOutline`、`TestOutlineErrorSaysWhere`；`go test ./desk` 的 `TestTheOutlineByChapter`、`TestOutlinePlotLines`、`TestOutlineSearch`、`TestTheOutlineTimeline`、`TestTheChapterInTheStory`、`TestOutlineStaysAtTheEdges`、`TestOutlineTrashAndSettingsPane`、`TestOutlineReadError`、`TestOutlineFrameCost`、`TestOutlineVirtualScrolling`、`TestOutlineVirtualDrag`、`TestNamesInTheProse`；`go test ./shelf` 的 `TestShelfNameHighlights`；`cmd/inkgo` 的 `TestLayoutOutline`。
+- `go test ./workspace` 的 `TestOutlineCardOrderAndStorage`、`TestOutlineChapterLifecycle`、`TestOutlineMalformedFile`、`TestOutlineTimeColumnsAndDrops`、`TestOutlinesReadWithoutProse`、`TestPurgeChapterWithMalformedOutline`、`TestOutlineErrorSaysWhere`；`go test ./desk` 的 `TestTheOutlineByChapter`、`TestOutlinePlotLines`、`TestOutlineSearch`、`TestTheOutlineTimeline`、`TestTheChapterInTheStory`、`TestOutlineStaysAtTheEdges`、`TestOutlineTrashAndSettingsPane`、`TestOutlineReadError`、`TestOutlineFrameCost`、`TestOutlineVirtualScrolling`、`TestOutlineVirtualDrag`、`TestNamesInTheProse`；`go test ./desk/outline` 的 `TestCardsFloatOnHoverAndWhenSeen`；`go test ./shelf` 的 `TestShelfNameHighlights`；`cmd/inkgo` 的 `TestLayoutOutline`。
 
 ## Colors
 
@@ -663,7 +663,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab；起草�
 - 图标按提示条说的事配：做完了一件事（「已保存」「已加入设定」）带 `success` 的勾，出了错带 `danger` 的警告。
 - 告诉作者先做什么、或者这次没什么可做（「各章均已检查，正文无新改动」）的不带图标：配了勾看着像做成了。
 
-检查：`npm run verify-prototype` 的「the whole book checked」和复制全文那一步，`go test ./desk` 的 `TestAHintHasNoMark`。
+检查：`npm run verify-prototype` 的「the whole book checked」和复制全文那一步，`go test ./desk` 的 `TestAHintHasNoMark`、`TestUndoToastAtTheBottom`、`TestCheckDecisionsUndoTheChapterResult`、`TestChangeDecisionsUndoTogether`、`TestIgnorePendingOnlyHidesTheListAndUndoes`、`TestUndoRefusesAReplacedChapterCheck`、`TestTakingAChangeRollsBackWhenTheCheckCannotSave`；`go test ./workspace` 的 `TestUnreviseRestoresTheSettingAndItsBytes`、`TestUnreviseRefusesALaterRevision`、`TestWriteCheckOverGuardsOnlyItsChapter`；`go test ./desk/book` 的 `TestUnreviseUpdatesTheCopy`、`TestSaveCheckOverUpdatesOnlyOnSuccess`。
 
 ### 标题栏
 
@@ -684,7 +684,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab；起草�
 检查：
 
 - `npm run verify-prototype` 的「the title bar, and both sides put away on every page」（两个开关在每一页都在原处、右栏的开关紧挨窗口按钮、右栏里没有自己的开关）、「fold the pane」「the menus」，专注写作那几步查「退出专注」在「专注写作」原处。
-- `go test ./desk` 的 `TestTheTitleBarHasItsOwnRow`、`TestTheSidebarIsPutAwayOnEveryPage`、`TestThePaneSwitchStaysOnEveryPage`、`TestWritingToolsKeepTheirPlaces`、`TestTheMenusDoWhatTheySay`、`TestMenuRowsOffThePageOfProse`、`TestAMenuOpensOnASlowClick`、`TestTheBarGivesTheCaretBack`、`TestShelfKeepsTheWorks`（作品的菜单）。
+- `go test ./desk` 的 `TestTheTitleBarHasItsOwnRow`、`TestTheSidebarIsPutAwayOnEveryPage`、`TestThePaneSwitchStaysOnEveryPage`、`TestWritingToolsKeepTheirPlaces`、`TestTheMenusDoWhatTheySay`、`TestMenuRowsOffThePageOfProse`、`TestAMenuOpensOnASlowClick`、`TestTheBarGivesTheCaretBack`、`TestShelfKeepsTheWorks`（作品的菜单）、`TestShelfCardsFillTheFirstFrame`。
 
 ### 菜单
 
@@ -701,7 +701,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab；起草�
 - 别的都不放：换页在标题栏正中，备份在底栏，新建文件夹、作品分类、回收站、设置在「文件」菜单。
 - 窗口窄了（软件里窄过 1180），侧栏、右栏、纸边都窄一些，正文一行还放得下三十来个字；侧栏照常列章节、讨论，不收成一列图标。
 
-检查：`npm run verify-prototype` 的「a narrow window」「naming in the tree」「AI turned off」；`go test ./desk` 的 `TestANarrowSidebarKeepsItsLists`、`TestTheSidebarOnlyListsObjects`、`TestTheRowsShareThePaper`、`TestListNumbersFollowKeyboardAndMenus`、`TestThePaneLeavesRoomForThePage`。
+检查：`npm run verify-prototype` 的「a narrow window」「naming in the tree」「AI turned off」；`go test ./desk` 的 `TestANarrowSidebarKeepsItsLists`、`TestTheSidebarOnlyListsObjects`、`TestTheRowsShareThePaper`、`TestTheRowsMoveWithThePaperAtOnce`、`TestListNumbersFollowKeyboardAndMenus`、`TestThePaneLeavesRoomForThePage`、`TestCategoryActionsFollowHoverAndKeyboard`、`TestTheLastReplyToolsOnlyAppearOnHover`。
 
 ### 底栏
 
@@ -709,7 +709,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab；起草�
 - 备份好好的时候只写「已备份」，时间在悬停和点开里；在备份、失败、还没备份时照直写（「正在备份…」「备份失败」「尚未备份」），点开是备份到哪、下次什么时候、「立即备份」。
 - 放不下时先省字数，再省检查的那句：查出来的那句最要紧；别的不折行。
 
-检查：`npm run verify-prototype` 的「back up now」「a first backup」「a backup that failed」。
+检查：`npm run verify-prototype` 的「back up now」「a first backup」「a backup that failed」；`go test ./desk` 的 `TestFirstBackup`、`TestBackupFails`、`TestFooterBackupOnEveryWritingView`、`TestFooterGivesUpCountsBeforeTheCheck`、`TestFooterFollowsThePaper`。
 
 ### 就地输入
 
@@ -744,7 +744,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab；起草�
 - 「批注」标签不带数：几条就在页边。别的标签上的数是那一页里等作者处理的几条：待确认的设定；原句已删、久未回收的伏笔。
 - AI 关着时只有伏笔的批注。
 
-检查：`npm run verify-prototype` 的「the margin」（先后、和那一句对齐、滚动后还对齐、点了去哪、忽略了能撤销）、「what is pending」（分组、全部忽略以后批注还在、能撤销）、「AI turned off」。
+检查：`npm run verify-prototype` 的「the margin」（先后、和那一句对齐、滚动后还对齐、点了去哪、忽略了能撤销）、「what is pending」（分组、全部忽略以后批注还在、能撤销）、「AI turned off」；`go test ./editor` 的 `TestOnlyTheHoveredNameHasALine`；`go test ./desk` 的 `TestForeshadowTabCountsLostAndLate`。
 
 ### 标签页和保存
 
@@ -759,7 +759,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab；起草�
 检查：
 
 - `npm run verify-prototype` 的「closing with words not saved」。
-- `go test ./desk` 的 `tabs_test.go`：`TestChaptersOpenInTabs`（点章开标签、点卷不开）、`TestATabKeepsItsEditor`、`TestClosingAsksAboutUnsavedWords`（圆点、先问、问着不存、三个回答）、`TestTabsComeBackWithTheWork`；`TestTheRowsShareThePaper`、`TestTheEditorFillsTheWritingArea`；`go test ./editor` 的 `TestTextColumnReflowsInsideTheViewport`、`TestTextColumnKeepsTheMarginsAndScrollBar`。
+- `go test ./desk` 的 `tabs_test.go`：`TestChaptersOpenInTabs`（点章开标签、点卷不开）、`TestATabKeepsItsEditor`、`TestClosingAsksAboutUnsavedWords`（圆点、先问、问着不存、三个回答）、`TestTabsComeBackWithTheWork`；`TestTheRowsShareThePaper`、`TestTheRowsMoveWithThePaperAtOnce`、`TestTheEditorFillsTheWritingArea`；`go test ./editor` 的 `TestTextColumnReflowsInsideTheViewport`、`TestTextColumnKeepsTheMarginsAndScrollBar`。
 
 ### 手机预览
 

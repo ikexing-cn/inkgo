@@ -98,11 +98,11 @@ func (a *App) trashView(c *ui.Context) {
 								}
 								return
 							}
+							if a.pal.Ghost(c, "彻底删除", t.Danger).Clicked() {
+								w.purge = it.ID
+							}
 							if a.pal.Secondary(c, "恢复").Label("恢复-" + it.Title).Clicked() {
 								a.restore(it.ID, it.Title)
-							}
-							if a.pal.Ghost(c, "彻底删除", ui.Color{}).Clicked() {
-								w.purge = it.ID
 							}
 						})
 						a.pal.Hairline(c)

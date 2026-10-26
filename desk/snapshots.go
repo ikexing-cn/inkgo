@@ -222,6 +222,7 @@ func (a *App) restoreSnapshot() {
 		return
 	}
 	w.cur().ed = a.chapterEditor(w.snapText, w.snaps[i].Marks)
+	w.cur().ed.Select(0, 0)
 	w.cur().savedVer = -1
 	if err := a.saveText(); err != nil {
 		a.warn(err)

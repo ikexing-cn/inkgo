@@ -13,6 +13,7 @@ func TestRestoreASnapshot(t *testing.T) {
 	a, tt, id := writingFixture(t, "第一版。")
 	shownEditor(a).MoveTo(shownEditor(a).Doc.Len(), false)
 	shownEditor(a).Insert("加了一句。")
+	shownEditor(a).Select(0, 3)
 	tt.Frame()
 	if err := clickMenu(tt, "文件", "菜单-快照"); err != nil {
 		t.Fatal(err)
@@ -27,6 +28,9 @@ func TestRestoreASnapshot(t *testing.T) {
 	tt.Frame()
 	if got := disk(t, a, "第一章.txt"); got != "第一版。" || shownEditor(a).Doc.String() != "第一版。" {
 		t.Fatalf("restored %q", got)
+	}
+	if s, e := shownEditor(a).Selection(); s != e || tt.HasText("AI 改写") || tt.HasText("加入设定") {
+		t.Fatal("the selection bar remained after restoring", tt.Texts())
 	}
 	snaps, _ := a.Store.Snapshots(id)
 	if snaps[0].Reason != workspace.SnapRestore {

@@ -14,10 +14,14 @@ func (e *Editor) View(c *ui.Context) ui.Element {
 	el := ui.Box(c).Focusable().FocusRing(false).Cursor(ui.CursorText).Clip().Label("正文")
 	x, y, over := el.PointerPosition()
 	e.barHot = over && e.onBar(x)
+	e.nameHover = nameRange{}
+	if over && !e.barHot && !e.barDrag {
+		e.nameHover = e.nameRangeAt(x, y)
+	}
 	switch {
 	case e.barHot || e.barDrag:
 		el.Cursor(ui.CursorDefault)
-	case over && e.nameAt(x, y) != "":
+	case e.nameHover.entry != "":
 		el.Tooltip("查看设定").Cursor(ui.CursorPointer)
 	}
 	if e.wantFocus {

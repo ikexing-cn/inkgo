@@ -93,3 +93,33 @@ func TestStatusClearDropsEverything(t *testing.T) {
 		t.Fatalf("clear left %+v", s)
 	}
 }
+
+func TestStatusUndoBelongsToOneNotice(t *testing.T) {
+	s := Status{}
+	calls := 0
+	s.Did("已忽略", func() error { calls++; return nil })
+	first := s.NoticeSerial()
+	s.Undo()
+	s.Undo()
+	if calls != 1 || s.NoticeText() != "" || s.CanUndo() {
+		t.Fatal("undo was not retired", s)
+	}
+	s.Did("已忽略", func() error { calls++; return nil })
+	if s.NoticeSerial() == first {
+		t.Fatal("a repeated notice reused its lifetime")
+	}
+	s.Did("已保存")
+	s.Undo()
+	if calls != 1 || s.CanUndo() {
+		t.Fatal("a later notice kept an earlier undo")
+	}
+	s.Did("已忽略", func() error { return errors.New("disk full") })
+	s.Undo()
+	if !s.CanUndo() || s.NoticeText() == "" || s.ErrorText() != "disk full" {
+		t.Fatal("failed undo was lost", s)
+	}
+	s.CloseNotice("已忽略")
+	if s.CanUndo() {
+		t.Fatal("a closed toast kept undo")
+	}
+}

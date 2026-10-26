@@ -218,5 +218,5 @@ func (a *App) takeChange(e workspace.Entry, g workspace.Change) {
 			ops = append(ops, workspace.Op{Op: workspace.OpDropChange, Entry: e.ID, Change: x.ID})
 		}
 	}
-	a.revise(append(ops, workspace.Op{Op: workspace.OpEditChange, Entry: e.ID, Change: g.ID, Place: workspace.PlaceBody})...)
+	a.undoSetting("已记到「"+shortName(e)+"」· "+kit.FromLabel(a.book.Tree(), g.From), append(ops, workspace.Op{Op: workspace.OpEditChange, Entry: e.ID, Change: g.ID, Place: workspace.PlaceBody})...)
 }

@@ -59,6 +59,7 @@ func (a *App) resizer(c *ui.Context, width float32) {
 type paneKey struct {
 	fores foreshadowKey
 	ai    bool
+	late  int
 }
 
 type paneNums struct {
@@ -66,11 +67,11 @@ type paneNums struct {
 }
 
 func (a *App) paneCounts() paneNums {
-	key := paneKey{a.foreshadowKey(), a.aiOn()}
+	key := paneKey{a.foreshadowKey(), a.aiOn(), a.write.lateAfter}
 	return a.write.pane.get(key, func() paneNums {
 		n := paneNums{open: len(a.ideas())}
 		for _, f := range a.foreshadows() {
-			if f.Status() == workspace.ForeLost {
+			if f.Status() == workspace.ForeLost || f.Late(a.write.lateAfter) {
 				n.waiting++
 			}
 		}

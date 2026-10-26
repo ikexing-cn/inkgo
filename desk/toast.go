@@ -18,7 +18,7 @@ var noticeFor = 3 * time.Second
 const toastsShown = 2
 
 // toasts float the error, the request running, what was done and what to
-// do first at the top right, over every page and dialog: none of them pushes
+// do first at the bottom right, over every page and dialog: none of them pushes
 // the page down.
 // The fields stay the state; a toast shows each while it is set, and
 // closing the toast clears it.
@@ -35,26 +35,28 @@ func (a *App) toasts(c *ui.Context) {
 	a.syncToast(c, "busy", busy, busy, -1, func() {})
 	a.syncToast(c, "error", errText, errKey, -1, a.status.CloseError)
 	notice := a.status.NoticeText()
-	a.syncToast(c, "notice", notice, notice, noticeFor, func() {
-		a.status.CloseNotice(notice)
+	serial := a.status.NoticeSerial()
+	a.syncToast(c, "notice", notice, strconv.Itoa(serial), noticeFor, func() {
+		if a.status.NoticeSerial() == serial {
+			a.status.CloseNotice(notice)
+		}
 	})
 	hint := a.status.HintText()
 	a.syncToast(c, "hint", hint, hint, noticeFor, func() {
 		a.status.CloseHint(hint)
 	})
 	ui.ToastViewportBase(c, func(v ui.Element, list []ui.Toast) {
-		v.Justify(ui.Start).AlignItems(ui.End).Gap(8).Padding(2*kit.TitleHeight+12, 16, 0, 0) // under the title bar and the page's top row
+		v.Justify(ui.End).AlignItems(ui.End).Gap(8).Padding(0, 12, kit.HRow+8, 0)
 		if len(list) <= toastsShown {
 			a.toastsOpen = false
 		}
-		shown := 0
-		for i := len(list) - 1; i >= 0; i-- { // the newest on top
-			if shown == toastsShown && !a.toastsOpen {
-				a.pal.MoreToasts(c, i+1, &a.toastsOpen)
-				break
-			}
+		start := 0
+		if len(list) > toastsShown && !a.toastsOpen {
+			start = len(list) - toastsShown
+			a.pal.MoreToasts(c, start, &a.toastsOpen)
+		}
+		for i := start; i < len(list); i++ { // the newest at the bottom
 			a.pal.ToastCard(c, list[i], &a.status, noticeFor, func() { a.toastActions(c, list[i]) })
-			shown++
 		}
 	})
 }
@@ -72,6 +74,7 @@ func (a *App) syncToast(c *ui.Context, id, text, key string, life time.Duration,
 		c.CloseToast(id)
 	case text != "" && a.toastShown[id] != key:
 		a.toastShown[id] = key
+		c.CloseToast(id)
 		title, detail := kit.SplitToast(text)
 		c.AddToast(ui.Toast{ID: id, Type: id, Title: title, Description: detail, Timeout: life, OnClose: func() {
 			if a.toastShown[id] == key {
@@ -86,6 +89,10 @@ func (a *App) syncToast(c *ui.Context, id, text, key string, life time.Duration,
 func (a *App) toastActions(c *ui.Context, ts ui.Toast) {
 	var acts []kit.ToastAction
 	switch ts.Type {
+	case "notice":
+		if a.status.CanUndo() {
+			acts = append(acts, kit.ToastAction{Label: "撤销", Name: "撤销提示", Fn: a.status.Undo})
+		}
 	case "busy":
 		acts = append(acts, kit.ToastAction{Label: "取消", Fn: func() {
 			if a.cancel != nil {

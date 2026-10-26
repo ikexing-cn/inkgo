@@ -707,10 +707,9 @@ func (p *Page) cardView(c *ui.Context, e workspace.Card, timeline, tray bool) {
 	if b.Hovered() {
 		b.Border(1, pal.Control).Translate(0, -2)
 		pal.Pop.On(b)
-	} else {
-		pal.Raise.On(b)
 	}
 	if b.Dragging() {
+		pal.Pop.On(b)
 		p.dragging = e.ID
 	} else if p.dragging == e.ID {
 		p.dragging = ""

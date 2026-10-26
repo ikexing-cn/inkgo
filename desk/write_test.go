@@ -260,8 +260,9 @@ func TestNarrowWindowKeepsThePage(t *testing.T) {
 	tt := ui.NewTester(a.View, 1000, 700)
 	tt.Frame()
 	tt.Frame()
-	if !tt.HasText("8 字") || tt.HasText("全书 8 字") {
-		t.Fatal(tt.Texts())
+	backup, count := find(t, tt, "备份状态"), find(t, tt, "字数")
+	if !tt.HasText("尚未备份") || backup.X+backup.W+8 > count.X+1 || count.X+count.W > 657.1 {
+		t.Fatal(backup, count, tt.Texts())
 	}
 }
 

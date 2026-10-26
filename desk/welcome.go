@@ -296,6 +296,10 @@ func length(n int) string {
 
 func (a *App) welcome(c *ui.Context) {
 	t := a.pal.Theme
+	// The shelf has the window to itself: the cards' columns come from its
+	// width in this frame, as wide as the column below fits.
+	win, _ := c.Size()
+	width := min(940, win-2*32)
 	ui.Scroll(c).Fill().Children(func() {
 		books := a.shelf.Recent()
 		if len(books) == 0 {
@@ -303,7 +307,7 @@ func (a *App) welcome(c *ui.Context) {
 			return
 		}
 		ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(64, 32, 40, 32).Children(func() {
-			ui.Column(c).FillWidth().MaxWidth(940).Gap(24).Children(func() {
+			ui.Column(c).FillWidth().MaxWidth(940).Gap(24).Label("书架内容").Children(func() {
 				ui.Row(c).FillWidth().AlignItems(ui.End).Gap(8).Children(func() {
 					ui.Column(c).Grow(1).Shrink(1).Gap(6).Children(func() {
 						ui.Text(c, "我的作品").FontSize(kit.FsDisplay).FontWeight(700)
@@ -326,9 +330,12 @@ func (a *App) welcome(c *ui.Context) {
 					}
 				})
 				if a.shelf.Cards {
-					ui.Row(c).FillWidth().Wrap().Gap(16).Children(func() {
+					cards := ui.Row(c).FillWidth().Wrap().Gap(16)
+					cols := max(1, int((width+16)/(220+16)))
+					cardWidth := max(220, (width-float32(cols-1)*16)/float32(cols))
+					cards.Children(func() {
 						for _, b := range books {
-							a.bookCard(c, b)
+							a.bookCard(c, b, cardWidth)
 						}
 					})
 				} else {
@@ -453,10 +460,10 @@ func (a *App) bookRow(c *ui.Context, b shelf.Book) {
 	})
 }
 
-func (a *App) bookCard(c *ui.Context, b shelf.Book) {
+func (a *App) bookCard(c *ui.Context, b shelf.Book, width float32) {
 	t := a.pal.Theme
 	gone := a.books.missing[b.Path]
-	card := ui.ButtonBase(c.Key("c-"+b.Path)).Column().Justify(ui.Start).AlignItems(ui.Stretch).Width(220).Height(168).Padding(16).Gap(8).Radius(kit.RDialog).Border(1, t.Border).Background(t.Surface).Label("作品-" + b.Name)
+	card := ui.ButtonBase(c.Key("c-"+b.Path)).Column().Justify(ui.Start).AlignItems(ui.Stretch).Width(width).Height(168).Padding(16).Gap(8).Radius(kit.RDialog).Border(1, t.Border).Background(t.Surface).Label("作品-" + b.Name)
 	if card.Hovered() && !gone {
 		card.Background(t.SurfaceHover)
 	}

@@ -127,21 +127,27 @@ func (e *Editor) visibleNames(top, bottom float32, fn func(nameBox)) {
 // nameAt hits actual glyph extents, including wrapped names; empty space
 // near a name must still place the caret normally.
 func (e *Editor) nameAt(x, y float32) string {
+	return e.nameRangeAt(x, y).entry
+}
+
+func (e *Editor) nameRangeAt(x, y float32) nameRange {
 	e.ensureLayout()
 	l := &e.lay
-	var entry string
+	var hit nameRange
 	y += e.scrollY
 	e.visibleNames(y-l.lineH, y, func(box nameBox) {
-		if entry == "" && x >= l.left+box.x0 && x < l.left+box.x1 && y < box.y+l.lineH {
-			entry = box.span.entry
+		if hit.entry == "" && x >= l.left+box.x0 && x < l.left+box.x1 && y < box.y+l.lineH {
+			hit = box.span
 		}
 	})
-	return entry
+	return hit
 }
 
 func (e *Editor) paintNames(p *ui.Painter, ox, oy, top, bottom float32) {
 	l := &e.lay
 	e.visibleNames(top, bottom, func(box nameBox) {
-		dashed(p, ox+box.x0, ox+box.x1, oy+box.y+l.lineH-5, p.Theme().TextMuted.Alpha(0.3))
+		if box.span == e.nameHover {
+			dashed(p, ox+box.x0, ox+box.x1, oy+box.y+l.lineH-5, p.Theme().TextMuted.Alpha(0.3))
+		}
 	})
 }

@@ -8,6 +8,8 @@ type Status struct {
 	fails  int    // and how many times in a row
 	again  func() // runs that request again
 	notice string // what was done
+	undo   func() error
+	serial int
 	tip    string // what to do first
 }
 
@@ -57,7 +59,29 @@ func (s *Status) RetryAction() func() {
 }
 
 // Did says what was done.
-func (s *Status) Did(what string) { s.notice = what }
+func (s *Status) Did(what string, undo ...func() error) {
+	s.notice, s.undo = what, nil
+	s.serial++
+	if len(undo) > 0 {
+		s.undo = undo[0]
+	}
+}
+
+func (s *Status) NoticeSerial() int { return s.serial }
+
+func (s *Status) CanUndo() bool { return s.undo != nil }
+
+// Undo retires the offer only after its writes succeed.
+func (s *Status) Undo() {
+	if s.undo == nil {
+		return
+	}
+	if err := s.undo(); err != nil {
+		s.Warn(err)
+		return
+	}
+	s.notice, s.undo = "", nil
+}
 
 func (s *Status) NoticeText() string { return s.notice }
 
@@ -65,6 +89,7 @@ func (s *Status) NoticeText() string { return s.notice }
 func (s *Status) CloseNotice(what string) {
 	if s.notice == what {
 		s.notice = ""
+		s.undo = nil
 	}
 }
 

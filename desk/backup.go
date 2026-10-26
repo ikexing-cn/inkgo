@@ -19,7 +19,7 @@ type backupView struct {
 	running bool
 	done    chan struct{}
 	policy  backup.Policy
-	open    bool // the sidebar line's popover
+	open    bool // the footer line's popover
 	chip    bool // the title bar's warning popover
 	// The first-open dialog: whether it shows, the folder chosen, and when.
 	ask            bool
@@ -267,36 +267,51 @@ func next(s backup.Settings, now time.Time) string {
 	return "仅在点击「立即备份」时"
 }
 
-// backupLine is the sidebar's small line of how the backups go; it opens
+func (a *App) backupText() string {
+	s, _ := a.backupSettings()
+	switch {
+	case a.bk.running:
+		return "正在备份…"
+	case a.bk.policy.Failed():
+		return "备份失败"
+	case s.Dir == "" || s.Last.IsZero():
+		return "尚未备份"
+	default:
+		return "已备份"
+	}
+}
+
+// backupLine is the footer's small line of how the backups go; it opens
 // what they are and what to do.
 func (a *App) backupLine(c *ui.Context) {
-	s, ok := a.backupSettings()
-	if !ok || s.Dir == "" {
+	s, _ := a.backupSettings()
+	if a.Store == nil {
 		return
 	}
 	t := a.pal.Theme
-	text, color, weight := "已备份 · "+kit.When(s.Last, time.Now()), a.pal.Faint, 400
-	switch {
-	case a.bk.running:
-		text = "正在备份…"
-	case a.bk.policy.Failed():
-		text, color, weight = "备份失败", t.Text, 500
-	case s.Last.IsZero():
-		text = "尚未备份"
+	text, dot := a.backupText(), a.pal.Faint
+	tip := "已备份 · " + kit.When(s.Last, time.Now())
+	if text == "备份失败" || text == "尚未备份" {
+		dot = a.pal.Amber
 	}
-	b := ui.ButtonBase(c).Row().FillWidth().Height(kit.HControlSm).Justify(ui.Start).AlignItems(ui.Center).Gap(8).Padding(0, 10, 0, 14).Radius(kit.RControl).Label("备份状态")
+	if text != "已备份" {
+		tip = text
+	}
+	// Set apart from the counts: one is of the work, the other of words.
+	b := ui.ButtonBase(c).Row().Height(kit.HControlSm).AlignItems(ui.Center).Gap(6).Margin(0, 8, 0, 0).Shrink(0).Label("备份状态").Tooltip(tip).KeepFocus()
+	color := a.pal.Faint
 	if b.Hovered() {
-		b.Background(t.SurfaceHover)
+		color = t.Text
 	}
 	b.Children(func() {
-		kit.Dot(c, color, 6)
-		ui.Text(c, text).FontSize(kit.FsNote).FontWeight(weight).TextColor(color).SingleLine().Ellipsis("…").Shrink(1)
+		kit.Dot(c, dot, 6)
+		ui.Text(c, text).FontSize(kit.FsNote).TextColor(color).SingleLine()
 	})
 	if b.Clicked() {
 		a.bk.open = !a.bk.open
 	}
 	ui.PopoverBase(c, b, &a.bk.open, func(panel ui.Element) {
-		panel.AttachTo(b, ui.AnchorTopLeft, ui.AnchorBottomLeft).Margin(0, 0, 4, 0)
+		panel.AttachTo(b, ui.AnchorTopRight, ui.AnchorBottomRight).Margin(0, 0, 4, 0)
 		a.backupCard(c, panel, s)
 	})
 }
@@ -340,7 +355,18 @@ func (a *App) backupCard(c *ui.Context, panel ui.Element, s backup.Settings) {
 	// As wide as what it says, and no wider than a note reads well.
 	a.pal.Pop.On(panel.MaxWidth(300).Radius(kit.RCard).Padding(12).Gap(8).Background(bg).Border(1, t.Border))
 	panel.Children(func() {
-		if a.bk.policy.Failed() {
+		if s.Dir == "" {
+			ui.Text(c, "尚未备份").FontSize(kit.FsBody).FontWeight(600)
+			ui.Text(c, "作品目前仅保存在本机。").FontSize(kit.FsNote).TextColor(t.TextMuted)
+			ui.Row(c).FillWidth().Justify(ui.End).Children(func() {
+				if a.pal.Primary(c, "选择位置…").Clicked() {
+					a.bk.open = false
+					a.openAsk()
+				}
+			})
+			return
+		}
+		if a.bk.policy.Failed() && !a.bk.running {
 			_, title, body := a.bk.policy.Trouble(s.Dir)
 			ui.Text(c, title).FontSize(kit.FsBody).FontWeight(600)
 			ui.Text(c, body+lastSaid(s, now)).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
@@ -362,6 +388,9 @@ func (a *App) backupCard(c *ui.Context, panel ui.Element, s backup.Settings) {
 			return
 		}
 		title := kit.When(s.Last, now) + " 已备份"
+		if kit.DayOf(s.Last, now) == "今天" {
+			title = s.Last.Local().Format("15:04") + " 已备份"
+		}
 		if s.Last.IsZero() {
 			title = "尚未备份"
 		}

@@ -54,7 +54,7 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 	if w.fore.paying || hintOf(a) == "" {
 		t.Fatal("paying off without a passage")
 	}
-	setHint(a, "") // the hint floats over the top of the column
+	setHint(a, "") // the hint floats over the foot of the column
 	shownEditor(a).Select(0, 18)
 	a.openPay("")
 	tt.Frame()

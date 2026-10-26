@@ -15,13 +15,13 @@ import (
 func (a *App) paneFind(c *ui.Context, query *string, hint, add string, more func(m *kit.Menu)) (added bool) {
 	t := a.pal.Theme
 	ui.Row(c).FillWidth().Gap(8).Padding(12, 20).AlignItems(ui.Center).Shrink(0).Children(func() {
-		box := ui.Row(c).Grow(1).Shrink(1).Height(kit.HControl).Gap(8).Padding(0, 10).AlignItems(ui.Center).Radius(kit.RControl).Background(a.pal.Canvas).Border(1, t.Border).Label(hint + "框")
+		box := ui.Row(c).Grow(1).Shrink(1).MinWidth(0).Height(kit.HControl).Gap(8).Padding(0, 10).AlignItems(ui.Center).Radius(kit.RControl).Background(a.pal.Canvas).Border(1, t.Border).Label(hint + "框")
 		if box.FocusWithin() {
 			box.Border(1, a.pal.Ink)
 		}
 		box.Children(func() {
 			kit.Glyph(c, kit.IcSearch, kit.IconSm, a.pal.Faint)
-			ui.TextInputBase(c, query).Label(hint).Placeholder(hint).Grow(1).Shrink(1).FontSize(kit.FsBody)
+			ui.TextInputBase(c, query).Label(hint).Placeholder(hint).Grow(1).Shrink(1).MinWidth(0).FontSize(kit.FsBody)
 		})
 		if add != "" {
 			b := ui.ButtonBase(c).Row().Height(kit.HControl).Gap(6).Padding(0, 12).AlignItems(ui.Center).Radius(kit.RControl).Background(a.pal.Canvas).Border(1, t.Border).Shrink(0).Label(add)

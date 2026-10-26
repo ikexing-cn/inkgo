@@ -53,7 +53,7 @@ func (a *App) idea(c *ui.Context, it workspace.Idea, about string) {
 		kit.PaneButtons(c, func() {
 			if a.pal.PaneButton(c, "忽略", false).Label("忽略-" + it.ID()).Clicked() {
 				if g.ID != "" {
-					a.revise(workspace.Op{Op: workspace.OpDropChange, Entry: e.ID, Change: g.ID})
+					a.undoSetting("已忽略", workspace.Op{Op: workspace.OpDropChange, Entry: e.ID, Change: g.ID})
 				} else {
 					a.revise(workspace.Op{Op: workspace.OpMove, Entry: e.ID, Place: workspace.PlaceDropped})
 				}

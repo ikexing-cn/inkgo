@@ -94,7 +94,7 @@ func (a *App) sheets(c *ui.Context) {
 	}
 	var shut []string
 	row := ui.Row(c).FillWidth().Height(kit.HBar).Background(a.pal.Canvas).Shrink(0).BorderWidth(0, 0, 1, 0).BorderColor(a.pal.Line).Label("标签行")
-	row.Padding(0, 0, 0, a.paperInset(c, row.Bounds().W)).Children(func() {
+	row.Padding(0, 0, 0, a.paperInset(c)).Children(func() {
 		ui.Row(c).Gap(2).AlignItems(ui.Center).Margin(0, 8, 0, -8).Shrink(0).Children(func() {
 			if a.stepButton(c, kit.IcBack, "上一个打开的章节").Disabled(len(w.back) == 0).Clicked() {
 				a.stepHistory(false)
