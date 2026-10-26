@@ -35,9 +35,9 @@ func (a *App) loadPrefs() {
 	}
 	a.doc.width, a.doc.tab, a.doc.attach = p.PanelWidth, paneTab(p.PaneTab), !p.NoAttach
 	switch a.doc.tab {
-	case paneSetting, paneTalk, paneFore, panePhone:
+	case paneMargin, paneSetting, paneTalk, paneFore, panePhone:
 	default:
-		a.doc.tab = paneSetting
+		a.doc.tab = paneMargin
 	}
 	a.write.lateAfter, a.write.fore = p.LateAfter, foreState{}
 	a.ck.when = checkOnLeave

@@ -254,6 +254,7 @@ func TestShotMenus(t *testing.T) {
 	shot(t, tt, "menu-work.png")
 	shut()
 
+	click(t, tt, "右栏-设定")
 	if err := tt.Click("更多"); err != nil { // the dots over the setting
 		t.Fatal(err)
 	}

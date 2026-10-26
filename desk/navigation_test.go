@@ -59,6 +59,7 @@ func TestNavigationTables(t *testing.T) {
 				name string
 				ai   bool
 			}{
+				{paneMargin, "批注", false},
 				{paneSetting, "设定", false},
 				{paneTalk, "讨论", true},
 				{paneFore, "伏笔", false},

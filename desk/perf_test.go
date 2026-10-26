@@ -14,6 +14,42 @@ import (
 	"writer/workspace"
 )
 
+func TestManyMarginNotesReuseResolvedQuotes(t *testing.T) {
+	var body strings.Builder
+	var findings []workspace.Finding
+	for i := range 120 {
+		quote := fmt.Sprintf("雨夜第%d盏路灯", i)
+		fmt.Fprintln(&body, quote+strings.Repeat("她沿着亮着的灯往旧城走，雨一直没有停。", 6))
+		if i%2 == 0 {
+			findings = append(findings, workspace.Finding{ID: quote, Kind: workspace.FindNew, Name: quote, Quote: quote, Title: quote, Category: "物品", Text: "街道上的灯"})
+		}
+	}
+	a, tt, node := writingFixture(t, body.String())
+	if shownEditor(a).Doc.Len() <= 10000 {
+		t.Fatal("fixture must exceed ten thousand characters")
+	}
+	if err := a.book.SaveCheck(node, workspace.Check{Of: workspace.ProseHash(body.String()), At: time.Now(), Findings: findings}); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if len(a.marginNotes()) != 60 {
+		t.Fatal("missing margin notes")
+	}
+	before := cacheBuilds(a)
+	for range 10 {
+		tt.Frame()
+	}
+	if cacheBuilds(a) != before || tt.FramePending() {
+		t.Fatal("unchanged frames searched long prose or rebuilt annotations")
+	}
+	prose := a.LastProse
+	tt.Scroll(prose.X+prose.W/2, prose.Y+prose.H/2, 0, 1200)
+	marginPositions(t, a, tt)
+	if cacheBuilds(a) != before {
+		t.Fatal("scrolling searched long prose again")
+	}
+}
+
 // Typing in a chapter above ten thousand characters retains every
 // unchanged paragraph's measured glyphs and line breaks. Include the whole
 // editing frame, rather than timing a cache lookup in isolation.

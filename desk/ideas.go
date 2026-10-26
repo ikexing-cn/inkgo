@@ -51,18 +51,18 @@ func (a *App) idea(c *ui.Context, it workspace.Idea, about string) {
 		}
 		ui.Text(c, text).FontSize(kit.FsBody).LineHeight(kit.LhLoose).Selectable().FillWidth()
 		kit.PaneButtons(c, func() {
-			if a.pal.PaneButton(c, "忽略", false).Label("忽略-" + it.ID()).Clicked() {
-				if g.ID != "" {
-					a.undoSetting("已忽略", workspace.Op{Op: workspace.OpDropChange, Entry: e.ID, Change: g.ID})
-				} else {
-					a.revise(workspace.Op{Op: workspace.OpMove, Entry: e.ID, Place: workspace.PlaceDropped})
+			if g.ID != "" {
+				for i, act := range a.changeActions(it) {
+					if a.pal.PaneButton(c, act.label, i == 1).Label(act.label + "-" + it.ID()).Clicked() {
+						act.run()
+					}
 				}
+				return
+			}
+			if a.pal.PaneButton(c, "忽略", false).Label("忽略-" + it.ID()).Clicked() {
+				a.revise(workspace.Op{Op: workspace.OpMove, Entry: e.ID, Place: workspace.PlaceDropped})
 			}
 			switch {
-			case g.ID != "":
-				if a.pal.PaneButton(c, "采纳", true).Label("采纳-" + it.ID()).Clicked() {
-					a.takeChange(e, g)
-				}
 			case asks(e):
 				if a.pal.PaneButton(c, "回答", true).Label("回答-" + e.ID).Clicked() {
 					d.route.answer(e.ID)

@@ -85,6 +85,9 @@ type Editor struct {
 	// Ranges found, painted under the text; the current one stronger.
 	found                 [][2]int
 	doubts                [][2]int
+	doubtColor            ui.Color
+	noteHighlight         [2]int
+	lineHover             [2]int
 	current               int
 	names                 []NameLink
 	namesVer              int

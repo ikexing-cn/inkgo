@@ -58,7 +58,7 @@ func TestCheckAChapterAndSettleWhatItFinds(t *testing.T) {
 	if !tt.HasText("检查") || !tt.HasText("「老周」尚未加入设定") {
 		t.Fatal(tt.Texts())
 	}
-	if err := tt.Click("「林婉」是不是「林晚」写错了？"); err != nil {
+	if err := tt.Click("待处理-「林婉」是不是「林晚」写错了？"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

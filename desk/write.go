@@ -104,6 +104,7 @@ type writeView struct {
 	fore      foreState
 	fores     cached[foreshadowKey, []workspace.Foreshadow]
 	doubts    cached[doubtKey, [][2]int]
+	margin    marginState
 	lateAfter int
 
 	snapsOpen bool
@@ -223,12 +224,18 @@ func (a *App) settingColumn(c *ui.Context) {
 	}
 	win, _ := c.Size()
 	width := a.panelWidth(win)
-	ui.Box(c).Width(1).FillHeight().Background(a.pal.Line)
+	line := a.pal.Line
+	if a.page == pageWrite && a.paneTabs.shown(a, a.doc.tab) == paneMargin {
+		line = a.pal.Canvas
+	}
+	ui.Box(c).Width(1).FillHeight().Background(line).Label("右栏分隔线")
 	panel := ui.Column(c).Width(width).FillHeight().Background(a.pal.Canvas).Shrink(0)
 	a.LastSetting = panel.Bounds()
 	panel.Children(func() {
 		shown := a.paneTabs.shown(a, a.doc.tab)
-		if a.page == pageWrite && shown == panePhone {
+		if a.page == pageWrite && shown == paneMargin {
+			a.marginPanel(c)
+		} else if a.page == pageWrite && shown == panePhone {
 			a.pal.PaneTop(c).Children(func() {
 				a.panelTabs(c)
 			})
@@ -396,6 +403,7 @@ func (a *App) chapterView(c *ui.Context) {
 	a.aiBar(c)
 	// Keyed, as the bars over it come and go: the prose keeps the keyboard.
 	w.cur().ed.SetTextColumn(a.paperColumn(c))
+	w.cur().ed.SetNoteHighlight(0, 0)
 	ui.Box(c.Key("prose")).Grow(1).FillWidth().Children(func() {
 		prose := w.cur().ed.View(c).Fill()
 		a.LastProse = prose.Bounds()
@@ -403,7 +411,7 @@ func (a *App) chapterView(c *ui.Context) {
 		a.selectionBar(c)
 		a.forePopover(c)
 		a.menu.MenuAt(c, a.pal, "正文", a.textMenu)
-	})
+	}).DrawOver(func(_ *ui.Painter, r ui.Rect) { a.LastProse = r })
 	a.footBar(c, true)
 }
 

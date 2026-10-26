@@ -33,6 +33,7 @@ func paneFixture(t *testing.T) (*App, *ui.Tester, paneIDs) {
 		}
 		return r.Ops[0].Entry
 	}
+	a.doc.tab = paneSetting
 	var ids paneIDs
 	ids.lin = add(workspace.ByAuthor, workspace.PlaceBody, "人物", "主角，靠维修路灯谋生，但她很怕黑。", "林晚", "晚晚")
 	ids.zhou = add(workspace.ByAuthor, workspace.PlaceBody, "人物", "配角，林晚的同事。左手总揣在兜里，从来不拿出来。", "周祥", "小祥", "saki")

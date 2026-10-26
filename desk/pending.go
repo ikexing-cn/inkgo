@@ -272,7 +272,7 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 // pendingRow is one thing pending; choosing it goes to where it is.
 func (a *App) pendingRow(c *ui.Context, it pendItem) {
 	t := a.pal.Theme
-	r := ui.ButtonBase(c).Row().Gap(12).AlignItems(ui.Center).Margin(0, 8).Padding(10, 12).Radius(kit.RControl).Label(it.text)
+	r := ui.ButtonBase(c).Row().Gap(12).AlignItems(ui.Center).Margin(0, 8).Padding(10, 12).Radius(kit.RControl).Label("待处理-" + it.text)
 	if r.Hovered() {
 		r.Background(t.SurfaceHover)
 	}

@@ -15,8 +15,10 @@ func (e *Editor) View(c *ui.Context) ui.Element {
 	x, y, over := el.PointerPosition()
 	e.barHot = over && e.onBar(x)
 	e.nameHover = nameRange{}
+	e.lineHover = [2]int{}
 	if over && !e.barHot && !e.barDrag {
 		e.nameHover = e.nameRangeAt(x, y)
+		e.lineHover = e.markedRangeAt(x, y)
 	}
 	switch {
 	case e.barHot || e.barDrag:
@@ -181,6 +183,15 @@ func (e *Editor) SelectionTop() (r ui.Rect, ok bool) {
 // last. ok is false before the editor was painted and
 // while none of the range is in view.
 func (e *Editor) RangeBox(a, b int) (r ui.Rect, ok bool) {
+	r, ok = e.RangeBoxUnclipped(a, b)
+	if ok && (r.Y+r.H < 0 || r.Y > e.height) {
+		return ui.Rect{}, false
+	}
+	return r, ok
+}
+
+// RangeBoxUnclipped is RangeBox including ranges above or below the viewport.
+func (e *Editor) RangeBoxUnclipped(a, b int) (r ui.Rect, ok bool) {
 	l, ready := e.geometry()
 	if !ready {
 		return ui.Rect{}, false
@@ -189,9 +200,6 @@ func (e *Editor) RangeBox(a, b int) (r ui.Rect, ok bool) {
 	d := l.toDisp(a, true)
 	first, last := &l.lines[l.lineOf(d)], &l.lines[l.lineOf(l.toDisp(b, false))]
 	top, bottom := first.y-e.scrollY, last.y+l.lineH-e.scrollY
-	if bottom < 0 || top > e.height {
-		return ui.Rect{}, false
-	}
 	x := l.left + l.x(first, d)
 	if first != last {
 		x = l.left // over several lines it starts where the lines do

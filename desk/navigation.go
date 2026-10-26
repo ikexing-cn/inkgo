@@ -8,6 +8,7 @@ type tabEntry[K comparable] struct {
 	label         string
 	icon          *ui.SVG
 	ai, work      bool
+	fallback      bool
 	count         func() int
 }
 
@@ -40,6 +41,11 @@ func (t tabTable[K]) shown(a *App, chosen K) K {
 		}
 	}
 	for _, entry := range t {
+		if entry.fallback && entry.available(a) {
+			return entry.id
+		}
+	}
+	for _, entry := range t {
 		if entry.available(a) {
 			return entry.id
 		}
@@ -49,7 +55,8 @@ func (t tabTable[K]) shown(a *App, chosen K) K {
 
 func (a *App) initTabs() {
 	a.paneTabs = tabTable[paneTab]{
-		{id: paneSetting, name: "设定", count: func() int { return a.paneCounts().open }},
+		{id: paneMargin, name: "批注"},
+		{id: paneSetting, name: "设定", fallback: true, count: func() int { return a.paneCounts().open }},
 		{id: paneTalk, name: "讨论", ai: true},
 		{id: paneFore, name: "伏笔", count: func() int { return a.paneCounts().waiting }},
 		{id: panePhone, name: "预览"},

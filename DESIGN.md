@@ -376,7 +376,7 @@ components:
 - 这里写每一处界面都要守的规则；`prototype/` 里的原型是每个界面具体的样子。两边对不上，以这里为准，改原型。
 - 这里只写作者定下来的。还在原型里等作者看的方案在 `.agents/notes/proposed/`，定了再写进来。
 - 做界面的流程（先改原型再写代码、改完怎么验证）在 `AGENTS.md`；这份文件自己怎么改，只在下面的「怎么维护」。
-- 2026-10-24「页边批注」这一版（各栏同一张纸、两边的开关、标题栏正中换页、侧栏只列东西、页边批注、底栏的备份、动起来的地方）先改在原型里，软件分几段跟上，还没跟完：各栏同一张纸、两边的开关、正中换页、侧栏、标签页、底栏的备份已经跟上，页边批注、动起来的地方还没有，这两样下面写的 `go test ./desk` 查的还是旧的样子。来龙去脉和跟到哪了在 `.agents/notes/proposed/feature/2026-10-24-margin-notes.md`。
+- 2026-10-24「页边批注」这一版（各栏同一张纸、两边的开关、标题栏正中换页、侧栏只列东西、页边批注、底栏的备份、动起来的地方）先改在原型里，软件分几段跟上，还没跟完：各栏同一张纸、两边的开关、正中换页、侧栏、标签页、底栏的备份、页边批注已经跟上，动起来的地方还没有。来龙去脉和跟到哪了在 `.agents/notes/proposed/feature/2026-10-24-margin-notes.md`。
 
 ### 怎么维护
 
@@ -744,7 +744,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab；起草�
 - 「批注」标签不带数：几条就在页边。别的标签上的数是那一页里等作者处理的几条：待确认的设定；原句已删、久未回收的伏笔。
 - AI 关着时只有伏笔的批注。
 
-检查：`npm run verify-prototype` 的「the margin」（先后、和那一句对齐、滚动后还对齐、点了去哪、忽略了能撤销）、「what is pending」（分组、全部忽略以后批注还在、能撤销）、「AI turned off」；`go test ./editor` 的 `TestOnlyTheHoveredNameHasALine`；`go test ./desk` 的 `TestForeshadowTabCountsLostAndLate`。
+检查：`npm run verify-prototype` 的「the margin」（先后、和那一句对齐、滚动后还对齐、点了去哪、忽略了能撤销）、「what is pending」（分组、全部忽略以后批注还在、能撤销）、「AI turned off」；`go test ./editor` 的 `TestOnlyTheHoveredNameHasALine`、`TestRangeBoxIncludesTheMarginOutsideTheViewport`、`TestMarginHighlightAndMarkedGlyphHoverAreDisplayOnly`；`go test ./desk` 的 `TestForeshadowTabCountsLostAndLate`、`TestMarginNotesFollowTheProseAndLeaveEightPixels`、`TestMarginActionsUndoAndOpenTheirDetails`、`TestIgnoringPendingKeepsTheMarginAndAILeavesOnlyForeshadowing`、`TestMarginAndUnderlinedProsePointToEachOther`、`TestMarginForeshadowPayoffsAndEmptyChapters`、`TestMarginChangeWithoutANameStartsAtTheChapter`、`TestManyMarginNotesReuseResolvedQuotes`、`TestMarginRequestsItsOwnCorrectionInTheNextFrame`、`TestTypingKeepsMarginNotesApartFromTheFirstFrame`、`TestShotMargin`；`go test ./cmd/inkgo` 的 `TestLayoutMargin`。
 
 ### 标签页和保存
 

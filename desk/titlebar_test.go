@@ -558,6 +558,7 @@ func TestTheBarGivesTheCaretBack(t *testing.T) {
 	typed("戊", "after the dialog a menu opened")
 
 	// A press on a field puts the menu away and the field keeps the focus.
+	click(t, tt, "右栏-设定")
 	openMenu(t, a, tt, "文件")
 	if err := tt.Click("搜索设定"); err != nil {
 		t.Fatal(err, tt.Texts())

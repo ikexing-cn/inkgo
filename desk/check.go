@@ -404,6 +404,7 @@ func (a *App) markDoubts() {
 	if w.cur().ed == nil {
 		return
 	}
+	w.cur().ed.SetDoubtColor(a.pal.Amber)
 	key := doubtKey{a.checkKey(), a.aiOn()}
 	w.doubts.get(key, func() [][2]int {
 		text, ok := a.liveText()
@@ -905,32 +906,19 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 			next()
 		}
 		ui.Spacer(c)
-		meant := func(label string) {
-			if a.pal.Secondary(c, label).Clicked() {
-				if len(shown) > 1 {
+		acts := a.checkActions(it)
+		for i, act := range acts {
+			var button ui.Element
+			if i == len(acts)-1 {
+				button = a.pal.Primary(c, act.label)
+			} else {
+				button = a.pal.Secondary(c, act.label)
+			}
+			if button.Clicked() {
+				if i == 0 && len(shown) > 1 {
 					next()
 				}
-				a.setMeant(it)
-			}
-		}
-		switch it.f.Kind {
-		case workspace.FindConflict:
-			meant("无需修改")
-			if a.pal.Secondary(c, "修改设定").Clicked() {
-				toEntry()
-			}
-			if a.pal.Primary(c, "修改正文").Clicked() {
-				toProse()
-			}
-		case workspace.FindName:
-			meant("无需修改")
-			if a.pal.Primary(c, "修改正文").Clicked() {
-				toProse()
-			}
-		case workspace.FindNew:
-			meant("忽略")
-			if a.pal.Primary(c, "加入设定").Clicked() {
-				a.takeFound(it)
+				act.run()
 			}
 		}
 	})

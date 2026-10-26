@@ -34,7 +34,7 @@ func shownEntry(a *App) string     { return a.doc.route.entry() }
 func showEntry(a *App, id string)  { a.doc.route.openEntry(id) }
 func historyShown(a *App) bool     { return a.doc.route.showingHistory() }
 func editingEntry(a *App) string   { return a.doc.route.editID() }
-func editEntry(a *App, id string)  { a.doc.route.editEntry(id) }
+func editEntry(a *App, id string)  { a.doc.tab = paneSetting; a.doc.route.editEntry(id) }
 func editChange(a *App, id string) { a.doc.route.editChange(id) }
 func todoShown(a *App) bool        { return a.doc.route.showingWaiting() }
 
@@ -47,6 +47,7 @@ func showHistory(a *App, on bool) {
 }
 
 func showTodo(a *App, on bool) {
+	a.doc.tab = paneSetting
 	if on {
 		a.doc.route.showWaiting()
 	} else {

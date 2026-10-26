@@ -433,7 +433,7 @@ func TestThePaneSearchAndHeadingHaveRoom(t *testing.T) {
 	}
 	a.doc.tab = paneSetting
 	tt.Frame()
-	tab := find(t, tt, "右栏-设定")
+	tab := find(t, tt, "右栏-批注")
 	for _, page := range []page{pageTalk, pagePlan} {
 		a.page, a.plan.Pane = page, true
 		tt.Frame()

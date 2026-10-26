@@ -15,7 +15,8 @@ import (
 type paneTab string
 
 const (
-	paneSetting paneTab = ""
+	paneMargin  paneTab = "margin"
+	paneSetting paneTab = "setting"
 	paneTalk    paneTab = "talk"
 	paneFore    paneTab = "fore"
 	panePhone   paneTab = "phone"
@@ -434,11 +435,7 @@ func (a *App) entryPage(c *ui.Context, e workspace.Entry) {
 			}
 		}
 		if a.pal.PaneTitle(c, name, sub, "修改") {
-			d.route.editEntry(e.ID)
-			d.text, d.category, d.name, d.names = e.Text, e.Category, "", ""
-			if len(e.Names) > 0 {
-				d.name, d.names = e.Names[0], strings.Join(e.Names[1:], "、")
-			}
+			a.editSetting(e)
 		}
 		text := ui.Text(c, e.Text).FontSize(kit.FsBody).LineHeight(kit.LhLoose).Selectable().FillWidth()
 		if e.Place == workspace.PlaceDropped {
