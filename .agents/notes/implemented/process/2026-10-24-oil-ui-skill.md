@@ -4,7 +4,7 @@ Status: implemented
 
 ## Problem
 
-2026-10-24 照 [oil-ui](https://github.com/oil-oil/oil-ui) 改了一版原型，见[页边批注这一版界面](../../proposed/feature/2026-10-24-margin-notes.md)。作者觉得这套做法不错，要装进项目。
+2026-10-24 照 [oil-ui](https://github.com/oil-oil/oil-ui) 改了一版原型，见[页边批注这一版界面](../feature/2026-10-24-margin-notes.md)。作者觉得这套做法不错，要装进项目。
 
 原样装进来，有两处会自己动：
 
