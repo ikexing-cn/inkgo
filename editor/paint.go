@@ -20,6 +20,7 @@ var (
 // the element: a line scrolled half out must not draw over what is above.
 func (e *Editor) paint(p *ui.Painter, r ui.Rect) {
 	p.Clip(r, 0, func() { e.paintIn(p, r) })
+	e.paintBar(p, r)
 }
 
 func (e *Editor) paintIn(p *ui.Painter, r ui.Rect) {
@@ -201,14 +202,17 @@ func (e *Editor) paintCaret(p *ui.Painter, r ui.Rect, oy float32) {
 		p.Fill(ui.Rect{X: r.X + cx - 0.5, Y: oy + cy + (l.lineH-h)/2, W: 1.5, H: h}, t.Accent, 0)
 	}
 
+}
+
+func (e *Editor) paintBar(p *ui.Painter, r ui.Rect) {
 	if e.maxScroll() > 0 {
 		y, h := e.thumb()
 		// Wider while the pointer is on the bar or holds it.
-		x, w := r.X+r.W-8, float32(4)
+		x, w := r.X+r.W+e.barOffset-8, float32(4)
 		if e.barHot || e.barDrag {
-			x, w = r.X+r.W-10, 8
+			x, w = r.X+r.W+e.barOffset-10, 8
 		}
-		p.Fill(ui.Rect{X: x, Y: r.Y + y, W: w, H: h}, t.Scrollbar, w/2)
+		p.Fill(ui.Rect{X: x, Y: r.Y + y, W: w, H: h}, p.Theme().Scrollbar, w/2)
 	}
 }
 

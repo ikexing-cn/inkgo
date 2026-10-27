@@ -10,22 +10,21 @@ import (
 // within a quarter second. While the system asks for less motion, mygo
 // puts every one of them where it ends at once.
 const (
-	PressIn      = 60 * time.Millisecond  // a button going down
-	PressOut     = 120 * time.Millisecond // and springing back
-	PopTime      = 140 * time.Millisecond // menus, drop-downs, popovers, floating bars
-	DialogTime   = 200 * time.Millisecond
-	ScrimTime    = 180 * time.Millisecond
-	MoveTime     = 200 * time.Millisecond // a column folding, a note leaving, a toast coming in
-	NoteTime     = 160 * time.Millisecond // one margin note coming in
-	NoteDelay    = 30 * time.Millisecond  // after the note above it, up to the fourth
-	HoverTime    = 100 * time.Millisecond // a margin note's fill under the pointer
-	PressScale   = float32(0.97)
-	PopScale     = float32(0.96)
-	DialogScale  = float32(0.98)
-	ToastTravel  = float32(12) // toasts come in from the right
-	NoteTravel   = float32(8)  // margin notes from the prose
-	NoteExit     = float32(16) // and leave toward the window's edge
-	ColumnTravel = float32(24) // a folding column toward its own side
+	PressIn     = 60 * time.Millisecond  // a button going down
+	PressOut    = 120 * time.Millisecond // and springing back
+	PopTime     = 140 * time.Millisecond // menus, drop-downs, popovers, floating bars
+	DialogTime  = 200 * time.Millisecond
+	ScrimTime   = 180 * time.Millisecond
+	MoveTime    = 200 * time.Millisecond // a column folding, a note leaving, a toast coming in
+	NoteTime    = 160 * time.Millisecond // one margin note coming in
+	NoteDelay   = 30 * time.Millisecond  // after the note above it, up to the fourth
+	HoverTime   = 100 * time.Millisecond // a margin note's fill under the pointer
+	PressScale  = float32(0.97)
+	PopScale    = float32(0.96)
+	DialogScale = float32(0.98)
+	ToastTravel = float32(12) // toasts come in from the right
+	NoteTravel  = float32(8)  // margin notes from the prose
+	NoteExit    = float32(16) // and leave toward the window's edge
 )
 
 // The prototype's curves, CSS's ease-out and ease-in: what comes in or

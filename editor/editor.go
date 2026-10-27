@@ -120,6 +120,7 @@ type Editor struct {
 	// with the text scrolled barFrom; barHot is the pointer on the bar.
 	barDrag, barHot bool
 	barFrom, barAt  float32
+	barOffset       float32 // the scroll bar's right edge relative to the viewport's
 }
 
 type undoStep struct {

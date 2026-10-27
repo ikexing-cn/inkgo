@@ -193,6 +193,9 @@ func (a *App) marginPanel(c *ui.Context) {
 			m.serial++
 			m.runs[n.id] = m.serial
 		}
+		if a.fold.paneOpened {
+			m.runs[n.id] = 0 // the pane brings these notes in together
+		}
 	}
 	boxes := make(map[string]ui.Rect, len(list))
 	ed := a.write.cur().ed
@@ -261,7 +264,7 @@ func (a *App) marginPanel(c *ui.Context) {
 			row := ui.ButtonBase(c.Key(n.id)).Column().Absolute().Left(0).Right(16).Top(y).Gap(2).Padding(6, 10, 8, 20).Radius(kit.RControl).Label("批注-" + n.id)
 			if leaving {
 				row.Disabled(true).Translate(kit.NoteExit*gone, 0).Opacity(1 - gone)
-			} else {
+			} else if m.runs[n.id] != 0 {
 				p := kit.Arrive(row, m.runs[n.id], kit.NoteTime, time.Duration(min(i, 3))*kit.NoteDelay)
 				row.Translate(-kit.NoteTravel*(1-p), 0).Opacity(p)
 			}

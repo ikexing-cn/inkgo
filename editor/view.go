@@ -11,9 +11,25 @@ import (
 func (e *Editor) View(c *ui.Context) ui.Element {
 	e.sv = c.Services()
 	e.predict.poll(e)
-	el := ui.Box(c).Focusable().FocusRing(false).Cursor(ui.CursorText).Clip().Label("正文")
+	el := ui.Box(c).Focusable().FocusRing(false).Cursor(ui.CursorText).Label("正文")
+	// While a column folds the scroll bar may stand outside the box; the
+	// text clips itself in paint.
+	if e.barOffset == 0 {
+		el.Clip()
+	}
+	barHot := false
+	if e.maxScroll() > 0 {
+		el.Children(func() {
+			bar := ui.Box(c.Key("scrollbar")).Absolute().Right(-e.barOffset).Top(0).Bottom(0).Width(barW).Cursor(ui.CursorDefault).Label("正文滚动条")
+			_, _, barHot = bar.PointerPosition()
+			bar.HandleInput(func(ev ui.InputEvent) bool {
+				ev.X += e.width + e.barOffset - barW
+				return e.input(ev)
+			})
+		})
+	}
 	x, y, over := el.PointerPosition()
-	e.barHot = over && e.onBar(x)
+	e.barHot = barHot || over && e.onBar(x)
 	e.nameHover = nameRange{}
 	e.lineHover = [2]int{}
 	if over && !e.barHot && !e.barDrag {
@@ -80,6 +96,10 @@ func (e *Editor) SetTextColumn(column TextColumn) {
 		e.opts.Column, e.reveal = column, true
 	}
 }
+
+// SetScrollBarOffset places the scroll bar offset DIPs from the viewport's
+// right edge, including its pointer target. Positive is to the right.
+func (e *Editor) SetScrollBarOffset(offset float32) { e.barOffset = offset }
 
 // SetFontSize sets the text in px, keeping the caret in view.
 func (e *Editor) SetFontSize(px float32) {

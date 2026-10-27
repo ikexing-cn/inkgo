@@ -633,7 +633,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab；起草�
 - 挪动：收起、展开两栏，那一栏连同上面的标签、批注、分隔线整块从它那一边的窗口边滑出去、滑进来，不淡，不分成几块各动各的。纸跟着栏边走，和栏边同一条缓动：和正文对齐的（正文、标签页、底栏左边那句）平移到新的地方，字不跟着拉宽，新旧两种断行不叠在一起；靠纸右边的（字数、滚动条）贴着栏边。别的直接排成新的样子，被栏盖着的等栏让开才露出来，顶上那条线不断开。处理掉的一条批注往页边退。看得出东西是从哪里来、到哪里去的。指针移到批注上，底色 0.1 秒浮起。
 - 系统设了减少动态效果，都直接到位。`npm run verify-prototype` 就在减少动态效果下点，量的、截的都是停下来的样子。
 
-检查：`go test ./desk` 的 `TestReducedMotionPutsColumnsAndNotesInPlaceAtOnce`、`TestFoldingMovesThePaperAndRowsWithoutStretching`、`TestUnfoldingDrawsTheProseWholeAndEasesIn`、`TestOnlyExplicitSwitchesAnimateTheColumns`、`TestRemovingAMarginNoteMovesThoseBelowIt`、`TestMarginNotesArriveInTurnWithinAQuarterSecond`、`TestMenusAndDialogsComeInOnceAndCloseAtOnce`；`SHOT=<目录> go test ./desk -run ShotMotion` 截收起右栏、处理掉一条批注动到一半的样子。
+检查：`go test ./desk` 的 `TestReducedMotionPutsColumnsAndNotesInPlaceAtOnce`、`TestFoldingMovesThePaperAndRowsWithoutStretching`、`TestUnfoldingDrawsTheProseWholeAndEasesOut`、`TestColumnsTravelTheirWholeWidthWithoutFading`、`TestTheCountsAndScrollBarFollowThePaneEdge`、`TestUnfoldingKeepsTheTopRuleAcrossTheGap`、`TestExplicitUnfoldingBringsTheNotesWithThePane`、`TestSwitchingNotesDuringAFoldStillBringsThemInTurn`、`TestOnlyExplicitSwitchesAnimateTheColumns`、`TestRemovingAMarginNoteMovesThoseBelowIt`、`TestMarginNotesArriveInTurnWithinAQuarterSecond`、`TestMenusAndDialogsComeInOnceAndCloseAtOnce`；`SHOT=<目录> go test ./desk -run ShotMotion` 截收起、展开右栏、处理掉一条批注动到一半的样子。
 
 ### 对话框
 

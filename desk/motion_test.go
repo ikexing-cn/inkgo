@@ -50,6 +50,11 @@ func TestFoldingMovesThePaperAndRowsWithoutStretching(t *testing.T) {
 		if got <= last || a.fold.offset >= 0 {
 			t.Fatalf("paper did not move toward its new place: %v after %v", got, last)
 		}
+		pane := find(t, tt, "右栏标签行")
+		want := a.fold.from.width - (a.fold.from.paneWidth+1)*(1-kit.Out(a.fold.progress))
+		if math.Abs(float64(pane.X-1-want)) > 0.5 {
+			t.Fatalf("pane edge %v, paper edge %v", pane.X-1, want)
+		}
 		nowEnd, nowWidth := paperLine(a)
 		if math.Abs(float64(nowWidth-width)) > 0.01 || nowEnd != end {
 			t.Fatalf("line width or break changed: %v at %d, was %v at %d", nowWidth, nowEnd, width, end)
@@ -75,10 +80,9 @@ func TestFoldingMovesThePaperAndRowsWithoutStretching(t *testing.T) {
 }
 
 // The sidebar coming back puts the prose's place to the right of where the
-// text still is: the text is drawn whole on its way there, over the
-// sidebar, and eases there as the prototype's does, not most of the way in
-// the first frames.
-func TestUnfoldingDrawsTheProseWholeAndEasesIn(t *testing.T) {
+// text still is: the text is drawn whole on its way there, and follows
+// the same ease-out as the column.
+func TestUnfoldingDrawsTheProseWholeAndEasesOut(t *testing.T) {
 	a, tt, _ := writingFixture(t, strings.Repeat("雨从傍晚开始下。", 80))
 	tt.SetPreferences(ui.Preferences{})
 	click(t, tt, "收起侧栏")
@@ -90,7 +94,7 @@ func TestUnfoldingDrawsTheProseWholeAndEasesIn(t *testing.T) {
 	if got >= a.LastProse.X {
 		t.Fatalf("the text at %v is not over the sidebar, the editor at %v", got, a.LastProse.X)
 	}
-	if way := (got - from) / (end - from); way <= 0 || way > 0.4 {
+	if way := (got - from) / (end - from); math.Abs(float64(way-kit.Out(a.fold.progress))) > 0.001 {
 		t.Fatalf("a fifth of the time in, the paper had gone %.2f of its way", way)
 	}
 	ed := shownEditor(a)
@@ -213,9 +217,11 @@ func TestShotMotion(t *testing.T) {
 	click(t, tt, "收起右栏")
 	tt.Advance(100 * time.Millisecond)
 	testshot.Save(t, "fold-pane-half.png", tt.Image())
-	tt.SetPreferences(ui.Preferences{ReduceMotion: true})
+	tt.Advance(kit.MoveTime)
 	click(t, tt, "展开右栏")
-	tt.SetPreferences(ui.Preferences{})
+	tt.Advance(100 * time.Millisecond)
+	testshot.Save(t, "unfold-pane-half.png", tt.Image())
+	tt.Advance(kit.MoveTime)
 	click(t, tt, "批注-check-name-无需修改")
 	tt.Move(0, 0)
 	tt.Advance(100 * time.Millisecond)

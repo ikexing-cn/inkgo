@@ -154,10 +154,13 @@ func (a *App) sidebar(c *ui.Context) {
 		if leaving {
 			folding.Absolute().Left(0).Top(0)
 		}
-		a.foldColumn(folding, true)
+		a.foldColumn(folding, true, width)
 		folding.Children(func() {
 			a.sidePanel(c, width)
 			ui.Box(c).Width(1).FillHeight().Background(a.pal.Line)
+			if leaving {
+				foldCover(c)
+			}
 		})
 	})
 }

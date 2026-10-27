@@ -236,10 +236,13 @@ func (a *App) settingColumn(c *ui.Context) {
 	if a.foldLeaving(false) {
 		folding.Absolute().Right(0).Top(0)
 	}
-	a.foldColumn(folding, false)
+	a.foldColumn(folding, false, width)
 	folding.Children(func() {
 		ui.Box(c).Width(1).FillHeight().Background(line).Label("右栏分隔线")
 		a.paneColumn(c, width)
+		if a.foldLeaving(false) {
+			foldCover(c)
+		}
 	})
 }
 
@@ -419,6 +422,7 @@ func (a *App) chapterView(c *ui.Context) {
 	a.aiBar(c)
 	// Keyed, as the bars over it come and go: the prose keeps the keyboard.
 	w.cur().ed.SetTextColumn(a.paperColumn(c))
+	w.cur().ed.SetScrollBarOffset(a.fold.edge - a.fold.offset)
 	w.cur().ed.SetNoteHighlight(0, 0)
 	ui.Box(c.Key("prose")).Grow(1).FillWidth().Children(func() {
 		prose := a.slide(w.cur().ed.View(c).Fill())
@@ -534,7 +538,7 @@ func (a *App) footBar(c *ui.Context, chapter bool) {
 	foot.Children(func() {
 		if chapter && a.aiOn() {
 			// Where the check stands goes with the paper as it folds; the
-			// backup and the words keep to the right.
+			// backup and the words keep to its right edge (slideEdge).
 			a.slide(ui.Row(c).Gap(8).AlignItems(ui.Center).Shrink(1).MinWidth(0)).Children(func() { a.footCheck(c) })
 		}
 		ui.Spacer(c)

@@ -110,6 +110,7 @@ func (a *App) wordCount(c *ui.Context) {
 	}
 	color := a.pal.Faint // as the design has it, met or not: the numbers say so
 	counts := ui.ButtonBase(c).Row().Shrink(1000).MinWidth(0).Label("字数").Tooltip(tip + "。点击设置每日目标")
+	a.slideEdge(counts)
 	if counts.Hovered() {
 		color = t.Text
 	}

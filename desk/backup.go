@@ -299,6 +299,7 @@ func (a *App) backupLine(c *ui.Context) {
 	}
 	// Set apart from the counts: one is of the work, the other of words.
 	b := ui.ButtonBase(c).Row().Height(kit.HControlSm).AlignItems(ui.Center).Gap(6).Margin(0, 8, 0, 0).Shrink(0).Label("备份状态").Tooltip(tip).KeepFocus()
+	a.slideEdge(b)
 	color := a.pal.Faint
 	if b.Hovered() {
 		color = t.Text

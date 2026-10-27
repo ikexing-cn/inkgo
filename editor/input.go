@@ -381,7 +381,10 @@ const barW = 12
 
 // onBar reports whether x, across the editor's box, is on its scroll bar,
 // which is there while the text is longer than the view.
-func (e *Editor) onBar(x float32) bool { return e.maxScroll() > 0 && x >= e.width-barW }
+func (e *Editor) onBar(x float32) bool {
+	right := e.width + e.barOffset
+	return e.maxScroll() > 0 && x >= right-barW && x <= right
+}
 
 // thumb returns how far down the view the scroll bar's thumb is, and how
 // long it is.
