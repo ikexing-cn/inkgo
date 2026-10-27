@@ -20,6 +20,7 @@ import (
 // Copy the part being sorted or edited first, and use Book's write methods
 // to persist changes and advance Version. Do not pass borrowed data to workers.
 type Book struct {
+	Timing  Timing
 	store   *workspace.Store
 	version int
 
@@ -37,7 +38,7 @@ type Book struct {
 // left empty; reading it again reports the error where the view can show it
 // (the plan keeps it for the page that shows a broken outline).
 func Open(store *workspace.Store) *Book {
-	b := &Book{store: store}
+	b := &Book{store: store, Timing: Timing{SaveAfter: SaveAfter, CheckEvery: CheckEvery}}
 	_ = b.ReloadAll()
 	return b
 }

@@ -2,7 +2,7 @@
 
 Status: implemented
 
-后续审查：[维护可读性的建议](../../proposed/architecture/2026-10-27-maintainable-project-review.md)提出逐步消除测试间共享时间参数；尚未实施，本篇的进程隔离安排不变。
+后续审查：[维护可读性的建议](../../proposed/architecture/2026-10-27-maintainable-project-review.md)提出逐步消除测试间共享时间参数。保存和看盘参数现已属于每个 Book，详见 [desk 状态](../architecture/2026-10-22-desk-state.md)；作品库位置等仍是共享全局量，本篇的进程隔离安排不变。
 
 ## Problem
 

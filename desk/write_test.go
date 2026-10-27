@@ -22,8 +22,8 @@ import (
 // text.
 func writingFixture(t *testing.T, text string) (*App, *ui.Tester, string) {
 	t.Helper()
-	quick(t)
 	a, tt, _ := fixture(t)
+	quick(a)
 	id, err := a.Store.NewChapter("", "第一章", false)
 	if err != nil {
 		t.Fatal(err)

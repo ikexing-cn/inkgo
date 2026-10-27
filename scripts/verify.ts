@@ -17,7 +17,7 @@ import { spawn, spawnSync } from 'node:child_process'
 const timed = { tests: '^(TestPhonePreviewTypingCost|TestOutlineFrameCost|TestMarginRequestsItsOwnCorrectionInTheNextFrame)$', packages: './desk ./desk/outline' }
 
 // desk's tests take a minute one after another. They change the package's
-// globals (how soon to save and to check, where the library is), so
+// globals (such as where the library is), so
 // t.Parallel() would have them tread on each other; split between
 // processes, each has globals of its own.
 const deskProcesses = 4

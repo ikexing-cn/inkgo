@@ -2,10 +2,14 @@ package book
 
 import "time"
 
-// SaveAfter is how long a pause lasts before the book is written. Tests
-// shorten it.
-var SaveAfter = 1500 * time.Millisecond
+// SaveAfter and CheckEvery are production defaults, not shared test knobs.
+const SaveAfter = 1500 * time.Millisecond
 
 // CheckEvery is how often the book is read again for changes made outside.
-// Tests shorten it.
-var CheckEvery = 2 * time.Second
+const CheckEvery = 2 * time.Second
+
+// Timing belongs to one open book, shared by its writing and outline pages.
+// Zero SaveAfter means immediate saving; it is not a request for a default.
+type Timing struct {
+	SaveAfter, CheckEvery time.Duration
+}

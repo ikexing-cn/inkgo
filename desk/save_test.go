@@ -8,17 +8,44 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"writer/desk/book"
 	"writer/desk/kit"
 	"writer/workspace"
 )
 
 // quick makes the writing page save at once and look at the disk only
 // when a test asks.
-func quick(t *testing.T) {
-	saved, checked := book.SaveAfter, book.CheckEvery
-	book.SaveAfter, book.CheckEvery = 0, time.Hour
-	t.Cleanup(func() { book.SaveAfter, book.CheckEvery = saved, checked })
+func quick(a *App) {
+	a.book.Timing.SaveAfter, a.book.Timing.CheckEvery = 0, time.Hour
+}
+
+// Two windows can save at different rates without one test changing the
+// other's settings. Zero is a real immediate-save choice, not a default.
+func TestBooksKeepTheirOwnSaveTiming(t *testing.T) {
+	a, ta, ida := writingFixture(t, "第一本")
+	b, tb, idb := writingFixture(t, "第二本")
+	a.book.Timing.SaveAfter = time.Hour
+	b.book.Timing.SaveAfter = 0
+	shownEditor(a).Insert("等待")
+	shownEditor(b).Insert("立即")
+	ta.Frame()
+	tb.Frame()
+	ca, err := a.Store.ReadChapter(ida)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cb, err := b.Store.ReadChapter(idb)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ca.Text != "第一本" || cb.Text == "第二本" {
+		t.Fatal("save timing leaked between books", ca.Text, cb.Text)
+	}
+	a.book.Timing.SaveAfter = 0
+	ta.Frame()
+	ca, err = a.Store.ReadChapter(ida)
+	if err != nil || ca.Text == "第一本" {
+		t.Fatal("first book did not save when its own pause ended", err)
+	}
 }
 
 func disk(t *testing.T, a *App, name string) string {
@@ -33,8 +60,8 @@ func disk(t *testing.T, a *App, name string) string {
 // The author makes a chapter, names it and writes: the text is on disk
 // once they pause, with no saving to do.
 func TestWritingSavesAsTheAuthorPauses(t *testing.T) {
-	quick(t)
 	a, tt, _ := fixture(t)
+	quick(a)
 	if err := tt.Click("正文"); err != nil {
 		t.Fatal(err)
 	}
@@ -258,7 +285,7 @@ func TestLeavingWithAnOutsideChangeKeepsTheEditorsWords(t *testing.T) {
 	if err := os.WriteFile(p, []byte("别处改的，很重要。"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	book.SaveAfter = time.Hour // the words are not saved before the work is left
+	a.book.Timing.SaveAfter = time.Hour // the words are not saved before the work is left
 	tt.Type("新字")
 	tt.Frame()
 	store := a.Store

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"writer/desk/book"
 	"writer/desk/kit"
 	"writer/internal/testshot"
 )
@@ -34,7 +33,7 @@ func openOutline(tt *ui.Tester, title string) error {
 func tabsFixture(t *testing.T) (a *App, tt *ui.Tester, ids map[string]string) {
 	t.Helper()
 	a, tt, one := writingFixture(t, "整条街的灯是同时灭的。")
-	book.SaveAfter = time.Hour // quick put it back as the test ends
+	a.book.Timing.SaveAfter = time.Hour
 	ids = map[string]string{"第一章": one}
 	for _, title := range []string{"第二章", "第三章"} {
 		id, err := a.Store.NewChapter("", title, false)
@@ -281,14 +280,14 @@ func TestClosingAsksAboutUnsavedWords(t *testing.T) {
 		t.Fatalf("the answers are not in the system's order: %v %v %v", save.X, drop.X, stay.X)
 	}
 	// Asked, the chapter does not save itself.
-	book.SaveAfter = 0
+	a.book.Timing.SaveAfter = 0
 	for range 3 {
 		tt.Frame()
 	}
 	if got := disk(t, a, "第一章.txt"); strings.Contains(got, "甲") {
 		t.Fatalf("saved while the question was open: %q", got)
 	}
-	book.SaveAfter = time.Hour
+	a.book.Timing.SaveAfter = time.Hour
 	click(t, tt, "取消")
 	if tt.HasText(asked) || tabs(a, tt) != "第一章*" || !a.unsaved() || !strings.HasPrefix(shownEditor(a).Doc.String(), "甲") {
 		t.Fatal("cancelling did not leave the tab as it was", tabs(a, tt))

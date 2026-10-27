@@ -181,7 +181,7 @@ func (p *Page) counts() (cards, nodes int) {
 // outline shows what is wrong instead, and is read again when it is due.
 func (p *Page) View(c *ui.Context) {
 	content := p.Host.Content()
-	if p.loadErr != nil && time.Since(p.checked) >= book.CheckEvery {
+	if p.loadErr != nil && time.Since(p.checked) >= p.Host.Content().Timing.CheckEvery {
 		p.loaded = false // a broken outline may have been put right outside
 	}
 	if !p.loaded {
@@ -243,7 +243,7 @@ func (p *Page) View(c *ui.Context) {
 // again as often as the open chapter is looked at on the disk.
 func (p *Page) broken(c *ui.Context) {
 	pal := p.Host.Colors()
-	c.After(book.CheckEvery - time.Since(p.checked))
+	c.After(p.Host.Content().Timing.CheckEvery - time.Since(p.checked))
 	title, about, why := "大纲读不出来", "", p.loadErr.Error()
 	var bad *workspace.PlanError
 	if errors.As(p.loadErr, &bad) {
@@ -438,7 +438,7 @@ func (p *Page) gist(c *ui.Context, n *workspace.Node) {
 		if p.outlineDraft.Change(now) {
 			p.geometry = nil
 		}
-		if wait, due := p.outlineDraft.Waits(book.SaveAfter, now); due {
+		if wait, due := p.outlineDraft.Waits(p.Host.Content().Timing.SaveAfter, now); due {
 			if wait > 0 {
 				c.After(wait)
 			} else {

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"writer/desk/book"
 	"writer/desk/kit"
 	"writer/export"
 	"writer/workspace"
@@ -272,7 +271,7 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 		t.Fatalf("after 重做: %q", got)
 	}
 	// The caret is back in the prose once the menu is away.
-	book.SaveAfter = time.Hour // what is typed now waits for the menu to save it
+	a.book.Timing.SaveAfter = time.Hour // what is typed now waits for the menu to save it
 	tt.Type("己")
 	tt.Frame()
 	if got := shownEditor(a).Doc.String(); !strings.Contains(got, "己") {
@@ -287,7 +286,7 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 	if shownEditor(a).Doc.Version() != savedVersion(a) || !strings.Contains(disk(t, a, "第一章.txt"), "己") {
 		t.Fatalf("保存 did not save: %q", disk(t, a, "第一章.txt"))
 	}
-	book.SaveAfter = 0
+	a.book.Timing.SaveAfter = 0
 	choose("文件", "快照")
 	if !w.snapsOpen {
 		t.Fatal("快照 did not open the snapshots")

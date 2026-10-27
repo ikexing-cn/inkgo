@@ -18,7 +18,7 @@ Status: implemented
 
 - `Book` 持有 `*workspace.Store`、一棵章节树、字数、标记、设定、大纲、各章的纲和存着的检查结果。它不引用界面工具包、`editor` 或 `desk`。
 - 书内容的读写经过 `Book`。它写盘后更新自己的副本，`Version()` 随内容的读取和写入递增；重复读树没有变化、打字后字数没有变化时不增加。
-- 作品打开时读一次。写作页进入时读树和字数，每 `book.CheckEvery` 看盘时读树；换章时读标记；检查页进入时读树和检查；讨论交回设定变化时重读设定。`nodeTitle` 只查内存中的树。看盘频率见[少看几次磁盘](../../proposed/architecture/2026-10-13-fewer-looks-at-the-disk.md)。
+- 作品打开时读一次。写作页进入时读树和字数，每 `Book.Timing.CheckEvery` 看盘时读树；换章时读标记；检查页进入时读树和检查；讨论交回设定变化时重读设定。`nodeTitle` 只查内存中的树。看盘频率见[少看几次磁盘](../../proposed/architecture/2026-10-13-fewer-looks-at-the-disk.md)。
 - 坏的 `outline.json` 由 `PlanErr` 保留错误，不阻止打开作品；大纲页显示错误并按看盘间隔重读。
 - 正文保存后更新这一章的字数，并从盘上重读这一章的标记。存储层会夹取标记位置和重写引文，不能直接把传入值当成写入结果。检查和章纲写后只更新对应章节。
 - 新建、改名、移动、删除和恢复后重读树；删除到回收站和恢复还重读字数。卡片和情节线写后重读大纲，设定修订和删分类后重读设定。
@@ -38,7 +38,7 @@ Status: implemented
 - `openChapter` 持有编辑器、已保存版本、盘上时间戳、快照时间、外部变化、丢失状态和这一章的 `book.OutlineDraft`（`desk/book/outline_draft.go`）。看盘、保存、冲突处理、存为新章和标记转换是它的方法。方法接收 Store、Book 和时间，不接收 App。
 - `writeView.open` 按 ID 保存各标签的 `*openChapter`，`node` 指向当前标签。`cur()` 从映射取得当前章；没有打开的章节时给空值。偏好恢复的标签在第一次显示时创建编辑器。
 - 字号、续写方式和 AI 开关改变时设给每个已打开的编辑器。只检查当前章的磁盘状态，切回标签时也比较一次。`changed` 随章节走，文件夹摘要 `gists` 留在写作页。
-- 写作页当前章和大纲页编辑格各持有一个 `book.OutlineDraft`。两者都在停顿 `book.SaveAfter` 后存，换章、离开页面和关作品时立即存，写入经过 Book。`book.SaveAfter` 和 `book.CheckEvery` 位于 `desk/book/timing.go`，均为可缩短的变量；`snapEvery` 位于 `desk/save.go`。
+- 写作页当前章和大纲页编辑格各持有一个 `book.OutlineDraft`。两者都按当前 `Book.Timing.SaveAfter` 停顿后存，换章、离开页面和关作品时立即存。`book.SaveAfter` 和 `book.CheckEvery` 是默认常量，每个 Book 打开时取得自己的 `Timing`，测试只改所属实例；不改变生产的 1.5 秒保存、2 秒看盘策略。快照间隔 `snapEvery` 是 `desk/save.go` 的常量。
 
 ### 页面和导航
 
@@ -101,6 +101,8 @@ Status: implemented
 
 ## Alternatives considered
 
+- **为计时增加通用 Clock 接口和注入容器**：能替换所有真实时间；但当前保存逻辑已经显式接收部分时间值，先将可变间隔收进每本书就能消除跨测试污染。保留现有真实时间和默认间隔，只对明确问题继续收窄，不一次重写所有计时路径。
+
 - **把设置和记录继续合进 backupView，只靠注释分区**：少改字段路径，但看名字不能知道备份还保管 AI 记录，重置也依赖备份的偶然归属。采用同包具体类型分离，保持直接调用。
 - **设置和记录各拆成子包**：编译器可以限制互相读字段；但这两处需要配色、AI 用量、作品标题和各设置页回调，新增 Host 的转发成本大于这次状态收拢的收益。
 
@@ -134,6 +136,9 @@ Status: implemented
 - 手机预览、导出和大纲页各经自己消费的接口访问 `appHost`。三个页面包不引用 `desk` 或别的页面包，接口签名不带 `desk` 的私有类型；这由 `desk/imports_test.go` 的 `TestImports` 守着。
 
 ## Testing
+
+- `TestBooksKeepTheirOwnSaveTiming` 同时打开两本书，分别立即保存和等待一小时，验证各自的磁盘正文及后续切回立即保存；已有正文与章纲停笔保存、离开保存测试改为只设置所属 Book，无须恢复全局间隔。
+- 保存与看盘间隔实例化后的 `npm run verify`：10 项全部通过，79.5 秒。真实时间仍用于编辑器时间戳；本轮没有调整轮询策略，也没有宣称解决批注额外帧的根因。
 
 - 讨论状态整理：`TestOldRequestCannotFinishNewWork` 控制旧请求延迟交回，确认不能清空新请求、显示旧错误或执行旧 apply；`TestOldStreamCannotEnterNewDiscussion` 验证旧回调只写原流式实例且不刷新当前作品。全套验证 10 项通过（79.0 秒）；讨论与 AI 截图除加载指示器相位和快照时间外一致。
 

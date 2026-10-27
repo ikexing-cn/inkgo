@@ -168,7 +168,6 @@ func aiWork(t *testing.T) (root, chapter string) {
 // the AI of this machine with a spy on it.
 func openSpied(t *testing.T, root string) (*App, *ui.Tester, *spy) {
 	t.Helper()
-	quick(t)
 	lib, was := filepath.Join(root, "library"), Library
 	Library = func() string { return lib }
 	t.Cleanup(func() { Library = was })
@@ -177,6 +176,7 @@ func openSpied(t *testing.T, root string) (*App, *ui.Tester, *spy) {
 	if err := a.Open(filepath.Join(root, "work")); err != nil {
 		t.Fatal(err)
 	}
+	quick(a)
 	t.Cleanup(func() { a.Close() })
 	tt := stillTester(a.View, 1266, 780)
 	tt.Frame()

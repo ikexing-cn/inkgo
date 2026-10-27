@@ -453,8 +453,8 @@ func TestAChapterReadInPartIsToldSo(t *testing.T) {
 // no chapter left, and what its check found stays, on the disk and in the
 // count.
 func TestShowingAChapterKeepsWhatItsCheckFound(t *testing.T) {
-	quick(t)
 	a, tt, _ := fixture(t)
+	quick(a)
 	id, err := a.Store.NewChapter("", "第一章", false)
 	if err != nil {
 		t.Fatal(err)

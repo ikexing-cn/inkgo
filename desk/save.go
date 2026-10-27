@@ -5,12 +5,11 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"writer/desk/book"
 )
 
 // snapEvery is how often the writing page keeps a snapshot while the author
 // writes. Tests shorten it.
-var snapEvery = 10 * time.Minute
+const snapEvery = 10 * time.Minute
 
 // flush saves the text and the outline shown, as leaving them does. What
 // an AI proposes is not in the text, and stays.
@@ -64,7 +63,7 @@ func (a *App) watch(c *ui.Context) {
 	}
 	o := w.cur()
 	if o.ed != nil && o.ed.Doc.Version() != o.savedVer && o.external == nil && !o.lost {
-		if wait := book.SaveAfter - time.Since(o.ed.LastEdit()); wait > 0 {
+		if wait := a.book.Timing.SaveAfter - time.Since(o.ed.LastEdit()); wait > 0 {
 			c.After(wait)
 		} else {
 			a.warn(a.saveText())
@@ -72,19 +71,19 @@ func (a *App) watch(c *ui.Context) {
 	}
 	d := &o.outline
 	d.Change(time.Now())
-	if wait, due := d.Waits(book.SaveAfter, time.Now()); due {
+	if wait, due := d.Waits(a.book.Timing.SaveAfter, time.Now()); due {
 		if wait > 0 {
 			c.After(wait)
 		} else {
 			a.warn(a.saveOutline())
 		}
 	}
-	if wait := book.CheckEvery - time.Since(w.checked); wait > 0 {
+	if wait := a.book.Timing.CheckEvery - time.Since(w.checked); wait > 0 {
 		c.After(wait)
 		return
 	}
 	w.checked = time.Now()
-	c.After(book.CheckEvery)
+	c.After(a.book.Timing.CheckEvery)
 	a.checkDisk()
 }
 
