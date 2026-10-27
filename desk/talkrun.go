@@ -83,14 +83,6 @@ func (l *live) read() (reasoning, text string, steps []workspace.Event, compacti
 	return l.reasoning.String(), l.text.String(), slices.Clone(l.steps), l.compacting
 }
 
-func (l *live) reset() {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	l.reasoning.Reset()
-	l.text.Reset()
-	l.steps, l.compacting, l.proposed = nil, false, nil
-}
-
 // talk is the discussion of the open work with the model it selects,
 // streaming the reply into the view with what it looks up on the way, and
 // what the author is writing beside it. What it notes in the setting

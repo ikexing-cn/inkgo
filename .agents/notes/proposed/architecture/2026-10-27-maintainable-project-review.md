@@ -2,7 +2,7 @@
 
 Status: proposed
 
-已实施的批次：[阅读入口、页面权限和服务表单状态](../../implemented/architecture/2026-10-27-reading-entry-and-owned-state.md)，以及 [desk 内部状态](../../implemented/architecture/2026-10-22-desk-state.md) 中的设置与记录分离、讨论轮次归属、Book 计时参数和讨论/检查/大纲文件拆分。下文保留审查时的基线和候选建议；磁盘轮询策略仍待作者评审，批注额外帧的根因仍未定位，现由串行帧测试保留原断言。
+已实施的批次：[阅读入口、页面权限和服务表单状态](../../implemented/architecture/2026-10-27-reading-entry-and-owned-state.md)，[desk 内部状态](../../implemented/architecture/2026-10-22-desk-state.md) 中的设置与记录分离、讨论轮次归属、Book 计时参数和讨论/检查/大纲文件拆分，以及作者同意后的[磁盘扫描去重与后台暂停](../../implemented/architecture/2026-10-13-fewer-looks-at-the-disk.md)。下文保留审查时的基线和候选建议；批注额外帧的根因仍未定位，现由串行帧测试保留原断言。
 
 设置窗口、AI 记录与备份的状态归属继续在 [desk 内部状态](../../implemented/architecture/2026-10-22-desk-state.md) 中细化：状态分别由各功能持有，关闭设置与换书的收尾有独立入口。这沿用原决定并就地更新，不另建同义提案。
 

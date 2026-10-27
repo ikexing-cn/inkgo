@@ -90,7 +90,10 @@ func TestOutlineReadError(t *testing.T) {
 	if err := os.WriteFile(file, bad, 0600); err != nil {
 		t.Fatal(err)
 	}
-	if err := a.Open(root); err != nil {
+	// The command line accepts a relative work path. Revealing a broken
+	// outline must still hand the file manager the store's absolute root.
+	t.Chdir(filepath.Dir(root))
+	if err := a.Open(filepath.Base(root)); err != nil {
 		t.Fatal("bad outline blocked opening work", err)
 	}
 	showPage(a, pageWrite)
@@ -103,6 +106,13 @@ func TestOutlineReadError(t *testing.T) {
 		if strings.HasPrefix(text, "故事中 ") {
 			t.Fatal("bad outline has story time", text)
 		}
+	}
+	var revealed string
+	a.Reveal = func(path string) error { revealed = path; return nil }
+	click(t, tt, "大纲")
+	click(t, tt, "打开所在文件夹")
+	if revealed != root {
+		t.Fatalf("revealed %q, want absolute work root %q", revealed, root)
 	}
 }
 

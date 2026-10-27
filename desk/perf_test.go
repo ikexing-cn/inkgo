@@ -102,6 +102,16 @@ func longReply(n int) string {
 	return b.String()
 }
 
+// reset restarts the synthetic stream used by the benchmark. Production
+// requests each own a fresh talkTurn and never reuse its mailbox.
+func (l *live) reset() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.reasoning.Reset()
+	l.text.Reset()
+	l.steps, l.compacting, l.proposed = nil, false, nil
+}
+
 // streamingBench opens a session with turns earlier replies and streams a
 // new reply into it, one delta a frame.
 func streamingBench(b *testing.B, turns int, reasoning bool) {

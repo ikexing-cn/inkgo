@@ -10,7 +10,7 @@ Status: implemented
 
 - 根 README 连接现有规范和启动、保存、AI 三条调用链；AGENTS.md 只链接入口并将笔记判定细则交给技能。
 - 笔记技能只列本地已安装命令，脚本直接用 Node 运行；技能和 verification、archiving 参考一致。局部直观修复不自动建笔记，已授权实施不重复确认。磁盘轮询笔记明确 Book 中间层与既有后台 Store 用户；后续获作者同意的轮询改造由该篇单独记录。
-- outline、phone 的 Host 只提供 `WorkPath()`；导出仍保留实际需要的 Store。Book 类型注释明确集合的只读借用，包括嵌套值：编辑前复制，不把借用数据交给后台任务。版本仍由 Book 写方法维护。
+- outline、phone 的 Host 只提供 `WorkPath()`，由 Store 的绝对根路径取得；即使用相对路径打开作品，交给文件管理器的路径也保持绝对路径。导出仍保留实际需要的 Store。Book 类型注释明确集合的只读借用，包括嵌套值：编辑前复制，不把借用数据交给后台任务。版本仍由 Book 写方法维护。
 - `TestDeskLeavesTheBooksContentToBook` 通过 `go list -deps -export` 取得构建文件与依赖导出数据，使用标准库 `go/types` 判断方法声明者是否为 `workspace.Store`；覆盖 desk 及其子包，只有 Book 包可直接使用受保护的内容读写方法。变量别名、嵌入 Store、方法值和方法表达式都按同一规则检查。
 - `desk/serviceform.go` 的包内具体类型集中字段、模型行解析、加载和清理；保存、后台请求及 UI 绘制仍由 App 显式协调。展开状态属于 serviceForm，不属于 backupView。每次加载、关闭表单递增 generation，模型目录交回时核对该代次；即使重开同一个服务也不应用旧结果。
 - 关闭表单清除未保存输入（包括 key）；`resetView` 在换书和回书架时关闭表单。模型行 key 跨关闭继续递增，避免复用旧控件状态。布局和文案不变；已保存的服务与 key 不受清理影响。

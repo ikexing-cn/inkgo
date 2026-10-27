@@ -15,7 +15,7 @@ type Host interface {
 	PhoneColors() (*kit.Palette, *kit.Palette)
 	// Content gives the book content shared by the pages.
 	Content() *book.Book
-	// WorkPath identifies the work whose reading position is shown.
+	// WorkPath identifies the work by its absolute folder.
 	WorkPath() string
 	// ShelfPrefs gives the editable preferences shared by works on this machine.
 	ShelfPrefs() *shelf.Shelf

@@ -13,7 +13,7 @@ type Host interface {
 	Colors() *kit.Palette
 	// Content gives the book content shared by the pages.
 	Content() *book.Book
-	// WorkPath gives the folder to reveal when the outline cannot be read.
+	// WorkPath gives the absolute folder to reveal when the outline cannot be read.
 	WorkPath() string
 	// Notices gives the errors, completion notices, and hints shown by toasts.
 	Notices() *kit.Status
