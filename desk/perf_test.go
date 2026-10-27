@@ -137,8 +137,8 @@ func streamingBench(b *testing.B, turns int, reasoning bool) {
 		b.Fatal(err)
 	}
 	tt.Frame()
-	a.busy, a.talking, a.talkSession = "AI 正在思考", true, a.session
-	a.live.reset()
+	a.busy, a.turn.active, a.turn.session = "AI 正在思考", true, a.session
+	a.turn.live.reset()
 	reply := []rune(longReply(99) + longReply(100))
 	tt.Frame()
 	b.ResetTimer()
@@ -146,17 +146,17 @@ func streamingBench(b *testing.B, turns int, reasoning bool) {
 		at := i % (len(reply) / 2)
 		if at == 0 {
 			// Start halfway, as a long reply is most of the time.
-			a.live.reset()
+			a.turn.live.reset()
 			if reasoning {
-				a.live.add(aiport.Progress{Reasoning: string(reply[:len(reply)/2])})
+				a.turn.live.add(aiport.Progress{Reasoning: string(reply[:len(reply)/2])})
 			} else {
-				a.live.add(aiport.Progress{Reasoning: strings.Repeat("先想想雨的来历。", 40), Text: string(reply[:len(reply)/2])})
+				a.turn.live.add(aiport.Progress{Reasoning: strings.Repeat("先想想雨的来历。", 40), Text: string(reply[:len(reply)/2])})
 			}
 		}
 		if reasoning {
-			a.live.add(aiport.Progress{Reasoning: string(reply[at : at+1])})
+			a.turn.live.add(aiport.Progress{Reasoning: string(reply[at : at+1])})
 		} else {
-			a.live.add(aiport.Progress{Text: string(reply[len(reply)/2+at : len(reply)/2+at+1])})
+			a.turn.live.add(aiport.Progress{Text: string(reply[len(reply)/2+at : len(reply)/2+at+1])})
 		}
 		// One refresh, as a window draws: what fades in asks for the next
 		// frame, which a Frame on a clock standing still would run at once,

@@ -129,22 +129,22 @@ func TestCompactingShowsItself(t *testing.T) {
 	}
 	sv := c.Services()
 	asked, block := make(chan struct{}), make(chan struct{})
-	a.pending = "回忆那段会不会拖"
+	a.turn.pending = "回忆那段会不会拖"
 	a.run(c, "AI 正在思考…", func(context.Context) (func(), error) {
 		if _, err := a.Store.Append(session, workspace.Event{Role: workspace.RoleUser, Text: "回忆那段会不会拖"}); err != nil {
 			return nil, err
 		}
-		a.stepped(sv, workspace.Event{Role: workspace.RoleDigest})
+		a.stepped(a.turn, sv, workspace.Event{Role: workspace.RoleDigest})
 		<-asked
 		d, err := a.Store.Append(session, workspace.Event{Role: workspace.RoleDigest, Through: r.ID, Text: "## 在聊什么\n停电那一章。"})
 		if err != nil {
 			return nil, err
 		}
-		a.stepped(sv, d)
+		a.stepped(a.turn, sv, d)
 		<-block
-		return func() { a.pending = "" }, nil
+		return func() { a.turn.pending = "" }, nil
 	})
-	a.talking, a.talkSession = true, session
+	a.turn.active, a.turn.session = true, session
 	until(t, tt, "compacting", func() bool { return tt.HasText("正在压缩上下文…") })
 	if tt.HasText("正在思考…") || tt.HasText("以上 1 轮已整理成摘要") || !once() {
 		t.Fatal("compacting", tt.Texts())

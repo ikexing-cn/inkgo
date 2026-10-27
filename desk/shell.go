@@ -64,7 +64,7 @@ func (a *App) View(c *ui.Context) {
 	c.SetTheme(a.pal.Theme)
 	a.page = a.pageShown()
 	if a.busy == "" {
-		a.talking = false
+		a.turn.active = false
 	}
 	if a.Store != nil {
 		a.pollChecks(c)

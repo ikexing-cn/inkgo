@@ -64,18 +64,18 @@ func (w *writeView) propOf(session, call string) *prop {
 // its text comes and once it came whole; one whose call failed goes, the
 // AI being told why.
 func (a *App) followProps() {
-	if !a.talking || a.Store == nil {
+	if !a.turn.active || a.Store == nil {
 		return
 	}
 	w := &a.write
-	_, _, steps, _ := a.live.read()
+	_, _, steps, _ := a.turn.live.read()
 	models := map[string]string{}
 	for _, e := range steps {
 		for _, call := range e.Calls {
 			models[call.ID] = e.Model
 		}
 	}
-	for _, s := range a.live.proposals() {
+	for _, s := range a.turn.live.proposals() {
 		a.takeProposal(s.call, s.p, true, "")
 	}
 	for _, e := range steps {
@@ -84,7 +84,7 @@ func (a *App) followProps() {
 		case e.Proposal != nil:
 			a.takeProposal(e.Call, *e.Proposal, false, models[e.Call])
 		default:
-			if p := w.propOf(a.talkSession, e.Call); p != nil && p.writing {
+			if p := w.propOf(a.turn.session, e.Call); p != nil && p.writing {
 				a.forget(p)
 			}
 		}
@@ -97,7 +97,7 @@ func (a *App) followProps() {
 // the one shown.
 func (a *App) takeProposal(call string, p workspace.Proposal, writing bool, model string) {
 	w := &a.write
-	session := a.talkSession
+	session := a.turn.session
 	key := session + "/" + call
 	if w.seen[key] {
 		pr := w.propOf(session, call)
@@ -158,12 +158,12 @@ func samePlace(p, q editor.Proposal, whole bool) bool {
 // unfinishedProps lets go, as a turn ends, what it was proposing and did
 // not finish: it was cancelled, or failed.
 func (a *App) unfinishedProps() {
-	if !a.talking {
+	if !a.turn.active {
 		return
 	}
 	w := &a.write
 	n := len(w.props)
-	w.props = slices.DeleteFunc(w.props, func(p *prop) bool { return p.writing && p.session == a.talkSession })
+	w.props = slices.DeleteFunc(w.props, func(p *prop) bool { return p.writing && p.session == a.turn.session })
 	if len(w.props) != n {
 		w.propVer++
 	}
@@ -426,10 +426,10 @@ func (a *App) aiBar(c *ui.Context) {
 	if len(here) == 0 {
 		// Asked to draft or rewrite, the AI thinks and looks things up
 		// before it proposes: that shows here too, to be let go.
-		if !a.talking || a.talkChapter == "" || a.talkChapter != w.node {
+		if !a.turn.active || a.turn.chapter == "" || a.turn.chapter != w.node {
 			return
 		}
-		_, _, steps, _ := a.live.read()
+		_, _, steps, _ := a.turn.live.read()
 		say := "AI 正在思考…"
 		if len(workspace.Looks(steps, "")) > 0 {
 			say = "AI 正在查阅…"
@@ -437,7 +437,7 @@ func (a *App) aiBar(c *ui.Context) {
 		bar(func() {
 			ui.Spinner(c)
 			ui.Text(c, say).FontSize(kit.FsControl).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
-			see(a.talkSession)
+			see(a.turn.session)
 			if a.pal.Soft(c, "取消").Clicked() && a.cancel != nil {
 				a.cancel()
 				w.cur().ed.Focus()
@@ -504,7 +504,7 @@ func (a *App) turnCards(c *ui.Context, steps []workspace.Event) {
 	w := &a.write
 	var calls []string
 	ps := map[string]workspace.Proposal{}
-	for _, s := range a.live.proposals() {
+	for _, s := range a.turn.live.proposals() {
 		calls, ps[s.call] = append(calls, s.call), s.p
 	}
 	for _, e := range steps {
@@ -516,13 +516,13 @@ func (a *App) turnCards(c *ui.Context, steps []workspace.Event) {
 		}
 	}
 	for _, call := range calls {
-		a.propCardOf(c, ps[call], w.propOf(a.talkSession, call), workspace.FateOf(a.events, 0, call))
+		a.propCardOf(c, ps[call], w.propOf(a.turn.session, call), workspace.FateOf(a.events, 0, call))
 	}
 }
 
 // writingProps tells whether the turn in flight is writing a proposal.
 func (a *App) writingProps() bool {
-	return slices.ContainsFunc(a.write.props, func(p *prop) bool { return p.writing && p.session == a.talkSession })
+	return slices.ContainsFunc(a.write.props, func(p *prop) bool { return p.writing && p.session == a.turn.session })
 }
 
 // propCardOf shows the proposal p: which chapter, where in it, how long,

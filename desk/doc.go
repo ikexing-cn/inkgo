@@ -52,6 +52,7 @@
 // snapshots.go: snapshots, comparisons, and restoration.
 // tabs.go: chapter tabs, keeping them across runs, closing, and save confirmation.
 // take.go: taking a prose selection into the 设定.
+// talkrun.go: a discussion turn's state, stream, requests, cancellation and completion.
 // titlebar.go: title bar, its menus, and keyboard focus.
 // toast.go: toast selection, errors, progress, notices, and their actions.
 // toolbar.go: appearance switching and prose-selection tools.

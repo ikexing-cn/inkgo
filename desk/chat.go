@@ -1,10 +1,8 @@
 package desk
 
 import (
-	"context"
 	"fmt"
 	"runtime"
-	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -405,19 +403,19 @@ func (a *App) message(c *ui.Context, m workspace.Event) {
 // its reasoning and what it looked up, which stays open while it looks.
 func (a *App) thinking(c *ui.Context) {
 	t := a.pal.Theme
-	if a.pending != "" && !a.saved() {
+	if a.turn.pending != "" && !a.saved() {
 		ui.Column(c).FillWidth().AlignItems(ui.End).Gap(8).Children(func() {
-			for n, q := range a.pendingQuotes {
+			for n, q := range a.turn.quotes {
 				ui.Column(c).MaxWidthPercent(82).Children(func() {
 					a.quoteBlock(c, q, fmt.Sprintf("pending-%d", n), nil)
 				})
 			}
-			a.userBubble(c, a.pending)
+			a.userBubble(c, a.turn.pending)
 		})
 	}
-	reasoning, text, steps, compacting := a.live.read()
+	reasoning, text, steps, compacting := a.turn.live.read()
 	found := workspace.Looks(steps, "")
-	proposing, writing := len(a.live.proposals()) > 0 || len(proposed(steps, "")) > 0, a.writingProps()
+	proposing, writing := len(a.turn.live.proposals()) > 0 || len(proposed(steps, "")) > 0, a.writingProps()
 	ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Start).Children(func() {
 		a.aiMark(c)
 		ui.Column(c).Grow(1).Shrink(1).Gap(10).Children(func() {
@@ -459,7 +457,7 @@ func (a *App) thinking(c *ui.Context) {
 func (a *App) saved() bool {
 	for n := len(a.events) - 1; n >= 0; n-- {
 		if e := a.events[n]; said(e) {
-			return e.Role == workspace.RoleUser && e.Text == a.pending
+			return e.Role == workspace.RoleUser && e.Text == a.turn.pending
 		}
 	}
 	return false
@@ -854,75 +852,11 @@ func (a *App) providerURL(id string) string {
 	return ""
 }
 
-func (a *App) send(c *ui.Context) {
-	if kit.Trim(a.input) == "" {
-		return
-	}
-	input, quotes := a.input, a.quotes
-	words := workspace.Event{Text: input, Quotes: quotes}
-	if a.page == pageWrite {
-		words.Chapter = a.write.node
-	}
-	a.input, a.quotes = "", nil
-	a.say(c, a.session, words, func() {
-		if a.input == "" {
-			a.input, a.quotes = input, quotes // nothing was saved: give the words back
-		}
-	})
-}
-
-// say sends the author's words to the talk session, showing them there
-// until they are saved; unsaid runs when they were not.
-func (a *App) say(c *ui.Context, session string, words workspace.Event, unsaid func()) {
-	talk, err := a.talk(c)
-	if err != nil {
-		a.SetError(err)
-		if unsaid != nil {
-			unsaid()
-		}
-		return
-	}
-	words.Role = workspace.RoleUser // as they are kept
-	a.pending, a.pendingQuotes = words.Text, words.Quotes
-	a.chat.ScrollToEnd()
-	a.run(c, "AI 正在思考…", func(ctx context.Context) (func(), error) {
-		saved, err := talk.Say(ctx, session, words)
-		return func() {
-			a.pending, a.pendingQuotes = "", nil
-			if !saved && unsaid != nil {
-				unsaid()
-			}
-			if a.session == session { // or the author went on to another talk
-				a.chat.ScrollToEnd()
-			}
-		}, err
-	})
-	a.talking, a.talkSession, a.talkChapter = a.busy != "", session, originChapter(append(slices.Clip(a.events), words))
-}
-
-func (a *App) retry(c *ui.Context, userID string) {
-	talk, err := a.talk(c)
-	if err != nil {
-		a.SetError(err)
-		return
-	}
-	session := a.session
-	a.run(c, "正在重新请求回复…", func(ctx context.Context) (func(), error) {
-		err := talk.Retry(ctx, session, userID)
-		return func() {
-			if a.session == session {
-				a.chat.ScrollToEnd()
-			}
-		}, err
-	})
-	a.talking, a.talkSession, a.talkChapter = a.busy != "", session, originChapter(a.events)
-}
-
 // keptTo is the chapter the talk shown keeps to, when it was opened to
 // draft or rewrite it; its first words may be on their way still.
 func (a *App) keptTo() string {
-	if a.talking && a.talkSession == a.session {
-		return a.talkChapter
+	if a.turn.active && a.turn.session == a.session {
+		return a.turn.chapter
 	}
 	return originChapter(a.events)
 }

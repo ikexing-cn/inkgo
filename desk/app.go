@@ -4,9 +4,6 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
-	"slices"
-	"strings"
-	"sync"
 	"time"
 
 	"github.com/egoist/mygo/ui"
@@ -20,75 +17,6 @@ import (
 	"writer/shelf"
 	"writer/workspace"
 )
-
-// live is what the reply in flight has streamed so far, the events it
-// wrote looking things up, and the changes it is proposing in the prose as
-// their text comes. The worker writes it as output arrives; the view reads
-// it each frame.
-type live struct {
-	mu              sync.Mutex
-	reasoning, text strings.Builder
-	steps           []workspace.Event
-	compacting      bool // a digest of the talk is asked for
-	proposed        []streamed
-}
-
-// streamed is a change proposed in the prose by the call that proposes
-// it, as far as its text came.
-type streamed struct {
-	call string
-	p    workspace.Proposal
-}
-
-func (l *live) add(p aiport.Progress) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	if p.Proposal != nil {
-		if i := slices.IndexFunc(l.proposed, func(s streamed) bool { return s.call == p.Call }); i >= 0 {
-			l.proposed[i].p = *p.Proposal
-		} else {
-			l.proposed = append(l.proposed, streamed{p.Call, *p.Proposal})
-		}
-		return
-	}
-	l.reasoning.WriteString(p.Reasoning)
-	l.text.WriteString(p.Text)
-}
-
-// proposals are the changes the reply in flight proposed as far as they
-// came, in the order they began.
-func (l *live) proposals() []streamed {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	return slices.Clone(l.proposed)
-}
-
-func (l *live) step(e workspace.Event) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	if e.Role == workspace.RoleDigest {
-		l.compacting = e.ID == "" // asked for, or written
-		return
-	}
-	l.steps = append(l.steps, e)
-	// What a step said before its calls is not the reply: the reply is
-	// what streams after the last of them.
-	l.text.Reset()
-}
-
-func (l *live) read() (reasoning, text string, steps []workspace.Event, compacting bool) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	return l.reasoning.String(), l.text.String(), l.steps, l.compacting
-}
-
-func (l *live) reset() {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	l.reasoning.Reset()
-	l.text.Reset()
-	l.steps, l.compacting, l.proposed = nil, false, nil
-}
 
 // flashFor is how long an entry a talk just noted stays tinted.
 const flashFor = 3 * time.Second
@@ -159,12 +87,9 @@ type App struct {
 	sourceOpen        bool
 	sourceCategory    string
 	contextReply      string
+	turn              *talkTurn
+	workEpoch         uint64
 	busy              string
-	talking           bool              // busy with a discussion turn, shown inline in its talk
-	talkSession       string            // the talk of that turn
-	talkChapter       string            // the chapter that talk keeps to, when it was opened to draft or rewrite it
-	pending           string            // the author's words while their turn is in flight,
-	pendingQuotes     []workspace.Quote // and the prose they quote
 	// Prose the author quoted for their next turn, and whether the talk
 	// beside the prose should take the keyboard.
 	quotes                           []workspace.Quote
@@ -182,7 +107,6 @@ type App struct {
 	talkEffort                       string
 	penProvider, penModel            string
 	penEffort                        string
-	live                             live
 	md                               kit.MarkdownState
 	thoughts                         map[string]*bool // reasoning shown, by event or revision ID
 	doc                              docView
@@ -211,7 +135,7 @@ type App struct {
 // switch that turns the AI off, and with none there is no shelf either, as
 // for a test.
 func New(ai aiport.Service) *App {
-	a := &App{ai: ai, genre: "网文",
+	a := &App{ai: ai, turn: &talkTurn{}, genre: "网文",
 		light: kit.LightPalette(), dark: kit.DarkPalette(), titles: map[string]string{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
 	a.exporting.Host, a.phone.Host, a.plan.Host = appHost{a}, appHost{a}, appHost{a}
 	a.pal = a.light
@@ -286,6 +210,11 @@ func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 }
 
 func (a *App) resetView() {
+	if a.cancel != nil {
+		a.cancel()
+	}
+	a.workEpoch++
+	a.busy, a.cancel, a.turn = "", nil, &talkTurn{}
 	a.resetPrefs()
 	a.source, a.sourceOpen, a.contextReply = nil, false, ""
 	a.input, a.seen, a.flash, a.doc, a.write = "", -1, map[string]time.Time{}, docView{}, writeView{}
@@ -313,6 +242,8 @@ func (a *App) Close() error {
 	}
 	a.leaveWork()
 	a.resetPrefs()
+	a.workEpoch++
+	a.turn = &talkTurn{}
 	// Window shutdown exits the process. A cancelled worker may still be
 	// saving what it already has, so leave the store open for it.
 	if a.Store != nil && a.busy == "" {
@@ -361,8 +292,8 @@ func (a *App) refreshFromSetting() error {
 		return err
 	}
 	a.titles[a.session], a.blank[a.session] = workspace.TalkTitle(a.events, a.nodeTitle), len(a.events) == 0
-	if a.talkSession != a.session {
-		delete(a.titles, a.talkSession) // the last turn may have gone on there since: read it again
+	if a.turn.session != a.session {
+		delete(a.titles, a.turn.session) // the last turn may have gone on there since: read it again
 	}
 	for _, s := range a.sessions {
 		if _, ok := a.titles[s]; !ok {
@@ -397,31 +328,6 @@ func talkDay(id string, now time.Time) string {
 	return kit.DayOf(t, now)
 }
 
-// talk is the discussion of the open work with the model it selects,
-// streaming the reply into the view with what it looks up on the way, and
-// what the author is writing beside it. What it notes in the setting
-// shows at once.
-func (a *App) talk(c *ui.Context) (aiport.Talk, error) {
-	a.live.reset()
-	a.write.seen = map[string]bool{}
-	sv := c.Services()
-	return a.ai.Talk(a.Store, a.beside(), func(p aiport.Progress) {
-		a.live.add(p)
-		sv.Invalidate()
-	}, func(e workspace.Event) { a.stepped(sv, e) })
-}
-
-// stepped hears an event the reply in flight wrote on its way, off the
-// interface's thread: what it looked up shows as it goes, and what it
-// noted in the setting at once.
-func (a *App) stepped(sv ui.Services, e workspace.Event) {
-	a.live.step(e)
-	if e.Revision != "" || e.Role == workspace.RoleDigest && e.ID != "" { // the setting it noted, or the talk compacted
-		a.jobs.post(sv, func() { a.SetError(a.refresh()) })
-	}
-	sv.Invalidate()
-}
-
 // flashNew tints the entries a talk noted since the view last looked; the
 // revisions there were when the work opened are not news.
 func (a *App) flashNew() {
@@ -434,68 +340,6 @@ func (a *App) flashNew() {
 	}
 	a.seen = len(a.book.Setting().Revisions)
 }
-
-// All state visible to the view is changed on the view thread. Workers own the
-// store until their result arrives; navigation/mutations are disabled meanwhile.
-// What runs this way is the AI's: the talk and the list of models.
-func (a *App) run(c *ui.Context, label string, fn func(context.Context) (func(), error)) {
-	a.work(c.Services(), label, fn)
-}
-
-// work is run with the window's services, which outlive the frame: the
-// worker asks for the next frame through them, and so does trying again.
-func (a *App) work(sv ui.Services, label string, fn func(context.Context) (func(), error)) {
-	if a.busy != "" {
-		return
-	}
-	ctx, cancel := context.WithCancel(context.Background()) // each request has its own time limit; a turn takes as many as it needs
-	a.cancel = cancel
-	a.busy = label
-	a.SetError(nil)
-	a.status.Retry(func() { a.work(sv, label, fn) })
-	a.jobs.start(sv, func() func() {
-		apply, err := fn(ctx)
-		cancel()
-		return func() { a.finished(apply, err) }
-	})
-}
-
-// finished is what a request ended with, run on the view thread: what it
-// applied, whether it failed, and the view after it.
-func (a *App) finished(apply func(), err error) {
-	a.followProps() // the reply ended: all it proposed is in
-	a.busy = ""
-	a.cancel = nil
-	if apply != nil {
-		apply()
-	}
-	a.unfinishedProps()
-	if !a.aiOn() {
-		err = nil // what runs is the AI's: turned off, it was stopped, and says nothing
-	}
-	if err != nil {
-		a.status.Fail(err)
-	} else {
-		a.status.Succeed()
-	}
-	if err := a.refresh(); err != nil {
-		a.SetError(err)
-	}
-}
-
-func (a *App) poll() {
-	a.followProps() // what the reply in flight proposes, in the prose
-	a.jobs.poll()
-}
-
-// held tells whether the work in flight holds what it could be changed
-// under: the list of models holds the window. A talk turn holds only
-// sending another and switching the work; the rest goes on as it replies,
-// and a model changed meanwhile takes the next turn.
-func (a *App) held() bool { return a.busy != "" && !a.talking }
-
-// replying tells whether a turn is in flight in the talk shown.
-func (a *App) replying() bool { return a.talking && a.session == a.talkSession }
 
 // SetError shows err in a toast until the author closes it; nil clears it.
 func (a *App) SetError(err error) { a.status.SetError(err) }

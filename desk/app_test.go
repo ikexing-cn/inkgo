@@ -244,7 +244,7 @@ func TestTalkNotesTheSettingAsItReplies(t *testing.T) {
 	var rev workspace.Revision
 	var reply workspace.Event
 	sv := c.Services()
-	a.pending = "这座城市雨从不停。"
+	a.turn.pending = "这座城市雨从不停。"
 	a.run(c, "AI 正在思考", func(context.Context) (func(), error) {
 		// What the engine writes, in its order, the way a reply writes it.
 		u, err := a.Store.Append(session, workspace.Event{Role: workspace.RoleUser, Text: "这座城市雨从不停。"})
@@ -258,12 +258,12 @@ func TestTalkNotesTheSettingAsItReplies(t *testing.T) {
 		if err != nil {
 			return nil, err
 		}
-		a.stepped(sv, call)
+		a.stepped(a.turn, sv, call)
 		found, err := a.Store.Append(session, workspace.Event{Role: workspace.RoleResult, ReplyTo: u.ID, Call: "c1", Text: "全书的正文里没有「雨」。"})
 		if err != nil {
 			return nil, err
 		}
-		a.stepped(sv, found)
+		a.stepped(a.turn, sv, found)
 		if rev, err = a.Store.Revise(workspace.Revision{By: workspace.ByTalk, Session: session, Turn: u.ID, Model: "deepseek/deepseek-flash", Ops: []workspace.Op{
 			{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "规则", Text: "雨从不停", Sources: []workspace.Source{{Session: session, Message: u.ID, Quote: "雨从不停"}}},
 		}}); err != nil {
@@ -273,12 +273,12 @@ func TestTalkNotesTheSettingAsItReplies(t *testing.T) {
 		if err != nil {
 			return nil, err
 		}
-		a.stepped(sv, noted)
+		a.stepped(a.turn, sv, noted)
 		<-block
 		reply, err = a.Store.Append(session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "那就让雨一直下。"})
 		return nil, err
 	})
-	a.talking, a.talkSession = true, a.session
+	a.turn.active, a.turn.session = true, a.session
 	until(t, tt, "the note", func() bool { return len(setting(a).Entries) == 2 })
 	if _, ok := a.flash[setting(a).Entries[1].ID]; !ok || !tt.HasText("雨从不停") {
 		t.Fatal("what the talk noted is not shown and tinted", tt.Texts())
@@ -288,7 +288,7 @@ func TestTalkNotesTheSettingAsItReplies(t *testing.T) {
 	}
 	close(block)
 	settle(t, a, tt)
-	a.talking = false
+	a.turn.active = false
 	tt.Frame()
 	if !tt.HasText("那就让雨一直下。") || !tt.HasText("搜了全书「雨」，记下：正文 · 规则：雨从不停") || tt.HasText("全书的正文里没有「雨」。") || !tt.HasText("2 条发言") {
 		t.Fatal("the reply does not fold what it looked up", tt.Texts())
@@ -646,15 +646,15 @@ func TestLiveTurnStreams(t *testing.T) {
 	tt = stillTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
 	tt.Frame()
 	block := make(chan struct{})
-	a.pending = "她做什么工作？"
+	a.turn.pending = "她做什么工作？"
 	a.run(c, "AI 正在思考", func(ctx context.Context) (func(), error) { <-block; return nil, nil })
-	a.talking, a.talkSession = true, a.session
-	a.live.add(aiport.Progress{Reasoning: "她怕黑，职业要和光有关"})
+	a.turn.active, a.turn.session = true, a.session
+	a.turn.live.add(aiport.Progress{Reasoning: "她怕黑，职业要和光有关"})
 	tt.Frame()
 	if !tt.HasText("她怕黑，职业要和光有关") || !tt.HasText("正在思考…") {
 		t.Fatal("reasoning not streamed", tt.Texts())
 	}
-	a.live.add(aiport.Progress{Text: "可以让她**修灯**。"})
+	a.turn.live.add(aiport.Progress{Text: "可以让她**修灯**。"})
 	tt.Frame()
 	if !tt.HasText("正在回复…") || tt.HasText("**") {
 		t.Fatal("reply not streamed as markdown", tt.Texts())
@@ -682,7 +682,7 @@ func TestTalkLeavesTheRestFree(t *testing.T) {
 	a.SetError(a.refresh())
 	tt.Frame()
 	block := make(chan struct{})
-	a.pending = "灯为什么会灭"
+	a.turn.pending = "灯为什么会灭"
 	a.run(c, "AI 正在思考…", func(context.Context) (func(), error) {
 		u, err := a.Store.Append(session, workspace.Event{Role: workspace.RoleUser, Text: "灯为什么会灭"})
 		if err != nil {
@@ -690,9 +690,9 @@ func TestTalkLeavesTheRestFree(t *testing.T) {
 		}
 		<-block
 		_, err = a.Store.Append(session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "因为停电了。"})
-		return func() { a.pending = "" }, err
+		return func() { a.turn.pending = "" }, err
 	})
-	a.talking, a.talkSession = true, session
+	a.turn.active, a.turn.session = true, session
 	tt.Frame()
 
 	if err := tt.Click("切换作品"); err != nil {
@@ -733,8 +733,8 @@ func TestTalkLeavesTheRestFree(t *testing.T) {
 	tt.Type("再说说")
 	tt.Key(ui.Cmd, ui.KeyEnter)
 	tt.Frame()
-	if a.input != "再说说" || a.pending != "灯为什么会灭" || !tt.HasText("正在思考…") {
-		t.Fatalf("typed %q, in flight %q", a.input, a.pending)
+	if a.input != "再说说" || a.turn.pending != "灯为什么会灭" || !tt.HasText("正在思考…") {
+		t.Fatalf("typed %q, in flight %q", a.input, a.turn.pending)
 	}
 
 	if err := tt.Click("对话-" + other); err != nil {
@@ -757,7 +757,7 @@ func TestTalkLeavesTheRestFree(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.talkSession != session || a.busy != "AI 正在思考…" {
+	if a.turn.session != session || a.busy != "AI 正在思考…" {
 		t.Fatal("tried again as the AI replies")
 	}
 	close(block)
