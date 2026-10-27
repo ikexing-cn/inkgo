@@ -2,6 +2,8 @@
 
 Status: implemented
 
+技能的本地适配与记录门槛见[阅读入口、页面权限和服务表单状态](../architecture/2026-10-27-reading-entry-and-owned-state.md)。
+
 ## Problem
 
 本项目主要由 AI 编写。每个新会话只看得见代码，看不见当初的取舍（例如为什么不用 WebView、为什么自己画编辑器），容易把否掉的路重走一遍，或为局部需求打穿边界。
@@ -9,7 +11,7 @@ Status: implemented
 ## Decision
 
 - 采用 [write-notes-like-deepseek](https://github.com/czm15053/write-notes-like-deepseek)（commit `8f3b404`）的笔记方法：非平凡改动在 `.agents/notes/{proposed,implemented,rejected,archived}/{class}/yyyy-mm-dd-topic.md` 留笔记，规则入口是根目录 `AGENTS.md`。
-- Skill 原文副本在 `.agents/skills/write-notes-like-deepseek/`（`SKILL.md`、`references/`、`templates/`），校验脚本副本在 `scripts/`；只收录校验与归档脚本，看板、DSH 导入、素材导出脚本不收录。
+- Skill 的本地适配副本在 `.agents/skills/write-notes-like-deepseek/`（`SKILL.md`、`references/`、`templates/`），校验脚本副本在 `scripts/`；只收录校验与归档脚本，看板、DSH 导入、素材导出脚本不收录，技能只列实际安装的入口。
 - 脚本由 Node 直接运行 `.ts`（Node ≥ 22.18 的类型剥离），`package.json` 只有 scripts，没有任何依赖；`npm run verify-notes` 串跑目录、格式、归档封印三道检查。
 - 提交前同时通过 `go vet ./...`、`go test ./...`、`npm run verify-notes`。2026-10-13 起由 `npm run verify` 一条命令同时跑，原型的走查也在里面，见[全套检查从四分半到半分钟](2026-10-13-fast-checks.md)。
 

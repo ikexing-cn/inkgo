@@ -5,7 +5,6 @@ import (
 	"writer/desk/kit"
 	"writer/editor"
 	"writer/shelf"
-	"writer/workspace"
 )
 
 // Host gives the phone preview its current chapter, palette, and local preferences.
@@ -16,8 +15,8 @@ type Host interface {
 	PhoneColors() (*kit.Palette, *kit.Palette)
 	// Content gives the book content shared by the pages.
 	Content() *book.Book
-	// Workspace gives the current store and work path.
-	Workspace() (*workspace.Store, string)
+	// WorkPath identifies the work whose reading position is shown.
+	WorkPath() string
 	// ShelfPrefs gives the editable preferences shared by works on this machine.
 	ShelfPrefs() *shelf.Shelf
 	// SaveShelf saves the machine preferences.

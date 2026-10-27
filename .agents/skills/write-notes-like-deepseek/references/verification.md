@@ -2,7 +2,9 @@
 
 > SKILL §6 的展开。接入 CI 时对照；本地轻量使用时跳过。
 
-## 检查脚本（均为 tsx，零新增依赖，均可 `npx tsx` 独立运行）
+## 检查脚本
+
+在仓库根目录用 SKILL.md §6 的 npm 命令或 `node scripts/<脚本名>.ts` 运行。无需 tsx。
 
 1. **`verify-agent-note-tree`**（`scripts/agent-note-tree.ts` + `scripts/verify-agent-note-tree.ts`）
    - 校验 lifecycle 封闭集 `proposed/implemented/rejected` + `archived`、class 封闭集 6 个、路径深度 `{lifecycle}/{class}/file.md`、文件名 `yyyy-mm-dd-topic.md`、禁止 `INDEX.md`、活跃笔记内部相对 Markdown 链接有效性。
@@ -16,7 +18,7 @@
 3. **`verify-archived`**（`scripts/verify-archived-agent-notes.ts`，标配）
    - 每篇归档：头部布局逐行校验（L3 `Status: implemented` / L4 `Archived: YYYY-MM-DD` 紧邻 / L5 空行）。不承认 `Superseded-by:` 字段。
    - `archived/manifest.json`：每个文件有封印条目、每条目有对应文件、sha256 与磁盘内容一致（冻结 = 不可篡改的机械含义）。
-   - append-only：有 git 时与基线 ref 的 manifest 逐条对比（env `AGENT_NOTE_ARCHIVE_BASE_REF`，本地默认 HEAD）。CI 必须指向变更前的 commit（本仓库 workflow：PR 用 `pull_request.base.sha`，push 用 `github.event.before`），用 HEAD 等于没查。已封印条目被改/删即报错；**无 git 自动降级**为哈希自校验并打印提示——不用 git 一样能跑，只是少了版本基线对照。
+   - append-only：有 git 时与基线 ref 的 manifest 逐条对比（env `AGENT_NOTE_ARCHIVE_BASE_REF`，本地默认 HEAD）。将来接 CI 时须指向变更前的 commit，例如 PR 的 base SHA；本仓库尚未配置 workflow。已封印条目被改/删即报错；**无 git 自动降级**为哈希自校验并打印提示——不用 git 一样能跑，只是少了版本基线对照。
    - `--write`：先证明既有封印未变，再为未封印文件追加封印（历史语料补齐用这个）。
 
 4. **`check-note-anchors`**（`scripts/check-note-anchors.ts`，软报告，退出码恒 0，**不进 CI**）
@@ -25,6 +27,6 @@
 ## 接入建议
 
 - 轻量（个人/无 git）：前两个脚本即可，归档封印在第一次归档后自然生效。
-- 完整（团队）：`npm run verify-notes` 三线串进 CI，失败即红（本仓库 `.github/workflows/verify-notes.yml` 可作模板）。
+- 完整（团队）：把现有 `npm run verify-notes` 三线串进 CI，失败即红，并设置变更前的归档校验基线。
 
 三个校验脚本方法上来自 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)，按通用中文单语宿主裁过：无双语三件套、无 DSH 迁仓豁免。锚点体检是可选软报告，不是 DSH 门禁。

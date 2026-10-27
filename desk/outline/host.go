@@ -5,7 +5,6 @@ import (
 	"writer/desk/book"
 	"writer/desk/kit"
 	"writer/editor"
-	"writer/workspace"
 )
 
 // Host gives the outline its book, palette, navigation, and shared column.
@@ -14,8 +13,8 @@ type Host interface {
 	Colors() *kit.Palette
 	// Content gives the book content shared by the pages.
 	Content() *book.Book
-	// Workspace gives the current store and work path.
-	Workspace() (*workspace.Store, string)
+	// WorkPath gives the folder to reveal when the outline cannot be read.
+	WorkPath() string
 	// Notices gives the errors, completion notices, and hints shown by toasts.
 	Notices() *kit.Status
 	// Chapter gives the selected editor, its ID on the writing page, and whether a chapter is open.

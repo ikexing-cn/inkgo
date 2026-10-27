@@ -50,13 +50,7 @@ func (a *App) destination(sel workspace.Selection) string {
 func (a *App) chooseProvider(id string) {
 	for _, p := range a.ai.Providers() {
 		if p.ID == id {
-			a.providerID = id
-			a.provider = p
-			a.limits = nil
-			for _, m := range p.Models {
-				a.limits = append(a.limits, a.limitRow(m))
-			}
-			a.key = ""
+			a.serviceForm.load(p)
 			return
 		}
 	}
@@ -160,16 +154,17 @@ func (a *App) writingSwitches(c *ui.Context) {
 // services lists the model services kept on this computer; 编辑 opens a
 // service's form in place, and so does adding one.
 func (a *App) services(c *ui.Context) {
+	f := &a.serviceForm
 	t := a.pal.Theme
 	busy := a.held()
 	a.pal.Subhead(c, "模型服务", "保存在本机，所有作品共用")
 	// A form just opened comes into view with its card: one added opens at
 	// the foot of the list, below what is shown.
-	reveal := a.bk.edit != a.bk.shown
-	a.bk.shown = a.bk.edit
+	reveal := f.edit != f.shown
+	f.shown = f.edit
 	card := func(id string) ui.Element {
 		box := ui.Column(c).FillWidth().Gap(12).Padding(12, 14).Radius(kit.RCard).Border(1, a.pal.Line)
-		if reveal && a.bk.edit == id {
+		if reveal && f.edit == id {
 			box.ScrollIntoView()
 		}
 		return box
@@ -190,25 +185,25 @@ func (a *App) services(c *ui.Context) {
 						}
 						ui.Text(c, sub).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody).SingleLine().Ellipsis("…")
 					})
-					open := a.bk.edit == p.ID
+					open := f.edit == p.ID
 					text := "编辑"
 					if open {
 						text = "收起"
 					}
 					if a.pal.Secondary(c, text).Label("提供商-" + p.ID).Disabled(busy).Clicked() {
-						a.bk.edit = ""
+						f.close()
 						if !open {
 							a.chooseProvider(p.ID)
-							a.bk.edit = p.ID
+							f.edit = p.ID
 						}
 					}
 				})
-				if a.bk.edit == p.ID {
+				if f.edit == p.ID {
 					a.providerForm(c)
 				}
 			})
 		}
-		if a.bk.edit == "+" {
+		if f.edit == "+" {
 			card("+").Children(func() { a.providerForm(c) })
 			return
 		}
@@ -221,10 +216,7 @@ func (a *App) services(c *ui.Context) {
 			ui.Text(c, "添加服务").FontSize(kit.FsBody).TextColor(t.TextMuted)
 		})
 		if add.Clicked() {
-			a.providerID = ""
-			a.provider = aiport.Provider{Protocol: "chat"}
-			a.key, a.limits = "", nil
-			a.bk.edit = "+"
+			f.new()
 		}
 	})
 	ui.Row(c).FillWidth().Gap(16).Justify(ui.End).Children(func() {
@@ -239,7 +231,7 @@ func (a *App) services(c *ui.Context) {
 			err := a.ai.Reload()
 			if err == nil {
 				a.modelsChanged()
-				a.bk.edit = ""
+				f.close()
 				if ps := a.ai.Providers(); len(ps) > 0 {
 					a.chooseProvider(ps[0].ID)
 				}
@@ -335,28 +327,29 @@ func (a *App) saveUsage() error {
 // it is in, and the buttons that save it wait; a field left empty only
 // makes them wait.
 func (a *App) providerForm(c *ui.Context) {
+	f := &a.serviceForm
 	t := a.pal.Theme
 	busy := a.held()
-	p, bad := a.serviceInForm()
+	p, bad := f.value(a.ai)
 	red := func(why string) {
 		ui.Text(c, why).FontSize(kit.FsNote).TextColor(t.Danger).LineHeight(kit.LhBody)
 	}
 	ui.Column(c).FillWidth().Gap(12).Children(func() {
 		ui.Row(c).FillWidth().Gap(12).Children(func() {
 			kit.Labeled(c, "ID（小写字母、数字、- _）", func() {
-				ui.TextInput(c, &a.provider.ID).Label("Provider ID（小写）").Placeholder(p.ID).FillWidth().Disabled(busy || a.providerID != "")
+				ui.TextInput(c, &f.provider.ID).Label("Provider ID（小写）").Placeholder(p.ID).FillWidth().Disabled(busy || f.providerID != "")
 			}).Width(200)
-			kit.Labeled(c, "显示名称", func() { ui.TextInput(c, &a.provider.Name).Label("显示名称").FillWidth().Disabled(busy) }).Grow(1)
+			kit.Labeled(c, "显示名称", func() { ui.TextInput(c, &f.provider.Name).Label("显示名称").FillWidth().Disabled(busy) }).Grow(1)
 		})
 		if bad.ID != "" && p.ID != "" {
 			red(bad.ID)
 		}
 		kit.Labeled(c, "API 地址", func() {
-			ui.TextInput(c, &a.provider.BaseURL).Label("API 地址").Placeholder("https://api.example.com/v1").FillWidth().Disabled(busy)
-			if kit.Trim(a.provider.BaseURL) != "" {
+			ui.TextInput(c, &f.provider.BaseURL).Label("API 地址").Placeholder("https://api.example.com/v1").FillWidth().Disabled(busy)
+			if kit.Trim(f.provider.BaseURL) != "" {
 				if bad.BaseURL != "" {
 					red(bad.BaseURL)
-				} else if isLocal(a.provider.BaseURL) {
+				} else if isLocal(f.provider.BaseURL) {
 					ui.Text(c, "本机地址：请确认该服务不会转发到云端").FontSize(kit.FsNote).TextColor(t.TextMuted)
 				} else {
 					ui.Text(c, "远程服务：讨论内容将发送到该地址").FontSize(kit.FsNote).TextColor(t.Warning)
@@ -365,7 +358,7 @@ func (a *App) providerForm(c *ui.Context) {
 		})
 		proto := protocolNames[0]
 		for n, p := range protocols {
-			if p == a.provider.Protocol {
+			if p == f.provider.Protocol {
 				proto = protocolNames[n]
 			}
 		}
@@ -373,7 +366,7 @@ func (a *App) providerForm(c *ui.Context) {
 			if a.pal.Select(c, &proto, protocolNames).Label("API 协议").FillWidth().Disabled(busy).Changed() {
 				for n, name := range protocolNames {
 					if name == proto {
-						a.provider.Protocol = protocols[n]
+						f.provider.Protocol = protocols[n]
 					}
 				}
 			}
@@ -381,20 +374,20 @@ func (a *App) providerForm(c *ui.Context) {
 		ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Start).Children(func() {
 			kit.Labeled(c, "API key", func() {
 				hint := "留空则保留已存的 key"
-				if a.providerID == "" {
+				if f.providerID == "" {
 					hint = "留空则不用 key" // a new service has none kept
 				}
-				ui.TextInput(c, &a.key).Label("API key").Password().Placeholder(hint).FillWidth().Disabled(busy)
+				ui.TextInput(c, &f.key).Label("API key").Password().Placeholder(hint).FillWidth().Disabled(busy)
 			}).Grow(1).Basis(0)
 			kit.Labeled(c, "或读取环境变量", func() {
-				ui.TextInput(c, &a.provider.Env).Label("环境变量名称").Placeholder("例如 DEEPSEEK_API_KEY").FillWidth().Disabled(busy)
+				ui.TextInput(c, &f.provider.Env).Label("环境变量名称").Placeholder("例如 DEEPSEEK_API_KEY").FillWidth().Disabled(busy)
 				if bad.Env != "" {
 					red(bad.Env)
 				}
 			}).Grow(1).Basis(0)
 		})
 		hint := "key 保存在系统钥匙串中，不会写入配置文件或作品。"
-		if env := kit.Trim(a.provider.Env); env != "" && os.Getenv(env) != "" {
+		if env := kit.Trim(f.provider.Env); env != "" && os.Getenv(env) != "" {
 			hint += "已检测到环境变量 " + env + "。"
 		}
 		ui.Text(c, hint).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody).Margin(-6, 0, 0, 0)
@@ -406,22 +399,22 @@ func (a *App) providerForm(c *ui.Context) {
 		})
 		ui.Text(c, "讨论超过压缩阈值时，较早的对话会整理成摘要。").FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Justify(ui.End).Children(func() {
-			if a.providerID != "" && a.pal.Ghost(c, "清除已保存 key", t.Danger).Disabled(busy).Clicked() {
-				err := a.ai.SetKey(a.providerID, "")
+			if f.providerID != "" && a.pal.Ghost(c, "清除已保存 key", t.Danger).Disabled(busy).Clicked() {
+				err := a.ai.SetKey(f.providerID, "")
 				a.modelsChanged()
 				if err == nil {
 					a.status.Did("已清除保存的 key")
 				}
 				a.SetError(err)
-				a.key = ""
+				f.key = ""
 			}
 			// A new service has no 收起 above it: it is put away from here.
-			if a.providerID == "" && a.pal.Secondary(c, "取消").Disabled(busy).Clicked() {
-				a.bk.edit = ""
+			if f.providerID == "" && a.pal.Secondary(c, "取消").Disabled(busy).Clicked() {
+				f.close()
 			}
 			if a.pal.Secondary(c, "添加模型").Disabled(busy).Clicked() {
 				m, _ := a.ai.Limits("")
-				a.limits = append(a.limits, a.limitRow(m))
+				f.limits = append(f.limits, f.limitRow(m))
 			}
 			if a.pal.Secondary(c, "获取可用模型").Disabled(a.busy != "" || bad.First() != "").Clicked() { // it waits for a turn in flight: one request at a time
 				a.fetchModels(c)
@@ -430,7 +423,7 @@ func (a *App) providerForm(c *ui.Context) {
 				err := a.saveProvider()
 				if err == nil {
 					a.status.Did("提供商已保存")
-					a.bk.edit = a.providerID
+					f.edit = f.providerID
 				}
 				a.SetError(err)
 			}
@@ -438,25 +431,14 @@ func (a *App) providerForm(c *ui.Context) {
 	})
 }
 
-// limitRow is a model of the service in the form, as typed; key keeps
-// its fields its own as rows above it go.
-type limitRow struct {
-	key                    int
-	id, window, output, at string
-}
-
-func (a *App) limitRow(m aiport.Model) limitRow {
-	a.limitKeys++
-	return limitRow{a.limitKeys, m.ID, tokens.Format(m.Window), tokens.Format(m.Output), strconv.Itoa(m.CompactAt)}
-}
-
 // limitTable edits the models of the service in the form, one row each:
 // the ID and three numbers. An ID typed that the table built in knows
 // brings its numbers.
 func (a *App) limitTable(c *ui.Context) {
+	f := &a.serviceForm
 	t := a.pal.Theme
 	busy := a.held()
-	if len(a.limits) == 0 {
+	if len(f.limits) == 0 {
 		ui.Text(c, "尚无模型，可获取可用模型或手动添加。").FontSize(kit.FsNote).TextColor(t.TextMuted)
 		return
 	}
@@ -470,8 +452,8 @@ func (a *App) limitTable(c *ui.Context) {
 			head("压缩阈值 %").Width(72)
 			ui.Column(c).Width(kit.HControlSm).Shrink(0)
 		})
-		for i := range a.limits {
-			r := &a.limits[i]
+		for i := range f.limits {
+			r := &f.limits[i]
 			n := "-" + strconv.Itoa(i+1) // the row's fields are told apart by its place
 			ui.Row(c.Key("limit-" + strconv.Itoa(r.key))).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 				if ui.TextInput(c, &r.id).Label("模型 ID" + n).Placeholder("模型 ID").Grow(1).Shrink(1).MinWidth(0).Disabled(busy).Changed() {
@@ -489,43 +471,8 @@ func (a *App) limitTable(c *ui.Context) {
 		}
 	})
 	if gone >= 0 {
-		a.limits = append(a.limits[:gone], a.limits[gone+1:]...)
+		f.limits = append(f.limits[:gone], f.limits[gone+1:]...)
 	}
-}
-
-// models reads the rows of the form that have an ID. It names the first
-// model that breaks a rule, the rules taken in turn.
-func (a *App) models() ([]aiport.Model, error) {
-	var out []aiport.Model
-	for _, r := range a.limits {
-		id := kit.Trim(r.id)
-		if id == "" {
-			continue
-		}
-		window, _ := tokens.Parse(r.window)
-		output, _ := tokens.Parse(r.output)
-		at, err := strconv.Atoi(kit.Trim(r.at))
-		if err != nil {
-			at = -1
-		}
-		out = append(out, aiport.Model{ID: id, Window: window, Output: output, CompactAt: at})
-	}
-	for _, rule := range []struct {
-		bad func(m aiport.Model) bool
-		why string
-	}{
-		{func(m aiport.Model) bool { return m.Window == 0 || m.Output == 0 }, "的上下文上限和最大输出须为正整数，可写成 128K、1M"},
-		{func(m aiport.Model) bool { return m.CompactAt < 0 }, "的压缩阈值须为整数"},
-		{func(m aiport.Model) bool { return m.Output >= m.Window }, "的最大输出须小于上下文上限"},
-		{func(m aiport.Model) bool { return m.CompactAt < 50 || m.CompactAt > 95 }, "的压缩阈值须在 50% 到 95% 之间"},
-	} {
-		for _, m := range out {
-			if rule.bad(m) {
-				return nil, &aiport.SetupError{Err: errors.New(m.ID + " " + rule.why)}
-			}
-		}
-	}
-	return out, nil
 }
 
 func (a *App) fetchModels(c *ui.Context) {
@@ -533,19 +480,23 @@ func (a *App) fetchModels(c *ui.Context) {
 		a.SetError(err)
 		return
 	}
-	catalog, err := a.ai.Catalog(a.provider.ID)
+	catalog, err := a.ai.Catalog(a.serviceForm.provider.ID)
 	if err != nil {
 		a.SetError(err)
 		return
 	}
+	generation := a.serviceForm.generation
 	a.run(c, "正在读取可用模型…", func(ctx context.Context) (func(), error) {
 		models, err := catalog.ListModels(ctx)
 		return func() {
+			if a.serviceForm.generation != generation {
+				return // the form was closed, reloaded or replaced while waiting
+			}
 			if err == nil {
-				a.limits = nil
+				a.serviceForm.limits = nil
 				for _, id := range models {
 					m, _ := a.ai.Limits(id)
-					a.limits = append(a.limits, a.limitRow(m))
+					a.serviceForm.limits = append(a.serviceForm.limits, a.serviceForm.limitRow(m))
 				}
 				a.status.Did("已获取模型目录，保存提供商后生效")
 			}
@@ -553,67 +504,24 @@ func (a *App) fetchModels(c *ui.Context) {
 	})
 }
 
-// serviceInForm is the service the form would save, and what keeps it
-// from being saved, by field. A new service left without an ID takes one
-// from its name; it may not take the ID of another, whose place it would
-// take.
-func (a *App) serviceInForm() (aiport.Provider, aiport.Problems) {
-	p := a.provider
-	p.ID = kit.Trim(p.ID)
-	if a.providerID == "" && p.ID == "" {
-		p.ID = idFrom(p.Name)
-	}
-	models, err := a.models()
-	p.Models = models
-	bad := a.ai.Check(p)
-	if err != nil {
-		bad.Models = err.Error()
-	}
-	if a.providerID == "" {
-		for _, q := range a.ai.Providers() {
-			if q.ID == p.ID {
-				bad.ID = "该 ID 已被「" + providerLabel(q) + "」使用，请换一个"
-			}
-		}
-	}
-	return p, bad
-}
-
-// idFrom is an ID made from a name: its Latin letters in lower case, and
-// the digits, - and _ after the first of them, a space as -.
-func idFrom(name string) string {
-	var id []rune
-	for _, r := range strings.ToLower(name) {
-		switch {
-		case r >= 'a' && r <= 'z', len(id) > 0 && (r >= '0' && r <= '9' || r == '-' || r == '_'):
-			id = append(id, r)
-		case len(id) > 0 && r == ' ' && id[len(id)-1] != '-':
-			id = append(id, '-')
-		}
-	}
-	return strings.TrimRight(string(id), "-_")
-}
-
 func (a *App) saveProvider() error {
-	p, bad := a.serviceInForm()
+	f := &a.serviceForm
+	p, bad := f.value(a.ai)
 	if why := bad.First(); why != "" {
 		return &aiport.SetupError{Err: errors.New(why)}
 	}
 	if err := a.ai.SaveProvider(p); err != nil {
 		return err
 	}
-	a.provider = p
-	a.limits = nil
-	for _, m := range p.Models {
-		a.limits = append(a.limits, a.limitRow(m))
-	}
-	a.providerID = p.ID
+	f.provider = p
+	f.setModels(p.Models)
+	f.providerID = p.ID
 	defer a.modelsChanged()
-	if a.key != "" {
-		if err := a.ai.SetKey(p.ID, a.key); err != nil {
+	if f.key != "" {
+		if err := a.ai.SetKey(p.ID, f.key); err != nil {
 			return err
 		}
-		a.key = ""
+		f.key = ""
 	}
 	return nil
 }

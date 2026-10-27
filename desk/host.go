@@ -19,6 +19,8 @@ func (h appHost) Content() *book.Book { return h.a.book }
 
 func (h appHost) Workspace() (*workspace.Store, string) { return h.a.Store, h.a.path }
 
+func (h appHost) WorkPath() string { return h.a.path }
+
 func (h appHost) Notices() *kit.Status { return &h.a.status }
 
 func (h appHost) ShelfPrefs() *shelf.Shelf { return &h.a.shelf }

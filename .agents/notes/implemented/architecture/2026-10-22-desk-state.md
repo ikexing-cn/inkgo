@@ -2,6 +2,8 @@
 
 Status: implemented
 
+后续细化：[阅读入口、页面权限和服务表单状态](2026-10-27-reading-entry-and-owned-state.md)。其余候选整理见[维护可读性的建议](../../proposed/architecture/2026-10-27-maintainable-project-review.md)。
+
 ## Problem
 
 写作页和检查页共用一本书的内容，章节树、字数、标记、纲和检查结果需要一致。打开的章节要跨标签保存编辑器、草稿和磁盘冲突状态。
@@ -21,7 +23,7 @@ Status: implemented
 - 正文保存后更新这一章的字数，并从盘上重读这一章的标记。存储层会夹取标记位置和重写引文，不能直接把传入值当成写入结果。检查和章纲写后只更新对应章节。
 - 新建、改名、移动、删除和恢复后重读树；删除到回收站和恢复还重读字数。卡片和情节线写后重读大纲，设定修订和删分类后重读设定。
 - 页面持有自己的编辑、选择、滚动和队列状态。检查队列不持有检查结果副本，`Keep`、`EnqueueStale`、`AfterPause`、`DueChapters` 和 `PrunableChapters` 接收 `Book` 中的结果。
-- `App.Store` 负责正文读取、讨论、AI 记录、快照、回收站列表、`work.yaml` 和偏好等未在 `Book` 缓存的内容。源码守卫只禁止绕过 `Book` 读写它持有的书内容。
+- `App.Store` 负责正文读取、讨论、AI 记录、快照、回收站列表、`work.yaml` 和偏好等未在 `Book` 缓存的内容。内容守卫覆盖 desk 及其子包（Book 自身除外），按 Go 类型识别受保护的 Store 方法，不依赖变量名。
 - `Book` 只在界面线程用。后台讨论和检查拿 `Store`，界面线程接收结果后刷新 `Book`。
 
 ### 派生数据
@@ -66,7 +68,7 @@ Status: implemented
 - `exportdialog.Dialog`（`desk/exportdialog/export.go`）持有打开时的正文快照、范围、笔名、缩进和导出计划，放在 `App.exporting`，作品重置时清空。
 - `outline.Page`（`desk/outline/plan.go`、`plan_layout.go`）持有索引、布局缓存、纲草稿、卡片和情节线编辑、搜索和滚动。页面表直接绑定 `Enter`、`Leave`、`View`，正文旁调用它的 `ChapterStory`。
 - 三个页面各在自己的包里声明 `Host`，只列它调用的方法。`desk/host.go` 的 `appHost` 显式持有 `*App`，用大写方法实现这三个接口，`App` 不增加导出方法。`New` 绑定适配器；大纲和导出重置时重新绑定。手机保留跨作品的排版缓存。写作、讨论、右栏、伏笔、待办和提议留在 App。
-- `appHost` 给出 `Colors/PhoneColors` 配色、`Content` 书内容、`Workspace` 存取层和作品路径、`Notices` 状态、`ShelfPrefs/SaveShelf` 本机偏好，以及 `Chapter` 的章 ID、编辑器和有效开章标志。章 ID 在写作页外为空。
+- `appHost` 给出 `Colors/PhoneColors` 配色、`Content` 书内容、`Notices` 状态、`ShelfPrefs/SaveShelf` 本机偏好，以及 `Chapter` 的章 ID、编辑器和有效开章标志。章 ID 在写作页外为空。只有导出 Host 使用 `Workspace` 取得存取层和路径；手机和大纲 Host 只取 `WorkPath`。
 - `Flush` 保存导出前的正文；`SyncPlanOutline` 把已保存的纲同步到同 ID 当前写作草稿的 Text、Saved、Seen；`OpenWriting` 打开指定章；`ShowOutline` 切到大纲页。
 - `StartJob` 运行后台选文件，`Dialogs` 给 SaveFile 和 Reveal。`PickInto` 与书架共用后台选目录的实现，返回是否有选目录回调。单文件选文件，多文件选目录，相应回调缺席时写作品的「导出」目录。
 - `DropMenu` 把宿主的 `kit.MenuState` 和配色交给 `DropMenu`，`SettingColumn` 绘制共享右栏。配色、状态和书内容的重复访问在方法内取一次。三个 `Host` 的签名只用 `kit.Palette`、`kit.Menu`、`kit.Status` 和 `desk` 以外的类型；`Modal` 和 `PaneEmpty` 是 `kit.Palette` 的方法，`laterLines` 在 `desk/exportdialog/export.go`，只供设定导出使用，显式接收 Book 和条目。
@@ -75,6 +77,8 @@ Status: implemented
 - `phone.Panel.Preferences` 返回逐字段默认后的本机偏好，不落盘；`exportdialog.Dialog.Plan` 和 `Selection` 返回当前持有的计划和范围，不重算计划。页面内部规则在自己的包测试，菜单、导航、落盘和刷新契约由 `desk` 测试。
 
 ### 会改行为的
+
+服务编辑的输入、展开状态、模型行和加载代次由 `serviceForm` 持有；加载、关闭、解析在 `serviceform.go`，保存、目录请求和绘制在 `services.go`。关闭或换书时清空草稿，后台目录仅交回原代次的表单，详见上方后续细化笔记。
 
 | 改动 | 作者看得到的 |
 | --- | --- |

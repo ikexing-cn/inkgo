@@ -2,6 +2,8 @@
 
 Inkgo（暂定名）是一个写作软件：纯 Go（`CGO_ENABLED=0`），UI 基于 `github.com/egoist/mygo`。编辑器在 `editor/`，可执行入口在 `cmd/inkgo/`。
 
+模块分工和关键调用链见 [README.md](README.md)。
+
 ## 提交前
 
 ```sh
@@ -43,4 +45,4 @@ npm run verify
 
 ## 重要改动必须留笔记
 
-非平凡改动（改了行为、架构、跨文件契约、流程与工具链、测试策略、落盘/网络/配置格式）前，按 `.agents/skills/write-notes-like-deepseek/SKILL.md` 写或更新 `.agents/notes/` 里的笔记，和代码同一次提交；机械性小改（样式、格式化、打标、不改行为的补丁）直接提交。
+重要改动按 [笔记技能](.agents/skills/write-notes-like-deepseek/SKILL.md) 判定是否需要记录，优先更新已有笔记，与代码同一次提交；判定细则只在技能中维护。

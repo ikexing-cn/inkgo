@@ -264,8 +264,7 @@ func (p *Page) broken(c *ui.Context) {
 		}
 		_, reveal := p.Host.Dialogs()
 		if reveal != nil && pal.Secondary(c, "打开所在文件夹").Clicked() {
-			store, _ := p.Host.Workspace()
-			p.Host.Notices().Warn(reveal(store.Root()))
+			p.Host.Notices().Warn(reveal(p.Host.WorkPath()))
 		}
 	})
 }

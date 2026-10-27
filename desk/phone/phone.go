@@ -183,8 +183,7 @@ func (p *Panel) measure() {
 		p.Layout(ed.Doc.String(), p.title, phonePagination(p.prefs))
 	}
 	page := p.PageOf(ed.Caret())
-	_, path := p.Host.Workspace()
-	key := path + "/" + id
+	key := p.Host.WorkPath() + "/" + id
 	if p.key != key {
 		p.key, p.at, p.caretPage = key, 0, page
 	} else if p.prefs.Mode == "flip" && p.caretPage != page {

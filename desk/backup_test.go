@@ -312,8 +312,8 @@ func TestShotBackup(t *testing.T) {
 	shot(t, tt, "settings-look-dark.png")
 	a.bk.tab = "AI"
 	shot(t, tt, "settings-models-dark.png")
-	a.bk.edit = "deepseek"
 	a.chooseProvider("deepseek")
+	a.serviceForm.edit = "deepseek"
 	tt.Scroll(700, 500, 0, 600)
 	shot(t, tt, "settings-service-dark.png")
 	a.bk.prefs = false

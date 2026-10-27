@@ -775,15 +775,15 @@ func TestSavingAServiceRemakesThePredictingWriter(t *testing.T) {
 	if made != 1 {
 		t.Fatalf("made %d times before anything changed", made)
 	}
-	a.provider = aiport.Provider{ID: "local", Name: "本机", Protocol: "chat", BaseURL: "http://127.0.0.1:1234/v1"}
-	a.limits = []limitRow{{id: "m1", window: "32K", output: "4096", at: "80"}}
+	a.serviceForm.provider = aiport.Provider{ID: "local", Name: "本机", Protocol: "chat", BaseURL: "http://127.0.0.1:1234/v1"}
+	a.serviceForm.limits = []limitRow{{id: "m1", window: "32K", output: "4096", at: "80"}}
 	if err := a.saveProvider(); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
 	was := made
 	// The same service saved again, with another address.
-	a.provider.BaseURL = "http://127.0.0.1:4321/v1"
+	a.serviceForm.provider.BaseURL = "http://127.0.0.1:4321/v1"
 	if err := a.saveProvider(); err != nil {
 		t.Fatal(err)
 	}

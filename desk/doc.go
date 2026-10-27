@@ -43,6 +43,7 @@
 // propose.go: discussion proposals in prose, accepting, dropping, and leaving.
 // record.go: AI cost totals, request records, and request details.
 // save.go: prose and 章纲 saving, disk changes, conflicts, and lost chapters.
+// serviceform.go: service draft loading, model rows, validation, and clearing.
 // services.go: AI services, models, keys, limits, and forms.
 // setting.go: the right-pane 设定 list, entries, editing, and revisions.
 // settings.go: the settings dialog, tabs, and appearance settings.

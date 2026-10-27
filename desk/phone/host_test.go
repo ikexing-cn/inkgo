@@ -27,7 +27,7 @@ func (h *testHost) PhoneColors() (*kit.Palette, *kit.Palette) { return h.light, 
 
 func (h *testHost) Content() *book.Book { return h.content }
 
-func (h *testHost) Workspace() (*workspace.Store, string) { return h.store, h.store.Root() }
+func (h *testHost) WorkPath() string { return h.store.Root() }
 
 func (h *testHost) ShelfPrefs() *shelf.Shelf { return &h.prefs }
 

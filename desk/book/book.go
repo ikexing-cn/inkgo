@@ -14,6 +14,11 @@ import (
 // Book is the content of one work, as of the last read. It is used on the
 // view thread only: the store is handed to background work as it was, and a
 // result that changes the setting comes back for Book to read again.
+//
+// Tree, Counts, Marks, Setting, Plan, Outlines and Checks borrow this content:
+// their maps, slices and pointers are read-only, including nested values.
+// Copy the part being sorted or edited first, and use Book's write methods
+// to persist changes and advance Version. Do not pass borrowed data to workers.
 type Book struct {
 	store   *workspace.Store
 	version int

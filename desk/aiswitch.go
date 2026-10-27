@@ -17,7 +17,7 @@ func (a *App) loadAI() {
 			a.SetError(err)
 		}
 	}
-	if ps := a.ai.Providers(); len(ps) > 0 && a.providerID == "" {
+	if ps := a.ai.Providers(); len(ps) > 0 && a.serviceForm.providerID == "" {
 		a.chooseProvider(ps[0].ID)
 	}
 }

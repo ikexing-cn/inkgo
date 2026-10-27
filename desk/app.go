@@ -171,11 +171,7 @@ type App struct {
 	jobs                             jobs
 	chat                             ui.ListState
 	rows                             []int // the chat list's: event indexes, -1 the empty chat, -2 the turn in flight
-	providerID                       string
-	provider                         aiport.Provider
-	key                              string
-	limits                           []limitRow // the models of the service in the form
-	limitKeys                        int
+	serviceForm                      serviceForm
 	talkProvider, talkModel          string
 	categoryName                     string
 	categoryTarget                   string
@@ -288,6 +284,7 @@ func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 }
 
 func (a *App) resetView() {
+	a.serviceForm.close()
 	a.source, a.sourceOpen, a.contextReply = nil, false, ""
 	a.input, a.seen, a.flash, a.doc, a.write = "", -1, map[string]time.Time{}, docView{}, writeView{}
 	a.bk = backupView{}

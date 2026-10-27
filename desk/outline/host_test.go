@@ -41,7 +41,7 @@ func (h *testHost) Content() *book.Book { return h.book }
 
 func (h *testHost) Notices() *kit.Status { return &h.status }
 
-func (h *testHost) Workspace() (*workspace.Store, string) { return h.Store, h.Store.Root() }
+func (h *testHost) WorkPath() string { return h.Store.Root() }
 
 func (h *testHost) Chapter() (string, *editor.Editor, bool) {
 	n, ok := h.book.Tree().Node(h.current)

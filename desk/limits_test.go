@@ -28,8 +28,8 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 			t.Fatal(s, tt.Texts())
 		}
 	}
-	if len(a.limits) != 2 || a.limits[0].id != "deepseek-flash" || a.limits[0].window != "1M" || a.limits[0].output != "384K" || a.limits[0].at != "80" {
-		t.Fatalf("rows %+v", a.limits)
+	if len(a.serviceForm.limits) != 2 || a.serviceForm.limits[0].id != "deepseek-flash" || a.serviceForm.limits[0].window != "1M" || a.serviceForm.limits[0].output != "384K" || a.serviceForm.limits[0].at != "80" {
+		t.Fatalf("rows %+v", a.serviceForm.limits)
 	}
 	retype := func(label, text string) {
 		t.Helper()
@@ -76,7 +76,7 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 	if got := a.ai.Providers()[0].Models[0]; got != (aiport.Model{ID: "deepseek-flash", Window: 131072, Output: 8000, CompactAt: 70}) {
 		t.Fatalf("saved %+v", got)
 	}
-	if r := a.limits[0]; r.window != "131072" || r.output != "8K" {
+	if r := a.serviceForm.limits[0]; r.window != "131072" || r.output != "8K" {
 		t.Fatalf("written back as %+v", r)
 	}
 
@@ -88,18 +88,18 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 		}
 		tt.Frame()
 	}
-	if len(a.limits) != 0 || !tt.HasText("尚无模型，可获取可用模型或手动添加。") {
-		t.Fatalf("rows %+v", a.limits)
+	if len(a.serviceForm.limits) != 0 || !tt.HasText("尚无模型，可获取可用模型或手动添加。") {
+		t.Fatalf("rows %+v", a.serviceForm.limits)
 	}
 	if err := tt.Click("添加模型"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if len(a.limits) != 1 || a.limits[0].window != "32K" || a.limits[0].output != "4096" || a.limits[0].at != "80" {
-		t.Fatalf("a new row %+v", a.limits)
+	if len(a.serviceForm.limits) != 1 || a.serviceForm.limits[0].window != "32K" || a.serviceForm.limits[0].output != "4096" || a.serviceForm.limits[0].at != "80" {
+		t.Fatalf("a new row %+v", a.serviceForm.limits)
 	}
 	retype("模型 ID-1", "kimi-k3")
-	if r := a.limits[0]; r.window != "1048576" || r.output != "128K" {
+	if r := a.serviceForm.limits[0]; r.window != "1048576" || r.output != "128K" {
 		t.Fatalf("kimi-k3 brought %+v", r)
 	}
 	save("")
@@ -116,9 +116,9 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 func TestANewServiceSaysWhatIsWrongWhereItIs(t *testing.T) {
 	a, tt, _ := fixture(t)
 	a.openPrefs("AI")
-	a.bk.edit, a.providerID, a.limits = "+", "", nil
+	a.serviceForm.edit, a.serviceForm.providerID, a.serviceForm.limits = "+", "", nil
 	taken, was := a.ai.Providers()[0], len(a.ai.Providers())
-	a.provider = aiport.Provider{Name: taken.Name, BaseURL: "https://api.example.com/v1", Protocol: "chat"}
+	a.serviceForm.provider = aiport.Provider{Name: taken.Name, BaseURL: "https://api.example.com/v1", Protocol: "chat"}
 	tt.Frame()
 	tt.Scroll(633, 400, 0, 1600) // down to the form
 	tt.Frame()
@@ -132,7 +132,7 @@ func TestANewServiceSaysWhatIsWrongWhereItIs(t *testing.T) {
 		{"API 地址不能带账号、查询参数或锚点", func(p *aiport.Provider) { p.BaseURL = "https://openrouter.ai/api/v1?key=1" }},
 		{"环境变量名只能用字母、数字和 _，不能以数字开头", func(p *aiport.Provider) { p.BaseURL, p.Env = "https://openrouter.ai/api/v1", "1 KEY" }},
 	} {
-		c.form(&a.provider)
+		c.form(&a.serviceForm.provider)
 		tt.Frame()
 		if !tt.HasText(c.say) {
 			t.Fatalf("the form does not say %q: %q", c.say, tt.Texts())
@@ -145,7 +145,7 @@ func TestANewServiceSaysWhatIsWrongWhereItIs(t *testing.T) {
 			t.Fatalf("pressed with %q: %q %q", c.say, a.errorText(), noticeOf(a))
 		}
 	}
-	a.provider.Env = "OPENROUTER_API_KEY"
+	a.serviceForm.provider.Env = "OPENROUTER_API_KEY"
 	tt.Frame()
 	if err := tt.Click("保存提供商"); err != nil {
 		t.Fatal(err)
@@ -156,7 +156,7 @@ func TestANewServiceSaysWhatIsWrongWhereItIs(t *testing.T) {
 	}
 	// Another is added from the foot of the list, out of sight: its form
 	// comes into view, and 取消 puts it away unsaved.
-	a.bk.edit = ""
+	a.serviceForm.edit = ""
 	tt.Frame()
 	tt.Scroll(633, 400, 0, 1600) // to the foot, 添加服务 at the bottom
 	tt.Frame()
@@ -169,12 +169,16 @@ func TestANewServiceSaysWhatIsWrongWhereItIs(t *testing.T) {
 	if r, ok := tt.Find("显示名称"); !ok || r.Y < 0 || r.Y > 390 {
 		t.Fatal("a new service opens out of sight", r, ok)
 	}
+	a.serviceForm.key = "unsaved-test-key"
 	if err := tt.Click("取消"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.bk.edit != "" || tt.HasText("显示名称") || len(a.ai.Providers()) != was+1 {
-		t.Fatal("取消 left the new service's form", a.bk.edit)
+	if a.serviceForm.edit != "" || tt.HasText("显示名称") || len(a.ai.Providers()) != was+1 {
+		t.Fatal("取消 left the new service's form", a.serviceForm.edit)
+	}
+	if a.serviceForm.key != "" || a.serviceForm.provider.ID != "" || len(a.serviceForm.limits) != 0 {
+		t.Fatal("cancel kept the discarded service draft")
 	}
 	for name, id := range map[string]string{"DeepSeek": "deepseek", "月之暗面 Kimi 2": "kimi-2", "my_api-": "my_api", "通义": ""} {
 		if got := idFrom(name); got != id {

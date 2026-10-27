@@ -18,7 +18,7 @@ description: Use when a change is non-trivial by DSH standards (behavior, archit
 - 依赖补丁（不改行为）、版本发布打标（RC/Release tag）
 - 常规 CRUD、单模块内看 diff 即懂的显式逻辑修复（无跨文件影响）
 
-**判定对齐 DSH：非平凡改动必须写。** 命中以下任何一项即非平凡——改了**行为**、改了**架构**、改了**跨文件契约**、改了**流程与工具链**、改了**测试策略**、改了**落盘 / 网络 / 配置格式**——或其他维护者日后可能重访的决定。
+**非平凡改动必须写。** 排除上面的局部改动后，架构、跨文件契约、流程与工具链、测试策略、落盘 / 网络 / 配置格式的取舍需要记录；行为改动只有包含难以从代码和测试看出的约束、理由或备选时才需要。不要仅因“行为改变”就给局部直观修复新建笔记。已有归属的事实变化优先更新原篇。
 
 **写之前，对照三个方向想清楚这篇笔记守住什么：**
 
@@ -133,7 +133,7 @@ Status: <状态>
 
 1. **先分 facts 和 decisions**：环境里查得到的事实（代码、笔记树、rg）自己查完再问；只有真正要拍板的取舍才占用用户时间。
 2. **一轮全抛**：所有待拍板的问题编号列出，每题独立一行给推荐答案 `➡️ <推荐>`；用户按编号批量应答（"1 yes，2 第二个选项"），不挤牙膏、不来回试探。
-3. **收敛靠确认门，不靠题数上限**：落笔/动手前复述全部决定，用户确认达成共识后再执行——复述中被默认掉的任何一点，用户在确认时纠偏；没确认不动手。
+3. **只确认尚未决定的重要取舍**：先把可查的事实和具体方案准备好，再集中询问。用户已经授权的实施直接继续，不为写笔记或常规实现选择重复请求确认；审查建议可以先写成 proposed，不能当成已生效的规则。
 4. **开放决策超过五个是信号，不是配额**：说明这次改动太大——拆成多篇笔记，或先交 proposed 草稿走评审，别在一次对话里硬塞。
 
 > 判定细则见 `references/when-to-write.md`，归档与删除见 `references/archiving.md`。
@@ -149,20 +149,18 @@ Status: <状态>
 
 ## 6. 校验与运维命令
 
-在仓库根目录直接运行（已配置 npm script 时）：
+本仓库只安装校验与归档工具，以下命令在仓库根目录运行。Node 版本与运行方式见根目录 AGENTS.md；命令入口以 package.json 为准。
 
 ```sh
 npm run verify-agent-note-tree     # 目录合法性、分类、文件名、笔记间相对链接
 npm run verify-agent-note-format   # 头块、状态、必备节、备选方案、implemented 禁用提案标题
 npm run verify-archived            # 归档封印：头部布局、manifest 哈希、只增不改（无 git 自动降级）
 npm run verify-notes               # 以上三线串跑（CI 用这个）
-npm run archive-agent-note <path> [--superseded-by <新笔记>]  # 一键归档；可选在新笔记插入互链 + 入站死链报告
+npm run archive-agent-note -- <path> [--superseded-by <新笔记>]  # 一键归档；可选在新笔记插入互链 + 入站死链报告
 npm run check-anchors              # 软报告：若代码里有 // Note: 锚点，做双向体检；不当 CI 门
-npm run init-board                 # 生成 ~69KB 轻量看板 board.html（日常开发推荐）
-npm run bundle-board               # 打包内嵌全量数据的自包含 demo.html
 ```
 
-每个脚本都是独立 tsx（`scripts/*.ts`），也可 `npx tsx scripts/xxx.ts` 直接跑在任何目录；参数与免疫规则见 `references/verification.md`。看板要自定义输出路径时用 `npx tsx scripts/build-board.ts --init <目标.html> "名字"` / `--bundle <notes目录> <输出.html> "名字"`。团队可直接抄本仓库的 `.github/workflows/verify-notes.yml`，把 `verify-notes` 接进 CI；并在 `CONTRIBUTING.md` / PR 模板加一句「重要改动必带一篇笔记」。
+脚本也可以从仓库根目录用 `node scripts/<脚本名>.ts` 运行，参数见 `references/verification.md`。本仓库不含上游的看板、导入导出工具或 CI workflow；不要引用它们作为本地可用命令。更新上游技能时保留这些本地适配。
 
 ## References
 

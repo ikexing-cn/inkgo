@@ -2,6 +2,8 @@
 
 Status: implemented
 
+后续的[阅读入口整理](../architecture/2026-10-27-reading-entry-and-owned-state.md)沿用本篇分工，根 README 只提供模块地图与链接，不复述视觉规范。
+
 ## Problem
 
 作者 2026-10-26 说 `DESIGN.md`「太多了」，「现在喂给模型就占了一堆」，「何况我们还有笔记，那里面有详细记录」。`AGENTS.md` 要求动界面之前先读 `DESIGN.md`，它有 793 行、63 KB，读一次约 2.7 万 token。多出来的主要是两样：

@@ -38,8 +38,6 @@ type backupView struct {
 	logRowsFor     int                // the feature logRows was built for
 	logList        ui.ListState       // where the long record is scrolled to
 	askAI          bool               // asking before the AI is turned off or on
-	edit           string             // the service open in it: an ID, "+" for a new one
-	shown          string             // edit as of the last frame, to bring a form just opened into view
 	keepChoice     string
 	places         []place
 }
