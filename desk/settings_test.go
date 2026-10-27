@@ -28,6 +28,8 @@ func TestSettingsSayNothingNeedless(t *testing.T) {
 // While 禁用 GPU 加速 is not offered, the settings do not show it, and a
 // machine that ticked it draws on the GPU again.
 func TestNoGPUNotOffered(t *testing.T) {
+	offerNoGPU = false
+	t.Cleanup(func() { offerNoGPU = true })
 	a, tt, _ := fixture(t)
 	a.shelf.NoGPU = true
 	a.openPrefs("外观")
@@ -41,8 +43,6 @@ func TestNoGPUNotOffered(t *testing.T) {
 // again, which the settings say; the link closes them and relaunches,
 // asking first about what the AI proposed, as closing the window does.
 func TestNoGPUWaitsForTheNextStart(t *testing.T) {
-	offerNoGPU = true
-	t.Cleanup(func() { offerNoGPU = false })
 	a, tt, _ := writingFixture(t, "她走到井边。")
 	f := &script{}
 	penWith(a, f)

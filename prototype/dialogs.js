@@ -188,8 +188,8 @@ const aiSwitch = () => `<div class="ticks">${tickbox(S.noAI, '关闭 AI', () => 
 
 // 「外观」的最下面：禁用 GPU 加速，管本机。界面用什么画是打开软件时定的，改了要重新打开才生效：
 // 和这次打开时不一样，说明下面多一句，跟着一个「立即重新打开」（软件里关掉窗口再打开，回到同一本书，设置不再开着）。
-// 现在先不给：mygo 在 Windows 上不用 GPU 画，窗口多半是白的，勾上的人连这一项都看不见、勾不回去。mygo 修好以后改回 true。
-const OFFER_NO_GPU = false
+// mygo v0.6.4 以前关着：mygo 在 Windows 上不用 GPU 画，窗口多半是白的，勾上的人连这一项都看不见、勾不回去。改成 false 就藏起来。
+const OFFER_NO_GPU = true
 function gpuSwitch() {
   const pending = S.noGPU !== S.ranNoGPU
   return `<div class="ticks">${tickbox(S.noGPU, '禁用 GPU 加速', () => set({ noGPU: !S.noGPU }))}` +

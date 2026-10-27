@@ -2,6 +2,8 @@
 
 Status: implemented
 
+> 2026-10-27 起这一项又给了：mygo v0.6.4 修了白窗口，`offerNoGPU` 和 `OFFER_NO_GPU` 改回 `true`（见文末「代价与已知上限」）。下面说「先不给」的那几条是当时的做法，开关和 `TestNoGPUNotOffered` 还在，改回 `false` 就又藏起来。
+
 ## Problem
 
 [禁用 GPU 加速](../feature/2026-10-24-no-gpu.md)加上的当天，作者勾上以后：「我发现了，禁用了就开始白屏了，百分百复现。」窗口整块是白的，设置也看不见，勾不回去，只能手改 `works.json`。
@@ -40,7 +42,8 @@ mygo 不用 GPU 时，在内存里画好一帧（`internal/raster` 的 `Renderer
 - **代价与已知上限**：
   - 配置差的电脑暂时没有办法在设置里关掉 GPU；在终端里设 `MYGO_GPU=0` 的，照样会碰上白窗口。
   - 关着的代码要靠 `TestNoGPUWaitsForTheNextStart` 和原型的开关守着；改设置页、改 `walk.ts` 的时候要记得它们在。
-  - 原因是在 mygo 副本里加日志查出来的，没有改 mygo 本身。作者看过以后报给了 mygo，附了上面那个改法：[egoist/mygo#690](https://github.com/egoist/mygo/issues/690)。升级 mygo 时先看它关了没有。
+  - 原因是在 mygo 副本里加日志查出来的，没有改 mygo 本身。作者看过以后报给了 mygo，附了上面那个改法：[egoist/mygo#690](https://github.com/egoist/mygo/issues/690)。
+  - mygo v0.6.4 照这个改法修了（`internal/raster/pixels_windows.go` 一帧单独一次 `VirtualAlloc`），v0.7.0 又让不用 GPU 的窗口按屏幕刷新的快慢画、不再占满一个核。2026-10-27 升到 v0.7.1（见[依赖升级那篇](../process/2026-10-13-mygo-0.4.md)），`MYGO_GPU` 还是画第一帧时看一次。同一天作者在设置里找这一项，照上面「什么时候放出来」把 `offerNoGPU` 和 `OFFER_NO_GPU` 改回了 `true`；`TestNoGPUNotOffered` 改成自己关掉开关再查，开关还能用。作者在真窗口里看过：「确认可行了」。哪台机器勾上以后要是又白了，删掉 `%APPDATA%\writer\works.json` 里的 `"noGPU": true` 那一行就回到用 GPU 画。
 
 ## Verification
 

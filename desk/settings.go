@@ -181,10 +181,11 @@ func (a *App) looksView(c *ui.Context) {
 	}
 }
 
-// offerNoGPU offers 禁用 GPU 加速 and draws by it. Off while mygo, drawing
-// without the GPU on Windows, mostly leaves the window white: whoever ticked
-// it could not see to untick it.
-var offerNoGPU = false
+// offerNoGPU offers 禁用 GPU 加速 and draws by it. It was off until mygo
+// v0.6.4: drawing without the GPU on Windows mostly left the window white,
+// and whoever ticked it could not see to untick it. Off, the option hides
+// and every machine draws on the GPU again.
+var offerNoGPU = true
 
 // gpuSwitch is 禁用 GPU 加速. The window is drawn as the software opened: a
 // change waits for it to open again, which the link does at once.
