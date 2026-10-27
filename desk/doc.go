@@ -11,15 +11,19 @@
 //
 // ai.go: inline continuation, rewriting, drafting, and the prose AI record.
 // aiswitch.go: the machine-wide AI switch and shutdown handling.
-// app.go: App state, work lifecycle, the AI's background work, and errors.
+// app.go: App state, work lifecycle, content refresh, and errors.
 // backup.go: backup tasks, policy wiring, folder selection, and settings.
 // beside.go: right-pane width and tabs, discussion lists, and prose quotes.
 // cache.go: values built once per key.
 // categories.go: work-category forms and deletion confirmation.
 // change.go: setting changes from a chapter, timelines, and forms.
 // chapters.go: opening chapters, navigation, editors, and text size.
-// chat.go: discussion drawing, streaming replies, tool views, and digest sections.
-// check.go: check scheduling and persistence wiring, findings, prose marks, and the 检查 page.
+// chat.go: discussion page, session list and digest sections.
+// chatmessage.go: messages, streaming replies, tool results and request details.
+// chatcompose.go: composer, discussion model menu and extracting text into settings.
+// check.go: check state, scheduling and persistence wiring.
+// checkitems.go: findings, pending groups, prose marks and chapter check status.
+// checkview.go: the 检查 page, finding details and actions.
 // checkrunner.go: cancellable background checks and their result mailbox.
 // commands.go: the one table of commands, for the keys, the menus, and the shortcut help.
 // counts.go: book and daily word counts, goals, and recent days.

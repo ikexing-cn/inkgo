@@ -75,6 +75,8 @@ Status: implemented
 
 ### 各功能的结构体
 
+- 大文件按阅读任务拆在原包内，不增加转发层：讨论外壳在 `chat.go`，消息和流式展示在 `chatmessage.go`，输入、模型菜单和摘取表单在 `chatcompose.go`；检查队列和调度在 `check.go`，结果整理与动作在 `checkitems.go`，页面在 `checkview.go`；大纲页状态和入口在 `outline/plan.go`，编辑表单在 `plan_edit.go`，网格和时间线在 `plan_grid.go`。声明内容保持不变，包内共享状态和调用关系不变。
+
 - `phone.Panel`（`desk/phone/phone.go`）持有分页、排版偏好、正文缓存、阅读位置和命中几何。右栏顶行由 `settingColumn` 绘制，`commands.go` 的 `openPhone` 负责打开右栏和保存偏好。
 - `exportdialog.Dialog`（`desk/exportdialog/export.go`）持有打开时的正文快照、范围、笔名、缩进和导出计划，放在 `App.exporting`，作品重置时清空。
 - `outline.Page`（`desk/outline/plan.go`、`plan_layout.go`）持有索引、布局缓存、纲草稿、卡片和情节线编辑、搜索和滚动。页面表直接绑定 `Enter`、`Leave`、`View`，正文旁调用它的 `ChapterStory`。
@@ -136,6 +138,8 @@ Status: implemented
 - 手机预览、导出和大纲页各经自己消费的接口访问 `appHost`。三个页面包不引用 `desk` 或别的页面包，接口签名不带 `desk` 的私有类型；这由 `desk/imports_test.go` 的 `TestImports` 守着。
 
 ## Testing
+
+- 讨论、检查和大纲拆文件：对拆分前后的全部函数、类型和变量声明做集合比对，内容完全一致；全套 10 项验证通过（74.7 秒）。讨论与检查的 8 张截图、大纲窗口 5 张截图逐像素一致，大纲截图已目视核对。
 
 - `TestBooksKeepTheirOwnSaveTiming` 同时打开两本书，分别立即保存和等待一小时，验证各自的磁盘正文及后续切回立即保存；已有正文与章纲停笔保存、离开保存测试改为只设置所属 Book，无须恢复全局间隔。
 - 保存与看盘间隔实例化后的 `npm run verify`：10 项全部通过，79.5 秒。真实时间仍用于编辑器时间戳；本轮没有调整轮询策略，也没有宣称解决批注额外帧的根因。
