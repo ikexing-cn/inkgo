@@ -1,14 +1,97 @@
 package desk
 
 import (
+	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
 	"writer/internal/testshot"
 	"writer/workspace"
 )
+
+// The next work must not inherit the previous work's records, filter,
+// expanded row or virtual-list position. Leaving does not delete the log.
+func TestLeavingWorkClearsSettingsAndRecords(t *testing.T) {
+	for _, how := range []string{"switch", "shelf", "close"} {
+		t.Run(how, func(t *testing.T) {
+			a, tt, _ := fixture(t)
+			oldRoot := a.Store.Root()
+			for i := range 50 {
+				err := a.Store.Log(workspace.Record{At: time.Now().Add(time.Duration(i) * time.Minute),
+					Feature: workspace.FeatureCheck, Model: "local/old-model", Outcome: workspace.OutcomeDone})
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			a.openPrefs("AI")
+			tt.Frame()
+			click(t, tt, "查看全部记录（50 次请求）")
+			a.record.only, a.record.expanded = 5, 49
+			tt.Frame()
+			a.record.list.ScrollTo(35, ui.Start)
+			tt.Frame()
+			tt.Frame()
+			if first, _ := a.record.list.Visible(); first == 0 {
+				t.Fatal("fixture did not scroll the record list")
+			}
+			a.settings.askAI = true
+			a.serviceForm.key = "unsaved-test-key"
+			var next *workspace.Store
+			switch how {
+			case "switch":
+				var err error
+				next, err = workspace.Create(filepath.Join(t.TempDir(), "next"), "另一本", "网文")
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := next.Log(workspace.Record{At: time.Now(), Feature: workspace.FeatureTalk,
+					Model: "local/new-model", Outcome: workspace.OutcomeDone}); err != nil {
+					t.Fatal(err)
+				}
+				if err := a.attach(next, next.Root(), false); err != nil {
+					t.Fatal(err)
+				}
+			case "shelf":
+				a.closeWork()
+			case "close":
+				if err := a.Close(); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if a.settings != (settingsView{}) || !reflect.DeepEqual(a.record, recordView{expanded: -1}) || a.serviceForm.key != "" {
+				t.Fatal("leaving work kept settings, records or an unsaved key")
+			}
+			old, err := workspace.Open(oldRoot)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer old.Close()
+			if rs, err := old.Records(); err != nil || len(rs) != 50 {
+				t.Fatal("leaving changed stored records", len(rs), err)
+			}
+			if how == "close" {
+				return
+			}
+			a.openPrefs("AI")
+			tt.Frame()
+			if next != nil {
+				if len(a.record.records) != 1 || a.record.records[0].Model != "local/new-model" {
+					t.Fatal("new work did not load its own records")
+				}
+				click(t, tt, "查看全部记录（1 次请求）")
+				if first, _ := a.record.list.Visible(); first != 0 || a.record.only != 0 || a.record.expanded != -1 {
+					t.Fatal("new work inherited the previous record selection")
+				}
+			} else if len(a.record.records) != 0 || tt.HasText("本作品用量") || tt.HasText("AI 记录") {
+				t.Fatal("shelf settings still show the previous work")
+			}
+		})
+	}
+}
 
 // The AI's settings show what the work spent on each feature, read as
 // they open: the requests, the tokens, the share read from the cache and
@@ -50,7 +133,7 @@ func TestTheWorkShowsWhatItSpent(t *testing.T) {
 	if !tt.HasText("尚未使用 AI。") {
 		t.Fatal("read again each frame")
 	}
-	a.bk.prefs = false
+	a.settings.open = false
 	a.openPrefs("AI")
 	tt.Frame()
 	for _, s := range []string{
@@ -99,12 +182,12 @@ func TestTheWorkShowsWhatItSpent(t *testing.T) {
 	if !tt.HasText("qwen3 · 不思考") || tt.HasText("发送：规则 900 · 本章正文 4.4K") {
 		t.Fatal("one line opens at a time", tt.Texts())
 	}
-	a.bk.logOnly = 5 // 检查
+	a.record.only = 5 // 检查
 	tt.Frame()
 	if !tt.HasText("检查 · 已删除的章节") || tt.HasText("续写 · 第一章") || tt.HasText("讨论 · 灯为什么会灭") {
 		t.Fatal("the filter", tt.Texts())
 	}
-	a.bk.logOnly = 2 // 起草
+	a.record.only = 2 // 起草
 	tt.Frame()
 	if !tt.HasText("没有这类请求。") {
 		t.Fatal(tt.Texts())
@@ -116,7 +199,7 @@ func TestTheWorkShowsWhatItSpent(t *testing.T) {
 	if !tt.HasText("本作品用量") || tt.HasText("AI 记录") {
 		t.Fatal(tt.Texts())
 	}
-	a.bk.log = true
+	a.record.showing = true
 	a.turnAI(false)
 	tt.Frame()
 	if tt.HasText("AI 记录") || tt.HasText("本作品用量") || tt.HasText("检查 · 已删除的章节") {
@@ -141,15 +224,15 @@ func TestTheRecordBuildsOnlyWhatShows(t *testing.T) {
 	a, tt, _ := fixture(t)
 	a.openPrefs("AI")
 	tt.Frame()
-	a.bk.log = true
-	a.bk.records = make([]workspace.Record, 10_000)
+	a.record.showing = true
+	a.record.records = make([]workspace.Record, 10_000)
 	at := time.Now()
-	for i := range a.bk.records {
-		a.bk.records[i] = workspace.Record{Feature: workspace.FeatureTalk, Model: "deepseek/deepseek-flash",
+	for i := range a.record.records {
+		a.record.records[i] = workspace.Record{Feature: workspace.FeatureTalk, Model: "deepseek/deepseek-flash",
 			Usage: workspace.Usage{Input: 100, Output: 10}, Outcome: workspace.OutcomeDone, At: at.Add(-time.Duration(i) * time.Minute)}
 	}
-	a.bk.logRows = nil
-	a.bk.logOpen = -1
+	a.record.rows = nil
+	a.record.expanded = -1
 	tt.Frame()
 	tt.Frame()
 	built := 0
@@ -165,12 +248,12 @@ func TestTheRecordBuildsOnlyWhatShows(t *testing.T) {
 	if built == 0 || built > 40 {
 		t.Fatalf("%d lines built of 10000", built)
 	}
-	if len(a.bk.logRows) != len(a.bk.records) {
-		t.Fatalf("%d lines found", len(a.bk.logRows))
+	if len(a.record.rows) != len(a.record.records) {
+		t.Fatalf("%d lines found", len(a.record.rows))
 	}
-	rows := &a.bk.logRows[0]
+	rows := &a.record.rows[0]
 	tt.Frame()
-	if &a.bk.logRows[0] != rows {
+	if &a.record.rows[0] != rows {
 		t.Fatal("the lines were found again with nothing changed")
 	}
 	if err := tt.Click(first); err != nil {
@@ -178,16 +261,16 @@ func TestTheRecordBuildsOnlyWhatShows(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Frame()
-	if a.bk.logOpen != len(a.bk.records)-1 {
-		t.Fatalf("opened record %d", a.bk.logOpen)
+	if a.record.expanded != len(a.record.records)-1 {
+		t.Fatalf("opened record %d", a.record.expanded)
 	}
 	if !tt.HasText("实际用量：输入 100；输出 10") {
 		t.Fatal("the line did not open", tt.Texts())
 	}
-	a.bk.logOnly = 5 // 检查, which nothing was asked for
+	a.record.only = 5 // 检查, which nothing was asked for
 	tt.Frame()
-	if !tt.HasText("没有这类请求。") || len(a.bk.logRows) != 0 {
-		t.Fatalf("the filter left %d lines", len(a.bk.logRows))
+	if !tt.HasText("没有这类请求。") || len(a.record.rows) != 0 {
+		t.Fatalf("the filter left %d lines", len(a.record.rows))
 	}
 	for _, s := range tt.Texts() {
 		if strings.HasPrefix(s, "记录-") {
@@ -227,11 +310,11 @@ func TestShotRecord(t *testing.T) {
 	}
 	a.openPrefs("AI")
 	tt.Frame()
-	a.bk.log = true
-	a.bk.logOnly = 0
-	a.bk.logOpen = 4 // the check, whose detail is longest
+	a.record.showing = true
+	a.record.only = 0
+	a.record.expanded = 4 // the check, whose detail is longest
 	shot(t, tt, "record.png")
-	a.bk.logOpen = -1
-	a.bk.logOnly = 2 // 起草, which nothing was asked for
+	a.record.expanded = -1
+	a.record.only = 2 // 起草, which nothing was asked for
 	shot(t, tt, "record-none.png")
 }

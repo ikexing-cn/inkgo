@@ -41,12 +41,12 @@
 // pending.go: pending groups, ignored items, and navigation.
 // prefs.go: applying and collecting per-work preferences.
 // propose.go: discussion proposals in prose, accepting, dropping, and leaving.
-// record.go: AI cost totals, request records, and request details.
+// record.go: AI usage snapshot, list state, cost totals, and request details.
 // save.go: prose and 章纲 saving, disk changes, conflicts, and lost chapters.
 // serviceform.go: service draft loading, model rows, validation, and clearing.
 // services.go: AI services, models, keys, limits, and forms.
 // setting.go: the right-pane 设定 list, entries, editing, and revisions.
-// settings.go: the settings dialog, tabs, and appearance settings.
+// settings.go: settings state and lifecycle, dialog, tabs, and appearance settings.
 // shell.go: page types, window frame, sidebar navigation, and discussion switching.
 // sidebar.go: chapter tree, menus, drag and drop, creation, and renaming.
 // snapshots.go: snapshots, comparisons, and restoration.

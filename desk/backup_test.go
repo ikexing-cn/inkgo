@@ -213,7 +213,7 @@ func TestBackupFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !a.bk.prefs || tt.HasText("为整部作品另存一份副本") || !tt.HasText("11 字 · 1 章 · 已存 1 份") {
+	if !a.settings.open || tt.HasText("为整部作品另存一份副本") || !tt.HasText("11 字 · 1 章 · 已存 1 份") {
 		t.Fatal("settings page", tt.Texts())
 	}
 	if err := tt.Click("写作时每小时一次"); err != nil {
@@ -292,7 +292,7 @@ func TestShotBackup(t *testing.T) {
 	shut(tt, &a.bk.open)
 	a.openPrefs("备份")
 	shot(t, tt, "backup-settings-ready.png")
-	shut(tt, &a.bk.prefs)
+	shut(tt, &a.settings.open)
 	a.bk.policy.RecordResult(sync, &os.PathError{Op: "stat", Path: `E:\雨城来信备份`, Err: os.ErrNotExist}, time.Now())
 	s, _ := a.backupSettings()
 	s.Dir = `E:\雨城来信备份`
@@ -310,13 +310,13 @@ func TestShotBackup(t *testing.T) {
 	tt.SetDark(true)
 	a.openPrefs("外观")
 	shot(t, tt, "settings-look-dark.png")
-	a.bk.tab = "AI"
+	a.settings.tab = "AI"
 	shot(t, tt, "settings-models-dark.png")
 	a.chooseProvider("deepseek")
 	a.serviceForm.edit = "deepseek"
 	tt.Scroll(700, 500, 0, 600)
 	shot(t, tt, "settings-service-dark.png")
-	a.bk.prefs = false
+	a.settings.open = false
 	showPage(a, pageTalk)
 	shot(t, tt, "discussion-dark.png")
 }

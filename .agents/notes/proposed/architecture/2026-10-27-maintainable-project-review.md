@@ -4,6 +4,7 @@ Status: proposed
 
 已部分实施：[阅读入口、页面权限和服务表单状态](../../implemented/architecture/2026-10-27-reading-entry-and-owned-state.md)。下文保留审查时的证据和剩余建议，当前实现以该篇及代码为准；测试时间参数、讨论状态和其余大文件尚未整理。
 
+设置窗口、AI 记录与备份的状态归属继续在 [desk 内部状态](../../implemented/architecture/2026-10-22-desk-state.md) 中细化：状态分别由各功能持有，关闭设置与换书的收尾有独立入口。这沿用原决定并就地更新，不另建同义提案。
 
 ## Problem
 

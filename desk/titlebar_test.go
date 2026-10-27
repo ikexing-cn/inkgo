@@ -299,10 +299,10 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 	}
 	shut(tt, &a.exporting.Open)
 	choose("文件", "设置")
-	if !a.bk.prefs {
+	if !a.settings.open {
 		t.Fatal("设置 did not open the settings")
 	}
-	shut(tt, &a.bk.prefs)
+	shut(tt, &a.settings.open)
 	nodes := func() (n int) { chapters(a).Walk(func(*workspace.Node, int) { n++ }); return n }
 	before := nodes()
 	choose("文件", "新建章节")
@@ -431,10 +431,10 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 			t.Fatal(err)
 		}
 		tt.Frame()
-		if !a.bk.prefs {
+		if !a.settings.open {
 			t.Fatalf("page %d: the settings did not open", page)
 		}
-		shut(tt, &a.bk.prefs)
+		shut(tt, &a.settings.open)
 		tt.Key(ui.Cmd, ui.KeySlash)
 		tt.Frame()
 		if !a.keysOpen {
@@ -450,17 +450,17 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 	tt.Frame()
 	pale("文件", "新建章节", "新建文件夹", "保存", "快照", "导出", "作品分类", "回收站")
 	pale("视图", "收起侧栏", "展开右栏", "专注写作", "手机预览")
-	if a.bk.prefs || a.exporting.Open || a.sideHidden {
+	if a.settings.open || a.exporting.Open || a.sideHidden {
 		t.Fatal("on the shelf a pale row did something")
 	}
 	if err := clickMenu(tt, "文件", "菜单-设置"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if _, ok := tt.Find("设置-外观"); !a.bk.prefs || !ok || tt.HasText("提醒") || tt.HasText("备份") {
+	if _, ok := tt.Find("设置-外观"); !a.settings.open || !ok || tt.HasText("提醒") || tt.HasText("备份") {
 		t.Fatalf("on the shelf the settings are not those of the machine: %q", tt.Texts())
 	}
-	shut(tt, &a.bk.prefs)
+	shut(tt, &a.settings.open)
 	var got []string
 	a.Appearance = func(v string) { got = append(got, v) }
 	if err := clickMenu(tt, "视图", "外观-深色"); err != nil {

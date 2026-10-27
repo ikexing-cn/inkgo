@@ -28,16 +28,6 @@ type backupView struct {
 	hourly         bool
 	list           []backup.Info
 	listed         bool
-	prefs          bool               // the settings dialog
-	tab            string             // its part shown: "AI", "外观", "提醒与检查" or "备份"
-	records        []workspace.Record // the work's AI record, read as the AI's part shows
-	log            bool               // the AI record shown in the AI's part, in place of the rest
-	logOnly        int                // the feature it shows: 0 for all, else the one chosen
-	logOpen        int                // the line of records open in it, or -1
-	logRows        []int              // the records the filter leaves, newest first, by index in records
-	logRowsFor     int                // the feature logRows was built for
-	logList        ui.ListState       // where the long record is scrolled to
-	askAI          bool               // asking before the AI is turned off or on
 	keepChoice     string
 	places         []place
 }

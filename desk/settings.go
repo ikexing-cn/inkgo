@@ -5,6 +5,14 @@ import (
 	"writer/desk/kit"
 )
 
+// settingsView belongs to the settings window, independently of backups.
+// Closing keeps the selected tab; leaving the work resets it.
+type settingsView struct {
+	open  bool
+	tab   string
+	askAI bool
+}
+
 // The settings dialog keeps one size whichever part is shown.
 const prefsWidth, prefsHeight = 900, 620
 
@@ -47,27 +55,40 @@ func (a *App) prefNote(tab string) string {
 }
 
 // showsLog is whether the AI's part of the settings shows the AI record.
-func (a *App) showsLog() bool { return a.bk.log && a.aiOn() && a.Store != nil }
+func (a *App) showsLog() bool { return a.record.showing && a.aiOn() && a.Store != nil }
 
 // openPrefs opens the settings at the part named, or the AI.
 func (a *App) openPrefs(tab string) {
 	if tab == "" {
 		tab = "AI"
 	}
-	a.bk.prefs = true
+	a.settings.open = true
 	a.showPref(tab)
+}
+
+// closePrefs also drops an unanswered AI-switch question. It keeps this
+// work's selected tab and service draft for reopening the settings.
+func (a *App) closePrefs() {
+	a.settings.open, a.settings.askAI = false, false
+}
+
+// resetPrefs releases state belonging to the work being left. Saved model
+// settings and AI records stay on disk; only their views and drafts go.
+func (a *App) resetPrefs() {
+	a.settings = settingsView{}
+	a.record.reset()
+	a.serviceForm.close()
 }
 
 // showPref shows a part of the settings. The reminders count the book's
 // foreshadowings from the tree and the marks Book read, from any page. The
 // AI's part reads the AI record, and shows what it adds up to.
 func (a *App) showPref(tab string) {
-	a.bk.tab, a.bk.log = tab, false
+	a.settings.tab, a.record.showing = tab, false
 	if tab == "AI" && a.Store != nil {
 		records, err := a.Store.Records()
 		a.warn(err)
-		a.bk.records = records
-		a.bk.logRows = nil // the record is new: its lines are found again
+		a.record.load(records)
 	}
 }
 
@@ -75,17 +96,18 @@ func (a *App) showPref(tab string) {
 // reminders and the backups, over whatever page it was opened on; the
 // shelf has the first two, which hold for every work.
 func (a *App) preferences(c *ui.Context) {
-	if !a.bk.prefs {
+	if !a.settings.open {
+		a.closePrefs()
 		return
 	}
 	t := a.pal.Theme
-	a.bk.tab = a.prefTabs.shown(a, a.bk.tab)
+	a.settings.tab = a.prefTabs.shown(a, a.settings.tab)
 	w, h := c.Size()
-	ui.DialogBase(c, &a.bk.prefs, func(back, panel ui.Element) {
+	ui.DialogBase(c, &a.settings.open, func(back, panel ui.Element) {
 		scrim := ui.Color{}
 		// What is asked over the settings shades the window, them with it:
 		// one shade, not two.
-		if !a.bk.askAI && !(a.bk.ask && a.Store != nil) {
+		if !a.settings.askAI && !(a.bk.ask && a.Store != nil) {
 			scrim = a.pal.Scrim
 		}
 		kit.DialogIn(back, panel, scrim)
@@ -99,7 +121,7 @@ func (a *App) preferences(c *ui.Context) {
 					continue
 				}
 				b := ui.ButtonBase(c).Row().FillWidth().Height(kit.HControl).Justify(ui.Start).AlignItems(ui.Center).Padding(0, 10).Radius(kit.RControl).Label(entry.label)
-				on := a.bk.tab == tab
+				on := a.settings.tab == tab
 				fg, weight := t.TextMuted, 400
 				if on {
 					b.Background(t.SurfacePressed)
@@ -124,8 +146,8 @@ func (a *App) preferences(c *ui.Context) {
 			// The title stays where it is: what is under it scrolls up to
 			// the line, not over it and the close button.
 			ui.Column(c).FillWidth().Shrink(0).Gap(4).Padding(24, 56, 16, 32).Children(func() {
-				ui.Text(c, a.prefTitle(a.bk.tab)).FontSize(kit.FsDialog).FontWeight(700)
-				if note := a.prefNote(a.bk.tab); note != "" {
+				ui.Text(c, a.prefTitle(a.settings.tab)).FontSize(kit.FsDialog).FontWeight(700)
+				if note := a.prefNote(a.settings.tab); note != "" {
 					ui.Text(c, note).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
 				}
 			})
@@ -133,9 +155,9 @@ func (a *App) preferences(c *ui.Context) {
 			if a.showsLog() {
 				a.recordsView(c)
 			} else {
-				ui.Scroll(c.Key("prefs-" + a.bk.tab)).Grow(1).Shrink(1).FillWidth().Children(func() {
+				ui.Scroll(c.Key("prefs-" + a.settings.tab)).Grow(1).Shrink(1).FillWidth().Children(func() {
 					ui.Column(c).FillWidth().Padding(12, 56, 32, 32).Gap(12).Children(func() {
-						switch a.bk.tab {
+						switch a.settings.tab {
 						case "外观":
 							a.looksView(c)
 						case "备份":
@@ -150,13 +172,13 @@ func (a *App) preferences(c *ui.Context) {
 			}
 		})
 		if kit.IconButton(c, kit.IcX, "关闭设置", ui.Color{}).Absolute().Top(12).Right(12).Clicked() {
-			a.bk.prefs = false
+			a.closePrefs()
 		}
 	})
-	if a.bk.prefs {
+	if a.settings.open {
 		a.askAI(c) // over the settings
 	} else {
-		a.bk.askAI = false
+		a.closePrefs()
 	}
 }
 
@@ -215,7 +237,7 @@ func (a *App) NoGPU() bool { return offerNoGPU && a.shelf.NoGPU }
 // settings, which close first: what the AI proposed and is not decided
 // on is asked about over the page, as closing the window asks.
 func (a *App) relaunch() {
-	a.bk.prefs = false
+	a.closePrefs()
 	if !a.Leave(a.Relaunch) {
 		a.Relaunch()
 	}

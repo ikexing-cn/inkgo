@@ -62,6 +62,14 @@ Status: implemented
 - `settingRoute` 持有列表、待确认或已删除的底层页面，以及条目页、条目或变化表单、修改记录的覆盖层。每帧先校正已不存在的目标；表单文字留在 `docView`。
 - `recordsView` 用 `ui.List` 只构建可见行，键是记录下标。「‹ 本作品用量」和筛选固定在上方。筛选下标在重读记录或改变筛选时重建。
 
+### 设置、记录和备份的归属
+
+- `settingsView`（`settings.go`）持有设置窗口的开关、所选页和 AI 开关确认；`backupView` 只持有备份任务、策略、位置和备份界面状态。
+- `recordView`（`record.go`）持有读入的 AI 记录、是否查看明细、功能筛选、展开行、筛选下标和列表滚动。记录的加载与重置、打开列表和筛选下标计算由它自己的方法处理。
+- `openPrefs/showPref` 选择设置页，进入 AI 页时从 Store 读一份记录；`closePrefs` 关闭窗口并取消 AI 确认，但保留所选页和同一作品的草稿。关闭按钮、Esc/遮罩和重新启动路径使用同一收尾入口。
+- `resetPrefs` 在换书、回书架和关闭应用时清空设置、记录及服务表单；磁盘上的记录、模型配置和 key 不变。备份仍按原先的关书顺序等待任务、执行备份，再由作品重置清空备份视图。
+- 这次分离不新增包或 Host：状态各有主人，跨模块协调留在 App。结构体定义与加载、清理放到对应功能文件，避免只换字段前缀。
+
 ### 各功能的结构体
 
 - `phone.Panel`（`desk/phone/phone.go`）持有分页、排版偏好、正文缓存、阅读位置和命中几何。右栏顶行由 `settingColumn` 绘制，`commands.go` 的 `openPhone` 负责打开右栏和保存偏好。
@@ -90,6 +98,9 @@ Status: implemented
 
 ## Alternatives considered
 
+- **把设置和记录继续合进 backupView，只靠注释分区**：少改字段路径，但看名字不能知道备份还保管 AI 记录，重置也依赖备份的偶然归属。采用同包具体类型分离，保持直接调用。
+- **设置和记录各拆成子包**：编译器可以限制互相读字段；但这两处需要配色、AI 用量、作品标题和各设置页回调，新增 Host 的转发成本大于这次状态收拢的收益。
+
 - **书模型放在 `desk` 包里**：
   - 最强的理由：少一个包，也不用为它导出名字。
   - 不选：第 7 批拆出去的手机预览、导出、大纲页都要读书，子包不能引用 `desk`。到时候再挪，就是同一批代码搬两次。
@@ -116,9 +127,14 @@ Status: implemented
 - 书内容和打开的章节各有一个主人，页面进出和命令的规则各在一张表里。派生数据只认输入的版本，不变的帧不重建。
 - `Book` 的版本必须随书内容变：绕过它写盘，缓存就是旧的。测试直接用 `Store` 摆场景后，要让 `Book` 重读。
 - `Book` 只在界面线程用，这一条没有测试守，靠后台任务只拿 `Store`、交回后在界面线程刷新。
+- 设置、AI 记录与备份的视图状态分离，换书时必须经 `resetPrefs` 一并清空设置与记录；备份仍自己收尾。关闭设置保留同一作品的服务草稿和所选页，不等于离开作品。AI 记录依旧在进入 AI 设置时读取一次，不每帧读盘，也不因此增加数据缓存层。
 - 手机预览、导出和大纲页各经自己消费的接口访问 `appHost`。三个页面包不引用 `desk` 或别的页面包，接口签名不带 `desk` 的私有类型；这由 `desk/imports_test.go` 的 `TestImports` 守着。
 
 ## Testing
+
+- `TestSettingsCloseKeepsTheWorkAndBackup` 覆盖关闭按钮、Esc、遮罩和重新启动入口：设置关掉，未确认的 AI 开关问题取消，同一作品的服务草稿与备份状态保留，重开仍是原设置页。
+- `TestLeavingWorkClearsSettingsAndRecords` 用有 50 条记录的作品，实际滚动列表并选择筛选和展开项后，分别切换作品、回书架、关闭应用；设置、记录和服务草稿清空，旧作品的 50 条磁盘记录仍在，新作品只加载自己的记录。
+- 设置状态分离前后运行 `TestShotBackup`、`TestShotRecord`：外观、模型、服务设置、讨论和空记录截图逐像素一致；记录与备份截图的差异仅为测试时间及临时路径，差异图已目视核对。
 
 - `state_test.go` 的 helper 读共享状态；测试改了状态路径时只改 helper。
 - 打开的章节、丢失和外部改动：`TestOneOpenChapterPerTab`、`TestALostChapterKeepsItsTab`、`TestOutsideChangeAsksTheAuthor`、`TestSavingDoesNotWriteOverAnOutsideChange`。

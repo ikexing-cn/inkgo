@@ -142,6 +142,8 @@ type App struct {
 	shelf             shelf.Shelf
 	ranNoGPU          bool // the shelf's NoGPU as the software opened, which cmd/inkgo draws by
 	bk                backupView
+	settings          settingsView
+	record            recordView
 	books             shelfView
 	ck                checks
 	session           string
@@ -284,7 +286,7 @@ func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 }
 
 func (a *App) resetView() {
-	a.serviceForm.close()
+	a.resetPrefs()
 	a.source, a.sourceOpen, a.contextReply = nil, false, ""
 	a.input, a.seen, a.flash, a.doc, a.write = "", -1, map[string]time.Time{}, docView{}, writeView{}
 	a.bk = backupView{}
@@ -310,6 +312,7 @@ func (a *App) Close() error {
 		a.cancel()
 	}
 	a.leaveWork()
+	a.resetPrefs()
 	// Window shutdown exits the process. A cancelled worker may still be
 	// saving what it already has, so leave the store open for it.
 	if a.Store != nil && a.busy == "" {

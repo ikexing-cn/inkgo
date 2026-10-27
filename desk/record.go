@@ -14,6 +14,26 @@ import (
 	"writer/workspace"
 )
 
+// recordView owns one work's AI usage snapshot and its request list.
+// Loading invalidates row indices; only leaving the work resets the view.
+type recordView struct {
+	records  []workspace.Record
+	showing  bool
+	only     int // 0 for all, otherwise an index into recordFeatures plus one
+	expanded int // record index, or -1
+	rows     []int
+	rowsFor  int
+	list     ui.ListState
+}
+
+func (v *recordView) reset() { *v = recordView{expanded: -1} }
+
+func (v *recordView) load(records []workspace.Record) {
+	v.records, v.rows = records, nil
+}
+
+func (v *recordView) show() { v.showing, v.only, v.expanded = true, 0, -1 }
+
 // recordFeatures are the features of the AI record as the author reads
 // them, in the order the settings list them.
 var recordFeatures = []struct{ id, name string }{
@@ -65,7 +85,7 @@ func costOf(rs ...workspace.Record) map[string]float64 {
 func (a *App) spent(c *ui.Context) {
 	t := a.pal.Theme
 	a.pal.Subhead(c, "本作品用量", "")
-	if len(a.bk.records) == 0 {
+	if len(a.record.records) == 0 {
 		ui.Text(c, "尚未使用 AI。").FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
 		return
 	}
@@ -74,7 +94,7 @@ func (a *App) spent(c *ui.Context) {
 		for _, f := range recordFeatures {
 			var rows []workspace.Record
 			var u workspace.Usage
-			for _, r := range a.bk.records {
+			for _, r := range a.record.records {
 				if r.Feature == f.id {
 					rows = append(rows, r)
 					u = u.Add(r.Usage)
@@ -103,7 +123,7 @@ func (a *App) spent(c *ui.Context) {
 	})
 	ui.Row(c).FillWidth().Justify(ui.End).Children(func() {
 		if a.pal.Ghost(c, fmt.Sprintf("查看全部记录（%d 次请求）", all), ui.Color{}).Clicked() {
-			a.bk.log, a.bk.logOnly, a.bk.logOpen = true, 0, -1
+			a.record.show()
 		}
 	})
 }
@@ -122,43 +142,42 @@ func (a *App) recordsView(c *ui.Context) {
 	ui.Column(c).FillWidth().Grow(1).Shrink(1).Gap(12).Children(func() {
 		ui.Row(c).FillWidth().Padding(12, 56, 0, 32).Shrink(0).AlignItems(ui.Center).Gap(12).Children(func() {
 			if a.pal.Ghost(c, "‹ 本作品用量", ui.Color{}).Clicked() {
-				a.bk.log = false
+				a.record.showing = false
 			}
 			ui.Spacer(c)
-			was := a.bk.logOnly
-			a.pal.Segments(c, &a.bk.logOnly, "按功能筛选", names)
-			if a.bk.logOnly != was {
-				a.bk.logOpen = -1
+			was := a.record.only
+			a.pal.Segments(c, &a.record.only, "按功能筛选", names)
+			if a.record.only != was {
+				a.record.expanded = -1
 			}
 		})
-		rows := a.logRowsShown()
+		rows := a.record.filtered()
 		if len(rows) == 0 {
 			ui.Text(c, "没有这类请求。").FontSize(kit.FsNote).TextColor(t.TextMuted).Padding(12, 56, 12, 32)
 			return
 		}
 		now := time.Now()
-		a.bk.logList.Key = func(i int) any { return rows[i] }
-		ui.List(c, &a.bk.logList, len(rows), func(i int) {
+		a.record.list.Key = func(i int) any { return rows[i] }
+		ui.List(c, &a.record.list, len(rows), func(i int) {
 			a.recordRow(c, rows[i], now)
 		}).Grow(1).FillWidth().Padding(0, 56, 32, 32)
 	})
 }
 
-// logRowsShown is the records the filter leaves, newest first, by their
+// filtered is the records the filter leaves, newest first, by their
 // index in the record: built when the filter changes or showPref reads
 // the record anew.
-func (a *App) logRowsShown() []int {
-	b := &a.bk
-	if b.logRows != nil && b.logRowsFor == b.logOnly {
-		return b.logRows
+func (v *recordView) filtered() []int {
+	if v.rows != nil && v.rowsFor == v.only {
+		return v.rows
 	}
-	rows := make([]int, 0, len(b.records))
-	for i := len(b.records) - 1; i >= 0; i-- {
-		if b.logOnly == 0 || b.records[i].Feature == recordFeatures[b.logOnly-1].id {
+	rows := make([]int, 0, len(v.records))
+	for i := len(v.records) - 1; i >= 0; i-- {
+		if v.only == 0 || v.records[i].Feature == recordFeatures[v.only-1].id {
 			rows = append(rows, i)
 		}
 	}
-	b.logRows, b.logRowsFor = rows, b.logOnly
+	v.rows, v.rowsFor = rows, v.only
 	return rows
 }
 
@@ -166,9 +185,9 @@ func (a *App) logRowsShown() []int {
 // the provider counted.
 func (a *App) recordRow(c *ui.Context, i int, now time.Time) {
 	t := a.pal.Theme
-	r := a.bk.records[i]
+	r := a.record.records[i]
 	a.pal.Hairline(c)
-	open := a.bk.logOpen == i
+	open := a.record.expanded == i
 	at, where, end, endColor := kit.When(r.At, now), featureName(r.Feature)+" · "+a.recordWhere(r), "", t.TextMuted
 	switch r.Outcome {
 	case workspace.OutcomeDone:
@@ -199,9 +218,9 @@ func (a *App) recordRow(c *ui.Context, i int, now time.Time) {
 		kit.Glyph(c, chevron, kit.IconXs, a.pal.Faint)
 	})
 	if row.Clicked() {
-		a.bk.logOpen = i
+		a.record.expanded = i
 		if open {
-			a.bk.logOpen = -1
+			a.record.expanded = -1
 		}
 	}
 	if open {

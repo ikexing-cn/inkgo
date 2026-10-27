@@ -64,7 +64,7 @@ var (
 		can: func(a *App) bool { return a.Store != nil },
 		run: func(a *App) { a.exporting.Show() }}
 	cmdSettings = &command{label: "设置…", page: pageAny,
-		run: func(a *App) { a.openPrefs(a.bk.tab) }}
+		run: func(a *App) { a.openPrefs(a.settings.tab) }}
 	cmdCategories = &command{label: "作品分类", page: pageAny,
 		can: func(a *App) bool { return a.Store != nil },
 		run: func(a *App) { a.page = pageCategories }}

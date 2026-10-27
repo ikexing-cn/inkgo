@@ -111,8 +111,8 @@ func TestNavigationTables(t *testing.T) {
 				if !want {
 					shown = "AI"
 				}
-				if a.bk.tab != shown {
-					t.Errorf("settings part %s shows %s, want %s", p.name, a.bk.tab, shown)
+				if a.settings.tab != shown {
+					t.Errorf("settings part %s shows %s, want %s", p.name, a.settings.tab, shown)
 				}
 				name := p.name
 				if name == "提醒与检查" && !tc.ai {

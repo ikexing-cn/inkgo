@@ -211,10 +211,10 @@ func switchAI(t *testing.T, a *App, tt *ui.Tester, on bool) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.aiOn() != on || a.bk.askAI || !a.bk.prefs {
-		t.Fatalf("the AI is on: %v, asking: %v, the settings open: %v", a.aiOn(), a.bk.askAI, a.bk.prefs)
+	if a.aiOn() != on || a.settings.askAI || !a.settings.open {
+		t.Fatalf("the AI is on: %v, asking: %v, the settings open: %v", a.aiOn(), a.settings.askAI, a.settings.open)
 	}
-	shut(tt, &a.bk.prefs)
+	shut(tt, &a.settings.open)
 }
 
 // With the AI off, nothing in the window tells of it or offers it, the
@@ -446,14 +446,14 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !a.bk.askAI || !tt.HasText("是否关闭 AI？") {
+	if !a.settings.askAI || !tt.HasText("是否关闭 AI？") {
 		t.Fatalf("not asked: %q", tt.Texts())
 	}
 	if err := tt.Click("取消"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.bk.askAI || !a.bk.prefs || !a.aiOn() || noAI() {
+	if a.settings.askAI || !a.settings.open || !a.aiOn() || noAI() {
 		t.Fatal("取消 changed something")
 	}
 	if err := tt.Click("关闭 AI"); err != nil {
@@ -462,10 +462,10 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 	tt.Frame()
 	tt.Key(0, ui.KeyEscape)
 	tt.Frame()
-	if a.bk.askAI || !a.bk.prefs || !a.aiOn() {
-		t.Fatalf("Esc: asking %v, the settings open %v, the AI on %v", a.bk.askAI, a.bk.prefs, a.aiOn())
+	if a.settings.askAI || !a.settings.open || !a.aiOn() {
+		t.Fatalf("Esc: asking %v, the settings open %v, the AI on %v", a.settings.askAI, a.settings.open, a.aiOn())
 	}
-	shut(tt, &a.bk.prefs)
+	shut(tt, &a.settings.open)
 
 	// Off and on again, with nothing at work: the work's folder and the
 	// services stay as they were.
@@ -489,7 +489,7 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 	if tt.HasText("检查") {
 		t.Fatalf("with the AI off, the reminders tell of the checks: %q", tt.Texts())
 	}
-	shut(tt, &a.bk.prefs)
+	shut(tt, &a.settings.open)
 	b := newApp(config)
 	if b.aiOn() {
 		t.Fatal("the app starts with the AI on, the shelf saying off")
@@ -652,14 +652,14 @@ func TestShotAIOff(t *testing.T) {
 		t.Fatal(err)
 	}
 	a.openPrefs("AI")
-	a.bk.askAI = true
+	a.settings.askAI = true
 	shot(t, tt, "ai-off-ask.png")
-	a.bk.askAI = false
+	a.settings.askAI = false
 	a.turnAI(false)
 	shot(t, tt, "ai-off-settings.png")
-	a.bk.askAI = true
+	a.settings.askAI = true
 	shot(t, tt, "ai-on-ask.png")
-	a.bk.askAI, a.bk.prefs = false, false
+	a.settings.askAI, a.settings.open = false, false
 	shot(t, tt, "ai-off-prose.png")
 	tt.SetDark(true)
 	shot(t, tt, "ai-off-prose-dark.png")

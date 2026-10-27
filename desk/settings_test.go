@@ -1,6 +1,50 @@
 package desk
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+
+	"github.com/egoist/mygo/ui"
+)
+
+// Every settings close route cancels only the pending question. The tab,
+// service draft and backup task belong to their own lifetimes.
+func TestSettingsCloseKeepsTheWorkAndBackup(t *testing.T) {
+	for _, how := range []string{"button", "escape", "backdrop", "relaunch"} {
+		t.Run(how, func(t *testing.T) {
+			a, tt, _ := fixture(t)
+			a.openPrefs("外观")
+			a.serviceForm.new()
+			a.serviceForm.provider.Name = "unsaved service"
+			backupBefore := a.bk
+			tt.Frame()
+			switch how {
+			case "button":
+				click(t, tt, "关闭设置")
+			case "escape":
+				tt.Key(0, ui.KeyEscape)
+			case "backdrop":
+				tt.ClickAt(5, 400)
+			case "relaunch":
+				a.settings.askAI = true
+				a.Relaunch = func() {}
+				a.relaunch()
+			}
+			tt.Frame()
+			if a.settings.open || a.settings.askAI || a.settings.tab != "外观" {
+				t.Fatal("settings did not close cleanly", a.settings)
+			}
+			if a.serviceForm.provider.Name != "unsaved service" || !reflect.DeepEqual(a.bk, backupBefore) {
+				t.Fatal("closing settings changed a draft or backup state")
+			}
+			a.openPrefs(a.settings.tab)
+			tt.Frame()
+			if !a.settings.open || a.settings.tab != "外观" || a.settings.askAI {
+				t.Fatal("settings did not reopen at the last tab")
+			}
+		})
+	}
+}
 
 // A part of the settings with nothing to say under its title says nothing
 // there, not an empty line; one that does still says it.
@@ -73,7 +117,7 @@ func TestNoGPUWaitsForTheNextStart(t *testing.T) {
 	a.Relaunch = func() { relaunched++ }
 	click(t, tt, "禁用 GPU 加速")
 	click(t, tt, "立即重新打开")
-	if relaunched != 0 || a.bk.prefs || !tt.HasText("还有 1 处 AI 提议没有处理") {
+	if relaunched != 0 || a.settings.open || !tt.HasText("还有 1 处 AI 提议没有处理") {
 		t.Fatal("relaunched without asking about the proposal", relaunched, tt.Texts())
 	}
 	click(t, tt, "丢弃并关闭")

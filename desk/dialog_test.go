@@ -47,7 +47,7 @@ func TestDialogsGiveTheKeyboardBack(t *testing.T) {
 		tt.Frame()
 		d.open()
 		tt.Frame()
-		if tt.Focused("正文") && !a.bk.prefs && !a.keysOpen && !a.write.trashOpen && !a.write.snapsOpen && !a.exporting.Open && !a.write.takeOpen {
+		if tt.Focused("正文") && !a.settings.open && !a.keysOpen && !a.write.trashOpen && !a.write.snapsOpen && !a.exporting.Open && !a.write.takeOpen {
 			t.Fatalf("%s: no dialog opened", d.name)
 		}
 		d.close()
@@ -94,13 +94,13 @@ func TestAQuestionOverTheSettingsShadesOnce(t *testing.T) {
 		img := tt.Image()
 		b := img.Bounds()
 		corner := img.At(b.Min.X+3, b.Max.Y-3) // the page, outside the settings
-		a.bk.askAI = true
+		a.settings.askAI = true
 		tt.Frame()
 		tt.Frame()
 		if got := tt.Image().At(b.Min.X+3, b.Max.Y-3); got != corner {
 			t.Errorf("dark %v: the page under two dialogs is %v, under one %v", dark, got, corner)
 		}
-		a.bk.askAI, a.bk.prefs = false, false
+		a.settings.askAI, a.settings.open = false, false
 		tt.Frame()
 	}
 }

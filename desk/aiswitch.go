@@ -28,7 +28,7 @@ func (a *App) aiView(c *ui.Context) {
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
 		off := !a.aiOn() // the box shows the switch; it changes once asked
 		if ui.Checkbox(c, &off, "关闭 AI").Changed() {
-			a.bk.askAI = true
+			a.settings.askAI = true
 		}
 		a.pal.TickNote(c, "隐藏全部 AI 功能，不发送任何内容。")
 	})
@@ -46,12 +46,12 @@ func (a *App) askAI(c *ui.Context) {
 		title, about, verb = "是否关闭 AI？", "隐藏全部 AI 功能，不再发送任何内容；正在进行的 AI 任务会停止，没有处理的 AI 提议会丢弃。讨论、检查结果和 AI 记录不会删除，重新开启后恢复。", "关闭 AI"
 	}
 	turn := false
-	a.pal.Modal(c, &a.bk.askAI, func() {
+	a.pal.Modal(c, &a.settings.askAI, func() {
 		ui.Column(c).Width(kit.DialogAsk).Padding(kit.DialogPad).Gap(16).Children(func() {
 			a.pal.DialogHead(c, title, about)
 			ui.Row(c).FillWidth().Gap(8).Justify(ui.End).Children(func() {
 				if a.pal.Secondary(c, "取消").Clicked() {
-					a.bk.askAI = false
+					a.settings.askAI = false
 				}
 				if a.pal.Primary(c, verb).Label("确定" + verb).Clicked() {
 					turn = true
@@ -60,7 +60,7 @@ func (a *App) askAI(c *ui.Context) {
 		})
 	})
 	if turn {
-		a.bk.askAI = false
+		a.settings.askAI = false
 		a.turnAI(!off)
 	}
 }

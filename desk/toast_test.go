@@ -165,7 +165,7 @@ func TestShotToasts(t *testing.T) {
 	a.SetError(&aiport.SetupError{Err: errors.New("连不上 AI：检查网络和服务地址")})
 	shot(t, tt, "toast-settings-dark.png")
 	tt.SetDark(false)
-	a.bk.prefs = false
+	a.settings.open = false
 	a.SetError(nil)
 	tt.Frame()
 	showPage(a, pageWrite)
