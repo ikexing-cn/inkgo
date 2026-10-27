@@ -162,6 +162,11 @@ export async function open(file: string, ready: string, shots?: string): Promise
 
   await send('Runtime.enable')
   await send('Page.enable')
+  // Headless Edge can start with a 500x320 viewport despite --window-size.
+  // The centered prototype then extends left of the reachable viewport;
+  // scrollIntoView cannot reveal controls at negative document coordinates.
+  // Fix the page's metrics directly, before its first layout.
+  await send('Emulation.setDeviceMetricsOverride', { width: 1400, height: 1000, deviceScaleFactor: 1, mobile: false })
   await send('Page.addScriptToEvaluateOnNewDocument', { source: CLOCK })
   // What moves as it appears runs by the browser's own clock, which the steps do not wait for: asked for
   // reduced motion, the page puts everything in place at once, and what is measured and pictured is where it stays.
@@ -170,6 +175,11 @@ export async function open(file: string, ready: string, shots?: string): Promise
   for (let i = 0; !(await js(`!!document.querySelector(${JSON.stringify(ready)})`)); i++) {
     if (i === 50) { await close(); throw new Error(`${file} did not draw ${ready}: ${errors.join('; ') || 'no error logged'}`) }
     await idle(100)
+  }
+  const viewport = await js('[innerWidth, innerHeight]')
+  if (viewport[0] !== 1400 || viewport[1] !== 1000) {
+    await close()
+    throw new Error(`unexpected browser viewport: ${viewport.join('x')}`)
   }
   const sleep = async (ms: number) => { await js(`__pass(${ms})`) }
 

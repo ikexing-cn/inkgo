@@ -23,6 +23,7 @@ test('coordinate clicks follow layout changed by scrolling', async () => {
   try {
     const page = await open(file, '#box')
     try {
+      assert.deepEqual(await page.js('[innerWidth, innerHeight, devicePixelRatio]'), [1400, 1000, 1])
       for (let i = 0; i < 12; i++) {
         await page.js(`box.scrollTop=0;button.style.marginLeft='0px';hits=0`)
         await page.click('目标')
