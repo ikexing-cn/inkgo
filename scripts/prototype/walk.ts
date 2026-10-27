@@ -582,6 +582,19 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('讨论'); must(await has('.sidebar .tree-row') && await sides() === '200 320', 'the talk page of a narrow window does not list the talks beside its pane'); await shot('87b-narrow-talk')
   await click('正文'); await click('少见的情况'); await click('窗口恢复原宽'); must(await sides() === '232 390', 'the sides stayed narrow: ' + await sides()); await done('a narrow window')
 
+  // Ctrl+= zooms the whole window: it is laid out 1/z as large and shown z times larger. The window grows to hold at least 1000 by 680
+  // of it, and 放大 stops at the step the screen cannot hold; a layout narrower than 1180 is a narrow window.
+  const zoom = (): Promise<string> => js(`(() => { const w = document.getElementById('win'), r = w.getBoundingClientRect(); return [S.zoom, w.offsetWidth + 'x' + w.offsetHeight, Math.round(r.width) + 'x' + Math.round(r.height)].join(' ') + (w.classList.contains('narrow') ? ' narrow' : '') })()`)
+  const menuGrey = (row: string): Promise<boolean> => js(`[...document.querySelectorAll('.menu-pop .row')].find((e) => e.innerText.includes(${JSON.stringify(row)})).classList.contains('off')`)
+  await click('第87章：停电'); await key('=', true); await key('=', true); must(await zoom() === '1.25 1013x680 1266x850 narrow', 'zoomed to 125%: ' + await zoom()); await shot('88-zoom-125')
+  { const [x, y] = await select(0, '整条街的灯'); await rclick(x, y); const at: number[] = await js(`(() => { const c = document.querySelector('.ctx').getBoundingClientRect(); return [c.left, c.top] })()`)
+  must(Math.abs(at[0] - x) < 2 && Math.abs(at[1] - y) < 2, 'the menu of the prose opened at ' + at + ', not at ' + [x, y]); await key('Escape') }
+  await click('视图'); await win('缩放 125%'); must(!(await menuGrey('实际大小')), '实际大小 is grey at 125%'); await shot('88b-zoom-menu'); await click('放大')
+  must(await zoom() === '1.5 1000x680 1500x1020 narrow', 'zoomed to 150%: ' + await zoom()); await click('视图'); must(await menuGrey('放大'), '放大 goes past what the screen holds'); await key('Escape'); await shot('88c-zoom-150')
+  await key('-', true); must((await zoom()).startsWith('1.25 '), 'Ctrl+- did not zoom out'); await key('0', true); must(await zoom() === '1 1266x780 1266x780', 'Ctrl+0 did not zoom back: ' + await zoom())
+  await key('-', true); must(await zoom() === '0.9 1407x867 1266x780', 'zoomed to 90%: ' + await zoom()); await shot('88d-zoom-90')
+  await click('视图'); must(await menuGrey('实际大小') === false, '实际大小 is grey at 90%'); await click('实际大小'); must((await zoom()).startsWith('1 '), '实际大小 did not zoom back'); await done('zoom the window')
+
   // The whole book checked: the chapters changed since, one after another.
   await click('检查'); await click('重新检查'); await win('2 章未检查或有改动'); await win('每章调用一次 AI，共 2 次。'); await shot('87-check-all'); await click('取消'); await win('2 章未检查或有改动', false)
   await click('重新检查'); await click('开始检查'); await win('正在检查「第86章：档案室」，还有 1 章'); await sleep(1000); await win('正在检查「第87章：停电」'); await win('还有', false); await click('停止'); await win('1 章失败'); await win('已检查至', false); await click('重新检查'); await win('1 章未检查或有改动'); await click('开始检查'); await sleep(1100)
@@ -714,7 +727,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('重新开始'); await pointAt('编辑'); must(!(await has('.menu-pop')), 'a menu opened under the pointer with none open')
   await click('文件'); must(await menuRows() === '新建章节 新建文件夹 保存 快照 导出… 作品分类 回收站… 设置…', 'the menu of the file reads: ' + await menuRows())
   await pointAt('编辑'); must(await menuRows() === '撤销- 重做- 查找替换 重命名 续写一句 起草本章', 'the pointer over 编辑 did not open it: ' + await menuRows())
-  await pointAt('视图'); must(await menuRows() === '收起侧栏 收起右栏 专注写作 手机预览', 'the menu of the view reads: ' + await menuRows()); await win('跟随系统'); await pointAt('帮助'); must(await menuRows() === '快捷键…', 'the menu of help reads: ' + await menuRows())
+  await pointAt('视图'); must(await menuRows() === '收起侧栏 收起右栏 专注写作 手机预览 放大 缩小 实际大小-', 'the menu of the view reads: ' + await menuRows()); await win('跟随系统'); await pointAt('帮助'); must(await menuRows() === '快捷键…', 'the menu of help reads: ' + await menuRows())
   await key('Escape'); must(!(await has('.menu-pop')), 'Esc left the menu open'); await click('帮助'); await click('帮助'); must(!(await has('.menu-pop')), 'a second click on its name left the menu open')
   // The title bar gives the caret back: a menu opened and put away, the sidebar's switch, a dialog from a menu, and the prose is typed in still.
   const penned = (): Promise<boolean> => js(`document.activeElement === proseBox()`)
@@ -743,7 +756,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   must(await spot('[aria-label="退出专注"]') === focusAt, 'the switch out of focus is not where the switch into it was: ' + focusAt + ' to ' + await spot('[aria-label="退出专注"]'))
   await click('退出专注，恢复章节树和右栏（F11）'); must(await has('.sidebar') && await has('.menu-title'), 'leaving focus did not bring the menus back')
   await click('检查'); await click('文件'); must(await menuRows() === '新建章节- 新建文件夹- 保存- 快照- 导出… 作品分类 回收站… 设置…', 'off the page of prose the menu of the file reads: ' + await menuRows()); await shot('99d-menu-greyed')
-  await pointAt('编辑'); must(await menuRows() === '撤销- 重做- 查找替换- 重命名- 续写一句- 起草本章-', 'off the page of prose the menu of editing reads: ' + await menuRows()); await pointAt('视图'); must(await menuRows() === '收起侧栏 展开右栏- 专注写作- 手机预览-', 'on the page of checks the menu of the view reads: ' + await menuRows()); await key('Escape')
+  await pointAt('编辑'); must(await menuRows() === '撤销- 重做- 查找替换- 重命名- 续写一句- 起草本章-', 'off the page of prose the menu of editing reads: ' + await menuRows()); await pointAt('视图'); must(await menuRows() === '收起侧栏 展开右栏- 专注写作- 手机预览- 放大 缩小 实际大小-', 'on the page of checks the menu of the view reads: ' + await menuRows()); await key('Escape')
   await click('切换作品'); await click('全部作品…'); must(await has('.titlebar') && await js(`document.querySelector('.titlebar > .icon-btn').classList.contains('off')`), 'the shelf has no title bar, or its switch of the sidebar is not greyed'); await click('文件'); must(await menuRows() === '新建章节- 新建文件夹- 保存- 快照- 导出…- 作品分类- 回收站…- 设置…', 'on the shelf the menu of the file reads: ' + await menuRows()); await shot('99e-shelf-bar'); await key('Escape')
   await click('帮助'); await click('快捷键…'); await win('打开快捷键列表'); await click('关闭'); await done('the menus')
 

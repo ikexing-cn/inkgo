@@ -11,7 +11,7 @@ body { margin: 0; }
 .stage { min-height: 100vh; box-sizing: border-box; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 12px; background: var(--page); color: var(--ink); font-family: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif; }
 .stage-bar { width: 1266px; display: flex; align-items: center; gap: 8px; }
 .stage-note { margin-left: 8px; font-size: var(--fs-note); color: var(--muted); }
-#win { width: 1266px; height: 780px; flex: none; display: flex; flex-direction: column; background: var(--bg); color: var(--ink); border-radius: var(--r-window-win); overflow: hidden; box-shadow: var(--shadow-board); position: relative; }
+#win { flex: none; display: flex; flex-direction: column; background: var(--bg); color: var(--ink); border-radius: var(--r-window-win); overflow: hidden; box-shadow: var(--shadow-board); position: relative; }
 
 /* 到处都用的 */
 .hit, .row { cursor: pointer; user-select: none; }
@@ -147,8 +147,7 @@ body { margin: 0; }
 .backup-line { display: flex; align-items: center; gap: 6px; white-space: nowrap; color: var(--faint); }
 .foot > .backup { margin-right: 8px; } /* 和字数隔开一点：一个说作品，一个说字数 */
 .backup-pop { width: max-content; max-width: 300px; padding: 12px; gap: 8px; }
-#win.narrow { width: 1100px; } /* 软件里窗口窄过 1180：侧栏、右栏和纸边都窄一些，正文一行还放得下三十来个字 */
-.narrow .sidebar { width: 200px; }
+.narrow .sidebar { width: 200px; } /* 软件里窗口窄过 1180：侧栏、右栏和纸边都窄一些，正文一行还放得下三十来个字 */
 .narrow #pane { width: 320px; }
 .narrow .paper { padding: 20px 24px; }
 .narrow .sheet-row, .narrow .foot { padding-left: max(24px, calc((100% - var(--fs-paper) * 36) / 2)); }

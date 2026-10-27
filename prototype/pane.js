@@ -626,8 +626,8 @@ function fitPhone() {
   view.style.transform = `scale(${k})`
   text.style.transform = ''
   const step = flip ? page.clientWidth + parseFloat(getComputedStyle(text).columnGap) : page.clientHeight
-  const base = text.getBoundingClientRect(), lh = parseFloat(getComputedStyle(text.querySelector('p') || text).lineHeight)
-  const at = (r) => Math.floor(((flip ? r.left - base.left : r.top - base.top) / k + 1) / step) // 一处字落在第几屏
+  const base = text.getBoundingClientRect(), lh = parseFloat(getComputedStyle(text.querySelector('p') || text).lineHeight), kz = k * winZoom() // 量出来的长度除以 kz 是手机上的长度
+  const at = (r) => Math.floor(((flip ? r.left - base.left : r.top - base.top) / kz + 1) / step) // 一处字落在第几屏
   const paras = [...text.querySelectorAll('p')]
   const all = [...text.children].filter((el) => !el.matches('.phone-caret')).flatMap((el) => [...el.getClientRects()])
   phoneScreens = Math.max(1, all.length ? Math.max(...all.map(at)) + 1 : 1)
@@ -641,7 +641,7 @@ function fitPhone() {
   const mark = end && (end.getClientRects()[0] || end.startContainer.getClientRects?.()[0])
   const where = mark ? String(at(mark)) : ''
   caret.hidden = !(mark && pick.collapsed && document.activeElement === proseBox())
-  if (mark) Object.assign(caret.style, { left: (mark.left - base.left) / k + 'px', top: (mark.top - base.top) / k + 'px', height: mark.height / k + 'px' })
+  if (mark) Object.assign(caret.style, { left: (mark.left - base.left) / kz + 'px', top: (mark.top - base.top) / kz + 'px', height: mark.height / kz + 'px' })
   // 换了一章：从第一屏看起，光标在哪不算挪过。
   if (S.ch !== phoneKey) { phoneKey = S.ch; phoneCaret = where; phoneAt = 0 }
   // 翻页看时，光标到了另一屏，预览跟过去；作者在预览里往回翻着看时，光标还在同一屏里打字，不把它拉回来。滚动看时跟着正文滚。
@@ -650,7 +650,7 @@ function fitPhone() {
   if (flip) text.style.transform = `translateX(${-phoneAt * step}px)`; else syncPhone()
   phoneLongAt = []
   paras.forEach((p) => {
-    const rects = [...p.getClientRects()], lines = Math.round(rects.reduce((h, r) => h + r.height, 0) / k / lh)
+    const rects = [...p.getClientRects()], lines = Math.round(rects.reduce((h, r) => h + r.height, 0) / kz / lh)
     const long = S.phone.long && lines > LONG
     p.classList.toggle('long', long)
     if (long) { p.title = `手机上 ${lines} 行`; if (!phoneLongAt.includes(at(rects[0]))) phoneLongAt.push(at(rects[0])) } else p.removeAttribute('title')
@@ -669,7 +669,7 @@ function syncPhone() {
   const page = document.querySelector('.phone-page.rolled'), paper = document.querySelector('.editor .paper.scroll'), box = proseBox()
   if (!page || !paper || !box) return
   const max = paper.scrollHeight - paper.clientHeight, f = max > 0 ? paper.scrollTop / max : 0
-  const y = paper.getBoundingClientRect().top + f * paper.clientHeight, all = blocks(box), mine = page.querySelectorAll('p')
+  const pr = paper.getBoundingClientRect(), y = pr.top + f * pr.height, all = blocks(box), mine = page.querySelectorAll('p')
   const n = all.findIndex((el) => el.getBoundingClientRect().bottom >= y)
   if (n < 0 || !mine[n]) { page.scrollTop = page.scrollHeight; return }
   const r = all[n].getBoundingClientRect(), into = Math.min(Math.max((y - r.top) / (r.height || 1), 0), 1)
@@ -738,10 +738,10 @@ function margin() {
 function placeNotes() {
   const box = document.querySelector('.margin')
   if (!box) return
-  const top = box.getBoundingClientRect().top
+  const top = box.getBoundingClientRect().top, z = winZoom()
   let floor = -Infinity
   for (const n of box.querySelectorAll('.mnote')) {
-    const r = spanAt(n.dataset.at), y = r ? r.getBoundingClientRect().top - top : floor
+    const r = spanAt(n.dataset.at), y = r ? (r.getBoundingClientRect().top - top) / z : floor
     const at = Math.max(Math.round(y) - 3, floor)
     n.style.top = at + 'px'
     floor = at + n.offsetHeight + 8

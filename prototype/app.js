@@ -32,6 +32,9 @@ function titlebar() {
       menuRow(paneOn ? '收起右栏' : '展开右栏', hasPane ? () => moving(() => set({ ...paneTo, ...SHUT }), 'fold') : null) +
       menuRow('专注写作', writing ? () => set({ focus: true, ...SHUT }) : null, '', 'F11') +
       menuRow('手机预览', writing ? () => set({ paneOpen: true, tab: '预览', ...SHUT }) : null) + HAIR +
+      `<div class="pop-label">缩放 ${Math.round(S.zoom * 100)}%</div>` +
+      menuRow('放大', zoomNext(1) ? () => zoomBy(1) : null, '', 'Ctrl+=') + menuRow('缩小', zoomNext(-1) ? () => zoomBy(-1) : null, '', 'Ctrl+-') +
+      menuRow('实际大小', S.zoom !== 1 ? () => zoomBy(0) : null, '', 'Ctrl+0') + HAIR +
       `<div class="pop-label">外观</div><div class="pop-seg">${seg(S.look, [['跟随系统', 'screen'], ['浅色', 'sun'], ['深色', 'moon']], (v) => set({ look: v }), '外观')}</div>`],
     ['帮助', () => menuRow('快捷键…', ask({ kind: 'keys' }), '', 'Ctrl+/')],
   ]
@@ -71,10 +74,10 @@ function paneSwitch() {
   return `<button class="icon-btn muted pane-switch${has ? '' : ' off'}" aria-label="${word}" title="${word}"${onClick(has ? () => moving(() => set({ ...to, ...SHUT }), 'fold') : null)}>${svg('icon-md', PANEL + path('M15 5v14'))}</button>`
 }
 
-// 重新开始：点过、改过的都回到刚打开的样子，只留外观。
+// 重新开始：点过、改过的都回到刚打开的样子，只留外观和缩放。
 function restart() {
   stopAll()
-  set({ ...fresh(), look: S.look })
+  set({ ...fresh(), look: S.look, zoom: S.zoom })
 }
 
 // 右下角的提示，最多露三条，新的在下；没露的是旧的，「还有几条」写在它们上面。提示里能点的几个靠右排，最要紧的（给的第一个）在最右。
@@ -101,10 +104,12 @@ function view() {
   const main = { write: () => editor(chapterOf(S.ch)), plan: planPage, talk: talkPage, check: checkPage, cats: catsPage }
   const side = (S.page === 'write' && !focus) || S.page === 'talk' ? S.paneOpen : S.page === 'plan' ? S.planPane : false
   const bare = focus || !S.sideOpen
+  // 缩放：窗口里按 1/z 的大小排，再整个放大 z 倍；排出来窄过 1180 就是窄窗口。
+  const [w, h] = winSize(), z = S.zoom, narrow = w / z < 1180
   return '<div class="stage">' +
     `<div class="stage-bar">${button('重新开始', restart)}<div class="anchor left"><div class="btn hit${S.open === 'rare' ? ' soft' : ''}" title="平时不易遇到的情况：出错、作品在软件外被改动"${onClick(() => set({ open: S.open === 'rare' ? '' : 'rare' }))}>少见的情况</div>` +
     (S.open === 'rare' ? `<div class="pop rare-pop" data-k="rare-pop">${rare().map(([label, act]) => menuRow(label, act)).join('')}</div>` : '') + `</div><div class="stage-note">内容为示例。正文可输入，刷新后复原；AI 仅回复固定内容。</div></div>` +
-    `<div id="win" class="${dark() ? 'dark' : 'light'}${S.narrow ? ' narrow' : ''}">` + veil() + titlebar() +
+    `<div id="win" class="${dark() ? 'dark' : 'light'}${narrow ? ' narrow' : ''}" style="zoom:${z};width:${w / z}px;height:${h / z}px">` + veil() + titlebar() +
     '<div class="win-body" data-k="win-body">' + (S.page === 'shelf' ? shelfPage() : (bare ? '' : sidebar()) + main[S.page]() + (side ? pane() : '')) + '</div>' +
     floats() + dialogs() + toasts() + '</div></div>'
 }
@@ -130,6 +135,9 @@ document.addEventListener('keydown', (ev) => {
   else if (ev.key === 'F11' && writing) run(() => set({ focus: !S.focus, ...SHUT }))
   else if (ctrl && ev.key === '/') run(() => set({ dialog: { kind: 'keys' }, ...SHUT }))
   else if (ev.key === 'F2' && writing && chapterOf(S.ch) && !S.rename) run(renameOpen)
+  else if (ctrl && (ev.key === '=' || ev.key === '+')) run(() => zoomBy(1))
+  else if (ctrl && ev.key === '-') run(() => zoomBy(-1))
+  else if (ctrl && ev.key === '0') run(() => zoomBy(0))
   else if (!ctrl || !writing || !chapterOf(S.ch)) return
   else if (ev.key === 's') run(saveNow)
   else if (ev.key === 'f') run(openFind)
@@ -172,8 +180,8 @@ root.addEventListener('mousedown', (ev) => {
   if (!ev.target.closest('.pane-edge')) return
   ev.preventDefault()
   const win = document.getElementById('win'), right = win.getBoundingClientRect().right
-  const held = right - ev.clientX - document.getElementById('pane').offsetWidth // 按下的地方离右栏的边有多远
-  const move = (e) => set({ paneW: Math.round(Math.min(Math.max(right - e.clientX - held, 300), win.offsetWidth / 2)) })
+  const z = winZoom(), held = (right - ev.clientX) / z - document.getElementById('pane').offsetWidth // 按下的地方离右栏的边有多远
+  const move = (e) => set({ paneW: Math.round(Math.min(Math.max((right - e.clientX) / z - held, 300), win.offsetWidth / 2)) })
   const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up) }
   document.addEventListener('mousemove', move)
   document.addEventListener('mouseup', up)

@@ -260,8 +260,8 @@ function pasted(ev) {
 
 // 屏幕上的一点，换成从窗口左上角算起的位置。
 function spot(x, y) {
-  const box = document.getElementById('win').getBoundingClientRect()
-  return [x - box.left, y - box.top]
+  const box = document.getElementById('win').getBoundingClientRect(), z = winZoom()
+  return [(x - box.left) / z, (y - box.top) / z]
 }
 
 // 正文里选中的字：在第几段、从哪到哪、在窗口的什么位置。跨段的不算。
@@ -279,7 +279,7 @@ function grab() {
   const start = before.toString().length
   const r = range.getBoundingClientRect()
   const [left, y] = spot(r.left, r.top)
-  return { para: Number(para.dataset.para), start, end: start + text.length, text, left, top: y, bottom: y + r.height }
+  return { para: Number(para.dataset.para), start, end: start + text.length, text, left, top: y, bottom: y + r.height / winZoom() }
 }
 const unselect = () => getSelection().removeAllRanges()
 

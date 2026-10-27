@@ -115,9 +115,10 @@ function fresh(book = BOOK.shelf[0].id) {
     phone: { ...PHONE }, // 手机预览的排版：翻页还是滚动、哪种屏幕、字号、行距、背景、要不要手机外框、标不标长段
     noAI: false, offFrom: '', // 关闭了 AI：本机的所有作品都不显示 AI 功能，也不发送任何内容；offFrom 是关的时候停在的讨论页、检查页
     exportWhat: ['正文'], exportAs: 'Word', pen: '', // 导出勾了哪几样、成什么格式，上次写在首页的笔名（新作品沿用它）
+    zoom: 1, // 界面缩放：整个窗口里的东西放大几倍
   }
 }
-const KEPT = ['look', 'names', 'noGPU', 'ranNoGPU', 'phone', 'shelf', 'cards', 'library', 'uses', 'services', 'auto', 'when', 'late', 'goal', 'paneW', 'noAI', 'exportWhat', 'exportAs', 'pen']
+const KEPT = ['look', 'names', 'noGPU', 'ranNoGPU', 'phone', 'shelf', 'cards', 'library', 'uses', 'services', 'auto', 'when', 'late', 'goal', 'paneW', 'noAI', 'exportWhat', 'exportAs', 'pen', 'zoom']
 
 let S = fresh()
 let sent = 0 // 作者发过几条消息，AI 按顺序回下一句
@@ -182,6 +183,18 @@ const unsay = (id) => set((s) => ({ toasts: s.toasts.filter((x) => x.id !== id) 
 
 const dark = () => S.look === '深色' || (S.look === '跟随系统' && matchMedia('(prefers-color-scheme: dark)').matches)
 const SHUT = { open: '' }
+
+// 界面缩放的几档，和工具包的一样，只用 50%–200% 这一段。窗口缩放前至少 1000×680，放大几倍它就至少大几倍：
+// 窗口不够大就跟着变大，屏幕放不下的那几档不给。原型当屏幕能用的地方是 SCREEN。
+const ZOOMS = [0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2]
+const SCREEN = [1920, 1040]
+const zoomFits = (z) => 1000 * z <= SCREEN[0] && 680 * z <= SCREEN[1]
+const zoomNext = (dir) => dir > 0 ? ZOOMS.find((z) => z > S.zoom + 0.001 && zoomFits(z)) : ZOOMS.findLast((z) => z < S.zoom - 0.001)
+const zoomBy = (dir) => { const z = dir ? zoomNext(dir) : 1; if (z && z !== S.zoom) set({ zoom: z, ...SHUT }) }
+// 窗口在屏幕上有多大：照「窗口变窄」那一下的宽度，缩放后不够大的撑大。
+const winSize = () => [Math.max(S.narrow ? 1100 : 1266, 1000 * S.zoom), Math.max(780, 680 * S.zoom)]
+// 量出来的屏幕上的长度，除以它换成窗口里的长度。
+const winZoom = () => { const w = document.getElementById('win'); return w && w.offsetWidth ? w.getBoundingClientRect().width / w.offsetWidth : 1 }
 
 // ───────── 画：小零件 ─────────
 
