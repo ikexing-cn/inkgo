@@ -92,13 +92,13 @@ func TestFirstBackup(t *testing.T) {
 }
 
 func TestBackupWaitsBeforeClosingStore(t *testing.T) {
-	a, tt, _ := writingFixture(t, "雨停了。")
+	a, _, _ := writingFixture(t, "雨停了。")
 	dir := t.TempDir()
 	a.setBackup(backup.Settings{Dir: dir})
-	click(t, tt, "备份状态")
-	if err := tt.Click("立即备份"); err != nil {
-		t.Fatal(err)
-	}
+	// Started with no frame after it, the backup is still in flight as the
+	// work closes: a click runs frames, which may hand a small book's backup
+	// back first.
+	a.runBackup(ui.Services{})
 	if !a.bk.running {
 		t.Fatal("backup did not start")
 	}
