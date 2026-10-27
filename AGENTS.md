@@ -8,7 +8,7 @@ Inkgo（暂定名）是一个写作软件：纯 Go（`CGO_ENABLED=0`），UI 基
 npm run verify
 ```
 
-四十秒左右，都绿才算完成。它同时跑哪几项写在 `scripts/verify.ts` 开头，各项也能单独跑。要留意的几项：
+一分钟左右（测试要重跑时近两分钟），都绿才算完成。它同时跑哪几项写在 `scripts/verify.ts` 开头，各项也能单独跑。要留意的几项：
 
 - `npm run verify-ui`：工具包自带的检查 `mygo vet`，查界面代码有没有把一帧里的东西（`*ui.Context`、`ui.Element`）留到帧外；后台任务要叫界面重画，用起头那一帧取的 `c.Services()`。
 - `npm run verify-prototype` 要本机有 Edge 或 Chrome。

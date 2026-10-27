@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"writer/internal/testtmp"
 	"writer/workspace"
 	"writer/writing"
 )
@@ -103,3 +104,5 @@ func TestBooksAreWritten(t *testing.T) {
 		t.Log(dir, len(set.Entries), "entries", len(buried), "foreshadowings", dropped, "given up")
 	}
 }
+
+func TestMain(m *testing.M) { testtmp.Main(m) }
