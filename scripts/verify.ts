@@ -10,11 +10,10 @@
  */
 import { spawn, spawnSync } from 'node:child_process'
 
-// Tests that hold frames to a time or settling-pass limit, and their packages.
+// Tests that hold frames to a time limit, and their packages.
 // Beside the other checks the machine is too busy for those limits (a 9 ms
-// frame took 31). The margin test also intermittently takes a third settling
-// pass under this load; its two-pass assertion stays intact, run on its own.
-const timed = { tests: '^(TestPhonePreviewTypingCost|TestOutlineFrameCost|TestMarginRequestsItsOwnCorrectionInTheNextFrame)$', packages: './desk ./desk/outline' }
+// frame took 31), so they run on their own afterwards.
+const timed = { tests: '^(TestPhonePreviewTypingCost|TestOutlineFrameCost)$', packages: './desk ./desk/outline' }
 
 // desk's tests take a minute one after another. They change the package's
 // globals (such as where the library is), so

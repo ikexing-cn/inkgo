@@ -14,7 +14,7 @@
     "verify-notes": "node scripts/verify-agent-note-tree.ts && node scripts/verify-agent-note-format.ts && node scripts/verify-archived-agent-notes.ts",
     "archive-agent-note": "node scripts/archive-agent-note.ts",
     "check-anchors": "node scripts/check-note-anchors.ts",
-    "verify-prototype": "node scripts/verify-prototype.ts",
+    "verify-prototype": "node --test scripts/prototype/browser.test.ts && node scripts/verify-prototype.ts",
     "verify-ui": "node scripts/verify-ui.ts",
     "verify-design": "npx --yes -p @google/design.md@0.4.0 designmd lint DESIGN.md"
   }

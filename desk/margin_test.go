@@ -309,6 +309,10 @@ func TestMarginRequestsItsOwnCorrectionInTheNextFrame(t *testing.T) {
 	a, _, _ := marginFixture(t, false)
 	var frames []bool
 	tt := stillTester(func(c *ui.Context) {
+		// A glyph-atlas refill can paint the same frame again. Count the
+		// built view once, then keep its last painted alignment.
+		frame := len(frames)
+		frames = append(frames, false)
 		ui.Box(c).Fill().Children(func() { a.View(c) }).DrawOver(func(_ *ui.Painter, _ ui.Rect) {
 			aligned := true
 			floor := float32(math.Inf(-1))
@@ -319,7 +323,7 @@ func TestMarginRequestsItsOwnCorrectionInTheNextFrame(t *testing.T) {
 				aligned = aligned && math.Abs(float64(box.Y-top)) <= 1
 				floor = box.Y + box.H + 8
 			}
-			frames = append(frames, aligned)
+			frames[frame] = aligned
 		})
 	}, 1266, 780)
 	tt.Frame()

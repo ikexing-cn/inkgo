@@ -200,7 +200,22 @@ export async function open(file: string, ready: string, shots?: string): Promise
   return {
     js, sleep, errors, close, key,
     click: async (words, nth = 0) => {
-      const at = await js(`(() => { const e = (${find})(${JSON.stringify(words)}, ${nth}); if (!e) return null; e.scrollIntoView({ block: 'center' }); const r = e.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2] })()`)
+      // Scrolling queues scroll handlers and a compositor update. A handler
+      // may move (or replace) the target, so coordinates measured immediately
+      // after scrollIntoView can already be stale when the mouse arrives.
+      // Do not retry the click: an action may have saved or sent something.
+      const at = await js(`(async () => {
+        const find = ${find}, words = ${JSON.stringify(words)}, nth = ${nth}
+        const e = find(words, nth)
+        if (!e) return null
+        e.scrollIntoView({ block: 'center', behavior: 'instant' })
+        await new Promise(requestAnimationFrame)
+        await new Promise(requestAnimationFrame)
+        const current = find(words, nth)
+        if (!current) return null
+        const r = current.getBoundingClientRect()
+        return [r.x + r.width / 2, r.y + r.height / 2]
+      })()`)
       if (!at) throw new Error('nothing to click reads ' + words)
       await press('left', at[0], at[1])
     },
