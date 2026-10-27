@@ -257,10 +257,11 @@ body { margin: 0; }
 .prop-acts { display: inline-flex; align-items: center; gap: 6px; margin: 0 10px; vertical-align: 2px; text-indent: 0; font-size: var(--fs-control); line-height: normal; color: var(--ink); user-select: none; }
 .prop-acts .btn { display: inline-flex; }
 .prop-writing { color: var(--muted); }
-/* 底栏放不下时先省检查的那句，再省字数；别的都不折行 */
-.foot > .hit, .foot > .faint, .foot > .anchor { flex: none; white-space: nowrap; }
-.foot > .foot-state { flex: 0 1 auto; min-width: 0; }
-.foot > .anchor:last-child { flex: 0 1000 auto; min-width: 0; } /* 放不下时先省字数，查出来的那句留到最后 */
+/* 底栏左边一组是检查到哪了，右边是备份和字数。都不折行，放不下时先省字数，查出来的那句留到最后 */
+.foot-check { flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: 8px; }
+.foot-check > *, .foot > .anchor { flex: none; white-space: nowrap; }
+.foot-check > .foot-state { flex: 0 1 auto; min-width: 0; }
+.foot > .anchor:last-child { flex: 0 1000 auto; min-width: 0; }
 .foot .words { color: var(--faint); }
 .foot { flex: none; height: var(--h-row); box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 0 24px 0 max(40px, calc((100% - var(--fs-paper) * 36) / 2)); font-size: var(--fs-note); color: var(--muted); } /* 和正文一张纸，不画线；左边和正文从同一条线起 */
 .when-pop { width: 270px; padding: 10px 6px 6px; gap: 4px; }
@@ -746,18 +747,34 @@ body { margin: 0; }
   .mnote:nth-child(3) { animation-delay: 60ms; }
   .mnote:nth-child(n+4) { animation-delay: 90ms; }
   .mnote { transition: background-color 100ms ease-out; }
-  /* 收起、展开两栏，处理掉一条批注（base.js 的 moving）：正文平移到新的位置，字不跟着拉宽；收起的那一栏往它那一边退，处理掉的批注往页边退 */
+  /* 收起、展开两栏，处理掉一条批注（base.js 的 moving）。
+     收起、展开：那一栏整块（标签、批注、分隔线都在上面）从它那一边的窗口边滑出去、滑进来，不淡；纸上和正文对齐的几样（正文、标签页、
+     底栏）从原来的地方平移到新的地方，字不跟着拉宽，和栏边同一条缓动，像是栏把纸推开、让出来；别的一下就到新的样子，被栏盖着的等栏让开才露出来。
+     处理掉的批注往页边退。 */
   .sidebar { view-transition-name: sidebar; }
   #pane { view-transition-name: pane; }
-  .editor .paper > .column { view-transition-name: prose; }
+  .editor .paper > .column { view-transition-name: prose; view-transition-class: paper; }
+  .editor .paper.scroll { view-transition-name: paper-edge; } /* 滚动条在纸的右边，跟着栏边走 */
+  /* 顶上那一行下面的线：栏滑进来、还没盖到的那一截也画着，不断开 */
+  :root[data-move="fold"] .win-body { background: linear-gradient(var(--line), var(--line)) 0 calc(var(--h-bar) - 1px) / 100% 1px no-repeat; }
+  .sheet-row > .steps { view-transition-name: steps; view-transition-class: paper; }
+  .sheet-row > .sheets { view-transition-name: sheets; view-transition-class: paper; }
+  .foot-check { view-transition-name: foot-check; view-transition-class: paper; }
+  .foot > .backup { view-transition-name: backup; view-transition-class: paper; }
+  .foot > .anchor:last-child { view-transition-name: words; view-transition-class: paper; }
+  :root[data-move="fold"] .mnote { view-transition-name: none !important; } /* 批注在右栏上，跟着栏走 */
   ::view-transition-group(*) { animation-duration: 200ms; animation-timing-function: ease-out; }
-  ::view-transition-old(prose), ::view-transition-new(prose) { inline-size: auto; }
+  ::view-transition-old(*.paper), ::view-transition-new(*.paper) { inline-size: auto; }
+  ::view-transition-old(paper-edge), ::view-transition-new(paper-edge) { inline-size: auto; inset-inline-start: auto; inset-inline-end: 0; }
+  :root[data-move="fold"]::view-transition-old(paper-edge) { animation: none; opacity: 0; }
+  :root[data-move="fold"]::view-transition-new(paper-edge) { animation: none; }
   /* 收起、展开时一行在哪断会变：只挪新的那一份，不和旧的叠成重影 */
-  :root[data-move="fold"]::view-transition-old(prose) { animation: none; opacity: 0; }
-  :root[data-move="fold"]::view-transition-new(prose) { animation: none; }
-  ::view-transition-old(sidebar):only-child { animation: side-out 200ms ease-in both; }
+  :root[data-move="fold"]::view-transition-old(*.paper), :root[data-move="fold"]::view-transition-old(root) { animation: none; opacity: 0; }
+  :root[data-move="fold"]::view-transition-new(*.paper), :root[data-move="fold"]::view-transition-new(root) { animation: none; }
+  ::view-transition-group(sidebar), ::view-transition-group(pane) { overflow: clip; } /* 滑到窗口边就看不见了 */
+  ::view-transition-old(sidebar):only-child { animation: side-out 200ms ease-out both; }
   ::view-transition-new(sidebar):only-child { animation: side-in 200ms ease-out both; }
-  ::view-transition-old(pane):only-child { animation: pane-out 200ms ease-in both; }
+  ::view-transition-old(pane):only-child { animation: pane-out 200ms ease-out both; }
   ::view-transition-new(pane):only-child { animation: pane-in 200ms ease-out both; }
   ::view-transition-old(*.note):only-child { animation: note-out 200ms ease-in both; }
 }
@@ -767,10 +784,10 @@ body { margin: 0; }
 @keyframes toast-in { from { opacity: 0; transform: translateX(12px); } }
 @keyframes note-in { from { opacity: 0; transform: translateX(-8px); } }
 @keyframes note-out { to { opacity: 0; transform: translateX(16px); } }
-@keyframes side-in { from { opacity: 0; transform: translateX(-24px); } }
-@keyframes side-out { to { opacity: 0; transform: translateX(-24px); } }
-@keyframes pane-in { from { opacity: 0; transform: translateX(24px); } }
-@keyframes pane-out { to { opacity: 0; transform: translateX(24px); } }
+@keyframes side-in { from { transform: translateX(-100%); } }
+@keyframes side-out { to { transform: translateX(-100%); } }
+@keyframes pane-in { from { transform: translateX(100%); } }
+@keyframes pane-out { to { transform: translateX(100%); } }
 </style>
 </head>
 <body>

@@ -847,9 +847,9 @@ function foot(cur, vol) {
   else if (part) { state = name + '仅检查前 ' + part + ' 字，未发现不一致'; tip = PART }
   const found = n && !S.checking && !S.failed[cur.key] && !S.never[cur.key] && counted(cur) >= 200
   const when = [['写完一章后检查', '推荐，每章调用一次 AI'], ['手动检查', '平时不调用 AI'], ['边写边检查', '停笔即检查，调用最多']]
-  return '<div class="foot">' + (found ? `<div class="foot-state ell hit link" title="前往「检查」页逐条查看"${onClick(seeAll)}>${t(state)}</div>` : `<div class="foot-state ell"${tip ? ` title="${t(tip)}"` : ''}>${t(state)}</div>`) +
+  return '<div class="foot"><div class="foot-check">' + (found ? `<div class="foot-state ell hit link" title="前往「检查」页逐条查看"${onClick(seeAll)}>${t(state)}</div>` : `<div class="foot-state ell"${tip ? ` title="${t(tip)}"` : ''}>${t(state)}</div>`) +
     (can ? `<div class="hit link" title="调用一次 AI，对照设定检查本章"${onClick(() => checkNow(cur.key))}>立即检查</div>` : '') + '<div class="faint">·</div>' +
-    `<div class="anchor up left"><div class="hit" title="检查时机"${onClick(() => set({ open: S.open === 'when' ? '' : 'when' }))}>${t(S.when)} ▴</div>${S.open === 'when' ? `<div class="pop when-pop" data-k="when-pop"><div class="pop-title">检查时机</div>${radios(S.when, when, (v) => set({ when: v, ...SHUT }))}</div>` : ''}</div>` +
+    `<div class="anchor up left"><div class="hit" title="检查时机"${onClick(() => set({ open: S.open === 'when' ? '' : 'when' }))}>${t(S.when)} ▴</div>${S.open === 'when' ? `<div class="pop when-pop" data-k="when-pop"><div class="pop-title">检查时机</div>${radios(S.when, when, (v) => set({ when: v, ...SHUT }))}</div>` : ''}</div></div>` +
     `<div class="grow"></div>${backupLine()}${wordsOf(cur)}</div>`
 }
 

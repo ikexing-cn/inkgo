@@ -145,11 +145,12 @@ function set(change) {
 
 // 收起、展开两栏，处理掉一条批注：东西从原来的地方挪到新的地方，不是一下跳过去（样子在 index.html 的 view-transition）。
 // 系统设了减少动态效果、浏览器不会这样画的，直接到位。
-// kind 是 'fold'（收起、展开一栏）时，正文不淡入淡出，只挪过去。
+// kind 是 'fold'（收起、展开一栏）时，正文不淡入淡出，只挪过去；批注随右栏整块进来，不再一条接一条地出来。
 function moving(act, kind = '') {
   if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) return act()
   document.documentElement.dataset.move = kind
-  document.startViewTransition(act).finished.finally(() => { delete document.documentElement.dataset.move })
+  const then = () => { act(); if (kind === 'fold') for (const n of document.querySelectorAll('.mnote')) for (const a of n.getAnimations()) a.finish() }
+  document.startViewTransition(then).finished.finally(() => { delete document.documentElement.dataset.move })
 }
 // 过一会儿再做。换书、重新开始时，还没到点的都作废。
 function later(ms, act) {

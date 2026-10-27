@@ -630,7 +630,7 @@ AI 写的字，作者点了才进正文，没有例外：续写按 Tab；起草�
 
 - 按下：有边有底的按钮、列表行、标签，按下就换成 `active` 的底色，是点完以后当前项的样子；按钮再缩一点，松开弹回。
 - 出现：菜单、下拉、提示、浮条从点它的那一边展开；对话框和遮罩淡入；提示条从右边滑进来；页边批注从正文那边一条接一条滑出来，最后一条也在 0.25 秒里停下。只在出现的那一刻动一次，菜单、对话框收起不动。
-- 挪动：收起、展开两栏，正文从原来的地方平移到新的地方，字不跟着拉宽，新旧两种断行不叠在一起，收起的那一栏往它那一边退；处理掉的一条批注往页边退。看得出东西是从哪里来、到哪里去的。指针移到批注上，底色 0.1 秒浮起。
+- 挪动：收起、展开两栏，那一栏连同上面的标签、批注、分隔线整块从它那一边的窗口边滑出去、滑进来，不淡，不分成几块各动各的。纸跟着栏边走，和栏边同一条缓动：和正文对齐的（正文、标签页、底栏左边那句）平移到新的地方，字不跟着拉宽，新旧两种断行不叠在一起；靠纸右边的（字数、滚动条）贴着栏边。别的直接排成新的样子，被栏盖着的等栏让开才露出来，顶上那条线不断开。处理掉的一条批注往页边退。看得出东西是从哪里来、到哪里去的。指针移到批注上，底色 0.1 秒浮起。
 - 系统设了减少动态效果，都直接到位。`npm run verify-prototype` 就在减少动态效果下点，量的、截的都是停下来的样子。
 
 检查：`go test ./desk` 的 `TestReducedMotionPutsColumnsAndNotesInPlaceAtOnce`、`TestFoldingMovesThePaperAndRowsWithoutStretching`、`TestUnfoldingDrawsTheProseWholeAndEasesIn`、`TestOnlyExplicitSwitchesAnimateTheColumns`、`TestRemovingAMarginNoteMovesThoseBelowIt`、`TestMarginNotesArriveInTurnWithinAQuarterSecond`、`TestMenusAndDialogsComeInOnceAndCloseAtOnce`；`SHOT=<目录> go test ./desk -run ShotMotion` 截收起右栏、处理掉一条批注动到一半的样子。
