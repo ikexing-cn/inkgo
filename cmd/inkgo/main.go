@@ -98,6 +98,15 @@ func main() {
 			// The window buttons fill that row, as high as desk's titleHeight.
 			TitleBarStyle: mygo.TitleBarHidden, TitleBarHeight: windowTitleHeight, Content: ui.View(d.View)})
 		win.Store(w)
+		updateActivity := func() {
+			d.SetWindowActive(w.IsFocused() && !w.IsMinimized())
+			w.Invalidate()
+		}
+		w.OnFocus(updateActivity)
+		w.OnBlur(updateActivity)
+		w.OnMinimize(updateActivity)
+		w.OnRestore(updateActivity)
+		updateActivity()
 		// Window bounds and display work areas use DIPs, including on Windows.
 		// The view reads this cache without waiting for the window thread.
 		updateArea := func() {

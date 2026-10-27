@@ -8,8 +8,17 @@ import (
 )
 
 // snapEvery is how often the writing page keeps a snapshot while the author
-// writes. Tests shorten it.
+// writes.
 const snapEvery = 10 * time.Minute
+
+// SetWindowActive is safe on the native window thread. The host requests
+// a frame after calling it. An app without a native window starts active.
+func (a *App) SetWindowActive(active bool) {
+	wasInactive := a.windowInactive.Swap(!active)
+	if active && wasInactive {
+		a.windowReturned.Store(true)
+	}
+}
 
 // flush saves the text and the outline shown, as leaving them does. What
 // an AI proposes is not in the text, and stays.
@@ -78,6 +87,9 @@ func (a *App) watch(c *ui.Context) {
 			a.warn(a.saveOutline())
 		}
 	}
+	if a.windowInactive.Load() {
+		return // saving above still runs; only external-change polling pauses
+	}
 	if wait := a.book.Timing.CheckEvery - time.Since(w.checked); wait > 0 {
 		c.After(wait)
 		return
@@ -92,7 +104,8 @@ func (a *App) watch(c *ui.Context) {
 func (a *App) checkDisk() {
 	w := &a.write
 	old, _ := a.book.Tree().Node(w.node)
-	if err := a.loadTree(); err != nil {
+	stamp, err := a.book.PollChapter(w.node)
+	if err != nil {
 		a.warn(err)
 		return
 	}
@@ -112,7 +125,7 @@ func (a *App) checkDisk() {
 	if n.Folder || o.external != nil {
 		return
 	}
-	a.lookAtText()
+	a.warn(o.lookStamp(a.Store, stamp))
 }
 
 // lookAtText reads the text of the chapter shown when the disk's is not

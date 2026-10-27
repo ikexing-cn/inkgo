@@ -67,6 +67,12 @@ func (c *openChapter) look(store *workspace.Store) error {
 	if err != nil {
 		return err
 	}
+	return c.lookStamp(store, st)
+}
+
+// lookStamp uses a stamp already read with the chapter tree. Changed
+// text is still read afresh; a tree is never kept as a path cache.
+func (c *openChapter) lookStamp(store *workspace.Store, st workspace.Stamp) error {
 	if st.Size == c.stamp.Size && st.Mod.Equal(c.stamp.Mod) {
 		return nil
 	}

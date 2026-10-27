@@ -5,7 +5,7 @@ import "time"
 // SaveAfter and CheckEvery are production defaults, not shared test knobs.
 const SaveAfter = 1500 * time.Millisecond
 
-// CheckEvery is how often the book is read again for changes made outside.
+// CheckEvery is the foreground interval for checking changes made outside.
 const CheckEvery = 2 * time.Second
 
 // Timing belongs to one open book, shared by its writing and outline pages.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"sync/atomic"
 	"time"
 
 	"github.com/egoist/mygo/ui"
@@ -22,8 +23,12 @@ import (
 const flashFor = 3 * time.Second
 
 type App struct {
-	fold  foldState
-	Store *workspace.Store
+	// Window callbacks only touch these atomics. View consumes the return
+	// signal, even when blur and focus both happened between two frames.
+	windowInactive atomic.Bool
+	windowReturned atomic.Bool
+	fold           foldState
+	Store          *workspace.Store
 	// book is the work's content as the view reads it; nil while no work is
 	// open. It is used on the view thread only.
 	book *book.Book

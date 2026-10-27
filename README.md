@@ -42,6 +42,7 @@ npm run verify
 
 - **启动和换书**：[main](cmd/inkgo/main.go) → `desk.New/Open/attach`（[app.go](desk/app.go)）→ `workspace.Open`。
 - **打字和保存**：[editor](editor/editor.go) → [save.go](desk/save.go) 的停笔保存 → [opened.go](desk/opened.go) 的当前章与冲突状态 → `Book.SaveChapterOver` → [workspace/prose.go](workspace/prose.go) 的写前版本比对。
+- **外部改稿检查**：[main](cmd/inkgo/main.go) 的窗口活动通知 → [save.go](desk/save.go) 的前台轮询 → `Book.PollChapter` → [workspace/tree.go](workspace/tree.go) 同次读取树和当前章时间戳。后台暂停周期检查，返回立即检查；自动保存照常。
 - **讨论和 AI 提议**：[talkrun.go](desk/talkrun.go) 的 `send/say` → `aiport.Talk` → [ai.go](ai/ai.go) → [discussion/engine.go](discussion/engine.go)。流式结果交回所属讨论轮次，正文提议的采纳在 [propose.go](desk/propose.go)。
 
 阅读状态时区分三处：Store 是磁盘上的作品；Book 是界面线程最近读到的书内容；`openChapter` 是编辑器里尚未保存的字和外部冲突。后台任务使用 Store，交回界面后刷新 Book；集合访问的借用规则写在 Book 的类型注释中。

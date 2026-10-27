@@ -83,6 +83,29 @@ func (s *Store) Chapters() (Tree, error) {
 	return s.tree()
 }
 
+// ChaptersAndStamp reads the tree and one document's stamp with one scan.
+// Empty, missing and folder IDs return a zero stamp; callers use the tree
+// to distinguish them. Any read failure returns no tree and no stamp.
+func (s *Store) ChaptersAndStamp(id string) (Tree, Stamp, error) {
+	unlock, err := s.lock()
+	if err != nil {
+		return Tree{}, Stamp{}, err
+	}
+	defer unlock()
+	t, err := s.tree()
+	if err != nil {
+		return Tree{}, Stamp{}, err
+	}
+	var st Stamp
+	if n, ok := t.Node(id); ok && !n.Folder {
+		st, err = s.stamp(n)
+		if err != nil {
+			return Tree{}, Stamp{}, err
+		}
+	}
+	return t, st, nil
+}
+
 // folderOf returns the folder id, the root for "".
 func (t Tree) folderOf(id string) (*Node, error) {
 	if id == "" {

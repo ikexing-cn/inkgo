@@ -117,7 +117,7 @@ flowchart TD
 
 DESIGN.md 的 604 行里有 356 行是机器数值，不能把总行数全算作散文冗余。它刚在 10-26 做过规则收窄，暂不建议再拆文件或建立 token 生成流水线。三处数值的同步已有检查，先沿用。
 
-笔记真正需要的是更新当前事实。例如[少看几次磁盘](2026-10-13-fewer-looks-at-the-disk.md)原先省略了 `a.loadTree()` 与 Store 之间已有的 Book 层，风险段仍说“现在所有读写都在界面那条线上”，与现有后台讨论、检查和备份不符。应就地更新这些事实，保留其轮询方案尚未决定的状态和原有理由，不把审查当成批准实施。`a.loadTree()` 本身仍存在。
+笔记真正需要的是更新当前事实。例如[少看几次磁盘](../../implemented/architecture/2026-10-13-fewer-looks-at-the-disk.md)原先省略了 `a.loadTree()` 与 Store 之间已有的 Book 层，风险段仍说“现在所有读写都在界面那条线上”，与现有后台讨论、检查和备份不符。审查时先校正事实，不把审查当成批准实施；后续作者明确接受去重与后台暂停，该篇已单独落地。`a.loadTree()` 本身仍用于主动读取，周期检查改经 `Book.PollChapter`。
 
 ### 5. 测试隔离从具体实例参数入手，保留现有验证入口
 
@@ -156,7 +156,7 @@ DESIGN.md 的 604 行里有 356 行是机器数值，不能把总行数全算作
 | [DESIGN.md 只保留共享规则](../../implemented/process/2026-10-26-design-md-only-shared-rules.md) | 部分重叠，互链；沿用该分工，不恢复已删除的功能细节和测试名单 |
 | [每条规则只说一次](../../implemented/process/2026-10-15-each-rule-said-once.md) | 支持本次建议的既有约束，保留，不另立重复规则 |
 | [加快检查](../../implemented/process/2026-10-13-fast-checks.md) | 部分重叠，互链；保留进程隔离的当前决定，实例化参数只是后续候选 |
-| [少看几次磁盘](2026-10-13-fewer-looks-at-the-disk.md) | 相关但独立提案，保留；仅列出需校正的现行事实，不批准改变轮询策略 |
+| [少看几次磁盘](../../implemented/architecture/2026-10-13-fewer-looks-at-the-disk.md) | 相关但独立决定；审查先校正事实，后续作者同意后单独实施去重与后台暂停 |
 | 其他架构笔记、功能提案及 rejected 中的灵感池讨论 | 不在本次建议中被取代；无须删除、转状态或归档 |
 
 ## Alternatives considered

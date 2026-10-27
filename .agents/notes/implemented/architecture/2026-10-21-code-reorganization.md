@@ -235,7 +235,7 @@ Status: implemented
 
 ### 不在这次里的
 
-- 每 2 秒看一次磁盘。它有自己的提案[少看几次磁盘](../../proposed/architecture/2026-10-13-fewer-looks-at-the-disk.md)，作者说先放着。第 6 批的书模型是它以后落地的地方，这次没改看盘的频率和做法。
+- 每 2 秒看一次磁盘。它有自己的提案[少看几次磁盘](../../implemented/architecture/2026-10-13-fewer-looks-at-the-disk.md)，作者说先放着。第 6 批的书模型是它以后落地的地方，这次没改看盘的频率和做法。
 - 文件格式：`works.json`、`work.yaml`、`desk.json`、`providers.yaml` 的内容都不变。只有第 4 批把 `desk.json` 的读写搬进 `prefs` 包。
 - 把 `desk` 整个拆成子包。
 
@@ -248,7 +248,7 @@ Status: implemented
 - [手机预览](../../implemented/feature/2026-10-21-phone-preview.md)：第 1 批让它和编辑器共用排版，第 4 批搬走分页，第 7 批搬进 `desk/phone`，那篇已就地更新。
 - [导出成 Word](../../implemented/feature/2026-10-16-export-to-word.md)、[大纲页](../../implemented/feature/2026-10-19-outline-cards-and-timeline.md)：第 7 批搬进 `desk/exportdialog`、`desk/outline`，两篇已就地更新。
 - [`desk` 的内部状态](../../implemented/architecture/2026-10-22-desk-state.md)：第 6 批的提案和落地。
-- [少看几次磁盘](../../proposed/architecture/2026-10-13-fewer-looks-at-the-disk.md)：只是部分重叠，见上面「不在这次里的」。
+- [少看几次磁盘](../../implemented/architecture/2026-10-13-fewer-looks-at-the-disk.md)：只是部分重叠，见上面「不在这次里的」。
 
 ### 进度
 

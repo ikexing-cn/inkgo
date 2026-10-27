@@ -23,7 +23,7 @@ import (
 // the book's content: Work and SaveWork, talks, records, snapshots, the
 // trash list, preferences, and closing.
 var storeBookMethods = map[string]bool{
-	"Chapters": true, "Counts": true, "Marks": true, "Setting": true,
+	"Chapters": true, "ChaptersAndStamp": true, "Counts": true, "Marks": true, "Setting": true,
 	"Plan": true, "Outlines": true, "OutlinesOf": true,
 	"Checks": true, "ReadCheck": true,
 

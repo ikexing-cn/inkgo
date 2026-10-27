@@ -117,12 +117,27 @@ func (b *Book) ReloadTree() error {
 	if err != nil {
 		return err
 	}
-	if sameTree(b.tree, t) {
-		return nil
-	}
-	b.tree = t
-	b.version++
+	b.keepTree(t)
 	return nil
+}
+
+// PollChapter refreshes the tree and reads the shown chapter's stamp in
+// the same scan. The tree tells whether id is missing or a folder; in
+// either case the stamp is zero. A failed read keeps the previous tree.
+func (b *Book) PollChapter(id string) (workspace.Stamp, error) {
+	t, st, err := b.store.ChaptersAndStamp(id)
+	if err != nil {
+		return workspace.Stamp{}, err
+	}
+	b.keepTree(t)
+	return st, nil
+}
+
+func (b *Book) keepTree(t workspace.Tree) {
+	if !sameTree(b.tree, t) {
+		b.tree = t
+		b.version++
+	}
 }
 
 // sameTree tells whether two reads of the tree show the same chapters in

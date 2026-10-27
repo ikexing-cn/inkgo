@@ -52,6 +52,12 @@ func (a *App) turnPage() {
 func (a *App) View(c *ui.Context) {
 	c.SetZoom(a.Zoom())
 	a.poll()
+	active := !a.windowInactive.Load()
+	returned := a.windowReturned.Swap(false)
+	if returned {
+		a.write.checked = time.Time{}
+	}
+	a.plan.WindowActivity(active, returned)
 	if !a.menu.Seen {
 		a.menu = kit.MenuState{} // what it belonged to is no longer shown
 	}

@@ -21,6 +21,7 @@ type Page struct {
 	loaded              bool
 	loadErr             error
 	checked             time.Time // when the outline was last read
+	checksPaused        bool
 	index               planIndex
 	geometry            *planGeometry
 	dragging            string
@@ -46,6 +47,15 @@ type Page struct {
 }
 
 type dragCard string
+
+// WindowActivity applies the host's activity before a frame. Returned
+// also covers a blur/focus pair that happened without an intervening frame.
+func (p *Page) WindowActivity(active, returned bool) {
+	p.checksPaused = !active
+	if returned {
+		p.checked = time.Time{}
+	}
+}
 
 // Rebuilt once at the start of each outline frame (and after a mutation).
 // Each query below then touches only the cards in its chapter or time column.
@@ -180,7 +190,7 @@ func (p *Page) counts() (cards, nodes int) {
 // outline shows what is wrong instead, and is read again when it is due.
 func (p *Page) View(c *ui.Context) {
 	content := p.Host.Content()
-	if p.loadErr != nil && time.Since(p.checked) >= p.Host.Content().Timing.CheckEvery {
+	if !p.checksPaused && p.loadErr != nil && time.Since(p.checked) >= p.Host.Content().Timing.CheckEvery {
 		p.loaded = false // a broken outline may have been put right outside
 	}
 	if !p.loaded {
@@ -242,7 +252,9 @@ func (p *Page) View(c *ui.Context) {
 // again as often as the open chapter is looked at on the disk.
 func (p *Page) broken(c *ui.Context) {
 	pal := p.Host.Colors()
-	c.After(p.Host.Content().Timing.CheckEvery - time.Since(p.checked))
+	if !p.checksPaused {
+		c.After(p.Host.Content().Timing.CheckEvery - time.Since(p.checked))
+	}
 	title, about, why := "大纲读不出来", "", p.loadErr.Error()
 	var bad *workspace.PlanError
 	if errors.As(p.loadErr, &bad) {
