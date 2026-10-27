@@ -11,7 +11,7 @@ import (
 // Measure an unchanged book, including five trashed chapters. Fixture
 // creation and .order reconciliation are outside the timed reads.
 func BenchmarkChapterPoll(b *testing.B) {
-	for _, chapters := range []int{300, 1000} {
+	for _, chapters := range []int{15, 300, 1000} {
 		b.Run(fmt.Sprint(chapters), func(b *testing.B) {
 			s, err := Create(b.TempDir(), "读盘基准", "网文")
 			if err != nil {

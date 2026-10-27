@@ -9,6 +9,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 
 	"writer/internal/strictjson"
 )
@@ -37,22 +38,40 @@ func (s *Store) tree() (Tree, error) {
 	if err != nil {
 		return Tree{}, err
 	}
-	if err = s.readDir(t, t.Root, used); err != nil {
+	if err = s.readDir(t, t.Root, used, s.readDirectory(nil)); err != nil {
 		return Tree{}, err
 	}
 	return t, nil
 }
 
-func (s *Store) readDir(t Tree, folder *Node, used map[string]bool) error {
-	dir := childDir(folder)
+// directoryRead contains only disk input. Node IDs, order reconciliation
+// and writes stay on the caller's goroutine, in reading order.
+type directoryRead struct {
+	path  string
+	files []os.DirEntry
+	order []orderEntry
+	err   error
+}
+
+func (s *Store) readDirectory(dir []string) directoryRead {
 	p, err := s.diskPath(dir...)
 	if err != nil {
-		return err
+		return directoryRead{err: err}
 	}
 	files, err := os.ReadDir(p)
 	if err != nil {
-		return err
+		return directoryRead{err: err}
 	}
+	order, err := s.readOrder(dir)
+	return directoryRead{path: p, files: files, order: order, err: err}
+}
+
+func (s *Store) readDir(t Tree, folder *Node, used map[string]bool, read directoryRead) error {
+	if read.err != nil {
+		return read.err
+	}
+	dir := childDir(folder)
+	p, files, order := read.path, read.files, read.order
 	folders, docs := map[string]bool{}, map[string]bool{}
 	for _, f := range files {
 		name := f.Name()
@@ -66,10 +85,6 @@ func (s *Store) readDir(t Tree, folder *Node, used map[string]bool) error {
 		case strings.HasSuffix(strings.ToLower(name), textExt):
 			docs[name[:len(name)-len(textExt)]] = true
 		}
-	}
-	order, err := s.readOrder(dir)
-	if err != nil {
-		return err
 	}
 	changed := false
 	add := func(e orderEntry) {
@@ -113,13 +128,35 @@ func (s *Store) readDir(t Tree, folder *Node, used map[string]bool) error {
 		}
 	}
 	if changed {
-		if err = s.writeOrder(folder); err != nil {
+		if err := s.writeOrder(folder); err != nil {
 			return err
 		}
 	}
+	var children []*Node
 	for _, n := range folder.Children {
 		if n.Folder {
-			if err = s.readDir(t, n, used); err != nil {
+			children = append(children, n)
+		}
+	}
+	// Small bounded batches overlap filesystem latency. Join before
+	// recursion, so even deep trees never have more than four readers.
+	for start := 0; start < len(children); start += 4 {
+		batch := children[start:min(start+4, len(children))]
+		if len(batch) == 1 {
+			n := batch[0]
+			if err := s.readDir(t, n, used, s.readDirectory(childDir(n))); err != nil {
+				return err
+			}
+			continue
+		}
+		reads := make([]directoryRead, len(batch))
+		var wg sync.WaitGroup
+		for i, n := range batch {
+			wg.Go(func() { reads[i] = s.readDirectory(childDir(n)) })
+		}
+		wg.Wait()
+		for i, n := range batch {
+			if err := s.readDir(t, n, used, reads[i]); err != nil {
 				return err
 			}
 		}
