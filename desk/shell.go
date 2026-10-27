@@ -50,6 +50,7 @@ func (a *App) turnPage() {
 }
 
 func (a *App) View(c *ui.Context) {
+	c.SetZoom(a.Zoom())
 	a.poll()
 	if !a.menu.Seen {
 		a.menu = kit.MenuState{} // what it belonged to is no longer shown
@@ -113,6 +114,8 @@ func (a *App) View(c *ui.Context) {
 	if a.page != pageWrite || !a.paneOpen() && !a.foldLeaving(false) || a.focused() || a.paneTabs.shown(a, a.doc.tab) != paneMargin {
 		a.write.margin.visible = false
 	}
+	// A key or menu may have changed the scale during this build.
+	c.SetZoom(a.Zoom())
 }
 
 // focused says the prose is shown without the sidebar, tabs or pane.

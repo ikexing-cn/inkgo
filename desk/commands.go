@@ -29,6 +29,7 @@ type command struct {
 	labelNow func(*App) string // what the state calls it, as 收起侧栏 / 展开侧栏
 	key      ui.Key
 	mods     ui.Modifiers
+	shifted  bool // its key with Shift as well: = is + under Shift
 	page     page // the page whose keys include it; pageAny for all
 	ai       bool
 	by       commandBy
@@ -187,12 +188,15 @@ var (
 	cmdPrevTab = &command{label: "上一个标签页", key: ui.KeyTab, mods: ui.Ctrl | ui.Shift, page: pageWrite, by: byDesk,
 		when: func(a *App) bool { return len(a.write.tabs) > 1 && tabAt(a) >= 0 },
 		run:  func(a *App) { stepTab(a, -1) }}
-	cmdZoomIn = &command{label: "增大字号", key: ui.KeyEqual, mods: ui.Cmd, page: pageWrite, by: byDesk,
-		run: func(a *App) { a.sizeText(1) }}
-	cmdZoomOut = &command{label: "减小字号", key: ui.KeyMinus, mods: ui.Cmd, page: pageWrite, by: byDesk,
-		run: func(a *App) { a.sizeText(-1) }}
-	cmdZoomReset = &command{label: "复原字号", key: ui.Key0, mods: ui.Cmd, page: pageWrite, by: byDesk,
-		run: func(a *App) { a.sizeText(0) }}
+	cmdZoomIn = &command{label: "放大", key: ui.KeyEqual, mods: ui.Cmd, shifted: true, page: pageAny, by: byDesk,
+		can: func(a *App) bool { return a.zoomNext(1) != 0 },
+		run: func(a *App) { a.zoomBy(1) }}
+	cmdZoomOut = &command{label: "缩小", key: ui.KeyMinus, mods: ui.Cmd, page: pageAny, by: byDesk,
+		can: func(a *App) bool { return a.zoomNext(-1) != 0 },
+		run: func(a *App) { a.zoomBy(-1) }}
+	cmdZoomReset = &command{label: "实际大小", key: ui.Key0, mods: ui.Cmd, page: pageAny, by: byDesk,
+		can: func(a *App) bool { return a.Zoom() != 1 },
+		run: func(a *App) { a.zoomBy(0) }}
 
 	// Keys the editor takes.
 	cmdDeleteWordBack    = &command{label: "向前删除一个词", key: ui.KeyBackspace, mods: ui.Cmd, page: pageWrite, by: byEditor}
@@ -243,8 +247,9 @@ var commandHelp = []*helpRow{
 	{group: "正文", keys: modKey + "L", does: "将选中的原文引用到讨论", ai: true, cmds: []*command{cmdQuote}},
 	{group: "正文", keys: modKey + "Z / " + modKey + "Y", does: "撤销 / 重做", cmds: []*command{cmdUndo, cmdRedo}},
 	{group: "正文", keys: modKey + "Backspace / " + modKey + "Delete", does: "向前 / 向后删除一个词", cmds: []*command{cmdDeleteWordBack, cmdDeleteWordForward}},
-	{group: "正文", keys: modKey + "滚轮 · " + modKey + "= / " + modKey + "- / " + modKey + "0", does: "正文字号增大 / 减小 / 复原", cmds: []*command{cmdZoomIn, cmdZoomOut, cmdZoomReset}},
+	{group: "正文", keys: modKey + "滚轮", does: "正文字号增大 / 减小"},
 	{group: "讨论", keys: modKey + "Enter", does: "发送", ai: true, cmds: []*command{cmdSend}},
+	{group: "全局", keys: modKey + "= / " + modKey + "- / " + modKey + "0", does: "界面放大 / 缩小 / 实际大小", cmds: []*command{cmdZoomIn, cmdZoomOut, cmdZoomReset}},
 	{group: "全局", keys: modKey + "/", does: "打开快捷键列表", cmds: []*command{cmdHelp}},
 }
 
@@ -278,7 +283,7 @@ func (c *command) keys() string {
 
 // pressed reports whether its key was pressed in the frame.
 func (c *command) pressed(ctx *ui.Context) bool {
-	return c.key != 0 && ctx.Shortcut(c.mods, c.key)
+	return c.key != 0 && (ctx.Shortcut(c.mods, c.key) || c.shifted && ctx.Shortcut(c.mods|ui.Shift, c.key))
 }
 
 // act is what picking its menu row does.

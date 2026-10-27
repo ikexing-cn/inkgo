@@ -7,7 +7,9 @@ package main
 import (
 	"flag"
 	"log"
+	"math"
 	"os"
+	"sync"
 	"sync/atomic"
 
 	"github.com/egoist/mygo"
@@ -33,6 +35,23 @@ func main() {
 	d.Backups = true
 	// The dialogs open over the window, asked for off the UI thread.
 	var win atomic.Pointer[mygo.Window]
+	var area atomic.Pointer[mygo.Rectangle]
+	d.ZoomFits = func(z float32) bool {
+		return zoomFits(area.Load(), z)
+	}
+	var wanted atomic.Uint32
+	wanted.Store(math.Float32bits(d.Zoom()))
+	var resizing sync.Mutex
+	d.ZoomChanged = func(z float32) {
+		wanted.Store(math.Float32bits(z))
+		go func() {
+			resizing.Lock()
+			defer resizing.Unlock()
+			if w := win.Load(); w != nil {
+				resizeForZoom(w, math.Float32frombits(wanted.Load()))
+			}
+		}()
+	}
 	d.PickFolder = func(title string) (string, error) {
 		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: win.Load(), Title: title, Directory: true, CreateDirectories: true})
 		if err != nil || len(paths) == 0 {
@@ -72,11 +91,27 @@ func main() {
 	}
 	d.Relaunch = mygo.App.Relaunch
 	mygo.App.WhenReady(func() {
-		w := mygo.NewWindow(mygo.WindowOptions{Title: "Inkgo", Width: 1280, Height: 820, MinWidth: 1000, MinHeight: 680, StateKey: "main",
+		zoom := math.Float32frombits(wanted.Load())
+		minWidth, minHeight := zoomMinimum(zoom)
+		w := mygo.NewWindow(mygo.WindowOptions{Title: "Inkgo", Width: max(windowWidth, minWidth), Height: max(windowHeight, minHeight), MinWidth: minWidth, MinHeight: minHeight, StateKey: "main",
 			// The page draws its own title bar, a row over everything, as the design does.
 			// The window buttons fill that row, as high as desk's titleHeight.
-			TitleBarStyle: mygo.TitleBarHidden, TitleBarHeight: 40, Content: ui.View(d.View)})
+			TitleBarStyle: mygo.TitleBarHidden, TitleBarHeight: windowTitleHeight, Content: ui.View(d.View)})
 		win.Store(w)
+		// Window bounds and display work areas use DIPs, including on Windows.
+		// The view reads this cache without waiting for the window thread.
+		updateArea := func() {
+			work := mygo.Screen.DisplayMatching(w.Bounds()).WorkArea
+			area.Store(&work)
+			w.Invalidate()
+		}
+		updateArea()
+		w.OnMove(updateArea)
+		w.OnResize(updateArea)
+		off := mygo.Screen.OnDisplaysChanged(updateArea)
+		w.OnClosed(off)
+		// Restored window bounds may be smaller than the saved zoom requires.
+		resizeForZoom(w, zoom)
 		// Closed with what the AI proposed not decided on, the window asks
 		// first; let go, it closes after the frame that let it go.
 		w.OnClose(func(e *mygo.CloseEvent) {

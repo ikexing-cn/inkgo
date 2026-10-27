@@ -9,7 +9,7 @@ import (
 )
 
 // Every command the desk dispatches is in the help, in one row; every row
-// speaks for a keyed command of the table, and for nothing else. The
+// speaks for keyed commands of the table or the prose's wheel gesture. The
 // editor's cut, copy, paste and select all are hints of the prose's menu
 // only: the help has never listed them, and its text stays as it is.
 func TestTableHelpListsEachKeyedCommand(t *testing.T) {

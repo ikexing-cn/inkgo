@@ -116,14 +116,13 @@ func TestChapterOpensWhereItWasLeft(t *testing.T) {
 	}
 }
 
-// Ctrl+= and Ctrl+- size the text within bounds, Ctrl+0 puts it back, and
-// the size is kept with the work.
+// The prose size stays within bounds and is kept with the work.
 func TestSizeTheText(t *testing.T) {
 	a, tt, one := writingFixture(t, "一")
 	shownEditor(a).Focus()
 	tt.Frame()
-	tt.Key(ui.Cmd, ui.KeyEqual)
-	tt.Key(ui.Cmd, ui.KeyEqual)
+	a.sizeText(1)
+	a.sizeText(1)
 	tt.Frame()
 	if shownEditor(a).FontSize() != 19 || savedPrefs(t, a).TextSize != 19 {
 		t.Fatal("size", shownEditor(a).FontSize(), savedPrefs(t, a).TextSize)
@@ -141,7 +140,7 @@ func TestSizeTheText(t *testing.T) {
 	}
 	shownEditor(a).Focus()
 	tt.Frame()
-	tt.Key(ui.Cmd, ui.Key0)
+	a.sizeText(0)
 	tt.Frame()
 	if shownEditor(a).FontSize() != kit.TextSizeDefault || savedPrefs(t, a).TextSize != 0 {
 		t.Fatal("not back", shownEditor(a).FontSize())

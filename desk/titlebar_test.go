@@ -211,7 +211,7 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 	if a.menu.Owner != "" {
 		t.Fatal("clicking the menu's name again left it open")
 	}
-	if got := openMenu(t, a, tt, "视图"); !slices.Equal(got, []string{"收起侧栏", "收起右栏", "专注写作", "手机预览"}) || !tt.HasText("跟随系统") {
+	if got := openMenu(t, a, tt, "视图"); !slices.Equal(got, []string{"收起侧栏", "收起右栏", "专注写作", "手机预览", "放大", "缩小", "实际大小"}) || !tt.HasText("跟随系统") {
 		t.Fatalf("视图: %q", got)
 	}
 	tt.ClickAt(a.LastWrite.X+a.LastWrite.W/2, a.LastWrite.Y+a.LastWrite.H-80) // a press elsewhere puts it away

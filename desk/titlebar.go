@@ -214,6 +214,11 @@ func (a *App) viewMenu(m *kit.Menu, later func(func()) func()) {
 	cmdFocus.item(a, m).Do(later(func() { a.write.focus = true }))
 	a.barItem(m, later, cmdPhone)
 	m.Separator()
+	m.Head(fmt.Sprintf("缩放 %.0f%%", a.Zoom()*100))
+	a.barItem(m, later, cmdZoomIn)
+	a.barItem(m, later, cmdZoomOut)
+	a.barItem(m, later, cmdZoomReset)
+	m.Separator()
 	m.Draw(a.themeChoice)
 }
 

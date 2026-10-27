@@ -199,6 +199,34 @@ func TestLayoutWriting(t *testing.T) {
 		t.Fatal(tt.Texts())
 	}
 	shot(t, tt, "-write")
+	// Zoomed layouts keep enough window DIPs for the minimum content size.
+	for _, zoom := range []struct {
+		scale         float32
+		width, height int
+		suffix        string
+	}{{1.25, 1400, 900, "-write-125"}, {1.5, 1560, 1050, "-write-150"}} {
+		tt.SetSize(zoom.width, zoom.height)
+		tt.Key(ui.Cmd, ui.Key0)
+		for a.Zoom() < zoom.scale {
+			tt.Key(ui.Cmd, ui.KeyEqual)
+		}
+		tt.Frame()
+		shot(t, tt, zoom.suffix)
+		if zoom.scale == 1.25 {
+			if err = tt.Click("菜单栏-视图"); err != nil {
+				t.Fatal(err)
+			}
+			tt.Frame()
+			if !tt.HasText("缩放 125%") {
+				t.Fatal(tt.Texts())
+			}
+			shot(t, tt, "-view-125")
+			tt.Key(0, ui.KeyEscape)
+		}
+	}
+	tt.Key(ui.Cmd, ui.Key0)
+	tt.SetSize(1266, 780)
+	tt.Frame()
 	if err = clickMenu(tt, "文件", "菜单-快照"); err != nil {
 		t.Fatal(err)
 	}

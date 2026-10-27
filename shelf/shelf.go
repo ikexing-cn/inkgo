@@ -45,6 +45,9 @@ type Shelf struct {
 	// Theme is the appearance chosen: "light", "dark", or empty to follow
 	// the system.
 	Theme string `json:"theme,omitempty"`
+	// Zoom is the window's content scale on this machine, for every work.
+	// Absent or zero, it is actual size.
+	Zoom float32 `json:"zoom,omitempty"`
 	// NoAI turns the AI off on this machine, for every work: nothing of it
 	// shows and nothing is sent. Absent, the AI is on.
 	NoAI bool `json:"noAI,omitempty"`
@@ -124,6 +127,9 @@ func Load(path string) (s Shelf, fresh bool, err error) {
 	}
 	if s.Theme != "" && s.Theme != "light" && s.Theme != "dark" {
 		return Shelf{}, false, fmt.Errorf("%s: unknown theme %q", path, s.Theme)
+	}
+	if s.Zoom != 0 {
+		s.Zoom = NearestZoom(s.Zoom)
 	}
 	for _, bk := range s.Books {
 		if !filepath.IsAbs(bk.Path) {

@@ -197,6 +197,11 @@ type App struct {
 	// Appearance applies the appearance chosen: "light", "dark", or empty
 	// to follow the system. cmd/inkgo hands it to the window.
 	Appearance func(string)
+	// ZoomFits says whether the current display can hold the window at z.
+	// Nil, every step fits. cmd/inkgo supplies the display's cached work area.
+	ZoomFits func(float32) bool
+	// ZoomChanged asks the host to resize the window outside the frame.
+	ZoomChanged func(float32)
 	// Relaunch closes the software and opens it again, on the same work.
 	// cmd/inkgo hands it mygo's; nil, the settings only say that a change
 	// waits for the software to open again.
