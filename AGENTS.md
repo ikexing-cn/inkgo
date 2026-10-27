@@ -8,11 +8,13 @@ Inkgo（暂定名）是一个写作软件：纯 Go（`CGO_ENABLED=0`），UI 基
 npm run verify
 ```
 
-四十秒左右，都绿才算完成。它同时跑哪几项写在 `scripts/verify.ts` 开头，各项也能单独跑。要留意的几项：
+一分钟左右（测试要重跑时近两分钟），都绿才算完成。它同时跑哪几项写在 `scripts/verify.ts` 开头，各项也能单独跑。要留意的几项：
 
 - `npm run verify-ui`：工具包自带的检查 `mygo vet`，查界面代码有没有把一帧里的东西（`*ui.Context`、`ui.Element`）留到帧外；后台任务要叫界面重画，用起头那一帧取的 `c.Services()`。
 - `npm run verify-prototype` 要本机有 Edge 或 Chrome。
 - `npm run verify-design` 要联网，只在 `DESIGN.md` 改了还没提交时跑；`npm run verify -- --design` 强制跑。
+
+`scripts/` 里的 TypeScript 由 Node 直接运行（Node ≥ 22.18），不装 tsx 或任何 npm 依赖。
 
 界面改动渲染截图核对：`SHOT=<目录> go test ./cmd/inkgo` 截整个窗口的几处布局，`SHOT=<目录> go test ./desk -run Shot` 截界面的各个状态。Go 测试里的 `SHOT` 都是目录，每个测试往里写自己命名的图。
 
@@ -20,7 +22,7 @@ npm run verify
 
 ## 界面：规则在 `DESIGN.md`，样子在原型
 
-动界面之前先读 `DESIGN.md`，里面是每一处界面都要守的规则。每个界面具体的样子在 `prototype/` 的原型里。
+动界面之前先读 `DESIGN.md`。
 
 双击 `prototype/index.html` 就开：整个窗口都能点，内容是假的，正文能打字（不存盘，刷新就回到原样），AI 只回固定的几句。纯 HTML/JS，没有依赖，不用构建。各文件管什么：
 
@@ -41,9 +43,4 @@ npm run verify
 
 ## 重要改动必须留笔记
 
-1. 非平凡改动（改了行为、架构、跨文件契约、流程与工具链、测试策略、落盘/网络/配置格式）前，按 `.agents/skills/write-notes-like-deepseek/SKILL.md` 写或更新 `.agents/notes/` 里的笔记；机械性小改（样式、格式化、打标、不改行为的补丁）直接提交。
-2. 写之前先检索 `.agents/notes/` 里的同主题旧笔记：有归属就地更新；新想法先放 `proposed/`，落地时随同代码改动转 `implemented/`；新方案彻底取代旧决策时，同批归档旧篇并在新篇标明取代关系。
-3. 被放弃的方案先写它最强的理由，再解释为什么不用。
-4. 代码和笔记同一次提交。
-
-笔记校验脚本在 `scripts/`，由 Node 直接运行 TypeScript（Node ≥ 22.18），不装 tsx 或任何 npm 依赖。
+非平凡改动（改了行为、架构、跨文件契约、流程与工具链、测试策略、落盘/网络/配置格式）前，按 `.agents/skills/write-notes-like-deepseek/SKILL.md` 写或更新 `.agents/notes/` 里的笔记，和代码同一次提交；机械性小改（样式、格式化、打标、不改行为的补丁）直接提交。
