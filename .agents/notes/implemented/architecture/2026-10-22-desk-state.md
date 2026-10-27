@@ -135,6 +135,7 @@ Status: implemented
 - `TestSettingsCloseKeepsTheWorkAndBackup` 覆盖关闭按钮、Esc、遮罩和重新启动入口：设置关掉，未确认的 AI 开关问题取消，同一作品的服务草稿与备份状态保留，重开仍是原设置页。
 - `TestLeavingWorkClearsSettingsAndRecords` 用有 50 条记录的作品，实际滚动列表并选择筛选和展开项后，分别切换作品、回书架、关闭应用；设置、记录和服务草稿清空，旧作品的 50 条磁盘记录仍在，新作品只加载自己的记录。
 - 设置状态分离前后运行 `TestShotBackup`、`TestShotRecord`：外观、模型、服务设置、讨论和空记录截图逐像素一致；记录与备份截图的差异仅为测试时间及临时路径，差异图已目视核对。
+- 设置状态分离后的 `npm run verify` 全部 10 项通过，104.7 秒。验证中暴露的批注帧测试并行不稳定改为在原有串行帧检查阶段运行，断言未变，具体限制见[检查编排笔记](../process/2026-10-13-fast-checks.md)。
 
 - `state_test.go` 的 helper 读共享状态；测试改了状态路径时只改 helper。
 - 打开的章节、丢失和外部改动：`TestOneOpenChapterPerTab`、`TestALostChapterKeepsItsTab`、`TestOutsideChangeAsksTheAuthor`、`TestSavingDoesNotWriteOverAnOutsideChange`。
