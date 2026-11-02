@@ -35,6 +35,7 @@ Status: implemented
   - `internal/testtmp` 里有个测试守着：哪个包的测试文件里写了 `TempDir(`、`MkdirTemp(`、`CreateTemp(`，同一个文件夹里却没有 `testtmp.Main(`，它就失败，点名那个包，说怎么改。
 - 一条命令 `npm run verify`（`scripts/verify.ts`）把各项同时跑，哪项过了、用了多久各一行，没过的才把它的输出打出来：
   - 每次都跑：`go vet ./...`、`go test ./...`、`verify-notes`、`verify-prototype`；2026-10-14 加了 `verify-ui`（`mygo vet`，见 [mygo 升级那篇](2026-10-13-mygo-0.4.md)）。它单独跑约 3 秒；测试都重跑时全套量了几次，没有它 35 到 39 秒，有它 41 到 48 秒（作者同时在用这台机器，有一次 64 秒），测试不用重跑时 36 秒；
+  - 2026-11-02 起 `go vet` 不再单独是一项，和 `mygo vet` 并成一项「vet」：`verify-ui` 在模块根上跑一次 `mygo vet .`，它自己先跑 `go vet ./...`，再查整个模块。原来是 `desk` 下 6 个目录、`editor`、`cmd/inkgo` 各开一个进程，每个都在自己那里跑一遍 `go vet ./...` 和 `go list -export -deps ./...`（`desk` 那个的 `./...` 已经包住 desk 的子包），verify 里再单独跑一遍 `go vet`。缓存热时跑一次 6 到 8 秒，原来单跑 `verify-ui` 16.5 秒，在 verify 里 49 秒。临时放进一个文件试过：`Printf` 参数不对、结构体里存 `*ui.Context`，两样都还会让这一项失败。
   - `verify-design` 要联网，只在 `DESIGN.md` 改了还没提交时跑，`npm run verify -- --design` 强制跑。
   - 2026-10-26 起，两条按毫秒卡一帧的测试（`TestPhonePreviewTypingCost`、`TestOutlineFrameCost`）不和别的一起跑：`go test` 那项跳过它们（`-skip`），其余几项都完了再单独跑（「frame timing」）。同时跑时机器太忙：手机预览里打一个字的一帧，单跑 8 到 9 毫秒，同时跑量到 31 毫秒，超了 25 毫秒的线，连着两遍都这样。测试名和包名写在 `scripts/verify.ts` 的 `timed` 一处，只跑那两个包。
   - 2026-10-27 起，`desk` 这个包不在 `go test` 那项里（`desk/book` 这些子包还在），它的测试按名字轮流分给 4 个进程（`desk 1/4` 到 `desk 4/4`），和别的几项同时开始。测试名用 `go test -list . ./desk` 取，去掉 `timed` 那两条；取不出来（比如编译不过）算一项失败，不会悄悄少跑。用进程不用 `t.Parallel()`：测试改包里的全局量，同一个进程里并行会互相踩，分开的进程各有一份。单跑一个进程 54 秒，4 个同时 25 秒。份数是 `verify.ts` 开头的 `deskProcesses`。

@@ -12,7 +12,7 @@ npm run verify
 
 一分钟左右（测试要重跑时近两分钟），都绿才算完成。它同时跑哪几项写在 `scripts/verify.ts` 开头，各项也能单独跑。要留意的几项：
 
-- `npm run verify-ui`：工具包自带的检查 `mygo vet`，查界面代码有没有把一帧里的东西（`*ui.Context`、`ui.Element`）留到帧外；后台任务要叫界面重画，用起头那一帧取的 `c.Services()`。
+- `npm run verify-ui`：工具包自带的检查 `mygo vet`（先跑一遍 `go vet ./...`），查界面代码有没有把一帧里的东西（`*ui.Context`、`ui.Element`）留到帧外；后台任务要叫界面重画，用起头那一帧取的 `c.Services()`。
 - `npm run verify-prototype` 要本机有 Edge 或 Chrome。
 - `npm run verify-design` 要联网，只在 `DESIGN.md` 改了还没提交时跑；`npm run verify -- --design` 强制跑。
 

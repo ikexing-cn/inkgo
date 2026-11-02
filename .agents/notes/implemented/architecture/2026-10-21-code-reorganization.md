@@ -198,7 +198,7 @@ Status: implemented
 - 三个页面包在 `desk` 下只引用 `kit` 和 `desk/book`，别的都在 `desk` 以外。`desk` 不再有自己的 `host` 接口，守着它的 `host_guard_test.go` 也去掉了：`desk` 下的包引用不了 `desk`，`App` 由编译器挡在外面。
 - `desk/book/outline_draft.go` 的 `OutlineDraft` 是写作页和大纲页共用的草稿；`desk/book/timing.go` 的 `SaveAfter` 和 `CheckEvery` 是保存停顿和看盘间隔，均为变量。
 - `desk/host.go` 的 `appHost` 显式持有 `*App`，用首字母大写的方法实现页面需要的接口；`App` 不增加导出方法。三个页面在 `New` 绑定适配器，大纲和导出在 `resetView` 重新绑定，手机缓存跨作品保留。
-- `kit/theme_test.go` 的源码检查递归读取 `desk` 下的全部 Go 包；`scripts/verify-ui.ts` 递归发现这些包，与 `editor`、`cmd/inkgo` 一起运行工具包检查。
+- `kit/theme_test.go` 的源码检查递归读取 `desk` 下的全部 Go 包；`scripts/verify-ui.ts` 递归发现这些包，与 `editor`、`cmd/inkgo` 一起运行工具包检查（2026-11-02 起不再列包，在模块根上跑一次）。
 - `desk/imports_test.go` 的 `TestImports` 用一次 `go list` 读出 `desk` 下每个包经由任何包的全部依赖：都不许到 `ai`、`model`、`discussion`、`writing`；`desk/book` 不许到 `desk` 下的包、mygo 和 `editor`；`kit` 不许到 `desk` 下的包；其余的包算页面，在 `desk` 下只许到 `kit` 和 `desk/book`。以后在 `desk` 下加的包不用写进测试，照页面的规矩查。原来 `aiswitch_test.go` 的依赖检查和 `desk/book` 只看直接引用的 `TestImports` 并进了这一个。
 
 写作页、讨论、右栏、伏笔、待办、提议这一团共用打开的章节和讨论状态，留在 `desk`；硬拆的话，它们要的那个接口会有四十多个方法，等于把 `App` 换了个名字。

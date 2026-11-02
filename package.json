@@ -2,7 +2,7 @@
   "name": "writer-notes",
   "private": true,
   "type": "module",
-  "description": "The checks a commit waits for (npm run verify): Agent Note gates, the prototype, DESIGN.md, go vet, the toolkit's vet and go test. The product is the Go module.",
+  "description": "The checks a commit waits for (npm run verify): Agent Note gates, the prototype, DESIGN.md, go vet with the toolkit's vet, and go test. The product is the Go module.",
   "engines": {
     "node": ">=22.18"
   },
