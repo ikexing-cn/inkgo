@@ -3,6 +3,9 @@
 
 const WINDOW_BUTTONS = '<div class="window-buttons">' + ['<path d="M0 5h10"></path>', '<rect x=".5" y=".5" width="9" height="9" rx="1"></rect>', '<path d="M.5.5l9 9M9.5.5l-9 9"></path>']
   .map((d) => `<div><svg class="icon-xs" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1">${d}</svg></div>`).join('') + '</div>'
+// 窗口的按钮是系统画的：Windows 在最右，是上面那三个；macOS 在最左，是红黄绿三个点，标题栏从它们右边排起。
+const LIGHTS = '<div class="lights"><i></i><i></i><i></i></div>'
+const chromeLeft = () => (OS === 'mac' ? LIGHTS : ''), chromeRight = () => (OS === 'mac' ? '' : WINDOW_BUTTONS)
 
 // 标题栏：自己占一行。最左是侧栏的开关，接着是菜单；写作页右边是待处理、查找、专注这几样，再右是右栏的开关，最右是窗口的三个按钮。
 // 菜单是命令的总表：哪一页用不上的那几行是灰的；AI 关着时，AI 的那几行不显示。开着一个的时候，指针移到旁边的名字上就换过去。
@@ -10,7 +13,7 @@ const WINDOW_BUTTONS = '<div class="window-buttons">' + ['<path d="M0 5h10"></pa
 function titlebar() {
   if (S.focus && S.page === 'write') {
     const cur = chapterOf(S.ch)
-    return `<div class="titlebar bare" data-k="titlebar"><div class="bar-title ell">${cur ? t(titleOf(cur)) : ''}</div><div class="grow"></div>${tools(cur)}${paneSwitch()}${WINDOW_BUTTONS}</div>`
+    return `<div class="titlebar bare" data-k="titlebar">${chromeLeft()}<div class="bar-title ell">${cur ? t(titleOf(cur)) : ''}</div><div class="grow"></div>${tools(cur)}${paneSwitch()}${chromeRight()}</div>`
   }
   const writing = S.page === 'write', cur = writing && chapterOf(S.ch)
   const inBook = S.page !== 'shelf', [hasPane, paneOn, paneTo] = paneHere()
@@ -45,9 +48,9 @@ function titlebar() {
       (on ? `<div class="pop menu-pop" data-k="${id}">${rows()}</div>` : '') + '</div>'
   }
   const sideWord = S.sideOpen ? '收起侧栏' : '展开侧栏'
-  return '<div class="titlebar" data-k="titlebar">' +
+  return '<div class="titlebar" data-k="titlebar">' + chromeLeft() +
     `<button class="icon-btn muted${inBook ? '' : ' off'}" aria-label="${sideWord}" title="${sideWord}"${onClick(inBook ? () => moving(() => set({ sideOpen: !S.sideOpen, ...SHUT }), 'fold') : null)}>${svg('icon-md', PANEL + path('M9 5v14'))}</button>` +
-    menus.map(menu).join('') + (inBook ? pageSwitch() : '') + '<div class="grow"></div>' + (writing ? tools(cur) : '') + paneSwitch() + WINDOW_BUTTONS + '</div>'
+    menus.map(menu).join('') + (inBook ? pageSwitch() : '') + '<div class="grow"></div>' + (writing ? tools(cur) : '') + paneSwitch() + chromeRight() + '</div>'
 }
 
 // 去哪一页。讨论页回到上次看的那一段，没看过就是最新的一段。
@@ -80,6 +83,17 @@ function restart() {
   set({ ...fresh(), look: S.look, zoom: S.zoom })
 }
 
+// 换平台：像换了一台电脑，也从头开始。作品库、备份文件夹这些路径在打开时就写进了状态，不从头会两种写法混着。
+function switchOS(os) {
+  if (os === OS) return
+  OS = os
+  restart()
+}
+
+// macOS 的菜单栏在屏幕最上面，不在窗口里。软件没有设菜单，mygo 装的是它默认的那一套；软件还没有翻译表，所以是英文的。
+// 它和窗口里自己画的菜单重复了，怎么改等作者定（.agents/notes/proposed/process/2026-11-02-prototype-language-and-platform.md）。
+const macBar = (w) => `<div class="mac-bar" style="width:${w}px"><b>Inkgo</b>${['File', 'Edit', 'View', 'Window'].map((m) => `<span>${m}</span>`).join('')}</div>`
+
 // 右下角的提示，最多露三条，新的在下；没露的是旧的，「还有几条」写在它们上面。提示里能点的几个靠右排，最要紧的（给的第一个）在最右。
 // 讨论在回复、那段讨论又不在眼前（别的讨论、讨论列表、别的页、右栏收起或在别的标签、专注写作）时，
 // 右下角说它在想，能取消；回到那段讨论就收起，那里有它自己的进度。
@@ -108,8 +122,10 @@ function view() {
   const [w, h] = winSize(), z = S.zoom, narrow = w / z < 1180
   return '<div class="stage">' +
     `<div class="stage-bar">${button('重新开始', restart)}<div class="anchor left"><div class="btn hit${S.open === 'rare' ? ' soft' : ''}" title="平时不易遇到的情况：出错、作品在软件外被改动"${onClick(() => set({ open: S.open === 'rare' ? '' : 'rare' }))}>少见的情况</div>` +
-    (S.open === 'rare' ? `<div class="pop rare-pop" data-k="rare-pop">${rare().map(([label, act]) => menuRow(label, act)).join('')}</div>` : '') + `</div><div class="stage-note">内容为示例。正文可输入，刷新后复原；AI 仅回复固定内容。</div></div>` +
-    `<div id="win" class="${dark() ? 'dark' : 'light'}${narrow ? ' narrow' : ''}" style="zoom:${z};width:${w / z}px;height:${h / z}px">` + veil() + titlebar() +
+    (S.open === 'rare' ? `<div class="pop rare-pop" data-k="rare-pop">${rare().map(([label, act]) => menuRow(label, act)).join('')}</div>` : '') + '</div>' +
+    seg(OS === 'mac' ? 'macOS' : 'Windows', ['Windows', 'macOS'], (v) => switchOS(v === 'macOS' ? 'mac' : 'win'), '平台') +
+    `<div class="stage-note">内容为示例。正文可输入，刷新后复原；AI 仅回复固定内容。</div></div>` + (OS === 'mac' ? macBar(w) : '') +
+    `<div id="win" class="${dark() ? 'dark' : 'light'}${narrow ? ' narrow' : ''}${OS === 'mac' ? ' mac' : ''}" style="zoom:${z};width:${w / z}px;height:${h / z}px">` + veil() + titlebar() +
     '<div class="win-body" data-k="win-body">' + (S.page === 'shelf' ? shelfPage() : (bare ? '' : sidebar()) + main[S.page]() + (side ? pane() : '')) + '</div>' +
     floats() + dialogs() + toasts() + '</div></div>'
 }

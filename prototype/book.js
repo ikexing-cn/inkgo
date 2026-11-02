@@ -282,7 +282,6 @@ const BOOK = {
 
   // 书架上的作品。只有第一本有内容，别的打开是空的；gone 是文件夹找不到了。
   // backup 是这本书备份得怎么样：ok 已备份、none 还没选过地方、fail 上一次没成功。三种各放了一本。
-  library: 'D:\\写作',
   shelf: [
     { id: 'rain', name: '雨城来信', kind: '网文', words: '31.2 万字', at: '今天 10:32', backup: 'ok' },
     { id: 'lamp', name: '旧城灯匠', kind: '出版小说', words: '暂无正文', at: '昨天 02:19', backup: 'none' },
@@ -290,8 +289,12 @@ const BOOK = {
     { id: 'old', name: '早年的稿子', kind: '非虚构', words: '5.2 万字', at: '', gone: true },
   ],
   kinds: ['网文', '出版小说', '剧本', '非虚构'],
-  // 第一次备份时，在这台电脑上找到的能放备份的地方。
-  places: [['OneDrive 同步文件夹', 'C:\\Users\\you\\OneDrive\\写作备份']],
+  // 这台电脑上的几个路径，按平台各一份：作品库、已经选好的备份文件夹、第一次备份时找到的能放备份的地方、
+  // 一个里面没有作品的文件夹（「少见的情况」里添加它）。
+  paths: {
+    win: { library: 'D:\\写作', backup: 'E:\\写作备份', places: [['OneDrive 同步文件夹', 'C:\\Users\\you\\OneDrive\\写作备份']], stray: 'D:\\下载\\新建文件夹' },
+    mac: { library: '~/写作', backup: '/Volumes/备份盘/写作备份', places: [['iCloud 云盘', '~/Library/Mobile Documents/com~apple~CloudDocs/写作备份']], stray: '~/Downloads/新建文件夹' },
+  },
 
   // 最近 7 天各写了多少字，和快捷键那张表（第三项写着 ai 的，AI 关着时不列）。
   days: [['今天', 2846], ['昨天', 3120], ['10-10', 0], ['10-09', 2958], ['10-08', 1204], ['10-07', 3377], ['10-06', 2640]],

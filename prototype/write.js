@@ -460,7 +460,7 @@ function saveLost() {
 }
 
 // 让备份换一种没成功的样子。
-const failBackup = (why) => () => set((s) => ({ ...SHUT, backup: { ...s.backup, state: 'fail', why, at: s.backup.at || '昨天 21:40', dir: s.backup.dir || 'E:\\写作备份', hush: false } }))
+const failBackup = (why) => () => set((s) => ({ ...SHUT, backup: { ...s.backup, state: 'fail', why, at: s.backup.at || '昨天 21:40', dir: s.backup.dir || PATHS().backup, hush: false } }))
 
 // 平时不易遇到的情况：出错、作品在软件外被改动。在窗口上面那一排里点出来看。
 function rare() {
@@ -476,7 +476,7 @@ function rare() {
     ['备份文件夹不可写', failBackup('deny')],
     [S.narrow ? '窗口恢复原宽' : '窗口变窄', () => set((s) => ({ narrow: !s.narrow, ...SHUT }))],
     ['大纲文件读不出来', () => set({ page: 'plan', planBroken: true, planQ: '', dialog: null, ...SHUT })],
-    ['添加的文件夹中没有作品', () => { set(SHUT); say('该文件夹中没有作品（缺少 work.yaml）', 'D:\\下载\\新建文件夹', 'fail') }],
+    ['添加的文件夹中没有作品', () => { set(SHUT); say('该文件夹中没有作品（缺少 work.yaml）', PATHS().stray, 'fail') }],
   ]
 }
 // 一次回复查到了上限：查了 BOOK.limit 次还没查完，照查到的回答。
@@ -610,7 +610,7 @@ function sidebar() {
   const talks = S.page === 'talk' // 讨论页列讨论，别的页都列章节
   // 顶上一行右边只一个加号：列章节时新建章节，列讨论时新对话。新建文件夹在「文件」菜单和右键菜单里。
   const add = talks ? `<button class="icon-btn muted" aria-label="新对话" title="新对话"${onClick(() => set({ page: 'talk', tv: 'new', tid: null, draft: '' }))}>${ICON.plus}</button>`
-    : `<button class="icon-btn muted" aria-label="新建章节" title="新建章节（Ctrl+N）"${onClick(newChapter)}>${ICON.plus}</button>`
+    : `<button class="icon-btn muted" aria-label="新建章节" title="新建章节（${keyLabel('Ctrl+N')}）"${onClick(newChapter)}>${ICON.plus}</button>`
   return '<div class="sidebar" data-k="sidebar">' +
     `<div class="sidebar-top"><div class="anchor wide"><div class="book hit${off}" title="切换作品"${pickBook}><div class="book-logo">${t(book.name[0])}</div><div class="book-name">${t(book.name)}</div>${icon('down', 'sm', 'faint')}</div>` +
     bookMenu + `</div>${add}</div>` +
@@ -801,7 +801,7 @@ function tools(cur) {
     (wide && here && !S.focus ? `<button class="fs-btn" aria-label="本章伏笔"${onClick(() => set({ paneOpen: true, tab: '伏笔', fid: null, fv: 'list' }))}>${icon('flag')}<span>本章伏笔 ${here}</span></button>` : '') +
     (S.backup.state === 'fail' && !S.backup.hush ? `<div class="anchor"><button class="warn-btn" aria-label="备份提示"${onClick(flip('chip'))}>${DOT}<span>备份失败 · ${backupWhy()[0]}</span></button>${S.open === 'chip' ? backupPop() : ''}</div>` : '') +
     (list.length ? `<div class="anchor"><button class="todo-btn${S.open === 'todo' ? ' on' : ''}" aria-label="待处理"${onClick(flip('todo'))}>${DOT}<span>待处理 ${list.length}</span></button>${S.open === 'todo' ? todoPop(list) : ''}</div>` : '') +
-    tool('查找替换', '查找替换（Ctrl+F）', 'find', cur ? () => (S.find ? set({ find: null }) : openFind()) : null, !!S.find, !cur) +
+    tool('查找替换', '查找替换（' + keyLabel('Ctrl+F') + '）', 'find', cur ? () => (S.find ? set({ find: null }) : openFind()) : null, !!S.find, !cur) +
     tool(S.focus ? '退出专注' : '专注写作', S.focus ? '退出专注，恢复章节树和右栏（F11）' : '仅显示正文，收起章节树和右栏（F11）', 'focus', () => set({ focus: !S.focus, ...SHUT }), S.focus) +
     '</div>'
 }
@@ -927,7 +927,7 @@ function floats() {
     const span = S.ctx.span
     const copy = () => { if (navigator.clipboard) navigator.clipboard.writeText(p.text).catch(() => {}); set({ ctx: null, pick: null }) }
     const cut = () => { copy(); putText('', span) }
-    const paste = () => { set({ ctx: null, pick: null }); (navigator.clipboard ? navigator.clipboard.readText() : Promise.reject()).then((text) => putText(plain(text), span), () => say('无法读取剪贴板', '请按 Ctrl+V 粘贴')) }
+    const paste = () => { set({ ctx: null, pick: null }); (navigator.clipboard ? navigator.clipboard.readText() : Promise.reject()).then((text) => putText(plain(text), span), () => say('无法读取剪贴板', '请按 ' + keyLabel('Ctrl+V') + ' 粘贴')) }
     const all = () => { set({ ctx: null, pick: null }); const first = document.querySelector('[data-para]'); if (first) getSelection().selectAllChildren(first.parentElement) }
     const over = subOver(!!S.ctx.names, (on) => set((s) => ({ ctx: { ...s.ctx, names: on } })))
     // 菜单宽 200，最多十二行，都留在窗口里；旁边再开一列时也不出窗口。

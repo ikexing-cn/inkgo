@@ -3,6 +3,22 @@
 
 // ───────── 状态 ─────────
 
+// 平台：Windows 还是 macOS，在舞台上切，地址栏带 ?os=mac 就直接是 macOS 的。换平台像换了一台电脑，从头开始。
+// 按键不跟着平台变，哪儿都认 Ctrl 和 ⌘：在 Windows 的键盘上也能试 macOS 的样子。
+let OS = new URLSearchParams(location.search).get('os') === 'mac' ? 'mac' : 'win'
+const PATHS = () => BOOK.paths[OS]
+const sep = () => (OS === 'mac' ? '/' : '\\')
+// 快捷键都按 Windows 写，在 macOS 上换成它的写法：修饰键用符号，按 ⌃⌥⇧⌘ 的次序连着写，不加「+」。
+// Ctrl 一般是 ⌘；换标签页（Tab）仍是 ⌃，删一个词（Backspace、Delete）是 ⌥；重做 Ctrl+Y 是 ⇧⌘Z。
+const MAC_KEYS = { Enter: '↩', PgDn: '⇟', PgUp: '⇞', Backspace: '⌫', Delete: '⌦' }
+const MAC_CTRL = { Tab: '⌃', Backspace: '⌥', Delete: '⌥' }
+const keyLabel = (s) => OS !== 'mac' ? s : s.replace(/Ctrl\+Y\b/g, 'Ctrl+Shift+Z')
+  .replace(/((?:(?:Ctrl|Shift|Alt)\+)+)([A-Za-z]+|\S)/g, (_, mods, key) => {
+    const ctrl = mods.includes('Ctrl') ? MAC_CTRL[key] || '⌘' : ''
+    return (ctrl === '⌃' ? '⌃' : '') + (mods.includes('Alt') || ctrl === '⌥' ? '⌥' : '') + (mods.includes('Shift') ? '⇧' : '') + (ctrl === '⌘' ? '⌘' : '') + (MAC_KEYS[key] || key)
+  })
+  .replace(/\b(PgDn|PgUp|Enter)\b/g, (k) => MAC_KEYS[k])
+
 // 卷里的章，标题是号加名字；作者自己把标题整个改写过的（own），写了什么就是什么。
 const numbered = (c) => c.vol && !c.own
 const titleOf = (c) => (numbered(c) ? '第' + c.no + '章' + (c.t ? '：' + c.t : '') : c.t)
@@ -105,9 +121,9 @@ function fresh(book = BOOK.shelf[0].id) {
     part: {}, // 太长、AI 只读了前面一段的几章：{ check } 是检查读了前多少字，再查一次就当它读全了
     catForm: { name: '', land: '' }, catDrop: '', // 作品分类：正在填的、要删的
     toasts: [],
-    backup: { state: kept, at: kept === 'ok' ? '今天 10:32' : kept === 'fail' ? '昨天 21:40' : '', dir: kept === 'none' ? '' : 'E:\\写作备份', copies: kept === 'none' ? 0 : 12, close: true, daily: true, hourly: false, keep: '最近 30 份', hush: false },
+    backup: { state: kept, at: kept === 'ok' ? '今天 10:32' : kept === 'fail' ? '昨天 21:40' : '', dir: kept === 'none' ? '' : PATHS().backup, copies: kept === 'none' ? 0 : 12, close: true, daily: true, hourly: false, keep: '最近 30 份', hush: false },
     // 换一本书也不变的：外观、书架、设置里的东西。
-    look: '跟随系统', shelf: structuredClone(BOOK.shelf), cards: true, library: BOOK.library,
+    look: '跟随系统', shelf: structuredClone(BOOK.shelf), cards: true, library: PATHS().library,
     uses: structuredClone(BOOK.uses), services: BOOK.services.map((x) => ({ ...x, models: x.models.map(limits) })), auto: false,
     when: '写完一章后检查', late: BOOK.late, goal: '', goalSet: '', paneW: 0, // paneW 是右栏拖出来的宽度，没拖过是 0
     names: true, // 正文里标出设定的名字
@@ -278,7 +294,7 @@ function choose(id, value, options, pick, label) {
     (on ? `<div class="choose-menu pop scroll">${options.map((o) => `<div class="pop-row row${o === value ? ' on' : ''}"${onClick(() => { set(SHUT); pick(o) })}>${t(o)}</div>`).join('')}</div>` : '') + '</div>'
 }
 // 菜单里的一行：左边图标，右边快捷键或小字；act 空着就是灰的。
-const menuRow = (label, act, pic, side = '') => `<div class="pop-row row${act ? '' : ' off'}"${onClick(act)}>${pic ? icon(pic, 'md', 'muted') : ''}<div class="grow">${t(label)}</div><div class="side">${t(side)}</div></div>`
+const menuRow = (label, act, pic, side = '') => `<div class="pop-row row${act ? '' : ' off'}"${onClick(act)}>${pic ? icon(pic, 'md', 'muted') : ''}<div class="grow">${t(label)}</div><div class="side">${t(keyLabel(side))}</div></div>`
 // 有下一级的一行：点它或者指针滑到（subOver），旁边展开一列 rows；展开着时这一行是浅底。
 const subRow = (label, open, show, key, rows) => `<div class="anchor wide"><div class="pop-row row${open ? ' on' : ''}"${onClick(show)}><div class="grow">${t(label)}</div>${ICON.right}</div>` +
   (open ? `<div class="pop side-pop scroll" data-k="${key}">${rows}</div>` : '') + '</div>'

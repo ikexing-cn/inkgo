@@ -13,7 +13,7 @@ const backupWhy = () => BACKUP_FAILS[S.backup.why || 'disk']
 
 // 立即备份：还没选过地方，就先问放哪。
 function backupNow() {
-  if (S.backup.state === 'none') { set({ dialog: { kind: 'backup', place: BOOK.places[0][1] }, ...SHUT }); return }
+  if (S.backup.state === 'none') { set({ dialog: { kind: 'backup', place: PATHS().places[0][1] }, ...SHUT }); return }
   set((s) => ({ backup: { ...s.backup, state: 'busy' }, ...SHUT }))
   later(1200, () => set((s) => ({ backup: { ...s.backup, state: 'ok', why: '', at: stamp(), copies: s.backup.copies + 1 } })))
 }
@@ -43,7 +43,7 @@ function backupDialog(d) {
     later(1200, () => backupSet({ state: 'ok', at: stamp(), copies: 1 }))
   }
   return dialog('small', dialogHead('作品目前仅保存在本机', '选择其他位置，定期保存副本。') +
-    `<div class="places">${BOOK.places.map(([label, dir]) => `<div class="place hit${d.place === dir ? ' on' : ''}"${onClick(() => type({ place: dir }))}><div class="ring${d.place === dir ? ' on' : ''}"></div><div class="fit"><div>${t(label)}</div><div class="note ell">在本机检测到 · ${t(dir)}</div></div></div>`).join('')}` +
+    `<div class="places">${PATHS().places.map(([label, dir]) => `<div class="place hit${d.place === dir ? ' on' : ''}"${onClick(() => type({ place: dir }))}><div class="ring${d.place === dir ? ' on' : ''}"></div><div class="fit"><div>${t(label)}</div><div class="note ell">在本机检测到 · ${t(dir)}</div></div></div>`).join('')}` +
     `<div class="place hit"${onClick(osAsk('选择备份文件夹'))}><div class="ring"></div><div class="fit"><div>选择其他文件夹…</div><div class="note">移动硬盘、U 盘或其他同步文件夹</div></div></div></div>` +
     `<div class="field"><div class="label">备份时机</div><div class="ticks">${backupTimes(times, type)}</div></div>` +
     `<div class="buttons"><div class="hit link"${onClick(leave)}>稍后再说</div><div class="grow"></div>${button('开始备份', d.place ? start : null, d.place ? 'primary' : 'primary off')}</div>`)
@@ -171,7 +171,7 @@ function settingsModel(d) {
 function settingsBackup() {
   const b = S.backup
   if (b.state === 'none') {
-    return `<div class="backup-card"><div class="fit"><div class="group-title">尚未备份</div><div class="note">作品目前仅保存在本机。</div></div>${button('选择位置…', () => set({ dialog: { kind: 'backup', place: BOOK.places[0][1], back: true }, ...SHUT }), 'primary')}</div>`
+    return `<div class="backup-card"><div class="fit"><div class="group-title">尚未备份</div><div class="note">作品目前仅保存在本机。</div></div>${button('选择位置…', () => set({ dialog: { kind: 'backup', place: PATHS().places[0][1], back: true }, ...SHUT }), 'primary')}</div>`
   }
   const title = { ok: b.at + ' 已备份', busy: '正在备份…', fail: '备份失败' }[b.state]
   const row = (label, inner) => `<div class="prefs-row"><div class="prefs-label">${label}</div>${inner}</div>`
@@ -348,7 +348,7 @@ function exportDialog(d) {
   const nameOf = (what) => [book.name, what === '设定' ? '' : part, what === '正文' ? '' : what].filter(Boolean).join('-').replace(/：/g, ' ') + (word ? '.docx' : '.txt')
   const out = () => {
     set((s) => ({ dialog: null, ...SHUT, ...(ticked('正文') && word ? { pen, shelf: s.shelf.map((b) => (b.id === s.book ? { ...b, pen } : b)) } : {}) }))
-    say(going.length > 1 ? '已导出 ' + going.length + ' 个文件到 ' + S.library : '已导出到 ' + S.library + '\\' + nameOf(going[0]), '', 'ok')
+    say(going.length > 1 ? '已导出 ' + going.length + ' 个文件到 ' + S.library : '已导出到 ' + S.library + sep() +nameOf(going[0]), '', 'ok')
   }
   const about = S.exportWhat.length > 1 ? '勾选的几项各存为一个文件，放在同一文件夹。'
     : ticked('设定') ? '按分类列出已定的设定，不含待确认的。' : ticked('大纲') ? '按章节顺序列出各卷、各章的纲。'
@@ -372,12 +372,13 @@ function swapDialog(d) {
 }
 
 // 关标签页时那一章还有没存的字：存了再关、不存就关（回到存着的那一份）、或者不关。
-// 三个按钮照系统问「要不要保存」的顺序排：保存、不保存、取消。
+// 三个按钮照系统问「要不要保存」的顺序排：Windows 是保存、不保存、取消；macOS 是「不保存」单独在最左，取消、保存靠右。
 function unsavedDialog(d) {
   const drop = () => set((s) => (!s.saved && s.kept && s.kept.key === s.ch ? { ...retext(s, s.kept.paras), dirty: s.kept.dirty } : null))
   const then = (first) => () => { first(); set({ saved: true, kept: null, dialog: null }); shutTabs(d.gone, true) }
+  const save = button('保存', then(() => {}), 'primary'), lose = button('不保存', then(drop)), keep = button('取消', shut)
   return dialog('ask', dialogHead('保存对「' + titleOf(chapterOf(S.ch)) + '」的修改？', '不保存将丢失上次保存后的修改。') +
-    `<div class="buttons asked">${button('保存', then(() => {}), 'primary')}${button('不保存', then(drop))}${button('取消', shut)}</div>`)
+    (OS === 'mac' ? `<div class="buttons asked-mac">${lose}<div class="grow"></div>${keep}${save}</div>` : `<div class="buttons asked">${save}${lose}${keep}</div>`)) // system order
 }
 
 // ───────── 侧栏点出来的几个对话框 ─────────
@@ -400,16 +401,16 @@ function binDialog(d) {
 // 第三项写着 ai 的，是 AI 的那几组、几行：AI 关着时不列。
 function keysDialog() {
   const shown = (list) => list.filter(([, , ai]) => !ai || aiOn())
-  return dialog('keys', dialogHead('快捷键') + `<div class="keys scroll">${shown(BOOK.keys).map(([group, of]) => `<div class="head">${group}</div>` + shown(of).map(([key, does]) => `<div class="key-row"><div class="key">${t(key)}</div><div class="fit">${t(does)}</div></div>`).join('')).join('')}</div>` + buttons(button('关闭', shut)))
+  return dialog('keys', dialogHead('快捷键') + `<div class="keys scroll">${shown(BOOK.keys).map(([group, of]) => `<div class="head">${group}</div>` + shown(of).map(([key, does]) => `<div class="key-row"><div class="key">${t(keyLabel(key))}</div><div class="fit">${t(does)}</div></div>`).join('')).join('')}</div>` + buttons(button('关闭', shut)))
 }
 
 // ───────── 书架上的两个对话框 ─────────
 
 function newBookDialog(d) {
   const type = (key) => (v) => set((s) => ({ dialog: { ...s.dialog, [key]: v } }))
-  const name = d.name.trim() || '未命名作品', at = (d.at ?? S.library + '\\' + name).trim()
+  const name = d.name.trim() || '未命名作品', at = (d.at ?? S.library + sep() +name).trim()
   // 位置下面说那里是什么；书架上的作品都在作品库里，同名的文件夹里已有文件。
-  const taken = S.shelf.some((b) => S.library + '\\' + b.name === at), fits = at && !taken
+  const taken = S.shelf.some((b) => S.library + sep() +b.name === at), fits = at && !taken
   // 路径长了框里只露出开头，要核对的文件夹名在说明里写出来。
   const folder = '「' + t(at.split(/[\\/]/).filter(Boolean).at(-1) || at) + '」'
   const where = !at ? '<div class="note">请填写作品位置。</div>' : taken ? `<div class="note danger">文件夹${folder}中已有文件，请更换名称或位置。</div>` : `<div class="note">将新建文件夹${folder}。</div>`
@@ -420,7 +421,7 @@ function newBookDialog(d) {
     openBook(id)
   }
   return dialog('small', dialogHead('新建作品') + field('作品名称', line(d.name, type('name'), '之后可修改', '作品名称', keys(create) + ' autofocus')) + field('体裁', choose('book-kind', d.type, BOOK.kinds, type('type'), '体裁')) +
-    `<div class="field"><div class="label">位置</div><div class="pick-line"><div class="box line fit">${typed(d.at ?? S.library + '\\' + name, type('at'), '', '作品位置', keys(create))}</div>${button('更改…', osAsk('选择新作品所在的文件夹'))}</div>${where}</div>` +
+    `<div class="field"><div class="label">位置</div><div class="pick-line"><div class="box line fit">${typed(d.at ?? S.library + sep() +name, type('at'), '', '作品位置', keys(create))}</div>${button('更改…', osAsk('选择新作品所在的文件夹'))}</div>${where}</div>` +
     buttons(button('取消', shut), button('创建', fits ? create : null, fits ? 'primary' : 'primary off')))
 }
 

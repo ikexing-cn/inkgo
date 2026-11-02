@@ -24,7 +24,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   // The mark a toast wears: the class of its icon, 'none', or 'gone' when no toast says words.
   const toastMark = (words: string): Promise<string> => js(`(() => { const t = [...document.querySelectorAll('.toast')].find((x) => x.textContent.includes(${JSON.stringify(words)})); const m = t && t.querySelector(':scope > svg'); return t ? (m ? m.getAttribute('class') : 'none') : 'gone' })()`)
   // Buttons stand at the right of their row, the one that goes ahead last: DESIGN.md has it as a rule. The question
-  // of saving (.asked) is the one row in the system's order, the one that goes ahead first.
+  // of saving is the one row in the system's order: on Windows (.asked) the one that goes ahead first; on macOS
+  // (.asked-mac) 不保存 stands apart at the left and the rest keep the rule.
   // After every click, each row that holds a button is looked at; what is found is told at the end, all at once.
   const loose = new Set<string>()
   const LOOSE = `(() => {
@@ -39,7 +40,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
       const gap = box.right - parseFloat(css.paddingRight) - parseFloat(css.borderRightWidth) - last.getBoundingClientRect().right
       const main = kids.find((e) => e.matches('.btn.primary, .btn.danger'))
       // From the first button on they stand one against the next: none is left of a stretch of nothing.
-      const from = kids.findIndex(isButton), apart = parseFloat(css.columnGap) || 0
+      const from = kids.findIndex((e, i) => isButton(e) && (!row.matches('.asked-mac') || i > 0)), apart = parseFloat(css.columnGap) || 0
       const parted = from >= 0 && kids.slice(from + 1).some((e, i) => e.matches('.grow') || e.getBoundingClientRect().left - kids[from + i].getBoundingClientRect().right > apart + 1.5)
       if (gap > 1.5) out.push(row.className + ' is not at the right: ' + row.innerText.replace(/\\s+/g, ' ').slice(0, 40))
       else if (parted) out.push(row.className + ' has a button left of a gap: ' + row.innerText.replace(/\\s+/g, ' ').slice(0, 40))
@@ -854,6 +855,23 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   }
   await win('新建一部作品，或添加已有的作品文件夹。'); await noAI('the empty shelf'); await shot('99j-ai-off-shelf')
   await click('重新开始'); await win('第87章：停电'); must(await navs() === '讨论 正文 大纲 检查', 'starting over did not bring AI back: ' + await navs()); await done('AI turned off')
+
+  // macOS: the window's buttons are the system's three lights at the left, the menu bar is the screen's, shortcuts
+  // are written the Mac way, paths too, and the question of saving puts 不保存 apart at the left. Switching is like
+  // another computer: all starts over. The keys stay the same, so Ctrl still works.
+  const saveOrder = (): Promise<string> => js(`[...document.querySelectorAll('.dialog .buttons .btn')].map((e) => e.innerText).join(' ')`)
+  await click('macOS'); await win('第87章：停电')
+  must(await has('#win .lights') && !(await has('#win .window-buttons')), 'macOS shows the buttons of a Windows window'); must(await has('.mac-bar'), 'macOS shows no menu bar of its own')
+  await shot('a0-mac')
+  await click('文件'); await win('⌘N'); await win('Ctrl+N', false); await shot('a0b-mac-menu'); await key('Escape')
+  await click('编辑'); await win('⇧⌘Z'); await key('Escape')
+  await key('/', true); await win('⌃Tab'); await win('⌘↩'); await shot('a0c-mac-keys'); await click('关闭')
+  await click('第84章：刻字'); await caret(0, 0); await text('甲乙'); await shutOn(); await win(asked)
+  must(await saveOrder() === '不保存 取消 保存', 'on macOS the question of saving is not in the order of the system: ' + await saveOrder()); await shot('a0d-mac-unsaved'); await click('不保存')
+  await key('f', true); must(await has('.find-bar'), 'Ctrl+F did not open find on macOS'); await key('Escape')
+  await click('切换作品'); await click('全部作品…'); await win('~/写作'); await shot('a0e-mac-shelf')
+  await click('Windows'); await win('第87章：停电'); must(await has('#win .window-buttons') && !(await has('#win .lights')) && !(await has('.mac-bar')), 'back on Windows the window is still a Mac one')
+  await click('文件'); await win('Ctrl+N'); await key('Escape'); await done('macOS')
 
   must(!loose.size, 'buttons that are not at the right of their row, or not in order:\n  ' + [...loose].join('\n  '))
   must(!dead.size, 'things to click that do not show it:\n  ' + [...dead].join('\n  '))

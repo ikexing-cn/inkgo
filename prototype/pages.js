@@ -19,7 +19,7 @@ function talkPage() {
         `<div class="starts">${starts.map((words) => `<div class="hit"${onClick(offer(words))}>${words}</div>`).join('')}</div>`) + '</div>') +
     '<div class="composer big" data-k="composer-page"><div class="box send-box">' +
     `<textarea class="in" rows="2" placeholder="输入想法，或向 AI 提问…" aria-label="讨论输入"${onInput((v) => set({ draft: v }))}${onKey(sendKey)}>${t(S.draft)}</textarea>` +
-    `<div class="send-line">${modelPick()}<div class="grow"></div><div class="faint">Ctrl+Enter</div><div class="send hit${S.draft.trim() && !S.waiting ? '' : ' off'}" title="发送（Ctrl+Enter）"${onClick(() => send())}>${ICON.send}</div></div>` +
+    `<div class="send-line">${modelPick()}<div class="grow"></div><div class="faint">${keyLabel('Ctrl+Enter')}</div><div class="send hit${S.draft.trim() && !S.waiting ? '' : ' off'}" title="发送（${keyLabel('Ctrl+Enter')}）"${onClick(() => send())}>${ICON.send}</div></div>` +
     '</div></div></div>'
 }
 
@@ -386,7 +386,7 @@ function shelfPage() {
   const card = (b) => `<div class="shelf-card${b.gone ? ' gone' : ' hit'}"${open(b)}><div class="shelf-card-top"><div class="shelf-logo">${t(b.name[0])}</div><div class="grow"></div>${b.gone ? '' : more(b)}</div>` +
     `<div class="shelf-name ell">${t(b.name)}</div><div class="note">${t(about(b))}</div><div class="grow"></div>` +
     (b.gone ? `<div class="shelf-gone"><div class="fit danger">找不到文件夹</div><div class="hit link"${onClick(osAsk('选择该作品当前所在的文件夹'))}>定位</div><div class="hit link"${onClick(() => removeBook(b))}>移除</div></div>` : `<div class="faint">${t(b.at)}</div>`) + '</div>'
-  const row = (b) => `<div class="shelf-row${b.gone ? ' gone' : ' hit'}"${open(b)}><div class="shelf-logo">${t(b.name[0])}</div><div class="fit"><div class="shelf-row-name"><span class="shelf-name">${t(b.name)}</span><span class="note">${t(about(b))}</span></div><div class="faint ell">${t(S.library + '\\' + b.name)}</div></div>` +
+  const row = (b) => `<div class="shelf-row${b.gone ? ' gone' : ' hit'}"${open(b)}><div class="shelf-logo">${t(b.name[0])}</div><div class="fit"><div class="shelf-row-name"><span class="shelf-name">${t(b.name)}</span><span class="note">${t(about(b))}</span></div><div class="faint ell">${t(S.library + sep() +b.name)}</div></div>` +
     (b.gone ? `<div class="danger">找不到文件夹</div><div class="hit link"${onClick(osAsk('选择该作品当前所在的文件夹'))}>重新定位…</div><div class="hit link"${onClick(() => removeBook(b))}>从书架移除</div>` : `<div class="faint">${t(b.at)}</div>${more(b)}`) + '</div>'
   const bring = button('导入书籍…', startImport)
   const create = button('新建作品', () => set({ dialog: { kind: 'newBook', name: '', type: BOOK.kinds[0] } }), 'primary')
@@ -437,8 +437,8 @@ function startImport() {
 
 // 作品叫什么、放在哪。名字空着，或者那个文件夹里已有文件，都不能导入。
 function impWhere() {
-  const imp = S.imp, name = imp.name.trim(), at = (imp.at ?? S.library + '\\' + (name || '未命名作品')).trim()
-  const taken = !!at && S.shelf.some((b) => S.library + '\\' + b.name === at)
+  const imp = S.imp, name = imp.name.trim(), at = (imp.at ?? S.library + sep() +(name || '未命名作品')).trim()
+  const taken = !!at && S.shelf.some((b) => S.library + sep() +b.name === at)
   return { name, at, taken, ok: !!name && !!at && !taken }
 }
 
