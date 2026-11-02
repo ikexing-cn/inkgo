@@ -237,7 +237,7 @@ body { margin: 0; }
 .notice-bar.lost .btn.primary { background: var(--danger); }
 .ai-bar { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 6px 8px 6px 12px; border: 1px solid var(--border); border-radius: var(--r-card); background: var(--side); font-size: var(--fs-control); }
 .prose-box { position: relative; margin-top: 20px; }
-.prose { min-height: 320px; font-size: var(--fs-paper); line-height: var(--lh-paper); display: flex; flex-direction: column; gap: 10px; text-indent: 2em; white-space: pre-wrap; outline: none; caret-color: var(--ink); }
+.prose, .import-prose { min-height: 320px; font-size: var(--fs-paper); line-height: var(--lh-paper); display: flex; flex-direction: column; gap: 10px; text-indent: 2em; white-space: pre-wrap; outline: none; caret-color: var(--ink); }
 .prose-hint { position: absolute; left: 0; top: 0; font-size: var(--fs-paper); line-height: var(--lh-paper); text-indent: 2em; color: var(--faint); pointer-events: none; } /* 还没有字时垫在第一行下面的那句 */
 /* 正文里的标记：伏笔是点线，正在看的那条加浅底，选中的字是蓝底；检查出来的是虚线，查到的词是黄底；这两种线在页边都有它的批注。
    设定的名字平时不画线，指针移上去才出点线；AI 写的（采纳了的）画浅下划线；AI 提议要换掉的原文划掉、新写的标绿，跟着这一处的两个按钮；续写出来还没采纳的是灰字 */
@@ -582,7 +582,8 @@ body { margin: 0; }
 /* 浮在正文上的：右键菜单、选中后的两个按钮、记伏笔、选回收哪条 */
 .float-veil { z-index: 6; }
 .ctx { position: absolute; width: 200px; z-index: 7; }
-.ctx .anchor > .side-pop { top: -4px; left: calc(100% + 4px); right: auto; width: 120px; }
+.ctx .anchor > .side-pop { top: -4px; left: calc(100% + 4px); right: auto; min-width: 120px; max-width: 240px; max-height: calc(var(--h-row) * 10 + 10px); } /* 下一级跟着内容变宽，最多露十行，再多就滚 */
+.ctx .side-pop .grow { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ctx.flip .anchor > .side-pop { left: auto; right: calc(100% + 4px); }
 .anchor > .rare-pop { width: 240px; z-index: 11; } /* 盖得住对话框 */
 .tree-row.over { background: color-mix(in srgb, var(--ink) 12%, transparent); }
@@ -618,6 +619,11 @@ body { margin: 0; }
 .dialog.ask { width: 360px; gap: 20px; }
 .dialog.keys { width: 600px; }
 .dialog.wide { width: 860px; height: 580px; }
+.dialog.preview { width: 920px; height: 620px; } /* 导入书籍的预览：左边卷和章，右边一章 */
+.import-tree { width: 240px; flex: none; display: flex; flex-direction: column; gap: 4px; }
+.import-tree-head { flex: none; display: flex; align-items: center; padding: 0 4px 0 10px; font-size: var(--fs-note); }
+.float-veil.top { z-index: 11; }
+.ctx.top { z-index: 12; } /* 浮在对话框上面的右键菜单 */
 .dialog-title { font-size: var(--fs-dialog); font-weight: 700; }
 .dialog-title + .note { margin-top: -8px; }
 .warn-line { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--warn-bd); border-radius: var(--r-control); background: var(--warn-bg); font-size: var(--fs-note); line-height: var(--lh-body); color: var(--warn); }
@@ -637,6 +643,11 @@ body { margin: 0; }
 .snap-text > div { flex: none; }
 .bin-rows { max-height: 320px; display: flex; flex-direction: column; border-top: 1px solid var(--line); }
 .bin-row { flex: none; display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: var(--fs-body); }
+.import-head { display: flex; align-items: baseline; gap: 16px; } /* 标题右边是补救切分的两样 */
+.import-title { margin: 0 calc(0px - 6px); padding: 0 6px; border-radius: var(--r-control); line-height: var(--lh-tight); }
+.import-title:hover:not(:focus) { background: var(--hover); } /* 标题也能改：指针移上去露出来 */
+.import-acts { flex: none; display: flex; gap: 16px; }
+.import-head > .import-title { flex: 1; min-width: 0; }
 .keys { max-height: 440px; display: flex; flex-direction: column; }
 .keys .head { padding-left: 0; }
 .key-row { flex: none; display: flex; gap: 12px; padding: 6px 0; font-size: var(--fs-control); }

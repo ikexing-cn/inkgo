@@ -158,16 +158,16 @@ function placeOf(box, node, offset) {
   for (const el of top.querySelectorAll('[data-prop]')) { const x = document.createRange(); x.selectNodeContents(el); if (r.compareBoundaryPoints(Range.END_TO_END, x) >= 0) off -= el.textContent.length }
   return { para: Math.max(all.indexOf(top), 0), off }
 }
-// 选中的字的两头；没选中就是光标，两头一样。光标不在正文里时没有。
-function spanNow() {
-  const box = proseBox(), sel = getSelection()
+// 选中的字的两头；没选中就是光标，两头一样。光标不在正文里时没有。box 是哪一块正文，导入书籍那一页给它自己的。
+function spanNow(box = proseBox()) {
+  const sel = getSelection()
   if (!box || !sel.rangeCount || !box.contains(sel.anchorNode) || !box.contains(sel.focusNode)) return null
   const r = sel.getRangeAt(0)
   return [placeOf(box, r.startContainer, r.startOffset), placeOf(box, r.endContainer, r.endOffset)]
 }
 // 把光标放到第几段的第几个字后面；show 是顺便把那一段挪到看得见的地方。
-function putCaret({ para, off }, show) {
-  const box = proseBox(), div = box && blocks(box)[para]
+function putCaret({ para, off }, show, box = proseBox()) {
+  const div = box && blocks(box)[para]
   if (!div) return
   const walk = document.createTreeWalker(div, NodeFilter.SHOW_TEXT), r = document.createRange()
   r.setStart(div, 0)
@@ -641,14 +641,15 @@ function treeMenu() {
       `<div class="ctx pop" data-k="tree-menu" style="left:${S.tree.x}px;top:${S.tree.y}px">${menuRow(S.shelved[id] ? '移回列表' : '收起这段对话', flip)}</div>`
   }
   const key = S.tree.key, vol = S.volumes.some((v) => v[0] === key), c = chapterOf(key)
+  // 移到哪一卷收在「移到」的下一级里：卷再多，菜单也不跟着变长。into 是下一级开着。
   const spots = vol ? [] : [['最上层', ''], ...S.volumes.map((v) => [v[1], v[0]])].filter(([, to]) => to !== c.vol)
   const win = document.getElementById('win')
   return `<div class="veil float-veil"${onClick(closeFloat)}${onMenu((ev) => { ev.preventDefault(); closeFloat() })}></div>` +
-    `<div class="ctx pop" data-k="tree-menu" style="left:${S.tree.x}px;top:${Math.min(S.tree.y, win.offsetHeight - 240 - (vol ? 30 : 0) - (spots.length ? 26 + spots.length * 30 : 0))}px">` +
+    `<div class="ctx pop${S.tree.x > win.offsetWidth - 208 - 208 ? ' flip' : ''}" data-k="tree-menu"${subOver(!!S.tree.into, (on) => set((s) => ({ tree: { ...s.tree, into: on } })))} style="left:${S.tree.x}px;top:${Math.min(S.tree.y, win.offsetHeight - Math.max(270, 178 + Math.min(spots.length, 10) * 30) - (vol ? 30 : 0))}px">` +
     (vol ? menuRow('编辑卷纲', goTo(key)) : '') + // 点一卷只是折起、展开；它的卷纲从这里打开
     menuRow('重命名', () => set({ tree: null, rename: { key, t: vol ? S.volumes.find((v) => v[0] === key)[1] : titleOf(c), all: true } })) + menuRow('新建章节', () => newChapter(vol ? key : undefined)) + menuRow('新建文件夹', newFolder) + HAIR +
     menuRow('上移', () => shift(key, -1)) + menuRow('下移', () => shift(key, 1)) +
-    (spots.length ? '<div class="pop-label">移到</div>' + spots.map(([label, to]) => menuRow(label, () => moveInto(key, to))).join('') : '') + HAIR +
+    (spots.length ? subRow('移到', S.tree.into, () => set((s) => ({ tree: { ...s.tree, into: true } })), 'tree-into', spots.map(([label, to]) => menuRow(label, () => moveInto(key, to))).join('')) : '') + HAIR +
     menuRow('移到回收站', () => toBin(key)) + '</div>'
 }
 
@@ -921,21 +922,16 @@ function floats() {
     }
     const names = !name || name.length > 12 ? menuRow('加入名字表', null)
       : S.entries.some((e) => e.place !== 'dropped' && e.names.includes(name)) ? menuRow('已在名字表中', null)
-      : `<div class="anchor wide"><div class="pop-row row${S.ctx.names ? ' on' : ''}"${onClick(() => set((s) => ({ ctx: { ...s.ctx, names: true } })))}><div class="grow">加入名字表</div>${ICON.right}</div>` +
-        (S.ctx.names ? `<div class="pop side-pop" data-k="ctx-names">${S.cats.filter((c) => BOOK.nameCats.includes(c)).map((c) => menuRow(c, addName(c))).join('')}</div>` : '') + '</div>'
+      : subRow('加入名字表', S.ctx.names, () => set((s) => ({ ctx: { ...s.ctx, names: true } })), 'ctx-names', S.cats.filter((c) => BOOK.nameCats.includes(c)).map((c) => menuRow(c, addName(c))).join(''))
     // 剪贴板的四项。粘贴要浏览器肯让页面读剪贴板，不肯就提示按 Ctrl+V。AI 正在改的时候正文不能动，剪切、粘贴是灰的。
     const span = S.ctx.span
     const copy = () => { if (navigator.clipboard) navigator.clipboard.writeText(p.text).catch(() => {}); set({ ctx: null, pick: null }) }
     const cut = () => { copy(); putText('', span) }
     const paste = () => { set({ ctx: null, pick: null }); (navigator.clipboard ? navigator.clipboard.readText() : Promise.reject()).then((text) => putText(plain(text), span), () => say('无法读取剪贴板', '请按 Ctrl+V 粘贴')) }
     const all = () => { set({ ctx: null, pick: null }); const first = document.querySelector('[data-para]'); if (first) getSelection().selectAllChildren(first.parentElement) }
-    // 指针移到「加入名字表」上，旁边那一列就打开；移到别的行上，它收起。
-    const over = (ev) => {
-      const row = ev.target.closest('.pop-row'), on = !!ev.target.closest('.anchor')
-      if (row && on !== !!S.ctx.names) set((s) => ({ ctx: { ...s.ctx, names: on } }))
-    }
+    const over = subOver(!!S.ctx.names, (on) => set((s) => ({ ctx: { ...s.ctx, names: on } })))
     // 菜单宽 200，最多十二行，都留在窗口里；旁边再开一列时也不出窗口。
-    return veiled + `<div class="ctx pop${S.ctx.x > win.offsetWidth - 208 - 130 ? ' flip' : ''}" data-k="ctx"${onOver(over)} style="left:${Math.min(S.ctx.x, win.offsetWidth - 208)}px;top:${Math.min(S.ctx.y, win.offsetHeight - 430)}px">` +
+    return veiled + `<div class="ctx pop${S.ctx.x > win.offsetWidth - 208 - 130 ? ' flip' : ''}" data-k="ctx"${over} style="left:${Math.min(S.ctx.x, win.offsetWidth - 208)}px;top:${Math.min(S.ctx.y, win.offsetHeight - 430)}px">` +
       menuRow('剪切', p && span ? cut : null, '', 'Ctrl+X') + menuRow('复制', p ? copy : null, '', 'Ctrl+C') + menuRow('粘贴', span ? paste : null, '', 'Ctrl+V') + menuRow('全选', all, '', 'Ctrl+A') + HAIR +
       (aiOn() ? menuRow('续写一句', continueText, '', 'Ctrl+J') + menuRow('AI 改写…', p ? askRewrite : null) + menuRow('引用到讨论', p ? cite : null, '', 'Ctrl+L') : '') + menuRow('加入设定', p ? take : null) + names + HAIR +
       menuRow('记为伏笔…', p ? () => set({ ctx: null, bury: { note: '' } }) : null) + menuRow('记为回收…', p ? () => askPay('') : null) +

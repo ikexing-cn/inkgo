@@ -279,6 +279,11 @@ function choose(id, value, options, pick, label) {
 }
 // 菜单里的一行：左边图标，右边快捷键或小字；act 空着就是灰的。
 const menuRow = (label, act, pic, side = '') => `<div class="pop-row row${act ? '' : ' off'}"${onClick(act)}>${pic ? icon(pic, 'md', 'muted') : ''}<div class="grow">${t(label)}</div><div class="side">${t(side)}</div></div>`
+// 有下一级的一行：点它或者指针滑到（subOver），旁边展开一列 rows；展开着时这一行是浅底。
+const subRow = (label, open, show, key, rows) => `<div class="anchor wide"><div class="pop-row row${open ? ' on' : ''}"${onClick(show)}><div class="grow">${t(label)}</div>${ICON.right}</div>` +
+  (open ? `<div class="pop side-pop scroll" data-k="${key}">${rows}</div>` : '') + '</div>'
+// 放在菜单上：指针移到有下一级的那一行就展开，移到别的行上收起。
+const subOver = (open, toggle) => onOver((ev) => { const row = ev.target.closest('.pop-row'), on = !!ev.target.closest('.anchor'); if (row && on !== open) toggle(on) })
 // 对话框：盖住整个窗口，点外面或按 Esc 关掉。
 const shut = () => set({ dialog: null, ...SHUT })
 const dialog = (cls, inner) => `<div class="scrim"${onClick(shut)}></div><div class="dialog-wrap">${veil()}<div class="dialog ${cls}" data-k="dialog">${inner}</div></div>`
@@ -381,5 +386,5 @@ for (const [event, kind] of [['click', 'click'], ['keydown', 'keydown'], ['conte
 root.addEventListener('focusout', (ev) => { const el = ev.target.closest('[data-blur]'); if (el && !drawing) H[el.dataset.blur](ev) }) // 光标离开了输入框
 root.addEventListener('input', (ev) => { const el = ev.target.closest('[data-input]'); if (el) H[el.dataset.input](el.value) })
 // 在正文里用拼音：选完字才把页面上的读回来。
-root.addEventListener('compositionstart', (ev) => { if (ev.target.closest('.prose')) composing = true })
-root.addEventListener('compositionend', () => { if (!composing) return; composing = false; wrote(); if (owed) { owed = false; draw() } })
+root.addEventListener('compositionstart', (ev) => { if (ev.target.closest('.prose, .import-prose')) composing = true })
+root.addEventListener('compositionend', () => { if (!composing) return; composing = false; if (impOpen()) importWrote(); else wrote(); if (owed) { owed = false; draw() } })

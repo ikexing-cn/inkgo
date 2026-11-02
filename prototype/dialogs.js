@@ -438,5 +438,5 @@ function leaveDialog(d) {
 // 要关掉这部作品（换一部、回到书架）：有没定的 AI 提议，先问。
 const leave = (then) => () => (S.props.length ? set({ dialog: { kind: 'leave', then }, ...SHUT }) : then())
 
-const DIALOGS = { leave: leaveDialog, backup: backupDialog, settings: settingsDialog, take: takeDialog, source: sourceDialog, draft: draftDialog, snaps: snapsDialog, export: exportDialog, swap: swapDialog, unsaved: unsavedDialog, bin: binDialog, keys: keysDialog, newBook: newBookDialog, nameBook: nameBookDialog, card: cardDialog }
+const DIALOGS = { leave: leaveDialog, backup: backupDialog, settings: settingsDialog, take: takeDialog, source: sourceDialog, draft: draftDialog, snaps: snapsDialog, export: exportDialog, swap: swapDialog, unsaved: unsavedDialog, bin: binDialog, keys: keysDialog, newBook: newBookDialog, nameBook: nameBookDialog, card: cardDialog, importForm: importFormDialog, importPreview: importPreviewDialog }
 const dialogs = () => (S.dialog ? DIALOGS[S.dialog.kind](S.dialog) : '')

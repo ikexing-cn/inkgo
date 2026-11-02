@@ -116,6 +116,7 @@ function view() {
 
 // 按 Esc：从最上面的一层收起。
 function backOut() {
+  if (S.imp && S.imp.menu) return set((s) => ({ imp: { ...s.imp, menu: null } })) // 预览里右键点出来的菜单
   if (S.dialog && S.dialog.ask) return set((s) => ({ dialog: { ...s.dialog, ask: '' } })) // 浮在设置上面的那一问
   if (S.dialog) return shut()
   if (S.open) return set(SHUT)
