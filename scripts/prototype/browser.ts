@@ -214,13 +214,21 @@ export async function open(file: string, ready: string, shots?: string): Promise
       // may move (or replace) the target, so coordinates measured immediately
       // after scrollIntoView can already be stale when the mouse arrives.
       // Do not retry the click: an action may have saved or sent something.
+      // Waiting out two frames costs about 35 ms, most of a click; when
+      // nothing scrolled there is nothing to wait for.
       const at = await js(`(async () => {
         const find = ${find}, words = ${JSON.stringify(words)}, nth = ${nth}
         const e = find(words, nth)
         if (!e) return null
+        const boxes = []
+        for (let b = e.parentElement; b; b = b.parentElement) boxes.push(b)
+        const where = () => boxes.map((b) => b.scrollTop + ',' + b.scrollLeft).join(' ')
+        const before = where()
         e.scrollIntoView({ block: 'center', behavior: 'instant' })
-        await new Promise(requestAnimationFrame)
-        await new Promise(requestAnimationFrame)
+        if (where() !== before) {
+          await new Promise(requestAnimationFrame)
+          await new Promise(requestAnimationFrame)
+        }
         const current = find(words, nth)
         if (!current) return null
         const r = current.getBoundingClientRect()
