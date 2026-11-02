@@ -24,7 +24,7 @@ npm run verify
 
 ## 界面：规则在 `DESIGN.md`，样子在原型
 
-动界面之前先读 `DESIGN.md`。
+动界面之前按需读 `DESIGN.md`，不要整篇读（约 29KB）：先 `grep -n '^#' DESIGN.md` 看目录，只读 Overview 里「怎么维护」和这次改动碰到的小节（按钮、菜单、对话框等）。
 
 双击 `prototype/index.html` 就开：整个窗口都能点，内容是假的，正文能打字（不存盘，刷新就回到原样），AI 只回固定的几句。纯 HTML/JS，没有依赖，不用构建。各文件管什么：
 
