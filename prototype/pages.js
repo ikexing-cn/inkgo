@@ -291,7 +291,7 @@ function checkPage() {
   }
   const ask = () => `<div class="pop ask-pop" data-k="ask-pop"><div class="pop-title">${t(L.checkOwedTitle(owed.length))}</div><div class="note">${t(L.checkOwedNote(owed.length))}</div>` +
     `<div class="pop-buttons">${button(L.commonCancel(), () => set(SHUT))}${button(L.checkStart(), () => { set(SHUT); checkNow(...owed.map((c) => c.key)) }, 'primary')}</div></div>`
-  const last = S.chapters.filter((c) => !S.never[c.key] && counted(c) >= 200).at(-1)
+  const last = S.chapters.filter((c) => !S.never[c.key] && sizeOf(c) >= 200).at(-1)
   const running = chapterOf(S.checking), lost = S.chapters.find((c) => S.failed[c.key])
   const none = !S.entries.some((e) => e.place === 'body') ? [L.checkNoSettingsTitle(), L.checkNoSettingsAbout()]
     : S.checks.length ? [L.checkNoneInKind(), ''] : !last ? [L.checkNotYet(), L.checkNotYetAbout(L.checkAllBook())]
@@ -321,7 +321,7 @@ function checkPage() {
     // 不另写「检查」二字：标题栏正中已经说了在哪一页。
     '<div class="check-head">' +
     (running ? `<div class="muted">${t(S.queue.length ? L.checkRunningMore(titleOf(running), S.queue.length) : L.checkRunning(titleOf(running)))}</div><div class="grow"></div><div class="hit link"${onClick(() => set({ checking: false, queue: [] }))}>${t(L.checkStop())}</div>`
-      : `<div class="muted">${t(unfinished ? L.checkProgress(S.chapters.filter((c) => !S.never[c.key] && counted(c) >= 200 && !S.failed[c.key]).length, S.chapters.filter((c) => S.failed[c.key]).length) : last ? L.checkCheckedUpTo(titleOf(last)) : '')}</div><div class="grow"></div><div class="anchor"><div class="hit link"${onClick(again)}>${t(last ? L.checkRecheck() : L.checkAllBook())}</div>${S.open === 'checkAll' ? ask() : ''}</div>`) + '</div>' +
+      : `<div class="muted">${t(unfinished ? L.checkProgress(S.chapters.filter((c) => !S.never[c.key] && sizeOf(c) >= 200 && !S.failed[c.key]).length, S.chapters.filter((c) => S.failed[c.key]).length) : last ? L.checkCheckedUpTo(titleOf(last)) : '')}</div><div class="grow"></div><div class="anchor"><div class="hit link"${onClick(again)}>${t(last ? L.checkRecheck() : L.checkAllBook())}</div>${S.open === 'checkAll' ? ask() : ''}</div>`) + '</div>' +
     seg(S.kind + ' ' + count(S.kind), KINDS.map((k) => [k + ' ' + count(k), '', kindWord(k) + ' ' + count(k)]), (v) => set({ kind: v.split(' ')[0], cid: null }), L.checkKindAria()) +
     `<div class="check-rows scroll">${of.map(row).join('')}</div></div>` + detail
 }
@@ -368,7 +368,7 @@ const osAsk = (what) => () => say(L.shelfOSTitle(), L.shelfOSStep(what))
 // 添加已有作品：原型里当作每次选的都是同一个文件夹。头一回加上，再点就说已经在了。
 function addBook() {
   if (S.shelf.some((b) => b.id === 'found')) { say(L.shelfAlready()); return }
-  set((s) => ({ shelf: [...s.shelf, { id: 'found', name: BOOK.found, kind: '出版小说', words: L.shelfWordsWan('2.1', '21,000'), at: L.shelfNotOpened() }] }))
+  set((s) => ({ shelf: [...s.shelf, { id: 'found', name: BOOK.found, kind: '出版小说', words: 21000, at: null }] }))
   say(L.shelfAdded(), BOOK.found, 'ok')
 }
 
@@ -387,9 +387,9 @@ function shelfPage() {
   const removeBook = (b) => { set((s) => ({ shelf: s.shelf.filter((x) => x.id !== b.id), ...SHUT })); say(L.shelfRemoved(b.name), '', 'ok') }
   const card = (b) => `<div class="shelf-card${b.gone ? ' gone' : ' hit'}"${open(b)}><div class="shelf-card-top"><div class="shelf-logo">${t(b.name[0])}</div><div class="grow"></div>${b.gone ? '' : more(b)}</div>` +
     `<div class="shelf-name ell">${t(b.name)}</div><div class="note">${t(about(b))}</div><div class="grow"></div>` +
-    (b.gone ? `<div class="shelf-gone"><div class="fit danger">${t(L.shelfFolderMissing())}</div><div class="hit link"${onClick(osAsk(L.shelfPickBookFolder()))}>${t(L.shelfLocate())}</div><div class="hit link"${onClick(() => removeBook(b))}>${t(L.shelfRemoveShort())}</div></div>` : `<div class="faint">${t(timeShown(b.at))}</div>`) + '</div>'
+    (b.gone ? `<div class="shelf-gone"><div class="fit danger">${t(L.shelfFolderMissing())}</div><div class="hit link"${onClick(osAsk(L.shelfPickBookFolder()))}>${t(L.shelfLocate())}</div><div class="hit link"${onClick(() => removeBook(b))}>${t(L.shelfRemoveShort())}</div></div>` : `<div class="faint">${t(b.at === null ? L.shelfNotOpened() : timeShown(b.at))}</div>`) + '</div>'
   const row = (b) => `<div class="shelf-row${b.gone ? ' gone' : ' hit'}"${open(b)}><div class="shelf-logo">${t(b.name[0])}</div><div class="fit"><div class="shelf-row-name"><span class="shelf-name">${t(b.name)}</span><span class="note">${t(about(b))}</span></div><div class="faint ell">${t(S.library + sep() +b.name)}</div></div>` +
-    (b.gone ? `<div class="danger">${t(L.shelfFolderMissing())}</div><div class="hit link"${onClick(osAsk(L.shelfPickBookFolder()))}>${t(L.shelfRelocate())}</div><div class="hit link"${onClick(() => removeBook(b))}>${t(L.shelfRemove())}</div>` : `<div class="faint">${t(timeShown(b.at))}</div>${more(b)}`) + '</div>'
+    (b.gone ? `<div class="danger">${t(L.shelfFolderMissing())}</div><div class="hit link"${onClick(osAsk(L.shelfPickBookFolder()))}>${t(L.shelfRelocate())}</div><div class="hit link"${onClick(() => removeBook(b))}>${t(L.shelfRemove())}</div>` : `<div class="faint">${t(b.at === null ? L.shelfNotOpened() : timeShown(b.at))}</div>${more(b)}`) + '</div>'
   const bring = button(L.shelfImportMore(), startImport)
   const create = button(L.shelfNewBook(), () => set({ dialog: { kind: 'newBook', name: '', type: BOOK.kinds[0] } }), 'primary')
   if (!all.length) {
@@ -419,7 +419,6 @@ function shelfPage() {
 // sel 是正看着的那一章，folds 是折起的卷，rename 是正在改名的一行，menu 是右键点出来的菜单，
 // at 是改过的位置（没改过就跟着名字走），can 是光标正停在能另起一章的地方。
 const impWords = (c) => c.paras.join('').replace(/\s/g, '').length
-const impNum = (n) => n.toLocaleString('en-US')
 const impBox = () => document.querySelector('.import-prose')
 const impCur = () => S.imp.chapters.find((c) => c.id === S.imp.sel)
 const impOpen = () => S.dialog && S.dialog.kind === 'importPreview' && !!S.imp
@@ -653,11 +652,11 @@ function importPreviewDialog() {
   const naming = (key, pic, deep) => `<div class="tree-row naming${pic ? '' : ' leaf'}${deep ? ' deep' : ''}${key === imp.sel ? ' on' : ''}" data-k="imp-${key}">${pic}` +
     `${typed(imp.rename.t, (v) => set((s) => (s.imp && s.imp.rename ? { imp: { ...s.imp, rename: { ...s.imp.rename, t: v } } } : null)), '', L.commonRename(), keys(impRenameNow, () => impPatch({ rename: null })) + onBlur(impRenameNow) + ' autofocus data-all')}</div>`
   const leaf = (c) => (imp.rename && imp.rename.key === c.id ? naming(c.id, '', c.vol)
-    : `<div class="tree-row leaf hit${c.vol ? ' deep' : ''}${c.id === imp.sel ? ' on' : ''}" draggable="true" data-k="imp-${c.id}" data-imp-node="${c.id}"${onClick(() => impShow(c.id))}${menu(c.id)}><div class="fit ell">${t(c.title.trim() || L.commonUntitled())}</div><div class="count">${impNum(impWords(c))}</div></div>`)
+    : `<div class="tree-row leaf hit${c.vol ? ' deep' : ''}${c.id === imp.sel ? ' on' : ''}" draggable="true" data-k="imp-${c.id}" data-imp-node="${c.id}"${onClick(() => impShow(c.id))}${menu(c.id)}><div class="fit ell">${t(c.title.trim() || L.commonUntitled())}</div><div class="count">${t(L.commonNumber(impWords(c)))}</div></div>`)
   const volume = ([key, title]) => {
     const folded = !!imp.folds[key], pic = icon(folded ? 'right' : 'down', 'xs'), mine = chapters.filter((c) => c.vol === key)
     return (imp.rename && imp.rename.key === key ? naming(key, pic)
-      : `<div class="tree-row hit" data-k="imp-${key}" data-imp-node="${key}"${onClick(() => impPatch({ folds: { ...imp.folds, [key]: !folded } }))}${menu(key)}>${pic}<div class="fit ell">${t(title)}</div><div class="count">${impNum(mine.reduce((n, c) => n + impWords(c), 0))}</div></div>`) +
+      : `<div class="tree-row hit" data-k="imp-${key}" data-imp-node="${key}"${onClick(() => impPatch({ folds: { ...imp.folds, [key]: !folded } }))}${menu(key)}>${pic}<div class="fit ell">${t(title)}</div><div class="count">${t(L.commonNumber(mine.reduce((n, c) => n + impWords(c), 0)))}</div></div>`) +
       (folded ? '' : mine.map(leaf).join(''))
   }
   const tree = imp.volumes.map(volume).join('') + chapters.filter((c) => !c.vol).map(leaf).join('')
@@ -669,15 +668,15 @@ function importPreviewDialog() {
   const side = !cur ? '<div class="snap-side">' + empty(L.shelfNoChapters(), L.shelfNoChaptersAbout()) + '</div>' : '<div class="snap-side">' +
     `<div class="import-head"><input class="in chapter-title import-title" value="${t(cur.title)}" placeholder="${t(L.commonUntitled())}" aria-label="${t(L.shelfChapterTitle())}" spellcheck="false"${onInput((v) => { impRetire(); set((s) => ({ imp: { ...s.imp, chapters: s.imp.chapters.map((c) => (c.id === cur.id ? { ...c, title: v } : c)) } })) })}${keys(toProse)}>${acts}</div><div class="note">${t(L.shelfSplitNote())}</div>` +
     `<div class="snap-text imp-text scroll"><div class="import-prose" contenteditable="plaintext-only" spellcheck="false" aria-label="${t(L.shelfTextLabel())}"${onInput(importWrote)}${onKey(importKey)}${onPaste(importPaste)}>${(cur.paras.length ? cur.paras : ['']).map((p, i) => `<div data-para="${i}">${p ? t(p) : '<br>'}</div>`).join('')}</div></div>` +
-    `<div class="faint">${t(L.shelfChapterWords(impNum(impWords(cur))))}</div></div>`
+    `<div class="faint">${t(L.shelfChapterWords(impWords(cur)))}</div></div>`
   const ok = !!chapters.length
   const go = () => {
-    const id = 'book' + S.n, words = total >= 10000 ? L.shelfWordsWan((total / 10000).toFixed(1), impNum(total)) : L.shelfWordsCount(String(total))
+    const id = 'book' + S.n, words = total
     set((s) => ({ shelf: [{ id, name: w.name, kind: imp.type, words, at: stamp() }, ...s.shelf], n: s.n + 1, dialog: null, imp: null }))
     openBook(id)
     say(L.shelfImported(chapters.length), w.name, 'ok')
   }
-  return dialog('preview', dialogHead(L.shelfPreviewTitle(BOOK.source.file), L.shelfPreviewAbout(imp.volumes.length, imp.chapters.length, impNum(total))) +
+  return dialog('preview', dialogHead(L.shelfPreviewTitle(BOOK.source.file), L.shelfPreviewAbout(imp.volumes.length, imp.chapters.length, total)) +
     '<div class="snaps">' +
     `<div class="import-tree">${add}<div class="tree scroll">${tree}</div></div>` + side + '</div>' +
     buttons(button(L.commonCancel(), () => set({ dialog: null, imp: null, ...SHUT })), button(L.commonBack(), () => set({ dialog: { kind: 'importForm' }, ...SHUT })), button(L.commonOK(), ok ? go : null, ok ? 'primary' : 'primary off'))) +

@@ -106,11 +106,11 @@ function spent() {
   const all = S.records
   const row = (feature) => {
     const rows = all.filter((r) => r[1] === feature), sum = (i) => rows.reduce((n, r) => n + r[6][i], 0)
-    return `<div class="spent-row"><div>${t(featureName(feature))}</div><div class="fit ell">${t(L.settingsSpentRow(String(rows.length), tokens(sum(0)), Math.round((sum(1) / sum(0)) * 100), tokens(sum(2))))}</div><div>${t(L.settingsSpentCost(spentOn(rows).toFixed(2)))}</div></div>`
+    return `<div class="spent-row"><div>${t(featureName(feature))}</div><div class="fit ell">${t(L.settingsSpentRow(rows.length, tokens(sum(0)), Math.round((sum(1) / sum(0)) * 100), tokens(sum(2))))}</div><div>${t(L.settingsSpentCost(spentOn(rows)))}</div></div>`
   }
   const used = FEATURES.filter((f) => all.some((r) => r[1] === f))
   return `<div class="prefs-group"><div class="group-title">${t(L.settingsUsage())}</div></div>` +
-    (used.length ? `<div class="spent">${used.map(row).join('')}</div><div class="prefs-links"><div class="hit link"${onClick(() => set((s) => ({ dialog: { ...s.dialog, records: true, only: '全部', row: -1 }, ...SHUT })))}>${t(L.settingsViewAll(String(all.length)))}</div></div>` : `<div class="note">${t(L.settingsNoUsage())}</div>`)
+    (used.length ? `<div class="spent">${used.map(row).join('')}</div><div class="prefs-links"><div class="hit link"${onClick(() => set((s) => ({ dialog: { ...s.dialog, records: true, only: '全部', row: -1 }, ...SHUT })))}>${t(L.settingsViewAll(all.length))}</div></div>` : `<div class="note">${t(L.settingsNoUsage())}</div>`)
 }
 // AI 记录：每次请求一行，新的在上，失败的、取消的也在。点一行看这次发了哪几部分、服务商算的实际用量。不存发出去的字。
 // AI 记录里的字：状态里存的是中文（「规则」「设定 7 条」「不思考」「失败：…」），显示时换成当前语言；「设定 7 条」的数照原样填进去。
@@ -189,12 +189,16 @@ function settingsBackup() {
     button(b.state === 'fail' ? L.backupRetry() : L.backupRunNow(), b.state === 'busy' ? null : backupNow, b.state === 'busy' ? 'primary off' : 'primary') + '</div>' +
     row(L.backupDestLabel(), `<div class="fit ell">${t(b.dir)}</div>${button(L.backupChange(), osAsk(L.dialogOsBackupFolder()))}`) +
     row(L.backupTiming(), `<div class="ticks">${backupTimes(b, backupSet)}</div>`) +
-    row(L.backupKeep(), `<div class="keep">${choose('keep', b.keep, [['最近 10 份', L.backupKeep10()], ['最近 30 份', L.backupKeep30()], ['最近 90 份', L.backupKeep90()]], (keep) => backupSet({ keep }), L.backupKeep())}</div><div class="note">${t(L.backupSize((b.copies * 1.1).toFixed(1)))}</div>`)
+    row(L.backupKeep(), `<div class="keep">${choose('keep', b.keep, [['最近 10 份', L.backupKeep10()], ['最近 30 份', L.backupKeep30()], ['最近 90 份', L.backupKeep90()]], (keep) => backupSet({ keep }), L.backupKeep())}</div><div class="note">${t(L.backupSize(b.copies * 1.1))}</div>`)
 }
 
 // 「AI」那一部分的最上面：一个开关，管本机的所有作品。点了不马上变，先问一句。
 const aiSwitch = () => `<div class="ticks">${tickbox(S.noAI, L.settingsCloseAI(), () => set((s) => ({ dialog: { ...s.dialog, ask: s.noAI ? 'on' : 'off' }, ...SHUT })))}` +
   `<div class="note tick-note">${t(L.settingsAIOffNote())}</div></div>`
+
+// 「功能」：每个扩展模块一个勾，下面灰字说它在哪儿出现。点了马上生效，不问：什么都不丢。
+const modules = () => '<div class="ticks">' + MODS().map(([id, name, where, off]) => tickbox(modOn(id), name, () => set((s) => ({ modsOff: modOn(id) ? [...s.modsOff, id] : s.modsOff.filter((x) => x !== id) }))) +
+  `<div class="note tick-note">${t(where)}${off ? '<br>' + t(off) : ''}</div>`).join('') + '</div>'
 
 // 「外观」的最下面：禁用 GPU 加速，管本机。界面用什么画是打开软件时定的，改了要重新打开才生效：
 // 和这次打开时不一样，说明下面多一句，跟着一个「立即重新打开」（软件里关掉窗口再打开，回到同一本书，设置不再开着）。
@@ -227,18 +231,18 @@ function turnAI(on) {
 }
 
 // 设置的几个分类：状态里记的是中文名，显示时换成 L 里的字。
-const tabName = (name) => ({ 外观: L.viewLook(), 提醒与检查: L.settingsTabRemind(), 提醒: L.settingsTabRemindOnly(), 备份: L.settingsTabBackup() })[name] ?? name
+const tabName = (name) => ({ 外观: L.viewLook(), 功能: L.settingsTabModules(), 提醒与检查: L.settingsTabRemind(), 提醒: L.settingsTabRemindOnly(), 备份: L.settingsTabBackup() })[name] ?? name
 
 function settingsDialog(d) {
   // 书架上没有打开的作品，只有本机的两部分。AI 关着时，「提醒与检查」里只剩提醒。
   const remind = aiOn() ? '提醒与检查' : '提醒'
-  const tabs = S.page === 'shelf' ? ['AI', '外观'] : ['AI', '外观', remind, '备份']
+  const tabs = S.page === 'shelf' ? ['AI', '外观', '功能'] : ['AI', '外观', '功能', remind, ...(modOn('backup') ? ['备份'] : [])]
   // 每一类的标题和下面那句说明留在上面不动，只有内容滚动。
-  const about = { AI: aiOn() ? '' : L.settingsLocalOnly(), 外观: L.settingsLocalOnly(), [remind]: L.settingsBookOnly(), 备份: '' }
+  const about = { AI: aiOn() ? '' : L.settingsLocalOnly(), 外观: L.settingsLocalOnly(), 功能: L.settingsLocalOnly(), [remind]: L.settingsBookOnly(), 备份: '' }
   const lateNow = S.marks.filter((m) => m.st === 'open' && BOOK.now - m.ch >= S.late).length
   const step =(by) => () => set((s) => ({ late: Math.max(5, s.late + by) }))
   const rec = d.tab === 'AI' && d.records && aiOn()
-  const body = d.tab === 'AI' ? (rec ? records(d) : aiSwitch() + (aiOn() ? settingsModel(d) : '')) : d.tab === '备份' ? settingsBackup()
+  const body = d.tab === 'AI' ? (rec ? records(d) : aiSwitch() + (aiOn() ? settingsModel(d) : '')) : d.tab === '备份' ? settingsBackup() : d.tab === '功能' ? modules()
     : d.tab === '外观' ? `<div class="prefs-row"><div class="prefs-label">${t(L.settingsColor())}</div>${seg(S.look, LOOKS(), (v) => set({ look: v }), L.settingsColor())}</div>` +
       `<div class="prefs-row">${tickbox(S.names, L.settingsMarkNames(), () => set({ names: !S.names }))}</div>` + (OFFER_NO_GPU ? gpuSwitch() : '')
     : `<div class="prefs-group"><div class="group-title">${t(L.settingsForeshadow())}</div></div>` +
@@ -266,7 +270,7 @@ function sourceDialog(d) {
   }
   return dialog('source', dialogHead(L.dialogSourceTitle(), L.dialogSourceAbout()) +
     `<div class="source-text scroll"${onUp(read)}>${t(d.text)}</div>` +
-    `<div class="source-line">${choose('source-cat', d.cat, S.cats, (v) => set((s) => ({ dialog: { ...s.dialog, cat: v } })), L.dialogSourceCat())}<div class="${d.picked ? 'ink' : 'faint'}">${t(d.picked ? L.dialogPicked(String(d.picked.length)) : L.dialogNotPicked())}</div><div class="grow"></div>` +
+    `<div class="source-line">${choose('source-cat', d.cat, S.cats, (v) => set((s) => ({ dialog: { ...s.dialog, cat: v } })), L.dialogSourceCat())}<div class="${d.picked ? 'ink' : 'faint'}">${t(d.picked ? L.dialogPicked(d.picked.length) : L.dialogNotPicked())}</div><div class="grow"></div>` +
     `<div class="hit link"${onClick(shut)}>${t(L.dialogSourceCollapse())}</div>${button(L.dialogAddSetting(), add, d.picked ? 'primary' : 'primary off')}</div>`)
 }
 
@@ -288,7 +292,7 @@ function draftDialog(d) {
   const cur = chapterOf(S.ch), use = S.uses[0], prev = S.chapters[S.chapters.indexOf(cur) - 1]
   const type = (key) => (v) => set((s) => ({ dialog: { ...s.dialog, [key]: v } }))
   const cards = eventsOf(cur.key).length
-  const sent = 1100 + S.entries.filter((e) => e.place === 'body').length * 260 + 600 + cards * 45 + (prev ? counted(prev) : 0) // 规则、设定、章纲卷纲、本章的卡片、上一章全文
+  const sent = 1100 + S.entries.filter((e) => e.place === 'body').length * 260 + 600 + cards * 45 + (prev ? sizeOf(prev) : 0) // 规则、设定、章纲卷纲、本章的卡片、上一章全文
   const items = [cards ? L.draftItemCards(cards) : '', prev ? L.draftItemPrev() : '', cur.vol ? L.draftItemVolume() : L.draftItemBooks()].filter(Boolean).join(L.draftListSep())
   return dialog('small', dialogHead(L.cmdDraft(), (cards ? L.draftAboutCards() : L.draftAboutOutline()) + L.draftAboutFlow()) +
     `<div class="quote">${t(S.outlines[cur.key])}</div>` +
@@ -311,6 +315,8 @@ function compare(old, now) {
   return out.map(([cls, text]) => `<div${cls ? ` class="${cls}"` : ''}>${t(text)}</div>`).join('')
 }
 
+// 「AI 改动前」的快照写着改动来自哪几段讨论，几个名字按界面语言连起来（「甲」和「乙」、“A” and “B”）。
+const aiFrom = (talks) => L.snapAIFrom(new Intl.ListFormat(LANG.replace(/-XA$/, '')).format(talks.map((x) => (x === null ? L.snapAITalkGone() : L.snapAITalk(x)))))
 // 快照是在什么之前存的。AI 关着时，「AI 改动前」只写「改动前」：快照还在，不提 AI。
 const snapKind = (kind) => ({ 恢复前: L.snapKindRestore(), 'AI 改动前': L.snapKindAI(), 改动前: L.snapKindEdit(), 外部改动: L.snapKindOutside(), 全书替换前: L.snapKindSwap(), 写作中: L.snapKindWriting(), 打开时: L.snapKindOpening() })[kind === 'AI 改动前' && !aiOn() ? '改动前' : kind] ?? kind
 
@@ -325,9 +331,9 @@ function snapsDialog(d) {
   const same = shown && shown.paras.join('\n') === cur.paras.join('\n')
   return dialog('wide', dialogHead(L.snapTitle(titleOf(cur)), L.snapAbout(aiOn() ? L.snapAboutAI() : '')) +
     (shown
-      ? `<div class="snaps"><div class="snap-list scroll">${list.map((x) => `<div class="snap-row row${x === shown ? ' on' : ''}"${onClick(pick({ id: x.id }))}><div>${t(timeShown(x.at))}</div><div class="note">${t(L.snapRowInfo(snapKind(x.kind), String(x.paras.join('').length)))}</div></div>`).join('')}</div>` +
+      ? `<div class="snaps"><div class="snap-list scroll">${list.map((x) => `<div class="snap-row row${x === shown ? ' on' : ''}"${onClick(pick({ id: x.id }))}><div>${t(timeShown(x.at))}</div><div class="note">${t(L.snapRowInfo(snapKind(x.kind), x.paras.join('').length))}</div></div>`).join('')}</div>` +
         `<div class="snap-side"><div class="snap-tools">${tickbox(d.diff, L.snapCompare(), pick({ diff: !d.diff }))}<div class="fit note ell">${same ? t(L.snapSame()) : d.diff ? t(L.snapDiffHint()) : ''}</div></div>` +
-        (shown.ai && aiOn() ? `<div class="card"><div class="who">${t(shown.ai.head)}</div>${shown.ai.saw ? `<div class="extra">${t(shown.ai.saw)}</div>` : ''}</div>` : '') +
+        (shown.ai && aiOn() ? `<div class="card"><div class="who">${t(aiFrom(shown.ai.talks))}</div>${shown.ai.saw ? `<div class="extra">${t(shown.ai.saw)}</div>` : ''}</div>` : '') +
         `<div class="snap-text scroll">${d.diff ? compare(shown.paras, cur.paras) : shown.paras.map((p) => `<div>${t(p)}</div>`).join('') || `<div class="faint">${t(L.snapEmpty())}</div>`}</div></div></div>`
       : `<div class="empty"><div>${t(L.snapNone())}</div></div>`) +
     buttons(button(L.commonClose(), shut), button(L.snapRestore(), shown && !same ? restore : null, shown && !same ? 'primary' : 'primary off')))
@@ -439,7 +445,7 @@ function newBookDialog(d) {
   const create = () => {
     if (!fits) return
     const id = 'book' + S.n
-    set((s) => ({ shelf: [{ id, name, kind: d.type, words: '暂无正文', at: stamp() }, ...s.shelf], n: s.n + 1, dialog: null }))
+    set((s) => ({ shelf: [{ id, name, kind: d.type, words: 0, at: stamp() }, ...s.shelf], n: s.n + 1, dialog: null }))
     openBook(id)
   }
   return dialog('small', dialogHead(L.dialogNewBookTitle()) + field(L.dialogNewBookName(), line(d.name, type('name'), L.dialogNewBookNameHint(), L.dialogNewBookName(), keys(create) + ' autofocus')) + field(L.dialogNewBookKind(), choose('book-kind', d.type, BOOK.kinds.map((k) => [k, genreWord(k)]), type('type'), L.dialogNewBookKind())) +

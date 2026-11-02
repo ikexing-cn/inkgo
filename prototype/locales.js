@@ -233,7 +233,8 @@ const CATALOG = {
    "count"
   ],
   "statusWanWords": [
-   "count"
+   "value",
+   "full"
   ],
   "statusSelected": [
    "count"
@@ -1117,13 +1118,6 @@ const CATALOG = {
   "shelfView": [],
   "shelfList": [],
   "shelfCards": [],
-  "shelfWordsWan": [
-   "value",
-   "full"
-  ],
-  "shelfWordsCount": [
-   "count"
-  ],
   "shelfImportBook": [],
   "shelfImportAbout": [],
   "shelfFile": [],
@@ -1624,7 +1618,25 @@ const CATALOG = {
   "recordsEffortNone": [],
   "recordsFailNoModel": [],
   "shelfNoWords": [],
-  "chatFateAdopted": []
+  "chatFateAdopted": [],
+  "commonNumber": [
+   "n"
+  ],
+  "snapAIFrom": [
+   "talks"
+  ],
+  "snapAITalk": [
+   "title"
+  ],
+  "snapAITalkGone": [],
+  "settingsTabModules": [],
+  "modPhone": [],
+  "modPhoneWhere": [],
+  "modExport": [],
+  "modExportWhere": [],
+  "modBackup": [],
+  "modBackupWhere": [],
+  "modBackupOff": []
  },
  "messages": {
   "zh-Hans": {
@@ -1773,7 +1785,7 @@ const CATALOG = {
    "statusUnpaid": "「{name}」{count} 章未回收",
    "statusPlantedIn": "{chapter} 埋下",
    "statusWords": "{count} 字",
-   "statusWanWords": "{count} 万字",
+   "statusWanWords": "{full, plural, other {{value, number, ::.0} 万字}}",
    "statusSelected": "选中 {count} 字",
    "statusChapterWords": "本章 {count} 字",
    "statusVolumeWords": "本卷 {count}",
@@ -2358,8 +2370,6 @@ const CATALOG = {
    "shelfView": "显示",
    "shelfList": "列表",
    "shelfCards": "卡片",
-   "shelfWordsWan": "{value} 万字",
-   "shelfWordsCount": "{count} 字",
    "shelfImportBook": "导入书籍",
    "shelfImportAbout": "原文件不会改动，导入后是一部新作品。",
    "shelfFile": "文件",
@@ -2443,7 +2453,7 @@ const CATALOG = {
    "backupKeep10": "最近 10 份",
    "backupKeep30": "最近 30 份",
    "backupKeep90": "最近 90 份",
-   "backupSize": "每份约 1.1 MB，共 {total} MB",
+   "backupSize": "每份约 1.1 MB，共 {total, number, ::.0} MB",
    "backupSummary": "{words} · {chapters} 章 · 已存 {copies} 份",
    "backupOldest": "，最早 09-28",
    "settingsTabRemind": "提醒与检查",
@@ -2480,7 +2490,7 @@ const CATALOG = {
    "settingsUsage": "本作品用量",
    "settingsNoUsage": "尚未使用 AI。",
    "settingsSpentRow": "{count} 次请求 · 输入 {input}，缓存命中 {cached}% · 输出 {output}",
-   "settingsSpentCost": "约 ${amount}",
+   "settingsSpentCost": "约 ${amount, number, ::.00}",
    "settingsViewAll": "查看全部记录（{count} 次请求）",
    "settingsRecordsAll": "全部",
    "settingsFilterByFeature": "按功能筛选",
@@ -2720,7 +2730,19 @@ const CATALOG = {
    "recordsEffortNone": "不思考",
    "recordsFailNoModel": "失败：无法连接模型服务",
    "shelfNoWords": "暂无正文",
-   "chatFateAdopted": "已采纳"
+   "chatFateAdopted": "已采纳",
+   "commonNumber": "{n}",
+   "snapAIFrom": "采纳讨论{talks}里的提议",
+   "snapAITalk": "「{title}」",
+   "snapAITalkGone": "已删除的讨论",
+   "settingsTabModules": "功能",
+   "modPhone": "手机预览",
+   "modPhoneWhere": "右栏的「预览」，「视图」菜单里的「手机预览」",
+   "modExport": "导出",
+   "modExportWhere": "「文件」菜单里的「导出…」",
+   "modBackup": "备份",
+   "modBackupWhere": "底栏的备份状态，设置里的「备份」",
+   "modBackupOff": "关着时不再自动备份，已有的备份留着。"
   },
   "en": {
    "menuFile": "File",
@@ -2825,13 +2847,13 @@ const CATALOG = {
    "statusQueued": "This chapter is waiting to be checked.",
    "statusFailed": "Check failed: {why}",
    "statusNoEntries": "No lore to check against",
-   "statusShort": "Can be checked after 200 words",
+   "statusShort": "Can be checked after 200 characters",
    "statusNever": "This chapter hasn't been checked yet",
    "statusDirtyIssues": "{count, plural, one {# issue} other {# issues}} to review; text edited since the last check",
-   "statusPartIssues": "First {part} words checked; {count, plural, one {# issue} other {# issues}} to review",
+   "statusPartIssues": "First {part} characters checked; {count, plural, one {# issue} other {# issues}} to review",
    "statusIssues": "Checked; {count, plural, one {# issue} other {# issues}} to review",
    "statusEdited": "Edited since the last check; not checked again yet",
-   "statusPartOK": "First {part} words checked; no inconsistencies found",
+   "statusPartOK": "First {part} characters checked; no inconsistencies found",
    "statusPartLong": "The text past this point is beyond the model's context limit. You can adjust it in Settings under AI.",
    "statusGoCheck": "Open the Check page to review each item",
    "statusCheckNow": "Check Now",
@@ -2867,10 +2889,10 @@ const CATALOG = {
    "statusQuoteGone": "“{name}”: original sentence deleted",
    "statusUnpaid": "“{name}”: {count, plural, one {# chapter} other {# chapters}} without a payoff",
    "statusPlantedIn": "Planted in {chapter}",
-   "statusWords": "{count} words",
-   "statusWanWords": "{count} × 10K words",
-   "statusSelected": "{count, plural, one {# word} other {# words}} selected",
-   "statusChapterWords": "This chapter: {count} words",
+   "statusWords": "{count, plural, one {# character} other {# characters}}",
+   "statusWanWords": "{full, plural, one {# character} other {# characters}}",
+   "statusSelected": "{count, plural, one {# character} other {# characters}} selected",
+   "statusChapterWords": "This chapter: {count, plural, one {# character} other {# characters}}",
    "statusVolumeWords": "Volume: {count}",
    "statusBookWords": "Book: {count}",
    "statusTodayGoal": " · Today {today} / {goal}",
@@ -3453,8 +3475,6 @@ const CATALOG = {
    "shelfView": "Display",
    "shelfList": "List",
    "shelfCards": "Cards",
-   "shelfWordsWan": "{full} characters",
-   "shelfWordsCount": "{count} characters",
    "shelfImportBook": "Import Book",
    "shelfImportAbout": "The original file will not change. After import, it becomes a new book.",
    "shelfFile": "File",
@@ -3485,7 +3505,7 @@ const CATALOG = {
    "shelfTextLabel": "Text",
    "shelfNoChapters": "No chapters",
    "shelfNoChaptersAbout": "Create a chapter on the left, or go back a step and choose another file.",
-   "shelfChapterWords": "{count} characters in this chapter",
+   "shelfChapterWords": "{count, plural, one {# character} other {# characters}} in this chapter",
    "shelfUntitledBook": "Untitled Book",
    "shelfNewChapterName": "New Chapter",
    "shelfNewFolderName": "New Folder",
@@ -3538,7 +3558,7 @@ const CATALOG = {
    "backupKeep10": "Last 10 copies",
    "backupKeep30": "Last 30 copies",
    "backupKeep90": "Last 90 copies",
-   "backupSize": "About 1.1 MB each, {total} MB in total",
+   "backupSize": "About 1.1 MB each, {total, number, ::.0} MB in total",
    "backupSummary": "{words} · {chapters, plural, one {# chapter} other {# chapters}} · {copies, plural, one {# copy} other {# copies}} saved",
    "backupOldest": ", oldest 09-28",
    "settingsTabRemind": "Reminders and Checks",
@@ -3575,7 +3595,7 @@ const CATALOG = {
    "settingsUsage": "Usage for this book",
    "settingsNoUsage": "AI hasn’t been used yet.",
    "settingsSpentRow": "{count, plural, one {# request} other {# requests}} · Input {input}, {cached}% cache hits · Output {output}",
-   "settingsSpentCost": "About ${amount}",
+   "settingsSpentCost": "About ${amount, number, ::.00}",
    "settingsViewAll": "View All Records ({count, plural, one {# request} other {# requests}})",
    "settingsRecordsAll": "All",
    "settingsFilterByFeature": "Filter by feature",
@@ -3815,7 +3835,19 @@ const CATALOG = {
    "recordsEffortNone": "No thinking",
    "recordsFailNoModel": "Failed: cannot reach the model service",
    "shelfNoWords": "No text yet",
-   "chatFateAdopted": "Accepted"
+   "chatFateAdopted": "Accepted",
+   "commonNumber": "{n}",
+   "snapAIFrom": "Accepted suggestions from {talks}",
+   "snapAITalk": "“{title}”",
+   "snapAITalkGone": "a deleted chat",
+   "settingsTabModules": "Features",
+   "modPhone": "Phone Preview",
+   "modPhoneWhere": "The Preview tab in the side pane, and Phone Preview in the View menu",
+   "modExport": "Export",
+   "modExportWhere": "Export… in the File menu",
+   "modBackup": "Backup",
+   "modBackupWhere": "The backup status in the status bar, and Backup in Settings",
+   "modBackupOff": "While it is off, nothing is backed up automatically. Existing backups are kept."
   }
  }
 }

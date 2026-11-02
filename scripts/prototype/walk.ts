@@ -302,7 +302,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('已备份 · 今天 10:32'); await win('今天 10:32 已备份'); await win('下次：关闭作品时'); await shot('35-backup-pop'); await click('立即备份'); await win('正在备份…'); await sleep(1400); must(await has('[title="已备份 · 今天 10:40"]'), 'the status bar does not say it was backed up at 今天 10:40'); await done('back up now')
 
   // The toolbar: the count and the goal, find and replace, the more menu, focus, what is pending.
-  await click('重新开始'); await click('字数。点击设置每日目标'); await win('最近 7 天'); await win('今天+2,846 字'); await win('昨天+3,120 字'); await win('10-10'); await type('每日目标字数', '3000'); await win('今天 2,846 / 3000'); await type('每日目标字数', '字'); await win('每日目标须为正整数，留空则不设。'); await win('今天 2,846 / 3000'); await clear('每日目标字数'); await type('每日目标字数', '3000'); await win('每日目标须为正整数', false); await shot('36-goal'); await key('Escape'); await win('最近 7 天', false); await done('a goal for the day')
+  await click('重新开始'); await click('字数。点击设置每日目标'); await win('最近 7 天'); await win('今天+2,846 字'); await win('昨天+3,120 字'); await win('10-10'); await type('每日目标字数', '3000'); await win('今天 2,846 / 3,000'); await type('每日目标字数', '字'); await win('每日目标须为正整数，留空则不设。'); await win('今天 2,846 / 3,000'); await clear('每日目标字数'); await type('每日目标字数', '3000'); await win('每日目标须为正整数', false); await shot('36-goal'); await key('Escape'); await win('最近 7 天', false); await done('a goal for the day')
   await pick(3, '小祥'); await key('f', true); must(await js(`document.activeElement.getAttribute('aria-label') === '查找'`), 'Ctrl+F did not open the search')
   must((await value('查找')) === '小祥' && await js(`document.activeElement.selectionStart === 0 && document.activeElement.selectionEnd === 2`), 'the words picked are not what is looked for, ready to be typed over'); await win('1 / 2'); must((await drawn('小祥')) === 'got on', 'what was found is not marked'); await shot('37-find')
   await click('下一个'); await win('2 / 2'); await type('替换为', '阿祥'); await click('替换'); await win('阿祥从来不叫她姐'); await win('1 / 1'); await click('全部替换'); await win('已替换 1 处可撤销'); await win('阿祥在身后叫她'); await win('未找到'); await click('关闭提示')
@@ -424,6 +424,17 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('提醒与检查'); await win('当前有 2 个伏笔久未回收。'); await click('增加 5 章'); await click('增加 5 章'); await click('增加 5 章'); await win('45 章'); await win('当前有 1 个伏笔久未回收。'); await click('边写边检查'); await shot('65-reminders')
   await click('备份'); await win('31.2 万字 · 8 章 · 已存 12 份，最早 09-28'); await shot('66-backup'); await click('立即备份'); await win('正在备份…'); await sleep(1400); await win('今天 10:40 已备份'); await win('已存 13 份')
   await click('写作时每小时一次'); await click('最近 30 份'); await click('最近 90 份'); await win('最近 30 份', false); await click('关闭设置'); await win('为整部作品另存一份副本', false); await click('正文'); await win('边写边检查 ▴'); await done('the look, reminders and backups')
+  // 功能: a module ticked off goes from every place it shows, at once and with no question; ticked on, it is back as it was.
+  const onTab = (): Promise<string> => js(`document.querySelector('#pane .tab.on').firstChild.textContent`)
+  const inMenu = async (menu: string, row: string): Promise<boolean> => { await click(menu); const on = await js(`document.querySelector('.menu-pop').innerText.includes(${JSON.stringify(row)})`); await key('Escape'); return on }
+  await click('视图'); await click('手机预览'); must(await onTab() === '预览', 'Phone Preview did not open its tab')
+  await settings(); await click('功能'); await win('仅在本机生效，适用于所有作品。'); await win('右栏的「预览」，「视图」菜单里的「手机预览」'); await win('关着时不再自动备份，已有的备份留着。'); await shot('66b-modules')
+  await click('手机预览'); await click('导出'); await click('备份', 1); await win('是否', false); await shot('66c-modules-off')
+  must(await js(`[...document.querySelectorAll('.prefs-nav .nav')].map((e) => e.innerText).join(' ')`) === 'AI 外观 功能 提醒与检查', 'with backup off the settings still hold its part')
+  await click('关闭设置'); must(await onTab() === '设定', 'with Phone Preview off the pane is on ' + await onTab()); must(!(await js(`[...document.querySelectorAll('#pane .tab')].some((e) => e.innerText.startsWith('预览'))`)), 'the Preview tab is still there')
+  must(!(await has('.backup-line')), 'the backup is still in the status bar'); must(!(await inMenu('文件', '导出…')), 'Export is still in the File menu'); must(!(await inMenu('视图', '手机预览')), 'Phone Preview is still in the View menu')
+  await settings(); await click('功能'); await click('手机预览'); await click('导出'); await click('备份'); await click('关闭设置')
+  must(await onTab() === '预览', 'Phone Preview came back on ' + await onTab()); must(await has('.backup-line'), 'the backup did not come back'); must(await inMenu('文件', '导出…'), 'Export did not come back'); await done('features off and on')
   await settings(); await clear('讨论模型'); await click('关闭设置'); await click('讨论', 1); await click('全部讨论'); await click('新讨论'); await type('输入想讨论的内容', '在吗'); await key('Enter', true); await win('请先配置讨论模型'); await sleep(3300); await win('请先配置讨论模型'); await shot('67-no-model'); await click('打开设置'); await win('本作品的模型'); await win('请先配置讨论模型', false); await key('Escape'); await done('no model to talk with')
 
   // The check page.
@@ -600,7 +611,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('文件'); await click('快照'); await win('外部改动'); await win('该快照与当前正文相同', false); await click('关闭')
   await click('少见的情况'); await click('本章在软件外被修改'); await click('保留当前版本'); await win('已保留编辑器版本磁盘内容已存为快照'); await click('关闭提示'); await done('a chapter changed outside')
   // A chapter too long for the model: the check says how much of it was read.
-  await click('少见的情况'); await click('本章过长，仅检查前文'); await win('仅检查前 5000 字'); await win('检查失败', false); await win('检查完成', false); await shot('86-read-in-part'); await done('a chapter read in part')
+  await click('少见的情况'); await click('本章过长，仅检查前文'); await win('仅检查前 5,000 字'); await win('检查失败', false); await win('检查完成', false); await shot('86-read-in-part'); await done('a chapter read in part')
   await click('少见的情况'); await click('本章检查失败'); await win('检查失败：无法连接模型服务'); await shot('86-check-failed'); await click('检查'); await click('名字有误 1'); await click('无需修改'); await win('检查未完成'); await win('这一类没有待处理的', false); await win('章失败'); await win('已检查至', false); await shot('86-check-unfinished'); await click('正文'); await done('a check that failed')
   await click('少见的情况'); await click('未选择续写和检查模型'); await win('检查失败：请在设置中「AI」配置里选择续写和检查模型'); await done('no model to write with')
 
@@ -811,13 +822,13 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   const navs = (): Promise<string> => js(`[...document.querySelectorAll('.pages > div')].map((e) => e.firstChild.textContent).join(' ')`)
   const paneTabs = (): Promise<string> => js(`[...document.querySelectorAll('#pane .tab')].map((e) => e.firstChild.textContent).join(' ')`)
   const aiOff = async () => { await click('文件'); await click('设置…'); await click('关闭 AI'); await win('是否关闭 AI？'); await click('关闭 AI', 1); await win('是否关闭 AI？', false) }
-  await click('文件'); await click('设置…'); must(await prefTabs() === 'AI 外观', 'on the shelf the settings hold: ' + await prefTabs()); await win('模型服务'); await win('本作品的模型', false)
+  await click('文件'); await click('设置…'); must(await prefTabs() === 'AI 外观 功能', 'on the shelf the settings hold: ' + await prefTabs()); await win('模型服务'); await win('本作品的模型', false)
   await click('关闭 AI'); await win('是否关闭 AI？'); await win('不再发送任何内容'); await shot('99f-ask-ai-off'); await click('取消'); await win('是否关闭 AI？', false); await win('模型服务')
   await click('关闭 AI'); must(await js(`getComputedStyle(document.querySelector('.scrim:not(.top)')).backgroundColor === 'rgba(0, 0, 0, 0)'`), 'the question over the settings shades the window twice'); await key('Escape'); await win('是否关闭 AI？', false); must(await has('.prefs'), 'Esc on the question shut the settings under it too'); await click('关闭设置')
   // Off while AI is at work: the proposal being written stops and goes, as one not taken would; what the author said stays.
   await click('雨城来信'); await win('第87章：停电'); const before = await paras()
   await click('编辑'); await click('起草本章'); await click('开始起草'); await sleep(1500); must(await has('.prose [data-prop]'), 'the draft wrote nothing')
-  await aiOff(); must(await prefTabs() === 'AI 外观 提醒 备份', 'with AI off the settings of a work hold: ' + await prefTabs()); await win('模型服务', false); await win('本作品的模型', false)
+  await aiOff(); must(await prefTabs() === 'AI 外观 功能 提醒 备份', 'with AI off the settings of a work hold: ' + await prefTabs()); await win('模型服务', false); await win('本作品的模型', false)
   must(await has('.prefs .check.on'), 'the switch is not ticked'); await win('仅在本机生效，适用于所有作品。'); await shot('99g-ai-off')
   await click('提醒'); await win('超过多少章算久未回收'); await win('检查正文和设定', false); await click('关闭设置')
   await sleep(3000); must(await paras() === before && !(await has('[data-prop]')), 'the draft went on or stayed with AI off'); must(await js(`S.talks[0].msgs.length === 1 && !S.waiting && !S.props.length`), 'the draft went on with AI off')

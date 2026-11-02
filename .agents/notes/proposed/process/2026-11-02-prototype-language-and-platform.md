@@ -48,7 +48,9 @@ Status: proposed
 
 - 已做：`npm run prototype-locales` 生成 `prototype/i18n.js`、`prototype/locales.js`，`verify-prototype` 先跑它的 `--check`；舞台上有「中文 / English / 伪英文」，换语言不从头开始；标题栏、菜单（含 macOS 的系统菜单栏）、提示条已经抽进 `locales/`；走查的 languages 一段截 `a1-en-file`、`a1b-en-view`、`a1c-pseudo-file`、`a1d-mac-en`。
 - 伪英文（en-XA）拉的是源语言，所以中文只是加上方括号和补长的 one，不会变成带音标的字母。它的用处是找没抽的字：没带方括号的中文就是还没进翻译表。宽度看 English。
-- 还没做：`write.js`、`pane.js`、`pages.js`、`dialogs.js`、`base.js` 里其余的字，逐个文件抽；整张英文表由 haiku 起草。
+- 已做（续）：其余各文件的字都抽完了，英文表是 haiku 起的草稿，叫法照多语言笔记的术语表统一过。
+- 数和字数存成数，显示时才写成字：章的字数、书架上每本书的字数（满一万写「31.2 万字」，没有字写「暂无正文」）、「AI 改动前」的快照记的讨论名，都不再把某种语言的字存进状态，切语言后跟着变。
+- 还没做：English 底栏、伪英文的右栏标签在窗口宽度下被截断（截图 `a1b-en-view`、`a1c-pseudo-file`），验收标准里的「没有截断」还没达到，要等作者看过英文界面再定怎么让。
 - 不做：ar-XB。作者 2026-11-02 定不面向从右往左的语言，原型和应用都不为它排版。
 
 ### macOS 的菜单（作者 2026-11-02 定）

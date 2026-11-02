@@ -23,7 +23,7 @@ function menus() {
       menuRow(L.appHide(), shut, '', 'Ctrl+H') + menuRow(L.appHideOthers(), shut, '', 'Ctrl+Alt+H') + HAIR + menuRow(L.appQuit(), shut, '', 'Ctrl+Q')]] : []),
     [L.menuFile(), () => menuRow(L.cmdNewChapter(), writing ? then(() => newChapter()) : null, '', 'Ctrl+N') + menuRow(L.cmdNewFolder(), writing ? then(newFolder) : null) + HAIR +
       menuRow(L.cmdSave(), cur ? then(saveNow) : null, '', 'Ctrl+S') + menuRow(L.cmdSnapshots(), cur ? ask({ kind: 'snaps', id: '', diff: false }) : null) +
-      menuRow(L.cmdExport(), inBook ? ask({ kind: 'export', range: '全书', indent: true }) : null) + HAIR +
+      (modOn('export') ? menuRow(L.cmdExport(), inBook ? ask({ kind: 'export', range: '全书', indent: true }) : null) : '') + HAIR +
       menuRow(L.cmdCategories(), inBook ? toPage('cats') : null) + menuRow(L.cmdTrash(), inBook ? ask({ kind: 'bin', sure: '' }) : null) + (mac ? '' : HAIR + menuRow(L.appSettings(), settings))],
     [L.menuEdit(), () => menuRow(L.cmdUndo(), steps.back.length ? then(() => unwrite(-1)) : null, '', 'Ctrl+Z') + menuRow(L.cmdRedo(), steps.fwd.length ? then(() => unwrite(1)) : null, '', 'Ctrl+Shift+Z') + HAIR +
       menuRow(L.cmdFind(), cur ? openFind : null, '', 'Ctrl+F') +
@@ -33,7 +33,7 @@ function menus() {
     [L.menuView(), () => menuRow(S.sideOpen ? L.cmdHideSidebar() : L.cmdShowSidebar(), inBook ? () => moving(() => set({ sideOpen: !S.sideOpen, ...SHUT }), 'fold') : null) +
       menuRow(paneOn ? L.cmdHidePane() : L.cmdShowPane(), hasPane ? () => moving(() => set({ ...paneTo, ...SHUT }), 'fold') : null) +
       menuRow(L.cmdFocus(), writing ? () => set({ focus: true, ...SHUT }) : null, '', 'F11') +
-      menuRow(L.cmdPhonePreview(), writing ? () => set({ paneOpen: true, tab: '预览', ...SHUT }) : null) + HAIR +
+      (modOn('phone') ? menuRow(L.cmdPhonePreview(), writing ? () => set({ paneOpen: true, tab: '预览', ...SHUT }) : null) : '') + HAIR +
       `<div class="pop-label">${t(L.viewZoom(Math.round(S.zoom * 100)))}</div>` +
       menuRow(L.cmdZoomIn(), zoomNext(1) ? () => zoomBy(1) : null, '', 'Ctrl+=') + menuRow(L.cmdZoomOut(), zoomNext(-1) ? () => zoomBy(-1) : null, '', 'Ctrl+-') +
       menuRow(L.cmdZoomReset(), S.zoom !== 1 ? () => zoomBy(0) : null, '', 'Ctrl+0') + HAIR + `<div class="pop-label">${t(L.viewLook())}</div>` +

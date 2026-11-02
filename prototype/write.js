@@ -32,7 +32,7 @@ const stepBy = (d) => set((s) => {
 
 // 改一章的字：change 拿到原来的几段，交回新的几段。字数跟着变；检查过的结果从此算旧的，也还没存；撤销记录作废（要留一步好退回的用 oneStep）。
 const retype = (s, key, change) => {
-  const typed = (c) => { const paras = change(c.paras); return { ...c, paras, c: c.c && (counted(c) + paras.join('').length - c.paras.join('').length).toLocaleString('en-US') } }
+  const typed = (c) => { const paras = change(c.paras); return { ...c, paras, c: c.c && sizeOf(c) + paras.join('').length - c.paras.join('').length } }
   return { chapters: s.chapters.map((c) => (c.key === key ? typed(c) : c)), dirty: { ...s.dirty, [key]: true }, saved: false, undo: { ...s.undo, [key]: null } }
 }
 // 改之前先存一份快照。
@@ -419,11 +419,11 @@ const propsOf = (key) => S.props.filter((p) => p.key === key)
 function takeProps(key, ids) {
   const list = S.props.filter((p) => ids.includes(p.id) && !p.writing)
   if (!list.length) return
-  // 快照里写这些提议来自哪几段讨论。
+  // 快照里记下这些提议来自哪几段讨论（删了的记 null），显示时再写成字。
   const talks = [...new Set(list.map((p) => p.talk))].map((id) => S.talks.find((x) => x.id === id)), words = list.flatMap((p) => p.paras)
   set((s) => {
     const step = oneStep(s, key, (paras) => list.reduce(applied, paras))
-    return { ...snap(s, key, 'AI 改动前', { head: '采纳讨论' + talks.map((x) => '「' + (x ? x.title : '已删除的讨论') + '」').join('') + '里的提议' }), ...step, ...ruled(s, list.map((p) => p.id), '已采纳'),
+    return { ...snap(s, key, 'AI 改动前', { talks: talks.map((x) => (x ? x.title : null)) }), ...step, ...ruled(s, list.map((p) => p.id), '已采纳'),
       chapters: step.chapters.map((c) => (c.key === key ? { ...c, ai: [...(c.ai || []), ...words] } : c)) }
   })
   say(L.editorAccepted(), L.editorAcceptedUndo(), 'ok')
@@ -536,7 +536,7 @@ function swapAll() {
   const { q, to } = S.find, n = hits(chapterOf(S.ch), q).length
   if (!n) return
   set((s) => oneStep(s, s.ch, (paras) => paras.map((p) => p.split(q).join(to))))
-  say(L.findReplaced(String(n)), '', 'ok')
+  say(L.findReplaced(n), '', 'ok')
 }
 function swapBook() {
   const { q, to } = S.dialog, had = S.chapters.filter((c) => hits(c, q).length)
@@ -546,10 +546,9 @@ function swapBook() {
     for (const c of had) next = { ...next, ...snap(next, c.key, '全书替换前'), ...retype(next, c.key, (paras) => paras.map((p) => p.split(q).join(to))) }
     return next
   })
-  say(L.findReplacedBook(had.length, String(n)), '', 'ok')
+  say(L.findReplacedBook(had.length, n), '', 'ok')
 }
 
-const counted = (c) => Number(sizeOf(c).replace(/,/g, ''))
 
 // 查一章，或者排着队一章一章查。查完的不再算没查过、改过、没查成。
 function checkNow(...keys) {
@@ -557,14 +556,14 @@ function checkNow(...keys) {
   const next = () => later(900, () => {
     const key = S.checking
     if (!key) return // 中途停下了
-    const size = Math.round(counted(chapterOf(key)) * 1.4)
+    const size = Math.round(sizeOf(chapterOf(key)) * 1.4)
     set((s) => ({ records: noted(s, '检查', chTitle(key), [['规则', 1400], ['设定', 1820], ['本章全文', size]], [3220 + size, 0, 1600]), checking: s.queue[0] || false, queue: s.queue.slice(1), dirty: { ...s.dirty, [key]: false }, never: { ...s.never, [key]: false }, failed: { ...s.failed, [key]: '' }, part: { ...s.part, [key]: { ...s.part[key], check: 0 } } }))
     if (S.checking) next()
   })
   next()
 }
 // 全书里该查的几章：够字数，而且没查过、改过或者上次没查成。
-const due = () => S.chapters.filter((c) => counted(c) >= 200 && (S.never[c.key] || S.dirty[c.key] || S.failed[c.key]))
+const due = () => S.chapters.filter((c) => sizeOf(c) >= 200 && (S.never[c.key] || S.dirty[c.key] || S.failed[c.key]))
 
 // 待处理里的每一条：哪一组、写什么、在哪一章、点了去哪。忽略掉的不算；AI 关着时，检查出来的那几条也不算。
 function pending() {
@@ -579,7 +578,7 @@ function pending() {
     if (m.st === 'lost') list.push({ id: m.id, group: '伏笔', name: L.statusQuoteGone(nameOf(m)), about: chTitle(m.key), key: m.key, open })
     if (m.st === 'open' && gap >= S.late) list.push({ id: m.id, group: '伏笔', name: L.statusUnpaid(nameOf(m), gap), about: L.statusPlantedIn(chTitle(m.key)), key: m.key, open })
   }
-  if (S.backup.state === 'fail') list.push({ id: 'backup', group: '备份', name: L.statusBackupWhy(backupWhy()[0]), about: L.statusRetryBackup(timeShown(S.backup.at)), key: '', open: backupNow })
+  if (S.backup.state === 'fail' && modOn('backup')) list.push({ id: 'backup', group: '备份', name: L.statusBackupWhy(backupWhy()[0]), about: L.statusRetryBackup(timeShown(S.backup.at)), key: '', open: backupNow })
   return list.filter((x) => !S.ignored.includes(x.id))
 }
 
@@ -595,7 +594,7 @@ function sidebar() {
     `${typed(S.rename.t, (v) => set((s) => (s.rename ? { rename: { ...s.rename, t: v } } : null)), '', L.sideChapterTitle(), keys(named(key), () => set({ rename: null })) + onBlur(renameNow) + ' autofocus' + (S.rename.all ? ' data-all' : ''))}</div>`
   const menu = (key, talk) => onMenu((ev) => { ev.preventDefault(); const [x, y] = spot(ev.clientX, ev.clientY); set({ tree: { key, x, y, talk } }) })
   const leaf = (c) => (S.rename && S.rename.key === c.key ? naming(c.key, '', c.vol)
-    : `<div class="tree-row leaf hit${c.vol ? ' deep' : ''}${c.key === S.ch ? ' on' : ''}" draggable="true" data-k="node-${c.key}" data-node="${c.key}"${onClick(goTo(c.key))}${menu(c.key)}><div class="fit ell">${t(titleOf(c))}</div><div class="count">${t(sizeOf(c))}</div></div>`)
+    : `<div class="tree-row leaf hit${c.vol ? ' deep' : ''}${c.key === S.ch ? ' on' : ''}" draggable="true" data-k="node-${c.key}" data-node="${c.key}"${onClick(goTo(c.key))}${menu(c.key)}><div class="fit ell">${t(titleOf(c))}</div><div class="count">${t(L.commonNumber(sizeOf(c)))}</div></div>`)
   const volume = ([key, title, count]) => (S.rename && S.rename.key === key ? naming(key, icon(S.folds[key] ? 'right' : 'down', 'xs'))
     : `<div class="tree-row hit${key === S.vol ? ' on' : ''}" data-k="node-${key}" data-node="${key}"${onClick(() => set((s) => ({ folds: { ...s.folds, [key]: !s.folds[key] } })))}${menu(key)}>${icon(S.folds[key] ? 'right' : 'down', 'xs')}<div class="fit ell">${t(title)}</div><div class="count">${t(count)}</div></div>`) +
     (S.folds[key] ? '' : listed.filter((c) => c.vol === key).map(leaf).join(''))
@@ -626,6 +625,7 @@ function sidebar() {
 
 // 底栏右边、字数前面：备份到哪一步了。好好的时候只三个字「已备份」，时间在悬停和点开里；点开还有下次什么时候，和「立即备份」。
 function backupLine() {
+  if (!modOn('backup')) return ''
   const b = S.backup, words = { ok: L.statusBackupOK(), busy: L.statusBackupBusy(), fail: L.statusBackupFailed(), none: L.statusBackupNone() }[b.state]
   return `<div class="anchor up backup"><div class="backup-line hit"${b.state === 'ok' ? ` title="${t(L.statusBackedUpAt(timeShown(b.at)))}"` : ''}${onClick(() => set({ open: S.open === 'backup' ? '' : 'backup' }))}><div class="dot${b.state === 'ok' || b.state === 'busy' ? ' grey' : ''}"></div><div>${t(words)}</div></div>${S.open === 'backup' ? backupPop() : ''}</div>`
 }
@@ -745,7 +745,7 @@ function findBar(cur) {
   const here = cur ? hits(cur, f.q) : []
   const had = S.chapters.map((c) => [c, hits(c, f.q)]).filter(([, h]) => h.length)
   const total = had.reduce((sum, [, h]) => sum + h.length, 0)
-  const count = !f.q ? '' : f.all ? (total ? L.findBookCount(had.length, String(total)) : L.findNoneBook()) : here.length ? f.at + 1 + ' / ' + here.length : L.findNone()
+  const count = !f.q ? '' : f.all ? (total ? L.findBookCount(had.length, total) : L.findNoneBook()) : here.length ? f.at + 1 + ' / ' + here.length : L.findNone()
   const shut = () => set({ find: null })
   const snip = (c, h) => { const p = c.paras[h.para]; return (h.a > 6 ? '…' : '') + p.slice(Math.max(h.a - 6, 0), h.a + f.q.length + 14) }
   return '<div class="find-bar" data-k="find-bar">' +
@@ -784,10 +784,9 @@ function todoPop(list) {
 // vol 是开着的那一卷：这时没有开着的章。
 // 底栏右边的字数：选中的、本章或本卷的、全书的，设了每日目标还有今天的。点开设目标。
 function wordsOf(cur, vol) {
-  const inVol = vol && (vol[2] ? L.statusWanWords(vol[2].replace('万', '')) : L.statusWords(String(S.chapters.filter((c) => c.vol === vol[0]).reduce((n, c) => n + counted(c), 0))))
-  const today = BOOK.days[0][1].toLocaleString('en-US')
-  const count = (S.bar ? L.statusSelected(String(S.bar.text.length)) : cur ? L.statusChapterWords(sizeOf(cur)) : vol ? L.statusVolumeWords(inVol) : '') + (cur || vol ? ' · ' : '') + L.statusBookWords(S.book === BOOK.shelf[0].id ? BOOK.words : L.statusWords(String(S.chapters.reduce((n, c) => n + counted(c), 0)))) + (S.goalSet ? L.statusTodayGoal(today, S.goalSet) : '')
-  const goal = () => '<div class="pop goal-pop" data-k="goal-pop"><div class="pop-label">' + L.statusLast7() + '</div>' + BOOK.days.map(([day, n]) => `<div class="goal-day"><div class="grow">${timeShown(day)}</div><div>${L.statusWords(n ? '+' + n.toLocaleString('en-US') : '0')}</div></div>`).join('') + HAIR +
+  const inVol = vol && wordCount(vol[2] || S.chapters.filter((c) => c.vol === vol[0]).reduce((n, c) => n + sizeOf(c), 0))
+  const count = (S.bar ? L.statusSelected(S.bar.text.length) : cur ? L.statusChapterWords(sizeOf(cur)) : vol ? L.statusVolumeWords(inVol) : '') + (cur || vol ? ' · ' : '') + L.statusBookWords(wordCount(S.book === BOOK.shelf[0].id ? BOOK.words : S.chapters.reduce((n, c) => n + sizeOf(c), 0))) + (S.goalSet ? L.statusTodayGoal(BOOK.days[0][1], Number(S.goalSet)) : '')
+  const goal = () => '<div class="pop goal-pop" data-k="goal-pop"><div class="pop-label">' + L.statusLast7() + '</div>' + BOOK.days.map(([day, n]) => `<div class="goal-day"><div class="grow">${timeShown(day)}</div><div>${(n ? '+' : '') + L.statusWords(n)}</div></div>`).join('') + HAIR +
     field(L.statusDailyGoal(), line(S.goal, (v) => set({ goal: v, ...(countOrNone(v) ? { goalSet: v.trim() } : {}) }), L.statusGoalHint(), L.statusGoalLabel())) + (countOrNone(S.goal) ? '<div class="note">' + L.statusGoalNote() + '</div>' : '<div class="note danger">' + L.statusGoalError() + '</div>') + '</div>'
   return `<div class="anchor up"><div class="words ell hit" title="${L.statusWordsTip()}"${onClick(() => set({ open: S.open === 'goal' ? '' : 'goal' }))}>${t(count)}</div>${S.open === 'goal' ? goal() : ''}</div>`
 }
@@ -803,7 +802,7 @@ function tools(cur) {
   return '<div class="tools">' +
     (S.ai && S.ai.kind === 'ghosting' ? '<div class="count-all">' + L.editorContinuing() + '</div>' : S.ai && S.ai.kind === 'ghost' ? '<div class="count-all">' + L.editorGhostHint() + '</div>' : '') +
     (wide && here && !S.focus ? `<button class="fs-btn" aria-label="${L.tabMarksHere()}"${onClick(() => set({ paneOpen: true, tab: '伏笔', fid: null, fv: 'list' }))}>${icon('flag')}<span>${L.tabMarksCount(here)}</span></button>` : '') +
-    (S.backup.state === 'fail' && !S.backup.hush ? `<div class="anchor"><button class="warn-btn" aria-label="${L.statusBackupTip()}"${onClick(flip('chip'))}>${DOT}<span>${L.statusBackupWarn(backupWhy()[0])}</span></button>${S.open === 'chip' ? backupPop() : ''}</div>` : '') +
+    (S.backup.state === 'fail' && !S.backup.hush && modOn('backup') ? `<div class="anchor"><button class="warn-btn" aria-label="${L.statusBackupTip()}"${onClick(flip('chip'))}>${DOT}<span>${L.statusBackupWarn(backupWhy()[0])}</span></button>${S.open === 'chip' ? backupPop() : ''}</div>` : '') +
     (list.length ? `<div class="anchor"><button class="todo-btn${S.open === 'todo' ? ' on' : ''}" aria-label="${L.statusPending()}"${onClick(flip('todo'))}>${DOT}<span>${L.statusPendingCount(list.length)}</span></button>${S.open === 'todo' ? todoPop(list) : ''}</div>` : '') +
     tool(L.cmdFind(), L.tabFindTip(keyLabel('Ctrl+F')), 'find', cur ? () => (S.find ? set({ find: null }) : openFind()) : null, !!S.find, !cur) +
     tool(S.focus ? L.tabExitFocus() : L.cmdFocus(), S.focus ? L.tabExitFocusTip(keyLabel('F11')) : L.tabFocusTip(keyLabel('F11')), 'focus', () => set({ focus: !S.focus, ...SHUT }), S.focus) +
@@ -844,14 +843,14 @@ function foot(cur, vol) {
   else if (S.queue.includes(cur.key)) state = L.statusQueued()
   else if (S.failed[cur.key]) { state = L.statusFailed(whyText(S.failed[cur.key])); can = true; tip = state } // 出错的说明长，放不下时悬停看全
   else if (!S.entries.some((e) => e.place === 'body')) state = L.statusNoEntries()
-  else if (counted(cur) < 200) state = L.statusShort()
+  else if (sizeOf(cur) < 200) state = L.statusShort()
   else if (S.never[cur.key]) { state = L.statusNever(); can = true }
   else if (n && dirty) { state = L.statusDirtyIssues(n); can = true }
-  else if (n && part) state = L.statusPartIssues(String(part), n)
+  else if (n && part) state = L.statusPartIssues(part, n)
   else if (n) state = L.statusIssues(n)
   else if (dirty) { state = L.statusEdited(); can = true }
-  else if (part) { state = L.statusPartOK(String(part)); tip = PART() }
-  const found = n && !S.checking && !S.failed[cur.key] && !S.never[cur.key] && counted(cur) >= 200
+  else if (part) { state = L.statusPartOK(part); tip = PART() }
+  const found = n && !S.checking && !S.failed[cur.key] && !S.never[cur.key] && sizeOf(cur) >= 200
   return '<div class="foot"><div class="foot-check">' + (found ? `<div class="foot-state ell hit link" title="${L.statusGoCheck()}"${onClick(seeAll)}>${t(state)}</div>` : `<div class="foot-state ell"${tip ? ` title="${t(tip)}"` : ''}>${t(state)}</div>`) +
     (can ? `<div class="hit link" title="${L.statusCheckTip()}"${onClick(() => checkNow(cur.key))}>${L.statusCheckNow()}</div>` : '') + '<div class="faint">·</div>' +
     `<div class="anchor up left"><div class="hit" title="${L.statusWhenTitle()}"${onClick(() => set({ open: S.open === 'when' ? '' : 'when' }))}>${t(whenName(S.when))} ▴</div>${S.open === 'when' ? `<div class="pop when-pop" data-k="when-pop"><div class="pop-title">${L.statusWhenTitle()}</div>${radios(S.when, WHENS(), (v) => set({ when: v, ...SHUT }))}</div>` : ''}</div></div>` +

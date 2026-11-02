@@ -276,7 +276,7 @@ function setting() {
   if (S.sv === 'ideas') {
     const of = (o) => S.entries.find((e) => e.id === o.about)
     return back(L.loreAll(), () => set({ sv: 'list' })) +
-      `<div class="page scroll" data-k="ideas"><div class="title-line"><div class="title">${t(L.loreToConfirm())}</div><div class="grow"></div><div class="side">${t(L.loreAiCount(String(open.length)))}</div></div>` +
+      `<div class="page scroll" data-k="ideas"><div class="title-line"><div class="title">${t(L.loreToConfirm())}</div><div class="grow"></div><div class="side">${t(L.loreAiCount(open.length))}</div></div>` +
       open.map((o, i) => (i ? HAIR : '') + idea(o, of(o) ? (o.from ? L.loreAboutFrom(of(o).names[0], fromWhere(o.from)) : L.loreAbout(of(o).names[0])) : L.loreNew())).join('') + '</div>'
   }
 
@@ -296,7 +296,7 @@ function setting() {
   let list = []
   if (q) {
     const found = body.filter((e) => (e.names.join('、') + e.text).includes(q))
-    list = found.length ? [head(L.commonFound(String(found.length))), ...found.map((e) => row(e, q))] : [empty(L.commonNotFound())]
+    list = found.length ? [head(L.commonFound(found.length)), ...found.map((e) => row(e, q))] : [empty(L.commonNotFound())]
   } else if (!body.length && !open.length) {
     list = [empty(L.loreEmpty(), aiOn() ? L.loreEmptyAi() : L.loreEmptyNoAi())]
   } else {
@@ -307,7 +307,7 @@ function setting() {
     }
   }
   const r = S.named
-  if (r) list.unshift(`<div class="renamed" data-k="renamed"><div class="fit">${t(L.loreRenamedLeft(String(r.n), r.was))}</div><div class="hit link" title="${t(L.loreReplaceAllTip())}"${onClick(() => set((s) => ({ named: null, page: 'write', focus: false, find: chapterOf(s.ch) ? { q: r.was, to: r.now, all: true, at: 0 } : null })))}>${t(L.loreReplaceAll())}</div>` +
+  if (r) list.unshift(`<div class="renamed" data-k="renamed"><div class="fit">${t(L.loreRenamedLeft(r.n, r.was))}</div><div class="hit link" title="${t(L.loreReplaceAllTip())}"${onClick(() => set((s) => ({ named: null, page: 'write', focus: false, find: chapterOf(s.ch) ? { q: r.was, to: r.now, all: true, at: 0 } : null })))}>${t(L.loreReplaceAll())}</div>` +
     `<button class="icon-btn muted" aria-label="${t(L.loreKeepOld())}" title="${t(L.loreKeepOldTip())}"${onClick(() => set({ named: null }))}>${icon('cross', 'sm')}</button></div>`)
   return tool(L.loreSearch(), 'sq', [L.commonNew(), () => set({ form: { id: null, name: '', names: '', text: '', cat: S.cats[0] }, ...SHUT })],
     [[L.loreDropped(), gone.length, () => set({ sv: 'dropped', ...SHUT })], [L.loreLog(), '', () => set({ sv: 'log', ...SHUT })], [L.cmdCategories(), '', () => set({ page: 'cats', ...SHUT })]]) + rows(list)
@@ -376,7 +376,7 @@ function foreshadowing() {
   if (paying) {
     const gap = BOOK.now - paying.ch
     return '<div class="page scroll" data-k="mark-paying">' + `<div class="title-line"><div class="title ell">${t(nameOf(paying))}</div></div>` +
-      `<div class="where"><div class="fit ell">${t(gap > 0 && !paying.pay ? L.hooksPlantedGap(chTitle(paying.key), String(gap)) : L.hooksPlanted(chTitle(paying.key)))}</div></div><div class="quote">${t(paying.quote)}</div>` +
+      `<div class="where"><div class="fit ell">${t(gap > 0 && !paying.pay ? L.hooksPlantedGap(chTitle(paying.key), gap) : L.hooksPlanted(chTitle(paying.key)))}</div></div><div class="quote">${t(paying.quote)}</div>` +
       (paying.pay ? `<div class="note">${t(L.hooksAlreadyPaid(chTitle(paying.pay.key)))}</div>` : '') + '</div>'
   }
 
@@ -390,10 +390,10 @@ function foreshadowing() {
       (S.renote !== null
         ? `<div class="title-line"><div class="box line fit">${typed(S.renote, (v) => set({ renote: v }), L.hooksNote(), L.hooksEditNote(), keys(saveNote, () => set({ renote: null })) + ' autofocus')}</div>${button(L.commonSave(), saveNote, 'primary')}</div>`
         : `<div class="title-line"><div class="title ell">${t(nameOf(shown))}</div><div class="grow"></div>${st === 'lost' ? '' : button(L.hooksEditNoteBtn(), () => set({ renote: shown.note }))}</div>`) +
-      where(st === 'lost' ? L.hooksLostIn(chTitle(shown.key)) : st === 'open' && gap > 0 ? L.hooksPlantedGap(chTitle(shown.key), String(gap)) : L.hooksPlanted(chTitle(shown.key)), goTo(shown.key), L.appViewOriginal()) +
+      where(st === 'lost' ? L.hooksLostIn(chTitle(shown.key)) : st === 'open' && gap > 0 ? L.hooksPlantedGap(chTitle(shown.key), gap) : L.hooksPlanted(chTitle(shown.key)), goTo(shown.key), L.appViewOriginal()) +
       `<div class="quote${st === 'lost' ? ' gone' : ''}">${t(shown.quote)}</div>` + HAIR +
       (st === 'open' ? '<div class="state">' + t(L.hooksUnpaid()) + '</div><div class="note">' + t(L.hooksSelectPayoff()) + '</div>' + buttons(button(L.hooksMarkPaid(), S.bar ? () => askPay(shown.id) : null, S.bar ? 'primary' : 'primary off')) : '') +
-      (st === 'done' ? where(L.hooksPaidIn(chTitle(shown.pay.key), String(Math.max(shown.pay.ch - shown.ch, 0))), goTo(shown.pay.key), L.appViewOriginal()) + `<div class="quote">${t(shown.pay.quote)}</div>` : '') +
+      (st === 'done' ? where(L.hooksPaidIn(chTitle(shown.pay.key), Math.max(shown.pay.ch - shown.ch, 0)), goTo(shown.pay.key), L.appViewOriginal()) + `<div class="quote">${t(shown.pay.quote)}</div>` : '') +
       (st === 'lost' ? '<div class="note">' + t(L.hooksSelectNew()) + '</div>' + buttons(button(L.hooksReplaceQuote(), S.bar ? () => rehang(shown.id) : null, S.bar ? 'primary' : 'primary off')) : '') +
       (st === 'dropped' ? '<div class="state">' + t(L.hooksDropped()) + '</div>' : '') +
       '</div>'
@@ -405,7 +405,7 @@ function foreshadowing() {
   let list = []
   if (q) {
     const found = S.marks.filter((m) => (m.note + m.quote).includes(q))
-    list = found.length ? [head(L.commonFound(String(found.length))), ...found.map((m) => row(m, q))] : [empty(L.commonNotFound())]
+    list = found.length ? [head(L.commonFound(found.length)), ...found.map((m) => row(m, q))] : [empty(L.commonNotFound())]
   } else if (!S.marks.length) {
     list = [empty(L.hooksEmpty(), L.hooksEmptyHow())]
   } else {
@@ -468,19 +468,19 @@ function outgoing(talk, m, i) {
   const fixed = talk.origin ? talk.key : '', ahead = fixed ? sent.flatMap(changesOf).filter((g) => rank(g.key) > rank(fixed)).length : 0
   const digested = talk.digest && i >= talk.digest.after
   // 起草、改写那一章有卡片的，带上它们：卡片是这一章要写的事。
-  const cards = fixed ? eventsOf(fixed).length : 0, owned = cards ? [[L.chatChapterCards(String(cards)), cards * 45]] : []
+  const cards = fixed ? eventsOf(fixed).length : 0, owned = cards ? [[L.chatChapterCards(cards), cards * 45]] : []
   const own = { 起草: [[L.chatPartOutline(), 260], ...owned, [L.chatPartPrevOutlines(), 310], [L.chatPartPrevChapter(), 5060]], 改写: [[L.chatPartOutline(), 260], ...owned, [L.chatPartThisChapter(), 4300]] }[talk.origin] || []
-  const parts = [[L.chatPartRules(), 1100], [S.crowded ? L.chatPartCatalog() : L.chatPartLoreCount(String(sent.length)), S.crowded ? sent.length * 40 : sent.length * 260], ...own, ...(digested ? [[L.chatPartDigest(), 820]] : []), [L.chatPartLook(), (m.look || []).length * 640], [L.chatPartSaid(), 40]]
+  const parts = [[L.chatPartRules(), 1100], [S.crowded ? L.chatPartCatalog() : L.chatPartLoreCount(sent.length), S.crowded ? sent.length * 40 : sent.length * 260], ...own, ...(digested ? [[L.chatPartDigest(), 820]] : []), [L.chatPartLook(), (m.look || []).length * 640], [L.chatPartSaid(), 40]]
   parts.splice(parts.length - 1, 0, [L.chatPartBefore(), Math.max(Math.round(input * 0.97) - parts.reduce((n, [, x]) => n + x, 0), 0)])
-  const head = S.crowded ? L.chatCrowded() : fixed ? L.chatAttachedAt(String(sent.length), chTitle(fixed)) : L.chatAttachedAll(String(sent.length))
+  const head = S.crowded ? L.chatCrowded() : fixed ? L.chatAttachedAt(sent.length, chTitle(fixed)) : L.chatAttachedAll(sent.length)
   const named = (e) => (e.names.length ? e.names.join('、') + '：' : '')
   const changes = (e) => (fixed ? '' : changesOf(e).map((g) => `<div class="note">${t(fromWhere(g.key) + '：' + g.text)}</div>`).join(''))
   const rows = S.crowded ? sent.map((e) => `<div class="saw-row"><div class="fit">${t(label[e.place] + e.cat + (e.names[0] ? ' · ' + e.names[0] : '') + '：' + first(textAt(e, fixed)))}</div></div>`).join('')
     : sent.map((e) => `<div class="saw-row">${icon('tick', 'sm', 'green')}<div class="fit"><div>${t(label[e.place] + named(e) + (fixed ? textAt(e, fixed) : e.text) + (e.asked ? L.chatAnswered(e.asked) : ''))}</div>${changes(e)}</div></div>`).join('')
   return '<div class="reply-saw">' +
-    `<div class="saw-title">${t(L.chatSentAbout(tokens(parts.reduce((n, [, x]) => n + x, 0))))}</div>${m.use.length > 1 ? `<div class="note">${t(L.chatRoundRequests(String(m.use.length)))}</div>` : ''}<div class="note">${parts.filter(([, x]) => x).map(([name, x]) => t(name) + ' ' + tokens(x)).join(' · ')}</div>` +
+    `<div class="saw-title">${t(L.chatSentAbout(tokens(parts.reduce((n, [, x]) => n + x, 0))))}</div>${m.use.length > 1 ? `<div class="note">${t(L.chatRoundRequests(m.use.length))}</div>` : ''}<div class="note">${parts.filter(([, x]) => x).map(([name, x]) => t(name) + ' ' + tokens(x)).join(' · ')}</div>` +
     `<div class="note">${t(cached ? L.chatUsageCached(tokens(input), tokens(cached), tokens(output)) : L.chatUsage(tokens(input), tokens(output)))}</div>` +
-    `<div class="saw-title">${t(head)}</div>${S.crowded ? '<div class="note">' + t(L.chatCatalogNote()) + '</div>' : ''}${ahead ? `<div class="note">${t(L.chatMoreChanges(String(ahead)))}</div>` : ''}` +
+    `<div class="saw-title">${t(head)}</div>${S.crowded ? '<div class="note">' + t(L.chatCatalogNote()) + '</div>' : ''}${ahead ? `<div class="note">${t(L.chatMoreChanges(ahead))}</div>` : ''}` +
     (sent.length ? rows : '<div class="note">' + t(L.chatLoreEmpty()) + '</div>') + '</div>'
 }
 
@@ -489,13 +489,13 @@ function propCard(m) {
   const p = S.props.find((x) => x.id === m.prop), words = p ? p.paras.join('').length : m.words
   const state = S.fate[m.prop] ? FATE()[S.fate[m.prop]] || S.fate[m.prop] : !p ? L.chatFateGone() : p.writing ? L.chatWriting() : L.chatFateWaiting()
   return `<div class="prop-card"><div class="prop-card-head">${icon('pen', 'sm', p ? 'green' : 'muted')}<div class="fit ell">${t(L.chatProposeEdit(chTitle(m.key)))}</div>` +
-    (p ? `<div class="hit link"${onClick(() => set((s) => go(s, m.key)))}>${t(L.chatViewInText())}</div>` : '') + `</div><div class="note">${t(whereWord(m.where))} · ${t(L.chatWords(String(words)))} · ${t(state)}</div></div>`
+    (p ? `<div class="hit link"${onClick(() => set((s) => go(s, m.key)))}>${t(L.chatViewInText())}</div>` : '') + `</div><div class="note">${t(whereWord(m.where))} · ${t(L.chatWords(words))} · ${t(state)}</div></div>`
 }
 
 // 讨论长了压缩过的地方：前面几轮整理成了一份摘要，原文还在上面。点开看摘要，只能看不能改。
 function digest(talk) {
   const d = talk.digest, key = 'digest-' + talk.id, open = S.thoughts[key]
-  return `<div class="digest"><div class="digest-head hit"${onClick(() => set((s) => ({ thoughts: { ...s.thoughts, [key]: !open } })))}>${t(L.chatDigestRounds(String(d.after / 2)))}${icon(open ? 'down' : 'right', 'xs')}</div>` +
+  return `<div class="digest"><div class="digest-head hit"${onClick(() => set((s) => ({ thoughts: { ...s.thoughts, [key]: !open } })))}>${t(L.chatDigestRounds(d.after / 2))}${icon(open ? 'down' : 'right', 'xs')}</div>` +
     (open ? `<div class="digest-text">${d.text.map(([name, said]) => `<div><div class="saw-title">${t(name)}</div><div>${said.split('\n').map(digestLine).join('')}</div></div>`).join('')}<div class="note">${t(L.chatDigestNote())}</div></div>` : '') + '</div>'
 }
 
@@ -549,7 +549,7 @@ function discussion() {
     const found = S.talks.filter((talk) => !q || talk.title.includes(q) || talk.msgs.some((m) => m.text.includes(q)))
     const row = (talk) => item({ name: talk.title, side: timeShown(talk.at), open: () => set({ tv: 'one', tid: talk.id, draft: '' }) })
     return tool(L.chatSearch(), 'tq', [L.chatNew(), () => set({ tv: 'new', tid: null, draft: '' })]) +
-      rows(found.length ? [head(q ? L.commonFound(String(found.length)) : L.chatRecent()), ...found.map(row)] : [empty(q ? L.commonNotFound() : L.chatEmpty())])
+      rows(found.length ? [head(q ? L.commonFound(found.length) : L.chatRecent()), ...found.map(row)] : [empty(q ? L.commonNotFound() : L.chatEmpty())])
   }
   const talk = S.tv === 'one' ? S.talks.find((x) => x.id === S.tid) : null
   const hint = talk ? L.chatTypeMessage() : L.chatTypeTopic()
@@ -608,7 +608,7 @@ function phoneView() {
     `<div class="pop-label">${t(L.previewFont())}</div><div class="pop-seg"><div class="seg" aria-label="${t(L.previewFont())}">${step('A−', L.previewFontDown(), P.fs > 16, -1)}<div class="phone-fs">${P.fs}</div>${step('A+', L.previewFontUp(), P.fs < 24, 1)}</div></div>` +
     `<div class="pop-label">${t(L.previewLineSpacing())}</div><div class="pop-seg">${seg(P.lh, wordOpts(Object.keys(SPACING), SPACING_WORDS), (v) => phoneSet({ lh: v }), L.previewLineSpacing())}</div>` +
     `<div class="pop-label">${t(L.previewBackground())}</div><div class="pop-seg">${seg(P.theme, wordOpts(['白天', '夜间', '护眼'], THEME_WORDS), (v) => phoneSet({ theme: v }), L.previewBackground())}</div>` + HAIR +
-    `<div class="phone-ticks">${tickbox(P.frame, L.previewFrame(), () => phoneSet({ frame: !P.frame }))}${tickbox(P.long, L.previewLongTick(String(LONG)), () => phoneSet({ long: !P.long }))}</div>` +
+    `<div class="phone-ticks">${tickbox(P.frame, L.previewFrame(), () => phoneSet({ frame: !P.frame }))}${tickbox(P.long, L.previewLongTick(LONG), () => phoneSet({ long: !P.long }))}</div>` +
     `<div class="pop-buttons"><div class="hit link"${onClick(() => set({ phone: { ...PHONE, mode: P.mode } }))}>${t(L.previewReset())}</div></div></div>`
   const tool = `<div class="tool phone-tool" data-k="tool">${seg(P.mode, wordOpts(['翻页', '滚动'], MODE_WORDS), (v) => phoneSet({ mode: v }), L.previewViewMode())}<div class="grow"></div>` +
     `<div class="more hit phone-aa${on ? ' on' : ''}" title="${t(L.previewLayout())}"${onClick(() => set({ open: on ? '' : 'phone-look' }))}>Aa</div>${on ? look : ''}</div>`
@@ -664,15 +664,15 @@ function fitPhone() {
     const rects = [...p.getClientRects()], lines = Math.round(rects.reduce((h, r) => h + r.height, 0) / kz / lh)
     const long = S.phone.long && lines > LONG
     p.classList.toggle('long', long)
-    if (long) { p.title = L.previewLinesTip(String(lines)); if (!phoneLongAt.includes(at(rects[0]))) phoneLongAt.push(at(rects[0])) } else p.removeAttribute('title')
+    if (long) { p.title = L.previewLinesTip(lines); if (!phoneLongAt.includes(at(rects[0]))) phoneLongAt.push(at(rects[0])) } else p.removeAttribute('title')
   })
   const word = (el, s) => { if (el) el.textContent = s }
   word(root.querySelector('.phone-at'), flip ? `${phoneAt + 1}/${phoneScreens}` : '')
-  word(root.querySelector('.phone-count'), flip ? L.previewScreenOf(String(phoneAt + 1), String(phoneScreens)) : L.previewAbout(String(phoneScreens)))
+  word(root.querySelector('.phone-count'), flip ? L.previewScreenOf(phoneAt + 1, phoneScreens) : L.previewAbout(phoneScreens))
   root.querySelector('.phone-back')?.classList.toggle('off', phoneAt === 0)
   root.querySelector('.phone-next')?.classList.toggle('off', phoneAt === phoneScreens - 1)
   const longs = paras.filter((p) => p.classList.contains('long')).length
-  word(root.querySelector('.phone-long .link'), longs ? (flip ? L.previewLongNext(String(longs), String(LONG)) : L.previewLong(String(longs), String(LONG))) : '')
+  word(root.querySelector('.phone-long .link'), longs ? (flip ? L.previewLongNext(longs, LONG) : L.previewLong(longs, LONG)) : '')
 }
 
 // 滚动看时，预览跟着正文滚：正文滚到几成，就取窗口里几成高的那一处，在预览里放到同样几成高的地方。滚到顶、到底，两边一起到顶、到底。
@@ -694,14 +694,14 @@ const TAB_WORDS = () => ({ 批注: L.paneTabNotes(), 设定: L.paneTabLore(), �
 function pane() {
   // 标签上的数是那一页里等作者处理的几条：待确认的设定；原句已删、久未回收的伏笔（和待处理里的「伏笔」同一个数）。
   const waiting = aiOn() ? S.entries.filter((e) => e.place === 'open').length : 0, lost = S.marks.filter((m) => m.st === 'lost' || (m.st === 'open' && BOOK.now - m.ch >= S.late)).length
-  // 停在讨论时关掉 AI，这里显示设定；停在哪一页记着，重新开启后回到讨论。
-  const at = (S.tab === '讨论' && !aiOn()) || (S.tab === '批注' && S.page !== 'write') ? '设定' : S.tab
+  // 停在讨论时关掉 AI，这里显示设定；停在哪一页记着，重新开启后回到讨论。关掉手机预览也一样。
+  const at = (S.tab === '讨论' && !aiOn()) || (S.tab === '预览' && !modOn('phone')) || (S.tab === '批注' && S.page !== 'write') ? '设定' : S.tab
   const tab = (name, n) => `<div class="tab hit${name === at ? ' on' : ''}"${onClick(() => set({ tab: name, ...SHUT }))}>${t(TAB_WORDS()[name])}${n ? `<span class="badge">${n}</span>` : ''}</div>`
   const edge = `<div class="pane-edge" title="${t(L.paneResize())}"></div>`, wide = S.paneW ? ` style="width:${S.paneW}px"` : ''
   // 正文那一页有四页（AI 关着时没有讨论）；别的页只留设定。
   if (S.page !== 'write') return `<div id="pane"${wide}>${edge}<div class="tabs"><div class="tab on">${t(L.paneTabLore())}${waiting ? `<span class="badge">${waiting}</span>` : ''}</div></div>${setting()}</div>`
   // 批注不带数：几条就在页边，一眼看得到。
-  return `<div id="pane" class="${at === '批注' ? 'margin-pane' : ''}"${wide}>${edge}` + `<div class="tabs">${tab('批注')}${tab('设定', waiting)}${aiOn() ? tab('讨论') : ''}${tab('伏笔', lost)}${tab('预览')}</div>` +
+  return `<div id="pane" class="${at === '批注' ? 'margin-pane' : ''}"${wide}>${edge}` + `<div class="tabs">${tab('批注')}${tab('设定', waiting)}${aiOn() ? tab('讨论') : ''}${tab('伏笔', lost)}${modOn('phone') ? tab('预览') : ''}</div>` +
     (at === '批注' ? margin() : at === '设定' ? setting() : at === '伏笔' ? foreshadowing() : at === '预览' ? phoneView() : discussion()) + '</div>'
 }
 

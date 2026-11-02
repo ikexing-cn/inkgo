@@ -37,7 +37,7 @@ const chapterOf = (key) => S.chapters.find((c) => c.key === key)
 const chTitle = (key) => { const c = chapterOf(key); return c ? titleOf(c) : L.appChapterDeleted() }
 const clip = (text, n) => (text.length > n ? text.slice(0, n) + '…' : text)
 // 一章有多少字。书里带来的章写着（假的）字数，新写的照实数。
-const sizeOf = (c) => c.c || String(c.paras.join('').length)
+const sizeOf = (c) => c.c || c.paras.join('').length
 
 // 上下文上限和最大输出：整千写成 K，整百万写成 M；作者也可以这样填，K 是一千。填得不对得 NaN。
 const size = (n) => (n % 1e6 === 0 ? n / 1e6 + 'M' : n % 1000 === 0 ? n / 1000 + 'K' : String(n))
@@ -58,9 +58,15 @@ const timeShown = (text) => {
   const today = m[1] === '今天'
   return m[2] ? (today ? L.timeToday(m[2]) : L.timeYesterday(m[2])) : (today ? L.timeTodayDay() : L.timeYesterdayDay())
 }
-// 体裁和书架上的字数：状态里存的是中文（「网文」「暂无正文」），显示时换成当前语言，别的样子原样写。
+// 扩展模块（笔记「扩展模块」）：id、名字、在界面上的哪几处，备份多一句关掉以后会怎样。顺序是装配清单的顺序。
+// 关着的模块，它的菜单项、右栏标签、设置里的那一类整个不见，不是变灰；数据留着，再开照旧。
+const MODS = () => [['phone', L.modPhone(), L.modPhoneWhere()], ['export', L.modExport(), L.modExportWhere()], ['backup', L.modBackup(), L.modBackupWhere(), L.modBackupOff()]]
+const modOn = (id) => !S.modsOff.includes(id)
+// 体裁：状态里存的是中文（「网文」），显示时换成当前语言，别的样子原样写。
 const genreWord = (k) => ({ 网文: L.genreWeb(), 出版小说: L.genreNovel(), 剧本: L.genreScript(), 非虚构: L.genreNonfiction() })[k] ?? k
-const wordsShown = (w) => (w === '暂无正文' ? L.shelfNoWords() : w)
+// 字数存的是数，满一万按万写（31.2 万字）。书架和备份上没有字的书写「暂无正文」。
+const wordCount = (n) => (n >= 10000 ? L.statusWanWords(n / 10000, n) : L.statusWords(n))
+const wordsShown = (n) => (n ? wordCount(n) : L.shelfNoWords())
 // token 数按 K、M、B 写，留一位小数（9.6K、1.7M）；不到一千的照写。
 const tokens = (n) => {
   const [unit, by] = [['B', 1e9], ['M', 1e6], ['K', 1e3]].find(([, by]) => n >= 1000 && Math.round((n / by) * 10) >= 10) || ['', 1]
@@ -152,9 +158,10 @@ function fresh(book = BOOK.shelf[0].id) {
     noAI: false, offFrom: '', // 关闭了 AI：本机的所有作品都不显示 AI 功能，也不发送任何内容；offFrom 是关的时候停在的讨论页、检查页
     exportWhat: ['正文'], exportAs: 'Word', pen: '', // 导出勾了哪几样、成什么格式，上次写在首页的笔名（新作品沿用它）
     zoom: 1, // 界面缩放：整个窗口里的东西放大几倍
+    modsOff: [], // 设置「功能」里关掉的扩展模块，本机的
   }
 }
-const KEPT = ['look', 'names', 'noGPU', 'ranNoGPU', 'phone', 'shelf', 'cards', 'library', 'uses', 'services', 'auto', 'when', 'late', 'goal', 'paneW', 'noAI', 'exportWhat', 'exportAs', 'pen', 'zoom']
+const KEPT = ['look', 'names', 'noGPU', 'ranNoGPU', 'phone', 'shelf', 'cards', 'library', 'uses', 'services', 'auto', 'when', 'late', 'goal', 'paneW', 'noAI', 'exportWhat', 'exportAs', 'pen', 'zoom', 'modsOff']
 
 let S = fresh()
 let sent = 0 // 作者发过几条消息，AI 按顺序回下一句
