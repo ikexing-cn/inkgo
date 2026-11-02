@@ -868,14 +868,14 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('文件'); await macMenus('⌘N'); await macMenus('Ctrl+N', false); await macMenus('设置…', false); await shot('a0b-mac-menu'); await key('Escape')
   await click('Inkgo'); await macMenus('⌘,'); await macMenus('退出 Inkgo'); await click('设置…'); await win('模型服务'); await click('关闭设置')
   await click('编辑'); await macMenus('⇧⌘Z'); await key('Escape')
-  await click('视图'); await click('深色'); must(await js(`S.look`) === '深色', 'the look in the menu of macOS did not turn dark'); await click('视图'); await shot('a0f-mac-look'); await click('跟随系统')
-  await key('/', true); await win('⌃Tab'); await win('⌘↩'); await shot('a0c-mac-keys'); await click('关闭')
+  await click('视图'); await click('深色'); must(await js(`S.look`) === '深色', 'the look in the menu of macOS did not turn dark'); await click('视图'); await macMenus('⌃⌘F'); await shot('a0f-mac-look'); await click('跟随系统')
+  await key('/', true); await win('⌃Tab'); await win('⌘↩'); await win('⇧⌘Z'); await win('⌃⌘F'); await win('F2', false); await win('重命名当前章节', false); await shot('a0c-mac-keys'); await click('关闭')
   await click('第84章：刻字'); await caret(0, 0); await text('甲乙'); await shutOn(); await win(asked)
   must(await saveOrder() === '不保存 取消 保存', 'on macOS the question of saving is not in the order of the system: ' + await saveOrder()); await shot('a0d-mac-unsaved'); await click('不保存')
   await key('f', true); must(await has('.find-bar'), 'Ctrl+F did not open find on macOS'); await key('Escape')
   await click('切换作品'); await click('全部作品…'); await win('~/写作'); await shot('a0e-mac-shelf')
   await click('Windows'); await win('第87章：停电'); must(await has('#win .window-buttons') && !(await has('#win .lights')) && !(await has('.mac-bar')), 'back on Windows the window is still a Mac one')
-  await click('文件'); await win('Ctrl+N'); await key('Escape'); await done('macOS')
+  await click('文件'); await win('Ctrl+N'); await key('Escape'); await click('编辑'); await win('Ctrl+Shift+Z'); await win('Ctrl+Y', false); await key('Escape'); await done('macOS')
 
   // Languages: the stage bar switches the words of the window without starting over. What has been taken into
   // locales/ (so far the title bar, the menus and the toasts) follows; 伪英文 (en-XA) brackets and lengthens every

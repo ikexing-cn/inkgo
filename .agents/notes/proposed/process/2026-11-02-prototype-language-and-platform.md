@@ -37,7 +37,7 @@ Status: proposed
 
 1. 状态里的值不拆：仍记中文（`S.look === '深色'` 这类），只在显示时换成翻译表里的字，比如外观的三种由 `LOOKS()` 给出「值、图标、显示的字」。原先打算先把 54 处状态值拆成 ID，做的时候改了：拆 ID 要一次动遍所有文件，显示时换只动显示的那一处，按文件逐个抽也行。
 2. 翻译表和应用共用仓库根的 `locales/`（[多语言方案](../architecture/2026-11-02-i18n-on-mygo.md)）。双击打开的页面从 `file://` 读不了 JSON，也加载不了 ES 模块，所以由脚本把翻译表生成到 `prototype/` 里一个普通的 JS 文件，提交进仓库；`verify-prototype` 检查它有没有过期。打开原型仍然不用构建。
-3. 消息的格式化用 mygo 的 `packages/runtime/src/i18n.ts`（738 行，没有依赖，只用 `Intl`），用 Node 去掉类型后放进原型。这样 ICU 语法和 en-XA、ar-XB 的算法和 Go 那边是同一套。
+3. 消息的格式化用 mygo 的 `packages/runtime/src/i18n.ts`（738 行，没有依赖，只用 `Intl`），用 Node 去掉类型后放进原型。这样 ICU 语法和 en-XA 的算法和 Go 那边是同一套。
 4. 两类字不进翻译表：
    - `book.js` 里假书的正文、设定、讨论，界面换成哪种语言都还是中文。这正好演示「书的语言和界面语言分开」。
    - 舞台上的工具（重新开始、少见的情况、两个切换）只写中文。
@@ -48,7 +48,8 @@ Status: proposed
 
 - 已做：`npm run prototype-locales` 生成 `prototype/i18n.js`、`prototype/locales.js`，`verify-prototype` 先跑它的 `--check`；舞台上有「中文 / English / 伪英文」，换语言不从头开始；标题栏、菜单（含 macOS 的系统菜单栏）、提示条已经抽进 `locales/`；走查的 languages 一段截 `a1-en-file`、`a1b-en-view`、`a1c-pseudo-file`、`a1d-mac-en`。
 - 伪英文（en-XA）拉的是源语言，所以中文只是加上方括号和补长的 one，不会变成带音标的字母。它的用处是找没抽的字：没带方括号的中文就是还没进翻译表。宽度看 English。
-- 还没做：`write.js`、`pane.js`、`pages.js`、`dialogs.js`、`base.js` 里其余的字，逐个文件抽；整张英文表由 haiku 起草；ar-XB 要原型先能从右往左排，暂不加。
+- 还没做：`write.js`、`pane.js`、`pages.js`、`dialogs.js`、`base.js` 里其余的字，逐个文件抽；整张英文表由 haiku 起草。
+- 不做：ar-XB。作者 2026-11-02 定不面向从右往左的语言，原型和应用都不为它排版。
 
 ### macOS 的菜单（作者 2026-11-02 定）
 
@@ -69,10 +70,10 @@ Status: proposed
 
 ### 待定
 
-- 应用这边和 macOS 不一致的几处，原型照 macOS 的规矩画，应用以后再改：
-  - `Ctrl+Tab` 在 `desk/commands.go` 里是写死的字面量。
-  - 重做是 `⌘Y`，macOS 上通常是 `⇧⌘Z`。
-  - 专注写作是 F11，重命名是 F2，在 macOS 上都不是常见的键。
+- 应用这边和 macOS 不一致的几处，作者 2026-11-02 定了做法，规则在 DESIGN.md「菜单」：
+  - `Ctrl+Tab` 在 `desk/commands.go` 的快捷键表里是手写的字。已改：表里的键都从命令取，`shortcutOn` 按系统写（macOS 上 ⌃⇧Tab），顺带修了 Windows 上 Cmd 加 Shift 的命令只写出 `Ctrl+` 的问题。
+  - 重做两边都改成 Ctrl+Shift+Z / ⇧⌘Z。原型已改；应用的 `cmdRedo` 还是 `Cmd+Y`，等恢复写代码时改（Windows 上 Ctrl+Y 留着也认）。
+  - 专注写作在 macOS 上是 ⌃⌘F，重命名在 macOS 上不设快捷键。原型已改（在 Windows 键盘上点原型，F11、F2 照样认）；应用的命令表要能给 macOS 另配一个键，等恢复写代码时做。
   - 红黄绿按钮在 40 高的标题栏里是否垂直居中，没在真机上看过；可能要设 `TrafficLightPosition`。
 
 ## Alternatives considered

@@ -44,14 +44,14 @@ function newChapter(into) {
     const home = typeof into === 'string' ? into : chapterOf(s.ch) ? '' : s.vol
     const cur = home ? s.chapters.filter((c) => c.vol === home).at(-1) : chapterOf(s.ch), key = 'n' + s.n
     // 卷里的章接着上一章的号：名字先空着，标题就是「第 N 章」，输入框里号后面等着写名字。卷外的叫「新章节」，全选上等着换。
-    const vol = home || (cur ? cur.vol : ''), made = { key, no: cur ? cur.no + 1 : 1, vol, t: vol ? '' : '新章节', c: '', paras: [] }
+    const vol = home || (cur ? cur.vol : ''), made = { key, no: cur ? cur.no + 1 : 1, vol, t: vol ? '' : L.sideNewChapterName(), c: '', paras: [] }
     const at = cur ? s.chapters.indexOf(cur) + 1 : s.chapters.length
     const chapters = [...s.chapters.slice(0, at), made, ...s.chapters.slice(at)]
     return { chapters, n: s.n + 1, never: { ...s.never, [key]: true }, ...go({ ...s, chapters }, key), rename: { key, t: vol ? titleOf(made) + '：' : made.t, all: !vol, offered: vol ? titleOf(made) + '：' : '' } }
   })
 }
 function newFolder() {
-  set((s) => ({ volumes: [...s.volumes, ['v' + s.n, '新文件夹', '']], n: s.n + 1, tree: null, rename: { key: 'v' + s.n, t: '新文件夹', all: true } }))
+  set((s) => ({ volumes: [...s.volumes, ['v' + s.n, L.sideNewFolderName(), '']], n: s.n + 1, tree: null, rename: { key: 'v' + s.n, t: L.sideNewFolderName(), all: true } }))
 }
 // F2：给开着的这一章改名字。它在折起来的卷里、侧栏收着，都先摆出来。
 function renameOpen() {
@@ -120,7 +120,7 @@ function toBin(key) {
       ...(to === on ? {} : chapters.some((c) => c.key === to) ? { ch: to, vol: '' } : { ch: '', vol: to, ...CLEAR }),
     }
   })
-  say('「' + title + '」已移到回收站', '', 'ok')
+  say(L.sideMovedToTrash(title), '', 'ok')
 }
 
 // ───────── 动作：在正文里打字 ─────────
@@ -307,7 +307,7 @@ const payPick = () => { const can = payable(); return can.some((m) => m.id === S
 // 问「选择要回收的伏笔」。id 是先选好的那条，从右键菜单来的没有。
 function askPay(id) {
   const pick = grab() || S.pick
-  if (!pick) { say('请先在正文中选中回收伏笔的段落'); return }
+  if (!pick) { say(L.editorSelectFirst()); return }
   set({ ctx: null, bury: null, bar: null, pick, pay: { q: '', id } })
 }
 
@@ -377,7 +377,7 @@ function rewrite() {
   const { pick, want } = S.ai, cur = chapterOf(S.ch)
   if (!want.trim()) return
   set({ ai: null })
-  startTalk({ origin: '改写', key: cur.key, title: '改写：' + clip(pick.text, 8), text: want.trim(), cite: { key: cur.key, title: titleOf(cur), quote: pick.text } })
+  startTalk({ origin: '改写', key: cur.key, title: L.sideRewriteTitle(clip(pick.text, 8)), text: want.trim(), cite: { key: cur.key, title: titleOf(cur), quote: pick.text } })
 }
 // 关掉改写要求：键盘回到正文，光标在选中的那段后面。
 function dropAI() {
@@ -392,7 +392,7 @@ function draftNow() {
   if (!countOrNone(d.goal)) return
   set({ dialog: null, ...SHUT, bar: null })
   const over = cur.paras.length > 0 && d.how === '覆盖已有内容'
-  startTalk({ origin: '起草', key: cur.key, over, title: '起草：' + titleOf(cur), text: '按章纲起草本章' + (d.goal.trim() ? '，约 ' + d.goal.trim() + ' 字' : '') + (cur.paras.length ? '，' + d.how : '') })
+  startTalk({ origin: '起草', key: cur.key, over, title: L.sideDraftTitle(titleOf(cur)), text: '按章纲起草本章' + (d.goal.trim() ? '，约 ' + d.goal.trim() + ' 字' : '') + (cur.paras.length ? '，' + d.how : '') })
 }
 
 // ───────── 动作：AI 的提议 ─────────
@@ -410,7 +410,7 @@ const ruled = (s, ids, why) => ({ props: s.props.filter((p) => !ids.includes(p.i
 function unfit(s, key, old, paras) {
   const gone = s.props.filter((p) => p.key === key && !p.writing && (p.at.kind === 'all' ? old.join('\n') !== paras.join('\n') : p.at.kind === 'swap' && !paras.some((x) => x.includes(p.at.quote))))
   if (!gone.length) return {}
-  later(0, () => say(gone.length + ' 处 AI 提议已作废', '它要换掉的原文改动了'))
+  later(0, () => say(L.editorSuggestionsVoided(gone.length), L.editorVoidedWhy()))
   return ruled(s, gone.map((p) => p.id), '正文已改动，提议已作废')
 }
 // 一章里还没定的提议。
@@ -426,7 +426,7 @@ function takeProps(key, ids) {
     return { ...snap(s, key, 'AI 改动前', { head: '采纳讨论' + talks.map((x) => '「' + (x ? x.title : '已删除的讨论') + '」').join('') + '里的提议' }), ...step, ...ruled(s, list.map((p) => p.id), '已采纳'),
       chapters: step.chapters.map((c) => (c.key === key ? { ...c, ai: [...(c.ai || []), ...words] } : c)) }
   })
-  say('已采纳 AI 提议', '可撤销恢复原文，原版本已存入快照', 'ok')
+  say(L.editorAccepted(), L.editorAcceptedUndo(), 'ok')
   // 光标放在采纳的最后那段字后面：马上按 Ctrl+Z 就撤销。
   const paras = chapterOf(key).paras, last = words.at(-1), i = paras.findIndex((x) => x.includes(last))
   if (key === S.ch && i >= 0) putCaret({ para: i, off: paras[i].indexOf(last) + last.length }, true)
@@ -441,14 +441,14 @@ function dropProps(ids) {
 // Ctrl+S：马上存。AI 写的还没采纳，不在正文里，不用等它。
 function saveNow() {
   set({ saved: true })
-  say('已保存', '停笔片刻也会自动保存', 'ok')
+  say(L.statusSaved(), L.statusAutosave(), 'ok')
 }
 
 // 软件外面改了开着的这一章：留磁盘上的还是编辑器里的，另一边存成快照。
 function settleOutside(disk) {
   const key = S.ch
   set((s) => ({ outside: '', ...snap(s, key, '外部改动'), ...(disk ? retype(s, key, (paras) => [...paras, BOOK.outside]) : {}) }))
-  say(disk ? '已采用磁盘版本，编辑器原内容已存为快照' : '已保留编辑器版本，磁盘内容已存为快照', '', 'ok')
+  say(disk ? L.editorSettledDisk() : L.editorSettledKeep(), '', 'ok')
 }
 // 软件外面把开着的这一章删了、改名了：编辑器里的字存成一章新的。
 function saveLost() {
@@ -456,7 +456,7 @@ function saveLost() {
     const c = chapterOf(s.ch)
     return { outside: '', chapters: [...s.chapters.filter((x) => x !== c), { ...c, vol: '' }] }
   })
-  say('已存为新章节，位于最上层末尾', '', 'ok')
+  say(L.editorSavedNewTop(), '', 'ok')
 }
 
 // 让备份换一种没成功的样子。
@@ -465,7 +465,7 @@ const failBackup = (why) => () => set((s) => ({ ...SHUT, backup: { ...s.backup, 
 // 平时不易遇到的情况：出错、作品在软件外被改动。在窗口上面那一排里点出来看。
 function rare() {
   const here = (change) => () => {
-    if (!chapterOf(S.ch)) { set(SHUT); say('请先打开一章'); return }
+    if (!chapterOf(S.ch)) { set(SHUT); say(L.editorOpenFirst()); return }
     set((s) => ({ page: 'write', focus: false, dialog: null, find: null, ...CLEAR, ...SHUT, ...change(s) }))
   }
   return [
@@ -476,7 +476,7 @@ function rare() {
     ['备份文件夹不可写', failBackup('deny')],
     [S.narrow ? '窗口恢复原宽' : '窗口变窄', () => set((s) => ({ narrow: !s.narrow, ...SHUT }))],
     ['大纲文件读不出来', () => set({ page: 'plan', planBroken: true, planQ: '', dialog: null, ...SHUT })],
-    ['添加的文件夹中没有作品', () => { set(SHUT); say('该文件夹中没有作品（缺少 work.yaml）', PATHS().stray, 'fail') }],
+    ['添加的文件夹中没有作品', () => { set(SHUT); say(L.editorNoWork(), PATHS().stray, 'fail') }],
   ]
 }
 // 一次回复查到了上限：查了 BOOK.limit 次还没查完，照查到的回答。
@@ -485,6 +485,9 @@ const capped = () => [{ me: true, at: stamp(), text: '全书写到井的地方�
   look: [['搜', '全书「井」', '9 处，在 5 章'], ...['1', '2', '46', '84', '85', '86', '87'].map((key) => ['读', '「' + chTitle(key) + '」全章', clip(chapterOf(key).paras.join(''), 40)]), ['设定', '「铜钥匙」', '一直挂在林晚脖子上，不知道开哪扇门。'], ['讨论', '「井」', '没有找到']].slice(0, BOOK.limit),
 }]
 
+// 出错的原因在状态里记的是中文（和它判断用的一样），显示时换成当前语言的字。
+const WHYS = () => ({ '无法连接模型服务': L.editorWhyNoModel(), '请在设置中「AI」配置里选择续写和检查模型': L.editorWhyPickModel() })
+const whyText = (v) => WHYS()[v] || v
 // AI 出错的那几种：AI 关着时用不上，菜单里也不列。
 function aiRare(here) {
   const why = '无法连接模型服务'
@@ -493,10 +496,10 @@ function aiRare(here) {
     ['未选择续写和检查模型', here((s) => ({ failed: { ...s.failed, [s.ch]: '请在设置中「AI」配置里选择续写和检查模型' } }))],
     ['本章过长，仅检查前文', here((s) => ({ part: { ...s.part, [s.ch]: { check: 5000 } }, never: { ...s.never, [s.ch]: false }, failed: { ...s.failed, [s.ch]: '' }, dirty: { ...s.dirty, [s.ch]: false } }))],
     ['讨论里提议修改另一章', () => { set(SHUT); elsewhere() }],
-    ['回复超出最大输出', () => { set(SHUT); say('回复超出模型的最大输出 128K（含思考）', '请在设置中「AI」配置里调大', 'fail', [['打开设置', () => set({ dialog: { kind: 'settings', tab: 'AI', edit: '' }, toasts: [], ...SHUT })]]) }],
+    ['回复超出最大输出', () => { set(SHUT); say(L.editorOutputTooLong(), L.editorOutputTooLongHint(), 'fail', [[L.commonOpenSettings(), () => set({ dialog: { kind: 'settings', tab: 'AI', edit: '' }, toasts: [], ...SHUT })]]) }],
     ['讨论查阅达到上限', here((s) => ({ paneOpen: true, tab: '讨论', tv: 'one', tid: 't1', talks: s.talks.map((talk) => (talk.id !== 't1' ? talk : { ...talk, msgs: [...talk.msgs, ...capped()] })) }))],
     ['设定较多，只附目录', here(() => ({ paneOpen: true, tab: '讨论', tv: 'one', tid: 't2', crowded: true, told: { 't2-1': true } }))],
-    ['模型目录读取失败', () => { set(SHUT); const id = say('读取模型目录失败', why, 'fail', [['重试', () => { unsay(id); fetchModels() }], ['打开设置', () => set({ dialog: { kind: 'settings', tab: 'AI', edit: '' }, toasts: [], ...SHUT })]]) }],
+    ['模型目录读取失败', () => { set(SHUT); const id = say(L.editorModelListFailed(), whyText(why), 'fail', [[L.commonRetry(), () => { unsay(id); fetchModels() }], [L.commonOpenSettings(), () => set({ dialog: { kind: 'settings', tab: 'AI', edit: '' }, toasts: [], ...SHUT })]]) }],
   ]
 }
 
@@ -517,7 +520,7 @@ function openFind() {
     const at = hits(chapterOf(s.ch), pick.text).findIndex((h) => h.para === pick.para && h.a === pick.start)
     return { find: { ...was, q: pick.text, at: Math.max(at, 0) }, ...SHUT }
   })
-  const box = document.querySelector('[aria-label="查找"]')
+  const box = document.querySelector('.find-bar .in')
   if (box) { box.focus(); box.select() }
 }
 const findStep = (d) => set((s) => { const n = hits(chapterOf(s.ch), s.find.q).length; return n ? { find: { ...s.find, at: (s.find.at + d + n) % n } } : null })
@@ -533,7 +536,7 @@ function swapAll() {
   const { q, to } = S.find, n = hits(chapterOf(S.ch), q).length
   if (!n) return
   set((s) => oneStep(s, s.ch, (paras) => paras.map((p) => p.split(q).join(to))))
-  say('已替换 ' + n + ' 处，可撤销', '', 'ok')
+  say(L.findReplaced(String(n)), '', 'ok')
 }
 function swapBook() {
   const { q, to } = S.dialog, had = S.chapters.filter((c) => hits(c, q).length)
@@ -543,7 +546,7 @@ function swapBook() {
     for (const c of had) next = { ...next, ...snap(next, c.key, '全书替换前'), ...retype(next, c.key, (paras) => paras.map((p) => p.split(q).join(to))) }
     return next
   })
-  say('已在 ' + had.length + ' 章中替换 ' + n + ' 处，各章替换前的版本已存入快照', '', 'ok')
+  say(L.findReplacedBook(had.length, String(n)), '', 'ok')
 }
 
 const counted = (c) => Number(sizeOf(c).replace(/,/g, ''))
@@ -568,15 +571,15 @@ function pending() {
   const list = []
   for (const c of aiOn() ? S.checks : []) {
     const ch = chapterOf(c.key)
-    list.push({ id: c.id, group: '检查', name: c.kind === '新出现' ? '「' + c.title + '」尚未加入设定' : c.title, about: ch ? titleOf(ch) : '', key: c.key, open: () => set({ page: 'check', kind: '全部', cid: c.id, ...SHUT }) })
+    list.push({ id: c.id, group: '检查', name: c.kind === '新出现' ? L.statusNotInLore(c.title) : c.title, about: ch ? titleOf(ch) : '', key: c.key, open: () => set({ page: 'check', kind: '全部', cid: c.id, ...SHUT }) })
   }
   for (const m of S.marks) {
     const gap = BOOK.now - m.ch
     const open = () => set({ paneOpen: true, focus: false, tab: '伏笔', fid: m.id, fv: 'list', renote: null, ...SHUT })
-    if (m.st === 'lost') list.push({ id: m.id, group: '伏笔', name: '「' + nameOf(m) + '」原句已删', about: chTitle(m.key), key: m.key, open })
-    if (m.st === 'open' && gap >= S.late) list.push({ id: m.id, group: '伏笔', name: '「' + nameOf(m) + '」' + gap + ' 章未回收', about: chTitle(m.key) + ' 埋下', key: m.key, open })
+    if (m.st === 'lost') list.push({ id: m.id, group: '伏笔', name: L.statusQuoteGone(nameOf(m)), about: chTitle(m.key), key: m.key, open })
+    if (m.st === 'open' && gap >= S.late) list.push({ id: m.id, group: '伏笔', name: L.statusUnpaid(nameOf(m), gap), about: L.statusPlantedIn(chTitle(m.key)), key: m.key, open })
   }
-  if (S.backup.state === 'fail') list.push({ id: 'backup', group: '备份', name: '备份失败，' + backupWhy()[0], about: '点击重试 · 上次备份 ' + S.backup.at, key: '', open: backupNow })
+  if (S.backup.state === 'fail') list.push({ id: 'backup', group: '备份', name: L.statusBackupWhy(backupWhy()[0]), about: L.statusRetryBackup(timeShown(S.backup.at)), key: '', open: backupNow })
   return list.filter((x) => !S.ignored.includes(x.id))
 }
 
@@ -589,7 +592,7 @@ function sidebar() {
   // 回车定的是正开着的那一章，光标接着进正文。
   const named = (key) => () => { renameNow(); const box = key === S.ch && proseBox(); if (box) box.focus() }
   const naming = (key, pic, deep) => `<div class="tree-row naming${pic ? '' : ' leaf'}${deep ? ' deep' : ''}${key === S.ch ? ' on' : ''}" data-k="node-${key}">${pic}` +
-    `${typed(S.rename.t, (v) => set((s) => (s.rename ? { rename: { ...s.rename, t: v } } : null)), '', '章节标题', keys(named(key), () => set({ rename: null })) + onBlur(renameNow) + ' autofocus' + (S.rename.all ? ' data-all' : ''))}</div>`
+    `${typed(S.rename.t, (v) => set((s) => (s.rename ? { rename: { ...s.rename, t: v } } : null)), '', L.sideChapterTitle(), keys(named(key), () => set({ rename: null })) + onBlur(renameNow) + ' autofocus' + (S.rename.all ? ' data-all' : ''))}</div>`
   const menu = (key, talk) => onMenu((ev) => { ev.preventDefault(); const [x, y] = spot(ev.clientX, ev.clientY); set({ tree: { key, x, y, talk } }) })
   const leaf = (c) => (S.rename && S.rename.key === c.key ? naming(c.key, '', c.vol)
     : `<div class="tree-row leaf hit${c.vol ? ' deep' : ''}${c.key === S.ch ? ' on' : ''}" draggable="true" data-k="node-${c.key}" data-node="${c.key}"${onClick(goTo(c.key))}${menu(c.key)}><div class="fit ell">${t(titleOf(c))}</div><div class="count">${t(sizeOf(c))}</div></div>`)
@@ -601,30 +604,30 @@ function sidebar() {
   const others = S.shelf.filter((b) => b.id !== S.book && !b.gone)
   const open = (talk) => S.page === 'talk' && talk.id === S.tid && S.tv === 'one'
   const put = S.talks.filter((x) => S.shelved[x.id])
-  const talkRow = (talk) => `<div class="tree-row hit${open(talk) ? ' on' : ''}${S.shelved[talk.id] ? ' put' : ''}"${onClick(() => set({ page: 'talk', tv: 'one', tid: talk.id, draft: '' }))}${menu(talk.id, true)}><div class="fit ell">${t(talk.title)}</div><div class="count">${t(talk.at)}</div></div>`
+  const talkRow = (talk) => `<div class="tree-row hit${open(talk) ? ' on' : ''}${S.shelved[talk.id] ? ' put' : ''}"${onClick(() => set({ page: 'talk', tv: 'one', tid: talk.id, draft: '' }))}${menu(talk.id, true)}><div class="fit ell">${t(talk.title)}</div><div class="count">${t(timeShown(talk.at))}</div></div>`
   // 点作品名出来的菜单：这一部在最上，再是别的几部。
-  const bookMenu = S.open !== 'book' ? '' : `<div class="pop"><div class="pop-label">作品</div><div class="pop-row row on"><div class="grow">${t(book.name)}</div><div class="side">${t(book.kind)}</div></div>` + others.map((o) => menuRow(o.name, leave(() => openBook(o.id)), '', o.kind)).join('') + HAIR +
-    menuRow('新建作品…', leave(() => set({ page: 'shelf', dialog: { kind: 'newBook', name: '', type: BOOK.kinds[0] }, ...SHUT }))) + menuRow('全部作品…', leave(() => set({ page: 'shelf', ...SHUT }))) + '</div>'
+  const bookMenu = S.open !== 'book' ? '' : `<div class="pop"><div class="pop-label">${L.sideBooks()}</div><div class="pop-row row on"><div class="grow">${t(book.name)}</div><div class="side">${t(genreWord(book.kind))}</div></div>` + others.map((o) => menuRow(o.name, leave(() => openBook(o.id)), '', genreWord(o.kind))).join('') + HAIR +
+    menuRow(L.sideNewBook(), leave(() => set({ page: 'shelf', dialog: { kind: 'newBook', name: '', type: BOOK.kinds[0] }, ...SHUT }))) + menuRow(L.sideAllBooks(), leave(() => set({ page: 'shelf', ...SHUT }))) + '</div>'
   // AI 正在回讨论时不能换作品，别的照常：回完或者取消了再换。
   const pickBook = onClick(S.waiting ? null : () => set({ open: S.open === 'book' ? '' : 'book' })), off = S.waiting ? ' off' : ''
   const talks = S.page === 'talk' // 讨论页列讨论，别的页都列章节
   // 顶上一行右边只一个加号：列章节时新建章节，列讨论时新对话。新建文件夹在「文件」菜单和右键菜单里。
-  const add = talks ? `<button class="icon-btn muted" aria-label="新对话" title="新对话"${onClick(() => set({ page: 'talk', tv: 'new', tid: null, draft: '' }))}>${ICON.plus}</button>`
-    : `<button class="icon-btn muted" aria-label="新建章节" title="新建章节（${keyLabel('Ctrl+N')}）"${onClick(newChapter)}>${ICON.plus}</button>`
+  const add = talks ? `<button class="icon-btn muted" aria-label="${L.sideNewTalk()}" title="${L.sideNewTalk()}"${onClick(() => set({ page: 'talk', tv: 'new', tid: null, draft: '' }))}>${ICON.plus}</button>`
+    : `<button class="icon-btn muted" aria-label="${L.cmdNewChapter()}" title="${L.sideNewChapterKey(keyLabel('Ctrl+N'))}"${onClick(newChapter)}>${ICON.plus}</button>`
   return '<div class="sidebar" data-k="sidebar">' +
-    `<div class="sidebar-top"><div class="anchor wide"><div class="book hit${off}" title="切换作品"${pickBook}><div class="book-logo">${t(book.name[0])}</div><div class="book-name">${t(book.name)}</div>${icon('down', 'sm', 'faint')}</div>` +
+    `<div class="sidebar-top"><div class="anchor wide"><div class="book hit${off}" title="${L.sideSwitchBook()}"${pickBook}><div class="book-logo">${t(book.name[0])}</div><div class="book-name">${t(book.name)}</div>${icon('down', 'sm', 'faint')}</div>` +
     bookMenu + `</div>${add}</div>` +
     (talks
       ? `<div class="tree scroll">${S.talks.filter((x) => !S.shelved[x.id] || S.shelvedShown || open(x)).map(talkRow).join('')}` +
-        (put.length ? `<div class="tree-more hit"${onClick(() => set({ shelvedShown: !S.shelvedShown }))}>${S.shelvedShown ? '不显示收起的对话' : '已收起 ' + put.length + ' 段对话'}</div>` : '') + '</div>'
+        (put.length ? `<div class="tree-more hit"${onClick(() => set({ shelvedShown: !S.shelvedShown }))}>${S.shelvedShown ? L.sideHideFolded() : L.sideFoldedCount(put.length)}</div>` : '') + '</div>'
       : `<div class="tree scroll">${S.volumes.map(volume).join('')}${listed.filter((c) => !c.vol).map(leaf).join('')}</div>`) +
     '</div>'
 }
 
 // 底栏右边、字数前面：备份到哪一步了。好好的时候只三个字「已备份」，时间在悬停和点开里；点开还有下次什么时候，和「立即备份」。
 function backupLine() {
-  const b = S.backup, words = { ok: '已备份', busy: '正在备份…', fail: '备份失败', none: '尚未备份' }[b.state]
-  return `<div class="anchor up backup"><div class="backup-line hit"${b.state === 'ok' ? ` title="${t('已备份 · ' + b.at)}"` : ''}${onClick(() => set({ open: S.open === 'backup' ? '' : 'backup' }))}><div class="dot${b.state === 'ok' || b.state === 'busy' ? ' grey' : ''}"></div><div>${t(words)}</div></div>${S.open === 'backup' ? backupPop() : ''}</div>`
+  const b = S.backup, words = { ok: L.statusBackupOK(), busy: L.statusBackupBusy(), fail: L.statusBackupFailed(), none: L.statusBackupNone() }[b.state]
+  return `<div class="anchor up backup"><div class="backup-line hit"${b.state === 'ok' ? ` title="${t(L.statusBackedUpAt(timeShown(b.at)))}"` : ''}${onClick(() => set({ open: S.open === 'backup' ? '' : 'backup' }))}><div class="dot${b.state === 'ok' || b.state === 'busy' ? ' grey' : ''}"></div><div>${t(words)}</div></div>${S.open === 'backup' ? backupPop() : ''}</div>`
 }
 
 // 侧栏里右键一章或一卷点出来的菜单；一段讨论、一个标签页的菜单也在这里。
@@ -633,24 +636,24 @@ function treeMenu() {
     const key = S.tree.key, others = S.tabs.filter((k) => k !== key), right = S.tabs.slice(S.tabs.indexOf(key) + 1)
     return `<div class="veil float-veil"${onClick(closeFloat)}${onMenu((ev) => { ev.preventDefault(); closeFloat() })}></div>` +
       `<div class="ctx pop" data-k="tree-menu" style="left:${Math.min(S.tree.x, document.getElementById('win').offsetWidth - 208)}px;top:${S.tree.y}px">` +
-      menuRow('关闭', () => shutTabs([key]), '', 'Ctrl+W') + menuRow('关闭其他', others.length ? () => shutTabs(others) : null) + menuRow('关闭右侧', right.length ? () => shutTabs(right) : null) + '</div>'
+      menuRow(L.commonClose(), () => shutTabs([key]), '', 'Ctrl+W') + menuRow(L.sideCloseOthers(), others.length ? () => shutTabs(others) : null) + menuRow(L.sideCloseRight(), right.length ? () => shutTabs(right) : null) + '</div>'
   }
   if (S.tree.talk) {
     const id = S.tree.key, flip = () => set((s) => ({ tree: null, shelved: { ...s.shelved, [id]: !s.shelved[id] } }))
     return `<div class="veil float-veil"${onClick(closeFloat)}${onMenu((ev) => { ev.preventDefault(); closeFloat() })}></div>` +
-      `<div class="ctx pop" data-k="tree-menu" style="left:${S.tree.x}px;top:${S.tree.y}px">${menuRow(S.shelved[id] ? '移回列表' : '收起这段对话', flip)}</div>`
+      `<div class="ctx pop" data-k="tree-menu" style="left:${S.tree.x}px;top:${S.tree.y}px">${menuRow(S.shelved[id] ? L.sideMoveBack() : L.sideCollapseTalk(), flip)}</div>`
   }
   const key = S.tree.key, vol = S.volumes.some((v) => v[0] === key), c = chapterOf(key)
   // 移到哪一卷收在「移到」的下一级里：卷再多，菜单也不跟着变长。into 是下一级开着。
-  const spots = vol ? [] : [['最上层', ''], ...S.volumes.map((v) => [v[1], v[0]])].filter(([, to]) => to !== c.vol)
+  const spots = vol ? [] : [[L.sideTopLevel(), ''], ...S.volumes.map((v) => [v[1], v[0]])].filter(([, to]) => to !== c.vol)
   const win = document.getElementById('win')
   return `<div class="veil float-veil"${onClick(closeFloat)}${onMenu((ev) => { ev.preventDefault(); closeFloat() })}></div>` +
     `<div class="ctx pop${S.tree.x > win.offsetWidth - 208 - 208 ? ' flip' : ''}" data-k="tree-menu"${subOver(!!S.tree.into, (on) => set((s) => ({ tree: { ...s.tree, into: on } })))} style="left:${S.tree.x}px;top:${Math.min(S.tree.y, win.offsetHeight - Math.max(270, 178 + Math.min(spots.length, 10) * 30) - (vol ? 30 : 0))}px">` +
-    (vol ? menuRow('编辑卷纲', goTo(key)) : '') + // 点一卷只是折起、展开；它的卷纲从这里打开
-    menuRow('重命名', () => set({ tree: null, rename: { key, t: vol ? S.volumes.find((v) => v[0] === key)[1] : titleOf(c), all: true } })) + menuRow('新建章节', () => newChapter(vol ? key : undefined)) + menuRow('新建文件夹', newFolder) + HAIR +
-    menuRow('上移', () => shift(key, -1)) + menuRow('下移', () => shift(key, 1)) +
-    (spots.length ? subRow('移到', S.tree.into, () => set((s) => ({ tree: { ...s.tree, into: true } })), 'tree-into', spots.map(([label, to]) => menuRow(label, () => moveInto(key, to))).join('')) : '') + HAIR +
-    menuRow('移到回收站', () => toBin(key)) + '</div>'
+    (vol ? menuRow(L.sideEditVolumeOutline(), goTo(key)) : '') + // 点一卷只是折起、展开；它的卷纲从这里打开
+    menuRow(L.cmdRename(), () => set({ tree: null, rename: { key, t: vol ? S.volumes.find((v) => v[0] === key)[1] : titleOf(c), all: true } })) + menuRow(L.cmdNewChapter(), () => newChapter(vol ? key : undefined)) + menuRow(L.cmdNewFolder(), newFolder) + HAIR +
+    menuRow(L.sideMoveUp(), () => shift(key, -1)) + menuRow(L.sideMoveDown(), () => shift(key, 1)) +
+    (spots.length ? subRow(L.sideMoveTo(), S.tree.into, () => set((s) => ({ tree: { ...s.tree, into: true } })), 'tree-into', spots.map(([label, to]) => menuRow(label, () => moveInto(key, to))).join('')) : '') + HAIR +
+    menuRow(L.sideMoveToTrash(), () => toBin(key)) + '</div>'
 }
 
 // ───────── 画：正文 ─────────
@@ -682,7 +685,7 @@ function pieces(cur, i, text, focus, found) {
   const kept = []
   for (const c of cuts) if (!kept.some((k) => c.a < k.b && k.a < c.b)) kept.push(c)
   kept.sort((x, y) => x.a - y.a)
-  const span = (words, c) => `<span${c && c.id ? ` data-mark="${c.id}"` : ''}${c ? ` class="${c.cls}"` : ''}${c && c.entry ? ` title="查看设定"` + onClick(seeName(c.entry)) : ''}>${t(words)}</span>` + ((c && c.then) || '')
+  const span = (words, c) => `<span${c && c.id ? ` data-mark="${c.id}"` : ''}${c ? ` class="${c.cls}"` : ''}${c && c.entry ? ` title="${L.editorSeeEntry()}"` + onClick(seeName(c.entry)) : ''}>${t(words)}</span>` + ((c && c.then) || '')
   let out = '', at = 0
   for (const c of kept) {
     if (c.a > at) out += span(text.slice(at, c.a))
@@ -699,41 +702,41 @@ const seeName = (id) => () => set({ paneOpen: true, focus: false, tab: '设定',
 const mine = (p) => ` data-prop="${p.id}" contenteditable="false"`
 // 一处提议后面的「放弃」「采纳」。还在写的是「放弃」和后面的「正在写…」，放弃就让 AI 停下；写完以后「采纳」换掉「正在写…」，「放弃」不挪地方，写完那一刻点它不会落到「采纳」上。
 const propActs = (p) => `<span class="prop-acts"${mine(p)}>` +
-  `<span class="btn hit soft" title="${p.writing ? '让 AI 停下，放弃这一处' : '放弃这一处提议'}"${onClick(() => dropProps([p.id]))}>放弃</span>` +
-  (p.writing ? '<span class="prop-writing">正在写…</span>' : `<span class="btn hit primary" title="采纳这一处提议"${onClick(() => takeProps(p.key, [p.id]))}>采纳</span>`) + '</span>'
+  `<span class="btn hit soft" title="${p.writing ? L.editorStopDrop() : L.editorDropOne()}"${onClick(() => dropProps([p.id]))}>${L.commonDiscard()}</span>` +
+  (p.writing ? `<span class="prop-writing">${L.editorWriting()}</span>` : `<span class="btn hit primary" title="${L.editorAcceptOne()}"${onClick(() => takeProps(p.key, [p.id]))}>${L.editorAccept()}</span>`) + '</span>'
 
 // 标题下面那一行：等作者写改写要求，或者本章有 AI 的提议。提议来自哪段讨论，点「查看讨论」在右栏打开它。
 function aiBar(cur) {
   const a = S.ai
-  if (a && a.kind === 'ask') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'muted')}<div class="box line fit">${typed(a.want, (v) => set((s) => ({ ai: { ...s.ai, want: v } })), '改写要求，例如：放慢节奏，多写她的犹豫', '改写要求', keys(rewrite, dropAI) + ' autofocus')}</div>${button('改写', a.want.trim() ? rewrite : null, a.want.trim() ? 'primary' : 'primary off')}<button class="icon-btn muted" aria-label="关闭改写" title="关闭改写"${onClick(dropAI)}>${icon('cross')}</button></div>`
+  if (a && a.kind === 'ask') return `<div class="ai-bar" data-k="ai-bar">${icon('pen', 'md', 'muted')}<div class="box line fit">${typed(a.want, (v) => set((s) => ({ ai: { ...s.ai, want: v } })), L.editorRewriteHint(), L.editorRewriteLabel(), keys(rewrite, dropAI) + ' autofocus')}</div>${button(L.editorRewrite(), a.want.trim() ? rewrite : null, a.want.trim() ? 'primary' : 'primary off')}<button class="icon-btn muted" aria-label="${L.editorCloseRewrite()}" title="${L.editorCloseRewrite()}"${onClick(dropAI)}>${icon('cross')}</button></div>`
   const list = propsOf(cur.key)
   // 起草、改写刚发出去，AI 还在想、在查，没开始写：也在这里说一声，能取消。
   const w = S.waiting, asked = w && w.write && !list.length && S.talks.find((x) => x.id === w.id)
   if (asked && asked.key === cur.key) {
     const shown = S.paneOpen && !S.focus && S.tab === '讨论' && S.tv === 'one' && S.tid === w.id
-    return `<div class="ai-bar" data-k="ai-bar">${icon('spin', 'md', 'muted')}<div class="fit ell muted">${w.step === 'look' ? 'AI 正在查阅…' : 'AI 正在思考…'}</div>` +
-      (shown ? '' : `<div class="hit link"${onClick(() => openTalk(w.id))}>查看讨论</div>`) + button('取消', stopReply, 'soft') + '</div>'
+    return `<div class="ai-bar" data-k="ai-bar">${icon('spin', 'md', 'muted')}<div class="fit ell muted">${w.step === 'look' ? L.editorLooking() : L.toastThinking()}</div>` +
+      (shown ? '' : `<div class="hit link"${onClick(() => openTalk(w.id))}>${L.editorSeeTalk()}</div>`) + button(L.commonCancel(), stopReply, 'soft') + '</div>'
   }
   if (!list.length) return ''
   const writing = list.some((p) => p.writing), ids = list.map((p) => p.id), talk = list.at(-1).talk
-  const what = writing ? 'AI 正在写提议…' : '本章有 ' + list.length + ' 处 AI 提议'
-  const how = '绿字是 AI 新写的' + (list.some((p) => p.at.kind !== 'end') ? '，划掉的是会被换掉的原文' : '') + '；采纳后才写入正文'
+  const what = writing ? L.editorWritingSuggestions() : L.editorSuggestionsHere(list.length)
+  const how = list.some((p) => p.at.kind !== 'end') ? L.editorHowReplace() : L.editorHowAppend()
   const shown = S.paneOpen && !S.focus && S.tab === '讨论' && S.tv === 'one' && S.tid === talk
   return `<div class="ai-bar" data-k="ai-bar">${icon('spark', 'md', writing ? 'muted' : 'green')}<div class="fit ell muted"${writing ? '' : ` title="${how}"`}>${t(what)}</div>` +
-    (shown ? '' : `<div class="hit link"${onClick(() => openTalk(talk))}>查看讨论</div>`) +
+    (shown ? '' : `<div class="hit link"${onClick(() => openTalk(talk))}>${L.editorSeeTalk()}</div>`) +
     // 还在写时「全部采纳」是灰的，按钮都不挪地方。
-    button('全部放弃', () => dropProps(ids), 'soft') + button('全部采纳', writing ? null : () => takeProps(cur.key, ids), writing ? 'primary off' : 'primary') + '</div>'
+    button(L.editorDropAll(), () => dropProps(ids), 'soft') + button(L.editorAcceptAll(), writing ? null : () => takeProps(cur.key, ids), writing ? 'primary off' : 'primary') + '</div>'
 }
 
 // 标题下面的「章纲」，点开是一个能写字的框。
 function chapterMore(cur) {
   const outline = S.outlines[cur.key] || '', on = S.box === '章纲'
-  const box = on ? area(outline, (v) => set((s) => ({ outlines: { ...s.outlines, [cur.key]: v } })), '写下这里要发生的事，作为提纲', '章纲', 3) : ''
+  const box = on ? area(outline, (v) => set((s) => ({ outlines: { ...s.outlines, [cur.key]: v } })), L.editorOutlineHint(), L.editorOutline(), 3) : ''
   const evs = eventsOf(cur.key), when = whenOf(evs)
   // 到时间线上，这一章的第一张卡片标出来、挪到看得见的地方。
   const seeWhen = () => { const id = evs.find((e) => e.when).id; set({ page: 'plan', plan: '时间线', planSee: id, planOutline: null, planLine: null, planQ: '', ...SHUT }); seeCard(id) }
-  return `<div class="chapter-more"><div class="hit${on ? ' on' : ''}"${onClick(() => set({ box: on ? '' : '章纲' }))}>章纲${outline.trim() ? '' : ' · 空'}${on ? ' ▴' : ' ▾'}</div>` +
-    (when ? `<div class="hit" title="在时间线上查看"${onClick(seeWhen)}>故事中 ${t(when)}</div>` : '') + '</div>' +
+  return `<div class="chapter-more"><div class="hit${on ? ' on' : ''}"${onClick(() => set({ box: on ? '' : '章纲' }))}>${L.editorOutline()}${outline.trim() ? '' : L.editorOutlineEmpty()}${on ? ' ▴' : ' ▾'}</div>` +
+    (when ? `<div class="hit" title="${L.editorSeeOnTimeline()}"${onClick(seeWhen)}>${t(L.editorInStory(when))}</div>` : '') + '</div>' +
     (box ? `<div class="chapter-box" data-k="chapter-box">${box}</div>` : '')
 }
 
@@ -742,17 +745,17 @@ function findBar(cur) {
   const here = cur ? hits(cur, f.q) : []
   const had = S.chapters.map((c) => [c, hits(c, f.q)]).filter(([, h]) => h.length)
   const total = had.reduce((sum, [, h]) => sum + h.length, 0)
-  const count = !f.q ? '' : f.all ? (total ? '全书 ' + had.length + ' 章、共 ' + total + ' 处' : '全书未找到') : here.length ? f.at + 1 + ' / ' + here.length : '未找到'
+  const count = !f.q ? '' : f.all ? (total ? L.findBookCount(had.length, String(total)) : L.findNoneBook()) : here.length ? f.at + 1 + ' / ' + here.length : L.findNone()
   const shut = () => set({ find: null })
   const snip = (c, h) => { const p = c.paras[h.para]; return (h.a > 6 ? '…' : '') + p.slice(Math.max(h.a - 6, 0), h.a + f.q.length + 14) }
   return '<div class="find-bar" data-k="find-bar">' +
-    `<div class="find-line"><div class="box line fit">${icon('find', 'sm', 'faint')}${typed(f.q, type('q'), '查找', '查找', keys(() => findStep(1), shut) + ' autofocus')}</div><div class="side find-count">${t(count)}</div>` +
-    (f.all ? '' : `<button class="icon-btn muted" aria-label="上一个" title="上一个"${onClick(() => findStep(-1))}>${icon('up')}</button><button class="icon-btn muted" aria-label="下一个" title="下一个"${onClick(() => findStep(1))}>${icon('down')}</button>`) +
-    `<div class="chip hit${f.all ? ' on' : ''}" title="在全部章节中查找"${onClick(() => set((s) => ({ find: { ...s.find, all: !s.find.all, at: 0 } })))}>全书</div><button class="icon-btn muted" aria-label="关闭查找" title="关闭查找"${onClick(shut)}>${icon('cross')}</button></div>` +
-    `<div class="find-line"><div class="box line fit">${typed(f.to, type('to'), '替换为', '替换为', keys(swapOne, shut))}</div>` +
-    (f.all ? button('全书替换', total ? () => set({ dialog: { kind: 'swap', q: f.q, to: f.to, chapters: had.length, total } }) : null, total ? '' : 'off')
-      : button('替换', here.length ? swapOne : null, here.length ? '' : 'off') + button('全部替换', here.length ? swapAll : null, here.length ? '' : 'off')) + '</div>' +
-    (f.all && total ? `<div class="find-all scroll">${had.map(([c, h]) => `<div class="head">${t(titleOf(c))} · ${h.length} 处</div>` + h.map((x) => `<div class="item row"${onClick(() => set((s) => ({ ...go(s, c.key), find: { ...s.find, all: false, at: hits(c, f.q).indexOf(x) } })))}><div class="about ell">${marked(snip(c, x), f.q)}</div></div>`).join('')).join('')}</div>` : '') +
+    `<div class="find-line"><div class="box line fit">${icon('find', 'sm', 'faint')}${typed(f.q, type('q'), L.findBox(), L.findBox(), keys(() => findStep(1), shut) + ' autofocus')}</div><div class="side find-count">${t(count)}</div>` +
+    (f.all ? '' : `<button class="icon-btn muted" aria-label="${L.findPrev()}" title="${L.findPrev()}"${onClick(() => findStep(-1))}>${icon('up')}</button><button class="icon-btn muted" aria-label="${L.findNext()}" title="${L.findNext()}"${onClick(() => findStep(1))}>${icon('down')}</button>`) +
+    `<div class="chip hit${f.all ? ' on' : ''}" title="${L.findAllTip()}"${onClick(() => set((s) => ({ find: { ...s.find, all: !s.find.all, at: 0 } })))}>${L.findBook()}</div><button class="icon-btn muted" aria-label="${L.findClose()}" title="${L.findClose()}"${onClick(shut)}>${icon('cross')}</button></div>` +
+    `<div class="find-line"><div class="box line fit">${typed(f.to, type('to'), L.findReplaceWith(), L.findReplaceWith(), keys(swapOne, shut))}</div>` +
+    (f.all ? button(L.findReplaceBook(), total ? () => set({ dialog: { kind: 'swap', q: f.q, to: f.to, chapters: had.length, total } }) : null, total ? '' : 'off')
+      : button(L.findReplace(), here.length ? swapOne : null, here.length ? '' : 'off') + button(L.findReplaceAll(), here.length ? swapAll : null, here.length ? '' : 'off')) + '</div>' +
+    (f.all && total ? `<div class="find-all scroll">${had.map(([c, h]) => `<div class="head">${t(L.findChapterHead(titleOf(c), h.length))}</div>` + h.map((x) => `<div class="item row"${onClick(() => set((s) => ({ ...go(s, c.key), find: { ...s.find, all: false, at: hits(c, f.q).indexOf(x) } })))}><div class="about ell">${marked(snip(c, x), f.q)}</div></div>`).join('')).join('')}</div>` : '') +
     '</div>'
 }
 
@@ -760,32 +763,33 @@ function findBar(cur) {
 const ignoreAll = (shown) => () => {
   const was = S.ignored
   set((s) => ({ ignored: [...s.ignored, ...shown.map((x) => x.id)], ...SHUT }))
-  const id = say('已忽略 ' + shown.length + ' 条待处理', '', 'ok', [['撤销', () => { unsay(id); set({ ignored: was }) }]])
+  const id = say(L.statusIgnored(shown.length), '', 'ok', [[L.cmdUndo(), () => { unsay(id); set({ ignored: was }) }]])
 }
 // 工具栏右边的「待处理 N」点开的那一块。
 function todoPop(list) {
+  const groupName = (g) => ({ 检查: L.pageCheck(), 伏笔: L.statusGroupMarks(), 备份: L.statusGroupBackup() })[g]
   const here = list.filter((x) => x.key === S.ch), shown = S.todoAll ? list : here
   const groups = ['检查', '伏笔', '备份'].map((g) => [g, shown.filter((x) => x.group === g)]).filter(([, of]) => of.length)
-  const row = (x) => `<div class="todo-row row"${onClick(x.open)}><div class="fit"><div class="ell">${t(x.name)}</div><div class="note ell">${t(x.about)}${x.key === S.ch ? ' · 本章' : ''}</div></div>${ICON.right}</div>`
+  const row = (x) => `<div class="todo-row row"${onClick(x.open)}><div class="fit"><div class="ell">${t(x.name)}</div><div class="note ell">${t(x.about)}${x.key === S.ch ? L.statusHereTag() : ''}</div></div>${ICON.right}</div>`
   return '<div class="pop todo-pop" data-k="todo-pop">' +
-    `<div class="todo-head"><div class="todo-title">待处理</div><div class="grow"></div>${seg(S.todoAll ? '全部 ' + list.length : '本章 ' + here.length, ['全部 ' + list.length, '本章 ' + here.length], (v) => set({ todoAll: v.startsWith('全部') }), '待处理范围')}</div>` +
+    `<div class="todo-head"><div class="todo-title">${L.statusPending()}</div><div class="grow"></div>${seg(S.todoAll ? '全部 ' + list.length : '本章 ' + here.length, [['全部 ' + list.length, '', L.statusAllCount(list.length)], ['本章 ' + here.length, '', L.statusHereCount(here.length)]], (v) => set({ todoAll: v.startsWith('全部') }), L.statusPendingScope())}</div>` +
     `<div class="todo-list scroll">${groups.length ? groups.map(([g, of]) => {
       const all = S.more[g] || of.length <= 3
-      return `<div class="todo-group"><div class="dot grey"></div>${g}<span class="faint">${of.length}</span></div>` + (all ? of : of.slice(0, 3)).map(row).join('') +
-        (of.length > 3 ? `<div class="todo-rest hit"${onClick(() => set((s) => ({ more: { ...s.more, [g]: !all } })))}>${all ? '收起' : '还有 ' + (of.length - 3) + ' 条'}</div>` : '')
-    }).join('') : '<div class="todo-rest">本章没有待处理项</div>'}</div>` +
-    `<div class="todo-foot"><div class="hit link"${onClick(ignoreAll(shown))}>全部忽略</div></div></div>`
+      return `<div class="todo-group"><div class="dot grey"></div>${groupName(g)}<span class="faint">${of.length}</span></div>` + (all ? of : of.slice(0, 3)).map(row).join('') +
+        (of.length > 3 ? `<div class="todo-rest hit"${onClick(() => set((s) => ({ more: { ...s.more, [g]: !all } })))}>${all ? L.commonCollapse() : L.toastMore(of.length - 3)}</div>` : '')
+    }).join('') : `<div class="todo-rest">${L.statusNoneHere()}</div>`}</div>` +
+    `<div class="todo-foot"><div class="hit link"${onClick(ignoreAll(shown))}>${L.statusIgnoreAll()}</div></div></div>`
 }
 
 // vol 是开着的那一卷：这时没有开着的章。
 // 底栏右边的字数：选中的、本章或本卷的、全书的，设了每日目标还有今天的。点开设目标。
 function wordsOf(cur, vol) {
-  const inVol = vol && (vol[2] ? vol[2].replace('万', ' 万字') : S.chapters.filter((c) => c.vol === vol[0]).reduce((n, c) => n + counted(c), 0) + ' 字')
+  const inVol = vol && (vol[2] ? L.statusWanWords(vol[2].replace('万', '')) : L.statusWords(String(S.chapters.filter((c) => c.vol === vol[0]).reduce((n, c) => n + counted(c), 0))))
   const today = BOOK.days[0][1].toLocaleString('en-US')
-  const count = (S.bar ? '选中 ' + S.bar.text.length + ' 字' : cur ? '本章 ' + sizeOf(cur) + ' 字' : vol ? '本卷 ' + inVol : '') + (cur || vol ? ' · ' : '') + '全书 ' + (S.book === BOOK.shelf[0].id ? BOOK.words : S.chapters.reduce((n, c) => n + counted(c), 0) + ' 字') + (S.goalSet ? ' · 今天 ' + today + ' / ' + S.goalSet : '')
-  const goal = () => '<div class="pop goal-pop" data-k="goal-pop"><div class="pop-label">最近 7 天</div>' + BOOK.days.map(([day, n]) => `<div class="goal-day"><div class="grow">${day}</div><div>${n ? '+' + n.toLocaleString('en-US') : '0'} 字</div></div>`).join('') + HAIR +
-    field('每日目标', line(S.goal, (v) => set({ goal: v, ...(countOrNone(v) ? { goalSet: v.trim() } : {}) }), '比如 2000', '每日目标字数')) + (countOrNone(S.goal) ? '<div class="note">字数旁显示今日字数和目标。</div>' : '<div class="note danger">每日目标须为正整数，留空则不设。</div>') + '</div>'
-  return `<div class="anchor up"><div class="words ell hit" title="字数。点击设置每日目标"${onClick(() => set({ open: S.open === 'goal' ? '' : 'goal' }))}>${t(count)}</div>${S.open === 'goal' ? goal() : ''}</div>`
+  const count = (S.bar ? L.statusSelected(String(S.bar.text.length)) : cur ? L.statusChapterWords(sizeOf(cur)) : vol ? L.statusVolumeWords(inVol) : '') + (cur || vol ? ' · ' : '') + L.statusBookWords(S.book === BOOK.shelf[0].id ? BOOK.words : L.statusWords(String(S.chapters.reduce((n, c) => n + counted(c), 0)))) + (S.goalSet ? L.statusTodayGoal(today, S.goalSet) : '')
+  const goal = () => '<div class="pop goal-pop" data-k="goal-pop"><div class="pop-label">' + L.statusLast7() + '</div>' + BOOK.days.map(([day, n]) => `<div class="goal-day"><div class="grow">${timeShown(day)}</div><div>${L.statusWords(n ? '+' + n.toLocaleString('en-US') : '0')}</div></div>`).join('') + HAIR +
+    field(L.statusDailyGoal(), line(S.goal, (v) => set({ goal: v, ...(countOrNone(v) ? { goalSet: v.trim() } : {}) }), L.statusGoalHint(), L.statusGoalLabel())) + (countOrNone(S.goal) ? '<div class="note">' + L.statusGoalNote() + '</div>' : '<div class="note danger">' + L.statusGoalError() + '</div>') + '</div>'
+  return `<div class="anchor up"><div class="words ell hit" title="${L.statusWordsTip()}"${onClick(() => set({ open: S.open === 'goal' ? '' : 'goal' }))}>${t(count)}</div>${S.open === 'goal' ? goal() : ''}</div>`
 }
 
 // 标题栏右边那几样：写作页才有。专注写作时也在，那时标题栏只剩它们和正中的章名。
@@ -797,12 +801,12 @@ function tools(cur) {
   const flip = (name) => () => set({ open: S.open === name ? '' : name })
   // 时有时无的几样在左，查找和专注两个图标总在右边同一处：谁出来、谁走了，都挤不动它们。
   return '<div class="tools">' +
-    (S.ai && S.ai.kind === 'ghosting' ? '<div class="count-all">续写中…</div>' : S.ai && S.ai.kind === 'ghost' ? '<div class="count-all">Tab 采纳 · Esc 放弃</div>' : '') +
-    (wide && here && !S.focus ? `<button class="fs-btn" aria-label="本章伏笔"${onClick(() => set({ paneOpen: true, tab: '伏笔', fid: null, fv: 'list' }))}>${icon('flag')}<span>本章伏笔 ${here}</span></button>` : '') +
-    (S.backup.state === 'fail' && !S.backup.hush ? `<div class="anchor"><button class="warn-btn" aria-label="备份提示"${onClick(flip('chip'))}>${DOT}<span>备份失败 · ${backupWhy()[0]}</span></button>${S.open === 'chip' ? backupPop() : ''}</div>` : '') +
-    (list.length ? `<div class="anchor"><button class="todo-btn${S.open === 'todo' ? ' on' : ''}" aria-label="待处理"${onClick(flip('todo'))}>${DOT}<span>待处理 ${list.length}</span></button>${S.open === 'todo' ? todoPop(list) : ''}</div>` : '') +
-    tool('查找替换', '查找替换（' + keyLabel('Ctrl+F') + '）', 'find', cur ? () => (S.find ? set({ find: null }) : openFind()) : null, !!S.find, !cur) +
-    tool(S.focus ? '退出专注' : '专注写作', S.focus ? '退出专注，恢复章节树和右栏（F11）' : '仅显示正文，收起章节树和右栏（F11）', 'focus', () => set({ focus: !S.focus, ...SHUT }), S.focus) +
+    (S.ai && S.ai.kind === 'ghosting' ? '<div class="count-all">' + L.editorContinuing() + '</div>' : S.ai && S.ai.kind === 'ghost' ? '<div class="count-all">' + L.editorGhostHint() + '</div>' : '') +
+    (wide && here && !S.focus ? `<button class="fs-btn" aria-label="${L.tabMarksHere()}"${onClick(() => set({ paneOpen: true, tab: '伏笔', fid: null, fv: 'list' }))}>${icon('flag')}<span>${L.tabMarksCount(here)}</span></button>` : '') +
+    (S.backup.state === 'fail' && !S.backup.hush ? `<div class="anchor"><button class="warn-btn" aria-label="${L.statusBackupTip()}"${onClick(flip('chip'))}>${DOT}<span>${L.statusBackupWarn(backupWhy()[0])}</span></button>${S.open === 'chip' ? backupPop() : ''}</div>` : '') +
+    (list.length ? `<div class="anchor"><button class="todo-btn${S.open === 'todo' ? ' on' : ''}" aria-label="${L.statusPending()}"${onClick(flip('todo'))}>${DOT}<span>${L.statusPendingCount(list.length)}</span></button>${S.open === 'todo' ? todoPop(list) : ''}</div>` : '') +
+    tool(L.cmdFind(), L.tabFindTip(keyLabel('Ctrl+F')), 'find', cur ? () => (S.find ? set({ find: null }) : openFind()) : null, !!S.find, !cur) +
+    tool(S.focus ? L.tabExitFocus() : L.cmdFocus(), S.focus ? L.tabExitFocusTip(keyLabel('F11')) : L.tabFocusTip(keyLabel('F11')), 'focus', () => set({ focus: !S.focus, ...SHUT }), S.focus) +
     '</div>'
 }
 
@@ -816,48 +820,48 @@ function sheets() {
     const c = chapterOf(key), v = S.volumes.find((x) => x[0] === key), home = c && S.volumes.find((x) => x[0] === c.vol)
     const name = c ? titleOf(c) : v[1], dirty = key === S.ch && !S.saved
     const menu = onMenu((ev) => { ev.preventDefault(); const [x, y] = spot(ev.clientX, ev.clientY); set({ tree: { key, x, y, tab: true } }) })
-    return `<div class="sheet hit${key === on ? ' on' : ''}${dirty ? ' dirty' : ''}" data-tab="${key}" title="${t((home ? home[1] + ' › ' : '') + name + (dirty ? ' · 未保存' : ''))}"${onClick(goTo(key))}${menu}${onMid((ev) => { if (ev.button === 1) shutTabs([key]) })}>` +
-      `${c ? '' : icon('folder', 'sm')}<div class="fit ell">${t(name)}</div><div class="sheet-dot"></div><div class="sheet-x" title="关闭标签页" aria-label="关闭标签页"${onClick(() => shutTabs([key]))}>${icon('cross', 'xs')}</div></div>`
+    return `<div class="sheet hit${key === on ? ' on' : ''}${dirty ? ' dirty' : ''}" data-tab="${key}" title="${t((home ? home[1] + ' › ' : '') + name + (dirty ? L.tabUnsaved() : ''))}"${onClick(goTo(key))}${menu}${onMid((ev) => { if (ev.button === 1) shutTabs([key]) })}>` +
+      `${c ? '' : icon('folder', 'sm')}<div class="fit ell">${t(name)}</div><div class="sheet-dot"></div><div class="sheet-x" title="${L.tabClose()}" aria-label="${L.tabClose()}"${onClick(() => shutTabs([key]))}>${icon('cross', 'xs')}</div></div>`
   }
   return '<div class="sheet-row" data-k="sheet-row">' +
-    `<div class="steps"><div class="hit${S.step > 0 ? '' : ' off'}" title="上一个打开的章节"${onClick(() => stepBy(-1))}>${icon('left', 'sm')}</div><div class="hit${S.trail[S.step + 1] ? '' : ' off'}" title="下一个打开的章节"${onClick(() => stepBy(1))}>${icon('right', 'sm')}</div></div>` +
+    `<div class="steps"><div class="hit${S.step > 0 ? '' : ' off'}" title="${L.tabPrevOpened()}"${onClick(() => stepBy(-1))}>${icon('left', 'sm')}</div><div class="hit${S.trail[S.step + 1] ? '' : ' off'}" title="${L.tabNextOpened()}"${onClick(() => stepBy(1))}>${icon('right', 'sm')}</div></div>` +
     `<div class="sheets" data-k="sheets">${tabs.map(tab).join('')}</div></div>`
 }
 
 // 一章太长、AI 只读了前面一段时，那一行字上的说明。
-const PART = '后文超出模型的上下文上限，可在设置中「AI」配置里调整'
+const PART = () => L.statusPartLong()
 
 // 正文下面那一行：检查到哪了、什么时候查，右边是字数。AI 关着时只有字数。
 function foot(cur, vol) {
+  const whenName = (v) => (WHENS().find(([name]) => name === v) || [v, '', v])[2]
   if (!cur || !aiOn()) return `<div class="foot"><div class="grow"></div>${backupLine()}${wordsOf(cur, vol)}</div>` // 检查要用 AI
-  const n = S.checks.filter((c) => c.key === cur.key).length, dirty = S.dirty[cur.key], name = '本章'
+  const n = S.checks.filter((c) => c.key === cur.key).length, dirty = S.dirty[cur.key]
   const part = (S.part[cur.key] || {}).check // 太长，只查了前面这么多字：不能说成全章查完了
   const seeAll = () => set({ page: 'check', kind: '全部', cid: S.checks.find((c) => c.key === cur.key).id })
   // 这一章查到哪了，和现在能不能点「立即检查」。
-  let state = name + '检查完成，未发现不一致', can = false, tip = ''
-  if (S.checking === cur.key) state = '正在检查' + name + '…'
-  else if (S.queue.includes(cur.key)) state = name + '等待检查'
-  else if (S.failed[cur.key]) { state = '检查失败：' + S.failed[cur.key]; can = true; tip = state } // 出错的说明长，放不下时悬停看全
-  else if (!S.entries.some((e) => e.place === 'body')) state = '设定为空，无可对照内容'
-  else if (counted(cur) < 200) state = '满 200 字后可检查'
-  else if (S.never[cur.key]) { state = name + '尚未检查'; can = true }
-  else if (n && dirty) { state = name + '有 ' + n + ' 处待处理，正文已再次修改'; can = true }
-  else if (n && part) state = name + '仅检查前 ' + part + ' 字，有 ' + n + ' 处待处理'
-  else if (n) state = name + '检查完成，有 ' + n + ' 处待处理'
-  else if (dirty) { state = name + '已修改，尚未重新检查'; can = true }
-  else if (part) { state = name + '仅检查前 ' + part + ' 字，未发现不一致'; tip = PART }
+  let state = L.statusChecked(), can = false, tip = ''
+  if (S.checking === cur.key) state = L.statusChecking()
+  else if (S.queue.includes(cur.key)) state = L.statusQueued()
+  else if (S.failed[cur.key]) { state = L.statusFailed(whyText(S.failed[cur.key])); can = true; tip = state } // 出错的说明长，放不下时悬停看全
+  else if (!S.entries.some((e) => e.place === 'body')) state = L.statusNoEntries()
+  else if (counted(cur) < 200) state = L.statusShort()
+  else if (S.never[cur.key]) { state = L.statusNever(); can = true }
+  else if (n && dirty) { state = L.statusDirtyIssues(n); can = true }
+  else if (n && part) state = L.statusPartIssues(String(part), n)
+  else if (n) state = L.statusIssues(n)
+  else if (dirty) { state = L.statusEdited(); can = true }
+  else if (part) { state = L.statusPartOK(String(part)); tip = PART() }
   const found = n && !S.checking && !S.failed[cur.key] && !S.never[cur.key] && counted(cur) >= 200
-  const when = [['写完一章后检查', '推荐，每章调用一次 AI'], ['手动检查', '平时不调用 AI'], ['边写边检查', '停笔即检查，调用最多']]
-  return '<div class="foot"><div class="foot-check">' + (found ? `<div class="foot-state ell hit link" title="前往「检查」页逐条查看"${onClick(seeAll)}>${t(state)}</div>` : `<div class="foot-state ell"${tip ? ` title="${t(tip)}"` : ''}>${t(state)}</div>`) +
-    (can ? `<div class="hit link" title="调用一次 AI，对照设定检查本章"${onClick(() => checkNow(cur.key))}>立即检查</div>` : '') + '<div class="faint">·</div>' +
-    `<div class="anchor up left"><div class="hit" title="检查时机"${onClick(() => set({ open: S.open === 'when' ? '' : 'when' }))}>${t(S.when)} ▴</div>${S.open === 'when' ? `<div class="pop when-pop" data-k="when-pop"><div class="pop-title">检查时机</div>${radios(S.when, when, (v) => set({ when: v, ...SHUT }))}</div>` : ''}</div></div>` +
+  return '<div class="foot"><div class="foot-check">' + (found ? `<div class="foot-state ell hit link" title="${L.statusGoCheck()}"${onClick(seeAll)}>${t(state)}</div>` : `<div class="foot-state ell"${tip ? ` title="${t(tip)}"` : ''}>${t(state)}</div>`) +
+    (can ? `<div class="hit link" title="${L.statusCheckTip()}"${onClick(() => checkNow(cur.key))}>${L.statusCheckNow()}</div>` : '') + '<div class="faint">·</div>' +
+    `<div class="anchor up left"><div class="hit" title="${L.statusWhenTitle()}"${onClick(() => set({ open: S.open === 'when' ? '' : 'when' }))}>${t(whenName(S.when))} ▴</div>${S.open === 'when' ? `<div class="pop when-pop" data-k="when-pop"><div class="pop-title">${L.statusWhenTitle()}</div>${radios(S.when, WHENS(), (v) => set({ when: v, ...SHUT }))}</div>` : ''}</div></div>` +
     `<div class="grow"></div>${backupLine()}${wordsOf(cur)}</div>`
 }
 
 // 软件外面动了开着的这一章时，正文上面的那一条。
 function outsideBar() {
-  if (S.outside === 'changed') return `<div class="notice-bar" data-k="outside">${icon('warn')}<div class="fit">本章文件已被其他程序修改。请选择保留的版本，另一版本将存为快照。</div>${button('使用磁盘版本', () => settleOutside(true))}${button('保留当前版本', () => settleOutside(false), 'primary')}</div>`
-  if (S.outside === 'lost') return `<div class="notice-bar lost" data-k="outside">${icon('warn')}<div class="fit">磁盘上已找不到本章文件：在软件外改名、移动或删除，均视为删除。编辑器中的内容仍保留。</div>${button('存为新章节', saveLost, 'primary')}</div>`
+  if (S.outside === 'changed') return `<div class="notice-bar" data-k="outside">${icon('warn')}<div class="fit">${L.editorOutsideChanged()}</div>${button(L.editorUseDisk(), () => settleOutside(true))}${button(L.editorKeepCurrent(), () => settleOutside(false), 'primary')}</div>`
+  if (S.outside === 'lost') return `<div class="notice-bar lost" data-k="outside">${icon('warn')}<div class="fit">${L.editorOutsideLost()}</div>${button(L.editorSaveAsNew(), saveLost, 'primary')}</div>`
   return ''
 }
 
@@ -866,10 +870,10 @@ function folderPage([key, title]) {
   const inside = S.chapters.filter((c) => c.vol === key)
   const gist = (c) => (S.outlines[c.key] || '').trim() || c.paras.join(' ')
   return '<div class="paper scroll"><div class="column folder">' +
-    `<div class="chapter-title">${t(title)}</div><div class="folder-label">卷纲</div>` +
-    area(S.outlines[key] || '', (v) => set((s) => ({ outlines: { ...s.outlines, [key]: v } })), '写下这里要发生的事，作为提纲', '卷纲', 6) +
-    `<div class="folder-count"><div class="grow">${inside.length} 项</div><div class="hit link"${onClick(newChapter)}>在此新建章节</div></div>` +
-    inside.map((c) => `<div class="folder-row hit"${onClick(goTo(c.key))}><div class="folder-name">${icon('page', 'md', 'muted')}<div class="fit ell">${t(titleOf(c))}</div><div class="count">${t(sizeOf(c))} 字</div></div>${gist(c) ? `<div class="gist">${t(gist(c))}</div>` : ''}</div>`).join('') +
+    `<div class="chapter-title">${t(title)}</div><div class="folder-label">${L.editorVolumeOutline()}</div>` +
+    area(S.outlines[key] || '', (v) => set((s) => ({ outlines: { ...s.outlines, [key]: v } })), L.editorOutlineHint(), L.editorVolumeOutline(), 6) +
+    `<div class="folder-count"><div class="grow">${L.editorItems(inside.length)}</div><div class="hit link"${onClick(newChapter)}>${L.editorNewHere()}</div></div>` +
+    inside.map((c) => `<div class="folder-row hit"${onClick(goTo(c.key))}><div class="folder-name">${icon('page', 'md', 'muted')}<div class="fit ell">${t(titleOf(c))}</div><div class="count">${t(L.statusWords(sizeOf(c)))}</div></div>${gist(c) ? `<div class="gist">${t(gist(c))}</div>` : ''}</div>`).join('') +
     '</div></div>'
 }
 
@@ -877,8 +881,8 @@ function editor(cur) {
   const vol = S.volumes.find((v) => v[0] === S.vol)
   if (vol) return '<div class="editor" data-k="editor">' + sheets() + folderPage(vol) + foot(null, vol) + '</div>'
   if (!cur) {
-    return `<div class="editor" data-k="editor">${sheets()}<div class="paper">` + (S.chapters.length ? blank('book', '从左侧选择一章开始写作', '')
-      : blank('book', '暂无章节', '每章是作品文件夹 chapters 中的一个纯文本文件，可用其他软件打开。', buttons(button('新建文件夹', newFolder), button('新建第一章', newChapter, 'primary')))) + '</div>' + foot(null) + '</div>'
+    return `<div class="editor" data-k="editor">${sheets()}<div class="paper">` + (S.chapters.length ? blank('book', L.editorPickChapter(), '')
+      : blank('book', L.editorNoChapters(), L.editorNoChaptersHint(), buttons(button(L.cmdNewFolder(), newFolder), button(L.editorNewFirst(), newChapter, 'primary')))) + '</div>' + foot(null) + '</div>'
   }
   const focus = S.paneOpen && S.tab === '伏笔' ? S.fid : null
   const found = S.find && S.find.q && !S.find.all ? hits(cur, S.find.q) : []
@@ -889,9 +893,9 @@ function editor(cur) {
   const shown = cur.paras.length || whole.length ? cur.paras : ['']
   const paras = shown.map((text, i) => { const last = i === shown.length - 1 && ghostly; return `<div data-para="${i}"${over ? ' class="cut"' : ''}>${pieces(cur, i, text, focus, found) || (last ? '' : '<br>')}${last || ''}</div>` }).join('') +
     whole.map((p) => (p.paras.length ? p.paras : ['']).map((text, n, all) => `<div class="add"${mine(p)}>${t(text)}${n === all.length - 1 ? propActs(p) : ''}</div>`).join('')).join('')
-  const hint = cur.paras.join('') || ghostly || whole.length ? '' : '<div class="prose-hint">在此开始写作…</div>'
+  const hint = cur.paras.join('') || ghostly || whole.length ? '' : '<div class="prose-hint">' + L.editorStartHint() + '</div>'
   // 灰字等着采纳、等着写改写要求的时候不能打字；有 AI 的提议时照常写，改到提议换掉的那几句，提议就作废。
-  const typing = S.ai ? '' : ` contenteditable="plaintext-only" spellcheck="false" aria-label="正文"${onInput(wrote)}${onKey(proseKey)}${onPaste(pasted)}`
+  const typing = S.ai ? '' : ` contenteditable="plaintext-only" spellcheck="false" aria-label="${L.editorBody()}"${onInput(wrote)}${onKey(proseKey)}${onPaste(pasted)}`
   return '<div class="editor" data-k="editor">' + sheets() + (S.find ? findBar(cur) : '') + outsideBar() +
     `<div class="paper scroll"${onMenu(openMenu)}${onUp(picked)}><div class="column chapter"><div class="chapter-head"><div class="chapter-title">${t(cur.t || titleOf(cur))}</div>${chapterMore(cur)}</div>` + aiBar(cur) +
     `<div class="prose-box">${hint}<div class="prose" data-k="prose"${typing}>${paras}</div></div></div></div>` + foot(cur) + '</div>'
@@ -918,46 +922,46 @@ function floats() {
     const addName = (cat) => () => {
       set((s) => ({ ctx: null, pick: null, entries: [...s.entries, { id: 'e' + s.n, place: 'body', cat, names: [name], text: name }], n: s.n + 1, log: did(s, '新增到正文 · ' + cat + '：' + name) }))
       unselect()
-      say('「' + name + '」已加入设定的' + cat + '，输入时可自动补全', '', 'ok')
+      say(L.editorAddedToLore(name, cat), '', 'ok')
     }
-    const names = !name || name.length > 12 ? menuRow('加入名字表', null)
-      : S.entries.some((e) => e.place !== 'dropped' && e.names.includes(name)) ? menuRow('已在名字表中', null)
-      : subRow('加入名字表', S.ctx.names, () => set((s) => ({ ctx: { ...s.ctx, names: true } })), 'ctx-names', S.cats.filter((c) => BOOK.nameCats.includes(c)).map((c) => menuRow(c, addName(c))).join(''))
+    const names = !name || name.length > 12 ? menuRow(L.editorAddName(), null)
+      : S.entries.some((e) => e.place !== 'dropped' && e.names.includes(name)) ? menuRow(L.editorAlreadyNamed(), null)
+      : subRow(L.editorAddName(), S.ctx.names, () => set((s) => ({ ctx: { ...s.ctx, names: true } })), 'ctx-names', S.cats.filter((c) => BOOK.nameCats.includes(c)).map((c) => menuRow(c, addName(c))).join(''))
     // 剪贴板的四项。粘贴要浏览器肯让页面读剪贴板，不肯就提示按 Ctrl+V。AI 正在改的时候正文不能动，剪切、粘贴是灰的。
     const span = S.ctx.span
     const copy = () => { if (navigator.clipboard) navigator.clipboard.writeText(p.text).catch(() => {}); set({ ctx: null, pick: null }) }
     const cut = () => { copy(); putText('', span) }
-    const paste = () => { set({ ctx: null, pick: null }); (navigator.clipboard ? navigator.clipboard.readText() : Promise.reject()).then((text) => putText(plain(text), span), () => say('无法读取剪贴板', '请按 ' + keyLabel('Ctrl+V') + ' 粘贴')) }
+    const paste = () => { set({ ctx: null, pick: null }); (navigator.clipboard ? navigator.clipboard.readText() : Promise.reject()).then((text) => putText(plain(text), span), () => say(L.editorNoClipboard(), L.editorPasteKey(keyLabel('Ctrl+V')))) }
     const all = () => { set({ ctx: null, pick: null }); const first = document.querySelector('[data-para]'); if (first) getSelection().selectAllChildren(first.parentElement) }
     const over = subOver(!!S.ctx.names, (on) => set((s) => ({ ctx: { ...s.ctx, names: on } })))
     // 菜单宽 200，最多十二行，都留在窗口里；旁边再开一列时也不出窗口。
     return veiled + `<div class="ctx pop${S.ctx.x > win.offsetWidth - 208 - 130 ? ' flip' : ''}" data-k="ctx"${over} style="left:${Math.min(S.ctx.x, win.offsetWidth - 208)}px;top:${Math.min(S.ctx.y, win.offsetHeight - 430)}px">` +
-      menuRow('剪切', p && span ? cut : null, '', 'Ctrl+X') + menuRow('复制', p ? copy : null, '', 'Ctrl+C') + menuRow('粘贴', span ? paste : null, '', 'Ctrl+V') + menuRow('全选', all, '', 'Ctrl+A') + HAIR +
-      (aiOn() ? menuRow('续写一句', continueText, '', 'Ctrl+J') + menuRow('AI 改写…', p ? askRewrite : null) + menuRow('引用到讨论', p ? cite : null, '', 'Ctrl+L') : '') + menuRow('加入设定', p ? take : null) + names + HAIR +
-      menuRow('记为伏笔…', p ? () => set({ ctx: null, bury: { note: '' } }) : null) + menuRow('记为回收…', p ? () => askPay('') : null) +
-      (S.ctx.mark ? menuRow('查看伏笔', () => set({ ctx: null, pick: null, tab: '伏笔', fid: S.ctx.mark, fv: 'list', renote: null, paneOpen: true, focus: false, ...SHUT })) : '') + '</div>'
+      menuRow(L.commonCut(), p && span ? cut : null, '', 'Ctrl+X') + menuRow(L.commonCopy(), p ? copy : null, '', 'Ctrl+C') + menuRow(L.commonPaste(), span ? paste : null, '', 'Ctrl+V') + menuRow(L.commonSelectAll(), all, '', 'Ctrl+A') + HAIR +
+      (aiOn() ? menuRow(L.cmdContinue(), continueText, '', 'Ctrl+J') + menuRow(L.editorAIRewriteMore(), p ? askRewrite : null) + menuRow(L.editorQuote(), p ? cite : null, '', 'Ctrl+L') : '') + menuRow(L.editorAddToLore(), p ? take : null) + names + HAIR +
+      menuRow(L.editorMarkForeshadow(), p ? () => set({ ctx: null, bury: { note: '' } }) : null) + menuRow(L.editorMarkPay(), p ? () => askPay('') : null) +
+      (S.ctx.mark ? menuRow(L.editorSeeMark(), () => set({ ctx: null, pick: null, tab: '伏笔', fid: S.ctx.mark, fv: 'list', renote: null, paneOpen: true, focus: false, ...SHUT })) : '') + '</div>'
   }
 
   if (S.bury) {
-    return veiled + `<div class="float bury" data-k="bury" style="${by(360, 132, S.pick)}"><div class="float-head">${icon('flag', 'sm')}记为伏笔，填写备注</div>` +
-      `<div class="bury-box">${typed(S.bury.note, (v) => set({ bury: { note: v } }), '例如：他为什么突然改口', '伏笔备注', keys(buryNow, () => set({ bury: null, pick: null })) + ' autofocus')}</div>` +
-      `<div class="float-end">${button('取消', closeFloat)}${button('确定', buryNow, 'primary')}</div></div>`
+    return veiled + `<div class="float bury" data-k="bury" style="${by(360, 132, S.pick)}"><div class="float-head">${icon('flag', 'sm')}${L.editorBuryTitle()}</div>` +
+      `<div class="bury-box">${typed(S.bury.note, (v) => set({ bury: { note: v } }), L.editorBuryHint(), L.editorBuryLabel(), keys(buryNow, () => set({ bury: null, pick: null })) + ' autofocus')}</div>` +
+      `<div class="float-end">${button(L.commonCancel(), closeFloat)}${button(L.commonConfirm(), buryNow, 'primary')}</div></div>`
   }
 
   if (S.pay) {
     const q = S.pay.q.trim()
     const can = payable(), id = payPick()
     const here = chapterOf(S.ch).no // 「N 章前」从回收的这一章往前数
-    const meta = (m) => (m.key === S.ch ? (m.pay ? '本章 · 已回收' : '本章埋下') : chTitle(m.key) + ' · ' + (m.pay ? '已回收' : Math.max(here - m.ch, 0) + ' 章前埋下'))
-    return veiled + `<div class="float pay" data-k="pay" style="${by(380, 340, S.pick)}"><div class="float-head">${icon('link', 'sm')}选择要回收的伏笔</div>` +
-      `<div class="pay-find">${typed(S.pay.q, (v) => set({ pay: { q: v, id } }), '搜索备注或原句', '查找伏笔', keys(() => payNow(id), () => set({ pay: null, pick: null })) + ' autofocus')}</div>` +
-      (can.length ? '' : `<div class="pay-none">${q ? '没有匹配的伏笔' : '暂无已埋下的伏笔。请先选中一句，右键选择「记为伏笔」。'}</div>`) +
+    const meta = (m) => (m.key === S.ch ? (m.pay ? L.editorMetaHerePaid() : L.editorMetaHere()) : m.pay ? L.editorMetaPaid(chTitle(m.key)) : L.editorMetaBefore(chTitle(m.key), Math.max(here - m.ch, 0)))
+    return veiled + `<div class="float pay" data-k="pay" style="${by(380, 340, S.pick)}"><div class="float-head">${icon('link', 'sm')}${L.editorPayTitle()}</div>` +
+      `<div class="pay-find">${typed(S.pay.q, (v) => set({ pay: { q: v, id } }), L.editorPayHint(), L.editorPayLabel(), keys(() => payNow(id), () => set({ pay: null, pick: null })) + ' autofocus')}</div>` +
+      (can.length ? '' : `<div class="pay-none">${q ? L.editorNoMatch() : L.editorNoMarks()}</div>`) +
       `<div class="pay-list scroll">${can.map((m) => `<div class="pay-row row${m.id === id ? ' on' : ''}"${onClick(() => set((s) => ({ pay: { ...s.pay, id: m.id } })))}><div class="pay-name ell">${t(nameOf(m))}</div><div class="pay-meta ell">${t(meta(m))}</div></div>`).join('')}</div>` +
-      `<div class="float-end">${button('取消', closeFloat)}<div class="btn hit primary${id ? '' : ' off'}" title="确定回收"${onClick(() => payNow(id))}>记为回收</div></div></div>`
+      `<div class="float-end">${button(L.commonCancel(), closeFloat)}<div class="btn hit primary${id ? '' : ' off'}" title="${L.editorPayTip()}"${onClick(() => payNow(id))}>${L.editorPayButton()}</div></div></div>`
   }
 
   // 选中一段字以后：浮在它上面的两个按钮，AI 关着时一个。
-  return `<div class="selbar pop" data-k="selbar" data-keep style="${barAt(S.bar)}">${aiOn() ? `<div class="hit" title="由 AI 改写选中内容"${onClick(askRewrite)}>${icon('pen', 'sm')}AI 改写</div>` : ''}<div class="hit" title="将选中的原文加入设定"${onClick(take)}>${icon('keep', 'sm')}加入设定</div></div>`
+  return `<div class="selbar pop" data-k="selbar" data-keep style="${barAt(S.bar)}">${aiOn() ? `<div class="hit" title="${L.editorRewriteSel()}"${onClick(askRewrite)}>${icon('pen', 'sm')}${L.editorAIRewrite()}</div>` : ''}<div class="hit" title="${L.editorAddSelTip()}"${onClick(take)}>${icon('keep', 'sm')}${L.editorAddToLore()}</div></div>`
 }
 // 浮着的东西左边不越过侧栏。
 const barEdge = () => { const side = document.querySelector('.sidebar'); return (side ? side.offsetWidth : 0) + 8 }

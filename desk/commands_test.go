@@ -155,3 +155,28 @@ func indexFrom(texts []string, from int, s string) int {
 	}
 	return -1
 }
+
+// Shortcuts are written as each system writes them: Ctrl+Shift+Tab on
+// Windows, ⌃⇧Tab on macOS, never a Windows name on a Mac. ui.Cmd is
+// Super on macOS and Ctrl elsewhere.
+func TestShortcutsWrittenPerSystem(t *testing.T) {
+	for _, c := range []struct {
+		mac  bool
+		mods ui.Modifiers
+		key  ui.Key
+		want string
+	}{
+		{false, ui.Ctrl, ui.KeyTab, "Ctrl+Tab"},
+		{false, ui.Ctrl | ui.Shift, ui.KeyTab, "Ctrl+Shift+Tab"},
+		{false, ui.Ctrl | ui.Shift, ui.KeyZ, "Ctrl+Shift+Z"},
+		{false, 0, ui.KeyF2, "F2"},
+		{true, ui.Ctrl, ui.KeyTab, "⌃Tab"},
+		{true, ui.Ctrl | ui.Shift, ui.KeyTab, "⌃⇧Tab"},
+		{true, ui.Super, ui.KeyS, "⌘S"},
+		{true, ui.Super | ui.Shift, ui.KeyZ, "⇧⌘Z"},
+	} {
+		if got := shortcutOn(c.mac, c.mods, c.key); got != c.want {
+			t.Errorf("mac=%v: %q, want %q", c.mac, got, c.want)
+		}
+	}
+}

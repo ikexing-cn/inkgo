@@ -25,7 +25,7 @@ function menus() {
       menuRow(L.cmdSave(), cur ? then(saveNow) : null, '', 'Ctrl+S') + menuRow(L.cmdSnapshots(), cur ? ask({ kind: 'snaps', id: '', diff: false }) : null) +
       menuRow(L.cmdExport(), inBook ? ask({ kind: 'export', range: '全书', indent: true }) : null) + HAIR +
       menuRow(L.cmdCategories(), inBook ? toPage('cats') : null) + menuRow(L.cmdTrash(), inBook ? ask({ kind: 'bin', sure: '' }) : null) + (mac ? '' : HAIR + menuRow(L.appSettings(), settings))],
-    [L.menuEdit(), () => menuRow(L.cmdUndo(), steps.back.length ? then(() => unwrite(-1)) : null, '', 'Ctrl+Z') + menuRow(L.cmdRedo(), steps.fwd.length ? then(() => unwrite(1)) : null, '', 'Ctrl+Y') + HAIR +
+    [L.menuEdit(), () => menuRow(L.cmdUndo(), steps.back.length ? then(() => unwrite(-1)) : null, '', 'Ctrl+Z') + menuRow(L.cmdRedo(), steps.fwd.length ? then(() => unwrite(1)) : null, '', 'Ctrl+Shift+Z') + HAIR +
       menuRow(L.cmdFind(), cur ? openFind : null, '', 'Ctrl+F') +
       menuRow(L.cmdRename(), cur && !S.rename ? then(renameOpen) : null, '', 'F2') + (aiOn() ? HAIR +
       menuRow(L.cmdContinue(), cur ? then(continueText) : null, '', 'Ctrl+J') +
@@ -46,6 +46,8 @@ function menus() {
 
 // 外观的三种：状态里记的值、图标、显示的字。菜单和设置里的外观都用它。
 const LOOKS = () => [['跟随系统', 'screen', L.lookSystem()], ['浅色', 'sun', L.lookLight()], ['深色', 'moon', L.lookDark()]]
+// 检查时机的三种：状态里记的值、下面那句说明、显示的字。正文底栏和设置里都用它。
+const WHENS = () => [['写完一章后检查', L.statusWhenAfterAbout(), L.statusWhenAfter()], ['手动检查', L.statusWhenManualAbout(), L.statusWhenManual()], ['边写边检查', L.statusWhenWritingAbout(), L.statusWhenWriting()]]
 
 // 一排菜单的名字，点开一个在它下面。
 function menuTitles(list) {
@@ -168,7 +170,8 @@ document.addEventListener('keydown', (ev) => {
   const run = (act) => { ev.preventDefault(); act() }
   if (ev.key === 'Escape') backOut()
   else if (ev.key === 'Tab' && S.ai && S.ai.kind === 'ghost') run(() => ghost(true))
-  else if (ev.key === 'F11' && writing) run(() => set({ focus: !S.focus, ...SHUT }))
+  // macOS 的 ⌃⌘F；F11、F2 在 macOS 的样子下也认，原型多在 Windows 键盘上点。
+  else if ((ev.key === 'F11' || (ev.ctrlKey && ev.metaKey && ev.key.toLowerCase() === 'f')) && writing) run(() => set({ focus: !S.focus, ...SHUT }))
   else if (ctrl && ev.key === '/') run(() => set({ dialog: { kind: 'keys' }, ...SHUT }))
   else if (ev.key === 'F2' && writing && chapterOf(S.ch) && !S.rename) run(renameOpen)
   else if (ctrl && (ev.key === '=' || ev.key === '+')) run(() => zoomBy(1))

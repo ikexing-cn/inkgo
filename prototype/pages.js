@@ -7,19 +7,19 @@ function talkPage() {
   const talk = S.tv === 'one' ? S.talks.find((x) => x.id === S.tid) : null
   // 设定里已经有东西的书，接着往下聊，不再从一个想法开始。
   const begun = S.entries.length > 0
-  const [opening, about] = begun ? ['接着聊这部作品', 'AI 会参考已有的设定和正文。'] : ['从一个初步的想法开始', '写下初步的想法。讨论中定下的内容，AI 会当场记进右侧的设定文档；已确定的设定将作为后续讨论的依据，已放弃的不再提及。']
-  const starts = begun ? ['接下来的情节怎么走', '哪些设定还没想清楚', '梳理一下人物关系'] : ['我想写一个总在下雨的城市', '主角有个说不出口的秘密', '这个故事的冲突在哪']
+  const [opening, about] = begun ? [L.talkContinueTitle(), L.talkContinueAbout()] : [L.talkStartTitle(), L.talkStartAbout()]
+  const starts = begun ? [L.talkNext1(), L.talkNext2(), L.talkNext3()] : [L.talkStart1(), L.talkStart2(), L.talkStart3()]
   return '<div class="editor">' +
-    `<div class="toolbar"><div class="crumb">总讨论</div>${icon('right', 'xs', 'faint')}<div class="crumb here ell">${t(talk ? talk.title : '新对话')}</div><div class="grow"></div>` +
-    (talk ? `<div class="count-all">${talk.msgs.length} 条发言</div>` : '') +
-    (S.paneOpen ? '' : `<button class="icon-btn muted" aria-label="展开设定" title="展开设定文档"${onClick(() => set({ paneOpen: true }))}>${svg('icon-md', PANEL + path('M15 5v14'))}</button>`) + '</div>' +
+    `<div class="toolbar"><div class="crumb">${t(L.talkAll())}</div>${icon('right', 'xs', 'faint')}<div class="crumb here ell">${t(talk ? talk.title : L.talkNew())}</div><div class="grow"></div>` +
+    (talk ? `<div class="count-all">${t(L.talkCount(talk.msgs.length))}</div>` : '') +
+    (S.paneOpen ? '' : `<button class="icon-btn muted" aria-label="${t(L.talkShowSettings())}" title="${t(L.talkShowSettingsDoc())}"${onClick(() => set({ paneOpen: true }))}>${svg('icon-md', PANEL + path('M15 5v14'))}</button>`) + '</div>' +
     (talk
       ? `<div class="talk big scroll" id="talk-page">${said(talk)}</div>`
       : '<div class="paper">' + blank('spark', opening, about,
-        `<div class="starts">${starts.map((words) => `<div class="hit"${onClick(offer(words))}>${words}</div>`).join('')}</div>`) + '</div>') +
+        `<div class="starts">${starts.map((words) => `<div class="hit"${onClick(offer(words))}>${t(words)}</div>`).join('')}</div>`) + '</div>') +
     '<div class="composer big" data-k="composer-page"><div class="box send-box">' +
-    `<textarea class="in" rows="2" placeholder="输入想法，或向 AI 提问…" aria-label="讨论输入"${onInput((v) => set({ draft: v }))}${onKey(sendKey)}>${t(S.draft)}</textarea>` +
-    `<div class="send-line">${modelPick()}<div class="grow"></div><div class="faint">${keyLabel('Ctrl+Enter')}</div><div class="send hit${S.draft.trim() && !S.waiting ? '' : ' off'}" title="发送（${keyLabel('Ctrl+Enter')}）"${onClick(() => send())}>${ICON.send}</div></div>` +
+    `<textarea class="in" rows="2" placeholder="${t(L.talkInputHint())}" aria-label="${t(L.talkInputLabel())}"${onInput((v) => set({ draft: v }))}${onKey(sendKey)}>${t(S.draft)}</textarea>` +
+    `<div class="send-line">${modelPick()}<div class="grow"></div><div class="faint">${keyLabel('Ctrl+Enter')}</div><div class="send hit${S.draft.trim() && !S.waiting ? '' : ' off'}" title="${t(L.talkSend(keyLabel('Ctrl+Enter')))}"${onClick(() => send())}>${ICON.send}</div></div>` +
     '</div></div></div>'
 }
 
@@ -90,86 +90,86 @@ function cardDialog(d) {
   const f = d.form, ok = f.title.trim() !== ''
   const type = (k) => (v) => set((s) => ({ dialog: { ...s.dialog, form: { ...s.dialog.form, [k]: v } } }))
   const save = () => (ok ? saveCard(false) : null)
-  const drop = () => { set((s) => ({ events: s.events.filter((x) => x.id !== d.id), dialog: null })); say('已删除卡片「' + f.title + '」', '', 'ok') }
-  const chs = ['未放进章节', ...S.chapters.map(titleOf)], lines = ['不分情节线', ...S.lines.map((l) => l.name)]
+  const drop = () => { set((s) => ({ events: s.events.filter((x) => x.id !== d.id), dialog: null })); say(L.planCardDeleted(f.title), '', 'ok') }
+  const chs = [L.planNoChapter(), ...S.chapters.map(titleOf)], lines = [L.planNoLine(), ...S.lines.map((l) => l.name)]
   const pickCh = (v) => type('key')(v === chs[0] ? '' : S.chapters.find((c) => titleOf(c) === v).key)
   const pickLine = (v) => type('line')(v === lines[0] ? '' : S.lines.find((l) => l.name === v).id)
-  return dialog('small', dialogHead(d.id ? '修改卡片' : '新卡片', d.id ? '' : d.n ? '已添加「' + S.events.find((e) => e.id === d.after).title + '」，接着记下一张。' : '一张卡片记一件事。只有「发生了什么」要写，别的都可以以后再补。') +
+  return dialog('small', dialogHead(d.id ? L.planCardEdit() : L.planCardNew(), d.id ? '' : d.n ? L.planCardAdded(S.events.find((e) => e.id === d.after).title) : L.planCardIntro()) +
     // 「继续添加」以后换一个新的输入框，光标回到它里面。
-    `<div class="field" data-k="card-title-${d.n}"><div class="label">发生了什么</div>${line(f.title, type('title'), '一句话，例如：林晚下井', '事件', keys(save) + ' autofocus')}</div>` +
-    `<div class="pair">${field('写在哪一章', choose('card-ch', f.key ? titleOf(chapterOf(f.key)) : chs[0], chs, pickCh, '写在哪一章'))}${field('情节线', choose('card-line', lineOf(f.line) ? lineOf(f.line).name : lines[0], lines, pickLine, '情节线'))}</div>` +
-    field('故事中的时间（选填）', line(f.when, type('when'), '例如：十月六日夜。不写也行，按先后排', '故事中的时间', keys(save))) +
-    field('说明（选填）', area(f.about, type('about'), '', '说明', 4)) +
-    '<div class="buttons">' + (d.id ? `<div class="hit link danger"${onClick(drop)}>删除卡片</div><div class="grow"></div>` : '') + button('取消', shut) +
-    (d.id ? '' : button('继续添加', ok ? () => saveCard(true) : null, ok ? '' : 'off')) + button(d.id ? '保存' : '添加', ok ? save : null, ok ? 'primary' : 'primary off') + '</div>')
+    `<div class="field" data-k="card-title-${d.n}"><div class="label">${t(L.planCardWhat())}</div>${line(f.title, type('title'), L.planCardWhatHint(), L.planCardEvent(), keys(save) + ' autofocus')}</div>` +
+    `<div class="pair">${field(L.planCardChapter(), choose('card-ch', f.key ? titleOf(chapterOf(f.key)) : chs[0], chs, pickCh, L.planCardChapter()))}${field(L.planLine(), choose('card-line', lineOf(f.line) ? lineOf(f.line).name : lines[0], lines, pickLine, L.planLine()))}</div>` +
+    field(L.planCardWhen(), line(f.when, type('when'), L.planCardWhenHint(), L.planCardWhenLabel(), keys(save))) +
+    field(L.planCardAbout(), area(f.about, type('about'), '', L.planCardNotes(), 4)) +
+    '<div class="buttons">' + (d.id ? `<div class="hit link danger"${onClick(drop)}>${t(L.planCardDelete())}</div><div class="grow"></div>` : '') + button(L.commonCancel(), shut) +
+    (d.id ? '' : button(L.planCardAddMore(), ok ? () => saveCard(true) : null, ok ? '' : 'off')) + button(d.id ? L.cmdSave() : L.planAddCard(), ok ? save : null, ok ? 'primary' : 'primary off') + '</div>')
 }
 // 一张卡片：停上去浮起来一点，点开改。
-const cardView = (e, q, also = '') => `<div class="card hit${e.key ? '' : ' later'}${S.planSee === e.id ? ' seen' : ''}${found(e, q) ? '' : ' dim'}" draggable="true" data-k="card-${e.id}" data-card="${e.id}" title="点击修改；拖到别的格子挪过去"${onClick(() => openCard(e.id))}>` +
+const cardView = (e, q, also = '') => `<div class="card hit${e.key ? '' : ' later'}${S.planSee === e.id ? ' seen' : ''}${found(e, q) ? '' : ' dim'}" draggable="true" data-k="card-${e.id}" data-card="${e.id}" title="${t(L.planCardHint())}"${onClick(() => openCard(e.id))}>` +
   (e.when && also !== 'ch' ? `<div class="card-when ell">${marked(e.when, q)}${also === 'line' && lineOf(e.line) ? `<span class="faint"> · ${t(lineOf(e.line).name)}</span>` : ''}</div>` : '') +
-  `<div class="card-title clamp${e.title ? '' : ' none'}">${e.title ? marked(e.title, q) : '未命名'}</div>` +
-  (also === 'ch' ? `<div class="card-ch ell">${e.key ? marked(chTitle(e.key), q) : '未放进章节'}</div>` : '') + '</div>'
+  `<div class="card-title clamp${e.title ? '' : ' none'}">${e.title ? marked(e.title, q) : t(L.commonUntitled())}</div>` +
+  (also === 'ch' ? `<div class="card-ch ell">${e.key ? marked(chTitle(e.key), q) : t(L.planNoChapter())}</div>` : '') + '</div>'
 
 // 格子里的「添加」：停在格子上才显出来，和卡片一样宽，点了弹出新卡片。
-const slotAdd = (label, act) => `<div class="slot-add hit" title="添加卡片" aria-label="${t(label)}"${onClick(act)}>${icon('plus', 'sm')}添加</div>`
+const slotAdd = (label, act) => `<div class="slot-add hit" title="${t(L.planAddCardTitle())}" aria-label="${t(label)}"${onClick(act)}>${icon('plus', 'sm')}${t(L.planAddCard())}</div>`
 // 一条情节线的名字：点名字改名，「…」里改名、挪位置、删除。按章节在表头，时间线在左边一列，两处一样。
 function lineTitle(l, where) {
   if (S.planLine && S.planLine.id === l.id) {
-    return `<div class="box line fit" data-k="lh-${where}-${l.id}-edit">${typed(S.planLine.name, (v) => set((s) => ({ planLine: { ...s.planLine, name: v } })), '情节线的名字', '情节线的名字', keys(saveLine, () => set({ planLine: null })) + onBlur(saveLine) + ' autofocus data-all')}</div>`
+    return `<div class="box line fit" data-k="lh-${where}-${l.id}-edit">${typed(S.planLine.name, (v) => set((s) => ({ planLine: { ...s.planLine, name: v } })), L.planLineNameLabel(), L.planLineNameLabel(), keys(saveLine, () => set({ planLine: null })) + onBlur(saveLine) + ' autofocus data-all')}</div>`
   }
   const ls = S.lines, n = S.events.filter((e) => e.line === l.id).length, menu = 'line-' + where + '-' + l.id
-  return `<div class="fit ell hit head-name" data-k="lh-${where}-${l.id}" title="点击改名"${onClick(() => set({ planLine: { id: l.id, name: l.name }, ...SHUT }))}>${t(l.name)}</div><div class="faint">${n}</div>` +
-    `<div class="anchor"><button class="icon-btn muted" aria-label="情节线「${t(l.name)}」的操作" title="更多操作"${onClick(() => set({ open: S.open === menu ? '' : menu }))}>${ICON.dots}</button>` +
-    (S.open === menu ? '<div class="pop line-pop">' + menuRow('改名', () => set({ planLine: { id: l.id, name: l.name }, ...SHUT })) + menuRow(where === 'grid' ? '左移' : '上移', ls[0] === l ? null : () => shiftLine(l.id, -1)) + menuRow(where === 'grid' ? '右移' : '下移', ls.at(-1) === l ? null : () => shiftLine(l.id, 1)) + '<div class="hair"></div>' + menuRow('删除情节线', () => dropLine(l.id)) + '</div>' : '') + '</div>'
+  return `<div class="fit ell hit head-name" data-k="lh-${where}-${l.id}" title="${t(L.planLineRenameHint())}"${onClick(() => set({ planLine: { id: l.id, name: l.name }, ...SHUT }))}>${t(l.name)}</div><div class="faint">${n}</div>` +
+    `<div class="anchor"><button class="icon-btn muted" aria-label="${t(L.planLineActions(l.name))}" title="${t(L.commonMoreActions())}"${onClick(() => set({ open: S.open === menu ? '' : menu }))}>${ICON.dots}</button>` +
+    (S.open === menu ? '<div class="pop line-pop">' + menuRow(L.planLineRename(), () => set({ planLine: { id: l.id, name: l.name }, ...SHUT })) + menuRow(where === 'grid' ? L.planLineMoveLeft() : L.commonMoveUp(), ls[0] === l ? null : () => shiftLine(l.id, -1)) + menuRow(where === 'grid' ? L.planLineMoveRight() : L.commonMoveDown(), ls.at(-1) === l ? null : () => shiftLine(l.id, 1)) + '<div class="hair"></div>' + menuRow(L.planLineDelete(), () => dropLine(l.id)) + '</div>' : '') + '</div>'
 }
-const addLineButton = () => `<div class="plan-add hit" title="多一条情节线"${onClick(() => addLine())}>${icon('plus', 'sm')}新增情节线</div>`
+const addLineButton = () => `<div class="plan-add hit" title="${t(L.planLineAddHint())}"${onClick(() => addLine())}>${icon('plus', 'sm')}${t(L.planLineAdd())}</div>`
 
 // 按章节：一章一行，一条情节线一列，卡片落在交叉的格子里；哪条线断了几章，一眼看得出。
 // 左边的章节一列和上面的表头滚动时不动，「新增情节线」总在右上角。
 function planGrid(q) {
   const ls = S.lines
-  const outlineBox = (key, hint, rows) => `<div class="box area" data-k="outline-${key}"><textarea class="in" rows="${rows}" placeholder="${hint}" aria-label="${chapterOf(key) ? '章纲' : '卷纲'}" autofocus` +
+  const outlineBox = (key, hint, rows) => `<div class="box area" data-k="outline-${key}"><textarea class="in" rows="${rows}" placeholder="${t(hint)}" aria-label="${t(chapterOf(key) ? L.planChapterOutline() : L.planVolumeOutline())}" autofocus` +
     `${onInput((v) => set((s) => ({ outlines: { ...s.outlines, [key]: v } })))}${onBlur(() => set({ planOutline: null }))}${onKey((ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); set({ planOutline: null }) } })}>${t(S.outlines[key] || '')}</textarea></div>`
   const gist = (key, text, none, cls) => (S.planOutline === key ? outlineBox(key, none, cls === 'vol-gist' ? 3 : 4)
-    : `<div class="${cls} hit${text ? '' : ' none'}" title="点击修改"${onClick(() => set({ planOutline: key, planLine: null }))}>${text ? marked(text, q) : none}</div>`)
+    : `<div class="${cls} hit${text ? '' : ' none'}" title="${t(L.planClickEdit())}"${onClick(() => set({ planOutline: key, planLine: null }))}>${text ? marked(text, q) : t(none)}</div>`)
   const cell = (c, l) => `<div class="board-cell" data-cell="${c.key}|${l.id}">${S.events.filter((e) => e.key === c.key && e.line === l.id).map((e) => cardView(e, q)).join('')}` +
-    slotAdd(`在${titleOf(c)}的${l.name}里添加卡片`, () => newCard(c.key, l.id)) + '</div>'
+    slotAdd(L.planSlotInChapter(titleOf(c), l.name), () => newCard(c.key, l.id)) + '</div>'
   const chRow = (c) => {
     const when = whenOf(eventsOf(c.key)), stray = S.events.filter((e) => e.key === c.key && !lineOf(e.line))
-    return `<div class="board-side grid-ch" data-k="row-${c.key}"><div class="ch-name"><div class="hit ell" title="打开正文"${onClick(goTo(c.key))}>${marked(titleOf(c), q)}</div>${goesBack(c) ? '<div class="tag" title="这一章写到了比前面各章更早的事">回溯</div>' : ''}</div>` +
-      (when ? `<div class="note ell">故事中 ${t(when)}</div>` : '') + gist(c.key, gistOf(c), '写章纲…', 'ch-gist clamp') +
-      (stray.length ? `<div class="faint">另有 ${stray.length} 张不在任何情节线</div>` : '') + '</div>' + ls.map((l) => cell(c, l)).join('') + '<div class="board-fill"></div>'
+    return `<div class="board-side grid-ch" data-k="row-${c.key}"><div class="ch-name"><div class="hit ell" title="${t(L.planOpenBody())}"${onClick(goTo(c.key))}>${marked(titleOf(c), q)}</div>${goesBack(c) ? `<div class="tag" title="${t(L.planBacktrackHint())}">${t(L.planBacktrack())}</div>` : ''}</div>` +
+      (when ? `<div class="note ell">${t(L.planWhenNote(when))}</div>` : '') + gist(c.key, gistOf(c), L.planWriteChapterOutline(), 'ch-gist clamp') +
+      (stray.length ? `<div class="faint">${t(L.planStray(stray.length))}</div>` : '') + '</div>' + ls.map((l) => cell(c, l)).join('') + '<div class="board-fill"></div>'
   }
   const hits = (c) => !q || [titleOf(c), gistOf(c)].some((x) => x.includes(q)) || eventsOf(c.key).some((e) => found(e, q))
   const block = (key, title, inside) => {
     const shown = inside.filter(hits)
     if (q && !shown.length && ![title, S.outlines[key] || ''].some((x) => x.includes(q))) return '' // 卷名、卷纲搜到了，这一卷的标题留着
     const when = whenOf(inside.flatMap((c) => eventsOf(c.key)))
-    return `<div class="grid-vol" data-k="vol-${key || 'loose'}"><div class="vol-in"><div class="vol-name"><div class="group-title">${marked(title, q)}</div><div class="note">${inside.length} 章${when ? ' · ' + t(when) : ''}</div></div>` +
-      (key ? gist(key, (S.outlines[key] || '').trim(), '写卷纲…', 'vol-gist') : '') + '</div></div>' + shown.map(chRow).join('')
+    return `<div class="grid-vol" data-k="vol-${key || 'loose'}"><div class="vol-in"><div class="vol-name"><div class="group-title">${marked(title, q)}</div><div class="note">${t(L.planChapterCount(inside.length))}${when ? ' · ' + t(when) : ''}</div></div>` +
+      (key ? gist(key, (S.outlines[key] || '').trim(), L.planWriteVolumeOutline(), 'vol-gist') : '') + '</div></div>' + shown.map(chRow).join('')
   }
   const loneCh = S.chapters.filter((c) => !c.vol)
-  const body = S.volumes.map(([key, title]) => block(key, title, S.chapters.filter((c) => c.vol === key))).join('') + (loneCh.length ? block('', '不在卷中', loneCh) : '')
+  const body = S.volumes.map(([key, title]) => block(key, title, S.chapters.filter((c) => c.vol === key))).join('') + (loneCh.length ? block('', L.planNoVolume(), loneCh) : '')
   return `<div class="board grid scroll" data-k="grid"><div class="board-table" style="grid-template-columns: 248px repeat(${ls.length}, 200px) minmax(160px, 1fr)">` +
-    '<div class="board-head board-corner">章节</div>' + ls.map((l) => `<div class="board-head">${lineTitle(l, 'grid')}</div>`).join('') + `<div class="board-head board-end">${addLineButton()}</div>` +
+    `<div class="board-head board-corner">${t(L.planChapters())}</div>` + ls.map((l) => `<div class="board-head">${lineTitle(l, 'grid')}</div>`).join('') + `<div class="board-head board-end">${addLineButton()}</div>` +
     // 章节里一处也没搜到，搜到的只有下面托盘里的卡片。
-    (body || `<div class="grid-none">${empty('章节里没有「' + q + '」', '找到的卡片在下面「未放进章节」里。')}</div>`) + '</div></div>' + tray(q)
+    (body || `<div class="grid-none">${empty(L.planNoneInChapters(q), L.planFoundCardsBelow(L.planNoChapter()))}</div>`) + '</div></div>' + tray(q)
 }
 const saveLine = () => set((s) => (s.planLine ? { lines: s.lines.map((l) => (l.id === s.planLine.id ? { ...l, name: s.planLine.name.trim() || l.name } : l)), planLine: null } : null))
 // 新的一条线放在最后，名字先选中，打字就换掉。
-const addLine = () => set((s) => { const id = 'l' + s.n; return { lines: [...s.lines, { id, name: '新情节线' }], n: s.n + 1, planLine: { id, name: '新情节线' }, planOutline: null, ...SHUT } })
+const addLine = () => set((s) => { const id = 'l' + s.n, name = L.planLineNew(); return { lines: [...s.lines, { id, name }], n: s.n + 1, planLine: { id, name }, planOutline: null, ...SHUT } })
 const shiftLine = (id, d) => set((s) => { const i = s.lines.findIndex((l) => l.id === id), list = [...s.lines];[list[i], list[i + d]] = [list[i + d], list[i]]; return { lines: list, ...SHUT } })
 // 删掉一条线：它的卡片不删，放到「未放进章节」里，写在哪一章的在卡片上记着。
 function dropLine(id) {
   const l = lineOf(id), n = S.events.filter((e) => e.line === id).length
   set((s) => ({ lines: s.lines.filter((x) => x.id !== id), events: s.events.map((e) => (e.line === id ? { ...e, line: '' } : e)), ...SHUT }))
-  say('已删除情节线「' + l.name + '」', n ? '它的 ' + n + ' 张卡片还在原来的章里，可在时间线上找到' : '', 'ok')
+  say(L.planLineDeleted(l.name), n ? L.planLineDeletedCards(n) : '', 'ok')
 }
 
 // 下面一条：想到了、还没定写在哪的卡片。拖进上面的格子，就放进那一章。
 function tray(q) {
   const cards = S.events.filter((e) => !e.key), all = cards.length
-  return `<div class="tray" data-k="tray" data-cell="|"><div class="tray-head"><div class="group-title">未放进章节</div><div class="note">${all ? all + ' 张 · 拖进上面的格子就放进那一章' : '想到了、还没定写在哪的事，先记在这里'}</div><div class="grow"></div>` +
-    `<div class="hit link"${onClick(() => newCard('', ''))}>记一张</div></div>` +
+  return `<div class="tray" data-k="tray" data-cell="|"><div class="tray-head"><div class="group-title">${t(L.planNoChapter())}</div><div class="note">${t(all ? L.planTrayCount(all) : L.planTrayEmpty())}</div><div class="grow"></div>` +
+    `<div class="hit link"${onClick(() => newCard('', ''))}>${t(L.planTrayAdd())}</div></div>` +
     (cards.length ? `<div class="tray-cards">${cards.map((e) => cardView(e, q, 'line')).join('')}</div>` : '') + '</div>'
 }
 
@@ -196,25 +196,25 @@ function dropAt(id, col, line) {
 // 实线框的已经放进章节，虚线框的还没有。点一列的时间，整列一起改；左边一列和上面的时间滚动时不动。
 function planTimeline(q) {
   const cols = timeCols(S.events)
-  const lanes = [...S.lines, ...(S.events.some((e) => !lineOf(e.line)) ? [{ id: '', name: '不分情节线' }] : [])]
+  const lanes = [...S.lines, ...(S.events.some((e) => !lineOf(e.line)) ? [{ id: '', name: L.planNoLine() }] : [])]
   const inLane = (e, l) => (l.id ? e.line === l.id : !lineOf(e.line))
-  const add = (l, when, after) => slotAdd(`在${when || '最后'}的${l.name}里添加卡片`, () => newCard('', l.id, after, when))
+  const add = (l, when, after) => slotAdd(L.planSlotAtTime(when || L.planLastSlot(), l.name), () => newCard('', l.id, after, when))
   const timePop = (c) => '<div class="pop time-pop" data-k="time-pop">' +
-    `<div class="pop-label">这一列 ${c.cards.length} 张卡片在故事中的时间</div>` +
-    `<div class="box line">${typed(S.planTime.when, (v) => set((s) => ({ planTime: { ...s.planTime, when: v } })), '例如：十月六日夜', '这一列的时间', keys(saveTime) + ' autofocus data-all')}</div>` +
-    `<div class="pop-buttons">${button('取消', () => set(SHUT))}${button('保存', saveTime, 'primary')}</div></div>`
+    `<div class="pop-label">${t(L.planTimeColumn(c.cards.length))}</div>` +
+    `<div class="box line">${typed(S.planTime.when, (v) => set((s) => ({ planTime: { ...s.planTime, when: v } })), L.planTimeHint(), L.planTimeAria(), keys(saveTime) + ' autofocus data-all')}</div>` +
+    `<div class="pop-buttons">${button(L.commonCancel(), () => set(SHUT))}${button(L.cmdSave(), saveTime, 'primary')}</div></div>`
   const time = (c, i) => `<div class="board-head tl-time anchor left" data-k="time-${i}">` +
-    `<div class="tl-when hit ell${c.when ? '' : ' none'}" title="点击修改这一列的时间"${onClick(() => set({ open: 'time', planTime: { i, when: c.when } }))}>${c.when ? marked(c.when, q) : '未写时间'}</div>` +
+    `<div class="tl-when hit ell${c.when ? '' : ' none'}" title="${t(L.planClickEditTime())}"${onClick(() => set({ open: 'time', planTime: { i, when: c.when } }))}>${c.when ? marked(c.when, q) : t(L.planNoTime())}</div>` +
     `<div class="tl-axis"><i class="ev-dot${c.cards.some((e) => e.key) ? '' : ' later'}"></i></div>${S.open === 'time' && S.planTime.i === i ? timePop(c) : ''}</div>`
   const lane = (l) => `<div class="board-side tl-lane">${l.id ? lineTitle(l, 'tl') : `<div class="fit ell head-name">${t(l.name)}</div>`}</div>` +
     cols.map((c, i) => `<div class="board-cell" data-slot="${i}|${l.id}">${c.cards.filter((e) => inLane(e, l)).map((e) => cardView(e, q, 'ch')).join('')}${add(l, c.when, c.cards.at(-1).id)}</div>`).join('') +
     `<div class="board-cell" data-slot="end|${l.id}">${add(l, '', S.events.length ? S.events.at(-1).id : null)}</div>`
   const off = S.chapters.filter((c) => !eventsOf(c.key).length)
-  return `<div class="tl-note"><span><i class="tl-key"></i>已放进章节</span><span><i class="tl-key later"></i>未放进章节</span><span class="faint">时间可以不写，左右的先后就是故事里的先后</span><span class="grow"></span>` +
-    (off.length ? `<span>${off.length === 1 ? '「' + t(titleOf(off[0])) + '」' : off.length + ' 章'}还没有卡片</span>` : '') + '</div>' +
+  return `<div class="tl-note"><span><i class="tl-key"></i>${t(L.planInChapter())}</span><span><i class="tl-key later"></i>${t(L.planNoChapter())}</span><span class="faint">${t(L.planTimelineHint())}</span><span class="grow"></span>` +
+    (off.length ? `<span>${t(off.length === 1 ? L.planOneNoCards(titleOf(off[0])) : L.planChaptersNoCards(off.length))}</span>` : '') + '</div>' +
     `<div class="board tl scroll" data-k="tl"><div class="board-table" style="grid-template-columns: 168px repeat(${cols.length}, 200px) 200px">` +
-    '<div class="board-head tl-time board-corner"><div class="tl-when none">情节线</div><div class="tl-axis"></div></div>' + cols.map(time).join('') +
-    '<div class="board-head tl-time"><div class="tl-when none">之后</div><div class="tl-axis end"></div></div>' +
+    `<div class="board-head tl-time board-corner"><div class="tl-when none">${t(L.planLine())}</div><div class="tl-axis"></div></div>` + cols.map(time).join('') +
+    `<div class="board-head tl-time"><div class="tl-when none">${t(L.planTimeEnd())}</div><div class="tl-axis end"></div></div>` +
     lanes.map(lane).join('') + `<div class="board-side tl-lane">${addLineButton()}</div><div class="board-fill" style="grid-column: 2 / -1"></div></div></div>`
 }
 // 改一列的时间：这一列的几张一起改。改成和旁边一列一样的，就并到一起。
@@ -226,9 +226,9 @@ const saveTime = () => set((s) => {
 
 // 大纲文件在软件外被改坏了：整页一句话，正文和设定照常。不用「重试」：软件每两秒重读一次，改好了自己回来。
 function planBroken() {
-  return '<div class="editor"><div class="toolbar"><div class="crumb here">大纲</div></div><div class="plan-none">' +
-    blank('warn', '大纲文件读不出来', 'outline.json 可能在软件外被改过。正文和设定不受影响；改好文件后，这一页会自己重新读取。',
-      '<div class="note faint">第 12 行附近有错</div>' + buttons(button('打开所在文件夹', osAsk('在资源管理器中显示这部作品的文件夹')))) + '</div></div>'
+  return `<div class="editor"><div class="toolbar"><div class="crumb here">${t(L.pagePlan())}</div></div><div class="plan-none">` +
+    blank('warn', L.planBrokenTitle(), L.planBrokenAbout(),
+      `<div class="note faint">${t(L.planBrokenLine(12))}</div>` + buttons(button(L.commonOpenFolder(), osAsk(L.shelfShowFolder())))) + '</div></div>'
 }
 
 function planPage() {
@@ -238,21 +238,23 @@ function planPage() {
   // 搜着的时候，上面那一句换成找到了多少；一个也没找到，整页换成一句话和「清除搜索」，表头和下面的托盘都不留。
   const cards = q ? S.events.filter((e) => found(e, q)).length : 0
   const chs = q && !timeline ? S.chapters.filter((c) => [titleOf(c), gistOf(c)].some((x) => x.includes(q))).length + S.volumes.filter(([key, title]) => [title, S.outlines[key] || ''].some((x) => x.includes(q))).length : 0
-  const sum = !q ? S.chapters.length + ' 章 · ' + S.lines.length + ' 条情节线 · ' + S.events.length + ' 张卡片' + (loose ? '，' + loose + ' 张未放进章节' : '')
-    : cards || chs ? '找到 ' + [chs && chs + ' 处章名或章纲', cards && cards + ' 张卡片'].filter(Boolean).join('、') : '没有找到'
+  const sum = !q ? (loose ? L.planSummaryLoose(S.chapters.length, S.lines.length, S.events.length, loose) : L.planSummary(S.chapters.length, S.lines.length, S.events.length))
+    : cards || chs ? (chs && cards ? L.planFoundBoth(chs, cards) : chs ? L.planFoundChapters(chs) : L.planFoundCards(cards)) : L.planNoResults()
   const clear = () => set({ planQ: '' })
   const none = q && !cards && !chs
-  return '<div class="editor"><div class="toolbar"><div class="crumb here">大纲</div><div class="note plan-sum">' + t(sum) + '</div><div class="grow"></div>' +
-    `<div class="box line plan-find">${ICON.find}${typed(S.planQ, (v) => set({ planQ: v }), timeline ? '搜索卡片' : '搜索卡片和章纲', '搜索大纲', keys(() => {}, clear))}` +
-    (q ? `<button class="icon-btn muted" aria-label="清除搜索" title="清除搜索（Esc）"${onClick(clear)}>${icon('cross', 'sm')}</button>` : '') + '</div>' +
-    seg(S.plan, ['按章节', '时间线'], (v) => set({ plan: v, planSee: null, planOutline: null, planLine: null, ...SHUT }), '大纲的看法') + '</div>' +
-    (none ? '<div class="plan-none">' + blank('find', '没有找到「' + q + '」', timeline ? '时间线上搜的是卡片：发生了什么、说明、故事中的时间和所在的章。' : '按章节搜的是章名、章纲、卷纲和卡片里的字。', buttons(button('清除搜索', clear))) + '</div>'
+  return `<div class="editor"><div class="toolbar"><div class="crumb here">${t(L.pagePlan())}</div><div class="note plan-sum">` + t(sum) + '</div><div class="grow"></div>' +
+    `<div class="box line plan-find">${ICON.find}${typed(S.planQ, (v) => set({ planQ: v }), timeline ? L.planSearchCards() : L.planSearchCardsAndOutlines(), L.planSearch(), keys(() => {}, clear))}` +
+    (q ? `<button class="icon-btn muted" aria-label="${t(L.planClearSearch())}" title="${t(L.planClearSearchHint())}"${onClick(clear)}>${icon('cross', 'sm')}</button>` : '') + '</div>' +
+    seg(S.plan, [['按章节', '', L.planByChapter()], ['时间线', '', L.planTimelineView()]], (v) => set({ plan: v, planSee: null, planOutline: null, planLine: null, ...SHUT }), L.planViewAria()) + '</div>' +
+    (none ? '<div class="plan-none">' + blank('find', L.planNotFound(q), timeline ? L.planSearchTimeline() : L.planSearchChapters(), buttons(button(L.planClearSearch(), clear))) + '</div>'
       : timeline ? planTimeline(q) : planGrid(q)) + '</div>'
 }
 
 // ───────── 检查 ─────────
 
 const KINDS = ['全部', '不一致', '名字有误', '新出现']
+// 检查的分类：状态里记的是上面那几个字，显示时换成当前语言的字。
+const kindWord = (k) => ({ 全部: L.checkKindAll(), 不一致: L.checkKindMismatch(), 名字有误: L.checkKindName(), 新出现: L.checkKindNew() })[k] ?? k
 
 // 一条处理完了：从列表里拿掉，接着看下一条。
 const settle = (id) => (s) => {
@@ -263,11 +265,11 @@ const settle = (id) => (s) => {
 // 一条检查结果能怎么处理，最后一样是主要的：检查页的按钮和页边批注上的字是同一份。不改的点错了，在提示条上撤销。
 function checkActs(c) {
   const ch = chapterOf(c.key), e = S.entries.find((x) => x.id === c.entry)
-  const leave = (word) => () => { const was = { checks: S.checks, cid: S.cid }; set(settle(c.id)); const id = say(word, '', 'ok', [['撤销', () => { unsay(id); set(was) }]]) }
-  const add = () => { set((s) => ({ ...settle(c.id)(s), entries: [...s.entries, { id: 'e' + s.n, place: 'body', cat: c.cat, names: [c.title], text: c.as, src: { key: c.key, quote: c.quote } }], n: s.n + 1, log: did(s, '新增到正文 · ' + c.cat + '：' + c.as) })); say('已加入设定', '', 'ok') }
-  if (c.kind === '新出现') return [['忽略', leave('已忽略')], ['加入设定', add]]
-  return [['无需修改', leave('已标为「无需修改」')], ...(c.kind === '不一致' && e ? [['修改设定', () => set({ page: 'write', paneOpen: true, focus: false, tab: '设定', sv: 'list', sid: e.id, form: editing(e) })]] : []),
-    ['修改正文', ch ? goTo(ch.key, { key: ch.key, quote: c.quote }) : null]]
+  const leave = (word) => () => { const was = { checks: S.checks, cid: S.cid }; set(settle(c.id)); const id = say(word, '', 'ok', [[L.cmdUndo(), () => { unsay(id); set(was) }]]) }
+  const add = () => { set((s) => ({ ...settle(c.id)(s), entries: [...s.entries, { id: 'e' + s.n, place: 'body', cat: c.cat, names: [c.title], text: c.as, src: { key: c.key, quote: c.quote } }], n: s.n + 1, log: did(s, L.checkLogAdded(c.cat, c.as)) })); say(L.checkAddedSetting(), '', 'ok') }
+  if (c.kind === '新出现') return [[L.checkIgnore(), leave(L.checkIgnored())], [L.checkAddToSettings(), add]]
+  return [[L.checkNoChange(), leave(L.checkMarkedNoChange())], ...(c.kind === '不一致' && e ? [[L.checkEditSetting(), () => set({ page: 'write', paneOpen: true, focus: false, tab: '设定', sv: 'list', sid: e.id, form: editing(e) })]] : []),
+    [L.checkEditText(), ch ? goTo(ch.key, { key: ch.key, quote: c.quote }) : null]]
 }
 
 function checkPage() {
@@ -276,28 +278,28 @@ function checkPage() {
   const count = (k) => (k === '全部' ? S.checks.length : S.checks.filter((c) => c.kind === k).length)
   const about = (c) => {
     const ch = chapterOf(c.key), at = chTitle(c.key)
-    if (c.kind === '不一致') { const e = S.entries.find((x) => x.id === c.entry); return at + ' ↔ 设定「' + (e ? e.cat + ' · ' + (e.names[0] || clip(e.text, 8)) : '已删除') + '」' }
-    return c.kind === '名字有误' ? at + ' · 应为「' + c.right + '」' : c.cat + ' · 「' + at + '」起出现' + (c.also ? '，共 ' + (c.also.length + 1) + ' 章' : '')
+    if (c.kind === '不一致') { const e = S.entries.find((x) => x.id === c.entry); return L.checkMismatchAbout(at, e ? e.cat + ' · ' + (e.names[0] || clip(e.text, 8)) : L.checkDeleted()) }
+    return c.kind === '名字有误' ? L.checkNameAbout(at, c.right) : c.also ? L.checkFirstSeenMore(c.cat, at, c.also.length + 1) : L.checkFirstSeen(c.cat, at)
   }
-  const row = (c) => `<div class="check-row row${shown && c.id === shown.id ? ' on' : ''}"${onClick(() => set({ cid: c.id }))}><div class="fit"><div class="ell">${t(c.title)}</div><div class="note ell">${t(about(c))}</div></div><div class="side">${c.kind}</div></div>`
+  const row = (c) => `<div class="check-row row${shown && c.id === shown.id ? ' on' : ''}"${onClick(() => set({ cid: c.id }))}><div class="fit"><div class="ell">${t(c.title)}</div><div class="note ell">${t(about(c))}</div></div><div class="side">${t(kindWord(c.kind))}</div></div>`
   // 「检查全书」：先数出该查几章，问一句再开始。
   const owed = due()
   const again = () => {
-    if (!S.entries.some((e) => e.place === 'body')) say('设定为空，无可对照内容')
-    else if (!owed.length) say('各章均已检查，正文无新改动')
+    if (!S.entries.some((e) => e.place === 'body')) say(L.checkNoSettings())
+    else if (!owed.length) say(L.checkAllDone())
     else set({ open: S.open === 'checkAll' ? '' : 'checkAll' })
   }
-  const ask = () => `<div class="pop ask-pop" data-k="ask-pop"><div class="pop-title">${owed.length} 章未检查或有改动</div><div class="note">每章调用一次 AI，共 ${owed.length} 次。</div>` +
-    `<div class="pop-buttons">${button('取消', () => set(SHUT))}${button('开始检查', () => { set(SHUT); checkNow(...owed.map((c) => c.key)) }, 'primary')}</div></div>`
+  const ask = () => `<div class="pop ask-pop" data-k="ask-pop"><div class="pop-title">${t(L.checkOwedTitle(owed.length))}</div><div class="note">${t(L.checkOwedNote(owed.length))}</div>` +
+    `<div class="pop-buttons">${button(L.commonCancel(), () => set(SHUT))}${button(L.checkStart(), () => { set(SHUT); checkNow(...owed.map((c) => c.key)) }, 'primary')}</div></div>`
   const last = S.chapters.filter((c) => !S.never[c.key] && counted(c) >= 200).at(-1)
   const running = chapterOf(S.checking), lost = S.chapters.find((c) => S.failed[c.key])
-  const none = !S.entries.some((e) => e.place === 'body') ? ['设定为空', '请先在讨论中确定设定，才能对照检查。']
-    : S.checks.length ? ['这一类没有待处理的', ''] : !last ? ['尚未检查', '点击左上角「检查全书」，或写完一章后自动检查。']
-    : ['没有发现不一致', S.when === '手动检查' ? '当前为「手动检查」，需要时点击「重新检查」。' : '写完一章后自动检查，结果显示在此处。']
+  const none = !S.entries.some((e) => e.place === 'body') ? [L.checkNoSettingsTitle(), L.checkNoSettingsAbout()]
+    : S.checks.length ? [L.checkNoneInKind(), ''] : !last ? [L.checkNotYet(), L.checkNotYetAbout(L.checkAllBook())]
+    : [L.checkNoneFound(), S.when === '手动检查' ? L.checkManualNote(L.checkModeManual(), L.checkRecheck()) : L.checkAutoNote()]
   const unfinished = lost && !S.checking // 失败的那章不当作没查出问题，上面那一行也不说「已检查至」，像是那以前都查过了
-  if (unfinished) none.splice(0, 2, '检查未完成', '「' + titleOf(lost) + '」检查失败：' + S.failed[lost.key])
+  if (unfinished) none.splice(0, 2, L.checkIncomplete(), L.checkFailedAt(titleOf(lost), S.failed[lost.key]))
 
-  let detail = `<div class="check-detail">${blank(unfinished ? 'warn' : 'checked', S.checking ? '正在检查…' : none[0], S.checking ? '检查结果将显示在左侧。' : none[1])}</div>`
+  let detail = `<div class="check-detail">${blank(unfinished ? 'warn' : 'checked', S.checking ? L.checkRunningTitle() : none[0], S.checking ? L.checkRunningAbout() : none[1])}</div>`
   if (shown) {
     const ch = chapterOf(shown.key), e = S.entries.find((x) => x.id === shown.entry)
     const text = ch ? ch.paras[shown.para] || '' : ''
@@ -305,22 +307,22 @@ function checkPage() {
     const seeText = ch ? goTo(ch.key, { key: ch.key, quote: shown.quote }) : null
     const seeEntry = () => set({ page: 'write', paneOpen: true, focus: false, tab: '设定', sv: 'list', sid: e.id, form: null })
     const next = () => set({ cid: (of[of.indexOf(shown) + 1] || of[0]).id })
-    const right = shown.kind === '不一致' && e ? `<div class="fit"><div class="check-from"><div class="fit ell">设定 · ${t(e.cat)} · ${t(e.names[0] || '')}</div><div class="hit link"${onClick(seeEntry)}>查看设定</div></div><div class="check-card">${lit(e.text, shown.says)}</div></div>`
-      : shown.kind === '名字有误' ? `<div class="fit"><div class="check-from"><div class="fit ell">设定中的名字</div></div><div class="check-card"><span class="lit">${t(shown.right)}</span></div></div>`
-      : `<div class="fit"><div class="check-from"><div class="fit ell">可加入设定 · ${t(shown.cat)}</div></div><div class="check-card"><span class="lit">${t(shown.title)}</span>：${t(shown.as)}</div></div>`
+    const right = shown.kind === '不一致' && e ? `<div class="fit"><div class="check-from"><div class="fit ell">${t(L.checkFromSetting(e.cat, e.names[0] || ''))}</div><div class="hit link"${onClick(seeEntry)}>${t(L.checkSeeSetting())}</div></div><div class="check-card">${lit(e.text, shown.says)}</div></div>`
+      : shown.kind === '名字有误' ? `<div class="fit"><div class="check-from"><div class="fit ell">${t(L.checkNameInSettings())}</div></div><div class="check-card"><span class="lit">${t(shown.right)}</span></div></div>`
+      : `<div class="fit"><div class="check-from"><div class="fit ell">${t(L.checkCanAdd(shown.cat))}</div></div><div class="check-card"><span class="lit">${t(shown.title)}</span>${t(L.checkColon())}${t(shown.as)}</div></div>`
     const acts = checkActs(shown).map(([label, act], i, all) => button(label, act, i === all.length - 1 ? 'primary' : '')).join('')
     detail = '<div class="check-detail" data-k="check-detail">' +
-      `<div class="check-title"><div class="fit ell">${t(shown.title)}</div><div class="side">${of.indexOf(shown) + 1} / ${of.length}</div><div class="hit link${of.length > 1 ? '' : ' off'}"${onClick(of.length > 1 ? next : null)}>下一条</div></div>` +
-      `<div class="check-sides"><div class="fit"><div class="check-from"><div class="fit ell">正文 · ${ch ? t(titleOf(ch)) + ' · ' : ''}第 ${shown.para + 1} 段</div><div class="hit link"${onClick(seeText)}>查看原文</div></div><div class="check-card">${lit(text, shown.quote)}</div></div>${right}</div>` +
-      (shown.also ? `<div class="check-also">${shown.kind === '新出现' ? '其他章节中也出现' : '其他章节的类似情况'}</div>` + shown.also.map((a) => `<div class="check-more"><div class="side">${t(a.at)}</div><div class="fit">${t(a.text)}</div><div class="side">${t(a.note)}</div></div>`).join('') : '') +
-      `<div class="grow"></div><div class="check-foot"><div class="hit link${of.length > 1 ? '' : ' off'}"${onClick(of.length > 1 ? next : null)}>稍后再说</div><div class="grow"></div>${acts}</div></div>`
+      `<div class="check-title"><div class="fit ell">${t(shown.title)}</div><div class="side">${of.indexOf(shown) + 1} / ${of.length}</div><div class="hit link${of.length > 1 ? '' : ' off'}"${onClick(of.length > 1 ? next : null)}>${t(L.checkNext())}</div></div>` +
+      `<div class="check-sides"><div class="fit"><div class="check-from"><div class="fit ell">${t(ch ? L.checkTextPara(titleOf(ch), shown.para + 1) : L.checkTextParaNoChapter(shown.para + 1))}</div><div class="hit link"${onClick(seeText)}>${t(L.checkSeeText())}</div></div><div class="check-card">${lit(text, shown.quote)}</div></div>${right}</div>` +
+      (shown.also ? `<div class="check-also">${t(shown.kind === '新出现' ? L.checkAlsoNew() : L.checkAlsoSimilar())}</div>` + shown.also.map((a) => `<div class="check-more"><div class="side">${t(a.at)}</div><div class="fit">${t(a.text)}</div><div class="side">${t(a.note)}</div></div>`).join('') : '') +
+      `<div class="grow"></div><div class="check-foot"><div class="hit link${of.length > 1 ? '' : ' off'}"${onClick(of.length > 1 ? next : null)}>${t(L.checkLater())}</div><div class="grow"></div>${acts}</div></div>`
   }
   return '<div class="check-list">' +
     // 不另写「检查」二字：标题栏正中已经说了在哪一页。
     '<div class="check-head">' +
-    (running ? `<div class="muted">正在检查「${t(titleOf(running))}」${S.queue.length ? '，还有 ' + S.queue.length + ' 章' : ''}</div><div class="grow"></div><div class="hit link"${onClick(() => set({ checking: false, queue: [] }))}>停止</div>`
-      : `<div class="muted">${unfinished ? '已检查 ' + S.chapters.filter((c) => !S.never[c.key] && counted(c) >= 200 && !S.failed[c.key]).length + ' 章，' + S.chapters.filter((c) => S.failed[c.key]).length + ' 章失败' : last ? '已检查至「' + t(titleOf(last)) + '」' : ''}</div><div class="grow"></div><div class="anchor"><div class="hit link"${onClick(again)}>${last ? '重新检查' : '检查全书'}</div>${S.open === 'checkAll' ? ask() : ''}</div>`) + '</div>' +
-    seg(S.kind + ' ' + count(S.kind), KINDS.map((k) => k + ' ' + count(k)), (v) => set({ kind: v.split(' ')[0], cid: null }), '检查分类') +
+    (running ? `<div class="muted">${t(S.queue.length ? L.checkRunningMore(titleOf(running), S.queue.length) : L.checkRunning(titleOf(running)))}</div><div class="grow"></div><div class="hit link"${onClick(() => set({ checking: false, queue: [] }))}>${t(L.checkStop())}</div>`
+      : `<div class="muted">${t(unfinished ? L.checkProgress(S.chapters.filter((c) => !S.never[c.key] && counted(c) >= 200 && !S.failed[c.key]).length, S.chapters.filter((c) => S.failed[c.key]).length) : last ? L.checkCheckedUpTo(titleOf(last)) : '')}</div><div class="grow"></div><div class="anchor"><div class="hit link"${onClick(again)}>${t(last ? L.checkRecheck() : L.checkAllBook())}</div>${S.open === 'checkAll' ? ask() : ''}</div>`) + '</div>' +
+    seg(S.kind + ' ' + count(S.kind), KINDS.map((k) => [k + ' ' + count(k), '', kindWord(k) + ' ' + count(k)]), (v) => set({ kind: v.split(' ')[0], cid: null }), L.checkKindAria()) +
     `<div class="check-rows scroll">${of.map(row).join('')}</div></div>` + detail
 }
 
@@ -328,14 +330,14 @@ function checkPage() {
 
 function saveCat() {
   const name = S.catForm.name.trim(), land = S.catForm.land.trim()
-  if (!name) { say('分类名称不能为空'); return }
-  if (!land) { say('请填写落点，例如“设定库”或“大纲”'); return }
+  if (!name) { say(L.catsNameEmpty()); return }
+  if (!land) { say(L.catsLandEmpty()); return }
   set((s) => ({ cats: s.cats.includes(name) ? s.cats : [...s.cats.filter((c) => c !== '其他'), name, '其他'], lands: { ...s.lands, [name]: land }, catForm: { name: '', land: '' } }))
-  say('分类“' + name + '”已保存', '', 'ok')
+  say(L.catsSaved(name), '', 'ok')
 }
 function dropCat(name) {
   set((s) => ({ cats: s.cats.filter((c) => c !== name), entries: s.entries.map((e) => (e.cat === name ? { ...e, cat: '其他' } : e)), catDrop: '' }))
-  say('已删除分类“' + name + '”', '', 'ok')
+  say(L.catsDeleted(name), '', 'ok')
 }
 
 // 删除分类：有设定的先问一句（设定要移到「其他」），空的直接删。
@@ -344,16 +346,16 @@ function catsPage() {
   const type = (key) => (v) => set((s) => ({ catForm: { ...s.catForm, [key]: v } }))
   // 同名的是改那一条，不是加：按保存以前就说是哪条、现在落在哪，也能「取消」不改了。
   const name = S.catForm.name.trim()
-  const what = !name ? '' : S.cats.includes(name) ? `将修改已有的分类“${name}”，现在的落点是“${S.lands[name] || '设定库'}”。` : '将添加新分类。'
+  const what = !name ? '' : S.cats.includes(name) ? L.catsWillEdit(name, S.lands[name] || L.catsLandDefault()) : L.catsWillAdd()
   const row = (c) => (S.catDrop === c
-    ? `<div class="cat-row"><div class="fit">${count(c)} 条设定将移到“其他”</div>${button('取消', () => set({ catDrop: '' }))}${button('确认删除', () => dropCat(c), 'danger')}</div>`
-    : `<div class="cat-row hover-acts"><div class="cat-name">${t(c)}</div><div class="fit muted">${t(S.lands[c] || '设定库')}</div><div class="side">${count(c)} 条</div><div class="hit link"${onClick(() => { set({ catForm: { name: c, land: S.lands[c] || '设定库' } }); document.querySelector('.cat-form').scrollIntoView({ block: 'nearest' }) })}>编辑</div>` +
-      (c === '其他' ? '<div class="off">删除</div>' : `<div class="hit link"${onClick(() => (count(c) ? set({ catDrop: c }) : dropCat(c)))}>删除</div>`) + '</div>')
+    ? `<div class="cat-row"><div class="fit">${t(L.catsMoveTo(count(c), '其他'))}</div>${button(L.commonCancel(), () => set({ catDrop: '' }))}${button(L.catsConfirmDelete(), () => dropCat(c), 'danger')}</div>`
+    : `<div class="cat-row hover-acts"><div class="cat-name">${t(c)}</div><div class="fit muted">${t(S.lands[c] || L.catsLandDefault())}</div><div class="side">${t(L.catsCount(count(c)))}</div><div class="hit link"${onClick(() => { set({ catForm: { name: c, land: S.lands[c] || L.catsLandDefault() } }); document.querySelector('.cat-form').scrollIntoView({ block: 'nearest' }) })}>${t(L.catsEdit())}</div>` +
+      (c === '其他' ? `<div class="off">${t(L.commonDelete())}</div>` : `<div class="hit link"${onClick(() => (count(c) ? set({ catDrop: c }) : dropCat(c)))}>${t(L.commonDelete())}</div>`) + '</div>')
   return '<div class="editor"><div class="paper scroll"><div class="column narrow">' +
-    '<div class="page-title">作品分类</div><div class="note">“落点”指设定成熟后的去处，例如设定库或大纲。</div>' +
-    `<div class="cat-rows"><div class="cat-row cols"><div class="cat-name">名称</div><div class="fit">落点</div></div>${S.cats.map(row).join('')}</div>` +
-    '<div class="group-title">添加或修改分类</div>' +
-    `<div class="cat-form">${field('名称', line(S.catForm.name, type('name'), '', '分类名称'))}${field('落点', line(S.catForm.land, type('land'), '例如 设定库', '落点', keys(saveCat)))}${S.cats.includes(name) ? button('取消', () => set({ catForm: { name: '', land: '' } })) : ''}${S.catForm.name.trim() && S.catForm.land.trim() ? button('保存分类', saveCat, 'primary') : button('保存分类', null, 'primary off')}</div>` +
+    `<div class="page-title">${t(L.cmdCategories())}</div><div class="note">${t(L.catsNote())}</div>` +
+    `<div class="cat-rows"><div class="cat-row cols"><div class="cat-name">${t(L.catsName())}</div><div class="fit">${t(L.catsDest())}</div></div>${S.cats.map(row).join('')}</div>` +
+    `<div class="group-title">${t(L.catsFormTitle())}</div>` +
+    `<div class="cat-form">${field(L.catsName(), line(S.catForm.name, type('name'), '', L.catsNameLabel()))}${field(L.catsDest(), line(S.catForm.land, type('land'), L.catsLandHint(L.catsLandDefault()), L.catsDest(), keys(saveCat)))}${S.cats.includes(name) ? button(L.commonCancel(), () => set({ catForm: { name: '', land: '' } })) : ''}${S.catForm.name.trim() && S.catForm.land.trim() ? button(L.catsSave(), saveCat, 'primary') : button(L.catsSave(), null, 'primary off')}</div>` +
     (what ? `<div class="note">${t(what)}</div>` : '') +
     '</div></div></div>'
 }
@@ -361,13 +363,13 @@ function catsPage() {
 // ───────── 书架 ─────────
 
 // 原型开不了系统的窗口，只说一声本来会开什么。
-const osAsk = (what) => () => say('原型不会打开系统窗口', '软件中此步骤为：' + what)
+const osAsk = (what) => () => say(L.shelfOSTitle(), L.shelfOSStep(what))
 
 // 添加已有作品：原型里当作每次选的都是同一个文件夹。头一回加上，再点就说已经在了。
 function addBook() {
-  if (S.shelf.some((b) => b.id === 'found')) { say('该作品已在书架上'); return }
-  set((s) => ({ shelf: [...s.shelf, { id: 'found', name: BOOK.found, kind: '出版小说', words: '2.1 万字', at: '尚未打开' }] }))
-  say('已加入书架', BOOK.found, 'ok')
+  if (S.shelf.some((b) => b.id === 'found')) { say(L.shelfAlready()); return }
+  set((s) => ({ shelf: [...s.shelf, { id: 'found', name: BOOK.found, kind: '出版小说', words: L.shelfWordsWan('2.1', '21,000'), at: L.shelfNotOpened() }] }))
+  say(L.shelfAdded(), BOOK.found, 'ok')
 }
 
 // 换一本书：外观、书架、设置里的东西带过去，别的照那本书刚打开的样子。
@@ -379,29 +381,29 @@ function openBook(id) {
 function shelfPage() {
   const all = S.shelf
   const open = (b) => onClick(b.gone ? null : () => openBook(b.id))
-  const about = (b) => b.kind + ' · ' + b.words
-  const more = (b) => `<div class="anchor"><button class="icon-btn muted" aria-label="更多操作" title="更多操作"${onClick(() => set({ open: S.open === 'book-' + b.id ? '' : 'book-' + b.id }))}>${ICON.dots}</button>` +
-    (S.open === 'book-' + b.id ? '<div class="pop shelf-pop">' + menuRow('打开所在文件夹', () => { set(SHUT); osAsk('在资源管理器中显示这部作品的文件夹')() }) + menuRow('重命名…', () => set({ dialog: { kind: 'nameBook', id: b.id, name: b.name }, ...SHUT })) + menuRow('从书架移除', () => removeBook(b)) + '</div>' : '') + '</div>'
-  const removeBook = (b) => { set((s) => ({ shelf: s.shelf.filter((x) => x.id !== b.id), ...SHUT })); say('已从书架移除，文件夹未改动：' + b.name, '', 'ok') }
+  const about = (b) => genreWord(b.kind) + ' · ' + wordsShown(b.words)
+  const more = (b) => `<div class="anchor"><button class="icon-btn muted" aria-label="${t(L.commonMoreActions())}" title="${t(L.commonMoreActions())}"${onClick(() => set({ open: S.open === 'book-' + b.id ? '' : 'book-' + b.id }))}>${ICON.dots}</button>` +
+    (S.open === 'book-' + b.id ? '<div class="pop shelf-pop">' + menuRow(L.commonOpenFolder(), () => { set(SHUT); osAsk(L.shelfShowFolder())() }) + menuRow(L.shelfRenameBook(), () => set({ dialog: { kind: 'nameBook', id: b.id, name: b.name }, ...SHUT })) + menuRow(L.shelfRemove(), () => removeBook(b)) + '</div>' : '') + '</div>'
+  const removeBook = (b) => { set((s) => ({ shelf: s.shelf.filter((x) => x.id !== b.id), ...SHUT })); say(L.shelfRemoved(b.name), '', 'ok') }
   const card = (b) => `<div class="shelf-card${b.gone ? ' gone' : ' hit'}"${open(b)}><div class="shelf-card-top"><div class="shelf-logo">${t(b.name[0])}</div><div class="grow"></div>${b.gone ? '' : more(b)}</div>` +
     `<div class="shelf-name ell">${t(b.name)}</div><div class="note">${t(about(b))}</div><div class="grow"></div>` +
-    (b.gone ? `<div class="shelf-gone"><div class="fit danger">找不到文件夹</div><div class="hit link"${onClick(osAsk('选择该作品当前所在的文件夹'))}>定位</div><div class="hit link"${onClick(() => removeBook(b))}>移除</div></div>` : `<div class="faint">${t(b.at)}</div>`) + '</div>'
+    (b.gone ? `<div class="shelf-gone"><div class="fit danger">${t(L.shelfFolderMissing())}</div><div class="hit link"${onClick(osAsk(L.shelfPickBookFolder()))}>${t(L.shelfLocate())}</div><div class="hit link"${onClick(() => removeBook(b))}>${t(L.shelfRemoveShort())}</div></div>` : `<div class="faint">${t(timeShown(b.at))}</div>`) + '</div>'
   const row = (b) => `<div class="shelf-row${b.gone ? ' gone' : ' hit'}"${open(b)}><div class="shelf-logo">${t(b.name[0])}</div><div class="fit"><div class="shelf-row-name"><span class="shelf-name">${t(b.name)}</span><span class="note">${t(about(b))}</span></div><div class="faint ell">${t(S.library + sep() +b.name)}</div></div>` +
-    (b.gone ? `<div class="danger">找不到文件夹</div><div class="hit link"${onClick(osAsk('选择该作品当前所在的文件夹'))}>重新定位…</div><div class="hit link"${onClick(() => removeBook(b))}>从书架移除</div>` : `<div class="faint">${t(b.at)}</div>${more(b)}`) + '</div>'
-  const bring = button('导入书籍…', startImport)
-  const create = button('新建作品', () => set({ dialog: { kind: 'newBook', name: '', type: BOOK.kinds[0] } }), 'primary')
+    (b.gone ? `<div class="danger">${t(L.shelfFolderMissing())}</div><div class="hit link"${onClick(osAsk(L.shelfPickBookFolder()))}>${t(L.shelfRelocate())}</div><div class="hit link"${onClick(() => removeBook(b))}>${t(L.shelfRemove())}</div>` : `<div class="faint">${t(timeShown(b.at))}</div>${more(b)}`) + '</div>'
+  const bring = button(L.shelfImportMore(), startImport)
+  const create = button(L.shelfNewBook(), () => set({ dialog: { kind: 'newBook', name: '', type: BOOK.kinds[0] } }), 'primary')
   if (!all.length) {
     // AI 关着时，这一页不讲 AI。
-    return '<div class="shelf">' + (aiOn() ? blank('book', '从一个想法开始', '与 AI 逐步讨论，定下的内容当场记进设定文档。已确定的设定会被遵守，已放弃的 AI 不再提及。',
-      '<div class="shelf-facts"><div>· 作品、对话和设定文档均为文件夹中的普通文件，可备份、同步或用其他编辑器打开。</div><div>· AI 仅在你发送消息时回应，不会自行续写。</div><div>· API key 保存在系统钥匙串中，不会写入作品文件夹。</div></div>' +
-      buttons(button('添加已有作品…', addBook), bring, create))
-      : blank('book', '从一个想法开始', '新建一部作品，或添加已有的作品文件夹。',
-        '<div class="shelf-facts"><div>· 作品和设定文档均为文件夹中的普通文件，可备份、同步或用其他编辑器打开。</div></div>' + buttons(button('添加已有作品…', addBook), bring, create))) + '</div>'
+    return '<div class="shelf">' + (aiOn() ? blank('book', L.shelfStartTitle(), L.shelfStartAbout(),
+      `<div class="shelf-facts"><div>${t(L.shelfFactFiles())}</div><div>${t(L.shelfFactAI())}</div><div>${t(L.shelfFactKey())}</div></div>` +
+      buttons(button(L.shelfAddExisting(), addBook), bring, create))
+      : blank('book', L.shelfStartTitle(), L.shelfEmptyAbout(),
+        `<div class="shelf-facts"><div>${t(L.shelfFactFilesNoAI())}</div></div>` + buttons(button(L.shelfAddExisting(), addBook), bring, create))) + '</div>'
   }
   return '<div class="shelf scroll"><div class="shelf-column">' +
-    `<div class="shelf-head"><div class="fit"><div class="shelf-title">我的作品</div><div class="shelf-sub"><span class="ell">${all.length} 部 · 作品库：${t(S.library)}</span><span class="hit link"${onClick(osAsk('选择作品库文件夹'))}>更改</span></div></div>` +
-    `<div class="seg icons" aria-label="显示">${[['列表', 'list', false], ['卡片', 'grid', true]].map(([label, pic, cards]) => `<div class="hit${S.cards === cards ? ' on' : ''}" title="${label}"${onClick(() => set({ cards }))}>${icon(pic)}</div>`).join('')}</div>` +
-    button('添加已有作品…', addBook) + bring + create + '</div>' +
+    `<div class="shelf-head"><div class="fit"><div class="shelf-title">${t(L.shelfTitle())}</div><div class="shelf-sub"><span class="ell">${t(L.shelfCountLibrary(all.length, S.library))}</span><span class="hit link"${onClick(osAsk(L.shelfPickLibrary()))}>${t(L.shelfChange())}</span></div></div>` +
+    `<div class="seg icons" aria-label="${t(L.shelfView())}">${[[L.shelfList(), 'list', false], [L.shelfCards(), 'grid', true]].map(([label, pic, cards]) => `<div class="hit${S.cards === cards ? ' on' : ''}" title="${t(label)}"${onClick(() => set({ cards }))}>${icon(pic)}</div>`).join('')}</div>` +
+    button(L.shelfAddExisting(), addBook) + bring + create + '</div>' +
     (S.cards ? `<div class="shelf-cards">${all.map(card).join('')}</div>` : `<div class="shelf-rows">${all.map(row).join('')}</div>`) +
     '</div></div>'
 }
@@ -437,7 +439,7 @@ function startImport() {
 
 // 作品叫什么、放在哪。名字空着，或者那个文件夹里已有文件，都不能导入。
 function impWhere() {
-  const imp = S.imp, name = imp.name.trim(), at = (imp.at ?? S.library + sep() +(name || '未命名作品')).trim()
+  const imp = S.imp, name = imp.name.trim(), at = (imp.at ?? S.library + sep() +(name || L.shelfUntitledBook())).trim()
   const taken = !!at && S.shelf.some((b) => S.library + sep() +b.name === at)
   return { name, at, taken, ok: !!name && !!at && !taken }
 }
@@ -459,7 +461,7 @@ function importChange(then, words) {
   set((s) => ({ imp: { ...then(s.imp), rename: null, menu: null } }))
   const box = document.querySelector('.imp-text')
   if (box) box.scrollTop = 0
-  impUndo = say(words, '', 'ok', [['撤销', () => { impRetire(); if (S.imp) set({ imp: before }) }]])
+  impUndo = say(words, '', 'ok', [[L.cmdUndo(), () => { impRetire(); if (S.imp) set({ imp: before }) }]])
 }
 
 // 一章前面的那一章：只在同一卷里找，卷里的第一章没有上一章。
@@ -470,7 +472,7 @@ const impMergeable = () => { const c = impCur(); return !!c && !!impPrev(c) }
 function importMerge() {
   if (!impMergeable()) return
   const gone = impCur(), prev = impPrev(gone)
-  importChange((imp) => ({ ...imp, sel: prev.id, can: false, chapters: imp.chapters.filter((c) => c.id !== gone.id).map((c) => (c.id === prev.id ? { ...c, paras: [...c.paras, gone.title, ...gone.paras] } : c)) }), '已将「' + gone.title + '」并入上一章')
+  importChange((imp) => ({ ...imp, sel: prev.id, can: false, chapters: imp.chapters.filter((c) => c.id !== gone.id).map((c) => (c.id === prev.id ? { ...c, paras: [...c.paras, gone.title, ...gone.paras] } : c)) }), L.shelfMergedInto(gone.title))
 }
 
 // 光标在正文第几段第几个字后面；不在正文里时没有。
@@ -489,8 +491,8 @@ function importSplit() {
   const parts = impParts()
   if (!parts) return
   const [head, rest] = parts, c = impCur(), first = rest[0].trim()
-  const titled = first.length <= 20 && !/[。！？…”」]$/.test(first), title = titled ? first : '未命名', nid = 'i' + S.imp.n
-  importChange((imp) => ({ ...imp, n: imp.n + 1, sel: nid, can: false, chapters: imp.chapters.flatMap((x) => (x.id === c.id ? [{ ...x, paras: head }, { id: nid, title, vol: c.vol, paras: titled ? rest.slice(1) : rest }] : [x])) }), '已另起一章「' + title + '」')
+  const titled = first.length <= 20 && !/[。！？…”」]$/.test(first), title = titled ? first : L.commonUntitled(), nid = 'i' + S.imp.n
+  importChange((imp) => ({ ...imp, n: imp.n + 1, sel: nid, can: false, chapters: imp.chapters.flatMap((x) => (x.id === c.id ? [{ ...x, paras: head }, { id: nid, title, vol: c.vol, paras: titled ? rest.slice(1) : rest }] : [x])) }), L.shelfSplitDone(title))
   putCaret({ para: 0, off: 0 }, false, impBox())
 }
 
@@ -538,13 +540,15 @@ function impNewChapter(into) {
     const imp = s.imp, cur = imp.chapters.find((c) => c.id === imp.sel), home = typeof into === 'string' ? into : cur ? cur.vol : ''
     const anchor = typeof into === 'string' ? imp.chapters.filter((c) => c.vol === home).at(-1) : cur, id = 'i' + imp.n
     const at = anchor ? imp.chapters.indexOf(anchor) + 1 : imp.chapters.length
-    const chapters = [...imp.chapters.slice(0, at), { id, title: '新章节', vol: home, paras: [] }, ...imp.chapters.slice(at)]
-    return { imp: { ...imp, chapters, n: imp.n + 1, sel: id, can: false, menu: null, folds: home ? { ...imp.folds, [home]: false } : imp.folds, rename: { key: id, t: '新章节' } } }
+    const name = L.shelfNewChapterName()
+    const chapters = [...imp.chapters.slice(0, at), { id, title: name, vol: home, paras: [] }, ...imp.chapters.slice(at)]
+    return { imp: { ...imp, chapters, n: imp.n + 1, sel: id, can: false, menu: null, folds: home ? { ...imp.folds, [home]: false } : imp.folds, rename: { key: id, t: name } } }
   })
 }
 function impNewFolder() {
   impRetire()
-  set((s) => ({ imp: { ...s.imp, volumes: [...s.imp.volumes, ['v' + s.imp.n, '新文件夹']], n: s.imp.n + 1, menu: null, rename: { key: 'v' + s.imp.n, t: '新文件夹' } } }))
+  const name = L.shelfNewFolderName()
+  set((s) => ({ imp: { ...s.imp, volumes: [...s.imp.volumes, ['v' + s.imp.n, name]], n: s.imp.n + 1, menu: null, rename: { key: 'v' + s.imp.n, t: name } } }))
 }
 // 名字定下来：按了回车，或者光标离开了输入框。空着就还是原来的。
 function impRenameNow() {
@@ -600,7 +604,7 @@ function impDelete(key) {
     const chapters = i.chapters.filter((c) => !gone.includes(c))
     const sel = chapters.some((c) => c.id === i.sel) ? i.sel : (chapters[Math.min(i.chapters.indexOf(gone[0]), chapters.length - 1)] || { id: '' }).id
     return { ...i, chapters, sel, can: false, volumes: i.volumes.filter((v) => v !== vol) }
-  }, '已删除「' + title + '」')
+  }, L.shelfDeleted(title))
 }
 
 let impDragged = ''
@@ -614,29 +618,29 @@ root.addEventListener('dragend', () => { impDragged = '' })
 // 右键点出来的菜单，和侧栏里的一样（「移到」也是下一级）；浮在预览上面。
 function importMenu() {
   const m = S.imp.menu, key = m.key, vol = impIsVol(key), c = S.imp.chapters.find((x) => x.id === key), win = document.getElementById('win')
-  const spots = vol ? [] : [['最上层', ''], ...S.imp.volumes.map((v) => [v[1], v[0]])].filter(([, to]) => to !== c.vol)
-  const rows = [['重命名', () => impPatch({ menu: null, rename: { key, t: impTitleOf(key) } })], ['新建章节', () => impNewChapter(vol ? key : undefined)], ['新建文件夹', impNewFolder]]
+  const spots = vol ? [] : [[L.shelfTopLevel(), ''], ...S.imp.volumes.map((v) => [v[1], v[0]])].filter(([, to]) => to !== c.vol)
+  const rows = [[L.commonRename(), () => impPatch({ menu: null, rename: { key, t: impTitleOf(key) } })], [L.cmdNewChapter(), () => impNewChapter(vol ? key : undefined)], [L.cmdNewFolder(), impNewFolder]]
   return `<div class="veil float-veil top"${onClick(impShut)}${onMenu((ev) => { ev.preventDefault(); impShut() })}></div>` +
     `<div class="ctx pop top${m.x > win.offsetWidth - 208 - 208 ? ' flip' : ''}" data-k="imp-menu"${subOver(!!m.into, (on) => impPatch({ menu: { ...S.imp.menu, into: on } }))} style="left:${Math.min(m.x, win.offsetWidth - 208)}px;top:${Math.min(m.y, win.offsetHeight - Math.max(250, 148 + Math.min(spots.length, 10) * 30))}px">` +
     rows.map(([label, act]) => menuRow(label, act)).join('') + HAIR +
-    menuRow('上移', () => impShift(key, -1)) + menuRow('下移', () => impShift(key, 1)) +
-    (spots.length ? subRow('移到', m.into, () => impPatch({ menu: { ...S.imp.menu, into: true } }), 'imp-into', spots.map(([label, to]) => menuRow(label, () => impMoveInto(key, to))).join('')) : '') + HAIR +
-    menuRow('删除', () => impDelete(key)) + '</div>'
+    menuRow(L.commonMoveUp(), () => impShift(key, -1)) + menuRow(L.commonMoveDown(), () => impShift(key, 1)) +
+    (spots.length ? subRow(L.shelfMoveTo(), m.into, () => impPatch({ menu: { ...S.imp.menu, into: true } }), 'imp-into', spots.map(([label, to]) => menuRow(label, () => impMoveInto(key, to))).join('')) : '') + HAIR +
+    menuRow(L.commonDelete(), () => impDelete(key)) + '</div>'
 }
 
 // 第一个对话框：作品叫什么、什么体裁、放在哪，和「新建作品」同样的字。名字空着、文件夹里已有文件时「下一步」是灰的。
 function importFormDialog() {
   const imp = S.imp, w = impWhere(), type = (key) => (v) => set((s) => ({ imp: { ...s.imp, [key]: v } }))
-  const folder = '「' + t(w.at.split(/[\\/]/).filter(Boolean).at(-1) || w.at) + '」'
-  const where = !w.at ? '<div class="note">请填写作品位置。</div>' : w.taken ? `<div class="note danger">文件夹${folder}中已有文件，请更换名称或位置。</div>` : `<div class="note">将新建文件夹${folder}。</div>`
+  const folder = w.at.split(/[\\/]/).filter(Boolean).at(-1) || w.at
+  const where = !w.at ? `<div class="note">${t(L.shelfLocationNeeded())}</div>` : w.taken ? `<div class="note danger">${t(L.shelfFolderTaken(folder))}</div>` : `<div class="note">${t(L.shelfWillCreate(folder))}</div>`
   const next = () => { if (w.ok) set({ dialog: { kind: 'importPreview' }, ...SHUT }) }
-  return dialog('small', dialogHead('导入书籍', '原文件不会改动，导入后是一部新作品。') +
-    `<div class="field"><div class="label">文件</div><div class="pick-line"><div class="box line fit"><div class="fit ell">${t(BOOK.source.file)}</div></div>${button('更换…', osAsk('选择要导入的文件或文件夹'))}</div>` +
-    `<div class="note">识别出 ${imp.volumes.length} 卷 ${imp.chapters.length} 章，下一步可以看一遍、再调整。</div></div>` +
-    field('作品名称', line(imp.name, type('name'), '', '作品名称', keys(next) + ' autofocus')) + (w.name ? '' : '<div class="note">请填写作品名称。</div>') +
-    field('体裁', choose('imp-kind', imp.type, BOOK.kinds, type('type'), '体裁')) +
-    `<div class="field"><div class="label">位置</div><div class="pick-line"><div class="box line fit">${typed(w.at, type('at'), '', '作品位置', keys(next))}</div>${button('更改…', osAsk('选择新作品所在的文件夹'))}</div>${where}</div>` +
-    buttons(button('取消', () => set({ dialog: null, imp: null, ...SHUT })), button('下一步', w.ok ? next : null, w.ok ? 'primary' : 'primary off')))
+  return dialog('small', dialogHead(L.shelfImportBook(), L.shelfImportAbout()) +
+    `<div class="field"><div class="label">${t(L.shelfFile())}</div><div class="pick-line"><div class="box line fit"><div class="fit ell">${t(BOOK.source.file)}</div></div>${button(L.shelfChangeFile(), osAsk(L.shelfPickImport()))}</div>` +
+    `<div class="note">${t(L.shelfDetected(imp.volumes.length, imp.chapters.length))}</div></div>` +
+    field(L.shelfBookName(), line(imp.name, type('name'), '', L.shelfBookName(), keys(next) + ' autofocus')) + (w.name ? '' : `<div class="note">${t(L.shelfNameNeeded())}</div>`) +
+    field(L.shelfGenre(), choose('imp-kind', imp.type, BOOK.kinds.map((k) => [k, genreWord(k)]), type('type'), L.shelfGenre())) +
+    `<div class="field"><div class="label">${t(L.shelfLocation())}</div><div class="pick-line"><div class="box line fit">${typed(w.at, type('at'), '', L.shelfBookLocation(), keys(next))}</div>${button(L.shelfChangePlace(), osAsk(L.shelfPickNewLocation()))}</div>${where}</div>` +
+    buttons(button(L.commonCancel(), () => set({ dialog: null, imp: null, ...SHUT })), button(L.commonNext(), w.ok ? next : null, w.ok ? 'primary' : 'primary off')))
 }
 
 // 第二个对话框：预览。左边是切出来的卷和章，和正文页的侧栏一样：卷能折起，字数指针移上去才出来，右键、拖动、改名都和那里一样；
@@ -647,9 +651,9 @@ function importPreviewDialog() {
   const menu = (key) => onMenu((ev) => { ev.preventDefault(); const [x, y] = spot(ev.clientX, ev.clientY); impPatch({ menu: { key, x, y } }) })
   // 改名字的那一行还是那一行：图标、缩进都不动，只是名字换成输入框。回车和光标离开都算定了，Esc 不改。
   const naming = (key, pic, deep) => `<div class="tree-row naming${pic ? '' : ' leaf'}${deep ? ' deep' : ''}${key === imp.sel ? ' on' : ''}" data-k="imp-${key}">${pic}` +
-    `${typed(imp.rename.t, (v) => set((s) => (s.imp && s.imp.rename ? { imp: { ...s.imp, rename: { ...s.imp.rename, t: v } } } : null)), '', '重命名', keys(impRenameNow, () => impPatch({ rename: null })) + onBlur(impRenameNow) + ' autofocus data-all')}</div>`
+    `${typed(imp.rename.t, (v) => set((s) => (s.imp && s.imp.rename ? { imp: { ...s.imp, rename: { ...s.imp.rename, t: v } } } : null)), '', L.commonRename(), keys(impRenameNow, () => impPatch({ rename: null })) + onBlur(impRenameNow) + ' autofocus data-all')}</div>`
   const leaf = (c) => (imp.rename && imp.rename.key === c.id ? naming(c.id, '', c.vol)
-    : `<div class="tree-row leaf hit${c.vol ? ' deep' : ''}${c.id === imp.sel ? ' on' : ''}" draggable="true" data-k="imp-${c.id}" data-imp-node="${c.id}"${onClick(() => impShow(c.id))}${menu(c.id)}><div class="fit ell">${t(c.title.trim() || '未命名')}</div><div class="count">${impNum(impWords(c))}</div></div>`)
+    : `<div class="tree-row leaf hit${c.vol ? ' deep' : ''}${c.id === imp.sel ? ' on' : ''}" draggable="true" data-k="imp-${c.id}" data-imp-node="${c.id}"${onClick(() => impShow(c.id))}${menu(c.id)}><div class="fit ell">${t(c.title.trim() || L.commonUntitled())}</div><div class="count">${impNum(impWords(c))}</div></div>`)
   const volume = ([key, title]) => {
     const folded = !!imp.folds[key], pic = icon(folded ? 'right' : 'down', 'xs'), mine = chapters.filter((c) => c.vol === key)
     return (imp.rename && imp.rename.key === key ? naming(key, pic)
@@ -657,25 +661,25 @@ function importPreviewDialog() {
       (folded ? '' : mine.map(leaf).join(''))
   }
   const tree = imp.volumes.map(volume).join('') + chapters.filter((c) => !c.vol).map(leaf).join('')
-  const add = `<div class="import-tree-head"><div class="faint fit">卷和章</div><button class="icon-btn muted" aria-label="新建章节" title="新建章节"${onClick(() => impNewChapter())}>${ICON.plus}</button></div>`
+  const add = `<div class="import-tree-head"><div class="faint fit">${t(L.shelfVolumesChapters())}</div><button class="icon-btn muted" aria-label="${t(L.cmdNewChapter())}" title="${t(L.cmdNewChapter())}"${onClick(() => impNewChapter())}>${ICON.plus}</button></div>`
   const acts = '<div class="import-acts" data-keep>' +
-    `<div class="hit link${merge ? '' : ' off'}" title="${merge ? '本章接到上一章后面' : '卷里的第一章没有上一章'}"${onClick(merge ? importMerge : null)}>并入上一章</div>` +
-    `<div class="hit link${imp.can ? '' : ' off'}" title="${imp.can ? '光标后面的文字成为新的一章' : '请先在正文中放好光标'}"${onClick(imp.can ? importSplit : null)}>从光标处另起一章</div></div>`
+    `<div class="hit link${merge ? '' : ' off'}" title="${t(merge ? L.shelfMergeHint() : L.shelfMergeNone())}"${onClick(merge ? importMerge : null)}>${t(L.shelfMerge())}</div>` +
+    `<div class="hit link${imp.can ? '' : ' off'}" title="${t(imp.can ? L.shelfSplitHint() : L.shelfSplitNeedCursor())}"${onClick(imp.can ? importSplit : null)}>${t(L.shelfSplit())}</div></div>`
   const toProse = () => putCaret({ para: 0, off: 0 }, false, impBox())
-  const side = !cur ? '<div class="snap-side">' + empty('没有章节', '在左边新建一章，或者回到上一步换一个文件。') + '</div>' : '<div class="snap-side">' +
-    `<div class="import-head"><input class="in chapter-title import-title" value="${t(cur.title)}" placeholder="未命名" aria-label="章节标题" spellcheck="false"${onInput((v) => { impRetire(); set((s) => ({ imp: { ...s.imp, chapters: s.imp.chapters.map((c) => (c.id === cur.id ? { ...c, title: v } : c)) } })) })}${keys(toProse)}>${acts}</div><div class="note">请先在正文中点选要另起一章的位置</div>` +
-    `<div class="snap-text imp-text scroll"><div class="import-prose" contenteditable="plaintext-only" spellcheck="false" aria-label="正文"${onInput(importWrote)}${onKey(importKey)}${onPaste(importPaste)}>${(cur.paras.length ? cur.paras : ['']).map((p, i) => `<div data-para="${i}">${p ? t(p) : '<br>'}</div>`).join('')}</div></div>` +
-    `<div class="faint">本章 ${impNum(impWords(cur))} 字</div></div>`
+  const side = !cur ? '<div class="snap-side">' + empty(L.shelfNoChapters(), L.shelfNoChaptersAbout()) + '</div>' : '<div class="snap-side">' +
+    `<div class="import-head"><input class="in chapter-title import-title" value="${t(cur.title)}" placeholder="${t(L.commonUntitled())}" aria-label="${t(L.shelfChapterTitle())}" spellcheck="false"${onInput((v) => { impRetire(); set((s) => ({ imp: { ...s.imp, chapters: s.imp.chapters.map((c) => (c.id === cur.id ? { ...c, title: v } : c)) } })) })}${keys(toProse)}>${acts}</div><div class="note">${t(L.shelfSplitNote())}</div>` +
+    `<div class="snap-text imp-text scroll"><div class="import-prose" contenteditable="plaintext-only" spellcheck="false" aria-label="${t(L.shelfTextLabel())}"${onInput(importWrote)}${onKey(importKey)}${onPaste(importPaste)}>${(cur.paras.length ? cur.paras : ['']).map((p, i) => `<div data-para="${i}">${p ? t(p) : '<br>'}</div>`).join('')}</div></div>` +
+    `<div class="faint">${t(L.shelfChapterWords(impNum(impWords(cur))))}</div></div>`
   const ok = !!chapters.length
   const go = () => {
-    const id = 'book' + S.n, words = total >= 10000 ? (total / 10000).toFixed(1) + ' 万字' : total + ' 字'
+    const id = 'book' + S.n, words = total >= 10000 ? L.shelfWordsWan((total / 10000).toFixed(1), impNum(total)) : L.shelfWordsCount(String(total))
     set((s) => ({ shelf: [{ id, name: w.name, kind: imp.type, words, at: stamp() }, ...s.shelf], n: s.n + 1, dialog: null, imp: null }))
     openBook(id)
-    say('已导入 ' + chapters.length + ' 章', w.name, 'ok')
+    say(L.shelfImported(chapters.length), w.name, 'ok')
   }
-  return dialog('preview', dialogHead('预览 · ' + BOOK.source.file, '共 ' + imp.volumes.length + ' 卷 ' + chapters.length + ' 章，全书 ' + impNum(total) + ' 字。切错的地方在这里改，确定后才新建作品。') +
+  return dialog('preview', dialogHead(L.shelfPreviewTitle(BOOK.source.file), L.shelfPreviewAbout(imp.volumes.length, imp.chapters.length, impNum(total))) +
     '<div class="snaps">' +
     `<div class="import-tree">${add}<div class="tree scroll">${tree}</div></div>` + side + '</div>' +
-    buttons(button('取消', () => set({ dialog: null, imp: null, ...SHUT })), button('上一步', () => set({ dialog: { kind: 'importForm' }, ...SHUT })), button('确定', ok ? go : null, ok ? 'primary' : 'primary off'))) +
+    buttons(button(L.commonCancel(), () => set({ dialog: null, imp: null, ...SHUT })), button(L.commonBack(), () => set({ dialog: { kind: 'importForm' }, ...SHUT })), button(L.commonOK(), ok ? go : null, ok ? 'primary' : 'primary off'))) +
     (imp.menu ? importMenu() : '')
 }

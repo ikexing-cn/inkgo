@@ -1,6 +1,7 @@
 package desk
 
 import (
+	"runtime"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
@@ -237,11 +238,11 @@ var commandHelp = []*helpRow{
 	{group: "正文", keys: modKey + "S", does: "立即保存（停笔片刻也会自动保存）", cmds: []*command{cmdSave}},
 	{group: "正文", keys: modKey + "F", does: "查找替换，可切换到全书", cmds: []*command{cmdFind}},
 	{group: "正文", keys: modKey + "N", does: "在本章之后新建章节", cmds: []*command{cmdNewChapter}},
-	{group: "正文", keys: "F2", does: "重命名当前章节", cmds: []*command{cmdRename}},
+	{group: "正文", keys: cmdRename.keys(), does: "重命名当前章节", cmds: []*command{cmdRename}},
 	{group: "正文", keys: modKey + "PgDn / PgUp", does: "下一章 / 上一章", cmds: []*command{cmdNextChapter, cmdPrevChapter}},
-	{group: "正文", keys: "Ctrl+Tab / Ctrl+Shift+Tab", does: "下一个 / 上一个标签页", cmds: []*command{cmdNextTab, cmdPrevTab}},
+	{group: "正文", keys: cmdNextTab.keys() + " / " + cmdPrevTab.keys(), does: "下一个 / 上一个标签页", cmds: []*command{cmdNextTab, cmdPrevTab}},
 	{group: "正文", keys: modKey + "W", does: "关闭当前标签页", cmds: []*command{cmdCloseTab}},
-	{group: "正文", keys: "F11", does: "专注写作：仅显示正文", cmds: []*command{cmdFocus}},
+	{group: "正文", keys: cmdFocus.keys(), does: "专注写作：仅显示正文", cmds: []*command{cmdFocus}},
 	{group: "正文", keys: modKey + "J", does: "在光标处续写一句", ai: true, cmds: []*command{cmdContinue}},
 	{group: "正文", keys: "Tab / Esc", does: "采纳 / 放弃续写", ai: true, cmds: []*command{cmdTakePrediction, cmdDropPrediction}},
 	{group: "正文", keys: modKey + "L", does: "将选中的原文引用到讨论", ai: true, cmds: []*command{cmdQuote}},
@@ -295,20 +296,39 @@ func (c *command) act(a *App) func() {
 	}
 }
 
-// shortcutText writes a key and its modifiers as the menus and the help do.
+// shortcutText writes a key and its modifiers as the menus and the help do,
+// the way the system writes them.
 func shortcutText(mods ui.Modifiers, key ui.Key) string {
+	return shortcutOn(runtime.GOOS == "darwin", mods, key)
+}
+
+// shortcutOn is shortcutText on macOS or elsewhere. macOS writes the keys
+// held down as symbols, in its own order: ⌃⇧Tab, ⇧⌘Z. ui.Cmd is Super
+// there and Ctrl elsewhere, so the same command reads ⌘S or Ctrl+S.
+func shortcutOn(mac bool, mods ui.Modifiers, key ui.Key) string {
 	name := keyText(key)
-	switch {
-	case mods&ui.Cmd != 0:
-		return modKey + name
-	case mods&ui.Ctrl != 0 && mods&ui.Shift != 0:
-		return "Ctrl+Shift+" + name
-	case mods&ui.Ctrl != 0:
-		return "Ctrl+" + name
-	case mods&ui.Shift != 0:
-		return "Shift+" + name
+	if mac {
+		held := ""
+		for _, m := range []struct {
+			mod ui.Modifiers
+			sym string
+		}{{ui.Ctrl, "⌃"}, {ui.Alt, "⌥"}, {ui.Shift, "⇧"}, {ui.Super, "⌘"}} {
+			if mods&m.mod != 0 {
+				held += m.sym
+			}
+		}
+		return held + name
 	}
-	return name
+	held := ""
+	for _, m := range []struct {
+		mod  ui.Modifiers
+		name string
+	}{{ui.Ctrl, "Ctrl+"}, {ui.Alt, "Alt+"}, {ui.Shift, "Shift+"}} {
+		if mods&m.mod != 0 {
+			held += m.name
+		}
+	}
+	return held + name
 }
 
 // keyText names the keys the table uses, as the menus and the help do.

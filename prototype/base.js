@@ -16,10 +16,12 @@ const switchLang = (lang) => { LANG = lang; L = CAT.messagesIn(lang); draw() }
 const PATHS = () => BOOK.paths[OS]
 const sep = () => (OS === 'mac' ? '/' : '\\')
 // 快捷键都按 Windows 写，在 macOS 上换成它的写法：修饰键用符号，按 ⌃⌥⇧⌘ 的次序连着写，不加「+」。
-// Ctrl 一般是 ⌘；换标签页（Tab）仍是 ⌃，删一个词（Backspace、Delete）是 ⌥；重做 Ctrl+Y 是 ⇧⌘Z。
+// Ctrl 一般是 ⌘；换标签页（Tab）仍是 ⌃，删一个词（Backspace、Delete）是 ⌥。
+// F 键在 Mac 键盘上要按住 fn，换成 Mac 的习惯：专注写作是 ⌃⌘F，重命名没有快捷键。
 const MAC_KEYS = { Enter: '↩', PgDn: '⇟', PgUp: '⇞', Backspace: '⌫', Delete: '⌦' }
 const MAC_CTRL = { Tab: '⌃', Backspace: '⌥', Delete: '⌥' }
-const keyLabel = (s) => OS !== 'mac' ? s : s.replace(/Ctrl\+Y\b/g, 'Ctrl+Shift+Z')
+const MAC_F = { F11: '⌃⌘F', F2: '' }
+const keyLabel = (s) => OS !== 'mac' ? s : s.replace(/\bF(?:11|2)\b/g, (k) => MAC_F[k])
   .replace(/((?:(?:Ctrl|Shift|Alt)\+)+)([A-Za-z]+|\S)/g, (_, mods, key) => {
     const ctrl = mods.includes('Ctrl') ? MAC_CTRL[key] || '⌘' : ''
     return (ctrl === '⌃' ? '⌃' : '') + (mods.includes('Alt') || ctrl === '⌥' ? '⌥' : '') + (mods.includes('Shift') ? '⇧' : '') + (ctrl === '⌘' ? '⌘' : '') + (MAC_KEYS[key] || key)
@@ -28,10 +30,11 @@ const keyLabel = (s) => OS !== 'mac' ? s : s.replace(/Ctrl\+Y\b/g, 'Ctrl+Shift+Z
 
 // 卷里的章，标题是号加名字；作者自己把标题整个改写过的（own），写了什么就是什么。
 const numbered = (c) => c.vol && !c.own
+// 「第几章」是书里的字，跟书的语言，不跟界面的语言。
 const titleOf = (c) => (numbered(c) ? '第' + c.no + '章' + (c.t ? '：' + c.t : '') : c.t)
 const chapterOf = (key) => S.chapters.find((c) => c.key === key)
 // 指某一章的地方都写它的标题，不另编号：标题是作者写的。
-const chTitle = (key) => { const c = chapterOf(key); return c ? titleOf(c) : '已删除的章' }
+const chTitle = (key) => { const c = chapterOf(key); return c ? titleOf(c) : L.appChapterDeleted() }
 const clip = (text, n) => (text.length > n ? text.slice(0, n) + '…' : text)
 // 一章有多少字。书里带来的章写着（假的）字数，新写的照实数。
 const sizeOf = (c) => c.c || String(c.paras.join('').length)
@@ -48,6 +51,16 @@ const count = (x) => {
 const limits = (id) => { const [max, out] = BOOK.table[id] || BOOK.guess; return { id, max: size(max), out: size(out), at: '80' } }
 // 刚做的事的时间：和书里带来的「昨天 22:40」「10-08 21:14」一样写，是今天几点。
 const stamp = () => '今天 ' + BOOK.clock
+// 时间记在状态里是书里的写法（「今天 10:40」「昨天 21:40」），存的时候就是这样；显示时才换成当前语言，别的样子原样写。
+const timeShown = (text) => {
+  const m = /^(今天|昨天)(?: (\d{1,2}:\d{2}))?$/.exec(text)
+  if (!m) return text
+  const today = m[1] === '今天'
+  return m[2] ? (today ? L.timeToday(m[2]) : L.timeYesterday(m[2])) : (today ? L.timeTodayDay() : L.timeYesterdayDay())
+}
+// 体裁和书架上的字数：状态里存的是中文（「网文」「暂无正文」），显示时换成当前语言，别的样子原样写。
+const genreWord = (k) => ({ 网文: L.genreWeb(), 出版小说: L.genreNovel(), 剧本: L.genreScript(), 非虚构: L.genreNonfiction() })[k] ?? k
+const wordsShown = (w) => (w === '暂无正文' ? L.shelfNoWords() : w)
 // token 数按 K、M、B 写，留一位小数（9.6K、1.7M）；不到一千的照写。
 const tokens = (n) => {
   const [unit, by] = [['B', 1e9], ['M', 1e6], ['K', 1e3]].find(([, by]) => n >= 1000 && Math.round((n / by) * 10) >= 10) || ['', 1]
@@ -58,7 +71,7 @@ const price = (model, use) => {
   const p = (BOOK.table[model] || [])[2]
   if (!p) return ''
   const v = use.reduce((n, [input, cached, output]) => n + (input - cached) * p[0] + cached * p[1] + output * p[2], 0) / 1e6
-  return v < 0.01 ? '不到 ' + p[3] + '0.01' : '约 ' + p[3] + v.toFixed(2)
+  return v < 0.01 ? L.aiCostUnder(p[3] + '0.01') : L.aiCostAbout(p[3] + v.toFixed(2))
 }
 
 // 设定随章节变：一章（或一卷的第一章）排在全书的第几个，照侧栏的先后。不在书里（进了回收站）的是 -1。
@@ -71,7 +84,7 @@ const asOf = (e, key) => {
 }
 const textAt = (e, key) => (asOf(e, key) || e).text
 // 指一处变化从哪起：「第87章起」「第三卷：停电起」，那一章不在了写「所在章节已删除」。
-const fromWhere = (key) => { const c = chapterOf(key), v = S.volumes.find((x) => x[0] === key); return c ? (numbered(c) ? '第' + c.no + '章起' : titleOf(c) + '起') : v ? v[1] + '起' : '所在章节已删除' }
+const fromWhere = (key) => { const c = chapterOf(key), v = S.volumes.find((x) => x[0] === key); return c ? L.appFrom(numbered(c) ? '第' + c.no + '章' : titleOf(c)) : v ? L.appFrom(v[1]) : L.appChapterGone() }
 
 // 手机预览的排版，刚装好时的样子：翻页、393 宽的手机、20 号字。
 const PHONE = { mode: '翻页', size: '标准', fs: 20, lh: '适中', theme: '白天', frame: true, long: true }
@@ -196,9 +209,10 @@ function stopAll() {
 function say(title, detail = '', kind = '', acts = []) {
   const id = 'toast' + Math.random().toString(36).slice(2, 8)
   // 只给了一句话的：第一个逗号、分号前面是标题，后面是小字，提示条就不用拉得很宽。
-  const cut = detail ? -1 : title.search(/[，；]/)
-  if (cut > 0) [title, detail] = [title.slice(0, cut), title.slice(cut + 1)]
-  if (kind === 'fail') acts = [...acts, ['复制详情', () => { if (navigator.clipboard) navigator.clipboard.writeText(title + (detail ? '：' + detail : '')).catch(() => {}) }]]
+  // 英文的逗号、分号后面要跟一个空格才算分开：「1,234 处」这样的数字不切。
+  const cut = detail ? -1 : title.search(/[，；]|[,;] /)
+  if (cut > 0) [title, detail] = [title.slice(0, cut), title.slice(cut + 1).trim()]
+  if (kind === 'fail') acts = [...acts, [L.appCopyDetails(), () => { if (navigator.clipboard) navigator.clipboard.writeText(title + (detail ? '：' + detail : '')).catch(() => {}) }]]
   set((s) => ({ toasts: [...s.toasts.filter((x) => x.title !== title), { id, title, detail, kind, acts }] }))
   if (kind !== 'fail' && kind !== 'busy') later(3000, () => unsay(id))
   return id
@@ -282,7 +296,7 @@ const area = (value, change, hint, label, rows = 4, more = '') => `<div class="b
 const field = (label, box) => `<div class="field"><div class="label">${t(label)}</div>${box}</div>`
 const button = (label, act, cls = '') => `<div class="btn hit ${cls}"${onClick(act)}>${t(label)}</div>`
 const buttons = (...bs) => `<div class="buttons">${bs.join('')}</div>`
-const where = (text, find, see = '查看原文') => `<div class="where"><div class="fit ell">${t(text)}</div><div class="see hit link"${onClick(find)}>${see}</div></div>`
+const where = (text, find, see = L.appViewOriginal()) => `<div class="where"><div class="fit ell">${t(text)}</div><div class="see hit link"${onClick(find)}>${see}</div></div>`
 // 按回车时做 ok，按 Esc 时做 no。拼音还没选完字的回车不算。
 const keys = (ok, no) => onKey((ev) => { if (ev.key === 'Enter' && !ev.isComposing) ok(); else if (ev.key === 'Escape' && no) { ev.stopPropagation(); no() } })
 // 打勾的方框，带一句话。
@@ -292,14 +306,16 @@ const tickbox = (on, label, flip, tip = '') => `<div class="attach hit"${tip ? `
 const seg = (value, options, pick, label) => `<div class="seg" aria-label="${t(label)}">${options.map((o) => { const [name, pic, shown] = [].concat(o); return `<div class="hit${name === value ? ' on' : ''}"${onClick(() => pick(name))}>${pic ? icon(pic, 'sm') : ''}${t(shown ?? name)}</div>` }).join('')}</div>`
 // 圆点单选的几行：options 每项是 [字, 小字]。
 // 一排圆点，几个里选一个：表单里用它，不用分段。
-const dots = (value, options, pick, label) => `<div class="tick-row" aria-label="${t(label)}">${options.map((name) => `<div class="attach hit"${onClick(() => pick(name))}><div class="ring${name === value ? ' on' : ''}"></div>${t(name)}</div>`).join('')}</div>`
+// dots、radios、choose 的选项都可以是 [值, 显示的字]（radios 是 [值, 小字, 显示的字]）：值是状态里记的，比较和 pick 用它，显示的字省了就显示值。
+const dots = (value, options, pick, label) => `<div class="tick-row" aria-label="${t(label)}">${options.map((o) => { const [name, shown] = [].concat(o); return `<div class="attach hit"${onClick(() => pick(name))}><div class="ring${name === value ? ' on' : ''}"></div>${t(shown ?? name)}</div>` }).join('')}</div>`
 
-const radios = (value, options, pick) => `<div class="radios">${options.map(([name, about]) => `<div class="radio hit"${onClick(() => pick(name))}><div class="ring${name === value ? ' on' : ''}"></div><div><div>${t(name)}</div><div class="note">${t(about)}</div></div></div>`).join('')}</div>`
-// 下拉：id 是它的名字，开着时列出 options。
+const radios = (value, options, pick) => `<div class="radios">${options.map(([name, about, shown]) => `<div class="radio hit"${onClick(() => pick(name))}><div class="ring${name === value ? ' on' : ''}"></div><div><div>${t(shown ?? name)}</div><div class="note">${t(about)}</div></div></div>`).join('')}</div>`
+// 下拉：id 是它的名字，开着时列出 options。关着时的那个框里显示的是当前值的显示的字。
 function choose(id, value, options, pick, label) {
-  const on = S.open === id
-  return `<div class="choose" data-k="${t(id)}"><div class="box line hit" aria-label="${t(label)}"${onClick(() => set({ open: on ? '' : id }))}><div class="fit ell">${t(value)}</div>${ICON.down}</div>` +
-    (on ? `<div class="choose-menu pop scroll">${options.map((o) => `<div class="pop-row row${o === value ? ' on' : ''}"${onClick(() => { set(SHUT); pick(o) })}>${t(o)}</div>`).join('')}</div>` : '') + '</div>'
+  const on = S.open === id, pairs = options.map((o) => { const [name, shown] = [].concat(o); return [name, shown ?? name] })
+  const showing = (pairs.find(([name]) => name === value) || [value, value])[1]
+  return `<div class="choose" data-k="${t(id)}"><div class="box line hit" aria-label="${t(label)}"${onClick(() => set({ open: on ? '' : id }))}><div class="fit ell">${t(showing)}</div>${ICON.down}</div>` +
+    (on ? `<div class="choose-menu pop scroll">${pairs.map(([name, shown]) => `<div class="pop-row row${name === value ? ' on' : ''}"${onClick(() => { set(SHUT); pick(name) })}>${t(shown)}</div>`).join('')}</div>` : '') + '</div>'
 }
 // 菜单里的一行：左边图标，右边快捷键或小字；act 空着就是灰的。
 const menuRow = (label, act, pic, side = '') => `<div class="pop-row row${act ? '' : ' off'}"${onClick(act)}>${pic ? icon(pic, 'md', 'muted') : ''}<div class="grow">${t(label)}</div><div class="side">${t(keyLabel(side))}</div></div>`
