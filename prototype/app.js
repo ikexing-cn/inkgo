@@ -7,25 +7,24 @@ const WINDOW_BUTTONS = '<div class="window-buttons">' + ['<path d="M0 5h10"></pa
 const LIGHTS = '<div class="lights"><i></i><i></i><i></i></div>'
 const chromeLeft = () => (OS === 'mac' ? LIGHTS : ''), chromeRight = () => (OS === 'mac' ? '' : WINDOW_BUTTONS)
 
-// 标题栏：自己占一行。最左是侧栏的开关，接着是菜单；写作页右边是待处理、查找、专注这几样，再右是右栏的开关，最右是窗口的三个按钮。
 // 菜单是命令的总表：哪一页用不上的那几行是灰的；AI 关着时，AI 的那几行不显示。开着一个的时候，指针移到旁边的名字上就换过去。
-// 专注写作时这一行只剩正中的「章名 · 字数」、右边那几样和窗口的按钮。
-function titlebar() {
-  if (S.focus && S.page === 'write') {
-    const cur = chapterOf(S.ch)
-    return `<div class="titlebar bare" data-k="titlebar">${chromeLeft()}<div class="bar-title ell">${cur ? t(titleOf(cur)) : ''}</div><div class="grow"></div>${tools(cur)}${paneSwitch()}${chromeRight()}</div>`
-  }
-  const writing = S.page === 'write', cur = writing && chapterOf(S.ch)
+// Windows 上菜单在标题栏里，软件自己画；macOS 上在屏幕顶上的系统菜单栏里（作者 2026-11-02 定），多出系统的「Inkgo」「窗口」两个：
+// 设置挪进「Inkgo」，外观是打勾的三行，系统的菜单里放不下分段控件。原型里两处用同一种样子画，真的系统菜单是系统画的。
+function menus() {
+  const writing = S.page === 'write', cur = writing && chapterOf(S.ch), mac = OS === 'mac'
   const inBook = S.page !== 'shelf', [hasPane, paneOn, paneTo] = paneHere()
   const outline = cur && (S.outlines[cur.key] || '').trim(), steps = (cur && !S.ai && S.undo[cur.key]) || { back: [], fwd: [] }
   const then = (act) => () => { set(SHUT); act() }
   const ask = (dialog) => () => set({ dialog, ...SHUT })
-  const menus = [
+  const settings = ask({ kind: 'settings', tab: 'AI', edit: '' })
+  const looks = [['跟随系统', 'screen'], ['浅色', 'sun'], ['深色', 'moon']]
+  return [
+    ...(mac ? [['Inkgo', () => menuRow('关于 Inkgo', () => set(SHUT)) + HAIR + menuRow('设置…', settings, '', 'Ctrl+,') + HAIR +
+      menuRow('隐藏 Inkgo', () => set(SHUT), '', 'Ctrl+H') + menuRow('隐藏其他', () => set(SHUT), '', 'Ctrl+Alt+H') + HAIR + menuRow('退出 Inkgo', () => set(SHUT), '', 'Ctrl+Q')]] : []),
     ['文件', () => menuRow('新建章节', writing ? then(() => newChapter()) : null, '', 'Ctrl+N') + menuRow('新建文件夹', writing ? then(newFolder) : null) + HAIR +
       menuRow('保存', cur ? then(saveNow) : null, '', 'Ctrl+S') + menuRow('快照', cur ? ask({ kind: 'snaps', id: '', diff: false }) : null) +
       menuRow('导出…', inBook ? ask({ kind: 'export', range: '全书', indent: true }) : null) + HAIR +
-      menuRow('作品分类', inBook ? toPage('cats') : null) + menuRow('回收站…', inBook ? ask({ kind: 'bin', sure: '' }) : null) + HAIR +
-      menuRow('设置…', ask({ kind: 'settings', tab: 'AI', edit: '' }))],
+      menuRow('作品分类', inBook ? toPage('cats') : null) + menuRow('回收站…', inBook ? ask({ kind: 'bin', sure: '' }) : null) + (mac ? '' : HAIR + menuRow('设置…', settings))],
     ['编辑', () => menuRow('撤销', steps.back.length ? then(() => unwrite(-1)) : null, '', 'Ctrl+Z') + menuRow('重做', steps.fwd.length ? then(() => unwrite(1)) : null, '', 'Ctrl+Y') + HAIR +
       menuRow('查找替换', cur ? openFind : null, '', 'Ctrl+F') +
       menuRow('重命名', cur && !S.rename ? then(renameOpen) : null, '', 'F2') + (aiOn() ? HAIR +
@@ -37,20 +36,37 @@ function titlebar() {
       menuRow('手机预览', writing ? () => set({ paneOpen: true, tab: '预览', ...SHUT }) : null) + HAIR +
       `<div class="pop-label">缩放 ${Math.round(S.zoom * 100)}%</div>` +
       menuRow('放大', zoomNext(1) ? () => zoomBy(1) : null, '', 'Ctrl+=') + menuRow('缩小', zoomNext(-1) ? () => zoomBy(-1) : null, '', 'Ctrl+-') +
-      menuRow('实际大小', S.zoom !== 1 ? () => zoomBy(0) : null, '', 'Ctrl+0') + HAIR +
-      `<div class="pop-label">外观</div><div class="pop-seg">${seg(S.look, [['跟随系统', 'screen'], ['浅色', 'sun'], ['深色', 'moon']], (v) => set({ look: v }), '外观')}</div>`],
+      menuRow('实际大小', S.zoom !== 1 ? () => zoomBy(0) : null, '', 'Ctrl+0') + HAIR + '<div class="pop-label">外观</div>' +
+      (mac ? looks.map(([v]) => menuRow(v, () => set({ look: v, ...SHUT }), S.look === v ? 'tick' : 'blank')).join('')
+        : `<div class="pop-seg">${seg(S.look, looks, (v) => set({ look: v }), '外观')}</div>`)],
+    ...(mac ? [['窗口', () => menuRow('最小化', () => set(SHUT), '', 'Ctrl+M') + menuRow('缩放', () => set(SHUT)) + HAIR + menuRow('前置全部窗口', () => set(SHUT))]] : []),
     ['帮助', () => menuRow('快捷键…', ask({ kind: 'keys' }), '', 'Ctrl+/')],
   ]
+}
+
+// 一排菜单的名字，点开一个在它下面。
+function menuTitles(list) {
   const inMenus = S.open.startsWith('menu-')
-  const menu = ([name, rows]) => {
+  return list.map(([name, rows]) => {
     const id = 'menu-' + name, on = S.open === id
     return `<div class="anchor left"><div class="menu-title hit${on ? ' on' : ''}"${onClick(() => set({ open: on ? '' : id }))}${onOver(() => { if (inMenus && !on) set({ open: id }) })}>${name}</div>` +
       (on ? `<div class="pop menu-pop" data-k="${id}">${rows()}</div>` : '') + '</div>'
+  }).join('')
+}
+
+// 标题栏：自己占一行。最左是侧栏的开关，接着是菜单（macOS 上菜单在系统菜单栏，这里没有）；写作页右边是待处理、查找、专注这几样，
+// 再右是右栏的开关，最右是窗口的三个按钮。
+// 专注写作时这一行只剩正中的「章名 · 字数」、右边那几样和窗口的按钮。
+function titlebar() {
+  if (S.focus && S.page === 'write') {
+    const cur = chapterOf(S.ch)
+    return `<div class="titlebar bare" data-k="titlebar">${chromeLeft()}<div class="bar-title ell">${cur ? t(titleOf(cur)) : ''}</div><div class="grow"></div>${tools(cur)}${paneSwitch()}${chromeRight()}</div>`
   }
+  const writing = S.page === 'write', cur = writing && chapterOf(S.ch), inBook = S.page !== 'shelf'
   const sideWord = S.sideOpen ? '收起侧栏' : '展开侧栏'
   return '<div class="titlebar" data-k="titlebar">' + chromeLeft() +
     `<button class="icon-btn muted${inBook ? '' : ' off'}" aria-label="${sideWord}" title="${sideWord}"${onClick(inBook ? () => moving(() => set({ sideOpen: !S.sideOpen, ...SHUT }), 'fold') : null)}>${svg('icon-md', PANEL + path('M9 5v14'))}</button>` +
-    menus.map(menu).join('') + (inBook ? pageSwitch() : '') + '<div class="grow"></div>' + (writing ? tools(cur) : '') + paneSwitch() + chromeRight() + '</div>'
+    (OS === 'mac' ? '' : menuTitles(menus())) + (inBook ? pageSwitch() : '') + '<div class="grow"></div>' + (writing ? tools(cur) : '') + paneSwitch() + chromeRight() + '</div>'
 }
 
 // 去哪一页。讨论页回到上次看的那一段，没看过就是最新的一段。
@@ -90,9 +106,8 @@ function switchOS(os) {
   restart()
 }
 
-// macOS 的菜单栏在屏幕最上面，不在窗口里。软件没有设菜单，mygo 装的是它默认的那一套；软件还没有翻译表，所以是英文的。
-// 它和窗口里自己画的菜单重复了，怎么改等作者定（.agents/notes/proposed/process/2026-11-02-prototype-language-and-platform.md）。
-const macBar = (w) => `<div class="mac-bar" style="width:${w}px"><b>Inkgo</b>${['File', 'Edit', 'View', 'Window'].map((m) => `<span>${m}</span>`).join('')}</div>`
+// macOS 的菜单栏在屏幕最上面，不在窗口里，也不跟着窗口缩放。
+const macBar = (w) => `<div class="mac-bar" data-k="mac-bar" style="width:${w}px">${menuTitles(menus())}</div>`
 
 // 右下角的提示，最多露三条，新的在下；没露的是旧的，「还有几条」写在它们上面。提示里能点的几个靠右排，最要紧的（给的第一个）在最右。
 // 讨论在回复、那段讨论又不在眼前（别的讨论、讨论列表、别的页、右栏收起或在别的标签、专注写作）时，
@@ -190,7 +205,7 @@ root.addEventListener('drop', (ev) => {
 root.addEventListener('dragend', () => { if (draggedCard) { draggedCard = ''; draw() } })
 
 // 按标题栏和打开对话框的按钮（data-keep）不拿走正文的光标：开了菜单又收起、点了侧栏的开关、对话框关掉，接着打的字还进正文。
-root.addEventListener('mousedown', (ev) => { if (ev.target.closest('.titlebar, [data-keep]')) ev.preventDefault() })
+root.addEventListener('mousedown', (ev) => { if (ev.target.closest('.titlebar, .mac-bar, [data-keep]')) ev.preventDefault() })
 
 // 拖右栏的左边改它的宽度：不窄于 300，不宽过半个窗口。
 root.addEventListener('mousedown', (ev) => {

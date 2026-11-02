@@ -125,7 +125,9 @@ body { margin: 0; }
 .lights > i:nth-child(2) { background: #febc2e; }
 .lights > i:nth-child(3) { background: #28c840; }
 /* macOS 的菜单栏在屏幕最上面，不属于窗口；画在窗口上方，宽和窗口一样。 */
-.mac-bar { flex: none; box-sizing: border-box; display: flex; align-items: center; gap: 20px; padding: 4px 16px; line-height: 16px; background: var(--bg); color: var(--ink); font-size: var(--fs-control); }
+.mac-bar { position: relative; z-index: 11; flex: none; box-sizing: border-box; display: flex; align-items: center; gap: 4px; padding: 4px 8px; line-height: 16px; background: var(--bg); color: var(--ink); font-size: var(--fs-control); }
+.mac-bar .menu-title { height: auto; }
+.mac-bar > .anchor:first-child .menu-title { font-weight: 600; } /* 第一个是软件的名字，系统加粗 */
 #win.mac { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif; }
 
 /* 侧栏 */

@@ -249,7 +249,7 @@ const SHAPE = {
   leaf: path('M5 19c0-8 5-13 14-14 0 9-5 14-14 14zM5 19l7-7'),
   left: path('M15 6l-6 6 6 6'), right: path('M9 6l6 6-6 6'), down: path('M6 9l6 6 6-6'), up: path('M6 15l6-6 6 6'),
   find: '<circle cx="11" cy="11" r="6.5"></circle>' + path('M20 20l-4-4'),
-  plus: path('M12 5v14M5 12h14'), tick: path('M5 12l5 5 9-10'), send: path('M12 19V5M6 11l6-6 6 6'),
+  plus: path('M12 5v14M5 12h14'), tick: path('M5 12l5 5 9-10'), blank: '', // blank：没打勾的那几行留出勾的位置 send: path('M12 19V5M6 11l6-6 6 6'),
   flag: path('M6 20V4h10l-2 4 2 4H6'),
   link: path('M10 14l4-4M8.5 11.5l-2 2a3 3 0 004 4l2-2M15.5 12.5l2-2a3 3 0 00-4-4l-2 2'),
   folder: path('M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'),
