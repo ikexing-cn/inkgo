@@ -34,6 +34,7 @@ Status: implemented
     - 2026-10-13 起每点一下还查两样：能点的东西都回应指针（见[能点的看得出能点](2026-10-13-clickable-looks-clickable.md)），对话框的宽不超过高的 2.5 倍（只问一句的用窄的一档，见 `DESIGN.md` 的 Components「对话框」）。
 - 它原来不进提交前的三道检查（要本机有浏览器，走一遍三分钟）。2026-10-13 走查降到二十秒，并进了 `npm run verify`，每次提交前都跑，见[全套检查从四分半到半分钟](2026-10-13-fast-checks.md)。
 - 窗口固定 1266×780；浮层的位置从页面上量窗口、侧栏、右栏的宽，不另记数字。
+- 原型现在只有中文、只有 Windows 的样子；按语言和平台预览的提案见[原型按语言和平台预览](../../proposed/process/2026-11-02-prototype-language-and-platform.md)。
 - 只给 artifact 用的工具从仓库里去掉：`scripts/verify-design.ts`，`scripts/design/` 下的 `normalize.ts`、`system.ts`、`render.ts`、`parts.ts`，和它们的四条 npm 命令。`desk/kit/tokens.css` 不再是谁的副本，各级的值只在它里面写。
 
 ## Alternatives considered
