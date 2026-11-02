@@ -6,6 +6,13 @@
 // 平台：Windows 还是 macOS，在舞台上切，地址栏带 ?os=mac 就直接是 macOS 的。换平台像换了一台电脑，从头开始。
 // 按键不跟着平台变，哪儿都认 Ctrl 和 ⌘：在 Windows 的键盘上也能试 macOS 的样子。
 let OS = new URLSearchParams(location.search).get('os') === 'mac' ? 'mac' : 'win'
+// 界面的语言，在舞台上切，地址栏带 ?lang=en 就直接是英文。界面的字都经 L 取：L.cmdSave() 这样，和软件里 mygo 生成的函数同名。
+// 翻译表在仓库根的 locales/，由 scripts/prototype/locales.ts 生成到 locales.js；缺的字回到中文。书里的字不翻，那是书的语言。
+// 只在原型的舞台上用的字（重新开始、少见的情况、两个切换）不进翻译表。
+let LANG = new URLSearchParams(location.search).get('lang') || 'zh-Hans'
+const CAT = I18N.createCatalog(CATALOG)
+let L = CAT.messagesIn(LANG)
+const switchLang = (lang) => { LANG = lang; L = CAT.messagesIn(lang); draw() }
 const PATHS = () => BOOK.paths[OS]
 const sep = () => (OS === 'mac' ? '/' : '\\')
 // 快捷键都按 Windows 写，在 macOS 上换成它的写法：修饰键用符号，按 ⌃⌥⇧⌘ 的次序连着写，不加「+」。
@@ -281,7 +288,8 @@ const keys = (ok, no) => onKey((ev) => { if (ev.key === 'Enter' && !ev.isComposi
 // 打勾的方框，带一句话。
 const tickbox = (on, label, flip, tip = '') => `<div class="attach hit"${tip ? ` title="${t(tip)}"` : ''}${onClick(flip)}><div class="check${on ? ' on' : ''}">${on ? ICON.check : ''}</div>${t(label)}</div>`
 // 几个里选一个的一排：options 每项是字，或者 [字, 图标]。
-const seg = (value, options, pick, label) => `<div class="seg" aria-label="${t(label)}">${options.map((o) => { const [name, pic] = [].concat(o); return `<div class="hit${name === value ? ' on' : ''}"${onClick(() => pick(name))}>${pic ? icon(pic, 'sm') : ''}${t(name)}</div>` }).join('')}</div>`
+// 选项是 [值, 图标, 显示的字]，后两项可省：值是状态里记的那个，不翻；显示的字省了就显示值。
+const seg = (value, options, pick, label) => `<div class="seg" aria-label="${t(label)}">${options.map((o) => { const [name, pic, shown] = [].concat(o); return `<div class="hit${name === value ? ' on' : ''}"${onClick(() => pick(name))}>${pic ? icon(pic, 'sm') : ''}${t(shown ?? name)}</div>` }).join('')}</div>`
 // 圆点单选的几行：options 每项是 [字, 小字]。
 // 一排圆点，几个里选一个：表单里用它，不用分段。
 const dots = (value, options, pick, label) => `<div class="tick-row" aria-label="${t(label)}">${options.map((name) => `<div class="attach hit"${onClick(() => pick(name))}><div class="ring${name === value ? ' on' : ''}"></div>${t(name)}</div>`).join('')}</div>`

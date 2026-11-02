@@ -35,7 +35,7 @@ Status: proposed
 
 ### 第二步：语言切换
 
-1. 先把 54 处中文状态值拆成 ID 和显示文字，这一步界面上什么都不变，走查照旧全绿。
+1. 状态里的值不拆：仍记中文（`S.look === '深色'` 这类），只在显示时换成翻译表里的字，比如外观的三种由 `LOOKS()` 给出「值、图标、显示的字」。原先打算先把 54 处状态值拆成 ID，做的时候改了：拆 ID 要一次动遍所有文件，显示时换只动显示的那一处，按文件逐个抽也行。
 2. 翻译表和应用共用仓库根的 `locales/`（[多语言方案](../architecture/2026-11-02-i18n-on-mygo.md)）。双击打开的页面从 `file://` 读不了 JSON，也加载不了 ES 模块，所以由脚本把翻译表生成到 `prototype/` 里一个普通的 JS 文件，提交进仓库；`verify-prototype` 检查它有没有过期。打开原型仍然不用构建。
 3. 消息的格式化用 mygo 的 `packages/runtime/src/i18n.ts`（738 行，没有依赖，只用 `Intl`），用 Node 去掉类型后放进原型。这样 ICU 语法和 en-XA、ar-XB 的算法和 Go 那边是同一套。
 4. 两类字不进翻译表：
@@ -43,6 +43,12 @@ Status: proposed
    - 舞台上的工具（重新开始、少见的情况、两个切换）只写中文。
 5. 语言先有 zh-Hans、en、en-XA。英文表由 haiku 按中文表和 `@key` 说明起草，作者看过前标成草稿。
 6. 走查默认用 zh-Hans，原有的按文字点击不用改；另加一小段，把语言和平台各组合打开几个主要的界面，截图，并跑现有的按钮位置、溢出检查。
+
+进度（2026-11-02）：
+
+- 已做：`npm run prototype-locales` 生成 `prototype/i18n.js`、`prototype/locales.js`，`verify-prototype` 先跑它的 `--check`；舞台上有「中文 / English / 伪英文」，换语言不从头开始；标题栏、菜单（含 macOS 的系统菜单栏）、提示条已经抽进 `locales/`；走查的 languages 一段截 `a1-en-file`、`a1b-en-view`、`a1c-pseudo-file`、`a1d-mac-en`。
+- 伪英文（en-XA）拉的是源语言，所以中文只是加上方括号和补长的 one，不会变成带音标的字母。它的用处是找没抽的字：没带方括号的中文就是还没进翻译表。宽度看 English。
+- 还没做：`write.js`、`pane.js`、`pages.js`、`dialogs.js`、`base.js` 里其余的字，逐个文件抽；整张英文表由 haiku 起草；ar-XB 要原型先能从右往左排，暂不加。
 
 ### macOS 的菜单（作者 2026-11-02 定）
 

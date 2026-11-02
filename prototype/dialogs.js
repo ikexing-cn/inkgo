@@ -228,7 +228,7 @@ function settingsDialog(d) {
   const step = (by) => () => set((s) => ({ late: Math.max(5, s.late + by) }))
   const rec = d.tab === 'AI' && d.records && aiOn()
   const body = d.tab === 'AI' ? (rec ? records(d) : aiSwitch() + (aiOn() ? settingsModel(d) : '')) : d.tab === '备份' ? settingsBackup()
-    : d.tab === '外观' ? `<div class="prefs-row"><div class="prefs-label">颜色</div>${seg(S.look, [['跟随系统', 'screen'], ['浅色', 'sun'], ['深色', 'moon']], (v) => set({ look: v }), '颜色')}</div>` +
+    : d.tab === '外观' ? `<div class="prefs-row"><div class="prefs-label">颜色</div>${seg(S.look, LOOKS(), (v) => set({ look: v }), '颜色')}</div>` +
       `<div class="prefs-row">${tickbox(S.names, '正文中标出设定的名字', () => set({ names: !S.names }))}</div>` + (OFFER_NO_GPU ? gpuSwitch() : '')
     : '<div class="prefs-group"><div class="group-title">伏笔</div></div>' +
       `<div class="prefs-row"><div class="fit">超过多少章算久未回收</div><div class="stepper"><div class="hit" title="减少 5 章"${onClick(step(-5))}>−</div><div class="stepper-n">${S.late} 章</div><div class="hit" title="增加 5 章"${onClick(step(5))}>+</div></div></div>` +

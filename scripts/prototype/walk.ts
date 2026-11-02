@@ -877,6 +877,16 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('Windows'); await win('第87章：停电'); must(await has('#win .window-buttons') && !(await has('#win .lights')) && !(await has('.mac-bar')), 'back on Windows the window is still a Mac one')
   await click('文件'); await win('Ctrl+N'); await key('Escape'); await done('macOS')
 
+  // Languages: the stage bar switches the words of the window without starting over. What has been taken into
+  // locales/ (so far the title bar, the menus and the toasts) follows; 伪英文 (en-XA) brackets and lengthens every
+  // word taken, so a word still in Chinese without brackets has not been. Both platforms.
+  await click('English'); await win('第87章：停电'); await win('FileEditViewHelp'); await win('Write')
+  await click('File'); await win('New Chapter'); await win('Ctrl+N'); await shot('a1-en-file'); await key('Escape')
+  await click('View'); await win('Zoom 100%'); await win('Appearance'); await shot('a1b-en-view'); await key('Escape')
+  await click('伪英文'); await click('[文件 one]'); await win('[新建章节 one]'); await shot('a1c-pseudo-file'); await key('Escape')
+  await click('English'); await click('macOS'); await macMenus('InkgoFileEditViewWindowHelp'); await click('Inkgo'); await macMenus('Quit Inkgo'); await shot('a1d-mac-en'); await key('Escape')
+  await click('Windows'); await click('中文'); await win('文件编辑视图帮助'); await done('languages')
+
   must(!loose.size, 'buttons that are not at the right of their row, or not in order:\n  ' + [...loose].join('\n  '))
   must(!dead.size, 'things to click that do not show it:\n  ' + [...dead].join('\n  '))
   must(!squat.size, 'dialogs flatter than ' + FLATTEST + ' to 1:\n  ' + [...squat].join('\n  '))

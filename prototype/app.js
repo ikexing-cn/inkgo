@@ -17,32 +17,35 @@ function menus() {
   const then = (act) => () => { set(SHUT); act() }
   const ask = (dialog) => () => set({ dialog, ...SHUT })
   const settings = ask({ kind: 'settings', tab: 'AI', edit: '' })
-  const looks = [['跟随系统', 'screen'], ['浅色', 'sun'], ['深色', 'moon']]
+  const looks = LOOKS(), shut = () => set(SHUT)
   return [
-    ...(mac ? [['Inkgo', () => menuRow('关于 Inkgo', () => set(SHUT)) + HAIR + menuRow('设置…', settings, '', 'Ctrl+,') + HAIR +
-      menuRow('隐藏 Inkgo', () => set(SHUT), '', 'Ctrl+H') + menuRow('隐藏其他', () => set(SHUT), '', 'Ctrl+Alt+H') + HAIR + menuRow('退出 Inkgo', () => set(SHUT), '', 'Ctrl+Q')]] : []),
-    ['文件', () => menuRow('新建章节', writing ? then(() => newChapter()) : null, '', 'Ctrl+N') + menuRow('新建文件夹', writing ? then(newFolder) : null) + HAIR +
-      menuRow('保存', cur ? then(saveNow) : null, '', 'Ctrl+S') + menuRow('快照', cur ? ask({ kind: 'snaps', id: '', diff: false }) : null) +
-      menuRow('导出…', inBook ? ask({ kind: 'export', range: '全书', indent: true }) : null) + HAIR +
-      menuRow('作品分类', inBook ? toPage('cats') : null) + menuRow('回收站…', inBook ? ask({ kind: 'bin', sure: '' }) : null) + (mac ? '' : HAIR + menuRow('设置…', settings))],
-    ['编辑', () => menuRow('撤销', steps.back.length ? then(() => unwrite(-1)) : null, '', 'Ctrl+Z') + menuRow('重做', steps.fwd.length ? then(() => unwrite(1)) : null, '', 'Ctrl+Y') + HAIR +
-      menuRow('查找替换', cur ? openFind : null, '', 'Ctrl+F') +
-      menuRow('重命名', cur && !S.rename ? then(renameOpen) : null, '', 'F2') + (aiOn() ? HAIR +
-      menuRow('续写一句', cur ? then(continueText) : null, '', 'Ctrl+J') +
-      menuRow('起草本章', outline ? ask({ kind: 'draft', goal: '', how: '接在已有内容之后' }) : null, '', cur && !outline ? '请先填写章纲' : '') : '')],
-    ['视图', () => menuRow(S.sideOpen ? '收起侧栏' : '展开侧栏', inBook ? () => moving(() => set({ sideOpen: !S.sideOpen, ...SHUT }), 'fold') : null) +
-      menuRow(paneOn ? '收起右栏' : '展开右栏', hasPane ? () => moving(() => set({ ...paneTo, ...SHUT }), 'fold') : null) +
-      menuRow('专注写作', writing ? () => set({ focus: true, ...SHUT }) : null, '', 'F11') +
-      menuRow('手机预览', writing ? () => set({ paneOpen: true, tab: '预览', ...SHUT }) : null) + HAIR +
-      `<div class="pop-label">缩放 ${Math.round(S.zoom * 100)}%</div>` +
-      menuRow('放大', zoomNext(1) ? () => zoomBy(1) : null, '', 'Ctrl+=') + menuRow('缩小', zoomNext(-1) ? () => zoomBy(-1) : null, '', 'Ctrl+-') +
-      menuRow('实际大小', S.zoom !== 1 ? () => zoomBy(0) : null, '', 'Ctrl+0') + HAIR + '<div class="pop-label">外观</div>' +
-      (mac ? looks.map(([v]) => menuRow(v, () => set({ look: v, ...SHUT }), S.look === v ? 'tick' : 'blank')).join('')
-        : `<div class="pop-seg">${seg(S.look, looks, (v) => set({ look: v }), '外观')}</div>`)],
-    ...(mac ? [['窗口', () => menuRow('最小化', () => set(SHUT), '', 'Ctrl+M') + menuRow('缩放', () => set(SHUT)) + HAIR + menuRow('前置全部窗口', () => set(SHUT))]] : []),
-    ['帮助', () => menuRow('快捷键…', ask({ kind: 'keys' }), '', 'Ctrl+/')],
+    ...(mac ? [['Inkgo', () => menuRow(L.appAbout(), shut) + HAIR + menuRow(L.appSettings(), settings, '', 'Ctrl+,') + HAIR +
+      menuRow(L.appHide(), shut, '', 'Ctrl+H') + menuRow(L.appHideOthers(), shut, '', 'Ctrl+Alt+H') + HAIR + menuRow(L.appQuit(), shut, '', 'Ctrl+Q')]] : []),
+    [L.menuFile(), () => menuRow(L.cmdNewChapter(), writing ? then(() => newChapter()) : null, '', 'Ctrl+N') + menuRow(L.cmdNewFolder(), writing ? then(newFolder) : null) + HAIR +
+      menuRow(L.cmdSave(), cur ? then(saveNow) : null, '', 'Ctrl+S') + menuRow(L.cmdSnapshots(), cur ? ask({ kind: 'snaps', id: '', diff: false }) : null) +
+      menuRow(L.cmdExport(), inBook ? ask({ kind: 'export', range: '全书', indent: true }) : null) + HAIR +
+      menuRow(L.cmdCategories(), inBook ? toPage('cats') : null) + menuRow(L.cmdTrash(), inBook ? ask({ kind: 'bin', sure: '' }) : null) + (mac ? '' : HAIR + menuRow(L.appSettings(), settings))],
+    [L.menuEdit(), () => menuRow(L.cmdUndo(), steps.back.length ? then(() => unwrite(-1)) : null, '', 'Ctrl+Z') + menuRow(L.cmdRedo(), steps.fwd.length ? then(() => unwrite(1)) : null, '', 'Ctrl+Y') + HAIR +
+      menuRow(L.cmdFind(), cur ? openFind : null, '', 'Ctrl+F') +
+      menuRow(L.cmdRename(), cur && !S.rename ? then(renameOpen) : null, '', 'F2') + (aiOn() ? HAIR +
+      menuRow(L.cmdContinue(), cur ? then(continueText) : null, '', 'Ctrl+J') +
+      menuRow(L.cmdDraft(), outline ? ask({ kind: 'draft', goal: '', how: '接在已有内容之后' }) : null, '', cur && !outline ? L.cmdDraftNeedsOutline() : '') : '')],
+    [L.menuView(), () => menuRow(S.sideOpen ? L.cmdHideSidebar() : L.cmdShowSidebar(), inBook ? () => moving(() => set({ sideOpen: !S.sideOpen, ...SHUT }), 'fold') : null) +
+      menuRow(paneOn ? L.cmdHidePane() : L.cmdShowPane(), hasPane ? () => moving(() => set({ ...paneTo, ...SHUT }), 'fold') : null) +
+      menuRow(L.cmdFocus(), writing ? () => set({ focus: true, ...SHUT }) : null, '', 'F11') +
+      menuRow(L.cmdPhonePreview(), writing ? () => set({ paneOpen: true, tab: '预览', ...SHUT }) : null) + HAIR +
+      `<div class="pop-label">${t(L.viewZoom(Math.round(S.zoom * 100)))}</div>` +
+      menuRow(L.cmdZoomIn(), zoomNext(1) ? () => zoomBy(1) : null, '', 'Ctrl+=') + menuRow(L.cmdZoomOut(), zoomNext(-1) ? () => zoomBy(-1) : null, '', 'Ctrl+-') +
+      menuRow(L.cmdZoomReset(), S.zoom !== 1 ? () => zoomBy(0) : null, '', 'Ctrl+0') + HAIR + `<div class="pop-label">${t(L.viewLook())}</div>` +
+      (mac ? looks.map(([v, , shown]) => menuRow(shown, () => set({ look: v, ...SHUT }), S.look === v ? 'tick' : 'blank')).join('')
+        : `<div class="pop-seg">${seg(S.look, looks, (v) => set({ look: v }), L.viewLook())}</div>`)],
+    ...(mac ? [[L.menuWindow(), () => menuRow(L.winMinimize(), shut, '', 'Ctrl+M') + menuRow(L.winZoom(), shut) + HAIR + menuRow(L.winBringAll(), shut)]] : []),
+    [L.menuHelp(), () => menuRow(L.cmdShortcuts(), ask({ kind: 'keys' }), '', 'Ctrl+/')],
   ]
 }
+
+// 外观的三种：状态里记的值、图标、显示的字。菜单和设置里的外观都用它。
+const LOOKS = () => [['跟随系统', 'screen', L.lookSystem()], ['浅色', 'sun', L.lookLight()], ['深色', 'moon', L.lookDark()]]
 
 // 一排菜单的名字，点开一个在它下面。
 function menuTitles(list) {
@@ -63,7 +66,7 @@ function titlebar() {
     return `<div class="titlebar bare" data-k="titlebar">${chromeLeft()}<div class="bar-title ell">${cur ? t(titleOf(cur)) : ''}</div><div class="grow"></div>${tools(cur)}${paneSwitch()}${chromeRight()}</div>`
   }
   const writing = S.page === 'write', cur = writing && chapterOf(S.ch), inBook = S.page !== 'shelf'
-  const sideWord = S.sideOpen ? '收起侧栏' : '展开侧栏'
+  const sideWord = S.sideOpen ? L.cmdHideSidebar() : L.cmdShowSidebar()
   return '<div class="titlebar" data-k="titlebar">' + chromeLeft() +
     `<button class="icon-btn muted${inBook ? '' : ' off'}" aria-label="${sideWord}" title="${sideWord}"${onClick(inBook ? () => moving(() => set({ sideOpen: !S.sideOpen, ...SHUT }), 'fold') : null)}>${svg('icon-md', PANEL + path('M9 5v14'))}</button>` +
     (OS === 'mac' ? '' : menuTitles(menus())) + (inBook ? pageSwitch() : '') + '<div class="grow"></div>' + (writing ? tools(cur) : '') + paneSwitch() + chromeRight() + '</div>'
@@ -75,7 +78,7 @@ const toPage = (page) => () => set({ page, ...(page === 'talk' && S.tv === 'all'
 // 标题栏正中换页：讨论、正文、大纲、检查，正在的那一页是墨色。讨论和检查要用 AI，AI 关着时只有正文、大纲。
 // 作品分类不常去，在「文件」菜单里。
 function pageSwitch() {
-  const pages = [['讨论', 'talk'], ['正文', 'write'], ['大纲', 'plan'], ['检查', 'check']].filter(([, page]) => aiOn() || (page !== 'talk' && page !== 'check'))
+  const pages = [[L.pageTalk(), 'talk'], [L.pageWrite(), 'write'], [L.pagePlan(), 'plan'], [L.pageCheck(), 'check']].filter(([, page]) => aiOn() || (page !== 'talk' && page !== 'check'))
   return `<div class="pages">${pages.map(([name, page]) => `<div class="hit${S.page === page ? ' on' : ''}"${onClick(toPage(page))}>${name}${page === 'check' && S.checks.length ? `<span class="badge">${S.checks.length}</span>` : ''}</div>`).join('')}</div>`
 }
 
@@ -89,7 +92,7 @@ function paneHere() {
 // 这一页没有右栏时它灰着；专注写作时只留出它的位置，「退出专注」才和「专注写作」在同一处。
 function paneSwitch() {
   if (S.focus && S.page === 'write') return '<div class="pane-switch"></div>'
-  const [has, on, to] = paneHere(), word = on ? '收起右栏' : '展开右栏'
+  const [has, on, to] = paneHere(), word = on ? L.cmdHidePane() : L.cmdShowPane()
   return `<button class="icon-btn muted pane-switch${has ? '' : ' off'}" aria-label="${word}" title="${word}"${onClick(has ? () => moving(() => set({ ...to, ...SHUT }), 'fold') : null)}>${svg('icon-md', PANEL + path('M15 5v14'))}</button>`
 }
 
@@ -115,15 +118,15 @@ const macBar = (w) => `<div class="mac-bar" data-k="mac-bar" style="width:${w}px
 function toasts() {
   const w = S.waiting, here = w && aiOn() && S.tv === 'one' && S.tid === w.id &&
     (S.page === 'talk' || (S.page === 'write' && !S.focus && S.paneOpen && S.tab === '讨论'))
-  const list = w && !here ? [...S.toasts, { id: 'busy-talk', kind: 'busy', title: 'AI 正在思考…', acts: [['取消', stopReply]] }] : S.toasts
+  const list = w && !here ? [...S.toasts, { id: 'busy-talk', kind: 'busy', title: L.toastThinking(), acts: [[L.toastCancel(), stopReply]] }] : S.toasts
   if (!list.length) return ''
   const shown = list.slice(-3), rest = list.length - shown.length
   const pic = { ok: icon('checked', 'md', 'green'), fail: icon('warn', 'md', 'danger'), busy: icon('spin', 'md', 'muted') }
   const one = (x) => `<div class="toast" data-k="${x.id}">${pic[x.kind] || ''}<div class="fit"><div class="toast-title">${t(x.title)}</div>${x.detail ? `<div class="note">${t(x.detail)}</div>` : ''}` +
     (x.acts.length ? `<div class="toast-acts" data-keep>${[...x.acts].reverse().map(([label, act]) => `<div class="hit link"${onClick(act)}>${t(label)}</div>`).join('')}</div>` : '') +
     // 正在做的不能关：它做完自己收起，不要了点「取消」。
-    `</div>${x.kind === 'busy' ? '' : `<button class="icon-btn muted" aria-label="关闭提示" title="关闭提示"${onClick(() => unsay(x.id))}>${icon('cross', 'sm')}</button>`}</div>`
-  return `<div id="toasts">${rest > 0 ? `<div class="toast-rest">还有 ${rest} 条</div>` : ''}${shown.map(one).join('')}</div>`
+    `</div>${x.kind === 'busy' ? '' : `<button class="icon-btn muted" aria-label="${L.toastClose()}" title="${L.toastClose()}"${onClick(() => unsay(x.id))}>${icon('cross', 'sm')}</button>`}</div>`
+  return `<div id="toasts">${rest > 0 ? `<div class="toast-rest">${t(L.toastMore(rest))}</div>` : ''}${shown.map(one).join('')}</div>`
 }
 
 // 标题栏和它下面那一块各有名字（data-k）：前面多出一层遮罩（开了菜单、对话框）时它们还是原来那两个，
@@ -139,8 +142,9 @@ function view() {
     `<div class="stage-bar">${button('重新开始', restart)}<div class="anchor left"><div class="btn hit${S.open === 'rare' ? ' soft' : ''}" title="平时不易遇到的情况：出错、作品在软件外被改动"${onClick(() => set({ open: S.open === 'rare' ? '' : 'rare' }))}>少见的情况</div>` +
     (S.open === 'rare' ? `<div class="pop rare-pop" data-k="rare-pop">${rare().map(([label, act]) => menuRow(label, act)).join('')}</div>` : '') + '</div>' +
     seg(OS === 'mac' ? 'macOS' : 'Windows', ['Windows', 'macOS'], (v) => switchOS(v === 'macOS' ? 'mac' : 'win'), '平台') +
+    seg(LANG, [['zh-Hans', '', '中文'], ['en', '', 'English'], ['en-XA', '', '伪英文']], switchLang, '语言') +
     `<div class="stage-note">内容为示例。正文可输入，刷新后复原；AI 仅回复固定内容。</div></div>` + (OS === 'mac' ? macBar(w) : '') +
-    `<div id="win" class="${dark() ? 'dark' : 'light'}${narrow ? ' narrow' : ''}${OS === 'mac' ? ' mac' : ''}" style="zoom:${z};width:${w / z}px;height:${h / z}px">` + veil() + titlebar() +
+    `<div id="win" lang="${LANG}" class="${dark() ? 'dark' : 'light'}${narrow ? ' narrow' : ''}${OS === 'mac' ? ' mac' : ''}" style="zoom:${z};width:${w / z}px;height:${h / z}px">` + veil() + titlebar() +
     '<div class="win-body" data-k="win-body">' + (S.page === 'shelf' ? shelfPage() : (bare ? '' : sidebar()) + main[S.page]() + (side ? pane() : '')) + '</div>' +
     floats() + dialogs() + toasts() + '</div></div>'
 }
