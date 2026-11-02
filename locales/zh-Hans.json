@@ -1416,5 +1416,7 @@
   "modBackupWhere": "底栏的备份状态，设置里的「备份」",
   "@modBackupWhere": { "description": "「功能」里：这个模块在界面上的哪几处。" },
   "modBackupOff": "关着时不再自动备份，已有的备份留着。",
-  "@modBackupOff": { "description": "「功能」里备份那一行多的一句：关掉以后会怎样。" }
+  "@modBackupOff": { "description": "「功能」里备份那一行多的一句：关掉以后会怎样。" },
+  "checkAlsoOpen": "尚未处理",
+  "@checkAlsoOpen": { "description": "检查页「其他章节里的类似情况」：那一处还没处理。" }
 }

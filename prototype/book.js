@@ -187,7 +187,7 @@ const BOOK = {
   // 名字有误的：right 是应该写成什么。新出现的：as 是可以记成的设定，cat 是分类，also 是后面也出现它的章。
   checks: [
     { id: 'c1', kind: '不一致', title: '林晚怕黑，却独自走进黑巷', key: '87', para: 5, quote: '她往前走了一步。', entry: 'lin', says: '但她很怕黑',
-      also: [{ at: '第30章：菜市场', text: '她一个人穿过停电的菜市场，没有停。', note: '已标为「无需修改」' }, { at: '第52章：地窖', text: '她摸黑下了地窖，一只手扶着墙。', note: '尚未处理' }] },
+      also: [{ at: '第30章：菜市场', text: '她一个人穿过停电的菜市场，没有停。', done: true }, { at: '第52章：地窖', text: '她摸黑下了地窖，一只手扶着墙。', done: false }] },
     { id: 'c2', kind: '不一致', title: '周祥左手从不外露，却拿着两根冰棍', key: 'x', para: 2, quote: '小祥买了两根冰棍', entry: 'zhou', says: '左手总揣在兜里，从来不拿出来' },
     { id: 'c3', kind: '名字有误', title: '「周翔」疑为「周祥」', key: '84', para: 5, quote: '周翔', right: '周祥' },
     { id: 'c4', kind: '新出现', title: '何主任', key: '85', para: 0, quote: '何主任让他们把旧城的灯重新数一遍', as: '电力局的主任，档案柜的钥匙挂在他腰上。', cat: '人物',

@@ -1636,7 +1636,8 @@ const CATALOG = {
   "modExportWhere": [],
   "modBackup": [],
   "modBackupWhere": [],
-  "modBackupOff": []
+  "modBackupOff": [],
+  "checkAlsoOpen": []
  },
  "messages": {
   "zh-Hans": {
@@ -2742,7 +2743,8 @@ const CATALOG = {
    "modExportWhere": "「文件」菜单里的「导出…」",
    "modBackup": "备份",
    "modBackupWhere": "底栏的备份状态，设置里的「备份」",
-   "modBackupOff": "关着时不再自动备份，已有的备份留着。"
+   "modBackupOff": "关着时不再自动备份，已有的备份留着。",
+   "checkAlsoOpen": "尚未处理"
   },
   "en": {
    "menuFile": "File",
@@ -3847,7 +3849,8 @@ const CATALOG = {
    "modExportWhere": "Export… in the File menu",
    "modBackup": "Backup",
    "modBackupWhere": "The backup status in the status bar, and Backup in Settings",
-   "modBackupOff": "While it is off, nothing is backed up automatically. Existing backups are kept."
+   "modBackupOff": "While it is off, nothing is backed up automatically. Existing backups are kept.",
+   "checkAlsoOpen": "Not handled yet"
   }
  }
 }

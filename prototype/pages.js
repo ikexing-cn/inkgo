@@ -314,7 +314,7 @@ function checkPage() {
     detail = '<div class="check-detail" data-k="check-detail">' +
       `<div class="check-title"><div class="fit ell">${t(shown.title)}</div><div class="side">${of.indexOf(shown) + 1} / ${of.length}</div><div class="hit link${of.length > 1 ? '' : ' off'}"${onClick(of.length > 1 ? next : null)}>${t(L.checkNext())}</div></div>` +
       `<div class="check-sides"><div class="fit"><div class="check-from"><div class="fit ell">${t(ch ? L.checkTextPara(titleOf(ch), shown.para + 1) : L.checkTextParaNoChapter(shown.para + 1))}</div><div class="hit link"${onClick(seeText)}>${t(L.checkSeeText())}</div></div><div class="check-card">${lit(text, shown.quote)}</div></div>${right}</div>` +
-      (shown.also ? `<div class="check-also">${t(shown.kind === '新出现' ? L.checkAlsoNew() : L.checkAlsoSimilar())}</div>` + shown.also.map((a) => `<div class="check-more"><div class="side">${t(a.at)}</div><div class="fit">${t(a.text)}</div><div class="side">${t(a.note)}</div></div>`).join('') : '') +
+      (shown.also ? `<div class="check-also">${t(shown.kind === '新出现' ? L.checkAlsoNew() : L.checkAlsoSimilar())}</div>` + shown.also.map((a) => `<div class="check-more"><div class="side">${t(a.at)}</div><div class="fit">${t(a.text)}</div><div class="side">${t(a.done ? L.checkMarkedNoChange() : L.checkAlsoOpen())}</div></div>`).join('') : '') +
       `<div class="grow"></div><div class="check-foot"><div class="hit link${of.length > 1 ? '' : ' off'}"${onClick(of.length > 1 ? next : null)}>${t(L.checkLater())}</div><div class="grow"></div>${acts}</div></div>`
   }
   return '<div class="check-list">' +
