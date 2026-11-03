@@ -1,10 +1,15 @@
 package editor
 
 import (
+	"runtime"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
 )
+
+// macKeys says the text keys follow macOS: Alt by word, Cmd to the line's
+// or the text's ends. Tests change it to try both.
+var macKeys = runtime.GOOS == "darwin"
 
 // input takes the editor's input as it comes; it reports whether it took
 // the event.
@@ -109,7 +114,7 @@ func (e *Editor) key(mods ui.Modifiers, k ui.Key) bool {
 	base := mods &^ ui.Shift
 	if e.opts.ReadOnly {
 		if base == ui.Cmd {
-			if k != ui.KeyA && k != ui.KeyC && k != ui.KeyHome && k != ui.KeyEnd && k != ui.KeyLeft && k != ui.KeyRight {
+			if k != ui.KeyA && k != ui.KeyC && k != ui.KeyHome && k != ui.KeyEnd && k != ui.KeyLeft && k != ui.KeyRight && !(macKeys && (k == ui.KeyUp || k == ui.KeyDown)) {
 				return false
 			}
 		} else {
@@ -138,6 +143,9 @@ func (e *Editor) key(mods ui.Modifiers, k ui.Key) bool {
 	if base == ui.Cmd {
 		return e.commandKey(shift, k)
 	}
+	if macKeys && base == ui.Alt {
+		return e.wordKey(shift, k)
+	}
 	if base != 0 {
 		return false
 	}
@@ -154,6 +162,9 @@ func (e *Editor) commandKey(shift bool, k ui.Key) bool {
 		}
 		return true
 	case ui.KeyY:
+		if macKeys {
+			return false
+		}
 		e.Redo()
 		return true
 	case ui.KeyJ:
@@ -177,6 +188,32 @@ func (e *Editor) commandKey(shift bool, k ui.Key) bool {
 	case ui.KeyEnd:
 		e.MoveTo(e.Doc.Len(), shift)
 		return true
+	}
+	if !macKeys {
+		return e.wordKey(shift, k)
+	}
+	switch k {
+	case ui.KeyLeft, ui.KeyRight:
+		e.MoveTo(e.lineEdge(k == ui.KeyRight), shift)
+	case ui.KeyUp:
+		e.MoveTo(0, shift)
+	case ui.KeyDown:
+		e.MoveTo(e.Doc.Len(), shift)
+	case ui.KeyBackspace, ui.KeyDelete:
+		if shift {
+			return false
+		}
+		e.deleteToLineEdge(k == ui.KeyDelete)
+	default:
+		return false
+	}
+	return true
+}
+
+// wordKey takes the keys that move or delete by word: with Cmd elsewhere,
+// with Alt on macOS.
+func (e *Editor) wordKey(shift bool, k ui.Key) bool {
+	switch k {
 	case ui.KeyLeft:
 		e.MoveTo(e.wordLeft(), shift)
 		return true
@@ -184,9 +221,15 @@ func (e *Editor) commandKey(shift bool, k ui.Key) bool {
 		e.MoveTo(e.wordRight(), shift)
 		return true
 	case ui.KeyBackspace:
+		if macKeys && shift {
+			return false
+		}
 		e.deleteWord(false)
 		return true
 	case ui.KeyDelete:
+		if macKeys && shift {
+			return false
+		}
 		e.deleteWord(true)
 		return true
 	}
@@ -241,24 +284,49 @@ func (e *Editor) plainKey(shift bool, k ui.Key) bool {
 		e.scrollBy(float32(n) * e.lay.lineH)
 		e.moveLines(n, shift)
 	case ui.KeyHome, ui.KeyEnd:
-		e.stable()
-		l := &e.lay
-		if len(l.lines) == 0 {
-			return true
-		}
-		ln := &l.lines[l.lineOf(e.caretDisp())]
-		i := ln.start
-		if k == ui.KeyEnd {
-			i = ln.end
-			if !ln.last && i > ln.start {
-				i-- // stay on this line rather than start the next
-			}
-		}
-		e.MoveTo(l.toDoc(i), shift)
+		e.MoveTo(e.lineEdge(k == ui.KeyEnd), shift)
 	default:
 		return false
 	}
 	return true
+}
+
+// lineEdge returns the same screen-line boundary used by Home and End.
+func (e *Editor) lineEdge(end bool) int {
+	e.stable()
+	l := &e.lay
+	if len(l.lines) == 0 {
+		return e.caret
+	}
+	ln := &l.lines[l.lineOf(e.caretDisp())]
+	i := ln.start
+	if end {
+		i = ln.end
+		if !ln.last && i > ln.start {
+			i-- // stay on this line rather than start the next
+		}
+	}
+	return l.toDoc(i)
+}
+
+// deleteToLineEdge deletes the selection, or else back (forward when end)
+// to where Cmd+Left (Cmd+Right) would go on macOS. Already at that edge it
+// takes one character, as a plain Backspace (Delete) does, so lines join.
+func (e *Editor) deleteToLineEdge(end bool) {
+	a, b := e.Selection()
+	switch {
+	case a != b:
+	case end:
+		if b = e.lineEdge(true); b == a {
+			b = min(a+1, e.Doc.Len())
+		}
+	default:
+		if a = e.lineEdge(false); a == b {
+			a = max(b-1, 0)
+		}
+	}
+	e.replaceRange(a, b, "", false)
+	e.compOpen = false
 }
 
 // stable drops what the layout shows at the caret but the caret moving

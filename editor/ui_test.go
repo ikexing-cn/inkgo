@@ -215,22 +215,26 @@ func TestClickMovesCaret(t *testing.T) {
 	}
 }
 
-// Cmd+Backspace and Cmd+Delete delete as far as Cmd+Left and Cmd+Right
-// go, and at a paragraph's edge only the line break.
+// Word deletion deletes as far as word navigation goes, and at a
+// paragraph's edge only the line break.
 func TestDeleteAWord(t *testing.T) {
+	wordMod := ui.Cmd
+	if macKeys {
+		wordMod = ui.Alt
+	}
 	e := New(NewDoc("林晚推门，雨停了\n老周"), Options{})
 	tt := newTester(e)
 	e.MoveTo(8, false) // after 雨停了
-	tt.Key(ui.Cmd, ui.KeyBackspace)
+	tt.Key(wordMod, ui.KeyBackspace)
 	if got := e.Doc.String(); got != "林晚推门，\n老周" {
 		t.Fatalf("back: %q", got)
 	}
-	tt.Key(ui.Cmd, ui.KeyDelete)
+	tt.Key(wordMod, ui.KeyDelete)
 	if got := e.Doc.String(); got != "林晚推门，老周" {
 		t.Fatalf("the break: %q", got)
 	}
 	e.MoveTo(0, false)
-	tt.Key(ui.Cmd, ui.KeyDelete)
+	tt.Key(wordMod, ui.KeyDelete)
 	if got := e.Doc.String(); got != "，老周" {
 		t.Fatalf("ahead: %q", got)
 	}

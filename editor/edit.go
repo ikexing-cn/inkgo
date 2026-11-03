@@ -167,7 +167,7 @@ func (e *Editor) deleteForward() {
 }
 
 // deleteWord deletes the selection, or else back (forward when ahead) to
-// where Cmd+Left (Cmd+Right) would go. At a paragraph's edge it takes only
+// where word navigation would go. At a paragraph's edge it takes only
 // the line break, as a plain Backspace (Delete) does.
 func (e *Editor) deleteWord(ahead bool) {
 	a, b := e.Selection()
