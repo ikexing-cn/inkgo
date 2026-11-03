@@ -9,6 +9,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"runtime"
 	"sync"
 	"sync/atomic"
 
@@ -20,6 +21,9 @@ import (
 )
 
 func main() {
+	if runtime.GOOS == "darwin" {
+		mygo.App.SetName("Inkgo")
+	}
 	// Chinese until the words are all in locales/, so that an English
 	// system does not show half of each; MYGO_LOCALE=en shows another, and
 	// saves nothing. Goes when the move is done: see
@@ -98,6 +102,11 @@ func main() {
 	}
 	d.Relaunch = mygo.App.Relaunch
 	mygo.App.WhenReady(func() {
+		installSystemMenu(d, func() {
+			if w := win.Load(); w != nil {
+				w.Invalidate()
+			}
+		})
 		zoom := math.Float32frombits(wanted.Load())
 		minWidth, minHeight := zoomMinimum(zoom)
 		w := mygo.NewWindow(mygo.WindowOptions{Title: "Inkgo", Width: max(windowWidth, minWidth), Height: max(windowHeight, minHeight), MinWidth: minWidth, MinHeight: minHeight, StateKey: "main",

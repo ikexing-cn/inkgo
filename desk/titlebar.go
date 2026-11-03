@@ -61,10 +61,12 @@ func (a *App) titleBar(c *ui.Context) {
 				cmdSide.run(a)
 				a.penBack()
 			}
-			held = a.barMenu(c, "file", locales.MenuFile(), func(m *kit.Menu) { a.fileMenu(m, later) }) || held
-			held = a.barMenu(c, "edit", locales.MenuEdit(), func(m *kit.Menu) { a.editMenu(m, later) }) || held
-			held = a.barMenu(c, "view", locales.MenuView(), func(m *kit.Menu) { a.viewMenu(m, later) }) || held
-			held = a.barMenu(c, "help", locales.MenuHelp(), func(m *kit.Menu) { a.helpMenu(m, later) }) || held
+			if !onMacOS {
+				held = a.barMenu(c, "file", locales.MenuFile(), func(m *kit.Menu) { a.fileMenu(m, later) }) || held
+				held = a.barMenu(c, "edit", locales.MenuEdit(), func(m *kit.Menu) { a.editMenu(m, later) }) || held
+				held = a.barMenu(c, "view", locales.MenuView(), func(m *kit.Menu) { a.viewMenu(m, later) }) || held
+				held = a.barMenu(c, "help", locales.MenuHelp(), func(m *kit.Menu) { a.helpMenu(m, later) }) || held
+			}
 		}
 		if inWork {
 			width, _ := c.Size()

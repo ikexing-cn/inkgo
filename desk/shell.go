@@ -51,6 +51,11 @@ func (a *App) turnPage() {
 }
 
 func (a *App) View(c *ui.Context) {
+	defer func() {
+		if a.MenuChanged != nil {
+			a.MenuChanged(a.SystemMenu())
+		}
+	}()
 	c.SetZoom(a.Zoom())
 	a.poll()
 	active := !a.windowInactive.Load()
@@ -79,6 +84,7 @@ func (a *App) View(c *ui.Context) {
 	}
 	a.turnPage()
 	a.barAct(c)
+	a.systemMenuAct()
 	ui.Column(c).Fill().Background(a.pal.Canvas).Children(func() {
 		a.titleBar(c)
 		// Keyed, the page stays the element it was as the title bar and the
