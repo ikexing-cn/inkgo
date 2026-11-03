@@ -422,7 +422,7 @@ function binDialog(d) {
 // 快捷键的几组和几行；第三项写着 ai 的，是 AI 的那几组、几行（AI 关着时不列）。键的写法（Ctrl+S）不翻，说明和组名跟着语言走。
 function KEYS() {
   return [
-    [L.helpGroupWrite(), [['Ctrl+S', L.helpSave()], ['Ctrl+F', L.helpFind()], ['Ctrl+N', L.helpNewChapter()], ['F2', L.helpRename()], ['Ctrl+PgDn / PgUp', L.helpChapterNav()], ['Ctrl+Tab / Ctrl+Shift+Tab', L.helpTabNav()], ['Ctrl+W', L.helpCloseTab()], ['F11', L.helpFocus()], ['Ctrl+J', L.helpContinue(), 'ai'], ['Tab / Esc', L.helpAcceptDrop(), 'ai'], ['Ctrl+L', L.helpCite(), 'ai'], ['Ctrl+Z / Ctrl+Shift+Z', L.helpUndoRedo()], ['Ctrl+Backspace / Ctrl+Delete', L.helpDeleteWord()], [L.helpKeyWheel(), L.helpZoomText()]]],
+    [L.helpGroupWrite(), [['Ctrl+S', L.helpSave()], ['Ctrl+F', L.helpFind()], ['Ctrl+N', L.helpNewChapter()], ['F2', L.helpRename()], ['Ctrl+PgDn / PgUp', L.helpChapterNav()], ['Ctrl+Tab / Ctrl+Shift+Tab', L.helpTabNav()], ['Ctrl+W', L.helpCloseTab()], ['F11', L.helpFocus()], ['Ctrl+J', L.helpContinue(), 'ai'], ['Tab / Esc', L.helpAcceptDrop(), 'ai'], ['Ctrl+L', L.helpCite(), 'ai'], ['Ctrl+Z / Ctrl+Shift+Z', L.helpUndoRedo()], ['Ctrl+Backspace / Ctrl+Delete', L.helpDeleteWord()], ['Ctrl+' + L.helpWheel(), L.helpZoomText()]]],
     [L.helpGroupChat(), [['Ctrl+Enter', L.helpSend()]], 'ai'],
     [L.helpGroupGlobal(), [['Ctrl+= / Ctrl+- / Ctrl+0', L.helpZoomUI()], ['Ctrl+/', L.helpOpenKeys()]]],
   ]

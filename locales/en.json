@@ -1057,7 +1057,7 @@
   "helpCite": "Quote the selected text in a chat",
   "helpUndoRedo": "Undo / redo",
   "helpDeleteWord": "Delete one word backward / forward",
-  "helpKeyWheel": "Ctrl+Wheel",
+  "helpWheel": "Wheel",
   "helpZoomText": "Make the text larger / smaller",
   "helpSend": "Send",
   "helpZoomUI": "Zoom in / out / actual size",
