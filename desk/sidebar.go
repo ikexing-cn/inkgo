@@ -7,6 +7,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
+	"writer/locales"
 	"writer/workspace"
 )
 
@@ -76,7 +77,7 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 			// The box gives the row's gap of 6 back as its border and padding,
 			// so the words in it stand where the names of the other rows do.
 			ui.Row(c).Grow(1).Shrink(1).Height(kit.HRow-6).AlignItems(ui.Center).Padding(0, 6-1).Margin(0, 0, 0, map[bool]float32{true: 0, false: -6}[n.Folder]).Radius(kit.RXs).Background(a.pal.Canvas).Border(1, a.pal.Ink).Children(func() {
-				in := ui.TextInputBase(c, &w.title).Label("章节标题").Placeholder(w.titleWas).Grow(1).Shrink(1).FontSize(kit.FsControl).AutoFocus()
+				in := ui.TextInputBase(c, &w.title).Label(locales.SideChapterTitle()).Placeholder(w.titleWas).Grow(1).Shrink(1).FontSize(kit.FsControl).AutoFocus()
 				if w.titleAll {
 					w.titleAll = false
 					in.SetTextSelection(0, utf8.RuneCountInString(w.title))
@@ -133,7 +134,7 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 		}
 		ui.Text(c, n.Title).FontSize(kit.FsControl).FontWeight(weight).TextColor(fg).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 		if k := a.wordsIn(n); k > 0 && (row.Hovered() || row.FocusWithin() || a.menu.MenuOpen("章节-"+n.ID)) {
-			ui.Text(c, strings.ReplaceAll(strings.TrimSuffix(kit.Words(k), "字"), " ", "")).FontSize(kit.FsSmall).TextColor(a.pal.Faint)
+			ui.Text(c, locales.CommonNumber(k)).FontSize(kit.FsSmall).TextColor(a.pal.Faint)
 		}
 	})
 	a.menu.ContextMenu(c, a.pal, row, "章节-"+n.ID, func(m *kit.Menu) { a.nodeMenu(m, n) })
@@ -183,14 +184,14 @@ func (a *App) nodeMenu(m *kit.Menu, n *workspace.Node) {
 	siblings := n.Parent.Children
 	i := slices.Index(siblings, n)
 	if n.Folder {
-		m.Item("编辑卷纲").Do(func() { a.openNode(n.ID) })
+		m.Item(locales.SideEditVolumeOutline()).Do(func() { a.openNode(n.ID) })
 	}
-	m.Item("重命名").Do(func() { w.nameAgain(n) })
-	m.Item("新建章节").Do(func() { a.newNodeAt(false, n) })
-	m.Item("新建文件夹").Do(func() { a.newNodeAt(true, n) })
+	m.Item(locales.CommonRename()).Do(func() { w.nameAgain(n) })
+	m.Item(locales.CmdNewChapter()).Do(func() { a.newNodeAt(false, n) })
+	m.Item(locales.CmdNewFolder()).Do(func() { a.newNodeAt(true, n) })
 	m.Separator()
-	m.Item("上移").Disabled(i == 0).Do(func() { a.move(n.ID, n.Parent.ID, i-1) })
-	m.Item("下移").Disabled(i == len(siblings)-1).Do(func() { a.move(n.ID, n.Parent.ID, i+1) })
+	m.Item(locales.SideMoveUp()).Disabled(i == 0).Do(func() { a.move(n.ID, n.Parent.ID, i-1) })
+	m.Item(locales.SideMoveDown()).Disabled(i == len(siblings)-1).Do(func() { a.move(n.ID, n.Parent.ID, i+1) })
 	// Where else it can go: not where it is, nor inside itself.
 	var into []*workspace.Node
 	var depths []int
@@ -200,16 +201,16 @@ func (a *App) nodeMenu(m *kit.Menu, n *workspace.Node) {
 		}
 	})
 	if top := n.Parent.Parent != nil; top || len(into) > 0 {
-		m.Head("移到")
+		m.Head(locales.SideMoveTo())
 		if top {
-			m.Item("最上层").Do(func() { a.move(n.ID, "", len(a.book.Tree().Root.Children)) })
+			m.Item(locales.SideTopLevel()).Do(func() { a.move(n.ID, "", len(a.book.Tree().Root.Children)) })
 		}
 		for i, f := range into {
 			m.Item(strings.Repeat("　", depths[i]) + f.Title).Do(func() { a.move(n.ID, f.ID, len(f.Children)) })
 		}
 	}
 	m.Separator()
-	m.Item("移到回收站").Do(func() { a.trashNode(n) })
+	m.Item(locales.SideMoveToTrash()).Do(func() { a.trashNode(n) })
 }
 
 func (a *App) move(id, parent string, index int) {

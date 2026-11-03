@@ -1,13 +1,13 @@
 package desk
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
 	"writer/editor"
 	"writer/internal/textclip"
+	"writer/locales"
 	"writer/workspace"
 )
 
@@ -92,10 +92,10 @@ func (a *App) bookResults(c *ui.Context) {
 		total += h.Count
 	}
 	if len(hits) == 0 {
-		ui.Text(c, "全书未找到").FontSize(kit.FsNote).TextColor(a.pal.Faint)
+		ui.Text(c, locales.FindNoneBook()).FontSize(kit.FsNote).TextColor(a.pal.Faint)
 		return
 	}
-	ui.Textf(c, "全书 %d 章、共 %d 处", len(hits), total).FontSize(kit.FsNote).TextColor(t.TextMuted)
+	ui.Text(c, locales.FindBookCount(len(hits), total)).FontSize(kit.FsNote).TextColor(t.TextMuted)
 	ui.Scroll(c.Key("bookhits")).FillWidth().MaxHeight(200).Children(func() {
 		ui.Column(c).FillWidth().Gap(2).Children(func() {
 			for _, h := range hits {
@@ -109,7 +109,7 @@ func (a *App) bookResults(c *ui.Context) {
 				row.Children(func() {
 					ui.Row(c).FillWidth().Gap(8).Children(func() {
 						ui.Text(c, h.Title).FontSize(kit.FsControl).FontWeight(600).SingleLine().Ellipsis("…").Shrink(1)
-						ui.Textf(c, "%d 处", h.Count).FontSize(kit.FsNote).TextColor(a.pal.Faint).Shrink(0)
+						ui.Text(c, locales.FindMatchCount(h.Count)).FontSize(kit.FsNote).TextColor(a.pal.Faint).Shrink(0)
 					})
 					ui.Text(c, h.Around).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…")
 				})
@@ -146,17 +146,17 @@ func (a *App) confirmBookReplace(c *ui.Context) {
 	for _, h := range w.hits {
 		total += h.Count
 	}
-	with := "“" + w.with + "”"
+	with := locales.DialogSwapTo(w.with)
 	if w.with == "" {
-		with = "空（删除）"
+		with = locales.DialogSwapNone()
 	}
 	ui.Row(c).FillWidth().Gap(8).Padding(8, 10).Radius(kit.RCard).AlignItems(ui.Center).Background(t.Danger.Alpha(0.08)).Children(func() {
-		ui.Textf(c, "将全书 %d 章中的 %d 处“%s”替换为%s？仅修改正文，设定和章纲不变；各章替换前均保存快照。", len(w.hits), total, w.query, with).
+		ui.Text(c, locales.DialogSwapAbout(len(w.hits), total, w.query, with)).
 			FontSize(kit.FsNote).LineHeight(kit.LhBody).Grow(1).Shrink(1)
-		if a.pal.Secondary(c, "取消").Clicked() {
+		if a.pal.Secondary(c, locales.CommonCancel()).Clicked() {
 			w.sure = false
 		}
-		if a.pal.Danger(c, "确定替换").Clicked() {
+		if a.pal.Danger(c, locales.DialogSwapConfirm()).Clicked() {
 			a.replaceInBook()
 		}
 	})
@@ -206,9 +206,9 @@ func (a *App) replaceInBook() {
 	}
 	w.texts, w.hits = nil, nil
 	w.hitsFor = [3]any{}
-	notice := fmt.Sprintf("已在 %d 章中替换 %d 处，各章替换前的版本已存入快照", chapters, total)
+	notice := locales.FindReplacedBook(chapters, total)
 	if here {
-		notice += "；本章也可直接撤销"
+		notice = locales.FindReplacedBookUndo(chapters, total)
 	}
 	a.status.Did(notice)
 }

@@ -1,12 +1,12 @@
 package desk
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/book"
 	"writer/desk/kit"
+	"writer/locales"
 	"writer/prefs"
 	"writer/workspace"
 )
@@ -86,39 +86,41 @@ func (a *App) wordCount(c *ui.Context) {
 	t := a.pal.Theme
 	w := &a.write
 	n, ok := a.book.Tree().Node(w.node)
-	here, unit := 0, "本章"
-	if ok && n.Folder {
-		unit = "本卷"
-	}
+	here := 0
 	if ok {
 		here = a.wordsIn(n)
 	}
+	scope := locales.StatusChapterWords(here)
+	if ok && n.Folder {
+		scope = locales.StatusVolumeWords(kit.Words(here))
+	}
 	if w.cur().ed != nil {
 		if sel := w.cur().ed.SelectedText(); sel != "" {
-			here, unit = workspace.Count(sel), "选中"
+			here = workspace.Count(sel)
+			scope = locales.StatusSelected(here)
 		}
 	}
-	today, tip := "", "全书 "+kit.Words(a.total())
+	book := locales.StatusBookWords(kit.Words(a.total()))
+	today := ""
 	k := a.today(time.Now())
-	switch {
-	case w.counter.Goal > 0:
-		today = fmt.Sprintf(" · 今天 %s / %s", kit.Signed(k), kit.Grouped(w.counter.Goal))
-		tip += "，今天 " + kit.Signed(k) + " 字，目标 " + kit.Words(w.counter.Goal)
-	case k != 0:
-		today = " · 今天 " + kit.Signed(k)
-		tip += "，今天 " + kit.Signed(k) + " 字"
+	tip := locales.StatusCountTip(book, k, kit.Signed(k))
+	if w.counter.Goal > 0 {
+		today = locales.StatusTodayGoal(k, w.counter.Goal)
+		tip = locales.StatusCountGoalTip(book, k, kit.Signed(k), w.counter.Goal)
+	} else if k != 0 {
+		today = locales.StatusTodayCount(k, kit.Signed(k))
 	}
 	color := a.pal.Faint // as the design has it, met or not: the numbers say so
-	counts := ui.ButtonBase(c).Row().Shrink(1000).MinWidth(0).Label("字数").Tooltip(tip + "。点击设置每日目标")
+	counts := ui.ButtonBase(c).Row().Shrink(1000).MinWidth(0).Label(locales.StatusWordCount()).Tooltip(tip)
 	a.slideEdge(counts)
 	if counts.Hovered() {
 		color = t.Text
 	}
 	counts.Children(func() {
 		if ok {
-			ui.Text(c, unit+" "+kit.Words(here)+" · 全书 "+kit.Words(a.total())+today).FontSize(kit.FsNote).TextColor(color).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
+			ui.Text(c, locales.StatusCountLine(scope, book, today)).FontSize(kit.FsNote).TextColor(color).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
 		} else {
-			ui.Text(c, "全书 "+kit.Words(a.total())+today).FontSize(kit.FsNote).TextColor(color).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
+			ui.Text(c, locales.StatusBookCountLine(book, today)).FontSize(kit.FsNote).TextColor(color).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
 		}
 	})
 	if counts.Clicked() {
@@ -132,8 +134,8 @@ func (a *App) wordCount(c *ui.Context) {
 		a.lastWeek(c)
 		ui.Box(c).FillWidth().Height(1).Margin(4, 0).Background(a.pal.Line).Shrink(0)
 		ui.Column(c).FillWidth().Gap(6).Padding(4, 6).Children(func() {
-			ui.Text(c, "每日目标").FontSize(kit.FsNote).TextColor(t.TextMuted)
-			in := ui.TextInput(c, &w.goalText).Label("每日目标字数").Placeholder("比如 2000").FillWidth().AutoFocus()
+			ui.Text(c, locales.StatusDailyGoal()).FontSize(kit.FsNote).TextColor(t.TextMuted)
+			in := ui.TextInput(c, &w.goalText).Label(locales.StatusGoalLabel()).Placeholder(locales.StatusGoalHint()).FillWidth().AutoFocus()
 			if in.Changed() {
 				a.setGoal(w.goalText)
 			}
@@ -142,9 +144,9 @@ func (a *App) wordCount(c *ui.Context) {
 			}
 		})
 		// What is not a count leaves the goal be, and says so.
-		note, ink := "字数旁显示今日字数和目标。", t.TextMuted
+		note, ink := locales.StatusGoalNote(), t.TextMuted
 		if _, ok := prefs.CountOrNone(w.goalText); !ok {
-			note, ink = "每日目标须为正整数，留空则不设。", t.Danger
+			note, ink = locales.StatusGoalError(), t.Danger
 		}
 		ui.Text(c, note).FontSize(kit.FsNote).TextColor(ink).LineHeight(kit.LhBody).FillWidth().Padding(0, 6, 4, 6)
 	})
@@ -155,14 +157,14 @@ func (a *App) wordCount(c *ui.Context) {
 func (a *App) lastWeek(c *ui.Context) {
 	now := time.Now()
 	days := a.lastDays(now, 7)
-	ui.Text(c, "最近 7 天").FontSize(kit.FsSmall).TextColor(a.pal.Faint).Padding(6, 10, 2, 10)
+	ui.Text(c, locales.StatusLast7()).FontSize(kit.FsSmall).TextColor(a.pal.Faint).Padding(6, 10, 2, 10)
 	for i := len(days) - 1; i >= 0; i-- {
 		day, k := now.AddDate(0, 0, i-len(days)+1), days[i]
-		got := "0 字"
+		got := locales.StatusWords(0)
 		if k != 0 {
-			got = kit.Signed(k) + " 字"
+			got = locales.StatusSignedWords(k, kit.Signed(k))
 		}
-		ui.Row(c.Key(i)).FillWidth().Padding(4, 10).Label(fmt.Sprintf("%s 写了 %d 字", kit.DayOf(day, now), k)).Children(func() {
+		ui.Row(c.Key(i)).FillWidth().Padding(4, 10).Label(locales.StatusDayWritten(kit.DayOf(day, now), k)).Children(func() {
 			ui.Text(c, kit.DayOf(day, now)).FontSize(kit.FsNote).TextColor(a.pal.Theme.TextMuted).Grow(1)
 			ui.Text(c, got).FontSize(kit.FsNote).TextColor(a.pal.Theme.TextMuted)
 		})

@@ -8,6 +8,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/aiport"
 	"writer/desk/kit"
+	"writer/locales"
 )
 
 // noticeFor is how long a confirmation stays. The time stops while the
@@ -91,25 +92,25 @@ func (a *App) toastActions(c *ui.Context, ts ui.Toast) {
 	switch ts.Type {
 	case "notice":
 		if a.status.CanUndo() {
-			acts = append(acts, kit.ToastAction{Label: "撤销", Name: "撤销提示", Fn: a.status.Undo})
+			acts = append(acts, kit.ToastAction{Label: locales.CmdUndo(), Name: "撤销提示", Fn: a.status.Undo})
 		}
 	case "busy":
-		acts = append(acts, kit.ToastAction{Label: "取消", Fn: func() {
+		acts = append(acts, kit.ToastAction{Label: locales.CommonCancel(), Fn: func() {
 			if a.cancel != nil {
 				a.cancel()
 			}
-		}, Name: "取消请求"})
+		}, Name: locales.ChatCancelRequest()})
 	case "error":
 		if again := a.status.RetryAction(); again != nil {
-			acts = append(acts, kit.ToastAction{Label: "重试", Fn: func() { a.SetError(nil); again() }})
+			acts = append(acts, kit.ToastAction{Label: locales.CommonRetry(), Fn: func() { a.SetError(nil); again() }})
 		}
 		var setup *aiport.SetupError
 		if errors.As(a.status.Err(), &setup) {
 			// What it says is done by going there: it goes, as in the prototype.
-			acts = append(acts, kit.ToastAction{Label: "打开设置", Fn: func() { a.SetError(nil); a.openPrefs("AI") }})
+			acts = append(acts, kit.ToastAction{Label: locales.CommonOpenSettings(), Fn: func() { a.SetError(nil); a.openPrefs("AI") }})
 		}
 		text := a.status.ErrorText()
-		acts = append(acts, kit.ToastAction{Label: "复制详情", Fn: func() { c.WriteClipboard(text) }})
+		acts = append(acts, kit.ToastAction{Label: locales.AppCopyDetails(), Fn: func() { c.WriteClipboard(text) }})
 	}
 	a.pal.ToastActions(c, acts)
 }

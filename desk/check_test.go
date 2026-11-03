@@ -212,7 +212,7 @@ func TestPendingNameOpensCurrentFinding(t *testing.T) {
 		t.Fatal("no pending 老周")
 	}
 	if shownPage(a) != pageCheck || a.ck.shown != "n2" {
-		t.Fatalf("pending name: page %s, finding %s", a.pages[shownPage(a)].name, a.ck.shown)
+		t.Fatalf("pending name: page %s, finding %s", a.pages[shownPage(a)].name(), a.ck.shown)
 	}
 	tt.Frame()
 	if !tt.HasText("其他章节中也出现") || !tt.HasText("老周把旧灯泡放在窗台上") {

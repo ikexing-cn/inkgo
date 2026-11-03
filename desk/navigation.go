@@ -1,10 +1,13 @@
 package desk
 
-import "github.com/egoist/mygo/ui"
+import (
+	"github.com/egoist/mygo/ui"
+	"writer/locales"
+)
 
 type tabEntry[K comparable] struct {
 	id            K
-	name, offName string
+	name, offName func() string
 	label         string
 	icon          *ui.SVG
 	ai, work      bool
@@ -17,10 +20,10 @@ func (t tabEntry[K]) available(a *App) bool {
 }
 
 func (t tabEntry[K]) title(a *App) string {
-	if t.offName != "" && !a.aiOn() {
-		return t.offName
+	if t.offName != nil && !a.aiOn() {
+		return t.offName()
 	}
-	return t.name
+	return t.name()
 }
 
 func (t tabEntry[K]) number() int {
@@ -55,17 +58,17 @@ func (t tabTable[K]) shown(a *App, chosen K) K {
 
 func (a *App) initTabs() {
 	a.paneTabs = tabTable[paneTab]{
-		{id: paneMargin, name: "批注"},
-		{id: paneSetting, name: "设定", fallback: true, count: func() int { return a.paneCounts().open }},
-		{id: paneTalk, name: "讨论", ai: true},
-		{id: paneFore, name: "伏笔", count: func() int { return a.paneCounts().waiting }},
-		{id: panePhone, name: "预览"},
+		{id: paneMargin, name: locales.PaneTabNotes},
+		{id: paneSetting, name: locales.PaneTabLore, fallback: true, count: func() int { return a.paneCounts().open }},
+		{id: paneTalk, name: locales.PaneTabChat, ai: true},
+		{id: paneFore, name: locales.PaneTabHooks, count: func() int { return a.paneCounts().waiting }},
+		{id: panePhone, name: locales.PaneTabPreview},
 	}
 	a.prefTabs = tabTable[string]{
-		{id: "AI", name: "AI", label: "设置-AI"},
-		{id: "外观", name: "外观", label: "设置-外观"},
-		{id: "提醒与检查", name: "提醒与检查", offName: "提醒", label: "设置-提醒", work: true},
-		{id: "备份", name: "备份", label: "设置-备份", work: true},
+		{id: "AI", name: func() string { return "AI" }, label: "设置-AI"},
+		{id: "外观", name: locales.ViewLook, label: "设置-外观"},
+		{id: "提醒与检查", name: locales.SettingsTabRemind, offName: locales.SettingsTabRemindOnly, label: "设置-提醒", work: true},
+		{id: "备份", name: locales.SettingsTabBackup, label: "设置-备份", work: true},
 	}
 }
 

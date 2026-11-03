@@ -3,12 +3,13 @@ package desk
 import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
+	"writer/locales"
 )
 
 // themeChoice picks the appearance of the whole app on this machine:
 // following the system, light or dark.
 func (a *App) themeChoice(c *ui.Context) {
-	a.pal.PopHead(c, "外观")
+	a.pal.PopHead(c, locales.ViewLook())
 	// As wide as its three words: the menu grows to hold it, it does not
 	// squeeze into the menu.
 	ui.Row(c).Padding(2, 6, 6, 6).Children(func() { a.themeSegments(c, false) })
@@ -25,7 +26,7 @@ func (a *App) themeSegments(c *ui.Context, fill bool) {
 		for _, m := range []struct {
 			v, n string
 			s    *ui.SVG
-		}{{"", "跟随系统", kit.IcMonitor}, {"light", "浅色", kit.IcSun}, {"dark", "深色", kit.IcMoon}} {
+		}{{"", locales.LookSystem(), kit.IcMonitor}, {"light", locales.LookLight(), kit.IcSun}, {"dark", locales.LookDark(), kit.IcMoon}} {
 			on := a.shelf.Theme == m.v
 			b := ui.ButtonBase(c).Row().Height(kit.HSeg).Center().Gap(6).Padding(0, 10).Radius(kit.RXs).Shrink(0).Label("外观-" + m.n)
 			if fill {
@@ -92,10 +93,10 @@ func (a *App) selectionBar(c *ui.Context) {
 	a.pal.Pop.On(bar)
 	kit.PopIn(bar, 0.5, 1)
 	bar.Children(func() {
-		if a.aiOn() && a.selButton(c, kit.IcPen, "AI 改写").Tooltip("由 AI 改写选中内容").Clicked() {
+		if a.aiOn() && a.selButton(c, kit.IcPen, locales.EditorAIRewrite()).Tooltip(locales.EditorRewriteSel()).Clicked() {
 			a.openRewrite()
 		}
-		if a.selButton(c, kit.IcBookmark, "加入设定").Tooltip("将选中的原文加入设定").Clicked() {
+		if a.selButton(c, kit.IcBookmark, locales.EditorAddToLore()).Tooltip(locales.EditorAddSelTip()).Clicked() {
 			a.openTake()
 		}
 	})

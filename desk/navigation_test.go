@@ -1,6 +1,43 @@
 package desk
 
-import "testing"
+import (
+	"testing"
+	"writer/internal/testshot"
+	"writer/workspace"
+)
+
+func TestShellLabelsFollowLocale(t *testing.T) {
+	a, _, _ := fixture(t)
+	t.Setenv("MYGO_LOCALE", "en")
+	if a.pages[pageWrite].title(a) != "Write" || a.paneTabs[0].title(a) != "Notes" || a.snapReason(workspace.SnapOpen) != "On Open" {
+		t.Fatal(a.pages[pageWrite].title(a), a.paneTabs[0].title(a), a.snapReason(workspace.SnapOpen))
+	}
+	t.Setenv("MYGO_LOCALE", "zh-Hans")
+	if a.pages[pageWrite].title(a) != "正文" || a.paneTabs[0].title(a) != "批注" || a.snapReason(workspace.SnapOpen) != "打开时" {
+		t.Fatal("shell labels retained the previous locale")
+	}
+}
+
+func TestShotShellLocale(t *testing.T) {
+	testshot.Dir(t)
+	a, tt, id := writingFixture(t, "雨从傍晚开始下。林晚沿着亮着的灯往旧城走。")
+	a.openFind()
+	a.write.query, a.write.with, a.write.wide = "雨", "雪", true
+	shot(t, tt, "shell-find.png")
+	a.write.sure = true
+	shot(t, tt, "shell-replace.png")
+	a.closeFind()
+	a.openSnapshots()
+	shot(t, tt, "shell-snapshots.png")
+	a.write.snapsOpen = false
+	a.write.goalOpen = true
+	shot(t, tt, "shell-goal.png")
+	a.write.goalOpen = false
+	n, _ := a.book.Tree().Node(id)
+	a.trashNode(n)
+	a.openTrash()
+	shot(t, tt, "shell-trash.png")
+}
 
 func TestNavigationTables(t *testing.T) {
 	for _, tc := range []struct {
@@ -31,8 +68,8 @@ func TestNavigationTables(t *testing.T) {
 			} {
 				entry := a.pages[p.id]
 				want := (!p.ai || tc.ai) && (!p.work || tc.work)
-				if entry.name != p.name || entry.available(a) != want {
-					t.Errorf("page %s: name %q, available %v, want %v", p.name, entry.name, entry.available(a), want)
+				if entry.name() != p.name || entry.available(a) != want {
+					t.Errorf("page %s: name %q, available %v, want %v", p.name, entry.name(), entry.available(a), want)
 				}
 				if tc.work {
 					count := 0
@@ -51,7 +88,7 @@ func TestNavigationTables(t *testing.T) {
 					shown = pageWrite
 				}
 				if got := a.pageShown(); got != shown {
-					t.Errorf("page %s shows %s, want %s", p.name, a.pages[got].name, a.pages[shown].name)
+					t.Errorf("page %s shows %s, want %s", p.name, a.pages[got].name(), a.pages[shown].name())
 				}
 			}
 			for i, p := range []struct {
@@ -67,7 +104,7 @@ func TestNavigationTables(t *testing.T) {
 			} {
 				entry := a.paneTabs[i]
 				want := !p.ai || tc.ai
-				if entry.id != p.id || entry.name != p.name || entry.available(a) != want {
+				if entry.id != p.id || entry.name() != p.name || entry.available(a) != want {
 					t.Errorf("pane tab %s: entry %+v, want available %v", p.name, entry, want)
 				}
 				if tc.work {

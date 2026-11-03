@@ -3,6 +3,7 @@ package desk
 import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
+	"writer/locales"
 	"writer/workspace"
 )
 
@@ -39,7 +40,7 @@ func (a *App) paneFind(c *ui.Context, query *string, hint, add string, more func
 			added = b.Clicked()
 		}
 		if more != nil {
-			b := ui.ButtonBase(c).Size(kit.HControl, kit.HControl).Center().Radius(kit.RControl).Shrink(0).Label("更多").Tooltip("更多")
+			b := ui.ButtonBase(c).Size(kit.HControl, kit.HControl).Center().Radius(kit.RControl).Shrink(0).Label(locales.CommonMore()).Tooltip(locales.CommonMore())
 			if b.Hovered() || a.menu.MenuOpen(hint) {
 				b.Background(t.SurfacePressed)
 			}

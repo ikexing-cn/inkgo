@@ -3,6 +3,7 @@ package desk
 import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
+	"writer/locales"
 )
 
 // The functions are bound once in New, so a page with its own state can
@@ -16,11 +17,11 @@ type pageView struct {
 func (a *App) initPages() {
 	a.pages = [...]pageView{
 		pageTalk: {
-			tabEntry: tabEntry[page]{name: "讨论", icon: kit.IcChat, ai: true},
+			tabEntry: tabEntry[page]{name: locales.PageTalk, icon: kit.IcChat, ai: true},
 			view:     a.discussion,
 		},
 		pageWrite: {
-			tabEntry: tabEntry[page]{name: "正文", icon: kit.IcBook, work: true},
+			tabEntry: tabEntry[page]{name: locales.PageWrite, icon: kit.IcBook, work: true},
 			enter:    a.enterWriting,
 			leave: func() {
 				a.flush()
@@ -29,13 +30,13 @@ func (a *App) initPages() {
 			view: a.writing,
 		},
 		pagePlan: {
-			tabEntry: tabEntry[page]{name: "大纲", icon: kit.IcOutline, work: true},
+			tabEntry: tabEntry[page]{name: locales.PagePlan, icon: kit.IcOutline, work: true},
 			enter:    a.plan.Enter,
 			leave:    a.plan.Leave,
 			view:     a.plan.View,
 		},
 		pageCheck: {
-			tabEntry: tabEntry[page]{name: "检查", icon: kit.IcDone, ai: true, work: true,
+			tabEntry: tabEntry[page]{name: locales.PageCheck, icon: kit.IcDone, ai: true, work: true,
 				count: func() int { return len(a.listedChecks()) }},
 			enter: func() {
 				a.loadChecks() // as of the disk, without what was put right meanwhile
@@ -45,7 +46,7 @@ func (a *App) initPages() {
 			view: a.checkPage,
 		},
 		pageCategories: {
-			tabEntry: tabEntry[page]{name: "作品分类", icon: kit.IcTag, work: true},
+			tabEntry: tabEntry[page]{name: locales.CmdCategories, icon: kit.IcTag, work: true},
 			view:     a.categories,
 		},
 	}
