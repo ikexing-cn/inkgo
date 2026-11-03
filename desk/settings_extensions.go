@@ -180,7 +180,8 @@ func extensionCellBox(e ui.Element) ui.Element {
 
 func (a *App) extensionCell(c *ui.Context, id string) {
 	v := a.extViews.moduleViews[id]
-	b := extensionCellBox(ui.ButtonBase(c)).Row().Gap(8).AlignItems(ui.Center).Label("扩展-" + id)
+	b := ui.ButtonBase(c).Row().Gap(8).AlignItems(ui.Center).Label("扩展-" + id)
+	extensionCellBox(b)
 	if b.Hovered() {
 		b.Background(a.pal.Theme.SurfaceHover)
 	}
