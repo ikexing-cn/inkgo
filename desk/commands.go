@@ -206,8 +206,8 @@ var (
 		run: func(a *App) { a.zoomBy(0) }}
 
 	// Keys the editor takes.
-	cmdDeleteWordBack    = &command{label: locales.CmdDeleteWordBack, key: ui.KeyBackspace, mods: modCmd, page: pageWrite, by: byEditor}
-	cmdDeleteWordForward = &command{label: locales.CmdDeleteWordForward, key: ui.KeyDelete, mods: modCmd, page: pageWrite, by: byEditor}
+	cmdDeleteWordBack    = &command{label: locales.CmdDeleteWordBack, key: ui.KeyBackspace, mods: modCmd, onMac: true, macKey: ui.KeyBackspace, macMods: ui.Alt, page: pageWrite, by: byEditor}
+	cmdDeleteWordForward = &command{label: locales.CmdDeleteWordForward, key: ui.KeyDelete, mods: modCmd, onMac: true, macKey: ui.KeyDelete, macMods: ui.Alt, page: pageWrite, by: byEditor}
 	cmdTakePrediction    = &command{label: locales.CmdTakePrediction, key: ui.KeyTab, page: pageWrite, by: byEditor, ai: true}
 	cmdDropPrediction    = &command{label: locales.CmdDropPrediction, key: ui.KeyEscape, page: pageWrite, by: byEditor, ai: true}
 

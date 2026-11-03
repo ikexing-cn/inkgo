@@ -40,9 +40,8 @@ func TestCommandPlatformBindings(t *testing.T) {
 		{cmdRename, "F2", ""},
 		{cmdNextChapter, "Ctrl+PgDn", "⌘⇟"},
 		{cmdPrevChapter, "Ctrl+PgUp", "⌘⇞"},
-		// The editor currently uses Cmd, including on macOS, rather than Option.
-		{cmdDeleteWordBack, "Ctrl+Backspace", "⌘⌫"},
-		{cmdDeleteWordForward, "Ctrl+Delete", "⌘⌦"},
+		{cmdDeleteWordBack, "Ctrl+Backspace", "⌥⌫"},
+		{cmdDeleteWordForward, "Ctrl+Delete", "⌥⌦"},
 		{cmdSend, "Ctrl+Enter", "⌘↩"},
 		{cmdNextTab, "Ctrl+Tab", "⌃Tab"},
 	} {
