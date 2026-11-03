@@ -202,8 +202,9 @@ func (a *App) preferences(c *ui.Context) {
 							} else {
 								a.extensionOverview(c)
 							}
+						default:
+							a.extensionSettings(c, a.settings.tab)
 						}
-						a.extensionSettings(c, a.settings.tab)
 					})
 				})
 			}

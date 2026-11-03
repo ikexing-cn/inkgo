@@ -332,6 +332,9 @@ func TestShotSettingsExtensions(t *testing.T) {
 	a, tt, _ := fixture(t)
 	a.openPrefs("扩展")
 	shot(t, tt, "settings-ext-overview.png")
+	tt.SetDark(true)
+	shot(t, tt, "settings-ext-overview-dark.png")
+	tt.SetDark(false)
 	click(t, tt, "扩展-phone", "ext-more-phone")
 	shot(t, tt, "settings-ext-phone-more.png")
 	a.showPref("backup.settings")
@@ -346,4 +349,6 @@ func TestShotSettingsExtensions(t *testing.T) {
 	click(t, bt, "扩展确认开关")
 	extensionDetails(t, b, bt, "consumer")
 	shot(t, bt, "settings-ext-waiting.png")
+	bt.SetDark(true)
+	shot(t, bt, "settings-ext-waiting-dark.png")
 }

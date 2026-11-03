@@ -28,7 +28,7 @@ func (p *Palette) Subhead(c *ui.Context, title, caption string) {
 
 // TickNote explains the tick box over it, in line with the box's words.
 func (p *Palette) TickNote(c *ui.Context, text string) {
-	ui.Text(c, text).FontSize(FsNote).TextColor(p.Theme.TextMuted).LineHeight(LhBody).Margin(-4, 0, 4, tickIndent)
+	ui.Text(c, text).FontSize(FsNote).TextColor(p.Theme.TextMuted).LineHeight(LhBody).Margin(-4, 0, 4, TickIndent)
 }
 
 // TickNoteLink is a TickNote followed by the text button link, which acts
@@ -36,7 +36,7 @@ func (p *Palette) TickNote(c *ui.Context, text string) {
 // button was clicked.
 func (p *Palette) TickNoteLink(c *ui.Context, text, link string) (clicked bool) {
 	// The gap and the button's own padding of 6 leave 8 before its words.
-	ui.Row(c).Gap(2).AlignItems(ui.Center).Margin(-4, 0, 4, tickIndent).Children(func() {
+	ui.Row(c).Gap(2).AlignItems(ui.Center).Margin(-4, 0, 4, TickIndent).Children(func() {
 		ui.Text(c, text).FontSize(FsNote).TextColor(p.Theme.TextMuted).LineHeight(LhBody)
 		if link != "" {
 			clicked = p.Ghost(c, link, ui.Color{}).Clicked()
@@ -169,9 +169,9 @@ func (p *Palette) DialogHead(c *ui.Context, title, about string) {
 	})
 }
 
-// tickIndent is from a tick box's left edge to its words: what explains
+// TickIndent is from a tick box's left edge to its words: what explains
 // the box starts under the words.
-const tickIndent = IconMd + 8
+const TickIndent = IconMd + 8
 
 //go:embed tokens.css
 var tokensCSS string

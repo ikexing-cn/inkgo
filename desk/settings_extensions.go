@@ -222,7 +222,7 @@ func (a *App) extensionSection(c *ui.Context, id string) {
 		if !hasSettings {
 			return
 		}
-		ui.Column(c).FillWidth().Gap(10).Margin(0, 0, 0, kit.IconSm+6).Children(func() {
+		ui.Column(c).FillWidth().Gap(10).Margin(0, 0, 0, kit.TickIndent).Children(func() {
 			for _, item := range a.extViews.sections {
 				if item.Owner != id || item.Value.Work && a.Store == nil {
 					continue
@@ -241,26 +241,17 @@ func (a *App) extensionSection(c *ui.Context, id string) {
 func (a *App) extensionHead(c *ui.Context, v extensionView) {
 	ui.Column(c).FillWidth().Gap(2).Children(func() {
 		on := v.own
-		b := ui.CheckboxBase(c, &on).Gap(6).AlignItems(ui.Center).Label("扩展开关-" + v.module.ID)
-		b.Children(func() {
-			box := ui.Box(c).Size(kit.IconSm, kit.IconSm).Radius(kit.RXs).Border(1, a.pal.Control)
-			if v.own {
-				box.Background(a.pal.Ink).Border(1, a.pal.Ink).Children(func() { kit.Glyph(c, kit.IcCheck, kit.IconSm, a.pal.OnInk) })
-			}
-			if len(v.waits) > 0 {
-				box.Opacity(kit.OpacityDisabled)
-			}
-			fg := a.pal.Theme.Text
-			if b.Hovered() {
-				fg = a.pal.Ink
-			}
-			ui.Text(c, v.name()).FontSize(kit.FsGroup).FontWeight(600).TextColor(fg)
-		})
+		// The tick box of every other setting; waiting on what it needs,
+		// it pales, words and all.
+		b := ui.Checkbox(c, &on, v.name()).FontSize(kit.FsGroup).FontWeight(600).Label("扩展开关-" + v.module.ID)
+		if len(v.waits) > 0 {
+			b.Opacity(kit.OpacityDisabled)
+		}
 		if b.Changed() {
 			a.flipExtension(v.module.ID, on, v.mine)
 		}
 		note := func(text string, color ui.Color) {
-			ui.Text(c, text).FontSize(kit.FsNote).TextColor(color).LineHeight(kit.LhBody).Margin(0, 0, 0, kit.IconSm+6)
+			ui.Text(c, text).FontSize(kit.FsNote).TextColor(color).LineHeight(kit.LhBody).Margin(0, 0, 0, kit.TickIndent)
 		}
 		if v.module.Desc != nil {
 			note(v.module.Desc(), a.pal.Theme.TextMuted)
