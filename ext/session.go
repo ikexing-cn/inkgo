@@ -16,6 +16,7 @@ type Session struct {
 	mu        sync.Mutex
 	stopped   bool
 	wg        sync.WaitGroup
+	onPanic   func(any)
 }
 
 func newSession(id string, book Book, local string) *Session {
@@ -46,7 +47,19 @@ func (s *Session) Go(f Task) {
 		return
 	}
 	s.wg.Add(1)
-	go func() { defer s.wg.Done(); f(s.ctx) }()
+	go func() {
+		defer s.wg.Done()
+		defer func() {
+			if v := recover(); v != nil {
+				if s.onPanic != nil {
+					s.onPanic(v)
+				} else {
+					panic(v)
+				}
+			}
+		}()
+		f(s.ctx)
+	}()
 }
 func (s *Session) stop() {
 	s.mu.Lock()

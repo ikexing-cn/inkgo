@@ -12,7 +12,7 @@ const (
 	Library             // Library always follows its local switch.
 )
 
-// HostOwner is reserved for points declared by the application in a later layer.
+// HostOwner is reserved for points and hooks declared by the application.
 const HostOwner = "host"
 
 // Module describes an extension. Setup only records declarations, once per Host.
@@ -45,11 +45,11 @@ type BookSwitchStore interface {
 	Save(Book, map[string]bool) error
 }
 
-// SettingStore persists typed values by prefixed setting ID. A zero Book means
+// SettingStore persists JSON bytes by prefixed setting ID. A zero Book means
 // local storage. Calls are serialized by Host; Save must finish before returning.
 type SettingStore interface {
-	Load(Book, string) (any, bool)
-	Save(Book, string, any)
+	Load(Book, string) ([]byte, bool)
+	Save(Book, string, []byte)
 }
 
 // Options supplies storage and the directory containing local extension data.
@@ -60,6 +60,13 @@ type Options struct {
 	LocalSwitches LocalSwitchStore
 	BookSwitches  BookSwitchStore
 	Settings      SettingStore
+	// DeclareHost records host-owned points and hooks before module Setup.
+	DeclareHost func(*Registrar)
+	// Injections persists author-controlled ordering and choices.
+	Injections InjectionStore
+	// OnFailure reports failures without the state lock. It can run on any calling
+	// goroutine; marshal notifications to the UI and do not mutate Host here.
+	OnFailure func(id string, f Failure)
 }
 
 // Scope selects the persistence layer of a preference.
@@ -101,6 +108,8 @@ const (
 type Item[T any] struct {
 	ID, Owner string
 	Value     T
+	// ReplacedBy is the supplying injection ID, or empty for the original.
+	ReplacedBy string
 }
 
 // Dependency reports whether a declared dependency is currently active.
@@ -129,29 +138,52 @@ type SettingInfo struct {
 	Schema      any
 }
 
-// InjectionKind reserves the vocabulary for the next implementation stage.
+// InjectionKind identifies an interception operation.
 type InjectionKind uint8
 
 const (
-	Before InjectionKind = iota
-	After
-	Around
-	Overwrite
-	Replace
+	BeforeKind InjectionKind = iota
+	AfterKind
+	AroundKind
+	OverwriteKind
+	ReplaceKind
 )
 
-// Injection reserves ledger space; registration and execution are not yet offered.
+// ReasonKind identifies an injection status without prescribing display text.
+type ReasonKind uint8
+
+const (
+	ReasonEnabled     ReasonKind = iota // ReasonEnabled has no related ID.
+	ReasonInjectorOff                   // ReasonInjectorOff identifies the inactive injector.
+	ReasonTargetOff                     // ReasonTargetOff identifies the inactive target or point owner.
+	ReasonConflict                      // ReasonConflict has no single related ID; inspect the target's chain.
+	ReasonNotSelected                   // ReasonNotSelected identifies the selected injection.
+	ReasonReplaced                      // ReasonReplaced identifies the replacing injection.
+)
+
+// Reason supplies a status kind and a related module or injection ID for the UI
+// to translate. ID is empty for ReasonEnabled and ReasonConflict.
+type Reason struct {
+	Kind ReasonKind
+	ID   string
+}
+
+// Injection describes an interception, including inactive and conflicting entries.
 type Injection struct {
 	ID, Target       string
 	Kind             InjectionKind
 	Order            int
 	Active, Conflict bool
+	Owner            string
+	Reason           Reason
 }
 
 // Failure retains the original error and the lifecycle location.
 type Failure struct {
 	Stage string
 	Err   error
+	// Module, Target, Injection and Chain locate the failing callback.
+	Module, Target, Injection, Chain string
 }
 
 // Ledger is a snapshot of all declarations, including those of inactive modules.

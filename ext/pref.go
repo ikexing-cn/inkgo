@@ -1,6 +1,9 @@
 package ext
 
-import "reflect"
+import (
+	"encoding/json"
+	"reflect"
+)
 
 type preference interface {
 	current() any
@@ -42,7 +45,7 @@ func (p *Pref[T]) book() Book {
 	}
 	return p.h.book
 }
-func (h *Host) loadSetting(b Book, id string) (any, bool) {
+func (h *Host) loadSetting(b Book, id string) ([]byte, bool) {
 	if h.opts.Settings != nil {
 		return h.opts.Settings.Load(b, id)
 	}
@@ -57,13 +60,15 @@ func (p *Pref[T]) get(b Book) T {
 		b = Book{}
 	}
 	if v, ok := p.h.loadSetting(b, p.id); ok {
-		if value, valid := v.(T); valid {
+		var value T
+		if json.Unmarshal(v, &value) == nil {
 			return value
 		}
 	}
 	if p.schema.Scope == Both && b.Dir != "" {
 		if v, ok := p.h.loadSetting(Book{}, p.id); ok {
-			if value, valid := v.(T); valid {
+			var value T
+			if json.Unmarshal(v, &value) == nil {
 				return value
 			}
 		}
@@ -72,7 +77,7 @@ func (p *Pref[T]) get(b Book) T {
 }
 
 // Get reads the current scope, falling back to the schema default. Values with
-// the wrong persisted Go type are ignored. It panics during Setup.
+// invalid JSON or an incompatible JSON type are ignored. It panics during Setup.
 func (p *Pref[T]) Get() T {
 	b := p.book()
 	p.h.storeMu.Lock()
@@ -81,7 +86,8 @@ func (p *Pref[T]) Get() T {
 }
 
 // Set persists the value and notifies listeners if the effective value changed.
-// Like stored settings, mutable values are owned by their callers.
+// The JSON bytes are independent of the caller's mutable value. Values that
+// cannot be JSON encoded panic before storage changes.
 func (p *Pref[T]) Set(value T) {
 	b := p.book()
 	if p.schema.Scope == BookScope && b.Dir == "" {
@@ -90,15 +96,19 @@ func (p *Pref[T]) Set(value T) {
 	if p.schema.Scope == Local {
 		b = Book{}
 	}
+	data, err := json.Marshal(value)
+	if err != nil {
+		panic(err)
+	}
 	p.h.storeMu.Lock()
 	old := p.get(b)
 	if p.h.opts.Settings != nil {
-		p.h.opts.Settings.Save(b, p.id, value)
+		p.h.opts.Settings.Save(b, p.id, data)
 	} else {
 		if p.h.settingMemory[b] == nil {
-			p.h.settingMemory[b] = map[string]any{}
+			p.h.settingMemory[b] = map[string][]byte{}
 		}
-		p.h.settingMemory[b][p.id] = value
+		p.h.settingMemory[b][p.id] = data
 	}
 	p.h.storeMu.Unlock()
 	if !reflect.DeepEqual(old, value) {
@@ -117,7 +127,10 @@ func (p *Pref[T]) notify(v T) {
 	listeners := append([]func(T){}, p.listeners...)
 	p.h.mu.RUnlock()
 	for _, f := range listeners {
-		f(v)
+		if err := protect(func() { f(v) }); err != nil {
+			p.h.callFailure(owner(p.id), "OnChange", p.id, "", err)
+			return
+		}
 	}
 }
 func (p *Pref[T]) current() any { return p.Get() }

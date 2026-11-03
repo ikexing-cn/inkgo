@@ -12,25 +12,33 @@ import (
 // methods belong to the UI thread and must not be called from lifecycle hooks.
 // Reads, references and preferences may also be used by session tasks.
 type Host struct {
-	mu            sync.RWMutex
-	storeMu       sync.Mutex
-	opts          Options
-	setup         bool
-	entries       []*entry
-	byID          map[string]*entry
-	points        map[string]point
-	contributions []contribution
-	providers     map[string]provider
-	providerOrder []string
-	uses          []serviceUse
-	services      map[string]serviceValue
-	running       []*entry
-	book          Book
-	off           map[string]bool
-	bookSwitch    map[string]bool
-	bookMemory    map[Book]map[string]bool
-	settingMemory map[Book]map[string]any
-	prefs         []preference
+	opMu                 sync.Mutex
+	mu                   sync.RWMutex
+	hooks                map[string]hookDecl
+	calls                map[string]callDeclaration
+	injections           []interception
+	injectionPreferences map[string]InjectionPreference
+	chains               map[string][]ChainLink
+	replacements         map[string]interception
+	pending              map[*entry]bool
+	storeMu              sync.Mutex
+	opts                 Options
+	setup                bool
+	entries              []*entry
+	byID                 map[string]*entry
+	points               map[string]point
+	contributions        []contribution
+	providers            map[string]provider
+	providerOrder        []string
+	uses                 []serviceUse
+	services             map[string]serviceValue
+	running              []*entry
+	book                 Book
+	off                  map[string]bool
+	bookSwitch           map[string]bool
+	bookMemory           map[Book]map[string]bool
+	settingMemory        map[Book]map[string][]byte
+	prefs                []preference
 }
 
 var moduleID = regexp.MustCompile(`^[a-z][a-z0-9]*$`)
@@ -39,7 +47,17 @@ var moduleID = regexp.MustCompile(`^[a-z][a-z0-9]*$`)
 // switches and starts eligible modules on the shelf. Each Setup runs once for
 // this assembly; Open and switch changes never repeat it.
 func New(opts Options, mods ...Module) (*Host, error) {
-	h := &Host{opts: opts, setup: true, byID: map[string]*entry{}, points: map[string]point{}, providers: map[string]provider{}, services: map[string]serviceValue{}, off: map[string]bool{}, bookSwitch: map[string]bool{}, bookMemory: map[Book]map[string]bool{}, settingMemory: map[Book]map[string]any{}}
+	h := &Host{opts: opts, setup: true, byID: map[string]*entry{}, points: map[string]point{}, providers: map[string]provider{}, services: map[string]serviceValue{}, off: map[string]bool{}, bookSwitch: map[string]bool{}, bookMemory: map[Book]map[string]bool{}, settingMemory: map[Book]map[string][]byte{}}
+	h.hooks = map[string]hookDecl{}
+	h.calls = map[string]callDeclaration{}
+	h.injectionPreferences = map[string]InjectionPreference{}
+	h.pending = map[*entry]bool{}
+	if opts.DeclareHost != nil {
+		e := &entry{mod: Module{ID: HostOwner, Setup: opts.DeclareHost}, ids: map[string]bool{}}
+		if err := h.register(e); err != nil {
+			return nil, err
+		}
+	}
 	positions := map[string]int{}
 	for i, m := range mods {
 		if !moduleID.MatchString(m.ID) || m.ID == HostOwner {
@@ -118,7 +136,18 @@ func New(opts Options, mods ...Module) (*Host, error) {
 			return nil, fmt.Errorf("module %s: Use service %q is missing or has a different type", u.owner, u.key)
 		}
 	}
+	if err := h.validateInjections(); err != nil {
+		return nil, err
+	}
+	if opts.Injections != nil {
+		prefs, err := opts.Injections.Load()
+		if err != nil {
+			return nil, err
+		}
+		h.injectionPreferences = clonePreferences(prefs)
+	}
 	h.setup = false
+	h.rebuildChains()
 	if opts.LocalSwitches != nil {
 		off, err := opts.LocalSwitches.Load()
 		if err != nil {
@@ -235,6 +264,9 @@ func cloneSwitches(in map[string]bool) map[string]bool {
 	return out
 }
 func (h *Host) set(id string, on, book, clear bool) error {
+	h.opMu.Lock()
+	defer h.opMu.Unlock()
+	h.drainFailures()
 	h.mu.RLock()
 	e := h.byID[id]
 	if e == nil {
@@ -311,6 +343,9 @@ func (h *Host) set(id string, on, book, clear bool) error {
 // Open stops all running sessions before starting the new book's effective set.
 // Storage is loaded first so a read error leaves the old book running.
 func (h *Host) Open(book Book) error {
+	h.opMu.Lock()
+	defer h.opMu.Unlock()
+	h.drainFailures()
 	h.mu.RLock()
 	same := h.book == book
 	h.mu.RUnlock()
@@ -354,12 +389,17 @@ func (h *Host) Open(book Book) error {
 
 // Close cancels every session and waits for its tasks. Declarations remain readable.
 func (h *Host) Close() {
+	h.opMu.Lock()
+	defer h.opMu.Unlock()
+	h.drainFailures()
+	defer func() { h.mu.Lock(); h.rebuildChains(); h.mu.Unlock() }()
 	for len(h.running) > 0 {
 		h.stop(h.running[len(h.running)-1])
 	}
 }
 
 func (h *Host) reconcile() {
+	defer func() { h.mu.Lock(); h.rebuildChains(); h.mu.Unlock() }()
 	wanted := map[string]bool{}
 	h.mu.RLock()
 	for _, e := range h.entries {
@@ -402,34 +442,48 @@ func (h *Host) reconcile() {
 func (h *Host) start(e *entry) {
 	h.mu.Lock()
 	s := newSession(e.mod.ID, h.book, h.opts.LocalRoot)
+	s.onPanic = func(v any) { h.callFailure(e.mod.ID, "Task", "", "", v) }
 	e.session = s
 	e.ledger.State = Starting
 	h.mu.Unlock()
+
 	for _, key := range h.providerOrder {
 		if h.providers[key].owner == e.mod.ID {
-			v := h.providers[key].build(s)
+			var v serviceValue
+			if err := protect(func() { v = h.providers[key].build(s) }); err != nil {
+				h.startFailure(e, s, "Provide "+key, err)
+				return
+			}
 			h.mu.Lock()
 			h.services[key] = v
 			h.mu.Unlock()
 		}
 	}
 	for _, f := range e.starts {
-		if err := f(s); err != nil {
-			h.mu.Lock()
-			e.ledger.State = Failed
-			e.ledger.Errors = append(e.ledger.Errors, Failure{"OnStart", err})
-			h.removeServices(e)
-			h.mu.Unlock()
-			s.stop()
-			for i := len(e.stops) - 1; i >= 0; i-- {
-				e.stops[i](s)
-			}
-			e.session = nil
+		var err error
+		if panicErr := protect(func() { err = f(s) }); panicErr != nil {
+			err = panicErr
+		}
+		if err != nil {
+			h.startFailure(e, s, "OnStart", err)
 			return
 		}
 	}
 	h.mu.Lock()
+	if e.ledger.State != Starting {
+		h.mu.Unlock()
+		s.stop()
+		for i := len(e.stops) - 1; i >= 0; i-- {
+			h.stopCallback(e, s, e.stops[i])
+		}
+		h.mu.Lock()
+		e.session = nil
+		delete(h.pending, e)
+		h.mu.Unlock()
+		return
+	}
 	e.ledger.State = On
+	h.rebuildChains()
 	h.mu.Unlock()
 	h.running = append(h.running, e)
 }
@@ -440,15 +494,18 @@ func (h *Host) removeServices(e *entry) {
 }
 func (h *Host) stop(e *entry) {
 	h.mu.Lock()
-	e.ledger.State = Off
+	if e.ledger.State != Failed {
+		e.ledger.State = Off
+	}
 	h.removeServices(e)
-	h.mu.Unlock()
+	h.rebuildChains()
 	s := e.session
+	e.session = nil
+	h.mu.Unlock()
 	s.stop()
 	for i := len(e.stops) - 1; i >= 0; i-- {
-		e.stops[i](s)
+		h.stopCallback(e, s, e.stops[i])
 	}
-	e.session = nil
 	for i, candidate := range h.running {
 		if candidate == e {
 			h.running = append(h.running[:i], h.running[i+1:]...)
@@ -471,15 +528,20 @@ func Items[T any](h *Host, key PointKey[T]) []Item[T] {
 			if c.typ != reflect.TypeFor[T]() {
 				panic(fmt.Sprintf("point %q requested with a different type", key))
 			}
+			value, replacedBy := c.value, ""
+			if replacement, ok := h.replacements[itemTarget(c.key, c.id)]; ok {
+				value = replacement.fn
+				replacedBy = replacement.ID
+			}
 			var v T
-			if c.value != nil {
+			if value != nil {
 				var ok bool
-				v, ok = c.value.(T)
+				v, ok = value.(T)
 				if !ok {
 					panic(fmt.Sprintf("point %q requested with a different type", key))
 				}
 			}
-			out = append(out, Item[T]{c.id, c.owner, v})
+			out = append(out, Item[T]{ID: c.id, Owner: c.owner, Value: v, ReplacedBy: replacedBy})
 		}
 	}
 	return out

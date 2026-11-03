@@ -8,22 +8,22 @@ import (
 )
 
 type settingsStore struct {
-	values map[ext.Book]map[string]any
+	values map[ext.Book]map[string][]byte
 	calls  []string
 }
 
-func (s *settingsStore) Load(b ext.Book, id string) (any, bool) {
+func (s *settingsStore) Load(b ext.Book, id string) ([]byte, bool) {
 	s.calls = append(s.calls, "load:"+b.Dir+":"+id)
 	v, ok := s.values[b][id]
 	return v, ok
 }
-func (s *settingsStore) Save(b ext.Book, id string, v any) {
+func (s *settingsStore) Save(b ext.Book, id string, v []byte) {
 	s.calls = append(s.calls, "save:"+b.Dir+":"+id)
 	if s.values == nil {
-		s.values = map[ext.Book]map[string]any{}
+		s.values = map[ext.Book]map[string][]byte{}
 	}
 	if s.values[b] == nil {
-		s.values[b] = map[string]any{}
+		s.values[b] = map[string][]byte{}
 	}
 	s.values[b][id] = v
 }
@@ -45,7 +45,7 @@ func TestSettingDefaultsSetGetAndOnChange(t *testing.T) {
 		t.Fatal(p.Get())
 	}
 	p.Set(9)
-	if p.Get() != 9 || !reflect.DeepEqual(changes, []int{9}) || store.values[ext.Book{}]["a.count"] != 9 {
+	if p.Get() != 9 || !reflect.DeepEqual(changes, []int{9}) || string(store.values[ext.Book{}]["a.count"]) != "9" {
 		t.Fatal(changes, store.values)
 	}
 	p.Set(9)
@@ -57,7 +57,7 @@ func TestSettingDefaultsSetGetAndOnChange(t *testing.T) {
 func TestBookSettingFollowsCurrentBookAndDefaultsOnShelf(t *testing.T) {
 	var p *ext.Pref[string]
 	var changes []string
-	store := &settingsStore{values: map[ext.Book]map[string]any{{Dir: "two"}: {"a.mode": "second"}}}
+	store := &settingsStore{values: map[ext.Book]map[string][]byte{{Dir: "two"}: {"a.mode": []byte("\"second\"")}}}
 	h := host(t, ext.Options{Settings: store}, ext.Module{ID: "a", Setup: func(r *ext.Registrar) {
 		p = ext.Setting(r, "mode", ext.Schema[string]{Default: "default", Scope: ext.BookScope})
 		p.OnChange(func(v string) { changes = append(changes, v) })
@@ -115,7 +115,7 @@ func TestBothSettingUsesBookOverrideThenLocalThenDefault(t *testing.T) {
 	}
 }
 func TestSettingStoreRehydratesAndIgnoresWrongStoredType(t *testing.T) {
-	store := &settingsStore{values: map[ext.Book]map[string]any{{}: {"a.count": "wrong type"}}}
+	store := &settingsStore{values: map[ext.Book]map[string][]byte{{}: {"a.count": []byte("\"wrong type\"")}}}
 	var p *ext.Pref[int]
 	mod := ext.Module{ID: "a", Setup: func(r *ext.Registrar) { p = ext.Setting(r, "count", ext.Schema[int]{Default: 7}) }}
 	h := host(t, ext.Options{Settings: store}, mod)
