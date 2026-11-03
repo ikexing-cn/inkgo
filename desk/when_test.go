@@ -3,8 +3,9 @@ package desk
 import (
 	"testing"
 	"time"
+	"writer/ext/backup"
 
-	"writer/backup"
+	"writer/ext/backup/archive"
 )
 
 // The talks and the backups say their day as kit.DayOf does.
@@ -26,8 +27,8 @@ func TestTalksAndBackupsSayTheirDay(t *testing.T) {
 	}
 	// The first of the backups kept, by its day: one from last year has it.
 	for at, say := range map[time.Time]string{now.Add(-time.Hour): "今天", time.Date(2026, 9, 28, 9, 0, 0, 0, time.Local): "09-28", time.Date(2025, 10, 3, 9, 0, 0, 0, time.Local): "2025-10-03"} {
-		list := []backup.Info{{At: now, Words: 1200, Chapters: 3}, {At: at}}
-		if got := kept(list, now); got != "1,200 字 · 3 章 · 已存 2 份，最早 "+say {
+		list := []archive.Info{{At: now, Words: 1200, Chapters: 3}, {At: at}}
+		if got := backup.Kept(list, now); got != "1,200 字 · 3 章 · 已存 2 份，最早 "+say {
 			t.Errorf("kept, the first at %v: %q", at, got)
 		}
 	}

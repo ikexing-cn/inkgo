@@ -37,8 +37,6 @@ type App struct {
 	// PickFolder shows a native folder dialog; it runs off the UI thread.
 	// Nil hides the browse buttons (tests, platforms without dialogs).
 	PickFolder func(title string) (string, error)
-	// Backups asks, the first time a work opens here, where to back it up.
-	Backups bool
 	// SaveFile asks where to save a file named name, off the UI thread;
 	// nil saves exports into the work's 导出 folder.
 	SaveFile func(title, name string) (string, error)
@@ -62,6 +60,7 @@ type App struct {
 	hostPaneTabs      tabTable[paneTab]
 	extViews          extensionViews
 	prefTabs          tabTable[string]
+	hostPrefTabs      tabTable[string]
 	offFrom           page              // the page of the AI the prose took the place of as the AI was turned off,
 	offAway           bool              // while there is one
 	shown             page              // the page the last frame showed
@@ -80,7 +79,6 @@ type App struct {
 	path, name, genre string
 	shelf             shelf.Shelf
 	ranNoGPU          bool // the shelf's NoGPU as the software opened, which cmd/inkgo draws by
-	bk                backupView
 	settings          settingsView
 	record            recordView
 	books             shelfView
@@ -222,7 +220,6 @@ func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 	} else {
 		a.session = sessions[len(sessions)-1]
 	}
-	a.askBackup()
 	return a.refresh()
 }
 
@@ -235,7 +232,6 @@ func (a *App) resetView() {
 	a.resetPrefs()
 	a.source, a.sourceOpen, a.contextReply = nil, false, ""
 	a.input, a.seen, a.flash, a.doc, a.write = "", -1, map[string]time.Time{}, docView{}, writeView{}
-	a.bk = backupView{}
 	a.plan = outline.Page{Host: appHost{a}}
 	a.page, a.shown, a.offAway = pageTalk, pageTalk, false
 }
@@ -273,9 +269,11 @@ func (a *App) Close() error {
 
 // leaveWork leaves the store open for each caller to close; Close keeps it for a busy worker.
 func (a *App) leaveWork() {
-	if a.extensions != nil {
-		a.extensions.Close()
-	}
+	defer func() {
+		if a.extensions != nil {
+			a.extensions.Close()
+		}
+	}()
 	if a.Store == nil {
 		return
 	}
@@ -284,7 +282,7 @@ func (a *App) leaveWork() {
 	a.plan.FinishOutline()
 	a.keepUnsettled()
 	a.remember(false)
-	a.backupNow()
+	a.extensionLeave()
 	a.stopChecks()
 }
 

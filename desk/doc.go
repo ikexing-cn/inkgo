@@ -12,7 +12,7 @@
 // ai.go: inline continuation, rewriting, drafting, and the prose AI record.
 // aiswitch.go: the machine-wide AI switch and shutdown handling.
 // app.go: App state, work lifecycle, content refresh, and errors.
-// backup.go: backup tasks, policy wiring, folder selection, and settings.
+// extensions_lifecycle.go: extension status, settings, pending groups and lifecycle.
 // beside.go: right-pane width and tabs, discussion lists, and prose quotes.
 // cache.go: values built once per key.
 // categories.go: work-category forms and deletion confirmation.

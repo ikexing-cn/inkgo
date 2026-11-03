@@ -59,8 +59,12 @@ func (h *Host) stopCallback(e *entry, s *Session, f func(*Session)) {
 // mutation changes registrations. A session task can therefore fail its own
 // call without waiting for itself. No cleanup callback runs with mu held.
 func (h *Host) callFailure(id, stage, target, injection string, v any) error {
+	return h.failCall(id, stage, target, injection, target, v)
+}
+
+func (h *Host) failCall(id, stage, target, injection, chain string, v any) error {
 	err := panicError(v)
-	f := Failure{Module: id, Stage: stage, Target: target, Injection: injection, Chain: target, Err: err}
+	f := Failure{Module: id, Stage: stage, Target: target, Injection: injection, Chain: chain, Err: err}
 	h.mu.Lock()
 	e := h.byID[id]
 	e.ledger.State = Failed

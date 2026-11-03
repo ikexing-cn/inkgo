@@ -7,8 +7,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"writer/backup"
 )
 
 func work(t *testing.T, dir string) string {
@@ -35,7 +33,7 @@ func TestShelfRoundTrip(t *testing.T) {
 	s.Put(Book{Path: filepath.Join(dir, "a"), Name: "甲", Opened: now.Add(-time.Hour)})
 	s.Put(Book{Path: filepath.Join(dir, "b"), Name: "乙", Opened: now})
 	s.Put(Book{Path: filepath.Join(dir, "c"), Name: "丙"})
-	s.SetBackup(filepath.Join(dir, "a"), backup.Settings{Dir: `E:\备份`, OnClose: true, Keep: 10})
+	s.Books[s.Find(filepath.Join(dir, "a"))].MovedBackup = json.RawMessage("{\"dir\":\"E:/备份\",\"on_close\":true,\"keep\":10}")
 	s.Put(Book{Path: filepath.Join(dir, "a"), Name: "甲改", Words: 12}) // keeps when it was opened, and its backup
 	if err := s.Save(path); err != nil {
 		t.Fatal(err)
@@ -56,11 +54,8 @@ func TestShelfRoundTrip(t *testing.T) {
 	if b := got.Books[got.Find(filepath.Join(dir, "a"))]; b.Words != 12 || !b.Opened.Equal(now.Add(-time.Hour)) {
 		t.Fatalf("%+v", b)
 	}
-	if b, ok := got.Backup(filepath.Join(dir, "a")); !ok || b.Dir != `E:\备份` || !b.OnClose || b.Kept() != 10 {
-		t.Fatalf("backup %+v %v", b, ok)
-	}
-	if _, ok := got.Backup(filepath.Join(dir, "b")); ok {
-		t.Fatal("never asked, yet set")
+	if len(got.Books[got.Find(filepath.Join(dir, "a"))].MovedBackup) == 0 || len(got.Books[got.Find(filepath.Join(dir, "b"))].MovedBackup) != 0 {
+		t.Fatal("legacy settings lost")
 	}
 
 	got.Relocate(filepath.Join(dir, "a"), filepath.Join(dir, "d"))

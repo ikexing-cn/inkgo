@@ -1,7 +1,7 @@
-// Package backup copies a work, all of it but .writer/, into one zip file
+// Package archive copies a work, all of it but .writer/, into one zip file
 // in a folder of the author's choosing, keeps the latest few, and unpacks
 // one again to compare or restore.
-package backup
+package archive
 
 import (
 	"archive/zip"

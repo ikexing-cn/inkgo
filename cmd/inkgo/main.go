@@ -43,7 +43,6 @@ func main() {
 	if err != nil {
 		d.SetError(err)
 	}
-	d.Backups = true
 	// The dialogs open over the window, asked for off the UI thread.
 	var win atomic.Pointer[mygo.Window]
 	var area atomic.Pointer[mygo.Rectangle]

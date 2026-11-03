@@ -16,7 +16,7 @@ func TestSettingsCloseKeepsTheWorkAndBackup(t *testing.T) {
 			a.openPrefs("外观")
 			a.serviceForm.new()
 			a.serviceForm.provider.Name = "unsaved service"
-			backupBefore := a.bk
+			backupBefore := backupOf(a).State
 			tt.Frame()
 			switch how {
 			case "button":
@@ -34,7 +34,7 @@ func TestSettingsCloseKeepsTheWorkAndBackup(t *testing.T) {
 			if a.settings.open || a.settings.askAI || a.settings.tab != "外观" {
 				t.Fatal("settings did not close cleanly", a.settings)
 			}
-			if a.serviceForm.provider.Name != "unsaved service" || !reflect.DeepEqual(a.bk, backupBefore) {
+			if a.serviceForm.provider.Name != "unsaved service" || !reflect.DeepEqual(backupOf(a).State, backupBefore) {
 				t.Fatal("closing settings changed a draft or backup state")
 			}
 			a.openPrefs(a.settings.tab)
@@ -50,7 +50,7 @@ func TestSettingsCloseKeepsTheWorkAndBackup(t *testing.T) {
 // there, not an empty line; one that does still says it.
 func TestSettingsSayNothingNeedless(t *testing.T) {
 	a, tt, _ := fixture(t)
-	for tab, note := range map[string]string{"AI": "", "备份": "", "外观": "这台电脑上的所有作品", "提醒与检查": "只管这部作品"} {
+	for tab, note := range map[string]string{"AI": "", "backup.settings": "", "外观": "这台电脑上的所有作品", "提醒与检查": "只管这部作品"} {
 		a.openPrefs(tab)
 		tt.Frame()
 		texts := tt.Texts()

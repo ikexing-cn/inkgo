@@ -10,6 +10,7 @@ import (
 	"writer/ext"
 	"writer/internal/atomicfile"
 	"writer/locales"
+	"writer/shelf"
 )
 
 // extensionFile is ext.json: off lists disabled local IDs, switches contains
@@ -185,13 +186,55 @@ func (s *extensionStore) migrate(key string, data json.RawMessage) error {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	f := s.file(ext.Book{})
-	if _, ok := f.Settings[key]; ok {
+	if _, exists := s.file(ext.Book{}).Settings[key]; exists {
 		return nil
 	}
+	return s.persistMigration(key, data)
+}
+
+// mergeMigration imports missing folders using the host platform identity rules.
+func (s *extensionStore) mergeMigration(key string, incoming map[string]json.RawMessage) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	current := map[string]json.RawMessage{}
+	if old, exists := s.file(ext.Book{}).Settings[key]; exists {
+		if err := json.Unmarshal(old, &current); err != nil {
+			return err
+		}
+		if current == nil {
+			current = map[string]json.RawMessage{}
+		}
+	}
+	for folder, value := range incoming {
+		found := false
+		for saved := range current {
+			if shelf.SameFolder(saved, folder) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			current[folder] = value
+		}
+	}
+	data, err := json.Marshal(current)
+	if err != nil {
+		return err
+	}
+	return s.persistMigration(key, data)
+}
+
+// persistMigration requires mu and restores cached data if the write fails.
+func (s *extensionStore) persistMigration(key string, data json.RawMessage) error {
+	f := s.file(ext.Book{})
+	old, exists := f.Settings[key]
 	f.Settings[key] = append([]byte(nil), data...)
 	if err := s.save(ext.Book{}); err != nil {
-		delete(f.Settings, key)
+		if exists {
+			f.Settings[key] = old
+		} else {
+			delete(f.Settings, key)
+		}
 		return err
 	}
 	return nil

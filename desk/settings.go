@@ -7,7 +7,7 @@ import (
 	"writer/locales"
 )
 
-// settingsView belongs to the settings window, independently of backups.
+// settingsView belongs to the settings window, independently of extension tasks.
 // Closing keeps the selected tab; leaving the work resets it.
 type settingsView struct {
 	open  bool
@@ -17,6 +17,9 @@ type settingsView struct {
 
 // The settings dialog keeps one size whichever part is shown.
 const prefsWidth, prefsHeight = 900, 620
+
+// prefsGap separates the rows of a part of the settings, an extension's too.
+const prefsGap = 12
 
 // prefAbout says under a part's title what the author must know of it;
 // a part with nothing such says nothing there.
@@ -32,8 +35,6 @@ func (a *App) prefName(tab string) string {
 	switch tab {
 	case "外观":
 		return locales.ViewLook()
-	case "备份":
-		return locales.ModBackup()
 	}
 	for _, entry := range a.prefTabs {
 		if entry.id == tab {
@@ -104,9 +105,10 @@ func (a *App) showPref(tab string) {
 }
 
 // preferences is the settings dialog: the AI, the appearance, the
-// reminders and the backups, over whatever page it was opened on; the
+// reminders and extension pages, over whatever page it was opened on; the
 // shelf has the first two, which hold for every work.
 func (a *App) preferences(c *ui.Context) {
+	a.syncExtensions()
 	if !a.settings.open {
 		a.closePrefs()
 		return
@@ -118,7 +120,7 @@ func (a *App) preferences(c *ui.Context) {
 		scrim := ui.Color{}
 		// What is asked over the settings shades the window, them with it:
 		// one shade, not two.
-		if !a.settings.askAI && !(a.bk.ask && a.Store != nil) {
+		if !a.settings.askAI && !a.extensionModalOpen() {
 			scrim = a.pal.Scrim
 		}
 		kit.DialogIn(back, panel, scrim)
@@ -167,16 +169,16 @@ func (a *App) preferences(c *ui.Context) {
 				a.recordsView(c)
 			} else {
 				ui.Scroll(c.Key("prefs-" + a.settings.tab)).Grow(1).Shrink(1).FillWidth().Children(func() {
-					ui.Column(c).FillWidth().Padding(12, 56, 32, 32).Gap(12).Children(func() {
+					ui.Column(c).FillWidth().Padding(12, 56, 32, 32).Gap(prefsGap).Children(func() {
 						switch a.settings.tab {
 						case "外观":
 							a.looksView(c)
-						case "备份":
-							a.backupSettingsView(c)
 						case "提醒与检查":
 							a.remindersView(c)
-						default:
+						case "AI":
 							a.aiView(c)
+						default:
+							a.extensionSettings(c, a.settings.tab)
 						}
 					})
 				})

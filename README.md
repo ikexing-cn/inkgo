@@ -33,7 +33,7 @@ npm run verify
 | [aiport](aiport/aiport.go)、[ai](ai/ai.go) | 界面使用的 AI 契约，以及装配、开关和请求记录 |
 | [discussion](discussion/engine.go)、[writing](writing/writer.go) | 讨论与工具调用，以及续写、正文检查 |
 | [inference](inference/model.go)、[prompt](prompt/prompt.go)、[model](model/client.go) | 共用推理规则、上下文预算、模型配置及网络协议 |
-| [backup](backup/backup.go)、[export](export/export.go)、[shelf](shelf/shelf.go)、[prefs](prefs/prefs.go) | 备份、导出、作品库与本机设置、每本作品的界面偏好 |
+| [backup](ext/backup/module.go)、[export](ext/export/module.go)、[shelf](shelf/shelf.go)、[prefs](prefs/prefs.go) | 备份、导出、作品库与本机设置、每本作品的界面偏好 |
 | [internal](internal)、[tokens](tokens/tokens.go) | 有具体用途的小工具、测试辅助和 token 估算 |
 
 主要依赖方向：入口装配 `desk` 和 `ai`；`desk` 只通过 `aiport` 使用 AI；`ai` 组合 `discussion`、`writing` 和 `model`。界面和 AI 都使用 `workspace`，底层不反向依赖界面。对应边界由各包的依赖测试保护。

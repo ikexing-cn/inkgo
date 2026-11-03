@@ -135,16 +135,20 @@ func TestNavigationTables(t *testing.T) {
 				{"AI", false}, {"外观", false}, {"提醒与检查", true}, {"备份", true},
 			} {
 				entry := a.prefTabs[i]
+				id := p.name
+				if id == "备份" {
+					id = "backup.settings"
+				}
 				want := !p.work || tc.work
-				if entry.id != p.name || entry.available(a) != want {
+				if entry.id != id || entry.available(a) != want {
 					t.Errorf("settings part %s: entry %+v, want available %v", p.name, entry, want)
 				}
 				if got := entry.number(); got != 0 {
 					t.Errorf("settings part %s count = %d, want 0", p.name, got)
 				}
-				a.openPrefs(p.name)
+				a.openPrefs(id)
 				tt.Frame()
-				shown := p.name
+				shown := id
 				if !want {
 					shown = "AI"
 				}

@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"writer/backup"
 	"writer/desk/kit"
 	"writer/editor"
+	"writer/ext/backup/archive"
 	"writer/internal/testshot"
 	"writer/workspace"
 )
@@ -144,8 +144,8 @@ func TestWritingToolsKeepTheirPlaces(t *testing.T) {
 	ed.Select(0, 2)
 	ed.MarkSelection(editor.MarkForeshadow, "")
 	a.doc.hidden = true
-	a.setBackup(backup.Settings{Dir: t.TempDir()})
-	a.bk.policy.RecordResult("", os.ErrNotExist, time.Now())
+	backupOf(a).Configure(archive.Settings{Dir: t.TempDir()})
+	backupOf(a).State.Policy.RecordResult("", os.ErrNotExist, time.Now())
 	tt.Frame()
 	tt.Frame()
 	hasText(t, tt, "本章伏笔 1")

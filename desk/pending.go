@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"maps"
 	"slices"
-	"time"
 
 	"github.com/egoist/mygo/i18n"
 	"github.com/egoist/mygo/ui"
@@ -39,33 +38,21 @@ func (a *App) scanMarks() {
 	a.warn(a.book.ReloadMarks())
 }
 
-// pendingBackupKey is what the backup failure in the list shows: its
-// settings, its failure, and the minute its last-backup line says.
-type pendingBackupKey struct {
-	ok      bool
-	dir     string
-	last    time.Time
-	failed  bool
-	trouble string
-	minute  int64
-}
-
 // pendingKey is everything pendingGroups reads: the book and the open
-// chapter, the AI, the late-after setting, the ignored keys, the backup
-// failure and the colours.
+// chapter, the AI, the late-after setting, the ignored keys, extension groups and the colours.
 type pendingKey struct {
-	locale  string
-	book    *book.Book
-	version int
-	ed      *editor.Editor
-	doc     int
-	node    string
-	live    bool
-	ai      bool
-	late    int
-	ignored int
-	backup  pendingBackupKey
-	pal     *kit.Palette
+	locale     string
+	book       *book.Book
+	version    int
+	ed         *editor.Editor
+	doc        int
+	node       string
+	live       bool
+	ai         bool
+	late       int
+	ignored    int
+	extensions string
+	pal        *kit.Palette
 }
 
 func (a *App) pendingKey() pendingKey {
@@ -74,21 +61,14 @@ func (a *App) pendingKey() pendingKey {
 	if w.cur().ed != nil {
 		doc = w.cur().ed.Doc.Version()
 	}
-	b := pendingBackupKey{}
-	if s, ok := a.backupSettings(); ok {
-		b.ok, b.dir, b.last, b.failed = true, s.Dir, s.Last, a.bk.policy.Failed()
-		if b.failed {
-			b.trouble, _, _ = a.bk.policy.Trouble(s.Dir)
-			b.minute = time.Now().Unix() / 60
-		}
-	}
+	b := a.extensionPendingKey()
 	return pendingKey{i18n.Locale(), a.book, a.book.Version(), w.cur().ed, doc, w.node, a.liveChapter(),
 		a.aiOn(), w.lateAfter, w.ignoredVer, b, a.pal}
 }
 
 // pendingGroups gathers what is pending and not ignored, by kind: what the
 // checks against the setting found, the foreshadowings lost or waiting too long, the open chapter's as it is
-// being written, and a backup that failed.
+// being written, and extension groups.
 func (a *App) pendingGroups() []pendGroup {
 	return a.write.pending.get(a.pendingKey(), a.buildPendingGroups)
 }
@@ -143,9 +123,7 @@ func (a *App) buildPendingGroups() []pendGroup {
 	if len(items) > 0 {
 		groups = append(groups, pendGroup{id: "marks", name: locales.StatusGroupMarks(), color: a.pal.Faint, items: items})
 	}
-	if g, ok := a.backupPending(); ok {
-		groups = append(groups, g)
-	}
+	groups = append(groups, a.extensionPendingGroups()...)
 	return groups
 }
 

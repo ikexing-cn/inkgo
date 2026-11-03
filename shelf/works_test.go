@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"writer/backup"
 	"writer/workspace"
 )
 
@@ -39,7 +38,7 @@ func TestDescribeAndShelfWorkDecisions(t *testing.T) {
 	}
 	op := time.Date(2026, 10, 22, 9, 0, 0, 0, time.UTC)
 	s.Books[0].Opened = op
-	s.Books[0].Backup = &backup.Settings{Dir: "backup"}
+	s.Books[0].MovedBackup = []byte("{\"dir\":\"backup\"}")
 	moved := root + "-moved"
 	if err = os.Rename(root, moved); err != nil {
 		t.Fatal(err)
@@ -47,7 +46,7 @@ func TestDescribeAndShelfWorkDecisions(t *testing.T) {
 	if err = s.RelocateWork(root, moved); err != nil {
 		t.Fatal(err)
 	}
-	if len(s.Books) != 1 || s.Books[0].Path != moved || !s.Books[0].Opened.Equal(op) || s.Books[0].Backup.Dir != "backup" {
+	if len(s.Books) != 1 || s.Books[0].Path != moved || !s.Books[0].Opened.Equal(op) || string(s.Books[0].MovedBackup) != "{\"dir\":\"backup\"}" {
 		t.Fatal(s.Books)
 	}
 	s.Remove(moved)
@@ -88,11 +87,11 @@ func TestRelocateToExistingWork(t *testing.T) {
 	var s Shelf
 	s.Put(Book{Path: root + "-old", Name: "旧位置"})
 	op := time.Date(2026, 10, 22, 9, 0, 0, 0, time.UTC)
-	s.Put(Book{Path: root, Name: "旧名字", Opened: op, Backup: &backup.Settings{Dir: "keep"}})
+	s.Put(Book{Path: root, Name: "旧名字", Opened: op, MovedBackup: []byte("{\"dir\":\"keep\"}")})
 	if err = s.RelocateWork(root+"-old", root); err != nil {
 		t.Fatal(err)
 	}
-	if len(s.Books) != 1 || s.Books[0].Name != "当前名字" || !s.Books[0].Opened.Equal(op) || s.Books[0].Backup.Dir != "keep" {
+	if len(s.Books) != 1 || s.Books[0].Name != "当前名字" || !s.Books[0].Opened.Equal(op) || string(s.Books[0].MovedBackup) != "{\"dir\":\"keep\"}" {
 		t.Fatal(s.Books)
 	}
 }

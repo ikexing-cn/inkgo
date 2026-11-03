@@ -36,7 +36,7 @@ func TestOverlaysDrawInRegistrationOrderEachFrameAndIsolatePanics(t *testing.T) 
 			ui.Column(c).Children(func() { ui.Text(c, "partial overlay"); panic("overlay failed") })
 		}})
 	}}
-	a := New(ai.New(""), append(append([]ext.Module{}, testModules...), mod, broken)...)
+	a := New(ai.New(""), append(append([]ext.Module{}, testModules()...), mod, broken)...)
 	defer a.Close()
 	tt := stillTester(a.View, 1266, 780)
 	for range 3 {
@@ -86,7 +86,7 @@ func TestPaneDrawPanicHidesPartialFrameAndOnlyStopsItsExtension(t *testing.T) {
 		}})
 		r.OnStop(func(*ext.Session) { stopped++ })
 	}}
-	a := New(ai.New(config), append(append([]ext.Module{}, testModules...), mod)...)
+	a := New(ai.New(config), append(append([]ext.Module{}, testModules()...), mod)...)
 	defer a.Close()
 	root := extensionBook(t)
 	requireExtension(t, a.Open(root))
@@ -130,11 +130,11 @@ func TestExtensionLocalSwitchAndSettingsPersistAcrossApps(t *testing.T) {
 	config := filepath.Join(t.TempDir(), "providers.yaml")
 	var pref *ext.Pref[int]
 	mod := ext.Module{ID: "prefs", Setup: func(r *ext.Registrar) { pref = ext.Setting(r, "size", ext.Schema[int]{Scope: ext.Local}) }}
-	a := New(ai.New(config), append(append([]ext.Module{}, testModules...), mod)...)
+	a := New(ai.New(config), append(append([]ext.Module{}, testModules()...), mod)...)
 	pref.Set(17)
 	requireExtension(t, a.extensions.Set("phone", false))
 	requireExtension(t, a.Close())
-	b := New(ai.New(config), append(append([]ext.Module{}, testModules...), mod)...)
+	b := New(ai.New(config), append(append([]ext.Module{}, testModules()...), mod)...)
 	defer b.Close()
 	if b.extensions.Own("phone") || pref.Get() != 17 {
 		t.Fatal("local persistence lost")
@@ -153,12 +153,12 @@ func TestExtensionBookSwitchAndSettingsPersistInWork(t *testing.T) {
 	root := extensionBook(t)
 	var pref *ext.Pref[string]
 	mod := ext.Module{ID: "prefs", Setup: func(r *ext.Registrar) { pref = ext.Setting(r, "word", ext.Schema[string]{Scope: ext.BookScope}) }}
-	a := New(ai.New(config), append(append([]ext.Module{}, testModules...), mod)...)
+	a := New(ai.New(config), append(append([]ext.Module{}, testModules()...), mod)...)
 	requireExtension(t, a.Open(root))
 	pref.Set("book value")
 	requireExtension(t, a.extensions.SetBook("phone", false))
 	requireExtension(t, a.Close())
-	b := New(ai.New(config), append(append([]ext.Module{}, testModules...), mod)...)
+	b := New(ai.New(config), append(append([]ext.Module{}, testModules()...), mod)...)
 	defer b.Close()
 	requireExtension(t, b.Open(root))
 	if b.extensions.Own("phone") || pref.Get() != "book value" {
@@ -185,7 +185,7 @@ func TestUnreadableExtensionFileIsEmptyReportedAndNotRewritten(t *testing.T) {
 			}
 			damaged := []byte("{ broken JSON")
 			requireExtension(t, os.WriteFile(file, damaged, 0644))
-			a := New(ai.New(config), testModules...)
+			a := New(ai.New(config), testModules()...)
 			defer a.Close()
 			if book {
 				requireExtension(t, a.Open(root))
@@ -260,7 +260,7 @@ func TestBookSwitchStopsAndStartsEachSessionOnceAndShelfCloses(t *testing.T) {
 		r.OnStart(func(s *ext.Session) error { calls = append(calls, "+"+s.Book().Dir); return nil })
 		r.OnStop(func(s *ext.Session) { calls = append(calls, "-"+s.Book().Dir) })
 	}}
-	a := New(ai.New(""), append(append([]ext.Module{}, testModules...), mod)...)
+	a := New(ai.New(""), append(append([]ext.Module{}, testModules()...), mod)...)
 	defer a.Close()
 	first, second := extensionBook(t), extensionBook(t)
 	calls = nil
@@ -292,7 +292,7 @@ func TestExtensionCommandsUseKeysHelpMenusAndCallIsolation(t *testing.T) {
 			Name: func() string { return "Extension action" }, Run: func() { ran++ }, Key: ui.KeyK, Mods: ui.Ctrl, OnMac: true, MacKey: ui.KeyK, MacMods: ui.Super, Menu: hostapi.MenuPosition{Menu: hostapi.MenuView, After: "pane"},
 		})
 	}}
-	a := New(ai.New(""), append(append([]ext.Module{}, testModules...), mod)...)
+	a := New(ai.New(""), append(append([]ext.Module{}, testModules()...), mod)...)
 	defer a.Close()
 	tt := stillTester(a.View, 1266, 780)
 	tt.Frame()
@@ -332,11 +332,11 @@ func TestInjectionOrderAndChoicePersistInLocalExtensionFile(t *testing.T) {
 		ext.Overwrite(r, target, "one", func(v int) int { return v + 10 })
 		ext.Overwrite(r, target, "two", func(v int) int { return v + 20 })
 	}}
-	a := New(ai.New(config), append(append([]ext.Module{}, testModules...), base, injector)...)
+	a := New(ai.New(config), append(append([]ext.Module{}, testModules()...), base, injector)...)
 	requireExtension(t, a.extensions.SetOrder(string(target), []string{"injector.second", "injector.first"}))
 	requireExtension(t, a.extensions.Choose(string(target), "injector.two"))
 	requireExtension(t, a.Close())
-	b := New(ai.New(config), append(append([]ext.Module{}, testModules...), base, injector)...)
+	b := New(ai.New(config), append(append([]ext.Module{}, testModules()...), base, injector)...)
 	defer b.Close()
 	got, err := ext.Call(b.extensions, target, 3, func(v int) int { return v })
 	requireExtension(t, err)
@@ -357,7 +357,7 @@ func TestExtensionCommandPanicIsReportedAndDoesNotCrash(t *testing.T) {
 	mod := ext.Module{ID: "broken", Setup: func(r *ext.Registrar) {
 		ext.Contribute(r, hostapi.Commands, "act", hostapi.Command{Name: func() string { return "Broken" }, Run: func() { panic("command failed") }, Menu: hostapi.MenuPosition{Menu: hostapi.MenuView}})
 	}}
-	a := New(ai.New(""), append(append([]ext.Module{}, testModules...), mod)...)
+	a := New(ai.New(""), append(append([]ext.Module{}, testModules()...), mod)...)
 	defer a.Close()
 	tt := stillTester(a.View, 1266, 780)
 	tt.Frame()
@@ -377,7 +377,7 @@ func TestContributedPaneTabsKeepAssemblyRegistrationOrderAndUnknownPrefsFallBack
 			}
 		}}
 	}
-	a := New(ai.New(""), append(append([]ext.Module{}, testModules...), makeModule("second"), makeModule("first"))...)
+	a := New(ai.New(""), append(append([]ext.Module{}, testModules()...), makeModule("second"), makeModule("first"))...)
 	defer a.Close()
 	var ids []paneTab
 	for _, p := range a.paneTabs {
@@ -413,7 +413,7 @@ func TestExtensionPlatformOnlyShortcutsUseEffectiveBinding(t *testing.T) {
 	}}
 	old := onMacOS
 	defer func() { onMacOS = old }()
-	a := New(ai.New(""), append(append([]ext.Module{}, testModules...), mod)...)
+	a := New(ai.New(""), append(append([]ext.Module{}, testModules()...), mod)...)
 	defer a.Close()
 	tt := stillTester(a.View, 1266, 780)
 	onMacOS = true
@@ -494,7 +494,7 @@ func TestExtensionFailureToastsUseLocalizedNamesAndOriginalErrors(t *testing.T) 
 			mod := ext.Module{ID: "broken", Name: name, Setup: func(r *ext.Registrar) {
 				ext.Contribute(r, hostapi.Commands, "fail", hostapi.Command{Name: name, Run: func() { panic("original failure") }, Menu: hostapi.MenuPosition{Menu: hostapi.MenuView}})
 			}}
-			a := New(ai.New(""), append(append([]ext.Module{}, testModules...), mod)...)
+			a := New(ai.New(""), append(append([]ext.Module{}, testModules()...), mod)...)
 			defer a.Close()
 			tt := stillTester(a.View, 1266, 780)
 			tt.Frame()
@@ -538,7 +538,7 @@ func TestTitleAndSystemViewMenusShareExtensionOrdering(t *testing.T) {
 			ext.Contribute(r, hostapi.Commands, value.id, hostapi.Command{Name: func() string { return value.id }, Menu: hostapi.MenuPosition{Menu: hostapi.MenuView, After: value.after}})
 		}
 	}}
-	a := New(ai.New(""), append(append([]ext.Module{}, testModules...), mod)...)
+	a := New(ai.New(""), append(append([]ext.Module{}, testModules()...), mod)...)
 	defer a.Close()
 	var expected, title, system []string
 	known := map[string]bool{}

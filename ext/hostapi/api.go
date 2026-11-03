@@ -100,6 +100,8 @@ const PaneService ext.ServiceKey[Pane] = "host.pane"
 // Overlay draws above pages on the frame thread through ext.Call. Draw checks
 // its own open state and must not retain Context or frame elements.
 type Overlay struct {
+	// Open optionally reports a modal above settings; called on the frame thread through ext.Guard.
+	Open func() bool
 	Draw func(*ui.Context)
 }
 
@@ -118,6 +120,8 @@ type Jobs interface {
 
 // Dialogs exposes native dialogs; accessors require the frame thread.
 type Dialogs interface {
+	// CanPickFolder reports whether a native folder picker is installed; frame thread only.
+	CanPickFolder() bool
 	// Dialogs returns optional save-file and reveal callbacks, called on workers.
 	Dialogs() (save func(string, string) (string, error), reveal func(string) error)
 	// PickInto starts a folder picker on the frame thread. The picker runs on a

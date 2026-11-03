@@ -5,10 +5,11 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+	"writer/ext/backup"
 
 	"github.com/egoist/mygo/ui"
 
-	"writer/backup"
+	"writer/ext/backup/archive"
 	"writer/internal/testshot"
 	"writer/locales"
 )
@@ -18,7 +19,7 @@ func waitBackup(t *testing.T, a *App, tt *ui.Tester) {
 	t.Helper()
 	for range 500 {
 		tt.Frame()
-		if !a.bk.running {
+		if !backupOf(a).State.Running {
 			tt.Frame()
 			return
 		}
@@ -44,10 +45,10 @@ func TestFirstBackup(t *testing.T) {
 	if err := os.Mkdir(sync, 0755); err != nil {
 		t.Fatal(err)
 	}
-	was := syncFolders
-	syncFolders = func() []place { return []place{{locales.BackupSyncFolder("OneDrive"), sync}} }
-	t.Cleanup(func() { syncFolders = was })
-	a.Backups = true
+	was := backup.SyncFolders
+	backup.SyncFolders = func() []backup.Place { return []backup.Place{{Label: locales.BackupSyncFolder("OneDrive"), Dir: sync}} }
+	t.Cleanup(func() { backup.SyncFolders = was })
+	enableBackupQuestion(a)
 	if err := a.Open(a.Store.Root()); err != nil {
 		t.Fatal(err)
 	}
@@ -70,8 +71,8 @@ func TestFirstBackup(t *testing.T) {
 	}
 	click(t, tt, "备份状态")
 	hasText(t, tt, "备份至 "+sync)
-	shut(tt, &a.bk.open)
-	s, ok := a.backupSettings()
+	shut(tt, &backupOf(a).State.Open)
+	s, ok := backupOf(a).Settings()
 	if !ok || s.Dir != sync || !s.OnClose || !s.Daily || !s.Hourly || s.Last.IsZero() {
 		t.Fatalf("settings %+v", s)
 	}
@@ -95,12 +96,12 @@ func TestFirstBackup(t *testing.T) {
 func TestBackupWaitsBeforeClosingStore(t *testing.T) {
 	a, _, _ := writingFixture(t, "雨停了。")
 	dir := t.TempDir()
-	a.setBackup(backup.Settings{Dir: dir})
+	backupOf(a).Configure(archive.Settings{Dir: dir})
 	// Started with no frame after it, the backup is still in flight as the
 	// work closes: a click runs frames, which may hand a small book's backup
 	// back first.
-	a.runBackup(ui.Services{})
-	if !a.bk.running {
+	backupOf(a).Run(ui.Services{})
+	if !backupOf(a).State.Running {
 		t.Fatal("backup did not start")
 	}
 	st := a.Store
@@ -113,16 +114,46 @@ func TestBackupWaitsBeforeClosingStore(t *testing.T) {
 	}
 }
 
+func TestDisabledBackupDiscardsAnOutstandingFolderChoice(t *testing.T) {
+	a, tt, _ := fixture(t)
+	started, release := make(chan struct{}), make(chan struct{})
+	dir := t.TempDir()
+	a.PickFolder = func(string) (string, error) { close(started); <-release; return dir, nil }
+	backupOf(a).OpenAsk()
+	tt.Frame()
+	click(t, tt, locales.BackupOtherFolder())
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		close(release)
+		t.Fatal("picker never started")
+	}
+	requireExtension(t, a.extensions.Set("backup", false))
+	close(release)
+	for n := 0; !a.jobs.pending(); n++ {
+		if n == 500 {
+			t.Fatal("picker never completed")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	tt.Frame()
+	requireExtension(t, a.extensions.Set("backup", true))
+	tt.Frame()
+	if s, _ := backupOf(a).Settings(); s.Dir != "" || zips(t, dir) != 0 {
+		t.Fatal("disabled extension accepted stale picker result", s)
+	}
+}
+
 func TestAskBackupFindsSyncFoldersOnce(t *testing.T) {
 	a, tt, _ := fixture(t)
 	calls := 0
-	was := syncFolders
-	syncFolders = func() []place {
+	was := backup.SyncFolders
+	backup.SyncFolders = func() []backup.Place {
 		calls++
-		return []place{{label: "同步文件夹", dir: filepath.Join(t.TempDir(), "写作备份")}}
+		return []backup.Place{{Label: "同步文件夹", Dir: filepath.Join(t.TempDir(), "写作备份")}}
 	}
-	t.Cleanup(func() { syncFolders = was })
-	a.openAsk()
+	t.Cleanup(func() { backup.SyncFolders = was })
+	backupOf(a).OpenAsk()
 	for range 5 {
 		tt.Frame()
 	}
@@ -134,7 +165,7 @@ func TestAskBackupFindsSyncFoldersOnce(t *testing.T) {
 // Put off, the question waits a week.
 func TestBackupLater(t *testing.T) {
 	a, tt, _ := fixture(t)
-	a.Backups = true
+	enableBackupQuestion(a)
 	if err := a.Open(a.Store.Root()); err != nil {
 		t.Fatal(err)
 	}
@@ -143,14 +174,14 @@ func TestBackupLater(t *testing.T) {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
-	if s, ok := a.backupSettings(); !ok || s.Later.IsZero() || s.Dir != "" {
+	if s, ok := backupOf(a).Settings(); !ok || s.Later.IsZero() || s.Dir != "" {
 		t.Fatalf("settings %+v", s)
 	}
 	if err := a.Open(a.Store.Root()); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.bk.ask || tt.HasText("作品目前仅保存在本机") {
+	if backupOf(a).State.Ask || tt.HasText("作品目前仅保存在本机") {
 		t.Fatal("asked again so soon")
 	}
 }
@@ -160,7 +191,7 @@ func TestBackupLater(t *testing.T) {
 func TestBackupFails(t *testing.T) {
 	a, tt, _ := writingFixture(t, "整条街的灯是同时灭的。")
 	gone := filepath.Join(t.TempDir(), "备份")
-	a.setBackup(backup.Settings{Dir: gone, OnClose: true})
+	backupOf(a).Configure(archive.Settings{Dir: gone, OnClose: true})
 	tt.Frame()
 	hasText(t, tt, "尚未备份")
 	click(t, tt, "备份状态")
@@ -168,7 +199,7 @@ func TestBackupFails(t *testing.T) {
 		t.Fatal(err, tt.Texts())
 	}
 	waitBackup(t, a, tt)
-	shut(tt, &a.bk.open)
+	shut(tt, &backupOf(a).State.Open)
 	if !tt.HasText("备份失败") || !tt.HasText("备份失败 · 找不到备份文件夹") || !tt.HasText("待处理 1") {
 		t.Fatal("failure not shown", tt.Texts())
 	}
@@ -205,7 +236,7 @@ func TestBackupFails(t *testing.T) {
 	if tt.HasText("备份失败") || !tt.HasText("已备份") || zips(t, gone) != 1 {
 		t.Fatal("not backed up", tt.Texts())
 	}
-	shut(tt, &a.bk.open)
+	shut(tt, &backupOf(a).State.Open)
 	if err := clickMenu(tt, "文件", "菜单-设置"); err != nil {
 		t.Fatal(err)
 	}
@@ -221,7 +252,7 @@ func TestBackupFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if s, _ := a.backupSettings(); !s.Hourly || !s.OnClose {
+	if s, _ := backupOf(a).Settings(); !s.Hourly || !s.OnClose {
 		t.Fatalf("settings %+v", s)
 	}
 	if err := tt.Click("设置-外观"); err != nil {
@@ -236,9 +267,9 @@ func TestBackupFails(t *testing.T) {
 func TestPendingBackupRetries(t *testing.T) {
 	a, tt, _ := writingFixture(t, "雨停了。")
 	dir := filepath.Join(t.TempDir(), "备份")
-	s := backup.Settings{Dir: dir}
-	a.setBackup(s)
-	a.backupDone(s, os.ErrNotExist)
+	s := archive.Settings{Dir: dir}
+	backupOf(a).Configure(s)
+	backupOf(a).RecordResult(s, os.ErrNotExist)
 	tt.Frame()
 	groups := a.pendingGroups()
 	if len(groups) != 1 || groups[0].name != "备份" || len(groups[0].items) != 1 {
@@ -259,7 +290,7 @@ func TestPendingBackupRetries(t *testing.T) {
 		t.Fatal("retry left the pending list open")
 	}
 	waitBackup(t, a, tt)
-	if a.bk.policy.Failed() || zips(t, dir) != 1 {
+	if backupOf(a).State.Policy.Failed() || zips(t, dir) != 1 {
 		t.Fatal("the pending backup did not retry")
 	}
 }
@@ -272,17 +303,17 @@ func TestShotBackup(t *testing.T) {
 	tt.SetTitleBar(ui.TitleBar{Height: 40, Right: 138})
 
 	sync := filepath.Join(t.TempDir(), "OneDrive", "写作备份")
-	was := syncFolders
-	syncFolders = func() []place { return []place{{locales.BackupSyncFolder("OneDrive"), sync}} }
-	t.Cleanup(func() { syncFolders = was })
+	was := backup.SyncFolders
+	backup.SyncFolders = func() []backup.Place { return []backup.Place{{Label: locales.BackupSyncFolder("OneDrive"), Dir: sync}} }
+	t.Cleanup(func() { backup.SyncFolders = was })
 	a.PickFolder = func(string) (string, error) { return "", nil }
-	a.openAsk()
+	backupOf(a).OpenAsk()
 	shot(t, tt, "backup-ask.png")
-	a.bk.ask = false
+	backupOf(a).State.Ask = false
 	if err := os.MkdirAll(sync, 0755); err != nil {
 		t.Fatal(err)
 	}
-	a.setBackup(backup.Settings{Dir: sync, OnClose: true, Daily: true})
+	backupOf(a).Configure(archive.Settings{Dir: sync, OnClose: true, Daily: true})
 	tt.Frame()
 	click(t, tt, "备份状态")
 	if err := tt.Click("立即备份"); err != nil {
@@ -290,23 +321,23 @@ func TestShotBackup(t *testing.T) {
 	}
 	waitBackup(t, a, tt)
 	shot(t, tt, "backup-line.png")
-	shut(tt, &a.bk.open)
-	a.openPrefs("备份")
+	shut(tt, &backupOf(a).State.Open)
+	a.openPrefs("backup.settings")
 	shot(t, tt, "backup-settings-ready.png")
 	shut(tt, &a.settings.open)
-	a.bk.policy.RecordResult(sync, &os.PathError{Op: "stat", Path: `E:\雨城来信备份`, Err: os.ErrNotExist}, time.Now())
-	s, _ := a.backupSettings()
+	backupOf(a).State.Policy.RecordResult(sync, &os.PathError{Op: "stat", Path: `E:\雨城来信备份`, Err: os.ErrNotExist}, time.Now())
+	s, _ := backupOf(a).Settings()
 	s.Dir = `E:\雨城来信备份`
-	a.setBackup(s)
+	backupOf(a).Configure(s)
 	tt.SetDark(true)
-	a.bk.chip = true
+	backupOf(a).State.Chip = true
 	shot(t, tt, "backup-fail-dark.png")
-	a.bk.chip = false
+	backupOf(a).State.Chip = false
 	tt.SetDark(false)
-	a.bk.policy.ForgetFailure()
+	backupOf(a).State.Policy.ForgetFailure()
 	s.Dir = sync
-	a.setBackup(s)
-	a.openPrefs("备份")
+	backupOf(a).Configure(s)
+	a.openPrefs("backup.settings")
 	shot(t, tt, "backup-settings.png")
 	tt.SetDark(true)
 	a.openPrefs("外观")
@@ -325,10 +356,10 @@ func TestShotBackup(t *testing.T) {
 func TestTroubleSaysWhatWasFoundAsItFailed(t *testing.T) {
 	missing := &os.PathError{Op: "stat", Path: `X:\备份`, Err: os.ErrNotExist}
 	a, _, _ := fixture(t)
-	s := backup.Settings{Dir: t.TempDir()}
-	a.backupDone(s, missing)
-	short, _, _ := a.bk.policy.Trouble(s.Dir)
-	if !a.bk.policy.Failed() || short != "找不到备份文件夹" {
-		t.Fatalf("failed %v, trouble %q", a.bk.policy.Failed(), short)
+	s := archive.Settings{Dir: t.TempDir()}
+	backupOf(a).RecordResult(s, missing)
+	short, _, _ := backupOf(a).State.Policy.Trouble(s.Dir)
+	if !backupOf(a).State.Policy.Failed() || short != "找不到备份文件夹" {
+		t.Fatalf("failed %v, trouble %q", backupOf(a).State.Policy.Failed(), short)
 	}
 }

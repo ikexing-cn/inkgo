@@ -62,12 +62,12 @@ func (a *App) initTabs() {
 		{id: paneFore, name: locales.PaneTabHooks, count: func() int { return a.paneCounts().waiting }},
 	}
 	a.paneTabs = a.hostPaneTabs
-	a.prefTabs = tabTable[string]{
+	a.hostPrefTabs = tabTable[string]{
 		{id: "AI", name: func() string { return "AI" }, label: "设置-AI"},
 		{id: "外观", name: locales.ViewLook, label: "设置-外观"},
 		{id: "提醒与检查", name: locales.SettingsTabRemind, label: "设置-提醒", work: true},
-		{id: "备份", name: locales.SettingsTabBackup, label: "设置-备份", work: true},
 	}
+	a.prefTabs = a.hostPrefTabs
 }
 
 // With no work the talk page is the welcome, even with the AI off.

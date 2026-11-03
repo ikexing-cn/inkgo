@@ -39,6 +39,8 @@ func (h *testHost) Chapter() (string, *editor.Editor, bool) {
 
 func (h *testHost) Flush() {}
 
+func (h *testHost) CanPickFolder() bool { return false }
+
 func (h *testHost) PickInto(*ui.Context, string, func(string)) bool { return false }
 
 func (h *testHost) StartJob(_ ui.Services, work func() func()) { work()() }

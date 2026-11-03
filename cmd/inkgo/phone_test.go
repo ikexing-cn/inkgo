@@ -26,7 +26,7 @@ func TestLayoutPhonePreview(t *testing.T) {
 		t.Fatal(err)
 	}
 	s.Close()
-	a := desk.New(ai.New(filepath.Join(root, "providers.yaml")), modules...)
+	a := desk.New(ai.New(filepath.Join(root, "providers.yaml")), testModules()...)
 	if err = a.Open(filepath.Join(root, "work")); err != nil {
 		t.Fatal(err)
 	}

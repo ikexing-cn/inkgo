@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"writer/backup"
+	"writer/ext/backup/archive"
 	"writer/internal/testshot"
 	"writer/workspace"
 )
@@ -38,7 +38,7 @@ func TestFooterBackupOnEveryWritingView(t *testing.T) {
 			if find(t, tt, "选择位置…").Y >= foot.Y {
 				t.Fatal("backup did not open upward")
 			}
-			shut(tt, &a.bk.open)
+			shut(tt, &backupOf(a).State.Open)
 		}
 	}
 }
@@ -46,7 +46,7 @@ func TestFooterBackupOnEveryWritingView(t *testing.T) {
 func TestFooterGivesUpCountsBeforeTheCheck(t *testing.T) {
 	a, tt, _ := writingFixture(t, strings.Repeat("雨停了。", 70))
 	a.sideHidden, a.doc.hidden = true, true
-	a.setBackup(backup.Settings{Dir: t.TempDir(), Last: time.Now()})
+	backupOf(a).Configure(archive.Settings{Dir: t.TempDir(), Last: time.Now()})
 	line := "本章已修改，尚未重新检查"
 	// A stale check leaves the immediate-check link beside the status.
 	if err := a.book.SaveCheck(a.write.node, workspace.Check{Of: "old", At: time.Now()}); err != nil {
@@ -105,7 +105,7 @@ func TestFooterFollowsThePaper(t *testing.T) {
 func TestFooterBackupTimeIsInItsTooltipAndPopover(t *testing.T) {
 	a, tt, _ := writingFixture(t, "雨停了。")
 	at := time.Now()
-	a.setBackup(backup.Settings{Dir: t.TempDir(), Last: at})
+	backupOf(a).Configure(archive.Settings{Dir: t.TempDir(), Last: at})
 	tt.Frame()
 	tt.Frame()
 	hasText(t, tt, "已备份")
@@ -125,14 +125,14 @@ func TestShotFooterBackup(t *testing.T) {
 	a, tt, _ := writingFixture(t, strings.Repeat("雨停了。", 40))
 	a.PickFolder = func(string) (string, error) { return "", nil }
 	dir := t.TempDir()
-	a.bk.open = true
+	backupOf(a).State.Open = true
 	shot(t, tt, "footer-backup-none.png")
-	s := backup.Settings{Dir: dir, Last: time.Now(), OnClose: true}
-	a.setBackup(s)
+	s := archive.Settings{Dir: dir, Last: time.Now(), OnClose: true}
+	backupOf(a).Configure(s)
 	shot(t, tt, "footer-backup-ready.png")
-	a.bk.running = true
+	backupOf(a).State.Running = true
 	shot(t, tt, "footer-backup-running.png")
-	a.bk.running = false
-	a.backupDone(s, fmt.Errorf("backup: %w", os.ErrNotExist))
+	backupOf(a).State.Running = false
+	backupOf(a).RecordResult(s, fmt.Errorf("backup: %w", os.ErrNotExist))
 	shot(t, tt, "footer-backup-failed.png")
 }

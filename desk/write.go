@@ -313,7 +313,7 @@ func (a *App) writeTools(c *ui.Context) {
 				}
 			}
 		}
-		a.backupChip(c)
+		a.extensionTitle(c)
 		a.pendingButton(c)
 	})
 	color := ui.Color{}
@@ -536,11 +536,11 @@ func (a *App) footBar(c *ui.Context, chapter bool) {
 	foot.Children(func() {
 		if chapter && a.aiOn() {
 			// Where the check stands goes with the paper as it folds; the
-			// backup and the words keep to its right edge (slideEdge).
+			// Status items and the words keep to its right edge (slideEdge).
 			a.slide(ui.Row(c).Gap(8).AlignItems(ui.Center).Shrink(1).MinWidth(0)).Children(func() { a.footCheck(c) })
 		}
 		ui.Spacer(c)
-		a.backupLine(c)
+		a.extensionFooter(c)
 		a.wordCount(c)
 	})
 }

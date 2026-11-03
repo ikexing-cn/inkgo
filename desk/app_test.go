@@ -17,6 +17,7 @@ import (
 	"writer/aiport"
 	"writer/desk/kit"
 	"writer/ext"
+	"writer/ext/backup"
 	"writer/ext/export"
 	"writer/ext/phone"
 	"writer/model"
@@ -47,7 +48,7 @@ func fixture(t *testing.T) (*App, *ui.Tester, workspace.Entry) {
 	if err = a.Open(filepath.Join(root, "work")); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { a.Close() })
+	t.Cleanup(func() { a.Close(); delete(controllers, a) })
 	tt := stillTester(a.View, 1266, 780)
 	tt.Frame()
 	tt.Frame()
@@ -58,9 +59,17 @@ func fixture(t *testing.T) (*App, *ui.Tester, workspace.Entry) {
 // newApp is the app on the services configured in config, or on none.
 func newApp(config string) *App { return testApp(ai.New(config)) }
 
-var testModules = []ext.Module{phone.Module, export.Module}
+func testModules() []ext.Module {
+	mod, _ := backup.New(false)
+	return []ext.Module{phone.Module, export.Module, mod}
+}
 
-func testApp(service aiport.Service) *App { return New(service, testModules...) }
+func testApp(service aiport.Service) *App {
+	mod, view := backup.New(false)
+	a := New(service, phone.Module, export.Module, mod)
+	controllers[a] = view
+	return a
+}
 
 // aiOf is the AI of a, for a test to swap fake models in.
 func aiOf(a *App) *ai.Service { return a.ai.(*ai.Service) }

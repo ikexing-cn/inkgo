@@ -620,6 +620,8 @@ func (p *callFrame[In, Out]) callAfter(i interception, in In, value Out) (out Ou
 // Call executes a prebuilt chain. With no active injections it allocates nothing.
 // Extension panics return ErrCallFailed (errors.Is); host original panics escape.
 // Calls are reentrant and concurrent; only their immutable plan is shared.
+// Use Call for work other extensions may alter, and Guard for plain queries
+// and callbacks that should not be injectable.
 func Call[In, Out any](h *Host, key HookKey[In, Out], in In, original func(In) Out) (out Out, err error) {
 	h.mu.RLock()
 	d, exists := h.hooks[string(key)]

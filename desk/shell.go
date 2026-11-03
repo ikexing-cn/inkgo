@@ -80,7 +80,7 @@ func (a *App) View(c *ui.Context) {
 	}
 	if a.Store != nil {
 		a.pollChecks(c)
-		a.backupDue(c)
+		a.extensionTicks(c)
 	}
 	a.turnPage()
 	a.barAct(c)
@@ -114,7 +114,6 @@ func (a *App) View(c *ui.Context) {
 	a.renameDialog(c)
 	if a.Store != nil {
 		a.plan.Dialog(c)
-		a.askView(c)
 		a.leaveView(c)
 		if a.write.trashOpen { // the trash is at the foot of every page
 			a.trashView(c)

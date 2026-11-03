@@ -4,8 +4,16 @@ import (
 	"testing"
 
 	"writer/ext"
+	"writer/ext/backup"
+	"writer/ext/export"
+	"writer/ext/phone"
 	"writer/locales"
 )
+
+func testModules() []ext.Module {
+	mod, _ := backup.New(false)
+	return []ext.Module{phone.Module, export.Module, mod}
+}
 
 func TestApplicationAssemblyIncludesExportFeature(t *testing.T) {
 	for _, m := range modules {

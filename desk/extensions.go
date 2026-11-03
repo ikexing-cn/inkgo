@@ -1,8 +1,9 @@
 package desk
 
 import (
-	"encoding/json"
+	"cmp"
 	"path/filepath"
+	"slices"
 	"sync"
 
 	"github.com/egoist/mygo/ui"
@@ -62,21 +63,10 @@ func (a *App) initExtensions(mods []ext.Module) {
 		root = filepath.Dir(a.ai.ConfigFile())
 	}
 	a.extStore = newExtensionStore(root, a.extensionError)
-	for _, moved := range []struct {
-		key  string
-		data *json.RawMessage
-	}{
-		{"phone.typesetting", &a.shelf.MovedPhone}, {"export.choices", &a.shelf.MovedExport},
-	} {
-		if len(*moved.data) == 0 {
-			continue
-		}
-		if err := a.extStore.migrate(moved.key, *moved.data); err != nil {
-			a.extensionError(err)
-		} else {
-			*moved.data = nil
-			a.saveShelf()
-		}
+	changed, migrationErr := a.shelf.MigrateExtensions(a.extStore.migrate, a.extStore.mergeMigration)
+	a.extensionError(migrationErr)
+	if changed {
+		a.saveShelf()
 	}
 	names := map[string]func() string{}
 	for _, mod := range mods {
@@ -94,6 +84,7 @@ func (a *App) initExtensions(mods []ext.Module) {
 			ext.Declare(r, hostapi.Commands)
 			ext.Declare(r, hostapi.PaneTabs)
 			ext.Declare(r, hostapi.Overlays)
+			declareLifecycle(r, a)
 			ext.DeclareCalls(r, hostapi.Overlays, overlayCall)
 			ext.DeclareCalls(r, hostapi.Commands, commandCall)
 			ext.DeclareCalls(r, hostapi.PaneTabs, paneCall)
@@ -163,16 +154,21 @@ func (h extensionHost) Show(tab string) {
 
 // extensionViews holds derived tables until the host revision changes.
 type extensionViews struct {
-	ready    bool
-	changes  uint64
-	commands []namedCommand
-	list     []*command
-	help     []*helpRow
-	system   []namedCommand
-	view     []namedCommand
-	file     []namedCommand
-	overlays []ext.Item[hostapi.Overlay]
-	panes    []ext.Item[hostapi.PaneTab]
+	ready         bool
+	changes       uint64
+	commands      []namedCommand
+	list          []*command
+	help          []*helpRow
+	system        []namedCommand
+	view          []namedCommand
+	file          []namedCommand
+	overlays      []ext.Item[hostapi.Overlay]
+	panes         []ext.Item[hostapi.PaneTab]
+	footer, title []ext.Item[hostapi.DrawItem]
+	ticks         []ext.Item[hostapi.FrameTick]
+	leave         []ext.Item[func()]
+	pending       []ext.Item[hostapi.PendingSource]
+	settings      []ext.Item[hostapi.SettingsPage]
 }
 
 func (a *App) syncExtensions() {
@@ -207,6 +203,18 @@ func (a *App) syncExtensions() {
 	for _, item := range cache.panes {
 		p := item.Value
 		a.paneTabs = append(a.paneTabs, tabEntry[paneTab]{id: paneTab(item.ID), name: p.Title, visible: p.Available})
+	}
+	cache.footer = ext.Items(a.extensions, hostapi.FooterItems)
+	cache.title = ext.Items(a.extensions, hostapi.TitleItems)
+	cache.ticks = ext.Items(a.extensions, hostapi.FrameTicks)
+	cache.leave = ext.Items(a.extensions, hostapi.BeforeLeave)
+	cache.pending = ext.Items(a.extensions, hostapi.PendingGroups)
+	cache.settings = ext.Items(a.extensions, hostapi.SettingsPages)
+	slices.SortStableFunc(cache.settings, func(x, y ext.Item[hostapi.SettingsPage]) int { return cmp.Compare(x.Value.Order, y.Value.Order) })
+	a.prefTabs = slices.Clone(a.hostPrefTabs)
+	for _, item := range cache.settings {
+		p := item.Value
+		a.prefTabs = append(a.prefTabs, tabEntry[string]{id: item.ID, name: p.Title, label: p.Label, work: p.Work})
 	}
 	a.extViews = cache
 }
@@ -302,6 +310,8 @@ func (h extensionHost) Flush() { h.a.flush() }
 func (h extensionHost) Notices() *kit.Status { return &h.a.status }
 
 func (h extensionHost) StartJob(sv ui.Services, fn func() func()) { h.a.jobs.start(sv, fn) }
+
+func (h extensionHost) CanPickFolder() bool { return h.a.PickFolder != nil }
 
 func (h extensionHost) Dialogs() (func(string, string) (string, error), func(string) error) {
 	return h.a.SaveFile, h.a.Reveal

@@ -307,21 +307,23 @@ func deskSources(t *testing.T) []string {
 		t.Fatal(err)
 	}
 	var files []string
-	err = filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !entry.IsDir() && strings.HasSuffix(path, ".go") {
-			relative, err := filepath.Rel(here, path)
+	for _, tree := range []string{root, filepath.Join(root, "..", "ext")} {
+		err = filepath.WalkDir(tree, func(path string, entry fs.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
-			files = append(files, relative)
+			if !entry.IsDir() && strings.HasSuffix(path, ".go") {
+				relative, err := filepath.Rel(here, path)
+				if err != nil {
+					return err
+				}
+				files = append(files, relative)
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
 		}
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
 	}
 	return files
 }
