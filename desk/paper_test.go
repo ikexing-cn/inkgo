@@ -354,7 +354,7 @@ func TestThePagesAreCenteredWithoutPreviousBounds(t *testing.T) {
 	// The real title bar's pass-through row leaves its buttons clickable.
 	a, tt, _ = writingFixture(t, "雨从傍晚开始下。")
 	for _, page := range []page{pageTalk, pagePlan, pageCheck, pageWrite} {
-		click(t, tt, a.pages[page].name)
+		click(t, tt, a.pages[page].name())
 		if a.page != page {
 			t.Fatalf("page %d could not be clicked through the centered row", page)
 		}

@@ -88,6 +88,22 @@ func (msgs Messages) MenuHelp() string {
 	return Catalog.Format(msgs.locale, "menuHelp", nil)
 }
 
+// AppOpenBookFailed says "打开作品「{book}」失败：{why}"
+// in the language the app shows.
+//
+// 应用打开作品失败；底层错误原样显示。
+func AppOpenBookFailed(book string, why string) string {
+	return In(i18n.Locale()).AppOpenBookFailed(book, why)
+}
+
+// AppOpenBookFailed says "打开作品「{book}」失败：{why}"
+// in the language of msgs.
+//
+// 应用打开作品失败；底层错误原样显示。
+func (msgs Messages) AppOpenBookFailed(book string, why string) string {
+	return Catalog.Format(msgs.locale, "appOpenBookFailed", map[string]any{"book": book, "why": why})
+}
+
 // AppAbout says "关于 Inkgo"
 // in the language the app shows.
 //
@@ -1220,6 +1236,160 @@ func (msgs Messages) TabClose() string {
 	return Catalog.Format(msgs.locale, "tabClose", nil)
 }
 
+// StatusWordCount says "字数"
+// in the language the app shows.
+func StatusWordCount() string { return In(i18n.Locale()).StatusWordCount() }
+
+// StatusWordCount says "字数"
+// in the language of msgs.
+func (msgs Messages) StatusWordCount() string {
+	return Catalog.Format(msgs.locale, "statusWordCount", nil)
+}
+
+// StatusWorkSwitchedUndo says "作品已切换，无法撤销"
+// in the language the app shows.
+//
+// 应用外壳：作品已切换，无法撤销
+func StatusWorkSwitchedUndo() string { return In(i18n.Locale()).StatusWorkSwitchedUndo() }
+
+// StatusWorkSwitchedUndo says "作品已切换，无法撤销"
+// in the language of msgs.
+//
+// 应用外壳：作品已切换，无法撤销
+func (msgs Messages) StatusWorkSwitchedUndo() string {
+	return Catalog.Format(msgs.locale, "statusWorkSwitchedUndo", nil)
+}
+
+// StatusDayWritten says "{day} 写了 {count, plural, other {# 字}}"
+// in the language the app shows.
+//
+// 应用外壳：{day}写了{count, plural, other { # 字}}
+func StatusDayWritten(day string, count int) string {
+	return In(i18n.Locale()).StatusDayWritten(day, count)
+}
+
+// StatusDayWritten says "{day} 写了 {count, plural, other {# 字}}"
+// in the language of msgs.
+//
+// 应用外壳：{day}写了{count, plural, other { # 字}}
+func (msgs Messages) StatusDayWritten(day string, count int) string {
+	return Catalog.Format(msgs.locale, "statusDayWritten", map[string]any{"day": day, "count": count})
+}
+
+// StatusSignedWords says "{count, plural, other {{signed} 字}}"
+// in the language the app shows.
+//
+// 应用外壳：{count, plural, other {{signed} 字}}
+func StatusSignedWords(count int, signed string) string {
+	return In(i18n.Locale()).StatusSignedWords(count, signed)
+}
+
+// StatusSignedWords says "{count, plural, other {{signed} 字}}"
+// in the language of msgs.
+//
+// 应用外壳：{count, plural, other {{signed} 字}}
+func (msgs Messages) StatusSignedWords(count int, signed string) string {
+	return Catalog.Format(msgs.locale, "statusSignedWords", map[string]any{"count": count, "signed": signed})
+}
+
+// StatusCountGoalTip says "{book}，今天 {count, plural, other {{signed} 字}}，目标 {goal, plural, other {# 字}}。点击设置每日目标"
+// in the language the app shows.
+//
+// 底栏字数提示；signed 是带正负号的展示串，count 和 goal
+// 是数量。
+func StatusCountGoalTip(book string, count int, signed string, goal int) string {
+	return In(i18n.Locale()).StatusCountGoalTip(book, count, signed, goal)
+}
+
+// StatusCountGoalTip says "{book}，今天 {count, plural, other {{signed} 字}}，目标 {goal, plural, other {# 字}}。点击设置每日目标"
+// in the language of msgs.
+//
+// 底栏字数提示；signed 是带正负号的展示串，count 和 goal
+// 是数量。
+func (msgs Messages) StatusCountGoalTip(book string, count int, signed string, goal int) string {
+	return Catalog.Format(msgs.locale, "statusCountGoalTip", map[string]any{"book": book, "count": count, "signed": signed, "goal": goal})
+}
+
+// StatusCountTip says "{book}，今天 {count, plural, other {{signed} 字}}。点击设置每日目标"
+// in the language the app shows.
+//
+// 应用外壳：{book}，今天 {count, plural, other {{signed}
+// 字}}。点击设置每日目标
+func StatusCountTip(book string, count int, signed string) string {
+	return In(i18n.Locale()).StatusCountTip(book, count, signed)
+}
+
+// StatusCountTip says "{book}，今天 {count, plural, other {{signed} 字}}。点击设置每日目标"
+// in the language of msgs.
+//
+// 应用外壳：{book}，今天 {count, plural, other {{signed}
+// 字}}。点击设置每日目标
+func (msgs Messages) StatusCountTip(book string, count int, signed string) string {
+	return Catalog.Format(msgs.locale, "statusCountTip", map[string]any{"book": book, "count": count, "signed": signed})
+}
+
+// StatusTodayCount says "{count, plural, other { · 今天 {signed}}}"
+// in the language the app shows.
+//
+// 应用外壳：{count, plural, other { · 今天 {signed}}}
+func StatusTodayCount(count int, signed string) string {
+	return In(i18n.Locale()).StatusTodayCount(count, signed)
+}
+
+// StatusTodayCount says "{count, plural, other { · 今天 {signed}}}"
+// in the language of msgs.
+//
+// 应用外壳：{count, plural, other { · 今天 {signed}}}
+func (msgs Messages) StatusTodayCount(count int, signed string) string {
+	return Catalog.Format(msgs.locale, "statusTodayCount", map[string]any{"count": count, "signed": signed})
+}
+
+// StatusBookCountLine says "{book}{today}"
+// in the language the app shows.
+//
+// 应用外壳：{book}{today}
+func StatusBookCountLine(book string, today string) string {
+	return In(i18n.Locale()).StatusBookCountLine(book, today)
+}
+
+// StatusBookCountLine says "{book}{today}"
+// in the language of msgs.
+//
+// 应用外壳：{book}{today}
+func (msgs Messages) StatusBookCountLine(book string, today string) string {
+	return Catalog.Format(msgs.locale, "statusBookCountLine", map[string]any{"book": book, "today": today})
+}
+
+// StatusCountLine says "{scope} · {book}{today}"
+// in the language the app shows.
+//
+// 应用外壳：{scope} · {book}{today}
+func StatusCountLine(scope string, book string, today string) string {
+	return In(i18n.Locale()).StatusCountLine(scope, book, today)
+}
+
+// StatusCountLine says "{scope} · {book}{today}"
+// in the language of msgs.
+//
+// 应用外壳：{scope} · {book}{today}
+func (msgs Messages) StatusCountLine(scope string, book string, today string) string {
+	return Catalog.Format(msgs.locale, "statusCountLine", map[string]any{"scope": scope, "book": book, "today": today})
+}
+
+// StatusSavedAutomatically says "已保存。停笔片刻也会自动保存"
+// in the language the app shows.
+//
+// 应用外壳：已保存。停笔片刻也会自动保存
+func StatusSavedAutomatically() string { return In(i18n.Locale()).StatusSavedAutomatically() }
+
+// StatusSavedAutomatically says "已保存。停笔片刻也会自动保存"
+// in the language of msgs.
+//
+// 应用外壳：已保存。停笔片刻也会自动保存
+func (msgs Messages) StatusSavedAutomatically() string {
+	return Catalog.Format(msgs.locale, "statusSavedAutomatically", nil)
+}
+
 // StatusSaved says "已保存"
 // in the language the app shows.
 func StatusSaved() string { return In(i18n.Locale()).StatusSaved() }
@@ -2000,6 +2170,20 @@ func StatusUndoWorkChanged() string { return In(i18n.Locale()).StatusUndoWorkCha
 // 撤销忽略待处理项时，已切换作品而无法撤销的错误。
 func (msgs Messages) StatusUndoWorkChanged() string {
 	return Catalog.Format(msgs.locale, "statusUndoWorkChanged", nil)
+}
+
+// EditorOutlineBlank says "章纲 · 空"
+// in the language the app shows.
+//
+// 应用外壳：章纲 · 空
+func EditorOutlineBlank() string { return In(i18n.Locale()).EditorOutlineBlank() }
+
+// EditorOutlineBlank says "章纲 · 空"
+// in the language of msgs.
+//
+// 应用外壳：章纲 · 空
+func (msgs Messages) EditorOutlineBlank() string {
+	return Catalog.Format(msgs.locale, "editorOutlineBlank", nil)
 }
 
 // EditorSeeEntry says "查看设定"
@@ -2936,6 +3120,40 @@ func EditorWhyPickModel() string { return In(i18n.Locale()).EditorWhyPickModel()
 // 检查失败的原因，显示用；状态里记的仍是这句中文。
 func (msgs Messages) EditorWhyPickModel() string {
 	return Catalog.Format(msgs.locale, "editorWhyPickModel", nil)
+}
+
+// FindReplacedBookUndo says "{chapters, plural, other {已在 # 章中替换 {total, plural, other {# 处}}…"
+// in the language the app shows.
+//
+// 应用外壳：{chapters, plural, other {已在 # 章中替换 {total,
+// plural, other {#
+// 处}}，各章替换前的版本已存入快照；本章也可直接撤销}}
+func FindReplacedBookUndo(chapters int, total int) string {
+	return In(i18n.Locale()).FindReplacedBookUndo(chapters, total)
+}
+
+// FindReplacedBookUndo says "{chapters, plural, other {已在 # 章中替换 {total, plural, other {# 处}}…"
+// in the language of msgs.
+//
+// 应用外壳：{chapters, plural, other {已在 # 章中替换 {total,
+// plural, other {#
+// 处}}，各章替换前的版本已存入快照；本章也可直接撤销}}
+func (msgs Messages) FindReplacedBookUndo(chapters int, total int) string {
+	return Catalog.Format(msgs.locale, "findReplacedBookUndo", map[string]any{"chapters": chapters, "total": total})
+}
+
+// FindMatchCount says "{count, plural, other {# 处}}"
+// in the language the app shows.
+//
+// 应用外壳：{count, plural, other {# 处}}
+func FindMatchCount(count int) string { return In(i18n.Locale()).FindMatchCount(count) }
+
+// FindMatchCount says "{count, plural, other {# 处}}"
+// in the language of msgs.
+//
+// 应用外壳：{count, plural, other {# 处}}
+func (msgs Messages) FindMatchCount(count int) string {
+	return Catalog.Format(msgs.locale, "findMatchCount", map[string]any{"count": count})
 }
 
 // FindBox says "查找"

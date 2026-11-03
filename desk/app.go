@@ -2,7 +2,6 @@ package desk
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 	"sync/atomic"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"writer/desk/outline"
 	"writer/desk/phone"
 	"writer/editor"
+	"writer/locales"
 	"writer/shelf"
 	"writer/workspace"
 )
@@ -185,7 +185,7 @@ func New(ai aiport.Service) *App {
 func (a *App) Open(path string) error {
 	s, err := workspace.Open(path)
 	if err != nil {
-		return fmt.Errorf("打开作品「%s」失败：%w", filepath.Base(path), err)
+		return openBookError{book: filepath.Base(path), err: err}
 	}
 	return a.attach(s, path, false)
 }
@@ -364,3 +364,12 @@ func (a *App) loadWork() {
 	a.talkEffort = w.Discussion.Effort
 	a.penProvider, a.penModel, a.penEffort = w.Writing.Provider, w.Writing.Model, w.Writing.Effort
 }
+
+// openBookError retains the original cause while localizing the application message.
+type openBookError struct {
+	book string
+	err  error
+}
+
+func (e openBookError) Error() string { return locales.AppOpenBookFailed(e.book, e.err.Error()) }
+func (e openBookError) Unwrap() error { return e.err }

@@ -3,6 +3,7 @@ package desk
 import (
 	"slices"
 	"time"
+	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -42,7 +43,7 @@ func (a *App) saveNow() {
 		}
 	}
 	a.keepCaret()
-	a.status.Did("已保存。停笔片刻也会自动保存")
+	a.status.Did(locales.StatusSavedAutomatically())
 }
 
 // saveText writes the text shown when it changed since the disk had it,
@@ -154,7 +155,7 @@ func (a *App) takeDisk() {
 	}
 	c.ed = a.chapterEditor(ch.Text, ch.Marks)
 	c.savedVer = c.ed.Doc.Version()
-	a.status.Did("已采用磁盘版本，编辑器原内容已存为快照")
+	a.status.Did(locales.EditorSettledDisk())
 }
 
 // keepMine writes the text shown over the disk's, keeping the disk's as a
@@ -168,7 +169,7 @@ func (a *App) keepMine() {
 		a.warn(err)
 		return
 	}
-	a.status.Did("已保留编辑器版本，磁盘内容已存为快照")
+	a.status.Did(locales.EditorSettledKeep())
 }
 
 // saveLost saves the text of a node gone from the disk as a new document.
@@ -188,5 +189,5 @@ func (a *App) saveLost() {
 	delete(w.open, old)
 	c.ed, c.lost = nil, false
 	a.openNode(id)
-	a.status.Did("已存为新章节，位于最上层末尾")
+	a.status.Did(locales.EditorSavedNewTop())
 }

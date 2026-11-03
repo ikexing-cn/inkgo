@@ -1,7 +1,6 @@
 package desk
 
 import (
-	"fmt"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -195,7 +194,7 @@ func (a *App) writing(c *ui.Context) {
 				a.emptyWriting(c)
 				a.footBar(c, false)
 			case !ok:
-				a.pal.Blank(c, kit.IcBook, "从左侧选择一章开始写作", "", nil)
+				a.pal.Blank(c, kit.IcBook, locales.EditorPickChapter(), "", nil)
 				a.footBar(c, false)
 			case n.Folder:
 				a.folderView(c, n)
@@ -288,9 +287,9 @@ func (a *App) writeTools(c *ui.Context) {
 	ui.Row(c).MaxWidth(max(0, room)).MinWidth(0).Shrink(1).Gap(6).AlignItems(ui.Center).Children(func() {
 		if open {
 			if w.cur().ed.Predicting() {
-				ui.Text(c, "续写中…").FontSize(kit.FsNote).TextColor(a.pal.Faint).SingleLine().Ellipsis("…").Shrink(1).Tooltip("续写中…")
+				ui.Text(c, locales.EditorContinuing()).FontSize(kit.FsNote).TextColor(a.pal.Faint).SingleLine().Ellipsis("…").Shrink(1).Tooltip(locales.EditorContinuing())
 			} else if w.cur().ed.Ghost() != "" {
-				ui.Text(c, "Tab 采纳 · Esc 放弃").FontSize(kit.FsNote).TextColor(a.pal.Faint).SingleLine().Ellipsis("…").Shrink(1).Tooltip("Tab 采纳 · Esc 放弃")
+				ui.Text(c, locales.EditorGhostHint()).FontSize(kit.FsNote).TextColor(a.pal.Faint).SingleLine().Ellipsis("…").Shrink(1).Tooltip(locales.EditorGhostHint())
 			}
 		}
 		if a.doc.hidden && !w.focus {
@@ -301,14 +300,14 @@ func (a *App) writeTools(c *ui.Context) {
 				}
 			}
 			if here > 0 {
-				b := ui.ButtonBase(c).Row().Height(kit.HControlSm).Gap(6).Padding(0, 6).AlignItems(ui.Center).Shrink(1).MinWidth(40).Label("本章伏笔").Tooltip(fmt.Sprintf("本章伏笔 %d", here)).KeepFocus()
+				b := ui.ButtonBase(c).Row().Height(kit.HControlSm).Gap(6).Padding(0, 6).AlignItems(ui.Center).Shrink(1).MinWidth(40).Label(locales.TabMarksHere()).Tooltip(locales.TabMarksCount(here)).KeepFocus()
 				fg := a.pal.Theme.TextMuted
 				if b.Hovered() {
 					fg = a.pal.Ink
 				}
 				b.Children(func() {
 					kit.Glyph(c, kit.IcFlag, kit.IconMd, fg)
-					ui.Textf(c, "本章伏笔 %d", here).FontSize(kit.FsNote).TextColor(fg).SingleLine().Ellipsis("…").Shrink(1)
+					ui.Text(c, locales.TabMarksCount(here)).FontSize(kit.FsNote).TextColor(fg).SingleLine().Ellipsis("…").Shrink(1)
 				})
 				if b.Clicked() {
 					a.doc.tab = paneFore
@@ -323,7 +322,7 @@ func (a *App) writeTools(c *ui.Context) {
 	if w.finding {
 		color = a.pal.Ink
 	}
-	if kit.IconButton(c, kit.IcSearch, "查找替换", color).Tooltip(locales.TabFindTip(cmdFind.keys())).Disabled(!open || busy).KeepFocus().Clicked() {
+	if kit.IconButton(c, kit.IcSearch, locales.CmdFind(), color).Tooltip(locales.TabFindTip(cmdFind.keys())).Disabled(!open || busy).KeepFocus().Clicked() {
 		if w.finding {
 			a.closeFind()
 		} else {
@@ -331,10 +330,10 @@ func (a *App) writeTools(c *ui.Context) {
 		}
 	}
 	if w.focus {
-		if kit.IconButton(c, kit.IcShrink, "退出专注", a.pal.Ink).Tooltip("退出专注，恢复章节树和右栏（F11）").KeepFocus().Clicked() {
+		if kit.IconButton(c, kit.IcShrink, locales.TabExitFocus(), a.pal.Ink).Tooltip(locales.TabExitFocusTip(cmdFocus.keys())).KeepFocus().Clicked() {
 			w.focus = false
 		}
-	} else if kit.IconButton(c, kit.IcExpand, "专注写作", ui.Color{}).Tooltip("仅显示正文，收起章节树和右栏（F11）").KeepFocus().Clicked() {
+	} else if kit.IconButton(c, kit.IcExpand, locales.CmdFocus(), ui.Color{}).Tooltip(locales.TabFocusTip(cmdFocus.keys())).KeepFocus().Clicked() {
 		w.focus = true
 	}
 }
@@ -357,12 +356,12 @@ func (a *App) stepButton(c *ui.Context, s *ui.SVG, label string) ui.Element {
 }
 
 func (a *App) emptyWriting(c *ui.Context) {
-	a.pal.Blank(c, kit.IcBook, "暂无章节", "每章是作品文件夹 chapters 中的一个纯文本文件，可用其他软件打开。", func() {
+	a.pal.Blank(c, kit.IcBook, locales.EditorNoChapters(), locales.EditorNoChaptersHint(), func() {
 		ui.Row(c).Gap(8).Padding(10, 0, 0, 0).Justify(ui.End).Children(func() {
-			if a.pal.Secondary(c, "新建文件夹").Clicked() {
+			if a.pal.Secondary(c, locales.CmdNewFolder()).Clicked() {
 				a.newNode(true)
 			}
-			if a.pal.Primary(c, "新建第一章").Clicked() {
+			if a.pal.Primary(c, locales.EditorNewFirst()).Clicked() {
 				a.newNode(false)
 			}
 		})
@@ -373,7 +372,7 @@ func (a *App) emptyWriting(c *ui.Context) {
 // a folder.
 func (a *App) outlineBox(c *ui.Context, label string, height float32) {
 	w := &a.write
-	ui.TextAreaBase(c, &w.cur().outline.Text).Label(label).Placeholder("写下这里要发生的事，作为提纲").FillWidth().Height(height).
+	ui.TextAreaBase(c, &w.cur().outline.Text).Label(label).Placeholder(locales.EditorOutlineHint()).FillWidth().Height(height).
 		FontSize(kit.FsBody).LineHeight(kit.LhLoose).Padding(10, 12).Radius(kit.RControl).Background(a.pal.Side).Disabled(w.cur().lost)
 }
 
@@ -384,18 +383,18 @@ func (a *App) chapterView(c *ui.Context) {
 		a.findBar(c)
 	}
 	if w.cur().external != nil {
-		a.notice2(c, t.Warning, "本章文件已被其他程序修改。请选择保留的版本，另一版本将存为快照。", func() {
-			if kit.Action(c, "使用磁盘版本", t.Warning, false).Clicked() {
+		a.notice2(c, t.Warning, locales.EditorOutsideChanged(), func() {
+			if kit.Action(c, locales.EditorUseDisk(), t.Warning, false).Clicked() {
 				a.takeDisk()
 			}
-			if kit.Action(c, "保留当前版本", t.Warning, true).Clicked() {
+			if kit.Action(c, locales.EditorKeepCurrent(), t.Warning, true).Clicked() {
 				a.keepMine()
 			}
 		})
 	}
 	if w.cur().lost {
-		a.notice2(c, t.Danger, "磁盘上已找不到本章文件：在软件外改名、移动或删除，均视为删除。编辑器中的内容仍保留。", func() {
-			if kit.Action(c, "存为新章节", t.Danger, true).Clicked() {
+		a.notice2(c, t.Danger, locales.EditorOutsideLost(), func() {
+			if kit.Action(c, locales.EditorSaveAsNew(), t.Danger, true).Clicked() {
 				a.saveLost()
 			}
 		})
@@ -405,9 +404,9 @@ func (a *App) chapterView(c *ui.Context) {
 	a.overProse(c.Key("head"), 24, 6, func() {
 		ui.Column(c).FillWidth().Gap(8).Children(func() {
 			ui.Text(c, kit.Heading(a.shownTitle())).FontSize(kit.FsTitle).FontWeight(700).SingleLine().Ellipsis("…")
-			label := "章纲"
+			label := locales.EditorOutline()
 			if strings.TrimSpace(w.cur().outline.Text) == "" {
-				label = "章纲 · 空"
+				label = locales.EditorOutlineBlank()
 			}
 			var outline ui.CollapsibleParts
 			ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
@@ -415,7 +414,7 @@ func (a *App) chapterView(c *ui.Context) {
 				a.plan.ChapterStory(c)
 			})
 			outline.Panel(func() {
-				ui.Box(c).FillWidth().Padding(2, 0, 4, 0).Children(func() { a.outlineBox(c, "章纲", 96) })
+				ui.Box(c).FillWidth().Padding(2, 0, 4, 0).Children(func() { a.outlineBox(c, locales.EditorOutline(), 96) })
 			})
 		})
 	})
@@ -445,7 +444,7 @@ func (a *App) shownTitle() string {
 	if w.cur().lost {
 		return w.cur().lostTitle
 	}
-	return "正文"
+	return locales.EditorBody()
 }
 
 // disclosure is a quiet toggle over the prose, its panel built apart from it
@@ -487,11 +486,11 @@ func (a *App) folderView(c *ui.Context, n *workspace.Node) {
 		ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(32, editor.PadX, 32, editor.PadX).Children(func() {
 			ui.Column(c).FillWidth().MaxWidth(720).Gap(14).Children(func() {
 				ui.Text(c, n.Title).FontSize(kit.FsTitle).FontWeight(700)
-				ui.Text(c, "卷纲").FontSize(kit.FsControl).FontWeight(600).TextColor(t.TextMuted)
-				a.outlineBox(c, "卷纲", 160)
+				ui.Text(c, locales.EditorVolumeOutline()).FontSize(kit.FsControl).FontWeight(600).TextColor(t.TextMuted)
+				a.outlineBox(c, locales.EditorVolumeOutline(), 160)
 				ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(8, 0, 0, 0).Children(func() {
-					ui.Textf(c, "%d 项", len(n.Children)).FontSize(kit.FsControl).FontWeight(600).TextColor(t.TextMuted).Grow(1)
-					if a.pal.Ghost(c, "在此新建章节", ui.Color{}).Clicked() {
+					ui.Text(c, locales.EditorItems(len(n.Children))).FontSize(kit.FsControl).FontWeight(600).TextColor(t.TextMuted).Grow(1)
+					if a.pal.Ghost(c, locales.EditorNewHere(), ui.Color{}).Clicked() {
 						a.newNode(false)
 					}
 				})
@@ -505,7 +504,7 @@ func (a *App) folderView(c *ui.Context, n *workspace.Node) {
 							kit.Glyph(c, nodeIcon(child), kit.IconMd, t.TextMuted)
 							ui.Text(c, child.Title).FontSize(kit.FsBody).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
 							if !child.Folder {
-								ui.Textf(c, "%d 字", a.book.Count(child.ID)).FontSize(kit.FsNote).TextColor(a.pal.Faint)
+								ui.Text(c, locales.StatusWords(a.book.Count(child.ID))).FontSize(kit.FsNote).TextColor(a.pal.Faint)
 							}
 						})
 						if gist := w.gists[child.ID]; gist != "" {
@@ -562,7 +561,7 @@ func (a *App) footCheck(c *ui.Context) {
 		}
 	}
 	if found > 0 {
-		b := a.pal.Ghost(c, line, ui.Color{}).Label("查看检查结果").Tooltip("前往「检查」页逐条查看").Shrink(1).MinWidth(0)
+		b := a.pal.Ghost(c, line, ui.Color{}).Label("查看检查结果").Tooltip(locales.StatusGoCheck()).Shrink(1).MinWidth(0)
 		if b.Clicked() {
 			for _, it := range a.checkItems(false) {
 				if it.here {
@@ -578,12 +577,14 @@ func (a *App) footCheck(c *ui.Context) {
 		}
 	}
 	if can {
-		b := ui.ButtonBase(c).Label("立即检查").Tooltip("调用一次 AI，对照设定检查本章").Shrink(0)
+		b := ui.ButtonBase(c).Label(locales.StatusCheckNow()).Tooltip(locales.StatusCheckTip()).Shrink(0)
 		color := t.TextMuted
 		if b.Hovered() {
 			color = t.Text
 		}
-		b.Children(func() { ui.Text(c, "立即检查").FontSize(kit.FsNote).TextColor(color).Underline().SingleLine() })
+		b.Children(func() {
+			ui.Text(c, locales.StatusCheckNow()).FontSize(kit.FsNote).TextColor(color).Underline().SingleLine()
+		})
 		if b.Clicked() {
 			if err := a.saveText(); err != nil {
 				a.warn(err)
@@ -593,7 +594,7 @@ func (a *App) footCheck(c *ui.Context) {
 		}
 	}
 	ui.Text(c, "·").FontSize(kit.FsNote).TextColor(a.pal.Faint).Shrink(0)
-	b := ui.ButtonBase(c).Label("检查时机").Shrink(0)
+	b := ui.ButtonBase(c).Label(locales.StatusWhenTitle()).Shrink(0)
 	color := t.TextMuted
 	if b.Hovered() {
 		color = t.Text
@@ -606,7 +607,7 @@ func (a *App) footCheck(c *ui.Context) {
 		panel.AttachTo(b, ui.AnchorTopLeft, ui.AnchorBottomLeft).Margin(0, 0, 4, 0).Width(270).Radius(kit.RCard).Padding(10, 6, 6, 6).Gap(4).
 			Background(a.pal.Raised).Border(1, t.Border)
 		a.pal.Pop.On(panel)
-		ui.Text(c, "检查时机").FontSize(kit.FsBody).FontWeight(600).Padding(0, 8, 4, 8)
+		ui.Text(c, locales.StatusWhenTitle()).FontSize(kit.FsBody).FontWeight(600).Padding(0, 8, 4, 8)
 		ui.Column(c).FillWidth().Gap(2).Children(func() { a.whenRows(c) })
 	})
 }

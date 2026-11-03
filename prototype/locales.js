@@ -22,6 +22,10 @@ const CATALOG = {
   "menuView": [],
   "menuWindow": [],
   "menuHelp": [],
+  "appOpenBookFailed": [
+   "book",
+   "why"
+  ],
   "appAbout": [],
   "appSettings": [],
   "appHide": [],
@@ -153,6 +157,41 @@ const CATALOG = {
   "tabNextOpened": [],
   "tabUnsaved": [],
   "tabClose": [],
+  "statusWordCount": [],
+  "statusWorkSwitchedUndo": [],
+  "statusDayWritten": [
+   "day",
+   "count"
+  ],
+  "statusSignedWords": [
+   "count",
+   "signed"
+  ],
+  "statusCountGoalTip": [
+   "book",
+   "count",
+   "signed",
+   "goal"
+  ],
+  "statusCountTip": [
+   "book",
+   "count",
+   "signed"
+  ],
+  "statusTodayCount": [
+   "count",
+   "signed"
+  ],
+  "statusBookCountLine": [
+   "book",
+   "today"
+  ],
+  "statusCountLine": [
+   "scope",
+   "book",
+   "today"
+  ],
+  "statusSavedAutomatically": [],
   "statusSaved": [],
   "statusAutosave": [],
   "statusChecked": [],
@@ -272,6 +311,7 @@ const CATALOG = {
    "count"
   ],
   "statusUndoWorkChanged": [],
+  "editorOutlineBlank": [],
   "editorSeeEntry": [],
   "editorStopDrop": [],
   "editorDropOne": [],
@@ -377,6 +417,13 @@ const CATALOG = {
   ],
   "editorWhyNoModel": [],
   "editorWhyPickModel": [],
+  "findReplacedBookUndo": [
+   "chapters",
+   "total"
+  ],
+  "findMatchCount": [
+   "count"
+  ],
   "findBox": [],
   "findReplaceWith": [],
   "findPrev": [],
@@ -1789,6 +1836,7 @@ const CATALOG = {
    "menuView": "视图",
    "menuWindow": "窗口",
    "menuHelp": "帮助",
+   "appOpenBookFailed": "打开作品「{book}」失败：{why}",
    "appAbout": "关于 Inkgo",
    "appSettings": "设置…",
    "appHide": "隐藏 Inkgo",
@@ -1888,6 +1936,16 @@ const CATALOG = {
    "tabNextOpened": "下一个打开的章节",
    "tabUnsaved": " · 未保存",
    "tabClose": "关闭标签页",
+   "statusWordCount": "字数",
+   "statusWorkSwitchedUndo": "作品已切换，无法撤销",
+   "statusDayWritten": "{day} 写了 {count, plural, other {# 字}}",
+   "statusSignedWords": "{count, plural, other {{signed} 字}}",
+   "statusCountGoalTip": "{book}，今天 {count, plural, other {{signed} 字}}，目标 {goal, plural, other {# 字}}。点击设置每日目标",
+   "statusCountTip": "{book}，今天 {count, plural, other {{signed} 字}}。点击设置每日目标",
+   "statusTodayCount": "{count, plural, other { · 今天 {signed}}}",
+   "statusBookCountLine": "{book}{today}",
+   "statusCountLine": "{scope} · {book}{today}",
+   "statusSavedAutomatically": "已保存。停笔片刻也会自动保存",
    "statusSaved": "已保存",
    "statusAutosave": "停笔片刻也会自动保存",
    "statusChecked": "本章检查完成，未发现不一致",
@@ -1953,6 +2011,7 @@ const CATALOG = {
    "statusWordsTip": "字数。点击设置每日目标",
    "statusMorePending": "{count, plural, other {还有 # 条}}",
    "statusUndoWorkChanged": "作品已切换，无法撤销",
+   "editorOutlineBlank": "章纲 · 空",
    "editorSeeEntry": "查看设定",
    "editorStopDrop": "让 AI 停下，放弃这一处",
    "editorDropOne": "放弃这一处提议",
@@ -2038,6 +2097,8 @@ const CATALOG = {
    "editorProposalsVoid": "{count, plural, other {# 处 AI 提议已作废；它要换掉的原文改动了}}",
    "editorWhyNoModel": "无法连接模型服务",
    "editorWhyPickModel": "请在设置中「AI」配置里选择续写和检查模型",
+   "findReplacedBookUndo": "{chapters, plural, other {已在 # 章中替换 {total, plural, other {# 处}}，各章替换前的版本已存入快照；本章也可直接撤销}}",
+   "findMatchCount": "{count, plural, other {# 处}}",
    "findBox": "查找",
    "findReplaceWith": "替换为",
    "findPrev": "上一个",
@@ -2963,6 +3024,7 @@ const CATALOG = {
    "menuView": "View",
    "menuWindow": "Window",
    "menuHelp": "Help",
+   "appOpenBookFailed": "Could not open book “{book}”: {why}",
    "appAbout": "About Inkgo",
    "appSettings": "Settings…",
    "appHide": "Hide Inkgo",
@@ -3062,6 +3124,16 @@ const CATALOG = {
    "tabNextOpened": "Next Opened Chapter",
    "tabUnsaved": " · Unsaved",
    "tabClose": "Close Tab",
+   "statusWordCount": "Character Count",
+   "statusWorkSwitchedUndo": "The book has changed; this action cannot be undone.",
+   "statusDayWritten": "{day}: {count, plural, one {# character} other {# characters}} written",
+   "statusSignedWords": "{count, plural, one {{signed} character} other {{signed} characters}}",
+   "statusCountGoalTip": "{book}, {count, plural, one {{signed} character} other {{signed} characters}} today, goal {goal, plural, one {# character} other {# characters}}. Click to set a daily goal.",
+   "statusCountTip": "{book}, {count, plural, one {{signed} character} other {{signed} characters}} today. Click to set a daily goal.",
+   "statusTodayCount": "{count, plural, one { · Today {signed}} other { · Today {signed}}}",
+   "statusBookCountLine": "{book}{today}",
+   "statusCountLine": "{scope} · {book}{today}",
+   "statusSavedAutomatically": "Saved. Changes are also saved automatically after a brief pause.",
    "statusSaved": "Saved",
    "statusAutosave": "It also saves automatically when you pause.",
    "statusChecked": "Checked, all clear",
@@ -3127,6 +3199,7 @@ const CATALOG = {
    "statusWordsTip": "Word count. Click to set a daily goal.",
    "statusMorePending": "{count, plural, one {# more item} other {# more items}}",
    "statusUndoWorkChanged": "Cannot undo after switching books.",
+   "editorOutlineBlank": "Chapter Outline · Empty",
    "editorSeeEntry": "View Lore Entry",
    "editorStopDrop": "Stop the AI and discard this part",
    "editorDropOne": "Discard this suggestion",
@@ -3212,6 +3285,8 @@ const CATALOG = {
    "editorProposalsVoid": "{count, plural, one {# AI suggestion invalidated; the original text it would replace changed} other {# AI suggestions invalidated; the original text they would replace changed}}",
    "editorWhyNoModel": "Can't reach the model service",
    "editorWhyPickModel": "Choose the continue and check models in Settings under AI",
+   "findReplacedBookUndo": "Replaced {total, plural, one {# match} other {# matches}} in {chapters, plural, one {# chapter} other {# chapters}}. Each chapter’s previous version is saved as a snapshot; changes in this chapter can also be undone directly.",
+   "findMatchCount": "{count, plural, one {# match} other {# matches}}",
    "findBox": "Find",
    "findReplaceWith": "Replace with",
    "findPrev": "Previous",

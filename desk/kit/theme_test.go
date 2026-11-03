@@ -228,6 +228,10 @@ func TestButtonsAtTheRight(t *testing.T) {
 				asked++
 				var said []string
 				for _, in := range own {
+					// The shell's saving question now uses generated labels.
+					for key, text := range map[string]string{"CommonSave": "保存", "DialogDontSave": "不保存", "CommonCancel": "取消"} {
+						in = strings.ReplaceAll(in, "locales."+key+"()", strconv.Quote(text))
+					}
 					if m := answer.FindStringSubmatch(in); m != nil {
 						said = append(said, m[1])
 					}

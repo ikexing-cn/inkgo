@@ -9,6 +9,7 @@ import (
 	"writer/desk/book"
 	"writer/desk/kit"
 	"writer/editor"
+	"writer/locales"
 	"writer/workspace"
 )
 
@@ -85,7 +86,7 @@ func (a *App) enterWriting() {
 func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.Editor {
 	doc := editor.NewDoc(text)
 	doc.LoadMarks(editorMarks(marks))
-	return editor.New(doc, editor.Options{Prose: true, Placeholder: "在此开始写作…", Font: ui.Font{Size: float32(a.write.textSize())}, LineHeight: kit.LhPaper,
+	return editor.New(doc, editor.Options{Prose: true, Placeholder: locales.EditorStartHint(), Font: ui.Font{Size: float32(a.write.textSize())}, LineHeight: kit.LhPaper,
 		Predictor: pen{writer: &a.write.pen, chapter: a.write.node}, PredictDelay: a.book.Timing.SaveAfter, PredictOnDemand: !a.write.autoPredict, NoAI: !a.aiOn(),
 		GhostNote: func() string {
 			if pw := a.write.pen.Load(); pw != nil {

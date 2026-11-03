@@ -4,6 +4,7 @@ import (
 	"errors"
 	"slices"
 
+	"writer/locales"
 	"writer/workspace"
 )
 
@@ -50,7 +51,7 @@ func (a *App) undoSetting(what string, ops ...workspace.Op) {
 	a.warn(a.refreshFromSetting())
 	a.status.Did(what, func() error {
 		if a.Store != st {
-			return errors.New("作品已切换，无法撤销")
+			return errors.New(locales.StatusWorkSwitchedUndo())
 		}
 		if check != nil {
 			if err := a.book.CheckUnchanged(check.node, check.after); err != nil {

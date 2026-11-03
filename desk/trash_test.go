@@ -32,7 +32,7 @@ func TestTrashAndRestoreFromTheTree(t *testing.T) {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
-	if _, ok := chapters(a).Node(two); !ok || !tt.HasText("「第二章」已恢复") {
+	if _, ok := chapters(a).Node(two); !ok || !tt.HasText("已恢复「第二章」") {
 		t.Fatal("not restored", tt.Texts())
 	}
 	if err = tt.Click("关闭"); err != nil {

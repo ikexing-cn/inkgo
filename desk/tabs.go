@@ -6,6 +6,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
 	"writer/editor"
+	"writer/locales"
 	"writer/workspace"
 )
 
@@ -96,10 +97,10 @@ func (a *App) sheets(c *ui.Context) {
 	row := ui.Row(c).FillWidth().Height(kit.HBar).Shrink(0).BorderWidth(0, 0, 1, 0).BorderColor(a.pal.Line).Label("标签行")
 	row.Padding(0, 0, 0, a.paperInset(c)).Children(func() {
 		a.slide(ui.Row(c).Gap(2).AlignItems(ui.Center).Margin(0, 8, 0, -8).Shrink(0)).Children(func() {
-			if a.stepButton(c, kit.IcBack, "上一个打开的章节").Disabled(len(w.back) == 0).Clicked() {
+			if a.stepButton(c, kit.IcBack, locales.TabPrevOpened()).Disabled(len(w.back) == 0).Clicked() {
 				a.stepHistory(false)
 			}
-			if a.stepButton(c, kit.IcForward, "下一个打开的章节").Disabled(len(w.forward) == 0).Clicked() {
+			if a.stepButton(c, kit.IcForward, locales.TabNextOpened()).Disabled(len(w.forward) == 0).Clicked() {
 				a.stepHistory(true)
 			}
 		})
@@ -124,7 +125,7 @@ func (a *App) sheetRow(c *ui.Context, shut *[]string) {
 			dirty := on && a.unsaved()
 			tip := path + title
 			if dirty {
-				tip += " · 未保存"
+				tip += locales.TabUnsaved()
 			}
 			tab := ui.ButtonBase(c.Key("tab-"+id)).Row().Height(kit.HBar).MaxWidth(sheetMax).AlignItems(ui.Center).Gap(4).Padding(0, 4, 0, 10).Shrink(0).
 				Label("标签页-" + title).Tooltip(tip)
@@ -152,7 +153,7 @@ func (a *App) sheetRow(c *ui.Context, shut *[]string) {
 				// The cross keeps its place: shown on the tab open and on the
 				// one under the pointer. Words not saved put a dot there, till
 				// the pointer comes.
-				x := ui.ButtonBase(c.Key("x-"+id)).Size(kit.HTag, kit.HTag).Center().Radius(kit.RXs).Shrink(0).Label("关闭标签页-" + title).Tooltip("关闭标签页")
+				x := ui.ButtonBase(c.Key("x-"+id)).Size(kit.HTag, kit.HTag).Center().Radius(kit.RXs).Shrink(0).Label("关闭标签页-" + title).Tooltip(locales.TabClose())
 				mark := t.TextMuted
 				if x.Hovered() {
 					x.Background(t.SurfacePressed)
@@ -254,15 +255,15 @@ func (a *App) askToSave(c *ui.Context) {
 	answer := ""
 	a.pal.Modal(c, &open, func() {
 		ui.Column(c).Width(kit.DialogAsk).Padding(kit.DialogPad).Gap(16).Children(func() {
-			a.pal.DialogHead(c, "保存对「"+title+"」的修改？", "不保存将丢失上次保存后的修改。")
+			a.pal.DialogHead(c, locales.DialogUnsavedTitle(title), locales.DialogUnsavedAbout())
 			ui.Row(c).FillWidth().Gap(8).Justify(ui.End).Children(func() { // system order
-				if a.pal.Primary(c, "保存").Label("保存修改").Clicked() {
+				if a.pal.Primary(c, locales.CommonSave()).Label("保存修改").Clicked() {
 					answer = "save"
 				}
-				if a.pal.Secondary(c, "不保存").Clicked() {
+				if a.pal.Secondary(c, locales.DialogDontSave()).Clicked() {
 					answer = "drop"
 				}
-				if a.pal.Secondary(c, "取消").Clicked() {
+				if a.pal.Secondary(c, locales.CommonCancel()).Clicked() {
 					answer = "stay"
 				}
 			})

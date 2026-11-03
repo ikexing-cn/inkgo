@@ -1,7 +1,6 @@
 package desk
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/egoist/mygo/ui"
@@ -190,7 +189,7 @@ func (a *App) sidePanel(c *ui.Context, width float32) {
 			BorderWidth(0, 0, 1, 0).BorderColor(a.pal.Line).Label("侧栏标题行")
 		top.Children(func() {
 			head = ui.ButtonBase(c).Row().Height(kit.HControlSm).AlignItems(ui.Center).Gap(8).Padding(0, 6, 0, 10).Radius(kit.RControl).Shrink(1).
-				Label("切换作品").Tooltip("切换作品").Disabled(busy)
+				Label(locales.SideSwitchBook()).Tooltip(locales.SideSwitchBook()).Disabled(busy)
 			if head.Hovered() || a.menu.MenuOpen("作品") {
 				head.Background(t.SurfacePressed)
 			}
@@ -203,11 +202,11 @@ func (a *App) sidePanel(c *ui.Context, width float32) {
 			})
 			ui.Spacer(c)
 			if a.treeShown() {
-				if kit.IconButton(c, kit.IcPlus, "新建章节", ui.Color{}).Tooltip(locales.SideNewChapterKey(cmdNewChapter.keys())).Disabled(busy).Clicked() {
+				if kit.IconButton(c, kit.IcPlus, locales.CmdNewChapter(), ui.Color{}).Tooltip(locales.SideNewChapterKey(cmdNewChapter.keys())).Disabled(busy).Clicked() {
 					a.page = pageWrite
 					a.newNode(false)
 				}
-			} else if kit.IconButton(c, kit.IcPlus, "新对话", ui.Color{}).Disabled(a.held()).Clicked() {
+			} else if kit.IconButton(c, kit.IcPlus, locales.SideNewTalk(), ui.Color{}).Disabled(a.held()).Clicked() {
 				a.newSession()
 			}
 		})
@@ -217,7 +216,7 @@ func (a *App) sidePanel(c *ui.Context, width float32) {
 			panel.Margin(4, 0, 0, 0).Width(max(top.Bounds().W-20, kit.MenuWide))
 		}, func(m *kit.Menu) {
 			// The work open first, marked; each with what kind it is.
-			m.Head("作品")
+			m.Head(locales.SideBooks())
 			m.Item(work.Name).Hint(work.Genre).On(true)
 			n := 0
 			for _, b := range a.shelf.Recent() {
@@ -234,8 +233,8 @@ func (a *App) sidePanel(c *ui.Context, width float32) {
 				})
 			}
 			m.Separator()
-			m.Item("新建作品…").Do(func() { chosen = a.openCreate })
-			m.Item("全部作品…").Do(func() { chosen = a.closeWork })
+			m.Item(locales.SideNewBook()).Do(func() { chosen = a.openCreate })
+			m.Item(locales.SideAllBooks()).Do(func() { chosen = a.closeWork })
 		})
 		if chosen != nil && !a.Leave(chosen) { // what the AI proposed is let go first
 			chosen()
@@ -269,9 +268,9 @@ func (a *App) sideBody(c *ui.Context) {
 			a.sessionItem(c, id)
 		}
 		if put > 0 {
-			label := fmt.Sprintf("已收起 %d 段对话", put)
+			label := locales.SideFoldedCount(put)
 			if a.showShelved {
-				label = "不显示收起的对话"
+				label = locales.SideHideFolded()
 			}
 			if a.pal.Ghost(c, label, ui.Color{}).Label("收起的对话").Margin(6, 0, 0, 4).Clicked() {
 				a.showShelved = !a.showShelved
@@ -318,12 +317,12 @@ func (a *App) sessionItem(c *ui.Context, id string) {
 	})
 	a.menu.ContextMenu(c, a.pal, b, "对话-"+id, func(m *kit.Menu) {
 		if a.shelved[id] {
-			m.Item("移回列表").Disabled(a.held()).Do(func() {
+			m.Item(locales.SideMoveBack()).Disabled(a.held()).Do(func() {
 				delete(a.shelved, id)
 				a.savePrefs()
 			})
 		} else {
-			m.Item("收起这段对话").Disabled(a.held()).Do(func() { a.shelve(id) })
+			m.Item(locales.SideCollapseTalk()).Disabled(a.held()).Do(func() { a.shelve(id) })
 		}
 	})
 	if b.Clicked() {

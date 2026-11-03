@@ -2,27 +2,31 @@ package desk
 
 import (
 	"slices"
-	"strings"
+
 	"time"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
 	"writer/internal/textdiff"
+	"writer/locales"
 	"writer/workspace"
 )
 
 // snapReasons say why a snapshot was taken; with the AI off, snapReason
 // tells one taken before the AI changed the prose as one before a change.
-var snapReasons = map[string]string{
-	workspace.SnapOpen: "打开时", workspace.SnapInterval: "写作中", workspace.SnapRestore: "恢复前",
-	workspace.SnapExternal: "外部改动", workspace.SnapAI: "AI 改动前", workspace.SnapReplace: "全书替换前",
+var snapReasons = map[string]func() string{
+	workspace.SnapOpen: locales.SnapKindOpening, workspace.SnapInterval: locales.SnapKindWriting, workspace.SnapRestore: locales.SnapKindRestore,
+	workspace.SnapExternal: locales.SnapKindOutside, workspace.SnapAI: locales.SnapKindAI, workspace.SnapReplace: locales.SnapKindSwap,
 }
 
 func (a *App) snapReason(reason string) string {
 	if reason == workspace.SnapAI && !a.aiOn() {
-		return "改动前"
+		return locales.SnapKindEdit()
 	}
-	return snapReasons[reason]
+	if label := snapReasons[reason]; label != nil {
+		return label()
+	}
+	return ""
 }
 
 func (a *App) openSnapshots() {
@@ -119,16 +123,16 @@ func (a *App) snapshots(c *ui.Context) {
 		shown := a.snapView()
 		same := shown.same // nothing to restore
 		ui.Column(c).Width(kit.DialogWide).Height(kit.DialogTall).Padding(kit.DialogPad).Gap(16).Children(func() {
-			kept := "打开章节时、连续写作每十分钟、恢复前、采纳 AI 提议前、全书替换前都会保存一份。最近七天的全部保留，更早的每天保留最后一份。"
-			if !a.aiOn() {
-				kept = strings.Replace(kept, "采纳 AI 提议前、", "", 1)
+			ai := ""
+			if a.aiOn() {
+				ai = locales.SnapAboutAI()
 			}
-			a.pal.DialogHead(c, "快照 · "+a.shownTitle(), kept)
+			a.pal.DialogHead(c, locales.SnapTitle(a.shownTitle()), locales.SnapAbout(ai))
 			ui.Row(c).FillWidth().Grow(1).Gap(16).AlignItems(ui.Stretch).Children(func() {
 				ui.Scroll(c.Key("snaps")).Width(200).FillHeight().Shrink(0).Children(func() {
 					ui.Column(c).FillWidth().Gap(2).Children(func() {
 						if len(w.snaps) == 0 {
-							ui.Text(c, "本章暂无快照").FontSize(kit.FsControl).TextColor(a.pal.Faint).Padding(8)
+							ui.Text(c, locales.SnapNone()).FontSize(kit.FsControl).TextColor(a.pal.Faint).Padding(8)
 						}
 						for _, sn := range w.snaps {
 							on := sn.Name == w.snap
@@ -141,7 +145,7 @@ func (a *App) snapshots(c *ui.Context) {
 							}
 							b.Children(func() {
 								ui.Text(c, at).FontSize(kit.FsControl)
-								ui.Textf(c, "%s · %d 字", a.snapReason(sn.Reason), sn.Count).FontSize(kit.FsNote).TextColor(t.TextMuted)
+								ui.Text(c, locales.SnapRowInfo(a.snapReason(sn.Reason), sn.Count)).FontSize(kit.FsNote).TextColor(t.TextMuted)
 							})
 							if b.Clicked() {
 								a.pickSnapshot(sn.Name)
@@ -151,11 +155,11 @@ func (a *App) snapshots(c *ui.Context) {
 				})
 				ui.Column(c).Grow(1).Shrink(1).FillHeight().Gap(10).Children(func() {
 					ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Center).Children(func() {
-						ui.Checkbox(c, &w.compare, "与当前对比")
+						ui.Checkbox(c, &w.compare, locales.SnapCompare())
 						if same {
-							ui.Text(c, "该快照与当前正文相同").FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
+							ui.Text(c, locales.SnapSame()).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 						} else if w.compare {
-							ui.Text(c, "红色删除线为快照中有而当前没有的内容，绿色为当前新增的内容").FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
+							ui.Text(c, locales.SnapDiffHint()).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 						}
 					})
 					if i := slices.IndexFunc(w.snaps, func(s workspace.Snapshot) bool { return s.Name == w.snap }); i >= 0 && a.aiOn() {
@@ -194,10 +198,10 @@ func (a *App) snapshots(c *ui.Context) {
 			})
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 				ui.Spacer(c)
-				if a.pal.Secondary(c, "关闭").Clicked() {
+				if a.pal.Secondary(c, locales.CommonClose()).Clicked() {
 					w.snapsOpen = false
 				}
-				if a.pal.Primary(c, "恢复这个版本").Disabled(w.snap == "" || same || w.cur().lost || w.cur().external != nil).Clicked() {
+				if a.pal.Primary(c, locales.SnapRestore()).Disabled(w.snap == "" || same || w.cur().lost || w.cur().external != nil).Clicked() {
 					a.restoreSnapshot()
 				}
 			})
@@ -229,5 +233,5 @@ func (a *App) restoreSnapshot() {
 		return
 	}
 	w.snapsOpen = false
-	a.status.Did("已恢复到 " + kit.When(w.snaps[i].At, time.Now()) + " 的版本，恢复前的内容已存为快照")
+	a.status.Did(locales.SnapRestored(kit.When(w.snaps[i].At, time.Now())))
 }

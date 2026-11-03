@@ -14,6 +14,7 @@ import (
 	"writer/desk/kit"
 	"writer/editor"
 	"writer/export"
+	"writer/locales"
 	"writer/shelf"
 	"writer/workspace"
 )
@@ -31,7 +32,7 @@ func writingFixture(t *testing.T, text string) (*App, *ui.Tester, string) {
 	if _, err = a.Store.WriteChapter(id, text, nil); err != nil {
 		t.Fatal(err)
 	}
-	if err = tt.Click("正文"); err != nil {
+	if err = tt.Click(locales.PageWrite()); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
