@@ -1,11 +1,11 @@
 package exportdialog
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/book"
@@ -87,29 +87,29 @@ func (d *Dialog) View(c *ui.Context) {
 	pal.Modal(c, &d.Open, func() {
 		plan := &d.plan
 		ui.Column(c).Width(kit.DialogSmall).Padding(kit.DialogPad).Gap(16).Children(func() {
-			pal.DialogHead(c, "导出", plan.About)
-			kit.Labeled(c, "内容", func() {
+			pal.DialogHead(c, locales.ExportTitle(), d.about())
+			kit.Labeled(c, locales.ExportContent(), func() {
 				ui.Row(c).Gap(24).MinHeight(kit.HControl).AlignItems(ui.Center).Children(func() {
 					for _, o := range []struct {
 						on   *bool
 						what string
 					}{{&set.Prose, export.ProseContent}, {&set.Outline, export.OutlineContent}, {&set.Setting, export.SettingContent}} {
-						if ui.Checkbox(c, o.on, o.what).Changed() {
+						if ui.Checkbox(c, o.on, contentLabel(o.what)).Changed() {
 							d.Host.SaveShelf()
 							d.Replan()
 						}
 					}
 				})
 			})
-			kit.Labeled(c, "格式", func() {
-				if kit.Dots(c, &set.Text, "导出格式", []bool{false, true}, []string{"Word", "纯文本"}) {
+			kit.Labeled(c, locales.ExportFormat(), func() {
+				if kit.Dots(c, &set.Text, locales.ExportFormatAria(), []bool{false, true}, []string{"Word", locales.ExportPlain()}) {
 					d.Host.SaveShelf()
 					d.Replan()
 				}
 			})
 			if set.Prose || set.Outline {
-				kit.Labeled(c, "范围", func() {
-					if kit.Dots(c, &d.selection.Scope, "导出范围", plan.Scopes, plan.Scopes) {
+				kit.Labeled(c, locales.ExportRange(), func() {
+					if kit.Dots(c, &d.selection.Scope, locales.ExportRangeAria(), plan.Scopes, scopeLabels(plan.Scopes)) {
 						d.Replan()
 					}
 				})
@@ -118,24 +118,24 @@ func (d *Dialog) View(c *ui.Context) {
 				}
 			}
 			if set.Prose && !set.Text {
-				kit.Labeled(c, "笔名", func() {
-					ui.TextInput(c, &d.pen).Label("笔名").Placeholder("选填，写在首页").FillWidth()
+				kit.Labeled(c, locales.ExportPen(), func() {
+					ui.TextInput(c, &d.pen).Label(locales.ExportPen()).Placeholder(locales.ExportPenHint()).FillWidth()
 				})
 			}
 			if set.Prose && set.Text {
-				ui.Checkbox(c, &d.indent, "段首加两个全角空格")
+				ui.Checkbox(c, &d.indent, locales.ExportIndent())
 			}
 			for _, what := range plan.Ticked {
 				if note := plan.Skip[what]; note != "" {
-					ui.Text(c, note).FontSize(kit.FsNote).TextColor(t.TextMuted)
+					ui.Text(c, skipLabel(*plan, what)).FontSize(kit.FsNote).TextColor(t.TextMuted)
 				}
 			}
 			ui.Row(c).FillWidth().Gap(8).Children(func() {
 				ui.Spacer(c)
-				if pal.Secondary(c, "取消").Clicked() {
+				if pal.Secondary(c, locales.CommonCancel()).Clicked() {
 					d.Open = false
 				}
-				if pal.Primary(c, "导出").Disabled(len(plan.Going) == 0).Clicked() {
+				if pal.Primary(c, locales.ExportTitle()).Disabled(len(plan.Going) == 0).Clicked() {
 					d.export(c, d.plan)
 				}
 			})
@@ -150,16 +150,16 @@ func (d *Dialog) span(c *ui.Context) {
 	names := d.plan.Names
 	at := func(name string) int { return max(0, slices.Index(names, name)) }
 	ui.Row(c).FillWidth().Gap(12).Children(func() {
-		kit.Labeled(c, "从", func() {
-			if pal.Select(c, &d.selection.From, names).Label("从").FillWidth().MinWidth(0).Changed() {
+		kit.Labeled(c, locales.ExportFrom(), func() {
+			if pal.Select(c, &d.selection.From, names).Label(locales.ExportFrom()).FillWidth().MinWidth(0).Changed() {
 				if at(d.selection.To) < at(d.selection.From) {
 					d.selection.To = d.selection.From
 				}
 				d.Replan()
 			}
 		})
-		kit.Labeled(c, "到", func() {
-			if pal.Select(c, &d.selection.To, names[at(d.selection.From):]).Label("到").FillWidth().MinWidth(0).Changed() {
+		kit.Labeled(c, locales.ExportTo(), func() {
+			if pal.Select(c, &d.selection.To, names[at(d.selection.From):]).Label(locales.ExportTo()).FillWidth().MinWidth(0).Changed() {
 				d.Replan()
 			}
 		})
@@ -231,16 +231,16 @@ func (d *Dialog) export(c *ui.Context, plan export.Plan) {
 			set.Pen = pen
 			d.Host.SaveShelf()
 		}
-		status.Did("已导出到 " + path)
+		status.Did(locales.ExportedOne(path))
 		if len(files) > 1 {
-			status.Did(fmt.Sprintf("已导出 %d 个文件到 %s", len(files), dir))
+			status.Did(locales.ExportedMany(len(files), dir))
 		}
 	}
 	save, _ := d.Host.Dialogs()
 	if len(files) == 1 && save != nil {
 		sv := c.Services()
 		d.Host.StartJob(sv, func() func() {
-			path, err := save("导出", files[0].name)
+			path, err := save(locales.ExportTitle(), files[0].name)
 			return func() {
 				if err != nil {
 					status.Warn(err)
@@ -252,7 +252,7 @@ func (d *Dialog) export(c *ui.Context, plan export.Plan) {
 		})
 		return
 	}
-	if len(files) > 1 && d.Host.PickInto(c, "导出到", write) {
+	if len(files) > 1 && d.Host.PickInto(c, locales.ExportInto(), write) {
 		return
 	}
 	dir := filepath.Join(store.Root(), "导出")
@@ -280,3 +280,63 @@ func (d *Dialog) Plan() export.Plan { return d.plan }
 
 // Selection is the chosen scope and the chapter names at its ends.
 func (d *Dialog) Selection() export.Selection { return d.selection }
+
+// Presentation stays separate from the export package's stored values and file names.
+func contentLabel(what string) string {
+	switch what {
+	case export.ProseContent:
+		return locales.ExportBody()
+	case export.OutlineContent:
+		return locales.PagePlan()
+	case export.SettingContent:
+		return locales.ExportSettings()
+	}
+	return what
+}
+func scopeLabels(scopes []string) []string {
+	labels := make([]string, len(scopes))
+	for i, scope := range scopes {
+		switch scope {
+		case export.ScopeWork:
+			labels[i] = locales.ExportRangeBook()
+		case export.ScopeVolume:
+			labels[i] = locales.ExportRangeVolume()
+		case export.ScopeChapter:
+			labels[i] = locales.ExportRangeChapter()
+		case export.ScopeSpan:
+			labels[i] = locales.ExportRangeCustom()
+		}
+	}
+	return labels
+}
+func (d *Dialog) about() string {
+	set := d.preferences()
+	switch {
+	case len(d.plan.Ticked) > 1:
+		return locales.ExportAboutMany()
+	case set.Setting:
+		return locales.ExportAboutSettings()
+	case set.Outline:
+		return locales.ExportAboutOutline()
+	case set.Text:
+		return locales.ExportAboutText()
+	default:
+		return locales.ExportAboutWord()
+	}
+}
+func skipLabel(plan export.Plan, what string) string {
+	switch what {
+	case export.ProseContent:
+		return locales.ExportSkipBody()
+	case export.SettingContent:
+		return locales.ExportSkipSettings()
+	case export.OutlineContent:
+		for _, p := range plan.Pieces {
+			if !p.Folder {
+				return locales.ExportSkipOutlineEmpty()
+			}
+		}
+		return locales.ExportSkipOutlineNone()
+	}
+	return ""
+}
