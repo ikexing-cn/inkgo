@@ -90,7 +90,8 @@ import 一个公开包只是编译期用到它的类型，不等于运行时依�
   - Schema 有标题、说明、默认值、可选项（每项带说明）、分组、顺序、作用范围（`Local` 本机、`BookScope` 按书、`Both` 两者都有）；
   - 存放：本机的在 `works.json` 旁边的 `ext.json`（键 `off` 本机关掉的扩展、`settings`、`injections` 作者调过的顺序和选择），按书的在作品的 `.writer/ext.json`（键 `switches`、`settings`）。都用 `internal/atomicfile` 写。文件读不出来时这一次按默认处理、提示条说一句（`locales.ExtFileUnreadable`），在真正存一次以前不覆盖它；
   - 宿主照声明用 `kit` 画在设置里这个扩展的那一节：**还没做**，现在三个扩展的设置都是自己画的；要和别的扩展放在同一页，就写宿主开的具名分组（`ext.SettingsGroupChecks` 这类），宿主把放进同一组的项画在一页，每项记着是谁加的；
-  - 要自己画就往 `hostapi.SettingsPages` 里放一页（备份就是这样），详情页标明「自定义设置页」。
+  - 要自己画就往 `hostapi.SettingsSections` 里放一段，画在宿主画的页头下面，详情页标明「自定义设置页」；要在设置左栏占一页，往 `hostapi.SettingsPages` 里登记页名和排序数（宿主的 AI 是 10、提醒是 20，备份登记了 30），同名的合用一页。登记的页一直在，扩展关着也在，宿主经 `ext.Declared` 读没生效的登记（只读数据，不调回调）。
+- **给宿主显示用的**：`Module.Group`（总览里的组，`hostapi.GroupFiles` 这类）、`Module.Off`（关着时多说的一句）。
 - **数据目录**：`Session.BookDir()` 是 `.writer/ext/<id>/`，`Session.LocalDir()` 是 shelf 旁边的 `ext/<id>/`。宿主只在 Start 之后给。
 
 ### 注入
