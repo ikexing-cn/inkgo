@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>笔记进展</title>
+<style>
+:root {
+  --bg: #f6f5f2; --panel: #ffffff; --line: #e3e0da; --text: #22211f; --muted: #77736c; --faint: #a7a29a;
+  --proposed: #c27a12; --implemented: #2f8a4f; --rejected: #b4443b; --archived: #8a867f;
+  --accent: #2f6fd6; --dirty: #c2410c;
+  --feature: #2f6fd6; --bug-fix: #c2413c; --simplification: #138a86; --architecture: #7a4fc9; --process: #b7791f; --testing: #3f8f3a;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1b1a; --panel: #252523; --line: #3a3936; --text: #ecebe8; --muted: #a29e96; --faint: #6f6b65;
+    --proposed: #e0a040; --implemented: #5fbf7f; --rejected: #e07068; --archived: #9a968f;
+    --accent: #6ea0f0; --dirty: #f08a4b;
+    --feature: #6ea0f0; --bug-fix: #e07068; --simplification: #4cc2bd; --architecture: #a98af0; --process: #e0a848; --testing: #78c070;
+  }
+}
+:root { color-scheme: light dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, "Microsoft YaHei UI", "PingFang SC", sans-serif; }
+button { font: inherit; color: inherit; }
+header { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+h1 { font-size: 17px; margin: 0; font-weight: 600; }
+.live { color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 6px; }
+.live i { width: 8px; height: 8px; border-radius: 50%; background: var(--implemented); display: inline-block; }
+.live.off i { background: var(--rejected); }
+.live.pulse i { animation: pulse 1s; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 var(--implemented); } 100% { box-shadow: 0 0 0 8px transparent; } }
+.spacer { flex: 1; }
+input[type=search] { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; color: var(--text); width: 220px; font: inherit; }
+.chips { display: flex; gap: 4px; flex-wrap: wrap; }
+.chip { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 1px 10px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+.chip i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.chip.off { opacity: .4; }
+
+.stats { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px 0; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 14px; min-width: 104px; }
+.stat b { font-size: 20px; font-weight: 600; display: block; }
+.stat span { font-size: 12px; color: var(--muted); }
+.stat.proposed b { color: var(--proposed); } .stat.implemented b { color: var(--implemented); }
+.stat.rejected b { color: var(--rejected); } .stat.archived b { color: var(--archived); } .stat.moving b { color: var(--dirty); }
+
+.moving { padding: 12px 16px 0; }
+.moving h2, .col h2 { font-size: 13px; font-weight: 600; margin: 0 0 8px; color: var(--muted); display: flex; gap: 8px; align-items: baseline; }
+.moving-list { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.moving-list .card { flex: 0 0 260px; }
+
+main { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+.board { position: relative; display: grid; grid-template-columns: minmax(220px, 1fr) minmax(0, 2fr) minmax(220px, 1fr); gap: 16px; padding: 16px; align-items: start; }
+.col h2 { flex-wrap: wrap; }
+.col h2 b { font-size: 13px; white-space: nowrap; }
+.col.proposed h2 b { color: var(--proposed); } .col.implemented h2 b { color: var(--implemented); }
+.col h2 .rejected-h { color: var(--rejected); } .col h2 .archived-h { color: var(--archived); }
+.col { min-width: 0; }
+.cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.col.implemented .cards { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+.sub { margin-top: 20px; }
+.empty { color: var(--faint); font-size: 12px; }
+
+.card { position: relative; z-index: 1; background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--c); border-radius: 6px; padding: 7px 10px 8px; cursor: pointer; transition: opacity .15s; }
+.card:hover { border-color: var(--faint); border-left-color: var(--c); }
+.card .top { display: flex; gap: 6px; align-items: center; font-size: 11px; color: var(--muted); }
+.card .cls { color: var(--c); font-weight: 600; }
+.card .title { font-weight: 500; margin: 2px 0 3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card .reason { font-size: 12px; color: var(--rejected); margin-bottom: 3px; }
+.card .act { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card .act.hot { color: var(--text); }
+.badge { font-size: 11px; border-radius: 4px; padding: 0 5px; font-weight: 600; }
+.badge.dirty { background: var(--dirty); color: #fff; }
+.badge.hot { color: var(--proposed); border: 1px solid var(--proposed); }
+.badge.rel { margin-left: auto; color: var(--faint); font-weight: 400; padding: 0; }
+.card.flash { animation: flash 1.6s; }
+@keyframes flash { 0% { box-shadow: 0 0 0 3px var(--accent); } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+.picking .card { opacity: .28; }
+.picking .card.sel, .picking .card.out, .picking .card.in { opacity: 1; }
+.card.sel { box-shadow: 0 0 0 2px var(--accent); }
+.card.out::after, .card.in::after { position: absolute; top: -8px; right: 8px; font-size: 10px; padding: 0 5px; border-radius: 3px; color: #fff; background: var(--accent); }
+.card.out::after { content: "它引用的"; }
+.card.in::after { content: "引用它的"; background: var(--muted); }
+.card.out.in::after { content: "互相引用"; }
+svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: visible; }
+svg.wires path { fill: none; stroke-width: 1.6; }
+svg.wires .out { stroke: var(--accent); }
+svg.wires .in { stroke: var(--muted); stroke-dasharray: 5 4; }
+
+aside { display: none; width: clamp(300px, 28vw, 420px); border-left: 1px solid var(--line); background: var(--panel); position: sticky; top: 53px; height: calc(100vh - 53px); overflow-y: auto; padding: 14px 16px 24px; }
+.has-sel aside { display: block; }
+aside .close { float: right; border: none; background: none; cursor: pointer; font-size: 18px; color: var(--muted); line-height: 1; }
+aside h3 { font-size: 16px; margin: 6px 0 4px; }
+aside h4 { font-size: 12px; color: var(--muted); margin: 16px 0 6px; font-weight: 600; }
+aside .meta { font-size: 12px; color: var(--muted); }
+aside .path { font-family: ui-monospace, Consolas, monospace; font-size: 11px; color: var(--muted); word-break: break-all; }
+aside p { margin: 4px 0; }
+.pill { display: inline-block; font-size: 11px; font-weight: 600; color: #fff; border-radius: 4px; padding: 0 6px; }
+.rel-list { list-style: none; margin: 0; padding: 0; }
+.rel-list li { padding: 3px 0; cursor: pointer; display: flex; gap: 6px; align-items: baseline; font-size: 13px; }
+.rel-list li:hover span { text-decoration: underline; }
+.rel-list i { width: 8px; height: 8px; border-radius: 50%; flex: none; display: inline-block; }
+.rel-list .lc { margin-left: auto; font-size: 11px; color: var(--muted); flex: none; }
+.code { font-family: ui-monospace, Consolas, monospace; font-size: 12px; color: var(--muted); }
+.commits { font-size: 12px; margin: 0; padding: 0; list-style: none; }
+.commits li { padding: 2px 0; display: flex; gap: 8px; }
+.commits time { color: var(--muted); flex: none; width: 70px; }
+.broken { color: var(--rejected); font-size: 12px; }
+aside .full { margin-top: 10px; border: 1px solid var(--line); background: var(--bg); border-radius: 6px; padding: 3px 10px; cursor: pointer; font-size: 12px; }
+aside pre { white-space: pre-wrap; word-break: break-word; font: 12px/1.6 ui-monospace, Consolas, monospace; background: var(--bg); border-radius: 6px; padding: 10px; }
+
+@media (max-width: 900px) {
+  .board { grid-template-columns: 1fr; }
+  main { grid-template-columns: 1fr; }
+  aside { position: fixed; inset: auto 0 0 0; width: auto; height: 60vh; top: auto; border-left: none; border-top: 1px solid var(--line); z-index: 10; }
+  input[type=search] { width: 100%; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>笔记进展</h1>
+  <span class="live" id="live"><i></i><span>连接中…</span></span>
+  <span class="spacer"></span>
+  <input type="search" id="q" placeholder="搜标题或文件名">
+  <div class="chips" id="chips"></div>
+</header>
+<div class="stats" id="stats"></div>
+<section class="moving" id="moving"></section>
+<main>
+  <div class="board" id="board"></div>
+  <aside id="aside"></aside>
+</main>
+<script>
+const LC = {
+  proposed: { name: '进行中', hint: '提了方案，还没落地' },
+  implemented: { name: '已落地', hint: '代码里已经是这样' },
+  rejected: { name: '已取消', hint: '否掉了，留着防重走' },
+  archived: { name: '已归档', hint: '做完且封存' },
+}
+const CLS = { feature: '功能', 'bug-fix': '修缺陷', simplification: '精简', architecture: '架构', process: '流程', testing: '测试' }
+const HOT_DAYS = 3
+
+let data = null
+let version = ''
+let selected = null
+const hidden = new Set()
+let lastSeen = new Map()
+
+const $ = (id) => document.getElementById(id)
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+
+function ago(iso) {
+  if (!iso) return ''
+  const s = (Date.now() - new Date(iso)) / 1000
+  if (s < 60) return '刚刚'
+  if (s < 3600) return `${Math.floor(s / 60)} 分钟前`
+  if (s < 86400) return `${Math.floor(s / 3600)} 小时前`
+  if (s < 86400 * 30) return `${Math.floor(s / 86400)} 天前`
+  return iso.slice(0, 10)
+}
+const last = (n) => n.commits[0]?.date || ''
+const isHot = (n) => n.dirty || (last(n) && Date.now() - new Date(last(n)) < HOT_DAYS * 86400e3)
+const rank = (n) => (n.dirty ? '9' : '0') + (last(n) || n.date)
+const byRank = (a, b) => rank(b).localeCompare(rank(a))
+
+function visible(n) {
+  if (hidden.has(n.cls)) return false
+  const q = $('q').value.trim().toLowerCase()
+  return !q || n.title.toLowerCase().includes(q) || n.rel.toLowerCase().includes(q)
+}
+
+function card(n, where) {
+  const act = n.dirty
+    ? `<span class="badge dirty">${n.dirty}，未提交</span>`
+    : n.commits[0] ? `${ago(last(n))} · ${esc(n.commits[0].subject)}` : '还没提交过'
+  const hot = n.lifecycle === 'proposed' && isHot(n) && !n.dirty ? '<span class="badge hot">在动</span>' : ''
+  return `<div class="card" data-rel="${esc(n.rel)}" data-where="${where}" style="--c: var(--${n.cls})">
+    <div class="top"><span class="cls">${CLS[n.cls] || n.cls}</span><span>提出 ${n.date.slice(5)}</span>${hot}
+      <span class="badge rel" title="引用了 ${n.links.length} 篇 · 被 ${n.backlinks.length} 篇引用">→${n.links.length} ←${n.backlinks.length}</span></div>
+    <div class="title">${esc(n.title)}</div>
+    ${n.lifecycle === 'rejected' && n.reason ? `<div class="reason">取消原因：${esc(n.reason)}</div>` : ''}
+    ${n.lifecycle === 'archived' && n.archived ? `<div class="act">归档于 ${esc(n.archived)}</div>` : ''}
+    <div class="act ${isHot(n) ? 'hot' : ''}">${act}</div>
+  </div>`
+}
+
+function column(lc, notes) {
+  const list = notes.filter((n) => n.lifecycle === lc).sort(byRank)
+  return `<h2><b class="${lc}-h">${LC[lc].name}</b> ${list.length} 篇 <span>${LC[lc].hint}</span></h2>
+    <div class="cards">${list.map((n) => card(n, 'board')).join('') || '<div class="empty">没有</div>'}</div>`
+}
+
+function render() {
+  const notes = data.notes.filter(visible)
+  const count = (lc) => data.notes.filter((n) => n.lifecycle === lc).length
+  const moving = notes.filter(isHot).sort(byRank)
+  const dirty = data.notes.filter((n) => n.dirty).length
+  $('stats').innerHTML = ['proposed', 'implemented', 'rejected', 'archived']
+    .map((lc) => `<div class="stat ${lc}"><b>${count(lc)}</b><span>${LC[lc].name}</span></div>`).join('')
+    + `<div class="stat moving"><b>${data.notes.filter(isHot).length}</b><span>近 ${HOT_DAYS} 天有动静${dirty ? `，${dirty} 篇未提交` : ''}</span></div>`
+  $('moving').innerHTML = `<h2>最近在动的 <span>未提交的排最前，其次按最后一次提交</span></h2>
+    <div class="moving-list">${moving.map((n) => card(n, 'moving')).join('') || '<div class="empty">近几天没有改动</div>'}</div>`
+  $('board').innerHTML = `<svg class="wires" id="wires"></svg>
+    <div class="col proposed">${column('proposed', notes)}</div>
+    <div class="col implemented">${column('implemented', notes)}</div>
+    <div class="col">${column('rejected', notes)}<div class="sub">${column('archived', notes)}</div></div>`
+  $('chips').innerHTML = Object.entries(CLS)
+    .filter(([k]) => data.notes.some((n) => n.cls === k))
+    .map(([k, v]) => `<button class="chip ${hidden.has(k) ? 'off' : ''}" data-cls="${k}"><i style="background: var(--${k})"></i>${v}</button>`).join('')
+  highlight()
+}
+
+function highlight() {
+  const n = selected && data.notes.find((x) => x.rel === selected)
+  if (!n) selected = null
+  document.body.classList.toggle('has-sel', !!n)
+  $('board').classList.toggle('picking', !!n)
+  for (const el of document.querySelectorAll('.card')) {
+    const rel = el.dataset.rel
+    el.classList.toggle('sel', rel === selected)
+    el.classList.toggle('out', !!n && n.links.includes(rel))
+    el.classList.toggle('in', !!n && n.backlinks.includes(rel))
+  }
+  detail(n)
+  requestAnimationFrame(wires)
+}
+
+function wires() {
+  const svg = $('wires')
+  if (!svg) return
+  const n = selected && data.notes.find((x) => x.rel === selected)
+  const at = (rel) => document.querySelector(`#board .card[data-rel="${CSS.escape(rel)}"]`)
+  const from = n && at(n.rel)
+  if (!from) { svg.innerHTML = ''; return }
+  const box = $('board').getBoundingClientRect()
+  const r = (el) => { const b = el.getBoundingClientRect(); return { l: b.left - box.left, r: b.right - box.left, t: b.top - box.top, h: b.height } }
+  const a = r(from)
+  const path = (rel, kind) => {
+    const el = at(rel)
+    if (!el) return ''
+    const b = r(el)
+    const right = b.l > a.r - 4 ? true : b.r < a.l + 4 ? false : null
+    let x1, x2, c1, c2
+    const y1 = a.t + a.h / 2, y2 = b.t + b.h / 2
+    if (right === null) { x1 = a.r; x2 = b.r; c1 = x1 + 40; c2 = x2 + 40 }
+    else if (right) { x1 = a.r; x2 = b.l; c1 = x1 + (x2 - x1) / 2; c2 = c1 }
+    else { x1 = a.l; x2 = b.r; c1 = x1 - (x1 - x2) / 2; c2 = c1 }
+    return `<path class="${kind}" d="M${x1},${y1} C${c1},${y1} ${c2},${y2} ${x2},${y2}"/>`
+  }
+  svg.innerHTML = n.backlinks.map((l) => path(l, 'in')).join('') + n.links.map((l) => path(l, 'out')).join('')
+}
+
+function relList(rels) {
+  if (!rels.length) return '<p class="meta">没有</p>'
+  const find = (rel) => data.notes.find((x) => x.rel === rel)
+  return `<ul class="rel-list">${rels.map(find).filter(Boolean).sort(byRank).map((x) =>
+    `<li data-rel="${esc(x.rel)}"><i style="background: var(--${x.lifecycle})"></i><span>${esc(x.title)}</span><em class="lc">${LC[x.lifecycle].name}</em></li>`).join('')}</ul>`
+}
+
+function detail(n) {
+  if (!n) { $('aside').innerHTML = ''; return }
+  if ($('aside').dataset.rel === n.rel && $('aside').dataset.v === version) return
+  $('aside').dataset.rel = n.rel
+  $('aside').dataset.v = version
+  $('aside').innerHTML = `<button class="close" title="关掉（Esc）">×</button>
+    <span class="pill" style="background: var(--${n.lifecycle})">${LC[n.lifecycle].name}</span>
+    <span class="meta">${CLS[n.cls] || n.cls} · 提出 ${n.date}${n.archived ? ` · 归档 ${esc(n.archived)}` : ''}</span>
+    <h3>${esc(n.title)}</h3>
+    <div class="path">.agents/notes/${esc(n.rel)}</div>
+    ${n.dirty ? `<p><span class="badge dirty">${n.dirty}，未提交</span></p>` : ''}
+    ${n.reason ? `<h4>取消原因</h4><p>${esc(n.reason)}</p>` : ''}
+    ${n.problem ? `<h4>要解决的问题</h4><p>${esc(n.problem)}</p>` : ''}
+    <h4>它引用的（${n.links.length}）</h4>${relList(n.links)}
+    <h4>引用它的（${n.backlinks.length}）</h4>${relList(n.backlinks)}
+    ${n.broken.length ? `<h4>失效的链接</h4>${n.broken.map((b) => `<div class="broken">${esc(b)}</div>`).join('')}` : ''}
+    ${n.code.length ? `<h4>提到的代码（${n.code.length}）</h4>${n.code.map((c) => `<div class="code">${esc(c)}</div>`).join('')}` : ''}
+    <h4>提交记录（${n.commits.length}）</h4>
+    <ul class="commits">${n.commits.slice(0, 10).map((c) => `<li><time title="${esc(c.date)}">${ago(c.date)}</time><span>${esc(c.subject)}</span></li>`).join('') || '<li class="meta">还没提交过</li>'}</ul>
+    <h4>章节</h4><p class="meta">${n.sections.map(esc).join(' · ')}</p>
+    <button class="full">看全文</button><div id="full"></div>`
+}
+
+document.addEventListener('click', async (e) => {
+  const t = e.target
+  const chip = t.closest('.chip')
+  if (chip) { const k = chip.dataset.cls; hidden.has(k) ? hidden.delete(k) : hidden.add(k); render(); return }
+  if (t.closest('.close')) { selected = null; highlight(); return }
+  if (t.closest('.full')) {
+    const res = await fetch(`/api/note?rel=${encodeURIComponent(selected)}`)
+    $('full').innerHTML = `<pre>${esc(await res.text())}</pre>`
+    t.remove()
+    return
+  }
+  const hit = t.closest('.card, .rel-list li')
+  if (hit) {
+    selected = selected === hit.dataset.rel && hit.classList.contains('card') ? null : hit.dataset.rel
+    highlight()
+    if (selected && !hit.closest('#board')) document.querySelector(`#board .card[data-rel="${CSS.escape(selected)}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }
+})
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && selected) { selected = null; highlight() } })
+$('q').addEventListener('input', render)
+addEventListener('resize', () => requestAnimationFrame(wires))
+
+function changed(next) {
+  const out = []
+  const first = lastSeen.size === 0
+  for (const n of next.notes) {
+    const sig = `${n.lifecycle}|${n.dirty}|${n.commits.length}|${n.title}|${n.status}`
+    if (!first && lastSeen.get(n.rel) !== sig) out.push(n.rel)
+    lastSeen.set(n.rel, sig)
+  }
+  return out
+}
+
+let readAt = 0
+async function poll() {
+  const live = $('live')
+  try {
+    const res = await fetch('/api/notes', { cache: 'no-store' })
+    const next = await res.json()
+    readAt = Date.now()
+    live.classList.remove('off')
+    if (next.version !== version) {
+      const flash = changed(next)
+      data = next
+      version = next.version
+      render()
+      for (const rel of flash) for (const el of document.querySelectorAll(`.card[data-rel="${CSS.escape(rel)}"]`)) el.classList.add('flash')
+      live.classList.remove('pulse'); void live.offsetWidth; live.classList.add('pulse')
+    }
+  } catch {
+    live.classList.add('off')
+  }
+  tick()
+  setTimeout(poll, 2000)
+}
+function tick() {
+  const live = $('live')
+  live.querySelector('span').textContent = live.classList.contains('off')
+    ? '连不上服务，重试中…'
+    : `每 2 秒读一次 · ${data ? `${data.notes.length} 篇 · ${data.branch} · ${data.repo}` : ''}`
+}
+poll()
+</script>
+</body>
+</html>

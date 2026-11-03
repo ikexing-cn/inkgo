@@ -11,7 +11,8 @@ Status: implemented
 ## Decision
 
 - 采用 [write-notes-like-deepseek](https://github.com/czm15053/write-notes-like-deepseek)（commit `8f3b404`）的笔记方法：非平凡改动在 `.agents/notes/{proposed,implemented,rejected,archived}/{class}/yyyy-mm-dd-topic.md` 留笔记，规则入口是根目录 `AGENTS.md`。
-- Skill 的本地适配副本在 `.agents/skills/write-notes-like-deepseek/`（`SKILL.md`、`references/`、`templates/`），校验脚本副本在 `scripts/`；只收录校验与归档脚本，看板、DSH 导入、素材导出脚本不收录，技能只列实际安装的入口。
+- Skill 的本地适配副本在 `.agents/skills/write-notes-like-deepseek/`（`SKILL.md`、`references/`、`templates/`），校验脚本副本在 `scripts/`；只收录校验与归档脚本，上游的看板、DSH 导入、素材导出脚本不收录，技能只列实际安装的入口。
+- 看笔记进展用本地写的 `npm run notes-board`（`scripts/notes-board.ts` + `notes-board.html`），不用上游看板：只读、只绑 127.0.0.1，每次笔记文件或 HEAD 变了才重读磁盘和一遍 `git log -M`（改名跟着走，提案挪到 implemented 也接得上提交记录），页面每 2 秒问一次。它只看 `--root` 指的那份检出，别的 worktree 里没合进来的笔记看不到。不接进 `npm run verify`。
 - 脚本由 Node 直接运行 `.ts`（Node ≥ 22.18 的类型剥离），`package.json` 只有 scripts，没有任何依赖；`npm run verify-notes` 串跑目录、格式、归档封印三道检查。
 - 提交前同时通过 `go vet ./...`、`go test ./...`、`npm run verify-notes`。2026-10-13 起由 `npm run verify` 一条命令同时跑，原型的走查也在里面，见[全套检查从四分半到半分钟](2026-10-13-fast-checks.md)。
 

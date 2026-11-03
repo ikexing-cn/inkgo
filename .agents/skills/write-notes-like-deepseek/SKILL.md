@@ -158,9 +158,10 @@ npm run verify-archived            # 归档封印：头部布局、manifest 哈�
 npm run verify-notes               # 以上三线串跑（CI 用这个）
 npm run archive-agent-note -- <path> [--superseded-by <新笔记>]  # 一键归档；可选在新笔记插入互链 + 入站死链报告
 npm run check-anchors              # 软报告：若代码里有 // Note: 锚点，做双向体检；不当 CI 门
+npm run notes-board                # 本地看板：各篇状态、互相引用、最近提交，每 2 秒刷新（本仓库自写，不是上游的）
 ```
 
-脚本也可以从仓库根目录用 `node scripts/<脚本名>.ts` 运行，参数见 `references/verification.md`。本仓库不含上游的看板、导入导出工具或 CI workflow；不要引用它们作为本地可用命令。更新上游技能时保留这些本地适配。
+脚本也可以从仓库根目录用 `node scripts/<脚本名>.ts` 运行，参数见 `references/verification.md`。本仓库不含上游的看板（`notes-board` 是本仓库自写的）、导入导出工具或 CI workflow；不要引用它们作为本地可用命令。更新上游技能时保留这些本地适配。
 
 ## References
 
