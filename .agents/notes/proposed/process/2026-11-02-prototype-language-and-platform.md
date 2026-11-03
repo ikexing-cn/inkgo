@@ -76,8 +76,10 @@ Status: proposed
 
 - 应用这边和 macOS 不一致的几处，作者 2026-11-02 定了做法，规则在 DESIGN.md「菜单」：
   - `Ctrl+Tab` 在 `desk/commands.go` 的快捷键表里是手写的字。已改：表里的键都从命令取，`shortcutOn` 按系统写（macOS 上 ⌃⇧Tab），顺带修了 Windows 上 Cmd 加 Shift 的命令只写出 `Ctrl+` 的问题。
-  - 重做两边都改成 Ctrl+Shift+Z / ⇧⌘Z。原型已改；应用的 `cmdRedo` 还是 `Cmd+Y`，等恢复写代码时改（Windows 上 Ctrl+Y 留着也认）。
-  - 专注写作在 macOS 上是 ⌃⌘F，重命名在 macOS 上不设快捷键。原型已改（在 Windows 键盘上点原型，F11、F2 照样认）；应用的命令表要能给 macOS 另配一个键，等恢复写代码时做。
+  - 重做两边都改成 Ctrl+Shift+Z / ⇧⌘Z。已改，原型和应用都是；编辑器仍认 Ctrl+Y，只是菜单和快捷键表不再写它。
+  - 专注写作在 macOS 上是 ⌃⌘F，重命名在 macOS 上不设快捷键。已改：原型在 Windows 键盘上点时 F11、F2 照样认；应用的命令表可以给 macOS 另配一个键或者没有键（`onMac`、`macKey`、`macMods`），⌃⌘F 只触发专注写作、不会同时触发 ⌘F 查找（有测试）。表里的 `modCmd` 是「系统的命令键」，在 macOS 上写成 ⌘、别处写成 Ctrl，所以两个系统的写法在一台电脑上就能测，Ctrl+Tab 在 macOS 上仍是 ⌃Tab。
+  - macOS 上按键的名字照原型 `keyLabel`：↩、⇟、⇞、⌫、⌦。下一章、上一章两边都把修饰键写全（`Ctrl+PgDn / Ctrl+PgUp`、`⌘⇟ / ⌘⇞`），原型原来写 `Ctrl+PgDn / PgUp`，跟着应用改了，和同一张表里 `Ctrl+Z / Ctrl+Shift+Z` 的写法一致。
+  - 删一个词：原型在 macOS 上写 ⌥⌫ / ⌥⌦（macOS 的习惯），应用的编辑器在 macOS 上认的是 ⌘⌫ / ⌘⌦，快捷键表照编辑器实际认的写。⌘⌫ 在 macOS 上一般是删到行首，编辑器要不要改成 ⌥ 还没定。
   - 红黄绿按钮在 40 高的标题栏里是否垂直居中，没在真机上看过；可能要设 `TrafficLightPosition`。
 
 ## Alternatives considered

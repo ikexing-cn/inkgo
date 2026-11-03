@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/locales"
 )
 
 // A toast is as wide as its words, between toastMin and toastMax.
@@ -73,7 +74,7 @@ func (p *Palette) ToastCard(c *ui.Context, ts ui.Toast, status *Status, life tim
 		})
 		if ts.Type != "busy" {
 			ui.Box(c).Margin(-2, -2, 0, 0).Shrink(0).Children(func() {
-				toast.CloseButton().Size(HTag, HTag).Center().Radius(RXs).Label("关闭提示").Children(func() {
+				toast.CloseButton().Size(HTag, HTag).Center().Radius(RXs).Label(locales.ToastClose()).Children(func() {
 					Glyph(c, IcX, IconSm, p.Faint)
 				})
 			})
@@ -125,7 +126,7 @@ func (p *Palette) MoreToasts(c *ui.Context, n int, open *bool) {
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}
-	b.Children(func() { ui.Text(c, "还有 "+strconv.Itoa(n)+" 条").FontSize(FsSmall).TextColor(t.TextMuted) })
+	b.Children(func() { ui.Text(c, locales.ToastMore(n)).FontSize(FsSmall).TextColor(t.TextMuted) })
 	if b.Clicked() {
 		*open = true
 	}

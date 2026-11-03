@@ -1,11 +1,11 @@
 package kit
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
 	"writer/internal/textclip"
+	"writer/locales"
 	"writer/workspace"
 )
 
@@ -20,21 +20,21 @@ func Clip(s string, n int) string {
 func FromLabel(tree workspace.Tree, id string) string {
 	n, ok := tree.Node(id)
 	if !ok {
-		return "所在章节已删除"
+		return locales.AppChapterGone()
 	}
 	if m := workspace.TitleNumber(strings.TrimSpace(n.Title)); m != "" && !n.Folder {
-		return m + "起"
+		return locales.AppFrom(m)
 	}
-	return n.Title + "起"
+	return locales.AppFrom(n.Title)
 }
 
 // Words says how many characters, the way the design writes them: grouped
 // by thousands, and in 万 from ten thousand on.
 func Words(n int) string {
 	if n >= 10000 {
-		return strings.TrimSuffix(fmt.Sprintf("%.1f", float64(n)/10000), ".0") + " 万字"
+		return locales.StatusWanWords(float64(n)/10000, n)
 	}
-	return Grouped(n) + " 字"
+	return locales.StatusWords(n)
 }
 
 // Grouped writes n with a comma between each three digits.

@@ -3,6 +3,7 @@ package kit
 import (
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/markdown"
+	"writer/locales"
 )
 
 // MdStyle is which text the Markdown is: a reply in a talk, read at the
@@ -64,7 +65,7 @@ func (m *MarkdownState) codeBlock(c *ui.Context, b *markdown.CodeBlockView) {
 		ui.Row(c).AlignItems(ui.Center).Padding(4, 4, 0, 12).Children(func() {
 			ui.Text(c, b.Language).FontSize(FsSmall).TextColor(m.pal.Faint).Unselectable()
 			ui.Spacer(c)
-			if IconButton(c, IcCopy, "复制代码", ui.Color{}).Disabled(b.Open).Clicked() {
+			if IconButton(c, IcCopy, locales.CommonCopyCode(), ui.Color{}).Disabled(b.Open).Clicked() {
 				c.WriteClipboard(b.Code())
 			}
 		})

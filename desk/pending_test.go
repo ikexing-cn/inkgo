@@ -176,7 +176,7 @@ func TestShotPending(t *testing.T) {
 	a.doc.hidden = true
 	shot(t, tt, "titlebar-pane-hidden.png")
 	for _, name := range []string{"文件", "编辑", "视图", "帮助"} {
-		a.menu = kit.MenuState{Owner: barKey + name, Drop: true, Seen: true}
+		a.menu = kit.MenuState{Owner: barKey + menuID(name), Drop: true, Seen: true}
 		shot(t, tt, "titlebar-menu-"+name+".png")
 	}
 	a.menu = kit.MenuState{}

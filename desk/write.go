@@ -10,6 +10,7 @@ import (
 	"writer/aiport"
 	"writer/desk/kit"
 	"writer/editor"
+	"writer/locales"
 	"writer/prefs"
 	"writer/workspace"
 )
@@ -322,7 +323,7 @@ func (a *App) writeTools(c *ui.Context) {
 	if w.finding {
 		color = a.pal.Ink
 	}
-	if kit.IconButton(c, kit.IcSearch, "查找替换", color).Tooltip("查找替换（" + modKey + "F）").Disabled(!open || busy).KeepFocus().Clicked() {
+	if kit.IconButton(c, kit.IcSearch, "查找替换", color).Tooltip(locales.TabFindTip(cmdFind.keys())).Disabled(!open || busy).KeepFocus().Clicked() {
 		if w.finding {
 			a.closeFind()
 		} else {

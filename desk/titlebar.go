@@ -2,10 +2,12 @@ package desk
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
+	"writer/locales"
 )
 
 // The title bar is the first row of the window, over every page: at its
@@ -14,8 +16,8 @@ import (
 // those buttons. Focused, only the chapter's name and tools remain.
 
 const (
-	barKey  = "菜单栏-" // before a menu's name: the key of its menu, and its label
-	menuBar = 220    // the least width of a menu of the title bar
+	barKey  = "title-menu-" // before a menu's id: the key of its menu, which does not change with the language
+	menuBar = 220           // the least width of a menu of the title bar
 )
 
 // barState is what the title bar keeps from frame to frame. A press on the
@@ -59,10 +61,10 @@ func (a *App) titleBar(c *ui.Context) {
 				cmdSide.run(a)
 				a.penBack()
 			}
-			held = a.barMenu(c, "文件", func(m *kit.Menu) { a.fileMenu(m, later) }) || held
-			held = a.barMenu(c, "编辑", func(m *kit.Menu) { a.editMenu(m, later) }) || held
-			held = a.barMenu(c, "视图", func(m *kit.Menu) { a.viewMenu(m, later) }) || held
-			held = a.barMenu(c, "帮助", func(m *kit.Menu) { a.helpMenu(m, later) }) || held
+			held = a.barMenu(c, "file", locales.MenuFile(), func(m *kit.Menu) { a.fileMenu(m, later) }) || held
+			held = a.barMenu(c, "edit", locales.MenuEdit(), func(m *kit.Menu) { a.editMenu(m, later) }) || held
+			held = a.barMenu(c, "view", locales.MenuView(), func(m *kit.Menu) { a.viewMenu(m, later) }) || held
+			held = a.barMenu(c, "help", locales.MenuHelp(), func(m *kit.Menu) { a.helpMenu(m, later) }) || held
 		}
 		if inWork {
 			width, _ := c.Size()
@@ -214,7 +216,7 @@ func (a *App) viewMenu(m *kit.Menu, later func(func()) func()) {
 	cmdFocus.item(a, m).Do(later(func() { a.write.focus = true }))
 	a.barItem(m, later, cmdPhone)
 	m.Separator()
-	m.Head(fmt.Sprintf("缩放 %.0f%%", a.Zoom()*100))
+	m.Head(locales.ViewZoom(int(math.Round(float64(a.Zoom()) * 100))))
 	a.barItem(m, later, cmdZoomIn)
 	a.barItem(m, later, cmdZoomOut)
 	a.barItem(m, later, cmdZoomReset)
@@ -257,10 +259,10 @@ func (a *App) barAct(c *ui.Context) {
 // while it is open. With one of them open, the pointer over the name of
 // another opens that one instead. It reports whether its name has the
 // keyboard focus.
-func (a *App) barMenu(c *ui.Context, name string, build func(m *kit.Menu)) bool {
+func (a *App) barMenu(c *ui.Context, id, name string, build func(m *kit.Menu)) bool {
 	t := a.pal.Theme
-	key := barKey + name
-	b := ui.ButtonBase(c).Row().Height(kit.HControlSm).Padding(0, 8).Center().Radius(kit.RControl).Shrink(0).Label(key)
+	key := barKey + id
+	b := ui.ButtonBase(c).Row().Height(kit.HControlSm).Padding(0, 8).Center().Radius(kit.RControl).Shrink(0).Label("菜单栏-" + name)
 	if b.Hovered() || a.menu.MenuOpen(key) {
 		b.Background(t.SurfacePressed)
 	}

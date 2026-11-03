@@ -3,7 +3,6 @@ package desk
 import (
 	"fmt"
 	"github.com/egoist/mygo/ui"
-	"runtime"
 	"writer/desk/kit"
 	"writer/workspace"
 )
@@ -210,9 +209,6 @@ func (a *App) openUnit() string {
 	}
 	return "章"
 }
-
-// modKey names the command key the way the system shows it.
-var modKey = map[bool]string{true: "⌘", false: "Ctrl+"}[runtime.GOOS == "darwin"]
 
 func (a *App) switchSession(id string) {
 	if id == "" || id == a.session {

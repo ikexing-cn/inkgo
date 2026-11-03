@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
+	"writer/locales"
 )
 
 // PaneRows is the list under the top of a tab, which scrolls.
@@ -201,7 +202,7 @@ func (p *Palette) PaneNote(c *ui.Context, text string) {
 // PaneWhere is a line that says where in the book something is, and the
 // link that opens it there.
 func (p *Palette) PaneWhere(c *ui.Context, text, label string) (clicked bool) {
-	return p.PaneLink(c, text, "查看原文", label)
+	return p.PaneLink(c, text, locales.AppViewOriginal(), label)
 }
 
 // PaneLink is a line that says where something is, and the link see that

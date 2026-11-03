@@ -6,6 +6,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
+	"writer/locales"
 	"writer/shelf"
 )
 
@@ -196,7 +197,7 @@ func (a *App) sidePanel(c *ui.Context, width float32) {
 			})
 			ui.Spacer(c)
 			if a.treeShown() {
-				if kit.IconButton(c, kit.IcPlus, "新建章节", ui.Color{}).Tooltip("新建章节（" + modKey + "N）").Disabled(busy).Clicked() {
+				if kit.IconButton(c, kit.IcPlus, "新建章节", ui.Color{}).Tooltip(locales.SideNewChapterKey(cmdNewChapter.keys())).Disabled(busy).Clicked() {
 					a.page = pageWrite
 					a.newNode(false)
 				}

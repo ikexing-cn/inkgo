@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
+	"writer/locales"
 )
 
 // commandBy says who takes a command's key. The desk's are dispatched from
@@ -26,14 +27,19 @@ const pageAny page = -1
 // where a menu does something of its own, such as closing the tab clicked,
 // it gives that instead.
 type command struct {
-	label    string
+	label    func() string     // what the menus and the help call it, said when shown
 	labelNow func(*App) string // what the state calls it, as 收起侧栏 / 展开侧栏
 	key      ui.Key
-	mods     ui.Modifiers
-	shifted  bool // its key with Shift as well: = is + under Shift
-	page     page // the page whose keys include it; pageAny for all
-	ai       bool
-	by       commandBy
+	mods     ui.Modifiers // modCmd for the system's command key
+	// macKey and macMods are its key on macOS where onMac says it has one
+	// of its own; a zero macKey is none there.
+	onMac   bool
+	macKey  ui.Key
+	macMods ui.Modifiers
+	shifted bool // its key with Shift as well: = is + under Shift
+	page    page // the page whose keys include it; pageAny for all
+	ai      bool
+	by      commandBy
 	// can says whether it can run now, for its menu. A menu with a finer
 	// state of its own gives that instead, with Disabled.
 	can func(*App) bool
@@ -48,42 +54,42 @@ type command struct {
 
 var (
 	// The title bar's 文件.
-	cmdNewChapter = &command{label: "新建章节", key: ui.KeyN, mods: ui.Cmd, page: pageWrite, by: byDesk,
+	cmdNewChapter = &command{label: locales.CmdNewChapter, key: ui.KeyN, mods: modCmd, page: pageWrite, by: byDesk,
 		can:  func(a *App) bool { return writingPage(a) && a.write.renaming == "" },
 		when: func(a *App) bool { return a.write.renaming == "" },
 		run:  func(a *App) { a.newNode(false) }}
-	cmdNewFolder = &command{label: "新建文件夹", page: pageAny,
+	cmdNewFolder = &command{label: locales.CmdNewFolder, page: pageAny,
 		can: func(a *App) bool { return writingPage(a) && a.write.renaming == "" },
 		run: func(a *App) { a.newNode(true) }}
-	cmdSave = &command{label: "保存", key: ui.KeyS, mods: ui.Cmd, page: pageWrite, by: byDesk,
+	cmdSave = &command{label: locales.CmdSave, key: ui.KeyS, mods: modCmd, page: pageWrite, by: byDesk,
 		can: func(a *App) bool { return chapterShown(a) },
 		run: func(a *App) { a.saveNow() }}
-	cmdSnapshots = &command{label: "快照", page: pageAny,
+	cmdSnapshots = &command{label: locales.CmdSnapshots, page: pageAny,
 		can: func(a *App) bool { open, busy := a.chapterOpen(); return open && !busy },
 		run: func(a *App) { a.openSnapshots() }}
-	cmdExport = &command{label: "导出…", page: pageAny,
+	cmdExport = &command{label: locales.CmdExport, page: pageAny,
 		can: func(a *App) bool { return a.Store != nil },
 		run: func(a *App) { a.exporting.Show() }}
-	cmdSettings = &command{label: "设置…", page: pageAny,
+	cmdSettings = &command{label: locales.AppSettings, page: pageAny,
 		run: func(a *App) { a.openPrefs(a.settings.tab) }}
-	cmdCategories = &command{label: "作品分类", page: pageAny,
+	cmdCategories = &command{label: locales.CmdCategories, page: pageAny,
 		can: func(a *App) bool { return a.Store != nil },
 		run: func(a *App) { a.page = pageCategories }}
-	cmdTrash = &command{label: "回收站…", page: pageAny,
+	cmdTrash = &command{label: locales.CmdTrash, page: pageAny,
 		can: func(a *App) bool { return a.Store != nil },
 		run: func(a *App) { a.openTrash() }}
 
 	// The title bar's 编辑, and the prose's menu where it shares them.
-	cmdUndo = &command{label: "撤销", key: ui.KeyZ, mods: ui.Cmd, page: pageWrite, by: byEditor,
+	cmdUndo = &command{label: locales.CmdUndo, key: ui.KeyZ, mods: modCmd, page: pageWrite, by: byEditor,
 		can: func(a *App) bool { open, busy := a.chapterOpen(); return open && !busy && a.write.cur().ed.CanUndo() },
 		run: func(a *App) { a.write.cur().ed.Undo() }}
-	cmdRedo = &command{label: "重做", key: ui.KeyY, mods: ui.Cmd, page: pageWrite, by: byEditor,
+	cmdRedo = &command{label: locales.CmdRedo, key: ui.KeyZ, mods: modCmd | ui.Shift, page: pageWrite, by: byEditor,
 		can: func(a *App) bool { open, busy := a.chapterOpen(); return open && !busy && a.write.cur().ed.CanRedo() },
 		run: func(a *App) { a.write.cur().ed.Redo() }}
-	cmdFind = &command{label: "查找替换", key: ui.KeyF, mods: ui.Cmd, page: pageWrite, by: byDesk,
+	cmdFind = &command{label: locales.CmdFind, key: ui.KeyF, mods: modCmd, page: pageWrite, by: byDesk,
 		can: func(a *App) bool { open, busy := a.chapterOpen(); return open && !busy },
 		run: func(a *App) { a.openFind() }}
-	cmdRename = &command{label: "重命名", key: ui.KeyF2, page: pageWrite, by: byDesk,
+	cmdRename = &command{label: locales.CmdRename, key: ui.KeyF2, onMac: true, page: pageWrite, by: byDesk,
 		can: func(a *App) bool {
 			if !writingPage(a) || a.write.renaming != "" {
 				return false
@@ -93,120 +99,120 @@ var (
 		},
 		when: func(a *App) bool { return a.write.renaming == "" },
 		run:  func(a *App) { a.renameOpen() }}
-	cmdContinue = &command{label: "续写一句", key: ui.KeyJ, mods: ui.Cmd, page: pageWrite, by: byEditor, ai: true,
+	cmdContinue = &command{label: locales.CmdContinue, key: ui.KeyJ, mods: modCmd, page: pageWrite, by: byEditor, ai: true,
 		can: func(a *App) bool { open, busy := a.chapterOpen(); return open && !busy },
 		run: func(a *App) { a.continueText() }}
-	cmdDraft = &command{label: "起草本章", page: pageAny, ai: true,
+	cmdDraft = &command{label: locales.CmdDraft, page: pageAny, ai: true,
 		can: func(a *App) bool {
 			open, busy := a.chapterOpen()
 			return open && !busy && strings.TrimSpace(a.write.cur().outline.Text) != ""
 		},
 		hint: func(a *App) string {
 			if open, _ := a.chapterOpen(); open && strings.TrimSpace(a.write.cur().outline.Text) == "" {
-				return "请先填写章纲"
+				return locales.CmdDraftNeedsOutline()
 			}
 			return ""
 		},
 		run: func(a *App) { a.openDraft() }}
 
 	// The title bar's 视图.
-	cmdSide = &command{label: "收起侧栏", page: pageAny,
+	cmdSide = &command{label: locales.CmdHideSidebar, page: pageAny,
 		labelNow: func(a *App) string {
 			if a.sideHidden {
-				return "展开侧栏"
+				return locales.CmdShowSidebar()
 			}
-			return "收起侧栏"
+			return locales.CmdHideSidebar()
 		},
 		can: func(a *App) bool { return a.Store != nil },
 		run: func(a *App) { a.fold.requested = true; a.setSideHidden(!a.sideHidden) }}
-	cmdPane = &command{label: "收起右栏", page: pageAny,
+	cmdPane = &command{label: locales.CmdHidePane, page: pageAny,
 		labelNow: func(a *App) string {
 			if !a.paneOpen() {
-				return "展开右栏"
+				return locales.CmdShowPane()
 			}
-			return "收起右栏"
+			return locales.CmdHidePane()
 		},
 		can: func(a *App) bool { return a.hasPane() },
 		run: func(a *App) { a.fold.requested = true; a.togglePane() }}
-	cmdFocus = &command{label: "专注写作", key: ui.KeyF11, page: pageWrite, by: byDesk,
+	cmdFocus = &command{label: locales.CmdFocus, key: ui.KeyF11, onMac: true, macKey: ui.KeyF, macMods: ui.Ctrl | modCmd, page: pageWrite, by: byDesk,
 		can: func(a *App) bool { return writingPage(a) },
 		run: func(a *App) { a.write.focus = !a.write.focus }}
-	cmdPhone = &command{label: "手机预览", page: pageAny,
+	cmdPhone = &command{label: locales.CmdPhonePreview, page: pageAny,
 		can: func(a *App) bool { return chapterShown(a) },
 		run: func(a *App) { a.openPhone() }}
-	cmdHelp = &command{label: "快捷键…", key: ui.KeySlash, mods: ui.Cmd, page: pageAny, by: byDesk,
+	cmdHelp = &command{label: locales.CmdShortcuts, key: ui.KeySlash, mods: modCmd, page: pageAny, by: byDesk,
 		run: func(a *App) { a.keysOpen = true }}
 
 	// The prose's menu.
-	cmdCut = &command{label: "剪切", key: ui.KeyX, mods: ui.Cmd, page: pageWrite, by: byEditor,
+	cmdCut = &command{label: locales.CommonCut, key: ui.KeyX, mods: modCmd, page: pageWrite, by: byEditor,
 		can: func(a *App) bool { return selected(a) && editable(a) },
 		run: func(a *App) { a.write.cur().ed.Cut() }}
-	cmdCopy = &command{label: "复制", key: ui.KeyC, mods: ui.Cmd, page: pageWrite, by: byEditor,
+	cmdCopy = &command{label: locales.CommonCopy, key: ui.KeyC, mods: modCmd, page: pageWrite, by: byEditor,
 		can: func(a *App) bool { return selected(a) },
 		run: func(a *App) { a.write.cur().ed.Copy() }}
-	cmdPaste = &command{label: "粘贴", key: ui.KeyV, mods: ui.Cmd, page: pageWrite, by: byEditor,
+	cmdPaste = &command{label: locales.CommonPaste, key: ui.KeyV, mods: modCmd, page: pageWrite, by: byEditor,
 		can: func(a *App) bool { return editable(a) },
 		run: func(a *App) { a.write.cur().ed.Paste() }}
-	cmdSelectAll = &command{label: "全选", key: ui.KeyA, mods: ui.Cmd, page: pageWrite, by: byEditor,
+	cmdSelectAll = &command{label: locales.CommonSelectAll, key: ui.KeyA, mods: modCmd, page: pageWrite, by: byEditor,
 		can: func(a *App) bool { return true },
 		run: func(a *App) { a.write.cur().ed.SelectAll() }}
-	cmdRewrite = &command{label: "AI 改写…", page: pageWrite, ai: true,
+	cmdRewrite = &command{label: locales.EditorAIRewriteMore, page: pageWrite, ai: true,
 		can: func(a *App) bool { return selected(a) && editable(a) },
 		run: func(a *App) { a.openRewrite() }}
-	cmdQuote = &command{label: "引用到讨论", key: ui.KeyL, mods: ui.Cmd, page: pageWrite, by: byDesk, ai: true,
+	cmdQuote = &command{label: locales.EditorQuote, key: ui.KeyL, mods: modCmd, page: pageWrite, by: byDesk, ai: true,
 		can: func(a *App) bool { return selected(a) },
 		run: func(a *App) { a.quoteToTalk() }}
-	cmdTake = &command{label: "加入设定", page: pageWrite,
+	cmdTake = &command{label: locales.EditorAddToLore, page: pageWrite,
 		can: func(a *App) bool { return selected(a) },
 		run: func(a *App) { a.openTake() }}
-	cmdBury = &command{label: "记为伏笔…", page: pageWrite,
+	cmdBury = &command{label: locales.EditorMarkForeshadow, page: pageWrite,
 		can: func(a *App) bool { return selected(a) && editable(a) },
 		run: func(a *App) { a.openBury() }}
-	cmdPay = &command{label: "记为回收…", page: pageWrite,
+	cmdPay = &command{label: locales.EditorMarkPay, page: pageWrite,
 		can: func(a *App) bool { return selected(a) && editable(a) },
 		run: func(a *App) { a.openPay("") }}
-	cmdViewFore = &command{label: "查看伏笔", page: pageWrite,
+	cmdViewFore = &command{label: locales.EditorSeeMark, page: pageWrite,
 		can: func(a *App) bool { return a.foreAt() != "" }}
-	cmdUnmark = &command{label: "移除此处标记", page: pageWrite,
+	cmdUnmark = &command{label: locales.CmdUnmark, page: pageWrite,
 		can: func(a *App) bool { return editable(a) && a.write.cur().ed.Marked() },
 		run: func(a *App) { a.write.cur().ed.Unmark() }}
 
 	// The tab's menu.
-	cmdCloseTab = &command{label: "关闭", key: ui.KeyW, mods: ui.Cmd, page: pageWrite, by: byDesk,
+	cmdCloseTab = &command{label: locales.CommonClose, key: ui.KeyW, mods: modCmd, page: pageWrite, by: byDesk,
 		when: func(a *App) bool { return a.write.node != "" },
 		run:  func(a *App) { a.shutTabs([]string{a.write.node}) }}
-	cmdCloseOthers = &command{label: "关闭其他", page: pageWrite}
-	cmdCloseRight  = &command{label: "关闭右侧", page: pageWrite}
+	cmdCloseOthers = &command{label: locales.SideCloseOthers, page: pageWrite}
+	cmdCloseRight  = &command{label: locales.SideCloseRight, page: pageWrite}
 
 	// The writing page's other keys.
-	cmdNextChapter = &command{label: "下一章", key: ui.KeyPageDown, mods: ui.Cmd, page: pageWrite, by: byDesk,
+	cmdNextChapter = &command{label: locales.CmdNextChapter, key: ui.KeyPageDown, mods: modCmd, page: pageWrite, by: byDesk,
 		run: func(a *App) { a.stepChapter(1) }}
-	cmdPrevChapter = &command{label: "上一章", key: ui.KeyPageUp, mods: ui.Cmd, page: pageWrite, by: byDesk,
+	cmdPrevChapter = &command{label: locales.CmdPrevChapter, key: ui.KeyPageUp, mods: modCmd, page: pageWrite, by: byDesk,
 		run: func(a *App) { a.stepChapter(-1) }}
-	cmdNextTab = &command{label: "下一个标签页", key: ui.KeyTab, mods: ui.Ctrl, page: pageWrite, by: byDesk,
+	cmdNextTab = &command{label: locales.CmdNextTab, key: ui.KeyTab, mods: ui.Ctrl, page: pageWrite, by: byDesk,
 		when: func(a *App) bool { return len(a.write.tabs) > 1 && tabAt(a) >= 0 },
 		run:  func(a *App) { stepTab(a, 1) }}
-	cmdPrevTab = &command{label: "上一个标签页", key: ui.KeyTab, mods: ui.Ctrl | ui.Shift, page: pageWrite, by: byDesk,
+	cmdPrevTab = &command{label: locales.CmdPrevTab, key: ui.KeyTab, mods: ui.Ctrl | ui.Shift, page: pageWrite, by: byDesk,
 		when: func(a *App) bool { return len(a.write.tabs) > 1 && tabAt(a) >= 0 },
 		run:  func(a *App) { stepTab(a, -1) }}
-	cmdZoomIn = &command{label: "放大", key: ui.KeyEqual, mods: ui.Cmd, shifted: true, page: pageAny, by: byDesk,
+	cmdZoomIn = &command{label: locales.CmdZoomIn, key: ui.KeyEqual, mods: modCmd, shifted: true, page: pageAny, by: byDesk,
 		can: func(a *App) bool { return a.zoomNext(1) != 0 },
 		run: func(a *App) { a.zoomBy(1) }}
-	cmdZoomOut = &command{label: "缩小", key: ui.KeyMinus, mods: ui.Cmd, page: pageAny, by: byDesk,
+	cmdZoomOut = &command{label: locales.CmdZoomOut, key: ui.KeyMinus, mods: modCmd, page: pageAny, by: byDesk,
 		can: func(a *App) bool { return a.zoomNext(-1) != 0 },
 		run: func(a *App) { a.zoomBy(-1) }}
-	cmdZoomReset = &command{label: "实际大小", key: ui.Key0, mods: ui.Cmd, page: pageAny, by: byDesk,
+	cmdZoomReset = &command{label: locales.CmdZoomReset, key: ui.Key0, mods: modCmd, page: pageAny, by: byDesk,
 		can: func(a *App) bool { return a.Zoom() != 1 },
 		run: func(a *App) { a.zoomBy(0) }}
 
 	// Keys the editor takes.
-	cmdDeleteWordBack    = &command{label: "向前删除一个词", key: ui.KeyBackspace, mods: ui.Cmd, page: pageWrite, by: byEditor}
-	cmdDeleteWordForward = &command{label: "向后删除一个词", key: ui.KeyDelete, mods: ui.Cmd, page: pageWrite, by: byEditor}
-	cmdTakePrediction    = &command{label: "采纳续写", key: ui.KeyTab, page: pageWrite, by: byEditor, ai: true}
-	cmdDropPrediction    = &command{label: "放弃续写", key: ui.KeyEscape, page: pageWrite, by: byEditor, ai: true}
+	cmdDeleteWordBack    = &command{label: locales.CmdDeleteWordBack, key: ui.KeyBackspace, mods: modCmd, page: pageWrite, by: byEditor}
+	cmdDeleteWordForward = &command{label: locales.CmdDeleteWordForward, key: ui.KeyDelete, mods: modCmd, page: pageWrite, by: byEditor}
+	cmdTakePrediction    = &command{label: locales.CmdTakePrediction, key: ui.KeyTab, page: pageWrite, by: byEditor, ai: true}
+	cmdDropPrediction    = &command{label: locales.CmdDropPrediction, key: ui.KeyEscape, page: pageWrite, by: byEditor, ai: true}
 
 	// The talk's box keeps its own key.
-	cmdSend = &command{label: "发送", key: ui.KeyEnter, mods: ui.Cmd, page: pageTalk, ai: true, by: byBox,
+	cmdSend = &command{label: locales.HelpSend, key: ui.KeyEnter, mods: modCmd, page: pageTalk, ai: true, by: byBox,
 		can: func(a *App) bool { return a.busy == "" }}
 )
 
@@ -228,30 +234,50 @@ var commandList = []*command{
 // they do, and the commands it speaks for. Some rows join several
 // commands, as Ctrl+PgDn / PgUp does.
 type helpRow struct {
-	keys, does string
-	group      string
-	ai         bool
-	cmds       []*command
+	group, does func() string
+	ai          bool
+	cmds        []*command
 }
 
+// keysOn is the row's keys as macOS or another system writes them, or ""
+// when one of its commands has no key there. The row without commands is
+// the wheel's.
+func (r *helpRow) keysOn(mac bool) string {
+	if len(r.cmds) == 0 {
+		return shortcutOn(mac, cmdKeyOn(mac), 0) + locales.HelpWheel()
+	}
+	keys := make([]string, 0, len(r.cmds))
+	for _, c := range r.cmds {
+		k := c.keysOn(mac)
+		if k == "" {
+			return ""
+		}
+		keys = append(keys, k)
+	}
+	return strings.Join(keys, " / ")
+}
+
+// keys is the row's keys on the system the app runs on.
+func (r *helpRow) keys() string { return r.keysOn(onMacOS) }
+
 var commandHelp = []*helpRow{
-	{group: "正文", keys: modKey + "S", does: "立即保存（停笔片刻也会自动保存）", cmds: []*command{cmdSave}},
-	{group: "正文", keys: modKey + "F", does: "查找替换，可切换到全书", cmds: []*command{cmdFind}},
-	{group: "正文", keys: modKey + "N", does: "在本章之后新建章节", cmds: []*command{cmdNewChapter}},
-	{group: "正文", keys: cmdRename.keys(), does: "重命名当前章节", cmds: []*command{cmdRename}},
-	{group: "正文", keys: modKey + "PgDn / PgUp", does: "下一章 / 上一章", cmds: []*command{cmdNextChapter, cmdPrevChapter}},
-	{group: "正文", keys: cmdNextTab.keys() + " / " + cmdPrevTab.keys(), does: "下一个 / 上一个标签页", cmds: []*command{cmdNextTab, cmdPrevTab}},
-	{group: "正文", keys: modKey + "W", does: "关闭当前标签页", cmds: []*command{cmdCloseTab}},
-	{group: "正文", keys: cmdFocus.keys(), does: "专注写作：仅显示正文", cmds: []*command{cmdFocus}},
-	{group: "正文", keys: modKey + "J", does: "在光标处续写一句", ai: true, cmds: []*command{cmdContinue}},
-	{group: "正文", keys: "Tab / Esc", does: "采纳 / 放弃续写", ai: true, cmds: []*command{cmdTakePrediction, cmdDropPrediction}},
-	{group: "正文", keys: modKey + "L", does: "将选中的原文引用到讨论", ai: true, cmds: []*command{cmdQuote}},
-	{group: "正文", keys: modKey + "Z / " + modKey + "Y", does: "撤销 / 重做", cmds: []*command{cmdUndo, cmdRedo}},
-	{group: "正文", keys: modKey + "Backspace / " + modKey + "Delete", does: "向前 / 向后删除一个词", cmds: []*command{cmdDeleteWordBack, cmdDeleteWordForward}},
-	{group: "正文", keys: modKey + "滚轮", does: "正文字号增大 / 减小"},
-	{group: "讨论", keys: modKey + "Enter", does: "发送", ai: true, cmds: []*command{cmdSend}},
-	{group: "全局", keys: modKey + "= / " + modKey + "- / " + modKey + "0", does: "界面放大 / 缩小 / 实际大小", cmds: []*command{cmdZoomIn, cmdZoomOut, cmdZoomReset}},
-	{group: "全局", keys: modKey + "/", does: "打开快捷键列表", cmds: []*command{cmdHelp}},
+	{group: locales.HelpGroupWrite, does: locales.HelpSave, cmds: []*command{cmdSave}},
+	{group: locales.HelpGroupWrite, does: locales.HelpFind, cmds: []*command{cmdFind}},
+	{group: locales.HelpGroupWrite, does: locales.HelpNewChapter, cmds: []*command{cmdNewChapter}},
+	{group: locales.HelpGroupWrite, does: locales.HelpRename, cmds: []*command{cmdRename}},
+	{group: locales.HelpGroupWrite, does: locales.HelpChapterNav, cmds: []*command{cmdNextChapter, cmdPrevChapter}},
+	{group: locales.HelpGroupWrite, does: locales.HelpTabNav, cmds: []*command{cmdNextTab, cmdPrevTab}},
+	{group: locales.HelpGroupWrite, does: locales.HelpCloseTab, cmds: []*command{cmdCloseTab}},
+	{group: locales.HelpGroupWrite, does: locales.HelpFocus, cmds: []*command{cmdFocus}},
+	{group: locales.HelpGroupWrite, does: locales.HelpContinue, ai: true, cmds: []*command{cmdContinue}},
+	{group: locales.HelpGroupWrite, does: locales.HelpAcceptDrop, ai: true, cmds: []*command{cmdTakePrediction, cmdDropPrediction}},
+	{group: locales.HelpGroupWrite, does: locales.HelpCite, ai: true, cmds: []*command{cmdQuote}},
+	{group: locales.HelpGroupWrite, does: locales.HelpUndoRedo, cmds: []*command{cmdUndo, cmdRedo}},
+	{group: locales.HelpGroupWrite, does: locales.HelpDeleteWord, cmds: []*command{cmdDeleteWordBack, cmdDeleteWordForward}},
+	{group: locales.HelpGroupWrite, does: locales.HelpZoomText},
+	{group: locales.HelpGroupChat, does: locales.HelpSend, ai: true, cmds: []*command{cmdSend}},
+	{group: locales.HelpGroupGlobal, does: locales.HelpZoomUI, cmds: []*command{cmdZoomIn, cmdZoomOut, cmdZoomReset}},
+	{group: locales.HelpGroupGlobal, does: locales.HelpOpenKeys, cmds: []*command{cmdHelp}},
 }
 
 // name is what a menu calls the command, or the help where it has no menu.
@@ -259,7 +285,7 @@ func (c *command) name(a *App) string {
 	if c.labelNow != nil {
 		return c.labelNow(a)
 	}
-	return c.label
+	return c.label()
 }
 
 // available is whether the command can run now.
@@ -274,17 +300,57 @@ func (c *command) menuHint(a *App) string {
 	return c.keys()
 }
 
-// keys is the command's shortcut as the menus and the help write it.
-func (c *command) keys() string {
-	if c.key == 0 {
-		return ""
+// onMacOS says the app runs on macOS, whose keys the table writes its way.
+var onMacOS = runtime.GOOS == "darwin"
+
+// modCmd in the table is the system's command key: ⌘ on macOS, Ctrl
+// elsewhere. ui.Cmd is that key only for the system the app runs on, and
+// is Ctrl itself elsewhere; the table keeps a bit of its own, outside the
+// toolkit's four, so that either system's keys can be written and tested
+// from one, and Ctrl+Tab stays ⌃Tab on macOS.
+const modCmd ui.Modifiers = 1 << 7
+
+// cmdKeyOn is the command key on macOS or another system.
+func cmdKeyOn(mac bool) ui.Modifiers {
+	if mac {
+		return ui.Super
 	}
-	return shortcutText(c.mods, c.key)
+	return ui.Ctrl
 }
 
+// bindingOn is the command's key and modifiers on macOS or another
+// system, modCmd made the system's own key.
+func (c *command) bindingOn(mac bool) (ui.Modifiers, ui.Key) {
+	mods, key := c.mods, c.key
+	if mac && c.onMac {
+		mods, key = c.macMods, c.macKey
+	}
+	if mods&modCmd != 0 {
+		mods = mods&^modCmd | cmdKeyOn(mac)
+	}
+	return mods, key
+}
+
+// keysOn is the command's shortcut as the menus and the help write it on
+// macOS or another system, or "" where it has none.
+func (c *command) keysOn(mac bool) string {
+	mods, key := c.bindingOn(mac)
+	if key == 0 {
+		return ""
+	}
+	return shortcutOn(mac, mods, key)
+}
+
+// keys is the command's shortcut on the system the app runs on.
+func (c *command) keys() string { return c.keysOn(onMacOS) }
+
 // pressed reports whether its key was pressed in the frame.
-func (c *command) pressed(ctx *ui.Context) bool {
-	return c.key != 0 && (ctx.Shortcut(c.mods, c.key) || c.shifted && ctx.Shortcut(c.mods|ui.Shift, c.key))
+func (c *command) pressed(ctx *ui.Context) bool { return c.pressedOn(ctx, onMacOS) }
+
+// pressedOn is pressed with the keys of macOS or another system.
+func (c *command) pressedOn(ctx *ui.Context, mac bool) bool {
+	mods, key := c.bindingOn(mac)
+	return key != 0 && (ctx.Shortcut(mods, key) || c.shifted && ctx.Shortcut(mods|ui.Shift, key))
 }
 
 // act is what picking its menu row does.
@@ -299,15 +365,31 @@ func (c *command) act(a *App) func() {
 // shortcutText writes a key and its modifiers as the menus and the help do,
 // the way the system writes them.
 func shortcutText(mods ui.Modifiers, key ui.Key) string {
-	return shortcutOn(runtime.GOOS == "darwin", mods, key)
+	return shortcutOn(onMacOS, mods, key)
 }
 
 // shortcutOn is shortcutText on macOS or elsewhere. macOS writes the keys
-// held down as symbols, in its own order: ⌃⇧Tab, ⇧⌘Z. ui.Cmd is Super
-// there and Ctrl elsewhere, so the same command reads ⌘S or Ctrl+S.
+// held down as symbols, in its own order, and some keys too: ⌃⇧Tab, ⇧⌘Z,
+// ⌘↩, ⌘⇟. mods is the modifiers themselves, modCmd already made Super or
+// Ctrl (bindingOn), so the same command reads ⌘S or Ctrl+S.
 func shortcutOn(mac bool, mods ui.Modifiers, key ui.Key) string {
 	name := keyText(key)
+	if key == 0 {
+		name = "" // the modifiers alone, before a word such as 滚轮
+	}
 	if mac {
+		switch key {
+		case ui.KeyEnter:
+			name = "↩"
+		case ui.KeyPageDown:
+			name = "⇟"
+		case ui.KeyPageUp:
+			name = "⇞"
+		case ui.KeyBackspace:
+			name = "⌫"
+		case ui.KeyDelete:
+			name = "⌦"
+		}
 		held := ""
 		for _, m := range []struct {
 			mod ui.Modifiers

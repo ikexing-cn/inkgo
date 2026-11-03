@@ -20,6 +20,13 @@ import (
 )
 
 func main() {
+	// Chinese until the words are all in locales/, so that an English
+	// system does not show half of each; MYGO_LOCALE=en shows another, and
+	// saves nothing. Goes when the move is done: see
+	// .agents/notes/proposed/architecture/2026-11-02-i18n-on-mygo.md.
+	if os.Getenv("MYGO_LOCALE") == "" {
+		os.Setenv("MYGO_LOCALE", "zh-Hans")
+	}
 	workPath := flag.String("work", "", "打开作品文件夹")
 	trace := flag.String("trace", "", "把每次请求的全文写进这个文件夹（调提示词用，不写进作品）")
 	flag.Parse()

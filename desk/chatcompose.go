@@ -9,6 +9,7 @@ import (
 	"writer/aiport"
 	"writer/desk/kit"
 	"writer/editor"
+	"writer/locales"
 	"writer/workspace"
 )
 
@@ -48,7 +49,7 @@ func (a *App) composer(c *ui.Context) {
 	}
 	send := func() {
 		can := a.busy == "" && kit.Trim(a.input) != ""
-		send := ui.ButtonBase(c).Size(kit.HControl, kit.HControl).Radius(kit.RRound).Center().Label("发送").Tooltip("发送（" + cmdSend.keys() + "）").Disabled(!can).Shrink(0)
+		send := ui.ButtonBase(c).Size(kit.HControl, kit.HControl).Radius(kit.RRound).Center().Label("发送").Tooltip(locales.TalkSend(cmdSend.keys())).Disabled(!can).Shrink(0)
 		bg := a.pal.Ink
 		if !can {
 			bg = t.SurfacePressed
@@ -98,7 +99,7 @@ func (a *App) composer(c *ui.Context) {
 					if !a.hasMessages() {
 						hint = "输入想讨论的内容"
 					}
-					field(hint+"，"+modKey+"Enter 发送", 16, 1).Grow(1).Shrink(1)
+					field(locales.ChatSendHint(hint, cmdSend.keys()), 16, 1).Grow(1).Shrink(1)
 					send()
 				})
 			})
@@ -134,7 +135,7 @@ func (a *App) composer(c *ui.Context) {
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 			chip()
 			ui.Spacer(c)
-			ui.Text(c, modKey+"Enter").FontSize(kit.FsSmall).TextColor(a.pal.Faint)
+			ui.Text(c, cmdSend.keys()).FontSize(kit.FsSmall).TextColor(a.pal.Faint)
 			send()
 		})
 	})
@@ -192,8 +193,8 @@ func (a *App) extraction(c *ui.Context) {
 			a.source.View(c).Height(220).FillWidth().Border(1, t.Border).Radius(kit.RCard)
 			start, end := a.source.Selection()
 			a.menu.MenuAt(c, a.pal, "原文", func(m *kit.Menu) {
-				m.Item("复制").Hint(modKey + "C").Disabled(start == end).Do(func() { a.source.Copy() })
-				m.Item("全选").Hint(modKey + "A").Do(func() { a.source.SelectAll() })
+				m.Item("复制").Hint(cmdCopy.keys()).Disabled(start == end).Do(func() { a.source.Copy() })
+				m.Item("全选").Hint(cmdSelectAll.keys()).Do(func() { a.source.SelectAll() })
 			})
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
 				a.pal.Select(c, &a.sourceCategory, a.categoryNames()).Label("摘取分类").Width(140)

@@ -1,6 +1,7 @@
 /**
  * Runs the checks a commit waits for, all at once, and says which passed:
- * go vet with the toolkit's vet, go test, the notes, the prototype; and
+ * go vet with the toolkit's vet, i18n messages and generated catalog freshness,
+ * go test, the notes, the prototype; and
  * DESIGN.md's own linter when DESIGN.md is not as it was committed (that one
  * needs the network). desk's tests run in several processes beside the rest,
  * and the tests that time a frame run alone afterwards.

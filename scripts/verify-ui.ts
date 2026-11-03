@@ -5,7 +5,7 @@
  * Usage: node scripts/verify-ui.ts
  */
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 
 // The tool is built once for each version of the toolkit and kept in .tmp:
 // linking it takes longer than all it then checks.
@@ -24,6 +24,30 @@ if (!existsSync(tool)) {
     process.exit(1)
   }
 }
+
+// Check messages first. Warnings are printed but only errors fail.
+const messages = spawnSync(tool, ['i18n', 'check'], { encoding: 'utf8' })
+console.log((messages.stdout + messages.stderr).trim())
+if (messages.status !== 0) process.exit(1)
+
+// Compare bytes, then always restore: verify must not silently update a stale
+// committed artifact, including when generation fails partway through.
+const catalogPath = 'locales/catalog_gen.go'
+const before = existsSync(catalogPath) ? readFileSync(catalogPath) : undefined
+let fresh = false
+try {
+  const generated = spawnSync(tool, ['generate'], { encoding: 'utf8' })
+  if (generated.status !== 0) console.error(generated.stdout + generated.stderr)
+  fresh = generated.status === 0 && !!before && before.equals(readFileSync(catalogPath))
+} finally {
+  if (before) writeFileSync(catalogPath, before)
+  else rmSync(catalogPath, { force: true })
+}
+if (!fresh) {
+  console.error('locales/catalog_gen.go is stale; run mygo generate')
+  process.exit(1)
+}
+console.log('i18n ok: messages checked; catalog_gen.go is current')
 
 // Once, from the module's root: mygo vet reads ./... itself. A run for each
 // package that draws ran go vet and loaded the packages again each time.

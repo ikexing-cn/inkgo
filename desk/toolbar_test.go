@@ -10,7 +10,7 @@ import (
 
 // clickMenu clicks the row named in a menu of the title bar.
 func clickMenu(tt *ui.Tester, menu, name string) error {
-	if err := tt.Click(barKey + menu); err != nil {
+	if err := tt.Click("菜单栏-" + menu); err != nil {
 		return err
 	}
 	tt.Frame()

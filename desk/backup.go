@@ -377,7 +377,7 @@ func (a *App) backupCard(c *ui.Context, panel ui.Element, s backup.Settings) {
 			return
 		}
 		title := kit.When(s.Last, now) + " 已备份"
-		if kit.DayOf(s.Last, now) == "今天" {
+		if kit.SameDay(s.Last, now) {
 			title = s.Last.Local().Format("15:04") + " 已备份"
 		}
 		if s.Last.IsZero() {

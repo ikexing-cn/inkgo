@@ -68,7 +68,7 @@ func TestTheViewMenuSizesTheWholeInterface(t *testing.T) {
 	}
 	texts := tt.Texts()
 	at := -1
-	for _, word := range []string{"手机预览", "缩放 125%", "放大", modKey + "=", "缩小", modKey + "-", "实际大小", modKey + "0", "外观"} {
+	for _, word := range []string{"手机预览", "缩放 125%", "放大", cmdZoomIn.keys(), "缩小", cmdZoomOut.keys(), "实际大小", cmdZoomReset.keys(), "外观"} {
 		at = indexFrom(texts, at+1, word)
 		if at < 0 {
 			t.Fatalf("menu does not list %q in order: %q", word, texts)
@@ -91,7 +91,7 @@ func TestTheViewMenuSizesTheWholeInterface(t *testing.T) {
 	if err := clickMenu(tt, "视图", "菜单-实际大小"); err != nil {
 		t.Fatal(err)
 	}
-	if a.menu.Owner != barKey+"视图" {
+	if a.menu.Owner != barKey+"view" {
 		t.Fatal("actual size at 100% was not disabled")
 	}
 }
@@ -118,7 +118,7 @@ func TestZoomStopsAtTheScreenAndTheLastStep(t *testing.T) {
 				t.Fatal(err)
 			}
 			tt.Frame()
-			if a.menu.Owner != barKey+"视图" || a.Zoom() != tc.zoom {
+			if a.menu.Owner != barKey+"view" || a.Zoom() != tc.zoom {
 				t.Fatalf("%s was enabled at %v", tc.row, tc.zoom)
 			}
 			tt.Key(0, ui.KeyEscape)

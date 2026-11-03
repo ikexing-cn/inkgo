@@ -22,19 +22,19 @@ func TestTableHelpListsEachKeyedCommand(t *testing.T) {
 	for _, cmd := range commandList {
 		switch {
 		case cmd.key == 0 && inHelp[cmd] != 0:
-			t.Errorf("%q has no key but is in the help", cmd.label)
+			t.Errorf("%q has no key but is in the help", cmd.label())
 		case cmd.key != 0 && inHelp[cmd] > 1:
-			t.Errorf("%q is in %d help rows, want 1", cmd.label, inHelp[cmd])
+			t.Errorf("%q is in %d help rows, want 1", cmd.label(), inHelp[cmd])
 		case cmd.key != 0 && cmd.by == byDesk && inHelp[cmd] == 0:
-			t.Errorf("the desk's %q is not in the help", cmd.label)
+			t.Errorf("the desk's %q is not in the help", cmd.label())
 		}
 	}
 	for cmd := range inHelp {
 		if !slices.Contains(commandList, cmd) {
-			t.Errorf("the help names %q, which is not in the table", cmd.label)
+			t.Errorf("the help names %q, which is not in the table", cmd.label())
 		}
 		if cmd.key == 0 || cmd.keys() == "" {
-			t.Errorf("the help names %q, which has no key", cmd.label)
+			t.Errorf("the help names %q, which has no key", cmd.label())
 		}
 	}
 }
@@ -57,7 +57,7 @@ func TestTableOneKeyAtMostPerPage(t *testing.T) {
 			}
 			k := key{p, cmd.mods, cmd.key}
 			if was := seen[k]; was != nil {
-				t.Errorf("%q and %q share a key on page %d", was.label, cmd.label, p)
+				t.Errorf("%q and %q share a key on page %d", was.label(), cmd.label(), p)
 			}
 			seen[k] = cmd
 		}
@@ -73,12 +73,12 @@ func TestHelpShowsTheTableRows(t *testing.T) {
 	texts := tt.Texts()
 	at := 0
 	for _, row := range commandHelp {
-		i := indexFrom(texts, at, row.keys)
+		i := indexFrom(texts, at, row.keys())
 		if i < 0 {
-			t.Fatalf("the help does not list %q", row.keys)
+			t.Fatalf("the help does not list %q", row.keys())
 		}
-		if i+1 >= len(texts) || texts[i+1] != row.does {
-			t.Fatalf("%q does not say %q", row.keys, row.does)
+		if i+1 >= len(texts) || texts[i+1] != row.does() {
+			t.Fatalf("%q does not say %q", row.keys(), row.does())
 		}
 		at = i + 1
 	}
@@ -87,11 +87,11 @@ func TestHelpShowsTheTableRows(t *testing.T) {
 	texts = tt.Texts()
 	for _, row := range commandHelp {
 		if row.ai {
-			if slices.Contains(texts, row.keys) {
-				t.Errorf("with the AI off the help still lists %q", row.keys)
+			if slices.Contains(texts, row.keys()) {
+				t.Errorf("with the AI off the help still lists %q", row.keys())
 			}
-		} else if !slices.Contains(texts, row.keys) {
-			t.Errorf("with the AI off the help does not list %q", row.keys)
+		} else if !slices.Contains(texts, row.keys()) {
+			t.Errorf("with the AI off the help does not list %q", row.keys())
 		}
 	}
 }
