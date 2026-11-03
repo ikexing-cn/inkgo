@@ -5,7 +5,9 @@ import (
 	"maps"
 	"slices"
 	"time"
+	"writer/locales"
 
+	"github.com/egoist/mygo/i18n"
 	"github.com/egoist/mygo/ui"
 	"writer/desk/book"
 	"writer/desk/kit"
@@ -51,6 +53,7 @@ type pendingBackupKey struct {
 // chapter, the AI, the late-after setting, the ignored keys, the backup
 // failure and the colours.
 type pendingKey struct {
+	locale  string
 	book    *book.Book
 	version int
 	ed      *editor.Editor
@@ -78,7 +81,7 @@ func (a *App) pendingKey() pendingKey {
 			b.minute = time.Now().Unix() / 60
 		}
 	}
-	return pendingKey{a.book, a.book.Version(), w.cur().ed, doc, w.node, a.liveChapter(),
+	return pendingKey{i18n.Locale(), a.book, a.book.Version(), w.cur().ed, doc, w.node, a.liveChapter(),
 		a.aiOn(), w.lateAfter, w.ignoredVer, b, a.pal}
 }
 
@@ -97,16 +100,16 @@ func (a *App) buildPendingGroups() []pendGroup {
 		switch st := f.Status(); {
 		case st == workspace.ForeLost:
 			it.key = "伏笔/失去锚点/" + f.Node + "/" + f.Quote
-			it.text = fmt.Sprintf("「%s」原句已删", kit.Clip(foreName(f), 16))
+			it.text = locales.StatusQuoteGone(kit.Clip(foreName(f), 16))
 		case f.Late(a.write.lateAfter):
 			it.key = "伏笔/没回收/" + f.Node + "/" + f.Quote
-			it.text = fmt.Sprintf("「%s」%d 章未回收", kit.Clip(foreName(f), 16), f.Gap)
-			it.sub += " 埋下"
+			it.text = locales.StatusUnpaid(kit.Clip(foreName(f), 16), f.Gap)
+			it.sub = locales.StatusPlantedIn(it.sub)
 		default:
 			continue
 		}
 		if f.Here {
-			it.sub += " · 本章"
+			it.sub += locales.StatusHereTag()
 		}
 		it.open = func(_ ui.Services) {
 			if w.node != f.Node {
@@ -137,7 +140,7 @@ func (a *App) buildPendingGroups() []pendGroup {
 		groups = append(groups, g)
 	}
 	if len(items) > 0 {
-		groups = append(groups, pendGroup{name: "伏笔", color: a.pal.Faint, items: items})
+		groups = append(groups, pendGroup{name: locales.StatusGroupMarks(), color: a.pal.Faint, items: items})
 	}
 	if g, ok := a.backupPending(); ok {
 		groups = append(groups, g)
@@ -177,13 +180,13 @@ func (a *App) pendingButton(c *ui.Context) {
 	}
 	t := a.pal.Theme
 	b := ui.ButtonBase(c).Row().Height(kit.HControlSm).Gap(6).AlignItems(ui.Center).Padding(0, 8).Radius(kit.RControl).Shrink(1).MinWidth(40).
-		Border(1, t.Border).Label("待处理").Tooltip(fmt.Sprintf("待处理 %d", total)).KeepFocus()
+		Border(1, t.Border).Label(locales.StatusPending()).Tooltip(locales.StatusPendingCount(total)).KeepFocus()
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}
 	b.Children(func() {
 		kit.Dot(c, a.pal.Amber, 6)
-		ui.Textf(c, "待处理 %d", total).FontSize(kit.FsNote).SingleLine().Ellipsis("…").Shrink(1)
+		ui.Text(c, locales.StatusPendingCount(total)).FontSize(kit.FsNote).SingleLine().Ellipsis("…").Shrink(1)
 	})
 	if b.Clicked() {
 		w.pendOpen = !w.pendOpen
@@ -202,8 +205,8 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 	t := a.pal.Theme
 	w := &a.write
 	ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(12, 14, 8, 14).Children(func() {
-		ui.Text(c, "待处理").FontSize(kit.FsBody).FontWeight(600).Grow(1)
-		a.pal.Segments(c, &w.pendHere, "待处理范围", []string{fmt.Sprintf("全部 %d", total), fmt.Sprintf("本章 %d", here)})
+		ui.Text(c, locales.StatusPending()).FontSize(kit.FsBody).FontWeight(600).Grow(1)
+		a.pal.Segments(c, &w.pendHere, locales.StatusPendingScope(), []string{locales.StatusAllCount(total), locales.StatusHereCount(here)})
 	})
 	var shown []pendItem
 	ui.Box(c).FillWidth().Height(1).Background(a.pal.Line)
@@ -231,9 +234,9 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 					a.pendingRow(c, it)
 				}
 				if len(items) > pendShown {
-					label := fmt.Sprintf("还有 %d 条", len(items)-pendShown)
+					label := locales.StatusMorePending(len(items) - pendShown)
 					if open {
-						label = "收起"
+						label = locales.CommonCollapse()
 					}
 					more := ui.ButtonBase(c).Row().Justify(ui.Start).Margin(0, 8).Padding(8, 12).Label(g.name + label)
 					color := t.TextMuted
@@ -251,18 +254,18 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 			})
 		}
 		if len(shown) == 0 {
-			ui.Text(c, "本章没有待处理项").FontSize(kit.FsControl).TextColor(t.TextMuted).Padding(20)
+			ui.Text(c, locales.StatusNoneHere()).FontSize(kit.FsControl).TextColor(t.TextMuted).Padding(20)
 		}
 	})
 	ui.Box(c).FillWidth().Height(1).Background(a.pal.Line)
 	ui.Row(c).FillWidth().Padding(12, 20).Children(func() {
 		ui.Spacer(c)
-		all := ui.ButtonBase(c).Label("全部忽略").Disabled(len(shown) == 0)
+		all := ui.ButtonBase(c).Label(locales.StatusIgnoreAll()).Disabled(len(shown) == 0)
 		color := t.TextMuted
 		if all.Hovered() {
 			color = t.Text
 		}
-		all.Children(func() { ui.Text(c, "全部忽略").FontSize(kit.FsNote).TextColor(color) })
+		all.Children(func() { ui.Text(c, locales.StatusIgnoreAll()).FontSize(kit.FsNote).TextColor(color) })
 		if all.Clicked() {
 			a.ignore(shown)
 		}
@@ -308,9 +311,9 @@ func (a *App) ignore(items []pendItem) {
 		return
 	}
 	w.pendOpen = false
-	a.status.Did(fmt.Sprintf("已忽略 %d 条待处理", len(items)), func() error {
+	a.status.Did(locales.StatusIgnored(len(items)), func() error {
 		if a.Store != st {
-			return fmt.Errorf("作品已切换，无法撤销")
+			return fmt.Errorf("%s", locales.StatusUndoWorkChanged())
 		}
 		now := w.ignored
 		w.ignored = was

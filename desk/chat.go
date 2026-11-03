@@ -1,9 +1,9 @@
 package desk
 
 import (
-	"fmt"
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
+	"writer/locales"
 	"writer/workspace"
 )
 
@@ -131,7 +131,7 @@ func (a *App) digest(c *ui.Context, d workspace.Event, through int) {
 		a.thoughts[key] = open
 	}
 	ui.Column(c.Key(d.ID)).FillWidth().AlignItems(ui.Center).Gap(8).Children(func() {
-		label := fmt.Sprintf("以上 %d 轮已整理成摘要", turns)
+		label := locales.ChatDigestRounds(turns)
 		head := ui.ButtonBase(c).Row().Gap(4).AlignItems(ui.Center).Label(label)
 		fg, mark := a.pal.Faint, kit.IcChevron
 		if head.Hovered() {
@@ -159,7 +159,7 @@ func (a *App) digest(c *ui.Context, d workspace.Event, through int) {
 					a.markdown(c, s[1], kit.DigestText)
 				})
 			}
-			ui.Text(c, "摘要由 AI 写成，有误可在对话中指出。").FontSize(kit.FsNote).LineHeight(kit.LhBody).TextColor(t.TextMuted).FillWidth()
+			ui.Text(c, locales.ChatDigestNote()).FontSize(kit.FsNote).LineHeight(kit.LhBody).TextColor(t.TextMuted).FillWidth()
 		})
 	})
 }
@@ -190,12 +190,12 @@ func (a *App) chatTop(c *ui.Context) {
 	t := a.pal.Theme
 	words := a.titles[a.session]
 	ui.Row(c).FillWidth().Height(kit.TitleHeight).Padding(0, 24).Gap(8).AlignItems(ui.Center).Shrink(0).Children(func() {
-		ui.Text(c, "总讨论").FontSize(kit.FsControl).TextColor(t.TextMuted)
+		ui.Text(c, locales.TalkAll()).FontSize(kit.FsControl).TextColor(t.TextMuted)
 		kit.Glyph(c, kit.IcChevron, kit.IconSm, a.pal.Faint)
 		ui.Text(c, words).FontSize(kit.FsBody).FontWeight(600).SingleLine().Ellipsis("…").Shrink(1)
 		ui.Spacer(c)
 		if n := a.spoken(); n > 0 {
-			ui.Textf(c, "%d 条发言", n).FontSize(kit.FsNote).TextColor(a.pal.Faint)
+			ui.Text(c, locales.TalkCount(n)).FontSize(kit.FsNote).TextColor(a.pal.Faint)
 		}
 	})
 	a.pal.Hairline(c)
@@ -205,9 +205,9 @@ func (a *App) chatTop(c *ui.Context) {
 // which the author thinks of as a volume.
 func (a *App) openUnit() string {
 	if n, ok := a.book.Tree().Node(a.write.node); ok && n.Folder {
-		return "卷"
+		return "volume"
 	}
-	return "章"
+	return "chapter"
 }
 
 func (a *App) switchSession(id string) {
@@ -222,18 +222,21 @@ func (a *App) switchSession(id string) {
 
 func (a *App) emptyChat(c *ui.Context) {
 	t := a.pal.Theme
-	title, about := "从一个初步的想法开始", "写下初步的想法。讨论中定下的内容，AI 会当场记进右侧的设定文档；已确定的设定将作为后续讨论的依据，已放弃的不再提及。"
-	starts := []string{"我想写一个总在下雨的城市", "主角有个说不出口的秘密", "这个故事的冲突在哪"}
+	title, about := locales.TalkStartTitle(), locales.TalkStartAbout()
+	starts := []string{locales.TalkStart1(), locales.TalkStart2(), locales.TalkStart3()}
 	if len(a.book.Setting().Entries) > 0 { // a work begun goes on from what it has
-		title, about = "接着聊这部作品", "AI 会参考已有的设定和正文。"
-		starts = []string{"接下来的情节怎么走", "哪些设定还没想清楚", "梳理一下人物关系"}
+		title, about = locales.TalkContinueTitle(), locales.TalkContinueAbout()
+		starts = []string{locales.TalkNext1(), locales.TalkNext2(), locales.TalkNext3()}
 	}
 	if a.page == pageWrite { // beside the prose the talk is about the page in front of the author
-		unit := a.openUnit()
-		starts = []string{"这一" + unit + "的节奏怎么样", "接下来可以怎么写", "人物的动机说得通吗"}
+		pace := locales.ChatAskChapterPace()
+		if n, ok := a.book.Tree().Node(a.write.node); ok && n.Folder {
+			pace = locales.ChatAskVolumePace()
+		}
+		starts = []string{pace, locales.ChatAskNext(), locales.ChatAskMotives()}
 		// In the column they are rows, as its lists are.
 		ui.Column(c).FillWidth().Margin(0, -10).Children(func() {
-			a.pal.PaneGroup(c, "示例问题")
+			a.pal.PaneGroup(c, locales.ChatExamples())
 			for _, s := range starts {
 				if a.pal.PaneRow(c, s, s, "", "", "", false).Clicked() {
 					a.input, a.focusTalk = s, true

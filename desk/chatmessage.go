@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 	"writer/desk/kit"
+	"writer/locales"
 	"writer/tokens"
 	"writer/workspace"
 )
@@ -50,7 +51,7 @@ func (a *App) message(c *ui.Context, m workspace.Event) {
 				a.aiMark(c)
 				ui.Column(c).Grow(1).Shrink(1).Gap(10).Children(func() {
 					if m.Reasoning != "" {
-						a.thought(c, m.ID, "思考过程", m.Reasoning, false)
+						a.thought(c, m.ID, locales.ChatThought(), m.Reasoning, false)
 					}
 					if found := workspace.Looks(a.events, m.ReplyTo); len(found) > 0 {
 						a.looked(c, "look-"+m.ID, found, false)
@@ -60,7 +61,7 @@ func (a *App) message(c *ui.Context, m workspace.Event) {
 					}
 					a.markdown(c, m.Text, kit.ReplyText)
 					if m.Capped {
-						ui.Text(c, "已达到本次查阅上限，以上回答仅依据已查到的内容。").FontSize(kit.FsNote).TextColor(t.TextMuted).FillWidth()
+						ui.Text(c, locales.ChatCapped()).FontSize(kit.FsNote).TextColor(t.TextMuted).FillWidth()
 					}
 				})
 			})
@@ -86,12 +87,12 @@ func (a *App) message(c *ui.Context, m workspace.Event) {
 				}
 				ui.Text(c, foot).FontSize(kit.FsSmall).TextColor(a.pal.Faint).Padding(0, 6, 0, 0).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0).Tooltip(foot)
 			}
-			if kit.IconButton(c, kit.IcQuote, "摘取-"+m.ID, ui.Color{}).Tooltip("摘取原文").KeepFocus().Disabled(a.held()).Clicked() {
+			if kit.IconButton(c, kit.IcQuote, "摘取-"+m.ID, ui.Color{}).Tooltip(locales.ChatPull()).KeepFocus().Disabled(a.held()).Clicked() {
 				a.openSource(m, 0, 0)
 			}
 			if !user {
 				// Its Markdown, which keeps its structure pasted elsewhere.
-				if kit.IconButton(c, kit.IcCopy, "复制-"+m.ID, ui.Color{}).Tooltip("复制全文").Clicked() {
+				if kit.IconButton(c, kit.IcCopy, "复制-"+m.ID, ui.Color{}).Tooltip(locales.ChatCopyAll()).Clicked() {
 					c.WriteClipboard(m.Text)
 				}
 				on := a.contextReply == m.ID
@@ -99,7 +100,7 @@ func (a *App) message(c *ui.Context, m workspace.Event) {
 				if on {
 					color = a.pal.Ink
 				}
-				if kit.IconButton(c, kit.IcEye, "上下文-"+m.ID, color).Tooltip("AI 参考内容").Clicked() {
+				if kit.IconButton(c, kit.IcEye, "上下文-"+m.ID, color).Tooltip(locales.ChatContextSent()).Clicked() {
 					if on {
 						a.contextReply = ""
 					} else {
@@ -114,8 +115,8 @@ func (a *App) message(c *ui.Context, m workspace.Event) {
 		if user && !a.answered(m.ID) && !a.replying() {
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 				kit.Glyph(c, kit.IcAlert, kit.IconSm, t.Warning)
-				ui.Text(c, "该消息尚未收到回复").FontSize(kit.FsNote).TextColor(t.Warning)
-				if a.pal.Ghost(c, "重试回复", ui.Color{}).Disabled(a.busy != "").Clicked() {
+				ui.Text(c, locales.ChatUnanswered()).FontSize(kit.FsNote).TextColor(t.Warning)
+				if a.pal.Ghost(c, locales.ChatRetry(), ui.Color{}).Disabled(a.busy != "").Clicked() {
 					a.retry(c, m.ID)
 				}
 			})
@@ -149,7 +150,7 @@ func (a *App) thinking(c *ui.Context) {
 		a.aiMark(c)
 		ui.Column(c).Grow(1).Shrink(1).Gap(10).Children(func() {
 			if reasoning != "" {
-				a.thought(c, "live-reply", "思考过程", reasoning, text == "" && len(found) == 0 && !proposing)
+				a.thought(c, "live-reply", locales.ChatThought(), reasoning, text == "" && len(found) == 0 && !proposing)
 			}
 			if len(found) > 0 {
 				a.looked(c, "live-look", found, text == "" && !proposing)
@@ -158,22 +159,22 @@ func (a *App) thinking(c *ui.Context) {
 			if text != "" {
 				a.liveMarkdown(c, text, kit.ReplyText)
 			}
-			status := "正在回复…"
+			status := locales.ChatReplying()
 			switch {
 			case compacting:
-				status = "正在压缩上下文…"
+				status = locales.ChatPacking()
 			case writing:
-				status = "正在正文中提议修改…"
+				status = locales.ChatProposing()
 			case text != "":
 			case len(found) > 0:
-				status = "正在查阅…"
+				status = locales.ChatLookingMore()
 			default:
-				status = "正在思考…"
+				status = locales.ChatThinkingMore()
 			}
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
 				ui.Spinner(c)
 				ui.Text(c, status).FontSize(kit.FsControl).TextColor(t.TextMuted).Grow(1).Shrink(1)
-				if a.pal.Ghost(c, "取消请求", ui.Color{}).Clicked() && a.cancel != nil {
+				if a.pal.Ghost(c, locales.ChatCancelRequest(), ui.Color{}).Clicked() && a.cancel != nil {
 					a.cancel()
 				}
 			})
@@ -203,7 +204,7 @@ func (a *App) thought(c *ui.Context, key, label, reasoning string, running bool)
 		a.thoughts[key] = open
 	}
 	if running {
-		label = "正在思考"
+		label = locales.ChatThinking()
 	}
 	ui.Collapsible(c, label, open, func() {
 		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Stretch).Padding(4, 0, 2, 2).Children(func() {
@@ -268,7 +269,7 @@ func (a *App) looked(c *ui.Context, key string, found []workspace.Look, running 
 		open = &v
 		a.thoughts[key] = open
 	}
-	label := "正在查阅"
+	label := locales.ChatLooking()
 	if !running {
 		labels := make([]string, len(found))
 		for n, l := range found {
@@ -282,7 +283,7 @@ func (a *App) looked(c *ui.Context, key string, found []workspace.Look, running 
 			ui.Column(c).Grow(1).Shrink(1).Gap(8).Children(func() {
 				for n, l := range found {
 					if r := l.Result.Revision; r != "" {
-						if a.pal.PaneLink(c, l.Label, "查看设定", fmt.Sprintf("查看设定-%s-%d", key, n)) {
+						if a.pal.PaneLink(c, l.Label, locales.ChatViewLore(), fmt.Sprintf("查看设定-%s-%d", key, n)) {
 							a.showNoted(r)
 						}
 						continue
@@ -338,20 +339,20 @@ func (a *App) replyLabel(name, effort string) string {
 }
 
 // partNames name the parts of a talk request as the author reads them.
-var partNames = map[string]string{
-	workspace.PartRules:    "规则",
-	workspace.PartIndex:    "设定目录",
-	workspace.PartDigest:   "讨论摘要",
-	workspace.PartOutline:  "章纲和卷纲",
-	workspace.PartCards:    "本章的卡片",
-	workspace.PartOutlines: "本卷前面各章章纲",
-	workspace.PartPrevious: "上一章全文",
-	workspace.PartChapter:  "本章全文",
-	workspace.PartRecap:    "前情提要",
-	workspace.PartLooked:   "查阅结果",
-	workspace.PartTalk:     "之前的对话",
-	workspace.PartProse:    "附上的正文",
-	workspace.PartInput:    "本次发言",
+var partNames = map[string]func() string{
+	workspace.PartRules:    locales.ChatPartRules,
+	workspace.PartIndex:    locales.ChatPartCatalog,
+	workspace.PartDigest:   locales.ChatPartDigest,
+	workspace.PartOutline:  locales.ChatPartOutline,
+	workspace.PartCards:    locales.ChatPartCards,
+	workspace.PartOutlines: locales.ChatPartPrevOutlines,
+	workspace.PartPrevious: locales.ChatPartPrevChapter,
+	workspace.PartChapter:  locales.ChatPartThisChapter,
+	workspace.PartRecap:    locales.ChatPartRecap,
+	workspace.PartLooked:   locales.ChatPartLook,
+	workspace.PartTalk:     locales.ChatPartBefore,
+	workspace.PartProse:    locales.ChatPartProse,
+	workspace.PartInput:    locales.ChatPartSaid,
 }
 
 // audit is what a reply was sent, by the request that replied when the
@@ -386,46 +387,49 @@ func (a *App) audit(c *ui.Context, m workspace.Event) {
 				var parts []string
 				for _, p := range s.Parts {
 					total += p.Tokens
-					name := partNames[p.Name]
+					name := ""
+					if label := partNames[p.Name]; label != nil {
+						name = label()
+					}
 					if p.Name == workspace.PartSetting {
-						name = fmt.Sprintf("设定 %d 条", len(setting))
+						name = locales.ChatPartLoreCount(len(setting))
 					}
 					parts = append(parts, name+" "+tokens.Round(p.Tokens))
 				}
-				ui.Textf(c, "本次发送约 %s token", tokens.Round(total)).FontSize(kit.FsNote).FontWeight(600)
+				ui.Text(c, locales.ChatSentAbout(tokens.Round(total))).FontSize(kit.FsNote).FontWeight(600)
 				if n := workspace.Requests(a.events, m); n > 1 { // what it says is of the request that replied
-					note(fmt.Sprintf("这一轮共 %d 次请求，这是最后一次。", n))
+					note(locales.ChatRoundRequests(n))
 				}
 				note(strings.Join(parts, " · "))
 			}
 			if u := m.Usage; u != nil {
-				used := "实际用量：输入 " + tokens.Round(u.Input)
+				used := locales.ChatUsage(tokens.Round(u.Input), tokens.Round(u.Output))
 				if u.CacheRead > 0 {
-					used += "，其中缓存命中 " + tokens.Round(u.CacheRead)
+					used = locales.ChatUsageCached(tokens.Round(u.Input), tokens.Round(u.CacheRead), tokens.Round(u.Output))
 				}
-				note(used + "；输出 " + tokens.Round(u.Output))
+				note(used)
 			}
 			for _, item := range beside {
 				row(item.Text, true)
 			}
-			head := fmt.Sprintf("附带全部 %d 条设定", len(setting))
+			head := locales.ChatAttachedAll(len(setting))
 			switch {
 			case index:
-				head = "设定较多，本次只附目录"
+				head = locales.ChatCrowded()
 			case len(m.Omitted) > 0: // a reply from before the setting went whole or as an index
-				head = fmt.Sprintf("回复时附带 %d 条设定，因上下文上限省略 %d 条", len(setting), len(m.Omitted))
+				head = locales.ChatAttachedOmitted(len(setting), len(m.Omitted))
 			case m.Sent != nil && m.Sent.AsOf != "": // a talk that keeps to a chapter has the setting as of it
-				head = fmt.Sprintf("附带 %d 条设定，按「%s」时的样子", len(setting), m.Sent.AsOf)
+				head = locales.ChatAttachedAt(len(setting), m.Sent.AsOf)
 			}
 			ui.Text(c, head).FontSize(kit.FsNote).FontWeight(600)
 			if index {
-				note("目录只有分类、名字和第一句；需要时 AI 会查全文。")
+				note(locales.ChatCatalogNote())
 			}
 			if m.Sent != nil && m.Sent.Ahead > 0 {
-				note(fmt.Sprintf("后面还有 %d 处变化，未列出。", m.Sent.Ahead))
+				note(locales.ChatMoreChanges(m.Sent.Ahead))
 			}
 			if len(setting) == 0 && len(m.Omitted) == 0 {
-				note("设定文档暂无内容。")
+				note(locales.ChatLoreEmpty())
 			}
 			for _, item := range setting {
 				row(item.Text, !index)

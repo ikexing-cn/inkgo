@@ -2,6 +2,7 @@ package desk
 
 import (
 	"strings"
+	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/book"
@@ -59,12 +60,12 @@ func (a *App) idea(c *ui.Context, it workspace.Idea, about string) {
 				}
 				return
 			}
-			if a.pal.PaneButton(c, "忽略", false).Label("忽略-" + it.ID()).Clicked() {
+			if a.pal.PaneButton(c, locales.CommonIgnore(), false).Label("忽略-" + it.ID()).Clicked() {
 				a.revise(workspace.Op{Op: workspace.OpMove, Entry: e.ID, Place: workspace.PlaceDropped})
 			}
 			switch {
 			case asks(e):
-				if a.pal.PaneButton(c, "回答", true).Label("回答-" + e.ID).Clicked() {
+				if a.pal.PaneButton(c, locales.CommonAnswer(), true).Label("回答-" + e.ID).Clicked() {
 					d.route.answer(e.ID)
 					d.text, d.category, d.name, d.names = "", e.Category, "", ""
 					if len(e.Names) > 0 { // the answer keeps the names asked about, unless the author takes them out
@@ -72,7 +73,7 @@ func (a *App) idea(c *ui.Context, it workspace.Idea, about string) {
 					}
 				}
 			default:
-				if a.pal.PaneButton(c, "采纳", true).Label("采纳-" + e.ID).Clicked() {
+				if a.pal.PaneButton(c, locales.EditorAccept(), true).Label("采纳-" + e.ID).Clicked() {
 					a.revise(workspace.Op{Op: workspace.OpMove, Entry: e.ID, Place: workspace.PlaceBody})
 				}
 			}
@@ -83,7 +84,7 @@ func (a *App) idea(c *ui.Context, it workspace.Idea, about string) {
 // ideasPage is all that waits on the author, one after another.
 func (a *App) ideasPage(c *ui.Context) {
 	d := &a.doc
-	if back, _ := a.pal.PaneBack(c, "全部设定", ""); back {
+	if back, _ := a.pal.PaneBack(c, locales.LoreAll(), ""); back {
 		d.route.closeWaiting()
 	}
 	open := a.ideas()
@@ -92,19 +93,19 @@ func (a *App) ideasPage(c *ui.Context) {
 	}
 	a.pal.PanePage(c, "ideas", func() {
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, "待确认").FontSize(kit.FsGroup).FontWeight(600)
+			ui.Text(c, locales.LoreToConfirm()).FontSize(kit.FsGroup).FontWeight(600)
 			ui.Spacer(c)
-			ui.Textf(c, "%d 条 AI 建议", len(open)).FontSize(kit.FsNote).TextColor(a.pal.Theme.TextMuted)
+			ui.Text(c, locales.LoreAiCount(len(open))).FontSize(kit.FsNote).TextColor(a.pal.Theme.TextMuted)
 		})
 		for i, it := range open {
 			if i > 0 {
 				a.pal.Hairline(c)
 			}
-			words := "新设定"
+			words := locales.LoreNew()
 			if b, ok := a.book.Setting().Entry(it.About); ok {
-				words = "关于 " + shortName(b)
+				words = locales.LoreAbout(shortName(b))
 				if it.Change.ID != "" {
-					words += " · " + kit.FromLabel(a.book.Tree(), it.Change.From)
+					words = locales.LoreAboutFrom(shortName(b), kit.FromLabel(a.book.Tree(), it.Change.From))
 				}
 			}
 			a.idea(c, it, words)
