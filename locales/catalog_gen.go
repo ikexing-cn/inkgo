@@ -13600,6 +13600,768 @@ func (msgs Messages) ModBackupOff() string {
 	return Catalog.Format(msgs.locale, "modBackupOff", nil)
 }
 
+// ModContext says "context"
+// in the language the app shows.
+//
+// 「功能」里一个前置扩展的名字，照代码里的 ID
+// 写，不翻。
+func ModContext() string { return In(i18n.Locale()).ModContext() }
+
+// ModContext says "context"
+// in the language of msgs.
+//
+// 「功能」里一个前置扩展的名字，照代码里的 ID
+// 写，不翻。
+func (msgs Messages) ModContext() string {
+	return Catalog.Format(msgs.locale, "modContext", nil)
+}
+
+// ModContextWhere says "书的资料放在哪、从哪里取：设定、大纲往里放，讨论、检查、起草、名字补全从里面取"
+// in the language the app shows.
+//
+// 「功能」里：这个前置扩展给别的扩展提供什么。
+func ModContextWhere() string { return In(i18n.Locale()).ModContextWhere() }
+
+// ModContextWhere says "书的资料放在哪、从哪里取：设定、大纲往里放，讨论、检查、起草、名字补全从里面取"
+// in the language of msgs.
+//
+// 「功能」里：这个前置扩展给别的扩展提供什么。
+func (msgs Messages) ModContextWhere() string {
+	return Catalog.Format(msgs.locale, "modContextWhere", nil)
+}
+
+// ModMarks says "marks"
+// in the language the app shows.
+//
+// 「功能」里一个前置扩展的名字，照代码里的 ID
+// 写，不翻。
+func ModMarks() string { return In(i18n.Locale()).ModMarks() }
+
+// ModMarks says "marks"
+// in the language of msgs.
+//
+// 「功能」里一个前置扩展的名字，照代码里的 ID
+// 写，不翻。
+func (msgs Messages) ModMarks() string {
+	return Catalog.Format(msgs.locale, "modMarks", nil)
+}
+
+// ModMarksWhere says "正文上的标记：伏笔、批注、检查的高亮和边注都经它画"
+// in the language the app shows.
+//
+// 「功能」里：这个前置扩展给别的扩展提供什么。
+func ModMarksWhere() string { return In(i18n.Locale()).ModMarksWhere() }
+
+// ModMarksWhere says "正文上的标记：伏笔、批注、检查的高亮和边注都经它画"
+// in the language of msgs.
+//
+// 「功能」里：这个前置扩展给别的扩展提供什么。
+func (msgs Messages) ModMarksWhere() string {
+	return Catalog.Format(msgs.locale, "modMarksWhere", nil)
+}
+
+// ModAI says "AI"
+// in the language the app shows.
+//
+// 「功能」里一个前置扩展的名字。
+func ModAI() string { return In(i18n.Locale()).ModAI() }
+
+// ModAI says "AI"
+// in the language of msgs.
+//
+// 「功能」里一个前置扩展的名字。
+func (msgs Messages) ModAI() string {
+	return Catalog.Format(msgs.locale, "modAI", nil)
+}
+
+// ModAIWhere says "模型服务和模型调用，别的扩展在这里登记 AI 工具"
+// in the language the app shows.
+//
+// 「功能」里：这个前置扩展给别的扩展提供什么。
+func ModAIWhere() string { return In(i18n.Locale()).ModAIWhere() }
+
+// ModAIWhere says "模型服务和模型调用，别的扩展在这里登记 AI 工具"
+// in the language of msgs.
+//
+// 「功能」里：这个前置扩展给别的扩展提供什么。
+func (msgs Messages) ModAIWhere() string {
+	return Catalog.Format(msgs.locale, "modAIWhere", nil)
+}
+
+// ModLore says "设定"
+// in the language the app shows.
+//
+// 「功能」里一个模块的名字。
+func ModLore() string { return In(i18n.Locale()).ModLore() }
+
+// ModLore says "设定"
+// in the language of msgs.
+//
+// 「功能」里一个模块的名字。
+func (msgs Messages) ModLore() string {
+	return Catalog.Format(msgs.locale, "modLore", nil)
+}
+
+// ModLoreWhere says "右栏的「设定」"
+// in the language the app shows.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func ModLoreWhere() string { return In(i18n.Locale()).ModLoreWhere() }
+
+// ModLoreWhere says "右栏的「设定」"
+// in the language of msgs.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func (msgs Messages) ModLoreWhere() string {
+	return Catalog.Format(msgs.locale, "modLoreWhere", nil)
+}
+
+// ModOutline says "大纲"
+// in the language the app shows.
+//
+// 「功能」里一个模块的名字。
+func ModOutline() string { return In(i18n.Locale()).ModOutline() }
+
+// ModOutline says "大纲"
+// in the language of msgs.
+//
+// 「功能」里一个模块的名字。
+func (msgs Messages) ModOutline() string {
+	return Catalog.Format(msgs.locale, "modOutline", nil)
+}
+
+// ModOutlineWhere says "标题栏的「大纲」页，正文上方的章纲"
+// in the language the app shows.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func ModOutlineWhere() string { return In(i18n.Locale()).ModOutlineWhere() }
+
+// ModOutlineWhere says "标题栏的「大纲」页，正文上方的章纲"
+// in the language of msgs.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func (msgs Messages) ModOutlineWhere() string {
+	return Catalog.Format(msgs.locale, "modOutlineWhere", nil)
+}
+
+// ModUsage says "用量记录"
+// in the language the app shows.
+//
+// 「功能」里一个模块的名字。
+func ModUsage() string { return In(i18n.Locale()).ModUsage() }
+
+// ModUsage says "用量记录"
+// in the language of msgs.
+//
+// 「功能」里一个模块的名字。
+func (msgs Messages) ModUsage() string {
+	return Catalog.Format(msgs.locale, "modUsage", nil)
+}
+
+// ModUsageWhere says "设置「AI」里的用量和「AI 记录」"
+// in the language the app shows.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func ModUsageWhere() string { return In(i18n.Locale()).ModUsageWhere() }
+
+// ModUsageWhere says "设置「AI」里的用量和「AI 记录」"
+// in the language of msgs.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func (msgs Messages) ModUsageWhere() string {
+	return Catalog.Format(msgs.locale, "modUsageWhere", nil)
+}
+
+// ModTalk says "讨论"
+// in the language the app shows.
+//
+// 「功能」里一个模块的名字。
+func ModTalk() string { return In(i18n.Locale()).ModTalk() }
+
+// ModTalk says "讨论"
+// in the language of msgs.
+//
+// 「功能」里一个模块的名字。
+func (msgs Messages) ModTalk() string {
+	return Catalog.Format(msgs.locale, "modTalk", nil)
+}
+
+// ModTalkWhere says "标题栏的「讨论」页，右栏的「讨论」"
+// in the language the app shows.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func ModTalkWhere() string { return In(i18n.Locale()).ModTalkWhere() }
+
+// ModTalkWhere says "标题栏的「讨论」页，右栏的「讨论」"
+// in the language of msgs.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func (msgs Messages) ModTalkWhere() string {
+	return Catalog.Format(msgs.locale, "modTalkWhere", nil)
+}
+
+// ModContinue says "续写"
+// in the language the app shows.
+//
+// 「功能」里一个模块的名字。
+func ModContinue() string { return In(i18n.Locale()).ModContinue() }
+
+// ModContinue says "续写"
+// in the language of msgs.
+//
+// 「功能」里一个模块的名字。
+func (msgs Messages) ModContinue() string {
+	return Catalog.Format(msgs.locale, "modContinue", nil)
+}
+
+// ModContinueWhere says "「编辑」菜单里的「续写一句」"
+// in the language the app shows.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func ModContinueWhere() string { return In(i18n.Locale()).ModContinueWhere() }
+
+// ModContinueWhere says "「编辑」菜单里的「续写一句」"
+// in the language of msgs.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func (msgs Messages) ModContinueWhere() string {
+	return Catalog.Format(msgs.locale, "modContinueWhere", nil)
+}
+
+// ModDraft says "起草"
+// in the language the app shows.
+//
+// 「功能」里一个模块的名字。
+func ModDraft() string { return In(i18n.Locale()).ModDraft() }
+
+// ModDraft says "起草"
+// in the language of msgs.
+//
+// 「功能」里一个模块的名字。
+func (msgs Messages) ModDraft() string {
+	return Catalog.Format(msgs.locale, "modDraft", nil)
+}
+
+// ModDraftWhere says "「编辑」菜单里的「起草本章」"
+// in the language the app shows.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func ModDraftWhere() string { return In(i18n.Locale()).ModDraftWhere() }
+
+// ModDraftWhere says "「编辑」菜单里的「起草本章」"
+// in the language of msgs.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func (msgs Messages) ModDraftWhere() string {
+	return Catalog.Format(msgs.locale, "modDraftWhere", nil)
+}
+
+// ModPropose says "AI 提议改动"
+// in the language the app shows.
+//
+// 「功能」里一个模块的名字。
+func ModPropose() string { return In(i18n.Locale()).ModPropose() }
+
+// ModPropose says "AI 提议改动"
+// in the language of msgs.
+//
+// 「功能」里一个模块的名字。
+func (msgs Messages) ModPropose() string {
+	return Catalog.Format(msgs.locale, "modPropose", nil)
+}
+
+// ModProposeWhere says "AI 在正文里提出的改动，采纳了才写入"
+// in the language the app shows.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func ModProposeWhere() string { return In(i18n.Locale()).ModProposeWhere() }
+
+// ModProposeWhere says "AI 在正文里提出的改动，采纳了才写入"
+// in the language of msgs.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func (msgs Messages) ModProposeWhere() string {
+	return Catalog.Format(msgs.locale, "modProposeWhere", nil)
+}
+
+// ModCheck says "检查"
+// in the language the app shows.
+//
+// 「功能」里一个模块的名字。
+func ModCheck() string { return In(i18n.Locale()).ModCheck() }
+
+// ModCheck says "检查"
+// in the language of msgs.
+//
+// 「功能」里一个模块的名字。
+func (msgs Messages) ModCheck() string {
+	return Catalog.Format(msgs.locale, "modCheck", nil)
+}
+
+// ModCheckWhere says "标题栏的「检查」页，底栏的检查状态"
+// in the language the app shows.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func ModCheckWhere() string { return In(i18n.Locale()).ModCheckWhere() }
+
+// ModCheckWhere says "标题栏的「检查」页，底栏的检查状态"
+// in the language of msgs.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func (msgs Messages) ModCheckWhere() string {
+	return Catalog.Format(msgs.locale, "modCheckWhere", nil)
+}
+
+// ModHooks says "伏笔"
+// in the language the app shows.
+//
+// 「功能」里一个模块的名字。
+func ModHooks() string { return In(i18n.Locale()).ModHooks() }
+
+// ModHooks says "伏笔"
+// in the language of msgs.
+//
+// 「功能」里一个模块的名字。
+func (msgs Messages) ModHooks() string {
+	return Catalog.Format(msgs.locale, "modHooks", nil)
+}
+
+// ModHooksWhere says "右栏的「伏笔」，到期没回收的提醒"
+// in the language the app shows.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func ModHooksWhere() string { return In(i18n.Locale()).ModHooksWhere() }
+
+// ModHooksWhere says "右栏的「伏笔」，到期没回收的提醒"
+// in the language of msgs.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func (msgs Messages) ModHooksWhere() string {
+	return Catalog.Format(msgs.locale, "modHooksWhere", nil)
+}
+
+// ModNotes says "批注"
+// in the language the app shows.
+//
+// 「功能」里一个模块的名字。
+func ModNotes() string { return In(i18n.Locale()).ModNotes() }
+
+// ModNotes says "批注"
+// in the language of msgs.
+//
+// 「功能」里一个模块的名字。
+func (msgs Messages) ModNotes() string {
+	return Catalog.Format(msgs.locale, "modNotes", nil)
+}
+
+// ModNotesWhere says "右栏的「批注」，正文旁的边注"
+// in the language the app shows.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func ModNotesWhere() string { return In(i18n.Locale()).ModNotesWhere() }
+
+// ModNotesWhere says "右栏的「批注」，正文旁的边注"
+// in the language of msgs.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func (msgs Messages) ModNotesWhere() string {
+	return Catalog.Format(msgs.locale, "modNotesWhere", nil)
+}
+
+// ModNames says "名字补全"
+// in the language the app shows.
+//
+// 「功能」里一个模块的名字。
+func ModNames() string { return In(i18n.Locale()).ModNames() }
+
+// ModNames says "名字补全"
+// in the language of msgs.
+//
+// 「功能」里一个模块的名字。
+func (msgs Messages) ModNames() string {
+	return Catalog.Format(msgs.locale, "modNames", nil)
+}
+
+// ModNamesWhere says "正文里标出设定的名字，打字时补全"
+// in the language the app shows.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func ModNamesWhere() string { return In(i18n.Locale()).ModNamesWhere() }
+
+// ModNamesWhere says "正文里标出设定的名字，打字时补全"
+// in the language of msgs.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func (msgs Messages) ModNamesWhere() string {
+	return Catalog.Format(msgs.locale, "modNamesWhere", nil)
+}
+
+// ModGoal says "字数目标"
+// in the language the app shows.
+//
+// 「功能」里一个模块的名字。
+func ModGoal() string { return In(i18n.Locale()).ModGoal() }
+
+// ModGoal says "字数目标"
+// in the language of msgs.
+//
+// 「功能」里一个模块的名字。
+func (msgs Messages) ModGoal() string {
+	return Catalog.Format(msgs.locale, "modGoal", nil)
+}
+
+// ModGoalWhere says "底栏字数旁的今日目标"
+// in the language the app shows.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func ModGoalWhere() string { return In(i18n.Locale()).ModGoalWhere() }
+
+// ModGoalWhere says "底栏字数旁的今日目标"
+// in the language of msgs.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func (msgs Messages) ModGoalWhere() string {
+	return Catalog.Format(msgs.locale, "modGoalWhere", nil)
+}
+
+// ModFocus says "专注写作"
+// in the language the app shows.
+//
+// 「功能」里一个模块的名字。
+func ModFocus() string { return In(i18n.Locale()).ModFocus() }
+
+// ModFocus says "专注写作"
+// in the language of msgs.
+//
+// 「功能」里一个模块的名字。
+func (msgs Messages) ModFocus() string {
+	return Catalog.Format(msgs.locale, "modFocus", nil)
+}
+
+// ModFocusWhere says "「视图」菜单里的「专注写作」"
+// in the language the app shows.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func ModFocusWhere() string { return In(i18n.Locale()).ModFocusWhere() }
+
+// ModFocusWhere says "「视图」菜单里的「专注写作」"
+// in the language of msgs.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func (msgs Messages) ModFocusWhere() string {
+	return Catalog.Format(msgs.locale, "modFocusWhere", nil)
+}
+
+// ModCats says "作品分类"
+// in the language the app shows.
+//
+// 「功能」里一个模块的名字。
+func ModCats() string { return In(i18n.Locale()).ModCats() }
+
+// ModCats says "作品分类"
+// in the language of msgs.
+//
+// 「功能」里一个模块的名字。
+func (msgs Messages) ModCats() string {
+	return Catalog.Format(msgs.locale, "modCats", nil)
+}
+
+// ModCatsWhere says "「文件」菜单里的「作品分类」"
+// in the language the app shows.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func ModCatsWhere() string { return In(i18n.Locale()).ModCatsWhere() }
+
+// ModCatsWhere says "「文件」菜单里的「作品分类」"
+// in the language of msgs.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func (msgs Messages) ModCatsWhere() string {
+	return Catalog.Format(msgs.locale, "modCatsWhere", nil)
+}
+
+// ModSnaps says "快照"
+// in the language the app shows.
+//
+// 「功能」里一个模块的名字。
+func ModSnaps() string { return In(i18n.Locale()).ModSnaps() }
+
+// ModSnaps says "快照"
+// in the language of msgs.
+//
+// 「功能」里一个模块的名字。
+func (msgs Messages) ModSnaps() string {
+	return Catalog.Format(msgs.locale, "modSnaps", nil)
+}
+
+// ModSnapsWhere says "「文件」菜单里的「快照」"
+// in the language the app shows.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func ModSnapsWhere() string { return In(i18n.Locale()).ModSnapsWhere() }
+
+// ModSnapsWhere says "「文件」菜单里的「快照」"
+// in the language of msgs.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func (msgs Messages) ModSnapsWhere() string {
+	return Catalog.Format(msgs.locale, "modSnapsWhere", nil)
+}
+
+// ModTrash says "回收站"
+// in the language the app shows.
+//
+// 「功能」里一个模块的名字。
+func ModTrash() string { return In(i18n.Locale()).ModTrash() }
+
+// ModTrash says "回收站"
+// in the language of msgs.
+//
+// 「功能」里一个模块的名字。
+func (msgs Messages) ModTrash() string {
+	return Catalog.Format(msgs.locale, "modTrash", nil)
+}
+
+// ModTrashWhere says "「文件」菜单里的「回收站…」"
+// in the language the app shows.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func ModTrashWhere() string { return In(i18n.Locale()).ModTrashWhere() }
+
+// ModTrashWhere says "「文件」菜单里的「回收站…」"
+// in the language of msgs.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func (msgs Messages) ModTrashWhere() string {
+	return Catalog.Format(msgs.locale, "modTrashWhere", nil)
+}
+
+// ModFind says "全书查找"
+// in the language the app shows.
+//
+// 「功能」里一个模块的名字。
+func ModFind() string { return In(i18n.Locale()).ModFind() }
+
+// ModFind says "全书查找"
+// in the language of msgs.
+//
+// 「功能」里一个模块的名字。
+func (msgs Messages) ModFind() string {
+	return Catalog.Format(msgs.locale, "modFind", nil)
+}
+
+// ModFindWhere says "「编辑」菜单里的「查找替换」"
+// in the language the app shows.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func ModFindWhere() string { return In(i18n.Locale()).ModFindWhere() }
+
+// ModFindWhere says "「编辑」菜单里的「查找替换」"
+// in the language of msgs.
+//
+// 「功能」里：这个模块在界面上的哪几处。
+func (msgs Messages) ModFindWhere() string {
+	return Catalog.Format(msgs.locale, "modFindWhere", nil)
+}
+
+// ModGroupLibraries says "前置"
+// in the language the app shows.
+//
+// 「功能」页里一组的标题：给别的扩展用、自己没有界面的扩展（像
+// Minecraft 的前置 mod）。
+func ModGroupLibraries() string { return In(i18n.Locale()).ModGroupLibraries() }
+
+// ModGroupLibraries says "前置"
+// in the language of msgs.
+//
+// 「功能」页里一组的标题：给别的扩展用、自己没有界面的扩展（像
+// Minecraft 的前置 mod）。
+func (msgs Messages) ModGroupLibraries() string {
+	return Catalog.Format(msgs.locale, "modGroupLibraries", nil)
+}
+
+// ModLibrariesAbout says "给别的扩展用，自己不在界面上出现。关掉一个，需要它的也停用。"
+// in the language the app shows.
+//
+// 「功能」页「前置」那一组标题下的说明。
+func ModLibrariesAbout() string { return In(i18n.Locale()).ModLibrariesAbout() }
+
+// ModLibrariesAbout says "给别的扩展用，自己不在界面上出现。关掉一个，需要它的也停用。"
+// in the language of msgs.
+//
+// 「功能」页「前置」那一组标题下的说明。
+func (msgs Messages) ModLibrariesAbout() string {
+	return Catalog.Format(msgs.locale, "modLibrariesAbout", nil)
+}
+
+// ModListSep says "、"
+// in the language the app shows.
+//
+// 「功能」页里把几个扩展的名字连成一串时中间的分隔。
+func ModListSep() string { return In(i18n.Locale()).ModListSep() }
+
+// ModListSep says "、"
+// in the language of msgs.
+//
+// 「功能」页里把几个扩展的名字连成一串时中间的分隔。
+func (msgs Messages) ModListSep() string {
+	return Catalog.Format(msgs.locale, "modListSep", nil)
+}
+
+// ModNeeds says "需要 {names}"
+// in the language the app shows.
+//
+// 「功能」页一行里：这个扩展必需哪些扩展。
+func ModNeeds(names string) string { return In(i18n.Locale()).ModNeeds(names) }
+
+// ModNeeds says "需要 {names}"
+// in the language of msgs.
+//
+// 「功能」页一行里：这个扩展必需哪些扩展。
+func (msgs Messages) ModNeeds(names string) string {
+	return Catalog.Format(msgs.locale, "modNeeds", map[string]any{"names": names})
+}
+
+// ModOptional says "可选 {names}"
+// in the language the app shows.
+//
+// 「功能」页一行里：这个扩展可选用哪些扩展，它们开着时多一些功能。
+func ModOptional(names string) string { return In(i18n.Locale()).ModOptional(names) }
+
+// ModOptional says "可选 {names}"
+// in the language of msgs.
+//
+// 「功能」页一行里：这个扩展可选用哪些扩展，它们开着时多一些功能。
+func (msgs Messages) ModOptional(names string) string {
+	return Catalog.Format(msgs.locale, "modOptional", map[string]any{"names": names})
+}
+
+// ModNeededBy says "被 {names} 需要"
+// in the language the app shows.
+//
+// 「功能」页一行里：哪些扩展必需这一个。
+func ModNeededBy(names string) string { return In(i18n.Locale()).ModNeededBy(names) }
+
+// ModNeededBy says "被 {names} 需要"
+// in the language of msgs.
+//
+// 「功能」页一行里：哪些扩展必需这一个。
+func (msgs Messages) ModNeededBy(names string) string {
+	return Catalog.Format(msgs.locale, "modNeededBy", map[string]any{"names": names})
+}
+
+// ModNobodyNeeds says "没有扩展用到它"
+// in the language the app shows.
+//
+// 「功能」页前置扩展那一行：现在没有哪个扩展需要它。
+func ModNobodyNeeds() string { return In(i18n.Locale()).ModNobodyNeeds() }
+
+// ModNobodyNeeds says "没有扩展用到它"
+// in the language of msgs.
+//
+// 「功能」页前置扩展那一行：现在没有哪个扩展需要它。
+func (msgs Messages) ModNobodyNeeds() string {
+	return Catalog.Format(msgs.locale, "modNobodyNeeds", nil)
+}
+
+// ModWaiting says "{names} 关着，这一项暂不工作"
+// in the language the app shows.
+//
+// 「功能」页一行里：它自己开着，但它需要的扩展关着。
+func ModWaiting(names string) string { return In(i18n.Locale()).ModWaiting(names) }
+
+// ModWaiting says "{names} 关着，这一项暂不工作"
+// in the language of msgs.
+//
+// 「功能」页一行里：它自己开着，但它需要的扩展关着。
+func (msgs Messages) ModWaiting(names string) string {
+	return Catalog.Format(msgs.locale, "modWaiting", map[string]any{"names": names})
+}
+
+// ModAskOffTitle says "关闭「{name}」？"
+// in the language the app shows.
+//
+// 拨「功能」页的开关会连带别的扩展时，先问的那一句的标题。
+func ModAskOffTitle(name string) string { return In(i18n.Locale()).ModAskOffTitle(name) }
+
+// ModAskOffTitle says "关闭「{name}」？"
+// in the language of msgs.
+//
+// 拨「功能」页的开关会连带别的扩展时，先问的那一句的标题。
+func (msgs Messages) ModAskOffTitle(name string) string {
+	return Catalog.Format(msgs.locale, "modAskOffTitle", map[string]any{"name": name})
+}
+
+// ModAskOffAbout says "{names}需要它，会一起停用；重新打开后，它们回到原来的开关。"
+// in the language the app shows.
+//
+// 关闭一个扩展前问的那一句：哪些扩展会一起停用。
+func ModAskOffAbout(names string) string { return In(i18n.Locale()).ModAskOffAbout(names) }
+
+// ModAskOffAbout says "{names}需要它，会一起停用；重新打开后，它们回到原来的开关。"
+// in the language of msgs.
+//
+// 关闭一个扩展前问的那一句：哪些扩展会一起停用。
+func (msgs Messages) ModAskOffAbout(names string) string {
+	return Catalog.Format(msgs.locale, "modAskOffAbout", map[string]any{"names": names})
+}
+
+// ModAskOnTitle says "打开「{name}」？"
+// in the language the app shows.
+//
+// 打开一个扩展前问的那一句的标题：它需要的扩展关着。
+func ModAskOnTitle(name string) string { return In(i18n.Locale()).ModAskOnTitle(name) }
+
+// ModAskOnTitle says "打开「{name}」？"
+// in the language of msgs.
+//
+// 打开一个扩展前问的那一句的标题：它需要的扩展关着。
+func (msgs Messages) ModAskOnTitle(name string) string {
+	return Catalog.Format(msgs.locale, "modAskOnTitle", map[string]any{"name": name})
+}
+
+// ModAskOnAbout says "它需要 {names}，会一起打开。"
+// in the language the app shows.
+//
+// 打开一个扩展前问的那一句：它需要的哪些扩展会一起打开。
+func ModAskOnAbout(names string) string { return In(i18n.Locale()).ModAskOnAbout(names) }
+
+// ModAskOnAbout says "它需要 {names}，会一起打开。"
+// in the language of msgs.
+//
+// 打开一个扩展前问的那一句：它需要的哪些扩展会一起打开。
+func (msgs Messages) ModAskOnAbout(names string) string {
+	return Catalog.Format(msgs.locale, "modAskOnAbout", map[string]any{"names": names})
+}
+
+// ModTurnOff says "关闭"
+// in the language the app shows.
+//
+// 关闭扩展前问的那一句里的主按钮。
+func ModTurnOff() string { return In(i18n.Locale()).ModTurnOff() }
+
+// ModTurnOff says "关闭"
+// in the language of msgs.
+//
+// 关闭扩展前问的那一句里的主按钮。
+func (msgs Messages) ModTurnOff() string {
+	return Catalog.Format(msgs.locale, "modTurnOff", nil)
+}
+
+// ModTurnOn says "打开"
+// in the language the app shows.
+//
+// 打开扩展前问的那一句里的主按钮。
+func ModTurnOn() string { return In(i18n.Locale()).ModTurnOn() }
+
+// ModTurnOn says "打开"
+// in the language of msgs.
+//
+// 打开扩展前问的那一句里的主按钮。
+func (msgs Messages) ModTurnOn() string {
+	return Catalog.Format(msgs.locale, "modTurnOn", nil)
+}
+
 // CheckAlsoOpen says "尚未处理"
 // in the language the app shows.
 //

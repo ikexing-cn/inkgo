@@ -60,8 +60,6 @@ const timeShown = (text) => {
 }
 // 扩展模块（笔记「扩展模块」）：id、名字、在界面上的哪几处，备份多一句关掉以后会怎样。顺序是装配清单的顺序。
 // 关着的模块，它的菜单项、右栏标签、设置里的那一类整个不见，不是变灰；数据留着，再开照旧。
-const MODS = () => [['phone', L.modPhone(), L.modPhoneWhere()], ['export', L.modExport(), L.modExportWhere()], ['backup', L.modBackup(), L.modBackupWhere(), L.modBackupOff()]]
-const modOn = (id) => !S.modsOff.includes(id)
 // 体裁：状态里存的是中文（「网文」），显示时换成当前语言，别的样子原样写。
 const genreWord = (k) => ({ 网文: L.genreWeb(), 出版小说: L.genreNovel(), 剧本: L.genreScript(), 非虚构: L.genreNonfiction() })[k] ?? k
 // 字数存的是数，满一万按万写（31.2 万字）。书架和备份上没有字的书写「暂无正文」。
@@ -158,10 +156,10 @@ function fresh(book = BOOK.shelf[0].id) {
     noAI: false, offFrom: '', // 关闭了 AI：本机的所有作品都不显示 AI 功能，也不发送任何内容；offFrom 是关的时候停在的讨论页、检查页
     exportWhat: ['正文'], exportAs: 'Word', pen: '', // 导出勾了哪几样、成什么格式，上次写在首页的笔名（新作品沿用它）
     zoom: 1, // 界面缩放：整个窗口里的东西放大几倍
-    modsOff: [], // 设置「功能」里关掉的扩展模块，本机的
+    extOff: [], // 设置「功能」里关掉的扩展，本机的；AI 的开关是上面的 noAI（见 ext.js）
   }
 }
-const KEPT = ['look', 'names', 'noGPU', 'ranNoGPU', 'phone', 'shelf', 'cards', 'library', 'uses', 'services', 'auto', 'when', 'late', 'goal', 'paneW', 'noAI', 'exportWhat', 'exportAs', 'pen', 'zoom', 'modsOff']
+const KEPT = ['look', 'names', 'noGPU', 'ranNoGPU', 'phone', 'shelf', 'cards', 'library', 'uses', 'services', 'auto', 'when', 'late', 'goal', 'paneW', 'noAI', 'exportWhat', 'exportAs', 'pen', 'zoom', 'extOff']
 
 let S = fresh()
 let sent = 0 // 作者发过几条消息，AI 按顺序回下一句
@@ -204,7 +202,6 @@ function later(ms, act) {
 // AI 做的事过一会儿才有结果。这时 AI 已经关了，结果就不要了。
 const aiLater = (ms, act) => later(ms, () => { if (!S.noAI) act() })
 // 开着 AI 吗。关着时，用到 AI 的地方整个不显示，不是变灰。
-const aiOn = () => !S.noAI
 function stopAll() {
   for (const id of timers) clearTimeout(id)
   timers.clear()

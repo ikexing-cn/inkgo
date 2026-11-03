@@ -689,19 +689,22 @@ function syncPhone() {
 document.addEventListener('scroll', (ev) => { if (ev.target.matches?.('.editor .paper')) syncPhone() }, true)
 document.addEventListener('selectionchange', () => { if (!drawing) fitPhone() })
 
+// 右栏的几页，各归一个扩展；关着的不在。正文以外的页只有设定。
+const PANE_TABS = [['批注', 'notes'], ['设定', 'lore'], ['讨论', 'talk'], ['伏笔', 'hooks'], ['预览', 'phone']]
+const paneTabs = () => PANE_TABS.filter(([name, id]) => extOn(id) && (S.page === 'write' || name === '设定')).map(([name]) => name)
 const TAB_WORDS = () => ({ 批注: L.paneTabNotes(), 设定: L.paneTabLore(), 讨论: L.paneTabChat(), 伏笔: L.paneTabHooks(), 预览: L.paneTabPreview() })
 
 function pane() {
   // 标签上的数是那一页里等作者处理的几条：待确认的设定；原句已删、久未回收的伏笔（和待处理里的「伏笔」同一个数）。
   const waiting = aiOn() ? S.entries.filter((e) => e.place === 'open').length : 0, lost = S.marks.filter((m) => m.st === 'lost' || (m.st === 'open' && BOOK.now - m.ch >= S.late)).length
-  // 停在讨论时关掉 AI，这里显示设定；停在哪一页记着，重新开启后回到讨论。关掉手机预览也一样。
-  const at = (S.tab === '讨论' && !aiOn()) || (S.tab === '预览' && !modOn('phone')) || (S.tab === '批注' && S.page !== 'write') ? '设定' : S.tab
+  // 停在的那一页所属的扩展关了，这里显示设定（设定也关了就是第一页）；停在哪一页记着，重新打开后回到那一页。
+  const tabs = paneTabs(), at = tabs.includes(S.tab) ? S.tab : tabs.includes('设定') ? '设定' : tabs[0]
   const tab = (name, n) => `<div class="tab hit${name === at ? ' on' : ''}"${onClick(() => set({ tab: name, ...SHUT }))}>${t(TAB_WORDS()[name])}${n ? `<span class="badge">${n}</span>` : ''}</div>`
   const edge = `<div class="pane-edge" title="${t(L.paneResize())}"></div>`, wide = S.paneW ? ` style="width:${S.paneW}px"` : ''
   // 正文那一页有四页（AI 关着时没有讨论）；别的页只留设定。
   if (S.page !== 'write') return `<div id="pane"${wide}>${edge}<div class="tabs"><div class="tab on">${t(L.paneTabLore())}${waiting ? `<span class="badge">${waiting}</span>` : ''}</div></div>${setting()}</div>`
   // 批注不带数：几条就在页边，一眼看得到。
-  return `<div id="pane" class="${at === '批注' ? 'margin-pane' : ''}"${wide}>${edge}` + `<div class="tabs">${tab('批注')}${tab('设定', waiting)}${aiOn() ? tab('讨论') : ''}${tab('伏笔', lost)}${modOn('phone') ? tab('预览') : ''}</div>` +
+  return `<div id="pane" class="${at === '批注' ? 'margin-pane' : ''}"${wide}>${edge}` + `<div class="tabs">${tabs.map((name) => tab(name, name === '设定' ? waiting : name === '伏笔' ? lost : 0)).join('')}</div>` +
     (at === '批注' ? margin() : at === '设定' ? setting() : at === '伏笔' ? foreshadowing() : at === '预览' ? phoneView() : discussion()) + '</div>'
 }
 

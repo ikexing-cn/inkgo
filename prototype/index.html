@@ -643,6 +643,11 @@ body { margin: 0; }
 .place.on { border-color: var(--ink); }
 .ticks { display: flex; flex-direction: column; gap: 8px; }
 .tick-note { margin: -4px 0 4px calc(var(--icon-sm) + 6px); } /* 和方框右边的字对齐 */
+.ext-row { display: flex; flex-direction: column; gap: 4px; }
+.ext-row .tick-note { margin-top: 0; margin-bottom: 0; }
+.ext-row.ext-wait .check { opacity: var(--opacity-disabled); }
+.note.faint { color: var(--faint); }
+.note.warn { color: var(--warn); }
 .snaps { flex: 1; min-height: 0; display: flex; gap: 16px; }
 .snap-list { width: 200px; flex: none; display: flex; flex-direction: column; gap: 2px; }
 .snap-row { flex: none; display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: var(--r-control); font-size: var(--fs-control); }
@@ -818,6 +823,7 @@ body { margin: 0; }
 <script src="locales.js"></script>
 <script src="book.js"></script>
 <script src="base.js"></script>
+<script src="ext.js"></script>
 <script src="write.js"></script>
 <script src="pane.js"></script>
 <script src="pages.js"></script>

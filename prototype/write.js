@@ -578,7 +578,7 @@ function pending() {
     if (m.st === 'lost') list.push({ id: m.id, group: '伏笔', name: L.statusQuoteGone(nameOf(m)), about: chTitle(m.key), key: m.key, open })
     if (m.st === 'open' && gap >= S.late) list.push({ id: m.id, group: '伏笔', name: L.statusUnpaid(nameOf(m), gap), about: L.statusPlantedIn(chTitle(m.key)), key: m.key, open })
   }
-  if (S.backup.state === 'fail' && modOn('backup')) list.push({ id: 'backup', group: '备份', name: L.statusBackupWhy(backupWhy()[0]), about: L.statusRetryBackup(timeShown(S.backup.at)), key: '', open: backupNow })
+  if (S.backup.state === 'fail' && extOn('backup')) list.push({ id: 'backup', group: '备份', name: L.statusBackupWhy(backupWhy()[0]), about: L.statusRetryBackup(timeShown(S.backup.at)), key: '', open: backupNow })
   return list.filter((x) => !S.ignored.includes(x.id))
 }
 
@@ -625,7 +625,7 @@ function sidebar() {
 
 // 底栏右边、字数前面：备份到哪一步了。好好的时候只三个字「已备份」，时间在悬停和点开里；点开还有下次什么时候，和「立即备份」。
 function backupLine() {
-  if (!modOn('backup')) return ''
+  if (!extOn('backup')) return ''
   const b = S.backup, words = { ok: L.statusBackupOK(), busy: L.statusBackupBusy(), fail: L.statusBackupFailed(), none: L.statusBackupNone() }[b.state]
   return `<div class="anchor up backup"><div class="backup-line hit"${b.state === 'ok' ? ` title="${t(L.statusBackedUpAt(timeShown(b.at)))}"` : ''}${onClick(() => set({ open: S.open === 'backup' ? '' : 'backup' }))}><div class="dot${b.state === 'ok' || b.state === 'busy' ? ' grey' : ''}"></div><div>${t(words)}</div></div>${S.open === 'backup' ? backupPop() : ''}</div>`
 }
@@ -681,7 +681,7 @@ function pieces(cur, i, text, focus, found) {
   // 采纳了的 AI 的字带「AI 写的」记号，画一道下划线；作者改过的那几个字不再带。AI 关着时不画。
   for (const words of aiOn() ? cur.ai || [] : []) cut(words, undefined, 'ai', '')
   // 设定的名字：一道很淡的虚线，点了在右栏打开那一条。排在最后，和别的记号重叠时让给它们。
-  if (S.names) for (const e of S.entries) if (e.place === 'body') for (const n of e.names) for (let at = text.indexOf(n); at >= 0; at = text.indexOf(n, at + n.length)) cuts.push({ a: at, b: at + n.length, cls: 'nm', id: '', entry: e.id })
+  if (S.names && extOn('names')) for (const e of S.entries) if (e.place === 'body') for (const n of e.names) for (let at = text.indexOf(n); at >= 0; at = text.indexOf(n, at + n.length)) cuts.push({ a: at, b: at + n.length, cls: 'nm', id: '', entry: e.id })
   const kept = []
   for (const c of cuts) if (!kept.some((k) => c.a < k.b && k.a < c.b)) kept.push(c)
   kept.sort((x, y) => x.a - y.a)
@@ -785,10 +785,10 @@ function todoPop(list) {
 // 底栏右边的字数：选中的、本章或本卷的、全书的，设了每日目标还有今天的。点开设目标。
 function wordsOf(cur, vol) {
   const inVol = vol && wordCount(vol[2] || S.chapters.filter((c) => c.vol === vol[0]).reduce((n, c) => n + sizeOf(c), 0))
-  const count = (S.bar ? L.statusSelected(S.bar.text.length) : cur ? L.statusChapterWords(sizeOf(cur)) : vol ? L.statusVolumeWords(inVol) : '') + (cur || vol ? ' · ' : '') + L.statusBookWords(wordCount(S.book === BOOK.shelf[0].id ? BOOK.words : S.chapters.reduce((n, c) => n + sizeOf(c), 0))) + (S.goalSet ? L.statusTodayGoal(BOOK.days[0][1], Number(S.goalSet)) : '')
+  const count = (S.bar ? L.statusSelected(S.bar.text.length) : cur ? L.statusChapterWords(sizeOf(cur)) : vol ? L.statusVolumeWords(inVol) : '') + (cur || vol ? ' · ' : '') + L.statusBookWords(wordCount(S.book === BOOK.shelf[0].id ? BOOK.words : S.chapters.reduce((n, c) => n + sizeOf(c), 0))) + (S.goalSet && extOn('goal') ? L.statusTodayGoal(BOOK.days[0][1], Number(S.goalSet)) : '')
   const goal = () => '<div class="pop goal-pop" data-k="goal-pop"><div class="pop-label">' + L.statusLast7() + '</div>' + BOOK.days.map(([day, n]) => `<div class="goal-day"><div class="grow">${timeShown(day)}</div><div>${(n ? '+' : '') + L.statusWords(n)}</div></div>`).join('') + HAIR +
     field(L.statusDailyGoal(), line(S.goal, (v) => set({ goal: v, ...(countOrNone(v) ? { goalSet: v.trim() } : {}) }), L.statusGoalHint(), L.statusGoalLabel())) + (countOrNone(S.goal) ? '<div class="note">' + L.statusGoalNote() + '</div>' : '<div class="note danger">' + L.statusGoalError() + '</div>') + '</div>'
-  return `<div class="anchor up"><div class="words ell hit" title="${L.statusWordsTip()}"${onClick(() => set({ open: S.open === 'goal' ? '' : 'goal' }))}>${t(count)}</div>${S.open === 'goal' ? goal() : ''}</div>`
+  return `<div class="anchor up"><div class="words ell hit" title="${L.statusWordsTip()}"${onClick(() => set({ open: S.open === 'goal' ? '' : 'goal' }))}>${t(count)}</div>${S.open === 'goal' && extOn('goal') ? goal() : ''}</div>`
 }
 
 // 标题栏右边那几样：写作页才有。专注写作时也在，那时标题栏只剩它们和正中的章名。
@@ -802,10 +802,10 @@ function tools(cur) {
   return '<div class="tools">' +
     (S.ai && S.ai.kind === 'ghosting' ? '<div class="count-all">' + L.editorContinuing() + '</div>' : S.ai && S.ai.kind === 'ghost' ? '<div class="count-all">' + L.editorGhostHint() + '</div>' : '') +
     (wide && here && !S.focus ? `<button class="fs-btn" aria-label="${L.tabMarksHere()}"${onClick(() => set({ paneOpen: true, tab: '伏笔', fid: null, fv: 'list' }))}>${icon('flag')}<span>${L.tabMarksCount(here)}</span></button>` : '') +
-    (S.backup.state === 'fail' && !S.backup.hush && modOn('backup') ? `<div class="anchor"><button class="warn-btn" aria-label="${L.statusBackupTip()}"${onClick(flip('chip'))}>${DOT}<span>${L.statusBackupWarn(backupWhy()[0])}</span></button>${S.open === 'chip' ? backupPop() : ''}</div>` : '') +
+    (S.backup.state === 'fail' && !S.backup.hush && extOn('backup') ? `<div class="anchor"><button class="warn-btn" aria-label="${L.statusBackupTip()}"${onClick(flip('chip'))}>${DOT}<span>${L.statusBackupWarn(backupWhy()[0])}</span></button>${S.open === 'chip' ? backupPop() : ''}</div>` : '') +
     (list.length ? `<div class="anchor"><button class="todo-btn${S.open === 'todo' ? ' on' : ''}" aria-label="${L.statusPending()}"${onClick(flip('todo'))}>${DOT}<span>${L.statusPendingCount(list.length)}</span></button>${S.open === 'todo' ? todoPop(list) : ''}</div>` : '') +
-    tool(L.cmdFind(), L.tabFindTip(keyLabel('Ctrl+F')), 'find', cur ? () => (S.find ? set({ find: null }) : openFind()) : null, !!S.find, !cur) +
-    tool(S.focus ? L.tabExitFocus() : L.cmdFocus(), S.focus ? L.tabExitFocusTip(keyLabel('F11')) : L.tabFocusTip(keyLabel('F11')), 'focus', () => set({ focus: !S.focus, ...SHUT }), S.focus) +
+    (extOn('find') ? tool(L.cmdFind(), L.tabFindTip(keyLabel('Ctrl+F')), 'find', cur ? () => (S.find ? set({ find: null }) : openFind()) : null, !!S.find, !cur) : '') +
+    (extOn('focus') ? tool(S.focus ? L.tabExitFocus() : L.cmdFocus(), S.focus ? L.tabExitFocusTip(keyLabel('F11')) : L.tabFocusTip(keyLabel('F11')), 'focus', () => set({ focus: !S.focus, ...SHUT }), S.focus) : '') +
     '</div>'
 }
 
@@ -833,7 +833,7 @@ const PART = () => L.statusPartLong()
 // 正文下面那一行：检查到哪了、什么时候查，右边是字数。AI 关着时只有字数。
 function foot(cur, vol) {
   const whenName = (v) => (WHENS().find(([name]) => name === v) || [v, '', v])[2]
-  if (!cur || !aiOn()) return `<div class="foot"><div class="grow"></div>${backupLine()}${wordsOf(cur, vol)}</div>` // 检查要用 AI
+  if (!cur || !extOn('check')) return `<div class="foot"><div class="grow"></div>${backupLine()}${wordsOf(cur, vol)}</div>` // 检查关着时没有检查的状态
   const n = S.checks.filter((c) => c.key === cur.key).length, dirty = S.dirty[cur.key]
   const part = (S.part[cur.key] || {}).check // 太长，只查了前面这么多字：不能说成全章查完了
   const seeAll = () => set({ page: 'check', kind: '全部', cid: S.checks.find((c) => c.key === cur.key).id })
@@ -896,7 +896,7 @@ function editor(cur) {
   // 灰字等着采纳、等着写改写要求的时候不能打字；有 AI 的提议时照常写，改到提议换掉的那几句，提议就作废。
   const typing = S.ai ? '' : ` contenteditable="plaintext-only" spellcheck="false" aria-label="${L.editorBody()}"${onInput(wrote)}${onKey(proseKey)}${onPaste(pasted)}`
   return '<div class="editor" data-k="editor">' + sheets() + (S.find ? findBar(cur) : '') + outsideBar() +
-    `<div class="paper scroll"${onMenu(openMenu)}${onUp(picked)}><div class="column chapter"><div class="chapter-head"><div class="chapter-title">${t(cur.t || titleOf(cur))}</div>${chapterMore(cur)}</div>` + aiBar(cur) +
+    `<div class="paper scroll"${onMenu(openMenu)}${onUp(picked)}><div class="column chapter"><div class="chapter-head"><div class="chapter-title">${t(cur.t || titleOf(cur))}</div>${extOn('outline') ? chapterMore(cur) : ''}</div>` + aiBar(cur) +
     `<div class="prose-box">${hint}<div class="prose" data-k="prose"${typing}>${paras}</div></div></div></div>` + foot(cur) + '</div>'
 }
 
@@ -936,7 +936,7 @@ function floats() {
     // 菜单宽 200，最多十二行，都留在窗口里；旁边再开一列时也不出窗口。
     return veiled + `<div class="ctx pop${S.ctx.x > win.offsetWidth - 208 - 130 ? ' flip' : ''}" data-k="ctx"${over} style="left:${Math.min(S.ctx.x, win.offsetWidth - 208)}px;top:${Math.min(S.ctx.y, win.offsetHeight - 430)}px">` +
       menuRow(L.commonCut(), p && span ? cut : null, '', 'Ctrl+X') + menuRow(L.commonCopy(), p ? copy : null, '', 'Ctrl+C') + menuRow(L.commonPaste(), span ? paste : null, '', 'Ctrl+V') + menuRow(L.commonSelectAll(), all, '', 'Ctrl+A') + HAIR +
-      (aiOn() ? menuRow(L.cmdContinue(), continueText, '', 'Ctrl+J') + menuRow(L.editorAIRewriteMore(), p ? askRewrite : null) + menuRow(L.editorQuote(), p ? cite : null, '', 'Ctrl+L') : '') + menuRow(L.editorAddToLore(), p ? take : null) + names + HAIR +
+      (extOn('continue') ? menuRow(L.cmdContinue(), continueText, '', 'Ctrl+J') : '') + (aiOn() ? menuRow(L.editorAIRewriteMore(), p ? askRewrite : null) + menuRow(L.editorQuote(), p ? cite : null, '', 'Ctrl+L') : '') + menuRow(L.editorAddToLore(), p ? take : null) + names + HAIR +
       menuRow(L.editorMarkForeshadow(), p ? () => set({ ctx: null, bury: { note: '' } }) : null) + menuRow(L.editorMarkPay(), p ? () => askPay('') : null) +
       (S.ctx.mark ? menuRow(L.editorSeeMark(), () => set({ ctx: null, pick: null, tab: '伏笔', fid: S.ctx.mark, fv: 'list', renote: null, paneOpen: true, focus: false, ...SHUT })) : '') + '</div>'
   }

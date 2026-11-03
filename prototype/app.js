@@ -22,18 +22,18 @@ function menus() {
     ...(mac ? [['Inkgo', () => menuRow(L.appAbout(), shut) + HAIR + menuRow(L.appSettings(), settings, '', 'Ctrl+,') + HAIR +
       menuRow(L.appHide(), shut, '', 'Ctrl+H') + menuRow(L.appHideOthers(), shut, '', 'Ctrl+Alt+H') + HAIR + menuRow(L.appQuit(), shut, '', 'Ctrl+Q')]] : []),
     [L.menuFile(), () => menuRow(L.cmdNewChapter(), writing ? then(() => newChapter()) : null, '', 'Ctrl+N') + menuRow(L.cmdNewFolder(), writing ? then(newFolder) : null) + HAIR +
-      menuRow(L.cmdSave(), cur ? then(saveNow) : null, '', 'Ctrl+S') + menuRow(L.cmdSnapshots(), cur ? ask({ kind: 'snaps', id: '', diff: false }) : null) +
-      (modOn('export') ? menuRow(L.cmdExport(), inBook ? ask({ kind: 'export', range: '全书', indent: true }) : null) : '') + HAIR +
-      menuRow(L.cmdCategories(), inBook ? toPage('cats') : null) + menuRow(L.cmdTrash(), inBook ? ask({ kind: 'bin', sure: '' }) : null) + (mac ? '' : HAIR + menuRow(L.appSettings(), settings))],
+      menuRow(L.cmdSave(), cur ? then(saveNow) : null, '', 'Ctrl+S') + (extOn('snaps') ? menuRow(L.cmdSnapshots(), cur ? ask({ kind: 'snaps', id: '', diff: false }) : null) : '') +
+      (extOn('export') ? menuRow(L.cmdExport(), inBook ? ask({ kind: 'export', range: '全书', indent: true }) : null) : '') + HAIR +
+      (extOn('cats') ? menuRow(L.cmdCategories(), inBook ? toPage('cats') : null) : '') + (extOn('trash') ? menuRow(L.cmdTrash(), inBook ? ask({ kind: 'bin', sure: '' }) : null) : '') + (mac ? '' : HAIR + menuRow(L.appSettings(), settings))],
     [L.menuEdit(), () => menuRow(L.cmdUndo(), steps.back.length ? then(() => unwrite(-1)) : null, '', 'Ctrl+Z') + menuRow(L.cmdRedo(), steps.fwd.length ? then(() => unwrite(1)) : null, '', 'Ctrl+Shift+Z') + HAIR +
-      menuRow(L.cmdFind(), cur ? openFind : null, '', 'Ctrl+F') +
-      menuRow(L.cmdRename(), cur && !S.rename ? then(renameOpen) : null, '', 'F2') + (aiOn() ? HAIR +
-      menuRow(L.cmdContinue(), cur ? then(continueText) : null, '', 'Ctrl+J') +
-      menuRow(L.cmdDraft(), outline ? ask({ kind: 'draft', goal: '', how: '接在已有内容之后' }) : null, '', cur && !outline ? L.cmdDraftNeedsOutline() : '') : '')],
+      (extOn('find') ? menuRow(L.cmdFind(), cur ? openFind : null, '', 'Ctrl+F') : '') +
+      menuRow(L.cmdRename(), cur && !S.rename ? then(renameOpen) : null, '', 'F2') + (extOn('continue') || extOn('draft') ? HAIR : '') +
+      (extOn('continue') ? menuRow(L.cmdContinue(), cur ? then(continueText) : null, '', 'Ctrl+J') : '') +
+      (extOn('draft') ? menuRow(L.cmdDraft(), outline ? ask({ kind: 'draft', goal: '', how: '接在已有内容之后' }) : null, '', cur && !outline ? L.cmdDraftNeedsOutline() : '') : '')],
     [L.menuView(), () => menuRow(S.sideOpen ? L.cmdHideSidebar() : L.cmdShowSidebar(), inBook ? () => moving(() => set({ sideOpen: !S.sideOpen, ...SHUT }), 'fold') : null) +
       menuRow(paneOn ? L.cmdHidePane() : L.cmdShowPane(), hasPane ? () => moving(() => set({ ...paneTo, ...SHUT }), 'fold') : null) +
-      menuRow(L.cmdFocus(), writing ? () => set({ focus: true, ...SHUT }) : null, '', 'F11') +
-      (modOn('phone') ? menuRow(L.cmdPhonePreview(), writing ? () => set({ paneOpen: true, tab: '预览', ...SHUT }) : null) : '') + HAIR +
+      (extOn('focus') ? menuRow(L.cmdFocus(), writing ? () => set({ focus: true, ...SHUT }) : null, '', 'F11') : '') +
+      (extOn('phone') ? menuRow(L.cmdPhonePreview(), writing ? () => set({ paneOpen: true, tab: '预览', ...SHUT }) : null) : '') + HAIR +
       `<div class="pop-label">${t(L.viewZoom(Math.round(S.zoom * 100)))}</div>` +
       menuRow(L.cmdZoomIn(), zoomNext(1) ? () => zoomBy(1) : null, '', 'Ctrl+=') + menuRow(L.cmdZoomOut(), zoomNext(-1) ? () => zoomBy(-1) : null, '', 'Ctrl+-') +
       menuRow(L.cmdZoomReset(), S.zoom !== 1 ? () => zoomBy(0) : null, '', 'Ctrl+0') + HAIR + `<div class="pop-label">${t(L.viewLook())}</div>` +
@@ -77,16 +77,16 @@ function titlebar() {
 // 去哪一页。讨论页回到上次看的那一段，没看过就是最新的一段。
 const toPage = (page) => () => set({ page, ...(page === 'talk' && S.tv === 'all' ? { tid: S.talks[0] ? S.talks[0].id : null, tv: S.talks[0] ? 'one' : 'new' } : {}), ...SHUT })
 
-// 标题栏正中换页：讨论、正文、大纲、检查，正在的那一页是墨色。讨论和检查要用 AI，AI 关着时只有正文、大纲。
+// 标题栏正中换页：讨论、正文、大纲、检查，正在的那一页是墨色。讨论、大纲、检查各归一个扩展，关着的那一页不在（ext.js 的 PAGE_EXT）。
 // 作品分类不常去，在「文件」菜单里。
 function pageSwitch() {
-  const pages = [[L.pageTalk(), 'talk'], [L.pageWrite(), 'write'], [L.pagePlan(), 'plan'], [L.pageCheck(), 'check']].filter(([, page]) => aiOn() || (page !== 'talk' && page !== 'check'))
+  const pages = [[L.pageTalk(), 'talk'], [L.pageWrite(), 'write'], [L.pagePlan(), 'plan'], [L.pageCheck(), 'check']].filter(([, page]) => !PAGE_EXT[page] || extOn(PAGE_EXT[page]))
   return `<div class="pages">${pages.map(([name, page]) => `<div class="hit${S.page === page ? ' on' : ''}"${onClick(toPage(page))}>${name}${page === 'check' && S.checks.length ? `<span class="badge">${S.checks.length}</span>` : ''}</div>`).join('')}</div>`
 }
 
 // 这一页有没有右栏、开着没有、按一下怎么变。大纲页的右栏单记着开没开。
 function paneHere() {
-  const plan = S.page === 'plan', has = (S.page === 'write' && !S.focus) || S.page === 'talk' || plan, on = has && (plan ? S.planPane : S.paneOpen)
+  const plan = S.page === 'plan', has = (S.page === 'write' && !S.focus && paneTabs().length) || ((S.page === 'talk' || plan) && extOn('lore')), on = has && (plan ? S.planPane : S.paneOpen)
   return [has, on, plan ? { planPane: !on } : { paneOpen: !on }]
 }
 
@@ -171,7 +171,7 @@ document.addEventListener('keydown', (ev) => {
   if (ev.key === 'Escape') backOut()
   else if (ev.key === 'Tab' && S.ai && S.ai.kind === 'ghost') run(() => ghost(true))
   // macOS 的 ⌃⌘F；F11、F2 在 macOS 的样子下也认，原型多在 Windows 键盘上点。
-  else if ((ev.key === 'F11' || (ev.ctrlKey && ev.metaKey && ev.key.toLowerCase() === 'f')) && writing) run(() => set({ focus: !S.focus, ...SHUT }))
+  else if ((ev.key === 'F11' || (ev.ctrlKey && ev.metaKey && ev.key.toLowerCase() === 'f')) && writing && extOn('focus')) run(() => set({ focus: !S.focus, ...SHUT }))
   else if (ctrl && ev.key === '/') run(() => set({ dialog: { kind: 'keys' }, ...SHUT }))
   else if (ev.key === 'F2' && writing && chapterOf(S.ch) && !S.rename) run(renameOpen)
   else if (ctrl && (ev.key === '=' || ev.key === '+')) run(() => zoomBy(1))
@@ -179,8 +179,8 @@ document.addEventListener('keydown', (ev) => {
   else if (ctrl && ev.key === '0') run(() => zoomBy(0))
   else if (!ctrl || !writing || !chapterOf(S.ch)) return
   else if (ev.key === 's') run(saveNow)
-  else if (ev.key === 'f') run(openFind)
-  else if (ev.key === 'j') run(() => { if (aiOn()) continueText() }) // AI 关着时按了不起作用
+  else if (ev.key === 'f') run(() => { if (extOn('find')) openFind() })
+  else if (ev.key === 'j') run(() => { if (extOn('continue')) continueText() }) // 续写关着时按了不起作用
   else if (ev.key === 'l') run(() => { if (aiOn()) cite() })
 })
 // 标签排不下时，滚轮在标签条上左右挪。

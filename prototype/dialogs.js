@@ -169,7 +169,7 @@ function settingsModel(d) {
   const card = (svc) => `<div class="service" data-reveal="${t(svc.id)}"><div class="service-head"><div class="fit"><div class="ell">${t(svc.name)}</div><div class="note ell">${t(L.settingsServiceMeta(svc.host, svc.models.length))}${used(svc) ? ' · ' + t(L.settingsInUse()) : ''}</div></div>` +
     button(d.edit === svc.id ? L.settingsCollapse() : L.settingsEdit(), () => (d.edit === svc.id ? open(() => ({ edit: '', svc: null })) : open(() => editing(svc), svc.id))) + '</div>' + (d.edit === svc.id ? form() : '') + '</div>'
   return (S.page === 'shelf' ? '' : `<div class="prefs-group"><div class="group-title">${t(L.settingsBookModels())}</div></div>` +
-    `<div class="uses">${S.uses.map(use).join('')}</div>` + spent() +
+    `<div class="uses">${S.uses.map(use).join('')}</div>` + (extOn('usage') ? spent() : '') +
     `<div class="prefs-group"><div class="group-title">${t(L.settingsWriting())}</div></div>` +
     `<div class="ticks">${tickbox(S.auto, L.settingsAutoContinue(), () => set({ auto: !S.auto }))}<div class="note tick-note">${t(L.settingsAutoNote())}</div></div>`) +
     `<div class="prefs-group"><div class="group-title">${t(L.settingsServices())}</div><div class="note">${t(L.settingsServicesNote())}</div></div>` +
@@ -192,13 +192,10 @@ function settingsBackup() {
     row(L.backupKeep(), `<div class="keep">${choose('keep', b.keep, [['最近 10 份', L.backupKeep10()], ['最近 30 份', L.backupKeep30()], ['最近 90 份', L.backupKeep90()]], (keep) => backupSet({ keep }), L.backupKeep())}</div><div class="note">${t(L.backupSize(b.copies * 1.1))}</div>`)
 }
 
-// 「AI」那一部分的最上面：一个开关，管本机的所有作品。点了不马上变，先问一句。
-const aiSwitch = () => `<div class="ticks">${tickbox(S.noAI, L.settingsCloseAI(), () => set((s) => ({ dialog: { ...s.dialog, ask: s.noAI ? 'on' : 'off' }, ...SHUT })))}` +
+// 「AI」那一部分的最上面：一个开关，管本机的所有作品。点了不马上变，先问一句（ext.js 的 askExt）。
+// 它和「功能」页里 AI 那一行是同一个开关。
+const aiSwitch = () => `<div class="ticks">${tickbox(S.noAI, L.settingsCloseAI(), () => extFlip('ai'))}` +
   `<div class="note tick-note">${t(L.settingsAIOffNote())}</div></div>`
-
-// 「功能」：每个扩展模块一个勾，下面灰字说它在哪儿出现。点了马上生效，不问：什么都不丢。
-const modules = () => '<div class="ticks">' + MODS().map(([id, name, where, off]) => tickbox(modOn(id), name, () => set((s) => ({ modsOff: modOn(id) ? [...s.modsOff, id] : s.modsOff.filter((x) => x !== id) }))) +
-  `<div class="note tick-note">${t(where)}${off ? '<br>' + t(off) : ''}</div>`).join('') + '</div>'
 
 // 「外观」的最下面：禁用 GPU 加速，管本机。界面用什么画是打开软件时定的，改了要重新打开才生效：
 // 和这次打开时不一样，说明下面多一句，跟着一个「立即重新打开」（软件里关掉窗口再打开，回到同一本书，设置不再开着）。
@@ -208,14 +205,6 @@ function gpuSwitch() {
   const pending = S.noGPU !== S.ranNoGPU
   return `<div class="ticks">${tickbox(S.noGPU, L.settingsDisableGPU(), () => set({ noGPU: !S.noGPU }))}` +
     (pending ? `<div class="where tick-note"><div>${t(L.settingsGPUNext())}</div><div class="hit link"${onClick(() => set((s) => ({ ranNoGPU: s.noGPU, dialog: null, ...SHUT })))}>${t(L.settingsRestartNow())}</div></div>` : '') + '</div>'
-}
-
-// 关闭、开启 AI 前问的那一句，浮在设置上面。
-function askAI(ask) {
-  const off = ask === 'off', back = () => set((s) => ({ dialog: { ...s.dialog, ask: '' } }))
-  const about = off ? L.settingsAskOffAbout() : L.settingsAskOnAbout()
-  return `<div class="scrim top"${onClick(back)}></div><div class="dialog-wrap top"><div class="dialog ask" data-k="dialog-ask">` +
-    dialogHead(off ? L.settingsAskOffTitle() : L.settingsAskOnTitle(), about) + buttons(button(L.commonCancel(), back), button(off ? L.settingsCloseAI() : L.settingsTurnOn(), () => turnAI(!off), 'primary')) + '</div></div>'
 }
 
 // 关闭 AI：正在做的 AI 任务停下。没采纳的提议丢掉；没回完的那句讨论不要了，作者的话还在，和点「取消请求」一样。
@@ -236,13 +225,13 @@ const tabName = (name) => ({ 外观: L.viewLook(), 功能: L.settingsTabModules(
 function settingsDialog(d) {
   // 书架上没有打开的作品，只有本机的两部分。AI 关着时，「提醒与检查」里只剩提醒。
   const remind = aiOn() ? '提醒与检查' : '提醒'
-  const tabs = S.page === 'shelf' ? ['AI', '外观', '功能'] : ['AI', '外观', '功能', remind, ...(modOn('backup') ? ['备份'] : [])]
+  const tabs = S.page === 'shelf' ? ['AI', '外观', '功能'] : ['AI', '外观', '功能', remind, ...(extOn('backup') ? ['备份'] : [])]
   // 每一类的标题和下面那句说明留在上面不动，只有内容滚动。
   const about = { AI: aiOn() ? '' : L.settingsLocalOnly(), 外观: L.settingsLocalOnly(), 功能: L.settingsLocalOnly(), [remind]: L.settingsBookOnly(), 备份: '' }
   const lateNow = S.marks.filter((m) => m.st === 'open' && BOOK.now - m.ch >= S.late).length
   const step =(by) => () => set((s) => ({ late: Math.max(5, s.late + by) }))
-  const rec = d.tab === 'AI' && d.records && aiOn()
-  const body = d.tab === 'AI' ? (rec ? records(d) : aiSwitch() + (aiOn() ? settingsModel(d) : '')) : d.tab === '备份' ? settingsBackup() : d.tab === '功能' ? modules()
+  const rec = d.tab === 'AI' && d.records && extOn('usage')
+  const body = d.tab === 'AI' ? (rec ? records(d) : aiSwitch() + (aiOn() ? settingsModel(d) : '')) : d.tab === '备份' ? settingsBackup() : d.tab === '功能' ? extPage()
     : d.tab === '外观' ? `<div class="prefs-row"><div class="prefs-label">${t(L.settingsColor())}</div>${seg(S.look, LOOKS(), (v) => set({ look: v }), L.settingsColor())}</div>` +
       `<div class="prefs-row">${tickbox(S.names, L.settingsMarkNames(), () => set({ names: !S.names }))}</div>` + (OFFER_NO_GPU ? gpuSwitch() : '')
     : `<div class="prefs-group"><div class="group-title">${t(L.settingsForeshadow())}</div></div>` +
@@ -250,7 +239,7 @@ function settingsDialog(d) {
       `<div class="note">${t(L.settingsLateNow(lateNow))}</div>` +
       (aiOn() ? `<div class="prefs-group"><div class="group-title">${t(L.settingsCheckText())}</div></div>${radios(S.when, WHENS(), (v) => set({ when: v }))}` : '')
   return dialog('prefs', `<div class="prefs-nav"><div class="prefs-nav-title">${t(L.settingsTitle())}</div>${tabs.map((name) => `<div class="nav hit${d.tab === name ? ' on' : ''}"${onClick(() => set({ dialog: { kind: 'settings', tab: name, edit: '' }, ...SHUT }))}>${t(tabName(name))}</div>`).join('')}</div>` +
-    `<div class="prefs-main"><div class="prefs-head"><div class="prefs-title">${t(rec ? L.settingsRecordsTitle() : tabName(d.tab))}</div>${rec || about[d.tab] ? `<div class="note">${t(rec ? L.settingsRecordsNote() : about[d.tab])}</div>` : ''}</div><div class="prefs-body scroll" data-k="prefs-${rec ? 'records' : d.tab}">${body}</div></div><button class="icon-btn muted prefs-close" aria-label="${t(L.settingsClose())}" title="${t(L.settingsClose())}"${onClick(shut)}>${icon('cross')}</button>`) + (d.ask ? askAI(d.ask) : '')
+    `<div class="prefs-main"><div class="prefs-head"><div class="prefs-title">${t(rec ? L.settingsRecordsTitle() : tabName(d.tab))}</div>${rec || about[d.tab] ? `<div class="note">${t(rec ? L.settingsRecordsNote() : about[d.tab])}</div>` : ''}</div><div class="prefs-body scroll" data-k="prefs-${rec ? 'records' : d.tab}">${body}</div></div><button class="icon-btn muted prefs-close" aria-label="${t(L.settingsClose())}" title="${t(L.settingsClose())}"${onClick(shut)}>${icon('cross')}</button>`) + (d.ask ? askExt(d) : '')
 }
 
 // ───────── 正文那一页的几个对话框 ─────────
