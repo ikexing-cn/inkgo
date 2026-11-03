@@ -77,17 +77,18 @@ Status: implemented
 
 - 大文件按阅读任务拆在原包内，不增加转发层：讨论外壳在 `chat.go`，消息和流式展示在 `chatmessage.go`，输入、模型菜单和摘取表单在 `chatcompose.go`；检查队列和调度在 `check.go`，结果整理与动作在 `checkitems.go`，页面在 `checkview.go`；大纲页状态和入口在 `outline/plan.go`，编辑表单在 `plan_edit.go`，网格和时间线在 `plan_grid.go`。声明内容保持不变，包内共享状态和调用关系不变。
 
-- `phone.Panel`（`desk/phone/phone.go`）持有分页、排版偏好、正文缓存、阅读位置和命中几何。右栏顶行由 `settingColumn` 绘制，`commands.go` 的 `openPhone` 负责打开右栏和保存偏好。
-- `exportdialog.Dialog`（`desk/exportdialog/export.go`）持有打开时的正文快照、范围、笔名、缩进和导出计划，放在 `App.exporting`，作品重置时清空。
+- 手机预览、导出、备份是扩展（`ext/phone`、`ext/export`、`ext/backup`，见[扩展 API](../../proposed/architecture/2026-11-03-extension-api.md)），状态在各自的包里，desk 不留它们的名字：
+  - `phone.Panel`（`ext/phone/phone.go`）持有分页、排版设置、正文缓存、阅读位置和命中几何；右栏顶行由 desk 的 `settingColumn` 画。
+  - `export.Dialog`（`ext/export/export.go`）持有打开时的正文快照、范围、笔名、缩进和导出计划；`laterLines` 也在这里，只供设定导出使用。
+  - 它们经 `ext/hostapi` 的服务取书、配色、提示条、后台任务和系统对话框，由 `desk/extensions.go` 的 `extensionHost` 实现；desk 按 `Host.Changes()` 缓存由扩展派生的表。
 - `outline.Page`（`desk/outline/plan.go`、`plan_layout.go`）持有索引、布局缓存、纲草稿、卡片和情节线编辑、搜索和滚动。页面表直接绑定 `Enter`、`Leave`、`View`，正文旁调用它的 `ChapterStory`。
-- 三个页面各在自己的包里声明 `Host`，只列它调用的方法。`desk/host.go` 的 `appHost` 显式持有 `*App`，用大写方法实现这三个接口，`App` 不增加导出方法。`New` 绑定适配器；大纲和导出重置时重新绑定。手机保留跨作品的排版缓存。写作、讨论、右栏、伏笔、待办和提议留在 App。
-- `appHost` 给出 `Colors/PhoneColors` 配色、`Content` 书内容、`Notices` 状态、`ShelfPrefs/SaveShelf` 本机偏好，以及 `Chapter` 的章 ID、编辑器和有效开章标志。章 ID 在写作页外为空。只有导出 Host 使用 `Workspace` 取得存取层和路径；手机和大纲 Host 只取 `WorkPath`。
-- `Flush` 保存导出前的正文；`SyncPlanOutline` 把已保存的纲同步到同 ID 当前写作草稿的 Text、Saved、Seen；`OpenWriting` 打开指定章；`ShowOutline` 切到大纲页。
-- `StartJob` 运行后台选文件，`Dialogs` 给 SaveFile 和 Reveal。`PickInto` 与书架共用后台选目录的实现，返回是否有选目录回调。单文件选文件，多文件选目录，相应回调缺席时写作品的「导出」目录。
-- `DropMenu` 把宿主的 `kit.MenuState` 和配色交给 `DropMenu`，`SettingColumn` 绘制共享右栏。配色、状态和书内容的重复访问在方法内取一次。三个 `Host` 的签名只用 `kit.Palette`、`kit.Menu`、`kit.Status` 和 `desk` 以外的类型；`Modal` 和 `PaneEmpty` 是 `kit.Palette` 的方法，`laterLines` 在 `desk/exportdialog/export.go`，只供设定导出使用，显式接收 Book 和条目。
-- `desk` 直接使用的边界是：导出的 `Show`、`Replan`、`View` 和 `Open`；手机的 `View`；大纲页的 `Enter`、`Leave`、`View`、`Dialog`、`ChapterStory`、`FinishOutline` 和 `Pane`。AI 起草直接调用 Book.ReloadPlan 统计卡片，不改变大纲页的加载和几何状态。
+- 大纲在自己的包里声明 `Host`，只列它调用的方法。`desk/host.go` 的 `appHost` 显式持有 `*App`，用大写方法实现它，`App` 不增加导出方法。`New` 绑定适配器，大纲重置时重新绑定。写作、讨论、右栏、伏笔、待办和提议留在 App。
+- `appHost` 给出 `Colors` 配色、`Content` 书内容、`Notices` 状态、`WorkPath`、`Dialogs` 的存文件和在文件夹里显示，和 `Chapter` 的章 ID、编辑器和有效开章标志。章 ID 在写作页外为空。
+- `SyncPlanOutline` 把已保存的纲同步到同 ID 当前写作草稿的 Text、Saved、Seen；`OpenWriting` 打开指定章；`ShowOutline` 切到大纲页。
+- `DropMenu` 把宿主的 `kit.MenuState` 和配色交给 `DropMenu`，`SettingColumn` 绘制共享右栏。`Host` 的签名只用 `kit.Palette`、`kit.Menu`、`kit.Status` 和 `desk` 以外的类型；`Modal` 和 `PaneEmpty` 是 `kit.Palette` 的方法。
+- `desk` 直接使用的大纲页边界是 `Enter`、`Leave`、`View`、`Dialog`、`ChapterStory`、`FinishOutline` 和 `Pane`。AI 起草直接调用 Book.ReloadPlan 统计卡片，不改变大纲页的加载和几何状态。
 
-- `phone.Panel.Preferences` 返回逐字段默认后的本机偏好，不落盘；`exportdialog.Dialog.Plan` 和 `Selection` 返回当前持有的计划和范围，不重算计划。页面内部规则在自己的包测试，菜单、导航、落盘和刷新契约由 `desk` 测试。
+- `phone.Panel.Preferences` 返回逐字段默认后的排版设置，不落盘；`export.Dialog.Plan` 和 `Selection` 返回当前持有的计划和范围，不重算计划。页面内部规则在自己的包测试，菜单、导航、落盘和刷新契约由 `desk` 测试。
 
 ### 会改行为的
 

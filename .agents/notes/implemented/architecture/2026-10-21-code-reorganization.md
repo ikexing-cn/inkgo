@@ -192,10 +192,9 @@ Status: implemented
   - `markdown.go`：`MdStyle`、`MarkdownState`、主题和代码块。`MarkdownOptions` 保持选项地址，只在调色板改变时重建主题；代码块读取这次取选项时的调色板。
   - `App` 持有调色板、状态、菜单状态和 Markdown 状态。业务菜单与命令、提示种类与动作、摘要内容与设定链接在 `desk`；`appHost.DropMenu` 把宿主的菜单状态和配色交给 `kit`。
   - 依赖是标准库、mygo 的 `ui` 和 `ui/markdown`、`workspace`、`internal/textclip`。文字裁剪复用已有实现。
-- `desk/phone` 的 `Panel` 持有手机预览、排版偏好、分页缓存、阅读位置和命中几何；`Host` 在本包声明。
-- `desk/exportdialog` 的 `Dialog` 持有打开时读入的正文和纲、范围、笔名、缩进及导出计划；`Host` 在本包声明。
+- 手机预览、导出 2026-11-03 起是扩展，从 `desk/phone`、`desk/exportdialog`（和 `export/`）搬到 `ext/phone`、`ext/export`（格式库在 `ext/export/format`），各自的 `Host` 换成 `ext/hostapi` 的服务，见[扩展 API](../../proposed/architecture/2026-11-03-extension-api.md)。备份同样搬到 `ext/backup`。
 - `desk/outline` 的 `Page` 持有大纲页：索引、布局缓存、章纲草稿、卡片和情节线的编辑、搜索、滚动和拖动；写作页章纲旁的「故事中」按钮也由它画（`ChapterStory`）。`Host` 在本包声明。
-- 三个页面包在 `desk` 下只引用 `kit` 和 `desk/book`，别的都在 `desk` 以外。`desk` 不再有自己的 `host` 接口，守着它的 `host_guard_test.go` 也去掉了：`desk` 下的包引用不了 `desk`，`App` 由编译器挡在外面。
+- 大纲包在 `desk` 下只引用 `kit` 和 `desk/book`，别的都在 `desk` 以外。`desk` 不再有自己的 `host` 接口，守着它的 `host_guard_test.go` 也去掉了：`desk` 下的包引用不了 `desk`，`App` 由编译器挡在外面。
 - `desk/book/outline_draft.go` 的 `OutlineDraft` 是写作页和大纲页共用的草稿；`desk/book/timing.go` 的 `SaveAfter` 和 `CheckEvery` 是保存停顿和看盘间隔，均为变量。
 - `desk/host.go` 的 `appHost` 显式持有 `*App`，用首字母大写的方法实现页面需要的接口；`App` 不增加导出方法。三个页面在 `New` 绑定适配器，大纲和导出在 `resetView` 重新绑定，手机缓存跨作品保留。
 - `kit/theme_test.go` 的源码检查递归读取 `desk` 下的全部 Go 包；`scripts/verify-ui.ts` 递归发现这些包，与 `editor`、`cmd/inkgo` 一起运行工具包检查（2026-11-02 起不再列包，在模块根上跑一次）。

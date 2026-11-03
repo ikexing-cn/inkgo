@@ -40,10 +40,10 @@ Status: implemented
 
 ### 代码里怎么做
 
-- `workspace`：`Store.Pieces` 按章节树的顺序读出每个节点：标题、在第几层、是不是文件夹、正文和纲。原来的 `Store.Export` 去掉，拼文本的事挪到 `export` 包。
-- `export` 包：`Within` 从全书的节点里挑出一组章和装着它们的文件夹，每个文件夹只出一次；`Prose`、`Outline`、`Setting` 把它们排成一份 `Doc`（首页、一串带样式的段落），`Doc.Text` 出纯文本，`Doc.Docx` 出 `.docx`。`.docx` 用 Go 标准库的 `archive/zip` 自己写，不引入依赖，也不需要 cgo。
-- `shelf`：`works.json` 多一项 `export`（`shelf.Export`）：嵌入 `export.Options` 记勾选内容和格式，另记最后用过的笔名。没有这一项就是第一次，只勾正文、Word。勾选框和格式一改就存。
-- `desk/exportdialog/export.go`：对话框打开时先存下正在写的，再用 `Store.Pieces` 读一遍全书放在内存里；`export/plan.go` 的 `BuildPlan` 从这一份和设定、当前章节、`Options`、范围 `Selection` 计算 `Plan`，整体存在 `exportdialog.Dialog`（`App.exporting`）。本包的 `Host`（`desk/exportdialog/host.go`）由 `desk.appHost` 实现。打开弹窗，或内容、格式、范围、起止章节、当前章节变化及设定刷新时重算；普通绘制复用计划。笔名和缩进由界面保管。只勾一样时用 `SaveFile` 选文件名，几样时用 `PickFolder` 选文件夹，和书架选文件夹是同一段代码（`pickInto`）；没有系统对话框时（测试）写进作品的 `导出` 文件夹。同名的文件直接覆盖：选文件名时系统对话框会先问，选文件夹时不问。
+- `workspace`：`Store.Pieces` 按章节树的顺序读出每个节点：标题、在第几层、是不是文件夹、正文和纲。原来的 `Store.Export` 去掉，拼文本的事挪到 `ext/export/format` 包。
+- `ext/export/format` 包：`Within` 从全书的节点里挑出一组章和装着它们的文件夹，每个文件夹只出一次；`Prose`、`Outline`、`Setting` 把它们排成一份 `Doc`（首页、一串带样式的段落），`Doc.Text` 出纯文本，`Doc.Docx` 出 `.docx`。`.docx` 用 Go 标准库的 `archive/zip` 自己写，不引入依赖，也不需要 cgo。
+- 导出是扩展 `export`（见[扩展模块](../../proposed/architecture/2026-11-02-extension-modules.md)），`ext/export/module.go` 登记文件菜单的命令、对话框和设置。选择记在本机 `ext.json` 的 `export.choices`（`export.Choices`）：嵌入 `format.Options` 记勾选内容和格式，另记最后用过的笔名。没有这一项就是第一次，只勾正文、Word。勾选框和格式一改就存。
+- `ext/export/export.go`：对话框打开时先存下正在写的，再用 `Store.Pieces` 读一遍全书放在内存里；`ext/export/format/plan.go` 的 `BuildPlan` 从这一份和设定、当前章节、`Options`、范围 `Selection` 计算 `Plan`，整体存在 `export.Dialog`。书、提示条、后台任务、系统对话框经 `ext/hostapi` 的服务取。打开弹窗，或内容、格式、范围、起止章节变化时重算；画的时候看书的版本和当前章变了没有，变了也重算；普通绘制复用计划。笔名和缩进由界面保管。只勾一样时用 `SaveFile` 选文件名，几样时用 `PickFolder` 选文件夹，和书架选文件夹是同一段代码（`pickInto`）；没有系统对话框时（测试）写进作品的 `导出` 文件夹。同名的文件直接覆盖：选文件名时系统对话框会先问，选文件夹时不问。
 - `desk/kit/theme.go` 的 `Dots`：表单里一排单选圆点，导出和起草对话框都用它。
 
 ## Alternatives considered
@@ -62,13 +62,13 @@ Status: implemented
 
 - 投稿要的正文、大纲、设定一次导出，Word 里打开就是稿件的样子；版式要改，在 Word 里改样式。
 - 打开导出对话框会读一遍全书的正文和纲。几百章的书在打开时多等一下；以后嫌慢，可以只读纲和字数，按「导出」时再读正文。
-- `work.yaml` 多了可选的 `pen`，`works.json` 多了可选的 `export`；它们都按「不认识的字段就报错」读，旧版本打不开写过这两项的文件。软件还没发出去过，和之前加字段时一样，只记下。
+- `work.yaml` 多了可选的 `pen`，按「不认识的字段就报错」读，旧版本打不开写过它的文件。软件还没发出去过，和之前加字段时一样，只记下。
 - Word 和 WPS 对样式的理解不完全一样：首行缩进同时写 `firstLineChars` 和按小四算的 `firstLine`（480 缇），WPS 不认前者时还有后者。字体只写中文名「宋体」「黑体」，没装这两种字体的电脑上会换成别的。打开的效果作者自己在 Word、WPS 里看，agent 没有验收这一项。
 - 几个文件里有一个写失败时，前面写好的留着，提示条报那个文件的错，对话框不关。
 - 卷里套卷时，「本卷」只是最里面那一层；要导外面那一层，用「指定范围」。
 - 检查：
   - `npm run verify-prototype` 的「export」点了单选、多选、指定范围、笔名记住、导不出的那一样；「a new work」点了没有已定设定时的说明和按钮变灰；「a draft」点了圆点。
-  - `go test ./export`：`.docx` 是一个 zip，各部分 XML 解得开；首页单独一节、不印页码，正文页码从 1 起；章另起一页、卷名和第一章同页；样式名、宋体黑体、缩进、行距、页码域、加粗的名字都在；纯文本的正文和原来的输出逐字一样；`Within` 跨卷挑章时每卷只出一次。
+  - `go test ./ext/export/format`：`.docx` 是一个 zip，各部分 XML 解得开；首页单独一节、不印页码，正文页码从 1 起；章另起一页、卷名和第一章同页；样式名、宋体黑体、缩进、行距、页码域、加粗的名字都在；纯文本的正文和原来的输出逐字一样；`Within` 跨卷挑章时每卷只出一次。
   - `go test ./workspace` 的 `TestPiecesAndCount`，`go test ./shelf` 的 `TestShelfRoundTrip`。
   - `go test ./desk` 的 `TestExportTheWork`：先是全书、Word；笔名写进首页、`work.yaml` 和本机；只勾大纲又没写纲时说为什么、按钮不动；三样一起导成三个纯文本；勾选和格式记进 `works.json`；本章导出时文件名带章名。`TestDraftOverWhatIsThere` 查起草的圆点。
   - `go test ./cmd/inkgo` 的 `TestLayoutWriting` 截导出对话框两张：打开时，和纯文本、指定范围。

@@ -6,7 +6,7 @@ Status: proposed
 
 [扩展模块](2026-11-02-extension-modules.md)定了模型和行为：核心只有编辑器、目录、存储、扩展宿主；两种扩展；必需依赖加连带开关；不连带的可选依赖；全局和按书的开关；替换和四种注入；详情页全部来自宿主的账。作者 2026-11-03 要求「API 设计要做好」。本篇定宿主交给扩展的接口：扩展怎么写、宿主怎么记账、哪些规矩由类型和测试来守。
 
-现状的接口是每个子包一个窄 `Host`。[desk/phone/host.go](../../../desk/phone/host.go) 有 7 个方法，[desk/exportdialog/host.go](../../../desk/exportdialog/host.go) 有 12 个，都由 [desk/host.go](../../../desk/host.go) 的 `appHost` 实现。它们有三个缺口：
+写这篇时的接口是每个子包一个窄 `Host`：`desk/phone/host.go` 有 7 个方法，`desk/exportdialog/host.go` 有 12 个，都由 [desk/host.go](../../../desk/host.go) 的 `appHost` 实现（这两个包现在已搬成扩展，见下）。它们有三个缺口：
 
 - 只能取，不能加：命令、菜单、右栏标签都写死在 `desk`。
 - 宿主不知道谁用了什么，详情页没有账可读。
@@ -14,12 +14,14 @@ Status: proposed
 
 ## Proposal
 
-包 `writer/ext` 是宿主对扩展的全部 API。扩展只能 import 这几样：
+包 `writer/ext` 是宿主对扩展的全部 API：登记、开关、Session、注入、出错。宿主（`desk`）开的点和给的服务放在 `writer/ext/hostapi`，只有类型和键。扩展（`ext/` 下除这两个以外的包）的非测试文件只能 import 这几样：
 
-- `ext`、`kit`、`ui`、`locales`；
-- 自己在 Requires 或 Optional 里声明了的扩展的公开包（`ext/context/contextapi` 这类）。
+- `ext`、`ext/hostapi`、`desk/kit`、`editor`、`locales`、mygo；
+- 书的数据：`workspace`、`desk/book`（界面线程看到的内容）、`internal/atomicfile`；
+- 自己名下的子包（`ext/export/format` 这类）；
+- 自己在 Requires 或 Optional 里声明了的扩展的公开包（`ext/context/contextapi` 这类）。别的扩展的其余子包不行。
 
-`desk` 实现宿主，不 import 任何具体扩展，扩展也不 import `desk`。
+`desk` 实现宿主，非测试文件不 import 任何具体扩展，扩展也不 import `desk`、`shelf`。具体装哪些扩展由 `cmd/inkgo/modules.go` 的清单定。`ext/boundary_test.go` 读源码查这几条，Requires 从 `Module` 字面量里读。
 
 ### 扩展
 
@@ -82,12 +84,13 @@ import 一个公开包只是编译期用到它的类型，不等于运行时依�
   - 取用必需依赖的：`ref := ext.Use(r, key)`，返回 `*ext.Ref[T]`，用的时候 `ref.Get()`。这样关掉再开、换书之后，拿到的总是当前那份；Setup 时提供方可能还关着，也没有东西可返回。
   - 取用可选依赖的：`ref := ext.UseOptional(r, key)`，`ref.Get()` 返回 `(T, bool)`，对方没开时是 false。类型上就逼着调用方处理「没有」的情况。
   - 往可选依赖的点里放东西、注入它，写法和必需依赖一样；对方没开时宿主不生效这些登记，详情页写「X 没开，以下不生效」。对方中途开、关，宿主照账接上或拆下，依赖方不用重启。
-- **宿主的能力也是服务**，键在 `ext` 包里：`ext.Book`（当前的书、选中的章节和编辑器）、`ext.Notices`（提示条）、`ext.Jobs`（后台任务）、`ext.Dialogs`（选文件夹、存文件）、`ext.Palette`（颜色）。现在的窄 `Host` 一个个换成这些。宿主的服务都算核心，不用写进 Requires。
+- **宿主的能力也是服务**，键在 `hostapi` 包里：`BookService`（当前的书、选中的章节和编辑器、先存下显示着的那一章）、`PaletteService`（颜色）、`PaneService`（打开右栏的某个标签）、`NoticesService`（提示条）、`JobsService`（后台任务）、`DialogsService`（选文件夹、存文件、在文件夹里显示）。原来每个子包一个的窄 `Host` 已经换成这些。宿主的服务由 `ext.DeclareHost` 在装配时提供，一直在，不用写进 Requires。每个方法的 doc comment 写明在哪个线程调。
 - **设置**：
-  - `ext.Setting(r, "name", ext.Schema[T]{…})`，返回 `*ext.Pref[T]`，带 `Get()` 和 `OnChange`；
-  - Schema 有标题、说明、默认值、范围、可选项（每项带说明）、分组、顺序、作用范围（全局、按书、两者都有）；
-  - 宿主照声明用 `kit` 画在设置里这个扩展的那一节；要和别的扩展放在同一页，就写宿主开的具名分组（`ext.SettingsGroupChecks` 这类），宿主把放进同一组的项画在一页，每项记着是谁加的；
-  - 要自己画就用 `ext.SettingsPage(r, "name", draw)`，详情页标明「自定义设置页」。
+  - `ext.Setting(r, "name", ext.Schema[T]{…})`，返回 `*ext.Pref[T]`，带 `Get()`、`Set()` 和 `OnChange`；值按 JSON 存；
+  - Schema 有标题、说明、默认值、可选项（每项带说明）、分组、顺序、作用范围（`Local` 本机、`BookScope` 按书、`Both` 两者都有）；
+  - 存放：本机的在 `works.json` 旁边的 `ext.json`（键 `off` 本机关掉的扩展、`settings`、`injections` 作者调过的顺序和选择），按书的在作品的 `.writer/ext.json`（键 `switches`、`settings`）。都用 `internal/atomicfile` 写。文件读不出来时这一次按默认处理、提示条说一句（`locales.ExtFileUnreadable`），在真正存一次以前不覆盖它；
+  - 宿主照声明用 `kit` 画在设置里这个扩展的那一节：**还没做**，现在三个扩展的设置都是自己画的；要和别的扩展放在同一页，就写宿主开的具名分组（`ext.SettingsGroupChecks` 这类），宿主把放进同一组的项画在一页，每项记着是谁加的；
+  - 要自己画就往 `hostapi.SettingsPages` 里放一页（备份就是这样），详情页标明「自定义设置页」。
 - **数据目录**：`Session.BookDir()` 是 `.writer/ext/<id>/`，`Session.LocalDir()` 是 shelf 旁边的 `ext/<id>/`。宿主只在 Start 之后给。
 
 ### 注入
@@ -113,6 +116,7 @@ ext.Replace(r, point, "export.docx", value)                    // 换掉一整�
   - 作者选了哪个，存进设置。
 - 宿主内部（登记表、开关、账、详情页）没有键，注入不到。
 - 链在登记变化时（开关、换书、作者调顺序）建好存起来，不在每次调用时现拼闭包。画和按键这类每帧都跑的链，要过现有的帧耗时检查。
+- `Host.Changes()` 是一个计数：生效的贡献、开关、链有任何变化时加一，读它不分配。desk 由扩展派生的表（右栏标签、命令、菜单行、对话框、底栏项……）只在它变了时重建，平时用存着的。
 
 ### 出错
 
@@ -120,7 +124,12 @@ ext.Replace(r, point, "export.docx", value)                    // 换掉一整�
 
 - 只把出错的那个扩展标成出错，Stop 它，依赖它的跟着关。注入方出错时，只拆掉它的注入，被注入的照常。
 - 提示条和详情页写明是哪个扩展、哪个回调、在谁的注入链里。
-- 画界面的回调半路 panic 时，mygo 这一帧的元素树是什么状态，**待核实**。核实之前，画界面的回调只承诺「下一帧起不再调它」，不承诺这一帧画得完整。
+- 画界面的回调半路 panic 时，desk 把每个扩展画的东西包在一个 `ui.Box` 里，出错就把这个盒子藏起来：这一帧画了一半的不露出来，下一帧起不再调它。
+- 宿主调扩展有两种办法，都 recover、都记账、都只停出错的和必需依赖它的：
+  - `ext.Call(h, hook, in, original)`：要让别的扩展能改的调用，经注入链。命令的 Run、各种 Draw、每帧的 Tick、离开作品前的回调都走它。
+  - `ext.Guard(h, owner, target, fn)`：只是问一下、不该被注入的，不声明调用处、不进链。对话框开没开（`Overlay.Open`）、待处理的缓存键和那一组（`PendingSource`）、点了待处理的一项都走它。
+  - 扩展没生效、或调用出错，都返回能用 `errors.Is(err, ext.ErrCallFailed)` 判断的错误。宿主自己（`ext.HostOwner`）的 panic 不吞。
+- 提示条只写扩展名和错误原文：「{name}出错，已停下：{error}」（`locales.ExtFailed`）。出错的阶段、调用处、在谁的注入里记在账的 `Errors` 里，留给详情页。
 
 ### 账和详情页
 

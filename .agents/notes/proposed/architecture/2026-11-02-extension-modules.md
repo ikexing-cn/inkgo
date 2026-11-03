@@ -13,7 +13,7 @@ Status: proposed
 
 现状：
 
-- 已经有插件的雏形。[desk/outline](../../../desk/outline/host.go)、[desk/phone](../../../desk/phone/host.go)、[desk/exportdialog](../../../desk/exportdialog/host.go) 各经自己的 `Host` 接口取宿主能力，由 [desk/host.go](../../../desk/host.go) 的 `appHost` 实现；命令只有 [desk/commands.go](../../../desk/commands.go) 一张表；AI 工具只有 [discussion/tools.go](../../../discussion/tools.go) 一张表。
+- 已经有插件的雏形。[desk/outline](../../../desk/outline/host.go)、`desk/phone`、`desk/exportdialog`（后两个现在是扩展 `ext/phone`、`ext/export`）各经自己的 `Host` 接口取宿主能力，由 [desk/host.go](../../../desk/host.go) 的 `appHost` 实现；命令只有 [desk/commands.go](../../../desk/commands.go) 一张表；AI 工具只有 [discussion/tools.go](../../../discussion/tools.go) 一张表。
 - 这些 `Host` 直接交出 `*editor.Editor`、`*book.Book`、`*kit.Palette`、`*ui.Context`。仓库里的 Go 代码这么用没问题；脚本或 wasm 里的代码拿不住这些指针，`mygo vet` 也禁止把 `*ui.Context`、`ui.Element` 留到帧外。
 - `desk` 约 2.9 万行，状态集中在 `App`（见[理一遍代码](../../implemented/architecture/2026-10-21-code-reorganization.md)和[desk 状态](../../implemented/architecture/2026-10-22-desk-state.md)）。
 - 扩展的数据没地方放：`workspace` 读 jsonl 时遇到不认识的字段直接报错；[prefs](../../../prefs/prefs.go) 是固定字段，[shelf](../../../shelf/shelf.go) 是本机设置，都没给扩展留位置。
@@ -178,6 +178,7 @@ MCP 不承载界面，单独一条线：
 ### 顺序
 
 1. 宿主和登记表，第一批迁手机预览、导出、备份。三者之间没有依赖，依赖、连带开关、注入用假扩展在测试里验证。
+   - 2026-11-03 落地了宿主（`ext`、`ext/hostapi`，`desk` 当宿主，`cmd/inkgo/modules.go` 装配）和这三个扩展；设置里的「扩展」页、详情页还没做。
 2. context，加设定、大纲：第一组真依赖。
 3. AI 和依赖它的一组。
 4. marks，加伏笔、批注、检查。要先设计编辑器的标记点，设计稿先给作者看。
