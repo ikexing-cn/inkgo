@@ -12,7 +12,7 @@ import (
 
 func testModules() []ext.Module {
 	mod, _ := backup.New(false)
-	return []ext.Module{phone.Module, export.Module, mod}
+	return []ext.Module{mod, export.Module, phone.Module}
 }
 
 func TestApplicationAssemblyIncludesExportFeature(t *testing.T) {

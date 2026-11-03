@@ -9,4 +9,4 @@ import (
 
 var backupModule, _ = backup.New(true)
 
-var modules = []ext.Module{phone.Module, export.Module, backupModule}
+var modules = []ext.Module{backupModule, export.Module, phone.Module}

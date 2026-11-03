@@ -441,8 +441,8 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 		shut(tt, &a.keysOpen)
 	}
 
-	// On the shelf there is no work: only what holds for this machine, the
-	// settings of the AI and the appearance, and the shortcuts.
+	// On the shelf, work controls are unavailable. Settings retain registered
+	// extension pages alongside the machine-wide settings and shortcuts.
 	a.closeWork()
 	tt.Frame()
 	tt.Frame()
@@ -455,7 +455,7 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if _, ok := tt.Find("设置-外观"); !a.settings.open || !ok || tt.HasText("提醒") || tt.HasText("备份") {
+	if _, ok := tt.Find("设置-外观"); !a.settings.open || !ok || tt.HasText("提醒") || !tt.HasText("备份") {
 		t.Fatalf("on the shelf the settings are not those of the machine: %q", tt.Texts())
 	}
 	shut(tt, &a.settings.open)

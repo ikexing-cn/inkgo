@@ -20,7 +20,7 @@ type Typesetting struct {
 }
 
 // Module registers the phone preview. Each assembly owns a separate panel.
-var Module = ext.Module{ID: "phone", Kind: ext.Feature, Name: locales.ModPhone, Desc: locales.ModPhoneAbout, Setup: func(r *ext.Registrar) {
+var Module = ext.Module{ID: "phone", Kind: ext.Feature, Group: hostapi.GroupFiles, Name: locales.ModPhone, Desc: locales.ModPhoneAbout, Setup: func(r *ext.Registrar) {
 	p := &Panel{book: ext.Use(r, hostapi.BookService), palette: ext.Use(r, hostapi.PaletteService)}
 	pane := ext.Use(r, hostapi.PaneService)
 	p.setting = ext.Setting(r, "typesetting", ext.Schema[Typesetting]{Scope: ext.Local, Default: defaultPhone()})

@@ -61,12 +61,12 @@ func newApp(config string) *App { return testApp(ai.New(config)) }
 
 func testModules() []ext.Module {
 	mod, _ := backup.New(false)
-	return []ext.Module{phone.Module, export.Module, mod}
+	return []ext.Module{mod, export.Module, phone.Module}
 }
 
 func testApp(service aiport.Service) *App {
 	mod, view := backup.New(false)
-	a := New(service, phone.Module, export.Module, mod)
+	a := New(service, mod, export.Module, phone.Module)
 	controllers[a] = view
 	return a
 }

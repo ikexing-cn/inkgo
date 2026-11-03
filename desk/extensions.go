@@ -169,6 +169,8 @@ type extensionViews struct {
 	leave         []ext.Item[func()]
 	pending       []ext.Item[hostapi.PendingSource]
 	settings      []ext.Item[hostapi.SettingsPage]
+	sections      []ext.Item[hostapi.SettingsSection]
+	settingsTabs  map[string]string
 }
 
 func (a *App) syncExtensions() {
@@ -209,13 +211,23 @@ func (a *App) syncExtensions() {
 	cache.ticks = ext.Items(a.extensions, hostapi.FrameTicks)
 	cache.leave = ext.Items(a.extensions, hostapi.BeforeLeave)
 	cache.pending = ext.Items(a.extensions, hostapi.PendingGroups)
-	cache.settings = ext.Items(a.extensions, hostapi.SettingsPages)
+	cache.settings = ext.Declared(a.extensions, hostapi.SettingsPages)
+	cache.sections = ext.Items(a.extensions, hostapi.SettingsSections)
+	cache.settingsTabs = map[string]string{}
 	slices.SortStableFunc(cache.settings, func(x, y ext.Item[hostapi.SettingsPage]) int { return cmp.Compare(x.Value.Order, y.Value.Order) })
 	a.prefTabs = slices.Clone(a.hostPrefTabs)
+	pagesByLabel := map[string]string{}
 	for _, item := range cache.settings {
 		p := item.Value
-		a.prefTabs = append(a.prefTabs, tabEntry[string]{id: item.ID, name: p.Title, label: p.Label, work: p.Work})
+		id, shared := pagesByLabel[p.Label]
+		if !shared {
+			id = item.ID
+			pagesByLabel[p.Label] = id
+			a.prefTabs = append(a.prefTabs, tabEntry[string]{id: id, name: p.Title, label: p.Label, order: p.Order})
+		}
+		cache.settingsTabs[item.ID] = id
 	}
+	slices.SortStableFunc(a.prefTabs, func(x, y tabEntry[string]) int { return cmp.Compare(x.order, y.order) })
 	a.extViews = cache
 }
 

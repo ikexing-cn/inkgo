@@ -34,14 +34,23 @@ type PendingSource struct {
 	Group func() (PendingGroup, bool)
 }
 
-// SettingsPage contributes a custom page; all callbacks run on the frame thread.
-// Label is a stable UI test label. Equal Order values keep registration order.
+// SettingsPage registers a persistent sidebar page, even while inactive or on
+// the shelf. Label is its stable UI test label and shared-page identity. The
+// smallest Order places the page among the host's (AI 10, reminders 20); it must
+// be positive. Sections sort by Order then assembly order.
+// Title supplies display metadata on the frame thread without session state.
 type SettingsPage struct {
 	Title func() string
 	Label string
 	Order int
-	Work  bool
-	Draw  func(*ui.Context)
+}
+
+// SettingsSection draws settings on the frame thread through ext.Call.
+// Inactive extensions are omitted; Work also omits it on the shelf.
+// Draw must not retain Context or frame elements.
+type SettingsSection struct {
+	Work bool
+	Draw func(*ui.Context)
 }
 
 // Desktop exposes the writing page, footer animation, settings navigation and
@@ -51,8 +60,9 @@ type Desktop interface {
 	Writing() bool
 	// SlideEdge applies the footer's current transition transform.
 	SlideEdge(ui.Element)
-	// OpenSettings opens a qualified extension settings page.
-	OpenSettings(string)
+	// OpenSettings opens the page registered by a qualified SettingsPages
+	// contribution ID, such as backup.settings. Unknown IDs open Extensions.
+	OpenSettings(id string)
 	// SameFolder compares paths using the host platform's rules.
 	SameFolder(string, string) bool
 }
@@ -78,8 +88,11 @@ const BeforeLeave ext.PointKey[func()] = "host.before-leave"
 // PendingGroups collects pending sources queried on the frame thread.
 const PendingGroups ext.PointKey[PendingSource] = "host.pending"
 
-// SettingsPages collects settings pages sorted by Order on the frame thread.
+// SettingsPages collects persistent sidebar registrations, including inactive ones.
 const SettingsPages ext.PointKey[SettingsPage] = "host.settings"
+
+// SettingsSections collects active settings content, associated by module owner.
+const SettingsSections ext.PointKey[SettingsSection] = "host.settings-sections"
 
 // DesktopService resolves frame-thread presentation helpers.
 const DesktopService ext.ServiceKey[Desktop] = "host.desktop"

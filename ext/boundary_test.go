@@ -7,7 +7,9 @@ import (
 	"go/parser"
 	"go/token"
 	"io/fs"
+	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -51,51 +53,66 @@ func moduleDependencies(dir string) ([]string, error) {
 	var deps []string
 	for _, pkg := range files {
 		for _, file := range pkg.Files {
-			for _, decl := range file.Decls {
-				gen, ok := decl.(*ast.GenDecl)
-				if !ok {
-					continue
+			aliases := map[string]bool{}
+			for _, imp := range file.Imports {
+				path, _ := strconv.Unquote(imp.Path.Value)
+				if path == "writer/ext" {
+					name := "ext"
+					if imp.Name != nil {
+						name = imp.Name.Name
+					}
+					aliases[name] = true
 				}
-				for _, spec := range gen.Specs {
-					v, ok := spec.(*ast.ValueSpec)
+			}
+			var scanErr error
+			ast.Inspect(file, func(node ast.Node) bool {
+				if scanErr != nil {
+					return false
+				}
+				lit, ok := node.(*ast.CompositeLit)
+				if !ok {
+					return true
+				}
+				typ, ok := lit.Type.(*ast.SelectorExpr)
+				if !ok || typ.Sel.Name != "Module" {
+					return true
+				}
+				qualifier, ok := typ.X.(*ast.Ident)
+				if !ok || !aliases[qualifier.Name] {
+					return true
+				}
+				for _, element := range lit.Elts {
+					kv, ok := element.(*ast.KeyValueExpr)
 					if !ok {
 						continue
 					}
-					for i, name := range v.Names {
-						if name.Name != "Module" || i >= len(v.Values) {
-							continue
-						}
-						lit, ok := v.Values[i].(*ast.CompositeLit)
+					key, ok := kv.Key.(*ast.Ident)
+					if !ok || key.Name != "Requires" && key.Name != "Optional" {
+						continue
+					}
+					list, ok := kv.Value.(*ast.CompositeLit)
+					if !ok {
+						scanErr = fmt.Errorf("dependency list must be literal in %s", dir)
+						return false
+					}
+					for _, item := range list.Elts {
+						value, ok := item.(*ast.BasicLit)
 						if !ok {
-							return nil, fmt.Errorf("Module must declare its dependencies explicitly in %s", dir)
+							scanErr = fmt.Errorf("dependency ID must be literal in %s", dir)
+							return false
 						}
-						for _, element := range lit.Elts {
-							kv, ok := element.(*ast.KeyValueExpr)
-							if !ok {
-								continue
-							}
-							key, ok := kv.Key.(*ast.Ident)
-							if !ok || key.Name != "Requires" && key.Name != "Optional" {
-								continue
-							}
-							list, ok := kv.Value.(*ast.CompositeLit)
-							if !ok {
-								return nil, fmt.Errorf("dependency list must be literal in %s", dir)
-							}
-							for _, item := range list.Elts {
-								value, ok := item.(*ast.BasicLit)
-								if !ok {
-									return nil, fmt.Errorf("dependency ID must be literal in %s", dir)
-								}
-								id, err := strconv.Unquote(value.Value)
-								if err != nil {
-									return nil, err
-								}
-								deps = append(deps, id)
-							}
+						id, err := strconv.Unquote(value.Value)
+						if err != nil {
+							scanErr = err
+							return false
 						}
+						deps = append(deps, id)
 					}
 				}
+				return true
+			})
+			if scanErr != nil {
+				return nil, scanErr
 			}
 		}
 	}
@@ -199,5 +216,48 @@ func TestExtensionsCannotImportDeskOrShelf(t *testing.T) {
 		if extensionImport("writer/ext/export", imp, nil) == nil {
 			t.Errorf("accepted %s", imp)
 		}
+	}
+}
+
+func TestModuleDependenciesIncludeLiteralsReturnedFromFunctions(t *testing.T) {
+	dir := t.TempDir()
+	source := `package fake
+import "writer/ext"
+var Other = ext.Module{Optional: []string{"lore"}}
+func New() ext.Module {
+ return ext.Module{Requires: []string{"context"}, Optional: []string{"marks"}}
+}
+`
+	if err := os.WriteFile(filepath.Join(dir, "module.go"), []byte(source), 0644); err != nil {
+		t.Fatal(err)
+	}
+	deps, err := moduleDependencies(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	slices.Sort(deps)
+	if !slices.Equal(deps, []string{"context", "lore", "marks"}) {
+		t.Fatal(deps)
+	}
+	if extensionImport("writer/ext/fake", "writer/ext/undeclared/undeclaredapi", deps) == nil {
+		t.Fatal("undeclared import accepted")
+	}
+	if err := extensionImport("writer/ext/fake", "writer/ext/context/contextapi", deps); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestModuleDependenciesRejectNonliteralListsInsideFunctions(t *testing.T) {
+	for _, field := range []string{"Requires", "Optional"} {
+		t.Run(field, func(t *testing.T) {
+			dir := t.TempDir()
+			source := "package fake\nimport \"writer/ext\"\nfunc New() ext.Module { return ext.Module{" + field + ": dependencies} }\n"
+			if err := os.WriteFile(filepath.Join(dir, "module.go"), []byte(source), 0644); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := moduleDependencies(dir); err == nil {
+				t.Fatal("nonliteral dependencies accepted")
+			}
+		})
 	}
 }

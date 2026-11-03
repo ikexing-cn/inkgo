@@ -14,7 +14,7 @@ type Choices struct {
 }
 
 // Module registers the export dialog, command and local choices.
-var Module = ext.Module{ID: "export", Kind: ext.Feature, Name: locales.ModExport, Desc: locales.ModExportAbout, Setup: func(r *ext.Registrar) {
+var Module = ext.Module{ID: "export", Kind: ext.Feature, Group: hostapi.GroupFiles, Name: locales.ModExport, Desc: locales.ModExportAbout, Setup: func(r *ext.Registrar) {
 	d := registerDialog(r)
 	r.OnStop(func(*ext.Session) {
 		d.generation++

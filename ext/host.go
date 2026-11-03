@@ -533,15 +533,27 @@ func (h *Host) stop(e *entry) {
 
 // Items returns active contributions only while their point owner is active.
 func Items[T any](h *Host, key PointKey[T]) []Item[T] {
+	return pointItems(h, key, false)
+}
+
+// Declared returns all Setup contributions in assembly and registration order,
+// even when the contributor or point owner is inactive. Replacements follow Items.
+// For inactive contributions, read data fields only: do not invoke callbacks,
+// which may depend on state created by Start. Reading does not change Changes.
+func Declared[T any](h *Host, key PointKey[T]) []Item[T] {
+	return pointItems(h, key, true)
+}
+
+func pointItems[T any](h *Host, key PointKey[T], declared bool) []Item[T] {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	var out []Item[T]
 	o := owner(string(key))
-	if o != HostOwner && (h.byID[o] == nil || h.byID[o].ledger.State != On) {
+	if !declared && o != HostOwner && (h.byID[o] == nil || h.byID[o].ledger.State != On) {
 		return out
 	}
 	for _, c := range h.contributions {
-		if c.key == string(key) && h.byID[c.owner].ledger.State == On {
+		if c.key == string(key) && (declared || h.byID[c.owner].ledger.State == On) {
 			if c.typ != reflect.TypeFor[T]() {
 				panic(fmt.Sprintf("point %q requested with a different type", key))
 			}

@@ -20,7 +20,8 @@ func declareLifecycle(r *ext.Registrar, a *App) {
 	ext.DeclareCalls(r, hostapi.BeforeLeave, leaveCall)
 	ext.Declare(r, hostapi.PendingGroups)
 	ext.Declare(r, hostapi.SettingsPages)
-	ext.DeclareCalls(r, hostapi.SettingsPages, settingsCall)
+	ext.Declare(r, hostapi.SettingsSections)
+	ext.DeclareCalls(r, hostapi.SettingsSections, settingsCall)
 	ext.Provide(r, hostapi.DesktopService, func(*ext.Session) hostapi.Desktop { return extensionHost{a} })
 	ext.Provide(r, hostapi.PendingService, func(*ext.Session) hostapi.Pending { return extensionHost{a} })
 }
@@ -29,7 +30,14 @@ func (h extensionHost) Writing() bool { return h.a.page == pageWrite }
 
 func (h extensionHost) SlideEdge(e ui.Element) { h.a.slideEdge(e) }
 
-func (h extensionHost) OpenSettings(id string) { h.a.openPrefs(id) }
+func (h extensionHost) OpenSettings(id string) {
+	h.a.syncExtensions()
+	tab, ok := h.a.extViews.settingsTabs[id]
+	if !ok {
+		tab = "扩展"
+	}
+	h.a.openPrefs(tab)
+}
 
 func (h extensionHost) SameFolder(a, b string) bool { return shelf.SameFolder(a, b) }
 
@@ -68,7 +76,7 @@ func leaveCall(v func()) func(struct{}) struct{} {
 	}
 }
 
-func settingsCall(v hostapi.SettingsPage) func(*ui.Context) struct{} {
+func settingsCall(v hostapi.SettingsSection) func(*ui.Context) struct{} {
 	return func(c *ui.Context) struct{} {
 		if v.Draw != nil {
 			v.Draw(c)
@@ -117,16 +125,23 @@ func (a *App) extensionLeave() {
 
 func (a *App) extensionSettings(c *ui.Context, id string) {
 	a.syncExtensions()
-	for _, item := range a.extViews.settings {
-		if item.ID != id {
+	seen := map[string]bool{}
+	for _, page := range a.extViews.settings {
+		if a.extViews.settingsTabs[page.ID] != id || seen[page.Owner] {
 			continue
 		}
-		body := ui.Column(c).FillWidth().Gap(prefsGap)
-		var err error
-		body.Children(func() {
-			_, err = ext.Call(a.extensions, ext.HookOf(ext.CallPoint[hostapi.SettingsPage, *ui.Context, struct{}]{Point: hostapi.SettingsPages}, item.ID), c, settingsCall(item.Value))
-		})
-		body.Hidden(err != nil)
+		seen[page.Owner] = true
+		for _, item := range a.extViews.sections {
+			if item.Owner != page.Owner || item.Value.Work && a.Store == nil {
+				continue
+			}
+			body := ui.Column(c).FillWidth().Gap(prefsGap)
+			var err error
+			body.Children(func() {
+				_, err = ext.Call(a.extensions, ext.HookOf(ext.CallPoint[hostapi.SettingsSection, *ui.Context, struct{}]{Point: hostapi.SettingsSections}, item.ID), c, settingsCall(item.Value))
+			})
+			body.Hidden(err != nil)
+		}
 	}
 	a.syncExtensions()
 }

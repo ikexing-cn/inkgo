@@ -13,6 +13,7 @@ import (
 	"writer/ext"
 	"writer/ext/backup/archive"
 	"writer/ext/hostapi"
+	"writer/locales"
 	"writer/shelf"
 )
 
@@ -45,27 +46,29 @@ func TestExtensionSettingsFollowHostPagesThenStableOrderAndCache(t *testing.T) {
 			id    string
 			order int
 		}{{"late", 30}, {"first", 10}, {"second", 10}} {
-			ext.Contribute(r, hostapi.SettingsPages, p.id, hostapi.SettingsPage{Title: func() string { return p.id }, Order: p.order})
+			ext.Contribute(r, hostapi.SettingsPages, p.id, hostapi.SettingsPage{Title: func() string { return p.id }, Label: p.id, Order: p.order})
+			ext.Contribute(r, hostapi.SettingsSections, p.id+"-content", hostapi.SettingsSection{Draw: func(c *ui.Context) { ui.Text(c, p.id) }})
 		}
 	}}
 	a := New(ai.New(""), mod)
 	defer a.Close()
-	want := []string{"AI", "外观", "提醒与检查", "pages.first", "pages.second", "pages.late"}
+	want := []string{"外观", "扩展", "AI", "pages.first", "pages.second", "提醒与检查", "pages.late"}
 	for i, id := range want {
 		if a.prefTabs[i].id != id {
 			t.Fatal(a.prefTabs)
 		}
 	}
 	first := &a.prefTabs[0]
+	pages, sections := &a.extViews.settings[0], &a.extViews.sections[0]
 	a.syncExtensions()
 	a.syncExtensions()
-	if first != &a.prefTabs[0] {
+	if first != &a.prefTabs[0] || pages != &a.extViews.settings[0] || sections != &a.extViews.sections[0] {
 		t.Fatal("unchanged host rebuilt derived settings")
 	}
 	requireExtension(t, a.extensions.Set("pages", false))
 	a.syncExtensions()
-	if len(a.prefTabs) != 3 {
-		t.Fatal("disabled pages remained")
+	if len(a.prefTabs) != len(want) || len(a.extViews.settings) != 3 || len(a.extViews.sections) != 0 {
+		t.Fatal("disabled pages disappeared")
 	}
 	requireExtension(t, a.extensions.Set("pages", true))
 	a.syncExtensions()
@@ -92,7 +95,8 @@ func TestNewHostPointsIsolatePanicsAndHidePartialDraws(t *testing.T) {
 				case "leave":
 					ext.Contribute(r, hostapi.BeforeLeave, "item", boom)
 				case "settings":
-					ext.Contribute(r, hostapi.SettingsPages, "item", hostapi.SettingsPage{Title: func() string { return "Broken" }, Draw: draw})
+					ext.Contribute(r, hostapi.SettingsPages, "item", hostapi.SettingsPage{Title: func() string { return "Broken" }, Label: "broken"})
+					ext.Contribute(r, hostapi.SettingsSections, "preferences", hostapi.SettingsSection{Draw: draw})
 				case "pending-key":
 					ext.Contribute(r, hostapi.PendingGroups, "item", hostapi.PendingSource{Key: func() string { boom(); return "" }})
 				case "pending-group":
@@ -156,7 +160,7 @@ func TestBackupSwitchRemovesAndRestoresEverySurfaceAndLifecycle(t *testing.T) {
 		if line != on {
 			t.Fatalf("footer on=%v visible=%v", on, line)
 		}
-		if (len(a.extViews.footer) > 0) != on || (len(a.extViews.title) > 0) != on || (len(a.extViews.pending) > 0) != on || (len(a.extViews.settings) > 0) != on || (len(a.extViews.ticks) > 0) != on || (len(a.extViews.leave) > 0) != on {
+		if (len(a.extViews.footer) > 0) != on || (len(a.extViews.title) > 0) != on || (len(a.extViews.pending) > 0) != on || (len(a.extViews.sections) > 0) != on || (len(a.extViews.ticks) > 0) != on || (len(a.extViews.leave) > 0) != on {
 			t.Fatalf("stale contribution cache: on=%v", on)
 		}
 		if on {
@@ -185,8 +189,11 @@ func TestBackupSwitchRemovesAndRestoresEverySurfaceAndLifecycle(t *testing.T) {
 		a.openPrefs("backup.settings")
 		tt.Frame()
 		_, tab := tt.Find("设置-备份")
-		if tab != on {
-			t.Fatal("stale settings page")
+		if !tab {
+			t.Fatal("disabled settings page disappeared")
+		}
+		if tt.HasText(locales.BackupTiming()) != on {
+			t.Fatal("stale backup settings content", tt.Texts())
 		}
 		a.closePrefs()
 		tt.Frame()

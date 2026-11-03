@@ -11,6 +11,18 @@ import (
 	"writer/workspace"
 )
 
+// GroupWrite identifies writing extensions in the host overview.
+const GroupWrite = "write"
+
+// GroupLore identifies reference and planning extensions in the host overview.
+const GroupLore = "lore"
+
+// GroupAI identifies AI extensions in the host overview.
+const GroupAI = "ai"
+
+// GroupFiles identifies work and file extensions in the host overview.
+const GroupFiles = "files"
+
 // Menu names a host menu; read by desk on the frame thread.
 type Menu string
 

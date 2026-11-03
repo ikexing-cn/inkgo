@@ -21,6 +21,10 @@ const prefsWidth, prefsHeight = 900, 620
 // prefsGap separates the rows of a part of the settings, an extension's too.
 const prefsGap = 12
 
+// prefsNavGap separates the fixed sidebar pages, which have no order,
+// from the ordered ones.
+const prefsNavGap = 16
+
 // prefAbout says under a part's title what the author must know of it;
 // a part with nothing such says nothing there.
 var prefAbout = map[string]func() string{
@@ -74,6 +78,9 @@ func (a *App) openPrefs(tab string) {
 	if tab == "" {
 		tab = "AI"
 	}
+	if page, ok := a.extViews.settingsTabs[tab]; ok {
+		tab = page
+	}
 	a.settings.open = true
 	a.showPref(tab)
 }
@@ -105,8 +112,8 @@ func (a *App) showPref(tab string) {
 }
 
 // preferences is the settings dialog: the AI, the appearance, the
-// reminders and extension pages, over whatever page it was opened on; the
-// shelf has the first two, which hold for every work.
+// reminders and extension pages, over whatever page it was opened on.
+// Registered extension pages remain visible on the shelf.
 func (a *App) preferences(c *ui.Context) {
 	a.syncExtensions()
 	if !a.settings.open {
@@ -127,12 +134,16 @@ func (a *App) preferences(c *ui.Context) {
 		panel.Row().AlignItems(ui.Stretch).Width(min(prefsWidth, w-40)).Height(min(prefsHeight, h-40)).Radius(kit.RDialog).Background(t.Background)
 		a.pal.Dialog.On(panel)
 		ui.Column(c).Width(180).FillHeight().Shrink(0).Padding(20, 10).Gap(2).Radius(kit.RDialog, 0, 0, kit.RDialog).Background(a.pal.Canvas).Children(func() {
-			ui.Text(c, locales.SettingsTitle()).FontSize(kit.FsSmall).FontWeight(600).TextColor(a.pal.Faint).Padding(0, 10, 8, 10)
+			fixed := true
 			for _, entry := range a.prefTabs {
 				tab := entry.id
 				if !entry.available(a) {
 					continue
 				}
+				if fixed && entry.order > 0 {
+					ui.Box(c).Height(prefsNavGap).Shrink(0)
+				}
+				fixed = entry.order == 0
 				b := ui.ButtonBase(c).Row().FillWidth().Height(kit.HControl).Justify(ui.Start).AlignItems(ui.Center).Padding(0, 10).Radius(kit.RControl).Label(entry.label)
 				on := a.settings.tab == tab
 				fg, weight := t.TextMuted, 400
@@ -177,9 +188,10 @@ func (a *App) preferences(c *ui.Context) {
 							a.remindersView(c)
 						case "AI":
 							a.aiView(c)
-						default:
-							a.extensionSettings(c, a.settings.tab)
+						case "扩展":
+							// The overview is added in the next settings stage.
 						}
+						a.extensionSettings(c, a.settings.tab)
 					})
 				})
 			}

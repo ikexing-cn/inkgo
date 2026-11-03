@@ -21,7 +21,12 @@ type Module struct {
 	Kind               Kind
 	Name, Desc         func() string
 	Requires, Optional []string
-	Setup              func(*Registrar)
+	// Group is a host display grouping key; ext does not interpret it.
+	Group string
+	// Off supplies an extra host display sentence when the own switch is off.
+	// Nil says nothing; ext does not interpret it.
+	Off   func() string
+	Setup func(*Registrar)
 }
 
 // PointKey names a contribution point without holding runtime state.
@@ -104,7 +109,7 @@ const (
 	Failed
 )
 
-// Item is an active contribution, in assembly and registration order.
+// Item describes a contribution, in assembly and registration order.
 type Item[T any] struct {
 	ID, Owner string
 	Value     T

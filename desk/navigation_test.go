@@ -132,7 +132,7 @@ func TestNavigationTables(t *testing.T) {
 				name string
 				work bool
 			}{
-				{"AI", false}, {"外观", false}, {"提醒与检查", true}, {"备份", true},
+				{"外观", false}, {"扩展", false}, {"AI", false}, {"提醒与检查", true}, {"备份", false},
 			} {
 				entry := a.prefTabs[i]
 				id := p.name

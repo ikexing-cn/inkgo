@@ -11,6 +11,7 @@ type tabEntry[K comparable] struct {
 	label    string
 	icon     *ui.SVG
 	ai, work bool
+	order    int // settings pages sort by it; zero ones stay on top, above a gap
 	fallback bool
 	visible  func() bool
 	count    func() int
@@ -63,9 +64,10 @@ func (a *App) initTabs() {
 	}
 	a.paneTabs = a.hostPaneTabs
 	a.hostPrefTabs = tabTable[string]{
-		{id: "AI", name: func() string { return "AI" }, label: "设置-AI"},
 		{id: "外观", name: locales.ViewLook, label: "设置-外观"},
-		{id: "提醒与检查", name: locales.SettingsTabRemind, label: "设置-提醒", work: true},
+		{id: "扩展", name: locales.SettingsTabExtensions, label: "设置-扩展"},
+		{id: "AI", name: func() string { return "AI" }, label: "设置-AI", order: 10, fallback: true},
+		{id: "提醒与检查", name: locales.SettingsTabRemind, label: "设置-提醒", work: true, order: 20},
 	}
 	a.prefTabs = a.hostPrefTabs
 }
