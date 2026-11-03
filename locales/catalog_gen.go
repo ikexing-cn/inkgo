@@ -14422,13 +14422,13 @@ func (msgs Messages) ModNeeds(names string) string {
 	return Catalog.Format(msgs.locale, "modNeeds", map[string]any{"names": names})
 }
 
-// ModOptional says "配合 {names} 更好用"
+// ModOptional says "配合{names}更好用"
 // in the language the app shows.
 //
 // 「功能」页一行里：这个扩展可选用哪些扩展，它们开着时多一些功能。
 func ModOptional(names string) string { return In(i18n.Locale()).ModOptional(names) }
 
-// ModOptional says "配合 {names} 更好用"
+// ModOptional says "配合{names}更好用"
 // in the language of msgs.
 //
 // 「功能」页一行里：这个扩展可选用哪些扩展，它们开着时多一些功能。
@@ -14436,13 +14436,13 @@ func (msgs Messages) ModOptional(names string) string {
 	return Catalog.Format(msgs.locale, "modOptional", map[string]any{"names": names})
 }
 
-// ModNeededBy says "{names} 要用它"
+// ModNeededBy says "{names}要用它"
 // in the language the app shows.
 //
 // 「功能」页一行里：哪些扩展必需这一个。
 func ModNeededBy(names string) string { return In(i18n.Locale()).ModNeededBy(names) }
 
-// ModNeededBy says "{names} 要用它"
+// ModNeededBy says "{names}要用它"
 // in the language of msgs.
 //
 // 「功能」页一行里：哪些扩展必需这一个。
@@ -14464,13 +14464,13 @@ func (msgs Messages) ModNobodyNeeds() string {
 	return Catalog.Format(msgs.locale, "modNobodyNeeds", nil)
 }
 
-// ModWaiting says "{names} 已关闭，暂时用不了"
+// ModWaiting says "{names}已关闭，暂时用不了"
 // in the language the app shows.
 //
 // 「功能」页一行里：它自己开着，但它需要的扩展关着。
 func ModWaiting(names string) string { return In(i18n.Locale()).ModWaiting(names) }
 
-// ModWaiting says "{names} 已关闭，暂时用不了"
+// ModWaiting says "{names}已关闭，暂时用不了"
 // in the language of msgs.
 //
 // 「功能」页一行里：它自己开着，但它需要的扩展关着。
@@ -14492,13 +14492,13 @@ func (msgs Messages) ModAskOffTitle(name string) string {
 	return Catalog.Format(msgs.locale, "modAskOffTitle", map[string]any{"name": name})
 }
 
-// ModAskOffAbout says "{names} 也会一起关闭。"
+// ModAskOffAbout says "{names}也会一起关闭。"
 // in the language the app shows.
 //
 // 关闭一个扩展前问的那一句：哪些扩展会一起停用。
 func ModAskOffAbout(names string) string { return In(i18n.Locale()).ModAskOffAbout(names) }
 
-// ModAskOffAbout says "{names} 也会一起关闭。"
+// ModAskOffAbout says "{names}也会一起关闭。"
 // in the language of msgs.
 //
 // 关闭一个扩展前问的那一句：哪些扩展会一起停用。
@@ -14520,13 +14520,13 @@ func (msgs Messages) ModAskOnTitle(name string) string {
 	return Catalog.Format(msgs.locale, "modAskOnTitle", map[string]any{"name": name})
 }
 
-// ModAskOnAbout says "{names} 会一起打开。"
+// ModAskOnAbout says "{names}会一起打开。"
 // in the language the app shows.
 //
 // 打开一个扩展前问的那一句：它需要的哪些扩展会一起打开。
 func ModAskOnAbout(names string) string { return In(i18n.Locale()).ModAskOnAbout(names) }
 
-// ModAskOnAbout says "{names} 会一起打开。"
+// ModAskOnAbout says "{names}会一起打开。"
 // in the language of msgs.
 //
 // 打开一个扩展前问的那一句：它需要的哪些扩展会一起打开。

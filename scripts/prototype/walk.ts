@@ -435,7 +435,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('视图'); await click('手机预览'); must(await onTab() === '预览', 'Phone Preview did not open its tab')
   await settings(); await click('扩展'); must(await prefTabs() === '外观 语言 扩展 AI 提醒 名字补全 备份 全角标点', 'the settings of a work hold: ' + await prefTabs()); await win('作品与文件'); await win('其他功能靠它们运行。'); await shot('66b-extensions')
   await extPage('手机预览'); await win('看看在手机上的样子'); await win('这台电脑上的所有作品'); await shot('66c-extension'); await extTick('手机预览'); await win('关闭「手机预览」？', false); await click('‹ 扩展')
-  await extPage('导出'); await win('配合 大纲、设定 更好用'); await extTick('导出'); await click('‹ 扩展')
+  await extPage('导出'); await win('配合大纲、设定更好用'); await extTick('导出'); await click('‹ 扩展')
   await extPage('备份'); await extTick('备份'); await win('不再自动备份，旧备份留着。'); await click('‹ 扩展'); await shot('66d-extensions-off')
   must(await js(`[...document.querySelectorAll('.ext-cell.off .fit')].map((e) => e.innerText).join(' ')`) === '备份 导出 手机预览', 'the extensions turned off are not said to be off')
   must(await prefTabs() === '外观 语言 扩展 AI 提醒 名字补全 全角标点', 'with backup off the settings still hold its page: ' + await prefTabs())
@@ -444,7 +444,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await settings(); await click('扩展'); for (const name of ['手机预览', '导出', '备份']) { await extPage(name); await extTick(name); await click('‹ 扩展') }
   await click('关闭'); must(await onTab() === '预览', 'Phone Preview came back on ' + await onTab()); must(await has('.backup-line'), 'the backup did not come back'); must(await inMenu('文件', '导出…'), 'Export did not come back'); await done('extensions off and on')
   // One that others need asks first and names them; set for this work alone, it leaves the other works as they were.
-  await settings(); await click('扩展'); await extPage('资料库'); await win('名字补全、设定、大纲、伏笔、讨论、续写、起草、检查 要用它'); await extTick('资料库'); await win('关闭「资料库」？'); await win('也会一起关闭。'); await shot('66e-extension-ask'); await click('取消'); await win('关闭「资料库」？', false); await click('‹ 扩展')
+  await settings(); await click('扩展'); await extPage('资料库'); await win('名字补全、设定、大纲、伏笔、讨论、续写、起草、检查要用它'); await extTick('资料库'); await win('关闭「资料库」？'); await win('也会一起关闭。'); await shot('66e-extension-ask'); await click('取消'); await win('关闭「资料库」？', false); await click('‹ 扩展')
   await extPage('字数目标'); await click('单独设置'); await win('只管这部作品'); await extTick('字数目标'); must(await js(`!extOn('goal') && !S.extOff.includes('goal')`), 'set for this work alone, the switch moved the one of this computer'); await shot('66f-extension-own')
   await click('恢复默认'); await win('这台电脑上的所有作品'); must(await js(`extOn('goal')`), 'back to the default, the goal is still off'); await click('关闭'); await done('extensions that others need, and one work apart')
   await settings(); await clear('讨论模型'); await click('关闭'); await click('讨论', 1); await click('全部讨论'); await click('新讨论'); await type('输入想讨论的内容', '在吗'); await key('Enter', true); await win('请先配置讨论模型'); await sleep(3300); await win('请先配置讨论模型'); await shot('67-no-model'); await click('打开设置'); await win('选用模型'); await win('请先配置讨论模型', false); await key('Escape'); await done('no model to talk with')
@@ -841,7 +841,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('编辑'); await click('起草本章'); await click('开始起草'); await sleep(1500); must(await has('.prose [data-prop]'), 'the draft wrote nothing')
   await aiOff(); must(await prefTabs() === '外观 语言 扩展 AI 提醒 名字补全 备份 全角标点', 'with AI off the settings of a work hold: ' + await prefTabs()); await win('AI 服务', false); await win('选用模型', false)
   must(!(await has('[data-ext="ai"] .check.on')), 'the switch is still ticked'); await win('这台电脑上的所有作品'); await shot('99g-ai-off')
-  await click('提醒'); await win('超过多少章算久未回收'); await win('何时检查', false); await win('AI 已关闭，暂时用不了'); await click('关闭')
+  await click('提醒'); await win('超过多少章算久未回收'); await win('何时检查', false); await win('AI已关闭，暂时用不了'); await click('关闭')
   await sleep(3000); must(await paras() === before && !(await has('[data-prop]')), 'the draft went on or stayed with AI off'); must(await js(`S.talks[0].msgs.length === 1 && !S.waiting && !S.props.length`), 'the draft went on with AI off')
   // Off, the page of prose and all that opens from it.
   must(await navs() === '正文 大纲', 'with AI off the title bar offers: ' + await navs()); must(await paneTabs() === '批注 设定 伏笔 预览', 'with AI off the pane offers: ' + await paneTabs())
