@@ -192,7 +192,7 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 			t.Fatalf("%s › %s left the menu open", menu, row)
 		}
 	}
-	if got := openMenu(t, a, tt, "文件"); !slices.Equal(got, []string{"新建章节", "新建文件夹", "保存", "快照", "导出", "作品分类", "回收站", "设置"}) {
+	if got := openMenu(t, a, tt, "文件"); !slices.Equal(got, []string{"新建章节", "新建文件夹", "保存", "历史版本", "导出", "作品分类", "回收站", "设置"}) {
 		t.Fatalf("文件: %q", got)
 	}
 	tt.Key(0, ui.KeyEscape)
@@ -287,9 +287,9 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 		t.Fatalf("保存 did not save: %q", disk(t, a, "第一章.txt"))
 	}
 	a.book.Timing.SaveAfter = 0
-	choose("文件", "快照")
+	choose("文件", "历史版本")
 	if !w.snapsOpen {
-		t.Fatal("快照 did not open the snapshots")
+		t.Fatal("历史版本 did not open the snapshots")
 	}
 	shut(tt, &w.snapsOpen)
 	choose("文件", "导出")
@@ -409,7 +409,7 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 		showPage(a, page)
 		tt.Frame()
 		tt.Frame()
-		pale("文件", "新建章节", "新建文件夹", "保存", "快照")
+		pale("文件", "新建章节", "新建文件夹", "保存", "历史版本")
 		pale("编辑", "撤销", "重做", "查找替换", "重命名", "续写一句", "起草本章")
 		pale("视图", "专注写作", "手机预览")
 		if page != pageTalk {
@@ -447,7 +447,7 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 	a.closeWork()
 	tt.Frame()
 	tt.Frame()
-	pale("文件", "新建章节", "新建文件夹", "保存", "快照", "导出", "作品分类", "回收站")
+	pale("文件", "新建章节", "新建文件夹", "保存", "历史版本", "导出", "作品分类", "回收站")
 	pale("视图", "收起侧栏", "展开右栏", "专注写作", "手机预览")
 	if a.settings.open || a.exporting.Open || a.sideHidden {
 		t.Fatal("on the shelf a pale row did something")

@@ -137,7 +137,7 @@ func TestOutsideChangeAsksTheAuthor(t *testing.T) {
 	}
 	markUnchecked(a)
 	tt.Frame()
-	if !tt.HasText("本章文件已被其他程序修改。请选择保留的版本，另一版本将存为快照。") {
+	if !tt.HasText("本章文件已被其他程序修改。请选择保留的版本，另一版本将存为历史版本。") {
 		t.Fatal(tt.Texts())
 	}
 	if err := tt.Click("使用磁盘版本"); err != nil {
@@ -230,7 +230,7 @@ func TestSavingDoesNotWriteOverAnOutsideChange(t *testing.T) {
 	if got := disk(t, a, "第一章.txt"); got != "别处改的，很重要。" {
 		t.Fatalf("the save wrote over the outside change: %q", got)
 	}
-	if !tt.HasText("本章文件已被其他程序修改。请选择保留的版本，另一版本将存为快照。") {
+	if !tt.HasText("本章文件已被其他程序修改。请选择保留的版本，另一版本将存为历史版本。") {
 		t.Fatal(tt.Texts())
 	}
 	// Keeping the editor's writes it, the disk's kept as a snapshot.

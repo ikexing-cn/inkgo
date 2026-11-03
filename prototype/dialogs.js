@@ -192,11 +192,6 @@ function settingsBackup() {
     row(L.backupKeep(), `<div class="keep">${choose('keep', b.keep, [['最近 10 份', L.backupKeep10()], ['最近 30 份', L.backupKeep30()], ['最近 90 份', L.backupKeep90()]], (keep) => backupSet({ keep }), L.backupKeep())}</div><div class="note">${t(L.backupSize(b.copies * 1.1))}</div>`)
 }
 
-// 「AI」那一部分的最上面：一个开关，管本机的所有作品。点了不马上变，先问一句（ext.js 的 askExt）。
-// 它和「功能」页里 AI 那一行是同一个开关。
-const aiSwitch = () => `<div class="ticks">${tickbox(S.noAI, L.settingsCloseAI(), () => extFlip('ai'))}` +
-  `<div class="note tick-note">${t(L.settingsAIOffNote())}</div></div>`
-
 // 「外观」的最下面：禁用 GPU 加速，管本机。界面用什么画是打开软件时定的，改了要重新打开才生效：
 // 和这次打开时不一样，说明下面多一句，跟着一个「立即重新打开」（软件里关掉窗口再打开，回到同一本书，设置不再开着）。
 // mygo v0.6.4 以前关着：mygo 在 Windows 上不用 GPU 画，窗口多半是白的，勾上的人连这一项都看不见、勾不回去。改成 false 就藏起来。
@@ -219,27 +214,40 @@ function turnAI(on) {
   }))
 }
 
-// 设置的几个分类：状态里记的是中文名，显示时换成 L 里的字。
-const tabName = (name) => ({ 外观: L.viewLook(), 功能: L.settingsTabModules(), 提醒与检查: L.settingsTabRemind(), 提醒: L.settingsTabRemindOnly(), 备份: L.settingsTabBackup() })[name] ?? name
-
-function settingsDialog(d) {
-  // 书架上没有打开的作品，只有本机的两部分。AI 关着时，「提醒与检查」里只剩提醒。
-  const remind = aiOn() ? '提醒与检查' : '提醒'
-  const tabs = S.page === 'shelf' ? ['AI', '外观', '功能'] : ['AI', '外观', '功能', remind, ...(extOn('backup') ? ['备份'] : [])]
-  // 每一类的标题和下面那句说明留在上面不动，只有内容滚动。
-  const about = { AI: aiOn() ? '' : L.settingsLocalOnly(), 外观: L.settingsLocalOnly(), 功能: L.settingsLocalOnly(), [remind]: L.settingsBookOnly(), 备份: '' }
+// 「提醒」里伏笔那一段：埋下后过多少章还没回收算久，下面一句说本作品现在有几个。
+function lateRows() {
   const lateNow = S.marks.filter((m) => m.st === 'open' && BOOK.now - m.ch >= S.late).length
-  const step =(by) => () => set((s) => ({ late: Math.max(5, s.late + by) }))
-  const rec = d.tab === 'AI' && d.records && extOn('usage')
-  const body = d.tab === 'AI' ? (rec ? records(d) : aiSwitch() + (aiOn() ? settingsModel(d) : '')) : d.tab === '备份' ? settingsBackup() : d.tab === '功能' ? extPage()
-    : d.tab === '外观' ? `<div class="prefs-row"><div class="prefs-label">${t(L.settingsColor())}</div>${seg(S.look, LOOKS(), (v) => set({ look: v }), L.settingsColor())}</div>` +
-      `<div class="prefs-row">${tickbox(S.names, L.settingsMarkNames(), () => set({ names: !S.names }))}</div>` + (OFFER_NO_GPU ? gpuSwitch() : '')
-    : `<div class="prefs-group"><div class="group-title">${t(L.settingsForeshadow())}</div></div>` +
-      `<div class="prefs-row"><div class="fit">${t(L.settingsLateAfter())}</div><div class="stepper"><div class="hit" title="${t(L.settingsLateLess())}"${onClick(step(-5))}>−</div><div class="stepper-n">${t(L.settingsLateChapters(S.late))}</div><div class="hit" title="${t(L.settingsLateMore())}"${onClick(step(5))}>+</div></div></div>` +
-      `<div class="note">${t(L.settingsLateNow(lateNow))}</div>` +
-      (aiOn() ? `<div class="prefs-group"><div class="group-title">${t(L.settingsCheckText())}</div></div>${radios(S.when, WHENS(), (v) => set({ when: v }))}` : '')
-  return dialog('prefs', `<div class="prefs-nav"><div class="prefs-nav-title">${t(L.settingsTitle())}</div>${tabs.map((name) => `<div class="nav hit${d.tab === name ? ' on' : ''}"${onClick(() => set({ dialog: { kind: 'settings', tab: name, edit: '' }, ...SHUT }))}>${t(tabName(name))}</div>`).join('')}</div>` +
-    `<div class="prefs-main"><div class="prefs-head"><div class="prefs-title">${t(rec ? L.settingsRecordsTitle() : tabName(d.tab))}</div>${rec || about[d.tab] ? `<div class="note">${t(rec ? L.settingsRecordsNote() : about[d.tab])}</div>` : ''}</div><div class="prefs-body scroll" data-k="prefs-${rec ? 'records' : d.tab}">${body}</div></div><button class="icon-btn muted prefs-close" aria-label="${t(L.settingsClose())}" title="${t(L.settingsClose())}"${onClick(shut)}>${icon('cross')}</button>`) + (d.ask ? askExt(d) : '')
+  const step = (by) => () => set((s) => ({ late: Math.max(5, s.late + by) }))
+  return `<div class="prefs-row"><div class="fit">${t(L.settingsLateAfter())}</div><div class="stepper"><div class="hit" title="${t(L.settingsLateLess())}"${onClick(step(-5))}>−</div><div class="stepper-n">${t(L.settingsLateChapters(S.late))}</div><div class="hit" title="${t(L.settingsLateMore())}"${onClick(step(5))}>+</div></div></div>` +
+    `<div class="note">${t(L.settingsLateNow(lateNow))}</div>`
+}
+
+// 设置左栏的一项：状态里记的是中文名，显示时换成 L 里的字。
+const tabName = (name) => ({ 外观: L.viewLook(), 语言: L.settingsTabLanguage(), 扩展: L.settingsTabExtensions(), 提醒: L.settingsTabRemind(), 名字补全: L.modNames(), 备份: L.settingsTabBackup(), 全角标点: L.modFullwidth() })[name] ?? name
+
+// 设置：左栏上面三项是宿主自己的（外观、语言、扩展），下面「自带」「另装」两组是扩展带来的页（ext.js 的 PREF_PAGES）。
+// 停在的那一页的扩展刚关掉，这一页在左栏留到离开为止，不在指针底下消失。
+// 「扩展」里点一格进那个扩展自己的页（d.ext），左上角「‹ 扩展」回总览。
+function settingsDialog(d) {
+  const pages = PREF_PAGES.filter((p) => prefPageShown(p) || p[0] === d.tab)
+  const navItem = (name) => `<div class="nav hit${d.tab === name ? ' on' : ''}"${onClick(() => set({ dialog: { kind: 'settings', tab: name, edit: '' }, ...SHUT }))}>${t(tabName(name))}</div>`
+  const group = (g, title) => { const list = pages.filter((p) => p[2] === g); return list.length ? `<div class="prefs-nav-group">${t(title)}</div>${list.map(([name]) => navItem(name)).join('')}` : '' }
+  const nav = `<div class="prefs-nav">${['外观', '语言', '扩展'].map(navItem).join('')}${group('builtin', L.modGroupBuiltin())}${group('more', L.modGroupInstalled())}</div>`
+  const rec = d.tab === 'AI' && d.records && extOn('usage'), ext = d.tab === '扩展' && d.ext ? extOf(d.ext) : null
+  const page = prefPage(d.tab)
+  // 每一页的标题和右边那句留在上面不动，只有内容滚动。那句只在页里所有的设置管的作品一样时写。
+  const about = { 外观: L.settingsLocalOnly(), 语言: L.settingsLocalOnly() }
+  const lang = S.lang === 'system' ? 'system' : LANG
+  const body = rec ? records(d) : ext ? extSection(ext.id, d) : page ? page[1].map((id) => extSection(id, d)).join('')
+    : d.tab === '扩展' ? extOverview()
+    : d.tab === '语言' ? radios(lang, [['system', '', L.settingsLangSystem()], ['zh-Hans', '', '简体中文'], ['en', '', 'English']], (v) => { set({ lang: v }); switchLang(v === 'system' ? 'zh-Hans' : v) })
+    : `<div class="prefs-row"><div class="prefs-label">${t(L.settingsColor())}</div>${seg(S.look, LOOKS(), (v) => set({ look: v }), L.settingsColor())}</div>` + (OFFER_NO_GPU ? gpuSwitch() : '')
+  const back = (label, change) => `<div class="hit link prefs-back"${onClick(() => set((s) => ({ dialog: { ...s.dialog, ...change }, ...SHUT })))}>${t(label)}</div>`
+  const head = rec ? `<div class="prefs-title">${t(L.settingsRecordsTitle())}</div><div class="note">${t(L.settingsRecordsNote())}</div>`
+    : ext ? back(L.modBack(), { ext: '' }) + `<div class="prefs-title">${t(ext.name)}</div>`
+    : `<div class="prefs-title">${t(tabName(d.tab))}</div>${about[d.tab] ? `<div class="note">${t(about[d.tab])}</div>` : ''}`
+  return dialog('prefs', nav + `<div class="prefs-main"><div class="prefs-head">${head}</div><div class="prefs-body scroll" data-k="prefs-${rec ? 'records' : ext ? 'ext-' + ext.id : d.tab}">${body}</div></div>` +
+    `<button class="icon-btn muted prefs-close" aria-label="${t(L.settingsClose())}" title="${t(L.settingsClose())}"${onClick(shut)}>${icon('cross')}</button>`) + (d.ask ? askExt(d) : '')
 }
 
 // ───────── 正文那一页的几个对话框 ─────────

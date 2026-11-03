@@ -115,7 +115,7 @@ func TestLayoutDiscussion(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("本作品的模型") {
+	if !tt.HasText("选用模型") {
 		t.Fatal(tt.Texts())
 	}
 	shot(t, tt, "-settings")
@@ -227,7 +227,7 @@ func TestLayoutWriting(t *testing.T) {
 	tt.Key(ui.Cmd, ui.Key0)
 	tt.SetSize(1266, 780)
 	tt.Frame()
-	if err = clickMenu(tt, "文件", "菜单-快照"); err != nil {
+	if err = clickMenu(tt, "文件", "菜单-历史版本"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

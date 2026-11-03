@@ -339,8 +339,8 @@ func TestMenusAndDialogsComeInOnceAndCloseAtOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if _, ok := tt.Find("关闭设置"); !ok || !tt.FramePending() {
+	if _, ok := tt.Find("关闭"); !ok || !tt.FramePending() {
 		t.Fatal("the dialog did not come in")
 	}
-	shut("dialog", func() bool { _, ok := tt.Find("关闭设置"); return !ok })
+	shut("dialog", func() bool { _, ok := tt.Find("关闭"); return !ok })
 }

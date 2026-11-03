@@ -7,7 +7,7 @@ import (
 
 type tabEntry[K comparable] struct {
 	id            K
-	name, offName func() string
+	name          func() string
 	label         string
 	icon          *ui.SVG
 	ai, work      bool
@@ -20,9 +20,6 @@ func (t tabEntry[K]) available(a *App) bool {
 }
 
 func (t tabEntry[K]) title(a *App) string {
-	if t.offName != nil && !a.aiOn() {
-		return t.offName()
-	}
 	return t.name()
 }
 
@@ -67,7 +64,7 @@ func (a *App) initTabs() {
 	a.prefTabs = tabTable[string]{
 		{id: "AI", name: func() string { return "AI" }, label: "设置-AI"},
 		{id: "外观", name: locales.ViewLook, label: "设置-外观"},
-		{id: "提醒与检查", name: locales.SettingsTabRemind, offName: locales.SettingsTabRemindOnly, label: "设置-提醒", work: true},
+		{id: "提醒与检查", name: locales.SettingsTabRemind, label: "设置-提醒", work: true},
 		{id: "备份", name: locales.SettingsTabBackup, label: "设置-备份", work: true},
 	}
 }

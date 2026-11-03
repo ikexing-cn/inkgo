@@ -46,11 +46,11 @@ func TestNamesInTheProse(t *testing.T) {
 	tt.Frame()
 	click(t, tt, "菜单栏-文件", "菜单-设置")
 	click(t, tt, "设置-外观")
-	hasText(t, tt, "正文中标出设定的名字")
+	hasText(t, tt, "标出设定里的名字")
 	if tt.HasText("名字下面一道虚线") {
 		t.Fatal("unnecessary names note", tt.Texts())
 	}
-	click(t, tt, "正文中标出设定的名字")
+	click(t, tt, "标出设定里的名字")
 	tt.Key(0, ui.KeyEscape)
 	tt.Frame()
 	showEntry(a, "")
@@ -83,7 +83,7 @@ func TestNamesInTheProse(t *testing.T) {
 	}
 	click(t, tt, "菜单栏-文件", "菜单-设置")
 	click(t, tt, "设置-外观")
-	click(t, tt, "正文中标出设定的名字")
+	click(t, tt, "标出设定里的名字")
 	tt.Key(0, ui.KeyEscape)
 	tt.Frame()
 	showEntry(a, "")

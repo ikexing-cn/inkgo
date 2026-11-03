@@ -851,7 +851,7 @@ func TestChooseAServiceByName(t *testing.T) {
 	}
 	tt.Frame()
 	texts := tt.Texts()
-	if options := strings.Join(texts[len(texts)-5:], " "); options != "沿用讨论模型 DeepSeek Kimi OpenAI Anthropic" {
+	if options := strings.Join(texts[len(texts)-5:], " "); options != "和讨论相同 DeepSeek Kimi OpenAI Anthropic" {
 		t.Fatal(options)
 	}
 	tt.Key(0, ui.KeyDown)

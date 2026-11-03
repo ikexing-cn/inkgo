@@ -200,11 +200,11 @@ func switchAI(t *testing.T, a *App, tt *ui.Tester, on bool) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	verb := "关闭 AI"
+	verb, title := "关闭 AI", "关闭 AI？"
 	if on {
-		verb = "开启 AI"
+		verb, title = "开启 AI", "打开 AI？"
 	}
-	if !tt.HasText("是否" + verb + "？") {
+	if !tt.HasText(title) {
 		t.Fatalf("not asked before the AI is turned %v: %q", on, tt.Texts())
 	}
 	if err := tt.Click("确定" + verb); err != nil {
@@ -329,7 +329,7 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 	look("what waits")
 	w.pendOpen = false
 	tt.Frame()
-	if err := clickMenu(tt, "文件", "菜单-快照"); err != nil {
+	if err := clickMenu(tt, "文件", "菜单-历史版本"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -435,8 +435,8 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 			t.Fatalf("the settings of a work have no %s: %q", tab, tt.Texts())
 		}
 	}
-	if !tt.HasText("提醒与检查") {
-		t.Fatalf("with the AI on, the reminders are not 提醒与检查: %q", tt.Texts())
+	if !tt.HasText("提醒") {
+		t.Fatalf("with the AI on, the reminders are not 提醒: %q", tt.Texts())
 	}
 	if err := tt.Click("设置-AI"); err != nil {
 		t.Fatal(err)
@@ -446,7 +446,7 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !a.settings.askAI || !tt.HasText("是否关闭 AI？") {
+	if !a.settings.askAI || !tt.HasText("关闭 AI？") {
 		t.Fatalf("not asked: %q", tt.Texts())
 	}
 	if err := tt.Click("取消"); err != nil {
@@ -479,7 +479,7 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if _, ok := tt.Find("设置-提醒"); !ok || tt.HasText("提醒与检查") || tt.HasText("模型服务") {
+	if _, ok := tt.Find("设置-提醒"); !ok || !tt.HasText("提醒") || tt.HasText("AI 服务") {
 		t.Fatalf("with the AI off, the settings of a work: %q", tt.Texts())
 	}
 	if err := tt.Click("设置-提醒"); err != nil {

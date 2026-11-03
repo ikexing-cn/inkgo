@@ -228,7 +228,7 @@ func TestBackupFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("仅在本机生效，适用于所有作品。") {
+	if !tt.HasText("这台电脑上的所有作品") {
 		t.Fatal("appearance", tt.Texts())
 	}
 }

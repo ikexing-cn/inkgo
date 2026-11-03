@@ -156,10 +156,12 @@ function fresh(book = BOOK.shelf[0].id) {
     noAI: false, offFrom: '', // 关闭了 AI：本机的所有作品都不显示 AI 功能，也不发送任何内容；offFrom 是关的时候停在的讨论页、检查页
     exportWhat: ['正文'], exportAs: 'Word', pen: '', // 导出勾了哪几样、成什么格式，上次写在首页的笔名（新作品沿用它）
     zoom: 1, // 界面缩放：整个窗口里的东西放大几倍
-    extOff: [], // 设置「功能」里关掉的扩展，本机的；AI 的开关是上面的 noAI（见 ext.js）
+    extOff: [], extBook: {}, // 关掉的扩展，本机的；AI 的开关是上面的 noAI。extBook 是作品单独设的开关（见 ext.js）
+    quotes: false, // 假装另装的「全角标点」自己的一项：引号也换成「」
+    lang: 'system', // 设置「语言」里选的；舞台上切的语言不改它，选「跟随系统」时原型当作中文
   }
 }
-const KEPT = ['look', 'names', 'noGPU', 'ranNoGPU', 'phone', 'shelf', 'cards', 'library', 'uses', 'services', 'auto', 'when', 'late', 'goal', 'paneW', 'noAI', 'exportWhat', 'exportAs', 'pen', 'zoom', 'extOff']
+const KEPT = ['look', 'names', 'noGPU', 'ranNoGPU', 'phone', 'shelf', 'cards', 'library', 'uses', 'services', 'auto', 'when', 'late', 'goal', 'paneW', 'noAI', 'exportWhat', 'exportAs', 'pen', 'zoom', 'extOff', 'extBook', 'quotes']
 
 let S = fresh()
 let sent = 0 // 作者发过几条消息，AI 按顺序回下一句

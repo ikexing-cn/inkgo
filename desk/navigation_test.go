@@ -152,7 +152,7 @@ func TestNavigationTables(t *testing.T) {
 					t.Errorf("settings part %s shows %s, want %s", p.name, a.settings.tab, shown)
 				}
 				name := p.name
-				if name == "提醒与检查" && !tc.ai {
+				if name == "提醒与检查" {
 					name = "提醒"
 				}
 				if got := entry.title(a); got != name {

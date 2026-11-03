@@ -23,7 +23,7 @@ func TestDraftDialogWithCards(t *testing.T) {
 	if _, err := a.Store.SaveCard(workspace.Card{Title: "别章的事", Chapter: other}, ""); err != nil {
 		t.Fatal(err)
 	}
-	tail := "起草在一段新的讨论里进行：写好的先在正文里显示为提议，采纳后才写入，写入前保存快照；想改哪里，在讨论里接着说。"
+	tail := "起草在一段新的讨论里进行：写好的先在正文里显示为改稿建议，采纳后才写入，写入前保存历史版本；想改哪里，在讨论里接着说。"
 	oldHead := "AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。" + tail
 	newHead := "AI 仅将章纲和本章的卡片扩写为正文，不添加这些之外的重大情节。" + tail
 	a.openDraft()

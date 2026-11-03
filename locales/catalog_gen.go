@@ -188,11 +188,11 @@ func (msgs Messages) CmdSave() string {
 	return Catalog.Format(msgs.locale, "cmdSave", nil)
 }
 
-// CmdSnapshots says "快照"
+// CmdSnapshots says "历史版本"
 // in the language the app shows.
 func CmdSnapshots() string { return In(i18n.Locale()).CmdSnapshots() }
 
-// CmdSnapshots says "快照"
+// CmdSnapshots says "历史版本"
 // in the language of msgs.
 func (msgs Messages) CmdSnapshots() string {
 	return Catalog.Format(msgs.locale, "cmdSnapshots", nil)
@@ -1618,11 +1618,11 @@ func (msgs Messages) StatusWhenAfter() string {
 	return Catalog.Format(msgs.locale, "statusWhenAfter", nil)
 }
 
-// StatusWhenAfterAbout says "推荐，每章调用一次 AI"
+// StatusWhenAfterAbout says "推荐，每章用一次 AI"
 // in the language the app shows.
 func StatusWhenAfterAbout() string { return In(i18n.Locale()).StatusWhenAfterAbout() }
 
-// StatusWhenAfterAbout says "推荐，每章调用一次 AI"
+// StatusWhenAfterAbout says "推荐，每章用一次 AI"
 // in the language of msgs.
 func (msgs Messages) StatusWhenAfterAbout() string {
 	return Catalog.Format(msgs.locale, "statusWhenAfterAbout", nil)
@@ -1638,11 +1638,11 @@ func (msgs Messages) StatusWhenManual() string {
 	return Catalog.Format(msgs.locale, "statusWhenManual", nil)
 }
 
-// StatusWhenManualAbout says "平时不调用 AI"
+// StatusWhenManualAbout says "平时不用 AI"
 // in the language the app shows.
 func StatusWhenManualAbout() string { return In(i18n.Locale()).StatusWhenManualAbout() }
 
-// StatusWhenManualAbout says "平时不调用 AI"
+// StatusWhenManualAbout says "平时不用 AI"
 // in the language of msgs.
 func (msgs Messages) StatusWhenManualAbout() string {
 	return Catalog.Format(msgs.locale, "statusWhenManualAbout", nil)
@@ -1658,11 +1658,11 @@ func (msgs Messages) StatusWhenWriting() string {
 	return Catalog.Format(msgs.locale, "statusWhenWriting", nil)
 }
 
-// StatusWhenWritingAbout says "停笔即检查，调用最多"
+// StatusWhenWritingAbout says "一停笔就查，最费用量"
 // in the language the app shows.
 func StatusWhenWritingAbout() string { return In(i18n.Locale()).StatusWhenWritingAbout() }
 
-// StatusWhenWritingAbout says "停笔即检查，调用最多"
+// StatusWhenWritingAbout says "一停笔就查，最费用量"
 // in the language of msgs.
 func (msgs Messages) StatusWhenWritingAbout() string {
 	return Catalog.Format(msgs.locale, "statusWhenWritingAbout", nil)
@@ -2196,11 +2196,11 @@ func (msgs Messages) EditorStopDrop() string {
 	return Catalog.Format(msgs.locale, "editorStopDrop", nil)
 }
 
-// EditorDropOne says "放弃这一处提议"
+// EditorDropOne says "放弃这一处建议"
 // in the language the app shows.
 func EditorDropOne() string { return In(i18n.Locale()).EditorDropOne() }
 
-// EditorDropOne says "放弃这一处提议"
+// EditorDropOne says "放弃这一处建议"
 // in the language of msgs.
 func (msgs Messages) EditorDropOne() string {
 	return Catalog.Format(msgs.locale, "editorDropOne", nil)
@@ -2216,11 +2216,11 @@ func (msgs Messages) EditorWriting() string {
 	return Catalog.Format(msgs.locale, "editorWriting", nil)
 }
 
-// EditorAcceptOne says "采纳这一处提议"
+// EditorAcceptOne says "采纳这一处建议"
 // in the language the app shows.
 func EditorAcceptOne() string { return In(i18n.Locale()).EditorAcceptOne() }
 
-// EditorAcceptOne says "采纳这一处提议"
+// EditorAcceptOne says "采纳这一处建议"
 // in the language of msgs.
 func (msgs Messages) EditorAcceptOne() string {
 	return Catalog.Format(msgs.locale, "editorAcceptOne", nil)
@@ -2320,26 +2320,26 @@ func (msgs Messages) EditorSeeTalk() string {
 	return Catalog.Format(msgs.locale, "editorSeeTalk", nil)
 }
 
-// EditorWritingSuggestions says "AI 正在写提议…"
+// EditorWritingSuggestions says "AI 正在写改稿建议…"
 // in the language the app shows.
 func EditorWritingSuggestions() string { return In(i18n.Locale()).EditorWritingSuggestions() }
 
-// EditorWritingSuggestions says "AI 正在写提议…"
+// EditorWritingSuggestions says "AI 正在写改稿建议…"
 // in the language of msgs.
 func (msgs Messages) EditorWritingSuggestions() string {
 	return Catalog.Format(msgs.locale, "editorWritingSuggestions", nil)
 }
 
-// EditorSuggestionsHere says "本章有 {count} 处 AI 提议"
+// EditorSuggestionsHere says "本章有 {count} 处改稿建议"
 // in the language the app shows.
 //
-// 正文上面一行：本章有几处 AI 提议。
+// 正文上面一行：本章有几处改稿建议。
 func EditorSuggestionsHere(count int) string { return In(i18n.Locale()).EditorSuggestionsHere(count) }
 
-// EditorSuggestionsHere says "本章有 {count} 处 AI 提议"
+// EditorSuggestionsHere says "本章有 {count} 处改稿建议"
 // in the language of msgs.
 //
-// 正文上面一行：本章有几处 AI 提议。
+// 正文上面一行：本章有几处改稿建议。
 func (msgs Messages) EditorSuggestionsHere(count int) string {
 	return Catalog.Format(msgs.locale, "editorSuggestionsHere", map[string]any{"count": count})
 }
@@ -2347,13 +2347,13 @@ func (msgs Messages) EditorSuggestionsHere(count int) string {
 // EditorHowReplace says "绿字是 AI 新写的，划掉的是会被换掉的原文；采纳后才写入正文"
 // in the language the app shows.
 //
-// AI 提议里有换掉原文的，悬停时的说明。
+// 改稿建议里有换掉原文的，悬停时的说明。
 func EditorHowReplace() string { return In(i18n.Locale()).EditorHowReplace() }
 
 // EditorHowReplace says "绿字是 AI 新写的，划掉的是会被换掉的原文；采纳后才写入正文"
 // in the language of msgs.
 //
-// AI 提议里有换掉原文的，悬停时的说明。
+// 改稿建议里有换掉原文的，悬停时的说明。
 func (msgs Messages) EditorHowReplace() string {
 	return Catalog.Format(msgs.locale, "editorHowReplace", nil)
 }
@@ -2361,13 +2361,13 @@ func (msgs Messages) EditorHowReplace() string {
 // EditorHowAppend says "绿字是 AI 新写的；采纳后才写入正文"
 // in the language the app shows.
 //
-// AI 提议都是接在后面的，悬停时的说明。
+// 改稿建议都是接在后面的，悬停时的说明。
 func EditorHowAppend() string { return In(i18n.Locale()).EditorHowAppend() }
 
 // EditorHowAppend says "绿字是 AI 新写的；采纳后才写入正文"
 // in the language of msgs.
 //
-// AI 提议都是接在后面的，悬停时的说明。
+// 改稿建议都是接在后面的，悬停时的说明。
 func (msgs Messages) EditorHowAppend() string {
 	return Catalog.Format(msgs.locale, "editorHowAppend", nil)
 }
@@ -2454,11 +2454,11 @@ func (msgs Messages) EditorGhostHint() string {
 	return Catalog.Format(msgs.locale, "editorGhostHint", nil)
 }
 
-// EditorOutsideChanged says "本章文件已被其他程序修改。请选择保留的版本，另一版本将存为快照。"
+// EditorOutsideChanged says "本章文件已被其他程序修改。请选择保留的版本，另一版本将存为历史版本。"
 // in the language the app shows.
 func EditorOutsideChanged() string { return In(i18n.Locale()).EditorOutsideChanged() }
 
-// EditorOutsideChanged says "本章文件已被其他程序修改。请选择保留的版本，另一版本将存为快照。"
+// EditorOutsideChanged says "本章文件已被其他程序修改。请选择保留的版本，另一版本将存为历史版本。"
 // in the language of msgs.
 func (msgs Messages) EditorOutsideChanged() string {
 	return Catalog.Format(msgs.locale, "editorOutsideChanged", nil)
@@ -2912,21 +2912,21 @@ func (msgs Messages) EditorSelectFirst() string {
 	return Catalog.Format(msgs.locale, "editorSelectFirst", nil)
 }
 
-// EditorSettledDisk says "已采用磁盘版本，编辑器原内容已存为快照"
+// EditorSettledDisk says "已采用磁盘版本，编辑器原内容已存为历史版本"
 // in the language the app shows.
 func EditorSettledDisk() string { return In(i18n.Locale()).EditorSettledDisk() }
 
-// EditorSettledDisk says "已采用磁盘版本，编辑器原内容已存为快照"
+// EditorSettledDisk says "已采用磁盘版本，编辑器原内容已存为历史版本"
 // in the language of msgs.
 func (msgs Messages) EditorSettledDisk() string {
 	return Catalog.Format(msgs.locale, "editorSettledDisk", nil)
 }
 
-// EditorSettledKeep says "已保留编辑器版本，磁盘内容已存为快照"
+// EditorSettledKeep says "已保留编辑器版本，磁盘内容已存为历史版本"
 // in the language the app shows.
 func EditorSettledKeep() string { return In(i18n.Locale()).EditorSettledKeep() }
 
-// EditorSettledKeep says "已保留编辑器版本，磁盘内容已存为快照"
+// EditorSettledKeep says "已保留编辑器版本，磁盘内容已存为历史版本"
 // in the language of msgs.
 func (msgs Messages) EditorSettledKeep() string {
 	return Catalog.Format(msgs.locale, "editorSettledKeep", nil)
@@ -2992,18 +2992,18 @@ func (msgs Messages) EditorModelListFailed() string {
 	return Catalog.Format(msgs.locale, "editorModelListFailed", nil)
 }
 
-// EditorSuggestionsVoided says "{count} 处 AI 提议已作废"
+// EditorSuggestionsVoided says "{count} 处改稿建议已作废"
 // in the language the app shows.
 //
-// AI 提议的原文被改动了，提议作废的提示。
+// 改稿建议的原文被改动了，提议作废的提示。
 func EditorSuggestionsVoided(count int) string {
 	return In(i18n.Locale()).EditorSuggestionsVoided(count)
 }
 
-// EditorSuggestionsVoided says "{count} 处 AI 提议已作废"
+// EditorSuggestionsVoided says "{count} 处改稿建议已作废"
 // in the language of msgs.
 //
-// AI 提议的原文被改动了，提议作废的提示。
+// 改稿建议的原文被改动了，提议作废的提示。
 func (msgs Messages) EditorSuggestionsVoided(count int) string {
 	return Catalog.Format(msgs.locale, "editorSuggestionsVoided", map[string]any{"count": count})
 }
@@ -3018,33 +3018,33 @@ func (msgs Messages) EditorVoidedWhy() string {
 	return Catalog.Format(msgs.locale, "editorVoidedWhy", nil)
 }
 
-// EditorAccepted says "已采纳 AI 提议"
+// EditorAccepted says "已采纳改稿建议"
 // in the language the app shows.
 func EditorAccepted() string { return In(i18n.Locale()).EditorAccepted() }
 
-// EditorAccepted says "已采纳 AI 提议"
+// EditorAccepted says "已采纳改稿建议"
 // in the language of msgs.
 func (msgs Messages) EditorAccepted() string {
 	return Catalog.Format(msgs.locale, "editorAccepted", nil)
 }
 
-// EditorAcceptedUndo says "可撤销恢复原文，原版本已存入快照"
+// EditorAcceptedUndo says "可撤销恢复原文，原版本已存入历史版本"
 // in the language the app shows.
 func EditorAcceptedUndo() string { return In(i18n.Locale()).EditorAcceptedUndo() }
 
-// EditorAcceptedUndo says "可撤销恢复原文，原版本已存入快照"
+// EditorAcceptedUndo says "可撤销恢复原文，原版本已存入历史版本"
 // in the language of msgs.
 func (msgs Messages) EditorAcceptedUndo() string {
 	return Catalog.Format(msgs.locale, "editorAcceptedUndo", nil)
 }
 
-// EditorProposalAccepted says "已采纳 AI 提议；可撤销恢复原文，原版本已存入快照"
+// EditorProposalAccepted says "已采纳改稿建议；可撤销恢复原文，原版本已存入历史版本"
 // in the language the app shows.
 //
 // 应用单行提示条：采纳提议成功，同时说明撤销和快照。
 func EditorProposalAccepted() string { return In(i18n.Locale()).EditorProposalAccepted() }
 
-// EditorProposalAccepted says "已采纳 AI 提议；可撤销恢复原文，原版本已存入快照"
+// EditorProposalAccepted says "已采纳改稿建议；可撤销恢复原文，原版本已存入历史版本"
 // in the language of msgs.
 //
 // 应用单行提示条：采纳提议成功，同时说明撤销和快照。
@@ -3052,13 +3052,13 @@ func (msgs Messages) EditorProposalAccepted() string {
 	return Catalog.Format(msgs.locale, "editorProposalAccepted", nil)
 }
 
-// EditorProposalVoid says "AI 提议已作废；写的时候，它要换掉的原文改动了"
+// EditorProposalVoid says "改稿建议已作废；写的时候，它要换掉的原文改动了"
 // in the language the app shows.
 //
 // 应用单行提示条：一处流式提议因作者修改原文而作废。
 func EditorProposalVoid() string { return In(i18n.Locale()).EditorProposalVoid() }
 
-// EditorProposalVoid says "AI 提议已作废；写的时候，它要换掉的原文改动了"
+// EditorProposalVoid says "改稿建议已作废；写的时候，它要换掉的原文改动了"
 // in the language of msgs.
 //
 // 应用单行提示条：一处流式提议因作者修改原文而作废。
@@ -3066,13 +3066,13 @@ func (msgs Messages) EditorProposalVoid() string {
 	return Catalog.Format(msgs.locale, "editorProposalVoid", nil)
 }
 
-// EditorProposalsVoid says "{count, plural, other {# 处 AI 提议已作废；它要换掉的原文改动了}}"
+// EditorProposalsVoid says "{count, plural, other {# 处改稿建议已作废；它要换掉的原文改动了}}"
 // in the language the app shows.
 //
 // 应用单行提示条：原文变化导致多处提议作废。
 func EditorProposalsVoid(count int) string { return In(i18n.Locale()).EditorProposalsVoid(count) }
 
-// EditorProposalsVoid says "{count, plural, other {# 处 AI 提议已作废；它要换掉的原文改动了}}"
+// EditorProposalsVoid says "{count, plural, other {# 处改稿建议已作废；它要换掉的原文改动了}}"
 // in the language of msgs.
 //
 // 应用单行提示条：原文变化导致多处提议作废。
@@ -3113,7 +3113,7 @@ func (msgs Messages) EditorWhyPickModel() string {
 //
 // 应用外壳：{chapters, plural, other {已在 # 章中替换 {total,
 // plural, other {#
-// 处}}，各章替换前的版本已存入快照；本章也可直接撤销}}
+// 处}}，各章替换前的版本已存入历史版本；本章也可直接撤销}}
 func FindReplacedBookUndo(chapters int, total int) string {
 	return In(i18n.Locale()).FindReplacedBookUndo(chapters, total)
 }
@@ -3123,7 +3123,7 @@ func FindReplacedBookUndo(chapters int, total int) string {
 //
 // 应用外壳：{chapters, plural, other {已在 # 章中替换 {total,
 // plural, other {#
-// 处}}，各章替换前的版本已存入快照；本章也可直接撤销}}
+// 处}}，各章替换前的版本已存入历史版本；本章也可直接撤销}}
 func (msgs Messages) FindReplacedBookUndo(chapters int, total int) string {
 	return Catalog.Format(msgs.locale, "findReplacedBookUndo", map[string]any{"chapters": chapters, "total": total})
 }
@@ -3316,7 +3316,7 @@ func (msgs Messages) FindReplaced(count int) string {
 	return Catalog.Format(msgs.locale, "findReplaced", map[string]any{"count": count})
 }
 
-// FindReplacedBook says "已在 {chapters} 章中替换 {total} 处，各章替换前的版本已存入快照"
+// FindReplacedBook says "已在 {chapters} 章中替换 {total} 处，各章替换前的版本已存入历史版本"
 // in the language the app shows.
 //
 // 全书替换完成的提示。
@@ -3324,7 +3324,7 @@ func FindReplacedBook(chapters int, total int) string {
 	return In(i18n.Locale()).FindReplacedBook(chapters, total)
 }
 
-// FindReplacedBook says "已在 {chapters} 章中替换 {total} 处，各章替换前的版本已存入快照"
+// FindReplacedBook says "已在 {chapters} 章中替换 {total} 处，各章替换前的版本已存入历史版本"
 // in the language of msgs.
 //
 // 全书替换完成的提示。
@@ -4618,11 +4618,11 @@ func (msgs Messages) ChatQuoteChanged() string {
 	return Catalog.Format(msgs.locale, "chatQuoteChanged", nil)
 }
 
-// ChatProposalVoid says "AI 提议已作废"
+// ChatProposalVoid says "改稿建议已作废"
 // in the language the app shows.
 func ChatProposalVoid() string { return In(i18n.Locale()).ChatProposalVoid() }
 
-// ChatProposalVoid says "AI 提议已作废"
+// ChatProposalVoid says "改稿建议已作废"
 // in the language of msgs.
 func (msgs Messages) ChatProposalVoid() string {
 	return Catalog.Format(msgs.locale, "chatProposalVoid", nil)
@@ -4918,13 +4918,13 @@ func (msgs Messages) ChatMoreChanges(count int) string {
 	return Catalog.Format(msgs.locale, "chatMoreChanges", map[string]any{"count": count})
 }
 
-// ChatProposeEdit says "提议修改「{chapter}」"
+// ChatProposeEdit says "建议修改「{chapter}」"
 // in the language the app shows.
 //
 // AI 在正文里提议修改的那一章。
 func ChatProposeEdit(chapter string) string { return In(i18n.Locale()).ChatProposeEdit(chapter) }
 
-// ChatProposeEdit says "提议修改「{chapter}」"
+// ChatProposeEdit says "建议修改「{chapter}」"
 // in the language of msgs.
 //
 // AI 在正文里提议修改的那一章。
@@ -4942,21 +4942,21 @@ func (msgs Messages) ChatViewInText() string {
 	return Catalog.Format(msgs.locale, "chatViewInText", nil)
 }
 
-// ChatFateReplaced says "已被新的提议替换"
+// ChatFateReplaced says "已被新的建议替换"
 // in the language the app shows.
 func ChatFateReplaced() string { return In(i18n.Locale()).ChatFateReplaced() }
 
-// ChatFateReplaced says "已被新的提议替换"
+// ChatFateReplaced says "已被新的建议替换"
 // in the language of msgs.
 func (msgs Messages) ChatFateReplaced() string {
 	return Catalog.Format(msgs.locale, "chatFateReplaced", nil)
 }
 
-// ChatFateChanged says "正文已改动，提议已作废"
+// ChatFateChanged says "正文已改动，建议已作废"
 // in the language the app shows.
 func ChatFateChanged() string { return In(i18n.Locale()).ChatFateChanged() }
 
-// ChatFateChanged says "正文已改动，提议已作废"
+// ChatFateChanged says "正文已改动，建议已作废"
 // in the language of msgs.
 func (msgs Messages) ChatFateChanged() string {
 	return Catalog.Format(msgs.locale, "chatFateChanged", nil)
@@ -4995,13 +4995,13 @@ func (msgs Messages) ChatFateWaiting() string {
 // ChatWords says "{count} 字"
 // in the language the app shows.
 //
-// AI 提议改动的字数。
+// 改稿建议改动的字数。
 func ChatWords(count int) string { return In(i18n.Locale()).ChatWords(count) }
 
 // ChatWords says "{count} 字"
 // in the language of msgs.
 //
-// AI 提议改动的字数。
+// 改稿建议改动的字数。
 func (msgs Messages) ChatWords(count int) string {
 	return Catalog.Format(msgs.locale, "chatWords", map[string]any{"count": count})
 }
@@ -5374,11 +5374,11 @@ func (msgs Messages) ChatReplying() string {
 	return Catalog.Format(msgs.locale, "chatReplying", nil)
 }
 
-// ChatProposing says "正在正文中提议修改…"
+// ChatProposing says "正在正文中写改稿建议…"
 // in the language the app shows.
 func ChatProposing() string { return In(i18n.Locale()).ChatProposing() }
 
-// ChatProposing says "正在正文中提议修改…"
+// ChatProposing says "正在正文中写改稿建议…"
 // in the language of msgs.
 func (msgs Messages) ChatProposing() string {
 	return Catalog.Format(msgs.locale, "chatProposing", nil)
@@ -10180,11 +10180,11 @@ func (msgs Messages) SettingsRemote() string {
 	return Catalog.Format(msgs.locale, "settingsRemote", nil)
 }
 
-// SettingsNoPen says "还没有续写和检查模型"
+// SettingsNoPen says "还没选续写检查的模型"
 // in the language the app shows.
 func SettingsNoPen() string { return In(i18n.Locale()).SettingsNoPen() }
 
-// SettingsNoPen says "还没有续写和检查模型"
+// SettingsNoPen says "还没选续写检查的模型"
 // in the language of msgs.
 func (msgs Messages) SettingsNoPen() string {
 	return Catalog.Format(msgs.locale, "settingsNoPen", nil)
@@ -10200,24 +10200,14 @@ func (msgs Messages) SettingsInvalidAddress() string {
 	return Catalog.Format(msgs.locale, "settingsInvalidAddress", nil)
 }
 
-// SettingsTabRemind says "提醒与检查"
+// SettingsTabRemind says "提醒"
 // in the language the app shows.
 func SettingsTabRemind() string { return In(i18n.Locale()).SettingsTabRemind() }
 
-// SettingsTabRemind says "提醒与检查"
+// SettingsTabRemind says "提醒"
 // in the language of msgs.
 func (msgs Messages) SettingsTabRemind() string {
 	return Catalog.Format(msgs.locale, "settingsTabRemind", nil)
-}
-
-// SettingsTabRemindOnly says "提醒"
-// in the language the app shows.
-func SettingsTabRemindOnly() string { return In(i18n.Locale()).SettingsTabRemindOnly() }
-
-// SettingsTabRemindOnly says "提醒"
-// in the language of msgs.
-func (msgs Messages) SettingsTabRemindOnly() string {
-	return Catalog.Format(msgs.locale, "settingsTabRemindOnly", nil)
 }
 
 // SettingsTabBackup says "备份"
@@ -10240,31 +10230,31 @@ func (msgs Messages) SettingsTitle() string {
 	return Catalog.Format(msgs.locale, "settingsTitle", nil)
 }
 
-// SettingsClose says "关闭设置"
+// SettingsClose says "关闭"
 // in the language the app shows.
 func SettingsClose() string { return In(i18n.Locale()).SettingsClose() }
 
-// SettingsClose says "关闭设置"
+// SettingsClose says "关闭"
 // in the language of msgs.
 func (msgs Messages) SettingsClose() string {
 	return Catalog.Format(msgs.locale, "settingsClose", nil)
 }
 
-// SettingsLocalOnly says "仅在本机生效，适用于所有作品。"
+// SettingsLocalOnly says "这台电脑上的所有作品"
 // in the language the app shows.
 func SettingsLocalOnly() string { return In(i18n.Locale()).SettingsLocalOnly() }
 
-// SettingsLocalOnly says "仅在本机生效，适用于所有作品。"
+// SettingsLocalOnly says "这台电脑上的所有作品"
 // in the language of msgs.
 func (msgs Messages) SettingsLocalOnly() string {
 	return Catalog.Format(msgs.locale, "settingsLocalOnly", nil)
 }
 
-// SettingsBookOnly says "仅适用于本作品。"
+// SettingsBookOnly says "只管这部作品"
 // in the language the app shows.
 func SettingsBookOnly() string { return In(i18n.Locale()).SettingsBookOnly() }
 
-// SettingsBookOnly says "仅适用于本作品。"
+// SettingsBookOnly says "只管这部作品"
 // in the language of msgs.
 func (msgs Messages) SettingsBookOnly() string {
 	return Catalog.Format(msgs.locale, "settingsBookOnly", nil)
@@ -10280,11 +10270,11 @@ func (msgs Messages) SettingsRecordsTitle() string {
 	return Catalog.Format(msgs.locale, "settingsRecordsTitle", nil)
 }
 
-// SettingsRecordsNote says "只记发了哪几部分、各多大，不存内容。"
+// SettingsRecordsNote says "只记发了什么、多少字，不存原文。"
 // in the language the app shows.
 func SettingsRecordsNote() string { return In(i18n.Locale()).SettingsRecordsNote() }
 
-// SettingsRecordsNote says "只记发了哪几部分、各多大，不存内容。"
+// SettingsRecordsNote says "只记发了什么、多少字，不存原文。"
 // in the language of msgs.
 func (msgs Messages) SettingsRecordsNote() string {
 	return Catalog.Format(msgs.locale, "settingsRecordsNote", nil)
@@ -10300,41 +10290,41 @@ func (msgs Messages) SettingsColor() string {
 	return Catalog.Format(msgs.locale, "settingsColor", nil)
 }
 
-// SettingsMarkNames says "正文中标出设定的名字"
+// SettingsMarkNames says "标出设定里的名字"
 // in the language the app shows.
 func SettingsMarkNames() string { return In(i18n.Locale()).SettingsMarkNames() }
 
-// SettingsMarkNames says "正文中标出设定的名字"
+// SettingsMarkNames says "标出设定里的名字"
 // in the language of msgs.
 func (msgs Messages) SettingsMarkNames() string {
 	return Catalog.Format(msgs.locale, "settingsMarkNames", nil)
 }
 
-// SettingsDisableGPU says "禁用 GPU 加速"
+// SettingsDisableGPU says "关闭显卡加速"
 // in the language the app shows.
 func SettingsDisableGPU() string { return In(i18n.Locale()).SettingsDisableGPU() }
 
-// SettingsDisableGPU says "禁用 GPU 加速"
+// SettingsDisableGPU says "关闭显卡加速"
 // in the language of msgs.
 func (msgs Messages) SettingsDisableGPU() string {
 	return Catalog.Format(msgs.locale, "settingsDisableGPU", nil)
 }
 
-// SettingsGPUNext says "重新打开软件后生效。"
+// SettingsGPUNext says "重启软件后生效。"
 // in the language the app shows.
 func SettingsGPUNext() string { return In(i18n.Locale()).SettingsGPUNext() }
 
-// SettingsGPUNext says "重新打开软件后生效。"
+// SettingsGPUNext says "重启软件后生效。"
 // in the language of msgs.
 func (msgs Messages) SettingsGPUNext() string {
 	return Catalog.Format(msgs.locale, "settingsGPUNext", nil)
 }
 
-// SettingsRestartNow says "立即重新打开"
+// SettingsRestartNow says "立即重启"
 // in the language the app shows.
 func SettingsRestartNow() string { return In(i18n.Locale()).SettingsRestartNow() }
 
-// SettingsRestartNow says "立即重新打开"
+// SettingsRestartNow says "立即重启"
 // in the language of msgs.
 func (msgs Messages) SettingsRestartNow() string {
 	return Catalog.Format(msgs.locale, "settingsRestartNow", nil)
@@ -10408,21 +10398,21 @@ func (msgs Messages) SettingsLateNow(count int) string {
 	return Catalog.Format(msgs.locale, "settingsLateNow", map[string]any{"count": count})
 }
 
-// SettingsCheckText says "检查正文和设定"
+// SettingsCheckText says "何时检查"
 // in the language the app shows.
 func SettingsCheckText() string { return In(i18n.Locale()).SettingsCheckText() }
 
-// SettingsCheckText says "检查正文和设定"
+// SettingsCheckText says "何时检查"
 // in the language of msgs.
 func (msgs Messages) SettingsCheckText() string {
 	return Catalog.Format(msgs.locale, "settingsCheckText", nil)
 }
 
-// SettingsBookModels says "本作品的模型"
+// SettingsBookModels says "选用模型"
 // in the language the app shows.
 func SettingsBookModels() string { return In(i18n.Locale()).SettingsBookModels() }
 
-// SettingsBookModels says "本作品的模型"
+// SettingsBookModels says "选用模型"
 // in the language of msgs.
 func (msgs Messages) SettingsBookModels() string {
 	return Catalog.Format(msgs.locale, "settingsBookModels", nil)
@@ -10448,31 +10438,31 @@ func (msgs Messages) SettingsAutoContinue() string {
 	return Catalog.Format(msgs.locale, "settingsAutoContinue", nil)
 }
 
-// SettingsAutoNote says "开启后每次停笔都会调用一次 AI。"
+// SettingsAutoNote says "每次停笔都会用一次 AI。"
 // in the language the app shows.
 func SettingsAutoNote() string { return In(i18n.Locale()).SettingsAutoNote() }
 
-// SettingsAutoNote says "开启后每次停笔都会调用一次 AI。"
+// SettingsAutoNote says "每次停笔都会用一次 AI。"
 // in the language of msgs.
 func (msgs Messages) SettingsAutoNote() string {
 	return Catalog.Format(msgs.locale, "settingsAutoNote", nil)
 }
 
-// SettingsServices says "模型服务"
+// SettingsServices says "AI 服务"
 // in the language the app shows.
 func SettingsServices() string { return In(i18n.Locale()).SettingsServices() }
 
-// SettingsServices says "模型服务"
+// SettingsServices says "AI 服务"
 // in the language of msgs.
 func (msgs Messages) SettingsServices() string {
 	return Catalog.Format(msgs.locale, "settingsServices", nil)
 }
 
-// SettingsServicesNote says "保存在本机，所有作品共用"
+// SettingsServicesNote says "所有作品共用"
 // in the language the app shows.
 func SettingsServicesNote() string { return In(i18n.Locale()).SettingsServicesNote() }
 
-// SettingsServicesNote says "保存在本机，所有作品共用"
+// SettingsServicesNote says "所有作品共用"
 // in the language of msgs.
 func (msgs Messages) SettingsServicesNote() string {
 	return Catalog.Format(msgs.locale, "settingsServicesNote", nil)
@@ -10488,21 +10478,21 @@ func (msgs Messages) SettingsOpenConfig() string {
 	return Catalog.Format(msgs.locale, "settingsOpenConfig", nil)
 }
 
-// SettingsReload says "重新加载配置"
+// SettingsReload says "重新读取"
 // in the language the app shows.
 func SettingsReload() string { return In(i18n.Locale()).SettingsReload() }
 
-// SettingsReload says "重新加载配置"
+// SettingsReload says "重新读取"
 // in the language of msgs.
 func (msgs Messages) SettingsReload() string {
 	return Catalog.Format(msgs.locale, "settingsReload", nil)
 }
 
-// SettingsReloaded says "配置已重新读取"
+// SettingsReloaded says "已重新读取"
 // in the language the app shows.
 func SettingsReloaded() string { return In(i18n.Locale()).SettingsReloaded() }
 
-// SettingsReloaded says "配置已重新读取"
+// SettingsReloaded says "已重新读取"
 // in the language of msgs.
 func (msgs Messages) SettingsReloaded() string {
 	return Catalog.Format(msgs.locale, "settingsReloaded", nil)
@@ -10518,21 +10508,21 @@ func (msgs Messages) SettingsAddService() string {
 	return Catalog.Format(msgs.locale, "settingsAddService", nil)
 }
 
-// SettingsUsage says "本作品用量"
+// SettingsUsage says "用量"
 // in the language the app shows.
 func SettingsUsage() string { return In(i18n.Locale()).SettingsUsage() }
 
-// SettingsUsage says "本作品用量"
+// SettingsUsage says "用量"
 // in the language of msgs.
 func (msgs Messages) SettingsUsage() string {
 	return Catalog.Format(msgs.locale, "settingsUsage", nil)
 }
 
-// SettingsNoUsage says "尚未使用 AI。"
+// SettingsNoUsage says "还没用过 AI。"
 // in the language the app shows.
 func SettingsNoUsage() string { return In(i18n.Locale()).SettingsNoUsage() }
 
-// SettingsNoUsage says "尚未使用 AI。"
+// SettingsNoUsage says "还没用过 AI。"
 // in the language of msgs.
 func (msgs Messages) SettingsNoUsage() string {
 	return Catalog.Format(msgs.locale, "settingsNoUsage", nil)
@@ -10568,13 +10558,13 @@ func (msgs Messages) SettingsSpentCost(amount float64) string {
 	return Catalog.Format(msgs.locale, "settingsSpentCost", map[string]any{"amount": amount})
 }
 
-// SettingsViewAll says "查看全部记录（{count} 次请求）"
+// SettingsViewAll says "查看全部 {count} 次"
 // in the language the app shows.
 //
 // 用量下面的链接，后面写共几次请求。
 func SettingsViewAll(count int) string { return In(i18n.Locale()).SettingsViewAll(count) }
 
-// SettingsViewAll says "查看全部记录（{count} 次请求）"
+// SettingsViewAll says "查看全部 {count} 次"
 // in the language of msgs.
 //
 // 用量下面的链接，后面写共几次请求。
@@ -10592,21 +10582,21 @@ func (msgs Messages) SettingsRecordsAll() string {
 	return Catalog.Format(msgs.locale, "settingsRecordsAll", nil)
 }
 
-// SettingsFilterByFeature says "按功能筛选"
+// SettingsFilterByFeature says "按功能看"
 // in the language the app shows.
 func SettingsFilterByFeature() string { return In(i18n.Locale()).SettingsFilterByFeature() }
 
-// SettingsFilterByFeature says "按功能筛选"
+// SettingsFilterByFeature says "按功能看"
 // in the language of msgs.
 func (msgs Messages) SettingsFilterByFeature() string {
 	return Catalog.Format(msgs.locale, "settingsFilterByFeature", nil)
 }
 
-// SettingsNoRecords says "没有这类请求。"
+// SettingsNoRecords says "没有记录。"
 // in the language the app shows.
 func SettingsNoRecords() string { return In(i18n.Locale()).SettingsNoRecords() }
 
-// SettingsNoRecords says "没有这类请求。"
+// SettingsNoRecords says "没有记录。"
 // in the language of msgs.
 func (msgs Messages) SettingsNoRecords() string {
 	return Catalog.Format(msgs.locale, "settingsNoRecords", nil)
@@ -10632,13 +10622,13 @@ func (msgs Messages) SettingsRecordCancelled() string {
 	return Catalog.Format(msgs.locale, "settingsRecordCancelled", nil)
 }
 
-// SettingsRecordSent says "发送：{parts}"
+// SettingsRecordSent says "发了：{parts}"
 // in the language the app shows.
 //
 // AI 记录里一次请求发了哪几部分、各多大。
 func SettingsRecordSent(parts string) string { return In(i18n.Locale()).SettingsRecordSent(parts) }
 
-// SettingsRecordSent says "发送：{parts}"
+// SettingsRecordSent says "发了：{parts}"
 // in the language of msgs.
 //
 // AI 记录里一次请求发了哪几部分、各多大。
@@ -10694,13 +10684,13 @@ func (msgs Messages) SettingsCostCurrency(currency string, amount float64) strin
 	return Catalog.Format(msgs.locale, "settingsCostCurrency", map[string]any{"currency": currency, "amount": amount})
 }
 
-// SettingsNoPrice says "无价格"
+// SettingsNoPrice says "价格未知"
 // in the language the app shows.
 //
 // 用量汇总里模型没有定价时显示。
 func SettingsNoPrice() string { return In(i18n.Locale()).SettingsNoPrice() }
 
-// SettingsNoPrice says "无价格"
+// SettingsNoPrice says "价格未知"
 // in the language of msgs.
 //
 // 用量汇总里模型没有定价时显示。
@@ -10708,13 +10698,13 @@ func (msgs Messages) SettingsNoPrice() string {
 	return Catalog.Format(msgs.locale, "settingsNoPrice", nil)
 }
 
-// SettingsUsageBack says "‹ 本作品用量"
+// SettingsUsageBack says "‹ 用量"
 // in the language the app shows.
 //
 // AI 记录页返回本作品用量的按钮，含返回箭头。
 func SettingsUsageBack() string { return In(i18n.Locale()).SettingsUsageBack() }
 
-// SettingsUsageBack says "‹ 本作品用量"
+// SettingsUsageBack says "‹ 用量"
 // in the language of msgs.
 //
 // AI 记录页返回本作品用量的按钮，含返回箭头。
@@ -10838,11 +10828,11 @@ func (msgs Messages) SettingsEffortFor(job string) string {
 	return Catalog.Format(msgs.locale, "settingsEffortFor", map[string]any{"job": job})
 }
 
-// SettingsModelHint says "输入或选择模型 ID"
+// SettingsModelHint says "输入或选择模型"
 // in the language the app shows.
 func SettingsModelHint() string { return In(i18n.Locale()).SettingsModelHint() }
 
-// SettingsModelHint says "输入或选择模型 ID"
+// SettingsModelHint says "输入或选择模型"
 // in the language of msgs.
 func (msgs Messages) SettingsModelHint() string {
 	return Catalog.Format(msgs.locale, "settingsModelHint", nil)
@@ -10898,21 +10888,21 @@ func (msgs Messages) SettingsCompressPct() string {
 	return Catalog.Format(msgs.locale, "settingsCompressPct", nil)
 }
 
-// SettingsRemoveModel says "移除模型"
+// SettingsRemoveModel says "移除"
 // in the language the app shows.
 func SettingsRemoveModel() string { return In(i18n.Locale()).SettingsRemoveModel() }
 
-// SettingsRemoveModel says "移除模型"
+// SettingsRemoveModel says "移除"
 // in the language of msgs.
 func (msgs Messages) SettingsRemoveModel() string {
 	return Catalog.Format(msgs.locale, "settingsRemoveModel", nil)
 }
 
-// SettingsSameAsTalk says "沿用讨论模型"
+// SettingsSameAsTalk says "和讨论相同"
 // in the language the app shows.
 func SettingsSameAsTalk() string { return In(i18n.Locale()).SettingsSameAsTalk() }
 
-// SettingsSameAsTalk says "沿用讨论模型"
+// SettingsSameAsTalk says "和讨论相同"
 // in the language of msgs.
 func (msgs Messages) SettingsSameAsTalk() string {
 	return Catalog.Format(msgs.locale, "settingsSameAsTalk", nil)
@@ -10968,61 +10958,61 @@ func (msgs Messages) SettingsIDLabel() string {
 	return Catalog.Format(msgs.locale, "settingsIDLabel", nil)
 }
 
-// SettingsDisplayName says "显示名称"
+// SettingsDisplayName says "名称"
 // in the language the app shows.
 func SettingsDisplayName() string { return In(i18n.Locale()).SettingsDisplayName() }
 
-// SettingsDisplayName says "显示名称"
+// SettingsDisplayName says "名称"
 // in the language of msgs.
 func (msgs Messages) SettingsDisplayName() string {
 	return Catalog.Format(msgs.locale, "settingsDisplayName", nil)
 }
 
-// SettingsAPIURL says "API 地址"
+// SettingsAPIURL says "服务地址"
 // in the language the app shows.
 func SettingsAPIURL() string { return In(i18n.Locale()).SettingsAPIURL() }
 
-// SettingsAPIURL says "API 地址"
+// SettingsAPIURL says "服务地址"
 // in the language of msgs.
 func (msgs Messages) SettingsAPIURL() string {
 	return Catalog.Format(msgs.locale, "settingsAPIURL", nil)
 }
 
-// SettingsLocalNote says "本机地址：请确认该服务不会转发到云端"
+// SettingsLocalNote says "本机服务：确认它不转发到网上"
 // in the language the app shows.
 func SettingsLocalNote() string { return In(i18n.Locale()).SettingsLocalNote() }
 
-// SettingsLocalNote says "本机地址：请确认该服务不会转发到云端"
+// SettingsLocalNote says "本机服务：确认它不转发到网上"
 // in the language of msgs.
 func (msgs Messages) SettingsLocalNote() string {
 	return Catalog.Format(msgs.locale, "settingsLocalNote", nil)
 }
 
-// SettingsRemoteNote says "远程服务：讨论内容将发送到该地址"
+// SettingsRemoteNote says "内容会发到这个地址"
 // in the language the app shows.
 func SettingsRemoteNote() string { return In(i18n.Locale()).SettingsRemoteNote() }
 
-// SettingsRemoteNote says "远程服务：讨论内容将发送到该地址"
+// SettingsRemoteNote says "内容会发到这个地址"
 // in the language of msgs.
 func (msgs Messages) SettingsRemoteNote() string {
 	return Catalog.Format(msgs.locale, "settingsRemoteNote", nil)
 }
 
-// SettingsKeyEmptyNew says "留空则不用 key"
+// SettingsKeyEmptyNew says "不填就不用 key"
 // in the language the app shows.
 func SettingsKeyEmptyNew() string { return In(i18n.Locale()).SettingsKeyEmptyNew() }
 
-// SettingsKeyEmptyNew says "留空则不用 key"
+// SettingsKeyEmptyNew says "不填就不用 key"
 // in the language of msgs.
 func (msgs Messages) SettingsKeyEmptyNew() string {
 	return Catalog.Format(msgs.locale, "settingsKeyEmptyNew", nil)
 }
 
-// SettingsKeyEmptySaved says "留空则保留已存的 key"
+// SettingsKeyEmptySaved says "不填就沿用已存的 key"
 // in the language the app shows.
 func SettingsKeyEmptySaved() string { return In(i18n.Locale()).SettingsKeyEmptySaved() }
 
-// SettingsKeyEmptySaved says "留空则保留已存的 key"
+// SettingsKeyEmptySaved says "不填就沿用已存的 key"
 // in the language of msgs.
 func (msgs Messages) SettingsKeyEmptySaved() string {
 	return Catalog.Format(msgs.locale, "settingsKeyEmptySaved", nil)
@@ -11072,21 +11062,21 @@ func (msgs Messages) SettingsEnvDetected(name string) string {
 	return Catalog.Format(msgs.locale, "settingsEnvDetected", map[string]any{"name": name})
 }
 
-// SettingsKeyNote says "key 保存在系统钥匙串中，不会写入配置文件或作品。"
+// SettingsKeyNote says "key 存在系统钥匙串里，不进作品。"
 // in the language the app shows.
 func SettingsKeyNote() string { return In(i18n.Locale()).SettingsKeyNote() }
 
-// SettingsKeyNote says "key 保存在系统钥匙串中，不会写入配置文件或作品。"
+// SettingsKeyNote says "key 存在系统钥匙串里，不进作品。"
 // in the language of msgs.
 func (msgs Messages) SettingsKeyNote() string {
 	return Catalog.Format(msgs.locale, "settingsKeyNote", nil)
 }
 
-// SettingsModels says "可用模型"
+// SettingsModels says "模型"
 // in the language the app shows.
 func SettingsModels() string { return In(i18n.Locale()).SettingsModels() }
 
-// SettingsModels says "可用模型"
+// SettingsModels says "模型"
 // in the language of msgs.
 func (msgs Messages) SettingsModels() string {
 	return Catalog.Format(msgs.locale, "settingsModels", nil)
@@ -11112,21 +11102,21 @@ func (msgs Messages) SettingsCompressNote() string {
 	return Catalog.Format(msgs.locale, "settingsCompressNote", nil)
 }
 
-// SettingsClearKey says "清除已保存 key"
+// SettingsClearKey says "清除 key"
 // in the language the app shows.
 func SettingsClearKey() string { return In(i18n.Locale()).SettingsClearKey() }
 
-// SettingsClearKey says "清除已保存 key"
+// SettingsClearKey says "清除 key"
 // in the language of msgs.
 func (msgs Messages) SettingsClearKey() string {
 	return Catalog.Format(msgs.locale, "settingsClearKey", nil)
 }
 
-// SettingsKeyCleared says "已清除保存的 key"
+// SettingsKeyCleared says "key 已清除"
 // in the language the app shows.
 func SettingsKeyCleared() string { return In(i18n.Locale()).SettingsKeyCleared() }
 
-// SettingsKeyCleared says "已清除保存的 key"
+// SettingsKeyCleared says "key 已清除"
 // in the language of msgs.
 func (msgs Messages) SettingsKeyCleared() string {
 	return Catalog.Format(msgs.locale, "settingsKeyCleared", nil)
@@ -11152,21 +11142,21 @@ func (msgs Messages) SettingsFetchModels() string {
 	return Catalog.Format(msgs.locale, "settingsFetchModels", nil)
 }
 
-// SettingsSaveProvider says "保存提供商"
+// SettingsSaveProvider says "保存"
 // in the language the app shows.
 func SettingsSaveProvider() string { return In(i18n.Locale()).SettingsSaveProvider() }
 
-// SettingsSaveProvider says "保存提供商"
+// SettingsSaveProvider says "保存"
 // in the language of msgs.
 func (msgs Messages) SettingsSaveProvider() string {
 	return Catalog.Format(msgs.locale, "settingsSaveProvider", nil)
 }
 
-// SettingsSaved says "提供商已保存"
+// SettingsSaved says "已保存"
 // in the language the app shows.
 func SettingsSaved() string { return In(i18n.Locale()).SettingsSaved() }
 
-// SettingsSaved says "提供商已保存"
+// SettingsSaved says "已保存"
 // in the language of msgs.
 func (msgs Messages) SettingsSaved() string {
 	return Catalog.Format(msgs.locale, "settingsSaved", nil)
@@ -11182,11 +11172,11 @@ func (msgs Messages) SettingsFetching() string {
 	return Catalog.Format(msgs.locale, "settingsFetching", nil)
 }
 
-// SettingsModelsFetched says "已获取模型目录，保存提供商后生效"
+// SettingsModelsFetched says "已获取，保存后生效"
 // in the language the app shows.
 func SettingsModelsFetched() string { return In(i18n.Locale()).SettingsModelsFetched() }
 
-// SettingsModelsFetched says "已获取模型目录，保存提供商后生效"
+// SettingsModelsFetched says "已获取，保存后生效"
 // in the language of msgs.
 func (msgs Messages) SettingsModelsFetched() string {
 	return Catalog.Format(msgs.locale, "settingsModelsFetched", nil)
@@ -11228,11 +11218,11 @@ func (msgs Messages) SettingsServiceMeta(host string, count int) string {
 	return Catalog.Format(msgs.locale, "settingsServiceMeta", map[string]any{"host": host, "count": count})
 }
 
-// SettingsInUse says "本作品使用中"
+// SettingsInUse says "本作品在用"
 // in the language the app shows.
 func SettingsInUse() string { return In(i18n.Locale()).SettingsInUse() }
 
-// SettingsInUse says "本作品使用中"
+// SettingsInUse says "本作品在用"
 // in the language of msgs.
 func (msgs Messages) SettingsInUse() string {
 	return Catalog.Format(msgs.locale, "settingsInUse", nil)
@@ -11248,73 +11238,73 @@ func (msgs Messages) SettingsCloseAI() string {
 	return Catalog.Format(msgs.locale, "settingsCloseAI", nil)
 }
 
-// SettingsAIOffNote says "隐藏全部 AI 功能，不发送任何内容。"
+// SettingsAIOffNote says "隐藏所有 AI 功能，什么都不发出。"
 // in the language the app shows.
 func SettingsAIOffNote() string { return In(i18n.Locale()).SettingsAIOffNote() }
 
-// SettingsAIOffNote says "隐藏全部 AI 功能，不发送任何内容。"
+// SettingsAIOffNote says "隐藏所有 AI 功能，什么都不发出。"
 // in the language of msgs.
 func (msgs Messages) SettingsAIOffNote() string {
 	return Catalog.Format(msgs.locale, "settingsAIOffNote", nil)
 }
 
-// SettingsTurnOn says "开启 AI"
+// SettingsTurnOn says "打开 AI"
 // in the language the app shows.
 func SettingsTurnOn() string { return In(i18n.Locale()).SettingsTurnOn() }
 
-// SettingsTurnOn says "开启 AI"
+// SettingsTurnOn says "打开 AI"
 // in the language of msgs.
 func (msgs Messages) SettingsTurnOn() string {
 	return Catalog.Format(msgs.locale, "settingsTurnOn", nil)
 }
 
-// SettingsAskOffTitle says "是否关闭 AI？"
+// SettingsAskOffTitle says "关闭 AI？"
 // in the language the app shows.
 func SettingsAskOffTitle() string { return In(i18n.Locale()).SettingsAskOffTitle() }
 
-// SettingsAskOffTitle says "是否关闭 AI？"
+// SettingsAskOffTitle says "关闭 AI？"
 // in the language of msgs.
 func (msgs Messages) SettingsAskOffTitle() string {
 	return Catalog.Format(msgs.locale, "settingsAskOffTitle", nil)
 }
 
-// SettingsAskOffAbout says "隐藏全部 AI 功能，不再发送任何内容；正在进行的 AI 任务会停止，没有处理的 AI …"
+// SettingsAskOffAbout says "进行中的任务会停下，没采纳的改稿建议会丢掉，记录都留着。"
 // in the language the app shows.
 func SettingsAskOffAbout() string { return In(i18n.Locale()).SettingsAskOffAbout() }
 
-// SettingsAskOffAbout says "隐藏全部 AI 功能，不再发送任何内容；正在进行的 AI 任务会停止，没有处理的 AI …"
+// SettingsAskOffAbout says "进行中的任务会停下，没采纳的改稿建议会丢掉，记录都留着。"
 // in the language of msgs.
 func (msgs Messages) SettingsAskOffAbout() string {
 	return Catalog.Format(msgs.locale, "settingsAskOffAbout", nil)
 }
 
-// SettingsAskOnTitle says "是否开启 AI？"
+// SettingsAskOnTitle says "打开 AI？"
 // in the language the app shows.
 func SettingsAskOnTitle() string { return In(i18n.Locale()).SettingsAskOnTitle() }
 
-// SettingsAskOnTitle says "是否开启 AI？"
+// SettingsAskOnTitle says "打开 AI？"
 // in the language of msgs.
 func (msgs Messages) SettingsAskOnTitle() string {
 	return Catalog.Format(msgs.locale, "settingsAskOnTitle", nil)
 }
 
-// SettingsAskOnAbout says "重新显示 AI …"
+// SettingsAskOnAbout says "检查会把章节内容发给 AI 服务。"
 // in the language the app shows.
 func SettingsAskOnAbout() string { return In(i18n.Locale()).SettingsAskOnAbout() }
 
-// SettingsAskOnAbout says "重新显示 AI …"
+// SettingsAskOnAbout says "检查会把章节内容发给 AI 服务。"
 // in the language of msgs.
 func (msgs Messages) SettingsAskOnAbout() string {
 	return Catalog.Format(msgs.locale, "settingsAskOnAbout", nil)
 }
 
-// SettingsIDTaken says "该 ID 已被「{name}」使用，请换一个"
+// SettingsIDTaken says "和「{name}」重名了，换一个"
 // in the language the app shows.
 //
 // 服务的 ID 已被另一个服务用了。
 func SettingsIDTaken(name string) string { return In(i18n.Locale()).SettingsIDTaken(name) }
 
-// SettingsIDTaken says "该 ID 已被「{name}」使用，请换一个"
+// SettingsIDTaken says "和「{name}」重名了，换一个"
 // in the language of msgs.
 //
 // 服务的 ID 已被另一个服务用了。
@@ -11332,31 +11322,31 @@ func (msgs Messages) SettingsIDRule() string {
 	return Catalog.Format(msgs.locale, "settingsIDRule", nil)
 }
 
-// SettingsURLScheme says "API 地址须以 http:// 或 https:// 开头"
+// SettingsURLScheme says "地址要以 http:// 或 https:// 开头"
 // in the language the app shows.
 func SettingsURLScheme() string { return In(i18n.Locale()).SettingsURLScheme() }
 
-// SettingsURLScheme says "API 地址须以 http:// 或 https:// 开头"
+// SettingsURLScheme says "地址要以 http:// 或 https:// 开头"
 // in the language of msgs.
 func (msgs Messages) SettingsURLScheme() string {
 	return Catalog.Format(msgs.locale, "settingsURLScheme", nil)
 }
 
-// SettingsURLNoHost says "API 地址里没有域名"
+// SettingsURLNoHost says "地址不完整"
 // in the language the app shows.
 func SettingsURLNoHost() string { return In(i18n.Locale()).SettingsURLNoHost() }
 
-// SettingsURLNoHost says "API 地址里没有域名"
+// SettingsURLNoHost says "地址不完整"
 // in the language of msgs.
 func (msgs Messages) SettingsURLNoHost() string {
 	return Catalog.Format(msgs.locale, "settingsURLNoHost", nil)
 }
 
-// SettingsURLExtra says "API 地址不能带账号、查询参数或锚点"
+// SettingsURLExtra says "地址里不要带账号，也不要带 ? 或 # 后面的部分"
 // in the language the app shows.
 func SettingsURLExtra() string { return In(i18n.Locale()).SettingsURLExtra() }
 
-// SettingsURLExtra says "API 地址不能带账号、查询参数或锚点"
+// SettingsURLExtra says "地址里不要带账号，也不要带 ? 或 # 后面的部分"
 // in the language of msgs.
 func (msgs Messages) SettingsURLExtra() string {
 	return Catalog.Format(msgs.locale, "settingsURLExtra", nil)
@@ -11770,13 +11760,13 @@ func (msgs Messages) ExportedOne(path string) string {
 	return Catalog.Format(msgs.locale, "exportedOne", map[string]any{"path": path})
 }
 
-// SnapTitle says "快照 · {chapter}"
+// SnapTitle says "历史版本 · {chapter}"
 // in the language the app shows.
 //
 // 快照对话框的标题，后面是章名。
 func SnapTitle(chapter string) string { return In(i18n.Locale()).SnapTitle(chapter) }
 
-// SnapTitle says "快照 · {chapter}"
+// SnapTitle says "历史版本 · {chapter}"
 // in the language of msgs.
 //
 // 快照对话框的标题，后面是章名。
@@ -11800,11 +11790,11 @@ func (msgs Messages) SnapAbout(ai string) string {
 	return Catalog.Format(msgs.locale, "snapAbout", map[string]any{"ai": ai})
 }
 
-// SnapAboutAI says "采纳 AI 提议前、"
+// SnapAboutAI says "采纳改稿建议前、"
 // in the language the app shows.
 func SnapAboutAI() string { return In(i18n.Locale()).SnapAboutAI() }
 
-// SnapAboutAI says "采纳 AI 提议前、"
+// SnapAboutAI says "采纳改稿建议前、"
 // in the language of msgs.
 func (msgs Messages) SnapAboutAI() string {
 	return Catalog.Format(msgs.locale, "snapAboutAI", nil)
@@ -11904,41 +11894,41 @@ func (msgs Messages) SnapCompare() string {
 	return Catalog.Format(msgs.locale, "snapCompare", nil)
 }
 
-// SnapSame says "该快照与当前正文相同"
+// SnapSame says "该历史版本与当前正文相同"
 // in the language the app shows.
 func SnapSame() string { return In(i18n.Locale()).SnapSame() }
 
-// SnapSame says "该快照与当前正文相同"
+// SnapSame says "该历史版本与当前正文相同"
 // in the language of msgs.
 func (msgs Messages) SnapSame() string {
 	return Catalog.Format(msgs.locale, "snapSame", nil)
 }
 
-// SnapDiffHint says "红色删除线为快照中有而当前没有的内容，绿色为当前新增的内容"
+// SnapDiffHint says "红色删除线为历史版本中有而当前没有的内容，绿色为当前新增的内容"
 // in the language the app shows.
 func SnapDiffHint() string { return In(i18n.Locale()).SnapDiffHint() }
 
-// SnapDiffHint says "红色删除线为快照中有而当前没有的内容，绿色为当前新增的内容"
+// SnapDiffHint says "红色删除线为历史版本中有而当前没有的内容，绿色为当前新增的内容"
 // in the language of msgs.
 func (msgs Messages) SnapDiffHint() string {
 	return Catalog.Format(msgs.locale, "snapDiffHint", nil)
 }
 
-// SnapEmpty says "该快照为空"
+// SnapEmpty says "该历史版本为空"
 // in the language the app shows.
 func SnapEmpty() string { return In(i18n.Locale()).SnapEmpty() }
 
-// SnapEmpty says "该快照为空"
+// SnapEmpty says "该历史版本为空"
 // in the language of msgs.
 func (msgs Messages) SnapEmpty() string {
 	return Catalog.Format(msgs.locale, "snapEmpty", nil)
 }
 
-// SnapNone says "本章暂无快照"
+// SnapNone says "本章暂无历史版本"
 // in the language the app shows.
 func SnapNone() string { return In(i18n.Locale()).SnapNone() }
 
-// SnapNone says "本章暂无快照"
+// SnapNone says "本章暂无历史版本"
 // in the language of msgs.
 func (msgs Messages) SnapNone() string {
 	return Catalog.Format(msgs.locale, "snapNone", nil)
@@ -11954,13 +11944,13 @@ func (msgs Messages) SnapRestore() string {
 	return Catalog.Format(msgs.locale, "snapRestore", nil)
 }
 
-// SnapRestored says "已恢复到 {at} 的版本，恢复前的内容已存为快照"
+// SnapRestored says "已恢复到 {at} 的版本，恢复前的内容已存为历史版本"
 // in the language the app shows.
 //
 // 恢复快照后的提示。
 func SnapRestored(at string) string { return In(i18n.Locale()).SnapRestored(at) }
 
-// SnapRestored says "已恢复到 {at} 的版本，恢复前的内容已存为快照"
+// SnapRestored says "已恢复到 {at} 的版本，恢复前的内容已存为历史版本"
 // in the language of msgs.
 //
 // 恢复快照后的提示。
@@ -12314,16 +12304,16 @@ func (msgs Messages) DialogDontSave() string {
 	return Catalog.Format(msgs.locale, "dialogDontSave", nil)
 }
 
-// DialogLeaveTitle says "还有 {count} 处 AI 提议没有处理"
+// DialogLeaveTitle says "还有 {count} 处改稿建议没有处理"
 // in the language the app shows.
 //
-// 关闭作品时还有没处理的 AI 提议。
+// 关闭作品时还有没处理的 改稿建议。
 func DialogLeaveTitle(count int) string { return In(i18n.Locale()).DialogLeaveTitle(count) }
 
-// DialogLeaveTitle says "还有 {count} 处 AI 提议没有处理"
+// DialogLeaveTitle says "还有 {count} 处改稿建议没有处理"
 // in the language of msgs.
 //
-// 关闭作品时还有没处理的 AI 提议。
+// 关闭作品时还有没处理的 改稿建议。
 func (msgs Messages) DialogLeaveTitle(count int) string {
 	return Catalog.Format(msgs.locale, "dialogLeaveTitle", map[string]any{"count": count})
 }
@@ -13108,13 +13098,13 @@ func (msgs Messages) SettingsJobChat() string {
 	return Catalog.Format(msgs.locale, "settingsJobChat", nil)
 }
 
-// SettingsJobCheck says "续写和检查"
+// SettingsJobCheck says "续写检查"
 // in the language the app shows.
 //
 // AI 设置里「续写和检查」这件事的名字。
 func SettingsJobCheck() string { return In(i18n.Locale()).SettingsJobCheck() }
 
-// SettingsJobCheck says "续写和检查"
+// SettingsJobCheck says "续写检查"
 // in the language of msgs.
 //
 // AI 设置里「续写和检查」这件事的名字。
@@ -13122,13 +13112,13 @@ func (msgs Messages) SettingsJobCheck() string {
 	return Catalog.Format(msgs.locale, "settingsJobCheck", nil)
 }
 
-// SettingsJobChatAbout says "与你讨论故事"
+// SettingsJobChatAbout says "聊故事时用"
 // in the language the app shows.
 //
 // AI 设置里「讨论」这件事下面的说明。
 func SettingsJobChatAbout() string { return In(i18n.Locale()).SettingsJobChatAbout() }
 
-// SettingsJobChatAbout says "与你讨论故事"
+// SettingsJobChatAbout says "聊故事时用"
 // in the language of msgs.
 //
 // AI 设置里「讨论」这件事下面的说明。
@@ -13136,13 +13126,13 @@ func (msgs Messages) SettingsJobChatAbout() string {
 	return Catalog.Format(msgs.locale, "settingsJobChatAbout", nil)
 }
 
-// SettingsJobCheckAbout says "灰字续写，检查正文"
+// SettingsJobCheckAbout says "续写和检查时用"
 // in the language the app shows.
 //
 // AI 设置里「续写和检查」这件事下面的说明。
 func SettingsJobCheckAbout() string { return In(i18n.Locale()).SettingsJobCheckAbout() }
 
-// SettingsJobCheckAbout says "灰字续写，检查正文"
+// SettingsJobCheckAbout says "续写和检查时用"
 // in the language of msgs.
 //
 // AI 设置里「续写和检查」这件事下面的说明。
@@ -13419,13 +13409,13 @@ func (msgs Messages) ShelfNoWords() string {
 // ChatFateAdopted says "已采纳"
 // in the language the app shows.
 //
-// 讨论里 AI 提议的修改：作者已经采纳。
+// 讨论里 改稿建议的修改：作者已经采纳。
 func ChatFateAdopted() string { return In(i18n.Locale()).ChatFateAdopted() }
 
 // ChatFateAdopted says "已采纳"
 // in the language of msgs.
 //
-// 讨论里 AI 提议的修改：作者已经采纳。
+// 讨论里 改稿建议的修改：作者已经采纳。
 func (msgs Messages) ChatFateAdopted() string {
 	return Catalog.Format(msgs.locale, "chatFateAdopted", nil)
 }
@@ -13444,14 +13434,14 @@ func (msgs Messages) CommonNumber(n int) string {
 	return Catalog.Format(msgs.locale, "commonNumber", map[string]any{"n": n})
 }
 
-// SnapAIFrom says "采纳讨论{talks}里的提议"
+// SnapAIFrom says "采纳讨论{talks}里的建议"
 // in the language the app shows.
 //
 // 「AI 改动前」的快照写着改动从哪来。talks
 // 是一串讨论名，每个用 snapAITalk 写，按语言连起来。
 func SnapAIFrom(talks string) string { return In(i18n.Locale()).SnapAIFrom(talks) }
 
-// SnapAIFrom says "采纳讨论{talks}里的提议"
+// SnapAIFrom says "采纳讨论{talks}里的建议"
 // in the language of msgs.
 //
 // 「AI 改动前」的快照写着改动从哪来。talks
@@ -13488,18 +13478,18 @@ func (msgs Messages) SnapAITalkGone() string {
 	return Catalog.Format(msgs.locale, "snapAITalkGone", nil)
 }
 
-// SettingsTabModules says "功能"
+// SettingsTabExtensions says "扩展"
 // in the language the app shows.
 //
-// 设置里的一类：各个扩展模块的开关。
-func SettingsTabModules() string { return In(i18n.Locale()).SettingsTabModules() }
+// 设置左栏的一项：所有扩展的开关和各自的页。
+func SettingsTabExtensions() string { return In(i18n.Locale()).SettingsTabExtensions() }
 
-// SettingsTabModules says "功能"
+// SettingsTabExtensions says "扩展"
 // in the language of msgs.
 //
-// 设置里的一类：各个扩展模块的开关。
-func (msgs Messages) SettingsTabModules() string {
-	return Catalog.Format(msgs.locale, "settingsTabModules", nil)
+// 设置左栏的一项：所有扩展的开关和各自的页。
+func (msgs Messages) SettingsTabExtensions() string {
+	return Catalog.Format(msgs.locale, "settingsTabExtensions", nil)
 }
 
 // ModPhone says "手机预览"
@@ -13516,18 +13506,18 @@ func (msgs Messages) ModPhone() string {
 	return Catalog.Format(msgs.locale, "modPhone", nil)
 }
 
-// ModPhoneWhere says "右栏的「预览」，「视图」菜单里的「手机预览」"
+// ModPhoneAbout says "看看在手机上的样子"
 // in the language the app shows.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func ModPhoneWhere() string { return In(i18n.Locale()).ModPhoneWhere() }
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModPhoneAbout() string { return In(i18n.Locale()).ModPhoneAbout() }
 
-// ModPhoneWhere says "右栏的「预览」，「视图」菜单里的「手机预览」"
+// ModPhoneAbout says "看看在手机上的样子"
 // in the language of msgs.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func (msgs Messages) ModPhoneWhere() string {
-	return Catalog.Format(msgs.locale, "modPhoneWhere", nil)
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModPhoneAbout() string {
+	return Catalog.Format(msgs.locale, "modPhoneAbout", nil)
 }
 
 // ModExport says "导出"
@@ -13544,18 +13534,18 @@ func (msgs Messages) ModExport() string {
 	return Catalog.Format(msgs.locale, "modExport", nil)
 }
 
-// ModExportWhere says "「文件」菜单里的「导出…」"
+// ModExportAbout says "存成 TXT、Word、EPUB"
 // in the language the app shows.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func ModExportWhere() string { return In(i18n.Locale()).ModExportWhere() }
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModExportAbout() string { return In(i18n.Locale()).ModExportAbout() }
 
-// ModExportWhere says "「文件」菜单里的「导出…」"
+// ModExportAbout says "存成 TXT、Word、EPUB"
 // in the language of msgs.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func (msgs Messages) ModExportWhere() string {
-	return Catalog.Format(msgs.locale, "modExportWhere", nil)
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModExportAbout() string {
+	return Catalog.Format(msgs.locale, "modExportAbout", nil)
 }
 
 // ModBackup says "备份"
@@ -13572,27 +13562,27 @@ func (msgs Messages) ModBackup() string {
 	return Catalog.Format(msgs.locale, "modBackup", nil)
 }
 
-// ModBackupWhere says "底栏的备份状态，设置里的「备份」"
+// ModBackupAbout says "自动复制一份到别处"
 // in the language the app shows.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func ModBackupWhere() string { return In(i18n.Locale()).ModBackupWhere() }
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModBackupAbout() string { return In(i18n.Locale()).ModBackupAbout() }
 
-// ModBackupWhere says "底栏的备份状态，设置里的「备份」"
+// ModBackupAbout says "自动复制一份到别处"
 // in the language of msgs.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func (msgs Messages) ModBackupWhere() string {
-	return Catalog.Format(msgs.locale, "modBackupWhere", nil)
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModBackupAbout() string {
+	return Catalog.Format(msgs.locale, "modBackupAbout", nil)
 }
 
-// ModBackupOff says "关着时不再自动备份，已有的备份留着。"
+// ModBackupOff says "不再自动备份，旧备份留着。"
 // in the language the app shows.
 //
 // 「功能」里备份那一行多的一句：关掉以后会怎样。
 func ModBackupOff() string { return In(i18n.Locale()).ModBackupOff() }
 
-// ModBackupOff says "关着时不再自动备份，已有的备份留着。"
+// ModBackupOff says "不再自动备份，旧备份留着。"
 // in the language of msgs.
 //
 // 「功能」里备份那一行多的一句：关掉以后会怎样。
@@ -13600,14 +13590,14 @@ func (msgs Messages) ModBackupOff() string {
 	return Catalog.Format(msgs.locale, "modBackupOff", nil)
 }
 
-// ModContext says "context"
+// ModContext says "资料库"
 // in the language the app shows.
 //
 // 「功能」里一个前置扩展的名字，照代码里的 ID
 // 写，不翻。
 func ModContext() string { return In(i18n.Locale()).ModContext() }
 
-// ModContext says "context"
+// ModContext says "资料库"
 // in the language of msgs.
 //
 // 「功能」里一个前置扩展的名字，照代码里的 ID
@@ -13616,28 +13606,28 @@ func (msgs Messages) ModContext() string {
 	return Catalog.Format(msgs.locale, "modContext", nil)
 }
 
-// ModContextWhere says "书的资料放在哪、从哪里取：设定、大纲往里放，讨论、检查、起草、名字补全从里面取"
+// ModContextAbout says "存放设定和大纲"
 // in the language the app shows.
 //
-// 「功能」里：这个前置扩展给别的扩展提供什么。
-func ModContextWhere() string { return In(i18n.Locale()).ModContextWhere() }
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModContextAbout() string { return In(i18n.Locale()).ModContextAbout() }
 
-// ModContextWhere says "书的资料放在哪、从哪里取：设定、大纲往里放，讨论、检查、起草、名字补全从里面取"
+// ModContextAbout says "存放设定和大纲"
 // in the language of msgs.
 //
-// 「功能」里：这个前置扩展给别的扩展提供什么。
-func (msgs Messages) ModContextWhere() string {
-	return Catalog.Format(msgs.locale, "modContextWhere", nil)
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModContextAbout() string {
+	return Catalog.Format(msgs.locale, "modContextAbout", nil)
 }
 
-// ModMarks says "marks"
+// ModMarks says "正文标记"
 // in the language the app shows.
 //
 // 「功能」里一个前置扩展的名字，照代码里的 ID
 // 写，不翻。
 func ModMarks() string { return In(i18n.Locale()).ModMarks() }
 
-// ModMarks says "marks"
+// ModMarks says "正文标记"
 // in the language of msgs.
 //
 // 「功能」里一个前置扩展的名字，照代码里的 ID
@@ -13646,18 +13636,18 @@ func (msgs Messages) ModMarks() string {
 	return Catalog.Format(msgs.locale, "modMarks", nil)
 }
 
-// ModMarksWhere says "正文上的标记：伏笔、批注、检查的高亮和边注都经它画"
+// ModMarksAbout says "在正文上画高亮和标注"
 // in the language the app shows.
 //
-// 「功能」里：这个前置扩展给别的扩展提供什么。
-func ModMarksWhere() string { return In(i18n.Locale()).ModMarksWhere() }
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModMarksAbout() string { return In(i18n.Locale()).ModMarksAbout() }
 
-// ModMarksWhere says "正文上的标记：伏笔、批注、检查的高亮和边注都经它画"
+// ModMarksAbout says "在正文上画高亮和标注"
 // in the language of msgs.
 //
-// 「功能」里：这个前置扩展给别的扩展提供什么。
-func (msgs Messages) ModMarksWhere() string {
-	return Catalog.Format(msgs.locale, "modMarksWhere", nil)
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModMarksAbout() string {
+	return Catalog.Format(msgs.locale, "modMarksAbout", nil)
 }
 
 // ModAI says "AI"
@@ -13674,18 +13664,18 @@ func (msgs Messages) ModAI() string {
 	return Catalog.Format(msgs.locale, "modAI", nil)
 }
 
-// ModAIWhere says "模型服务和模型调用，别的扩展在这里登记 AI 工具"
+// ModAIAbout says "连接 AI 模型"
 // in the language the app shows.
 //
-// 「功能」里：这个前置扩展给别的扩展提供什么。
-func ModAIWhere() string { return In(i18n.Locale()).ModAIWhere() }
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModAIAbout() string { return In(i18n.Locale()).ModAIAbout() }
 
-// ModAIWhere says "模型服务和模型调用，别的扩展在这里登记 AI 工具"
+// ModAIAbout says "连接 AI 模型"
 // in the language of msgs.
 //
-// 「功能」里：这个前置扩展给别的扩展提供什么。
-func (msgs Messages) ModAIWhere() string {
-	return Catalog.Format(msgs.locale, "modAIWhere", nil)
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModAIAbout() string {
+	return Catalog.Format(msgs.locale, "modAIAbout", nil)
 }
 
 // ModLore says "设定"
@@ -13702,18 +13692,18 @@ func (msgs Messages) ModLore() string {
 	return Catalog.Format(msgs.locale, "modLore", nil)
 }
 
-// ModLoreWhere says "右栏的「设定」"
+// ModLoreAbout says "人物、地点、物品的资料"
 // in the language the app shows.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func ModLoreWhere() string { return In(i18n.Locale()).ModLoreWhere() }
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModLoreAbout() string { return In(i18n.Locale()).ModLoreAbout() }
 
-// ModLoreWhere says "右栏的「设定」"
+// ModLoreAbout says "人物、地点、物品的资料"
 // in the language of msgs.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func (msgs Messages) ModLoreWhere() string {
-	return Catalog.Format(msgs.locale, "modLoreWhere", nil)
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModLoreAbout() string {
+	return Catalog.Format(msgs.locale, "modLoreAbout", nil)
 }
 
 // ModOutline says "大纲"
@@ -13730,18 +13720,18 @@ func (msgs Messages) ModOutline() string {
 	return Catalog.Format(msgs.locale, "modOutline", nil)
 }
 
-// ModOutlineWhere says "标题栏的「大纲」页，正文上方的章纲"
+// ModOutlineAbout says "分卷和每章的提纲"
 // in the language the app shows.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func ModOutlineWhere() string { return In(i18n.Locale()).ModOutlineWhere() }
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModOutlineAbout() string { return In(i18n.Locale()).ModOutlineAbout() }
 
-// ModOutlineWhere says "标题栏的「大纲」页，正文上方的章纲"
+// ModOutlineAbout says "分卷和每章的提纲"
 // in the language of msgs.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func (msgs Messages) ModOutlineWhere() string {
-	return Catalog.Format(msgs.locale, "modOutlineWhere", nil)
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModOutlineAbout() string {
+	return Catalog.Format(msgs.locale, "modOutlineAbout", nil)
 }
 
 // ModUsage says "用量记录"
@@ -13758,18 +13748,18 @@ func (msgs Messages) ModUsage() string {
 	return Catalog.Format(msgs.locale, "modUsage", nil)
 }
 
-// ModUsageWhere says "设置「AI」里的用量和「AI 记录」"
+// ModUsageAbout says "记下 AI 用了多少、花了多少"
 // in the language the app shows.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func ModUsageWhere() string { return In(i18n.Locale()).ModUsageWhere() }
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModUsageAbout() string { return In(i18n.Locale()).ModUsageAbout() }
 
-// ModUsageWhere says "设置「AI」里的用量和「AI 记录」"
+// ModUsageAbout says "记下 AI 用了多少、花了多少"
 // in the language of msgs.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func (msgs Messages) ModUsageWhere() string {
-	return Catalog.Format(msgs.locale, "modUsageWhere", nil)
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModUsageAbout() string {
+	return Catalog.Format(msgs.locale, "modUsageAbout", nil)
 }
 
 // ModTalk says "讨论"
@@ -13786,18 +13776,18 @@ func (msgs Messages) ModTalk() string {
 	return Catalog.Format(msgs.locale, "modTalk", nil)
 }
 
-// ModTalkWhere says "标题栏的「讨论」页，右栏的「讨论」"
+// ModTalkAbout says "和 AI 聊故事"
 // in the language the app shows.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func ModTalkWhere() string { return In(i18n.Locale()).ModTalkWhere() }
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModTalkAbout() string { return In(i18n.Locale()).ModTalkAbout() }
 
-// ModTalkWhere says "标题栏的「讨论」页，右栏的「讨论」"
+// ModTalkAbout says "和 AI 聊故事"
 // in the language of msgs.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func (msgs Messages) ModTalkWhere() string {
-	return Catalog.Format(msgs.locale, "modTalkWhere", nil)
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModTalkAbout() string {
+	return Catalog.Format(msgs.locale, "modTalkAbout", nil)
 }
 
 // ModContinue says "续写"
@@ -13814,18 +13804,18 @@ func (msgs Messages) ModContinue() string {
 	return Catalog.Format(msgs.locale, "modContinue", nil)
 }
 
-// ModContinueWhere says "「编辑」菜单里的「续写一句」"
+// ModContinueAbout says "停笔时 AI 接着写一句"
 // in the language the app shows.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func ModContinueWhere() string { return In(i18n.Locale()).ModContinueWhere() }
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModContinueAbout() string { return In(i18n.Locale()).ModContinueAbout() }
 
-// ModContinueWhere says "「编辑」菜单里的「续写一句」"
+// ModContinueAbout says "停笔时 AI 接着写一句"
 // in the language of msgs.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func (msgs Messages) ModContinueWhere() string {
-	return Catalog.Format(msgs.locale, "modContinueWhere", nil)
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModContinueAbout() string {
+	return Catalog.Format(msgs.locale, "modContinueAbout", nil)
 }
 
 // ModDraft says "起草"
@@ -13842,27 +13832,27 @@ func (msgs Messages) ModDraft() string {
 	return Catalog.Format(msgs.locale, "modDraft", nil)
 }
 
-// ModDraftWhere says "「编辑」菜单里的「起草本章」"
+// ModDraftAbout says "照提纲让 AI 写初稿"
 // in the language the app shows.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func ModDraftWhere() string { return In(i18n.Locale()).ModDraftWhere() }
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModDraftAbout() string { return In(i18n.Locale()).ModDraftAbout() }
 
-// ModDraftWhere says "「编辑」菜单里的「起草本章」"
+// ModDraftAbout says "照提纲让 AI 写初稿"
 // in the language of msgs.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func (msgs Messages) ModDraftWhere() string {
-	return Catalog.Format(msgs.locale, "modDraftWhere", nil)
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModDraftAbout() string {
+	return Catalog.Format(msgs.locale, "modDraftAbout", nil)
 }
 
-// ModPropose says "AI 提议改动"
+// ModPropose says "改稿建议"
 // in the language the app shows.
 //
 // 「功能」里一个模块的名字。
 func ModPropose() string { return In(i18n.Locale()).ModPropose() }
 
-// ModPropose says "AI 提议改动"
+// ModPropose says "改稿建议"
 // in the language of msgs.
 //
 // 「功能」里一个模块的名字。
@@ -13870,18 +13860,18 @@ func (msgs Messages) ModPropose() string {
 	return Catalog.Format(msgs.locale, "modPropose", nil)
 }
 
-// ModProposeWhere says "AI 在正文里提出的改动，采纳了才写入"
+// ModProposeAbout says "AI 提的修改，同意才写入"
 // in the language the app shows.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func ModProposeWhere() string { return In(i18n.Locale()).ModProposeWhere() }
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModProposeAbout() string { return In(i18n.Locale()).ModProposeAbout() }
 
-// ModProposeWhere says "AI 在正文里提出的改动，采纳了才写入"
+// ModProposeAbout says "AI 提的修改，同意才写入"
 // in the language of msgs.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func (msgs Messages) ModProposeWhere() string {
-	return Catalog.Format(msgs.locale, "modProposeWhere", nil)
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModProposeAbout() string {
+	return Catalog.Format(msgs.locale, "modProposeAbout", nil)
 }
 
 // ModCheck says "检查"
@@ -13898,18 +13888,18 @@ func (msgs Messages) ModCheck() string {
 	return Catalog.Format(msgs.locale, "modCheck", nil)
 }
 
-// ModCheckWhere says "标题栏的「检查」页，底栏的检查状态"
+// ModCheckAbout says "找出和设定矛盾的地方"
 // in the language the app shows.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func ModCheckWhere() string { return In(i18n.Locale()).ModCheckWhere() }
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModCheckAbout() string { return In(i18n.Locale()).ModCheckAbout() }
 
-// ModCheckWhere says "标题栏的「检查」页，底栏的检查状态"
+// ModCheckAbout says "找出和设定矛盾的地方"
 // in the language of msgs.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func (msgs Messages) ModCheckWhere() string {
-	return Catalog.Format(msgs.locale, "modCheckWhere", nil)
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModCheckAbout() string {
+	return Catalog.Format(msgs.locale, "modCheckAbout", nil)
 }
 
 // ModHooks says "伏笔"
@@ -13926,18 +13916,18 @@ func (msgs Messages) ModHooks() string {
 	return Catalog.Format(msgs.locale, "modHooks", nil)
 }
 
-// ModHooksWhere says "右栏的「伏笔」，到期没回收的提醒"
+// ModHooksAbout says "记下伏笔，久了提醒回收"
 // in the language the app shows.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func ModHooksWhere() string { return In(i18n.Locale()).ModHooksWhere() }
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModHooksAbout() string { return In(i18n.Locale()).ModHooksAbout() }
 
-// ModHooksWhere says "右栏的「伏笔」，到期没回收的提醒"
+// ModHooksAbout says "记下伏笔，久了提醒回收"
 // in the language of msgs.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func (msgs Messages) ModHooksWhere() string {
-	return Catalog.Format(msgs.locale, "modHooksWhere", nil)
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModHooksAbout() string {
+	return Catalog.Format(msgs.locale, "modHooksAbout", nil)
 }
 
 // ModNotes says "批注"
@@ -13954,18 +13944,18 @@ func (msgs Messages) ModNotes() string {
 	return Catalog.Format(msgs.locale, "modNotes", nil)
 }
 
-// ModNotesWhere says "右栏的「批注」，正文旁的边注"
+// ModNotesAbout says "在正文旁边写备注"
 // in the language the app shows.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func ModNotesWhere() string { return In(i18n.Locale()).ModNotesWhere() }
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModNotesAbout() string { return In(i18n.Locale()).ModNotesAbout() }
 
-// ModNotesWhere says "右栏的「批注」，正文旁的边注"
+// ModNotesAbout says "在正文旁边写备注"
 // in the language of msgs.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func (msgs Messages) ModNotesWhere() string {
-	return Catalog.Format(msgs.locale, "modNotesWhere", nil)
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModNotesAbout() string {
+	return Catalog.Format(msgs.locale, "modNotesAbout", nil)
 }
 
 // ModNames says "名字补全"
@@ -13982,18 +13972,18 @@ func (msgs Messages) ModNames() string {
 	return Catalog.Format(msgs.locale, "modNames", nil)
 }
 
-// ModNamesWhere says "正文里标出设定的名字，打字时补全"
+// ModNamesAbout says "打字时补全人名、地名"
 // in the language the app shows.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func ModNamesWhere() string { return In(i18n.Locale()).ModNamesWhere() }
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModNamesAbout() string { return In(i18n.Locale()).ModNamesAbout() }
 
-// ModNamesWhere says "正文里标出设定的名字，打字时补全"
+// ModNamesAbout says "打字时补全人名、地名"
 // in the language of msgs.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func (msgs Messages) ModNamesWhere() string {
-	return Catalog.Format(msgs.locale, "modNamesWhere", nil)
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModNamesAbout() string {
+	return Catalog.Format(msgs.locale, "modNamesAbout", nil)
 }
 
 // ModGoal says "字数目标"
@@ -14010,18 +14000,18 @@ func (msgs Messages) ModGoal() string {
 	return Catalog.Format(msgs.locale, "modGoal", nil)
 }
 
-// ModGoalWhere says "底栏字数旁的今日目标"
+// ModGoalAbout says "每天写多少字"
 // in the language the app shows.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func ModGoalWhere() string { return In(i18n.Locale()).ModGoalWhere() }
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModGoalAbout() string { return In(i18n.Locale()).ModGoalAbout() }
 
-// ModGoalWhere says "底栏字数旁的今日目标"
+// ModGoalAbout says "每天写多少字"
 // in the language of msgs.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func (msgs Messages) ModGoalWhere() string {
-	return Catalog.Format(msgs.locale, "modGoalWhere", nil)
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModGoalAbout() string {
+	return Catalog.Format(msgs.locale, "modGoalAbout", nil)
 }
 
 // ModFocus says "专注写作"
@@ -14038,18 +14028,18 @@ func (msgs Messages) ModFocus() string {
 	return Catalog.Format(msgs.locale, "modFocus", nil)
 }
 
-// ModFocusWhere says "「视图」菜单里的「专注写作」"
+// ModFocusAbout says "只留正文，其余隐藏"
 // in the language the app shows.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func ModFocusWhere() string { return In(i18n.Locale()).ModFocusWhere() }
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModFocusAbout() string { return In(i18n.Locale()).ModFocusAbout() }
 
-// ModFocusWhere says "「视图」菜单里的「专注写作」"
+// ModFocusAbout says "只留正文，其余隐藏"
 // in the language of msgs.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func (msgs Messages) ModFocusWhere() string {
-	return Catalog.Format(msgs.locale, "modFocusWhere", nil)
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModFocusAbout() string {
+	return Catalog.Format(msgs.locale, "modFocusAbout", nil)
 }
 
 // ModCats says "作品分类"
@@ -14066,27 +14056,27 @@ func (msgs Messages) ModCats() string {
 	return Catalog.Format(msgs.locale, "modCats", nil)
 }
 
-// ModCatsWhere says "「文件」菜单里的「作品分类」"
+// ModCatsAbout says "在书架上给作品分组"
 // in the language the app shows.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func ModCatsWhere() string { return In(i18n.Locale()).ModCatsWhere() }
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModCatsAbout() string { return In(i18n.Locale()).ModCatsAbout() }
 
-// ModCatsWhere says "「文件」菜单里的「作品分类」"
+// ModCatsAbout says "在书架上给作品分组"
 // in the language of msgs.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func (msgs Messages) ModCatsWhere() string {
-	return Catalog.Format(msgs.locale, "modCatsWhere", nil)
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModCatsAbout() string {
+	return Catalog.Format(msgs.locale, "modCatsAbout", nil)
 }
 
-// ModSnaps says "快照"
+// ModSnaps says "历史版本"
 // in the language the app shows.
 //
 // 「功能」里一个模块的名字。
 func ModSnaps() string { return In(i18n.Locale()).ModSnaps() }
 
-// ModSnaps says "快照"
+// ModSnaps says "历史版本"
 // in the language of msgs.
 //
 // 「功能」里一个模块的名字。
@@ -14094,18 +14084,18 @@ func (msgs Messages) ModSnaps() string {
 	return Catalog.Format(msgs.locale, "modSnaps", nil)
 }
 
-// ModSnapsWhere says "「文件」菜单里的「快照」"
+// ModSnapsAbout says "随时退回之前的稿子"
 // in the language the app shows.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func ModSnapsWhere() string { return In(i18n.Locale()).ModSnapsWhere() }
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModSnapsAbout() string { return In(i18n.Locale()).ModSnapsAbout() }
 
-// ModSnapsWhere says "「文件」菜单里的「快照」"
+// ModSnapsAbout says "随时退回之前的稿子"
 // in the language of msgs.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func (msgs Messages) ModSnapsWhere() string {
-	return Catalog.Format(msgs.locale, "modSnapsWhere", nil)
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModSnapsAbout() string {
+	return Catalog.Format(msgs.locale, "modSnapsAbout", nil)
 }
 
 // ModTrash says "回收站"
@@ -14122,18 +14112,18 @@ func (msgs Messages) ModTrash() string {
 	return Catalog.Format(msgs.locale, "modTrash", nil)
 }
 
-// ModTrashWhere says "「文件」菜单里的「回收站…」"
+// ModTrashAbout says "删掉的章节可以找回"
 // in the language the app shows.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func ModTrashWhere() string { return In(i18n.Locale()).ModTrashWhere() }
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModTrashAbout() string { return In(i18n.Locale()).ModTrashAbout() }
 
-// ModTrashWhere says "「文件」菜单里的「回收站…」"
+// ModTrashAbout says "删掉的章节可以找回"
 // in the language of msgs.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func (msgs Messages) ModTrashWhere() string {
-	return Catalog.Format(msgs.locale, "modTrashWhere", nil)
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModTrashAbout() string {
+	return Catalog.Format(msgs.locale, "modTrashAbout", nil)
 }
 
 // ModFind says "全书查找"
@@ -14150,28 +14140,28 @@ func (msgs Messages) ModFind() string {
 	return Catalog.Format(msgs.locale, "modFind", nil)
 }
 
-// ModFindWhere says "「编辑」菜单里的「查找替换」"
+// ModFindAbout says "在整本书里查找替换"
 // in the language the app shows.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func ModFindWhere() string { return In(i18n.Locale()).ModFindWhere() }
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModFindAbout() string { return In(i18n.Locale()).ModFindAbout() }
 
-// ModFindWhere says "「编辑」菜单里的「查找替换」"
+// ModFindAbout says "在整本书里查找替换"
 // in the language of msgs.
 //
-// 「功能」里：这个模块在界面上的哪几处。
-func (msgs Messages) ModFindWhere() string {
-	return Catalog.Format(msgs.locale, "modFindWhere", nil)
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModFindAbout() string {
+	return Catalog.Format(msgs.locale, "modFindAbout", nil)
 }
 
-// ModGroupLibraries says "前置"
+// ModGroupLibraries says "基础"
 // in the language the app shows.
 //
 // 「功能」页里一组的标题：给别的扩展用、自己没有界面的扩展（像
 // Minecraft 的前置 mod）。
 func ModGroupLibraries() string { return In(i18n.Locale()).ModGroupLibraries() }
 
-// ModGroupLibraries says "前置"
+// ModGroupLibraries says "基础"
 // in the language of msgs.
 //
 // 「功能」页里一组的标题：给别的扩展用、自己没有界面的扩展（像
@@ -14180,18 +14170,228 @@ func (msgs Messages) ModGroupLibraries() string {
 	return Catalog.Format(msgs.locale, "modGroupLibraries", nil)
 }
 
-// ModLibrariesAbout says "给别的扩展用，自己不在界面上出现。关掉一个，需要它的也停用。"
+// ModLibrariesAbout says "其他功能靠它们运行。"
 // in the language the app shows.
 //
 // 「功能」页「前置」那一组标题下的说明。
 func ModLibrariesAbout() string { return In(i18n.Locale()).ModLibrariesAbout() }
 
-// ModLibrariesAbout says "给别的扩展用，自己不在界面上出现。关掉一个，需要它的也停用。"
+// ModLibrariesAbout says "其他功能靠它们运行。"
 // in the language of msgs.
 //
 // 「功能」页「前置」那一组标题下的说明。
 func (msgs Messages) ModLibrariesAbout() string {
 	return Catalog.Format(msgs.locale, "modLibrariesAbout", nil)
+}
+
+// ModGroupWrite says "写作"
+// in the language the app shows.
+//
+// 「扩展」总览里一组的标题。
+func ModGroupWrite() string { return In(i18n.Locale()).ModGroupWrite() }
+
+// ModGroupWrite says "写作"
+// in the language of msgs.
+//
+// 「扩展」总览里一组的标题。
+func (msgs Messages) ModGroupWrite() string {
+	return Catalog.Format(msgs.locale, "modGroupWrite", nil)
+}
+
+// ModGroupLore says "资料"
+// in the language the app shows.
+//
+// 「扩展」总览里一组的标题。
+func ModGroupLore() string { return In(i18n.Locale()).ModGroupLore() }
+
+// ModGroupLore says "资料"
+// in the language of msgs.
+//
+// 「扩展」总览里一组的标题。
+func (msgs Messages) ModGroupLore() string {
+	return Catalog.Format(msgs.locale, "modGroupLore", nil)
+}
+
+// ModGroupAI says "AI"
+// in the language the app shows.
+//
+// 「扩展」总览里一组的标题。
+func ModGroupAI() string { return In(i18n.Locale()).ModGroupAI() }
+
+// ModGroupAI says "AI"
+// in the language of msgs.
+//
+// 「扩展」总览里一组的标题。
+func (msgs Messages) ModGroupAI() string {
+	return Catalog.Format(msgs.locale, "modGroupAI", nil)
+}
+
+// ModGroupFiles says "作品与文件"
+// in the language the app shows.
+//
+// 「扩展」总览里一组的标题。
+func ModGroupFiles() string { return In(i18n.Locale()).ModGroupFiles() }
+
+// ModGroupFiles says "作品与文件"
+// in the language of msgs.
+//
+// 「扩展」总览里一组的标题。
+func (msgs Messages) ModGroupFiles() string {
+	return Catalog.Format(msgs.locale, "modGroupFiles", nil)
+}
+
+// ModGroupBuiltin says "自带"
+// in the language the app shows.
+//
+// 设置左栏一组的标题：软件自带的扩展带来的页。
+func ModGroupBuiltin() string { return In(i18n.Locale()).ModGroupBuiltin() }
+
+// ModGroupBuiltin says "自带"
+// in the language of msgs.
+//
+// 设置左栏一组的标题：软件自带的扩展带来的页。
+func (msgs Messages) ModGroupBuiltin() string {
+	return Catalog.Format(msgs.locale, "modGroupBuiltin", nil)
+}
+
+// ModGroupInstalled says "另装"
+// in the language the app shows.
+//
+// 设置左栏、「扩展」总览里一组的标题：作者另外装的扩展。
+func ModGroupInstalled() string { return In(i18n.Locale()).ModGroupInstalled() }
+
+// ModGroupInstalled says "另装"
+// in the language of msgs.
+//
+// 设置左栏、「扩展」总览里一组的标题：作者另外装的扩展。
+func (msgs Messages) ModGroupInstalled() string {
+	return Catalog.Format(msgs.locale, "modGroupInstalled", nil)
+}
+
+// ModOff says "已关闭"
+// in the language the app shows.
+//
+// 「扩展」总览一格右边：这个扩展关着，或它需要的关着。
+func ModOff() string { return In(i18n.Locale()).ModOff() }
+
+// ModOff says "已关闭"
+// in the language of msgs.
+//
+// 「扩展」总览一格右边：这个扩展关着，或它需要的关着。
+func (msgs Messages) ModOff() string {
+	return Catalog.Format(msgs.locale, "modOff", nil)
+}
+
+// ModOwnBook says "单独设置"
+// in the language the app shows.
+//
+// 扩展页头的文字按钮：这部作品单独开关这个扩展。
+func ModOwnBook() string { return In(i18n.Locale()).ModOwnBook() }
+
+// ModOwnBook says "单独设置"
+// in the language of msgs.
+//
+// 扩展页头的文字按钮：这部作品单独开关这个扩展。
+func (msgs Messages) ModOwnBook() string {
+	return Catalog.Format(msgs.locale, "modOwnBook", nil)
+}
+
+// ModFollowLocal says "恢复默认"
+// in the language the app shows.
+//
+// 扩展页头的文字按钮：这部作品不再单独设置，跟这台电脑上的一样。
+func ModFollowLocal() string { return In(i18n.Locale()).ModFollowLocal() }
+
+// ModFollowLocal says "恢复默认"
+// in the language of msgs.
+//
+// 扩展页头的文字按钮：这部作品不再单独设置，跟这台电脑上的一样。
+func (msgs Messages) ModFollowLocal() string {
+	return Catalog.Format(msgs.locale, "modFollowLocal", nil)
+}
+
+// ModBack says "‹ 扩展"
+// in the language the app shows.
+//
+// 扩展自己的页的左上角，回到「扩展」总览。
+func ModBack() string { return In(i18n.Locale()).ModBack() }
+
+// ModBack says "‹ 扩展"
+// in the language of msgs.
+//
+// 扩展自己的页的左上角，回到「扩展」总览。
+func (msgs Messages) ModBack() string {
+	return Catalog.Format(msgs.locale, "modBack", nil)
+}
+
+// ModFullwidth says "全角标点"
+// in the language the app shows.
+//
+// 原型里假装另装的一个扩展的名字。
+func ModFullwidth() string { return In(i18n.Locale()).ModFullwidth() }
+
+// ModFullwidth says "全角标点"
+// in the language of msgs.
+//
+// 原型里假装另装的一个扩展的名字。
+func (msgs Messages) ModFullwidth() string {
+	return Catalog.Format(msgs.locale, "modFullwidth", nil)
+}
+
+// ModFullwidthAbout says "打字时把半角标点换成全角"
+// in the language the app shows.
+//
+// 「扩展」里：这个扩展是做什么的，一句话。
+func ModFullwidthAbout() string { return In(i18n.Locale()).ModFullwidthAbout() }
+
+// ModFullwidthAbout says "打字时把半角标点换成全角"
+// in the language of msgs.
+//
+// 「扩展」里：这个扩展是做什么的，一句话。
+func (msgs Messages) ModFullwidthAbout() string {
+	return Catalog.Format(msgs.locale, "modFullwidthAbout", nil)
+}
+
+// ModFullwidthQuotes says "引号也换成「」"
+// in the language the app shows.
+//
+// 原型里假装另装的「全角标点」自己的一项设置。
+func ModFullwidthQuotes() string { return In(i18n.Locale()).ModFullwidthQuotes() }
+
+// ModFullwidthQuotes says "引号也换成「」"
+// in the language of msgs.
+//
+// 原型里假装另装的「全角标点」自己的一项设置。
+func (msgs Messages) ModFullwidthQuotes() string {
+	return Catalog.Format(msgs.locale, "modFullwidthQuotes", nil)
+}
+
+// SettingsTabLanguage says "语言"
+// in the language the app shows.
+//
+// 设置左栏的一项。
+func SettingsTabLanguage() string { return In(i18n.Locale()).SettingsTabLanguage() }
+
+// SettingsTabLanguage says "语言"
+// in the language of msgs.
+//
+// 设置左栏的一项。
+func (msgs Messages) SettingsTabLanguage() string {
+	return Catalog.Format(msgs.locale, "settingsTabLanguage", nil)
+}
+
+// SettingsLangSystem says "跟随系统"
+// in the language the app shows.
+//
+// 设置「语言」里的第一项。
+func SettingsLangSystem() string { return In(i18n.Locale()).SettingsLangSystem() }
+
+// SettingsLangSystem says "跟随系统"
+// in the language of msgs.
+//
+// 设置「语言」里的第一项。
+func (msgs Messages) SettingsLangSystem() string {
+	return Catalog.Format(msgs.locale, "settingsLangSystem", nil)
 }
 
 // ModListSep says "、"
@@ -14222,13 +14422,13 @@ func (msgs Messages) ModNeeds(names string) string {
 	return Catalog.Format(msgs.locale, "modNeeds", map[string]any{"names": names})
 }
 
-// ModOptional says "可选 {names}"
+// ModOptional says "配合 {names} 更好用"
 // in the language the app shows.
 //
 // 「功能」页一行里：这个扩展可选用哪些扩展，它们开着时多一些功能。
 func ModOptional(names string) string { return In(i18n.Locale()).ModOptional(names) }
 
-// ModOptional says "可选 {names}"
+// ModOptional says "配合 {names} 更好用"
 // in the language of msgs.
 //
 // 「功能」页一行里：这个扩展可选用哪些扩展，它们开着时多一些功能。
@@ -14236,13 +14436,13 @@ func (msgs Messages) ModOptional(names string) string {
 	return Catalog.Format(msgs.locale, "modOptional", map[string]any{"names": names})
 }
 
-// ModNeededBy says "被 {names} 需要"
+// ModNeededBy says "{names} 要用它"
 // in the language the app shows.
 //
 // 「功能」页一行里：哪些扩展必需这一个。
 func ModNeededBy(names string) string { return In(i18n.Locale()).ModNeededBy(names) }
 
-// ModNeededBy says "被 {names} 需要"
+// ModNeededBy says "{names} 要用它"
 // in the language of msgs.
 //
 // 「功能」页一行里：哪些扩展必需这一个。
@@ -14250,13 +14450,13 @@ func (msgs Messages) ModNeededBy(names string) string {
 	return Catalog.Format(msgs.locale, "modNeededBy", map[string]any{"names": names})
 }
 
-// ModNobodyNeeds says "没有扩展用到它"
+// ModNobodyNeeds says "暂时没有功能用它"
 // in the language the app shows.
 //
 // 「功能」页前置扩展那一行：现在没有哪个扩展需要它。
 func ModNobodyNeeds() string { return In(i18n.Locale()).ModNobodyNeeds() }
 
-// ModNobodyNeeds says "没有扩展用到它"
+// ModNobodyNeeds says "暂时没有功能用它"
 // in the language of msgs.
 //
 // 「功能」页前置扩展那一行：现在没有哪个扩展需要它。
@@ -14264,13 +14464,13 @@ func (msgs Messages) ModNobodyNeeds() string {
 	return Catalog.Format(msgs.locale, "modNobodyNeeds", nil)
 }
 
-// ModWaiting says "{names} 关着，这一项暂不工作"
+// ModWaiting says "{names} 已关闭，暂时用不了"
 // in the language the app shows.
 //
 // 「功能」页一行里：它自己开着，但它需要的扩展关着。
 func ModWaiting(names string) string { return In(i18n.Locale()).ModWaiting(names) }
 
-// ModWaiting says "{names} 关着，这一项暂不工作"
+// ModWaiting says "{names} 已关闭，暂时用不了"
 // in the language of msgs.
 //
 // 「功能」页一行里：它自己开着，但它需要的扩展关着。
@@ -14292,13 +14492,13 @@ func (msgs Messages) ModAskOffTitle(name string) string {
 	return Catalog.Format(msgs.locale, "modAskOffTitle", map[string]any{"name": name})
 }
 
-// ModAskOffAbout says "{names}需要它，会一起停用；重新打开后，它们回到原来的开关。"
+// ModAskOffAbout says "{names} 也会一起关闭。"
 // in the language the app shows.
 //
 // 关闭一个扩展前问的那一句：哪些扩展会一起停用。
 func ModAskOffAbout(names string) string { return In(i18n.Locale()).ModAskOffAbout(names) }
 
-// ModAskOffAbout says "{names}需要它，会一起停用；重新打开后，它们回到原来的开关。"
+// ModAskOffAbout says "{names} 也会一起关闭。"
 // in the language of msgs.
 //
 // 关闭一个扩展前问的那一句：哪些扩展会一起停用。
@@ -14320,13 +14520,13 @@ func (msgs Messages) ModAskOnTitle(name string) string {
 	return Catalog.Format(msgs.locale, "modAskOnTitle", map[string]any{"name": name})
 }
 
-// ModAskOnAbout says "它需要 {names}，会一起打开。"
+// ModAskOnAbout says "{names} 会一起打开。"
 // in the language the app shows.
 //
 // 打开一个扩展前问的那一句：它需要的哪些扩展会一起打开。
 func ModAskOnAbout(names string) string { return In(i18n.Locale()).ModAskOnAbout(names) }
 
-// ModAskOnAbout says "它需要 {names}，会一起打开。"
+// ModAskOnAbout says "{names} 会一起打开。"
 // in the language of msgs.
 //
 // 打开一个扩展前问的那一句：它需要的哪些扩展会一起打开。

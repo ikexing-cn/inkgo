@@ -20,7 +20,7 @@ func TestSettingsCloseKeepsTheWorkAndBackup(t *testing.T) {
 			tt.Frame()
 			switch how {
 			case "button":
-				click(t, tt, "关闭设置")
+				click(t, tt, "关闭")
 			case "escape":
 				tt.Key(0, ui.KeyEscape)
 			case "backdrop":
@@ -50,7 +50,7 @@ func TestSettingsCloseKeepsTheWorkAndBackup(t *testing.T) {
 // there, not an empty line; one that does still says it.
 func TestSettingsSayNothingNeedless(t *testing.T) {
 	a, tt, _ := fixture(t)
-	for tab, note := range map[string]string{"AI": "", "备份": "", "外观": "仅在本机生效，适用于所有作品。", "提醒与检查": "仅适用于本作品。"} {
+	for tab, note := range map[string]string{"AI": "", "备份": "", "外观": "这台电脑上的所有作品", "提醒与检查": "只管这部作品"} {
 		a.openPrefs(tab)
 		tt.Frame()
 		texts := tt.Texts()
@@ -69,7 +69,7 @@ func TestSettingsSayNothingNeedless(t *testing.T) {
 	}
 }
 
-// While 禁用 GPU 加速 is not offered, the settings do not show it, and a
+// While 关闭显卡加速 is not offered, the settings do not show it, and a
 // machine that ticked it draws on the GPU again.
 func TestNoGPUNotOffered(t *testing.T) {
 	offerNoGPU = false
@@ -78,12 +78,12 @@ func TestNoGPUNotOffered(t *testing.T) {
 	a.shelf.NoGPU = true
 	a.openPrefs("外观")
 	tt.Frame()
-	if tt.HasText("禁用 GPU 加速") || a.NoGPU() {
+	if tt.HasText("关闭显卡加速") || a.NoGPU() {
 		t.Fatal("not offered, yet shown or drawn by", tt.Texts())
 	}
 }
 
-// 禁用 GPU 加速 is kept for this machine and waits for the software to open
+// 关闭显卡加速 is kept for this machine and waits for the software to open
 // again, which the settings say; the link closes them and relaunches,
 // asking first about what the AI proposed, as closing the window does.
 func TestNoGPUWaitsForTheNextStart(t *testing.T) {
@@ -99,8 +99,8 @@ func TestNoGPUWaitsForTheNextStart(t *testing.T) {
 
 	a.openPrefs("外观")
 	tt.Frame()
-	click(t, tt, "禁用 GPU 加速")
-	if !tt.HasText("重新打开软件后生效。") || tt.HasText("立即重新打开") {
+	click(t, tt, "关闭显卡加速")
+	if !tt.HasText("重启软件后生效。") || tt.HasText("立即重启") {
 		t.Fatal("ticked, it does not say it waits, or offers what cannot be done", tt.Texts())
 	}
 	b := newApp(a.ai.ConfigFile())
@@ -108,16 +108,16 @@ func TestNoGPUWaitsForTheNextStart(t *testing.T) {
 		t.Fatal("not kept for the next start")
 	}
 	b.Close()
-	click(t, tt, "禁用 GPU 加速")
-	if tt.HasText("重新打开软件后生效。") {
+	click(t, tt, "关闭显卡加速")
+	if tt.HasText("重启软件后生效。") {
 		t.Fatal("as the software opened, and still it waits")
 	}
 
 	relaunched := 0
 	a.Relaunch = func() { relaunched++ }
-	click(t, tt, "禁用 GPU 加速")
-	click(t, tt, "立即重新打开")
-	if relaunched != 0 || a.settings.open || !tt.HasText("还有 1 处 AI 提议没有处理") {
+	click(t, tt, "关闭显卡加速")
+	click(t, tt, "立即重启")
+	if relaunched != 0 || a.settings.open || !tt.HasText("还有 1 处改稿建议没有处理") {
 		t.Fatal("relaunched without asking about the proposal", relaunched, tt.Texts())
 	}
 	click(t, tt, "丢弃并关闭")

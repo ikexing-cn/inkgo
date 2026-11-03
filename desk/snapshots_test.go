@@ -15,7 +15,7 @@ func TestRestoreASnapshot(t *testing.T) {
 	shownEditor(a).Insert("加了一句。")
 	shownEditor(a).Select(0, 3)
 	tt.Frame()
-	if err := clickMenu(tt, "文件", "菜单-快照"); err != nil {
+	if err := clickMenu(tt, "文件", "菜单-历史版本"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -44,11 +44,11 @@ func TestRestoreASnapshot(t *testing.T) {
 // A snapshot the same as the chapter says so and has nothing to restore.
 func TestASnapshotLikeTheChapter(t *testing.T) {
 	a, tt, _ := writingFixture(t, "第一版。")
-	if err := clickMenu(tt, "文件", "菜单-快照"); err != nil {
+	if err := clickMenu(tt, "文件", "菜单-历史版本"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("该快照与当前正文相同") {
+	if !tt.HasText("该历史版本与当前正文相同") {
 		t.Fatal(tt.Texts())
 	}
 	if err := tt.Click("恢复这个版本"); err != nil {

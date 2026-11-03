@@ -41,7 +41,7 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 		tt.Type(text)
 		tt.Frame()
 	}
-	// save presses 保存提供商; when want is not "", the form says it before,
+	// save presses 保存; when want is not "", the form says it before,
 	// and pressing does nothing.
 	save := func(want string) {
 		t.Helper()
@@ -50,11 +50,11 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 		if want != "" && !tt.HasText(want) {
 			t.Fatalf("the form does not say %q: %q", want, tt.Texts())
 		}
-		if err := tt.Click("保存提供商"); err != nil {
+		if err := tt.Click("保存"); err != nil {
 			t.Fatal(err)
 		}
 		tt.Frame()
-		if saved := noticeOf(a) == "提供商已保存"; a.errorText() != "" || saved != (want == "") {
+		if saved := noticeOf(a) == "已保存"; a.errorText() != "" || saved != (want == "") {
 			t.Fatalf("saved %v, said %q", saved, a.errorText())
 		}
 	}
@@ -83,7 +83,7 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 	// Rows go, and come: a new one starts from careful numbers, and an ID
 	// the table knows brings its own.
 	for range 2 {
-		if err := tt.Click("移除模型-1"); err != nil {
+		if err := tt.Click("移除-1"); err != nil {
 			t.Fatal(err)
 		}
 		tt.Frame()
@@ -126,7 +126,7 @@ func TestANewServiceSaysWhatIsWrongWhereItIs(t *testing.T) {
 		say  string
 		form func(p *aiport.Provider)
 	}{
-		{"该 ID 已被「" + taken.Name + "」使用，请换一个", func(p *aiport.Provider) {}},
+		{"和「" + taken.Name + "」重名了，换一个", func(p *aiport.Provider) {}},
 		{"API 地址须以 http:// 或 https:// 开头", func(p *aiport.Provider) { p.Name, p.BaseURL = "Open Router", "api.example.com" }},
 		{"API 地址里没有域名", func(p *aiport.Provider) { p.BaseURL = "https://" }},
 		{"API 地址不能带账号、查询参数或锚点", func(p *aiport.Provider) { p.BaseURL = "https://openrouter.ai/api/v1?key=1" }},
@@ -137,7 +137,7 @@ func TestANewServiceSaysWhatIsWrongWhereItIs(t *testing.T) {
 		if !tt.HasText(c.say) {
 			t.Fatalf("the form does not say %q: %q", c.say, tt.Texts())
 		}
-		if err := tt.Click("保存提供商"); err != nil {
+		if err := tt.Click("保存"); err != nil {
 			t.Fatal(err)
 		}
 		tt.Frame()
@@ -147,7 +147,7 @@ func TestANewServiceSaysWhatIsWrongWhereItIs(t *testing.T) {
 	}
 	a.serviceForm.provider.Env = "OPENROUTER_API_KEY"
 	tt.Frame()
-	if err := tt.Click("保存提供商"); err != nil {
+	if err := tt.Click("保存"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -166,7 +166,7 @@ func TestANewServiceSaysWhatIsWrongWhereItIs(t *testing.T) {
 	tt.Frame()
 	tt.Frame()
 	// As much of it as fits, from its top: not its first row at the bottom.
-	if r, ok := tt.Find("显示名称"); !ok || r.Y < 0 || r.Y > 390 {
+	if r, ok := tt.Find("名称"); !ok || r.Y < 0 || r.Y > 390 {
 		t.Fatal("a new service opens out of sight", r, ok)
 	}
 	a.serviceForm.key = "unsaved-test-key"
@@ -174,7 +174,7 @@ func TestANewServiceSaysWhatIsWrongWhereItIs(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.serviceForm.edit != "" || tt.HasText("显示名称") || len(a.ai.Providers()) != was+1 {
+	if a.serviceForm.edit != "" || tt.HasText("名称") || len(a.ai.Providers()) != was+1 {
 		t.Fatal("取消 left the new service's form", a.serviceForm.edit)
 	}
 	if a.serviceForm.key != "" || a.serviceForm.provider.ID != "" || len(a.serviceForm.limits) != 0 {

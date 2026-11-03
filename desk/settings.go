@@ -26,19 +26,14 @@ var prefAbout = map[string]func() string{
 }
 
 // prefName is what a part of the settings is called, and prefNote what
-// it says it is for: with the AI off, 提醒与检查 has no checks, and the
-// AI holds the switch alone.
+// it says it is for: with the AI off, 提醒 has no checks, and the AI
+// holds the switch alone.
 func (a *App) prefName(tab string) string {
 	switch tab {
 	case "外观":
 		return locales.ViewLook()
 	case "备份":
 		return locales.ModBackup()
-	case "提醒与检查":
-		if !a.aiOn() {
-			return locales.SettingsTabRemindOnly()
-		}
-		return locales.SettingsTabRemind()
 	}
 	for _, entry := range a.prefTabs {
 		if entry.id == tab {

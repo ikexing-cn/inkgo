@@ -90,7 +90,7 @@ func TestDraftCardsSurvivePreloadFailure(t *testing.T) {
 	a.ai = failedPreload{a.ai}
 	a.openDraft()
 	tt.Frame()
-	head := "AI 仅将章纲和本章的卡片扩写为正文，不添加这些之外的重大情节。起草在一段新的讨论里进行：写好的先在正文里显示为提议，采纳后才写入，写入前保存快照；想改哪里，在讨论里接着说。"
+	head := "AI 仅将章纲和本章的卡片扩写为正文，不添加这些之外的重大情节。起草在一段新的讨论里进行：写好的先在正文里显示为改稿建议，采纳后才写入，写入前保存历史版本；想改哪里，在讨论里接着说。"
 	if a.write.draftCards != 1 || a.write.draftNote != "" || !tt.HasText(head) {
 		t.Fatal(a.write.draftCards, a.write.draftNote, tt.Texts())
 	}
@@ -296,7 +296,7 @@ func TestDraftAChapterThroughATalk(t *testing.T) {
 	}
 	until(t, tt, "the draft to come", func() bool { return slices.Equal(shownProposals(a), []string{"雨下了一夜"}) })
 	ed := shownEditor(a)
-	if ed.Doc.String() != "" || disk(t, a, "第一章.txt") != "" || ed.ReadOnly() || !tt.HasText("AI 正在写提议…") || !tt.HasText("正在写…") {
+	if ed.Doc.String() != "" || disk(t, a, "第一章.txt") != "" || ed.ReadOnly() || !tt.HasText("AI 正在写改稿建议…") || !tt.HasText("正在写…") {
 		t.Fatal("the draft is not shown beside the text as it comes", tt.Texts())
 	}
 	if shownTab(a) != paneTalk || a.doc.hidden || a.titles[a.session] != "起草：第一章" || !tt.HasText("按章纲起草本章，约 800 字") || !tt.HasText("跟着「第一章」") {
@@ -333,7 +333,7 @@ func TestDraftAChapterThroughATalk(t *testing.T) {
 	if r, _ := tt.Find("全部放弃"); r != letAllGo {
 		t.Fatalf("全部放弃 moved from %v to %v", letAllGo, r)
 	}
-	if !slices.Equal(shownProposals(a), []string{"雨下了一夜。\n她醒了。"}) || !tt.HasText("本章有 1 处 AI 提议") || !tt.HasText("接在章末 · 10 字 · 等你决定") {
+	if !slices.Equal(shownProposals(a), []string{"雨下了一夜。\n她醒了。"}) || !tt.HasText("本章有 1 处改稿建议") || !tt.HasText("接在章末 · 10 字 · 等你决定") {
 		t.Fatal("the draft did not come whole", shownProposals(a), tt.Texts())
 	}
 	tt.Key(ui.Cmd, ui.KeyS)
@@ -344,7 +344,7 @@ func TestDraftAChapterThroughATalk(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if ed.Doc.String() != "雨下了一夜。\n她醒了。" || !strings.Contains(noticeOf(a), "已采纳 AI 提议") || !tt.Focused("正文") || ed.Caret() != ed.Doc.Len() {
+	if ed.Doc.String() != "雨下了一夜。\n她醒了。" || !strings.Contains(noticeOf(a), "已采纳改稿建议") || !tt.Focused("正文") || ed.Caret() != ed.Doc.Len() {
 		t.Fatalf("taken %q %q, the prose focused %v", ed.Doc.String(), noticeOf(a), tt.Focused("正文"))
 	}
 	if ms := ed.Doc.Marks(); len(ms) != 1 || ms[0].Kind != editor.MarkAI || ms[0].End != ed.Doc.Len() || ms[0].Note != "deepseek/deepseek-flash" {
@@ -367,11 +367,11 @@ func TestDraftAChapterThroughATalk(t *testing.T) {
 	if ed.Doc.String() != "" {
 		t.Fatalf("one undo left %q", ed.Doc.String())
 	}
-	if err := clickMenu(tt, "文件", "菜单-快照"); err != nil {
+	if err := clickMenu(tt, "文件", "菜单-历史版本"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("采纳讨论「起草：第一章」里的提议") {
+	if !tt.HasText("采纳讨论「起草：第一章」里的建议") {
 		t.Fatal("the snapshot does not name the talk", tt.Texts())
 	}
 }
@@ -471,7 +471,7 @@ func TestRewriteASelectionThroughATalk(t *testing.T) {
 		t.Fatal(err)
 	}
 	replied(t, a, tt)
-	if !slices.Equal(shownProposals(a), []string{"她缓缓走到井边。"}) || !tt.HasText("换掉一句 · 8 字 · 已被新的提议替换") {
+	if !slices.Equal(shownProposals(a), []string{"她缓缓走到井边。"}) || !tt.HasText("换掉一句 · 8 字 · 已被新的建议替换") {
 		t.Fatal("the new proposal did not take the old one's place", shownProposals(a), tt.Texts())
 	}
 	if err := tt.Click("放弃"); err != nil {
@@ -534,7 +534,7 @@ func TestAProposalVoidAndOneLetGo(t *testing.T) {
 	ed.Select(10, 12) // 有光
 	ed.Insert("亮")
 	tt.Frame()
-	if len(ed.Proposals()) != 0 || hintOf(a) != "1 处 AI 提议已作废；它要换掉的原文改动了" || !tt.HasText("正文已改动，提议已作废") {
+	if len(ed.Proposals()) != 0 || hintOf(a) != "1 处改稿建议已作废；它要换掉的原文改动了" || !tt.HasText("正文已改动，建议已作废") {
 		t.Fatal("the proposal is not void", hintOf(a), tt.Texts())
 	}
 
@@ -590,14 +590,14 @@ func TestLeavingTheWorkAsksAboutProposals(t *testing.T) {
 		tt.Frame()
 	}
 	leave()
-	if !tt.HasText("还有 1 处 AI 提议没有处理") || !tt.HasText("关闭后将丢弃。") || a.books.creating {
+	if !tt.HasText("还有 1 处改稿建议没有处理") || !tt.HasText("关闭后将丢弃。") || a.books.creating {
 		t.Fatal("left without asking", tt.Texts())
 	}
 	if err := tt.Click("取消"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if tt.HasText("还有 1 处 AI 提议没有处理") || len(a.write.props) != 1 || !tt.HasText("本章有 1 处 AI 提议") {
+	if tt.HasText("还有 1 处改稿建议没有处理") || len(a.write.props) != 1 || !tt.HasText("本章有 1 处改稿建议") {
 		t.Fatal("staying let the proposal go")
 	}
 	leave()
@@ -637,7 +637,7 @@ func TestAProposalInAnotherChapterOpensBeside(t *testing.T) {
 		t.Fatal(err)
 	}
 	replied(t, a, tt)
-	if shownChapter(a) != one || !slices.Contains(openTabs(a), two) || !tt.HasText("提议修改「第二章」") || !tt.HasText("换掉一句 · 8 字 · 等你决定") {
+	if shownChapter(a) != one || !slices.Contains(openTabs(a), two) || !tt.HasText("建议修改「第二章」") || !tt.HasText("换掉一句 · 8 字 · 等你决定") {
 		t.Fatal("the chapter is not open beside", openTabs(a), tt.Texts())
 	}
 	if err := tt.Click("在正文中查看"); err != nil {
@@ -645,14 +645,14 @@ func TestAProposalInAnotherChapterOpensBeside(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Frame()
-	if shownChapter(a) != two || !tt.HasText("本章有 1 处 AI 提议") || !slices.Equal(shownProposals(a), []string{"白天也得开着灯。"}) {
+	if shownChapter(a) != two || !tt.HasText("本章有 1 处改稿建议") || !slices.Equal(shownProposals(a), []string{"白天也得开着灯。"}) {
 		t.Fatal("the proposal is not shown", tt.Texts())
 	}
 	if err := tt.Click("全部放弃"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("换掉一句 · 8 字 · 已放弃") || tt.HasText("本章有 1 处 AI 提议") {
+	if !tt.HasText("换掉一句 · 8 字 · 已放弃") || tt.HasText("本章有 1 处改稿建议") {
 		t.Fatal("letting go is not said", tt.Texts())
 	}
 }
@@ -680,7 +680,7 @@ func TestTakingTheProposalsOfTwoTalks(t *testing.T) {
 	}
 	showPage(a, pageWrite)
 	tt.Frame()
-	if talks[0] == talks[1] || !tt.HasText("本章有 2 处 AI 提议") {
+	if talks[0] == talks[1] || !tt.HasText("本章有 2 处改稿建议") {
 		t.Fatal("two talks did not each propose", talks, tt.Texts())
 	}
 	if err := tt.Click("全部采纳"); err != nil {
@@ -694,11 +694,11 @@ func TestTakingTheProposalsOfTwoTalks(t *testing.T) {
 	if s := snaps[0]; s.Reason != workspace.SnapAI || !slices.Equal(s.Talks, talks) {
 		t.Fatalf("snapshot %+v, talks %v", s, talks)
 	}
-	if err := clickMenu(tt, "文件", "菜单-快照"); err != nil {
+	if err := clickMenu(tt, "文件", "菜单-历史版本"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("采纳讨论「开头慢一点」「末尾接一句」里的提议") {
+	if !tt.HasText("采纳讨论「开头慢一点」「末尾接一句」里的建议") {
 		t.Fatal("the snapshot does not name both talks", tt.Texts())
 	}
 }

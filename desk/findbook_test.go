@@ -85,7 +85,7 @@ func TestReplaceThroughTheBook(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("将全书 2 章中的 3 处“林晚”替换为“苏晴”？仅修改正文，设定和章纲不变；各章替换前均保存快照。") {
+	if !tt.HasText("将全书 2 章中的 3 处“林晚”替换为“苏晴”？仅修改正文，设定和章纲不变；各章替换前均保存历史版本。") {
 		t.Fatal("no asking", tt.Texts())
 	}
 	if ch, _ := a.Store.ReadChapter(second); ch.Text != "门开了，林晚又看见了林晚的影子。" {
