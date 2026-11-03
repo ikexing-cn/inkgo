@@ -10,6 +10,7 @@ import (
 
 	"writer/backup"
 	"writer/internal/testshot"
+	"writer/locales"
 )
 
 // waitBackup runs frames until the backup in flight is done.
@@ -44,7 +45,7 @@ func TestFirstBackup(t *testing.T) {
 		t.Fatal(err)
 	}
 	was := syncFolders
-	syncFolders = func() []place { return []place{{"OneDrive 同步文件夹", sync}} }
+	syncFolders = func() []place { return []place{{locales.BackupSyncFolder("OneDrive"), sync}} }
 	t.Cleanup(func() { syncFolders = was })
 	a.Backups = true
 	if err := a.Open(a.Store.Root()); err != nil {
@@ -272,7 +273,7 @@ func TestShotBackup(t *testing.T) {
 
 	sync := filepath.Join(t.TempDir(), "OneDrive", "写作备份")
 	was := syncFolders
-	syncFolders = func() []place { return []place{{"OneDrive 同步文件夹", sync}} }
+	syncFolders = func() []place { return []place{{locales.BackupSyncFolder("OneDrive"), sync}} }
 	t.Cleanup(func() { syncFolders = was })
 	a.PickFolder = func(string) (string, error) { return "", nil }
 	a.openAsk()

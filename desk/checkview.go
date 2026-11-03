@@ -1,7 +1,6 @@
 package desk
 
 import (
-	"fmt"
 	"github.com/egoist/mygo/ui"
 	"slices"
 	"strings"
@@ -9,12 +8,9 @@ import (
 	"unicode/utf8"
 	"writer/desk/kit"
 	"writer/internal/textclip"
+	"writer/locales"
 	"writer/workspace"
 )
-
-// partNote says why the AI was given only the start of a chapter, and what
-// to do about it, where a line says it was.
-const partNote = "后文超出模型的上下文上限，可在设置中「AI」配置里调整"
 
 // whenRows are the three times to check, one chosen.
 func (a *App) whenRows(c *ui.Context) {
@@ -26,7 +22,7 @@ func (a *App) whenRows(c *ui.Context) {
 		if on {
 			ring = a.pal.Ink
 		}
-		b := ui.ButtonBase(c).Row().FillWidth().Gap(10).Padding(6, 8).Radius(kit.RControl).AlignItems(ui.Start).Justify(ui.Start).Label(o.label)
+		b := ui.ButtonBase(c).Row().FillWidth().Gap(10).Padding(6, 8).Radius(kit.RControl).AlignItems(ui.Start).Justify(ui.Start).Label(o.label())
 		if b.Hovered() {
 			b.Background(t.SurfaceHover)
 		}
@@ -37,8 +33,8 @@ func (a *App) whenRows(c *ui.Context) {
 				}
 			})
 			ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
-				ui.Text(c, o.label).FontSize(kit.FsBody)
-				ui.Text(c, o.sub).FontSize(kit.FsNote).TextColor(t.TextMuted)
+				ui.Text(c, o.label()).FontSize(kit.FsBody)
+				ui.Text(c, o.sub()).FontSize(kit.FsNote).TextColor(t.TextMuted)
 			})
 		})
 		if b.Clicked() && !on {
@@ -49,14 +45,17 @@ func (a *App) whenRows(c *ui.Context) {
 }
 
 // checkKinds are the page's tabs.
-var checkKinds = []struct{ kind, label string }{
-	{"", "全部"}, {workspace.FindConflict, "不一致"}, {workspace.FindName, "名字有误"}, {workspace.FindNew, "新出现"},
+var checkKinds = []struct {
+	kind  string
+	label func() string
+}{
+	{"", locales.CheckKindAll}, {workspace.FindConflict, locales.CheckKindMismatch}, {workspace.FindName, locales.CheckKindName}, {workspace.FindNew, locales.CheckKindNew},
 }
 
 func kindLabel(kind string) string {
 	for _, k := range checkKinds {
 		if k.kind == kind {
-			return k.label
+			return k.label()
 		}
 	}
 	return ""
@@ -112,9 +111,9 @@ func (a *App) checkList(c *ui.Context, all, shown []checkItem) {
 					n++
 				}
 			}
-			names[i] = fmt.Sprintf("%s %d", kind.label, n)
+			names[i] = locales.CheckKindCount(kind.label(), n)
 		}
-		ui.Row(c).Children(func() { a.pal.Segments(c, &k.tab, "检查分类", names) })
+		ui.Row(c).Children(func() { a.pal.Segments(c, &k.tab, locales.CheckKindAria(), names) })
 	})
 	ui.Scroll(c.Key("checks")).FillWidth().Grow(1).Shrink(1).Children(func() {
 		ui.Column(c).FillWidth().Padding(0, 14, 12, 14).Gap(2).Children(func() {
@@ -122,13 +121,14 @@ func (a *App) checkList(c *ui.Context, all, shown []checkItem) {
 				sub := it.title
 				switch it.f.Kind {
 				case workspace.FindConflict:
-					sub += " ↔ 设定「" + entryTitle(it.entry) + "」"
+					sub = locales.CheckMismatchAbout(sub, entryTitle(it.entry))
 				case workspace.FindName:
-					sub += " · 应为「" + it.f.Name + "」"
+					sub = locales.CheckNameAbout(sub, it.f.Name)
 				case workspace.FindNew:
-					sub = it.f.Category + " · 「" + sub + "」起出现"
+					at := sub
+					sub = locales.CheckFirstSeen(it.f.Category, at)
 					if len(it.also) > 0 {
-						sub += fmt.Sprintf("，共 %d 章", len(it.also)+1)
+						sub = locales.CheckFirstSeenMore(it.f.Category, at, len(it.also)+1)
 					}
 				}
 				b := ui.ButtonBase(c.Key("ck-"+it.f.ID)).Row().FillWidth().AlignItems(ui.Center).Gap(10).Padding(8, 10).Radius(kit.RControl).Label("检查-" + it.f.Title)
@@ -160,12 +160,12 @@ func (a *App) checkProgress(c *ui.Context) {
 	if k.queue.Running != "" {
 		left := len(k.queue.Pending)
 		_, title := a.checkAt(k.queue.Running)
-		line := "正在检查「" + title + "」"
+		line := locales.CheckRunning(title)
 		if left > 0 {
-			line += fmt.Sprintf("，还有 %d 章", left)
+			line = locales.CheckRunningMore(title, left)
 		}
 		ui.Text(c, line).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
-		if a.pal.Ghost(c, "停止", ui.Color{}).Clicked() {
+		if a.pal.Ghost(c, locales.CheckStop(), ui.Color{}).Clicked() {
 			k.queue.Stop()
 			k.runner.stop()
 		}
@@ -189,22 +189,22 @@ func (a *App) checkProgress(c *ui.Context) {
 	switch {
 	case failed > 0:
 		// 已检查至 would read as all before it checked.
-		ui.Textf(c, "已检查 %d 章，%d 章失败", done, failed).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
+		ui.Text(c, locales.CheckProgress(done, failed)).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
 	case last > 0:
-		ui.Text(c, "已检查至「"+lastTitle+"」").FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
+		ui.Text(c, locales.CheckCheckedUpTo(lastTitle)).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
 	}
-	label := "重新检查"
+	label := locales.CheckRecheck()
 	if last == 0 {
-		label = "检查全书"
+		label = locales.CheckAllBook()
 	}
 	b := a.pal.Ghost(c, label, ui.Color{}).Label(label)
 	if b.Clicked() {
 		k.due = a.checkDue()
 		switch {
 		case !a.hasSetting():
-			a.status.Hint("设定为空，无可对照内容")
+			a.status.Hint(locales.CheckNoSettings())
 		case len(k.due) == 0:
-			a.status.Hint("各章均已检查，正文无新改动")
+			a.status.Hint(locales.CheckAllDone())
 		default:
 			k.askOpen = true
 		}
@@ -213,14 +213,14 @@ func (a *App) checkProgress(c *ui.Context) {
 		panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(6, 0, 0, 0).Width(280).Radius(kit.RCard).Padding(14).Gap(12).
 			Background(a.pal.Canvas).Border(1, t.Border)
 		a.pal.Pop.On(panel)
-		ui.Textf(c, "%d 章未检查或有改动", len(k.due)).FontSize(kit.FsBody).FontWeight(600)
-		ui.Textf(c, "每章调用一次 AI，共 %d 次。", len(k.due)).FontSize(kit.FsNote).TextColor(t.TextMuted)
+		ui.Text(c, locales.CheckOwedTitle(len(k.due))).FontSize(kit.FsBody).FontWeight(600)
+		ui.Text(c, locales.CheckOwedNote(len(k.due))).FontSize(kit.FsNote).TextColor(t.TextMuted)
 		ui.Row(c).FillWidth().Gap(8).Children(func() {
 			ui.Spacer(c)
-			if a.pal.Secondary(c, "取消").Clicked() {
+			if a.pal.Secondary(c, locales.CommonCancel()).Clicked() {
 				k.askOpen = false
 			}
-			if a.pal.Primary(c, "开始检查").Clicked() {
+			if a.pal.Primary(c, locales.CheckStart()).Clicked() {
 				k.askOpen = false
 				for _, id := range k.due {
 					a.ck.queue.Enqueue(id)
@@ -234,7 +234,7 @@ func (a *App) checkProgress(c *ui.Context) {
 // them, and its title; a chapter no longer in the book is 0, 已删除的章.
 func (a *App) checkAt(node string) (no int, title string) {
 	n := 0
-	title = "已删除的章"
+	title = locales.AppChapterDeleted()
 	a.book.Tree().Walk(func(nd *workspace.Node, _ int) {
 		if !nd.Folder {
 			n++
@@ -249,24 +249,24 @@ func (a *App) checkAt(node string) (no int, title string) {
 // checkEmpty is the page's right with nothing to show.
 func (a *App) checkEmpty(c *ui.Context, all int) {
 	k := &a.ck
-	pic, words, how := kit.IcDone, "没有发现不一致", "写完一章后自动检查，结果显示在此处。"
+	pic, words, how := kit.IcDone, locales.CheckNoneFound(), locales.CheckAutoNote()
 	switch {
 	case all > 0:
-		words, how = "这一类没有待处理的", ""
+		words, how = locales.CheckNoneInKind(), ""
 	case !a.hasSetting():
-		words, how = "设定为空", "请先在讨论中确定设定，才能对照检查。"
+		words, how = locales.CheckNoSettingsTitle(), locales.CheckNoSettingsAbout()
 	case len(a.book.Checks()) == 0 && k.queue.Running == "":
-		words, how = "尚未检查", "点击左上角「检查全书」，或写完一章后自动检查。"
+		words, how = locales.CheckNotYet(), locales.CheckNotYetAbout(locales.CheckAllBook())
 	case k.queue.Running != "":
-		words, how = "正在检查…", "检查结果将显示在左侧。"
+		words, how = locales.CheckRunningTitle(), locales.CheckRunningAbout()
 	case k.when == checkOnDemand:
-		how = "当前为「手动检查」，需要时点击「重新检查」。"
+		how = locales.CheckManualNote(locales.CheckModeManual(), locales.CheckRecheck())
 	}
 	// One that failed is not told as one that found nothing; the first in
 	// the book is named, so it is the same one every frame.
 	if lost := a.firstFailed(); lost != "" && k.queue.Running == "" {
 		_, title := a.checkAt(lost)
-		pic, words, how = kit.IcAlert, "检查未完成", "「"+title+"」检查失败："+k.queue.Failed[lost]
+		pic, words, how = kit.IcAlert, locales.CheckIncomplete(), locales.CheckFailedAt(title, k.queue.Failed[lost])
 	}
 	a.pal.Blank(c, pic, words, how, nil)
 }
@@ -381,28 +381,28 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 	ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Shrink(0).Children(func() {
 		ui.Text(c, it.f.Title).FontSize(kit.FsDialog).FontWeight(700).Grow(1).Shrink(1)
 		ui.Textf(c, "%d / %d", at+1, len(shown)).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Shrink(0)
-		if a.pal.Ghost(c, "下一条", ui.Color{}).Disabled(len(shown) < 2).Clicked() {
+		if a.pal.Ghost(c, locales.CheckNext(), ui.Color{}).Disabled(len(shown) < 2).Clicked() {
 			next()
 		}
 	})
 	ui.Scroll(c.Key("check-" + it.f.ID)).FillWidth().Grow(1).Shrink(1).Children(func() {
 		ui.Column(c).FillWidth().Gap(16).Children(func() {
 			para, no := paragraphOf(k.prose, it.f.Quote)
-			head := "正文 · " + it.title
+			head := locales.CheckTextChapter(it.title)
 			if no > 0 {
-				head += fmt.Sprintf(" · 第 %d 段", no)
+				head = locales.CheckTextPara(it.title, no)
 			}
 			ui.Row(c).FillWidth().Gap(16).AlignItems(ui.Stretch).Children(func() {
-				if a.checkCard(c, head, "查看原文", a.quoted(para, it.f.Quote)) {
+				if a.checkCard(c, head, locales.CheckSeeText(), a.quoted(para, it.f.Quote)) {
 					toProse()
 				}
 				switch it.f.Kind {
 				case workspace.FindConflict:
-					if a.checkCard(c, "设定 · "+entryTitle(it.entry), "查看设定", a.quoted(it.entry.Text, it.f.Says)) {
+					if a.checkCard(c, locales.CheckLoreHeading(entryTitle(it.entry)), locales.CheckSeeSetting(), a.quoted(it.entry.Text, it.f.Says)) {
 						toEntry()
 					}
 				case workspace.FindName:
-					if a.checkCard(c, "设定 · "+entryTitle(it.entry), "查看设定", a.quoted(it.entry.Text, it.f.Name)) {
+					if a.checkCard(c, locales.CheckLoreHeading(entryTitle(it.entry)), locales.CheckSeeSetting(), a.quoted(it.entry.Text, it.f.Name)) {
 						toEntry()
 					}
 				case workspace.FindNew:
@@ -410,12 +410,12 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 					if it.f.Text != "" {
 						text += "：" + it.f.Text
 					}
-					a.checkCard(c, "可加入设定 · "+it.f.Category, "", a.quoted(text, it.f.Name))
+					a.checkCard(c, locales.CheckCanAdd(it.f.Category), "", a.quoted(text, it.f.Name))
 				}
 			})
-			head, alike := "其他章节中也出现", slices.Clone(it.also)
+			head, alike := locales.CheckAlsoNew(), slices.Clone(it.also)
 			if it.f.Kind == workspace.FindConflict {
-				head = "其他章节的类似情况"
+				head = locales.CheckAlsoSimilar()
 				for _, o := range a.checkItems(true) {
 					if o.f.Kind == workspace.FindConflict && o.f.Entry == it.f.Entry && o.f.ID != it.f.ID && overlap(it.entry.Text, it.f.Says, o.f.Says) {
 						alike = append(alike, o)
@@ -433,9 +433,9 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 							ui.Text(c, o.title).FontSize(kit.FsControl).TextColor(t.TextMuted).SingleLine().Shrink(0)
 							ui.Text(c, o.f.Quote).FontSize(kit.FsControl).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 							if o.f.Kind == workspace.FindConflict {
-								said := "尚未处理"
+								said := locales.CheckAlsoOpen()
 								if o.f.Meant {
-									said = "已标为「无需修改」"
+									said = locales.CheckMarkedNoChange()
 								}
 								ui.Text(c, said).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Shrink(0)
 							}
@@ -447,7 +447,7 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 	})
 	a.pal.Hairline(c)
 	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Shrink(0).Children(func() {
-		if a.pal.Ghost(c, "稍后再说", ui.Color{}).Disabled(len(shown) < 2).Clicked() {
+		if a.pal.Ghost(c, locales.CheckLater(), ui.Color{}).Disabled(len(shown) < 2).Clicked() {
 			next()
 		}
 		ui.Spacer(c)
@@ -487,5 +487,5 @@ func (a *App) takeFound(it checkItem) {
 		return
 	}
 	a.flash[r.Ops[0].Entry] = time.Now()
-	a.status.Did("已加入设定")
+	a.status.Did(locales.CheckAddedSetting())
 }

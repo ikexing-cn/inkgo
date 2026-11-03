@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
@@ -19,14 +20,14 @@ type noteAction struct {
 }
 
 func (a *App) checkActions(it checkItem) []noteAction {
-	leave := noteAction{"无需修改", func() { a.setMeant(it) }}
-	prose := noteAction{"修改正文", func() { a.findInChapter(it.node, it.f.Quote) }}
+	leave := noteAction{locales.CheckNoChange(), func() { a.setMeant(it) }}
+	prose := noteAction{locales.CheckEditText(), func() { a.findInChapter(it.node, it.f.Quote) }}
 	switch it.f.Kind {
 	case workspace.FindNew:
-		leave.label = "忽略"
-		return []noteAction{leave, {"加入设定", func() { a.takeFound(it) }}}
+		leave.label = locales.CheckIgnore()
+		return []noteAction{leave, {locales.CheckAddToSettings(), func() { a.takeFound(it) }}}
 	case workspace.FindConflict:
-		return []noteAction{leave, {"修改设定", func() {
+		return []noteAction{leave, {locales.CheckEditSetting(), func() {
 			a.findInChapter(it.node, it.f.Quote)
 			a.doc.tab, a.doc.hidden = paneSetting, false
 			a.doc.route.jumpToEntry(it.entry.ID)
@@ -48,10 +49,10 @@ func (a *App) editSetting(e workspace.Entry) {
 
 func (a *App) changeActions(it workspace.Idea) []noteAction {
 	return []noteAction{
-		{"忽略", func() {
-			a.undoSetting("已忽略", workspace.Op{Op: workspace.OpDropChange, Entry: it.Entry.ID, Change: it.Change.ID})
+		{locales.CheckIgnore(), func() {
+			a.undoSetting(locales.CheckIgnored(), workspace.Op{Op: workspace.OpDropChange, Entry: it.Entry.ID, Change: it.Change.ID})
 		}},
-		{"采纳", func() { a.takeChange(it.Entry, it.Change) }},
+		{locales.EditorAccept(), func() { a.takeChange(it.Entry, it.Change) }},
 	}
 }
 
@@ -116,7 +117,7 @@ func (a *App) marginNotes() []marginNote {
 				n := marginNote{id: "check-" + it.f.ID, kind: kindLabel(it.f.Kind), title: it.f.Title, start: start, end: end, warn: true, check: &it}
 				switch it.f.Kind {
 				case workspace.FindConflict:
-					n.kind, n.text = "与设定不一致", "设定里写的是“"+it.f.Says+"”"
+					n.kind, n.text = locales.NotesKindInconsistent(), locales.NotesSays(it.f.Says)
 				case workspace.FindNew:
 					n.text = it.f.Text
 				}
@@ -128,15 +129,15 @@ func (a *App) marginNotes() []marginNote {
 				continue
 			}
 			if f.Here && f.End > f.Start {
-				kind := "伏笔 · 在此埋下"
+				kind := locales.NotesKindHook()
 				if f.Status() == workspace.ForeDone {
-					kind += "，已回收"
+					kind = locales.NotesKindHookPaid()
 				}
 				out = append(out, marginNote{id: "fore-" + f.ID, kind: kind, title: foreName(f), start: f.Start, end: f.End, fore: f.ID})
 			}
 			for _, p := range f.Payoffs {
 				if p.Here && p.End > p.Start {
-					out = append(out, marginNote{id: "pay-" + p.ID, kind: "伏笔 · 在此回收", title: foreName(f), text: "埋在" + f.Title, start: p.Start, end: p.End, fore: f.ID})
+					out = append(out, marginNote{id: "pay-" + p.ID, kind: locales.NotesKindPayoff(), title: foreName(f), text: locales.NotesPlanted(f.Title), start: p.Start, end: p.End, fore: f.ID})
 				}
 			}
 		}
@@ -154,7 +155,7 @@ func (a *App) marginNotes() []marginNote {
 			if len(it.Entry.Names) > 0 {
 				name = it.Entry.Names[0]
 			}
-			out = append(out, marginNote{id: "idea-" + it.ID(), kind: "设定待确认", title: name + "的设定从本章起有变化", text: it.Change.Text, start: start, end: end, warn: true, idea: &it})
+			out = append(out, marginNote{id: "idea-" + it.ID(), kind: locales.NotesKindIdea(), title: locales.NotesLoreChanged(name), text: it.Change.Text, start: start, end: end, warn: true, idea: &it})
 		}
 		slices.SortStableFunc(out, func(x, y marginNote) int { return cmp.Compare(x.start, y.start) })
 		return out
@@ -239,9 +240,9 @@ func (a *App) marginPanel(c *ui.Context) {
 	m.lit = ""
 	box.Children(func() {
 		if len(drawing) == 0 {
-			text := "本章没有批注"
+			text := locales.NotesNone()
 			if ed == nil {
-				text = "打开一章后，这里列出它的批注"
+				text = locales.NotesOpenChapter()
 			}
 			ui.Text(c, text).FontSize(kit.FsNote).TextColor(a.pal.Faint).Padding(24, 20)
 			return

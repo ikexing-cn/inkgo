@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 	"unicode/utf8"
+	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/book"
@@ -89,20 +90,20 @@ func (a *App) nameMenu(m *kit.Menu, sel string) {
 	name := strings.TrimSpace(sel)
 	n := utf8.RuneCountInString(name)
 	if n == 0 || n > 12 || strings.ContainsAny(name, "\n\r\t") {
-		m.Item("加入名字表").Disabled(true)
+		m.Item(locales.EditorAddName()).Disabled(true)
 		return
 	}
 	if a.named(name) {
-		m.Item("已在名字表中").Disabled(true)
+		m.Item(locales.EditorAlreadyNamed()).Disabled(true)
 		return
 	}
-	m.Submenu("加入名字表", func(m *kit.Menu) {
+	m.Submenu(locales.EditorAddName(), func(m *kit.Menu) {
 		for _, c := range a.Store.Work().Categories {
 			if slices.Contains(workspace.NameCategories, c.Name) {
 				m.Item(c.Name).Do(func() {
 					a.revise(workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: c.Name, Text: name, Names: []string{name}})
 					if a.errorText() == "" {
-						a.status.Did("「" + name + "」已加入设定的" + c.Name + "，输入时可自动补全")
+						a.status.Did(locales.EditorAddedToLore(name, c.Name))
 					}
 				})
 			}
@@ -156,12 +157,12 @@ func (a *App) renameNotice(c *ui.Context) {
 		return
 	}
 	ui.Row(c).FillWidth().Gap(6).Padding(6, 8, 6, 10).Radius(kit.RCard).Background(a.pal.Raised).Border(1, a.pal.Line).AlignItems(ui.Center).Children(func() {
-		ui.Textf(c, "正文中仍有 %d 处「%s」", r.count, r.old).FontSize(kit.FsNote).Grow(1).Shrink(1)
-		if a.pal.Ghost(c, "全书替换", ui.Color{}).Label("将旧名替换为新名").Clicked() {
+		ui.Text(c, locales.LoreRenamedLeft(r.count, r.old)).FontSize(kit.FsNote).Grow(1).Shrink(1)
+		if a.pal.Ghost(c, locales.LoreReplaceAll(), ui.Color{}).Label("将旧名替换为新名").Clicked() {
 			a.renamed = renamed{}
 			a.replaceName(r.old, r.new)
 		}
-		if kit.IconButton(c, kit.IcX, "保留旧名", ui.Color{}).Tooltip("不替换").Clicked() {
+		if kit.IconButton(c, kit.IcX, locales.LoreKeepOld(), ui.Color{}).Tooltip(locales.LoreKeepOldTip()).Clicked() {
 			a.renamed = renamed{}
 		}
 	})

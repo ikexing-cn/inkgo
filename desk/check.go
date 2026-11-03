@@ -4,6 +4,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"slices"
 	"time"
+	"writer/locales"
 	"writer/workspace"
 )
 
@@ -15,10 +16,13 @@ const (
 	checkOnPause  = "always" // whenever the writing pauses
 )
 
-var checkWhens = []struct{ when, label, short, sub string }{
-	{checkOnLeave, "写完一章后检查", "写完一章后检查", "推荐，每章调用一次 AI"},
-	{checkOnDemand, "手动检查", "手动检查", "平时不调用 AI"},
-	{checkOnPause, "边写边检查", "边写边检查", "停笔即检查，调用最多"},
+var checkWhens = []struct {
+	when, short string
+	label, sub  func() string
+}{
+	{checkOnLeave, "写完一章后检查", locales.StatusWhenAfter, locales.StatusWhenAfterAbout},
+	{checkOnDemand, "手动检查", locales.StatusWhenManual, locales.StatusWhenManualAbout},
+	{checkOnPause, "边写边检查", locales.StatusWhenWriting, locales.StatusWhenWritingAbout},
 }
 
 // checks is the chapters waiting to be checked against the setting, one
