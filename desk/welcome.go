@@ -9,11 +9,11 @@ import (
 	"runtime"
 	"slices"
 	"time"
-	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/aiport"
 	"writer/desk/kit"
+	"writer/locales"
 	"writer/shelf"
 	"writer/workspace"
 )

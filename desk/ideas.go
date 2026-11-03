@@ -2,11 +2,11 @@ package desk
 
 import (
 	"strings"
-	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/book"
 	"writer/desk/kit"
+	"writer/locales"
 	"writer/workspace"
 )
 

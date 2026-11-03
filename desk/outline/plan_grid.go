@@ -5,8 +5,9 @@ import (
 	"github.com/egoist/mygo/ui"
 	"slices"
 	"writer/desk/kit"
-	"writer/locales"
 	"writer/workspace"
+
+	"writer/locales"
 )
 
 // The heading is outside the vertical scroller. Body side cells are

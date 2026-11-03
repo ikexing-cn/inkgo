@@ -9,8 +9,9 @@ import (
 	"writer/aiport"
 	"writer/desk/kit"
 	"writer/editor"
-	"writer/locales"
 	"writer/workspace"
+
+	"writer/locales"
 )
 
 // composer is one rounded field: the text, then the model it goes to and a

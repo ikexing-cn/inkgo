@@ -2158,20 +2158,6 @@ func (msgs Messages) StatusMorePending(count int) string {
 	return Catalog.Format(msgs.locale, "statusMorePending", map[string]any{"count": count})
 }
 
-// StatusUndoWorkChanged says "作品已切换，无法撤销"
-// in the language the app shows.
-//
-// 撤销忽略待处理项时，已切换作品而无法撤销的错误。
-func StatusUndoWorkChanged() string { return In(i18n.Locale()).StatusUndoWorkChanged() }
-
-// StatusUndoWorkChanged says "作品已切换，无法撤销"
-// in the language of msgs.
-//
-// 撤销忽略待处理项时，已切换作品而无法撤销的错误。
-func (msgs Messages) StatusUndoWorkChanged() string {
-	return Catalog.Format(msgs.locale, "statusUndoWorkChanged", nil)
-}
-
 // EditorOutlineBlank says "章纲 · 空"
 // in the language the app shows.
 //
@@ -7768,16 +7754,6 @@ func (msgs Messages) CheckKindCount(kind string, count int) string {
 	return Catalog.Format(msgs.locale, "checkKindCount", map[string]any{"kind": kind, "count": count})
 }
 
-// CheckUndoWorkChanged says "作品已切换，无法撤销"
-// in the language the app shows.
-func CheckUndoWorkChanged() string { return In(i18n.Locale()).CheckUndoWorkChanged() }
-
-// CheckUndoWorkChanged says "作品已切换，无法撤销"
-// in the language of msgs.
-func (msgs Messages) CheckUndoWorkChanged() string {
-	return Catalog.Format(msgs.locale, "checkUndoWorkChanged", nil)
-}
-
 // CheckKindAll says "全部"
 // in the language the app shows.
 func CheckKindAll() string { return In(i18n.Locale()).CheckKindAll() }
@@ -12722,6 +12698,22 @@ func DraftAboutFlow() string { return In(i18n.Locale()).DraftAboutFlow() }
 // in the language of msgs.
 func (msgs Messages) DraftAboutFlow() string {
 	return Catalog.Format(msgs.locale, "draftAboutFlow", nil)
+}
+
+// DraftAbout says "{scope}{flow}"
+// in the language the app shows.
+//
+// 起草对话框的说明：先写 AI
+// 只扩写什么，再写起草怎么进行。中文两句直接相连，英文中间有空格。
+func DraftAbout(scope string, flow string) string { return In(i18n.Locale()).DraftAbout(scope, flow) }
+
+// DraftAbout says "{scope}{flow}"
+// in the language of msgs.
+//
+// 起草对话框的说明：先写 AI
+// 只扩写什么，再写起草怎么进行。中文两句直接相连，英文中间有空格。
+func (msgs Messages) DraftAbout(scope string, flow string) string {
+	return Catalog.Format(msgs.locale, "draftAbout", map[string]any{"scope": scope, "flow": flow})
 }
 
 // DraftItemCards says "本章的 {count} 张卡片"

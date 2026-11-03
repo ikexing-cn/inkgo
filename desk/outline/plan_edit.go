@@ -7,8 +7,9 @@ import (
 	"time"
 	"writer/desk/book"
 	"writer/desk/kit"
-	"writer/locales"
 	"writer/workspace"
+
+	"writer/locales"
 )
 
 func (p *Page) line(c *ui.Context, l workspace.PlotLine) {

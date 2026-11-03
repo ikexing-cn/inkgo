@@ -7,8 +7,9 @@ import (
 	"strings"
 	"writer/desk/book"
 	"writer/editor"
-	"writer/locales"
 	"writer/workspace"
+
+	"writer/locales"
 )
 
 // checkKey is everything checkItems reads: the book, and the chapter open
@@ -163,7 +164,7 @@ func (a *App) setMeant(it checkItem) {
 	}
 	a.status.Did(what, func() error {
 		if a.Store != st {
-			return fmt.Errorf("%s", locales.CheckUndoWorkChanged())
+			return fmt.Errorf("%s", locales.StatusWorkSwitchedUndo())
 		}
 		return a.book.SaveCheckOver(it.node, before, had)
 	})

@@ -5,11 +5,11 @@ import (
 	"slices"
 	"strings"
 	"sync"
-	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/aiport"
 	"writer/desk/kit"
+	"writer/locales"
 	"writer/workspace"
 )
 

@@ -5,13 +5,13 @@ import (
 	"maps"
 	"slices"
 	"time"
-	"writer/locales"
 
 	"github.com/egoist/mygo/i18n"
 	"github.com/egoist/mygo/ui"
 	"writer/desk/book"
 	"writer/desk/kit"
 	"writer/editor"
+	"writer/locales"
 	"writer/workspace"
 )
 
@@ -313,7 +313,7 @@ func (a *App) ignore(items []pendItem) {
 	w.pendOpen = false
 	a.status.Did(locales.StatusIgnored(len(items)), func() error {
 		if a.Store != st {
-			return fmt.Errorf("%s", locales.StatusUndoWorkChanged())
+			return fmt.Errorf("%s", locales.StatusWorkSwitchedUndo())
 		}
 		now := w.ignored
 		w.ignored = was

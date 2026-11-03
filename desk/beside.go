@@ -4,11 +4,11 @@ import (
 	"errors"
 	"strings"
 	"time"
-	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/aiport"
 	"writer/desk/kit"
+	"writer/locales"
 	"writer/workspace"
 )
 

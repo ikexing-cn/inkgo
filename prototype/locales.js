@@ -310,7 +310,6 @@ const CATALOG = {
   "statusMorePending": [
    "count"
   ],
-  "statusUndoWorkChanged": [],
   "editorOutlineBlank": [],
   "editorSeeEntry": [],
   "editorStopDrop": [],
@@ -1057,7 +1056,6 @@ const CATALOG = {
    "kind",
    "count"
   ],
-  "checkUndoWorkChanged": [],
   "checkKindAll": [],
   "checkKindMismatch": [],
   "checkKindName": [],
@@ -1745,6 +1743,10 @@ const CATALOG = {
   "draftAboutCards": [],
   "draftAboutOutline": [],
   "draftAboutFlow": [],
+  "draftAbout": [
+   "scope",
+   "flow"
+  ],
   "draftItemCards": [
    "count"
   ],
@@ -2013,7 +2015,6 @@ const CATALOG = {
    "statusGoalError": "每日目标须为正整数，留空则不设。",
    "statusWordsTip": "字数。点击设置每日目标",
    "statusMorePending": "{count, plural, other {还有 # 条}}",
-   "statusUndoWorkChanged": "作品已切换，无法撤销",
    "editorOutlineBlank": "章纲 · 空",
    "editorSeeEntry": "查看设定",
    "editorStopDrop": "让 AI 停下，放弃这一处",
@@ -2508,7 +2509,6 @@ const CATALOG = {
    "checkTextChapter": "正文 · {chapter}",
    "checkLoreHeading": "设定 · {entry}",
    "checkKindCount": "{kind} {count, number}",
-   "checkUndoWorkChanged": "作品已切换，无法撤销",
    "checkKindAll": "全部",
    "checkKindMismatch": "不一致",
    "checkKindName": "名字有误",
@@ -2953,6 +2953,7 @@ const CATALOG = {
    "draftAboutCards": "AI 仅将章纲和本章的卡片扩写为正文，不添加这些之外的重大情节。",
    "draftAboutOutline": "AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。",
    "draftAboutFlow": "起草在一段新的讨论里进行：写好的先在正文里显示为提议，采纳后才写入，写入前保存快照；想改哪里，在讨论里接着说。",
+   "draftAbout": "{scope}{flow}",
    "draftItemCards": "本章的 {count} 张卡片",
    "draftItemPrev": "上一章全文",
    "draftItemVolume": "本卷各章章纲",
@@ -3204,7 +3205,6 @@ const CATALOG = {
    "statusGoalError": "The daily goal must be a positive whole number. Leave it empty for no goal.",
    "statusWordsTip": "Word count. Click to set a daily goal.",
    "statusMorePending": "{count, plural, one {# more item} other {# more items}}",
-   "statusUndoWorkChanged": "Cannot undo after switching books.",
    "editorOutlineBlank": "Chapter Outline · Empty",
    "editorSeeEntry": "View Lore Entry",
    "editorStopDrop": "Stop the AI and discard this part",
@@ -3699,7 +3699,6 @@ const CATALOG = {
    "checkTextChapter": "Text · {chapter}",
    "checkLoreHeading": "Lore · {entry}",
    "checkKindCount": "{kind} {count, number}",
-   "checkUndoWorkChanged": "The book has changed; cannot undo.",
    "checkKindAll": "All",
    "checkKindMismatch": "Inconsistent",
    "checkKindName": "Wrong Name",
@@ -4144,6 +4143,7 @@ const CATALOG = {
    "draftAboutCards": "AI only expands the chapter outline and this chapter’s cards into text. It adds no major plot beyond them.",
    "draftAboutOutline": "AI only expands the chapter outline into text. It adds no major plot beyond the chapter outline.",
    "draftAboutFlow": "Drafting happens in a new chat. The draft appears in the text as a suggestion first and is written only after you accept it. A snapshot is saved before writing. To change anything, keep talking in the chat.",
+   "draftAbout": "{scope} {flow}",
    "draftItemCards": "{count, plural, one {# card} other {# cards}} for this chapter",
    "draftItemPrev": "the full text of the previous chapter",
    "draftItemVolume": "the chapter outlines in this volume",

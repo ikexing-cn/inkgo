@@ -4,8 +4,9 @@ import (
 	"github.com/egoist/mygo/ui"
 	"slices"
 	"time"
-	"writer/locales"
 	"writer/workspace"
+
+	"writer/locales"
 )
 
 // When a chapter is checked against the setting, as the work's
@@ -17,12 +18,12 @@ const (
 )
 
 var checkWhens = []struct {
-	when, short string
-	label, sub  func() string
+	when       string
+	label, sub func() string
 }{
-	{checkOnLeave, "写完一章后检查", locales.StatusWhenAfter, locales.StatusWhenAfterAbout},
-	{checkOnDemand, "手动检查", locales.StatusWhenManual, locales.StatusWhenManualAbout},
-	{checkOnPause, "边写边检查", locales.StatusWhenWriting, locales.StatusWhenWritingAbout},
+	{checkOnLeave, locales.StatusWhenAfter, locales.StatusWhenAfterAbout},
+	{checkOnDemand, locales.StatusWhenManual, locales.StatusWhenManualAbout},
+	{checkOnPause, locales.StatusWhenWriting, locales.StatusWhenWritingAbout},
 }
 
 // checks is the chapters waiting to be checked against the setting, one

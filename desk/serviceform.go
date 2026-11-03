@@ -4,9 +4,9 @@ import (
 	"errors"
 	"strconv"
 	"strings"
-	"writer/locales"
 
 	"writer/aiport"
+	"writer/locales"
 	"writer/tokens"
 )
 

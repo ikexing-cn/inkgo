@@ -172,7 +172,7 @@ func TestButtonsAtTheRight(t *testing.T) {
 	// The palette is a.pal in desk, pal where a page took it from its host
 	// once, or the host's Colors() itself.
 	button := regexp.MustCompile(`(?:\bpal|Colors\(\))\.(Primary|Secondary|Danger)\(|(?:\bpal|Colors\(\))\.Ghost\(`)
-	answer := regexp.MustCompile(`(?:\bpal|Colors\(\))\.\w+\(c, "([^"]+)"\)`)
+	answer := regexp.MustCompile(`(?:\bpal|Colors\(\))\.\w+\(c, locales\.(\w+)\(\)\)`)
 	asked := 0 // the rows in the system's order: the one question about saving
 	rows := 0  // the rows with a button in them
 	for _, f := range files {
@@ -186,7 +186,7 @@ func TestButtonsAtTheRight(t *testing.T) {
 		lines := strings.Split(string(b), "\n")
 		for i, line := range lines {
 			// The question about words not saved stands in the system's
-			// order, and its row says so: 保存 · 不保存 · 取消.
+			// order, and its row says so: save, don't save, cancel.
 			line, system := strings.CutSuffix(line, " // system order")
 			if !strings.Contains(line, "ui.Row(c)") || !strings.HasSuffix(strings.TrimSpace(line), ".Children(func() {") {
 				continue
@@ -228,15 +228,11 @@ func TestButtonsAtTheRight(t *testing.T) {
 				asked++
 				var said []string
 				for _, in := range own {
-					// The shell's saving question now uses generated labels.
-					for key, text := range map[string]string{"CommonSave": "保存", "DialogDontSave": "不保存", "CommonCancel": "取消"} {
-						in = strings.ReplaceAll(in, "locales."+key+"()", strconv.Quote(text))
-					}
 					if m := answer.FindStringSubmatch(in); m != nil {
 						said = append(said, m[1])
 					}
 				}
-				if got := strings.Join(said, " · "); got != "保存 · 不保存 · 取消" || !strings.Contains(line, "Justify(ui.End)") {
+				if got := strings.Join(said, " · "); got != "CommonSave · DialogDontSave · CommonCancel" || !strings.Contains(line, "Justify(ui.End)") {
 					t.Errorf("%s:%d: a row in the system's order reads %q", f, i+1, got)
 				}
 			}

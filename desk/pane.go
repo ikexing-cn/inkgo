@@ -3,8 +3,9 @@ package desk
 import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
-	"writer/locales"
 	"writer/workspace"
+
+	"writer/locales"
 )
 
 // The right column's tabs share one shape: a list, a row to a thing, and

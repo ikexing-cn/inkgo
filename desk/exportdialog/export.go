@@ -5,13 +5,13 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
-	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/book"
 	"writer/desk/kit"
 	"writer/export"
 	"writer/internal/atomicfile"
+	"writer/locales"
 	"writer/shelf"
 	"writer/workspace"
 )

@@ -3,11 +3,11 @@ package desk
 import (
 	"slices"
 	"strings"
-	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
 	"writer/editor"
+	"writer/locales"
 	"writer/workspace"
 )
 

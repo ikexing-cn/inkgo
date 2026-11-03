@@ -3,9 +3,9 @@ package desk
 import (
 	"slices"
 	"time"
-	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
+	"writer/locales"
 )
 
 // snapEvery is how often the writing page keeps a snapshot while the author

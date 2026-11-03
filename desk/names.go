@@ -4,12 +4,12 @@ import (
 	"slices"
 	"strings"
 	"unicode/utf8"
-	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/book"
 	"writer/desk/kit"
 	"writer/editor"
+	"writer/locales"
 	"writer/workspace"
 )
 

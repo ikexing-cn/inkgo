@@ -554,10 +554,10 @@ func (a *App) footCheck(c *ui.Context) {
 	w := &a.write
 	k := &a.ck
 	line, found, can, tip := a.checkState()
-	short := checkWhens[0].short
+	short := checkWhens[0].label
 	for _, o := range checkWhens {
 		if o.when == k.when {
-			short = o.short
+			short = o.label
 		}
 	}
 	if found > 0 {
@@ -599,7 +599,7 @@ func (a *App) footCheck(c *ui.Context) {
 	if b.Hovered() {
 		color = t.Text
 	}
-	b.Children(func() { ui.Text(c, short+" ▴").FontSize(kit.FsNote).TextColor(color).SingleLine() })
+	b.Children(func() { ui.Text(c, short()+" ▴").FontSize(kit.FsNote).TextColor(color).SingleLine() })
 	if b.Clicked() {
 		k.whenOpen = !k.whenOpen
 	}

@@ -7,11 +7,11 @@ import (
 	"slices"
 	"strings"
 	"time"
-	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/backup"
 	"writer/desk/kit"
+	"writer/locales"
 	"writer/shelf"
 	"writer/workspace"
 )

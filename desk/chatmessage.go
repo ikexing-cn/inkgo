@@ -6,9 +6,10 @@ import (
 	"strings"
 	"time"
 	"writer/desk/kit"
-	"writer/locales"
 	"writer/tokens"
 	"writer/workspace"
+
+	"writer/locales"
 )
 
 // replyIndent is where a reply's text starts: past the mark and the gap

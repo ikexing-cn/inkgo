@@ -294,7 +294,7 @@ function draftDialog(d) {
   const cards = eventsOf(cur.key).length
   const sent = 1100 + S.entries.filter((e) => e.place === 'body').length * 260 + 600 + cards * 45 + (prev ? sizeOf(prev) : 0) // 规则、设定、章纲卷纲、本章的卡片、上一章全文
   const items = [cards ? L.draftItemCards(cards) : '', prev ? L.draftItemPrev() : '', cur.vol ? L.draftItemVolume() : L.draftItemBooks()].filter(Boolean).join(L.draftListSep())
-  return dialog('small', dialogHead(L.cmdDraft(), (cards ? L.draftAboutCards() : L.draftAboutOutline()) + L.draftAboutFlow()) +
+  return dialog('small', dialogHead(L.cmdDraft(), L.draftAbout(cards ? L.draftAboutCards() : L.draftAboutOutline(), L.draftAboutFlow())) +
     `<div class="quote">${t(S.outlines[cur.key])}</div>` +
     field(L.draftGoal(), line(d.goal, type('goal'), L.draftGoalHint(), L.draftGoalLabel()) + (countOrNone(d.goal) ? '' : `<div class="note danger">${t(L.draftGoalInvalid())}</div>`)) +
     (cur.paras.length ? field(L.draftExisting(), dots(d.how, [['接在已有内容之后', L.draftAppend()], ['覆盖已有内容', L.draftOverwrite()]], type('how'), L.draftExistingHow())) : '') +

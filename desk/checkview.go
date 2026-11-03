@@ -8,8 +8,9 @@ import (
 	"unicode/utf8"
 	"writer/desk/kit"
 	"writer/internal/textclip"
-	"writer/locales"
 	"writer/workspace"
+
+	"writer/locales"
 )
 
 // whenRows are the three times to check, one chosen.

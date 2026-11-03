@@ -3,8 +3,9 @@ package desk
 import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
-	"writer/locales"
 	"writer/workspace"
+
+	"writer/locales"
 )
 
 // column is the reading width of the conversation.

@@ -6,10 +6,10 @@ import (
 	"slices"
 	"strings"
 	"time"
-	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
+	"writer/locales"
 	"writer/tokens"
 	"writer/workspace"
 )

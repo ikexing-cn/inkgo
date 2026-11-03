@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
-	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
+	"writer/locales"
 	"writer/workspace"
 )
 

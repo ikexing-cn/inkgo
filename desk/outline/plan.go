@@ -9,8 +9,9 @@ import (
 	"time"
 	"writer/desk/book"
 	"writer/desk/kit"
-	"writer/locales"
 	"writer/workspace"
+
+	"writer/locales"
 )
 
 const planFlash = 1600 * time.Millisecond

@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"strings"
 	"sync/atomic"
-	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/aiport"
 	"writer/desk/kit"
+	"writer/locales"
 	"writer/prefs"
 	"writer/tokens"
 	"writer/workspace"
@@ -234,7 +234,7 @@ func (a *App) draftView(c *ui.Context) {
 			if w.draftCards > 0 {
 				head = locales.DraftAboutCards()
 			}
-			a.pal.DialogHead(c, locales.CmdDraft(), head+locales.DraftAboutFlow())
+			a.pal.DialogHead(c, locales.CmdDraft(), locales.DraftAbout(head, locales.DraftAboutFlow()))
 			ui.Box(c).FillWidth().Padding(10, 12).Radius(kit.RControl).Background(a.pal.Side).Children(func() {
 				ui.Text(c, strings.TrimSpace(w.cur().outline.Text)).FontSize(kit.FsControl).TextColor(t.TextMuted).LineHeight(kit.LhLoose).FillWidth()
 			})
