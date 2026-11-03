@@ -5,6 +5,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"slices"
 	"writer/desk/kit"
+	"writer/locales"
 	"writer/workspace"
 )
 
@@ -18,9 +19,9 @@ func (p *Page) head(c *ui.Context, left float32, heads func()) {
 		height += kit.HTag
 	}
 	ui.Row(c).FillWidth().MinWidth(0).Height(height).Shrink(0).Clip().Children(func() {
-		word := "章节"
+		word := locales.PlanChapters()
 		if p.mode == 1 {
-			word = "情节线"
+			word = locales.PlanLine()
 		}
 		ui.Column(c).Width(left).FillHeight().Padding(0, 12, 0, 24).Justify(ui.Center).Shrink(0).Background(pal.Canvas).Children(func() { ui.Text(c, word).FontSize(kit.FsNote).TextColor(pal.Theme.TextMuted) })
 		ui.Box(c).Grow(1).Shrink(1).MinWidth(0).FillHeight().Clip().Children(func() {
@@ -83,8 +84,8 @@ func (p *Page) grid(c *ui.Context) {
 			}
 			if len(g.rows) == 0 {
 				ui.Column(c).Width(planGistWidth).Padding(32, 24).Gap(8).Children(func() {
-					ui.Text(c, "章节里没有「"+kit.Trim(p.query)+"」").FontSize(kit.FsDialog).FontWeight(600)
-					ui.Text(c, "找到的卡片在下面「未放进章节」里。").FontSize(kit.FsNote).TextColor(p.Host.Colors().Theme.TextMuted)
+					ui.Text(c, locales.PlanNoneInChapters(kit.Trim(p.query))).FontSize(kit.FsDialog).FontWeight(600)
+					ui.Text(c, locales.PlanFoundCardsBelow(locales.PlanNoChapter())).FontSize(kit.FsNote).TextColor(p.Host.Colors().Theme.TextMuted)
 				})
 			}
 		})
@@ -95,7 +96,7 @@ func (p *Page) gridRow(c *ui.Context, row planRow, lines []workspace.PlotLine) {
 	pal := p.Host.Colors()
 	n := row.node
 	if row.kind == 2 {
-		ui.Text(c, "不在卷中").FontSize(kit.FsGroup).FontWeight(600).Padding(16, 24, 12, 24).Height(row.height).Shrink(0).Translate(p.scroll[0].X, 0).FillWidth().Background(pal.Side)
+		ui.Text(c, locales.PlanNoVolume()).FontSize(kit.FsGroup).FontWeight(600).Padding(16, 24, 12, 24).Height(row.height).Shrink(0).Translate(p.scroll[0].X, 0).FillWidth().Background(pal.Side)
 		return
 	}
 	if row.kind == 1 {
@@ -103,7 +104,7 @@ func (p *Page) gridRow(c *ui.Context, row planRow, lines []workspace.PlotLine) {
 			ui.Column(c).Width(planGistWidth).Margin(0, 0, 0, 24).Translate(p.scroll[0].X, 0).Gap(4).Children(func() {
 				ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
 					ui.RichText(c, kit.Marked(n.Title, kit.Trim(p.query), pal.Ink)...).FontSize(kit.FsGroup).FontWeight(600).SingleLine()
-					text := fmt.Sprintf("%d 章", row.count)
+					text := locales.PlanChapterCount(row.count)
 					if row.when != "" {
 						text += " · " + row.when
 					}
@@ -122,7 +123,7 @@ func (p *Page) gridRow(c *ui.Context, row planRow, lines []workspace.PlotLine) {
 		ui.Box(c).Grow(1).BorderWidth(0, 0, 1, 0).BorderColor(pal.Line)
 		p.side(c, planChapterWidth, "大纲章节-"+n.ID, func() {
 			ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
-				b := ui.ButtonBase(c).Grow(1).Shrink(1).Radius(kit.RXs).Label("打开正文-" + n.ID).Tooltip("打开正文")
+				b := ui.ButtonBase(c).Grow(1).Shrink(1).Radius(kit.RXs).Label("打开正文-" + n.ID).Tooltip(locales.PlanOpenBody())
 				if b.Hovered() {
 					b.Background(pal.Theme.SurfaceHover)
 				}
@@ -131,11 +132,11 @@ func (p *Page) gridRow(c *ui.Context, row planRow, lines []workspace.PlotLine) {
 					p.Host.OpenWriting(n.ID)
 				}
 				if p.back(n.ID) {
-					ui.Text(c, "回溯").FontSize(kit.FsSmall).Padding(2, 4).Radius(kit.RXs).Border(1, pal.Line).Tooltip("这一章写到了比前面各章更早的事")
+					ui.Text(c, locales.PlanBacktrack()).FontSize(kit.FsSmall).Padding(2, 4).Radius(kit.RXs).Border(1, pal.Line).Tooltip(locales.PlanBacktrackHint())
 				}
 			})
 			if row.when != "" {
-				ui.Text(c, "故事中 "+row.when).FontSize(kit.FsNote).TextColor(pal.Theme.TextMuted).SingleLine().Ellipsis("…")
+				ui.Text(c, locales.PlanWhenNote(row.when)).FontSize(kit.FsNote).TextColor(pal.Theme.TextMuted).SingleLine().Ellipsis("…")
 			}
 			p.gist(c, n)
 			stray := 0
@@ -145,7 +146,7 @@ func (p *Page) gridRow(c *ui.Context, row planRow, lines []workspace.PlotLine) {
 				}
 			}
 			if stray > 0 {
-				ui.Textf(c, "另有 %d 张不在任何情节线", stray).FontSize(kit.FsNote).TextColor(pal.Faint)
+				ui.Text(c, locales.PlanStray(stray)).FontSize(kit.FsNote).TextColor(pal.Faint)
 			}
 		})
 	})
@@ -189,7 +190,7 @@ func (p *Page) cell(c *ui.Context, chapter, line string, col int, when, after st
 		for _, e := range cards {
 			p.cardView(c.Key("card-"+e.ID), e, col != -2, false)
 		}
-		b := ui.ButtonBase(c).FillWidth().Height(kit.HControl).Center().Gap(6).Row().Border(1, pal.Theme.Border).BorderStyle(ui.BorderDashed).Radius(kit.RControl).Label(fmt.Sprintf("添加卡片-%s|%s|%d", chapter, line, col)).Tooltip("添加卡片")
+		b := ui.ButtonBase(c).FillWidth().Height(kit.HControl).Center().Gap(6).Row().Border(1, pal.Theme.Border).BorderStyle(ui.BorderDashed).Radius(kit.RControl).Label(fmt.Sprintf("添加卡片-%s|%s|%d", chapter, line, col)).Tooltip(locales.PlanAddCardTitle())
 		if b.Hovered() {
 			b.Background(pal.Theme.SurfaceHover)
 		}
@@ -198,7 +199,7 @@ func (p *Page) cell(c *ui.Context, chapter, line string, col int, when, after st
 		}
 		b.Children(func() {
 			kit.Glyph(c, kit.IcPlus, kit.IconSm, pal.Theme.TextMuted)
-			ui.Text(c, "添加").FontSize(kit.FsNote).TextColor(pal.Theme.TextMuted)
+			ui.Text(c, locales.PlanAddCard()).FontSize(kit.FsNote).TextColor(pal.Theme.TextMuted)
 		})
 		if b.Clicked() {
 			p.newCard(chapter, line, when, after)
@@ -210,7 +211,7 @@ func (p *Page) cardView(c *ui.Context, e workspace.Card, timeline, tray bool) {
 	pal := p.Host.Colors()
 	content := p.Host.Content()
 	assigned := p.cardChapter(e) != ""
-	b := ui.ButtonBase(c).Column().FillWidth().Padding(6, 10).Gap(2).Radius(kit.RControl).Background(pal.Raised).Border(1, pal.Theme.Border).Label("卡片-" + e.ID).Tooltip("点击修改；拖到别的格子挪过去").Drag(dragCard(e.ID))
+	b := ui.ButtonBase(c).Column().FillWidth().Padding(6, 10).Gap(2).Radius(kit.RControl).Background(pal.Raised).Border(1, pal.Theme.Border).Label("卡片-" + e.ID).Tooltip(locales.PlanCardHint()).Drag(dragCard(e.ID))
 	if b.Hovered() {
 		b.Border(1, pal.Control).Translate(0, -2)
 		pal.Pop.On(b)
@@ -249,7 +250,7 @@ func (p *Page) cardView(c *ui.Context, e workspace.Card, timeline, tray bool) {
 		}
 		p.text(c, e.Title, false).MaxHeight(kit.FsBody * kit.LhBody * 2).Clip()
 		if timeline {
-			text := "未放进章节"
+			text := locales.PlanNoChapter()
 			if assigned {
 				n, _ := content.Tree().Node(e.Chapter)
 				text = n.Title
@@ -274,13 +275,13 @@ func (p *Page) tray(c *ui.Context) {
 	}
 	tray.Children(func() {
 		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, "未放进章节").FontSize(kit.FsGroup).FontWeight(600)
-			note := "想到了、还没定写在哪的事，先记在这里"
+			ui.Text(c, locales.PlanNoChapter()).FontSize(kit.FsGroup).FontWeight(600)
+			note := locales.PlanTrayEmpty()
 			if len(cards) > 0 {
-				note = fmt.Sprintf("%d 张 · 拖进上面的格子就放进那一章", len(cards))
+				note = locales.PlanTrayCount(len(cards))
 			}
 			ui.Text(c, note).FontSize(kit.FsNote).TextColor(pal.Theme.TextMuted).Grow(1).Shrink(1)
-			if pal.Ghost(c, "记一张", ui.Color{}).Clicked() {
+			if pal.Ghost(c, locales.PlanTrayAdd(), ui.Color{}).Clicked() {
 				p.newCard("", "", "", "")
 			}
 		})
@@ -319,21 +320,21 @@ func (p *Page) timeline(c *ui.Context) {
 	}
 	lanes := slices.Clone(content.Plan().Lines)
 	if slices.ContainsFunc(content.Plan().Cards, func(e workspace.Card) bool { return e.Line == "" }) {
-		lanes = append(lanes, workspace.PlotLine{Name: "不分情节线"})
+		lanes = append(lanes, workspace.PlotLine{Name: locales.PlanNoLine()})
 	}
 	ui.Row(c).FillWidth().Padding(10, 24, 0, 24).Gap(16).Shrink(0).Children(func() {
 		for _, loose := range []bool{false, true} {
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Shrink(0).Children(func() {
 				key := ui.Box(c).Size(kit.IconMd, kit.RCard).Radius(kit.RXs).Border(1, pal.Control).Background(pal.Raised)
-				text := "已放进章节"
+				text := locales.PlanInChapter()
 				if loose {
 					key.BorderStyle(ui.BorderDashed).Background(pal.Canvas)
-					text = "未放进章节"
+					text = locales.PlanNoChapter()
 				}
 				ui.Text(c, text).FontSize(kit.FsNote).TextColor(pal.Theme.TextMuted)
 			})
 		}
-		ui.Text(c, "时间可以不写，左右的先后就是故事里的先后").FontSize(kit.FsNote).TextColor(pal.Faint).Grow(1).Shrink(1)
+		ui.Text(c, locales.PlanTimelineHint()).FontSize(kit.FsNote).TextColor(pal.Faint).Grow(1).Shrink(1)
 		var off []string
 		for _, n := range p.chapters() {
 			if len(p.cardsOf(n.ID)) == 0 {
@@ -341,11 +342,11 @@ func (p *Page) timeline(c *ui.Context) {
 			}
 		}
 		if len(off) > 0 {
-			word := fmt.Sprintf("%d 章", len(off))
+			word := locales.PlanChaptersNoCards(len(off))
 			if len(off) == 1 {
-				word = "「" + off[0] + "」"
+				word = locales.PlanOneNoCards(off[0])
 			}
-			ui.Text(c, word+"还没有卡片").FontSize(kit.FsNote).TextColor(pal.Theme.TextMuted).SingleLine()
+			ui.Text(c, word).FontSize(kit.FsNote).TextColor(pal.Theme.TextMuted).SingleLine()
 		}
 	})
 	p.head(c, planLaneWidth, func() {
@@ -353,7 +354,7 @@ func (p *Page) timeline(c *ui.Context) {
 			if i < len(cols) {
 				p.timeHead(c.Key(i), i, cols[i])
 			} else {
-				p.timeHead(c.Key("end"), -1, workspace.TimeColumn{When: "之后"})
+				p.timeHead(c.Key("end"), -1, workspace.TimeColumn{When: locales.PlanTimeEnd()})
 			}
 		})
 	})
@@ -395,9 +396,9 @@ func (p *Page) timeHead(c *ui.Context, i int, col workspace.TimeColumn) {
 	ui.Column(c).Width(planCardWidth).Height(kit.TitleHeight+kit.HTag).Padding(12, 12, 0, 12).Gap(6).Shrink(0).Children(func() {
 		label := col.When
 		if label == "" {
-			label = "未写时间"
+			label = locales.PlanNoTime()
 		}
-		b := ui.ButtonBase(c).FillWidth().Padding(2, 6).Radius(kit.RXs).Label(fmt.Sprintf("时间列-%d", i)).Tooltip("点击修改这一列的时间").Disabled(i < 0)
+		b := ui.ButtonBase(c).FillWidth().Padding(2, 6).Radius(kit.RXs).Label(fmt.Sprintf("时间列-%d", i)).Tooltip(locales.PlanClickEditTime()).Disabled(i < 0)
 		if b.Hovered() {
 			b.Background(pal.Theme.SurfaceHover)
 		}
@@ -438,14 +439,14 @@ func (p *Page) timeHead(c *ui.Context, i int, col workspace.TimeColumn) {
 		kit.Popover(c, b, &open, 0, 0, func(panel ui.Element) {
 			panel.Width(planTimePopWidth).Padding(10).Gap(8).Radius(kit.RCard).Background(pal.Raised).Border(1, pal.Theme.Border)
 			pal.Pop.On(panel)
-			ui.Textf(c, "这一列 %d 张卡片在故事中的时间", len(col.Cards)).FontSize(kit.FsNote).TextColor(pal.Theme.TextMuted)
-			in := ui.TextInput(c, &p.when).Label("这一列的时间").Placeholder("例如：十月六日夜").FillWidth().AutoFocus()
+			ui.Text(c, locales.PlanTimeColumn(len(col.Cards))).FontSize(kit.FsNote).TextColor(pal.Theme.TextMuted)
+			in := ui.TextInput(c, &p.when).Label(locales.PlanTimeAria()).Placeholder(locales.PlanTimeHint()).FillWidth().AutoFocus()
 			save := in.Submitted()
 			ui.Row(c).FillWidth().Gap(8).Justify(ui.End).Children(func() {
-				if pal.Secondary(c, "取消").Label("取消时间").Clicked() {
+				if pal.Secondary(c, locales.CommonCancel()).Label("取消时间").Clicked() {
 					open = false
 				}
-				if pal.Primary(c, "保存").Label("保存时间").Clicked() {
+				if pal.Primary(c, locales.CommonSave()).Label("保存时间").Clicked() {
 					save = true
 				}
 			})

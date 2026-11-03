@@ -2,7 +2,6 @@ package outline
 
 import (
 	"errors"
-	"fmt"
 	"github.com/egoist/mygo/ui"
 	"io"
 	"slices"
@@ -10,6 +9,7 @@ import (
 	"time"
 	"writer/desk/book"
 	"writer/desk/kit"
+	"writer/locales"
 	"writer/workspace"
 )
 
@@ -225,12 +225,12 @@ func (p *Page) View(c *ui.Context) {
 			p.top(c)
 			cards, nodes := p.counts()
 			if q := kit.Trim(p.query); q != "" && cards+nodes == 0 {
-				about := "按章节搜的是章名、章纲、卷纲和卡片里的字。"
+				about := locales.PlanSearchChapters()
 				if p.mode == 1 {
-					about = "时间线上搜的是卡片：发生了什么、说明、故事中的时间和所在的章。"
+					about = locales.PlanSearchTimeline()
 				}
-				p.Host.Colors().Blank(c, kit.IcSearch, "没有找到「"+q+"」", about, func() {
-					if p.Host.Colors().Secondary(c, "清除搜索").Label("空页清除搜索").Clicked() {
+				p.Host.Colors().Blank(c, kit.IcSearch, locales.PlanNotFound(q), about, func() {
+					if p.Host.Colors().Secondary(c, locales.PlanClearSearch()).Label("空页清除搜索").Clicked() {
 						p.query = ""
 					}
 				})
@@ -255,26 +255,26 @@ func (p *Page) broken(c *ui.Context) {
 	if !p.checksPaused {
 		c.After(p.Host.Content().Timing.CheckEvery - time.Since(p.checked))
 	}
-	title, about, why := "大纲读不出来", "", p.loadErr.Error()
+	title, about, why := locales.PlanReadError(), "", p.loadErr.Error()
 	var bad *workspace.PlanError
 	if errors.As(p.loadErr, &bad) {
-		title, about, why = "大纲文件读不出来", "outline.json 可能在软件外被改过。正文和设定不受影响；改好文件后，这一页会自己重新读取。", ""
+		title, about, why = locales.PlanBrokenTitle(), locales.PlanBrokenAbout(), ""
 		switch {
 		case bad.Line > 0:
-			why = fmt.Sprintf("第 %d 行附近有错", bad.Line)
+			why = locales.PlanBrokenLine(bad.Line)
 		case errors.Is(bad.Err, io.ErrUnexpectedEOF):
-			why = "文件在结尾处断了"
+			why = locales.PlanBrokenEnd()
 		}
 	}
 	ui.Row(c).FillWidth().Height(kit.TitleHeight).Padding(0, 16, 0, 24).AlignItems(ui.Center).Shrink(0).BorderWidth(0, 0, 1, 0).BorderColor(pal.Line).Children(func() {
-		ui.Text(c, "大纲").FontSize(kit.FsBody).FontWeight(600).SingleLine()
+		ui.Text(c, locales.PagePlan()).FontSize(kit.FsBody).FontWeight(600).SingleLine()
 	})
 	pal.Blank(c, kit.IcAlert, title, about, func() {
 		if why != "" {
 			ui.Text(c, why).FontSize(kit.FsNote).TextColor(pal.Faint).TextAlign(ui.Center).MaxWidth(440)
 		}
 		_, reveal := p.Host.Dialogs()
-		if reveal != nil && pal.Secondary(c, "打开所在文件夹").Clicked() {
+		if reveal != nil && pal.Secondary(c, locales.CommonOpenFolder()).Clicked() {
 			p.Host.Notices().Warn(reveal(p.Host.WorkPath()))
 		}
 	})
@@ -286,41 +286,40 @@ func (p *Page) top(c *ui.Context) {
 	cards, nodes := p.counts()
 	chs := p.chapters()
 	loose := len(p.cardsOf(""))
-	sum := fmt.Sprintf("%d 章 · %d 条情节线 · %d 张卡片", len(chs), len(content.Plan().Lines), len(content.Plan().Cards))
+	sum := locales.PlanSummary(len(chs), len(content.Plan().Lines), len(content.Plan().Cards))
 	if loose > 0 {
-		sum += fmt.Sprintf("，%d 张未放进章节", loose)
+		sum = locales.PlanSummaryLoose(len(chs), len(content.Plan().Lines), len(content.Plan().Cards), loose)
 	}
 	if kit.Trim(p.query) != "" {
-		sum = "没有找到"
-		var hits []string
-		if nodes > 0 {
-			hits = append(hits, fmt.Sprintf("%d 处章名或章纲", nodes))
-		}
-		if cards > 0 {
-			hits = append(hits, fmt.Sprintf("%d 张卡片", cards))
-		}
-		if len(hits) > 0 {
-			sum = "找到 " + strings.Join(hits, "、")
+		switch {
+		case nodes > 0 && cards > 0:
+			sum = locales.PlanFoundBoth(nodes, cards)
+		case nodes > 0:
+			sum = locales.PlanFoundChapters(nodes)
+		case cards > 0:
+			sum = locales.PlanFoundCards(cards)
+		default:
+			sum = locales.PlanNoResults()
 		}
 	}
 	ui.Row(c).FillWidth().Height(kit.TitleHeight).Padding(0, 16, 0, 24).Gap(12).AlignItems(ui.Center).Shrink(0).BorderWidth(0, 0, 1, 0).BorderColor(pal.Line).Children(func() {
-		ui.Text(c, "大纲").FontSize(kit.FsBody).FontWeight(600).SingleLine()
+		ui.Text(c, locales.PagePlan()).FontSize(kit.FsBody).FontWeight(600).SingleLine()
 		ui.Text(c, sum).FontSize(kit.FsNote).TextColor(pal.Theme.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
-		hint := "搜索卡片和章纲"
+		hint := locales.PlanSearchCardsAndOutlines()
 		if p.mode == 1 {
-			hint = "搜索卡片"
+			hint = locales.PlanSearchCards()
 		}
 		ui.Row(c).Width(planCardWidth).Height(kit.HControlSm).AlignItems(ui.Center).Gap(6).Padding(0, 8).Radius(kit.RControl).Border(1, pal.Theme.Border).Children(func() {
 			kit.Glyph(c, kit.IcSearch, kit.IconSm, pal.Faint)
-			ui.TextInputBase(c, &p.query).Label("搜索大纲").Placeholder(hint).FontSize(kit.FsControl).Grow(1).Shrink(1)
+			ui.TextInputBase(c, &p.query).Label(locales.PlanSearch()).Placeholder(hint).FontSize(kit.FsControl).Grow(1).Shrink(1)
 			if p.query != "" {
-				if kit.IconButton(c, kit.IcX, "清除搜索", ui.Color{}).Size(kit.HTag, kit.HTag).Clicked() {
+				if kit.IconButton(c, kit.IcX, locales.PlanClearSearch(), ui.Color{}).Size(kit.HTag, kit.HTag).Clicked() {
 					p.query = ""
 				}
 			}
 		})
 		was := p.mode
-		pal.Segments(c, &p.mode, "大纲的看法", []string{"按章节", "时间线"})
+		pal.Segments(c, &p.mode, locales.PlanViewAria(), []string{locales.PlanByChapter(), locales.PlanTimelineView()})
 		if was != p.mode {
 			p.FinishOutline()
 			p.finishLine()
@@ -356,7 +355,7 @@ func (p *Page) ChapterStory(c *ui.Context) {
 	if when == "" {
 		return
 	}
-	if p.Host.Colors().Ghost(c, "故事中 "+when, ui.Color{}).Clicked() {
+	if p.Host.Colors().Ghost(c, locales.PlanWhenNote(when), ui.Color{}).Clicked() {
 		p.Host.ShowOutline()
 		p.mode = 1
 		p.query = ""

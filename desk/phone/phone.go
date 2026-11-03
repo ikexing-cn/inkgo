@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
@@ -197,17 +198,17 @@ func (p *Panel) View(c *ui.Context) {
 	if _, _, open := p.Host.Chapter(); !open {
 		p.key = ""
 		p.look = false
-		pal.PaneEmpty(c, "打开一章即可预览", "")
+		pal.PaneEmpty(c, locales.PreviewOpenChapter(), "")
 		return
 	}
 	p.measure()
 	before := p.prefs
 	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(8).Padding(0, 20, 12, 20).Shrink(0).Children(func() {
 		mode := phoneIndex(p.prefs.Mode, phoneModes)
-		pal.Segments(c, &mode, "看法", []string{"翻页", "滚动"})
+		pal.Segments(c, &mode, locales.PreviewViewMode(), []string{locales.PreviewPaged(), locales.PreviewScroll()})
 		p.prefs.Mode = phoneModes[mode]
 		ui.Spacer(c)
-		b := ui.ButtonBase(c).Height(kit.HControlSm).Padding(0, 6).Center().Radius(kit.RControl).KeepFocus().Label("Aa").Tooltip("排版")
+		b := ui.ButtonBase(c).Height(kit.HControlSm).Padding(0, 6).Center().Radius(kit.RControl).KeepFocus().Label("Aa").Tooltip(locales.PreviewLayout())
 		if b.Hovered() || p.look {
 			b.Background(pal.Theme.SurfacePressed)
 		}
@@ -236,7 +237,7 @@ func (p *Panel) View(c *ui.Context) {
 			p.hover = para
 			stage.Cursor(ui.CursorPointer)
 			if !p.prefs.NoLong && len(p.Paras[para].Shape.Lines) > 5 {
-				stage.Tooltip(fmt.Sprintf("手机上 %d 行", len(p.Paras[para].Shape.Lines)))
+				stage.Tooltip(locales.PreviewLinesTip(len(p.Paras[para].Shape.Lines)))
 			}
 		}
 	}
@@ -245,27 +246,27 @@ func (p *Panel) View(c *ui.Context) {
 	ui.Row(c).FillWidth().Height(kit.HControl).Padding(0, 20).AlignItems(ui.Center).Justify(ui.SpaceBetween).Shrink(0).Children(func() {
 		if p.prefs.Mode == "flip" {
 			ui.Box(c).Disabled(p.at == 0).Children(func() {
-				if pal.Ghost(c, "‹ 上一屏", ui.Color{}).Label("‹ 上一屏").KeepFocus().Clicked() {
+				if pal.Ghost(c, "‹ "+locales.PreviewPrev(), ui.Color{}).Label("‹ " + locales.PreviewPrev()).KeepFocus().Clicked() {
 					p.flip(-1)
 				}
 			})
-			ui.Textf(c, "第 %d 屏，共 %d 屏", p.at+1, p.Pages).FontSize(kit.FsNote).TextColor(pal.Theme.TextMuted).SingleLine()
+			ui.Text(c, locales.PreviewScreenOf(p.at+1, p.Pages)).FontSize(kit.FsNote).TextColor(pal.Theme.TextMuted).SingleLine()
 			ui.Box(c).Disabled(p.at == p.Pages-1).Children(func() {
-				if pal.Ghost(c, "下一屏 ›", ui.Color{}).Label("下一屏 ›").KeepFocus().Clicked() {
+				if pal.Ghost(c, locales.PreviewNext()+" ›", ui.Color{}).Label(locales.PreviewNext() + " ›").KeepFocus().Clicked() {
 					p.flip(1)
 				}
 			})
 		} else {
 			ui.Spacer(c)
-			ui.Textf(c, "约 %d 屏", p.Pages).FontSize(kit.FsNote).TextColor(pal.Theme.TextMuted)
+			ui.Text(c, locales.PreviewAbout(p.Pages)).FontSize(kit.FsNote).TextColor(pal.Theme.TextMuted)
 			ui.Spacer(c)
 		}
 	})
 	ui.Row(c).FillWidth().MinHeight(kit.HControl).Padding(0, 20).Justify(ui.End).Shrink(0).Children(func() {
 		if p.LongCount > 0 {
-			text := fmt.Sprintf("%d 段超过 5 行", p.LongCount)
+			text := locales.PreviewLong(p.LongCount, 5)
 			if p.prefs.Mode == "flip" {
-				text += "，看下一处"
+				text = locales.PreviewLongNext(p.LongCount, 5)
 			}
 			if pal.Ghost(c, text, ui.Color{}).Label("下一处长段").KeepFocus().Clicked() && p.prefs.Mode == "flip" {
 				p.nextLong()
@@ -285,8 +286,8 @@ func (p *Panel) typesetting(c *ui.Context) {
 		})
 		*value = choices[at]
 	}
-	row("屏幕", &prefs.Screen, phoneScreenChoices, []string{"窄屏", "标准", "宽屏"})
-	pal.PopHead(c, "字号")
+	row(locales.PreviewScreen(), &prefs.Screen, phoneScreenChoices, []string{locales.PreviewNarrow(), locales.PreviewStandard(), locales.PreviewWide()})
+	pal.PopHead(c, locales.PreviewFont())
 	ui.Box(c).FillWidth().Padding(2, 6, 6, 6).Children(func() {
 		ui.Row(c).FillWidth().Padding(2).Radius(kit.RControl).Background(pal.Theme.SurfacePressed).AlignItems(ui.Center).Children(func() {
 			step := func(label, tip string, off bool, d int) {
@@ -302,22 +303,22 @@ func (p *Panel) typesetting(c *ui.Context) {
 					prefs.Size += d
 				}
 			}
-			step("A−", "字号减小", prefs.Size <= phoneSizeMin, -1)
+			step("A−", locales.PreviewFontDown(), prefs.Size <= phoneSizeMin, -1)
 			ui.Textf(c, "%d", prefs.Size).Grow(1).TextAlign(ui.Center).FontSize(kit.FsControl)
-			step("A+", "字号增大", prefs.Size >= phoneSizeMax, 1)
+			step("A+", locales.PreviewFontUp(), prefs.Size >= phoneSizeMax, 1)
 		})
 	})
-	row("行距", &prefs.Spacing, phoneSpacings, []string{"紧凑", "适中", "宽松"})
-	row("背景", &prefs.Theme, phoneThemes, []string{"白天", "夜间", "护眼"})
+	row(locales.PreviewLineSpacing(), &prefs.Spacing, phoneSpacings, []string{locales.PreviewTight(), locales.PreviewMedium(), locales.PreviewLoose()})
+	row(locales.PreviewBackground(), &prefs.Theme, phoneThemes, []string{locales.PreviewDay(), locales.PreviewNight(), locales.PreviewEyeCare()})
 	pal.PopLine(c)
 	ui.Column(c).FillWidth().Gap(6).Padding(6, 10).Children(func() {
 		frame, long := !prefs.NoFrame, !prefs.NoLong
-		ui.Checkbox(c, &frame, "显示手机外框")
-		ui.Checkbox(c, &long, "标出超过 5 行的段落")
+		ui.Checkbox(c, &frame, locales.PreviewFrame())
+		ui.Checkbox(c, &long, locales.PreviewLongTick(5))
 		prefs.NoFrame, prefs.NoLong = !frame, !long
 	})
 	ui.Row(c).FillWidth().Justify(ui.End).Padding(0, 10, 6, 10).Children(func() {
-		if pal.Ghost(c, "恢复默认", ui.Color{}).Clicked() {
+		if pal.Ghost(c, locales.PreviewReset(), ui.Color{}).Clicked() {
 			mode := prefs.Mode
 			*prefs = defaultPhone()
 			prefs.Mode = mode

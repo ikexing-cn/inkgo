@@ -7126,6 +7126,34 @@ func (msgs Messages) PlanViewAria() string {
 	return Catalog.Format(msgs.locale, "planViewAria", nil)
 }
 
+// PlanReadError says "大纲读不出来"
+// in the language the app shows.
+//
+// 应用大纲读取失败的提示。
+func PlanReadError() string { return In(i18n.Locale()).PlanReadError() }
+
+// PlanReadError says "大纲读不出来"
+// in the language of msgs.
+//
+// 应用大纲读取失败的提示。
+func (msgs Messages) PlanReadError() string {
+	return Catalog.Format(msgs.locale, "planReadError", nil)
+}
+
+// PlanBrokenEnd says "文件在结尾处断了"
+// in the language the app shows.
+//
+// 应用大纲读取失败的提示。
+func PlanBrokenEnd() string { return In(i18n.Locale()).PlanBrokenEnd() }
+
+// PlanBrokenEnd says "文件在结尾处断了"
+// in the language of msgs.
+//
+// 应用大纲读取失败的提示。
+func (msgs Messages) PlanBrokenEnd() string {
+	return Catalog.Format(msgs.locale, "planBrokenEnd", nil)
+}
+
 // PlanBrokenTitle says "大纲文件读不出来"
 // in the language the app shows.
 func PlanBrokenTitle() string { return In(i18n.Locale()).PlanBrokenTitle() }
@@ -10464,6 +10492,20 @@ func SettingsModelDup(id string) string { return In(i18n.Locale()).SettingsModel
 // 同一服务里模型 ID 重复了。
 func (msgs Messages) SettingsModelDup(id string) string {
 	return Catalog.Format(msgs.locale, "settingsModelDup", map[string]any{"id": id})
+}
+
+// ExportInto says "导出到"
+// in the language the app shows.
+//
+// 应用选择导出目标文件夹的系统对话框标题。
+func ExportInto() string { return In(i18n.Locale()).ExportInto() }
+
+// ExportInto says "导出到"
+// in the language of msgs.
+//
+// 应用选择导出目标文件夹的系统对话框标题。
+func (msgs Messages) ExportInto() string {
+	return Catalog.Format(msgs.locale, "exportInto", nil)
 }
 
 // ExportTitle says "导出"
