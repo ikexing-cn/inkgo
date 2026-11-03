@@ -444,6 +444,21 @@ const CATALOG = {
   "commonNotFound": [],
   "commonThisChapter": [],
   "commonListSep": [],
+  "loreNamesChanged": [
+   "names"
+  ],
+  "loreNamesRemoved": [
+   "text"
+  ],
+  "loreAddedPlace": [
+   "place",
+   "category",
+   "text"
+  ],
+  "loreAddedWaitingChange": [
+   "entry",
+   "text"
+  ],
   "loreToConfirm": [],
   "loreAll": [],
   "loreDropped": [],
@@ -1088,6 +1103,28 @@ const CATALOG = {
   ],
   "catsLandDefault": [],
   "catsSave": [],
+  "shelfViewAs": [
+   "view"
+  ],
+  "shelfPickExisting": [],
+  "shelfAddedBook": [
+   "name"
+  ],
+  "shelfFolderEmpty": [
+   "path"
+  ],
+  "shelfFolderUnreadable": [
+   "path"
+  ],
+  "shelfPathIsFile": [
+   "path"
+  ],
+  "shelfBookFolderMissing": [
+   "path"
+  ],
+  "shelfListUnreadable": [
+   "error"
+  ],
   "shelfNotOpened": [],
   "shelfAdded": [],
   "shelfAlready": [],
@@ -1256,6 +1293,10 @@ const CATALOG = {
    "copies"
   ],
   "backupOldest": [],
+  "settingsLocal": [],
+  "settingsRemote": [],
+  "settingsNoPen": [],
+  "settingsInvalidAddress": [],
   "settingsTabRemind": [],
   "settingsTabRemindOnly": [],
   "settingsTabBackup": [],
@@ -1551,6 +1592,16 @@ const CATALOG = {
   "dialogOsBackupFolder": [],
   "dialogOsOpenConfig": [],
   "dialogOsNewBookFolder": [],
+  "draftFromOutline": [],
+  "draftOmittedLore": [
+   "count"
+  ],
+  "draftReferenced": [
+   "items"
+  ],
+  "draftBusyOther": [
+   "action"
+  ],
   "draftGoal": [],
   "draftGoalLabel": [],
   "draftGoalHint": [],
@@ -1957,6 +2008,10 @@ const CATALOG = {
    "commonNotFound": "未找到",
    "commonThisChapter": "本章",
    "commonListSep": "，",
+   "loreNamesChanged": "名称改为：{names}",
+   "loreNamesRemoved": "移除名称：{text}",
+   "loreAddedPlace": "新增到{place} · {category}：{text}",
+   "loreAddedWaitingChange": "新增到待确认 · {entry}：{text}",
    "loreToConfirm": "待确认",
    "loreAll": "全部设定",
    "loreDropped": "已删除",
@@ -2358,6 +2413,14 @@ const CATALOG = {
    "catsLandHint": "例如 {example}",
    "catsLandDefault": "设定库",
    "catsSave": "保存分类",
+   "shelfViewAs": "按{view}显示",
+   "shelfPickExisting": "选择已有作品的文件夹",
+   "shelfAddedBook": "已加入书架：{name}",
+   "shelfFolderEmpty": "文件夹{path}为空，作品将建在其中。",
+   "shelfFolderUnreadable": "无法打开文件夹{path}，请更换名称或位置。",
+   "shelfPathIsFile": "{path}是一个文件，请更换名称或位置。",
+   "shelfBookFolderMissing": "找不到该作品的文件夹：{path}",
+   "shelfListUnreadable": "作品清单无法读取，本次不会改动：{error}",
    "shelfNotOpened": "尚未打开",
    "shelfAdded": "已加入书架",
    "shelfAlready": "该作品已在书架上",
@@ -2477,6 +2540,10 @@ const CATALOG = {
    "backupSize": "每份约 1.1 MB，共 {total, number, ::.0} MB",
    "backupSummary": "{words} · {chapters} 章 · 已存 {copies} 份",
    "backupOldest": "，最早 09-28",
+   "settingsLocal": "本机",
+   "settingsRemote": "远程",
+   "settingsNoPen": "还没有续写和检查模型",
+   "settingsInvalidAddress": "地址无效",
    "settingsTabRemind": "提醒与检查",
    "settingsTabRemindOnly": "提醒",
    "settingsTabBackup": "备份",
@@ -2684,6 +2751,10 @@ const CATALOG = {
    "dialogOsBackupFolder": "选择备份文件夹",
    "dialogOsOpenConfig": "用记事本打开配置文件",
    "dialogOsNewBookFolder": "选择新作品所在的文件夹",
+   "draftFromOutline": "按章纲起草",
+   "draftOmittedLore": "{count, plural, other {超出上下文上限而未放入的设定 # 条}}",
+   "draftReferenced": "AI 参考了：{items}",
+   "draftBusyOther": "AI 正在回复别的讨论；等它回完或取消后再{action}",
    "draftGoal": "目标字数（选填）",
    "draftGoalLabel": "目标字数",
    "draftGoalHint": "由 AI 按章纲判断",
@@ -3073,6 +3144,10 @@ const CATALOG = {
    "commonNotFound": "No Results",
    "commonThisChapter": "This Chapter",
    "commonListSep": ", ",
+   "loreNamesChanged": "Names changed to: {names}",
+   "loreNamesRemoved": "Names removed: {text}",
+   "loreAddedPlace": "Added to {place} · {category}: {text}",
+   "loreAddedWaitingChange": "Added to Needs Confirmation · {entry}: {text}",
    "loreToConfirm": "To Confirm",
    "loreAll": "All Lore",
    "loreDropped": "Deleted",
@@ -3474,6 +3549,14 @@ const CATALOG = {
    "catsLandHint": "e.g. {example}",
    "catsLandDefault": "Lore library",
    "catsSave": "Save Category",
+   "shelfViewAs": "Show as {view}",
+   "shelfPickExisting": "Choose an Existing Book Folder",
+   "shelfAddedBook": "Added to shelf: {name}",
+   "shelfFolderEmpty": "Folder {path} is empty. The book will be created there.",
+   "shelfFolderUnreadable": "Cannot open folder {path}. Choose another name or location.",
+   "shelfPathIsFile": "{path} is a file. Choose another name or location.",
+   "shelfBookFolderMissing": "Cannot find the book folder: {path}",
+   "shelfListUnreadable": "Cannot read the book list; it will remain unchanged: {error}",
    "shelfNotOpened": "Not opened yet",
    "shelfAdded": "Added to the shelf",
    "shelfAlready": "This book is already on the shelf",
@@ -3593,6 +3676,10 @@ const CATALOG = {
    "backupSize": "About 1.1 MB each, {total, number, ::.0} MB in total",
    "backupSummary": "{words} · {chapters, plural, one {# chapter} other {# chapters}} · {copies, plural, one {# copy} other {# copies}} saved",
    "backupOldest": ", oldest 09-28",
+   "settingsLocal": "Local",
+   "settingsRemote": "Remote",
+   "settingsNoPen": "No model for continuing and checking is configured yet",
+   "settingsInvalidAddress": "Invalid address",
    "settingsTabRemind": "Reminders & Checks",
    "settingsTabRemindOnly": "Reminders",
    "settingsTabBackup": "Backup",
@@ -3800,6 +3887,10 @@ const CATALOG = {
    "dialogOsBackupFolder": "Choose backup folder",
    "dialogOsOpenConfig": "Open config file in Notepad",
    "dialogOsNewBookFolder": "Choose the folder for the new book",
+   "draftFromOutline": "Draft from Chapter Outline",
+   "draftOmittedLore": "{count, plural, one {# lore entry omitted due to the context limit} other {# lore entries omitted due to the context limit}}",
+   "draftReferenced": "AI referenced: {items}",
+   "draftBusyOther": "AI is replying to another chat; wait for it to finish or cancel before you {action}.",
    "draftGoal": "Target length (optional)",
    "draftGoalLabel": "Target length",
    "draftGoalHint": "AI decides from the chapter outline",

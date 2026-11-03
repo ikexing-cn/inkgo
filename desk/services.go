@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/aiport"
@@ -17,9 +18,10 @@ import (
 )
 
 var protocols = []string{"chat", "responses", "anthropic"}
-var protocolNames = []string{"OpenAI Chat Completions（多数兼容服务）", "OpenAI Responses", "Anthropic Messages"}
 
-const sameAsTalk = "沿用讨论模型"
+func serviceProtocolNames() []string {
+	return []string{locales.SettingsProtoChat(), "OpenAI Responses", "Anthropic Messages"}
+}
 
 func isLocal(raw string) bool {
 	u, err := url.Parse(raw)
@@ -35,16 +37,16 @@ func (a *App) destination(sel workspace.Selection) string {
 		if p.ID == sel.Provider {
 			u, err := url.Parse(p.BaseURL)
 			if err != nil {
-				return "地址无效"
+				return locales.SettingsInvalidAddress()
 			}
-			kind := "远程"
+			kind := locales.SettingsRemote()
 			if isLocal(p.BaseURL) {
-				kind = "本机"
+				kind = locales.SettingsLocal()
 			}
 			return kind + " " + u.Host + " / " + sel.Model
 		}
 	}
-	return "请先配置讨论模型"
+	return locales.ChatNeedModel()
 }
 
 func (a *App) chooseProvider(id string) {
@@ -89,11 +91,11 @@ func (a *App) modelsView(c *ui.Context) {
 // for the discussion, and for continuing and checking. A choice is kept as
 // it is made, a model ID typed once the caret leaves it.
 func (a *App) usage(c *ui.Context) {
-	a.pal.Subhead(c, "本作品的模型", "")
+	a.pal.Subhead(c, locales.SettingsBookModels(), "")
 	var typing [2]bool
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
-		typing[0] = a.useRow(c, "讨论", "与你讨论故事", &a.talkProvider, "", "讨论提供商", &a.talkModel, "讨论模型", &a.talkEffort, "讨论的思考程度")
-		typing[1] = a.useRow(c, "续写和检查", "灰字续写，检查正文", &a.penProvider, sameAsTalk, "续写和检查提供商", &a.penModel, "续写和检查模型", &a.penEffort, "续写和检查的思考程度")
+		typing[0] = a.useRow(c, locales.SettingsJobChat(), locales.SettingsJobChatAbout(), &a.talkProvider, "", "讨论提供商", &a.talkModel, "讨论模型", &a.talkEffort, "讨论的思考程度")
+		typing[1] = a.useRow(c, locales.SettingsJobCheck(), locales.SettingsJobCheckAbout(), &a.penProvider, locales.SettingsSameAsTalk(), "续写和检查提供商", &a.penModel, "续写和检查模型", &a.penEffort, "续写和检查的思考程度")
 	})
 	if typing == [2]bool{} {
 		if err := a.saveUsage(); err != nil {
@@ -126,7 +128,7 @@ func (a *App) useRow(c *ui.Context, who, what string, provider *string, none, pr
 				*model = ""
 				return
 			}
-			typing = modelField(c, model, a.providerModels(*provider)).Label(modelLabel).Placeholder("输入或选择模型 ID").FillWidth().Disabled(busy).Focused()
+			typing = modelField(c, model, a.providerModels(*provider)).Label(modelLabel).Placeholder(locales.SettingsModelHint()).FillWidth().Disabled(busy).Focused()
 		})
 		ui.Column(c).Width(110).Shrink(0).Children(func() {
 			a.effortSelect(c, effort, effortLabel, busy)
@@ -139,15 +141,15 @@ func (a *App) useRow(c *ui.Context, who, what string, provider *string, none, pr
 // they are ticked.
 func (a *App) writingSwitches(c *ui.Context) {
 	busy := a.held()
-	a.pal.Subhead(c, "写作时", "")
+	a.pal.Subhead(c, locales.SettingsWriting(), "")
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
-		if ui.Checkbox(c, &a.write.autoPredict, "停笔后自动续写").Disabled(busy).Changed() {
+		if ui.Checkbox(c, &a.write.autoPredict, locales.SettingsAutoContinue()).Disabled(busy).Changed() {
 			for _, ed := range a.write.editors() {
 				ed.SetPredictOnDemand(!a.write.autoPredict)
 			}
 			a.savePrefs() // kept as ticked, not with the models above
 		}
-		a.pal.TickNote(c, "开启后每次停笔都会调用一次 AI。")
+		a.pal.TickNote(c, locales.SettingsAutoNote())
 	})
 }
 
@@ -157,7 +159,7 @@ func (a *App) services(c *ui.Context) {
 	f := &a.serviceForm
 	t := a.pal.Theme
 	busy := a.held()
-	a.pal.Subhead(c, "模型服务", "保存在本机，所有作品共用")
+	a.pal.Subhead(c, locales.SettingsServices(), locales.SettingsServicesNote())
 	// A form just opened comes into view with its card: one added opens at
 	// the foot of the list, below what is shown.
 	reveal := f.edit != f.shown
@@ -179,16 +181,16 @@ func (a *App) services(c *ui.Context) {
 						if u, err := url.Parse(p.BaseURL); err == nil && u.Host != "" {
 							sub = u.Host
 						}
-						sub += " · " + strconv.Itoa(len(p.Models)) + " 个模型"
+						sub = locales.SettingsServiceMeta(sub, len(p.Models))
 						if a.Store != nil && a.Store.Work().Discussion.Provider == p.ID {
-							sub += " · 本作品使用中"
+							sub += " · " + locales.SettingsInUse()
 						}
 						ui.Text(c, sub).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody).SingleLine().Ellipsis("…")
 					})
 					open := f.edit == p.ID
-					text := "编辑"
+					text := locales.SettingsEdit()
 					if open {
-						text = "收起"
+						text = locales.SettingsCollapse()
 					}
 					if a.pal.Secondary(c, text).Label("提供商-" + p.ID).Disabled(busy).Clicked() {
 						f.close()
@@ -213,21 +215,21 @@ func (a *App) services(c *ui.Context) {
 		}
 		add.Children(func() {
 			kit.Glyph(c, kit.IcPlus, kit.IconSm, t.TextMuted)
-			ui.Text(c, "添加服务").FontSize(kit.FsBody).TextColor(t.TextMuted)
+			ui.Text(c, locales.SettingsAddService()).FontSize(kit.FsBody).TextColor(t.TextMuted)
 		})
 		if add.Clicked() {
 			f.new()
 		}
 	})
 	ui.Row(c).FillWidth().Gap(16).Justify(ui.End).Children(func() {
-		if a.pal.Ghost(c, "打开配置文件", ui.Color{}).Disabled(a.ai.ConfigFile() == "").Clicked() {
+		if a.pal.Ghost(c, locales.SettingsOpenConfig(), ui.Color{}).Disabled(a.ai.ConfigFile() == "").Clicked() {
 			u := url.URL{Scheme: "file", Path: filepath.ToSlash(a.ai.ConfigFile())}
 			if len(u.Path) > 1 && u.Path[1] == ':' {
 				u.Path = "/" + u.Path
 			}
 			c.OpenURL(u.String())
 		}
-		if a.pal.Ghost(c, "重新加载配置", ui.Color{}).Disabled(busy || a.ai.ConfigFile() == "").Clicked() {
+		if a.pal.Ghost(c, locales.SettingsReload(), ui.Color{}).Disabled(busy || a.ai.ConfigFile() == "").Clicked() {
 			err := a.ai.Reload()
 			if err == nil {
 				a.modelsChanged()
@@ -235,7 +237,7 @@ func (a *App) services(c *ui.Context) {
 				if ps := a.ai.Providers(); len(ps) > 0 {
 					a.chooseProvider(ps[0].ID)
 				}
-				a.status.Did("配置已重新读取")
+				a.status.Did(locales.SettingsReloaded())
 			}
 			a.SetError(err)
 		}
@@ -336,93 +338,83 @@ func (a *App) providerForm(c *ui.Context) {
 	}
 	ui.Column(c).FillWidth().Gap(12).Children(func() {
 		ui.Row(c).FillWidth().Gap(12).Children(func() {
-			kit.Labeled(c, "ID（小写字母、数字、- _）", func() {
-				ui.TextInput(c, &f.provider.ID).Label("Provider ID（小写）").Placeholder(p.ID).FillWidth().Disabled(busy || f.providerID != "")
+			kit.Labeled(c, locales.SettingsIDLabel(), func() {
+				ui.TextInput(c, &f.provider.ID).Label(locales.SettingsProviderID()).Placeholder(p.ID).FillWidth().Disabled(busy || f.providerID != "")
 			}).Width(200)
-			kit.Labeled(c, "显示名称", func() { ui.TextInput(c, &f.provider.Name).Label("显示名称").FillWidth().Disabled(busy) }).Grow(1)
+			kit.Labeled(c, locales.SettingsDisplayName(), func() {
+				ui.TextInput(c, &f.provider.Name).Label(locales.SettingsDisplayName()).FillWidth().Disabled(busy)
+			}).Grow(1)
 		})
 		if bad.ID != "" && p.ID != "" {
 			red(bad.ID)
 		}
-		kit.Labeled(c, "API 地址", func() {
-			ui.TextInput(c, &f.provider.BaseURL).Label("API 地址").Placeholder("https://api.example.com/v1").FillWidth().Disabled(busy)
+		kit.Labeled(c, locales.SettingsAPIURL(), func() {
+			ui.TextInput(c, &f.provider.BaseURL).Label(locales.SettingsAPIURL()).Placeholder("https://api.example.com/v1").FillWidth().Disabled(busy)
 			if kit.Trim(f.provider.BaseURL) != "" {
 				if bad.BaseURL != "" {
 					red(bad.BaseURL)
 				} else if isLocal(f.provider.BaseURL) {
-					ui.Text(c, "本机地址：请确认该服务不会转发到云端").FontSize(kit.FsNote).TextColor(t.TextMuted)
+					ui.Text(c, locales.SettingsLocalNote()).FontSize(kit.FsNote).TextColor(t.TextMuted)
 				} else {
-					ui.Text(c, "远程服务：讨论内容将发送到该地址").FontSize(kit.FsNote).TextColor(t.Warning)
+					ui.Text(c, locales.SettingsRemoteNote()).FontSize(kit.FsNote).TextColor(t.Warning)
 				}
 			}
 		})
-		proto := protocolNames[0]
-		for n, p := range protocols {
-			if p == f.provider.Protocol {
-				proto = protocolNames[n]
-			}
-		}
-		kit.Labeled(c, "接口协议", func() {
-			if a.pal.Select(c, &proto, protocolNames).Label("API 协议").FillWidth().Disabled(busy).Changed() {
-				for n, name := range protocolNames {
-					if name == proto {
-						f.provider.Protocol = protocols[n]
-					}
-				}
-			}
+		kit.Labeled(c, locales.SettingsProtocol(), func() {
+			a.protocolSelect(c, &f.provider.Protocol).Label(locales.SettingsProtocolAPI()).FillWidth().Disabled(busy)
 		})
 		ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Start).Children(func() {
 			kit.Labeled(c, "API key", func() {
-				hint := "留空则保留已存的 key"
+				hint := locales.SettingsKeyEmptySaved()
 				if f.providerID == "" {
-					hint = "留空则不用 key" // a new service has none kept
+					hint = locales.SettingsKeyEmptyNew() // a new service has none kept
 				}
 				ui.TextInput(c, &f.key).Label("API key").Password().Placeholder(hint).FillWidth().Disabled(busy)
 			}).Grow(1).Basis(0)
-			kit.Labeled(c, "或读取环境变量", func() {
-				ui.TextInput(c, &f.provider.Env).Label("环境变量名称").Placeholder("例如 DEEPSEEK_API_KEY").FillWidth().Disabled(busy)
+			kit.Labeled(c, locales.SettingsEnvOr(), func() {
+				ui.TextInput(c, &f.provider.Env).Label(locales.SettingsEnvName()).Placeholder(locales.SettingsEnvExample()).FillWidth().Disabled(busy)
 				if bad.Env != "" {
 					red(bad.Env)
 				}
 			}).Grow(1).Basis(0)
 		})
-		hint := "key 保存在系统钥匙串中，不会写入配置文件或作品。"
+		hint := locales.SettingsKeyNote()
 		if env := kit.Trim(f.provider.Env); env != "" && os.Getenv(env) != "" {
-			hint += "已检测到环境变量 " + env + "。"
+			hint += locales.SettingsEnvDetected(env)
 		}
 		ui.Text(c, hint).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody).Margin(-6, 0, 0, 0)
-		kit.Labeled(c, "可用模型", func() {
+		kit.Labeled(c, locales.SettingsModels(), func() {
 			a.limitTable(c)
 			if bad.Models != "" {
 				red(bad.Models)
 			}
 		})
-		ui.Text(c, "讨论超过压缩阈值时，较早的对话会整理成摘要。").FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
+		ui.Text(c, locales.SettingsCompressNote()).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Justify(ui.End).Children(func() {
-			if f.providerID != "" && a.pal.Ghost(c, "清除已保存 key", t.Danger).Disabled(busy).Clicked() {
+			if f.providerID != "" && a.pal.Ghost(c, locales.SettingsClearKey(), t.Danger).Disabled(busy).Clicked() {
 				err := a.ai.SetKey(f.providerID, "")
 				a.modelsChanged()
 				if err == nil {
-					a.status.Did("已清除保存的 key")
+					a.status.Did(locales.SettingsKeyCleared())
 				}
 				a.SetError(err)
 				f.key = ""
 			}
 			// A new service has no 收起 above it: it is put away from here.
-			if f.providerID == "" && a.pal.Secondary(c, "取消").Disabled(busy).Clicked() {
+			if f.providerID == "" && a.pal.Secondary(c, locales.CommonCancel()).Disabled(busy).Clicked() {
 				f.close()
 			}
-			if a.pal.Secondary(c, "添加模型").Disabled(busy).Clicked() {
+			if a.pal.Secondary(c, locales.SettingsAddModel()).Disabled(busy).Clicked() {
 				m, _ := a.ai.Limits("")
 				f.limits = append(f.limits, f.limitRow(m))
 			}
-			if a.pal.Secondary(c, "获取可用模型").Disabled(a.busy != "" || bad.First() != "").Clicked() { // it waits for a turn in flight: one request at a time
+			if a.pal.Secondary(c, locales.SettingsFetchModels()).Disabled(a.busy != "" || bad.First() != "").Clicked() { // it waits for a turn in flight: one request at a time
 				a.fetchModels(c)
 			}
-			if a.pal.Primary(c, "保存提供商").Disabled(busy || bad.First() != "").Clicked() {
+			if a.pal.Primary(c, locales.SettingsSaveProvider()).Disabled(busy || bad.First() != "").Clicked() {
 				err := a.saveProvider()
 				if err == nil {
-					a.status.Did("提供商已保存")
+					a.status.Did(locales.SettingsSaved())
 					f.edit = f.providerID
 				}
 				a.SetError(err)
@@ -439,24 +431,24 @@ func (a *App) limitTable(c *ui.Context) {
 	t := a.pal.Theme
 	busy := a.held()
 	if len(f.limits) == 0 {
-		ui.Text(c, "尚无模型，可获取可用模型或手动添加。").FontSize(kit.FsNote).TextColor(t.TextMuted)
+		ui.Text(c, locales.SettingsNoModels()).FontSize(kit.FsNote).TextColor(t.TextMuted)
 		return
 	}
 	gone := -1
 	ui.Column(c).FillWidth().Gap(6).Children(func() {
 		ui.Row(c).FillWidth().Gap(8).Children(func() {
 			head := func(s string) ui.Element { return ui.Text(c, s).FontSize(kit.FsNote).TextColor(t.TextMuted).Shrink(0) }
-			head("模型 ID").Grow(1).Shrink(1).MinWidth(0)
-			head("上下文上限").Width(96)
-			head("最大输出").Width(96)
-			head("压缩阈值 %").Width(72)
+			head(locales.SettingsModelID()).Grow(1).Shrink(1).MinWidth(0)
+			head(locales.SettingsContextLimit()).Width(96)
+			head(locales.SettingsMaxOutput()).Width(96)
+			head(locales.SettingsCompressPct()).Width(72)
 			ui.Column(c).Width(kit.HControlSm).Shrink(0)
 		})
 		for i := range f.limits {
 			r := &f.limits[i]
 			n := "-" + strconv.Itoa(i+1) // the row's fields are told apart by its place
 			ui.Row(c.Key("limit-" + strconv.Itoa(r.key))).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-				if ui.TextInput(c, &r.id).Label("模型 ID" + n).Placeholder("模型 ID").Grow(1).Shrink(1).MinWidth(0).Disabled(busy).Changed() {
+				if ui.TextInput(c, &r.id).Label("模型 ID" + n).Placeholder(locales.SettingsModelID()).Grow(1).Shrink(1).MinWidth(0).Disabled(busy).Changed() {
 					if m, ok := a.ai.Limits(kit.Trim(r.id)); ok {
 						r.window, r.output, r.at = tokens.Format(m.Window), tokens.Format(m.Output), strconv.Itoa(m.CompactAt)
 					}
@@ -464,7 +456,7 @@ func (a *App) limitTable(c *ui.Context) {
 				ui.TextInput(c, &r.window).Label("上下文上限" + n).Width(96).Shrink(0).Disabled(busy)
 				ui.TextInput(c, &r.output).Label("最大输出" + n).Width(96).Shrink(0).Disabled(busy)
 				ui.TextInput(c, &r.at).Label("压缩阈值" + n).Width(72).Shrink(0).Disabled(busy)
-				if kit.IconButton(c, kit.IcX, "移除模型"+n, ui.Color{}).Tooltip("移除模型").Disabled(busy).Clicked() {
+				if kit.IconButton(c, kit.IcX, locales.SettingsRemoveModel()+n, ui.Color{}).Tooltip(locales.SettingsRemoveModel()).Disabled(busy).Clicked() {
 					gone = i
 				}
 			})
@@ -486,7 +478,7 @@ func (a *App) fetchModels(c *ui.Context) {
 		return
 	}
 	generation := a.serviceForm.generation
-	a.run(c, "正在读取可用模型…", func(ctx context.Context) (func(), error) {
+	a.run(c, locales.SettingsFetching(), func(ctx context.Context) (func(), error) {
 		models, err := catalog.ListModels(ctx)
 		return func() {
 			if a.serviceForm.generation != generation {
@@ -498,7 +490,7 @@ func (a *App) fetchModels(c *ui.Context) {
 					m, _ := a.ai.Limits(id)
 					a.serviceForm.limits = append(a.serviceForm.limits, a.serviceForm.limitRow(m))
 				}
-				a.status.Did("已获取模型目录，保存提供商后生效")
+				a.status.Did(locales.SettingsModelsFetched())
 			}
 		}, err
 	})
@@ -574,4 +566,52 @@ func modelField(c *ui.Context, value *string, models []string) ui.Element {
 		*value = m
 	}
 	return in
+}
+
+// protocolSelect keeps the protocol ID separate from its displayed name.
+func (a *App) protocolSelect(c *ui.Context, selected *string) ui.Element {
+	t := c.Theme()
+	p := a.pal
+	names := serviceProtocolNames()
+	label := func(id string) string {
+		for i, value := range protocols {
+			if value == id {
+				return names[i]
+			}
+		}
+		return names[0]
+	}
+	sel := ui.SelectBase(c, selected)
+	b := sel.Trigger.Padding(t.Space(1.5), t.Space(3.5)).Gap(t.Space(1.5)).Radius(t.Radius).
+		Background(t.Surface).TextColor(t.Text).Border(1, t.Border).Justify(ui.SpaceBetween).MinWidth(t.Space(35))
+	switch {
+	case b.Pressed():
+		b.Background(t.SurfacePressed)
+	case b.Hovered():
+		b.Background(t.SurfaceHover)
+	}
+	b.Children(func() {
+		ui.Text(c, label(*selected)).SingleLine()
+		kit.Glyph(c, kit.IcChevronDown, t.Space(2.5), t.TextMuted)
+	})
+	sel.Popup(func(panel ui.Element) {
+		panel.Margin(t.Space(1), 0, 0, 0).Padding(t.Space(1)).Radius(t.Radius+2).Background(t.Background).Border(1, t.Border)
+		p.Pop.On(panel)
+		kit.PopIn(panel, 0, 0)
+		// Options past the room under the trigger scroll.
+		_, h := c.Size()
+		ui.Scroll(c).MaxHeight(h - b.Bounds().Y - b.Bounds().H - t.Space(4)).Children(func() {
+			for _, opt := range protocols {
+				item := sel.Item(opt).Padding(t.Space(1.5), t.Space(2.5)).Radius(t.Radius)
+				switch {
+				case item.Highlighted():
+					item.Background(t.Accent).TextColor(t.AccentText)
+				case opt == *selected:
+					item.Background(t.Surface)
+				}
+				item.Children(func() { ui.Text(c, label(opt)).SingleLine() })
+			}
+		})
+	})
+	return b
 }

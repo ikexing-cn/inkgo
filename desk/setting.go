@@ -2,10 +2,11 @@ package desk
 
 import (
 	"cmp"
-	"fmt"
+
 	"slices"
 	"strings"
 	"time"
+	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
@@ -208,7 +209,14 @@ func (a *App) setDocHidden(hidden bool) {
 	a.savePrefs()
 }
 
-var placeNames = map[string]string{workspace.PlaceBody: "正文", workspace.PlaceOpen: "待确认", workspace.PlaceDropped: "已删除"}
+var placeNames = map[string]func() string{workspace.PlaceBody: locales.LoreWhereBody, workspace.PlaceOpen: locales.LoreToConfirm, workspace.PlaceDropped: locales.LoreDropped}
+
+func settingPlaceName(place string) string {
+	if say := placeNames[place]; say != nil {
+		return say()
+	}
+	return ""
+}
 
 // revise records the author's change and shows the setting after it.
 func (a *App) revise(ops ...workspace.Op) {
@@ -227,7 +235,7 @@ func (a *App) settingPanel(c *ui.Context) {
 			a.panelTabs(c)
 		} else {
 			// The count is what waits on the author, as in the tab.
-			ui.Text(c, "设定").FontSize(kit.FsControl).Margin(0, 0, 0, 10).Label("右栏设定标题")
+			ui.Text(c, locales.RecordsLore()).FontSize(kit.FsControl).Margin(0, 0, 0, 10).Label("右栏设定标题")
 			if open := a.ideas(); len(open) > 0 {
 				ui.Textf(c, "%d", len(open)).FontSize(kit.FsNote).TextColor(a.pal.Faint).Padding(0, 0, 0, 4)
 			}
@@ -294,10 +302,10 @@ func (a *App) settingList(c *ui.Context) {
 			dropped++
 		}
 	}
-	if a.paneFind(c, &d.query, "搜索设定", "新增", func(m *kit.Menu) {
-		m.Item("已删除").Hint(kit.Count(dropped)).Do(d.route.showDropped)
-		m.Item("修改记录").Do(d.route.showHistory)
-		m.Item("作品分类").Do(func() { a.page = pageCategories })
+	if a.paneFind(c, &d.query, locales.LoreSearch(), locales.CommonNew(), func(m *kit.Menu) {
+		m.Item(locales.CheckDeleted()).Hint(kit.Count(dropped)).Do(d.route.showDropped)
+		m.Item(locales.LoreLog()).Do(d.route.showHistory)
+		m.Item(locales.CmdCategories()).Do(func() { a.page = pageCategories })
 	}) {
 		d.route.newEntry()
 		d.text, d.category, d.name, d.names = "", a.firstCategory(), "", ""
@@ -340,24 +348,24 @@ func (a *App) settingList(c *ui.Context) {
 				}
 			}
 			if len(found) == 0 {
-				a.pal.PaneEmpty(c, "未找到", "")
+				a.pal.PaneEmpty(c, locales.CommonNotFound(), "")
 				return
 			}
-			a.pal.PaneGroup(c, fmt.Sprintf("找到 %d 条", len(found)))
+			a.pal.PaneGroup(c, locales.CommonFound(len(found)))
 			for _, e := range found {
 				row(e)
 			}
 			return
 		}
-		if len(open) > 0 && a.pal.PaneTodo(c, "待确认", len(open)).Clicked() {
+		if len(open) > 0 && a.pal.PaneTodo(c, locales.LoreToConfirm(), len(open)).Clicked() {
 			d.route.showWaiting()
 		}
 		if a.bodyCount() == 0 {
-			how := "讨论和正文中的设定会自动收录于此，也可点击「新增」手动添加。"
+			how := locales.LoreEmptyAi()
 			if !a.aiOn() {
-				how = "可点击「新增」添加，或从正文中选中文字加入。"
+				how = locales.LoreEmptyNoAi()
 			}
-			a.pal.PaneEmpty(c, "暂无设定", how)
+			a.pal.PaneEmpty(c, locales.LoreEmpty(), how)
 			return
 		}
 		for _, cat := range a.Store.Work().Categories {
@@ -380,11 +388,11 @@ func (a *App) settingList(c *ui.Context) {
 // its page puts back.
 func (a *App) droppedList(c *ui.Context) {
 	d := &a.doc
-	if back, _ := a.pal.PaneBack(c, "全部设定", ""); back {
+	if back, _ := a.pal.PaneBack(c, locales.LoreAll(), ""); back {
 		d.route.closeDropped()
 	}
 	a.pal.PaneRows(c, "dropped", func() {
-		a.pal.PaneGroup(c, "已删除")
+		a.pal.PaneGroup(c, locales.CheckDeleted())
 		n := 0
 		for _, e := range a.book.Setting().Entries {
 			if e.Place != workspace.PlaceDropped {
@@ -397,7 +405,7 @@ func (a *App) droppedList(c *ui.Context) {
 			}
 		}
 		if n == 0 {
-			a.pal.PaneEmpty(c, "没有已删除的设定", "")
+			a.pal.PaneEmpty(c, locales.LoreNoneDropped(), "")
 		}
 	})
 }
@@ -406,10 +414,10 @@ func (a *App) droppedList(c *ui.Context) {
 // AI suggests about it.
 func (a *App) entryPage(c *ui.Context, e workspace.Entry) {
 	d := &a.doc
-	from, act := "全部设定", "删除设定"
+	from, act := locales.LoreAll(), locales.LoreDelete()
 	switch e.Place {
 	case workspace.PlaceDropped:
-		from, act = "已删除", "恢复设定"
+		from, act = locales.CheckDeleted(), locales.LoreRestore()
 	case workspace.PlaceOpen:
 		act = ""
 	}
@@ -431,10 +439,10 @@ func (a *App) entryPage(c *ui.Context, e workspace.Entry) {
 		if len(e.Names) > 0 {
 			name = e.Names[0]
 			if len(e.Names) > 1 {
-				sub = "别名 " + strings.Join(e.Names[1:], "、")
+				sub = locales.LoreAliasesOf(strings.Join(e.Names[1:], locales.DraftListSep()))
 			}
 		}
-		if a.pal.PaneTitle(c, name, sub, "修改") {
+		if a.pal.PaneTitle(c, name, sub, locales.CommonEdit()) {
 			a.editSetting(e)
 		}
 		text := ui.Text(c, e.Text).FontSize(kit.FsBody).LineHeight(kit.LhLoose).Selectable().FillWidth()
@@ -442,7 +450,7 @@ func (a *App) entryPage(c *ui.Context, e workspace.Entry) {
 			text.TextColor(a.pal.Theme.TextMuted)
 		}
 		if e.Asked != "" {
-			a.pal.PaneNote(c, "回答："+e.Asked)
+			a.pal.PaneNote(c, locales.LoreAnswer(e.Asked))
 		}
 		if i := slices.IndexFunc(e.Sources, func(s workspace.Source) bool { return s.Chapter != "" }); i >= 0 {
 			src := e.Sources[i]
@@ -466,7 +474,7 @@ func (a *App) entryPage(c *ui.Context, e workspace.Entry) {
 			if first {
 				ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 					kit.Dot(c, a.pal.Amber, 6)
-					ui.Text(c, "AI 建议").FontSize(kit.FsNote).FontWeight(600)
+					ui.Text(c, locales.LoreAiSuggest()).FontSize(kit.FsNote).FontWeight(600)
 				})
 				first = false
 			}
@@ -486,13 +494,13 @@ func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 	question := d.route.question()
 	q, asked := a.book.Setting().Entry(question)
 	asked = asked && question != "" && e.ID == ""
-	from := "全部设定"
+	from := locales.LoreAll()
 	switch {
 	case e.ID != "":
 		from, _ = entryName(e)
 		from = kit.Clip(from, 16)
 	case asked:
-		from = "待确认"
+		from = locales.LoreToConfirm()
 	}
 	if back, _ := a.pal.PaneBack(c, from, ""); back {
 		d.route.closeForm()
@@ -501,47 +509,47 @@ func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 		// A new entry starts at its text, a changed one at its name: the
 		// keyboard is in that field as the form comes.
 		content := func() {
-			a.pal.PaneField(c, "内容", func() {
-				in := ui.TextAreaBase(c, &d.text).Label("设定内容").FillWidth().Height(96).FontSize(kit.FsBody).LineHeight(kit.LhLoose).
+			a.pal.PaneField(c, locales.ExportContent(), func() {
+				in := ui.TextAreaBase(c, &d.text).Label(locales.DialogSettingText()).FillWidth().Height(96).FontSize(kit.FsBody).LineHeight(kit.LhLoose).
 					Padding(8, 10).Radius(kit.RControl).Background(a.pal.Canvas).Border(1, a.pal.Theme.Border)
 				if e.ID == "" {
 					in.AutoFocus()
 				}
 			})
 		}
-		name, alias := "名字", "别名"
+		name, alias := locales.LoreName(), locales.LoreAliases()
 		if e.ID == "" {
 			if asked {
-				ui.Text(c, "回答").FontSize(kit.FsGroup).FontWeight(600)
+				ui.Text(c, locales.CommonAnswer()).FontSize(kit.FsGroup).FontWeight(600)
 				a.pal.PaneNote(c, q.Text)
 			} else {
-				ui.Text(c, "新增设定").FontSize(kit.FsGroup).FontWeight(600)
+				ui.Text(c, locales.LoreNewLore()).FontSize(kit.FsGroup).FontWeight(600)
 			}
-			name, alias = "名字（选填）", "别名（选填）"
+			name, alias = locales.LoreNameOptional(), locales.LoreAliasesOptional()
 			content()
 		}
 		a.pal.PaneField(c, name, func() {
-			in := ui.TextInput(c, &d.name).Label("名字").FillWidth().FontSize(kit.FsBody)
+			in := ui.TextInput(c, &d.name).Label(locales.LoreName()).FillWidth().FontSize(kit.FsBody)
 			if e.ID != "" {
 				in.AutoFocus()
 			}
 		})
 		a.pal.PaneField(c, alias, func() {
-			ui.TextInput(c, &d.names).Label("别名").Placeholder("多个别名用顿号分隔").FillWidth().FontSize(kit.FsBody)
+			ui.TextInput(c, &d.names).Label(locales.LoreAliases()).Placeholder(locales.LoreAliasHint()).FillWidth().FontSize(kit.FsBody)
 		})
 		if e.ID != "" {
 			content()
 		}
-		a.pal.PaneField(c, "分类", func() {
-			a.pal.Select(c, &d.category, a.categoryNames()).Label("设定分类").FillWidth()
+		a.pal.PaneField(c, locales.LoreCategory(), func() {
+			a.pal.Select(c, &d.category, a.categoryNames()).Label(locales.DialogSettingCat()).FillWidth()
 		})
 		text := kit.Trim(d.text)
 		names := splitNames(d.name + "、" + d.names)
 		kit.PaneButtons(c, func() {
-			if a.pal.PaneButton(c, "取消", false).Clicked() {
+			if a.pal.PaneButton(c, locales.CommonCancel(), false).Clicked() {
 				d.route.closeForm()
 			}
-			if !a.pal.PaneButton(c, "保存", true).Disabled(text == "").Clicked() {
+			if !a.pal.PaneButton(c, locales.CommonSave(), true).Disabled(text == "").Clicked() {
 				return
 			}
 			var ops []workspace.Op
@@ -578,13 +586,13 @@ func (a *App) entryForm(c *ui.Context, e workspace.Entry) {
 // changed it; what a talk noted links to the talk. With the AI off, what
 // talks noted is not listed.
 func (a *App) history(c *ui.Context) {
-	if back, _ := a.pal.PaneBack(c, "全部设定", ""); back {
+	if back, _ := a.pal.PaneBack(c, locales.LoreAll(), ""); back {
 		a.doc.route.closeHistory()
 	}
 	a.pal.Hairline(c)
 	ui.Scroll(c.Key("history")).Grow(1).FillWidth().Children(func() {
 		ui.Column(c).FillWidth().Gap(10).Padding(16, 20, 20, 20).Children(func() {
-			ui.Text(c, "修改记录").FontSize(kit.FsGroup).FontWeight(600)
+			ui.Text(c, locales.LoreLog()).FontSize(kit.FsGroup).FontWeight(600)
 			shown := 0
 			for n := len(a.book.Setting().Revisions) - 1; n >= 0; n-- {
 				r := a.book.Setting().Revisions[n]
@@ -594,9 +602,9 @@ func (a *App) history(c *ui.Context) {
 				shown++
 				ui.Column(c.Key(r.ID)).FillWidth().Padding(10, 12).Gap(6).Radius(kit.RCard).Background(a.pal.Raised).Border(1, a.pal.Line).Children(func() {
 					ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
-						who := "手动修改"
+						who := locales.LoreWhoManual()
 						if r.By != workspace.ByAuthor {
-							who = "讨论"
+							who = locales.SettingsJobChat()
 						}
 						ui.Text(c, who).FontSize(kit.FsNote).FontWeight(600)
 						ui.Spacer(c)
@@ -607,7 +615,7 @@ func (a *App) history(c *ui.Context) {
 					}
 					if r.By != workspace.ByAuthor {
 						if words, ok := a.titles[r.Session]; ok {
-							if a.pal.PaneLink(c, "记在「"+words+"」", "查看讨论", "讨论-"+r.ID) {
+							if a.pal.PaneLink(c, locales.LoreNotedIn(words), locales.ChatViewTalk(), "讨论-"+r.ID) {
 								a.page = pageTalk
 								a.switchSession(r.Session)
 							}
@@ -618,9 +626,9 @@ func (a *App) history(c *ui.Context) {
 			switch {
 			case shown > 0:
 			case a.aiOn():
-				a.pal.PaneNote(c, "暂无修改记录。讨论中 AI 记下的也列在这里。")
+				a.pal.PaneNote(c, locales.LoreLogEmptyAi())
 			default:
-				a.pal.PaneNote(c, "暂无修改记录。")
+				a.pal.PaneNote(c, locales.LoreLogEmpty())
 			}
 		})
 	})
@@ -638,28 +646,28 @@ func (a *App) describeOp(op workspace.Op) string {
 		said := shortName(e) + " · " + kit.FromLabel(a.book.Tree(), from)
 		switch {
 		case op.Op == workspace.OpDropChange:
-			return "删除变化 · " + said
+			return locales.LoreChangeRemoved(shortName(e), kit.FromLabel(a.book.Tree(), from))
 		case op.Op == workspace.OpChange && op.Place == workspace.PlaceOpen:
-			return "新增到待确认 · " + said + "：" + kit.Clip(text, 24)
+			return locales.LoreAddedWaitingChange(said, kit.Clip(text, 24))
 		}
-		return said + "：" + kit.Clip(text, 24)
+		return locales.LoreChangeLog(shortName(e), kit.FromLabel(a.book.Tree(), from), kit.Clip(text, 24))
 	}
 	switch op.Op {
 	case workspace.OpAdd:
-		return fmt.Sprintf("新增到%s · %s：%s", placeNames[op.Place], op.Category, op.Text)
+		return locales.LoreAddedPlace(settingPlaceName(op.Place), op.Category, op.Text)
 	case workspace.OpAnswer:
-		return fmt.Sprintf("新增到%s · %s：%s", placeNames[workspace.PlaceBody], op.Category, op.Text)
+		return locales.LoreAddedActive(op.Category, op.Text)
 	case workspace.OpEdit:
-		return "改写为：" + op.Text
+		return locales.LoreRewritten(op.Text)
 	case workspace.OpName:
 		if len(op.Names) == 0 {
-			return "移除名称：" + kit.Clip(e.Text, 24)
+			return locales.LoreNamesRemoved(kit.Clip(e.Text, 24))
 		}
-		return "名称改为：" + strings.Join(op.Names, "、")
+		return locales.LoreNamesChanged(strings.Join(op.Names, locales.DraftListSep()))
 	}
 	text := kit.Clip(e.Text, 24)
 	if op.Place != "" {
-		return fmt.Sprintf("移到%s：%s", placeNames[op.Place], text)
+		return locales.LoreMovedTo(settingPlaceName(op.Place), text)
 	}
-	return fmt.Sprintf("改归%s：%s", op.Category, text)
+	return locales.LoreRecat(op.Category, text)
 }
