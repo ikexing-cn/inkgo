@@ -86,6 +86,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
     for (const e of seen.dead) dead.add(e)
     for (const e of seen.flat) squat.add(e)
   }
+  // The part of a path heading before the page (「扩展 › 伏笔」): back up one level. The left of the settings says it too.
+  const crumb = async (words: string) => click(words, await js(`[...document.querySelectorAll('[data-click]')].filter((e) => e.innerText.replace(/\\s+/g, '') === ${JSON.stringify(words)}).findIndex((e) => e.classList.contains('prefs-crumb'))`))
   // Brings the pointer over the row of the open menu saying words.
   const over = (words: string) => js(`[...document.querySelectorAll('.ctx .pop-row')].find((e) => e.innerText.includes(${JSON.stringify(words)})).dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))`)
   // Brings the pointer over the name of a menu in the title bar.
@@ -405,7 +407,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await win('上下文预算', false); await click('和讨论相同'); await click('DeepSeek'); must((await value('续写检查模型')) === 'deepseek-flash', 'choosing a service chose no model'); must(await js(`document.querySelector('.services').innerText.split('本作品在用').length === 3`), 'the service taken is not said to be in use')
   await click('High', 1); await click('Medium'); must(await js(`S.uses[1].effort`) === 'Medium', 'the effort of writing did not change'); await win('用量'); must(await js(`[...document.querySelectorAll('.spent > *')].map((e) => e.firstElementChild.innerText).join(' ')`) === '讨论 起草 改写 续写 检查', 'the spending is not told by feature')
   await click(await js(`[...document.querySelectorAll('.link')].find((e) => e.innerText.startsWith('查看全部')).innerText`)); await win('AI 记录'); await win('不存原文'); await win('失败：无法连接模型服务'); await win('已取消'); await shot('61c-records')
-  await click('失败：无法连接模型服务'); await win('实际用量：输入 8.6K'); await inDialog('检查'); must(await js(`[...document.querySelectorAll('.record-row')].every((e) => e.innerText.includes('检查 ·'))`), 'the records shown are not only of the check'); await click('‹ 用量'); await win('选用模型'); await click('停笔后自动续写'); must(await js(`document.querySelectorAll('.ticks .check.on').length === 1`), 'the box is not ticked')
+  await click('失败：无法连接模型服务'); await win('实际用量：输入 8.6K'); await inDialog('检查'); must(await js(`[...document.querySelectorAll('.record-row')].every((e) => e.innerText.includes('检查 ·'))`), 'the records shown are not only of the check'); await crumb('AI'); await win('选用模型'); await click('停笔后自动续写'); must(await js(`document.querySelectorAll('.ticks .check.on').length === 1`), 'the box is not ticked')
   await click('编辑', 1); await win('内容会发到这个地址'); await win('key 存在系统钥匙串里，不进作品。'); await win('上下文上限'); await win('压缩阈值 %'); must(await js(`[...document.querySelectorAll('[aria-label="上下文上限"]')].map((e) => e.value).join(' ')`) === '1M 1M 200K', 'the numbers of the models are not from the table'); await shot('62-service')
   await clear('最大输出'); await type('最大输出', '2M'); await win('claude-opus-5-5 的最大输出须小于上下文上限'); must(await has('.service-form .note.danger') && await has('.service-form .btn.primary.off'), 'a model that breaks a rule can be saved'); await click('移除'); must(!(await has('.service-form .note.danger')), 'the model taken off is still said to be wrong'); must(await js(`document.querySelectorAll('[aria-label="模型 ID"]').length`) === 2, 'the model was not taken off'); await click('获取可用模型'); await win('正在读取可用模型…'); await sleep(1400); await win('已获取保存后生效')
   await click('保存'); await win('已保存'); await win('收起', false); await click('添加服务'); must(await js(`document.querySelector('[aria-label="API key"]').placeholder`) === '不填就不用 key', 'a new service says it keeps a key'); await type('名称', 'DeepSeek'); must(await js(`document.querySelector('[aria-label="Provider ID（小写）"]').placeholder`) === 'deepseek', 'a new service does not take its ID from its name'); await win('和「DeepSeek」重名了，换一个'); must(await has('.service-form .btn.primary.off'), 'a new service can take the place of another')
@@ -415,7 +417,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await clear('上下文上限'); await type('上下文上限', '131072'); await clear('最大输出'); await type('最大输出', '8k'); await click('保存'); must(await js(`S.services.at(-1).models.map((m) => m.max + ' ' + m.out).join()`) === '131072 8K', 'the numbers written as 8k are not kept as 8K'); await win('localhost:11434 · 1 个模型'); await sleep(3300); await done('models and services')
   await click('重新读取'); await click('打开配置文件'); await click('编辑', 1); await click('清除 key'); await click('保存'); await win('还有 1 条'); await shot('63-toasts'); await sleep(3300); await win('还有 1 条', false)
   await done('more notices than fit')
-  await click('外观'); await win('这台电脑上的所有作品'); await click('深色'); must(await js(`document.querySelector('#win').className === 'dark'`), 'the window is not dark'); await shot('64-look'); await click('浅色')
+  await click('外观'); await win('这台电脑上的所有作品'); await win('简体中文'); await click('深色'); must(await js(`document.querySelector('#win').className === 'dark'`), 'the window is not dark'); await shot('64-look'); await click('浅色')
   if (await js(`OFFER_NO_GPU`)) {
     await click('关闭显卡加速'); await win('重启软件后生效。'); await shot('64b-no-gpu'); await click('关闭显卡加速'); await win('重启软件后生效。', false)
     await click('关闭显卡加速'); await click('立即重启'); must(!(await has('.prefs-nav')) && await js(`S.noGPU && S.ranNoGPU`), 'reopening left the settings open or the GPU on')
@@ -431,22 +433,23 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   // An extension's name is in the left of the settings, in the overview and on the switch in the head of its page: which one is meant.
   const nthOf = (name: string, sel: string): Promise<number> => js(`[...document.querySelectorAll('[data-click]')].filter((e) => e.innerText.split('\\n')[0].replace(/\\s+/g, '') === ${JSON.stringify(name)}).findIndex((e) => e.closest(${JSON.stringify(sel)}))`)
   const extTick = async (name: string) => click(name, await nthOf(name, '.ext-head'))
-  const extPage = async (name: string) => { await click(name, await nthOf(name, '.ext-cell')); await win('‹ 扩展') }
+  const extPage = async (name: string) => { await click(name, await nthOf(name, '.ext-cell')); must(await has('.prefs-crumb'), 'the page of ' + name + ' has no path for its heading') }
+  const extMore = (id: string) => js(`document.querySelector('[data-ext="${id}"] .ext-more button').click()`)
   await click('视图'); await click('手机预览'); must(await onTab() === '预览', 'Phone Preview did not open its tab')
-  await settings(); await click('扩展'); must(await prefTabs() === '外观 语言 扩展 AI 提醒 名字补全 备份 全角标点', 'the settings of a work hold: ' + await prefTabs()); await win('作品与文件'); await win('其他功能靠它们运行。'); await shot('66b-extensions')
-  await extPage('手机预览'); await win('看看在手机上的样子'); await win('这台电脑上的所有作品'); await shot('66c-extension'); await extTick('手机预览'); await win('关闭「手机预览」？', false); await click('‹ 扩展')
-  await extPage('导出'); await win('配合大纲、设定更好用'); await extTick('导出'); await click('‹ 扩展')
-  await extPage('备份'); await extTick('备份'); await win('不再自动备份，旧备份留着。'); await click('‹ 扩展'); await shot('66d-extensions-off')
+  await settings(); await click('扩展'); must(await prefTabs() === '外观 扩展 AI 提醒 备份', 'the settings of a work hold: ' + await prefTabs()); await win('作品与文件'); await win('其他功能靠它们运行。'); await shot('66b-extensions')
+  await extPage('手机预览'); await win('看看在手机上的样子'); await win('这台电脑上的所有作品', false); must(await has('[data-ext="phone"] .ext-more'), 'no menu to set it for this work alone'); await shot('66c-extension'); await extTick('手机预览'); await win('关闭「手机预览」？', false); await crumb('扩展')
+  await extPage('导出'); await win('配合大纲、设定更好用'); await extTick('导出'); await crumb('扩展')
+  await extPage('备份'); await extTick('备份'); await win('不再自动备份，旧备份留着。'); await crumb('扩展'); await shot('66d-extensions-off')
   must(await js(`[...document.querySelectorAll('.ext-cell.off .fit')].map((e) => e.innerText).join(' ')`) === '备份 导出 手机预览', 'the extensions turned off are not said to be off')
-  must(await prefTabs() === '外观 语言 扩展 AI 提醒 名字补全 全角标点', 'with backup off the settings still hold its page: ' + await prefTabs())
+  must(await prefTabs() === '外观 扩展 AI 提醒 备份', 'with backup off the settings lost its page: ' + await prefTabs())
   await click('关闭'); must(await onTab() === '设定', 'with Phone Preview off the pane is on ' + await onTab()); must(!(await js(`[...document.querySelectorAll('#pane .tab')].some((e) => e.innerText.startsWith('预览'))`)), 'the Preview tab is still there')
   must(!(await has('.backup-line')), 'the backup is still in the status bar'); must(!(await inMenu('文件', '导出…')), 'Export is still in the File menu'); must(!(await inMenu('视图', '手机预览')), 'Phone Preview is still in the View menu')
-  await settings(); await click('扩展'); for (const name of ['手机预览', '导出', '备份']) { await extPage(name); await extTick(name); await click('‹ 扩展') }
+  await settings(); await click('扩展'); for (const name of ['手机预览', '导出', '备份']) { await extPage(name); await extTick(name); await crumb('扩展') }
   await click('关闭'); must(await onTab() === '预览', 'Phone Preview came back on ' + await onTab()); must(await has('.backup-line'), 'the backup did not come back'); must(await inMenu('文件', '导出…'), 'Export did not come back'); await done('extensions off and on')
   // One that others need asks first and names them; set for this work alone, it leaves the other works as they were.
-  await settings(); await click('扩展'); await extPage('资料库'); await win('名字补全、设定、大纲、伏笔、讨论、续写、起草、检查要用它'); await extTick('资料库'); await win('关闭「资料库」？'); await win('也会一起关闭。'); await shot('66e-extension-ask'); await click('取消'); await win('关闭「资料库」？', false); await click('‹ 扩展')
-  await extPage('字数目标'); await click('单独设置'); await win('只管这部作品'); await extTick('字数目标'); must(await js(`!extOn('goal') && !S.extOff.includes('goal')`), 'set for this work alone, the switch moved the one of this computer'); await shot('66f-extension-own')
-  await click('恢复默认'); await win('这台电脑上的所有作品'); must(await js(`extOn('goal')`), 'back to the default, the goal is still off'); await click('关闭'); await done('extensions that others need, and one work apart')
+  await settings(); await click('扩展'); await extPage('资料库'); await win('名字补全、设定、大纲、伏笔、讨论、续写、起草、检查要用它'); await extTick('资料库'); await win('关闭「资料库」？'); await win('也会一起关闭。'); await shot('66e-extension-ask'); await click('取消'); await win('关闭「资料库」？', false); await crumb('扩展')
+  await extPage('字数目标'); await extMore('goal'); await click('只在本作品关闭'); await win('本作品里已关闭'); must(await js(`!extOn('goal') && !S.extOff.includes('goal')`), 'set for this work alone, the switch moved the one of this computer'); await shot('66f-extension-own')
+  await extMore('goal'); await click('恢复默认'); await win('本作品里已关闭', false); must(await js(`extOn('goal')`), 'back to the default, the goal is still off'); await click('关闭'); await done('extensions that others need, and one work apart')
   await settings(); await clear('讨论模型'); await click('关闭'); await click('讨论', 1); await click('全部讨论'); await click('新讨论'); await type('输入想讨论的内容', '在吗'); await key('Enter', true); await win('请先配置讨论模型'); await sleep(3300); await win('请先配置讨论模型'); await shot('67-no-model'); await click('打开设置'); await win('选用模型'); await win('请先配置讨论模型', false); await key('Escape'); await done('no model to talk with')
 
   // The check page.
@@ -531,8 +534,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   // Names of the setting in the prose: a faint dotted line; clicked, the entry opens beside; put away in the settings.
   await click('正文'); await click('第87章：停电'); must(await js(`[...document.querySelectorAll('.prose .nm')].some((e) => e.textContent === '小祥')`), 'a name in the prose is not marked')
   await js(`[...document.querySelectorAll('.prose .nm')].find((e) => e.textContent === '小祥').click()`); await pane('配角，林晚的同事'); await shot('105-name')
-  await settings(); await click('名字补全'); await click('标出设定里的名字'); await key('Escape'); must(!(await js(`!!document.querySelector('.prose .nm')`)), 'names are marked when put away')
-  await settings(); await click('名字补全'); await click('标出设定里的名字'); await key('Escape'); await done('names in the prose')
+  await settings(); await click('扩展'); await extPage('名字补全'); await click('标出设定里的名字'); await key('Escape'); must(!(await js(`!!document.querySelector('.prose .nm')`)), 'names are marked when put away')
+  await settings(); await click('扩展'); await extPage('名字补全'); await click('标出设定里的名字'); await key('Escape'); await done('names in the prose')
 
   // The phone preview: the chapter as a reader's phone lays it out, a screen at a time. Two long paragraphs typed at the end make it
   // run over: it follows the caret there, shows the caret and the words picked in the prose, marks the long ones, a paragraph clicked
@@ -833,14 +836,14 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   const navs = (): Promise<string> => js(`[...document.querySelectorAll('.pages > div')].map((e) => e.firstChild.textContent).join(' ')`)
   const paneTabs = (): Promise<string> => js(`[...document.querySelectorAll('#pane .tab')].map((e) => e.firstChild.textContent).join(' ')`)
   const aiOff = async () => { await click('文件'); await click('设置…'); await extTick('AI'); await win('关闭 AI？'); await click('关闭 AI'); await win('关闭 AI？', false) }
-  await click('文件'); await click('设置…'); must(await prefTabs() === '外观 语言 扩展 AI 名字补全 全角标点', 'on the shelf the settings hold: ' + await prefTabs()); await win('AI 服务'); await win('选用模型', false)
+  await click('文件'); await click('设置…'); must(await prefTabs() === '外观 扩展 AI 提醒 备份', 'on the shelf the settings hold: ' + await prefTabs()); await win('AI 服务'); await win('选用模型', false)
   await extTick('AI'); await win('关闭 AI？'); await win('进行中的任务会停下'); await shot('99f-ask-ai-off'); await click('取消'); await win('关闭 AI？', false); await win('AI 服务')
   await extTick('AI'); must(await js(`getComputedStyle(document.querySelector('.scrim:not(.top)')).backgroundColor === 'rgba(0, 0, 0, 0)'`), 'the question over the settings shades the window twice'); await key('Escape'); await win('关闭 AI？', false); must(await has('.prefs'), 'Esc on the question shut the settings under it too'); await click('关闭')
   // Off while AI is at work: the proposal being written stops and goes, as one not taken would; what the author said stays.
   await click('雨城来信'); await win('第87章：停电'); const before = await paras()
   await click('编辑'); await click('起草本章'); await click('开始起草'); await sleep(1500); must(await has('.prose [data-prop]'), 'the draft wrote nothing')
-  await aiOff(); must(await prefTabs() === '外观 语言 扩展 AI 提醒 名字补全 备份 全角标点', 'with AI off the settings of a work hold: ' + await prefTabs()); await win('AI 服务', false); await win('选用模型', false)
-  must(!(await has('[data-ext="ai"] .check.on')), 'the switch is still ticked'); await win('这台电脑上的所有作品'); await shot('99g-ai-off')
+  await aiOff(); must(await prefTabs() === '外观 扩展 AI 提醒 备份', 'with AI off the settings of a work hold: ' + await prefTabs()); await win('AI 服务', false); await win('选用模型', false)
+  must(!(await has('[data-ext="ai"] .check.on')), 'the switch is still ticked'); await shot('99g-ai-off')
   await click('提醒'); await win('超过多少章算久未回收'); await win('何时检查', false); await win('AI已关闭，暂时用不了'); await click('关闭')
   await sleep(3000); must(await paras() === before && !(await has('[data-prop]')), 'the draft went on or stayed with AI off'); must(await js(`S.talks[0].msgs.length === 1 && !S.waiting && !S.props.length`), 'the draft went on with AI off')
   // Off, the page of prose and all that opens from it.

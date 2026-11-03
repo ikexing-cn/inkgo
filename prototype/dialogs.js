@@ -128,7 +128,7 @@ function records(d) {
       (open ? `<div class="record-more"><div>${t(model + ' · ' + effortWord(effort))}</div><div>${t(L.settingsRecordSent(parts.map(([name, x]) => partName(name) + ' ' + tokens(x)).join(' · ')))}</div>` +
         `<div>${cached ? t(L.settingsRecordActualCached(tokens(input), tokens(cached), tokens(output))) : t(L.settingsRecordActual(tokens(input), tokens(output)))}</div></div>` : '') + '</div>'
   }
-  return `<div class="records-head"><div class="hit link"${onClick(pick({ records: false }))}>${t('‹ ' + L.settingsUsage())}</div><div class="grow"></div>${seg(d.only, [['全部', '', L.settingsRecordsAll()], ...FEATURES.map((f) => [f, '', featureName(f)])], (only) => set((s) => ({ dialog: { ...s.dialog, only, row: -1 } })), L.settingsFilterByFeature())}</div>` +
+  return `<div class="records-head">${seg(d.only, [['全部', '', L.settingsRecordsAll()], ...FEATURES.map((f) => [f, '', featureName(f)])], (only) => set((s) => ({ dialog: { ...s.dialog, only, row: -1 } })), L.settingsFilterByFeature())}</div>` +
     `<div class="records">${shown.length ? shown.map((r) => line(r, S.records.indexOf(r))).join('') : `<div class="note">${t(L.settingsNoRecords())}</div>`}</div>`
 }
 
@@ -223,29 +223,26 @@ function lateRows() {
 }
 
 // 设置左栏的一项：状态里记的是中文名，显示时换成 L 里的字。
-const tabName = (name) => ({ 外观: L.viewLook(), 语言: L.settingsTabLanguage(), 扩展: L.settingsTabExtensions(), 提醒: L.settingsTabRemind(), 名字补全: L.modNames(), 备份: L.settingsTabBackup(), 全角标点: L.modFullwidth() })[name] ?? name
+const tabName = (name) => ({ 外观: L.viewLook(), 扩展: L.settingsTabExtensions(), 提醒: L.settingsTabRemind(), 备份: L.settingsTabBackup() })[name] ?? name
 
-// 设置：左栏上面三项是宿主自己的（外观、语言、扩展），下面「自带」「另装」两组是扩展带来的页（ext.js 的 PREF_PAGES）。
-// 停在的那一页的扩展刚关掉，这一页在左栏留到离开为止，不在指针底下消失。
-// 「扩展」里点一格进那个扩展自己的页（d.ext），左上角「‹ 扩展」回总览。
+// 设置：左栏上面两项是宿主自己的（外观、扩展），下面是扩展登记的页（ext.js 的 prefPages）。
+// 「扩展」里点一格进那个扩展自己的页（d.ext）；往下一层的页，标题写成路径「扩展 › 伏笔」，点前面那段回去。
 function settingsDialog(d) {
-  const pages = PREF_PAGES.filter((p) => prefPageShown(p) || p[0] === d.tab)
   const navItem = (name) => `<div class="nav hit${d.tab === name ? ' on' : ''}"${onClick(() => set({ dialog: { kind: 'settings', tab: name, edit: '' }, ...SHUT }))}>${t(tabName(name))}</div>`
-  const group = (g, title) => { const list = pages.filter((p) => p[2] === g); return list.length ? `<div class="prefs-nav-group">${t(title)}</div>${list.map(([name]) => navItem(name)).join('')}` : '' }
-  const nav = `<div class="prefs-nav">${['外观', '语言', '扩展'].map(navItem).join('')}${group('builtin', L.modGroupBuiltin())}${group('more', L.modGroupInstalled())}</div>`
+  const nav = `<div class="prefs-nav">${['外观', '扩展'].map(navItem).join('')}<div class="prefs-nav-gap"></div>${prefPages().map(([name]) => navItem(name)).join('')}</div>`
   const rec = d.tab === 'AI' && d.records && extOn('usage'), ext = d.tab === '扩展' && d.ext ? extOf(d.ext) : null
   const page = prefPage(d.tab)
-  // 每一页的标题和右边那句留在上面不动，只有内容滚动。那句只在页里所有的设置管的作品一样时写。
-  const about = { 外观: L.settingsLocalOnly(), 语言: L.settingsLocalOnly() }
   const lang = S.lang === 'system' ? 'system' : LANG
   const body = rec ? records(d) : ext ? extSection(ext.id, d) : page ? page[1].map((id) => extSection(id, d)).join('')
     : d.tab === '扩展' ? extOverview()
-    : d.tab === '语言' ? radios(lang, [['system', '', L.settingsLangSystem()], ['zh-Hans', '', '简体中文'], ['en', '', 'English']], (v) => { set({ lang: v }); switchLang(v === 'system' ? 'zh-Hans' : v) })
-    : `<div class="prefs-row"><div class="prefs-label">${t(L.settingsColor())}</div>${seg(S.look, LOOKS(), (v) => set({ look: v }), L.settingsColor())}</div>` + (OFFER_NO_GPU ? gpuSwitch() : '')
-  const back = (label, change) => `<div class="hit link prefs-back"${onClick(() => set((s) => ({ dialog: { ...s.dialog, ...change }, ...SHUT })))}>${t(label)}</div>`
-  const head = rec ? `<div class="prefs-title">${t(L.settingsRecordsTitle())}</div><div class="note">${t(L.settingsRecordsNote())}</div>`
-    : ext ? back(L.modBack(), { ext: '' }) + `<div class="prefs-title">${t(ext.name)}</div>`
-    : `<div class="prefs-title">${t(tabName(d.tab))}</div>${about[d.tab] ? `<div class="note">${t(about[d.tab])}</div>` : ''}`
+    : `<div class="prefs-row"><div class="prefs-label">${t(L.settingsColor())}</div>${seg(S.look, LOOKS(), (v) => set({ look: v }), L.settingsColor())}</div>` +
+      `<div class="prefs-row"><div class="prefs-label">${t(L.settingsLanguage())}</div>${dots(lang, [['system', L.settingsLangSystem()], ['zh-Hans', '简体中文'], ['en', 'English']], (v) => { set({ lang: v }); switchLang(v === 'system' ? 'zh-Hans' : v) }, L.settingsLanguage())}</div>` +
+      (OFFER_NO_GPU ? gpuSwitch() : '')
+  const crumb = (label, change) => `<span class="hit prefs-crumb"${onClick(() => set((s) => ({ dialog: { ...s.dialog, ...change }, ...SHUT })))}>${t(label)}</span><span class="prefs-crumb-sep">›</span>`
+  // 标题留在上面不动，只有内容滚动。右边那句只在页里所有的设置管的作品一样时写。
+  const head = rec ? `<div class="prefs-title">${crumb(L.modAI(), { records: false })}${t(L.settingsRecordsTitle())}</div><div class="note">${t(L.settingsRecordsNote())}</div>`
+    : ext ? `<div class="prefs-title">${crumb(L.settingsTabExtensions(), { ext: '' })}${t(ext.name)}</div>`
+    : `<div class="prefs-title">${t(tabName(d.tab))}</div>${d.tab === '外观' ? `<div class="note">${t(L.settingsLocalOnly())}</div>` : ''}`
   return dialog('prefs', nav + `<div class="prefs-main"><div class="prefs-head">${head}</div><div class="prefs-body scroll" data-k="prefs-${rec ? 'records' : ext ? 'ext-' + ext.id : d.tab}">${body}</div></div>` +
     `<button class="icon-btn muted prefs-close" aria-label="${t(L.settingsClose())}" title="${t(L.settingsClose())}"${onClick(shut)}>${icon('cross')}</button>`) + (d.ask ? askExt(d) : '')
 }

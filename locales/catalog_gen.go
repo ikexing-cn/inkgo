@@ -14240,20 +14240,6 @@ func (msgs Messages) ModGroupFiles() string {
 	return Catalog.Format(msgs.locale, "modGroupFiles", nil)
 }
 
-// ModGroupBuiltin says "自带"
-// in the language the app shows.
-//
-// 设置左栏一组的标题：软件自带的扩展带来的页。
-func ModGroupBuiltin() string { return In(i18n.Locale()).ModGroupBuiltin() }
-
-// ModGroupBuiltin says "自带"
-// in the language of msgs.
-//
-// 设置左栏一组的标题：软件自带的扩展带来的页。
-func (msgs Messages) ModGroupBuiltin() string {
-	return Catalog.Format(msgs.locale, "modGroupBuiltin", nil)
-}
-
 // ModGroupInstalled says "另装"
 // in the language the app shows.
 //
@@ -14282,46 +14268,74 @@ func (msgs Messages) ModOff() string {
 	return Catalog.Format(msgs.locale, "modOff", nil)
 }
 
-// ModOwnBook says "单独设置"
-// in the language the app shows.
-//
-// 扩展页头的文字按钮：这部作品单独开关这个扩展。
-func ModOwnBook() string { return In(i18n.Locale()).ModOwnBook() }
-
-// ModOwnBook says "单独设置"
-// in the language of msgs.
-//
-// 扩展页头的文字按钮：这部作品单独开关这个扩展。
-func (msgs Messages) ModOwnBook() string {
-	return Catalog.Format(msgs.locale, "modOwnBook", nil)
-}
-
 // ModFollowLocal says "恢复默认"
 // in the language the app shows.
 //
-// 扩展页头的文字按钮：这部作品不再单独设置，跟这台电脑上的一样。
+// 扩展页头「⋯」菜单的一项：这部作品不再单独设置，跟这台电脑上的一样。
 func ModFollowLocal() string { return In(i18n.Locale()).ModFollowLocal() }
 
 // ModFollowLocal says "恢复默认"
 // in the language of msgs.
 //
-// 扩展页头的文字按钮：这部作品不再单独设置，跟这台电脑上的一样。
+// 扩展页头「⋯」菜单的一项：这部作品不再单独设置，跟这台电脑上的一样。
 func (msgs Messages) ModFollowLocal() string {
 	return Catalog.Format(msgs.locale, "modFollowLocal", nil)
 }
 
-// ModBack says "‹ 扩展"
+// ModBookOnlyOff says "只在本作品关闭"
 // in the language the app shows.
 //
-// 扩展自己的页的左上角，回到「扩展」总览。
-func ModBack() string { return In(i18n.Locale()).ModBack() }
+// 扩展页头「⋯」菜单的一项：这部作品单独关掉这个扩展，别的作品不变。
+func ModBookOnlyOff() string { return In(i18n.Locale()).ModBookOnlyOff() }
 
-// ModBack says "‹ 扩展"
+// ModBookOnlyOff says "只在本作品关闭"
 // in the language of msgs.
 //
-// 扩展自己的页的左上角，回到「扩展」总览。
-func (msgs Messages) ModBack() string {
-	return Catalog.Format(msgs.locale, "modBack", nil)
+// 扩展页头「⋯」菜单的一项：这部作品单独关掉这个扩展，别的作品不变。
+func (msgs Messages) ModBookOnlyOff() string {
+	return Catalog.Format(msgs.locale, "modBookOnlyOff", nil)
+}
+
+// ModBookOnlyOn says "只在本作品打开"
+// in the language the app shows.
+//
+// 扩展页头「⋯」菜单的一项：这部作品单独打开这个扩展，别的作品不变。
+func ModBookOnlyOn() string { return In(i18n.Locale()).ModBookOnlyOn() }
+
+// ModBookOnlyOn says "只在本作品打开"
+// in the language of msgs.
+//
+// 扩展页头「⋯」菜单的一项：这部作品单独打开这个扩展，别的作品不变。
+func (msgs Messages) ModBookOnlyOn() string {
+	return Catalog.Format(msgs.locale, "modBookOnlyOn", nil)
+}
+
+// ModBookOff says "本作品里已关闭"
+// in the language the app shows.
+//
+// 扩展页头灰的一行：这部作品单独关掉了它。
+func ModBookOff() string { return In(i18n.Locale()).ModBookOff() }
+
+// ModBookOff says "本作品里已关闭"
+// in the language of msgs.
+//
+// 扩展页头灰的一行：这部作品单独关掉了它。
+func (msgs Messages) ModBookOff() string {
+	return Catalog.Format(msgs.locale, "modBookOff", nil)
+}
+
+// ModBookOn says "本作品里已打开"
+// in the language the app shows.
+//
+// 扩展页头灰的一行：这部作品单独打开了它。
+func ModBookOn() string { return In(i18n.Locale()).ModBookOn() }
+
+// ModBookOn says "本作品里已打开"
+// in the language of msgs.
+//
+// 扩展页头灰的一行：这部作品单独打开了它。
+func (msgs Messages) ModBookOn() string {
+	return Catalog.Format(msgs.locale, "modBookOn", nil)
 }
 
 // ModFullwidth says "全角标点"
@@ -14366,18 +14380,18 @@ func (msgs Messages) ModFullwidthQuotes() string {
 	return Catalog.Format(msgs.locale, "modFullwidthQuotes", nil)
 }
 
-// SettingsTabLanguage says "语言"
+// SettingsLanguage says "语言"
 // in the language the app shows.
 //
-// 设置左栏的一项。
-func SettingsTabLanguage() string { return In(i18n.Locale()).SettingsTabLanguage() }
+// 设置「外观」里选界面语言的那一行。
+func SettingsLanguage() string { return In(i18n.Locale()).SettingsLanguage() }
 
-// SettingsTabLanguage says "语言"
+// SettingsLanguage says "语言"
 // in the language of msgs.
 //
-// 设置左栏的一项。
-func (msgs Messages) SettingsTabLanguage() string {
-	return Catalog.Format(msgs.locale, "settingsTabLanguage", nil)
+// 设置「外观」里选界面语言的那一行。
+func (msgs Messages) SettingsLanguage() string {
+	return Catalog.Format(msgs.locale, "settingsLanguage", nil)
 }
 
 // SettingsLangSystem says "跟随系统"

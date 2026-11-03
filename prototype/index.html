@@ -643,10 +643,12 @@ body { margin: 0; }
 .place.on { border-color: var(--ink); }
 .ticks { display: flex; flex-direction: column; gap: 8px; }
 .tick-note { margin: -4px 0 4px calc(var(--icon-sm) + 6px); } /* 和方框右边的字对齐 */
-.ext-head { display: flex; flex-direction: column; gap: 2px; } /* 扩展的页头：开关和名字，下面说明、灰的一行 */
+.ext-head { position: relative; display: flex; flex-direction: column; gap: 2px; } /* 扩展的页头：开关和名字，下面说明、灰的一行 */
 .ext-head > .attach { font-size: var(--fs-group); font-weight: 600; }
 .ext-head .tick-note { margin-top: 0; margin-bottom: 0; }
 .ext-head.ext-wait .check { opacity: var(--opacity-disabled); }
+.ext-more { position: absolute; top: -4px; right: 0; }
+.ext-more > .pop { width: max-content; } /* 右上角「⋯」：只在本作品关闭、打开，恢复默认 */
 .ext-sec { display: flex; flex-direction: column; gap: 14px; padding: 16px 0; }
 .ext-sec + .ext-sec { border-top: 1px solid var(--line); }
 .ext-prefs { display: flex; flex-direction: column; gap: 10px; margin-left: calc(var(--icon-sm) + 6px); } /* 和页头的字对齐 */
@@ -682,11 +684,12 @@ body { margin: 0; }
 /* 设置：左边选哪一类，右边是那一类的内容 */
 .dialog.prefs { width: 900px; height: 620px; flex-direction: row; gap: 0; padding: 0; overflow: hidden; }
 .prefs-nav { width: 180px; flex: none; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px; padding: 20px 10px; background: var(--bg); border-right: 1px solid var(--line); }
-.prefs-nav-group { padding: 16px 10px 4px; font-size: var(--fs-small); color: var(--faint); } /* 左栏「自带」「另装」 */
+.prefs-nav-gap { height: 16px; } /* 左栏宿主的两项和扩展登记的页之间 */
 .prefs-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .prefs-head { flex: none; height: 64px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 0 56px 0 32px; border-bottom: 1px solid var(--line); } /* 标题不跟着滚，下面的内容到这条线为止；每页一样高 */
 .prefs-head > .note { margin-left: auto; }
-.prefs-back { font-size: var(--fs-note); color: var(--muted); }
+.prefs-crumb { color: var(--muted); font-weight: 400; } /* 路径式标题前面那段，点了回上一层 */
+.prefs-crumb-sep { color: var(--faint); font-weight: 400; margin: 0 8px; }
 .prefs-body { flex: 1; min-height: 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 12px 56px 32px 32px; }
 .prefs-body > * { flex: none; }
 .prefs-title { font-size: var(--fs-dialog); font-weight: 700; }
@@ -761,7 +764,7 @@ body { margin: 0; }
 .warn-btn:hover { background: var(--warn-bd); }
 .tool .more:hover, .cited:hover { background: var(--active); }
 .back-to:hover { background: var(--hover); }
-.seg > div:not(.on):hover, .stepper > .hit:hover, .attach:hover, .words:hover, .model:hover, .thought-head:hover, .tree-more:hover, .todo-rest:hover, .chapter-more > .hit:hover, .foot .anchor > .hit:hover, .tab:not(.on):hover, .pages > div:hover { color: var(--ink); }
+.seg > div:not(.on):hover, .prefs-crumb:hover, .stepper > .hit:hover, .attach:hover, .words:hover, .model:hover, .thought-head:hover, .tree-more:hover, .todo-rest:hover, .chapter-more > .hit:hover, .foot .anchor > .hit:hover, .tab:not(.on):hover, .pages > div:hover { color: var(--ink); }
 .link:not(.off):hover { background: var(--active); text-decoration-color: currentColor; }
 
 /* ───────── 按下和出现：规则在 DESIGN.md「动起来的地方」 ───────── */

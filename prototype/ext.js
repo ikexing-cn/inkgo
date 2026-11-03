@@ -5,6 +5,7 @@
 // 一行一个扩展，照笔记里那张表写；两边对不上，有一边错了。顺序就是「扩展」总览里的顺序。
 // g：在总览的哪一组；lib 那一组是基础扩展，给别的扩展用，自己没有界面。
 // req：必需依赖，连带开关。opt：可选依赖，开着就用，不连带。off：关着时多说的一句。
+// page：扩展自己登记进设置左栏的一页 [页名, 顺序]；几个扩展登记同一个页名就合用一页。不登记的，设置只在「扩展」里它自己的页。
 const EXTS = () => [
   { id: 'focus', g: 'write', name: L.modFocus(), about: L.modFocusAbout() },
   { id: 'goal', g: 'write', name: L.modGoal(), about: L.modGoalAbout() },
@@ -13,24 +14,24 @@ const EXTS = () => [
   { id: 'notes', g: 'write', name: L.modNotes(), about: L.modNotesAbout(), req: ['marks'] },
   { id: 'lore', g: 'lore', name: L.modLore(), about: L.modLoreAbout(), req: ['context'] },
   { id: 'outline', g: 'lore', name: L.modOutline(), about: L.modOutlineAbout(), req: ['context'] },
-  { id: 'hooks', g: 'lore', name: L.modHooks(), about: L.modHooksAbout(), req: ['context', 'marks'] },
+  { id: 'hooks', g: 'lore', name: L.modHooks(), about: L.modHooksAbout(), req: ['context', 'marks'], page: ['提醒', 20] },
   { id: 'talk', g: 'ai', name: L.modTalk(), about: L.modTalkAbout(), req: ['ai', 'context'] },
   { id: 'continue', g: 'ai', name: L.modContinue(), about: L.modContinueAbout(), req: ['ai', 'context'] },
   { id: 'draft', g: 'ai', name: L.modDraft(), about: L.modDraftAbout(), req: ['ai', 'context'] },
   { id: 'propose', g: 'ai', name: L.modPropose(), about: L.modProposeAbout(), req: ['ai'] },
-  { id: 'check', g: 'ai', name: L.modCheck(), about: L.modCheckAbout(), req: ['ai', 'context', 'marks'] },
+  { id: 'check', g: 'ai', name: L.modCheck(), about: L.modCheckAbout(), req: ['ai', 'context', 'marks'], page: ['提醒', 20] },
   { id: 'usage', g: 'ai', name: L.modUsage(), about: L.modUsageAbout(), req: ['ai'] },
   { id: 'snaps', g: 'files', name: L.modSnaps(), about: L.modSnapsAbout() },
   { id: 'trash', g: 'files', name: L.modTrash(), about: L.modTrashAbout() },
   { id: 'cats', g: 'files', name: L.modCats(), about: L.modCatsAbout() },
-  { id: 'backup', g: 'files', name: L.modBackup(), about: L.modBackupAbout(), off: L.modBackupOff() },
+  { id: 'backup', g: 'files', name: L.modBackup(), about: L.modBackupAbout(), off: L.modBackupOff(), page: ['备份', 30] },
   { id: 'export', g: 'files', name: L.modExport(), about: L.modExportAbout(), opt: ['outline', 'lore'] },
   { id: 'phone', g: 'files', name: L.modPhone(), about: L.modPhoneAbout() },
   // 原型里假装另装的一个，看另装的扩展在设置里怎么出现；它什么也不做。
   { id: 'fullwidth', g: 'more', name: L.modFullwidth(), about: L.modFullwidthAbout() },
   { id: 'context', g: 'lib', name: L.modContext(), about: L.modContextAbout() },
   { id: 'marks', g: 'lib', name: L.modMarks(), about: L.modMarksAbout() },
-  { id: 'ai', g: 'lib', name: L.modAI(), about: L.modAIAbout() },
+  { id: 'ai', g: 'lib', name: L.modAI(), about: L.modAIAbout(), page: ['AI', 10] },
 ]
 const EXT_GROUPS = () => [['write', L.modGroupWrite()], ['lore', L.modGroupLore()], ['ai', L.modGroupAI()], ['files', L.modGroupFiles()], ['more', L.modGroupInstalled()], ['lib', L.modGroupLibraries()]]
 const extOf = (id) => EXTS().find((e) => e.id === id)
@@ -84,7 +85,7 @@ function extSet(id, on) {
   else set((s) => ({ extOff: on ? s.extOff.filter((x) => x !== id) : s.extOff.includes(id) ? s.extOff : [...s.extOff, id] }))
   leaveOffPage()
 }
-// 「单独设置」从本机的开关抄一份给这部作品，样子不变；「恢复默认」丢掉这一份，回到本机的开关，不问。
+// 这部作品单独记一份开关（照本机的抄），或丢掉这一份、回到本机的开关；「恢复默认」不问。
 function extMineSet(id, mine) {
   set((s) => {
     const book = { ...s.extBook }
@@ -95,9 +96,17 @@ function extMineSet(id, mine) {
   leaveOffPage()
 }
 
+// 页头「⋯」里的「只在本作品关闭 / 打开」（VS Code 的 Disable (Workspace)）：这部作品单独记一份，和本机的相反。
+// 连带的照样先问，d.book 记着问完只改这部作品。
+function extFlipBook(id) {
+  const on = !extOwn(id)
+  if ((on ? extStarts(id) : extStops(id)).length) return set((s) => ({ dialog: { ...s.dialog, ask: on ? 'ext-on' : 'ext-off', flip: id, book: true }, ...SHUT }))
+  set(SHUT); extMineSet(id, true); extSet(id, on)
+}
+
 // 先问的那一句，浮在设置上面，遮罩只盖一层。
 function askExt(d) {
-  const e = extOf(d.flip), on = d.ask === 'ext-on', back = () => set((s) => ({ dialog: { ...s.dialog, ask: '' } }))
+  const e = extOf(d.flip), on = d.ask === 'ext-on', back = () => set((s) => ({ dialog: { ...s.dialog, ask: '', book: false } }))
   const also = on ? extStarts(d.flip) : extStops(d.flip)
   const said = also.length ? (on ? L.modAskOnAbout(extNames(also)) : L.modAskOffAbout(extNames(also))) : ''
   const ai = d.flip === 'ai'
@@ -105,8 +114,9 @@ function askExt(d) {
   const about = ai ? (on ? L.settingsAskOnAbout() : L.settingsAskOffAbout()) : ''
   const go = () => {
     back()
-    if (on) also.forEach((x) => extSet(x.id, true))
-    extSet(d.flip, on)
+    const one = (id) => { if (d.book) extMineSet(id, true); extSet(id, on) }
+    if (on) also.forEach((x) => one(x.id))
+    one(d.flip)
   }
   return `<div class="scrim top"${onClick(back)}></div><div class="dialog-wrap top"><div class="dialog ask" data-k="dialog-ask">` +
     dialogHead(title, about) + (said ? `<div class="note">${t(said)}</div>` : '') +
@@ -114,21 +124,23 @@ function askExt(d) {
 }
 
 // 扩展的页头，每个扩展自己的页、设置左栏里扩展带来的页，每段顶上都是它：
-// 开关和名字；一句说它做什么；灰的一行是需要谁、谁要用它、管哪些作品。
+// 开关和名字；一句说它做什么；灰的一行是需要谁、谁要用它。
+// 开关管本机的所有作品，平时不写范围；这部作品单独设了，灰的那行才多一句。单独设在右上角「⋯」里，书架上和基础扩展没有。
 // 自己开着、必需的关着：勾还在，淡下去，下面琥珀色一句说是谁关着。
 function extHead(e) {
-  const own = extOwn(e.id), waits = own ? (e.req || []).filter((r) => !extOn(r)).map(extOf) : [], by = extNeededBy(e.id)
-  const ties = [
+  const own = extOwn(e.id), waits = own ? (e.req || []).filter((r) => !extOn(r)).map(extOf) : [], by = extNeededBy(e.id), mine = extMine(e.id)
+  const meta = [
     e.req ? L.modNeeds(extNames(e.req.map(extOf))) : '',
     e.opt ? L.modOptional(extNames(e.opt.map(extOf))) : '',
     by.length ? L.modNeededBy(extNames(by)) : isLib(e) ? L.modNobodyNeeds() : '',
+    mine ? (own ? L.modBookOn() : L.modBookOff()) : '',
   ].filter(Boolean).map(t)
-  // 「单独设置」跟在那句话后面，和它是一句，不靠右。
-  const mine = extMine(e.id), meta = `<span>${[...ties, t(mine ? L.settingsBookOnly() : L.settingsLocalOnly())].join(' · ')}</span>` +
-    (inBook() && !isLib(e) ? ` <span class="hit link"${onClick(() => extMineSet(e.id, !mine))}>${t(mine ? L.modFollowLocal() : L.modOwnBook())}</span>` : '')
-  return `<div class="ext-head${waits.length ? ' ext-wait' : ''}" data-ext="${e.id}">${tickbox(own, e.name, () => extFlip(e.id))}` +
+  const key = 'ext-more-' + e.id, open = S.open === key
+  const more = inBook() && !isLib(e) ? `<div class="anchor ext-more"><button class="icon-btn muted" aria-label="${t(L.commonMoreActions())}" title="${t(L.commonMoreActions())}"${onClick(() => set({ open: open ? '' : key }))}>${ICON.dots}</button>` +
+    (open ? '<div class="pop">' + (mine ? menuRow(L.modFollowLocal(), () => { set(SHUT); extMineSet(e.id, false) }) : menuRow(own ? L.modBookOnlyOff() : L.modBookOnlyOn(), () => extFlipBook(e.id))) + '</div>' : '') + '</div>' : ''
+  return `<div class="ext-head${waits.length ? ' ext-wait' : ''}" data-ext="${e.id}">${tickbox(own, e.name, () => extFlip(e.id))}${more}` +
     `<div class="note tick-note">${t(e.about)}${e.off && !own ? '<br>' + t(e.off) : ''}</div>` +
-    `<div class="note tick-note faint">${meta}</div>` +
+    (meta.length ? `<div class="note tick-note faint">${meta.join(' · ')}</div>` : '') +
     (waits.length ? `<div class="note tick-note warn">${t(L.modWaiting(extNames(waits)))}</div>` : '') + '</div>'
 }
 
@@ -145,11 +157,18 @@ const BOOK_PREFS = ['hooks', 'check', 'backup']
 const extPrefs = (id, d) => (EXT_PREFS[id] && extOn(id) && (inBook() || !BOOK_PREFS.includes(id)) ? `<div class="ext-prefs">${EXT_PREFS[id](d)}</div>` : '')
 const extSection = (id, d) => `<div class="ext-sec">${extHead(extOf(id))}${extPrefs(id, d)}</div>`
 
-// 设置左栏下面两组是扩展带来的页：[页名, 哪几个扩展各一段, 哪一组, 要不要有打开的作品]。
-// 一页可以几个扩展合用（提醒：伏笔、检查）。一页里的扩展都关着，左栏就没有这一页；AI 那一页一直在，开 AI 的开关在上面。
-const PREF_PAGES = [['AI', ['ai'], 'builtin', false], ['提醒', ['hooks', 'check'], 'builtin', true], ['名字补全', ['names'], 'builtin', false], ['备份', ['backup'], 'builtin', true], ['全角标点', ['fullwidth'], 'more', false]]
-const prefPage = (name) => PREF_PAGES.find(([n]) => n === name)
-const prefPageShown = ([name, ids, , book]) => (!book || inBook()) && (name === 'AI' || ids.some(extOn))
+// 设置左栏外观、扩展下面，是扩展登记的页（EXTS 的 page），照登记的顺序排：[页名, 哪几个扩展各一段]。
+// 登记了就一直在，扩展关着也在：页头的开关能把它再打开。
+const prefPages = () => {
+  const out = []
+  EXTS().filter((e) => e.page).sort((a, b) => a.page[1] - b.page[1]).forEach((e) => {
+    const p = out.find(([n]) => n === e.page[0])
+    if (p) p[1].push(e.id)
+    else out.push([e.page[0], [e.id]])
+  })
+  return out
+}
+const prefPage = (name) => prefPages().find(([n]) => n === name)
 
 // 「扩展」总览：每组两列，一格一个，点一格进它自己的页。关着的、必需的关着而用不了的，右边写「已关闭」。
 const extCell = (e) => `<div class="ext-cell hit${extOn(e.id) ? '' : ' off'}" data-ext="${e.id}"${onClick(() => set((s) => ({ dialog: { ...s.dialog, ext: e.id }, ...SHUT })))}>` +
