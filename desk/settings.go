@@ -10,9 +10,13 @@ import (
 // settingsView belongs to the settings window, independently of extension tasks.
 // Closing keeps the selected tab; leaving the work resets it.
 type settingsView struct {
-	open  bool
-	tab   string
-	askAI bool
+	open             bool
+	tab              string
+	askAI            bool
+	ext              string
+	askExt           bool
+	flip             string
+	flipOn, flipBook bool
 }
 
 // The settings dialog keeps one size whichever part is shown.
@@ -89,6 +93,8 @@ func (a *App) openPrefs(tab string) {
 // work's selected tab and service draft for reopening the settings.
 func (a *App) closePrefs() {
 	a.settings.open, a.settings.askAI = false, false
+	a.settings.ext, a.settings.flip, a.settings.askExt = "", "", false
+	a.closeExtensionMenu()
 }
 
 // resetPrefs releases state belonging to the work being left. Saved model
@@ -104,6 +110,8 @@ func (a *App) resetPrefs() {
 // AI's part reads the AI record, and shows what it adds up to.
 func (a *App) showPref(tab string) {
 	a.settings.tab, a.record.showing = tab, false
+	a.settings.ext, a.settings.flip, a.settings.askExt = "", "", false
+	a.closeExtensionMenu()
 	if tab == "AI" && a.Store != nil {
 		records, err := a.Store.Records()
 		a.warn(err)
@@ -127,7 +135,7 @@ func (a *App) preferences(c *ui.Context) {
 		scrim := ui.Color{}
 		// What is asked over the settings shades the window, them with it:
 		// one shade, not two.
-		if !a.settings.askAI && !a.extensionModalOpen() {
+		if !a.settings.askAI && !a.settings.askExt && !a.extensionModalOpen() {
 			scrim = a.pal.Scrim
 		}
 		kit.DialogIn(back, panel, scrim)
@@ -170,7 +178,7 @@ func (a *App) preferences(c *ui.Context) {
 			// The title stays where it is: what is under it scrolls up to
 			// the line, not over it and the close button.
 			ui.Column(c).FillWidth().Shrink(0).Gap(4).Padding(24, 56, 16, 32).Children(func() {
-				ui.Text(c, a.prefTitle(a.settings.tab)).FontSize(kit.FsDialog).FontWeight(700)
+				a.extensionPrefTitle(c)
 				if note := a.prefNote(a.settings.tab); note != "" {
 					ui.Text(c, note).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
 				}
@@ -179,7 +187,7 @@ func (a *App) preferences(c *ui.Context) {
 			if a.showsLog() {
 				a.recordsView(c)
 			} else {
-				ui.Scroll(c.Key("prefs-" + a.settings.tab)).Grow(1).Shrink(1).FillWidth().Children(func() {
+				ui.Scroll(c.Key("prefs-" + a.settings.tab + a.settings.ext)).Grow(1).Shrink(1).FillWidth().Children(func() {
 					ui.Column(c).FillWidth().Padding(12, 56, 32, 32).Gap(prefsGap).Children(func() {
 						switch a.settings.tab {
 						case "外观":
@@ -189,7 +197,11 @@ func (a *App) preferences(c *ui.Context) {
 						case "AI":
 							a.aiView(c)
 						case "扩展":
-							// The overview is added in the next settings stage.
+							if a.settings.ext != "" {
+								a.extensionSection(c, a.settings.ext)
+							} else {
+								a.extensionOverview(c)
+							}
 						}
 						a.extensionSettings(c, a.settings.tab)
 					})
@@ -202,6 +214,7 @@ func (a *App) preferences(c *ui.Context) {
 	})
 	if a.settings.open {
 		a.askAI(c) // over the settings
+		a.askExtension(c)
 	} else {
 		a.closePrefs()
 	}

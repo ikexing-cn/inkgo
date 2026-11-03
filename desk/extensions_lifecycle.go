@@ -125,24 +125,14 @@ func (a *App) extensionLeave() {
 
 func (a *App) extensionSettings(c *ui.Context, id string) {
 	a.syncExtensions()
-	seen := map[string]bool{}
-	for _, page := range a.extViews.settings {
-		if a.extViews.settingsTabs[page.ID] != id || seen[page.Owner] {
-			continue
-		}
-		seen[page.Owner] = true
-		for _, item := range a.extViews.sections {
-			if item.Owner != page.Owner || item.Value.Work && a.Store == nil {
-				continue
+	ui.Column(c).FillWidth().Children(func() {
+		for i, owner := range a.extViews.pageOwners[id] {
+			if i > 0 {
+				a.pal.Hairline(c)
 			}
-			body := ui.Column(c).FillWidth().Gap(prefsGap)
-			var err error
-			body.Children(func() {
-				_, err = ext.Call(a.extensions, ext.HookOf(ext.CallPoint[hostapi.SettingsSection, *ui.Context, struct{}]{Point: hostapi.SettingsSections}, item.ID), c, settingsCall(item.Value))
-			})
-			body.Hidden(err != nil)
+			a.extensionSection(c, owner)
 		}
-	}
+	})
 	a.syncExtensions()
 }
 

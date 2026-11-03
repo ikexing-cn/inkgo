@@ -171,6 +171,10 @@ type extensionViews struct {
 	settings      []ext.Item[hostapi.SettingsPage]
 	sections      []ext.Item[hostapi.SettingsSection]
 	settingsTabs  map[string]string
+	modules       []ext.Module
+	moduleViews   map[string]extensionView
+	groups        []extensionGroup
+	pageOwners    map[string][]string
 }
 
 func (a *App) syncExtensions() {
@@ -182,6 +186,7 @@ func (a *App) syncExtensions() {
 		return
 	}
 	cache := extensionViews{ready: true, changes: changes}
+	a.cacheExtensionViews(&cache)
 	cache.commands = a.buildExtensionCommands()
 	cache.list = append([]*command(nil), commandList...)
 	cache.help = append([]*helpRow(nil), commandHelp...)
@@ -214,6 +219,7 @@ func (a *App) syncExtensions() {
 	cache.settings = ext.Declared(a.extensions, hostapi.SettingsPages)
 	cache.sections = ext.Items(a.extensions, hostapi.SettingsSections)
 	cache.settingsTabs = map[string]string{}
+	cache.pageOwners = map[string][]string{}
 	slices.SortStableFunc(cache.settings, func(x, y ext.Item[hostapi.SettingsPage]) int { return cmp.Compare(x.Value.Order, y.Value.Order) })
 	a.prefTabs = slices.Clone(a.hostPrefTabs)
 	pagesByLabel := map[string]string{}
@@ -226,9 +232,13 @@ func (a *App) syncExtensions() {
 			a.prefTabs = append(a.prefTabs, tabEntry[string]{id: id, name: p.Title, label: p.Label, order: p.Order})
 		}
 		cache.settingsTabs[item.ID] = id
+		if !slices.Contains(cache.pageOwners[id], item.Owner) {
+			cache.pageOwners[id] = append(cache.pageOwners[id], item.Owner)
+		}
 	}
 	slices.SortStableFunc(a.prefTabs, func(x, y tabEntry[string]) int { return cmp.Compare(x.order, y.order) })
 	a.extViews = cache
+	a.cacheExtensionNotes()
 }
 
 func (a *App) extensionTab(id paneTab) (ext.Item[hostapi.PaneTab], bool) {
