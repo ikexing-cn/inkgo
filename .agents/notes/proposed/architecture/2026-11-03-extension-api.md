@@ -86,7 +86,7 @@ import 一个公开包只是编译期用到它的类型，不等于运行时依�
 - **设置**：
   - `ext.Setting(r, "name", ext.Schema[T]{…})`，返回 `*ext.Pref[T]`，带 `Get()` 和 `OnChange`；
   - Schema 有标题、说明、默认值、范围、可选项（每项带说明）、分组、顺序、作用范围（全局、按书、两者都有）；
-  - 宿主照声明用 `kit` 画在设置的「扩展」一区；
+  - 宿主照声明用 `kit` 画在设置里这个扩展的那一节；要和别的扩展放在同一页，就写宿主开的具名分组（`ext.SettingsGroupChecks` 这类），宿主把放进同一组的项画在一页，每项记着是谁加的；
   - 要自己画就用 `ext.SettingsPage(r, "name", draw)`，详情页标明「自定义设置页」。
 - **数据目录**：`Session.BookDir()` 是 `.writer/ext/<id>/`，`Session.LocalDir()` 是 shelf 旁边的 `ext/<id>/`。宿主只在 Start 之后给。
 
