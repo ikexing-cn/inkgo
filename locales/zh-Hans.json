@@ -1711,6 +1711,10 @@
   "@modTurnOff": { "description": "关闭扩展前问的那一句里的主按钮。" },
   "modTurnOn": "打开",
   "@modTurnOn": { "description": "打开扩展前问的那一句里的主按钮。" },
+  "extFailed": "{name}出错，已停下：{error}",
+  "@extFailed": { "description": "应用界面提示：一个扩展出错后停下了。出错的位置记在扩展的账里，不进提示条。","placeholders":{"name":{"type":"String","example":"手机预览"},"error":{"type":"String","example":"draw failed"}} },
+  "extFileUnreadable": "扩展设置无法读取，本次按默认处理：{error}",
+  "@extFileUnreadable": { "description": "应用界面提示：扩展的开关和设置文件读不出来，这次按默认的来，坏文件不动。","placeholders":{"error":{"type":"String","example":"invalid JSON"}} },
   "checkAlsoOpen": "尚未处理",
   "@checkAlsoOpen": { "description": "检查页「其他章节里的类似情况」：那一处还没处理。" }
 }

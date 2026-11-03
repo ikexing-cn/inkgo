@@ -9,8 +9,9 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
 	"writer/editor"
+	"writer/ext"
+	"writer/ext/hostapi"
 	"writer/locales"
-	"writer/shelf"
 )
 
 // Phone points and em ratios come from prototype/pane.js phoneView and
@@ -56,8 +57,8 @@ var (
 	phoneThemes        = []string{"day", "night", "eye"}
 )
 
-func defaultPhone() shelf.Phone {
-	return shelf.Phone{Mode: "flip", Screen: "standard", Size: phoneSizeDefault, Spacing: "medium", Theme: "day"}
+func defaultPhone() Typesetting {
+	return Typesetting{Mode: "flip", Screen: "standard", Size: phoneSizeDefault, Spacing: "medium", Theme: "day"}
 }
 
 // UI indexes never leave the phone package. Persisted choices keep their meaning
@@ -68,12 +69,9 @@ func phoneIndex(value string, choices []string) int {
 
 // Preferences returns the local choices with defaults for invalid fields,
 // without storing the defaults.
-func (p *Panel) Preferences() shelf.Phone {
+func (p *Panel) Preferences() Typesetting {
 	d := defaultPhone()
-	if p.Host.ShelfPrefs().Phone == nil {
-		return d
-	}
-	prefs := *p.Host.ShelfPrefs().Phone
+	prefs := p.setting.Get()
 	choice := func(value, fallback string, choices []string) string {
 		if slices.Contains(choices, value) {
 			return value
@@ -97,13 +95,16 @@ type phoneAnchor struct {
 
 // Panel holds the phone preview, its reading position, and its layout.
 type Panel struct {
-	Host Host
+	book    *ext.Ref[hostapi.Book]
+	palette *ext.Ref[hostapi.Palette]
+	setting *ext.Pref[Typesetting]
+	session *ext.Session
 	editor.PaginatedText
-	prefs         shelf.Phone
+	prefs         Typesetting
 	look          bool
 	doc           *editor.Doc
 	version       int
-	measured      shelf.Phone
+	measured      Typesetting
 	key, title    string
 	at, caretPage int
 	scrollY       float32
@@ -136,7 +137,7 @@ func (p *Panel) nextLong() {
 	p.at = p.LongPages[0]
 }
 
-func phonePagination(p shelf.Phone) editor.PaginationOptions {
+func phonePagination(p Typesetting) editor.PaginationOptions {
 	fs := float32(p.Size)
 	lh := float32(kit.LhRead)
 	switch p.Spacing {
@@ -170,13 +171,13 @@ func (p *Panel) point(x, y float32) (para, offset int, ok bool) {
 }
 
 func (p *Panel) measure() {
-	id, ed, _ := p.Host.Chapter()
+	id, ed, _ := p.book.Get().Chapter()
 	p.prefs = p.Preferences()
-	n, ok := p.Host.Content().Tree().Node(id)
-	if !ok || n.Folder || ed == nil {
+	name, ok := p.book.Get().ChapterTitle(id)
+	if !ok || ed == nil {
 		return
 	}
-	title := strings.Replace(n.Title, "：", " ", 1)
+	title := strings.Replace(name, "：", " ", 1)
 	changed := p.doc != ed.Doc || p.version != ed.Doc.Version() || p.measured != p.prefs || p.title != title
 	if changed {
 		p.anchored = false
@@ -184,7 +185,7 @@ func (p *Panel) measure() {
 		p.Layout(ed.Doc.String(), p.title, phonePagination(p.prefs))
 	}
 	page := p.PageOf(ed.Caret())
-	key := p.Host.WorkPath() + "/" + id
+	key := p.session.Book().Dir + "/" + id
 	if p.key != key {
 		p.key, p.at, p.caretPage = key, 0, page
 	} else if p.prefs.Mode == "flip" && p.caretPage != page {
@@ -193,9 +194,10 @@ func (p *Panel) measure() {
 	p.at = min(max(p.at, 0), p.Pages-1)
 }
 
+// View draws the preview on the frame thread without retaining frame handles.
 func (p *Panel) View(c *ui.Context) {
-	pal := p.Host.Colors()
-	if _, _, open := p.Host.Chapter(); !open {
+	pal := p.palette.Get().Colors()
+	if _, _, open := p.book.Get().Chapter(); !open {
 		p.key = ""
 		p.look = false
 		pal.PaneEmpty(c, locales.PreviewOpenChapter(), "")
@@ -224,8 +226,7 @@ func (p *Panel) View(c *ui.Context) {
 	})
 	if before != p.prefs {
 		prefs := p.prefs
-		p.Host.ShelfPrefs().Phone = &prefs
-		p.Host.SaveShelf()
+		p.setting.Set(prefs)
 		p.measure()
 	}
 	pal.Hairline(c)
@@ -276,7 +277,7 @@ func (p *Panel) View(c *ui.Context) {
 }
 
 func (p *Panel) typesetting(c *ui.Context) {
-	pal := p.Host.Colors()
+	pal := p.palette.Get().Colors()
 	prefs := &p.prefs
 	row := func(label string, value *string, choices, names []string) {
 		at := phoneIndex(*value, choices)
@@ -327,7 +328,7 @@ func (p *Panel) typesetting(c *ui.Context) {
 }
 
 func (p *Panel) segments(c *ui.Context, at *int, label string, names []string) {
-	pal := p.Host.Colors()
+	pal := p.palette.Get().Colors()
 	t := pal.Theme
 	seg := ui.SegmentedBase(c, at, len(names))
 	seg.Track.Label(label).FillWidth().Gap(2).Padding(2).Radius(kit.RControl).Background(t.SurfacePressed).Children(func() {
@@ -352,7 +353,7 @@ func (p *Panel) input(ev ui.InputEvent) bool {
 		return false
 	}
 	if _, offset, ok := p.point(ev.X, ev.Y); ok {
-		_, ed, _ := p.Host.Chapter()
+		_, ed, _ := p.book.Get().Chapter()
 		ed.Select(offset, offset)
 		ed.Focus()
 		return true
@@ -361,7 +362,7 @@ func (p *Panel) input(ev ui.InputEvent) bool {
 }
 
 func (p *Panel) sync() {
-	_, ed, _ := p.Host.Chapter()
+	_, ed, _ := p.book.Get().Chapter()
 	f, n, into := ed.ScrollAnchor()
 	anchor := phoneAnchor{f, into, n}
 	if p.anchored && anchor == p.anchor {
@@ -398,7 +399,7 @@ func (p *Panel) paint(painter *ui.Painter, r ui.Rect) {
 	k := max(0, min(1, min(r.W/wfull, r.H/hfull)))
 	p.ox, p.oy, p.scale = (r.W-wfull*k)/2, (r.H-hfull*k)/2, k
 	p.body = ui.Rect{X: pad + 1 + phoneTextInset, Y: pad + 1 + phoneStatusHeight + phoneTextTop, W: p.TextWidth, H: p.PageHeight}
-	light, dark := p.Host.PhoneColors()
+	light, dark := p.palette.Get().ScreenColors()
 	bg, ink, muted, active, hover := light.Canvas, light.Ink, light.Faint, light.Theme.SurfacePressed, light.Theme.SurfaceHover
 	if p.prefs.Theme == "night" {
 		bg, ink, muted, active, hover = dark.Canvas, dark.Ink, dark.Faint, dark.Theme.SurfacePressed, dark.Theme.SurfaceHover
@@ -449,7 +450,7 @@ func (p *Panel) paint(painter *ui.Painter, r ui.Rect) {
 }
 
 func (p *Panel) paintText(painter *ui.Painter, ink, active, hover ui.Color) {
-	_, ed, _ := p.Host.Chapter()
+	_, ed, _ := p.book.Get().Chapter()
 	from, to := ed.Selection()
 	// A paragraph is one continuous patch, including when its lines are
 	// split across pages. Selection is drawn over it, before the glyphs.
@@ -505,9 +506,9 @@ func (p *Panel) paintText(painter *ui.Painter, ink, active, hover ui.Color) {
 				x0, x1 := sh.X(l.Line, lo), sh.X(l.Line, hi)
 				pick := ui.Rect{X: x + x0, Y: y + 2, W: x1 - x0, H: sh.LineHeight - 4}
 				p.pick = append(p.pick, pick)
-				selection := p.Host.Colors().Theme.Selection
+				selection := p.palette.Get().Colors().Theme.Selection
 				if !ed.Focused() {
-					selection = p.Host.Colors().Theme.TextMuted.Alpha(0.2)
+					selection = p.palette.Get().Colors().Theme.TextMuted.Alpha(0.2)
 				}
 				painter.Fill(pick, selection, 0)
 			}

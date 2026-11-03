@@ -60,7 +60,7 @@ type Options struct {
 	LocalSwitches LocalSwitchStore
 	BookSwitches  BookSwitchStore
 	Settings      SettingStore
-	// DeclareHost records host-owned points and hooks before module Setup.
+	// DeclareHost records host-owned points, hooks and services before module Setup.
 	DeclareHost func(*Registrar)
 	// Injections persists author-controlled ordering and choices.
 	Injections InjectionStore

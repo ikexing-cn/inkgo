@@ -24,7 +24,7 @@ func layoutBook(t *testing.T, root string) *workspace.Store {
 }
 
 func newLayoutApp(root string) *desk.App {
-	return desk.New(ai.New(filepath.Join(root, "providers.yaml")))
+	return desk.New(ai.New(filepath.Join(root, "providers.yaml")), modules...)
 }
 
 func openLayoutApp(t *testing.T, root string) *desk.App {

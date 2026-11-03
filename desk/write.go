@@ -252,13 +252,11 @@ func (a *App) paneColumn(c *ui.Context, width float32) {
 	a.LastSetting = panel.Bounds()
 	panel.Children(func() {
 		shown := a.paneTabs.shown(a, a.doc.tab)
+		extension, contributed := a.extensionTab(shown)
 		if a.page == pageWrite && shown == paneMargin {
 			a.marginPanel(c)
-		} else if a.page == pageWrite && shown == panePhone {
-			a.pal.PaneTop(c).Children(func() {
-				a.panelTabs(c)
-			})
-			a.phone.View(c)
+		} else if a.page == pageWrite && contributed {
+			a.extensionPane(c, extension)
 		} else if a.page == pageWrite && shown == paneFore {
 			a.forePanel(c)
 		} else if a.page == pageWrite && shown == paneTalk {

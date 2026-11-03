@@ -84,7 +84,7 @@ func TestLayoutOutline(t *testing.T) {
 	}
 	check(s.WriteOutline(chapters[5], "林晚趁何主任不在翻档案柜，只找到一张旧的停电通知。"))
 	check(s.Close())
-	a := desk.New(ai.New(filepath.Join(root, "providers.yaml")))
+	a := desk.New(ai.New(filepath.Join(root, "providers.yaml")), modules...)
 	check(a.Open(filepath.Join(root, "work")))
 	defer a.Close()
 	tt := ui.NewTester(a.View, 1266, 780)

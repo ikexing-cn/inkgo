@@ -50,6 +50,7 @@ func (a *App) turnPage() {
 }
 
 func (a *App) View(c *ui.Context) {
+	a.extensionFrame(c)
 	defer func() {
 		if a.MenuChanged != nil {
 			a.MenuChanged(a.SystemMenu())

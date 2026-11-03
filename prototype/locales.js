@@ -1917,6 +1917,13 @@ const CATALOG = {
   ],
   "modTurnOff": [],
   "modTurnOn": [],
+  "extFailed": [
+   "name",
+   "error"
+  ],
+  "extFileUnreadable": [
+   "error"
+  ],
   "checkAlsoOpen": []
  },
  "messages": {
@@ -3177,6 +3184,8 @@ const CATALOG = {
    "modAskOnAbout": "{names}会一起打开。",
    "modTurnOff": "关闭",
    "modTurnOn": "打开",
+   "extFailed": "{name}出错，已停下：{error}",
+   "extFileUnreadable": "扩展设置无法读取，本次按默认处理：{error}",
    "checkAlsoOpen": "尚未处理"
   },
   "en": {
@@ -4436,6 +4445,8 @@ const CATALOG = {
    "modAskOnAbout": "{names} will turn on too.",
    "modTurnOff": "Turn Off",
    "modTurnOn": "Turn On",
+   "extFailed": "{name} ran into an error and stopped: {error}",
+   "extFileUnreadable": "Extension settings could not be read; using defaults this time: {error}",
    "checkAlsoOpen": "Not handled yet"
   }
  }

@@ -16,6 +16,7 @@ import (
 	"writer/ai"
 	"writer/aiport"
 	"writer/desk/kit"
+	"writer/ext/phone"
 	"writer/model"
 	"writer/workspace"
 )
@@ -53,7 +54,9 @@ func fixture(t *testing.T) (*App, *ui.Tester, workspace.Entry) {
 }
 
 // newApp is the app on the services configured in config, or on none.
-func newApp(config string) *App { return New(ai.New(config)) }
+func newApp(config string) *App { return testApp(ai.New(config)) }
+
+func testApp(service aiport.Service) *App { return New(service, phone.Module) }
 
 // aiOf is the AI of a, for a test to swap fake models in.
 func aiOf(a *App) *ai.Service { return a.ai.(*ai.Service) }

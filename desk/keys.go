@@ -18,7 +18,7 @@ func (a *App) keysHelp(c *ui.Context) {
 			ui.Scroll(c.Key("keys")).FillWidth().MaxHeight(440).Shrink(1).Children(func() {
 				ui.Column(c).FillWidth().Children(func() {
 					group := ""
-					for _, row := range commandHelp {
+					for _, row := range a.commandHelp() {
 						if row.keys() == "" || row.ai && !a.aiOn() {
 							continue
 						}

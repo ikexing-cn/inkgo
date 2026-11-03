@@ -46,8 +46,6 @@ func (h appHost) Dialogs() (func(string, string) (string, error), func(string) e
 	return h.a.SaveFile, h.a.Reveal
 }
 
-func (h appHost) PhoneColors() (*kit.Palette, *kit.Palette) { return h.a.light, h.a.dark }
-
 func (h appHost) SyncPlanOutline(id, text string) {
 	if h.a.write.node == id {
 		d := &h.a.write.cur().outline

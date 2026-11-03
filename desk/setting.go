@@ -20,7 +20,6 @@ const (
 	paneSetting paneTab = "setting"
 	paneTalk    paneTab = "talk"
 	paneFore    paneTab = "fore"
-	panePhone   paneTab = "phone"
 )
 
 // settingBase is what lies under the setting panel's other screens: the

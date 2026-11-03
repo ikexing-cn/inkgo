@@ -530,6 +530,9 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   // An outline file broken outside: one line in place of the page, read again as the window comes back.
   await click('少见的情况'); await click('大纲文件读不出来'); await win('大纲文件读不出来'); await win('第 12 行附近有错'); must(!(await has('.board')) && !(await has('[aria-label="搜索大纲"]')), 'the broken outline still shows the page'); await win('重试', false); await shot('106-outline-broken')
   await click('打开所在文件夹'); await win('原型不会打开系统窗口'); await click('关闭提示'); await js(`window.dispatchEvent(new Event('focus'))`); await win('8 章 · '); must(await has('.board'), 'the outline does not come back as the window does'); await done('an outline file broken outside')
+  // An extension that fails stops alone; the toast names it and quotes the error. Its settings file unreadable: defaults this time.
+  await click('少见的情况'); await click('扩展出错'); await win('手机预览出错'); await win('已停下：draw failed'); await shot('106-extension-failed'); await click('关闭提示')
+  await click('少见的情况'); await click('扩展设置读不出来'); await win('扩展设置无法读取'); await win('本次按默认处理'); await click('关闭提示'); await done('an extension that fails')
 
   // Names of the setting in the prose: a faint dotted line; clicked, the entry opens beside; put away in the settings.
   await click('正文'); await click('第87章：停电'); must(await js(`[...document.querySelectorAll('.prose .nm')].some((e) => e.textContent === '小祥')`), 'a name in the prose is not marked')

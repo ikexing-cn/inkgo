@@ -14576,6 +14576,34 @@ func (msgs Messages) ModTurnOn() string {
 	return Catalog.Format(msgs.locale, "modTurnOn", nil)
 }
 
+// ExtFailed says "{name}出错，已停下：{error}"
+// in the language the app shows.
+//
+// 应用界面提示：一个扩展出错后停下了。出错的位置记在扩展的账里，不进提示条。
+func ExtFailed(name string, error string) string { return In(i18n.Locale()).ExtFailed(name, error) }
+
+// ExtFailed says "{name}出错，已停下：{error}"
+// in the language of msgs.
+//
+// 应用界面提示：一个扩展出错后停下了。出错的位置记在扩展的账里，不进提示条。
+func (msgs Messages) ExtFailed(name string, error string) string {
+	return Catalog.Format(msgs.locale, "extFailed", map[string]any{"name": name, "error": error})
+}
+
+// ExtFileUnreadable says "扩展设置无法读取，本次按默认处理：{error}"
+// in the language the app shows.
+//
+// 应用界面提示：扩展的开关和设置文件读不出来，这次按默认的来，坏文件不动。
+func ExtFileUnreadable(error string) string { return In(i18n.Locale()).ExtFileUnreadable(error) }
+
+// ExtFileUnreadable says "扩展设置无法读取，本次按默认处理：{error}"
+// in the language of msgs.
+//
+// 应用界面提示：扩展的开关和设置文件读不出来，这次按默认的来，坏文件不动。
+func (msgs Messages) ExtFileUnreadable(error string) string {
+	return Catalog.Format(msgs.locale, "extFileUnreadable", map[string]any{"error": error})
+}
+
 // CheckAlsoOpen says "尚未处理"
 // in the language the app shows.
 //

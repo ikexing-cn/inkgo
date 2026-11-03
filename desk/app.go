@@ -12,8 +12,8 @@ import (
 	"writer/desk/exportdialog"
 	"writer/desk/kit"
 	"writer/desk/outline"
-	"writer/desk/phone"
 	"writer/editor"
+	"writer/ext"
 	"writer/locales"
 	"writer/shelf"
 	"writer/workspace"
@@ -60,6 +60,8 @@ type App struct {
 	page              page
 	pages             [pageCategories + 1]pageView
 	paneTabs          tabTable[paneTab]
+	hostPaneTabs      tabTable[paneTab]
+	extViews          extensionViews
 	prefTabs          tabTable[string]
 	offFrom           page              // the page of the AI the prose took the place of as the AI was turned off,
 	offAway           bool              // while there is one
@@ -121,7 +123,9 @@ type App struct {
 	thoughts                         map[string]*bool // reasoning shown, by event or revision ID
 	doc                              docView
 	exporting                        exportdialog.Dialog
-	phone                            phone.Panel
+	extensions                       *ext.Host
+	extStore                         *extensionStore
+	extNotices                       extensionNotices
 	write                            writeView
 	plan                             outline.Page
 	LastChat, LastSetting, LastWrite ui.Rect
@@ -143,11 +147,11 @@ type App struct {
 // New is the app with ai, whose configuration file says where this
 // machine keeps its settings: the shelf of works lies beside it, with the
 // switch that turns the AI off, and with none there is no shelf either, as
-// for a test.
-func New(ai aiport.Service) *App {
+// for a test. mods is the explicit extension assembly for this app.
+func New(ai aiport.Service, mods ...ext.Module) *App {
 	a := &App{ai: ai, turn: &talkTurn{}, genre: "网文",
 		light: kit.LightPalette(), dark: kit.DarkPalette(), titles: map[string]string{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
-	a.exporting.Host, a.phone.Host, a.plan.Host = appHost{a}, appHost{a}, appHost{a}
+	a.exporting.Host, a.plan.Host = appHost{a}, appHost{a}
 	a.pal = a.light
 	a.initPages()
 	a.initTabs()
@@ -174,6 +178,7 @@ func New(ai aiport.Service) *App {
 	if ai.ConfigFile() != "" {
 		a.loadShelf()
 	}
+	a.initExtensions(mods)
 	a.ranNoGPU = a.shelf.NoGPU
 	ai.BindSwitch(a.aiOn)
 	if a.aiOn() {
@@ -201,6 +206,10 @@ func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 	a.remember(true)
 	a.titles, a.blank = map[string]string{}, map[string]bool{}
 	a.resetView()
+	if err := a.extensions.Open(ext.Book{Dir: s.Root()}); err != nil {
+		return err
+	}
+	a.syncExtensions()
 	a.loadPrefs()
 	a.loadWork()
 	sessions, err := s.Sessions()
@@ -243,6 +252,9 @@ func (a *App) closeWork() {
 	a.book = nil
 	a.path, a.name = "", ""
 	a.resetView()
+	// Close ended the book sessions; shelf features run with no book.
+	a.warn(a.extensions.Open(ext.Book{}))
+	a.syncExtensions()
 	a.lookForBooks()
 }
 
@@ -264,6 +276,9 @@ func (a *App) Close() error {
 
 // leaveWork leaves the store open for each caller to close; Close keeps it for a busy worker.
 func (a *App) leaveWork() {
+	if a.extensions != nil {
+		a.extensions.Close()
+	}
 	if a.Store == nil {
 		return
 	}

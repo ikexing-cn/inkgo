@@ -1255,5 +1255,7 @@
   "modAskOnAbout": "{names} will turn on too.",
   "modTurnOff": "Turn Off",
   "modTurnOn": "Turn On",
+  "extFailed": "{name} ran into an error and stopped: {error}",
+  "extFileUnreadable": "Extension settings could not be read; using defaults this time: {error}",
   "checkAlsoOpen": "Not handled yet"
 }

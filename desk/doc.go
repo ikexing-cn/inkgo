@@ -3,7 +3,7 @@
 //
 // desk/book: the book's content as the pages read it, the outline drafts, and timing.
 // desk/kit: what the pages draw with: colors, sizes, controls, menus, status, toast cards, text, and Markdown.
-// desk/phone: the phone preview panel.
+// ext/phone: the phone preview panel.
 // desk/exportdialog: the export dialog.
 // desk/outline: the 大纲 page, card editing, chapter table, and timeline.
 //

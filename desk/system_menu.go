@@ -30,7 +30,7 @@ var systemCommands = []struct {
 	{"save", cmdSave}, {"snapshots", cmdSnapshots}, {"export", cmdExport},
 	{"categories", cmdCategories}, {"trash", cmdTrash}, {"undo", cmdUndo}, {"redo", cmdRedo},
 	{"find", cmdFind}, {"rename", cmdRename}, {"continue", cmdContinue}, {"draft", cmdDraft},
-	{"side", cmdSide}, {"pane", cmdPane}, {"focus", cmdFocus}, {"phone", cmdPhone},
+	{"side", cmdSide}, {"pane", cmdPane}, {"focus", cmdFocus},
 	{"zoom-in", cmdZoomIn}, {"zoom-out", cmdZoomOut}, {"zoom-reset", cmdZoomReset}, {"shortcuts", cmdHelp},
 }
 
@@ -61,6 +61,9 @@ func systemAccelerator(cmd *command) string {
 // systemMenuOwns reports whether the system menu shows the command with its
 // key, and so takes that key before the window does.
 func systemMenuOwns(cmd *command) bool {
+	if cmd.systemMenu {
+		return systemAccelerator(cmd) != ""
+	}
 	for _, entry := range systemCommands {
 		if entry.cmd == cmd {
 			return systemAccelerator(cmd) != ""
@@ -71,8 +74,9 @@ func systemMenuOwns(cmd *command) bool {
 
 // SystemMenu computes state on the view thread, after the frame's actions.
 func (a *App) SystemMenu() []SystemMenuItem {
+	commands := a.systemCommands()
 	row := func(id string) SystemMenuItem {
-		for _, entry := range systemCommands {
+		for _, entry := range commands {
 			if entry.id == id {
 				c := entry.cmd
 				item := SystemMenuItem{ID: id, Label: c.name(a), Accelerator: systemAccelerator(c), Enabled: c.available(a), Visible: !c.ai || a.aiOn()}
@@ -99,8 +103,20 @@ func (a *App) SystemMenu() []SystemMenuItem {
 	for _, v := range []struct{ id, value, name string }{{"look-system", "", locales.LookSystem()}, {"look-light", "light", locales.LookLight()}, {"look-dark", "dark", locales.LookDark()}} {
 		looks = append(looks, SystemMenuItem{ID: v.id, Label: v.name, Enabled: true, Visible: true, Radio: true, Checked: a.Theme() == v.value})
 	}
-	view := []SystemMenuItem{row("side"), row("pane"), row("focus"), row("phone"), sep("view-zoom-separator"), zoom, row("zoom-in"), row("zoom-out"), row("zoom-reset"), sep("view-look-separator"), look}
-	view = append(view, looks...)
+	var view []SystemMenuItem
+	for _, entry := range a.viewCommands() {
+		switch entry.id {
+		case "view-zoom-separator", "view-look-separator":
+			view = append(view, sep(entry.id))
+		case "zoom-label":
+			view = append(view, zoom)
+		case "look-label":
+			view = append(view, look)
+			view = append(view, looks...)
+		default:
+			view = append(view, row(entry.id))
+		}
+	}
 	return []SystemMenuItem{
 		menu("app", "", "appMenu", role("about", "about"), sep("app-settings-separator"), row("settings"), sep("app-hide-separator"), role("hide", "hide"), role("hide-others", "hideOthers"), sep("app-quit-separator"), role("quit", "quit")),
 		menu("file", locales.MenuFile(), "", row("new-chapter"), row("new-folder"), sep("file-save-separator"), row("save"), row("snapshots"), row("export"), sep("file-organize-separator"), row("categories"), row("trash")),
@@ -132,7 +148,7 @@ func (a *App) systemMenuAct() {
 		case "look-dark":
 			a.setTheme("dark")
 		default:
-			for _, entry := range systemCommands {
+			for _, entry := range a.systemCommands() {
 				c := entry.cmd
 				if entry.id == id && id != "undo" && id != "redo" && c.available(a) && (!c.ai || a.aiOn()) && c.run != nil {
 					c.run(a)
@@ -141,3 +157,5 @@ func (a *App) systemMenuAct() {
 		}
 	}
 }
+
+func (a *App) systemCommands() []namedCommand { a.syncExtensions(); return a.extViews.system }

@@ -1,13 +1,13 @@
 package phone
 
 import (
+	"fmt"
 	"math"
 	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
 	"writer/editor"
-	"writer/shelf"
 )
 
 const phoneLongText = "雨水顺着屋檐往下淌，巷子尽头那盏灯晃了两下，终于灭了。她数着自己的脚步，一步，两步，三步，数到第十七步的时候，听见身后有人喊她的名字，声音很轻，像是怕惊动了什么。她没有回头，只是把手电攥得更紧，指节都发了白。"
@@ -204,11 +204,11 @@ func TestPhonePreferencesDefaultUnknownChoices(t *testing.T) {
 	h, p, tt, _ := previewFixture(t, "灯灭了。")
 	for _, tc := range []struct {
 		name  string
-		phone *shelf.Phone
+		phone *Typesetting
 	}{
 		{"untouched", nil},
-		{"missing choices", &shelf.Phone{}},
-		{"unknown choices", &shelf.Phone{Mode: "future", Screen: "future", Size: 25, Spacing: "future", Theme: "future"}},
+		{"missing choices", &Typesetting{}},
+		{"unknown choices", &Typesetting{Mode: "future", Screen: "future", Size: 25, Spacing: "future", Theme: "future"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			h.prefs.Phone = tc.phone
@@ -218,9 +218,9 @@ func TestPhonePreferencesDefaultUnknownChoices(t *testing.T) {
 		})
 	}
 	// Normalization also reaches the UI, and only invalid fields default.
-	h.prefs.Phone = &shelf.Phone{Mode: "scroll", Screen: "future", Size: phoneSizeMin, Spacing: "loose", Theme: "eye", NoFrame: true, NoLong: true}
+	h.prefs.Phone = &Typesetting{Mode: "scroll", Screen: "future", Size: phoneSizeMin, Spacing: "loose", Theme: "eye", NoFrame: true, NoLong: true}
 	tt.Frame()
-	want := shelf.Phone{Mode: "scroll", Screen: "standard", Size: phoneSizeMin, Spacing: "loose", Theme: "eye", NoFrame: true, NoLong: true}
+	want := Typesetting{Mode: "scroll", Screen: "standard", Size: phoneSizeMin, Spacing: "loose", Theme: "eye", NoFrame: true, NoLong: true}
 	if p.prefs != want {
 		t.Fatal("valid preferences lost while defaulting", p.prefs)
 	}
@@ -230,5 +230,31 @@ func TestNewPreviewStartsAtFirstScreen(t *testing.T) {
 	_, p, _, _ := previewFixture(t, "灯灭了。")
 	if p.at != 0 {
 		t.Fatal("reopened preview did not start at first screen", p.at)
+	}
+}
+
+// Typing in a chapter above ten thousand characters retains every
+// unchanged paragraph's measured glyphs and line breaks. Include the whole
+// editing frame, rather than timing a cache lookup in isolation.
+func TestPreviewTypingKeepsParagraphShapes(t *testing.T) {
+	var body strings.Builder
+	for i := 0; i < 120; i++ {
+		fmt.Fprintf(&body, "第%d夜，%s\n", i, phoneLongText)
+	}
+	h, p, tt, _ := previewFixture(t, body.String())
+	if h.ed.Doc.Len() <= 10000 {
+		t.Fatal("fixture must exceed ten thousand characters")
+	}
+	tt.Frame()
+	ed := h.ed
+	ed.Select(ed.Doc.Len(), ed.Doc.Len())
+	ed.Focus()
+	tt.Frame()
+	old := p.Paras[0].Shape
+	for range 10 {
+		tt.Type("雨")
+	}
+	if old != p.Paras[0].Shape {
+		t.Fatal("typing reshaped an unchanged paragraph")
 	}
 }

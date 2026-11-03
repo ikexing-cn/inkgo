@@ -40,6 +40,8 @@ type command struct {
 	page    page // the page whose keys include it; pageAny for all
 	ai      bool
 	by      commandBy
+	// systemMenu marks extension commands whose shortcuts the system menu owns.
+	systemMenu bool
 	// can says whether it can run now, for its menu. A menu with a finer
 	// state of its own gives that instead, with Disabled.
 	can func(*App) bool
@@ -137,9 +139,6 @@ var (
 	cmdFocus = &command{label: locales.CmdFocus, key: ui.KeyF11, onMac: true, macKey: ui.KeyF, macMods: ui.Ctrl | modCmd, page: pageWrite, by: byDesk,
 		can: func(a *App) bool { return writingPage(a) },
 		run: func(a *App) { a.write.focus = !a.write.focus }}
-	cmdPhone = &command{label: locales.CmdPhonePreview, page: pageAny,
-		can: func(a *App) bool { return chapterShown(a) },
-		run: func(a *App) { a.openPhone() }}
 	cmdHelp = &command{label: locales.CmdShortcuts, key: ui.KeySlash, mods: modCmd, page: pageAny, by: byDesk,
 		run: func(a *App) { a.keysOpen = true }}
 
@@ -226,7 +225,7 @@ var commandList = []*command{
 	cmdDeleteWordBack, cmdDeleteWordForward, cmdTakePrediction, cmdDropPrediction,
 	cmdNewFolder, cmdSnapshots, cmdExport, cmdSettings, cmdDraft,
 	cmdCategories, cmdTrash,
-	cmdSide, cmdPane, cmdPhone, cmdRewrite, cmdTake, cmdUnmark,
+	cmdSide, cmdPane, cmdRewrite, cmdTake, cmdUnmark,
 	cmdBury, cmdPay, cmdViewFore, cmdCloseOthers, cmdCloseRight, cmdSend,
 }
 
@@ -515,8 +514,9 @@ func stepTab(a *App, d int) {
 // before the page builds: a key of the desk's is taken before the editor
 // sees it. The AI's run only while it is on.
 func (a *App) commandKeys(c *ui.Context) {
-	for _, cmd := range commandList {
-		if cmd.key == 0 || cmd.by != byDesk || cmd.ai && !a.aiOn() {
+	for _, cmd := range a.commandList() {
+		_, key := cmd.bindingOn(onMacOS)
+		if key == 0 || cmd.by != byDesk || cmd.ai && !a.aiOn() {
 			continue
 		}
 		if cmd.page != pageAny && cmd.page != a.page {
@@ -551,12 +551,4 @@ func (a *App) pageTurn(c *ui.Context) {
 		a.writingTurn(c)
 	}
 	a.commandKeys(c)
-}
-
-func (a *App) openPhone() {
-	if open, _ := a.chapterOpen(); !open {
-		return
-	}
-	a.doc.hidden, a.doc.tab, a.write.focus = false, panePhone, false
-	a.savePrefs()
 }

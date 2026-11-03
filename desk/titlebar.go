@@ -210,20 +210,25 @@ func (a *App) editMenu(m *kit.Menu, later func(func()) func()) {
 	a.barItem(m, later, cmdDraft)
 }
 
+var viewCommandRows = []namedCommand{{id: "side", cmd: cmdSide}, {id: "pane", cmd: cmdPane}, {id: "focus", cmd: cmdFocus},
+	{id: "view-zoom-separator"}, {id: "zoom-label"}, {id: "zoom-in", cmd: cmdZoomIn}, {id: "zoom-out", cmd: cmdZoomOut}, {id: "zoom-reset", cmd: cmdZoomReset}, {id: "view-look-separator"}, {id: "look-label"}}
+
 // viewMenu lists the title bar's 视图.
 func (a *App) viewMenu(m *kit.Menu, later func(func()) func()) {
-	a.barItem(m, later, cmdSide)
-	a.barItem(m, later, cmdPane)
-	// The key toggles focus; the row only enters it.
-	cmdFocus.item(a, m).Do(later(func() { a.write.focus = true }))
-	a.barItem(m, later, cmdPhone)
-	m.Separator()
-	m.Head(locales.ViewZoom(int(math.Round(float64(a.Zoom()) * 100))))
-	a.barItem(m, later, cmdZoomIn)
-	a.barItem(m, later, cmdZoomOut)
-	a.barItem(m, later, cmdZoomReset)
-	m.Separator()
-	m.Draw(a.themeChoice)
+	for _, row := range a.viewCommands() {
+		switch row.id {
+		case "view-zoom-separator", "view-look-separator":
+			m.Separator()
+		case "zoom-label":
+			m.Head(locales.ViewZoom(int(math.Round(float64(a.Zoom()) * 100))))
+		case "look-label":
+			m.Draw(a.themeChoice)
+		case "focus":
+			cmdFocus.item(a, m).Do(later(func() { a.write.focus = true }))
+		default:
+			a.barItem(m, later, row.cmd)
+		}
+	}
 }
 
 // helpMenu lists the title bar's 帮助.

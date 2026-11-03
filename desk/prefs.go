@@ -34,9 +34,11 @@ func (a *App) loadPrefs() {
 		a.write.goalText = strconv.Itoa(p.Goal)
 	}
 	a.doc.width, a.doc.tab, a.doc.attach = p.PanelWidth, paneTab(p.PaneTab), !p.NoAttach
-	switch a.doc.tab {
-	case paneMargin, paneSetting, paneTalk, paneFore, panePhone:
-	default:
+	known := false
+	for _, tab := range a.paneTabs {
+		known = known || tab.id == a.doc.tab
+	}
+	if !known {
 		a.doc.tab = paneMargin
 	}
 	a.write.lateAfter, a.write.fore = p.LateAfter, foreState{}

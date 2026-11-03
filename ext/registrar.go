@@ -102,6 +102,9 @@ func Contribute[T any](r *Registrar, key PointKey[T], name string, value T) {
 }
 
 // Provide records a factory; construction is deferred until the session starts.
+// In DeclareHost, factories run once after all Setup callbacks and before any
+// module starts. They receive a host session with an empty Book, lasting for
+// the Host's lifetime; host services remain available across Close and Open.
 func Provide[T any](r *Registrar, key ServiceKey[T], factory func(*Session) T) {
 	k := string(key)
 	r.owned(k, "Provide")
@@ -119,7 +122,7 @@ func use[T any](r *Registrar, key ServiceKey[T], optional bool) {
 	k := string(key)
 	m := r.e.mod
 	o := owner(k)
-	if !contains(m.Requires, o) && !(optional && contains(m.Optional, o)) {
+	if o != HostOwner && !contains(m.Requires, o) && !(optional && contains(m.Optional, o)) {
 		r.fail("Use service %q requires a declared %s dependency", k, map[bool]string{true: "Requires/Optional", false: "Requires"}[optional])
 	}
 	r.h.uses = append(r.h.uses, serviceUse{m.ID, k, optional, reflect.TypeFor[T]()})
@@ -170,7 +173,7 @@ func serviceGet[T any](h *Host, key string) (T, bool) {
 	}
 	var zero T
 	p, exists := h.providers[key]
-	if !exists || h.byID[p.owner].ledger.State != On {
+	if !exists || p.owner != HostOwner && h.byID[p.owner].ledger.State != On {
 		return zero, false
 	}
 	v, ok := h.services[key]

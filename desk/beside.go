@@ -81,8 +81,9 @@ func (a *App) paneCounts() paneNums {
 }
 
 // panelTabs switch the writing page's right column between the margin,
-// the setting, the talk, the foreshadowings and the phone preview.
+// the setting, the talk, the foreshadowings and contributed panels.
 func (a *App) panelTabs(c *ui.Context) {
+	a.syncExtensions()
 	t := a.pal.Theme
 	shown := a.paneTabs.shown(a, a.doc.tab)
 	tab := func(entry tabEntry[paneTab]) {

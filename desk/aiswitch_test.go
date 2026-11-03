@@ -172,7 +172,7 @@ func openSpied(t *testing.T, root string) (*App, *ui.Tester, *spy) {
 	Library = func() string { return lib }
 	t.Cleanup(func() { Library = was })
 	sp := &spy{Service: ai.New(filepath.Join(root, "providers.yaml"))}
-	a := New(sp)
+	a := testApp(sp)
 	if err := a.Open(filepath.Join(root, "work")); err != nil {
 		t.Fatal(err)
 	}

@@ -321,6 +321,7 @@ func (h *Host) validateInjections() error {
 // rebuildChains requires mu. Execution order and chain functions are built here;
 // Call only binds the immutable chain to its own invocation frame.
 func (h *Host) rebuildChains() {
+	h.changes++
 	groups := map[string][]interception{}
 	statuses := map[string]Injection{}
 	for key := range h.hooks {

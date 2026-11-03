@@ -477,6 +477,9 @@ function rare() {
     [S.narrow ? '窗口恢复原宽' : '窗口变窄', () => set((s) => ({ narrow: !s.narrow, ...SHUT }))],
     ['大纲文件读不出来', () => set({ page: 'plan', planBroken: true, planQ: '', dialog: null, ...SHUT })],
     ['添加的文件夹中没有作品', () => { set(SHUT); say(L.editorNoWork(), PATHS().stray, 'fail') }],
+    // 扩展出错只停它自己：提示条写名字和错误原文，出在哪个回调记在扩展的账里。
+    ['扩展出错', () => { set(SHUT); say(L.extFailed(L.modPhone(), 'draw failed'), '', 'fail') }],
+    ['扩展设置读不出来', () => { set(SHUT); say(L.extFileUnreadable("invalid character '}' in ext.json"), '', 'fail') }],
   ]
 }
 // 一次回复查到了上限：查了 BOOK.limit 次还没查完，照查到的回答。

@@ -6,17 +6,18 @@ import (
 )
 
 type tabEntry[K comparable] struct {
-	id            K
-	name          func() string
-	label         string
-	icon          *ui.SVG
-	ai, work      bool
-	fallback      bool
-	count         func() int
+	id       K
+	name     func() string
+	label    string
+	icon     *ui.SVG
+	ai, work bool
+	fallback bool
+	visible  func() bool
+	count    func() int
 }
 
 func (t tabEntry[K]) available(a *App) bool {
-	return (!t.ai || a.aiOn()) && (!t.work || a.Store != nil)
+	return (!t.ai || a.aiOn()) && (!t.work || a.Store != nil) && (t.visible == nil || t.visible())
 }
 
 func (t tabEntry[K]) title(a *App) string {
@@ -54,13 +55,13 @@ func (t tabTable[K]) shown(a *App, chosen K) K {
 }
 
 func (a *App) initTabs() {
-	a.paneTabs = tabTable[paneTab]{
+	a.hostPaneTabs = tabTable[paneTab]{
 		{id: paneMargin, name: locales.PaneTabNotes},
 		{id: paneSetting, name: locales.PaneTabLore, fallback: true, count: func() int { return a.paneCounts().open }},
 		{id: paneTalk, name: locales.PaneTabChat, ai: true},
 		{id: paneFore, name: locales.PaneTabHooks, count: func() int { return a.paneCounts().waiting }},
-		{id: panePhone, name: locales.PaneTabPreview},
 	}
+	a.paneTabs = a.hostPaneTabs
 	a.prefTabs = tabTable[string]{
 		{id: "AI", name: func() string { return "AI" }, label: "设置-AI"},
 		{id: "外观", name: locales.ViewLook, label: "设置-外观"},

@@ -24,6 +24,9 @@ func newSession(id string, book Book, local string) *Session {
 	return &Session{id: id, book: book, localRoot: local, ctx: ctx, cancel: cancel}
 }
 
+// Book returns the immutable book identity on any goroutine.
+func (s *Session) Book() Book { return s.book }
+
 // ID returns the owning module ID.
 func (s *Session) ID() string { return s.id }
 

@@ -65,13 +65,12 @@ func TestPhonePreviewTypingCost(t *testing.T) {
 	if shownEditor(a).Doc.Len() <= 10000 {
 		t.Fatal("fixture must exceed ten thousand characters")
 	}
-	a.openPhone()
+	extensionHost{a}.Show("phone.preview")
 	tt.Frame()
 	ed := shownEditor(a)
 	ed.Select(ed.Doc.Len(), ed.Doc.Len())
 	ed.Focus()
 	tt.Frame()
-	old := a.phone.Paras[0].Shape
 	var samples []time.Duration
 	for range 10 {
 		start := time.Now()
@@ -80,12 +79,9 @@ func TestPhonePreviewTypingCost(t *testing.T) {
 	}
 	slices.Sort(samples)
 	median := (samples[4] + samples[5]) / 2
-	t.Logf("%d runes, %d paragraphs, median typing frame %v", ed.Doc.Len(), len(a.phone.Paras), median)
+	t.Logf("%d runes, median typing frame %v", ed.Doc.Len(), median)
 	if median > 25*time.Millisecond {
 		t.Fatalf("phone typing median %v exceeds 25 ms", median)
-	}
-	if old != a.phone.Paras[0].Shape {
-		t.Fatal("typing reshaped an unchanged paragraph")
 	}
 }
 

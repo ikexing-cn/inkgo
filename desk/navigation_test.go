@@ -100,7 +100,7 @@ func TestNavigationTables(t *testing.T) {
 				{paneSetting, "设定", false},
 				{paneTalk, "讨论", true},
 				{paneFore, "伏笔", false},
-				{panePhone, "预览", false},
+				{paneTab("phone.preview"), "预览", false},
 			} {
 				entry := a.paneTabs[i]
 				want := !p.ai || tc.ai

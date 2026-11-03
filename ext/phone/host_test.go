@@ -3,18 +3,20 @@ package phone
 import (
 	"testing"
 
+	"encoding/json"
 	"github.com/egoist/mygo/ui"
 	"writer/desk/book"
 	"writer/desk/kit"
 	"writer/editor"
-	"writer/shelf"
+	"writer/ext"
+	"writer/ext/hostapi"
 	"writer/workspace"
 )
 
 type testHost struct {
 	store       *workspace.Store
 	content     *book.Book
-	prefs       shelf.Shelf
+	prefs       struct{ Phone *Typesetting }
 	light, dark *kit.Palette
 	id          string
 	ed          *editor.Editor
@@ -23,13 +25,11 @@ type testHost struct {
 
 func (h *testHost) Colors() *kit.Palette { return h.light }
 
-func (h *testHost) PhoneColors() (*kit.Palette, *kit.Palette) { return h.light, h.dark }
+func (h *testHost) ScreenColors() (*kit.Palette, *kit.Palette) { return h.light, h.dark }
 
 func (h *testHost) Content() *book.Book { return h.content }
 
-func (h *testHost) WorkPath() string { return h.store.Root() }
-
-func (h *testHost) ShelfPrefs() *shelf.Shelf { return &h.prefs }
+func (h *testHost) Dir() string { return h.store.Root() }
 
 func (h *testHost) SaveShelf() {}
 
@@ -67,7 +67,21 @@ func previewFixture(t *testing.T, text string) (*testHost, *Panel, *ui.Tester, s
 	}
 	h := &testHost{store: store, content: book.Open(store), light: kit.LightPalette(), dark: kit.DarkPalette()}
 	h.openChapter(t, id)
-	p := &Panel{Host: h}
+	var p *Panel
+	host, err := ext.New(ext.Options{Settings: testSettings{h}, DeclareHost: func(r *ext.Registrar) {
+		ext.Provide(r, hostapi.BookService, func(*ext.Session) hostapi.Book { return h })
+		ext.Provide(r, hostapi.PaletteService, func(*ext.Session) hostapi.Palette { return h })
+	}}, ext.Module{ID: "phone", Setup: func(r *ext.Registrar) {
+		p = &Panel{book: ext.Use(r, hostapi.BookService), palette: ext.Use(r, hostapi.PaletteService), setting: ext.Setting(r, "typesetting", ext.Schema[Typesetting]{Default: defaultPhone()})}
+		r.OnStart(func(s *ext.Session) error { p.session = s; return nil })
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = host.Open(ext.Book{Dir: store.Root()}); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(host.Close)
 	tt := ui.NewTester(func(c *ui.Context) {
 		c.SetTheme(h.light.Theme)
 		ui.Row(c).Fill().Children(func() {
@@ -87,3 +101,19 @@ func click(t *testing.T, tt *ui.Tester, label string) {
 	}
 	tt.Frame()
 }
+
+func (h *testHost) ChapterTitle(id string) (string, bool) {
+	n, ok := h.content.Tree().Node(id)
+	return n.Title, ok && !n.Folder
+}
+
+type testSettings struct{ h *testHost }
+
+func (s testSettings) Load(ext.Book, string) ([]byte, bool) {
+	if s.h.prefs.Phone == nil {
+		return nil, false
+	}
+	data, _ := json.Marshal(s.h.prefs.Phone)
+	return data, true
+}
+func (s testSettings) Save(_ ext.Book, _ string, data []byte) { json.Unmarshal(data, &s.h.prefs.Phone) }

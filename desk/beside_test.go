@@ -28,7 +28,7 @@ func TestPaneTabPreferences(t *testing.T) {
 		{"legacy talk", map[string]any{"talk_tab": true}, paneTalk},
 		{"legacy fore", map[string]any{"fore_tab": true}, paneFore},
 		{"legacy fore wins", map[string]any{"talk_tab": true, "fore_tab": true}, paneFore},
-		{"named phone wins", map[string]any{"pane_tab": "phone", "talk_tab": true, "fore_tab": true}, panePhone},
+		{"named phone wins", map[string]any{"pane_tab": "phone.preview", "talk_tab": true, "fore_tab": true}, paneTab("phone.preview")},
 		{"named margin", map[string]any{"pane_tab": "margin"}, paneMargin},
 		{"named setting", map[string]any{"pane_tab": "setting"}, paneSetting},
 		{"empty tab falls back", map[string]any{"pane_tab": "", "talk_tab": true, "fore_tab": true}, paneMargin},
@@ -55,7 +55,7 @@ func TestPaneTabPreferences(t *testing.T) {
 			if b.doc.tab != tc.want {
 				t.Fatalf("tab %q want %q", b.doc.tab, tc.want)
 			}
-			text := map[paneTab]string{paneMargin: "本章没有批注", paneSetting: "主角怕黑", paneTalk: "附上本章内容", paneFore: "暂无伏笔", panePhone: "第 1 屏，共 1 屏"}[tc.want]
+			text := map[paneTab]string{paneMargin: "本章没有批注", paneSetting: "主角怕黑", paneTalk: "附上本章内容", paneFore: "暂无伏笔", paneTab("phone.preview"): "第 1 屏，共 1 屏"}[tc.want]
 			if !tt.HasText(text) {
 				t.Fatal("wrong visible pane", tt.Texts())
 			}
@@ -81,7 +81,7 @@ func TestPaneTabPreferences(t *testing.T) {
 			if err = json.Unmarshal(data, &saved); err != nil {
 				t.Fatal(err)
 			}
-			if string(saved["pane_tab"]) != `"phone"` || saved["talk_tab"] != nil || saved["fore_tab"] != nil {
+			if string(saved["pane_tab"]) != `"phone.preview"` || saved["talk_tab"] != nil || saved["fore_tab"] != nil {
 				t.Fatalf("new prefs: %s", data)
 			}
 			if err = b.Close(); err != nil {
@@ -95,7 +95,7 @@ func TestPaneTabPreferences(t *testing.T) {
 			ct := stillTester(c.View, 1266, 780)
 			ct.Frame()
 			ct.Frame()
-			if c.doc.tab != panePhone || !ct.HasText("第 1 屏，共 1 屏") {
+			if c.doc.tab != paneTab("phone.preview") || !ct.HasText("第 1 屏，共 1 屏") {
 				t.Fatal("preview not restored", ct.Texts())
 			}
 			click(t, ct, "右栏-设定")

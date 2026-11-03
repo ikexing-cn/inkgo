@@ -23,6 +23,8 @@ type Host struct {
 	pending              map[*entry]bool
 	storeMu              sync.Mutex
 	opts                 Options
+	changes              uint64
+	closed               bool
 	setup                bool
 	entries              []*entry
 	byID                 map[string]*entry
@@ -155,6 +157,16 @@ func New(opts Options, mods ...Module) (*Host, error) {
 		}
 		for _, id := range off {
 			h.off[id] = true
+		}
+	}
+	hs := newSession(HostOwner, Book{}, opts.LocalRoot)
+	for _, key := range h.providerOrder {
+		if h.providers[key].owner == HostOwner {
+			var v serviceValue
+			if err := protect(func() { v = h.providers[key].build(hs) }); err != nil {
+				return nil, fmt.Errorf("host service %s: %w", key, err)
+			}
+			h.services[key] = v
 		}
 	}
 	h.reconcile()
@@ -347,7 +359,7 @@ func (h *Host) Open(book Book) error {
 	defer h.opMu.Unlock()
 	h.drainFailures()
 	h.mu.RLock()
-	same := h.book == book
+	same := h.book == book && !h.closed
 	h.mu.RUnlock()
 	if same {
 		return nil
@@ -376,6 +388,7 @@ func (h *Host) Open(book Book) error {
 	}
 	h.mu.Lock()
 	h.book, h.bookSwitch = book, switches
+	h.closed = false
 	for _, e := range h.entries {
 		e.ledger.State = Off
 	}
@@ -387,10 +400,14 @@ func (h *Host) Open(book Book) error {
 	return nil
 }
 
-// Close cancels every session and waits for its tasks. Declarations remain readable.
+// Close cancels every module session and waits for its tasks without restarting
+// modules on the shelf. Open can activate the same book again. The prior book
+// identity stays until Open, so preference listeners can compare old values.
+// Declarations and host services remain readable.
 func (h *Host) Close() {
 	h.opMu.Lock()
 	defer h.opMu.Unlock()
+	defer func() { h.mu.Lock(); h.closed = true; h.mu.Unlock() }()
 	h.drainFailures()
 	defer func() { h.mu.Lock(); h.rebuildChains(); h.mu.Unlock() }()
 	for len(h.running) > 0 {
@@ -579,3 +596,7 @@ func (h *Host) Ledger(id string) Ledger {
 	}
 	return l
 }
+
+// Changes returns the revision of effective contributions, switches and call
+// chains. It is allocation-free and safe to read from any goroutine.
+func (h *Host) Changes() uint64 { h.mu.RLock(); defer h.mu.RUnlock(); return h.changes }

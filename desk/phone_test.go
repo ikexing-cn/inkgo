@@ -6,7 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"writer/shelf"
+	"writer/ext"
+	"writer/ext/phone"
 	"writer/workspace"
 )
 
@@ -22,7 +23,7 @@ func TestPhonePreviewOpensAndKeepsItsTabs(t *testing.T) {
 	for range 4 {
 		tt.Frame()
 	}
-	if a.doc.hidden || shownTab(a) != panePhone || !tt.HasText("第 1 屏，共 1 屏") {
+	if a.doc.hidden || shownTab(a) != paneTab("phone.preview") || !tt.HasText("第 1 屏，共 1 屏") {
 		t.Fatal("preview did not open", tt.Texts())
 	}
 	a.shelf.NoAI = true
@@ -42,33 +43,32 @@ func TestPhonePreviewOpensAndKeepsItsTabs(t *testing.T) {
 
 func TestPhonePreferencesAreLocal(t *testing.T) {
 	a, tt, _ := writingFixture(t, "灯灭了。")
-	if a.shelf.Phone != nil {
+	if _, ok := a.extStore.Load(ext.Book{}, "phone.typesetting"); ok {
 		t.Fatal("untouched phone preferences should be absent")
 	}
-	a.openPhone()
+	extensionHost{a}.Show("phone.preview")
 	tt.Frame()
 	click(t, tt, "滚动")
 	click(t, tt, "Aa")
 	for _, label := range []string{"宽屏", "A+", "宽松", "护眼", "显示手机外框", "标出超过 5 行的段落"} {
 		click(t, tt, label)
 	}
-	want := a.phone.Preferences()
+	want := savedTypesetting(t, a)
 	if want.Mode != "scroll" || want.Screen != "wide" || want.Size != 21 || want.Spacing != "loose" || want.Theme != "eye" || !want.NoFrame || !want.NoLong {
 		t.Fatal(want)
 	}
 	config := a.ai.ConfigFile()
-	data, err := os.ReadFile(shelf.File(config))
+	data, err := os.ReadFile(filepath.Join(filepath.Dir(config), "ext.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	var saved struct {
-		Phone *shelf.Phone `json:"phone"`
-	}
+	var saved extensionFile
 	if err = json.Unmarshal(data, &saved); err != nil {
 		t.Fatal(err)
 	}
-	if saved.Phone == nil || *saved.Phone != want {
-		t.Fatalf("works.json phone: %s", data)
+	var value phone.Typesetting
+	if err = json.Unmarshal(saved.Settings["phone.typesetting"], &value); err != nil || value != want {
+		t.Fatalf("ext.json typesetting: %s %v", data, err)
 	}
 	for _, dir := range []string{filepath.Dir(config), filepath.Join(a.Store.Root(), ".writer")} {
 		if _, err = os.Stat(filepath.Join(dir, "phone.json")); !os.IsNotExist(err) {
@@ -77,8 +77,8 @@ func TestPhonePreferencesAreLocal(t *testing.T) {
 	}
 	b := newApp(config)
 	defer b.Close()
-	if b.phone.Preferences() != want {
-		t.Fatalf("reopened %+v want %+v", b.phone.Preferences(), want)
+	if savedTypesetting(t, b) != want {
+		t.Fatalf("reopened %+v want %+v", savedTypesetting(t, b), want)
 	}
 	root := filepath.Join(t.TempDir(), "other")
 	store, err := workspace.Create(root, "另一本", "网文")
@@ -89,7 +89,7 @@ func TestPhonePreferencesAreLocal(t *testing.T) {
 	if err = b.Open(root); err != nil {
 		t.Fatal(err)
 	}
-	if b.phone.Preferences() != want {
+	if savedTypesetting(t, b) != want {
 		t.Fatal("work changed phone preferences")
 	}
 	if _, err = os.Stat(filepath.Join(root, ".writer", "phone.json")); !os.IsNotExist(err) {
@@ -102,23 +102,42 @@ func TestPhonePreferencesReadUnknownChoices(t *testing.T) {
 	config := a.ai.ConfigFile()
 	for _, tc := range []struct {
 		name  string
-		phone *shelf.Phone
+		phone *phone.Typesetting
 	}{
 		{"untouched", nil},
-		{"missing choices", &shelf.Phone{}},
-		{"unknown choices", &shelf.Phone{Mode: "future", Screen: "future", Size: 25, Spacing: "future", Theme: "future"}},
+		{"missing choices", &phone.Typesetting{}},
+		{"unknown choices", &phone.Typesetting{Mode: "future", Screen: "future", Size: 25, Spacing: "future", Theme: "future"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			a.shelf.Phone = tc.phone
-			a.saveShelf()
+			if tc.phone != nil {
+				data, _ := json.Marshal(tc.phone)
+				a.extStore.Save(ext.Book{}, "phone.typesetting", data)
+			}
 			b := newApp(config)
 			defer b.Close()
 			if b.errorText() != "" {
-				t.Fatalf("read defaults: %+v, error %q", b.phone.Preferences(), b.errorText())
+				t.Fatalf("read defaults: %+v, error %q", savedTypesetting(t, b), b.errorText())
 			}
-			if tc.phone == nil && b.shelf.Phone != nil {
+			if tc.phone == nil && hasTypesetting(b) {
 				t.Fatal("reading untouched preferences materialized defaults")
 			}
 		})
 	}
+}
+
+func hasTypesetting(a *App) bool {
+	_, ok := a.extStore.Load(ext.Book{}, "phone.typesetting")
+	return ok
+}
+func savedTypesetting(t *testing.T, a *App) phone.Typesetting {
+	t.Helper()
+	var value phone.Typesetting
+	data, ok := a.extStore.Load(ext.Book{}, "phone.typesetting")
+	if !ok {
+		return value
+	}
+	if err := json.Unmarshal(data, &value); err != nil {
+		t.Fatal(err)
+	}
+	return value
 }

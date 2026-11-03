@@ -46,8 +46,10 @@ func TestTableOneKeyAtMostPerPage(t *testing.T) {
 		mods ui.Modifiers
 		key  ui.Key
 	}
+	a := newApp("")
+	defer a.Close()
 	seen := map[key]*command{}
-	for _, cmd := range commandList {
+	for _, cmd := range a.commandList() {
 		if cmd.key == 0 {
 			continue
 		}

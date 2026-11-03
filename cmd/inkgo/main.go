@@ -39,7 +39,7 @@ func main() {
 	path, err := ai.ConfigPath()
 	service := ai.New(path)
 	service.Trace = *trace
-	d := desk.New(service)
+	d := desk.New(service, modules...)
 	if err != nil {
 		d.SetError(err)
 	}
