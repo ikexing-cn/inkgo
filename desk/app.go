@@ -48,6 +48,11 @@ type App struct {
 	// SetTitle names the window, reporting false when there is no window
 	// yet to name; nil leaves the title as it is.
 	SetTitle func(title string) bool
+	// MenuChanged gets the system menu as each frame leaves it, on the view
+	// thread; nil where there is no system menu (see system_menu.go).
+	MenuChanged func([]SystemMenuItem)
+	// nativeMenu holds the system menu's clicks until the next frame.
+	nativeMenu systemMenuQueue
 
 	light, dark *kit.Palette
 	pal         *kit.Palette

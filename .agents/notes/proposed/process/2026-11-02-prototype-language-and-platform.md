@@ -72,6 +72,23 @@ Status: proposed
 - 角色项的中文来自 mygo 的 zh-Hans 表，要等应用注册了自己的翻译表才会出中文（见[多语言方案](../architecture/2026-11-02-i18n-on-mygo.md)）。
 - 系统的「编辑」角色带剪切、复制、粘贴，交给第一响应者；mygo 的原生界面接不接这些没查过，原型的「编辑」暂时只放软件自己的命令。
 
+应用里已做（2026-11-03），没在真机上看过：
+
+- `desk/system_menu.go` 从命令表算出菜单的描述，不依赖 mygo 根包：
+  - 名字、快捷键、能不能用都从命令取；
+  - AI 关着时，AI 的几行藏起来；
+  - 外观三行打勾，只勾当前那行。
+- `cmd/inkgo/system_menu.go` 只在 macOS 上把描述装成 `mygo.MenuItem`，Windows 不调 `SetMenu`。
+  - 每帧末尾和上一帧比，只推变了的那几项；只有项的增减、顺序、快捷键变了，才整个重装。
+  - 点菜单只把要做的事排进队列，叫窗口重画，下一帧再做。
+  - `App.SetName("Inkgo")`，第一个菜单才叫 Inkgo，不叫可执行文件的名字。
+- 撤销、重做用 `RoleUndo`、`RoleRedo`，交给有焦点的东西，搜索框里按 ⌘Z 不会撤到正文。
+- 菜单上有快捷键的命令，按键由菜单跑。键能落到窗口，说明那一行是灰的，这时窗口把键吞掉、不往下传，和原来「条件不满足时键也归桌面」一样。
+  - 例外是 ⌘+：菜单只挂 ⌘=，⇧⌘= 仍由窗口放大，在 Windows 上也是两个都认。
+- 设置在 macOS 上是 ⌘,，照原型；Windows 上仍没有快捷键。
+- macOS 上标题栏不画「文件、编辑、视图、帮助」，红黄绿后面只留侧栏开关。
+  - 判断用 `onMacOS`，测试里能改，所以 macOS 的样子在 Windows 上也能测、能截图（`TestShotMacTitleBar`）。
+
 ### 待定
 
 - 应用这边和 macOS 不一致的几处，作者 2026-11-02 定了做法，规则在 DESIGN.md「菜单」：
@@ -79,7 +96,10 @@ Status: proposed
   - 重做两边都改成 Ctrl+Shift+Z / ⇧⌘Z。已改，原型和应用都是；编辑器仍认 Ctrl+Y，只是菜单和快捷键表不再写它。
   - 专注写作在 macOS 上是 ⌃⌘F，重命名在 macOS 上不设快捷键。已改：原型在 Windows 键盘上点时 F11、F2 照样认；应用的命令表可以给 macOS 另配一个键或者没有键（`onMac`、`macKey`、`macMods`），⌃⌘F 只触发专注写作、不会同时触发 ⌘F 查找（有测试）。表里的 `modCmd` 是「系统的命令键」，在 macOS 上写成 ⌘、别处写成 Ctrl，所以两个系统的写法在一台电脑上就能测，Ctrl+Tab 在 macOS 上仍是 ⌃Tab。
   - macOS 上按键的名字照原型 `keyLabel`：↩、⇟、⇞、⌫、⌦。下一章、上一章两边都把修饰键写全（`Ctrl+PgDn / Ctrl+PgUp`、`⌘⇟ / ⌘⇞`），原型原来写 `Ctrl+PgDn / PgUp`，跟着应用改了，和同一张表里 `Ctrl+Z / Ctrl+Shift+Z` 的写法一致。
-  - 删一个词在 macOS 上是 ⌥⌫ / ⌥⌦。应用的编辑器原来不分系统，在 macOS 上也拿 ⌘ 按词移动、删除；作者 2026-11-03 定照 macOS 的习惯，规则在 DESIGN.md「菜单」，编辑器跟着改。
+  - 删一个词在 macOS 上是 ⌥⌫ / ⌥⌦。应用的编辑器原来不分系统，在 macOS 上也拿 ⌘ 按词移动、删除；作者 2026-11-03 定照 macOS 的习惯，规则在 DESIGN.md「菜单」。已改（`editor/input.go`，系统只在 `macKeys` 一处判断）：
+    - 照 mygo 自带编辑器在 macOS 上的键位，Windows 的键不变。
+    - 光标已在行首时，⌘⌫ 删掉一格，两行并成一行；⌘⌦ 在行尾同理。
+    - macOS 上 ⌘Y 不再重做。
   - 红黄绿按钮在 40 高的标题栏里是否垂直居中，没在真机上看过；可能要设 `TrafficLightPosition`。
 
 ## Alternatives considered

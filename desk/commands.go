@@ -70,7 +70,7 @@ var (
 	cmdExport = &command{label: locales.CmdExport, page: pageAny,
 		can: func(a *App) bool { return a.Store != nil },
 		run: func(a *App) { a.exporting.Show() }}
-	cmdSettings = &command{label: locales.AppSettings, page: pageAny,
+	cmdSettings = &command{label: locales.AppSettings, onMac: true, macKey: ui.KeyComma, macMods: modCmd, page: pageAny,
 		run: func(a *App) { a.openPrefs(a.settings.tab) }}
 	cmdCategories = &command{label: locales.CmdCategories, page: pageAny,
 		can: func(a *App) bool { return a.Store != nil },
@@ -525,7 +525,19 @@ func (a *App) commandKeys(c *ui.Context) {
 		// The key is asked for before the condition, as each page asked
 		// for it: while the condition does not hold the key is still the
 		// desk's and goes nowhere, not on to the editor.
-		if cmd.pressed(c) && (cmd.when == nil || cmd.when(a)) && cmd.run != nil {
+		pressed := false
+		if onMacOS && systemMenuOwns(cmd) {
+			// The system menu runs its rows' keys, so one that reaches
+			// the window has its row greyed out, and goes nowhere. The
+			// menu holds ⌘= and not ⌘+: a shifted key under Shift is
+			// still the window's.
+			mods, key := cmd.bindingOn(true)
+			c.Shortcut(mods, key)
+			pressed = cmd.shifted && c.Shortcut(mods|ui.Shift, key)
+		} else {
+			pressed = cmd.pressed(c)
+		}
+		if pressed && (cmd.when == nil || cmd.when(a)) && cmd.run != nil {
 			cmd.run(a)
 		}
 	}
