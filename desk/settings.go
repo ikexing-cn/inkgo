@@ -3,6 +3,7 @@ package desk
 import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
+	"writer/locales"
 )
 
 // settingsView belongs to the settings window, independently of backups.
@@ -18,15 +19,26 @@ const prefsWidth, prefsHeight = 900, 620
 
 // prefAbout says under a part's title what the author must know of it;
 // a part with nothing such says nothing there.
-var prefAbout = map[string]string{
-	"外观":    "仅在本机生效，适用于所有作品。",
-	"提醒与检查": "仅适用于本作品。",
+var prefAbout = map[string]func() string{
+	"外观":    locales.SettingsLocalOnly,
+	"提醒与检查": locales.SettingsBookOnly,
 }
 
 // prefName is what a part of the settings is called, and prefNote what
 // it says it is for: with the AI off, 提醒与检查 has no checks, and the
 // AI holds the switch alone.
 func (a *App) prefName(tab string) string {
+	switch tab {
+	case "外观":
+		return locales.ViewLook()
+	case "备份":
+		return locales.ModBackup()
+	case "提醒与检查":
+		if !a.aiOn() {
+			return locales.SettingsTabRemindOnly()
+		}
+		return locales.SettingsTabRemind()
+	}
 	for _, entry := range a.prefTabs {
 		if entry.id == tab {
 			return entry.title(a)
@@ -39,7 +51,7 @@ func (a *App) prefName(tab string) string {
 // record's, which shows in the AI's part.
 func (a *App) prefTitle(tab string) string {
 	if tab == "AI" && a.showsLog() {
-		return "AI 记录"
+		return locales.SettingsRecordsTitle()
 	}
 	return a.prefName(tab)
 }
@@ -47,11 +59,14 @@ func (a *App) prefTitle(tab string) string {
 func (a *App) prefNote(tab string) string {
 	switch {
 	case tab == "AI" && !a.aiOn():
-		return "仅在本机生效，适用于所有作品。"
+		return locales.SettingsLocalOnly()
 	case tab == "AI" && a.showsLog():
-		return "只记发了哪几部分、各多大，不存内容。"
+		return locales.SettingsRecordsNote()
 	}
-	return prefAbout[tab]
+	if say := prefAbout[tab]; say != nil {
+		return say()
+	}
+	return ""
 }
 
 // showsLog is whether the AI's part of the settings shows the AI record.
@@ -114,7 +129,7 @@ func (a *App) preferences(c *ui.Context) {
 		panel.Row().AlignItems(ui.Stretch).Width(min(prefsWidth, w-40)).Height(min(prefsHeight, h-40)).Radius(kit.RDialog).Background(t.Background)
 		a.pal.Dialog.On(panel)
 		ui.Column(c).Width(180).FillHeight().Shrink(0).Padding(20, 10).Gap(2).Radius(kit.RDialog, 0, 0, kit.RDialog).Background(a.pal.Canvas).Children(func() {
-			ui.Text(c, "设置").FontSize(kit.FsSmall).FontWeight(600).TextColor(a.pal.Faint).Padding(0, 10, 8, 10)
+			ui.Text(c, locales.SettingsTitle()).FontSize(kit.FsSmall).FontWeight(600).TextColor(a.pal.Faint).Padding(0, 10, 8, 10)
 			for _, entry := range a.prefTabs {
 				tab := entry.id
 				if !entry.available(a) {
@@ -131,7 +146,7 @@ func (a *App) preferences(c *ui.Context) {
 				}
 				kit.PressRow(c, b)
 				b.Children(func() {
-					ui.Text(c, entry.title(a)).FontSize(kit.FsBody).FontWeight(weight).TextColor(fg)
+					ui.Text(c, a.prefName(tab)).FontSize(kit.FsBody).FontWeight(weight).TextColor(fg)
 					if n := entry.number(); n > 0 {
 						ui.Textf(c, "%d", n).FontSize(kit.FsNote).TextColor(a.pal.Faint)
 					}
@@ -171,7 +186,7 @@ func (a *App) preferences(c *ui.Context) {
 				})
 			}
 		})
-		if kit.IconButton(c, kit.IcX, "关闭设置", ui.Color{}).Absolute().Top(12).Right(12).Clicked() {
+		if kit.IconButton(c, kit.IcX, locales.SettingsClose(), ui.Color{}).Absolute().Top(12).Right(12).Clicked() {
 			a.closePrefs()
 		}
 	})
@@ -192,9 +207,9 @@ func (a *App) prefsRow(c *ui.Context, label string, fn func()) {
 
 // looksView is the settings' 外观.
 func (a *App) looksView(c *ui.Context) {
-	a.prefsRow(c, "颜色", func() { a.themeSegments(c, false) })
+	a.prefsRow(c, locales.SettingsColor(), func() { a.themeSegments(c, false) })
 	on := !a.shelf.NoNames
-	if ui.Checkbox(c, &on, "正文中标出设定的名字").Changed() {
+	if ui.Checkbox(c, &on, locales.SettingsMarkNames()).Changed() {
 		a.shelf.NoNames = !on
 		a.saveShelf()
 	}
@@ -213,17 +228,17 @@ var offerNoGPU = true
 // change waits for it to open again, which the link does at once.
 func (a *App) gpuSwitch(c *ui.Context) {
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
-		if ui.Checkbox(c, &a.shelf.NoGPU, "禁用 GPU 加速").Changed() {
+		if ui.Checkbox(c, &a.shelf.NoGPU, locales.SettingsDisableGPU()).Changed() {
 			a.saveShelf()
 		}
 		if a.shelf.NoGPU == a.ranNoGPU {
 			return
 		}
-		link := "立即重新打开"
+		link := locales.SettingsRestartNow()
 		if a.Relaunch == nil {
 			link = ""
 		}
-		if a.pal.TickNoteLink(c, "重新打开软件后生效。", link) {
+		if a.pal.TickNoteLink(c, locales.SettingsGPUNext(), link) {
 			a.relaunch()
 		}
 	})

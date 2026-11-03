@@ -3520,6 +3520,66 @@ func (msgs Messages) CommonListSep() string {
 	return Catalog.Format(msgs.locale, "commonListSep", nil)
 }
 
+// LoreNamesChanged says "名称改为：{names}"
+// in the language the app shows.
+//
+// 应用界面提示。
+func LoreNamesChanged(names string) string { return In(i18n.Locale()).LoreNamesChanged(names) }
+
+// LoreNamesChanged says "名称改为：{names}"
+// in the language of msgs.
+//
+// 应用界面提示。
+func (msgs Messages) LoreNamesChanged(names string) string {
+	return Catalog.Format(msgs.locale, "loreNamesChanged", map[string]any{"names": names})
+}
+
+// LoreNamesRemoved says "移除名称：{text}"
+// in the language the app shows.
+//
+// 应用界面提示。
+func LoreNamesRemoved(text string) string { return In(i18n.Locale()).LoreNamesRemoved(text) }
+
+// LoreNamesRemoved says "移除名称：{text}"
+// in the language of msgs.
+//
+// 应用界面提示。
+func (msgs Messages) LoreNamesRemoved(text string) string {
+	return Catalog.Format(msgs.locale, "loreNamesRemoved", map[string]any{"text": text})
+}
+
+// LoreAddedPlace says "新增到{place} · {category}：{text}"
+// in the language the app shows.
+//
+// 应用界面提示。
+func LoreAddedPlace(place string, category string, text string) string {
+	return In(i18n.Locale()).LoreAddedPlace(place, category, text)
+}
+
+// LoreAddedPlace says "新增到{place} · {category}：{text}"
+// in the language of msgs.
+//
+// 应用界面提示。
+func (msgs Messages) LoreAddedPlace(place string, category string, text string) string {
+	return Catalog.Format(msgs.locale, "loreAddedPlace", map[string]any{"place": place, "category": category, "text": text})
+}
+
+// LoreAddedWaitingChange says "新增到待确认 · {entry}：{text}"
+// in the language the app shows.
+//
+// 应用界面提示。
+func LoreAddedWaitingChange(entry string, text string) string {
+	return In(i18n.Locale()).LoreAddedWaitingChange(entry, text)
+}
+
+// LoreAddedWaitingChange says "新增到待确认 · {entry}：{text}"
+// in the language of msgs.
+//
+// 应用界面提示。
+func (msgs Messages) LoreAddedWaitingChange(entry string, text string) string {
+	return Catalog.Format(msgs.locale, "loreAddedWaitingChange", map[string]any{"entry": entry, "text": text})
+}
+
 // LoreToConfirm says "待确认"
 // in the language the app shows.
 func LoreToConfirm() string { return In(i18n.Locale()).LoreToConfirm() }
@@ -8026,6 +8086,116 @@ func (msgs Messages) CatsSave() string {
 	return Catalog.Format(msgs.locale, "catsSave", nil)
 }
 
+// ShelfViewAs says "按{view}显示"
+// in the language the app shows.
+//
+// 应用界面提示。
+func ShelfViewAs(view string) string { return In(i18n.Locale()).ShelfViewAs(view) }
+
+// ShelfViewAs says "按{view}显示"
+// in the language of msgs.
+//
+// 应用界面提示。
+func (msgs Messages) ShelfViewAs(view string) string {
+	return Catalog.Format(msgs.locale, "shelfViewAs", map[string]any{"view": view})
+}
+
+// ShelfPickExisting says "选择已有作品的文件夹"
+// in the language the app shows.
+func ShelfPickExisting() string { return In(i18n.Locale()).ShelfPickExisting() }
+
+// ShelfPickExisting says "选择已有作品的文件夹"
+// in the language of msgs.
+func (msgs Messages) ShelfPickExisting() string {
+	return Catalog.Format(msgs.locale, "shelfPickExisting", nil)
+}
+
+// ShelfAddedBook says "已加入书架：{name}"
+// in the language the app shows.
+//
+// 应用界面提示。
+func ShelfAddedBook(name string) string { return In(i18n.Locale()).ShelfAddedBook(name) }
+
+// ShelfAddedBook says "已加入书架：{name}"
+// in the language of msgs.
+//
+// 应用界面提示。
+func (msgs Messages) ShelfAddedBook(name string) string {
+	return Catalog.Format(msgs.locale, "shelfAddedBook", map[string]any{"name": name})
+}
+
+// ShelfFolderEmpty says "文件夹{path}为空，作品将建在其中。"
+// in the language the app shows.
+//
+// 应用界面提示。
+func ShelfFolderEmpty(path string) string { return In(i18n.Locale()).ShelfFolderEmpty(path) }
+
+// ShelfFolderEmpty says "文件夹{path}为空，作品将建在其中。"
+// in the language of msgs.
+//
+// 应用界面提示。
+func (msgs Messages) ShelfFolderEmpty(path string) string {
+	return Catalog.Format(msgs.locale, "shelfFolderEmpty", map[string]any{"path": path})
+}
+
+// ShelfFolderUnreadable says "无法打开文件夹{path}，请更换名称或位置。"
+// in the language the app shows.
+//
+// 应用界面提示。
+func ShelfFolderUnreadable(path string) string { return In(i18n.Locale()).ShelfFolderUnreadable(path) }
+
+// ShelfFolderUnreadable says "无法打开文件夹{path}，请更换名称或位置。"
+// in the language of msgs.
+//
+// 应用界面提示。
+func (msgs Messages) ShelfFolderUnreadable(path string) string {
+	return Catalog.Format(msgs.locale, "shelfFolderUnreadable", map[string]any{"path": path})
+}
+
+// ShelfPathIsFile says "{path}是一个文件，请更换名称或位置。"
+// in the language the app shows.
+//
+// 应用界面提示。
+func ShelfPathIsFile(path string) string { return In(i18n.Locale()).ShelfPathIsFile(path) }
+
+// ShelfPathIsFile says "{path}是一个文件，请更换名称或位置。"
+// in the language of msgs.
+//
+// 应用界面提示。
+func (msgs Messages) ShelfPathIsFile(path string) string {
+	return Catalog.Format(msgs.locale, "shelfPathIsFile", map[string]any{"path": path})
+}
+
+// ShelfBookFolderMissing says "找不到该作品的文件夹：{path}"
+// in the language the app shows.
+//
+// 应用界面提示。
+func ShelfBookFolderMissing(path string) string {
+	return In(i18n.Locale()).ShelfBookFolderMissing(path)
+}
+
+// ShelfBookFolderMissing says "找不到该作品的文件夹：{path}"
+// in the language of msgs.
+//
+// 应用界面提示。
+func (msgs Messages) ShelfBookFolderMissing(path string) string {
+	return Catalog.Format(msgs.locale, "shelfBookFolderMissing", map[string]any{"path": path})
+}
+
+// ShelfListUnreadable says "作品清单无法读取，本次不会改动：{error}"
+// in the language the app shows.
+//
+// 应用界面提示。
+func ShelfListUnreadable(error string) string { return In(i18n.Locale()).ShelfListUnreadable(error) }
+
+// ShelfListUnreadable says "作品清单无法读取，本次不会改动：{error}"
+// in the language of msgs.
+//
+// 应用界面提示。
+func (msgs Messages) ShelfListUnreadable(error string) string {
+	return Catalog.Format(msgs.locale, "shelfListUnreadable", map[string]any{"error": error})
+}
+
 // ShelfNotOpened says "尚未打开"
 // in the language the app shows.
 func ShelfNotOpened() string { return In(i18n.Locale()).ShelfNotOpened() }
@@ -9310,6 +9480,46 @@ func BackupOldest() string { return In(i18n.Locale()).BackupOldest() }
 // in the language of msgs.
 func (msgs Messages) BackupOldest() string {
 	return Catalog.Format(msgs.locale, "backupOldest", nil)
+}
+
+// SettingsLocal says "本机"
+// in the language the app shows.
+func SettingsLocal() string { return In(i18n.Locale()).SettingsLocal() }
+
+// SettingsLocal says "本机"
+// in the language of msgs.
+func (msgs Messages) SettingsLocal() string {
+	return Catalog.Format(msgs.locale, "settingsLocal", nil)
+}
+
+// SettingsRemote says "远程"
+// in the language the app shows.
+func SettingsRemote() string { return In(i18n.Locale()).SettingsRemote() }
+
+// SettingsRemote says "远程"
+// in the language of msgs.
+func (msgs Messages) SettingsRemote() string {
+	return Catalog.Format(msgs.locale, "settingsRemote", nil)
+}
+
+// SettingsNoPen says "还没有续写和检查模型"
+// in the language the app shows.
+func SettingsNoPen() string { return In(i18n.Locale()).SettingsNoPen() }
+
+// SettingsNoPen says "还没有续写和检查模型"
+// in the language of msgs.
+func (msgs Messages) SettingsNoPen() string {
+	return Catalog.Format(msgs.locale, "settingsNoPen", nil)
+}
+
+// SettingsInvalidAddress says "地址无效"
+// in the language the app shows.
+func SettingsInvalidAddress() string { return In(i18n.Locale()).SettingsInvalidAddress() }
+
+// SettingsInvalidAddress says "地址无效"
+// in the language of msgs.
+func (msgs Messages) SettingsInvalidAddress() string {
+	return Catalog.Format(msgs.locale, "settingsInvalidAddress", nil)
 }
 
 // SettingsTabRemind says "提醒与检查"
@@ -11546,6 +11756,58 @@ func DialogOsNewBookFolder() string { return In(i18n.Locale()).DialogOsNewBookFo
 // in the language of msgs.
 func (msgs Messages) DialogOsNewBookFolder() string {
 	return Catalog.Format(msgs.locale, "dialogOsNewBookFolder", nil)
+}
+
+// DraftFromOutline says "按章纲起草"
+// in the language the app shows.
+func DraftFromOutline() string { return In(i18n.Locale()).DraftFromOutline() }
+
+// DraftFromOutline says "按章纲起草"
+// in the language of msgs.
+func (msgs Messages) DraftFromOutline() string {
+	return Catalog.Format(msgs.locale, "draftFromOutline", nil)
+}
+
+// DraftOmittedLore says "{count, plural, other {超出上下文上限而未放入的设定 # 条}}"
+// in the language the app shows.
+//
+// 应用界面提示。
+func DraftOmittedLore(count int) string { return In(i18n.Locale()).DraftOmittedLore(count) }
+
+// DraftOmittedLore says "{count, plural, other {超出上下文上限而未放入的设定 # 条}}"
+// in the language of msgs.
+//
+// 应用界面提示。
+func (msgs Messages) DraftOmittedLore(count int) string {
+	return Catalog.Format(msgs.locale, "draftOmittedLore", map[string]any{"count": count})
+}
+
+// DraftReferenced says "AI 参考了：{items}"
+// in the language the app shows.
+//
+// 应用界面提示。
+func DraftReferenced(items string) string { return In(i18n.Locale()).DraftReferenced(items) }
+
+// DraftReferenced says "AI 参考了：{items}"
+// in the language of msgs.
+//
+// 应用界面提示。
+func (msgs Messages) DraftReferenced(items string) string {
+	return Catalog.Format(msgs.locale, "draftReferenced", map[string]any{"items": items})
+}
+
+// DraftBusyOther says "AI 正在回复别的讨论；等它回完或取消后再{action}"
+// in the language the app shows.
+//
+// 应用界面提示。
+func DraftBusyOther(action string) string { return In(i18n.Locale()).DraftBusyOther(action) }
+
+// DraftBusyOther says "AI 正在回复别的讨论；等它回完或取消后再{action}"
+// in the language of msgs.
+//
+// 应用界面提示。
+func (msgs Messages) DraftBusyOther(action string) string {
+	return Catalog.Format(msgs.locale, "draftBusyOther", map[string]any{"action": action})
 }
 
 // DraftGoal says "目标字数（选填）"

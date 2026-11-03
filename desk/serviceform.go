@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"writer/locales"
 
 	"writer/aiport"
 	"writer/tokens"
@@ -76,16 +77,16 @@ func (f *serviceForm) models() ([]aiport.Model, error) {
 	}
 	for _, rule := range []struct {
 		bad func(m aiport.Model) bool
-		why string
+		why func(string) string
 	}{
-		{func(m aiport.Model) bool { return m.Window == 0 || m.Output == 0 }, "的上下文上限和最大输出须为正整数，可写成 128K、1M"},
-		{func(m aiport.Model) bool { return m.CompactAt < 0 }, "的压缩阈值须为整数"},
-		{func(m aiport.Model) bool { return m.Output >= m.Window }, "的最大输出须小于上下文上限"},
-		{func(m aiport.Model) bool { return m.CompactAt < 50 || m.CompactAt > 95 }, "的压缩阈值须在 50% 到 95% 之间"},
+		{func(m aiport.Model) bool { return m.Window == 0 || m.Output == 0 }, locales.SettingsModelNumbers},
+		{func(m aiport.Model) bool { return m.CompactAt < 0 }, locales.SettingsModelAtInt},
+		{func(m aiport.Model) bool { return m.Output >= m.Window }, locales.SettingsModelOutMax},
+		{func(m aiport.Model) bool { return m.CompactAt < 50 || m.CompactAt > 95 }, locales.SettingsModelAtRange},
 	} {
 		for _, m := range out {
 			if rule.bad(m) {
-				return nil, &aiport.SetupError{Err: errors.New(m.ID + " " + rule.why)}
+				return nil, &aiport.SetupError{Err: errors.New(rule.why(m.ID))}
 			}
 		}
 	}
@@ -111,7 +112,7 @@ func (f *serviceForm) value(settings aiport.Settings) (aiport.Provider, aiport.P
 	if f.providerID == "" {
 		for _, q := range settings.Providers() {
 			if q.ID == p.ID {
-				bad.ID = "该 ID 已被「" + providerLabel(q) + "」使用，请换一个"
+				bad.ID = locales.SettingsIDTaken(providerLabel(q))
 			}
 		}
 	}

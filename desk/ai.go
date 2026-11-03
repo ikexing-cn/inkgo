@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"sync/atomic"
+	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/aiport"
@@ -24,7 +25,11 @@ type pen struct {
 
 // errNoPen is what predicting says without a writer; the editor shows
 // nothing of it, and the page says why there is none.
-var errNoPen = errors.New("还没有续写和检查模型")
+type noPenError struct{}
+
+func (noPenError) Error() string { return locales.SettingsNoPen() }
+
+var errNoPen error = noPenError{}
 
 func (p pen) Predict(ctx context.Context, before string) (string, error) {
 	w := p.writer.Load()
@@ -133,17 +138,17 @@ func (a *App) draftNote() string {
 	if err != nil {
 		return ""
 	}
-	what := "各卷卷纲"
+	what := locales.DraftItemBooks()
 	if p.Outlines == aiport.VolumeChapters {
-		what = "本卷各章章纲"
+		what = locales.DraftItemVolume()
 	}
 	if p.Previous {
-		what = "上一章全文、" + what
+		what = locales.DraftItemPrev() + locales.DraftListSep() + what
 	}
 	if p.Cards > 0 {
-		what = fmt.Sprintf("本章的 %d 张卡片、", p.Cards) + what
+		what = locales.DraftItemCards(p.Cards) + locales.DraftListSep() + what
 	}
-	return fmt.Sprintf("将带上%s等，约 %s token；AI 需要时会自己再查。", what, tokens.Round(p.Tokens))
+	return locales.DraftSends(what, tokens.Round(p.Tokens))
 }
 
 // draft opens a talk to draft the chapter shown from its outline, saying
@@ -175,12 +180,12 @@ func (a *App) draft(c *ui.Context) {
 func (a *App) startTalk(c *ui.Context, words workspace.Event) bool {
 	w := &a.write
 	if work := a.Store.Work(); work.Discussion.Provider == "" || work.Discussion.Model == "" {
-		a.SetError(&aiport.SetupError{Err: errors.New("请先配置讨论模型")})
+		a.SetError(&aiport.SetupError{Err: errors.New(locales.ChatNeedModel())})
 		return false
 	}
-	what := map[string]string{workspace.AIDraft: "起草", workspace.AIRewrite: "改写"}[words.Origin]
+	what := map[string]string{workspace.AIDraft: locales.SettingsFeatureDraft(), workspace.AIRewrite: locales.SettingsFeatureRewrite()}[words.Origin]
 	if a.busy != "" {
-		a.status.Hint("AI 正在回复别的讨论；等它回完或取消后再" + what)
+		a.status.Hint(locales.DraftBusyOther(what))
 		return false
 	}
 	a.flush() // the talk reads the chapter from the disk
@@ -225,39 +230,39 @@ func (a *App) draftView(c *ui.Context) {
 	w := &a.write
 	a.pal.Modal(c, &w.draftOpen, func() {
 		ui.Column(c).Width(kit.DialogSmall).Padding(kit.DialogPad).Gap(16).Children(func() {
-			head := "AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。"
+			head := locales.DraftAboutOutline()
 			if w.draftCards > 0 {
-				head = "AI 仅将章纲和本章的卡片扩写为正文，不添加这些之外的重大情节。"
+				head = locales.DraftAboutCards()
 			}
-			a.pal.DialogHead(c, "起草本章", head+"起草在一段新的讨论里进行：写好的先在正文里显示为提议，采纳后才写入，写入前保存快照；想改哪里，在讨论里接着说。")
+			a.pal.DialogHead(c, locales.CmdDraft(), head+locales.DraftAboutFlow())
 			ui.Box(c).FillWidth().Padding(10, 12).Radius(kit.RControl).Background(a.pal.Side).Children(func() {
 				ui.Text(c, strings.TrimSpace(w.cur().outline.Text)).FontSize(kit.FsControl).TextColor(t.TextMuted).LineHeight(kit.LhLoose).FillWidth()
 			})
 			_, fits := prefs.CountOrNone(w.words)
-			kit.Labeled(c, "目标字数（选填）", func() {
-				ui.TextInput(c, &w.words).Label("目标字数").Placeholder("由 AI 按章纲判断").FillWidth()
+			kit.Labeled(c, locales.DraftGoal(), func() {
+				ui.TextInput(c, &w.words).Label(locales.DraftGoalLabel()).Placeholder(locales.DraftGoalHint()).FillWidth()
 				if !fits {
-					ui.Text(c, "目标字数须为正整数，或留空").FontSize(kit.FsNote).TextColor(t.Danger)
+					ui.Text(c, locales.DraftGoalInvalid()).FontSize(kit.FsNote).TextColor(t.Danger)
 				}
 			})
 			if strings.TrimSpace(w.cur().ed.Doc.String()) != "" {
-				kit.Labeled(c, "本章已有内容", func() {
+				kit.Labeled(c, locales.DraftExisting(), func() {
 					modes := []string{draftAppend, draftReplace}
-					kit.Dots(c, &w.draftMode, "已有内容的处理方式", modes, modes)
+					kit.Dots(c, &w.draftMode, locales.DraftExistingHow(), modes, []string{locales.DraftAppend(), locales.DraftOverwrite()})
 				})
 			}
 			if w.draftNote != "" {
 				ui.Text(c, w.draftNote).FontSize(kit.FsNote).TextColor(t.TextMuted).FillWidth()
 			}
 			if work := a.Store.Work(); work.Discussion.Model != "" {
-				ui.Textf(c, "用讨论模型 %s · %s；可在设置中「AI」配置里更换。", work.Discussion.Model, a.ai.EffortLabel(work.Discussion.Effort)).FontSize(kit.FsNote).TextColor(t.TextMuted).FillWidth()
+				ui.Text(c, locales.DraftUsing(work.Discussion.Model, a.ai.EffortLabel(work.Discussion.Effort))).FontSize(kit.FsNote).TextColor(t.TextMuted).FillWidth()
 			}
 			ui.Row(c).FillWidth().Gap(8).Children(func() {
 				ui.Spacer(c)
-				if a.pal.Secondary(c, "取消").Clicked() {
+				if a.pal.Secondary(c, locales.CommonCancel()).Clicked() {
 					w.draftOpen = false
 				}
-				if a.pal.Primary(c, "开始起草").Disabled(!fits).Clicked() {
+				if a.pal.Primary(c, locales.DraftStart()).Disabled(!fits).Clicked() {
 					a.draft(c)
 				}
 			})
@@ -269,17 +274,17 @@ func (a *App) draftView(c *ui.Context) {
 // snapshots kept it while a draft or a rewrite asked the model once.
 func (a *App) aiRecord(c *ui.Context, r *workspace.AIRecord) {
 	t := a.pal.Theme
-	op := map[string]string{workspace.AIDraft: "按章纲起草", workspace.AIRewrite: "改写"}[r.Op]
+	op := map[string]string{workspace.AIDraft: locales.DraftFromOutline(), workspace.AIRewrite: locales.SettingsFeatureRewrite()}[r.Op]
 	ui.Column(c).FillWidth().Gap(4).Padding(10, 12).Radius(kit.RControl).Border(1, t.Border).Children(func() {
 		line := op + " · " + a.modelLabel(*r)
 		if r.Instruction != "" {
 			line += " · " + r.Instruction
 		}
 		ui.Text(c, line).FontSize(kit.FsNote).FontWeight(600).FillWidth()
-		shown := append([]string{fmt.Sprintf("设定 %d 条", len(r.Setting))}, r.Shown...)
-		ui.Text(c, "AI 参考了："+strings.Join(shown, "、")).FontSize(kit.FsNote).TextColor(t.TextMuted).FillWidth().LineHeight(kit.LhBody)
+		shown := append([]string{locales.RecordsLoreCount(len(r.Setting))}, r.Shown...)
+		ui.Text(c, locales.DraftReferenced(strings.Join(shown, locales.DraftListSep()))).FontSize(kit.FsNote).TextColor(t.TextMuted).FillWidth().LineHeight(kit.LhBody)
 		if len(r.Omitted) > 0 {
-			ui.Textf(c, "超出上下文上限而未放入的设定 %d 条", len(r.Omitted)).FontSize(kit.FsNote).TextColor(t.Warning)
+			ui.Text(c, locales.DraftOmittedLore(len(r.Omitted))).FontSize(kit.FsNote).TextColor(t.Warning)
 		}
 	})
 }
@@ -292,11 +297,11 @@ func (a *App) talkRecord(c *ui.Context, sessions []string) {
 	for _, s := range sessions {
 		title, ok := a.titles[s]
 		if !ok {
-			title = "已删除的讨论"
+			title = locales.SnapAITalkGone()
 		}
-		b.WriteString("「" + title + "」")
+		b.WriteString(locales.SnapAITalk(title))
 	}
 	ui.Column(c).FillWidth().Padding(10, 12).Radius(kit.RControl).Border(1, t.Border).Children(func() {
-		ui.Text(c, "采纳讨论"+b.String()+"里的提议").FontSize(kit.FsNote).FontWeight(600).FillWidth()
+		ui.Text(c, locales.SnapAIFrom(b.String())).FontSize(kit.FsNote).FontWeight(600).FillWidth()
 	})
 }
