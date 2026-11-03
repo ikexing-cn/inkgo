@@ -361,7 +361,7 @@ func (a *App) providerForm(c *ui.Context) {
 			}
 		})
 		kit.Labeled(c, locales.SettingsProtocol(), func() {
-			a.protocolSelect(c, &f.provider.Protocol).Label(locales.SettingsProtocolAPI()).FillWidth().Disabled(busy)
+			a.pal.SelectNamed(c, &f.provider.Protocol, protocols, protocolName).Label(locales.SettingsProtocolAPI()).FillWidth().Disabled(busy)
 		})
 		ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Start).Children(func() {
 			kit.Labeled(c, "API key", func() {
@@ -568,50 +568,13 @@ func modelField(c *ui.Context, value *string, models []string) ui.Element {
 	return in
 }
 
-// protocolSelect keeps the protocol ID separate from its displayed name.
-func (a *App) protocolSelect(c *ui.Context, selected *string) ui.Element {
-	t := c.Theme()
-	p := a.pal
+// protocolName is how a protocol ID reads.
+func protocolName(id string) string {
 	names := serviceProtocolNames()
-	label := func(id string) string {
-		for i, value := range protocols {
-			if value == id {
-				return names[i]
-			}
+	for i, p := range protocols {
+		if p == id {
+			return names[i]
 		}
-		return names[0]
 	}
-	sel := ui.SelectBase(c, selected)
-	b := sel.Trigger.Padding(t.Space(1.5), t.Space(3.5)).Gap(t.Space(1.5)).Radius(t.Radius).
-		Background(t.Surface).TextColor(t.Text).Border(1, t.Border).Justify(ui.SpaceBetween).MinWidth(t.Space(35))
-	switch {
-	case b.Pressed():
-		b.Background(t.SurfacePressed)
-	case b.Hovered():
-		b.Background(t.SurfaceHover)
-	}
-	b.Children(func() {
-		ui.Text(c, label(*selected)).SingleLine()
-		kit.Glyph(c, kit.IcChevronDown, t.Space(2.5), t.TextMuted)
-	})
-	sel.Popup(func(panel ui.Element) {
-		panel.Margin(t.Space(1), 0, 0, 0).Padding(t.Space(1)).Radius(t.Radius+2).Background(t.Background).Border(1, t.Border)
-		p.Pop.On(panel)
-		kit.PopIn(panel, 0, 0)
-		// Options past the room under the trigger scroll.
-		_, h := c.Size()
-		ui.Scroll(c).MaxHeight(h - b.Bounds().Y - b.Bounds().H - t.Space(4)).Children(func() {
-			for _, opt := range protocols {
-				item := sel.Item(opt).Padding(t.Space(1.5), t.Space(2.5)).Radius(t.Radius)
-				switch {
-				case item.Highlighted():
-					item.Background(t.Accent).TextColor(t.AccentText)
-				case opt == *selected:
-					item.Background(t.Surface)
-				}
-				item.Children(func() { ui.Text(c, label(opt)).SingleLine() })
-			}
-		})
-	})
-	return b
+	return names[0]
 }

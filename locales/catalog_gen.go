@@ -8658,13 +8658,13 @@ func (msgs Messages) ShelfAddedBook(name string) string {
 	return Catalog.Format(msgs.locale, "shelfAddedBook", map[string]any{"name": name})
 }
 
-// ShelfFolderEmpty says "文件夹{path}为空，作品将建在其中。"
+// ShelfFolderEmpty says "文件夹「{path}」为空，作品将建在其中。"
 // in the language the app shows.
 //
 // 应用界面提示。
 func ShelfFolderEmpty(path string) string { return In(i18n.Locale()).ShelfFolderEmpty(path) }
 
-// ShelfFolderEmpty says "文件夹{path}为空，作品将建在其中。"
+// ShelfFolderEmpty says "文件夹「{path}」为空，作品将建在其中。"
 // in the language of msgs.
 //
 // 应用界面提示。
@@ -8672,13 +8672,13 @@ func (msgs Messages) ShelfFolderEmpty(path string) string {
 	return Catalog.Format(msgs.locale, "shelfFolderEmpty", map[string]any{"path": path})
 }
 
-// ShelfFolderUnreadable says "无法打开文件夹{path}，请更换名称或位置。"
+// ShelfFolderUnreadable says "无法打开文件夹「{path}」，请更换名称或位置。"
 // in the language the app shows.
 //
 // 应用界面提示。
 func ShelfFolderUnreadable(path string) string { return In(i18n.Locale()).ShelfFolderUnreadable(path) }
 
-// ShelfFolderUnreadable says "无法打开文件夹{path}，请更换名称或位置。"
+// ShelfFolderUnreadable says "无法打开文件夹「{path}」，请更换名称或位置。"
 // in the language of msgs.
 //
 // 应用界面提示。
@@ -8686,13 +8686,13 @@ func (msgs Messages) ShelfFolderUnreadable(path string) string {
 	return Catalog.Format(msgs.locale, "shelfFolderUnreadable", map[string]any{"path": path})
 }
 
-// ShelfPathIsFile says "{path}是一个文件，请更换名称或位置。"
+// ShelfPathIsFile says "「{path}」是一个文件，请更换名称或位置。"
 // in the language the app shows.
 //
 // 应用界面提示。
 func ShelfPathIsFile(path string) string { return In(i18n.Locale()).ShelfPathIsFile(path) }
 
-// ShelfPathIsFile says "{path}是一个文件，请更换名称或位置。"
+// ShelfPathIsFile says "「{path}」是一个文件，请更换名称或位置。"
 // in the language of msgs.
 //
 // 应用界面提示。

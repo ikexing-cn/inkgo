@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -218,7 +219,7 @@ func (a *App) backupPending() (pendGroup, bool) {
 		sub = locales.StatusRetryBackup(kit.When(s.Last, time.Now()))
 	}
 	it := pendItem{key: pendBackup, text: locales.StatusBackupWhy(short), sub: sub, open: a.runBackup}
-	return pendGroup{name: locales.ModBackup(), color: a.pal.Amber, items: []pendItem{it}}, true
+	return pendGroup{id: "backup", name: locales.ModBackup(), color: a.pal.Amber, items: []pendItem{it}}, true
 }
 
 // lastSaid says when the last backup succeeded, for a failure's popover.
@@ -603,17 +604,14 @@ func (a *App) backupSettingsView(c *ui.Context) {
 					keeps = append(slices.Clone(keeps), s.Kept())
 					slices.Sort(keeps)
 				}
-				names := make([]string, len(keeps))
+				counts := make([]string, len(keeps))
 				for i, k := range keeps {
-					names[i] = locales.BackupKeepCount(k)
+					counts[i] = strconv.Itoa(k)
 				}
-				a.bk.keepChoice = locales.BackupKeepCount(s.Kept())
-				if a.pal.Select(c, &a.bk.keepChoice, names).Label("保留份数").Width(140).Changed() {
-					for i, n := range names {
-						if n == a.bk.keepChoice {
-							s.Keep = keeps[i]
-						}
-					}
+				a.bk.keepChoice = strconv.Itoa(s.Kept())
+				keepName := func(n string) string { k, _ := strconv.Atoi(n); return locales.BackupKeepCount(k) }
+				if a.pal.SelectNamed(c, &a.bk.keepChoice, counts, keepName).Label("保留份数").Width(140).Changed() {
+					s.Keep, _ = strconv.Atoi(a.bk.keepChoice)
 					a.setBackup(s) // the next backup removes those beyond it
 				}
 				if len(list) > 0 {

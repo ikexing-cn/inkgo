@@ -6,6 +6,12 @@ import "github.com/egoist/mygo/ui"
 // with their shadow. ui.Select opens at once and keeps its parts to
 // itself, so its look is built again here on ui.SelectBase.
 func (p *Palette) Select(c *ui.Context, selected *string, options []string) ui.Element {
+	return p.SelectNamed(c, selected, options, func(o string) string { return o })
+}
+
+// SelectNamed is Select whose options are kept as they are and shown by
+// name: an ID saved or compared stays the same in every language.
+func (p *Palette) SelectNamed(c *ui.Context, selected *string, options []string, name func(string) string) ui.Element {
 	t := c.Theme()
 	sel := ui.SelectBase(c, selected)
 	b := sel.Trigger.Padding(t.Space(1.5), t.Space(3.5)).Gap(t.Space(1.5)).Radius(t.Radius).
@@ -17,7 +23,7 @@ func (p *Palette) Select(c *ui.Context, selected *string, options []string) ui.E
 		b.Background(t.SurfaceHover)
 	}
 	b.Children(func() {
-		ui.Text(c, *selected).SingleLine()
+		ui.Text(c, name(*selected)).SingleLine()
 		Glyph(c, IcChevronDown, t.Space(2.5), t.TextMuted)
 	})
 	sel.Popup(func(panel ui.Element) {
@@ -35,7 +41,7 @@ func (p *Palette) Select(c *ui.Context, selected *string, options []string) ui.E
 				case opt == *selected:
 					item.Background(t.Surface)
 				}
-				item.Children(func() { ui.Text(c, opt).SingleLine() })
+				item.Children(func() { ui.Text(c, name(opt)).SingleLine() })
 			}
 		})
 	})

@@ -28,6 +28,7 @@ type pendItem struct {
 
 // pendGroup is the items of one kind.
 type pendGroup struct {
+	id    string // the same in every language: what pendMore is kept by
 	name  string
 	color ui.Color
 	items []pendItem
@@ -140,7 +141,7 @@ func (a *App) buildPendingGroups() []pendGroup {
 		groups = append(groups, g)
 	}
 	if len(items) > 0 {
-		groups = append(groups, pendGroup{name: locales.StatusGroupMarks(), color: a.pal.Faint, items: items})
+		groups = append(groups, pendGroup{id: "marks", name: locales.StatusGroupMarks(), color: a.pal.Faint, items: items})
 	}
 	if g, ok := a.backupPending(); ok {
 		groups = append(groups, g)
@@ -226,7 +227,7 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 					ui.Text(c, g.name).FontSize(kit.FsNote).TextColor(t.TextMuted)
 					ui.Textf(c, "%d", len(items)).FontSize(kit.FsNote).TextColor(a.pal.Faint)
 				})
-				open := w.pendMore[g.name]
+				open := w.pendMore[g.id]
 				for i, it := range items {
 					if i == pendShown && !open {
 						break
@@ -248,7 +249,7 @@ func (a *App) pendingList(c *ui.Context, groups []pendGroup, total, here int) {
 						if w.pendMore == nil {
 							w.pendMore = map[string]bool{}
 						}
-						w.pendMore[g.name] = !open
+						w.pendMore[g.id] = !open
 					}
 				}
 			})

@@ -217,7 +217,7 @@ func (a *App) sidePanel(c *ui.Context, width float32) {
 		}, func(m *kit.Menu) {
 			// The work open first, marked; each with what kind it is.
 			m.Head(locales.SideBooks())
-			m.Item(work.Name).Hint(work.Genre).On(true)
+			m.Item(work.Name).Hint(genreName(work.Genre)).On(true)
 			n := 0
 			for _, b := range a.shelf.Recent() {
 				if shelf.SameFolder(b.Path, a.Store.Root()) {
@@ -228,7 +228,7 @@ func (a *App) sidePanel(c *ui.Context, width float32) {
 				}
 				n++
 				path := b.Path
-				m.Item(b.Name).Hint(b.Genre).Disabled(a.books.missing[path]).Do(func() {
+				m.Item(b.Name).Hint(genreName(b.Genre)).Disabled(a.books.missing[path]).Do(func() {
 					chosen = func() { a.switchWork(path) }
 				})
 			}

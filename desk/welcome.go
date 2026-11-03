@@ -126,11 +126,11 @@ func placeFor(dir string) (say string, fits bool) {
 	if dir == "" {
 		return locales.DialogNewBookNoPlace(), false
 	}
-	name := "「" + filepath.Base(filepath.Clean(dir)) + "」"
+	name := filepath.Base(filepath.Clean(dir))
 	fi, err := os.Stat(dir)
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
-		return locales.ShelfWillCreate(filepath.Base(filepath.Clean(dir))), true
+		return locales.ShelfWillCreate(name), true
 	case err == nil && !fi.IsDir():
 		return locales.ShelfPathIsFile(name), false
 	}
@@ -140,7 +140,7 @@ func placeFor(dir string) (say string, fits bool) {
 	}
 	defer f.Close()
 	if names, _ := f.Readdirnames(1); len(names) > 0 {
-		return locales.ShelfFolderTaken(filepath.Base(filepath.Clean(dir))), false
+		return locales.ShelfFolderTaken(name), false
 	}
 	return locales.ShelfFolderEmpty(name), true
 }
@@ -433,7 +433,7 @@ func (a *App) bookRow(c *ui.Context, b shelf.Book) {
 				}
 				ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
 					ui.Text(c, b.Name).FontSize(kit.FsGroup).FontWeight(600).TextColor(fg).SingleLine().Ellipsis("…").Shrink(1)
-					ui.Text(c, b.Genre+" · "+length(b.Words)).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine()
+					ui.Text(c, genreName(b.Genre)+" · "+length(b.Words)).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine()
 				})
 				ui.Text(c, b.Path).FontSize(kit.FsNote).TextColor(a.pal.Faint).SingleLine().Ellipsis("…")
 			})
@@ -480,7 +480,7 @@ func (a *App) bookCard(c *ui.Context, b shelf.Book, width float32) {
 			fg = t.TextMuted
 		}
 		ui.Text(c, b.Name).FontSize(kit.FsGroup).FontWeight(600).TextColor(fg).SingleLine().Ellipsis("…").FillWidth()
-		ui.Text(c, b.Genre+" · "+length(b.Words)).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine()
+		ui.Text(c, genreName(b.Genre)+" · "+length(b.Words)).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine()
 		ui.Spacer(c)
 		if gone {
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
@@ -525,6 +525,24 @@ func (a *App) bookMenu(c *ui.Context, b shelf.Book) {
 	})
 }
 
+// genres are the kinds of work offered, as saved with the work.
+var genres = []string{"网文", "出版小说", "剧本", "非虚构"}
+
+// genreName is how a saved genre reads; one typed elsewhere reads as it is.
+func genreName(g string) string {
+	switch g {
+	case "网文":
+		return locales.GenreWeb()
+	case "出版小说":
+		return locales.GenreNovel()
+	case "剧本":
+		return locales.GenreScript()
+	case "非虚构":
+		return locales.GenreNonfiction()
+	}
+	return g
+}
+
 // createDialog asks for a new work's name, genre and place; the place
 // follows the name inside the library until the author picks one.
 func (a *App) createDialog(c *ui.Context) {
@@ -551,7 +569,7 @@ func (a *App) createDialog(c *ui.Context) {
 				ui.TextInput(c, &a.name).Label(locales.DialogNewBookName()).Placeholder(locales.DialogNewBookNameHint()).FillWidth().Focus()
 			})
 			kit.Labeled(c, locales.DialogNewBookKind(), func() {
-				a.pal.Select(c, &a.genre, []string{"网文", "出版小说", "剧本", "非虚构"}).Label(locales.DialogNewBookKind()).FillWidth()
+				a.pal.SelectNamed(c, &a.genre, genres, genreName).Label(locales.DialogNewBookKind()).FillWidth()
 			})
 			kit.Labeled(c, locales.DialogNewBookPlace(), func() {
 				ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {

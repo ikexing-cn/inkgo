@@ -192,7 +192,7 @@ func (a *App) openCheck(id string) {
 
 // checkPending is the findings as the pending list has them.
 func (a *App) checkPending() (pendGroup, bool) {
-	g := pendGroup{name: locales.PageCheck(), color: a.pal.Amber}
+	g := pendGroup{id: "check", name: locales.PageCheck(), color: a.pal.Amber}
 	if !a.aiOn() {
 		return g, false
 	}
