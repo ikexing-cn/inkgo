@@ -3,7 +3,6 @@ package desk
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,6 +12,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
 	"writer/internal/testshot"
+	"writer/locales"
 	"writer/model"
 	"writer/workspace"
 )
@@ -47,7 +47,7 @@ func TestCheckAChapterAndSettleWhatItFinds(t *testing.T) {
 	if err := tt.Click("立即检查"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the check", func() bool { return tt.HasText("本章检查完成，有 3 处待处理") })
+	until(t, tt, "the check", func() bool { return tt.HasText(locales.StatusIssues(3)) })
 	if len(f.asked) != 1 || !tt.HasText("待处理 3") || !exists(a, "第一章.check.json") {
 		t.Fatal(len(f.asked), tt.Texts())
 	}
@@ -137,7 +137,7 @@ func TestANewNameIsListedOnce(t *testing.T) {
 	if err := tt.Click("立即检查"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the check", func() bool { return tt.HasText("本章检查完成，有 3 处待处理") })
+	until(t, tt, "the check", func() bool { return tt.HasText(locales.StatusIssues(3)) })
 	text := "老周把旧灯泡放在窗台上。" + strings.Repeat("雨一直下。", 40)
 	second, err := a.Store.NewChapter("", "第二章", false)
 	if err == nil {
@@ -180,7 +180,7 @@ func TestPendingNameOpensCurrentFinding(t *testing.T) {
 	if err := tt.Click("立即检查"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the check", func() bool { return tt.HasText("本章检查完成，有 3 处待处理") })
+	until(t, tt, "the check", func() bool { return tt.HasText(locales.StatusIssues(3)) })
 	text := "老周把旧灯泡放在窗台上。" + strings.Repeat("雨一直下。", 40)
 	second, err := a.Store.NewChapter("", "第二章", false)
 	if err != nil {
@@ -409,7 +409,7 @@ func TestShotCheck(t *testing.T) {
 	if err := tt.Click("立即检查"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the check", func() bool { return tt.HasText("本章检查完成，有 3 处待处理") })
+	until(t, tt, "the check", func() bool { return tt.HasText(locales.StatusIssues(3)) })
 	a.ck.whenOpen = true
 	shot(t, tt, "check-foot.png")
 	a.ck.whenOpen = false
@@ -443,7 +443,7 @@ func TestAChapterReadInPartIsToldSo(t *testing.T) {
 	if read <= 0 || read >= 36000 {
 		t.Fatalf("read %d", read)
 	}
-	if want := fmt.Sprintf("本章仅检查前 %d 字，未发现不一致", read); !tt.HasText(want) || tt.HasText("本章检查完成，未发现不一致") {
+	if want := locales.StatusPartOK(read); !tt.HasText(want) || tt.HasText("本章检查完成，未发现不一致") {
 		t.Fatal(want, tt.Texts())
 	}
 

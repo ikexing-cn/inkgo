@@ -7,6 +7,7 @@ import (
 	"strings"
 	"writer/desk/book"
 	"writer/editor"
+	"writer/locales"
 	"writer/workspace"
 )
 
@@ -156,13 +157,13 @@ func (a *App) setMeant(it checkItem) {
 		return
 	}
 	st := a.Store
-	what := "已标为「无需修改」"
+	what := locales.CheckMarkedNoChange()
 	if it.f.Kind == workspace.FindNew {
-		what = "已忽略"
+		what = locales.CheckIgnored()
 	}
 	a.status.Did(what, func() error {
 		if a.Store != st {
-			return fmt.Errorf("作品已切换，无法撤销")
+			return fmt.Errorf("%s", locales.CheckUndoWorkChanged())
 		}
 		return a.book.SaveCheckOver(it.node, before, had)
 	})
@@ -190,7 +191,7 @@ func (a *App) openCheck(id string) {
 
 // checkPending is the findings as the pending list has them.
 func (a *App) checkPending() (pendGroup, bool) {
-	g := pendGroup{name: "检查", color: a.pal.Amber}
+	g := pendGroup{name: locales.PageCheck(), color: a.pal.Amber}
 	if !a.aiOn() {
 		return g, false
 	}
@@ -204,10 +205,10 @@ func (a *App) checkPending() (pendGroup, bool) {
 		}
 		p.open = func(_ ui.Services) { a.openCheck(finding) }
 		if it.f.Kind == workspace.FindNew {
-			p.text = fmt.Sprintf("「%s」尚未加入设定", it.f.Name)
+			p.text = locales.StatusNotInLore(it.f.Name)
 		}
 		if it.here {
-			p.sub += " · 本章"
+			p.sub += locales.StatusHereTag()
 		}
 		if !a.write.ignored[p.key] {
 			g.items = append(g.items, p)
@@ -255,34 +256,34 @@ func (a *App) checkState() (line string, found int, can bool, tip string) {
 			found++
 		}
 	}
-	const name = "本章"
+
 	text, _ := a.liveText()
 	had, ok := a.book.Checks()[w.node]
 	switch {
 	case k.queue.Running == w.node:
-		return "正在检查" + name + "…", 0, false, ""
+		return locales.StatusChecking(), 0, false, ""
 	case slices.Contains(k.queue.Pending, w.node):
-		return name + "等待检查", 0, false, ""
+		return locales.StatusQueued(), 0, false, ""
 	case k.queue.Failed[w.node] != "":
-		line := "检查失败：" + k.queue.Failed[w.node]
+		line := locales.StatusFailed(k.queue.Failed[w.node])
 		return line, 0, true, line // what went wrong is long: in full on hover
 	case !a.hasSetting():
-		return "设定为空，无可对照内容", 0, false, ""
+		return locales.CheckNoSettings(), 0, false, ""
 	case workspace.Count(text) < a.ai.MinCheck():
-		return fmt.Sprintf("满 %d 字后可检查", a.ai.MinCheck()), 0, false, ""
+		return locales.CheckMinimum(a.ai.MinCheck()), 0, false, ""
 	case !ok:
-		return name + "尚未检查", 0, true, ""
+		return locales.StatusNever(), 0, true, ""
 	case found > 0 && had.Stale(text):
-		return fmt.Sprintf("%s有 %d 处待处理，正文已再次修改", name, found), found, true, ""
+		return locales.StatusDirtyIssues(found), found, true, ""
 	case found > 0 && had.Read > 0:
-		return fmt.Sprintf("%s仅检查前 %d 字，有 %d 处待处理", name, had.Read, found), found, false, ""
+		return locales.StatusPartIssues(had.Read, found), found, false, ""
 	case found > 0:
-		return fmt.Sprintf("%s检查完成，有 %d 处待处理", name, found), found, false, ""
+		return locales.StatusIssues(found), found, false, ""
 	case had.Stale(text):
-		return name + "已修改，尚未重新检查", 0, true, ""
+		return locales.StatusEdited(), 0, true, ""
 	case had.Read > 0:
 		// The rest was not looked at: not to be told as nothing found.
-		return fmt.Sprintf("%s仅检查前 %d 字，未发现不一致", name, had.Read), 0, false, partNote
+		return locales.StatusPartOK(had.Read), 0, false, locales.StatusPartLong()
 	}
-	return name + "检查完成，未发现不一致", 0, false, ""
+	return locales.StatusChecked(), 0, false, ""
 }

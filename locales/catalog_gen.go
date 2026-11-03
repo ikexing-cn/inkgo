@@ -7464,6 +7464,74 @@ func (msgs Messages) PlanBrokenLine(line int) string {
 	return Catalog.Format(msgs.locale, "planBrokenLine", map[string]any{"line": line})
 }
 
+// CheckMinimum says "{count, plural, other {满 # 字后可检查}}"
+// in the language the app shows.
+//
+// 应用现有界面的检查文案；原型没有同等的动态消息。
+func CheckMinimum(count int) string { return In(i18n.Locale()).CheckMinimum(count) }
+
+// CheckMinimum says "{count, plural, other {满 # 字后可检查}}"
+// in the language of msgs.
+//
+// 应用现有界面的检查文案；原型没有同等的动态消息。
+func (msgs Messages) CheckMinimum(count int) string {
+	return Catalog.Format(msgs.locale, "checkMinimum", map[string]any{"count": count})
+}
+
+// CheckTextChapter says "正文 · {chapter}"
+// in the language the app shows.
+//
+// 应用现有界面的检查文案；原型没有同等的动态消息。
+func CheckTextChapter(chapter string) string { return In(i18n.Locale()).CheckTextChapter(chapter) }
+
+// CheckTextChapter says "正文 · {chapter}"
+// in the language of msgs.
+//
+// 应用现有界面的检查文案；原型没有同等的动态消息。
+func (msgs Messages) CheckTextChapter(chapter string) string {
+	return Catalog.Format(msgs.locale, "checkTextChapter", map[string]any{"chapter": chapter})
+}
+
+// CheckLoreHeading says "设定 · {entry}"
+// in the language the app shows.
+//
+// 应用现有界面的检查文案；原型没有同等的动态消息。
+func CheckLoreHeading(entry string) string { return In(i18n.Locale()).CheckLoreHeading(entry) }
+
+// CheckLoreHeading says "设定 · {entry}"
+// in the language of msgs.
+//
+// 应用现有界面的检查文案；原型没有同等的动态消息。
+func (msgs Messages) CheckLoreHeading(entry string) string {
+	return Catalog.Format(msgs.locale, "checkLoreHeading", map[string]any{"entry": entry})
+}
+
+// CheckKindCount says "{kind} {count, number}"
+// in the language the app shows.
+//
+// 检查分类标签和该类数量。
+func CheckKindCount(kind string, count int) string {
+	return In(i18n.Locale()).CheckKindCount(kind, count)
+}
+
+// CheckKindCount says "{kind} {count, number}"
+// in the language of msgs.
+//
+// 检查分类标签和该类数量。
+func (msgs Messages) CheckKindCount(kind string, count int) string {
+	return Catalog.Format(msgs.locale, "checkKindCount", map[string]any{"kind": kind, "count": count})
+}
+
+// CheckUndoWorkChanged says "作品已切换，无法撤销"
+// in the language the app shows.
+func CheckUndoWorkChanged() string { return In(i18n.Locale()).CheckUndoWorkChanged() }
+
+// CheckUndoWorkChanged says "作品已切换，无法撤销"
+// in the language of msgs.
+func (msgs Messages) CheckUndoWorkChanged() string {
+	return Catalog.Format(msgs.locale, "checkUndoWorkChanged", nil)
+}
+
 // CheckKindAll says "全部"
 // in the language the app shows.
 func CheckKindAll() string { return In(i18n.Locale()).CheckKindAll() }
@@ -9300,6 +9368,150 @@ func BackupDenyFix() string { return In(i18n.Locale()).BackupDenyFix() }
 // in the language of msgs.
 func (msgs Messages) BackupDenyFix() string {
 	return Catalog.Format(msgs.locale, "backupDenyFix", nil)
+}
+
+// BackupSyncFolder says "{service} 同步文件夹"
+// in the language the app shows.
+//
+// 应用现有界面的备份文案；原型没有同等的动态消息。
+func BackupSyncFolder(service string) string { return In(i18n.Locale()).BackupSyncFolder(service) }
+
+// BackupSyncFolder says "{service} 同步文件夹"
+// in the language of msgs.
+//
+// 应用现有界面的备份文案；原型没有同等的动态消息。
+func (msgs Messages) BackupSyncFolder(service string) string {
+	return Catalog.Format(msgs.locale, "backupSyncFolder", map[string]any{"service": service})
+}
+
+// BackupNutstore says "坚果云同步文件夹"
+// in the language the app shows.
+//
+// 应用现有界面的备份文案；原型没有同等的动态消息。
+func BackupNutstore() string { return In(i18n.Locale()).BackupNutstore() }
+
+// BackupNutstore says "坚果云同步文件夹"
+// in the language of msgs.
+//
+// 应用现有界面的备份文案；原型没有同等的动态消息。
+func (msgs Messages) BackupNutstore() string {
+	return Catalog.Format(msgs.locale, "backupNutstore", nil)
+}
+
+// BackupICloud says "iCloud 云盘"
+// in the language the app shows.
+//
+// 应用现有界面的备份文案；原型没有同等的动态消息。
+func BackupICloud() string { return In(i18n.Locale()).BackupICloud() }
+
+// BackupICloud says "iCloud 云盘"
+// in the language of msgs.
+//
+// 应用现有界面的备份文案；原型没有同等的动态消息。
+func (msgs Messages) BackupICloud() string {
+	return Catalog.Format(msgs.locale, "backupICloud", nil)
+}
+
+// BackupRetryHint says "点击重试"
+// in the language the app shows.
+//
+// 应用现有界面的备份文案；原型没有同等的动态消息。
+func BackupRetryHint() string { return In(i18n.Locale()).BackupRetryHint() }
+
+// BackupRetryHint says "点击重试"
+// in the language of msgs.
+//
+// 应用现有界面的备份文案；原型没有同等的动态消息。
+func (msgs Messages) BackupRetryHint() string {
+	return Catalog.Format(msgs.locale, "backupRetryHint", nil)
+}
+
+// BackupLastDays says "{count, plural, other {上次备份于 # 天前。}}"
+// in the language the app shows.
+//
+// 应用现有界面的备份文案；原型没有同等的动态消息。
+func BackupLastDays(count int) string { return In(i18n.Locale()).BackupLastDays(count) }
+
+// BackupLastDays says "{count, plural, other {上次备份于 # 天前。}}"
+// in the language of msgs.
+//
+// 应用现有界面的备份文案；原型没有同等的动态消息。
+func (msgs Messages) BackupLastDays(count int) string {
+	return Catalog.Format(msgs.locale, "backupLastDays", map[string]any{"count": count})
+}
+
+// BackupSummaryOldest says "{summary}，最早 {day}"
+// in the language the app shows.
+//
+// 应用现有界面的备份文案；原型没有同等的动态消息。
+func BackupSummaryOldest(summary string, day string) string {
+	return In(i18n.Locale()).BackupSummaryOldest(summary, day)
+}
+
+// BackupSummaryOldest says "{summary}，最早 {day}"
+// in the language of msgs.
+//
+// 应用现有界面的备份文案；原型没有同等的动态消息。
+func (msgs Messages) BackupSummaryOldest(summary string, day string) string {
+	return Catalog.Format(msgs.locale, "backupSummaryOldest", map[string]any{"summary": summary, "day": day})
+}
+
+// BackupAround says "{time} 前后"
+// in the language the app shows.
+//
+// 应用现有界面的备份文案；原型没有同等的动态消息。
+func BackupAround(time_ string) string { return In(i18n.Locale()).BackupAround(time_) }
+
+// BackupAround says "{time} 前后"
+// in the language of msgs.
+//
+// 应用现有界面的备份文案；原型没有同等的动态消息。
+func (msgs Messages) BackupAround(time_ string) string {
+	return Catalog.Format(msgs.locale, "backupAround", map[string]any{"time": time_})
+}
+
+// BackupKeepCount says "{count, plural, other {最近 # 份}}"
+// in the language the app shows.
+//
+// 应用现有界面的备份文案；原型没有同等的动态消息。
+func BackupKeepCount(count int) string { return In(i18n.Locale()).BackupKeepCount(count) }
+
+// BackupKeepCount says "{count, plural, other {最近 # 份}}"
+// in the language of msgs.
+//
+// 应用现有界面的备份文案；原型没有同等的动态消息。
+func (msgs Messages) BackupKeepCount(count int) string {
+	return Catalog.Format(msgs.locale, "backupKeepCount", map[string]any{"count": count})
+}
+
+// BackupSizes says "每份约 {each}，共 {total}"
+// in the language the app shows.
+//
+// 应用现有界面的备份文案；原型没有同等的动态消息。
+func BackupSizes(each string, total string) string { return In(i18n.Locale()).BackupSizes(each, total) }
+
+// BackupSizes says "每份约 {each}，共 {total}"
+// in the language of msgs.
+//
+// 应用现有界面的备份文案；原型没有同等的动态消息。
+func (msgs Messages) BackupSizes(each string, total string) string {
+	return Catalog.Format(msgs.locale, "backupSizes", map[string]any{"each": each, "total": total})
+}
+
+// BackupFailureDetails says "{reason}{last}"
+// in the language the app shows.
+//
+// 应用现有界面的备份文案；原型没有同等的动态消息。
+func BackupFailureDetails(reason string, last string) string {
+	return In(i18n.Locale()).BackupFailureDetails(reason, last)
+}
+
+// BackupFailureDetails says "{reason}{last}"
+// in the language of msgs.
+//
+// 应用现有界面的备份文案；原型没有同等的动态消息。
+func (msgs Messages) BackupFailureDetails(reason string, last string) string {
+	return Catalog.Format(msgs.locale, "backupFailureDetails", map[string]any{"reason": reason, "last": last})
 }
 
 // BackupNone says "尚未备份"

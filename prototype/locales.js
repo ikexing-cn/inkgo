@@ -995,6 +995,20 @@ const CATALOG = {
   "planBrokenLine": [
    "line"
   ],
+  "checkMinimum": [
+   "count"
+  ],
+  "checkTextChapter": [
+   "chapter"
+  ],
+  "checkLoreHeading": [
+   "entry"
+  ],
+  "checkKindCount": [
+   "kind",
+   "count"
+  ],
+  "checkUndoWorkChanged": [],
   "checkKindAll": [],
   "checkKindMismatch": [],
   "checkKindName": [],
@@ -1263,6 +1277,33 @@ const CATALOG = {
   "backupDenyShort": [],
   "backupDenyTitle": [],
   "backupDenyFix": [],
+  "backupSyncFolder": [
+   "service"
+  ],
+  "backupNutstore": [],
+  "backupICloud": [],
+  "backupRetryHint": [],
+  "backupLastDays": [
+   "count"
+  ],
+  "backupSummaryOldest": [
+   "summary",
+   "day"
+  ],
+  "backupAround": [
+   "time"
+  ],
+  "backupKeepCount": [
+   "count"
+  ],
+  "backupSizes": [
+   "each",
+   "total"
+  ],
+  "backupFailureDetails": [
+   "reason",
+   "last"
+  ],
   "backupNone": [],
   "backupLocalOnly": [],
   "backupDialogTitle": [],
@@ -2397,6 +2438,11 @@ const CATALOG = {
    "planBrokenTitle": "大纲文件读不出来",
    "planBrokenAbout": "outline.json 可能在软件外被改过。正文和设定不受影响；改好文件后，这一页会自己重新读取。",
    "planBrokenLine": "第 {line} 行附近有错",
+   "checkMinimum": "{count, plural, other {满 # 字后可检查}}",
+   "checkTextChapter": "正文 · {chapter}",
+   "checkLoreHeading": "设定 · {entry}",
+   "checkKindCount": "{kind} {count, number}",
+   "checkUndoWorkChanged": "作品已切换，无法撤销",
    "checkKindAll": "全部",
    "checkKindMismatch": "不一致",
    "checkKindName": "名字有误",
@@ -2559,6 +2605,16 @@ const CATALOG = {
    "backupDenyShort": "没有权限写入",
    "backupDenyTitle": "备份文件夹无法写入，本次备份未完成",
    "backupDenyFix": "作品未受影响，该文件夹没有写入权限。",
+   "backupSyncFolder": "{service} 同步文件夹",
+   "backupNutstore": "坚果云同步文件夹",
+   "backupICloud": "iCloud 云盘",
+   "backupRetryHint": "点击重试",
+   "backupLastDays": "{count, plural, other {上次备份于 # 天前。}}",
+   "backupSummaryOldest": "{summary}，最早 {day}",
+   "backupAround": "{time} 前后",
+   "backupKeepCount": "{count, plural, other {最近 # 份}}",
+   "backupSizes": "每份约 {each}，共 {total}",
+   "backupFailureDetails": "{reason}{last}",
    "backupNone": "尚未备份",
    "backupLocalOnly": "作品目前仅保存在本机。",
    "backupDialogTitle": "作品目前仅保存在本机",
@@ -3556,6 +3612,11 @@ const CATALOG = {
    "planBrokenTitle": "The outline file cannot be read",
    "planBrokenAbout": "outline.json may have been changed outside the app. Chapter text and lore are not affected. Once the file is fixed, this page reloads by itself.",
    "planBrokenLine": "Error near line {line}",
+   "checkMinimum": "{count, plural, one {Check available after # character} other {Check available after # characters}}",
+   "checkTextChapter": "Text · {chapter}",
+   "checkLoreHeading": "Lore · {entry}",
+   "checkKindCount": "{kind} {count, number}",
+   "checkUndoWorkChanged": "The book has changed; cannot undo.",
    "checkKindAll": "All",
    "checkKindMismatch": "Inconsistent",
    "checkKindName": "Wrong Name",
@@ -3718,6 +3779,16 @@ const CATALOG = {
    "backupDenyShort": "No permission to write",
    "backupDenyTitle": "The backup folder can’t be written to. This backup didn’t finish.",
    "backupDenyFix": "Your book is unaffected. This folder doesn’t allow writing.",
+   "backupSyncFolder": "{service} Sync Folder",
+   "backupNutstore": "Nutstore Sync Folder",
+   "backupICloud": "iCloud Drive",
+   "backupRetryHint": "Click to retry",
+   "backupLastDays": "{count, plural, one {Last backup was # day ago.} other {Last backup was # days ago.}}",
+   "backupSummaryOldest": "{summary}; oldest {day}",
+   "backupAround": "Around {time}",
+   "backupKeepCount": "{count, plural, one {Latest # Copy} other {Latest # Copies}}",
+   "backupSizes": "About {each} each, {total} total",
+   "backupFailureDetails": "{reason} {last}",
    "backupNone": "Not Backed Up",
    "backupLocalOnly": "Your book is only saved on this computer.",
    "backupDialogTitle": "Your book is only saved on this computer",
