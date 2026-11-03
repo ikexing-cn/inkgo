@@ -179,19 +179,19 @@ func copyInjections(v map[string]ext.InjectionPreference) map[string]ext.Injecti
 
 // migrate copies one-time shelf data; remove after 2026-12. It never replaces
 // existing settings and leaves the shelf data intact if persistence fails.
-func (s *extensionStore) migrate(data json.RawMessage) error {
+func (s *extensionStore) migrate(key string, data json.RawMessage) error {
 	if len(data) == 0 || string(data) == "null" {
 		return nil
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	f := s.file(ext.Book{})
-	if _, ok := f.Settings["phone.typesetting"]; ok {
+	if _, ok := f.Settings[key]; ok {
 		return nil
 	}
-	f.Settings["phone.typesetting"] = append([]byte(nil), data...)
+	f.Settings[key] = append([]byte(nil), data...)
 	if err := s.save(ext.Book{}); err != nil {
-		delete(f.Settings, "phone.typesetting")
+		delete(f.Settings, key)
 		return err
 	}
 	return nil

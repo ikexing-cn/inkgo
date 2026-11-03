@@ -9,7 +9,6 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/aiport"
 	"writer/desk/book"
-	"writer/desk/exportdialog"
 	"writer/desk/kit"
 	"writer/desk/outline"
 	"writer/editor"
@@ -122,7 +121,6 @@ type App struct {
 	md                               kit.MarkdownState
 	thoughts                         map[string]*bool // reasoning shown, by event or revision ID
 	doc                              docView
-	exporting                        exportdialog.Dialog
 	extensions                       *ext.Host
 	extStore                         *extensionStore
 	extNotices                       extensionNotices
@@ -151,7 +149,7 @@ type App struct {
 func New(ai aiport.Service, mods ...ext.Module) *App {
 	a := &App{ai: ai, turn: &talkTurn{}, genre: "网文",
 		light: kit.LightPalette(), dark: kit.DarkPalette(), titles: map[string]string{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
-	a.exporting.Host, a.plan.Host = appHost{a}, appHost{a}
+	a.plan.Host = appHost{a}
 	a.pal = a.light
 	a.initPages()
 	a.initTabs()
@@ -239,7 +237,6 @@ func (a *App) resetView() {
 	a.input, a.seen, a.flash, a.doc, a.write = "", -1, map[string]time.Time{}, docView{}, writeView{}
 	a.bk = backupView{}
 	a.plan = outline.Page{Host: appHost{a}}
-	a.exporting = exportdialog.Dialog{Host: appHost{a}}
 	a.page, a.shown, a.offAway = pageTalk, pageTalk, false
 }
 
@@ -307,7 +304,6 @@ func (a *App) refreshFromSetting() error {
 	if a.Store == nil {
 		return nil
 	}
-	defer a.exporting.Replan()
 	var err error
 	a.flashNew()
 	if a.events, err = a.Store.Events(a.session); err != nil {

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"writer/backup"
-	"writer/export"
 )
 
 func work(t *testing.T, dir string) string {
@@ -32,7 +31,7 @@ func TestShelfRoundTrip(t *testing.T) {
 		t.Fatal(fresh, err)
 	}
 	now := time.Now().Truncate(time.Second)
-	s := Shelf{Library: dir, Cards: true, Theme: "dark", Export: &Export{Options: export.Options{Outline: true, Text: true}, Pen: "雨声"}}
+	s := Shelf{Library: dir, Cards: true, Theme: "dark", MovedExport: json.RawMessage(`{"outline":true,"text":true,"pen":"雨声"}`)}
 	s.Put(Book{Path: filepath.Join(dir, "a"), Name: "甲", Opened: now.Add(-time.Hour)})
 	s.Put(Book{Path: filepath.Join(dir, "b"), Name: "乙", Opened: now})
 	s.Put(Book{Path: filepath.Join(dir, "c"), Name: "丙"})
@@ -42,7 +41,9 @@ func TestShelfRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, fresh, err := Load(path)
-	if err != nil || fresh || !got.Cards || got.Theme != "dark" || got.Library != dir || len(got.Books) != 3 || *got.Export != *s.Export {
+	oldExport, _ := json.Marshal(s.MovedExport)
+	newExport, _ := json.Marshal(got.MovedExport)
+	if err != nil || fresh || !got.Cards || got.Theme != "dark" || got.Library != dir || len(got.Books) != 3 || string(newExport) != string(oldExport) {
 		t.Fatalf("%+v %v %v", got, fresh, err)
 	}
 	var names []string
@@ -192,40 +193,6 @@ func TestShelfRejectsTrailingContent(t *testing.T) {
 		}
 		if _, fresh, err := Load(path); err == nil || fresh || !strings.Contains(err.Error(), path) {
 			t.Fatalf("tail %q: fresh %v, error %v", tail, fresh, err)
-		}
-	}
-}
-
-func TestExportJSON(t *testing.T) {
-	for mask := 0; mask < 16; mask++ {
-		original := map[string]any{"pen": "雨声"}
-		for i, key := range []string{"prose", "outline", "setting", "text"} {
-			if mask&(1<<i) != 0 {
-				original[key] = true
-			}
-		}
-		data, err := json.Marshal(original)
-		if err != nil {
-			t.Fatal(err)
-		}
-		var e Export
-		if err := json.Unmarshal(data, &e); err != nil {
-			t.Fatal(err)
-		}
-		if e.Options != (export.Options{Prose: mask&1 != 0, Outline: mask&2 != 0, Setting: mask&4 != 0, Text: mask&8 != 0}) || e.Pen != "雨声" {
-			t.Fatal(e)
-		}
-		got, err := json.Marshal(e)
-		if err != nil {
-			t.Fatal(err)
-		}
-		var decoded map[string]any
-		if err := json.Unmarshal(got, &decoded); err != nil {
-			t.Fatal(err)
-		}
-		roundTrip, err := json.Marshal(decoded)
-		if err != nil || string(roundTrip) != string(data) {
-			t.Fatalf("%s != %s: %v", roundTrip, data, err)
 		}
 	}
 }

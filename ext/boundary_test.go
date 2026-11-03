@@ -20,12 +20,16 @@ func extensionImport(pkg, imp string, deps []string) error {
 			return nil
 		}
 	}
-	for _, allowed := range []string{"writer/ext", "writer/ext/hostapi", "writer/desk/kit", "writer/editor", "writer/locales"} {
+	for _, allowed := range []string{"writer/ext", "writer/ext/hostapi", "writer/desk/kit", "writer/editor", "writer/locales", "writer/workspace", "writer/desk/book", "writer/internal/atomicfile"} {
 		if imp == allowed {
 			return nil
 		}
 	}
 	if strings.HasPrefix(imp, "github.com/egoist/mygo/") {
+		return nil
+	}
+	owner := strings.Split(strings.TrimPrefix(pkg, "writer/ext/"), "/")[0]
+	if strings.HasPrefix(imp, "writer/ext/"+owner+"/") {
 		return nil
 	}
 	parts := strings.Split(imp, "/")
@@ -121,7 +125,7 @@ func TestProductionDependencyBoundaries(t *testing.T) {
 			for _, imp := range p.Imports {
 				switch {
 				case pkg == "writer/ext" || pkg == "writer/ext/hostapi":
-					if imp == "writer/shelf" || imp == "writer/workspace" || imp == "writer/desk" || strings.HasPrefix(imp, "writer/desk/") && imp != "writer/desk/kit" {
+					if imp == "writer/shelf" || imp == "writer/desk" || strings.HasPrefix(imp, "writer/desk/") && imp != "writer/desk/kit" && imp != "writer/desk/book" {
 						t.Errorf("%s imports %s", pkg, imp)
 					}
 					if pkg == "writer/ext" {
@@ -129,7 +133,7 @@ func TestProductionDependencyBoundaries(t *testing.T) {
 							t.Errorf("ext must use only standard library: %s", imp)
 						}
 					} else {
-						allowed := imp == "writer/ext" || imp == "github.com/egoist/mygo/ui" || imp == "writer/desk/kit" || imp == "writer/editor"
+						allowed := imp == "writer/ext" || imp == "github.com/egoist/mygo/ui" || imp == "writer/desk/kit" || imp == "writer/editor" || imp == "writer/workspace" || imp == "writer/desk/book"
 						if !allowed {
 							p, err := build.Default.Import(imp, "", build.FindOnly)
 							if err != nil || !p.Goroot {
@@ -173,5 +177,27 @@ func TestPublicAPIImportWithoutDeclaredDependencyFails(t *testing.T) {
 	}
 	if extensionImport("writer/ext/fake", "writer/ext/context/internal", []string{"context"}) == nil {
 		t.Fatal("private import accepted")
+	}
+}
+
+func TestExtensionsMayImportOwnSubpackagesAndBookData(t *testing.T) {
+	for _, imp := range []string{"writer/ext/export/format", "writer/ext/export/format/internal", "writer/workspace", "writer/desk/book", "writer/internal/atomicfile"} {
+		if err := extensionImport("writer/ext/export/format", imp, nil); err != nil {
+			t.Error(err)
+		}
+	}
+}
+
+func TestExtensionsCannotImportOtherPrivateSubpackages(t *testing.T) {
+	if extensionImport("writer/ext/phone", "writer/ext/export/format", []string{"export"}) == nil {
+		t.Fatal("private subpackage accepted")
+	}
+}
+
+func TestExtensionsCannotImportDeskOrShelf(t *testing.T) {
+	for _, imp := range []string{"writer/desk", "writer/shelf"} {
+		if extensionImport("writer/ext/export", imp, nil) == nil {
+			t.Errorf("accepted %s", imp)
+		}
 	}
 }

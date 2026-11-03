@@ -113,15 +113,13 @@ func (a *App) titleBar(c *ui.Context) {
 
 // fileMenu lists the title bar's 文件.
 func (a *App) fileMenu(m *kit.Menu, later func(func()) func()) {
-	a.barItem(m, later, cmdNewChapter)
-	a.barItem(m, later, cmdNewFolder)
-	m.Separator()
-	a.barItem(m, later, cmdSave)
-	a.barItem(m, later, cmdSnapshots)
-	a.barItem(m, later, cmdExport)
-	m.Separator()
-	a.barItem(m, later, cmdCategories)
-	a.barItem(m, later, cmdTrash)
+	for _, row := range a.fileCommands() {
+		if row.cmd == nil {
+			m.Separator()
+		} else {
+			a.barItem(m, later, row.cmd)
+		}
+	}
 	m.Separator()
 	a.barItem(m, later, cmdSettings)
 }

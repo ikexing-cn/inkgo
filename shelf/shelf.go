@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"writer/backup"
-	"writer/export"
 	"writer/internal/atomicfile"
 	"writer/internal/strictjson"
 	"writer/workspace"
@@ -57,20 +56,11 @@ type Shelf struct {
 	// NoGPU draws the window without the GPU on this machine, from the next
 	// time the software opens. Absent, the GPU draws where there is one.
 	NoGPU bool `json:"noGPU,omitempty"`
-	// Export is how the export dialog was last left, for every work; nil,
-	// it was never used.
-	Export *Export `json:"export,omitempty"`
+	// MovedExport carries one-time migration data; remove after 2026-12.
+	MovedExport json.RawMessage `json:"export,omitempty"`
 	// MovedPhone carries one-time migration data; remove after 2026-12.
 	MovedPhone json.RawMessage `json:"phone,omitempty"`
 	Books      []Book          `json:"books"`
-}
-
-// Export is what the export dialog exports, of the prose, the outline and
-// the setting; Text sends plain text rather than Word documents. Pen is
-// the pen name last put on a manuscript, for a work without one.
-type Export struct {
-	export.Options
-	Pen string `json:"pen,omitempty"`
 }
 
 // File is the shelf beside the model configuration at config.

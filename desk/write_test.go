@@ -2,6 +2,7 @@ package desk
 
 import (
 	"archive/zip"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -13,9 +14,9 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
 	"writer/editor"
-	"writer/export"
+	exportext "writer/ext/export"
+	"writer/ext/export/format"
 	"writer/locales"
-	"writer/shelf"
 	"writer/workspace"
 )
 
@@ -99,7 +100,7 @@ func TestMarksSurviveReopening(t *testing.T) {
 // ticked and as what with this machine.
 func TestExportTheWork(t *testing.T) {
 	a, tt, id := writingFixture(t, "雨下着。")
-	x := &a.exporting
+
 	open := func() {
 		t.Helper()
 		if err := clickMenu(tt, "文件", "菜单-导出"); err != nil {
@@ -123,7 +124,7 @@ func TestExportTheWork(t *testing.T) {
 		return string(b)
 	}
 	open()
-	if !x.Open || x.Selection().Scope != export.ScopeWork || !tt.HasText("笔名") || tt.HasText("段首加两个全角空格") {
+	if !exportOpen(tt) || !tt.HasText("全书") || !tt.HasText("笔名") || tt.HasText("段首加两个全角空格") {
 		t.Fatal("the dialog does not start from the prose of the whole work, as Word", tt.Texts())
 	}
 	pen, ok := tt.Find("笔名")
@@ -147,30 +148,34 @@ func TestExportTheWork(t *testing.T) {
 		}
 	}
 	z.Close()
-	if x.Open || !strings.Contains(string(doc), "作者：雨声") || !strings.Contains(string(doc), "雨下着。") {
+	if exportOpen(tt) || !strings.Contains(string(doc), "作者：雨声") || !strings.Contains(string(doc), "雨下着。") {
 		t.Fatalf("the manuscript: %s", doc)
 	}
-	if a.Store.Work().Pen != "雨声" || a.shelf.Export.Pen != "雨声" {
+	if a.Store.Work().Pen != "雨声" || choicesOf(t, a).Pen != "雨声" {
 		t.Fatal("the pen name is not kept")
 	}
 
 	// The outline alone, none written: it is said, and nothing goes.
-	a.shelf.Export.Prose, a.shelf.Export.Outline = false, true
+	choices := choicesOf(t, a)
+	choices.Prose, choices.Outline = false, true
+	saveChoices(t, a, choices)
 	open()
 	if !tt.HasText("所选范围内还没有写章纲，不导出大纲。") {
 		t.Fatal("the pen name or why the outline cannot go", tt.Texts())
 	}
 	out()
-	if !x.Open {
+	if !exportOpen(tt) {
 		t.Fatal("导出 went with nothing to export")
 	}
-	shut(tt, &x.Open)
+	closeExport(t, tt)
 
 	// The three as plain text, into one folder.
 	if err := a.Store.WriteOutline(id, "她走了"); err != nil {
 		t.Fatal(err)
 	}
-	a.shelf.Export.Prose, a.shelf.Export.Setting = true, true
+	choices = choicesOf(t, a)
+	choices.Prose, choices.Setting = true, true
+	saveChoices(t, a, choices)
 	open()
 	if err := tt.Click("纯文本"); err != nil {
 		t.Fatal(err)
@@ -192,15 +197,25 @@ func TestExportTheWork(t *testing.T) {
 	if !strings.HasPrefix(noticeOf(a), "已导出 3 个文件到 ") {
 		t.Fatal(noticeOf(a))
 	}
-	s, _, err := shelf.Load(a.books.file)
-	if err != nil || s.Export == nil || *s.Export != (shelf.Export{Options: export.Options{Prose: true, Outline: true, Setting: true, Text: true}, Pen: "雨声"}) {
-		t.Fatalf("this machine keeps %+v %v", s.Export, err)
+	data, err := os.ReadFile(filepath.Join(filepath.Dir(a.books.file), "ext.json"))
+	var saved extensionFile
+	if err == nil {
+		err = json.Unmarshal(data, &saved)
+	}
+	var got exportext.Choices
+	if err == nil {
+		err = json.Unmarshal(saved.Settings["export.choices"], &got)
+	}
+	if err != nil || got != (exportext.Choices{Options: format.Options{Prose: true, Outline: true, Setting: true, Text: true}, Pen: "雨声"}) {
+		t.Fatalf("this machine keeps %+v %v", got, err)
 	}
 
 	// The chapter open, named after it.
-	a.shelf.Export.Outline, a.shelf.Export.Setting = false, false
+	choices = choicesOf(t, a)
+	choices.Outline, choices.Setting = false, false
+	saveChoices(t, a, choices)
 	open()
-	if err := tt.Click(export.ScopeChapter); err != nil {
+	if err := tt.Click(format.ScopeChapter); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

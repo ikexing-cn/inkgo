@@ -1,6 +1,6 @@
-// Package export lays a work out to be sent away, as a manuscript is: its
+// Package format lays a work out to be sent away, as a manuscript is: its
 // prose, its outline or its setting, as plain text or as a Word document.
-package export
+package format
 
 import (
 	"strings"

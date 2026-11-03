@@ -1,15 +1,18 @@
 package desk
 
 import (
+	"encoding/json"
 	"path/filepath"
 	"sync"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/book"
 	"writer/desk/kit"
 	"writer/editor"
 	"writer/ext"
 	"writer/ext/hostapi"
 	"writer/locales"
+	"writer/workspace"
 )
 
 type extensionFailedError struct {
@@ -59,11 +62,19 @@ func (a *App) initExtensions(mods []ext.Module) {
 		root = filepath.Dir(a.ai.ConfigFile())
 	}
 	a.extStore = newExtensionStore(root, a.extensionError)
-	if len(a.shelf.MovedPhone) > 0 {
-		if err := a.extStore.migrate(a.shelf.MovedPhone); err != nil {
+	for _, moved := range []struct {
+		key  string
+		data *json.RawMessage
+	}{
+		{"phone.typesetting", &a.shelf.MovedPhone}, {"export.choices", &a.shelf.MovedExport},
+	} {
+		if len(*moved.data) == 0 {
+			continue
+		}
+		if err := a.extStore.migrate(moved.key, *moved.data); err != nil {
 			a.extensionError(err)
 		} else {
-			a.shelf.MovedPhone = nil
+			*moved.data = nil
 			a.saveShelf()
 		}
 	}
@@ -82,8 +93,13 @@ func (a *App) initExtensions(mods []ext.Module) {
 		DeclareHost: func(r *ext.Registrar) {
 			ext.Declare(r, hostapi.Commands)
 			ext.Declare(r, hostapi.PaneTabs)
+			ext.Declare(r, hostapi.Overlays)
+			ext.DeclareCalls(r, hostapi.Overlays, overlayCall)
 			ext.DeclareCalls(r, hostapi.Commands, commandCall)
 			ext.DeclareCalls(r, hostapi.PaneTabs, paneCall)
+			ext.Provide(r, hostapi.NoticesService, func(*ext.Session) hostapi.Notices { return extensionHost{a} })
+			ext.Provide(r, hostapi.JobsService, func(*ext.Session) hostapi.Jobs { return extensionHost{a} })
+			ext.Provide(r, hostapi.DialogsService, func(*ext.Session) hostapi.Dialogs { return extensionHost{a} })
 			ext.Provide(r, hostapi.BookService, func(*ext.Session) hostapi.Book { return extensionHost{a} })
 			ext.Provide(r, hostapi.PaletteService, func(*ext.Session) hostapi.Palette { return extensionHost{a} })
 			ext.Provide(r, hostapi.PaneService, func(*ext.Session) hostapi.Pane { return extensionHost{a} })
@@ -154,6 +170,8 @@ type extensionViews struct {
 	help     []*helpRow
 	system   []namedCommand
 	view     []namedCommand
+	file     []namedCommand
+	overlays []ext.Item[hostapi.Overlay]
 	panes    []ext.Item[hostapi.PaneTab]
 }
 
@@ -177,10 +195,12 @@ func (a *App) syncExtensions() {
 		if c.cmd.key != 0 || c.cmd.macKey != 0 {
 			cache.help = append(cache.help, &helpRow{group: locales.HelpGroupGlobal, does: c.cmd.label, cmds: []*command{c.cmd}})
 		}
-		if c.menu.Menu == hostapi.MenuView {
+		if c.menu.Menu == hostapi.MenuView || c.menu.Menu == hostapi.MenuFile {
 			cache.system = append(cache.system, c)
 		}
 	}
+	cache.file = orderMenuCommands(hostapi.MenuFile, fileCommandRows, cache.commands)
+	cache.overlays = ext.Items(a.extensions, hostapi.Overlays)
 	cache.view = orderMenuCommands(hostapi.MenuView, viewCommandRows, cache.commands)
 	cache.panes = ext.Items(a.extensions, hostapi.PaneTabs)
 	a.paneTabs = append(tabTable[paneTab](nil), a.hostPaneTabs...)
@@ -227,7 +247,7 @@ func (a *App) buildExtensionCommands() []namedCommand {
 	}
 	for _, item := range ext.Items(a.extensions, hostapi.Commands) {
 		value := item.Value
-		cmd := &command{label: value.Name, key: value.Key, mods: value.Mods, macKey: value.MacKey, macMods: value.MacMods, onMac: value.OnMac, page: pageAny, by: byDesk, systemMenu: value.Menu.Menu == hostapi.MenuView}
+		cmd := &command{label: value.Name, key: value.Key, mods: value.Mods, macKey: value.MacKey, macMods: value.MacMods, onMac: value.OnMac, page: pageAny, by: byDesk, systemMenu: value.Menu.Menu == hostapi.MenuView || value.Menu.Menu == hostapi.MenuFile}
 		cmd.can = func(*App) bool { return value.Can == nil || value.Can() }
 		cmd.when = cmd.can
 		cmd.run = func(*App) {
@@ -272,3 +292,51 @@ func orderMenuCommands(menu hostapi.Menu, base, pending []namedCommand) []namedC
 	}
 	return out
 }
+
+func (h extensionHost) Store() *workspace.Store { return h.a.Store }
+
+func (h extensionHost) Content() *book.Book { return h.a.book }
+
+func (h extensionHost) Flush() { h.a.flush() }
+
+func (h extensionHost) Notices() *kit.Status { return &h.a.status }
+
+func (h extensionHost) StartJob(sv ui.Services, fn func() func()) { h.a.jobs.start(sv, fn) }
+
+func (h extensionHost) Dialogs() (func(string, string) (string, error), func(string) error) {
+	return h.a.SaveFile, h.a.Reveal
+}
+
+func (h extensionHost) PickInto(c *ui.Context, title string, picked func(string)) bool {
+	return h.a.pickInto(c, title, picked)
+}
+
+func overlayCall(o hostapi.Overlay) func(*ui.Context) struct{} {
+	return func(c *ui.Context) struct{} {
+		if o.Draw != nil {
+			o.Draw(c)
+		}
+		return struct{}{}
+	}
+}
+
+func (a *App) extensionOverlays(c *ui.Context) {
+	a.syncExtensions()
+	for _, item := range a.extViews.overlays {
+		body := ui.Box(c)
+		var err error
+		body.Children(func() {
+			_, err = ext.Call(a.extensions, ext.HookOf(ext.CallPoint[hostapi.Overlay, *ui.Context, struct{}]{Point: hostapi.Overlays}, item.ID), c, overlayCall(item.Value))
+		})
+		body.Hidden(err != nil)
+	}
+	a.syncExtensions()
+}
+
+var fileCommandRows = []namedCommand{
+	{id: "new-chapter", cmd: cmdNewChapter}, {id: "new-folder", cmd: cmdNewFolder},
+	{id: "file-save-separator"}, {id: "save", cmd: cmdSave}, {id: "snapshots", cmd: cmdSnapshots},
+	{id: "file-organize-separator"}, {id: "categories", cmd: cmdCategories}, {id: "trash", cmd: cmdTrash},
+}
+
+func (a *App) fileCommands() []namedCommand { a.syncExtensions(); return a.extViews.file }

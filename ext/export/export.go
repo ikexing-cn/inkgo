@@ -1,4 +1,4 @@
-package exportdialog
+package export
 
 import (
 	"os"
@@ -9,10 +9,11 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/book"
 	"writer/desk/kit"
-	"writer/export"
+	"writer/ext"
+	"writer/ext/export/format"
+	"writer/ext/hostapi"
 	"writer/internal/atomicfile"
 	"writer/locales"
-	"writer/shelf"
 	"writer/workspace"
 )
 
@@ -21,40 +22,66 @@ import (
 // chapters of 指定范围 by the names the drop-downs show; the pen name; and
 // whether the paragraphs of a text are indented.
 type Dialog struct {
-	Host      Host
-	Open      bool
-	pieces    []workspace.Piece
-	selection export.Selection
-	pen       string
-	indent    bool
-	plan      export.Plan
+	book       *ext.Ref[hostapi.Book]
+	palette    *ext.Ref[hostapi.Palette]
+	notices    *ext.Ref[hostapi.Notices]
+	jobs       *ext.Ref[hostapi.Jobs]
+	dialogs    *ext.Ref[hostapi.Dialogs]
+	setting    *ext.Pref[Choices]
+	choices    *Choices
+	generation uint64
+	planned    planKey
+	Open       bool
+	pieces     []workspace.Piece
+	selection  format.Selection
+	pen        string
+	indent     bool
+	plan       format.Plan
 }
 
 // preferences is how the export dialog was last left on this machine; the
 // first time, the prose alone, as Word.
-func (d *Dialog) preferences() *shelf.Export {
-	if d.Host.ShelfPrefs().Export == nil {
-		d.Host.ShelfPrefs().Export = &shelf.Export{Options: export.Options{Prose: true}}
+func (d *Dialog) preferences() *Choices {
+	if d.choices == nil {
+		v := d.setting.Get()
+		d.choices = &v
 	}
-	return d.Host.ShelfPrefs().Export
+	return d.choices
+}
+
+func (d *Dialog) saveChoices() { d.setting.Set(*d.preferences()) }
+
+type planKey struct {
+	book    *book.Book
+	version int
+	chapter string
+}
+
+func (d *Dialog) planKey() planKey {
+	b := d.book.Get().Content()
+	id, _, _ := d.book.Get().Chapter()
+	return planKey{b, b.Version(), id}
 }
 
 // Show asks what to export, starting from the whole work, the
 // pen name the work had last, and 指定范围 from the first chapter to
 // the third.
 func (d *Dialog) Show() {
-	d.Host.Flush()
-	store, _ := d.Host.Workspace()
+	d.book.Get().Flush()
+	store := d.book.Get().Store()
 	pieces, err := store.Pieces()
 	if err != nil {
-		d.Host.Notices().Warn(err)
+		d.notices.Get().Notices().Warn(err)
 		return
 	}
-	fresh := Dialog{Host: d.Host, Open: true, pieces: pieces, selection: export.Selection{Scope: export.ScopeWork}, pen: store.Work().Pen, indent: true}
+	fresh := *d
+	fresh.Open, fresh.pieces, fresh.selection, fresh.pen, fresh.indent = true, pieces, format.Selection{Scope: format.ScopeWork}, store.Work().Pen, true
+	fresh.choices = nil
+	fresh.generation++
 	if fresh.pen == "" {
-		fresh.pen = d.preferences().Pen
+		fresh.pen = fresh.preferences().Pen
 	}
-	if names, _ := export.ChapterNames(pieces); len(names) > 0 {
+	if names, _ := format.ChapterNames(pieces); len(names) > 0 {
 		fresh.selection.From, fresh.selection.To = names[0], names[min(2, len(names)-1)]
 	}
 	*d = fresh
@@ -68,8 +95,9 @@ func (d *Dialog) Replan() {
 		return
 	}
 	set := d.preferences()
-	id, _, _ := d.Host.Chapter()
-	d.plan = export.BuildPlan(d.pieces, d.Host.Content().Setting().Entries, id, set.Options, d.selection)
+	id, _, _ := d.book.Get().Chapter()
+	d.planned = d.planKey()
+	d.plan = format.BuildPlan(d.pieces, d.book.Get().Content().Setting().Entries, id, set.Options, d.selection)
 	d.selection.Scope = d.plan.Scope
 }
 
@@ -77,11 +105,13 @@ func (d *Dialog) Replan() {
 // setting, what is ticked, each its own file, as Word or as plain text;
 // the prose and the outline of the range chosen.
 func (d *Dialog) View(c *ui.Context) {
-	pal := d.Host.Colors()
+	if !d.Open {
+		return
+	}
+	pal := d.palette.Get().Colors()
 	t := pal.Theme
 	set := d.preferences()
-	id, _, _ := d.Host.Chapter()
-	if d.plan.Current != id {
+	if d.planned != d.planKey() {
 		d.Replan()
 	}
 	pal.Modal(c, &d.Open, func() {
@@ -93,9 +123,9 @@ func (d *Dialog) View(c *ui.Context) {
 					for _, o := range []struct {
 						on   *bool
 						what string
-					}{{&set.Prose, export.ProseContent}, {&set.Outline, export.OutlineContent}, {&set.Setting, export.SettingContent}} {
+					}{{&set.Prose, format.ProseContent}, {&set.Outline, format.OutlineContent}, {&set.Setting, format.SettingContent}} {
 						if ui.Checkbox(c, o.on, contentLabel(o.what)).Changed() {
-							d.Host.SaveShelf()
+							d.saveChoices()
 							d.Replan()
 						}
 					}
@@ -103,7 +133,7 @@ func (d *Dialog) View(c *ui.Context) {
 			})
 			kit.Labeled(c, locales.ExportFormat(), func() {
 				if kit.Dots(c, &set.Text, locales.ExportFormatAria(), []bool{false, true}, []string{"Word", locales.ExportPlain()}) {
-					d.Host.SaveShelf()
+					d.saveChoices()
 					d.Replan()
 				}
 			})
@@ -113,7 +143,7 @@ func (d *Dialog) View(c *ui.Context) {
 						d.Replan()
 					}
 				})
-				if d.selection.Scope == export.ScopeSpan {
+				if d.selection.Scope == format.ScopeSpan {
 					d.span(c)
 				}
 			}
@@ -146,7 +176,7 @@ func (d *Dialog) View(c *ui.Context) {
 // span is 指定范围: from one chapter to another, the second only
 // from those after the first.
 func (d *Dialog) span(c *ui.Context) {
-	pal := d.Host.Colors()
+	pal := d.palette.Get().Colors()
 	names := d.plan.Names
 	at := func(name string) int { return max(0, slices.Index(names, name)) }
 	ui.Row(c).FillWidth().Gap(12).Children(func() {
@@ -173,34 +203,35 @@ var fileName = strings.NewReplacer("：", " ", `\`, " ", "/", " ", ":", " ", "*"
 // export writes what plan exports where the author picks: a file for one
 // thing, a folder for several, or the work's 导出 folder when there is no
 // dialog to ask with.
-func (d *Dialog) export(c *ui.Context, plan export.Plan) {
-	status := d.Host.Notices()
-	content := d.Host.Content()
+func (d *Dialog) export(c *ui.Context, plan format.Plan) {
+	generation := d.generation
+	status := d.notices.Get().Notices()
+	content := d.book.Get().Content()
 	set := d.preferences()
-	store, _ := d.Host.Workspace()
+	store := d.book.Get().Store()
 	work := store.Work()
-	ext := ".docx"
+	suffix := ".docx"
 	if set.Text {
-		ext = ".txt"
+		suffix = ".txt"
 	}
 	pen := strings.TrimSpace(d.pen)
 	type file struct{ name, data string }
 	var files []file
 	for _, what := range plan.Going {
-		var doc export.Doc
+		var doc format.Doc
 		parts := []string{work.Name}
 		switch what {
-		case export.ProseContent:
-			doc = export.Prose(export.Cover{Title: work.Name, Pen: pen, Words: kit.Words(plan.Words)}, plan.Pieces, plan.Whole)
+		case format.ProseContent:
+			doc = format.Prose(format.Cover{Title: work.Name, Pen: pen, Words: kit.Words(plan.Words)}, plan.Pieces, plan.Whole)
 			parts = append(parts, plan.Part)
-		case export.OutlineContent:
-			doc = export.Outline(work.Name, plan.Pieces)
+		case format.OutlineContent:
+			doc = format.Outline(work.Name, plan.Pieces)
 			parts = append(parts, plan.Part, "大纲")
-		case export.SettingContent:
-			doc = export.Setting(work.Name, work.Categories, content.Setting().Entries, func(entry workspace.Entry) []string { return laterLines(content, entry) })
+		case format.SettingContent:
+			doc = format.Setting(work.Name, work.Categories, content.Setting().Entries, func(entry workspace.Entry) []string { return laterLines(content, entry) })
 			parts = append(parts, "设定")
 		}
-		data := doc.Text(what == export.ProseContent && d.indent)
+		data := doc.Text(what == format.ProseContent && d.indent)
 		if !set.Text {
 			b, err := doc.Docx()
 			if err != nil {
@@ -210,9 +241,12 @@ func (d *Dialog) export(c *ui.Context, plan export.Plan) {
 			data = string(b)
 		}
 		name := strings.Join(slices.DeleteFunc(parts, func(s string) bool { return s == "" }), "-")
-		files = append(files, file{fileName.Replace(name) + ext, data})
+		files = append(files, file{fileName.Replace(name) + suffix, data})
 	}
 	write := func(dir string) {
+		if d.generation != generation || !d.Open {
+			return
+		}
 		var path string
 		for _, f := range files {
 			path = filepath.Join(dir, f.name)
@@ -224,24 +258,27 @@ func (d *Dialog) export(c *ui.Context, plan export.Plan) {
 		d.Open = false
 		if set.Prose && !set.Text && pen != work.Pen {
 			work.Pen = pen
-			current, _ := d.Host.Workspace()
+			current := d.book.Get().Store()
 			status.Warn(current.SaveWork(work))
 		}
 		if set.Prose && !set.Text && pen != set.Pen {
 			set.Pen = pen
-			d.Host.SaveShelf()
+			d.saveChoices()
 		}
 		status.Did(locales.ExportedOne(path))
 		if len(files) > 1 {
 			status.Did(locales.ExportedMany(len(files), dir))
 		}
 	}
-	save, _ := d.Host.Dialogs()
+	save, _ := d.dialogs.Get().Dialogs()
 	if len(files) == 1 && save != nil {
 		sv := c.Services()
-		d.Host.StartJob(sv, func() func() {
+		d.jobs.Get().StartJob(sv, func() func() {
 			path, err := save(locales.ExportTitle(), files[0].name)
 			return func() {
+				if d.generation != generation || !d.Open {
+					return
+				}
 				if err != nil {
 					status.Warn(err)
 				} else if path != "" {
@@ -252,7 +289,7 @@ func (d *Dialog) export(c *ui.Context, plan export.Plan) {
 		})
 		return
 	}
-	if len(files) > 1 && d.Host.PickInto(c, locales.ExportInto(), write) {
+	if len(files) > 1 && d.dialogs.Get().PickInto(c, locales.ExportInto(), write) {
 		return
 	}
 	dir := filepath.Join(store.Root(), "导出")
@@ -276,39 +313,41 @@ func laterLines(b *book.Book, e workspace.Entry) []string {
 
 // Plan is the export plan held for the current choices and chapter.
 // The returned slices and maps are read-only.
-func (d *Dialog) Plan() export.Plan { return d.plan }
+func (d *Dialog) Plan() format.Plan { return d.plan }
 
 // Selection is the chosen scope and the chapter names at its ends.
-func (d *Dialog) Selection() export.Selection { return d.selection }
+func (d *Dialog) Selection() format.Selection { return d.selection }
 
 // Presentation stays separate from the export package's stored values and file names.
 func contentLabel(what string) string {
 	switch what {
-	case export.ProseContent:
+	case format.ProseContent:
 		return locales.ExportBody()
-	case export.OutlineContent:
+	case format.OutlineContent:
 		return locales.PagePlan()
-	case export.SettingContent:
+	case format.SettingContent:
 		return locales.ExportSettings()
 	}
 	return what
 }
+
 func scopeLabels(scopes []string) []string {
 	labels := make([]string, len(scopes))
 	for i, scope := range scopes {
 		switch scope {
-		case export.ScopeWork:
+		case format.ScopeWork:
 			labels[i] = locales.ExportRangeBook()
-		case export.ScopeVolume:
+		case format.ScopeVolume:
 			labels[i] = locales.ExportRangeVolume()
-		case export.ScopeChapter:
+		case format.ScopeChapter:
 			labels[i] = locales.ExportRangeChapter()
-		case export.ScopeSpan:
+		case format.ScopeSpan:
 			labels[i] = locales.ExportRangeCustom()
 		}
 	}
 	return labels
 }
+
 func (d *Dialog) about() string {
 	set := d.preferences()
 	switch {
@@ -324,13 +363,14 @@ func (d *Dialog) about() string {
 		return locales.ExportAboutWord()
 	}
 }
-func skipLabel(plan export.Plan, what string) string {
+
+func skipLabel(plan format.Plan, what string) string {
 	switch what {
-	case export.ProseContent:
+	case format.ProseContent:
 		return locales.ExportSkipBody()
-	case export.SettingContent:
+	case format.SettingContent:
 		return locales.ExportSkipSettings()
-	case export.OutlineContent:
+	case format.OutlineContent:
 		for _, p := range plan.Pieces {
 			if !p.Folder {
 				return locales.ExportSkipOutlineEmpty()

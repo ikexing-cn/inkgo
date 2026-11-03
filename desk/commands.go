@@ -69,9 +69,6 @@ var (
 	cmdSnapshots = &command{label: locales.CmdSnapshots, page: pageAny,
 		can: func(a *App) bool { open, busy := a.chapterOpen(); return open && !busy },
 		run: func(a *App) { a.openSnapshots() }}
-	cmdExport = &command{label: locales.CmdExport, page: pageAny,
-		can: func(a *App) bool { return a.Store != nil },
-		run: func(a *App) { a.exporting.Show() }}
 	cmdSettings = &command{label: locales.AppSettings, onMac: true, macKey: ui.KeyComma, macMods: modCmd, page: pageAny,
 		run: func(a *App) { a.openPrefs(a.settings.tab) }}
 	cmdCategories = &command{label: locales.CmdCategories, page: pageAny,
@@ -223,7 +220,7 @@ var commandList = []*command{
 	cmdCloseTab, cmdNextTab, cmdPrevTab,
 	cmdUndo, cmdRedo, cmdContinue, cmdCut, cmdCopy, cmdPaste, cmdSelectAll,
 	cmdDeleteWordBack, cmdDeleteWordForward, cmdTakePrediction, cmdDropPrediction,
-	cmdNewFolder, cmdSnapshots, cmdExport, cmdSettings, cmdDraft,
+	cmdNewFolder, cmdSnapshots, cmdSettings, cmdDraft,
 	cmdCategories, cmdTrash,
 	cmdSide, cmdPane, cmdRewrite, cmdTake, cmdUnmark,
 	cmdBury, cmdPay, cmdViewFore, cmdCloseOthers, cmdCloseRight, cmdSend,

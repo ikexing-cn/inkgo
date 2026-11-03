@@ -119,10 +119,8 @@ func (a *App) View(c *ui.Context) {
 		if a.write.trashOpen { // the trash is at the foot of every page
 			a.trashView(c)
 		}
-		if a.exporting.Open { // the menu of files exports from every page
-			a.exporting.View(c)
-		}
 	}
+	a.extensionOverlays(c)
 	a.toasts(c) // over every dialog
 	if a.page != pageWrite || !a.paneOpen() && !a.foldLeaving(false) || a.focused() || a.paneTabs.shown(a, a.doc.tab) != paneMargin {
 		a.write.margin.visible = false

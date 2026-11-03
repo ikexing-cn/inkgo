@@ -117,3 +117,7 @@ func (s testSettings) Load(ext.Book, string) ([]byte, bool) {
 	return data, true
 }
 func (s testSettings) Save(_ ext.Book, _ string, data []byte) { json.Unmarshal(data, &s.h.prefs.Phone) }
+
+func (h *testHost) Store() *workspace.Store { return h.store }
+
+func (h *testHost) Flush() {}

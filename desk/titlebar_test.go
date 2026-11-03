@@ -8,7 +8,6 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
-	"writer/export"
 	"writer/workspace"
 )
 
@@ -293,10 +292,10 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 	}
 	shut(tt, &w.snapsOpen)
 	choose("文件", "导出")
-	if !a.exporting.Open || !tt.HasText("本章") || a.exporting.Selection().Scope != export.ScopeWork {
-		t.Fatal("导出 did not ask what to export, the whole work first", a.exporting.Selection().Scope, tt.Texts())
+	if !exportOpen(tt) || !tt.HasText("本章") {
+		t.Fatal("导出 did not ask what to export, the whole work first", tt.Texts())
 	}
-	shut(tt, &a.exporting.Open)
+	closeExport(t, tt)
 	choose("文件", "设置")
 	if !a.settings.open {
 		t.Fatal("设置 did not open the settings")
@@ -422,10 +421,10 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 			t.Fatal(err)
 		}
 		tt.Frame()
-		if !a.exporting.Open || !tt.HasText("全书") || tt.HasText("本章") {
+		if !exportOpen(tt) || !tt.HasText("全书") || tt.HasText("本章") {
 			t.Fatalf("page %d: the export does not offer the book alone: %q", page, tt.Texts())
 		}
-		shut(tt, &a.exporting.Open)
+		closeExport(t, tt)
 		if err := clickMenu(tt, "文件", "菜单-设置"); err != nil {
 			t.Fatal(err)
 		}
@@ -449,7 +448,7 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 	tt.Frame()
 	pale("文件", "新建章节", "新建文件夹", "保存", "历史版本", "导出", "作品分类", "回收站")
 	pale("视图", "收起侧栏", "展开右栏", "专注写作", "手机预览")
-	if a.settings.open || a.exporting.Open || a.sideHidden {
+	if a.settings.open || exportOpen(tt) || a.sideHidden {
 		t.Fatal("on the shelf a pale row did something")
 	}
 	if err := clickMenu(tt, "文件", "菜单-设置"); err != nil {

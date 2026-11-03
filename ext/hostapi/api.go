@@ -4,13 +4,18 @@ package hostapi
 import (
 	"github.com/egoist/mygo/ui"
 
+	"writer/desk/book"
 	"writer/desk/kit"
 	"writer/editor"
 	"writer/ext"
+	"writer/workspace"
 )
 
 // Menu names a host menu; read by desk on the frame thread.
 type Menu string
+
+// MenuFile is the file menu in both title and system menus; frame thread only.
+const MenuFile Menu = "file"
 
 // MenuView is the view menu in both title and system menus.
 const MenuView Menu = "view"
@@ -48,6 +53,12 @@ type PaneTab struct {
 
 // Book exposes current book content to extensions on the frame thread only.
 type Book interface {
+	// Store returns the current store, or nil on the shelf; frame thread only.
+	Store() *workspace.Store
+	// Content returns borrowed UI content, or nil on the shelf; frame thread only.
+	Content() *book.Book
+	// Flush saves the displayed chapter; frame thread only.
+	Flush()
 	// Chapter returns the selected editor; id is empty off the writing page.
 	// open requires an existing chapter, rather than a folder.
 	Chapter() (id string, ed *editor.Editor, open bool)
@@ -85,3 +96,43 @@ const PaletteService ext.ServiceKey[Palette] = "host.palette"
 
 // PaneService resolves navigation; methods require the frame thread.
 const PaneService ext.ServiceKey[Pane] = "host.pane"
+
+// Overlay draws above pages on the frame thread through ext.Call. Draw checks
+// its own open state and must not retain Context or frame elements.
+type Overlay struct {
+	Draw func(*ui.Context)
+}
+
+// Notices exposes status messages on the frame thread only.
+type Notices interface {
+	// Notices returns the status bar; use it on the frame thread only.
+	Notices() *kit.Status
+}
+
+// Jobs dispatches background work from the frame thread.
+type Jobs interface {
+	// StartJob runs fn on a worker and its result on the frame thread.
+	// Capture Services in the initiating frame; never retain its Context.
+	StartJob(ui.Services, func() func())
+}
+
+// Dialogs exposes native dialogs; accessors require the frame thread.
+type Dialogs interface {
+	// Dialogs returns optional save-file and reveal callbacks, called on workers.
+	Dialogs() (save func(string, string) (string, error), reveal func(string) error)
+	// PickInto starts a folder picker on the frame thread. The picker runs on a
+	// worker; picked runs on the frame thread. False means no picker is available.
+	PickInto(*ui.Context, string, func(string)) bool
+}
+
+// Overlays collects page overlays; desk enumerates it on the frame thread.
+const Overlays ext.PointKey[Overlay] = "host.overlays"
+
+// NoticesService resolves frame-thread status messages.
+const NoticesService ext.ServiceKey[Notices] = "host.notices"
+
+// JobsService resolves background dispatch; call StartJob on the frame thread.
+const JobsService ext.ServiceKey[Jobs] = "host.jobs"
+
+// DialogsService resolves native dialogs; accessors require the frame thread.
+const DialogsService ext.ServiceKey[Dialogs] = "host.dialogs"

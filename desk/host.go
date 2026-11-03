@@ -5,7 +5,6 @@ import (
 	"writer/desk/book"
 	"writer/desk/kit"
 	"writer/editor"
-	"writer/shelf"
 	"writer/workspace"
 )
 
@@ -28,8 +27,6 @@ func (h appHost) WorkPath() string {
 
 func (h appHost) Notices() *kit.Status { return &h.a.status }
 
-func (h appHost) ShelfPrefs() *shelf.Shelf { return &h.a.shelf }
-
 // Chapter gives an empty ID off the writing page; the editor is the selected tab's.
 // open also checks that the chapter exists and is not a folder.
 func (h appHost) Chapter() (id string, ed *editor.Editor, open bool) {
@@ -39,8 +36,6 @@ func (h appHost) Chapter() (id string, ed *editor.Editor, open bool) {
 	open, _ = h.a.chapterOpen()
 	return id, h.a.write.cur().ed, open
 }
-
-func (h appHost) StartJob(sv ui.Services, fn func() func()) { h.a.jobs.start(sv, fn) }
 
 func (h appHost) Dialogs() (func(string, string) (string, error), func(string) error) {
 	return h.a.SaveFile, h.a.Reveal
@@ -68,12 +63,4 @@ func (a *App) dropMenu(c *ui.Context, b ui.Element, key string, place func(ui.El
 	a.menu.DropMenu(c, a.pal, b, key, place, build)
 }
 
-func (h appHost) SaveShelf() { h.a.saveShelf() }
-
-func (h appHost) Flush() { h.a.flush() }
-
 func (h appHost) SettingColumn(c *ui.Context) { h.a.settingColumn(c) }
-
-func (h appHost) PickInto(c *ui.Context, title string, picked func(string)) bool {
-	return h.a.pickInto(c, title, picked)
-}

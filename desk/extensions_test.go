@@ -13,7 +13,6 @@ import (
 	"writer/desk/kit"
 	"writer/ext"
 	"writer/ext/hostapi"
-	"writer/ext/phone"
 	"writer/locales"
 	"writer/workspace"
 )
@@ -22,6 +21,36 @@ func requireExtension(t *testing.T, err error) {
 	t.Helper()
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestOverlaysDrawInRegistrationOrderEachFrameAndIsolatePanics(t *testing.T) {
+	var calls []string
+	mod := ext.Module{ID: "layers", Setup: func(r *ext.Registrar) {
+		for _, id := range []string{"one", "two"} {
+			ext.Contribute(r, hostapi.Overlays, id, hostapi.Overlay{Draw: func(*ui.Context) { calls = append(calls, id) }})
+		}
+	}}
+	broken := ext.Module{ID: "broken", Setup: func(r *ext.Registrar) {
+		ext.Contribute(r, hostapi.Overlays, "dialog", hostapi.Overlay{Draw: func(c *ui.Context) {
+			ui.Column(c).Children(func() { ui.Text(c, "partial overlay"); panic("overlay failed") })
+		}})
+	}}
+	a := New(ai.New(""), append(append([]ext.Module{}, testModules...), mod, broken)...)
+	defer a.Close()
+	tt := stillTester(a.View, 1266, 780)
+	for range 3 {
+		calls = nil
+		tt.Frame()
+		if !reflect.DeepEqual(calls, []string{"one", "two"}) {
+			t.Fatal(calls)
+		}
+		if tt.HasText("partial overlay") {
+			t.Fatal("partial failed overlay visible")
+		}
+	}
+	if a.extensions.Ledger("broken").State != ext.Failed || a.extensions.Ledger("layers").State != ext.On {
+		t.Fatal("overlay failure not isolated")
 	}
 }
 
@@ -57,7 +86,7 @@ func TestPaneDrawPanicHidesPartialFrameAndOnlyStopsItsExtension(t *testing.T) {
 		}})
 		r.OnStop(func(*ext.Session) { stopped++ })
 	}}
-	a := New(ai.New(config), phone.Module, mod)
+	a := New(ai.New(config), append(append([]ext.Module{}, testModules...), mod)...)
 	defer a.Close()
 	root := extensionBook(t)
 	requireExtension(t, a.Open(root))
@@ -101,11 +130,11 @@ func TestExtensionLocalSwitchAndSettingsPersistAcrossApps(t *testing.T) {
 	config := filepath.Join(t.TempDir(), "providers.yaml")
 	var pref *ext.Pref[int]
 	mod := ext.Module{ID: "prefs", Setup: func(r *ext.Registrar) { pref = ext.Setting(r, "size", ext.Schema[int]{Scope: ext.Local}) }}
-	a := New(ai.New(config), phone.Module, mod)
+	a := New(ai.New(config), append(append([]ext.Module{}, testModules...), mod)...)
 	pref.Set(17)
 	requireExtension(t, a.extensions.Set("phone", false))
 	requireExtension(t, a.Close())
-	b := New(ai.New(config), phone.Module, mod)
+	b := New(ai.New(config), append(append([]ext.Module{}, testModules...), mod)...)
 	defer b.Close()
 	if b.extensions.Own("phone") || pref.Get() != 17 {
 		t.Fatal("local persistence lost")
@@ -124,12 +153,12 @@ func TestExtensionBookSwitchAndSettingsPersistInWork(t *testing.T) {
 	root := extensionBook(t)
 	var pref *ext.Pref[string]
 	mod := ext.Module{ID: "prefs", Setup: func(r *ext.Registrar) { pref = ext.Setting(r, "word", ext.Schema[string]{Scope: ext.BookScope}) }}
-	a := New(ai.New(config), phone.Module, mod)
+	a := New(ai.New(config), append(append([]ext.Module{}, testModules...), mod)...)
 	requireExtension(t, a.Open(root))
 	pref.Set("book value")
 	requireExtension(t, a.extensions.SetBook("phone", false))
 	requireExtension(t, a.Close())
-	b := New(ai.New(config), phone.Module, mod)
+	b := New(ai.New(config), append(append([]ext.Module{}, testModules...), mod)...)
 	defer b.Close()
 	requireExtension(t, b.Open(root))
 	if b.extensions.Own("phone") || pref.Get() != "book value" {
@@ -156,7 +185,7 @@ func TestUnreadableExtensionFileIsEmptyReportedAndNotRewritten(t *testing.T) {
 			}
 			damaged := []byte("{ broken JSON")
 			requireExtension(t, os.WriteFile(file, damaged, 0644))
-			a := New(ai.New(config), phone.Module)
+			a := New(ai.New(config), testModules...)
 			defer a.Close()
 			if book {
 				requireExtension(t, a.Open(root))
@@ -231,7 +260,7 @@ func TestBookSwitchStopsAndStartsEachSessionOnceAndShelfCloses(t *testing.T) {
 		r.OnStart(func(s *ext.Session) error { calls = append(calls, "+"+s.Book().Dir); return nil })
 		r.OnStop(func(s *ext.Session) { calls = append(calls, "-"+s.Book().Dir) })
 	}}
-	a := New(ai.New(""), mod)
+	a := New(ai.New(""), append(append([]ext.Module{}, testModules...), mod)...)
 	defer a.Close()
 	first, second := extensionBook(t), extensionBook(t)
 	calls = nil
@@ -263,7 +292,7 @@ func TestExtensionCommandsUseKeysHelpMenusAndCallIsolation(t *testing.T) {
 			Name: func() string { return "Extension action" }, Run: func() { ran++ }, Key: ui.KeyK, Mods: ui.Ctrl, OnMac: true, MacKey: ui.KeyK, MacMods: ui.Super, Menu: hostapi.MenuPosition{Menu: hostapi.MenuView, After: "pane"},
 		})
 	}}
-	a := New(ai.New(""), mod)
+	a := New(ai.New(""), append(append([]ext.Module{}, testModules...), mod)...)
 	defer a.Close()
 	tt := stillTester(a.View, 1266, 780)
 	tt.Frame()
@@ -303,11 +332,11 @@ func TestInjectionOrderAndChoicePersistInLocalExtensionFile(t *testing.T) {
 		ext.Overwrite(r, target, "one", func(v int) int { return v + 10 })
 		ext.Overwrite(r, target, "two", func(v int) int { return v + 20 })
 	}}
-	a := New(ai.New(config), base, injector)
+	a := New(ai.New(config), append(append([]ext.Module{}, testModules...), base, injector)...)
 	requireExtension(t, a.extensions.SetOrder(string(target), []string{"injector.second", "injector.first"}))
 	requireExtension(t, a.extensions.Choose(string(target), "injector.two"))
 	requireExtension(t, a.Close())
-	b := New(ai.New(config), base, injector)
+	b := New(ai.New(config), append(append([]ext.Module{}, testModules...), base, injector)...)
 	defer b.Close()
 	got, err := ext.Call(b.extensions, target, 3, func(v int) int { return v })
 	requireExtension(t, err)
@@ -328,7 +357,7 @@ func TestExtensionCommandPanicIsReportedAndDoesNotCrash(t *testing.T) {
 	mod := ext.Module{ID: "broken", Setup: func(r *ext.Registrar) {
 		ext.Contribute(r, hostapi.Commands, "act", hostapi.Command{Name: func() string { return "Broken" }, Run: func() { panic("command failed") }, Menu: hostapi.MenuPosition{Menu: hostapi.MenuView}})
 	}}
-	a := New(ai.New(""), mod)
+	a := New(ai.New(""), append(append([]ext.Module{}, testModules...), mod)...)
 	defer a.Close()
 	tt := stillTester(a.View, 1266, 780)
 	tt.Frame()
@@ -348,7 +377,7 @@ func TestContributedPaneTabsKeepAssemblyRegistrationOrderAndUnknownPrefsFallBack
 			}
 		}}
 	}
-	a := New(ai.New(""), makeModule("second"), makeModule("first"))
+	a := New(ai.New(""), append(append([]ext.Module{}, testModules...), makeModule("second"), makeModule("first"))...)
 	defer a.Close()
 	var ids []paneTab
 	for _, p := range a.paneTabs {
@@ -384,7 +413,7 @@ func TestExtensionPlatformOnlyShortcutsUseEffectiveBinding(t *testing.T) {
 	}}
 	old := onMacOS
 	defer func() { onMacOS = old }()
-	a := New(ai.New(""), mod)
+	a := New(ai.New(""), append(append([]ext.Module{}, testModules...), mod)...)
 	defer a.Close()
 	tt := stillTester(a.View, 1266, 780)
 	onMacOS = true
@@ -407,11 +436,12 @@ func TestUnchangedFramesReuseExtensionTables(t *testing.T) {
 	a, tt, _ := writingFixture(t, "灯灭了。")
 	commands, tabs, system, view := a.extensionCommands(), a.paneTabs, a.systemCommands(), a.viewCommands()
 	list, help := a.commandList(), a.commandHelp()
+	file, overlays := a.fileCommands(), a.extViews.overlays
 	changes := a.extensions.Changes()
 	for range 6 {
 		tt.Frame()
 		a.SystemMenu()
-		if a.extensions.Changes() != changes || &commands[0] != &a.extensionCommands()[0] || commands[0].cmd != a.extensionCommands()[0].cmd || &tabs[0] != &a.paneTabs[0] || &system[0] != &a.systemCommands()[0] || &view[0] != &a.viewCommands()[0] || &list[0] != &a.commandList()[0] || &help[0] != &a.commandHelp()[0] {
+		if &file[0] != &a.fileCommands()[0] || &overlays[0] != &a.extViews.overlays[0] || a.extensions.Changes() != changes || &commands[0] != &a.extensionCommands()[0] || commands[0].cmd != a.extensionCommands()[0].cmd || &tabs[0] != &a.paneTabs[0] || &system[0] != &a.systemCommands()[0] || &view[0] != &a.viewCommands()[0] || &list[0] != &a.commandList()[0] || &help[0] != &a.commandHelp()[0] {
 			t.Fatal("unchanged frame rebuilt extension tables")
 		}
 	}
@@ -421,13 +451,14 @@ func TestUnchangedFramesReuseExtensionTables(t *testing.T) {
 		a.commandHelp()
 		a.systemCommands()
 		a.viewCommands()
+		a.fileCommands()
 		a.syncExtensions()
 	}); allocs != 0 {
 		t.Fatal("cached reads allocated", allocs)
 	}
 	requireExtension(t, a.extensions.Set("phone", false))
 	tt.Frame()
-	if len(a.extensionCommands()) != 0 {
+	if len(a.extensionCommands()) != 1 || a.extensionCommands()[0].id != "export.open" {
 		t.Fatal("changed revision did not refresh tables")
 	}
 	requireExtension(t, a.extensions.Set("phone", true))
@@ -463,7 +494,7 @@ func TestExtensionFailureToastsUseLocalizedNamesAndOriginalErrors(t *testing.T) 
 			mod := ext.Module{ID: "broken", Name: name, Setup: func(r *ext.Registrar) {
 				ext.Contribute(r, hostapi.Commands, "fail", hostapi.Command{Name: name, Run: func() { panic("original failure") }, Menu: hostapi.MenuPosition{Menu: hostapi.MenuView}})
 			}}
-			a := New(ai.New(""), mod)
+			a := New(ai.New(""), append(append([]ext.Module{}, testModules...), mod)...)
 			defer a.Close()
 			tt := stillTester(a.View, 1266, 780)
 			tt.Frame()
@@ -507,7 +538,7 @@ func TestTitleAndSystemViewMenusShareExtensionOrdering(t *testing.T) {
 			ext.Contribute(r, hostapi.Commands, value.id, hostapi.Command{Name: func() string { return value.id }, Menu: hostapi.MenuPosition{Menu: hostapi.MenuView, After: value.after}})
 		}
 	}}
-	a := New(ai.New(""), mod)
+	a := New(ai.New(""), append(append([]ext.Module{}, testModules...), mod)...)
 	defer a.Close()
 	var expected, title, system []string
 	known := map[string]bool{}

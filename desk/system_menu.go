@@ -27,7 +27,7 @@ var systemCommands = []struct {
 	cmd *command
 }{
 	{"settings", cmdSettings}, {"new-chapter", cmdNewChapter}, {"new-folder", cmdNewFolder},
-	{"save", cmdSave}, {"snapshots", cmdSnapshots}, {"export", cmdExport},
+	{"save", cmdSave}, {"snapshots", cmdSnapshots},
 	{"categories", cmdCategories}, {"trash", cmdTrash}, {"undo", cmdUndo}, {"redo", cmdRedo},
 	{"find", cmdFind}, {"rename", cmdRename}, {"continue", cmdContinue}, {"draft", cmdDraft},
 	{"side", cmdSide}, {"pane", cmdPane}, {"focus", cmdFocus},
@@ -117,9 +117,17 @@ func (a *App) SystemMenu() []SystemMenuItem {
 			view = append(view, row(entry.id))
 		}
 	}
+	var file []SystemMenuItem
+	for _, entry := range a.fileCommands() {
+		if entry.cmd == nil {
+			file = append(file, sep(entry.id))
+		} else {
+			file = append(file, row(entry.id))
+		}
+	}
 	return []SystemMenuItem{
 		menu("app", "", "appMenu", role("about", "about"), sep("app-settings-separator"), row("settings"), sep("app-hide-separator"), role("hide", "hide"), role("hide-others", "hideOthers"), sep("app-quit-separator"), role("quit", "quit")),
-		menu("file", locales.MenuFile(), "", row("new-chapter"), row("new-folder"), sep("file-save-separator"), row("save"), row("snapshots"), row("export"), sep("file-organize-separator"), row("categories"), row("trash")),
+		menu("file", locales.MenuFile(), "", file...),
 		menu("edit", locales.MenuEdit(), "", row("undo"), row("redo"), sep("edit-find-separator"), row("find"), row("rename"), aiSep, row("continue"), row("draft")),
 		menu("view", locales.MenuView(), "", view...),
 		menu("window", locales.MenuWindow(), "windowMenu", role("minimize", "minimize"), role("window-zoom", "zoom"), sep("window-front-separator"), role("front", "front")),

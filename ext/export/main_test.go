@@ -1,4 +1,4 @@
-package exportdialog
+package export
 
 import (
 	"cmp"

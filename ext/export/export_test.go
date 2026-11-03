@@ -1,11 +1,12 @@
-package exportdialog
+package export
 
 import (
+	"encoding/json"
 	"slices"
 	"testing"
 
 	"writer/desk/kit"
-	"writer/export"
+	"writer/ext/export/format"
 	"writer/workspace"
 )
 
@@ -58,6 +59,56 @@ func TestExportPlanChangesWithChoices(t *testing.T) {
 		t.Fatal(x.plan.Part)
 	}
 	change("Word")
+}
+
+func TestExportOpensWithWholeWorkAndDefaultProseChoices(t *testing.T) {
+	_, x, tt, _ := dialogFixture(t, "一二三")
+	x.Show()
+	tt.Frame()
+	if x.Selection().Scope != format.ScopeWork || x.preferences().Options != (format.Options{Prose: true}) {
+		t.Fatal("incorrect initial export choices", x.Selection(), x.preferences())
+	}
+	x.selection.Scope = format.ScopeChapter
+	x.Open = false
+	x.Show()
+	if x.Selection().Scope != format.ScopeWork {
+		t.Fatal("reopening retained the chapter scope")
+	}
+}
+
+func TestOpenDialogReplansOnlyWhenBookVersionOrCurrentChapterChanges(t *testing.T) {
+	h, x, tt, id := dialogFixture(t, "一二三")
+	x.Show()
+	x.preferences().Setting = true
+	x.Replan()
+	x.plan.Skip["cache"] = "kept"
+	for range 4 {
+		tt.Frame()
+	}
+	if x.plan.Skip["cache"] != "kept" {
+		t.Fatal("unchanged frames rebuilt the plan")
+	}
+	if _, err := h.store.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "主角怕黑"}}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := h.content.ReloadSetting(); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if x.plan.Skip["cache"] != "" || x.plan.Skip[format.SettingContent] != "" {
+		t.Fatal("book version did not refresh setting plan", x.plan)
+	}
+	x.plan.Skip["cache"] = "kept"
+	h.current = ""
+	tt.Frame()
+	if x.plan.Current != "" || x.plan.Skip["cache"] != "" {
+		t.Fatal("page change did not refresh plan")
+	}
+	h.current = id
+	tt.Frame()
+	if x.plan.Current != id {
+		t.Fatal("chapter change did not refresh plan")
+	}
 }
 
 func TestLaterLinesFromChapters(t *testing.T) {
@@ -128,8 +179,9 @@ func TestExportKeepsTheWorksPenWhileProseIsHidden(t *testing.T) {
 		t.Fatal(err)
 	}
 	x.preferences().Prose, x.preferences().Outline = false, true
+	x.saveChoices()
 	x.Show()
-	if x.pen != "雨声" {
+	if x.pen != "雨声" || x.preferences().Prose || !x.preferences().Outline {
 		t.Fatal("the pen name or why the outline cannot go", x.pen)
 	}
 }
@@ -137,21 +189,55 @@ func TestExportKeepsTheWorksPenWhileProseIsHidden(t *testing.T) {
 func TestExportFallsBackWhileRangeIsHidden(t *testing.T) {
 	h, x, _, id := dialogFixture(t, "一二三")
 	x.Show()
-	x.selection.Scope = export.ScopeChapter
+	x.selection.Scope = format.ScopeChapter
 	x.Replan()
-	if x.plan.Scope != export.ScopeChapter {
+	if x.plan.Scope != format.ScopeChapter {
 		t.Fatal(x.plan)
 	}
-	x.preferences().Options = export.Options{Setting: true}
+	x.preferences().Options = format.Options{Setting: true}
 	h.current = ""
 	x.Replan()
-	if x.selection.Scope != export.ScopeWork || x.plan.Scope != export.ScopeWork {
+	if x.selection.Scope != format.ScopeWork || x.plan.Scope != format.ScopeWork {
 		t.Fatal("hidden range did not follow the plan", x.selection, x.plan)
 	}
 	h.current = id
 	x.preferences().Prose = true
 	x.Replan()
-	if x.selection.Scope != export.ScopeWork {
+	if x.selection.Scope != format.ScopeWork {
 		t.Fatal(x.selection)
+	}
+}
+
+func TestExportJSON(t *testing.T) {
+	for mask := 0; mask < 16; mask++ {
+		original := map[string]any{"pen": "雨声"}
+		for i, key := range []string{"prose", "outline", "setting", "text"} {
+			if mask&(1<<i) != 0 {
+				original[key] = true
+			}
+		}
+		data, err := json.Marshal(original)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var e Choices
+		if err := json.Unmarshal(data, &e); err != nil {
+			t.Fatal(err)
+		}
+		if e.Options != (format.Options{Prose: mask&1 != 0, Outline: mask&2 != 0, Setting: mask&4 != 0, Text: mask&8 != 0}) || e.Pen != "雨声" {
+			t.Fatal(e)
+		}
+		got, err := json.Marshal(e)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var decoded map[string]any
+		if err := json.Unmarshal(got, &decoded); err != nil {
+			t.Fatal(err)
+		}
+		roundTrip, err := json.Marshal(decoded)
+		if err != nil || string(roundTrip) != string(data) {
+			t.Fatalf("%s != %s: %v", roundTrip, data, err)
+		}
 	}
 }
