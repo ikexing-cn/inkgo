@@ -63,7 +63,7 @@ func TestDraftDialogWithCards(t *testing.T) {
 	if !tt.HasText(oldHead) || !strings.HasPrefix(a.write.draftNote, "将带上各卷卷纲等，约 ") || a.write.draftCards != 0 || a.errorText() != "" {
 		t.Fatal("a broken outline prevents ordinary drafting", a.errorText(), tt.Texts())
 	}
-	if partNames[workspace.PartCards] != "本章的卡片" {
+	if partNames[workspace.PartCards]() != "本章的卡片" {
 		t.Fatal("the cards have no part name")
 	}
 }

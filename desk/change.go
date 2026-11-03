@@ -3,6 +3,7 @@ package desk
 import (
 	"slices"
 	"strconv"
+	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
@@ -37,7 +38,7 @@ func changeSide(tree workspace.Tree, o workspace.Order, e workspace.Entry, at st
 		return kit.FromLabel(tree, g.From)
 	}
 	if at != "" && slices.ContainsFunc(e.Holding(o), func(g workspace.Change) bool { return o[g.From] > o[at] }) {
-		return "之后有变化"
+		return locales.LoreLaterChanges()
 	}
 	return ""
 }
@@ -78,9 +79,9 @@ func (a *App) timeline(c *ui.Context, e workspace.Entry) {
 		d.from, d.text = g.From, g.Text
 	}
 	add := func() {
-		label := "从本章起有变化"
+		label := locales.LoreChangeFromChapter()
 		if n, _ := tree.Node(here); n != nil && n.Folder {
-			label = "从本卷起有变化"
+			label = locales.LoreChangeFromVolume()
 		}
 		if a.pal.Ghost(c, label, ui.Color{}).Clicked() {
 			d.route.editChange("new")
@@ -97,23 +98,23 @@ func (a *App) timeline(c *ui.Context, e workspace.Entry) {
 	}
 	a.pal.Hairline(c)
 	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, "随章节的变化").FontSize(kit.FsNote).FontWeight(600)
+		ui.Text(c, locales.LoreChanges()).FontSize(kit.FsNote).FontWeight(600)
 		ui.Spacer(c)
 		if here != "" && !mine {
 			add()
 		}
 	})
 	if here != "" && !holds {
-		a.pal.PaneNote(c, "本章适用上面原来的样子。")
+		a.pal.PaneNote(c, locales.LoreOriginalHere())
 	}
 	step := func(g workspace.Change, label string, current, faded bool) {
 		ui.Column(c.Key(g.ID)).FillWidth().Gap(4).Children(func() {
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 				ui.Text(c, label).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 				if current {
-					ui.Text(c, "本章适用").FontSize(kit.FsSmall).TextColor(a.pal.Ink).Padding(0, 6).Radius(kit.RXs).Background(t.SurfacePressed).Shrink(0)
+					ui.Text(c, locales.LoreHere()).FontSize(kit.FsSmall).TextColor(a.pal.Ink).Padding(0, 6).Radius(kit.RXs).Background(t.SurfacePressed).Shrink(0)
 				}
-				if a.pal.Ghost(c, "修改", ui.Color{}).Label("修改变化-" + g.ID).Clicked() {
+				if a.pal.Ghost(c, locales.CommonEdit(), ui.Color{}).Label("修改变化-" + g.ID).Clicked() {
 					open(g)
 				}
 			})
@@ -127,7 +128,7 @@ func (a *App) timeline(c *ui.Context, e workspace.Entry) {
 		step(g, kit.FromLabel(tree, g.From), holds && on.ID == g.ID, false)
 	}
 	for _, g := range gone {
-		step(g, "所在章节已删除 · 不起作用", false, true)
+		step(g, locales.LoreGoneInactive(), false, true)
 	}
 }
 
@@ -143,41 +144,41 @@ func (a *App) changeForm(c *ui.Context, e workspace.Entry) {
 	}
 	a.pal.PanePage(c, "change-"+e.ID, func() {
 		ui.Text(c, name+" · "+kit.FromLabel(tree, d.from)).FontSize(kit.FsGroup).FontWeight(600)
-		note := "从这一章起，这一条就是下面这段话。"
+		note := locales.LoreChangeNoteNoAi()
 		if a.aiOn() {
-			note = "从这一章起，这一条就是下面这段话；起草、改写这一章及以后的章时，AI 看到的是它。"
+			note = locales.LoreChangeNoteAi()
 		}
 		a.pal.PaneNote(c, note)
-		a.pal.PaneField(c, "从哪一章起", func() {
+		a.pal.PaneField(c, locales.LoreFromChapter(), func() {
 			names, ids := nodeChoices(tree)
-			chosen := "所在章节已删除"
+			chosen := locales.AppChapterGone()
 			for n, id := range ids {
 				if id == d.from {
 					chosen = n
 				}
 			}
-			if a.pal.Select(c, &chosen, names).Label("从哪一章起").FillWidth().Changed() {
+			if a.pal.Select(c, &chosen, names).Label(locales.LoreFromChapter()).FillWidth().Changed() {
 				d.from = ids[chosen]
 			}
 		})
-		a.pal.PaneField(c, "内容", func() {
-			ui.TextAreaBase(c, &d.text).Label("变化后的内容").FillWidth().Height(120).FontSize(kit.FsBody).LineHeight(kit.LhLoose).
+		a.pal.PaneField(c, locales.LoreContent(), func() {
+			ui.TextAreaBase(c, &d.text).Label(locales.LoreChangedText()).FillWidth().Height(120).FontSize(kit.FsBody).LineHeight(kit.LhLoose).
 				Padding(8, 10).Radius(kit.RControl).Background(a.pal.Canvas).Border(1, a.pal.Theme.Border).AutoFocus()
 		})
 		text := kit.Trim(d.text)
 		change := d.route.changeID()
 		was := slices.IndexFunc(e.Changes, func(g workspace.Change) bool { return g.ID == change })
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-			if was >= 0 && a.pal.Ghost(c, "删除这处变化", a.pal.Theme.Danger).Clicked() {
+			if was >= 0 && a.pal.Ghost(c, locales.LoreDropChange(), a.pal.Theme.Danger).Clicked() {
 				a.revise(workspace.Op{Op: workspace.OpDropChange, Entry: e.ID, Change: change})
 				d.route.closeChange()
 				return
 			}
 			ui.Spacer(c)
-			if a.pal.PaneButton(c, "取消", false).Clicked() {
+			if a.pal.PaneButton(c, locales.ToastCancel(), false).Clicked() {
 				d.route.closeChange()
 			}
-			if !a.pal.PaneButton(c, "保存", true).Disabled(text == "").Clicked() {
+			if !a.pal.PaneButton(c, locales.CmdSave(), true).Disabled(text == "").Clicked() {
 				return
 			}
 			var ops []workspace.Op
@@ -218,5 +219,5 @@ func (a *App) takeChange(e workspace.Entry, g workspace.Change) {
 			ops = append(ops, workspace.Op{Op: workspace.OpDropChange, Entry: e.ID, Change: x.ID})
 		}
 	}
-	a.undoSetting("已记到「"+shortName(e)+"」· "+kit.FromLabel(a.book.Tree(), g.From), append(ops, workspace.Op{Op: workspace.OpEditChange, Entry: e.ID, Change: g.ID, Place: workspace.PlaceBody})...)
+	a.undoSetting(locales.LoreNotedTo(shortName(e), kit.FromLabel(a.book.Tree(), g.From)), append(ops, workspace.Op{Op: workspace.OpEditChange, Entry: e.ID, Change: g.ID, Place: workspace.PlaceBody})...)
 }

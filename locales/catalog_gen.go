@@ -1974,6 +1974,34 @@ func (msgs Messages) StatusWordsTip() string {
 	return Catalog.Format(msgs.locale, "statusWordsTip", nil)
 }
 
+// StatusMorePending says "{count, plural, other {还有 # 条}}"
+// in the language the app shows.
+//
+// 待处理分组展开按钮里尚未显示的条数。
+func StatusMorePending(count int) string { return In(i18n.Locale()).StatusMorePending(count) }
+
+// StatusMorePending says "{count, plural, other {还有 # 条}}"
+// in the language of msgs.
+//
+// 待处理分组展开按钮里尚未显示的条数。
+func (msgs Messages) StatusMorePending(count int) string {
+	return Catalog.Format(msgs.locale, "statusMorePending", map[string]any{"count": count})
+}
+
+// StatusUndoWorkChanged says "作品已切换，无法撤销"
+// in the language the app shows.
+//
+// 撤销忽略待处理项时，已切换作品而无法撤销的错误。
+func StatusUndoWorkChanged() string { return In(i18n.Locale()).StatusUndoWorkChanged() }
+
+// StatusUndoWorkChanged says "作品已切换，无法撤销"
+// in the language of msgs.
+//
+// 撤销忽略待处理项时，已切换作品而无法撤销的错误。
+func (msgs Messages) StatusUndoWorkChanged() string {
+	return Catalog.Format(msgs.locale, "statusUndoWorkChanged", nil)
+}
+
 // EditorSeeEntry says "查看设定"
 // in the language the app shows.
 //
@@ -2838,6 +2866,48 @@ func EditorAcceptedUndo() string { return In(i18n.Locale()).EditorAcceptedUndo()
 // in the language of msgs.
 func (msgs Messages) EditorAcceptedUndo() string {
 	return Catalog.Format(msgs.locale, "editorAcceptedUndo", nil)
+}
+
+// EditorProposalAccepted says "已采纳 AI 提议；可撤销恢复原文，原版本已存入快照"
+// in the language the app shows.
+//
+// 应用单行提示条：采纳提议成功，同时说明撤销和快照。
+func EditorProposalAccepted() string { return In(i18n.Locale()).EditorProposalAccepted() }
+
+// EditorProposalAccepted says "已采纳 AI 提议；可撤销恢复原文，原版本已存入快照"
+// in the language of msgs.
+//
+// 应用单行提示条：采纳提议成功，同时说明撤销和快照。
+func (msgs Messages) EditorProposalAccepted() string {
+	return Catalog.Format(msgs.locale, "editorProposalAccepted", nil)
+}
+
+// EditorProposalVoid says "AI 提议已作废；写的时候，它要换掉的原文改动了"
+// in the language the app shows.
+//
+// 应用单行提示条：一处流式提议因作者修改原文而作废。
+func EditorProposalVoid() string { return In(i18n.Locale()).EditorProposalVoid() }
+
+// EditorProposalVoid says "AI 提议已作废；写的时候，它要换掉的原文改动了"
+// in the language of msgs.
+//
+// 应用单行提示条：一处流式提议因作者修改原文而作废。
+func (msgs Messages) EditorProposalVoid() string {
+	return Catalog.Format(msgs.locale, "editorProposalVoid", nil)
+}
+
+// EditorProposalsVoid says "{count, plural, other {# 处 AI 提议已作废；它要换掉的原文改动了}}"
+// in the language the app shows.
+//
+// 应用单行提示条：原文变化导致多处提议作废。
+func EditorProposalsVoid(count int) string { return In(i18n.Locale()).EditorProposalsVoid(count) }
+
+// EditorProposalsVoid says "{count, plural, other {# 处 AI 提议已作废；它要换掉的原文改动了}}"
+// in the language of msgs.
+//
+// 应用单行提示条：原文变化导致多处提议作废。
+func (msgs Messages) EditorProposalsVoid(count int) string {
+	return Catalog.Format(msgs.locale, "editorProposalsVoid", map[string]any{"count": count})
 }
 
 // EditorWhyNoModel says "无法连接模型服务"
@@ -5230,6 +5300,180 @@ func ChatAttachChapterTip() string { return In(i18n.Locale()).ChatAttachChapterT
 // in the language of msgs.
 func (msgs Messages) ChatAttachChapterTip() string {
 	return Catalog.Format(msgs.locale, "chatAttachChapterTip", nil)
+}
+
+// ChatPartCards says "本章的卡片"
+// in the language the app shows.
+//
+// AI
+// 参考内容和请求记录里的章节卡片部分名；不含张数。
+func ChatPartCards() string { return In(i18n.Locale()).ChatPartCards() }
+
+// ChatPartCards says "本章的卡片"
+// in the language of msgs.
+//
+// AI
+// 参考内容和请求记录里的章节卡片部分名；不含张数。
+func (msgs Messages) ChatPartCards() string {
+	return Catalog.Format(msgs.locale, "chatPartCards", nil)
+}
+
+// ChatPartRecap says "前情提要"
+// in the language the app shows.
+//
+// AI 参考内容和请求记录里的前情提要部分名。
+func ChatPartRecap() string { return In(i18n.Locale()).ChatPartRecap() }
+
+// ChatPartRecap says "前情提要"
+// in the language of msgs.
+//
+// AI 参考内容和请求记录里的前情提要部分名。
+func (msgs Messages) ChatPartRecap() string {
+	return Catalog.Format(msgs.locale, "chatPartRecap", nil)
+}
+
+// ChatPartProse says "附上的正文"
+// in the language the app shows.
+//
+// AI 参考内容里随讨论附上的正文部分名。
+func ChatPartProse() string { return In(i18n.Locale()).ChatPartProse() }
+
+// ChatPartProse says "附上的正文"
+// in the language of msgs.
+//
+// AI 参考内容里随讨论附上的正文部分名。
+func (msgs Messages) ChatPartProse() string {
+	return Catalog.Format(msgs.locale, "chatPartProse", nil)
+}
+
+// ChatWhereAfter says "接在一句之后"
+// in the language the app shows.
+//
+// 提议修改卡片里接在指定句子之后的位置名。
+func ChatWhereAfter() string { return In(i18n.Locale()).ChatWhereAfter() }
+
+// ChatWhereAfter says "接在一句之后"
+// in the language of msgs.
+//
+// 提议修改卡片里接在指定句子之后的位置名。
+func (msgs Messages) ChatWhereAfter() string {
+	return Catalog.Format(msgs.locale, "chatWhereAfter", nil)
+}
+
+// ChatRetrying says "正在重新请求回复…"
+// in the language the app shows.
+//
+// 重新请求未收到回复的讨论时的忙碌提示。
+func ChatRetrying() string { return In(i18n.Locale()).ChatRetrying() }
+
+// ChatRetrying says "正在重新请求回复…"
+// in the language of msgs.
+//
+// 重新请求未收到回复的讨论时的忙碌提示。
+func (msgs Messages) ChatRetrying() string {
+	return Catalog.Format(msgs.locale, "chatRetrying", nil)
+}
+
+// ChatFound says "找到的"
+// in the language the app shows.
+//
+// 应用讨论列表搜索结果的组标题；这里不显示条数。
+func ChatFound() string { return In(i18n.Locale()).ChatFound() }
+
+// ChatFound says "找到的"
+// in the language of msgs.
+//
+// 应用讨论列表搜索结果的组标题；这里不显示条数。
+func (msgs Messages) ChatFound() string {
+	return Catalog.Format(msgs.locale, "chatFound", nil)
+}
+
+// ChatAttachedOmitted says "{count, plural, other {回复时附带 # 条设定，因上下文上限省略 {omitted} 条}}"
+// in the language the app shows.
+//
+// 旧版讨论记录：附带的设定条数和因上下文上限省略的条数。
+func ChatAttachedOmitted(count int, omitted int) string {
+	return In(i18n.Locale()).ChatAttachedOmitted(count, omitted)
+}
+
+// ChatAttachedOmitted says "{count, plural, other {回复时附带 # 条设定，因上下文上限省略 {omitted} 条}}"
+// in the language of msgs.
+//
+// 旧版讨论记录：附带的设定条数和因上下文上限省略的条数。
+func (msgs Messages) ChatAttachedOmitted(count int, omitted int) string {
+	return Catalog.Format(msgs.locale, "chatAttachedOmitted", map[string]any{"count": count, "omitted": omitted})
+}
+
+// ChatProposalMeta says "{where} · {count, plural, other {# 字}} · {state}"
+// in the language the app shows.
+//
+// 提议卡片的整行：位置、字数和处理状态。
+func ChatProposalMeta(where string, count int, state string) string {
+	return In(i18n.Locale()).ChatProposalMeta(where, count, state)
+}
+
+// ChatProposalMeta says "{where} · {count, plural, other {# 字}} · {state}"
+// in the language of msgs.
+//
+// 提议卡片的整行：位置、字数和处理状态。
+func (msgs Messages) ChatProposalMeta(where string, count int, state string) string {
+	return Catalog.Format(msgs.locale, "chatProposalMeta", map[string]any{"where": where, "count": count, "state": state})
+}
+
+// ChatAskChapterPace says "这一章的节奏怎么样"
+// in the language the app shows.
+//
+// 写作页讨论输入框上方可点击的章节示例问题。
+func ChatAskChapterPace() string { return In(i18n.Locale()).ChatAskChapterPace() }
+
+// ChatAskChapterPace says "这一章的节奏怎么样"
+// in the language of msgs.
+//
+// 写作页讨论输入框上方可点击的章节示例问题。
+func (msgs Messages) ChatAskChapterPace() string {
+	return Catalog.Format(msgs.locale, "chatAskChapterPace", nil)
+}
+
+// ChatAskVolumePace says "这一卷的节奏怎么样"
+// in the language the app shows.
+//
+// 写作页讨论输入框上方可点击的卷示例问题。
+func ChatAskVolumePace() string { return In(i18n.Locale()).ChatAskVolumePace() }
+
+// ChatAskVolumePace says "这一卷的节奏怎么样"
+// in the language of msgs.
+//
+// 写作页讨论输入框上方可点击的卷示例问题。
+func (msgs Messages) ChatAskVolumePace() string {
+	return Catalog.Format(msgs.locale, "chatAskVolumePace", nil)
+}
+
+// ChatAskNext says "接下来可以怎么写"
+// in the language the app shows.
+//
+// 写作页讨论输入框上方可点击的示例问题。
+func ChatAskNext() string { return In(i18n.Locale()).ChatAskNext() }
+
+// ChatAskNext says "接下来可以怎么写"
+// in the language of msgs.
+//
+// 写作页讨论输入框上方可点击的示例问题。
+func (msgs Messages) ChatAskNext() string {
+	return Catalog.Format(msgs.locale, "chatAskNext", nil)
+}
+
+// ChatAskMotives says "人物的动机说得通吗"
+// in the language the app shows.
+//
+// 写作页讨论输入框上方可点击的示例问题。
+func ChatAskMotives() string { return In(i18n.Locale()).ChatAskMotives() }
+
+// ChatAskMotives says "人物的动机说得通吗"
+// in the language of msgs.
+//
+// 写作页讨论输入框上方可点击的示例问题。
+func (msgs Messages) ChatAskMotives() string {
+	return Catalog.Format(msgs.locale, "chatAskMotives", nil)
 }
 
 // HooksSelectFirst says "请先在正文中选中要关联的句子"
@@ -9788,6 +10032,94 @@ func SettingsRecordActual(input string, output string) string {
 // AI 记录里服务商算的实际用量，没有缓存命中时。
 func (msgs Messages) SettingsRecordActual(input string, output string) string {
 	return Catalog.Format(msgs.locale, "settingsRecordActual", map[string]any{"input": input, "output": output})
+}
+
+// SettingsCostCurrency says "约 {currency}{amount, number, ::.00}"
+// in the language the app shows.
+//
+// 非美元币种的估算花费；美元复用 settingsSpentCost。
+func SettingsCostCurrency(currency string, amount float64) string {
+	return In(i18n.Locale()).SettingsCostCurrency(currency, amount)
+}
+
+// SettingsCostCurrency says "约 {currency}{amount, number, ::.00}"
+// in the language of msgs.
+//
+// 非美元币种的估算花费；美元复用 settingsSpentCost。
+func (msgs Messages) SettingsCostCurrency(currency string, amount float64) string {
+	return Catalog.Format(msgs.locale, "settingsCostCurrency", map[string]any{"currency": currency, "amount": amount})
+}
+
+// SettingsNoPrice says "无价格"
+// in the language the app shows.
+//
+// 用量汇总里模型没有定价时显示。
+func SettingsNoPrice() string { return In(i18n.Locale()).SettingsNoPrice() }
+
+// SettingsNoPrice says "无价格"
+// in the language of msgs.
+//
+// 用量汇总里模型没有定价时显示。
+func (msgs Messages) SettingsNoPrice() string {
+	return Catalog.Format(msgs.locale, "settingsNoPrice", nil)
+}
+
+// SettingsUsageBack says "‹ 本作品用量"
+// in the language the app shows.
+//
+// AI 记录页返回本作品用量的按钮，含返回箭头。
+func SettingsUsageBack() string { return In(i18n.Locale()).SettingsUsageBack() }
+
+// SettingsUsageBack says "‹ 本作品用量"
+// in the language of msgs.
+//
+// AI 记录页返回本作品用量的按钮，含返回箭头。
+func (msgs Messages) SettingsUsageBack() string {
+	return Catalog.Format(msgs.locale, "settingsUsageBack", nil)
+}
+
+// SettingsRecordFailed says "失败：{why}"
+// in the language the app shows.
+//
+// 请求记录里失败结果的前缀；why 是底层错误原文。
+func SettingsRecordFailed(why string) string { return In(i18n.Locale()).SettingsRecordFailed(why) }
+
+// SettingsRecordFailed says "失败：{why}"
+// in the language of msgs.
+//
+// 请求记录里失败结果的前缀；why 是底层错误原文。
+func (msgs Messages) SettingsRecordFailed(why string) string {
+	return Catalog.Format(msgs.locale, "settingsRecordFailed", map[string]any{"why": why})
+}
+
+// SettingsRecordNoThinking says "{model} · 不思考"
+// in the language the app shows.
+//
+// 请求记录里模型名和关闭思考的状态整行。
+func SettingsRecordNoThinking(model string) string {
+	return In(i18n.Locale()).SettingsRecordNoThinking(model)
+}
+
+// SettingsRecordNoThinking says "{model} · 不思考"
+// in the language of msgs.
+//
+// 请求记录里模型名和关闭思考的状态整行。
+func (msgs Messages) SettingsRecordNoThinking(model string) string {
+	return Catalog.Format(msgs.locale, "settingsRecordNoThinking", map[string]any{"model": model})
+}
+
+// SettingsRecordChapterGone says "已删除的章节"
+// in the language the app shows.
+//
+// 请求记录对应章节已经删除时的标题。
+func SettingsRecordChapterGone() string { return In(i18n.Locale()).SettingsRecordChapterGone() }
+
+// SettingsRecordChapterGone says "已删除的章节"
+// in the language of msgs.
+//
+// 请求记录对应章节已经删除时的标题。
+func (msgs Messages) SettingsRecordChapterGone() string {
+	return Catalog.Format(msgs.locale, "settingsRecordChapterGone", nil)
 }
 
 // SettingsFeatureDraft says "起草"

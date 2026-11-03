@@ -1,9 +1,9 @@
 package desk
 
 import (
-	"fmt"
 	"slices"
 	"strings"
+	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
@@ -238,7 +238,7 @@ func (a *App) takeProps(ps []*prop) {
 	w.cur().ed.Take(places, list[0].model)
 	a.warn(a.saveText())
 	a.dropProps(list, workspace.FateTaken)
-	a.status.Did("已采纳 AI 提议；可撤销恢复原文，原版本已存入快照")
+	a.status.Did(locales.EditorProposalAccepted())
 	w.cur().ed.Focus()
 }
 
@@ -293,9 +293,9 @@ func (a *App) placeProps() {
 		w.placed = placedKey{w.cur().ed, w.cur().ed.Doc.Version(), w.propVer}
 		switch {
 		case len(void) == 1 && late:
-			a.status.Hint("AI 提议已作废；写的时候，它要换掉的原文改动了")
+			a.status.Hint(locales.EditorProposalVoid())
 		case len(void) > 0:
-			a.status.Hint(fmt.Sprintf("%d 处 AI 提议已作废；它要换掉的原文改动了", len(void)))
+			a.status.Hint(locales.EditorProposalsVoid(len(void)))
 		}
 		a.dropProps(void, workspace.FateVoid)
 	}
@@ -358,16 +358,16 @@ func (a *App) propActs(c *ui.Context) {
 			continue
 		}
 		ui.Row(c.Key("提议-" + p.id())).Absolute().Left(r.X + propInset).Top(r.Y).Height(r.H).Gap(6).AlignItems(ui.Center).Children(func() {
-			tip := "放弃这一处提议"
+			tip := locales.EditorDropOne()
 			if p.writing {
-				tip = "让 AI 停下，放弃这一处"
+				tip = locales.EditorStopDrop()
 			}
-			if a.pal.Soft(c, "放弃").Tooltip(tip).KeepFocus().Clicked() {
+			if a.pal.Soft(c, locales.CommonDiscard()).Tooltip(tip).KeepFocus().Clicked() {
 				drop = p
 			}
 			if p.writing {
-				ui.Text(c, "正在写…").FontSize(kit.FsControl).TextColor(t.TextMuted).SingleLine()
-			} else if a.pal.Primary(c, "采纳").Tooltip("采纳这一处提议").KeepFocus().Clicked() {
+				ui.Text(c, locales.EditorWriting()).FontSize(kit.FsControl).TextColor(t.TextMuted).SingleLine()
+			} else if a.pal.Primary(c, locales.EditorAccept()).Tooltip(locales.EditorAcceptOne()).KeepFocus().Clicked() {
 				take = p
 			}
 		})
@@ -396,21 +396,21 @@ func (a *App) aiBar(c *ui.Context) {
 	}
 	// 查看讨论 shows the talk of session, unless it is in view.
 	see := func(session string) {
-		if !(a.talkShown() && a.session == session) && a.pal.Ghost(c, "查看讨论", ui.Color{}).Clicked() {
+		if !(a.talkShown() && a.session == session) && a.pal.Ghost(c, locales.EditorSeeTalk(), ui.Color{}).Clicked() {
 			a.openTalk(session)
 		}
 	}
 	if w.rewriting {
 		bar(func() {
 			kit.Glyph(c, kit.IcPen, kit.IconMd, t.TextMuted)
-			in := ui.TextInput(c, &w.instruction).Label("改写要求").Placeholder("改写要求，例如：放慢节奏，多写她的犹豫").Grow(1).Shrink(1).AutoFocus()
+			in := ui.TextInput(c, &w.instruction).Label(locales.EditorRewriteLabel()).Placeholder(locales.EditorRewriteHint()).Grow(1).Shrink(1).AutoFocus()
 			s, e := w.cur().ed.Selection()
 			can := s != e && strings.TrimSpace(w.instruction) != ""
-			if (a.pal.Primary(c, "改写").Disabled(!can).Clicked() || in.Submitted()) && can {
+			if (a.pal.Primary(c, locales.EditorRewrite()).Disabled(!can).Clicked() || in.Submitted()) && can {
 				a.rewrite(c)
 				w.cur().ed.Focus()
 			}
-			if kit.IconButton(c, kit.IcX, "关闭改写", ui.Color{}).Clicked() || in.Shortcut(0, ui.KeyEscape) {
+			if kit.IconButton(c, kit.IcX, locales.EditorCloseRewrite(), ui.Color{}).Clicked() || in.Shortcut(0, ui.KeyEscape) {
 				w.rewriting = false
 				w.cur().ed.Focus()
 			}
@@ -430,15 +430,15 @@ func (a *App) aiBar(c *ui.Context) {
 			return
 		}
 		_, _, steps, _ := a.turn.live.read()
-		say := "AI 正在思考…"
+		say := locales.ToastThinking()
 		if len(workspace.Looks(steps, "")) > 0 {
-			say = "AI 正在查阅…"
+			say = locales.EditorLooking()
 		}
 		bar(func() {
 			ui.Spinner(c)
 			ui.Text(c, say).FontSize(kit.FsControl).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
 			see(a.turn.session)
-			if a.pal.Soft(c, "取消").Clicked() && a.cancel != nil {
+			if a.pal.Soft(c, locales.ToastCancel()).Clicked() && a.cancel != nil {
 				a.cancel()
 				w.cur().ed.Focus()
 			}
@@ -448,47 +448,47 @@ func (a *App) aiBar(c *ui.Context) {
 	writing := slices.ContainsFunc(here, func(p *prop) bool { return p.writing })
 	struck := slices.ContainsFunc(here, func(p *prop) bool { return p.At == workspace.ProposeReplace || p.At == workspace.ProposeAll })
 	bar(func() {
-		what, color := fmt.Sprintf("本章有 %d 处 AI 提议", len(here)), t.Success
+		what, color := locales.EditorSuggestionsHere(len(here)), t.Success
 		if writing {
-			what, color = "AI 正在写提议…", t.TextMuted
+			what, color = locales.EditorWritingSuggestions(), t.TextMuted
 		}
 		kit.Glyph(c, kit.IcSparkle, kit.IconMd, color)
 		say := ui.Text(c, what).FontSize(kit.FsControl).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
 		if !writing {
-			how := "绿字是 AI 新写的"
+			how := locales.EditorHowAppend()
 			if struck {
-				how += "，划掉的是会被换掉的原文"
+				how = locales.EditorHowReplace()
 			}
-			say.Tooltip(how + "；采纳后才写入正文")
+			say.Tooltip(how)
 		}
 		see(here[len(here)-1].session)
-		if a.pal.Soft(c, "全部放弃").Clicked() {
+		if a.pal.Soft(c, locales.EditorDropAll()).Clicked() {
 			a.letGo(here)
 			w.cur().ed.Focus()
 		}
 		// Grey while one comes, so that neither moves as it is done.
-		if a.pal.Primary(c, "全部采纳").Disabled(writing).Clicked() {
+		if a.pal.Primary(c, locales.EditorAcceptAll()).Disabled(writing).Clicked() {
 			a.takeProps(here)
 		}
 	})
 }
 
 // fateNames say what came of a proposal, in the card of its talk.
-var fateNames = map[string]string{
-	workspace.FateTaken:    "已采纳",
-	workspace.FateDropped:  "已放弃",
-	workspace.FateReplaced: "已被新的提议替换",
-	workspace.FateVoid:     "正文已改动，提议已作废",
-	workspace.FateClosed:   "作品关闭时已丢弃",
-	workspace.FateOff:      "关闭 AI 时已丢弃",
+var fateNames = map[string]func() string{
+	workspace.FateTaken:    locales.ChatFateAdopted,
+	workspace.FateDropped:  locales.HooksDropped,
+	workspace.FateReplaced: locales.ChatFateReplaced,
+	workspace.FateVoid:     locales.ChatFateChanged,
+	workspace.FateClosed:   locales.ChatFateBookClosed,
+	workspace.FateOff:      locales.ChatFateAiOff,
 }
 
 // whereNames say where a proposal goes, in its card.
-var whereNames = map[string]string{
-	workspace.ProposeReplace: "换掉一句",
-	workspace.ProposeAfter:   "接在一句之后",
-	workspace.ProposeEnd:     "接在章末",
-	workspace.ProposeAll:     "换掉全章",
+var whereNames = map[string]func() string{
+	workspace.ProposeReplace: locales.ChatWhereSwap,
+	workspace.ProposeAfter:   locales.ChatWhereAfter,
+	workspace.ProposeEnd:     locales.ChatWhereEnd,
+	workspace.ProposeAll:     locales.ChatWhereAll,
 }
 
 // propCard shows, in the reply of the talk session, a change it proposed
@@ -530,15 +530,22 @@ func (a *App) writingProps() bool {
 // Undecided, it links to where it shows.
 func (a *App) propCardOf(c *ui.Context, p workspace.Proposal, live *prop, fate string) {
 	t := a.pal.Theme
-	state := fateNames[fate]
+	state := ""
+	if label := fateNames[fate]; label != nil {
+		state = label()
+	}
 	switch {
 	case state != "":
 	case live != nil && live.writing:
-		state = "正在写…"
+		state = locales.EditorWriting()
 	case live != nil:
-		state = "等你决定"
+		state = locales.ChatFateWaiting()
 	default:
-		state = "已丢弃"
+		state = locales.ChatFateGone()
+	}
+	where := ""
+	if label := whereNames[p.At]; label != nil {
+		where = label()
 	}
 	title := a.nodeTitle(p.Chapter)
 	if title == "" {
@@ -551,12 +558,12 @@ func (a *App) propCardOf(c *ui.Context, p workspace.Proposal, live *prop, fate s
 				color = t.Success
 			}
 			kit.Glyph(c, kit.IcPen, kit.IconSm, color)
-			ui.Text(c, "提议修改「"+title+"」").FontSize(kit.FsControl).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
-			if live != nil && a.pal.Ghost(c, "在正文中查看", ui.Color{}).Clicked() {
+			ui.Text(c, locales.ChatProposeEdit(title)).FontSize(kit.FsControl).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
+			if live != nil && a.pal.Ghost(c, locales.ChatViewInText(), ui.Color{}).Clicked() {
 				a.showProp(live)
 			}
 		})
-		ui.Textf(c, "%s · %d 字 · %s", whereNames[p.At], workspace.Count(p.Text), state).FontSize(kit.FsNote).TextColor(t.TextMuted)
+		ui.Text(c, locales.ChatProposalMeta(where, workspace.Count(p.Text), state)).FontSize(kit.FsNote).TextColor(t.TextMuted)
 	})
 }
 
@@ -581,12 +588,12 @@ func (a *App) leaveView(c *ui.Context) {
 	var then func()
 	a.pal.Modal(c, &open, func() {
 		ui.Column(c).Width(kit.DialogAsk).Padding(kit.DialogPad).Gap(16).Children(func() {
-			a.pal.DialogHead(c, fmt.Sprintf("还有 %d 处 AI 提议没有处理", len(w.props)), "关闭后将丢弃。")
+			a.pal.DialogHead(c, locales.DialogLeaveTitle(len(w.props)), locales.DialogLeaveAbout())
 			ui.Row(c).FillWidth().Gap(8).Justify(ui.End).Children(func() {
-				if a.pal.Secondary(c, "取消").Clicked() {
+				if a.pal.Secondary(c, locales.ToastCancel()).Clicked() {
 					open = false
 				}
-				if a.pal.Primary(c, "丢弃并关闭").Clicked() {
+				if a.pal.Primary(c, locales.DialogLeaveDiscard()).Clicked() {
 					then, open = w.leaving, false
 				}
 			})

@@ -23,8 +23,8 @@ func (a *App) composer(c *ui.Context) {
 	// The chip names the model and effort the next turn goes to, and
 	// opens a menu to change either; its tooltip says where the words go.
 	chip := func() {
-		chip := ui.ButtonBase(c).Row().Gap(6).AlignItems(ui.Center).Padding(4, 8).Radius(kit.RControl).Label("当前模型").Tooltip(a.destination(work.Discussion)).Shrink(1).Disabled(a.held())
-		if chip.Hovered() || a.menu.MenuOpen("讨论模型") {
+		chip := ui.ButtonBase(c).Row().Gap(6).AlignItems(ui.Center).Padding(4, 8).Radius(kit.RControl).Label(locales.ChatCurrentModel()).Tooltip(a.destination(work.Discussion)).Shrink(1).Disabled(a.held())
+		if chip.Hovered() || a.menu.MenuOpen("chat-model") {
 			chip.Background(t.SurfaceHover)
 		}
 		chip.Children(func() {
@@ -38,18 +38,18 @@ func (a *App) composer(c *ui.Context) {
 				ui.Text(c, a.ai.EffortLabel(work.Discussion.Effort)).FontSize(kit.FsNote).TextColor(a.pal.Faint).SingleLine()
 			} else {
 				kit.Dot(c, t.Warning, 6)
-				ui.Text(c, "选择讨论模型").FontSize(kit.FsNote).TextColor(t.Warning).SingleLine()
+				ui.Text(c, locales.ChatPickModel()).FontSize(kit.FsNote).TextColor(t.Warning).SingleLine()
 			}
 			kit.Glyph(c, kit.IcChevronUp, kit.IconXs, a.pal.Faint)
 		})
-		a.menu.DropMenu(c, a.pal, chip, "讨论模型", func(panel ui.Element) {
+		a.menu.DropMenu(c, a.pal, chip, "chat-model", func(panel ui.Element) {
 			panel.TransformOrigin(1, 1)
 			panel.AttachTo(chip, ui.AnchorTopRight, ui.AnchorBottomRight).Margin(0, 0, 4, 0).Width(220)
 		}, func(m *kit.Menu) { a.modelMenu(m, work) })
 	}
 	send := func() {
 		can := a.busy == "" && kit.Trim(a.input) != ""
-		send := ui.ButtonBase(c).Size(kit.HControl, kit.HControl).Radius(kit.RRound).Center().Label("发送").Tooltip(locales.TalkSend(cmdSend.keys())).Disabled(!can).Shrink(0)
+		send := ui.ButtonBase(c).Size(kit.HControl, kit.HControl).Radius(kit.RRound).Center().Label(locales.HelpSend()).Tooltip(locales.TalkSend(cmdSend.keys())).Disabled(!can).Shrink(0)
 		bg := a.pal.Ink
 		if !can {
 			bg = t.SurfacePressed
@@ -71,7 +71,7 @@ func (a *App) composer(c *ui.Context) {
 	field := func(hint string, per, least int) ui.Element {
 		lines := strings.Count(a.input, "\n") + 1 + len([]rune(a.input))/per
 		h := float32(min(max(lines, least), 7)) * 25
-		in := ui.TextAreaBase(c, &a.input).Label("讨论输入").Placeholder(hint).Height(h).FontSize(kit.FsRead).LineHeight(kit.LhLoose).Disabled(a.held())
+		in := ui.TextAreaBase(c, &a.input).Label(locales.TalkInputLabel()).Placeholder(hint).Height(h).FontSize(kit.FsRead).LineHeight(kit.LhLoose).Disabled(a.held())
 		if a.focusTalk { // after the words offered, to go on with them
 			n := utf8.RuneCountInString(a.input)
 			in.Focus().SetTextSelection(n, n)
@@ -95,9 +95,9 @@ func (a *App) composer(c *ui.Context) {
 				ui.Row(c).FillWidth().Gap(10).AlignItems(ui.End).Children(func() {
 					// Enter is a new line here as on the page: the key that
 					// sends is said, there being no room to show it beside.
-					hint := "输入消息"
+					hint := locales.ChatTypeMessage()
 					if !a.hasMessages() {
-						hint = "输入想讨论的内容"
+						hint = locales.ChatTypeTopic()
 					}
 					field(locales.ChatSendHint(hint, cmdSend.keys()), 16, 1).Grow(1).Shrink(1)
 					send()
@@ -107,12 +107,12 @@ func (a *App) composer(c *ui.Context) {
 				// A talk opened to draft or rewrite keeps to its chapter: there
 				// is nothing to choose.
 				if kept := a.keptTo(); kept != "" {
-					ui.Text(c, "跟着「"+a.nodeTitle(kept)+"」").FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1).
-						Tooltip("这段讨论附上的正文和设定都按这一章")
+					ui.Text(c, locales.ChatFollows(a.nodeTitle(kept))).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1).
+						Tooltip(locales.ChatFixedTip())
 				} else {
-					label, tip := "附上本章内容", "将章纲和光标前约 2000 字一并发送给 AI"
-					if a.openUnit() == "卷" {
-						label, tip = "附上本卷内容", "将卷纲一并发送给 AI"
+					label, tip := locales.ChatAttachChapter(), locales.ChatAttachChapterTip()
+					if a.openUnit() == "volume" {
+						label, tip = locales.ChatAttachVolume(), locales.ChatAttachVolumeTip()
 					}
 					if ui.Checkbox(c, &a.doc.attach, label).Tooltip(tip).Changed() {
 						a.savePrefs()
@@ -131,7 +131,7 @@ func (a *App) composer(c *ui.Context) {
 	}
 	box.Children(func() {
 		quotes()
-		field("输入想法，或向 AI 提问…", 46, 2).FillWidth()
+		field(locales.TalkInputHint(), 46, 2).FillWidth()
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 			chip()
 			ui.Spacer(c)
@@ -175,7 +175,7 @@ func originChapter(events []workspace.Event) string {
 
 func (a *App) openSource(m workspace.Event, start, end int) {
 	a.source = editor.New(editor.NewDoc(m.Text), editor.Options{ReadOnly: true, LineHeight: kit.LhRead,
-		OwnMenu: func(x, y float32) { a.menu = kit.MenuState{Owner: "原文", X: x, Y: y} }})
+		OwnMenu: func(x, y float32) { a.menu = kit.MenuState{Owner: "source-text", X: x, Y: y} }})
 	if end > start {
 		a.source.MoveTo(start, false)
 		a.source.MoveTo(end, true)
@@ -189,29 +189,29 @@ func (a *App) extraction(c *ui.Context) {
 	t := a.pal.Theme
 	a.pal.Modal(c, &a.sourceOpen, func() {
 		ui.Column(c).Width(kit.DialogSource).Padding(kit.DialogPad).Gap(16).Children(func() {
-			a.pal.DialogHead(c, "摘取原文", "拖选一段原文，作为已确定的设定加入正文。原文不会被修改。")
+			a.pal.DialogHead(c, locales.ChatPull(), locales.DialogSourceAbout())
 			a.source.View(c).Height(220).FillWidth().Border(1, t.Border).Radius(kit.RCard)
 			start, end := a.source.Selection()
-			a.menu.MenuAt(c, a.pal, "原文", func(m *kit.Menu) {
-				m.Item("复制").Hint(cmdCopy.keys()).Disabled(start == end).Do(func() { a.source.Copy() })
-				m.Item("全选").Hint(cmdSelectAll.keys()).Do(func() { a.source.SelectAll() })
+			a.menu.MenuAt(c, a.pal, "source-text", func(m *kit.Menu) {
+				m.Item(locales.CommonCopy()).Hint(cmdCopy.keys()).Disabled(start == end).Do(func() { a.source.Copy() })
+				m.Item(locales.CommonSelectAll()).Hint(cmdSelectAll.keys()).Do(func() { a.source.SelectAll() })
 			})
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
-				a.pal.Select(c, &a.sourceCategory, a.categoryNames()).Label("摘取分类").Width(140)
+				a.pal.Select(c, &a.sourceCategory, a.categoryNames()).Label(locales.DialogSourceCat()).Width(140)
 				if start == end {
-					ui.Text(c, "尚未选中文字").FontSize(kit.FsNote).TextColor(a.pal.Faint)
+					ui.Text(c, locales.DialogNotPicked()).FontSize(kit.FsNote).TextColor(a.pal.Faint)
 				} else {
-					ui.Textf(c, "已选 %d 字", end-start).FontSize(kit.FsNote).TextColor(a.pal.Ink)
+					ui.Text(c, locales.DialogPicked(end-start)).FontSize(kit.FsNote).TextColor(a.pal.Ink)
 				}
 				ui.Spacer(c)
-				if a.pal.Ghost(c, "收起原文", ui.Color{}).Clicked() {
+				if a.pal.Ghost(c, locales.DialogSourceCollapse(), ui.Color{}).Clicked() {
 					a.sourceOpen = false
 				}
-				if a.pal.Primary(c, "加入设定").Disabled(a.held() || start == end).Clicked() {
+				if a.pal.Primary(c, locales.EditorAddToLore()).Disabled(a.held() || start == end).Clicked() {
 					entry, err := a.ai.Extract(a.Store, a.session, a.sourceMessage, start, end, a.sourceCategory)
 					if err == nil {
 						a.sourceOpen = false
-						a.status.Did("已加入设定正文")
+						a.status.Did(locales.DialogSettingAdded())
 						err = a.refresh()
 						a.flash[entry.ID] = time.Now()
 					}
@@ -255,7 +255,7 @@ func (a *App) modelMenu(m *kit.Menu, work workspace.Work) {
 	}
 	for _, p := range with {
 		// One service's models need no name over them.
-		head := "模型"
+		head := locales.ChatModel()
 		if len(with) > 1 {
 			head = p.Name
 		}
@@ -265,9 +265,9 @@ func (a *App) modelMenu(m *kit.Menu, work workspace.Work) {
 			m.Item(id).On(on).Do(func() { a.setTalk(func(s *workspace.Selection) { s.Provider, s.Model = p.ID, id }) })
 		}
 	}
-	m.Item("AI 配置…").Do(func() { a.openPrefs("AI") })
+	m.Item(locales.ChatAiConfig()).Do(func() { a.openPrefs("AI") })
 	m.Separator()
-	m.Head("思考程度")
+	m.Head(locales.ChatEffort())
 	for _, e := range a.ai.Efforts() {
 		m.Item(a.ai.EffortLabel(e)).On(work.Discussion.Effort == e).Do(func() {
 			a.setTalk(func(s *workspace.Selection) { s.Effort = e })

@@ -1,12 +1,12 @@
 package desk
 
 import (
-	"fmt"
 	"maps"
 	"math"
 	"slices"
 	"strings"
 	"time"
+	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
@@ -36,18 +36,21 @@ func (v *recordView) show() { v.showing, v.only, v.expanded = true, 0, -1 }
 
 // recordFeatures are the features of the AI record as the author reads
 // them, in the order the settings list them.
-var recordFeatures = []struct{ id, name string }{
-	{workspace.FeatureTalk, "讨论"},
-	{workspace.FeatureDraft, "起草"},
-	{workspace.FeatureRewrite, "改写"},
-	{workspace.FeatureContinue, "续写"},
-	{workspace.FeatureCheck, "检查"},
+var recordFeatures = []struct {
+	id   string
+	name func() string
+}{
+	{workspace.FeatureTalk, locales.PageTalk},
+	{workspace.FeatureDraft, locales.SettingsFeatureDraft},
+	{workspace.FeatureRewrite, locales.SettingsFeatureRewrite},
+	{workspace.FeatureContinue, locales.SettingsFeatureContinue},
+	{workspace.FeatureCheck, locales.PageCheck},
 }
 
 func featureName(id string) string {
 	for _, f := range recordFeatures {
 		if f.id == id {
-			return f.name
+			return f.name()
 		}
 	}
 	return id
@@ -59,9 +62,13 @@ func costText(costs map[string]float64) string {
 	var out []string
 	for _, cur := range slices.Sorted(maps.Keys(costs)) {
 		if v := costs[cur]; v < 0.01 {
-			out = append(out, "不到 "+cur+"0.01")
+			out = append(out, locales.AiCostUnder(cur+"0.01"))
 		} else {
-			out = append(out, fmt.Sprintf("约 %s%.2f", cur, v))
+			if cur == "$" {
+				out = append(out, locales.SettingsSpentCost(v))
+			} else {
+				out = append(out, locales.SettingsCostCurrency(cur, v))
+			}
 		}
 	}
 	return strings.Join(out, " + ")
@@ -84,9 +91,9 @@ func costOf(rs ...workspace.Record) map[string]float64 {
 // way to every request.
 func (a *App) spent(c *ui.Context) {
 	t := a.pal.Theme
-	a.pal.Subhead(c, "本作品用量", "")
+	a.pal.Subhead(c, locales.SettingsUsage(), "")
 	if len(a.record.records) == 0 {
-		ui.Text(c, "尚未使用 AI。").FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
+		ui.Text(c, locales.SettingsNoUsage()).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
 		return
 	}
 	all := 0
@@ -105,24 +112,24 @@ func (a *App) spent(c *ui.Context) {
 				continue
 			}
 			all += n
-			used := fmt.Sprintf("%d 次请求 · 输入 %s", n, tokens.Round(u.Input))
+			cached := 0
 			if u.Input > 0 {
-				used += fmt.Sprintf("，缓存命中 %d%%", int(math.Round(float64(u.CacheRead)*100/float64(u.Input))))
+				cached = int(math.Round(float64(u.CacheRead) * 100 / float64(u.Input)))
 			}
-			used += " · 输出 " + tokens.Round(u.Output)
+			used := locales.SettingsSpentRow(n, tokens.Round(u.Input), cached, tokens.Round(u.Output))
 			cost := costText(costOf(rows...))
 			if cost == "" {
-				cost = "无价格"
+				cost = locales.SettingsNoPrice()
 			}
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-				ui.Text(c, f.name).FontSize(kit.FsControl).Width(120).Shrink(0).SingleLine()
+				ui.Text(c, f.name()).FontSize(kit.FsControl).Width(120).Shrink(0).SingleLine()
 				ui.Text(c, used).FontSize(kit.FsControl).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
 				ui.Text(c, cost).FontSize(kit.FsControl).Shrink(0)
 			})
 		}
 	})
 	ui.Row(c).FillWidth().Justify(ui.End).Children(func() {
-		if a.pal.Ghost(c, fmt.Sprintf("查看全部记录（%d 次请求）", all), ui.Color{}).Clicked() {
+		if a.pal.Ghost(c, locales.SettingsViewAll(all), ui.Color{}).Clicked() {
 			a.record.show()
 		}
 	})
@@ -135,25 +142,25 @@ func (a *App) spent(c *ui.Context) {
 // they scroll.
 func (a *App) recordsView(c *ui.Context) {
 	t := a.pal.Theme
-	names := []string{"全部"}
+	names := []string{locales.SettingsRecordsAll()}
 	for _, f := range recordFeatures {
-		names = append(names, f.name)
+		names = append(names, f.name())
 	}
 	ui.Column(c).FillWidth().Grow(1).Shrink(1).Gap(12).Children(func() {
 		ui.Row(c).FillWidth().Padding(12, 56, 0, 32).Shrink(0).AlignItems(ui.Center).Gap(12).Children(func() {
-			if a.pal.Ghost(c, "‹ 本作品用量", ui.Color{}).Clicked() {
+			if a.pal.Ghost(c, locales.SettingsUsageBack(), ui.Color{}).Clicked() {
 				a.record.showing = false
 			}
 			ui.Spacer(c)
 			was := a.record.only
-			a.pal.Segments(c, &a.record.only, "按功能筛选", names)
+			a.pal.Segments(c, &a.record.only, locales.SettingsFilterByFeature(), names)
 			if a.record.only != was {
 				a.record.expanded = -1
 			}
 		})
 		rows := a.record.filtered()
 		if len(rows) == 0 {
-			ui.Text(c, "没有这类请求。").FontSize(kit.FsNote).TextColor(t.TextMuted).Padding(12, 56, 12, 32)
+			ui.Text(c, locales.SettingsNoRecords()).FontSize(kit.FsNote).TextColor(t.TextMuted).Padding(12, 56, 12, 32)
 			return
 		}
 		now := time.Now()
@@ -191,11 +198,11 @@ func (a *App) recordRow(c *ui.Context, i int, now time.Time) {
 	at, where, end, endColor := kit.When(r.At, now), featureName(r.Feature)+" · "+a.recordWhere(r), "", t.TextMuted
 	switch r.Outcome {
 	case workspace.OutcomeDone:
-		end, endColor = "完成", t.Text
+		end, endColor = locales.SettingsRecordDone(), t.Text
 	case workspace.OutcomeCancelled:
-		end = "已取消"
+		end = locales.SettingsRecordCancelled()
 	default:
-		end, endColor = "失败："+r.Error, t.Danger
+		end, endColor = locales.SettingsRecordFailed(r.Error), t.Danger
 	}
 	cost := costText(costOf(r))
 	if cost == "" {
@@ -239,31 +246,34 @@ func (a *App) recordMore(c *ui.Context, r workspace.Record) {
 	ui.Column(c).FillWidth().Padding(0, 6, 10, 6+92+12).Gap(2).Children(func() {
 		switch {
 		case r.Effort == "none":
-			note(a.replyLabel(r.Model, "") + " · 不思考")
+			note(locales.SettingsRecordNoThinking(a.replyLabel(r.Model, "")))
 		default:
 			note(a.replyLabel(r.Model, "") + " · " + a.ai.EffortLabel(r.Effort))
 		}
 		if len(r.Parts) > 0 {
 			var parts []string
 			for _, p := range r.Parts {
-				name := partNames[p.Name]
+				name := ""
+				if label := partNames[p.Name]; label != nil {
+					name = label()
+				}
 				switch {
 				case p.Name == workspace.PartSetting:
-					name = "设定"
+					name = locales.RecordsLore()
 				case p.Name == workspace.PartProse && r.Feature != workspace.FeatureTalk:
-					name = "本章正文"
+					name = locales.RecordsChapterText()
 				case name == "":
 					name = p.Name
 				}
 				parts = append(parts, name+" "+tokens.Round(p.Tokens))
 			}
-			note("发送：" + strings.Join(parts, " · "))
+			note(locales.SettingsRecordSent(strings.Join(parts, " · ")))
 		}
-		used := "实际用量：输入 " + tokens.Round(r.Usage.Input)
+		used := locales.SettingsRecordActual(tokens.Round(r.Usage.Input), tokens.Round(r.Usage.Output))
 		if r.Usage.CacheRead > 0 {
-			used += "，其中缓存命中 " + tokens.Round(r.Usage.CacheRead)
+			used = locales.SettingsRecordActualCached(tokens.Round(r.Usage.Input), tokens.Round(r.Usage.CacheRead), tokens.Round(r.Usage.Output))
 		}
-		note(used + "；输出 " + tokens.Round(r.Usage.Output))
+		note(used)
 		if r.Outcome == workspace.OutcomeFailed {
 			ui.Text(c, r.Error).FontSize(kit.FsNote).TextColor(t.Danger).LineHeight(kit.LhBody).Selectable().FillWidth()
 		}
@@ -277,10 +287,10 @@ func (a *App) recordWhere(r workspace.Record) string {
 		if title, ok := a.titles[r.Talk]; ok {
 			return title
 		}
-		return "已删除的讨论"
+		return locales.SnapAITalkGone()
 	}
 	if n, ok := a.book.Tree().Node(r.Chapter); ok {
 		return n.Title
 	}
-	return "已删除的章节"
+	return locales.SettingsRecordChapterGone()
 }

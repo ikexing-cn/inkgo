@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"time"
+	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/aiport"
@@ -43,7 +44,7 @@ func (a *App) panelLimit(win float32) float32 {
 // the width is kept once they let go.
 func (a *App) resizer(c *ui.Context, width float32) {
 	win, _ := c.Size()
-	edge := ui.Box(c).Absolute().Left(-4).Top(0).Width(8).FillHeight().Cursor(ui.CursorResizeEW).Label("调整右栏宽度")
+	edge := ui.Box(c).Absolute().Left(-4).Top(0).Width(8).FillHeight().Cursor(ui.CursorResizeEW).Label(locales.PaneResize())
 	if dx, _, ok := edge.Dragged(); ok {
 		if dx != 0 {
 			a.doc.width = min(max(width-dx, panelMin), a.panelLimit(win))
@@ -131,7 +132,7 @@ func (a *App) talkPanel(c *ui.Context) {
 		a.talkList(c)
 		return
 	}
-	if back, _ := a.pal.PaneBack(c, "全部讨论", ""); back && !a.held() {
+	if back, _ := a.pal.PaneBack(c, locales.ChatAll(), ""); back && !a.held() {
 		d.talks = true
 	}
 	a.pal.Hairline(c)
@@ -144,7 +145,7 @@ func (a *App) talkPanel(c *ui.Context) {
 // talkList is the talks of the work, the latest first, a row each.
 func (a *App) talkList(c *ui.Context) {
 	d := &a.doc
-	if a.paneFind(c, &d.talkQuery, "搜索讨论", "新讨论", nil) {
+	if a.paneFind(c, &d.talkQuery, locales.ChatSearch(), locales.ChatNew(), nil) {
 		if id, err := a.blankSession(); err != nil {
 			a.SetError(err)
 		} else {
@@ -154,9 +155,9 @@ func (a *App) talkList(c *ui.Context) {
 	}
 	q := kit.Trim(d.talkQuery)
 	a.pal.PaneRows(c, "talks", func() {
-		group := "最近"
+		group := locales.ChatRecent()
 		if q != "" {
-			group = "找到的"
+			group = locales.ChatFound()
 		}
 		n := 0
 		for i := len(a.sessions) - 1; i >= 0; i-- {
@@ -175,7 +176,7 @@ func (a *App) talkList(c *ui.Context) {
 			}
 		}
 		if n == 0 {
-			a.pal.PaneEmpty(c, "未找到", "")
+			a.pal.PaneEmpty(c, locales.FindNone(), "")
 		}
 	})
 }
@@ -237,7 +238,7 @@ func (a *App) quoteToTalk() {
 // finds the words in the chapter.
 func (a *App) quoteBlock(c *ui.Context, q workspace.Quote, key string, remove func()) {
 	t := a.pal.Theme
-	b := ui.ButtonBase(c.Key(key)).Row().FillWidth().Gap(8).AlignItems(ui.Stretch).Padding(6, 8, 6, 0).Radius(kit.RControl).Label("引用-" + key).Tooltip("在正文中定位此段")
+	b := ui.ButtonBase(c.Key(key)).Row().FillWidth().Gap(8).AlignItems(ui.Stretch).Padding(6, 8, 6, 0).Radius(kit.RControl).Label("引用-" + key).Tooltip(locales.ChatLocate())
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}
@@ -251,7 +252,7 @@ func (a *App) quoteBlock(c *ui.Context, q workspace.Quote, key string, remove fu
 			ui.Text(c, "《"+title+"》").FontSize(kit.FsNote).TextColor(a.pal.Ink)
 			ui.Text(c, kit.Clip(q.Text, 160)).FontSize(kit.FsControl).LineHeight(kit.LhBody).TextColor(t.TextMuted).FillWidth()
 		})
-		if remove != nil && kit.IconButton(c, kit.IcX, "去掉引用-"+key, ui.Color{}).Tooltip("移除此段引用").Clicked() {
+		if remove != nil && kit.IconButton(c, kit.IcX, "去掉引用-"+key, ui.Color{}).Tooltip(locales.ChatRemoveCite()).Clicked() {
 			remove()
 		}
 	})
@@ -264,7 +265,7 @@ func (a *App) quoteBlock(c *ui.Context, q workspace.Quote, key string, remove fu
 // it, if the text is still there.
 func (a *App) findInChapter(chapter, text string) {
 	if _, ok := a.book.Tree().Node(chapter); !ok {
-		a.SetError(errors.New("该章已不存在"))
+		a.SetError(errors.New(locales.ChatChapterGone()))
 		return
 	}
 	a.page = pageWrite
@@ -277,7 +278,7 @@ func (a *App) findInChapter(chapter, text string) {
 	}
 	at := strings.Index(ed.Doc.String(), text)
 	if at < 0 {
-		a.status.Hint("该段原文已修改，在本章中未找到")
+		a.status.Hint(locales.ChatQuoteChanged())
 		return
 	}
 	s := len([]rune(ed.Doc.String()[:at]))

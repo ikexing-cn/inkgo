@@ -3,6 +3,7 @@ package desk
 import (
 	"strings"
 	"time"
+	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
@@ -30,20 +31,20 @@ func (a *App) take(c *ui.Context) {
 	w := &a.write
 	a.pal.Modal(c, &w.takeOpen, func() {
 		ui.Column(c).Width(kit.DialogSmall).Padding(kit.DialogPad).Gap(16).Children(func() {
-			a.pal.DialogHead(c, "加入设定", "选中的原文将记为出处；设定内容可改用自己的表述。")
-			kit.Labeled(c, "设定内容", func() {
-				ui.TextAreaBase(c, &w.takeText).Label("设定内容").FillWidth().Height(88).FontSize(kit.FsBody).LineHeight(kit.LhLoose).
+			a.pal.DialogHead(c, locales.EditorAddToLore(), locales.DialogTakeAbout())
+			kit.Labeled(c, locales.DialogSettingText(), func() {
+				ui.TextAreaBase(c, &w.takeText).Label(locales.DialogSettingText()).FillWidth().Height(88).FontSize(kit.FsBody).LineHeight(kit.LhLoose).
 					Padding(8, 10).Radius(kit.RControl).Border(1, t.Border)
 			})
-			kit.Labeled(c, "设定分类", func() {
-				a.pal.Select(c, &w.takeCategory, a.categoryNames()).Label("设定分类").FillWidth()
+			kit.Labeled(c, locales.DialogSettingCat(), func() {
+				a.pal.Select(c, &w.takeCategory, a.categoryNames()).Label(locales.DialogSettingCat()).FillWidth()
 			})
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 				ui.Spacer(c)
-				if a.pal.Secondary(c, "取消").Clicked() {
+				if a.pal.Secondary(c, locales.ToastCancel()).Clicked() {
 					w.takeOpen = false
 				}
-				if a.pal.Primary(c, "加入").Disabled(strings.TrimSpace(w.takeText) == "").Clicked() {
+				if a.pal.Primary(c, locales.DialogAdd()).Disabled(strings.TrimSpace(w.takeText) == "").Clicked() {
 					a.takeIn()
 				}
 			})
@@ -72,5 +73,5 @@ func (a *App) takeIn() {
 	}
 	a.flash[r.Ops[0].Entry] = time.Now()
 	w.takeOpen = false
-	a.status.Did("已加入设定正文")
+	a.status.Did(locales.DialogSettingAdded())
 }

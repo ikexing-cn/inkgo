@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 	"writer/aiport"
@@ -215,7 +216,7 @@ func (a *App) say(c *ui.Context, session string, words workspace.Event, unsaid f
 	words.Role = workspace.RoleUser // as they are kept
 	a.turn.pending, a.turn.quotes = words.Text, words.Quotes
 	a.chat.ScrollToEnd()
-	a.run(c, "AI 正在思考…", func(ctx context.Context) (func(), error) {
+	a.run(c, locales.ToastThinking(), func(ctx context.Context) (func(), error) {
 		saved, err := talk.Say(ctx, session, words)
 		return func() {
 			a.turn.pending, a.turn.quotes = "", nil
@@ -237,7 +238,7 @@ func (a *App) retry(c *ui.Context, userID string) {
 		return
 	}
 	session := a.session
-	a.run(c, "正在重新请求回复…", func(ctx context.Context) (func(), error) {
+	a.run(c, locales.ChatRetrying(), func(ctx context.Context) (func(), error) {
 		err := talk.Retry(ctx, session, userID)
 		return func() {
 			if a.session == session {
