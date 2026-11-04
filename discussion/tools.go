@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"unicode"
+	"writer/aiport"
 
 	"writer/inference"
 	"writer/internal/textclip"
@@ -110,9 +111,16 @@ func fixedSchema(schema string) func(workspace.Work) json.RawMessage {
 
 // tools are the tools of a talk of w: note_setting takes w's categories.
 func tools(w workspace.Work) []model.Tool {
-	out := make([]model.Tool, len(toolTable))
-	for i, tl := range toolTable {
-		out[i] = model.Tool{Name: tl.name, Description: tl.description, Schema: tl.schema(w)}
+	return toolsFor(w, aiport.Material{Setting: true, Outline: true})
+}
+
+func toolsFor(w workspace.Work, material aiport.Material) []model.Tool {
+	var out []model.Tool
+	for _, tl := range toolTable {
+		if (tl.name == toolLookUp || tl.name == toolNote) && !material.Setting || tl.name == toolReadOutline && !material.Outline {
+			continue
+		}
+		out = append(out, model.Tool{Name: tl.name, Description: tl.description, Schema: tl.schema(w)})
 	}
 	return out
 }
@@ -180,6 +188,7 @@ func findTool(name string) (tool, bool) {
 // In a talk that keeps to the chapter at, the setting is looked up as it
 // stands there.
 type toolbox struct {
+	allowed []model.Tool
 	store   *workspace.Store
 	session string
 	turn    string
@@ -203,7 +212,7 @@ func failed(format string, v ...any) outcome {
 // run runs c; what fails is told to the model, which may try again.
 func (t *toolbox) run(c model.Call) outcome {
 	tl, ok := findTool(c.Name)
-	if !ok {
+	if !ok || !slices.ContainsFunc(t.allowed, func(tl model.Tool) bool { return tl.Name == c.Name }) {
 		return failed("没有叫 %s 的工具", c.Name)
 	}
 	return tl.run(t, c)

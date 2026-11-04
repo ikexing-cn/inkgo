@@ -79,7 +79,7 @@ func TestDraftNoteKeepsItsOutlineSource(t *testing.T) {
 
 type failedPreload struct{ aiport.Service }
 
-func (f failedPreload) Preloaded(*workspace.Store, string, string) (aiport.Preload, error) {
+func (f failedPreload) Preloaded(*workspace.Store, aiport.Material, string, string) (aiport.Preload, error) {
 	return aiport.Preload{}, errors.New("preload failed")
 }
 

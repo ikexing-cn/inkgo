@@ -51,15 +51,15 @@ func TestPreloadedMapsTheTalksContext(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := New("")
-	got, err := s.Preloaded(st, workspace.AIDraft, two)
+	got, err := s.Preloaded(st, aiport.Material{Setting: true, Outline: true}, workspace.AIDraft, two)
 	if err != nil || !got.Previous || got.Outlines != aiport.VolumeChapters || got.Tokens <= 0 || got.Cards != 1 {
 		t.Fatal(got, err)
 	}
-	got, err = s.Preloaded(st, workspace.AIRewrite, two)
+	got, err = s.Preloaded(st, aiport.Material{Setting: true, Outline: true}, workspace.AIRewrite, two)
 	if err != nil || got.Previous || got.Outlines != aiport.VolumeChapters || got.Tokens <= 0 || got.Cards != 1 {
 		t.Fatal(got, err)
 	}
-	got, err = s.Preloaded(st, workspace.AIDraft, one)
+	got, err = s.Preloaded(st, aiport.Material{Setting: true, Outline: true}, workspace.AIDraft, one)
 	if err != nil || got.Previous {
 		t.Fatal(got, err)
 	}
@@ -141,12 +141,15 @@ func TestSetupErrorsCrossThePort(t *testing.T) {
 		t.Fatal(err)
 	}
 	for name, request := range map[string]func() error{
-		"config":           s.Reload,
-		"service form":     func() error { return s.SaveProvider(aiport.Provider{}) },
-		"key":              func() error { return s.SetKey("invalid id", "unused") },
-		"catalog service":  func() error { _, err := s.Catalog("missing"); return err },
-		"talk model":       func() error { _, err := s.Talk(st, nil, nil, nil); return err },
-		"writing model":    func() error { _, err := s.Pen(st); return err },
+		"config":          s.Reload,
+		"service form":    func() error { return s.SaveProvider(aiport.Provider{}) },
+		"key":             func() error { return s.SetKey("invalid id", "unused") },
+		"catalog service": func() error { _, err := s.Catalog("missing"); return err },
+		"talk model": func() error {
+			_, err := s.Talk(st, aiport.Material{Setting: true, Outline: true}, nil, nil, nil)
+			return err
+		},
+		"writing model":    func() error { _, err := s.Pen(st, aiport.Material{Setting: true, Outline: true}); return err },
 		"selected service": func() error { _, err := s.open(workspace.Selection{Provider: "missing", Model: "m"}, st); return err },
 		"talk runtime model": func() error {
 			_, err := (talk{&discussion.Engine{Store: st}}).Say(context.Background(), "", workspace.Event{Text: "问题"})
@@ -291,17 +294,17 @@ func TestOffBuildsNothing(t *testing.T) {
 	if _, err := s.Catalog("deepseek"); !errors.Is(err, ErrOff) {
 		t.Fatalf("catalog: %v", err)
 	}
-	if _, err := s.Talk(st, nil, nil, nil); !errors.Is(err, ErrOff) {
+	if _, err := s.Talk(st, aiport.Material{Setting: true, Outline: true}, nil, nil, nil); !errors.Is(err, ErrOff) {
 		t.Fatalf("talk: %v", err)
 	}
-	if _, err := s.Pen(st); !errors.Is(err, ErrOff) {
+	if _, err := s.Pen(st, aiport.Material{Setting: true, Outline: true}); !errors.Is(err, ErrOff) {
 		t.Fatalf("pen: %v", err)
 	}
 	if n := built.Load(); n != 0 {
 		t.Fatalf("built %d with the AI off", n)
 	}
 	on = true
-	if _, err := s.Pen(st); err != nil {
+	if _, err := s.Pen(st, aiport.Material{Setting: true, Outline: true}); err != nil {
 		t.Fatal(err)
 	}
 	if n := built.Load(); n != 1 {
@@ -339,11 +342,11 @@ func TestSendingDoesNotReadTheSwitch(t *testing.T) {
 	}
 	var reads int
 	s.BindSwitch(func() bool { reads++; return true })
-	talk, err := s.Talk(st, nil, nil, nil)
+	talk, err := s.Talk(st, aiport.Material{Setting: true, Outline: true}, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pen, err := s.Pen(st)
+	pen, err := s.Pen(st, aiport.Material{Setting: true, Outline: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -388,5 +391,37 @@ func TestFailedRequestIsRecordedInTheWordsTheAuthorSaw(t *testing.T) {
 	records, err := st.Records()
 	if err != nil || len(records) != 1 || records[0].Error != "shown: model: refused" {
 		t.Fatal(records, err)
+	}
+}
+
+func TestPreloadedReportsNoOutlineProviderInsteadOfEmptyOutlines(t *testing.T) {
+	st, err := workspace.Create(t.TempDir(), "书", "网文")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	chapter, err := st.NewChapter("", "章", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.WriteOutline(chapter, "章纲内容"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.SaveCard(workspace.Card{Title: "本章卡片", Chapter: chapter}, ""); err != nil {
+		t.Fatal(err)
+	}
+	s := New("")
+	for _, origin := range []string{workspace.AIDraft, workspace.AIRewrite} {
+		off, err := s.Preloaded(st, aiport.Material{}, origin, chapter)
+		if err != nil {
+			t.Fatal(err)
+		}
+		on, err := s.Preloaded(st, aiport.Material{Setting: true, Outline: true}, origin, chapter)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if off.Outlines != aiport.NoOutlines || off.Cards != 0 || on.Outlines != aiport.BookVolumes || on.Cards != 1 || off.Tokens >= on.Tokens {
+			t.Fatal(off, on)
+		}
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"writer/aiport"
 
 	"writer/workspace"
 )
@@ -70,7 +71,7 @@ func TestReadOutline(t *testing.T) {
 		},
 	}
 	before := writePlan(t, e.Store, p)
-	box := &toolbox{store: e.Store, session: session}
+	box := &toolbox{allowed: tools(workspace.Work{}), store: e.Store, session: session}
 	first := "#1｜时间：去年｜发生：下井｜「第二章」｜情节线：小祥｜说明：找到灯。 留下钥匙。"
 	second := "#2｜发生：收徒｜「第一章」｜情节线：小祥"
 	for _, tc := range []struct {
@@ -139,7 +140,7 @@ func TestReadOutline(t *testing.T) {
 func TestReadOutlinePagesAndFailures(t *testing.T) {
 	e, _ := setup(t)
 	_, one, two, _ := shelf(t, e)
-	box := &toolbox{store: e.Store}
+	box := &toolbox{allowed: tools(workspace.Work{}), store: e.Store}
 	if out := box.readOutline(outlineArgs{}); out.failed || !strings.Contains(out.text, "大纲是空的。") {
 		t.Fatal(out)
 	}
@@ -234,13 +235,13 @@ func TestFixedCardsAndPreloaded(t *testing.T) {
 	for _, origin := range []string{workspace.AIDraft, workspace.AIRewrite} {
 		t.Run(origin, func(t *testing.T) {
 			writePlan(t, e.Store, workspace.Plan{})
-			baseline, err := Preloaded(e.Store, origin, two)
+			baseline, err := Preloaded(e.Store, aiport.Material{Setting: true, Outline: true}, origin, two)
 			if err != nil {
 				t.Fatal(err)
 			}
 			p := workspace.Plan{Cards: []workspace.Card{{Title: "别章的事", Chapter: one}, {Title: "灯灭了", Chapter: two}, {Title: "她推开门", Chapter: two}}}
 			writePlan(t, e.Store, p)
-			f, err := fixedOf(e.Store, tree, origin, two)
+			f, err := fixedOf(e.Store, aiport.Material{Setting: true, Outline: true}, tree, origin, two)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -248,11 +249,11 @@ func TestFixedCardsAndPreloaded(t *testing.T) {
 			if i != 2 || f.Pieces[i].Item != "本章的卡片 2 张" || f.Pieces[i].Text != "【本章的卡片】\n#2｜发生：灯灭了｜「第二章」\n#3｜发生：她推开门｜「第二章」" {
 				t.Fatalf("pieces %+v", f.Pieces)
 			}
-			ctx, _, err := lay(e.Store.Work(), 1<<30, workspace.Setting{}, tree, talk{fixed: f})
+			ctx, _, err := lay(e.Store.Work(), 1<<30, workspace.Setting{}, tree, talk{fixed: f, material: aiport.Material{Setting: true, Outline: true}})
 			if err != nil || ctx.Sent.Part(workspace.PartCards) == 0 || !slices.ContainsFunc(ctx.Included, func(it workspace.ContextItem) bool { return it.Text == "本章的卡片 2 张" }) {
 				t.Fatalf("context %+v, %v", ctx, err)
 			}
-			n, err := Preloaded(e.Store, origin, two)
+			n, err := Preloaded(e.Store, aiport.Material{Setting: true, Outline: true}, origin, two)
 			if err != nil || n.Tokens != baseline.Tokens+ctx.Sent.Part(workspace.PartCards) {
 				t.Fatalf("preloaded %d, baseline %d, cards %d: %v", n.Tokens, baseline.Tokens, ctx.Sent.Part(workspace.PartCards), err)
 			}
@@ -260,11 +261,11 @@ func TestFixedCardsAndPreloaded(t *testing.T) {
 				if err := os.WriteFile(filepath.Join(e.Store.Root(), "outline.json"), data, 0644); err != nil {
 					t.Fatal(err)
 				}
-				f, err := fixedOf(e.Store, tree, origin, two)
+				f, err := fixedOf(e.Store, aiport.Material{Setting: true, Outline: true}, tree, origin, two)
 				if err != nil || slices.ContainsFunc(f.Pieces, func(p Piece) bool { return p.Part == workspace.PartCards }) {
 					t.Fatalf("unexpected cards: %+v, %v", f, err)
 				}
-				if n, err := Preloaded(e.Store, origin, two); err != nil || n.Tokens != baseline.Tokens {
+				if n, err := Preloaded(e.Store, aiport.Material{Setting: true, Outline: true}, origin, two); err != nil || n.Tokens != baseline.Tokens {
 					t.Fatalf("fallback preloaded %d, want %d: %v", n.Tokens, baseline.Tokens, err)
 				}
 			}
@@ -292,7 +293,7 @@ func TestReadOutlineIgnoresDamagedMarks(t *testing.T) {
 	if err := os.WriteFile(path, []byte("broken"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	box := toolbox{store: e.Store}
+	box := toolbox{allowed: tools(workspace.Work{}), store: e.Store}
 	for _, chapter := range []string{"第一卷", "第一章"} {
 		out := box.readOutline(outlineArgs{Chapter: chapter})
 		if out.failed || !strings.Contains(out.text, "她回到旧城。") {
@@ -311,7 +312,7 @@ func TestReadOutlineBatchFailureNamesRequestedNode(t *testing.T) {
 	if err := os.Mkdir(path, 0700); err != nil {
 		t.Fatal(err)
 	}
-	box := toolbox{store: e.Store}
+	box := toolbox{allowed: tools(workspace.Work{}), store: e.Store}
 	out := box.readOutline(outlineArgs{Chapter: "第一卷"})
 	if !out.failed || out.text != "读不出「第一卷」的纲。" {
 		t.Fatalf("outline batch failure = %+v", out)

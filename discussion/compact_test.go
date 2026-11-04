@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"writer/aiport"
 
 	"writer/inference"
 	"writer/model"
@@ -40,7 +41,7 @@ func (d *digester) Complete(ctx context.Context, r model.Request, on func(model.
 	if d.err != nil {
 		return model.Reply{}, d.err
 	}
-	if r.Messages[len(r.Messages)-1].Content == digestAsk {
+	if r.Messages[len(r.Messages)-1].Content == digestAsk || r.Messages[len(r.Messages)-1].Content == digestAskFor(aiport.Material{}) {
 		d.digests++
 		return model.Reply{Text: fmt.Sprintf("## 在聊什么\n第%d份摘要", d.digests), Reasoning: "先理一理", Usage: model.Usage{Input: 9000, CacheRead: 8000, Output: 300}}, nil
 	}
@@ -124,7 +125,7 @@ func TestALongTalkIsCompacted(t *testing.T) {
 	if r := events[len(events)-1]; r.Role != workspace.RoleAssistant || r.Sent.Part(workspace.PartDigest) == 0 {
 		t.Fatalf("the reply did not record the digest: %+v", r.Sent)
 	}
-	found := (&toolbox{store: e.Store, session: session}).searchTalks(searchArgs{Query: "井边的灯"})
+	found := (&toolbox{allowed: tools(workspace.Work{}), store: e.Store, session: session}).searchTalks(searchArgs{Query: "井边的灯"})
 	if found.failed || !strings.Contains(found.text, "作者：井边的灯为什么不亮") {
 		t.Fatalf("search_talks lost what was compacted: %s", found.text)
 	}

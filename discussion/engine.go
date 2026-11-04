@@ -4,6 +4,7 @@ import (
 	"context"
 	"slices"
 	"strings"
+	"writer/aiport"
 
 	"writer/inference"
 	"writer/model"
@@ -22,8 +23,10 @@ func ask(ctx context.Context, m inference.Model, req model.Request, on func(mode
 // calls; Talk may be unset when no model is configured, which only the
 // calls that need a model refuse.
 type Engine struct {
-	Store *workspace.Store
-	Talk  inference.Model
+	// Material is the provider snapshot taken on the frame thread.
+	Material aiport.Material
+	Store    *workspace.Store
+	Talk     inference.Model
 	// Progress, when set, hears what the reply streams, never empty, and
 	// Step each step's calls and each call's result as they are written,
 	// and each digest compacting the talk: with no ID as it is asked for,
@@ -145,17 +148,21 @@ func (e *Engine) assemble(session string, before int, user workspace.Event) (Con
 func (e *Engine) along(tree workspace.Tree, events []workspace.Event, user workspace.Event) (Along, error) {
 	origin, chapter := originOf(append(slices.Clip(events), user))
 	if origin == "" {
-		return Along{Beside: e.Beside}, nil
+		return Along{Beside: e.Beside, Material: e.Material}, nil
 	}
-	f, err := fixedOf(e.Store, tree, origin, chapter)
-	return Along{Fixed: f}, err
+	f, err := fixedOf(e.Store, e.Material, tree, origin, chapter)
+	return Along{Fixed: f, Material: e.Material}, err
 }
 
 // read is the setting and the talk before event before, or all of it for
 // -1. The digests written after it come along: a turn retried may have
 // been compacted for.
 func (e *Engine) read(session string, before int) (workspace.Setting, []workspace.Event, error) {
-	set, err := e.Store.Setting()
+	var set workspace.Setting
+	var err error
+	if e.Material.Setting {
+		set, err = e.Store.Setting()
+	}
 	if err != nil {
 		return set, nil, err
 	}
@@ -191,7 +198,7 @@ const fullNote = "（这次查到的内容太多，放不下了；不能再查�
 // reply, and what came after it as estimated; or, where the provider
 // counts nothing, while it fits in the room the assembly left.
 func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembled Context, along Along) (Turn, error) {
-	box := &toolbox{store: e.Store, session: session, turn: turn.User.ID, model: e.Talk}
+	box := &toolbox{allowed: assembled.Request.Tools, store: e.Store, session: session, turn: turn.User.ID, model: e.Talk}
 	if along.Fixed != nil {
 		box.at = along.Fixed.Chapter
 	}

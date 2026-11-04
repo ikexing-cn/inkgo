@@ -66,6 +66,9 @@ func same(a, b workspace.Finding) bool {
 // setting. What the author said is as meant in the check before is kept,
 // while the prose still has it, and not found again.
 func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, error) {
+	if !w.Material.Setting {
+		return workspace.Check{}, ErrNoSetting
+	}
 	if !w.Model.Ready() {
 		return workspace.Check{}, ErrNoModel
 	}

@@ -14,6 +14,8 @@ type OutlineProvider func(id string) string
 // false when no provider is active; an empty outline from a provider is present.
 // Service consumers must call through ext.Guard at their host boundary.
 type Context interface {
+	// HasOutlines reports whether an outline provider is active, without reading a node; frame thread only.
+	HasOutlines() bool
 	// Entries returns live entries and whether a provider is present; frame thread only.
 	Entries() ([]workspace.Entry, bool)
 	// Outline returns live text and whether a provider is present; frame thread only.

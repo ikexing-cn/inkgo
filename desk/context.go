@@ -1,6 +1,7 @@
 package desk
 
 import (
+	"writer/aiport"
 	"writer/ext"
 	"writer/ext/context/contextapi"
 	"writer/workspace"
@@ -43,3 +44,23 @@ func (a *App) entries() []workspace.Entry { entries, _ := a.entryValues(); retur
 func (a *App) hasEntries() bool { _, present := a.entryValues(); return present }
 
 func (a *App) checksOn() bool { return a.aiOn() && a.hasEntries() }
+
+// material snapshots provider availability on the frame thread.
+func (a *App) material() aiport.Material {
+	var out aiport.Material
+	if a.extensions == nil {
+		return out
+	}
+	service, ok := ext.Lookup(a.extensions, contextapi.Service)
+	if !ok {
+		return out
+	}
+	err := ext.Guard(a.extensions, "context", "context.material", func() {
+		_, out.Setting = service.Entries()
+		out.Outline = service.HasOutlines()
+	})
+	if err != nil {
+		return aiport.Material{}
+	}
+	return out
+}

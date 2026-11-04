@@ -190,7 +190,7 @@ func (t talk) Retry(ctx context.Context, session, userID string) error {
 	return requestError(err)
 }
 
-func (s *Service) Talk(st *workspace.Store, beside *aiport.Beside, progress func(aiport.Progress), step func(workspace.Event)) (aiport.Talk, error) {
+func (s *Service) Talk(st *workspace.Store, material aiport.Material, beside *aiport.Beside, progress func(aiport.Progress), step func(workspace.Event)) (aiport.Talk, error) {
 	if s.on != nil && !s.on() {
 		return nil, ErrOff
 	}
@@ -202,7 +202,7 @@ func (s *Service) Talk(st *workspace.Store, beside *aiport.Beside, progress func
 	if err != nil {
 		return nil, err
 	}
-	e := &discussion.Engine{Store: st, Talk: m, Step: step}
+	e := &discussion.Engine{Store: st, Talk: m, Step: step, Material: material}
 	if progress != nil {
 		e.Progress = func(d model.Delta) { progress(aiport.Progress{Reasoning: d.Reasoning, Text: d.Text}) }
 		e.Proposing = func(call string, p workspace.Proposal) { progress(aiport.Progress{Call: call, Proposal: &p}) }
@@ -214,13 +214,15 @@ func (s *Service) Talk(st *workspace.Store, beside *aiport.Beside, progress func
 	return talk{e}, nil
 }
 
-func (s *Service) Preloaded(st *workspace.Store, origin, chapter string) (aiport.Preload, error) {
-	n, err := discussion.Preloaded(st, origin, chapter)
+func (s *Service) Preloaded(st *workspace.Store, material aiport.Material, origin, chapter string) (aiport.Preload, error) {
+	n, err := discussion.Preloaded(st, material, origin, chapter)
 	if err != nil {
 		return aiport.Preload{}, requestError(err)
 	}
 	out := aiport.Preload{Tokens: n.Tokens, Cards: n.Cards, Previous: n.Previous, Outlines: aiport.BookVolumes}
-	if n.InVolume {
+	if !material.Outline {
+		out.Outlines = aiport.NoOutlines
+	} else if n.InVolume {
 		out.Outlines = aiport.VolumeChapters
 	}
 	return out, nil
@@ -350,7 +352,7 @@ func (p pen) Check(ctx context.Context, chapter string) (workspace.Check, error)
 	return check, requestError(err)
 }
 
-func (s *Service) Pen(st *workspace.Store) (aiport.Pen, error) {
+func (s *Service) Pen(st *workspace.Store, material aiport.Material) (aiport.Pen, error) {
 	if s.on != nil && !s.on() {
 		return nil, ErrOff
 	}
@@ -358,6 +360,7 @@ func (s *Service) Pen(st *workspace.Store) (aiport.Pen, error) {
 	if err != nil {
 		return nil, err
 	}
+	w.Material = material
 	return pen{w}, nil
 }
 

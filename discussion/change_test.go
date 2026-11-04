@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"writer/aiport"
 
 	"writer/inference"
 	"writer/workspace"
@@ -31,7 +32,7 @@ func TestATalkTellsAndNotesHowTheSettingChanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	box := &toolbox{store: e.Store, session: session, turn: ok.ID, model: inference.Model{Name: "deepseek/deepseek-flash"}}
+	box := &toolbox{allowed: tools(workspace.Work{}), store: e.Store, session: session, turn: ok.ID, model: inference.Model{Name: "deepseek/deepseek-flash"}}
 	for _, c := range []struct {
 		in   noteArgs
 		want string // in the refusal; empty when it is noted
@@ -65,7 +66,7 @@ func TestATalkTellsAndNotesHowTheSettingChanges(t *testing.T) {
 		t.Fatal(err)
 	}
 	w := e.Store.Work()
-	got, err := Assemble(w, 100000, set, tree, nil, "问", Along{})
+	got, err := Assemble(w, 100000, set, tree, nil, "问", Along{Material: aiport.Material{Setting: true, Outline: true}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +90,7 @@ func TestATalkTellsAndNotesHowTheSettingChanges(t *testing.T) {
 	if tree, err = e.Store.Chapters(); err != nil {
 		t.Fatal(err)
 	}
-	if got, err = Assemble(w, 100000, set, tree, nil, "问", Along{}); err != nil || strings.Contains(got.Request.System, "第三章") {
+	if got, err = Assemble(w, 100000, set, tree, nil, "问", Along{Material: aiport.Material{Setting: true, Outline: true}}); err != nil || strings.Contains(got.Request.System, "第三章") {
 		t.Fatal(got.Request.System, err)
 	}
 }

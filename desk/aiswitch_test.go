@@ -31,8 +31,11 @@ func TestBuildersReadTheShelfSwitch(t *testing.T) {
 		a.shelf = shelf.Shelf{NoAI: off}
 		for name, build := range map[string]func() error{
 			"catalog": func() error { _, err := a.ai.Catalog("missing"); return err },
-			"talk":    func() error { _, err := a.ai.Talk(st, nil, nil, nil); return err },
-			"pen":     func() error { _, err := a.ai.Pen(st); return err },
+			"talk": func() error {
+				_, err := a.ai.Talk(st, aiport.Material{Setting: true, Outline: true}, nil, nil, nil)
+				return err
+			},
+			"pen": func() error { _, err := a.ai.Pen(st, aiport.Material{Setting: true, Outline: true}); return err },
 		} {
 			if err := build(); errors.Is(err, ai.ErrOff) != off {
 				t.Errorf("%s: shelf.NoAI=%v: %v", name, off, err)
@@ -96,14 +99,14 @@ func (s *spy) Catalog(provider string) (aiport.Catalog, error) {
 	return s.Service.Catalog(provider)
 }
 
-func (s *spy) Talk(st *workspace.Store, beside *aiport.Beside, progress func(aiport.Progress), step func(workspace.Event)) (aiport.Talk, error) {
+func (s *spy) Talk(st *workspace.Store, material aiport.Material, beside *aiport.Beside, progress func(aiport.Progress), step func(workspace.Event)) (aiport.Talk, error) {
 	s.note("Talk")
-	return s.Service.Talk(st, beside, progress, step)
+	return s.Service.Talk(st, material, beside, progress, step)
 }
 
-func (s *spy) Pen(st *workspace.Store) (aiport.Pen, error) {
+func (s *spy) Pen(st *workspace.Store, material aiport.Material) (aiport.Pen, error) {
 	s.note("Pen")
-	return s.Service.Pen(st)
+	return s.Service.Pen(st, material)
 }
 
 const aiProse = "整条街的灯是同时灭的。\n林婉站在巷口，手电在工具箱最底下。\n"

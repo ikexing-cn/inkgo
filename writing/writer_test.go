@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"writer/aiport"
 
 	"writer/inference"
 	"writer/model"
@@ -95,7 +96,7 @@ func book(t *testing.T, f *fake) (*Writer, string, workspace.Revision) {
 	if err = s.WriteOutline(two, "她修好井边的灯。"); err != nil {
 		t.Fatal(err)
 	}
-	return &Writer{Store: s, Model: inference.Model{Model: limits, Completer: f, Name: "deepseek/deepseek-flash", Effort: model.EffortHigh}}, two, r
+	return &Writer{Material: aiport.Material{Setting: true, Outline: true}, Store: s, Model: inference.Model{Model: limits, Completer: f, Name: "deepseek/deepseek-flash", Effort: model.EffortHigh}}, two, r
 }
 
 // What a prediction shows the model is the work's words, never its IDs,

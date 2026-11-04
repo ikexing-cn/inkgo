@@ -3,6 +3,7 @@ package discussion
 import (
 	"fmt"
 	"strings"
+	"writer/aiport"
 
 	"writer/prompt"
 	"writer/workspace"
@@ -24,7 +25,10 @@ const BesideCap = 2000
 // render writes w for the author's turn, charged to budget as prose: the
 // outlines must go, and the text before the caret goes as far as it holds,
 // cut from its start. It lists what it sent.
-func (w Writing) render(budget *prompt.Budget) (string, []workspace.ContextItem) {
+func (w Writing) render(budget *prompt.Budget, material aiport.Material) (string, []workspace.ContextItem) {
+	if !material.Outline {
+		w.Outline, w.VolumeOutline = "", ""
+	}
 	var s strings.Builder
 	var items []workspace.ContextItem
 	add := func(head, body, item string) {

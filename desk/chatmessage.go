@@ -88,8 +88,10 @@ func (a *App) message(c *ui.Context, m workspace.Event) {
 				}
 				ui.Text(c, foot).FontSize(kit.FsSmall).TextColor(a.pal.Faint).Padding(0, 6, 0, 0).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0).Tooltip(foot)
 			}
-			if kit.IconButton(c, kit.IcQuote, "摘取-"+m.ID, ui.Color{}).Tooltip(locales.ChatPull()).KeepFocus().Disabled(a.held()).Clicked() {
-				a.openSource(m, 0, 0)
+			if a.hasEntries() {
+				if kit.IconButton(c, kit.IcQuote, "摘取-"+m.ID, ui.Color{}).Tooltip(locales.ChatPull()).KeepFocus().Disabled(a.held()).Clicked() {
+					a.openSource(m, 0, 0)
+				}
 			}
 			if !user {
 				// Its Markdown, which keeps its structure pasted elsewhere.

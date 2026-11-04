@@ -71,17 +71,17 @@ type Assistant interface {
 	// each event it writes on the way: the calls of a step to look things
 	// up, note the setting or propose a change of the prose, and what each
 	// returned.
-	Talk(s *workspace.Store, beside *Beside, progress func(Progress), step func(workspace.Event)) (Talk, error)
+	Talk(s *workspace.Store, material Material, beside *Beside, progress func(Progress), step func(workspace.Event)) (Talk, error)
 	// Preloaded describes what a talk opened to draft or rewrite chapter
 	// of s carries before anything is said or looked up: the tokens, the
 	// chapter's cards, whether the chapter before goes whole, and where
 	// the outlines come from.
-	Preloaded(s *workspace.Store, origin, chapter string) (Preload, error)
+	Preloaded(s *workspace.Store, material Material, origin, chapter string) (Preload, error)
 	// Extract takes the words [start, end) of a message of the talk into
 	// the setting under category.
 	Extract(s *workspace.Store, session, message string, start, end int, category string) (workspace.Entry, error)
 	// Pen writes the prose of s with its writing model.
-	Pen(s *workspace.Store) (Pen, error)
+	Pen(s *workspace.Store, material Material) (Pen, error)
 	// MinCheck is the shortest prose worth a check.
 	MinCheck() int
 }
@@ -196,3 +196,12 @@ type Scene struct {
 	Chapter       string
 	Before, After string
 }
+
+// Material identifies reference providers available to a request. False means
+// no provider, not empty content. The zero value has no providers.
+type Material struct {
+	Setting, Outline bool
+}
+
+// NoOutlines means no outline provider contributed fixed context.
+const NoOutlines OutlineSource = -1

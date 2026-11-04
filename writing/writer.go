@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"unicode"
+	"writer/aiport"
 
 	"writer/inference"
 	"writer/internal/textclip"
@@ -30,8 +31,10 @@ var writePlaces = []prompt.Place{
 
 // Writer writes the prose of one work with one model.
 type Writer struct {
-	Store *workspace.Store
-	Model inference.Model
+	// Material is the provider snapshot taken on the frame thread.
+	Material aiport.Material
+	Store    *workspace.Store
+	Model    inference.Model
 }
 
 // Scene is where in a chapter the model writes: the text before that
@@ -66,7 +69,10 @@ func (w *Writer) prepare(task string, scene Scene, tail string) (model.Request, 
 	if err != nil {
 		return req, nil, err
 	}
-	set, err := w.Store.Setting()
+	var set workspace.Setting
+	if w.Material.Setting {
+		set, err = w.Store.Setting()
+	}
 	if err != nil {
 		return req, nil, err
 	}
@@ -77,10 +83,13 @@ func (w *Writer) prepare(task string, scene Scene, tail string) (model.Request, 
 	if ahead > 0 {
 		later = fmt.Sprintf("\n\n以上是写到本章时的设定；后面的章节里还有 %d 处变化，未列出。", ahead)
 	}
+	rules := rulesFor(w.Material)
 	b := prompt.NewBudget(w.Model.Input())
 	b.Must(workspace.PartRules, rules+task)
 	b.Must(workspace.PartInput, tail)
-	b.Must(workspace.PartSetting, later)
+	if w.Material.Setting {
+		b.Must(workspace.PartSetting, later)
+	}
 	// The parts of the message, in the order it reads.
 	type part struct{ heading, text string }
 	var volume, outline, prev, near, far part
@@ -89,12 +98,12 @@ func (w *Writer) prepare(task string, scene Scene, tail string) (model.Request, 
 		b.Must(kind, heading+text)
 	}
 	// The outlines go whole, or the request does not.
-	if p := n.Volume(); p != nil {
+	if p := n.Volume(); w.Material.Outline && p != nil {
 		if vol, err := w.Store.ReadChapter(p.ID); err == nil && strings.TrimSpace(vol.Outline) != "" {
 			take(&volume, workspace.PartOutline, "【所在卷："+p.Title+"】卷纲：", strings.TrimSpace(vol.Outline))
 		}
 	}
-	if strings.TrimSpace(ch.Outline) != "" {
+	if w.Material.Outline && strings.TrimSpace(ch.Outline) != "" {
 		take(&outline, workspace.PartOutline, "【本章："+n.Title+"】章纲：", strings.TrimSpace(ch.Outline))
 	} else {
 		outline = part{heading: "【本章：" + n.Title + "】"}
@@ -111,8 +120,15 @@ func (w *Writer) prepare(task string, scene Scene, tail string) (model.Request, 
 
 	// The setting: the body binds the prose, then what the author dropped;
 	// the newest first when it does not all fit.
-	shown, _ := b.Fit(set, []string{workspace.PlaceBody, workspace.PlaceDropped}, prompt.Whole)
-	system := rules + "\n\n" + prompt.Render(work, set, writePlaces, shown, prompt.Whole) + later + "\n\n" + task
+	var shown map[string]bool
+	if w.Material.Setting {
+		shown, _ = b.Fit(set, []string{workspace.PlaceBody, workspace.PlaceDropped}, prompt.Whole)
+	}
+	system := rules
+	if w.Material.Setting {
+		system += "\n\n" + prompt.Render(work, set, writePlaces, shown, prompt.Whole) + later
+	}
+	system += "\n\n" + task
 
 	// The previous chapter's end, while this one has little before.
 	if p, ok := tree.Previous(n); ok && len([]rune(scene.Before)) < beforeCap {

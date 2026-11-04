@@ -175,6 +175,9 @@ func originChapter(events []workspace.Event) string {
 }
 
 func (a *App) openSource(m workspace.Event, start, end int) {
+	if !a.hasEntries() {
+		return
+	}
 	a.source = editor.New(editor.NewDoc(m.Text), editor.Options{ReadOnly: true, LineHeight: kit.LhRead,
 		OwnMenu: func(x, y float32) { a.menu = kit.MenuState{Owner: "source-text", X: x, Y: y} }})
 	if end > start {
@@ -187,6 +190,11 @@ func (a *App) openSource(m workspace.Event, start, end int) {
 }
 
 func (a *App) extraction(c *ui.Context) {
+	if !a.hasEntries() {
+		a.sourceOpen = false
+		a.source = nil
+		return
+	}
 	t := a.pal.Theme
 	a.pal.Modal(c, &a.sourceOpen, func() {
 		ui.Column(c).Width(kit.DialogSource).Padding(kit.DialogPad).Gap(16).Children(func() {

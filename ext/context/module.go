@@ -46,3 +46,6 @@ func (l library) Entries() ([]workspace.Entry, bool) {
 	}
 	return nil, false
 }
+
+// HasOutlines reports an active provider without asking it for node content.
+func (l library) HasOutlines() bool { return len(l.providers.Items()) > 0 }

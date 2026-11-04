@@ -151,7 +151,7 @@ func (a *App) pollChecks(c *ui.Context) {
 	if !ok {
 		return
 	}
-	pw, err := a.ai.Pen(a.Store)
+	pw, err := a.ai.Pen(a.Store, a.material())
 	if err != nil {
 		k.queue.CannotStart(id, err)
 		return

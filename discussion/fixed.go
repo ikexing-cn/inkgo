@@ -3,6 +3,7 @@ package discussion
 import (
 	"fmt"
 	"strings"
+	"writer/aiport"
 
 	"writer/workspace"
 )
@@ -55,7 +56,7 @@ var errGone = ErrChapterGone
 // volume, and the chapter before, whole; a rewrite takes the outlines and
 // the chapter itself, whole. Both take the chapter's cards. Outlines left
 // empty are left out.
-func fixedOf(st *workspace.Store, tree workspace.Tree, origin, chapter string) (*Fixed, error) {
+func fixedOf(st *workspace.Store, material aiport.Material, tree workspace.Tree, origin, chapter string) (*Fixed, error) {
 	n, ok := tree.Node(chapter)
 	if !ok || n.Folder {
 		return nil, errGone
@@ -71,10 +72,14 @@ func fixedOf(st *workspace.Store, tree workspace.Tree, origin, chapter string) (
 	}
 	what := map[string]string{workspace.AIDraft: "起草", workspace.AIRewrite: "改写"}[origin]
 	head := "【这段讨论" + what + "的章：" + f.Title + "】"
-	if o := strings.TrimSpace(ch.Outline); o != "" {
-		add(workspace.PartOutline, head+"\n章纲：\n"+o, "章纲："+f.Title)
+	if material.Outline {
+		if o := strings.TrimSpace(ch.Outline); o != "" {
+			add(workspace.PartOutline, head+"\n章纲：\n"+o, "章纲："+f.Title)
+		} else {
+			add(workspace.PartOutline, head+"\n（这一章没有章纲）", what+"的章："+f.Title)
+		}
 	} else {
-		add(workspace.PartOutline, head+"\n（这一章没有章纲）", what+"的章："+f.Title)
+		add(workspace.PartChapter, head, what+"的章："+f.Title)
 	}
 	vol := n.Volume()
 	f.preload.InVolume = vol != nil
@@ -102,16 +107,21 @@ func fixedOf(st *workspace.Store, tree workspace.Tree, origin, chapter string) (
 		ids = append(ids, m.ID)
 	})
 	// Outlines that cannot be read are left out, as if there were none.
-	outlines, _ := st.OutlinesOf(ids...)
+	var outlines map[string]string
+	if material.Outline {
+		outlines, _ = st.OutlinesOf(ids...)
+	}
 	if vol != nil {
 		if o := strings.TrimSpace(outlines[vol.ID]); o != "" {
 			add(workspace.PartOutline, "【所在卷："+b.name[vol.ID]+"】卷纲：\n"+o, "卷纲："+b.name[vol.ID])
 		}
 	}
-	if p, err := st.Plan(); err == nil {
-		if rows := chapterCards(p, b, chapter); len(rows) > 0 {
-			f.preload.Cards = len(rows)
-			add(workspace.PartCards, "【本章的卡片】\n"+strings.Join(rows, "\n"), fmt.Sprintf("本章的卡片 %d 张", len(rows)))
+	if material.Outline {
+		if p, err := st.Plan(); err == nil {
+			if rows := chapterCards(p, b, chapter); len(rows) > 0 {
+				f.preload.Cards = len(rows)
+				add(workspace.PartCards, "【本章的卡片】\n"+strings.Join(rows, "\n"), fmt.Sprintf("本章的卡片 %d 张", len(rows)))
+			}
 		}
 	}
 	if origin == workspace.AIRewrite {
@@ -153,20 +163,23 @@ func fixedOf(st *workspace.Store, tree workspace.Tree, origin, chapter string) (
 // chapter carries before anything is said or looked up: the rules, the
 // setting as it stands at the chapter, and what goes with the chapter.
 // The dialog that opens the talk says it.
-func Preloaded(st *workspace.Store, origin, chapter string) (Preload, error) {
+func Preloaded(st *workspace.Store, material aiport.Material, origin, chapter string) (Preload, error) {
 	tree, err := st.Chapters()
 	if err != nil {
 		return Preload{}, err
 	}
-	set, err := st.Setting()
+	var set workspace.Setting
+	if material.Setting {
+		set, err = st.Setting()
+	}
 	if err != nil {
 		return Preload{}, err
 	}
-	f, err := fixedOf(st, tree, origin, chapter)
+	f, err := fixedOf(st, material, tree, origin, chapter)
 	if err != nil {
 		return Preload{}, err
 	}
-	asked, _, err := lay(st.Work(), 1<<30, set, tree, talk{fixed: f})
+	asked, _, err := lay(st.Work(), 1<<30, set, tree, talk{fixed: f, material: material})
 	if err != nil {
 		return Preload{}, err
 	}

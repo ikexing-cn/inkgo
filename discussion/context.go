@@ -6,6 +6,7 @@ package discussion
 import (
 	"fmt"
 	"slices"
+	"writer/aiport"
 
 	"writer/model"
 	"writer/prompt"
@@ -90,8 +91,10 @@ func latest(set workspace.Setting, tree workspace.Tree) workspace.Setting {
 // writing as they talk beside the prose, or the chapter a talk opened to
 // draft or rewrite keeps to.
 type Along struct {
-	Beside *Writing
-	Fixed  *Fixed
+	// Material identifies the providers available to this request.
+	Material aiport.Material
+	Beside   *Writing
+	Fixed    *Fixed
 }
 
 // Assemble builds a talk request of at most room tokens, in the order a
@@ -105,19 +108,20 @@ type Along struct {
 // it stands there.
 func Assemble(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree, events []workspace.Event, input string, along Along) (Context, error) {
 	digest, turns := uncompacted(events)
-	out, _, err := lay(w, room, set, tree, talk{digest: digest.Text, turns: turns, input: input, beside: along.Beside, near: along.Beside != nil, fixed: along.Fixed})
+	out, _, err := lay(w, room, set, tree, talk{material: along.Material, digest: digest.Text, turns: turns, input: input, beside: along.Beside, near: along.Beside != nil, fixed: along.Fixed})
 	return out, err
 }
 
 // talk is what a talk request carries besides the rules and the setting.
 type talk struct {
-	digest string     // of the talk compacted, if any
-	turns  []exchange // the complete exchanges after it
-	input  string     // the last words, which must fit
-	beside *Writing   // what the author is writing, sent with input
-	near   bool       // the author talks beside the prose, as the rules say
-	fixed  *Fixed     // the chapter the talk keeps to, if any
-	oldest bool       // keep the oldest turns that fit, not the newest
+	material aiport.Material
+	digest   string     // of the talk compacted, if any
+	turns    []exchange // the complete exchanges after it
+	input    string     // the last words, which must fit
+	beside   *Writing   // what the author is writing, sent with input
+	near     bool       // the author talks beside the prose, as the rules say
+	fixed    *Fixed     // the chapter the talk keeps to, if any
+	oldest   bool       // keep the oldest turns that fit, not the newest
 }
 
 // view is the setting as a talk shows it: whole, each entry with its
@@ -152,24 +156,28 @@ func (v view) note() string {
 // and how many of its turns went.
 func lay(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree, t talk) (Context, int, error) {
 	out := Context{} // the reply may take all the model gives: its output is kept out of the room
-	rules := talkRules
+	rules := rulesFor(t.material)
 	switch {
 	case t.fixed != nil:
-		rules += "\n\n" + originRules[t.fixed.Origin]
+		rules += "\n\n" + originRulesFor(t.fixed.Origin, t.material)
 	case t.near:
-		rules += "\n\n" + besideRules
+		rules += "\n\n" + besideRulesFor(t.material)
 	}
 	tooLong := &model.SetupError{Err: &model.ContextLimitError{Part: "message"}}
-	out.Request.Tools = tools(w)
+	out.Request.Tools = toolsFor(w, t.material)
 	told := withTools(rules, out.Request.Tools)
 	b := prompt.NewBudget(room)
 	input := t.input
 	if !b.Must(workspace.PartRules, told) || !b.Must(workspace.PartInput, input) {
 		return out, 0, tooLong
 	}
-	v := viewOf(set, tree, t.fixed)
-	index := talkIndex(w, set, v)
-	if !b.Must(workspace.PartIndex, index) {
+	v := view{}
+	index := ""
+	if t.material.Setting {
+		v = viewOf(set, tree, t.fixed)
+		index = talkIndex(w, set, v)
+	}
+	if t.material.Setting && !b.Must(workspace.PartIndex, index) {
 		return out, 0, &model.SetupError{Err: &model.ContextLimitError{Part: "index"}}
 	}
 	var digest string
@@ -193,7 +201,7 @@ func lay(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree,
 	}
 	// What the author is writing goes with their words: they asked beside it.
 	if t.beside != nil {
-		attached, items := t.beside.render(b)
+		attached, items := t.beside.render(b, t.material)
 		if b.Left() < 0 {
 			return out, 0, tooLong
 		}
@@ -203,9 +211,12 @@ func lay(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree,
 	msgs, took := fill(b, t.turns, t.oldest)
 	b.Return(workspace.PartIndex)
 	later := v.later
-	setting := prompt.Render(w, v.whole, talkPlaces, nil, numbered(set, timed(prompt.Whole, later))) + v.note()
+	setting := ""
+	if t.material.Setting {
+		setting = prompt.Render(w, v.whole, talkPlaces, nil, numbered(set, timed(prompt.Whole, later))) + v.note()
+	}
 	shown, line := v.whole, prompt.Line(prompt.Whole)
-	if !b.Take(workspace.PartSetting, setting) {
+	if t.material.Setting && !b.Take(workspace.PartSetting, setting) {
 		b.Must(workspace.PartIndex, index)
 		setting, shown, line, later = index, v.index, prompt.Short, nil
 	}
@@ -218,7 +229,11 @@ func lay(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree,
 			}
 		}
 	}
-	out.Request.System = rules + "\n\n" + setting + fixed + digest
+	out.Request.System = rules
+	if t.material.Setting {
+		out.Request.System += "\n\n" + setting
+	}
+	out.Request.System += fixed + digest
 	out.Request.Messages = append(msgs, model.Message{Role: workspace.RoleUser, Content: input})
 	out.Sent, out.Left = b.Sent(told, set), max(b.Left(), 0)
 	out.Sent.AsOf, out.Sent.Ahead = v.at, v.ahead

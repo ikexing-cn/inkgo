@@ -47,6 +47,7 @@ func (a *App) modelsChanged() { a.write.penKey = nil }
 type penKey struct {
 	writing, discussion workspace.Selection
 	providers           int
+	material            aiport.Material
 }
 
 // keepPen rebuilds the writer the editors predict with when the model
@@ -59,12 +60,12 @@ func (a *App) keepPen() {
 		return
 	}
 	work := a.Store.Work()
-	key := penKey{writing: work.Writing, discussion: work.Discussion, providers: len(a.ai.Providers())}
+	key := penKey{writing: work.Writing, discussion: work.Discussion, providers: len(a.ai.Providers()), material: a.material()}
 	if w.penKey != nil && key == *w.penKey {
 		return
 	}
 	w.penKey = &key
-	pw, err := a.ai.Pen(a.Store)
+	pw, err := a.ai.Pen(a.Store, key.material)
 	if err != nil {
 		w.pen.Store(nil)
 	} else {
@@ -137,7 +138,7 @@ const (
 // before the AI looks anything up, and about how much.
 func (a *App) draftNote() string {
 	w := &a.write
-	p, err := a.ai.Preloaded(a.Store, workspace.AIDraft, w.node)
+	p, err := a.ai.Preloaded(a.Store, a.material(), workspace.AIDraft, w.node)
 	if err != nil {
 		return ""
 	}

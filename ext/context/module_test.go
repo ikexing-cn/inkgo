@@ -56,3 +56,24 @@ func TestLibraryDistinguishesMissingEntryProviderFromPresentEmptyEntries(t *test
 		t.Fatal(entries, present)
 	}
 }
+
+func TestHasOutlinesAsksOnlyForProviderPresence(t *testing.T) {
+	calls := 0
+	h, err := ext.New(ext.Options{}, context.Module, ext.Module{ID: "provider", Requires: []string{"context"}, Setup: func(r *ext.Registrar) {
+		ext.Contribute(r, contextapi.Outlines, "outline", contextapi.OutlineProvider(func(string) string { calls++; return "" }))
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer h.Close()
+	service, _ := ext.Lookup(h, contextapi.Service)
+	if !service.HasOutlines() || calls != 0 {
+		t.Fatal(calls)
+	}
+	if err := h.Set("provider", false); err != nil {
+		t.Fatal(err)
+	}
+	if service.HasOutlines() || calls != 0 {
+		t.Fatal(calls)
+	}
+}
