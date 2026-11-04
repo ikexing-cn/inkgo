@@ -597,6 +597,8 @@
   "shelfBookName": "Book name",
   "shelfNameNeeded": "Enter a book name.",
   "shelfGenre": "Genre",
+  "shelfBookLanguage": "Writing language",
+  "shelfBookLanguageNote": "Used to count words, lay out exports, and for what the AI writes.",
   "shelfLocation": "Location",
   "shelfBookLocation": "Book location",
   "shelfLocationNeeded": "Enter a location for the book.",

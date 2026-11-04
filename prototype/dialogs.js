@@ -87,10 +87,10 @@ function newBookDialog(d) {
   const create = () => {
     if (!fits) return
     const id = 'book' + S.n
-    set((s) => ({ shelf: [{ id, name, kind: d.type, words: 0, at: stamp() }, ...s.shelf], n: s.n + 1, dialog: null }))
+    set((s) => ({ shelf: [{ id, name, kind: d.type, lang: d.lang ?? LANG, words: 0, at: stamp() }, ...s.shelf], n: s.n + 1, dialog: null }))
     openBook(id)
   }
-  return dialog('small', dialogHead(L.dialogNewBookTitle()) + field(L.dialogNewBookName(), line(d.name, type('name'), L.dialogNewBookNameHint(), L.dialogNewBookName(), keys(create) + ' autofocus')) + field(L.dialogNewBookKind(), choose('book-kind', d.type, BOOK.kinds.map((k) => [k, genreWord(k)]), type('type'), L.dialogNewBookKind())) +
+  return dialog('small', dialogHead(L.dialogNewBookTitle()) + field(L.dialogNewBookName(), line(d.name, type('name'), L.dialogNewBookNameHint(), L.dialogNewBookName(), keys(create) + ' autofocus')) + field(L.dialogNewBookKind(), choose('book-kind', d.type, BOOK.kinds.map((k) => [k, genreWord(k)]), type('type'), L.dialogNewBookKind())) + bookLangField('book-lang', d.lang ?? LANG, type('lang')) +
     `<div class="field"><div class="label">${t(L.dialogNewBookPlace())}</div><div class="pick-line"><div class="box line fit">${typed(d.at ?? S.library + sep() + name, type('at'), '', L.dialogNewBookPlaceLabel(), keys(create))}</div>${button(L.dialogNewBookChange(), osAsk(L.dialogOsNewBookFolder()))}</div>${where}</div>` +
     buttons(button(L.commonCancel(), shut), button(L.dialogNewBookCreate(), fits ? create : null, fits ? 'primary' : 'primary off')))
 }

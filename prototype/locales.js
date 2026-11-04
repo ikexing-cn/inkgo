@@ -1623,6 +1623,8 @@ const CATALOG = {
   "shelfBookFolderMissing": [
    "path"
   ],
+  "shelfBookLanguage": [],
+  "shelfBookLanguageNote": [],
   "shelfBookLocation": [],
   "shelfBookName": [],
   "shelfCards": [],
@@ -3199,6 +3201,8 @@ const CATALOG = {
    "shelfAddedBook": "已加入书架：{name}",
    "shelfAlready": "该作品已在书架上",
    "shelfBookFolderMissing": "找不到该作品的文件夹：{path}",
+   "shelfBookLanguage": "正文语言",
+   "shelfBookLanguageNote": "按它数字数、排版导出，AI 也用它写。",
    "shelfBookLocation": "作品位置",
    "shelfBookName": "作品名称",
    "shelfCards": "卡片",
@@ -4559,6 +4563,8 @@ const CATALOG = {
    "shelfAddedBook": "Added to shelf: {name}",
    "shelfAlready": "This book is already on the shelf",
    "shelfBookFolderMissing": "Cannot find the book folder: {path}",
+   "shelfBookLanguage": "Writing language",
+   "shelfBookLanguageNote": "Used to count words, lay out exports, and for what the AI writes.",
    "shelfBookLocation": "Book location",
    "shelfBookName": "Book name",
    "shelfCards": "Cards",

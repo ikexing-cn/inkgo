@@ -6924,6 +6924,34 @@ func (msgs Messages) ShelfGenre() string {
 	return Catalog.Format(msgs.locale, "shelfGenre", nil)
 }
 
+// ShelfBookLanguage says "正文语言"
+// in the language the app shows.
+//
+// 新建作品和导入对话框里选这本书正文用什么语言的那一栏，选项是语言自己的名字。
+func ShelfBookLanguage() string { return In(i18n.Locale()).ShelfBookLanguage() }
+
+// ShelfBookLanguage says "正文语言"
+// in the language of msgs.
+//
+// 新建作品和导入对话框里选这本书正文用什么语言的那一栏，选项是语言自己的名字。
+func (msgs Messages) ShelfBookLanguage() string {
+	return Catalog.Format(msgs.locale, "shelfBookLanguage", nil)
+}
+
+// ShelfBookLanguageNote says "按它数字数、排版导出，AI 也用它写。"
+// in the language the app shows.
+//
+// 正文语言下面的说明：中文数字，英文数词；导出的字体和缩进跟着它。
+func ShelfBookLanguageNote() string { return In(i18n.Locale()).ShelfBookLanguageNote() }
+
+// ShelfBookLanguageNote says "按它数字数、排版导出，AI 也用它写。"
+// in the language of msgs.
+//
+// 正文语言下面的说明：中文数字，英文数词；导出的字体和缩进跟着它。
+func (msgs Messages) ShelfBookLanguageNote() string {
+	return Catalog.Format(msgs.locale, "shelfBookLanguageNote", nil)
+}
+
 // ShelfLocation says "位置"
 // in the language the app shows.
 func ShelfLocation() string { return In(i18n.Locale()).ShelfLocation() }

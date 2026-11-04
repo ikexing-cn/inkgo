@@ -286,6 +286,9 @@ function choose(id, value, options, pick, label) {
   return `<div class="choose" data-k="${t(id)}"><div class="box line hit" aria-label="${t(label)}"${onClick(() => set({ open: on ? '' : id }))}><div class="fit ell">${t(showing)}</div>${ICON.down}</div>` +
     (on ? `<div class="choose-menu pop scroll">${pairs.map(([name, shown]) => `<div class="pop-row row${name === value ? ' on' : ''}"${onClick(() => { set(SHUT); pick(name) })}>${t(shown)}</div>`).join('')}</div>` : '') + '</div>'
 }
+// 正文语言：新建作品和导入都有这一栏，默认是界面语言。选项写语言自己的名字，和设置里选界面语言的一样。
+const BOOK_LANGS = [['zh-Hans', '简体中文'], ['en', 'English']]
+const bookLangField = (id, value, pick) => `<div class="field"><div class="label">${t(L.shelfBookLanguage())}</div>${choose(id, value, BOOK_LANGS, pick, L.shelfBookLanguage())}<div class="note">${t(L.shelfBookLanguageNote())}</div></div>`
 // 菜单里的一行：左边图标，右边快捷键或小字；act 空着就是灰的。
 const menuRow = (label, act, pic, side = '') => `<div class="pop-row row${act ? '' : ' off'}"${onClick(act)}>${pic ? icon(pic, 'md', 'muted') : ''}<div class="grow">${t(label)}</div><div class="side">${t(keyLabel(side))}</div></div>`
 // 有下一级的一行：点它或者指针滑到（subOver），旁边展开一列 rows；展开着时这一行是浅底。

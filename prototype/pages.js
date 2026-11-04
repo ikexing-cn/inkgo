@@ -267,7 +267,7 @@ function importMenu() {
     menuRow(L.commonDelete(), () => impDelete(key)) + '</div>'
 }
 
-// 第一个对话框：作品叫什么、什么体裁、放在哪，和「新建作品」同样的字。名字空着、文件夹里已有文件时「下一步」是灰的。
+// 第一个对话框：作品叫什么、什么体裁、正文什么语言、放在哪，和「新建作品」同样的字。名字空着、文件夹里已有文件时「下一步」是灰的。
 function importFormDialog() {
   const imp = S.imp, w = impWhere(), type = (key) => (v) => set((s) => ({ imp: { ...s.imp, [key]: v } }))
   const folder = w.at.split(/[\\/]/).filter(Boolean).at(-1) || w.at
@@ -277,7 +277,7 @@ function importFormDialog() {
     `<div class="field"><div class="label">${t(L.shelfFile())}</div><div class="pick-line"><div class="box line fit"><div class="fit ell">${t(BOOK.source.file)}</div></div>${button(L.shelfChangeFile(), osAsk(L.shelfPickImport()))}</div>` +
     `<div class="note">${t(L.shelfDetected(imp.volumes.length, imp.chapters.length))}</div></div>` +
     field(L.shelfBookName(), line(imp.name, type('name'), '', L.shelfBookName(), keys(next) + ' autofocus')) + (w.name ? '' : `<div class="note">${t(L.shelfNameNeeded())}</div>`) +
-    field(L.shelfGenre(), choose('imp-kind', imp.type, BOOK.kinds.map((k) => [k, genreWord(k)]), type('type'), L.shelfGenre())) +
+    field(L.shelfGenre(), choose('imp-kind', imp.type, BOOK.kinds.map((k) => [k, genreWord(k)]), type('type'), L.shelfGenre())) + bookLangField('imp-lang', imp.lang ?? LANG, type('lang')) +
     `<div class="field"><div class="label">${t(L.shelfLocation())}</div><div class="pick-line"><div class="box line fit">${typed(w.at, type('at'), '', L.shelfBookLocation(), keys(next))}</div>${button(L.shelfChangePlace(), osAsk(L.shelfPickNewLocation()))}</div>${where}</div>` +
     buttons(button(L.commonCancel(), () => set({ dialog: null, imp: null, ...SHUT })), button(L.commonNext(), w.ok ? next : null, w.ok ? 'primary' : 'primary off')))
 }
@@ -312,7 +312,7 @@ function importPreviewDialog() {
   const ok = !!chapters.length
   const go = () => {
     const id = 'book' + S.n, words = total
-    set((s) => ({ shelf: [{ id, name: w.name, kind: imp.type, words, at: stamp() }, ...s.shelf], n: s.n + 1, dialog: null, imp: null }))
+    set((s) => ({ shelf: [{ id, name: w.name, kind: imp.type, lang: imp.lang ?? LANG, words, at: stamp() }, ...s.shelf], n: s.n + 1, dialog: null, imp: null }))
     openBook(id)
     say(L.shelfImported(chapters.length), w.name, 'ok')
   }
