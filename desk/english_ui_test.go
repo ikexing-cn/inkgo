@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 	"unicode"
+	"writer/ext/backup/backuptext"
 
 	"github.com/egoist/mygo/i18n"
 	"github.com/egoist/mygo/ui"
@@ -136,7 +137,7 @@ func TestEnglishInterfaceDrawsNoHan(t *testing.T) {
 	check("prose context menu")
 	a.menu = kit.MenuState{}
 	wasFolders := backup.SyncFolders
-	backup.SyncFolders = func() []backup.Place { return []backup.Place{{Dir: "backup", Name: locales.BackupNutstore}} }
+	backup.SyncFolders = func() []backup.Place { return []backup.Place{{Dir: "backup", Name: backuptext.BackupNutstore}} }
 	t.Cleanup(func() { backup.SyncFolders = wasFolders })
 	backupOf(a).OpenAsk()
 	check("backup destination question")

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"unicode"
 	"writer/ext/backup/archive"
-	"writer/locales"
+	"writer/ext/backup/backuptext"
 )
 
 func TestBackupFailureMappingsInBothLocales(t *testing.T) {
@@ -20,10 +20,10 @@ func TestBackupFailureMappingsInBothLocales(t *testing.T) {
 			failure            archive.Failure
 			short, title, body string
 		}{
-			{archive.Failure{Kind: archive.NoDisk, Disk: "X"}, locales.BackupDriveShort("X"), locales.BackupDriveTitle("X"), locales.BackupDiskFix()},
-			{archive.Failure{Kind: archive.NoFolder}, locales.BackupDirShort(), locales.BackupDirTitle(), locales.BackupDirFix()},
-			{archive.Failure{Kind: archive.NoWrite}, locales.BackupDenyShort(), locales.BackupDenyTitle(), locales.BackupDenyFix()},
-			{archive.Failure{Kind: archive.Failed, Err: errors.New("full")}, locales.BackupFailed(), locales.BackupFailureTitle(), locales.BackupFailureBody("full")},
+			{archive.Failure{Kind: archive.NoDisk, Disk: "X"}, backuptext.BackupDriveShort("X"), backuptext.BackupDriveTitle("X"), backuptext.BackupDiskFix()},
+			{archive.Failure{Kind: archive.NoFolder}, backuptext.BackupDirShort(), backuptext.BackupDirTitle(), backuptext.BackupDirFix()},
+			{archive.Failure{Kind: archive.NoWrite}, backuptext.BackupDenyShort(), backuptext.BackupDenyTitle(), backuptext.BackupDenyFix()},
+			{archive.Failure{Kind: archive.Failed, Err: errors.New("full")}, backuptext.BackupFailed(), backuptext.BackupFailureTitle(), backuptext.BackupFailureBody("full")},
 		} {
 			short, title, body := TroubleText(tc.failure)
 			if short != tc.short || title != tc.title || body != tc.body {

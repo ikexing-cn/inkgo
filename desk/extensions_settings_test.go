@@ -3,13 +3,13 @@ package desk
 import (
 	"slices"
 	"testing"
+	"writer/ext/backup/backuptext"
 
 	"github.com/egoist/mygo/ui"
 	"writer/ai"
 	"writer/ext"
 	"writer/ext/backup/archive"
 	"writer/ext/hostapi"
-	"writer/locales"
 )
 
 func TestSettingsSidebarOrdersAppearanceExtensionsThenHostAndRegisteredPages(t *testing.T) {
@@ -47,7 +47,7 @@ func TestBackupSettingsPageRemainsOnShelfWithoutWorkSettings(t *testing.T) {
 	a, tt, _ := fixture(t)
 	a.openPrefs("backup.settings")
 	tt.Frame()
-	if !tt.HasText(locales.BackupLocalOnly()) {
+	if !tt.HasText(backuptext.BackupLocalOnly()) {
 		t.Fatal("work settings missing")
 	}
 	a.closeWork()
@@ -56,7 +56,7 @@ func TestBackupSettingsPageRemainsOnShelfWithoutWorkSettings(t *testing.T) {
 	if _, ok := tt.Find("设置-备份"); !ok {
 		t.Fatal("shelf registration missing")
 	}
-	if a.settings.tab != "backup.settings" || tt.HasText(locales.BackupLocalOnly()) || tt.HasText(locales.BackupTiming()) {
+	if a.settings.tab != "backup.settings" || tt.HasText(backuptext.BackupLocalOnly()) || tt.HasText(backuptext.BackupTiming()) {
 		t.Fatal(a.settings, tt.Texts())
 	}
 }
@@ -115,7 +115,7 @@ func TestOpenSettingsResolvesBackupAndUnknownIDsAndFooterCard(t *testing.T) {
 	backupOf(a).Configure(archive.Settings{Dir: t.TempDir()})
 	tt.Frame()
 	click(t, tt, "备份状态")
-	click(t, tt, locales.BackupSettings())
+	click(t, tt, backuptext.BackupSettings())
 	if a.settings.tab != "backup.settings" || !a.settings.open {
 		t.Fatal(a.settings)
 	}

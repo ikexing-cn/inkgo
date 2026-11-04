@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"writer/ext/backup/backuptext"
 
 	"github.com/egoist/mygo/ui"
 	"writer/ai"
 	"writer/ext"
 	"writer/ext/backup/archive"
 	"writer/ext/hostapi"
-	"writer/locales"
 	"writer/shelf"
 )
 
@@ -192,7 +192,7 @@ func TestBackupSwitchRemovesAndRestoresEverySurfaceAndLifecycle(t *testing.T) {
 		if !tab {
 			t.Fatal("disabled settings page disappeared")
 		}
-		if tt.HasText(locales.BackupTiming()) != on {
+		if tt.HasText(backuptext.BackupTiming()) != on {
 			t.Fatal("stale backup settings content", tt.Texts())
 		}
 		a.closePrefs()

@@ -8,8 +8,8 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/ext"
 	"writer/ext/backup/archive"
+	"writer/ext/backup/backuptext"
 	"writer/ext/hostapi"
-	"writer/locales"
 )
 
 // Choices stores per-folder settings on this machine only.
@@ -55,7 +55,7 @@ type View struct {
 // the returned view on the frame thread; create a fresh module for each host.
 func New(ask bool) (ext.Module, *View) {
 	a := &View{}
-	return ext.Module{ID: "backup", Kind: ext.Feature, Group: hostapi.GroupFiles, Off: locales.ModBackupOff, Name: locales.ModBackup, Desc: locales.ModBackupAbout, Setup: func(r *ext.Registrar) {
+	return ext.Module{ID: "backup", Kind: ext.Feature, Group: hostapi.GroupFiles, Off: backuptext.ModBackupOff, Name: backuptext.ModBackup, Desc: backuptext.ModBackupAbout, Setup: func(r *ext.Registrar) {
 		*a = View{book: ext.Use(r, hostapi.BookService), palette: ext.Use(r, hostapi.PaletteService), jobs: ext.Use(r, hostapi.JobsService), dialogs: ext.Use(r, hostapi.DialogsService), desktop: ext.Use(r, hostapi.DesktopService), pending: ext.Use(r, hostapi.PendingService), setting: ext.Setting(r, "choices", ext.Schema[Choices]{Scope: ext.Local})}
 		r.OnStart(func(s *ext.Session) error {
 			if ask && s.Book().Dir != "" {
@@ -74,7 +74,7 @@ func New(ask bool) (ext.Module, *View) {
 		ext.Contribute(r, hostapi.TitleItems, "warning", hostapi.DrawItem{Draw: a.backupChip})
 		ext.Contribute(r, hostapi.FrameTicks, "due", hostapi.FrameTick{Tick: a.backupDue})
 		ext.Contribute(r, hostapi.BeforeLeave, "save", a.backupNow)
-		ext.Contribute(r, hostapi.SettingsPages, "settings", hostapi.SettingsPage{Title: locales.ModBackup, Label: "设置-备份", Order: 30})
+		ext.Contribute(r, hostapi.SettingsPages, "settings", hostapi.SettingsPage{Title: backuptext.ModBackup, Label: "设置-备份", Order: 30})
 		ext.Contribute(r, hostapi.SettingsSections, "preferences", hostapi.SettingsSection{Work: true, Draw: a.backupSettingsView})
 		ext.Contribute(r, hostapi.PendingGroups, "failure", hostapi.PendingSource{Key: func() string {
 			s, ok := a.Settings()

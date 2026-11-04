@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 	"writer/ext/backup"
+	"writer/ext/backup/backuptext"
 
 	"github.com/egoist/mygo/ui"
 
 	"writer/ext/backup/archive"
 	"writer/internal/testshot"
-	"writer/locales"
 )
 
 // waitBackup runs frames until the backup in flight is done.
@@ -47,7 +47,7 @@ func TestFirstBackup(t *testing.T) {
 	}
 	was := backup.SyncFolders
 	backup.SyncFolders = func() []backup.Place {
-		return []backup.Place{{Name: func() string { return locales.BackupSyncFolder("OneDrive") }, Dir: sync}}
+		return []backup.Place{{Name: func() string { return backuptext.BackupSyncFolder("OneDrive") }, Dir: sync}}
 	}
 	t.Cleanup(func() { backup.SyncFolders = was })
 	enableBackupQuestion(a)
@@ -123,7 +123,7 @@ func TestDisabledBackupDiscardsAnOutstandingFolderChoice(t *testing.T) {
 	a.PickFolder = func(string) (string, error) { close(started); <-release; return dir, nil }
 	backupOf(a).OpenAsk()
 	tt.Frame()
-	click(t, tt, locales.BackupOtherFolder())
+	click(t, tt, backuptext.BackupOtherFolder())
 	select {
 	case <-started:
 	case <-time.After(time.Second):
@@ -307,7 +307,7 @@ func TestShotBackup(t *testing.T) {
 	sync := filepath.Join(t.TempDir(), "OneDrive", "写作备份")
 	was := backup.SyncFolders
 	backup.SyncFolders = func() []backup.Place {
-		return []backup.Place{{Name: func() string { return locales.BackupSyncFolder("OneDrive") }, Dir: sync}}
+		return []backup.Place{{Name: func() string { return backuptext.BackupSyncFolder("OneDrive") }, Dir: sync}}
 	}
 	t.Cleanup(func() { backup.SyncFolders = was })
 	a.PickFolder = func(string) (string, error) { return "", nil }

@@ -12,8 +12,8 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
 	"writer/ext/backup/archive"
+	"writer/ext/backup/backuptext"
 	"writer/ext/hostapi"
-	"writer/locales"
 	"writer/workspace"
 )
 
@@ -69,13 +69,13 @@ var SyncFolders = func() []Place {
 		}
 	}
 	if d := os.Getenv("OneDrive"); d != "" {
-		add(func() string { return locales.BackupSyncFolder("OneDrive") }, d)
+		add(func() string { return backuptext.BackupSyncFolder("OneDrive") }, d)
 	}
 	if ds, _ := filepath.Glob(filepath.Join(home, "Nutstore", "*", "我的坚果云")); len(ds) > 0 {
-		add(locales.BackupNutstore, ds[0])
+		add(backuptext.BackupNutstore, ds[0])
 	}
-	add(func() string { return locales.BackupSyncFolder("Dropbox") }, filepath.Join(home, "Dropbox"))
-	add(locales.BackupICloud, filepath.Join(home, "iCloudDrive"))
+	add(func() string { return backuptext.BackupSyncFolder("Dropbox") }, filepath.Join(home, "Dropbox"))
+	add(backuptext.BackupICloud, filepath.Join(home, "iCloudDrive"))
 	return out
 }
 
@@ -217,32 +217,32 @@ func (a *View) backupPending() (hostapi.PendingGroup, bool) {
 		return hostapi.PendingGroup{}, false
 	}
 	short, _, _ := TroubleText(a.State.Policy.Trouble(s.Dir))
-	sub := locales.BackupRetryHint()
+	sub := backuptext.BackupRetryHint()
 	if !s.Last.IsZero() {
-		sub = locales.StatusRetryBackup(kit.When(s.Last, time.Now()))
+		sub = backuptext.StatusRetryBackup(kit.When(s.Last, time.Now()))
 	}
-	it := hostapi.PendingItem{Key: pendBackup, Text: locales.StatusBackupWhy(short), Sub: sub, Open: a.Run}
-	return hostapi.PendingGroup{ID: "backup", Name: locales.ModBackup(), Color: a.palette.Get().Colors().Amber, Items: []hostapi.PendingItem{it}}, true
+	it := hostapi.PendingItem{Key: pendBackup, Text: backuptext.StatusBackupWhy(short), Sub: sub, Open: a.Run}
+	return hostapi.PendingGroup{ID: "backup", Name: backuptext.ModBackup(), Color: a.palette.Get().Colors().Amber, Items: []hostapi.PendingItem{it}}, true
 }
 
 // lastSaid says when the last backup succeeded, for a failure's popover.
 func lastSaid(s archive.Settings, now time.Time) string {
 	if s.Last.IsZero() {
-		return locales.BackupNoneYet()
+		return backuptext.BackupNoneYet()
 	}
 	days := int(now.Sub(s.Last).Hours() / 24)
 	if days >= 1 {
-		return locales.BackupLastDays(days)
+		return backuptext.BackupLastDays(days)
 	}
-	return locales.BackupLastAt(kit.When(s.Last, now))
+	return backuptext.BackupLastAt(kit.When(s.Last, now))
 }
 
 // Kept says what the last of the backups listed holds and how many there
 // are, newest first, with the day of the first when there are more.
 func Kept(list []archive.Info, now time.Time) string {
-	note := locales.BackupSummary(kit.Words(list[0].Words), list[0].Chapters, len(list))
+	note := backuptext.BackupSummary(kit.Words(list[0].Words), list[0].Chapters, len(list))
 	if len(list) > 1 {
-		note = locales.BackupSummaryOldest(note, kit.DayOf(list[len(list)-1].At, now))
+		note = backuptext.BackupSummaryOldest(note, kit.DayOf(list[len(list)-1].At, now))
 	}
 	return note
 }
@@ -251,26 +251,26 @@ func Kept(list []archive.Info, now time.Time) string {
 func next(s archive.Settings, now time.Time) string {
 	switch {
 	case s.Hourly:
-		return locales.BackupAround(s.Last.Add(time.Hour).Format("15:04"))
+		return backuptext.BackupAround(s.Last.Add(time.Hour).Format("15:04"))
 	case s.OnClose:
-		return locales.BackupWhenClose()
+		return backuptext.BackupWhenClose()
 	case s.Daily:
-		return locales.BackupNextDay()
+		return backuptext.BackupNextDay()
 	}
-	return locales.BackupNextManual()
+	return backuptext.BackupNextManual()
 }
 
 func (a *View) backupText() string {
 	s, _ := a.Settings()
 	switch {
 	case a.State.Running:
-		return locales.BackupBusy()
+		return backuptext.BackupBusy()
 	case a.State.Policy.Failed():
-		return locales.BackupFailed()
+		return backuptext.BackupFailed()
 	case s.Dir == "" || s.Last.IsZero():
-		return locales.BackupNone()
+		return backuptext.BackupNone()
 	default:
-		return locales.StatusBackupOK()
+		return backuptext.StatusBackupOK()
 	}
 }
 
@@ -283,7 +283,7 @@ func (a *View) backupLine(c *ui.Context) {
 	}
 	t := a.palette.Get().Colors().Theme
 	text, dot := a.backupText(), a.palette.Get().Colors().Faint
-	tip := locales.StatusBackedUpAt(kit.When(s.Last, time.Now()))
+	tip := backuptext.StatusBackedUpAt(kit.When(s.Last, time.Now()))
 	if !a.State.Running && (a.State.Policy.Failed() || s.Dir == "" || s.Last.IsZero()) {
 		dot = a.palette.Get().Colors().Amber
 	}
@@ -320,13 +320,13 @@ func (a *View) backupChip(c *ui.Context) {
 	short, _, _ := TroubleText(a.State.Policy.Trouble(s.Dir))
 	t := a.palette.Get().Colors().Theme
 	b := ui.ButtonBase(c).Row().Height(kit.HControlSm).Gap(6).AlignItems(ui.Center).Padding(0, 8).Radius(kit.RControl).Shrink(1).MinWidth(40).
-		Background(a.palette.Get().Colors().WarnBg).Border(1, a.palette.Get().Colors().WarnBd).Label("备份提示").Tooltip(locales.StatusBackupWarn(short)).KeepFocus()
+		Background(a.palette.Get().Colors().WarnBg).Border(1, a.palette.Get().Colors().WarnBd).Label("备份提示").Tooltip(backuptext.StatusBackupWarn(short)).KeepFocus()
 	if b.Hovered() {
 		b.Background(a.palette.Get().Colors().WarnBd.Alpha(0.55))
 	}
 	b.Children(func() {
 		kit.Dot(c, a.palette.Get().Colors().Amber, 6)
-		ui.Text(c, locales.StatusBackupWarn(short)).FontSize(kit.FsNote).TextColor(t.Warning).SingleLine().Ellipsis("…").Shrink(1)
+		ui.Text(c, backuptext.StatusBackupWarn(short)).FontSize(kit.FsNote).TextColor(t.Warning).SingleLine().Ellipsis("…").Shrink(1)
 	})
 	if b.Clicked() {
 		a.State.Chip = !a.State.Chip
@@ -350,10 +350,10 @@ func (a *View) backupCard(c *ui.Context, panel ui.Element, s archive.Settings) {
 	a.palette.Get().Colors().Pop.On(panel.MaxWidth(300).Radius(kit.RCard).Padding(12).Gap(8).Background(bg).Border(1, t.Border))
 	panel.Children(func() {
 		if s.Dir == "" {
-			ui.Text(c, locales.BackupNone()).FontSize(kit.FsBody).FontWeight(600)
-			ui.Text(c, locales.BackupLocalOnly()).FontSize(kit.FsNote).TextColor(t.TextMuted)
+			ui.Text(c, backuptext.BackupNone()).FontSize(kit.FsBody).FontWeight(600)
+			ui.Text(c, backuptext.BackupLocalOnly()).FontSize(kit.FsNote).TextColor(t.TextMuted)
 			ui.Row(c).FillWidth().Justify(ui.End).Children(func() {
-				if a.palette.Get().Colors().Primary(c, locales.BackupChoose()).Clicked() {
+				if a.palette.Get().Colors().Primary(c, backuptext.BackupChoose()).Clicked() {
 					a.State.Open = false
 					a.OpenAsk()
 				}
@@ -363,44 +363,44 @@ func (a *View) backupCard(c *ui.Context, panel ui.Element, s archive.Settings) {
 		if a.State.Policy.Failed() && !a.State.Running {
 			_, title, body := TroubleText(a.State.Policy.Trouble(s.Dir))
 			ui.Text(c, title).FontSize(kit.FsBody).FontWeight(600)
-			ui.Text(c, locales.BackupFailureDetails(body, lastSaid(s, now))).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
+			ui.Text(c, backuptext.BackupFailureDetails(body, lastSaid(s, now))).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Justify(ui.End).Children(func() {
-				if a.palette.Get().Colors().Ghost(c, locales.BackupHushToday(), ui.Color{}).Clicked() {
+				if a.palette.Get().Colors().Ghost(c, backuptext.BackupHushToday(), ui.Color{}).Clicked() {
 					s.Hush = now
 					a.Configure(s)
 					a.State.Open, a.State.Chip = false, false
 				}
-				if a.dialogs.Get().CanPickFolder() && a.palette.Get().Colors().Secondary(c, locales.BackupChangePlace()).Clicked() {
+				if a.dialogs.Get().CanPickFolder() && a.palette.Get().Colors().Secondary(c, backuptext.BackupChangePlace()).Clicked() {
 					a.State.Open, a.State.Chip = false, false
 					a.pickBackupFolder(c)
 				}
-				if a.palette.Get().Colors().Primary(c, locales.BackupRetry()).Disabled(a.State.Running).Clicked() {
+				if a.palette.Get().Colors().Primary(c, backuptext.BackupRetry()).Disabled(a.State.Running).Clicked() {
 					a.State.Open, a.State.Chip = false, false
 					a.Run(c.Services())
 				}
 			})
 			return
 		}
-		title := locales.BackupDone(kit.When(s.Last, now))
+		title := backuptext.BackupDone(kit.When(s.Last, now))
 		if kit.SameDay(s.Last, now) {
-			title = locales.BackupDone(s.Last.Local().Format("15:04"))
+			title = backuptext.BackupDone(s.Last.Local().Format("15:04"))
 		}
 		if s.Last.IsZero() {
-			title = locales.BackupNone()
+			title = backuptext.BackupNone()
 		}
 		ui.Text(c, title).FontSize(kit.FsBody).FontWeight(600)
 		ui.Column(c).Children(func() {
-			ui.Text(c, locales.BackupTo(s.Dir)).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
-			ui.Text(c, locales.BackupNextAt(next(s, now))).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
+			ui.Text(c, backuptext.BackupTo(s.Dir)).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
+			ui.Text(c, backuptext.BackupNextAt(next(s, now))).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
 		})
 		ui.Row(c).FillWidth().Gap(8).Justify(ui.End).Children(func() {
-			if a.palette.Get().Colors().Secondary(c, locales.BackupSettings()).Clicked() {
+			if a.palette.Get().Colors().Secondary(c, backuptext.BackupSettings()).Clicked() {
 				a.State.Open = false
 				a.desktop.Get().OpenSettings("backup.settings")
 			}
-			label := locales.BackupRunNow()
+			label := backuptext.BackupRunNow()
 			if a.State.Running {
-				label = locales.BackupBusy()
+				label = backuptext.BackupBusy()
 			}
 			if a.palette.Get().Colors().Primary(c, label).Label("立即备份").Disabled(a.State.Running).Clicked() {
 				a.Run(c.Services())
@@ -413,7 +413,7 @@ func (a *View) backupCard(c *ui.Context, panel ui.Element, s archive.Settings) {
 func (a *View) pickBackupFolder(c *ui.Context) {
 	sv := c.Services()
 	generation := a.generation
-	a.dialogs.Get().PickInto(c, locales.DialogOsBackupFolder(), func(path string) {
+	a.dialogs.Get().PickInto(c, backuptext.DialogOsBackupFolder(), func(path string) {
 		if generation != a.generation {
 			return
 		}
@@ -436,7 +436,7 @@ func (a *View) askView(c *ui.Context) {
 	open := a.State.Ask
 	a.palette.Get().Colors().Modal(c, &a.State.Ask, func() {
 		ui.Column(c).Width(kit.DialogSmall).Padding(kit.DialogPad).Gap(16).Children(func() {
-			a.palette.Get().Colors().DialogHead(c, locales.BackupDialogTitle(), locales.BackupDialogAbout())
+			a.palette.Get().Colors().DialogHead(c, backuptext.BackupDialogTitle(), backuptext.BackupDialogAbout())
 			ui.Column(c).FillWidth().Gap(8).Children(func() {
 				places := a.State.Places
 				own := true
@@ -444,18 +444,18 @@ func (a *View) askView(c *ui.Context) {
 					if p.Dir == a.State.Place {
 						own = false
 					}
-					a.placeRow(c, p.Name(), locales.BackupDetected(p.Dir), p.Dir == a.State.Place, func() { a.State.Place = p.Dir })
+					a.placeRow(c, p.Name(), backuptext.BackupDetected(p.Dir), p.Dir == a.State.Place, func() { a.State.Place = p.Dir })
 				}
 				if a.dialogs.Get().CanPickFolder() {
-					sub := locales.BackupOtherFolderNote()
+					sub := backuptext.BackupOtherFolderNote()
 					if own && a.State.Place != "" {
 						sub = a.State.Place
 					}
-					a.placeRow(c, locales.BackupOtherFolder(), sub, own && a.State.Place != "", func() { a.pickBackupFolder(c) })
+					a.placeRow(c, backuptext.BackupOtherFolder(), sub, own && a.State.Place != "", func() { a.pickBackupFolder(c) })
 				}
 			})
 			ui.Column(c).FillWidth().Gap(6).Children(func() {
-				ui.Text(c, locales.BackupTiming()).FontSize(kit.FsNote).TextColor(t.TextMuted)
+				ui.Text(c, backuptext.BackupTiming()).FontSize(kit.FsNote).TextColor(t.TextMuted)
 				ui.Column(c).Gap(8).Children(func() {
 					for _, o := range whenChoices(&a.State.OnClose, &a.State.Daily, &a.State.Hourly) {
 						ui.Checkbox(c, o.on, o.label)
@@ -463,11 +463,11 @@ func (a *View) askView(c *ui.Context) {
 				})
 			})
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-				if a.palette.Get().Colors().Ghost(c, locales.BackupLater(), ui.Color{}).Clicked() {
+				if a.palette.Get().Colors().Ghost(c, backuptext.BackupLater(), ui.Color{}).Clicked() {
 					a.State.Ask = false
 				}
 				ui.Spacer(c)
-				if a.palette.Get().Colors().Primary(c, locales.BackupStart()).Disabled(a.State.Place == "").Clicked() {
+				if a.palette.Get().Colors().Primary(c, backuptext.BackupStart()).Disabled(a.State.Place == "").Clicked() {
 					a.startBackups(c)
 				}
 			})
@@ -517,7 +517,7 @@ type whenChoice struct {
 }
 
 func whenChoices(onClose, daily, hourly *bool) []whenChoice {
-	return []whenChoice{{locales.BackupWhenClose(), onClose}, {locales.BackupTickDaily(), daily}, {locales.BackupTickHourly(), hourly}}
+	return []whenChoice{{backuptext.BackupWhenClose(), onClose}, {backuptext.BackupTickDaily(), daily}, {backuptext.BackupTickHourly(), hourly}}
 }
 
 // backups are the work's backups in the folder, read when they may have
@@ -549,10 +549,10 @@ func (a *View) backupSettingsView(c *ui.Context) {
 	if s.Dir == "" {
 		ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(12).Padding(14, 16).Radius(kit.RCard).Border(1, a.palette.Get().Colors().Line).Children(func() {
 			ui.Column(c).Grow(1).Shrink(1).Children(func() {
-				ui.Text(c, locales.BackupNone()).FontSize(kit.FsGroup).FontWeight(600)
-				ui.Text(c, locales.BackupLocalOnly()).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
+				ui.Text(c, backuptext.BackupNone()).FontSize(kit.FsGroup).FontWeight(600)
+				ui.Text(c, backuptext.BackupLocalOnly()).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
 			})
-			if a.palette.Get().Colors().Primary(c, locales.BackupChoose()).Clicked() {
+			if a.palette.Get().Colors().Primary(c, backuptext.BackupChoose()).Clicked() {
 				a.OpenAsk()
 			}
 		})
@@ -560,20 +560,20 @@ func (a *View) backupSettingsView(c *ui.Context) {
 	}
 	list := a.backups(s)
 	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(12).Padding(14, 16).Radius(kit.RCard).Border(1, a.palette.Get().Colors().Line).Children(func() {
-		again := locales.BackupRunNow()
+		again := backuptext.BackupRunNow()
 		ui.Column(c).Grow(1).Shrink(1).Children(func() {
-			title, note := locales.BackupDone(kit.When(s.Last, now)), ""
+			title, note := backuptext.BackupDone(kit.When(s.Last, now)), ""
 			if len(list) > 0 {
 				note = Kept(list, now)
 			}
 			switch {
 			case a.State.Running:
-				title = locales.BackupBusy()
+				title = backuptext.BackupBusy()
 			case a.State.Policy.Failed():
 				short, _, why := TroubleText(a.State.Policy.Trouble(s.Dir))
-				title, note, again = locales.BackupFailed(), locales.BackupFailNote(short, why), locales.BackupRetry()
+				title, note, again = backuptext.BackupFailed(), backuptext.BackupFailNote(short, why), backuptext.BackupRetry()
 			case s.Last.IsZero():
-				title = locales.BackupNone()
+				title = backuptext.BackupNone()
 			}
 			ui.Text(c, title).FontSize(kit.FsGroup).FontWeight(600)
 			if note != "" {
@@ -586,13 +586,13 @@ func (a *View) backupSettingsView(c *ui.Context) {
 	})
 	row := prefsRow
 	{
-		row(c, locales.BackupDestLabel(), func() {
+		row(c, backuptext.BackupDestLabel(), func() {
 			ui.Text(c, s.Dir).FontSize(kit.FsBody).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
-			if a.dialogs.Get().CanPickFolder() && a.palette.Get().Colors().Secondary(c, locales.BackupChange()).Clicked() {
+			if a.dialogs.Get().CanPickFolder() && a.palette.Get().Colors().Secondary(c, backuptext.BackupChange()).Clicked() {
 				a.pickBackupFolder(c)
 			}
 		})
-		row(c, locales.BackupTiming(), func() {
+		row(c, backuptext.BackupTiming(), func() {
 			ui.Column(c).Gap(8).Children(func() {
 				on := []bool{s.OnClose, s.Daily, s.Hourly}
 				for _, o := range whenChoices(&on[0], &on[1], &on[2]) {
@@ -603,7 +603,7 @@ func (a *View) backupSettingsView(c *ui.Context) {
 				}
 			})
 		})
-		row(c, locales.BackupKeep(), func() {
+		row(c, backuptext.BackupKeep(), func() {
 			{
 				// A number Kept from before these were the choices stays one.
 				keeps := keepChoices
@@ -616,7 +616,7 @@ func (a *View) backupSettingsView(c *ui.Context) {
 					counts[i] = strconv.Itoa(k)
 				}
 				a.State.KeepChoice = strconv.Itoa(s.Kept())
-				keepName := func(n string) string { k, _ := strconv.Atoi(n); return locales.BackupKeepCount(k) }
+				keepName := func(n string) string { k, _ := strconv.Atoi(n); return backuptext.BackupKeepCount(k) }
 				if a.palette.Get().Colors().SelectNamed(c, &a.State.KeepChoice, counts, keepName).Label("保留份数").Width(140).Changed() {
 					s.Keep, _ = strconv.Atoi(a.State.KeepChoice)
 					a.Configure(s) // the next backup removes those beyond it
@@ -626,7 +626,7 @@ func (a *View) backupSettingsView(c *ui.Context) {
 					for _, b := range list {
 						all += b.Size
 					}
-					ui.Text(c, locales.BackupSizes(size(list[0].Size), size(all))).FontSize(kit.FsNote).TextColor(t.TextMuted)
+					ui.Text(c, backuptext.BackupSizes(size(list[0].Size), size(all))).FontSize(kit.FsNote).TextColor(t.TextMuted)
 				}
 			}
 		})

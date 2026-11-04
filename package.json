@@ -15,6 +15,7 @@
     "archive-agent-note": "node scripts/archive-agent-note.ts",
     "check-anchors": "node scripts/check-note-anchors.ts",
     "notes-board": "node scripts/notes-board.ts",
+    "ext-locales": "go run ./internal/extlocales",
     "prototype-locales": "node scripts/prototype/locales.ts",
     "verify-prototype": "node scripts/prototype/locales.ts --check && node --test scripts/prototype/browser.test.ts && node scripts/verify-prototype.ts",
     "verify-ui": "node scripts/verify-ui.ts",

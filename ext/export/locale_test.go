@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 	"unicode"
+	"writer/ext/export/exporttext"
 	"writer/ext/export/format"
 	"writer/locales"
 )
@@ -17,15 +18,15 @@ func TestExportMappingsInBothLocales(t *testing.T) {
 		tag = next
 		pairs := [][2]string{}
 		for i, got := range scopeLabels([]string{format.ScopeWork, format.ScopeVolume, format.ScopeChapter, format.ScopeSpan}) {
-			pairs = append(pairs, [2]string{got, []string{locales.ExportRangeBook(), locales.ExportRangeVolume(), locales.ExportRangeChapter(), locales.ExportRangeCustom()}[i]})
+			pairs = append(pairs, [2]string{got, []string{exporttext.ExportRangeBook(), exporttext.ExportRangeVolume(), locales.ExportRangeChapter(), exporttext.ExportRangeCustom()}[i]})
 		}
 		for _, tc := range []struct {
 			what, why, want string
 		}{
-			{format.ProseContent, format.SkipNoChapters, locales.ExportSkipBody()},
-			{format.OutlineContent, format.SkipNoChapters, locales.ExportSkipOutlineNone()},
-			{format.OutlineContent, format.SkipNoOutlines, locales.ExportSkipOutlineEmpty()},
-			{format.SettingContent, format.SkipNoLore, locales.ExportSkipSettings()},
+			{format.ProseContent, format.SkipNoChapters, exporttext.ExportSkipBody()},
+			{format.OutlineContent, format.SkipNoChapters, exporttext.ExportSkipOutlineNone()},
+			{format.OutlineContent, format.SkipNoOutlines, exporttext.ExportSkipOutlineEmpty()},
+			{format.SettingContent, format.SkipNoLore, exporttext.ExportSkipSettings()},
 		} {
 			pairs = append(pairs, [2]string{skipLabel(tc.what, tc.why), tc.want})
 		}
@@ -34,11 +35,11 @@ func TestExportMappingsInBothLocales(t *testing.T) {
 			options format.Options
 			want    string
 		}{
-			{format.Options{Prose: true, Outline: true}, locales.ExportAboutMany()},
-			{format.Options{Setting: true}, locales.ExportAboutSettings()},
-			{format.Options{Outline: true}, locales.ExportAboutOutline()},
-			{format.Options{Prose: true, Text: true}, locales.ExportAboutText()},
-			{format.Options{Prose: true}, locales.ExportAboutWord()},
+			{format.Options{Prose: true, Outline: true}, exporttext.ExportAboutMany()},
+			{format.Options{Setting: true}, exporttext.ExportAboutSettings()},
+			{format.Options{Outline: true}, exporttext.ExportAboutOutline()},
+			{format.Options{Prose: true, Text: true}, exporttext.ExportAboutText()},
+			{format.Options{Prose: true}, exporttext.ExportAboutWord()},
 		} {
 			d.preferences().Options = tc.options
 			d.Open = true

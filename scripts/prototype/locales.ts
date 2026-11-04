@@ -30,7 +30,22 @@ const [dir, version] = [mygo.slice(0, mygo.lastIndexOf(' ')), mygo.slice(mygo.la
 // one of mygo's own words in the app, which mygo i18n check checks against mygo's catalog; the prototype has
 // no function for it, but says it where it draws what mygo draws (below).
 const files = readdirSync('locales').filter((f) => f.endsWith('.json')).sort()
-const read = (f: string) => JSON.parse(readFileSync(join('locales', f), 'utf8')) as Record<string, unknown>
+const catalogDirs = ['locales', ...readdirSync('ext', { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort().flatMap((id) =>
+  readdirSync(join('ext', id), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && entry.name.endsWith('text'))
+    .map((entry) => join('ext', id, entry.name)))]
+const read = (f: string) => {
+  const merged: Record<string, unknown> = {}
+  for (const catalogDir of catalogDirs) {
+    const all = JSON.parse(readFileSync(join(catalogDir, f), 'utf8')) as Record<string, unknown>
+    for (const [key, value] of Object.entries(all)) {
+      if (key.startsWith('@@')) continue
+      if (Object.hasOwn(merged, key)) throw new Error(`${catalogDir}/${f}: duplicate key ${key}`)
+      merged[key] = value
+    }
+  }
+  return Object.fromEntries(Object.entries(merged).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0))
+}
 const tags = files.map((f) => f.slice(0, -'.json'.length))
 if (!tags.includes(SOURCE)) throw new Error(`locales/${SOURCE}.json is missing`)
 const languages = [SOURCE, ...tags.filter((t) => t !== SOURCE)]

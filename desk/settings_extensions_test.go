@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"writer/ext/backup/backuptext"
 
 	"github.com/egoist/mygo/ui"
 	"writer/ai"
@@ -304,13 +305,13 @@ func TestBackupPageKeepsHeaderWhenOffAndHidesWorkSettingsAndBookMenuOnShelf(t *t
 	a.openPrefs("backup.settings")
 	tt.Frame()
 	head := find(t, tt, "扩展开关-backup")
-	settings := find(t, tt, locales.BackupTiming())
+	settings := find(t, tt, backuptext.BackupTiming())
 	if head.Y >= settings.Y {
 		t.Fatal("header below settings")
 	}
 	click(t, tt, "扩展开关-backup")
-	hasText(t, tt, locales.ModBackupOff())
-	if a.extViews.moduleViews["backup"].own || tt.HasText(locales.BackupTiming()) || a.settings.tab != "backup.settings" {
+	hasText(t, tt, backuptext.ModBackupOff())
+	if a.extViews.moduleViews["backup"].own || tt.HasText(backuptext.BackupTiming()) || a.settings.tab != "backup.settings" {
 		t.Fatal("disabled header/settings")
 	}
 	find(t, tt, "扩展开关-backup")
@@ -319,7 +320,7 @@ func TestBackupPageKeepsHeaderWhenOffAndHidesWorkSettingsAndBookMenuOnShelf(t *t
 	a.openPrefs("backup.settings")
 	tt.Frame()
 	find(t, tt, "扩展开关-backup")
-	if tt.HasText(locales.BackupTiming()) {
+	if tt.HasText(backuptext.BackupTiming()) {
 		t.Fatal("work settings on shelf")
 	}
 	if _, ok := tt.Find("ext-more-backup"); ok {

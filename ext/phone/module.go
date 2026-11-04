@@ -3,7 +3,7 @@ package phone
 import (
 	"writer/ext"
 	"writer/ext/hostapi"
-	"writer/locales"
+	"writer/ext/phone/phonetext"
 )
 
 // Typesetting keeps named choices, independent of the order of UI controls.
@@ -20,14 +20,14 @@ type Typesetting struct {
 }
 
 // Module registers the phone preview. Each assembly owns a separate panel.
-var Module = ext.Module{ID: "phone", Kind: ext.Feature, Group: hostapi.GroupFiles, Name: locales.ModPhone, Desc: locales.ModPhoneAbout, Setup: func(r *ext.Registrar) {
+var Module = ext.Module{ID: "phone", Kind: ext.Feature, Group: hostapi.GroupFiles, Name: phonetext.ModPhone, Desc: phonetext.ModPhoneAbout, Setup: func(r *ext.Registrar) {
 	p := &Panel{book: ext.Use(r, hostapi.BookService), palette: ext.Use(r, hostapi.PaletteService)}
 	pane := ext.Use(r, hostapi.PaneService)
 	p.setting = ext.Setting(r, "typesetting", ext.Schema[Typesetting]{Scope: ext.Local, Default: defaultPhone()})
 	r.OnStart(func(s *ext.Session) error { p.session = s; return nil })
 	r.OnStop(func(*ext.Session) { *p = Panel{book: p.book, palette: p.palette, setting: p.setting} })
-	ext.Contribute(r, hostapi.Commands, "open", hostapi.Command{Name: locales.CmdPhonePreview,
+	ext.Contribute(r, hostapi.Commands, "open", hostapi.Command{Name: phonetext.CmdPhonePreview,
 		Can: func() bool { _, _, open := p.book.Get().Chapter(); return open },
 		Run: func() { pane.Get().Show("phone.preview") }, Menu: hostapi.MenuPosition{Menu: hostapi.MenuView, After: "focus"}})
-	ext.Contribute(r, hostapi.PaneTabs, "preview", hostapi.PaneTab{Title: locales.PaneTabPreview, Draw: p.View})
+	ext.Contribute(r, hostapi.PaneTabs, "preview", hostapi.PaneTab{Title: phonetext.PaneTabPreview, Draw: p.View})
 }}

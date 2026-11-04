@@ -11,6 +11,7 @@ import (
 	"writer/desk/book"
 	"writer/desk/kit"
 	"writer/ext"
+	"writer/ext/export/exporttext"
 	"writer/ext/export/format"
 	"writer/ext/hostapi"
 	"writer/internal/atomicfile"
@@ -119,7 +120,7 @@ func (d *Dialog) View(c *ui.Context) {
 	pal.Modal(c, &d.Open, func() {
 		plan := &d.plan
 		ui.Column(c).Width(kit.DialogSmall).Padding(kit.DialogPad).Gap(16).Children(func() {
-			pal.DialogHead(c, locales.ExportTitle(), aboutLabel(plan.About))
+			pal.DialogHead(c, exporttext.ExportTitle(), aboutLabel(plan.About))
 			kit.Labeled(c, locales.ExportContent(), func() {
 				ui.Row(c).Gap(24).MinHeight(kit.HControl).AlignItems(ui.Center).Children(func() {
 					for _, o := range []struct {
@@ -133,15 +134,15 @@ func (d *Dialog) View(c *ui.Context) {
 					}
 				})
 			})
-			kit.Labeled(c, locales.ExportFormat(), func() {
-				if kit.Dots(c, &set.Text, locales.ExportFormatAria(), []bool{false, true}, []string{"Word", locales.ExportPlain()}) {
+			kit.Labeled(c, exporttext.ExportFormat(), func() {
+				if kit.Dots(c, &set.Text, exporttext.ExportFormatAria(), []bool{false, true}, []string{"Word", locales.ExportPlain()}) {
 					d.saveChoices()
 					d.Replan()
 				}
 			})
 			if set.Prose || set.Outline {
-				kit.Labeled(c, locales.ExportRange(), func() {
-					if kit.Dots(c, &d.selection.Scope, locales.ExportRangeAria(), plan.Scopes, scopeLabels(plan.Scopes)) {
+				kit.Labeled(c, exporttext.ExportRange(), func() {
+					if kit.Dots(c, &d.selection.Scope, exporttext.ExportRangeAria(), plan.Scopes, scopeLabels(plan.Scopes)) {
 						d.Replan()
 					}
 				})
@@ -150,12 +151,12 @@ func (d *Dialog) View(c *ui.Context) {
 				}
 			}
 			if set.Prose && !set.Text {
-				kit.Labeled(c, locales.ExportPen(), func() {
-					ui.TextInput(c, &d.pen).Label(locales.ExportPen()).Placeholder(locales.ExportPenHint()).FillWidth()
+				kit.Labeled(c, exporttext.ExportPen(), func() {
+					ui.TextInput(c, &d.pen).Label(exporttext.ExportPen()).Placeholder(exporttext.ExportPenHint()).FillWidth()
 				})
 			}
 			if set.Prose && set.Text {
-				ui.Checkbox(c, &d.indent, locales.ExportIndent())
+				ui.Checkbox(c, &d.indent, exporttext.ExportIndent())
 			}
 			for _, what := range plan.Ticked {
 				if why := plan.Skip[what]; why != "" {
@@ -167,7 +168,7 @@ func (d *Dialog) View(c *ui.Context) {
 				if pal.Secondary(c, locales.CommonCancel()).Clicked() {
 					d.Open = false
 				}
-				if pal.Primary(c, locales.ExportTitle()).Disabled(len(plan.Going) == 0).Clicked() {
+				if pal.Primary(c, exporttext.ExportTitle()).Disabled(len(plan.Going) == 0).Clicked() {
 					d.export(c, d.plan)
 				}
 			})
@@ -182,16 +183,16 @@ func (d *Dialog) span(c *ui.Context) {
 	names := d.plan.Names
 	at := func(name string) int { return max(0, slices.Index(names, name)) }
 	ui.Row(c).FillWidth().Gap(12).Children(func() {
-		kit.Labeled(c, locales.ExportFrom(), func() {
-			if pal.Select(c, &d.selection.From, names).Label(locales.ExportFrom()).FillWidth().MinWidth(0).Changed() {
+		kit.Labeled(c, exporttext.ExportFrom(), func() {
+			if pal.Select(c, &d.selection.From, names).Label(exporttext.ExportFrom()).FillWidth().MinWidth(0).Changed() {
 				if at(d.selection.To) < at(d.selection.From) {
 					d.selection.To = d.selection.From
 				}
 				d.Replan()
 			}
 		})
-		kit.Labeled(c, locales.ExportTo(), func() {
-			if pal.Select(c, &d.selection.To, names[at(d.selection.From):]).Label(locales.ExportTo()).FillWidth().MinWidth(0).Changed() {
+		kit.Labeled(c, exporttext.ExportTo(), func() {
+			if pal.Select(c, &d.selection.To, names[at(d.selection.From):]).Label(exporttext.ExportTo()).FillWidth().MinWidth(0).Changed() {
 				d.Replan()
 			}
 		})
@@ -267,16 +268,16 @@ func (d *Dialog) export(c *ui.Context, plan format.Plan) {
 			set.Pen = pen
 			d.saveChoices()
 		}
-		status.Did(locales.ExportedOne(path))
+		status.Did(exporttext.ExportedOne(path))
 		if len(files) > 1 {
-			status.Did(locales.ExportedMany(len(files), dir))
+			status.Did(exporttext.ExportedMany(len(files), dir))
 		}
 	}
 	save, _ := d.dialogs.Get().Dialogs()
 	if len(files) == 1 && save != nil {
 		sv := c.Services()
 		d.jobs.Get().StartJob(sv, func() func() {
-			path, err := save(locales.ExportTitle(), files[0].name)
+			path, err := save(exporttext.ExportTitle(), files[0].name)
 			return func() {
 				if d.generation != generation || !d.Open {
 					return
@@ -291,7 +292,7 @@ func (d *Dialog) export(c *ui.Context, plan format.Plan) {
 		})
 		return
 	}
-	if len(files) > 1 && d.dialogs.Get().PickInto(c, locales.ExportInto(), write) {
+	if len(files) > 1 && d.dialogs.Get().PickInto(c, exporttext.ExportInto(), write) {
 		return
 	}
 	dir := filepath.Join(store.Root(), "导出")
@@ -324,11 +325,11 @@ func (d *Dialog) Selection() format.Selection { return d.selection }
 func contentLabel(what string) string {
 	switch what {
 	case format.ProseContent:
-		return locales.ExportBody()
+		return exporttext.ExportBody()
 	case format.OutlineContent:
 		return locales.PagePlan()
 	case format.SettingContent:
-		return locales.ExportSettings()
+		return exporttext.ExportSettings()
 	}
 	return what
 }
@@ -338,13 +339,13 @@ func scopeLabels(scopes []string) []string {
 	for i, scope := range scopes {
 		switch scope {
 		case format.ScopeWork:
-			labels[i] = locales.ExportRangeBook()
+			labels[i] = exporttext.ExportRangeBook()
 		case format.ScopeVolume:
-			labels[i] = locales.ExportRangeVolume()
+			labels[i] = exporttext.ExportRangeVolume()
 		case format.ScopeChapter:
 			labels[i] = locales.ExportRangeChapter()
 		case format.ScopeSpan:
-			labels[i] = locales.ExportRangeCustom()
+			labels[i] = exporttext.ExportRangeCustom()
 		}
 	}
 	return labels
@@ -353,15 +354,15 @@ func scopeLabels(scopes []string) []string {
 func aboutLabel(about string) string {
 	switch about {
 	case format.AboutMany:
-		return locales.ExportAboutMany()
+		return exporttext.ExportAboutMany()
 	case format.AboutLore:
-		return locales.ExportAboutSettings()
+		return exporttext.ExportAboutSettings()
 	case format.AboutOutline:
-		return locales.ExportAboutOutline()
+		return exporttext.ExportAboutOutline()
 	case format.AboutText:
-		return locales.ExportAboutText()
+		return exporttext.ExportAboutText()
 	default:
-		return locales.ExportAboutWord()
+		return exporttext.ExportAboutWord()
 	}
 }
 
@@ -370,13 +371,13 @@ func skipLabel(what, why string) string {
 	switch why {
 	case format.SkipNoChapters:
 		if what == format.ProseContent {
-			return locales.ExportSkipBody()
+			return exporttext.ExportSkipBody()
 		}
-		return locales.ExportSkipOutlineNone()
+		return exporttext.ExportSkipOutlineNone()
 	case format.SkipNoOutlines:
-		return locales.ExportSkipOutlineEmpty()
+		return exporttext.ExportSkipOutlineEmpty()
 	case format.SkipNoLore:
-		return locales.ExportSkipSettings()
+		return exporttext.ExportSkipSettings()
 	}
 	return ""
 }

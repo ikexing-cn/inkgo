@@ -49,6 +49,10 @@ if (!fresh) {
 }
 console.log('i18n ok: messages checked; catalog_gen.go is current')
 
+const extensions = spawnSync('go', ['run', './internal/extlocales', '-check'], { encoding: 'utf8' })
+console.log((extensions.stdout + extensions.stderr).trim())
+if (extensions.status !== 0) process.exit(1)
+
 // Once, from the module's root: mygo vet reads ./... itself. A run for each
 // package that draws ran go vet and loaded the packages again each time.
 const run = spawnSync(tool, ['vet', '.'], { encoding: 'utf8' })

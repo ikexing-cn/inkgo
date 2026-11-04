@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 	"unicode"
+	"writer/ext/backup/backuptext"
 
 	"github.com/egoist/mygo/i18n"
 	"writer/desk/book"
@@ -54,7 +55,7 @@ func TestLocaleChangeRefreshesTalkListPlaceholderAndDetectedBackupName(t *testin
 		t.Fatal(err)
 	}
 	old := backup.SyncFolders
-	backup.SyncFolders = func() []backup.Place { return []backup.Place{{Dir: "backup", Name: locales.BackupNutstore}} }
+	backup.SyncFolders = func() []backup.Place { return []backup.Place{{Dir: "backup", Name: backuptext.BackupNutstore}} }
 	t.Cleanup(func() { backup.SyncFolders = old })
 	backupOf(a).OpenAsk()
 	for _, next := range []string{"zh-Hans", "en", "zh-Hans"} {
@@ -65,7 +66,7 @@ func TestLocaleChangeRefreshesTalkListPlaceholderAndDetectedBackupName(t *testin
 		if got, _ := a.talkName(a.session); got != locales.SideDraftTitle(a.nodeTitle(id)) {
 			t.Fatal(tag, got)
 		}
-		if !tt.HasText(locales.BackupNutstore()) {
+		if !tt.HasText(backuptext.BackupNutstore()) {
 			t.Fatal(tag, tt.Texts())
 		}
 	}
