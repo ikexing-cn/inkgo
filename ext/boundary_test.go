@@ -159,7 +159,7 @@ func TestProductionDependencyBoundaries(t *testing.T) {
 						}
 					}
 				case strings.HasPrefix(pkg, "writer/desk"):
-					if strings.HasPrefix(imp, "writer/ext/") && imp != "writer/ext/hostapi" && !deskContextImport(pkg, imp) {
+					if strings.HasPrefix(imp, "writer/ext/") && imp != "writer/ext/hostapi" && !deskContextImport(pkg, imp) && !deskLoreImport(pkg, imp) {
 						t.Errorf("%s imports concrete extension %s", pkg, imp)
 					}
 				default:
@@ -271,5 +271,17 @@ func deskContextImport(pkg, imp string) bool {
 func TestDeskContextExceptionDoesNotAllowConcreteOutline(t *testing.T) {
 	if !deskContextImport("writer/desk", "writer/ext/context/contextapi") || deskContextImport("writer/desk", "writer/ext/outline") || deskContextImport("writer/desk/book", "writer/ext/context/contextapi") {
 		t.Fatal("context exception escaped its named boundary")
+	}
+}
+
+// deskLoreImport is temporary: remove after discussion and checks leave desk.
+// Only their host package may consume entry navigation.
+func deskLoreImport(pkg, imp string) bool {
+	return pkg == "writer/desk" && imp == "writer/ext/lore/loreapi"
+}
+
+func TestDeskLoreExceptionDoesNotAllowConcreteLore(t *testing.T) {
+	if !deskLoreImport("writer/desk", "writer/ext/lore/loreapi") || deskLoreImport("writer/desk", "writer/ext/lore") || deskLoreImport("writer/desk/book", "writer/ext/lore/loreapi") {
+		t.Fatal("lore exception escaped its named boundary")
 	}
 }

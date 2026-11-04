@@ -5,7 +5,8 @@
 // desk/kit: what the pages draw with: colors, sizes, controls, menus, status, toast cards, text, and Markdown.
 // ext/phone: the phone preview panel.
 // ext/export: the export extension.
-// desk/outline: the 大纲 page, card editing, chapter table, and timeline.
+// ext/lore: setting entries, changes, timelines, and forms.
+// ext/outline: the 大纲 page, card editing, chapter table, and timeline.
 //
 // The files of desk:
 //
@@ -16,7 +17,6 @@
 // beside.go: right-pane width and tabs, discussion lists, and prose quotes.
 // cache.go: values built once per key.
 // categories.go: work-category forms and deletion confirmation.
-// change.go: setting changes from a chapter, timelines, and forms.
 // chapters.go: opening chapters, navigation, editors, and text size.
 // chat.go: discussion page, session list and digest sections.
 // chatmessage.go: messages, streaming replies, tool results and request details.

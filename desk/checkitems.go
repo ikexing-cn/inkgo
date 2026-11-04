@@ -96,14 +96,14 @@ func (a *App) buildCheckItems(meant bool) []checkItem {
 			it := checkItem{node: nd.ID, title: nd.Title, here: here, f: f}
 			switch f.Kind {
 			case workspace.FindConflict:
-				e, ok := a.book.Setting().Entry(f.Entry)
+				e, ok := (workspace.Setting{Entries: a.entries()}).Entry(f.Entry)
 				e.Text, _, _ = e.Reading(o, nd.ID) // the chapter was checked against the entry as it reads there
 				if !ok || f.Says != "" && !strings.Contains(e.Text, f.Says) {
 					continue // the setting was changed
 				}
 				it.entry = e
 			case workspace.FindName:
-				for _, e := range a.book.Setting().Entries {
+				for _, e := range a.entries() {
 					if slices.Contains(e.Names, f.Name) {
 						it.entry = e
 					}
@@ -112,7 +112,7 @@ func (a *App) buildCheckItems(meant bool) []checkItem {
 					continue
 				}
 			case workspace.FindNew:
-				if slices.ContainsFunc(a.book.Setting().Entries, func(e workspace.Entry) bool {
+				if slices.ContainsFunc(a.entries(), func(e workspace.Entry) bool {
 					return e.Place != workspace.PlaceDropped && slices.Contains(e.Names, f.Name)
 				}) || left[f.Name] && !meant {
 					continue // taken into the setting, or left out of it
@@ -195,7 +195,7 @@ func (a *App) openCheck(id string) {
 // checkPending is the findings as the pending list has them.
 func (a *App) checkPending() (pendGroup, bool) {
 	g := pendGroup{id: "check", name: locales.PageCheck(), color: a.pal.Amber}
-	if !a.aiOn() {
+	if !a.checksOn() {
 		return g, false
 	}
 	for _, it := range a.listedChecks() {
@@ -228,14 +228,14 @@ func (a *App) markDoubts() {
 		return
 	}
 	w.cur().ed.SetDoubtColor(a.pal.Amber)
-	key := doubtKey{a.checkKey(), a.aiOn()}
+	key := doubtKey{a.checkKey(), a.checksOn()}
 	w.doubts.get(key, func() [][2]int {
 		text, ok := a.liveText()
 		if !ok {
 			w.cur().ed.SetDoubts(nil)
 			return nil
 		}
-		items := slices.DeleteFunc(slices.Clone(a.checkItems(false)), func(it checkItem) bool { return !it.here || !a.aiOn() })
+		items := slices.DeleteFunc(slices.Clone(a.checkItems(false)), func(it checkItem) bool { return !it.here || !a.checksOn() })
 		var ranges [][2]int
 		for _, it := range items {
 			if at := strings.Index(text, it.f.Quote); at >= 0 {

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+	"writer/ext/lore/loreapi"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
@@ -34,7 +35,7 @@ func (a *App) checkActions(it checkItem) []noteAction {
 		}
 		return []noteAction{leave, {locales.CheckEditSetting(), func() {
 			a.findInChapter(it.node, it.f.Quote)
-			a.entryNavigation(func(n hostapi.EntryNavigation) { n.Edit(it.entry) })
+			a.entryNavigation(func(n loreapi.EntryNavigation) { n.Edit(it.entry) })
 			a.savePrefs()
 		}}, prose}
 	}
@@ -82,7 +83,7 @@ type marginDeparture struct {
 // Positions on each frame then cost one lookup per note, not per character.
 func (a *App) marginNotes() []marginNote {
 	m := &a.write.margin
-	return m.notes.get(marginKey{doubtKey{a.checkKey(), a.aiOn()}, a.extensions.Changes()}, func() []marginNote {
+	return m.notes.get(marginKey{doubtKey{a.checkKey(), a.checksOn()}, a.extensions.Changes()}, func() []marginNote {
 		ed := a.write.cur().ed
 		if ed == nil {
 			return nil
@@ -97,7 +98,7 @@ func (a *App) marginNotes() []marginNote {
 			start := utf8.RuneCountInString(text[:at])
 			return start, start + utf8.RuneCountInString(quote), true
 		}
-		if a.aiOn() {
+		if a.checksOn() {
 			for _, it := range a.checkItems(false) {
 				if !it.here {
 					continue

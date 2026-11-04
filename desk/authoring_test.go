@@ -8,6 +8,7 @@ import (
 	"writer/desk/kit"
 	"writer/ext"
 	"writer/ext/hostapi"
+	"writer/ext/lore/loreapi"
 	"writer/workspace"
 )
 
@@ -63,7 +64,7 @@ func TestAuthoringDrawAndMenuPointsUseFrameCallChainsAndIsolateFailure(t *testin
 
 func TestEntryNavigationIsOptional(t *testing.T) {
 	a := &App{}
-	if a.entryNavigation(func(hostapi.EntryNavigation) { t.Fatal("missing service called") }) {
+	if a.entryNavigation(func(loreapi.EntryNavigation) { t.Fatal("missing service called") }) {
 		t.Fatal("missing service available")
 	}
 }
@@ -148,16 +149,16 @@ func TestMarginSourcesAndActionsUseGuardAndIsolateFailures(t *testing.T) {
 	}
 }
 
-type failingEntryNavigation struct{ hostapi.EntryNavigation }
+type failingEntryNavigation struct{ loreapi.EntryNavigation }
 
 func (failingEntryNavigation) Open(workspace.Entry) { panic("entry navigation failed") }
 
 func TestEntryNavigationGuardsTheProvidersOwner(t *testing.T) {
-	h, err := ext.New(ext.Options{DeclareHost: func(r *ext.Registrar) {
-		ext.Provide(r, hostapi.EntryNavigationService, func(*ext.Session) hostapi.EntryNavigator {
-			return hostapi.EntryNavigator{Owner: "entryui", Navigation: failingEntryNavigation{}}
+	h, err := ext.New(ext.Options{}, ext.Module{ID: "lore", Setup: func(r *ext.Registrar) {
+		ext.Provide(r, loreapi.EntryNavigationService, func(*ext.Session) loreapi.EntryNavigator {
+			return loreapi.EntryNavigator{Owner: "lore", Navigation: failingEntryNavigation{}}
 		})
-	}}, ext.Module{ID: "entryui"}, ext.Module{ID: "healthy"})
+	}}, ext.Module{ID: "healthy"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -165,13 +166,13 @@ func TestEntryNavigationGuardsTheProvidersOwner(t *testing.T) {
 	requireExtension(t, h.Open(ext.Book{}))
 	a := &App{extensions: h}
 	tt := stillTester(func(c *ui.Context) {
-		a.entryNavigation(func(n hostapi.EntryNavigation) { n.Open(workspace.Entry{}) })
+		a.entryNavigation(func(n loreapi.EntryNavigation) { n.Open(workspace.Entry{}) })
 		ui.Text(c, "host alive")
 	}, 1000, 700)
 	tt.Frame()
 	tt.Frame()
-	if h.Ledger("entryui").State != ext.Failed || h.Ledger("healthy").State != ext.On || !tt.HasText("host alive") {
-		t.Fatal(h.Ledger("entryui"), h.Ledger("healthy"))
+	if h.Ledger("lore").State != ext.Failed || h.Ledger("healthy").State != ext.On || !tt.HasText("host alive") {
+		t.Fatal(h.Ledger("lore"), h.Ledger("healthy"))
 	}
 }
 

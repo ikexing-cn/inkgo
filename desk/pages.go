@@ -3,6 +3,8 @@ package desk
 import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
+	"writer/ext"
+	"writer/ext/hostapi"
 
 	"writer/locales"
 )
@@ -34,7 +36,7 @@ func (a *App) initPages() {
 		},
 		pagePlan: {},
 		pageCheck: {
-			tabEntry: tabEntry[page]{name: locales.PageCheck, icon: kit.IcDone, ai: true, work: true,
+			tabEntry: tabEntry[page]{name: locales.PageCheck, visible: a.hasEntries, icon: kit.IcDone, ai: true, work: true,
 				count: func() int { return len(a.listedChecks()) }},
 			enter: func() {
 				a.loadChecks() // as of the disk, without what was put right meanwhile
@@ -54,7 +56,12 @@ func (a *App) initPages() {
 	}
 	a.pages[pageTalk].order, a.pages[pageWrite].order, a.pages[pageCheck].order = 10, 20, 40
 	for _, id := range []page{pageTalk, pageWrite} {
-		a.pages[id].hasPane = func() bool { return true }
+		a.pages[id].hasPane = func() bool {
+			if id == pageTalk {
+				return len(ext.Items(a.extensions, hostapi.BesideItems)) > 0
+			}
+			return len(a.paneTabs) > 0
+		}
 		a.pages[id].paneOpen = func() bool { return !a.doc.hidden }
 		a.pages[id].togglePane = func() { a.setDocHidden(!a.doc.hidden) }
 	}

@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 	"writer/ext/backup/backuptext"
+	"writer/ext/lore/loretext"
 
 	"github.com/egoist/mygo/i18n"
 	"github.com/egoist/mygo/ui"
@@ -76,7 +77,7 @@ func TestLocaleChangedRefreshesSettingsExtensionsMenusAndCommandsBothWays(t *tes
 		a.openPrefs("extensions")
 		tt.Frame()
 		want := locales.In(tag)
-		for _, text := range []string{want.ViewLook(), want.SettingsTabExtensions(), backuptext.In(tag).ModBackup(), want.ModLore()} {
+		for _, text := range []string{want.ViewLook(), want.SettingsTabExtensions(), backuptext.In(tag).ModBackup(), loretext.In(tag).ModLore()} {
 			if !tt.HasText(text) {
 				t.Fatalf("%s missing %q", tag, text)
 			}

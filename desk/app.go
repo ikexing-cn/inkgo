@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"sync/atomic"
 	"time"
+	"writer/ext/lore/loreapi"
 
 	"github.com/egoist/mygo/ui"
 	"writer/aiport"
@@ -12,7 +13,6 @@ import (
 	"writer/desk/kit"
 	"writer/editor"
 	"writer/ext"
-	"writer/ext/hostapi"
 	"writer/locales"
 	"writer/shelf"
 	"writer/workspace"
@@ -178,7 +178,7 @@ func New(ai aiport.Service, mods ...ext.Module) *App {
 			}
 		},
 		func() { a.write.draftOpen, a.write.rewriting = false, false },
-		func() { a.entryNavigation(func(n hostapi.EntryNavigation) { n.CloseWaiting() }) },
+		func() { a.entryNavigation(func(n loreapi.EntryNavigation) { n.CloseWaiting() }) },
 		a.status.Clear,
 	}
 	if ai.ConfigFile() != "" {

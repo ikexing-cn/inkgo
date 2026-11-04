@@ -8,6 +8,7 @@ import (
 	"github.com/egoist/mygo/ui/markdown"
 	"github.com/egoist/mygo/ui/markdown/parser"
 	"writer/desk/kit"
+	"writer/workspace"
 )
 
 // markdownOptions are kit's options for the kind, with a digest's links
@@ -18,8 +19,8 @@ func (a *App) markdownOptions(st kit.MdStyle) *markdown.Options {
 		m.Digest.OnLink = func(url string) {
 			if number, ok := strings.CutPrefix(url, "inkgo-entry:"); ok {
 				n, err := strconv.Atoi(number)
-				if err == nil && n > 0 && n <= len(a.book.Setting().Entries) {
-					a.showEntry(a.book.Setting().Entries[n-1])
+				if err == nil && n > 0 && n <= len(a.entries()) {
+					a.showEntry(a.entries()[n-1])
 				}
 			}
 		}
@@ -59,7 +60,7 @@ func (a *App) digestMarkdown(s string) string {
 			if in.Kind != parser.Text {
 				continue
 			}
-			for _, m := range a.book.Setting().Mentions(s[in.Start:in.End]) {
+			for _, m := range (workspace.Setting{Entries: a.entries()}).Mentions(s[in.Start:in.End]) {
 				if m.Entry == nil {
 					continue
 				}

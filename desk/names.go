@@ -15,7 +15,7 @@ import (
 // entities are the names that complete.
 func (a *App) entities() []editor.Entity {
 	var out []editor.Entity
-	for _, e := range a.book.Setting().Entries {
+	for _, e := range a.entries() {
 		if e.Place != workspace.PlaceBody || len(e.Names) == 0 || !slices.Contains(workspace.NameCategories, e.Category) {
 			continue
 		}
@@ -36,6 +36,7 @@ type namesKey struct {
 	book    *book.Book
 	version int
 	noNames bool
+	active  bool
 }
 
 // feedNames gives the chapter's editor the names, again once the setting
@@ -45,17 +46,18 @@ func (a *App) feedNames() {
 	if w.cur().ed == nil {
 		return
 	}
-	if w.named != w.cur().ed || w.namedRevs != len(a.book.Setting().Revisions) {
+	if w.named != w.cur().ed || w.namedRevs != len(a.book.Setting().Revisions) || w.namesActive != a.hasEntries() {
 		w.named, w.namedRevs = w.cur().ed, len(a.book.Setting().Revisions)
+		w.namesActive = a.hasEntries()
 		w.cur().ed.SetEntities(a.entities())
 	}
-	key := namesKey{a.book, a.book.Version(), a.shelf.NoNames}
+	key := namesKey{a.book, a.book.Version(), a.shelf.NoNames, a.hasEntries()}
 	links := w.nameLinks.get(key, func() []editor.NameLink {
 		var links []editor.NameLink
 		if a.shelf.NoNames {
 			return links
 		}
-		for _, e := range a.book.Setting().Entries {
+		for _, e := range a.entries() {
 			if e.Place == workspace.PlaceBody {
 				for _, n := range e.Names {
 					links = append(links, editor.NameLink{Name: n, Entry: e.ID})

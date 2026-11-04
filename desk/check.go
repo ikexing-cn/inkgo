@@ -77,7 +77,7 @@ func (a *App) loadChecks() {
 
 // hasSetting tells whether there is a setting to check prose against.
 func (a *App) hasSetting() bool {
-	return slices.ContainsFunc(a.book.Setting().Entries, func(e workspace.Entry) bool { return e.Place == workspace.PlaceBody })
+	return slices.ContainsFunc(a.entries(), func(e workspace.Entry) bool { return e.Place == workspace.PlaceBody })
 }
 
 // leaveCheck is called as the author leaves the chapter shown: what the
@@ -89,7 +89,7 @@ func (a *App) hasSetting() bool {
 func (a *App) leaveCheck() {
 	w := &a.write
 	k := &a.ck
-	if w.node == "" || w.cur().ed == nil || w.cur().lost || a.Store == nil || !a.aiOn() {
+	if w.node == "" || w.cur().ed == nil || w.cur().lost || a.Store == nil || !a.checksOn() {
 		return
 	}
 	a.pruneStoredCheck(w.node, w.cur().saved)
@@ -131,6 +131,10 @@ func (a *App) pruneStoredChecks() {
 // pollChecks takes in a check done, and starts the next.
 func (a *App) pollChecks(c *ui.Context) {
 	k := &a.ck
+	if !a.checksOn() {
+		a.stopChecks()
+		return
+	}
 	if k.of != a.Store {
 		k.of = a.Store
 		k.shown, k.prose, k.proseOf, k.tab = "", "", "", 0
@@ -182,7 +186,7 @@ func (a *App) stopChecks() {
 func (a *App) checkWhilePausing() {
 	w := &a.write
 	k := &a.ck
-	if k.when != checkOnPause || !a.aiOn() || w.cur().ed == nil || w.node == "" || w.cur().lost || w.cur().ed.Doc.Version() != w.cur().savedVer || !a.hasSetting() {
+	if k.when != checkOnPause || !a.checksOn() || w.cur().ed == nil || w.node == "" || w.cur().lost || w.cur().ed.Doc.Version() != w.cur().savedVer || !a.hasSetting() {
 		return
 	}
 	k.queue.AfterPause(w.node, w.cur().saved, a.book.Checks()[w.node], a.ai.MinCheck(), w.cur().ed.LastEdit(), time.Now())

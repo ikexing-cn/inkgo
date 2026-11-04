@@ -21,6 +21,7 @@ import (
 	"writer/ext/backup"
 	contextmod "writer/ext/context"
 	"writer/ext/export"
+	"writer/ext/lore"
 	"writer/ext/outline"
 	"writer/ext/phone"
 	"writer/model"
@@ -64,13 +65,13 @@ func newApp(config string) *App { return testApp(ai.New(config)) }
 
 func testModules() []ext.Module {
 	mod, _ := backup.New(false)
-	return []ext.Module{contextmod.Module, outline.Module, mod, export.Module, phone.Module}
+	return []ext.Module{contextmod.Module, lore.Module, outline.Module, mod, export.Module, phone.Module}
 }
 
 func testApp(service aiport.Service) *App {
 	mod, view := backup.New(false)
 	outlineModule, page := outline.New()
-	a := New(service, contextmod.Module, outlineModule, mod, export.Module, phone.Module)
+	a := New(service, contextmod.Module, lore.Module, outlineModule, mod, export.Module, phone.Module)
 	outlineControllers[a] = page
 	a.ErrorText = []ErrorTranslator{aitext.Translate}
 	controllers[a] = view

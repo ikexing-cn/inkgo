@@ -25,6 +25,7 @@ import (
 // whether the paragraphs of a text are indented.
 type Dialog struct {
 	outline    *ext.OptRef[struct{}]
+	lore       *ext.OptRef[struct{}]
 	book       *ext.Ref[hostapi.Book]
 	palette    *ext.Ref[hostapi.Palette]
 	notices    *ext.Ref[hostapi.Notices]
@@ -60,12 +61,13 @@ type planKey struct {
 	chapter string
 	locale  string
 	outline bool
+	lore    bool
 }
 
 func (d *Dialog) planKey() planKey {
 	b := d.book.Get().Content()
 	id, _, _ := d.book.Get().Chapter()
-	return planKey{b, b.Version(), id, i18n.Locale(), d.outlineOn()}
+	return planKey{b, b.Version(), id, i18n.Locale(), d.outlineOn(), d.loreOn()}
 }
 
 // Show asks what to export, starting from the whole work, the
@@ -128,10 +130,9 @@ func (d *Dialog) View(c *ui.Context) {
 						on   *bool
 						what string
 					}{{&set.Prose, format.ProseContent}, {&set.Outline, format.OutlineContent}, {&set.Setting, format.SettingContent}} {
-						if o.what == format.OutlineContent && !d.outlineOn() {
+						if (o.what == format.OutlineContent && !d.outlineOn()) || (o.what == format.SettingContent && !d.loreOn()) {
 							continue
 						}
-						// Lore stays available until it becomes an extension, then follows the same rule.
 						if ui.Checkbox(c, o.on, contentLabel(o.what)).Changed() {
 							d.saveChoices()
 							d.Replan()
@@ -395,5 +396,8 @@ func (d *Dialog) outlineOn() bool {
 func (d *Dialog) effectiveOptions() format.Options {
 	options := d.preferences().Options
 	options.Outline = options.Outline && d.outlineOn()
+	options.Setting = options.Setting && d.loreOn()
 	return options
 }
+
+func (d *Dialog) loreOn() bool { _, on := d.lore.Get(); return on }

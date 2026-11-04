@@ -311,7 +311,7 @@ func (a *App) showNoted(r string) {
 			entry = rev.Ops[0].Entry
 		}
 	}
-	if e, ok := a.book.Setting().Entry(entry); ok {
+	if e, ok := (workspace.Setting{Entries: a.entries()}).Entry(entry); ok {
 		a.showEntry(e)
 	}
 }

@@ -1,14 +1,14 @@
 package desk
 
 import (
-	"writer/desk/lore"
 	"writer/ext"
-	"writer/ext/hostapi"
+	"writer/ext/lore"
+	"writer/ext/lore/loreapi"
 	"writer/workspace"
 )
 
 func lorePanel(a *App) *lore.Panel {
-	v, ok := ext.Lookup(a.extensions, hostapi.EntryNavigationService)
+	v, ok := ext.Lookup(a.extensions, loreapi.EntryNavigationService)
 	if !ok {
 		panic("entry UI absent")
 	}

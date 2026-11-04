@@ -3,6 +3,7 @@ package desk
 import (
 	"writer/ext"
 	"writer/ext/context/contextapi"
+	"writer/workspace"
 )
 
 func (a *App) outlineValue(id string) (string, bool) {
@@ -22,3 +23,23 @@ func (a *App) outlineValue(id string) (string, bool) {
 func (a *App) chapterOutline(id string) string { text, _ := a.outlineValue(id); return text }
 
 func (a *App) hasOutlines() bool { a.syncExtensions(); return a.extViews.outlines }
+
+func (a *App) entryValues() ([]workspace.Entry, bool) {
+	if a.extensions == nil {
+		return nil, false
+	}
+	service, ok := ext.Lookup(a.extensions, contextapi.Service)
+	if !ok {
+		return nil, false
+	}
+	var entries []workspace.Entry
+	var present bool
+	err := ext.Guard(a.extensions, "context", "context.entries", func() { entries, present = service.Entries() })
+	return entries, err == nil && present
+}
+
+func (a *App) entries() []workspace.Entry { entries, _ := a.entryValues(); return entries }
+
+func (a *App) hasEntries() bool { _, present := a.entryValues(); return present }
+
+func (a *App) checksOn() bool { return a.aiOn() && a.hasEntries() }

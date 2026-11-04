@@ -242,10 +242,12 @@ func (a *App) looksView(c *ui.Context) {
 			}
 		}
 	})
-	on := !a.shelf.NoNames
-	if ui.Checkbox(c, &on, locales.SettingsMarkNames()).Changed() {
-		a.shelf.NoNames = !on
-		a.saveShelf()
+	if a.hasEntries() {
+		on := !a.shelf.NoNames
+		if ui.Checkbox(c, &on, locales.SettingsMarkNames()).Changed() {
+			a.shelf.NoNames = !on
+			a.saveShelf()
+		}
 	}
 	if offerNoGPU {
 		a.gpuSwitch(c)

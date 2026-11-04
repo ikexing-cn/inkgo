@@ -12,7 +12,7 @@ import (
 )
 
 func TestLoreImportsOnlyPublicHostContracts(t *testing.T) {
-	err := filepath.WalkDir("lore", func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir("../ext/lore", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -26,7 +26,7 @@ func TestLoreImportsOnlyPublicHostContracts(t *testing.T) {
 		for _, imp := range file.Imports {
 			pkg, _ := strconv.Unquote(imp.Path.Value)
 			switch pkg {
-			case "writer/ext", "writer/ext/hostapi", "writer/desk/kit", "writer/desk/book", "writer/workspace", "writer/locales":
+			case "writer/ext/context/contextapi", "writer/ext/lore/loreapi", "writer/ext/lore/loretext", "writer/ext", "writer/ext/hostapi", "writer/desk/kit", "writer/desk/book", "writer/workspace", "writer/locales":
 				continue
 			}
 			if strings.HasPrefix(pkg, "github.com/egoist/mygo/") {
@@ -44,7 +44,7 @@ func TestLoreImportsOnlyPublicHostContracts(t *testing.T) {
 	}
 }
 
-func TestDeskReachesLoreOnlyInAssembly(t *testing.T) {
+func TestDeskReachesLoreOnlyThroughPublicNavigation(t *testing.T) {
 	err := filepath.WalkDir(".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -64,7 +64,7 @@ func TestDeskReachesLoreOnlyInAssembly(t *testing.T) {
 		}
 		for _, imp := range file.Imports {
 			pkg, _ := strconv.Unquote(imp.Path.Value)
-			if pkg == "writer/desk/lore" || strings.HasPrefix(pkg, "writer/desk/lore/") {
+			if pkg == "writer/ext/lore" || strings.HasPrefix(pkg, "writer/ext/lore/") && pkg != "writer/ext/lore/loreapi" {
 				t.Errorf("%s imports %s outside assembly", path, pkg)
 			}
 		}

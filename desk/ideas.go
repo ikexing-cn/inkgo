@@ -12,10 +12,10 @@ type ideasKey struct {
 }
 
 func (a *App) ideas() []workspace.Idea {
-	return a.doc.ideas.get(ideasKey{a.book, a.book.Version(), a.aiOn()}, func() []workspace.Idea {
-		if !a.aiOn() {
+	return a.doc.ideas.get(ideasKey{a.book, a.book.Version(), a.checksOn()}, func() []workspace.Idea {
+		if !a.checksOn() {
 			return nil
 		}
-		return a.book.Setting().Ideas(a.book.Tree().Order())
+		return (workspace.Setting{Entries: a.entries()}).Ideas(a.book.Tree().Order())
 	})
 }

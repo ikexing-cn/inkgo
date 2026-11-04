@@ -109,7 +109,9 @@ func (a *App) textMenu(m *kit.Menu) {
 	cmdCopy.item(a, m).Do(cmdCopy.act(a))
 	cmdPaste.item(a, m).Do(cmdPaste.act(a))
 	cmdSelectAll.item(a, m).Do(cmdSelectAll.act(a))
-	m.Separator()
+	if a.aiOn() || a.hasEntries() {
+		m.Separator()
+	}
 	if a.aiOn() {
 		// The row's own state is the editor's: it does not wait on the
 		// chapter's saves as the title bar's does.
@@ -117,7 +119,9 @@ func (a *App) textMenu(m *kit.Menu) {
 		cmdRewrite.item(a, m).Do(cmdRewrite.act(a))
 		cmdQuote.item(a, m).Do(cmdQuote.act(a))
 	}
-	cmdTake.item(a, m).Do(cmdTake.act(a))
+	if a.hasEntries() {
+		cmdTake.item(a, m).Do(cmdTake.act(a))
+	}
 	a.selectionMenus(m, ed.Doc.Slice(s, e))
 	m.Separator()
 	a.foreMenu(m)

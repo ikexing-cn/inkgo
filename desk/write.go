@@ -3,6 +3,8 @@ package desk
 import (
 	"sync/atomic"
 	"time"
+	"writer/ext"
+	"writer/ext/hostapi"
 
 	"github.com/egoist/mygo/ui"
 	"writer/aiport"
@@ -80,11 +82,11 @@ type writeView struct {
 	hits            []bookHit
 	hitsFor         [3]any // the query, chapter and edit the hits were found for
 
-	// named is the editor last given the names, as of namedRevs revisions
-	// of the setting.
-	named     *editor.Editor
-	namedRevs int
-	nameLinks cached[namesKey, []editor.NameLink]
+	// named is the editor last given the names, as of namedRevs setting revisions.
+	namesActive bool
+	named       *editor.Editor
+	namedRevs   int
+	nameLinks   cached[namesKey, []editor.NameLink]
 
 	// What is pending: the list open, showing the open chapter's alone, the
 	// groups listed whole, and the keys of what the author ignored.
@@ -217,6 +219,9 @@ func (a *App) writing(c *ui.Context) {
 
 // settingColumn is the setting beside the page, unless the author hid it.
 func (a *App) settingColumn(c *ui.Context) {
+	if a.page != pageWrite && len(ext.Items(a.extensions, hostapi.BesideItems)) == 0 {
+		return
+	}
 	if !a.foldLeaving(false) && (!a.paneOpen() || a.page == pageWrite && a.write.focus) {
 		return
 	}
@@ -512,7 +517,7 @@ func (a *App) footBar(c *ui.Context, chapter bool) {
 	foot := ui.Row(c).FillWidth().Height(kit.HRow).Gap(8).AlignItems(ui.Center).Shrink(0).Label("底栏")
 	foot.Padding(0, 24, 0, a.paperInset(c))
 	foot.Children(func() {
-		if chapter && a.aiOn() {
+		if chapter && a.checksOn() {
 			// Where the check stands goes with the paper as it folds; the
 			// Status items and the words keep to its right edge (slideEdge).
 			a.slide(ui.Row(c).Gap(8).AlignItems(ui.Center).Shrink(1).MinWidth(0)).Children(func() { a.footCheck(c) })

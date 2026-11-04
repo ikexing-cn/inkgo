@@ -63,7 +63,7 @@ func (a *App) pendingKey() pendingKey {
 	}
 	b := a.extensionPendingKey()
 	return pendingKey{i18n.Locale(), a.book, a.book.Version(), w.cur().ed, doc, w.node, a.liveChapter(),
-		a.aiOn(), w.lateAfter, w.ignoredVer, b, a.pal}
+		a.checksOn(), w.lateAfter, w.ignoredVer, b, a.pal}
 }
 
 // pendingGroups gathers what is pending and not ignored, by kind: what the

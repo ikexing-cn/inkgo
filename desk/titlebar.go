@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"writer/ext"
+	"writer/ext/hostapi"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
@@ -176,7 +178,7 @@ func (a *App) pageSwitchWidth(c *ui.Context) float32 {
 
 func (a *App) hasPane() bool {
 	p := a.pages[a.page]
-	return a.Store != nil && !a.focused() && p.hasPane != nil && p.hasPane()
+	return a.Store != nil && !a.focused() && p.hasPane != nil && p.hasPane() && ((a.page != pageTalk && a.page != pagePlan) || len(ext.Items(a.extensions, hostapi.BesideItems)) > 0)
 }
 
 func (a *App) paneOpen() bool {

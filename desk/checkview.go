@@ -7,10 +7,10 @@ import (
 	"time"
 	"unicode/utf8"
 	"writer/desk/kit"
+	"writer/ext/lore/loreapi"
 	"writer/internal/textclip"
 	"writer/workspace"
 
-	"writer/ext/hostapi"
 	"writer/locales"
 )
 
@@ -379,7 +379,7 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 			return
 		}
 		a.findInChapter(it.node, it.f.Quote)
-		a.entryNavigation(func(n hostapi.EntryNavigation) { n.Reveal(it.entry.ID) })
+		a.entryNavigation(func(n loreapi.EntryNavigation) { n.Reveal(it.entry.ID) })
 		a.savePrefs()
 	}
 	ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Shrink(0).Children(func() {

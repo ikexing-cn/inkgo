@@ -1,0 +1,321 @@
+{
+  "editorAddedToLore": "「{name}」已加入设定的{cat}，输入时可自动补全",
+  "@editorAddedToLore": {
+    "description": "选中的字加入设定以后的提示。",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "林晚"
+      },
+      "cat": {
+        "type": "String",
+        "example": "人物"
+      }
+    }
+  },
+  "editorAddName": "加入名字表",
+  "editorAlreadyNamed": "已在名字表中",
+  "paneTabLore": "设定",
+  "@paneTabLore": {
+    "description": "右栏标签：设定。"
+  },
+  "notesKindIdea": "设定待确认",
+  "notesLoreChanged": "{name}的设定从本章起有变化",
+  "@notesLoreChanged": {
+    "description": "AI 建议的设定变化，批注的标题。",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "林晚"
+      }
+    }
+  },
+  "commonIgnore": "忽略",
+  "commonAnswer": "回答",
+  "commonEdit": "修改",
+  "commonNew": "新增",
+  "loreNamesChanged": "名称改为：{names}",
+  "@loreNamesChanged": {
+    "description": "应用界面提示。",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "example": "阿棠"
+      }
+    }
+  },
+  "loreNamesRemoved": "移除名称：{text}",
+  "@loreNamesRemoved": {
+    "description": "应用界面提示。",
+    "placeholders": {
+      "text": {
+        "type": "String",
+        "example": "描述"
+      }
+    }
+  },
+  "loreAddedPlace": "新增到{place} · {category}：{text}",
+  "@loreAddedPlace": {
+    "description": "应用界面提示。",
+    "placeholders": {
+      "place": {
+        "type": "String",
+        "example": "正文"
+      },
+      "category": {
+        "type": "String",
+        "example": "人物"
+      },
+      "text": {
+        "type": "String",
+        "example": "描述"
+      }
+    }
+  },
+  "loreAddedWaitingChange": "新增到待确认 · {entry}：{text}",
+  "@loreAddedWaitingChange": {
+    "description": "应用界面提示。",
+    "placeholders": {
+      "entry": {
+        "type": "String",
+        "example": "阿棠 · 第3章起"
+      },
+      "text": {
+        "type": "String",
+        "example": "描述"
+      }
+    }
+  },
+  "loreToConfirm": "待确认",
+  "loreAll": "全部设定",
+  "loreDropped": "已删除",
+  "loreRestore": "恢复设定",
+  "loreDelete": "删除设定",
+  "loreAliasesOf": "别名 {names}",
+  "@loreAliasesOf": {
+    "description": "设定的别名那一行。",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "example": "小林、林老师"
+      }
+    }
+  },
+  "loreAnswer": "回答：{text}",
+  "@loreAnswer": {
+    "description": "已回答的 AI 提问，设定里写的回答。",
+    "placeholders": {
+      "text": {
+        "type": "String",
+        "example": "是"
+      }
+    }
+  },
+  "loreAiSuggest": "AI 建议",
+  "loreAiCount": "{count} 条 AI 建议",
+  "@loreAiCount": {
+    "description": "待确认页顶上写 AI 建议的条数。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "loreAbout": "关于 {name}",
+  "@loreAbout": {
+    "description": "待确认的一条是关于哪条设定。",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "林晚"
+      }
+    }
+  },
+  "loreAboutFrom": "关于 {name} · {when}",
+  "@loreAboutFrom": {
+    "description": "待确认的一条是关于哪条设定、从哪一章起。",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "林晚"
+      },
+      "when": {
+        "type": "String",
+        "example": "第3章起"
+      }
+    }
+  },
+  "loreNew": "新设定",
+  "loreNoneDropped": "没有已删除的设定",
+  "loreLog": "修改记录",
+  "loreLogEmpty": "暂无修改记录。",
+  "loreLogEmptyAi": "暂无修改记录。讨论中 AI 记下的也列在这里。",
+  "loreNotedIn": "记在「{talk}」",
+  "@loreNotedIn": {
+    "description": "修改记录里这条是在哪段讨论里记下的。",
+    "placeholders": {
+      "talk": {
+        "type": "String",
+        "example": "这一章的节奏怎么样"
+      }
+    }
+  },
+  "loreEmpty": "暂无设定",
+  "loreEmptyAi": "讨论和正文中的设定会自动收录于此，也可点击「新增」手动添加。",
+  "loreEmptyNoAi": "可点击「新增」添加，或从正文中选中文字加入。",
+  "loreRenamedLeft": "正文中仍有 {count} 处「{was}」",
+  "@loreRenamedLeft": {
+    "description": "改了设定的名字后，正文里还有旧名的提示。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "was": {
+        "type": "String",
+        "example": "小祥"
+      }
+    }
+  },
+  "loreReplaceAll": "全书替换",
+  "loreKeepOld": "保留旧名",
+  "loreKeepOldTip": "不替换",
+  "loreSearch": "搜索设定",
+  "loreOriginalHere": "本章适用上面原来的样子。",
+  "loreHere": "本章适用",
+  "loreChanges": "随章节的变化",
+  "loreChangeFromChapter": "从本章起有变化",
+  "loreChangeFromVolume": "从本卷起有变化",
+  "loreLaterChanges": "之后有变化",
+  "loreGoneInactive": "所在章节已删除 · 不起作用",
+  "loreChangeNoteAi": "从这一章起，这一条就是下面这段话；起草、改写这一章及以后的章时，AI 看到的是它。",
+  "loreChangeNoteNoAi": "从这一章起，这一条就是下面这段话。",
+  "loreFromChapter": "从哪一章起",
+  "loreChangedText": "变化后的内容",
+  "loreContent": "内容",
+  "loreDropChange": "删除这处变化",
+  "loreName": "名字",
+  "loreNameOptional": "名字（选填）",
+  "loreAliases": "别名",
+  "loreAliasesOptional": "别名（选填）",
+  "loreAliasHint": "多个别名用顿号分隔",
+  "@loreAliasHint": {
+    "description": "别名输入框的提示。保存时按顿号「、」拆开，英文也用顿号。"
+  },
+  "loreNewLore": "新增设定",
+  "loreCategory": "分类",
+  "loreChangeLog": "{name} · {when}：{text}",
+  "@loreChangeLog": {
+    "description": "修改记录里的一行：哪条设定、从哪一章起、改成什么。",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "林晚"
+      },
+      "when": {
+        "type": "String",
+        "example": "第3章起"
+      },
+      "text": {
+        "type": "String",
+        "example": "二十九岁"
+      }
+    }
+  },
+  "loreChangeRemoved": "删除变化 · {name} · {when}",
+  "@loreChangeRemoved": {
+    "description": "修改记录里删除一处变化的一行。",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "林晚"
+      },
+      "when": {
+        "type": "String",
+        "example": "第3章起"
+      }
+    }
+  },
+  "loreNotedTo": "已记到「{name}」· {when}",
+  "@loreNotedTo": {
+    "description": "采纳 AI 建议的一处变化后的提示。",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "林晚"
+      },
+      "when": {
+        "type": "String",
+        "example": "第3章起"
+      }
+    }
+  },
+  "loreRewritten": "改写为：{text}",
+  "@loreRewritten": {
+    "description": "修改记录里改写了一条设定的内容。",
+    "placeholders": {
+      "text": {
+        "type": "String",
+        "example": "二十九岁"
+      }
+    }
+  },
+  "loreRecat": "改归{cat}：{text}",
+  "@loreRecat": {
+    "description": "修改记录里把一条设定改到另一个分类。",
+    "placeholders": {
+      "cat": {
+        "type": "String",
+        "example": "人物"
+      },
+      "text": {
+        "type": "String",
+        "example": "二十九岁"
+      }
+    }
+  },
+  "loreAddedActive": "新增到正文 · {cat}：{text}",
+  "@loreAddedActive": {
+    "description": "修改记录里新增一条正文设定。",
+    "placeholders": {
+      "cat": {
+        "type": "String",
+        "example": "人物"
+      },
+      "text": {
+        "type": "String",
+        "example": "主角，靠维修路灯谋生"
+      }
+    }
+  },
+  "loreMovedTo": "移到{where}：{text}",
+  "@loreMovedTo": {
+    "description": "修改记录里移动一条设定。",
+    "placeholders": {
+      "where": {
+        "type": "String",
+        "example": "已删除"
+      },
+      "text": {
+        "type": "String",
+        "example": "电力局的门卫"
+      }
+    }
+  },
+  "loreWhereBody": "正文",
+  "@loreWhereBody": {
+    "description": "设定所在的地方：列表里的正文设定。"
+  },
+  "loreWhoManual": "手动修改",
+  "chatViewTalk": "查看讨论",
+  "checkDeleted": "已删除",
+  "modLore": "设定",
+  "@modLore": {
+    "description": "「功能」里一个模块的名字。"
+  },
+  "modLoreAbout": "人物、地点、物品的资料",
+  "@modLoreAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  }
+}

@@ -159,7 +159,7 @@ var (
 		can: func(a *App) bool { return selected(a) },
 		run: func(a *App) { a.quoteToTalk() }}
 	cmdTake = &command{label: locales.EditorAddToLore, page: pageWrite,
-		can: func(a *App) bool { return selected(a) },
+		can: func(a *App) bool { return a.hasEntries() && selected(a) },
 		run: func(a *App) { a.openTake() }}
 	cmdBury = &command{label: locales.EditorMarkForeshadow, page: pageWrite,
 		can: func(a *App) bool { return selected(a) && editable(a) },

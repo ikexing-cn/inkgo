@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 	"unicode/utf8"
-	"writer/desk/lore"
+	"writer/ext/lore"
 
 	"github.com/egoist/mygo/ui"
 	"writer/editor"

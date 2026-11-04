@@ -85,7 +85,6 @@ func (a *App) initExtensions(mods []ext.Module) {
 			ext.Declare(r, hostapi.PaneTabs)
 			ext.Declare(r, hostapi.Overlays)
 			declareLifecycle(r, a)
-			a.registerLore(r)
 			ext.DeclareCalls(r, hostapi.Overlays, overlayCall)
 			ext.DeclareCalls(r, hostapi.Commands, commandCall)
 			ext.DeclareCalls(r, hostapi.PaneTabs, paneCall)
@@ -195,6 +194,12 @@ func (a *App) syncExtensions() {
 	if a.extViews.ready && a.extViews.changes == changes && a.extViews.localeRevision == revision {
 		return
 	}
+	if !a.hasEntries() {
+		if a.page == pageCheck {
+			a.page = pageWrite
+		}
+		a.stopChecks()
+	}
 	a.mergePages()
 	cache := extensionViews{ready: true, changes: changes, localeRevision: revision}
 	a.cacheExtensionViews(&cache)
@@ -204,7 +209,7 @@ func (a *App) syncExtensions() {
 		a.write.draftOpen = false
 	}
 	for _, cmd := range commandList {
-		if cmd != cmdDraft || cache.outlines {
+		if (cmd != cmdDraft || cache.outlines) && (cmd != cmdTake || a.hasEntries()) {
 			cache.list = append(cache.list, cmd)
 		}
 	}

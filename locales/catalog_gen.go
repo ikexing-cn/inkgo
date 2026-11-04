@@ -2468,42 +2468,6 @@ func (msgs Messages) EditorBody() string {
 	return Catalog.Format(msgs.locale, "editorBody", nil)
 }
 
-// EditorAddedToLore says "「{name}」已加入设定的{cat}，输入时可自动补全"
-// in the language the app shows.
-//
-// 选中的字加入设定以后的提示。
-func EditorAddedToLore(name string, cat string) string {
-	return In(i18n.Locale()).EditorAddedToLore(name, cat)
-}
-
-// EditorAddedToLore says "「{name}」已加入设定的{cat}，输入时可自动补全"
-// in the language of msgs.
-//
-// 选中的字加入设定以后的提示。
-func (msgs Messages) EditorAddedToLore(name string, cat string) string {
-	return Catalog.Format(msgs.locale, "editorAddedToLore", map[string]any{"name": name, "cat": cat})
-}
-
-// EditorAddName says "加入名字表"
-// in the language the app shows.
-func EditorAddName() string { return In(i18n.Locale()).EditorAddName() }
-
-// EditorAddName says "加入名字表"
-// in the language of msgs.
-func (msgs Messages) EditorAddName() string {
-	return Catalog.Format(msgs.locale, "editorAddName", nil)
-}
-
-// EditorAlreadyNamed says "已在名字表中"
-// in the language the app shows.
-func EditorAlreadyNamed() string { return In(i18n.Locale()).EditorAlreadyNamed() }
-
-// EditorAlreadyNamed says "已在名字表中"
-// in the language of msgs.
-func (msgs Messages) EditorAlreadyNamed() string {
-	return Catalog.Format(msgs.locale, "editorAlreadyNamed", nil)
-}
-
 // EditorAIRewrite says "AI 改写"
 // in the language the app shows.
 func EditorAIRewrite() string { return In(i18n.Locale()).EditorAIRewrite() }
@@ -3332,20 +3296,6 @@ func (msgs Messages) PaneTabNotes() string {
 	return Catalog.Format(msgs.locale, "paneTabNotes", nil)
 }
 
-// PaneTabLore says "设定"
-// in the language the app shows.
-//
-// 右栏标签：设定。
-func PaneTabLore() string { return In(i18n.Locale()).PaneTabLore() }
-
-// PaneTabLore says "设定"
-// in the language of msgs.
-//
-// 右栏标签：设定。
-func (msgs Messages) PaneTabLore() string {
-	return Catalog.Format(msgs.locale, "paneTabLore", nil)
-}
-
 // PaneTabChat says "讨论"
 // in the language the app shows.
 //
@@ -3490,30 +3440,6 @@ func (msgs Messages) NotesKindPayoff() string {
 	return Catalog.Format(msgs.locale, "notesKindPayoff", nil)
 }
 
-// NotesKindIdea says "设定待确认"
-// in the language the app shows.
-func NotesKindIdea() string { return In(i18n.Locale()).NotesKindIdea() }
-
-// NotesKindIdea says "设定待确认"
-// in the language of msgs.
-func (msgs Messages) NotesKindIdea() string {
-	return Catalog.Format(msgs.locale, "notesKindIdea", nil)
-}
-
-// NotesLoreChanged says "{name}的设定从本章起有变化"
-// in the language the app shows.
-//
-// AI 建议的设定变化，批注的标题。
-func NotesLoreChanged(name string) string { return In(i18n.Locale()).NotesLoreChanged(name) }
-
-// NotesLoreChanged says "{name}的设定从本章起有变化"
-// in the language of msgs.
-//
-// AI 建议的设定变化，批注的标题。
-func (msgs Messages) NotesLoreChanged(name string) string {
-	return Catalog.Format(msgs.locale, "notesLoreChanged", map[string]any{"name": name})
-}
-
 // NotesPlanted says "埋在{chapter}"
 // in the language the app shows.
 //
@@ -3538,16 +3464,6 @@ func (msgs Messages) CommonSave() string {
 	return Catalog.Format(msgs.locale, "commonSave", nil)
 }
 
-// CommonIgnore says "忽略"
-// in the language the app shows.
-func CommonIgnore() string { return In(i18n.Locale()).CommonIgnore() }
-
-// CommonIgnore says "忽略"
-// in the language of msgs.
-func (msgs Messages) CommonIgnore() string {
-	return Catalog.Format(msgs.locale, "commonIgnore", nil)
-}
-
 // CommonAccept says "采纳"
 // in the language the app shows.
 func CommonAccept() string { return In(i18n.Locale()).CommonAccept() }
@@ -3556,36 +3472,6 @@ func CommonAccept() string { return In(i18n.Locale()).CommonAccept() }
 // in the language of msgs.
 func (msgs Messages) CommonAccept() string {
 	return Catalog.Format(msgs.locale, "commonAccept", nil)
-}
-
-// CommonAnswer says "回答"
-// in the language the app shows.
-func CommonAnswer() string { return In(i18n.Locale()).CommonAnswer() }
-
-// CommonAnswer says "回答"
-// in the language of msgs.
-func (msgs Messages) CommonAnswer() string {
-	return Catalog.Format(msgs.locale, "commonAnswer", nil)
-}
-
-// CommonEdit says "修改"
-// in the language the app shows.
-func CommonEdit() string { return In(i18n.Locale()).CommonEdit() }
-
-// CommonEdit says "修改"
-// in the language of msgs.
-func (msgs Messages) CommonEdit() string {
-	return Catalog.Format(msgs.locale, "commonEdit", nil)
-}
-
-// CommonNew says "新增"
-// in the language the app shows.
-func CommonNew() string { return In(i18n.Locale()).CommonNew() }
-
-// CommonNew says "新增"
-// in the language of msgs.
-func (msgs Messages) CommonNew() string {
-	return Catalog.Format(msgs.locale, "commonNew", nil)
 }
 
 // CommonMore says "更多"
@@ -3646,144 +3532,6 @@ func (msgs Messages) CommonListSep() string {
 	return Catalog.Format(msgs.locale, "commonListSep", nil)
 }
 
-// LoreNamesChanged says "名称改为：{names}"
-// in the language the app shows.
-//
-// 应用界面提示。
-func LoreNamesChanged(names string) string { return In(i18n.Locale()).LoreNamesChanged(names) }
-
-// LoreNamesChanged says "名称改为：{names}"
-// in the language of msgs.
-//
-// 应用界面提示。
-func (msgs Messages) LoreNamesChanged(names string) string {
-	return Catalog.Format(msgs.locale, "loreNamesChanged", map[string]any{"names": names})
-}
-
-// LoreNamesRemoved says "移除名称：{text}"
-// in the language the app shows.
-//
-// 应用界面提示。
-func LoreNamesRemoved(text string) string { return In(i18n.Locale()).LoreNamesRemoved(text) }
-
-// LoreNamesRemoved says "移除名称：{text}"
-// in the language of msgs.
-//
-// 应用界面提示。
-func (msgs Messages) LoreNamesRemoved(text string) string {
-	return Catalog.Format(msgs.locale, "loreNamesRemoved", map[string]any{"text": text})
-}
-
-// LoreAddedPlace says "新增到{place} · {category}：{text}"
-// in the language the app shows.
-//
-// 应用界面提示。
-func LoreAddedPlace(place string, category string, text string) string {
-	return In(i18n.Locale()).LoreAddedPlace(place, category, text)
-}
-
-// LoreAddedPlace says "新增到{place} · {category}：{text}"
-// in the language of msgs.
-//
-// 应用界面提示。
-func (msgs Messages) LoreAddedPlace(place string, category string, text string) string {
-	return Catalog.Format(msgs.locale, "loreAddedPlace", map[string]any{"place": place, "category": category, "text": text})
-}
-
-// LoreAddedWaitingChange says "新增到待确认 · {entry}：{text}"
-// in the language the app shows.
-//
-// 应用界面提示。
-func LoreAddedWaitingChange(entry string, text string) string {
-	return In(i18n.Locale()).LoreAddedWaitingChange(entry, text)
-}
-
-// LoreAddedWaitingChange says "新增到待确认 · {entry}：{text}"
-// in the language of msgs.
-//
-// 应用界面提示。
-func (msgs Messages) LoreAddedWaitingChange(entry string, text string) string {
-	return Catalog.Format(msgs.locale, "loreAddedWaitingChange", map[string]any{"entry": entry, "text": text})
-}
-
-// LoreToConfirm says "待确认"
-// in the language the app shows.
-func LoreToConfirm() string { return In(i18n.Locale()).LoreToConfirm() }
-
-// LoreToConfirm says "待确认"
-// in the language of msgs.
-func (msgs Messages) LoreToConfirm() string {
-	return Catalog.Format(msgs.locale, "loreToConfirm", nil)
-}
-
-// LoreAll says "全部设定"
-// in the language the app shows.
-func LoreAll() string { return In(i18n.Locale()).LoreAll() }
-
-// LoreAll says "全部设定"
-// in the language of msgs.
-func (msgs Messages) LoreAll() string {
-	return Catalog.Format(msgs.locale, "loreAll", nil)
-}
-
-// LoreDropped says "已删除"
-// in the language the app shows.
-func LoreDropped() string { return In(i18n.Locale()).LoreDropped() }
-
-// LoreDropped says "已删除"
-// in the language of msgs.
-func (msgs Messages) LoreDropped() string {
-	return Catalog.Format(msgs.locale, "loreDropped", nil)
-}
-
-// LoreRestore says "恢复设定"
-// in the language the app shows.
-func LoreRestore() string { return In(i18n.Locale()).LoreRestore() }
-
-// LoreRestore says "恢复设定"
-// in the language of msgs.
-func (msgs Messages) LoreRestore() string {
-	return Catalog.Format(msgs.locale, "loreRestore", nil)
-}
-
-// LoreDelete says "删除设定"
-// in the language the app shows.
-func LoreDelete() string { return In(i18n.Locale()).LoreDelete() }
-
-// LoreDelete says "删除设定"
-// in the language of msgs.
-func (msgs Messages) LoreDelete() string {
-	return Catalog.Format(msgs.locale, "loreDelete", nil)
-}
-
-// LoreAliasesOf says "别名 {names}"
-// in the language the app shows.
-//
-// 设定的别名那一行。
-func LoreAliasesOf(names string) string { return In(i18n.Locale()).LoreAliasesOf(names) }
-
-// LoreAliasesOf says "别名 {names}"
-// in the language of msgs.
-//
-// 设定的别名那一行。
-func (msgs Messages) LoreAliasesOf(names string) string {
-	return Catalog.Format(msgs.locale, "loreAliasesOf", map[string]any{"names": names})
-}
-
-// LoreAnswer says "回答：{text}"
-// in the language the app shows.
-//
-// 已回答的 AI 提问，设定里写的回答。
-func LoreAnswer(text string) string { return In(i18n.Locale()).LoreAnswer(text) }
-
-// LoreAnswer says "回答：{text}"
-// in the language of msgs.
-//
-// 已回答的 AI 提问，设定里写的回答。
-func (msgs Messages) LoreAnswer(text string) string {
-	return Catalog.Format(msgs.locale, "loreAnswer", map[string]any{"text": text})
-}
-
 // LoreSource says "「{chapter}」“{quote}”"
 // in the language the app shows.
 //
@@ -3800,180 +3548,6 @@ func (msgs Messages) LoreSource(chapter string, quote string) string {
 	return Catalog.Format(msgs.locale, "loreSource", map[string]any{"chapter": chapter, "quote": quote})
 }
 
-// LoreAiSuggest says "AI 建议"
-// in the language the app shows.
-func LoreAiSuggest() string { return In(i18n.Locale()).LoreAiSuggest() }
-
-// LoreAiSuggest says "AI 建议"
-// in the language of msgs.
-func (msgs Messages) LoreAiSuggest() string {
-	return Catalog.Format(msgs.locale, "loreAiSuggest", nil)
-}
-
-// LoreAiCount says "{count} 条 AI 建议"
-// in the language the app shows.
-//
-// 待确认页顶上写 AI 建议的条数。
-func LoreAiCount(count int) string { return In(i18n.Locale()).LoreAiCount(count) }
-
-// LoreAiCount says "{count} 条 AI 建议"
-// in the language of msgs.
-//
-// 待确认页顶上写 AI 建议的条数。
-func (msgs Messages) LoreAiCount(count int) string {
-	return Catalog.Format(msgs.locale, "loreAiCount", map[string]any{"count": count})
-}
-
-// LoreAbout says "关于 {name}"
-// in the language the app shows.
-//
-// 待确认的一条是关于哪条设定。
-func LoreAbout(name string) string { return In(i18n.Locale()).LoreAbout(name) }
-
-// LoreAbout says "关于 {name}"
-// in the language of msgs.
-//
-// 待确认的一条是关于哪条设定。
-func (msgs Messages) LoreAbout(name string) string {
-	return Catalog.Format(msgs.locale, "loreAbout", map[string]any{"name": name})
-}
-
-// LoreAboutFrom says "关于 {name} · {when}"
-// in the language the app shows.
-//
-// 待确认的一条是关于哪条设定、从哪一章起。
-func LoreAboutFrom(name string, when string) string {
-	return In(i18n.Locale()).LoreAboutFrom(name, when)
-}
-
-// LoreAboutFrom says "关于 {name} · {when}"
-// in the language of msgs.
-//
-// 待确认的一条是关于哪条设定、从哪一章起。
-func (msgs Messages) LoreAboutFrom(name string, when string) string {
-	return Catalog.Format(msgs.locale, "loreAboutFrom", map[string]any{"name": name, "when": when})
-}
-
-// LoreNew says "新设定"
-// in the language the app shows.
-func LoreNew() string { return In(i18n.Locale()).LoreNew() }
-
-// LoreNew says "新设定"
-// in the language of msgs.
-func (msgs Messages) LoreNew() string {
-	return Catalog.Format(msgs.locale, "loreNew", nil)
-}
-
-// LoreNoneDropped says "没有已删除的设定"
-// in the language the app shows.
-func LoreNoneDropped() string { return In(i18n.Locale()).LoreNoneDropped() }
-
-// LoreNoneDropped says "没有已删除的设定"
-// in the language of msgs.
-func (msgs Messages) LoreNoneDropped() string {
-	return Catalog.Format(msgs.locale, "loreNoneDropped", nil)
-}
-
-// LoreLog says "修改记录"
-// in the language the app shows.
-func LoreLog() string { return In(i18n.Locale()).LoreLog() }
-
-// LoreLog says "修改记录"
-// in the language of msgs.
-func (msgs Messages) LoreLog() string {
-	return Catalog.Format(msgs.locale, "loreLog", nil)
-}
-
-// LoreLogEmpty says "暂无修改记录。"
-// in the language the app shows.
-func LoreLogEmpty() string { return In(i18n.Locale()).LoreLogEmpty() }
-
-// LoreLogEmpty says "暂无修改记录。"
-// in the language of msgs.
-func (msgs Messages) LoreLogEmpty() string {
-	return Catalog.Format(msgs.locale, "loreLogEmpty", nil)
-}
-
-// LoreLogEmptyAi says "暂无修改记录。讨论中 AI 记下的也列在这里。"
-// in the language the app shows.
-func LoreLogEmptyAi() string { return In(i18n.Locale()).LoreLogEmptyAi() }
-
-// LoreLogEmptyAi says "暂无修改记录。讨论中 AI 记下的也列在这里。"
-// in the language of msgs.
-func (msgs Messages) LoreLogEmptyAi() string {
-	return Catalog.Format(msgs.locale, "loreLogEmptyAi", nil)
-}
-
-// LoreNotedIn says "记在「{talk}」"
-// in the language the app shows.
-//
-// 修改记录里这条是在哪段讨论里记下的。
-func LoreNotedIn(talk string) string { return In(i18n.Locale()).LoreNotedIn(talk) }
-
-// LoreNotedIn says "记在「{talk}」"
-// in the language of msgs.
-//
-// 修改记录里这条是在哪段讨论里记下的。
-func (msgs Messages) LoreNotedIn(talk string) string {
-	return Catalog.Format(msgs.locale, "loreNotedIn", map[string]any{"talk": talk})
-}
-
-// LoreEmpty says "暂无设定"
-// in the language the app shows.
-func LoreEmpty() string { return In(i18n.Locale()).LoreEmpty() }
-
-// LoreEmpty says "暂无设定"
-// in the language of msgs.
-func (msgs Messages) LoreEmpty() string {
-	return Catalog.Format(msgs.locale, "loreEmpty", nil)
-}
-
-// LoreEmptyAi says "讨论和正文中的设定会自动收录于此，也可点击「新增」手动添加。"
-// in the language the app shows.
-func LoreEmptyAi() string { return In(i18n.Locale()).LoreEmptyAi() }
-
-// LoreEmptyAi says "讨论和正文中的设定会自动收录于此，也可点击「新增」手动添加。"
-// in the language of msgs.
-func (msgs Messages) LoreEmptyAi() string {
-	return Catalog.Format(msgs.locale, "loreEmptyAi", nil)
-}
-
-// LoreEmptyNoAi says "可点击「新增」添加，或从正文中选中文字加入。"
-// in the language the app shows.
-func LoreEmptyNoAi() string { return In(i18n.Locale()).LoreEmptyNoAi() }
-
-// LoreEmptyNoAi says "可点击「新增」添加，或从正文中选中文字加入。"
-// in the language of msgs.
-func (msgs Messages) LoreEmptyNoAi() string {
-	return Catalog.Format(msgs.locale, "loreEmptyNoAi", nil)
-}
-
-// LoreRenamedLeft says "正文中仍有 {count} 处「{was}」"
-// in the language the app shows.
-//
-// 改了设定的名字后，正文里还有旧名的提示。
-func LoreRenamedLeft(count int, was string) string {
-	return In(i18n.Locale()).LoreRenamedLeft(count, was)
-}
-
-// LoreRenamedLeft says "正文中仍有 {count} 处「{was}」"
-// in the language of msgs.
-//
-// 改了设定的名字后，正文里还有旧名的提示。
-func (msgs Messages) LoreRenamedLeft(count int, was string) string {
-	return Catalog.Format(msgs.locale, "loreRenamedLeft", map[string]any{"count": count, "was": was})
-}
-
-// LoreReplaceAll says "全书替换"
-// in the language the app shows.
-func LoreReplaceAll() string { return In(i18n.Locale()).LoreReplaceAll() }
-
-// LoreReplaceAll says "全书替换"
-// in the language of msgs.
-func (msgs Messages) LoreReplaceAll() string {
-	return Catalog.Format(msgs.locale, "loreReplaceAll", nil)
-}
-
 // LoreReplaceAllTip says "将旧名替换为新名"
 // in the language the app shows.
 func LoreReplaceAllTip() string { return In(i18n.Locale()).LoreReplaceAllTip() }
@@ -3982,96 +3556,6 @@ func LoreReplaceAllTip() string { return In(i18n.Locale()).LoreReplaceAllTip() }
 // in the language of msgs.
 func (msgs Messages) LoreReplaceAllTip() string {
 	return Catalog.Format(msgs.locale, "loreReplaceAllTip", nil)
-}
-
-// LoreKeepOld says "保留旧名"
-// in the language the app shows.
-func LoreKeepOld() string { return In(i18n.Locale()).LoreKeepOld() }
-
-// LoreKeepOld says "保留旧名"
-// in the language of msgs.
-func (msgs Messages) LoreKeepOld() string {
-	return Catalog.Format(msgs.locale, "loreKeepOld", nil)
-}
-
-// LoreKeepOldTip says "不替换"
-// in the language the app shows.
-func LoreKeepOldTip() string { return In(i18n.Locale()).LoreKeepOldTip() }
-
-// LoreKeepOldTip says "不替换"
-// in the language of msgs.
-func (msgs Messages) LoreKeepOldTip() string {
-	return Catalog.Format(msgs.locale, "loreKeepOldTip", nil)
-}
-
-// LoreSearch says "搜索设定"
-// in the language the app shows.
-func LoreSearch() string { return In(i18n.Locale()).LoreSearch() }
-
-// LoreSearch says "搜索设定"
-// in the language of msgs.
-func (msgs Messages) LoreSearch() string {
-	return Catalog.Format(msgs.locale, "loreSearch", nil)
-}
-
-// LoreOriginalHere says "本章适用上面原来的样子。"
-// in the language the app shows.
-func LoreOriginalHere() string { return In(i18n.Locale()).LoreOriginalHere() }
-
-// LoreOriginalHere says "本章适用上面原来的样子。"
-// in the language of msgs.
-func (msgs Messages) LoreOriginalHere() string {
-	return Catalog.Format(msgs.locale, "loreOriginalHere", nil)
-}
-
-// LoreHere says "本章适用"
-// in the language the app shows.
-func LoreHere() string { return In(i18n.Locale()).LoreHere() }
-
-// LoreHere says "本章适用"
-// in the language of msgs.
-func (msgs Messages) LoreHere() string {
-	return Catalog.Format(msgs.locale, "loreHere", nil)
-}
-
-// LoreChanges says "随章节的变化"
-// in the language the app shows.
-func LoreChanges() string { return In(i18n.Locale()).LoreChanges() }
-
-// LoreChanges says "随章节的变化"
-// in the language of msgs.
-func (msgs Messages) LoreChanges() string {
-	return Catalog.Format(msgs.locale, "loreChanges", nil)
-}
-
-// LoreChangeFromChapter says "从本章起有变化"
-// in the language the app shows.
-func LoreChangeFromChapter() string { return In(i18n.Locale()).LoreChangeFromChapter() }
-
-// LoreChangeFromChapter says "从本章起有变化"
-// in the language of msgs.
-func (msgs Messages) LoreChangeFromChapter() string {
-	return Catalog.Format(msgs.locale, "loreChangeFromChapter", nil)
-}
-
-// LoreChangeFromVolume says "从本卷起有变化"
-// in the language the app shows.
-func LoreChangeFromVolume() string { return In(i18n.Locale()).LoreChangeFromVolume() }
-
-// LoreChangeFromVolume says "从本卷起有变化"
-// in the language of msgs.
-func (msgs Messages) LoreChangeFromVolume() string {
-	return Catalog.Format(msgs.locale, "loreChangeFromVolume", nil)
-}
-
-// LoreLaterChanges says "之后有变化"
-// in the language the app shows.
-func LoreLaterChanges() string { return In(i18n.Locale()).LoreLaterChanges() }
-
-// LoreLaterChanges says "之后有变化"
-// in the language of msgs.
-func (msgs Messages) LoreLaterChanges() string {
-	return Catalog.Format(msgs.locale, "loreLaterChanges", nil)
 }
 
 // LoreGoneChapter says "所在章节已删除"
@@ -4084,182 +3568,6 @@ func (msgs Messages) LoreGoneChapter() string {
 	return Catalog.Format(msgs.locale, "loreGoneChapter", nil)
 }
 
-// LoreGoneInactive says "所在章节已删除 · 不起作用"
-// in the language the app shows.
-func LoreGoneInactive() string { return In(i18n.Locale()).LoreGoneInactive() }
-
-// LoreGoneInactive says "所在章节已删除 · 不起作用"
-// in the language of msgs.
-func (msgs Messages) LoreGoneInactive() string {
-	return Catalog.Format(msgs.locale, "loreGoneInactive", nil)
-}
-
-// LoreChangeNoteAi says "从这一章起，这一条就是下面这段话；起草、改写这一章及以后的章时，AI 看到的是它。"
-// in the language the app shows.
-func LoreChangeNoteAi() string { return In(i18n.Locale()).LoreChangeNoteAi() }
-
-// LoreChangeNoteAi says "从这一章起，这一条就是下面这段话；起草、改写这一章及以后的章时，AI 看到的是它。"
-// in the language of msgs.
-func (msgs Messages) LoreChangeNoteAi() string {
-	return Catalog.Format(msgs.locale, "loreChangeNoteAi", nil)
-}
-
-// LoreChangeNoteNoAi says "从这一章起，这一条就是下面这段话。"
-// in the language the app shows.
-func LoreChangeNoteNoAi() string { return In(i18n.Locale()).LoreChangeNoteNoAi() }
-
-// LoreChangeNoteNoAi says "从这一章起，这一条就是下面这段话。"
-// in the language of msgs.
-func (msgs Messages) LoreChangeNoteNoAi() string {
-	return Catalog.Format(msgs.locale, "loreChangeNoteNoAi", nil)
-}
-
-// LoreFromChapter says "从哪一章起"
-// in the language the app shows.
-func LoreFromChapter() string { return In(i18n.Locale()).LoreFromChapter() }
-
-// LoreFromChapter says "从哪一章起"
-// in the language of msgs.
-func (msgs Messages) LoreFromChapter() string {
-	return Catalog.Format(msgs.locale, "loreFromChapter", nil)
-}
-
-// LoreChangedText says "变化后的内容"
-// in the language the app shows.
-func LoreChangedText() string { return In(i18n.Locale()).LoreChangedText() }
-
-// LoreChangedText says "变化后的内容"
-// in the language of msgs.
-func (msgs Messages) LoreChangedText() string {
-	return Catalog.Format(msgs.locale, "loreChangedText", nil)
-}
-
-// LoreContent says "内容"
-// in the language the app shows.
-func LoreContent() string { return In(i18n.Locale()).LoreContent() }
-
-// LoreContent says "内容"
-// in the language of msgs.
-func (msgs Messages) LoreContent() string {
-	return Catalog.Format(msgs.locale, "loreContent", nil)
-}
-
-// LoreDropChange says "删除这处变化"
-// in the language the app shows.
-func LoreDropChange() string { return In(i18n.Locale()).LoreDropChange() }
-
-// LoreDropChange says "删除这处变化"
-// in the language of msgs.
-func (msgs Messages) LoreDropChange() string {
-	return Catalog.Format(msgs.locale, "loreDropChange", nil)
-}
-
-// LoreName says "名字"
-// in the language the app shows.
-func LoreName() string { return In(i18n.Locale()).LoreName() }
-
-// LoreName says "名字"
-// in the language of msgs.
-func (msgs Messages) LoreName() string {
-	return Catalog.Format(msgs.locale, "loreName", nil)
-}
-
-// LoreNameOptional says "名字（选填）"
-// in the language the app shows.
-func LoreNameOptional() string { return In(i18n.Locale()).LoreNameOptional() }
-
-// LoreNameOptional says "名字（选填）"
-// in the language of msgs.
-func (msgs Messages) LoreNameOptional() string {
-	return Catalog.Format(msgs.locale, "loreNameOptional", nil)
-}
-
-// LoreAliases says "别名"
-// in the language the app shows.
-func LoreAliases() string { return In(i18n.Locale()).LoreAliases() }
-
-// LoreAliases says "别名"
-// in the language of msgs.
-func (msgs Messages) LoreAliases() string {
-	return Catalog.Format(msgs.locale, "loreAliases", nil)
-}
-
-// LoreAliasesOptional says "别名（选填）"
-// in the language the app shows.
-func LoreAliasesOptional() string { return In(i18n.Locale()).LoreAliasesOptional() }
-
-// LoreAliasesOptional says "别名（选填）"
-// in the language of msgs.
-func (msgs Messages) LoreAliasesOptional() string {
-	return Catalog.Format(msgs.locale, "loreAliasesOptional", nil)
-}
-
-// LoreAliasHint says "多个别名用顿号分隔"
-// in the language the app shows.
-//
-// 别名输入框的提示。保存时按顿号「、」拆开，英文也用顿号。
-func LoreAliasHint() string { return In(i18n.Locale()).LoreAliasHint() }
-
-// LoreAliasHint says "多个别名用顿号分隔"
-// in the language of msgs.
-//
-// 别名输入框的提示。保存时按顿号「、」拆开，英文也用顿号。
-func (msgs Messages) LoreAliasHint() string {
-	return Catalog.Format(msgs.locale, "loreAliasHint", nil)
-}
-
-// LoreNewLore says "新增设定"
-// in the language the app shows.
-func LoreNewLore() string { return In(i18n.Locale()).LoreNewLore() }
-
-// LoreNewLore says "新增设定"
-// in the language of msgs.
-func (msgs Messages) LoreNewLore() string {
-	return Catalog.Format(msgs.locale, "loreNewLore", nil)
-}
-
-// LoreCategory says "分类"
-// in the language the app shows.
-func LoreCategory() string { return In(i18n.Locale()).LoreCategory() }
-
-// LoreCategory says "分类"
-// in the language of msgs.
-func (msgs Messages) LoreCategory() string {
-	return Catalog.Format(msgs.locale, "loreCategory", nil)
-}
-
-// LoreChangeLog says "{name} · {when}：{text}"
-// in the language the app shows.
-//
-// 修改记录里的一行：哪条设定、从哪一章起、改成什么。
-func LoreChangeLog(name string, when string, text string) string {
-	return In(i18n.Locale()).LoreChangeLog(name, when, text)
-}
-
-// LoreChangeLog says "{name} · {when}：{text}"
-// in the language of msgs.
-//
-// 修改记录里的一行：哪条设定、从哪一章起、改成什么。
-func (msgs Messages) LoreChangeLog(name string, when string, text string) string {
-	return Catalog.Format(msgs.locale, "loreChangeLog", map[string]any{"name": name, "when": when, "text": text})
-}
-
-// LoreChangeRemoved says "删除变化 · {name} · {when}"
-// in the language the app shows.
-//
-// 修改记录里删除一处变化的一行。
-func LoreChangeRemoved(name string, when string) string {
-	return In(i18n.Locale()).LoreChangeRemoved(name, when)
-}
-
-// LoreChangeRemoved says "删除变化 · {name} · {when}"
-// in the language of msgs.
-//
-// 修改记录里删除一处变化的一行。
-func (msgs Messages) LoreChangeRemoved(name string, when string) string {
-	return Catalog.Format(msgs.locale, "loreChangeRemoved", map[string]any{"name": name, "when": when})
-}
-
 // LoreIgnored says "已忽略"
 // in the language the app shows.
 func LoreIgnored() string { return In(i18n.Locale()).LoreIgnored() }
@@ -4268,64 +3576,6 @@ func LoreIgnored() string { return In(i18n.Locale()).LoreIgnored() }
 // in the language of msgs.
 func (msgs Messages) LoreIgnored() string {
 	return Catalog.Format(msgs.locale, "loreIgnored", nil)
-}
-
-// LoreNotedTo says "已记到「{name}」· {when}"
-// in the language the app shows.
-//
-// 采纳 AI 建议的一处变化后的提示。
-func LoreNotedTo(name string, when string) string { return In(i18n.Locale()).LoreNotedTo(name, when) }
-
-// LoreNotedTo says "已记到「{name}」· {when}"
-// in the language of msgs.
-//
-// 采纳 AI 建议的一处变化后的提示。
-func (msgs Messages) LoreNotedTo(name string, when string) string {
-	return Catalog.Format(msgs.locale, "loreNotedTo", map[string]any{"name": name, "when": when})
-}
-
-// LoreRewritten says "改写为：{text}"
-// in the language the app shows.
-//
-// 修改记录里改写了一条设定的内容。
-func LoreRewritten(text string) string { return In(i18n.Locale()).LoreRewritten(text) }
-
-// LoreRewritten says "改写为：{text}"
-// in the language of msgs.
-//
-// 修改记录里改写了一条设定的内容。
-func (msgs Messages) LoreRewritten(text string) string {
-	return Catalog.Format(msgs.locale, "loreRewritten", map[string]any{"text": text})
-}
-
-// LoreRecat says "改归{cat}：{text}"
-// in the language the app shows.
-//
-// 修改记录里把一条设定改到另一个分类。
-func LoreRecat(cat string, text string) string { return In(i18n.Locale()).LoreRecat(cat, text) }
-
-// LoreRecat says "改归{cat}：{text}"
-// in the language of msgs.
-//
-// 修改记录里把一条设定改到另一个分类。
-func (msgs Messages) LoreRecat(cat string, text string) string {
-	return Catalog.Format(msgs.locale, "loreRecat", map[string]any{"cat": cat, "text": text})
-}
-
-// LoreAddedActive says "新增到正文 · {cat}：{text}"
-// in the language the app shows.
-//
-// 修改记录里新增一条正文设定。
-func LoreAddedActive(cat string, text string) string {
-	return In(i18n.Locale()).LoreAddedActive(cat, text)
-}
-
-// LoreAddedActive says "新增到正文 · {cat}：{text}"
-// in the language of msgs.
-//
-// 修改记录里新增一条正文设定。
-func (msgs Messages) LoreAddedActive(cat string, text string) string {
-	return Catalog.Format(msgs.locale, "loreAddedActive", map[string]any{"cat": cat, "text": text})
 }
 
 // LoreAddedTo says "新增到{what}"
@@ -4356,44 +3606,6 @@ func LoreToConfirmLine(cat string, text string) string {
 // 一条等作者确认的设定，写成一行。
 func (msgs Messages) LoreToConfirmLine(cat string, text string) string {
 	return Catalog.Format(msgs.locale, "loreToConfirmLine", map[string]any{"cat": cat, "text": text})
-}
-
-// LoreMovedTo says "移到{where}：{text}"
-// in the language the app shows.
-//
-// 修改记录里移动一条设定。
-func LoreMovedTo(where string, text string) string { return In(i18n.Locale()).LoreMovedTo(where, text) }
-
-// LoreMovedTo says "移到{where}：{text}"
-// in the language of msgs.
-//
-// 修改记录里移动一条设定。
-func (msgs Messages) LoreMovedTo(where string, text string) string {
-	return Catalog.Format(msgs.locale, "loreMovedTo", map[string]any{"where": where, "text": text})
-}
-
-// LoreWhereBody says "正文"
-// in the language the app shows.
-//
-// 设定所在的地方：列表里的正文设定。
-func LoreWhereBody() string { return In(i18n.Locale()).LoreWhereBody() }
-
-// LoreWhereBody says "正文"
-// in the language of msgs.
-//
-// 设定所在的地方：列表里的正文设定。
-func (msgs Messages) LoreWhereBody() string {
-	return Catalog.Format(msgs.locale, "loreWhereBody", nil)
-}
-
-// LoreWhoManual says "手动修改"
-// in the language the app shows.
-func LoreWhoManual() string { return In(i18n.Locale()).LoreWhoManual() }
-
-// LoreWhoManual says "手动修改"
-// in the language of msgs.
-func (msgs Messages) LoreWhoManual() string {
-	return Catalog.Format(msgs.locale, "loreWhoManual", nil)
 }
 
 // ChatNeedModel says "请先配置讨论模型"
@@ -5132,16 +4344,6 @@ func ChatViewLore() string { return In(i18n.Locale()).ChatViewLore() }
 // in the language of msgs.
 func (msgs Messages) ChatViewLore() string {
 	return Catalog.Format(msgs.locale, "chatViewLore", nil)
-}
-
-// ChatViewTalk says "查看讨论"
-// in the language the app shows.
-func ChatViewTalk() string { return In(i18n.Locale()).ChatViewTalk() }
-
-// ChatViewTalk says "查看讨论"
-// in the language of msgs.
-func (msgs Messages) ChatViewTalk() string {
-	return Catalog.Format(msgs.locale, "chatViewTalk", nil)
 }
 
 // ChatPull says "摘取原文"
@@ -6490,16 +5692,6 @@ func CheckMismatchAbout(at string, what string) string {
 // 检查列表一行的副标题：章节和它对上的设定。
 func (msgs Messages) CheckMismatchAbout(at string, what string) string {
 	return Catalog.Format(msgs.locale, "checkMismatchAbout", map[string]any{"at": at, "what": what})
-}
-
-// CheckDeleted says "已删除"
-// in the language the app shows.
-func CheckDeleted() string { return In(i18n.Locale()).CheckDeleted() }
-
-// CheckDeleted says "已删除"
-// in the language of msgs.
-func (msgs Messages) CheckDeleted() string {
-	return Catalog.Format(msgs.locale, "checkDeleted", nil)
 }
 
 // CheckNameAbout says "{at} · 应为「{right}」"
@@ -11264,34 +10456,6 @@ func ModAIAbout() string { return In(i18n.Locale()).ModAIAbout() }
 // 「扩展」里：这个扩展是做什么的，一句话。
 func (msgs Messages) ModAIAbout() string {
 	return Catalog.Format(msgs.locale, "modAIAbout", nil)
-}
-
-// ModLore says "设定"
-// in the language the app shows.
-//
-// 「功能」里一个模块的名字。
-func ModLore() string { return In(i18n.Locale()).ModLore() }
-
-// ModLore says "设定"
-// in the language of msgs.
-//
-// 「功能」里一个模块的名字。
-func (msgs Messages) ModLore() string {
-	return Catalog.Format(msgs.locale, "modLore", nil)
-}
-
-// ModLoreAbout says "人物、地点、物品的资料"
-// in the language the app shows.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func ModLoreAbout() string { return In(i18n.Locale()).ModLoreAbout() }
-
-// ModLoreAbout says "人物、地点、物品的资料"
-// in the language of msgs.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func (msgs Messages) ModLoreAbout() string {
-	return Catalog.Format(msgs.locale, "modLoreAbout", nil)
 }
 
 // ModUsage says "用量记录"
