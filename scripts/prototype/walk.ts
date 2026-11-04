@@ -472,8 +472,8 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   const offered = (): Promise<string> => js(`[...document.querySelectorAll('.dialog .tick-row')].map((e) => e.innerText).join(' ')`)
   await settings(); await click('扩展'); await extPage('大纲'); await extTick('大纲'); await askYes(); await crumb('扩展'); await extPage('设定'); await extTick('设定'); await askYes(); await click('关闭')
   await click('文件'); await click('导出…'); must(!/大纲|设定/.test(await offered()), 'export offers what is off: ' + await offered()); await shot('66i-export-without-lore'); await click('取消')
-  await settings(); await click('扩展'); for (const name of ['大纲', '设定', '起草', '检查', '名字补全']) { await extPage(name); await extTick(name); await crumb('扩展') }
-  await click('关闭'); must(await js(`['outline', 'lore', 'draft', 'check', 'names'].every(extOn)`), 'what the outline and the lore took along did not come back')
+  await settings(); await click('扩展'); for (const name of ['大纲', '设定']) { await extPage(name); await extTick(name); await crumb('扩展') }
+  await click('关闭'); must(await js(`['outline', 'lore', 'draft', 'check', 'names'].every(extOn)`), 'what the outline and the lore stopped did not come back with them')
   await click('文件'); await click('导出…'); must(/大纲/.test(await offered()) && /设定/.test(await offered()), 'export lost the outline or the lore: ' + await offered()); await click('取消'); await done('export goes with the outline and the lore')
   await settings(); await clear('讨论模型'); await click('关闭'); await click('讨论', 1); await click('全部讨论'); await click('新讨论'); await type('输入想讨论的内容', '在吗'); await key('Enter', true); await win('请先配置讨论模型'); await sleep(3300); await win('请先配置讨论模型'); await shot('67-no-model'); await click('打开设置'); await win('选用模型'); await win('请先配置讨论模型', false); await key('Escape'); await done('no model to talk with')
 
