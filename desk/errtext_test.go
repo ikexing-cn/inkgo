@@ -6,9 +6,10 @@ import (
 	"os"
 	"testing"
 	"writer/desk/kit"
-	"writer/discussion"
 	"writer/ext/ai/aiapi"
 	"writer/ext/ai/aitext"
+	discussion "writer/ext/talk/engine"
+	"writer/ext/talk/talktext"
 	"writer/locales"
 	"writer/model"
 )
@@ -25,7 +26,7 @@ func TestErrorTranslatorsAreCalledInOrder(t *testing.T) {
 func TestErrorWrappersUseTheSameTranslatorChain(t *testing.T) {
 	i18n.SetLocaleFunc(func() string { return "zh-Hans" })
 	t.Cleanup(func() { i18n.SetLocaleFunc(testLocale) })
-	a := &App{ErrorText: []ErrorTranslator{aitext.Translate}}
+	a, _, _ := fixture(t)
 	inner := errors.New(aitext.SettingsModelNumbers("x"))
 	wrapped := &discussion.ReplyError{Err: inner}
 	for _, tc := range []struct {
@@ -33,7 +34,7 @@ func TestErrorWrappersUseTheSameTranslatorChain(t *testing.T) {
 		want string
 	}{
 		{openBookError{book: "Book", err: model.ErrKeyNewline}, locales.AppOpenBookFailed("Book", aitext.SettingsKeyNewline())},
-		{extensionFailedError{name: func() string { return "AI" }, err: wrapped}, locales.ExtFailed("AI", aitext.ChatReplyError(aitext.SettingsModelNumbers("x")))},
+		{extensionFailedError{name: func() string { return "AI" }, err: wrapped}, locales.ExtFailed("AI", talktext.ChatReplyError(aitext.SettingsModelNumbers("x")))},
 		{&model.ConfigError{Op: "read", Err: os.ErrPermission}, aitext.SettingsConfigRead(os.ErrPermission.Error())},
 	} {
 		if got := a.errText(tc.err); got != tc.want {

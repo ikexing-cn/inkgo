@@ -14,6 +14,7 @@ import (
 	"writer/editor"
 	"writer/ext"
 	"writer/ext/ai/aiapi"
+	"writer/ext/talk/talkapi"
 	"writer/locales"
 	"writer/shelf"
 	"writer/workspace"
@@ -24,6 +25,7 @@ const flashFor = 3 * time.Second
 
 type App struct {
 	hostapi.ModelChoices
+	talkChoices *talkapi.ModelChoices
 	// Window callbacks only touch these atomics. View consumes the return
 	// signal, even when blur and focus both happened between two frames.
 	windowInactive atomic.Bool
@@ -34,12 +36,15 @@ type App struct {
 	// open. It is used on the view thread only.
 	book *book.Book
 	// ai is all the AI does: what sends goes through it alone.
-	configFile string
-	aiRef      *ext.OptRef[aiapi.Backend]
-	aiWasOn    bool
-	aiResolved aiapi.Backend
-	ai         aiapi.Backend
-	aiOff      []func()
+	configFile   string
+	aiRef        *ext.OptRef[aiapi.Backend]
+	aiWasOn      bool
+	talkRef      *ext.OptRef[talkapi.ServiceAPI]
+	talkResolved talkapi.ServiceAPI
+	talkAPI      talkapi.ServiceAPI
+	aiResolved   aiapi.Backend
+	ai           aiapi.Backend
+	aiOff        []func()
 	// PickFolder shows a native folder dialog; it runs off the UI thread.
 	// Nil hides the browse buttons (tests, platforms without dialogs).
 	PickFolder func(title string) (string, error)
@@ -113,8 +118,7 @@ type App struct {
 	cancel                           context.CancelFunc
 	jobs                             jobs
 	chat                             ui.ListState
-	rows                             []int // the chat list's: event indexes, -1 the empty chat, -2 the turn in flight
-	md                               kit.MarkdownState
+	rows                             []int            // the chat list's: event indexes, -1 the empty chat, -2 the turn in flight
 	thoughts                         map[string]*bool // reasoning shown, by event or revision ID
 	doc                              docView
 	extensions                       *ext.Host
@@ -150,7 +154,7 @@ type App struct {
 // New assembles the host with a stable machine configuration location and an
 // explicit extension list. The shelf and extension switches live beside it.
 func New(configFile string, mods ...ext.Module) *App {
-	a := &App{configFile: configFile, turn: &talkTurn{}, genre: "网文",
+	a := &App{talkChoices: &talkapi.ModelChoices{}, configFile: configFile, turn: &talkTurn{}, genre: "网文",
 		light: kit.LightPalette(), dark: kit.DarkPalette(), titles: map[string]workspace.ConversationTitle{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
 	a.status.Translate = a.errText
 	a.pal = a.light
@@ -367,9 +371,9 @@ func (a *App) errorText() string { return a.status.ErrorText() }
 
 func (a *App) loadWork() {
 	w := a.Store.Work()
-	a.TalkProvider = w.Discussion.Provider
-	a.TalkModel = w.Discussion.Model
-	a.TalkEffort = w.Discussion.Effort
+	a.talkChoices.TalkProvider = w.Discussion.Provider
+	a.talkChoices.TalkModel = w.Discussion.Model
+	a.talkChoices.TalkEffort = w.Discussion.Effort
 	a.PenProvider, a.PenModel, a.PenEffort = w.Writing.Provider, w.Writing.Model, w.Writing.Effort
 }
 

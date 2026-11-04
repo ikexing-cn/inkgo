@@ -13,6 +13,7 @@ import (
 	"writer/ext"
 	"writer/ext/ai/aiapi"
 	"writer/ext/hostapi"
+	"writer/ext/talk/talkapi"
 	"writer/locales"
 	"writer/workspace"
 )
@@ -83,6 +84,12 @@ func (a *App) initExtensions(mods []ext.Module) {
 		},
 		DeclareHost: func(r *ext.Registrar) {
 			a.aiRef = ext.UseOptional(r, aiapi.Service)
+			for _, mod := range mods {
+				if mod.ID == "talk" {
+					a.talkRef = ext.UseOptional(r, talkapi.Service)
+					break
+				}
+			}
 			ext.Declare(r, hostapi.ErrorTexts)
 			ext.Declare(r, hostapi.AIUsage)
 			ext.DeclareCalls(r, hostapi.AIUsage, func(draw func(*ui.Context)) func(*ui.Context) struct{} {
@@ -207,6 +214,27 @@ func (a *App) syncExtensions() {
 		a.aiWasOn = on
 		a.applyAI(on)
 	}
+	var talkService talkapi.ServiceAPI
+	talkOn := false
+	if a.talkRef != nil {
+		talkService, talkOn = a.talkRef.Get()
+	}
+	if talkOn && talkService != a.talkResolved {
+		a.talkResolved, a.talkAPI = talkService, talkService
+		a.talkChoices = talkService.Choices()
+		if a.Store != nil {
+			w := a.Store.Work()
+			*a.talkChoices = talkapi.ModelChoices{TalkProvider: w.Discussion.Provider, TalkModel: w.Discussion.Model, TalkEffort: w.Discussion.Effort}
+		}
+	}
+	if !talkOn {
+		a.talkResolved, a.talkAPI = nil, nil
+		if a.page == pageTalk {
+			a.page = pageWrite
+		}
+
+		a.write.draftOpen, a.write.rewriting = false, false
+	}
 	changes := a.extensions.Changes()
 	revision := a.localeRevision.Load()
 	if a.extViews.ready && a.extViews.changes == changes && a.extViews.localeRevision == revision {
@@ -223,15 +251,21 @@ func (a *App) syncExtensions() {
 	a.cacheExtensionViews(&cache)
 	cache.commands = a.buildExtensionCommands()
 	_, cache.outlines = a.outlineValue(a.write.node)
+	cache.outlines = cache.outlines && a.talkOn()
 	if !cache.outlines {
 		a.write.draftOpen = false
 	}
 	for _, cmd := range commandList {
-		if (cmd != cmdDraft || cache.outlines) && (cmd != cmdTake || a.hasEntries()) {
+		if (cmd != cmdDraft || cache.outlines) && (cmd != cmdQuote && cmd != cmdRewrite || a.talkOn()) && (cmd != cmdTake || a.hasEntries()) {
 			cache.list = append(cache.list, cmd)
 		}
 	}
-	cache.help = append([]*helpRow(nil), commandHelp...)
+	for _, row := range commandHelp {
+		if !a.talkOn() && (slices.Contains(row.cmds, cmdQuote) || slices.Contains(row.cmds, cmdDraft) || slices.Contains(row.cmds, cmdRewrite)) {
+			continue
+		}
+		cache.help = append(cache.help, row)
+	}
 	for _, row := range systemCommands {
 		cache.system = append(cache.system, namedCommand{id: row.id, cmd: row.cmd})
 	}
@@ -470,3 +504,11 @@ var fileCommandRows = []namedCommand{
 }
 
 func (a *App) fileCommands() []namedCommand { a.syncExtensions(); return a.extViews.file }
+
+func (a *App) talkOn() bool {
+	if a.talkRef == nil {
+		return false
+	}
+	_, ok := a.talkRef.Get()
+	return ok
+}

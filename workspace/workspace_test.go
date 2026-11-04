@@ -35,7 +35,7 @@ func TestSessionCursorExternalChanges(t *testing.T) {
 			session := mustSession(t, s)
 			first := mustEvent(t, s, session, Event{Role: RoleUser, Text: "first"})
 			second := mustEvent(t, s, session, Event{Role: RoleUser, Text: "second"})
-			path := filepath.Join(s.Root(), "sessions", session+".jsonl")
+			path := filepath.Join(s.Root(), "ext", "talk", "sessions", session+".jsonl")
 			before := readBytes(t, path)
 			makeLine := func(e Event) []byte {
 				data, err := json.Marshal(e)
@@ -190,7 +190,7 @@ func putBytes(t *testing.T, p string, b []byte) {
 func TestCreateAndRoundTrip(t *testing.T) {
 	s := testStore(t)
 	root := s.Root()
-	for _, dir := range []string{"sessions", "chapters", ".writer"} {
+	for _, dir := range []string{"ext/talk/sessions", "chapters", ".writer"} {
 		if st, err := os.Stat(filepath.Join(root, dir)); err != nil || !st.IsDir() {
 			t.Fatalf("missing directory %s: %v", dir, err)
 		}
@@ -436,7 +436,7 @@ func TestTraversalAndDuplicateEvents(t *testing.T) {
 func TestSessionRecoverySnapshotsAndCorruption(t *testing.T) {
 	s := testStore(t)
 	session := mustSession(t, s)
-	p := filepath.Join(s.Root(), "sessions", session+".jsonl")
+	p := filepath.Join(s.Root(), "ext", "talk", "sessions", session+".jsonl")
 	first := mustEvent(t, s, session, Event{Role: "user", Text: "想法"})
 	assistant := mustEvent(t, s, session, Event{Role: "assistant", Text: "回答", ReplyTo: first.ID, Context: []ContextItem{{ID: "context-id", Text: "实际文本", Reason: "current topic"}}, Omitted: []ContextItem{{ID: "omitted-id", Text: "未发送", Reason: "budget"}}})
 	original := readBytes(t, p)
@@ -675,11 +675,11 @@ func TestFilesThatAreNotSessionsArePassedOver(t *testing.T) {
 	s.Close()
 	strays := []string{"desktop.ini", ".DS_Store", "Thumbs.db", id + " (冲突副本).jsonl", "笔记.jsonl"}
 	for _, name := range strays {
-		if err = os.WriteFile(filepath.Join(dir, "sessions", name), []byte("x"), 0644); err != nil {
+		if err = os.WriteFile(filepath.Join(dir, "ext", "talk", "sessions", name), []byte("x"), 0644); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if err = os.Mkdir(filepath.Join(dir, "sessions", "旧的"), 0755); err != nil {
+	if err = os.Mkdir(filepath.Join(dir, "ext", "talk", "sessions", "旧的"), 0755); err != nil {
 		t.Fatal(err)
 	}
 	s, err = Open(dir)
@@ -692,7 +692,7 @@ func TestFilesThatAreNotSessionsArePassedOver(t *testing.T) {
 		t.Fatalf("sessions %v, %v", ids, err)
 	}
 	for _, name := range strays {
-		if _, err = os.Stat(filepath.Join(dir, "sessions", name)); err != nil {
+		if _, err = os.Stat(filepath.Join(dir, "ext", "talk", "sessions", name)); err != nil {
 			t.Fatalf("%s was not left alone: %v", name, err)
 		}
 	}
@@ -707,7 +707,7 @@ func TestAWorkWithoutItsEmptyFoldersOpens(t *testing.T) {
 		t.Fatal(err)
 	}
 	s.Close()
-	for _, d := range []string{"sessions", "chapters", ".writer"} {
+	for _, d := range []string{"ext/talk/sessions", "chapters", ".writer"} {
 		if err = os.RemoveAll(filepath.Join(dir, d)); err != nil {
 			t.Fatal(err)
 		}

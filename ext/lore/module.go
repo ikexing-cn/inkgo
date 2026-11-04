@@ -7,11 +7,12 @@ import (
 	"writer/ext/hostapi"
 	"writer/ext/lore/loreapi"
 	"writer/ext/lore/loretext"
+	"writer/ext/talk/talkapi"
 	"writer/workspace"
 )
 
 // Module registers the setting interface and its live reference entries.
-var Module = ext.Module{ID: "lore", Kind: ext.Feature, Group: hostapi.GroupLore, Requires: []string{"context"}, Optional: []string{"ai"}, Name: loretext.ModLore, Desc: loretext.ModLoreAbout, Setup: setup}
+var Module = ext.Module{ID: "lore", Kind: ext.Feature, Group: hostapi.GroupLore, Requires: []string{"context"}, Optional: []string{"ai", "talk"}, Name: loretext.ModLore, Desc: loretext.ModLoreAbout, Setup: setup}
 
 func setup(r *ext.Registrar) {
 	for _, tool := range TalkTools() {
@@ -23,13 +24,13 @@ func setup(r *ext.Registrar) {
 	palette := ext.Use(r, hostapi.PaletteService)
 	notices := ext.Use(r, hostapi.NoticesService)
 	desktop := ext.Use(r, hostapi.DesktopService)
-	talk := ext.Use(r, hostapi.TalkService)
+	talk := ext.UseOptional(r, talkapi.Service)
 	search := ext.Use(r, hostapi.SearchService)
 	ai := ext.Use(r, hostapi.AIService)
 	edits := ext.Use(r, hostapi.RevisionsService)
 	pane := ext.Use(r, hostapi.PaneService)
 	r.OnStart(func(*ext.Session) error {
-		*p = Panel{services: Services{Book: book.Get(), Palette: palette.Get(), Notices: notices.Get(), Desktop: desktop.Get(), Talk: talk.Get(), Search: search.Get(), AI: ai.Get(), Edits: edits.Get(), Pane: pane.Get()}}
+		*p = Panel{services: Services{Book: book.Get(), Palette: palette.Get(), Notices: notices.Get(), Desktop: desktop.Get(), Talk: talk.Get, Search: search.Get(), AI: ai.Get(), Edits: edits.Get(), Pane: pane.Get()}}
 		return nil
 	})
 	r.OnStop(func(*ext.Session) {

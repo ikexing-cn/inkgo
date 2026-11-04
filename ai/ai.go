@@ -1,6 +1,6 @@
 // Package ai is the part of the writing software that sends: it keeps the
-// services of models this machine has, and makes the talk and the pen of
-// a work with them. It draws nothing; the interface reaches
+// services of models this machine has, and makes model handles and the pen
+// of a work with them. It draws nothing; the interface reaches
 // it through aiapi alone.
 package ai
 
@@ -14,7 +14,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"writer/discussion"
 	"writer/ext/ai/aiapi"
 	"writer/inference"
 	"writer/model"
@@ -185,59 +184,25 @@ func (s *Service) Efforts() []string {
 
 func (s *Service) EffortLabel(effort string) string { return model.Effort(effort).Label() }
 
-// talk is a discussion engine as aiapi has it.
-type talk struct{ e *discussion.Engine }
-
-func (t talk) Say(ctx context.Context, session string, words workspace.Event) (bool, error) {
-	turn, err := t.e.Say(ctx, session, words)
-	return turn.User.ID != "", requestError(err)
-}
-
-func (t talk) Retry(ctx context.Context, session, userID string) error {
-	_, err := t.e.Retry(ctx, session, userID)
-	return requestError(err)
-}
-
-func (s *Service) Talk(st *workspace.Store, material aiapi.Material, tools []aiapi.Tool, beside *aiapi.Beside, progress func(aiapi.Progress), step func(workspace.Event)) (aiapi.Talk, error) {
+// Model selects a model and returns its recorded, traced completer.
+func (s *Service) Model(st *workspace.Store, role aiapi.Role) (aiapi.Handle, error) {
 	if s.on != nil && !s.on() {
-		return nil, ErrOff
+		return aiapi.Handle{}, ErrOff
 	}
-	work := st.Work()
-	if work.Discussion.Provider == "" || work.Discussion.Model == "" {
-		return nil, setupError(ErrChatModel)
+	w := st.Work()
+	sel := w.Discussion
+	if role == aiapi.RoleWriting {
+		sel = w.Writing
+		if sel.Provider == "" {
+			sel.Provider, sel.Model = w.Discussion.Provider, w.Discussion.Model
+		}
+	} else if role != aiapi.RoleTalk {
+		return aiapi.Handle{}, setupError(fmt.Errorf("unknown model role %q", role))
 	}
-	m, err := s.Open(work.Discussion, st)
-	if err != nil {
-		return nil, err
+	if sel.Provider == "" || sel.Model == "" {
+		return aiapi.Handle{}, setupError(ErrChatModel)
 	}
-	e := &discussion.Engine{Store: st, Talk: m, Step: step, Material: material, Tools: tools}
-	if progress != nil {
-		e.Progress = func(d model.Delta) { progress(aiapi.Progress{Reasoning: d.Reasoning, Text: d.Text}) }
-		e.Proposing = func(call string, p workspace.Proposal) { progress(aiapi.Progress{Call: call, Proposal: &p}) }
-	}
-	if beside != nil {
-		w := discussion.Writing(*beside)
-		e.Beside = &w
-	}
-	return talk{e}, nil
-}
-
-func (s *Service) Preloaded(st *workspace.Store, material aiapi.Material, origin, chapter string) (aiapi.Preload, error) {
-	n, err := discussion.Preloaded(st, material, origin, chapter)
-	if err != nil {
-		return aiapi.Preload{}, requestError(err)
-	}
-	out := aiapi.Preload{Tokens: n.Tokens, Cards: n.Cards, Previous: n.Previous, Outlines: aiapi.BookVolumes}
-	if !material.Outline {
-		out.Outlines = aiapi.NoOutlines
-	} else if n.InVolume {
-		out.Outlines = aiapi.VolumeChapters
-	}
-	return out, nil
-}
-
-func (s *Service) Extract(st *workspace.Store, session, message string, start, end int, category string) (workspace.Entry, error) {
-	return (&discussion.Engine{Store: st}).Extract(session, message, start, end, category)
+	return s.Open(sel, st)
 }
 
 // open is the model sel names, with its limits as the services have

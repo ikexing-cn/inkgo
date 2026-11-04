@@ -13,7 +13,7 @@ func TestNeutralBookAndToolOwnersDoNotImportDiscussionOrExtensions(t *testing.T)
 			t.Fatal(err, string(out))
 		}
 		for _, imp := range strings.Fields(string(out)) {
-			if imp == "writer/discussion" || pkg == "writer/talkbook" && strings.HasPrefix(imp, "writer/ext") {
+			if imp == "writer/ext/talk/engine" || pkg == "writer/talkbook" && strings.HasPrefix(imp, "writer/ext") {
 				t.Fatalf("%s imports %s", pkg, imp)
 			}
 		}

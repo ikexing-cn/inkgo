@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 	"time"
+	"writer/ext/talk/talkapi"
 
 	"github.com/egoist/mygo/ui"
 	"writer/ext/ai/aiapi"
@@ -48,11 +49,12 @@ func TestOldRequestCannotFinishNewWork(t *testing.T) {
 
 type capturedStream struct {
 	aiapi.Backend
-	progress func(aiapi.Progress)
+	talkapi.ServiceAPI
+	progress func(talkapi.Progress)
 	step     func(workspace.Event)
 }
 
-func (s *capturedStream) Talk(_ *workspace.Store, _ aiapi.Material, _ []aiapi.Tool, _ *aiapi.Beside, progress func(aiapi.Progress), step func(workspace.Event)) (aiapi.Talk, error) {
+func (s *capturedStream) Build(_ *workspace.Store, _ aiapi.Material, _ []aiapi.Tool, _ *talkapi.Beside, progress func(talkapi.Progress), step func(workspace.Event)) (talkapi.Talk, error) {
 	s.progress, s.step = progress, step
 	return nil, nil
 }
@@ -60,7 +62,7 @@ func (s *capturedStream) Talk(_ *workspace.Store, _ aiapi.Material, _ []aiapi.To
 func TestOldStreamCannotEnterNewDiscussion(t *testing.T) {
 	a, _, _ := fixture(t)
 	stream := &capturedStream{Backend: a.ai}
-	a.ai = stream
+	a.talkAPI = stream
 	start := true
 	stillTester(func(c *ui.Context) {
 		if start {
@@ -73,7 +75,7 @@ func TestOldStreamCannotEnterNewDiscussion(t *testing.T) {
 	old := a.turn
 	a.resetView()
 	a.SetError(errors.New("current error"))
-	stream.progress(aiapi.Progress{Text: "old reply"})
+	stream.progress(talkapi.Progress{Text: "old reply"})
 	stream.step(workspace.Event{Revision: "old revision"})
 	a.poll()
 	_, text, steps, _ := a.turn.live.read()

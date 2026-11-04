@@ -3,6 +3,7 @@ package desk
 import (
 	"context"
 	"testing"
+	"writer/ext/talk/talkapi"
 
 	"github.com/egoist/mygo/ui"
 	"writer/ext/ai/aiapi"
@@ -17,10 +18,10 @@ type materialSpy struct {
 	predictions           int
 }
 
-func (s *materialSpy) Talk(st *workspace.Store, m aiapi.Material, tools []aiapi.Tool, b *aiapi.Beside, progress func(aiapi.Progress), step func(workspace.Event)) (aiapi.Talk, error) {
+func (s *materialSpy) Build(st *workspace.Store, m aiapi.Material, tools []aiapi.Tool, b *talkapi.Beside, progress func(talkapi.Progress), step func(workspace.Event)) (talkapi.Talk, error) {
 	s.talks = append(s.talks, m)
 	s.tools = append(s.tools, tools)
-	return s.capturedStream.Talk(st, m, tools, b, progress, step)
+	return s.capturedStream.Build(st, m, tools, b, progress, step)
 }
 
 func (s *materialSpy) Pen(_ *workspace.Store, m aiapi.Material) (aiapi.Pen, error) {
@@ -28,9 +29,9 @@ func (s *materialSpy) Pen(_ *workspace.Store, m aiapi.Material) (aiapi.Pen, erro
 	return materialPen{s}, nil
 }
 
-func (s *materialSpy) Preloaded(_ *workspace.Store, m aiapi.Material, _, _ string) (aiapi.Preload, error) {
+func (s *materialSpy) Preloaded(_ *workspace.Store, m aiapi.Material, _, _ string) (talkapi.Preload, error) {
 	s.preloads = append(s.preloads, m)
-	return aiapi.Preload{}, nil
+	return talkapi.Preload{}, nil
 }
 
 type materialPen struct{ spy *materialSpy }
@@ -55,6 +56,7 @@ func TestNextTalkPredictionAndPreloadFollowGlobalAndBookMaterialSwitches(t *test
 				a, tt, _ := marginFixture(t, true)
 				spy := &materialSpy{capturedStream: capturedStream{Backend: a.ai}}
 				a.ai = spy
+				a.talkAPI = spy
 				a.modelsChanged()
 				for _, on := range []bool{true, false, true} {
 					a.setExtension(id, on, bookScope)

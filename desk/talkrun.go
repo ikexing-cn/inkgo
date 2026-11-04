@@ -2,9 +2,11 @@ package desk
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"strings"
 	"sync"
+	"writer/ext/talk/talkapi"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
@@ -42,7 +44,7 @@ type streamed struct {
 	p    workspace.Proposal
 }
 
-func (l *live) add(p aiapi.Progress) {
+func (l *live) add(p talkapi.Progress) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if p.Proposal != nil {
@@ -88,12 +90,15 @@ func (l *live) read() (reasoning, text string, steps []workspace.Event, compacti
 // streaming the reply into the view with what it looks up on the way, and
 // what the author is writing beside it. What it notes in the setting
 // shows at once.
-func (a *App) talk(c *ui.Context) (aiapi.Talk, error) {
+func (a *App) talk(c *ui.Context) (talkapi.Talk, error) {
+	if a.talkAPI == nil {
+		return nil, &aiapi.SetupError{Err: errors.New(locales.ChatNeedModel())}
+	}
 	turn := &talkTurn{}
 	a.turn = turn
 	a.write.seen = map[string]bool{}
 	sv := c.Services()
-	return a.ai.Talk(a.Store, a.material(), aiapi.SnapshotTools(a.extensions), a.beside(), func(p aiapi.Progress) {
+	return a.talkAPI.Build(a.Store, a.material(), aiapi.SnapshotTools(a.extensions), a.beside(), func(p talkapi.Progress) {
 		turn.live.add(p)
 		sv.Invalidate()
 	}, func(e workspace.Event) { a.stepped(turn, sv, e) })
@@ -158,7 +163,7 @@ func (a *App) finished(apply func(), err error) {
 		apply()
 	}
 	a.unfinishedProps()
-	if !a.aiOn() {
+	if !a.aiOn() || !a.talkOn() {
 		err = nil // what runs is the AI's: turned off, it was stopped, and says nothing
 	}
 	if err != nil {

@@ -12,7 +12,7 @@ import (
 	"writer/workspace"
 )
 
-func TestBackupRoundTripKeepsLoreCardsChapterAndVolumeOutlinesAndBookSettings(t *testing.T) {
+func TestBackupRoundTripKeepsTalksLoreCardsChapterAndVolumeOutlinesAndBookSettings(t *testing.T) {
 	root := t.TempDir()
 	s, err := workspace.Create(root, "book", "网文", "zh-Hans")
 	if err != nil {
@@ -41,6 +41,10 @@ func TestBackupRoundTripKeepsLoreCardsChapterAndVolumeOutlinesAndBookSettings(t 
 	check(err)
 	settings := []byte(`{"switches":{"lore":false,"outline":true},"settings":{"outline.example":{"value":42}}}`)
 	check(os.WriteFile(workspace.ExtSettingsPath(root), settings, 0600))
+	session, err := s.NewSession()
+	check(err)
+	_, err = s.Append(session, workspace.Event{Role: workspace.RoleUser, Text: "conversation survives backup"})
+	check(err)
 	files, err := Read(root)
 	check(err)
 	meta := files.Meta(s.Work().ID, workspace.Chinese)
@@ -109,6 +113,27 @@ func verifyExtensionBook(t *testing.T, source *workspace.Store, root, vol, id st
 		t.Fatal(err)
 	}
 	defer s.Close()
+	wantSessions, err := source.Sessions()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sessions, err := s.Sessions()
+	if err != nil || !reflect.DeepEqual(sessions, wantSessions) {
+		t.Fatal("sessions", sessions, err)
+	}
+	for _, id := range sessions {
+		want, err := source.Events(id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := s.Events(id)
+		if err != nil || !reflect.DeepEqual(got, want) {
+			t.Fatal("session events", got, err)
+		}
+		if _, err := os.Stat(filepath.Join(root, "ext", "talk", "sessions", id+".jsonl")); err != nil {
+			t.Fatal(err)
+		}
+	}
 	wantSet, err := source.Setting()
 	if err != nil {
 		t.Fatal(err)

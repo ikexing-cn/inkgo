@@ -8,6 +8,7 @@ import (
 	"writer/ext/hostapi"
 	"writer/ext/lore/loreapi"
 	"writer/ext/lore/loretext"
+	"writer/ext/talk/talkapi"
 	"writer/workspace"
 )
 
@@ -28,7 +29,7 @@ type Services struct {
 	Palette hostapi.Palette
 	Notices hostapi.Notices
 	Desktop hostapi.Desktop
-	Talk    hostapi.Talk
+	Talk    func() (talkapi.ServiceAPI, bool)
 	Search  hostapi.Search
 	AI      hostapi.AI
 	Edits   hostapi.Revisions

@@ -557,9 +557,11 @@ func (a *Panel) history(c *ui.Context) {
 						ui.Text(c, a.DescribeOp(op)).FontSize(kit.FsNote).LineHeight(kit.LhBody).Selectable().FillWidth()
 					}
 					if r.By != workspace.ByAuthor {
-						if words, ok := a.services.Talk.TalkTitle(r.Session); ok {
-							if a.services.Palette.Colors().PaneLink(c, loretext.LoreNotedIn(words), loretext.ChatViewTalk(), "讨论-"+r.ID) {
-								a.services.Talk.OpenTalk(r.Session)
+						if talk, on := a.services.Talk(); on {
+							if words, ok := talk.TalkTitle(r.Session); ok {
+								if a.services.Palette.Colors().PaneLink(c, loretext.LoreNotedIn(words), loretext.ChatViewTalk(), "讨论-"+r.ID) {
+									talk.OpenTalk(r.Session)
+								}
 							}
 						}
 					}

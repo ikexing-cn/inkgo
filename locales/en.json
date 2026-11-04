@@ -813,8 +813,6 @@
   "modMarksAbout": "Draws highlights and marks on the text",
   "modUsage": "Usage Records",
   "modUsageAbout": "Records how much AI was used and what it cost",
-  "modTalk": "Chat",
-  "modTalkAbout": "Talk about the story with AI",
   "modContinue": "Continue Writing",
   "modContinueAbout": "AI writes the next sentence when you pause",
   "modDraft": "Draft",

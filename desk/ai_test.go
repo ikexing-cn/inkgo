@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 	aimod "writer/ext/ai"
+	"writer/ext/talk/talkapi"
 
 	"github.com/egoist/mygo/ui"
 	"writer/ai"
@@ -78,10 +79,10 @@ func TestDraftNoteKeepsItsOutlineSource(t *testing.T) {
 	}
 }
 
-type failedPreload struct{ aiapi.Backend }
+type failedPreload struct{ talkapi.ServiceAPI }
 
-func (f failedPreload) Preloaded(*workspace.Store, aiapi.Material, string, string) (aiapi.Preload, error) {
-	return aiapi.Preload{}, errors.New("preload failed")
+func (f failedPreload) Preloaded(*workspace.Store, aiapi.Material, string, string) (talkapi.Preload, error) {
+	return talkapi.Preload{}, errors.New("preload failed")
 }
 
 func TestDraftCardsSurvivePreloadFailure(t *testing.T) {
@@ -89,7 +90,7 @@ func TestDraftCardsSurvivePreloadFailure(t *testing.T) {
 	if _, err := a.Store.SaveCard(workspace.Card{Title: "拧开灯座", Chapter: id}, ""); err != nil {
 		t.Fatal(err)
 	}
-	a.ai = failedPreload{a.ai}
+	a.talkAPI = failedPreload{a.talkAPI}
 	a.openDraft()
 	tt.Frame()
 	head := "AI 仅将章纲和本章的卡片扩写为正文，不添加这些之外的重大情节。起草在一段新的讨论里进行：写好的先在正文里显示为改稿建议，采纳后才写入，写入前保存历史版本；想改哪里，在讨论里接着说。"

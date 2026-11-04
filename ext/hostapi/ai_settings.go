@@ -7,7 +7,7 @@ import (
 )
 
 // ModelChoices holds editable model choices on the frame thread.
-type ModelChoices struct{ TalkProvider, TalkModel, TalkEffort, PenProvider, PenModel, PenEffort string }
+type ModelChoices struct{ PenProvider, PenModel, PenEffort string }
 
 // SettingsHost bridges features still in desk until they become extensions.
 // All methods run on the frame thread; Run captures Services in its caller.

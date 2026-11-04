@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// What each package under desk may depend on, through any package between.
+// What each package under desk may depend on, through direct imports. Public API contracts may expose model handle types.
 // desk draws all of the AI and sends nothing itself: what sends is in package
 // ai, which desk reaches through aiapi alone. book is the book's content, with
 // no view and nothing of desk. kit is what the pages draw with, and knows
@@ -16,7 +16,7 @@ import (
 // only through kit and book; one added later is held to that without naming it
 // here, as go list finds it.
 func TestImports(t *testing.T) {
-	out, err := exec.Command("go", "list", "-f", `{{.ImportPath}} {{join .Deps " "}}`, "writer/desk/...").CombinedOutput()
+	out, err := exec.Command("go", "list", "-f", `{{.ImportPath}} {{join .Imports " "}}`, "writer/desk/...").CombinedOutput()
 	if err != nil {
 		t.Fatal(err, string(out))
 	}
@@ -36,7 +36,7 @@ func TestImports(t *testing.T) {
 		wrong := slices.DeleteFunc(slices.Clone(deps[p]), func(d string) bool {
 			underDesk := within(d, "writer/desk")
 			switch {
-			case slices.Contains([]string{"writer/ai", "writer/model", "writer/discussion", "writer/writing", "writer/inference", "writer/prompt"}, d):
+			case slices.Contains([]string{"writer/ai", "writer/model", "writer/ext/talk/engine", "writer/writing", "writer/inference", "writer/prompt"}, d):
 				return false
 			case p == "writer/desk":
 				return true

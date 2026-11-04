@@ -1,6 +1,7 @@
 package desk
 
 import (
+	"github.com/egoist/mygo/ui"
 	"time"
 	"writer/workspace"
 )
@@ -56,5 +57,24 @@ func (h extensionHost) RevealPane(tab string) {
 	h.a.doc.tab = paneTab(tab)
 	if h.a.doc.tab != paneTalk {
 		h.a.doc.talks = false
+	}
+}
+
+// StartTalk implements the temporary conversation navigation capability.
+func (h extensionHost) StartTalk(c *ui.Context, words workspace.Event) bool {
+	return h.a.startTalk(c, words)
+}
+
+// ShowEntry opens a digest reference on the frame thread.
+func (h extensionHost) ShowEntry(e workspace.Entry) { h.a.showEntry(e) }
+
+// StopTalk cancels the conversation as leaving the book does. Keep the busy
+// marker until the worker returns, so Close cannot close its store underneath it.
+func (h extensionHost) StopTalk() {
+	a := h.a
+	if a.turn.active && a.cancel != nil {
+		a.cancel()
+		a.dropProps(a.write.props, workspace.FateClosed)
+		a.turn.active = false
 	}
 }

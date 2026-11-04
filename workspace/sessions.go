@@ -12,7 +12,7 @@ import (
 )
 
 func (s *Store) sessions() ([]string, error) {
-	p, err := s.path("sessions")
+	p, err := s.path("ext", "talk", "sessions")
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +29,7 @@ func (s *Store) sessions() ([]string, error) {
 		if e.IsDir() || !ok || validID(id) != nil {
 			continue
 		}
-		if _, err = s.path("sessions", e.Name()); err != nil {
+		if _, err = s.path("ext", "talk", "sessions", e.Name()); err != nil {
 			return nil, err
 		}
 		ids = append(ids, id)
@@ -51,7 +51,7 @@ func (s *Store) NewSession() (string, error) {
 		return "", err
 	}
 	defer unlock()
-	dir, err := s.path("sessions")
+	dir, err := s.path("ext", "talk", "sessions")
 	if err != nil {
 		return "", err
 	}
@@ -60,7 +60,7 @@ func (s *Store) NewSession() (string, error) {
 	}
 	for tries := 0; tries < 128; tries++ {
 		id := NewID()
-		p, err := s.path("sessions", id+".jsonl")
+		p, err := s.path("ext", "talk", "sessions", id+".jsonl")
 		if err != nil {
 			return "", err
 		}
@@ -78,7 +78,7 @@ func (s *Store) events(session string) ([]Event, int64, error) {
 	if err := validID(session); err != nil {
 		return nil, 0, err
 	}
-	p, err := s.path("sessions", session+".jsonl")
+	p, err := s.path("ext", "talk", "sessions", session+".jsonl")
 	if err != nil {
 		return nil, 0, err
 	}
@@ -120,7 +120,7 @@ func (s *Store) Append(session string, event Event) (Event, error) {
 	if err := validID(session); err != nil {
 		return Event{}, err
 	}
-	p, err := s.path("sessions", session+".jsonl")
+	p, err := s.path("ext", "talk", "sessions", session+".jsonl")
 	if err != nil {
 		return Event{}, err
 	}

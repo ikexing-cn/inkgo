@@ -1,6 +1,7 @@
 package hostapi
 
 import (
+	"github.com/egoist/mygo/ui"
 	"writer/ext"
 	"writer/workspace"
 )
@@ -8,6 +9,12 @@ import (
 // Talk exposes conversation navigation on the frame thread. Methods are direct
 // host calls, without ext.Call or ext.Guard; host panics are not recovered.
 type Talk interface {
+	// StopTalk cancels the conversation worker during extension shutdown on the frame thread.
+	StopTalk()
+	// ShowEntry opens a digest reference on the frame thread (temporary UI bridge).
+	ShowEntry(workspace.Entry)
+	// StartTalk opens a conversation with an origin and first words on the frame thread.
+	StartTalk(*ui.Context, workspace.Event) bool
 	// OpenTalk opens a conversation on the frame thread, directly without ext.Call or ext.Guard.
 	OpenTalk(string)
 	// TalkTitle returns a conversation title on the frame thread, directly without ext.Call or ext.Guard.

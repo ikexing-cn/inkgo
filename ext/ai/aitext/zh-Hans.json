@@ -88,10 +88,6 @@
   "@settingsJobCheck": {
     "description": "AI 设置里「续写和检查」这件事的名字。"
   },
-  "settingsJobChatAbout": "聊故事时用",
-  "@settingsJobChatAbout": {
-    "description": "AI 设置里「讨论」这件事下面的说明。"
-  },
   "settingsJobCheckAbout": "续写和检查时用",
   "@settingsJobCheckAbout": {
     "description": "AI 设置里「续写和检查」这件事下面的说明。"
@@ -259,42 +255,6 @@
   "checkNoSetting": "设定还是空的，没有可以对照的",
   "@checkNoSetting": {
     "description": "writing.ErrNoSetting failure. Translated by desk for the AI toast."
-  },
-  "chatInputRequired": "请输入要讨论的内容",
-  "@chatInputRequired": {
-    "description": "discussion.ErrInputRequired failure. Translated by desk for the AI toast."
-  },
-  "chatNewChatRequired": "起草、改写要新开一段讨论",
-  "@chatNewChatRequired": {
-    "description": "discussion.ErrNewChatRequired failure. Translated by desk for the AI toast."
-  },
-  "chatAlreadyReplied": "这条发言已有回复",
-  "@chatAlreadyReplied": {
-    "description": "discussion.ErrAlreadyReplied failure. Translated by desk for the AI toast."
-  },
-  "chatRetryMissing": "找不到待重试的发言",
-  "@chatRetryMissing": {
-    "description": "discussion.ErrRetryMissing failure. Translated by desk for the AI toast."
-  },
-  "chatEmptyReply": "模型返回空回复，原文已保存",
-  "@chatEmptyReply": {
-    "description": "discussion.ErrEmptyReply failure. Translated by desk for the AI toast."
-  },
-  "chatSelectionInvalid": "原文选区无效",
-  "@chatSelectionInvalid": {
-    "description": "discussion.ErrSelectionInvalid failure. Translated by desk for the AI toast."
-  },
-  "chatSelectionBlank": "选中的只有空白",
-  "@chatSelectionBlank": {
-    "description": "discussion.ErrSelectionBlank failure. Translated by desk for the AI toast."
-  },
-  "chatSourceMissing": "找不到来源消息",
-  "@chatSourceMissing": {
-    "description": "discussion.ErrSourceMissing failure. Translated by desk for the AI toast."
-  },
-  "chatEmptyDigest": "模型返回空摘要",
-  "@chatEmptyDigest": {
-    "description": "discussion.ErrEmptyDigest failure. Translated by desk for the AI toast."
   },
   "settingsModelFields": "模型只能写 id、context、max_output、compact_at 几项",
   "@settingsModelFields": {
@@ -472,15 +432,6 @@
       }
     }
   },
-  "chatCompactError": "整理之前的讨论失败，原文已保存：{reason}",
-  "@chatCompactError": {
-    "description": "discussion.CompactError failure. Translated by desk for the AI toast.",
-    "placeholders": {
-      "reason": {
-        "type": "String"
-      }
-    }
-  },
   "statusHTTPAuth": "模型服务返回 HTTP {code}：API key 无效、缺失或没有权限",
   "@statusHTTPAuth": {
     "description": "model.HTTPError.Auth failure. Translated by desk for the AI toast.",
@@ -615,15 +566,6 @@
   "settingsConfigRead": "无法读取模型配置：{reason}",
   "@settingsConfigRead": {
     "description": "model.ConfigError.read failure. Translated by desk for the AI settings form or toast.",
-    "placeholders": {
-      "reason": {
-        "type": "String"
-      }
-    }
-  },
-  "chatReplyError": "讨论失败，原文已保存：{reason}",
-  "@chatReplyError": {
-    "description": "discussion.ReplyError failure. Translated by desk for the AI toast.",
     "placeholders": {
       "reason": {
         "type": "String"

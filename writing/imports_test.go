@@ -14,7 +14,7 @@ func TestImports(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v: %s", err, out)
 	}
-	if slices.Contains(strings.Fields(string(out)), "writer/discussion") {
-		t.Error("writing depends on writer/discussion")
+	if slices.Contains(strings.Fields(string(out)), "writer/ext/talk/engine") {
+		t.Error("writing depends on writer/ext/talk/engine")
 	}
 }

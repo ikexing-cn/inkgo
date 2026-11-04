@@ -58,7 +58,7 @@ func (t tabTable[K]) shown(a *App, chosen K) K {
 func (a *App) initTabs() {
 	a.hostPaneTabs = tabTable[paneTab]{
 		{id: paneMargin, name: locales.PaneTabNotes},
-		{id: paneTalk, name: locales.PaneTabChat, ai: true},
+		{id: paneTalk, name: locales.PaneTabChat, visible: a.talkOn, ai: true},
 		{id: paneFore, name: locales.PaneTabHooks, count: func() int { return a.paneCounts().waiting }},
 	}
 	a.paneTabs = a.hostPaneTabs

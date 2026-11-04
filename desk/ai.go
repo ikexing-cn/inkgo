@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"sync/atomic"
+	"writer/ext/talk/talkapi"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
@@ -105,14 +106,14 @@ func (a *App) rewrite(c *ui.Context) {
 		return
 	}
 	q := workspace.Quote{Chapter: w.node, Title: a.shownTitle(), Text: quote}
-	if a.startTalk(c, workspace.Event{Origin: workspace.AIRewrite, Text: wish, Quotes: []workspace.Quote{q}}) {
+	if a.beginTalk(c, workspace.Event{Origin: workspace.AIRewrite, Text: wish, Quotes: []workspace.Quote{q}}) {
 		w.rewriting, w.instruction = false, ""
 		w.cur().ed.MoveTo(e, false) // the words went to the talk: the caret after them
 	}
 }
 
 func (a *App) openDraft() {
-	if _, present := a.outlineValue(a.write.node); !present {
+	if _, present := a.outlineValue(a.write.node); !present || !a.talkOn() {
 		return
 	}
 	w := &a.write
@@ -138,12 +139,15 @@ const (
 // before the AI looks anything up, and about how much.
 func (a *App) draftNote() string {
 	w := &a.write
-	p, err := a.ai.Preloaded(a.Store, a.material(), workspace.AIDraft, w.node)
+	if a.talkAPI == nil {
+		return ""
+	}
+	p, err := a.talkAPI.Preloaded(a.Store, a.material(), workspace.AIDraft, w.node)
 	if err != nil {
 		return ""
 	}
 	what := locales.DraftItemBooks()
-	if p.Outlines == aiapi.VolumeChapters {
+	if p.Outlines == talkapi.VolumeChapters {
 		what = locales.DraftItemVolume()
 	}
 	if p.Previous {
@@ -179,10 +183,17 @@ func (a *App) draft(c *ui.Context) {
 			text += "，接在已有内容之后"
 		}
 	}
-	if a.startTalk(c, workspace.Event{Origin: workspace.AIDraft, Text: text}) {
+	if a.beginTalk(c, workspace.Event{Origin: workspace.AIDraft, Text: text}) {
 		w.draftOpen = false
 		a.closeFind()
 	}
+}
+
+func (a *App) beginTalk(c *ui.Context, words workspace.Event) bool {
+	if a.talkAPI == nil {
+		return false
+	}
+	return a.talkAPI.StartTalk(c, words)
 }
 
 // startTalk opens a new talk that keeps to the chapter shown, to draft or

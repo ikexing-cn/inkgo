@@ -58,8 +58,11 @@ type SettingsPage struct {
 // Inactive extensions are omitted; Work also omits it on the shelf.
 // Draw must not retain Context or frame elements.
 type SettingsSection struct {
-	Work bool
-	Draw func(*ui.Context)
+	// Placement optionally embeds a section in a named settings slot. Draw runs
+	// on the frame thread through ext.Call at that slot and in module details.
+	Placement string
+	Work      bool
+	Draw      func(*ui.Context)
 }
 
 // Desktop exposes the writing page, footer animation, settings navigation and

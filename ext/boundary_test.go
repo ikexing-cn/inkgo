@@ -33,7 +33,13 @@ func extensionImport(pkg, imp string, deps []string) error {
 	if strings.HasPrefix(imp, "github.com/egoist/mygo/") {
 		return nil
 	}
-	if (pkg == "writer/ext/ai" || pkg == "writer/ext/ai/aitext") && slices.Contains([]string{"writer/ai", "writer/model", "writer/inference", "writer/discussion", "writer/writing", "writer/tokens"}, imp) {
+	if pkg == "writer/ext/ai/aiapi" && imp == "writer/inference" {
+		return nil
+	}
+	if (pkg == "writer/ext/talk" || pkg == "writer/ext/talk/engine") && slices.Contains([]string{"writer/model", "writer/inference", "writer/prompt", "writer/internal/textclip"}, imp) {
+		return nil
+	}
+	if (pkg == "writer/ext/ai" || pkg == "writer/ext/ai/aitext") && slices.Contains([]string{"writer/ai", "writer/model", "writer/inference", "writer/writing", "writer/tokens"}, imp) {
 		return nil
 	}
 	owner := strings.Split(strings.TrimPrefix(pkg, "writer/ext/"), "/")[0]
@@ -165,7 +171,7 @@ func TestProductionDependencyBoundaries(t *testing.T) {
 						}
 					}
 				case strings.HasPrefix(pkg, "writer/desk"):
-					if strings.HasPrefix(imp, "writer/ext/") && imp != "writer/ext/hostapi" && !deskContextImport(pkg, imp) && !deskLoreImport(pkg, imp) && !deskAIImport(pkg, imp) {
+					if strings.HasPrefix(imp, "writer/ext/") && imp != "writer/ext/hostapi" && !deskContextImport(pkg, imp) && !deskLoreImport(pkg, imp) && !deskAIImport(pkg, imp) && !deskTalkImport(pkg, imp) {
 						t.Errorf("%s imports concrete extension %s", pkg, imp)
 					}
 				default:
@@ -299,5 +305,48 @@ func deskAIImport(pkg, imp string) bool { return pkg == "writer/desk" && imp == 
 func TestDeskAIExceptionDoesNotAllowConcreteAI(t *testing.T) {
 	if !deskAIImport("writer/desk", "writer/ext/ai/aiapi") || deskAIImport("writer/desk", "writer/ext/ai") || deskAIImport("writer/desk/book", "writer/ext/ai/aiapi") {
 		t.Fatal("AI exception escaped its boundary")
+	}
+}
+
+// deskTalkImport permits only the conversation contract while drafting and
+// rewrite remain hosted. It never permits the concrete implementation.
+func deskTalkImport(pkg, imp string) bool {
+	return pkg == "writer/desk" && imp == "writer/ext/talk/talkapi"
+}
+
+func TestDeskTalkExceptionDoesNotAllowConcreteTalkOrEngine(t *testing.T) {
+	if !deskTalkImport("writer/desk", "writer/ext/talk/talkapi") || deskTalkImport("writer/desk", "writer/ext/talk") || deskTalkImport("writer/desk", "writer/ext/talk/engine") || deskTalkImport("writer/desk/book", "writer/ext/talk/talkapi") {
+		t.Fatal("talk exception escaped its boundary")
+	}
+}
+
+func TestOnlyTalkProductionCodeImportsItsEngine(t *testing.T) {
+	err := filepath.WalkDir("..", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			if d.Name() == ".git" || d.Name() == ".tmp" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+			return nil
+		}
+		file, err := parser.ParseFile(token.NewFileSet(), path, nil, parser.ImportsOnly)
+		if err != nil {
+			return err
+		}
+		for _, imp := range file.Imports {
+			name, _ := strconv.Unquote(imp.Path.Value)
+			if name == "writer/ext/talk/engine" && !strings.HasPrefix(filepath.ToSlash(path), "../ext/talk/") {
+				t.Errorf("%s imports talk's engine", path)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 }

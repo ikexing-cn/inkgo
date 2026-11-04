@@ -28,14 +28,15 @@ var Module = New(Options{})
 
 // View owns the settings draft for one assembly, on the frame thread.
 type View struct {
-	ai          aiapi.Backend
-	ServiceForm ServiceForm
-	book        *ext.Ref[hostapi.Book]
-	palette     *ext.Ref[hostapi.Palette]
-	host        *ext.Ref[hostapi.SettingsHost]
-	usageItems  *ext.PointReader[func(*ui.Context)]
-	pal         *kit.Palette
-	status      *kit.Status
+	ai            aiapi.Backend
+	ServiceForm   ServiceForm
+	book          *ext.Ref[hostapi.Book]
+	palette       *ext.Ref[hostapi.Palette]
+	host          *ext.Ref[hostapi.SettingsHost]
+	modelSections *ext.PointReader[hostapi.SettingsSection]
+	usageItems    *ext.PointReader[func(*ui.Context)]
+	pal           *kit.Palette
+	status        *kit.Status
 }
 
 // New constructs the prerequisite without IO during Setup.
@@ -51,6 +52,7 @@ func New(opts Options) ext.Module {
 		notices := ext.Use(r, hostapi.NoticesService)
 		ext.Declare(r, aiapi.Tools)
 		v.usageItems = ext.ReadPoint(r, hostapi.AIUsage)
+		v.modelSections = ext.ReadPoint(r, hostapi.SettingsSections)
 		ext.Provide(r, aiapi.Service, func(*ext.Session) aiapi.Backend {
 			if opts.Factory != nil {
 				v.ai = opts.Factory()

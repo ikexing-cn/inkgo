@@ -147,10 +147,10 @@ var (
 		can: func(a *App) bool { return true },
 		run: func(a *App) { a.write.cur().ed.SelectAll() }}
 	cmdRewrite = &command{label: locales.EditorAIRewriteMore, page: pageWrite, ai: true,
-		can: func(a *App) bool { return selected(a) && editable(a) },
+		can: func(a *App) bool { return a.talkOn() && selected(a) && editable(a) },
 		run: func(a *App) { a.openRewrite() }}
 	cmdQuote = &command{label: locales.EditorQuote, key: ui.KeyL, mods: modCmd, page: pageWrite, by: byDesk, ai: true,
-		can: func(a *App) bool { return selected(a) },
+		can: func(a *App) bool { return a.talkOn() && selected(a) },
 		run: func(a *App) { a.quoteToTalk() }}
 	cmdTake = &command{label: locales.EditorAddToLore, page: pageWrite,
 		can: func(a *App) bool { return a.hasEntries() && selected(a) },
@@ -280,7 +280,15 @@ func (c *command) name(a *App) string {
 // available is whether the command can run now.
 func (c *command) available(a *App) bool { return c.present(a) && (c.can == nil || c.can(a)) }
 
-func (c *command) present(a *App) bool { return c != cmdDraft || a.hasOutlines() }
+func (c *command) present(a *App) bool {
+	if c == cmdDraft {
+		return a.talkOn() && a.hasOutlines()
+	}
+	if c == cmdRewrite || c == cmdQuote {
+		return a.talkOn()
+	}
+	return true
+}
 
 // menuHint is the right text of its menu row: the key, or a reason it
 // cannot run.

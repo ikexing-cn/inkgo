@@ -10,7 +10,6 @@ import (
 
 	"github.com/egoist/mygo/i18n"
 	"writer/ai"
-	"writer/discussion"
 	"writer/inference"
 	"writer/locales"
 	"writer/model"
@@ -76,17 +75,6 @@ func TestTypedAIErrorsTranslateInBothLocales(t *testing.T) {
 			{writing.ErrNoModelReason, EditorWhyPickModel()},
 			{writing.ErrChapterMissing, StatusChapterMissing()},
 			{writing.ErrNoSetting, CheckNoSetting()},
-			{discussion.ErrChapterGone, locales.ChatChapterGone()},
-			{discussion.ErrNoModelReason, locales.ChatNeedModel()},
-			{discussion.ErrInputRequired, ChatInputRequired()},
-			{discussion.ErrNewChatRequired, ChatNewChatRequired()},
-			{discussion.ErrAlreadyReplied, ChatAlreadyReplied()},
-			{discussion.ErrRetryMissing, ChatRetryMissing()},
-			{discussion.ErrEmptyReply, ChatEmptyReply()},
-			{discussion.ErrSelectionInvalid, ChatSelectionInvalid()},
-			{discussion.ErrSelectionBlank, ChatSelectionBlank()},
-			{discussion.ErrSourceMissing, ChatSourceMissing()},
-			{discussion.ErrEmptyDigest, ChatEmptyDigest()},
 			{&model.LimitsError{ID: "x", Rule: "integer"}, SettingsModelAtInt("x")},
 			{model.ErrModelFields, SettingsModelFields()},
 			{&model.LimitsError{ID: "x", Rule: "duplicate"}, SettingsModelDup("x")},
@@ -118,8 +106,6 @@ func TestTypedAIErrorsTranslateInBothLocales(t *testing.T) {
 			{&inference.OutputLimitError{Limit: 2}, StatusOutputLimit("2")},
 			{&writing.ShortChapterError{Count: 2}, CheckShortChapter(2, "character")},
 			{&writing.CheckResultError{Err: errors.New("detail")}, CheckResultError("detail")},
-			{&discussion.CompactError{Err: errors.New("detail")}, ChatCompactError("detail")},
-			{&discussion.ReplyError{Err: errors.New("detail")}, ChatReplyError("detail")},
 			{&model.HTTPError{Code: 401}, StatusHTTPAuth(401)},
 			{&model.HTTPError{Code: 404}, StatusHTTPMissing(404)},
 			{&model.HTTPError{Code: 429}, StatusHTTPRate(429)},
@@ -139,8 +125,8 @@ func TestWrappedAIErrorsTranslateTheirCauses(t *testing.T) {
 	i18n.SetLocaleFunc(func() string { return "zh-Hans" })
 	t.Cleanup(func() { i18n.SetLocaleFunc(func() string { return "zh-Hans" }) })
 	inner := &model.ContextLimitError{Part: "message"}
-	outer := &discussion.ReplyError{Err: inner}
-	if got, want := text(outer), ChatReplyError(StatusContextMessage()); got != want {
+	outer := &model.TimeoutError{Err: inner}
+	if got, want := text(outer), StatusModelTimeout(StatusContextMessage()); got != want {
 		t.Fatalf("%q != %q", got, want)
 	}
 	config := &model.ConfigError{Op: "read", Err: os.ErrPermission}

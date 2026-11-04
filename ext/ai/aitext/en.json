@@ -51,7 +51,6 @@
   "settingsEnvRule": "An environment variable name may use only letters, digits and _, and can’t start with a digit",
   "settingsModelDup": "Model {id} is listed more than once",
   "settingsJobCheck": "Continue & Check",
-  "settingsJobChatAbout": "For talking about the story",
   "settingsJobCheckAbout": "For continuing and checking",
   "modAI": "AI",
   "modAIAbout": "Connects to AI models",
@@ -210,42 +209,6 @@
   "checkNoSetting": "Lore is empty",
   "@checkNoSetting": {
     "description": "writing.ErrNoSetting failure. Translated by desk for the AI toast."
-  },
-  "chatInputRequired": "Chat input required",
-  "@chatInputRequired": {
-    "description": "discussion.ErrInputRequired failure. Translated by desk for the AI toast."
-  },
-  "chatNewChatRequired": "Draft and rewrite require a new chat",
-  "@chatNewChatRequired": {
-    "description": "discussion.ErrNewChatRequired failure. Translated by desk for the AI toast."
-  },
-  "chatAlreadyReplied": "Message already has a reply",
-  "@chatAlreadyReplied": {
-    "description": "discussion.ErrAlreadyReplied failure. Translated by desk for the AI toast."
-  },
-  "chatRetryMissing": "Message to retry not found",
-  "@chatRetryMissing": {
-    "description": "discussion.ErrRetryMissing failure. Translated by desk for the AI toast."
-  },
-  "chatEmptyReply": "Empty reply; original saved",
-  "@chatEmptyReply": {
-    "description": "discussion.ErrEmptyReply failure. Translated by desk for the AI toast."
-  },
-  "chatSelectionInvalid": "Invalid source selection",
-  "@chatSelectionInvalid": {
-    "description": "discussion.ErrSelectionInvalid failure. Translated by desk for the AI toast."
-  },
-  "chatSelectionBlank": "Selection contains only whitespace",
-  "@chatSelectionBlank": {
-    "description": "discussion.ErrSelectionBlank failure. Translated by desk for the AI toast."
-  },
-  "chatSourceMissing": "Source message not found",
-  "@chatSourceMissing": {
-    "description": "discussion.ErrSourceMissing failure. Translated by desk for the AI toast."
-  },
-  "chatEmptyDigest": "Empty summary",
-  "@chatEmptyDigest": {
-    "description": "discussion.ErrEmptyDigest failure. Translated by desk for the AI toast."
   },
   "settingsModelFields": "Models only support id, context, max_output and compact_at",
   "@settingsModelFields": {
@@ -423,15 +386,6 @@
       }
     }
   },
-  "chatCompactError": "Could not summarize the previous Chat. Original saved: {reason}",
-  "@chatCompactError": {
-    "description": "discussion.CompactError failure. Translated by desk for the AI toast.",
-    "placeholders": {
-      "reason": {
-        "type": "String"
-      }
-    }
-  },
   "statusHTTPAuth": "Model service returned HTTP {code}: API key is invalid, missing or lacks permission",
   "@statusHTTPAuth": {
     "description": "model.HTTPError.Auth failure. Translated by desk for the AI toast.",
@@ -524,15 +478,6 @@
   "settingsConfigRead": "Cannot read model configuration: {reason}",
   "@settingsConfigRead": {
     "description": "model.ConfigError.read failure. Translated by desk for the AI settings form or toast.",
-    "placeholders": {
-      "reason": {
-        "type": "String"
-      }
-    }
-  },
-  "chatReplyError": "Chat failed. Original saved: {reason}",
-  "@chatReplyError": {
-    "description": "discussion.ReplyError failure. Translated by desk for the AI toast.",
     "placeholders": {
       "reason": {
         "type": "String"

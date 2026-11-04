@@ -585,20 +585,6 @@ func (msgs Messages) SettingsJobCheck() string {
 	return Catalog.Format(msgs.locale, "settingsJobCheck", nil)
 }
 
-// SettingsJobChatAbout says "聊故事时用"
-// in the language the app shows.
-//
-// AI 设置里「讨论」这件事下面的说明。
-func SettingsJobChatAbout() string { return In(i18n.Locale()).SettingsJobChatAbout() }
-
-// SettingsJobChatAbout says "聊故事时用"
-// in the language of msgs.
-//
-// AI 设置里「讨论」这件事下面的说明。
-func (msgs Messages) SettingsJobChatAbout() string {
-	return Catalog.Format(msgs.locale, "settingsJobChatAbout", nil)
-}
-
 // SettingsJobCheckAbout says "续写和检查时用"
 // in the language the app shows.
 //
@@ -1175,132 +1161,6 @@ func (msgs Messages) CheckNoSetting() string {
 	return Catalog.Format(msgs.locale, "checkNoSetting", nil)
 }
 
-// ChatInputRequired says "请输入要讨论的内容"
-// in the language the app shows.
-//
-// discussion.ErrInputRequired failure. Translated by desk for the AI toast.
-func ChatInputRequired() string { return In(i18n.Locale()).ChatInputRequired() }
-
-// ChatInputRequired says "请输入要讨论的内容"
-// in the language of msgs.
-//
-// discussion.ErrInputRequired failure. Translated by desk for the AI toast.
-func (msgs Messages) ChatInputRequired() string {
-	return Catalog.Format(msgs.locale, "chatInputRequired", nil)
-}
-
-// ChatNewChatRequired says "起草、改写要新开一段讨论"
-// in the language the app shows.
-//
-// discussion.ErrNewChatRequired failure. Translated by desk for the AI toast.
-func ChatNewChatRequired() string { return In(i18n.Locale()).ChatNewChatRequired() }
-
-// ChatNewChatRequired says "起草、改写要新开一段讨论"
-// in the language of msgs.
-//
-// discussion.ErrNewChatRequired failure. Translated by desk for the AI toast.
-func (msgs Messages) ChatNewChatRequired() string {
-	return Catalog.Format(msgs.locale, "chatNewChatRequired", nil)
-}
-
-// ChatAlreadyReplied says "这条发言已有回复"
-// in the language the app shows.
-//
-// discussion.ErrAlreadyReplied failure. Translated by desk for the AI toast.
-func ChatAlreadyReplied() string { return In(i18n.Locale()).ChatAlreadyReplied() }
-
-// ChatAlreadyReplied says "这条发言已有回复"
-// in the language of msgs.
-//
-// discussion.ErrAlreadyReplied failure. Translated by desk for the AI toast.
-func (msgs Messages) ChatAlreadyReplied() string {
-	return Catalog.Format(msgs.locale, "chatAlreadyReplied", nil)
-}
-
-// ChatRetryMissing says "找不到待重试的发言"
-// in the language the app shows.
-//
-// discussion.ErrRetryMissing failure. Translated by desk for the AI toast.
-func ChatRetryMissing() string { return In(i18n.Locale()).ChatRetryMissing() }
-
-// ChatRetryMissing says "找不到待重试的发言"
-// in the language of msgs.
-//
-// discussion.ErrRetryMissing failure. Translated by desk for the AI toast.
-func (msgs Messages) ChatRetryMissing() string {
-	return Catalog.Format(msgs.locale, "chatRetryMissing", nil)
-}
-
-// ChatEmptyReply says "模型返回空回复，原文已保存"
-// in the language the app shows.
-//
-// discussion.ErrEmptyReply failure. Translated by desk for the AI toast.
-func ChatEmptyReply() string { return In(i18n.Locale()).ChatEmptyReply() }
-
-// ChatEmptyReply says "模型返回空回复，原文已保存"
-// in the language of msgs.
-//
-// discussion.ErrEmptyReply failure. Translated by desk for the AI toast.
-func (msgs Messages) ChatEmptyReply() string {
-	return Catalog.Format(msgs.locale, "chatEmptyReply", nil)
-}
-
-// ChatSelectionInvalid says "原文选区无效"
-// in the language the app shows.
-//
-// discussion.ErrSelectionInvalid failure. Translated by desk for the AI toast.
-func ChatSelectionInvalid() string { return In(i18n.Locale()).ChatSelectionInvalid() }
-
-// ChatSelectionInvalid says "原文选区无效"
-// in the language of msgs.
-//
-// discussion.ErrSelectionInvalid failure. Translated by desk for the AI toast.
-func (msgs Messages) ChatSelectionInvalid() string {
-	return Catalog.Format(msgs.locale, "chatSelectionInvalid", nil)
-}
-
-// ChatSelectionBlank says "选中的只有空白"
-// in the language the app shows.
-//
-// discussion.ErrSelectionBlank failure. Translated by desk for the AI toast.
-func ChatSelectionBlank() string { return In(i18n.Locale()).ChatSelectionBlank() }
-
-// ChatSelectionBlank says "选中的只有空白"
-// in the language of msgs.
-//
-// discussion.ErrSelectionBlank failure. Translated by desk for the AI toast.
-func (msgs Messages) ChatSelectionBlank() string {
-	return Catalog.Format(msgs.locale, "chatSelectionBlank", nil)
-}
-
-// ChatSourceMissing says "找不到来源消息"
-// in the language the app shows.
-//
-// discussion.ErrSourceMissing failure. Translated by desk for the AI toast.
-func ChatSourceMissing() string { return In(i18n.Locale()).ChatSourceMissing() }
-
-// ChatSourceMissing says "找不到来源消息"
-// in the language of msgs.
-//
-// discussion.ErrSourceMissing failure. Translated by desk for the AI toast.
-func (msgs Messages) ChatSourceMissing() string {
-	return Catalog.Format(msgs.locale, "chatSourceMissing", nil)
-}
-
-// ChatEmptyDigest says "模型返回空摘要"
-// in the language the app shows.
-//
-// discussion.ErrEmptyDigest failure. Translated by desk for the AI toast.
-func ChatEmptyDigest() string { return In(i18n.Locale()).ChatEmptyDigest() }
-
-// ChatEmptyDigest says "模型返回空摘要"
-// in the language of msgs.
-//
-// discussion.ErrEmptyDigest failure. Translated by desk for the AI toast.
-func (msgs Messages) ChatEmptyDigest() string {
-	return Catalog.Format(msgs.locale, "chatEmptyDigest", nil)
-}
-
 // SettingsModelFields says "模型只能写 id、context、max_output、compact_at 几项"
 // in the language the app shows.
 //
@@ -1661,20 +1521,6 @@ func (msgs Messages) CheckResultError(reason string) string {
 	return Catalog.Format(msgs.locale, "checkResultError", map[string]any{"reason": reason})
 }
 
-// ChatCompactError says "整理之前的讨论失败，原文已保存：{reason}"
-// in the language the app shows.
-//
-// discussion.CompactError failure. Translated by desk for the AI toast.
-func ChatCompactError(reason string) string { return In(i18n.Locale()).ChatCompactError(reason) }
-
-// ChatCompactError says "整理之前的讨论失败，原文已保存：{reason}"
-// in the language of msgs.
-//
-// discussion.CompactError failure. Translated by desk for the AI toast.
-func (msgs Messages) ChatCompactError(reason string) string {
-	return Catalog.Format(msgs.locale, "chatCompactError", map[string]any{"reason": reason})
-}
-
 // StatusHTTPAuth says "模型服务返回 HTTP {code}：API key 无效、缺失或没有权限"
 // in the language the app shows.
 //
@@ -1883,18 +1729,4 @@ func SettingsConfigRead(reason string) string { return In(i18n.Locale()).Setting
 // model.ConfigError.read failure. Translated by desk for the AI settings form or toast.
 func (msgs Messages) SettingsConfigRead(reason string) string {
 	return Catalog.Format(msgs.locale, "settingsConfigRead", map[string]any{"reason": reason})
-}
-
-// ChatReplyError says "讨论失败，原文已保存：{reason}"
-// in the language the app shows.
-//
-// discussion.ReplyError failure. Translated by desk for the AI toast.
-func ChatReplyError(reason string) string { return In(i18n.Locale()).ChatReplyError(reason) }
-
-// ChatReplyError says "讨论失败，原文已保存：{reason}"
-// in the language of msgs.
-//
-// discussion.ReplyError failure. Translated by desk for the AI toast.
-func (msgs Messages) ChatReplyError(reason string) string {
-	return Catalog.Format(msgs.locale, "chatReplyError", map[string]any{"reason": reason})
 }

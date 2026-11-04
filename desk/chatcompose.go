@@ -217,7 +217,7 @@ func (a *App) extraction(c *ui.Context) {
 					a.sourceOpen = false
 				}
 				if a.pal.Primary(c, locales.EditorAddToLore()).Disabled(a.held() || start == end).Clicked() {
-					entry, err := a.ai.Extract(a.Store, a.session, a.sourceMessage, start, end, a.sourceCategory)
+					entry, err := a.talkAPI.Extract(a.Store, a.session, a.sourceMessage, start, end, a.sourceCategory)
 					if err == nil {
 						a.sourceOpen = false
 						a.status.Did(locales.DialogSettingAdded())

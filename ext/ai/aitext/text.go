@@ -1,5 +1,5 @@
 // Package aitext translates AI errors into interface messages. The lower-level
-// model, discussion, writing and inference packages do not produce UI copy;
+// model, writing and inference packages do not produce UI copy;
 // this package is the extension presentation layer, registered through hostapi.
 package aitext
 
@@ -8,7 +8,6 @@ import (
 	"writer/locales"
 
 	"writer/ai"
-	"writer/discussion"
 	"writer/inference"
 	"writer/model"
 	"writer/tokens"
@@ -52,10 +51,6 @@ func Translate(err error, reason func(error) string) (string, bool) {
 			}
 		}
 		return StatusHTTPOther(cause.Code), true
-	case *discussion.ReplyError:
-		return ChatReplyError(reason(cause.Err)), true
-	case *discussion.CompactError:
-		return ChatCompactError(reason(cause.Err)), true
 	case *writing.CheckResultError:
 		return CheckResultError(reason(cause.Err)), true
 	case *writing.ShortChapterError:
@@ -136,65 +131,54 @@ func Translate(err error, reason func(error) string) (string, bool) {
 }
 
 var errorLabels = map[error]func() string{
-	model.ErrRequestTooLarge:       StatusRequestTooLarge,
-	model.ErrTruncated:             StatusTruncated,
-	model.ErrKeyNewline:            SettingsKeyNewline,
-	model.ErrRedirect:              StatusRedirect,
-	model.ErrModelRequired:         SettingsModelRequired,
-	model.ErrNegativeTokens:        StatusNegativeTokens,
-	model.ErrMessagesRequired:      StatusMessagesRequired,
-	model.ErrToolJSON:              StatusToolJSON,
-	model.ErrDisconnected:          StatusDisconnected,
-	model.ErrFiltered:              StatusFiltered,
-	model.ErrIncomplete:            StatusIncomplete,
-	model.ErrReplyTooLarge:         StatusReplyTooLarge,
-	model.ErrNoText:                StatusNoText,
-	model.ErrToolCallMissing:       StatusToolCallMissing,
-	model.ErrRole:                  StatusRole,
-	model.ErrService:               StatusService,
-	model.ErrConnection:            StatusConnection,
-	model.ErrDestination:           StatusDestination,
-	model.ErrConfigTooLarge:        SettingsConfigTooLarge,
-	model.ErrConfigYAML:            SettingsConfigYAML,
-	model.ErrConfigDocuments:       SettingsConfigDocuments,
-	model.ErrConfigEncode:          SettingsConfigEncode,
-	model.ErrIDFormat:              SettingsIDRule,
-	model.ErrConfigVersion:         SettingsConfigVersion,
-	model.ErrProviderDuplicate:     SettingsProviderDuplicate,
-	model.ErrNameRequired:          SettingsNameRequired,
-	model.ErrProtocol:              SettingsProtocolInvalid,
-	model.ErrEnvFormat:             SettingsEnvRule,
-	model.ErrURLScheme:             SettingsURLScheme,
-	model.ErrURLHost:               SettingsURLNoHost,
-	model.ErrURLExtra:              SettingsURLExtra,
-	model.ErrModelID:               SettingsModelIDInvalid,
-	model.ErrCatalogTotal:          SettingsCatalogTotal,
-	model.ErrCatalogJSON:           SettingsCatalogJSON,
-	model.ErrCatalogService:        SettingsCatalogService,
-	model.ErrCatalogData:           SettingsCatalogData,
-	model.ErrCatalogPagination:     SettingsCatalogPagination,
-	model.ErrCatalogPages:          SettingsCatalogPages,
-	model.ErrRequestCreate:         StatusRequestCreate,
-	model.ErrCatalogPageSize:       SettingsCatalogPageSize,
-	model.ErrKeyDelete:             SettingsKeyDelete,
-	model.ErrKeySave:               SettingsKeySave,
-	model.ErrKeychain:              SettingsKeychain,
-	ai.ErrOff:                      ChatOff,
-	ai.ErrChatModel:                locales.ChatNeedModel,
-	inference.ErrTrailingJSON:      StatusTrailingJSON,
-	writing.ErrNoModelReason:       EditorWhyPickModel,
-	writing.ErrChapterMissing:      StatusChapterMissing,
-	writing.ErrNoSetting:           CheckNoSetting,
-	discussion.ErrChapterGone:      locales.ChatChapterGone,
-	discussion.ErrNoModelReason:    locales.ChatNeedModel,
-	discussion.ErrInputRequired:    ChatInputRequired,
-	discussion.ErrNewChatRequired:  ChatNewChatRequired,
-	discussion.ErrAlreadyReplied:   ChatAlreadyReplied,
-	discussion.ErrRetryMissing:     ChatRetryMissing,
-	discussion.ErrEmptyReply:       ChatEmptyReply,
-	discussion.ErrSelectionInvalid: ChatSelectionInvalid,
-	discussion.ErrSelectionBlank:   ChatSelectionBlank,
-	discussion.ErrSourceMissing:    ChatSourceMissing,
-	discussion.ErrEmptyDigest:      ChatEmptyDigest,
-	model.ErrModelFields:           SettingsModelFields,
+	model.ErrRequestTooLarge:   StatusRequestTooLarge,
+	model.ErrTruncated:         StatusTruncated,
+	model.ErrKeyNewline:        SettingsKeyNewline,
+	model.ErrRedirect:          StatusRedirect,
+	model.ErrModelRequired:     SettingsModelRequired,
+	model.ErrNegativeTokens:    StatusNegativeTokens,
+	model.ErrMessagesRequired:  StatusMessagesRequired,
+	model.ErrToolJSON:          StatusToolJSON,
+	model.ErrDisconnected:      StatusDisconnected,
+	model.ErrFiltered:          StatusFiltered,
+	model.ErrIncomplete:        StatusIncomplete,
+	model.ErrReplyTooLarge:     StatusReplyTooLarge,
+	model.ErrNoText:            StatusNoText,
+	model.ErrToolCallMissing:   StatusToolCallMissing,
+	model.ErrRole:              StatusRole,
+	model.ErrService:           StatusService,
+	model.ErrConnection:        StatusConnection,
+	model.ErrDestination:       StatusDestination,
+	model.ErrConfigTooLarge:    SettingsConfigTooLarge,
+	model.ErrConfigYAML:        SettingsConfigYAML,
+	model.ErrConfigDocuments:   SettingsConfigDocuments,
+	model.ErrConfigEncode:      SettingsConfigEncode,
+	model.ErrIDFormat:          SettingsIDRule,
+	model.ErrConfigVersion:     SettingsConfigVersion,
+	model.ErrProviderDuplicate: SettingsProviderDuplicate,
+	model.ErrNameRequired:      SettingsNameRequired,
+	model.ErrProtocol:          SettingsProtocolInvalid,
+	model.ErrEnvFormat:         SettingsEnvRule,
+	model.ErrURLScheme:         SettingsURLScheme,
+	model.ErrURLHost:           SettingsURLNoHost,
+	model.ErrURLExtra:          SettingsURLExtra,
+	model.ErrModelID:           SettingsModelIDInvalid,
+	model.ErrCatalogTotal:      SettingsCatalogTotal,
+	model.ErrCatalogJSON:       SettingsCatalogJSON,
+	model.ErrCatalogService:    SettingsCatalogService,
+	model.ErrCatalogData:       SettingsCatalogData,
+	model.ErrCatalogPagination: SettingsCatalogPagination,
+	model.ErrCatalogPages:      SettingsCatalogPages,
+	model.ErrRequestCreate:     StatusRequestCreate,
+	model.ErrCatalogPageSize:   SettingsCatalogPageSize,
+	model.ErrKeyDelete:         SettingsKeyDelete,
+	model.ErrKeySave:           SettingsKeySave,
+	model.ErrKeychain:          SettingsKeychain,
+	ai.ErrOff:                  ChatOff,
+	ai.ErrChatModel:            locales.ChatNeedModel,
+	inference.ErrTrailingJSON:  StatusTrailingJSON,
+	writing.ErrNoModelReason:   EditorWhyPickModel,
+	writing.ErrChapterMissing:  StatusChapterMissing,
+	writing.ErrNoSetting:       CheckNoSetting,
+	model.ErrModelFields:       SettingsModelFields,
 }

@@ -10,9 +10,10 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	talkmod "writer/ext/talk"
 
-	"writer/discussion"
 	"writer/ext/ai/aiapi"
+	discussion "writer/ext/talk/engine"
 	"writer/inference"
 	"writer/model"
 	"writer/workspace"
@@ -26,44 +27,6 @@ type replies []model.Reply
 // Preloaded maps the facts the talk read onto the port: its tokens, the
 // chapter's cards, whether the chapter before goes whole, and the outline
 // source.
-func TestPreloadedMapsTheTalksContext(t *testing.T) {
-	st, err := workspace.Create(t.TempDir(), "雨城", "网文", "zh-Hans")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer st.Close()
-	vol, err := st.NewChapter("", "第一卷", true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	one, err := st.NewChapter(vol, "第一章", false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := st.WriteChapter(one, "上一章的正文。", nil); err != nil {
-		t.Fatal(err)
-	}
-	two, err := st.NewChapter(vol, "第二章", false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := st.SaveCard(workspace.Card{Title: "灯灭了", Chapter: two}, ""); err != nil {
-		t.Fatal(err)
-	}
-	s := New("")
-	got, err := s.Preloaded(st, aiapi.Material{Setting: true, Outline: true}, workspace.AIDraft, two)
-	if err != nil || !got.Previous || got.Outlines != aiapi.VolumeChapters || got.Tokens <= 0 || got.Cards != 1 {
-		t.Fatal(got, err)
-	}
-	got, err = s.Preloaded(st, aiapi.Material{Setting: true, Outline: true}, workspace.AIRewrite, two)
-	if err != nil || got.Previous || got.Outlines != aiapi.VolumeChapters || got.Tokens <= 0 || got.Cards != 1 {
-		t.Fatal(got, err)
-	}
-	got, err = s.Preloaded(st, aiapi.Material{Setting: true, Outline: true}, workspace.AIDraft, one)
-	if err != nil || got.Previous {
-		t.Fatal(got, err)
-	}
-}
 
 func (r *replies) Complete(ctx context.Context, req model.Request, on func(model.Delta)) (model.Reply, error) {
 	next := (*r)[0]
@@ -118,7 +81,7 @@ func TestRoutedModelNamesAreRecordedVerbatim(t *testing.T) {
 	if err != nil || len(records) != 1 || records[0].Model != name || records[0].Cost != 0 || records[0].Currency != "" {
 		t.Fatal(records, err)
 	}
-	for _, file := range []string{filepath.Join("sessions", session+".jsonl"), "ai-log.jsonl"} {
+	for _, file := range []string{filepath.Join("ext", "talk", "sessions", session+".jsonl"), "ai-log.jsonl"} {
 		raw, err := os.ReadFile(filepath.Join(st.Root(), file))
 		if err != nil || !strings.Contains(string(raw), `"model":"test-relay/vendor/deepseek-flash"`) {
 			t.Fatal(file, string(raw), err)
@@ -146,15 +109,12 @@ func TestSetupErrorsCrossThePort(t *testing.T) {
 		"key":             func() error { return s.SetKey("invalid id", "unused") },
 		"catalog service": func() error { _, err := s.Catalog("missing"); return err },
 		"talk model": func() error {
-			_, err := s.Talk(st, aiapi.Material{Setting: true, Outline: true}, nil, nil, nil, nil)
+			_, err := talkmod.Build(s, st, aiapi.Material{Setting: true, Outline: true}, nil, nil, nil, nil)
 			return err
 		},
 		"writing model":    func() error { _, err := s.Pen(st, aiapi.Material{Setting: true, Outline: true}); return err },
 		"selected service": func() error { _, err := s.open(workspace.Selection{Provider: "missing", Model: "m"}, st); return err },
-		"talk runtime model": func() error {
-			_, err := (talk{&discussion.Engine{Store: st}}).Say(context.Background(), "", workspace.Event{Text: "问题"})
-			return err
-		},
+
 		"pen runtime model": func() error {
 			_, err := (pen{&writing.Writer{Store: st}}).Predict(context.Background(), aiapi.Scene{})
 			return err
@@ -211,7 +171,7 @@ func (f failingRequest) ListModels(context.Context) ([]string, error) { return n
 // carries and with its cost at the prices built in: done, failed,
 // cancelled, and cancelled by its maker for having enough, which is done.
 // A trace folder gets each whole; the record and the work get no text.
-func TestEachRequestIsRecorded(t *testing.T) {
+func TestModelHandleRecordsEveryOutcomeAndFullTraces(t *testing.T) {
 	st, err := workspace.Create(filepath.Join(t.TempDir(), "work"), "测试作品", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
@@ -224,17 +184,30 @@ func TestEachRequestIsRecorded(t *testing.T) {
 		{Text: "取消了。"},
 		{Text: "够了。", Usage: model.Usage{Input: 10, Output: 2}},
 	}, st, "deepseek/deepseek-flash", "deepseek-flash", nil, trace, nil}
+	service := New("")
+	w := st.Work()
+	w.Discussion = workspace.Selection{Provider: "deepseek", Model: "deepseek-flash"}
+	if err := st.SaveWork(w); err != nil {
+		t.Fatal(err)
+	}
+	service.Open = func(workspace.Selection, *workspace.Store) (inference.Model, error) {
+		return inference.Model{Completer: m}, nil
+	}
+	handle, err := service.Model(st, aiapi.RoleTalk)
+	if err != nil {
+		t.Fatal(err)
+	}
 	parts := []workspace.Part{{Name: workspace.PartRules, Tokens: 900}, {Name: workspace.PartTalk, Tokens: 4000}}
 	talk := workspace.WithPurpose(context.Background(), workspace.Purpose{Feature: workspace.FeatureTalk, Talk: "s1", Parts: parts})
-	m.Complete(talk, model.Request{System: "讨论的规则全文", Effort: model.EffortHigh}, nil)
+	handle.Completer.Complete(talk, model.Request{System: "讨论的规则全文", Effort: model.EffortHigh}, nil)
 	check := workspace.WithPurpose(context.Background(), workspace.Purpose{Feature: workspace.FeatureCheck, Chapter: "c1"})
-	m.Complete(check, model.Request{}, nil)
+	handle.Completer.Complete(check, model.Request{}, nil)
 	gone, cancel := context.WithCancel(check)
 	cancel()
-	m.Complete(gone, model.Request{}, nil)
+	handle.Completer.Complete(gone, model.Request{}, nil)
 	enough, stop := context.WithCancelCause(workspace.WithPurpose(context.Background(), workspace.Purpose{Feature: workspace.FeatureContinue, Chapter: "c1"}))
 	stop(workspace.ErrEnough)
-	m.Complete(enough, model.Request{Effort: model.EffortNone}, nil)
+	handle.Completer.Complete(enough, model.Request{Effort: model.EffortNone}, nil)
 
 	got, err := st.Records()
 	if err != nil || len(got) != 4 {
@@ -297,7 +270,7 @@ func TestOffBuildsNothing(t *testing.T) {
 	if _, err := s.Catalog("deepseek"); !errors.Is(err, ErrOff) {
 		t.Fatalf("catalog: %v", err)
 	}
-	if _, err := s.Talk(st, aiapi.Material{Setting: true, Outline: true}, nil, nil, nil, nil); !errors.Is(err, ErrOff) {
+	if _, err := talkmod.Build(s, st, aiapi.Material{Setting: true, Outline: true}, nil, nil, nil, nil); !errors.Is(err, ErrOff) {
 		t.Fatalf("talk: %v", err)
 	}
 	if _, err := s.Pen(st, aiapi.Material{Setting: true, Outline: true}); !errors.Is(err, ErrOff) {
@@ -345,7 +318,7 @@ func TestSendingDoesNotReadTheSwitch(t *testing.T) {
 	}
 	var reads int
 	s.BindSwitch(func() bool { reads++; return true })
-	talk, err := s.Talk(st, aiapi.Material{Setting: true, Outline: true}, nil, nil, nil, nil)
+	talk, err := talkmod.Build(s, st, aiapi.Material{Setting: true, Outline: true}, nil, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -394,37 +367,5 @@ func TestFailedRequestIsRecordedInTheWordsTheAuthorSaw(t *testing.T) {
 	records, err := st.Records()
 	if err != nil || len(records) != 1 || records[0].Error != "shown: model: refused" {
 		t.Fatal(records, err)
-	}
-}
-
-func TestPreloadedReportsNoOutlineProviderInsteadOfEmptyOutlines(t *testing.T) {
-	st, err := workspace.Create(t.TempDir(), "书", "网文", "zh-Hans")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer st.Close()
-	chapter, err := st.NewChapter("", "章", false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := st.WriteOutline(chapter, "章纲内容"); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := st.SaveCard(workspace.Card{Title: "本章卡片", Chapter: chapter}, ""); err != nil {
-		t.Fatal(err)
-	}
-	s := New("")
-	for _, origin := range []string{workspace.AIDraft, workspace.AIRewrite} {
-		off, err := s.Preloaded(st, aiapi.Material{}, origin, chapter)
-		if err != nil {
-			t.Fatal(err)
-		}
-		on, err := s.Preloaded(st, aiapi.Material{Setting: true, Outline: true}, origin, chapter)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if off.Outlines != aiapi.NoOutlines || off.Cards != 0 || on.Outlines != aiapi.BookVolumes || on.Cards != 1 || off.Tokens >= on.Tokens {
-			t.Fatal(off, on)
-		}
 	}
 }

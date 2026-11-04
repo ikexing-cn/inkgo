@@ -14,11 +14,12 @@ import (
 	"writer/ext/lore"
 	"writer/ext/outline"
 	"writer/ext/phone"
+	"writer/ext/talk"
 )
 
 func testModules() []ext.Module {
 	mod, _ := backup.New(false)
-	return []ext.Module{context.Module, lore.Module, outline.Module, mod, export.Module, phone.Module, focus.Module, goal.Module, cats.Module}
+	return []ext.Module{context.Module, talk.Module, lore.Module, outline.Module, mod, export.Module, phone.Module, focus.Module, goal.Module, cats.Module}
 }
 
 func TestApplicationAssemblyIncludesExportFeature(t *testing.T) {

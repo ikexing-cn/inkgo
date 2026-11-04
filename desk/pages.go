@@ -22,7 +22,7 @@ type pageView struct {
 func (a *App) initPages() {
 	a.pages = []pageView{
 		pageTalk: {
-			tabEntry: tabEntry[page]{name: locales.PageTalk, icon: kit.IcChat, ai: true},
+			tabEntry: tabEntry[page]{name: locales.PageTalk, visible: a.talkOn, icon: kit.IcChat, ai: true},
 			view:     a.discussion,
 		},
 		pageWrite: {

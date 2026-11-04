@@ -61,7 +61,7 @@ func BenchmarkAppend(b *testing.B) {
 					b.Fatal(err)
 				}
 			}
-			if err := os.WriteFile(filepath.Join(s.Root(), "sessions", session+".jsonl"), data.Bytes(), 0600); err != nil {
+			if err := os.WriteFile(filepath.Join(s.Root(), "ext", "talk", "sessions", session+".jsonl"), data.Bytes(), 0600); err != nil {
 				b.Fatal(err)
 			}
 			e := Event{Role: RoleAssistant, Text: "她在巷口停了下来。", ReplyTo: "20261021-1200-0000"}

@@ -81,7 +81,11 @@ func (a *View) usage(c *ui.Context) {
 	a.pal.Subhead(c, aitext.SettingsBookModels(), "")
 	var typing [2]bool
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
-		typing[0] = a.useRow(c, locales.SettingsJobChat(), aitext.SettingsJobChatAbout(), &a.host.Get().Choices().TalkProvider, "", "讨论提供商", &a.host.Get().Choices().TalkModel, "讨论模型", &a.host.Get().Choices().TalkEffort, "讨论的思考程度")
+		for _, item := range a.modelSections.Items() {
+			if item.Value.Placement == "ai.models" {
+				_, _ = ext.CallReadPoint(a.modelSections, item.ID, c, func(c *ui.Context) struct{} { item.Value.Draw(c); return struct{}{} })
+			}
+		}
 		typing[1] = a.useRow(c, aitext.SettingsJobCheck(), aitext.SettingsJobCheckAbout(), &a.host.Get().Choices().PenProvider, aitext.SettingsSameAsTalk(), "续写和检查提供商", &a.host.Get().Choices().PenModel, "续写和检查模型", &a.host.Get().Choices().PenEffort, "续写和检查的思考程度")
 	})
 	if typing == [2]bool{} {
@@ -278,7 +282,6 @@ func (a *View) effortSelect(c *ui.Context, value *string, label string, disabled
 func (a *View) SaveUsage() error {
 	w := a.book.Get().Store().Work()
 	was := w
-	w.Discussion = workspace.Selection{Provider: kit.Trim(a.host.Get().Choices().TalkProvider), Model: kit.Trim(a.host.Get().Choices().TalkModel), Effort: a.host.Get().Choices().TalkEffort}
 	w.Writing = workspace.Selection{Provider: kit.Trim(a.host.Get().Choices().PenProvider), Model: kit.Trim(a.host.Get().Choices().PenModel), Effort: a.host.Get().Choices().PenEffort}
 	if w.Writing.Provider == "" {
 		w.Writing.Model = ""

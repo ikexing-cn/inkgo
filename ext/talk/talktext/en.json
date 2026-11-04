@@ -1,0 +1,60 @@
+{
+  "modTalk": "Chat",
+  "modTalkAbout": "Talk about the story with AI",
+  "settingsJobChatAbout": "For talking about the story",
+  "talkModelHint": "Type or choose a model",
+  "chatAlreadyReplied": "Message already has a reply",
+  "@chatAlreadyReplied": {
+    "description": "discussion.ErrAlreadyReplied failure. Translated by desk for the AI toast."
+  },
+  "chatSourceMissing": "Source message not found",
+  "@chatSourceMissing": {
+    "description": "discussion.ErrSourceMissing failure. Translated by desk for the AI toast."
+  },
+  "chatCompactError": "Could not summarize the previous Chat. Original saved: {reason}",
+  "@chatCompactError": {
+    "description": "discussion.CompactError failure. Translated by desk for the AI toast.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "chatSelectionInvalid": "Invalid source selection",
+  "@chatSelectionInvalid": {
+    "description": "discussion.ErrSelectionInvalid failure. Translated by desk for the AI toast."
+  },
+  "chatEmptyDigest": "Empty summary",
+  "@chatEmptyDigest": {
+    "description": "discussion.ErrEmptyDigest failure. Translated by desk for the AI toast."
+  },
+  "chatInputRequired": "Chat input required",
+  "@chatInputRequired": {
+    "description": "discussion.ErrInputRequired failure. Translated by desk for the AI toast."
+  },
+  "chatNewChatRequired": "Draft and rewrite require a new chat",
+  "@chatNewChatRequired": {
+    "description": "discussion.ErrNewChatRequired failure. Translated by desk for the AI toast."
+  },
+  "chatReplyError": "Chat failed. Original saved: {reason}",
+  "@chatReplyError": {
+    "description": "discussion.ReplyError failure. Translated by desk for the AI toast.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "chatSelectionBlank": "Selection contains only whitespace",
+  "@chatSelectionBlank": {
+    "description": "discussion.ErrSelectionBlank failure. Translated by desk for the AI toast."
+  },
+  "chatEmptyReply": "Empty reply; original saved",
+  "@chatEmptyReply": {
+    "description": "discussion.ErrEmptyReply failure. Translated by desk for the AI toast."
+  },
+  "chatRetryMissing": "Message to retry not found",
+  "@chatRetryMissing": {
+    "description": "discussion.ErrRetryMissing failure. Translated by desk for the AI toast."
+  }
+}

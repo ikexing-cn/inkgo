@@ -116,8 +116,12 @@ func (a *App) textMenu(m *kit.Menu) {
 		// The row's own state is the editor's: it does not wait on the
 		// chapter's saves as the title bar's does.
 		cmdContinue.item(a, m).Disabled(busy).Do(cmdContinue.act(a))
-		cmdRewrite.item(a, m).Do(cmdRewrite.act(a))
-		cmdQuote.item(a, m).Do(cmdQuote.act(a))
+		if a.talkOn() {
+			cmdRewrite.item(a, m).Do(cmdRewrite.act(a))
+		}
+		if a.talkOn() {
+			cmdQuote.item(a, m).Do(cmdQuote.act(a))
+		}
 	}
 	if a.hasEntries() {
 		cmdTake.item(a, m).Do(cmdTake.act(a))

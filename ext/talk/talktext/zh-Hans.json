@@ -1,0 +1,69 @@
+{
+  "modTalk": "讨论",
+  "@modTalk": {
+    "description": "「功能」里一个模块的名字。"
+  },
+  "modTalkAbout": "和 AI 聊故事",
+  "@modTalkAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  },
+  "settingsJobChatAbout": "聊故事时用",
+  "@settingsJobChatAbout": {
+    "description": "AI 设置里「讨论」这件事下面的说明。"
+  },
+  "talkModelHint": "输入或选择模型",
+  "chatAlreadyReplied": "这条发言已有回复",
+  "@chatAlreadyReplied": {
+    "description": "discussion.ErrAlreadyReplied failure. Translated by desk for the AI toast."
+  },
+  "chatSourceMissing": "找不到来源消息",
+  "@chatSourceMissing": {
+    "description": "discussion.ErrSourceMissing failure. Translated by desk for the AI toast."
+  },
+  "chatCompactError": "整理之前的讨论失败，原文已保存：{reason}",
+  "@chatCompactError": {
+    "description": "discussion.CompactError failure. Translated by desk for the AI toast.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "chatSelectionInvalid": "原文选区无效",
+  "@chatSelectionInvalid": {
+    "description": "discussion.ErrSelectionInvalid failure. Translated by desk for the AI toast."
+  },
+  "chatEmptyDigest": "模型返回空摘要",
+  "@chatEmptyDigest": {
+    "description": "discussion.ErrEmptyDigest failure. Translated by desk for the AI toast."
+  },
+  "chatInputRequired": "请输入要讨论的内容",
+  "@chatInputRequired": {
+    "description": "discussion.ErrInputRequired failure. Translated by desk for the AI toast."
+  },
+  "chatNewChatRequired": "起草、改写要新开一段讨论",
+  "@chatNewChatRequired": {
+    "description": "discussion.ErrNewChatRequired failure. Translated by desk for the AI toast."
+  },
+  "chatReplyError": "讨论失败，原文已保存：{reason}",
+  "@chatReplyError": {
+    "description": "discussion.ReplyError failure. Translated by desk for the AI toast.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "chatSelectionBlank": "选中的只有空白",
+  "@chatSelectionBlank": {
+    "description": "discussion.ErrSelectionBlank failure. Translated by desk for the AI toast."
+  },
+  "chatEmptyReply": "模型返回空回复，原文已保存",
+  "@chatEmptyReply": {
+    "description": "discussion.ErrEmptyReply failure. Translated by desk for the AI toast."
+  },
+  "chatRetryMissing": "找不到待重试的发言",
+  "@chatRetryMissing": {
+    "description": "discussion.ErrRetryMissing failure. Translated by desk for the AI toast."
+  }
+}

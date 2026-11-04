@@ -108,7 +108,7 @@ func Create(dir, name, genre string, language Language) (*Store, error) {
 	if err = os.MkdirAll(root, 0755); err != nil {
 		return nil, err
 	}
-	for _, d := range []string{"sessions", "chapters", ".writer", "ext/lore", "ext/outline"} {
+	for _, d := range []string{"ext/talk/sessions", "chapters", ".writer", "ext/lore", "ext/outline"} {
 		if err = os.MkdirAll(filepath.Join(root, d), 0755); err != nil {
 			return nil, err
 		}
@@ -141,9 +141,9 @@ func Open(dir string) (*Store, error) {
 	if err = s.reloadWork(); err != nil {
 		return nil, err
 	}
-	// A work without sessions/ has no talks yet: git keeps no empty
+	// A work without ext/talk/sessions/ has no talks yet: git keeps no empty
 	// folder, and the first talk makes it again.
-	p, err := s.path("sessions")
+	p, err := s.path("ext", "talk", "sessions")
 	if err != nil {
 		return nil, err
 	}

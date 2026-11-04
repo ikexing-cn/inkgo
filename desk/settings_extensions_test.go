@@ -52,7 +52,7 @@ func extensionDetails(t *testing.T, a *App, tt *ui.Tester, id string) {
 
 func TestExtensionOverviewListsOnlyAssemblyInGroupOrderAndResetsDetails(t *testing.T) {
 	a, tt := extensionSettingsFixture(t)
-	want := [][]string{{"focus", "goal", "source", "consumer"}, {"lore", "outline", "optional"}, {"backup", "export", "phone", "cats"}, {"installed"}, {"ai", "context", "unused"}}
+	want := [][]string{{"focus", "goal", "source", "consumer"}, {"lore", "outline", "optional"}, {"talk"}, {"backup", "export", "phone", "cats"}, {"installed"}, {"ai", "context", "unused"}}
 	if len(a.extViews.groups) != len(want) {
 		t.Fatal(a.extViews.groups)
 	}

@@ -4,10 +4,10 @@ import (
 	"errors"
 	"strings"
 	"time"
+	"writer/ext/talk/talkapi"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
-	"writer/ext/ai/aiapi"
 	"writer/locales"
 	"writer/workspace"
 )
@@ -184,7 +184,7 @@ func (a *App) talkList(c *ui.Context) {
 
 // beside is what the author is writing, sent with a turn from the writing
 // page, or nil when nothing is open or they turned it off.
-func (a *App) beside() *aiapi.Beside {
+func (a *App) beside() *talkapi.Beside {
 	w := &a.write
 	if a.page != pageWrite || !a.doc.attach || w.node == "" || w.cur().lost {
 		return nil
@@ -194,9 +194,9 @@ func (a *App) beside() *aiapi.Beside {
 		return nil
 	}
 	if n.Folder {
-		return &aiapi.Beside{Folder: true, Title: n.Title, VolumeOutline: a.chapterOutline(w.node)}
+		return &talkapi.Beside{Folder: true, Title: n.Title, VolumeOutline: a.chapterOutline(w.node)}
 	}
-	out := &aiapi.Beside{Title: n.Title, Outline: a.chapterOutline(w.node)}
+	out := &talkapi.Beside{Title: n.Title, Outline: a.chapterOutline(w.node)}
 	if p := n.Parent; p != nil && p.Parent != nil {
 		out.Volume = p.Title
 		out.VolumeOutline = a.chapterOutline(p.ID)

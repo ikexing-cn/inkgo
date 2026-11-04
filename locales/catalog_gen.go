@@ -9392,34 +9392,6 @@ func (msgs Messages) ModUsageAbout() string {
 	return Catalog.Format(msgs.locale, "modUsageAbout", nil)
 }
 
-// ModTalk says "讨论"
-// in the language the app shows.
-//
-// 「功能」里一个模块的名字。
-func ModTalk() string { return In(i18n.Locale()).ModTalk() }
-
-// ModTalk says "讨论"
-// in the language of msgs.
-//
-// 「功能」里一个模块的名字。
-func (msgs Messages) ModTalk() string {
-	return Catalog.Format(msgs.locale, "modTalk", nil)
-}
-
-// ModTalkAbout says "和 AI 聊故事"
-// in the language the app shows.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func ModTalkAbout() string { return In(i18n.Locale()).ModTalkAbout() }
-
-// ModTalkAbout says "和 AI 聊故事"
-// in the language of msgs.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func (msgs Messages) ModTalkAbout() string {
-	return Catalog.Format(msgs.locale, "modTalkAbout", nil)
-}
-
 // ModContinue says "续写"
 // in the language the app shows.
 //
