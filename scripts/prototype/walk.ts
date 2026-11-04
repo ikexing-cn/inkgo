@@ -437,8 +437,10 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   const extMore = (id: string) => js(`document.querySelector('[data-ext="${id}"] .ext-more button').click()`)
   await click('视图'); await click('手机预览'); must(await onTab() === '预览', 'Phone Preview did not open its tab')
   await settings(); await click('扩展'); must(await prefTabs() === '外观 扩展 AI 提醒 备份', 'the settings of a work hold: ' + await prefTabs()); await win('作品与文件'); await win('其他功能靠它们运行。'); await shot('66b-extensions')
-  await extPage('手机预览'); await win('看看在手机上的样子'); await win('这台电脑上的所有作品', false); must(await has('[data-ext="phone"] .ext-more'), 'no menu to set it for this work alone'); await shot('66c-extension'); await extTick('手机预览'); await win('关闭「手机预览」？', false); await crumb('扩展')
+  await extPage('手机预览'); await win('看看在手机上的样子'); await win('这台电脑上的所有作品', false); must(await has('[data-ext="phone"] .ext-more'), 'no menu to set it for this work alone'); await win('功能入口'); await win('这台电脑上的 ext/phone，0.4 KB'); await shot('66c-extension'); await extTick('手机预览'); await win('关闭「手机预览」？', false); await crumb('扩展')
   await extPage('导出'); await win('配合大纲、设定更好用'); await extTick('导出'); await crumb('扩展')
+  // What an extension adds, where it steps in and where its data is all come from the host's ledger, listed even while it is off.
+  await extPage('全角标点'); await win('介入'); await win('编辑器处理按键：在它之前'); await win('数据', false); await shot('66c2-extension-steps-in'); await crumb('扩展')
   await extPage('备份'); await extTick('备份'); await win('不再自动备份，旧备份留着。'); await crumb('扩展'); await shot('66d-extensions-off')
   must(await js(`[...document.querySelectorAll('.ext-cell.off .fit')].map((e) => e.innerText).join(' ')`) === '备份 导出 手机预览', 'the extensions turned off are not said to be off')
   must(await prefTabs() === '外观 扩展 AI 提醒 备份', 'with backup off the settings lost its page: ' + await prefTabs())
@@ -557,7 +559,14 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await click('打开所在文件夹'); await win('原型不会打开系统窗口'); await click('关闭提示'); await js(`window.dispatchEvent(new Event('focus'))`); await win('8 章 · '); must(await has('.board'), 'the outline does not come back as the window does'); await done('an outline file broken outside')
   // An extension that fails stops alone; the toast names it and quotes the error. Its settings file unreadable: defaults this time.
   await click('少见的情况'); await click('扩展出错'); await win('手机预览出错'); await win('已停下：draw failed'); await shot('106-extension-failed'); await click('关闭提示')
+  await settings(); await click('扩展'); await extPage('手机预览'); await win('出错记录'); await win('draw：draw failed'); await shot('106b-extension-errors'); await click('关闭')
   await click('少见的情况'); await click('扩展设置读不出来'); await win('扩展设置无法读取'); await win('本次按默认处理'); await click('关闭提示'); await done('an extension that fails')
+  // Two installed extensions both replace the docx export: neither applies, the default runs, and the author picks one on the page.
+  // One of them also wants Ctrl+L, which Talk's quote has: the table of keys says who has it and what to do.
+  await click('少见的情况'); await click('另装的扩展起冲突'); await win('导出 docx：古籍版式也要替换它，两边都没生效，暂用默认的。'); await shot('106c-extensions-clash')
+  await click('竖排导出', await nthOf('竖排导出', '.tick-row')); await win('导出 docx：替换了默认的'); await win('两边都没生效', false); await crumb('扩展')
+  await extPage('古籍版式'); await win('导出 docx：没生效，用的是竖排导出'); await click('关闭')
+  await click('帮助'); await click('快捷键…'); await win('古籍版式也要这个键，现在「讨论」的生效。不要的那个可在「扩展」里关掉。'); await shot('106d-keys-clash'); await key('Escape'); await js(`set({ rivals: false, overwrites: {} })`); await done('installed extensions that clash')
 
   // Names of the setting in the prose: a faint dotted line; clicked, the entry opens beside; put away in the settings.
   await click('正文'); await click('第87章：停电'); must(await js(`[...document.querySelectorAll('.prose .nm')].some((e) => e.textContent === '小祥')`), 'a name in the prose is not marked')

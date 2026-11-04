@@ -120,6 +120,8 @@ function fresh(book = BOOK.shelf[0].id) {
     noGPU: false, ranNoGPU: false, // 禁用 GPU 加速：勾了没有，和这次打开软件时是不是关着（改了要重新打开才生效）
     zoom: 1, // 界面缩放：整个窗口里的东西放大几倍
     extOff: [], extBook: {}, // 关掉的扩展，本机的；AI 的开关是上面的 noAI。extBook 是作品单独设的开关（见 ext.js）
+    extErrors: {}, // 各扩展的出错记录：[{ at, where, message }]，扩展详情页里列出
+    rivals: false, overwrites: {}, // 装上了两个互相冲突的另装扩展（少见的情况）；替换同一步时作者选的谁：{ 那一步: 扩展 id 或 'default' }
     lang: 'system', // 设置「语言」里选的；舞台上切的语言不改它，选「跟随系统」时原型当作中文
     ...Object.assign({}, ...registered('State').map((x) => x.value({ of, last, snaps, kept }))),
   }

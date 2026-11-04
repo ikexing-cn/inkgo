@@ -40,6 +40,8 @@ const EXTS = () => [
   { id: 'phone', g: 'files', name: L.modPhone(), about: L.modPhoneAbout() },
   // 原型里假装另装的一个，看另装的扩展在设置里怎么出现；它什么也不做。
   { id: 'fullwidth', g: 'more', name: L.modFullwidth(), about: L.modFullwidthAbout() },
+  // 「少见的情况」里装上的两个，都要替换「导出 docx」，古籍版式还要 Ctrl+L：看替换冲突、快捷键冲突。
+  ...(S.rivals ? [{ id: 'vertical', g: 'more', name: L.modVertical(), about: L.modVerticalAbout() }, { id: 'classic', g: 'more', name: L.modClassic(), about: L.modClassicAbout() }] : []),
   { id: 'context', g: 'lib', name: L.modContext(), about: L.modContextAbout() },
   { id: 'marks', g: 'lib', name: L.modMarks(), about: L.modMarksAbout() },
   { id: 'ai', g: 'lib', name: L.modAI(), about: L.modAIAbout() },
@@ -56,8 +58,8 @@ const inBook = () => S.page !== 'shelf' && !!S.book
 const bookKey = (id) => S.book + ':' + id
 const extMine = (id) => inBook() && !isLib(extOf(id)) && bookKey(id) in S.extBook
 const extOwn = (id) => (extMine(id) ? S.extBook[bookKey(id)] : id === 'ai' ? !S.noAI : !S.extOff.includes(id))
-// 能用：自己开着，必需的也都能用。自己的开关和能不能用分开记，必需的那个再打开时，它回到自己原来的开关。
-const extOn = (id) => extOwn(id) && (extOf(id).req || []).every(extOn)
+// 能用：装着，自己开着，必需的也都能用。自己的开关和能不能用分开记，必需的那个再打开时，它回到自己原来的开关。
+const extOn = (id) => !!extOf(id) && extOwn(id) && (extOf(id).req || []).every(extOn)
 const aiOn = () => extOn('ai')
 
 // 直接必需 id 的扩展。
@@ -160,6 +162,54 @@ function extHead(e) {
 // 扩展自己的设置，接在页头下面；扩展关着时不在。要有打开的作品才有的，书架上不在。
 const extPrefs = (id, d) => registered('SettingsSections').filter((x) => x.owner === id && extOn(id)).map((x) => x.value(d)).join('')
 const extSection = (id, d) => `<div class="ext-sec">${extHead(extOf(id))}${extPrefs(id, d)}</div>`
+
+// 扩展自己那一页的下半截，全从宿主的账里来，扩展关着也列得出：它在哪些地方出现、介入了哪一步、数据放在哪多大、出过什么错。
+// 没有的那一段不画。设置左栏里几个扩展合用的页（「提醒」）不画这些，进各自的页才看得到。
+// 点的说法：只列作者看得见的地方，状态、画完以后排版这些看不见的不列。
+const POINT_WORDS = { PaneTabs: 'pane', Pages: 'page', SettingsPages: 'settings', SettingsSections: 'prefs', SettingsDetails: 'prefs', Dialogs: 'dialog',
+  SelectionMenus: 'prose', HookMenus: 'prose', FileActions: 'file', BookActions: 'file', EditActions: 'edit', WriteActions: 'edit', ViewActions: 'view',
+  MarginSources: 'marks', PendingGroups: 'pending', WritingKeys: 'keys', FocusKeys: 'keys', KeyClaims: 'keys', Tools: 'tools', ToolHints: 'tools',
+  WordSuffix: 'footer', WordPopovers: 'footer', FooterItems: 'footer', FootStatus: 'footer', ExportContents: 'export', ChapterHeadItems: 'chead',
+  BesideItems: 'beside', NameHighlights: 'names', AIUsage: 'usage' }
+// 有名字的几种写出名字：右栏的哪一页、哪一页、设置里的哪一页、导出的哪一项。
+const pointName = (point, value, id) => point === 'PaneTabs' ? value.label() : point === 'Pages' ? (value.label ? value.label() : extOf(id).name)
+  : point === 'SettingsPages' ? tabName(value.name) : point === 'ExportContents' ? EXPORT_WHAT()[value] : ''
+function extAdds(id) {
+  const rows = []
+  Object.keys(POINTS).forEach((point) => {
+    const word = POINT_WORDS[point]
+    if (!word) return
+    const mine = registered(point).filter((x) => x.owner === id)
+    if (!mine.length) return
+    const names = mine.map((x) => pointName(point, x.value, id)).filter(Boolean)
+    const row = rows.find((r) => r.word === word)
+    if (row) row.names.push(...names)
+    else rows.push({ word, names })
+  })
+  return rows.map((r) => L.modAdds(r.word, r.names.join(L.modListSep())))
+}
+// 书里的放「本作品的 ext/<id>」，本机的放「这台电脑上」；大小是假的。只在打开了作品时说本作品的。
+const EXT_DATA = { lore: ['book', 12800], outline: ['book', 4100], talk: ['book', 86000], hooks: ['book', 2300], goal: ['local', 900], usage: ['local', 31000], phone: ['local', 400] }
+const kb = (n) => (n / 1024).toFixed(1) + ' KB'
+// 替换同一步（overwrite）的、开着的不止一个：两边都不生效，照跑原来的，等作者在这里选一个；选了的生效，别的写明用的是谁。
+const rivalsAt = (at) => registered('Injections').filter((x) => x.value.kind === 'overwrite' && x.value.at === at && extOn(x.owner))
+function injectedRow(x) {
+  const v = x.value, rivals = v.kind === 'overwrite' ? rivalsAt(v.at) : []
+  if (rivals.length < 2) return t(L.modInjected(v.where(), v.kind))
+  const chosen = S.overwrites[v.at], others = rivals.filter((r) => r.owner !== x.owner).map((r) => extOf(r.owner))
+  const said = !chosen ? `<span class="warn">${t(L.modInjectConflict(v.where(), extNames(others)))}</span>` : chosen === x.owner ? t(L.modInjected(v.where(), v.kind))
+    : t(L.modInjectNotUsed(v.where(), chosen === 'default' ? L.modUseDefault() : extOf(chosen).name))
+  const pick = (who) => set((s) => ({ overwrites: { ...s.overwrites, [v.at]: who } }))
+  return said + dots(chosen || '', [['default', L.modUseDefault()], ...rivals.map((r) => [r.owner, extOf(r.owner).name])], pick, L.modInjectChoose())
+}
+function extLedger(id) {
+  const adds = extAdds(id), inj = registered('Injections').filter((x) => x.owner === id && extOn(id)).map(injectedRow)
+  const data = EXT_DATA[id], errs = S.extErrors[id] || []
+  const where = data && (data[0] === 'local' ? L.modDataLocal('ext/' + id, kb(data[1])) : inBook() ? L.modDataBook('ext/' + id, kb(data[1])) : '')
+  const part = (title, rows, raw) => rows.length ? `<div class="ext-ledger"><div class="prefs-sub">${t(title)}</div>${rows.map((r) => `<div class="note">${raw ? r : t(r)}</div>`).join('')}</div>` : ''
+  return part(L.modLedgerAdds(), adds) + part(L.modLedgerInjected(), inj, true) + part(L.modLedgerData(), where ? [where] : []) +
+    part(L.modLedgerErrors(), errs.map((e) => L.modErrorRow(timeShown(e.at), e.where, e.message)))
+}
 
 // 设置左栏外观、扩展下面，是扩展登记的页（SettingsPages），照登记的顺序排：[页名, 哪几个扩展各一段]。
 // 登记了就一直在，扩展关着也在：页头的开关能把它再打开。

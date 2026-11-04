@@ -339,7 +339,8 @@ function rare() {
     ['大纲文件读不出来', () => set({ page: 'plan', planBroken: true, planQ: '', dialog: null, ...SHUT })],
     ['添加的文件夹中没有作品', () => { set(SHUT); say(L.editorNoWork(), PATHS().stray, 'fail') }],
     // 扩展出错只停它自己：提示条写名字和错误原文，出在哪个回调记在扩展的账里。
-    ['扩展出错', () => { set(SHUT); say(L.extFailed(L.modPhone(), 'draw failed'), '', 'fail') }],
+    ['扩展出错', () => { set((s) => ({ ...SHUT, extErrors: { ...s.extErrors, phone: [{ at: stamp(), where: 'draw', message: 'draw failed' }, ...(s.extErrors.phone || [])] } })); say(L.extFailed(L.modPhone(), 'draw failed'), '', 'fail') }],
+    ['另装的扩展起冲突', () => set({ rivals: true, dialog: { kind: 'settings', tab: '扩展', ext: 'vertical', edit: '' }, ...SHUT })],
     ['扩展设置读不出来', () => { set(SHUT); say(L.extFileUnreadable("invalid character '}' in ext.json"), '', 'fail') }],
   ]
 }

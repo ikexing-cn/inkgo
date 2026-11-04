@@ -10136,6 +10136,286 @@ func (msgs Messages) ModTurnOn() string {
 	return Catalog.Format(msgs.locale, "modTurnOn", nil)
 }
 
+// ModLedgerAdds says "功能入口"
+// in the language the app shows.
+//
+// 扩展详情页：它在界面上加了哪些东西，扩展关着也列。
+func ModLedgerAdds() string { return In(i18n.Locale()).ModLedgerAdds() }
+
+// ModLedgerAdds says "功能入口"
+// in the language of msgs.
+//
+// 扩展详情页：它在界面上加了哪些东西，扩展关着也列。
+func (msgs Messages) ModLedgerAdds() string {
+	return Catalog.Format(msgs.locale, "modLedgerAdds", nil)
+}
+
+// ModLedgerInjected says "介入"
+// in the language the app shows.
+//
+// 扩展详情页：它插在别人的哪一步前后，或替换了哪一步。
+func ModLedgerInjected() string { return In(i18n.Locale()).ModLedgerInjected() }
+
+// ModLedgerInjected says "介入"
+// in the language of msgs.
+//
+// 扩展详情页：它插在别人的哪一步前后，或替换了哪一步。
+func (msgs Messages) ModLedgerInjected() string {
+	return Catalog.Format(msgs.locale, "modLedgerInjected", nil)
+}
+
+// ModLedgerData says "数据"
+// in the language the app shows.
+//
+// 扩展详情页：它的数据放在哪、多大。
+func ModLedgerData() string { return In(i18n.Locale()).ModLedgerData() }
+
+// ModLedgerData says "数据"
+// in the language of msgs.
+//
+// 扩展详情页：它的数据放在哪、多大。
+func (msgs Messages) ModLedgerData() string {
+	return Catalog.Format(msgs.locale, "modLedgerData", nil)
+}
+
+// ModLedgerErrors says "出错记录"
+// in the language the app shows.
+//
+// 扩展详情页：它出过的错，新的在上。
+func ModLedgerErrors() string { return In(i18n.Locale()).ModLedgerErrors() }
+
+// ModLedgerErrors says "出错记录"
+// in the language of msgs.
+//
+// 扩展详情页：它出过的错，新的在上。
+func (msgs Messages) ModLedgerErrors() string {
+	return Catalog.Format(msgs.locale, "modLedgerErrors", nil)
+}
+
+// ModAdds says "{point, select, pane {右栏的一页：{names}} page {一页：{names}} settings {设置里的一页：{names}} pref…"
+// in the language the app shows.
+//
+// 扩展详情页「功能入口」里的一行：在哪种地方加了东西，有名字的写出名字。
+func ModAdds(point string, names string) string { return In(i18n.Locale()).ModAdds(point, names) }
+
+// ModAdds says "{point, select, pane {右栏的一页：{names}} page {一页：{names}} settings {设置里的一页：{names}} pref…"
+// in the language of msgs.
+//
+// 扩展详情页「功能入口」里的一行：在哪种地方加了东西，有名字的写出名字。
+func (msgs Messages) ModAdds(point string, names string) string {
+	return Catalog.Format(msgs.locale, "modAdds", map[string]any{"point": point, "names": names})
+}
+
+// ModInjected says "{where}：{kind, select, before {在它之前} after {在它之后} around {包住它} other {替换了默认的}}"
+// in the language the app shows.
+//
+// 扩展详情页「介入」里的一行。
+func ModInjected(where string, kind string) string { return In(i18n.Locale()).ModInjected(where, kind) }
+
+// ModInjected says "{where}：{kind, select, before {在它之前} after {在它之后} around {包住它} other {替换了默认的}}"
+// in the language of msgs.
+//
+// 扩展详情页「介入」里的一行。
+func (msgs Messages) ModInjected(where string, kind string) string {
+	return Catalog.Format(msgs.locale, "modInjected", map[string]any{"where": where, "kind": kind})
+}
+
+// ModInjectKeys says "编辑器处理按键"
+// in the language the app shows.
+//
+// 「介入」里说的那一步：编辑器处理作者按的键。
+func ModInjectKeys() string { return In(i18n.Locale()).ModInjectKeys() }
+
+// ModInjectKeys says "编辑器处理按键"
+// in the language of msgs.
+//
+// 「介入」里说的那一步：编辑器处理作者按的键。
+func (msgs Messages) ModInjectKeys() string {
+	return Catalog.Format(msgs.locale, "modInjectKeys", nil)
+}
+
+// ModDataBook says "本作品的 {path}，{size}"
+// in the language the app shows.
+//
+// 扩展详情页「数据」：放在作品文件夹里。
+func ModDataBook(path string, size string) string { return In(i18n.Locale()).ModDataBook(path, size) }
+
+// ModDataBook says "本作品的 {path}，{size}"
+// in the language of msgs.
+//
+// 扩展详情页「数据」：放在作品文件夹里。
+func (msgs Messages) ModDataBook(path string, size string) string {
+	return Catalog.Format(msgs.locale, "modDataBook", map[string]any{"path": path, "size": size})
+}
+
+// ModDataLocal says "这台电脑上的 {path}，{size}"
+// in the language the app shows.
+//
+// 扩展详情页「数据」：放在本机，不跟作品走。
+func ModDataLocal(path string, size string) string { return In(i18n.Locale()).ModDataLocal(path, size) }
+
+// ModDataLocal says "这台电脑上的 {path}，{size}"
+// in the language of msgs.
+//
+// 扩展详情页「数据」：放在本机，不跟作品走。
+func (msgs Messages) ModDataLocal(path string, size string) string {
+	return Catalog.Format(msgs.locale, "modDataLocal", map[string]any{"path": path, "size": size})
+}
+
+// ModErrorRow says "{at} · {where}：{message}"
+// in the language the app shows.
+//
+// 扩展详情页「出错记录」里的一行：什么时候、出在哪个回调、错误原文。
+func ModErrorRow(at string, where string, message string) string {
+	return In(i18n.Locale()).ModErrorRow(at, where, message)
+}
+
+// ModErrorRow says "{at} · {where}：{message}"
+// in the language of msgs.
+//
+// 扩展详情页「出错记录」里的一行：什么时候、出在哪个回调、错误原文。
+func (msgs Messages) ModErrorRow(at string, where string, message string) string {
+	return Catalog.Format(msgs.locale, "modErrorRow", map[string]any{"at": at, "where": where, "message": message})
+}
+
+// ModInjectDocx says "导出 docx"
+// in the language the app shows.
+//
+// 「介入」里说的那一步：把作品导出成 docx。
+func ModInjectDocx() string { return In(i18n.Locale()).ModInjectDocx() }
+
+// ModInjectDocx says "导出 docx"
+// in the language of msgs.
+//
+// 「介入」里说的那一步：把作品导出成 docx。
+func (msgs Messages) ModInjectDocx() string {
+	return Catalog.Format(msgs.locale, "modInjectDocx", nil)
+}
+
+// ModInjectConflict says "{where}：{names}也要替换它，两边都没生效，暂用默认的。"
+// in the language the app shows.
+//
+// 两个扩展都要替换同一步：都不生效，等作者在下面选一个。
+func ModInjectConflict(where string, names string) string {
+	return In(i18n.Locale()).ModInjectConflict(where, names)
+}
+
+// ModInjectConflict says "{where}：{names}也要替换它，两边都没生效，暂用默认的。"
+// in the language of msgs.
+//
+// 两个扩展都要替换同一步：都不生效，等作者在下面选一个。
+func (msgs Messages) ModInjectConflict(where string, names string) string {
+	return Catalog.Format(msgs.locale, "modInjectConflict", map[string]any{"where": where, "names": names})
+}
+
+// ModInjectNotUsed says "{where}：没生效，用的是{name}"
+// in the language the app shows.
+//
+// 替换同一步时作者选了别的：这一个没生效。
+func ModInjectNotUsed(where string, name string) string {
+	return In(i18n.Locale()).ModInjectNotUsed(where, name)
+}
+
+// ModInjectNotUsed says "{where}：没生效，用的是{name}"
+// in the language of msgs.
+//
+// 替换同一步时作者选了别的：这一个没生效。
+func (msgs Messages) ModInjectNotUsed(where string, name string) string {
+	return Catalog.Format(msgs.locale, "modInjectNotUsed", map[string]any{"where": where, "name": name})
+}
+
+// ModUseDefault says "默认的"
+// in the language the app shows.
+//
+// 替换冲突时的一个选项：不用扩展的，照软件原来的做。
+func ModUseDefault() string { return In(i18n.Locale()).ModUseDefault() }
+
+// ModUseDefault says "默认的"
+// in the language of msgs.
+//
+// 替换冲突时的一个选项：不用扩展的，照软件原来的做。
+func (msgs Messages) ModUseDefault() string {
+	return Catalog.Format(msgs.locale, "modUseDefault", nil)
+}
+
+// ModInjectChoose says "用哪个"
+// in the language the app shows.
+//
+// 替换冲突时那一排选项的无障碍名。
+func ModInjectChoose() string { return In(i18n.Locale()).ModInjectChoose() }
+
+// ModInjectChoose says "用哪个"
+// in the language of msgs.
+//
+// 替换冲突时那一排选项的无障碍名。
+func (msgs Messages) ModInjectChoose() string {
+	return Catalog.Format(msgs.locale, "modInjectChoose", nil)
+}
+
+// ModVertical says "竖排导出"
+// in the language the app shows.
+//
+// 原型里假装另装的扩展，演示替换冲突。
+func ModVertical() string { return In(i18n.Locale()).ModVertical() }
+
+// ModVertical says "竖排导出"
+// in the language of msgs.
+//
+// 原型里假装另装的扩展，演示替换冲突。
+func (msgs Messages) ModVertical() string {
+	return Catalog.Format(msgs.locale, "modVertical", nil)
+}
+
+// ModVerticalAbout says "把 docx 导出成竖排"
+// in the language the app shows.
+func ModVerticalAbout() string { return In(i18n.Locale()).ModVerticalAbout() }
+
+// ModVerticalAbout says "把 docx 导出成竖排"
+// in the language of msgs.
+func (msgs Messages) ModVerticalAbout() string {
+	return Catalog.Format(msgs.locale, "modVerticalAbout", nil)
+}
+
+// ModClassic says "古籍版式"
+// in the language the app shows.
+//
+// 原型里假装另装的扩展，演示替换冲突和快捷键冲突。
+func ModClassic() string { return In(i18n.Locale()).ModClassic() }
+
+// ModClassic says "古籍版式"
+// in the language of msgs.
+//
+// 原型里假装另装的扩展，演示替换冲突和快捷键冲突。
+func (msgs Messages) ModClassic() string {
+	return Catalog.Format(msgs.locale, "modClassic", nil)
+}
+
+// ModClassicAbout says "按古籍的版式导出 docx"
+// in the language the app shows.
+func ModClassicAbout() string { return In(i18n.Locale()).ModClassicAbout() }
+
+// ModClassicAbout says "按古籍的版式导出 docx"
+// in the language of msgs.
+func (msgs Messages) ModClassicAbout() string {
+	return Catalog.Format(msgs.locale, "modClassicAbout", nil)
+}
+
+// KeysConflict says "{names}也要这个键，现在「{winner}」的生效。不要的那个可在「扩展」里关掉。"
+// in the language the app shows.
+//
+// 快捷键表里一个键被两个扩展要了：写明还有谁、谁生效、怎么办。
+func KeysConflict(names string, winner string) string {
+	return In(i18n.Locale()).KeysConflict(names, winner)
+}
+
+// KeysConflict says "{names}也要这个键，现在「{winner}」的生效。不要的那个可在「扩展」里关掉。"
+// in the language of msgs.
+//
+// 快捷键表里一个键被两个扩展要了：写明还有谁、谁生效、怎么办。
+func (msgs Messages) KeysConflict(names string, winner string) string {
+	return Catalog.Format(msgs.locale, "keysConflict", map[string]any{"names": names, "winner": winner})
+}
+
 // ExtFailed says "{name}出错，已停下：{error}"
 // in the language the app shows.
 //

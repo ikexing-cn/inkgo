@@ -652,6 +652,8 @@ body { margin: 0; }
 .ext-sec { display: flex; flex-direction: column; gap: 14px; padding: 16px 0; }
 .ext-sec + .ext-sec { border-top: 1px solid var(--line); }
 .ext-prefs { display: flex; flex-direction: column; gap: 10px; margin-left: calc(var(--icon-sm) + 6px); } /* 和页头的字对齐 */
+.ext-ledger { display: flex; flex-direction: column; gap: 4px; margin-left: calc(var(--icon-sm) + 6px); padding-bottom: 14px; } /* 详情页下半截的一段：功能入口、介入、数据、出错记录 */
+.ext-ledger .note { margin: 0; }
 .prefs-sub { font-weight: 500; }
 .ext-grid { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: var(--r-card); overflow: hidden; } /* 「扩展」总览一组 */
 .ext-cell { display: flex; align-items: center; gap: 8px; height: var(--h-row); padding: 4px 12px 4px 14px; border-bottom: 1px solid var(--line); color: var(--ink); }
@@ -849,6 +851,7 @@ body { margin: 0; }
 <script src="ext/backup.js"></script>
 <script src="ext/cats.js"></script>
 <script src="ext/check.js"></script>
+<script src="ext/classic.js"></script>
 <script src="ext/continue.js"></script>
 <script src="ext/draft.js"></script>
 <script src="ext/export.js"></script>
@@ -867,6 +870,7 @@ body { margin: 0; }
 <script src="ext/talk.js"></script>
 <script src="ext/trash.js"></script>
 <script src="ext/usage.js"></script>
+<script src="ext/vertical.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

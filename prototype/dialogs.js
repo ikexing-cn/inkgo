@@ -36,7 +36,7 @@ function settingsDialog(d) {
   const rec = contributions('SettingsDetails').find((x) => x.matches(d)), ext = d.tab === '扩展' && d.ext ? extOf(d.ext) : null
   const page = prefPage(d.tab)
   const lang = S.lang === 'system' ? 'system' : LANG
-  const body = rec ? rec.draw(d) : ext ? extSection(ext.id, d) : page ? page[1].map((id) => extSection(id, d)).join('')
+  const body = rec ? rec.draw(d) : ext ? extSection(ext.id, d) + extLedger(ext.id) : page ? page[1].map((id) => extSection(id, d)).join('')
     : d.tab === '扩展' ? extOverview()
     : `<div class="prefs-row"><div class="prefs-label">${t(L.settingsColor())}</div>${seg(S.look, LOOKS(), (v) => set({ look: v }), L.settingsColor())}</div>` +
       `<div class="prefs-row"><div class="prefs-label">${t(L.settingsLanguage())}</div>${dots(lang, [['system', L.settingsLangSystem()], ['zh-Hans', '简体中文'], ['en', 'English']], (v) => { set({ lang: v }); switchLang(v === 'system' ? 'zh-Hans' : v) }, L.settingsLanguage())}</div>` +
@@ -69,9 +69,14 @@ function KEYS() {
     [L.helpGroupGlobal(), [['Ctrl+= / Ctrl+- / Ctrl+0', L.helpZoomUI()], ['Ctrl+/', L.helpOpenKeys()]]],
   ]
 }
+// 另装的扩展也要这个键：写明还有谁要、现在谁的生效（随软件带的、先装的生效），不要的那个怎么办。
+const keyClash = (key) => {
+  const claims = registered('KeyClaims').filter((x) => x.value.key === key && extOn(x.owner) && extOn(x.value.over))
+  return claims.length ? `<div class="note warn">${t(L.keysConflict(extNames(claims.map((x) => extOf(x.owner))), extOf(claims[0].value.over).name))}</div>` : ''
+}
 function keysDialog() {
   const shown = (list) => list.filter(([, , ai]) => !ai || aiOn())
-  return dialog('keys', dialogHead(L.keysTitle()) + `<div class="keys scroll">${shown(KEYS()).map(([group, of]) => `<div class="head">${t(group)}</div>` + shown(of).filter(([key]) => keyLabel(key)).map(([key, does]) => `<div class="key-row"><div class="key">${t(keyLabel(key))}</div><div class="fit">${t(does)}</div></div>`).join('')).join('')}</div>` + buttons(button(L.commonClose(), shut)))
+  return dialog('keys', dialogHead(L.keysTitle()) + `<div class="keys scroll">${shown(KEYS()).map(([group, of]) => `<div class="head">${t(group)}</div>` + shown(of).filter(([key]) => keyLabel(key)).map(([key, does]) => `<div class="key-row"><div class="key">${t(keyLabel(key))}</div><div class="fit">${t(does)}${keyClash(key)}</div></div>`).join('')).join('')}</div>` + buttons(button(L.commonClose(), shut)))
 }
 
 // ───────── 书架上的两个对话框 ─────────
