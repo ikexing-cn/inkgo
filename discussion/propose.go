@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"unicode/utf8"
+	"writer/talkbook"
 
 	"writer/inference"
 	"writer/internal/textclip"
@@ -65,15 +66,15 @@ func proposeLabel(r *labelReader, in proposeArgs) string {
 // place finds where a change of the prose goes: in the chapter named, at,
 // after or in place of quote, which it holds once. It says why not when
 // it cannot.
-func place(st *workspace.Store, b book, chapter, at, quote string) (workspace.Proposal, string) {
+func place(st *workspace.Store, b talkbook.Book, chapter, at, quote string) (workspace.Proposal, string) {
 	if at != workspace.ProposeReplace && at != workspace.ProposeAfter && at != workspace.ProposeEnd && at != workspace.ProposeAll {
 		return workspace.Proposal{}, "at 只能是 replace、after、end、all"
 	}
-	n, missing := b.find(chapter)
+	n, missing := b.Find(chapter)
 	if n == nil {
 		return workspace.Proposal{}, missing
 	}
-	name := b.name[n.ID]
+	name := b.Name[n.ID]
 	if n.Folder {
 		return workspace.Proposal{}, "「" + name + "」是一卷，没有正文；提议改它下面的章。"
 	}
@@ -194,7 +195,7 @@ func (s *proposing) feed(d model.CallDelta) {
 		if err != nil {
 			return
 		}
-		p, why := place(s.store, bookOf(tree), strings.TrimSpace(chapter.value), at.value, quote.value)
+		p, why := place(s.store, talkbook.Of(tree), strings.TrimSpace(chapter.value), at.value, quote.value)
 		if why != "" {
 			return // the call says why, once it is whole
 		}

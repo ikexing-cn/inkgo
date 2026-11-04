@@ -12,13 +12,15 @@ import (
 // materialSpy records the provider snapshots at the frame boundary.
 type materialSpy struct {
 	capturedStream
+	tools                 [][]aiapi.Tool
 	talks, pens, preloads []aiapi.Material
 	predictions           int
 }
 
-func (s *materialSpy) Talk(st *workspace.Store, m aiapi.Material, b *aiapi.Beside, progress func(aiapi.Progress), step func(workspace.Event)) (aiapi.Talk, error) {
+func (s *materialSpy) Talk(st *workspace.Store, m aiapi.Material, tools []aiapi.Tool, b *aiapi.Beside, progress func(aiapi.Progress), step func(workspace.Event)) (aiapi.Talk, error) {
 	s.talks = append(s.talks, m)
-	return s.capturedStream.Talk(st, m, b, progress, step)
+	s.tools = append(s.tools, tools)
+	return s.capturedStream.Talk(st, m, tools, b, progress, step)
 }
 
 func (s *materialSpy) Pen(_ *workspace.Store, m aiapi.Material) (aiapi.Pen, error) {
@@ -69,6 +71,20 @@ func TestNextTalkPredictionAndPreloadFollowGlobalAndBookMaterialSwitches(t *test
 						}
 						a.draftNote()
 					}, 64, 64)
+					snapshot := spy.tools[len(spy.tools)-1]
+					for _, name := range []string{"look_up_setting", "note_setting", "read_outline"} {
+						present := false
+						for _, tool := range snapshot {
+							present = present || tool.Name == name
+						}
+						expected := want.Setting
+						if name == "read_outline" {
+							expected = want.Outline
+						}
+						if present != expected {
+							t.Fatalf("%s present=%v want=%v", name, present, expected)
+						}
+					}
 					if spy.talks[len(spy.talks)-1] != want || spy.pens[len(spy.pens)-1] != want || spy.preloads[len(spy.preloads)-1] != want {
 						t.Fatal(want, spy.talks, spy.pens, spy.preloads)
 					}

@@ -198,7 +198,7 @@ func (t talk) Retry(ctx context.Context, session, userID string) error {
 	return requestError(err)
 }
 
-func (s *Service) Talk(st *workspace.Store, material aiapi.Material, beside *aiapi.Beside, progress func(aiapi.Progress), step func(workspace.Event)) (aiapi.Talk, error) {
+func (s *Service) Talk(st *workspace.Store, material aiapi.Material, tools []aiapi.Tool, beside *aiapi.Beside, progress func(aiapi.Progress), step func(workspace.Event)) (aiapi.Talk, error) {
 	if s.on != nil && !s.on() {
 		return nil, ErrOff
 	}
@@ -210,7 +210,7 @@ func (s *Service) Talk(st *workspace.Store, material aiapi.Material, beside *aia
 	if err != nil {
 		return nil, err
 	}
-	e := &discussion.Engine{Store: st, Talk: m, Step: step, Material: material}
+	e := &discussion.Engine{Store: st, Talk: m, Step: step, Material: material, Tools: tools}
 	if progress != nil {
 		e.Progress = func(d model.Delta) { progress(aiapi.Progress{Reasoning: d.Reasoning, Text: d.Text}) }
 		e.Proposing = func(call string, p workspace.Proposal) { progress(aiapi.Progress{Call: call, Proposal: &p}) }

@@ -2,6 +2,7 @@ package lore
 
 import (
 	"writer/ext"
+	"writer/ext/ai/aiapi"
 	"writer/ext/context/contextapi"
 	"writer/ext/hostapi"
 	"writer/ext/lore/loreapi"
@@ -10,9 +11,13 @@ import (
 )
 
 // Module registers the setting interface and its live reference entries.
-var Module = ext.Module{ID: "lore", Kind: ext.Feature, Group: hostapi.GroupLore, Requires: []string{"context"}, Name: loretext.ModLore, Desc: loretext.ModLoreAbout, Setup: setup}
+var Module = ext.Module{ID: "lore", Kind: ext.Feature, Group: hostapi.GroupLore, Requires: []string{"context"}, Optional: []string{"ai"}, Name: loretext.ModLore, Desc: loretext.ModLoreAbout, Setup: setup}
 
 func setup(r *ext.Registrar) {
+	for _, tool := range TalkTools() {
+		ext.Contribute(r, aiapi.Tools, tool.Name, tool)
+	}
+
 	p := &Panel{}
 	book := ext.Use(r, hostapi.BookService)
 	palette := ext.Use(r, hostapi.PaletteService)

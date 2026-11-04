@@ -31,7 +31,7 @@ func TestBuildersReadTheShelfSwitch(t *testing.T) {
 		for name, build := range map[string]func() error{
 			"catalog": func() error { _, err := a.ai.Catalog("missing"); return err },
 			"talk": func() error {
-				_, err := a.ai.Talk(st, aiapi.Material{Setting: true, Outline: true}, nil, nil, nil)
+				_, err := a.ai.Talk(st, aiapi.Material{Setting: true, Outline: true}, nil, nil, nil, nil)
 				return err
 			},
 			"pen": func() error { _, err := a.ai.Pen(st, aiapi.Material{Setting: true, Outline: true}); return err },
@@ -98,9 +98,9 @@ func (s *spy) Catalog(provider string) (aiapi.Catalog, error) {
 	return s.Backend.Catalog(provider)
 }
 
-func (s *spy) Talk(st *workspace.Store, material aiapi.Material, beside *aiapi.Beside, progress func(aiapi.Progress), step func(workspace.Event)) (aiapi.Talk, error) {
+func (s *spy) Talk(st *workspace.Store, material aiapi.Material, tools []aiapi.Tool, beside *aiapi.Beside, progress func(aiapi.Progress), step func(workspace.Event)) (aiapi.Talk, error) {
 	s.note("Talk")
-	return s.Backend.Talk(st, material, beside, progress, step)
+	return s.Backend.Talk(st, material, tools, beside, progress, step)
 }
 
 func (s *spy) Pen(st *workspace.Store, material aiapi.Material) (aiapi.Pen, error) {

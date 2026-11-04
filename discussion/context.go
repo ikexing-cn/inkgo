@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"slices"
 	"writer/ext/ai/aiapi"
+	"writer/talkbook"
 
 	"writer/model"
 	"writer/prompt"
@@ -31,8 +32,8 @@ var talkPlaces = []prompt.Place{
 	{Place: workspace.PlaceOpen, Label: "悬而未决", Heading: "悬而未决（作者还没表态，可以讨论）："},
 }
 
-// indexNote opens the setting when it goes as an index.
-const indexNote = "设定较多，这里只列目录：每条的编号、分类、名字和第一句。要看全文和出处，用 look_up_setting 查。"
+// indexIntro opens the setting when it goes as an index.
+const indexIntro = "设定较多，这里只列目录：每条的编号、分类、名字和第一句。"
 
 // digestNote opens the digest of the talk compacted.
 const digestNote = "之前的讨论已经整理成下面的摘要。原话还在，要用时用 search_talks 查。"
@@ -48,19 +49,7 @@ func numbered(set workspace.Setting, line prompt.Line) prompt.Line {
 // the talk tells them after it: each change that holds, then each the AI
 // suggested that waits, from the chapter of tree it starts at.
 func changes(set workspace.Setting, tree workspace.Tree) map[string][]string {
-	o, name := tree.Order(), bookOf(tree).name
-	out := map[string][]string{}
-	for _, e := range set.Entries {
-		for _, g := range e.Holding(o) {
-			out[e.ID] = append(out[e.ID], "「"+name[g.From]+"」起："+prompt.OneLine(g.Text))
-		}
-		for _, g := range e.Changes {
-			if _, ok := o[g.From]; ok && g.Place == workspace.PlaceOpen {
-				out[e.ID] = append(out[e.ID], "「"+name[g.From]+"」起（悬而未决）："+prompt.OneLine(g.Text))
-			}
-		}
-	}
-	return out
+	return talkbook.Changes(set, tree)
 }
 
 // timed is line with the changes of the entry after it, a line each.
@@ -93,6 +82,7 @@ func latest(set workspace.Setting, tree workspace.Tree) workspace.Setting {
 type Along struct {
 	// Material identifies the providers available to this request.
 	Material aiapi.Material
+	Tools    []aiapi.Tool
 	Beside   *Writing
 	Fixed    *Fixed
 }
@@ -108,13 +98,14 @@ type Along struct {
 // it stands there.
 func Assemble(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree, events []workspace.Event, input string, along Along) (Context, error) {
 	digest, turns := uncompacted(events)
-	out, _, err := lay(w, room, set, tree, talk{material: along.Material, digest: digest.Text, turns: turns, input: input, beside: along.Beside, near: along.Beside != nil, fixed: along.Fixed})
+	out, _, err := lay(w, room, set, tree, talk{material: along.Material, tools: along.Tools, digest: digest.Text, turns: turns, input: input, beside: along.Beside, near: along.Beside != nil, fixed: along.Fixed})
 	return out, err
 }
 
 // talk is what a talk request carries besides the rules and the setting.
 type talk struct {
 	material aiapi.Material
+	tools    []aiapi.Tool
 	digest   string     // of the talk compacted, if any
 	turns    []exchange // the complete exchanges after it
 	input    string     // the last words, which must fit
@@ -156,7 +147,7 @@ func (v view) note() string {
 // and how many of its turns went.
 func lay(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree, t talk) (Context, int, error) {
 	out := Context{} // the reply may take all the model gives: its output is kept out of the room
-	rules := rulesFor(t.material)
+	rules := rulesWith(t.material, combined(t.tools))
 	if w.Language == "en" {
 		rules += "\n- In edit proposals, the prose is written in English."
 	}
@@ -167,7 +158,7 @@ func lay(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree,
 		rules += "\n\n" + besideRulesFor(t.material)
 	}
 	tooLong := &model.SetupError{Err: &model.ContextLimitError{Part: "message"}}
-	out.Request.Tools = toolsFor(w, t.material)
+	out.Request.Tools = toolsOf(w, combined(t.tools))
 	told := withTools(rules, out.Request.Tools)
 	b := prompt.NewBudget(room, w.Language)
 	input := t.input
@@ -178,7 +169,7 @@ func lay(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree,
 	index := ""
 	if t.material.Setting {
 		v = viewOf(set, tree, t.fixed)
-		index = talkIndex(w, set, v)
+		index = talkIndex(w, set, v, t.tools)
 	}
 	if t.material.Setting && !b.Must(workspace.PartIndex, index) {
 		return out, 0, &model.SetupError{Err: &model.ContextLimitError{Part: "index"}}
@@ -245,8 +236,12 @@ func lay(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree,
 
 // talkIndex is the setting of v as its index, under the note that opens
 // it, each entry numbered as in set.
-func talkIndex(w workspace.Work, set workspace.Setting, v view) string {
-	return indexNote + "\n\n" + prompt.Render(w, v.index, talkPlaces, nil, numbered(set, prompt.Short)) + v.note()
+func talkIndex(w workspace.Work, set workspace.Setting, v view, tools []aiapi.Tool) string {
+	note := indexIntro
+	for _, tool := range combined(tools) {
+		note += tool.Prompt.SettingIndex
+	}
+	return note + "\n\n" + prompt.Render(w, v.index, talkPlaces, nil, numbered(set, prompt.Short)) + v.note()
 }
 
 // fill takes as many turns as fit in b, from the newest, or from the

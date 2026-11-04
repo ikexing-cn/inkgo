@@ -93,7 +93,7 @@ func (a *App) talk(c *ui.Context) (aiapi.Talk, error) {
 	a.turn = turn
 	a.write.seen = map[string]bool{}
 	sv := c.Services()
-	return a.ai.Talk(a.Store, a.material(), a.beside(), func(p aiapi.Progress) {
+	return a.ai.Talk(a.Store, a.material(), aiapi.SnapshotTools(a.extensions), a.beside(), func(p aiapi.Progress) {
 		turn.live.add(p)
 		sv.Invalidate()
 	}, func(e workspace.Event) { a.stepped(turn, sv, e) })

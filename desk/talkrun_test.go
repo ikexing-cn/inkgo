@@ -52,7 +52,7 @@ type capturedStream struct {
 	step     func(workspace.Event)
 }
 
-func (s *capturedStream) Talk(_ *workspace.Store, _ aiapi.Material, _ *aiapi.Beside, progress func(aiapi.Progress), step func(workspace.Event)) (aiapi.Talk, error) {
+func (s *capturedStream) Talk(_ *workspace.Store, _ aiapi.Material, _ []aiapi.Tool, _ *aiapi.Beside, progress func(aiapi.Progress), step func(workspace.Event)) (aiapi.Talk, error) {
 	s.progress, s.step = progress, step
 	return nil, nil
 }

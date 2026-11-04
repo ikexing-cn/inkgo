@@ -284,6 +284,15 @@ MCP 不承载界面，单独一条线：
         - `hostapi.SettingsHostService`：AI 页里还要画的讨论和续写的模型选择、续写的设置，经它从 `desk` 借来；
         - `hostapi.AIUsage`：AI 页里「AI 记录」的入口，归以后的用量记录。
       - 详情页的「加了什么」现在还不显示，留给第 5 步的「账和详情页」一起做。
+   2. 讨论的工具改成各扩展往 `aiapi.Tools` 里登记，2026-11-04 做完：
+      - `aiapi.Tool` 是正式的约定：名字、说明、按书给的参数 schema、在界面线程外跑的 `Run(ctx, ToolEnv, 参数) ToolResult`、给作者看的 `Label`，和两个顺序：`Order` 是在发给模型的工具表里排第几，`Prompt.Order` 是在提示词里排第几（两处的老顺序不一样，请求要一字不差，所以分开）。`ToolPrompt` 是这个工具在提示词里说的话：「查阅」那句里的一段、「查阅」下的几条、自己的一节（像「记设定」）。
+      - `ToolEnv` 是一次调用的环境：书的 `Store`、对话和这一轮的 ID、讨论跟着的章、谁在调（模型名和思考强度，记设定的修订要写）、`ToolShared`。`ToolResult` 告诉模型的字、失败没有、写了哪条设定修订、提了什么改稿建议。
+      - `ToolShared` 让一次回复里的所有调用和 `Label` 至多读一次书和设定，跨 goroutine 安全；记设定写之前仍现读设定，好让连着几次写互相看得见。
+      - `look_up_setting`、`note_setting` 搬进 `ext/lore`，`read_outline` 搬进 `ext/outline`。`search_book`、`read_prose`、`search_talks`、`propose_edit` 留在 `discussion`，等讨论、改稿建议拆成扩展时跟着走。给书起名、找最近的名字这些两边都用的，放进新的底层包 `talkbook`，它不 import `discussion`，也不 import 任何扩展；`ext/lore`、`ext/outline` 不 import `discussion`。`discussion` 里不出现别的扩展的工具名（测试守着）。
+      - `desk` 建讨论时在帧线程上取一次登记的工具（`aiapi.SnapshotTools`），和 `material()` 同一刻，经 `Backend.Talk` 交给 `discussion`。扩展关着，它的工具就不在；原来按 `Material` 筛工具的 `toolsFor` 去掉了。设定那一段文档、防注入和礼貌那几句仍按 `Material` 选，它们看有没有资料，不看有没有工具。
+      - 登记的工具在界面线程外经 `ext.Guard` 跑：panic 变成这次调用失败，记在它的扩展名下，照别的失败一样停掉那个扩展，讨论接着走。叫这次没给的工具照旧失败，设定不变。
+      - 设定、大纲对 AI 是可选依赖：没有 AI 照常用，AI 开着时多出它们的工具。详情页因此多了「配合AI更好用」，原型的 `EXTS` 也照改（设定 `opt: ['marks', 'ai']`，大纲 `opt: ['ai']`）。这是我的提议，作者没有另说。
+      - 全开时系统提示和工具表和改之前一字不差（请求字节测试没改）。
 4. marks，加伏笔、批注、检查。要先设计编辑器的标记点，设计稿先给作者看：见上面「正文标记的标记点」。
 5. 其余。
 

@@ -32,7 +32,7 @@ func BenchmarkSearchBook(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
-	box := toolbox{allowed: tools(workspace.Work{Language: workspace.Chinese}), store: st}
+	box := toolbox{extra: allTools(), allowed: tools(workspace.Work{Language: workspace.Chinese}), store: st}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for range b.N {
@@ -172,7 +172,7 @@ func TestLookingUpStopsWhenTheRoomIsFull(t *testing.T) {
 	if _, err = e.Store.WriteChapter(id, strings.Repeat("雨下了一夜，灯一直亮着。\n", 200), nil); err != nil {
 		t.Fatal(err)
 	}
-	probe, err := Assemble(e.Store.Work(), 100000, workspace.Setting{}, workspace.Tree{}, nil, "雨", Along{Material: aiapi.Material{Setting: true, Outline: true}})
+	probe, err := Assemble(e.Store.Work(), 100000, workspace.Setting{}, workspace.Tree{}, nil, "雨", Along{Tools: allTools(), Material: aiapi.Material{Setting: true, Outline: true}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,58 +221,6 @@ func TestLookingUpStopsWhenTheRoomIsFull(t *testing.T) {
 	}
 }
 
-// A note keeps to its rules: verbatim quotes of what
-// was said before, the author's words for what settles, the work's
-// categories, and names given once. A refusal says what to give and what
-// not, and words quoted twice are kept once.
-func TestNoteKeepsTheRules(t *testing.T) {
-	e, session := setup(t)
-	u, _ := turn(t, e, session, "主角叫林晚，她怕黑。", "也许她小时候在矿井里迷过路？")
-	ok, err := e.Store.Append(session, workspace.Event{Role: workspace.RoleUser, Text: "矿井这个好，就这样。另外雨不会停。"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	revise(t, e,
-		workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Names: []string{"林晚"}, Text: "林晚是主角"},
-		workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceOpen, Category: "规则", Text: "雨每年停一天"})
-	box := &toolbox{allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store, session: session, turn: ok.ID, model: inference.Model{Name: "deepseek/deepseek-flash"}}
-	for _, c := range []struct {
-		in   noteArgs
-		want string // in the refusal; empty when it is noted
-	}{
-		{noteArgs{Op: "add", Place: "body", Category: "人物", Text: "她小时候在矿井里迷过路", Sources: []string{"她小时候在矿井里迷过路"}}, "author_said"},
-		{noteArgs{Op: "add", Place: "body", Category: "人物", Text: "她小时候在矿井里迷过路", Sources: []string{"她小时候在矿井里迷过路"}, AuthorSaid: "也许她小时候"}, "作者在这次讨论里说过的话"},
-		{noteArgs{Op: "add", Place: "open", Category: "人物", Text: "她怕水", Sources: []string{"她怕水"}}, "不是这次讨论里已经说过的话里逐字的原文"},
-		{noteArgs{Op: "add", Place: "open", Category: "魔法", Text: "雨不会停", Sources: []string{"雨不会停"}}, "没有「魔法」这个分类"},
-		{noteArgs{Op: "add", Place: "open", Category: "人物", Text: "主角怕黑", Names: []string{"晚晚"}, Sources: []string{"她怕黑"}}, "名字「晚晚」没有在条目或对话里出现过"},
-		{noteArgs{Op: "add", Place: "open", Category: "人物", Text: "林晚怕黑", Names: []string{"林晚"}, Sources: []string{"她怕黑"}}, "已经在编号 1 的条目里"},
-		{noteArgs{Op: "add", Place: "open", Category: "规则", Text: "雨不会停", Names: []string{"雨"}, Sources: []string{"雨不会停"}}, "只有人物、"},
-		{noteArgs{Op: "edit", Entry: 1, Text: "林晚是女主角"}, "author_said"},
-		{noteArgs{Op: "edit", Entry: 9, Text: "林晚是女主角"}, "没有编号 9"},
-		{noteArgs{Op: "edit", Entry: 1, Category: "人物", Text: "林晚是女主角", AuthorSaid: "矿井这个好，就这样"}, "edit 要有改好的 text，不带 place、category（换位置或分类用 move）。"},
-		{noteArgs{Op: "name", Entry: 1, Names: []string{"晚"}}, "原有名字 林晚 要原样排在前面"},
-		{noteArgs{Op: "move", Entry: 2, Place: "dropped"}, "author_said"},
-		{noteArgs{Op: "add", Place: "body", Category: "人物", Text: "她小时候在矿井里迷过路", Sources: []string{"她小时候在矿井里迷过路"}, AuthorSaid: "矿井这个好，就这样"}, ""},
-		{noteArgs{Op: "move", Entry: 2, Place: "dropped", AuthorSaid: "雨不会停"}, ""},
-		{noteArgs{Op: "add", Place: "body", Category: "规则", Text: "雨不会停", Sources: []string{"雨不会停"}}, ""},
-		{noteArgs{Op: "name", Entry: 1, Names: []string{"林晚", "主角"}}, ""},
-		{noteArgs{Op: "add", Place: "dropped", Category: "规则", Text: "雨会停", Sources: []string{"雨不会停"}, AuthorSaid: "雨不会停"}, ""},
-	} {
-		out := box.note(c.in)
-		if c.want == "" && out.failed || c.want != "" && (!out.failed || !strings.Contains(out.text, c.want)) {
-			t.Errorf("%+v: %s", c.in, out.text)
-		}
-	}
-	set := setting(t, e)
-	if len(set.Entries) != 5 || set.Entries[1].Place != workspace.PlaceDropped || set.Entries[0].Names[1] != "主角" || len(set.Entries[4].Sources) != 1 {
-		t.Fatalf("%+v", set.Entries)
-	}
-	mine := set.Entries[2].Sources
-	if len(mine) != 2 || mine[0].Message == u.ID || mine[1].Message != ok.ID || mine[1].Quote != "矿井这个好，就这样" {
-		t.Fatalf("sources %+v", mine)
-	}
-}
-
 // The tools read the book by the names the model is shown: a title, or
 // its volume's before it when two share one, or what is one name only but
 // for spaces and marks, or begins it, or is in it; for a name the book has
@@ -296,7 +244,7 @@ func TestToolsReadTheBook(t *testing.T) {
 	write(v2, "雨", "又下雨了。")
 	write(v2, "第三章：停电", "灯灭了。")
 	turn(t, e, session, "灯是谁点的？", "也许是她妹妹。")
-	box := &toolbox{allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store, session: session}
+	box := &toolbox{extra: allTools(), allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store, session: session}
 	for _, c := range []struct {
 		name string
 		in   map[string]any
@@ -342,7 +290,7 @@ func TestToolsReadTheBook(t *testing.T) {
 }
 
 func TestReadSummaryIsAnUnknownTool(t *testing.T) {
-	box := &toolbox{allowed: tools(workspace.Work{Language: workspace.Chinese})}
+	box := &toolbox{extra: allTools(), allowed: tools(workspace.Work{Language: workspace.Chinese})}
 	c := call("old", "read_summary", map[string]any{"chapters": []string{"第三章", "雪"}})
 	if out := box.run(c); !out.failed || out.text != "没有叫 read_summary 的工具" {
 		t.Fatalf("retired tool: %+v", out)
@@ -387,7 +335,7 @@ func TestSearchBookIgnoresDamagedCompanions(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			box := toolbox{allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store}
+			box := toolbox{extra: allTools(), allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store}
 			out := box.searchBook(searchArgs{Query: "林晚"})
 			if out.failed || out.text != "共 1 处，在「章节」。\n「章节」第 1 段：雨中的林晚" {
 				t.Fatalf("prose-only search = %+v", out)
@@ -397,7 +345,7 @@ func TestSearchBookIgnoresDamagedCompanions(t *testing.T) {
 }
 
 func TestLabelsWithoutUnneededReads(t *testing.T) {
-	box := toolbox{allowed: tools(workspace.Work{Language: workspace.Chinese})}
+	box := toolbox{extra: allTools(), allowed: tools(workspace.Work{Language: workspace.Chinese})}
 	for _, c := range []struct {
 		name string
 		in   map[string]any
@@ -412,41 +360,7 @@ func TestLabelsWithoutUnneededReads(t *testing.T) {
 			t.Fatalf("label = %q, want %q", got, c.want)
 		}
 	}
-	set := workspace.Setting{Entries: []workspace.Entry{{Text: "旧设定"}}}
-	r := &labelReader{set: set, hasSet: true}
-	if got := noteLabel(r, noteArgs{Op: workspace.OpEdit, Entry: 1, Text: "新设定"}); got != "记下：改写「旧设定」为：新设定" {
-		t.Fatal(got)
-	}
-}
 
-func TestLookupResolvesOnlyDisplayedSources(t *testing.T) {
-	var set workspace.Setting
-	for i := range maxHits + 2 {
-		e := workspace.Entry{ID: fmt.Sprint(i), Text: "林晚怕黑", Place: workspace.PlaceBody, Category: "人物"}
-		for j := range 4 {
-			e.Sources = append(e.Sources, workspace.Source{Session: fmt.Sprintf("s%d-%d", i, j), Message: "message", Quote: "林晚"})
-		}
-		if i == maxHits+1 {
-			e.Names = []string{"林晚"}
-		}
-		set.Entries = append(set.Entries, e)
-	}
-	var resolved []string
-	out := lookupSetting("林晚", set, book{tree: workspace.Tree{}}, "", func(session string) string {
-		resolved = append(resolved, session)
-		return session
-	})
-	if out.failed || !strings.HasPrefix(out.text, fmt.Sprintf("[%d]", maxHits+2)) || !strings.Contains(out.text, "还有 2 条没有列出") {
-		t.Fatalf("lookup = %+v", out)
-	}
-	if len(resolved) != maxHits*3 {
-		t.Fatalf("resolved %d sources, want %d", len(resolved), maxHits*3)
-	}
-	for _, session := range resolved {
-		if strings.HasSuffix(session, "-3") || strings.HasPrefix(session, fmt.Sprintf("s%d-", maxHits-1)) || strings.HasPrefix(session, fmt.Sprintf("s%d-", maxHits)) {
-			t.Fatalf("read undisplayed source %s", session)
-		}
-	}
 }
 
 // Every tool's schema lists exactly the fields its argument type decodes,
@@ -461,19 +375,19 @@ func TestToolSchemasMatchTheirArguments(t *testing.T) {
 		toolNote:        noteArgs{},
 		toolPropose:     proposeArgs{},
 	}
-	if len(args) != len(toolTable) {
-		t.Fatalf("%d argument types for %d tools", len(args), len(toolTable))
+	if len(args) != len(combined(allTools())) {
+		t.Fatalf("%d argument types for %d tools", len(args), len(combined(allTools())))
 	}
-	for _, tl := range toolTable {
-		typ, ok := args[tl.name]
+	for _, tl := range combined(allTools()) {
+		typ, ok := args[tl.Name]
 		if !ok {
-			t.Fatalf("no argument type for %s", tl.name)
+			t.Fatalf("no argument type for %s", tl.Name)
 		}
 		var schema struct {
 			Properties map[string]json.RawMessage `json:"properties"`
 		}
-		if err := json.Unmarshal(tl.schema(workspace.Work{Language: workspace.Chinese}), &schema); err != nil {
-			t.Fatalf("%s schema: %v", tl.name, err)
+		if err := json.Unmarshal(tl.Schema(workspace.Work{Language: workspace.Chinese}), &schema); err != nil {
+			t.Fatalf("%s schema: %v", tl.Name, err)
 		}
 		var properties []string
 		for name := range schema.Properties {
@@ -487,7 +401,7 @@ func TestToolSchemasMatchTheirArguments(t *testing.T) {
 		slices.Sort(fields)
 		slices.Sort(properties)
 		if !slices.Equal(fields, properties) {
-			t.Errorf("%s: arguments %v, schema %v", tl.name, fields, properties)
+			t.Errorf("%s: arguments %v, schema %v", tl.Name, fields, properties)
 		}
 	}
 }

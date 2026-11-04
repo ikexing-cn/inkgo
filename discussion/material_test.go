@@ -15,6 +15,7 @@ import (
 
 func materialRequest(t *testing.T, e *Engine, session string, words workspace.Event) (model.Request, Turn) {
 	t.Helper()
+	e.Tools = materialTools(e.Material)
 	f := &fake{replies: []string{"好。"}}
 	e.Talk = inference.Model{Model: limits, Completer: f}
 	turn, err := e.Say(context.Background(), session, words)
@@ -35,6 +36,7 @@ func TestAbsentSettingSendsNeitherSettingNorItsToolsAndRules(t *testing.T) {
 	e, session := setup(t)
 	revise(t, e, workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "不可透露的设定"})
 	e.Material.Setting = false
+	e.Tools = materialTools(e.Material)
 	r, turn := materialRequest(t, e, session, workspace.Event{Text: "你好"})
 	for _, forbidden := range []string{toolLookUp, toolNote, "记设定", "设定正文（", "不可透露的设定", "下面是这部作品的设定文档"} {
 		if hasTool(r, forbidden) || strings.Contains(r.System, forbidden) {
@@ -58,6 +60,7 @@ func TestEmptySettingStillSendsSettingAndBothToolsUnlikeAbsentSetting(t *testing
 		t.Fatal(r.System)
 	}
 	e.Material.Setting = false
+	e.Tools = materialTools(e.Material)
 	other, _ := e.Store.NewSession()
 	off, _ := materialRequest(t, e, other, workspace.Event{Text: "你好"})
 	if reflect.DeepEqual(r, off) {
@@ -72,6 +75,7 @@ func TestAbsentOutlineOmitsToolsBesideAndFixedContextWhileEmptyOutlineStaysPrese
 			_, _, two, _ := shelf(t, e)
 			writePlan(t, e.Store, workspace.Plan{Cards: []workspace.Card{{Title: "不该看见卡片", Chapter: two}}})
 			e.Material.Outline = false
+			e.Tools = materialTools(e.Material)
 			e.Beside = &Writing{Title: "第二章", Outline: "不该看见章纲", VolumeOutline: "不该看见卷纲"}
 			off, turn := materialRequest(t, e, session, workspace.Event{Origin: origin, Chapter: two, Text: "你好"})
 			if hasTool(off, toolReadOutline) {
@@ -115,6 +119,7 @@ func TestAbsentOutlineOmitsToolsBesideAndFixedContextWhileEmptyOutlineStaysPrese
 func TestUnadvertisedToolsFailWithoutChangingSettingAndHistoryReplaysOnlyText(t *testing.T) {
 	e, session := setup(t)
 	e.Material = aiapi.Material{}
+	e.Tools = nil
 	before := setting(t, e)
 	f := &fake{steps: []model.Reply{{Calls: []model.Call{
 		call("note", toolNote, map[string]any{"op": "add", "place": "body", "category": "人物", "text": "秘密", "sources": []string{"秘密"}}),
@@ -163,6 +168,7 @@ func TestUnadvertisedToolsFailWithoutChangingSettingAndHistoryReplaysOnlyText(t 
 func TestAbsentSettingCompactionHasZeroSettingBudget(t *testing.T) {
 	e, session := setup(t)
 	e.Material = aiapi.Material{}
+	e.Tools = nil
 	long(t, e, session, 24, 700, "井边的灯为什么不亮")
 	f := &digester{}
 	e.Talk = inference.Model{Model: limits, Completer: f}

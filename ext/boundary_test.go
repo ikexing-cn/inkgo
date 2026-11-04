@@ -22,10 +22,13 @@ func extensionImport(pkg, imp string, deps []string) error {
 			return nil
 		}
 	}
-	for _, allowed := range []string{"writer/ext", "writer/ext/hostapi", "writer/desk/kit", "writer/editor", "writer/locales", "writer/workspace", "writer/desk/book", "writer/internal/atomicfile"} {
+	for _, allowed := range []string{"writer/ext", "writer/ext/hostapi", "writer/desk/kit", "writer/editor", "writer/locales", "writer/workspace", "writer/desk/book", "writer/internal/atomicfile", "writer/talkbook"} {
 		if imp == allowed {
 			return nil
 		}
+	}
+	if (pkg == "writer/ext/lore" || pkg == "writer/ext/outline") && slices.Contains([]string{"writer/prompt", "writer/internal/textclip", "writer/inference"}, imp) {
+		return nil
 	}
 	if strings.HasPrefix(imp, "github.com/egoist/mygo/") {
 		return nil
@@ -201,7 +204,7 @@ func TestPublicAPIImportWithoutDeclaredDependencyFails(t *testing.T) {
 }
 
 func TestExtensionsMayImportOwnSubpackagesAndBookData(t *testing.T) {
-	for _, imp := range []string{"writer/ext/export/format", "writer/ext/export/format/internal", "writer/workspace", "writer/desk/book", "writer/internal/atomicfile"} {
+	for _, imp := range []string{"writer/ext/export/format", "writer/ext/export/format/internal", "writer/workspace", "writer/desk/book", "writer/internal/atomicfile", "writer/talkbook"} {
 		if err := extensionImport("writer/ext/export/format", imp, nil); err != nil {
 			t.Error(err)
 		}

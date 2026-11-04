@@ -1,4 +1,4 @@
-package discussion
+package lore
 
 import (
 	"fmt"
@@ -6,8 +6,13 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"context"
+	"encoding/json"
+	"writer/ext/ai/aiapi"
 	"writer/inference"
 	"writer/internal/textclip"
+	"writer/prompt"
+	"writer/talkbook"
 	"writer/workspace"
 )
 
@@ -73,11 +78,11 @@ func describe(in noteArgs, set workspace.Setting) string {
 //
 // What breaks a rule is told to the model, which may try again.
 func (t *toolbox) note(in noteArgs) outcome {
-	set, err := t.store.Setting()
+	set, err := t.Store.Setting()
 	if err != nil {
 		return failed("读不出设定：%v", err)
 	}
-	events, err := t.store.Events(t.session)
+	events, err := t.Store.Events(t.Session)
 	if err != nil {
 		return failed("读不出这次讨论：%v", err)
 	}
@@ -103,7 +108,7 @@ func (t *toolbox) note(in noteArgs) outcome {
 			if !ok {
 				continue
 			}
-			src := workspace.Source{Session: t.session, Message: m.ID, Quote: words}
+			src := workspace.Source{Session: t.Session, Message: m.ID, Quote: words}
 			if i := strings.Index(text, words); i >= 0 && m.Role == workspace.RoleUser {
 				start := utf8.RuneCountInString(text[:i])
 				if qt, ok := m.QuoteAt(start, start+utf8.RuneCountInString(words)); ok {
@@ -142,10 +147,10 @@ func (t *toolbox) note(in noteArgs) outcome {
 			cite(s)
 		}
 	}
-	if in.Category != "" && !slices.ContainsFunc(t.store.Work().Categories, func(c workspace.Category) bool { return c.Name == in.Category }) {
+	if in.Category != "" && !slices.ContainsFunc(t.Store.Work().Categories, func(c workspace.Category) bool { return c.Name == in.Category }) {
 		bad = append(bad, fmt.Sprintf("没有「%s」这个分类", in.Category))
 	}
-	if in.Place != "" && placeNames[in.Place] == "" {
+	if in.Place != "" && toolPlaceNames[in.Place] == "" {
 		bad = append(bad, fmt.Sprintf("没有 %q 这个位置", in.Place))
 	}
 	var e workspace.Entry
@@ -202,18 +207,18 @@ func (t *toolbox) note(in noteArgs) outcome {
 		if out.Text == "" || in.Category != "" || len(in.Sources) == 0 || in.Place != workspace.PlaceBody && in.Place != workspace.PlaceOpen {
 			bad = append(bad, "change 要有 chapter、place（body 或 open）、text 和 sources，不带 category")
 		}
-		b, err := t.book()
+		b, err := t.Shared.Book()
 		if err != nil {
 			return failed("读不出章节：%v", err)
 		}
 		if strings.TrimSpace(in.Chapter) == "" {
 			bad = append(bad, "change 要写从哪一章起（chapter）")
-		} else if n, missing := b.find(in.Chapter); n == nil {
+		} else if n, missing := b.Find(in.Chapter); n == nil {
 			bad = append(bad, strings.TrimSuffix(missing, "。"))
 		} else {
 			out.From = n.ID
 		}
-		in.Chapter = b.named(in.Chapter)
+		in.Chapter = b.Named(in.Chapter)
 		if in.Place == workspace.PlaceBody {
 			if !fromAuthor {
 				settled()
@@ -255,8 +260,8 @@ func (t *toolbox) note(in noteArgs) outcome {
 		return failed("没有记下：%s。", strings.Join(bad, "；"))
 	}
 	did := describe(in, set) // before it changes the entry
-	r, err := t.store.Revise(workspace.Revision{By: workspace.ByTalk, Session: t.session, Turn: t.turn,
-		Model: t.model.Name, Effort: string(t.model.Effort), Ops: []workspace.Op{out}})
+	r, err := t.Store.Revise(workspace.Revision{By: workspace.ByTalk, Session: t.Session, Turn: t.Turn,
+		Model: t.Model, Effort: t.Effort, Ops: []workspace.Op{out}})
 	if err != nil {
 		return failed("没有记下：%v", err)
 	}
@@ -264,14 +269,196 @@ func (t *toolbox) note(in noteArgs) outcome {
 	if in.Op == workspace.OpAdd {
 		n = len(set.Entries) + 1
 	}
-	return outcome{text: fmt.Sprintf("已记下，编号 %d：%s", n, did), revision: r.ID}
+	return outcome{Text: fmt.Sprintf("已记下，编号 %d：%s", n, did), Revision: r.ID}
 }
 
 func noteLabel(r *labelReader, in noteArgs) string {
-	in.Chapter = r.named(in.Chapter)
+	in.Chapter = r.Shared.Named(in.Chapter)
 	var set workspace.Setting
 	if in.Op == workspace.OpEdit || in.Op == workspace.OpMove {
 		set = r.setting()
 	}
 	return "记下：" + describe(in, set)
+}
+
+// toolPlaceNames name the places of the setting as the talk's rules do.
+var toolPlaceNames = map[string]string{workspace.PlaceBody: "设定正文", workspace.PlaceOpen: "悬而未决", workspace.PlaceDropped: "已放弃"}
+
+type lookUpArgs struct {
+	Query string `json:"query"`
+}
+
+func (l lookUpArgs) trim() lookUpArgs {
+	l.Query = strings.TrimSpace(l.Query)
+	return l
+}
+
+func (t *toolbox) lookUp(in lookUpArgs) outcome {
+	if in.Query == "" {
+		return failed("query 不能为空")
+	}
+	set, err := t.Shared.Setting()
+	if err != nil {
+		return failed("读不出设定：%v", err)
+	}
+	b, err := t.Shared.Book()
+	if err != nil {
+		return failed("读不出章节：%v", err)
+	}
+	titles := map[string]string{}
+	title := func(session string) string {
+		if name, ok := titles[session]; ok {
+			return name
+		}
+		events, _ := t.Store.Events(session)
+		name := talkTitle(events)
+		if session == t.Session {
+			name = "这一次的讨论"
+		}
+		titles[session] = name
+		return name
+	}
+	return lookupSetting(in.Query, set, b, t.At, title)
+}
+
+func lookUpLabel(_ *labelReader, in lookUpArgs) string {
+	return "查了设定「" + in.Query + "」"
+}
+
+func lookupSetting(query string, set workspace.Setting, b talkbook.Book, at string, title func(string) string) outcome {
+	chapters, later := b.Name, talkbook.Changes(set, b.Tree)
+	if at != "" {
+		set, _ = set.At(b.Tree.Order(), at)
+		later = nil
+	}
+	var named, said []int
+	for n, e := range set.Entries {
+		matchesName := slices.ContainsFunc(e.Names, func(name string) bool { return strings.Contains(name, query) || strings.Contains(query, name) })
+		if !matchesName &&
+			!strings.Contains(prompt.Text(e), query) && !slices.ContainsFunc(later[e.ID], func(c string) bool { return strings.Contains(c, query) }) {
+			continue
+		}
+		if matchesName {
+			named = append(named, n)
+		} else {
+			said = append(said, n)
+		}
+	}
+	matched := append(named, said...)
+	numbers := set.EntryNumbers()
+	var found []string
+	for _, n := range matched[:min(len(matched), maxHits)] {
+		e := set.Entries[n]
+		head := workspace.EntryRef(numbers[e.ID]) + fmt.Sprintf("（%s｜%s", toolPlaceNames[e.Place], e.Category)
+		if len(e.Names) > 0 {
+			head += "｜" + strings.Join(e.Names, "、")
+		}
+		lines := []string{head + "）" + prompt.Text(e)}
+		for _, c := range later[e.ID] {
+			lines = append(lines, "  "+c)
+		}
+		for _, src := range e.Sources[:min(len(e.Sources), 3)] {
+			where := ""
+			switch {
+			case src.Message != "":
+				where = "讨论「" + title(src.Session) + "」"
+			case src.Chapter != "":
+				where = "正文「" + chapters[src.Chapter] + "」"
+			}
+			lines = append(lines, "  出处：「"+textclip.Clip(prompt.OneLine(src.Quote), 80)+"」"+where)
+		}
+		found = append(found, strings.Join(lines, "\n"))
+	}
+	switch {
+	case len(found) == 0:
+		return outcome{Text: "设定里没有「" + query + "」。"}
+	case len(matched) > maxHits:
+		return outcome{Text: strings.Join(found, "\n") + fmt.Sprintf("\n还有 %d 条没有列出，换一个更具体的词再查。", len(matched)-maxHits)}
+	}
+	return outcome{Text: strings.Join(found, "\n")}
+}
+
+// noteSchema is note_setting's schema, its categories the work's.
+func noteSchema(w workspace.Work) json.RawMessage {
+	var categories []string
+	for _, c := range w.Categories {
+		categories = append(categories, c.Name)
+	}
+	cats, _ := json.Marshal(categories)
+	return json.RawMessage(`{"type":"object","properties":{` +
+		`"op":{"type":"string","enum":["add","edit","move","name","change"]},` +
+		`"entry":{"type":"integer","minimum":1,"description":"edit、move、name、change 改的条目的编号，即设定里方括号中的数字"},` +
+		`"chapter":{"type":"string","description":"change 从哪一章（或哪一卷）起，章名和搜全书结果里写的一样"},` +
+		`"place":{"type":"string","enum":["body","open","dropped"],"description":"body 是设定正文，open 是悬而未决，dropped 是已放弃"},` +
+		`"category":{"type":"string","enum":` + string(cats) + `},` +
+		`"text":{"type":"string","description":"一句能独立成立的设定；change 写从那一章起这一条的全文"},` +
+		`"names":{"type":"array","items":{"type":"string"},"description":"条目说的专有名词，第一个是正式名称"},` +
+		`"sources":{"type":"array","items":{"type":"string"},"description":"这条出自的原话，逐字复制自本次讨论里已经说过的话"},` +
+		`"author_said":{"type":"string","description":"作者拍板、接受、拒绝或改口的原话，逐字复制"}` +
+		`},"required":["op"]}`)
+}
+
+type toolbox struct{ aiapi.ToolEnv }
+type labelReader struct{ aiapi.ToolEnv }
+
+func (r *labelReader) setting() workspace.Setting { s, _ := r.Shared.Setting(); return s }
+
+type outcome = aiapi.ToolResult
+
+func failed(f string, v ...any) outcome { return outcome{Text: fmt.Sprintf(f, v...), Failed: true} }
+func fixedSchema(s string) func(workspace.Work) json.RawMessage {
+	return func(workspace.Work) json.RawMessage { return json.RawMessage(s) }
+}
+
+type arguments[T any] interface{ trim() T }
+
+func runTool[T arguments[T]](run func(*toolbox, T) outcome) func(context.Context, aiapi.ToolEnv, json.RawMessage) aiapi.ToolResult {
+	return func(_ context.Context, e aiapi.ToolEnv, in json.RawMessage) aiapi.ToolResult {
+		var a T
+		if err := json.Unmarshal(in, &a); err != nil {
+			return failed("参数不是约定的 JSON：%v", err)
+		}
+		return run(&toolbox{e}, a.trim())
+	}
+}
+func labelTool[T arguments[T]](label func(*labelReader, T) string) func(aiapi.ToolEnv, json.RawMessage) string {
+	return func(e aiapi.ToolEnv, in json.RawMessage) string {
+		var a T
+		json.Unmarshal(in, &a)
+		return label(&labelReader{e}, a.trim())
+	}
+}
+
+const queryArg = `"query":{"type":"string","description":"要找的词，越具体越好，比如人名、地名、物件"}`
+const maxHits = 20
+
+// TalkTools returns the tools contributed by this extension.
+func TalkTools() []aiapi.Tool {
+	return []aiapi.Tool{
+		{
+			Name: "look_up_setting", Order: 30, Prompt: aiapi.ToolPrompt{Order: 40, Lookup: "look_up_setting 查设定的全文和出处", SettingIndex: "要看全文和出处，用 look_up_setting 查。"},
+			Description: "按名字或词查设定，返回条目的编号、位置、分类、名字、全文和出处。",
+			Schema:      fixedSchema(`{"type":"object","properties":{` + queryArg + `},"required":["query"]}`),
+			Run:         runTool((*toolbox).lookUp),
+			Label:       labelTool(lookUpLabel),
+		},
+		{
+			Name: "note_setting", Order: 60, Prompt: aiapi.ToolPrompt{Order: 60, Section: noteRules},
+			Description: "把这次讨论里定下的东西记进设定文档，一次一个操作：add 新增，edit 改写，move 换位置或分类，name 补名字，change 记一条从某一章起的变化。规则见系统提示里的「记设定」。",
+			Schema:      noteSchema,
+			Run:         runTool((*toolbox).note),
+			Label:       labelTool(noteLabel),
+		},
+	}
+}
+
+// talkTitle names a talk by what the author said first, as the talks
+// list does.
+func talkTitle(events []workspace.Event) string {
+	for _, e := range events {
+		if e.Role == workspace.RoleUser {
+			return textclip.Clip(prompt.OneLine(e.Text), 14)
+		}
+	}
+	return "新对话"
 }

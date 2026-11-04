@@ -76,7 +76,7 @@ type Assistant interface {
 	// each event it writes on the way: the calls of a step to look things
 	// up, note the setting or propose a change of the prose, and what each
 	// returned.
-	Talk(s *workspace.Store, material Material, beside *Beside, progress func(Progress), step func(workspace.Event)) (Talk, error)
+	Talk(s *workspace.Store, material Material, tools []Tool, beside *Beside, progress func(Progress), step func(workspace.Event)) (Talk, error)
 	// Preloaded describes what a talk opened to draft or rewrite chapter
 	// of s carries before anything is said or looked up: the tokens, the
 	// chapter's cards, whether the chapter before goes whole, and where
@@ -215,14 +215,43 @@ const NoOutlines OutlineSource = -1
 // Service resolves the active machine backend.
 const Service ext.ServiceKey[Backend] = "ai.service"
 
-// Tool describes a tool's name, description and JSON parameter schema. Run
-// executes off the UI thread in talk and must never touch per-frame objects
-// such as ui.Context or ui.Element. Arguments and results are JSON values.
-type Tool struct {
-	Name, Description string
-	Parameters        json.RawMessage
-	Run               func(context.Context, json.RawMessage) (json.RawMessage, error)
+// ToolEnv is the immutable environment of a tool call off the UI thread.
+type ToolEnv struct {
+	Store         *workspace.Store
+	Session, Turn string
+	At            string
+	Model, Effort string
+	Shared        *ToolShared
 }
 
-// Tools collects tools for the future talk extension.
+// ToolResult reports a call's output and changes.
+type ToolResult struct {
+	Text     string
+	Failed   bool
+	Revision string
+	Proposal *workspace.Proposal
+}
+
+// Tool runs and labels calls off the UI thread, without per-frame objects.
+type Tool struct {
+	Name, Description string
+	// Order is the position in the tool list sent to the model.
+	// Ties retain registration order.
+	Order  int
+	Schema func(workspace.Work) json.RawMessage
+	Run    func(context.Context, ToolEnv, json.RawMessage) ToolResult
+	Label  func(ToolEnv, json.RawMessage) string
+	Prompt ToolPrompt
+}
+
+// ToolPrompt supplies lookup phrases, notes and sections for the system prompt.
+type ToolPrompt struct {
+	// Order is the position in the lookup sentence and among prompt sections.
+	Order                  int
+	Lookup, Notes, Section string
+	// SettingIndex follows the generic introduction to a setting index.
+	SettingIndex string
+}
+
+// Tools collects tools contributed to talk by active extensions.
 const Tools ext.PointKey[Tool] = "ai.tools"

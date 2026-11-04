@@ -1,6 +1,7 @@
 package desk
 
 import (
+	"encoding/json"
 	"slices"
 	"testing"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"writer/ext/ai/aitext"
 	"writer/internal/testshot"
 	"writer/model"
+	"writer/workspace"
 )
 
 func TestAIServiceExistsOnlyWhileExtensionIsOn(t *testing.T) {
@@ -50,14 +52,14 @@ func TestAIHasNoBookSwitchAndIgnoresPersistedBookOverride(t *testing.T) {
 
 func TestAIToolsPointIsOpenAndFakeToolIsOnContributionLedger(t *testing.T) {
 	fake := ext.Module{ID: "faketool", Requires: []string{"ai"}, Setup: func(r *ext.Registrar) {
-		ext.Contribute(r, aiapi.Tools, "lookup", aiapi.Tool{Name: "lookup", Description: "Fake lookup", Parameters: []byte(`{"type":"object"}`)})
+		ext.Contribute(r, aiapi.Tools, "lookup", aiapi.Tool{Name: "lookup", Description: "Fake lookup", Schema: func(workspace.Work) json.RawMessage { return json.RawMessage(`{"type":"object"}`) }})
 	}}
 	a := newTestApp(ai.New(""), fake)
 	defer a.Close()
 	if !slices.Contains(a.extensions.Ledger("ai").Points, "ai.tools") {
 		t.Fatal("missing AI tools point")
 	}
-	if got := ext.Items(a.extensions, aiapi.Tools); len(got) != 1 || got[0].Value.Name != "lookup" {
+	if got := ext.Items(a.extensions, aiapi.Tools); !slices.ContainsFunc(got, func(i ext.Item[aiapi.Tool]) bool { return i.Value.Name == "lookup" }) {
 		t.Fatal(got)
 	}
 	contributions := a.extensions.Ledger("faketool").Contributions
@@ -120,4 +122,16 @@ func TestShotExtAISettingsOnOffAndOverview(t *testing.T) {
 	shot(t, tt, "ext-ai-settings-off.png")
 	a.openPrefs("extensions")
 	shot(t, tt, "ext-ai-overview.png")
+}
+
+func TestLoreAndOutlineToolsAreContributionsOnTheirOwnersLedgers(t *testing.T) {
+	a, _, _ := fixture(t)
+	for owner, names := range map[string][]string{"lore": {"look_up_setting", "note_setting"}, "outline": {"read_outline"}} {
+		ledger := a.extensions.Ledger(owner)
+		for _, name := range names {
+			if !slices.ContainsFunc(ledger.Contributions, func(c ext.Contribution) bool { return c.Point == "ai.tools" && c.ID == owner+"."+name }) {
+				t.Fatal(owner, name, ledger.Contributions)
+			}
+		}
+	}
 }

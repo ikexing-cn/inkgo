@@ -45,7 +45,7 @@ func (e *Engine) compact(ctx context.Context, session string, before int, user w
 	_, turns := uncompacted(events)
 	index := 0
 	if e.Material.Setting {
-		index = prompt.Estimate(talkIndex(w, set, viewOf(set, tree, along.Fixed)), w.Language)
+		index = prompt.Estimate(talkIndex(w, set, viewOf(set, tree, along.Fixed), along.Tools), w.Language)
 	}
 	n := due(e.Talk.Model, probe.Sent, measured(events, probe.Sent), index, turns, w.Language)
 	if n == 0 {
@@ -58,7 +58,7 @@ func (e *Engine) compact(ctx context.Context, session string, before int, user w
 		if n == 0 {
 			return nil
 		}
-		asked, took, err := lay(w, e.Talk.Input(), set, tree, talk{material: e.Material, digest: digest.Text, turns: turns[:n], input: digestAskFor(e.Material), near: along.Beside != nil, fixed: along.Fixed, oldest: true})
+		asked, took, err := lay(w, e.Talk.Input(), set, tree, talk{material: e.Material, tools: e.Tools, digest: digest.Text, turns: turns[:n], input: digestAskFor(e.Material), near: along.Beside != nil, fixed: along.Fixed, oldest: true})
 		if err != nil {
 			return err
 		}

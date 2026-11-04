@@ -146,7 +146,7 @@ func TestSetupErrorsCrossThePort(t *testing.T) {
 		"key":             func() error { return s.SetKey("invalid id", "unused") },
 		"catalog service": func() error { _, err := s.Catalog("missing"); return err },
 		"talk model": func() error {
-			_, err := s.Talk(st, aiapi.Material{Setting: true, Outline: true}, nil, nil, nil)
+			_, err := s.Talk(st, aiapi.Material{Setting: true, Outline: true}, nil, nil, nil, nil)
 			return err
 		},
 		"writing model":    func() error { _, err := s.Pen(st, aiapi.Material{Setting: true, Outline: true}); return err },
@@ -297,7 +297,7 @@ func TestOffBuildsNothing(t *testing.T) {
 	if _, err := s.Catalog("deepseek"); !errors.Is(err, ErrOff) {
 		t.Fatalf("catalog: %v", err)
 	}
-	if _, err := s.Talk(st, aiapi.Material{Setting: true, Outline: true}, nil, nil, nil); !errors.Is(err, ErrOff) {
+	if _, err := s.Talk(st, aiapi.Material{Setting: true, Outline: true}, nil, nil, nil, nil); !errors.Is(err, ErrOff) {
 		t.Fatalf("talk: %v", err)
 	}
 	if _, err := s.Pen(st, aiapi.Material{Setting: true, Outline: true}); !errors.Is(err, ErrOff) {
@@ -345,7 +345,7 @@ func TestSendingDoesNotReadTheSwitch(t *testing.T) {
 	}
 	var reads int
 	s.BindSwitch(func() bool { reads++; return true })
-	talk, err := s.Talk(st, aiapi.Material{Setting: true, Outline: true}, nil, nil, nil)
+	talk, err := s.Talk(st, aiapi.Material{Setting: true, Outline: true}, nil, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

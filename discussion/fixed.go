@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"writer/ext/ai/aiapi"
+	"writer/talkbook"
 
 	"writer/workspace"
 )
@@ -61,8 +62,8 @@ func fixedOf(st *workspace.Store, material aiapi.Material, tree workspace.Tree, 
 	if !ok || n.Folder {
 		return nil, errGone
 	}
-	b := bookOf(tree)
-	f := &Fixed{Origin: origin, Chapter: chapter, Title: b.name[n.ID]}
+	b := talkbook.Of(tree)
+	f := &Fixed{Origin: origin, Chapter: chapter, Title: b.Name[n.ID]}
 	add := func(part, text, item string) {
 		f.Pieces = append(f.Pieces, Piece{part, text, item})
 	}
@@ -113,12 +114,12 @@ func fixedOf(st *workspace.Store, material aiapi.Material, tree workspace.Tree, 
 	}
 	if vol != nil {
 		if o := strings.TrimSpace(outlines[vol.ID]); o != "" {
-			add(workspace.PartOutline, "【所在卷："+b.name[vol.ID]+"】卷纲：\n"+o, "卷纲："+b.name[vol.ID])
+			add(workspace.PartOutline, "【所在卷："+b.Name[vol.ID]+"】卷纲：\n"+o, "卷纲："+b.Name[vol.ID])
 		}
 	}
 	if material.Outline {
 		if p, err := st.Plan(); err == nil {
-			if rows := chapterCards(p, b, chapter); len(rows) > 0 {
+			if rows := talkbook.ChapterCards(p, b, chapter); len(rows) > 0 {
 				f.preload.Cards = len(rows)
 				add(workspace.PartCards, "【本章的卡片】\n"+strings.Join(rows, "\n"), fmt.Sprintf("本章的卡片 %d 张", len(rows)))
 			}
@@ -134,7 +135,7 @@ func fixedOf(st *workspace.Store, material aiapi.Material, tree workspace.Tree, 
 		var rows []string
 		for _, m := range nodes {
 			if o := strings.TrimSpace(outlines[m.ID]); o != "" {
-				rows = append(rows, b.name[m.ID]+"：\n"+o)
+				rows = append(rows, b.Name[m.ID]+"：\n"+o)
 			}
 		}
 		return rows
@@ -149,7 +150,7 @@ func fixedOf(st *workspace.Store, material aiapi.Material, tree workspace.Tree, 
 	if p, ok := tree.Previous(n); ok {
 		if pc, err := st.ReadChapter(p.ID); err == nil && strings.TrimSpace(pc.Text) != "" {
 			f.preload.Previous = true
-			add(workspace.PartPrevious, "【上一章全文："+b.name[p.ID]+"】\n"+pc.Text, fmt.Sprintf("上一章全文：%s %d %s", b.name[p.ID], st.Work().Language.Count(pc.Text), countUnit(st.Work().Language)))
+			add(workspace.PartPrevious, "【上一章全文："+b.Name[p.ID]+"】\n"+pc.Text, fmt.Sprintf("上一章全文：%s %d %s", b.Name[p.ID], st.Work().Language.Count(pc.Text), countUnit(st.Work().Language)))
 		}
 	}
 	// A draft goes on from what the chapter has, or takes its place.

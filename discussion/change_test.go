@@ -32,7 +32,7 @@ func TestATalkTellsAndNotesHowTheSettingChanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	box := &toolbox{allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store, session: session, turn: ok.ID, model: inference.Model{Name: "deepseek/deepseek-flash"}}
+	box := &toolbox{extra: allTools(), allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store, session: session, turn: ok.ID, model: inference.Model{Name: "deepseek/deepseek-flash"}}
 	for _, c := range []struct {
 		in   noteArgs
 		want string // in the refusal; empty when it is noted
@@ -66,7 +66,7 @@ func TestATalkTellsAndNotesHowTheSettingChanges(t *testing.T) {
 		t.Fatal(err)
 	}
 	w := e.Store.Work()
-	got, err := Assemble(w, 100000, set, tree, nil, "问", Along{Material: aiapi.Material{Setting: true, Outline: true}})
+	got, err := Assemble(w, 100000, set, tree, nil, "问", Along{Tools: allTools(), Material: aiapi.Material{Setting: true, Outline: true}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestATalkTellsAndNotesHowTheSettingChanges(t *testing.T) {
 	if !strings.Contains(got.Request.System, "[1] 林晚：林晚用左手拧灯座。\n  "+strings.Join(lines, "\n  ")) || !slices.Equal(got.Included[0].Changes, lines) || got.Included[0].Text != "林晚：林晚用左手拧灯座。" {
 		t.Fatalf("%s\n%+v", got.Request.System, got.Included)
 	}
-	if index := talkIndex(w, set, viewOf(set, tree, nil)); !strings.HasSuffix(index, "[1] 人物 · 林晚：林晚没了左手") {
+	if index := talkIndex(w, set, viewOf(set, tree, nil), allTools()); !strings.HasSuffix(index, "[1] 人物 · 林晚：林晚没了左手") {
 		t.Fatal(index)
 	}
 	for _, q := range []string{"林晚", "右手修灯"} {
@@ -90,7 +90,7 @@ func TestATalkTellsAndNotesHowTheSettingChanges(t *testing.T) {
 	if tree, err = e.Store.Chapters(); err != nil {
 		t.Fatal(err)
 	}
-	if got, err = Assemble(w, 100000, set, tree, nil, "问", Along{Material: aiapi.Material{Setting: true, Outline: true}}); err != nil || strings.Contains(got.Request.System, "第三章") {
+	if got, err = Assemble(w, 100000, set, tree, nil, "问", Along{Tools: allTools(), Material: aiapi.Material{Setting: true, Outline: true}}); err != nil || strings.Contains(got.Request.System, "第三章") {
 		t.Fatal(got.Request.System, err)
 	}
 }

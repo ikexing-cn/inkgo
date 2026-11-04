@@ -25,8 +25,10 @@ func ask(ctx context.Context, m inference.Model, req model.Request, on func(mode
 type Engine struct {
 	// Material is the provider snapshot taken on the frame thread.
 	Material aiapi.Material
-	Store    *workspace.Store
-	Talk     inference.Model
+	// Tools is the contributed tool snapshot taken on the frame thread.
+	Tools []aiapi.Tool
+	Store *workspace.Store
+	Talk  inference.Model
 	// Progress, when set, hears what the reply streams, never empty, and
 	// Step each step's calls and each call's result as they are written,
 	// and each digest compacting the talk: with no ID as it is asked for,
@@ -148,10 +150,10 @@ func (e *Engine) assemble(session string, before int, user workspace.Event) (Con
 func (e *Engine) along(tree workspace.Tree, events []workspace.Event, user workspace.Event) (Along, error) {
 	origin, chapter := originOf(append(slices.Clip(events), user))
 	if origin == "" {
-		return Along{Beside: e.Beside, Material: e.Material}, nil
+		return Along{Beside: e.Beside, Material: e.Material, Tools: e.Tools}, nil
 	}
 	f, err := fixedOf(e.Store, e.Material, tree, origin, chapter)
-	return Along{Fixed: f, Material: e.Material}, err
+	return Along{Fixed: f, Material: e.Material, Tools: e.Tools}, err
 }
 
 // read is the setting and the talk before event before, or all of it for
@@ -198,7 +200,7 @@ const fullNote = "（这次查到的内容太多，放不下了；不能再查�
 // reply, and what came after it as estimated; or, where the provider
 // counts nothing, while it fits in the room the assembly left.
 func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembled Context, along Along) (Turn, error) {
-	box := &toolbox{allowed: assembled.Request.Tools, store: e.Store, session: session, turn: turn.User.ID, model: e.Talk}
+	box := &toolbox{extra: e.Tools, ctx: ctx, cache: aiapi.NewToolShared(e.Store), allowed: assembled.Request.Tools, store: e.Store, session: session, turn: turn.User.ID, model: e.Talk}
 	if along.Fixed != nil {
 		box.at = along.Fixed.Chapter
 	}

@@ -4,6 +4,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
 	"writer/ext"
+	"writer/ext/ai/aiapi"
 	"writer/ext/context/contextapi"
 	"writer/ext/hostapi"
 	"writer/ext/outline/outlineapi"
@@ -22,7 +23,10 @@ func New() (ext.Module, *Page) {
 }
 
 func module(controller *Page) ext.Module {
-	return ext.Module{ID: "outline", Kind: ext.Feature, Group: hostapi.GroupLore, Requires: []string{"context"}, Name: outlinetext.ModOutline, Desc: outlinetext.ModOutlineAbout, Setup: func(r *ext.Registrar) {
+	return ext.Module{ID: "outline", Kind: ext.Feature, Group: hostapi.GroupLore, Requires: []string{"context"}, Optional: []string{"ai"}, Name: outlinetext.ModOutline, Desc: outlinetext.ModOutlineAbout, Setup: func(r *ext.Registrar) {
+		for _, tool := range TalkTools() {
+			ext.Contribute(r, aiapi.Tools, tool.Name, tool)
+		}
 		p := controller
 		if p == nil {
 			p = &Page{}

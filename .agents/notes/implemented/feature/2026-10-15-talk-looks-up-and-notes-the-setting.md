@@ -38,7 +38,7 @@ Status: implemented
 - 搜全书用 `Store.Texts()` 批量读取正文，按章节树的顺序和名称列出结果；标记或纲损坏不挡正文搜索。
 - 一次回复的标签按各调用自己的参数生成；只有某个调用写了章节名时才读章节树，只有某个 note_setting 在改位置或分类时才读设定，各自最多读一次。
 - 查设定先筛选并排序，只为实际展示的来源读取讨论标题，同一次查询复用已读的标题。
-- 每个工具的参数类型、处理函数和标签放在一起：`search_book`、`read_prose`、`look_up_setting`、`search_talks` 在 `discussion/tools.go`，`read_outline` 在 `outline.go`，`note_setting` 在 `note.go`，`propose_edit` 在 `propose.go`；`tools.go` 的 `toolTable` 按名字、说明、参数格式、处理函数和标签列出每个工具，`tools(w)` 从它生成发给模型的列表。
+- 每个工具的参数类型、处理函数和标签放在一起：`search_book`、`read_prose`、`look_up_setting`、`search_talks` 在 `discussion/tools.go`，`read_outline` 在 `outline.go`，`note_setting` 在 `note.go`，`propose_edit` 在 `propose.go`；`tools.go` 的 `toolTable` 按名字、说明、参数格式、处理函数和标签列出每个工具，`tools(w)` 从它生成发给模型的列表。2026-11-04 起 `look_up_setting`、`note_setting` 在 `ext/lore`（`note.go`），`read_outline` 在 `ext/outline`（`tools.go`），由扩展登记进 AI 的工具点；`toolTable` 只剩讨论自己的四个，见[扩展模块](../../proposed/architecture/2026-11-02-extension-modules.md)第 3.2 步。
 
 ### 记设定
 
@@ -53,7 +53,7 @@ Status: implemented
 
 参数里用编号指条目。`sources` 和 `author_said` 是逐字复制的原话。
 
-能不能记，由程序判断（`discussion/note.go` 的 `note`），规则照搬记账员的：
+能不能记，由程序判断（`discussion/note.go` 的 `note`，2026-11-04 搬到 `ext/lore/note.go`），规则照搬记账员的：
 
 1. 每句原话都必须是这次讨论里已经说过的，作者的话按带引用的 `Said()` 核对。这次回复里的话还不能引。核对仍用 `Locate` 的放宽：忽略空白、Markdown 标记和引号，保存时换回原样。原话落在作者引来的正文里时，出处标上那一章。
 2. 进正文要有作者的话：要么出处本身是作者说的，要么在 `author_said` 里引作者接受的原话。进已放弃也要 `author_said`。

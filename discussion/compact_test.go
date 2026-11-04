@@ -125,7 +125,7 @@ func TestALongTalkIsCompacted(t *testing.T) {
 	if r := events[len(events)-1]; r.Role != workspace.RoleAssistant || r.Sent.Part(workspace.PartDigest) == 0 {
 		t.Fatalf("the reply did not record the digest: %+v", r.Sent)
 	}
-	found := (&toolbox{allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store, session: session}).searchTalks(searchArgs{Query: "井边的灯"})
+	found := (&toolbox{extra: allTools(), allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store, session: session}).searchTalks(searchArgs{Query: "井边的灯"})
 	if found.failed || !strings.Contains(found.text, "作者：井边的灯为什么不亮") {
 		t.Fatalf("search_talks lost what was compacted: %s", found.text)
 	}
