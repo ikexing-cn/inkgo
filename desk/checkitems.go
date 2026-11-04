@@ -13,8 +13,10 @@ import (
 )
 
 // checkKey is everything checkItems reads: the book, and the chapter open
-// with its editor's text, when that text counts as live.
+// with its editor's text, when that text counts as live, and the language
+// revision, since the margin notes it derives say words.
 type checkKey struct {
+	locale  uint64
 	book    *book.Book
 	version int
 	ed      *editor.Editor
@@ -29,7 +31,7 @@ func (a *App) checkKey() checkKey {
 	if w.cur().ed != nil {
 		doc = w.cur().ed.Doc.Version()
 	}
-	return checkKey{a.book, a.book.Version(), w.cur().ed, doc, w.node, a.liveChapter()}
+	return checkKey{a.localeRevision.Load(), a.book, a.book.Version(), w.cur().ed, doc, w.node, a.liveChapter()}
 }
 
 // doubtKey is the check items the marks are drawn from, and whether the AI

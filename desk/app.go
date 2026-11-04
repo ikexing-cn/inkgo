@@ -141,6 +141,13 @@ type App struct {
 
 	// ErrorText contains translators registered by application features.
 	ErrorText []ErrorTranslator
+	// SetLocale applies a language chosen in settings through the window host.
+	SetLocale func(string)
+	// localeRevision counts the language changes LocaleChanged heard, from
+	// mygo's main thread; caches of words keep the one they were built at.
+	localeRevision atomic.Uint64
+	// localeShown is the revision the window title was last set at.
+	localeShown uint64
 }
 
 // New is the app with ai, whose configuration file says where this

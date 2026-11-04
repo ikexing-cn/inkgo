@@ -1,6 +1,7 @@
 package desk
 
 import (
+	"github.com/egoist/mygo/i18n"
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
 
@@ -232,6 +233,15 @@ func (a *App) prefsRow(c *ui.Context, label string, fn func()) {
 // looksView is the settings' 外观.
 func (a *App) looksView(c *ui.Context) {
 	a.prefsRow(c, locales.SettingsColor(), func() { a.themeSegments(c, false) })
+	a.prefsRow(c, locales.SettingsLanguage(), func() {
+		values, names := languageOptions()
+		if kit.Dots(c, &a.shelf.Locale, locales.SettingsLanguage(), values, names) {
+			a.saveShelf()
+			if a.SetLocale != nil {
+				a.SetLocale(a.shelf.Locale)
+			}
+		}
+	})
 	on := !a.shelf.NoNames
 	if ui.Checkbox(c, &on, locales.SettingsMarkNames()).Changed() {
 		a.shelf.NoNames = !on
@@ -241,6 +251,23 @@ func (a *App) looksView(c *ui.Context) {
 		a.gpuSwitch(c)
 	}
 }
+
+// languageOptions lists only the app's catalogs, with its source first.
+func languageOptions() (values, names []string) {
+	values = append([]string{""}, locales.Catalog.Languages()...)
+	names = append(names, locales.SettingsLangSystem())
+	for _, tag := range values[1:] {
+		names = append(names, i18n.Autonym(tag))
+	}
+	return values, names
+}
+
+// Locale returns the language selected on this machine, empty for the system.
+func (a *App) Locale() string { return a.shelf.Locale }
+
+// LocaleChanged schedules translated state to be refreshed on the view thread.
+// MyGo calls listeners on its main thread, independently of drawing a frame.
+func (a *App) LocaleChanged() { a.localeRevision.Add(1) }
 
 // offerNoGPU offers 禁用 GPU 加速 and draws by it. It was off until mygo
 // v0.6.4: drawing without the GPU on Windows mostly left the window white,

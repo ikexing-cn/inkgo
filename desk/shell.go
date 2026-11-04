@@ -50,6 +50,10 @@ func (a *App) turnPage() {
 }
 
 func (a *App) View(c *ui.Context) {
+	if revision := a.localeRevision.Load(); revision != a.localeShown {
+		a.localeShown = revision
+		a.titled = ""
+	}
 	a.extensionFrame(c)
 	defer func() {
 		if a.MenuChanged != nil {

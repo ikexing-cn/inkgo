@@ -19,6 +19,7 @@ import (
 	"writer/ai"
 	"writer/ai/aitext"
 	"writer/desk"
+	"writer/locales"
 )
 
 func main() {
@@ -41,6 +42,13 @@ func main() {
 	service := ai.New(path)
 	service.Trace = *trace
 	d := desk.New(service, modules...)
+	mygo.App.SetLanguages(locales.Catalog.Languages()...)
+	// The in-app choice is authoritative: on macOS this intentionally
+	// replaces a per-app language changed in System Settings at next launch.
+	// MYGO_LOCALE still overrides this startup call without being saved.
+	mygo.App.SetLocale(d.Locale())
+	d.SetLocale = mygo.App.SetLocale
+	mygo.App.OnLocaleChanged(func(string) { d.LocaleChanged() })
 	if err != nil {
 		d.SetError(err)
 	}

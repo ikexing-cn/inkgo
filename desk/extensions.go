@@ -152,29 +152,30 @@ func (h extensionHost) Show(tab string) {
 	}
 }
 
-// extensionViews holds derived tables until the host revision changes.
+// extensionViews holds derived tables until the host or language changes.
 type extensionViews struct {
-	ready         bool
-	changes       uint64
-	commands      []namedCommand
-	list          []*command
-	help          []*helpRow
-	system        []namedCommand
-	view          []namedCommand
-	file          []namedCommand
-	overlays      []ext.Item[hostapi.Overlay]
-	panes         []ext.Item[hostapi.PaneTab]
-	footer, title []ext.Item[hostapi.DrawItem]
-	ticks         []ext.Item[hostapi.FrameTick]
-	leave         []ext.Item[func()]
-	pending       []ext.Item[hostapi.PendingSource]
-	settings      []ext.Item[hostapi.SettingsPage]
-	sections      []ext.Item[hostapi.SettingsSection]
-	settingsTabs  map[string]string
-	modules       []ext.Module
-	moduleViews   map[string]extensionView
-	groups        []extensionGroup
-	pageOwners    map[string][]string
+	localeRevision uint64
+	ready          bool
+	changes        uint64
+	commands       []namedCommand
+	list           []*command
+	help           []*helpRow
+	system         []namedCommand
+	view           []namedCommand
+	file           []namedCommand
+	overlays       []ext.Item[hostapi.Overlay]
+	panes          []ext.Item[hostapi.PaneTab]
+	footer, title  []ext.Item[hostapi.DrawItem]
+	ticks          []ext.Item[hostapi.FrameTick]
+	leave          []ext.Item[func()]
+	pending        []ext.Item[hostapi.PendingSource]
+	settings       []ext.Item[hostapi.SettingsPage]
+	sections       []ext.Item[hostapi.SettingsSection]
+	settingsTabs   map[string]string
+	modules        []ext.Module
+	moduleViews    map[string]extensionView
+	groups         []extensionGroup
+	pageOwners     map[string][]string
 }
 
 func (a *App) syncExtensions() {
@@ -182,10 +183,11 @@ func (a *App) syncExtensions() {
 		return
 	}
 	changes := a.extensions.Changes()
-	if a.extViews.ready && a.extViews.changes == changes {
+	revision := a.localeRevision.Load()
+	if a.extViews.ready && a.extViews.changes == changes && a.extViews.localeRevision == revision {
 		return
 	}
-	cache := extensionViews{ready: true, changes: changes}
+	cache := extensionViews{ready: true, changes: changes, localeRevision: revision}
 	a.cacheExtensionViews(&cache)
 	cache.commands = a.buildExtensionCommands()
 	cache.list = append([]*command(nil), commandList...)

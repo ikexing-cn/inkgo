@@ -42,6 +42,8 @@ type Shelf struct {
 	// Theme is the appearance chosen: "light", "dark", or empty to follow
 	// the system.
 	Theme string `json:"theme,omitempty"`
+	// Locale is the interface language on this machine; empty follows the system.
+	Locale string `json:"locale,omitempty"`
 	// Zoom is the window's content scale on this machine, for every work.
 	// Absent or zero, it is actual size.
 	Zoom float32 `json:"zoom,omitempty"`
