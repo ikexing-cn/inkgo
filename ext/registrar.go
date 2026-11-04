@@ -122,7 +122,7 @@ func use[T any](r *Registrar, key ServiceKey[T], optional bool) {
 	k := string(key)
 	m := r.e.mod
 	o := owner(k)
-	if o != HostOwner && !contains(m.Requires, o) && !(optional && contains(m.Optional, o)) {
+	if m.ID != HostOwner && o != HostOwner && !contains(m.Requires, o) && !(optional && contains(m.Optional, o)) {
 		r.fail("Use service %q requires a declared %s dependency", k, map[bool]string{true: "Requires/Optional", false: "Requires"}[optional])
 	}
 	r.h.uses = append(r.h.uses, serviceUse{m.ID, k, optional, reflect.TypeFor[T]()})

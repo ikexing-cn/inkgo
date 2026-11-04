@@ -8,16 +8,16 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"writer/aiport"
+	"writer/ext/ai/aiapi"
 	"writer/workspace"
 )
 
 type waitingCatalog struct {
-	aiport.Service
+	aiapi.Backend
 	ready chan struct{}
 }
 
-func (s waitingCatalog) Catalog(string) (aiport.Catalog, error) { return s, nil }
+func (s waitingCatalog) Catalog(string) (aiapi.Catalog, error) { return s, nil }
 
 func (s waitingCatalog) ListModels(ctx context.Context) ([]string, error) {
 	select {
@@ -37,13 +37,14 @@ func TestCatalogBelongsToItsServiceForm(t *testing.T) {
 			ready := make(chan struct{}, 1)
 			t.Cleanup(func() { close(ready) })
 			a.ai = waitingCatalog{a.ai, ready}
-			a.chooseProvider("deepseek")
-			a.serviceForm.edit = "deepseek"
+			aiViewOf(a).SetBackend(a.ai)
+			aiViewOf(a).ChooseProvider("deepseek")
+			aiViewOf(a).ServiceForm.Edit = "deepseek"
 			start := true
 			tt := stillTester(func(c *ui.Context) {
 				if start {
 					start = false
-					a.fetchModels(c)
+					aiViewOf(a).FetchModels(c)
 				}
 			}, 64, 64)
 			tt.Frame()
@@ -52,14 +53,14 @@ func TestCatalogBelongsToItsServiceForm(t *testing.T) {
 			}
 			switch action {
 			case "close":
-				a.serviceForm.close()
+				aiViewOf(a).ServiceForm.Close()
 			case "reopen":
-				a.serviceForm.close()
-				a.chooseProvider("deepseek")
-				a.serviceForm.edit = "deepseek"
-				a.serviceForm.provider.Name = "unsaved edit"
+				aiViewOf(a).ServiceForm.Close()
+				aiViewOf(a).ChooseProvider("deepseek")
+				aiViewOf(a).ServiceForm.Edit = "deepseek"
+				aiViewOf(a).ServiceForm.Provider.Name = "unsaved edit"
 			case "switch work":
-				a.serviceForm.key = "unsaved-test-key"
+				aiViewOf(a).ServiceForm.Key = "unsaved-test-key"
 				next, err := workspace.Create(filepath.Join(t.TempDir(), "next"), "另一本", "网文")
 				if err != nil {
 					t.Fatal(err)
@@ -67,11 +68,11 @@ func TestCatalogBelongsToItsServiceForm(t *testing.T) {
 				if err := a.attach(next, next.Root(), false); err != nil {
 					t.Fatal(err)
 				}
-				if a.serviceForm.key != "" || a.serviceForm.edit != "" {
+				if aiViewOf(a).ServiceForm.Key != "" || aiViewOf(a).ServiceForm.Edit != "" {
 					t.Fatal("switching work kept the old service draft")
 				}
 			}
-			before := a.serviceForm
+			before := aiViewOf(a).ServiceForm
 			ready <- struct{}{}
 			for deadline := time.Now().Add(3 * time.Second); !a.jobs.pending(); {
 				if time.Now().After(deadline) {
@@ -84,10 +85,10 @@ func TestCatalogBelongsToItsServiceForm(t *testing.T) {
 				t.Fatal("catalog did not finish", a.errorText())
 			}
 			if action == "stay" {
-				if len(a.serviceForm.limits) != 1 || a.serviceForm.limits[0].id != "catalog-result" {
+				if len(aiViewOf(a).ServiceForm.Limits) != 1 || aiViewOf(a).ServiceForm.Limits[0].ID != "catalog-result" {
 					t.Fatal("current form did not receive its catalog")
 				}
-			} else if !reflect.DeepEqual(before, a.serviceForm) {
+			} else if !reflect.DeepEqual(before, aiViewOf(a).ServiceForm) {
 				t.Fatal("old catalog changed a later draft")
 			}
 		})

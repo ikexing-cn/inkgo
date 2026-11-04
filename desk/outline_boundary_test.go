@@ -21,7 +21,7 @@ func TestPagesMergeHostAndContributionsByOrderHideUnavailableAndFallBackToWritin
 	mod := ext.Module{ID: "fakepage", Setup: func(r *ext.Registrar) {
 		ext.Contribute(r, hostapi.Pages, "page", hostapi.Page{Title: func() string { return "Fake page" }, Order: 25, Available: func() bool { return available }, Draw: func(c *ui.Context) { ui.Text(c, "Fake body") }})
 	}}
-	a := New(ai.New(""), append(testModules(), mod)...)
+	a := newTestApp(ai.New(""), append(testModules(), mod)...)
 	defer a.Close()
 	requireExtension(t, a.Open(extensionBook(t)))
 	a.page = pageWrite
@@ -58,7 +58,7 @@ func TestChapterHeadDrawsContributionsInRegistrationOrder(t *testing.T) {
 			ext.Contribute(r, hostapi.ChapterHeadItems, id, hostapi.DrawItem{Draw: func(c *ui.Context) { ui.Text(c, id).Label(id) }})
 		}
 	}}
-	a := New(ai.New(""), append(testModules(), mod)...)
+	a := newTestApp(ai.New(""), append(testModules(), mod)...)
 	defer a.Close()
 	requireExtension(t, a.Open(extensionBook(t)))
 	id, err := a.book.NewChapter("", "第一章", false)

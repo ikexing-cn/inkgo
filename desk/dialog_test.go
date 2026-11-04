@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui"
-	"writer/aiport"
+	"writer/ext/ai/aiapi"
 	"writer/model"
 )
 
@@ -44,7 +44,7 @@ func TestDialogsGiveTheKeyboardBack(t *testing.T) {
 			click("打开设置")()
 		}, escape},
 		{"提示里的打开设置", func() {
-			a.SetError(&aiport.SetupError{Err: errors.New("尚未选择讨论模型")})
+			a.SetError(&aiapi.SetupError{Err: errors.New("尚未选择讨论模型")})
 			tt.Frame()
 			click("打开设置")()
 		}, escape},

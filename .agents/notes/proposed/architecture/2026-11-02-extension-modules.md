@@ -272,6 +272,18 @@ MCP 不承载界面，单独一条线：
    - 讨论、续写在设定或大纲关着时照常能用，只是 AI 看不到那部分资料（我的提议，作者没有另说）。
    - 各扩展带自己的翻译表要生成带类型的函数，mygo 的命令行只给主表生成：作者说「我们自己补吧」，自己写生成器。
 3. AI 和依赖它的一组。
+   1. AI 变成前置扩展 `ext/ai`（基础组），2026-11-04 做完：
+      - 公开包 `ext/ai/aiapi` 收下原来整个 `aiport`。原来的 `Service` 接口改名 `Backend`，好让服务键叫 `aiapi.Service`（`ai.service`）。
+      - 开了「AI 工具」的点 `aiapi.Tools`（`ai.tools`）：工具有名字、说明、参数 schema 和在界面线程外跑的 `Run`。讨论写死的那张工具表下一段改成从这里取。
+      - AI 服务在 Start 时造、Stop 时关，关时停掉在跑的请求。换书时跟着重启，测试守着重启的耗时。
+      - AI 的开关就是这个扩展的本机开关，存在扩展开关文件里，`shelf.NoAI` 删了。AI 没有按书一级：「⋯」里没有，存下的按书设置也不生效。
+      - 关、开之前照旧问；原来 `aiOff` 那串收尾，在宿主看到服务出现、消失时跑。
+      - 设置里 AI 那一页由扩展经 `SettingsPages`/`SettingsSections` 登记，页头是扩展的页头，原来的「关闭 AI」勾选框去掉了。错误翻成字的 `aitext` 搬进 `ext/ai/aitext`，经新的点 `hostapi.ErrorTexts` 登记给宿主。146 个只有 AI 用的 key 搬进它的表。
+      - 讨论、续写、起草、改稿建议、检查、用量记录还在 `desk`，经 `aiapi` 用 AI。`desk` 有一个具名例外，只许 import `ext/ai/aiapi`；`desk` 不再 import `ai`、`model`、`inference`、`discussion`、`writing`。
+      - 两样临时的东西，那几样功能拆成扩展时一起删：
+        - `hostapi.SettingsHostService`：AI 页里还要画的讨论和续写的模型选择、续写的设置，经它从 `desk` 借来；
+        - `hostapi.AIUsage`：AI 页里「AI 记录」的入口，归以后的用量记录。
+      - 详情页的「加了什么」现在还不显示，留给第 5 步的「账和详情页」一起做。
 4. marks，加伏笔、批注、检查。要先设计编辑器的标记点，设计稿先给作者看：见上面「正文标记的标记点」。
 5. 其余。
 

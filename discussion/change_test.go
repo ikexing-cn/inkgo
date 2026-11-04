@@ -4,7 +4,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
-	"writer/aiport"
+	"writer/ext/ai/aiapi"
 
 	"writer/inference"
 	"writer/workspace"
@@ -66,7 +66,7 @@ func TestATalkTellsAndNotesHowTheSettingChanges(t *testing.T) {
 		t.Fatal(err)
 	}
 	w := e.Store.Work()
-	got, err := Assemble(w, 100000, set, tree, nil, "问", Along{Material: aiport.Material{Setting: true, Outline: true}})
+	got, err := Assemble(w, 100000, set, tree, nil, "问", Along{Material: aiapi.Material{Setting: true, Outline: true}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ func TestATalkTellsAndNotesHowTheSettingChanges(t *testing.T) {
 	if tree, err = e.Store.Chapters(); err != nil {
 		t.Fatal(err)
 	}
-	if got, err = Assemble(w, 100000, set, tree, nil, "问", Along{Material: aiport.Material{Setting: true, Outline: true}}); err != nil || strings.Contains(got.Request.System, "第三章") {
+	if got, err = Assemble(w, 100000, set, tree, nil, "问", Along{Material: aiapi.Material{Setting: true, Outline: true}}); err != nil || strings.Contains(got.Request.System, "第三章") {
 		t.Fatal(got.Request.System, err)
 	}
 }

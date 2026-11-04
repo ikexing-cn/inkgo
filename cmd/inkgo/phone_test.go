@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui"
-	"writer/ai"
-	"writer/desk"
 	"writer/workspace"
 )
 
@@ -26,7 +24,7 @@ func TestLayoutPhonePreview(t *testing.T) {
 		t.Fatal(err)
 	}
 	s.Close()
-	a := desk.New(ai.New(filepath.Join(root, "providers.yaml")), testModules()...)
+	a := newModuleApp(filepath.Join(root, "providers.yaml"), testModules()...)
 	if err = a.Open(filepath.Join(root, "work")); err != nil {
 		t.Fatal(err)
 	}

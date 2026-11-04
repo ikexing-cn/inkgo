@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
-	"writer/aiport"
 	"writer/desk/kit"
 	"writer/editor"
+	"writer/ext/ai/aiapi"
 	"writer/workspace"
 
 	"writer/locales"
@@ -256,7 +256,7 @@ func (a *App) firstCategory() string {
 // conversation. Models come from each provider's catalog; one outside it
 // is set in the model settings.
 func (a *App) modelMenu(m *kit.Menu, work workspace.Work) {
-	var with []aiport.Provider
+	var with []aiapi.Provider
 	for _, p := range a.ai.Providers() {
 		if len(p.Models) > 0 {
 			with = append(with, p)

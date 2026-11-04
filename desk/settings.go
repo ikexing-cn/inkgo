@@ -64,8 +64,6 @@ func (a *App) prefTitle(tab string) string {
 
 func (a *App) prefNote(tab string) string {
 	switch {
-	case tab == "AI" && !a.aiOn():
-		return locales.SettingsLocalOnly()
 	case tab == "AI" && a.showsLog():
 		return locales.SettingsRecordsNote()
 	}
@@ -103,7 +101,6 @@ func (a *App) closePrefs() {
 func (a *App) resetPrefs() {
 	a.settings = settingsView{}
 	a.record.reset()
-	a.serviceForm.close()
 }
 
 // showPref shows a part of the settings. The reminders count the book's
@@ -195,8 +192,6 @@ func (a *App) preferences(c *ui.Context) {
 							a.looksView(c)
 						case "reminders":
 							a.remindersView(c)
-						case "AI":
-							a.aiView(c)
 						case "extensions":
 							if a.settings.ext != "" {
 								a.extensionSection(c, a.settings.ext)

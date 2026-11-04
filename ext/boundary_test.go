@@ -30,6 +30,9 @@ func extensionImport(pkg, imp string, deps []string) error {
 	if strings.HasPrefix(imp, "github.com/egoist/mygo/") {
 		return nil
 	}
+	if (pkg == "writer/ext/ai" || pkg == "writer/ext/ai/aitext") && slices.Contains([]string{"writer/ai", "writer/model", "writer/inference", "writer/discussion", "writer/writing", "writer/tokens"}, imp) {
+		return nil
+	}
 	owner := strings.Split(strings.TrimPrefix(pkg, "writer/ext/"), "/")[0]
 	if strings.HasPrefix(imp, "writer/ext/"+owner+"/") {
 		return nil
@@ -159,7 +162,7 @@ func TestProductionDependencyBoundaries(t *testing.T) {
 						}
 					}
 				case strings.HasPrefix(pkg, "writer/desk"):
-					if strings.HasPrefix(imp, "writer/ext/") && imp != "writer/ext/hostapi" && !deskContextImport(pkg, imp) && !deskLoreImport(pkg, imp) {
+					if strings.HasPrefix(imp, "writer/ext/") && imp != "writer/ext/hostapi" && !deskContextImport(pkg, imp) && !deskLoreImport(pkg, imp) && !deskAIImport(pkg, imp) {
 						t.Errorf("%s imports concrete extension %s", pkg, imp)
 					}
 				default:
@@ -283,5 +286,15 @@ func deskLoreImport(pkg, imp string) bool {
 func TestDeskLoreExceptionDoesNotAllowConcreteLore(t *testing.T) {
 	if !deskLoreImport("writer/desk", "writer/ext/lore/loreapi") || deskLoreImport("writer/desk", "writer/ext/lore") || deskLoreImport("writer/desk/book", "writer/ext/lore/loreapi") {
 		t.Fatal("lore exception escaped its named boundary")
+	}
+}
+
+// deskAIImport bridges talk, continuation and checking until they become
+// extensions. The exception is only for their public contract, never ext/ai.
+func deskAIImport(pkg, imp string) bool { return pkg == "writer/desk" && imp == "writer/ext/ai/aiapi" }
+
+func TestDeskAIExceptionDoesNotAllowConcreteAI(t *testing.T) {
+	if !deskAIImport("writer/desk", "writer/ext/ai/aiapi") || deskAIImport("writer/desk", "writer/ext/ai") || deskAIImport("writer/desk/book", "writer/ext/ai/aiapi") {
+		t.Fatal("AI exception escaped its boundary")
 	}
 }

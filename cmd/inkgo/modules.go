@@ -2,6 +2,7 @@ package main
 
 import (
 	"writer/ext"
+	aimod "writer/ext/ai"
 	"writer/ext/backup"
 	"writer/ext/context"
 	"writer/ext/export"
@@ -13,3 +14,8 @@ import (
 var backupModule, _ = backup.New(true)
 
 var modules = []ext.Module{context.Module, lore.Module, outline.Module, backupModule, export.Module, phone.Module}
+
+// assembledModules passes machine parameters to the AI prerequisite.
+func assembledModules(configFile, trace string) []ext.Module {
+	return append([]ext.Module{aimod.New(aimod.Options{ConfigFile: configFile, Trace: trace})}, modules...)
+}

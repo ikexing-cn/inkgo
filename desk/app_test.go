@@ -14,10 +14,10 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/ai"
-	"writer/ai/aitext"
-	"writer/aiport"
 	"writer/desk/kit"
 	"writer/ext"
+	aimod "writer/ext/ai"
+	"writer/ext/ai/aiapi"
 	"writer/ext/backup"
 	contextmod "writer/ext/context"
 	"writer/ext/export"
@@ -68,12 +68,11 @@ func testModules() []ext.Module {
 	return []ext.Module{contextmod.Module, lore.Module, outline.Module, mod, export.Module, phone.Module}
 }
 
-func testApp(service aiport.Service) *App {
+func testApp(service aiapi.Backend) *App {
 	mod, view := backup.New(false)
 	outlineModule, page := outline.New()
-	a := New(service, contextmod.Module, lore.Module, outlineModule, mod, export.Module, phone.Module)
+	a := newTestApp(service, contextmod.Module, lore.Module, outlineModule, mod, export.Module, phone.Module)
 	outlineControllers[a] = page
-	a.ErrorText = []ErrorTranslator{aitext.Translate}
 	controllers[a] = view
 	return a
 }
@@ -546,9 +545,9 @@ func TestABlankTalkFitsTheWork(t *testing.T) {
 // opened; a work whose service is no longer set up gives none.
 func TestNewWorkKeepsTheModels(t *testing.T) {
 	a, _, _ := fixture(t)
-	a.talkProvider, a.talkModel, a.talkEffort = "deepseek", "deepseek-flash", "high"
-	a.penProvider, a.penModel = "deepseek", "deepseek-v4-pro"
-	if err := a.saveUsage(); err != nil {
+	a.TalkProvider, a.TalkModel, a.TalkEffort = "deepseek", "deepseek-flash", "high"
+	a.PenProvider, a.PenModel = "deepseek", "deepseek-v4-pro"
+	if err := aiViewOf(a).SaveUsage(); err != nil {
 		t.Fatal(err)
 	}
 	want := a.Store.Work()
@@ -582,17 +581,17 @@ func TestNewWorkKeepsTheModels(t *testing.T) {
 func TestIncompleteFormsExplainInChinese(t *testing.T) {
 	a, _, _ := fixture(t)
 	was := a.Store.Work()
-	a.talkProvider, a.talkModel = "deepseek", ""
-	a.penProvider, a.penModel = "deepseek", ""
-	if err := a.saveUsage(); err != nil || a.Store.Work().Discussion != was.Discussion {
+	a.TalkProvider, a.TalkModel = "deepseek", ""
+	a.PenProvider, a.PenModel = "deepseek", ""
+	if err := aiViewOf(a).SaveUsage(); err != nil || a.Store.Work().Discussion != was.Discussion {
 		t.Fatalf("a service without a model: %v %+v", err, a.Store.Work().Discussion)
 	}
-	a.talkModel = "deepseek-flash"
-	if err := a.saveUsage(); err != nil || a.Store.Work().Discussion != was.Discussion {
+	a.TalkModel = "deepseek-flash"
+	if err := aiViewOf(a).SaveUsage(); err != nil || a.Store.Work().Discussion != was.Discussion {
 		t.Fatalf("the writing's service without a model: %v %+v", err, a.Store.Work().Discussion)
 	}
-	a.penModel = "deepseek-v4-pro"
-	if err := a.saveUsage(); err != nil || a.Store.Work().Writing.Model != "deepseek-v4-pro" {
+	a.PenModel = "deepseek-v4-pro"
+	if err := aiViewOf(a).SaveUsage(); err != nil || a.Store.Work().Writing.Model != "deepseek-v4-pro" {
 		t.Fatalf("complete: %v %+v", err, a.Store.Work().Writing)
 	}
 	// A category without its target is not saved, and is told as what is
@@ -672,12 +671,12 @@ func TestLiveTurnStreams(t *testing.T) {
 	a.turn.pending = "她做什么工作？"
 	a.run(c, "AI 正在思考", func(ctx context.Context) (func(), error) { <-block; return nil, nil })
 	a.turn.active, a.turn.session = true, a.session
-	a.turn.live.add(aiport.Progress{Reasoning: "她怕黑，职业要和光有关"})
+	a.turn.live.add(aiapi.Progress{Reasoning: "她怕黑，职业要和光有关"})
 	tt.Frame()
 	if !tt.HasText("她怕黑，职业要和光有关") || !tt.HasText("正在思考…") {
 		t.Fatal("reasoning not streamed", tt.Texts())
 	}
-	a.turn.live.add(aiport.Progress{Text: "可以让她**修灯**。"})
+	a.turn.live.add(aiapi.Progress{Text: "可以让她**修灯**。"})
 	tt.Frame()
 	if !tt.HasText("正在回复…") || tt.HasText("**") {
 		t.Fatal("reply not streamed as markdown", tt.Texts())
@@ -803,7 +802,7 @@ func TestEffortMenuSavesToWork(t *testing.T) {
 	a.setTalk(func(s *workspace.Selection) { s.Provider, s.Model = "deepseek", "deepseek-flash" })
 	a.setTalk(func(s *workspace.Selection) { s.Effort = string(model.EffortMax) })
 	tt.Frame()
-	if w := a.Store.Work().Discussion; w.Effort != "max" || w.Model != "deepseek-flash" || a.talkEffort != "max" {
+	if w := a.Store.Work().Discussion; w.Effort != "max" || w.Model != "deepseek-flash" || a.TalkEffort != "max" {
 		t.Fatalf("selection %+v", w)
 	}
 	if !tt.HasText("deepseek-flash") || !tt.HasText("Max") {
@@ -880,8 +879,8 @@ func TestChooseAServiceByName(t *testing.T) {
 	tt.Key(0, ui.KeyDown)
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if a.penProvider != "deepseek" {
-		t.Fatal(a.penProvider)
+	if a.PenProvider != "deepseek" {
+		t.Fatal(a.PenProvider)
 	}
 }
 
@@ -907,7 +906,7 @@ func TestNoticesFade(t *testing.T) {
 // Clicking a model field lists the service's models; typing narrows them.
 func TestPickAModelFromTheList(t *testing.T) {
 	a, tt, _ := fixture(t)
-	a.talkProvider, a.talkModel = "deepseek", "deepseek-flash"
+	a.TalkProvider, a.TalkModel = "deepseek", "deepseek-flash"
 	if err := clickMenu(tt, "文件", "菜单-设置"); err != nil {
 		t.Fatal(err)
 	}
@@ -928,8 +927,8 @@ func TestPickAModelFromTheList(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Frame()
-	if a.talkModel != "deepseek-v4-pro" {
-		t.Fatal(a.talkModel, tt.Texts())
+	if a.TalkModel != "deepseek-v4-pro" {
+		t.Fatal(a.TalkModel, tt.Texts())
 	}
 	// The model is kept as the caret leaves it.
 	tt.Key(0, ui.KeyTab)
@@ -1040,3 +1039,15 @@ func TestShelveAConversation(t *testing.T) {
 var outlineControllers = map[*App]*outline.Page{}
 
 func outlinePage(a *App) *outline.Page { return outlineControllers[a] }
+
+func newTestApp(service aiapi.Backend, mods ...ext.Module) *App {
+	view := &aimod.View{}
+	mod := aimod.New(aimod.Options{View: view, ConfigFile: service.ConfigFile(), Factory: func() aiapi.Backend { return service }})
+	a := New(service.ConfigFile(), append([]ext.Module{mod}, mods...)...)
+	aiViews[a] = view
+	return a
+}
+
+var aiViews = map[*App]*aimod.View{}
+
+func aiViewOf(a *App) *aimod.View { return aiViews[a] }

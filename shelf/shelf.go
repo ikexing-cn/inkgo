@@ -47,9 +47,6 @@ type Shelf struct {
 	// Zoom is the window's content scale on this machine, for every work.
 	// Absent or zero, it is actual size.
 	Zoom float32 `json:"zoom,omitempty"`
-	// NoAI turns the AI off on this machine, for every work: nothing of it
-	// shows and nothing is sent. Absent, the AI is on.
-	NoAI bool `json:"noAI,omitempty"`
 	// NoNames hides setting name links in prose on this machine. Absent,
 	// names are marked, including shelves saved before this preference.
 	NoNames bool `json:"noNames,omitempty"`

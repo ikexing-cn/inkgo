@@ -11,8 +11,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"writer/aiport"
 	"writer/discussion"
+	"writer/ext/ai/aiapi"
 	"writer/inference"
 	"writer/model"
 	"writer/workspace"
@@ -51,15 +51,15 @@ func TestPreloadedMapsTheTalksContext(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := New("")
-	got, err := s.Preloaded(st, aiport.Material{Setting: true, Outline: true}, workspace.AIDraft, two)
-	if err != nil || !got.Previous || got.Outlines != aiport.VolumeChapters || got.Tokens <= 0 || got.Cards != 1 {
+	got, err := s.Preloaded(st, aiapi.Material{Setting: true, Outline: true}, workspace.AIDraft, two)
+	if err != nil || !got.Previous || got.Outlines != aiapi.VolumeChapters || got.Tokens <= 0 || got.Cards != 1 {
 		t.Fatal(got, err)
 	}
-	got, err = s.Preloaded(st, aiport.Material{Setting: true, Outline: true}, workspace.AIRewrite, two)
-	if err != nil || got.Previous || got.Outlines != aiport.VolumeChapters || got.Tokens <= 0 || got.Cards != 1 {
+	got, err = s.Preloaded(st, aiapi.Material{Setting: true, Outline: true}, workspace.AIRewrite, two)
+	if err != nil || got.Previous || got.Outlines != aiapi.VolumeChapters || got.Tokens <= 0 || got.Cards != 1 {
 		t.Fatal(got, err)
 	}
-	got, err = s.Preloaded(st, aiport.Material{Setting: true, Outline: true}, workspace.AIDraft, one)
+	got, err = s.Preloaded(st, aiapi.Material{Setting: true, Outline: true}, workspace.AIDraft, one)
 	if err != nil || got.Previous {
 		t.Fatal(got, err)
 	}
@@ -142,27 +142,27 @@ func TestSetupErrorsCrossThePort(t *testing.T) {
 	}
 	for name, request := range map[string]func() error{
 		"config":          s.Reload,
-		"service form":    func() error { return s.SaveProvider(aiport.Provider{}) },
+		"service form":    func() error { return s.SaveProvider(aiapi.Provider{}) },
 		"key":             func() error { return s.SetKey("invalid id", "unused") },
 		"catalog service": func() error { _, err := s.Catalog("missing"); return err },
 		"talk model": func() error {
-			_, err := s.Talk(st, aiport.Material{Setting: true, Outline: true}, nil, nil, nil)
+			_, err := s.Talk(st, aiapi.Material{Setting: true, Outline: true}, nil, nil, nil)
 			return err
 		},
-		"writing model":    func() error { _, err := s.Pen(st, aiport.Material{Setting: true, Outline: true}); return err },
+		"writing model":    func() error { _, err := s.Pen(st, aiapi.Material{Setting: true, Outline: true}); return err },
 		"selected service": func() error { _, err := s.open(workspace.Selection{Provider: "missing", Model: "m"}, st); return err },
 		"talk runtime model": func() error {
 			_, err := (talk{&discussion.Engine{Store: st}}).Say(context.Background(), "", workspace.Event{Text: "问题"})
 			return err
 		},
 		"pen runtime model": func() error {
-			_, err := (pen{&writing.Writer{Store: st}}).Predict(context.Background(), aiport.Scene{})
+			_, err := (pen{&writing.Writer{Store: st}}).Predict(context.Background(), aiapi.Scene{})
 			return err
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			err := request()
-			var setup *aiport.SetupError
+			var setup *aiapi.SetupError
 			if !errors.As(err, &setup) || setup.Unwrap() == nil || setup.Error() != setup.Unwrap().Error() {
 				t.Fatalf("configuration error lost its identity or text: %v", err)
 			}
@@ -179,10 +179,13 @@ func TestSetupErrorsCrossThePort(t *testing.T) {
 				_, err := c.Complete(context.Background(), model.Request{}, nil)
 				return err
 			},
-			"catalog": func() error { _, err := (catalog{failingRequest{cause}}).ListModels(context.Background()); return err },
+			"catalog": func() error {
+				_, err := (catalog{Catalog: failingRequest{cause}}).ListModels(context.Background())
+				return err
+			},
 		} {
 			err := request()
-			var config *aiport.SetupError
+			var config *aiapi.SetupError
 			if errors.As(err, &config) != setup || !errors.Is(err, cause) || err.Error() != cause.Error() {
 				t.Fatalf("%s: setup %v: %v", name, setup, err)
 			}
@@ -190,7 +193,7 @@ func TestSetupErrorsCrossThePort(t *testing.T) {
 	}
 	s.BindSwitch(func() bool { return false })
 	_, err = s.Catalog("missing")
-	var setup *aiport.SetupError
+	var setup *aiapi.SetupError
 	if !errors.Is(err, ErrOff) || errors.As(err, &setup) {
 		t.Fatal("turning AI off is not a setup failure", err)
 	}
@@ -220,7 +223,7 @@ func TestEachRequestIsRecorded(t *testing.T) {
 		{Usage: model.Usage{Input: 1000}},
 		{Text: "取消了。"},
 		{Text: "够了。", Usage: model.Usage{Input: 10, Output: 2}},
-	}, st, "deepseek/deepseek-flash", "deepseek-flash", trace, nil}
+	}, st, "deepseek/deepseek-flash", "deepseek-flash", nil, trace, nil}
 	parts := []workspace.Part{{Name: workspace.PartRules, Tokens: 900}, {Name: workspace.PartTalk, Tokens: 4000}}
 	talk := workspace.WithPurpose(context.Background(), workspace.Purpose{Feature: workspace.FeatureTalk, Talk: "s1", Parts: parts})
 	m.Complete(talk, model.Request{System: "讨论的规则全文", Effort: model.EffortHigh}, nil)
@@ -294,17 +297,17 @@ func TestOffBuildsNothing(t *testing.T) {
 	if _, err := s.Catalog("deepseek"); !errors.Is(err, ErrOff) {
 		t.Fatalf("catalog: %v", err)
 	}
-	if _, err := s.Talk(st, aiport.Material{Setting: true, Outline: true}, nil, nil, nil); !errors.Is(err, ErrOff) {
+	if _, err := s.Talk(st, aiapi.Material{Setting: true, Outline: true}, nil, nil, nil); !errors.Is(err, ErrOff) {
 		t.Fatalf("talk: %v", err)
 	}
-	if _, err := s.Pen(st, aiport.Material{Setting: true, Outline: true}); !errors.Is(err, ErrOff) {
+	if _, err := s.Pen(st, aiapi.Material{Setting: true, Outline: true}); !errors.Is(err, ErrOff) {
 		t.Fatalf("pen: %v", err)
 	}
 	if n := built.Load(); n != 0 {
 		t.Fatalf("built %d with the AI off", n)
 	}
 	on = true
-	if _, err := s.Pen(st, aiport.Material{Setting: true, Outline: true}); err != nil {
+	if _, err := s.Pen(st, aiapi.Material{Setting: true, Outline: true}); err != nil {
 		t.Fatal(err)
 	}
 	if n := built.Load(); n != 1 {
@@ -342,11 +345,11 @@ func TestSendingDoesNotReadTheSwitch(t *testing.T) {
 	}
 	var reads int
 	s.BindSwitch(func() bool { reads++; return true })
-	talk, err := s.Talk(st, aiport.Material{Setting: true, Outline: true}, nil, nil, nil)
+	talk, err := s.Talk(st, aiapi.Material{Setting: true, Outline: true}, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pen, err := s.Pen(st, aiport.Material{Setting: true, Outline: true})
+	pen, err := s.Pen(st, aiapi.Material{Setting: true, Outline: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -365,7 +368,7 @@ func TestSendingDoesNotReadTheSwitch(t *testing.T) {
 	go func() {
 		ctx := context.Background()
 		_, talkErr := talk.Say(ctx, session, workspace.Event{Text: "接着说。"})
-		_, predictErr := pen.Predict(ctx, aiport.Scene{Chapter: chapter, Before: "雨停了。"})
+		_, predictErr := pen.Predict(ctx, aiapi.Scene{Chapter: chapter, Before: "雨停了。"})
 		_, checkErr := pen.Check(ctx, chapter)
 		done <- []error{talkErr, predictErr, checkErr}
 	}()
@@ -412,15 +415,15 @@ func TestPreloadedReportsNoOutlineProviderInsteadOfEmptyOutlines(t *testing.T) {
 	}
 	s := New("")
 	for _, origin := range []string{workspace.AIDraft, workspace.AIRewrite} {
-		off, err := s.Preloaded(st, aiport.Material{}, origin, chapter)
+		off, err := s.Preloaded(st, aiapi.Material{}, origin, chapter)
 		if err != nil {
 			t.Fatal(err)
 		}
-		on, err := s.Preloaded(st, aiport.Material{Setting: true, Outline: true}, origin, chapter)
+		on, err := s.Preloaded(st, aiapi.Material{Setting: true, Outline: true}, origin, chapter)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if off.Outlines != aiport.NoOutlines || off.Cards != 0 || on.Outlines != aiport.BookVolumes || on.Cards != 1 || off.Tokens >= on.Tokens {
+		if off.Outlines != aiapi.NoOutlines || off.Cards != 0 || on.Outlines != aiapi.BookVolumes || on.Cards != 1 || off.Tokens >= on.Tokens {
 			t.Fatal(off, on)
 		}
 	}

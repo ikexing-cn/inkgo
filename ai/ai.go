@@ -1,7 +1,7 @@
 // Package ai is the part of the writing software that sends: it keeps the
 // services of models this machine has, and makes the talk and the pen of
 // a work with them. It draws nothing; the interface reaches
-// it through aiport alone.
+// it through aiapi alone.
 package ai
 
 import (
@@ -14,8 +14,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"writer/aiport"
 	"writer/discussion"
+	"writer/ext/ai/aiapi"
 	"writer/inference"
 	"writer/model"
 	"writer/workspace"
@@ -26,9 +26,11 @@ import (
 // file. Its methods but those of what it gives run on the interface's
 // thread.
 type Service struct {
-	file string
-	cfg  model.Config
-	on   func() bool
+	life   context.Context
+	cancel context.CancelFunc
+	file   string
+	cfg    model.Config
+	on     func() bool
 	// Trace, when set, is a folder that gets the whole of each request
 	// and its reply, a file for each; it is for tuning the prompts, and
 	// no work is written to.
@@ -43,8 +45,8 @@ type Service struct {
 }
 
 var (
-	_ aiport.Settings  = (*Service)(nil)
-	_ aiport.Assistant = (*Service)(nil)
+	_ aiapi.Settings  = (*Service)(nil)
+	_ aiapi.Assistant = (*Service)(nil)
 )
 
 // ConfigPath is where this machine configures its services.
@@ -53,7 +55,8 @@ func ConfigPath() (string, error) { return model.ConfigPath() }
 // New is the AI on the services configured in file, or on none for an
 // empty file; Reload reads them.
 func New(file string) *Service {
-	s := &Service{file: file}
+	life, cancel := context.WithCancel(context.Background())
+	s := &Service{file: file, life: life, cancel: cancel}
 	s.Open = s.open
 	return s
 }
@@ -66,19 +69,19 @@ func (s *Service) ConfigFile() string { return s.file }
 // never read it.
 func (s *Service) BindSwitch(on func() bool) { s.on = on }
 
-func (s *Service) Providers() []aiport.Provider {
-	out := make([]aiport.Provider, len(s.cfg.Providers))
+func (s *Service) Providers() []aiapi.Provider {
+	out := make([]aiapi.Provider, len(s.cfg.Providers))
 	for i, p := range s.cfg.Providers {
-		out[i] = aiport.Provider{ID: p.ID, Name: p.Name, BaseURL: p.BaseURL, Protocol: string(p.Protocol), Env: p.Env, Models: make([]aiport.Model, len(p.Models))}
+		out[i] = aiapi.Provider{ID: p.ID, Name: p.Name, BaseURL: p.BaseURL, Protocol: string(p.Protocol), Env: p.Env, Models: make([]aiapi.Model, len(p.Models))}
 		for j, m := range p.Models {
-			out[i].Models[j] = aiport.Model(m)
+			out[i].Models[j] = aiapi.Model(m)
 		}
 	}
 	return out
 }
 
 // provider is p as package model has it.
-func provider(p aiport.Provider) model.Provider {
+func provider(p aiapi.Provider) model.Provider {
 	out := model.Provider{ID: p.ID, Name: p.Name, BaseURL: p.BaseURL, Protocol: model.Protocol(p.Protocol), Env: p.Env, Models: make([]model.Model, len(p.Models))}
 	for i, m := range p.Models {
 		out.Models[i] = model.Model(m)
@@ -86,9 +89,9 @@ func provider(p aiport.Provider) model.Provider {
 	return out
 }
 
-func (s *Service) Limits(id string) (aiport.Model, bool) {
+func (s *Service) Limits(id string) (aiapi.Model, bool) {
 	m, ok := model.Lookup(id)
-	return aiport.Model(m), ok
+	return aiapi.Model(m), ok
 }
 
 func (s *Service) Reload() error {
@@ -100,12 +103,12 @@ func (s *Service) Reload() error {
 	return nil
 }
 
-func (s *Service) Check(p aiport.Provider) aiport.Problems {
+func (s *Service) Check(p aiapi.Provider) aiapi.Problems {
 	got := model.Check(provider(p))
-	return aiport.Problems{ID: got.ID, Name: got.Name, Protocol: got.Protocol, BaseURL: got.BaseURL, Env: got.Env, Models: got.Models}
+	return aiapi.Problems{ID: got.ID, Name: got.Name, Protocol: got.Protocol, BaseURL: got.BaseURL, Env: got.Env, Models: got.Models}
 }
 
-func (s *Service) SaveProvider(p aiport.Provider) error {
+func (s *Service) SaveProvider(p aiapi.Provider) error {
 	cfg := s.cfg
 	cfg.Providers = append([]model.Provider(nil), cfg.Providers...)
 	replaced := false
@@ -130,7 +133,7 @@ func (s *Service) SetKey(providerID, key string) error {
 	return setupError(model.SetKey(providerID, key))
 }
 
-func (s *Service) Catalog(providerID string) (aiport.Catalog, error) {
+func (s *Service) Catalog(providerID string) (aiapi.Catalog, error) {
 	if s.on != nil && !s.on() {
 		return nil, ErrOff
 	}
@@ -138,18 +141,18 @@ func (s *Service) Catalog(providerID string) (aiport.Catalog, error) {
 	if err != nil {
 		return nil, setupError(err)
 	}
-	return catalog{client}, nil
+	return catalog{client, s.life}, nil
 }
 
 func setupError(err error) error {
 	if err == nil {
 		return nil
 	}
-	return &aiport.SetupError{Err: err}
+	return &aiapi.SetupError{Err: err}
 }
 
 func requestError(err error) error {
-	var port *aiport.SetupError
+	var port *aiapi.SetupError
 	if errors.As(err, &port) {
 		return err
 	}
@@ -160,9 +163,14 @@ func requestError(err error) error {
 	return err
 }
 
-type catalog struct{ aiport.Catalog }
+type catalog struct {
+	aiapi.Catalog
+	life context.Context
+}
 
 func (c catalog) ListModels(ctx context.Context) ([]string, error) {
+	ctx, cancel := linkedContext(ctx, c.life)
+	defer cancel()
 	ids, err := c.Catalog.ListModels(ctx)
 	return ids, requestError(err)
 }
@@ -177,7 +185,7 @@ func (s *Service) Efforts() []string {
 
 func (s *Service) EffortLabel(effort string) string { return model.Effort(effort).Label() }
 
-// talk is a discussion engine as aiport has it.
+// talk is a discussion engine as aiapi has it.
 type talk struct{ e *discussion.Engine }
 
 func (t talk) Say(ctx context.Context, session string, words workspace.Event) (bool, error) {
@@ -190,7 +198,7 @@ func (t talk) Retry(ctx context.Context, session, userID string) error {
 	return requestError(err)
 }
 
-func (s *Service) Talk(st *workspace.Store, material aiport.Material, beside *aiport.Beside, progress func(aiport.Progress), step func(workspace.Event)) (aiport.Talk, error) {
+func (s *Service) Talk(st *workspace.Store, material aiapi.Material, beside *aiapi.Beside, progress func(aiapi.Progress), step func(workspace.Event)) (aiapi.Talk, error) {
 	if s.on != nil && !s.on() {
 		return nil, ErrOff
 	}
@@ -204,8 +212,8 @@ func (s *Service) Talk(st *workspace.Store, material aiport.Material, beside *ai
 	}
 	e := &discussion.Engine{Store: st, Talk: m, Step: step, Material: material}
 	if progress != nil {
-		e.Progress = func(d model.Delta) { progress(aiport.Progress{Reasoning: d.Reasoning, Text: d.Text}) }
-		e.Proposing = func(call string, p workspace.Proposal) { progress(aiport.Progress{Call: call, Proposal: &p}) }
+		e.Progress = func(d model.Delta) { progress(aiapi.Progress{Reasoning: d.Reasoning, Text: d.Text}) }
+		e.Proposing = func(call string, p workspace.Proposal) { progress(aiapi.Progress{Call: call, Proposal: &p}) }
 	}
 	if beside != nil {
 		w := discussion.Writing(*beside)
@@ -214,16 +222,16 @@ func (s *Service) Talk(st *workspace.Store, material aiport.Material, beside *ai
 	return talk{e}, nil
 }
 
-func (s *Service) Preloaded(st *workspace.Store, material aiport.Material, origin, chapter string) (aiport.Preload, error) {
+func (s *Service) Preloaded(st *workspace.Store, material aiapi.Material, origin, chapter string) (aiapi.Preload, error) {
 	n, err := discussion.Preloaded(st, material, origin, chapter)
 	if err != nil {
-		return aiport.Preload{}, requestError(err)
+		return aiapi.Preload{}, requestError(err)
 	}
-	out := aiport.Preload{Tokens: n.Tokens, Cards: n.Cards, Previous: n.Previous, Outlines: aiport.BookVolumes}
+	out := aiapi.Preload{Tokens: n.Tokens, Cards: n.Cards, Previous: n.Previous, Outlines: aiapi.BookVolumes}
 	if !material.Outline {
-		out.Outlines = aiport.NoOutlines
+		out.Outlines = aiapi.NoOutlines
 	} else if n.InVolume {
-		out.Outlines = aiport.VolumeChapters
+		out.Outlines = aiapi.VolumeChapters
 	}
 	return out, nil
 }
@@ -240,7 +248,7 @@ func (s *Service) open(sel workspace.Selection, st *workspace.Store) (inference.
 		return inference.Model{}, setupError(err)
 	}
 	name := (workspace.ModelRef{Provider: sel.Provider, Model: sel.Model}).String()
-	return inference.Model{Completer: counted{client, st, name, sel.Model, s.Trace, s.ErrorText}, Model: s.cfg.Model(sel.Provider, sel.Model),
+	return inference.Model{Completer: counted{client, st, name, sel.Model, s.life, s.Trace, s.ErrorText}, Model: s.cfg.Model(sel.Provider, sel.Model),
 		Name: name, Effort: model.Effort(sel.Effort)}, nil
 }
 
@@ -251,12 +259,15 @@ type counted struct {
 	model.Completer
 	st       *workspace.Store
 	name, id string
+	life     context.Context
 	trace    string
 	words    func(error) string
 }
 
 func (c counted) Complete(ctx context.Context, req model.Request, on func(model.Delta)) (model.Reply, error) {
 	start := time.Now()
+	ctx, cancel := linkedContext(ctx, c.life)
+	defer cancel()
 	reply, err := c.Completer.Complete(ctx, req, on)
 	p := workspace.PurposeOf(ctx)
 	r := workspace.Record{At: start.UTC(), Took: time.Since(start).Milliseconds(), Feature: p.Feature, Chapter: p.Chapter, Talk: p.Talk,
@@ -300,7 +311,7 @@ func traced(dir string, r workspace.Record, req model.Request, reply model.Reply
 	if err = os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	name := r.At.Local().Format("20060102-150405.000") + "-" + r.Feature
+	name := r.At.Local().Format("20060102-150405.000000000") + "-" + r.Feature
 	for n := 1; ; n++ {
 		p := filepath.Join(dir, name+".json")
 		if n > 1 {
@@ -336,13 +347,13 @@ func (s *Service) writer(st *workspace.Store) (*writing.Writer, error) {
 	return &writing.Writer{Store: st, Model: m}, nil
 }
 
-// pen is a writer as aiport has it.
+// pen is a writer as aiapi has it.
 type pen struct{ w *writing.Writer }
 
 func (p pen) Name() string   { return p.w.Model.Name }
 func (p pen) Effort() string { return string(p.w.Model.Effort) }
 
-func (p pen) Predict(ctx context.Context, scene aiport.Scene) (string, error) {
+func (p pen) Predict(ctx context.Context, scene aiapi.Scene) (string, error) {
 	text, err := p.w.Predict(ctx, writing.Scene(scene))
 	return text, requestError(err)
 }
@@ -352,7 +363,7 @@ func (p pen) Check(ctx context.Context, chapter string) (workspace.Check, error)
 	return check, requestError(err)
 }
 
-func (s *Service) Pen(st *workspace.Store, material aiport.Material) (aiport.Pen, error) {
+func (s *Service) Pen(st *workspace.Store, material aiapi.Material) (aiapi.Pen, error) {
 	if s.on != nil && !s.on() {
 		return nil, ErrOff
 	}
@@ -369,4 +380,19 @@ func (s *Service) MinCheck() int { return writing.MinCheck }
 func (s *Service) Cost(name string, u workspace.Usage) (float64, string, bool) {
 	ref, _ := workspace.ParseModelRef(name)
 	return model.Cost(model.PriceID(ref.Model), model.Usage(u))
+}
+
+// Close stops requests built by this activation. A stopped service is not reused.
+func (s *Service) Close() { s.cancel() }
+
+func linkedContext(ctx, life context.Context) (context.Context, context.CancelFunc) {
+	if life == nil {
+		return context.WithCancel(ctx)
+	}
+	linked, cancel := context.WithCancel(ctx)
+	stop := context.AfterFunc(life, cancel)
+	if life.Err() != nil {
+		cancel()
+	}
+	return linked, func() { stop(); cancel() }
 }

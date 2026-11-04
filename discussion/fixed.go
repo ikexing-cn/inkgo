@@ -3,7 +3,7 @@ package discussion
 import (
 	"fmt"
 	"strings"
-	"writer/aiport"
+	"writer/ext/ai/aiapi"
 
 	"writer/workspace"
 )
@@ -56,7 +56,7 @@ var errGone = ErrChapterGone
 // volume, and the chapter before, whole; a rewrite takes the outlines and
 // the chapter itself, whole. Both take the chapter's cards. Outlines left
 // empty are left out.
-func fixedOf(st *workspace.Store, material aiport.Material, tree workspace.Tree, origin, chapter string) (*Fixed, error) {
+func fixedOf(st *workspace.Store, material aiapi.Material, tree workspace.Tree, origin, chapter string) (*Fixed, error) {
 	n, ok := tree.Node(chapter)
 	if !ok || n.Folder {
 		return nil, errGone
@@ -163,7 +163,7 @@ func fixedOf(st *workspace.Store, material aiport.Material, tree workspace.Tree,
 // chapter carries before anything is said or looked up: the rules, the
 // setting as it stands at the chapter, and what goes with the chapter.
 // The dialog that opens the talk says it.
-func Preloaded(st *workspace.Store, material aiport.Material, origin, chapter string) (Preload, error) {
+func Preloaded(st *workspace.Store, material aiapi.Material, origin, chapter string) (Preload, error) {
 	tree, err := st.Chapters()
 	if err != nil {
 		return Preload{}, err

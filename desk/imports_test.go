@@ -10,7 +10,7 @@ import (
 
 // What each package under desk may depend on, through any package between.
 // desk draws all of the AI and sends nothing itself: what sends is in package
-// ai, which desk reaches through aiport alone. book is the book's content, with
+// ai, which desk reaches through aiapi alone. book is the book's content, with
 // no view and nothing of desk. kit is what the pages draw with, and knows
 // nothing of desk. Any other package under desk is a page, which reaches desk
 // only through kit and book; one added later is held to that without naming it
@@ -27,7 +27,7 @@ func TestImports(t *testing.T) {
 		deps[f[0]] = f[1:]
 		packages = append(packages, f[0])
 	}
-	if !slices.Contains(deps["writer/desk"], "writer/aiport") {
+	if !slices.Contains(deps["writer/desk"], "writer/ext/ai/aiapi") {
 		t.Fatalf("not the dependencies of desk: %q", deps["writer/desk"])
 	}
 	sort.Strings(packages)
@@ -36,7 +36,7 @@ func TestImports(t *testing.T) {
 		wrong := slices.DeleteFunc(slices.Clone(deps[p]), func(d string) bool {
 			underDesk := within(d, "writer/desk")
 			switch {
-			case slices.Contains([]string{"writer/ai", "writer/model", "writer/discussion", "writer/writing", "writer/inference"}, d):
+			case slices.Contains([]string{"writer/ai", "writer/model", "writer/discussion", "writer/writing", "writer/inference", "writer/prompt"}, d):
 				return false
 			case p == "writer/desk":
 				return true

@@ -54,7 +54,7 @@ func TestNavigationTables(t *testing.T) {
 			if !tc.work {
 				a.closeWork()
 			}
-			a.shelf.NoAI = !tc.ai
+			a.turnAI(!(!tc.ai))
 			for _, p := range []struct {
 				id       page
 				name     string

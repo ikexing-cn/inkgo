@@ -8,9 +8,9 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"writer/ai"
-	"writer/ai/aitext"
 	"writer/desk"
+	"writer/ext"
+	aimod "writer/ext/ai"
 	"writer/internal/testshot"
 	"writer/workspace"
 )
@@ -25,8 +25,7 @@ func layoutBook(t *testing.T, root string) *workspace.Store {
 }
 
 func newLayoutApp(root string) *desk.App {
-	a := desk.New(ai.New(filepath.Join(root, "providers.yaml")), testModules()...)
-	a.ErrorText = []desk.ErrorTranslator{aitext.Translate}
+	a := desk.New(filepath.Join(root, "providers.yaml"), append([]ext.Module{aimod.New(aimod.Options{ConfigFile: filepath.Join(root, "providers.yaml")})}, testModules()...)...)
 	return a
 }
 
@@ -311,4 +310,8 @@ func shot(t *testing.T, tt *ui.Tester, suffix string) {
 	tt.Frame()
 	name := "layout" + suffix + ".png"
 	testshot.Save(t, name, tt.Image())
+}
+
+func newModuleApp(config string, mods ...ext.Module) *desk.App {
+	return desk.New(config, append([]ext.Module{aimod.New(aimod.Options{ConfigFile: config})}, mods...)...)
 }

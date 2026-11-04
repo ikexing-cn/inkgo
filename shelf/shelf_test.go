@@ -71,27 +71,15 @@ func TestShelfRoundTrip(t *testing.T) {
 
 // The AI is on unless the shelf says it is off, and only off is written:
 // a shelf from before the switch reads as on.
-func TestShelfNoAI(t *testing.T) {
+func TestShelfHasNoAISwitch(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "works.json")
-	if err := os.WriteFile(path, []byte(`{"schema":1,"library":"","books":[]}`), 0644); err != nil {
+	s := Shelf{Schema: 1}
+	if err := s.Save(path); err != nil {
 		t.Fatal(err)
 	}
-	s, _, err := Load(path)
-	if err != nil || s.NoAI {
-		t.Fatalf("an old shelf: %+v %v", s, err)
-	}
-	if err = s.Save(path); err != nil {
-		t.Fatal(err)
-	}
-	if b, _ := os.ReadFile(path); strings.Contains(string(b), "noAI") {
-		t.Fatalf("on, yet written: %s", b)
-	}
-	s.NoAI = true
-	if err = s.Save(path); err != nil {
-		t.Fatal(err)
-	}
-	if s, _, err = Load(path); err != nil || !s.NoAI {
-		t.Fatalf("off did not read back: %+v %v", s, err)
+	data, err := os.ReadFile(path)
+	if err != nil || strings.Contains(string(data), "noAI") {
+		t.Fatal(string(data), err)
 	}
 }
 

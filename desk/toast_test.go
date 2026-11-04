@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui"
-	"writer/aiport"
 	"writer/desk/kit"
+	"writer/ext/ai/aiapi"
 	"writer/internal/testshot"
 )
 
@@ -18,7 +18,7 @@ import (
 func TestToastOverTheSettings(t *testing.T) {
 	a, tt, _ := fixture(t)
 	a.openPrefs("AI")
-	a.SetError(&aiport.SetupError{Err: errors.New("连不上 AI：检查网络和服务地址")})
+	a.SetError(&aiapi.SetupError{Err: errors.New("连不上 AI：检查网络和服务地址")})
 	tt.Frame()
 	tt.Frame()
 	if n := strings.Count(strings.Join(tt.Texts(), "\n"), "连不上 AI"); n != 1 {
@@ -56,13 +56,13 @@ func TestToastOverTheSettings(t *testing.T) {
 // settings open and the toast goes, as in the prototype.
 func TestOpeningTheSettingsFromAToastClearsIt(t *testing.T) {
 	a, tt, _ := fixture(t)
-	a.SetError(&aiport.SetupError{Err: errors.New("尚未选择讨论模型：请在设置中「AI」配置里选择")})
+	a.SetError(&aiapi.SetupError{Err: errors.New("尚未选择讨论模型：请在设置中「AI」配置里选择")})
 	tt.Frame()
 	if err := tt.Click("打开设置"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.errorText() != "" || tt.HasText("尚未选择讨论模型") || !tt.HasText("关闭 AI") {
+	if a.errorText() != "" || tt.HasText("尚未选择讨论模型") || !tt.HasText("扩展开关-ai") {
 		t.Fatal(a.errorText(), tt.Texts())
 	}
 }
@@ -70,7 +70,7 @@ func TestOpeningTheSettingsFromAToastClearsIt(t *testing.T) {
 func TestToastSettingsFollowTheErrorType(t *testing.T) {
 	a, tt, _ := fixture(t)
 	cause := errors.New("服务需要重新选择")
-	wrapped := fmt.Errorf("请求失败：%w", &aiport.SetupError{Err: cause})
+	wrapped := fmt.Errorf("请求失败：%w", &aiapi.SetupError{Err: cause})
 	a.SetError(wrapped)
 	tt.Frame()
 	tt.Frame()
@@ -162,7 +162,7 @@ func TestShotToasts(t *testing.T) {
 
 	tt.SetDark(true)
 	a.openPrefs("AI")
-	a.SetError(&aiport.SetupError{Err: errors.New("连不上 AI：检查网络和服务地址")})
+	a.SetError(&aiapi.SetupError{Err: errors.New("连不上 AI：检查网络和服务地址")})
 	shot(t, tt, "toast-settings-dark.png")
 	tt.SetDark(false)
 	a.settings.open = false
@@ -171,7 +171,7 @@ func TestShotToasts(t *testing.T) {
 	showPage(a, pageWrite)
 	setNotice(a, "已保存。停笔片刻也会自动保存")
 	shot(t, tt, "toast-saved.png")
-	a.SetError(&aiport.SetupError{Err: errors.New("连不上 AI：检查网络和服务地址")})
+	a.SetError(&aiapi.SetupError{Err: errors.New("连不上 AI：检查网络和服务地址")})
 	tt.Frame()
 	a.busy = "正在读取可用模型…"
 	shot(t, tt, "toast-stack.png")

@@ -31,7 +31,7 @@ func TestAuthoringDrawAndMenuPointsUseFrameCallChainsAndIsolateFailure(t *testin
 					ext.Before(r, ext.HookOf(ext.CallPoint[hostapi.SelectionMenu, string, []hostapi.SelectionAction]{Point: hostapi.SelectionMenus}, target), "trace", func(in *string) { before++ })
 				}
 			}}
-			a := New(ai.New(""), append(testModules(), fake, injector)...)
+			a := newTestApp(ai.New(""), append(testModules(), fake, injector)...)
 			defer a.Close()
 			requireExtension(t, a.Open(extensionBook(t)))
 			tt := stillTester(func(c *ui.Context) {
@@ -112,7 +112,7 @@ func TestMarginSourcesAndActionsUseGuardAndIsolateFailures(t *testing.T) {
 					return []hostapi.MarginItem{{ID: "fakenotes.note", Title: "fake note", Start: 0, End: 1, Open: func() { calls++; panic("open failed") }, Actions: []hostapi.NoteAction{{Label: "act", Run: func() { calls++; panic("action failed") }}}}}
 				}})
 			}}
-			a := New(ai.New(""), append(testModules(), fake)...)
+			a := newTestApp(ai.New(""), append(testModules(), fake)...)
 			defer a.Close()
 			requireExtension(t, a.Open(extensionBook(t)))
 			id, err := a.book.NewChapter("", "chapter", false)
@@ -180,7 +180,7 @@ func TestPaneBadgeQueriesUseGuard(t *testing.T) {
 	fake := ext.Module{ID: "fakebadge", Setup: func(r *ext.Registrar) {
 		ext.Contribute(r, hostapi.PaneTabs, "tab", hostapi.PaneTab{Title: func() string { return "fake badge" }, Count: func() int { panic("badge failed") }})
 	}}
-	a := New(ai.New(""), append(testModules(), fake)...)
+	a := newTestApp(ai.New(""), append(testModules(), fake)...)
 	defer a.Close()
 	requireExtension(t, a.Open(extensionBook(t)))
 	a.page = pageWrite
@@ -200,7 +200,7 @@ func TestSelectionActionClickIsGuardedAfterMenuConstruction(t *testing.T) {
 			return []hostapi.SelectionAction{{Label: "fake action", Run: func() { calls++; panic("action failed") }}}
 		}})
 	}}
-	a := New(ai.New(""), append(testModules(), fake)...)
+	a := newTestApp(ai.New(""), append(testModules(), fake)...)
 	defer a.Close()
 	requireExtension(t, a.Open(extensionBook(t)))
 	state := kit.MenuState{Owner: "fake", X: 10, Y: 10}
@@ -242,11 +242,11 @@ func TestTalkAndAIServiceMethodsAreDirectFrameCalls(t *testing.T) {
 		if !state.AIEnabled() {
 			t.Fatal("AI should be on")
 		}
-		a.shelf.NoAI = true
+		a.turnAI(!(true))
 		if state.AIEnabled() {
 			t.Fatal("AI state was cached")
 		}
-		a.shelf.NoAI = false
+		a.turnAI(!(false))
 		title, exists := talk.TalkTitle(id)
 		if !exists || title != "服务测试" {
 			t.Fatal(title, exists)
@@ -329,7 +329,7 @@ func TestSplitServicesUsedInsideCallKeepContributionFailureIsolated(t *testing.T
 					panic("consumer failed")
 				}})
 			}}
-			a := New(ai.New(""), append(testModules(), fake)...)
+			a := newTestApp(ai.New(""), append(testModules(), fake)...)
 			defer a.Close()
 			requireExtension(t, a.Open(extensionBook(t)))
 			frame := stillTester(func(c *ui.Context) { a.besideItems(c); ui.Text(c, "host alive") }, 1266, 780)

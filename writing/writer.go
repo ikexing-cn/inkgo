@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"unicode"
-	"writer/aiport"
+	"writer/ext/ai/aiapi"
 
 	"writer/inference"
 	"writer/internal/textclip"
@@ -32,7 +32,7 @@ var writePlaces = []prompt.Place{
 // Writer writes the prose of one work with one model.
 type Writer struct {
 	// Material is the provider snapshot taken on the frame thread.
-	Material aiport.Material
+	Material aiapi.Material
 	Store    *workspace.Store
 	Model    inference.Model
 }

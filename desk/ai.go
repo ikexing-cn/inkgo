@@ -8,8 +8,8 @@ import (
 	"sync/atomic"
 
 	"github.com/egoist/mygo/ui"
-	"writer/aiport"
 	"writer/desk/kit"
+	"writer/ext/ai/aiapi"
 	"writer/locales"
 	"writer/prefs"
 	"writer/tokens"
@@ -19,7 +19,7 @@ import (
 // pen continues the text of a chapter's editor with the writer the page
 // keeps up to date; it runs off the UI thread.
 type pen struct {
-	writer  *atomic.Pointer[aiport.Pen]
+	writer  *atomic.Pointer[aiapi.Pen]
 	chapter string
 }
 
@@ -36,7 +36,7 @@ func (p pen) Predict(ctx context.Context, before string) (string, error) {
 	if w == nil {
 		return "", errNoPen
 	}
-	return (*w).Predict(ctx, aiport.Scene{Chapter: p.chapter, Before: before})
+	return (*w).Predict(ctx, aiapi.Scene{Chapter: p.chapter, Before: before})
 }
 
 // modelsChanged tells that a service's address or key may be another: the
@@ -47,7 +47,7 @@ func (a *App) modelsChanged() { a.write.penKey = nil }
 type penKey struct {
 	writing, discussion workspace.Selection
 	providers           int
-	material            aiport.Material
+	material            aiapi.Material
 }
 
 // keepPen rebuilds the writer the editors predict with when the model
@@ -143,7 +143,7 @@ func (a *App) draftNote() string {
 		return ""
 	}
 	what := locales.DraftItemBooks()
-	if p.Outlines == aiport.VolumeChapters {
+	if p.Outlines == aiapi.VolumeChapters {
 		what = locales.DraftItemVolume()
 	}
 	if p.Previous {
@@ -188,7 +188,7 @@ func (a *App) draft(c *ui.Context) {
 func (a *App) startTalk(c *ui.Context, words workspace.Event) bool {
 	w := &a.write
 	if work := a.Store.Work(); work.Discussion.Provider == "" || work.Discussion.Model == "" {
-		a.SetError(&aiport.SetupError{Err: errors.New(locales.ChatNeedModel())})
+		a.SetError(&aiapi.SetupError{Err: errors.New(locales.ChatNeedModel())})
 		return false
 	}
 	what := map[string]string{workspace.AIDraft: locales.SettingsFeatureDraft(), workspace.AIRewrite: locales.SettingsFeatureRewrite()}[words.Origin]

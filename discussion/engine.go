@@ -4,7 +4,7 @@ import (
 	"context"
 	"slices"
 	"strings"
-	"writer/aiport"
+	"writer/ext/ai/aiapi"
 
 	"writer/inference"
 	"writer/model"
@@ -24,7 +24,7 @@ func ask(ctx context.Context, m inference.Model, req model.Request, on func(mode
 // calls that need a model refuse.
 type Engine struct {
 	// Material is the provider snapshot taken on the frame thread.
-	Material aiport.Material
+	Material aiapi.Material
 	Store    *workspace.Store
 	Talk     inference.Model
 	// Progress, when set, hears what the reply streams, never empty, and

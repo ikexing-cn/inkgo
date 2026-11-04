@@ -5,30 +5,30 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui"
-	"writer/aiport"
+	"writer/ext/ai/aiapi"
 	"writer/workspace"
 )
 
 // materialSpy records the provider snapshots at the frame boundary.
 type materialSpy struct {
 	capturedStream
-	talks, pens, preloads []aiport.Material
+	talks, pens, preloads []aiapi.Material
 	predictions           int
 }
 
-func (s *materialSpy) Talk(st *workspace.Store, m aiport.Material, b *aiport.Beside, progress func(aiport.Progress), step func(workspace.Event)) (aiport.Talk, error) {
+func (s *materialSpy) Talk(st *workspace.Store, m aiapi.Material, b *aiapi.Beside, progress func(aiapi.Progress), step func(workspace.Event)) (aiapi.Talk, error) {
 	s.talks = append(s.talks, m)
 	return s.capturedStream.Talk(st, m, b, progress, step)
 }
 
-func (s *materialSpy) Pen(_ *workspace.Store, m aiport.Material) (aiport.Pen, error) {
+func (s *materialSpy) Pen(_ *workspace.Store, m aiapi.Material) (aiapi.Pen, error) {
 	s.pens = append(s.pens, m)
 	return materialPen{s}, nil
 }
 
-func (s *materialSpy) Preloaded(_ *workspace.Store, m aiport.Material, _, _ string) (aiport.Preload, error) {
+func (s *materialSpy) Preloaded(_ *workspace.Store, m aiapi.Material, _, _ string) (aiapi.Preload, error) {
 	s.preloads = append(s.preloads, m)
-	return aiport.Preload{}, nil
+	return aiapi.Preload{}, nil
 }
 
 type materialPen struct{ spy *materialSpy }
@@ -37,7 +37,7 @@ func (p materialPen) Name() string { return "fake" }
 
 func (p materialPen) Effort() string { return "" }
 
-func (p materialPen) Predict(context.Context, aiport.Scene) (string, error) {
+func (p materialPen) Predict(context.Context, aiapi.Scene) (string, error) {
 	p.spy.predictions++
 	return "句子。", nil
 }
@@ -51,13 +51,13 @@ func TestNextTalkPredictionAndPreloadFollowGlobalAndBookMaterialSwitches(t *test
 		for _, bookScope := range []bool{false, true} {
 			t.Run(id+map[bool]string{false: "/global", true: "/book"}[bookScope], func(t *testing.T) {
 				a, tt, _ := marginFixture(t, true)
-				spy := &materialSpy{capturedStream: capturedStream{Service: a.ai}}
+				spy := &materialSpy{capturedStream: capturedStream{Backend: a.ai}}
 				a.ai = spy
 				a.modelsChanged()
 				for _, on := range []bool{true, false, true} {
 					a.setExtension(id, on, bookScope)
 					tt.Frame()
-					var want = aiport.Material{Setting: true, Outline: true}
+					var want = aiapi.Material{Setting: true, Outline: true}
 					if id == "lore" {
 						want.Setting = on
 					} else {

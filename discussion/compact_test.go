@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-	"writer/aiport"
+	"writer/ext/ai/aiapi"
 
 	"writer/inference"
 	"writer/model"
@@ -41,7 +41,7 @@ func (d *digester) Complete(ctx context.Context, r model.Request, on func(model.
 	if d.err != nil {
 		return model.Reply{}, d.err
 	}
-	if r.Messages[len(r.Messages)-1].Content == digestAsk || r.Messages[len(r.Messages)-1].Content == digestAskFor(aiport.Material{}) {
+	if r.Messages[len(r.Messages)-1].Content == digestAsk || r.Messages[len(r.Messages)-1].Content == digestAskFor(aiapi.Material{}) {
 		d.digests++
 		return model.Reply{Text: fmt.Sprintf("## 在聊什么\n第%d份摘要", d.digests), Reasoning: "先理一理", Usage: model.Usage{Input: 9000, CacheRead: 8000, Output: 300}}, nil
 	}

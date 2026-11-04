@@ -5,7 +5,7 @@ package writing
 
 import (
 	"strings"
-	"writer/aiport"
+	"writer/ext/ai/aiapi"
 )
 
 // The models see the work's own words only, never IDs: whatever they are
@@ -41,7 +41,7 @@ const writeOutput = `
 const rules = writeIntro + writeSetting + writeContent + writeStyle + settingStyle + writeOutput
 
 // rulesFor includes only instructions for the reference providers present.
-func rulesFor(material aiport.Material) string {
+func rulesFor(material aiapi.Material) string {
 	var out strings.Builder
 	out.WriteString(writeIntro)
 	if material.Setting {

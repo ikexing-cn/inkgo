@@ -296,6 +296,10 @@ func (a *App) closeExtensionMenu() {
 }
 
 func (a *App) flipExtension(id string, on, book bool) {
+	if id == "ai" {
+		a.settings.askAI = true
+		return
+	}
 	a.syncExtensions()
 	v := a.extViews.moduleViews[id]
 	also := v.stops

@@ -204,3 +204,10 @@ const JobsService ext.ServiceKey[Jobs] = "host.jobs"
 
 // DialogsService resolves native dialogs; accessors require the frame thread.
 const DialogsService ext.ServiceKey[Dialogs] = "host.dialogs"
+
+// ErrorTranslator formats a known error using reason for nested causes.
+// It runs on the frame thread and must not retain frame objects.
+type ErrorTranslator func(error, func(error) string) (string, bool)
+
+// ErrorTexts collects active extension error translators.
+const ErrorTexts ext.PointKey[ErrorTranslator] = "host.error-texts"

@@ -84,7 +84,7 @@ func TestHelpShowsTheTableRows(t *testing.T) {
 		}
 		at = i + 1
 	}
-	a.shelf.NoAI = true
+	a.turnAI(!(true))
 	tt.Frame()
 	texts = tt.Texts()
 	for _, row := range commandHelp {

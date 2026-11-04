@@ -73,7 +73,7 @@ func TestSystemMenuStructureAndState(t *testing.T) {
 		}
 	}
 	a.sideHidden = true
-	a.shelf.NoAI = true
+	a.turnAI(!(true))
 	all = flattenSystemMenu(a.SystemMenu())
 	if all["side"].Label != locales.CmdShowSidebar() {
 		t.Fatal(all["side"])

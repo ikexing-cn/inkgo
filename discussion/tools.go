@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 	"unicode"
-	"writer/aiport"
+	"writer/ext/ai/aiapi"
 
 	"writer/inference"
 	"writer/internal/textclip"
@@ -111,10 +111,10 @@ func fixedSchema(schema string) func(workspace.Work) json.RawMessage {
 
 // tools are the tools of a talk of w: note_setting takes w's categories.
 func tools(w workspace.Work) []model.Tool {
-	return toolsFor(w, aiport.Material{Setting: true, Outline: true})
+	return toolsFor(w, aiapi.Material{Setting: true, Outline: true})
 }
 
-func toolsFor(w workspace.Work, material aiport.Material) []model.Tool {
+func toolsFor(w workspace.Work, material aiapi.Material) []model.Tool {
 	var out []model.Tool
 	for _, tl := range toolTable {
 		if (tl.name == toolLookUp || tl.name == toolNote) && !material.Setting || tl.name == toolReadOutline && !material.Outline {

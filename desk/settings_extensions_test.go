@@ -27,7 +27,7 @@ func extensionSettingsFixture(t *testing.T) (*App, *ui.Tester) {
 		ext.Module{ID: "unused", Kind: ext.Library, Group: hostapi.GroupWrite, Name: func() string { return "闲置基础" }},
 		ext.Module{ID: "installed", Group: "unknown", Name: func() string { return "另装功能" }},
 	)
-	a := New(ai.New(filepath.Join(t.TempDir(), "providers.yaml")), mods...)
+	a := newTestApp(ai.New(filepath.Join(t.TempDir(), "providers.yaml")), mods...)
 	t.Cleanup(func() { a.Close() })
 	requireExtension(t, a.Open(extensionBook(t)))
 	a.openPrefs("extensions")
@@ -43,7 +43,7 @@ func extensionDetails(t *testing.T, a *App, tt *ui.Tester, id string) {
 
 func TestExtensionOverviewListsOnlyAssemblyInGroupOrderAndResetsDetails(t *testing.T) {
 	a, tt := extensionSettingsFixture(t)
-	want := [][]string{{"source", "consumer"}, {"lore", "outline", "optional"}, {"backup", "export", "phone"}, {"installed"}, {"context", "unused"}}
+	want := [][]string{{"source", "consumer"}, {"lore", "outline", "optional"}, {"backup", "export", "phone"}, {"installed"}, {"ai", "context", "unused"}}
 	if len(a.extViews.groups) != len(want) {
 		t.Fatal(a.extViews.groups)
 	}
@@ -359,7 +359,7 @@ func TestBookEnableSaysTheLibrariesItTakesTurnOnForEveryWork(t *testing.T) {
 		ext.Module{ID: "base", Kind: ext.Library, Name: func() string { return "底层" }},
 		ext.Module{ID: "user", Group: hostapi.GroupWrite, Name: func() string { return "上层" }, Requires: []string{"base"}},
 	)
-	a := New(ai.New(filepath.Join(t.TempDir(), "providers.yaml")), mods...)
+	a := newTestApp(ai.New(filepath.Join(t.TempDir(), "providers.yaml")), mods...)
 	t.Cleanup(func() { a.Close() })
 	requireExtension(t, a.Open(extensionBook(t)))
 	tt := stillTester(a.View, 1266, 780)

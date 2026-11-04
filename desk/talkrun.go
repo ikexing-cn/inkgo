@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"github.com/egoist/mygo/ui"
-	"writer/aiport"
 	"writer/desk/kit"
+	"writer/ext/ai/aiapi"
 	"writer/locales"
 	"writer/workspace"
 )
@@ -42,7 +42,7 @@ type streamed struct {
 	p    workspace.Proposal
 }
 
-func (l *live) add(p aiport.Progress) {
+func (l *live) add(p aiapi.Progress) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if p.Proposal != nil {
@@ -88,12 +88,12 @@ func (l *live) read() (reasoning, text string, steps []workspace.Event, compacti
 // streaming the reply into the view with what it looks up on the way, and
 // what the author is writing beside it. What it notes in the setting
 // shows at once.
-func (a *App) talk(c *ui.Context) (aiport.Talk, error) {
+func (a *App) talk(c *ui.Context) (aiapi.Talk, error) {
 	turn := &talkTurn{}
 	a.turn = turn
 	a.write.seen = map[string]bool{}
 	sv := c.Services()
-	return a.ai.Talk(a.Store, a.material(), a.beside(), func(p aiport.Progress) {
+	return a.ai.Talk(a.Store, a.material(), a.beside(), func(p aiapi.Progress) {
 		turn.live.add(p)
 		sv.Invalidate()
 	}, func(e workspace.Event) { a.stepped(turn, sv, e) })

@@ -340,7 +340,7 @@ func TestThePagesAreCenteredWithoutPreviousBounds(t *testing.T) {
 		build++
 	}, 1266, 80)
 	for _, noAI := range []bool{false, true, false} {
-		a.shelf.NoAI = noAI
+		a.turnAI(!(noAI))
 		tt.Frame()
 		first, last := "讨论", "检查"
 		if noAI {

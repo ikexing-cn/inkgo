@@ -1,4 +1,4 @@
-package desk
+package ai
 
 import (
 	"context"
@@ -7,11 +7,13 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
-	"writer/aiport"
 	"writer/desk/kit"
-	"writer/locales"
+	"writer/ext"
+	"writer/ext/ai/aiapi"
+	"writer/ext/ai/aitext"
 	"writer/tokens"
 	"writer/workspace"
 )
@@ -19,7 +21,7 @@ import (
 var protocols = []string{"chat", "responses", "anthropic"}
 
 func serviceProtocolNames() []string {
-	return []string{locales.SettingsProtoChat(), "OpenAI Responses", "Anthropic Messages"}
+	return []string{aitext.SettingsProtoChat(), "OpenAI Responses", "Anthropic Messages"}
 }
 
 func isLocal(raw string) bool {
@@ -31,33 +33,17 @@ func isLocal(raw string) bool {
 	return h == "localhost" || h == "127.0.0.1" || h == "::1"
 }
 
-func (a *App) destination(sel workspace.Selection) string {
-	for _, p := range a.ai.Providers() {
-		if p.ID == sel.Provider {
-			u, err := url.Parse(p.BaseURL)
-			if err != nil {
-				return locales.SettingsInvalidAddress()
-			}
-			kind := locales.SettingsRemote()
-			if isLocal(p.BaseURL) {
-				kind = locales.SettingsLocal()
-			}
-			return kind + " " + u.Host + " / " + sel.Model
-		}
-	}
-	return locales.ChatNeedModel()
-}
-
-func (a *App) chooseProvider(id string) {
+// ChooseProvider runs on the frame thread.
+func (a *View) ChooseProvider(id string) {
 	for _, p := range a.ai.Providers() {
 		if p.ID == id {
-			a.serviceForm.load(p)
+			a.ServiceForm.load(p)
 			return
 		}
 	}
 }
 
-func (a *App) providerModels(id string) []string {
+func (a *View) providerModels(id string) []string {
 	for _, p := range a.ai.Providers() {
 		if p.ID == id {
 			return modelIDs(p)
@@ -66,7 +52,7 @@ func (a *App) providerModels(id string) []string {
 	return nil
 }
 
-func modelIDs(p aiport.Provider) []string {
+func modelIDs(p aiapi.Provider) []string {
 	ids := make([]string, len(p.Models))
 	for i, m := range p.Models {
 		ids[i] = m.ID
@@ -77,11 +63,13 @@ func modelIDs(p aiport.Provider) []string {
 // modelsView is the settings' AI with the AI on: which models the work
 // uses, how the writing calls them, and the services kept on this
 // computer.
-func (a *App) modelsView(c *ui.Context) {
-	if a.Store != nil {
+func (a *View) modelsView(c *ui.Context) {
+	if a.book.Get().Store() != nil {
 		a.usage(c)
-		a.spent(c)
-		a.writingSwitches(c)
+		for _, item := range a.usageItems.Items() {
+			_, _ = ext.CallReadPoint(a.usageItems, item.ID, c, func(c *ui.Context) struct{} { item.Value(c); return struct{}{} })
+		}
+		a.host.Get().WritingSettings(c)
 	}
 	a.services(c)
 }
@@ -89,16 +77,16 @@ func (a *App) modelsView(c *ui.Context) {
 // usage chooses which configured models this work talks to: one row each
 // for the discussion, and for continuing and checking. A choice is kept as
 // it is made, a model ID typed once the caret leaves it.
-func (a *App) usage(c *ui.Context) {
-	a.pal.Subhead(c, locales.SettingsBookModels(), "")
+func (a *View) usage(c *ui.Context) {
+	a.pal.Subhead(c, aitext.SettingsBookModels(), "")
 	var typing [2]bool
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
-		typing[0] = a.useRow(c, locales.SettingsJobChat(), locales.SettingsJobChatAbout(), &a.talkProvider, "", "讨论提供商", &a.talkModel, "讨论模型", &a.talkEffort, "讨论的思考程度")
-		typing[1] = a.useRow(c, locales.SettingsJobCheck(), locales.SettingsJobCheckAbout(), &a.penProvider, locales.SettingsSameAsTalk(), "续写和检查提供商", &a.penModel, "续写和检查模型", &a.penEffort, "续写和检查的思考程度")
+		typing[0] = a.useRow(c, locales.SettingsJobChat(), aitext.SettingsJobChatAbout(), &a.host.Get().Choices().TalkProvider, "", "讨论提供商", &a.host.Get().Choices().TalkModel, "讨论模型", &a.host.Get().Choices().TalkEffort, "讨论的思考程度")
+		typing[1] = a.useRow(c, aitext.SettingsJobCheck(), aitext.SettingsJobCheckAbout(), &a.host.Get().Choices().PenProvider, aitext.SettingsSameAsTalk(), "续写和检查提供商", &a.host.Get().Choices().PenModel, "续写和检查模型", &a.host.Get().Choices().PenEffort, "续写和检查的思考程度")
 	})
 	if typing == [2]bool{} {
-		if err := a.saveUsage(); err != nil {
-			a.SetError(err)
+		if err := a.SaveUsage(); err != nil {
+			a.status.SetError(err)
 		}
 	}
 }
@@ -107,8 +95,8 @@ func (a *App) usage(c *ui.Context) {
 // effort. With none, the row can go without a service of its own. A
 // service chosen brings its first model with it. It reports whether the
 // model ID is being typed.
-func (a *App) useRow(c *ui.Context, who, what string, provider *string, none, providerLabel string, model *string, modelLabel string, effort *string, effortLabel string) (typing bool) {
-	busy := a.held()
+func (a *View) useRow(c *ui.Context, who, what string, provider *string, none, providerLabel string, model *string, modelLabel string, effort *string, effortLabel string) (typing bool) {
+	busy := a.host.Get().Held()
 	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Column(c).Width(120).Shrink(0).Children(func() {
 			ui.Text(c, who).FontSize(kit.FsBody).FontWeight(500)
@@ -127,7 +115,7 @@ func (a *App) useRow(c *ui.Context, who, what string, provider *string, none, pr
 				*model = ""
 				return
 			}
-			typing = modelField(c, model, a.providerModels(*provider)).Label(modelLabel).Placeholder(locales.SettingsModelHint()).FillWidth().Disabled(busy).Focused()
+			typing = modelField(c, model, a.providerModels(*provider)).Label(modelLabel).Placeholder(aitext.SettingsModelHint()).FillWidth().Disabled(busy).Focused()
 		})
 		ui.Column(c).Width(110).Shrink(0).Children(func() {
 			a.effortSelect(c, effort, effortLabel, busy)
@@ -136,36 +124,20 @@ func (a *App) useRow(c *ui.Context, who, what string, provider *string, none, pr
 	return typing
 }
 
-// writingSwitches are the writing page's calls to the models, kept as
-// they are ticked.
-func (a *App) writingSwitches(c *ui.Context) {
-	busy := a.held()
-	a.pal.Subhead(c, locales.SettingsWriting(), "")
-	ui.Column(c).FillWidth().Gap(8).Children(func() {
-		if ui.Checkbox(c, &a.write.autoPredict, locales.SettingsAutoContinue()).Disabled(busy).Changed() {
-			for _, ed := range a.write.editors() {
-				ed.SetPredictOnDemand(!a.write.autoPredict)
-			}
-			a.savePrefs() // kept as ticked, not with the models above
-		}
-		a.pal.TickNote(c, locales.SettingsAutoNote())
-	})
-}
-
 // services lists the model services kept on this computer; 编辑 opens a
 // service's form in place, and so does adding one.
-func (a *App) services(c *ui.Context) {
-	f := &a.serviceForm
+func (a *View) services(c *ui.Context) {
+	f := &a.ServiceForm
 	t := a.pal.Theme
-	busy := a.held()
-	a.pal.Subhead(c, locales.SettingsServices(), locales.SettingsServicesNote())
+	busy := a.host.Get().Held()
+	a.pal.Subhead(c, aitext.SettingsServices(), aitext.SettingsServicesNote())
 	// A form just opened comes into view with its card: one added opens at
 	// the foot of the list, below what is shown.
-	reveal := f.edit != f.shown
-	f.shown = f.edit
+	reveal := f.Edit != f.Shown
+	f.Shown = f.Edit
 	card := func(id string) ui.Element {
 		box := ui.Column(c).FillWidth().Gap(12).Padding(12, 14).Radius(kit.RCard).Border(1, a.pal.Line)
-		if reveal && f.edit == id {
+		if reveal && f.Edit == id {
 			box.ScrollIntoView()
 		}
 		return box
@@ -180,31 +152,31 @@ func (a *App) services(c *ui.Context) {
 						if u, err := url.Parse(p.BaseURL); err == nil && u.Host != "" {
 							sub = u.Host
 						}
-						sub = locales.SettingsServiceMeta(sub, len(p.Models))
-						if a.Store != nil && a.Store.Work().Discussion.Provider == p.ID {
-							sub += " · " + locales.SettingsInUse()
+						sub = aitext.SettingsServiceMeta(sub, len(p.Models))
+						if a.book.Get().Store() != nil && a.book.Get().Store().Work().Discussion.Provider == p.ID {
+							sub += " · " + aitext.SettingsInUse()
 						}
 						ui.Text(c, sub).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody).SingleLine().Ellipsis("…")
 					})
-					open := f.edit == p.ID
+					open := f.Edit == p.ID
 					text := locales.SettingsEdit()
 					if open {
-						text = locales.SettingsCollapse()
+						text = aitext.SettingsCollapse()
 					}
 					if a.pal.Secondary(c, text).Label("提供商-" + p.ID).Disabled(busy).Clicked() {
-						f.close()
+						f.Close()
 						if !open {
-							a.chooseProvider(p.ID)
-							f.edit = p.ID
+							a.ChooseProvider(p.ID)
+							f.Edit = p.ID
 						}
 					}
 				})
-				if f.edit == p.ID {
+				if f.Edit == p.ID {
 					a.providerForm(c)
 				}
 			})
 		}
-		if f.edit == "+" {
+		if f.Edit == "+" {
 			card("+").Children(func() { a.providerForm(c) })
 			return
 		}
@@ -214,31 +186,31 @@ func (a *App) services(c *ui.Context) {
 		}
 		add.Children(func() {
 			kit.Glyph(c, kit.IcPlus, kit.IconSm, t.TextMuted)
-			ui.Text(c, locales.SettingsAddService()).FontSize(kit.FsBody).TextColor(t.TextMuted)
+			ui.Text(c, aitext.SettingsAddService()).FontSize(kit.FsBody).TextColor(t.TextMuted)
 		})
 		if add.Clicked() {
-			f.new()
+			f.New()
 		}
 	})
 	ui.Row(c).FillWidth().Gap(16).Justify(ui.End).Children(func() {
-		if a.pal.Ghost(c, locales.SettingsOpenConfig(), ui.Color{}).Disabled(a.ai.ConfigFile() == "").Clicked() {
+		if a.pal.Ghost(c, aitext.SettingsOpenConfig(), ui.Color{}).Disabled(a.ai.ConfigFile() == "").Clicked() {
 			u := url.URL{Scheme: "file", Path: filepath.ToSlash(a.ai.ConfigFile())}
 			if len(u.Path) > 1 && u.Path[1] == ':' {
 				u.Path = "/" + u.Path
 			}
 			c.OpenURL(u.String())
 		}
-		if a.pal.Ghost(c, locales.SettingsReload(), ui.Color{}).Disabled(busy || a.ai.ConfigFile() == "").Clicked() {
+		if a.pal.Ghost(c, aitext.SettingsReload(), ui.Color{}).Disabled(busy || a.ai.ConfigFile() == "").Clicked() {
 			err := a.ai.Reload()
 			if err == nil {
-				a.modelsChanged()
-				f.close()
+				a.host.Get().ModelsChanged()
+				f.Close()
 				if ps := a.ai.Providers(); len(ps) > 0 {
-					a.chooseProvider(ps[0].ID)
+					a.ChooseProvider(ps[0].ID)
 				}
-				a.status.Did(locales.SettingsReloaded())
+				a.status.Did(aitext.SettingsReloaded())
 			}
-			a.SetError(err)
+			a.status.SetError(err)
 		}
 	})
 }
@@ -246,7 +218,7 @@ func (a *App) services(c *ui.Context) {
 // providerSelect picks a configured service, shown by its name, into *id;
 // none, when given, is the choice of no service of its own. It reports
 // whether the choice changed.
-func (a *App) providerSelect(c *ui.Context, id *string, none, label string, disabled bool) bool {
+func (a *View) providerSelect(c *ui.Context, id *string, none, label string, disabled bool) bool {
 	var names []string
 	if none != "" {
 		names = append(names, none)
@@ -277,7 +249,7 @@ func (a *App) providerSelect(c *ui.Context, id *string, none, label string, disa
 	return true
 }
 
-func providerLabel(p aiport.Provider) string {
+func providerLabel(p aiapi.Provider) string {
 	if p.Name != "" {
 		return p.Name
 	}
@@ -285,7 +257,7 @@ func providerLabel(p aiport.Provider) string {
 }
 
 // effortSelect picks an effort, shown by its label, into *value.
-func (a *App) effortSelect(c *ui.Context, value *string, label string, disabled bool) {
+func (a *View) effortSelect(c *ui.Context, value *string, label string, disabled bool) {
 	efforts := a.ai.Efforts()
 	names := make([]string, len(efforts))
 	chosen := a.ai.EffortLabel(*value)
@@ -301,13 +273,13 @@ func (a *App) effortSelect(c *ui.Context, value *string, label string, disabled 
 	}
 }
 
-// saveUsage keeps the models usage shows when they differ from the work's
+// SaveUsage keeps the models usage shows when they differ from the work's
 // and each names a model; a service chosen without one waits for it.
-func (a *App) saveUsage() error {
-	w := a.Store.Work()
+func (a *View) SaveUsage() error {
+	w := a.book.Get().Store().Work()
 	was := w
-	w.Discussion = workspace.Selection{Provider: kit.Trim(a.talkProvider), Model: kit.Trim(a.talkModel), Effort: a.talkEffort}
-	w.Writing = workspace.Selection{Provider: kit.Trim(a.penProvider), Model: kit.Trim(a.penModel), Effort: a.penEffort}
+	w.Discussion = workspace.Selection{Provider: kit.Trim(a.host.Get().Choices().TalkProvider), Model: kit.Trim(a.host.Get().Choices().TalkModel), Effort: a.host.Get().Choices().TalkEffort}
+	w.Writing = workspace.Selection{Provider: kit.Trim(a.host.Get().Choices().PenProvider), Model: kit.Trim(a.host.Get().Choices().PenModel), Effort: a.host.Get().Choices().PenEffort}
 	if w.Writing.Provider == "" {
 		w.Writing.Model = ""
 	}
@@ -320,106 +292,106 @@ func (a *App) saveUsage() error {
 			return nil
 		}
 	}
-	return a.Store.SaveWork(w)
+	return a.book.Get().Store().SaveWork(w)
 }
 
 // providerForm edits the service open in the list, or a new one, under
 // its row. What keeps it from being saved is said in red under the field
 // it is in, and the buttons that save it wait; a field left empty only
 // makes them wait.
-func (a *App) providerForm(c *ui.Context) {
-	f := &a.serviceForm
+func (a *View) providerForm(c *ui.Context) {
+	f := &a.ServiceForm
 	t := a.pal.Theme
-	busy := a.held()
+	busy := a.host.Get().Held()
 	p, bad := f.value(a.ai)
 	red := func(why string) {
 		ui.Text(c, why).FontSize(kit.FsNote).TextColor(t.Danger).LineHeight(kit.LhBody)
 	}
 	ui.Column(c).FillWidth().Gap(12).Children(func() {
 		ui.Row(c).FillWidth().Gap(12).Children(func() {
-			kit.Labeled(c, locales.SettingsIDLabel(), func() {
-				ui.TextInput(c, &f.provider.ID).Label(locales.SettingsProviderID()).Placeholder(p.ID).FillWidth().Disabled(busy || f.providerID != "")
+			kit.Labeled(c, aitext.SettingsIDLabel(), func() {
+				ui.TextInput(c, &f.Provider.ID).Label(aitext.SettingsProviderID()).Placeholder(p.ID).FillWidth().Disabled(busy || f.ProviderID != "")
 			}).Width(200)
-			kit.Labeled(c, locales.SettingsDisplayName(), func() {
-				ui.TextInput(c, &f.provider.Name).Label(locales.SettingsDisplayName()).FillWidth().Disabled(busy)
+			kit.Labeled(c, aitext.SettingsDisplayName(), func() {
+				ui.TextInput(c, &f.Provider.Name).Label(aitext.SettingsDisplayName()).FillWidth().Disabled(busy)
 			}).Grow(1)
 		})
 		if bad.ID != nil && p.ID != "" {
-			red(a.errText(bad.ID))
+			red(a.host.Get().ErrorText(bad.ID))
 		}
-		kit.Labeled(c, locales.SettingsAPIURL(), func() {
-			ui.TextInput(c, &f.provider.BaseURL).Label(locales.SettingsAPIURL()).Placeholder("https://api.example.com/v1").FillWidth().Disabled(busy)
-			if kit.Trim(f.provider.BaseURL) != "" {
+		kit.Labeled(c, aitext.SettingsAPIURL(), func() {
+			ui.TextInput(c, &f.Provider.BaseURL).Label(aitext.SettingsAPIURL()).Placeholder("https://api.example.com/v1").FillWidth().Disabled(busy)
+			if kit.Trim(f.Provider.BaseURL) != "" {
 				if bad.BaseURL != nil {
-					red(a.errText(bad.BaseURL))
-				} else if isLocal(f.provider.BaseURL) {
-					ui.Text(c, locales.SettingsLocalNote()).FontSize(kit.FsNote).TextColor(t.TextMuted)
+					red(a.host.Get().ErrorText(bad.BaseURL))
+				} else if isLocal(f.Provider.BaseURL) {
+					ui.Text(c, aitext.SettingsLocalNote()).FontSize(kit.FsNote).TextColor(t.TextMuted)
 				} else {
-					ui.Text(c, locales.SettingsRemoteNote()).FontSize(kit.FsNote).TextColor(t.Warning)
+					ui.Text(c, aitext.SettingsRemoteNote()).FontSize(kit.FsNote).TextColor(t.Warning)
 				}
 			}
 		})
-		kit.Labeled(c, locales.SettingsProtocol(), func() {
-			a.pal.SelectNamed(c, &f.provider.Protocol, protocols, protocolName).Label(locales.SettingsProtocolAPI()).FillWidth().Disabled(busy)
+		kit.Labeled(c, aitext.SettingsProtocol(), func() {
+			a.pal.SelectNamed(c, &f.Provider.Protocol, protocols, protocolName).Label(aitext.SettingsProtocolAPI()).FillWidth().Disabled(busy)
 			if bad.Protocol != nil {
-				red(a.errText(bad.Protocol))
+				red(a.host.Get().ErrorText(bad.Protocol))
 			}
 		})
 		ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Start).Children(func() {
 			kit.Labeled(c, "API key", func() {
-				hint := locales.SettingsKeyEmptySaved()
-				if f.providerID == "" {
-					hint = locales.SettingsKeyEmptyNew() // a new service has none kept
+				hint := aitext.SettingsKeyEmptySaved()
+				if f.ProviderID == "" {
+					hint = aitext.SettingsKeyEmptyNew() // a new service has none kept
 				}
-				ui.TextInput(c, &f.key).Label("API key").Password().Placeholder(hint).FillWidth().Disabled(busy)
+				ui.TextInput(c, &f.Key).Label("API key").Password().Placeholder(hint).FillWidth().Disabled(busy)
 			}).Grow(1).Basis(0)
-			kit.Labeled(c, locales.SettingsEnvOr(), func() {
-				ui.TextInput(c, &f.provider.Env).Label(locales.SettingsEnvName()).Placeholder(locales.SettingsEnvExample()).FillWidth().Disabled(busy)
+			kit.Labeled(c, aitext.SettingsEnvOr(), func() {
+				ui.TextInput(c, &f.Provider.Env).Label(aitext.SettingsEnvName()).Placeholder(aitext.SettingsEnvExample()).FillWidth().Disabled(busy)
 				if bad.Env != nil {
-					red(a.errText(bad.Env))
+					red(a.host.Get().ErrorText(bad.Env))
 				}
 			}).Grow(1).Basis(0)
 		})
-		hint := locales.SettingsKeyNote()
-		if env := kit.Trim(f.provider.Env); env != "" && os.Getenv(env) != "" {
-			hint += locales.SettingsEnvDetected(env)
+		hint := aitext.SettingsKeyNote()
+		if env := kit.Trim(f.Provider.Env); env != "" && os.Getenv(env) != "" {
+			hint += aitext.SettingsEnvDetected(env)
 		}
 		ui.Text(c, hint).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody).Margin(-6, 0, 0, 0)
-		kit.Labeled(c, locales.SettingsModels(), func() {
+		kit.Labeled(c, aitext.SettingsModels(), func() {
 			a.limitTable(c)
 			if bad.Models != nil {
-				red(a.errText(bad.Models))
+				red(a.host.Get().ErrorText(bad.Models))
 			}
 		})
-		ui.Text(c, locales.SettingsCompressNote()).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
+		ui.Text(c, aitext.SettingsCompressNote()).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Justify(ui.End).Children(func() {
-			if f.providerID != "" && a.pal.Ghost(c, locales.SettingsClearKey(), t.Danger).Disabled(busy).Clicked() {
-				err := a.ai.SetKey(f.providerID, "")
-				a.modelsChanged()
+			if f.ProviderID != "" && a.pal.Ghost(c, aitext.SettingsClearKey(), t.Danger).Disabled(busy).Clicked() {
+				err := a.ai.SetKey(f.ProviderID, "")
+				a.host.Get().ModelsChanged()
 				if err == nil {
-					a.status.Did(locales.SettingsKeyCleared())
+					a.status.Did(aitext.SettingsKeyCleared())
 				}
-				a.SetError(err)
-				f.key = ""
+				a.status.SetError(err)
+				f.Key = ""
 			}
 			// A new service has no 收起 above it: it is put away from here.
-			if f.providerID == "" && a.pal.Secondary(c, locales.CommonCancel()).Disabled(busy).Clicked() {
-				f.close()
+			if f.ProviderID == "" && a.pal.Secondary(c, locales.CommonCancel()).Disabled(busy).Clicked() {
+				f.Close()
 			}
-			if a.pal.Secondary(c, locales.SettingsAddModel()).Disabled(busy).Clicked() {
+			if a.pal.Secondary(c, aitext.SettingsAddModel()).Disabled(busy).Clicked() {
 				m, _ := a.ai.Limits("")
-				f.limits = append(f.limits, f.limitRow(m))
+				f.Limits = append(f.Limits, f.LimitRow(m))
 			}
-			if a.pal.Secondary(c, locales.SettingsFetchModels()).Disabled(a.busy != "" || bad.First() != nil).Clicked() { // it waits for a turn in flight: one request at a time
-				a.fetchModels(c)
+			if a.pal.Secondary(c, aitext.SettingsFetchModels()).Disabled(a.host.Get().Busy() || bad.First() != nil).Clicked() { // it waits for a turn in flight: one request at a time
+				a.FetchModels(c)
 			}
-			if a.pal.Primary(c, locales.SettingsSaveProvider()).Disabled(busy || bad.First() != nil).Clicked() {
-				err := a.saveProvider()
+			if a.pal.Primary(c, aitext.SettingsSaveProvider()).Disabled(busy || bad.First() != nil).Clicked() {
+				err := a.SaveProvider()
 				if err == nil {
-					a.status.Did(locales.SettingsSaved())
-					f.edit = f.providerID
+					a.status.Did(aitext.SettingsSaved())
+					f.Edit = f.ProviderID
 				}
-				a.SetError(err)
+				a.status.SetError(err)
 			}
 		})
 	})
@@ -428,94 +400,96 @@ func (a *App) providerForm(c *ui.Context) {
 // limitTable edits the models of the service in the form, one row each:
 // the ID and three numbers. An ID typed that the table built in knows
 // brings its numbers.
-func (a *App) limitTable(c *ui.Context) {
-	f := &a.serviceForm
+func (a *View) limitTable(c *ui.Context) {
+	f := &a.ServiceForm
 	t := a.pal.Theme
-	busy := a.held()
-	if len(f.limits) == 0 {
-		ui.Text(c, locales.SettingsNoModels()).FontSize(kit.FsNote).TextColor(t.TextMuted)
+	busy := a.host.Get().Held()
+	if len(f.Limits) == 0 {
+		ui.Text(c, aitext.SettingsNoModels()).FontSize(kit.FsNote).TextColor(t.TextMuted)
 		return
 	}
 	gone := -1
 	ui.Column(c).FillWidth().Gap(6).Children(func() {
 		ui.Row(c).FillWidth().Gap(8).Children(func() {
 			head := func(s string) ui.Element { return ui.Text(c, s).FontSize(kit.FsNote).TextColor(t.TextMuted).Shrink(0) }
-			head(locales.SettingsModelID()).Grow(1).Shrink(1).MinWidth(0)
-			head(locales.SettingsContextLimit()).Width(96)
-			head(locales.SettingsMaxOutput()).Width(96)
-			head(locales.SettingsCompressPct()).Width(72)
+			head(aitext.SettingsModelID()).Grow(1).Shrink(1).MinWidth(0)
+			head(aitext.SettingsContextLimit()).Width(96)
+			head(aitext.SettingsMaxOutput()).Width(96)
+			head(aitext.SettingsCompressPct()).Width(72)
 			ui.Column(c).Width(kit.HControlSm).Shrink(0)
 		})
-		for i := range f.limits {
-			r := &f.limits[i]
+		for i := range f.Limits {
+			r := &f.Limits[i]
 			n := "-" + strconv.Itoa(i+1) // the row's fields are told apart by its place
-			ui.Row(c.Key("limit-" + strconv.Itoa(r.key))).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-				if ui.TextInput(c, &r.id).Label("模型 ID" + n).Placeholder(locales.SettingsModelID()).Grow(1).Shrink(1).MinWidth(0).Disabled(busy).Changed() {
-					if m, ok := a.ai.Limits(kit.Trim(r.id)); ok {
-						r.window, r.output, r.at = tokens.Format(m.Window), tokens.Format(m.Output), strconv.Itoa(m.CompactAt)
+			ui.Row(c.Key("limit-" + strconv.Itoa(r.Key))).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+				if ui.TextInput(c, &r.ID).Label("模型 ID" + n).Placeholder(aitext.SettingsModelID()).Grow(1).Shrink(1).MinWidth(0).Disabled(busy).Changed() {
+					if m, ok := a.ai.Limits(kit.Trim(r.ID)); ok {
+						r.Window, r.Output, r.At = tokens.Format(m.Window), tokens.Format(m.Output), strconv.Itoa(m.CompactAt)
 					}
 				}
-				ui.TextInput(c, &r.window).Label("上下文上限" + n).Width(96).Shrink(0).Disabled(busy)
-				ui.TextInput(c, &r.output).Label("最大输出" + n).Width(96).Shrink(0).Disabled(busy)
-				ui.TextInput(c, &r.at).Label("压缩阈值" + n).Width(72).Shrink(0).Disabled(busy)
-				if kit.IconButton(c, kit.IcX, locales.SettingsRemoveModel()+n, ui.Color{}).Tooltip(locales.SettingsRemoveModel()).Disabled(busy).Clicked() {
+				ui.TextInput(c, &r.Window).Label("上下文上限" + n).Width(96).Shrink(0).Disabled(busy)
+				ui.TextInput(c, &r.Output).Label("最大输出" + n).Width(96).Shrink(0).Disabled(busy)
+				ui.TextInput(c, &r.At).Label("压缩阈值" + n).Width(72).Shrink(0).Disabled(busy)
+				if kit.IconButton(c, kit.IcX, aitext.SettingsRemoveModel()+n, ui.Color{}).Tooltip(aitext.SettingsRemoveModel()).Disabled(busy).Clicked() {
 					gone = i
 				}
 			})
 		}
 	})
 	if gone >= 0 {
-		f.limits = append(f.limits[:gone], f.limits[gone+1:]...)
+		f.Limits = append(f.Limits[:gone], f.Limits[gone+1:]...)
 	}
 }
 
-func (a *App) fetchModels(c *ui.Context) {
-	if err := a.saveProvider(); err != nil {
-		a.SetError(err)
+// FetchModels runs on the frame thread.
+func (a *View) FetchModels(c *ui.Context) {
+	if err := a.SaveProvider(); err != nil {
+		a.status.SetError(err)
 		return
 	}
-	catalog, err := a.ai.Catalog(a.serviceForm.provider.ID)
+	catalog, err := a.ai.Catalog(a.ServiceForm.Provider.ID)
 	if err != nil {
-		a.SetError(err)
+		a.status.SetError(err)
 		return
 	}
-	generation := a.serviceForm.generation
-	a.run(c, locales.SettingsFetching(), func(ctx context.Context) (func(), error) {
+	generation := a.ServiceForm.Generation
+	a.host.Get().Run(c, aitext.SettingsFetching(), func(ctx context.Context) (func(), error) {
 		models, err := catalog.ListModels(ctx)
 		return func() {
-			if a.serviceForm.generation != generation {
+			if a.ServiceForm.Generation != generation {
 				return // the form was closed, reloaded or replaced while waiting
 			}
 			if err == nil {
-				a.serviceForm.limits = nil
+				a.ServiceForm.Limits = nil
 				for _, id := range models {
 					m, _ := a.ai.Limits(id)
-					a.serviceForm.limits = append(a.serviceForm.limits, a.serviceForm.limitRow(m))
+					a.ServiceForm.Limits = append(a.ServiceForm.Limits, a.ServiceForm.LimitRow(m))
 				}
-				a.status.Did(locales.SettingsModelsFetched())
+				a.status.Did(aitext.SettingsModelsFetched())
 			}
 		}, err
 	})
 }
 
-func (a *App) saveProvider() error {
-	f := &a.serviceForm
+// SaveProvider runs on the frame thread.
+func (a *View) SaveProvider() error {
+	f := &a.ServiceForm
 	p, bad := f.value(a.ai)
 	if why := bad.First(); why != nil {
-		return &aiport.SetupError{Err: why}
+		return &aiapi.SetupError{Err: why}
 	}
 	if err := a.ai.SaveProvider(p); err != nil {
 		return err
 	}
-	f.provider = p
+	f.Provider = p
 	f.setModels(p.Models)
-	f.providerID = p.ID
-	defer a.modelsChanged()
-	if f.key != "" {
-		if err := a.ai.SetKey(p.ID, f.key); err != nil {
+	f.ProviderID = p.ID
+	defer a.host.Get().ModelsChanged()
+	if f.Key != "" {
+		if err := a.ai.SetKey(p.ID, f.Key); err != nil {
 			return err
 		}
-		f.key = ""
+		f.Key = ""
 	}
 	return nil
 }

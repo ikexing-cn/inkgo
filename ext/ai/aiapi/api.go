@@ -1,11 +1,13 @@
-// Package aiport is the port between the interface and the AI: the
+// Package aiapi is the port between the interface and the AI: the
 // services of models this machine has, and the talk and the pen of a work.
 // Package desk uses the AI through it alone, so that desk imports nothing
 // that sends; package ai fills it.
-package aiport
+package aiapi
 
 import (
 	"context"
+	"encoding/json"
+	"writer/ext"
 
 	"writer/workspace"
 )
@@ -14,7 +16,10 @@ import (
 // Err keeps its original text and remains available to errors.Is and errors.As.
 type SetupError struct{ Err error }
 
+// Error returns the nested error text.
 func (e *SetupError) Error() string { return e.Err.Error() }
+
+// Unwrap preserves the underlying error identity.
 func (e *SetupError) Unwrap() error { return e.Err }
 
 // Setup marks failures that can be corrected in AI settings.
@@ -86,9 +91,9 @@ type Assistant interface {
 	MinCheck() int
 }
 
-// Service combines Settings and Assistant so desk holds one value for
+// Backend combines Settings and Assistant so desk holds one value for
 // the same service that fills both.
-type Service interface {
+type Backend interface {
 	Settings
 	Assistant
 }
@@ -147,6 +152,7 @@ type Model struct {
 	Window, Output, CompactAt int
 }
 
+// Catalog lists a provider’s models off the UI thread.
 type Catalog interface {
 	ListModels(ctx context.Context) ([]string, error)
 }
@@ -205,3 +211,18 @@ type Material struct {
 
 // NoOutlines means no outline provider contributed fixed context.
 const NoOutlines OutlineSource = -1
+
+// Service resolves the active machine backend.
+const Service ext.ServiceKey[Backend] = "ai.service"
+
+// Tool describes a tool's name, description and JSON parameter schema. Run
+// executes off the UI thread in talk and must never touch per-frame objects
+// such as ui.Context or ui.Element. Arguments and results are JSON values.
+type Tool struct {
+	Name, Description string
+	Parameters        json.RawMessage
+	Run               func(context.Context, json.RawMessage) (json.RawMessage, error)
+}
+
+// Tools collects tools for the future talk extension.
+const Tools ext.PointKey[Tool] = "ai.tools"

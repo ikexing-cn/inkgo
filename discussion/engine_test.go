@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"writer/aiport"
+	"writer/ext/ai/aiapi"
 
 	"writer/inference"
 	"writer/model"
@@ -121,7 +121,7 @@ func setup(t *testing.T) (*Engine, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &Engine{Store: s, Material: aiport.Material{Setting: true, Outline: true}}, session
+	return &Engine{Store: s, Material: aiapi.Material{Setting: true, Outline: true}}, session
 }
 
 // turn appends an exchange without a model.
@@ -255,7 +255,7 @@ func TestSetupErrorsForDiscussionLimits(t *testing.T) {
 	if !errors.As(errNoModel, &setupError) {
 		t.Fatal(errNoModel)
 	}
-	_, err := Assemble(workspace.Work{}, 1, workspace.Setting{}, workspace.Tree{}, nil, "问题", Along{Material: aiport.Material{Setting: true, Outline: true}})
+	_, err := Assemble(workspace.Work{}, 1, workspace.Setting{}, workspace.Tree{}, nil, "问题", Along{Material: aiapi.Material{Setting: true, Outline: true}})
 	if !errors.As(err, &setupError) {
 		t.Fatal("context limit lost its setup identity", err)
 	}
@@ -272,7 +272,7 @@ func TestContextBudget(t *testing.T) {
 	whole := prompt.Render(w, set, talkPlaces, nil, numbered(set, prompt.Whole))
 	rules := prompt.Estimate(withTools(talkRules, tools(w)))
 	room := 512 + rules + prompt.Estimate("问") + prompt.Estimate(whole)
-	got, err := Assemble(w, room, set, workspace.Tree{}, nil, "问", Along{Material: aiport.Material{Setting: true, Outline: true}})
+	got, err := Assemble(w, room, set, workspace.Tree{}, nil, "问", Along{Material: aiapi.Material{Setting: true, Outline: true}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,7 +283,7 @@ func TestContextBudget(t *testing.T) {
 		t.Fatalf("sent %+v", s)
 	}
 
-	got, err = Assemble(w, room-1, set, workspace.Tree{}, nil, "问", Along{Material: aiport.Material{Setting: true, Outline: true}})
+	got, err = Assemble(w, room-1, set, workspace.Tree{}, nil, "问", Along{Material: aiapi.Material{Setting: true, Outline: true}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -297,19 +297,19 @@ func TestContextBudget(t *testing.T) {
 	// What a reply looked up on its way is not sent again.
 	events := []workspace.Event{{ID: "u", Role: "user", Text: "问"}, {ID: "c", Role: "call", ReplyTo: "u", Calls: []workspace.Call{{ID: "1", Name: toolLookUp}}},
 		{ID: "r", Role: "result", ReplyTo: "u", Call: "1", Text: "查到的"}, {ID: "a", Role: "assistant", Text: "答", ReplyTo: "u"}, {Role: "user", Text: "失败的请求"}}
-	got, err = Assemble(w, room, set, workspace.Tree{}, events, "问", Along{Material: aiport.Material{Setting: true, Outline: true}})
+	got, err = Assemble(w, room, set, workspace.Tree{}, events, "问", Along{Material: aiapi.Material{Setting: true, Outline: true}})
 	if err != nil || len(got.Request.Messages) != 3 || got.Sent.Part(workspace.PartTalk) == 0 || got.Sent.Part(workspace.PartIndex) == 0 {
 		t.Fatalf("talk %v %+v", err, got.Sent)
 	}
 
-	if _, err = Assemble(w, 8192, set, workspace.Tree{}, nil, strings.Repeat("大", 9000), Along{Material: aiport.Material{Setting: true, Outline: true}}); err == nil || !strings.Contains(err.Error(), "context limit exceeded by message") {
+	if _, err = Assemble(w, 8192, set, workspace.Tree{}, nil, strings.Repeat("大", 9000), Along{Material: aiapi.Material{Setting: true, Outline: true}}); err == nil || !strings.Contains(err.Error(), "context limit exceeded by message") {
 		t.Fatalf("oversized current input: %v", err)
 	}
 	index := indexNote + "\n\n" + prompt.Render(w, set, talkPlaces, nil, numbered(set, prompt.Short))
-	if _, err = Assemble(w, 512+rules+prompt.Estimate("问")+prompt.Estimate(index)-1, set, workspace.Tree{}, nil, "问", Along{Material: aiport.Material{Setting: true, Outline: true}}); err == nil || !strings.Contains(err.Error(), "context limit exceeded by index") {
+	if _, err = Assemble(w, 512+rules+prompt.Estimate("问")+prompt.Estimate(index)-1, set, workspace.Tree{}, nil, "问", Along{Material: aiapi.Material{Setting: true, Outline: true}}); err == nil || !strings.Contains(err.Error(), "context limit exceeded by index") {
 		t.Fatalf("an index too big: %v", err)
 	}
-	got, err = Assemble(w, 16000, workspace.Setting{}, workspace.Tree{}, events, "本轮", Along{Material: aiport.Material{Setting: true, Outline: true}})
+	got, err = Assemble(w, 16000, workspace.Setting{}, workspace.Tree{}, events, "本轮", Along{Material: aiapi.Material{Setting: true, Outline: true}})
 	if err != nil {
 		t.Fatal(err)
 	}

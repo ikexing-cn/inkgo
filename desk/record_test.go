@@ -39,7 +39,7 @@ func TestLeavingWorkClearsSettingsAndRecords(t *testing.T) {
 				t.Fatal("fixture did not scroll the record list")
 			}
 			a.settings.askAI = true
-			a.serviceForm.key = "unsaved-test-key"
+			aiViewOf(a).ServiceForm.Key = "unsaved-test-key"
 			var next *workspace.Store
 			switch how {
 			case "switch":
@@ -62,7 +62,7 @@ func TestLeavingWorkClearsSettingsAndRecords(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			if a.settings != (settingsView{}) || !reflect.DeepEqual(a.record, recordView{expanded: -1}) || a.serviceForm.key != "" {
+			if a.settings != (settingsView{}) || !reflect.DeepEqual(a.record, recordView{expanded: -1}) || aiViewOf(a).ServiceForm.Key != "" {
 				t.Fatal("leaving work kept settings, records or an unsaved key")
 			}
 			old, err := workspace.Open(oldRoot)

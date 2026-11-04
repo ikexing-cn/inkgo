@@ -5,14 +5,15 @@ import (
 	"path/filepath"
 	"sync/atomic"
 	"time"
+	"writer/ext/hostapi"
 	"writer/ext/lore/loreapi"
 
 	"github.com/egoist/mygo/ui"
-	"writer/aiport"
 	"writer/desk/book"
 	"writer/desk/kit"
 	"writer/editor"
 	"writer/ext"
+	"writer/ext/ai/aiapi"
 	"writer/locales"
 	"writer/shelf"
 	"writer/workspace"
@@ -22,6 +23,7 @@ import (
 const flashFor = 3 * time.Second
 
 type App struct {
+	hostapi.ModelChoices
 	// Window callbacks only touch these atomics. View consumes the return
 	// signal, even when blur and focus both happened between two frames.
 	windowInactive atomic.Bool
@@ -32,8 +34,12 @@ type App struct {
 	// open. It is used on the view thread only.
 	book *book.Book
 	// ai is all the AI does: what sends goes through it alone.
-	ai    aiport.Service
-	aiOff []func()
+	configFile string
+	aiRef      *ext.OptRef[aiapi.Backend]
+	aiWasOn    bool
+	aiResolved aiapi.Backend
+	ai         aiapi.Backend
+	aiOff      []func()
 	// PickFolder shows a native folder dialog; it runs off the UI thread.
 	// Nil hides the browse buttons (tests, platforms without dialogs).
 	PickFolder func(title string) (string, error)
@@ -108,15 +114,10 @@ type App struct {
 	jobs                             jobs
 	chat                             ui.ListState
 	rows                             []int // the chat list's: event indexes, -1 the empty chat, -2 the turn in flight
-	serviceForm                      serviceForm
-	talkProvider, talkModel          string
 	categoryName                     string
 	categoryTarget                   string
 	categoryShow                     bool // the form was opened on a category, to come into view
 	removeCategory                   string
-	talkEffort                       string
-	penProvider, penModel            string
-	penEffort                        string
 	md                               kit.MarkdownState
 	thoughts                         map[string]*bool // reasoning shown, by event or revision ID
 	doc                              docView
@@ -150,12 +151,10 @@ type App struct {
 	localeShown uint64
 }
 
-// New is the app with ai, whose configuration file says where this
-// machine keeps its settings: the shelf of works lies beside it, with the
-// switch that turns the AI off, and with none there is no shelf either, as
-// for a test. mods is the explicit extension assembly for this app.
-func New(ai aiport.Service, mods ...ext.Module) *App {
-	a := &App{ai: ai, turn: &talkTurn{}, genre: "网文",
+// New assembles the host with a stable machine configuration location and an
+// explicit extension list. The shelf and extension switches live beside it.
+func New(configFile string, mods ...ext.Module) *App {
+	a := &App{configFile: configFile, turn: &talkTurn{}, genre: "网文",
 		light: kit.LightPalette(), dark: kit.DarkPalette(), titles: map[string]workspace.ConversationTitle{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
 	a.status.Translate = a.errText
 	a.pal = a.light
@@ -181,15 +180,11 @@ func New(ai aiport.Service, mods ...ext.Module) *App {
 		func() { a.entryNavigation(func(n loreapi.EntryNavigation) { n.CloseWaiting() }) },
 		a.status.Clear,
 	}
-	if ai.ConfigFile() != "" {
+	if configFile != "" {
 		a.loadShelf()
 	}
 	a.initExtensions(mods)
 	a.ranNoGPU = a.shelf.NoGPU
-	ai.BindSwitch(a.aiOn)
-	if a.aiOn() {
-		a.loadAI()
-	}
 	return a
 }
 
@@ -376,10 +371,10 @@ func (a *App) errorText() string { return a.status.ErrorText() }
 
 func (a *App) loadWork() {
 	w := a.Store.Work()
-	a.talkProvider = w.Discussion.Provider
-	a.talkModel = w.Discussion.Model
-	a.talkEffort = w.Discussion.Effort
-	a.penProvider, a.penModel, a.penEffort = w.Writing.Provider, w.Writing.Model, w.Writing.Effort
+	a.TalkProvider = w.Discussion.Provider
+	a.TalkModel = w.Discussion.Model
+	a.TalkEffort = w.Discussion.Effort
+	a.PenProvider, a.PenModel, a.PenEffort = w.Writing.Provider, w.Writing.Model, w.Writing.Effort
 }
 
 // openBookError retains the original cause while localizing the application message.

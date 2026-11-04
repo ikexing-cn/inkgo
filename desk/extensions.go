@@ -11,6 +11,7 @@ import (
 	"writer/desk/kit"
 	"writer/editor"
 	"writer/ext"
+	"writer/ext/ai/aiapi"
 	"writer/ext/hostapi"
 	"writer/locales"
 	"writer/workspace"
@@ -59,8 +60,8 @@ func (a *App) extensionFrame(c *ui.Context) {
 
 func (a *App) initExtensions(mods []ext.Module) {
 	root := ""
-	if a.ai.ConfigFile() != "" {
-		root = filepath.Dir(a.ai.ConfigFile())
+	if a.configFile != "" {
+		root = filepath.Dir(a.configFile)
 	}
 	a.extStore = newExtensionStore(root, a.extensionError)
 	changed, migrationErr := a.shelf.MigrateExtensions(a.extStore.migrate, a.extStore.mergeMigration)
@@ -81,6 +82,14 @@ func (a *App) initExtensions(mods []ext.Module) {
 			a.extensionError(extensionFailedError{name: names[id], err: f.Err})
 		},
 		DeclareHost: func(r *ext.Registrar) {
+			a.aiRef = ext.UseOptional(r, aiapi.Service)
+			ext.Declare(r, hostapi.ErrorTexts)
+			ext.Declare(r, hostapi.AIUsage)
+			ext.DeclareCalls(r, hostapi.AIUsage, func(draw func(*ui.Context)) func(*ui.Context) struct{} {
+				return func(c *ui.Context) struct{} { draw(c); return struct{}{} }
+			})
+			ext.Provide(r, hostapi.SettingsHostService, func(*ext.Session) hostapi.SettingsHost { return extensionHost{a} })
+			ext.Contribute(r, hostapi.AIUsage, "ai-record-entry", a.spent)
 			ext.Declare(r, hostapi.Commands)
 			ext.Declare(r, hostapi.PaneTabs)
 			ext.Declare(r, hostapi.Overlays)
@@ -189,6 +198,15 @@ func (a *App) syncExtensions() {
 	if a.extensions == nil {
 		return
 	}
+	service, on := a.aiRef.Get()
+	if on && service != a.aiResolved {
+		a.aiResolved = service
+		a.ai = service
+	}
+	if a.aiWasOn != on {
+		a.aiWasOn = on
+		a.applyAI(on)
+	}
 	changes := a.extensions.Changes()
 	revision := a.localeRevision.Load()
 	if a.extViews.ready && a.extViews.changes == changes && a.extViews.localeRevision == revision {
@@ -283,8 +301,11 @@ func (a *App) syncExtensions() {
 		id, shared := pagesByLabel[p.Label]
 		if !shared {
 			id = item.ID
+			if item.ID == "ai.settings" {
+				id = "AI"
+			}
 			pagesByLabel[p.Label] = id
-			a.prefTabs = append(a.prefTabs, tabEntry[string]{id: id, name: p.Title, label: p.Label, order: p.Order})
+			a.prefTabs = append(a.prefTabs, tabEntry[string]{id: id, name: p.Title, label: p.Label, order: p.Order, fallback: item.Owner == "ai"})
 		}
 		cache.settingsTabs[item.ID] = id
 		if !slices.Contains(cache.pageOwners[id], item.Owner) {

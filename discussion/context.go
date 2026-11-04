@@ -6,7 +6,7 @@ package discussion
 import (
 	"fmt"
 	"slices"
-	"writer/aiport"
+	"writer/ext/ai/aiapi"
 
 	"writer/model"
 	"writer/prompt"
@@ -92,7 +92,7 @@ func latest(set workspace.Setting, tree workspace.Tree) workspace.Setting {
 // draft or rewrite keeps to.
 type Along struct {
 	// Material identifies the providers available to this request.
-	Material aiport.Material
+	Material aiapi.Material
 	Beside   *Writing
 	Fixed    *Fixed
 }
@@ -114,7 +114,7 @@ func Assemble(w workspace.Work, room int, set workspace.Setting, tree workspace.
 
 // talk is what a talk request carries besides the rules and the setting.
 type talk struct {
-	material aiport.Material
+	material aiapi.Material
 	digest   string     // of the talk compacted, if any
 	turns    []exchange // the complete exchanges after it
 	input    string     // the last words, which must fit

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
-	"writer/aiport"
+	"writer/ext/ai/aiapi"
 
 	"writer/inference"
 	"writer/model"
@@ -147,7 +147,7 @@ func TestATalkOpenedToRewriteKeepsToItsChapter(t *testing.T) {
 	if out := box.lookUp(lookUpArgs{Query: "林晚"}); !strings.Contains(out.text, "左手拧灯座") || strings.Contains(out.text, "没了左手") {
 		t.Fatalf("looked up %s", out.text)
 	}
-	if n, err := Preloaded(e.Store, aiport.Material{Setting: true, Outline: true}, workspace.AIDraft, two); err != nil || n.Tokens < 1000 {
+	if n, err := Preloaded(e.Store, aiapi.Material{Setting: true, Outline: true}, workspace.AIDraft, two); err != nil || n.Tokens < 1000 {
 		t.Fatalf("preloaded %d, %v", n.Tokens, err)
 	}
 }
@@ -412,7 +412,7 @@ func TestFixedOutlinesIgnoreDamagedMarks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fixed, err := fixedOf(e.Store, aiport.Material{Setting: true, Outline: true}, tree, workspace.AIDraft, three)
+	fixed, err := fixedOf(e.Store, aiapi.Material{Setting: true, Outline: true}, tree, workspace.AIDraft, three)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -437,7 +437,7 @@ func TestFixedOmitsOutlinesOnBatchFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fixed, err := fixedOf(e.Store, aiport.Material{Setting: true, Outline: true}, tree, workspace.AIDraft, three)
+	fixed, err := fixedOf(e.Store, aiapi.Material{Setting: true, Outline: true}, tree, workspace.AIDraft, three)
 	if err != nil {
 		t.Fatal(err)
 	}

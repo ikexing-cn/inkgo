@@ -14,8 +14,8 @@ func TestSettingsCloseKeepsTheWorkAndBackup(t *testing.T) {
 		t.Run(how, func(t *testing.T) {
 			a, tt, _ := fixture(t)
 			a.openPrefs("appearance")
-			a.serviceForm.new()
-			a.serviceForm.provider.Name = "unsaved service"
+			aiViewOf(a).ServiceForm.New()
+			aiViewOf(a).ServiceForm.Provider.Name = "unsaved service"
 			backupBefore := backupOf(a).State
 			tt.Frame()
 			switch how {
@@ -34,7 +34,7 @@ func TestSettingsCloseKeepsTheWorkAndBackup(t *testing.T) {
 			if a.settings.open || a.settings.askAI || a.settings.tab != "appearance" {
 				t.Fatal("settings did not close cleanly", a.settings)
 			}
-			if a.serviceForm.provider.Name != "unsaved service" || !reflect.DeepEqual(backupOf(a).State, backupBefore) {
+			if aiViewOf(a).ServiceForm.Provider.Name != "unsaved service" || !reflect.DeepEqual(backupOf(a).State, backupBefore) {
 				t.Fatal("closing settings changed a draft or backup state")
 			}
 			a.openPrefs(a.settings.tab)

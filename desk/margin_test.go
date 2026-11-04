@@ -189,7 +189,7 @@ func TestIgnoringPendingKeepsTheMarginAndAILeavesOnlyForeshadowing(t *testing.T)
 		t.Fatal("ignoring pending erased margin notes")
 	}
 	click(t, tt, "撤销提示")
-	a.shelf.NoAI = true
+	a.turnAI(!(true))
 	tt.Frame()
 	if list := a.marginNotes(); len(list) != 1 || list[0].fore != "key" || len(a.write.doubts.val) != 0 {
 		t.Fatal("AI-off margin includes AI data", list)
@@ -242,7 +242,7 @@ func TestShotMargin(t *testing.T) {
 	row := find(t, tt, "批注-check-conflict")
 	tt.Move(row.X+24, row.Y+14)
 	shot(t, tt, "margin-hover.png")
-	a.shelf.NoAI = true
+	a.turnAI(!(true))
 	shot(t, tt, "margin-ai-off.png")
 	a, tt, _ = marginFixture(t, false)
 	prose := a.LastProse

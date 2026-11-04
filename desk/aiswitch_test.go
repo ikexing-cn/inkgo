@@ -13,10 +13,9 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/ai"
-	"writer/aiport"
 	"writer/desk/kit"
+	"writer/ext/ai/aiapi"
 	"writer/internal/testshot"
-	"writer/shelf"
 	"writer/workspace"
 )
 
@@ -28,14 +27,14 @@ func TestBuildersReadTheShelfSwitch(t *testing.T) {
 	}
 	defer st.Close()
 	for _, off := range []bool{true, false, true} {
-		a.shelf = shelf.Shelf{NoAI: off}
+		a.turnAI(!off)
 		for name, build := range map[string]func() error{
 			"catalog": func() error { _, err := a.ai.Catalog("missing"); return err },
 			"talk": func() error {
-				_, err := a.ai.Talk(st, aiport.Material{Setting: true, Outline: true}, nil, nil, nil)
+				_, err := a.ai.Talk(st, aiapi.Material{Setting: true, Outline: true}, nil, nil, nil)
 				return err
 			},
-			"pen": func() error { _, err := a.ai.Pen(st, aiport.Material{Setting: true, Outline: true}); return err },
+			"pen": func() error { _, err := a.ai.Pen(st, aiapi.Material{Setting: true, Outline: true}); return err },
 		} {
 			if err := build(); errors.Is(err, ai.ErrOff) != off {
 				t.Errorf("%s: shelf.NoAI=%v: %v", name, off, err)
@@ -71,7 +70,7 @@ func aiSaid(tt *ui.Tester, skip ...string) []string {
 // spy is the AI of the machine, noting what it is asked to build that
 // sends.
 type spy struct {
-	aiport.Service
+	aiapi.Backend
 	mu    sync.Mutex
 	asked []string
 }
@@ -94,19 +93,19 @@ func (s *spy) forget() {
 	s.asked = nil
 }
 
-func (s *spy) Catalog(provider string) (aiport.Catalog, error) {
+func (s *spy) Catalog(provider string) (aiapi.Catalog, error) {
 	s.note("Catalog")
-	return s.Service.Catalog(provider)
+	return s.Backend.Catalog(provider)
 }
 
-func (s *spy) Talk(st *workspace.Store, material aiport.Material, beside *aiport.Beside, progress func(aiport.Progress), step func(workspace.Event)) (aiport.Talk, error) {
+func (s *spy) Talk(st *workspace.Store, material aiapi.Material, beside *aiapi.Beside, progress func(aiapi.Progress), step func(workspace.Event)) (aiapi.Talk, error) {
 	s.note("Talk")
-	return s.Service.Talk(st, material, beside, progress, step)
+	return s.Backend.Talk(st, material, beside, progress, step)
 }
 
-func (s *spy) Pen(st *workspace.Store, material aiport.Material) (aiport.Pen, error) {
+func (s *spy) Pen(st *workspace.Store, material aiapi.Material) (aiapi.Pen, error) {
 	s.note("Pen")
-	return s.Service.Pen(st, material)
+	return s.Backend.Pen(st, material)
 }
 
 const aiProse = "整条街的灯是同时灭的。\n林婉站在巷口，手电在工具箱最底下。\n"
@@ -174,7 +173,7 @@ func openSpied(t *testing.T, root string) (*App, *ui.Tester, *spy) {
 	lib, was := filepath.Join(root, "library"), Library
 	Library = func() string { return lib }
 	t.Cleanup(func() { Library = was })
-	sp := &spy{Service: ai.New(filepath.Join(root, "providers.yaml"))}
+	sp := &spy{Backend: ai.New(filepath.Join(root, "providers.yaml"))}
 	a := testApp(sp)
 	if err := a.Open(filepath.Join(root, "work")); err != nil {
 		t.Fatal(err)
@@ -199,7 +198,7 @@ func switchAI(t *testing.T, a *App, tt *ui.Tester, on bool) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if err := tt.Click("关闭 AI"); err != nil {
+	if err := tt.Click("扩展开关-ai"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -422,11 +421,14 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 	config := a.ai.ConfigFile()
 	noAI := func() bool {
 		t.Helper()
-		s, _, err := shelf.Load(shelf.File(config))
+		data, err := os.ReadFile(filepath.Join(filepath.Dir(config), "ext.json"))
+		if os.IsNotExist(err) {
+			return false
+		}
 		if err != nil {
 			t.Fatal(err)
 		}
-		return s.NoAI
+		return strings.Contains(string(data), `"ai"`)
 	}
 
 	if err := clickMenu(tt, "文件", "菜单-设置"); err != nil {
@@ -445,7 +447,7 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if err := tt.Click("关闭 AI"); err != nil {
+	if err := tt.Click("扩展开关-ai"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -459,7 +461,7 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 	if a.settings.askAI || !a.settings.open || !a.aiOn() || noAI() {
 		t.Fatal("取消 changed something")
 	}
-	if err := tt.Click("关闭 AI"); err != nil {
+	if err := tt.Click("扩展开关-ai"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -497,9 +499,10 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 	if b.aiOn() {
 		t.Fatal("the app starts with the AI on, the shelf saying off")
 	}
-	if _, err := b.ai.Catalog("deepseek"); !errors.Is(err, ai.ErrOff) {
-		t.Fatalf("the app started with the AI off builds a client: %v", err)
+	if _, ok := b.aiRef.Get(); ok {
+		t.Fatal("AI service exists while off")
 	}
+
 	switchAI(t, a, tt, true)
 	if noAI() {
 		t.Fatal("the shelf still has the AI off")

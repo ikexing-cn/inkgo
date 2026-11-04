@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"writer/aiport"
+	"writer/ext/ai/aiapi"
 	"writer/workspace"
 )
 
@@ -47,19 +47,19 @@ func TestOldRequestCannotFinishNewWork(t *testing.T) {
 }
 
 type capturedStream struct {
-	aiport.Service
-	progress func(aiport.Progress)
+	aiapi.Backend
+	progress func(aiapi.Progress)
 	step     func(workspace.Event)
 }
 
-func (s *capturedStream) Talk(_ *workspace.Store, _ aiport.Material, _ *aiport.Beside, progress func(aiport.Progress), step func(workspace.Event)) (aiport.Talk, error) {
+func (s *capturedStream) Talk(_ *workspace.Store, _ aiapi.Material, _ *aiapi.Beside, progress func(aiapi.Progress), step func(workspace.Event)) (aiapi.Talk, error) {
 	s.progress, s.step = progress, step
 	return nil, nil
 }
 
 func TestOldStreamCannotEnterNewDiscussion(t *testing.T) {
 	a, _, _ := fixture(t)
-	stream := &capturedStream{Service: a.ai}
+	stream := &capturedStream{Backend: a.ai}
 	a.ai = stream
 	start := true
 	stillTester(func(c *ui.Context) {
@@ -73,7 +73,7 @@ func TestOldStreamCannotEnterNewDiscussion(t *testing.T) {
 	old := a.turn
 	a.resetView()
 	a.SetError(errors.New("current error"))
-	stream.progress(aiport.Progress{Text: "old reply"})
+	stream.progress(aiapi.Progress{Text: "old reply"})
 	stream.step(workspace.Event{Revision: "old revision"})
 	a.poll()
 	_, text, steps, _ := a.turn.live.read()

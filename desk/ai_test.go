@@ -13,11 +13,12 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+	aimod "writer/ext/ai"
 
 	"github.com/egoist/mygo/ui"
 	"writer/ai"
-	"writer/aiport"
 	"writer/editor"
+	"writer/ext/ai/aiapi"
 	"writer/inference"
 	"writer/locales"
 	"writer/model"
@@ -77,10 +78,10 @@ func TestDraftNoteKeepsItsOutlineSource(t *testing.T) {
 	}
 }
 
-type failedPreload struct{ aiport.Service }
+type failedPreload struct{ aiapi.Backend }
 
-func (f failedPreload) Preloaded(*workspace.Store, aiport.Material, string, string) (aiport.Preload, error) {
-	return aiport.Preload{}, errors.New("preload failed")
+func (f failedPreload) Preloaded(*workspace.Store, aiapi.Material, string, string) (aiapi.Preload, error) {
+	return aiapi.Preload{}, errors.New("preload failed")
 }
 
 func TestDraftCardsSurvivePreloadFailure(t *testing.T) {
@@ -776,16 +777,16 @@ func TestSavingAServiceRemakesThePredictingWriter(t *testing.T) {
 	if made != 1 {
 		t.Fatalf("made %d times before anything changed", made)
 	}
-	a.serviceForm.provider = aiport.Provider{ID: "local", Name: "本机", Protocol: "chat", BaseURL: "http://127.0.0.1:1234/v1"}
-	a.serviceForm.limits = []limitRow{{id: "m1", window: "32K", output: "4096", at: "80"}}
-	if err := a.saveProvider(); err != nil {
+	aiViewOf(a).ServiceForm.Provider = aiapi.Provider{ID: "local", Name: "本机", Protocol: "chat", BaseURL: "http://127.0.0.1:1234/v1"}
+	aiViewOf(a).ServiceForm.Limits = []aimod.LimitRow{{ID: "m1", Window: "32K", Output: "4096", At: "80"}}
+	if err := aiViewOf(a).SaveProvider(); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
 	was := made
 	// The same service saved again, with another address.
-	a.serviceForm.provider.BaseURL = "http://127.0.0.1:4321/v1"
-	if err := a.saveProvider(); err != nil {
+	aiViewOf(a).ServiceForm.Provider.BaseURL = "http://127.0.0.1:4321/v1"
+	if err := aiViewOf(a).SaveProvider(); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -833,7 +834,7 @@ func TestKeepPenBuildsOnlyInChangedFrames(t *testing.T) {
 	a, tt, _ := writingFixture(t, "")
 	penWith(a, &stream{})
 	tt.Frame()
-	s := &spy{Service: a.ai}
+	s := &spy{Backend: a.ai}
 	a.ai = s
 	frames := func(want int) {
 		t.Helper()
@@ -865,22 +866,22 @@ func TestKeepPenBuildsOnlyInChangedFrames(t *testing.T) {
 		}
 		frames(i + 2)
 	}
-	if err := s.Service.SaveProvider(aiport.Provider{ID: "local", Name: "Local", BaseURL: "http://127.0.0.1:1/v1", Protocol: "chat"}); err != nil {
+	if err := s.Backend.SaveProvider(aiapi.Provider{ID: "local", Name: "Local", BaseURL: "http://127.0.0.1:1/v1", Protocol: "chat"}); err != nil {
 		t.Fatal(err)
 	}
 	frames(9)
-	a.shelf.NoAI = true
+	a.turnAI(!(true))
 	frames(9)
 	if a.write.pen.Load() != nil || a.write.penErr != nil {
 		t.Fatal("the disabled pen survived")
 	}
-	a.shelf.NoAI = false
+	a.turnAI(!(false))
 	frames(10)
 }
 
 func TestKeepPenBuildsAnEmptyConfigurationOnce(t *testing.T) {
 	a, tt, _ := writingFixture(t, "")
-	s := &spy{Service: ai.New("")}
+	s := &spy{Backend: ai.New("")}
 	a.ai = s
 	a.modelsChanged()
 	tt.Frame()
@@ -897,12 +898,12 @@ func TestKeepPenBuildsAnEmptyConfigurationOnce(t *testing.T) {
 	if len(s.heard()) != 2 {
 		t.Fatal(s.heard())
 	}
-	a.shelf.NoAI = true
+	a.turnAI(!(true))
 	tt.Frame()
 	if a.write.penErr != nil || a.write.pen.Load() != nil {
 		t.Fatal("the disabled pen survived", a.write.penErr)
 	}
-	a.shelf.NoAI = false
+	a.turnAI(!(false))
 	tt.Frame()
 	tt.Frame()
 	if len(s.heard()) != 3 {

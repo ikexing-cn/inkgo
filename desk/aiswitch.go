@@ -3,41 +3,14 @@ package desk
 import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
+	"writer/ext"
 
 	"writer/locales"
 )
 
 // aiOn tells whether the AI is on on this machine. Off, nothing of it
 // shows, and nothing is sent.
-func (a *App) aiOn() bool { return !a.shelf.NoAI }
-
-// loadAI reads the services configured, as the app starts with the AI on
-// or the AI comes back on.
-func (a *App) loadAI() {
-	if a.ai.ConfigFile() != "" {
-		if err := a.ai.Reload(); err != nil {
-			a.SetError(err)
-		}
-	}
-	if ps := a.ai.Providers(); len(ps) > 0 && a.serviceForm.providerID == "" {
-		a.chooseProvider(ps[0].ID)
-	}
-}
-
-// aiView is the settings' AI: the switch for every work on this machine,
-// and with the AI on, the models.
-func (a *App) aiView(c *ui.Context) {
-	ui.Column(c).FillWidth().Gap(8).Children(func() {
-		off := !a.aiOn() // the box shows the switch; it changes once asked
-		if ui.Checkbox(c, &off, locales.SettingsCloseAI()).Changed() {
-			a.settings.askAI = true
-		}
-		a.pal.TickNote(c, locales.SettingsAIOffNote())
-	})
-	if a.aiOn() {
-		a.modelsView(c)
-	}
-}
+func (a *App) aiOn() bool { return a.extensions != nil && a.extensions.Ledger("ai").State == ext.On }
 
 // askAI asks, over the settings, before the AI is turned off or on. Esc
 // and the shade put the question away, the settings staying.
@@ -68,7 +41,7 @@ func (a *App) askAI(c *ui.Context) {
 }
 
 // turnAI turns the AI on or off on this machine, and keeps that in the
-// shelf. Off, what the AI is doing stops: what it proposed in the prose
+// machine extension-switch file. Off, what the AI is doing stops: what it proposed in the prose
 // and was not taken is let go, a reply is let go as 取消请求 lets it go, the
 // author's words kept, and the checks waiting are dropped; the pages and the parts of
 // the AI give way to the prose and the setting, and the toasts go, most
@@ -76,10 +49,12 @@ func (a *App) askAI(c *ui.Context) {
 // the talk beside the prose too when it was there, and the talk or check
 // page it was turned off on while the prose still shows.
 func (a *App) turnAI(on bool) {
-	a.shelf.NoAI = !on
-	a.saveShelf()
+	a.warn(a.extensions.Set("ai", on))
+	a.syncExtensions()
+}
+
+func (a *App) applyAI(on bool) {
 	if on {
-		a.loadAI()
 		if a.offAway && a.page == pageWrite {
 			a.page = a.offFrom
 		}

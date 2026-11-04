@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"writer/aiport"
 	"writer/desk/kit"
+	"writer/ext/ai/aiapi"
 	"writer/locales"
 	"writer/shelf"
 	"writer/workspace"
@@ -41,7 +41,7 @@ type shelfView struct {
 // loadShelf reads the shelf beside the model configuration, starting one
 // from the library the first time.
 func (a *App) loadShelf() {
-	a.books.file = shelf.File(a.ai.ConfigFile())
+	a.books.file = shelf.File(a.configFile)
 	s, fresh, err := shelf.Load(a.books.file)
 	if err != nil {
 		a.books.broken = true
@@ -173,7 +173,7 @@ func (a *App) create() error {
 // same model again for each work. A service since removed is not carried.
 func (a *App) lastModels() (talk, pen workspace.Selection) {
 	known := func(sel workspace.Selection) bool {
-		return sel.Model != "" && slices.ContainsFunc(a.ai.Providers(), func(p aiport.Provider) bool { return p.ID == sel.Provider })
+		return sel.Model != "" && slices.ContainsFunc(a.ai.Providers(), func(p aiapi.Provider) bool { return p.ID == sel.Provider })
 	}
 	var works []func() (workspace.Work, error)
 	if a.Store != nil {

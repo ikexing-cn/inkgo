@@ -69,7 +69,7 @@ func TestSettingsSharedLabelKeepsOnePageAndOrdersActiveSections(t *testing.T) {
 			ext.Contribute(r, hostapi.SettingsSections, "preferences", hostapi.SettingsSection{Draw: func(c *ui.Context) { drawn = append(drawn, id); ui.Text(c, id) }})
 		}}
 	}
-	a := New(ai.New(""), makeModule("late", 30), makeModule("early", 5), makeModule("equal", 5))
+	a := newTestApp(ai.New(""), makeModule("late", 30), makeModule("early", 5), makeModule("equal", 5))
 	defer a.Close()
 	for _, id := range []string{"late.settings", "early.settings", "equal.settings"} {
 		(extensionHost{a}).OpenSettings(id)

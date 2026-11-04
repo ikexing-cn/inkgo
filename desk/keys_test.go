@@ -13,7 +13,7 @@ func TestShotKeys(t *testing.T) {
 	a, tt, _ := fixture(t)
 	a.keysOpen = true
 	shot(t, tt, "keys.png")
-	a.shelf.NoAI = true
+	a.turnAI(!(true))
 	tt.Frame()
 	shot(t, tt, "keys-off.png")
 }

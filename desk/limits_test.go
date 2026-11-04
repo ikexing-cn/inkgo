@@ -2,9 +2,10 @@ package desk
 
 import (
 	"testing"
+	aimod "writer/ext/ai"
 
 	"github.com/egoist/mygo/ui"
-	"writer/aiport"
+	"writer/ext/ai/aiapi"
 )
 
 // Each model of a service has a row of its own: the numbers start from the
@@ -28,8 +29,8 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 			t.Fatal(s, tt.Texts())
 		}
 	}
-	if len(a.serviceForm.limits) != 2 || a.serviceForm.limits[0].id != "deepseek-flash" || a.serviceForm.limits[0].window != "1M" || a.serviceForm.limits[0].output != "384K" || a.serviceForm.limits[0].at != "80" {
-		t.Fatalf("rows %+v", a.serviceForm.limits)
+	if len(aiViewOf(a).ServiceForm.Limits) != 2 || aiViewOf(a).ServiceForm.Limits[0].ID != "deepseek-flash" || aiViewOf(a).ServiceForm.Limits[0].Window != "1M" || aiViewOf(a).ServiceForm.Limits[0].Output != "384K" || aiViewOf(a).ServiceForm.Limits[0].At != "80" {
+		t.Fatalf("rows %+v", aiViewOf(a).ServiceForm.Limits)
 	}
 	retype := func(label, text string) {
 		t.Helper()
@@ -73,10 +74,10 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 	retype("上下文上限-1", "131072")
 	retype("压缩阈值-1", "70")
 	save("")
-	if got := a.ai.Providers()[0].Models[0]; got != (aiport.Model{ID: "deepseek-flash", Window: 131072, Output: 8000, CompactAt: 70}) {
+	if got := a.ai.Providers()[0].Models[0]; got != (aiapi.Model{ID: "deepseek-flash", Window: 131072, Output: 8000, CompactAt: 70}) {
 		t.Fatalf("saved %+v", got)
 	}
-	if r := a.serviceForm.limits[0]; r.window != "131072" || r.output != "8K" {
+	if r := aiViewOf(a).ServiceForm.Limits[0]; r.Window != "131072" || r.Output != "8K" {
 		t.Fatalf("written back as %+v", r)
 	}
 
@@ -88,18 +89,18 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 		}
 		tt.Frame()
 	}
-	if len(a.serviceForm.limits) != 0 || !tt.HasText("尚无模型，可获取可用模型或手动添加。") {
-		t.Fatalf("rows %+v", a.serviceForm.limits)
+	if len(aiViewOf(a).ServiceForm.Limits) != 0 || !tt.HasText("尚无模型，可获取可用模型或手动添加。") {
+		t.Fatalf("rows %+v", aiViewOf(a).ServiceForm.Limits)
 	}
 	if err := tt.Click("添加模型"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if len(a.serviceForm.limits) != 1 || a.serviceForm.limits[0].window != "32K" || a.serviceForm.limits[0].output != "4096" || a.serviceForm.limits[0].at != "80" {
-		t.Fatalf("a new row %+v", a.serviceForm.limits)
+	if len(aiViewOf(a).ServiceForm.Limits) != 1 || aiViewOf(a).ServiceForm.Limits[0].Window != "32K" || aiViewOf(a).ServiceForm.Limits[0].Output != "4096" || aiViewOf(a).ServiceForm.Limits[0].At != "80" {
+		t.Fatalf("a new row %+v", aiViewOf(a).ServiceForm.Limits)
 	}
 	retype("模型 ID-1", "kimi-k3")
-	if r := a.serviceForm.limits[0]; r.window != "1048576" || r.output != "128K" {
+	if r := aiViewOf(a).ServiceForm.Limits[0]; r.Window != "1048576" || r.Output != "128K" {
 		t.Fatalf("kimi-k3 brought %+v", r)
 	}
 	save("")
@@ -116,23 +117,23 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 func TestANewServiceSaysWhatIsWrongWhereItIs(t *testing.T) {
 	a, tt, _ := fixture(t)
 	a.openPrefs("AI")
-	a.serviceForm.edit, a.serviceForm.providerID, a.serviceForm.limits = "+", "", nil
+	aiViewOf(a).ServiceForm.Edit, aiViewOf(a).ServiceForm.ProviderID, aiViewOf(a).ServiceForm.Limits = "+", "", nil
 	taken, was := a.ai.Providers()[0], len(a.ai.Providers())
-	a.serviceForm.provider = aiport.Provider{Name: taken.Name, BaseURL: "https://api.example.com/v1", Protocol: "chat"}
+	aiViewOf(a).ServiceForm.Provider = aiapi.Provider{Name: taken.Name, BaseURL: "https://api.example.com/v1", Protocol: "chat"}
 	tt.Frame()
 	tt.Scroll(633, 400, 0, 1600) // down to the form
 	tt.Frame()
 	for _, c := range []struct {
 		say  string
-		form func(p *aiport.Provider)
+		form func(p *aiapi.Provider)
 	}{
-		{"和「" + taken.Name + "」重名了，换一个", func(p *aiport.Provider) {}},
-		{"地址要以 http:// 或 https:// 开头", func(p *aiport.Provider) { p.Name, p.BaseURL = "Open Router", "api.example.com" }},
-		{"地址不完整", func(p *aiport.Provider) { p.BaseURL = "https://" }},
-		{"地址里不要带账号，也不要带 ? 或 # 后面的部分", func(p *aiport.Provider) { p.BaseURL = "https://openrouter.ai/api/v1?key=1" }},
-		{"环境变量名只能用字母、数字和 _，不能以数字开头", func(p *aiport.Provider) { p.BaseURL, p.Env = "https://openrouter.ai/api/v1", "1 KEY" }},
+		{"和「" + taken.Name + "」重名了，换一个", func(p *aiapi.Provider) {}},
+		{"地址要以 http:// 或 https:// 开头", func(p *aiapi.Provider) { p.Name, p.BaseURL = "Open Router", "api.example.com" }},
+		{"地址不完整", func(p *aiapi.Provider) { p.BaseURL = "https://" }},
+		{"地址里不要带账号，也不要带 ? 或 # 后面的部分", func(p *aiapi.Provider) { p.BaseURL = "https://openrouter.ai/api/v1?key=1" }},
+		{"环境变量名只能用字母、数字和 _，不能以数字开头", func(p *aiapi.Provider) { p.BaseURL, p.Env = "https://openrouter.ai/api/v1", "1 KEY" }},
 	} {
-		c.form(&a.serviceForm.provider)
+		c.form(&aiViewOf(a).ServiceForm.Provider)
 		tt.Frame()
 		if !tt.HasText(c.say) {
 			t.Fatalf("the form does not say %q: %q", c.say, tt.Texts())
@@ -145,7 +146,7 @@ func TestANewServiceSaysWhatIsWrongWhereItIs(t *testing.T) {
 			t.Fatalf("pressed with %q: %q %q", c.say, a.errorText(), noticeOf(a))
 		}
 	}
-	a.serviceForm.provider.Env = "OPENROUTER_API_KEY"
+	aiViewOf(a).ServiceForm.Provider.Env = "OPENROUTER_API_KEY"
 	tt.Frame()
 	if err := tt.Click("保存"); err != nil {
 		t.Fatal(err)
@@ -156,7 +157,7 @@ func TestANewServiceSaysWhatIsWrongWhereItIs(t *testing.T) {
 	}
 	// Another is added from the foot of the list, out of sight: its form
 	// comes into view, and 取消 puts it away unsaved.
-	a.serviceForm.edit = ""
+	aiViewOf(a).ServiceForm.Edit = ""
 	tt.Frame()
 	tt.Scroll(633, 400, 0, 1600) // to the foot, 添加服务 at the bottom
 	tt.Frame()
@@ -169,19 +170,19 @@ func TestANewServiceSaysWhatIsWrongWhereItIs(t *testing.T) {
 	if r, ok := tt.Find("名称"); !ok || r.Y < 0 || r.Y > 390 {
 		t.Fatal("a new service opens out of sight", r, ok)
 	}
-	a.serviceForm.key = "unsaved-test-key"
+	aiViewOf(a).ServiceForm.Key = "unsaved-test-key"
 	if err := tt.Click("取消"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.serviceForm.edit != "" || tt.HasText("名称") || len(a.ai.Providers()) != was+1 {
-		t.Fatal("取消 left the new service's form", a.serviceForm.edit)
+	if aiViewOf(a).ServiceForm.Edit != "" || tt.HasText("名称") || len(a.ai.Providers()) != was+1 {
+		t.Fatal("取消 left the new service's form", aiViewOf(a).ServiceForm.Edit)
 	}
-	if a.serviceForm.key != "" || a.serviceForm.provider.ID != "" || len(a.serviceForm.limits) != 0 {
+	if aiViewOf(a).ServiceForm.Key != "" || aiViewOf(a).ServiceForm.Provider.ID != "" || len(aiViewOf(a).ServiceForm.Limits) != 0 {
 		t.Fatal("cancel kept the discarded service draft")
 	}
 	for name, id := range map[string]string{"DeepSeek": "deepseek", "月之暗面 Kimi 2": "kimi-2", "my_api-": "my_api", "通义": ""} {
-		if got := idFrom(name); got != id {
+		if got := aimod.IdFrom(name); got != id {
 			t.Errorf("%s: %q", name, got)
 		}
 	}

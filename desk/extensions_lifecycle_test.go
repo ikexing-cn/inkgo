@@ -50,7 +50,7 @@ func TestExtensionSettingsFollowHostPagesThenStableOrderAndCache(t *testing.T) {
 			ext.Contribute(r, hostapi.SettingsSections, p.id+"-content", hostapi.SettingsSection{Draw: func(c *ui.Context) { ui.Text(c, p.id) }})
 		}
 	}}
-	a := New(ai.New(""), mod)
+	a := newTestApp(ai.New(""), mod)
 	defer a.Close()
 	want := []string{"appearance", "extensions", "AI", "pages.first", "pages.second", "reminders", "pages.late"}
 	for i, id := range want {
@@ -67,7 +67,7 @@ func TestExtensionSettingsFollowHostPagesThenStableOrderAndCache(t *testing.T) {
 	}
 	requireExtension(t, a.extensions.Set("pages", false))
 	a.syncExtensions()
-	if len(a.prefTabs) != len(want) || len(a.extViews.settings) != 3 || len(a.extViews.sections) != 0 {
+	if len(a.prefTabs) != len(want) || len(a.extViews.settings) != 4 || len(a.extViews.sections) != 1 {
 		t.Fatal("disabled pages disappeared")
 	}
 	requireExtension(t, a.extensions.Set("pages", true))
@@ -109,7 +109,7 @@ func TestNewHostPointsIsolatePanicsAndHidePartialDraws(t *testing.T) {
 					ext.Contribute(r, hostapi.Overlays, "item", hostapi.Overlay{Open: func() bool { boom(); return false }})
 				}
 			}}
-			a := New(ai.New(""), broken, ext.Module{ID: "healthy"})
+			a := newTestApp(ai.New(""), broken, ext.Module{ID: "healthy"})
 			defer a.Close()
 			tt := stillTester(func(c *ui.Context) {
 				switch kind {
@@ -160,7 +160,7 @@ func TestBackupSwitchRemovesAndRestoresEverySurfaceAndLifecycle(t *testing.T) {
 		if line != on {
 			t.Fatalf("footer on=%v visible=%v", on, line)
 		}
-		if (len(a.extViews.footer) > 0) != on || (len(a.extViews.title) > 0) != on || (len(a.extViews.pending) > 0) != on || (len(a.extViews.sections) > 0) != on || hasOwner(a.extViews.ticks, "backup") != on || hasOwner(a.extViews.leave, "backup") != on {
+		if (len(a.extViews.footer) > 0) != on || (len(a.extViews.title) > 0) != on || (len(a.extViews.pending) > 0) != on || hasOwner(a.extViews.sections, "backup") != on || hasOwner(a.extViews.ticks, "backup") != on || hasOwner(a.extViews.leave, "backup") != on {
 			t.Fatalf("stale contribution cache: on=%v", on)
 		}
 		if on {

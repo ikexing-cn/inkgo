@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"slices"
 	"testing"
-	"writer/aiport"
+	"writer/ext/ai/aiapi"
 
 	"writer/workspace"
 )
@@ -40,12 +40,12 @@ func TestPreloadedDescribesTheChapterContext(t *testing.T) {
 				writePlan(t, e.Store, workspace.Plan{Cards: []workspace.Card{
 					{Title: "别章", Chapter: one}, {Title: "本章", Chapter: two}, {Title: "本章另一张", Chapter: two},
 				}})
-				got, err := Preloaded(e.Store, aiport.Material{Setting: true, Outline: true}, origin, two)
+				got, err := Preloaded(e.Store, aiapi.Material{Setting: true, Outline: true}, origin, two)
 				previous := origin == workspace.AIDraft
 				if err != nil || got.Tokens <= 0 || got.Cards != 2 || got.InVolume != inVolume || got.Previous != previous {
 					t.Fatal(got, err)
 				}
-				first, err := Preloaded(e.Store, aiport.Material{Setting: true, Outline: true}, origin, one)
+				first, err := Preloaded(e.Store, aiapi.Material{Setting: true, Outline: true}, origin, one)
 				if err != nil || first.Previous || first.Cards != 1 || first.InVolume != inVolume {
 					t.Fatal(first, err)
 				}
@@ -69,7 +69,7 @@ func TestPreloadedLeavesOutThePreviousChapterItCannotCarry(t *testing.T) {
 			} else if _, err := e.Store.WriteChapter(one, " \n\t", nil); err != nil {
 				t.Fatal(err)
 			}
-			got, err := Preloaded(e.Store, aiport.Material{Setting: true, Outline: true}, workspace.AIDraft, two)
+			got, err := Preloaded(e.Store, aiapi.Material{Setting: true, Outline: true}, workspace.AIDraft, two)
 			if err != nil || got.Previous {
 				t.Fatal(got, err)
 			}
@@ -77,7 +77,7 @@ func TestPreloadedLeavesOutThePreviousChapterItCannotCarry(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			fixed, err := fixedOf(e.Store, aiport.Material{Setting: true, Outline: true}, tree, workspace.AIDraft, two)
+			fixed, err := fixedOf(e.Store, aiapi.Material{Setting: true, Outline: true}, tree, workspace.AIDraft, two)
 			if err != nil || slices.ContainsFunc(fixed.Pieces, func(p Piece) bool { return p.Part == workspace.PartPrevious }) {
 				t.Fatal(fixed, err)
 			}
@@ -87,7 +87,7 @@ func TestPreloadedLeavesOutThePreviousChapterItCannotCarry(t *testing.T) {
 
 func TestPreloadedFailsWithoutAChapterContext(t *testing.T) {
 	e, _ := setup(t)
-	if got, err := Preloaded(e.Store, aiport.Material{Setting: true, Outline: true}, workspace.AIDraft, "missing"); err == nil || got != (Preload{}) {
+	if got, err := Preloaded(e.Store, aiapi.Material{Setting: true, Outline: true}, workspace.AIDraft, "missing"); err == nil || got != (Preload{}) {
 		t.Fatal(got, err)
 	}
 }

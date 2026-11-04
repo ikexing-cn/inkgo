@@ -1,4 +1,4 @@
-package aiport
+package aiapi
 
 import (
 	"errors"

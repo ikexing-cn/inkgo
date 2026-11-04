@@ -1,8 +1,8 @@
 package desk
 
 import (
-	"writer/aiport"
 	"writer/ext"
+	"writer/ext/ai/aiapi"
 	"writer/ext/context/contextapi"
 	"writer/workspace"
 )
@@ -46,8 +46,8 @@ func (a *App) hasEntries() bool { _, present := a.entryValues(); return present 
 func (a *App) checksOn() bool { return a.aiOn() && a.hasEntries() }
 
 // material snapshots provider availability on the frame thread.
-func (a *App) material() aiport.Material {
-	var out aiport.Material
+func (a *App) material() aiapi.Material {
+	var out aiapi.Material
 	if a.extensions == nil {
 		return out
 	}
@@ -60,7 +60,7 @@ func (a *App) material() aiport.Material {
 		out.Outline = service.HasOutlines()
 	})
 	if err != nil {
-		return aiport.Material{}
+		return aiapi.Material{}
 	}
 	return out
 }

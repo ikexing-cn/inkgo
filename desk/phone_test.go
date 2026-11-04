@@ -26,7 +26,7 @@ func TestPhonePreviewOpensAndKeepsItsTabs(t *testing.T) {
 	if a.doc.hidden || shownTab(a) != paneTab("phone.preview") || !tt.HasText("第 1 屏，共 1 屏") {
 		t.Fatal("preview did not open", tt.Texts())
 	}
-	a.shelf.NoAI = true
+	a.turnAI(!(true))
 	tt.Frame()
 	if _, ok := tt.Find("右栏-预览"); !ok {
 		t.Fatal("AI off hid preview")

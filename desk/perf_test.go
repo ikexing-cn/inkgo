@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"writer/aiport"
 	"writer/desk/book"
+	"writer/ext/ai/aiapi"
 	"writer/workspace"
 )
 
@@ -153,15 +153,15 @@ func streamingBench(b *testing.B, turns int, reasoning bool) {
 			// Start halfway, as a long reply is most of the time.
 			a.turn.live.reset()
 			if reasoning {
-				a.turn.live.add(aiport.Progress{Reasoning: string(reply[:len(reply)/2])})
+				a.turn.live.add(aiapi.Progress{Reasoning: string(reply[:len(reply)/2])})
 			} else {
-				a.turn.live.add(aiport.Progress{Reasoning: strings.Repeat("先想想雨的来历。", 40), Text: string(reply[:len(reply)/2])})
+				a.turn.live.add(aiapi.Progress{Reasoning: strings.Repeat("先想想雨的来历。", 40), Text: string(reply[:len(reply)/2])})
 			}
 		}
 		if reasoning {
-			a.turn.live.add(aiport.Progress{Reasoning: string(reply[at : at+1])})
+			a.turn.live.add(aiapi.Progress{Reasoning: string(reply[at : at+1])})
 		} else {
-			a.turn.live.add(aiport.Progress{Text: string(reply[len(reply)/2+at : len(reply)/2+at+1])})
+			a.turn.live.add(aiapi.Progress{Text: string(reply[len(reply)/2+at : len(reply)/2+at+1])})
 		}
 		// One refresh, as a window draws: what fades in asks for the next
 		// frame, which a Frame on a clock standing still would run at once,

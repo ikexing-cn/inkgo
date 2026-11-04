@@ -7,9 +7,9 @@ import (
 	"writer/ext/hostapi"
 
 	"github.com/egoist/mygo/ui"
-	"writer/aiport"
 	"writer/desk/kit"
 	"writer/editor"
+	"writer/ext/ai/aiapi"
 	"writer/locales"
 	"writer/prefs"
 	"writer/workspace"
@@ -124,7 +124,7 @@ type writeView struct {
 
 	// The writing model: the writer the editors predict with, and why
 	// there is none.
-	pen         atomic.Pointer[aiport.Pen]
+	pen         atomic.Pointer[aiapi.Pen]
 	penKey      *penKey // nil when there is no key to compare with
 	penErr      error
 	autoPredict bool

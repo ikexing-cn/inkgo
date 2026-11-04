@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui"
-	"writer/ai"
-	"writer/desk"
 	"writer/ext"
 	"writer/workspace"
 )
@@ -25,7 +23,7 @@ func TestApplicationBackupAssemblyAsksButTestAssemblyDoesNot(t *testing.T) {
 				t.Fatal(err)
 			}
 			st.Close()
-			a := desk.New(ai.New(filepath.Join(root, "providers.yaml")), tc.mods...)
+			a := newModuleApp(filepath.Join(root, "providers.yaml"), tc.mods...)
 			defer a.Close()
 			if err := a.Open(dir); err != nil {
 				t.Fatal(err)

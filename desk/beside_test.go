@@ -60,12 +60,12 @@ func TestPaneTabPreferences(t *testing.T) {
 				t.Fatal("wrong visible pane", tt.Texts())
 			}
 			if tc.want == paneTalk {
-				b.shelf.NoAI = true
+				b.turnAI(!(true))
 				tt.Frame()
 				if b.doc.tab != paneTalk || b.talkTab() || !tt.HasText("主角怕黑") {
 					t.Fatal("AI off changed the remembered tab")
 				}
-				b.shelf.NoAI = false
+				b.turnAI(!(false))
 				tt.Frame()
 				if !b.talkTab() || !tt.HasText("附上本章内容") {
 					t.Fatal("AI on lost the talk tab")

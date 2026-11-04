@@ -2,7 +2,7 @@ package discussion
 
 import (
 	"strings"
-	"writer/aiport"
+	"writer/ext/ai/aiapi"
 	"writer/workspace"
 )
 
@@ -151,7 +151,7 @@ const digestEnd = `- 只写讨论里说过的，不要添新点子。作者明�
 const digestAsk = digestStart + digestSetting + digestBody + digestSettingRule + digestEnd
 
 // digestAskFor omits setting instructions when there is no setting provider.
-func digestAskFor(material aiport.Material) string {
+func digestAskFor(material aiapi.Material) string {
 	if material.Setting {
 		return digestAsk
 	}
@@ -159,7 +159,7 @@ func digestAskFor(material aiport.Material) string {
 }
 
 // rulesFor assembles paragraphs for the providers available to this request.
-func rulesFor(material aiport.Material) string {
+func rulesFor(material aiapi.Material) string {
 	var out strings.Builder
 	out.WriteString(talkIntro)
 	if material.Setting {
@@ -196,7 +196,7 @@ func rulesFor(material aiport.Material) string {
 }
 
 // besideRulesFor selects the paragraphs whose materials are available.
-func besideRulesFor(material aiport.Material) string {
+func besideRulesFor(material aiapi.Material) string {
 	var lines []string
 	lines = append(lines, besideIntro)
 	if material.Outline {
@@ -214,7 +214,7 @@ func besideRulesFor(material aiport.Material) string {
 }
 
 // originRulesFor retains shared instructions while omitting absent materials.
-func originRulesFor(origin string, material aiport.Material) string {
+func originRulesFor(origin string, material aiapi.Material) string {
 	var lines []string
 	switch origin {
 	case workspace.AIDraft:
