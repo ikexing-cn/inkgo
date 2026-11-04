@@ -8,7 +8,7 @@ import (
 
 func orderedGlyphs(gs []ui.Glyph) bool {
 	for i := 1; i < len(gs); i++ {
-		if gs[i].Cluster < gs[i-1].Cluster {
+		if gs[i].Cluster < gs[i-1].Cluster || gs[i].X < gs[i-1].X {
 			return false
 		}
 	}
@@ -26,7 +26,7 @@ type glyphCluster struct {
 func visualClusters(n int, gs []ui.Glyph) []glyphCluster {
 	var cs []glyphCluster
 	byRune := make(map[int]int)
-	for _, g := range gs {
+	for _, g := range visualGlyphs(gs) {
 		if g.Cluster < 0 || g.Cluster >= n {
 			continue
 		}
@@ -148,4 +148,25 @@ func (v *visualLine) ranges(a, b int, fn func(float32, float32)) {
 		}
 		fn(lo, hi)
 	}
+}
+
+// visualGlyphs normalizes DirectWrite's logical order without changing the
+// cached input or glyph offsets. Equal X positions retain their shaping order.
+func visualGlyphs(gs []ui.Glyph) []ui.Glyph {
+	for i := 1; i < len(gs); i++ {
+		if gs[i].X < gs[i-1].X {
+			gs = slices.Clone(gs)
+			slices.SortStableFunc(gs, func(a, b ui.Glyph) int {
+				if a.X < b.X {
+					return -1
+				}
+				if a.X > b.X {
+					return 1
+				}
+				return 0
+			})
+			break
+		}
+	}
+	return gs
 }

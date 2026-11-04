@@ -1,6 +1,7 @@
 package editor
 
 import (
+	"reflect"
 	"slices"
 	"testing"
 
@@ -222,5 +223,62 @@ func TestReversedClustersKeepDirectedLigatureCaretsAfterWrapping(t *testing.T) {
 	v := s.view(0, 2)
 	if v.width != 20 || v.boundary(0) != 20 || v.boundary(1) != 10 || v.boundary(2) != 0 || v.glyphs[0].X != 0 {
 		t.Fatal(v)
+	}
+}
+
+func TestLogicalOrderWithDescendingXMatchesVisualOrderForWrappingCaretsHitsAndSelections(t *testing.T) {
+	// Cluster 2 has offset glyphs, including equal X positions whose order is stable.
+	visual := []ui.Glyph{{Cluster: 0, X: 0, Advance: 10}, {Cluster: 3, X: 10, Advance: 10}, {Cluster: 2, X: 20, Advance: 10}, {Cluster: 2, X: 22, Advance: 0}, {Cluster: 2, X: 22, Advance: 1}, {Cluster: 1, X: 30, Advance: 10}, {Cluster: 4, X: 40, Advance: 10}}
+	logical := slices.Clone(visual)
+	slices.SortStableFunc(logical, func(a, b ui.Glyph) int { return a.Cluster - b.Cluster })
+	// Offset marks may precede their base even within a shared cluster.
+	logical[2], logical[3], logical[4] = logical[3], logical[4], logical[2]
+	before := slices.Clone(logical)
+	a := shapeGlyphs([]rune("甲乙丙丁戊"), visual, 0)
+	b := shapeGlyphs([]rune("甲乙丙丁戊"), logical, 0)
+	if !slices.Equal(logical, before) {
+		t.Fatal("mutated shaper input")
+	}
+	if !slices.Equal(a.glyphs, b.glyphs) || !slices.Equal(a.xs, b.xs) {
+		t.Fatal(a, b)
+	}
+	for _, width := range []float32{10, 20, 30, 100} {
+		_, as := layoutParagraph([]rune("甲乙丙丁戊"), ui.Font{}, width, 0, 0, &a)
+		_, bs := layoutParagraph([]rune("甲乙丙丁戊"), ui.Font{}, width, 0, 0, &b)
+		if !slices.Equal(as, bs) {
+			t.Fatal(as, bs)
+		}
+		for i, start := range as {
+			end := 5
+			if i+1 < len(as) {
+				end = as[i+1]
+			}
+			av, bv := a.view(start, end), b.view(start, end)
+			if !reflect.DeepEqual(av, bv) {
+				t.Fatal(av, bv)
+			}
+			la := layout{lines: []line{{start: start, end: end, sh: &a, last: true}}}
+			lb := layout{lines: []line{{start: start, end: end, sh: &b, last: true}}}
+			for d := start; d <= end; d++ {
+				if la.x(&la.lines[0], d) != lb.x(&lb.lines[0], d) {
+					t.Fatal("caret", d)
+				}
+			}
+			for x := float32(-1); x <= av.width+1; x += 0.5 {
+				if la.hitLine(0, x) != lb.hitLine(0, x) {
+					t.Fatal("hit", x)
+				}
+			}
+			for lo := 0; lo <= end-start; lo++ {
+				for hi := lo; hi <= end-start; hi++ {
+					var ar, br [][2]float32
+					av.ranges(lo, hi, func(x, y float32) { ar = append(ar, [2]float32{x, y}) })
+					bv.ranges(lo, hi, func(x, y float32) { br = append(br, [2]float32{x, y}) })
+					if !slices.Equal(ar, br) {
+						t.Fatal(ar, br)
+					}
+				}
+			}
+		}
 	}
 }

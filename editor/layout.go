@@ -261,7 +261,7 @@ func shapeGlyphs(r []rune, gs []ui.Glyph, gap float32) shaped {
 				}
 			}
 		}
-		sh.glyphs = slices.DeleteFunc(gs, func(g ui.Glyph) bool { return g.Cluster >= 0 && g.Cluster < len(r) && r[g.Cluster] == gapRune })
+		sh.glyphs = slices.DeleteFunc(sh.glyphs, func(g ui.Glyph) bool { return g.Cluster >= 0 && g.Cluster < len(r) && r[g.Cluster] == gapRune })
 		return sh
 	}
 	if !slices.Contains(r, gapRune) {
@@ -287,6 +287,7 @@ func shapeGlyphs(r []rune, gs []ui.Glyph, gap float32) shaped {
 
 func indexGlyphs(gs []ui.Glyph, xs []float32) shaped {
 	if !orderedGlyphs(gs) {
+		gs = visualGlyphs(gs)
 		return shaped{glyphs: gs, xs: xs, visual: visualClusters(len(xs)-1, gs), views: make(map[[2]int]*visualLine)}
 	}
 	first := make([]int, len(xs))

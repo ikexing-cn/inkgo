@@ -1,4 +1,5 @@
 {
+  "exportSpan": "{from} to {to}",
   "cmdExport": "Export…",
   "exportInto": "Export To",
   "exportTitle": "Export",

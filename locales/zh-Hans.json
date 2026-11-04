@@ -1086,8 +1086,6 @@
   "exportContent": "内容",
   "exportPlain": "纯文本",
   "exportRangeChapter": "本章",
-  "exportSpan": "{from}至{to}",
-  "@exportSpan": { "description": "导出文件名里一段范围，从哪章到哪章。", "placeholders": { "from": { "type": "String", "example": "第一章" }, "to": { "type": "String", "example": "第三章" } } },
   "snapTitle": "历史版本 · {chapter}",
   "@snapTitle": { "description": "快照对话框的标题，后面是章名。", "placeholders": { "chapter": { "type": "String", "example": "第一章：雨" } } },
   "snapAbout": "打开章节时、连续写作每十分钟、恢复前、{ai}全书替换前都会保存一份。最近七天的全部保留，更早的每天保留最后一份。",

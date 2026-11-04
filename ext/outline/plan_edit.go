@@ -100,7 +100,7 @@ func (p *Page) addLine(c *ui.Context) {
 	})
 	if b.Clicked() {
 		p.finishLine()
-		l, err := p.Services.Book.Content().SaveLine(workspace.PlotLine{Name: "新情节线"})
+		l, err := p.Services.Book.Content().SaveLine(workspace.PlotLine{Name: outlinetext.PlanLineNew()})
 		p.change(err)
 		if err == nil {
 			p.startLine(l)

@@ -10,6 +10,8 @@ import (
 	"writer/desk/kit"
 	"writer/ext"
 	exportext "writer/ext/export"
+	"writer/ext/export/exporttext"
+	"writer/internal/testshot"
 	"writer/workspace"
 )
 
@@ -214,4 +216,66 @@ func TestExportTracksPageRefreshAndWorkChanges(t *testing.T) {
 	if exportOpen(tt) {
 		t.Fatal("switching works left the export dialog open")
 	}
+}
+
+func TestExportOutlineFollowsGlobalAndBookSwitchWithoutLosingTick(t *testing.T) {
+	for _, perBook := range []bool{false, true} {
+		t.Run(map[bool]string{false: "global", true: "book"}[perBook], func(t *testing.T) {
+			a, tt, _ := writingFixture(t, "Text")
+			setChapterOutline(a, "Outline")
+			v := exportext.Choices{}
+			v.Outline, v.Text = true, true
+			saveChoices(t, a, v)
+			runExport(t, a)
+			tt.Frame()
+			flip := func(on bool) {
+				t.Helper()
+				var err error
+				if perBook {
+					err = a.extensions.SetBook("outline", on)
+				} else {
+					err = a.extensions.Set("outline", on)
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				tt.Frame()
+			}
+			flip(false)
+			if tt.HasText("大纲") || !tt.HasText(exporttext.ExportAboutText()) || tt.HasText("范围") {
+				t.Fatal(tt.Texts())
+			}
+			// Clicking the disabled export button must create no output.
+			r, ok := tt.Find("取消")
+			if !ok {
+				t.Fatal(tt.Texts())
+			}
+			tt.ClickAt(r.X+r.W+32, r.Y+r.H/2)
+			tt.Frame()
+			if _, err := os.Stat(filepath.Join(a.Store.Root(), "导出")); !os.IsNotExist(err) {
+				t.Fatal("disabled export wrote files", err)
+			}
+			if !choicesOf(t, a).Outline {
+				t.Fatal("stored tick cleared")
+			}
+			flip(true)
+			if !tt.HasText("大纲") {
+				t.Fatal(tt.Texts())
+			}
+			r, _ = tt.Find("取消")
+			tt.ClickAt(r.X+r.W+32, r.Y+r.H/2)
+			tt.Frame()
+			if _, err := os.Stat(filepath.Join(a.Store.Root(), "导出", "测试作品-大纲.txt")); err != nil {
+				t.Fatal("restored tick did not export", err)
+			}
+		})
+	}
+}
+
+func TestShotExportOutlineOff(t *testing.T) {
+	testshot.Dir(t)
+	a, tt, _ := writingFixture(t, "雨一直没有停。")
+	a.setExtension("outline", false, false)
+	runExport(t, a)
+	shot(t, tt, "ext-export-outline-off.png")
 }

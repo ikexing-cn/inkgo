@@ -24,6 +24,7 @@ import (
 // chapters of 指定范围 by the names the drop-downs show; the pen name; and
 // whether the paragraphs of a text are indented.
 type Dialog struct {
+	outline    *ext.OptRef[struct{}]
 	book       *ext.Ref[hostapi.Book]
 	palette    *ext.Ref[hostapi.Palette]
 	notices    *ext.Ref[hostapi.Notices]
@@ -58,12 +59,13 @@ type planKey struct {
 	version int
 	chapter string
 	locale  string
+	outline bool
 }
 
 func (d *Dialog) planKey() planKey {
 	b := d.book.Get().Content()
 	id, _, _ := d.book.Get().Chapter()
-	return planKey{b, b.Version(), id, i18n.Locale()}
+	return planKey{b, b.Version(), id, i18n.Locale(), d.outlineOn()}
 }
 
 // Show asks what to export, starting from the whole work, the
@@ -97,10 +99,9 @@ func (d *Dialog) Replan() {
 	if !d.Open {
 		return
 	}
-	set := d.preferences()
 	id, _, _ := d.book.Get().Chapter()
 	d.planned = d.planKey()
-	d.plan = format.BuildPlan(d.pieces, d.book.Get().Content().Setting().Entries, id, set.Options, d.selection)
+	d.plan = format.BuildPlan(d.pieces, d.book.Get().Content().Setting().Entries, id, d.effectiveOptions(), d.selection, exporttext.ExportSpan)
 	d.selection.Scope = d.plan.Scope
 }
 
@@ -127,6 +128,10 @@ func (d *Dialog) View(c *ui.Context) {
 						on   *bool
 						what string
 					}{{&set.Prose, format.ProseContent}, {&set.Outline, format.OutlineContent}, {&set.Setting, format.SettingContent}} {
+						if o.what == format.OutlineContent && !d.outlineOn() {
+							continue
+						}
+						// Lore stays available until it becomes an extension, then follows the same rule.
 						if ui.Checkbox(c, o.on, contentLabel(o.what)).Changed() {
 							d.saveChoices()
 							d.Replan()
@@ -140,7 +145,7 @@ func (d *Dialog) View(c *ui.Context) {
 					d.Replan()
 				}
 			})
-			if set.Prose || set.Outline {
+			if set.Prose || d.effectiveOptions().Outline {
 				kit.Labeled(c, exporttext.ExportRange(), func() {
 					if kit.Dots(c, &d.selection.Scope, exporttext.ExportRangeAria(), plan.Scopes, scopeLabels(plan.Scopes)) {
 						d.Replan()
@@ -380,4 +385,15 @@ func skipLabel(what, why string) string {
 		return exporttext.ExportSkipSettings()
 	}
 	return ""
+}
+
+func (d *Dialog) outlineOn() bool {
+	_, on := d.outline.Get()
+	return on
+}
+
+func (d *Dialog) effectiveOptions() format.Options {
+	options := d.preferences().Options
+	options.Outline = options.Outline && d.outlineOn()
+	return options
 }

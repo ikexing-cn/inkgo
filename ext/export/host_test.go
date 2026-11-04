@@ -10,6 +10,7 @@ import (
 	"writer/editor"
 	"writer/ext"
 	"writer/ext/hostapi"
+	"writer/ext/outline/outlineapi"
 	"writer/workspace"
 )
 
@@ -71,7 +72,9 @@ func dialogFixture(t *testing.T, text string) (*testHost, *Dialog, *ui.Tester, s
 		ext.Provide(r, hostapi.NoticesService, func(*ext.Session) hostapi.Notices { return h })
 		ext.Provide(r, hostapi.JobsService, func(*ext.Session) hostapi.Jobs { return h })
 		ext.Provide(r, hostapi.DialogsService, func(*ext.Session) hostapi.Dialogs { return h })
-	}}, ext.Module{ID: "export", Setup: func(r *ext.Registrar) { d = registerDialog(r) }})
+	}}, ext.Module{ID: "outline", Setup: func(r *ext.Registrar) {
+		ext.Provide(r, outlineapi.Active, func(*ext.Session) struct{} { return struct{}{} })
+	}}, ext.Module{ID: "export", Optional: []string{"outline"}, Setup: func(r *ext.Registrar) { d = registerDialog(r) }})
 	if err != nil {
 		t.Fatal(err)
 	}

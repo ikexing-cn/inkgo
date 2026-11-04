@@ -2,6 +2,9 @@ package export
 
 import (
 	"github.com/egoist/mygo/i18n"
+	"github.com/egoist/mygo/ui"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"unicode"
@@ -50,6 +53,30 @@ func TestExportMappingsInBothLocales(t *testing.T) {
 			if pair[0] != pair[1] || tag == "en" && strings.ContainsFunc(pair[0], func(r rune) bool { return unicode.Is(unicode.Han, r) }) {
 				t.Fatal(tag, pair)
 			}
+		}
+	}
+}
+
+func TestSpanExportFileNamesFollowInterfaceLanguage(t *testing.T) {
+	tag := "zh-Hans"
+	i18n.SetLocaleFunc(func() string { return tag })
+	t.Cleanup(func() { i18n.SetLocaleFunc(testLocale) })
+	for _, tc := range []struct{ lang, part string }{{"zh-Hans", "第一章至第三章"}, {"en", "第一章 to 第三章"}} {
+		tag = tc.lang
+		h, d, _, _ := dialogFixture(t, "Text")
+		if _, err := h.store.NewChapter("", "第三章", false); err != nil {
+			t.Fatal(err)
+		}
+		d.Show()
+		d.preferences().Text = true
+		d.selection = format.Selection{Scope: format.ScopeSpan, From: "第一章", To: "第三章"}
+		d.Replan()
+		// Render through the tester so export receives only the current frame.
+		run := ui.NewTester(func(c *ui.Context) { d.export(c, d.plan) }, 100, 100)
+		run.Frame()
+		path := filepath.Join(h.store.Root(), "导出", "测试作品-"+tc.part+".txt")
+		if _, err := os.Stat(path); err != nil {
+			t.Fatal(err)
 		}
 	}
 }

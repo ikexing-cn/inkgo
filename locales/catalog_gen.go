@@ -9486,20 +9486,6 @@ func (msgs Messages) ExportRangeChapter() string {
 	return Catalog.Format(msgs.locale, "exportRangeChapter", nil)
 }
 
-// ExportSpan says "{from}至{to}"
-// in the language the app shows.
-//
-// 导出文件名里一段范围，从哪章到哪章。
-func ExportSpan(from string, to string) string { return In(i18n.Locale()).ExportSpan(from, to) }
-
-// ExportSpan says "{from}至{to}"
-// in the language of msgs.
-//
-// 导出文件名里一段范围，从哪章到哪章。
-func (msgs Messages) ExportSpan(from string, to string) string {
-	return Catalog.Format(msgs.locale, "exportSpan", map[string]any{"from": from, "to": to})
-}
-
 // SnapTitle says "历史版本 · {chapter}"
 // in the language the app shows.
 //

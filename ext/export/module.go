@@ -5,6 +5,7 @@ import (
 	"writer/ext/export/exporttext"
 	"writer/ext/export/format"
 	"writer/ext/hostapi"
+	"writer/ext/outline/outlineapi"
 )
 
 // Choices keeps the export options and fallback pen name on this machine.
@@ -14,7 +15,7 @@ type Choices struct {
 }
 
 // Module registers the export dialog, command and local choices.
-var Module = ext.Module{ID: "export", Kind: ext.Feature, Group: hostapi.GroupFiles, Name: exporttext.ModExport, Desc: exporttext.ModExportAbout, Setup: func(r *ext.Registrar) {
+var Module = ext.Module{ID: "export", Kind: ext.Feature, Optional: []string{"outline"}, Group: hostapi.GroupFiles, Name: exporttext.ModExport, Desc: exporttext.ModExportAbout, Setup: func(r *ext.Registrar) {
 	d := registerDialog(r)
 	r.OnStop(func(*ext.Session) {
 		d.generation++
@@ -30,7 +31,7 @@ var Module = ext.Module{ID: "export", Kind: ext.Feature, Group: hostapi.GroupFil
 }}
 
 func registerDialog(r *ext.Registrar) *Dialog {
-	return &Dialog{book: ext.Use(r, hostapi.BookService), palette: ext.Use(r, hostapi.PaletteService),
+	return &Dialog{outline: ext.UseOptional(r, outlineapi.Active), book: ext.Use(r, hostapi.BookService), palette: ext.Use(r, hostapi.PaletteService),
 		notices: ext.Use(r, hostapi.NoticesService), jobs: ext.Use(r, hostapi.JobsService), dialogs: ext.Use(r, hostapi.DialogsService),
 		setting: ext.Setting(r, "choices", ext.Schema[Choices]{Scope: ext.Local, Default: Choices{Options: format.Options{Prose: true}}})}
 }

@@ -29,6 +29,20 @@ type Messages struct{ locale string }
 // source language.
 func In(locale string) Messages { return Messages{locale} }
 
+// ExportSpan says "{from}至{to}"
+// in the language the app shows.
+//
+// 导出文件名里一段范围，从哪章到哪章。
+func ExportSpan(from string, to string) string { return In(i18n.Locale()).ExportSpan(from, to) }
+
+// ExportSpan says "{from}至{to}"
+// in the language of msgs.
+//
+// 导出文件名里一段范围，从哪章到哪章。
+func (msgs Messages) ExportSpan(from string, to string) string {
+	return Catalog.Format(msgs.locale, "exportSpan", map[string]any{"from": from, "to": to})
+}
+
 // CmdExport says "导出…"
 // in the language the app shows.
 func CmdExport() string { return In(i18n.Locale()).CmdExport() }

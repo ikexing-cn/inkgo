@@ -6,6 +6,7 @@ import (
 	"writer/ext"
 	"writer/ext/context/contextapi"
 	"writer/ext/hostapi"
+	"writer/ext/outline/outlineapi"
 	"writer/ext/outline/outlinetext"
 	"writer/locales"
 )
@@ -26,6 +27,7 @@ func module(controller *Page) ext.Module {
 		if p == nil {
 			p = &Page{}
 		}
+		ext.Provide(r, outlineapi.Active, func(*ext.Session) struct{} { return struct{}{} })
 		book := ext.Use(r, hostapi.BookService)
 		palette := ext.Use(r, hostapi.PaletteService)
 		notices := ext.Use(r, hostapi.NoticesService)

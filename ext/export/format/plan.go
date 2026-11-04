@@ -88,7 +88,8 @@ type Plan struct {
 }
 
 // BuildPlan selects the available ranges, contents and explanation for the choices.
-func BuildPlan(pieces []workspace.Piece, entries []workspace.Entry, current string, options Options, selection Selection) Plan {
+// span formats the two chapter titles in a multi-chapter range for file names.
+func BuildPlan(pieces []workspace.Piece, entries []workspace.Entry, current string, options Options, selection Selection, span func(from, to string) string) Plan {
 	plan := Plan{Current: current}
 	scope, from, to := selection.Scope, selection.From, selection.To
 	// The chapter open on the page of prose, and the volume it is in, or
@@ -156,7 +157,7 @@ func BuildPlan(pieces []workspace.Piece, entries []workspace.Entry, current stri
 		}
 		plan.Part = titleOf(pieces, ids[from])
 		if to != from {
-			plan.Part += "至" + titleOf(pieces, ids[to])
+			plan.Part = span(plan.Part, titleOf(pieces, ids[to]))
 		}
 	}
 	plan.Pieces = Within(pieces, chapters)

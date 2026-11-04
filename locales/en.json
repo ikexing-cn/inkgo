@@ -825,7 +825,6 @@
   "exportContent": "Content",
   "exportPlain": "Plain text",
   "exportRangeChapter": "Chapter",
-  "exportSpan": "{from} to {to}",
   "snapTitle": "Snapshots · {chapter}",
   "snapAbout": "A snapshot is saved when you open a chapter, every ten minutes while writing, before restoring, {ai}and before a book-wide replace. All snapshots from the last seven days are kept; older ones keep the last one of each day.",
   "snapAboutAI": "before accepting AI suggestions, ",
