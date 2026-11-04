@@ -8,9 +8,22 @@ import (
 )
 
 // positions returns the x of each rune boundary of a text of n runes from
-// the glyphs Shape placed: xs[i] is where rune i starts, xs[n] the end.
+// the glyphs Shape placed. For visual-order glyphs these are cumulative
+// logical advances for wrapping; line views supply the visual boundaries.
 // Runes inside a cluster (ligatures) share its width evenly.
 func positions(n int, gs []ui.Glyph) []float32 {
+	if !orderedGlyphs(gs) {
+		xs := make([]float32, n+1)
+		for _, c := range visualClusters(n, gs) {
+			for i := c.a; i < c.b; i++ {
+				xs[i+1] = c.width / float32(c.b-c.a)
+			}
+		}
+		for i := 1; i <= n; i++ {
+			xs[i] += xs[i-1]
+		}
+		return xs
+	}
 	xs := make([]float32, n+1)
 	known := make([]bool, n+1)
 	var end float32

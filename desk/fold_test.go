@@ -2,6 +2,7 @@ package desk
 
 import (
 	"image"
+	"image/color"
 	"math"
 	"strings"
 	"testing"
@@ -18,19 +19,40 @@ func nearFold(t *testing.T, what string, got, want float32) {
 	}
 }
 
-// The darkest part of a glyph survives fractional translation; its
-// antialiased edges need not cover the same pixels.
-func inkDepth(img *image.RGBA, r ui.Rect) int {
+// Total contrast against the box's background is nearly conserved by
+// fractional translation: antialiasing redistributes ink between pixels.
+// The most common color is the flat background, so empty space contributes
+// nothing. A column-wide opacity fade reduces this sum, even for thin fonts.
+func inkAmount(img *image.RGBA, r ui.Rect) int64 {
 	box := image.Rect(int(math.Ceil(float64(r.X))), int(r.Y)+5, int(r.X+r.W), int(r.Y+r.H)-5).Intersect(img.Bounds())
-	depth := 3 * 255
+	colors := make(map[[3]uint8]int)
+	var background [3]uint8
+	most := 0
 	for y := box.Min.Y; y < box.Max.Y; y++ {
 		for x := box.Min.X; x < box.Max.X; x++ {
 			c := img.RGBAAt(x, y)
-			depth = min(depth, int(c.R)+int(c.G)+int(c.B))
+			key := [3]uint8{c.R, c.G, c.B}
+			colors[key]++
+			if colors[key] > most {
+				most, background = colors[key], key
+			}
 		}
 	}
-	return depth
+	var amount int64
+	for y := box.Min.Y; y < box.Max.Y; y++ {
+		for x := box.Min.X; x < box.Max.X; x++ {
+			c := img.RGBAAt(x, y)
+			for i, channel := range [3]uint8{c.R, c.G, c.B} {
+				amount += int64(max(int(channel)-int(background[i]), int(background[i])-int(channel)))
+			}
+		}
+	}
+	return amount
 }
+
+// Allow 5% for pixel rounding and the edge of the measured box. This is
+// far below a half-opacity fade, which removes about half the contrast.
+func lostInk(got, still int64) bool { return got*100 < still*95 }
 
 func TestColumnsTravelTheirWholeWidthWithoutFading(t *testing.T) {
 	for _, side := range []bool{false, true} {
@@ -43,7 +65,7 @@ func TestColumnsTravelTheirWholeWidthWithoutFading(t *testing.T) {
 			tt.SetPreferences(ui.Preferences{})
 			tt.Move(0, 0)
 			static := find(t, tt, label)
-			depth := inkDepth(tt.Image(), static)
+			still := tt.Image()
 			for _, opening := range []bool{false, true} {
 				button := close
 				if opening {
@@ -70,8 +92,16 @@ func TestColumnsTravelTheirWholeWidthWithoutFading(t *testing.T) {
 					}
 					nearFold(t, "column position", r.X, static.X+dx)
 					if opening && at == 160 || !opening && at == 40 {
-						if got := inkDepth(tt.Image(), r); got > depth+6 {
-							t.Fatalf("column faded: ink depth %v, still %v", got, depth)
+						// Compare the same visible part of the settled column;
+						// sliding out of the window legitimately clips some ink.
+						ref := static
+						left := max(r.X, 0)
+						right := min(r.X+r.W, float32(still.Bounds().Max.X))
+						ref.X += left - r.X
+						ref.W = right - left
+						ink := inkAmount(still, ref)
+						if got := inkAmount(tt.Image(), r); lostInk(got, ink) {
+							t.Fatalf("column faded: ink amount %v, still %v", got, ink)
 						}
 					}
 				}
@@ -179,7 +209,7 @@ func TestExplicitUnfoldingBringsTheNotesWithThePane(t *testing.T) {
 			// Read only the part still inside the window halfway in.
 			r.W = min(r.W, float32(part.Bounds().Dx())-r.X)
 			settled.W = r.W
-			if r.W > 20 && inkDepth(part, r) > inkDepth(done, settled)+6 {
+			if r.W > 20 && lostInk(inkAmount(part, r), inkAmount(done, settled)) {
 				t.Fatalf("%s faded separately from the pane", n.id)
 			}
 		}
@@ -217,5 +247,40 @@ func TestSwitchingNotesDuringAFoldStillBringsThemInTurn(t *testing.T) {
 	tt.Advance(100 * time.Millisecond)
 	if tt.FramePending() {
 		t.Fatal("tab arrivals kept asking for frames after a quarter second")
+	}
+}
+
+func TestColumnInkSurvivesFractionalTranslationButRejectsHalfOpacity(t *testing.T) {
+	makeInk := func(split, faded bool) *image.RGBA {
+		img := image.NewRGBA(image.Rect(0, 0, 40, 30))
+		for y := 0; y < 30; y++ {
+			for x := 0; x < 40; x++ {
+				v := uint8(255)
+				if y >= 8 && y < 22 {
+					if split && (x == 15 || x == 16) {
+						v = 207
+					}
+					if !split && x == 15 {
+						v = 159
+					}
+				}
+				if faded {
+					v = uint8((int(v) + 255) / 2)
+				}
+				img.SetRGBA(x, y, color.RGBA{v, v, v, 255})
+			}
+		}
+		return img
+	}
+	r := ui.Rect{W: 40, H: 30}
+	still := inkAmount(makeInk(false, false), r)
+	if still == 0 {
+		t.Fatal("empty reference ink")
+	}
+	if got := inkAmount(makeInk(true, false), r); lostInk(got, still) {
+		t.Fatalf("half-pixel translation lost ink: %d vs %d", got, still)
+	}
+	if got := inkAmount(makeInk(true, true), r); !lostInk(got, still) {
+		t.Fatalf("half-opacity column escaped detection: %d vs %d", got, still)
 	}
 }

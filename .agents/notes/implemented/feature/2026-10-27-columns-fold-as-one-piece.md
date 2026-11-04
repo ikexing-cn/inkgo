@@ -45,7 +45,7 @@ Status: implemented
 ## Testing
 
 - `go test ./desk`：`TestFoldingMovesThePaperAndRowsWithoutStretching` 照旧查断行和对齐，加查右栏的左边就是纸边；`TestUnfoldingDrawsTheProseWholeAndEasesOut` 查展开侧栏时正文和栏同一条缓动。
-- `TestColumnsTravelTheirWholeWidthWithoutFading`、`TestTheCountsAndScrollBarFollowThePaneEdge` 在 40、100、160 毫秒量栏的位置、字有多深，以及字数、备份、滚动条和栏边；`TestUnfoldingKeepsTheTopRuleAcrossTheGap` 在正文、大纲、讨论页逐个像素查补的线。
+- `TestColumnsTravelTheirWholeWidthWithoutFading`、`TestTheCountsAndScrollBarFollowThePaneEdge` 在 40、100、160 毫秒量栏的位置、字的墨量，以及字数、备份、滚动条和栏边。墨量是框里每个像素和底色之差的总和：平移小数像素时抗锯齿只是把墨挪到别的像素上，总量基本不变；整列变淡时总量会少一大截，容差 5%。原来取最深的那个像素，Linux 上字体笔画细，平移半个像素最深点就浅了，会误报。`TestColumnInkSurvivesFractionalTranslationButRejectsHalfOpacity` 用手造的图验证这套量法；`TestUnfoldingKeepsTheTopRuleAcrossTheGap` 在正文、大纲、讨论页逐个像素查补的线。
 - `TestExplicitUnfoldingBringsTheNotesWithThePane` 查标题栏、「视图」菜单展开时批注随栏走、停下后不再要帧，换标签照旧一条接一条；`TestSwitchingNotesDuringAFoldStillBringsThemInTurn` 查栏还在动时换标签也一样。
 - `go test ./editor` 的 `TestTheScrollBarPaintsAndTakesInputAtItsOffset` 在正、负、零三种偏移下查画、悬停、拖动、松开、点轨道翻页，旧位置不再接点击。
 - `SHOT=<目录> go test ./desk -run ShotMotion` 截收起、展开右栏和处理掉一条批注动到一半的样子（`fold-pane-half.png`、`unfold-pane-half.png`、`remove-note-half.png`）。

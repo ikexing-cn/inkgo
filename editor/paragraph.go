@@ -19,6 +19,7 @@ type TextLine struct {
 	glyphs     []ui.Glyph
 }
 
+// LayoutParagraph measures and wraps text with the editor's shaping rules.
 func LayoutParagraph(text string, font ui.Font, width, lineHeight, indent float32) *Paragraph {
 	if font.Family == "" {
 		font.Family = defaultFontFamily
@@ -37,6 +38,9 @@ func LayoutParagraph(text string, font ui.Font, width, lineHeight, indent float3
 			ln.X = indent
 		}
 		ln.glyphs = sh.run(s, end)
+		if sh.first == nil {
+			ln.glyphs = sh.view(s, end).glyphs
+		}
 		p.Lines = append(p.Lines, ln)
 	}
 	p.Height = float32(len(p.Lines)) * p.LineHeight
@@ -59,6 +63,9 @@ func textAscent(font ui.Font, lineHeight float32) float32 {
 // X is the rune boundary on a measured line, relative to the paragraph.
 func (p *Paragraph) X(line, offset int) float32 {
 	l := p.Lines[line]
+	if p.sh.first == nil {
+		return l.X + p.sh.view(l.Start, l.End).boundary(clamp(offset, l.Start, l.End)-l.Start)
+	}
 	return l.X + p.sh.xs[clamp(offset, l.Start, l.End)] - p.sh.xs[l.Start]
 }
 
@@ -66,6 +73,18 @@ func (p *Paragraph) X(line, offset int) float32 {
 // and after a line maps to its first and last boundary respectively.
 func (p *Paragraph) HitAfter(line int, x float32) int {
 	l := p.Lines[line]
+	if p.sh.first == nil {
+		v := p.sh.view(l.Start, l.End)
+		for i := range v.from {
+			if x-l.X >= min(v.from[i], v.to[i]) && x-l.X < max(v.from[i], v.to[i]) {
+				return l.Start + i + 1
+			}
+		}
+		if x <= l.X {
+			return l.Start
+		}
+		return l.End
+	}
 	if x <= l.X {
 		return l.Start
 	}
@@ -80,5 +99,9 @@ func (p *Paragraph) HitAfter(line int, x float32) int {
 // DrawLine draws cached glyphs with the line's top at y.
 func (p *Paragraph) DrawLine(paint *ui.Painter, line int, x, y float32, color ui.Color) {
 	l := p.Lines[line]
-	paint.Glyphs(l.glyphs, x+l.X-p.sh.xs[l.Start], y+p.ascent, color)
+	origin := x + l.X - p.sh.xs[l.Start]
+	if p.sh.first == nil {
+		origin = x + l.X
+	}
+	paint.Glyphs(l.glyphs, origin, y+p.ascent, color)
 }

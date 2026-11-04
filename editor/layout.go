@@ -41,11 +41,24 @@ func (c TextColumn) Layout(width float32) (left, textWidth float32) {
 // shaped is a paragraph Shape placed on one line, before it is broken.
 type shaped struct {
 	glyphs []ui.Glyph
-	xs     []float32 // x of each rune boundary
-	first  []int     // first glyph whose cluster is at least this rune
+	xs     []float32 // cumulative logical advances; also visual boundaries when ordered
+	first  []int     // first glyph whose cluster is at least this rune; nil for visual order
+	visual []glyphCluster
+	views  map[[2]int]*visualLine
 }
 
-func (s *shaped) run(a, b int) []ui.Glyph { return s.glyphs[s.first[a]:s.first[b]] }
+func (s *shaped) run(a, b int) []ui.Glyph {
+	if s.first != nil {
+		return s.glyphs[s.first[a]:s.first[b]]
+	}
+	var out []ui.Glyph
+	for _, g := range s.glyphs {
+		if g.Cluster >= a && g.Cluster < b {
+			out = append(out, g)
+		}
+	}
+	return out
+}
 
 type paragraphShape struct {
 	text []rune // Doc.replace allocates new text; cached slices stay immutable.
@@ -231,9 +244,26 @@ func (e *Editor) display(l *layout) {
 // shapeText shapes s, giving each rune that holds room after what is
 // proposed the width gap, and no glyph to draw.
 func shapeText(s string, f ui.Font, gap float32) shaped {
-	gs := ui.Shape(s, f)
-	r := []rune(s)
+	return shapeGlyphs([]rune(s), ui.Shape(s, f), gap)
+}
+
+func shapeGlyphs(r []rune, gs []ui.Glyph, gap float32) shaped {
 	xs := positions(len(r), gs)
+	if !orderedGlyphs(gs) {
+		sh := indexGlyphs(gs, xs)
+		for i := range sh.visual {
+			c := &sh.visual[i]
+			if c.a < len(r) && r[c.a] == gapRune {
+				d := gap - c.width
+				c.width = gap
+				for j := c.b; j < len(sh.xs); j++ {
+					sh.xs[j] += d
+				}
+			}
+		}
+		sh.glyphs = slices.DeleteFunc(gs, func(g ui.Glyph) bool { return g.Cluster >= 0 && g.Cluster < len(r) && r[g.Cluster] == gapRune })
+		return sh
+	}
 	if !slices.Contains(r, gapRune) {
 		return indexGlyphs(gs, xs)
 	}
@@ -256,6 +286,9 @@ func shapeText(s string, f ui.Font, gap float32) shaped {
 }
 
 func indexGlyphs(gs []ui.Glyph, xs []float32) shaped {
+	if !orderedGlyphs(gs) {
+		return shaped{glyphs: gs, xs: xs, visual: visualClusters(len(xs)-1, gs), views: make(map[[2]int]*visualLine)}
+	}
 	first := make([]int, len(xs))
 	i := 0
 	for r := range first {
@@ -276,6 +309,9 @@ func (l *layout) kind(i int) runeKind {
 
 // x returns the x of display index d on line ln, relative to the text.
 func (l *layout) x(ln *line, d int) float32 {
+	if ln.sh.first == nil {
+		return ln.dx + ln.sh.view(ln.start-ln.pstart, ln.end-ln.pstart).boundary(d-ln.start)
+	}
 	return ln.dx + ln.sh.xs[d-ln.pstart] - ln.sh.xs[ln.start-ln.pstart]
 }
 
@@ -300,6 +336,30 @@ func (l *layout) lineAt(y float32) int {
 func (l *layout) hitLine(i int, x float32) int {
 	ln := &l.lines[i]
 	best, dist := ln.start, float32(-1)
+	if ln.sh.first == nil {
+		v := ln.sh.view(ln.start-ln.pstart, ln.end-ln.pstart)
+		for d := range v.from {
+			lo, hi := min(v.from[d], v.to[d])+ln.dx, max(v.from[d], v.to[d])+ln.dx
+			if x >= lo && x < hi {
+				if (x < (lo+hi)/2) == (v.from[d] < v.to[d]) {
+					return ln.start + d
+				}
+				return ln.start + d + 1
+			}
+		}
+		for d := range v.from {
+			for edge, at := range []float32{v.from[d], v.to[d]} {
+				delta := ln.dx + at - x
+				if delta < 0 {
+					delta = -delta
+				}
+				if dist < 0 || delta < dist {
+					best, dist = ln.start+d+edge, delta
+				}
+			}
+		}
+		return best
+	}
 	for d := ln.start; d <= ln.end; d++ {
 		dx := l.x(ln, d) - x
 		if dx < 0 {
@@ -353,6 +413,14 @@ func (l *layout) ranges(a, b int, fn func(x0, x1, y float32)) {
 		// when the range runs past it.
 		brk := ln.last && b > ln.end && a <= ln.end
 		if s > t || s == t && !brk {
+			continue
+		}
+		if ln.sh.first == nil {
+			v := ln.sh.view(ln.start-ln.pstart, ln.end-ln.pstart)
+			v.ranges(s-ln.start, t-ln.start, func(x0, x1 float32) { fn(ln.dx+x0, ln.dx+x1, ln.y) })
+			if brk {
+				fn(ln.dx+v.width, ln.dx+v.width+6, ln.y)
+			}
 			continue
 		}
 		x0, x1 := l.x(ln, s), l.x(ln, t)

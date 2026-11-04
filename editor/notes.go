@@ -21,7 +21,19 @@ func (e *Editor) markedRangeAt(x, y float32) [2]int {
 	ln := &l.lines[l.lineAt(y)]
 	hit := func(a, b int) bool {
 		from, to := max(l.toDisp(a, true), ln.start), min(l.toDisp(b, false), ln.end)
-		return from < to && y >= ln.y && y < ln.y+l.lineH && x >= l.left+l.x(ln, from) && x < l.left+l.x(ln, to)
+		if from >= to || y < ln.y || y >= ln.y+l.lineH {
+			return false
+		}
+		if ln.sh.first != nil {
+			return x >= l.left+l.x(ln, from) && x < l.left+l.x(ln, to)
+		}
+		hit := false
+		l.ranges(from, to, func(x0, x1, row float32) {
+			if row == ln.y && x >= l.left+x0 && x < l.left+x1 {
+				hit = true
+			}
+		})
+		return hit
 	}
 	for _, r := range e.doubts {
 		if hit(r[0], r[1]) {

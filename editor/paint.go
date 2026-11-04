@@ -222,7 +222,13 @@ func (e *Editor) drawRun(p *ui.Painter, ln *line, a, b int, x, y float32, c ui.C
 		return
 	}
 	ra, rb := a-ln.pstart, b-ln.pstart
-	run := ln.sh.run(ra, rb)
+	var run []ui.Glyph
+	if ln.sh.first == nil {
+		run = ln.sh.view(ln.start-ln.pstart, ln.end-ln.pstart).run(ra, rb)
+		x += ln.sh.xs[ln.start-ln.pstart]
+	} else {
+		run = ln.sh.run(ra, rb)
+	}
 	if len(run) > 0 {
 		p.Glyphs(run, x, y, c)
 	}
