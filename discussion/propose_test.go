@@ -118,7 +118,7 @@ func TestATalkOpenedToDraftKeepsToItsChapter(t *testing.T) {
 	if err := e.Store.TrashChapter(two); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := e.Say(context.Background(), session, workspace.Event{Text: "还在吗"}); err == nil || !strings.Contains(err.Error(), "已不在书里") {
+	if _, err := e.Say(context.Background(), session, workspace.Event{Text: "还在吗"}); err == nil || !strings.Contains(err.Error(), "chapter no longer exists") {
 		t.Fatalf("went on with the chapter gone: %v", err)
 	}
 }

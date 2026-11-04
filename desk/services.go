@@ -2,7 +2,6 @@ package desk
 
 import (
 	"context"
-	"errors"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -345,14 +344,14 @@ func (a *App) providerForm(c *ui.Context) {
 				ui.TextInput(c, &f.provider.Name).Label(locales.SettingsDisplayName()).FillWidth().Disabled(busy)
 			}).Grow(1)
 		})
-		if bad.ID != "" && p.ID != "" {
-			red(bad.ID)
+		if bad.ID != nil && p.ID != "" {
+			red(a.errText(bad.ID))
 		}
 		kit.Labeled(c, locales.SettingsAPIURL(), func() {
 			ui.TextInput(c, &f.provider.BaseURL).Label(locales.SettingsAPIURL()).Placeholder("https://api.example.com/v1").FillWidth().Disabled(busy)
 			if kit.Trim(f.provider.BaseURL) != "" {
-				if bad.BaseURL != "" {
-					red(bad.BaseURL)
+				if bad.BaseURL != nil {
+					red(a.errText(bad.BaseURL))
 				} else if isLocal(f.provider.BaseURL) {
 					ui.Text(c, locales.SettingsLocalNote()).FontSize(kit.FsNote).TextColor(t.TextMuted)
 				} else {
@@ -362,6 +361,9 @@ func (a *App) providerForm(c *ui.Context) {
 		})
 		kit.Labeled(c, locales.SettingsProtocol(), func() {
 			a.pal.SelectNamed(c, &f.provider.Protocol, protocols, protocolName).Label(locales.SettingsProtocolAPI()).FillWidth().Disabled(busy)
+			if bad.Protocol != nil {
+				red(a.errText(bad.Protocol))
+			}
 		})
 		ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Start).Children(func() {
 			kit.Labeled(c, "API key", func() {
@@ -373,8 +375,8 @@ func (a *App) providerForm(c *ui.Context) {
 			}).Grow(1).Basis(0)
 			kit.Labeled(c, locales.SettingsEnvOr(), func() {
 				ui.TextInput(c, &f.provider.Env).Label(locales.SettingsEnvName()).Placeholder(locales.SettingsEnvExample()).FillWidth().Disabled(busy)
-				if bad.Env != "" {
-					red(bad.Env)
+				if bad.Env != nil {
+					red(a.errText(bad.Env))
 				}
 			}).Grow(1).Basis(0)
 		})
@@ -385,8 +387,8 @@ func (a *App) providerForm(c *ui.Context) {
 		ui.Text(c, hint).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody).Margin(-6, 0, 0, 0)
 		kit.Labeled(c, locales.SettingsModels(), func() {
 			a.limitTable(c)
-			if bad.Models != "" {
-				red(bad.Models)
+			if bad.Models != nil {
+				red(a.errText(bad.Models))
 			}
 		})
 		ui.Text(c, locales.SettingsCompressNote()).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
@@ -408,10 +410,10 @@ func (a *App) providerForm(c *ui.Context) {
 				m, _ := a.ai.Limits("")
 				f.limits = append(f.limits, f.limitRow(m))
 			}
-			if a.pal.Secondary(c, locales.SettingsFetchModels()).Disabled(a.busy != "" || bad.First() != "").Clicked() { // it waits for a turn in flight: one request at a time
+			if a.pal.Secondary(c, locales.SettingsFetchModels()).Disabled(a.busy != "" || bad.First() != nil).Clicked() { // it waits for a turn in flight: one request at a time
 				a.fetchModels(c)
 			}
-			if a.pal.Primary(c, locales.SettingsSaveProvider()).Disabled(busy || bad.First() != "").Clicked() {
+			if a.pal.Primary(c, locales.SettingsSaveProvider()).Disabled(busy || bad.First() != nil).Clicked() {
 				err := a.saveProvider()
 				if err == nil {
 					a.status.Did(locales.SettingsSaved())
@@ -499,8 +501,8 @@ func (a *App) fetchModels(c *ui.Context) {
 func (a *App) saveProvider() error {
 	f := &a.serviceForm
 	p, bad := f.value(a.ai)
-	if why := bad.First(); why != "" {
-		return &aiport.SetupError{Err: errors.New(why)}
+	if why := bad.First(); why != nil {
+		return &aiport.SetupError{Err: why}
 	}
 	if err := a.ai.SaveProvider(p); err != nil {
 		return err

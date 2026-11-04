@@ -229,11 +229,11 @@ func TestHTTPErrorSecrecyAndBounds(t *testing.T) {
 		input  int
 	}{
 		{"authentication", 401, []string{`{"error":{"message":"secret-credential"}}`}, "HTTP 401", 0},
-		{"not found", 404, []string{`{"error":{"message":"secret-credential"}}`}, "模型 ID 不对", 0},
-		{"mid-stream error", 200, []string{`data: {"error":{"message":"secret-credential"}}` + "\n\n"}, "返回了错误", 0},
-		{"empty", 200, []string{chatChunk(`{"content":""}`, "stop"), "data: [DONE]\n\n"}, "没有返回文字", 0},
-		{"truncated", 200, []string{chatChunk(`{"content":"partial"}`, "length"), used, "data: [DONE]\n\n"}, "截断", 100},
-		{"cut off", 200, []string{chatChunk(`{"content":"partial"}`, "")}, "没有完成", 0},
+		{"not found", 404, []string{`{"error":{"message":"secret-credential"}}`}, "HTTP 404", 0},
+		{"mid-stream error", 200, []string{`data: {"error":{"message":"secret-credential"}}` + "\n\n"}, "returned an error", 0},
+		{"empty", 200, []string{chatChunk(`{"content":""}`, "stop"), "data: [DONE]\n\n"}, "returned no text", 0},
+		{"truncated", 200, []string{chatChunk(`{"content":"partial"}`, "length"), used, "data: [DONE]\n\n"}, "truncated", 100},
+		{"cut off", 200, []string{chatChunk(`{"content":"partial"}`, "")}, "incomplete", 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

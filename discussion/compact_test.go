@@ -223,7 +223,7 @@ func TestAFailedCompactionIsRetried(t *testing.T) {
 	long(t, e, session, 12, 700, "第0轮")
 	e.Talk = inference.Model{Model: limits, Completer: &digester{err: errors.New("服务不可用")}}
 	turn, err := e.Say(context.Background(), session, workspace.Event{Text: "接着说"})
-	if err == nil || !strings.Contains(err.Error(), "整理之前的讨论失败，原文已保存：服务不可用") || turn.User.ID == "" || len(digests(t, e, session)) != 0 {
+	if err == nil || !strings.Contains(err.Error(), "discussion: cannot compact chat; original saved: 服务不可用") || turn.User.ID == "" || len(digests(t, e, session)) != 0 {
 		t.Fatalf("%v %+v", err, turn)
 	}
 	talk := &digester{}

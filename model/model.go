@@ -1,8 +1,6 @@
 package model
 
 import (
-	"errors"
-	"fmt"
 	"strings"
 
 	"go.yaml.in/yaml/v3"
@@ -68,13 +66,8 @@ func (m Model) MarshalYAML() (any, error) {
 	return modelYAML{m.ID, yamlCount(m.Window), yamlCount(m.Output), m.CompactAt}, nil
 }
 
-// modelError is a model written in a way it cannot be read, which Load
-// reports as it is rather than as YAML that does not parse.
-type modelError string
-
-func (e modelError) Error() string { return string(e) }
-
-const errModelFields modelError = "模型只能写 id、context、max_output、compact_at 几项"
+// errModelFields survives YAML decoding without being classified as syntax.
+var errModelFields = ErrModelFields
 
 // UnmarshalYAML reads a model written as MarshalYAML writes it. What it
 // leaves out is as Builtin has it, so a model may be written as its ID
@@ -113,7 +106,7 @@ func (m *Model) UnmarshalYAML(n *yaml.Node) error {
 		}
 		v, ok := tokens.Parse(*f.raw)
 		if !ok {
-			return modelError(m.ID + " 的上下文上限和最大输出须为正整数，可写成 128K、1M")
+			return &LimitsError{ID: m.ID, Rule: "numbers"}
 		}
 		*f.to = v
 	}
@@ -131,15 +124,15 @@ func validateModels(models []Model) error {
 	for _, m := range models {
 		switch {
 		case strings.TrimSpace(m.ID) == "" || m.ID != strings.TrimSpace(m.ID):
-			return errors.New("模型 ID 不能为空，前后不能有空格")
+			return ErrModelID
 		case seen[m.ID]:
-			return fmt.Errorf("模型 %s 重复", m.ID)
+			return &LimitsError{ID: m.ID, Rule: "duplicate"}
 		case m.Window < 1 || m.Output < 1:
-			return fmt.Errorf("%s 的上下文上限和最大输出须为正整数，可写成 128K、1M", m.ID)
+			return &LimitsError{ID: m.ID, Rule: "numbers"}
 		case m.Output >= m.Window:
-			return fmt.Errorf("%s 的最大输出须小于上下文上限", m.ID)
+			return &LimitsError{ID: m.ID, Rule: "output"}
 		case m.CompactAt < 50 || m.CompactAt > 95:
-			return fmt.Errorf("%s 的压缩阈值须在 50%% 到 95%% 之间", m.ID)
+			return &LimitsError{ID: m.ID, Rule: "threshold"}
 		}
 		seen[m.ID] = true
 	}

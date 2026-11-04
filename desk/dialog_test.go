@@ -6,6 +6,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/aiport"
+	"writer/model"
 )
 
 // Each way into a dialog from the prose gives the keyboard back to the
@@ -37,6 +38,11 @@ func TestDialogsGiveTheKeyboardBack(t *testing.T) {
 		{"导出", click("菜单栏-文件", "导出…"), escape},
 		{"快捷键", click("菜单栏-帮助", "快捷键…"), escape},
 		{"加入设定", func() { shownEditor(a).Select(0, 3); tt.Frame(); click("加入设定")() }, escape},
+		{"模型错误里的打开设置", func() {
+			a.SetError(&model.SetupError{Err: model.ErrKeyNewline})
+			tt.Frame()
+			click("打开设置")()
+		}, escape},
 		{"提示里的打开设置", func() {
 			a.SetError(&aiport.SetupError{Err: errors.New("尚未选择讨论模型")})
 			tt.Frame()

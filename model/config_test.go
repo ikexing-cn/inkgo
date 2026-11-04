@@ -185,7 +185,7 @@ func TestSetKeyNoPlaintextFallback(t *testing.T) {
 
 func TestUnknownSelectedProvider(t *testing.T) {
 	_, err := NewClient(DefaultConfig(), "missing", "manual")
-	if err == nil || !strings.Contains(err.Error(), "没有配置提供商") {
+	if err == nil || !strings.Contains(err.Error(), "not configured") {
 		t.Fatalf("unknown provider: %v", err)
 	}
 }
@@ -196,7 +196,7 @@ func TestSaveErrorsKeepMessages(t *testing.T) {
 	if err := os.WriteFile(blocked, nil, 0600); err != nil {
 		t.Fatal(err)
 	}
-	if err := Save(filepath.Join(blocked, "providers.yaml"), DefaultConfig()); err == nil || !strings.HasPrefix(err.Error(), "无法创建配置目录：") {
+	if err := Save(filepath.Join(blocked, "providers.yaml"), DefaultConfig()); err == nil || !strings.HasPrefix(err.Error(), "model: mkdir configuration:") {
 		t.Fatalf("directory error = %v", err)
 	}
 	target := filepath.Join(dir, "target")
@@ -206,7 +206,7 @@ func TestSaveErrorsKeepMessages(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(target, "keep"), []byte("old"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	if err := Save(target, DefaultConfig()); err == nil || !strings.HasPrefix(err.Error(), "无法替换模型配置：") {
+	if err := Save(target, DefaultConfig()); err == nil || !strings.HasPrefix(err.Error(), "model: replace configuration:") {
 		t.Fatalf("replace error = %v", err)
 	}
 	entries, err := os.ReadDir(dir)

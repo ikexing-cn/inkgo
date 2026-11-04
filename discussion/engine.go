@@ -2,8 +2,6 @@ package discussion
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"slices"
 	"strings"
 
@@ -49,7 +47,7 @@ type Turn struct {
 	User, Reply workspace.Event
 }
 
-var errNoModel = &model.SetupError{Err: errors.New("请先配置讨论模型")}
+var errNoModel = &model.SetupError{Err: ErrNoModelReason}
 
 // Say saves the author's words, with the prose they quote and the chapter
 // they were writing, or the chapter a new talk opens to draft or rewrite,
@@ -59,7 +57,7 @@ var errNoModel = &model.SetupError{Err: errors.New("请先配置讨论模型")}
 func (e *Engine) Say(ctx context.Context, session string, words workspace.Event) (Turn, error) {
 	var turn Turn
 	if strings.TrimSpace(words.Text) == "" {
-		return turn, errors.New("请输入要讨论的内容")
+		return turn, ErrInputRequired
 	}
 	if !e.Talk.Ready() {
 		return turn, errNoModel
@@ -69,7 +67,7 @@ func (e *Engine) Say(ctx context.Context, session string, words workspace.Event)
 		return turn, err
 	}
 	if words.Origin != "" && len(events) > 0 {
-		return turn, errors.New("起草、改写要新开一段讨论")
+		return turn, ErrNewChatRequired
 	}
 	words = workspace.Event{Role: workspace.RoleUser, Text: words.Text, Quotes: words.Quotes, Chapter: words.Chapter, Origin: words.Origin, Told: told(events)}
 	if _, _, err := e.assemble(session, -1, words); err != nil {
@@ -99,11 +97,11 @@ func (e *Engine) Retry(ctx context.Context, session, userID string) (Turn, error
 			turn.User, pos = m, n
 		}
 		if m.Role == workspace.RoleAssistant && m.ReplyTo == userID {
-			return turn, errors.New("这条发言已有回复")
+			return turn, ErrAlreadyReplied
 		}
 	}
 	if pos < 0 {
-		return turn, errors.New("找不到待重试的发言")
+		return turn, ErrRetryMissing
 	}
 	return e.answer(ctx, session, turn, pos)
 }
@@ -112,7 +110,7 @@ func (e *Engine) Retry(ctx context.Context, session, userID string) (Turn, error
 // the model's threshold, then asks for the reply to the turn.
 func (e *Engine) answer(ctx context.Context, session string, turn Turn, before int) (Turn, error) {
 	if err := e.compact(ctx, session, before, turn.User); err != nil {
-		return turn, fmt.Errorf("整理之前的讨论失败，原文已保存：%w", err)
+		return turn, &CompactError{Err: err}
 	}
 	assembled, along, err := e.assemble(session, before, turn.User)
 	if err != nil {
@@ -225,7 +223,7 @@ func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembl
 		req.NoCalls = req.NoCalls || capped
 		reply, err := ask(e.purpose(ctx, session, withLooked(assembled.Sent, looked), along.Fixed), e.Talk, req, on)
 		if err != nil {
-			return turn, fmt.Errorf("讨论失败，原文已保存：%w", err)
+			return turn, &ReplyError{Err: err}
 		}
 		used := reply.Usage
 		if r := strings.TrimSpace(reply.Reasoning); r != "" {
@@ -233,7 +231,7 @@ func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembl
 		}
 		if len(reply.Calls) == 0 || req.NoCalls {
 			if strings.TrimSpace(reply.Text) == "" {
-				return turn, errors.New("模型返回空回复，原文已保存")
+				return turn, ErrEmptyReply
 			}
 			sent := withLooked(assembled.Sent, looked)
 			turn.Reply, err = e.Store.Append(session, workspace.Event{
@@ -254,7 +252,7 @@ func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembl
 		req.Messages = append(slices.Clip(req.Messages), model.Message{Role: workspace.RoleAssistant, Content: reply.Text, Calls: reply.Calls, Thinking: reply.Thinking})
 		for _, c := range reply.Calls {
 			if ctx.Err() != nil {
-				return turn, fmt.Errorf("讨论失败，原文已保存：%w", ctx.Err())
+				return turn, &ReplyError{Err: ctx.Err()}
 			}
 			out := box.run(c)
 			if err = write(workspace.Event{Role: workspace.RoleResult, Call: c.ID, Text: out.text, Failed: out.failed, Revision: out.revision, Proposal: out.proposal}); err != nil {
@@ -320,11 +318,11 @@ func (e *Engine) Extract(session, message string, start, end int, category strin
 		}
 		runes := []rune(m.Text)
 		if start < 0 || end <= start || end > len(runes) {
-			return workspace.Entry{}, errors.New("原文选区无效")
+			return workspace.Entry{}, ErrSelectionInvalid
 		}
 		text := string(runes[start:end])
 		if strings.TrimSpace(text) == "" {
-			return workspace.Entry{}, errors.New("选中的只有空白")
+			return workspace.Entry{}, ErrSelectionBlank
 		}
 		r, err := e.Store.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{{
 			Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: category, Text: strings.TrimSpace(text),
@@ -340,5 +338,5 @@ func (e *Engine) Extract(session, message string, start, end int, category strin
 		entry, _ := set.Entry(r.Ops[0].Entry)
 		return entry, nil
 	}
-	return workspace.Entry{}, errors.New("找不到来源消息")
+	return workspace.Entry{}, ErrSourceMissing
 }

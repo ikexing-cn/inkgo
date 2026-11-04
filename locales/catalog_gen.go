@@ -4546,10 +4546,14 @@ func (msgs Messages) LoreWhoManual() string {
 
 // ChatNeedModel says "请先配置讨论模型"
 // in the language the app shows.
+//
+// Typed AI validation failure displayed by desk.
 func ChatNeedModel() string { return In(i18n.Locale()).ChatNeedModel() }
 
 // ChatNeedModel says "请先配置讨论模型"
 // in the language of msgs.
+//
+// Typed AI validation failure displayed by desk.
 func (msgs Messages) ChatNeedModel() string {
 	return Catalog.Format(msgs.locale, "chatNeedModel", nil)
 }
@@ -4600,10 +4604,14 @@ func (msgs Messages) ChatActRewrite() string {
 
 // ChatChapterGone says "该章已不存在"
 // in the language the app shows.
+//
+// Typed AI validation failure displayed by desk.
 func ChatChapterGone() string { return In(i18n.Locale()).ChatChapterGone() }
 
 // ChatChapterGone says "该章已不存在"
 // in the language of msgs.
+//
+// Typed AI validation failure displayed by desk.
 func (msgs Messages) ChatChapterGone() string {
 	return Catalog.Format(msgs.locale, "chatChapterGone", nil)
 }
@@ -11314,50 +11322,70 @@ func (msgs Messages) SettingsIDTaken(name string) string {
 
 // SettingsIDRule says "提供商 ID 只能用小写字母、数字、- 和 _，并以字母开头"
 // in the language the app shows.
+//
+// Typed AI validation failure displayed by desk.
 func SettingsIDRule() string { return In(i18n.Locale()).SettingsIDRule() }
 
 // SettingsIDRule says "提供商 ID 只能用小写字母、数字、- 和 _，并以字母开头"
 // in the language of msgs.
+//
+// Typed AI validation failure displayed by desk.
 func (msgs Messages) SettingsIDRule() string {
 	return Catalog.Format(msgs.locale, "settingsIDRule", nil)
 }
 
 // SettingsURLScheme says "地址要以 http:// 或 https:// 开头"
 // in the language the app shows.
+//
+// Typed AI validation failure displayed by desk.
 func SettingsURLScheme() string { return In(i18n.Locale()).SettingsURLScheme() }
 
 // SettingsURLScheme says "地址要以 http:// 或 https:// 开头"
 // in the language of msgs.
+//
+// Typed AI validation failure displayed by desk.
 func (msgs Messages) SettingsURLScheme() string {
 	return Catalog.Format(msgs.locale, "settingsURLScheme", nil)
 }
 
 // SettingsURLNoHost says "地址不完整"
 // in the language the app shows.
+//
+// Typed AI validation failure displayed by desk.
 func SettingsURLNoHost() string { return In(i18n.Locale()).SettingsURLNoHost() }
 
 // SettingsURLNoHost says "地址不完整"
 // in the language of msgs.
+//
+// Typed AI validation failure displayed by desk.
 func (msgs Messages) SettingsURLNoHost() string {
 	return Catalog.Format(msgs.locale, "settingsURLNoHost", nil)
 }
 
 // SettingsURLExtra says "地址里不要带账号，也不要带 ? 或 # 后面的部分"
 // in the language the app shows.
+//
+// Typed AI validation failure displayed by desk.
 func SettingsURLExtra() string { return In(i18n.Locale()).SettingsURLExtra() }
 
 // SettingsURLExtra says "地址里不要带账号，也不要带 ? 或 # 后面的部分"
 // in the language of msgs.
+//
+// Typed AI validation failure displayed by desk.
 func (msgs Messages) SettingsURLExtra() string {
 	return Catalog.Format(msgs.locale, "settingsURLExtra", nil)
 }
 
 // SettingsEnvRule says "环境变量名只能用字母、数字和 _，不能以数字开头"
 // in the language the app shows.
+//
+// Typed AI validation failure displayed by desk.
 func SettingsEnvRule() string { return In(i18n.Locale()).SettingsEnvRule() }
 
 // SettingsEnvRule says "环境变量名只能用字母、数字和 _，不能以数字开头"
 // in the language of msgs.
+//
+// Typed AI validation failure displayed by desk.
 func (msgs Messages) SettingsEnvRule() string {
 	return Catalog.Format(msgs.locale, "settingsEnvRule", nil)
 }
@@ -14630,4 +14658,1290 @@ func CheckAlsoOpen() string { return In(i18n.Locale()).CheckAlsoOpen() }
 // 检查页「其他章节里的类似情况」：那一处还没处理。
 func (msgs Messages) CheckAlsoOpen() string {
 	return Catalog.Format(msgs.locale, "checkAlsoOpen", nil)
+}
+
+// StatusRequestTooLarge says "模型请求超过 8 MiB"
+// in the language the app shows.
+//
+// model.ErrRequestTooLarge failure. Translated by desk for the AI toast.
+func StatusRequestTooLarge() string { return In(i18n.Locale()).StatusRequestTooLarge() }
+
+// StatusRequestTooLarge says "模型请求超过 8 MiB"
+// in the language of msgs.
+//
+// model.ErrRequestTooLarge failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusRequestTooLarge() string {
+	return Catalog.Format(msgs.locale, "statusRequestTooLarge", nil)
+}
+
+// StatusTruncated says "模型回复被截断"
+// in the language the app shows.
+//
+// model.ErrTruncated failure. Translated by desk for the AI toast.
+func StatusTruncated() string { return In(i18n.Locale()).StatusTruncated() }
+
+// StatusTruncated says "模型回复被截断"
+// in the language of msgs.
+//
+// model.ErrTruncated failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusTruncated() string {
+	return Catalog.Format(msgs.locale, "statusTruncated", nil)
+}
+
+// SettingsKeyNewline says "API key 不能包含换行"
+// in the language the app shows.
+//
+// model.ErrKeyNewline failure. Translated by desk for the AI settings form
+// or toast.
+func SettingsKeyNewline() string { return In(i18n.Locale()).SettingsKeyNewline() }
+
+// SettingsKeyNewline says "API key 不能包含换行"
+// in the language of msgs.
+//
+// model.ErrKeyNewline failure. Translated by desk for the AI settings form
+// or toast.
+func (msgs Messages) SettingsKeyNewline() string {
+	return Catalog.Format(msgs.locale, "settingsKeyNewline", nil)
+}
+
+// StatusRedirect says "模型服务的重定向已禁用"
+// in the language the app shows.
+//
+// model.ErrRedirect failure. Translated by desk for the AI toast.
+func StatusRedirect() string { return In(i18n.Locale()).StatusRedirect() }
+
+// StatusRedirect says "模型服务的重定向已禁用"
+// in the language of msgs.
+//
+// model.ErrRedirect failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusRedirect() string {
+	return Catalog.Format(msgs.locale, "statusRedirect", nil)
+}
+
+// SettingsModelRequired says "请填写模型 ID"
+// in the language the app shows.
+//
+// model.ErrModelRequired failure. Translated by desk for the AI settings
+// form or toast.
+func SettingsModelRequired() string { return In(i18n.Locale()).SettingsModelRequired() }
+
+// SettingsModelRequired says "请填写模型 ID"
+// in the language of msgs.
+//
+// model.ErrModelRequired failure. Translated by desk for the AI settings
+// form or toast.
+func (msgs Messages) SettingsModelRequired() string {
+	return Catalog.Format(msgs.locale, "settingsModelRequired", nil)
+}
+
+// StatusNegativeTokens says "max tokens 不能为负数"
+// in the language the app shows.
+//
+// model.ErrNegativeTokens failure. Translated by desk for the AI toast.
+func StatusNegativeTokens() string { return In(i18n.Locale()).StatusNegativeTokens() }
+
+// StatusNegativeTokens says "max tokens 不能为负数"
+// in the language of msgs.
+//
+// model.ErrNegativeTokens failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusNegativeTokens() string {
+	return Catalog.Format(msgs.locale, "statusNegativeTokens", nil)
+}
+
+// StatusMessagesRequired says "请求至少要有一条消息"
+// in the language the app shows.
+//
+// model.ErrMessagesRequired failure. Translated by desk for the AI toast.
+func StatusMessagesRequired() string { return In(i18n.Locale()).StatusMessagesRequired() }
+
+// StatusMessagesRequired says "请求至少要有一条消息"
+// in the language of msgs.
+//
+// model.ErrMessagesRequired failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusMessagesRequired() string {
+	return Catalog.Format(msgs.locale, "statusMessagesRequired", nil)
+}
+
+// StatusToolJSON says "模型调用工具时写的参数不是 JSON"
+// in the language the app shows.
+//
+// model.ErrToolJSON failure. Translated by desk for the AI toast.
+func StatusToolJSON() string { return In(i18n.Locale()).StatusToolJSON() }
+
+// StatusToolJSON says "模型调用工具时写的参数不是 JSON"
+// in the language of msgs.
+//
+// model.ErrToolJSON failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusToolJSON() string {
+	return Catalog.Format(msgs.locale, "statusToolJSON", nil)
+}
+
+// StatusDisconnected says "模型回复中途断开，没有完成"
+// in the language the app shows.
+//
+// model.ErrDisconnected failure. Translated by desk for the AI toast.
+func StatusDisconnected() string { return In(i18n.Locale()).StatusDisconnected() }
+
+// StatusDisconnected says "模型回复中途断开，没有完成"
+// in the language of msgs.
+//
+// model.ErrDisconnected failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusDisconnected() string {
+	return Catalog.Format(msgs.locale, "statusDisconnected", nil)
+}
+
+// StatusFiltered says "模型回复被内容过滤"
+// in the language the app shows.
+//
+// model.ErrFiltered failure. Translated by desk for the AI toast.
+func StatusFiltered() string { return In(i18n.Locale()).StatusFiltered() }
+
+// StatusFiltered says "模型回复被内容过滤"
+// in the language of msgs.
+//
+// model.ErrFiltered failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusFiltered() string {
+	return Catalog.Format(msgs.locale, "statusFiltered", nil)
+}
+
+// StatusIncomplete says "模型回复没有完成"
+// in the language the app shows.
+//
+// model.ErrIncomplete failure. Translated by desk for the AI toast.
+func StatusIncomplete() string { return In(i18n.Locale()).StatusIncomplete() }
+
+// StatusIncomplete says "模型回复没有完成"
+// in the language of msgs.
+//
+// model.ErrIncomplete failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusIncomplete() string {
+	return Catalog.Format(msgs.locale, "statusIncomplete", nil)
+}
+
+// StatusReplyTooLarge says "模型回复超过 8 MiB"
+// in the language the app shows.
+//
+// model.ErrReplyTooLarge failure. Translated by desk for the AI toast.
+func StatusReplyTooLarge() string { return In(i18n.Locale()).StatusReplyTooLarge() }
+
+// StatusReplyTooLarge says "模型回复超过 8 MiB"
+// in the language of msgs.
+//
+// model.ErrReplyTooLarge failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusReplyTooLarge() string {
+	return Catalog.Format(msgs.locale, "statusReplyTooLarge", nil)
+}
+
+// StatusNoText says "模型服务没有返回文字"
+// in the language the app shows.
+//
+// model.ErrNoText failure. Translated by desk for the AI toast.
+func StatusNoText() string { return In(i18n.Locale()).StatusNoText() }
+
+// StatusNoText says "模型服务没有返回文字"
+// in the language of msgs.
+//
+// model.ErrNoText failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusNoText() string {
+	return Catalog.Format(msgs.locale, "statusNoText", nil)
+}
+
+// StatusToolCallMissing says "工具结果没有对应的调用"
+// in the language the app shows.
+//
+// model.ErrToolCallMissing failure. Translated by desk for the AI toast.
+func StatusToolCallMissing() string { return In(i18n.Locale()).StatusToolCallMissing() }
+
+// StatusToolCallMissing says "工具结果没有对应的调用"
+// in the language of msgs.
+//
+// model.ErrToolCallMissing failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusToolCallMissing() string {
+	return Catalog.Format(msgs.locale, "statusToolCallMissing", nil)
+}
+
+// StatusRole says "消息角色只能是 user、assistant 或 tool；系统指令放在 Request.System"
+// in the language the app shows.
+//
+// model.ErrRole failure. Translated by desk for the AI toast.
+func StatusRole() string { return In(i18n.Locale()).StatusRole() }
+
+// StatusRole says "消息角色只能是 user、assistant 或 tool；系统指令放在 Request.System"
+// in the language of msgs.
+//
+// model.ErrRole failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusRole() string {
+	return Catalog.Format(msgs.locale, "statusRole", nil)
+}
+
+// StatusService says "模型服务返回了错误（为保护密钥和内容，不显示原文）"
+// in the language the app shows.
+//
+// model.ErrService failure. Translated by desk for the AI toast.
+func StatusService() string { return In(i18n.Locale()).StatusService() }
+
+// StatusService says "模型服务返回了错误（为保护密钥和内容，不显示原文）"
+// in the language of msgs.
+//
+// model.ErrService failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusService() string {
+	return Catalog.Format(msgs.locale, "statusService", nil)
+}
+
+// StatusConnection says "连不上 AI：检查网络和服务地址"
+// in the language the app shows.
+//
+// model.ErrConnection failure. Translated by desk for the AI toast.
+func StatusConnection() string { return In(i18n.Locale()).StatusConnection() }
+
+// StatusConnection says "连不上 AI：检查网络和服务地址"
+// in the language of msgs.
+//
+// model.ErrConnection failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusConnection() string {
+	return Catalog.Format(msgs.locale, "statusConnection", nil)
+}
+
+// StatusDestination says "模型请求的目的地址与配置不符"
+// in the language the app shows.
+//
+// model.ErrDestination failure. Translated by desk for the AI toast.
+func StatusDestination() string { return In(i18n.Locale()).StatusDestination() }
+
+// StatusDestination says "模型请求的目的地址与配置不符"
+// in the language of msgs.
+//
+// model.ErrDestination failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusDestination() string {
+	return Catalog.Format(msgs.locale, "statusDestination", nil)
+}
+
+// SettingsConfigTooLarge says "模型配置超过 1 MiB"
+// in the language the app shows.
+//
+// model.ErrConfigTooLarge failure. Translated by desk for the AI settings
+// form or toast.
+func SettingsConfigTooLarge() string { return In(i18n.Locale()).SettingsConfigTooLarge() }
+
+// SettingsConfigTooLarge says "模型配置超过 1 MiB"
+// in the language of msgs.
+//
+// model.ErrConfigTooLarge failure. Translated by desk for the AI settings
+// form or toast.
+func (msgs Messages) SettingsConfigTooLarge() string {
+	return Catalog.Format(msgs.locale, "settingsConfigTooLarge", nil)
+}
+
+// SettingsConfigYAML says "模型配置不是合法的 YAML：请检查语法、字段名和字段类型"
+// in the language the app shows.
+//
+// model.ErrConfigYAML failure. Translated by desk for the AI settings form
+// or toast.
+func SettingsConfigYAML() string { return In(i18n.Locale()).SettingsConfigYAML() }
+
+// SettingsConfigYAML says "模型配置不是合法的 YAML：请检查语法、字段名和字段类型"
+// in the language of msgs.
+//
+// model.ErrConfigYAML failure. Translated by desk for the AI settings form
+// or toast.
+func (msgs Messages) SettingsConfigYAML() string {
+	return Catalog.Format(msgs.locale, "settingsConfigYAML", nil)
+}
+
+// SettingsConfigDocuments says "模型配置只能包含一个 YAML 文档"
+// in the language the app shows.
+//
+// model.ErrConfigDocuments failure. Translated by desk for the AI settings
+// form or toast.
+func SettingsConfigDocuments() string { return In(i18n.Locale()).SettingsConfigDocuments() }
+
+// SettingsConfigDocuments says "模型配置只能包含一个 YAML 文档"
+// in the language of msgs.
+//
+// model.ErrConfigDocuments failure. Translated by desk for the AI settings
+// form or toast.
+func (msgs Messages) SettingsConfigDocuments() string {
+	return Catalog.Format(msgs.locale, "settingsConfigDocuments", nil)
+}
+
+// SettingsConfigEncode says "无法编码模型配置"
+// in the language the app shows.
+//
+// model.ErrConfigEncode failure. Translated by desk for the AI settings
+// form or toast.
+func SettingsConfigEncode() string { return In(i18n.Locale()).SettingsConfigEncode() }
+
+// SettingsConfigEncode says "无法编码模型配置"
+// in the language of msgs.
+//
+// model.ErrConfigEncode failure. Translated by desk for the AI settings
+// form or toast.
+func (msgs Messages) SettingsConfigEncode() string {
+	return Catalog.Format(msgs.locale, "settingsConfigEncode", nil)
+}
+
+// SettingsConfigVersion says "不支持的模型配置版本（应为 1）"
+// in the language the app shows.
+//
+// model.ErrConfigVersion failure. Translated by desk for the AI settings
+// form or toast.
+func SettingsConfigVersion() string { return In(i18n.Locale()).SettingsConfigVersion() }
+
+// SettingsConfigVersion says "不支持的模型配置版本（应为 1）"
+// in the language of msgs.
+//
+// model.ErrConfigVersion failure. Translated by desk for the AI settings
+// form or toast.
+func (msgs Messages) SettingsConfigVersion() string {
+	return Catalog.Format(msgs.locale, "settingsConfigVersion", nil)
+}
+
+// SettingsProviderDuplicate says "提供商 ID 重复"
+// in the language the app shows.
+//
+// model.ErrProviderDuplicate failure. Translated by desk for the AI
+// settings form or toast.
+func SettingsProviderDuplicate() string { return In(i18n.Locale()).SettingsProviderDuplicate() }
+
+// SettingsProviderDuplicate says "提供商 ID 重复"
+// in the language of msgs.
+//
+// model.ErrProviderDuplicate failure. Translated by desk for the AI
+// settings form or toast.
+func (msgs Messages) SettingsProviderDuplicate() string {
+	return Catalog.Format(msgs.locale, "settingsProviderDuplicate", nil)
+}
+
+// SettingsNameRequired says "请填写显示名称"
+// in the language the app shows.
+//
+// model.ErrNameRequired failure. Translated by desk for the AI settings
+// form or toast.
+func SettingsNameRequired() string { return In(i18n.Locale()).SettingsNameRequired() }
+
+// SettingsNameRequired says "请填写显示名称"
+// in the language of msgs.
+//
+// model.ErrNameRequired failure. Translated by desk for the AI settings
+// form or toast.
+func (msgs Messages) SettingsNameRequired() string {
+	return Catalog.Format(msgs.locale, "settingsNameRequired", nil)
+}
+
+// SettingsCatalogTotal says "模型目录总计超过 8 MiB"
+// in the language the app shows.
+//
+// model.ErrCatalogTotal failure. Translated by desk for the AI settings
+// form or toast.
+func SettingsCatalogTotal() string { return In(i18n.Locale()).SettingsCatalogTotal() }
+
+// SettingsCatalogTotal says "模型目录总计超过 8 MiB"
+// in the language of msgs.
+//
+// model.ErrCatalogTotal failure. Translated by desk for the AI settings
+// form or toast.
+func (msgs Messages) SettingsCatalogTotal() string {
+	return Catalog.Format(msgs.locale, "settingsCatalogTotal", nil)
+}
+
+// SettingsCatalogJSON says "模型目录不是合法 JSON"
+// in the language the app shows.
+//
+// model.ErrCatalogJSON failure. Translated by desk for the AI settings form
+// or toast.
+func SettingsCatalogJSON() string { return In(i18n.Locale()).SettingsCatalogJSON() }
+
+// SettingsCatalogJSON says "模型目录不是合法 JSON"
+// in the language of msgs.
+//
+// model.ErrCatalogJSON failure. Translated by desk for the AI settings form
+// or toast.
+func (msgs Messages) SettingsCatalogJSON() string {
+	return Catalog.Format(msgs.locale, "settingsCatalogJSON", nil)
+}
+
+// SettingsCatalogService says "模型目录接口返回了错误"
+// in the language the app shows.
+//
+// model.ErrCatalogService failure. Translated by desk for the AI settings
+// form or toast.
+func SettingsCatalogService() string { return In(i18n.Locale()).SettingsCatalogService() }
+
+// SettingsCatalogService says "模型目录接口返回了错误"
+// in the language of msgs.
+//
+// model.ErrCatalogService failure. Translated by desk for the AI settings
+// form or toast.
+func (msgs Messages) SettingsCatalogService() string {
+	return Catalog.Format(msgs.locale, "settingsCatalogService", nil)
+}
+
+// SettingsCatalogData says "模型目录缺少 data 字段"
+// in the language the app shows.
+//
+// model.ErrCatalogData failure. Translated by desk for the AI settings form
+// or toast.
+func SettingsCatalogData() string { return In(i18n.Locale()).SettingsCatalogData() }
+
+// SettingsCatalogData says "模型目录缺少 data 字段"
+// in the language of msgs.
+//
+// model.ErrCatalogData failure. Translated by desk for the AI settings form
+// or toast.
+func (msgs Messages) SettingsCatalogData() string {
+	return Catalog.Format(msgs.locale, "settingsCatalogData", nil)
+}
+
+// SettingsCatalogPagination says "模型目录的分页方式不受支持或无效"
+// in the language the app shows.
+//
+// model.ErrCatalogPagination failure. Translated by desk for the AI
+// settings form or toast.
+func SettingsCatalogPagination() string { return In(i18n.Locale()).SettingsCatalogPagination() }
+
+// SettingsCatalogPagination says "模型目录的分页方式不受支持或无效"
+// in the language of msgs.
+//
+// model.ErrCatalogPagination failure. Translated by desk for the AI
+// settings form or toast.
+func (msgs Messages) SettingsCatalogPagination() string {
+	return Catalog.Format(msgs.locale, "settingsCatalogPagination", nil)
+}
+
+// SettingsCatalogPages says "模型目录超过 100 页"
+// in the language the app shows.
+//
+// model.ErrCatalogPages failure. Translated by desk for the AI settings
+// form or toast.
+func SettingsCatalogPages() string { return In(i18n.Locale()).SettingsCatalogPages() }
+
+// SettingsCatalogPages says "模型目录超过 100 页"
+// in the language of msgs.
+//
+// model.ErrCatalogPages failure. Translated by desk for the AI settings
+// form or toast.
+func (msgs Messages) SettingsCatalogPages() string {
+	return Catalog.Format(msgs.locale, "settingsCatalogPages", nil)
+}
+
+// StatusRequestCreate says "无法创建模型请求"
+// in the language the app shows.
+//
+// model.ErrRequestCreate failure. Translated by desk for the AI toast.
+func StatusRequestCreate() string { return In(i18n.Locale()).StatusRequestCreate() }
+
+// StatusRequestCreate says "无法创建模型请求"
+// in the language of msgs.
+//
+// model.ErrRequestCreate failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusRequestCreate() string {
+	return Catalog.Format(msgs.locale, "statusRequestCreate", nil)
+}
+
+// SettingsCatalogPageSize says "模型目录超过 8 MiB"
+// in the language the app shows.
+//
+// model.ErrCatalogPageSize failure. Translated by desk for the AI settings
+// form or toast.
+func SettingsCatalogPageSize() string { return In(i18n.Locale()).SettingsCatalogPageSize() }
+
+// SettingsCatalogPageSize says "模型目录超过 8 MiB"
+// in the language of msgs.
+//
+// model.ErrCatalogPageSize failure. Translated by desk for the AI settings
+// form or toast.
+func (msgs Messages) SettingsCatalogPageSize() string {
+	return Catalog.Format(msgs.locale, "settingsCatalogPageSize", nil)
+}
+
+// SettingsKeyDelete says "系统钥匙串无法删除 API key"
+// in the language the app shows.
+//
+// model.ErrKeyDelete failure. Translated by desk for the AI settings form
+// or toast.
+func SettingsKeyDelete() string { return In(i18n.Locale()).SettingsKeyDelete() }
+
+// SettingsKeyDelete says "系统钥匙串无法删除 API key"
+// in the language of msgs.
+//
+// model.ErrKeyDelete failure. Translated by desk for the AI settings form
+// or toast.
+func (msgs Messages) SettingsKeyDelete() string {
+	return Catalog.Format(msgs.locale, "settingsKeyDelete", nil)
+}
+
+// SettingsKeySave says "系统钥匙串无法保存 API key；不会改用明文保存"
+// in the language the app shows.
+//
+// model.ErrKeySave failure. Translated by desk for the AI settings form or
+// toast.
+func SettingsKeySave() string { return In(i18n.Locale()).SettingsKeySave() }
+
+// SettingsKeySave says "系统钥匙串无法保存 API key；不会改用明文保存"
+// in the language of msgs.
+//
+// model.ErrKeySave failure. Translated by desk for the AI settings form or
+// toast.
+func (msgs Messages) SettingsKeySave() string {
+	return Catalog.Format(msgs.locale, "settingsKeySave", nil)
+}
+
+// SettingsKeychain says "系统钥匙串不可用：请解锁钥匙串，或设置这个提供商的 API key 环境变量"
+// in the language the app shows.
+//
+// model.ErrKeychain failure. Translated by desk for the AI settings form or
+// toast.
+func SettingsKeychain() string { return In(i18n.Locale()).SettingsKeychain() }
+
+// SettingsKeychain says "系统钥匙串不可用：请解锁钥匙串，或设置这个提供商的 API key 环境变量"
+// in the language of msgs.
+//
+// model.ErrKeychain failure. Translated by desk for the AI settings form or
+// toast.
+func (msgs Messages) SettingsKeychain() string {
+	return Catalog.Format(msgs.locale, "settingsKeychain", nil)
+}
+
+// ChatOff says "AI 已关闭"
+// in the language the app shows.
+//
+// ai.ErrOff failure. Translated by desk for the AI toast.
+func ChatOff() string { return In(i18n.Locale()).ChatOff() }
+
+// ChatOff says "AI 已关闭"
+// in the language of msgs.
+//
+// ai.ErrOff failure. Translated by desk for the AI toast.
+func (msgs Messages) ChatOff() string {
+	return Catalog.Format(msgs.locale, "chatOff", nil)
+}
+
+// StatusTrailingJSON says "返回了多个 JSON 值或尾随内容"
+// in the language the app shows.
+//
+// inference.ErrTrailingJSON failure. Translated by desk for the AI toast.
+func StatusTrailingJSON() string { return In(i18n.Locale()).StatusTrailingJSON() }
+
+// StatusTrailingJSON says "返回了多个 JSON 值或尾随内容"
+// in the language of msgs.
+//
+// inference.ErrTrailingJSON failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusTrailingJSON() string {
+	return Catalog.Format(msgs.locale, "statusTrailingJSON", nil)
+}
+
+// StatusChapterMissing says "找不到这一章"
+// in the language the app shows.
+//
+// writing.ErrChapterMissing failure. Translated by desk for the AI toast.
+func StatusChapterMissing() string { return In(i18n.Locale()).StatusChapterMissing() }
+
+// StatusChapterMissing says "找不到这一章"
+// in the language of msgs.
+//
+// writing.ErrChapterMissing failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusChapterMissing() string {
+	return Catalog.Format(msgs.locale, "statusChapterMissing", nil)
+}
+
+// CheckNoSetting says "设定还是空的，没有可以对照的"
+// in the language the app shows.
+//
+// writing.ErrNoSetting failure. Translated by desk for the AI toast.
+func CheckNoSetting() string { return In(i18n.Locale()).CheckNoSetting() }
+
+// CheckNoSetting says "设定还是空的，没有可以对照的"
+// in the language of msgs.
+//
+// writing.ErrNoSetting failure. Translated by desk for the AI toast.
+func (msgs Messages) CheckNoSetting() string {
+	return Catalog.Format(msgs.locale, "checkNoSetting", nil)
+}
+
+// ChatInputRequired says "请输入要讨论的内容"
+// in the language the app shows.
+//
+// discussion.ErrInputRequired failure. Translated by desk for the AI toast.
+func ChatInputRequired() string { return In(i18n.Locale()).ChatInputRequired() }
+
+// ChatInputRequired says "请输入要讨论的内容"
+// in the language of msgs.
+//
+// discussion.ErrInputRequired failure. Translated by desk for the AI toast.
+func (msgs Messages) ChatInputRequired() string {
+	return Catalog.Format(msgs.locale, "chatInputRequired", nil)
+}
+
+// ChatNewChatRequired says "起草、改写要新开一段讨论"
+// in the language the app shows.
+//
+// discussion.ErrNewChatRequired failure. Translated by desk for the AI
+// toast.
+func ChatNewChatRequired() string { return In(i18n.Locale()).ChatNewChatRequired() }
+
+// ChatNewChatRequired says "起草、改写要新开一段讨论"
+// in the language of msgs.
+//
+// discussion.ErrNewChatRequired failure. Translated by desk for the AI
+// toast.
+func (msgs Messages) ChatNewChatRequired() string {
+	return Catalog.Format(msgs.locale, "chatNewChatRequired", nil)
+}
+
+// ChatAlreadyReplied says "这条发言已有回复"
+// in the language the app shows.
+//
+// discussion.ErrAlreadyReplied failure. Translated by desk for the AI
+// toast.
+func ChatAlreadyReplied() string { return In(i18n.Locale()).ChatAlreadyReplied() }
+
+// ChatAlreadyReplied says "这条发言已有回复"
+// in the language of msgs.
+//
+// discussion.ErrAlreadyReplied failure. Translated by desk for the AI
+// toast.
+func (msgs Messages) ChatAlreadyReplied() string {
+	return Catalog.Format(msgs.locale, "chatAlreadyReplied", nil)
+}
+
+// ChatRetryMissing says "找不到待重试的发言"
+// in the language the app shows.
+//
+// discussion.ErrRetryMissing failure. Translated by desk for the AI toast.
+func ChatRetryMissing() string { return In(i18n.Locale()).ChatRetryMissing() }
+
+// ChatRetryMissing says "找不到待重试的发言"
+// in the language of msgs.
+//
+// discussion.ErrRetryMissing failure. Translated by desk for the AI toast.
+func (msgs Messages) ChatRetryMissing() string {
+	return Catalog.Format(msgs.locale, "chatRetryMissing", nil)
+}
+
+// ChatEmptyReply says "模型返回空回复，原文已保存"
+// in the language the app shows.
+//
+// discussion.ErrEmptyReply failure. Translated by desk for the AI toast.
+func ChatEmptyReply() string { return In(i18n.Locale()).ChatEmptyReply() }
+
+// ChatEmptyReply says "模型返回空回复，原文已保存"
+// in the language of msgs.
+//
+// discussion.ErrEmptyReply failure. Translated by desk for the AI toast.
+func (msgs Messages) ChatEmptyReply() string {
+	return Catalog.Format(msgs.locale, "chatEmptyReply", nil)
+}
+
+// ChatSelectionInvalid says "原文选区无效"
+// in the language the app shows.
+//
+// discussion.ErrSelectionInvalid failure. Translated by desk for the AI
+// toast.
+func ChatSelectionInvalid() string { return In(i18n.Locale()).ChatSelectionInvalid() }
+
+// ChatSelectionInvalid says "原文选区无效"
+// in the language of msgs.
+//
+// discussion.ErrSelectionInvalid failure. Translated by desk for the AI
+// toast.
+func (msgs Messages) ChatSelectionInvalid() string {
+	return Catalog.Format(msgs.locale, "chatSelectionInvalid", nil)
+}
+
+// ChatSelectionBlank says "选中的只有空白"
+// in the language the app shows.
+//
+// discussion.ErrSelectionBlank failure. Translated by desk for the AI
+// toast.
+func ChatSelectionBlank() string { return In(i18n.Locale()).ChatSelectionBlank() }
+
+// ChatSelectionBlank says "选中的只有空白"
+// in the language of msgs.
+//
+// discussion.ErrSelectionBlank failure. Translated by desk for the AI
+// toast.
+func (msgs Messages) ChatSelectionBlank() string {
+	return Catalog.Format(msgs.locale, "chatSelectionBlank", nil)
+}
+
+// ChatSourceMissing says "找不到来源消息"
+// in the language the app shows.
+//
+// discussion.ErrSourceMissing failure. Translated by desk for the AI toast.
+func ChatSourceMissing() string { return In(i18n.Locale()).ChatSourceMissing() }
+
+// ChatSourceMissing says "找不到来源消息"
+// in the language of msgs.
+//
+// discussion.ErrSourceMissing failure. Translated by desk for the AI toast.
+func (msgs Messages) ChatSourceMissing() string {
+	return Catalog.Format(msgs.locale, "chatSourceMissing", nil)
+}
+
+// ChatEmptyDigest says "模型返回空摘要"
+// in the language the app shows.
+//
+// discussion.ErrEmptyDigest failure. Translated by desk for the AI toast.
+func ChatEmptyDigest() string { return In(i18n.Locale()).ChatEmptyDigest() }
+
+// ChatEmptyDigest says "模型返回空摘要"
+// in the language of msgs.
+//
+// discussion.ErrEmptyDigest failure. Translated by desk for the AI toast.
+func (msgs Messages) ChatEmptyDigest() string {
+	return Catalog.Format(msgs.locale, "chatEmptyDigest", nil)
+}
+
+// SettingsModelFields says "模型只能写 id、context、max_output、compact_at 几项"
+// in the language the app shows.
+//
+// model.ErrModelFields failure. Translated by desk for the AI settings form
+// or toast.
+func SettingsModelFields() string { return In(i18n.Locale()).SettingsModelFields() }
+
+// SettingsModelFields says "模型只能写 id、context、max_output、compact_at 几项"
+// in the language of msgs.
+//
+// model.ErrModelFields failure. Translated by desk for the AI settings form
+// or toast.
+func (msgs Messages) SettingsModelFields() string {
+	return Catalog.Format(msgs.locale, "settingsModelFields", nil)
+}
+
+// StatusContextOutline says "纲和要求超出了模型的上下文上限：请缩短，或在设置中「AI」配置里调大上下文上限"
+// in the language the app shows.
+//
+// model.ContextLimitError.outline failure. Translated by desk for the AI
+// toast.
+func StatusContextOutline() string { return In(i18n.Locale()).StatusContextOutline() }
+
+// StatusContextOutline says "纲和要求超出了模型的上下文上限：请缩短，或在设置中「AI」配置里调大上下文上限"
+// in the language of msgs.
+//
+// model.ContextLimitError.outline failure. Translated by desk for the AI
+// toast.
+func (msgs Messages) StatusContextOutline() string {
+	return Catalog.Format(msgs.locale, "statusContextOutline", nil)
+}
+
+// StatusContextChapter says "模型的上下文上限放不下这一章：请在设置中「AI」配置里调大上下文上限"
+// in the language the app shows.
+//
+// model.ContextLimitError.chapter failure. Translated by desk for the AI
+// toast.
+func StatusContextChapter() string { return In(i18n.Locale()).StatusContextChapter() }
+
+// StatusContextChapter says "模型的上下文上限放不下这一章：请在设置中「AI」配置里调大上下文上限"
+// in the language of msgs.
+//
+// model.ContextLimitError.chapter failure. Translated by desk for the AI
+// toast.
+func (msgs Messages) StatusContextChapter() string {
+	return Catalog.Format(msgs.locale, "statusContextChapter", nil)
+}
+
+// StatusContextLore says "模型的上下文上限放不下设定：请在设置中「AI」配置里调大上下文上限"
+// in the language the app shows.
+//
+// model.ContextLimitError.lore failure. Translated by desk for the AI
+// toast.
+func StatusContextLore() string { return In(i18n.Locale()).StatusContextLore() }
+
+// StatusContextLore says "模型的上下文上限放不下设定：请在设置中「AI」配置里调大上下文上限"
+// in the language of msgs.
+//
+// model.ContextLimitError.lore failure. Translated by desk for the AI
+// toast.
+func (msgs Messages) StatusContextLore() string {
+	return Catalog.Format(msgs.locale, "statusContextLore", nil)
+}
+
+// StatusContextTurn says "有一轮讨论太长，超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限"
+// in the language the app shows.
+//
+// model.ContextLimitError.turn failure. Translated by desk for the AI
+// toast.
+func StatusContextTurn() string { return In(i18n.Locale()).StatusContextTurn() }
+
+// StatusContextTurn says "有一轮讨论太长，超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限"
+// in the language of msgs.
+//
+// model.ContextLimitError.turn failure. Translated by desk for the AI
+// toast.
+func (msgs Messages) StatusContextTurn() string {
+	return Catalog.Format(msgs.locale, "statusContextTurn", nil)
+}
+
+// StatusContextMessage says "当前发言超出模型的上下文上限；请缩短，或在设置中「AI」配置里调大上下文上限"
+// in the language the app shows.
+//
+// model.ContextLimitError.message failure. Translated by desk for the AI
+// toast.
+func StatusContextMessage() string { return In(i18n.Locale()).StatusContextMessage() }
+
+// StatusContextMessage says "当前发言超出模型的上下文上限；请缩短，或在设置中「AI」配置里调大上下文上限"
+// in the language of msgs.
+//
+// model.ContextLimitError.message failure. Translated by desk for the AI
+// toast.
+func (msgs Messages) StatusContextMessage() string {
+	return Catalog.Format(msgs.locale, "statusContextMessage", nil)
+}
+
+// StatusContextIndex says "设定的目录超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限"
+// in the language the app shows.
+//
+// model.ContextLimitError.index failure. Translated by desk for the AI
+// toast.
+func StatusContextIndex() string { return In(i18n.Locale()).StatusContextIndex() }
+
+// StatusContextIndex says "设定的目录超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限"
+// in the language of msgs.
+//
+// model.ContextLimitError.index failure. Translated by desk for the AI
+// toast.
+func (msgs Messages) StatusContextIndex() string {
+	return Catalog.Format(msgs.locale, "statusContextIndex", nil)
+}
+
+// StatusContextSummary says "之前讨论的摘要超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限"
+// in the language the app shows.
+//
+// model.ContextLimitError.summary failure. Translated by desk for the AI
+// toast.
+func StatusContextSummary() string { return In(i18n.Locale()).StatusContextSummary() }
+
+// StatusContextSummary says "之前讨论的摘要超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限"
+// in the language of msgs.
+//
+// model.ContextLimitError.summary failure. Translated by desk for the AI
+// toast.
+func (msgs Messages) StatusContextSummary() string {
+	return Catalog.Format(msgs.locale, "statusContextSummary", nil)
+}
+
+// StatusContextAttachments says "这一章要带上的内容超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限"
+// in the language the app shows.
+//
+// model.ContextLimitError.attachments failure. Translated by desk for the
+// AI toast.
+func StatusContextAttachments() string { return In(i18n.Locale()).StatusContextAttachments() }
+
+// StatusContextAttachments says "这一章要带上的内容超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限"
+// in the language of msgs.
+//
+// model.ContextLimitError.attachments failure. Translated by desk for the
+// AI toast.
+func (msgs Messages) StatusContextAttachments() string {
+	return Catalog.Format(msgs.locale, "statusContextAttachments", nil)
+}
+
+// SettingsConfigLocate says "找不到用户配置目录：{reason}"
+// in the language the app shows.
+//
+// model.ConfigError.locate failure. Translated by desk for the AI settings
+// form or toast.
+func SettingsConfigLocate(reason string) string {
+	return In(i18n.Locale()).SettingsConfigLocate(reason)
+}
+
+// SettingsConfigLocate says "找不到用户配置目录：{reason}"
+// in the language of msgs.
+//
+// model.ConfigError.locate failure. Translated by desk for the AI settings
+// form or toast.
+func (msgs Messages) SettingsConfigLocate(reason string) string {
+	return Catalog.Format(msgs.locale, "settingsConfigLocate", map[string]any{"reason": reason})
+}
+
+// SettingsConfigOpen says "无法打开模型配置：{reason}"
+// in the language the app shows.
+//
+// model.ConfigError.open failure. Translated by desk for the AI settings
+// form or toast.
+func SettingsConfigOpen(reason string) string { return In(i18n.Locale()).SettingsConfigOpen(reason) }
+
+// SettingsConfigOpen says "无法打开模型配置：{reason}"
+// in the language of msgs.
+//
+// model.ConfigError.open failure. Translated by desk for the AI settings
+// form or toast.
+func (msgs Messages) SettingsConfigOpen(reason string) string {
+	return Catalog.Format(msgs.locale, "settingsConfigOpen", map[string]any{"reason": reason})
+}
+
+// SettingsConfigRead says "无法读取模型配置：{reason}"
+// in the language the app shows.
+//
+// model.ConfigError.read failure. Translated by desk for the AI settings
+// form or toast.
+func SettingsConfigRead(reason string) string { return In(i18n.Locale()).SettingsConfigRead(reason) }
+
+// SettingsConfigRead says "无法读取模型配置：{reason}"
+// in the language of msgs.
+//
+// model.ConfigError.read failure. Translated by desk for the AI settings
+// form or toast.
+func (msgs Messages) SettingsConfigRead(reason string) string {
+	return Catalog.Format(msgs.locale, "settingsConfigRead", map[string]any{"reason": reason})
+}
+
+// SettingsConfigMkdir says "无法创建配置目录：{reason}"
+// in the language the app shows.
+//
+// model.ConfigError.mkdir failure. Translated by desk for the AI settings
+// form or toast.
+func SettingsConfigMkdir(reason string) string { return In(i18n.Locale()).SettingsConfigMkdir(reason) }
+
+// SettingsConfigMkdir says "无法创建配置目录：{reason}"
+// in the language of msgs.
+//
+// model.ConfigError.mkdir failure. Translated by desk for the AI settings
+// form or toast.
+func (msgs Messages) SettingsConfigMkdir(reason string) string {
+	return Catalog.Format(msgs.locale, "settingsConfigMkdir", map[string]any{"reason": reason})
+}
+
+// SettingsConfigCreate says "无法创建临时配置文件：{reason}"
+// in the language the app shows.
+//
+// model.ConfigError.create failure. Translated by desk for the AI settings
+// form or toast.
+func SettingsConfigCreate(reason string) string {
+	return In(i18n.Locale()).SettingsConfigCreate(reason)
+}
+
+// SettingsConfigCreate says "无法创建临时配置文件：{reason}"
+// in the language of msgs.
+//
+// model.ConfigError.create failure. Translated by desk for the AI settings
+// form or toast.
+func (msgs Messages) SettingsConfigCreate(reason string) string {
+	return Catalog.Format(msgs.locale, "settingsConfigCreate", map[string]any{"reason": reason})
+}
+
+// SettingsConfigReplace says "无法替换模型配置：{reason}"
+// in the language the app shows.
+//
+// model.ConfigError.replace failure. Translated by desk for the AI settings
+// form or toast.
+func SettingsConfigReplace(reason string) string {
+	return In(i18n.Locale()).SettingsConfigReplace(reason)
+}
+
+// SettingsConfigReplace says "无法替换模型配置：{reason}"
+// in the language of msgs.
+//
+// model.ConfigError.replace failure. Translated by desk for the AI settings
+// form or toast.
+func (msgs Messages) SettingsConfigReplace(reason string) string {
+	return Catalog.Format(msgs.locale, "settingsConfigReplace", map[string]any{"reason": reason})
+}
+
+// SettingsConfigWrite says "无法写入模型配置：{reason}"
+// in the language the app shows.
+//
+// model.ConfigError.write failure. Translated by desk for the AI settings
+// form or toast.
+func SettingsConfigWrite(reason string) string { return In(i18n.Locale()).SettingsConfigWrite(reason) }
+
+// SettingsConfigWrite says "无法写入模型配置：{reason}"
+// in the language of msgs.
+//
+// model.ConfigError.write failure. Translated by desk for the AI settings
+// form or toast.
+func (msgs Messages) SettingsConfigWrite(reason string) string {
+	return Catalog.Format(msgs.locale, "settingsConfigWrite", map[string]any{"reason": reason})
+}
+
+// SettingsProviderError says "第 {count, plural, other {#}} 个提供商：{reason}"
+// in the language the app shows.
+//
+// model.ProviderError failure. Translated by desk for the AI settings form
+// or toast.
+func SettingsProviderError(count int, reason string) string {
+	return In(i18n.Locale()).SettingsProviderError(count, reason)
+}
+
+// SettingsProviderError says "第 {count, plural, other {#}} 个提供商：{reason}"
+// in the language of msgs.
+//
+// model.ProviderError failure. Translated by desk for the AI settings form
+// or toast.
+func (msgs Messages) SettingsProviderError(count int, reason string) string {
+	return Catalog.Format(msgs.locale, "settingsProviderError", map[string]any{"count": count, "reason": reason})
+}
+
+// SettingsProviderMissing says "本机没有配置提供商 \"{id}\"，请在设置中「AI」配置里重新选择"
+// in the language the app shows.
+//
+// model.ProviderMissingError failure. Translated by desk for the AI
+// settings form or toast.
+func SettingsProviderMissing(id string) string { return In(i18n.Locale()).SettingsProviderMissing(id) }
+
+// SettingsProviderMissing says "本机没有配置提供商 \"{id}\"，请在设置中「AI」配置里重新选择"
+// in the language of msgs.
+//
+// model.ProviderMissingError failure. Translated by desk for the AI
+// settings form or toast.
+func (msgs Messages) SettingsProviderMissing(id string) string {
+	return Catalog.Format(msgs.locale, "settingsProviderMissing", map[string]any{"id": id})
+}
+
+// SettingsEffortError says "不支持的推理等级 \"{effort}\""
+// in the language the app shows.
+//
+// model.EffortError failure. Translated by desk for the AI settings form or
+// toast.
+func SettingsEffortError(effort string) string { return In(i18n.Locale()).SettingsEffortError(effort) }
+
+// SettingsEffortError says "不支持的推理等级 \"{effort}\""
+// in the language of msgs.
+//
+// model.EffortError failure. Translated by desk for the AI settings form or
+// toast.
+func (msgs Messages) SettingsEffortError(effort string) string {
+	return Catalog.Format(msgs.locale, "settingsEffortError", map[string]any{"effort": effort})
+}
+
+// ChatToolError says "工具 \"{name}\" 没有名字或参数说明不是 JSON"
+// in the language the app shows.
+//
+// model.ToolError failure. Translated by desk for the AI toast.
+func ChatToolError(name string) string { return In(i18n.Locale()).ChatToolError(name) }
+
+// ChatToolError says "工具 \"{name}\" 没有名字或参数说明不是 JSON"
+// in the language of msgs.
+//
+// model.ToolError failure. Translated by desk for the AI toast.
+func (msgs Messages) ChatToolError(name string) string {
+	return Catalog.Format(msgs.locale, "chatToolError", map[string]any{"name": name})
+}
+
+// StatusModelTimeout says "模型请求超时：{reason}"
+// in the language the app shows.
+//
+// model.TimeoutError failure. Translated by desk for the AI toast.
+func StatusModelTimeout(reason string) string { return In(i18n.Locale()).StatusModelTimeout(reason) }
+
+// StatusModelTimeout says "模型请求超时：{reason}"
+// in the language of msgs.
+//
+// model.TimeoutError failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusModelTimeout(reason string) string {
+	return Catalog.Format(msgs.locale, "statusModelTimeout", map[string]any{"reason": reason})
+}
+
+// StatusModelAborted says "模型请求已中止：{reason}"
+// in the language the app shows.
+//
+// model.AbortedError failure. Translated by desk for the AI toast.
+func StatusModelAborted(reason string) string { return In(i18n.Locale()).StatusModelAborted(reason) }
+
+// StatusModelAborted says "模型请求已中止：{reason}"
+// in the language of msgs.
+//
+// model.AbortedError failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusModelAborted(reason string) string {
+	return Catalog.Format(msgs.locale, "statusModelAborted", map[string]any{"reason": reason})
+}
+
+// StatusJSONError says "JSON 不符合约定：{reason}"
+// in the language the app shows.
+//
+// inference.JSONError failure. Translated by desk for the AI toast.
+func StatusJSONError(reason string) string { return In(i18n.Locale()).StatusJSONError(reason) }
+
+// StatusJSONError says "JSON 不符合约定：{reason}"
+// in the language of msgs.
+//
+// inference.JSONError failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusJSONError(reason string) string {
+	return Catalog.Format(msgs.locale, "statusJSONError", map[string]any{"reason": reason})
+}
+
+// StatusOutputLimit says "回复超出模型的最大输出 {limit}（含思考）；请在设置中「AI」配置里调大"
+// in the language the app shows.
+//
+// inference.OutputLimitError failure. Translated by desk for the AI toast.
+func StatusOutputLimit(limit string) string { return In(i18n.Locale()).StatusOutputLimit(limit) }
+
+// StatusOutputLimit says "回复超出模型的最大输出 {limit}（含思考）；请在设置中「AI」配置里调大"
+// in the language of msgs.
+//
+// inference.OutputLimitError failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusOutputLimit(limit string) string {
+	return Catalog.Format(msgs.locale, "statusOutputLimit", map[string]any{"limit": limit})
+}
+
+// CheckShortChapter says "这一章还不到 {count, plural, other {#}} 字，不用检查"
+// in the language the app shows.
+//
+// writing.ShortChapterError failure. Translated by desk for the AI toast.
+func CheckShortChapter(count int) string { return In(i18n.Locale()).CheckShortChapter(count) }
+
+// CheckShortChapter says "这一章还不到 {count, plural, other {#}} 字，不用检查"
+// in the language of msgs.
+//
+// writing.ShortChapterError failure. Translated by desk for the AI toast.
+func (msgs Messages) CheckShortChapter(count int) string {
+	return Catalog.Format(msgs.locale, "checkShortChapter", map[string]any{"count": count})
+}
+
+// CheckResultError says "模型给的检查结果读不了，可以再查一次：{reason}"
+// in the language the app shows.
+//
+// writing.CheckResultError failure. Translated by desk for the AI toast.
+func CheckResultError(reason string) string { return In(i18n.Locale()).CheckResultError(reason) }
+
+// CheckResultError says "模型给的检查结果读不了，可以再查一次：{reason}"
+// in the language of msgs.
+//
+// writing.CheckResultError failure. Translated by desk for the AI toast.
+func (msgs Messages) CheckResultError(reason string) string {
+	return Catalog.Format(msgs.locale, "checkResultError", map[string]any{"reason": reason})
+}
+
+// ChatCompactError says "整理之前的讨论失败，原文已保存：{reason}"
+// in the language the app shows.
+//
+// discussion.CompactError failure. Translated by desk for the AI toast.
+func ChatCompactError(reason string) string { return In(i18n.Locale()).ChatCompactError(reason) }
+
+// ChatCompactError says "整理之前的讨论失败，原文已保存：{reason}"
+// in the language of msgs.
+//
+// discussion.CompactError failure. Translated by desk for the AI toast.
+func (msgs Messages) ChatCompactError(reason string) string {
+	return Catalog.Format(msgs.locale, "chatCompactError", map[string]any{"reason": reason})
+}
+
+// ChatReplyError says "讨论失败，原文已保存：{reason}"
+// in the language the app shows.
+//
+// discussion.ReplyError failure. Translated by desk for the AI toast.
+func ChatReplyError(reason string) string { return In(i18n.Locale()).ChatReplyError(reason) }
+
+// ChatReplyError says "讨论失败，原文已保存：{reason}"
+// in the language of msgs.
+//
+// discussion.ReplyError failure. Translated by desk for the AI toast.
+func (msgs Messages) ChatReplyError(reason string) string {
+	return Catalog.Format(msgs.locale, "chatReplyError", map[string]any{"reason": reason})
+}
+
+// StatusHTTPAuth says "模型服务返回 HTTP {code}：API key 无效、缺失或没有权限"
+// in the language the app shows.
+//
+// model.HTTPError.Auth failure. Translated by desk for the AI toast.
+func StatusHTTPAuth(code int) string { return In(i18n.Locale()).StatusHTTPAuth(code) }
+
+// StatusHTTPAuth says "模型服务返回 HTTP {code}：API key 无效、缺失或没有权限"
+// in the language of msgs.
+//
+// model.HTTPError.Auth failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusHTTPAuth(code int) string {
+	return Catalog.Format(msgs.locale, "statusHTTPAuth", map[string]any{"code": code})
+}
+
+// StatusHTTPMissing says "模型服务返回 HTTP {code}：API 地址或模型 ID 不对"
+// in the language the app shows.
+//
+// model.HTTPError.Missing failure. Translated by desk for the AI toast.
+func StatusHTTPMissing(code int) string { return In(i18n.Locale()).StatusHTTPMissing(code) }
+
+// StatusHTTPMissing says "模型服务返回 HTTP {code}：API 地址或模型 ID 不对"
+// in the language of msgs.
+//
+// model.HTTPError.Missing failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusHTTPMissing(code int) string {
+	return Catalog.Format(msgs.locale, "statusHTTPMissing", map[string]any{"code": code})
+}
+
+// StatusHTTPRate says "模型服务返回 HTTP {code}：请求太频繁或额度不足"
+// in the language the app shows.
+//
+// model.HTTPError.Rate failure. Translated by desk for the AI toast.
+func StatusHTTPRate(code int) string { return In(i18n.Locale()).StatusHTTPRate(code) }
+
+// StatusHTTPRate says "模型服务返回 HTTP {code}：请求太频繁或额度不足"
+// in the language of msgs.
+//
+// model.HTTPError.Rate failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusHTTPRate(code int) string {
+	return Catalog.Format(msgs.locale, "statusHTTPRate", map[string]any{"code": code})
+}
+
+// StatusHTTPRejected says "模型服务返回 HTTP {code}：请求被拒绝，常见原因是模型 ID、推理等级或参数不受支持"
+// in the language the app shows.
+//
+// model.HTTPError.Rejected failure. Translated by desk for the AI toast.
+func StatusHTTPRejected(code int) string { return In(i18n.Locale()).StatusHTTPRejected(code) }
+
+// StatusHTTPRejected says "模型服务返回 HTTP {code}：请求被拒绝，常见原因是模型 ID、推理等级或参数不受支持"
+// in the language of msgs.
+//
+// model.HTTPError.Rejected failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusHTTPRejected(code int) string {
+	return Catalog.Format(msgs.locale, "statusHTTPRejected", map[string]any{"code": code})
+}
+
+// StatusHTTPServer says "模型服务返回 HTTP {code}：服务端出错，稍后重试"
+// in the language the app shows.
+//
+// model.HTTPError.Server failure. Translated by desk for the AI toast.
+func StatusHTTPServer(code int) string { return In(i18n.Locale()).StatusHTTPServer(code) }
+
+// StatusHTTPServer says "模型服务返回 HTTP {code}：服务端出错，稍后重试"
+// in the language of msgs.
+//
+// model.HTTPError.Server failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusHTTPServer(code int) string {
+	return Catalog.Format(msgs.locale, "statusHTTPServer", map[string]any{"code": code})
+}
+
+// StatusHTTPOther says "模型服务返回 HTTP {code}"
+// in the language the app shows.
+//
+// model.HTTPError.Other failure. Translated by desk for the AI toast.
+func StatusHTTPOther(code int) string { return In(i18n.Locale()).StatusHTTPOther(code) }
+
+// StatusHTTPOther says "模型服务返回 HTTP {code}"
+// in the language of msgs.
+//
+// model.HTTPError.Other failure. Translated by desk for the AI toast.
+func (msgs Messages) StatusHTTPOther(code int) string {
+	return Catalog.Format(msgs.locale, "statusHTTPOther", map[string]any{"code": code})
+}
+
+// SettingsProtocolInvalid says "协议必须是 chat、responses 或 anthropic"
+// in the language the app shows.
+//
+// AI service form validation: Protocol must be chat, responses or
+// anthropic.
+func SettingsProtocolInvalid() string { return In(i18n.Locale()).SettingsProtocolInvalid() }
+
+// SettingsProtocolInvalid says "协议必须是 chat、responses 或 anthropic"
+// in the language of msgs.
+//
+// AI service form validation: Protocol must be chat, responses or
+// anthropic.
+func (msgs Messages) SettingsProtocolInvalid() string {
+	return Catalog.Format(msgs.locale, "settingsProtocolInvalid", nil)
+}
+
+// SettingsModelIDInvalid says "模型 ID 不能为空，前后不能有空格"
+// in the language the app shows.
+//
+// AI service form validation: Model ID cannot be empty or have surrounding
+// spaces.
+func SettingsModelIDInvalid() string { return In(i18n.Locale()).SettingsModelIDInvalid() }
+
+// SettingsModelIDInvalid says "模型 ID 不能为空，前后不能有空格"
+// in the language of msgs.
+//
+// AI service form validation: Model ID cannot be empty or have surrounding
+// spaces.
+func (msgs Messages) SettingsModelIDInvalid() string {
+	return Catalog.Format(msgs.locale, "settingsModelIDInvalid", nil)
 }

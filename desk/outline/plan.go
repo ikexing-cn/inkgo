@@ -256,7 +256,7 @@ func (p *Page) broken(c *ui.Context) {
 	if !p.checksPaused {
 		c.After(p.Host.Content().Timing.CheckEvery - time.Since(p.checked))
 	}
-	title, about, why := locales.PlanReadError(), "", p.loadErr.Error()
+	title, about, why := locales.PlanReadError(), "", p.Host.Notices().FormatError(p.loadErr)
 	var bad *workspace.PlanError
 	if errors.As(p.loadErr, &bad) {
 		title, about, why = locales.PlanBrokenTitle(), locales.PlanBrokenAbout(), ""

@@ -138,6 +138,9 @@ type App struct {
 	// cmd/inkgo hands it mygo's; nil, the settings only say that a change
 	// waits for the software to open again.
 	Relaunch func()
+
+	// ErrorText contains translators registered by application features.
+	ErrorText []ErrorTranslator
 }
 
 // New is the app with ai, whose configuration file says where this
@@ -147,6 +150,7 @@ type App struct {
 func New(ai aiport.Service, mods ...ext.Module) *App {
 	a := &App{ai: ai, turn: &talkTurn{}, genre: "网文",
 		light: kit.LightPalette(), dark: kit.DarkPalette(), titles: map[string]string{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
+	a.status.Translate = a.errText
 	a.plan.Host = appHost{a}
 	a.pal = a.light
 	a.initPages()

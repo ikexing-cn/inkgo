@@ -21,7 +21,7 @@ func TestCompleteReportsTheOutputLimit(t *testing.T) {
 
 	cut := Model{Model: limits, Completer: failing{err: fmt.Errorf("deepseek: %w", model.ErrTruncated)}}
 	_, err := cut.Complete(context.Background(), model.Request{}, nil)
-	if err == nil || err.Error() != "回复超出模型的最大输出 4K（含思考）；请在设置中「AI」配置里调大" {
+	if err == nil || err.Error() != "inference: reply exceeds maximum output 4000" {
 		t.Fatalf("cut off at the most: %v", err)
 	}
 	if _, err = cut.Complete(context.Background(), model.Request{MaxTokens: 400}, nil); !errors.Is(err, model.ErrTruncated) || strings.Contains(err.Error(), "设置") {

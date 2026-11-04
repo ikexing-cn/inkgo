@@ -3,7 +3,6 @@ package model
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -27,7 +26,7 @@ func (c *Client) ListModels(ctx context.Context) ([]string, error) {
 		}
 		catalogBytes += len(data)
 		if catalogBytes > bodyLimit {
-			return nil, errors.New("模型目录总计超过 8 MiB")
+			return nil, ErrCatalogTotal
 		}
 		var result struct {
 			Data []struct {
@@ -38,13 +37,13 @@ func (c *Client) ListModels(ctx context.Context) ([]string, error) {
 			Error   json.RawMessage `json:"error"`
 		}
 		if err := json.Unmarshal(data, &result); err != nil {
-			return nil, errors.New("模型目录不是合法 JSON")
+			return nil, ErrCatalogJSON
 		}
 		if len(result.Error) > 0 && string(result.Error) != "null" {
-			return nil, errors.New("模型目录接口返回了错误")
+			return nil, ErrCatalogService
 		}
 		if result.Data == nil {
-			return nil, errors.New("模型目录缺少 data 字段")
+			return nil, ErrCatalogData
 		}
 		for _, entry := range result.Data {
 			if strings.TrimSpace(entry.ID) != "" {
@@ -60,19 +59,19 @@ func (c *Client) ListModels(ctx context.Context) ([]string, error) {
 			return models, nil
 		}
 		if c.provider.Protocol != ProtocolAnthropic || result.LastID == "" || cursors[result.LastID] {
-			return nil, errors.New("模型目录的分页方式不受支持或无效")
+			return nil, ErrCatalogPagination
 		}
 		cursors[result.LastID] = true
 		endpoint = "/models?after_id=" + url.QueryEscape(result.LastID)
 	}
-	return nil, errors.New("模型目录超过 100 页")
+	return nil, ErrCatalogPages
 }
 
 // get reads one catalog page, authenticated as the protocol expects.
 func (c *Client) get(ctx context.Context, endpoint string) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(c.provider.BaseURL, "/")+endpoint, nil)
 	if err != nil {
-		return nil, errors.New("无法创建模型请求")
+		return nil, ErrRequestCreate
 	}
 	req.Header.Set("Accept", "application/json")
 	if c.provider.Protocol == ProtocolAnthropic {
@@ -92,7 +91,7 @@ func (c *Client) get(ctx context.Context, endpoint string) ([]byte, error) {
 		return nil, safeError(ctx, err)
 	}
 	if len(data) > bodyLimit {
-		return nil, errors.New("模型目录超过 8 MiB")
+		return nil, ErrCatalogPageSize
 	}
 	return data, nil
 }

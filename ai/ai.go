@@ -44,10 +44,6 @@ var (
 	_ aiport.Assistant = (*Service)(nil)
 )
 
-// ErrOff is what asking for anything that sends gives while the AI is
-// off.
-var ErrOff = errors.New("AI 已关闭")
-
 // ConfigPath is where this machine configures its services.
 func ConfigPath() (string, error) { return model.ConfigPath() }
 
@@ -103,13 +99,7 @@ func (s *Service) Reload() error {
 
 func (s *Service) Check(p aiport.Provider) aiport.Problems {
 	got := model.Check(provider(p))
-	say := func(err error) string {
-		if err == nil {
-			return ""
-		}
-		return err.Error()
-	}
-	return aiport.Problems{ID: say(got.ID), Name: say(got.Name), BaseURL: say(got.BaseURL), Env: say(got.Env), Models: say(got.Models)}
+	return aiport.Problems{ID: got.ID, Name: got.Name, Protocol: got.Protocol, BaseURL: got.BaseURL, Env: got.Env, Models: got.Models}
 }
 
 func (s *Service) SaveProvider(p aiport.Provider) error {
@@ -203,7 +193,7 @@ func (s *Service) Talk(st *workspace.Store, beside *aiport.Beside, progress func
 	}
 	work := st.Work()
 	if work.Discussion.Provider == "" || work.Discussion.Model == "" {
-		return nil, setupError(errors.New("尚未选择讨论模型：请在设置中「AI」配置里选择"))
+		return nil, setupError(ErrChatModel)
 	}
 	m, err := s.Open(work.Discussion, st)
 	if err != nil {

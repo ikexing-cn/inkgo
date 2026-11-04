@@ -12,12 +12,12 @@ import (
 
 func TestCatalogErrorsAndPaginationBounds(t *testing.T) {
 	for _, tc := range []struct{ name, protocol, body, want string }{
-		{"malformed", "chat", `not-json-secret`, "不是合法 JSON"},
-		{"missing data", "chat", `{}`, "缺少 data"},
-		{"embedded error", "chat", `{"error":{"message":"not-json-secret"}}`, "返回了错误"},
-		{"unknown pagination", "chat", `{"data":[],"has_more":true,"last_id":"a"}`, "分页"},
-		{"missing cursor", "anthropic", `{"data":[],"has_more":true}`, "分页"},
-		{"looping cursor", "anthropic", `{"data":[],"has_more":true,"last_id":"a"}`, "分页"},
+		{"malformed", "chat", `not-json-secret`, "not valid JSON"},
+		{"missing data", "chat", `{}`, "no data field"},
+		{"embedded error", "chat", `{"error":{"message":"not-json-secret"}}`, "returned an error"},
+		{"unknown pagination", "chat", `{"data":[],"has_more":true,"last_id":"a"}`, "pagination"},
+		{"missing cursor", "anthropic", `{"data":[],"has_more":true}`, "pagination"},
+		{"looping cursor", "anthropic", `{"data":[],"has_more":true,"last_id":"a"}`, "pagination"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, tc.body) }))
@@ -37,8 +37,8 @@ func TestCatalogErrorsAndPaginationBounds(t *testing.T) {
 		padding int
 		want    string
 	}{
-		{"page count", 0, "100 页"},
-		{"cumulative bytes", bodyLimit / 2, "总计超过 8 MiB"},
+		{"page count", 0, "100 pages"},
+		{"cumulative bytes", bodyLimit / 2, "total exceeds 8 MiB"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			page := 0

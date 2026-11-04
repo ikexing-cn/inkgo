@@ -4,10 +4,8 @@ package inference
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"writer/model"
-	"writer/tokens"
 )
 
 // Model is a model client with the settings it runs at. A request sends
@@ -32,7 +30,7 @@ func (m Model) Complete(ctx context.Context, req model.Request, on func(model.De
 	}
 	reply, err := m.Completer.Complete(ctx, req, on)
 	if whole && errors.Is(err, model.ErrTruncated) {
-		err = &model.SetupError{Err: fmt.Errorf("回复超出模型的最大输出 %s（含思考）；请在设置中「AI」配置里调大", tokens.Format(m.Output))}
+		err = &model.SetupError{Err: &OutputLimitError{Limit: m.Output}}
 	}
 	return reply, err
 }

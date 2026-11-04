@@ -1927,7 +1927,143 @@ const CATALOG = {
   "extFileUnreadable": [
    "error"
   ],
-  "checkAlsoOpen": []
+  "checkAlsoOpen": [],
+  "statusRequestTooLarge": [],
+  "statusTruncated": [],
+  "settingsKeyNewline": [],
+  "statusRedirect": [],
+  "settingsModelRequired": [],
+  "statusNegativeTokens": [],
+  "statusMessagesRequired": [],
+  "statusToolJSON": [],
+  "statusDisconnected": [],
+  "statusFiltered": [],
+  "statusIncomplete": [],
+  "statusReplyTooLarge": [],
+  "statusNoText": [],
+  "statusToolCallMissing": [],
+  "statusRole": [],
+  "statusService": [],
+  "statusConnection": [],
+  "statusDestination": [],
+  "settingsConfigTooLarge": [],
+  "settingsConfigYAML": [],
+  "settingsConfigDocuments": [],
+  "settingsConfigEncode": [],
+  "settingsConfigVersion": [],
+  "settingsProviderDuplicate": [],
+  "settingsNameRequired": [],
+  "settingsCatalogTotal": [],
+  "settingsCatalogJSON": [],
+  "settingsCatalogService": [],
+  "settingsCatalogData": [],
+  "settingsCatalogPagination": [],
+  "settingsCatalogPages": [],
+  "statusRequestCreate": [],
+  "settingsCatalogPageSize": [],
+  "settingsKeyDelete": [],
+  "settingsKeySave": [],
+  "settingsKeychain": [],
+  "chatOff": [],
+  "statusTrailingJSON": [],
+  "statusChapterMissing": [],
+  "checkNoSetting": [],
+  "chatInputRequired": [],
+  "chatNewChatRequired": [],
+  "chatAlreadyReplied": [],
+  "chatRetryMissing": [],
+  "chatEmptyReply": [],
+  "chatSelectionInvalid": [],
+  "chatSelectionBlank": [],
+  "chatSourceMissing": [],
+  "chatEmptyDigest": [],
+  "settingsModelFields": [],
+  "statusContextOutline": [],
+  "statusContextChapter": [],
+  "statusContextLore": [],
+  "statusContextTurn": [],
+  "statusContextMessage": [],
+  "statusContextIndex": [],
+  "statusContextSummary": [],
+  "statusContextAttachments": [],
+  "settingsConfigLocate": [
+   "reason"
+  ],
+  "settingsConfigOpen": [
+   "reason"
+  ],
+  "settingsConfigRead": [
+   "reason"
+  ],
+  "settingsConfigMkdir": [
+   "reason"
+  ],
+  "settingsConfigCreate": [
+   "reason"
+  ],
+  "settingsConfigReplace": [
+   "reason"
+  ],
+  "settingsConfigWrite": [
+   "reason"
+  ],
+  "settingsProviderError": [
+   "count",
+   "reason"
+  ],
+  "settingsProviderMissing": [
+   "id"
+  ],
+  "settingsEffortError": [
+   "effort"
+  ],
+  "chatToolError": [
+   "name"
+  ],
+  "statusModelTimeout": [
+   "reason"
+  ],
+  "statusModelAborted": [
+   "reason"
+  ],
+  "statusJSONError": [
+   "reason"
+  ],
+  "statusOutputLimit": [
+   "limit"
+  ],
+  "checkShortChapter": [
+   "count"
+  ],
+  "checkResultError": [
+   "reason"
+  ],
+  "chatCompactError": [
+   "reason"
+  ],
+  "chatReplyError": [
+   "reason"
+  ],
+  "statusHTTPAuth": [
+   "code"
+  ],
+  "statusHTTPMissing": [
+   "code"
+  ],
+  "statusHTTPRate": [
+   "code"
+  ],
+  "statusHTTPRejected": [
+   "code"
+  ],
+  "statusHTTPServer": [
+   "code"
+  ],
+  "statusHTTPOther": [
+   "code"
+  ],
+  "settingsProtocolInvalid": [],
+  "settingsModelIDInvalid": []
  },
  "messages": {
   "zh-Hans": {
@@ -3190,7 +3326,92 @@ const CATALOG = {
    "modTurnOn": "打开",
    "extFailed": "{name}出错，已停下：{error}",
    "extFileUnreadable": "扩展设置无法读取，本次按默认处理：{error}",
-   "checkAlsoOpen": "尚未处理"
+   "checkAlsoOpen": "尚未处理",
+   "statusRequestTooLarge": "模型请求超过 8 MiB",
+   "statusTruncated": "模型回复被截断",
+   "settingsKeyNewline": "API key 不能包含换行",
+   "statusRedirect": "模型服务的重定向已禁用",
+   "settingsModelRequired": "请填写模型 ID",
+   "statusNegativeTokens": "max tokens 不能为负数",
+   "statusMessagesRequired": "请求至少要有一条消息",
+   "statusToolJSON": "模型调用工具时写的参数不是 JSON",
+   "statusDisconnected": "模型回复中途断开，没有完成",
+   "statusFiltered": "模型回复被内容过滤",
+   "statusIncomplete": "模型回复没有完成",
+   "statusReplyTooLarge": "模型回复超过 8 MiB",
+   "statusNoText": "模型服务没有返回文字",
+   "statusToolCallMissing": "工具结果没有对应的调用",
+   "statusRole": "消息角色只能是 user、assistant 或 tool；系统指令放在 Request.System",
+   "statusService": "模型服务返回了错误（为保护密钥和内容，不显示原文）",
+   "statusConnection": "连不上 AI：检查网络和服务地址",
+   "statusDestination": "模型请求的目的地址与配置不符",
+   "settingsConfigTooLarge": "模型配置超过 1 MiB",
+   "settingsConfigYAML": "模型配置不是合法的 YAML：请检查语法、字段名和字段类型",
+   "settingsConfigDocuments": "模型配置只能包含一个 YAML 文档",
+   "settingsConfigEncode": "无法编码模型配置",
+   "settingsConfigVersion": "不支持的模型配置版本（应为 1）",
+   "settingsProviderDuplicate": "提供商 ID 重复",
+   "settingsNameRequired": "请填写显示名称",
+   "settingsCatalogTotal": "模型目录总计超过 8 MiB",
+   "settingsCatalogJSON": "模型目录不是合法 JSON",
+   "settingsCatalogService": "模型目录接口返回了错误",
+   "settingsCatalogData": "模型目录缺少 data 字段",
+   "settingsCatalogPagination": "模型目录的分页方式不受支持或无效",
+   "settingsCatalogPages": "模型目录超过 100 页",
+   "statusRequestCreate": "无法创建模型请求",
+   "settingsCatalogPageSize": "模型目录超过 8 MiB",
+   "settingsKeyDelete": "系统钥匙串无法删除 API key",
+   "settingsKeySave": "系统钥匙串无法保存 API key；不会改用明文保存",
+   "settingsKeychain": "系统钥匙串不可用：请解锁钥匙串，或设置这个提供商的 API key 环境变量",
+   "chatOff": "AI 已关闭",
+   "statusTrailingJSON": "返回了多个 JSON 值或尾随内容",
+   "statusChapterMissing": "找不到这一章",
+   "checkNoSetting": "设定还是空的，没有可以对照的",
+   "chatInputRequired": "请输入要讨论的内容",
+   "chatNewChatRequired": "起草、改写要新开一段讨论",
+   "chatAlreadyReplied": "这条发言已有回复",
+   "chatRetryMissing": "找不到待重试的发言",
+   "chatEmptyReply": "模型返回空回复，原文已保存",
+   "chatSelectionInvalid": "原文选区无效",
+   "chatSelectionBlank": "选中的只有空白",
+   "chatSourceMissing": "找不到来源消息",
+   "chatEmptyDigest": "模型返回空摘要",
+   "settingsModelFields": "模型只能写 id、context、max_output、compact_at 几项",
+   "statusContextOutline": "纲和要求超出了模型的上下文上限：请缩短，或在设置中「AI」配置里调大上下文上限",
+   "statusContextChapter": "模型的上下文上限放不下这一章：请在设置中「AI」配置里调大上下文上限",
+   "statusContextLore": "模型的上下文上限放不下设定：请在设置中「AI」配置里调大上下文上限",
+   "statusContextTurn": "有一轮讨论太长，超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限",
+   "statusContextMessage": "当前发言超出模型的上下文上限；请缩短，或在设置中「AI」配置里调大上下文上限",
+   "statusContextIndex": "设定的目录超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限",
+   "statusContextSummary": "之前讨论的摘要超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限",
+   "statusContextAttachments": "这一章要带上的内容超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限",
+   "settingsConfigLocate": "找不到用户配置目录：{reason}",
+   "settingsConfigOpen": "无法打开模型配置：{reason}",
+   "settingsConfigRead": "无法读取模型配置：{reason}",
+   "settingsConfigMkdir": "无法创建配置目录：{reason}",
+   "settingsConfigCreate": "无法创建临时配置文件：{reason}",
+   "settingsConfigReplace": "无法替换模型配置：{reason}",
+   "settingsConfigWrite": "无法写入模型配置：{reason}",
+   "settingsProviderError": "第 {count, plural, other {#}} 个提供商：{reason}",
+   "settingsProviderMissing": "本机没有配置提供商 \"{id}\"，请在设置中「AI」配置里重新选择",
+   "settingsEffortError": "不支持的推理等级 \"{effort}\"",
+   "chatToolError": "工具 \"{name}\" 没有名字或参数说明不是 JSON",
+   "statusModelTimeout": "模型请求超时：{reason}",
+   "statusModelAborted": "模型请求已中止：{reason}",
+   "statusJSONError": "JSON 不符合约定：{reason}",
+   "statusOutputLimit": "回复超出模型的最大输出 {limit}（含思考）；请在设置中「AI」配置里调大",
+   "checkShortChapter": "这一章还不到 {count, plural, other {#}} 字，不用检查",
+   "checkResultError": "模型给的检查结果读不了，可以再查一次：{reason}",
+   "chatCompactError": "整理之前的讨论失败，原文已保存：{reason}",
+   "chatReplyError": "讨论失败，原文已保存：{reason}",
+   "statusHTTPAuth": "模型服务返回 HTTP {code}：API key 无效、缺失或没有权限",
+   "statusHTTPMissing": "模型服务返回 HTTP {code}：API 地址或模型 ID 不对",
+   "statusHTTPRate": "模型服务返回 HTTP {code}：请求太频繁或额度不足",
+   "statusHTTPRejected": "模型服务返回 HTTP {code}：请求被拒绝，常见原因是模型 ID、推理等级或参数不受支持",
+   "statusHTTPServer": "模型服务返回 HTTP {code}：服务端出错，稍后重试",
+   "statusHTTPOther": "模型服务返回 HTTP {code}",
+   "settingsProtocolInvalid": "协议必须是 chat、responses 或 anthropic",
+   "settingsModelIDInvalid": "模型 ID 不能为空，前后不能有空格"
   },
   "en": {
    "menuFile": "File",
@@ -4452,7 +4673,92 @@ const CATALOG = {
    "modTurnOn": "Turn On",
    "extFailed": "{name} ran into an error and stopped: {error}",
    "extFileUnreadable": "Extension settings could not be read; using defaults this time: {error}",
-   "checkAlsoOpen": "Not handled yet"
+   "checkAlsoOpen": "Not handled yet",
+   "statusRequestTooLarge": "Request exceeds 8 MiB",
+   "statusTruncated": "Reply truncated",
+   "settingsKeyNewline": "Api key contains a newline",
+   "statusRedirect": "Redirects disabled",
+   "settingsModelRequired": "Model id required",
+   "statusNegativeTokens": "Max tokens is negative",
+   "statusMessagesRequired": "At least one message required",
+   "statusToolJSON": "Tool arguments are not JSON",
+   "statusDisconnected": "Reply disconnected before completion",
+   "statusFiltered": "Reply filtered",
+   "statusIncomplete": "Reply incomplete",
+   "statusReplyTooLarge": "Reply exceeds 8 MiB",
+   "statusNoText": "Service returned no text",
+   "statusToolCallMissing": "Tool result has no matching call",
+   "statusRole": "Invalid message role; use Request.System for instructions",
+   "statusService": "Service returned an error; details redacted",
+   "statusConnection": "Cannot connect to service",
+   "statusDestination": "Request destination differs from configuration",
+   "settingsConfigTooLarge": "Configuration exceeds 1 MiB",
+   "settingsConfigYAML": "Invalid configuration YAML",
+   "settingsConfigDocuments": "Configuration contains multiple YAML documents",
+   "settingsConfigEncode": "Cannot encode configuration",
+   "settingsConfigVersion": "Unsupported configuration version; expected 1",
+   "settingsProviderDuplicate": "Duplicate provider id",
+   "settingsNameRequired": "Display name required",
+   "settingsCatalogTotal": "Catalog total exceeds 8 MiB",
+   "settingsCatalogJSON": "Catalog is not valid JSON",
+   "settingsCatalogService": "Catalog service returned an error",
+   "settingsCatalogData": "Catalog has no data field",
+   "settingsCatalogPagination": "Invalid or unsupported catalog pagination",
+   "settingsCatalogPages": "Catalog exceeds 100 pages",
+   "statusRequestCreate": "Cannot create request",
+   "settingsCatalogPageSize": "Catalog page exceeds 8 MiB",
+   "settingsKeyDelete": "Keychain cannot delete api key",
+   "settingsKeySave": "Keychain cannot save api key; plaintext fallback disabled",
+   "settingsKeychain": "Keychain unavailable",
+   "chatOff": "Ai disabled",
+   "statusTrailingJSON": "Multiple JSON values or trailing content",
+   "statusChapterMissing": "Chapter not found",
+   "checkNoSetting": "Lore is empty",
+   "chatInputRequired": "Chat input required",
+   "chatNewChatRequired": "Draft and rewrite require a new chat",
+   "chatAlreadyReplied": "Message already has a reply",
+   "chatRetryMissing": "Message to retry not found",
+   "chatEmptyReply": "Empty reply; original saved",
+   "chatSelectionInvalid": "Invalid source selection",
+   "chatSelectionBlank": "Selection contains only whitespace",
+   "chatSourceMissing": "Source message not found",
+   "chatEmptyDigest": "Empty summary",
+   "settingsModelFields": "Models only support id, context, max_output and compact_at",
+   "statusContextOutline": "The outline and requirements exceeds the model’s context limit. Increase it in Settings → AI or shorten the text",
+   "statusContextChapter": "The chapter exceeds the model’s context limit. Increase it in Settings → AI",
+   "statusContextLore": "The Lore exceeds the model’s context limit. Increase it in Settings → AI",
+   "statusContextTurn": "The Chat turn exceeds the model’s context limit. Increase it in Settings → AI",
+   "statusContextMessage": "The current message exceeds the model’s context limit. Increase it in Settings → AI or shorten the text",
+   "statusContextIndex": "The Lore index exceeds the model’s context limit. Increase it in Settings → AI",
+   "statusContextSummary": "The previous Chat summary exceeds the model’s context limit. Increase it in Settings → AI",
+   "statusContextAttachments": "The chapter attachments exceeds the model’s context limit. Increase it in Settings → AI",
+   "settingsConfigLocate": "Cannot find the user configuration directory: {reason}",
+   "settingsConfigOpen": "Cannot open model configuration: {reason}",
+   "settingsConfigRead": "Cannot read model configuration: {reason}",
+   "settingsConfigMkdir": "Cannot create the configuration directory: {reason}",
+   "settingsConfigCreate": "Cannot create a temporary configuration file: {reason}",
+   "settingsConfigReplace": "Cannot replace model configuration: {reason}",
+   "settingsConfigWrite": "Cannot write model configuration: {reason}",
+   "settingsProviderError": "Provider {count, plural, one {#} other {#}}: {reason}",
+   "settingsProviderMissing": "Provider “{id}” is not configured on this computer. Select it again in Settings → AI",
+   "settingsEffortError": "Unsupported reasoning effort “{effort}”",
+   "chatToolError": "Tool “{name}” has no name or its parameter schema is not JSON",
+   "statusModelTimeout": "Model request timed out: {reason}",
+   "statusModelAborted": "Model request aborted: {reason}",
+   "statusJSONError": "JSON does not match the expected format: {reason}",
+   "statusOutputLimit": "Reply exceeds the model’s maximum output of {limit} (including reasoning). Increase it in Settings → AI",
+   "checkShortChapter": "This chapter has fewer than {count, plural, one {# character} other {# characters}} and does not need a Check",
+   "checkResultError": "Cannot read the model’s Check results. Try again: {reason}",
+   "chatCompactError": "Could not summarize the previous Chat. Original saved: {reason}",
+   "chatReplyError": "Chat failed. Original saved: {reason}",
+   "statusHTTPAuth": "Model service returned HTTP {code}: API key is invalid, missing or lacks permission",
+   "statusHTTPMissing": "Model service returned HTTP {code}: Incorrect API URL or model ID",
+   "statusHTTPRate": "Model service returned HTTP {code}: Too many requests or insufficient quota",
+   "statusHTTPRejected": "Model service returned HTTP {code}: Request rejected. The model ID, reasoning effort or parameters may be unsupported",
+   "statusHTTPServer": "Model service returned HTTP {code}: Server error. Try again later",
+   "statusHTTPOther": "Model service returned HTTP {code}",
+   "settingsProtocolInvalid": "Protocol must be chat, responses or anthropic",
+   "settingsModelIDInvalid": "Model ID cannot be empty or have surrounding spaces"
   }
  }
 }

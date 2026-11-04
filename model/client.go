@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -28,7 +27,7 @@ const (
 	defaultMaxTokens = 4096
 )
 
-var errTooLarge = errors.New("模型请求超过 8 MiB")
+var errTooLarge = ErrRequestTooLarge
 
 // SetupError distinguishes a service, model or key problem from a failed reply.
 type SetupError struct{ Err error }
@@ -36,27 +35,14 @@ type SetupError struct{ Err error }
 func (e *SetupError) Error() string { return e.Err.Error() }
 func (e *SetupError) Unwrap() error { return e.Err }
 
+// Setup marks failures that can be corrected in AI settings.
+func (e *SetupError) Setup() {}
+
 // statusError names the likely cause of an HTTP failure. The response body
 // is never shown: some providers echo part of the key or the request.
 func statusError(code int) error {
-	var hint string
-	setup := false
-	switch {
-	case code == 401 || code == 403:
-		hint = "：API key 无效、缺失或没有权限"
-		setup = true
-	case code == 404:
-		hint = "：API 地址或模型 ID 不对"
-		setup = true
-	case code == 429:
-		hint = "：请求太频繁或额度不足"
-	case code == 400 || code == 422:
-		hint = "：请求被拒绝，常见原因是模型 ID、推理等级或参数不受支持"
-		setup = true
-	case code >= 500:
-		hint = "：服务端出错，稍后重试"
-	}
-	err := fmt.Errorf("模型服务返回 HTTP %d%s", code, hint)
+	setup := code == 401 || code == 403 || code == 404 || code == 400 || code == 422
+	err := &HTTPError{Code: code}
 	if setup {
 		return &SetupError{Err: err}
 	}
@@ -191,10 +177,6 @@ type Usage struct {
 	Reasoning  int `json:"reasoning,omitempty"`
 }
 
-// ErrTruncated is a reply cut off at the output its request allowed,
-// reasoning included.
-var ErrTruncated = errors.New("模型回复被截断")
-
 // usage counts as Usage does what goai reports: goai leaves cached input
 // out of InputTokens.
 func usage(u provider.Usage) Usage {
@@ -236,7 +218,7 @@ func NewClient(cfg Config, providerID, modelID string) (*Client, error) {
 		}
 		return NewClientWithKey(p, modelID, key, nil)
 	}
-	return nil, fmt.Errorf("本机没有配置提供商 %q，请在设置中「AI」配置里重新选择", providerID)
+	return nil, &ProviderMissingError{ID: providerID}
 }
 
 // NewClientWithKey permits custom transports and credential-free local servers.
@@ -249,13 +231,13 @@ func NewClientWithKey(provider Provider, modelID, key string, httpClient *http.C
 		return nil, err
 	}
 	if strings.ContainsAny(key, "\r\n") {
-		return nil, errors.New("API key 不能包含换行")
+		return nil, ErrKeyNewline
 	}
 	hc := http.Client{}
 	if httpClient != nil {
 		hc = *httpClient
 	}
-	hc.CheckRedirect = func(*http.Request, []*http.Request) error { return errors.New("模型服务的重定向已禁用") }
+	hc.CheckRedirect = func(*http.Request, []*http.Request) error { return ErrRedirect }
 	u, err := url.Parse(provider.BaseURL)
 	if err != nil {
 		return nil, err
@@ -326,16 +308,16 @@ func (c *Client) effortOptions(e Effort) map[string]any {
 
 func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta)) (Reply, error) {
 	if strings.TrimSpace(c.modelID) == "" {
-		return Reply{}, &SetupError{Err: errors.New("请填写模型 ID")}
+		return Reply{}, &SetupError{Err: ErrModelRequired}
 	}
 	if req.MaxTokens < 0 {
-		return Reply{}, errors.New("max tokens 不能为负数")
+		return Reply{}, ErrNegativeTokens
 	}
 	if !req.Effort.Valid() {
-		return Reply{}, fmt.Errorf("不支持的推理等级 %q", req.Effort)
+		return Reply{}, &EffortError{Effort: string(req.Effort)}
 	}
 	if len(req.Messages) == 0 {
-		return Reply{}, errors.New("请求至少要有一条消息")
+		return Reply{}, ErrMessagesRequired
 	}
 	size := len(req.System)
 	messages := make([]provider.Message, 0, len(req.Messages))
@@ -353,7 +335,7 @@ func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta))
 	tools := make([]goai.Tool, len(req.Tools))
 	for i, t := range req.Tools {
 		if t.Name == "" || !json.Valid(t.Schema) {
-			return Reply{}, fmt.Errorf("工具 %q 没有名字或参数说明不是 JSON", t.Name)
+			return Reply{}, &ToolError{Name: t.Name}
 		}
 		size += len(t.Description) + len(t.Schema)
 		tools[i] = goai.Tool{Name: t.Name, Description: t.Description, InputSchema: t.Schema}
@@ -416,7 +398,7 @@ func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta))
 				input = json.RawMessage("{}")
 			}
 			if !json.Valid(input) {
-				return Reply{}, errors.New("模型调用工具时写的参数不是 JSON")
+				return Reply{}, ErrToolJSON
 			}
 			calls = append(calls, Call{ID: chunk.ToolCallID, Name: chunk.ToolName, Input: input})
 			continue
@@ -427,7 +409,7 @@ func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta))
 			d.Call = CallDelta{ID: chunk.ToolCallID, Name: chunk.ToolName, Input: chunk.ToolInput}
 		case provider.ChunkError:
 			if ctx.Err() == nil && text.Len()+reasoning.Len() > 0 {
-				return Reply{}, errors.New("模型回复中途断开，没有完成")
+				return Reply{}, ErrDisconnected
 			}
 			return Reply{}, safeError(ctx, chunk.Error)
 		case provider.ChunkStepFinish, provider.ChunkFinish:
@@ -444,9 +426,9 @@ func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta))
 			case provider.FinishLength:
 				short = ErrTruncated
 			case provider.FinishContentFilter:
-				short = errors.New("模型回复被内容过滤")
+				short = ErrFiltered
 			case provider.FinishError:
-				short = errors.New("模型回复没有完成")
+				short = ErrIncomplete
 			default:
 				finished = true
 			}
@@ -455,7 +437,7 @@ func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta))
 			continue
 		}
 		if text.Len()+reasoning.Len() > bodyLimit {
-			return Reply{}, errors.New("模型回复超过 8 MiB")
+			return Reply{}, ErrReplyTooLarge
 		}
 		if onDelta != nil && d != (Delta{}) {
 			onDelta(d)
@@ -469,11 +451,11 @@ func (c *Client) Complete(ctx context.Context, req Request, onDelta func(Delta))
 		return Reply{Usage: usage(used)}, short
 	}
 	if !finished {
-		return Reply{}, errors.New("模型回复没有完成")
+		return Reply{}, ErrIncomplete
 	}
 	reply := Reply{Text: text.String(), Reasoning: strings.TrimSpace(reasoning.String()), Calls: calls, Thinking: thinking, Usage: usage(used)}
 	if strings.TrimSpace(reply.Text) == "" && len(calls) == 0 {
-		return Reply{}, errors.New("模型服务没有返回文字")
+		return Reply{}, ErrNoText
 	}
 	return reply, nil
 }
@@ -508,12 +490,12 @@ func message(m Message, protocol Protocol) (provider.Message, int, error) {
 		return provider.Message{Role: provider.RoleAssistant, Content: parts}, n, nil
 	case "tool":
 		if m.CallID == "" {
-			return provider.Message{}, 0, errors.New("工具结果没有对应的调用")
+			return provider.Message{}, 0, ErrToolCallMissing
 		}
 		return provider.Message{Role: provider.RoleTool, Content: []provider.Part{{Type: provider.PartToolResult, ToolCallID: m.CallID, ToolOutput: m.Content}}},
 			len(m.Content) + len(m.CallID), nil
 	}
-	return provider.Message{}, 0, errors.New("消息角色只能是 user、assistant 或 tool；系统指令放在 Request.System")
+	return provider.Message{}, 0, ErrRole
 }
 
 // safeError reports a failed request by cause alone. Provider errors carry
@@ -522,22 +504,22 @@ func message(m Message, protocol Protocol) (provider.Message, int, error) {
 func safeError(ctx context.Context, err error) error {
 	if ctx.Err() != nil {
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-			return fmt.Errorf("模型请求超时：%w", context.DeadlineExceeded)
+			return &TimeoutError{Err: context.DeadlineExceeded}
 		}
-		return fmt.Errorf("模型请求已中止：%w", ctx.Err())
+		return &AbortedError{Err: ctx.Err()}
 	}
 	var api *goai.APIError
 	if errors.As(err, &api) {
 		if api.StatusCode >= 300 {
 			return statusError(api.StatusCode)
 		}
-		return errors.New("模型服务返回了错误（为保护密钥和内容，不显示原文）")
+		return ErrService
 	}
 	var timeout net.Error
 	if errors.As(err, &timeout) && timeout.Timeout() {
-		return fmt.Errorf("模型请求超时：%w", context.DeadlineExceeded)
+		return &TimeoutError{Err: context.DeadlineExceeded}
 	}
-	return &SetupError{Err: errors.New("连不上 AI：检查网络和服务地址")}
+	return &SetupError{Err: ErrConnection}
 }
 
 // guard sends a request only to the provider's host, with the provider's
@@ -553,7 +535,7 @@ type guard struct {
 
 func (g guard) RoundTrip(r *http.Request) (*http.Response, error) {
 	if r.URL.Host != g.host {
-		return nil, errors.New("模型请求的目的地址与配置不符")
+		return nil, ErrDestination
 	}
 	out := r.Clone(r.Context())
 	out.Header = http.Header{}

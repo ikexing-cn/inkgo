@@ -127,9 +127,9 @@ func TestANewServiceSaysWhatIsWrongWhereItIs(t *testing.T) {
 		form func(p *aiport.Provider)
 	}{
 		{"和「" + taken.Name + "」重名了，换一个", func(p *aiport.Provider) {}},
-		{"API 地址须以 http:// 或 https:// 开头", func(p *aiport.Provider) { p.Name, p.BaseURL = "Open Router", "api.example.com" }},
-		{"API 地址里没有域名", func(p *aiport.Provider) { p.BaseURL = "https://" }},
-		{"API 地址不能带账号、查询参数或锚点", func(p *aiport.Provider) { p.BaseURL = "https://openrouter.ai/api/v1?key=1" }},
+		{"地址要以 http:// 或 https:// 开头", func(p *aiport.Provider) { p.Name, p.BaseURL = "Open Router", "api.example.com" }},
+		{"地址不完整", func(p *aiport.Provider) { p.BaseURL = "https://" }},
+		{"地址里不要带账号，也不要带 ? 或 # 后面的部分", func(p *aiport.Provider) { p.BaseURL = "https://openrouter.ai/api/v1?key=1" }},
 		{"环境变量名只能用字母、数字和 _，不能以数字开头", func(p *aiport.Provider) { p.BaseURL, p.Env = "https://openrouter.ai/api/v1", "1 KEY" }},
 	} {
 		c.form(&a.serviceForm.provider)

@@ -9,6 +9,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"writer/ai"
+	"writer/ai/aitext"
 	"writer/desk"
 	"writer/internal/testshot"
 	"writer/workspace"
@@ -24,7 +25,9 @@ func layoutBook(t *testing.T, root string) *workspace.Store {
 }
 
 func newLayoutApp(root string) *desk.App {
-	return desk.New(ai.New(filepath.Join(root, "providers.yaml")), testModules()...)
+	a := desk.New(ai.New(filepath.Join(root, "providers.yaml")), testModules()...)
+	a.ErrorText = []desk.ErrorTranslator{aitext.Translate}
+	return a
 }
 
 func openLayoutApp(t *testing.T, root string) *desk.App {

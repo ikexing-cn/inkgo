@@ -4,7 +4,6 @@ package model
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"net/url"
 	"os"
@@ -62,7 +61,7 @@ func builtins(ids ...string) []Model {
 func ConfigPath() (string, error) {
 	dir, err := os.UserConfigDir()
 	if err != nil {
-		return "", fmt.Errorf("找不到用户配置目录：%w", err)
+		return "", &ConfigError{Op: "locate", Err: err}
 	}
 	return filepath.Join(dir, "writer", "providers.yaml"), nil
 }
@@ -76,29 +75,32 @@ func Load(path string) (Config, error) {
 		return cfg, Save(path, cfg)
 	}
 	if err != nil {
-		return Config{}, fmt.Errorf("无法打开模型配置：%w", err)
+		return Config{}, &ConfigError{Op: "open", Err: err}
 	}
 	defer file.Close()
 	data, err := io.ReadAll(io.LimitReader(file, configLimit+1))
 	if err != nil {
-		return Config{}, fmt.Errorf("无法读取模型配置：%w", err)
+		return Config{}, &ConfigError{Op: "read", Err: err}
 	}
 	if len(data) > configLimit {
-		return Config{}, errors.New("模型配置超过 1 MiB")
+		return Config{}, ErrConfigTooLarge
 	}
 	dec := yaml.NewDecoder(bytes.NewReader(data))
 	dec.KnownFields(true)
 	var cfg Config
 	if err := dec.Decode(&cfg); err != nil {
-		var limits modelError
+		var limits *LimitsError
+		if errors.Is(err, ErrModelFields) {
+			return Config{}, ErrModelFields
+		}
 		if errors.As(err, &limits) {
 			return Config{}, limits
 		}
-		return Config{}, errors.New("模型配置不是合法的 YAML：请检查语法、字段名和字段类型")
+		return Config{}, ErrConfigYAML
 	}
 	var extra any
 	if err := dec.Decode(&extra); err != io.EOF {
-		return Config{}, errors.New("模型配置只能包含一个 YAML 文档")
+		return Config{}, ErrConfigDocuments
 	}
 	if err := validateConfig(cfg); err != nil {
 		return Config{}, err
@@ -113,46 +115,46 @@ func Save(path string, cfg Config) error {
 	}
 	data, err := yaml.Marshal(cfg)
 	if err != nil {
-		return errors.New("无法编码模型配置")
+		return ErrConfigEncode
 	}
 	if len(data) > configLimit {
-		return errors.New("模型配置超过 1 MiB")
+		return ErrConfigTooLarge
 	}
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0700); err != nil {
-		return fmt.Errorf("无法创建配置目录：%w", err)
+		return &ConfigError{Op: "mkdir", Err: err}
 	}
 	if err := atomicfile.Write(path, data, 0600); err != nil {
 		var step *atomicfile.Error
 		if errors.As(err, &step) {
 			switch step.Op {
 			case "create":
-				return fmt.Errorf("无法创建临时配置文件：%w", err)
+				return &ConfigError{Op: "create", Err: err}
 			case "rename":
-				return fmt.Errorf("无法替换模型配置：%w", err)
+				return &ConfigError{Op: "replace", Err: err}
 			}
 		}
-		return fmt.Errorf("无法写入模型配置：%w", err)
+		return &ConfigError{Op: "write", Err: err}
 	}
 	return nil
 }
 
 var providerID = regexp.MustCompile(`^[a-z][a-z0-9_-]*$`)
 
-var errIDFormat = errors.New("提供商 ID 只能用小写字母、数字、- 和 _，并以字母开头")
+var errIDFormat = ErrIDFormat
 var envName = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
 func validateConfig(cfg Config) error {
 	if cfg.Schema != 1 {
-		return errors.New("不支持的模型配置版本（应为 1）")
+		return ErrConfigVersion
 	}
 	ids := map[string]bool{}
 	for i, p := range cfg.Providers {
 		if err := validateProvider(p); err != nil {
-			return fmt.Errorf("第 %d 个提供商：%w", i+1, err)
+			return &ProviderError{Count: i + 1, Err: err}
 		}
 		if ids[p.ID] {
-			return errors.New("提供商 ID 重复")
+			return ErrProviderDuplicate
 		}
 		ids[p.ID] = true
 	}
@@ -183,16 +185,16 @@ func Check(p Provider) Problems {
 		out.ID = errIDFormat
 	}
 	if strings.TrimSpace(p.Name) == "" {
-		out.Name = errors.New("请填写显示名称")
+		out.Name = ErrNameRequired
 	}
 	switch p.Protocol {
 	case ProtocolChat, ProtocolResponses, ProtocolAnthropic:
 	default:
-		out.Protocol = errors.New("协议必须是 chat、responses 或 anthropic")
+		out.Protocol = ErrProtocol
 	}
 	out.BaseURL = checkBaseURL(p.BaseURL)
 	if p.Env != "" && !envName.MatchString(p.Env) {
-		out.Env = errors.New("环境变量名只能用字母、数字和 _，不能以数字开头")
+		out.Env = ErrEnvFormat
 	}
 	out.Models = validateModels(p.Models)
 	return out
@@ -206,11 +208,11 @@ func checkBaseURL(s string) error {
 	u, err := url.Parse(s)
 	switch {
 	case err != nil || u == nil || (u.Scheme != "http" && u.Scheme != "https") || u.Opaque != "":
-		return errors.New("API 地址须以 http:// 或 https:// 开头")
+		return ErrURLScheme
 	case u.Host == "" || u.Hostname() == "":
-		return errors.New("API 地址里没有域名")
+		return ErrURLHost
 	case u.User != nil || u.RawQuery != "" || u.ForceQuery || u.Fragment != "":
-		return errors.New("API 地址不能带账号、查询参数或锚点")
+		return ErrURLExtra
 	}
 	return nil
 }

@@ -2,7 +2,6 @@ package discussion
 
 import (
 	"context"
-	"errors"
 	"math"
 	"slices"
 	"strings"
@@ -60,7 +59,7 @@ func (e *Engine) compact(ctx context.Context, session string, before int, user w
 			return err
 		}
 		if took == 0 {
-			return &model.SetupError{Err: errors.New("有一轮讨论太长，超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限")}
+			return &model.SetupError{Err: &model.ContextLimitError{Part: "turn"}}
 		}
 		asked.Request.NoCalls = true
 		if e.Step != nil {
@@ -71,7 +70,7 @@ func (e *Engine) compact(ctx context.Context, session string, before int, user w
 			return err
 		}
 		if strings.TrimSpace(reply.Text) == "" {
-			return errors.New("模型返回空摘要")
+			return ErrEmptyDigest
 		}
 		d, err := e.Store.Append(session, workspace.Event{
 			Role: workspace.RoleDigest, Text: strings.TrimSpace(reply.Text), Through: events[turns[took-1].at].ID, Sent: asked.Sent,

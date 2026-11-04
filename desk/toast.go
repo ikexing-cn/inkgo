@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"writer/aiport"
 	"writer/desk/kit"
 	"writer/locales"
 )
@@ -104,7 +103,7 @@ func (a *App) toastActions(c *ui.Context, ts ui.Toast) {
 		if again := a.status.RetryAction(); again != nil {
 			acts = append(acts, kit.ToastAction{Label: locales.CommonRetry(), Fn: func() { a.SetError(nil); again() }})
 		}
-		var setup *aiport.SetupError
+		var setup setupFailure
 		if errors.As(a.status.Err(), &setup) {
 			// What it says is done by going there: it goes, as in the prototype.
 			acts = append(acts, kit.ToastAction{Label: locales.CommonOpenSettings(), Fn: func() { a.SetError(nil); a.openPrefs("AI") }})

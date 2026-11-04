@@ -4,7 +4,6 @@
 package discussion
 
 import (
-	"errors"
 	"fmt"
 	"slices"
 
@@ -160,7 +159,7 @@ func lay(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree,
 	case t.near:
 		rules += "\n\n" + besideRules
 	}
-	tooLong := &model.SetupError{Err: errors.New("当前发言超出模型的上下文上限；请缩短，或在设置中「AI」配置里调大上下文上限")}
+	tooLong := &model.SetupError{Err: &model.ContextLimitError{Part: "message"}}
 	out.Request.Tools = tools(w)
 	told := withTools(rules, out.Request.Tools)
 	b := prompt.NewBudget(room)
@@ -171,13 +170,13 @@ func lay(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree,
 	v := viewOf(set, tree, t.fixed)
 	index := talkIndex(w, set, v)
 	if !b.Must(workspace.PartIndex, index) {
-		return out, 0, &model.SetupError{Err: errors.New("设定的目录超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限")}
+		return out, 0, &model.SetupError{Err: &model.ContextLimitError{Part: "index"}}
 	}
 	var digest string
 	if t.digest != "" {
 		digest = "\n\n" + digestNote + "\n\n" + t.digest
 		if !b.Must(workspace.PartDigest, digest) {
-			return out, 0, &model.SetupError{Err: errors.New("之前讨论的摘要超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限")}
+			return out, 0, &model.SetupError{Err: &model.ContextLimitError{Part: "summary"}}
 		}
 	}
 	// What goes with the chapter the talk keeps to comes before the talk: it
@@ -186,7 +185,7 @@ func lay(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree,
 	if t.fixed != nil {
 		for _, p := range t.fixed.Pieces {
 			if !b.Must(p.Part, "\n\n"+p.Text) {
-				return out, 0, &model.SetupError{Err: errors.New("这一章要带上的内容超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限")}
+				return out, 0, &model.SetupError{Err: &model.ContextLimitError{Part: "attachments"}}
 			}
 			fixed += "\n\n" + p.Text
 			out.Included = append(out.Included, workspace.ContextItem{Text: p.Item})

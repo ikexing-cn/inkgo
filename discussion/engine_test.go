@@ -301,11 +301,11 @@ func TestContextBudget(t *testing.T) {
 		t.Fatalf("talk %v %+v", err, got.Sent)
 	}
 
-	if _, err = Assemble(w, 8192, set, workspace.Tree{}, nil, strings.Repeat("大", 9000), Along{}); err == nil || !strings.Contains(err.Error(), "设置中「AI」配置里调大上下文上限") {
+	if _, err = Assemble(w, 8192, set, workspace.Tree{}, nil, strings.Repeat("大", 9000), Along{}); err == nil || !strings.Contains(err.Error(), "context limit exceeded by message") {
 		t.Fatalf("oversized current input: %v", err)
 	}
 	index := indexNote + "\n\n" + prompt.Render(w, set, talkPlaces, nil, numbered(set, prompt.Short))
-	if _, err = Assemble(w, 512+rules+prompt.Estimate("问")+prompt.Estimate(index)-1, set, workspace.Tree{}, nil, "问", Along{}); err == nil || !strings.Contains(err.Error(), "设定的目录超出模型的上下文上限") {
+	if _, err = Assemble(w, 512+rules+prompt.Estimate("问")+prompt.Estimate(index)-1, set, workspace.Tree{}, nil, "问", Along{}); err == nil || !strings.Contains(err.Error(), "context limit exceeded by index") {
 		t.Fatalf("an index too big: %v", err)
 	}
 	got, err = Assemble(w, 16000, workspace.Setting{}, workspace.Tree{}, events, "本轮", Along{})

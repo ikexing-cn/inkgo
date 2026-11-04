@@ -3,14 +3,16 @@ package kit
 // Status is what the toasts show: the error, the failures in a row, the
 // request that can run again, and what was done or is to be done first.
 type Status struct {
-	shown  error  // the error shown
-	failed string // the error the last request ended with,
-	fails  int    // and how many times in a row
-	again  func() // runs that request again
-	notice string // what was done
-	undo   func() error
-	serial int
-	tip    string // what to do first
+	// Translate formats errors for the current interface language.
+	Translate func(error) string
+	shown     error  // the error shown
+	failed    string // the error the last request ended with,
+	fails     int    // and how many times in a row
+	again     func() // runs that request again
+	notice    string // what was done
+	undo      func() error
+	serial    int
+	tip       string // what to do first
 }
 
 // SetError shows err in a toast until the author closes it; nil clears it.
@@ -18,11 +20,19 @@ func (s *Status) SetError(err error) { s.shown = err }
 
 func (s *Status) Err() error { return s.shown }
 
-func (s *Status) ErrorText() string {
-	if s.shown == nil {
+// FormatError uses the injected translator, falling back to the original error.
+func (s *Status) FormatError(err error) string {
+	if err == nil {
 		return ""
 	}
-	return s.shown.Error()
+	if s.Translate != nil {
+		return s.Translate(err)
+	}
+	return err.Error()
+}
+
+func (s *Status) ErrorText() string {
+	return s.FormatError(s.shown)
 }
 
 // Fail shows err and counts it with the failures in a row.
@@ -110,7 +120,7 @@ func (s *Status) CloseHint(what string) {
 func (s *Status) CloseError() { s.shown, s.failed, s.fails = nil, "", 0 }
 
 // Clear drops everything, as turning the AI off does.
-func (s *Status) Clear() { *s = Status{} }
+func (s *Status) Clear() { *s = Status{Translate: s.Translate} }
 
 func (s *Status) Warn(err error) {
 	if err != nil {

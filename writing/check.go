@@ -2,8 +2,6 @@ package writing
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"slices"
 	"strconv"
 	"strings"
@@ -24,9 +22,6 @@ const (
 	titleRunes  = 40
 	nameRunes   = 12
 )
-
-// ErrNoSetting tells that there is nothing to check the prose against.
-var ErrNoSetting = errors.New("设定还是空的，没有可以对照的")
 
 const checkRules = `你在帮一位作者核对小说的一章和设定是否一致。只找确实对不上的地方，宁可少报，不要猜。
 
@@ -80,14 +75,14 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 	}
 	n, ok := tree.Node(chapter)
 	if !ok || n.Folder {
-		return workspace.Check{}, errors.New("找不到这一章")
+		return workspace.Check{}, ErrChapterMissing
 	}
 	ch, err := w.Store.ReadChapter(chapter)
 	if err != nil {
 		return workspace.Check{}, err
 	}
 	if workspace.Count(ch.Text) < MinCheck {
-		return workspace.Check{}, fmt.Errorf("这一章还不到 %d 字，不用检查", MinCheck)
+		return workspace.Check{}, &ShortChapterError{Count: MinCheck}
 	}
 	set, err := w.Store.Setting()
 	if err != nil {
@@ -115,7 +110,7 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 	b.Must(workspace.PartProse, meant.String())
 	text := fit(ch.Text, b.Left()*3/4, false)
 	if strings.TrimSpace(text) == "" {
-		return workspace.Check{}, &model.SetupError{Err: errors.New("模型的上下文上限放不下这一章：请在设置中「AI」配置里调大上下文上限")}
+		return workspace.Check{}, &model.SetupError{Err: &model.ContextLimitError{Part: "chapter"}}
 	}
 	if len(text) < len(ch.Text) {
 		out.Read = workspace.Count(text) // said with the result: the rest was not looked at
@@ -149,7 +144,7 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 		}
 	}
 	if len(shown) == 0 {
-		return workspace.Check{}, &model.SetupError{Err: errors.New("模型的上下文上限放不下设定：请在设置中「AI」配置里调大上下文上限")}
+		return workspace.Check{}, &model.SetupError{Err: &model.ContextLimitError{Part: "lore"}}
 	}
 	var categories []string
 	for _, c := range work.Categories {
@@ -176,7 +171,7 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 	}
 	var got found
 	if err = inference.Decode(said.String(), &got); err != nil {
-		return workspace.Check{}, fmt.Errorf("模型给的检查结果读不了，可以再查一次：%w", err)
+		return workspace.Check{}, &CheckResultError{Err: err}
 	}
 	for _, g := range got.Findings {
 		if len(out.Findings) >= maxFindings {

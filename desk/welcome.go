@@ -45,7 +45,7 @@ func (a *App) loadShelf() {
 	s, fresh, err := shelf.Load(a.books.file)
 	if err != nil {
 		a.books.broken = true
-		a.SetError(errors.New(locales.ShelfListUnreadable(err.Error())))
+		a.SetError(errors.New(locales.ShelfListUnreadable(a.errText(err))))
 		return
 	}
 	if fresh {

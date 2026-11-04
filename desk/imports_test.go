@@ -36,7 +36,7 @@ func TestImports(t *testing.T) {
 		wrong := slices.DeleteFunc(slices.Clone(deps[p]), func(d string) bool {
 			underDesk := within(d, "writer/desk")
 			switch {
-			case slices.Contains([]string{"writer/ai", "writer/model", "writer/discussion", "writer/writing"}, d):
+			case slices.Contains([]string{"writer/ai", "writer/model", "writer/discussion", "writer/writing", "writer/inference"}, d):
 				return false
 			case p == "writer/desk":
 				return true

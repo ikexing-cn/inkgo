@@ -17,6 +17,9 @@ type SetupError struct{ Err error }
 func (e *SetupError) Error() string { return e.Err.Error() }
 func (e *SetupError) Unwrap() error { return e.Err }
 
+// Setup marks failures that can be corrected in AI settings.
+func (e *SetupError) Setup() {}
+
 // Settings configures this machine's model services. Catalog builds on
 // the interface's thread and fails at once for invalid settings or while
 // AI is off; the returned catalog sends off that thread.
@@ -121,19 +124,19 @@ type Provider struct {
 }
 
 // Problems are what keep a service from being saved, by the field each is
-// in, as the author is told it; a field with none has "".
+// in; a field with none has nil.
 type Problems struct {
-	ID, Name, BaseURL, Env, Models string
+	ID, Name, Protocol, BaseURL, Env, Models error
 }
 
-// First is the first problem in the order of the form, or "".
-func (p Problems) First() string {
-	for _, s := range []string{p.ID, p.Name, p.BaseURL, p.Env, p.Models} {
-		if s != "" {
+// First is the first problem in the order of the form, or nil.
+func (p Problems) First() error {
+	for _, s := range []error{p.ID, p.Name, p.Protocol, p.BaseURL, p.Env, p.Models} {
+		if s != nil {
 			return s
 		}
 	}
-	return ""
+	return nil
 }
 
 // Model is a model of a service and its limits, in tokens: a request and

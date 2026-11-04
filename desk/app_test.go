@@ -14,6 +14,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/ai"
+	"writer/ai/aitext"
 	"writer/aiport"
 	"writer/desk/kit"
 	"writer/ext"
@@ -67,6 +68,7 @@ func testModules() []ext.Module {
 func testApp(service aiport.Service) *App {
 	mod, view := backup.New(false)
 	a := New(service, mod, export.Module, phone.Module)
+	a.ErrorText = []ErrorTranslator{aitext.Translate}
 	controllers[a] = view
 	return a
 }

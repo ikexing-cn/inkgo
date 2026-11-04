@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"writer/ai"
 	"writer/writing"
 )
 
@@ -36,7 +37,7 @@ func TestCopySaysWhereTheModelsAre(t *testing.T) {
 			}
 		}
 	}
-	if got := writing.ErrNoModel.Error(); got != "请在设置中「AI」配置里选择续写和检查模型" {
+	if got := testApp(ai.New("")).errText(writing.ErrNoModel); got != "请在设置中「AI」配置里选择续写和检查模型" {
 		t.Errorf("ErrNoModel says %q, not the prototype's line", got)
 	}
 }

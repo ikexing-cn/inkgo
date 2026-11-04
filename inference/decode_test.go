@@ -5,9 +5,9 @@ import "testing"
 func TestDecodeMessages(t *testing.T) {
 	for _, c := range []struct{ text, want string }{
 		{"```json\n{\"n\":1}\n```", ""},
-		{`{"extra":1}`, `JSON 不符合约定：json: unknown field "extra"`},
-		{`{"n":1} {}`, "返回了多个 JSON 值或尾随内容"},
-		{`{"n":1} trailing`, "返回了多个 JSON 值或尾随内容"},
+		{`{"extra":1}`, `inference: unexpected JSON: json: unknown field "extra"`},
+		{`{"n":1} {}`, "inference: multiple JSON values or trailing content"},
+		{`{"n":1} trailing`, "inference: multiple JSON values or trailing content"},
 	} {
 		var out struct {
 			N int `json:"n"`

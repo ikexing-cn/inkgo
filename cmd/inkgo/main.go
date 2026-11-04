@@ -17,6 +17,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"writer/ai"
+	"writer/ai/aitext"
 	"writer/desk"
 )
 
@@ -100,6 +101,7 @@ func main() {
 		os.Setenv("MYGO_GPU", "0")
 	}
 	d.Relaunch = mygo.App.Relaunch
+	d.ErrorText = []desk.ErrorTranslator{aitext.Translate}
 	mygo.App.WhenReady(func() {
 		installSystemMenu(d, func() {
 			if w := win.Load(); w != nil {

@@ -1,7 +1,6 @@
 package discussion
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -48,7 +47,7 @@ func originOf(events []workspace.Event) (origin, chapter string) {
 
 // errGone is what a talk that keeps to a chapter says once the chapter is
 // out of the book.
-var errGone = errors.New("这段讨论跟着的章已不在书里，不能接着写了")
+var errGone = ErrChapterGone
 
 // fixedOf reads what goes with a talk opened to draft or rewrite chapter
 // of tree. A draft takes the chapter's outline and its volume's, the

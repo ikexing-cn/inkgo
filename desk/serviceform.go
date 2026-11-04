@@ -1,12 +1,10 @@
 package desk
 
 import (
-	"errors"
 	"strconv"
 	"strings"
 
 	"writer/aiport"
-	"writer/locales"
 	"writer/tokens"
 )
 
@@ -76,17 +74,17 @@ func (f *serviceForm) models() ([]aiport.Model, error) {
 		out = append(out, aiport.Model{ID: id, Window: window, Output: output, CompactAt: at})
 	}
 	for _, rule := range []struct {
-		bad func(m aiport.Model) bool
-		why func(string) string
+		bad  func(m aiport.Model) bool
+		rule string
 	}{
-		{func(m aiport.Model) bool { return m.Window == 0 || m.Output == 0 }, locales.SettingsModelNumbers},
-		{func(m aiport.Model) bool { return m.CompactAt < 0 }, locales.SettingsModelAtInt},
-		{func(m aiport.Model) bool { return m.Output >= m.Window }, locales.SettingsModelOutMax},
-		{func(m aiport.Model) bool { return m.CompactAt < 50 || m.CompactAt > 95 }, locales.SettingsModelAtRange},
+		{func(m aiport.Model) bool { return m.Window == 0 || m.Output == 0 }, "numbers"},
+		{func(m aiport.Model) bool { return m.CompactAt < 0 }, "integer"},
+		{func(m aiport.Model) bool { return m.Output >= m.Window }, "output"},
+		{func(m aiport.Model) bool { return m.CompactAt < 50 || m.CompactAt > 95 }, "threshold"},
 	} {
 		for _, m := range out {
 			if rule.bad(m) {
-				return nil, &aiport.SetupError{Err: errors.New(rule.why(m.ID))}
+				return nil, &aiport.SetupError{Err: &modelRuleError{id: m.ID, rule: rule.rule}}
 			}
 		}
 	}
@@ -106,13 +104,14 @@ func (f *serviceForm) value(settings aiport.Settings) (aiport.Provider, aiport.P
 	models, err := f.models()
 	p.Models = models
 	bad := settings.Check(p)
+
 	if err != nil {
-		bad.Models = err.Error()
+		bad.Models = err
 	}
 	if f.providerID == "" {
 		for _, q := range settings.Providers() {
 			if q.ID == p.ID {
-				bad.ID = locales.SettingsIDTaken(providerLabel(q))
+				bad.ID = &providerIDTakenError{name: providerLabel(q)}
 			}
 		}
 	}
