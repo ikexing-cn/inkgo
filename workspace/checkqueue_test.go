@@ -10,11 +10,11 @@ import (
 )
 
 func TestCheckQueueOrder(t *testing.T) {
-	q := CheckQueue{Failed: map[string]string{"a": "old failure"}}
+	q := CheckQueue{Failed: map[string]error{"a": errors.New("old failure")}}
 	q.Enqueue("a")
 	q.Enqueue("a")
 	q.Enqueue("b")
-	if !slices.Equal(q.Pending, []string{"a", "b"}) || q.Failed["a"] != "" {
+	if !slices.Equal(q.Pending, []string{"a", "b"}) || q.Failed["a"] != nil {
 		t.Fatal(q)
 	}
 	id, ok := q.Next()
@@ -94,11 +94,11 @@ func TestCheckQueueAfterPause(t *testing.T) {
 	q.Pending = nil
 	q.Fail("a", errors.New("failed"))
 	q.AfterPause("a", "原句。", Check{}, 3, now.Add(-time.Hour), now.Add(time.Hour))
-	if len(q.Pending) != 0 || q.Failed["a"] != "failed" {
+	if len(q.Pending) != 0 || failed(q, "a") != "failed" {
 		t.Fatal("failed prose was resubmitted", q)
 	}
 	q.AfterPause("a", "新原句。", Check{}, 3, now.Add(-time.Hour), now)
-	if !slices.Equal(q.Pending, []string{"a"}) || q.Failed["a"] != "" {
+	if !slices.Equal(q.Pending, []string{"a"}) || q.Failed["a"] != nil {
 		t.Fatal(q)
 	}
 	q = CheckQueue{}
@@ -111,18 +111,18 @@ func TestCheckQueueAfterPause(t *testing.T) {
 func TestCheckQueueKeep(t *testing.T) {
 	old := Check{Of: "old", Findings: []Finding{{Kind: FindName, Quote: "名字", Name: "正确", Meant: true}}}
 	was := Check{Of: "old", Findings: []Finding{{Kind: FindName, Quote: "名字", Name: "正确", Meant: true}}} // old as it was
-	q := CheckQueue{Failed: map[string]string{"a": "earlier"}}
+	q := CheckQueue{Failed: map[string]error{"a": errors.New("earlier")}}
 	for _, err := range []error{context.Canceled, errors.Join(errors.New("stopped"), context.Canceled)} {
-		if _, keep := q.Keep("a", old, Check{}, err); keep || q.Failed["a"] != "earlier" || !reflect.DeepEqual(old, was) {
+		if _, keep := q.Keep("a", old, Check{}, err); keep || failed(q, "a") != "earlier" || !reflect.DeepEqual(old, was) {
 			t.Fatal(q, keep)
 		}
 	}
-	if _, keep := q.Keep("a", old, Check{}, errors.New("timeout")); keep || q.Failed["a"] != "timeout" || !reflect.DeepEqual(old, was) {
+	if _, keep := q.Keep("a", old, Check{}, errors.New("timeout")); keep || failed(q, "a") != "timeout" || !reflect.DeepEqual(old, was) {
 		t.Fatal(q, keep)
 	}
 	fresh := Check{Of: "new", Findings: []Finding{{Kind: FindName, Quote: "名字", Name: "正确"}}}
 	kept, keep := q.Keep("a", old, fresh, nil)
-	if !keep || q.Failed["a"] != "" || !kept.Findings[0].Meant || kept.Of != "new" || !reflect.DeepEqual(old, was) {
+	if !keep || q.Failed["a"] != nil || !kept.Findings[0].Meant || kept.Of != "new" || !reflect.DeepEqual(old, was) {
 		t.Fatal(kept, q)
 	}
 }
@@ -145,7 +145,15 @@ func TestCheckQueueLifecycle(t *testing.T) {
 	c.Next()
 	c.Enqueue("later")
 	c.CannotStart("waiting", errors.New("no pen"))
-	if c.Running != "" || len(c.Pending) != 0 || c.Failed["waiting"] != "no pen" {
+	if c.Running != "" || len(c.Pending) != 0 || failed(c, "waiting") != "no pen" {
 		t.Fatal("a setup failure did not abandon the queue", c)
 	}
+}
+
+// failed is the text of the chapter's failure, "" when none.
+func failed(q CheckQueue, chapter string) string {
+	if err := q.Failed[chapter]; err != nil {
+		return err.Error()
+	}
+	return ""
 }

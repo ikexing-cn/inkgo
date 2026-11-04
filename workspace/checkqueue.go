@@ -15,8 +15,9 @@ type CheckQueue struct {
 	Pending []string
 	// Running is the chapter awaiting a result, including after cancellation.
 	Running string
-	// Failed holds the latest execution or persistence error by chapter.
-	Failed map[string]string
+	// Failed holds the latest execution or persistence error by chapter,
+	// worded by the interface when shown.
+	Failed map[string]error
 	// Tried holds the prose hash last submitted after a writing pause.
 	Tried map[string]string
 }
@@ -103,9 +104,9 @@ func (c *CheckQueue) Stop() {
 // Fail records an execution or persistence error without changing saved results.
 func (c *CheckQueue) Fail(chapter string, err error) {
 	if c.Failed == nil {
-		c.Failed = map[string]string{}
+		c.Failed = map[string]error{}
 	}
-	c.Failed[chapter] = err.Error()
+	c.Failed[chapter] = err
 }
 
 // DueChapters lists long-enough chapters never checked, by all, or changed

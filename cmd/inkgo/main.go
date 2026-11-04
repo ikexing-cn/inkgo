@@ -34,6 +34,12 @@ func main() {
 	path, err := ai.ConfigPath()
 	service := ai.New(path)
 	service.Trace = *trace
+	service.ErrorText = func(err error) string {
+		if text, ok := aitext.Text(err); ok {
+			return text
+		}
+		return err.Error()
+	}
 	d := desk.New(service, modules...)
 	mygo.App.SetLanguages(locales.Catalog.Languages()...)
 	// The in-app choice is authoritative: on macOS this intentionally

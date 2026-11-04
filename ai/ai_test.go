@@ -217,7 +217,7 @@ func TestEachRequestIsRecorded(t *testing.T) {
 		{Usage: model.Usage{Input: 1000}},
 		{Text: "取消了。"},
 		{Text: "够了。", Usage: model.Usage{Input: 10, Output: 2}},
-	}, st, "deepseek/deepseek-flash", "deepseek-flash", trace}
+	}, st, "deepseek/deepseek-flash", "deepseek-flash", trace, nil}
 	parts := []workspace.Part{{Name: workspace.PartRules, Tokens: 900}, {Name: workspace.PartTalk, Tokens: 4000}}
 	talk := workspace.WithPurpose(context.Background(), workspace.Purpose{Feature: workspace.FeatureTalk, Talk: "s1", Parts: parts})
 	m.Complete(talk, model.Request{System: "讨论的规则全文", Effort: model.EffortHigh}, nil)
@@ -370,5 +370,23 @@ func TestSendingDoesNotReadTheSwitch(t *testing.T) {
 		if !errors.Is(err, sent) {
 			t.Error(err)
 		}
+	}
+}
+
+func TestFailedRequestIsRecordedInTheWordsTheAuthorSaw(t *testing.T) {
+	st, err := workspace.Create(t.TempDir(), "Book", "Fantasy")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	words := func(err error) string { return "shown: " + err.Error() }
+	c := counted{Completer: failingRequest{errors.New("model: refused")}, st: st, name: "deepseek/deepseek-flash", words: words}
+	ctx := workspace.WithPurpose(context.Background(), workspace.Purpose{Feature: workspace.FeatureCheck, Chapter: "c1"})
+	if _, err := c.Complete(ctx, model.Request{}, nil); err == nil {
+		t.Fatal("the failure was lost")
+	}
+	records, err := st.Records()
+	if err != nil || len(records) != 1 || records[0].Error != "shown: model: refused" {
+		t.Fatal(records, err)
 	}
 }

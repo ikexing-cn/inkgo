@@ -33,6 +33,9 @@ type Service struct {
 	// and its reply, a file for each; it is for tuning the prompts, and
 	// no work is written to.
 	Trace string
+	// ErrorText words a failed request for the AI record, which keeps it
+	// as the author saw it; unset, the error's own text.
+	ErrorText func(error) string
 	// Open is the model sel names for the work st, as the services are
 	// now: each request to it goes into the AI record of st. Tests replace
 	// it.
@@ -235,7 +238,7 @@ func (s *Service) open(sel workspace.Selection, st *workspace.Store) (inference.
 		return inference.Model{}, setupError(err)
 	}
 	name := (workspace.ModelRef{Provider: sel.Provider, Model: sel.Model}).String()
-	return inference.Model{Completer: counted{client, st, name, sel.Model, s.Trace}, Model: s.cfg.Model(sel.Provider, sel.Model),
+	return inference.Model{Completer: counted{client, st, name, sel.Model, s.Trace, s.ErrorText}, Model: s.cfg.Model(sel.Provider, sel.Model),
 		Name: name, Effort: model.Effort(sel.Effort)}, nil
 }
 
@@ -247,6 +250,7 @@ type counted struct {
 	st       *workspace.Store
 	name, id string
 	trace    string
+	words    func(error) string
 }
 
 func (c counted) Complete(ctx context.Context, req model.Request, on func(model.Delta)) (model.Reply, error) {
@@ -262,6 +266,9 @@ func (c counted) Complete(ctx context.Context, req model.Request, on func(model.
 		r.Outcome = workspace.OutcomeCancelled
 	default:
 		r.Outcome, r.Error = workspace.OutcomeFailed, err.Error()
+		if c.words != nil {
+			r.Error = c.words(err)
+		}
 	}
 	// The record is for the author to look at: failing to keep it does
 	// not fail the request.

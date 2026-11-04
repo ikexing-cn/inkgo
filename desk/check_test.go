@@ -518,7 +518,7 @@ func TestAFailedCheckSaysWhyInFull(t *testing.T) {
 	a.ck.queue.Fail(id, errors.New("请在设置中「AI」配置里选择续写和检查模型"))
 	tt.Frame()
 	line, _, can, tip := a.checkState()
-	if want := "检查失败：" + a.ck.queue.Failed[id]; line != want || tip != want || !can {
+	if want := "检查失败：" + a.errText(a.ck.queue.Failed[id]); line != want || tip != want || !can {
 		t.Fatalf("%q, tip %q, can %v", line, tip, can)
 	}
 }

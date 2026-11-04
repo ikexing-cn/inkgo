@@ -267,8 +267,8 @@ func (a *App) checkState() (line string, found int, can bool, tip string) {
 		return locales.StatusChecking(), 0, false, ""
 	case slices.Contains(k.queue.Pending, w.node):
 		return locales.StatusQueued(), 0, false, ""
-	case k.queue.Failed[w.node] != "":
-		line := locales.StatusFailed(k.queue.Failed[w.node])
+	case k.queue.Failed[w.node] != nil:
+		line := locales.StatusFailed(a.errText(k.queue.Failed[w.node]))
 		return line, 0, true, line // what went wrong is long: in full on hover
 	case !a.hasSetting():
 		return locales.CheckNoSettings(), 0, false, ""
