@@ -41,19 +41,10 @@ func (h appHost) Dialogs() (func(string, string) (string, error), func(string) e
 	return h.a.SaveFile, h.a.Reveal
 }
 
-func (h appHost) SyncPlanOutline(id, text string) {
-	if h.a.write.node == id {
-		d := &h.a.write.cur().outline
-		d.Text, d.Saved, d.Seen = text, text, text
-	}
-}
-
 func (h appHost) OpenWriting(id string) {
 	h.a.page = pageWrite
 	h.a.openNode(id)
 }
-
-func (h appHost) ShowOutline() { h.a.page = pagePlan }
 
 func (h appHost) DropMenu(c *ui.Context, b ui.Element, key string, place func(ui.Element), build func(*kit.Menu)) {
 	h.a.dropMenu(c, b, key, place, build)

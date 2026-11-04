@@ -240,7 +240,7 @@ func (a *App) draftView(c *ui.Context) {
 			}
 			a.pal.DialogHead(c, locales.CmdDraft(), locales.DraftAbout(head, locales.DraftAboutFlow()))
 			ui.Box(c).FillWidth().Padding(10, 12).Radius(kit.RControl).Background(a.pal.Side).Children(func() {
-				ui.Text(c, strings.TrimSpace(w.cur().outline.Text)).FontSize(kit.FsControl).TextColor(t.TextMuted).LineHeight(kit.LhLoose).FillWidth()
+				ui.Text(c, strings.TrimSpace(a.chapterOutlines.ChapterOutline(w.node))).FontSize(kit.FsControl).TextColor(t.TextMuted).LineHeight(kit.LhLoose).FillWidth()
 			})
 			_, fits := prefs.CountOrNone(w.words)
 			kit.Labeled(c, locales.DraftGoal(), func() {

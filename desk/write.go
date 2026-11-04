@@ -1,7 +1,6 @@
 package desk
 
 import (
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -51,21 +50,20 @@ type writeView struct {
 	blank   bool
 	tabSeen string
 	// counted is the text the open chapter's count was last taken of.
-	counted     *editor.Doc
-	countedVer  int
-	checked     time.Time
-	outlineOpen bool
-	counter     prefs.Counter
-	goalText    string // the goal as typed
-	goalOpen    bool
-	offered     string            // the numbered title a new node's name began with
-	size        int               // the text's size, or 0 for the default
-	gists       map[string]string // a line on each chapter of the folder open
-	nodeWords   cached[bookKey, map[string]int]
-	total       cached[bookKey, int]
-	catCounts   cached[bookKey, map[string]int]
-	pane        cached[paneKey, paneNums]
-	carets      map[string]int // where the caret was in each chapter, as it was left
+	counted    *editor.Doc
+	countedVer int
+	checked    time.Time
+	counter    prefs.Counter
+	goalText   string // the goal as typed
+	goalOpen   bool
+	offered    string            // the numbered title a new node's name began with
+	size       int               // the text's size, or 0 for the default
+	gists      map[string]string // a line on each chapter of the folder open
+	nodeWords  cached[bookKey, map[string]int]
+	total      cached[bookKey, int]
+	catCounts  cached[bookKey, map[string]int]
+	pane       cached[paneKey, paneNums]
+	carets     map[string]int // where the caret was in each chapter, as it was left
 
 	renaming, title string
 	titleWas        string // the name kept when the title is left empty
@@ -219,7 +217,7 @@ func (a *App) writing(c *ui.Context) {
 
 // settingColumn is the setting beside the page, unless the author hid it.
 func (a *App) settingColumn(c *ui.Context) {
-	if !a.foldLeaving(false) && (a.page == pagePlan && !a.plan.Pane || a.page != pagePlan && a.doc.hidden || a.page == pageWrite && a.write.focus) {
+	if !a.foldLeaving(false) && (!a.paneOpen() || a.page == pageWrite && a.write.focus) {
 		return
 	}
 	win, _ := c.Size()
@@ -366,14 +364,6 @@ func (a *App) emptyWriting(c *ui.Context) {
 	})
 }
 
-// outlineBox is the outline of the node shown: 章纲 of a document, 卷纲 of
-// a folder.
-func (a *App) outlineBox(c *ui.Context, label string, height float32) {
-	w := &a.write
-	ui.TextAreaBase(c, &w.cur().outline.Text).Label(label).Placeholder(locales.EditorOutlineHint()).FillWidth().Height(height).
-		FontSize(kit.FsBody).LineHeight(kit.LhLoose).Padding(10, 12).Radius(kit.RControl).Background(a.pal.Side).Disabled(w.cur().lost)
-}
-
 func (a *App) chapterView(c *ui.Context) {
 	t := a.pal.Theme
 	w := &a.write
@@ -402,18 +392,7 @@ func (a *App) chapterView(c *ui.Context) {
 	a.overProse(c.Key("head"), 24, 6, func() {
 		ui.Column(c).FillWidth().Gap(8).Children(func() {
 			ui.Text(c, kit.Heading(a.shownTitle())).FontSize(kit.FsTitle).FontWeight(700).SingleLine().Ellipsis("…")
-			label := locales.EditorOutline()
-			if strings.TrimSpace(w.cur().outline.Text) == "" {
-				label = locales.EditorOutlineBlank()
-			}
-			var outline ui.CollapsibleParts
-			ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
-				outline = a.disclosure(c, label, &w.outlineOpen)
-				a.plan.ChapterStory(c)
-			})
-			outline.Panel(func() {
-				ui.Box(c).FillWidth().Padding(2, 0, 4, 0).Children(func() { a.outlineBox(c, locales.EditorOutline(), 96) })
-			})
+			a.chapterHead(c)
 		})
 	})
 	a.placeProps()
@@ -485,7 +464,7 @@ func (a *App) folderView(c *ui.Context, n *workspace.Node) {
 			ui.Column(c).FillWidth().MaxWidth(720).Gap(14).Children(func() {
 				ui.Text(c, n.Title).FontSize(kit.FsTitle).FontWeight(700)
 				ui.Text(c, locales.EditorVolumeOutline()).FontSize(kit.FsControl).FontWeight(600).TextColor(t.TextMuted)
-				a.outlineBox(c, locales.EditorVolumeOutline(), 160)
+				a.chapterHead(c)
 				ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(8, 0, 0, 0).Children(func() {
 					ui.Text(c, locales.EditorItems(len(n.Children))).FontSize(kit.FsControl).FontWeight(600).TextColor(t.TextMuted).Grow(1)
 					if a.pal.Ghost(c, locales.EditorNewHere(), ui.Color{}).Clicked() {

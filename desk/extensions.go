@@ -154,6 +154,9 @@ func (h extensionHost) Show(tab string) {
 
 // extensionViews holds derived tables until the host or language changes.
 type extensionViews struct {
+	// Host contributions precede module callbacks and survive module switches.
+	hostTicks      []ext.Item[hostapi.FrameTick]
+	hostLeave      []ext.Item[func()]
 	localeRevision uint64
 	ready          bool
 	changes        uint64
@@ -187,6 +190,7 @@ func (a *App) syncExtensions() {
 	if a.extViews.ready && a.extViews.changes == changes && a.extViews.localeRevision == revision {
 		return
 	}
+	a.mergePages()
 	cache := extensionViews{ready: true, changes: changes, localeRevision: revision}
 	a.cacheExtensionViews(&cache)
 	cache.commands = a.buildExtensionCommands()
@@ -215,8 +219,20 @@ func (a *App) syncExtensions() {
 	}
 	cache.footer = ext.Items(a.extensions, hostapi.FooterItems)
 	cache.title = ext.Items(a.extensions, hostapi.TitleItems)
-	cache.ticks = ext.Items(a.extensions, hostapi.FrameTicks)
-	cache.leave = ext.Items(a.extensions, hostapi.BeforeLeave)
+	for _, item := range ext.Items(a.extensions, hostapi.FrameTicks) {
+		if item.Owner == ext.HostOwner {
+			cache.hostTicks = append(cache.hostTicks, item)
+		} else {
+			cache.ticks = append(cache.ticks, item)
+		}
+	}
+	for _, item := range ext.Items(a.extensions, hostapi.BeforeLeave) {
+		if item.Owner == ext.HostOwner {
+			cache.hostLeave = append(cache.hostLeave, item)
+		} else {
+			cache.leave = append(cache.leave, item)
+		}
+	}
 	cache.pending = ext.Items(a.extensions, hostapi.PendingGroups)
 	cache.settings = ext.Declared(a.extensions, hostapi.SettingsPages)
 	cache.sections = ext.Items(a.extensions, hostapi.SettingsSections)

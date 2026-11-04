@@ -55,7 +55,10 @@ type App struct {
 	pal         *kit.Palette
 
 	page              page
-	pages             [pageCategories + 1]pageView
+	pages             []pageView
+	pageOrder         []page
+	pageIDs           map[string]page
+	chapterOutlines   chapterOutlines
 	paneTabs          tabTable[paneTab]
 	hostPaneTabs      tabTable[paneTab]
 	extViews          extensionViews
@@ -158,7 +161,7 @@ func New(ai aiport.Service, mods ...ext.Module) *App {
 	a := &App{ai: ai, turn: &talkTurn{}, genre: "网文",
 		light: kit.LightPalette(), dark: kit.DarkPalette(), titles: map[string]workspace.ConversationTitle{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
 	a.status.Translate = a.errText
-	a.plan.Host = appHost{a}
+	a.initOutline()
 	a.pal = a.light
 	a.initPages()
 	a.initTabs()
@@ -243,7 +246,8 @@ func (a *App) resetView() {
 	a.resetPrefs()
 	a.source, a.sourceOpen, a.contextReply = nil, false, ""
 	a.input, a.seen, a.flash, a.doc, a.write = "", -1, map[string]time.Time{}, docView{}, writeView{}
-	a.plan = outline.Page{Host: appHost{a}}
+	a.plan = outline.Page{}
+	a.initOutline()
 	a.page, a.shown, a.offAway = pageTalk, pageTalk, false
 }
 
@@ -290,7 +294,6 @@ func (a *App) leaveWork() {
 	}
 	a.dropProps(a.write.props, workspace.FateClosed)
 	a.flush()
-	a.plan.FinishOutline()
 	a.keepUnsettled()
 	a.remember(false)
 	a.extensionLeave()
@@ -392,4 +395,5 @@ type openBookError struct {
 }
 
 func (e openBookError) Error() string { return locales.AppOpenBookFailed(e.book, e.err.Error()) }
+
 func (e openBookError) Unwrap() error { return e.err }

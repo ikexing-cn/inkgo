@@ -103,7 +103,7 @@ func TestWritingSavesAsTheAuthorPauses(t *testing.T) {
 	if !tt.HasText("本章 12 字 · 全书 12 字") {
 		t.Fatal(tt.Texts())
 	}
-	a.write.outlineOpen = true
+	a.plan.SetExpanded(true)
 	tt.Frame()
 	setChapterOutline(a, "她在雨夜里等人")
 	tt.Frame()

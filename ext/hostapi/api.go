@@ -63,6 +63,32 @@ type PaneTab struct {
 	Available func() bool
 }
 
+// Page is a title-bar page contributed by an extension. Metadata and
+// availability are read on the frame thread; Draw uses ext.Call.
+type Page struct {
+	// Title supplies display text on the frame thread through ext.Guard.
+	Title func() string
+	// Icon is drawn by the host on the frame thread.
+	Icon *ui.SVG
+	// Order sorts this page among host pages.
+	Order int
+	// Label is a stable UI test label.
+	Label string
+	// Enter and Leave run through ext.Guard on the frame thread.
+	Enter func()
+	Leave func()
+	// Draw runs through ext.Call on the frame thread.
+	Draw func(*ui.Context)
+	// Available is queried through ext.Guard on the frame thread.
+	Available func() bool
+	// HasPane reports whether the page has a right column, through ext.Guard on the frame thread.
+	HasPane func() bool
+	// PaneOpen reports the page's right-column state, through ext.Guard on the frame thread.
+	PaneOpen func() bool
+	// TogglePane changes that state, through ext.Guard on the frame thread.
+	TogglePane func()
+}
+
 // Book exposes current book content to extensions on the frame thread only.
 type Book interface {
 	// Store returns the current store, or nil on the shelf; frame thread only.
@@ -99,6 +125,9 @@ const Commands ext.PointKey[Command] = "host.commands"
 
 // PaneTabs collects right pane tabs; desk enumerates it on the frame thread.
 const PaneTabs ext.PointKey[PaneTab] = "host.panes"
+
+// Pages collects title-bar pages, sorted with host pages by Order.
+const Pages ext.PointKey[Page] = "host.pages"
 
 // BookService resolves current book content; methods require the frame thread.
 const BookService ext.ServiceKey[Book] = "host.book"

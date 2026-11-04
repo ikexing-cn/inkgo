@@ -104,10 +104,10 @@ var (
 	cmdDraft = &command{label: locales.CmdDraft, page: pageAny, ai: true,
 		can: func(a *App) bool {
 			open, busy := a.chapterOpen()
-			return open && !busy && strings.TrimSpace(a.write.cur().outline.Text) != ""
+			return open && !busy && strings.TrimSpace(a.chapterOutlines.ChapterOutline(a.write.node)) != ""
 		},
 		hint: func(a *App) string {
-			if open, _ := a.chapterOpen(); open && strings.TrimSpace(a.write.cur().outline.Text) == "" {
+			if open, _ := a.chapterOpen(); open && strings.TrimSpace(a.chapterOutlines.ChapterOutline(a.write.node)) == "" {
 				return locales.CmdDraftNeedsOutline()
 			}
 			return ""

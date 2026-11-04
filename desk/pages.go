@@ -11,12 +11,14 @@ import (
 // put its methods here directly. Nil actions do nothing; a nil count is zero.
 type pageView struct {
 	tabEntry[page]
-	enter, leave func()
-	view         func(*ui.Context)
+	enter, leave      func()
+	view              func(*ui.Context)
+	hasPane, paneOpen func() bool
+	togglePane        func()
 }
 
 func (a *App) initPages() {
-	a.pages = [...]pageView{
+	a.pages = []pageView{
 		pageTalk: {
 			tabEntry: tabEntry[page]{name: locales.PageTalk, icon: kit.IcChat, ai: true},
 			view:     a.discussion,
@@ -30,12 +32,7 @@ func (a *App) initPages() {
 			},
 			view: a.writing,
 		},
-		pagePlan: {
-			tabEntry: tabEntry[page]{name: locales.PagePlan, icon: kit.IcOutline, work: true},
-			enter:    a.plan.Enter,
-			leave:    a.plan.Leave,
-			view:     a.plan.View,
-		},
+		pagePlan: {},
 		pageCheck: {
 			tabEntry: tabEntry[page]{name: locales.PageCheck, icon: kit.IcDone, ai: true, work: true,
 				count: func() int { return len(a.listedChecks()) }},
@@ -53,5 +50,12 @@ func (a *App) initPages() {
 	}
 	for id := range a.pages {
 		a.pages[id].id = page(id)
+		a.pages[id].order = (id + 1) * 10
+	}
+	a.pages[pageTalk].order, a.pages[pageWrite].order, a.pages[pageCheck].order = 10, 20, 40
+	for _, id := range []page{pageTalk, pageWrite} {
+		a.pages[id].hasPane = func() bool { return true }
+		a.pages[id].paneOpen = func() bool { return !a.doc.hidden }
+		a.pages[id].togglePane = func() { a.setDocHidden(!a.doc.hidden) }
 	}
 }

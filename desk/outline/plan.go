@@ -18,7 +18,9 @@ const planFlash = 1600 * time.Millisecond
 
 // Page holds the outline table, timeline, drafts, and card editing state.
 type Page struct {
-	Host                Host
+	Services            Services
+	drafts              map[string]*book.OutlineDraft
+	chapterExpanded     bool
 	loaded              bool
 	loadErr             error
 	checked             time.Time // when the outline was last read
@@ -70,7 +72,7 @@ type planIndex struct {
 }
 
 func (p *Page) rebuildIndex() {
-	content := p.Host.Content()
+	content := p.Services.Book.Content()
 	x := planIndex{live: map[string]bool{}, cards: map[string][]workspace.Card{}, back: map[string]bool{}, counts: map[string]int{}, columns: content.Plan().Columns()}
 	content.Tree().Walk(func(n *workspace.Node, _ int) {
 		if !n.Folder {
@@ -102,14 +104,14 @@ func (p *Page) rebuildIndex() {
 }
 
 func (p *Page) load() {
-	p.loadErr = p.Host.Content().ReloadPlan()
+	p.loadErr = p.Services.Book.Content().ReloadPlan()
 	p.loaded = true
 	p.geometry = nil
 	p.rebuildIndex()
 }
 
 func (p *Page) change(err error) {
-	p.Host.Notices().SetError(err)
+	p.Services.Notices.Notices().SetError(err)
 	if err == nil {
 		p.loadErr = nil
 		p.geometry = nil
@@ -158,7 +160,7 @@ func (p *Page) cardFound(e workspace.Card) bool {
 		return true
 	}
 	title := ""
-	if n, ok := p.Host.Content().Tree().Node(e.Chapter); ok {
+	if n, ok := p.Services.Book.Content().Tree().Node(e.Chapter); ok {
 		title = n.Title
 	}
 	return q == "" || slices.ContainsFunc([]string{e.Title, e.When, e.About, title}, func(s string) bool { return strings.Contains(s, q) })
@@ -166,11 +168,11 @@ func (p *Page) cardFound(e workspace.Card) bool {
 
 func (p *Page) nodeFound(n *workspace.Node) bool {
 	q := kit.Trim(p.query)
-	return q == "" || strings.Contains(n.Title, q) || strings.Contains(p.Host.Content().Outlines()[n.ID], q)
+	return q == "" || strings.Contains(n.Title, q) || strings.Contains(p.Services.Book.Content().Outlines()[n.ID], q)
 }
 
 func (p *Page) counts() (cards, nodes int) {
-	content := p.Host.Content()
+	content := p.Services.Book.Content()
 	for _, e := range content.Plan().Cards {
 		if p.cardFound(e) {
 			cards++
@@ -190,8 +192,8 @@ func (p *Page) counts() (cards, nodes int) {
 // the timeline, and the setting beside it while Pane is set. A broken
 // outline shows what is wrong instead, and is read again when it is due.
 func (p *Page) View(c *ui.Context) {
-	content := p.Host.Content()
-	if !p.checksPaused && p.loadErr != nil && time.Since(p.checked) >= p.Host.Content().Timing.CheckEvery {
+	content := p.Services.Book.Content()
+	if !p.checksPaused && p.loadErr != nil && time.Since(p.checked) >= p.Services.Book.Content().Timing.CheckEvery {
 		p.loaded = false // a broken outline may have been put right outside
 	}
 	if !p.loaded {
@@ -230,8 +232,8 @@ func (p *Page) View(c *ui.Context) {
 				if p.mode == 1 {
 					about = locales.PlanSearchTimeline()
 				}
-				p.Host.Colors().Blank(c, kit.IcSearch, locales.PlanNotFound(q), about, func() {
-					if p.Host.Colors().Secondary(c, locales.PlanClearSearch()).Label("空页清除搜索").Clicked() {
+				p.Services.Palette.Colors().Blank(c, kit.IcSearch, locales.PlanNotFound(q), about, func() {
+					if p.Services.Palette.Colors().Secondary(c, locales.PlanClearSearch()).Label("空页清除搜索").Clicked() {
 						p.query = ""
 					}
 				})
@@ -243,7 +245,7 @@ func (p *Page) View(c *ui.Context) {
 			}
 		})
 		if p.Pane {
-			p.Host.SettingColumn(c)
+			p.Services.Desktop.SettingColumn(c)
 		}
 	})
 }
@@ -252,11 +254,11 @@ func (p *Page) View(c *ui.Context) {
 // line, as when a search finds nothing, and no retry, as the file is read
 // again as often as the open chapter is looked at on the disk.
 func (p *Page) broken(c *ui.Context) {
-	pal := p.Host.Colors()
+	pal := p.Services.Palette.Colors()
 	if !p.checksPaused {
-		c.After(p.Host.Content().Timing.CheckEvery - time.Since(p.checked))
+		c.After(p.Services.Book.Content().Timing.CheckEvery - time.Since(p.checked))
 	}
-	title, about, why := locales.PlanReadError(), "", p.Host.Notices().FormatError(p.loadErr)
+	title, about, why := locales.PlanReadError(), "", p.Services.Notices.Notices().FormatError(p.loadErr)
 	var bad *workspace.PlanError
 	if errors.As(p.loadErr, &bad) {
 		title, about, why = locales.PlanBrokenTitle(), locales.PlanBrokenAbout(), ""
@@ -274,16 +276,16 @@ func (p *Page) broken(c *ui.Context) {
 		if why != "" {
 			ui.Text(c, why).FontSize(kit.FsNote).TextColor(pal.Faint).TextAlign(ui.Center).MaxWidth(440)
 		}
-		_, reveal := p.Host.Dialogs()
+		_, reveal := p.Services.Dialogs.Dialogs()
 		if reveal != nil && pal.Secondary(c, locales.CommonOpenFolder()).Clicked() {
-			p.Host.Notices().Warn(reveal(p.Host.WorkPath()))
+			p.Services.Notices.Notices().Warn(reveal(p.Services.Book.Dir()))
 		}
 	})
 }
 
 func (p *Page) top(c *ui.Context) {
-	pal := p.Host.Colors()
-	content := p.Host.Content()
+	pal := p.Services.Palette.Colors()
+	content := p.Services.Book.Content()
 	cards, nodes := p.counts()
 	chs := p.chapters()
 	loose := len(p.cardsOf(""))
@@ -335,7 +337,7 @@ func (p *Page) text(c *ui.Context, text string, small bool) ui.Element {
 	if small {
 		size = kit.FsNote
 	}
-	return ui.RichText(c, kit.Marked(text, kit.Trim(p.query), p.Host.Colors().Ink)...).FontSize(size).LineHeight(kit.LhBody).FillWidth()
+	return ui.RichText(c, kit.Marked(text, kit.Trim(p.query), p.Services.Palette.Colors().Ink)...).FontSize(size).LineHeight(kit.LhBody).FillWidth()
 }
 
 // ChapterStory draws, by the open chapter's 章纲, when the chapter is in the
@@ -350,14 +352,14 @@ func (p *Page) ChapterStory(c *ui.Context) {
 	if p.loadErr != nil {
 		return
 	}
-	id, _, _ := p.Host.Chapter()
+	id, _, _ := p.Services.Book.Chapter()
 	cards := p.cardsOf(id)
 	when := storyWhen(cards)
 	if when == "" {
 		return
 	}
-	if p.Host.Colors().Ghost(c, locales.PlanWhenNote(when), ui.Color{}).Clicked() {
-		p.Host.ShowOutline()
+	if p.Services.Palette.Colors().Ghost(c, locales.PlanWhenNote(when), ui.Color{}).Clicked() {
+		p.Services.Desktop.ShowPage("host.outline")
 		p.mode = 1
 		p.query = ""
 		p.loaded = false

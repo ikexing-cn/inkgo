@@ -31,7 +31,7 @@ func newTestHost(t *testing.T) *testHost {
 	}
 	t.Cleanup(func() { _ = store.Close() })
 	h := &testHost{Store: store, book: book.Open(store), pal: kit.LightPalette()}
-	h.plan.Host = h
+	h.plan.Services = Services{Book: testBook{h}, Palette: h, Notices: h, Dialogs: h, Desktop: h}
 	return h
 }
 
@@ -47,8 +47,6 @@ func (h *testHost) Chapter() (string, *editor.Editor, bool) {
 	n, ok := h.book.Tree().Node(h.current)
 	return h.current, nil, ok && !n.Folder
 }
-
-func (h *testHost) SyncPlanOutline(id, text string) { h.syncedID, h.syncedOutline = id, text }
 
 func (h *testHost) OpenWriting(id string) { h.current, h.writing = id, true }
 
@@ -106,3 +104,41 @@ func outline(h *testHost) workspace.Plan { return h.book.Plan() }
 func outlineErr(h *testHost) error { return h.plan.loadErr }
 
 func forgetOutline(h *testHost) { h.plan.Enter() }
+
+type testBook struct{ h *testHost }
+
+func (b testBook) Store() *workspace.Store { return b.h.Store }
+
+func (b testBook) Content() *book.Book { return b.h.book }
+
+func (b testBook) Flush() {}
+
+func (b testBook) Chapter() (string, *editor.Editor, bool) { return b.h.Chapter() }
+
+func (b testBook) ChapterTitle(id string) (string, bool) {
+	n, ok := b.h.book.Tree().Node(id)
+	if !ok {
+		return "", false
+	}
+	return n.Title, !n.Folder
+}
+
+func (b testBook) Dir() string { return b.h.Store.Root() }
+
+func (h *testHost) ScreenColors() (*kit.Palette, *kit.Palette) { return h.pal, h.pal }
+
+func (h *testHost) CanPickFolder() bool { return false }
+
+func (h *testHost) PickInto(*ui.Context, string, func(string)) bool { return false }
+
+func (h *testHost) Writing() bool { return h.writing }
+
+func (h *testHost) SlideEdge(ui.Element) {}
+
+func (h *testHost) OpenSettings(string) {}
+
+func (h *testHost) ShowPage(string) { h.writing = false }
+
+func (h *testHost) SameFolder(a, b string) bool { return a == b }
+
+func (h *testHost) Selected() (string, bool, bool) { return h.current, false, false }

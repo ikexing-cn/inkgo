@@ -58,7 +58,7 @@ func (a *App) saveOutline() error {
 	if w.node == "" || w.cur().lost {
 		return nil
 	}
-	return w.cur().outline.Save(a.book)
+	return a.saveExtensionEdits()
 }
 
 // watch saves what paused long enough and looks at the disk, each frame
@@ -77,15 +77,6 @@ func (a *App) watch(c *ui.Context) {
 			c.After(wait)
 		} else {
 			a.warn(a.saveText())
-		}
-	}
-	d := &o.outline
-	d.Change(time.Now())
-	if wait, due := d.Waits(a.book.Timing.SaveAfter, time.Now()); due {
-		if wait > 0 {
-			c.After(wait)
-		} else {
-			a.warn(a.saveOutline())
 		}
 	}
 	if a.windowInactive.Load() {

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"writer/desk/book"
 	"writer/desk/kit"
 	"writer/editor"
 	"writer/locales"
@@ -133,7 +132,7 @@ func (a *App) textMenu(m *kit.Menu) {
 // caret, how far it is scrolled.
 func (a *App) openNode(id string) {
 	a.flush()
-	a.plan.FinishOutline()
+	a.beforeChapterChange()
 	a.leaveCheck()
 	a.scanMarks()
 	w := &a.write
@@ -179,7 +178,7 @@ func (a *App) openNode(id string) {
 		w.node = ""
 		return
 	}
-	c.outline = book.OutlineDraft{Node: id, Text: ch.Outline, Saved: ch.Outline, Seen: ch.Outline}
+	a.chapterOpened(id, ch.Outline)
 	switch {
 	case n.Folder:
 		w.gists = a.gistsIn(n)

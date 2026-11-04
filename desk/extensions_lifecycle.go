@@ -4,16 +4,31 @@ import (
 	"encoding/json"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/kit"
 	"writer/ext"
 	"writer/ext/hostapi"
 	"writer/shelf"
 )
 
 func declareLifecycle(r *ext.Registrar, a *App) {
+	ext.Declare(r, hostapi.ChapterOpens)
+	ext.DeclareCalls(r, hostapi.ChapterOpens, chapterOpenCall)
+	ext.Declare(r, hostapi.ChapterEditStates)
+	ext.Declare(r, hostapi.SaveEdits)
+	ext.DeclareCalls(r, hostapi.SaveEdits, saveEditsCall)
+	ext.Declare(r, hostapi.Pages)
+	ext.DeclareCalls(r, hostapi.Pages, pageCall)
+	ext.Declare(r, hostapi.WindowActivities)
+	ext.DeclareCalls(r, hostapi.WindowActivities, activityCall)
+	a.registerOutline(r)
 	ext.Declare(r, hostapi.FooterItems)
 	ext.DeclareCalls(r, hostapi.FooterItems, drawItemCall)
 	ext.Declare(r, hostapi.TitleItems)
 	ext.DeclareCalls(r, hostapi.TitleItems, drawItemCall)
+	ext.Declare(r, hostapi.ChapterHeadItems)
+	ext.DeclareCalls(r, hostapi.ChapterHeadItems, drawItemCall)
+	ext.Declare(r, hostapi.BeforeChapterChange)
+	ext.DeclareCalls(r, hostapi.BeforeChapterChange, leaveCall)
 	ext.Declare(r, hostapi.FrameTicks)
 	ext.DeclareCalls(r, hostapi.FrameTicks, tickCall)
 	ext.Declare(r, hostapi.BeforeLeave)
@@ -38,6 +53,24 @@ func (h extensionHost) OpenSettings(id string) {
 	}
 	h.a.openPrefs(tab)
 }
+
+func (h extensionHost) ShowPage(id string) {
+	h.a.syncExtensions()
+	p, ok := h.a.pageIDs[id]
+	if ok && h.a.pages[p].available(h.a) {
+		h.a.page = p
+	} else {
+		h.a.page = pageWrite
+	}
+}
+
+func (h extensionHost) OpenWriting(id string) { (appHost{h.a}).OpenWriting(id) }
+
+func (h extensionHost) DropMenu(c *ui.Context, b ui.Element, key string, place func(ui.Element), build func(*kit.Menu)) {
+	h.a.dropMenu(c, b, key, place, build)
+}
+
+func (h extensionHost) SettingColumn(c *ui.Context) { h.a.settingColumn(c) }
 
 func (h extensionHost) SameFolder(a, b string) bool { return shelf.SameFolder(a, b) }
 
@@ -109,7 +142,7 @@ func (a *App) extensionTitle(c *ui.Context) {
 
 func (a *App) extensionTicks(c *ui.Context) {
 	a.syncExtensions()
-	for _, item := range a.extViews.ticks {
+	for _, item := range append(append([]ext.Item[hostapi.FrameTick]{}, a.extViews.hostTicks...), a.extViews.ticks...) {
 		_, _ = ext.Call(a.extensions, ext.HookOf(ext.CallPoint[hostapi.FrameTick, *ui.Context, struct{}]{Point: hostapi.FrameTicks}, item.ID), c, tickCall(item.Value))
 	}
 	a.syncExtensions()
@@ -117,7 +150,7 @@ func (a *App) extensionTicks(c *ui.Context) {
 
 func (a *App) extensionLeave() {
 	a.syncExtensions()
-	for _, item := range a.extViews.leave {
+	for _, item := range append(append([]ext.Item[func()]{}, a.extViews.hostLeave...), a.extViews.leave...) {
 		_, _ = ext.Call(a.extensions, ext.HookOf(ext.CallPoint[func(), struct{}, struct{}]{Point: hostapi.BeforeLeave}, item.ID), struct{}{}, leaveCall(item.Value))
 	}
 	a.syncExtensions()
@@ -203,4 +236,8 @@ func (a *App) extensionPendingGroups() []pendGroup {
 		}
 	}
 	return groups
+}
+
+func (h extensionHost) Selected() (string, bool, bool) {
+	return h.a.write.node, h.a.write.cur().lost, len(h.a.write.closing) > 0
 }

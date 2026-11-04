@@ -127,11 +127,16 @@ func (a *App) fileMenu(m *kit.Menu, later func(func()) func()) {
 // pageSwitch stays in the middle of the window, even with either side away.
 func (a *App) pageSwitch(c *ui.Context, width float32) {
 	ui.Row(c).Absolute().Left(0).Top(0).Width(width).Height(kit.HBar).Gap(4).AlignItems(ui.Center).Justify(ui.Center).PassThrough().Label("换页").Children(func() {
-		for _, p := range a.pages[:pageCategories] {
+		for _, id := range a.pageOrder {
+			p := a.pages[id]
 			if !p.available(a) {
 				continue
 			}
-			b := ui.ButtonBase(c).Row().Height(kit.HControlSm).Padding(0, 10).Gap(4).AlignItems(ui.Center).Shrink(0).Label(p.title(a)).Disabled(a.held()).KeepFocus()
+			label := p.label
+			if label == "" {
+				label = p.title(a)
+			}
+			b := ui.ButtonBase(c).Row().Height(kit.HControlSm).Padding(0, 10).Gap(4).AlignItems(ui.Center).Shrink(0).Label(label).Disabled(a.held()).KeepFocus()
 			fg := a.pal.Theme.TextMuted
 			if a.page == p.id || b.Hovered() {
 				fg = a.pal.Ink
@@ -153,7 +158,8 @@ func (a *App) pageSwitch(c *ui.Context, width float32) {
 // so notices leave room without borrowing the previous frame's bounds.
 func (a *App) pageSwitchWidth(c *ui.Context) float32 {
 	width, count := float32(0), 0
-	for _, p := range a.pages[:pageCategories] {
+	for _, id := range a.pageOrder {
+		p := a.pages[id]
 		if !p.available(a) {
 			continue
 		}
@@ -169,27 +175,24 @@ func (a *App) pageSwitchWidth(c *ui.Context) float32 {
 }
 
 func (a *App) hasPane() bool {
-	return a.Store != nil && !a.focused() && (a.page == pageTalk || a.page == pageWrite || a.page == pagePlan)
+	p := a.pages[a.page]
+	return a.Store != nil && !a.focused() && p.hasPane != nil && p.hasPane()
 }
 
 func (a *App) paneOpen() bool {
 	if !a.hasPane() {
 		return false
 	}
-	if a.page == pagePlan {
-		return a.plan.Pane
-	}
-	return !a.doc.hidden
+	p := a.pages[a.page]
+	return p.paneOpen != nil && p.paneOpen()
 }
 
 func (a *App) togglePane() {
 	if !a.hasPane() {
 		return
 	}
-	if a.page == pagePlan {
-		a.plan.Pane = !a.plan.Pane
-	} else {
-		a.setDocHidden(!a.doc.hidden)
+	if fn := a.pages[a.page].togglePane; fn != nil {
+		fn()
 	}
 }
 

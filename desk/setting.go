@@ -103,11 +103,16 @@ func (r settingRoute) screen() (settingScreen, string, string) {
 	return screenList, "", ""
 }
 
-func (r settingRoute) entry() string        { return r.shown }
-func (r settingRoute) editID() string       { return r.editing }
-func (r settingRoute) question() string     { return r.asking }
-func (r settingRoute) changeID() string     { return r.change }
+func (r settingRoute) entry() string { return r.shown }
+
+func (r settingRoute) editID() string { return r.editing }
+
+func (r settingRoute) question() string { return r.asking }
+
+func (r settingRoute) changeID() string { return r.change }
+
 func (r settingRoute) showingHistory() bool { return r.history }
+
 func (r settingRoute) showingWaiting() bool { return r.base == baseWaiting }
 
 // openEntry shows an entry's page over what lies below it.
@@ -200,8 +205,10 @@ func (a *App) setSideHidden(hidden bool) {
 
 // setDocHidden folds the panel away, for the talk alone, or brings it back.
 func (a *App) setDocHidden(hidden bool) {
-	if a.page == pagePlan {
-		a.plan.Pane = !hidden
+	if p := a.pages[a.page]; p.togglePane != nil && a.page != pageWrite && a.page != pageTalk {
+		if a.paneOpen() == hidden {
+			p.togglePane()
+		}
 		return
 	}
 	a.doc.hidden = hidden

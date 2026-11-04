@@ -13,9 +13,9 @@ import (
 )
 
 func (p *Page) line(c *ui.Context, l workspace.PlotLine) {
-	status := p.Host.Notices()
-	content := p.Host.Content()
-	t := p.Host.Colors().Theme
+	status := p.Services.Notices.Notices()
+	content := p.Services.Book.Content()
+	t := p.Services.Palette.Colors().Theme
 	if p.lineID == l.ID {
 		in := ui.TextInputBase(c.Key("line-name-"+l.ID), &p.lineName).Label(locales.PlanLineNameLabel()).Placeholder(locales.PlanLineNameLabel()).FillWidth().Height(kit.HControlSm).FontSize(kit.FsBody).Padding(0, 6).Border(1, t.Border).Radius(kit.RControl).AutoFocus()
 		if p.lineFocus {
@@ -44,9 +44,9 @@ func (p *Page) line(c *ui.Context, l workspace.PlotLine) {
 			p.startLine(l)
 		}
 		n := p.index.counts[l.ID]
-		ui.Textf(c, "%d", n).FontSize(kit.FsNote).TextColor(p.Host.Colors().Faint)
+		ui.Textf(c, "%d", n).FontSize(kit.FsNote).TextColor(p.Services.Palette.Colors().Faint)
 		more := kit.IconButton(c, kit.IcMore, locales.PlanLineActions(l.Name), ui.Color{})
-		p.Host.DropMenu(c, more, "plan-line-"+l.ID, func(panel ui.Element) { panel.Width(planLineMenuWidth) }, func(m *kit.Menu) {
+		p.Services.Desktop.DropMenu(c, more, "plan-line-"+l.ID, func(panel ui.Element) { panel.Width(planLineMenuWidth) }, func(m *kit.Menu) {
 			i := slices.IndexFunc(content.Plan().Lines, func(x workspace.PlotLine) bool { return x.ID == l.ID })
 			up, down := locales.PlanLineMoveLeft(), locales.PlanLineMoveRight()
 			if p.mode == 1 {
@@ -74,6 +74,7 @@ func (p *Page) startLine(l workspace.PlotLine) {
 	p.finishLine()
 	p.lineID, p.lineName, p.lineHeld, p.lineFocus = l.ID, l.Name, false, true
 }
+
 func (p *Page) finishLine() {
 	if p.lineID == "" {
 		return
@@ -81,12 +82,13 @@ func (p *Page) finishLine() {
 	id, name := p.lineID, kit.Trim(p.lineName)
 	p.lineID = ""
 	if name != "" {
-		_, err := p.Host.Content().SaveLine(workspace.PlotLine{ID: id, Name: name})
+		_, err := p.Services.Book.Content().SaveLine(workspace.PlotLine{ID: id, Name: name})
 		p.change(err)
 	}
 }
+
 func (p *Page) addLine(c *ui.Context) {
-	pal := p.Host.Colors()
+	pal := p.Services.Palette.Colors()
 	b := ui.ButtonBase(c).Row().Height(kit.HControlSm).AlignItems(ui.Center).Gap(6).Padding(0, 8, 0, 4).Radius(kit.RControl).Label(locales.PlanLineAdd()).Tooltip(locales.PlanLineAddHint())
 	if b.Hovered() {
 		b.Background(pal.Theme.SurfaceHover)
@@ -97,7 +99,7 @@ func (p *Page) addLine(c *ui.Context) {
 	})
 	if b.Clicked() {
 		p.finishLine()
-		l, err := p.Host.Content().SaveLine(workspace.PlotLine{Name: "新情节线"})
+		l, err := p.Services.Book.Content().SaveLine(workspace.PlotLine{Name: "新情节线"})
 		p.change(err)
 		if err == nil {
 			p.startLine(l)
@@ -111,8 +113,8 @@ func (p *Page) addLine(c *ui.Context) {
 }
 
 func (p *Page) gist(c *ui.Context, n *workspace.Node) {
-	pal := p.Host.Colors()
-	content := p.Host.Content()
+	pal := p.Services.Palette.Colors()
+	content := p.Services.Book.Content()
 	label, hint := locales.PlanChapterOutline(), locales.PlanWriteChapterOutline()
 	hook := "章纲"
 	if n.Folder {
@@ -125,7 +127,7 @@ func (p *Page) gist(c *ui.Context, n *workspace.Node) {
 		if p.outlineDraft.Change(now) {
 			p.geometry = nil
 		}
-		if wait, due := p.outlineDraft.Waits(p.Host.Content().Timing.SaveAfter, now); due {
+		if wait, due := p.outlineDraft.Waits(p.Services.Book.Content().Timing.SaveAfter, now); due {
 			if wait > 0 {
 				c.After(wait)
 			} else {
@@ -170,15 +172,18 @@ func (p *Page) saveOutline() {
 	if d.Node == "" {
 		return
 	}
-	if err := d.Save(p.Host.Content()); err != nil {
-		p.Host.Notices().Warn(err)
+	if err := d.Save(p.Services.Book.Content()); err != nil {
+		p.Services.Notices.Notices().Warn(err)
 		return
 	}
-	p.Host.SyncPlanOutline(d.Node, d.Text)
+	if draft := p.drafts[d.Node]; draft != nil {
+		draft.Text, draft.Saved, draft.Seen = d.Text, d.Text, d.Text
+	}
 }
 
 // FinishOutline saves the 章纲 being typed and closes it.
 func (p *Page) FinishOutline() {
+	p.Services.Notices.Notices().Warn(p.SaveChapter())
 	if p.outlineDraft.Node == "" {
 		return
 	}
@@ -202,7 +207,7 @@ func (p *Page) saveCard(more bool) {
 		return
 	}
 	fresh := p.card.ID == ""
-	e, err := p.Host.Content().SaveCard(p.card, p.after)
+	e, err := p.Services.Book.Content().SaveCard(p.card, p.after)
 	p.change(err)
 	if err != nil {
 		return
@@ -223,9 +228,9 @@ func (p *Page) saveCard(more bool) {
 
 // Dialog draws the card form while a card is open, over every page.
 func (p *Page) Dialog(c *ui.Context) {
-	pal := p.Host.Colors()
-	status := p.Host.Notices()
-	content := p.Host.Content()
+	pal := p.Services.Palette.Colors()
+	status := p.Services.Notices.Notices()
+	content := p.Services.Book.Content()
 	if !p.cardOpen {
 		return
 	}

@@ -2,11 +2,20 @@ package hostapi
 
 import (
 	"github.com/egoist/mygo/ui"
+	"writer/desk/kit"
 	"writer/ext"
 )
 
 // DrawItem draws inline on the frame thread, through ext.Call.
 type DrawItem struct{ Draw func(*ui.Context) }
+
+// ChapterHeadItems draws beneath the writing page's chapter title in
+// registration order; each Draw runs through ext.Call on the frame thread.
+const ChapterHeadItems ext.PointKey[DrawItem] = "host.chapter-head"
+
+// BeforeChapterChange runs synchronously through ext.Call before the
+// displayed chapter or its tab changes.
+const BeforeChapterChange ext.PointKey[func()] = "host.before-chapter-change"
 
 // FrameTick runs once per frame with a book open, on the frame thread.
 type FrameTick struct{ Tick func(*ui.Context) }
@@ -56,6 +65,8 @@ type SettingsSection struct {
 // Desktop exposes the writing page, footer animation, settings navigation and
 // platform folder comparison on the frame thread.
 type Desktop interface {
+	// Selected returns the displayed node, whether it is lost, and whether saving waits for a close decision; frame thread only.
+	Selected() (id string, lost, paused bool)
 	// Writing reports whether the writing page is active.
 	Writing() bool
 	// SlideEdge applies the footer's current transition transform.
@@ -63,6 +74,14 @@ type Desktop interface {
 	// OpenSettings opens the page registered by a qualified SettingsPages
 	// contribution ID, such as backup.settings. Unknown IDs open Extensions.
 	OpenSettings(id string)
+	// ShowPage selects a registered title-bar page by qualified ID.
+	ShowPage(id string)
+	// OpenWriting selects the writing page and opens a chapter on the frame thread.
+	OpenWriting(string)
+	// DropMenu draws a shared menu on the frame thread; frame values must not escape.
+	DropMenu(*ui.Context, ui.Element, string, func(ui.Element), func(*kit.Menu))
+	// SettingColumn draws the shared right column on the frame thread.
+	SettingColumn(*ui.Context)
 	// SameFolder compares paths using the host platform's rules.
 	SameFolder(string, string) bool
 }
@@ -99,3 +118,39 @@ const DesktopService ext.ServiceKey[Desktop] = "host.desktop"
 
 // PendingService resolves frame-thread ignored-item management.
 const PendingService ext.ServiceKey[Pending] = "host.pending-state"
+
+// WindowActivity carries activity sampled before the frame.
+type WindowActivity struct {
+	// Active reports whether the native window is active in this frame.
+	Active bool
+	// Returned includes blur/focus pairs between consecutive frames.
+	Returned bool
+}
+
+// WindowActivities invokes frame-thread listeners through ext.Call before drawing.
+const WindowActivities ext.PointKey[func(WindowActivity)] = "host.window-activity"
+
+// SaveEdits flushes extension drafts on the frame thread through ext.Call; errors keep close/save pending.
+const SaveEdits ext.PointKey[func() error] = "host.save-edits"
+
+// ChapterEdits participates in chapter tab close decisions on the frame thread.
+type ChapterEdits struct {
+	// Dirty queries unsaved state through ext.Guard.
+	Dirty func(string) bool
+	// Discard abandons unsaved text through ext.Guard.
+	Discard func(string)
+}
+
+// ChapterEditStates collects chapter draft close participants.
+const ChapterEditStates ext.PointKey[ChapterEdits] = "host.chapter-edits"
+
+// ChapterOpened contains the node and outline freshly read when a writing tab opens.
+type ChapterOpened struct {
+	// ID is the selected node ID, including folders.
+	ID string
+	// Outline is the outline just read from storage.
+	Outline string
+}
+
+// ChapterOpens notifies frame-thread listeners through ext.Call after a node is read.
+const ChapterOpens ext.PointKey[func(ChapterOpened)] = "host.chapter-open"

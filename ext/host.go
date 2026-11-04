@@ -553,7 +553,7 @@ func pointItems[T any](h *Host, key PointKey[T], declared bool) []Item[T] {
 		return out
 	}
 	for _, c := range h.contributions {
-		if c.key == string(key) && (declared || h.byID[c.owner].ledger.State == On) {
+		if c.key == string(key) && (declared || c.owner == HostOwner || h.byID[c.owner].ledger.State == On) {
 			if c.typ != reflect.TypeFor[T]() {
 				panic(fmt.Sprintf("point %q requested with a different type", key))
 			}

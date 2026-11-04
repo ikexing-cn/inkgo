@@ -14,7 +14,7 @@ import (
 // painted last and translated back by its horizontal offset, so neither
 // axis can carry the chapter names or the heading out of view.
 func (p *Page) head(c *ui.Context, left float32, heads func()) {
-	pal := p.Host.Colors()
+	pal := p.Services.Palette.Colors()
 	height := float32(kit.TitleHeight)
 	if p.mode == 1 {
 		height += kit.HTag
@@ -39,11 +39,11 @@ func (p *Page) side(c *ui.Context, left float32, label string, fn func()) {
 	if p.mode == 1 {
 		bottom = 0
 	} // the entire lane draws its bottom border
-	ui.Column(c).Absolute().Left(0).Top(0).Bottom(0).Width(left).Translate(p.scroll[p.mode].X, 0).Padding(16, 12, 16, 24).Gap(4).Background(p.Host.Colors().Canvas).BorderWidth(0, 1, bottom, 0).BorderColor(p.Host.Colors().Line).Label(label).Children(fn)
+	ui.Column(c).Absolute().Left(0).Top(0).Bottom(0).Width(left).Translate(p.scroll[p.mode].X, 0).Padding(16, 12, 16, 24).Gap(4).Background(p.Services.Palette.Colors().Canvas).BorderWidth(0, 1, bottom, 0).BorderColor(p.Services.Palette.Colors().Line).Label(label).Children(fn)
 }
 
 func (p *Page) grid(c *ui.Context) {
-	content := p.Host.Content()
+	content := p.Services.Book.Content()
 	lines := slices.Clone(content.Plan().Lines)
 	g := p.layout(c)
 	width, height := p.viewport.W, p.viewport.H
@@ -86,7 +86,7 @@ func (p *Page) grid(c *ui.Context) {
 			if len(g.rows) == 0 {
 				ui.Column(c).Width(planGistWidth).Padding(32, 24).Gap(8).Children(func() {
 					ui.Text(c, locales.PlanNoneInChapters(kit.Trim(p.query))).FontSize(kit.FsDialog).FontWeight(600)
-					ui.Text(c, locales.PlanFoundCardsBelow(locales.PlanNoChapter())).FontSize(kit.FsNote).TextColor(p.Host.Colors().Theme.TextMuted)
+					ui.Text(c, locales.PlanFoundCardsBelow(locales.PlanNoChapter())).FontSize(kit.FsNote).TextColor(p.Services.Palette.Colors().Theme.TextMuted)
 				})
 			}
 		})
@@ -94,7 +94,7 @@ func (p *Page) grid(c *ui.Context) {
 }
 
 func (p *Page) gridRow(c *ui.Context, row planRow, lines []workspace.PlotLine) {
-	pal := p.Host.Colors()
+	pal := p.Services.Palette.Colors()
 	n := row.node
 	if row.kind == 2 {
 		ui.Text(c, locales.PlanNoVolume()).FontSize(kit.FsGroup).FontWeight(600).Padding(16, 24, 12, 24).Height(row.height).Shrink(0).Translate(p.scroll[0].X, 0).FillWidth().Background(pal.Side)
@@ -130,7 +130,7 @@ func (p *Page) gridRow(c *ui.Context, row planRow, lines []workspace.PlotLine) {
 				}
 				b.Children(func() { p.text(c, n.Title, false).FontWeight(600).SingleLine().Ellipsis("…") })
 				if b.Clicked() {
-					p.Host.OpenWriting(n.ID)
+					p.Services.Desktop.OpenWriting(n.ID)
 				}
 				if p.back(n.ID) {
 					ui.Text(c, locales.PlanBacktrack()).FontSize(kit.FsSmall).Padding(2, 4).Radius(kit.RXs).Border(1, pal.Line).Tooltip(locales.PlanBacktrackHint())
@@ -154,8 +154,8 @@ func (p *Page) gridRow(c *ui.Context, row planRow, lines []workspace.PlotLine) {
 }
 
 func (p *Page) cell(c *ui.Context, chapter, line string, col int, when, after string) {
-	pal := p.Host.Colors()
-	content := p.Host.Content()
+	pal := p.Services.Palette.Colors()
+	content := p.Services.Book.Content()
 	cell := ui.Column(c).Width(planCardWidth).Shrink(0).Padding(10, 12).Gap(8).BorderWidth(0, 1, 1, 0).BorderColor(pal.Line).Label(fmt.Sprintf("大纲格-%s|%s|%d", chapter, line, col))
 	if col != -2 {
 		cell.BorderWidth(0, 1, 0, 0)
@@ -209,8 +209,8 @@ func (p *Page) cell(c *ui.Context, chapter, line string, col int, when, after st
 }
 
 func (p *Page) cardView(c *ui.Context, e workspace.Card, timeline, tray bool) {
-	pal := p.Host.Colors()
-	content := p.Host.Content()
+	pal := p.Services.Palette.Colors()
+	content := p.Services.Book.Content()
 	assigned := p.cardChapter(e) != ""
 	b := ui.ButtonBase(c).Column().FillWidth().Padding(6, 10).Gap(2).Radius(kit.RControl).Background(pal.Raised).Border(1, pal.Theme.Border).Label("卡片-" + e.ID).Tooltip(locales.PlanCardHint()).Drag(dragCard(e.ID))
 	if b.Hovered() {
@@ -265,14 +265,14 @@ func (p *Page) cardView(c *ui.Context, e workspace.Card, timeline, tray bool) {
 }
 
 func (p *Page) tray(c *ui.Context) {
-	pal := p.Host.Colors()
+	pal := p.Services.Palette.Colors()
 	cards := p.cardsOf("")
 	tray := ui.Scroll(c.Key("plan-tray")).FillWidth().MaxHeight(planTrayHeight).Shrink(0).Padding(10, 24, 14, 24).Gap(8).Background(pal.Side).BorderWidth(1, 0, 0, 0).BorderColor(pal.Theme.Border).Label("大纲托盘")
 	if _, over := ui.DragOver[dragCard](tray); over {
 		tray.Background(pal.Theme.SurfaceHover)
 	}
 	if id, ok := ui.Drop[dragCard](tray); ok {
-		p.change(p.Host.Content().PlaceCard(string(id), "", nil))
+		p.change(p.Services.Book.Content().PlaceCard(string(id), "", nil))
 	}
 	tray.Children(func() {
 		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
@@ -297,8 +297,8 @@ func (p *Page) tray(c *ui.Context) {
 }
 
 func (p *Page) timeline(c *ui.Context) {
-	pal := p.Host.Colors()
-	content := p.Host.Content()
+	pal := p.Services.Palette.Colors()
+	content := p.Services.Book.Content()
 	cols := p.index.columns
 	g := p.layout(c)
 	width, height := p.viewport.W, p.viewport.H
@@ -393,7 +393,7 @@ func (p *Page) timeline(c *ui.Context) {
 }
 
 func (p *Page) timeHead(c *ui.Context, i int, col workspace.TimeColumn) {
-	pal := p.Host.Colors()
+	pal := p.Services.Palette.Colors()
 	ui.Column(c).Width(planCardWidth).Height(kit.TitleHeight+kit.HTag).Padding(12, 12, 0, 12).Gap(6).Shrink(0).Children(func() {
 		label := col.When
 		if label == "" {
@@ -452,8 +452,8 @@ func (p *Page) timeHead(c *ui.Context, i int, col workspace.TimeColumn) {
 				}
 			})
 			if save {
-				p.change(p.Host.Content().SaveTime(p.column, p.when))
-				if p.Host.Notices().ErrorText() == "" {
+				p.change(p.Services.Book.Content().SaveTime(p.column, p.when))
+				if p.Services.Notices.Notices().ErrorText() == "" {
 					open = false
 				}
 			}

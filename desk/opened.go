@@ -29,9 +29,6 @@ type openChapter struct {
 	lost      bool
 	lostTitle string
 
-	// The outline, saved as the author pauses like the text.
-	outline book.OutlineDraft
-
 	// changed says the prose was saved since it opened.
 	changed bool
 }

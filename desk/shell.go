@@ -5,6 +5,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
+	"writer/ext/hostapi"
 	"writer/locales"
 	"writer/shelf"
 )
@@ -67,7 +68,7 @@ func (a *App) View(c *ui.Context) {
 	if returned {
 		a.write.checked = time.Time{}
 	}
-	a.plan.WindowActivity(active, returned)
+	a.windowActivity(hostapi.WindowActivity{Active: active, Returned: returned})
 	if !a.menu.Seen {
 		a.menu = kit.MenuState{} // what it belonged to is no longer shown
 	}
@@ -117,7 +118,6 @@ func (a *App) View(c *ui.Context) {
 	a.createDialog(c)
 	a.renameDialog(c)
 	if a.Store != nil {
-		a.plan.Dialog(c)
 		a.leaveView(c)
 		if a.write.trashOpen { // the trash is at the foot of every page
 			a.trashView(c)
