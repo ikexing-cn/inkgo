@@ -1,7 +1,9 @@
 package desk
 
 import (
+	"cmp"
 	"encoding/json"
+	"slices"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
@@ -12,6 +14,13 @@ import (
 
 func declareLifecycle(r *ext.Registrar, a *App) {
 	h := extensionHost{a}
+	ext.Declare(r, hostapi.WordSuffix)
+	ext.Declare(r, hostapi.WordPopovers)
+	ext.DeclareCalls(r, hostapi.WordPopovers, wordPopoverCall)
+	ext.Declare(r, hostapi.Tools)
+	ext.DeclareCalls(r, hostapi.Tools, func(v hostapi.Tool) func(*ui.Context) struct{} {
+		return func(c *ui.Context) struct{} { v.Draw(c); return struct{}{} }
+	})
 	ext.Provide(r, hostapi.TalkService, func(*ext.Session) hostapi.Talk { return h })
 	ext.Provide(r, hostapi.SearchService, func(*ext.Session) hostapi.Search { return h })
 	ext.Provide(r, hostapi.AIService, func(*ext.Session) hostapi.AI { return h })
@@ -250,4 +259,33 @@ func (a *App) extensionPendingGroups() []pendGroup {
 
 func (h extensionHost) Selected() (string, bool, bool) {
 	return h.a.write.node, h.a.write.cur().lost, len(h.a.write.closing) > 0
+}
+
+// Focused reports the host layout state on the frame thread.
+func (h extensionHost) Focused() bool { return h.a.write.focus }
+
+// SetFocus changes the host layout state on the frame thread.
+func (h extensionHost) SetFocus(v bool) { h.a.write.focus = v }
+
+// CategoriesChanged refreshes setting data and open-book consumers on the frame thread.
+func (h extensionHost) CategoriesChanged() error {
+	if err := h.a.book.ReloadSetting(); err != nil {
+		return err
+	}
+	return h.a.refreshFromSetting()
+}
+
+func (a *App) extensionTools(c *ui.Context) {
+	items := ext.Items(a.extensions, hostapi.Tools)
+	slices.SortStableFunc(items, func(a, b ext.Item[hostapi.Tool]) int { return cmp.Compare(a.Value.Order, b.Value.Order) })
+	for _, item := range items {
+		_, _ = ext.Call(a.extensions, ext.HookOf(ext.CallPoint[hostapi.Tool, *ui.Context, struct{}]{Point: hostapi.Tools}, item.ID), c, func(c *ui.Context) struct{} { item.Value.Draw(c); return struct{}{} })
+	}
+}
+
+// HasPage reports a contributed page's availability on the frame thread.
+func (h extensionHost) HasPage(id string) bool {
+	h.a.syncExtensions()
+	p, ok := h.a.pageIDs[id]
+	return ok && h.a.pages[p].available(h.a)
 }

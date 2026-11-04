@@ -116,6 +116,9 @@ func (a *App) titleBar(c *ui.Context) {
 // fileMenu lists the title bar's 文件.
 func (a *App) fileMenu(m *kit.Menu, later func(func()) func()) {
 	for _, row := range a.fileCommands() {
+		if row.id == "categories" {
+			continue
+		}
 		if row.cmd == nil {
 			m.Separator()
 		} else {
@@ -213,7 +216,7 @@ func (a *App) editMenu(m *kit.Menu, later func(func()) func()) {
 	a.barItem(m, later, cmdDraft)
 }
 
-var viewCommandRows = []namedCommand{{id: "side", cmd: cmdSide}, {id: "pane", cmd: cmdPane}, {id: "focus", cmd: cmdFocus},
+var viewCommandRows = []namedCommand{{id: "side", cmd: cmdSide}, {id: "pane", cmd: cmdPane}, {id: "focus"},
 	{id: "view-zoom-separator"}, {id: "zoom-label"}, {id: "zoom-in", cmd: cmdZoomIn}, {id: "zoom-out", cmd: cmdZoomOut}, {id: "zoom-reset", cmd: cmdZoomReset}, {id: "view-look-separator"}, {id: "look-label"}}
 
 // viewMenu lists the title bar's 视图.
@@ -227,7 +230,6 @@ func (a *App) viewMenu(m *kit.Menu, later func(func()) func()) {
 		case "look-label":
 			m.Draw(a.themeChoice)
 		case "focus":
-			cmdFocus.item(a, m).Do(later(func() { a.write.focus = true }))
 		default:
 			a.barItem(m, later, row.cmd)
 		}

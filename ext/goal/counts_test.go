@@ -1,7 +1,9 @@
-package prefs
+package goal
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"slices"
 	"testing"
@@ -61,9 +63,9 @@ func TestCounterGoal(t *testing.T) {
 func TestTodayCountsFromTheDaysStart(t *testing.T) {
 	var c Counter
 	total := 3
-	path := filepath.Join(t.TempDir(), "desk.json")
+	path := filepath.Join(t.TempDir(), "counter.json")
 	save := func() {
-		if err := (Prefs{Counter: c}).Save(path); err != nil {
+		if err := c.save(path); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -79,8 +81,7 @@ func TestTodayCountsFromTheDaysStart(t *testing.T) {
 		t.Fatalf("today is %d, want 7", k)
 	}
 	c.Day, c.DayStart = "", 0
-	p := Load(path)
-	c = p.Counter
+	c = loadCounter(path)
 	if k := c.Today(total, day.Add(2*time.Hour)); k != 7 {
 		t.Fatalf("after reopening today is %d, want 7", k)
 	}
@@ -98,7 +99,14 @@ func TestTodayCountsFromTheDaysStart(t *testing.T) {
 	if want := []int{7, 5, 0, 0}; !slices.Equal(week, want) {
 		t.Fatalf("the last days are %v, want %v", week, want)
 	}
-	if p := Load(path); p.Days["2026-10-09"] != 7 || p.Days["2026-10-10"] != 5 {
+	if p := loadCounter(path); p.Days["2026-10-09"] != 7 || p.Days["2026-10-10"] != 5 {
 		t.Fatalf("days kept %v", p.Days)
 	}
+}
+
+func loadCounter(path string) Counter {
+	var c Counter
+	b, _ := os.ReadFile(path)
+	_ = json.Unmarshal(b, &c)
+	return c
 }

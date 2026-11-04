@@ -110,7 +110,7 @@ func TestMenuHintsComeFromCommands(t *testing.T) {
 				continue
 			}
 			var cmd *command
-			for _, candidate := range commandList {
+			for _, candidate := range a.commandList() {
 				if candidate.name(a) == it.Label {
 					cmd = candidate
 					break

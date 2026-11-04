@@ -19,8 +19,11 @@ import (
 	aimod "writer/ext/ai"
 	"writer/ext/ai/aiapi"
 	"writer/ext/backup"
+	"writer/ext/cats"
 	contextmod "writer/ext/context"
 	"writer/ext/export"
+	"writer/ext/focus"
+	"writer/ext/goal"
 	"writer/ext/lore"
 	"writer/ext/outline"
 	"writer/ext/phone"
@@ -65,13 +68,17 @@ func newApp(config string) *App { return testApp(ai.New(config)) }
 
 func testModules() []ext.Module {
 	mod, _ := backup.New(false)
-	return []ext.Module{contextmod.Module, lore.Module, outline.Module, mod, export.Module, phone.Module}
+	return []ext.Module{contextmod.Module, lore.Module, outline.Module, mod, export.Module, phone.Module, focus.Module, goal.Module, cats.Module}
 }
 
 func testApp(service aiapi.Backend) *App {
 	mod, view := backup.New(false)
 	outlineModule, page := outline.New()
-	a := newTestApp(service, contextmod.Module, lore.Module, outlineModule, mod, export.Module, phone.Module)
+	gm, gp := goal.New()
+	cm, cp := cats.New()
+	a := newTestApp(service, contextmod.Module, lore.Module, outlineModule, mod, export.Module, phone.Module, focus.Module, gm, cm)
+	goalControllers[a] = gp
+	catsControllers[a] = cp
 	outlineControllers[a] = page
 	controllers[a] = view
 	return a
@@ -596,8 +603,8 @@ func TestIncompleteFormsExplainInChinese(t *testing.T) {
 	}
 	// A category without its target is not saved, and is told as what is
 	// left to fill in, not as a failure.
-	a.categoryName, a.categoryTarget = "伏笔", ""
-	if err := a.saveCategory(); err != nil || hintOf(a) != "请填写落点，例如“设定库”或“大纲”" || len(a.Store.Work().Categories) != len(was.Categories) {
+	catsOf(a).Name, catsOf(a).Target = "伏笔", ""
+	if err := catsOf(a).Save(); err != nil || hintOf(a) != "请填写落点，例如“设定库”或“大纲”" || len(a.Store.Work().Categories) != len(was.Categories) {
 		t.Fatalf("category target: %v %q", err, hintOf(a))
 	}
 }
@@ -610,7 +617,7 @@ func TestACategorySavesOnceFilledIn(t *testing.T) {
 		t.Fatal(err)
 	}
 	was := len(a.Store.Work().Categories)
-	a.categoryName = "线索"
+	catsOf(a).Name = "线索"
 	tt.Frame()
 	if err := tt.Click("保存分类"); err != nil {
 		t.Fatal(err)
@@ -619,7 +626,7 @@ func TestACategorySavesOnceFilledIn(t *testing.T) {
 	if hintOf(a) != "" || len(a.Store.Work().Categories) != was {
 		t.Fatalf("pressed with no target: %q", hintOf(a))
 	}
-	a.categoryTarget = "大纲"
+	catsOf(a).Target = "大纲"
 	tt.Frame()
 	if err := tt.Click("保存分类"); err != nil {
 		t.Fatal(err)
@@ -630,7 +637,7 @@ func TestACategorySavesOnceFilledIn(t *testing.T) {
 	}
 	// Whether the name is a new one or one already there, the form says
 	// before it is saved, and what the one there lands in now.
-	a.categoryName = "伏线"
+	catsOf(a).Name = "伏线"
 	tt.Frame()
 	if !tt.HasText("将添加新分类。") {
 		t.Fatal("a new name is not told", tt.Texts())

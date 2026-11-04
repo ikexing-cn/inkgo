@@ -23,10 +23,10 @@ func activityCall(fn func(hostapi.WindowActivity)) func(hostapi.WindowActivity) 
 
 func (a *App) mergePages() {
 	if a.pageIDs == nil {
-		a.pageIDs = map[string]page{"host.categories": pageCategories, "host.talk": pageTalk, "host.write": pageWrite, "host.check": pageCheck, "outline.outline": pagePlan}
+		a.pageIDs = map[string]page{"cats.categories": pageCategories, "host.talk": pageTalk, "host.write": pageWrite, "host.check": pageCheck, "outline.outline": pagePlan}
 	}
 	for i := range a.pages {
-		if i == int(pagePlan) || i > int(pageCategories) {
+		if i == int(pagePlan) || i >= int(pageCategories) {
 			a.pages[i].visible = func() bool { return false }
 		}
 	}
@@ -79,7 +79,9 @@ func (a *App) mergePages() {
 				}
 			})
 		}}
-		a.pageOrder = append(a.pageOrder, id)
+		if !p.MenuOnly {
+			a.pageOrder = append(a.pageOrder, id)
+		}
 	}
 	slices.SortStableFunc(a.pageOrder, func(x, y page) int { return cmp.Compare(a.pages[x].order, a.pages[y].order) })
 }

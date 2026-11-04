@@ -11,7 +11,6 @@ import (
 	"writer/editor"
 	"writer/ext/ai/aiapi"
 	"writer/locales"
-	"writer/prefs"
 	"writer/workspace"
 )
 
@@ -55,15 +54,11 @@ type writeView struct {
 	counted    *editor.Doc
 	countedVer int
 	checked    time.Time
-	counter    prefs.Counter
-	goalText   string // the goal as typed
-	goalOpen   bool
 	offered    string            // the numbered title a new node's name began with
 	size       int               // the text's size, or 0 for the default
 	gists      map[string]string // a line on each chapter of the folder open
 	nodeWords  cached[bookKey, map[string]int]
 	total      cached[bookKey, int]
-	catCounts  cached[bookKey, map[string]int]
 	pane       cached[paneKey, paneNums]
 	carets     map[string]int // where the caret was in each chapter, as it was left
 
@@ -280,7 +275,8 @@ func (a *App) writeTools(c *ui.Context) {
 	// notices appear together; their full words remain in the tooltips.
 	// Find, focus and pane are three square buttons, with the pane's
 	// margins (2 and 8) and the three gaps between notices and buttons.
-	fixed := float32(3*kit.HControlSm + 2 + 8 + 3*2)
+	tools := 2 + len(ext.Items(a.extensions, hostapi.Tools))
+	fixed := float32(tools*kit.HControlSm + 2 + 8 + tools*2)
 	room := win/2 - a.pageSwitchWidth(c)/2 - c.TitleBar().Right - fixed
 	if w.focus {
 		room = win - c.TitleBar().Right - fixed
@@ -330,13 +326,7 @@ func (a *App) writeTools(c *ui.Context) {
 			a.openFind()
 		}
 	}
-	if w.focus {
-		if kit.IconButton(c, kit.IcShrink, locales.TabExitFocus(), a.pal.Ink).Tooltip(locales.TabExitFocusTip(cmdFocus.keys())).KeepFocus().Clicked() {
-			w.focus = false
-		}
-	} else if kit.IconButton(c, kit.IcExpand, locales.CmdFocus(), ui.Color{}).Tooltip(locales.TabFocusTip(cmdFocus.keys())).KeepFocus().Clicked() {
-		w.focus = true
-	}
+	a.extensionTools(c)
 }
 
 // stepButton goes to the chapter opened before the one shown, or after it:

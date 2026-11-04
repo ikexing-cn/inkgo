@@ -126,3 +126,7 @@ func (h *testHost) Flush() {}
 func (h *testHost) Flashed(string) (time.Time, bool) { return time.Time{}, false }
 
 func (h *testHost) ClearFlash(string) {}
+
+func (h *testHost) CategoriesChanged() error { return nil }
+
+func (h *testHost) Held() bool { return false }

@@ -1,0 +1,22 @@
+{
+  "catsNameEmpty": "The category name cannot be empty",
+  "catsLandEmpty": "Enter a destination, for example “Lore library” or “Outline”",
+  "catsSaved": "Category “{name}” saved",
+  "catsDeleted": "Deleted category “{name}”",
+  "catsWillEdit": "Will change the existing category “{name}”. Its destination is now “{land}”.",
+  "catsWillAdd": "Will add a new category.",
+  "catsMoveTo": "{count, plural, one {# lore entry will move to “{other}”} other {# lore entries will move to “{other}”}}",
+  "catsConfirmDelete": "Confirm Delete",
+  "catsCount": "{count, plural, one {# lore entry} other {# lore entries}}",
+  "catsName": "Name",
+  "catsDest": "Destination",
+  "catsEdit": "Edit",
+  "catsNote": "“Destination” is where lore goes once it is settled, for example the lore library or the outline.",
+  "catsFormTitle": "Add or Edit Category",
+  "catsNameLabel": "Category name",
+  "catsLandHint": "e.g. {example}",
+  "catsLandDefault": "Lore library",
+  "catsSave": "Save Category",
+  "modCats": "Book Categories",
+  "modCatsAbout": "Group works on the shelf"
+}

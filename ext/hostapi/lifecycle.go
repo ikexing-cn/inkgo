@@ -65,6 +65,12 @@ type SettingsSection struct {
 // Desktop exposes the writing page, footer animation, settings navigation and
 // platform folder comparison on the frame thread.
 type Desktop interface {
+	// HasPage reports an available contributed page on the frame thread.
+	HasPage(string) bool
+	// Focused reports the layout focus state on the frame thread.
+	Focused() bool
+	// SetFocus changes layout focus on the frame thread.
+	SetFocus(bool)
 	// Selected returns the displayed node, whether it is lost, and whether saving waits for a close decision; frame thread only.
 	Selected() (id string, lost, paused bool)
 	// Writing reports whether the writing page is active.
@@ -74,7 +80,7 @@ type Desktop interface {
 	// OpenSettings opens the page registered by a qualified SettingsPages
 	// contribution ID, such as backup.settings. Unknown IDs open Extensions.
 	OpenSettings(id string)
-	// ShowPage selects a registered page by qualified ID, including host.categories.
+	// ShowPage selects a registered page by qualified ID, such as cats.categories.
 	// Call directly on the frame thread, without ext.Call or ext.Guard.
 	ShowPage(id string)
 	// OpenWriting selects the writing page and opens a chapter on the frame thread.
@@ -156,3 +162,30 @@ type ChapterOpened struct {
 
 // ChapterOpens notifies frame-thread listeners through ext.Call after a node is read.
 const ChapterOpens ext.PointKey[func(ChapterOpened)] = "host.chapter-open"
+
+// CountSuffix supplies the inline count suffix and tooltip on the frame thread.
+type CountSuffix struct {
+	Text    func() string
+	Tooltip func(string) string
+}
+
+// WordPopovers draws count popovers on the frame thread through ext.Call.
+// The anchor is borrowed for this frame only and clicked reports its click.
+const WordPopovers ext.PointKey[WordPopover] = "host.word-popovers"
+
+// WordPopover draws against a borrowed count anchor on the frame thread.
+type WordPopover struct {
+	Draw func(*ui.Context, ui.Element, bool)
+}
+
+// WordSuffix collects suffixes on the frame thread through ext.Guard.
+const WordSuffix ext.PointKey[CountSuffix] = "host.word-suffix"
+
+// Tool draws a writing tool on the frame thread, ordered among host tools.
+type Tool struct {
+	Order int
+	Draw  func(*ui.Context)
+}
+
+// Tools collects writing tools on the frame thread through ext.Call.
+const Tools ext.PointKey[Tool] = "host.tools"

@@ -1,0 +1,96 @@
+{
+  "catsNameEmpty": "分类名称不能为空",
+  "catsLandEmpty": "请填写落点，例如“设定库”或“大纲”",
+  "catsSaved": "分类“{name}”已保存",
+  "@catsSaved": {
+    "description": "保存分类后的提示。",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "人物"
+      }
+    }
+  },
+  "catsDeleted": "已删除分类“{name}”",
+  "@catsDeleted": {
+    "description": "删除分类后的提示。",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "人物"
+      }
+    }
+  },
+  "catsWillEdit": "将修改已有的分类“{name}”，现在的落点是“{land}”。",
+  "@catsWillEdit": {
+    "description": "表单下面：同名的是改那一条。",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "人物"
+      },
+      "land": {
+        "type": "String",
+        "example": "设定库"
+      }
+    }
+  },
+  "catsWillAdd": "将添加新分类。",
+  "catsMoveTo": "{count, plural, other {# 条设定将移到“{other}”}}",
+  "@catsMoveTo": {
+    "description": "删除有设定的分类之前的提问：设定会移到哪。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "other": {
+        "type": "String",
+        "example": "其他"
+      }
+    }
+  },
+  "catsConfirmDelete": "确认删除",
+  "catsCount": "{count, plural, other {# 条}}",
+  "@catsCount": {
+    "description": "分类行右边的设定条数。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "catsName": "名称",
+  "catsDest": "落点",
+  "@catsDest": {
+    "description": "落点：设定成熟后的去处，例如设定库或大纲。"
+  },
+  "catsEdit": "编辑",
+  "catsNote": "“落点”指设定成熟后的去处，例如设定库或大纲。",
+  "catsFormTitle": "添加或修改分类",
+  "catsNameLabel": "分类名称",
+  "catsLandHint": "例如 {example}",
+  "@catsLandHint": {
+    "description": "落点输入框的提示，给一个例子。",
+    "placeholders": {
+      "example": {
+        "type": "String",
+        "example": "设定库"
+      }
+    }
+  },
+  "catsLandDefault": "设定库",
+  "@catsLandDefault": {
+    "description": "没有写落点的分类，默认的去处。"
+  },
+  "catsSave": "保存分类",
+  "modCats": "作品分类",
+  "@modCats": {
+    "description": "「功能」里一个模块的名字。"
+  },
+  "modCatsAbout": "在书架上给作品分组",
+  "@modCatsAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  }
+}

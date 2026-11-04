@@ -198,16 +198,6 @@ func (msgs Messages) CmdSnapshots() string {
 	return Catalog.Format(msgs.locale, "cmdSnapshots", nil)
 }
 
-// CmdCategories says "作品分类"
-// in the language the app shows.
-func CmdCategories() string { return In(i18n.Locale()).CmdCategories() }
-
-// CmdCategories says "作品分类"
-// in the language of msgs.
-func (msgs Messages) CmdCategories() string {
-	return Catalog.Format(msgs.locale, "cmdCategories", nil)
-}
-
 // CmdTrash says "回收站…"
 // in the language the app shows.
 func CmdTrash() string { return In(i18n.Locale()).CmdTrash() }
@@ -330,16 +320,6 @@ func CmdShowPane() string { return In(i18n.Locale()).CmdShowPane() }
 // in the language of msgs.
 func (msgs Messages) CmdShowPane() string {
 	return Catalog.Format(msgs.locale, "cmdShowPane", nil)
-}
-
-// CmdFocus says "专注写作"
-// in the language the app shows.
-func CmdFocus() string { return In(i18n.Locale()).CmdFocus() }
-
-// CmdFocus says "专注写作"
-// in the language of msgs.
-func (msgs Messages) CmdFocus() string {
-	return Catalog.Format(msgs.locale, "cmdFocus", nil)
 }
 
 // CmdZoomIn says "放大"
@@ -1104,44 +1084,6 @@ func (msgs Messages) TabFindTip(key string) string {
 	return Catalog.Format(msgs.locale, "tabFindTip", map[string]any{"key": key})
 }
 
-// TabExitFocus says "退出专注"
-// in the language the app shows.
-func TabExitFocus() string { return In(i18n.Locale()).TabExitFocus() }
-
-// TabExitFocus says "退出专注"
-// in the language of msgs.
-func (msgs Messages) TabExitFocus() string {
-	return Catalog.Format(msgs.locale, "tabExitFocus", nil)
-}
-
-// TabExitFocusTip says "退出专注，恢复章节树和右栏（{key}）"
-// in the language the app shows.
-//
-// 专注写作开关的提示，带它的快捷键。
-func TabExitFocusTip(key string) string { return In(i18n.Locale()).TabExitFocusTip(key) }
-
-// TabExitFocusTip says "退出专注，恢复章节树和右栏（{key}）"
-// in the language of msgs.
-//
-// 专注写作开关的提示，带它的快捷键。
-func (msgs Messages) TabExitFocusTip(key string) string {
-	return Catalog.Format(msgs.locale, "tabExitFocusTip", map[string]any{"key": key})
-}
-
-// TabFocusTip says "仅显示正文，收起章节树和右栏（{key}）"
-// in the language the app shows.
-//
-// 专注写作开关的提示，带它的快捷键。
-func TabFocusTip(key string) string { return In(i18n.Locale()).TabFocusTip(key) }
-
-// TabFocusTip says "仅显示正文，收起章节树和右栏（{key}）"
-// in the language of msgs.
-//
-// 专注写作开关的提示，带它的快捷键。
-func (msgs Messages) TabFocusTip(key string) string {
-	return Catalog.Format(msgs.locale, "tabFocusTip", map[string]any{"key": key})
-}
-
 // TabMarksHere says "本章伏笔"
 // in the language the app shows.
 //
@@ -1238,90 +1180,6 @@ func StatusWorkSwitchedUndo() string { return In(i18n.Locale()).StatusWorkSwitch
 // 应用外壳：作品已切换，无法撤销
 func (msgs Messages) StatusWorkSwitchedUndo() string {
 	return Catalog.Format(msgs.locale, "statusWorkSwitchedUndo", nil)
-}
-
-// StatusDayWritten says "{unit, select, word {{day} 写了 {count, plural, other {# 词}}} other {{day} 写了 {count, plural, other {# 字}}}}"
-// in the language the app shows.
-//
-// 应用外壳：{day}写了{count, plural, other { # 字}}
-func StatusDayWritten(day string, count int, unit string) string {
-	return In(i18n.Locale()).StatusDayWritten(day, count, unit)
-}
-
-// StatusDayWritten says "{unit, select, word {{day} 写了 {count, plural, other {# 词}}} other {{day} 写了 {count, plural, other {# 字}}}}"
-// in the language of msgs.
-//
-// 应用外壳：{day}写了{count, plural, other { # 字}}
-func (msgs Messages) StatusDayWritten(day string, count int, unit string) string {
-	return Catalog.Format(msgs.locale, "statusDayWritten", map[string]any{"day": day, "count": count, "unit": unit})
-}
-
-// StatusSignedWords says "{unit, select, word {{count, plural, other {{signed} 词}}} other {{count, plural, other {{signed} 字}}}}"
-// in the language the app shows.
-//
-// 应用外壳：{count, plural, other {{signed} 字}}
-func StatusSignedWords(count int, signed string, unit string) string {
-	return In(i18n.Locale()).StatusSignedWords(count, signed, unit)
-}
-
-// StatusSignedWords says "{unit, select, word {{count, plural, other {{signed} 词}}} other {{count, plural, other {{signed} 字}}}}"
-// in the language of msgs.
-//
-// 应用外壳：{count, plural, other {{signed} 字}}
-func (msgs Messages) StatusSignedWords(count int, signed string, unit string) string {
-	return Catalog.Format(msgs.locale, "statusSignedWords", map[string]any{"count": count, "signed": signed, "unit": unit})
-}
-
-// StatusCountGoalTip says "{unit, select, word {{book}，今天 {count, plural, other {{signed} 词}}，目标 {goal, plural, other {# 词}}…"
-// in the language the app shows.
-//
-// 底栏字数提示；signed 是带正负号的展示串，count 和 goal
-// 是数量。
-func StatusCountGoalTip(book string, count int, signed string, goal int, unit string) string {
-	return In(i18n.Locale()).StatusCountGoalTip(book, count, signed, goal, unit)
-}
-
-// StatusCountGoalTip says "{unit, select, word {{book}，今天 {count, plural, other {{signed} 词}}，目标 {goal, plural, other {# 词}}…"
-// in the language of msgs.
-//
-// 底栏字数提示；signed 是带正负号的展示串，count 和 goal
-// 是数量。
-func (msgs Messages) StatusCountGoalTip(book string, count int, signed string, goal int, unit string) string {
-	return Catalog.Format(msgs.locale, "statusCountGoalTip", map[string]any{"book": book, "count": count, "signed": signed, "goal": goal, "unit": unit})
-}
-
-// StatusCountTip says "{unit, select, word {{book}，今天 {count, plural, other {{signed} 词}}。点击设置每日目标} other {{book}…"
-// in the language the app shows.
-//
-// 应用外壳：{book}，今天 {count, plural, other {{signed}
-// 字}}。点击设置每日目标
-func StatusCountTip(book string, count int, signed string, unit string) string {
-	return In(i18n.Locale()).StatusCountTip(book, count, signed, unit)
-}
-
-// StatusCountTip says "{unit, select, word {{book}，今天 {count, plural, other {{signed} 词}}。点击设置每日目标} other {{book}…"
-// in the language of msgs.
-//
-// 应用外壳：{book}，今天 {count, plural, other {{signed}
-// 字}}。点击设置每日目标
-func (msgs Messages) StatusCountTip(book string, count int, signed string, unit string) string {
-	return Catalog.Format(msgs.locale, "statusCountTip", map[string]any{"book": book, "count": count, "signed": signed, "unit": unit})
-}
-
-// StatusTodayCount says "{count, plural, other { · 今天 {signed}}}"
-// in the language the app shows.
-//
-// 应用外壳：{count, plural, other { · 今天 {signed}}}
-func StatusTodayCount(count int, signed string) string {
-	return In(i18n.Locale()).StatusTodayCount(count, signed)
-}
-
-// StatusTodayCount says "{count, plural, other { · 今天 {signed}}}"
-// in the language of msgs.
-//
-// 应用外壳：{count, plural, other { · 今天 {signed}}}
-func (msgs Messages) StatusTodayCount(count int, signed string) string {
-	return Catalog.Format(msgs.locale, "statusTodayCount", map[string]any{"count": count, "signed": signed})
 }
 
 // StatusBookCountLine says "{book}{today}"
@@ -1972,84 +1830,6 @@ func StatusBookWords(count string) string { return In(i18n.Locale()).StatusBookW
 // 底栏字数：全书多少字，count 已经带了「字」。
 func (msgs Messages) StatusBookWords(count string) string {
 	return Catalog.Format(msgs.locale, "statusBookWords", map[string]any{"count": count})
-}
-
-// StatusTodayGoal says " · 今天 {today} / {goal}"
-// in the language the app shows.
-//
-// 底栏字数后面：今天写了多少字 /
-// 每日目标。前面有空格和中点。
-func StatusTodayGoal(today int, goal int) string {
-	return In(i18n.Locale()).StatusTodayGoal(today, goal)
-}
-
-// StatusTodayGoal says " · 今天 {today} / {goal}"
-// in the language of msgs.
-//
-// 底栏字数后面：今天写了多少字 /
-// 每日目标。前面有空格和中点。
-func (msgs Messages) StatusTodayGoal(today int, goal int) string {
-	return Catalog.Format(msgs.locale, "statusTodayGoal", map[string]any{"today": today, "goal": goal})
-}
-
-// StatusLast7 says "最近 7 天"
-// in the language the app shows.
-func StatusLast7() string { return In(i18n.Locale()).StatusLast7() }
-
-// StatusLast7 says "最近 7 天"
-// in the language of msgs.
-func (msgs Messages) StatusLast7() string {
-	return Catalog.Format(msgs.locale, "statusLast7", nil)
-}
-
-// StatusDailyGoal says "每日目标"
-// in the language the app shows.
-func StatusDailyGoal() string { return In(i18n.Locale()).StatusDailyGoal() }
-
-// StatusDailyGoal says "每日目标"
-// in the language of msgs.
-func (msgs Messages) StatusDailyGoal() string {
-	return Catalog.Format(msgs.locale, "statusDailyGoal", nil)
-}
-
-// StatusGoalHint says "比如 2000"
-// in the language the app shows.
-func StatusGoalHint() string { return In(i18n.Locale()).StatusGoalHint() }
-
-// StatusGoalHint says "比如 2000"
-// in the language of msgs.
-func (msgs Messages) StatusGoalHint() string {
-	return Catalog.Format(msgs.locale, "statusGoalHint", nil)
-}
-
-// StatusGoalLabel says "{unit, select, word {每日目标词数} other {每日目标字数}}"
-// in the language the app shows.
-func StatusGoalLabel(unit string) string { return In(i18n.Locale()).StatusGoalLabel(unit) }
-
-// StatusGoalLabel says "{unit, select, word {每日目标词数} other {每日目标字数}}"
-// in the language of msgs.
-func (msgs Messages) StatusGoalLabel(unit string) string {
-	return Catalog.Format(msgs.locale, "statusGoalLabel", map[string]any{"unit": unit})
-}
-
-// StatusGoalNote says "{unit, select, word {词数旁显示今日词数和目标。} other {字数旁显示今日字数和目标。}}"
-// in the language the app shows.
-func StatusGoalNote(unit string) string { return In(i18n.Locale()).StatusGoalNote(unit) }
-
-// StatusGoalNote says "{unit, select, word {词数旁显示今日词数和目标。} other {字数旁显示今日字数和目标。}}"
-// in the language of msgs.
-func (msgs Messages) StatusGoalNote(unit string) string {
-	return Catalog.Format(msgs.locale, "statusGoalNote", map[string]any{"unit": unit})
-}
-
-// StatusGoalError says "每日目标须为正整数，留空则不设。"
-// in the language the app shows.
-func StatusGoalError() string { return In(i18n.Locale()).StatusGoalError() }
-
-// StatusGoalError says "每日目标须为正整数，留空则不设。"
-// in the language of msgs.
-func (msgs Messages) StatusGoalError() string {
-	return Catalog.Format(msgs.locale, "statusGoalError", nil)
 }
 
 // StatusWordsTip says "{unit, select, word {词数。点击设置每日目标} other {字数。点击设置每日目标}}"
@@ -6168,218 +5948,6 @@ func (msgs Messages) CheckLater() string {
 	return Catalog.Format(msgs.locale, "checkLater", nil)
 }
 
-// CatsNameEmpty says "分类名称不能为空"
-// in the language the app shows.
-func CatsNameEmpty() string { return In(i18n.Locale()).CatsNameEmpty() }
-
-// CatsNameEmpty says "分类名称不能为空"
-// in the language of msgs.
-func (msgs Messages) CatsNameEmpty() string {
-	return Catalog.Format(msgs.locale, "catsNameEmpty", nil)
-}
-
-// CatsLandEmpty says "请填写落点，例如“设定库”或“大纲”"
-// in the language the app shows.
-func CatsLandEmpty() string { return In(i18n.Locale()).CatsLandEmpty() }
-
-// CatsLandEmpty says "请填写落点，例如“设定库”或“大纲”"
-// in the language of msgs.
-func (msgs Messages) CatsLandEmpty() string {
-	return Catalog.Format(msgs.locale, "catsLandEmpty", nil)
-}
-
-// CatsSaved says "分类“{name}”已保存"
-// in the language the app shows.
-//
-// 保存分类后的提示。
-func CatsSaved(name string) string { return In(i18n.Locale()).CatsSaved(name) }
-
-// CatsSaved says "分类“{name}”已保存"
-// in the language of msgs.
-//
-// 保存分类后的提示。
-func (msgs Messages) CatsSaved(name string) string {
-	return Catalog.Format(msgs.locale, "catsSaved", map[string]any{"name": name})
-}
-
-// CatsDeleted says "已删除分类“{name}”"
-// in the language the app shows.
-//
-// 删除分类后的提示。
-func CatsDeleted(name string) string { return In(i18n.Locale()).CatsDeleted(name) }
-
-// CatsDeleted says "已删除分类“{name}”"
-// in the language of msgs.
-//
-// 删除分类后的提示。
-func (msgs Messages) CatsDeleted(name string) string {
-	return Catalog.Format(msgs.locale, "catsDeleted", map[string]any{"name": name})
-}
-
-// CatsWillEdit says "将修改已有的分类“{name}”，现在的落点是“{land}”。"
-// in the language the app shows.
-//
-// 表单下面：同名的是改那一条。
-func CatsWillEdit(name string, land string) string { return In(i18n.Locale()).CatsWillEdit(name, land) }
-
-// CatsWillEdit says "将修改已有的分类“{name}”，现在的落点是“{land}”。"
-// in the language of msgs.
-//
-// 表单下面：同名的是改那一条。
-func (msgs Messages) CatsWillEdit(name string, land string) string {
-	return Catalog.Format(msgs.locale, "catsWillEdit", map[string]any{"name": name, "land": land})
-}
-
-// CatsWillAdd says "将添加新分类。"
-// in the language the app shows.
-func CatsWillAdd() string { return In(i18n.Locale()).CatsWillAdd() }
-
-// CatsWillAdd says "将添加新分类。"
-// in the language of msgs.
-func (msgs Messages) CatsWillAdd() string {
-	return Catalog.Format(msgs.locale, "catsWillAdd", nil)
-}
-
-// CatsMoveTo says "{count, plural, other {# 条设定将移到“{other}”}}"
-// in the language the app shows.
-//
-// 删除有设定的分类之前的提问：设定会移到哪。
-func CatsMoveTo(count int, other string) string { return In(i18n.Locale()).CatsMoveTo(count, other) }
-
-// CatsMoveTo says "{count, plural, other {# 条设定将移到“{other}”}}"
-// in the language of msgs.
-//
-// 删除有设定的分类之前的提问：设定会移到哪。
-func (msgs Messages) CatsMoveTo(count int, other string) string {
-	return Catalog.Format(msgs.locale, "catsMoveTo", map[string]any{"count": count, "other": other})
-}
-
-// CatsConfirmDelete says "确认删除"
-// in the language the app shows.
-func CatsConfirmDelete() string { return In(i18n.Locale()).CatsConfirmDelete() }
-
-// CatsConfirmDelete says "确认删除"
-// in the language of msgs.
-func (msgs Messages) CatsConfirmDelete() string {
-	return Catalog.Format(msgs.locale, "catsConfirmDelete", nil)
-}
-
-// CatsCount says "{count, plural, other {# 条}}"
-// in the language the app shows.
-//
-// 分类行右边的设定条数。
-func CatsCount(count int) string { return In(i18n.Locale()).CatsCount(count) }
-
-// CatsCount says "{count, plural, other {# 条}}"
-// in the language of msgs.
-//
-// 分类行右边的设定条数。
-func (msgs Messages) CatsCount(count int) string {
-	return Catalog.Format(msgs.locale, "catsCount", map[string]any{"count": count})
-}
-
-// CatsName says "名称"
-// in the language the app shows.
-func CatsName() string { return In(i18n.Locale()).CatsName() }
-
-// CatsName says "名称"
-// in the language of msgs.
-func (msgs Messages) CatsName() string {
-	return Catalog.Format(msgs.locale, "catsName", nil)
-}
-
-// CatsDest says "落点"
-// in the language the app shows.
-//
-// 落点：设定成熟后的去处，例如设定库或大纲。
-func CatsDest() string { return In(i18n.Locale()).CatsDest() }
-
-// CatsDest says "落点"
-// in the language of msgs.
-//
-// 落点：设定成熟后的去处，例如设定库或大纲。
-func (msgs Messages) CatsDest() string {
-	return Catalog.Format(msgs.locale, "catsDest", nil)
-}
-
-// CatsEdit says "编辑"
-// in the language the app shows.
-func CatsEdit() string { return In(i18n.Locale()).CatsEdit() }
-
-// CatsEdit says "编辑"
-// in the language of msgs.
-func (msgs Messages) CatsEdit() string {
-	return Catalog.Format(msgs.locale, "catsEdit", nil)
-}
-
-// CatsNote says "“落点”指设定成熟后的去处，例如设定库或大纲。"
-// in the language the app shows.
-func CatsNote() string { return In(i18n.Locale()).CatsNote() }
-
-// CatsNote says "“落点”指设定成熟后的去处，例如设定库或大纲。"
-// in the language of msgs.
-func (msgs Messages) CatsNote() string {
-	return Catalog.Format(msgs.locale, "catsNote", nil)
-}
-
-// CatsFormTitle says "添加或修改分类"
-// in the language the app shows.
-func CatsFormTitle() string { return In(i18n.Locale()).CatsFormTitle() }
-
-// CatsFormTitle says "添加或修改分类"
-// in the language of msgs.
-func (msgs Messages) CatsFormTitle() string {
-	return Catalog.Format(msgs.locale, "catsFormTitle", nil)
-}
-
-// CatsNameLabel says "分类名称"
-// in the language the app shows.
-func CatsNameLabel() string { return In(i18n.Locale()).CatsNameLabel() }
-
-// CatsNameLabel says "分类名称"
-// in the language of msgs.
-func (msgs Messages) CatsNameLabel() string {
-	return Catalog.Format(msgs.locale, "catsNameLabel", nil)
-}
-
-// CatsLandHint says "例如 {example}"
-// in the language the app shows.
-//
-// 落点输入框的提示，给一个例子。
-func CatsLandHint(example string) string { return In(i18n.Locale()).CatsLandHint(example) }
-
-// CatsLandHint says "例如 {example}"
-// in the language of msgs.
-//
-// 落点输入框的提示，给一个例子。
-func (msgs Messages) CatsLandHint(example string) string {
-	return Catalog.Format(msgs.locale, "catsLandHint", map[string]any{"example": example})
-}
-
-// CatsLandDefault says "设定库"
-// in the language the app shows.
-//
-// 没有写落点的分类，默认的去处。
-func CatsLandDefault() string { return In(i18n.Locale()).CatsLandDefault() }
-
-// CatsLandDefault says "设定库"
-// in the language of msgs.
-//
-// 没有写落点的分类，默认的去处。
-func (msgs Messages) CatsLandDefault() string {
-	return Catalog.Format(msgs.locale, "catsLandDefault", nil)
-}
-
-// CatsSave says "保存分类"
-// in the language the app shows.
-func CatsSave() string { return In(i18n.Locale()).CatsSave() }
-
-// CatsSave says "保存分类"
-// in the language of msgs.
-func (msgs Messages) CatsSave() string {
-	return Catalog.Format(msgs.locale, "catsSave", nil)
-}
-
 // ShelfViewAs says "按{view}显示"
 // in the language the app shows.
 //
@@ -9240,16 +8808,6 @@ func (msgs Messages) HelpCloseTab() string {
 	return Catalog.Format(msgs.locale, "helpCloseTab", nil)
 }
 
-// HelpFocus says "专注写作：仅显示正文"
-// in the language the app shows.
-func HelpFocus() string { return In(i18n.Locale()).HelpFocus() }
-
-// HelpFocus says "专注写作：仅显示正文"
-// in the language of msgs.
-func (msgs Messages) HelpFocus() string {
-	return Catalog.Format(msgs.locale, "helpFocus", nil)
-}
-
 // HelpContinue says "在光标处续写一句"
 // in the language the app shows.
 func HelpContinue() string { return In(i18n.Locale()).HelpContinue() }
@@ -10058,90 +9616,6 @@ func (msgs Messages) ModNamesAbout() string {
 	return Catalog.Format(msgs.locale, "modNamesAbout", nil)
 }
 
-// ModGoal says "{unit, select, word {词数目标} other {字数目标}}"
-// in the language the app shows.
-//
-// 「功能」里一个模块的名字。
-func ModGoal(unit string) string { return In(i18n.Locale()).ModGoal(unit) }
-
-// ModGoal says "{unit, select, word {词数目标} other {字数目标}}"
-// in the language of msgs.
-//
-// 「功能」里一个模块的名字。
-func (msgs Messages) ModGoal(unit string) string {
-	return Catalog.Format(msgs.locale, "modGoal", map[string]any{"unit": unit})
-}
-
-// ModGoalAbout says "每天写多少字"
-// in the language the app shows.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func ModGoalAbout() string { return In(i18n.Locale()).ModGoalAbout() }
-
-// ModGoalAbout says "每天写多少字"
-// in the language of msgs.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func (msgs Messages) ModGoalAbout() string {
-	return Catalog.Format(msgs.locale, "modGoalAbout", nil)
-}
-
-// ModFocus says "专注写作"
-// in the language the app shows.
-//
-// 「功能」里一个模块的名字。
-func ModFocus() string { return In(i18n.Locale()).ModFocus() }
-
-// ModFocus says "专注写作"
-// in the language of msgs.
-//
-// 「功能」里一个模块的名字。
-func (msgs Messages) ModFocus() string {
-	return Catalog.Format(msgs.locale, "modFocus", nil)
-}
-
-// ModFocusAbout says "只留正文，其余隐藏"
-// in the language the app shows.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func ModFocusAbout() string { return In(i18n.Locale()).ModFocusAbout() }
-
-// ModFocusAbout says "只留正文，其余隐藏"
-// in the language of msgs.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func (msgs Messages) ModFocusAbout() string {
-	return Catalog.Format(msgs.locale, "modFocusAbout", nil)
-}
-
-// ModCats says "作品分类"
-// in the language the app shows.
-//
-// 「功能」里一个模块的名字。
-func ModCats() string { return In(i18n.Locale()).ModCats() }
-
-// ModCats says "作品分类"
-// in the language of msgs.
-//
-// 「功能」里一个模块的名字。
-func (msgs Messages) ModCats() string {
-	return Catalog.Format(msgs.locale, "modCats", nil)
-}
-
-// ModCatsAbout says "在书架上给作品分组"
-// in the language the app shows.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func ModCatsAbout() string { return In(i18n.Locale()).ModCatsAbout() }
-
-// ModCatsAbout says "在书架上给作品分组"
-// in the language of msgs.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func (msgs Messages) ModCatsAbout() string {
-	return Catalog.Format(msgs.locale, "modCatsAbout", nil)
-}
-
 // ModSnaps says "历史版本"
 // in the language the app shows.
 //
@@ -10826,4 +10300,14 @@ func BookLanguageUnsupported(language string) string {
 // in the language of msgs.
 func (msgs Messages) BookLanguageUnsupported(language string) string {
 	return Catalog.Format(msgs.locale, "bookLanguageUnsupported", map[string]any{"language": language})
+}
+
+// CmdCategories says "作品分类"
+// in the language the app shows.
+func CmdCategories() string { return In(i18n.Locale()).CmdCategories() }
+
+// CmdCategories says "作品分类"
+// in the language of msgs.
+func (msgs Messages) CmdCategories() string {
+	return Catalog.Format(msgs.locale, "cmdCategories", nil)
 }

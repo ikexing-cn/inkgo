@@ -4,7 +4,7 @@ import "testing"
 
 func cacheBuilds(a *App) int {
 	return a.write.fores.builds + a.write.doubts.builds + a.write.pending.builds +
-		a.write.nodeWords.builds + a.write.total.builds + a.write.catCounts.builds +
+		a.write.nodeWords.builds + a.write.total.builds +
 		a.write.pane.builds + a.write.nameLinks.builds + a.write.margin.notes.builds +
 		a.ck.items.builds + a.ck.itemsMeant.builds + a.ck.listed.builds +
 		a.doc.ideas.builds + lorePanel(a).CacheBuilds()

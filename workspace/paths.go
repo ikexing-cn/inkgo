@@ -159,3 +159,12 @@ func (s *Store) prepareExtension(id string) error {
 	}
 	return os.MkdirAll(dir, 0755)
 }
+
+// LocalExtDir returns a machine-local per-book extension directory without creating it.
+// IDs and paths use the same validation and symlink checks as ExtDir.
+func (s *Store) LocalExtDir(id string) (string, error) {
+	if _, err := s.ExtDir(id); err != nil {
+		return "", err
+	}
+	return s.path(".writer", "ext", id)
+}

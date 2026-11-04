@@ -114,10 +114,6 @@ type App struct {
 	jobs                             jobs
 	chat                             ui.ListState
 	rows                             []int // the chat list's: event indexes, -1 the empty chat, -2 the turn in flight
-	categoryName                     string
-	categoryTarget                   string
-	categoryShow                     bool // the form was opened on a category, to come into view
-	removeCategory                   string
 	md                               kit.MarkdownState
 	thoughts                         map[string]*bool // reasoning shown, by event or revision ID
 	doc                              docView

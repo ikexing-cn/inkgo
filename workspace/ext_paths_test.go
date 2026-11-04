@@ -173,3 +173,30 @@ func TestExternalOutlineChangesDoNotEnterChapterCounts(t *testing.T) {
 		t.Fatal("deleted outline still read", out)
 	}
 }
+
+func TestLocalExtDirIsPerBookAndRejectsInvalidIDsAndSymlinks(t *testing.T) {
+	s := testStore(t)
+	dir, err := s.LocalExtDir("goal")
+	if err != nil || dir != filepath.Join(s.Root(), ".writer", "ext", "goal") {
+		t.Fatal(dir, err)
+	}
+	if _, err = os.Stat(dir); !os.IsNotExist(err) {
+		t.Fatal("directory was created", err)
+	}
+	for _, id := range []string{"", "..", "../goal", "a/b", `a\b`} {
+		if _, err = s.LocalExtDir(id); err == nil {
+			t.Fatal(id)
+		}
+	}
+	require := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	require(os.MkdirAll(filepath.Join(s.Root(), ".writer", "ext"), 0755))
+	require(os.Symlink(t.TempDir(), dir))
+	if _, err = s.LocalExtDir("goal"); err == nil {
+		t.Fatal("symlink accepted")
+	}
+}

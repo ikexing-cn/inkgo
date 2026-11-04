@@ -31,6 +31,7 @@ func TestCommandLabelsFollowLocale(t *testing.T) {
 }
 
 func TestCommandPlatformBindings(t *testing.T) {
+	cmdFocus := focusCommand(t)
 	for _, c := range []struct {
 		cmd      *command
 		win, mac string
@@ -65,6 +66,7 @@ func TestCommandPlatformBindings(t *testing.T) {
 }
 
 func TestMacFocusDoesNotTriggerFind(t *testing.T) {
+	cmdFocus := focusCommand(t)
 	find, focus := false, false
 	tt := ui.NewTester(func(c *ui.Context) {
 		// Preserve commandList's order: Find is checked first.

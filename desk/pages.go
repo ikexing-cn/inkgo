@@ -45,10 +45,7 @@ func (a *App) initPages() {
 			},
 			view: a.checkPage,
 		},
-		pageCategories: {
-			tabEntry: tabEntry[page]{name: locales.CmdCategories, icon: kit.IcTag, work: true},
-			view:     a.categories,
-		},
+		pageCategories: {},
 	}
 	for id := range a.pages {
 		a.pages[id].id = page(id)

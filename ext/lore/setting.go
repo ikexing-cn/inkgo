@@ -265,7 +265,9 @@ func (a *Panel) settingList(c *ui.Context) {
 	if a.paneFind(c, &d.Query, loretext.LoreSearch(), loretext.CommonNew(), func(m *kit.Menu) {
 		m.Item(loretext.CheckDeleted()).Hint(kit.Count(dropped)).Do(d.Route.ShowDropped)
 		m.Item(loretext.LoreLog()).Do(d.Route.ShowHistory)
-		m.Item(locales.CmdCategories()).Do(func() { a.services.Desktop.ShowPage("host.categories") })
+		if a.services.Desktop.HasPage("cats.categories") {
+			m.Item(locales.CmdCategories()).Do(func() { a.services.Desktop.ShowPage("cats.categories") })
+		}
 	}) {
 		d.Route.NewEntry()
 		d.Text, d.Category, d.Name, d.Names = "", a.firstCategory(), "", ""

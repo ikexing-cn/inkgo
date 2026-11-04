@@ -36,8 +36,8 @@ func TestLoadPreferences(t *testing.T) {
 
 func TestPreferencesKeepJSONValues(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "desk.json")
-	p := Prefs{SettingHidden: true, Chapter: "chapter", Tabs: []string{"chapter"}, Writing: true, PaneTab: "phone", Counter: Counter{Day: "2026-10-22", DayStart: 100, Goal: 2000, Days: map[string]int{"2026-10-21": 7}}, Carets: map[string]int{"chapter": 3}}
-	want := `{"setting_hidden":true,"chapter":"chapter","tabs":["chapter"],"writing":true,"pane_tab":"phone","day":"2026-10-22","day_start":100,"day_goal":2000,"carets":{"chapter":3},"days":{"2026-10-21":7}}`
+	p := Prefs{SettingHidden: true, Chapter: "chapter", Tabs: []string{"chapter"}, Writing: true, PaneTab: "phone", Carets: map[string]int{"chapter": 3}}
+	want := `{"setting_hidden":true,"chapter":"chapter","tabs":["chapter"],"writing":true,"pane_tab":"phone","carets":{"chapter":3}}`
 	if err := p.Save(path); err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +58,7 @@ func TestPreferencesKeepJSONValues(t *testing.T) {
 	if err := json.Unmarshal(got, &p); err != nil {
 		t.Fatal(err)
 	}
-	if q := Load(path); q.Goal != 2000 || q.Carets["chapter"] != 3 || q.Days["2026-10-21"] != 7 {
+	if q := Load(path); q.Carets["chapter"] != 3 {
 		t.Fatal(q)
 	}
 	if err := (Prefs{}).Save(filepath.Join(path, "desk.json")); err == nil {

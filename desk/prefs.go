@@ -3,8 +3,6 @@ package desk
 import (
 	"maps"
 	"slices"
-	"strconv"
-	"time"
 
 	"writer/prefs"
 )
@@ -19,8 +17,7 @@ func (a *App) loadPrefs() {
 		a.page = pageWrite
 	}
 	a.write.autoPredict = p.AutoPredict
-	a.write.counter = p.Counter
-	a.write.goalText, a.write.carets, a.write.size = "", p.Carets, p.TextSize
+	a.write.carets, a.write.size = p.Carets, p.TextSize
 	a.write.ignored = map[string]bool{}
 	for _, k := range p.Ignored {
 		a.write.ignored[k] = true
@@ -29,9 +26,6 @@ func (a *App) loadPrefs() {
 	a.shelved = map[string]bool{}
 	for _, id := range p.Shelved {
 		a.shelved[id] = true
-	}
-	if p.Goal > 0 {
-		a.write.goalText = strconv.Itoa(p.Goal)
 	}
 	a.doc.width, a.doc.tab, a.doc.attach = p.PanelWidth, paneTab(p.PaneTab), !p.NoAttach
 	known := false
@@ -49,11 +43,10 @@ func (a *App) loadPrefs() {
 }
 
 func (a *App) savePrefs() error {
-	a.rollDay(time.Now())
 	shelved := slices.Sorted(maps.Keys(a.shelved))
 	p := prefs.Prefs{Shelved: shelved, SettingHidden: a.doc.hidden, SideHidden: a.sideHidden, Chapter: a.write.node, Tabs: a.write.tabs, Blank: a.write.blank, Writing: a.leftWriting, AutoPredict: a.write.autoPredict,
 		PanelWidth: a.doc.width, PaneTab: string(a.doc.tab), LateAfter: a.write.lateAfter, CheckWhen: a.ck.when, NoAttach: !a.doc.attach,
-		Counter: a.write.counter, Carets: a.write.carets, TextSize: a.write.size,
+		Carets: a.write.carets, TextSize: a.write.size,
 		Ignored: a.write.ignoredKeys()}
 	err := p.Save(a.Store.PrefsPath())
 	a.warn(err)

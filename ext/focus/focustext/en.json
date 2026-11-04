@@ -1,0 +1,9 @@
+{
+  "cmdFocus": "Focus Mode",
+  "tabExitFocus": "Exit Focus Mode",
+  "tabExitFocusTip": "Exit focus mode and show the chapter tree and side pane ({key})",
+  "tabFocusTip": "Show only the text, hiding the chapter tree and side pane ({key})",
+  "helpFocus": "Focus Mode: show only the text",
+  "modFocus": "Focus Mode",
+  "modFocusAbout": "Only the text, everything else hidden"
+}

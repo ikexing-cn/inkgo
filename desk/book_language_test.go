@@ -54,7 +54,7 @@ func TestShotEnglishBookWritingAndLoreCategories(t *testing.T) {
 	if err = a.book.ReloadCounts(); err != nil {
 		t.Fatal(err)
 	}
-	a.write.counter.DayStart = 0
+	goalOf(a).Counter.DayStart = 0
 	if err = a.refresh(); err != nil {
 		t.Fatal(err)
 	}

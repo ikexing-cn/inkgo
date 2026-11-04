@@ -50,7 +50,7 @@ func TestACategoryOpenedCanBePutAway(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	a.categoryName = "线索"
+	catsOf(a).Name = "线索"
 	tt.Frame()
 	if _, ok := tt.Find("取消修改分类"); ok {
 		t.Fatal("a new name can be put away")
@@ -60,14 +60,14 @@ func TestACategoryOpenedCanBePutAway(t *testing.T) {
 	}
 	tt.Frame()
 	was := a.Store.Work().Categories
-	a.categoryTarget = "大纲"
+	catsOf(a).Target = "大纲"
 	tt.Frame()
 	if err := tt.Click("取消修改分类"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.categoryName != "" || a.categoryTarget != "" {
-		t.Fatalf("the form keeps %q, %q", a.categoryName, a.categoryTarget)
+	if catsOf(a).Name != "" || catsOf(a).Target != "" {
+		t.Fatalf("the form keeps %q, %q", catsOf(a).Name, catsOf(a).Target)
 	}
 	for i, cat := range a.Store.Work().Categories {
 		if cat != was[i] {

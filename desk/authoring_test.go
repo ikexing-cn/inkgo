@@ -279,7 +279,7 @@ func TestExistingServicesOwnMenusPaneCategoriesAndContentFlashes(t *testing.T) {
 		if _, ok := content.Flashed("entry"); ok {
 			t.Fatal("flash remained")
 		}
-		desktop.ShowPage("host.categories")
+		desktop.ShowPage("cats.categories")
 		if a.page != pageCategories {
 			t.Fatal("category page missing")
 		}

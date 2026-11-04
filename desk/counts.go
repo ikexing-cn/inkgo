@@ -1,13 +1,12 @@
 package desk
 
 import (
-	"time"
-
 	"github.com/egoist/mygo/ui"
 	"writer/desk/book"
 	"writer/desk/kit"
+	"writer/ext"
+	"writer/ext/hostapi"
 	"writer/locales"
-	"writer/prefs"
 	"writer/workspace"
 )
 
@@ -51,37 +50,8 @@ func (a *App) wordsIn(n *workspace.Node) int {
 	return words[n.ID]
 }
 
-func (a *App) today(now time.Time) int {
-	if a.book.Counts() == nil {
-		return 0 // not read yet: a start of nothing would count the whole book
-	}
-	return a.write.counter.Today(a.total(), now)
-}
-
-func (a *App) lastDays(now time.Time, n int) []int {
-	days := a.write.counter.LastDays(a.total(), now, n)
-	if a.book.Counts() == nil {
-		days[n-1] = 0
-	}
-	return days
-}
-
-func (a *App) setGoal(text string) {
-	if a.write.counter.SetGoal(text) {
-		a.savePrefs()
-	}
-}
-
-func (a *App) rollDay(now time.Time) bool {
-	if a.book.Counts() == nil {
-		return false
-	}
-	return a.write.counter.Roll(a.total(), now)
-}
-
-// wordCount is at the right of the foot: the words of what is shown or
-// selected, of the book, and of today against the goal. It opens the last
-// seven days and the goal.
+// wordCount draws selection/chapter and book totals with contributed suffixes
+// and popovers at the right of the footer.
 func (a *App) wordCount(c *ui.Context) {
 	t := a.pal.Theme
 	w := &a.write
@@ -101,74 +71,44 @@ func (a *App) wordCount(c *ui.Context) {
 		}
 	}
 	book := locales.StatusBookWords(kit.Words(a.total(), a.countLanguage()))
-	today := ""
-	k := a.today(time.Now())
-	tip := locales.StatusCountTip(book, k, kit.Signed(k), a.countUnit())
-	if w.counter.Goal > 0 {
-		today = locales.StatusTodayGoal(k, w.counter.Goal)
-		tip = locales.StatusCountGoalTip(book, k, kit.Signed(k), w.counter.Goal, a.countUnit())
-	} else if k != 0 {
-		today = locales.StatusTodayCount(k, kit.Signed(k))
+	suffix, tip := "", book
+	for _, item := range ext.Items(a.extensions, hostapi.WordSuffix) {
+		_ = ext.Guard(a.extensions, item.Owner, item.ID, func() {
+			if item.Value.Text != nil {
+				suffix += item.Value.Text()
+			}
+			if item.Value.Tooltip != nil {
+				tip = item.Value.Tooltip(book)
+			}
+		})
 	}
+	popovers := ext.Items(a.extensions, hostapi.WordPopovers)
 	color := a.pal.Faint // as the design has it, met or not: the numbers say so
-	counts := ui.ButtonBase(c).Row().Shrink(1000).MinWidth(0).Label(locales.StatusWordCount(a.countUnit())).Tooltip(tip)
+	var counts ui.Element
+	if len(popovers) > 0 {
+		counts = ui.ButtonBase(c)
+	} else {
+		counts = ui.Box(c)
+	}
+	counts.Row().Shrink(1000).MinWidth(0).Label(locales.StatusWordCount(a.countUnit())).Tooltip(tip)
 	a.slideEdge(counts)
-	if counts.Hovered() {
+	if len(popovers) > 0 && counts.Hovered() {
 		color = t.Text
 	}
 	counts.Children(func() {
 		if ok {
-			ui.Text(c, locales.StatusCountLine(scope, book, today)).FontSize(kit.FsNote).TextColor(color).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
+			ui.Text(c, locales.StatusCountLine(scope, book, suffix)).FontSize(kit.FsNote).TextColor(color).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
 		} else {
-			ui.Text(c, locales.StatusBookCountLine(book, today)).FontSize(kit.FsNote).TextColor(color).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
+			ui.Text(c, locales.StatusBookCountLine(book, suffix)).FontSize(kit.FsNote).TextColor(color).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
 		}
 	})
-	if counts.Clicked() {
-		w.goalOpen = !w.goalOpen
+	for _, item := range popovers {
+		_, _ = ext.Call(a.extensions, ext.HookOf(ext.CallPoint[hostapi.WordPopover, func(hostapi.WordPopover) struct{}, struct{}]{Point: hostapi.WordPopovers}, item.ID), func(p hostapi.WordPopover) struct{} { p.Draw(c, counts, counts.Clicked()); return struct{}{} }, wordPopoverCall(item.Value))
 	}
-	// It opens upward: the foot is the last line of the window.
-	kit.Popover(c, counts, &w.goalOpen, 1, 1, func(panel ui.Element) {
-		panel.AttachTo(counts, ui.AnchorTopRight, ui.AnchorBottomRight).Margin(0, 0, 4, 0).Width(250).Radius(kit.RCard).Padding(8).Gap(2).
-			Background(a.pal.Raised).Border(1, t.Border)
-		a.pal.Pop.On(panel)
-		a.lastWeek(c)
-		ui.Box(c).FillWidth().Height(1).Margin(4, 0).Background(a.pal.Line).Shrink(0)
-		ui.Column(c).FillWidth().Gap(6).Padding(4, 6).Children(func() {
-			ui.Text(c, locales.StatusDailyGoal()).FontSize(kit.FsNote).TextColor(t.TextMuted)
-			in := ui.TextInput(c, &w.goalText).Label(locales.StatusGoalLabel(a.countUnit())).Placeholder(locales.StatusGoalHint()).FillWidth().AutoFocus()
-			if in.Changed() {
-				a.setGoal(w.goalText)
-			}
-			if in.Submitted() {
-				w.goalOpen = false
-			}
-		})
-		// What is not a count leaves the goal be, and says so.
-		note, ink := locales.StatusGoalNote(a.countUnit()), t.TextMuted
-		if _, ok := prefs.CountOrNone(w.goalText); !ok {
-			note, ink = locales.StatusGoalError(), t.Danger
-		}
-		ui.Text(c, note).FontSize(kit.FsNote).TextColor(ink).LineHeight(kit.LhBody).FillWidth().Padding(0, 6, 4, 6)
-	})
 }
 
-// lastWeek lists how much was written on each of the last seven days, today
-// first.
-func (a *App) lastWeek(c *ui.Context) {
-	now := time.Now()
-	days := a.lastDays(now, 7)
-	ui.Text(c, locales.StatusLast7()).FontSize(kit.FsSmall).TextColor(a.pal.Faint).Padding(6, 10, 2, 10)
-	for i := len(days) - 1; i >= 0; i-- {
-		day, k := now.AddDate(0, 0, i-len(days)+1), days[i]
-		got := locales.StatusWords(0, a.countUnit())
-		if k != 0 {
-			got = locales.StatusSignedWords(k, kit.Signed(k), a.countUnit())
-		}
-		ui.Row(c.Key(i)).FillWidth().Padding(4, 10).Label(locales.StatusDayWritten(kit.DayOf(day, now), k, a.countUnit())).Children(func() {
-			ui.Text(c, kit.DayOf(day, now)).FontSize(kit.FsNote).TextColor(a.pal.Theme.TextMuted).Grow(1)
-			ui.Text(c, got).FontSize(kit.FsNote).TextColor(a.pal.Theme.TextMuted)
-		})
-	}
+func wordPopoverCall(p hostapi.WordPopover) func(func(hostapi.WordPopover) struct{}) struct{} {
+	return func(draw func(hostapi.WordPopover) struct{}) struct{} { return draw(p) }
 }
 
 // nodeWords is the count of every node under root: a chapter's own, or for

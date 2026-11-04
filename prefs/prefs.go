@@ -27,7 +27,6 @@ type Prefs struct {
 	PanelWidth float32 `json:"panel_width,omitempty"`
 	PaneTab    string  `json:"pane_tab,omitempty"`
 	NoAttach   bool    `json:"no_attach,omitempty"`
-	Counter
 	// Carets is where the caret was left in each chapter, by ID.
 	Carets map[string]int `json:"carets,omitempty"`
 	// TextSize is the size of the chapters' text, or 0 for the default.

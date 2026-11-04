@@ -31,9 +31,9 @@ func TestSystemMenuStructureAndState(t *testing.T) {
 	rows := a.SystemMenu()
 	want := [][]string{
 		{"about", "app-settings-separator", "settings", "app-hide-separator", "hide", "hide-others", "app-quit-separator", "quit"},
-		{"new-chapter", "new-folder", "file-save-separator", "save", "snapshots", "export.open", "file-organize-separator", "categories", "trash"},
+		{"new-chapter", "new-folder", "file-save-separator", "save", "snapshots", "export.open", "file-organize-separator", "cats.open", "trash"},
 		{"undo", "redo", "edit-find-separator", "find", "rename", "edit-ai-separator", "continue", "draft"},
-		{"side", "pane", "focus", "phone.open", "view-zoom-separator", "zoom-label", "zoom-in", "zoom-out", "zoom-reset", "view-look-separator", "look-label", "look-system", "look-light", "look-dark"},
+		{"side", "pane", "focus.focus", "phone.open", "view-zoom-separator", "zoom-label", "zoom-in", "zoom-out", "zoom-reset", "view-look-separator", "look-label", "look-system", "look-light", "look-dark"},
 		{"minimize", "window-zoom", "window-front-separator", "front"}, {"shortcuts"},
 	}
 	for i, id := range []string{"app", "file", "edit", "view", "window", "help"} {
@@ -94,6 +94,7 @@ func TestSystemMenuStructureAndState(t *testing.T) {
 }
 
 func TestSystemMenuAccelerators(t *testing.T) {
+	cmdFocus := focusCommand(t)
 	for _, tc := range []struct {
 		cmd  *command
 		want string

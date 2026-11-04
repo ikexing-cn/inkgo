@@ -1,0 +1,33 @@
+{
+  "cmdFocus": "专注写作",
+  "tabExitFocus": "退出专注",
+  "tabExitFocusTip": "退出专注，恢复章节树和右栏（{key}）",
+  "tabFocusTip": "仅显示正文，收起章节树和右栏（{key}）",
+  "@tabFocusTip": {
+    "description": "专注写作开关的提示，带它的快捷键。",
+    "placeholders": {
+      "key": {
+        "type": "String",
+        "example": "F11"
+      }
+    }
+  },
+  "@tabExitFocusTip": {
+    "description": "专注写作开关的提示，带它的快捷键。",
+    "placeholders": {
+      "key": {
+        "type": "String",
+        "example": "F11"
+      }
+    }
+  },
+  "helpFocus": "专注写作：仅显示正文",
+  "modFocus": "专注写作",
+  "@modFocus": {
+    "description": "「功能」里一个模块的名字。"
+  },
+  "modFocusAbout": "只留正文，其余隐藏",
+  "@modFocusAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  }
+}

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"writer/desk/kit"
-	"writer/prefs"
+	"writer/ext/goal"
 	"writer/workspace"
 )
 
@@ -34,7 +34,7 @@ func TestSetTheDaysGoal(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !a.write.goalOpen || !tt.HasText("每日目标") {
+	if !goalOf(a).Open || !tt.HasText("每日目标") {
 		t.Fatal("no goal to set", tt.Texts())
 	}
 	// The days above it are said as every day is: 今天, 昨天, 10-14.
@@ -44,19 +44,19 @@ func TestSetTheDaysGoal(t *testing.T) {
 			t.Fatal("the last week does not say", day, tt.Texts())
 		}
 	}
-	a.setGoal("2000")
-	if a.write.counter.Goal != 2000 || savedPrefs(t, a).Goal != 2000 {
-		t.Fatal(a.write.counter.Goal)
+	goalOf(a).SetGoal("2000")
+	if goalOf(a).Counter.Goal != 2000 || savedGoal(t, a).Goal != 2000 {
+		t.Fatal(goalOf(a).Counter.Goal)
 	}
 	for _, typed := range []string{"两千", "0"} {
-		a.write.goalText = typed
-		a.setGoal(typed)
+		goalOf(a).Text = typed
+		goalOf(a).SetGoal(typed)
 		tt.Frame()
-		if a.write.counter.Goal != 2000 || !tt.HasText("每日目标须为正整数，留空则不设。") {
-			t.Fatal(typed, "changed the goal, or was not said to be wrong:", a.write.counter.Goal)
+		if goalOf(a).Counter.Goal != 2000 || !tt.HasText("每日目标须为正整数，留空则不设。") {
+			t.Fatal(typed, "changed the goal, or was not said to be wrong:", goalOf(a).Counter.Goal)
 		}
 	}
-	a.write.goalText = "2000"
+	goalOf(a).Text = "2000"
 	tt.Frame()
 	if tt.HasText("每日目标须为正整数，留空则不设。") || !tt.HasText("字数旁显示今日字数和目标。") || tt.HasText("设置后，字数旁") {
 		t.Fatal("a goal set right is said to be wrong", tt.Texts())
@@ -67,9 +67,9 @@ func TestSetTheDaysGoal(t *testing.T) {
 	if !tt.HasText("/ 2,000") {
 		t.Fatal("the goal is not by the counts", tt.Texts())
 	}
-	a.setGoal("")
-	if a.write.counter.Goal != 0 || savedPrefs(t, a).Goal != 0 {
-		t.Fatal("the goal stayed", a.write.counter.Goal)
+	goalOf(a).SetGoal("")
+	if goalOf(a).Counter.Goal != 0 || savedGoal(t, a).Goal != 0 {
+		t.Fatal("the goal stayed", goalOf(a).Counter.Goal)
 	}
 }
 
@@ -107,27 +107,27 @@ func TestCountsMoveAsTyped(t *testing.T) {
 
 func TestCountsWaitForTheBook(t *testing.T) {
 	a, _, _ := writingFixture(t, "一二三")
-	a.write.counter = prefs.Counter{Day: "2026-10-09", DayStart: 3, Days: map[string]int{"2026-10-08": 2}}
+	goalOf(a).Counter = goal.Counter{Day: "2026-10-09", DayStart: 3, Days: map[string]int{"2026-10-08": 2}}
 	setChapterCounts(a, nil)
-	before := a.write.counter
+	before := goalOf(a).Counter
 	now := time.Date(2026, 10, 10, 9, 0, 0, 0, time.Local)
-	if a.rollDay(now) || a.today(now) != 0 || a.today(now.AddDate(0, 0, -1)) != 0 {
+	if goalOf(a).RollDay(now) || goalOf(a).Today(now) != 0 || goalOf(a).Today(now.AddDate(0, 0, -1)) != 0 {
 		t.Fatal("unread book started a day")
 	}
-	if got := a.lastDays(now, 3); !slices.Equal(got, []int{2, 0, 0}) {
+	if got := goalOf(a).LastDays(now, 3); !slices.Equal(got, []int{2, 0, 0}) {
 		t.Fatal(got)
 	}
-	if got := a.lastDays(now.AddDate(0, 0, -1), 2); !slices.Equal(got, []int{2, 0}) {
+	if got := goalOf(a).LastDays(now.AddDate(0, 0, -1), 2); !slices.Equal(got, []int{2, 0}) {
 		t.Fatal(got)
 	}
-	if !reflect.DeepEqual(a.write.counter, before) {
-		t.Fatal("unread book changed the counter", a.write.counter)
+	if !reflect.DeepEqual(goalOf(a).Counter, before) {
+		t.Fatal("unread book changed the counter", goalOf(a).Counter)
 	}
 	setChapterCounts(a, map[string]int{"chapter": 10})
-	if !a.rollDay(now) || a.write.counter.Days["2026-10-09"] != 7 {
-		t.Fatal("known count did not start a day", a.write.counter)
+	if !goalOf(a).RollDay(now) || goalOf(a).Counter.Days["2026-10-09"] != 7 {
+		t.Fatal("known count did not start a day", goalOf(a).Counter)
 	}
-	if a.today(now) != 0 {
+	if goalOf(a).Today(now) != 0 {
 		t.Fatal("new day did not start at zero")
 	}
 }

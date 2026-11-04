@@ -71,9 +71,6 @@ var (
 		run: func(a *App) { a.openSnapshots() }}
 	cmdSettings = &command{label: locales.AppSettings, onMac: true, macKey: ui.KeyComma, macMods: modCmd, page: pageAny,
 		run: func(a *App) { a.openPrefs(a.settings.tab) }}
-	cmdCategories = &command{label: locales.CmdCategories, page: pageAny,
-		can: func(a *App) bool { return a.Store != nil },
-		run: func(a *App) { a.page = pageCategories }}
 	cmdTrash = &command{label: locales.CmdTrash, page: pageAny,
 		can: func(a *App) bool { return a.Store != nil },
 		run: func(a *App) { a.openTrash() }}
@@ -133,9 +130,6 @@ var (
 		},
 		can: func(a *App) bool { return a.hasPane() },
 		run: func(a *App) { a.fold.requested = true; a.togglePane() }}
-	cmdFocus = &command{label: locales.CmdFocus, key: ui.KeyF11, onMac: true, macKey: ui.KeyF, macMods: ui.Ctrl | modCmd, page: pageWrite, by: byDesk,
-		can: func(a *App) bool { return writingPage(a) },
-		run: func(a *App) { a.write.focus = !a.write.focus }}
 	cmdHelp = &command{label: locales.CmdShortcuts, key: ui.KeySlash, mods: modCmd, page: pageAny, by: byDesk,
 		run: func(a *App) { a.keysOpen = true }}
 
@@ -215,13 +209,13 @@ var (
 // commandList is every command, in the order the desk tries its keys.
 var commandList = []*command{
 	cmdHelp,
-	cmdFind, cmdQuote, cmdFocus, cmdNewChapter, cmdRename,
+	cmdFind, cmdQuote, cmdNewChapter, cmdRename,
 	cmdZoomIn, cmdZoomOut, cmdZoomReset, cmdSave, cmdPrevChapter, cmdNextChapter,
 	cmdCloseTab, cmdNextTab, cmdPrevTab,
 	cmdUndo, cmdRedo, cmdContinue, cmdCut, cmdCopy, cmdPaste, cmdSelectAll,
 	cmdDeleteWordBack, cmdDeleteWordForward, cmdTakePrediction, cmdDropPrediction,
 	cmdNewFolder, cmdSnapshots, cmdSettings, cmdDraft,
-	cmdCategories, cmdTrash,
+	cmdTrash,
 	cmdSide, cmdPane, cmdRewrite, cmdTake, cmdUnmark,
 	cmdBury, cmdPay, cmdViewFore, cmdCloseOthers, cmdCloseRight, cmdSend,
 }
@@ -264,7 +258,6 @@ var commandHelp = []*helpRow{
 	{group: locales.HelpGroupWrite, does: locales.HelpChapterNav, cmds: []*command{cmdNextChapter, cmdPrevChapter}},
 	{group: locales.HelpGroupWrite, does: locales.HelpTabNav, cmds: []*command{cmdNextTab, cmdPrevTab}},
 	{group: locales.HelpGroupWrite, does: locales.HelpCloseTab, cmds: []*command{cmdCloseTab}},
-	{group: locales.HelpGroupWrite, does: locales.HelpFocus, cmds: []*command{cmdFocus}},
 	{group: locales.HelpGroupWrite, does: locales.HelpContinue, ai: true, cmds: []*command{cmdContinue}},
 	{group: locales.HelpGroupWrite, does: locales.HelpAcceptDrop, ai: true, cmds: []*command{cmdTakePrediction, cmdDropPrediction}},
 	{group: locales.HelpGroupWrite, does: locales.HelpCite, ai: true, cmds: []*command{cmdQuote}},

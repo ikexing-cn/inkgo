@@ -30,9 +30,9 @@ func TestShotShellLocale(t *testing.T) {
 	a.openSnapshots()
 	shot(t, tt, "shell-snapshots.png")
 	a.write.snapsOpen = false
-	a.write.goalOpen = true
+	goalOf(a).Open = true
 	shot(t, tt, "shell-goal.png")
-	a.write.goalOpen = false
+	goalOf(a).Open = false
 	n, _ := a.book.Tree().Node(id)
 	a.trashNode(n)
 	a.openTrash()

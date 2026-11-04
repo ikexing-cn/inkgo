@@ -44,15 +44,19 @@ type MenuPosition struct {
 // nil Can means always enabled. Run is dispatched through ext.Call.
 // Mods and MacMods are native UI modifiers; OnMac selects the macOS override.
 type Command struct {
-	Name    func() string
-	Can     func() bool
-	Run     func()
-	Menu    MenuPosition
-	Key     ui.Key
-	Mods    ui.Modifiers
-	MacKey  ui.Key
-	MacMods ui.Modifiers
-	OnMac   bool
+	// HelpGroup and HelpText optionally customize the shortcut row on the frame thread.
+	HelpGroup, HelpText func() string
+	// HelpAfter anchors the row after a host shortcut row's description on the frame thread.
+	HelpAfter func() string
+	Name      func() string
+	Can       func() bool
+	Run       func()
+	Menu      MenuPosition
+	Key       ui.Key
+	Mods      ui.Modifiers
+	MacKey    ui.Key
+	MacMods   ui.Modifiers
+	OnMac     bool
 }
 
 // PaneTab is a right pane contributed by an extension. Desk calls Title and
@@ -75,6 +79,8 @@ type PaneTab struct {
 // Page is a title-bar page contributed by an extension. Metadata and
 // availability are read on the frame thread; Draw uses ext.Call.
 type Page struct {
+	// MenuOnly excludes the page from the title switch on the frame thread.
+	MenuOnly bool
 	// Title supplies display text on the frame thread through ext.Guard.
 	Title func() string
 	// Icon is drawn by the host on the frame thread.
@@ -100,6 +106,10 @@ type Page struct {
 
 // Book exposes current book content to extensions on the frame thread only.
 type Book interface {
+	// Held reports a blocking book operation on the frame thread.
+	Held() bool
+	// CategoriesChanged reloads derived setting data and notifies the open book on the frame thread.
+	CategoriesChanged() error
 	// Flashed returns when book content last received a recent-change notice.
 	// Call directly on the frame thread, without ext.Call or ext.Guard.
 	Flashed(string) (time.Time, bool)

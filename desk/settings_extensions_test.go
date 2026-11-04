@@ -38,12 +38,21 @@ func extensionDetails(t *testing.T, a *App, tt *ui.Tester, id string) {
 	t.Helper()
 	a.openPrefs("extensions")
 	tt.Frame()
+	r := find(t, tt, "扩展-"+id)
+	if r.Y > 650 {
+		tt.Scroll(750, 500, 0, r.Y-550)
+		tt.Frame()
+	}
+	if r.Y < 180 {
+		tt.Scroll(750, 500, 0, r.Y-250)
+		tt.Frame()
+	}
 	click(t, tt, "扩展-"+id)
 }
 
 func TestExtensionOverviewListsOnlyAssemblyInGroupOrderAndResetsDetails(t *testing.T) {
 	a, tt := extensionSettingsFixture(t)
-	want := [][]string{{"source", "consumer"}, {"lore", "outline", "optional"}, {"backup", "export", "phone"}, {"installed"}, {"ai", "context", "unused"}}
+	want := [][]string{{"focus", "goal", "source", "consumer"}, {"lore", "outline", "optional"}, {"backup", "export", "phone", "cats"}, {"installed"}, {"ai", "context", "unused"}}
 	if len(a.extViews.groups) != len(want) {
 		t.Fatal(a.extViews.groups)
 	}
@@ -52,7 +61,7 @@ func TestExtensionOverviewListsOnlyAssemblyInGroupOrderAndResetsDetails(t *testi
 			t.Fatal(a.extViews.groups)
 		}
 	}
-	if _, ok := tt.Find("扩展-focus"); ok {
+	if _, ok := tt.Find("扩展-missing"); ok {
 		t.Fatal(tt.Texts())
 	}
 	for _, mod := range a.extViews.modules {

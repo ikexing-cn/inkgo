@@ -238,7 +238,24 @@ func (a *App) syncExtensions() {
 	for _, c := range cache.commands {
 		cache.list = append(cache.list, c.cmd)
 		if c.cmd.key != 0 || c.cmd.macKey != 0 {
-			cache.help = append(cache.help, &helpRow{group: locales.HelpGroupGlobal, does: c.cmd.label, cmds: []*command{c.cmd}})
+			row := &helpRow{group: locales.HelpGroupGlobal, does: c.cmd.label, cmds: []*command{c.cmd}}
+			value := c.value
+			if value.HelpGroup != nil {
+				row.group = value.HelpGroup
+			}
+			if value.HelpText != nil {
+				row.does = value.HelpText
+			}
+			at := len(cache.help)
+			if value.HelpAfter != nil {
+				for i, h := range cache.help {
+					if h.does() != "" && h.does() == value.HelpAfter() {
+						at = i + 1
+					}
+				}
+			}
+
+			cache.help = slices.Insert(cache.help, at, row)
 		}
 		if c.menu.Menu == hostapi.MenuView || c.menu.Menu == hostapi.MenuFile {
 			cache.system = append(cache.system, c)
@@ -345,9 +362,10 @@ func (a *App) extensionPane(c *ui.Context, item ext.Item[hostapi.PaneTab]) {
 }
 
 type namedCommand struct {
-	id   string
-	cmd  *command
-	menu hostapi.MenuPosition
+	id    string
+	cmd   *command
+	menu  hostapi.MenuPosition
+	value hostapi.Command
 }
 
 func (a *App) buildExtensionCommands() []namedCommand {
@@ -363,7 +381,7 @@ func (a *App) buildExtensionCommands() []namedCommand {
 		cmd.run = func(*App) {
 			_, _ = ext.Call(a.extensions, ext.HookOf(ext.CallPoint[hostapi.Command, struct{}, struct{}]{Point: hostapi.Commands}, item.ID), struct{}{}, commandCall(value))
 		}
-		out = append(out, namedCommand{item.ID, cmd, value.Menu})
+		out = append(out, namedCommand{id: item.ID, cmd: cmd, menu: value.Menu, value: value})
 	}
 	return out
 }
@@ -448,7 +466,7 @@ func (a *App) extensionOverlays(c *ui.Context) {
 var fileCommandRows = []namedCommand{
 	{id: "new-chapter", cmd: cmdNewChapter}, {id: "new-folder", cmd: cmdNewFolder},
 	{id: "file-save-separator"}, {id: "save", cmd: cmdSave}, {id: "snapshots", cmd: cmdSnapshots},
-	{id: "file-organize-separator"}, {id: "categories", cmd: cmdCategories}, {id: "trash", cmd: cmdTrash},
+	{id: "file-organize-separator"}, {id: "categories"}, {id: "trash", cmd: cmdTrash},
 }
 
 func (a *App) fileCommands() []namedCommand { a.syncExtensions(); return a.extViews.file }

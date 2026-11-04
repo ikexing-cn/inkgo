@@ -1,0 +1,148 @@
+{
+  "statusDayWritten": "{unit, select, word {{day} 写了 {count, plural, other {# 词}}} other {{day} 写了 {count, plural, other {# 字}}}}",
+  "@statusDayWritten": {
+    "description": "应用外壳：{day}写了{count, plural, other { # 字}}",
+    "placeholders": {
+      "day": {
+        "type": "String",
+        "example": "今天"
+      },
+      "count": {
+        "type": "int",
+        "example": "100"
+      },
+      "unit": {
+        "type": "String",
+        "example": "character"
+      }
+    }
+  },
+  "statusSignedWords": "{unit, select, word {{count, plural, other {{signed} 词}}} other {{count, plural, other {{signed} 字}}}}",
+  "@statusSignedWords": {
+    "description": "应用外壳：{count, plural, other {{signed} 字}}",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "100"
+      },
+      "signed": {
+        "type": "String",
+        "example": "+100"
+      },
+      "unit": {
+        "type": "String",
+        "example": "character"
+      }
+    }
+  },
+  "statusCountGoalTip": "{unit, select, word {{book}，今天 {count, plural, other {{signed} 词}}，目标 {goal, plural, other {# 词}}。点击设置每日目标} other {{book}，今天 {count, plural, other {{signed} 字}}，目标 {goal, plural, other {# 字}}。点击设置每日目标}}",
+  "@statusCountGoalTip": {
+    "description": "底栏字数提示；signed 是带正负号的展示串，count 和 goal 是数量。",
+    "placeholders": {
+      "book": {
+        "type": "String",
+        "example": "全书 3.0 万字"
+      },
+      "count": {
+        "type": "int",
+        "example": "100"
+      },
+      "signed": {
+        "type": "String",
+        "example": "+100"
+      },
+      "goal": {
+        "type": "int",
+        "example": "2000"
+      },
+      "unit": {
+        "type": "String",
+        "example": "character"
+      }
+    }
+  },
+  "statusCountTip": "{unit, select, word {{book}，今天 {count, plural, other {{signed} 词}}。点击设置每日目标} other {{book}，今天 {count, plural, other {{signed} 字}}。点击设置每日目标}}",
+  "@statusCountTip": {
+    "description": "应用外壳：{book}，今天 {count, plural, other {{signed} 字}}。点击设置每日目标",
+    "placeholders": {
+      "book": {
+        "type": "String",
+        "example": "全书 3.0 万字"
+      },
+      "count": {
+        "type": "int",
+        "example": "100"
+      },
+      "signed": {
+        "type": "String",
+        "example": "+100"
+      },
+      "unit": {
+        "type": "String",
+        "example": "character"
+      }
+    }
+  },
+  "statusTodayCount": "{count, plural, other { · 今天 {signed}}}",
+  "@statusTodayCount": {
+    "description": "应用外壳：{count, plural, other { · 今天 {signed}}}",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "100"
+      },
+      "signed": {
+        "type": "String",
+        "example": "+100"
+      }
+    }
+  },
+  "statusTodayGoal": " · 今天 {today} / {goal}",
+  "@statusTodayGoal": {
+    "description": "底栏字数后面：今天写了多少字 / 每日目标。前面有空格和中点。",
+    "placeholders": {
+      "today": {
+        "type": "int",
+        "example": "2846"
+      },
+      "goal": {
+        "type": "int",
+        "example": "3000"
+      }
+    }
+  },
+  "statusLast7": "最近 7 天",
+  "statusDailyGoal": "每日目标",
+  "statusGoalHint": "比如 2000",
+  "statusGoalLabel": "{unit, select, word {每日目标词数} other {每日目标字数}}",
+  "statusGoalNote": "{unit, select, word {词数旁显示今日词数和目标。} other {字数旁显示今日字数和目标。}}",
+  "statusGoalError": "每日目标须为正整数，留空则不设。",
+  "modGoal": "{unit, select, word {词数目标} other {字数目标}}",
+  "@modGoal": {
+    "description": "「功能」里一个模块的名字。",
+    "placeholders": {
+      "unit": {
+        "type": "String",
+        "example": "character"
+      }
+    }
+  },
+  "modGoalAbout": "每天写多少字",
+  "@modGoalAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  },
+  "@statusGoalLabel": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@statusGoalNote": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  }
+}

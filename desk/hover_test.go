@@ -52,13 +52,13 @@ func TestCategoryActionsFollowHoverAndKeyboard(t *testing.T) {
 	}
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if a.categoryName != "人物" {
+	if catsOf(a).Name != "人物" {
 		t.Fatal("keyboard edit did not open category")
 	}
 	other := find(t, tt, "分类行-其他")
 	tt.Move(other.X+10, other.Y+other.H/2)
 	click(t, tt, "删除-其他")
-	if a.removeCategory == "其他" {
+	if catsOf(a).Remove == "其他" {
 		t.Fatal("其他 could be deleted")
 	}
 }

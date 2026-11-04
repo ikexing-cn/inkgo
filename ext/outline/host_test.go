@@ -149,3 +149,12 @@ func (h testBook) Flashed(string) (time.Time, bool) { return time.Time{}, false 
 func (h testBook) ClearFlash(string) {}
 
 func (h *testHost) MenuOpen(key string) bool { return h.menu.MenuOpen(key) }
+
+func (h testBook) CategoriesChanged() error { return nil }
+
+func (h *testHost) Focused() bool { return false }
+func (h *testHost) SetFocus(bool) {}
+
+func (h testBook) Held() bool { return false }
+
+func (h *testHost) HasPage(string) bool { return false }

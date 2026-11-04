@@ -28,9 +28,9 @@ var systemCommands = []struct {
 }{
 	{"settings", cmdSettings}, {"new-chapter", cmdNewChapter}, {"new-folder", cmdNewFolder},
 	{"save", cmdSave}, {"snapshots", cmdSnapshots},
-	{"categories", cmdCategories}, {"trash", cmdTrash}, {"undo", cmdUndo}, {"redo", cmdRedo},
+	{"trash", cmdTrash}, {"undo", cmdUndo}, {"redo", cmdRedo},
 	{"find", cmdFind}, {"rename", cmdRename}, {"continue", cmdContinue}, {"draft", cmdDraft},
-	{"side", cmdSide}, {"pane", cmdPane}, {"focus", cmdFocus},
+	{"side", cmdSide}, {"pane", cmdPane},
 	{"zoom-in", cmdZoomIn}, {"zoom-out", cmdZoomOut}, {"zoom-reset", cmdZoomReset}, {"shortcuts", cmdHelp},
 }
 
@@ -106,6 +106,8 @@ func (a *App) SystemMenu() []SystemMenuItem {
 	var view []SystemMenuItem
 	for _, entry := range a.viewCommands() {
 		switch entry.id {
+		case "focus":
+			continue
 		case "view-zoom-separator", "view-look-separator":
 			view = append(view, sep(entry.id))
 		case "zoom-label":
@@ -119,6 +121,9 @@ func (a *App) SystemMenu() []SystemMenuItem {
 	}
 	var file []SystemMenuItem
 	for _, entry := range a.fileCommands() {
+		if entry.id == "categories" {
+			continue
+		}
 		if entry.cmd == nil {
 			file = append(file, sep(entry.id))
 		} else {
