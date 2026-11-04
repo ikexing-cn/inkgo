@@ -34,7 +34,7 @@ func TestLoreGlobalAndBookSwitchRemoveAndRestoreDependentInterfaces(t *testing.T
 				if slices.Contains(a.commandList(), cmdTake) != on {
 					t.Fatal("selection command", on)
 				}
-				if (len(ext.Items(a.extensions, hostapi.MarginSources)) > 0) != on || (len(ext.Items(a.extensions, hostapi.SelectionMenus)) > 0) != on {
+				if (len(ext.Items(a.extensions, hostapi.MarginSources)) > 0) != on || hasLoreSelectionMenu(a) != on {
 					t.Fatal("lore contributions", on)
 				}
 				if _, ok := a.extensionTab(paneSetting); ok != on {
@@ -205,4 +205,13 @@ func TestShotLoreExtension(t *testing.T) {
 	shot(t, tt, "ext-lore-off-talk.png")
 	runExport(t, a)
 	shot(t, tt, "ext-lore-off-export.png")
+}
+
+func hasLoreSelectionMenu(a *App) bool {
+	for _, item := range ext.Items(a.extensions, hostapi.SelectionMenus) {
+		if item.Owner == "lore" {
+			return true
+		}
+	}
+	return false
 }

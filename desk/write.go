@@ -231,8 +231,6 @@ func (a *App) paneColumn(c *ui.Context, width float32) {
 			a.extensionPane(c, extension)
 		} else if a.page == pageWrite && shown == paneFore {
 			a.forePanel(c)
-		} else if a.page == pageWrite && shown == paneTalk {
-			a.talkPanel(c)
 		} else {
 			a.besideItems(c)
 		}

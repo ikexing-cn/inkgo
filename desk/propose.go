@@ -64,29 +64,16 @@ func (w *writeView) propOf(session, call string) *prop {
 // its text comes and once it came whole; one whose call failed goes, the
 // AI being told why.
 func (a *App) followProps() {
-	if !a.turn.active || a.Store == nil {
+	f := a.proposalFrame
+	if !f.Active || a.Store == nil {
 		return
 	}
-	w := &a.write
-	_, _, steps, _ := a.turn.live.read()
-	models := map[string]string{}
-	for _, e := range steps {
-		for _, call := range e.Calls {
-			models[call.ID] = e.Model
-		}
+	for _, u := range f.Updates {
+		a.takeProposal(u.Call, u.Proposal, u.Writing, u.Model)
 	}
-	for _, s := range a.turn.live.proposals() {
-		a.takeProposal(s.call, s.p, true, "")
-	}
-	for _, e := range steps {
-		switch {
-		case e.Role != workspace.RoleResult:
-		case e.Proposal != nil:
-			a.takeProposal(e.Call, *e.Proposal, false, models[e.Call])
-		default:
-			if p := w.propOf(a.turn.session, e.Call); p != nil && p.writing {
-				a.forget(p)
-			}
+	for _, call := range f.Failed {
+		if p := a.write.propOf(f.Session, call); p != nil && p.writing {
+			a.forget(p)
 		}
 	}
 }
@@ -97,7 +84,7 @@ func (a *App) followProps() {
 // the one shown.
 func (a *App) takeProposal(call string, p workspace.Proposal, writing bool, model string) {
 	w := &a.write
-	session := a.turn.session
+	session := a.proposalFrame.Session
 	key := session + "/" + call
 	if w.seen[key] {
 		pr := w.propOf(session, call)
@@ -158,12 +145,12 @@ func samePlace(p, q editor.Proposal, whole bool) bool {
 // unfinishedProps lets go, as a turn ends, what it was proposing and did
 // not finish: it was cancelled, or failed.
 func (a *App) unfinishedProps() {
-	if !a.turn.active {
+	if !a.proposalFrame.Active {
 		return
 	}
 	w := &a.write
 	n := len(w.props)
-	w.props = slices.DeleteFunc(w.props, func(p *prop) bool { return p.writing && p.session == a.turn.session })
+	w.props = slices.DeleteFunc(w.props, func(p *prop) bool { return p.writing && p.session == a.proposalFrame.Session })
 	if len(w.props) != n {
 		w.propVer++
 	}
@@ -189,7 +176,7 @@ func (a *App) dropProps(ps []*prop, fate string) {
 		w.props = slices.DeleteFunc(w.props, func(q *prop) bool { return q == p })
 		_, err := a.Store.Append(p.session, workspace.Event{Role: workspace.RoleFate, Call: p.call, Fate: fate})
 		a.warn(err)
-		shown = shown || p.session == a.session
+		shown = shown || true
 	}
 	w.propVer++
 	if shown {
@@ -200,8 +187,8 @@ func (a *App) dropProps(ps []*prop, fate string) {
 // letGo is the author letting the proposals ps go: one still coming stops
 // the reply that writes it.
 func (a *App) letGo(ps []*prop) {
-	if slices.ContainsFunc(ps, func(p *prop) bool { return p.writing }) && a.cancel != nil {
-		a.cancel()
+	if slices.ContainsFunc(ps, func(p *prop) bool { return p.writing }) && a.proposalFrame.Stop != nil {
+		a.proposalFrame.Stop()
 	}
 	a.dropProps(ps, workspace.FateDropped)
 }
@@ -333,13 +320,11 @@ func (a *App) showProp(p *prop) {
 	p.shown = false
 }
 
-// openTalk shows the talk session beside the prose.
 func (a *App) openTalk(session string) {
-	d := &a.doc
-	d.hidden, d.tab, d.talks = false, paneTalk, false
-	a.write.focus = false
-	a.savePrefs()
-	a.switchSession(session)
+	if a.talkAPI != nil {
+		a.talkAPI.OpenTalk(session)
+		(extensionHost{a}).Show("talk")
+	}
 }
 
 // propActs float in the room after each proposal shown: 放弃, then 采纳
@@ -396,7 +381,7 @@ func (a *App) aiBar(c *ui.Context) {
 	}
 	// 查看讨论 shows the talk of session, unless it is in view.
 	see := func(session string) {
-		if !(a.talkShown() && a.session == session) && a.pal.Ghost(c, locales.EditorSeeTalk(), ui.Color{}).Clicked() {
+		if !(a.proposalFrame.Visible && a.proposalFrame.Session == session) && a.pal.Ghost(c, locales.EditorSeeTalk(), ui.Color{}).Clicked() {
 			a.openTalk(session)
 		}
 	}
@@ -426,18 +411,17 @@ func (a *App) aiBar(c *ui.Context) {
 	if len(here) == 0 {
 		// Asked to draft or rewrite, the AI thinks and looks things up
 		// before it proposes: that shows here too, to be let go.
-		if !a.turn.active || a.turn.chapter == "" || a.turn.chapter != w.node {
+		if !a.proposalFrame.Active || a.proposalFrame.Chapter == "" || a.proposalFrame.Chapter != w.node {
 			return
 		}
-		_, _, steps, _ := a.turn.live.read()
 		say := locales.ToastThinking()
-		if len(workspace.Looks(steps, "")) > 0 {
+		if a.proposalFrame.Looking {
 			say = locales.EditorLooking()
 		}
 		bar(func() {
 			ui.Spinner(c)
 			ui.Text(c, say).FontSize(kit.FsControl).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
-			see(a.turn.session)
+			see(a.proposalFrame.Session)
 			if a.pal.Soft(c, locales.ToastCancel()).Clicked() && a.cancel != nil {
 				a.cancel()
 				w.cur().ed.Focus()
@@ -470,100 +454,6 @@ func (a *App) aiBar(c *ui.Context) {
 		if a.pal.Primary(c, locales.EditorAcceptAll()).Disabled(writing).Clicked() {
 			a.takeProps(here)
 		}
-	})
-}
-
-// fateNames say what came of a proposal, in the card of its talk.
-var fateNames = map[string]func() string{
-	workspace.FateTaken:    locales.ChatFateAdopted,
-	workspace.FateDropped:  locales.HooksDropped,
-	workspace.FateReplaced: locales.ChatFateReplaced,
-	workspace.FateVoid:     locales.ChatFateChanged,
-	workspace.FateClosed:   locales.ChatFateBookClosed,
-	workspace.FateOff:      locales.ChatFateAiOff,
-}
-
-// whereNames say where a proposal goes, in its card.
-var whereNames = map[string]func() string{
-	workspace.ProposeReplace: locales.ChatWhereSwap,
-	workspace.ProposeAfter:   locales.ChatWhereAfter,
-	workspace.ProposeEnd:     locales.ChatWhereEnd,
-	workspace.ProposeAll:     locales.ChatWhereAll,
-}
-
-// propCard shows, in the reply of the talk session, a change it proposed
-// in the prose, by the result e of the call that proposed it.
-func (a *App) propCard(c *ui.Context, session string, e workspace.Event) {
-	from := slices.IndexFunc(a.events, func(u workspace.Event) bool { return u.ID == e.ReplyTo })
-	a.propCardOf(c, *e.Proposal, a.write.propOf(session, e.Call), workspace.FateOf(a.events, max(from, 0), e.Call))
-}
-
-// turnCards show what the turn in flight proposed: as it comes, and as
-// it came whole, in the order it began.
-func (a *App) turnCards(c *ui.Context, steps []workspace.Event) {
-	w := &a.write
-	var calls []string
-	ps := map[string]workspace.Proposal{}
-	for _, s := range a.turn.live.proposals() {
-		calls, ps[s.call] = append(calls, s.call), s.p
-	}
-	for _, e := range steps {
-		if e.Role == workspace.RoleResult && e.Proposal != nil {
-			if _, ok := ps[e.Call]; !ok {
-				calls = append(calls, e.Call)
-			}
-			ps[e.Call] = *e.Proposal
-		}
-	}
-	for _, call := range calls {
-		a.propCardOf(c, ps[call], w.propOf(a.turn.session, call), workspace.FateOf(a.events, 0, call))
-	}
-}
-
-// writingProps tells whether the turn in flight is writing a proposal.
-func (a *App) writingProps() bool {
-	return slices.ContainsFunc(a.write.props, func(p *prop) bool { return p.writing && p.session == a.turn.session })
-}
-
-// propCardOf shows the proposal p: which chapter, where in it, how long,
-// and what came of it, by fate or by live, the proposal while undecided.
-// Undecided, it links to where it shows.
-func (a *App) propCardOf(c *ui.Context, p workspace.Proposal, live *prop, fate string) {
-	t := a.pal.Theme
-	state := ""
-	if label := fateNames[fate]; label != nil {
-		state = label()
-	}
-	switch {
-	case state != "":
-	case live != nil && live.writing:
-		state = locales.EditorWriting()
-	case live != nil:
-		state = locales.ChatFateWaiting()
-	default:
-		state = locales.ChatFateGone()
-	}
-	where := ""
-	if label := whereNames[p.At]; label != nil {
-		where = label()
-	}
-	title := a.nodeTitle(p.Chapter)
-	if title == "" {
-		title = p.Title
-	}
-	ui.Column(c).FillWidth().Gap(2).Padding(8, 10).Radius(kit.RCard).Border(1, a.pal.Line).Background(a.pal.Side).Children(func() {
-		ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
-			color := t.TextMuted
-			if live != nil {
-				color = t.Success
-			}
-			kit.Glyph(c, kit.IcPen, kit.IconSm, color)
-			ui.Text(c, locales.ChatProposeEdit(title)).FontSize(kit.FsControl).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
-			if live != nil && a.pal.Ghost(c, locales.ChatViewInText(), ui.Color{}).Clicked() {
-				a.showProp(live)
-			}
-		})
-		ui.Text(c, locales.ChatProposalMeta(where, a.Store.Work().Language.Count(p.Text), state, a.countUnit())).FontSize(kit.FsNote).TextColor(t.TextMuted)
 	})
 }
 
@@ -606,4 +496,11 @@ func (a *App) leaveView(c *ui.Context) {
 		a.dropProps(w.props, workspace.FateClosed)
 		then()
 	}
+}
+
+func (a *App) conversationTitle(id string) (string, bool) {
+	if a.talkAPI == nil {
+		return "", false
+	}
+	return a.talkAPI.TalkTitle(id)
 }

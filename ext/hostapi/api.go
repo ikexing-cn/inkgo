@@ -2,6 +2,8 @@
 package hostapi
 
 import (
+	"context"
+	"encoding/json"
 	"github.com/egoist/mygo/ui"
 	"time"
 
@@ -72,6 +74,8 @@ type PaneTab struct {
 	Key string
 	// Before places this tab before a qualified pane ID; empty appends.
 	Before string
+	// BeforeFallback is used when Before is absent; frame-thread metadata.
+	BeforeFallback string
 	// Fallback makes this tab the default when no chosen pane is available.
 	Fallback bool
 	// Count queries the badge on the frame thread through ext.Guard.
@@ -84,6 +88,11 @@ type PaneTab struct {
 // Page is a title-bar page contributed by an extension. Metadata and
 // availability are read on the frame thread; Draw uses ext.Call.
 type Page struct {
+	// Sidebar draws page-specific sidebar content on the frame thread through ext.Guard.
+	Sidebar func(*ui.Context)
+	// SidebarAction draws the page-specific sidebar add button on the frame thread.
+	SidebarAction func(*ui.Context)
+
 	// MenuOnly excludes the page from the title switch on the frame thread.
 	MenuOnly bool
 	// Title supplies display text on the frame thread through ext.Guard.
@@ -121,6 +130,8 @@ type Book interface {
 	PurgeTrash(string) error
 	// ReplaceBookText snapshots and replaces live book prose on the frame thread.
 	ReplaceBookText(string, string) (chapters, total int, here bool, err error)
+	// Flash marks a content change on the frame thread.
+	Flash(string)
 
 	// Held reports a blocking book operation on the frame thread.
 	Held() bool
@@ -157,6 +168,16 @@ type Palette interface {
 
 // Pane is called by extensions on the frame thread only.
 type Pane interface {
+	// Selected reports the displayed tab identity on the frame thread.
+	SelectedTab() string
+
+	// HasBeside reports whether a non-writing page has contributed pane content; frame thread only.
+	HasBeside() bool
+	// PaneOpen reports whether the shared pane is unfolded; frame thread only.
+	PaneOpen() bool
+	// TogglePane folds or unfolds the shared pane; frame thread only.
+	TogglePane()
+
 	// Show opens the right pane, selects a qualified tab ID (or its preserved
 	// preference Key), exits focus and saves the choice. Selecting a non-talk
 	// tab closes the conversation list. Call directly on the frame thread,
@@ -203,6 +224,13 @@ type Notices interface {
 
 // Jobs dispatches background work from the frame thread.
 type Jobs interface {
+	// Request starts a cancellable, nonblocking author operation on the frame thread.
+	Request(ui.Services, string, func(context.Context) (func(), error))
+	// CancelRequest stops the current author operation on the frame thread.
+	CancelRequest()
+	// Post queues a callback from any goroutine onto the frame thread.
+	Post(ui.Services, func())
+
 	// StartJob runs fn on a worker and its result on the frame thread.
 	// Capture Services in the initiating frame; never retain its Context.
 	StartJob(ui.Services, func() func())
@@ -237,3 +265,19 @@ type ErrorTranslator func(error, func(error) string) (string, bool)
 
 // ErrorTexts collects active extension error translators.
 const ErrorTexts ext.PointKey[ErrorTranslator] = "host.error-texts"
+
+// ViewState contributes book-local view preferences on the frame thread.
+// Load and Save must not retain their borrowed map or frame objects.
+type ViewState struct {
+	// PaneChanged observes host pane navigation on the frame thread.
+	PaneChanged func(string)
+	// Reset clears transient state before the host changes its book view; frame thread only.
+	Reset func()
+	// Refresh updates derived view content on the frame thread.
+	Refresh func() error
+	Load    func(map[string]json.RawMessage)
+	Save    func() map[string]json.RawMessage
+}
+
+// State collects view preference contributions; called through ext.Guard on the frame thread.
+const State ext.PointKey[ViewState] = "host.state"

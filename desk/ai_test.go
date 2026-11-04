@@ -360,7 +360,7 @@ func TestDraftAChapterThroughATalk(t *testing.T) {
 		t.Fatal("the talk does not say it was taken", tt.Texts())
 	}
 	snaps, _ := a.Store.Snapshots(id)
-	if s := snaps[0]; s.Reason != workspace.SnapAI || !slices.Equal(s.Talks, []string{a.session}) {
+	if s := snaps[0]; s.Reason != workspace.SnapAI || !slices.Equal(s.Talks, []string{talkOf(a).Session}) {
 		t.Fatalf("snapshot %+v", s)
 	}
 	if text, _ := a.Store.SnapshotText(id, snaps[0].Name); text != "" {
@@ -457,7 +457,7 @@ func TestRewriteASelectionThroughATalk(t *testing.T) {
 	if a.write.rewriting || talkNameOf(a) != "改写：她走到井边。" || !tt.HasText("换掉一句 · 8 字 · 等你决定") || !tt.HasText("放慢") {
 		t.Fatal("the talk is not of the rewrite", talkNameOf(a), tt.Texts())
 	}
-	if first := a.events[0]; first.Origin != workspace.AIRewrite || len(first.Quotes) != 1 || first.Quotes[0].Text != "她走到井边。" {
+	if first := talkOf(a).Events[0]; first.Origin != workspace.AIRewrite || len(first.Quotes) != 1 || first.Quotes[0].Text != "她走到井边。" {
 		t.Fatalf("first words %+v", first)
 	}
 	ed.MoveTo(ed.Doc.Len(), false)
@@ -468,7 +468,7 @@ func TestRewriteASelectionThroughATalk(t *testing.T) {
 	}
 
 	f.then(proposal("第一章", "replace", "她走到井边。", "她缓缓走到井边。"), []string{"再慢一点。"})
-	a.input = "再慢一点"
+	talkOf(a).Input = "再慢一点"
 	tt.Frame()
 	if err := tt.Click("发送"); err != nil {
 		t.Fatal(err)
@@ -485,7 +485,7 @@ func TestRewriteASelectionThroughATalk(t *testing.T) {
 		t.Fatal("letting go changed the text, or is not said", ed.Doc.String(), tt.Texts())
 	}
 	f.then([]string{"好。"})
-	a.input = "算了"
+	talkOf(a).Input = "算了"
 	tt.Frame()
 	if err := tt.Click("发送"); err != nil {
 		t.Fatal(err)
@@ -580,7 +580,7 @@ func TestLeavingTheWorkAsksAboutProposals(t *testing.T) {
 		t.Fatal(err)
 	}
 	replied(t, a, tt)
-	session := a.session
+	session := talkOf(a).Session
 	leave := func() {
 		t.Helper()
 		if err := tt.Click("切换作品"); err != nil {
@@ -634,7 +634,7 @@ func TestAProposalInAnotherChapterOpensBeside(t *testing.T) {
 	f.then(proposal("第二章", "replace", "白天也要开灯。", "白天也得开着灯。"), []string{"顺了一下。"})
 	showTab(a, paneTalk)
 	a.doc.hidden = false
-	a.input = "第二章那句顺一下"
+	talkOf(a).Input = "第二章那句顺一下"
 	tt.Frame()
 	if err := tt.Click("发送"); err != nil {
 		t.Fatal(err)
@@ -672,14 +672,14 @@ func TestTakingTheProposalsOfTwoTalks(t *testing.T) {
 	a.doc.hidden = false
 	var talks []string
 	for _, said := range []string{"开头慢一点", "末尾接一句"} {
-		a.newSession()
-		a.input = said
+		talkOf(a).NewSession()
+		talkOf(a).Input = said
 		tt.Frame()
 		if err := tt.Click("发送"); err != nil {
 			t.Fatal(err)
 		}
 		replied(t, a, tt)
-		talks = append(talks, a.session)
+		talks = append(talks, talkOf(a).Session)
 	}
 	showPage(a, pageWrite)
 	tt.Frame()

@@ -119,10 +119,8 @@ func (a *App) textMenu(m *kit.Menu) {
 		if a.talkOn() {
 			cmdRewrite.item(a, m).Do(cmdRewrite.act(a))
 		}
-		if a.talkOn() {
-			cmdQuote.item(a, m).Do(cmdQuote.act(a))
-		}
 	}
+	a.selectionMenusAt(m, ed.Doc.Slice(s, e), true)
 	if a.hasEntries() {
 		cmdTake.item(a, m).Do(cmdTake.act(a))
 	}

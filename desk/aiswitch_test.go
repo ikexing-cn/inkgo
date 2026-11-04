@@ -311,8 +311,8 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 	tt.Key(ui.Cmd, ui.KeyEnter)
 	time.Sleep(50 * time.Millisecond)
 	tt.Frame()
-	if shownEditor(a).Predicting() || shownEditor(a).Ghost() != "" || len(a.quotes) > 0 || a.busy != "" {
-		t.Errorf("a key of the AI did something with it off: predicting %v, %q, quotes %v, busy %q", shownEditor(a).Predicting(), shownEditor(a).Ghost(), a.quotes, a.busy)
+	if shownEditor(a).Predicting() || shownEditor(a).Ghost() != "" || len(talkOf(a).Quotes) > 0 || a.busy != "" {
+		t.Errorf("a key of the AI did something with it off: predicting %v, %q, quotes %v, busy %q", shownEditor(a).Predicting(), shownEditor(a).Ghost(), talkOf(a).Quotes, a.busy)
 	}
 	tt.Key(ui.Cmd, ui.KeySlash)
 	tt.Frame()

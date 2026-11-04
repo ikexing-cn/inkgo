@@ -120,8 +120,8 @@ func TestAnEntryChangesFromAChapter(t *testing.T) {
 	hasNot("deleted", "随章节的变化", "配角，左手的事说开了。")
 
 	// What the AI suggests waits in what the author decides.
-	u, _ := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "第3章起他学会了修灯"})
-	r, err = a.Store.Revise(workspace.Revision{By: workspace.ByTalk, Session: a.session, Turn: u.ID, Ops: []workspace.Op{
+	u, _ := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleUser, Text: "第3章起他学会了修灯"})
+	r, err = a.Store.Revise(workspace.Revision{By: workspace.ByTalk, Session: talkOf(a).Session, Turn: u.ID, Ops: []workspace.Op{
 		{Op: workspace.OpChange, Entry: ids.zhou, From: three, Place: workspace.PlaceOpen, Text: "配角，学会了修灯。"},
 	}})
 	if err != nil {

@@ -11,7 +11,10 @@ import (
 	"writer/workspace"
 )
 
+// Choices returns the editable model draft on the frame thread.
 func (a *service) Choices() *talkapi.ModelChoices { return &a.choices }
+
+// SaveChoices persists the model draft on the frame thread.
 func (a *service) SaveChoices() error {
 	st := a.book.Get().Store()
 	if st == nil {

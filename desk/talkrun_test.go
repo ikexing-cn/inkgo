@@ -62,27 +62,27 @@ func (s *capturedStream) Build(_ *workspace.Store, _ aiapi.Material, _ []aiapi.T
 func TestOldStreamCannotEnterNewDiscussion(t *testing.T) {
 	a, _, _ := fixture(t)
 	stream := &capturedStream{Backend: a.ai}
-	a.talkAPI = stream
+	talkOf(a).Build = stream.Build
 	start := true
 	stillTester(func(c *ui.Context) {
 		if start {
 			start = false
-			if _, err := a.talk(c); err != nil {
+			if _, err := talkOf(a).Talk(c); err != nil {
 				t.Fatal(err)
 			}
 		}
 	}, 64, 64)
-	old := a.turn
+	old := talkOf(a).Turn
 	a.resetView()
 	a.SetError(errors.New("current error"))
 	stream.progress(talkapi.Progress{Text: "old reply"})
 	stream.step(workspace.Event{Revision: "old revision"})
 	a.poll()
-	_, text, steps, _ := a.turn.live.read()
+	_, text, steps, _ := talkOf(a).Turn.Live.Read()
 	if text != "" || len(steps) != 0 || a.errorText() != "current error" {
 		t.Fatal("old stream changed the new discussion")
 	}
-	_, text, steps, _ = old.live.read()
+	_, text, steps, _ = old.Live.Read()
 	if text != "" || len(steps) != 1 {
 		t.Fatal("old stream did not remain with its own turn")
 	}

@@ -17,11 +17,11 @@ func TestTheTalkShowsWhereItWasCompacted(t *testing.T) {
 	a, tt, _ := fixture(t)
 	exchange := func(said, reply string, sent *workspace.Sent) workspace.Event {
 		t.Helper()
-		u, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: said})
+		u, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleUser, Text: said})
 		if err != nil {
 			t.Fatal(err)
 		}
-		r, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: reply, Sent: sent})
+		r, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: reply, Sent: sent})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -29,7 +29,7 @@ func TestTheTalkShowsWhereItWasCompacted(t *testing.T) {
 	}
 	digest := func(through workspace.Event, text string) {
 		t.Helper()
-		if _, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleDigest, Through: through.ID, Text: text, Model: "deepseek/deepseek-flash"}); err != nil {
+		if _, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleDigest, Through: through.ID, Text: text, Model: "deepseek/deepseek-flash"}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -47,9 +47,9 @@ func TestTheTalkShowsWhereItWasCompacted(t *testing.T) {
 	if !tt.HasText("以上 2 轮已整理成摘要") || tt.HasText("作者的态度和偏好") || !tt.HasText("6 条发言") {
 		t.Fatal("the line", tt.Texts())
 	}
-	at := slices.IndexFunc(a.events, func(e workspace.Event) bool { return e.ID == second.ID })
-	if k := slices.Index(a.rows, at); k < 0 || a.events[a.rows[k+1]].Role != workspace.RoleDigest {
-		t.Fatal("the line is not under the last turn it covers", a.rows)
+	at := slices.IndexFunc(talkOf(a).Events, func(e workspace.Event) bool { return e.ID == second.ID })
+	if k := slices.Index(talkOf(a).Rows, at); k < 0 || talkOf(a).Events[talkOf(a).Rows[k+1]].Role != workspace.RoleDigest {
+		t.Fatal("the line is not under the last turn it covers", talkOf(a).Rows)
 	}
 	if err := tt.Click("以上 2 轮已整理成摘要"); err != nil {
 		t.Fatal(err)
@@ -107,7 +107,7 @@ func TestCompactingShowsItself(t *testing.T) {
 	var c *ui.Context
 	tt := stillTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
 	tt.Frame()
-	session := a.session
+	session := talkOf(a).Session
 	u, err := a.Store.Append(session, workspace.Event{Role: workspace.RoleUser, Text: "停电这一章想写得紧一点"})
 	if err != nil {
 		t.Fatal(err)
@@ -129,22 +129,22 @@ func TestCompactingShowsItself(t *testing.T) {
 	}
 	sv := c.Services()
 	asked, block := make(chan struct{}), make(chan struct{})
-	a.turn.pending = "回忆那段会不会拖"
+	talkOf(a).Turn.Pending = "回忆那段会不会拖"
 	a.run(c, "AI 正在思考…", func(context.Context) (func(), error) {
 		if _, err := a.Store.Append(session, workspace.Event{Role: workspace.RoleUser, Text: "回忆那段会不会拖"}); err != nil {
 			return nil, err
 		}
-		a.stepped(a.turn, sv, workspace.Event{Role: workspace.RoleDigest})
+		talkOf(a).Stepped(talkOf(a).Turn, sv, workspace.Event{Role: workspace.RoleDigest})
 		<-asked
 		d, err := a.Store.Append(session, workspace.Event{Role: workspace.RoleDigest, Through: r.ID, Text: "## 在聊什么\n停电那一章。"})
 		if err != nil {
 			return nil, err
 		}
-		a.stepped(a.turn, sv, d)
+		talkOf(a).Stepped(talkOf(a).Turn, sv, d)
 		<-block
-		return func() { a.turn.pending = "" }, nil
+		return func() { talkOf(a).Turn.Pending = "" }, nil
 	})
-	a.turn.active, a.turn.session = true, session
+	talkOf(a).Turn.Active, talkOf(a).Turn.Session = true, session
 	until(t, tt, "compacting", func() bool { return tt.HasText("正在压缩上下文…") })
 	if tt.HasText("正在思考…") || tt.HasText("以上 1 轮已整理成摘要") || !once() {
 		t.Fatal("compacting", tt.Texts())

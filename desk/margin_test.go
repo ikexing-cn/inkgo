@@ -31,11 +31,11 @@ func marginFixture(t *testing.T, compact bool) (*App, *ui.Tester, string) {
 	a.doc.tab = paneMargin
 	a.revise(workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "林晚怕黑", Names: []string{"林晚", "晚晚"}})
 	e := a.book.Setting().Entries[len(a.book.Setting().Entries)-1]
-	u, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "她不再怕黑"})
+	u, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleUser, Text: "她不再怕黑"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = a.book.Revise(workspace.Revision{By: workspace.ByTalk, Session: a.session, Turn: u.ID, Ops: []workspace.Op{{Op: workspace.OpChange, Entry: e.ID, From: node, Place: workspace.PlaceOpen, Text: "林晚从此不再怕黑"}}}); err != nil {
+	if _, err = a.book.Revise(workspace.Revision{By: workspace.ByTalk, Session: talkOf(a).Session, Turn: u.ID, Ops: []workspace.Op{{Op: workspace.OpChange, Entry: e.ID, From: node, Place: workspace.PlaceOpen, Text: "林晚从此不再怕黑"}}}); err != nil {
 		t.Fatal(err)
 	}
 	check := workspace.Check{Of: workspace.ProseHash(text), At: time.Now(), Findings: []workspace.Finding{

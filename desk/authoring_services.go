@@ -1,20 +1,18 @@
 package desk
 
 import (
+	"context"
 	"github.com/egoist/mygo/ui"
 	"strings"
 	"time"
+	"writer/desk/kit"
+	"writer/ext"
+	"writer/ext/hostapi"
 	"writer/workspace"
 )
 
 // AIEnabled implements the frame-thread host capability.
 func (h extensionHost) AIEnabled() bool { return h.a.aiOn() }
-
-// OpenTalk implements the frame-thread host capability.
-func (h extensionHost) OpenTalk(id string) { h.a.page = pageTalk; h.a.switchSession(id) }
-
-// TalkTitle implements the frame-thread host capability.
-func (h extensionHost) TalkTitle(id string) (string, bool) { return h.a.talkName(id) }
 
 // FindInChapter implements the frame-thread host capability.
 func (h extensionHost) FindInChapter(id, quote string) { h.a.findInChapter(id, quote) }
@@ -57,26 +55,68 @@ func (h extensionHost) MenuOpen(key string) bool { return h.a.menu.MenuOpen(key)
 func (h extensionHost) RevealPane(tab string) {
 	h.a.setDocHidden(false)
 	h.a.doc.tab = paneTab(tab)
-	if h.a.doc.tab != paneTalk {
-		h.a.doc.talks = false
+	h.a.paneChanged(tab)
+
+}
+
+// HasBeside implements frame-thread pane availability.
+func (h extensionHost) HasBeside() bool {
+	return len(ext.Items(h.a.extensions, hostapi.BesideItems)) > 0
+}
+
+// PaneOpen implements frame-thread pane state.
+func (h extensionHost) PaneOpen() bool { return !h.a.doc.hidden }
+
+// TogglePane implements frame-thread pane navigation.
+func (h extensionHost) TogglePane() { h.a.setDocHidden(!h.a.doc.hidden) }
+
+// Selected implements frame-thread pane selection.
+func (h extensionHost) SelectedTab() string { return string(h.a.paneTabs.shown(h.a, h.a.doc.tab)) }
+
+// Flash marks changed book content on the frame thread.
+func (h extensionHost) Flash(id string) { h.a.flash[id] = time.Now() }
+
+// Request starts a nonblocking author operation on the frame thread.
+func (h extensionHost) Request(sv ui.Services, label string, fn func(context.Context) (func(), error)) {
+	h.a.nonblocking = true
+	h.a.work(sv, label, fn)
+}
+
+// Post dispatches from any goroutine onto the frame thread.
+func (h extensionHost) Post(sv ui.Services, fn func()) { h.a.jobs.post(sv, fn) }
+
+// SavePreferences saves contributed view state on the frame thread.
+func (h extensionHost) SavePreferences() error { return h.a.savePrefs() }
+
+// Page returns the host's selected page identity on the frame thread.
+func (h extensionHost) Page() string {
+	for id, p := range h.a.pageIDs {
+		if p == h.a.page {
+			return id
+		}
 	}
+	return ""
 }
 
-// StartTalk implements the temporary conversation navigation capability.
-func (h extensionHost) StartTalk(c *ui.Context, words workspace.Event) bool {
-	return h.a.startTalk(c, words)
-}
+// EntryAvailable reports optional entry navigation on the frame thread.
+func (h extensionHost) EntryAvailable() bool { return h.a.entryNavigationAvailable() }
 
-// ShowEntry opens a digest reference on the frame thread.
+// ShowEntry delegates optional entry navigation on the frame thread.
 func (h extensionHost) ShowEntry(e workspace.Entry) { h.a.showEntry(e) }
 
-// StopTalk cancels the conversation as leaving the book does. Keep the busy
-// marker until the worker returns, so Close cannot close its store underneath it.
-func (h extensionHost) StopTalk() {
-	a := h.a
-	if a.turn.active && a.cancel != nil {
-		a.cancel()
-		a.dropProps(a.write.props, workspace.FateClosed)
-		a.turn.active = false
+// CancelRequest stops the current author operation on the frame thread.
+func (h extensionHost) CancelRequest() {
+	if h.a.cancel != nil {
+		h.a.cancel()
 	}
 }
+func (a *App) paneChanged(tab string) {
+	for _, item := range ext.Items(a.extensions, hostapi.State) {
+		if item.Value.PaneChanged != nil {
+			_ = ext.Guard(a.extensions, item.Owner, item.ID+".pane", func() { item.Value.PaneChanged(tab) })
+		}
+	}
+}
+
+// MenuState exposes persistent menu state on the frame thread.
+func (h extensionHost) MenuState() *kit.MenuState { return &h.a.menu }

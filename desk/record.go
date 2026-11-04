@@ -246,9 +246,9 @@ func (a *App) recordMore(c *ui.Context, r workspace.Record) {
 	ui.Column(c).FillWidth().Padding(0, 6, 10, 6+92+12).Gap(2).Children(func() {
 		switch {
 		case r.Effort == "none":
-			note(locales.SettingsRecordNoThinking(a.replyLabel(r.Model, "")))
+			note(locales.SettingsRecordNoThinking(a.recordReplyLabel(r.Model, "")))
 		default:
-			note(a.replyLabel(r.Model, "") + " · " + a.ai.EffortLabel(r.Effort))
+			note(a.recordReplyLabel(r.Model, "") + " · " + a.ai.EffortLabel(r.Effort))
 		}
 		if len(r.Parts) > 0 {
 			var parts []string
@@ -284,7 +284,7 @@ func (a *App) recordMore(c *ui.Context, r workspace.Record) {
 // by its first words, or its chapter by title, as the work has them now.
 func (a *App) recordWhere(r workspace.Record) string {
 	if r.Talk != "" {
-		if title, ok := a.talkName(r.Talk); ok {
+		if title, ok := a.conversationTitle(r.Talk); ok {
 			return title
 		}
 		return locales.SnapAITalkGone()
@@ -293,4 +293,33 @@ func (a *App) recordWhere(r workspace.Record) string {
 		return n.Title
 	}
 	return locales.SettingsRecordChapterGone()
+}
+
+func (a *App) recordReplyLabel(name, effort string) string {
+	ref, _ := workspace.ParseModelRef(name)
+	name = ref.Model
+	if i := strings.LastIndex(name, "/"); i >= 0 {
+		name = name[i+1:]
+	}
+	if effort != "" && name != "" {
+		name += " · " + a.ai.EffortLabel(effort)
+	}
+	return name
+}
+
+// partNames name the parts of a talk request as the author reads them.
+var partNames = map[string]func() string{
+	workspace.PartRules:    locales.ChatPartRules,
+	workspace.PartIndex:    locales.ChatPartCatalog,
+	workspace.PartDigest:   locales.ChatPartDigest,
+	workspace.PartOutline:  locales.ChatPartOutline,
+	workspace.PartCards:    locales.ChatPartCards,
+	workspace.PartOutlines: locales.ChatPartPrevOutlines,
+	workspace.PartPrevious: locales.ChatPartPrevChapter,
+	workspace.PartChapter:  locales.ChatPartThisChapter,
+	workspace.PartRecap:    locales.ChatPartRecap,
+	workspace.PartLooked:   locales.ChatPartLook,
+	workspace.PartTalk:     locales.ChatPartBefore,
+	workspace.PartProse:    locales.ChatPartProse,
+	workspace.PartInput:    locales.ChatPartSaid,
 }

@@ -51,6 +51,7 @@ func New(opts Options) ext.Module {
 		v.host = ext.Use(r, hostapi.SettingsHostService)
 		notices := ext.Use(r, hostapi.NoticesService)
 		ext.Declare(r, aiapi.Tools)
+		ext.DeclareCalls(r, aiapi.Tools, aiapi.InvokeTool)
 		v.usageItems = ext.ReadPoint(r, hostapi.AIUsage)
 		v.modelSections = ext.ReadPoint(r, hostapi.SettingsSections)
 		ext.Provide(r, aiapi.Service, func(*ext.Session) aiapi.Backend {

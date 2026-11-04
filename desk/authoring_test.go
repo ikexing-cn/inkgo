@@ -9,6 +9,7 @@ import (
 	"writer/ext"
 	"writer/ext/hostapi"
 	"writer/ext/lore/loreapi"
+	"writer/ext/talk/talkapi"
 	"writer/workspace"
 )
 
@@ -228,7 +229,7 @@ func TestEntryActionsAreAbsentWithoutNavigationService(t *testing.T) {
 
 func TestTalkAndAIServiceMethodsAreDirectFrameCalls(t *testing.T) {
 	a, _, _ := writingFixture(t, "正文")
-	talk, ok := ext.Lookup(a.extensions, hostapi.TalkService)
+	talk, ok := ext.Lookup(a.extensions, talkapi.Service)
 	if !ok {
 		t.Fatal("talk missing")
 	}
@@ -236,8 +237,8 @@ func TestTalkAndAIServiceMethodsAreDirectFrameCalls(t *testing.T) {
 	if !ok {
 		t.Fatal("AI state missing")
 	}
-	id := a.session
-	a.titles[id] = workspace.ConversationTitle{Kind: workspace.TitleWords, Text: "服务测试"}
+	id := talkOf(a).Session
+	talkOf(a).Titles[id] = workspace.ConversationTitle{Kind: workspace.TitleWords, Text: "服务测试"}
 	frame := stillTester(func(c *ui.Context) {
 		if !state.AIEnabled() {
 			t.Fatal("AI should be on")
@@ -252,7 +253,7 @@ func TestTalkAndAIServiceMethodsAreDirectFrameCalls(t *testing.T) {
 			t.Fatal(title, exists)
 		}
 		talk.OpenTalk(id)
-		if a.page != pageTalk || a.session != id {
+		if a.page != pageTalk || talkOf(a).Session != id {
 			t.Fatal("conversation not opened")
 		}
 		ui.Text(c, "direct services")
@@ -284,23 +285,23 @@ func TestExistingServicesOwnMenusPaneCategoriesAndContentFlashes(t *testing.T) {
 			t.Fatal("category page missing")
 		}
 		a.page = pagePlan
-		a.doc.hidden, a.doc.talks, a.write.focus = true, true, true
+		a.doc.hidden, talkOf(a).Talks, a.write.focus = true, true, true
 		if a.paneOpen() {
 			a.pages[pagePlan].togglePane()
 		}
 		pane.RevealPane("setting")
-		if !a.paneOpen() || a.doc.tab != paneSetting || a.doc.talks || !a.write.focus {
+		if !a.paneOpen() || a.doc.tab != paneSetting || talkOf(a).Talks || !a.write.focus {
 			t.Fatal("reveal semantics")
 		}
 		a.page = pageWrite
-		a.doc.hidden, a.doc.talks, a.write.focus = true, true, true
+		a.doc.hidden, talkOf(a).Talks, a.write.focus = true, true, true
 		pane.Show("setting")
-		if a.doc.hidden || a.doc.talks || a.write.focus || a.doc.tab != paneSetting {
+		if a.doc.hidden || talkOf(a).Talks || a.write.focus || a.doc.tab != paneSetting {
 			t.Fatal("show semantics")
 		}
-		a.doc.talks = true
+		talkOf(a).Talks = true
 		pane.Show("talk")
-		if !a.doc.talks {
+		if !talkOf(a).Talks {
 			t.Fatal("talk list closed when selecting talk")
 		}
 		ui.Text(c, "existing service capabilities")
@@ -312,14 +313,16 @@ func TestSplitServicesUsedInsideCallKeepContributionFailureIsolated(t *testing.T
 	for _, service := range []string{"talk", "search", "ai"} {
 		t.Run(service, func(t *testing.T) {
 			calls := 0
-			fake := ext.Module{ID: "serviceuser", Setup: func(r *ext.Registrar) {
-				talk := ext.Use(r, hostapi.TalkService)
+			fake := ext.Module{ID: "serviceuser", Optional: []string{"talk"}, Setup: func(r *ext.Registrar) {
+				talk := ext.UseOptional(r, talkapi.Service)
 				search := ext.Use(r, hostapi.SearchService)
 				state := ext.Use(r, hostapi.AIService)
 				ext.Contribute(r, hostapi.BesideItems, "body", hostapi.DrawItem{Draw: func(c *ui.Context) {
 					switch service {
 					case "talk":
-						talk.Get().TalkTitle("missing")
+						if svc, ok := talk.Get(); ok {
+							svc.TalkTitle("missing")
+						}
 					case "search":
 						search.Get().CountText("正文")
 					case "ai":

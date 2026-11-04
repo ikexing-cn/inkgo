@@ -33,12 +33,15 @@ func (a *View) aiRecord(c *ui.Context, r *workspace.AIRecord) {
 func (a *View) talkRecord(c *ui.Context, sessions []string) {
 	t := a.Palette.Colors().Theme
 	var b strings.Builder
-	for _, s := range sessions {
-		title, ok := a.Talk.TalkTitle(s)
-		if !ok {
-			title = locales.SnapAITalkGone()
+	// With talk off its titles are unknown, so the line names no talk.
+	if talk, on := a.Talk(); on {
+		for _, s := range sessions {
+			title, ok := talk.TalkTitle(s)
+			if !ok {
+				title = locales.SnapAITalkGone()
+			}
+			b.WriteString(snapstext.SnapAITalk(title))
 		}
-		b.WriteString(snapstext.SnapAITalk(title))
 	}
 	ui.Column(c).FillWidth().Padding(10, 12).Radius(kit.RControl).Border(1, t.Border).Children(func() {
 		ui.Text(c, snapstext.SnapAIFrom(b.String())).FontSize(kit.FsNote).FontWeight(600).FillWidth()

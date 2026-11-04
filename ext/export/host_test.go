@@ -1,6 +1,7 @@
 package export
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 	"time"
@@ -127,3 +128,14 @@ func (h *testHost) ClearFlash(string) {}
 func (h *testHost) CategoriesChanged() error { return nil }
 
 func (h *testHost) Held() bool { return false }
+
+func (*testHost) Flash(string) {}
+
+func (h *testHost) CancelRequest()                {}
+func (h *testHost) Post(_ ui.Services, fn func()) { fn() }
+func (h *testHost) Request(_ ui.Services, _ string, fn func(context.Context) (func(), error)) {
+	apply, _ := fn(context.Background())
+	if apply != nil {
+		apply()
+	}
+}

@@ -2,7 +2,6 @@ package desk
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"sync/atomic"
@@ -194,38 +193,6 @@ func (a *App) beginTalk(c *ui.Context, words workspace.Event) bool {
 		return false
 	}
 	return a.talkAPI.StartTalk(c, words)
-}
-
-// startTalk opens a new talk that keeps to the chapter shown, to draft or
-// rewrite it, with the author's first words; it shows beside the prose.
-// It reports whether the talk began: there must be a model to talk with,
-// and no other reply in flight.
-func (a *App) startTalk(c *ui.Context, words workspace.Event) bool {
-	w := &a.write
-	if work := a.Store.Work(); work.Discussion.Provider == "" || work.Discussion.Model == "" {
-		a.SetError(&aiapi.SetupError{Err: errors.New(locales.ChatNeedModel())})
-		return false
-	}
-	what := map[string]string{workspace.AIDraft: locales.SettingsFeatureDraft(), workspace.AIRewrite: locales.SettingsFeatureRewrite()}[words.Origin]
-	if a.busy != "" {
-		a.status.Hint(locales.DraftBusyOther(what))
-		return false
-	}
-	a.flush() // the talk reads the chapter from the disk
-	id, err := a.blankSession()
-	if err != nil {
-		a.warn(err)
-		return false
-	}
-	a.switchSession(id)
-	words.Chapter, words.Role = w.node, workspace.RoleUser
-	a.titles[id], a.blank[id] = a.talkTitle([]workspace.Event{words}), false
-	d := &a.doc
-	d.hidden, d.tab, d.talks = false, paneTalk, false
-	w.focus = false
-	a.savePrefs()
-	a.say(c, id, words, nil)
-	return true
 }
 
 // modelLabel names the model of r and its effort: DeepSeek/deepseek-flash ·

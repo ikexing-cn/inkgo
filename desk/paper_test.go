@@ -203,7 +203,7 @@ func TestTheSidebarOnlyListsObjects(t *testing.T) {
 		t.Fatal("the hovered chapter has no count")
 	}
 	click(t, tt, "讨论")
-	if _, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "修路灯"}); err != nil {
+	if _, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleUser, Text: "修路灯"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := a.refresh(); err != nil {
@@ -212,11 +212,11 @@ func TestTheSidebarOnlyListsObjects(t *testing.T) {
 	tt.Move(0, 0)
 	tt.Frame()
 	tt.Frame()
-	date := talkDay(a.session, time.Now())
+	date := talkDay(talkOf(a).Session, time.Now())
 	if slices.Contains(tt.Texts(), date) {
 		t.Fatal("the discussion date is always visible")
 	}
-	r = find(t, tt, "对话-"+a.session)
+	r = find(t, tt, "对话-"+talkOf(a).Session)
 	tt.Move(r.X+r.W/2, r.Y+r.H/2)
 	tt.Frame()
 	tt.Frame()
@@ -405,14 +405,14 @@ func TestListNumbersFollowKeyboardAndMenus(t *testing.T) {
 	}
 	testRow("章节-第一章", "8", "chapter-"+id)
 	a.page = pageTalk
-	if _, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "修路灯"}); err != nil {
+	if _, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleUser, Text: "修路灯"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := a.refresh(); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	testRow("对话-"+a.session, talkDay(a.session, time.Now()), "talk-"+a.session)
+	testRow("对话-"+talkOf(a).Session, talkDay(talkOf(a).Session, time.Now()), "talk-"+talkOf(a).Session)
 }
 
 // The search controls have room above them, and a standalone setting
@@ -423,7 +423,7 @@ func TestThePaneSearchAndHeadingHaveRoom(t *testing.T) {
 		tab   paneTab
 		query string
 	}{{paneSetting, "搜索设定"}, {paneFore, "搜索伏笔"}, {paneTalk, "搜索讨论"}} {
-		a.doc.tab, a.doc.talks = tc.tab, true
+		a.doc.tab, talkOf(a).Talks = tc.tab, true
 		tt.Frame()
 		tt.Frame()
 		top, query := find(t, tt, "右栏标签行"), find(t, tt, tc.query+"框")

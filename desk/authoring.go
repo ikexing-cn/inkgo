@@ -1,7 +1,9 @@
 package desk
 
 import (
+	"cmp"
 	"github.com/egoist/mygo/ui"
+	"slices"
 	"writer/desk/kit"
 	"writer/ext"
 	"writer/ext/hostapi"
@@ -16,8 +18,15 @@ func selectionMenuCall(v hostapi.SelectionMenu) func(string) []hostapi.Selection
 	}
 }
 
-func (a *App) selectionMenus(m *kit.Menu, text string) {
-	for _, item := range ext.Items(a.extensions, hostapi.SelectionMenus) {
+func (a *App) selectionMenus(m *kit.Menu, text string) { a.selectionMenusAt(m, text, false) }
+
+func (a *App) selectionMenusAt(m *kit.Menu, text string, before bool) {
+	items := ext.Items(a.extensions, hostapi.SelectionMenus)
+	slices.SortStableFunc(items, func(a, b ext.Item[hostapi.SelectionMenu]) int { return cmp.Compare(a.Value.Order, b.Value.Order) })
+	for _, item := range items {
+		if (item.Value.Order < 0) != before {
+			continue
+		}
 		actions, err := ext.Call(a.extensions, ext.HookOf(ext.CallPoint[hostapi.SelectionMenu, string, []hostapi.SelectionAction]{Point: hostapi.SelectionMenus}, item.ID), text, selectionMenuCall(item.Value))
 		if err == nil {
 			a.selectionActions(m, item.Owner, item.ID, actions)
@@ -31,7 +40,14 @@ func (a *App) selectionActions(m *kit.Menu, owner, id string, actions []hostapi.
 			m.Submenu(action.Label, func(sub *kit.Menu) { a.selectionActions(sub, owner, id, action.Children) })
 			continue
 		}
-		m.Item(action.Label).Disabled(action.Disabled).Do(func() {
+		hint := ""
+		for _, cmd := range a.extensionCommands() {
+			if cmd.id == action.Command {
+				hint = cmd.cmd.keys()
+				break
+			}
+		}
+		m.Item(action.Label).Hint(hint).Disabled(action.Disabled).Do(func() {
 			if action.Run != nil {
 				_ = ext.Guard(a.extensions, owner, id, action.Run)
 			}

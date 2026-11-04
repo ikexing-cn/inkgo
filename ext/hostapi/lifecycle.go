@@ -73,6 +73,14 @@ type Desktop interface {
 	ModelLabel(workspace.AIRecord) string
 	// ChapterExternal reports an unresolved outside edit on the frame thread.
 	ChapterExternal() bool
+	// SavePreferences persists book-local view state on the frame thread.
+	SavePreferences() error
+	// Page returns the current qualified page identity on the frame thread.
+	Page() string
+	// EntryAvailable reports whether the host can navigate to an entry; frame thread only.
+	EntryAvailable() bool
+	// ShowEntry navigates to an entry using the installed entry provider; frame thread only.
+	ShowEntry(workspace.Entry)
 
 	// HasPage reports an available contributed page on the frame thread.
 	HasPage(string) bool
@@ -97,6 +105,8 @@ type Desktop interface {
 	// MenuOpen queries the shared menu state directly on the frame thread,
 	// without ext.Call or ext.Guard.
 	MenuOpen(string) bool
+	// MenuState returns persistent shared menu state on the frame thread.
+	MenuState() *kit.MenuState
 	// DropMenu draws a shared menu on the frame thread; frame values must not escape.
 	DropMenu(*ui.Context, ui.Element, string, func(ui.Element), func(*kit.Menu))
 	// SettingColumn draws the shared right column on the frame thread.

@@ -65,11 +65,11 @@ func TestCategoryActionsFollowHoverAndKeyboard(t *testing.T) {
 
 func TestTheLastReplyToolsOnlyAppearOnHover(t *testing.T) {
 	a, tt, _ := fixture(t)
-	u, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "雨城"})
+	u, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleUser, Text: "雨城"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	m, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, At: time.Now(), Model: strings.Repeat("long-model-name-", 20), Text: "雨一直没有停。"})
+	m, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, At: time.Now(), Model: strings.Repeat("long-model-name-", 20), Text: "雨一直没有停。"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ func TestTheLastReplyToolsOnlyAppearOnHover(t *testing.T) {
 	}
 	for _, label := range []string{"摘取-" + m.ID, "复制-" + m.ID, "上下文-" + m.ID} {
 		r := find(t, tt, label)
-		if r.X+r.W > a.LastChat.X+a.LastChat.W-24+1 || r.Y != copyBox.Y {
+		if r.X+r.W > talkOf(a).LastChat.X+talkOf(a).LastChat.W-24+1 || r.Y != copyBox.Y {
 			t.Fatal("reply buttons wrapped or escaped", label, r, copyBox)
 		}
 	}

@@ -11,7 +11,6 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/book"
 	"writer/desk/kit"
-	"writer/editor"
 	"writer/ext"
 	"writer/ext/ai/aiapi"
 	"writer/ext/talk/talkapi"
@@ -25,7 +24,6 @@ const flashFor = 3 * time.Second
 
 type App struct {
 	hostapi.ModelChoices
-	talkChoices *talkapi.ModelChoices
 	// Window callbacks only touch these atomics. View consumes the return
 	// signal, even when blur and focus both happened between two frames.
 	windowInactive atomic.Bool
@@ -65,68 +63,49 @@ type App struct {
 	light, dark *kit.Palette
 	pal         *kit.Palette
 
-	page              page
-	pages             []pageView
-	pageOrder         []page
-	pageIDs           map[string]page
-	paneTabs          tabTable[paneTab]
-	hostPaneTabs      tabTable[paneTab]
-	extViews          extensionViews
-	prefTabs          tabTable[string]
-	hostPrefTabs      tabTable[string]
-	offFrom           page              // the page of the AI the prose took the place of as the AI was turned off,
-	offAway           bool              // while there is one
-	shown             page              // the page the last frame showed
-	leftWriting       bool              // the work was last on the writing page, not the discussion
-	toastShown        map[string]string // what each toast shows, by its id
-	toastsOpen        bool              // the folded toasts opened
-	status            kit.Status        // the error, the failures, and what the toasts say
-	keysOpen          bool              // the shortcuts shown
-	sideHidden        bool              // the author put the sidebar away
-	bar               barState          // what the title bar keeps from frame to frame
-	menu              kit.MenuState     // the menu open
-	titled            string            // the window title last set
-	shelved           map[string]bool   // the conversations put out of the list
-	showShelved       bool              // the shelved conversations listed too
-	path, name, genre string
-	shelf             shelf.Shelf
-	ranNoGPU          bool // the shelf's NoGPU as the software opened, which cmd/inkgo draws by
-	settings          settingsView
-	record            recordView
-	books             shelfView
-	ck                checks
-	session           string
-	sessions          []string
-	titles            map[string]workspace.ConversationTitle
-	blank             map[string]bool // talks nothing was said in yet: not listed, and a new talk takes one
-	events            []workspace.Event
-	seen              int // revisions of the setting the view has flashed
-	flash             map[string]time.Time
-	input             string
-	source            *editor.Editor
-	sourceMessage     string
-	sourceOpen        bool
-	sourceCategory    string
-	contextReply      string
-	turn              *talkTurn
-	workEpoch         uint64
-	busy              string
-	// Prose the author quoted for their next turn, and whether the talk
-	// beside the prose should take the keyboard.
-	quotes                           []workspace.Quote
-	focusTalk                        bool
-	cancel                           context.CancelFunc
-	jobs                             jobs
-	chat                             ui.ListState
-	rows                             []int            // the chat list's: event indexes, -1 the empty chat, -2 the turn in flight
-	thoughts                         map[string]*bool // reasoning shown, by event or revision ID
-	doc                              docView
-	extensions                       *ext.Host
-	extStore                         *extensionStore
-	extNotices                       extensionNotices
-	write                            writeView
-	LastChat, LastSetting, LastWrite ui.Rect
-	LastProse                        ui.Rect
+	page                   page
+	pages                  []pageView
+	pageOrder              []page
+	pageIDs                map[string]page
+	paneTabs               tabTable[paneTab]
+	hostPaneTabs           tabTable[paneTab]
+	extViews               extensionViews
+	prefTabs               tabTable[string]
+	hostPrefTabs           tabTable[string]
+	offFrom                page              // the page of the AI the prose took the place of as the AI was turned off,
+	offAway                bool              // while there is one
+	shown                  page              // the page the last frame showed
+	leftWriting            bool              // the work was last on the writing page, not the discussion
+	toastShown             map[string]string // what each toast shows, by its id
+	toastsOpen             bool              // the folded toasts opened
+	status                 kit.Status        // the error, the failures, and what the toasts say
+	keysOpen               bool              // the shortcuts shown
+	sideHidden             bool              // the author put the sidebar away
+	bar                    barState          // what the title bar keeps from frame to frame
+	menu                   kit.MenuState     // the menu open
+	titled                 string            // the window title last set
+	path, name, genre      string
+	shelf                  shelf.Shelf
+	ranNoGPU               bool // the shelf's NoGPU as the software opened, which cmd/inkgo draws by
+	settings               settingsView
+	record                 recordView
+	books                  shelfView
+	ck                     checks
+	seen                   int // revisions of the setting the view has flashed
+	flash                  map[string]time.Time
+	workEpoch              uint64
+	busy                   string
+	cancel                 context.CancelFunc
+	jobs                   jobs
+	nonblocking            bool
+	proposalFrame          hostapi.ProposalFrame
+	doc                    docView
+	extensions             *ext.Host
+	extStore               *extensionStore
+	extNotices             extensionNotices
+	write                  writeView
+	LastSetting, LastWrite ui.Rect
+	LastProse              ui.Rect
 	// Appearance applies the appearance chosen: "light", "dark", or empty
 	// to follow the system. cmd/inkgo hands it to the window.
 	Appearance func(string)
@@ -154,8 +133,8 @@ type App struct {
 // New assembles the host with a stable machine configuration location and an
 // explicit extension list. The shelf and extension switches live beside it.
 func New(configFile string, mods ...ext.Module) *App {
-	a := &App{talkChoices: &talkapi.ModelChoices{}, configFile: configFile, turn: &talkTurn{}, genre: "网文",
-		light: kit.LightPalette(), dark: kit.DarkPalette(), titles: map[string]workspace.ConversationTitle{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
+	a := &App{configFile: configFile, genre: "网文",
+		light: kit.LightPalette(), dark: kit.DarkPalette(), flash: map[string]time.Time{}}
 	a.status.Translate = a.errText
 	a.pal = a.light
 	a.initPages()
@@ -205,7 +184,6 @@ func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 	a.Store, a.path = s, path
 	a.book = book.Open(s)
 	a.remember(true)
-	a.titles, a.blank = map[string]workspace.ConversationTitle{}, map[string]bool{}
 	a.resetView()
 	if err := a.extensions.Open(ext.Book{Dir: s.Root()}); err != nil {
 		return err
@@ -213,30 +191,27 @@ func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 	a.syncExtensions()
 	a.loadPrefs()
 	a.loadWork()
-	sessions, err := s.Sessions()
-	if err != nil {
-		return err
-	}
-	if fresh || len(sessions) == 0 {
-		a.session, err = s.NewSession()
-		if err != nil {
-			return err
-		}
-	} else {
-		a.session = sessions[len(sessions)-1]
-	}
+
 	return a.refresh()
 }
 
 func (a *App) resetView() {
+	if a.extensions != nil {
+		for _, item := range ext.Items(a.extensions, hostapi.State) {
+			if item.Value.Reset != nil {
+				_ = ext.Guard(a.extensions, item.Owner, item.ID+".reset", item.Value.Reset)
+			}
+		}
+	}
+
 	if a.cancel != nil {
 		a.cancel()
 	}
 	a.workEpoch++
-	a.busy, a.cancel, a.turn = "", nil, &talkTurn{}
+	a.busy, a.cancel, a.nonblocking = "", nil, false
+	a.proposalFrame = hostapi.ProposalFrame{}
 	a.resetPrefs()
-	a.source, a.sourceOpen, a.contextReply = nil, false, ""
-	a.input, a.seen, a.flash, a.doc, a.write = "", -1, map[string]time.Time{}, docView{}, writeView{}
+	a.seen, a.flash, a.doc, a.write = -1, map[string]time.Time{}, docView{}, writeView{}
 	a.page, a.shown, a.offAway = pageTalk, pageTalk, false
 }
 
@@ -262,7 +237,6 @@ func (a *App) Close() error {
 	a.leaveWork()
 	a.resetPrefs()
 	a.workEpoch++
-	a.turn = &talkTurn{}
 	// Window shutdown exits the process. A cancelled worker may still be
 	// saving what it already has, so leave the store open for it.
 	if a.Store != nil && a.busy == "" {
@@ -305,25 +279,17 @@ func (a *App) refreshFromSetting() error {
 	if a.Store == nil {
 		return nil
 	}
-	var err error
 	a.flashNew()
-	if a.events, err = a.Store.Events(a.session); err != nil {
-		return err
-	}
-	if a.sessions, err = a.Store.Sessions(); err != nil {
-		return err
-	}
-	a.titles[a.session], a.blank[a.session] = a.talkTitle(a.events), len(a.events) == 0
-	if a.turn.session != a.session {
-		delete(a.titles, a.turn.session) // the last turn may have gone on there since: read it again
-	}
-	for _, s := range a.sessions {
-		if _, ok := a.titles[s]; !ok {
-			events, err := a.Store.Events(s)
+	for _, item := range ext.Items(a.extensions, hostapi.State) {
+		if item.Value.Refresh != nil {
+			var err error
+			callErr := ext.Guard(a.extensions, item.Owner, item.ID+".refresh", func() { err = item.Value.Refresh() })
+			if callErr != nil {
+				return callErr
+			}
 			if err != nil {
 				return err
 			}
-			a.titles[s], a.blank[s] = a.talkTitle(events), len(events) == 0
 		}
 	}
 	return nil
@@ -339,15 +305,6 @@ func (a *App) nodeTitle(id string) string {
 		return n.Title
 	}
 	return ""
-}
-
-// talkDay is the day a conversation began, from its ID: 今天, 昨天, 10-06.
-func talkDay(id string, now time.Time) string {
-	t, err := time.ParseInLocation("20060102-1504", id[:min(len(id), 13)], time.Local)
-	if err != nil {
-		return ""
-	}
-	return kit.DayOf(t, now)
 }
 
 // flashNew tints the entries a talk noted since the view last looked; the
@@ -371,9 +328,6 @@ func (a *App) errorText() string { return a.status.ErrorText() }
 
 func (a *App) loadWork() {
 	w := a.Store.Work()
-	a.talkChoices.TalkProvider = w.Discussion.Provider
-	a.talkChoices.TalkModel = w.Discussion.Model
-	a.talkChoices.TalkEffort = w.Discussion.Effort
 	a.PenProvider, a.PenModel, a.PenEffort = w.Writing.Provider, w.Writing.Model, w.Writing.Effort
 }
 

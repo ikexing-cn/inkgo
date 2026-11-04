@@ -6,6 +6,7 @@ import (
 	"writer/ext"
 	"writer/ext/hostapi"
 	"writer/ext/snaps/snapstext"
+	"writer/ext/talk/talkapi"
 )
 
 // Module registers this extension's presentation and command.
@@ -14,7 +15,7 @@ var Module = module(nil)
 // New creates an independent frame-thread controller.
 func New() (ext.Module, *View) { p := &View{}; return module(p), p }
 func module(controller *View) ext.Module {
-	return ext.Module{ID: "snaps", Kind: ext.Feature, Group: hostapi.GroupFiles, Name: snapstext.ModSnaps, Desc: snapstext.ModSnapsAbout, Setup: func(r *ext.Registrar) {
+	return ext.Module{ID: "snaps", Kind: ext.Feature, Group: hostapi.GroupFiles, Optional: []string{"talk"}, Name: snapstext.ModSnaps, Desc: snapstext.ModSnapsAbout, Setup: func(r *ext.Registrar) {
 		p := controller
 		if p == nil {
 			p = &View{}
@@ -23,10 +24,10 @@ func module(controller *View) ext.Module {
 		pal := ext.Use(r, hostapi.PaletteService)
 		notice := ext.Use(r, hostapi.NoticesService)
 		desktop := ext.Use(r, hostapi.DesktopService)
-		talk := ext.Use(r, hostapi.TalkService)
+		talk := ext.UseOptional(r, talkapi.Service)
 		ai := ext.Use(r, hostapi.AIService)
 		r.OnStart(func(*ext.Session) error {
-			*p = View{Book: book.Get(), Palette: pal.Get(), Notices: notice.Get(), Desktop: desktop.Get(), AI: ai.Get(), Talk: talk.Get()}
+			*p = View{Book: book.Get(), Palette: pal.Get(), Notices: notice.Get(), Desktop: desktop.Get(), AI: ai.Get(), Talk: talk.Get}
 			return nil
 		})
 		r.OnStop(func(*ext.Session) { *p = View{} })

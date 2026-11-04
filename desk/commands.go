@@ -140,9 +140,6 @@ var (
 	cmdRewrite = &command{label: locales.EditorAIRewriteMore, page: pageWrite, ai: true,
 		can: func(a *App) bool { return a.talkOn() && selected(a) && editable(a) },
 		run: func(a *App) { a.openRewrite() }}
-	cmdQuote = &command{label: locales.EditorQuote, key: ui.KeyL, mods: modCmd, page: pageWrite, by: byDesk, ai: true,
-		can: func(a *App) bool { return a.talkOn() && selected(a) },
-		run: func(a *App) { a.quoteToTalk() }}
 	cmdTake = &command{label: locales.EditorAddToLore, page: pageWrite,
 		can: func(a *App) bool { return a.hasEntries() && selected(a) },
 		run: func(a *App) { a.openTake() }}
@@ -191,23 +188,19 @@ var (
 	cmdDeleteWordForward = &command{label: locales.CmdDeleteWordForward, key: ui.KeyDelete, mods: modCmd, onMac: true, macKey: ui.KeyDelete, macMods: ui.Alt, page: pageWrite, by: byEditor}
 	cmdTakePrediction    = &command{label: locales.CmdTakePrediction, key: ui.KeyTab, page: pageWrite, by: byEditor, ai: true}
 	cmdDropPrediction    = &command{label: locales.CmdDropPrediction, key: ui.KeyEscape, page: pageWrite, by: byEditor, ai: true}
-
-	// The talk's box keeps its own key.
-	cmdSend = &command{label: locales.HelpSend, key: ui.KeyEnter, mods: modCmd, page: pageTalk, ai: true, by: byBox,
-		can: func(a *App) bool { return a.busy == "" }}
 )
 
 // commandList is every command, in the order the desk tries its keys.
 var commandList = []*command{
 	cmdHelp,
-	cmdQuote, cmdNewChapter, cmdRename,
+	cmdNewChapter, cmdRename,
 	cmdZoomIn, cmdZoomOut, cmdZoomReset, cmdSave, cmdPrevChapter, cmdNextChapter,
 	cmdCloseTab, cmdNextTab, cmdPrevTab,
 	cmdUndo, cmdRedo, cmdContinue, cmdCut, cmdCopy, cmdPaste, cmdSelectAll,
 	cmdDeleteWordBack, cmdDeleteWordForward, cmdTakePrediction, cmdDropPrediction,
 	cmdNewFolder, cmdSettings, cmdDraft,
 	cmdSide, cmdPane, cmdRewrite, cmdTake, cmdUnmark,
-	cmdBury, cmdPay, cmdViewFore, cmdCloseOthers, cmdCloseRight, cmdSend,
+	cmdBury, cmdPay, cmdViewFore, cmdCloseOthers, cmdCloseRight,
 }
 
 // helpRow is one row of the help: the keys as the help writes them, what
@@ -249,11 +242,9 @@ var commandHelp = []*helpRow{
 	{group: locales.HelpGroupWrite, does: locales.HelpCloseTab, cmds: []*command{cmdCloseTab}},
 	{group: locales.HelpGroupWrite, does: locales.HelpContinue, ai: true, cmds: []*command{cmdContinue}},
 	{group: locales.HelpGroupWrite, does: locales.HelpAcceptDrop, ai: true, cmds: []*command{cmdTakePrediction, cmdDropPrediction}},
-	{group: locales.HelpGroupWrite, does: locales.HelpCite, ai: true, cmds: []*command{cmdQuote}},
 	{group: locales.HelpGroupWrite, does: locales.HelpUndoRedo, cmds: []*command{cmdUndo, cmdRedo}},
 	{group: locales.HelpGroupWrite, does: locales.HelpDeleteWord, cmds: []*command{cmdDeleteWordBack, cmdDeleteWordForward}},
 	{group: locales.HelpGroupWrite, does: locales.HelpZoomText},
-	{group: locales.HelpGroupChat, does: locales.HelpSend, ai: true, cmds: []*command{cmdSend}},
 	{group: locales.HelpGroupGlobal, does: locales.HelpZoomUI, cmds: []*command{cmdZoomIn, cmdZoomOut, cmdZoomReset}},
 	{group: locales.HelpGroupGlobal, does: locales.HelpOpenKeys, cmds: []*command{cmdHelp}},
 }
@@ -273,7 +264,7 @@ func (c *command) present(a *App) bool {
 	if c == cmdDraft {
 		return a.talkOn() && a.hasOutlines()
 	}
-	if c == cmdRewrite || c == cmdQuote {
+	if c == cmdRewrite {
 		return a.talkOn()
 	}
 	return true

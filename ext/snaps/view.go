@@ -3,6 +3,7 @@ package snaps
 import (
 	"writer/editor"
 	"writer/ext/hostapi"
+	"writer/ext/talk/talkapi"
 	"writer/workspace"
 )
 
@@ -18,8 +19,8 @@ type View struct {
 	Desktop hostapi.Desktop
 	// AI is frame-thread presentation state.
 	AI hostapi.AI
-	// Talk is frame-thread presentation state.
-	Talk hostapi.Talk
+	// Talk resolves the optional talk service on the frame thread.
+	Talk func() (talkapi.ServiceAPI, bool)
 	// SnapsOpen is frame-thread presentation state.
 	SnapsOpen bool
 	// Snaps is frame-thread presentation state.

@@ -307,7 +307,17 @@ MCP 不承载界面，单独一条线：
       - 讨论的文件从书根的 `sessions/` 搬到 `ext/talk/sessions/`，读写代码仍在 `workspace`（加锁、恢复、校验那一套不复制一份）。不迁移已有的书。备份、恢复的往返测试多查了讨论。
       - AI 设置页里讨论的模型那一行归讨论：它往 `SettingsSections` 里登记，`SettingsSection` 加了 `Placement`，AI 页在原来那一行的位置画它，样子不变。`hostapi.SettingsHostService` 里讨论的字段删了，续写的还在。
       - 设定每次画都按可选依赖去取讨论的服务，所以开关讨论不用重启设定。
-      - 还没做完、下一段做的：讨论页、输入框、消息、讨论列表、重试和压缩的界面和状态还在 `desk`；讨论页、右栏那一格、「引用」和 Ctrl+L 还是宿主的，还不在讨论的详情页「加了什么」里；`hostapi.TalkService` 还在，临时多了 `StartTalk`、`ShowEntry`、`StopTalk`；提议改动的流程还在 `desk`；只有讨论用的界面文字还没全搬进 `talktext`。
+      - 2026-11-05 做完第二段：
+        - 讨论页、输入框、消息、讨论列表、重试、压缩的显示和它们的状态从 `desk` 搬进 `ext/talk`，讨论用的 Markdown 渲染也搬过去，`desk` 里不再有转发。
+        - 讨论页、右栏那一格、「引用」、Ctrl+L 由讨论自己登记（`Pages`、`PaneTabs`、`SelectionMenus`、`Commands`），记在讨论的账上，讨论关着就都没有。
+        - `hostapi.TalkService` 删了。要用讨论的按可选依赖取 `talkapi.Service`，它只剩 `OpenTalk`、`TalkTitle`、`StartTalk`、`Preloaded`、`ProgressVisible`。用的有：设定里的链接，起草、改写，历史版本里「采纳讨论「…」里的建议」那一行。
+        - 历史版本因此对讨论是可选依赖，详情页多一句「配合讨论」；原型里历史版本不依赖谁。讨论关着时那一行不写讨论的名字（「采纳讨论里的建议」）。是我的做法，等作者看。
+        - 宿主新加的，照原型的叫法：点 `State`（扩展把自己的界面状态存进这本书的偏好，文件格式不变）；`Page.Sidebar`、`Page.SidebarAction`；`PaneTab.BeforeFallback`；`SelectionMenu.Order`；`SelectionAction.Command`（菜单行上显示那条命令的快捷键）。服务方法：`Pane` 的 `SelectedTab`、`HasBeside`、`PaneOpen`、`TogglePane`；`Book.Flash`；`Jobs` 的 `Request`、`CancelRequest`、`Post`；`Desktop` 的 `SavePreferences`、`Page`、`EntryAvailable`、`ShowEntry`、`MenuState`。
+        - 在讨论的摘要里点一条设定，经宿主的 `Desktop.ShowEntry` 打开，不经设定的服务：设定已经可选依赖讨论，讨论再可选依赖设定就成了环。
+        - 提议改动：讨论产出提议，管它的流。正文上的显示、采纳、拒绝和待处理还在 `desk`，两边经临时的 `hostapi.SuggestionsService` 交接，每帧交一份拷贝，不交后台线程的东西。改稿建议拆成扩展时删掉它。
+        - 只有讨论用的 103 个 key 搬进 `talktext`。
+        - `desk` 还 import `talkapi`：起草、改写、AI 记录还在 `desk`，下一步搬走。
+        - 全开时截图和请求字节都没变。
       - 截图：扩展总览多了讨论，设定的详情页多了「配合讨论」那条可选依赖，AI 页的依赖说明写讨论用 AI；别的没变。
       - 等作者定：原型里起草、改写都开一段讨论，`EXTS` 却没写它们依赖讨论。应用里讨论关着时这两样不在（我的做法），没把讨论加进它们的依赖。
 4. marks，加伏笔、批注、检查。要先设计编辑器的标记点，设计稿先给作者看：见上面「正文标记的标记点」。

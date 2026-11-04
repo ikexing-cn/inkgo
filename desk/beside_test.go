@@ -62,12 +62,12 @@ func TestPaneTabPreferences(t *testing.T) {
 			if tc.want == paneTalk {
 				b.turnAI(!(true))
 				tt.Frame()
-				if b.doc.tab != paneTalk || b.talkTab() || !tt.HasText("主角怕黑") {
+				if b.doc.tab != paneTalk || talkOf(b).TalkShown() || !tt.HasText("主角怕黑") {
 					t.Fatal("AI off changed the remembered tab")
 				}
 				b.turnAI(!(false))
 				tt.Frame()
-				if !b.talkTab() || !tt.HasText("附上本章内容") {
+				if !talkOf(b).TalkShown() || !tt.HasText("附上本章内容") {
 					t.Fatal("AI on lost the talk tab")
 				}
 			}
@@ -147,10 +147,10 @@ func TestTalkBesideTheProse(t *testing.T) {
 	tt.Type("雨")
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if a.input != "雨\n" || a.busy != "" {
-		t.Fatalf("Enter in the column: input %q, busy %q", a.input, a.busy)
+	if talkOf(a).Input != "雨\n" || a.busy != "" {
+		t.Fatalf("Enter in the column: input %q, busy %q", talkOf(a).Input, a.busy)
 	}
-	a.input = ""
+	talkOf(a).Input = ""
 
 	// Dragging the column's edge left widens it; the width is kept once
 	// the author lets go.
@@ -200,13 +200,13 @@ func TestQuoteProseIntoTheTalk(t *testing.T) {
 	tt.Frame()
 	tt.Key(ui.Cmd, ui.KeyL)
 	tt.Frame()
-	if len(a.quotes) != 1 || a.quotes[0] != (workspace.Quote{Chapter: id, Title: "第一章", Text: "她推开门。"}) || shownTab(a) != paneTalk {
-		t.Fatalf("quotes %+v", a.quotes)
+	if len(talkOf(a).Quotes) != 1 || talkOf(a).Quotes[0] != (workspace.Quote{Chapter: id, Title: "第一章", Text: "她推开门。"}) || shownTab(a) != paneTalk {
+		t.Fatalf("quotes %+v", talkOf(a).Quotes)
 	}
 	if !tt.HasText("《第一章》") || !tt.HasText("她推开门。") {
 		t.Fatal("the quote is not in the composer", tt.Texts())
 	}
-	b := a.beside()
+	b := talkOf(a).Beside()
 	if b == nil || b.Title != "第一章" || b.Outline != "她回到旧城。" || b.Before != "雨下了一夜。" {
 		t.Fatalf("beside %+v", b)
 	}
@@ -214,14 +214,14 @@ func TestQuoteProseIntoTheTalk(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if len(a.quotes) != 0 {
+	if len(talkOf(a).Quotes) != 0 {
 		t.Fatal("the quote stayed")
 	}
 	if err := tt.Click("附上本章内容"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.beside() != nil || !savedPrefs(t, a).NoAttach {
+	if talkOf(a).Beside() != nil || !savedPrefs(t, a).NoAttach {
 		t.Fatal("the chapter is still sent")
 	}
 }
@@ -231,12 +231,12 @@ func TestQuoteProseIntoTheTalk(t *testing.T) {
 func TestQuotesFindTheirProse(t *testing.T) {
 	a, tt, id := writingFixture(t, "雨下了一夜。她推开门。")
 	q := workspace.Quote{Chapter: id, Title: "第一章", Text: "她推开门。"}
-	u, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "这里太急？", Chapter: id, Quotes: []workspace.Quote{q}})
+	u, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleUser, Text: "这里太急？", Chapter: id, Quotes: []workspace.Quote{q}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err = a.Store.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "她做事急",
-		Sources: []workspace.Source{{Session: a.session, Message: u.ID, Chapter: id, Quote: "她推开门。"}}}}}); err != nil {
+		Sources: []workspace.Source{{Session: talkOf(a).Session, Message: u.ID, Chapter: id, Quote: "她推开门。"}}}}}); err != nil {
 		t.Fatal(err)
 	}
 	a.SetError(a.refresh())
@@ -301,9 +301,9 @@ func TestTalkBesideShowsItsOwnProgress(t *testing.T) {
 	}
 	tt.Frame()
 	block := make(chan struct{})
-	a.turn.pending = "这一章怎么样？"
+	talkOf(a).Turn.Pending = "这一章怎么样？"
 	a.run(c, "AI 正在思考", func(ctx context.Context) (func(), error) { <-block; return nil, nil })
-	a.turn.active, a.turn.session = true, a.session
+	talkOf(a).Turn.Active, talkOf(a).Turn.Session = true, talkOf(a).Session
 	tt.Frame()
 	if !tt.HasText("正在思考…") || tt.HasText("AI 正在思考") {
 		t.Fatal("the progress is shown twice", tt.Texts())
@@ -325,7 +325,7 @@ func TestTalkBesideShowsItsOwnProgress(t *testing.T) {
 	if !tt.HasText("AI 正在思考") {
 		t.Fatal("with the talks listed the progress is not shown", tt.Texts())
 	}
-	a.doc.talks = false
+	talkOf(a).Talks = false
 	tt.Key(0, ui.KeyF11)
 	tt.Frame()
 	if !a.focused() || !tt.HasText("AI 正在思考") {

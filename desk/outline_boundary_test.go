@@ -106,13 +106,13 @@ func TestChapterOutlineDraftSavesOnChapterChangeAndWorkLeave(t *testing.T) {
 func TestDiscussionContextUsesUnsavedChapterOutlineDraft(t *testing.T) {
 	a, _, _ := writingFixture(t, "正文")
 	a.book.Timing.SaveAfter = time.Hour
-	a.doc.attach = true
+	talkOf(a).Attach = true
 	setChapterOutline(a, "没有存盘的章纲")
 	ch, err := a.Store.ReadChapter(a.write.node)
 	if err != nil || ch.Outline == "没有存盘的章纲" {
 		t.Fatal("draft already saved", err)
 	}
-	if got := a.beside(); got == nil || got.Outline != "没有存盘的章纲" {
+	if got := talkOf(a).Beside(); got == nil || got.Outline != "没有存盘的章纲" {
 		t.Fatal(got)
 	}
 }

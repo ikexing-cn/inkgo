@@ -163,3 +163,11 @@ func (h *testHost) SetFocus(bool) {}
 func (h testBook) Held() bool { return false }
 
 func (h *testHost) HasPage(string) bool { return false }
+
+func (testBook) Flash(string) {}
+
+func (h *testHost) EntryAvailable() bool      { return false }
+func (h *testHost) ShowEntry(workspace.Entry) {}
+func (h *testHost) SavePreferences() error    { return nil }
+func (h *testHost) Page() string              { return "outline.outline" }
+func (h *testHost) MenuState() *kit.MenuState { return &h.menu }

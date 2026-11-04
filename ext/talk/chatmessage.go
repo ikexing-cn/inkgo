@@ -1,4 +1,4 @@
-package desk
+package talk
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 	"writer/desk/kit"
+	"writer/ext/talk/talktext"
 	"writer/tokens"
 	"writer/workspace"
 
@@ -16,53 +17,56 @@ import (
 // after it.
 const replyIndent = 24 + 12
 
-func (a *App) aiMark(c *ui.Context) {
+// AiMark runs on the frame thread.
+func (a *Panel) AiMark(c *ui.Context) {
 	ui.Box(c).Size(kit.HControlSm, kit.HControlSm).Center().Shrink(0).Children(func() {
-		kit.Glyph(c, kit.IcSparkle, kit.IconSm, a.pal.Faint)
+		kit.Glyph(c, kit.IcSparkle, kit.IconSm, a.palette().Faint)
 	})
 }
 
-func (a *App) userBubble(c *ui.Context, text string) {
-	ui.Column(c).MaxWidthPercent(82).Padding(8, 12).Radius(kit.RDialog).Background(a.pal.Theme.SurfacePressed).Children(func() {
+// UserBubble runs on the frame thread.
+func (a *Panel) UserBubble(c *ui.Context, text string) {
+	ui.Column(c).MaxWidthPercent(82).Padding(8, 12).Radius(kit.RDialog).Background(a.palette().Theme.SurfacePressed).Children(func() {
 		ui.Text(c, text).FontSize(kit.FsRead).LineHeight(kit.LhLoose).Selectable()
 	})
 }
 
 // message shows the author's words as a bubble on the right and the AI's as
 // plain prose, the way a reply reads in a letter. Its actions fade in on hover.
-func (a *App) message(c *ui.Context, m workspace.Event) {
-	t := a.pal.Theme
+// Message runs on the frame thread.
+func (a *Panel) Message(c *ui.Context, m workspace.Event) {
+	t := a.palette().Theme
 	user := m.Role == workspace.RoleUser
 	align := ui.Start
 	if user {
 		align = ui.End
 	}
 	box := ui.Column(c.Key(m.ID)).FillWidth().AlignItems(align).Gap(8)
-	shown := box.Hovered() || box.FocusWithin() || a.contextReply == m.ID
+	shown := box.Hovered() || box.FocusWithin() || a.ContextReply == m.ID
 	box.Children(func() {
 		if user {
 			for n, q := range m.Quotes {
 				ui.Column(c).MaxWidthPercent(82).Children(func() {
-					a.quoteBlock(c, q, fmt.Sprintf("%s-%d", m.ID, n), nil)
+					a.QuoteBlock(c, q, fmt.Sprintf("%s-%d", m.ID, n), nil)
 				})
 			}
-			a.userBubble(c, m.Text)
+			a.UserBubble(c, m.Text)
 		} else {
 			ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Start).Children(func() {
-				a.aiMark(c)
+				a.AiMark(c)
 				ui.Column(c).Grow(1).Shrink(1).Gap(10).Children(func() {
 					if m.Reasoning != "" {
-						a.thought(c, m.ID, locales.ChatThought(), m.Reasoning, false)
+						a.Thought(c, m.ID, talktext.ChatThought(), m.Reasoning, false)
 					}
-					if found := workspace.Looks(a.events, m.ReplyTo); len(found) > 0 {
-						a.looked(c, "look-"+m.ID, found, false)
+					if found := workspace.Looks(a.Events, m.ReplyTo); len(found) > 0 {
+						a.Looked(c, "look-"+m.ID, found, false)
 					}
-					for _, e := range proposed(a.events, m.ReplyTo) {
-						a.propCard(c, a.session, e)
+					for _, e := range proposed(a.Events, m.ReplyTo) {
+						a.PropCard(c, a.Session, e)
 					}
-					a.markdown(c, m.Text, kit.ReplyText)
+					a.Markdown(c, m.Text, kit.ReplyText)
 					if m.Capped {
-						ui.Text(c, locales.ChatCapped()).FontSize(kit.FsNote).TextColor(t.TextMuted).FillWidth()
+						ui.Text(c, talktext.ChatCapped()).FontSize(kit.FsNote).TextColor(t.TextMuted).FillWidth()
 					}
 				})
 			})
@@ -77,56 +81,56 @@ func (a *App) message(c *ui.Context, m workspace.Event) {
 		acts.Children(func() {
 			if !user && !m.At.IsZero() {
 				foot := kit.When(m.At, time.Now())
-				if who := a.replyLabel(m.Model, m.Effort); who != "" {
+				if who := a.ReplyLabel(m.Model, m.Effort); who != "" {
 					foot += " · " + who
 				}
-				if u, ok := workspace.Spent(a.events, m); ok {
+				if u, ok := workspace.Spent(a.Events, m); ok {
 					foot += " · " + tokens.Round(u.Input+u.Output) + " token"
-					if cost := a.turnCost(a.events, m); cost != "" {
+					if cost := a.TurnCost(a.Events, m); cost != "" {
 						foot += " · " + cost
 					}
 				}
-				ui.Text(c, foot).FontSize(kit.FsSmall).TextColor(a.pal.Faint).Padding(0, 6, 0, 0).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0).Tooltip(foot)
+				ui.Text(c, foot).FontSize(kit.FsSmall).TextColor(a.palette().Faint).Padding(0, 6, 0, 0).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0).Tooltip(foot)
 			}
 			if a.hasEntries() {
-				if kit.IconButton(c, kit.IcQuote, "摘取-"+m.ID, ui.Color{}).Tooltip(locales.ChatPull()).KeepFocus().Disabled(a.held()).Clicked() {
-					a.openSource(m, 0, 0)
+				if kit.IconButton(c, kit.IcQuote, "摘取-"+m.ID, ui.Color{}).Tooltip(talktext.ChatPull()).KeepFocus().Disabled(a.held()).Clicked() {
+					a.OpenSource(m, 0, 0)
 				}
 			}
 			if !user {
 				// Its Markdown, which keeps its structure pasted elsewhere.
-				if kit.IconButton(c, kit.IcCopy, "复制-"+m.ID, ui.Color{}).Tooltip(locales.ChatCopyAll()).Clicked() {
+				if kit.IconButton(c, kit.IcCopy, "复制-"+m.ID, ui.Color{}).Tooltip(talktext.ChatCopyAll()).Clicked() {
 					c.WriteClipboard(m.Text)
 				}
-				on := a.contextReply == m.ID
+				on := a.ContextReply == m.ID
 				color := ui.Color{}
 				if on {
-					color = a.pal.Ink
+					color = a.palette().Ink
 				}
-				if kit.IconButton(c, kit.IcEye, "上下文-"+m.ID, color).Tooltip(locales.ChatContextSent()).Clicked() {
+				if kit.IconButton(c, kit.IcEye, "上下文-"+m.ID, color).Tooltip(talktext.ChatContextSent()).Clicked() {
 					if on {
-						a.contextReply = ""
+						a.ContextReply = ""
 					} else {
-						a.contextReply = m.ID
+						a.ContextReply = m.ID
 					}
 				}
 			}
 			if user && !m.At.IsZero() {
-				ui.Text(c, kit.When(m.At, time.Now())).FontSize(kit.FsSmall).TextColor(a.pal.Faint).Padding(0, 0, 0, 6)
+				ui.Text(c, kit.When(m.At, time.Now())).FontSize(kit.FsSmall).TextColor(a.palette().Faint).Padding(0, 0, 0, 6)
 			}
 		})
-		if user && !a.answered(m.ID) && !a.replying() {
+		if user && !a.Answered(m.ID) && !a.Replying() {
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 				kit.Glyph(c, kit.IcAlert, kit.IconSm, t.Warning)
-				ui.Text(c, locales.ChatUnanswered()).FontSize(kit.FsNote).TextColor(t.Warning)
-				if a.pal.Ghost(c, locales.ChatRetry(), ui.Color{}).Disabled(a.busy != "").Clicked() {
-					a.retry(c, m.ID)
+				ui.Text(c, talktext.ChatUnanswered()).FontSize(kit.FsNote).TextColor(t.Warning)
+				if a.palette().Ghost(c, talktext.ChatRetry(), ui.Color{}).Disabled(a.request.Busy()).Clicked() {
+					a.Retry(c, m.ID)
 				}
 			})
 		}
 		if !user {
-			if a.contextReply == m.ID {
-				a.audit(c, m)
+			if a.ContextReply == m.ID {
+				a.Audit(c, m)
 			}
 		}
 	})
@@ -134,50 +138,51 @@ func (a *App) message(c *ui.Context, m workspace.Event) {
 
 // thinking shows a turn in flight as it streams: the reply forming under
 // its reasoning and what it looked up, which stays open while it looks.
-func (a *App) thinking(c *ui.Context) {
-	t := a.pal.Theme
-	if a.turn.pending != "" && !a.saved() {
+// Thinking runs on the frame thread.
+func (a *Panel) Thinking(c *ui.Context) {
+	t := a.palette().Theme
+	if a.Turn.Pending != "" && !a.Saved() {
 		ui.Column(c).FillWidth().AlignItems(ui.End).Gap(8).Children(func() {
-			for n, q := range a.turn.quotes {
+			for n, q := range a.Turn.Quotes {
 				ui.Column(c).MaxWidthPercent(82).Children(func() {
-					a.quoteBlock(c, q, fmt.Sprintf("pending-%d", n), nil)
+					a.QuoteBlock(c, q, fmt.Sprintf("pending-%d", n), nil)
 				})
 			}
-			a.userBubble(c, a.turn.pending)
+			a.UserBubble(c, a.Turn.Pending)
 		})
 	}
-	reasoning, text, steps, compacting := a.turn.live.read()
+	reasoning, text, steps, compacting := a.Turn.Live.Read()
 	found := workspace.Looks(steps, "")
-	proposing, writing := len(a.turn.live.proposals()) > 0 || len(proposed(steps, "")) > 0, a.writingProps()
+	proposing, writing := len(a.Turn.Live.Proposals()) > 0 || len(proposed(steps, "")) > 0, a.WritingProps()
 	ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Start).Children(func() {
-		a.aiMark(c)
+		a.AiMark(c)
 		ui.Column(c).Grow(1).Shrink(1).Gap(10).Children(func() {
 			if reasoning != "" {
-				a.thought(c, "live-reply", locales.ChatThought(), reasoning, text == "" && len(found) == 0 && !proposing)
+				a.Thought(c, "live-reply", talktext.ChatThought(), reasoning, text == "" && len(found) == 0 && !proposing)
 			}
 			if len(found) > 0 {
-				a.looked(c, "live-look", found, text == "" && !proposing)
+				a.Looked(c, "live-look", found, text == "" && !proposing)
 			}
-			a.turnCards(c, steps)
+			a.TurnCards(c, steps)
 			if text != "" {
-				a.liveMarkdown(c, text, kit.ReplyText)
+				a.LiveMarkdown(c, text, kit.ReplyText)
 			}
-			status := locales.ChatReplying()
+			status := talktext.ChatReplying()
 			switch {
 			case compacting:
-				status = locales.ChatPacking()
+				status = talktext.ChatPacking()
 			case writing:
-				status = locales.ChatProposing()
+				status = talktext.ChatProposing()
 			case text != "":
 			case len(found) > 0:
-				status = locales.ChatLookingMore()
+				status = talktext.ChatLookingMore()
 			default:
-				status = locales.ChatThinkingMore()
+				status = talktext.ChatThinkingMore()
 			}
 			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
 				ui.Spinner(c)
 				ui.Text(c, status).FontSize(kit.FsControl).TextColor(t.TextMuted).Grow(1).Shrink(1)
-				if a.pal.Ghost(c, locales.ChatCancelRequest(), ui.Color{}).Clicked() && a.cancel != nil {
+				if a.palette().Ghost(c, locales.ChatCancelRequest(), ui.Color{}).Clicked() && a.cancel != nil {
 					a.cancel()
 				}
 			})
@@ -187,10 +192,11 @@ func (a *App) thinking(c *ui.Context) {
 
 // saved tells whether the words in flight are in the talk shown, read
 // back by what refreshed it as the reply went on.
-func (a *App) saved() bool {
-	for n := len(a.events) - 1; n >= 0; n-- {
-		if e := a.events[n]; said(e) {
-			return e.Role == workspace.RoleUser && e.Text == a.turn.pending
+// Saved runs on the frame thread.
+func (a *Panel) Saved() bool {
+	for n := len(a.Events) - 1; n >= 0; n-- {
+		if e := a.Events[n]; said(e) {
+			return e.Role == workspace.RoleUser && e.Text == a.Turn.Pending
 		}
 	}
 	return false
@@ -198,20 +204,21 @@ func (a *App) saved() bool {
 
 // thought folds what a model reasoned before it answered; it stays open
 // while the reasoning is all that is streaming.
-func (a *App) thought(c *ui.Context, key, label, reasoning string, running bool) {
-	t := a.pal.Theme
-	open := a.thoughts[key]
+// Thought runs on the frame thread.
+func (a *Panel) Thought(c *ui.Context, key, label, reasoning string, running bool) {
+	t := a.palette().Theme
+	open := a.Thoughts[key]
 	if open == nil || running {
 		v := running
 		open = &v
-		a.thoughts[key] = open
+		a.Thoughts[key] = open
 	}
 	if running {
-		label = locales.ChatThinking()
+		label = talktext.ChatThinking()
 	}
 	ui.Collapsible(c, label, open, func() {
 		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Stretch).Padding(4, 0, 2, 2).Children(func() {
-			ui.Box(c).Width(2).Radius(kit.RRound).Background(a.pal.Line).Shrink(0)
+			ui.Box(c).Width(2).Radius(kit.RRound).Background(a.palette().Line).Shrink(0)
 			if !running {
 				ui.Text(c, reasoning).FontSize(kit.FsControl).LineHeight(kit.LhLoose).TextColor(t.TextMuted).Selectable().Grow(1).Shrink(1)
 				return
@@ -245,13 +252,14 @@ func proposed(events []workspace.Event, userID string) []workspace.Event {
 
 // turnCost is what the requests of the turn reply ends cost by the prices
 // built in, or nothing when one of them is of a model with no price.
-func (a *App) turnCost(events []workspace.Event, reply workspace.Event) string {
+// TurnCost runs on the frame thread.
+func (a *Panel) TurnCost(events []workspace.Event, reply workspace.Event) string {
 	costs := map[string]float64{}
 	for _, e := range events {
 		if e.Usage == nil || e.ID != reply.ID && (e.Role != workspace.RoleCall || e.ReplyTo != reply.ReplyTo) {
 			continue
 		}
-		cost, currency, ok := a.ai.Cost(e.Model, *e.Usage)
+		cost, currency, ok := a.backend().Cost(e.Model, *e.Usage)
 		if !ok {
 			return ""
 		}
@@ -264,15 +272,16 @@ func (a *App) turnCost(events []workspace.Event, reply workspace.Event) string {
 // reasoning: the head says what it did, and open, each thing shows what
 // came back. What it noted links to the entry. It stays open while the
 // reply looks.
-func (a *App) looked(c *ui.Context, key string, found []workspace.Look, running bool) {
-	t := a.pal.Theme
-	open := a.thoughts[key]
+// Looked runs on the frame thread.
+func (a *Panel) Looked(c *ui.Context, key string, found []workspace.Look, running bool) {
+	t := a.palette().Theme
+	open := a.Thoughts[key]
 	if open == nil || running {
 		v := running
 		open = &v
-		a.thoughts[key] = open
+		a.Thoughts[key] = open
 	}
-	label := locales.ChatLooking()
+	label := talktext.ChatLooking()
 	if !running {
 		labels := make([]string, len(found))
 		for n, l := range found {
@@ -282,21 +291,21 @@ func (a *App) looked(c *ui.Context, key string, found []workspace.Look, running 
 	}
 	ui.Collapsible(c, label, open, func() {
 		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Stretch).Padding(4, 0, 2, 2).Children(func() {
-			ui.Box(c).Width(2).Radius(kit.RRound).Background(a.pal.Line).Shrink(0)
+			ui.Box(c).Width(2).Radius(kit.RRound).Background(a.palette().Line).Shrink(0)
 			ui.Column(c).Grow(1).Shrink(1).Gap(8).Children(func() {
 				for n, l := range found {
 					if r := l.Result.Revision; r != "" {
 						if !a.entryNavigationAvailable() {
 							ui.Text(c, l.Label).FontSize(kit.FsControl).TextColor(t.TextMuted)
-						} else if a.pal.PaneLink(c, l.Label, locales.ChatViewLore(), fmt.Sprintf("查看设定-%s-%d", key, n)) {
-							a.showNoted(r)
+						} else if a.palette().PaneLink(c, l.Label, talktext.ChatViewLore(), fmt.Sprintf("查看设定-%s-%d", key, n)) {
+							a.ShowNoted(r)
 						}
 						continue
 					}
 					ui.Column(c).FillWidth().Gap(2).Children(func() {
 						ui.Text(c, l.Label).FontSize(kit.FsControl).TextColor(t.TextMuted).Selectable().FillWidth()
 						if l.Result.Text != "" {
-							ui.Text(c, l.Result.Text).FontSize(kit.FsNote).LineHeight(kit.LhBody).TextColor(a.pal.Faint).Selectable().FillWidth()
+							ui.Text(c, l.Result.Text).FontSize(kit.FsNote).LineHeight(kit.LhBody).TextColor(a.palette().Faint).Selectable().FillWidth()
 						}
 					})
 				}
@@ -306,9 +315,10 @@ func (a *App) looked(c *ui.Context, key string, found []workspace.Look, running 
 }
 
 // showNoted opens in the setting the entry revision r of a talk changed.
-func (a *App) showNoted(r string) {
+// ShowNoted runs on the frame thread.
+func (a *Panel) ShowNoted(r string) {
 	var entry string
-	for _, rev := range a.book.Setting().Revisions {
+	for _, rev := range a.content().Setting().Revisions {
 		if rev.ID == r && len(rev.Ops) > 0 {
 			entry = rev.Ops[0].Entry
 		}
@@ -319,14 +329,15 @@ func (a *App) showNoted(r string) {
 }
 
 // replyLabel names the model and effort a reply came from.
-func (a *App) replyLabel(name, effort string) string {
+// ReplyLabel runs on the frame thread.
+func (a *Panel) ReplyLabel(name, effort string) string {
 	ref, _ := workspace.ParseModelRef(name)
 	name = ref.Model
 	if i := strings.LastIndex(name, "/"); i >= 0 {
 		name = name[i+1:]
 	}
 	if effort != "" && name != "" {
-		name += " · " + a.ai.EffortLabel(effort)
+		name += " · " + a.backend().EffortLabel(effort)
 	}
 	return name
 }
@@ -351,8 +362,9 @@ var partNames = map[string]func() string{
 // audit is what a reply was sent, by the request that replied when the
 // turn took more: each part's tokens as estimated, what the provider
 // counted, and the setting, whole or as its index.
-func (a *App) audit(c *ui.Context, m workspace.Event) {
-	t := a.pal.Theme
+// Audit runs on the frame thread.
+func (a *Panel) Audit(c *ui.Context, m workspace.Event) {
+	t := a.palette().Theme
 	var setting, beside []workspace.ContextItem
 	for _, item := range m.Context {
 		if item.ID == "" {
@@ -374,7 +386,7 @@ func (a *App) audit(c *ui.Context, m workspace.Event) {
 		})
 	}
 	ui.Column(c).FillWidth().Padding(0, 0, 0, replyIndent).Children(func() {
-		ui.Column(c).FillWidth().Padding(12, 14).Gap(8).Radius(kit.RCard).Background(a.pal.Side).Border(1, a.pal.Line).Children(func() {
+		ui.Column(c).FillWidth().Padding(12, 14).Gap(8).Radius(kit.RCard).Background(a.palette().Side).Border(1, a.palette().Line).Children(func() {
 			if s := m.Sent; s != nil {
 				total := 0
 				var parts []string
@@ -385,44 +397,44 @@ func (a *App) audit(c *ui.Context, m workspace.Event) {
 						name = label()
 					}
 					if p.Name == workspace.PartSetting {
-						name = locales.ChatPartLoreCount(len(setting))
+						name = talktext.ChatPartLoreCount(len(setting))
 					}
 					parts = append(parts, name+" "+tokens.Round(p.Tokens))
 				}
-				ui.Text(c, locales.ChatSentAbout(tokens.Round(total))).FontSize(kit.FsNote).FontWeight(600)
-				if n := workspace.Requests(a.events, m); n > 1 { // what it says is of the request that replied
-					note(locales.ChatRoundRequests(n))
+				ui.Text(c, talktext.ChatSentAbout(tokens.Round(total))).FontSize(kit.FsNote).FontWeight(600)
+				if n := workspace.Requests(a.Events, m); n > 1 { // what it says is of the request that replied
+					note(talktext.ChatRoundRequests(n))
 				}
 				note(strings.Join(parts, " · "))
 			}
 			if u := m.Usage; u != nil {
-				used := locales.ChatUsage(tokens.Round(u.Input), tokens.Round(u.Output))
+				used := talktext.ChatUsage(tokens.Round(u.Input), tokens.Round(u.Output))
 				if u.CacheRead > 0 {
-					used = locales.ChatUsageCached(tokens.Round(u.Input), tokens.Round(u.CacheRead), tokens.Round(u.Output))
+					used = talktext.ChatUsageCached(tokens.Round(u.Input), tokens.Round(u.CacheRead), tokens.Round(u.Output))
 				}
 				note(used)
 			}
 			for _, item := range beside {
 				row(item.Text, true)
 			}
-			head := locales.ChatAttachedAll(len(setting))
+			head := talktext.ChatAttachedAll(len(setting))
 			switch {
 			case index:
-				head = locales.ChatCrowded()
+				head = talktext.ChatCrowded()
 			case len(m.Omitted) > 0: // a reply from before the setting went whole or as an index
-				head = locales.ChatAttachedOmitted(len(setting), len(m.Omitted))
+				head = talktext.ChatAttachedOmitted(len(setting), len(m.Omitted))
 			case m.Sent != nil && m.Sent.AsOf != "": // a talk that keeps to a chapter has the setting as of it
-				head = locales.ChatAttachedAt(len(setting), m.Sent.AsOf)
+				head = talktext.ChatAttachedAt(len(setting), m.Sent.AsOf)
 			}
 			ui.Text(c, head).FontSize(kit.FsNote).FontWeight(600)
 			if index {
-				note(locales.ChatCatalogNote())
+				note(talktext.ChatCatalogNote())
 			}
 			if m.Sent != nil && m.Sent.Ahead > 0 {
-				note(locales.ChatMoreChanges(m.Sent.Ahead))
+				note(talktext.ChatMoreChanges(m.Sent.Ahead))
 			}
 			if len(setting) == 0 && len(m.Omitted) == 0 {
-				note(locales.ChatLoreEmpty())
+				note(talktext.ChatLoreEmpty())
 			}
 			for _, item := range setting {
 				row(item.Text, !index)
@@ -433,7 +445,7 @@ func (a *App) audit(c *ui.Context, m workspace.Event) {
 			}
 			for _, item := range m.Omitted {
 				ui.Row(c).FillWidth().Gap(8).Children(func() {
-					kit.Glyph(c, kit.IcX, kit.IconSm, a.pal.Faint)
+					kit.Glyph(c, kit.IcX, kit.IconSm, a.palette().Faint)
 					ui.Text(c, item.Text+" · "+item.Reason).FontSize(kit.FsNote).TextColor(t.TextMuted).Selectable().Grow(1).Shrink(1)
 				})
 			}

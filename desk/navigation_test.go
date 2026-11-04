@@ -68,7 +68,7 @@ func TestNavigationTables(t *testing.T) {
 			} {
 				entry := a.pages[p.id]
 				want := (!p.ai || tc.ai) && (!p.work || tc.work)
-				if entry.name() != p.name || entry.available(a) != want {
+				if entry.available(a) != want || want && entry.name() != p.name {
 					t.Errorf("page %s: name %q, available %v, want %v", p.name, entry.name(), entry.available(a), want)
 				}
 				if tc.work {
@@ -91,7 +91,8 @@ func TestNavigationTables(t *testing.T) {
 					t.Errorf("page %s shows %s, want %s", p.name, a.pages[got].name(), a.pages[shown].name())
 				}
 			}
-			for i, p := range []struct {
+			paneIndex := 0
+			for _, p := range []struct {
 				id   paneTab
 				name string
 				ai   bool
@@ -102,7 +103,11 @@ func TestNavigationTables(t *testing.T) {
 				{paneFore, "伏笔", false},
 				{paneTab("phone.preview"), "预览", false},
 			} {
-				entry := a.paneTabs[i]
+				if p.ai && !tc.ai {
+					continue
+				}
+				entry := a.paneTabs[paneIndex]
+				paneIndex++
 				want := !p.ai || tc.ai
 				if entry.id != p.id || entry.name() != p.name || entry.available(a) != want {
 					t.Errorf("pane tab %s: entry %+v, want available %v", p.name, entry, want)

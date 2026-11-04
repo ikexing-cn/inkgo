@@ -279,12 +279,12 @@ func TestTalkNotesTheSettingAsItReplies(t *testing.T) {
 	tt = stillTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
 	tt.SetPreferences(ui.Preferences{ReduceMotion: true}) // the fold opens at once
 	tt.Frame()
-	session := a.session
+	session := talkOf(a).Session
 	block := make(chan struct{})
 	var rev workspace.Revision
 	var reply workspace.Event
 	sv := c.Services()
-	a.turn.pending = "这座城市雨从不停。"
+	talkOf(a).Turn.Pending = "这座城市雨从不停。"
 	a.run(c, "AI 正在思考", func(context.Context) (func(), error) {
 		// What the engine writes, in its order, the way a reply writes it.
 		u, err := a.Store.Append(session, workspace.Event{Role: workspace.RoleUser, Text: "这座城市雨从不停。"})
@@ -298,12 +298,12 @@ func TestTalkNotesTheSettingAsItReplies(t *testing.T) {
 		if err != nil {
 			return nil, err
 		}
-		a.stepped(a.turn, sv, call)
+		talkOf(a).Stepped(talkOf(a).Turn, sv, call)
 		found, err := a.Store.Append(session, workspace.Event{Role: workspace.RoleResult, ReplyTo: u.ID, Call: "c1", Text: "全书的正文里没有「雨」。"})
 		if err != nil {
 			return nil, err
 		}
-		a.stepped(a.turn, sv, found)
+		talkOf(a).Stepped(talkOf(a).Turn, sv, found)
 		if rev, err = a.Store.Revise(workspace.Revision{By: workspace.ByTalk, Session: session, Turn: u.ID, Model: "deepseek/deepseek-flash", Ops: []workspace.Op{
 			{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "规则", Text: "雨从不停", Sources: []workspace.Source{{Session: session, Message: u.ID, Quote: "雨从不停"}}},
 		}}); err != nil {
@@ -313,12 +313,12 @@ func TestTalkNotesTheSettingAsItReplies(t *testing.T) {
 		if err != nil {
 			return nil, err
 		}
-		a.stepped(a.turn, sv, noted)
+		talkOf(a).Stepped(talkOf(a).Turn, sv, noted)
 		<-block
 		reply, err = a.Store.Append(session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "那就让雨一直下。"})
 		return nil, err
 	})
-	a.turn.active, a.turn.session = true, a.session
+	talkOf(a).Turn.Active, talkOf(a).Turn.Session = true, talkOf(a).Session
 	until(t, tt, "the note", func() bool { return len(setting(a).Entries) == 2 })
 	if _, ok := a.flash[setting(a).Entries[1].ID]; !ok || !tt.HasText("雨从不停") {
 		t.Fatal("what the talk noted is not shown and tinted", tt.Texts())
@@ -328,7 +328,7 @@ func TestTalkNotesTheSettingAsItReplies(t *testing.T) {
 	}
 	close(block)
 	settle(t, a, tt)
-	a.turn.active = false
+	talkOf(a).Turn.Active = false
 	tt.Frame()
 	if !tt.HasText("那就让雨一直下。") || !tt.HasText("搜了全书「雨」，记下：正文 · 规则：雨从不停") || tt.HasText("全书的正文里没有「雨」。") || !tt.HasText("2 条发言") {
 		t.Fatal("the reply does not fold what it looked up", tt.Texts())
@@ -357,19 +357,19 @@ func TestTalkNotesTheSettingAsItReplies(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a.switchSession(other)
+	talkOf(a).SwitchSession(other)
 	tt.Frame()
 	if err := tt.Click("讨论-" + rev.ID); err != nil {
 		t.Fatal(err)
 	}
-	if a.session != session || shownPage(a) != pageTalk {
+	if talkOf(a).Session != session || shownPage(a) != pageTalk {
 		t.Fatal("the link does not go back to the talk")
 	}
 }
 
 func TestOldReadSummaryShowsItsSavedLabel(t *testing.T) {
 	a, tt, _ := fixture(t)
-	u, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "读一下旧摘要。"})
+	u, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleUser, Text: "读一下旧摘要。"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -381,7 +381,7 @@ func TestOldReadSummaryShowsItsSavedLabel(t *testing.T) {
 		{Role: workspace.RoleResult, ReplyTo: u.ID, Call: "old", Text: "旧摘要的内容。"},
 		{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "读完了。"},
 	} {
-		if _, err = a.Store.Append(a.session, event); err != nil {
+		if _, err = a.Store.Append(talkOf(a).Session, event); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -434,34 +434,34 @@ func TestSettingPanelFoldsAndRemembers(t *testing.T) {
 
 func TestSessionTitles(t *testing.T) {
 	a, tt, _ := fixture(t)
-	if _, err := a.Store.Append(a.session, workspace.Event{Role: "user", Text: "雨城的故事\n第二行"}); err != nil {
+	if _, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: "user", Text: "雨城的故事\n第二行"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := a.refresh(); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if title, _ := a.talkName(a.session); !strings.HasSuffix(title, "雨城的故事") {
+	if title, _ := talkOf(a).TalkName(talkOf(a).Session); !strings.HasSuffix(title, "雨城的故事") {
 		t.Fatalf("title %q", title)
 	}
 }
 
 func TestExtractionAddsTheAuthorsEntry(t *testing.T) {
 	a, tt, _ := fixture(t)
-	m, err := a.Store.Append(a.session, workspace.Event{Role: "user", Text: "林晚修路灯"})
+	m, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: "user", Text: "林晚修路灯"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	a.SetError(a.refresh())
 	tt.Frame()
-	a.openSource(m, 0, 2)
+	talkOf(a).OpenSource(m, 0, 2)
 	tt.Frame()
 	if err = tt.Click("加入设定"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
 	last := setting(a).Entries[len(setting(a).Entries)-1]
-	if last.Text != "林晚" || last.Place != workspace.PlaceBody || last.Sources[0].Message != m.ID || a.sourceOpen {
+	if last.Text != "林晚" || last.Place != workspace.PlaceBody || last.Sources[0].Message != m.ID || talkOf(a).SourceOpen {
 		t.Fatalf("%+v", last)
 	}
 }
@@ -488,14 +488,14 @@ func TestFailureRefreshesPersistedWork(t *testing.T) {
 	tt = stillTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
 	tt.Frame()
 	a.run(c, "讨论", func(context.Context) (func(), error) {
-		if _, err := a.Store.Append(a.session, workspace.Event{Role: "user", Text: "失败前已经落盘的发言"}); err != nil {
+		if _, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: "user", Text: "失败前已经落盘的发言"}); err != nil {
 			return nil, err
 		}
 		return nil, errors.New("网络失败")
 	})
 	settle(t, a, tt)
-	if len(a.events) != 1 || a.errorText() != "网络失败" {
-		t.Fatalf("persisted partial result lost: %d %q", len(a.events), a.errorText())
+	if len(talkOf(a).Events) != 1 || a.errorText() != "网络失败" {
+		t.Fatalf("persisted partial result lost: %d %q", len(talkOf(a).Events), a.errorText())
 	}
 }
 
@@ -544,8 +544,8 @@ func TestABlankTalkFitsTheWork(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.input != "接下来的情节怎么走" {
-		t.Fatalf("%q", a.input)
+	if talkOf(a).Input != "接下来的情节怎么走" {
+		t.Fatalf("%q", talkOf(a).Input)
 	}
 	a.openCreate()
 	a.name, a.books.at = "新书", filepath.Join(t.TempDir(), "新书")
@@ -563,7 +563,7 @@ func TestABlankTalkFitsTheWork(t *testing.T) {
 // opened; a work whose service is no longer set up gives none.
 func TestNewWorkKeepsTheModels(t *testing.T) {
 	a, _, _ := fixture(t)
-	a.talkChoices.TalkProvider, a.talkChoices.TalkModel, a.talkChoices.TalkEffort = "deepseek", "deepseek-flash", "high"
+	talkChoicesOf(a).TalkProvider, talkChoicesOf(a).TalkModel, talkChoicesOf(a).TalkEffort = "deepseek", "deepseek-flash", "high"
 	a.PenProvider, a.PenModel = "deepseek", "deepseek-v4-pro"
 	if err := saveModelChoices(a); err != nil {
 		t.Fatal(err)
@@ -599,12 +599,12 @@ func TestNewWorkKeepsTheModels(t *testing.T) {
 func TestIncompleteFormsExplainInChinese(t *testing.T) {
 	a, _, _ := fixture(t)
 	was := a.Store.Work()
-	a.talkChoices.TalkProvider, a.talkChoices.TalkModel = "deepseek", ""
+	talkChoicesOf(a).TalkProvider, talkChoicesOf(a).TalkModel = "deepseek", ""
 	a.PenProvider, a.PenModel = "deepseek", ""
 	if err := saveModelChoices(a); err != nil || a.Store.Work().Discussion != was.Discussion {
 		t.Fatalf("a service without a model: %v %+v", err, a.Store.Work().Discussion)
 	}
-	a.talkChoices.TalkModel = "deepseek-flash"
+	talkChoicesOf(a).TalkModel = "deepseek-flash"
 	if err := saveModelChoices(a); err != nil || a.Store.Work().Discussion != was.Discussion {
 		t.Fatalf("the writing's service without a model: %v %+v", err, a.Store.Work().Discussion)
 	}
@@ -665,7 +665,7 @@ func TestACategorySavesOnceFilledIn(t *testing.T) {
 func TestMarkdownBlocks(t *testing.T) {
 	src := "# 标题\n\n有**粗体**、*斜体*、`代码`和[链接](https://example.com)。\n\n- 一\n- 二\n\n1. 甲\n\n> 引用\n\n```\ncode\n```\n\n| 列 | 值 |\n|---|---|\n| 甲 | 1 |\n\n<script>x</script>\n\n---\n"
 	a, _, _ := fixture(t)
-	tt := stillTester(func(c *ui.Context) { a.markdown(c, src, kit.ReplyText) }, 720, 1200)
+	tt := stillTester(func(c *ui.Context) { talkOf(a).Markdown(c, src, kit.ReplyText) }, 720, 1200)
 	for _, text := range []string{"标题", "粗体", "斜体", "代码", "链接", "一", "二", "甲", "引用", "code", "列", "值", "1", "<script>x</script>"} {
 		if !tt.HasText(text) {
 			t.Errorf("missing %q in %q", text, tt.Texts())
@@ -686,15 +686,15 @@ func TestLiveTurnStreams(t *testing.T) {
 	tt = stillTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
 	tt.Frame()
 	block := make(chan struct{})
-	a.turn.pending = "她做什么工作？"
+	talkOf(a).Turn.Pending = "她做什么工作？"
 	a.run(c, "AI 正在思考", func(ctx context.Context) (func(), error) { <-block; return nil, nil })
-	a.turn.active, a.turn.session = true, a.session
-	a.turn.live.add(talkapi.Progress{Reasoning: "她怕黑，职业要和光有关"})
+	talkOf(a).Turn.Active, talkOf(a).Turn.Session = true, talkOf(a).Session
+	talkOf(a).Turn.Live.Add(talkapi.Progress{Reasoning: "她怕黑，职业要和光有关"})
 	tt.Frame()
 	if !tt.HasText("她怕黑，职业要和光有关") || !tt.HasText("正在思考…") {
 		t.Fatal("reasoning not streamed", tt.Texts())
 	}
-	a.turn.live.add(talkapi.Progress{Text: "可以让她**修灯**。"})
+	talkOf(a).Turn.Live.Add(talkapi.Progress{Text: "可以让她**修灯**。"})
 	tt.Frame()
 	if !tt.HasText("正在回复…") || tt.HasText("**") {
 		t.Fatal("reply not streamed as markdown", tt.Texts())
@@ -711,7 +711,7 @@ func TestTalkLeavesTheRestFree(t *testing.T) {
 	a, _, _ := fixture(t)
 	var c *ui.Context
 	tt := stillTester(func(ctx *ui.Context) { c = ctx; a.View(ctx) }, 1266, 780)
-	session := a.session
+	session := talkOf(a).Session
 	other, err := a.Store.NewSession()
 	if err != nil {
 		t.Fatal(err)
@@ -722,7 +722,7 @@ func TestTalkLeavesTheRestFree(t *testing.T) {
 	a.SetError(a.refresh())
 	tt.Frame()
 	block := make(chan struct{})
-	a.turn.pending = "灯为什么会灭"
+	talkOf(a).Turn.Pending = "灯为什么会灭"
 	a.run(c, "AI 正在思考…", func(context.Context) (func(), error) {
 		u, err := a.Store.Append(session, workspace.Event{Role: workspace.RoleUser, Text: "灯为什么会灭"})
 		if err != nil {
@@ -730,9 +730,9 @@ func TestTalkLeavesTheRestFree(t *testing.T) {
 		}
 		<-block
 		_, err = a.Store.Append(session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "因为停电了。"})
-		return func() { a.turn.pending = "" }, err
+		return func() { talkOf(a).Turn.Pending = "" }, err
 	})
-	a.turn.active, a.turn.session = true, session
+	talkOf(a).Turn.Active, talkOf(a).Turn.Session = true, session
 	tt.Frame()
 
 	if err := tt.Click("切换作品"); err != nil {
@@ -773,8 +773,8 @@ func TestTalkLeavesTheRestFree(t *testing.T) {
 	tt.Type("再说说")
 	tt.Key(ui.Cmd, ui.KeyEnter)
 	tt.Frame()
-	if a.input != "再说说" || a.turn.pending != "灯为什么会灭" || !tt.HasText("正在思考…") {
-		t.Fatalf("typed %q, in flight %q", a.input, a.turn.pending)
+	if talkOf(a).Input != "再说说" || talkOf(a).Turn.Pending != "灯为什么会灭" || !tt.HasText("正在思考…") {
+		t.Fatalf("typed %q, in flight %q", talkOf(a).Input, talkOf(a).Turn.Pending)
 	}
 
 	if err := tt.Click("对话-" + other); err != nil {
@@ -787,7 +787,7 @@ func TestTalkLeavesTheRestFree(t *testing.T) {
 			said++
 		}
 	}
-	if _, live := tt.Find("正在思考…"); a.session != other || live || said != 1 || !tt.HasText("该消息尚未收到回复") {
+	if _, live := tt.Find("正在思考…"); talkOf(a).Session != other || live || said != 1 || !tt.HasText("该消息尚未收到回复") {
 		t.Fatal("another talk shows the reply in flight", tt.Texts())
 	}
 	if _, toast := tt.Find("AI 正在思考…"); !toast {
@@ -797,13 +797,13 @@ func TestTalkLeavesTheRestFree(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.turn.session != session || a.busy != "AI 正在思考…" {
+	if talkOf(a).Turn.Session != session || a.busy != "AI 正在思考…" {
 		t.Fatal("tried again as the AI replies")
 	}
 	close(block)
 	settle(t, a, tt)
 	tt.Frame()
-	if a.session != other || tt.HasText("因为停电了。") || a.input != "再说说" {
+	if talkOf(a).Session != other || tt.HasText("因为停电了。") || talkOf(a).Input != "再说说" {
 		t.Fatal("the reply came to the talk shown", tt.Texts())
 	}
 	if err := tt.Click("对话-" + session); err != nil {
@@ -817,10 +817,10 @@ func TestTalkLeavesTheRestFree(t *testing.T) {
 
 func TestEffortMenuSavesToWork(t *testing.T) {
 	a, tt, _ := fixture(t)
-	a.setTalk(func(s *workspace.Selection) { s.Provider, s.Model = "deepseek", "deepseek-flash" })
-	a.setTalk(func(s *workspace.Selection) { s.Effort = string(model.EffortMax) })
+	talkOf(a).SetTalk(func(s *workspace.Selection) { s.Provider, s.Model = "deepseek", "deepseek-flash" })
+	talkOf(a).SetTalk(func(s *workspace.Selection) { s.Effort = string(model.EffortMax) })
 	tt.Frame()
-	if w := a.Store.Work().Discussion; w.Effort != "max" || w.Model != "deepseek-flash" || a.talkChoices.TalkEffort != "max" {
+	if w := a.Store.Work().Discussion; w.Effort != "max" || w.Model != "deepseek-flash" || talkChoicesOf(a).TalkEffort != "max" {
 		t.Fatalf("selection %+v", w)
 	}
 	if !tt.HasText("deepseek-flash") || !tt.HasText("Max") {
@@ -834,11 +834,11 @@ func TestEffortMenuSavesToWork(t *testing.T) {
 func TestReplyTextSelectsAcrossBlocksAndCopies(t *testing.T) {
 	a, tt, _ := fixture(t)
 	reply := "第一段。\n\n## 小标题\n\n- 甲\n- 乙\n\n第二段。\n\n```\ncode\n```"
-	u, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "说说"})
+	u, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleUser, Text: "说说"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: reply})
+	r, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: reply})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -924,7 +924,7 @@ func TestNoticesFade(t *testing.T) {
 // Clicking a model field lists the service's models; typing narrows them.
 func TestPickAModelFromTheList(t *testing.T) {
 	a, tt, _ := fixture(t)
-	a.talkChoices.TalkProvider, a.talkChoices.TalkModel = "deepseek", "deepseek-flash"
+	talkChoicesOf(a).TalkProvider, talkChoicesOf(a).TalkModel = "deepseek", "deepseek-flash"
 	if err := clickMenu(tt, "文件", "菜单-设置"); err != nil {
 		t.Fatal(err)
 	}
@@ -945,8 +945,8 @@ func TestPickAModelFromTheList(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Frame()
-	if a.talkChoices.TalkModel != "deepseek-v4-pro" {
-		t.Fatal(a.talkChoices.TalkModel, tt.Texts())
+	if talkChoicesOf(a).TalkModel != "deepseek-v4-pro" {
+		t.Fatal(talkChoicesOf(a).TalkModel, tt.Texts())
 	}
 	// The model is kept as the caret leaves it.
 	tt.Key(0, ui.KeyTab)
@@ -973,7 +973,7 @@ func TestPickAModelFromTheList(t *testing.T) {
 // The list says the day, as the column beside the prose does.
 func TestANewTalkIsListedOnceSomethingIsSaid(t *testing.T) {
 	a, tt, _ := fixture(t)
-	first := a.session
+	first := talkOf(a).Session
 	tt.Frame()
 	if _, ok := tt.Find("对话-" + first); ok {
 		t.Fatal("an empty talk is listed", tt.Texts())
@@ -982,7 +982,7 @@ func TestANewTalkIsListedOnceSomethingIsSaid(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if ids, _ := a.Store.Sessions(); a.session != first || len(ids) != 1 {
+	if ids, _ := a.Store.Sessions(); talkOf(a).Session != first || len(ids) != 1 {
 		t.Fatal("another empty talk", ids)
 	}
 	if _, err := a.Store.Append(first, workspace.Event{Role: workspace.RoleUser, Text: "灯为什么会灭"}); err != nil {
@@ -997,7 +997,7 @@ func TestANewTalkIsListedOnceSomethingIsSaid(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if ids, _ := a.Store.Sessions(); a.session == first || len(ids) != 2 {
+	if ids, _ := a.Store.Sessions(); talkOf(a).Session == first || len(ids) != 2 {
 		t.Fatal("no new talk", ids)
 	}
 }
@@ -1006,13 +1006,13 @@ func TestANewTalkIsListedOnceSomethingIsSaid(t *testing.T) {
 // the one open gives way to the latest left, and it can be put back.
 func TestShelveAConversation(t *testing.T) {
 	a, tt, _ := fixture(t)
-	old := a.session
+	old := talkOf(a).Session
 	if _, err := a.Store.Append(old, workspace.Event{Role: workspace.RoleUser, Text: "灯为什么会灭"}); err != nil {
 		t.Fatal(err)
 	}
 	a.SetError(a.refresh())
-	a.newSession()
-	open := a.session
+	talkOf(a).NewSession()
+	open := talkOf(a).Session
 	tt.Frame()
 	if err := tt.RightClick("对话-" + old); err != nil {
 		t.Fatal(err)
@@ -1044,13 +1044,13 @@ func TestShelveAConversation(t *testing.T) {
 	if len(savedPrefs(t, a).Shelved) != 0 || tt.HasText("已收起 1 段对话") {
 		t.Fatal("not back")
 	}
-	a.shelve(open)
-	if a.session != old {
-		t.Fatal("the open one stays", a.session)
+	talkOf(a).Shelve(open)
+	if talkOf(a).Session != old {
+		t.Fatal("the open one stays", talkOf(a).Session)
 	}
-	a.shelve(old)
-	if a.session == old || a.session == open {
-		t.Fatal("no new conversation", a.session)
+	talkOf(a).Shelve(old)
+	if talkOf(a).Session == old || talkOf(a).Session == open {
+		t.Fatal("no new conversation", talkOf(a).Session)
 	}
 }
 
@@ -1063,6 +1063,9 @@ func newTestApp(service aiapi.Backend, mods ...ext.Module) *App {
 	mod := aimod.New(aimod.Options{View: view, ConfigFile: service.ConfigFile(), Factory: func() aiapi.Backend { return service }})
 	a := New(service.ConfigFile(), append(append([]ext.Module(nil), mods...), mod)...)
 	aiViews[a] = view
+	if svc, ok := ext.Lookup(a.extensions, talkapi.Service); ok {
+		talkControllers[a] = svc.(interface{ View() *talkmod.Panel }).View()
+	}
 	return a
 }
 
@@ -1071,13 +1074,33 @@ var aiViews = map[*App]*aimod.View{}
 func aiViewOf(a *App) *aimod.View { return aiViews[a] }
 
 func saveModelChoices(a *App) error {
-	if a.talkChoices.TalkProvider != "" && a.talkChoices.TalkModel == "" || a.PenProvider != "" && a.PenModel == "" {
+	if talkChoicesOf(a).TalkProvider != "" && talkChoicesOf(a).TalkModel == "" || a.PenProvider != "" && a.PenModel == "" {
 		return nil
 	}
 	if a.talkAPI != nil {
-		if err := a.talkAPI.SaveChoices(); err != nil {
+		if err := a.talkAPI.(interface{ SaveChoices() error }).SaveChoices(); err != nil {
 			return err
 		}
 	}
 	return aiViewOf(a).SaveUsage()
+}
+
+var talkControllers = map[*App]*talkmod.Panel{}
+
+func talkOf(a *App) *talkmod.Panel {
+	if p := talkControllers[a]; p != nil {
+		return p
+	}
+	if svc, ok := ext.Lookup(a.extensions, talkapi.Service); ok {
+		p := svc.(interface{ View() *talkmod.Panel }).View()
+		talkControllers[a] = p
+		return p
+	}
+	return nil
+}
+func talkChoicesOf(a *App) *talkapi.ModelChoices {
+	if svc, ok := ext.Lookup(a.extensions, talkapi.Service); ok {
+		return svc.(interface{ Choices() *talkapi.ModelChoices }).Choices()
+	}
+	return &talkapi.ModelChoices{}
 }

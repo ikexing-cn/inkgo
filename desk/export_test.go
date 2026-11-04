@@ -175,7 +175,7 @@ func TestExportTracksPageRefreshAndWorkChanges(t *testing.T) {
 	if _, err := a.Store.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{{Op: workspace.OpMove, Entry: entry, Place: workspace.PlaceDropped}}}); err != nil {
 		t.Fatal(err)
 	}
-	sessionPath := filepath.Join(a.Store.Root(), "ext", "talk", "sessions", a.session+".jsonl")
+	sessionPath := filepath.Join(a.Store.Root(), "ext", "talk", "sessions", talkOf(a).Session+".jsonl")
 	data, err := os.ReadFile(sessionPath)
 	if err != nil {
 		t.Fatal(err)

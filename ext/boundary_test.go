@@ -36,7 +36,7 @@ func extensionImport(pkg, imp string, deps []string) error {
 	if pkg == "writer/ext/ai/aiapi" && imp == "writer/inference" {
 		return nil
 	}
-	if (pkg == "writer/ext/talk" || pkg == "writer/ext/talk/engine") && slices.Contains([]string{"writer/model", "writer/inference", "writer/prompt", "writer/internal/textclip"}, imp) {
+	if (pkg == "writer/ext/talk" || pkg == "writer/ext/talk/engine") && slices.Contains([]string{"writer/model", "writer/inference", "writer/prompt", "writer/internal/textclip", "writer/tokens"}, imp) {
 		return nil
 	}
 	if (pkg == "writer/ext/ai" || pkg == "writer/ext/ai/aitext") && slices.Contains([]string{"writer/ai", "writer/model", "writer/inference", "writer/writing", "writer/tokens"}, imp) {
@@ -309,7 +309,7 @@ func TestDeskAIExceptionDoesNotAllowConcreteAI(t *testing.T) {
 }
 
 // deskTalkImport permits only the conversation contract while drafting and
-// rewrite remain hosted. It never permits the concrete implementation.
+// rewrite, snapshot titles and AI record navigation remain hosted. It never permits the concrete implementation.
 func deskTalkImport(pkg, imp string) bool {
 	return pkg == "writer/desk" && imp == "writer/ext/talk/talkapi"
 }
@@ -348,5 +348,22 @@ func TestOnlyTalkProductionCodeImportsItsEngine(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestHostAPIHasNoTalkService(t *testing.T) {
+	pkgs, err := parser.ParseDir(token.NewFileSet(), "hostapi", func(info fs.FileInfo) bool { return !strings.HasSuffix(info.Name(), "_test.go") }, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, pkg := range pkgs {
+		for _, file := range pkg.Files {
+			ast.Inspect(file, func(n ast.Node) bool {
+				if id, ok := n.(*ast.Ident); ok && id.Name == "TalkService" {
+					t.Error("hostapi still declares TalkService")
+				}
+				return true
+			})
+		}
 	}
 }

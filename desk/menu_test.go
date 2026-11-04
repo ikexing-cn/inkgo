@@ -261,7 +261,7 @@ func TestShotMenus(t *testing.T) {
 	shot(t, tt, "menu-pane.png")
 	shut()
 
-	if _, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "城里的灯为什么亮着？"}); err != nil {
+	if _, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleUser, Text: "城里的灯为什么亮着？"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := a.refresh(); err != nil {
@@ -277,7 +277,7 @@ func TestShotMenus(t *testing.T) {
 	shot(t, tt, "menu-model.png")
 	shut()
 	tt.SetDark(true)
-	if err := tt.RightClick("对话-" + a.session); err != nil {
+	if err := tt.RightClick("对话-" + talkOf(a).Session); err != nil {
 		t.Fatal(err)
 	}
 	shot(t, tt, "menu-talk-dark.png")

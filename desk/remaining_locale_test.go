@@ -5,6 +5,7 @@ import (
 	"testing"
 	"unicode"
 	"writer/ext/backup/backuptext"
+	"writer/ext/talk/talktext"
 
 	"github.com/egoist/mygo/i18n"
 	"writer/desk/book"
@@ -48,7 +49,7 @@ func TestLocaleChangeRefreshesTalkListPlaceholderAndDetectedBackupName(t *testin
 	i18n.SetLocaleFunc(func() string { return tag })
 	t.Cleanup(func() { i18n.SetLocaleFunc(testLocale) })
 	a, tt, id := writingFixture(t, "")
-	if _, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Origin: workspace.AIDraft, Chapter: id}); err != nil {
+	if _, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleUser, Origin: workspace.AIDraft, Chapter: id}); err != nil {
 		t.Fatal(err)
 	}
 	if err := a.refreshFromSetting(); err != nil {
@@ -63,7 +64,7 @@ func TestLocaleChangeRefreshesTalkListPlaceholderAndDetectedBackupName(t *testin
 		a.LocaleChanged()
 		tt.Frame()
 		tt.Frame()
-		if got, _ := a.talkName(a.session); got != locales.SideDraftTitle(a.nodeTitle(id)) {
+		if got, _ := talkOf(a).TalkName(talkOf(a).Session); got != talktext.SideDraftTitle(a.nodeTitle(id)) {
 			t.Fatal(tag, got)
 		}
 		if !tt.HasText(backuptext.BackupNutstore()) {
@@ -82,10 +83,10 @@ func TestTalkTitlesTranslateInBothLocales(t *testing.T) {
 			title workspace.ConversationTitle
 			want  string
 		}{
-			{workspace.ConversationTitle{}, locales.SideNewTalk()},
-			{workspace.ConversationTitle{Kind: workspace.AIDraft, Text: "Rain"}, locales.SideDraftTitle("Rain")},
-			{workspace.ConversationTitle{Kind: workspace.AIDraft}, locales.SideDraftTitle(locales.AppChapterDeleted())},
-			{workspace.ConversationTitle{Kind: workspace.AIRewrite, Text: "Rain"}, locales.SideRewriteTitle("Rain")},
+			{workspace.ConversationTitle{}, talktext.SideNewTalk()},
+			{workspace.ConversationTitle{Kind: workspace.AIDraft, Text: "Rain"}, talktext.SideDraftTitle("Rain")},
+			{workspace.ConversationTitle{Kind: workspace.AIDraft}, talktext.SideDraftTitle(locales.AppChapterDeleted())},
+			{workspace.ConversationTitle{Kind: workspace.AIRewrite, Text: "Rain"}, talktext.SideRewriteTitle("Rain")},
 			{workspace.ConversationTitle{Kind: workspace.TitleWords, Text: "Rain"}, "Rain"},
 		} {
 			if got := talkTitleText(tc.title); got != tc.want {

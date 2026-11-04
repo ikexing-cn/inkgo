@@ -19,11 +19,11 @@ type paneIDs struct{ lin, zhou, about, fresh string }
 func paneFixture(t *testing.T) (*App, *ui.Tester, paneIDs) {
 	t.Helper()
 	a, tt, _ := writingFixture(t, "小祥把左手揣回兜里。\n林晚没有回头。")
-	u, _ := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "小祥是谁"})
+	u, _ := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleUser, Text: "小祥是谁"})
 	add := func(by, place, category, text string, names ...string) string {
 		rev := workspace.Revision{By: by}
 		if by == workspace.ByTalk {
-			rev.Session, rev.Turn = a.session, u.ID
+			rev.Session, rev.Turn = talkOf(a).Session, u.ID
 		}
 		rev.Ops = []workspace.Op{{Op: workspace.OpAdd, Place: place, Category: category, Text: text, Names: names,
 			Sources: []workspace.Source{{Chapter: shownChapter(a), Quote: "小祥把左手揣回兜里。"}}}}
@@ -161,7 +161,7 @@ func TestAQuestionIsAnswered(t *testing.T) {
 // The talks are a list too; one opens from it, and a new one starts there.
 func TestTalkList(t *testing.T) {
 	a, tt, _ := paneFixture(t)
-	old := a.session
+	old := talkOf(a).Session
 	if err := tt.Click("右栏-讨论"); err != nil {
 		t.Fatal(err)
 	}
@@ -170,24 +170,24 @@ func TestTalkList(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("最近") || !a.doc.talks {
+	if !tt.HasText("最近") || !talkOf(a).Talks {
 		t.Fatal("the talks", tt.Texts())
 	}
 	if err := tt.Click("新讨论"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.session == old || a.doc.talks || shownPage(a) != pageWrite || !tt.HasText("示例问题") {
-		t.Fatal("no new talk beside the prose", a.session, a.doc.talks, shownPage(a))
+	if talkOf(a).Session == old || talkOf(a).Talks || shownPage(a) != pageWrite || !tt.HasText("示例问题") {
+		t.Fatal("no new talk beside the prose", talkOf(a).Session, talkOf(a).Talks, shownPage(a))
 	}
-	a.doc.talks = true
+	talkOf(a).Talks = true
 	tt.Frame()
 	if err := tt.Click("讨论-" + old); err != nil {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
-	if a.session != old || a.doc.talks {
-		t.Fatal("the talk did not open", a.session)
+	if talkOf(a).Session != old || talkOf(a).Talks {
+		t.Fatal("the talk did not open", talkOf(a).Session)
 	}
 }
 
@@ -223,7 +223,7 @@ func TestShotPane(t *testing.T) {
 	shot(t, tt, "pane-list-dark.png")
 	tt.SetDark(false)
 	showTab(a, paneTalk)
-	a.doc.talks = true
+	talkOf(a).Talks = true
 	shot(t, tt, "pane-talks.png")
 	if err := tt.Click("新讨论"); err != nil {
 		t.Fatal(err)

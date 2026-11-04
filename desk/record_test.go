@@ -110,16 +110,16 @@ func TestTheWorkShowsWhatItSpent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "灯为什么会灭"}); err != nil {
+	if _, err = a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleUser, Text: "灯为什么会灭"}); err != nil {
 		t.Fatal(err)
 	}
 	a.SetError(a.refresh())
 	a.SetError(a.loadTree())
 	at := time.Now().Add(-time.Hour)
 	for i, r := range []workspace.Record{
-		{Feature: workspace.FeatureTalk, Talk: a.session, Model: "anthropic/claude-opus-5-5", Usage: workspace.Usage{Input: 1_682_400, CacheRead: 1_211_300, Output: 59_200}, Cost: 4.444, Currency: "$", Outcome: workspace.OutcomeDone,
+		{Feature: workspace.FeatureTalk, Talk: talkOf(a).Session, Model: "anthropic/claude-opus-5-5", Usage: workspace.Usage{Input: 1_682_400, CacheRead: 1_211_300, Output: 59_200}, Cost: 4.444, Currency: "$", Outcome: workspace.OutcomeDone,
 			Parts: []workspace.Part{{Name: workspace.PartRules, Tokens: 1100}, {Name: workspace.PartTalk, Tokens: 9600}}},
-		{Feature: workspace.FeatureTalk, Talk: a.session, Model: "deepseek/deepseek-flash", Usage: workspace.Usage{Input: 142_000, CacheRead: 85_200, Output: 4100}, Cost: 0.021, Currency: "$", Outcome: workspace.OutcomeDone},
+		{Feature: workspace.FeatureTalk, Talk: talkOf(a).Session, Model: "deepseek/deepseek-flash", Usage: workspace.Usage{Input: 142_000, CacheRead: 85_200, Output: 4100}, Cost: 0.021, Currency: "$", Outcome: workspace.OutcomeDone},
 		{Feature: workspace.FeatureContinue, Chapter: chapter, Model: "local/qwen3", Effort: "none", Usage: workspace.Usage{Input: 900, Output: 30}, Outcome: workspace.OutcomeCancelled},
 		{Feature: workspace.FeatureCheck, Chapter: "gone", Model: "deepseek/deepseek-flash", Effort: "high", Usage: workspace.Usage{Input: 7000}, Cost: 0.002, Currency: "$", Outcome: workspace.OutcomeFailed, Error: "无法连接模型服务",
 			Parts: []workspace.Part{{Name: workspace.PartRules, Tokens: 900}, {Name: workspace.PartProse, Tokens: 4400}}},
@@ -288,18 +288,18 @@ func TestShotRecord(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "灯为什么会灭"}); err != nil {
+	if _, err = a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleUser, Text: "灯为什么会灭"}); err != nil {
 		t.Fatal(err)
 	}
 	a.SetError(a.refresh())
 	a.SetError(a.loadTree())
 	at := time.Now().Add(-time.Hour)
 	for i, r := range []workspace.Record{
-		{Feature: workspace.FeatureTalk, Talk: a.session, Model: "anthropic/claude-opus-5-5", Usage: workspace.Usage{Input: 1_682_400, CacheRead: 1_211_300, Output: 59_200}, Cost: 4.444, Currency: "$", Outcome: workspace.OutcomeDone,
+		{Feature: workspace.FeatureTalk, Talk: talkOf(a).Session, Model: "anthropic/claude-opus-5-5", Usage: workspace.Usage{Input: 1_682_400, CacheRead: 1_211_300, Output: 59_200}, Cost: 4.444, Currency: "$", Outcome: workspace.OutcomeDone,
 			Parts: []workspace.Part{{Name: workspace.PartRules, Tokens: 1100}, {Name: workspace.PartTalk, Tokens: 9600}}},
 		{Feature: workspace.FeatureContinue, Chapter: chapter, Model: "local/qwen3", Effort: "none", Usage: workspace.Usage{Input: 900, Output: 30}, Outcome: workspace.OutcomeCancelled},
 		{Feature: workspace.FeatureRewrite, Chapter: chapter, Model: "deepseek/deepseek-flash", Usage: workspace.Usage{Input: 5000, Output: 700}, Cost: 0.001, Currency: "$", Outcome: workspace.OutcomeDone},
-		{Feature: workspace.FeatureTalk, Talk: a.session, Model: "deepseek/deepseek-flash", Usage: workspace.Usage{Input: 142_000, CacheRead: 85_200, Output: 4100}, Cost: 0.021, Currency: "$", Outcome: workspace.OutcomeCancelled},
+		{Feature: workspace.FeatureTalk, Talk: talkOf(a).Session, Model: "deepseek/deepseek-flash", Usage: workspace.Usage{Input: 142_000, CacheRead: 85_200, Output: 4100}, Cost: 0.021, Currency: "$", Outcome: workspace.OutcomeCancelled},
 		{Feature: workspace.FeatureCheck, Chapter: "gone", Model: "deepseek/deepseek-flash", Effort: "high", Usage: workspace.Usage{Input: 7000}, Cost: 0.002, Currency: "$", Outcome: workspace.OutcomeFailed, Error: "无法连接模型服务",
 			Parts: []workspace.Part{{Name: workspace.PartRules, Tokens: 900}, {Name: workspace.PartProse, Tokens: 4400}}},
 	} {

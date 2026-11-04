@@ -23,14 +23,14 @@ func activityCall(fn func(hostapi.WindowActivity)) func(hostapi.WindowActivity) 
 
 func (a *App) mergePages() {
 	if a.pageIDs == nil {
-		a.pageIDs = map[string]page{"cats.categories": pageCategories, "host.talk": pageTalk, "host.write": pageWrite, "host.check": pageCheck, "outline.outline": pagePlan}
+		a.pageIDs = map[string]page{"cats.categories": pageCategories, "talk.page": pageTalk, "host.write": pageWrite, "host.check": pageCheck, "outline.outline": pagePlan}
 	}
 	for i := range a.pages {
-		if i == int(pagePlan) || i >= int(pageCategories) {
+		if i == int(pageTalk) || i == int(pagePlan) || i >= int(pageCategories) {
 			a.pages[i].visible = func() bool { return false }
 		}
 	}
-	a.pageOrder = []page{pageTalk, pageWrite, pageCheck}
+	a.pageOrder = []page{pageWrite, pageCheck}
 	for _, item := range ext.Items(a.extensions, hostapi.Pages) {
 		id, ok := a.pageIDs[item.ID]
 		if !ok {
@@ -79,6 +79,17 @@ func (a *App) mergePages() {
 				}
 			})
 		}}
+		if p.Sidebar != nil {
+			a.pages[id].sidebar = func(c *ui.Context) {
+				_ = ext.Guard(a.extensions, item.Owner, item.ID+".sidebar", func() { p.Sidebar(c) })
+			}
+		}
+		if p.SidebarAction != nil {
+			a.pages[id].sidebarAction = func(c *ui.Context) {
+				_ = ext.Guard(a.extensions, item.Owner, item.ID+".sidebar-action", func() { p.SidebarAction(c) })
+			}
+		}
+
 		if !p.MenuOnly {
 			a.pageOrder = append(a.pageOrder, id)
 		}

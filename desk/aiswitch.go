@@ -63,7 +63,7 @@ func (a *App) applyAI(on bool) {
 		for _, off := range a.aiOff {
 			off()
 		}
-		if a.Store != nil && a.pages[a.page].ai {
+		if a.Store != nil && (a.pages[a.page].ai || !a.pages[a.page].available(a)) {
 			a.offFrom, a.offAway, a.page = a.page, true, pageWrite
 		}
 	}

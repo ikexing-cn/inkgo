@@ -80,9 +80,6 @@ func (a *App) View(c *ui.Context) {
 	}
 	c.SetTheme(a.pal.Theme)
 	a.page = a.pageShown()
-	if a.busy == "" {
-		a.turn.active = false
-	}
 	if a.Store != nil {
 		a.pollChecks(c)
 		a.extensionTicks(c)
@@ -111,9 +108,6 @@ func (a *App) View(c *ui.Context) {
 		})
 	})
 	a.keysHelp(c)
-	if a.sourceOpen && a.source != nil {
-		a.extraction(c)
-	}
 	a.preferences(c)
 	a.createDialog(c)
 	a.renameDialog(c)
@@ -205,9 +199,10 @@ func (a *App) sidePanel(c *ui.Context, width float32) {
 					a.page = pageWrite
 					a.newNode(false)
 				}
-			} else if kit.IconButton(c, kit.IcPlus, locales.SideNewTalk(), ui.Color{}).Disabled(a.held()).Clicked() {
-				a.newSession()
+			} else if draw := a.pages[a.page].sidebarAction; draw != nil {
+				draw(c)
 			}
+
 		})
 		var chosen func()
 		a.menu.DropMenu(c, a.pal, head, "book", func(panel ui.Element) {
@@ -241,118 +236,14 @@ func (a *App) sidePanel(c *ui.Context, width float32) {
 				return
 			}
 		}
-		ui.Column(c).FillWidth().Grow(1).Padding(10).Gap(2).Children(func() { a.sideBody(c) })
-	})
-}
-
-// sideBody lists the chapters, or the talks on the discussion page.
-func (a *App) sideBody(c *ui.Context) {
-	if a.treeShown() {
-		a.chapterTree(c)
-		return
-	}
-	ui.Scroll(c.Key("sessions")).FillWidth().Grow(1).Gap(2).Children(func() {
-		put := 0
-		for n := len(a.sessions) - 1; n >= 0; n-- {
-			id := a.sessions[n]
-			if a.blank[id] {
-				continue
+		ui.Column(c).FillWidth().Grow(1).Padding(10).Gap(2).Children(func() {
+			if draw := a.pages[a.page].sidebar; draw != nil {
+				draw(c)
+			} else {
+				a.chapterTree(c)
 			}
-			if a.shelved[id] {
-				put++
-				if !a.showShelved && id != a.session {
-					continue
-				}
-			}
-			a.sessionItem(c, id)
-		}
-		if put > 0 {
-			label := locales.SideFoldedCount(put)
-			if a.showShelved {
-				label = locales.SideHideFolded()
-			}
-			if a.pal.Ghost(c, label, ui.Color{}).Label("收起的对话").Margin(6, 0, 0, 4).Clicked() {
-				a.showShelved = !a.showShelved
-			}
-		}
+		})
 	})
-}
-
-// treeShown tells whether the sidebar lists chapters rather than talks.
-func (a *App) treeShown() bool { return a.page != pageTalk || !a.aiOn() }
-
-// talkShown tells whether the discussion is on screen, on its page or
-// beside the prose: not the list of talks there, nor the prose alone.
-func (a *App) talkShown() bool {
-	if a.Store == nil {
-		return false
-	}
-	return a.page == pageTalk || a.page == pageWrite && a.talkTab() && !a.doc.hidden && !a.doc.talks && !a.focused()
-}
-
-func (a *App) sessionItem(c *ui.Context, id string) {
-	t := a.pal.Theme
-	words, _ := a.talkName(id)
-	on := id == a.session && a.page == pageTalk
-	b := ui.ButtonBase(c.Key("s-"+id)).Row().FillWidth().Justify(ui.Start).AlignItems(ui.Center).Gap(8).Padding(6, 10).Radius(kit.RControl).Label("对话-" + id).Disabled(a.held())
-	if on {
-		b.Background(t.SurfacePressed)
-	} else if b.Hovered() {
-		b.Background(t.SurfaceHover)
-	}
-	kit.PressRow(c, b)
-	b.Children(func() {
-		fg := t.TextMuted
-		if on {
-			fg = t.Text
-		}
-		if a.shelved[id] {
-			fg = a.pal.Faint
-		}
-		ui.Text(c, words).FontSize(kit.FsControl).TextColor(fg).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
-		if b.Hovered() || b.FocusWithin() || a.menu.MenuOpen("talk-"+id) {
-			ui.Text(c, talkDay(id, time.Now())).FontSize(kit.FsSmall).TextColor(a.pal.Faint).SingleLine()
-		}
-	})
-	a.menu.ContextMenu(c, a.pal, b, "talk-"+id, func(m *kit.Menu) {
-		if a.shelved[id] {
-			m.Item(locales.SideMoveBack()).Disabled(a.held()).Do(func() {
-				delete(a.shelved, id)
-				a.savePrefs()
-			})
-		} else {
-			m.Item(locales.SideCollapseTalk()).Disabled(a.held()).Do(func() { a.shelve(id) })
-		}
-	})
-	if b.Clicked() {
-		a.page = pageTalk
-		a.switchSession(id)
-	}
-}
-
-func (a *App) newSession() {
-	session, err := a.blankSession()
-	if err != nil {
-		a.SetError(err)
-		return
-	}
-	a.page = pageTalk
-	a.switchSession(session)
-}
-
-// blankSession is a talk to start: the one open or another nothing was said
-// in yet, or else a new one, so that new talks left unused do not pile up.
-// One put away stays away.
-func (a *App) blankSession() (string, error) {
-	if a.blank[a.session] && !a.shelved[a.session] {
-		return a.session, nil
-	}
-	for _, id := range a.sessions {
-		if a.blank[id] && !a.shelved[id] {
-			return id, nil
-		}
-	}
-	return a.Store.NewSession()
 }
 
 // WindowTitle names the work shown, and on the writing page the chapter
@@ -380,23 +271,4 @@ func (a *App) nameWindow() {
 	}
 }
 
-// shelve puts a conversation out of the list, keeping its file: the
-// setting cites what was said in it. Shelving the one open opens the
-// latest left, or a new one.
-func (a *App) shelve(id string) {
-	if a.shelved == nil {
-		a.shelved = map[string]bool{}
-	}
-	a.shelved[id] = true
-	a.savePrefs()
-	if id != a.session {
-		return
-	}
-	for n := len(a.sessions) - 1; n >= 0; n-- {
-		if id := a.sessions[n]; !a.shelved[id] && !a.blank[id] {
-			a.switchSession(id)
-			return
-		}
-	}
-	a.newSession()
-}
+func (a *App) treeShown() bool { return a.pages[a.page].sidebar == nil }

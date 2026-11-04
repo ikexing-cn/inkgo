@@ -65,5 +65,380 @@
   "chatRetryMissing": "找不到待重试的发言",
   "@chatRetryMissing": {
     "description": "discussion.ErrRetryMissing failure. Translated by desk for the AI toast."
-  }
+  },
+  "chatAiConfig": "AI 配置…",
+  "chatAll": "全部讨论",
+  "chatAskChapterPace": "这一章的节奏怎么样",
+  "@chatAskChapterPace": {
+    "description": "写作页讨论输入框上方可点击的章节示例问题。"
+  },
+  "chatAskMotives": "人物的动机说得通吗",
+  "@chatAskMotives": {
+    "description": "写作页讨论输入框上方可点击的示例问题。"
+  },
+  "chatAskNext": "接下来可以怎么写",
+  "@chatAskNext": {
+    "description": "写作页讨论输入框上方可点击的示例问题。"
+  },
+  "chatAskVolumePace": "这一卷的节奏怎么样",
+  "@chatAskVolumePace": {
+    "description": "写作页讨论输入框上方可点击的卷示例问题。"
+  },
+  "chatAttachChapter": "附上本章内容",
+  "chatAttachChapterTip": "{unit, select, word {将章纲和光标前约 2000 词一并发送给 AI} other {将章纲和光标前约 2000 字一并发送给 AI}}",
+  "@chatAttachChapterTip": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "chatAttachVolume": "附上本卷内容",
+  "chatAttachVolumeTip": "将卷纲一并发送给 AI",
+  "chatAttachedAll": "附带全部 {count} 条设定",
+  "@chatAttachedAll": {
+    "description": "普通讨论附带全部设定时的说明。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "7"
+      }
+    }
+  },
+  "chatAttachedAt": "附带 {count} 条设定，按「{chapter}」时的样子",
+  "@chatAttachedAt": {
+    "description": "起草、改写的讨论附带设定时的说明。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "7"
+      },
+      "chapter": {
+        "type": "String",
+        "example": "第86章：档案室"
+      }
+    }
+  },
+  "chatAttachedOmitted": "{count, plural, other {回复时附带 # 条设定，因上下文上限省略 {omitted} 条}}",
+  "@chatAttachedOmitted": {
+    "description": "旧版讨论记录：附带的设定条数和因上下文上限省略的条数。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "7"
+      },
+      "omitted": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "chatCapped": "已达到本次查阅上限，以上回答仅依据已查到的内容。",
+  "chatCatalogNote": "目录只有分类、名字和第一句；需要时 AI 会查全文。",
+  "chatContextSent": "AI 参考内容",
+  "chatCopyAll": "复制全文",
+  "chatCrowded": "设定较多，本次只附目录",
+  "chatCurrentModel": "当前模型",
+  "chatDigestNote": "摘要由 AI 写成，有误可在对话中指出。",
+  "chatDigestRounds": "以上 {count} 轮已整理成摘要",
+  "@chatDigestRounds": {
+    "description": "讨论压缩后，摘要盖住了前面几轮。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "6"
+      }
+    }
+  },
+  "chatEffort": "思考程度",
+  "chatExamples": "示例问题",
+  "chatFateAdopted": "已采纳",
+  "@chatFateAdopted": {
+    "description": "讨论里 改稿建议的修改：作者已经采纳。"
+  },
+  "chatFateAiOff": "关闭 AI 时已丢弃",
+  "chatFateBookClosed": "作品关闭时已丢弃",
+  "chatFateChanged": "正文已改动，建议已作废",
+  "chatFateGone": "已丢弃",
+  "chatFateReplaced": "已被新的建议替换",
+  "chatFateWaiting": "等你决定",
+  "chatFixedTip": "这段讨论附上的正文和设定都按这一章",
+  "chatFollows": "跟着「{chapter}」",
+  "@chatFollows": {
+    "description": "起草、改写的讨论跟着哪一章。",
+    "placeholders": {
+      "chapter": {
+        "type": "String",
+        "example": "第86章：档案室"
+      }
+    }
+  },
+  "chatFound": "找到的",
+  "@chatFound": {
+    "description": "应用讨论列表搜索结果的组标题；这里不显示条数。"
+  },
+  "chatLocate": "在正文中定位此段",
+  "chatLooking": "正在查阅",
+  "chatLookingMore": "正在查阅…",
+  "chatLoreEmpty": "设定文档暂无内容。",
+  "chatModel": "模型",
+  "chatMoreChanges": "后面还有 {count} 处变化，未列出。",
+  "@chatMoreChanges": {
+    "description": "AI 参考内容里后面还有几处设定变化没列出。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "chatNew": "新讨论",
+  "chatPacking": "正在压缩上下文…",
+  "chatPartLoreCount": "设定 {count} 条",
+  "@chatPartLoreCount": {
+    "description": "AI 参考内容里设定的一项，写附了几条。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "7"
+      }
+    }
+  },
+  "chatPickModel": "选择讨论模型",
+  "chatProposalMeta": "{unit, select, word {{where} · {count, plural, other {# 词}} · {state}} other {{where} · {count, plural, other {# 字}} · {state}}}",
+  "@chatProposalMeta": {
+    "description": "提议卡片的整行：位置、字数和处理状态。",
+    "placeholders": {
+      "where": {
+        "type": "String",
+        "example": "接在章末"
+      },
+      "count": {
+        "type": "int",
+        "example": "312"
+      },
+      "state": {
+        "type": "String",
+        "example": "已采纳"
+      },
+      "unit": {
+        "type": "String",
+        "example": "character"
+      }
+    }
+  },
+  "chatProposeEdit": "建议修改「{chapter}」",
+  "@chatProposeEdit": {
+    "description": "AI 在正文里提议修改的那一章。",
+    "placeholders": {
+      "chapter": {
+        "type": "String",
+        "example": "第86章：档案室"
+      }
+    }
+  },
+  "chatProposing": "正在正文中写改稿建议…",
+  "chatPull": "摘取原文",
+  "chatRecent": "最近",
+  "chatRemoveCite": "移除此段引用",
+  "chatReplying": "正在回复…",
+  "chatRetry": "重试回复",
+  "chatRetrying": "正在重新请求回复…",
+  "@chatRetrying": {
+    "description": "重新请求未收到回复的讨论时的忙碌提示。"
+  },
+  "chatRoundRequests": "这一轮共 {count} 次请求，这是最后一次。",
+  "@chatRoundRequests": {
+    "description": "一轮回复里发了几次请求。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "chatSearch": "搜索讨论",
+  "chatSendHint": "{hint}，{key} 发送",
+  "@chatSendHint": {
+    "description": "讨论输入框的占位字，末尾写发送的快捷键。",
+    "placeholders": {
+      "hint": {
+        "type": "String",
+        "example": "输入消息"
+      },
+      "key": {
+        "type": "String",
+        "example": "Ctrl+Enter"
+      }
+    }
+  },
+  "chatSentAbout": "本次发送约 {tokens} token",
+  "@chatSentAbout": {
+    "description": "AI 参考内容顶上：这次发送的 token 数。",
+    "placeholders": {
+      "tokens": {
+        "type": "String",
+        "example": "18.4K"
+      }
+    }
+  },
+  "chatThinking": "正在思考",
+  "chatThinkingMore": "正在思考…",
+  "chatThought": "思考过程",
+  "chatTypeMessage": "输入消息",
+  "chatTypeTopic": "输入想讨论的内容",
+  "chatUnanswered": "该消息尚未收到回复",
+  "chatUsage": "实际用量：输入 {input}；输出 {output}",
+  "@chatUsage": {
+    "description": "AI 参考内容里服务商算的实际用量。",
+    "placeholders": {
+      "input": {
+        "type": "String",
+        "example": "18.4K"
+      },
+      "output": {
+        "type": "String",
+        "example": "70"
+      }
+    }
+  },
+  "chatUsageCached": "实际用量：输入 {input}，其中缓存命中 {cached}；输出 {output}",
+  "@chatUsageCached": {
+    "description": "AI 参考内容里服务商算的实际用量，带缓存命中。",
+    "placeholders": {
+      "input": {
+        "type": "String",
+        "example": "18.4K"
+      },
+      "cached": {
+        "type": "String",
+        "example": "18.4K"
+      },
+      "output": {
+        "type": "String",
+        "example": "70"
+      }
+    }
+  },
+  "chatViewInText": "在正文中查看",
+  "chatViewLore": "查看设定",
+  "chatWhereAfter": "接在一句之后",
+  "@chatWhereAfter": {
+    "description": "提议修改卡片里接在指定句子之后的位置名。"
+  },
+  "chatWhereAll": "换掉全章",
+  "chatWhereEnd": "接在章末",
+  "chatWhereSwap": "换掉一句",
+  "dialogNotPicked": "尚未选中文字",
+  "dialogPicked": "{unit, select, word {已选 {count} 词} other {已选 {count} 字}}",
+  "@dialogPicked": {
+    "description": "摘取原文时选中了几个字。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      },
+      "unit": {
+        "type": "String",
+        "example": "character"
+      }
+    }
+  },
+  "dialogSourceAbout": "拖选一段原文，作为已确定的设定加入正文。原文不会被修改。",
+  "dialogSourceCat": "摘取分类",
+  "dialogSourceCollapse": "收起原文",
+  "draftBusyOther": "AI 正在回复别的讨论；等它回完或取消后再{action}",
+  "@draftBusyOther": {
+    "description": "应用界面提示。",
+    "placeholders": {
+      "action": {
+        "type": "String",
+        "example": "起草"
+      }
+    }
+  },
+  "editorQuote": "引用到讨论",
+  "helpCite": "将选中的原文引用到讨论",
+  "paneTabChat": "讨论",
+  "@paneTabChat": {
+    "description": "右栏标签和修改记录里「讨论」的来源：和 AI 的讨论。"
+  },
+  "sideCollapseTalk": "收起这段对话",
+  "sideDraftTitle": "起草：{title}",
+  "@sideDraftTitle": {
+    "description": "按章纲起草新开的讨论的标题，title 是章的标题。",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "第1章：雨停"
+      }
+    }
+  },
+  "sideFoldedCount": "已收起 {count} 段对话",
+  "@sideFoldedCount": {
+    "description": "讨论列表底下一行，收起的讨论有几段。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "sideHideFolded": "不显示收起的对话",
+  "sideMoveBack": "移回列表",
+  "sideNewTalk": "新对话",
+  "@sideNewTalk": {
+    "description": "讨论页侧栏顶上的加号的提示和无障碍名称。"
+  },
+  "sideRewriteTitle": "改写：{text}",
+  "@sideRewriteTitle": {
+    "description": "AI 改写新开的讨论的标题，text 是选中那段的开头几个字。",
+    "placeholders": {
+      "text": {
+        "type": "String",
+        "example": "他没有回头"
+      }
+    }
+  },
+  "talkAll": "总讨论",
+  "talkContinueAbout": "AI 会参考已有的设定和正文。",
+  "talkContinueTitle": "接着聊这部作品",
+  "talkCount": "{count, plural, other {# 条发言}}",
+  "@talkCount": {
+    "description": "讨论标题右边的发言条数。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "talkInputHint": "输入想法，或向 AI 提问…",
+  "talkInputLabel": "讨论输入",
+  "talkNext1": "接下来的情节怎么走",
+  "talkNext2": "哪些设定还没想清楚",
+  "talkNext3": "梳理一下人物关系",
+  "talkSend": "发送（{shortcut}）",
+  "@talkSend": {
+    "description": "发送按钮的提示，带快捷键。",
+    "placeholders": {
+      "shortcut": {
+        "type": "String",
+        "example": "Ctrl+Enter"
+      }
+    }
+  },
+  "talkStart1": "我想写一个总在下雨的城市",
+  "@talkStart1": {
+    "description": "空白讨论页的几句起头语，点了就填进输入框，由作者自己发出去。"
+  },
+  "talkStart2": "主角有个说不出口的秘密",
+  "talkStart3": "这个故事的冲突在哪",
+  "talkStartAbout": "写下初步的想法。讨论中定下的内容，AI 会当场记进右侧的设定文档；已确定的设定将作为后续讨论的依据，已放弃的不再提及。",
+  "talkStartTitle": "从一个初步的想法开始",
+  "@helpGroupChat": {
+    "description": "快捷键表里「讨论」那一组的名字。"
+  },
+  "helpGroupChat": "讨论",
+  "helpSend": "发送"
 }

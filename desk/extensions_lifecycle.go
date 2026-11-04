@@ -28,7 +28,8 @@ func declareLifecycle(r *ext.Registrar, a *App) {
 	ext.DeclareCalls(r, hostapi.Tools, func(v hostapi.Tool) func(*ui.Context) struct{} {
 		return func(c *ui.Context) struct{} { v.Draw(c); return struct{}{} }
 	})
-	ext.Provide(r, hostapi.TalkService, func(*ext.Session) hostapi.Talk { return h })
+	ext.Provide(r, hostapi.SuggestionsService, func(*ext.Session) hostapi.Suggestions { return h })
+	ext.Declare(r, hostapi.State)
 	ext.Provide(r, hostapi.SearchService, func(*ext.Session) hostapi.Search { return h })
 	ext.Provide(r, hostapi.AIService, func(*ext.Session) hostapi.AI { return h })
 	ext.Provide(r, hostapi.RevisionsService, func(*ext.Session) hostapi.Revisions { return h })

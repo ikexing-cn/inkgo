@@ -19,11 +19,11 @@ import (
 func TestShot(t *testing.T) {
 	testshot.Dir(t)
 	a, tt, _ := fixture(t)
-	user, _ := a.Store.Append(a.session, workspace.Event{Role: "user", Text: "我想写一个总在下雨的城市，雨停的那天会有人消失。"})
-	reply, _ := a.Store.Append(a.session, workspace.Event{Role: "assistant", ReplyTo: user.ID, Text: "这个设定很有张力。可以让“雨停”成为城里人最恐惧的天气预报：广播里一说明天转晴，家家户户就开始清点人数。\n\n消失的人也许并没有死，而是被雨水“记住”了，只在下一场雨里出现。这样主角就有了动机：盼雨，又怕雨。"})
-	if _, err := a.Store.Revise(workspace.Revision{By: workspace.ByTalk, Session: a.session, Turn: user.ID, Ops: []workspace.Op{
-		{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "规则", Text: "雨停那天会有人消失，城里人因此惧怕晴天", Sources: []workspace.Source{{Session: a.session, Message: user.ID, Quote: "雨停的那天会有人消失"}}},
-		{Op: workspace.OpAdd, Place: workspace.PlaceOpen, Category: "人物", Text: "消失的人会在下一场雨里出现，主角因此盼雨又怕雨", Sources: []workspace.Source{{Session: a.session, Message: reply.ID, Quote: "只在下一场雨里出现"}}},
+	user, _ := a.Store.Append(talkOf(a).Session, workspace.Event{Role: "user", Text: "我想写一个总在下雨的城市，雨停的那天会有人消失。"})
+	reply, _ := a.Store.Append(talkOf(a).Session, workspace.Event{Role: "assistant", ReplyTo: user.ID, Text: "这个设定很有张力。可以让“雨停”成为城里人最恐惧的天气预报：广播里一说明天转晴，家家户户就开始清点人数。\n\n消失的人也许并没有死，而是被雨水“记住”了，只在下一场雨里出现。这样主角就有了动机：盼雨，又怕雨。"})
+	if _, err := a.Store.Revise(workspace.Revision{By: workspace.ByTalk, Session: talkOf(a).Session, Turn: user.ID, Ops: []workspace.Op{
+		{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "规则", Text: "雨停那天会有人消失，城里人因此惧怕晴天", Sources: []workspace.Source{{Session: talkOf(a).Session, Message: user.ID, Quote: "雨停的那天会有人消失"}}},
+		{Op: workspace.OpAdd, Place: workspace.PlaceOpen, Category: "人物", Text: "消失的人会在下一场雨里出现，主角因此盼雨又怕雨", Sources: []workspace.Source{{Session: talkOf(a).Session, Message: reply.ID, Quote: "只在下一场雨里出现"}}},
 	}}); err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +98,7 @@ func TestShotAI(t *testing.T) {
 	// Asked again in the talk: leaving the work asks about it; the words
 	// it replaces changed, it is void.
 	g.then(proposal("第一章", "replace", "井边那盏灯坏了三天。", "井边那盏灯已经坏了三天，没人来修。"), []string{"补了一句没人来修。"})
-	a.input = "最后一句补一下没人修"
+	talkOf(a).Input = "最后一句补一下没人修"
 	tt.Frame()
 	if err := tt.Click("发送"); err != nil {
 		t.Fatal(err)
@@ -123,7 +123,7 @@ func TestShotAI(t *testing.T) {
 	}
 	a.warn(a.loadTree())
 	g.then(proposal("第二章", "replace", "档案室白天也要开灯。", "档案室白天也得开着灯。"), []string{"第二章那句顺了一下。"})
-	a.input = "第二章开头那句顺一下"
+	talkOf(a).Input = "第二章开头那句顺一下"
 	tt.Frame()
 	if err := tt.Click("发送"); err != nil {
 		t.Fatal(err)
@@ -140,16 +140,16 @@ func TestShotBeside(t *testing.T) {
 	testshot.Dir(t)
 	a, tt, id := writingFixture(t, "雨从傍晚开始下，一直没有停。\n林晚背着工具箱，沿着亮着的灯往旧城走。她修了七年路灯，却从来不敢在天黑以后走进没有灯的巷子。\n井边那盏灯坏了三天。")
 
-	u, _ := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "这句是不是交代得太早了？", Chapter: id,
+	u, _ := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleUser, Text: "这句是不是交代得太早了？", Chapter: id,
 		Quotes: []workspace.Quote{{Chapter: id, Title: "第一章", Text: "她修了七年路灯，却从来不敢在天黑以后走进没有灯的巷子。"}}})
-	_, _ = a.Store.Append(a.session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Model: "deepseek/deepseek-flash",
+	_, _ = a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Model: "deepseek/deepseek-flash",
 		Text: "有一点。“怕黑”是她的底牌，第一章就直接说出来，后面井边那场戏就少了悬念。\n\n可以只留动作：她在巷口停住，把手电换到另一只手。读者会自己猜。"})
 	a.SetError(a.refresh())
 	showTab(a, paneTalk)
 	shownEditor(a).Select(15, 34)
 	tt.Frame()
 	tt.Key(ui.Cmd, ui.KeyL)
-	a.input = "换成动作的话，放在哪里合适？"
+	talkOf(a).Input = "换成动作的话，放在哪里合适？"
 	shot(t, tt, "beside-talk.png")
 	a.doc.width = 560
 	shot(t, tt, "beside-wide.png")

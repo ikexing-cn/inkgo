@@ -302,7 +302,7 @@ func TestFocusLeavesThePageAlone(t *testing.T) {
 	}
 	a.write.focus = true
 	shownEditor(a).Select(0, 2)
-	a.quoteToTalk()
+	talkOf(a).QuoteToTalk()
 	tt.Frame()
 	if a.write.focus || !tt.HasText("右栏-讨论") {
 		t.Fatal("quoting kept the column away", tt.Texts())

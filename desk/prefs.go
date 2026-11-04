@@ -1,9 +1,10 @@
 package desk
 
 import (
-	"maps"
-	"slices"
-
+	"encoding/json"
+	"os"
+	"writer/ext"
+	"writer/ext/hostapi"
 	"writer/prefs"
 )
 
@@ -23,11 +24,15 @@ func (a *App) loadPrefs() {
 		a.write.ignored[k] = true
 	}
 	a.write.ignoredVer++
-	a.shelved = map[string]bool{}
-	for _, id := range p.Shelved {
-		a.shelved[id] = true
+	a.doc.width, a.doc.tab = p.PanelWidth, paneTab(p.PaneTab)
+	raw, _ := os.ReadFile(a.Store.PrefsPath())
+	var state map[string]json.RawMessage
+	_ = json.Unmarshal(raw, &state)
+	for _, item := range ext.Items(a.extensions, hostapi.State) {
+		if item.Value.Load != nil {
+			_ = ext.Guard(a.extensions, item.Owner, item.ID+".load", func() { item.Value.Load(state) })
+		}
 	}
-	a.doc.width, a.doc.tab, a.doc.attach = p.PanelWidth, paneTab(p.PaneTab), !p.NoAttach
 	known := false
 	for _, tab := range a.paneTabs {
 		known = known || tab.id == a.doc.tab
@@ -43,12 +48,27 @@ func (a *App) loadPrefs() {
 }
 
 func (a *App) savePrefs() error {
-	shelved := slices.Sorted(maps.Keys(a.shelved))
-	p := prefs.Prefs{Shelved: shelved, SettingHidden: a.doc.hidden, SideHidden: a.sideHidden, Chapter: a.write.node, Tabs: a.write.tabs, Blank: a.write.blank, Writing: a.leftWriting, AutoPredict: a.write.autoPredict,
-		PanelWidth: a.doc.width, PaneTab: string(a.doc.tab), LateAfter: a.write.lateAfter, CheckWhen: a.ck.when, NoAttach: !a.doc.attach,
+	old := prefs.Load(a.Store.PrefsPath())
+	p := prefs.Prefs{Shelved: old.Shelved, NoAttach: old.NoAttach, SettingHidden: a.doc.hidden, SideHidden: a.sideHidden, Chapter: a.write.node, Tabs: a.write.tabs, Blank: a.write.blank, Writing: a.leftWriting, AutoPredict: a.write.autoPredict,
+		PanelWidth: a.doc.width, PaneTab: string(a.doc.tab), LateAfter: a.write.lateAfter, CheckWhen: a.ck.when,
 		Carets: a.write.carets, TextSize: a.write.size,
 		Ignored: a.write.ignoredKeys()}
-	err := p.Save(a.Store.PrefsPath())
+	data, _ := json.Marshal(p)
+	var state map[string]json.RawMessage
+	_ = json.Unmarshal(data, &state)
+	for _, item := range ext.Items(a.extensions, hostapi.State) {
+		if item.Value.Save != nil {
+			_ = ext.Guard(a.extensions, item.Owner, item.ID+".save", func() {
+				for k, v := range item.Value.Save() {
+					state[k] = v
+				}
+			})
+		}
+	}
+	data, _ = json.Marshal(state)
+	var merged prefs.Prefs
+	_ = json.Unmarshal(data, &merged)
+	err := merged.Save(a.Store.PrefsPath())
 	a.warn(err)
 	return err
 }

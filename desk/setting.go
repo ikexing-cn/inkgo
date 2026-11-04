@@ -21,11 +21,6 @@ type docView struct {
 	width    float32
 	resizing bool
 	tab      paneTab
-	// The talks are listed there, not the one open, and what the list is
-	// searched for.
-	talks     bool
-	talkQuery string
-	attach    bool
 }
 
 // setSideHidden puts the sidebar away, on every page, or brings it back.

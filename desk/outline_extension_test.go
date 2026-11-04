@@ -81,18 +81,18 @@ func TestOutlineOpensFreshDiskOutlineWithoutHostPayload(t *testing.T) {
 
 func TestDiscussionUsesUnsavedOutlineAndOmitsItWhenOutlineIsOff(t *testing.T) {
 	a, _, _ := writingFixture(t, "正文")
-	a.doc.attach = true
+	talkOf(a).Attach = true
 	a.book.Timing.SaveAfter = time.Hour
 	setChapterOutline(a, "未存盘的章纲")
 	ch, err := a.Store.ReadChapter(a.write.node)
 	if err != nil || ch.Outline == "未存盘的章纲" {
 		t.Fatal("draft already saved", err)
 	}
-	if got := a.beside(); got == nil || got.Outline != "未存盘的章纲" {
+	if got := talkOf(a).Beside(); got == nil || got.Outline != "未存盘的章纲" {
 		t.Fatal(got)
 	}
 	a.setExtension("outline", false, false)
-	if got := a.beside(); got == nil || got.Outline != "" || got.VolumeOutline != "" {
+	if got := talkOf(a).Beside(); got == nil || got.Outline != "" || got.VolumeOutline != "" {
 		t.Fatal(got)
 	}
 }

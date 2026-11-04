@@ -11,6 +11,7 @@ import (
 	"writer/desk"
 	"writer/ext"
 	aimod "writer/ext/ai"
+	"writer/ext/talk"
 	"writer/internal/testshot"
 	"writer/workspace"
 )
@@ -25,7 +26,15 @@ func layoutBook(t *testing.T, root string) *workspace.Store {
 }
 
 func newLayoutApp(root string) *desk.App {
-	a := desk.New(filepath.Join(root, "providers.yaml"), append(testModules(), aimod.New(aimod.Options{ConfigFile: filepath.Join(root, "providers.yaml")}))...)
+	mods := testModules()
+	var panel *talk.Panel
+	for i := range mods {
+		if mods[i].ID == "talk" {
+			mods[i], panel = talk.New()
+		}
+	}
+	a := desk.New(filepath.Join(root, "providers.yaml"), append(mods, aimod.New(aimod.Options{ConfigFile: filepath.Join(root, "providers.yaml")}))...)
+	layoutTalks[a] = panel
 	return a
 }
 
@@ -79,8 +88,8 @@ func TestLayoutDiscussion(t *testing.T) {
 	tt.SetPreferences(ui.Preferences{ReduceMotion: true})
 	tt.Frame()
 	tt.Frame()
-	if a.LastChat.H < 600 || a.LastSetting.H < 600 || a.LastChat.W < 600 || a.LastSetting.W < 390 {
-		t.Fatalf("discussion bounds chat=%+v setting=%+v", a.LastChat, a.LastSetting)
+	if chatBounds(a).H < 600 || a.LastSetting.H < 600 || chatBounds(a).W < 600 || a.LastSetting.W < 390 {
+		t.Fatalf("discussion bounds chat=%+v setting=%+v", chatBounds(a), a.LastSetting)
 	}
 	if !tt.HasText("设定") || !tt.HasText("待确认") || !tt.HasText("总讨论") {
 		t.Fatal(tt.Texts())
@@ -315,3 +324,8 @@ func shot(t *testing.T, tt *ui.Tester, suffix string) {
 func newModuleApp(config string, mods ...ext.Module) *desk.App {
 	return desk.New(config, append(append([]ext.Module(nil), mods...), aimod.New(aimod.Options{ConfigFile: config}))...)
 }
+
+var layoutTalks = map[*desk.App]*talk.Panel{}
+
+// chatBounds reads the contributed page's native measurement for shell layout tests.
+func chatBounds(a *desk.App) ui.Rect { return layoutTalks[a].LastChat }

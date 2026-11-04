@@ -125,7 +125,7 @@ func TestAStarterLeavesTheCaretAfterIt(t *testing.T) {
 	tt.Frame()
 	tt.Frame()
 	tt.Type("，她怕黑")
-	if a.input != "哪些设定还没想清楚，她怕黑" {
-		t.Fatalf("typed into the words offered at %q", a.input)
+	if talkOf(a).Input != "哪些设定还没想清楚，她怕黑" {
+		t.Fatalf("typed into the words offered at %q", talkOf(a).Input)
 	}
 }

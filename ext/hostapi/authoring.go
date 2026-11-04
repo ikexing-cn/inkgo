@@ -1,29 +1,9 @@
 package hostapi
 
 import (
-	"github.com/egoist/mygo/ui"
 	"writer/ext"
 	"writer/workspace"
 )
-
-// Talk exposes conversation navigation on the frame thread. Methods are direct
-// host calls, without ext.Call or ext.Guard; host panics are not recovered.
-type Talk interface {
-	// StopTalk cancels the conversation worker during extension shutdown on the frame thread.
-	StopTalk()
-	// ShowEntry opens a digest reference on the frame thread (temporary UI bridge).
-	ShowEntry(workspace.Entry)
-	// StartTalk opens a conversation with an origin and first words on the frame thread.
-	StartTalk(*ui.Context, workspace.Event) bool
-	// OpenTalk opens a conversation on the frame thread, directly without ext.Call or ext.Guard.
-	OpenTalk(string)
-	// TalkTitle returns a conversation title on the frame thread, directly without ext.Call or ext.Guard.
-	TalkTitle(string) (string, bool)
-}
-
-// TalkService resolves direct frame-thread conversation access. Its key moves
-// with discussion when discussion becomes an extension in migration step 3.
-const TalkService ext.ServiceKey[Talk] = "host.talk"
 
 // Search exposes prose search on the frame thread. Methods are direct host
 // calls, without ext.Call or ext.Guard; host panics are not recovered.
@@ -63,7 +43,9 @@ const RevisionsService ext.ServiceKey[Revisions] = "host.revisions"
 // SelectionAction describes a prose menu item or submenu. Run executes on the
 // frame thread through ext.Guard. Children are plain data, built with the menu.
 type SelectionAction struct {
-	Label    string
+	Label string
+	// Command names a contributed command whose shortcut the host displays; frame-thread metadata.
+	Command  string
 	Disabled bool
 	Children []SelectionAction
 	Run      func()
@@ -72,6 +54,9 @@ type SelectionAction struct {
 // SelectionMenu builds prose actions on the frame thread through ext.Call.
 // Build must not retain frame objects; actions run through ext.Guard.
 type SelectionMenu struct {
+	// Order sorts contributions on the frame thread; negative values precede legacy host selection actions.
+	// Equal values retain registration order.
+	Order int
 	Build func(string) []SelectionAction
 }
 

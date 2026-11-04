@@ -52,7 +52,7 @@ func TestSnapshotsOffStillTakesSnapshotsOnSaveAndProposalAcceptance(t *testing.T
 	if err != nil || !slices.ContainsFunc(snaps, func(s workspace.Snapshot) bool { return s.Reason == workspace.SnapInterval }) {
 		t.Fatal(snaps, err)
 	}
-	a.turn.session = a.session
+	a.proposalFrame.Session = talkOf(a).Session
 	a.takeProposal("snapshot-off", workspace.Proposal{Chapter: id, At: workspace.ProposeReplace, Quote: "她走到井边。", Text: "她慢慢走到井边。"}, false, "test-model")
 	tt.Frame()
 	if len(a.write.props) == 0 {

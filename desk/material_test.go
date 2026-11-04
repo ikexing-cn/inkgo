@@ -54,8 +54,9 @@ func TestNextTalkPredictionAndPreloadFollowGlobalAndBookMaterialSwitches(t *test
 		for _, bookScope := range []bool{false, true} {
 			t.Run(id+map[bool]string{false: "/global", true: "/book"}[bookScope], func(t *testing.T) {
 				a, tt, _ := marginFixture(t, true)
-				spy := &materialSpy{capturedStream: capturedStream{Backend: a.ai}}
+				spy := &materialSpy{capturedStream: capturedStream{Backend: a.ai, ServiceAPI: a.talkAPI}}
 				a.ai = spy
+				talkOf(a).Build = spy.Build
 				a.talkAPI = spy
 				a.modelsChanged()
 				for _, on := range []bool{true, false, true} {
@@ -68,7 +69,7 @@ func TestNextTalkPredictionAndPreloadFollowGlobalAndBookMaterialSwitches(t *test
 						want.Outline = on
 					}
 					stillTester(func(c *ui.Context) {
-						if _, err := a.talk(c); err != nil {
+						if _, err := talkOf(a).Talk(c); err != nil {
 							t.Fatal(err)
 						}
 						a.draftNote()
@@ -94,12 +95,12 @@ func TestNextTalkPredictionAndPreloadFollowGlobalAndBookMaterialSwitches(t *test
 						t.Fatal(err)
 					}
 					if id == "lore" {
-						a.sourceOpen = false
-						a.openSource(workspace.Event{ID: "message", Text: "讨论里的文字"}, 0, 0)
-						if a.sourceOpen != on {
+						talkOf(a).SourceOpen = false
+						talkOf(a).OpenSource(workspace.Event{ID: "message", Text: "讨论里的文字"}, 0, 0)
+						if talkOf(a).SourceOpen != on {
 							t.Fatal("extract entry", on)
 						}
-						a.sourceOpen = false
+						talkOf(a).SourceOpen = false
 					}
 				}
 				if spy.predictions != 3 {

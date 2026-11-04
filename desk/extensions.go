@@ -162,10 +162,8 @@ func (h extensionHost) Colors() *kit.Palette { return h.a.pal }
 func (h extensionHost) ScreenColors() (*kit.Palette, *kit.Palette) { return h.a.light, h.a.dark }
 
 func (h extensionHost) Show(tab string) {
-	if paneTab(tab) != paneTalk {
-		h.a.doc.talks = false
-	}
 	h.a.doc.hidden, h.a.doc.tab, h.a.write.focus = false, paneTab(tab), false
+	h.a.paneChanged(tab)
 	if h.a.Store != nil {
 		h.a.savePrefs()
 	}
@@ -222,17 +220,10 @@ func (a *App) syncExtensions() {
 	}
 	if talkOn && talkService != a.talkResolved {
 		a.talkResolved, a.talkAPI = talkService, talkService
-		a.talkChoices = talkService.Choices()
-		if a.Store != nil {
-			w := a.Store.Work()
-			*a.talkChoices = talkapi.ModelChoices{TalkProvider: w.Discussion.Provider, TalkModel: w.Discussion.Model, TalkEffort: w.Discussion.Effort}
-		}
+
 	}
 	if !talkOn {
 		a.talkResolved, a.talkAPI = nil, nil
-		if a.page == pageTalk {
-			a.page = pageWrite
-		}
 
 		a.write.draftOpen, a.write.rewriting = false, false
 	}
@@ -257,12 +248,12 @@ func (a *App) syncExtensions() {
 		a.write.draftOpen = false
 	}
 	for _, cmd := range commandList {
-		if (cmd != cmdDraft || cache.outlines) && (cmd != cmdQuote && cmd != cmdRewrite || a.talkOn()) && (cmd != cmdTake || a.hasEntries()) {
+		if (cmd != cmdDraft || cache.outlines) && (cmd != cmdRewrite || a.talkOn()) && (cmd != cmdTake || a.hasEntries()) {
 			cache.list = append(cache.list, cmd)
 		}
 	}
 	for _, row := range commandHelp {
-		if !a.talkOn() && (slices.Contains(row.cmds, cmdQuote) || slices.Contains(row.cmds, cmdDraft) || slices.Contains(row.cmds, cmdRewrite)) {
+		if !a.talkOn() && (slices.Contains(row.cmds, cmdDraft) || slices.Contains(row.cmds, cmdRewrite)) {
 			continue
 		}
 		cache.help = append(cache.help, row)
@@ -317,8 +308,12 @@ func (a *App) syncExtensions() {
 			}
 		}
 		at := len(a.paneTabs)
+		before := p.Before
+		if !slices.ContainsFunc(a.paneTabs, func(row tabEntry[paneTab]) bool { return string(row.id) == before }) {
+			before = p.BeforeFallback
+		}
 		for i, existing := range a.paneTabs {
-			if string(existing.id) == p.Before {
+			if before != "" && string(existing.id) == before {
 				at = i
 				break
 			}

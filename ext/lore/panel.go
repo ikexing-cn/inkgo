@@ -55,7 +55,7 @@ type Form struct {
 
 // register contributes the setting interface under the registrar's owner.
 func register(r *ext.Registrar, p *Panel) {
-	ext.Contribute(r, hostapi.PaneTabs, "setting", hostapi.PaneTab{Key: "setting", Title: loretext.PaneTabLore, Draw: p.body, Before: "talk", Fallback: true, Count: func() int { return len(p.ideas()) }})
+	ext.Contribute(r, hostapi.PaneTabs, "setting", hostapi.PaneTab{Key: "setting", Title: loretext.PaneTabLore, Draw: p.body, Before: "talk", BeforeFallback: "fore", Fallback: true, Count: func() int { return len(p.ideas()) }})
 	ext.Contribute(r, hostapi.BesideItems, "setting-column", hostapi.DrawItem{Draw: p.settingPanel})
 	ext.Contribute(r, hostapi.SelectionMenus, "setting-name", hostapi.SelectionMenu{Build: p.nameMenu})
 	ext.Contribute(r, hostapi.MarginSources, "setting-changes", hostapi.MarginSource{Notes: p.marginNotes})

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	talkmod "writer/ext/talk"
 	"writer/ext/talk/talkapi"
 
 	"github.com/egoist/mygo/ui"
@@ -98,16 +99,6 @@ func longReply(n int) string {
 	return b.String()
 }
 
-// reset restarts the synthetic stream used by the benchmark. Production
-// requests each own a fresh talkTurn and never reuse its mailbox.
-func (l *live) reset() {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	l.reasoning.Reset()
-	l.text.Reset()
-	l.steps, l.compacting, l.proposed = nil, false, nil
-}
-
 // streamingBench opens a session with turns earlier replies and streams a
 // new reply into it, one delta a frame.
 func streamingBench(b *testing.B, turns int, reasoning bool) {
@@ -142,8 +133,8 @@ func streamingBench(b *testing.B, turns int, reasoning bool) {
 		b.Fatal(err)
 	}
 	tt.Frame()
-	a.busy, a.turn.active, a.turn.session = "AI 正在思考", true, a.session
-	a.turn.live.reset()
+	a.busy, talkOf(a).Turn.Active, talkOf(a).Turn.Session = "AI 正在思考", true, talkOf(a).Session
+	talkOf(a).Turn.Live = talkmod.Live{}
 	reply := []rune(longReply(99) + longReply(100))
 	tt.Frame()
 	b.ResetTimer()
@@ -151,17 +142,17 @@ func streamingBench(b *testing.B, turns int, reasoning bool) {
 		at := i % (len(reply) / 2)
 		if at == 0 {
 			// Start halfway, as a long reply is most of the time.
-			a.turn.live.reset()
+			talkOf(a).Turn.Live = talkmod.Live{}
 			if reasoning {
-				a.turn.live.add(talkapi.Progress{Reasoning: string(reply[:len(reply)/2])})
+				talkOf(a).Turn.Live.Add(talkapi.Progress{Reasoning: string(reply[:len(reply)/2])})
 			} else {
-				a.turn.live.add(talkapi.Progress{Reasoning: strings.Repeat("先想想雨的来历。", 40), Text: string(reply[:len(reply)/2])})
+				talkOf(a).Turn.Live.Add(talkapi.Progress{Reasoning: strings.Repeat("先想想雨的来历。", 40), Text: string(reply[:len(reply)/2])})
 			}
 		}
 		if reasoning {
-			a.turn.live.add(talkapi.Progress{Reasoning: string(reply[at : at+1])})
+			talkOf(a).Turn.Live.Add(talkapi.Progress{Reasoning: string(reply[at : at+1])})
 		} else {
-			a.turn.live.add(talkapi.Progress{Text: string(reply[len(reply)/2+at : len(reply)/2+at+1])})
+			talkOf(a).Turn.Live.Add(talkapi.Progress{Text: string(reply[len(reply)/2+at : len(reply)/2+at+1])})
 		}
 		// One refresh, as a window draws: what fades in asks for the next
 		// frame, which a Frame on a clock standing still would run at once,

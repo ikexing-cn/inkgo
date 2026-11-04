@@ -8,7 +8,6 @@ import (
 	"github.com/egoist/mygo/ui/markdown"
 	"github.com/egoist/mygo/ui/markdown/parser"
 	"writer/desk/kit"
-	"writer/ext/talk/talkapi"
 	"writer/workspace"
 )
 
@@ -99,6 +98,3 @@ func (a *Markdown) Digest(s string) string {
 	out.WriteString(s[at:])
 	return out.String()
 }
-
-// Renderer returns this activation's conversation renderer.
-func (s *service) Renderer() talkapi.Markdown { return s.markdown }

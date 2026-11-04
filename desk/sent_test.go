@@ -17,37 +17,37 @@ import (
 // before parts were kept lists what it left out.
 func TestWhatWasSent(t *testing.T) {
 	a, tt, e := fixture(t)
-	u, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "说说"})
+	u, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleUser, Text: "说说"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = a.Store.Append(a.session, workspace.Event{Role: workspace.RoleCall, ReplyTo: u.ID,
+	if _, err = a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleCall, ReplyTo: u.ID,
 		Calls: []workspace.Call{{ID: "c1", Name: "search_book", Input: []byte(`{"query":"雨"}`), Label: "搜了全书「雨」"}}, Model: "deepseek/deepseek-flash", Usage: &workspace.Usage{Input: 9200, Output: 40}}); err != nil {
 		t.Fatal(err)
 	}
 	sent := &workspace.Sent{Rules: "ab12cd34", Setting: 1, Parts: []workspace.Part{
 		{Name: workspace.PartRules, Tokens: 1100}, {Name: workspace.PartSetting, Tokens: 1000},
 		{Name: workspace.PartTalk, Tokens: 7460}, {Name: workspace.PartInput, Tokens: 40}}}
-	whole, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "可以。",
+	whole, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u.ID, Text: "可以。",
 		Context: []workspace.ContextItem{{Text: "所在章：第一章"}, {ID: e.ID, Text: "主角怕黑", Changes: []string{"「第三章」起：主角不怕黑了"}}},
 		Model:   "deepseek/deepseek-flash", Usage: &workspace.Usage{Input: 9900, CacheRead: 6000, Output: 268}, Sent: sent})
 	if err != nil {
 		t.Fatal(err)
 	}
-	u2, _ := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "再说说"})
-	if _, err = a.Store.Append(a.session, workspace.Event{Role: workspace.RoleCall, ReplyTo: u2.ID,
+	u2, _ := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleUser, Text: "再说说"})
+	if _, err = a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleCall, ReplyTo: u2.ID,
 		Calls: []workspace.Call{{ID: "c2", Name: "search_book", Input: []byte(`{"query":"灯"}`), Label: "搜了全书「灯」"}}}); err != nil {
 		t.Fatal(err)
 	}
-	index, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u2.ID, Text: "好。",
+	index, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u2.ID, Text: "好。",
 		Context: []workspace.ContextItem{{ID: e.ID, Text: "人物：主角怕黑"}},
 		Usage:   &workspace.Usage{Input: 900, Output: 20},
 		Sent:    &workspace.Sent{Parts: []workspace.Part{{Name: workspace.PartRules, Tokens: 1100}, {Name: workspace.PartIndex, Tokens: 30}}}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	u3, _ := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "旧的"})
-	old, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u3.ID, Text: "旧的回复。",
+	u3, _ := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleUser, Text: "旧的"})
+	old, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleAssistant, ReplyTo: u3.ID, Text: "旧的回复。",
 		Context: []workspace.ContextItem{{ID: e.ID, Text: "正文：主角怕黑"}},
 		Omitted: []workspace.ContextItem{{ID: "x", Text: "正文：主角会飞", Reason: "超出上下文预算"}}})
 	if err != nil {

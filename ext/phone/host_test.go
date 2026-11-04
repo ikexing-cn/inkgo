@@ -131,3 +131,5 @@ func (h *testHost) ClearFlash(string) {}
 func (h *testHost) CategoriesChanged() error { return nil }
 
 func (h *testHost) Held() bool { return false }
+
+func (*testHost) Flash(string) {}

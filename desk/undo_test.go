@@ -61,11 +61,11 @@ func TestChangeDecisionsUndoTogether(t *testing.T) {
 		t.Run(map[bool]string{false: "ignore", true: "take"}[take], func(t *testing.T) {
 			a, tt, node := writingFixture(t, "林晚不再怕黑。")
 			e := a.book.Setting().Entries[0]
-			u, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "她不再怕黑"})
+			u, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleUser, Text: "她不再怕黑"})
 			if err != nil {
 				t.Fatal(err)
 			}
-			r, err := a.Store.Revise(workspace.Revision{By: workspace.ByTalk, Session: a.session, Turn: u.ID, Ops: []workspace.Op{
+			r, err := a.Store.Revise(workspace.Revision{By: workspace.ByTalk, Session: talkOf(a).Session, Turn: u.ID, Ops: []workspace.Op{
 				{Op: workspace.OpChange, Entry: e.ID, From: node, Place: workspace.PlaceOpen, Text: "主角不再怕黑"},
 			}})
 			if err != nil {
@@ -169,8 +169,8 @@ func TestUndoToastAtTheBottom(t *testing.T) {
 func TestUndoLeavesALaterWriteAlone(t *testing.T) {
 	a, tt, node := writingFixture(t, "雨停了。")
 	e := a.book.Setting().Entries[0]
-	u, _ := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "不再怕黑"})
-	r, err := a.Store.Revise(workspace.Revision{By: workspace.ByTalk, Session: a.session, Turn: u.ID, Ops: []workspace.Op{
+	u, _ := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleUser, Text: "不再怕黑"})
+	r, err := a.Store.Revise(workspace.Revision{By: workspace.ByTalk, Session: talkOf(a).Session, Turn: u.ID, Ops: []workspace.Op{
 		{Op: workspace.OpChange, Entry: e.ID, From: node, Place: workspace.PlaceOpen, Text: "不再怕黑"},
 	}})
 	if err != nil {
@@ -222,11 +222,11 @@ func TestUndoRefusesAReplacedChapterCheck(t *testing.T) {
 			until(t, tt, "check", func() bool { return len(a.checkItems(false)) == 3 })
 			finding := a.checkItems(false)[0]
 			if take {
-				u, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "她不再怕黑"})
+				u, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleUser, Text: "她不再怕黑"})
 				if err != nil {
 					t.Fatal(err)
 				}
-				r, err := a.Store.Revise(workspace.Revision{By: workspace.ByTalk, Session: a.session, Turn: u.ID, Ops: []workspace.Op{{
+				r, err := a.Store.Revise(workspace.Revision{By: workspace.ByTalk, Session: talkOf(a).Session, Turn: u.ID, Ops: []workspace.Op{{
 					Op: workspace.OpChange, Entry: finding.entry.ID, From: node, Place: workspace.PlaceOpen, Text: "她不再怕黑",
 				}}})
 				if err != nil {
@@ -265,11 +265,11 @@ func TestUndoRefusesAReplacedChapterCheck(t *testing.T) {
 func TestTakingAChangeRollsBackWhenTheCheckCannotSave(t *testing.T) {
 	a, tt, node := writingFixture(t, "林晚不再怕黑。")
 	e := a.book.Setting().Entries[0]
-	u, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "不再怕黑"})
+	u, err := a.Store.Append(talkOf(a).Session, workspace.Event{Role: workspace.RoleUser, Text: "不再怕黑"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := a.Store.Revise(workspace.Revision{By: workspace.ByTalk, Session: a.session, Turn: u.ID, Ops: []workspace.Op{{
+	r, err := a.Store.Revise(workspace.Revision{By: workspace.ByTalk, Session: talkOf(a).Session, Turn: u.ID, Ops: []workspace.Op{{
 		Op: workspace.OpChange, Entry: e.ID, From: node, Place: workspace.PlaceOpen, Text: "不再怕黑",
 	}}})
 	if err != nil {

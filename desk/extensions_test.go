@@ -458,7 +458,7 @@ func TestUnchangedFramesReuseExtensionTables(t *testing.T) {
 	}
 	requireExtension(t, a.extensions.Set("phone", false))
 	tt.Frame()
-	if len(a.extensionCommands()) != 6 || a.extensionCommands()[0].id != "focus.focus" {
+	if len(a.extensionCommands()) != 8 || a.extensionCommands()[0].id != "focus.focus" {
 		t.Fatal("changed revision did not refresh tables")
 	}
 	requireExtension(t, a.extensions.Set("phone", true))

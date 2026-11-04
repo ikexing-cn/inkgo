@@ -796,36 +796,6 @@ func (msgs Messages) SideMovedToTrash(title string) string {
 	return Catalog.Format(msgs.locale, "sideMovedToTrash", map[string]any{"title": title})
 }
 
-// SideRewriteTitle says "改写：{text}"
-// in the language the app shows.
-//
-// AI 改写新开的讨论的标题，text
-// 是选中那段的开头几个字。
-func SideRewriteTitle(text string) string { return In(i18n.Locale()).SideRewriteTitle(text) }
-
-// SideRewriteTitle says "改写：{text}"
-// in the language of msgs.
-//
-// AI 改写新开的讨论的标题，text
-// 是选中那段的开头几个字。
-func (msgs Messages) SideRewriteTitle(text string) string {
-	return Catalog.Format(msgs.locale, "sideRewriteTitle", map[string]any{"text": text})
-}
-
-// SideDraftTitle says "起草：{title}"
-// in the language the app shows.
-//
-// 按章纲起草新开的讨论的标题，title 是章的标题。
-func SideDraftTitle(title string) string { return In(i18n.Locale()).SideDraftTitle(title) }
-
-// SideDraftTitle says "起草：{title}"
-// in the language of msgs.
-//
-// 按章纲起草新开的讨论的标题，title 是章的标题。
-func (msgs Messages) SideDraftTitle(title string) string {
-	return Catalog.Format(msgs.locale, "sideDraftTitle", map[string]any{"title": title})
-}
-
 // SideChapterTitle says "章节标题"
 // in the language the app shows.
 //
@@ -884,20 +854,6 @@ func (msgs Messages) SideSwitchBook() string {
 	return Catalog.Format(msgs.locale, "sideSwitchBook", nil)
 }
 
-// SideNewTalk says "新对话"
-// in the language the app shows.
-//
-// 讨论页侧栏顶上的加号的提示和无障碍名称。
-func SideNewTalk() string { return In(i18n.Locale()).SideNewTalk() }
-
-// SideNewTalk says "新对话"
-// in the language of msgs.
-//
-// 讨论页侧栏顶上的加号的提示和无障碍名称。
-func (msgs Messages) SideNewTalk() string {
-	return Catalog.Format(msgs.locale, "sideNewTalk", nil)
-}
-
 // SideNewChapterKey says "新建章节（{key}）"
 // in the language the app shows.
 //
@@ -910,30 +866,6 @@ func SideNewChapterKey(key string) string { return In(i18n.Locale()).SideNewChap
 // 新建章节按钮的提示，后面是快捷键。
 func (msgs Messages) SideNewChapterKey(key string) string {
 	return Catalog.Format(msgs.locale, "sideNewChapterKey", map[string]any{"key": key})
-}
-
-// SideHideFolded says "不显示收起的对话"
-// in the language the app shows.
-func SideHideFolded() string { return In(i18n.Locale()).SideHideFolded() }
-
-// SideHideFolded says "不显示收起的对话"
-// in the language of msgs.
-func (msgs Messages) SideHideFolded() string {
-	return Catalog.Format(msgs.locale, "sideHideFolded", nil)
-}
-
-// SideFoldedCount says "已收起 {count} 段对话"
-// in the language the app shows.
-//
-// 讨论列表底下一行，收起的讨论有几段。
-func SideFoldedCount(count int) string { return In(i18n.Locale()).SideFoldedCount(count) }
-
-// SideFoldedCount says "已收起 {count} 段对话"
-// in the language of msgs.
-//
-// 讨论列表底下一行，收起的讨论有几段。
-func (msgs Messages) SideFoldedCount(count int) string {
-	return Catalog.Format(msgs.locale, "sideFoldedCount", map[string]any{"count": count})
 }
 
 // SideCloseOthers says "关闭其他"
@@ -954,26 +886,6 @@ func SideCloseRight() string { return In(i18n.Locale()).SideCloseRight() }
 // in the language of msgs.
 func (msgs Messages) SideCloseRight() string {
 	return Catalog.Format(msgs.locale, "sideCloseRight", nil)
-}
-
-// SideMoveBack says "移回列表"
-// in the language the app shows.
-func SideMoveBack() string { return In(i18n.Locale()).SideMoveBack() }
-
-// SideMoveBack says "移回列表"
-// in the language of msgs.
-func (msgs Messages) SideMoveBack() string {
-	return Catalog.Format(msgs.locale, "sideMoveBack", nil)
-}
-
-// SideCollapseTalk says "收起这段对话"
-// in the language the app shows.
-func SideCollapseTalk() string { return In(i18n.Locale()).SideCollapseTalk() }
-
-// SideCollapseTalk says "收起这段对话"
-// in the language of msgs.
-func (msgs Messages) SideCollapseTalk() string {
-	return Catalog.Format(msgs.locale, "sideCollapseTalk", nil)
 }
 
 // SideEditVolumeOutline says "编辑卷纲"
@@ -2228,16 +2140,6 @@ func (msgs Messages) EditorAIRewriteMore() string {
 	return Catalog.Format(msgs.locale, "editorAIRewriteMore", nil)
 }
 
-// EditorQuote says "引用到讨论"
-// in the language the app shows.
-func EditorQuote() string { return In(i18n.Locale()).EditorQuote() }
-
-// EditorQuote says "引用到讨论"
-// in the language of msgs.
-func (msgs Messages) EditorQuote() string {
-	return Catalog.Format(msgs.locale, "editorQuote", nil)
-}
-
 // EditorAddToLore says "加入设定"
 // in the language the app shows.
 func EditorAddToLore() string { return In(i18n.Locale()).EditorAddToLore() }
@@ -2824,20 +2726,6 @@ func (msgs Messages) PaneTabNotes() string {
 	return Catalog.Format(msgs.locale, "paneTabNotes", nil)
 }
 
-// PaneTabChat says "讨论"
-// in the language the app shows.
-//
-// 右栏标签和修改记录里「讨论」的来源：和 AI 的讨论。
-func PaneTabChat() string { return In(i18n.Locale()).PaneTabChat() }
-
-// PaneTabChat says "讨论"
-// in the language of msgs.
-//
-// 右栏标签和修改记录里「讨论」的来源：和 AI 的讨论。
-func (msgs Messages) PaneTabChat() string {
-	return Catalog.Format(msgs.locale, "paneTabChat", nil)
-}
-
 // PaneTabHooks says "伏笔"
 // in the language the app shows.
 //
@@ -3312,20 +3200,6 @@ func (msgs Messages) ChatPartCatalog() string {
 	return Catalog.Format(msgs.locale, "chatPartCatalog", nil)
 }
 
-// ChatPartLoreCount says "设定 {count} 条"
-// in the language the app shows.
-//
-// AI 参考内容里设定的一项，写附了几条。
-func ChatPartLoreCount(count int) string { return In(i18n.Locale()).ChatPartLoreCount(count) }
-
-// ChatPartLoreCount says "设定 {count} 条"
-// in the language of msgs.
-//
-// AI 参考内容里设定的一项，写附了几条。
-func (msgs Messages) ChatPartLoreCount(count int) string {
-	return Catalog.Format(msgs.locale, "chatPartLoreCount", map[string]any{"count": count})
-}
-
 // ChatPartDigest says "讨论摘要"
 // in the language the app shows.
 func ChatPartDigest() string { return In(i18n.Locale()).ChatPartDigest() }
@@ -3366,46 +3240,6 @@ func (msgs Messages) ChatPartBefore() string {
 	return Catalog.Format(msgs.locale, "chatPartBefore", nil)
 }
 
-// ChatCrowded says "设定较多，本次只附目录"
-// in the language the app shows.
-func ChatCrowded() string { return In(i18n.Locale()).ChatCrowded() }
-
-// ChatCrowded says "设定较多，本次只附目录"
-// in the language of msgs.
-func (msgs Messages) ChatCrowded() string {
-	return Catalog.Format(msgs.locale, "chatCrowded", nil)
-}
-
-// ChatAttachedAt says "附带 {count} 条设定，按「{chapter}」时的样子"
-// in the language the app shows.
-//
-// 起草、改写的讨论附带设定时的说明。
-func ChatAttachedAt(count int, chapter string) string {
-	return In(i18n.Locale()).ChatAttachedAt(count, chapter)
-}
-
-// ChatAttachedAt says "附带 {count} 条设定，按「{chapter}」时的样子"
-// in the language of msgs.
-//
-// 起草、改写的讨论附带设定时的说明。
-func (msgs Messages) ChatAttachedAt(count int, chapter string) string {
-	return Catalog.Format(msgs.locale, "chatAttachedAt", map[string]any{"count": count, "chapter": chapter})
-}
-
-// ChatAttachedAll says "附带全部 {count} 条设定"
-// in the language the app shows.
-//
-// 普通讨论附带全部设定时的说明。
-func ChatAttachedAll(count int) string { return In(i18n.Locale()).ChatAttachedAll(count) }
-
-// ChatAttachedAll says "附带全部 {count} 条设定"
-// in the language of msgs.
-//
-// 普通讨论附带全部设定时的说明。
-func (msgs Messages) ChatAttachedAll(count int) string {
-	return Catalog.Format(msgs.locale, "chatAttachedAll", map[string]any{"count": count})
-}
-
 // ChatLabelDropped says "已放弃："
 // in the language the app shows.
 func ChatLabelDropped() string { return In(i18n.Locale()).ChatLabelDropped() }
@@ -3426,152 +3260,6 @@ func (msgs Messages) ChatLabelOpen() string {
 	return Catalog.Format(msgs.locale, "chatLabelOpen", nil)
 }
 
-// ChatLoreEmpty says "设定文档暂无内容。"
-// in the language the app shows.
-func ChatLoreEmpty() string { return In(i18n.Locale()).ChatLoreEmpty() }
-
-// ChatLoreEmpty says "设定文档暂无内容。"
-// in the language of msgs.
-func (msgs Messages) ChatLoreEmpty() string {
-	return Catalog.Format(msgs.locale, "chatLoreEmpty", nil)
-}
-
-// ChatSentAbout says "本次发送约 {tokens} token"
-// in the language the app shows.
-//
-// AI 参考内容顶上：这次发送的 token 数。
-func ChatSentAbout(tokens string) string { return In(i18n.Locale()).ChatSentAbout(tokens) }
-
-// ChatSentAbout says "本次发送约 {tokens} token"
-// in the language of msgs.
-//
-// AI 参考内容顶上：这次发送的 token 数。
-func (msgs Messages) ChatSentAbout(tokens string) string {
-	return Catalog.Format(msgs.locale, "chatSentAbout", map[string]any{"tokens": tokens})
-}
-
-// ChatRoundRequests says "这一轮共 {count} 次请求，这是最后一次。"
-// in the language the app shows.
-//
-// 一轮回复里发了几次请求。
-func ChatRoundRequests(count int) string { return In(i18n.Locale()).ChatRoundRequests(count) }
-
-// ChatRoundRequests says "这一轮共 {count} 次请求，这是最后一次。"
-// in the language of msgs.
-//
-// 一轮回复里发了几次请求。
-func (msgs Messages) ChatRoundRequests(count int) string {
-	return Catalog.Format(msgs.locale, "chatRoundRequests", map[string]any{"count": count})
-}
-
-// ChatUsageCached says "实际用量：输入 {input}，其中缓存命中 {cached}；输出 {output}"
-// in the language the app shows.
-//
-// AI 参考内容里服务商算的实际用量，带缓存命中。
-func ChatUsageCached(input string, cached string, output string) string {
-	return In(i18n.Locale()).ChatUsageCached(input, cached, output)
-}
-
-// ChatUsageCached says "实际用量：输入 {input}，其中缓存命中 {cached}；输出 {output}"
-// in the language of msgs.
-//
-// AI 参考内容里服务商算的实际用量，带缓存命中。
-func (msgs Messages) ChatUsageCached(input string, cached string, output string) string {
-	return Catalog.Format(msgs.locale, "chatUsageCached", map[string]any{"input": input, "cached": cached, "output": output})
-}
-
-// ChatUsage says "实际用量：输入 {input}；输出 {output}"
-// in the language the app shows.
-//
-// AI 参考内容里服务商算的实际用量。
-func ChatUsage(input string, output string) string { return In(i18n.Locale()).ChatUsage(input, output) }
-
-// ChatUsage says "实际用量：输入 {input}；输出 {output}"
-// in the language of msgs.
-//
-// AI 参考内容里服务商算的实际用量。
-func (msgs Messages) ChatUsage(input string, output string) string {
-	return Catalog.Format(msgs.locale, "chatUsage", map[string]any{"input": input, "output": output})
-}
-
-// ChatCatalogNote says "目录只有分类、名字和第一句；需要时 AI 会查全文。"
-// in the language the app shows.
-func ChatCatalogNote() string { return In(i18n.Locale()).ChatCatalogNote() }
-
-// ChatCatalogNote says "目录只有分类、名字和第一句；需要时 AI 会查全文。"
-// in the language of msgs.
-func (msgs Messages) ChatCatalogNote() string {
-	return Catalog.Format(msgs.locale, "chatCatalogNote", nil)
-}
-
-// ChatMoreChanges says "后面还有 {count} 处变化，未列出。"
-// in the language the app shows.
-//
-// AI 参考内容里后面还有几处设定变化没列出。
-func ChatMoreChanges(count int) string { return In(i18n.Locale()).ChatMoreChanges(count) }
-
-// ChatMoreChanges says "后面还有 {count} 处变化，未列出。"
-// in the language of msgs.
-//
-// AI 参考内容里后面还有几处设定变化没列出。
-func (msgs Messages) ChatMoreChanges(count int) string {
-	return Catalog.Format(msgs.locale, "chatMoreChanges", map[string]any{"count": count})
-}
-
-// ChatProposeEdit says "建议修改「{chapter}」"
-// in the language the app shows.
-//
-// AI 在正文里提议修改的那一章。
-func ChatProposeEdit(chapter string) string { return In(i18n.Locale()).ChatProposeEdit(chapter) }
-
-// ChatProposeEdit says "建议修改「{chapter}」"
-// in the language of msgs.
-//
-// AI 在正文里提议修改的那一章。
-func (msgs Messages) ChatProposeEdit(chapter string) string {
-	return Catalog.Format(msgs.locale, "chatProposeEdit", map[string]any{"chapter": chapter})
-}
-
-// ChatViewInText says "在正文中查看"
-// in the language the app shows.
-func ChatViewInText() string { return In(i18n.Locale()).ChatViewInText() }
-
-// ChatViewInText says "在正文中查看"
-// in the language of msgs.
-func (msgs Messages) ChatViewInText() string {
-	return Catalog.Format(msgs.locale, "chatViewInText", nil)
-}
-
-// ChatFateReplaced says "已被新的建议替换"
-// in the language the app shows.
-func ChatFateReplaced() string { return In(i18n.Locale()).ChatFateReplaced() }
-
-// ChatFateReplaced says "已被新的建议替换"
-// in the language of msgs.
-func (msgs Messages) ChatFateReplaced() string {
-	return Catalog.Format(msgs.locale, "chatFateReplaced", nil)
-}
-
-// ChatFateChanged says "正文已改动，建议已作废"
-// in the language the app shows.
-func ChatFateChanged() string { return In(i18n.Locale()).ChatFateChanged() }
-
-// ChatFateChanged says "正文已改动，建议已作废"
-// in the language of msgs.
-func (msgs Messages) ChatFateChanged() string {
-	return Catalog.Format(msgs.locale, "chatFateChanged", nil)
-}
-
-// ChatFateGone says "已丢弃"
-// in the language the app shows.
-func ChatFateGone() string { return In(i18n.Locale()).ChatFateGone() }
-
-// ChatFateGone says "已丢弃"
-// in the language of msgs.
-func (msgs Messages) ChatFateGone() string {
-	return Catalog.Format(msgs.locale, "chatFateGone", nil)
-}
-
 // ChatWriting says "正在写…"
 // in the language the app shows.
 func ChatWriting() string { return In(i18n.Locale()).ChatWriting() }
@@ -3580,16 +3268,6 @@ func ChatWriting() string { return In(i18n.Locale()).ChatWriting() }
 // in the language of msgs.
 func (msgs Messages) ChatWriting() string {
 	return Catalog.Format(msgs.locale, "chatWriting", nil)
-}
-
-// ChatFateWaiting says "等你决定"
-// in the language the app shows.
-func ChatFateWaiting() string { return In(i18n.Locale()).ChatFateWaiting() }
-
-// ChatFateWaiting says "等你决定"
-// in the language of msgs.
-func (msgs Messages) ChatFateWaiting() string {
-	return Catalog.Format(msgs.locale, "chatFateWaiting", nil)
 }
 
 // ChatWords says "{unit, select, word {{count} 词} other {{count} 字}}"
@@ -3604,160 +3282,6 @@ func ChatWords(count int, unit string) string { return In(i18n.Locale()).ChatWor
 // 改稿建议改动的字数。
 func (msgs Messages) ChatWords(count int, unit string) string {
 	return Catalog.Format(msgs.locale, "chatWords", map[string]any{"count": count, "unit": unit})
-}
-
-// ChatDigestRounds says "以上 {count} 轮已整理成摘要"
-// in the language the app shows.
-//
-// 讨论压缩后，摘要盖住了前面几轮。
-func ChatDigestRounds(count int) string { return In(i18n.Locale()).ChatDigestRounds(count) }
-
-// ChatDigestRounds says "以上 {count} 轮已整理成摘要"
-// in the language of msgs.
-//
-// 讨论压缩后，摘要盖住了前面几轮。
-func (msgs Messages) ChatDigestRounds(count int) string {
-	return Catalog.Format(msgs.locale, "chatDigestRounds", map[string]any{"count": count})
-}
-
-// ChatDigestNote says "摘要由 AI 写成，有误可在对话中指出。"
-// in the language the app shows.
-func ChatDigestNote() string { return In(i18n.Locale()).ChatDigestNote() }
-
-// ChatDigestNote says "摘要由 AI 写成，有误可在对话中指出。"
-// in the language of msgs.
-func (msgs Messages) ChatDigestNote() string {
-	return Catalog.Format(msgs.locale, "chatDigestNote", nil)
-}
-
-// ChatWhereEnd says "接在章末"
-// in the language the app shows.
-func ChatWhereEnd() string { return In(i18n.Locale()).ChatWhereEnd() }
-
-// ChatWhereEnd says "接在章末"
-// in the language of msgs.
-func (msgs Messages) ChatWhereEnd() string {
-	return Catalog.Format(msgs.locale, "chatWhereEnd", nil)
-}
-
-// ChatWhereAll says "换掉全章"
-// in the language the app shows.
-func ChatWhereAll() string { return In(i18n.Locale()).ChatWhereAll() }
-
-// ChatWhereAll says "换掉全章"
-// in the language of msgs.
-func (msgs Messages) ChatWhereAll() string {
-	return Catalog.Format(msgs.locale, "chatWhereAll", nil)
-}
-
-// ChatWhereSwap says "换掉一句"
-// in the language the app shows.
-func ChatWhereSwap() string { return In(i18n.Locale()).ChatWhereSwap() }
-
-// ChatWhereSwap says "换掉一句"
-// in the language of msgs.
-func (msgs Messages) ChatWhereSwap() string {
-	return Catalog.Format(msgs.locale, "chatWhereSwap", nil)
-}
-
-// ChatLocate says "在正文中定位此段"
-// in the language the app shows.
-func ChatLocate() string { return In(i18n.Locale()).ChatLocate() }
-
-// ChatLocate says "在正文中定位此段"
-// in the language of msgs.
-func (msgs Messages) ChatLocate() string {
-	return Catalog.Format(msgs.locale, "chatLocate", nil)
-}
-
-// ChatRemoveCite says "移除此段引用"
-// in the language the app shows.
-func ChatRemoveCite() string { return In(i18n.Locale()).ChatRemoveCite() }
-
-// ChatRemoveCite says "移除此段引用"
-// in the language of msgs.
-func (msgs Messages) ChatRemoveCite() string {
-	return Catalog.Format(msgs.locale, "chatRemoveCite", nil)
-}
-
-// ChatCurrentModel says "当前模型"
-// in the language the app shows.
-func ChatCurrentModel() string { return In(i18n.Locale()).ChatCurrentModel() }
-
-// ChatCurrentModel says "当前模型"
-// in the language of msgs.
-func (msgs Messages) ChatCurrentModel() string {
-	return Catalog.Format(msgs.locale, "chatCurrentModel", nil)
-}
-
-// ChatPickModel says "选择讨论模型"
-// in the language the app shows.
-func ChatPickModel() string { return In(i18n.Locale()).ChatPickModel() }
-
-// ChatPickModel says "选择讨论模型"
-// in the language of msgs.
-func (msgs Messages) ChatPickModel() string {
-	return Catalog.Format(msgs.locale, "chatPickModel", nil)
-}
-
-// ChatModel says "模型"
-// in the language the app shows.
-func ChatModel() string { return In(i18n.Locale()).ChatModel() }
-
-// ChatModel says "模型"
-// in the language of msgs.
-func (msgs Messages) ChatModel() string {
-	return Catalog.Format(msgs.locale, "chatModel", nil)
-}
-
-// ChatAiConfig says "AI 配置…"
-// in the language the app shows.
-func ChatAiConfig() string { return In(i18n.Locale()).ChatAiConfig() }
-
-// ChatAiConfig says "AI 配置…"
-// in the language of msgs.
-func (msgs Messages) ChatAiConfig() string {
-	return Catalog.Format(msgs.locale, "chatAiConfig", nil)
-}
-
-// ChatEffort says "思考程度"
-// in the language the app shows.
-func ChatEffort() string { return In(i18n.Locale()).ChatEffort() }
-
-// ChatEffort says "思考程度"
-// in the language of msgs.
-func (msgs Messages) ChatEffort() string {
-	return Catalog.Format(msgs.locale, "chatEffort", nil)
-}
-
-// ChatThought says "思考过程"
-// in the language the app shows.
-func ChatThought() string { return In(i18n.Locale()).ChatThought() }
-
-// ChatThought says "思考过程"
-// in the language of msgs.
-func (msgs Messages) ChatThought() string {
-	return Catalog.Format(msgs.locale, "chatThought", nil)
-}
-
-// ChatThinking says "正在思考"
-// in the language the app shows.
-func ChatThinking() string { return In(i18n.Locale()).ChatThinking() }
-
-// ChatThinking says "正在思考"
-// in the language of msgs.
-func (msgs Messages) ChatThinking() string {
-	return Catalog.Format(msgs.locale, "chatThinking", nil)
-}
-
-// ChatThinkingMore says "正在思考…"
-// in the language the app shows.
-func ChatThinkingMore() string { return In(i18n.Locale()).ChatThinkingMore() }
-
-// ChatThinkingMore says "正在思考…"
-// in the language of msgs.
-func (msgs Messages) ChatThinkingMore() string {
-	return Catalog.Format(msgs.locale, "chatThinkingMore", nil)
 }
 
 // ChatLookSearched says "搜了{what}"
@@ -3844,66 +3368,6 @@ func (msgs Messages) ChatLookNoted(what string) string {
 	return Catalog.Format(msgs.locale, "chatLookNoted", map[string]any{"what": what})
 }
 
-// ChatLooking says "正在查阅"
-// in the language the app shows.
-func ChatLooking() string { return In(i18n.Locale()).ChatLooking() }
-
-// ChatLooking says "正在查阅"
-// in the language of msgs.
-func (msgs Messages) ChatLooking() string {
-	return Catalog.Format(msgs.locale, "chatLooking", nil)
-}
-
-// ChatLookingMore says "正在查阅…"
-// in the language the app shows.
-func ChatLookingMore() string { return In(i18n.Locale()).ChatLookingMore() }
-
-// ChatLookingMore says "正在查阅…"
-// in the language of msgs.
-func (msgs Messages) ChatLookingMore() string {
-	return Catalog.Format(msgs.locale, "chatLookingMore", nil)
-}
-
-// ChatViewLore says "查看设定"
-// in the language the app shows.
-func ChatViewLore() string { return In(i18n.Locale()).ChatViewLore() }
-
-// ChatViewLore says "查看设定"
-// in the language of msgs.
-func (msgs Messages) ChatViewLore() string {
-	return Catalog.Format(msgs.locale, "chatViewLore", nil)
-}
-
-// ChatPull says "摘取原文"
-// in the language the app shows.
-func ChatPull() string { return In(i18n.Locale()).ChatPull() }
-
-// ChatPull says "摘取原文"
-// in the language of msgs.
-func (msgs Messages) ChatPull() string {
-	return Catalog.Format(msgs.locale, "chatPull", nil)
-}
-
-// ChatUnanswered says "该消息尚未收到回复"
-// in the language the app shows.
-func ChatUnanswered() string { return In(i18n.Locale()).ChatUnanswered() }
-
-// ChatUnanswered says "该消息尚未收到回复"
-// in the language of msgs.
-func (msgs Messages) ChatUnanswered() string {
-	return Catalog.Format(msgs.locale, "chatUnanswered", nil)
-}
-
-// ChatRetry says "重试回复"
-// in the language the app shows.
-func ChatRetry() string { return In(i18n.Locale()).ChatRetry() }
-
-// ChatRetry says "重试回复"
-// in the language of msgs.
-func (msgs Messages) ChatRetry() string {
-	return Catalog.Format(msgs.locale, "chatRetry", nil)
-}
-
 // ChatCopied says "已复制"
 // in the language the app shows.
 func ChatCopied() string { return In(i18n.Locale()).ChatCopied() }
@@ -3912,66 +3376,6 @@ func ChatCopied() string { return In(i18n.Locale()).ChatCopied() }
 // in the language of msgs.
 func (msgs Messages) ChatCopied() string {
 	return Catalog.Format(msgs.locale, "chatCopied", nil)
-}
-
-// ChatCopyAll says "复制全文"
-// in the language the app shows.
-func ChatCopyAll() string { return In(i18n.Locale()).ChatCopyAll() }
-
-// ChatCopyAll says "复制全文"
-// in the language of msgs.
-func (msgs Messages) ChatCopyAll() string {
-	return Catalog.Format(msgs.locale, "chatCopyAll", nil)
-}
-
-// ChatContextSent says "AI 参考内容"
-// in the language the app shows.
-func ChatContextSent() string { return In(i18n.Locale()).ChatContextSent() }
-
-// ChatContextSent says "AI 参考内容"
-// in the language of msgs.
-func (msgs Messages) ChatContextSent() string {
-	return Catalog.Format(msgs.locale, "chatContextSent", nil)
-}
-
-// ChatCapped says "已达到本次查阅上限，以上回答仅依据已查到的内容。"
-// in the language the app shows.
-func ChatCapped() string { return In(i18n.Locale()).ChatCapped() }
-
-// ChatCapped says "已达到本次查阅上限，以上回答仅依据已查到的内容。"
-// in the language of msgs.
-func (msgs Messages) ChatCapped() string {
-	return Catalog.Format(msgs.locale, "chatCapped", nil)
-}
-
-// ChatPacking says "正在压缩上下文…"
-// in the language the app shows.
-func ChatPacking() string { return In(i18n.Locale()).ChatPacking() }
-
-// ChatPacking says "正在压缩上下文…"
-// in the language of msgs.
-func (msgs Messages) ChatPacking() string {
-	return Catalog.Format(msgs.locale, "chatPacking", nil)
-}
-
-// ChatReplying says "正在回复…"
-// in the language the app shows.
-func ChatReplying() string { return In(i18n.Locale()).ChatReplying() }
-
-// ChatReplying says "正在回复…"
-// in the language of msgs.
-func (msgs Messages) ChatReplying() string {
-	return Catalog.Format(msgs.locale, "chatReplying", nil)
-}
-
-// ChatProposing says "正在正文中写改稿建议…"
-// in the language the app shows.
-func ChatProposing() string { return In(i18n.Locale()).ChatProposing() }
-
-// ChatProposing says "正在正文中写改稿建议…"
-// in the language of msgs.
-func (msgs Messages) ChatProposing() string {
-	return Catalog.Format(msgs.locale, "chatProposing", nil)
 }
 
 // ChatCancelRequest says "取消请求"
@@ -3984,36 +3388,6 @@ func (msgs Messages) ChatCancelRequest() string {
 	return Catalog.Format(msgs.locale, "chatCancelRequest", nil)
 }
 
-// ChatSearch says "搜索讨论"
-// in the language the app shows.
-func ChatSearch() string { return In(i18n.Locale()).ChatSearch() }
-
-// ChatSearch says "搜索讨论"
-// in the language of msgs.
-func (msgs Messages) ChatSearch() string {
-	return Catalog.Format(msgs.locale, "chatSearch", nil)
-}
-
-// ChatNew says "新讨论"
-// in the language the app shows.
-func ChatNew() string { return In(i18n.Locale()).ChatNew() }
-
-// ChatNew says "新讨论"
-// in the language of msgs.
-func (msgs Messages) ChatNew() string {
-	return Catalog.Format(msgs.locale, "chatNew", nil)
-}
-
-// ChatRecent says "最近"
-// in the language the app shows.
-func ChatRecent() string { return In(i18n.Locale()).ChatRecent() }
-
-// ChatRecent says "最近"
-// in the language of msgs.
-func (msgs Messages) ChatRecent() string {
-	return Catalog.Format(msgs.locale, "chatRecent", nil)
-}
-
 // ChatEmpty says "暂无讨论"
 // in the language the app shows.
 func ChatEmpty() string { return In(i18n.Locale()).ChatEmpty() }
@@ -4022,60 +3396,6 @@ func ChatEmpty() string { return In(i18n.Locale()).ChatEmpty() }
 // in the language of msgs.
 func (msgs Messages) ChatEmpty() string {
 	return Catalog.Format(msgs.locale, "chatEmpty", nil)
-}
-
-// ChatTypeMessage says "输入消息"
-// in the language the app shows.
-func ChatTypeMessage() string { return In(i18n.Locale()).ChatTypeMessage() }
-
-// ChatTypeMessage says "输入消息"
-// in the language of msgs.
-func (msgs Messages) ChatTypeMessage() string {
-	return Catalog.Format(msgs.locale, "chatTypeMessage", nil)
-}
-
-// ChatTypeTopic says "输入想讨论的内容"
-// in the language the app shows.
-func ChatTypeTopic() string { return In(i18n.Locale()).ChatTypeTopic() }
-
-// ChatTypeTopic says "输入想讨论的内容"
-// in the language of msgs.
-func (msgs Messages) ChatTypeTopic() string {
-	return Catalog.Format(msgs.locale, "chatTypeTopic", nil)
-}
-
-// ChatAll says "全部讨论"
-// in the language the app shows.
-func ChatAll() string { return In(i18n.Locale()).ChatAll() }
-
-// ChatAll says "全部讨论"
-// in the language of msgs.
-func (msgs Messages) ChatAll() string {
-	return Catalog.Format(msgs.locale, "chatAll", nil)
-}
-
-// ChatExamples says "示例问题"
-// in the language the app shows.
-func ChatExamples() string { return In(i18n.Locale()).ChatExamples() }
-
-// ChatExamples says "示例问题"
-// in the language of msgs.
-func (msgs Messages) ChatExamples() string {
-	return Catalog.Format(msgs.locale, "chatExamples", nil)
-}
-
-// ChatSendHint says "{hint}，{key} 发送"
-// in the language the app shows.
-//
-// 讨论输入框的占位字，末尾写发送的快捷键。
-func ChatSendHint(hint string, key string) string { return In(i18n.Locale()).ChatSendHint(hint, key) }
-
-// ChatSendHint says "{hint}，{key} 发送"
-// in the language of msgs.
-//
-// 讨论输入框的占位字，末尾写发送的快捷键。
-func (msgs Messages) ChatSendHint(hint string, key string) string {
-	return Catalog.Format(msgs.locale, "chatSendHint", map[string]any{"hint": hint, "key": key})
 }
 
 // ChatSendTip says "发送（{key}）"
@@ -4090,70 +3410,6 @@ func ChatSendTip(key string) string { return In(i18n.Locale()).ChatSendTip(key) 
 // 发送按钮的提示，括号里是快捷键。
 func (msgs Messages) ChatSendTip(key string) string {
 	return Catalog.Format(msgs.locale, "chatSendTip", map[string]any{"key": key})
-}
-
-// ChatFollows says "跟着「{chapter}」"
-// in the language the app shows.
-//
-// 起草、改写的讨论跟着哪一章。
-func ChatFollows(chapter string) string { return In(i18n.Locale()).ChatFollows(chapter) }
-
-// ChatFollows says "跟着「{chapter}」"
-// in the language of msgs.
-//
-// 起草、改写的讨论跟着哪一章。
-func (msgs Messages) ChatFollows(chapter string) string {
-	return Catalog.Format(msgs.locale, "chatFollows", map[string]any{"chapter": chapter})
-}
-
-// ChatFixedTip says "这段讨论附上的正文和设定都按这一章"
-// in the language the app shows.
-func ChatFixedTip() string { return In(i18n.Locale()).ChatFixedTip() }
-
-// ChatFixedTip says "这段讨论附上的正文和设定都按这一章"
-// in the language of msgs.
-func (msgs Messages) ChatFixedTip() string {
-	return Catalog.Format(msgs.locale, "chatFixedTip", nil)
-}
-
-// ChatAttachVolume says "附上本卷内容"
-// in the language the app shows.
-func ChatAttachVolume() string { return In(i18n.Locale()).ChatAttachVolume() }
-
-// ChatAttachVolume says "附上本卷内容"
-// in the language of msgs.
-func (msgs Messages) ChatAttachVolume() string {
-	return Catalog.Format(msgs.locale, "chatAttachVolume", nil)
-}
-
-// ChatAttachChapter says "附上本章内容"
-// in the language the app shows.
-func ChatAttachChapter() string { return In(i18n.Locale()).ChatAttachChapter() }
-
-// ChatAttachChapter says "附上本章内容"
-// in the language of msgs.
-func (msgs Messages) ChatAttachChapter() string {
-	return Catalog.Format(msgs.locale, "chatAttachChapter", nil)
-}
-
-// ChatAttachVolumeTip says "将卷纲一并发送给 AI"
-// in the language the app shows.
-func ChatAttachVolumeTip() string { return In(i18n.Locale()).ChatAttachVolumeTip() }
-
-// ChatAttachVolumeTip says "将卷纲一并发送给 AI"
-// in the language of msgs.
-func (msgs Messages) ChatAttachVolumeTip() string {
-	return Catalog.Format(msgs.locale, "chatAttachVolumeTip", nil)
-}
-
-// ChatAttachChapterTip says "{unit, select, word {将章纲和光标前约 2000 词一并发送给 AI} other {将章纲和光标前约 2000 …"
-// in the language the app shows.
-func ChatAttachChapterTip(unit string) string { return In(i18n.Locale()).ChatAttachChapterTip(unit) }
-
-// ChatAttachChapterTip says "{unit, select, word {将章纲和光标前约 2000 词一并发送给 AI} other {将章纲和光标前约 2000 …"
-// in the language of msgs.
-func (msgs Messages) ChatAttachChapterTip(unit string) string {
-	return Catalog.Format(msgs.locale, "chatAttachChapterTip", map[string]any{"unit": unit})
 }
 
 // ChatPartCards says "本章的卡片"
@@ -4198,136 +3454,6 @@ func ChatPartProse() string { return In(i18n.Locale()).ChatPartProse() }
 // AI 参考内容里随讨论附上的正文部分名。
 func (msgs Messages) ChatPartProse() string {
 	return Catalog.Format(msgs.locale, "chatPartProse", nil)
-}
-
-// ChatWhereAfter says "接在一句之后"
-// in the language the app shows.
-//
-// 提议修改卡片里接在指定句子之后的位置名。
-func ChatWhereAfter() string { return In(i18n.Locale()).ChatWhereAfter() }
-
-// ChatWhereAfter says "接在一句之后"
-// in the language of msgs.
-//
-// 提议修改卡片里接在指定句子之后的位置名。
-func (msgs Messages) ChatWhereAfter() string {
-	return Catalog.Format(msgs.locale, "chatWhereAfter", nil)
-}
-
-// ChatRetrying says "正在重新请求回复…"
-// in the language the app shows.
-//
-// 重新请求未收到回复的讨论时的忙碌提示。
-func ChatRetrying() string { return In(i18n.Locale()).ChatRetrying() }
-
-// ChatRetrying says "正在重新请求回复…"
-// in the language of msgs.
-//
-// 重新请求未收到回复的讨论时的忙碌提示。
-func (msgs Messages) ChatRetrying() string {
-	return Catalog.Format(msgs.locale, "chatRetrying", nil)
-}
-
-// ChatFound says "找到的"
-// in the language the app shows.
-//
-// 应用讨论列表搜索结果的组标题；这里不显示条数。
-func ChatFound() string { return In(i18n.Locale()).ChatFound() }
-
-// ChatFound says "找到的"
-// in the language of msgs.
-//
-// 应用讨论列表搜索结果的组标题；这里不显示条数。
-func (msgs Messages) ChatFound() string {
-	return Catalog.Format(msgs.locale, "chatFound", nil)
-}
-
-// ChatAttachedOmitted says "{count, plural, other {回复时附带 # 条设定，因上下文上限省略 {omitted} 条}}"
-// in the language the app shows.
-//
-// 旧版讨论记录：附带的设定条数和因上下文上限省略的条数。
-func ChatAttachedOmitted(count int, omitted int) string {
-	return In(i18n.Locale()).ChatAttachedOmitted(count, omitted)
-}
-
-// ChatAttachedOmitted says "{count, plural, other {回复时附带 # 条设定，因上下文上限省略 {omitted} 条}}"
-// in the language of msgs.
-//
-// 旧版讨论记录：附带的设定条数和因上下文上限省略的条数。
-func (msgs Messages) ChatAttachedOmitted(count int, omitted int) string {
-	return Catalog.Format(msgs.locale, "chatAttachedOmitted", map[string]any{"count": count, "omitted": omitted})
-}
-
-// ChatProposalMeta says "{unit, select, word {{where} · {count, plural, other {# 词}} · {state}} other {{where} · {count, plural, other {#…"
-// in the language the app shows.
-//
-// 提议卡片的整行：位置、字数和处理状态。
-func ChatProposalMeta(where string, count int, state string, unit string) string {
-	return In(i18n.Locale()).ChatProposalMeta(where, count, state, unit)
-}
-
-// ChatProposalMeta says "{unit, select, word {{where} · {count, plural, other {# 词}} · {state}} other {{where} · {count, plural, other {#…"
-// in the language of msgs.
-//
-// 提议卡片的整行：位置、字数和处理状态。
-func (msgs Messages) ChatProposalMeta(where string, count int, state string, unit string) string {
-	return Catalog.Format(msgs.locale, "chatProposalMeta", map[string]any{"where": where, "count": count, "state": state, "unit": unit})
-}
-
-// ChatAskChapterPace says "这一章的节奏怎么样"
-// in the language the app shows.
-//
-// 写作页讨论输入框上方可点击的章节示例问题。
-func ChatAskChapterPace() string { return In(i18n.Locale()).ChatAskChapterPace() }
-
-// ChatAskChapterPace says "这一章的节奏怎么样"
-// in the language of msgs.
-//
-// 写作页讨论输入框上方可点击的章节示例问题。
-func (msgs Messages) ChatAskChapterPace() string {
-	return Catalog.Format(msgs.locale, "chatAskChapterPace", nil)
-}
-
-// ChatAskVolumePace says "这一卷的节奏怎么样"
-// in the language the app shows.
-//
-// 写作页讨论输入框上方可点击的卷示例问题。
-func ChatAskVolumePace() string { return In(i18n.Locale()).ChatAskVolumePace() }
-
-// ChatAskVolumePace says "这一卷的节奏怎么样"
-// in the language of msgs.
-//
-// 写作页讨论输入框上方可点击的卷示例问题。
-func (msgs Messages) ChatAskVolumePace() string {
-	return Catalog.Format(msgs.locale, "chatAskVolumePace", nil)
-}
-
-// ChatAskNext says "接下来可以怎么写"
-// in the language the app shows.
-//
-// 写作页讨论输入框上方可点击的示例问题。
-func ChatAskNext() string { return In(i18n.Locale()).ChatAskNext() }
-
-// ChatAskNext says "接下来可以怎么写"
-// in the language of msgs.
-//
-// 写作页讨论输入框上方可点击的示例问题。
-func (msgs Messages) ChatAskNext() string {
-	return Catalog.Format(msgs.locale, "chatAskNext", nil)
-}
-
-// ChatAskMotives says "人物的动机说得通吗"
-// in the language the app shows.
-//
-// 写作页讨论输入框上方可点击的示例问题。
-func ChatAskMotives() string { return In(i18n.Locale()).ChatAskMotives() }
-
-// ChatAskMotives says "人物的动机说得通吗"
-// in the language of msgs.
-//
-// 写作页讨论输入框上方可点击的示例问题。
-func (msgs Messages) ChatAskMotives() string {
-	return Catalog.Format(msgs.locale, "chatAskMotives", nil)
 }
 
 // HooksSelectFirst says "请先在正文中选中要关联的句子"
@@ -4648,26 +3774,6 @@ func (msgs Messages) ChatAnswered(answer string) string {
 	return Catalog.Format(msgs.locale, "chatAnswered", map[string]any{"answer": answer})
 }
 
-// ChatFateAiOff says "关闭 AI 时已丢弃"
-// in the language the app shows.
-func ChatFateAiOff() string { return In(i18n.Locale()).ChatFateAiOff() }
-
-// ChatFateAiOff says "关闭 AI 时已丢弃"
-// in the language of msgs.
-func (msgs Messages) ChatFateAiOff() string {
-	return Catalog.Format(msgs.locale, "chatFateAiOff", nil)
-}
-
-// ChatFateBookClosed says "作品关闭时已丢弃"
-// in the language the app shows.
-func ChatFateBookClosed() string { return In(i18n.Locale()).ChatFateBookClosed() }
-
-// ChatFateBookClosed says "作品关闭时已丢弃"
-// in the language of msgs.
-func (msgs Messages) ChatFateBookClosed() string {
-	return Catalog.Format(msgs.locale, "chatFateBookClosed", nil)
-}
-
 // CommonOK says "确定"
 // in the language the app shows.
 func CommonOK() string { return In(i18n.Locale()).CommonOK() }
@@ -4752,120 +3858,6 @@ func (msgs Messages) CommonOpenFolder() string {
 	return Catalog.Format(msgs.locale, "commonOpenFolder", nil)
 }
 
-// TalkContinueTitle says "接着聊这部作品"
-// in the language the app shows.
-func TalkContinueTitle() string { return In(i18n.Locale()).TalkContinueTitle() }
-
-// TalkContinueTitle says "接着聊这部作品"
-// in the language of msgs.
-func (msgs Messages) TalkContinueTitle() string {
-	return Catalog.Format(msgs.locale, "talkContinueTitle", nil)
-}
-
-// TalkContinueAbout says "AI 会参考已有的设定和正文。"
-// in the language the app shows.
-func TalkContinueAbout() string { return In(i18n.Locale()).TalkContinueAbout() }
-
-// TalkContinueAbout says "AI 会参考已有的设定和正文。"
-// in the language of msgs.
-func (msgs Messages) TalkContinueAbout() string {
-	return Catalog.Format(msgs.locale, "talkContinueAbout", nil)
-}
-
-// TalkStartTitle says "从一个初步的想法开始"
-// in the language the app shows.
-func TalkStartTitle() string { return In(i18n.Locale()).TalkStartTitle() }
-
-// TalkStartTitle says "从一个初步的想法开始"
-// in the language of msgs.
-func (msgs Messages) TalkStartTitle() string {
-	return Catalog.Format(msgs.locale, "talkStartTitle", nil)
-}
-
-// TalkStartAbout says "写下初步的想法。讨论中定下的内容，AI …"
-// in the language the app shows.
-func TalkStartAbout() string { return In(i18n.Locale()).TalkStartAbout() }
-
-// TalkStartAbout says "写下初步的想法。讨论中定下的内容，AI …"
-// in the language of msgs.
-func (msgs Messages) TalkStartAbout() string {
-	return Catalog.Format(msgs.locale, "talkStartAbout", nil)
-}
-
-// TalkNext1 says "接下来的情节怎么走"
-// in the language the app shows.
-func TalkNext1() string { return In(i18n.Locale()).TalkNext1() }
-
-// TalkNext1 says "接下来的情节怎么走"
-// in the language of msgs.
-func (msgs Messages) TalkNext1() string {
-	return Catalog.Format(msgs.locale, "talkNext1", nil)
-}
-
-// TalkNext2 says "哪些设定还没想清楚"
-// in the language the app shows.
-func TalkNext2() string { return In(i18n.Locale()).TalkNext2() }
-
-// TalkNext2 says "哪些设定还没想清楚"
-// in the language of msgs.
-func (msgs Messages) TalkNext2() string {
-	return Catalog.Format(msgs.locale, "talkNext2", nil)
-}
-
-// TalkNext3 says "梳理一下人物关系"
-// in the language the app shows.
-func TalkNext3() string { return In(i18n.Locale()).TalkNext3() }
-
-// TalkNext3 says "梳理一下人物关系"
-// in the language of msgs.
-func (msgs Messages) TalkNext3() string {
-	return Catalog.Format(msgs.locale, "talkNext3", nil)
-}
-
-// TalkStart1 says "我想写一个总在下雨的城市"
-// in the language the app shows.
-//
-// 空白讨论页的几句起头语，点了就填进输入框，由作者自己发出去。
-func TalkStart1() string { return In(i18n.Locale()).TalkStart1() }
-
-// TalkStart1 says "我想写一个总在下雨的城市"
-// in the language of msgs.
-//
-// 空白讨论页的几句起头语，点了就填进输入框，由作者自己发出去。
-func (msgs Messages) TalkStart1() string {
-	return Catalog.Format(msgs.locale, "talkStart1", nil)
-}
-
-// TalkStart2 says "主角有个说不出口的秘密"
-// in the language the app shows.
-func TalkStart2() string { return In(i18n.Locale()).TalkStart2() }
-
-// TalkStart2 says "主角有个说不出口的秘密"
-// in the language of msgs.
-func (msgs Messages) TalkStart2() string {
-	return Catalog.Format(msgs.locale, "talkStart2", nil)
-}
-
-// TalkStart3 says "这个故事的冲突在哪"
-// in the language the app shows.
-func TalkStart3() string { return In(i18n.Locale()).TalkStart3() }
-
-// TalkStart3 says "这个故事的冲突在哪"
-// in the language of msgs.
-func (msgs Messages) TalkStart3() string {
-	return Catalog.Format(msgs.locale, "talkStart3", nil)
-}
-
-// TalkAll says "总讨论"
-// in the language the app shows.
-func TalkAll() string { return In(i18n.Locale()).TalkAll() }
-
-// TalkAll says "总讨论"
-// in the language of msgs.
-func (msgs Messages) TalkAll() string {
-	return Catalog.Format(msgs.locale, "talkAll", nil)
-}
-
 // TalkNew says "新对话"
 // in the language the app shows.
 //
@@ -4878,20 +3870,6 @@ func TalkNew() string { return In(i18n.Locale()).TalkNew() }
 // 还没有标题的讨论显示的名字。
 func (msgs Messages) TalkNew() string {
 	return Catalog.Format(msgs.locale, "talkNew", nil)
-}
-
-// TalkCount says "{count, plural, other {# 条发言}}"
-// in the language the app shows.
-//
-// 讨论标题右边的发言条数。
-func TalkCount(count int) string { return In(i18n.Locale()).TalkCount(count) }
-
-// TalkCount says "{count, plural, other {# 条发言}}"
-// in the language of msgs.
-//
-// 讨论标题右边的发言条数。
-func (msgs Messages) TalkCount(count int) string {
-	return Catalog.Format(msgs.locale, "talkCount", map[string]any{"count": count})
 }
 
 // TalkShowSettings says "展开设定"
@@ -4912,40 +3890,6 @@ func TalkShowSettingsDoc() string { return In(i18n.Locale()).TalkShowSettingsDoc
 // in the language of msgs.
 func (msgs Messages) TalkShowSettingsDoc() string {
 	return Catalog.Format(msgs.locale, "talkShowSettingsDoc", nil)
-}
-
-// TalkInputHint says "输入想法，或向 AI 提问…"
-// in the language the app shows.
-func TalkInputHint() string { return In(i18n.Locale()).TalkInputHint() }
-
-// TalkInputHint says "输入想法，或向 AI 提问…"
-// in the language of msgs.
-func (msgs Messages) TalkInputHint() string {
-	return Catalog.Format(msgs.locale, "talkInputHint", nil)
-}
-
-// TalkInputLabel says "讨论输入"
-// in the language the app shows.
-func TalkInputLabel() string { return In(i18n.Locale()).TalkInputLabel() }
-
-// TalkInputLabel says "讨论输入"
-// in the language of msgs.
-func (msgs Messages) TalkInputLabel() string {
-	return Catalog.Format(msgs.locale, "talkInputLabel", nil)
-}
-
-// TalkSend says "发送（{shortcut}）"
-// in the language the app shows.
-//
-// 发送按钮的提示，带快捷键。
-func TalkSend(shortcut string) string { return In(i18n.Locale()).TalkSend(shortcut) }
-
-// TalkSend says "发送（{shortcut}）"
-// in the language of msgs.
-//
-// 发送按钮的提示，带快捷键。
-func (msgs Messages) TalkSend(shortcut string) string {
-	return Catalog.Format(msgs.locale, "talkSend", map[string]any{"shortcut": shortcut})
 }
 
 // PlanSlotInChapter says "在{chapter}的{line}里添加卡片"
@@ -7464,60 +6408,6 @@ func (msgs Messages) DialogSourceTitle() string {
 	return Catalog.Format(msgs.locale, "dialogSourceTitle", nil)
 }
 
-// DialogSourceAbout says "拖选一段原文，作为已确定的设定加入正文。原文不会被修改。"
-// in the language the app shows.
-func DialogSourceAbout() string { return In(i18n.Locale()).DialogSourceAbout() }
-
-// DialogSourceAbout says "拖选一段原文，作为已确定的设定加入正文。原文不会被修改。"
-// in the language of msgs.
-func (msgs Messages) DialogSourceAbout() string {
-	return Catalog.Format(msgs.locale, "dialogSourceAbout", nil)
-}
-
-// DialogSourceCat says "摘取分类"
-// in the language the app shows.
-func DialogSourceCat() string { return In(i18n.Locale()).DialogSourceCat() }
-
-// DialogSourceCat says "摘取分类"
-// in the language of msgs.
-func (msgs Messages) DialogSourceCat() string {
-	return Catalog.Format(msgs.locale, "dialogSourceCat", nil)
-}
-
-// DialogPicked says "{unit, select, word {已选 {count} 词} other {已选 {count} 字}}"
-// in the language the app shows.
-//
-// 摘取原文时选中了几个字。
-func DialogPicked(count int, unit string) string { return In(i18n.Locale()).DialogPicked(count, unit) }
-
-// DialogPicked says "{unit, select, word {已选 {count} 词} other {已选 {count} 字}}"
-// in the language of msgs.
-//
-// 摘取原文时选中了几个字。
-func (msgs Messages) DialogPicked(count int, unit string) string {
-	return Catalog.Format(msgs.locale, "dialogPicked", map[string]any{"count": count, "unit": unit})
-}
-
-// DialogNotPicked says "尚未选中文字"
-// in the language the app shows.
-func DialogNotPicked() string { return In(i18n.Locale()).DialogNotPicked() }
-
-// DialogNotPicked says "尚未选中文字"
-// in the language of msgs.
-func (msgs Messages) DialogNotPicked() string {
-	return Catalog.Format(msgs.locale, "dialogNotPicked", nil)
-}
-
-// DialogSourceCollapse says "收起原文"
-// in the language the app shows.
-func DialogSourceCollapse() string { return In(i18n.Locale()).DialogSourceCollapse() }
-
-// DialogSourceCollapse says "收起原文"
-// in the language of msgs.
-func (msgs Messages) DialogSourceCollapse() string {
-	return Catalog.Format(msgs.locale, "dialogSourceCollapse", nil)
-}
-
 // DialogAddSetting says "加入设定"
 // in the language the app shows.
 func DialogAddSetting() string { return In(i18n.Locale()).DialogAddSetting() }
@@ -7852,20 +6742,6 @@ func (msgs Messages) DialogOsNewBookFolder() string {
 	return Catalog.Format(msgs.locale, "dialogOsNewBookFolder", nil)
 }
 
-// DraftBusyOther says "AI 正在回复别的讨论；等它回完或取消后再{action}"
-// in the language the app shows.
-//
-// 应用界面提示。
-func DraftBusyOther(action string) string { return In(i18n.Locale()).DraftBusyOther(action) }
-
-// DraftBusyOther says "AI 正在回复别的讨论；等它回完或取消后再{action}"
-// in the language of msgs.
-//
-// 应用界面提示。
-func (msgs Messages) DraftBusyOther(action string) string {
-	return Catalog.Format(msgs.locale, "draftBusyOther", map[string]any{"action": action})
-}
-
 // DraftGoal says "{unit, select, word {目标词数（选填）} other {目标字数（选填）}}"
 // in the language the app shows.
 func DraftGoal(unit string) string { return In(i18n.Locale()).DraftGoal(unit) }
@@ -8102,20 +6978,6 @@ func (msgs Messages) HelpGroupWrite() string {
 	return Catalog.Format(msgs.locale, "helpGroupWrite", nil)
 }
 
-// HelpGroupChat says "讨论"
-// in the language the app shows.
-//
-// 快捷键表里「讨论」那一组的名字。
-func HelpGroupChat() string { return In(i18n.Locale()).HelpGroupChat() }
-
-// HelpGroupChat says "讨论"
-// in the language of msgs.
-//
-// 快捷键表里「讨论」那一组的名字。
-func (msgs Messages) HelpGroupChat() string {
-	return Catalog.Format(msgs.locale, "helpGroupChat", nil)
-}
-
 // HelpGroupGlobal says "全局"
 // in the language the app shows.
 //
@@ -8210,16 +7072,6 @@ func (msgs Messages) HelpAcceptDrop() string {
 	return Catalog.Format(msgs.locale, "helpAcceptDrop", nil)
 }
 
-// HelpCite says "将选中的原文引用到讨论"
-// in the language the app shows.
-func HelpCite() string { return In(i18n.Locale()).HelpCite() }
-
-// HelpCite says "将选中的原文引用到讨论"
-// in the language of msgs.
-func (msgs Messages) HelpCite() string {
-	return Catalog.Format(msgs.locale, "helpCite", nil)
-}
-
 // HelpUndoRedo says "撤销 / 重做"
 // in the language the app shows.
 func HelpUndoRedo() string { return In(i18n.Locale()).HelpUndoRedo() }
@@ -8262,16 +7114,6 @@ func HelpZoomText() string { return In(i18n.Locale()).HelpZoomText() }
 // in the language of msgs.
 func (msgs Messages) HelpZoomText() string {
 	return Catalog.Format(msgs.locale, "helpZoomText", nil)
-}
-
-// HelpSend says "发送"
-// in the language the app shows.
-func HelpSend() string { return In(i18n.Locale()).HelpSend() }
-
-// HelpSend says "发送"
-// in the language of msgs.
-func (msgs Messages) HelpSend() string {
-	return Catalog.Format(msgs.locale, "helpSend", nil)
 }
 
 // HelpZoomUI says "界面放大 / 缩小 / 实际大小"
@@ -8614,20 +7456,6 @@ func ShelfNoWords() string { return In(i18n.Locale()).ShelfNoWords() }
 // 书架上还没有正文的作品，字数处显示这几个字。
 func (msgs Messages) ShelfNoWords() string {
 	return Catalog.Format(msgs.locale, "shelfNoWords", nil)
-}
-
-// ChatFateAdopted says "已采纳"
-// in the language the app shows.
-//
-// 讨论里 改稿建议的修改：作者已经采纳。
-func ChatFateAdopted() string { return In(i18n.Locale()).ChatFateAdopted() }
-
-// ChatFateAdopted says "已采纳"
-// in the language of msgs.
-//
-// 讨论里 改稿建议的修改：作者已经采纳。
-func (msgs Messages) ChatFateAdopted() string {
-	return Catalog.Format(msgs.locale, "chatFateAdopted", nil)
 }
 
 // CommonNumber says "{n}"
