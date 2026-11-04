@@ -80,19 +80,6 @@ const price = (model, use) => {
 
 // 设定随章节变：一章（或一卷的第一章）排在全书的第几个，照侧栏的先后。不在书里（进了回收站）的是 -1。
 const rank = (key) => (key ? S.chapters.findIndex((c) => c.key === key || c.vol === key) : -1)
-// 一条设定在某一章时的样子：那一章和它前面最后一处变化的全文；一处也没有就是原来的。key 空着是最新的样子。
-const changesOf = (e) => (e.changes || []).filter((g) => rank(g.key) >= 0).sort((a, b) => rank(a.key) - rank(b.key))
-const asOf = (e, key) => {
-  const at = key ? rank(key) : Infinity, live = changesOf(e).filter((g) => rank(g.key) <= at)
-  return live.length ? live.at(-1) : null
-}
-const textAt = (e, key) => (asOf(e, key) || e).text
-// 指一处变化从哪起：「第87章起」「第三卷：停电起」，那一章不在了写「所在章节已删除」。
-const fromWhere = (key) => { const c = chapterOf(key), v = S.volumes.find((x) => x[0] === key); return c ? L.appFrom(numbered(c) ? '第' + c.no + '章' : titleOf(c)) : v ? L.appFrom(v[1]) : L.appChapterGone() }
-
-// 手机预览的排版，刚装好时的样子：翻页、393 宽的手机、20 号字。
-const PHONE = { mode: '翻页', size: '标准', fs: 20, lh: '适中', theme: '白天', frame: true, long: true }
-
 // 刚打开一本书的样子。书架上只有第一本有内容，别的是空书。
 function fresh(book = BOOK.shelf[0].id) {
   const full = book === BOOK.shelf[0].id
@@ -103,36 +90,20 @@ function fresh(book = BOOK.shelf[0].id) {
   const snaps = of('snaps', []).map((s) => ({ ...s, paras: last.paras.filter((_, i) => !s.less.includes(i)) }))
   return {
     book, page: 'write', // 在哪一页：write 正文、plan 大纲、talk 讨论、check 检查、cats 作品分类、shelf 书架
-    volumes: of('volumes', []), chapters, bin: of('bin', []), outlines: of('outlines', {}), records: of('records', []),
-    events: of('events', []), lines: of('lines', []), // 大纲的卡片和情节线
-    plan: '按章节', planSee: null, planOutline: null, planLine: null, planTime: null, planQ: '', planPane: false, planBroken: false, // 大纲页：看哪一种、标出来一会儿的那张卡片、正在改的章纲或卷纲、情节线的名字（{ id, name }）、时间线上一列的时间（{ i, when }），搜什么，右栏开着吗，大纲文件读不出来
-    entries: of('entries', []), log: of('log', []), marks: of('marks', []), talks: of('talks', []), checks: of('checks', []),
-    snaps: last ? { [last.key]: snaps } : {}, cats: [...BOOK.cats], lands: { ...BOOK.lands },
+    volumes: of('volumes', []), chapters,
+
     ch: last ? last.key : '', trail: last ? [last.key] : [], step: 0, // 开着哪一章；trail 是打开过的章，step 是现在在第几个
     tabs: last ? [last.key] : [], // 标签页：开着的几章（和点了「编辑卷纲」的卷），从左到右；ch、vol 是其中正在看的那个
     folds: Object.fromEntries(BOOK.volumes.map(([key]) => [key, !last || key !== last.vol])),
-    paneOpen: true, sideOpen: true, tab: '批注', focus: false, // 右栏、侧栏开着吗，右栏在哪一页；focus 是专注写作
+    paneOpen: true, sideOpen: true, tab: '批注',  // 右栏、侧栏开着吗，右栏在哪一页；focus 是专注写作
     open: '', // 开着的菜单或下拉的名字，一次只开一个
     dialog: null, // 开着的对话框：{ kind, … }
     n: 100, // 新东西的编号，用一个加一个
-    sv: 'list', sid: null, sq: '', form: null, // 设定：在哪一页、看哪一条、搜什么、正在填的表
-    fv: 'list', fid: null, fq: '', renote: null, // 伏笔：同上，renote 是正在改的备注
-    tv: 'all', tid: null, tq: '', draft: '', attach: true, cite: null, // 讨论；cite 是从正文拿来的一段
-    waiting: null, // AI 正在回哪段讨论、到哪一步了：{ id, step }，step 是 pack 在压缩、think 在想、look 在查、reply 在写
-    thoughts: {}, // 哪几条回复的「思考过程」展开了
-    shelved: {}, shelvedShown: false, // 侧栏里收起来的几段讨论，和要不要把它们列出来
-    told: {}, // 讨论页里哪条回复展开了「AI 参考内容」
-    ctx: null, pick: null, bury: null, pay: null, // 正文上浮着的：右键菜单、选中的字、记伏笔、选回收哪条
+    ctx: null, pick: null,   // 正文上浮着的：右键菜单、选中的字、记伏笔、选回收哪条
     bar: null, // 选中一段字以后浮出来的那两个按钮
     flash: null, // 「查看原文」跳过去后要标出来的那句
-    find: null, // 查找替换：{ q, to, all, at }
-    ai: null, // AI 正在正文里做的事：续写出的一句，或者等作者写改写要求
-    props: [], // AI 在讨论里提议的修改，作者还没定的：{ id, key, talk, at, paras, writing }。at 是改哪里：{ kind: 'end' } 接在章末、{ kind: 'all' } 换掉全章、{ kind: 'swap', para, quote } 换掉一句
-    fate: {}, // 定了的提议：已采纳、已放弃、已被新的提议替换、正文已改动，提议已作废。讨论里那一条照它写
     box: '', // 标题下面的章纲展开着吗：展开时是「章纲」
     vol: '', // 开着的是哪一卷；开着一章时空着
-    named: null, // 设定里改了名字，正文里还留着旧名：{ was, now, n }
-    crowded: false, // 设定多到装不下，讨论只附目录
     saved: true, // 正文存了没有
     kept: null, // 没存的时候，存着的那一份：{ key, paras, dirty }。关标签页选「不保存」就回到它
     undo: {}, // 每章打字前的样子：{ back, fwd }，各是几份 paras，撤销和重做用
@@ -140,30 +111,22 @@ function fresh(book = BOOK.shelf[0].id) {
     rename: null, // 侧栏里正在改名字的：{ key, t, all }。all 是一开始把字全选上，打字就整个换掉
     tree: null, // 右键点出来的菜单：{ key, x, y }；talk 是侧栏里的一段讨论，tab 是一个标签页，都不是就是章节树里的一行
     todoAll: true, more: {}, ignored: [], // 待处理：看全部还是本章、哪几组展开了、忽略掉的
-    kind: '全部', cid: null, checking: false, dirty: {}, // 检查：看哪一类、哪一条、正在查哪一章、哪几章查过以后又改了
-    queue: [], never: {}, failed: {}, // 检查：排着队等查的、尚未检查的、没查成的几章
-    part: {}, // 太长、AI 只读了前面一段的几章：{ check } 是检查读了前多少字，再查一次就当它读全了
-    catForm: { name: '', land: '' }, catDrop: '', // 作品分类：正在填的、要删的
     toasts: [],
-    backup: { state: kept, at: kept === 'ok' ? '今天 10:32' : kept === 'fail' ? '昨天 21:40' : '', dir: kept === 'none' ? '' : PATHS().backup, copies: kept === 'none' ? 0 : 12, close: true, daily: true, hourly: false, keep: '最近 30 份', hush: false },
+
     // 换一本书也不变的：外观、书架、设置里的东西。
     look: '跟随系统', shelf: structuredClone(BOOK.shelf), cards: true, library: PATHS().library,
-    uses: structuredClone(BOOK.uses), services: BOOK.services.map((x) => ({ ...x, models: x.models.map(limits) })), auto: false,
-    when: '写完一章后检查', late: BOOK.late, goal: '', goalSet: '', paneW: 0, // paneW 是右栏拖出来的宽度，没拖过是 0
-    names: true, // 正文里标出设定的名字
+
+    paneW: 0, // paneW 是右栏拖出来的宽度，没拖过是 0
     noGPU: false, ranNoGPU: false, // 禁用 GPU 加速：勾了没有，和这次打开软件时是不是关着（改了要重新打开才生效）
-    phone: { ...PHONE }, // 手机预览的排版：翻页还是滚动、哪种屏幕、字号、行距、背景、要不要手机外框、标不标长段
-    noAI: false, offFrom: '', // 关闭了 AI：本机的所有作品都不显示 AI 功能，也不发送任何内容；offFrom 是关的时候停在的讨论页、检查页
-    exportWhat: ['正文'], exportAs: 'Word', pen: '', // 导出勾了哪几样、成什么格式，上次写在首页的笔名（新作品沿用它）
     zoom: 1, // 界面缩放：整个窗口里的东西放大几倍
     extOff: [], extBook: {}, // 关掉的扩展，本机的；AI 的开关是上面的 noAI。extBook 是作品单独设的开关（见 ext.js）
-    quotes: false, // 假装另装的「全角标点」自己的一项：引号也换成「」
     lang: 'system', // 设置「语言」里选的；舞台上切的语言不改它，选「跟随系统」时原型当作中文
+    ...Object.assign({}, ...registered('State').map((x) => x.value({ of, last, snaps, kept }))),
   }
 }
 const KEPT = ['look', 'names', 'noGPU', 'ranNoGPU', 'phone', 'shelf', 'cards', 'library', 'uses', 'services', 'auto', 'when', 'late', 'goal', 'paneW', 'noAI', 'exportWhat', 'exportAs', 'pen', 'zoom', 'extOff', 'extBook', 'quotes']
 
-let S = fresh()
+let S
 let sent = 0 // 作者发过几条消息，AI 按顺序回下一句
 const timers = new Set()
 let saving = 0 // 停笔后自己存的那一下；又打了字就从头等
@@ -420,9 +383,9 @@ function draw() {
   for (const talk of document.querySelectorAll('.talk')) talk.scrollTop = talk.scrollHeight // 讨论总是停在最新一句
   const tab = document.querySelector('.sheet.on') // 标签多到排不下时，正在看的那个总在看得见的地方
   if (tab) { const strip = tab.parentElement; strip.scrollLeft = Math.max(tab.offsetLeft + tab.offsetWidth - strip.clientWidth, Math.min(strip.scrollLeft, tab.offsetLeft)) }
-  fitPhone() // 手机预览排好以后才知道分成几屏
+  contributions('AfterDraw').forEach((act) => act()) // 手机预览、批注排好以后才知道位置
   placeBar() // 选中的字排好以后才知道浮条放在哪
-  placeNotes() // 批注也是
+
 }
 
 // 页面上只挂这几个听的：事情出在哪个元素上，就照它身上的号码去找动作。

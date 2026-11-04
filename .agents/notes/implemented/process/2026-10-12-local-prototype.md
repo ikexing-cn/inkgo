@@ -22,6 +22,12 @@ Status: implemented
   - `pages.js`：讨论、检查、作品分类、书架四页。
   - `dialogs.js`：对话框和备份。
   - `app.js`：把窗口拼起来，和全局的按键、拖动。
+  - 2026-11-04 起照[扩展模块](../../proposed/architecture/2026-11-02-extension-modules.md)按扩展分文件：
+    - 每个扩展的界面、状态、动作在 `ext/<id>.js`，经 `contribute(点, 扩展, 值)` 放进宿主开的点；
+    - 宿主（`ext.js` 的 `contributions`/`drawPoint`）按开关取；
+    - 点的名字尽量和应用的 `hostapi` 一样（`PaneTabs`、`SelectionMenus`、`MarginSources`、`Pages`……），两边对着读；
+    - 编辑器的一次改动同时改标记、检查、提议、撤销，这类和正文画法缠在一起的仍在 `write.js`；
+    - 现在的表见 AGENTS.md。
 - 脚本都是普通 `<script>`，按上面的顺序加载，不用 ES module：从磁盘直接打开（`file://`）时浏览器会拦模块。各文件最外层的名字是共用的，所以不起和浏览器自带的同名的（`top`、`open`、`name`）。
 - 画法：只有一份状态 `S`。`set()` 改完状态，把整个窗口重新拼成一段 HTML，再由 `children()`、`patch()`（四十来行）对着页面上现有的节点，只改不一样的属性和字。这样输入框不会被重建（光标和拼音选字不断），正文里选中的字也不受打扰。有 `id` 或 `data-k` 的元素按名字认，别的按顺序对。
 - 事件都挂在根上：点、打字、按键、右键、松开鼠标，另有拖章节的几个和拖右栏宽度的一个。元素上只留 `data-click="号码"`，号码对着这一遍画的时候登记的函数。

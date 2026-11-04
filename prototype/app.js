@@ -1,6 +1,8 @@
 // 整个窗口怎么拼起来，和不管光标在哪都管用的那几个键。
 'use strict'
 
+S = fresh()
+
 const WINDOW_BUTTONS = '<div class="window-buttons">' + ['<path d="M0 5h10"></path>', '<rect x=".5" y=".5" width="9" height="9" rx="1"></rect>', '<path d="M.5.5l9 9M9.5.5l-9 9"></path>']
   .map((d) => `<div><svg class="icon-xs" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1">${d}</svg></div>`).join('') + '</div>'
 // 窗口的按钮是系统画的：Windows 在最右，是上面那三个；macOS 在最左，是红黄绿三个点，标题栏从它们右边排起。
@@ -22,18 +24,15 @@ function menus() {
     ...(mac ? [['Inkgo', () => menuRow(L.appAbout(), shut) + HAIR + menuRow(L.appSettings(), settings, '', 'Ctrl+,') + HAIR +
       menuRow(L.appHide(), shut, '', 'Ctrl+H') + menuRow(L.appHideOthers(), shut, '', 'Ctrl+Alt+H') + HAIR + menuRow(L.appQuit(), shut, '', 'Ctrl+Q')]] : []),
     [L.menuFile(), () => menuRow(L.cmdNewChapter(), writing ? then(() => newChapter()) : null, '', 'Ctrl+N') + menuRow(L.cmdNewFolder(), writing ? then(newFolder) : null) + HAIR +
-      menuRow(L.cmdSave(), cur ? then(saveNow) : null, '', 'Ctrl+S') + (extOn('snaps') ? menuRow(L.cmdSnapshots(), cur ? ask({ kind: 'snaps', id: '', diff: false }) : null) : '') +
-      (extOn('export') ? menuRow(L.cmdExport(), inBook ? ask({ kind: 'export', range: '全书', indent: true }) : null) : '') + HAIR +
-      (extOn('cats') ? menuRow(L.cmdCategories(), inBook ? toPage('cats') : null) : '') + (extOn('trash') ? menuRow(L.cmdTrash(), inBook ? ask({ kind: 'bin', sure: '' }) : null) : '') + (mac ? '' : HAIR + menuRow(L.appSettings(), settings))],
+      menuRow(L.cmdSave(), cur ? then(saveNow) : null, '', 'Ctrl+S') + drawPoint('FileActions', cur, inBook, writing, then, ask, outline) + HAIR +
+      drawPoint('BookActions', cur, inBook, writing, then, ask, outline) + (mac ? '' : HAIR + menuRow(L.appSettings(), settings))],
     [L.menuEdit(), () => menuRow(L.cmdUndo(), steps.back.length ? then(() => unwrite(-1)) : null, '', 'Ctrl+Z') + menuRow(L.cmdRedo(), steps.fwd.length ? then(() => unwrite(1)) : null, '', 'Ctrl+Shift+Z') + HAIR +
-      (extOn('find') ? menuRow(L.cmdFind(), cur ? openFind : null, '', 'Ctrl+F') : '') +
-      menuRow(L.cmdRename(), cur && !S.rename ? then(renameOpen) : null, '', 'F2') + (extOn('continue') || extOn('draft') ? HAIR : '') +
-      (extOn('continue') ? menuRow(L.cmdContinue(), cur ? then(continueText) : null, '', 'Ctrl+J') : '') +
-      (extOn('draft') ? menuRow(L.cmdDraft(), outline ? ask({ kind: 'draft', goal: '', how: '接在已有内容之后' }) : null, '', cur && !outline ? L.cmdDraftNeedsOutline() : '') : '')],
+      (drawPoint('EditActions', cur, inBook, writing, then, ask, outline)) +
+      menuRow(L.cmdRename(), cur && !S.rename ? then(renameOpen) : null, '', 'F2') + (contributions('WriteActions').length ? HAIR : '') +
+      drawPoint('WriteActions', cur, inBook, writing, then, ask, outline)],
     [L.menuView(), () => menuRow(S.sideOpen ? L.cmdHideSidebar() : L.cmdShowSidebar(), inBook ? () => moving(() => set({ sideOpen: !S.sideOpen, ...SHUT }), 'fold') : null) +
       menuRow(paneOn ? L.cmdHidePane() : L.cmdShowPane(), hasPane ? () => moving(() => set({ ...paneTo, ...SHUT }), 'fold') : null) +
-      (extOn('focus') ? menuRow(L.cmdFocus(), writing ? () => set({ focus: true, ...SHUT }) : null, '', 'F11') : '') +
-      (extOn('phone') ? menuRow(L.cmdPhonePreview(), writing ? () => set({ paneOpen: true, tab: '预览', ...SHUT }) : null) : '') + HAIR +
+      drawPoint('ViewActions', cur, inBook, writing, then, ask, outline) + HAIR +
       `<div class="pop-label">${t(L.viewZoom(Math.round(S.zoom * 100)))}</div>` +
       menuRow(L.cmdZoomIn(), zoomNext(1) ? () => zoomBy(1) : null, '', 'Ctrl+=') + menuRow(L.cmdZoomOut(), zoomNext(-1) ? () => zoomBy(-1) : null, '', 'Ctrl+-') +
       menuRow(L.cmdZoomReset(), S.zoom !== 1 ? () => zoomBy(0) : null, '', 'Ctrl+0') + HAIR + `<div class="pop-label">${t(L.viewLook())}</div>` +
@@ -46,8 +45,6 @@ function menus() {
 
 // 外观的三种：状态里记的值、图标、显示的字。菜单和设置里的外观都用它。
 const LOOKS = () => [['跟随系统', 'screen', L.lookSystem()], ['浅色', 'sun', L.lookLight()], ['深色', 'moon', L.lookDark()]]
-// 检查时机的三种：状态里记的值、下面那句说明、显示的字。正文底栏和设置里都用它。
-const WHENS = () => [['写完一章后检查', L.statusWhenAfterAbout(), L.statusWhenAfter()], ['手动检查', L.statusWhenManualAbout(), L.statusWhenManual()], ['边写边检查', L.statusWhenWritingAbout(), L.statusWhenWriting()]]
 
 // 一排菜单的名字，点开一个在它下面。
 function menuTitles(list) {
@@ -77,16 +74,16 @@ function titlebar() {
 // 去哪一页。讨论页回到上次看的那一段，没看过就是最新的一段。
 const toPage = (page) => () => set({ page, ...(page === 'talk' && S.tv === 'all' ? { tid: S.talks[0] ? S.talks[0].id : null, tv: S.talks[0] ? 'one' : 'new' } : {}), ...SHUT })
 
-// 标题栏正中换页：讨论、正文、大纲、检查，正在的那一页是墨色。讨论、大纲、检查各归一个扩展，关着的那一页不在（ext.js 的 PAGE_EXT）。
+// 标题栏正中换页：讨论、正文、大纲、检查，正在的那一页是墨色。讨论、大纲、检查各归一个扩展，关着的那一页不在（ext.js 的 Pages）。
 // 作品分类不常去，在「文件」菜单里。
 function pageSwitch() {
-  const pages = [[L.pageTalk(), 'talk'], [L.pageWrite(), 'write'], [L.pagePlan(), 'plan'], [L.pageCheck(), 'check']].filter(([, page]) => !PAGE_EXT[page] || extOn(PAGE_EXT[page]))
+  const pages = [...contributions('Pages').filter((x) => x.label).map((x) => [x.label(), x.id, x.order]), [L.pageWrite(), 'write', 1]].sort((a, b) => a[2] - b[2])
   return `<div class="pages">${pages.map(([name, page]) => `<div class="hit${S.page === page ? ' on' : ''}"${onClick(toPage(page))}>${name}${page === 'check' && S.checks.length ? `<span class="badge">${S.checks.length}</span>` : ''}</div>`).join('')}</div>`
 }
 
 // 这一页有没有右栏、开着没有、按一下怎么变。大纲页的右栏单记着开没开。
 function paneHere() {
-  const plan = S.page === 'plan', has = (S.page === 'write' && !S.focus && paneTabs().length) || ((S.page === 'talk' || plan) && extOn('lore')), on = has && (plan ? S.planPane : S.paneOpen)
+  const plan = S.page === 'plan', has = (S.page === 'write' && !S.focus && paneTabs().length) || ((S.page === 'talk' || plan) && contributions('BesideItems').length), on = has && (plan ? S.planPane : S.paneOpen)
   return [has, on, plan ? { planPane: !on } : { paneOpen: !on }]
 }
 
@@ -135,7 +132,8 @@ function toasts() {
 // 正文不重建，光标留在原处。
 function view() {
   const focus = S.focus && S.page === 'write'
-  const main = { write: () => editor(chapterOf(S.ch)), plan: planPage, talk: talkPage, check: checkPage, cats: catsPage }
+  // 换页入口看开关；已经在那一页、或从舞台摆出的少见情况，仍用登记过的画法。
+  const main = { write: () => editor(chapterOf(S.ch)), ...Object.fromEntries(registered('Pages').map(({ value: x }) => [x.id, x.draw])) }
   const side = (S.page === 'write' && !focus) || S.page === 'talk' ? S.paneOpen : S.page === 'plan' ? S.planPane : false
   const bare = focus || !S.sideOpen
   // 缩放：窗口里按 1/z 的大小排，再整个放大 z 倍；排出来窄过 1180 就是窄窗口。
@@ -171,7 +169,7 @@ document.addEventListener('keydown', (ev) => {
   if (ev.key === 'Escape') backOut()
   else if (ev.key === 'Tab' && S.ai && S.ai.kind === 'ghost') run(() => ghost(true))
   // macOS 的 ⌃⌘F；F11、F2 在 macOS 的样子下也认，原型多在 Windows 键盘上点。
-  else if ((ev.key === 'F11' || (ev.ctrlKey && ev.metaKey && ev.key.toLowerCase() === 'f')) && writing && extOn('focus')) run(() => set({ focus: !S.focus, ...SHUT }))
+  else if (contributions('FocusKeys').some((act) => act(ev, writing, run))) return
   else if (ctrl && ev.key === '/') run(() => set({ dialog: { kind: 'keys' }, ...SHUT }))
   else if (ev.key === 'F2' && writing && chapterOf(S.ch) && !S.rename) run(renameOpen)
   else if (ctrl && (ev.key === '=' || ev.key === '+')) run(() => zoomBy(1))
@@ -179,8 +177,8 @@ document.addEventListener('keydown', (ev) => {
   else if (ctrl && ev.key === '0') run(() => zoomBy(0))
   else if (!ctrl || !writing || !chapterOf(S.ch)) return
   else if (ev.key === 's') run(saveNow)
-  else if (ev.key === 'f') run(() => { if (extOn('find')) openFind() })
-  else if (ev.key === 'j') run(() => { if (extOn('continue')) continueText() }) // 续写关着时按了不起作用
+  else if (ev.key === 'f') run(() => contributions('WritingKeys').filter((x) => x.key === 'f').forEach((x) => x.act()))
+  else if (ev.key === 'j') run(() => contributions('WritingKeys').filter((x) => x.key === 'j').forEach((x) => x.act()))
   else if (ev.key === 'l') run(() => { if (aiOn()) cite() })
 })
 // 标签排不下时，滚轮在标签条上左右挪。
@@ -193,23 +191,6 @@ root.addEventListener('dragover', (ev) => { const row = nodeAt(ev); if (row) { e
 root.addEventListener('dragleave', (ev) => { const row = ev.target.closest('[data-node]'); if (row) row.classList.remove('over') })
 root.addEventListener('drop', (ev) => { const row = nodeAt(ev); if (row) { ev.preventDefault(); dropOn(dragged, row.dataset.node) } })
 root.addEventListener('dragend', () => { dragged = ''; draw() })
-// 软件每两秒重读一次改坏的大纲文件；原型里切回窗口，就当作已经改好了。
-window.addEventListener('focus', () => { if (S.planBroken) set({ planBroken: false }) })
-// 大纲页里拖一张卡片：按章节拖进一格，就换到那一章、那条情节线；时间线上拖进一格，就换到那个时间、那条情节线。
-let draggedCard = ''
-const cardAt = (ev) => { const at = ev.target.closest('[data-slot], [data-cell]'); return at && draggedCard ? at : null }
-root.addEventListener('dragstart', (ev) => { const card = ev.target.closest('[data-card]'); if (card) { draggedCard = card.dataset.card; ev.dataTransfer.effectAllowed = 'move' } })
-root.addEventListener('dragover', (ev) => { const at = cardAt(ev); if (at) { ev.preventDefault(); at.classList.add('over') } })
-root.addEventListener('dragleave', (ev) => { const at = ev.target.closest('[data-slot], [data-cell]'); if (at) at.classList.remove('over') })
-root.addEventListener('drop', (ev) => {
-  const at = cardAt(ev)
-  if (!at) return
-  ev.preventDefault()
-  if (at.dataset.slot) { const [col, line] = at.dataset.slot.split('|'); return dropAt(draggedCard, col, line) }
-  const [key, line] = at.dataset.cell.split('|')
-  placeCard(draggedCard, key, key ? line : null) // 拖进「未放进章节」的，情节线不变
-})
-root.addEventListener('dragend', () => { if (draggedCard) { draggedCard = ''; draw() } })
 
 // 按标题栏和打开对话框的按钮（data-keep）不拿走正文的光标：开了菜单又收起、点了侧栏的开关、对话框关掉，接着打的字还进正文。
 root.addEventListener('mousedown', (ev) => { if (ev.target.closest('.titlebar, .mac-bar, [data-keep]')) ev.preventDefault() })
