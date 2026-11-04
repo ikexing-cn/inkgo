@@ -240,7 +240,9 @@ func (a *App) helpMenu(m *kit.Menu, later func(func()) func()) {
 // barItem adds a command to a menu of the title bar, doing its part after
 // the bar is drawn.
 func (a *App) barItem(m *kit.Menu, later func(func()) func(), cmd *command) {
-	cmd.item(a, m).Do(later(cmd.act(a)))
+	if cmd.present(a) {
+		cmd.item(a, m).Do(later(cmd.act(a)))
+	}
 }
 
 // barAct does what was picked in a menu of the title bar, in the frame

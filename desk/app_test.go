@@ -19,7 +19,9 @@ import (
 	"writer/desk/kit"
 	"writer/ext"
 	"writer/ext/backup"
+	contextmod "writer/ext/context"
 	"writer/ext/export"
+	"writer/ext/outline"
 	"writer/ext/phone"
 	"writer/model"
 	"writer/workspace"
@@ -62,12 +64,14 @@ func newApp(config string) *App { return testApp(ai.New(config)) }
 
 func testModules() []ext.Module {
 	mod, _ := backup.New(false)
-	return []ext.Module{mod, export.Module, phone.Module}
+	return []ext.Module{contextmod.Module, outline.Module, mod, export.Module, phone.Module}
 }
 
 func testApp(service aiport.Service) *App {
 	mod, view := backup.New(false)
-	a := New(service, mod, export.Module, phone.Module)
+	outlineModule, page := outline.New()
+	a := New(service, contextmod.Module, outlineModule, mod, export.Module, phone.Module)
+	outlineControllers[a] = page
 	a.ErrorText = []ErrorTranslator{aitext.Translate}
 	controllers[a] = view
 	return a
@@ -1031,3 +1035,7 @@ func TestShelveAConversation(t *testing.T) {
 		t.Fatal("no new conversation", a.session)
 	}
 }
+
+var outlineControllers = map[*App]*outline.Page{}
+
+func outlinePage(a *App) *outline.Page { return outlineControllers[a] }

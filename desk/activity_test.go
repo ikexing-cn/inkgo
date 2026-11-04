@@ -125,7 +125,7 @@ func TestBrokenOutlineRetryPausesWithWindow(t *testing.T) {
 	if err := os.WriteFile(p, []byte("{broken"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	a.plan.Enter()
+	outlinePage(a).Enter()
 	tt.Frame()
 	if !tt.HasText("大纲文件读不出来") {
 		t.Fatal(tt.Texts())

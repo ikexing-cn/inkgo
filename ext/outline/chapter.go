@@ -6,7 +6,7 @@ import (
 	"time"
 	"writer/desk/book"
 	"writer/desk/kit"
-	"writer/locales"
+	"writer/ext/outline/outlinetext"
 )
 
 // Draft returns the live chapter draft, including unsaved edits, on the frame thread.
@@ -20,6 +20,11 @@ func (p *Page) Draft(id string) *book.OutlineDraft {
 	text := ""
 	if b := p.Services.Book.Content(); b != nil {
 		text = b.Outlines()[id]
+		if id != "" {
+			if ch, err := p.Services.Book.Store().ReadChapter(id); err == nil {
+				text = ch.Outline
+			}
+		}
 	}
 	d := &book.OutlineDraft{Node: id, Text: text, Saved: text, Seen: text}
 	p.drafts[id] = d
@@ -69,24 +74,25 @@ func (p *Page) ChapterHead(c *ui.Context) {
 	id, _, _ := p.Services.Book.Chapter()
 	n, ok := p.Services.Book.Content().Tree().Node(id)
 	if ok && n.Folder {
-		p.chapterBox(c, locales.EditorVolumeOutline(), 160)
+		ui.Text(c, outlinetext.EditorVolumeOutline()).FontSize(kit.FsControl).FontWeight(600).TextColor(p.Services.Palette.Colors().Theme.TextMuted)
+		p.chapterBox(c, outlinetext.EditorVolumeOutline(), 160)
 		return
 	}
-	label := locales.EditorOutline()
+	label := outlinetext.EditorOutline()
 	if strings.TrimSpace(p.Draft(id).Text) == "" {
-		label = locales.EditorOutlineBlank()
+		label = outlinetext.EditorOutlineBlank()
 	}
 	var parts ui.CollapsibleParts
 	ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() { parts = p.disclosure(c, label, &p.chapterExpanded); p.ChapterStory(c) })
 	parts.Panel(func() {
-		ui.Box(c).FillWidth().Padding(2, 0, 4, 0).Children(func() { p.chapterBox(c, locales.EditorOutline(), 96) })
+		ui.Box(c).FillWidth().Padding(2, 0, 4, 0).Children(func() { p.chapterBox(c, outlinetext.EditorOutline(), 96) })
 	})
 }
 
 func (p *Page) chapterBox(c *ui.Context, label string, height float32) {
 	id, _, _ := p.Services.Book.Chapter()
 	_, exists := p.Services.Book.Content().Tree().Node(id)
-	ui.TextAreaBase(c, &p.Draft(id).Text).Label(label).Placeholder(locales.EditorOutlineHint()).FillWidth().Height(height).
+	ui.TextAreaBase(c, &p.Draft(id).Text).Label(label).Placeholder(outlinetext.EditorOutlineHint()).FillWidth().Height(height).
 		FontSize(kit.FsBody).LineHeight(kit.LhLoose).Padding(10, 12).Radius(kit.RControl).Background(p.Services.Palette.Colors().Side).Disabled(!exists)
 }
 
@@ -111,7 +117,11 @@ func (p *Page) disclosure(c *ui.Context, label string, open *bool) ui.Collapsibl
 func (p *Page) ChapterOutline(id string) string { return p.Draft(id).Text }
 
 // OpenChapter resets the writing draft to the freshly read tab content.
-func (p *Page) OpenChapter(id, text string) {
+func (p *Page) OpenChapter(id string) {
+	text := p.Services.Book.Content().Outlines()[id]
+	if ch, err := p.Services.Book.Store().ReadChapter(id); err == nil {
+		text = ch.Outline
+	}
 	d := p.Draft(id)
 	d.Text, d.Saved, d.Seen = text, text, text
 }

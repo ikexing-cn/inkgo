@@ -104,10 +104,10 @@ var (
 	cmdDraft = &command{label: locales.CmdDraft, page: pageAny, ai: true,
 		can: func(a *App) bool {
 			open, busy := a.chapterOpen()
-			return open && !busy && strings.TrimSpace(a.chapterOutlines.ChapterOutline(a.write.node)) != ""
+			return open && !busy && strings.TrimSpace(a.chapterOutline(a.write.node)) != ""
 		},
 		hint: func(a *App) string {
-			if open, _ := a.chapterOpen(); open && strings.TrimSpace(a.chapterOutlines.ChapterOutline(a.write.node)) == "" {
+			if open, _ := a.chapterOpen(); open && strings.TrimSpace(a.chapterOutline(a.write.node)) == "" {
 				return locales.CmdDraftNeedsOutline()
 			}
 			return ""
@@ -285,7 +285,9 @@ func (c *command) name(a *App) string {
 }
 
 // available is whether the command can run now.
-func (c *command) available(a *App) bool { return c.can == nil || c.can(a) }
+func (c *command) available(a *App) bool { return c.present(a) && (c.can == nil || c.can(a)) }
+
+func (c *command) present(a *App) bool { return c != cmdDraft || a.hasOutlines() }
 
 // menuHint is the right text of its menu row: the key, or a reason it
 // cannot run.

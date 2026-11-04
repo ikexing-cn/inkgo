@@ -10,7 +10,6 @@ import (
 	"writer/aiport"
 	"writer/desk/book"
 	"writer/desk/kit"
-	"writer/desk/outline"
 	"writer/editor"
 	"writer/ext"
 	"writer/locales"
@@ -58,7 +57,6 @@ type App struct {
 	pages             []pageView
 	pageOrder         []page
 	pageIDs           map[string]page
-	chapterOutlines   chapterOutlines
 	paneTabs          tabTable[paneTab]
 	hostPaneTabs      tabTable[paneTab]
 	extViews          extensionViews
@@ -126,7 +124,6 @@ type App struct {
 	extStore                         *extensionStore
 	extNotices                       extensionNotices
 	write                            writeView
-	plan                             outline.Page
 	LastChat, LastSetting, LastWrite ui.Rect
 	LastProse                        ui.Rect
 	// Appearance applies the appearance chosen: "light", "dark", or empty
@@ -161,7 +158,6 @@ func New(ai aiport.Service, mods ...ext.Module) *App {
 	a := &App{ai: ai, turn: &talkTurn{}, genre: "网文",
 		light: kit.LightPalette(), dark: kit.DarkPalette(), titles: map[string]workspace.ConversationTitle{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
 	a.status.Translate = a.errText
-	a.initOutline()
 	a.pal = a.light
 	a.initPages()
 	a.initTabs()
@@ -246,8 +242,6 @@ func (a *App) resetView() {
 	a.resetPrefs()
 	a.source, a.sourceOpen, a.contextReply = nil, false, ""
 	a.input, a.seen, a.flash, a.doc, a.write = "", -1, map[string]time.Time{}, docView{}, writeView{}
-	a.plan = outline.Page{}
-	a.initOutline()
 	a.page, a.shown, a.offAway = pageTalk, pageTalk, false
 }
 

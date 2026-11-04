@@ -137,7 +137,7 @@ func TestTheChapterInTheStory(t *testing.T) {
 
 func TestOutlineTrashAndSettingsPane(t *testing.T) {
 	a, tt, _ := outlineFixture(t)
-	if a.plan.Pane {
+	if outlinePage(a).Pane {
 		t.Fatal("outline opens with pane")
 	}
 	click(t, tt, "展开右栏")
@@ -146,12 +146,12 @@ func TestOutlineTrashAndSettingsPane(t *testing.T) {
 		t.Fatal("outline has discussion pane")
 	}
 	click(t, tt, "收起右栏")
-	if a.plan.Pane {
+	if outlinePage(a).Pane {
 		t.Fatal("pane did not close")
 	}
 	click(t, tt, "正文")
 	click(t, tt, "大纲")
-	if a.plan.Pane {
+	if outlinePage(a).Pane {
 		t.Fatal("pane state changed between pages")
 	}
 }

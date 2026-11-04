@@ -6,13 +6,15 @@ import (
 
 	"writer/ext"
 	"writer/ext/backup"
+	"writer/ext/context"
 	"writer/ext/export"
+	"writer/ext/outline"
 	"writer/ext/phone"
 )
 
 func testModules() []ext.Module {
 	mod, _ := backup.New(false)
-	return []ext.Module{mod, export.Module, phone.Module}
+	return []ext.Module{context.Module, outline.Module, mod, export.Module, phone.Module}
 }
 
 func TestApplicationAssemblyIncludesExportFeature(t *testing.T) {

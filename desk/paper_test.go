@@ -112,16 +112,16 @@ func TestThePaneSwitchStaysOnEveryPage(t *testing.T) {
 		if got := find(t, tt, name); got != place {
 			t.Fatalf("page %d moved its switch: %+v, was %+v", page, got, place)
 		}
-		before, doc, plan := a.paneOpen(), a.doc.hidden, a.plan.Pane
+		before, doc, plan := a.paneOpen(), a.doc.hidden, outlinePage(a).Pane
 		click(t, tt, name)
 		if a.hasPane() {
 			if a.paneOpen() == before {
 				t.Fatalf("page %d did not toggle its pane", page)
 			}
-			if page == pagePlan && a.doc.hidden != doc || page != pagePlan && a.plan.Pane != plan {
+			if page == pagePlan && a.doc.hidden != doc || page != pagePlan && outlinePage(a).Pane != plan {
 				t.Fatalf("page %d changed the other pane's choice", page)
 			}
-		} else if a.doc.hidden != doc || a.plan.Pane != plan {
+		} else if a.doc.hidden != doc || outlinePage(a).Pane != plan {
 			t.Fatalf("page %d acted on a disabled switch", page)
 		}
 	}
@@ -435,7 +435,7 @@ func TestThePaneSearchAndHeadingHaveRoom(t *testing.T) {
 	tt.Frame()
 	tab := find(t, tt, "右栏-批注")
 	for _, page := range []page{pageTalk, pagePlan} {
-		a.page, a.plan.Pane = page, true
+		a.page, outlinePage(a).Pane = page, true
 		tt.Frame()
 		tt.Frame()
 		heading := find(t, tt, "右栏设定标题")

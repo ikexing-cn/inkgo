@@ -26,7 +26,7 @@ npm run verify
 | [cmd/inkgo](cmd/inkgo/main.go) | 装配应用、窗口生命周期、系统对话框和窗口回调 |
 | [desk](desk/doc.go) | 界面、导航、用户操作与后台结果的协调；包内文件分工见入口注释 |
 | [desk/book](desk/book/book.go) | 界面线程看到的书内容、版本与写后刷新 |
-| [desk/outline](desk/outline/doc.go)、[phone](ext/phone/doc.go)、[export](ext/export/doc.go) | 独立页面或面板，outline 经 Host，phone 与 export 经扩展宿主取得能力 |
+| [outline](ext/outline/doc.go)、[phone](ext/phone/doc.go)、[export](ext/export/doc.go) | 独立页面或面板，都是扩展，经扩展宿主取得能力；outline 往资料库（[context](ext/context/module.go)）登记章纲、卷纲 |
 | [desk/kit](desk/kit/doc.go) | 调色板、尺寸和共用界面零件 |
 | [editor](editor/editor.go) | 文本编辑、撤销、光标、标记与排版；不依赖作品或 AI 实现 |
 | [workspace](workspace/store.go) | 作品类型与规则、文件读写、校验和外部修改保护 |

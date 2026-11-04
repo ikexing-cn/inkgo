@@ -7,6 +7,7 @@ import (
 	"time"
 	"writer/desk/book"
 	"writer/desk/kit"
+	"writer/ext/outline/outlinetext"
 	"writer/workspace"
 
 	"writer/locales"
@@ -17,7 +18,7 @@ func (p *Page) line(c *ui.Context, l workspace.PlotLine) {
 	content := p.Services.Book.Content()
 	t := p.Services.Palette.Colors().Theme
 	if p.lineID == l.ID {
-		in := ui.TextInputBase(c.Key("line-name-"+l.ID), &p.lineName).Label(locales.PlanLineNameLabel()).Placeholder(locales.PlanLineNameLabel()).FillWidth().Height(kit.HControlSm).FontSize(kit.FsBody).Padding(0, 6).Border(1, t.Border).Radius(kit.RControl).AutoFocus()
+		in := ui.TextInputBase(c.Key("line-name-"+l.ID), &p.lineName).Label(outlinetext.PlanLineNameLabel()).Placeholder(outlinetext.PlanLineNameLabel()).FillWidth().Height(kit.HControlSm).FontSize(kit.FsBody).Padding(0, 6).Border(1, t.Border).Radius(kit.RControl).AutoFocus()
 		if p.lineFocus {
 			in.Focus().SetTextSelection(0, len([]rune(p.lineName)))
 			p.lineFocus = false
@@ -33,7 +34,7 @@ func (p *Page) line(c *ui.Context, l workspace.PlotLine) {
 		return
 	}
 	ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
-		b := ui.ButtonBase(c).Row().Justify(ui.Start).Grow(1).Shrink(1).MinWidth(0).Padding(2, 0).Radius(kit.RXs).Label(l.Name).Tooltip(locales.PlanLineRenameHint())
+		b := ui.ButtonBase(c).Row().Justify(ui.Start).Grow(1).Shrink(1).MinWidth(0).Padding(2, 0).Radius(kit.RXs).Label(l.Name).Tooltip(outlinetext.PlanLineRenameHint())
 		if b.Hovered() {
 			b.Background(t.SurfaceHover)
 		}
@@ -45,23 +46,23 @@ func (p *Page) line(c *ui.Context, l workspace.PlotLine) {
 		}
 		n := p.index.counts[l.ID]
 		ui.Textf(c, "%d", n).FontSize(kit.FsNote).TextColor(p.Services.Palette.Colors().Faint)
-		more := kit.IconButton(c, kit.IcMore, locales.PlanLineActions(l.Name), ui.Color{})
+		more := kit.IconButton(c, kit.IcMore, outlinetext.PlanLineActions(l.Name), ui.Color{})
 		p.Services.Desktop.DropMenu(c, more, "plan-line-"+l.ID, func(panel ui.Element) { panel.Width(planLineMenuWidth) }, func(m *kit.Menu) {
 			i := slices.IndexFunc(content.Plan().Lines, func(x workspace.PlotLine) bool { return x.ID == l.ID })
-			up, down := locales.PlanLineMoveLeft(), locales.PlanLineMoveRight()
+			up, down := outlinetext.PlanLineMoveLeft(), outlinetext.PlanLineMoveRight()
 			if p.mode == 1 {
-				up, down = locales.CommonMoveUp(), locales.CommonMoveDown()
+				up, down = outlinetext.CommonMoveUp(), outlinetext.CommonMoveDown()
 			}
-			m.Item(locales.PlanLineRename()).Do(func() { p.startLine(l) })
+			m.Item(outlinetext.PlanLineRename()).Do(func() { p.startLine(l) })
 			m.Item(up).Disabled(i == 0).Do(func() { p.change(content.MoveLine(l.ID, -1)) })
 			m.Item(down).Disabled(i == len(content.Plan().Lines)-1).Do(func() { p.change(content.MoveLine(l.ID, 1)) })
 			m.Separator()
-			m.Item(locales.PlanLineDelete()).Do(func() {
+			m.Item(outlinetext.PlanLineDelete()).Do(func() {
 				p.change(content.DeleteLine(l.ID))
 				if status.ErrorText() == "" {
-					status.Did(locales.PlanLineDeleted(l.Name))
+					status.Did(outlinetext.PlanLineDeleted(l.Name))
 					if n > 0 {
-						status.Hint(locales.PlanLineDeletedCards(n))
+						status.Hint(outlinetext.PlanLineDeletedCards(n))
 					}
 				}
 			})
@@ -89,13 +90,13 @@ func (p *Page) finishLine() {
 
 func (p *Page) addLine(c *ui.Context) {
 	pal := p.Services.Palette.Colors()
-	b := ui.ButtonBase(c).Row().Height(kit.HControlSm).AlignItems(ui.Center).Gap(6).Padding(0, 8, 0, 4).Radius(kit.RControl).Label(locales.PlanLineAdd()).Tooltip(locales.PlanLineAddHint())
+	b := ui.ButtonBase(c).Row().Height(kit.HControlSm).AlignItems(ui.Center).Gap(6).Padding(0, 8, 0, 4).Radius(kit.RControl).Label(outlinetext.PlanLineAdd()).Tooltip(outlinetext.PlanLineAddHint())
 	if b.Hovered() {
 		b.Background(pal.Theme.SurfaceHover)
 	}
 	b.Children(func() {
 		kit.Glyph(c, kit.IcPlus, kit.IconSm, pal.Theme.TextMuted)
-		ui.Text(c, locales.PlanLineAdd()).FontSize(kit.FsNote).TextColor(pal.Theme.TextMuted)
+		ui.Text(c, outlinetext.PlanLineAdd()).FontSize(kit.FsNote).TextColor(pal.Theme.TextMuted)
 	})
 	if b.Clicked() {
 		p.finishLine()
@@ -115,10 +116,10 @@ func (p *Page) addLine(c *ui.Context) {
 func (p *Page) gist(c *ui.Context, n *workspace.Node) {
 	pal := p.Services.Palette.Colors()
 	content := p.Services.Book.Content()
-	label, hint := locales.PlanChapterOutline(), locales.PlanWriteChapterOutline()
+	label, hint := outlinetext.PlanChapterOutline(), outlinetext.PlanWriteChapterOutline()
 	hook := "章纲"
 	if n.Folder {
-		label, hint = locales.PlanVolumeOutline(), locales.PlanWriteVolumeOutline()
+		label, hint = outlinetext.PlanVolumeOutline(), outlinetext.PlanWriteVolumeOutline()
 		hook = "卷纲"
 	}
 	if p.outlineDraft.Node == n.ID {
@@ -146,7 +147,7 @@ func (p *Page) gist(c *ui.Context, n *workspace.Node) {
 	if empty {
 		text = hint
 	}
-	b := ui.ButtonBase(c).FillWidth().Padding(2, 4).Radius(kit.RXs).Label(hook + "-" + n.ID).Tooltip(locales.PlanClickEdit())
+	b := ui.ButtonBase(c).FillWidth().Padding(2, 4).Radius(kit.RXs).Label(hook + "-" + n.ID).Tooltip(outlinetext.PlanClickEdit())
 	if b.Hovered() {
 		b.Background(pal.Theme.SurfaceHover)
 	}
@@ -236,22 +237,22 @@ func (p *Page) Dialog(c *ui.Context) {
 	}
 	pal.Modal(c, &p.cardOpen, func() {
 		ui.Column(c).Width(kit.DialogSmall).Padding(kit.DialogPad).Gap(16).Children(func() {
-			title, about := locales.PlanCardNew(), locales.PlanCardIntro()
+			title, about := outlinetext.PlanCardNew(), outlinetext.PlanCardIntro()
 			if p.card.ID != "" {
-				title, about = locales.PlanCardEdit(), ""
+				title, about = outlinetext.PlanCardEdit(), ""
 			} else if p.added > 0 {
-				about = locales.PlanCardAdded(p.lastTitle)
+				about = outlinetext.PlanCardAdded(p.lastTitle)
 			}
 			pal.DialogHead(c, title, about)
 			var enter bool
-			kit.Labeled(c, locales.PlanCardWhat(), func() {
-				in := ui.TextInput(c.Key(fmt.Sprintf("card-title-%d", p.added)), &p.card.Title).Label(locales.PlanCardEvent()).Placeholder(locales.PlanCardWhatHint()).FillWidth().AutoFocus()
+			kit.Labeled(c, outlinetext.PlanCardWhat(), func() {
+				in := ui.TextInput(c.Key(fmt.Sprintf("card-title-%d", p.added)), &p.card.Title).Label(outlinetext.PlanCardEvent()).Placeholder(outlinetext.PlanCardWhatHint()).FillWidth().AutoFocus()
 				enter = in.Submitted()
 			})
 			ui.Row(c).FillWidth().Gap(12).Children(func() {
 				ui.Column(c).Grow(1).Shrink(1).Children(func() {
-					kit.Labeled(c, locales.PlanCardChapter(), func() {
-						names, ids := []string{locales.PlanNoChapter()}, map[string]string{}
+					kit.Labeled(c, outlinetext.PlanCardChapter(), func() {
+						names, ids := []string{outlinetext.PlanNoChapter()}, map[string]string{}
 						chosen := names[0]
 						for _, n := range p.chapters() {
 							name := n.Title
@@ -270,8 +271,8 @@ func (p *Page) Dialog(c *ui.Context) {
 					})
 				})
 				ui.Column(c).Grow(1).Shrink(1).Children(func() {
-					kit.Labeled(c, locales.PlanLine(), func() {
-						names, ids := []string{locales.PlanNoLine()}, map[string]string{}
+					kit.Labeled(c, outlinetext.PlanLine(), func() {
+						names, ids := []string{outlinetext.PlanNoLine()}, map[string]string{}
 						chosen := names[0]
 						for _, l := range content.Plan().Lines {
 							name := l.Name
@@ -290,17 +291,17 @@ func (p *Page) Dialog(c *ui.Context) {
 					})
 				})
 			})
-			kit.Labeled(c, locales.PlanCardWhen(), func() {
-				in := ui.TextInput(c, &p.card.When).Label(locales.PlanCardWhenLabel()).Placeholder(locales.PlanCardWhenHint()).FillWidth()
+			kit.Labeled(c, outlinetext.PlanCardWhen(), func() {
+				in := ui.TextInput(c, &p.card.When).Label(outlinetext.PlanCardWhenLabel()).Placeholder(outlinetext.PlanCardWhenHint()).FillWidth()
 				enter = enter || in.Submitted()
 			})
-			kit.Labeled(c, locales.PlanCardAbout(), func() {
-				ui.TextArea(c, &p.card.About).Label(locales.PlanCardNotes()).FillWidth().Height(kit.HControl * 3)
+			kit.Labeled(c, outlinetext.PlanCardAbout(), func() {
+				ui.TextArea(c, &p.card.About).Label(outlinetext.PlanCardNotes()).FillWidth().Height(kit.HControl * 3)
 			})
 			save, more, drop := enter && kit.Trim(p.card.Title) != "", false, false
 			ui.Row(c).FillWidth().Gap(8).Justify(ui.End).Children(func() {
 				if p.card.ID != "" {
-					if pal.Ghost(c, locales.PlanCardDelete(), pal.Theme.Danger).Clicked() {
+					if pal.Ghost(c, outlinetext.PlanCardDelete(), pal.Theme.Danger).Clicked() {
 						drop = true
 					}
 					ui.Spacer(c)
@@ -309,11 +310,11 @@ func (p *Page) Dialog(c *ui.Context) {
 					p.cardOpen = false
 				}
 				if p.card.ID == "" {
-					if pal.Secondary(c, locales.PlanCardAddMore()).Disabled(kit.Trim(p.card.Title) == "").Clicked() {
+					if pal.Secondary(c, outlinetext.PlanCardAddMore()).Disabled(kit.Trim(p.card.Title) == "").Clicked() {
 						more = true
 					}
 				}
-				verb := locales.PlanAddCard()
+				verb := outlinetext.PlanAddCard()
 				if p.card.ID != "" {
 					verb = locales.CommonSave()
 				}
@@ -324,7 +325,7 @@ func (p *Page) Dialog(c *ui.Context) {
 			if drop {
 				p.change(content.DeleteCard(p.card.ID))
 				if status.ErrorText() == "" {
-					status.Did(locales.PlanCardDeleted(p.card.Title))
+					status.Did(outlinetext.PlanCardDeleted(p.card.Title))
 					p.cardOpen = false
 				}
 			} else if save || more {

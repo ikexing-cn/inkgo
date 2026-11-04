@@ -117,8 +117,8 @@ func TestDiscussionContextUsesUnsavedChapterOutlineDraft(t *testing.T) {
 	}
 }
 
-func TestOutlineOnlyUsesHostAPIAndDeskOnlyCallsOutlineInAssembly(t *testing.T) {
-	for _, dir := range []string{".", "outline"} {
+func TestOutlineUsesPublicContractsAndDeskNeverCallsConcreteOutline(t *testing.T) {
+	for _, dir := range []string{".", "../ext/outline"} {
 		entries, err := os.ReadDir(dir)
 		if err != nil {
 			t.Fatal(err)
@@ -132,15 +132,12 @@ func TestOutlineOnlyUsesHostAPIAndDeskOnlyCallsOutlineInAssembly(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if dir == "outline" {
+			if dir == "../ext/outline" {
 				for _, imp := range file.Imports {
 					if imp.Path.Value == "\"writer/desk\"" {
 						t.Fatal(name, "imports desk")
 					}
 				}
-				continue
-			}
-			if name == "outline_bridge.go" {
 				continue
 			}
 			ast.Inspect(file, func(n ast.Node) bool {

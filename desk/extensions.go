@@ -158,6 +158,7 @@ type extensionViews struct {
 	hostTicks      []ext.Item[hostapi.FrameTick]
 	hostLeave      []ext.Item[func()]
 	localeRevision uint64
+	outlines       bool
 	ready          bool
 	changes        uint64
 	commands       []namedCommand
@@ -194,7 +195,15 @@ func (a *App) syncExtensions() {
 	cache := extensionViews{ready: true, changes: changes, localeRevision: revision}
 	a.cacheExtensionViews(&cache)
 	cache.commands = a.buildExtensionCommands()
-	cache.list = append([]*command(nil), commandList...)
+	_, cache.outlines = a.outlineValue(a.write.node)
+	if !cache.outlines {
+		a.write.draftOpen = false
+	}
+	for _, cmd := range commandList {
+		if cmd != cmdDraft || cache.outlines {
+			cache.list = append(cache.list, cmd)
+		}
+	}
 	cache.help = append([]*helpRow(nil), commandHelp...)
 	for _, row := range systemCommands {
 		cache.system = append(cache.system, namedCommand{id: row.id, cmd: row.cmd})

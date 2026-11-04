@@ -20,7 +20,6 @@ func declareLifecycle(r *ext.Registrar, a *App) {
 	ext.DeclareCalls(r, hostapi.Pages, pageCall)
 	ext.Declare(r, hostapi.WindowActivities)
 	ext.DeclareCalls(r, hostapi.WindowActivities, activityCall)
-	a.registerOutline(r)
 	ext.Declare(r, hostapi.FooterItems)
 	ext.DeclareCalls(r, hostapi.FooterItems, drawItemCall)
 	ext.Declare(r, hostapi.TitleItems)

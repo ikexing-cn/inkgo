@@ -160,7 +160,7 @@ func TestBackupSwitchRemovesAndRestoresEverySurfaceAndLifecycle(t *testing.T) {
 		if line != on {
 			t.Fatalf("footer on=%v visible=%v", on, line)
 		}
-		if (len(a.extViews.footer) > 0) != on || (len(a.extViews.title) > 0) != on || (len(a.extViews.pending) > 0) != on || (len(a.extViews.sections) > 0) != on || (len(a.extViews.ticks) > 0) != on || (len(a.extViews.leave) > 0) != on {
+		if (len(a.extViews.footer) > 0) != on || (len(a.extViews.title) > 0) != on || (len(a.extViews.pending) > 0) != on || (len(a.extViews.sections) > 0) != on || hasOwner(a.extViews.ticks, "backup") != on || hasOwner(a.extViews.leave, "backup") != on {
 			t.Fatalf("stale contribution cache: on=%v", on)
 		}
 		if on {
@@ -285,4 +285,13 @@ func TestLegacyBookArchiveSettingsMigrateOnceWithoutReplacingExistingFolders(t *
 	if _, err := os.Stat(filepath.Join(bookB, ".writer", "ext.json")); !os.IsNotExist(err) {
 		t.Fatal("local choices leaked into book", err)
 	}
+}
+
+func hasOwner[T any](items []ext.Item[T], owner string) bool {
+	for _, item := range items {
+		if item.Owner == owner {
+			return true
+		}
+	}
+	return false
 }

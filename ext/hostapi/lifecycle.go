@@ -144,12 +144,10 @@ type ChapterEdits struct {
 // ChapterEditStates collects chapter draft close participants.
 const ChapterEditStates ext.PointKey[ChapterEdits] = "host.chapter-edits"
 
-// ChapterOpened contains the node and outline freshly read when a writing tab opens.
+// ChapterOpened contains the node freshly read when a writing tab opens.
 type ChapterOpened struct {
 	// ID is the selected node ID, including folders.
 	ID string
-	// Outline is the outline just read from storage.
-	Outline string
 }
 
 // ChapterOpens notifies frame-thread listeners through ext.Call after a node is read.

@@ -194,7 +194,7 @@ func TestIgnoringPendingKeepsTheMarginAndAILeavesOnlyForeshadowing(t *testing.T)
 		t.Fatal("AI-off margin includes AI data", list)
 	}
 	a.page = pagePlan
-	a.plan.Pane = true
+	outlinePage(a).Pane = true
 	tt.Frame()
 	if a.doc.tab != paneMargin || !tt.HasText("右栏设定标题") || tt.HasText("页边批注") {
 		t.Fatal("outline did not substitute setting while keeping margin")

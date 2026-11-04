@@ -79,7 +79,7 @@ func (a *App) SystemMenu() []SystemMenuItem {
 		for _, entry := range commands {
 			if entry.id == id {
 				c := entry.cmd
-				item := SystemMenuItem{ID: id, Label: c.name(a), Accelerator: systemAccelerator(c), Enabled: c.available(a), Visible: !c.ai || a.aiOn()}
+				item := SystemMenuItem{ID: id, Label: c.name(a), Accelerator: systemAccelerator(c), Enabled: c.available(a), Visible: c.present(a) && (!c.ai || a.aiOn())}
 				if id == "undo" || id == "redo" {
 					item.Role, item.Label = id, ""
 				}

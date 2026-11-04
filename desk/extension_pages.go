@@ -23,7 +23,7 @@ func activityCall(fn func(hostapi.WindowActivity)) func(hostapi.WindowActivity) 
 
 func (a *App) mergePages() {
 	if a.pageIDs == nil {
-		a.pageIDs = map[string]page{"host.talk": pageTalk, "host.write": pageWrite, "host.check": pageCheck, "host.outline": pagePlan}
+		a.pageIDs = map[string]page{"host.talk": pageTalk, "host.write": pageWrite, "host.check": pageCheck, "outline.outline": pagePlan}
 	}
 	for i := range a.pages {
 		if i == int(pagePlan) || i > int(pageCategories) {
@@ -137,8 +137,8 @@ func chapterOpenCall(fn func(hostapi.ChapterOpened)) func(hostapi.ChapterOpened)
 	return func(v hostapi.ChapterOpened) struct{} { fn(v); return struct{}{} }
 }
 
-func (a *App) chapterOpened(id, text string) {
+func (a *App) chapterOpened(id string) {
 	for _, item := range ext.Items(a.extensions, hostapi.ChapterOpens) {
-		_, _ = ext.Call(a.extensions, ext.HookOf(ext.CallPoint[func(hostapi.ChapterOpened), hostapi.ChapterOpened, struct{}]{Point: hostapi.ChapterOpens}, item.ID), hostapi.ChapterOpened{ID: id, Outline: text}, chapterOpenCall(item.Value))
+		_, _ = ext.Call(a.extensions, ext.HookOf(ext.CallPoint[func(hostapi.ChapterOpened), hostapi.ChapterOpened, struct{}]{Point: hostapi.ChapterOpens}, item.ID), hostapi.ChapterOpened{ID: id}, chapterOpenCall(item.Value))
 	}
 }

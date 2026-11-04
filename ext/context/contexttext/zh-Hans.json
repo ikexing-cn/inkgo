@@ -1,0 +1,10 @@
+{
+  "modContext": "资料库",
+  "@modContext": {
+    "description": "「功能」里一个前置扩展的名字，照代码里的 ID 写，不翻。"
+  },
+  "modContextAbout": "存放设定和大纲",
+  "@modContextAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  }
+}

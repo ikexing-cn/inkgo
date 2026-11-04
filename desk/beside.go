@@ -194,14 +194,12 @@ func (a *App) beside() *aiport.Beside {
 		return nil
 	}
 	if n.Folder {
-		return &aiport.Beside{Folder: true, Title: n.Title, VolumeOutline: a.chapterOutlines.ChapterOutline(w.node)}
+		return &aiport.Beside{Folder: true, Title: n.Title, VolumeOutline: a.chapterOutline(w.node)}
 	}
-	out := &aiport.Beside{Title: n.Title, Outline: a.chapterOutlines.ChapterOutline(w.node)}
+	out := &aiport.Beside{Title: n.Title, Outline: a.chapterOutline(w.node)}
 	if p := n.Parent; p != nil && p.Parent != nil {
 		out.Volume = p.Title
-		if vol, err := a.Store.ReadChapter(p.ID); err == nil {
-			out.VolumeOutline = vol.Outline
-		}
+		out.VolumeOutline = a.chapterOutline(p.ID)
 	}
 	if w.cur().ed != nil {
 		s, _ := w.cur().ed.Selection()

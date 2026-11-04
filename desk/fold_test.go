@@ -119,7 +119,7 @@ func TestUnfoldingKeepsTheTopRuleAcrossTheGap(t *testing.T) {
 		for _, side := range []bool{false, true} {
 			a, tt, _ := writingFixture(t, "雨还没有停。")
 			a.page = page
-			a.plan.Pane = true
+			outlinePage(a).Pane = true
 			tt.Frame()
 			close, open := "收起右栏", "展开右栏"
 			if side {

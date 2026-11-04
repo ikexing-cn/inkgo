@@ -159,7 +159,7 @@ func TestProductionDependencyBoundaries(t *testing.T) {
 						}
 					}
 				case strings.HasPrefix(pkg, "writer/desk"):
-					if strings.HasPrefix(imp, "writer/ext/") && imp != "writer/ext/hostapi" {
+					if strings.HasPrefix(imp, "writer/ext/") && imp != "writer/ext/hostapi" && !deskContextImport(pkg, imp) {
 						t.Errorf("%s imports concrete extension %s", pkg, imp)
 					}
 				default:
@@ -259,5 +259,17 @@ func TestModuleDependenciesRejectNonliteralListsInsideFunctions(t *testing.T) {
 				t.Fatal("nonliteral dependencies accepted")
 			}
 		})
+	}
+}
+
+// deskContextImport is temporary: remove after discussion, drafting and continuation
+// move out of desk. Only the host package may consume the context public contract.
+func deskContextImport(pkg, imp string) bool {
+	return pkg == "writer/desk" && imp == "writer/ext/context/contextapi"
+}
+
+func TestDeskContextExceptionDoesNotAllowConcreteOutline(t *testing.T) {
+	if !deskContextImport("writer/desk", "writer/ext/context/contextapi") || deskContextImport("writer/desk", "writer/ext/outline") || deskContextImport("writer/desk/book", "writer/ext/context/contextapi") {
+		t.Fatal("context exception escaped its named boundary")
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 	"writer/desk/book"
 	"writer/desk/kit"
+	"writer/ext/outline/outlinetext"
 	"writer/workspace"
 
 	"writer/locales"
@@ -228,12 +229,12 @@ func (p *Page) View(c *ui.Context) {
 			p.top(c)
 			cards, nodes := p.counts()
 			if q := kit.Trim(p.query); q != "" && cards+nodes == 0 {
-				about := locales.PlanSearchChapters()
+				about := outlinetext.PlanSearchChapters()
 				if p.mode == 1 {
-					about = locales.PlanSearchTimeline()
+					about = outlinetext.PlanSearchTimeline()
 				}
-				p.Services.Palette.Colors().Blank(c, kit.IcSearch, locales.PlanNotFound(q), about, func() {
-					if p.Services.Palette.Colors().Secondary(c, locales.PlanClearSearch()).Label("空页清除搜索").Clicked() {
+				p.Services.Palette.Colors().Blank(c, kit.IcSearch, outlinetext.PlanNotFound(q), about, func() {
+					if p.Services.Palette.Colors().Secondary(c, outlinetext.PlanClearSearch()).Label("空页清除搜索").Clicked() {
 						p.query = ""
 					}
 				})
@@ -258,15 +259,15 @@ func (p *Page) broken(c *ui.Context) {
 	if !p.checksPaused {
 		c.After(p.Services.Book.Content().Timing.CheckEvery - time.Since(p.checked))
 	}
-	title, about, why := locales.PlanReadError(), "", p.Services.Notices.Notices().FormatError(p.loadErr)
+	title, about, why := outlinetext.PlanReadError(), "", p.Services.Notices.Notices().FormatError(p.loadErr)
 	var bad *workspace.PlanError
 	if errors.As(p.loadErr, &bad) {
-		title, about, why = locales.PlanBrokenTitle(), locales.PlanBrokenAbout(), ""
+		title, about, why = outlinetext.PlanBrokenTitle(), outlinetext.PlanBrokenAbout(), ""
 		switch {
 		case bad.Line > 0:
-			why = locales.PlanBrokenLine(bad.Line)
+			why = outlinetext.PlanBrokenLine(bad.Line)
 		case errors.Is(bad.Err, io.ErrUnexpectedEOF):
-			why = locales.PlanBrokenEnd()
+			why = outlinetext.PlanBrokenEnd()
 		}
 	}
 	ui.Row(c).FillWidth().Height(kit.TitleHeight).Padding(0, 16, 0, 24).AlignItems(ui.Center).Shrink(0).BorderWidth(0, 0, 1, 0).BorderColor(pal.Line).Children(func() {
@@ -289,40 +290,40 @@ func (p *Page) top(c *ui.Context) {
 	cards, nodes := p.counts()
 	chs := p.chapters()
 	loose := len(p.cardsOf(""))
-	sum := locales.PlanSummary(len(chs), len(content.Plan().Lines), len(content.Plan().Cards))
+	sum := outlinetext.PlanSummary(len(chs), len(content.Plan().Lines), len(content.Plan().Cards))
 	if loose > 0 {
-		sum = locales.PlanSummaryLoose(len(chs), len(content.Plan().Lines), len(content.Plan().Cards), loose)
+		sum = outlinetext.PlanSummaryLoose(len(chs), len(content.Plan().Lines), len(content.Plan().Cards), loose)
 	}
 	if kit.Trim(p.query) != "" {
 		switch {
 		case nodes > 0 && cards > 0:
-			sum = locales.PlanFoundBoth(nodes, cards)
+			sum = outlinetext.PlanFoundBoth(nodes, cards)
 		case nodes > 0:
-			sum = locales.PlanFoundChapters(nodes)
+			sum = outlinetext.PlanFoundChapters(nodes)
 		case cards > 0:
-			sum = locales.PlanFoundCards(cards)
+			sum = outlinetext.PlanFoundCards(cards)
 		default:
-			sum = locales.PlanNoResults()
+			sum = outlinetext.PlanNoResults()
 		}
 	}
 	ui.Row(c).FillWidth().Height(kit.TitleHeight).Padding(0, 16, 0, 24).Gap(12).AlignItems(ui.Center).Shrink(0).BorderWidth(0, 0, 1, 0).BorderColor(pal.Line).Children(func() {
 		ui.Text(c, locales.PagePlan()).FontSize(kit.FsBody).FontWeight(600).SingleLine()
 		ui.Text(c, sum).FontSize(kit.FsNote).TextColor(pal.Theme.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
-		hint := locales.PlanSearchCardsAndOutlines()
+		hint := outlinetext.PlanSearchCardsAndOutlines()
 		if p.mode == 1 {
-			hint = locales.PlanSearchCards()
+			hint = outlinetext.PlanSearchCards()
 		}
 		ui.Row(c).Width(planCardWidth).Height(kit.HControlSm).AlignItems(ui.Center).Gap(6).Padding(0, 8).Radius(kit.RControl).Border(1, pal.Theme.Border).Children(func() {
 			kit.Glyph(c, kit.IcSearch, kit.IconSm, pal.Faint)
-			ui.TextInputBase(c, &p.query).Label(locales.PlanSearch()).Placeholder(hint).FontSize(kit.FsControl).Grow(1).Shrink(1)
+			ui.TextInputBase(c, &p.query).Label(outlinetext.PlanSearch()).Placeholder(hint).FontSize(kit.FsControl).Grow(1).Shrink(1)
 			if p.query != "" {
-				if kit.IconButton(c, kit.IcX, locales.PlanClearSearch(), ui.Color{}).Size(kit.HTag, kit.HTag).Clicked() {
+				if kit.IconButton(c, kit.IcX, outlinetext.PlanClearSearch(), ui.Color{}).Size(kit.HTag, kit.HTag).Clicked() {
 					p.query = ""
 				}
 			}
 		})
 		was := p.mode
-		pal.Segments(c, &p.mode, locales.PlanViewAria(), []string{locales.PlanByChapter(), locales.PlanTimelineView()})
+		pal.Segments(c, &p.mode, outlinetext.PlanViewAria(), []string{outlinetext.PlanByChapter(), outlinetext.PlanTimelineView()})
 		if was != p.mode {
 			p.FinishOutline()
 			p.finishLine()
@@ -358,8 +359,8 @@ func (p *Page) ChapterStory(c *ui.Context) {
 	if when == "" {
 		return
 	}
-	if p.Services.Palette.Colors().Ghost(c, locales.PlanWhenNote(when), ui.Color{}).Clicked() {
-		p.Services.Desktop.ShowPage("host.outline")
+	if p.Services.Palette.Colors().Ghost(c, outlinetext.PlanWhenNote(when), ui.Color{}).Clicked() {
+		p.Services.Desktop.ShowPage("outline.outline")
 		p.mode = 1
 		p.query = ""
 		p.loaded = false

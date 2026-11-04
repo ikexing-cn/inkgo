@@ -30,9 +30,9 @@ func savedText(a *App) string { return a.write.cur().saved }
 
 func savedVersion(a *App) int { return a.write.cur().savedVer }
 
-func chapterOutline(a *App) string { return a.plan.Draft(a.write.node).Text }
+func chapterOutline(a *App) string { return outlinePage(a).Draft(a.write.node).Text }
 
-func setChapterOutline(a *App, s string) { a.plan.Draft(a.write.node).Text = s }
+func setChapterOutline(a *App, s string) { outlinePage(a).Draft(a.write.node).Text = s }
 
 func diskChanged(a *App) bool { return a.write.cur().external != nil }
 

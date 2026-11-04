@@ -178,7 +178,7 @@ func (a *App) openNode(id string) {
 		w.node = ""
 		return
 	}
-	a.chapterOpened(id, ch.Outline)
+	a.chapterOpened(id)
 	switch {
 	case n.Folder:
 		w.gists = a.gistsIn(n)
@@ -245,7 +245,7 @@ func (a *App) gistsIn(n *workspace.Node) map[string]string {
 		if err != nil {
 			continue
 		}
-		gist := ch.Outline
+		gist := a.chapterOutline(child.ID)
 		if strings.TrimSpace(gist) == "" {
 			gist = ch.Text
 		}

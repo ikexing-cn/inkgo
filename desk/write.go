@@ -463,7 +463,6 @@ func (a *App) folderView(c *ui.Context, n *workspace.Node) {
 		ui.Column(c).FillWidth().AlignItems(ui.Center).Padding(32, editor.PadX, 32, editor.PadX).Children(func() {
 			ui.Column(c).FillWidth().MaxWidth(720).Gap(14).Children(func() {
 				ui.Text(c, n.Title).FontSize(kit.FsTitle).FontWeight(700)
-				ui.Text(c, locales.EditorVolumeOutline()).FontSize(kit.FsControl).FontWeight(600).TextColor(t.TextMuted)
 				a.chapterHead(c)
 				ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(8, 0, 0, 0).Children(func() {
 					ui.Text(c, locales.EditorItems(len(n.Children))).FontSize(kit.FsControl).FontWeight(600).TextColor(t.TextMuted).Grow(1)

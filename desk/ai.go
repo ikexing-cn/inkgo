@@ -111,6 +111,9 @@ func (a *App) rewrite(c *ui.Context) {
 }
 
 func (a *App) openDraft() {
+	if _, present := a.outlineValue(a.write.node); !present {
+		return
+	}
 	w := &a.write
 	a.flush()
 	w.draftOpen, w.words, w.draftMode = true, "", draftAppend
@@ -240,7 +243,7 @@ func (a *App) draftView(c *ui.Context) {
 			}
 			a.pal.DialogHead(c, locales.CmdDraft(), locales.DraftAbout(head, locales.DraftAboutFlow()))
 			ui.Box(c).FillWidth().Padding(10, 12).Radius(kit.RControl).Background(a.pal.Side).Children(func() {
-				ui.Text(c, strings.TrimSpace(a.chapterOutlines.ChapterOutline(w.node))).FontSize(kit.FsControl).TextColor(t.TextMuted).LineHeight(kit.LhLoose).FillWidth()
+				ui.Text(c, strings.TrimSpace(a.chapterOutline(w.node))).FontSize(kit.FsControl).TextColor(t.TextMuted).LineHeight(kit.LhLoose).FillWidth()
 			})
 			_, fits := prefs.CountOrNone(w.words)
 			kit.Labeled(c, locales.DraftGoal(), func() {
