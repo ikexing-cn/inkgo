@@ -10,6 +10,8 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
+	"writer/ext"
+	"writer/ext/hostapi"
 	"writer/locales"
 	"writer/workspace"
 )
@@ -27,46 +29,36 @@ func (a *App) checkActions(it checkItem) []noteAction {
 		leave.label = locales.CheckIgnore()
 		return []noteAction{leave, {locales.CheckAddToSettings(), func() { a.takeFound(it) }}}
 	case workspace.FindConflict:
+		if !a.entryNavigationAvailable() {
+			return []noteAction{leave, prose}
+		}
 		return []noteAction{leave, {locales.CheckEditSetting(), func() {
 			a.findInChapter(it.node, it.f.Quote)
-			a.doc.tab, a.doc.hidden = paneSetting, false
-			a.doc.route.jumpToEntry(it.entry.ID)
-			a.editSetting(it.entry)
+			a.entryNavigation(func(n hostapi.EntryNavigation) { n.Edit(it.entry) })
 			a.savePrefs()
 		}}, prose}
 	}
 	return []noteAction{leave, prose}
 }
 
-func (a *App) editSetting(e workspace.Entry) {
-	d := &a.doc
-	d.route.editEntry(e.ID)
-	d.text, d.category, d.name, d.names = e.Text, e.Category, "", ""
-	if len(e.Names) > 0 {
-		d.name, d.names = e.Names[0], strings.Join(e.Names[1:], "、")
-	}
-}
-
-func (a *App) changeActions(it workspace.Idea) []noteAction {
-	return []noteAction{
-		{locales.CheckIgnore(), func() {
-			a.undoSetting(locales.CheckIgnored(), workspace.Op{Op: workspace.OpDropChange, Entry: it.Entry.ID, Change: it.Change.ID})
-		}},
-		{locales.EditorAccept(), func() { a.takeChange(it.Entry, it.Change) }},
-	}
-}
-
 type marginNote struct {
+	idea                  *workspace.Idea
 	id, kind, title, text string
 	start, end            int
 	warn                  bool
 	check                 *checkItem
-	idea                  *workspace.Idea
 	fore                  string
+	open                  func()
+	actions               []noteAction
+}
+
+type marginKey struct {
+	doubtKey
+	changes uint64
 }
 
 type marginState struct {
-	notes    cached[doubtKey, []marginNote]
+	notes    cached[marginKey, []marginNote]
 	boxes    map[string]ui.Rect
 	top      float32
 	lit      string
@@ -90,7 +82,7 @@ type marginDeparture struct {
 // Positions on each frame then cost one lookup per note, not per character.
 func (a *App) marginNotes() []marginNote {
 	m := &a.write.margin
-	return m.notes.get(doubtKey{a.checkKey(), a.aiOn()}, func() []marginNote {
+	return m.notes.get(marginKey{doubtKey{a.checkKey(), a.aiOn()}, a.extensions.Changes()}, func() []marginNote {
 		ed := a.write.cur().ed
 		if ed == nil {
 			return nil
@@ -141,21 +133,24 @@ func (a *App) marginNotes() []marginNote {
 				}
 			}
 		}
-		for _, it := range a.ideas() {
-			if it.Change.ID == "" || it.Change.From != a.write.node {
+		for _, item := range ext.Items(a.extensions, hostapi.MarginSources) {
+			var notes []hostapi.MarginItem
+			if ext.Guard(a.extensions, item.Owner, item.ID, func() { notes = item.Value.Notes(a.write.node, text) }) != nil {
 				continue
 			}
-			start, end := 0, 0
-			for _, name := range it.Entry.Names {
-				if s, e, ok := span(name); ok && (end == 0 || s < start) {
-					start, end = s, e
+			for _, v := range notes {
+				v := v
+				owner := item.Owner
+				n := marginNote{idea: v.Idea, id: v.ID, kind: v.Kind, title: v.Title, text: v.Text, start: v.Start, end: v.End, warn: v.Warn}
+				if v.Open != nil {
+					n.open = func() { _ = ext.Guard(a.extensions, owner, v.ID, v.Open) }
 				}
+				for _, action := range v.Actions {
+					action := action
+					n.actions = append(n.actions, noteAction{action.Label, func() { _ = ext.Guard(a.extensions, owner, v.ID, action.Run) }})
+				}
+				out = append(out, n)
 			}
-			name := shortName(it.Entry)
-			if len(it.Entry.Names) > 0 {
-				name = it.Entry.Names[0]
-			}
-			out = append(out, marginNote{id: "idea-" + it.ID(), kind: locales.NotesKindIdea(), title: locales.NotesLoreChanged(name), text: it.Change.Text, start: start, end: end, warn: true, idea: &it})
 		}
 		slices.SortStableFunc(out, func(x, y marginNote) int { return cmp.Compare(x.start, y.start) })
 		return out
@@ -169,10 +164,9 @@ func (a *App) openMarginNote(n marginNote) {
 		a.openCheck(n.check.f.ID)
 	case n.fore != "":
 		a.showFore(n.fore)
-	case n.idea != nil:
-		a.doc.tab = paneSetting
-		a.doc.route.jumpToWaiting()
-		a.savePrefs()
+	case n.open != nil:
+		n.open()
+
 	}
 }
 
@@ -294,8 +288,8 @@ func (a *App) marginPanel(c *ui.Context) {
 				var acts []noteAction
 				if n.check != nil {
 					acts = a.checkActions(*n.check)
-				} else if n.idea != nil {
-					acts = a.changeActions(*n.idea)
+				} else {
+					acts = n.actions
 				}
 				if len(acts) > 0 {
 					ui.Row(c).FillWidth().Gap(16).Margin(6, 0, 0, 0).Justify(ui.End).Children(func() {

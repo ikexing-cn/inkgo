@@ -23,7 +23,7 @@ func activityCall(fn func(hostapi.WindowActivity)) func(hostapi.WindowActivity) 
 
 func (a *App) mergePages() {
 	if a.pageIDs == nil {
-		a.pageIDs = map[string]page{"host.talk": pageTalk, "host.write": pageWrite, "host.check": pageCheck, "outline.outline": pagePlan}
+		a.pageIDs = map[string]page{"host.categories": pageCategories, "host.talk": pageTalk, "host.write": pageWrite, "host.check": pageCheck, "outline.outline": pagePlan}
 	}
 	for i := range a.pages {
 		if i == int(pagePlan) || i > int(pageCategories) {

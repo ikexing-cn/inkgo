@@ -149,24 +149,24 @@ func TestRenameOffersToReplace(t *testing.T) {
 	a.revise(workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "主角修路灯"})
 	e := setting(a).Entries[len(setting(a).Entries)-1]
 	editEntry(a, e.ID)
-	a.doc.text, a.doc.category, a.doc.names = e.Text, e.Category, " 林晚、晚晚，林晚"
+	lorePanel(a).Doc.Text, lorePanel(a).Doc.Category, lorePanel(a).Doc.Names = e.Text, e.Category, " 林晚、晚晚，林晚"
 	tt.Frame()
 	if err := tt.Click("保存"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if e, _ = setting(a).Entry(e.ID); !slices.Equal(e.Names, []string{"林晚", "晚晚"}) || a.renamed.count != 0 {
-		t.Fatal("names", e.Names, a.renamed)
+	if e, _ = setting(a).Entry(e.ID); !slices.Equal(e.Names, []string{"林晚", "晚晚"}) || lorePanel(a).RenameCount() != 0 {
+		t.Fatal("names", e.Names, lorePanel(a).RenameCount())
 	}
 	editEntry(a, e.ID)
-	a.doc.text, a.doc.category, a.doc.names = e.Text, e.Category, "苏晴、晚晚"
+	lorePanel(a).Doc.Text, lorePanel(a).Doc.Category, lorePanel(a).Doc.Names = e.Text, e.Category, "苏晴、晚晚"
 	tt.Frame()
 	if err := tt.Click("保存"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
 	if !tt.HasText("正文中仍有 2 处「林晚」") {
-		t.Fatal("no notice", a.renamed, tt.Texts())
+		t.Fatal("no notice", lorePanel(a).RenameCount(), tt.Texts())
 	}
 	if err := tt.Click("将旧名替换为新名"); err != nil {
 		t.Fatal(err)

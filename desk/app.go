@@ -12,6 +12,7 @@ import (
 	"writer/desk/kit"
 	"writer/editor"
 	"writer/ext"
+	"writer/ext/hostapi"
 	"writer/locales"
 	"writer/shelf"
 	"writer/workspace"
@@ -65,7 +66,6 @@ type App struct {
 	offFrom           page              // the page of the AI the prose took the place of as the AI was turned off,
 	offAway           bool              // while there is one
 	shown             page              // the page the last frame showed
-	renamed           renamed           // a name the prose still has after the author renamed it
 	leftWriting       bool              // the work was last on the writing page, not the discussion
 	toastShown        map[string]string // what each toast shows, by its id
 	toastsOpen        bool              // the folded toasts opened
@@ -178,7 +178,7 @@ func New(ai aiport.Service, mods ...ext.Module) *App {
 			}
 		},
 		func() { a.write.draftOpen, a.write.rewriting = false, false },
-		a.doc.route.closeWaiting,
+		func() { a.entryNavigation(func(n hostapi.EntryNavigation) { n.CloseWaiting() }) },
 		a.status.Clear,
 	}
 	if ai.ConfigFile() != "" {

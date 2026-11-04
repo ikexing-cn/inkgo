@@ -3,6 +3,7 @@ package export
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/book"
@@ -114,3 +115,7 @@ func (s testSettings) Load(ext.Book, string) ([]byte, bool) {
 func (s testSettings) Save(_ ext.Book, _ string, data []byte) {
 	_ = json.Unmarshal(data, &s.h.prefs.Export)
 }
+
+func (h *testHost) Flashed(string) (time.Time, bool) { return time.Time{}, false }
+
+func (h *testHost) ClearFlash(string) {}

@@ -1,4 +1,4 @@
-package desk
+package lore
 
 import (
 	"slices"
@@ -20,12 +20,12 @@ func shortName(e workspace.Entry) string {
 
 // here is the node the setting is read at: the chapter or volume open on
 // the writing page; elsewhere none, and entries read as they do now.
-func (a *App) here() string {
-	if a.page != pageWrite {
+func (a *Panel) here() string {
+	if !a.services.Desktop.Writing() {
 		return ""
 	}
-	if _, ok := a.book.Tree().Node(a.write.node); ok {
-		return a.write.node
+	if _, ok := a.services.Book.Content().Tree().Node(a.selected()); ok {
+		return a.selected()
 	}
 	return ""
 }
@@ -63,8 +63,8 @@ func nodeChoices(tree workspace.Tree) (names []string, ids map[string]string) {
 // reads as marked 本章适用; then each whose chapter is gone, which holds
 // no more. With a chapter or volume open, a change can be noted from it,
 // or the one from it is changed.
-func (a *App) timeline(c *ui.Context, e workspace.Entry) {
-	d, t, tree := &a.doc, a.pal.Theme, a.book.Tree()
+func (a *Panel) timeline(c *ui.Context, e workspace.Entry) {
+	d, t, tree := &a.Doc, a.services.Palette.Colors().Theme, a.services.Book.Content().Tree()
 	o, here := tree.Order(), a.here()
 	hold := e.Holding(o)
 	var gone []workspace.Change
@@ -75,28 +75,28 @@ func (a *App) timeline(c *ui.Context, e workspace.Entry) {
 	}
 	on, holds := e.At(o, here)
 	open := func(g workspace.Change) {
-		d.route.editChange(g.ID)
-		d.from, d.text = g.From, g.Text
+		d.Route.EditChange(g.ID)
+		d.From, d.Text = g.From, g.Text
 	}
 	add := func() {
 		label := locales.LoreChangeFromChapter()
 		if n, _ := tree.Node(here); n != nil && n.Folder {
 			label = locales.LoreChangeFromVolume()
 		}
-		if a.pal.Ghost(c, label, ui.Color{}).Clicked() {
-			d.route.editChange("new")
-			d.from, d.text = here, e.ReadingBefore(o, here)
+		if a.services.Palette.Colors().Ghost(c, label, ui.Color{}).Clicked() {
+			d.Route.EditChange("new")
+			d.From, d.Text = here, e.ReadingBefore(o, here)
 		}
 	}
 	mine := here != "" && slices.ContainsFunc(hold, func(g workspace.Change) bool { return g.From == here })
 	if len(hold)+len(gone) == 0 {
 		if here != "" {
-			a.pal.Hairline(c)
+			a.services.Palette.Colors().Hairline(c)
 			ui.Row(c).FillWidth().Children(add)
 		}
 		return
 	}
-	a.pal.Hairline(c)
+	a.services.Palette.Colors().Hairline(c)
 	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, locales.LoreChanges()).FontSize(kit.FsNote).FontWeight(600)
 		ui.Spacer(c)
@@ -105,22 +105,22 @@ func (a *App) timeline(c *ui.Context, e workspace.Entry) {
 		}
 	})
 	if here != "" && !holds {
-		a.pal.PaneNote(c, locales.LoreOriginalHere())
+		a.services.Palette.Colors().PaneNote(c, locales.LoreOriginalHere())
 	}
 	step := func(g workspace.Change, label string, current, faded bool) {
 		ui.Column(c.Key(g.ID)).FillWidth().Gap(4).Children(func() {
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 				ui.Text(c, label).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 				if current {
-					ui.Text(c, locales.LoreHere()).FontSize(kit.FsSmall).TextColor(a.pal.Ink).Padding(0, 6).Radius(kit.RXs).Background(t.SurfacePressed).Shrink(0)
+					ui.Text(c, locales.LoreHere()).FontSize(kit.FsSmall).TextColor(a.services.Palette.Colors().Ink).Padding(0, 6).Radius(kit.RXs).Background(t.SurfacePressed).Shrink(0)
 				}
-				if a.pal.Ghost(c, locales.CommonEdit(), ui.Color{}).Label("修改变化-" + g.ID).Clicked() {
+				if a.services.Palette.Colors().Ghost(c, locales.CommonEdit(), ui.Color{}).Label("修改变化-" + g.ID).Clicked() {
 					open(g)
 				}
 			})
 			text := ui.Text(c, g.Text).FontSize(kit.FsBody).LineHeight(kit.LhLoose).Selectable().FillWidth()
 			if faded {
-				text.TextColor(a.pal.Faint)
+				text.TextColor(a.services.Palette.Colors().Faint)
 			}
 		})
 	}
@@ -136,75 +136,75 @@ func (a *App) timeline(c *ui.Context, e workspace.Entry) {
 // the change open: from which chapter, and all the entry says from then.
 // Saving one from a chapter that has one already puts it in that one's
 // place.
-func (a *App) changeForm(c *ui.Context, e workspace.Entry) {
-	d, tree := &a.doc, a.book.Tree()
+func (a *Panel) changeForm(c *ui.Context, e workspace.Entry) {
+	d, tree := &a.Doc, a.services.Book.Content().Tree()
 	name := shortName(e)
-	if back, _ := a.pal.PaneBack(c, name, ""); back {
-		d.route.closeChange()
+	if back, _ := a.services.Palette.Colors().PaneBack(c, name, ""); back {
+		d.Route.CloseChange()
 	}
-	a.pal.PanePage(c, "change-"+e.ID, func() {
-		ui.Text(c, name+" · "+kit.FromLabel(tree, d.from)).FontSize(kit.FsGroup).FontWeight(600)
+	a.services.Palette.Colors().PanePage(c, "change-"+e.ID, func() {
+		ui.Text(c, name+" · "+kit.FromLabel(tree, d.From)).FontSize(kit.FsGroup).FontWeight(600)
 		note := locales.LoreChangeNoteNoAi()
-		if a.aiOn() {
+		if a.services.AI.AIEnabled() {
 			note = locales.LoreChangeNoteAi()
 		}
-		a.pal.PaneNote(c, note)
-		a.pal.PaneField(c, locales.LoreFromChapter(), func() {
+		a.services.Palette.Colors().PaneNote(c, note)
+		a.services.Palette.Colors().PaneField(c, locales.LoreFromChapter(), func() {
 			names, ids := nodeChoices(tree)
 			chosen := locales.AppChapterGone()
 			for n, id := range ids {
-				if id == d.from {
+				if id == d.From {
 					chosen = n
 				}
 			}
-			if a.pal.Select(c, &chosen, names).Label(locales.LoreFromChapter()).FillWidth().Changed() {
-				d.from = ids[chosen]
+			if a.services.Palette.Colors().Select(c, &chosen, names).Label(locales.LoreFromChapter()).FillWidth().Changed() {
+				d.From = ids[chosen]
 			}
 		})
-		a.pal.PaneField(c, locales.LoreContent(), func() {
-			ui.TextAreaBase(c, &d.text).Label(locales.LoreChangedText()).FillWidth().Height(120).FontSize(kit.FsBody).LineHeight(kit.LhLoose).
-				Padding(8, 10).Radius(kit.RControl).Background(a.pal.Canvas).Border(1, a.pal.Theme.Border).AutoFocus()
+		a.services.Palette.Colors().PaneField(c, locales.LoreContent(), func() {
+			ui.TextAreaBase(c, &d.Text).Label(locales.LoreChangedText()).FillWidth().Height(120).FontSize(kit.FsBody).LineHeight(kit.LhLoose).
+				Padding(8, 10).Radius(kit.RControl).Background(a.services.Palette.Colors().Canvas).Border(1, a.services.Palette.Colors().Theme.Border).AutoFocus()
 		})
-		text := kit.Trim(d.text)
-		change := d.route.changeID()
+		text := kit.Trim(d.Text)
+		change := d.Route.ChangeID()
 		was := slices.IndexFunc(e.Changes, func(g workspace.Change) bool { return g.ID == change })
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-			if was >= 0 && a.pal.Ghost(c, locales.LoreDropChange(), a.pal.Theme.Danger).Clicked() {
+			if was >= 0 && a.services.Palette.Colors().Ghost(c, locales.LoreDropChange(), a.services.Palette.Colors().Theme.Danger).Clicked() {
 				a.revise(workspace.Op{Op: workspace.OpDropChange, Entry: e.ID, Change: change})
-				d.route.closeChange()
+				d.Route.CloseChange()
 				return
 			}
 			ui.Spacer(c)
-			if a.pal.PaneButton(c, locales.ToastCancel(), false).Clicked() {
-				d.route.closeChange()
+			if a.services.Palette.Colors().PaneButton(c, locales.ToastCancel(), false).Clicked() {
+				d.Route.CloseChange()
 			}
-			if !a.pal.PaneButton(c, locales.CmdSave(), true).Disabled(text == "").Clicked() {
+			if !a.services.Palette.Colors().PaneButton(c, locales.CmdSave(), true).Disabled(text == "").Clicked() {
 				return
 			}
 			var ops []workspace.Op
-			_, inTree := tree.Node(d.from)
+			_, inTree := tree.Node(d.From)
 			for _, g := range e.Changes {
-				if g.ID != change && g.Place == workspace.PlaceBody && g.From == d.from && inTree {
+				if g.ID != change && g.Place == workspace.PlaceBody && g.From == d.From && inTree {
 					ops = append(ops, workspace.Op{Op: workspace.OpDropChange, Entry: e.ID, Change: g.ID})
 				}
 			}
 			if was < 0 {
-				ops = append(ops, workspace.Op{Op: workspace.OpChange, Entry: e.ID, From: d.from, Place: workspace.PlaceBody, Text: text})
-			} else if g := e.Changes[was]; g.Text != text || g.From != d.from {
+				ops = append(ops, workspace.Op{Op: workspace.OpChange, Entry: e.ID, From: d.From, Place: workspace.PlaceBody, Text: text})
+			} else if g := e.Changes[was]; g.Text != text || g.From != d.From {
 				op := workspace.Op{Op: workspace.OpEditChange, Entry: e.ID, Change: g.ID}
 				if g.Text != text {
 					op.Text = text
 				}
-				if g.From != d.from {
-					op.From = d.from
+				if g.From != d.From {
+					op.From = d.From
 				}
 				ops = append(ops, op)
 			}
 			if len(ops) > 0 {
 				a.revise(ops...)
 			}
-			if a.errorText() == "" {
-				d.route.closeChange()
+			if a.services.Notices.Notices().ErrorText() == "" {
+				d.Route.CloseChange()
 			}
 		})
 	})
@@ -212,12 +212,12 @@ func (a *App) changeForm(c *ui.Context, e workspace.Entry) {
 
 // takeChange is the author taking the AI's change g of e: it holds from
 // its chapter on, in the place of one that holds from there.
-func (a *App) takeChange(e workspace.Entry, g workspace.Change) {
+func (a *Panel) takeChange(e workspace.Entry, g workspace.Change) {
 	var ops []workspace.Op
 	for _, x := range e.Changes {
 		if x.ID != g.ID && x.Place == workspace.PlaceBody && x.From == g.From {
 			ops = append(ops, workspace.Op{Op: workspace.OpDropChange, Entry: e.ID, Change: x.ID})
 		}
 	}
-	a.undoSetting(locales.LoreNotedTo(shortName(e), kit.FromLabel(a.book.Tree(), g.From)), append(ops, workspace.Op{Op: workspace.OpEditChange, Entry: e.ID, Change: g.ID, Place: workspace.PlaceBody})...)
+	a.services.Edits.UndoRevision(locales.LoreNotedTo(shortName(e), kit.FromLabel(a.services.Book.Content().Tree(), g.From)), append(ops, workspace.Op{Op: workspace.OpEditChange, Entry: e.ID, Change: g.ID, Place: workspace.PlaceBody})...)
 }

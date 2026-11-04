@@ -43,34 +43,34 @@ func openTabs(a *App) []string { return a.write.tabs }
 func markUnchecked(a *App) { a.write.checked = time.Time{} }
 
 // The setting panel.
-func shownEntry(a *App) string { return a.doc.route.entry() }
+func shownEntry(a *App) string { return lorePanel(a).Doc.Route.Entry() }
 
-func showEntry(a *App, id string) { a.doc.route.openEntry(id) }
+func showEntry(a *App, id string) { lorePanel(a).Doc.Route.OpenEntry(id) }
 
-func historyShown(a *App) bool { return a.doc.route.showingHistory() }
+func historyShown(a *App) bool { return lorePanel(a).Doc.Route.ShowingHistory() }
 
-func editingEntry(a *App) string { return a.doc.route.editID() }
+func editingEntry(a *App) string { return lorePanel(a).Doc.Route.EditID() }
 
-func editEntry(a *App, id string) { a.doc.tab = paneSetting; a.doc.route.editEntry(id) }
+func editEntry(a *App, id string) { a.doc.tab = paneSetting; lorePanel(a).Doc.Route.EditEntry(id) }
 
-func editChange(a *App, id string) { a.doc.route.editChange(id) }
+func editChange(a *App, id string) { lorePanel(a).Doc.Route.EditChange(id) }
 
-func todoShown(a *App) bool { return a.doc.route.showingWaiting() }
+func todoShown(a *App) bool { return lorePanel(a).Doc.Route.ShowingWaiting() }
 
 func showHistory(a *App, on bool) {
 	if on {
-		a.doc.route.showHistory()
+		lorePanel(a).Doc.Route.ShowHistory()
 	} else {
-		a.doc.route.closeHistory()
+		lorePanel(a).Doc.Route.CloseHistory()
 	}
 }
 
 func showTodo(a *App, on bool) {
 	a.doc.tab = paneSetting
 	if on {
-		a.doc.route.showWaiting()
+		lorePanel(a).Doc.Route.ShowWaiting()
 	} else {
-		a.doc.route.closeWaiting()
+		lorePanel(a).Doc.Route.CloseWaiting()
 	}
 }
 

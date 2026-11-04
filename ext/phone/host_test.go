@@ -2,6 +2,7 @@ package phone
 
 import (
 	"testing"
+	"time"
 
 	"encoding/json"
 	"github.com/egoist/mygo/ui"
@@ -121,3 +122,7 @@ func (s testSettings) Save(_ ext.Book, _ string, data []byte) { json.Unmarshal(d
 func (h *testHost) Store() *workspace.Store { return h.store }
 
 func (h *testHost) Flush() {}
+
+func (h *testHost) Flashed(string) (time.Time, bool) { return time.Time{}, false }
+
+func (h *testHost) ClearFlash(string) {}

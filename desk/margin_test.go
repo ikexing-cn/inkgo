@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 	"unicode/utf8"
+	"writer/desk/lore"
 
 	"github.com/egoist/mygo/ui"
 	"writer/editor"
@@ -160,10 +161,10 @@ func TestMarginActionsUndoAndOpenTheirDetails(t *testing.T) {
 		t.Fatal("modify prose destination")
 	}
 	click(t, tt, "批注-check-conflict-修改设定")
-	if a.doc.tab != paneSetting || a.doc.route.editID() == "" || a.doc.text != "林晚怕黑" {
+	if a.doc.tab != paneSetting || lorePanel(a).Doc.Route.EditID() == "" || lorePanel(a).Doc.Text != "林晚怕黑" {
 		t.Fatal("modify setting destination")
 	}
-	a.doc.route = settingRoute{}
+	lorePanel(a).Doc.Route = lore.Route{}
 	click(t, tt, "右栏-批注", "批注-check-name")
 	if a.page != pageCheck || a.ck.shown != "name" {
 		t.Fatal("finding detail destination")
@@ -176,7 +177,7 @@ func TestMarginActionsUndoAndOpenTheirDetails(t *testing.T) {
 		t.Fatal("foreshadow detail destination")
 	}
 	click(t, tt, "右栏-批注", "批注-"+id)
-	if a.doc.tab != paneSetting || !a.doc.route.showingWaiting() {
+	if a.doc.tab != paneSetting || !lorePanel(a).Doc.Route.ShowingWaiting() {
 		t.Fatal("setting suggestion destination")
 	}
 }

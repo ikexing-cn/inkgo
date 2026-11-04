@@ -11,6 +11,17 @@ import (
 )
 
 func declareLifecycle(r *ext.Registrar, a *App) {
+	h := extensionHost{a}
+	ext.Provide(r, hostapi.TalkService, func(*ext.Session) hostapi.Talk { return h })
+	ext.Provide(r, hostapi.SearchService, func(*ext.Session) hostapi.Search { return h })
+	ext.Provide(r, hostapi.AIService, func(*ext.Session) hostapi.AI { return h })
+	ext.Provide(r, hostapi.RevisionsService, func(*ext.Session) hostapi.Revisions { return h })
+	ext.Declare(r, hostapi.SelectionMenus)
+	ext.DeclareCalls(r, hostapi.SelectionMenus, selectionMenuCall)
+	ext.Declare(r, hostapi.BesideItems)
+	ext.DeclareCalls(r, hostapi.BesideItems, drawItemCall)
+	ext.Declare(r, hostapi.MarginSources)
+
 	ext.Declare(r, hostapi.ChapterOpens)
 	ext.DeclareCalls(r, hostapi.ChapterOpens, chapterOpenCall)
 	ext.Declare(r, hostapi.ChapterEditStates)

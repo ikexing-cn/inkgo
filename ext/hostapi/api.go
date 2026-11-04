@@ -3,6 +3,7 @@ package hostapi
 
 import (
 	"github.com/egoist/mygo/ui"
+	"time"
 
 	"writer/desk/book"
 	"writer/desk/kit"
@@ -58,6 +59,14 @@ type Command struct {
 // Available on the frame thread; nil Available means visible. Draw runs through
 // ext.Call in the frame and must not retain Context or frame elements.
 type PaneTab struct {
+	// Key optionally preserves an existing desktop preference identity. Empty uses the contribution ID.
+	Key string
+	// Before places this tab before a qualified pane ID; empty appends.
+	Before string
+	// Fallback makes this tab the default when no chosen pane is available.
+	Fallback bool
+	// Count queries the badge on the frame thread through ext.Guard.
+	Count     func() int
 	Title     func() string
 	Draw      func(*ui.Context)
 	Available func() bool
@@ -91,6 +100,12 @@ type Page struct {
 
 // Book exposes current book content to extensions on the frame thread only.
 type Book interface {
+	// Flashed returns when book content last received a recent-change notice.
+	// Call directly on the frame thread, without ext.Call or ext.Guard.
+	Flashed(string) (time.Time, bool)
+	// ClearFlash removes that content notice. Call directly on the frame thread,
+	// without ext.Call or ext.Guard; this does not change persisted book data.
+	ClearFlash(string)
 	// Store returns the current store, or nil on the shelf; frame thread only.
 	Store() *workspace.Store
 	// Content returns borrowed UI content, or nil on the shelf; frame thread only.
@@ -116,8 +131,16 @@ type Palette interface {
 
 // Pane is called by extensions on the frame thread only.
 type Pane interface {
-	// Show opens the right pane, selects a fully qualified tab ID and exits focus.
+	// Show opens the right pane, selects a qualified tab ID (or its preserved
+	// preference Key), exits focus and saves the choice. Selecting a non-talk
+	// tab closes the conversation list. Call directly on the frame thread,
+	// without ext.Call or ext.Guard.
 	Show(tab string)
+	// RevealPane selects a tab and unfolds the current page's column, including
+	// a contributed page's column. It preserves focus and does not save the new
+	// selection. Selecting a non-talk tab closes the conversation list. Call
+	// directly on the frame thread, without ext.Call or ext.Guard.
+	RevealPane(tab string)
 }
 
 // Commands collects commands; desk enumerates it on the frame thread.

@@ -192,7 +192,7 @@ func TestTheAuthorEditsTheSetting(t *testing.T) {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
-	a.doc.text, a.doc.category = "主角怕安静", "关系"
+	lorePanel(a).Doc.Text, lorePanel(a).Doc.Category = "主角怕安静", "关系"
 	tt.Frame()
 	if err := tt.Click("保存"); err != nil {
 		t.Fatal(err)
@@ -235,7 +235,7 @@ func TestTheAuthorEditsTheSetting(t *testing.T) {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
-	a.doc.text = "雨从不停"
+	lorePanel(a).Doc.Text = "雨从不停"
 	if err := tt.Click("保存"); err != nil {
 		t.Fatal(err)
 	}

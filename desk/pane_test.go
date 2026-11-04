@@ -64,12 +64,12 @@ func TestSettingListAndPage(t *testing.T) {
 
 	// Searching only finds.
 	n := len(setting(a).Entries)
-	a.doc.query = "左手"
+	lorePanel(a).Doc.Query = "左手"
 	tt.Frame()
 	if !tt.HasText("找到 1 条") || tt.HasText("铜钥匙") || len(setting(a).Entries) != n {
 		t.Fatal("the search", tt.Texts())
 	}
-	a.doc.query = ""
+	lorePanel(a).Doc.Query = ""
 	tt.Frame()
 
 	if err := tt.Click("设定-" + ids.zhou); err != nil {
@@ -133,11 +133,11 @@ func TestAQuestionIsAnswered(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Frame()
-	if !tt.HasText("回答") || !tt.HasText(q) || tt.HasText("新增设定") || !tt.Focused("设定内容") || a.doc.name != "林晚" || a.doc.names != "小晚" {
-		t.Fatal("the form", a.doc.name, a.doc.names, tt.Texts())
+	if !tt.HasText("回答") || !tt.HasText(q) || tt.HasText("新增设定") || !tt.Focused("设定内容") || lorePanel(a).Doc.Name != "林晚" || lorePanel(a).Doc.Names != "小晚" {
+		t.Fatal("the form", lorePanel(a).Doc.Name, lorePanel(a).Doc.Names, tt.Texts())
 	}
 	const answer = "是。她母亲死在停电的那一夜。"
-	a.doc.text = answer
+	lorePanel(a).Doc.Text = answer
 	tt.Frame()
 	if err = tt.Click("保存"); err != nil {
 		t.Fatal(err)
@@ -197,20 +197,20 @@ func TestShotPane(t *testing.T) {
 	testshot.Dir(t)
 	a, tt, ids := paneFixture(t)
 
-	d := &a.doc
+	d := &lorePanel(a).Doc
 	shot(t, tt, "pane-list.png")
-	d.query = "左手"
+	d.Query = "左手"
 	shot(t, tt, "pane-find.png")
-	d.query = ""
+	d.Query = ""
 	showEntry(a, ids.zhou)
 	shot(t, tt, "pane-entry.png")
 	e, _ := setting(a).Entry(ids.zhou)
 	editEntry(a, e.ID)
-	d.text, d.category, d.name, d.names = e.Text, e.Category, "周祥", "小祥、saki"
+	d.Text, d.Category, d.Name, d.Names = e.Text, e.Category, "周祥", "小祥、saki"
 	shot(t, tt, "pane-edit.png")
 	editEntry(a, "new")
 	showEntry(a, "")
-	d.text, d.name, d.names = "老周是修表的，铺子在旧城小学对面", "老周", ""
+	d.Text, d.Name, d.Names = "老周是修表的，铺子在旧城小学对面", "老周", ""
 	shot(t, tt, "pane-new.png")
 	editEntry(a, "")
 	showTodo(a, true)
@@ -223,7 +223,7 @@ func TestShotPane(t *testing.T) {
 	shot(t, tt, "pane-list-dark.png")
 	tt.SetDark(false)
 	showTab(a, paneTalk)
-	d.talks = true
+	a.doc.talks = true
 	shot(t, tt, "pane-talks.png")
 	if err := tt.Click("新讨论"); err != nil {
 		t.Fatal(err)

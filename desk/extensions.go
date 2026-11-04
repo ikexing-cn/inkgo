@@ -85,6 +85,7 @@ func (a *App) initExtensions(mods []ext.Module) {
 			ext.Declare(r, hostapi.PaneTabs)
 			ext.Declare(r, hostapi.Overlays)
 			declareLifecycle(r, a)
+			a.registerLore(r)
 			ext.DeclareCalls(r, hostapi.Overlays, overlayCall)
 			ext.DeclareCalls(r, hostapi.Commands, commandCall)
 			ext.DeclareCalls(r, hostapi.PaneTabs, paneCall)
@@ -146,6 +147,9 @@ func (h extensionHost) Colors() *kit.Palette { return h.a.pal }
 func (h extensionHost) ScreenColors() (*kit.Palette, *kit.Palette) { return h.a.light, h.a.dark }
 
 func (h extensionHost) Show(tab string) {
+	if paneTab(tab) != paneTalk {
+		h.a.doc.talks = false
+	}
 	h.a.doc.hidden, h.a.doc.tab, h.a.write.focus = false, paneTab(tab), false
 	if h.a.Store != nil {
 		h.a.savePrefs()
@@ -224,7 +228,26 @@ func (a *App) syncExtensions() {
 	a.paneTabs = append(tabTable[paneTab](nil), a.hostPaneTabs...)
 	for _, item := range cache.panes {
 		p := item.Value
-		a.paneTabs = append(a.paneTabs, tabEntry[paneTab]{id: paneTab(item.ID), name: p.Title, visible: p.Available})
+		id := item.ID
+		if p.Key != "" {
+			id = p.Key
+		}
+		row := tabEntry[paneTab]{id: paneTab(id), name: p.Title, visible: p.Available, fallback: p.Fallback}
+		if p.Count != nil {
+			row.count = func() int {
+				n := 0
+				_ = ext.Guard(a.extensions, item.Owner, item.ID, func() { n = p.Count() })
+				return n
+			}
+		}
+		at := len(a.paneTabs)
+		for i, existing := range a.paneTabs {
+			if string(existing.id) == p.Before {
+				at = i
+				break
+			}
+		}
+		a.paneTabs = slices.Insert(a.paneTabs, at, row)
 	}
 	cache.footer = ext.Items(a.extensions, hostapi.FooterItems)
 	cache.title = ext.Items(a.extensions, hostapi.TitleItems)
@@ -271,7 +294,11 @@ func (a *App) syncExtensions() {
 func (a *App) extensionTab(id paneTab) (ext.Item[hostapi.PaneTab], bool) {
 	a.syncExtensions()
 	for _, item := range a.extViews.panes {
-		if item.ID == string(id) {
+		key := item.Value.Key
+		if key == "" {
+			key = item.ID
+		}
+		if key == string(id) {
 			return item, true
 		}
 	}

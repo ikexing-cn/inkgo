@@ -7,7 +7,7 @@ func cacheBuilds(a *App) int {
 		a.write.nodeWords.builds + a.write.total.builds + a.write.catCounts.builds +
 		a.write.pane.builds + a.write.nameLinks.builds + a.write.margin.notes.builds +
 		a.ck.items.builds + a.ck.itemsMeant.builds + a.ck.listed.builds +
-		a.doc.ideas.builds
+		a.doc.ideas.builds + lorePanel(a).CacheBuilds()
 }
 
 func TestLiveTextFollowsTheWritingPage(t *testing.T) {

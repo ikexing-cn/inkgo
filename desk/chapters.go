@@ -118,7 +118,7 @@ func (a *App) textMenu(m *kit.Menu) {
 		cmdQuote.item(a, m).Do(cmdQuote.act(a))
 	}
 	cmdTake.item(a, m).Do(cmdTake.act(a))
-	a.nameMenu(m, ed.Doc.Slice(s, e))
+	a.selectionMenus(m, ed.Doc.Slice(s, e))
 	m.Separator()
 	a.foreMenu(m)
 	if ed.Marked() {

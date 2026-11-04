@@ -74,10 +74,14 @@ type Desktop interface {
 	// OpenSettings opens the page registered by a qualified SettingsPages
 	// contribution ID, such as backup.settings. Unknown IDs open Extensions.
 	OpenSettings(id string)
-	// ShowPage selects a registered title-bar page by qualified ID.
+	// ShowPage selects a registered page by qualified ID, including host.categories.
+	// Call directly on the frame thread, without ext.Call or ext.Guard.
 	ShowPage(id string)
 	// OpenWriting selects the writing page and opens a chapter on the frame thread.
 	OpenWriting(string)
+	// MenuOpen queries the shared menu state directly on the frame thread,
+	// without ext.Call or ext.Guard.
+	MenuOpen(string) bool
 	// DropMenu draws a shared menu on the frame thread; frame values must not escape.
 	DropMenu(*ui.Context, ui.Element, string, func(ui.Element), func(*kit.Menu))
 	// SettingColumn draws the shared right column on the frame thread.

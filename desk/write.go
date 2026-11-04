@@ -260,7 +260,7 @@ func (a *App) paneColumn(c *ui.Context, width float32) {
 		} else if a.page == pageWrite && shown == paneTalk {
 			a.talkPanel(c)
 		} else {
-			a.settingPanel(c)
+			a.besideItems(c)
 		}
 		a.resizer(c, width)
 	})

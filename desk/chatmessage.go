@@ -284,7 +284,9 @@ func (a *App) looked(c *ui.Context, key string, found []workspace.Look, running 
 			ui.Column(c).Grow(1).Shrink(1).Gap(8).Children(func() {
 				for n, l := range found {
 					if r := l.Result.Revision; r != "" {
-						if a.pal.PaneLink(c, l.Label, locales.ChatViewLore(), fmt.Sprintf("查看设定-%s-%d", key, n)) {
+						if !a.entryNavigationAvailable() {
+							ui.Text(c, l.Label).FontSize(kit.FsControl).TextColor(t.TextMuted)
+						} else if a.pal.PaneLink(c, l.Label, locales.ChatViewLore(), fmt.Sprintf("查看设定-%s-%d", key, n)) {
 							a.showNoted(r)
 						}
 						continue
@@ -311,18 +313,6 @@ func (a *App) showNoted(r string) {
 	}
 	if e, ok := a.book.Setting().Entry(entry); ok {
 		a.showEntry(e)
-	}
-}
-
-// showEntry opens e in the setting: in what waits on the author when it is
-// open, or on its page.
-func (a *App) showEntry(e workspace.Entry) {
-	a.setDocHidden(false)
-	a.doc.tab, a.doc.talks = paneSetting, false
-	if e.Place == workspace.PlaceOpen {
-		a.doc.route.jumpToWaiting()
-	} else {
-		a.doc.route.jumpToEntry(e.ID)
 	}
 }
 

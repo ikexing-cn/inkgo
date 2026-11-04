@@ -76,11 +76,11 @@ func TestAnEntryChangesFromAChapter(t *testing.T) {
 	}
 	tt.Frame()
 	has("the form", "周祥 · 第2章起", "从哪一章起", "从这一章起，这一条就是下面这段话；起草、改写这一章及以后的章时，AI 看到的是它。")
-	if a.doc.text != "配角，林晚的同事。左手总揣在兜里，从来不拿出来。" || a.doc.from != two {
-		t.Fatalf("the form starts at %q from %s", a.doc.text, a.doc.from)
+	if lorePanel(a).Doc.Text != "配角，林晚的同事。左手总揣在兜里，从来不拿出来。" || lorePanel(a).Doc.From != two {
+		t.Fatalf("the form starts at %q from %s", lorePanel(a).Doc.Text, lorePanel(a).Doc.From)
 	}
 	hasNot("a new change", "删除这处变化")
-	a.doc.text = "配角，在井边等她。"
+	lorePanel(a).Doc.Text = "配角，在井边等她。"
 	if err = tt.Click("保存"); err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestAnEntryChangesFromAChapter(t *testing.T) {
 	}
 	tt.Frame()
 	has("changing", "周祥 · 第3章起", "删除这处变化")
-	a.doc.from = two
+	lorePanel(a).Doc.From = two
 	if err = tt.Click("保存"); err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +166,7 @@ func TestAnEntryChangesFromAChapter(t *testing.T) {
 	a.turnAI(false)
 	showEntry(a, ids.zhou)
 	editChange(a, "new")
-	a.doc.from, a.doc.text = one, "x"
+	lorePanel(a).Doc.From, lorePanel(a).Doc.Text = one, "x"
 	tt.Frame()
 	has("off", "从这一章起，这一条就是下面这段话。")
 	hasNot("off", "AI 看到的是它")

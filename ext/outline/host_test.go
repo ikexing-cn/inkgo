@@ -2,6 +2,7 @@ package outline
 
 import (
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/book"
@@ -142,3 +143,9 @@ func (h *testHost) ShowPage(string) { h.writing = false }
 func (h *testHost) SameFolder(a, b string) bool { return a == b }
 
 func (h *testHost) Selected() (string, bool, bool) { return h.current, false, false }
+
+func (h testBook) Flashed(string) (time.Time, bool) { return time.Time{}, false }
+
+func (h testBook) ClearFlash(string) {}
+
+func (h *testHost) MenuOpen(key string) bool { return h.menu.MenuOpen(key) }

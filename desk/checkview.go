@@ -10,6 +10,7 @@ import (
 	"writer/internal/textclip"
 	"writer/workspace"
 
+	"writer/ext/hostapi"
 	"writer/locales"
 )
 
@@ -374,9 +375,11 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 	next := func() { k.shown = shown[(at+1)%len(shown)].f.ID }
 	toProse := func() { a.findInChapter(it.node, it.f.Quote) }
 	toEntry := func() {
+		if !a.entryNavigationAvailable() {
+			return
+		}
 		a.findInChapter(it.node, it.f.Quote)
-		a.doc.route.openEntry(it.entry.ID)
-		a.doc.tab, a.doc.hidden = paneSetting, false
+		a.entryNavigation(func(n hostapi.EntryNavigation) { n.Reveal(it.entry.ID) })
 		a.savePrefs()
 	}
 	ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Shrink(0).Children(func() {
@@ -399,11 +402,11 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 				}
 				switch it.f.Kind {
 				case workspace.FindConflict:
-					if a.checkCard(c, locales.CheckLoreHeading(entryTitle(it.entry)), locales.CheckSeeSetting(), a.quoted(it.entry.Text, it.f.Says)) {
+					if a.checkCard(c, locales.CheckLoreHeading(entryTitle(it.entry)), a.entryLinkLabel(), a.quoted(it.entry.Text, it.f.Says)) {
 						toEntry()
 					}
 				case workspace.FindName:
-					if a.checkCard(c, locales.CheckLoreHeading(entryTitle(it.entry)), locales.CheckSeeSetting(), a.quoted(it.entry.Text, it.f.Name)) {
+					if a.checkCard(c, locales.CheckLoreHeading(entryTitle(it.entry)), a.entryLinkLabel(), a.quoted(it.entry.Text, it.f.Name)) {
 						toEntry()
 					}
 				case workspace.FindNew:
@@ -489,4 +492,11 @@ func (a *App) takeFound(it checkItem) {
 	}
 	a.flash[r.Ops[0].Entry] = time.Now()
 	a.status.Did(locales.CheckAddedSetting())
+}
+
+func (a *App) entryLinkLabel() string {
+	if !a.entryNavigationAvailable() {
+		return ""
+	}
+	return locales.CheckSeeSetting()
 }
