@@ -456,6 +456,18 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await extPage('名字补全'); await extMore('names'); await click('只在本作品打开'); await win('打开「名字补全」？'); await win('资料库是基础扩展，没有只管一部作品的开关，会在这台电脑的所有作品里打开。'); await shot('66g-extension-own-library'); await click('取消')
   await crumb('扩展'); await extPage('资料库'); await extTick('资料库'); await crumb('扩展'); await extPage('名字补全'); await extTick('名字补全'); must(await js(`extOn('names') && extOn('context')`), 'the libraries and names did not come back on')
   await click('关闭'); await done('extensions that others need, and one work apart')
+  // What stays on the prose goes through 正文标记: one that puts marks there, ticked off, takes them from the prose, the margin and the menu;
+  // 正文标记 off takes them all, and what needs it stops. Ticked on again, each is back as it was.
+  const marked = (cls: string): Promise<boolean> => has(`[data-para] span.${cls}`)
+  const hasTab = (name: string): Promise<boolean> => js(`[...document.querySelectorAll('#pane .tab')].some((e) => e.innerText.startsWith(${JSON.stringify(name)}))`)
+  await click('第87章：停电'); await click('批注'); must(await marked('fs') && await marked('doubt'), 'the chapter has no foreshadowing and no finding marked to start from'); must((await notes()).includes('小祥为什么突然改口'), 'the margin has no foreshadowing to start from')
+  await settings(); await click('扩展'); await extPage('伏笔'); await extTick('伏笔'); await win('关闭「伏笔」？', false); await click('关闭')
+  must(!(await marked('fs')), 'with foreshadowing off its marks are still on the prose'); await click('批注'); must(await marked('doubt'), 'foreshadowing off took the findings of the check too'); must(!(await notes()).includes('小祥为什么突然改口'), 'with foreshadowing off the margin still has it')
+  await menu(2, '灯一直没有亮。'); await win('剪切'); await win('记为伏笔…', false); await win('记为回收…', false); await key('Escape'); await win('剪切', false)
+  await settings(); await click('扩展'); await extPage('正文标记'); await extTick('正文标记'); await win('关闭「正文标记」？'); await askYes(); await click('关闭')
+  must(!(await marked('doubt')), 'with 正文标记 off the findings are still on the prose'); must(!(await hasTab('批注')), 'with 正文标记 off the Notes tab is still there'); await shot('66h-marks-off')
+  await settings(); await click('扩展'); await extPage('正文标记'); await extTick('正文标记'); await crumb('扩展'); await extPage('伏笔'); await extTick('伏笔'); await click('关闭')
+  must(await marked('fs') && await marked('doubt'), 'the marks did not come back on the prose'); must(await hasTab('批注'), 'the Notes tab did not come back'); await done('the marks on the prose go with what puts them there')
   await settings(); await clear('讨论模型'); await click('关闭'); await click('讨论', 1); await click('全部讨论'); await click('新讨论'); await type('输入想讨论的内容', '在吗'); await key('Enter', true); await win('请先配置讨论模型'); await sleep(3300); await win('请先配置讨论模型'); await shot('67-no-model'); await click('打开设置'); await win('选用模型'); await win('请先配置讨论模型', false); await key('Escape'); await done('no model to talk with')
 
   // The check page.

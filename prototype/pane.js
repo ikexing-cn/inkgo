@@ -710,31 +710,19 @@ function pane() {
 
 // ───────── 画：批注 ─────────
 
-// 页边的批注：开着的这一章里，对照设定查出来的、在这里埋下或回收的伏笔、AI 从这一章看出来要改的设定。
-// 每条记着它说的是第几段的第几个字起、几个字（这几个字找不到就不列），照这个顺序从上往下排。AI 关着时只有伏笔。
+// 页边的批注：开着的这一章里，正文标记带着批注的那几处（伏笔、检查、AI 从这一章看出来要改的设定，见 write.js 的 markFrom）。
+// 每条记着它说的是第几段的第几个字起、几个字（这几个字找不到就不列；没给字的排在最上面），照这个顺序从上往下排。
 function notesOf(cur) {
   if (!cur) return []
-  const list = []
   const find = (quote, para) => {
+    if (!quote) return { para: 0, off: 0, len: 0 }
     const i = para !== undefined ? para : cur.paras.findIndex((p) => p.includes(quote)), off = i >= 0 ? (cur.paras[i] || '').indexOf(quote) : -1
     return off >= 0 ? { para: i, off, len: quote.length } : null
   }
-  const put = (at, note) => { if (at) list.push({ ...at, ...note }) }
-  // 名字有误的只有标题：标题已经说了应为什么。
-  for (const c of aiOn() ? S.checks : []) {
-    if (c.key !== cur.key) continue
-    put(find(c.quote, c.para), { id: c.id, warn: true, kind: CHECK_KINDS()[c.kind] || c.kind, title: c.title,
-      text: c.says ? L.notesSays(c.says) : c.as || '', open: () => set({ page: 'check', kind: '全部', cid: c.id, ...SHUT }), acts: checkActs(c) })
-  }
-  for (const m of S.marks) {
-    const open = () => set({ tab: '伏笔', fid: m.id, fv: 'list', renote: null, ...SHUT })
-    if ((m.st === 'open' || m.st === 'done') && m.key === cur.key) put(find(m.quote, m.para), { id: m.id, kind: m.st === 'open' ? L.notesKindHook() : L.notesKindHookPaid(), title: nameOf(m), text: '', open })
-    if (m.st === 'done' && m.pay && m.pay.key === cur.key) put(find(m.pay.quote, m.pay.para), { id: m.id + '-pay', kind: L.notesKindPayoff(), title: nameOf(m), text: L.notesPlanted(chTitle(m.key)), open })
-  }
-  // AI 建议的一处变化：钉在这一章头一回写到那个人（那样东西）的地方。
-  for (const o of aiOn() ? S.entries.filter((e) => e.place === 'open' && e.from === cur.key) : []) {
-    const e = S.entries.find((x) => x.id === o.about), name = e && e.names.find((n) => cur.paras.some((p) => p.includes(n)))
-    put(name ? find(name) : { para: 0, off: 0, len: 0 }, { id: o.id, warn: true, kind: L.notesKindIdea(), title: e ? L.notesLoreChanged(e.names[0]) : L.loreNew(), text: o.text, acts: [[L.commonIgnore(), () => dropIdea(o)], [L.commonAccept(), () => takeChange(o)]] })
+  const list = []
+  for (const m of marksIn(cur)) {
+    const at = m.note && find(m.quote, m.para)
+    if (at) list.push({ ...at, ...m.note })
   }
   return list.sort((a, b) => a.para - b.para || a.off - b.off)
 }
