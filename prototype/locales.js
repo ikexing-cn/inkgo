@@ -1915,6 +1915,9 @@ const CATALOG = {
   "modAskOnAbout": [
    "names"
   ],
+  "modAskLibraryLocal": [
+   "names"
+  ],
   "modTurnOff": [],
   "modTurnOn": [],
   "extFailed": [
@@ -3110,7 +3113,7 @@ const CATALOG = {
    "modPhone": "手机预览",
    "modPhoneAbout": "看看在手机上的样子",
    "modExport": "导出",
-   "modExportAbout": "存成 TXT、Word、EPUB",
+   "modExportAbout": "存成 TXT、Word",
    "modBackup": "备份",
    "modBackupAbout": "自动复制一份到别处",
    "modBackupOff": "不再自动备份，旧备份留着。",
@@ -3182,6 +3185,7 @@ const CATALOG = {
    "modAskOffAbout": "{names}也会一起关闭。",
    "modAskOnTitle": "打开「{name}」？",
    "modAskOnAbout": "{names}会一起打开。",
+   "modAskLibraryLocal": "{names}是基础扩展，没有只管一部作品的开关，会在这台电脑的所有作品里打开。",
    "modTurnOff": "关闭",
    "modTurnOn": "打开",
    "extFailed": "{name}出错，已停下：{error}",
@@ -4371,7 +4375,7 @@ const CATALOG = {
    "modPhone": "Phone Preview",
    "modPhoneAbout": "See how it looks on a phone",
    "modExport": "Export",
-   "modExportAbout": "Save as TXT, Word or EPUB",
+   "modExportAbout": "Save as TXT or Word",
    "modBackup": "Backup",
    "modBackupAbout": "Copies the work somewhere else, on its own",
    "modBackupOff": "No more automatic backups; old ones stay.",
@@ -4443,6 +4447,7 @@ const CATALOG = {
    "modAskOffAbout": "{names} will turn off too.",
    "modAskOnTitle": "Turn on {name}?",
    "modAskOnAbout": "{names} will turn on too.",
+   "modAskLibraryLocal": "{names} has no switch for one work and will turn on for every work on this computer.",
    "modTurnOff": "Turn Off",
    "modTurnOn": "Turn On",
    "extFailed": "{name} ran into an error and stopped: {error}",

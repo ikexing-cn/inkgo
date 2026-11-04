@@ -329,6 +329,17 @@ func (a *App) askExtension(c *ui.Context) {
 	if on {
 		also = v.starts
 		title, about, verb = locales.ModAskOnTitle(a.extViews.moduleViews[id].name()), locales.ModAskOnAbout(a.extensionNames(also)), locales.ModTurnOn()
+		// For this work alone, the libraries taken along have no switch of
+		// the work's: they turn on for every work, which the question says.
+		var libs []string
+		for _, dep := range also {
+			if book && a.extViews.moduleViews[dep].module.Kind == ext.Library {
+				libs = append(libs, dep)
+			}
+		}
+		if len(libs) > 0 {
+			about += "\n" + locales.ModAskLibraryLocal(a.extensionNames(libs))
+		}
 	}
 	turn := false
 	a.pal.Modal(c, &a.settings.askExt, func() {

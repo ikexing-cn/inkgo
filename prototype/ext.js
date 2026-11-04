@@ -109,6 +109,8 @@ function askExt(d) {
   const e = extOf(d.flip), on = d.ask === 'ext-on', back = () => set((s) => ({ dialog: { ...s.dialog, ask: '', book: false } }))
   const also = on ? extStarts(d.flip) : extStops(d.flip)
   const said = also.length ? (on ? L.modAskOnAbout(extNames(also)) : L.modAskOffAbout(extNames(also))) : ''
+  // 只在本作品打开时，一起打开的基础扩展没有按作品的开关，开的是本机的：说一句。
+  const libs = on && d.book ? also.filter(isLib) : []
   const ai = d.flip === 'ai'
   const title = ai ? (on ? L.settingsAskOnTitle() : L.settingsAskOffTitle()) : on ? L.modAskOnTitle(e.name) : L.modAskOffTitle(e.name)
   const about = ai ? (on ? L.settingsAskOnAbout() : L.settingsAskOffAbout()) : ''
@@ -119,7 +121,7 @@ function askExt(d) {
     one(d.flip)
   }
   return `<div class="scrim top"${onClick(back)}></div><div class="dialog-wrap top"><div class="dialog ask" data-k="dialog-ask">` +
-    dialogHead(title, about) + (said ? `<div class="note">${t(said)}</div>` : '') +
+    dialogHead(title, about) + (said ? `<div class="note">${t(said)}</div>` : '') + (libs.length ? `<div class="note">${t(L.modAskLibraryLocal(extNames(libs)))}</div>` : '') +
     buttons(button(L.commonCancel(), back), button(ai ? (on ? L.settingsTurnOn() : L.settingsCloseAI()) : on ? L.modTurnOn() : L.modTurnOff(), go, 'primary')) + '</div></div>'
 }
 

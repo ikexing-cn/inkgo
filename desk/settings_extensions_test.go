@@ -352,3 +352,30 @@ func TestShotSettingsExtensions(t *testing.T) {
 	bt.SetDark(true)
 	shot(t, bt, "settings-ext-waiting-dark.png")
 }
+
+func TestBookEnableSaysTheLibrariesItTakesTurnOnForEveryWork(t *testing.T) {
+	mods := append(testModules(),
+		ext.Module{ID: "base", Kind: ext.Library, Name: func() string { return "底层" }},
+		ext.Module{ID: "user", Group: hostapi.GroupWrite, Name: func() string { return "上层" }, Requires: []string{"base"}},
+	)
+	a := New(ai.New(filepath.Join(t.TempDir(), "providers.yaml")), mods...)
+	t.Cleanup(func() { a.Close() })
+	requireExtension(t, a.Open(extensionBook(t)))
+	tt := stillTester(a.View, 1266, 780)
+	requireExtension(t, a.extensions.Set("user", false))
+	requireExtension(t, a.extensions.Set("base", false))
+	extensionDetails(t, a, tt, "user")
+	hint := locales.ModAskLibraryLocal("底层")
+	click(t, tt, "扩展开关-user")
+	if !a.settings.askExt || tt.HasText(hint) {
+		t.Fatal("turning it on for every work says the libraries go along for every work")
+	}
+	tt.Key(0, ui.KeyEscape)
+	tt.Frame()
+	click(t, tt, "ext-more-user", locales.ModBookOnlyOn())
+	hasText(t, tt, hint)
+	click(t, tt, "扩展确认开关")
+	if on, ok := a.extensions.BookOverride("user"); !ok || !on || !a.extensions.Own("base") {
+		t.Fatal("this work's feature or the library of this computer is not on")
+	}
+}

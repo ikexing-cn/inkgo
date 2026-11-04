@@ -449,7 +449,13 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   // One that others need asks first and names them; set for this work alone, it leaves the other works as they were.
   await settings(); await click('扩展'); await extPage('资料库'); await win('名字补全、设定、大纲、伏笔、讨论、续写、起草、检查要用它'); await extTick('资料库'); await win('关闭「资料库」？'); await win('也会一起关闭。'); await shot('66e-extension-ask'); await click('取消'); await win('关闭「资料库」？', false); await crumb('扩展')
   await extPage('字数目标'); await extMore('goal'); await click('只在本作品关闭'); await win('本作品里已关闭'); must(await js(`!extOn('goal') && !S.extOff.includes('goal')`), 'set for this work alone, the switch moved the one of this computer'); await shot('66f-extension-own')
-  await extMore('goal'); await click('恢复默认'); await win('本作品里已关闭', false); must(await js(`extOn('goal')`), 'back to the default, the goal is still off'); await click('关闭'); await done('extensions that others need, and one work apart')
+  await extMore('goal'); await click('恢复默认'); await win('本作品里已关闭', false); must(await js(`extOn('goal')`), 'back to the default, the goal is still off')
+  // Turned on for this work alone, what it needs of the libraries turns on for every work: the question says so.
+  const askYes = () => js(`document.querySelector('.dialog.ask .btn.primary').click()`)
+  await crumb('扩展'); await extPage('名字补全'); await extTick('名字补全'); await crumb('扩展'); await extPage('资料库'); await extTick('资料库'); await askYes(); await crumb('扩展')
+  await extPage('名字补全'); await extMore('names'); await click('只在本作品打开'); await win('打开「名字补全」？'); await win('资料库是基础扩展，没有只管一部作品的开关，会在这台电脑的所有作品里打开。'); await shot('66g-extension-own-library'); await click('取消')
+  await crumb('扩展'); await extPage('资料库'); await extTick('资料库'); await crumb('扩展'); await extPage('名字补全'); await extTick('名字补全'); must(await js(`extOn('names') && extOn('context')`), 'the libraries and names did not come back on')
+  await click('关闭'); await done('extensions that others need, and one work apart')
   await settings(); await clear('讨论模型'); await click('关闭'); await click('讨论', 1); await click('全部讨论'); await click('新讨论'); await type('输入想讨论的内容', '在吗'); await key('Enter', true); await win('请先配置讨论模型'); await sleep(3300); await win('请先配置讨论模型'); await shot('67-no-model'); await click('打开设置'); await win('选用模型'); await win('请先配置讨论模型', false); await key('Escape'); await done('no model to talk with')
 
   // The check page.

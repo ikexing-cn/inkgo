@@ -13534,13 +13534,13 @@ func (msgs Messages) ModExport() string {
 	return Catalog.Format(msgs.locale, "modExport", nil)
 }
 
-// ModExportAbout says "存成 TXT、Word、EPUB"
+// ModExportAbout says "存成 TXT、Word"
 // in the language the app shows.
 //
 // 「扩展」里：这个扩展是做什么的，一句话。
 func ModExportAbout() string { return In(i18n.Locale()).ModExportAbout() }
 
-// ModExportAbout says "存成 TXT、Word、EPUB"
+// ModExportAbout says "存成 TXT、Word"
 // in the language of msgs.
 //
 // 「扩展」里：这个扩展是做什么的，一句话。
@@ -14546,6 +14546,20 @@ func ModAskOnAbout(names string) string { return In(i18n.Locale()).ModAskOnAbout
 // 打开一个扩展前问的那一句：它需要的哪些扩展会一起打开。
 func (msgs Messages) ModAskOnAbout(names string) string {
 	return Catalog.Format(msgs.locale, "modAskOnAbout", map[string]any{"names": names})
+}
+
+// ModAskLibraryLocal says "{names}是基础扩展，没有只管一部作品的开关，会在这台电脑的所有作品里打开。"
+// in the language the app shows.
+//
+// 只在本作品打开一个扩展前问的那一句里，补的一句：一起打开的基础扩展管本机的所有作品。
+func ModAskLibraryLocal(names string) string { return In(i18n.Locale()).ModAskLibraryLocal(names) }
+
+// ModAskLibraryLocal says "{names}是基础扩展，没有只管一部作品的开关，会在这台电脑的所有作品里打开。"
+// in the language of msgs.
+//
+// 只在本作品打开一个扩展前问的那一句里，补的一句：一起打开的基础扩展管本机的所有作品。
+func (msgs Messages) ModAskLibraryLocal(names string) string {
+	return Catalog.Format(msgs.locale, "modAskLibraryLocal", map[string]any{"names": names})
 }
 
 // ModTurnOff says "关闭"
