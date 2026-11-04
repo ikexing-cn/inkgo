@@ -37,7 +37,7 @@ npm run verify
 - `pages.js`：讨论、检查、作品分类、书架四页。
 - `dialogs.js`：对话框和备份。
 - `app.js`：把窗口拼起来，标题栏的菜单、换页和两边的开关，和不管光标在哪都管用的按键、拖动。
-- `i18n.js`、`locales.js`：生成的，别手改。界面上的字在仓库根的 `locales/`（应用也用这份），改完跑 `npm run prototype-locales`；`?lang=en` 或舞台上的切换看别的语言。
+- `i18n.js`、`locales.js`：生成的，别手改。界面上的字在仓库根的 `locales/`，扩展自己的在 `ext/<id>/<id>text/`（应用也用这几份；扩展的改完先跑 `npm run ext-locales`），改完跑 `npm run prototype-locales`；`?lang=en` 或舞台上的切换看别的语言。
 
 1. 新的界面功能照原型做：布局、色值、字号、文案、交互；原型和现有代码冲突时先说出来，不要自己决定以哪边为准。
 2. 原型里没有的界面功能，先在原型里做出来给作者看，确认后再开始写代码。
