@@ -327,7 +327,7 @@ func TestOpenLeavesABrokenPlanReadable(t *testing.T) {
 	if _, err := s.WriteChapter(one, "正文。", nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(s.Root(), "outline.json"), []byte("{broken"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(s.Root(), "ext", "outline", "outline.json"), []byte("{broken"), 0644); err != nil {
 		t.Fatal(err)
 	}
 	b := Open(s)

@@ -58,6 +58,9 @@ func (s *Store) readChapter(n *Node) (Chapter, error) {
 	var ch Chapter
 	read := func(ext string) (string, error) {
 		p, err := s.nodePath(n, ext)
+		if ext == legacyOutlineExt {
+			p, err = s.outlinePath(n.ID)
+		}
 		if err != nil {
 			return "", err
 		}
@@ -68,7 +71,7 @@ func (s *Store) readChapter(n *Node) (Chapter, error) {
 		return string(b), err
 	}
 	var err error
-	if ch.Outline, err = read(outlineExt); err != nil {
+	if ch.Outline, err = read(legacyOutlineExt); err != nil {
 		return Chapter{}, err
 	}
 	ch.Outline = strings.ReplaceAll(ch.Outline, "\r\n", "\n")
@@ -225,7 +228,7 @@ func (s *Store) WriteOutline(id, outline string) error {
 	if !ok {
 		return fmt.Errorf("chapters: unknown node %q", id)
 	}
-	p, err := s.nodePath(n, outlineExt)
+	p, err := s.outlinePath(n.ID)
 	if err != nil {
 		return err
 	}
@@ -233,6 +236,9 @@ func (s *Store) WriteOutline(id, outline string) error {
 		if err = os.Remove(p); errors.Is(err, os.ErrNotExist) {
 			err = nil
 		}
+		return err
+	}
+	if err := s.prepareExtension("outline"); err != nil {
 		return err
 	}
 	return atomicWrite(p, []byte(outline), false)

@@ -43,7 +43,7 @@ func failRename(t *testing.T, suffix string) {
 // A node that cannot be moved to the trash stays whole where it was: the
 // trash lists nothing of it, and it keeps its ID and its snapshots.
 func TestTrashThatCannotMoveLeavesTheNodeWhole(t *testing.T) {
-	for _, held := range []string{"第一章.txt", "第一章.outline.txt"} {
+	for _, held := range []string{"第一章.txt", "第一章.marks.json"} {
 		t.Run(held, func(t *testing.T) { trashHeld(t, held) })
 	}
 }
@@ -52,7 +52,7 @@ func trashHeld(t *testing.T, held string) {
 	{
 		s := testStore(t)
 		id := mustChapter(t, s, "", "第一章", false)
-		if _, err := s.WriteChapter(id, "正文。", nil); err != nil {
+		if _, err := s.WriteChapter(id, "正文。", []ChapterMark{{Kind: MarkForeshadow, Start: 0, End: 1}}); err != nil {
 			t.Fatal(err)
 		}
 		if err := s.WriteOutline(id, "章纲"); err != nil {
@@ -133,7 +133,7 @@ func TestTrashNoteWithoutItsFilesIsNotListed(t *testing.T) {
 func TestRestoreThatCannotMoveLeavesTheNodeInTheTrash(t *testing.T) {
 	s := testStore(t)
 	id := mustChapter(t, s, "", "第一章", false)
-	if _, err := s.WriteChapter(id, "正文。", nil); err != nil {
+	if _, err := s.WriteChapter(id, "正文。", []ChapterMark{{Kind: MarkForeshadow, Start: 0, End: 1}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.WriteOutline(id, "章纲"); err != nil {
@@ -143,7 +143,7 @@ func TestRestoreThatCannotMoveLeavesTheNodeInTheTrash(t *testing.T) {
 		t.Fatal(err)
 	}
 	was := rename
-	failRename(t, "第一章.outline.txt")
+	failRename(t, "第一章.marks.json")
 	if err := s.RestoreChapter(id); err == nil {
 		t.Fatal("restored")
 	}
@@ -153,7 +153,7 @@ func TestRestoreThatCannotMoveLeavesTheNodeInTheTrash(t *testing.T) {
 	if got := shape(t, s); got != "" {
 		t.Fatalf("the tree has\n%s", got)
 	}
-	if !exists(t, s.Root(), "trash", id, "第一章.txt") || !exists(t, s.Root(), "trash", id, "第一章.outline.txt") {
+	if !exists(t, s.Root(), "trash", id, "第一章.txt") || !exists(t, s.Root(), "ext", "outline", id+".txt") {
 		t.Fatal("the trash lost a file of it")
 	}
 	rename = was

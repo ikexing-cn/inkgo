@@ -14,7 +14,7 @@ func TestUnreviseRestoresTheSettingAndItsBytes(t *testing.T) {
 		t.Run(strings.ReplaceAll(ending, "\n", "LF"), func(t *testing.T) {
 			s := testStore(t)
 			r := mustRevise(t, s, Revision{By: ByAuthor, Ops: []Op{{Op: OpAdd, Place: PlaceBody, Category: "人物", Text: "怕黑"}}})
-			path := filepath.Join(s.Root(), "setting.jsonl")
+			path := filepath.Join(s.Root(), "ext", "lore", "setting.jsonl")
 			data, err := os.ReadFile(path)
 			if err != nil {
 				t.Fatal(err)
@@ -49,7 +49,7 @@ func TestUnreviseRefusesALaterRevision(t *testing.T) {
 	s := testStore(t)
 	first := mustRevise(t, s, Revision{By: ByAuthor, Ops: []Op{{Op: OpAdd, Place: PlaceBody, Category: "人物", Text: "怕黑"}}})
 	mustRevise(t, s, Revision{By: ByAuthor, Ops: []Op{{Op: OpEdit, Entry: first.Ops[0].Entry, Text: "怕雨"}}})
-	path := filepath.Join(s.Root(), "setting.jsonl")
+	path := filepath.Join(s.Root(), "ext", "lore", "setting.jsonl")
 	before, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
@@ -73,7 +73,7 @@ func TestUnreviseTheOnlyRevision(t *testing.T) {
 	if err != nil || len(set.Entries) != 0 || len(set.Revisions) != 0 {
 		t.Fatal(set, err)
 	}
-	data, err := os.ReadFile(filepath.Join(s.Root(), "setting.jsonl"))
+	data, err := os.ReadFile(filepath.Join(s.Root(), "ext", "lore", "setting.jsonl"))
 	if err != nil || len(data) != 0 {
 		t.Fatal("empty setting changed", string(data), err)
 	}

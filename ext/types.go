@@ -61,6 +61,9 @@ type SettingStore interface {
 // Nil stores use host-owned memory. Saves commit the local layer first; if a
 // subsequent book save fails, that successful local change remains effective.
 type Options struct {
+	// BookDir resolves per-book extension directories through the workspace.
+	// Nil makes Session.BookDir unavailable.
+	BookDir       func(dir, id string) (string, error)
 	LocalRoot     string
 	LocalSwitches LocalSwitchStore
 	BookSwitches  BookSwitchStore

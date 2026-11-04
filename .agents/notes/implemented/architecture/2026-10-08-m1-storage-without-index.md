@@ -10,7 +10,7 @@ M1 在打开作品时重建 SQLite 索引，在 `Search`、`Counts` 之前又全
 
 ## Decision
 
-- `workspace` 不创建、不打开 `.writer/index.sqlite`。规范文件（`work.yaml`、`ideas/*.md`、`sessions/*.jsonl`）是唯一数据；`.writer/` 仍随作品创建并写进 `.gitignore`，留给 M2 的向量缓存。
+- `workspace` 不创建、不打开 `.writer/index.sqlite`。规范文件（`work.yaml`、`ideas/*.md`、`sessions/*.jsonl`）是唯一数据；`.writer/` 仍随作品创建并写进 `.gitignore`，留给 M2 的向量缓存。2026-11-04 起扩展的数据（设定、大纲……）放在作品里的 `ext/<id>/`，按书的扩展开关在 `ext.json`，都不在 `.writer/`，见[扩展模块](../../proposed/architecture/2026-11-02-extension-modules.md)的「数据」。
 - 一次读取全部思路时用同一个 `scan`：每个会话文件只解析一次，`conflicts`、`supersedes`、`similar` 引用在已列出的文件名里查，不逐个 `stat`。
 - 思路按 `created` 排序，时间相同时人先、再按 ID。同一轮的顺序由记账计划决定：计划里的思路已按人先排好，`created` 依次加 1 毫秒。存储层不再读会话来重排。
 - 每个公开方法通过 `Store.lock` 加锁、拒绝已关闭的 Store，并重读 `work.yaml`，让手改的分类列表立即生效。

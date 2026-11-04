@@ -13,6 +13,9 @@ func TestIsProsePath(t *testing.T) {
 		prose bool
 	}{
 		{"chapters/一.txt", true},
+		{"ext/outline/id.txt", false},
+		{"ext/lore/setting.jsonl", false},
+		{"ext.json", false},
 		{"chapters/卷/一.txt", true},
 		{"chapters/一.outline.txt", false},
 		{"chapters/卷.outline.txt", false},

@@ -425,8 +425,8 @@ func TestFixedOutlinesIgnoreDamagedMarks(t *testing.T) {
 
 func TestFixedOmitsOutlinesOnBatchFailure(t *testing.T) {
 	e, _ := setup(t)
-	_, _, _, three := shelf(t, e)
-	path := filepath.Join(e.Store.Root(), "chapters", "第一卷", "第一章.outline.txt")
+	_, one, _, three := shelf(t, e)
+	path := filepath.Join(e.Store.Root(), "ext", "outline", one+".txt")
 	if err := os.Remove(path); err != nil {
 		t.Fatal(err)
 	}

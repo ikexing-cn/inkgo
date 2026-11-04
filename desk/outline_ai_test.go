@@ -47,7 +47,7 @@ func TestDraftDialogWithCards(t *testing.T) {
 	}
 	testshot.Save(t, "draft-with-cards.png", tt.Image())
 	note := a.write.draftNote
-	if err := os.WriteFile(filepath.Join(a.Store.Root(), "outline.json"), []byte(`{broken`), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(a.Store.Root(), "ext", "outline", "outline.json"), []byte(`{broken`), 0644); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

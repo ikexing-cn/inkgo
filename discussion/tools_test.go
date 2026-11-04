@@ -372,6 +372,13 @@ func TestSearchBookIgnoresDamagedCompanions(t *testing.T) {
 				t.Fatal(err)
 			}
 			path := filepath.Join(e.Store.Root(), "chapters", "章节."+companion)
+			if companion == "outline.txt" {
+				dir, err := e.Store.ExtDir("outline")
+				if err != nil {
+					t.Fatal(err)
+				}
+				path = filepath.Join(dir, id+".txt")
+			}
 			if companion == "marks.json" {
 				err = os.WriteFile(path, []byte("broken"), 0600)
 			} else {

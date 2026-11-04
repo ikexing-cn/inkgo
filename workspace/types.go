@@ -1,5 +1,5 @@
 // Package workspace stores a work as canonical files: work.yaml, a JSONL
-// file per session, and setting.jsonl, the revisions of the setting
+// file per session, and ext/lore/setting.jsonl, the revisions of the setting
 // document. Nothing else is authoritative.
 package workspace
 

@@ -167,7 +167,7 @@ func TestExtensionBookSwitchAndSettingsPersistInWork(t *testing.T) {
 	if on, ok := b.extensions.BookOverride("phone"); !ok || on {
 		t.Fatal("override lost")
 	}
-	data, err := os.ReadFile(filepath.Join(root, ".writer", "ext.json"))
+	data, err := os.ReadFile(filepath.Join(root, "ext.json"))
 	requireExtension(t, err)
 	if !strings.Contains(string(data), "book value") {
 		t.Fatal(string(data))
@@ -181,7 +181,7 @@ func TestUnreadableExtensionFileIsEmptyReportedAndNotRewritten(t *testing.T) {
 			root := extensionBook(t)
 			file := filepath.Join(filepath.Dir(config), "ext.json")
 			if book {
-				file = filepath.Join(root, ".writer", "ext.json")
+				file = filepath.Join(root, "ext.json")
 			}
 			damaged := []byte("{ broken JSON")
 			requireExtension(t, os.WriteFile(file, damaged, 0644))
@@ -566,5 +566,24 @@ func TestTitleAndSystemViewMenusShareExtensionOrdering(t *testing.T) {
 	}
 	if !reflect.DeepEqual(title, expected) || !reflect.DeepEqual(system, expected) {
 		t.Fatal("different menu ordering", expected, title, system)
+	}
+}
+
+func TestOldBookExtensionSettingsAreIgnored(t *testing.T) {
+	root := t.TempDir()
+	if err := os.Mkdir(filepath.Join(root, ".writer"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".writer", "ext.json"), []byte(`{"switches":{"lore":false},"settings":{"lore.example":42}}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	store := newExtensionStore(t.TempDir(), func(err error) { t.Fatal(err) })
+	b := ext.Book{Dir: root}
+	switches, err := (bookExtensions{store}).Load(b)
+	if err != nil || len(switches) != 0 {
+		t.Fatal(switches, err)
+	}
+	if data, ok := store.Load(b, "lore.example"); ok {
+		t.Fatalf("read legacy settings: %s", data)
 	}
 }

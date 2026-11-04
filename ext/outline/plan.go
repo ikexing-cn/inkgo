@@ -25,6 +25,7 @@ type Page struct {
 	loaded              bool
 	loadErr             error
 	checked             time.Time // when the outline was last read
+	chapterChecked      time.Time
 	checksPaused        bool
 	index               planIndex
 	geometry            *planGeometry
@@ -58,6 +59,7 @@ func (p *Page) WindowActivity(active, returned bool) {
 	p.checksPaused = !active
 	if returned {
 		p.checked = time.Time{}
+		p.chapterChecked = time.Time{}
 	}
 }
 
@@ -194,8 +196,8 @@ func (p *Page) counts() (cards, nodes int) {
 // outline shows what is wrong instead, and is read again when it is due.
 func (p *Page) View(c *ui.Context) {
 	content := p.Services.Book.Content()
-	if !p.checksPaused && p.loadErr != nil && time.Since(p.checked) >= p.Services.Book.Content().Timing.CheckEvery {
-		p.loaded = false // a broken outline may have been put right outside
+	if !p.checksPaused && time.Since(p.checked) >= p.Services.Book.Content().Timing.CheckEvery {
+		p.loaded = false // outlines and cards may have changed outside
 	}
 	if !p.loaded {
 		p.checked = time.Now()
@@ -209,6 +211,9 @@ func (p *Page) View(c *ui.Context) {
 		}
 	} else {
 		p.rebuildIndex()
+	}
+	if !p.checksPaused {
+		c.After(content.Timing.CheckEvery - time.Since(p.checked))
 	}
 	if p.loadErr != nil {
 		p.broken(c)

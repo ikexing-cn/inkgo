@@ -81,7 +81,7 @@ func (s *Store) readDir(t Tree, folder *Node, used map[string]bool, read directo
 			return fmt.Errorf("%s: symlinks are not allowed", filepath.Join(p, name))
 		case f.IsDir():
 			folders[name] = true
-		case strings.HasSuffix(strings.ToLower(name), outlineExt):
+		case strings.HasSuffix(strings.ToLower(name), legacyOutlineExt):
 		case strings.HasSuffix(strings.ToLower(name), textExt):
 			docs[name[:len(name)-len(textExt)]] = true
 		}

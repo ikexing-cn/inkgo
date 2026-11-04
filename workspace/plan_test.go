@@ -150,7 +150,7 @@ func TestOutlineMalformedFile(t *testing.T) {
 		t.Run(bad, func(t *testing.T) {
 			s := testStore(t)
 			id := mustChapter(t, s, "", "正文", false)
-			p := filepath.Join(s.Root(), "outline.json")
+			p := filepath.Join(s.Root(), "ext", "outline", "outline.json")
 			planOK(t, os.WriteFile(p, []byte(bad), 0600))
 			if _, err := s.Plan(); err == nil || !strings.Contains(err.Error(), "outline.json") {
 				t.Fatal(err)
@@ -202,7 +202,7 @@ func TestOutlineErrorSaysWhere(t *testing.T) {
 		`{"schema":2,"cards":[{"id":"20261019-0000-0001","title":""}]}`:     0,
 	} {
 		s := testStore(t)
-		planOK(t, os.WriteFile(filepath.Join(s.Root(), "outline.json"), []byte(bad), 0600))
+		planOK(t, os.WriteFile(filepath.Join(s.Root(), "ext", "outline", "outline.json"), []byte(bad), 0600))
 		_, err := s.Plan()
 		var e *PlanError
 		if !errors.As(err, &e) || e.Line != line || !strings.HasSuffix(e.Path, "outline.json") {
@@ -216,7 +216,7 @@ func TestPurgeChapterWithMalformedOutline(t *testing.T) {
 	v := mustChapter(t, s, "", "卷", true)
 	id := mustChapter(t, s, v, "章", false)
 	c := planCard(t, s, Card{Title: "旧事", Chapter: id}, "")
-	file := filepath.Join(s.Root(), "outline.json")
+	file := filepath.Join(s.Root(), "ext", "outline", "outline.json")
 	good, err := os.ReadFile(file)
 	planOK(t, err)
 	planOK(t, s.TrashChapter(v))

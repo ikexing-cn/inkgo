@@ -459,6 +459,7 @@ func (h *Host) reconcile() {
 func (h *Host) start(e *entry) {
 	h.mu.Lock()
 	s := newSession(e.mod.ID, h.book, h.opts.LocalRoot)
+	s.bookDir = h.opts.BookDir
 	s.onPanic = func(v any) { h.callFailure(e.mod.ID, "Task", "", "", v) }
 	e.session = s
 	e.ledger.State = Starting

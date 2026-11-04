@@ -11,6 +11,7 @@ type Session struct {
 	id        string
 	book      Book
 	localRoot string
+	bookDir   func(string, string) (string, error)
 	ctx       context.Context
 	cancel    context.CancelFunc
 	mu        sync.Mutex
@@ -32,10 +33,11 @@ func (s *Session) ID() string { return s.id }
 
 // BookDir returns the book data directory without creating it.
 func (s *Session) BookDir() (string, bool) {
-	if s.book.Dir == "" {
+	if s.book.Dir == "" || s.bookDir == nil {
 		return "", false
 	}
-	return filepath.Join(s.book.Dir, ".writer", "ext", s.id), true
+	dir, err := s.bookDir(s.book.Dir, s.id)
+	return dir, err == nil
 }
 
 // LocalDir returns the local data directory without creating it.

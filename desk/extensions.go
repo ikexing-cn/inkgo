@@ -76,7 +76,7 @@ func (a *App) initExtensions(mods []ext.Module) {
 		}
 		names[mod.ID] = name
 	}
-	h, err := ext.New(ext.Options{LocalRoot: root, LocalSwitches: localExtensions{a.extStore}, BookSwitches: bookExtensions{a.extStore}, Settings: a.extStore, Injections: injectionExtensions{a.extStore},
+	h, err := ext.New(ext.Options{BookDir: workspace.ExtDir, LocalRoot: root, LocalSwitches: localExtensions{a.extStore}, BookSwitches: bookExtensions{a.extStore}, Settings: a.extStore, Injections: injectionExtensions{a.extStore},
 		OnFailure: func(id string, f ext.Failure) {
 			a.extensionError(extensionFailedError{name: names[id], err: f.Err})
 		},

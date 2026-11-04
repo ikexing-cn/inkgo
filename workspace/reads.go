@@ -38,7 +38,7 @@ func (s *Store) outlines(pick func(*Node) bool) (map[string]string, error) {
 			return
 		}
 		var p string
-		p, err = s.nodePath(n, outlineExt)
+		p, err = s.outlinePath(n.ID)
 		if err != nil {
 			return
 		}

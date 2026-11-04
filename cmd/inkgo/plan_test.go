@@ -118,7 +118,7 @@ func TestLayoutOutline(t *testing.T) {
 	}
 	shot(t, tt, "-outline-none")
 	// An auxiliary file error must leave the work open and occupy the page.
-	check(os.WriteFile(filepath.Join(root, "work", "outline.json"), []byte("{"), 0600))
+	check(os.WriteFile(filepath.Join(root, "work", "ext", "outline", "outline.json"), []byte("{"), 0600))
 	click("正文")
 	click("大纲")
 	if !tt.HasText("大纲文件读不出来") || !tt.HasText("文件在结尾处断了") {

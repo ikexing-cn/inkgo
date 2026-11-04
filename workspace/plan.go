@@ -87,7 +87,7 @@ func (p Plan) validate() error {
 }
 
 func (s *Store) plan() (Plan, error) {
-	p, err := s.path("outline.json")
+	p, err := s.extensionPath("outline", "outline.json")
 	if err != nil {
 		return Plan{}, err
 	}
@@ -141,7 +141,7 @@ func (s *Store) writePlan(p Plan) error {
 	if err := p.validate(); err != nil {
 		return err
 	}
-	path, err := s.path("outline.json")
+	path, err := s.extensionPath("outline", "outline.json")
 	if err != nil {
 		return err
 	}
@@ -153,6 +153,9 @@ func (s *Store) writePlan(p Plan) error {
 	}
 	b, err := json.MarshalIndent(p, "", "  ")
 	if err != nil {
+		return err
+	}
+	if err := s.prepareExtension("outline"); err != nil {
 		return err
 	}
 	return atomicWrite(path, append(b, '\n'), false)

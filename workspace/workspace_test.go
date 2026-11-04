@@ -266,7 +266,7 @@ func TestTheBookkeepersRevisionsAreRead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p := filepath.Join(s.Root(), "setting.jsonl")
+	p := filepath.Join(s.Root(), "ext", "lore", "setting.jsonl")
 	lines := fmt.Sprintf(`{"schema":2,"id":"20261010-1200-aaaa","at":"2026-10-10T12:00:00Z","by":"bookkeeper","ops":[{"op":"add","entry":"20261010-1200-bbbb","place":"body","category":"规则","text":"城市总在下雨","sources":[{"session":%q,"message":%q,"quote":"城市总在下雨"}]}],"base":0,"skipped":[],"session":%q,"from":%q,"through":%q,"model":"deepseek/deepseek-flash","effort":"low","reasoning":"作者定了雨"}
 {"schema":2,"id":"20261010-1201-cccc","at":"2026-10-10T12:01:00Z","by":"bookkeeper","ops":[],"session":%q,"from":%q,"through":%q,"redo":"","failed":"超时"}
 `, session, u.ID, session, u.ID, u.ID, session, u.ID, u.ID)
@@ -294,7 +294,7 @@ func TestTheBookkeepersRevisionsAreRead(t *testing.T) {
 func TestStrictWorkAndSettingValidation(t *testing.T) {
 	s := testStore(t)
 	r := mustRevise(t, s, Revision{By: ByAuthor, Ops: []Op{{Op: OpAdd, Place: PlaceBody, Category: "人物", Text: "旧文本"}}})
-	p := filepath.Join(s.Root(), "setting.jsonl")
+	p := filepath.Join(s.Root(), "ext", "lore", "setting.jsonl")
 	original := readBytes(t, p)
 	putBytes(t, p, bytes.Replace(original, []byte("旧文本"), []byte("新文本"), 1))
 	if e := entry(t, s, r.Ops[0].Entry); e.Text != "新文本" {

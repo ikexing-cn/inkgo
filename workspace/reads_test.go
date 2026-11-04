@@ -29,7 +29,7 @@ func TestOutlinesReadWithoutProse(t *testing.T) {
 	if len(out) != 3 || out[v] != "卷纲" || out[id] != "章纲\n第二行" || out[empty] != "" {
 		t.Fatal(out)
 	}
-	p, err := s.nodePath(n, outlineExt)
+	p, err := s.outlinePath(n.ID)
 	planOK(t, err)
 	planOK(t, os.Remove(p))
 	planOK(t, os.Mkdir(p, 0755))

@@ -2,30 +2,34 @@ package workspace
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 )
 
 // The prose lives under chapters/ as the chapter tree shows it: a folder is
-// a directory, a document 标题.txt, and the outline of either 标题.outline.txt
-// beside it. A document's marks are 标题.marks.json. Each directory's .order
+// a directory and a document 标题.txt. Outlines live in ext/outline/<ID>.txt;
+// a document's marks are 标题.marks.json. Each directory's .order
 // lists its nodes in order with their IDs and titles, which file names
 // cannot hold; files that appear without an entry, as ones copied in by
-// hand, become nodes of their own.
+// hand, become nodes of their own. Book switches and settings live in
+// ext.json, lore revisions in ext/lore/setting.jsonl, and story cards in
+// ext/outline/outline.json. Only machine-local state and caches use .writer/.
 const (
-	chaptersDir = "chapters"
-	trashDir    = "trash"
-	orderFile   = ".order"
-	trashedFile = ".trashed.json"
-	textExt     = ".txt"
-	outlineExt  = ".outline.txt"
-	marksExt    = ".marks.json"
+	chaptersDir      = "chapters"
+	trashDir         = "trash"
+	orderFile        = ".order"
+	trashedFile      = ".trashed.json"
+	textExt          = ".txt"
+	legacyOutlineExt = ".outline.txt"
+	marksExt         = ".marks.json"
 )
 
 // IsProsePath reports whether a slash-separated path under a work is live
 // chapter prose, excluding outlines and files outside the chapter tree.
 func IsProsePath(rel string) bool {
-	return strings.HasPrefix(rel, chaptersDir+"/") && strings.HasSuffix(rel, textExt) && !strings.HasSuffix(rel, outlineExt)
+	return strings.HasPrefix(rel, chaptersDir+"/") && strings.HasSuffix(rel, textExt) && !strings.HasSuffix(strings.ToLower(rel), legacyOutlineExt)
 }
 
 // fileName turns title into a name its directory can hold beside the names
@@ -109,7 +113,49 @@ func childDir(n *Node) []string {
 // it was.
 func companions(n *Node) []string {
 	if n.Folder {
-		return []string{"", outlineExt}
+		return []string{""}
 	}
-	return []string{textExt, outlineExt, marksExt, checkExt}
+	return []string{textExt, marksExt, checkExt}
+}
+
+// ExtDir returns the book's directory for extension id without creating it.
+// IDs are portable single path components; symlinks are refused as for prose.
+func (s *Store) ExtDir(id string) (string, error) {
+	if id == "" || id == "." || id == ".." || strings.ContainsAny(id, `/\:`) || strings.TrimRight(id, ". ") != id {
+		return "", fmt.Errorf("extensions: invalid id %q", id)
+	}
+	for _, r := range id {
+		if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '-' || r == '_' || r == '.') {
+			return "", fmt.Errorf("extensions: invalid id %q", id)
+		}
+	}
+	return s.path("ext", id)
+}
+
+// ExtDir returns extension id's directory in book dir without opening the book.
+func ExtDir(dir, id string) (string, error) { return (&Store{root: dir}).ExtDir(id) }
+
+// ExtSettingsPath returns the per-book switches and settings file.
+func ExtSettingsPath(dir string) string { return filepath.Join(dir, "ext.json") }
+
+func (s *Store) extensionPath(id, name string) (string, error) {
+	if _, err := s.ExtDir(id); err != nil {
+		return "", err
+	}
+	return s.path("ext", id, name)
+}
+
+func (s *Store) outlinePath(id string) (string, error) {
+	if err := validID(id); err != nil {
+		return "", err
+	}
+	return s.extensionPath("outline", id+textExt)
+}
+
+func (s *Store) prepareExtension(id string) error {
+	dir, err := s.ExtDir(id)
+	if err != nil {
+		return err
+	}
+	return os.MkdirAll(dir, 0755)
 }

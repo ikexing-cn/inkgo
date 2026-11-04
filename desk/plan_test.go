@@ -85,7 +85,7 @@ func TestOutlineReadError(t *testing.T) {
 	if err := a.Close(); err != nil {
 		t.Fatal(err)
 	}
-	file := filepath.Join(root, "outline.json")
+	file := filepath.Join(root, "ext", "outline", "outline.json")
 	bad := []byte("{ broken outline")
 	if err := os.WriteFile(file, bad, 0600); err != nil {
 		t.Fatal(err)

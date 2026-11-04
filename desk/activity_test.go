@@ -77,7 +77,7 @@ func TestBackgroundSavingStillChecksConflicts(t *testing.T) {
 			if !a.write.checked.IsZero() {
 				t.Fatal("background save also ran periodic polling")
 			}
-			if got := disk(t, a, "第一章.outline.txt"); got != "后台也保存章纲" {
+			if got := outlineDisk(t, a); got != "后台也保存章纲" {
 				t.Fatalf("background outline was not saved: %q", got)
 			}
 		})
@@ -121,7 +121,7 @@ func TestReturnFindsRemovedRenamedAndMovedChapters(t *testing.T) {
 
 func TestBrokenOutlineRetryPausesWithWindow(t *testing.T) {
 	a, tt, _ := outlineFixture(t)
-	p := filepath.Join(a.Store.Root(), "outline.json")
+	p := filepath.Join(a.Store.Root(), "ext", "outline", "outline.json")
 	if err := os.WriteFile(p, []byte("{broken"), 0644); err != nil {
 		t.Fatal(err)
 	}

@@ -40,7 +40,7 @@ func writePlan(t *testing.T, st *workspace.Store, p workspace.Plan) []byte {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(st.Root(), "outline.json"), b, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(st.Root(), "ext", "outline", "outline.json"), b, 0644); err != nil {
 		t.Fatal(err)
 	}
 	return b
@@ -126,7 +126,7 @@ func TestReadOutline(t *testing.T) {
 			t.Errorf("label %q, want %q", got, tc.want)
 		}
 	}
-	after, err := os.ReadFile(filepath.Join(e.Store.Root(), "outline.json"))
+	after, err := os.ReadFile(filepath.Join(e.Store.Root(), "ext", "outline", "outline.json"))
 	if err != nil || !bytes.Equal(before, after) {
 		t.Fatalf("outline changed: %v", err)
 	}
@@ -208,7 +208,7 @@ func TestReadOutlinePagesAndFailures(t *testing.T) {
 	if got := box.readOutline(outlineArgs{From: 999}).text; !strings.Contains(got, "后面没有卡片了。") || strings.Contains(got, "第 204–203") {
 		t.Fatal(got)
 	}
-	path := filepath.Join(e.Store.Root(), "outline.json")
+	path := filepath.Join(e.Store.Root(), "ext", "outline", "outline.json")
 	if after, err := os.ReadFile(path); err != nil || !bytes.Equal(before, after) {
 		t.Fatalf("paging wrote the outline: %v", err)
 	}
@@ -258,7 +258,7 @@ func TestFixedCardsAndPreloaded(t *testing.T) {
 				t.Fatalf("preloaded %d, baseline %d, cards %d: %v", n.Tokens, baseline.Tokens, ctx.Sent.Part(workspace.PartCards), err)
 			}
 			for _, data := range [][]byte{writePlan(t, e.Store, workspace.Plan{Cards: p.Cards[:1]}), []byte(`{broken`)} {
-				if err := os.WriteFile(filepath.Join(e.Store.Root(), "outline.json"), data, 0644); err != nil {
+				if err := os.WriteFile(filepath.Join(e.Store.Root(), "ext", "outline", "outline.json"), data, 0644); err != nil {
 					t.Fatal(err)
 				}
 				f, err := fixedOf(e.Store, aiport.Material{Setting: true, Outline: true}, tree, origin, two)
@@ -304,8 +304,8 @@ func TestReadOutlineIgnoresDamagedMarks(t *testing.T) {
 
 func TestReadOutlineBatchFailureNamesRequestedNode(t *testing.T) {
 	e, _ := setup(t)
-	shelf(t, e)
-	path := filepath.Join(e.Store.Root(), "chapters", "第一卷", "第一章.outline.txt")
+	_, one, _, _ := shelf(t, e)
+	path := filepath.Join(e.Store.Root(), "ext", "outline", one+".txt")
 	if err := os.Remove(path); err != nil {
 		t.Fatal(err)
 	}

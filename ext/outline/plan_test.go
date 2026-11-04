@@ -108,7 +108,7 @@ func planStored(t *testing.T, a *testHost) workspace.Plan {
 func TestOutlineReadError(t *testing.T) {
 	a, tt, _ := outlineFixture(t)
 	root := a.Store.Root()
-	file := filepath.Join(root, "outline.json")
+	file := filepath.Join(root, "ext", "outline", "outline.json")
 	bad := []byte("{ broken outline")
 	if err := os.WriteFile(file, bad, 0600); err != nil {
 		t.Fatal(err)

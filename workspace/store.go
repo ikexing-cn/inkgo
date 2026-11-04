@@ -105,8 +105,8 @@ func Create(dir, name, genre string) (*Store, error) {
 	if err = os.MkdirAll(root, 0755); err != nil {
 		return nil, err
 	}
-	for _, d := range []string{"sessions", "chapters", ".writer"} {
-		if err = os.Mkdir(filepath.Join(root, d), 0755); err != nil {
+	for _, d := range []string{"sessions", "chapters", ".writer", "ext/lore", "ext/outline"} {
+		if err = os.MkdirAll(filepath.Join(root, d), 0755); err != nil {
 			return nil, err
 		}
 	}
@@ -120,7 +120,7 @@ func Create(dir, name, genre string) (*Store, error) {
 	if err = atomicWrite(filepath.Join(root, "work.yaml"), data, true); err != nil {
 		return nil, err
 	}
-	if err = atomicWrite(filepath.Join(root, "setting.jsonl"), nil, true); err != nil {
+	if err = atomicWrite(filepath.Join(root, "ext", "lore", "setting.jsonl"), nil, true); err != nil {
 		return nil, err
 	}
 	return Open(root)
@@ -331,7 +331,7 @@ func (s *Store) RemoveCategory(name string) error {
 	}
 	if len(ops) > 0 {
 		r := Revision{Schema: Schema, ID: NewID(), At: time.Now().UTC(), By: ByAuthor, Ops: ops}
-		p, err := s.path("setting.jsonl")
+		p, err := s.extensionPath("lore", "setting.jsonl")
 		if err != nil {
 			return err
 		}

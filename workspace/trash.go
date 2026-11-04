@@ -260,6 +260,13 @@ func (s *Store) PurgeChapter(id string) error {
 		if validID(h) != nil {
 			continue
 		}
+		op, err := s.outlinePath(h)
+		if err != nil {
+			return err
+		}
+		if err = os.Remove(op); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
 		p, err := s.path(historyDir, h)
 		if err != nil {
 			return err

@@ -81,7 +81,7 @@ func TestChangeDecisionsUndoTogether(t *testing.T) {
 			if err := a.refresh(); err != nil {
 				t.Fatal(err)
 			}
-			settingPath := filepath.Join(a.Store.Root(), "setting.jsonl")
+			settingPath := filepath.Join(a.Store.Root(), "ext", "lore", "setting.jsonl")
 			before := diskBytes(t, settingPath)
 			beforeCheck, err := a.Store.ReadCheck(node)
 			if err != nil {
@@ -187,7 +187,7 @@ func TestUndoLeavesALaterWriteAlone(t *testing.T) {
 	}}); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(a.Store.Root(), "setting.jsonl")
+	path := filepath.Join(a.Store.Root(), "ext", "lore", "setting.jsonl")
 	after := diskBytes(t, path)
 	click(t, tt, "撤销提示")
 	if !bytes.Equal(after, diskBytes(t, path)) || !tt.HasText("设定已再次修改") {
@@ -251,7 +251,7 @@ func TestUndoRefusesAReplacedChapterCheck(t *testing.T) {
 			if err := a.book.SaveCheck(node, later); err != nil {
 				t.Fatal(err)
 			}
-			settingPath := filepath.Join(a.Store.Root(), "setting.jsonl")
+			settingPath := filepath.Join(a.Store.Root(), "ext", "lore", "setting.jsonl")
 			checkPath := filepath.Join(a.Store.Root(), "chapters", "第一章.check.json")
 			settingBytes, checkBytes := diskBytes(t, settingPath), diskBytes(t, checkPath)
 			click(t, tt, "撤销提示")
@@ -294,7 +294,7 @@ func TestTakingAChangeRollsBackWhenTheCheckCannotSave(t *testing.T) {
 	if err := a.refresh(); err != nil {
 		t.Fatal(err)
 	}
-	settingPath := filepath.Join(a.Store.Root(), "setting.jsonl")
+	settingPath := filepath.Join(a.Store.Root(), "ext", "lore", "setting.jsonl")
 	before := diskBytes(t, settingPath)
 	showTodo(a, true)
 	tt.Frame()

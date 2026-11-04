@@ -179,7 +179,7 @@ func TestExtensionMoreScopesSwitchToBookPersistsAndRestoresLocalDefault(t *testi
 		t.Fatal("no book override")
 	}
 	hasText(t, tt, locales.ModBookOff())
-	data, err := os.ReadFile(filepath.Join(root, ".writer", "ext.json"))
+	data, err := os.ReadFile(filepath.Join(root, "ext.json"))
 	requireExtension(t, err)
 	var saved extensionFile
 	requireExtension(t, json.Unmarshal(data, &saved))
@@ -203,7 +203,7 @@ func TestExtensionMoreScopesSwitchToBookPersistsAndRestoresLocalDefault(t *testi
 	if _, ok := a.extensions.BookOverride("phone"); ok || !a.extensions.Own("phone") || a.settings.askExt {
 		t.Fatal("did not follow local")
 	}
-	data, err = os.ReadFile(filepath.Join(root, ".writer", "ext.json"))
+	data, err = os.ReadFile(filepath.Join(root, "ext.json"))
 	requireExtension(t, err)
 	if strings.Contains(string(data), "phone") {
 		t.Fatal("default not persisted", string(data))

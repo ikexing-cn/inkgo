@@ -11,6 +11,7 @@ import (
 	"writer/internal/atomicfile"
 	"writer/locales"
 	"writer/shelf"
+	"writer/workspace"
 )
 
 // extensionFile is ext.json: off lists disabled local IDs, switches contains
@@ -36,7 +37,7 @@ func newExtensionStore(root string, report func(error)) *extensionStore {
 
 func (s *extensionStore) path(b ext.Book) string {
 	if b.Dir != "" {
-		return filepath.Join(b.Dir, ".writer", "ext.json")
+		return workspace.ExtSettingsPath(b.Dir)
 	}
 	if s.root == "" {
 		return ""

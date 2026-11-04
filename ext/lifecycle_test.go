@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"writer/ext"
+	"writer/workspace"
 )
 
 func TestOptionalDependencyDisappearsAndReturnsWithoutConsumerRestart(t *testing.T) {
@@ -186,7 +187,7 @@ func TestBookSwitchStopsAllBeforeRestartAndRefreshesPathsAndServices(t *testing.
 	var ref *ext.Ref[string]
 	root := t.TempDir()
 	var newest *ext.Session
-	h := host(t, ext.Options{LocalRoot: root}, ext.Module{ID: "a", Setup: func(r *ext.Registrar) {
+	h := host(t, ext.Options{BookDir: workspace.ExtDir, LocalRoot: root}, ext.Module{ID: "a", Setup: func(r *ext.Registrar) {
 		ext.Provide(r, ext.ServiceKey[string]("a"), func(s *ext.Session) string { d, _ := s.BookDir(); return d })
 		r.OnStart(func(s *ext.Session) error {
 			newest = s
@@ -215,7 +216,7 @@ func TestBookSwitchStopsAllBeforeRestartAndRefreshesPathsAndServices(t *testing.
 		if !reflect.DeepEqual(log, []string{"-b", "-a", "+a", "+b"}) {
 			t.Fatal(log)
 		}
-		if ref.Get() != filepath.Join(dir, ".writer", "ext", "a") {
+		if ref.Get() != filepath.Join(dir, "ext", "a") {
 			t.Fatal(ref.Get())
 		}
 	}

@@ -39,10 +39,13 @@ func TestChapterTreeOnDisk(t *testing.T) {
 	if err := s.RenameChapter(two, "第二章 铜钥匙"); err != nil {
 		t.Fatal(err)
 	}
-	for _, f := range []string{"第二章 铜钥匙.txt", "第二章 铜钥匙.outline.txt", "第二章 铜钥匙.marks.json"} {
+	for _, f := range []string{"第二章 铜钥匙.txt", "第二章 铜钥匙.marks.json"} {
 		if !exists(t, ch, "第一卷", f) {
 			t.Fatalf("%s did not follow the rename", f)
 		}
+	}
+	if !exists(t, s.Root(), "ext", "outline", two+".txt") {
+		t.Fatal("outline lost after rename")
 	}
 	if err := s.MoveChapter(two, "", 0); err != nil {
 		t.Fatal(err)

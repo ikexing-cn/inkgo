@@ -107,7 +107,7 @@ func TestWritingSavesAsTheAuthorPauses(t *testing.T) {
 	tt.Frame()
 	setChapterOutline(a, "她在雨夜里等人")
 	tt.Frame()
-	if got := disk(t, a, "第一章：雨夜.outline.txt"); got != "她在雨夜里等人" {
+	if got := outlineDisk(t, a); got != "她在雨夜里等人" {
 		t.Fatalf("outline %q", got)
 	}
 	// Coming back opens the chapter last written.
@@ -298,4 +298,13 @@ func TestLeavingWithAnOutsideChangeKeepsTheEditorsWords(t *testing.T) {
 	if text, _ := store.SnapshotText(id, snaps[0].Name); text != "新字原来的。" || snaps[0].Reason != workspace.SnapExternal {
 		t.Fatalf("the editor's words were not kept: %q (%s)", text, snaps[0].Reason)
 	}
+}
+
+func outlineDisk(t *testing.T, a *App) string {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join(a.Store.Root(), "ext", "outline", a.write.node+".txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
 }

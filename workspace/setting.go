@@ -322,9 +322,12 @@ type kept struct {
 // recoverable prefix. With sc, it also checks every source still quotes its
 // message, as opening a work does.
 func (s *Store) setting(sc *scan) (Setting, int64, error) {
-	p, err := s.path("setting.jsonl")
+	p, err := s.extensionPath("lore", "setting.jsonl")
 	if err != nil {
 		return Setting{}, 0, err
+	}
+	if _, err := os.Stat(p); errors.Is(err, os.ErrNotExist) {
+		return Setting{}, 0, nil
 	}
 	var set Setting
 	seen := map[string]bool{}
@@ -471,9 +474,17 @@ func (s *Store) Revise(r Revision) (Revision, error) {
 	if err = s.checkChapters(r); err != nil {
 		return Revision{}, err
 	}
-	p, err := s.path("setting.jsonl")
+	p, err := s.extensionPath("lore", "setting.jsonl")
 	if err != nil {
 		return Revision{}, err
+	}
+	if err := s.prepareExtension("lore"); err != nil {
+		return Revision{}, err
+	}
+	if _, err := os.Stat(p); errors.Is(err, os.ErrNotExist) {
+		if err := atomicWrite(p, nil, true); err != nil {
+			return Revision{}, err
+		}
 	}
 	if err := appendJSONL(p, prefix, r); err != nil {
 		return r, err
@@ -497,7 +508,7 @@ func (s *Store) Unrevise(id string) error {
 	if id == "" || len(set.Revisions) == 0 || set.Revisions[len(set.Revisions)-1].ID != id {
 		return ErrSettingChanged
 	}
-	p, err := s.path("setting.jsonl")
+	p, err := s.extensionPath("lore", "setting.jsonl")
 	if err != nil {
 		return err
 	}

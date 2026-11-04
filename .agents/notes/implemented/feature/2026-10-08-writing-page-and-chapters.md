@@ -27,7 +27,7 @@ AI 辅助（续写、改写、按章纲起草）是第二期，见[AI 辅助写�
 - 磁盘目录照搬树结构，放在 `chapters/` 下（`workspace/paths.go`、`workspace/order.go`、`workspace/nodes.go`）：
   - 文件夹就是文件夹；
   - 文稿是 `标题.txt`；
-  - 纲是同名的 `标题.outline.txt`，为空时不留文件；
+  - 纲是同名的 `标题.outline.txt`，为空时不留文件（2026-11-04 起是 `ext/outline/<节点 ID>.txt`）；
   - 标记是同名的 `标题.marks.json`，没有标记时不留文件。
 - 每个文件夹里有一个 `.order`，是 JSON 数组，按顺序记录每个子节点的 ID、原标题、文件名、是否文件夹。文件名本身表达不了顺序和身份。
 - **文件名由 `fileName` 从标题得出**：

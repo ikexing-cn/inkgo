@@ -282,7 +282,7 @@ func TestLegacyBookArchiveSettingsMigrateOnceWithoutReplacingExistingFolders(t *
 		t.Fatal(s, ok)
 	}
 	// The persisted extension setting remains local, outside the book.
-	if _, err := os.Stat(filepath.Join(bookB, ".writer", "ext.json")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(bookB, "ext.json")); !os.IsNotExist(err) {
 		t.Fatal("local choices leaked into book", err)
 	}
 }

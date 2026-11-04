@@ -59,6 +59,22 @@ func (p *Page) WatchChapter(c *ui.Context) {
 		return
 	}
 	d := p.Draft(id)
+	// Refresh a clean draft from disk; an edit in progress keeps its text.
+	if !p.checksPaused {
+		every := p.Services.Book.Content().Timing.CheckEvery
+		if time.Since(p.chapterChecked) >= every {
+			p.chapterChecked = time.Now()
+			if d.Text == d.Saved {
+				out, err := p.Services.Book.Store().OutlinesOf(id)
+				p.Services.Notices.Notices().Warn(err)
+				if err == nil {
+					d.Text, d.Saved, d.Seen = out[id], out[id], out[id]
+				}
+			}
+		}
+		c.After(every - time.Since(p.chapterChecked))
+	}
+
 	d.Change(time.Now())
 	if wait, due := d.Waits(p.Services.Book.Content().Timing.SaveAfter, time.Now()); due {
 		if wait > 0 {
