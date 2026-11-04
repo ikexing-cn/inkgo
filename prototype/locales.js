@@ -2063,7 +2063,29 @@ const CATALOG = {
    "code"
   ],
   "settingsProtocolInvalid": [],
-  "settingsModelIDInvalid": []
+  "settingsModelIDInvalid": [],
+  "workspaceTitleEmpty": [],
+  "workspaceMoveIntoSelf": [],
+  "workspaceTrashMissing": [
+   "id"
+  ],
+  "workspaceCheckChanged": [],
+  "workspaceSettingChanged": [],
+  "workspaceChangedOutside": [],
+  "workspaceLegacySchema": [],
+  "shelfNoBook": [
+   "path"
+  ],
+  "backupFailureTitle": [],
+  "backupFailureBody": [
+   "reason"
+  ],
+  "backupDriveShort": [
+   "disk"
+  ],
+  "backupDriveTitle": [
+   "disk"
+  ]
  },
  "messages": {
   "zh-Hans": {
@@ -3411,7 +3433,19 @@ const CATALOG = {
    "statusHTTPServer": "模型服务返回 HTTP {code}：服务端出错，稍后重试",
    "statusHTTPOther": "模型服务返回 HTTP {code}",
    "settingsProtocolInvalid": "协议必须是 chat、responses 或 anthropic",
-   "settingsModelIDInvalid": "模型 ID 不能为空，前后不能有空格"
+   "settingsModelIDInvalid": "模型 ID 不能为空，前后不能有空格",
+   "workspaceTitleEmpty": "标题不能为空",
+   "workspaceMoveIntoSelf": "不能把文件夹移进它自己里面",
+   "workspaceTrashMissing": "回收站里没有 {id}",
+   "workspaceCheckChanged": "本章检查结果已再次修改，无法撤销",
+   "workspaceSettingChanged": "设定已再次修改，无法撤销",
+   "workspaceChangedOutside": "这一章在软件外被修改过，未写入",
+   "workspaceLegacySchema": "schema: 这是旧版本的作品（schema 1，思路卡片），没有迁移，请新建作品",
+   "shelfNoBook": "该文件夹中没有作品（缺少 work.yaml）：{path}",
+   "backupFailureTitle": "本次备份未完成",
+   "backupFailureBody": "作品未受影响。原因：{reason}",
+   "backupDriveShort": "找不到 {disk} 盘",
+   "backupDriveTitle": "找不到 {disk} 盘，本次备份未完成"
   },
   "en": {
    "menuFile": "File",
@@ -4758,7 +4792,19 @@ const CATALOG = {
    "statusHTTPServer": "Model service returned HTTP {code}: Server error. Try again later",
    "statusHTTPOther": "Model service returned HTTP {code}",
    "settingsProtocolInvalid": "Protocol must be chat, responses or anthropic",
-   "settingsModelIDInvalid": "Model ID cannot be empty or have surrounding spaces"
+   "settingsModelIDInvalid": "Model ID cannot be empty or have surrounding spaces",
+   "workspaceTitleEmpty": "A title is required",
+   "workspaceMoveIntoSelf": "A folder cannot be moved into itself",
+   "workspaceTrashMissing": "There is no {id} in the trash",
+   "workspaceCheckChanged": "The chapter check results changed again and cannot be undone",
+   "workspaceSettingChanged": "The lore changed again and cannot be undone",
+   "workspaceChangedOutside": "This chapter changed outside the app and was not saved",
+   "workspaceLegacySchema": "schema: This book uses the old schema 1 (idea cards) and has not been migrated. Create a new book.",
+   "shelfNoBook": "There is no book in this folder (work.yaml is missing): {path}",
+   "backupFailureTitle": "Backup incomplete",
+   "backupFailureBody": "Your book is unaffected. Reason: {reason}",
+   "backupDriveShort": "Drive {disk} not found",
+   "backupDriveTitle": "Drive {disk} not found; backup incomplete"
   }
  }
 }

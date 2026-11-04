@@ -80,9 +80,9 @@ func TestPlanContents(t *testing.T) {
 		going                   []string
 		prose, outline, setting string
 	}{
-		{nil, nil, nil, "还没有章节，不导出正文。", "还没有章节，不导出大纲。", "还没有已定的设定，不导出设定。"},
-		{book[2:], []workspace.Entry{{Place: workspace.PlaceOpen}}, []string{ProseContent}, "", "所选范围内还没有写章纲，不导出大纲。", "还没有已定的设定，不导出设定。"},
-		{nil, []workspace.Entry{{Place: workspace.PlaceBody}}, []string{SettingContent}, "还没有章节，不导出正文。", "还没有章节，不导出大纲。", ""},
+		{nil, nil, nil, SkipNoChapters, SkipNoChapters, SkipNoLore},
+		{book[2:], []workspace.Entry{{Place: workspace.PlaceOpen}}, []string{ProseContent}, "", SkipNoOutlines, SkipNoLore},
+		{nil, []workspace.Entry{{Place: workspace.PlaceBody}}, []string{SettingContent}, SkipNoChapters, SkipNoChapters, ""},
 	} {
 		p := BuildPlan(tc.pieces, tc.entries, "", Options{Prose: true, Outline: true, Setting: true, Text: true}, Selection{Scope: ScopeWork})
 		if !slices.Equal(p.Going, tc.going) || p.Skip[ProseContent] != tc.prose || p.Skip[OutlineContent] != tc.outline || p.Skip[SettingContent] != tc.setting {
@@ -93,11 +93,11 @@ func TestPlanContents(t *testing.T) {
 		prose, outline, setting, text bool
 		about                         string
 	}{
-		{true, true, false, false, "勾选的几项各存为一个文件，放在同一文件夹。"},
-		{false, false, true, true, "按分类列出已定的设定，不含待确认的。"},
-		{false, true, false, true, "按章节顺序列出各卷、各章的纲。"},
-		{true, false, false, true, "合并为一个文件，各卷和各章前加上标题。"},
-		{true, false, false, false, "首页写书名、笔名和字数，每章另起一页。"},
+		{true, true, false, false, AboutMany},
+		{false, false, true, true, AboutLore},
+		{false, true, false, true, AboutOutline},
+		{true, false, false, true, AboutText},
+		{true, false, false, false, AboutWord},
 	} {
 		p := BuildPlan(book, nil, "", Options{Prose: tc.prose, Outline: tc.outline, Setting: tc.setting, Text: tc.text}, Selection{Scope: ScopeWork})
 		if p.About != tc.about {

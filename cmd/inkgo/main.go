@@ -26,15 +26,8 @@ func main() {
 	if runtime.GOOS == "darwin" {
 		mygo.App.SetName("Inkgo")
 	}
-	// Chinese until the words are all in locales/, so that an English
-	// system does not show half of each; MYGO_LOCALE=en shows another, and
-	// saves nothing. Goes when the move is done: see
-	// .agents/notes/proposed/architecture/2026-11-02-i18n-on-mygo.md.
-	if os.Getenv("MYGO_LOCALE") == "" {
-		os.Setenv("MYGO_LOCALE", "zh-Hans")
-	}
-	workPath := flag.String("work", "", "打开作品文件夹")
-	trace := flag.String("trace", "", "把每次请求的全文写进这个文件夹（调提示词用，不写进作品）")
+	workPath := flag.String("work", "", "Open a book folder")
+	trace := flag.String("trace", "", "Write full request traces to this folder for prompt debugging (outside the book)")
 	flag.Parse()
 	// The AI keeps its services in this machine's settings folder, and
 	// the shelf of works lies beside them.
@@ -80,7 +73,7 @@ func main() {
 	}
 	d.SaveFile = func(title, name string) (string, error) {
 		return mygo.Dialog.Save(mygo.SaveDialogOptions{Parent: win.Load(), Title: title, DefaultPath: name, CreateDirectories: true,
-			Filters: []mygo.FileFilter{{Name: "纯文本", Extensions: []string{"txt"}}}})
+			Filters: []mygo.FileFilter{{Name: locales.ExportPlain(), Extensions: []string{"txt"}}}})
 	}
 	d.Reveal = desk.RevealFolder
 	d.SetTitle = func(title string) bool {

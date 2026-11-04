@@ -3,6 +3,7 @@ package workspace
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -222,12 +223,12 @@ func TestCreateAndRoundTrip(t *testing.T) {
 	}
 }
 
-// A work of schema 1, with idea cards, is refused with a reason in Chinese.
+// A work of schema 1, with idea cards, is refused with a typed schema error.
 func TestOldWorksAreRefused(t *testing.T) {
 	s := testStore(t)
 	p := filepath.Join(s.Root(), "work.yaml")
 	putBytes(t, p, bytes.Replace(readBytes(t, p), []byte("schema: 2"), []byte("schema: 1"), 1))
-	if _, err := Open(s.Root()); err == nil || !strings.Contains(err.Error(), "旧版本的作品") {
+	if _, err := Open(s.Root()); err == nil || !errors.Is(err, ErrLegacySchema) {
 		t.Fatalf("schema 1 opened: %v", err)
 	}
 }

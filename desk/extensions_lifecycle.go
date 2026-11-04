@@ -34,7 +34,7 @@ func (h extensionHost) OpenSettings(id string) {
 	h.a.syncExtensions()
 	tab, ok := h.a.extViews.settingsTabs[id]
 	if !ok {
-		tab = "扩展"
+		tab = "extensions"
 	}
 	h.a.openPrefs(tab)
 }

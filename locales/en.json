@@ -1437,4 +1437,17 @@
   "@settingsProtocolInvalid": {"description":"AI service form validation: Protocol must be chat, responses or anthropic."},
   "settingsModelIDInvalid": "Model ID cannot be empty or have surrounding spaces",
   "@settingsModelIDInvalid": {"description":"AI service form validation: Model ID cannot be empty or have surrounding spaces."}
+,
+  "workspaceTitleEmpty": "A title is required",
+  "workspaceMoveIntoSelf": "A folder cannot be moved into itself",
+  "workspaceTrashMissing": "There is no {id} in the trash",
+  "workspaceCheckChanged": "The chapter check results changed again and cannot be undone",
+  "workspaceSettingChanged": "The lore changed again and cannot be undone",
+  "workspaceChangedOutside": "This chapter changed outside the app and was not saved",
+  "workspaceLegacySchema": "schema: This book uses the old schema 1 (idea cards) and has not been migrated. Create a new book.",
+  "shelfNoBook": "There is no book in this folder (work.yaml is missing): {path}",
+  "backupFailureTitle": "Backup incomplete",
+  "backupFailureBody": "Your book is unaffected. Reason: {reason}",
+  "backupDriveShort": "Drive {disk} not found",
+  "backupDriveTitle": "Drive {disk} not found; backup incomplete"
 }

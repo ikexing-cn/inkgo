@@ -126,8 +126,8 @@ func (a *App) openDraft() {
 }
 
 const (
-	draftAppend  = "接在已有内容之后"
-	draftReplace = "覆盖已有内容"
+	draftAppend  = "append"
+	draftReplace = "replace"
 )
 
 // draftNote says what a talk opened to draft the chapter shown carries
@@ -165,7 +165,11 @@ func (a *App) draft(c *ui.Context) {
 		text += fmt.Sprintf("，约 %d 字", words)
 	}
 	if strings.TrimSpace(w.cur().ed.Doc.String()) != "" {
-		text += "，" + w.draftMode
+		if w.draftMode == draftReplace {
+			text += "，覆盖已有内容"
+		} else {
+			text += "，接在已有内容之后"
+		}
 	}
 	if a.startTalk(c, workspace.Event{Origin: workspace.AIDraft, Text: text}) {
 		w.draftOpen = false
@@ -196,7 +200,7 @@ func (a *App) startTalk(c *ui.Context, words workspace.Event) bool {
 	}
 	a.switchSession(id)
 	words.Chapter, words.Role = w.node, workspace.RoleUser
-	a.titles[id], a.blank[id] = workspace.TalkTitle([]workspace.Event{words}, a.nodeTitle), false
+	a.titles[id], a.blank[id] = a.talkTitle([]workspace.Event{words}), false
 	d := &a.doc
 	d.hidden, d.tab, d.talks = false, paneTalk, false
 	w.focus = false
@@ -295,7 +299,7 @@ func (a *App) talkRecord(c *ui.Context, sessions []string) {
 	t := a.pal.Theme
 	var b strings.Builder
 	for _, s := range sessions {
-		title, ok := a.titles[s]
+		title, ok := a.talkName(s)
 		if !ok {
 			title = locales.SnapAITalkGone()
 		}

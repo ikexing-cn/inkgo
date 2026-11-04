@@ -130,8 +130,8 @@ func (e *Editor) paintDecorations(p *ui.Painter, ox, oy, top, bottom float32) {
 		})
 	}
 
-	if e.Doc.Len() == 0 && e.preedit == "" && e.opts.Placeholder != "" && len(l.lines) > 0 {
-		p.Text(ox+l.lines[0].dx, oy+l.lines[0].y+(l.lineH-e.opts.Font.Size*1.3)/2, e.opts.Placeholder, e.opts.Font.Size, t.TextMuted.Alpha(0.6))
+	if e.Doc.Len() == 0 && e.preedit == "" && e.opts.Placeholder != nil && len(l.lines) > 0 {
+		p.Text(ox+l.lines[0].dx, oy+l.lines[0].y+(l.lineH-e.opts.Font.Size*1.3)/2, e.opts.Placeholder(), e.opts.Font.Size, t.TextMuted.Alpha(0.6))
 	}
 
 	if a, b := e.Selection(); a != b {

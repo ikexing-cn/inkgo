@@ -81,7 +81,7 @@ func New(ask bool) (ext.Module, *View) {
 			short := ""
 			minute := int64(0)
 			if a.State.Policy.Failed() {
-				short, _, _ = a.State.Policy.Trouble(s.Dir)
+				short, _, _ = TroubleText(a.State.Policy.Trouble(s.Dir))
 				minute = time.Now().Unix() / 60
 			}
 			return fmt.Sprint(ok, s, a.State.Policy.Failed(), short, minute)

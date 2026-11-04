@@ -495,7 +495,7 @@ func (s *Store) Unrevise(id string) error {
 		return err
 	}
 	if id == "" || len(set.Revisions) == 0 || set.Revisions[len(set.Revisions)-1].ID != id {
-		return errors.New("设定已再次修改，无法撤销")
+		return ErrSettingChanged
 	}
 	p, err := s.path("setting.jsonl")
 	if err != nil {
@@ -506,7 +506,7 @@ func (s *Store) Unrevise(id string) error {
 		return err
 	}
 	if int64(len(data)) != prefix {
-		return errors.New("设定已再次修改，无法撤销")
+		return ErrSettingChanged
 	}
 	end := len(data)
 	if end > 0 && data[end-1] == '\n' {

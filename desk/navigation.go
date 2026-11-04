@@ -64,10 +64,10 @@ func (a *App) initTabs() {
 	}
 	a.paneTabs = a.hostPaneTabs
 	a.hostPrefTabs = tabTable[string]{
-		{id: "外观", name: locales.ViewLook, label: "设置-外观"},
-		{id: "扩展", name: locales.SettingsTabExtensions, label: "设置-扩展"},
+		{id: "appearance", name: locales.ViewLook, label: "设置-外观"},
+		{id: "extensions", name: locales.SettingsTabExtensions, label: "设置-扩展"},
 		{id: "AI", name: func() string { return "AI" }, label: "设置-AI", order: 10, fallback: true},
-		{id: "提醒与检查", name: locales.SettingsTabRemind, label: "设置-提醒", work: true, order: 20},
+		{id: "reminders", name: locales.SettingsTabRemind, label: "设置-提醒", work: true, order: 20},
 	}
 	a.prefTabs = a.hostPrefTabs
 }

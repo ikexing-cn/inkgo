@@ -46,7 +46,9 @@ func TestFirstBackup(t *testing.T) {
 		t.Fatal(err)
 	}
 	was := backup.SyncFolders
-	backup.SyncFolders = func() []backup.Place { return []backup.Place{{Label: locales.BackupSyncFolder("OneDrive"), Dir: sync}} }
+	backup.SyncFolders = func() []backup.Place {
+		return []backup.Place{{Name: func() string { return locales.BackupSyncFolder("OneDrive") }, Dir: sync}}
+	}
 	t.Cleanup(func() { backup.SyncFolders = was })
 	enableBackupQuestion(a)
 	if err := a.Open(a.Store.Root()); err != nil {
@@ -150,7 +152,7 @@ func TestAskBackupFindsSyncFoldersOnce(t *testing.T) {
 	was := backup.SyncFolders
 	backup.SyncFolders = func() []backup.Place {
 		calls++
-		return []backup.Place{{Label: "同步文件夹", Dir: filepath.Join(t.TempDir(), "写作备份")}}
+		return []backup.Place{{Name: func() string { return "同步文件夹" }, Dir: filepath.Join(t.TempDir(), "写作备份")}}
 	}
 	t.Cleanup(func() { backup.SyncFolders = was })
 	backupOf(a).OpenAsk()
@@ -304,7 +306,9 @@ func TestShotBackup(t *testing.T) {
 
 	sync := filepath.Join(t.TempDir(), "OneDrive", "写作备份")
 	was := backup.SyncFolders
-	backup.SyncFolders = func() []backup.Place { return []backup.Place{{Label: locales.BackupSyncFolder("OneDrive"), Dir: sync}} }
+	backup.SyncFolders = func() []backup.Place {
+		return []backup.Place{{Name: func() string { return locales.BackupSyncFolder("OneDrive") }, Dir: sync}}
+	}
 	t.Cleanup(func() { backup.SyncFolders = was })
 	a.PickFolder = func(string) (string, error) { return "", nil }
 	backupOf(a).OpenAsk()
@@ -340,7 +344,7 @@ func TestShotBackup(t *testing.T) {
 	a.openPrefs("backup.settings")
 	shot(t, tt, "backup-settings.png")
 	tt.SetDark(true)
-	a.openPrefs("外观")
+	a.openPrefs("appearance")
 	shot(t, tt, "settings-look-dark.png")
 	a.settings.tab = "AI"
 	shot(t, tt, "settings-models-dark.png")
@@ -358,7 +362,7 @@ func TestTroubleSaysWhatWasFoundAsItFailed(t *testing.T) {
 	a, _, _ := fixture(t)
 	s := archive.Settings{Dir: t.TempDir()}
 	backupOf(a).RecordResult(s, missing)
-	short, _, _ := backupOf(a).State.Policy.Trouble(s.Dir)
+	short, _, _ := backup.TroubleText(backupOf(a).State.Policy.Trouble(s.Dir))
 	if !backupOf(a).State.Policy.Failed() || short != "找不到备份文件夹" {
 		t.Fatalf("failed %v, trouble %q", backupOf(a).State.Policy.Failed(), short)
 	}

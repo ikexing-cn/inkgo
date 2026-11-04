@@ -403,7 +403,7 @@ func TestListNumbersFollowKeyboardAndMenus(t *testing.T) {
 		}
 		tt.Key(0, ui.KeyEscape)
 	}
-	testRow("章节-第一章", "8", "章节-"+id)
+	testRow("章节-第一章", "8", "chapter-"+id)
 	a.page = pageTalk
 	if _, err := a.Store.Append(a.session, workspace.Event{Role: workspace.RoleUser, Text: "修路灯"}); err != nil {
 		t.Fatal(err)
@@ -412,7 +412,7 @@ func TestListNumbersFollowKeyboardAndMenus(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	testRow("对话-"+a.session, talkDay(a.session, time.Now()), "对话-"+a.session)
+	testRow("对话-"+a.session, talkDay(a.session, time.Now()), "talk-"+a.session)
 }
 
 // The search controls have room above them, and a standalone setting

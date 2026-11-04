@@ -9,17 +9,33 @@ import (
 
 // The ranges of the export dialog.
 const (
-	ScopeWork    = "全书"
-	ScopeVolume  = "本卷"
-	ScopeChapter = "本章"
-	ScopeSpan    = "指定范围"
+	ScopeWork    = "work"
+	ScopeVolume  = "volume"
+	ScopeChapter = "chapter"
+	ScopeSpan    = "span"
 )
 
 // What the export dialog exports, each its own file.
 const (
-	ProseContent   = "正文"
-	OutlineContent = "大纲"
-	SettingContent = "设定"
+	ProseContent   = "prose"
+	OutlineContent = "outline"
+	SettingContent = "lore"
+)
+
+// Why something ticked is not exported, in Plan.Skip.
+const (
+	SkipNoChapters = "no-chapters" // the range has no chapters
+	SkipNoOutlines = "no-outlines" // none of its chapters has an outline
+	SkipNoLore     = "no-lore"     // nothing in the lore is settled
+)
+
+// What the dialog says the export will be, in Plan.About.
+const (
+	AboutMany    = "many"    // several files in one folder
+	AboutLore    = "lore"    // the settled lore by category
+	AboutOutline = "outline" // the outlines in chapter order
+	AboutText    = "text"    // one plain text file
+	AboutWord    = "word"    // one Word document
 )
 
 // ChapterNames are the chapters of pieces by the names the drop-downs of
@@ -65,9 +81,9 @@ type Plan struct {
 	Pieces  []workspace.Piece // of the prose and the outline, in the range
 	Whole   bool              // the range is the whole work
 	Part    string            // the range in the names of the files
-	Skip    map[string]string // why what is ticked cannot be exported
+	Skip    map[string]string // why what is ticked cannot be exported, a Skip code
 	Going   []string          // what is ticked and can be, in the dialog's order
-	About   string            // the dialog's description
+	About   string            // the dialog's description, an About code
 	Words   int               // of the prose in the range
 }
 
@@ -152,13 +168,13 @@ func BuildPlan(pieces []workspace.Piece, entries []workspace.Entry, current stri
 	}
 	plan.Skip = map[string]string{}
 	if !chaptered {
-		plan.Skip[ProseContent] = "还没有章节，不导出正文。"
-		plan.Skip[OutlineContent] = "还没有章节，不导出大纲。"
+		plan.Skip[ProseContent] = SkipNoChapters
+		plan.Skip[OutlineContent] = SkipNoChapters
 	} else if !outlined {
-		plan.Skip[OutlineContent] = "所选范围内还没有写章纲，不导出大纲。"
+		plan.Skip[OutlineContent] = SkipNoOutlines
 	}
 	if !Settled(entries) {
-		plan.Skip[SettingContent] = "还没有已定的设定，不导出设定。"
+		plan.Skip[SettingContent] = SkipNoLore
 	}
 	ticked := options.Ticked()
 	plan.Ticked = ticked
@@ -169,15 +185,15 @@ func BuildPlan(pieces []workspace.Piece, entries []workspace.Entry, current stri
 	}
 	switch {
 	case len(ticked) > 1:
-		plan.About = "勾选的几项各存为一个文件，放在同一文件夹。"
+		plan.About = AboutMany
 	case options.Setting:
-		plan.About = "按分类列出已定的设定，不含待确认的。"
+		plan.About = AboutLore
 	case options.Outline:
-		plan.About = "按章节顺序列出各卷、各章的纲。"
+		plan.About = AboutOutline
 	case options.Text:
-		plan.About = "合并为一个文件，各卷和各章前加上标题。"
+		plan.About = AboutText
 	default:
-		plan.About = "首页写书名、笔名和字数，每章另起一页。"
+		plan.About = AboutWord
 	}
 	return plan
 }

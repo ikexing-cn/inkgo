@@ -17,7 +17,7 @@ func validID(id string) error {
 }
 func validSchema(n int) error {
 	if n == 1 {
-		return fmt.Errorf("schema: 这是旧版本的作品（schema 1，思路卡片），没有迁移，请新建作品")
+		return ErrLegacySchema
 	}
 	if n != Schema {
 		return fmt.Errorf("schema: unsupported version %d (supported: %d)", n, Schema)

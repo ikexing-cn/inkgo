@@ -1,8 +1,6 @@
 package shelf
 
 import (
-	"errors"
-
 	"writer/workspace"
 )
 
@@ -30,7 +28,7 @@ func DescribeOpen(s *workspace.Store) Book {
 // Add reads and adds a work; the bool reports whether a new shelf entry was added.
 func (s *Shelf) Add(path string) (Book, bool, error) {
 	if !workspace.IsWork(path) {
-		return Book{}, false, errors.New("该文件夹中没有作品（缺少 work.yaml）：" + path)
+		return Book{}, false, &NoBookError{Path: path}
 	}
 	if s.Find(path) >= 0 {
 		return Book{}, false, nil
@@ -47,7 +45,7 @@ func (s *Shelf) Add(path string) (Book, bool, error) {
 // then refreshes its shelf information.
 func (s *Shelf) RelocateWork(from, to string) error {
 	if !workspace.IsWork(to) {
-		return errors.New("该文件夹中没有作品（缺少 work.yaml）：" + to)
+		return &NoBookError{Path: to}
 	}
 	b, err := Describe(to)
 	if err != nil {

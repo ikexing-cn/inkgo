@@ -200,7 +200,7 @@ func (s *Store) writeCheckOver(id string, k Check, over *Check) error {
 			return err
 		}
 		if !current.Equal(*over) {
-			return errors.New("本章检查结果已再次修改，无法撤销")
+			return ErrCheckChanged
 		}
 	}
 	p, err := s.nodePath(n, checkExt)

@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/egoist/mygo/i18n"
 	"github.com/egoist/mygo/ui"
 	"writer/desk/book"
 	"writer/desk/kit"
@@ -55,12 +56,13 @@ type planKey struct {
 	book    *book.Book
 	version int
 	chapter string
+	locale  string
 }
 
 func (d *Dialog) planKey() planKey {
 	b := d.book.Get().Content()
 	id, _, _ := d.book.Get().Chapter()
-	return planKey{b, b.Version(), id}
+	return planKey{b, b.Version(), id, i18n.Locale()}
 }
 
 // Show asks what to export, starting from the whole work, the
@@ -117,7 +119,7 @@ func (d *Dialog) View(c *ui.Context) {
 	pal.Modal(c, &d.Open, func() {
 		plan := &d.plan
 		ui.Column(c).Width(kit.DialogSmall).Padding(kit.DialogPad).Gap(16).Children(func() {
-			pal.DialogHead(c, locales.ExportTitle(), d.about())
+			pal.DialogHead(c, locales.ExportTitle(), aboutLabel(plan.About))
 			kit.Labeled(c, locales.ExportContent(), func() {
 				ui.Row(c).Gap(24).MinHeight(kit.HControl).AlignItems(ui.Center).Children(func() {
 					for _, o := range []struct {
@@ -156,8 +158,8 @@ func (d *Dialog) View(c *ui.Context) {
 				ui.Checkbox(c, &d.indent, locales.ExportIndent())
 			}
 			for _, what := range plan.Ticked {
-				if note := plan.Skip[what]; note != "" {
-					ui.Text(c, skipLabel(*plan, what)).FontSize(kit.FsNote).TextColor(t.TextMuted)
+				if why := plan.Skip[what]; why != "" {
+					ui.Text(c, skipLabel(what, why)).FontSize(kit.FsNote).TextColor(t.TextMuted)
 				}
 			}
 			ui.Row(c).FillWidth().Gap(8).Children(func() {
@@ -348,35 +350,33 @@ func scopeLabels(scopes []string) []string {
 	return labels
 }
 
-func (d *Dialog) about() string {
-	set := d.preferences()
-	switch {
-	case len(d.plan.Ticked) > 1:
+func aboutLabel(about string) string {
+	switch about {
+	case format.AboutMany:
 		return locales.ExportAboutMany()
-	case set.Setting:
+	case format.AboutLore:
 		return locales.ExportAboutSettings()
-	case set.Outline:
+	case format.AboutOutline:
 		return locales.ExportAboutOutline()
-	case set.Text:
+	case format.AboutText:
 		return locales.ExportAboutText()
 	default:
 		return locales.ExportAboutWord()
 	}
 }
 
-func skipLabel(plan format.Plan, what string) string {
-	switch what {
-	case format.ProseContent:
-		return locales.ExportSkipBody()
-	case format.SettingContent:
-		return locales.ExportSkipSettings()
-	case format.OutlineContent:
-		for _, p := range plan.Pieces {
-			if !p.Folder {
-				return locales.ExportSkipOutlineEmpty()
-			}
+// skipLabel says why what is not exported, from the plan's Skip code.
+func skipLabel(what, why string) string {
+	switch why {
+	case format.SkipNoChapters:
+		if what == format.ProseContent {
+			return locales.ExportSkipBody()
 		}
 		return locales.ExportSkipOutlineNone()
+	case format.SkipNoOutlines:
+		return locales.ExportSkipOutlineEmpty()
+	case format.SkipNoLore:
+		return locales.ExportSkipSettings()
 	}
 	return ""
 }

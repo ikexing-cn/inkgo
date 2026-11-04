@@ -132,7 +132,7 @@ func (s *Store) ChapterStamp(id string) (Stamp, error) {
 
 // ErrChangedOutside tells that a document's text on disk is not the
 // version the caller last had, so nothing was written over it.
-var ErrChangedOutside = errors.New("这一章在软件外被修改过，未写入")
+var ErrChangedOutside = Error("chapter changed outside the app")
 
 // WriteChapter saves document id's text and marks, the quote of each mark
 // taken from text but an orphaned one's kept, and returns the text's new

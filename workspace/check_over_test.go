@@ -42,7 +42,7 @@ func TestWriteCheckOverGuardsOnlyItsChapter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := s.WriteCheckOver(one, before, after); err == nil || err.Error() != "本章检查结果已再次修改，无法撤销" {
+	if err := s.WriteCheckOver(one, before, after); err != ErrCheckChanged {
 		t.Fatal(err)
 	}
 	kept, err := os.ReadFile(path)

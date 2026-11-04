@@ -133,11 +133,11 @@ func (a *App) treeRow(c *ui.Context, n *workspace.Node, depth int) {
 			kit.Glyph(c, s, kit.IconXs, fg)
 		}
 		ui.Text(c, n.Title).FontSize(kit.FsControl).FontWeight(weight).TextColor(fg).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
-		if k := a.wordsIn(n); k > 0 && (row.Hovered() || row.FocusWithin() || a.menu.MenuOpen("章节-"+n.ID)) {
+		if k := a.wordsIn(n); k > 0 && (row.Hovered() || row.FocusWithin() || a.menu.MenuOpen("chapter-"+n.ID)) {
 			ui.Text(c, locales.CommonNumber(k)).FontSize(kit.FsSmall).TextColor(a.pal.Faint)
 		}
 	})
-	a.menu.ContextMenu(c, a.pal, row, "章节-"+n.ID, func(m *kit.Menu) { a.nodeMenu(m, n) })
+	a.menu.ContextMenu(c, a.pal, row, "chapter-"+n.ID, func(m *kit.Menu) { a.nodeMenu(m, n) })
 	if row.Clicked() {
 		// A folder only folds: its outline opens from its menu. The tree
 		// arranges, the tabs show.

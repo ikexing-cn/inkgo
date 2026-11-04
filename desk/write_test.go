@@ -215,7 +215,7 @@ func TestExportTheWork(t *testing.T) {
 	choices.Outline, choices.Setting = false, false
 	saveChoices(t, a, choices)
 	open()
-	if err := tt.Click(format.ScopeChapter); err != nil {
+	if err := tt.Click(locales.ExportRangeChapter()); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -469,7 +469,7 @@ func TestRemindersBeforeTheWritingPage(t *testing.T) {
 	}
 	rereadBook(a)
 	a.write.lateAfter = lateMin
-	a.openPrefs("提醒与检查")
+	a.openPrefs("reminders")
 	tt.Frame()
 	if !tt.HasText("当前有 1 个伏笔久未回收。") {
 		t.Fatal(tt.Texts())

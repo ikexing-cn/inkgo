@@ -3,6 +3,7 @@ package editor
 import (
 	"strings"
 	"unicode"
+	"writer/locales"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -40,7 +41,7 @@ func (e *Editor) View(c *ui.Context) ui.Element {
 	case e.barHot || e.barDrag:
 		el.Cursor(ui.CursorDefault)
 	case e.nameHover.entry != "":
-		el.Tooltip("查看设定").Cursor(ui.CursorPointer)
+		el.Tooltip(locales.EditorSeeEntry()).Cursor(ui.CursorPointer)
 	}
 	if e.wantFocus {
 		el.Focus()
@@ -253,31 +254,31 @@ func (e *Editor) contextMenu(el ui.Element) {
 func (e *Editor) menu(m *ui.Menu) {
 	a, b := e.Selection()
 	if e.opts.ReadOnly {
-		if m.Item("复制").Shortcut(ui.Cmd, ui.KeyC).Disabled(a == b).Chosen() {
+		if m.Item(locales.CommonCopy()).Shortcut(ui.Cmd, ui.KeyC).Disabled(a == b).Chosen() {
 			e.Copy()
 		}
-		if m.Item("全选").Shortcut(ui.Cmd, ui.KeyA).Chosen() {
+		if m.Item(locales.CommonSelectAll()).Shortcut(ui.Cmd, ui.KeyA).Chosen() {
 			e.SelectAll()
 		}
 		return
 	}
-	if m.Item("剪切").Shortcut(ui.Cmd, ui.KeyX).Disabled(a == b).Chosen() {
+	if m.Item(locales.CommonCut()).Shortcut(ui.Cmd, ui.KeyX).Disabled(a == b).Chosen() {
 		e.Cut()
 	}
-	if m.Item("复制").Shortcut(ui.Cmd, ui.KeyC).Disabled(a == b).Chosen() {
+	if m.Item(locales.CommonCopy()).Shortcut(ui.Cmd, ui.KeyC).Disabled(a == b).Chosen() {
 		e.Copy()
 	}
-	if m.Item("粘贴").Shortcut(ui.Cmd, ui.KeyV).Chosen() {
+	if m.Item(locales.CommonPaste()).Shortcut(ui.Cmd, ui.KeyV).Chosen() {
 		e.Paste()
 	}
-	if m.Item("全选").Shortcut(ui.Cmd, ui.KeyA).Chosen() {
+	if m.Item(locales.CommonSelectAll()).Shortcut(ui.Cmd, ui.KeyA).Chosen() {
 		e.SelectAll()
 	}
 	m.Separator()
-	if m.Item("标记为伏笔").Disabled(a == b).Chosen() {
+	if m.Item(locales.EditorMarkForeshadow()).Disabled(a == b).Chosen() {
 		e.MarkSelection(MarkForeshadow, "")
 	}
-	if m.Item("移除此处标记").Disabled(!e.Marked()).Chosen() {
+	if m.Item(locales.CmdUnmark()).Disabled(!e.Marked()).Chosen() {
 		e.Unmark()
 	}
 }

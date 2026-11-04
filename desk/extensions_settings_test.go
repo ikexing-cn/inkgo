@@ -104,7 +104,7 @@ func TestSettingsSharedLabelKeepsOnePageAndOrdersActiveSections(t *testing.T) {
 
 func TestOpenSettingsResolvesBackupAndUnknownIDsAndFooterCard(t *testing.T) {
 	a, tt, _ := writingFixture(t, "雨停了。")
-	for _, test := range []struct{ id, want string }{{"backup.settings", "backup.settings"}, {"unknown", "扩展"}} {
+	for _, test := range []struct{ id, want string }{{"backup.settings", "backup.settings"}, {"unknown", "extensions"}} {
 		(extensionHost{a}).OpenSettings(test.id)
 		tt.Frame()
 		if a.settings.tab != test.want || !a.settings.open {

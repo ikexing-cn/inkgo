@@ -189,7 +189,7 @@ func (a *App) lastMessage() string {
 
 func (a *App) chatTop(c *ui.Context) {
 	t := a.pal.Theme
-	words := a.titles[a.session]
+	words, _ := a.talkName(a.session)
 	ui.Row(c).FillWidth().Height(kit.TitleHeight).Padding(0, 24).Gap(8).AlignItems(ui.Center).Shrink(0).Children(func() {
 		ui.Text(c, locales.TalkAll()).FontSize(kit.FsControl).TextColor(t.TextMuted)
 		kit.Glyph(c, kit.IcChevron, kit.IconSm, a.pal.Faint)

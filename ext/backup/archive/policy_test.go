@@ -97,29 +97,21 @@ func TestAskBackupDue(t *testing.T) {
 // Why a backup failed is said from what was found as it failed: saying it
 // does not look for the disk again, as it is said in every frame.
 func TestTroubleSaysWhatWasFoundAsItFailed(t *testing.T) {
-	missing := &os.PathError{Op: "stat", Path: `X:\备份`, Err: os.ErrNotExist}
-	if short, _, _ := (Policy{err: missing, gone: true}).Trouble(`X:\备份`); runtime.GOOS == "windows" && short != "找不到 X 盘" {
-		t.Fatalf("with the disk gone: %q", short)
-	}
-	if short, _, _ := (Policy{err: missing}).Trouble(`X:\备份`); short != "找不到备份文件夹" {
-		t.Fatalf("with the disk there: %q", short)
-	}
-	if volumeGone(t.TempDir()) {
-		t.Fatal("the disk of a folder that is there counts as gone")
-	}
+	missing := &os.PathError{Op: "stat", Path: "missing", Err: fs.ErrNotExist}
 	for _, tc := range []struct {
-		err                error
-		short, title, body string
+		err  error
+		gone bool
+		kind FailureKind
 	}{
-		{fs.ErrPermission, "没有权限写入", "备份文件夹无法写入，本次备份未完成", "作品未受影响，该文件夹没有写入权限。"},
-		{errors.New("full"), "备份失败", "本次备份未完成", "作品未受影响。原因：full"},
+		{missing, true, NoDisk}, {missing, false, NoFolder}, {fs.ErrPermission, false, NoWrite}, {errors.New("full"), false, Failed},
 	} {
-		if short, title, body := (Policy{err: tc.err}).Trouble("backup"); short != tc.short || title != tc.title || body != tc.body {
-			t.Fatal(short, title, body)
+		got := (Policy{err: tc.err, gone: tc.gone}).Trouble("X:\\backup")
+		if got.Kind != tc.kind {
+			t.Fatal(got)
 		}
 	}
-	if volumeGone(filepath.Join("relative", "backup")) {
-		t.Fatal("a relative path claims a missing volume")
+	if volumeGone(t.TempDir()) || volumeGone(filepath.Join("relative", "backup")) {
+		t.Fatal("existing or relative volume is gone")
 	}
 }
 

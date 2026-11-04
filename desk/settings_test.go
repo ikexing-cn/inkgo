@@ -13,7 +13,7 @@ func TestSettingsCloseKeepsTheWorkAndBackup(t *testing.T) {
 	for _, how := range []string{"button", "escape", "backdrop", "relaunch"} {
 		t.Run(how, func(t *testing.T) {
 			a, tt, _ := fixture(t)
-			a.openPrefs("外观")
+			a.openPrefs("appearance")
 			a.serviceForm.new()
 			a.serviceForm.provider.Name = "unsaved service"
 			backupBefore := backupOf(a).State
@@ -31,7 +31,7 @@ func TestSettingsCloseKeepsTheWorkAndBackup(t *testing.T) {
 				a.relaunch()
 			}
 			tt.Frame()
-			if a.settings.open || a.settings.askAI || a.settings.tab != "外观" {
+			if a.settings.open || a.settings.askAI || a.settings.tab != "appearance" {
 				t.Fatal("settings did not close cleanly", a.settings)
 			}
 			if a.serviceForm.provider.Name != "unsaved service" || !reflect.DeepEqual(backupOf(a).State, backupBefore) {
@@ -39,7 +39,7 @@ func TestSettingsCloseKeepsTheWorkAndBackup(t *testing.T) {
 			}
 			a.openPrefs(a.settings.tab)
 			tt.Frame()
-			if !a.settings.open || a.settings.tab != "外观" || a.settings.askAI {
+			if !a.settings.open || a.settings.tab != "appearance" || a.settings.askAI {
 				t.Fatal("settings did not reopen at the last tab")
 			}
 		})
@@ -50,7 +50,7 @@ func TestSettingsCloseKeepsTheWorkAndBackup(t *testing.T) {
 // there, not an empty line; one that does still says it.
 func TestSettingsSayNothingNeedless(t *testing.T) {
 	a, tt, _ := fixture(t)
-	for tab, note := range map[string]string{"AI": "", "backup.settings": "", "外观": "这台电脑上的所有作品", "提醒与检查": "只管这部作品"} {
+	for tab, note := range map[string]string{"AI": "", "backup.settings": "", "appearance": "这台电脑上的所有作品", "reminders": "只管这部作品"} {
 		a.openPrefs(tab)
 		tt.Frame()
 		texts := tt.Texts()
@@ -76,7 +76,7 @@ func TestNoGPUNotOffered(t *testing.T) {
 	t.Cleanup(func() { offerNoGPU = true })
 	a, tt, _ := fixture(t)
 	a.shelf.NoGPU = true
-	a.openPrefs("外观")
+	a.openPrefs("appearance")
 	tt.Frame()
 	if tt.HasText("关闭显卡加速") || a.NoGPU() {
 		t.Fatal("not offered, yet shown or drawn by", tt.Texts())
@@ -97,7 +97,7 @@ func TestNoGPUWaitsForTheNextStart(t *testing.T) {
 	click(t, tt, "开始起草")
 	replied(t, a, tt)
 
-	a.openPrefs("外观")
+	a.openPrefs("appearance")
 	tt.Frame()
 	click(t, tt, "关闭显卡加速")
 	if !tt.HasText("重启软件后生效。") || tt.HasText("立即重启") {

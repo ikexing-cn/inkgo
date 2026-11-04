@@ -40,7 +40,7 @@ type Options struct {
 	// indents out of the text: Tab inserts none, and a paste loses its own.
 	Prose bool
 	// Placeholder shows while the text is empty.
-	Placeholder string
+	Placeholder func() string
 	// OwnMenu, when set, leaves the context menu to the host, which draws
 	// its own: it is told where in the window one was asked for, the
 	// pointer or, for the menu key, under the caret.

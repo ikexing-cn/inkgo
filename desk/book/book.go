@@ -6,8 +6,6 @@
 package book
 
 import (
-	"errors"
-
 	"writer/workspace"
 )
 
@@ -311,7 +309,7 @@ func (b *Book) CheckUnchanged(id string, over workspace.Check) error {
 		return err
 	}
 	if !now.Equal(over) {
-		return errors.New("本章检查结果已再次修改，无法撤销")
+		return ErrCheckChanged
 	}
 	return nil
 }
@@ -502,3 +500,6 @@ func (b *Book) setCount(id string, n int) {
 	}
 	b.counts[id] = n
 }
+
+// ErrCheckChanged reports an undo invalidated by a later check edit.
+var ErrCheckChanged = workspace.ErrCheckChanged

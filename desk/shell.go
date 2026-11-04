@@ -192,7 +192,7 @@ func (a *App) sidePanel(c *ui.Context, width float32) {
 		top.Children(func() {
 			head = ui.ButtonBase(c).Row().Height(kit.HControlSm).AlignItems(ui.Center).Gap(8).Padding(0, 6, 0, 10).Radius(kit.RControl).Shrink(1).
 				Label(locales.SideSwitchBook()).Tooltip(locales.SideSwitchBook()).Disabled(busy)
-			if head.Hovered() || a.menu.MenuOpen("作品") {
+			if head.Hovered() || a.menu.MenuOpen("book") {
 				head.Background(t.SurfacePressed)
 			}
 			head.Children(func() {
@@ -213,7 +213,7 @@ func (a *App) sidePanel(c *ui.Context, width float32) {
 			}
 		})
 		var chosen func()
-		a.menu.DropMenu(c, a.pal, head, "作品", func(panel ui.Element) {
+		a.menu.DropMenu(c, a.pal, head, "book", func(panel ui.Element) {
 			// As wide as the row it hangs under, where that is wide enough.
 			panel.Margin(4, 0, 0, 0).Width(max(top.Bounds().W-20, kit.MenuWide))
 		}, func(m *kit.Menu) {
@@ -295,7 +295,7 @@ func (a *App) talkShown() bool {
 
 func (a *App) sessionItem(c *ui.Context, id string) {
 	t := a.pal.Theme
-	words := a.titles[id]
+	words, _ := a.talkName(id)
 	on := id == a.session && a.page == pageTalk
 	b := ui.ButtonBase(c.Key("s-"+id)).Row().FillWidth().Justify(ui.Start).AlignItems(ui.Center).Gap(8).Padding(6, 10).Radius(kit.RControl).Label("对话-" + id).Disabled(a.held())
 	if on {
@@ -313,11 +313,11 @@ func (a *App) sessionItem(c *ui.Context, id string) {
 			fg = a.pal.Faint
 		}
 		ui.Text(c, words).FontSize(kit.FsControl).TextColor(fg).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
-		if b.Hovered() || b.FocusWithin() || a.menu.MenuOpen("对话-"+id) {
+		if b.Hovered() || b.FocusWithin() || a.menu.MenuOpen("talk-"+id) {
 			ui.Text(c, talkDay(id, time.Now())).FontSize(kit.FsSmall).TextColor(a.pal.Faint).SingleLine()
 		}
 	})
-	a.menu.ContextMenu(c, a.pal, b, "对话-"+id, func(m *kit.Menu) {
+	a.menu.ContextMenu(c, a.pal, b, "talk-"+id, func(m *kit.Menu) {
 		if a.shelved[id] {
 			m.Item(locales.SideMoveBack()).Disabled(a.held()).Do(func() {
 				delete(a.shelved, id)

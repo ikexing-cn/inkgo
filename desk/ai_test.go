@@ -19,6 +19,7 @@ import (
 	"writer/aiport"
 	"writer/editor"
 	"writer/inference"
+	"writer/locales"
 	"writer/model"
 	"writer/workspace"
 )
@@ -299,8 +300,8 @@ func TestDraftAChapterThroughATalk(t *testing.T) {
 	if ed.Doc.String() != "" || disk(t, a, "第一章.txt") != "" || ed.ReadOnly() || !tt.HasText("AI 正在写改稿建议…") || !tt.HasText("正在写…") {
 		t.Fatal("the draft is not shown beside the text as it comes", tt.Texts())
 	}
-	if shownTab(a) != paneTalk || a.doc.hidden || a.titles[a.session] != "起草：第一章" || !tt.HasText("按章纲起草本章，约 800 字") || !tt.HasText("跟着「第一章」") {
-		t.Fatal("the talk is not beside the prose", a.titles[a.session], tt.Texts())
+	if shownTab(a) != paneTalk || a.doc.hidden || talkNameOf(a) != "起草：第一章" || !tt.HasText("按章纲起草本章，约 800 字") || !tt.HasText("跟着「第一章」") {
+		t.Fatal("the talk is not beside the prose", talkNameOf(a), tt.Texts())
 	}
 	if !strings.Contains(f.last().System, "【这段讨论起草的章：第一章】") || !strings.Contains(f.last().System, "她在雨夜醒来。") {
 		t.Fatal("the talk does not keep to the chapter")
@@ -390,7 +391,7 @@ func TestDraftOverWhatIsThere(t *testing.T) {
 		}
 		tt.Frame()
 		if want == draftReplace {
-			if err := tt.Click(draftReplace); err != nil {
+			if err := tt.Click(locales.DraftOverwrite()); err != nil {
 				t.Fatal(err, tt.Texts())
 			}
 			tt.Frame()
@@ -451,8 +452,8 @@ func TestRewriteASelectionThroughATalk(t *testing.T) {
 	if len(ps) != 1 || ps[0].A != 0 || ps[0].B != 6 || ps[0].Keep || ps[0].Text != "她慢慢走到井边。" || !tt.Focused("正文") {
 		t.Fatalf("proposed %+v, the prose focused %v", ps, tt.Focused("正文"))
 	}
-	if a.write.rewriting || a.titles[a.session] != "改写：她走到井边。" || !tt.HasText("换掉一句 · 8 字 · 等你决定") || !tt.HasText("放慢") {
-		t.Fatal("the talk is not of the rewrite", a.titles[a.session], tt.Texts())
+	if a.write.rewriting || talkNameOf(a) != "改写：她走到井边。" || !tt.HasText("换掉一句 · 8 字 · 等你决定") || !tt.HasText("放慢") {
+		t.Fatal("the talk is not of the rewrite", talkNameOf(a), tt.Texts())
 	}
 	if first := a.events[0]; first.Origin != workspace.AIRewrite || len(first.Quotes) != 1 || first.Quotes[0].Text != "她走到井边。" {
 		t.Fatalf("first words %+v", first)

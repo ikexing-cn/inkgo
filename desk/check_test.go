@@ -422,7 +422,7 @@ func TestShotCheck(t *testing.T) {
 	tt.SetDark(true)
 	shot(t, tt, "check-page-dark.png")
 	tt.SetDark(false)
-	a.openPrefs("提醒与检查")
+	a.openPrefs("reminders")
 	shot(t, tt, "check-settings.png")
 }
 

@@ -1896,4 +1896,83 @@
   "@settingsProtocolInvalid": {"description":"AI service form validation: Protocol must be chat, responses or anthropic."},
   "settingsModelIDInvalid": "模型 ID 不能为空，前后不能有空格",
   "@settingsModelIDInvalid": {"description":"AI service form validation: Model ID cannot be empty or have surrounding spaces."}
+,
+  "workspaceTitleEmpty": "标题不能为空",
+  "@workspaceTitleEmpty": {
+    "description": "Application error or display text; does not change saved book content."
+  },
+  "workspaceMoveIntoSelf": "不能把文件夹移进它自己里面",
+  "@workspaceMoveIntoSelf": {
+    "description": "Application error or display text; does not change saved book content."
+  },
+  "workspaceTrashMissing": "回收站里没有 {id}",
+  "@workspaceTrashMissing": {
+    "description": "Application error or display text; does not change saved book content.",
+    "placeholders": {
+      "id": {
+        "type": "String",
+        "example": "id"
+      }
+    }
+  },
+  "workspaceCheckChanged": "本章检查结果已再次修改，无法撤销",
+  "@workspaceCheckChanged": {
+    "description": "Application error or display text; does not change saved book content."
+  },
+  "workspaceSettingChanged": "设定已再次修改，无法撤销",
+  "@workspaceSettingChanged": {
+    "description": "Application error or display text; does not change saved book content."
+  },
+  "workspaceChangedOutside": "这一章在软件外被修改过，未写入",
+  "@workspaceChangedOutside": {
+    "description": "Application error or display text; does not change saved book content."
+  },
+  "workspaceLegacySchema": "schema: 这是旧版本的作品（schema 1，思路卡片），没有迁移，请新建作品",
+  "@workspaceLegacySchema": {
+    "description": "Application error or display text; does not change saved book content."
+  },
+  "shelfNoBook": "该文件夹中没有作品（缺少 work.yaml）：{path}",
+  "@shelfNoBook": {
+    "description": "Application error or display text; does not change saved book content.",
+    "placeholders": {
+      "path": {
+        "type": "String",
+        "example": "path"
+      }
+    }
+  },
+  "backupFailureTitle": "本次备份未完成",
+  "@backupFailureTitle": {
+    "description": "Backup failure explanation; does not change book files."
+  },
+  "backupFailureBody": "作品未受影响。原因：{reason}",
+  "@backupFailureBody": {
+    "description": "Backup failure explanation; does not change book files.",
+    "placeholders": {
+      "reason": {
+        "type": "String",
+        "example": "reason"
+      }
+    }
+  },
+  "backupDriveShort": "找不到 {disk} 盘",
+  "@backupDriveShort": {
+    "description": "Failure of a backup on a dynamically detected drive; the prototype uses a fixed E drive.",
+    "placeholders": {
+      "disk": {
+        "type": "String",
+        "example": "X"
+      }
+    }
+  },
+  "backupDriveTitle": "找不到 {disk} 盘，本次备份未完成",
+  "@backupDriveTitle": {
+    "description": "Failure of a backup on a dynamically detected drive; the prototype uses a fixed E drive.",
+    "placeholders": {
+      "disk": {
+        "type": "String",
+        "example": "X"
+      }
+    }
+  }
 }

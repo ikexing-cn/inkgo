@@ -54,7 +54,7 @@ func TestUnreviseRefusesALaterRevision(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := s.Unrevise(first.ID); err == nil || err.Error() != "设定已再次修改，无法撤销" {
+	if err := s.Unrevise(first.ID); err != ErrSettingChanged {
 		t.Fatal(err)
 	}
 	after, err := os.ReadFile(path)

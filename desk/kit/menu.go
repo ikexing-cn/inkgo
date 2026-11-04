@@ -208,7 +208,7 @@ func (m *MenuState) MenuAt(c *ui.Context, p *Palette, key string, build func(m *
 		veil := ui.Box(c.Key("菜单底-" + key)).Absolute().Left(0).Top(0).Right(0).Bottom(0)
 		shut := veil.Clicked() || veil.RightClicked()
 		w, h := c.Size()
-		panel := p.popPanel(c.Key("菜单-" + key)).Absolute().Width(MenuWide)
+		panel := p.popPanel(c.Key("menu-" + key)).Absolute().Width(MenuWide)
 		x, y := m.X, m.Y
 		if now := panel.Bounds(); now.H == 0 {
 			panel.Opacity(0) // not laid out yet: placed in the next frame
@@ -258,7 +258,7 @@ func (m *MenuState) DropMenu(c *ui.Context, p *Palette, b ui.Element, key string
 	open := true
 	// Named, as the parts of the other menus are: a dialog a row opens is
 	// not taken for the menu going on, and takes the focus as its own.
-	Popover(c.Key("菜单-"+key), b, &open, 0, 0, func(panel ui.Element) {
+	Popover(c.Key("menu-"+key), b, &open, 0, 0, func(panel ui.Element) {
 		p.popLook(panel)
 		place(panel)
 		m.menuRows(c, p, build, false)

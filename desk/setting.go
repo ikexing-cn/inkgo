@@ -613,7 +613,7 @@ func (a *App) history(c *ui.Context) {
 						ui.Text(c, a.describeOp(op)).FontSize(kit.FsNote).LineHeight(kit.LhBody).Selectable().FillWidth()
 					}
 					if r.By != workspace.ByAuthor {
-						if words, ok := a.titles[r.Session]; ok {
+						if words, ok := a.talkName(r.Session); ok {
 							if a.pal.PaneLink(c, locales.LoreNotedIn(words), locales.ChatViewTalk(), "讨论-"+r.ID) {
 								a.page = pageTalk
 								a.switchSession(r.Session)

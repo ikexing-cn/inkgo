@@ -330,6 +330,6 @@ func TestShotForeshadow(t *testing.T) {
 	tt.SetDark(false)
 	a.showFore("lost")
 	shot(t, tt, "fore-lost.png")
-	a.openPrefs("提醒与检查")
+	a.openPrefs("reminders")
 	shot(t, tt, "fore-settings.png")
 }

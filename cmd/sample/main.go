@@ -150,7 +150,7 @@ func parse(src string) (book, error) {
 		}
 	}
 	if b.name == "" || b.genre == "" {
-		return b, fmt.Errorf("no 书名 or 题材")
+		return b, fmt.Errorf("missing book title or genre")
 	}
 	return b, nil
 }
@@ -165,7 +165,7 @@ func entry(line string) (workspace.Op, error) {
 	case len(f) == 4 && f[0] == "已删除":
 		op.Place, f = workspace.PlaceDropped, f[1:]
 	case len(f) != 3:
-		return op, fmt.Errorf("%q is not 类别｜名字｜内容", line)
+		return op, fmt.Errorf("%q is not category | name | content", line)
 	}
 	op.Category, op.Text = strings.TrimSpace(f[0]), strings.TrimSpace(f[2])
 	op.Names = workspace.CleanNames(strings.Split(f[1], "、"))

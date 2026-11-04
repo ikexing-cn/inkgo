@@ -254,7 +254,7 @@ func TestATreeThatCannotBeRead(t *testing.T) {
 	if !strings.Contains(a.errorText(), ".order") {
 		t.Fatalf("error %q", a.errorText())
 	}
-	a.openPrefs("提醒与检查")
+	a.openPrefs("reminders")
 	tt.Frame()
 }
 

@@ -428,7 +428,7 @@ func (a *App) chapterView(c *ui.Context) {
 		a.propActs(c)
 		a.selectionBar(c)
 		a.forePopover(c)
-		a.menu.MenuAt(c, a.pal, "正文", a.textMenu)
+		a.menu.MenuAt(c, a.pal, "prose", a.textMenu)
 	}).DrawOver(func(_ *ui.Painter, r ui.Rect) { a.LastProse = r })
 	a.footBar(c, true)
 }

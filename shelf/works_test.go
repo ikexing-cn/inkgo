@@ -72,7 +72,7 @@ func TestShelfWorkFailuresDoNotChangeShelf(t *testing.T) {
 			t.Fatal("failure changed shelf")
 		}
 	}
-	if _, _, err := s.Add(missing); err == nil || !strings.Contains(err.Error(), "缺少 work.yaml") {
+	if _, _, err := s.Add(missing); err == nil || !strings.Contains(err.Error(), "no work.yaml") {
 		t.Fatal(err)
 	}
 }

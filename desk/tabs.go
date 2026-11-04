@@ -171,7 +171,7 @@ func (a *App) sheetRow(c *ui.Context, shut *[]string) {
 					*shut = []string{id}
 				}
 			})
-			a.menu.ContextMenu(c, a.pal, tab, "标签页-"+id, func(m *kit.Menu) {
+			a.menu.ContextMenu(c, a.pal, tab, "tab-"+id, func(m *kit.Menu) {
 				a.tabMenu(m, id, shut)
 			})
 			if tab.Clicked() && *shut == nil && !on {

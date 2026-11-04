@@ -1,10 +1,14 @@
 package desk
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 
 	"writer/aiport"
 	"writer/locales"
+	"writer/shelf"
+	"writer/workspace"
 )
 
 // ErrorTranslator formats a known error, using reason for its nested causes.
@@ -21,6 +25,25 @@ func (a *App) errText(err error) string {
 		return ""
 	}
 	switch cause := err.(type) {
+	case workspace.Error:
+		switch cause {
+		case workspace.ErrTitleEmpty:
+			return locales.WorkspaceTitleEmpty()
+		case workspace.ErrMoveIntoSelf:
+			return locales.WorkspaceMoveIntoSelf()
+		case workspace.ErrCheckChanged:
+			return locales.WorkspaceCheckChanged()
+		case workspace.ErrSettingChanged:
+			return locales.WorkspaceSettingChanged()
+		case workspace.ErrLegacySchema:
+			return locales.WorkspaceLegacySchema()
+		case workspace.ErrChangedOutside:
+			return locales.WorkspaceChangedOutside()
+		}
+	case *workspace.TrashMissingError:
+		return locales.WorkspaceTrashMissing(fmt.Sprintf("%q", cause.ID))
+	case *shelf.NoBookError:
+		return locales.ShelfNoBook(cause.Path)
 	case *aiport.SetupError:
 		return a.errText(cause.Err)
 	case openBookError:
@@ -45,6 +68,9 @@ func (a *App) errText(err error) string {
 		if text, ok := translate(err, a.errText); ok {
 			return text
 		}
+	}
+	if inner := errors.Unwrap(err); inner != nil {
+		return strings.Replace(err.Error(), inner.Error(), a.errText(inner), 1)
 	}
 	return err.Error()
 }

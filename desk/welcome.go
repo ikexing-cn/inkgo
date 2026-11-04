@@ -505,7 +505,7 @@ func (a *App) bookCard(c *ui.Context, b shelf.Book, width float32) {
 
 // bookMenu is a work's "⋯": rename, show its folder, take it off the shelf.
 func (a *App) bookMenu(c *ui.Context, b shelf.Book) {
-	key := "作品-" + b.Path
+	key := "book-" + b.Path
 	more := kit.IconButton(c, kit.IcMore, "更多-"+b.Name, ui.Color{}).Tooltip(locales.CommonMoreActions())
 	if a.menu.MenuOpen(key) {
 		more.Background(a.pal.Theme.SurfacePressed)

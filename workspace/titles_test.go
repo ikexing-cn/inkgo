@@ -31,7 +31,19 @@ func TestTalkTitle(t *testing.T) {
 				}
 				return tc.chapter
 			})
-			if got != tc.want {
+			text := got.Text
+			switch got.Kind {
+			case AIDraft:
+				if text == "" {
+					text = "已删除的章"
+				}
+				text = "起草：" + text
+			case AIRewrite:
+				text = "改写：" + text
+			case "":
+				text = "新对话"
+			}
+			if text != tc.want {
 				t.Fatalf("%q, want %q", got, tc.want)
 			}
 			if tc.name == "empty" || tc.name == "no user" {

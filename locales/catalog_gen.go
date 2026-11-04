@@ -15945,3 +15945,175 @@ func SettingsModelIDInvalid() string { return In(i18n.Locale()).SettingsModelIDI
 func (msgs Messages) SettingsModelIDInvalid() string {
 	return Catalog.Format(msgs.locale, "settingsModelIDInvalid", nil)
 }
+
+// WorkspaceTitleEmpty says "标题不能为空"
+// in the language the app shows.
+//
+// Application error or display text; does not change saved book content.
+func WorkspaceTitleEmpty() string { return In(i18n.Locale()).WorkspaceTitleEmpty() }
+
+// WorkspaceTitleEmpty says "标题不能为空"
+// in the language of msgs.
+//
+// Application error or display text; does not change saved book content.
+func (msgs Messages) WorkspaceTitleEmpty() string {
+	return Catalog.Format(msgs.locale, "workspaceTitleEmpty", nil)
+}
+
+// WorkspaceMoveIntoSelf says "不能把文件夹移进它自己里面"
+// in the language the app shows.
+//
+// Application error or display text; does not change saved book content.
+func WorkspaceMoveIntoSelf() string { return In(i18n.Locale()).WorkspaceMoveIntoSelf() }
+
+// WorkspaceMoveIntoSelf says "不能把文件夹移进它自己里面"
+// in the language of msgs.
+//
+// Application error or display text; does not change saved book content.
+func (msgs Messages) WorkspaceMoveIntoSelf() string {
+	return Catalog.Format(msgs.locale, "workspaceMoveIntoSelf", nil)
+}
+
+// WorkspaceTrashMissing says "回收站里没有 {id}"
+// in the language the app shows.
+//
+// Application error or display text; does not change saved book content.
+func WorkspaceTrashMissing(id string) string { return In(i18n.Locale()).WorkspaceTrashMissing(id) }
+
+// WorkspaceTrashMissing says "回收站里没有 {id}"
+// in the language of msgs.
+//
+// Application error or display text; does not change saved book content.
+func (msgs Messages) WorkspaceTrashMissing(id string) string {
+	return Catalog.Format(msgs.locale, "workspaceTrashMissing", map[string]any{"id": id})
+}
+
+// WorkspaceCheckChanged says "本章检查结果已再次修改，无法撤销"
+// in the language the app shows.
+//
+// Application error or display text; does not change saved book content.
+func WorkspaceCheckChanged() string { return In(i18n.Locale()).WorkspaceCheckChanged() }
+
+// WorkspaceCheckChanged says "本章检查结果已再次修改，无法撤销"
+// in the language of msgs.
+//
+// Application error or display text; does not change saved book content.
+func (msgs Messages) WorkspaceCheckChanged() string {
+	return Catalog.Format(msgs.locale, "workspaceCheckChanged", nil)
+}
+
+// WorkspaceSettingChanged says "设定已再次修改，无法撤销"
+// in the language the app shows.
+//
+// Application error or display text; does not change saved book content.
+func WorkspaceSettingChanged() string { return In(i18n.Locale()).WorkspaceSettingChanged() }
+
+// WorkspaceSettingChanged says "设定已再次修改，无法撤销"
+// in the language of msgs.
+//
+// Application error or display text; does not change saved book content.
+func (msgs Messages) WorkspaceSettingChanged() string {
+	return Catalog.Format(msgs.locale, "workspaceSettingChanged", nil)
+}
+
+// WorkspaceChangedOutside says "这一章在软件外被修改过，未写入"
+// in the language the app shows.
+//
+// Application error or display text; does not change saved book content.
+func WorkspaceChangedOutside() string { return In(i18n.Locale()).WorkspaceChangedOutside() }
+
+// WorkspaceChangedOutside says "这一章在软件外被修改过，未写入"
+// in the language of msgs.
+//
+// Application error or display text; does not change saved book content.
+func (msgs Messages) WorkspaceChangedOutside() string {
+	return Catalog.Format(msgs.locale, "workspaceChangedOutside", nil)
+}
+
+// WorkspaceLegacySchema says "schema: 这是旧版本的作品（schema 1，思路卡片），没有迁移，请新建作品"
+// in the language the app shows.
+//
+// Application error or display text; does not change saved book content.
+func WorkspaceLegacySchema() string { return In(i18n.Locale()).WorkspaceLegacySchema() }
+
+// WorkspaceLegacySchema says "schema: 这是旧版本的作品（schema 1，思路卡片），没有迁移，请新建作品"
+// in the language of msgs.
+//
+// Application error or display text; does not change saved book content.
+func (msgs Messages) WorkspaceLegacySchema() string {
+	return Catalog.Format(msgs.locale, "workspaceLegacySchema", nil)
+}
+
+// ShelfNoBook says "该文件夹中没有作品（缺少 work.yaml）：{path}"
+// in the language the app shows.
+//
+// Application error or display text; does not change saved book content.
+func ShelfNoBook(path string) string { return In(i18n.Locale()).ShelfNoBook(path) }
+
+// ShelfNoBook says "该文件夹中没有作品（缺少 work.yaml）：{path}"
+// in the language of msgs.
+//
+// Application error or display text; does not change saved book content.
+func (msgs Messages) ShelfNoBook(path string) string {
+	return Catalog.Format(msgs.locale, "shelfNoBook", map[string]any{"path": path})
+}
+
+// BackupFailureTitle says "本次备份未完成"
+// in the language the app shows.
+//
+// Backup failure explanation; does not change book files.
+func BackupFailureTitle() string { return In(i18n.Locale()).BackupFailureTitle() }
+
+// BackupFailureTitle says "本次备份未完成"
+// in the language of msgs.
+//
+// Backup failure explanation; does not change book files.
+func (msgs Messages) BackupFailureTitle() string {
+	return Catalog.Format(msgs.locale, "backupFailureTitle", nil)
+}
+
+// BackupFailureBody says "作品未受影响。原因：{reason}"
+// in the language the app shows.
+//
+// Backup failure explanation; does not change book files.
+func BackupFailureBody(reason string) string { return In(i18n.Locale()).BackupFailureBody(reason) }
+
+// BackupFailureBody says "作品未受影响。原因：{reason}"
+// in the language of msgs.
+//
+// Backup failure explanation; does not change book files.
+func (msgs Messages) BackupFailureBody(reason string) string {
+	return Catalog.Format(msgs.locale, "backupFailureBody", map[string]any{"reason": reason})
+}
+
+// BackupDriveShort says "找不到 {disk} 盘"
+// in the language the app shows.
+//
+// Failure of a backup on a dynamically detected drive; the prototype uses a
+// fixed E drive.
+func BackupDriveShort(disk string) string { return In(i18n.Locale()).BackupDriveShort(disk) }
+
+// BackupDriveShort says "找不到 {disk} 盘"
+// in the language of msgs.
+//
+// Failure of a backup on a dynamically detected drive; the prototype uses a
+// fixed E drive.
+func (msgs Messages) BackupDriveShort(disk string) string {
+	return Catalog.Format(msgs.locale, "backupDriveShort", map[string]any{"disk": disk})
+}
+
+// BackupDriveTitle says "找不到 {disk} 盘，本次备份未完成"
+// in the language the app shows.
+//
+// Failure of a backup on a dynamically detected drive; the prototype uses a
+// fixed E drive.
+func BackupDriveTitle(disk string) string { return In(i18n.Locale()).BackupDriveTitle(disk) }
+
+// BackupDriveTitle says "找不到 {disk} 盘，本次备份未完成"
+// in the language of msgs.
+//
+// Failure of a backup on a dynamically detected drive; the prototype uses a
+// fixed E drive.
+func (msgs Messages) BackupDriveTitle(disk string) string {
+	return Catalog.Format(msgs.locale, "backupDriveTitle", map[string]any{"disk": disk})
+}

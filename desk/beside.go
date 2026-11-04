@@ -163,7 +163,7 @@ func (a *App) talkList(c *ui.Context) {
 		n := 0
 		for i := len(a.sessions) - 1; i >= 0; i-- {
 			id := a.sessions[i]
-			words := a.titles[id]
+			words, _ := a.talkName(id)
 			if a.blank[id] || a.shelved[id] && id != a.session || q != "" && !strings.Contains(words, q) {
 				continue
 			}

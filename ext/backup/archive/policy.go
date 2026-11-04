@@ -86,20 +86,34 @@ func volumeGone(dir string) bool {
 	return err != nil
 }
 
-// Trouble describes the last failure for the toolbar and its popover.
-func (p Policy) Trouble(dir string) (short, title, body string) {
+// Failure describes a backup failure without interface text.
+type Failure struct {
+	Kind FailureKind
+	Disk string // the missing drive, for NoDisk
+	Err  error  // the cause, for Failed
+}
+
+// FailureKind is what went wrong with a backup.
+type FailureKind string
+
+// The kinds of backup failure.
+const (
+	NoDisk   FailureKind = "disk"       // the drive of the folder is not there
+	NoFolder FailureKind = "folder"     // the folder is not there
+	NoWrite  FailureKind = "permission" // the folder cannot be written
+	Failed   FailureKind = "failure"    // anything else
+)
+
+// Trouble classifies the last failure for the presentation layer.
+func (p Policy) Trouble(dir string) Failure {
 	if errors.Is(p.err, fs.ErrNotExist) {
 		if p.gone {
-			d := strings.TrimSuffix(filepath.VolumeName(dir), ":")
-			return "找不到 " + d + " 盘", "找不到 " + d + " 盘，本次备份未完成",
-				"作品未受影响，请接入硬盘后重试。"
+			return Failure{Kind: NoDisk, Disk: strings.TrimSuffix(filepath.VolumeName(dir), ":")}
 		}
-		return "找不到备份文件夹", "找不到备份文件夹，本次备份未完成",
-			"作品未受影响，文件夹可能已被移动或改名。"
+		return Failure{Kind: NoFolder}
 	}
 	if errors.Is(p.err, fs.ErrPermission) {
-		return "没有权限写入", "备份文件夹无法写入，本次备份未完成",
-			"作品未受影响，该文件夹没有写入权限。"
+		return Failure{Kind: NoWrite}
 	}
-	return "备份失败", "本次备份未完成", "作品未受影响。原因：" + p.err.Error()
+	return Failure{Kind: Failed, Err: p.err}
 }

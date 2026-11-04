@@ -18,7 +18,7 @@ func TestAppearanceLanguageBelowColorListsOnlyAppLanguagesAndShowsSavedChoice(t 
 	if !reflect.DeepEqual(values, []string{"", "zh-Hans", "en"}) || !reflect.DeepEqual(names, []string{"跟随系统", "简体中文", "English"}) {
 		t.Fatal(values, names)
 	}
-	a.openPrefs("外观")
+	a.openPrefs("appearance")
 	calls := 0
 	a.SetLocale = func(string) { calls++ }
 	for _, tag := range values {
@@ -46,7 +46,7 @@ func TestAppearanceLanguageBelowColorListsOnlyAppLanguagesAndShowsSavedChoice(t 
 
 func TestLanguageChoiceCallsHostAndPersistsEnglishThenSystem(t *testing.T) {
 	a, tt, _ := fixture(t)
-	a.openPrefs("外观")
+	a.openPrefs("appearance")
 	var calls []string
 	a.SetLocale = func(tag string) { calls = append(calls, tag) }
 	tt.Frame()
@@ -72,7 +72,7 @@ func TestLocaleChangedRefreshesSettingsExtensionsMenusAndCommandsBothWays(t *tes
 	for _, next := range []string{"zh-Hans", "en", "zh-Hans"} {
 		tag = next
 		a.LocaleChanged()
-		a.openPrefs("扩展")
+		a.openPrefs("extensions")
 		tt.Frame()
 		want := locales.In(tag)
 		for _, text := range []string{want.ViewLook(), want.SettingsTabExtensions(), want.ModBackup(), want.ModLore()} {
@@ -119,6 +119,6 @@ func clickLanguage(t *testing.T, tt *ui.Tester, name string) {
 func TestShotSettingsLookLanguage(t *testing.T) {
 	testshot.Dir(t)
 	a, tt, _ := fixture(t)
-	a.openPrefs("外观")
+	a.openPrefs("appearance")
 	shot(t, tt, "settings-look-language.png")
 }

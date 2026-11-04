@@ -419,7 +419,7 @@ func TestSessionTitles(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if title := a.titles[a.session]; !strings.HasSuffix(title, "雨城的故事") {
+	if title, _ := a.talkName(a.session); !strings.HasSuffix(title, "雨城的故事") {
 		t.Fatalf("title %q", title)
 	}
 }

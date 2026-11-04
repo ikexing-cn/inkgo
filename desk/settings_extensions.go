@@ -123,7 +123,7 @@ func (a *App) cacheExtensionNotes() {
 }
 
 func (a *App) extensionPrefTitle(c *ui.Context) {
-	if a.settings.tab != "扩展" || a.settings.ext == "" {
+	if a.settings.tab != "extensions" || a.settings.ext == "" {
 		ui.Text(c, a.prefTitle(a.settings.tab)).FontSize(kit.FsDialog).FontWeight(700)
 		return
 	}

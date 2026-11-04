@@ -184,7 +184,7 @@ func (s *Store) RestoreChapter(id string) error {
 	}
 	i := slices.IndexFunc(items, func(it Trashed) bool { return it.ID == id })
 	if i < 0 {
-		return fmt.Errorf("回收站里没有 %q", id)
+		return &TrashMissingError{ID: id}
 	}
 	it := items[i]
 	t, err := s.tree()
@@ -236,7 +236,7 @@ func (s *Store) PurgeChapter(id string) error {
 	}
 	i := slices.IndexFunc(items, func(it Trashed) bool { return it.ID == id })
 	if i < 0 {
-		return fmt.Errorf("回收站里没有 %q", id)
+		return &TrashMissingError{ID: id}
 	}
 	held, err := s.heldIDs(items[i])
 	if err != nil {

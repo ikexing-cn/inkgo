@@ -33,8 +33,8 @@ const prefsNavGap = 16
 // prefAbout says under a part's title what the author must know of it;
 // a part with nothing such says nothing there.
 var prefAbout = map[string]func() string{
-	"外观":    locales.SettingsLocalOnly,
-	"提醒与检查": locales.SettingsBookOnly,
+	"appearance": locales.SettingsLocalOnly,
+	"reminders":  locales.SettingsBookOnly,
 }
 
 // prefName is what a part of the settings is called, and prefNote what
@@ -42,7 +42,7 @@ var prefAbout = map[string]func() string{
 // holds the switch alone.
 func (a *App) prefName(tab string) string {
 	switch tab {
-	case "外观":
+	case "appearance":
 		return locales.ViewLook()
 	}
 	for _, entry := range a.prefTabs {
@@ -191,13 +191,13 @@ func (a *App) preferences(c *ui.Context) {
 				ui.Scroll(c.Key("prefs-" + a.settings.tab + a.settings.ext)).Grow(1).Shrink(1).FillWidth().Children(func() {
 					ui.Column(c).FillWidth().Padding(12, 56, 32, 32).Gap(prefsGap).Children(func() {
 						switch a.settings.tab {
-						case "外观":
+						case "appearance":
 							a.looksView(c)
-						case "提醒与检查":
+						case "reminders":
 							a.remindersView(c)
 						case "AI":
 							a.aiView(c)
-						case "扩展":
+						case "extensions":
 							if a.settings.ext != "" {
 								a.extensionSection(c, a.settings.ext)
 							} else {

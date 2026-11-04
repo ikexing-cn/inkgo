@@ -29,13 +29,13 @@ func extensionSettingsFixture(t *testing.T) (*App, *ui.Tester) {
 	a := New(ai.New(filepath.Join(t.TempDir(), "providers.yaml")), mods...)
 	t.Cleanup(func() { a.Close() })
 	requireExtension(t, a.Open(extensionBook(t)))
-	a.openPrefs("扩展")
+	a.openPrefs("extensions")
 	return a, stillTester(a.View, 1266, 780)
 }
 
 func extensionDetails(t *testing.T, a *App, tt *ui.Tester, id string) {
 	t.Helper()
-	a.openPrefs("扩展")
+	a.openPrefs("extensions")
 	tt.Frame()
 	click(t, tt, "扩展-"+id)
 }
@@ -74,7 +74,7 @@ func TestExtensionOverviewListsOnlyAssemblyInGroupOrderAndResetsDetails(t *testi
 		t.Fatal("inactive dependency not reflected")
 	}
 	click(t, tt, "扩展-consumer")
-	if a.settings.ext != "consumer" || a.settings.tab != "扩展" {
+	if a.settings.ext != "consumer" || a.settings.tab != "extensions" {
 		t.Fatal(a.settings)
 	}
 	hasText(t, tt, "›")
@@ -91,7 +91,7 @@ func TestExtensionOverviewListsOnlyAssemblyInGroupOrderAndResetsDetails(t *testi
 		t.Fatal(a.settings)
 	}
 	click(t, tt, "扩展-phone", locales.SettingsClose())
-	a.openPrefs("扩展")
+	a.openPrefs("extensions")
 	tt.Frame()
 	if a.settings.ext != "" {
 		t.Fatal(a.settings)
@@ -226,7 +226,7 @@ func TestExtensionMoreScopesSwitchToBookPersistsAndRestoresLocalDefault(t *testi
 		t.Fatal("library has book menu")
 	}
 	a.closeWork()
-	a.openPrefs("扩展")
+	a.openPrefs("extensions")
 	tt.Frame()
 	click(t, tt, "扩展-phone")
 	if _, ok := tt.Find("ext-more-phone"); ok {
@@ -330,7 +330,7 @@ func TestBackupPageKeepsHeaderWhenOffAndHidesWorkSettingsAndBookMenuOnShelf(t *t
 func TestShotSettingsExtensions(t *testing.T) {
 	testshot.Dir(t)
 	a, tt, _ := fixture(t)
-	a.openPrefs("扩展")
+	a.openPrefs("extensions")
 	shot(t, tt, "settings-ext-overview.png")
 	tt.SetDark(true)
 	shot(t, tt, "settings-ext-overview-dark.png")

@@ -284,7 +284,7 @@ func (a *App) recordMore(c *ui.Context, r workspace.Record) {
 // by its first words, or its chapter by title, as the work has them now.
 func (a *App) recordWhere(r workspace.Record) string {
 	if r.Talk != "" {
-		if title, ok := a.titles[r.Talk]; ok {
+		if title, ok := a.talkName(r.Talk); ok {
 			return title
 		}
 		return locales.SnapAITalkGone()

@@ -85,7 +85,7 @@ type App struct {
 	ck                checks
 	session           string
 	sessions          []string
-	titles            map[string]string
+	titles            map[string]workspace.ConversationTitle
 	blank             map[string]bool // talks nothing was said in yet: not listed, and a new talk takes one
 	events            []workspace.Event
 	seen              int // revisions of the setting the view has flashed
@@ -156,7 +156,7 @@ type App struct {
 // for a test. mods is the explicit extension assembly for this app.
 func New(ai aiport.Service, mods ...ext.Module) *App {
 	a := &App{ai: ai, turn: &talkTurn{}, genre: "网文",
-		light: kit.LightPalette(), dark: kit.DarkPalette(), titles: map[string]string{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
+		light: kit.LightPalette(), dark: kit.DarkPalette(), titles: map[string]workspace.ConversationTitle{}, thoughts: map[string]*bool{}, flash: map[string]time.Time{}}
 	a.status.Translate = a.errText
 	a.plan.Host = appHost{a}
 	a.pal = a.light
@@ -211,7 +211,7 @@ func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 	a.Store, a.path = s, path
 	a.book = book.Open(s)
 	a.remember(true)
-	a.titles, a.blank = map[string]string{}, map[string]bool{}
+	a.titles, a.blank = map[string]workspace.ConversationTitle{}, map[string]bool{}
 	a.resetView()
 	if err := a.extensions.Open(ext.Book{Dir: s.Root()}); err != nil {
 		return err
@@ -321,7 +321,7 @@ func (a *App) refreshFromSetting() error {
 	if a.sessions, err = a.Store.Sessions(); err != nil {
 		return err
 	}
-	a.titles[a.session], a.blank[a.session] = workspace.TalkTitle(a.events, a.nodeTitle), len(a.events) == 0
+	a.titles[a.session], a.blank[a.session] = a.talkTitle(a.events), len(a.events) == 0
 	if a.turn.session != a.session {
 		delete(a.titles, a.turn.session) // the last turn may have gone on there since: read it again
 	}
@@ -331,7 +331,7 @@ func (a *App) refreshFromSetting() error {
 			if err != nil {
 				return err
 			}
-			a.titles[s], a.blank[s] = workspace.TalkTitle(events, a.nodeTitle), len(events) == 0
+			a.titles[s], a.blank[s] = a.talkTitle(events), len(events) == 0
 		}
 	}
 	return nil

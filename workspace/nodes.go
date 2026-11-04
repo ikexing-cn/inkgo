@@ -26,7 +26,7 @@ func (s *Store) NewChapter(parent, title string, folder bool) (string, error) {
 	}
 	title = strings.TrimSpace(title)
 	if title == "" {
-		return "", errors.New("标题不能为空")
+		return "", ErrTitleEmpty
 	}
 	used, err := s.usedIDs(t)
 	if err != nil {
@@ -112,7 +112,7 @@ func (s *Store) RenameChapter(id, title string) error {
 	}
 	title = strings.TrimSpace(title)
 	if title == "" {
-		return errors.New("标题不能为空")
+		return ErrTitleEmpty
 	}
 	file := fileName(title, takenIn(n.Parent, n))
 	if file != n.file {
@@ -146,7 +146,7 @@ func (s *Store) MoveChapter(id, parent string, index int) error {
 		return err
 	}
 	if to.Within(n) {
-		return errors.New("不能把文件夹移进它自己里面")
+		return ErrMoveIntoSelf
 	}
 	from := n.Parent
 	from.Children = slices.DeleteFunc(from.Children, func(x *Node) bool { return x == n })

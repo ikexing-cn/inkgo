@@ -132,7 +132,7 @@ func TestNavigationTables(t *testing.T) {
 				name string
 				work bool
 			}{
-				{"外观", false}, {"扩展", false}, {"AI", false}, {"提醒与检查", true}, {"备份", false},
+				{"appearance", false}, {"extensions", false}, {"AI", false}, {"reminders", true}, {"备份", false},
 			} {
 				entry := a.prefTabs[i]
 				id := p.name
@@ -156,7 +156,13 @@ func TestNavigationTables(t *testing.T) {
 					t.Errorf("settings part %s shows %s, want %s", p.name, a.settings.tab, shown)
 				}
 				name := p.name
-				if name == "提醒与检查" {
+				if name == "appearance" {
+					name = "外观"
+				}
+				if name == "extensions" {
+					name = "扩展"
+				}
+				if name == "reminders" {
 					name = "提醒"
 				}
 				if got := entry.title(a); got != name {

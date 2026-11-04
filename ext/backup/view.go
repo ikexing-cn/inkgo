@@ -54,25 +54,28 @@ func (a *View) Configure(s archive.Settings) {
 }
 
 // Place is a detected local destination.
-type Place struct{ Label, Dir string }
+type Place struct {
+	Dir  string
+	Name func() string // in the interface language when drawn
+}
 
 // SyncFolders discovers destinations when the dialog opens.
 var SyncFolders = func() []Place {
 	home, _ := os.UserHomeDir()
 	var out []Place
-	add := func(label, dir string) {
+	add := func(name func() string, dir string) {
 		if st, err := os.Stat(dir); err == nil && st.IsDir() {
-			out = append(out, Place{label, filepath.Join(dir, "写作备份")})
+			out = append(out, Place{Dir: filepath.Join(dir, "写作备份"), Name: name})
 		}
 	}
 	if d := os.Getenv("OneDrive"); d != "" {
-		add(locales.BackupSyncFolder("OneDrive"), d)
+		add(func() string { return locales.BackupSyncFolder("OneDrive") }, d)
 	}
 	if ds, _ := filepath.Glob(filepath.Join(home, "Nutstore", "*", "我的坚果云")); len(ds) > 0 {
-		add(locales.BackupNutstore(), ds[0])
+		add(locales.BackupNutstore, ds[0])
 	}
-	add(locales.BackupSyncFolder("Dropbox"), filepath.Join(home, "Dropbox"))
-	add(locales.BackupICloud(), filepath.Join(home, "iCloudDrive"))
+	add(func() string { return locales.BackupSyncFolder("Dropbox") }, filepath.Join(home, "Dropbox"))
+	add(locales.BackupICloud, filepath.Join(home, "iCloudDrive"))
 	return out
 }
 
@@ -213,7 +216,7 @@ func (a *View) backupPending() (hostapi.PendingGroup, bool) {
 	if !ok || !a.State.Policy.Failed() {
 		return hostapi.PendingGroup{}, false
 	}
-	short, _, _ := a.State.Policy.Trouble(s.Dir)
+	short, _, _ := TroubleText(a.State.Policy.Trouble(s.Dir))
 	sub := locales.BackupRetryHint()
 	if !s.Last.IsZero() {
 		sub = locales.StatusRetryBackup(kit.When(s.Last, time.Now()))
@@ -314,7 +317,7 @@ func (a *View) backupChip(c *ui.Context) {
 	if !ok || !a.State.Policy.Failed() || s.Hushed(time.Now()) {
 		return
 	}
-	short, _, _ := a.State.Policy.Trouble(s.Dir)
+	short, _, _ := TroubleText(a.State.Policy.Trouble(s.Dir))
 	t := a.palette.Get().Colors().Theme
 	b := ui.ButtonBase(c).Row().Height(kit.HControlSm).Gap(6).AlignItems(ui.Center).Padding(0, 8).Radius(kit.RControl).Shrink(1).MinWidth(40).
 		Background(a.palette.Get().Colors().WarnBg).Border(1, a.palette.Get().Colors().WarnBd).Label("备份提示").Tooltip(locales.StatusBackupWarn(short)).KeepFocus()
@@ -358,7 +361,7 @@ func (a *View) backupCard(c *ui.Context, panel ui.Element, s archive.Settings) {
 			return
 		}
 		if a.State.Policy.Failed() && !a.State.Running {
-			_, title, body := a.State.Policy.Trouble(s.Dir)
+			_, title, body := TroubleText(a.State.Policy.Trouble(s.Dir))
 			ui.Text(c, title).FontSize(kit.FsBody).FontWeight(600)
 			ui.Text(c, locales.BackupFailureDetails(body, lastSaid(s, now))).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Justify(ui.End).Children(func() {
@@ -441,7 +444,7 @@ func (a *View) askView(c *ui.Context) {
 					if p.Dir == a.State.Place {
 						own = false
 					}
-					a.placeRow(c, p.Label, locales.BackupDetected(p.Dir), p.Dir == a.State.Place, func() { a.State.Place = p.Dir })
+					a.placeRow(c, p.Name(), locales.BackupDetected(p.Dir), p.Dir == a.State.Place, func() { a.State.Place = p.Dir })
 				}
 				if a.dialogs.Get().CanPickFolder() {
 					sub := locales.BackupOtherFolderNote()
@@ -567,7 +570,7 @@ func (a *View) backupSettingsView(c *ui.Context) {
 			case a.State.Running:
 				title = locales.BackupBusy()
 			case a.State.Policy.Failed():
-				short, _, why := a.State.Policy.Trouble(s.Dir)
+				short, _, why := TroubleText(a.State.Policy.Trouble(s.Dir))
 				title, note, again = locales.BackupFailed(), locales.BackupFailNote(short, why), locales.BackupRetry()
 			case s.Last.IsZero():
 				title = locales.BackupNone()
