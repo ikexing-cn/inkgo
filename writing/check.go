@@ -84,8 +84,8 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 	if err != nil {
 		return workspace.Check{}, err
 	}
-	if workspace.Count(ch.Text) < MinCheck {
-		return workspace.Check{}, &ShortChapterError{Count: MinCheck}
+	if w.Store.Work().Language.Count(ch.Text) < MinCheck {
+		return workspace.Check{}, &ShortChapterError{Count: MinCheck, Unit: w.Store.Work().Language.Unit()}
 	}
 	set, err := w.Store.Setting()
 	if err != nil {
@@ -97,7 +97,7 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 		return workspace.Check{}, err
 	}
 	work := w.Store.Work()
-	out := workspace.Check{Of: workspace.ProseHash(ch.Text), Words: workspace.Count(ch.Text), By: w.Model.Name, At: time.Now()}
+	out := workspace.Check{Of: workspace.ProseHash(ch.Text), Words: w.Store.Work().Language.Count(ch.Text), By: w.Model.Name, At: time.Now()}
 	var meant strings.Builder
 	for _, f := range before.Findings {
 		if f.Meant && strings.Contains(ch.Text, f.Quote) {
@@ -108,15 +108,15 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 
 	// The chapter goes whole when it can; the setting takes what is left,
 	// the newest first, and reads in the work's order.
-	b := prompt.NewBudget(w.Model.Input())
+	b := prompt.NewBudget(w.Model.Input(), w.Store.Work().Language)
 	b.Must(workspace.PartRules, checkRules)
 	b.Must(workspace.PartProse, meant.String())
-	text := fit(ch.Text, b.Left()*3/4, false)
+	text := fit(ch.Text, b.Left()*3/4, false, w.Store.Work().Language)
 	if strings.TrimSpace(text) == "" {
 		return workspace.Check{}, &model.SetupError{Err: &model.ContextLimitError{Part: "chapter"}}
 	}
 	if len(text) < len(ch.Text) {
-		out.Read = workspace.Count(text) // said with the result: the rest was not looked at
+		out.Read = w.Store.Work().Language.Count(text) // said with the result: the rest was not looked at
 	}
 	b.Must(workspace.PartProse, text)
 	if !slices.ContainsFunc(set.Entries, func(e workspace.Entry) bool { return e.Place == workspace.PlaceBody }) {
@@ -205,7 +205,7 @@ func (w *Writer) Check(ctx context.Context, chapter string) (workspace.Check, er
 			if name == "" || names[name] || utf8.RuneCountInString(name) > nameRunes || !strings.Contains(ch.Text, name) {
 				continue
 			}
-			f.Name, f.Text, f.Category = name, prompt.OneLine(g.Text), workspace.Other
+			f.Name, f.Text, f.Category = name, prompt.OneLine(g.Text), w.Store.Work().Language.OtherCategory()
 			if slices.Contains(categories, g.Category) {
 				f.Category = g.Category
 			}

@@ -26,7 +26,7 @@ type testHost struct {
 
 func newTestHost(t *testing.T) *testHost {
 	t.Helper()
-	store, err := workspace.Create(t.TempDir(), "测试作品", "网文")
+	store, err := workspace.Create(t.TempDir(), "测试作品", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}

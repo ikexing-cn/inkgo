@@ -485,7 +485,7 @@ func (a *App) folderView(c *ui.Context, n *workspace.Node) {
 							kit.Glyph(c, nodeIcon(child), kit.IconMd, t.TextMuted)
 							ui.Text(c, child.Title).FontSize(kit.FsBody).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
 							if !child.Folder {
-								ui.Text(c, locales.StatusWords(a.book.Count(child.ID))).FontSize(kit.FsNote).TextColor(a.pal.Faint)
+								ui.Text(c, locales.StatusWords(a.book.Count(child.ID), a.countUnit())).FontSize(kit.FsNote).TextColor(a.pal.Faint)
 							}
 						})
 						if gist := w.gists[child.ID]; gist != "" {

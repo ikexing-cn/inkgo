@@ -207,7 +207,7 @@ function propCard(m) {
   const p = S.props.find((x) => x.id === m.prop), words = p ? p.paras.join('').length : m.words
   const state = S.fate[m.prop] ? FATE()[S.fate[m.prop]] || S.fate[m.prop] : !p ? L.chatFateGone() : p.writing ? L.chatWriting() : L.chatFateWaiting()
   return `<div class="prop-card"><div class="prop-card-head">${icon('pen', 'sm', p ? 'green' : 'muted')}<div class="fit ell">${t(L.chatProposeEdit(chTitle(m.key)))}</div>` +
-    (p ? `<div class="hit link"${onClick(() => set((s) => go(s, m.key)))}>${t(L.chatViewInText())}</div>` : '') + `</div><div class="note">${t(whereWord(m.where))} · ${t(L.chatWords(words))} · ${t(state)}</div></div>`
+    (p ? `<div class="hit link"${onClick(() => set((s) => go(s, m.key)))}>${t(L.chatViewInText())}</div>` : '') + `</div><div class="note">${t(whereWord(m.where))} · ${t(L.chatWords(words, 'character'))} · ${t(state)}</div></div>`
 }
 
 // 讨论长了压缩过的地方：前面几轮整理成了一份摘要，原文还在上面。点开看摘要，只能看不能改。
@@ -278,7 +278,7 @@ function discussion() {
     '<div class="composer" data-k="composer">' +
     `<div class="box send-box">${S.cite ? cited(S.cite, () => set({ cite: null })) : ''}<div class="send-line"><textarea class="in" rows="1" placeholder="${t(L.chatSendHint(hint, keyLabel('Ctrl+Enter')))}" aria-label="${hint}"${onInput((v) => set({ draft: v }))}${onKey(sendKey)}>${t(S.draft)}</textarea><div class="send hit${S.draft.trim() && !S.waiting ? '' : ' off'}" title="${t(L.chatSendTip(keyLabel('Ctrl+Enter')))}"${onClick(() => send())}>${ICON.send}</div></div></div>` +
     // 起草、改写开的讨论跟着那一章，不随开着的章换，也不用选附不附。
-    `<div class="attach-line">${talk && talk.origin ? `<div class="fixed ell" title="${t(L.chatFixedTip())}">${t(L.chatFollows(chTitle(talk.key)))}</div>` : tickbox(S.attach, S.vol ? L.chatAttachVolume() : L.chatAttachChapter(), () => set({ attach: !S.attach }), S.vol ? L.chatAttachVolumeTip() : L.chatAttachChapterTip())}<div class="grow"></div>${modelPick()}</div>` +
+    `<div class="attach-line">${talk && talk.origin ? `<div class="fixed ell" title="${t(L.chatFixedTip())}">${t(L.chatFollows(chTitle(talk.key)))}</div>` : tickbox(S.attach, S.vol ? L.chatAttachVolume() : L.chatAttachChapter(), () => set({ attach: !S.attach }), S.vol ? L.chatAttachVolumeTip() : L.chatAttachChapterTip('character'))}<div class="grow"></div>${modelPick()}</div>` +
     '</div>'
 }
 

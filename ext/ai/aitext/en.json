@@ -412,15 +412,8 @@
       }
     }
   },
-  "checkShortChapter": "This chapter has fewer than {count, plural, one {# character} other {# characters}} and does not need a Check",
-  "@checkShortChapter": {
-    "description": "writing.ShortChapterError failure. Translated by desk for the AI toast.",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
+  "checkShortChapter": "{unit, select, word {This chapter has fewer than {count, plural, one {# word} other {# words}} and does not need a Check} other {This chapter has fewer than {count, plural, one {# character} other {# characters}} and does not need a Check}}",
+  "@checkShortChapter": {"description": "writing.ShortChapterError failure. Translated by desk for the AI toast.", "placeholders": {"count": {"type": "int"}, "unit": {"type": "String", "example": "character"}}},
   "checkResultError": "Cannot read the model’s Check results. Try again: {reason}",
   "@checkResultError": {
     "description": "writing.CheckResultError failure. Translated by desk for the AI toast.",

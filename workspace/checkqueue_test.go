@@ -10,7 +10,7 @@ import (
 )
 
 func TestCheckQueueOrder(t *testing.T) {
-	q := CheckQueue{Failed: map[string]error{"a": errors.New("old failure")}}
+	q := CheckQueue{Language: Chinese, Failed: map[string]error{"a": errors.New("old failure")}}
 	q.Enqueue("a")
 	q.Enqueue("a")
 	q.Enqueue("b")
@@ -59,9 +59,9 @@ func TestCheckQueuePrunable(t *testing.T) {
 func TestCheckQueueDueAndLeave(t *testing.T) {
 	tree := Tree{Root: &Node{Children: []*Node{{ID: "folder", Folder: true, Children: []*Node{{ID: "new"}, {ID: "same"}, {ID: "changed"}, {ID: "short"}, {ID: "missing"}}}}}}
 	all := map[string]Check{"same": {Of: ProseHash("一样。")}, "changed": {Of: ProseHash("旧稿。")}}
-	var q CheckQueue
+	q := CheckQueue{Language: Chinese}
 	texts := map[string]string{"folder": "不是章。", "new": "新稿。", "same": "一样。", "changed": "新稿。", "short": "短"}
-	if got := DueChapters(all, tree, texts, 3); !slices.Equal(got, []string{"new", "changed"}) {
+	if got := DueChapters(all, tree, texts, 3, Chinese); !slices.Equal(got, []string{"new", "changed"}) {
 		t.Fatal(got)
 	}
 	for _, id := range []string{"new", "same", "changed", "short"} {
@@ -70,7 +70,7 @@ func TestCheckQueueDueAndLeave(t *testing.T) {
 	if !slices.Equal(q.Pending, []string{"new", "changed"}) {
 		t.Fatal(q)
 	}
-	if got := DueChapters(all, Tree{}, texts, 3); got != nil {
+	if got := DueChapters(all, Tree{}, texts, 3, Chinese); got != nil {
 		t.Fatal(got)
 	}
 }
@@ -78,14 +78,14 @@ func TestCheckQueueDueAndLeave(t *testing.T) {
 func TestCheckQueueAfterPause(t *testing.T) {
 	now := time.Date(2041, 1, 2, 0, 0, 0, 0, time.UTC)
 	for _, ago := range []time.Duration{-time.Second, 8*time.Second - time.Nanosecond, 8 * time.Second, 9 * time.Second} {
-		var q CheckQueue
+		q := CheckQueue{Language: Chinese}
 		q.AfterPause("a", "原句。", Check{}, 3, now.Add(-ago), now)
 		want := ago >= 8*time.Second
 		if (len(q.Pending) == 1) != want || (q.Tried["a"] != "") != want {
 			t.Fatal(ago, q)
 		}
 	}
-	var q CheckQueue
+	q := CheckQueue{Language: Chinese}
 	q.AfterPause("a", "短", Check{}, 3, now.Add(-time.Hour), now)
 	if len(q.Tried) != 0 {
 		t.Fatal(q)
@@ -101,7 +101,7 @@ func TestCheckQueueAfterPause(t *testing.T) {
 	if !slices.Equal(q.Pending, []string{"a"}) || q.Failed["a"] != nil {
 		t.Fatal(q)
 	}
-	q = CheckQueue{}
+	q = CheckQueue{Language: Chinese}
 	q.AfterPause("a", "原句。", Check{Of: ProseHash("原句。")}, 3, now.Add(-time.Hour), now)
 	if len(q.Pending) != 0 || len(q.Tried) != 0 {
 		t.Fatal(q)
@@ -111,7 +111,7 @@ func TestCheckQueueAfterPause(t *testing.T) {
 func TestCheckQueueKeep(t *testing.T) {
 	old := Check{Of: "old", Findings: []Finding{{Kind: FindName, Quote: "名字", Name: "正确", Meant: true}}}
 	was := Check{Of: "old", Findings: []Finding{{Kind: FindName, Quote: "名字", Name: "正确", Meant: true}}} // old as it was
-	q := CheckQueue{Failed: map[string]error{"a": errors.New("earlier")}}
+	q := CheckQueue{Language: Chinese, Failed: map[string]error{"a": errors.New("earlier")}}
 	for _, err := range []error{context.Canceled, errors.Join(errors.New("stopped"), context.Canceled)} {
 		if _, keep := q.Keep("a", old, Check{}, err); keep || failed(q, "a") != "earlier" || !reflect.DeepEqual(old, was) {
 			t.Fatal(q, keep)

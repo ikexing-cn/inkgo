@@ -144,7 +144,7 @@ func TestAChapterReadInPartSaysSo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Words != workspace.Count(text) || got.Read <= 0 || got.Read >= got.Words {
+	if got.Words != workspace.Chinese.Count(text) || got.Read <= 0 || got.Read >= got.Words {
 		t.Fatalf("read %d of %d", got.Read, got.Words)
 	}
 	said := f.got[len(f.got)-1].Messages[0].Content

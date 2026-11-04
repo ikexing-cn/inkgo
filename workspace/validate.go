@@ -35,6 +35,9 @@ func validEffort(e string) bool {
 }
 
 func validateWork(w Work) error {
+	if w.Language != Chinese && w.Language != English {
+		return &LanguageError{Value: string(w.Language)}
+	}
 	if err := validSchema(w.Schema); err != nil {
 		return err
 	}
@@ -54,8 +57,8 @@ func validateWork(w Work) error {
 		}
 		seen[c.Name] = true
 	}
-	if !seen[Other] {
-		return fmt.Errorf("categories: must include %q", Other)
+	if !seen[w.Language.OtherCategory()] {
+		return fmt.Errorf("categories: must include %q", w.Language.OtherCategory())
 	}
 	for name, sel := range map[string]Selection{"discussion": w.Discussion, "writing": w.Writing} {
 		if (sel.Provider == "") != (sel.Model == "") {

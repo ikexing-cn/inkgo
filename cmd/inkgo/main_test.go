@@ -17,7 +17,7 @@ import (
 
 func layoutBook(t *testing.T, root string) *workspace.Store {
 	t.Helper()
-	s, err := workspace.Create(filepath.Join(root, "work"), "雨城来信", "网文")
+	s, err := workspace.Create(filepath.Join(root, "work"), "雨城来信", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}

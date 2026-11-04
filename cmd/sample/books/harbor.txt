@@ -1,0 +1,30 @@
+# English behavior sample: five chapters with lore and outlines.
+书名：The Last Harbor
+语言：en
+题材：novel
+= 设定
+People｜Mara｜Mara repairs the harbor lamps and refuses to sail at night.
+Places｜North Pier｜An abandoned pier beyond the lighthouse.
+Rules｜｜The harbor closes at sunset.
+= 卷：The Missing Light
+卷纲：Mara traces a signal to the abandoned pier and chooses to leave home.
+== Chapter 1: The Signal
+章纲：Mara discovers a light beyond the closed harbor.
+Mara counted three flashes beyond North Pier. The harbor had closed an hour ago, but someone was still out there. She took her father's lantern from its hook.
+
+== Chapter 2: A Borrowed Boat
+章纲：Mara asks a friend for passage.
+The boat rocked against the steps. 'Don't wait for daylight,' Eli said. Mara tightened the rope and looked back at the lamps along the shore.
+
+== Chapter 3: North Pier
+章纲：The travelers find an unexpected message.
+At North Pier, the light came from a broken window. Mara climbed the stairs one at a time. A letter lay beneath the lamp, addressed to someone who had vanished years before.
+
+== Chapter 4: The Keeper
+章纲：Mara learns who has been sending the signal.
+The keeper opened the door before she knocked. He had watched her cross the water. 'Your father left something here,' he said, and handed her a small brass key.
+
+== Chapter 5: Morning Tide
+章纲：Mara decides to search beyond the harbor.
+Morning arrived with a rising tide. Mara unlocked the cabinet and found a map of the outer islands. This time, she would leave before the lamps went out.
+

@@ -253,7 +253,7 @@ func TestBrokenShelfIsNotOverwritten(t *testing.T) {
 	if a.errorText() == "" {
 		t.Fatal("no error")
 	}
-	s, err := workspace.Create(filepath.Join(dir, "work"), "雨夜", "网文")
+	s, err := workspace.Create(filepath.Join(dir, "work"), "雨夜", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}

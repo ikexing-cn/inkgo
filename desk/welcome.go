@@ -155,7 +155,7 @@ func (a *App) create() error {
 	if name == "" {
 		name = filepath.Base(dir)
 	}
-	s, err := workspace.Create(dir, name, a.genre)
+	s, err := workspace.Create(dir, name, a.genre, "zh-Hans")
 	if err != nil {
 		return err
 	}
@@ -291,7 +291,7 @@ func length(n int) string {
 	if n == 0 {
 		return locales.ShelfNoWords()
 	}
-	return kit.Words(n)
+	return kit.Words(n, workspace.Chinese)
 }
 
 func (a *App) welcome(c *ui.Context) {

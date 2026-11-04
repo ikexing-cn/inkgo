@@ -59,7 +59,7 @@ func Translate(err error, reason func(error) string) (string, bool) {
 	case *writing.CheckResultError:
 		return CheckResultError(reason(cause.Err)), true
 	case *writing.ShortChapterError:
-		return CheckShortChapter(cause.Count), true
+		return CheckShortChapter(cause.Count, cause.Unit), true
 	case *inference.OutputLimitError:
 		return StatusOutputLimit(tokens.Format(cause.Limit)), true
 	case *inference.JSONError:

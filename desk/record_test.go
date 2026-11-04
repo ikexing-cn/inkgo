@@ -44,7 +44,7 @@ func TestLeavingWorkClearsSettingsAndRecords(t *testing.T) {
 			switch how {
 			case "switch":
 				var err error
-				next, err = workspace.Create(filepath.Join(t.TempDir(), "next"), "另一本", "网文")
+				next, err = workspace.Create(filepath.Join(t.TempDir(), "next"), "另一本", "网文", "zh-Hans")
 				if err != nil {
 					t.Fatal(err)
 				}

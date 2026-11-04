@@ -116,7 +116,7 @@ func TestTypedAIErrorsTranslateInBothLocales(t *testing.T) {
 			{&model.AbortedError{Err: errors.New("detail")}, StatusModelAborted("detail")},
 			{&inference.JSONError{Err: errors.New("detail")}, StatusJSONError("detail")},
 			{&inference.OutputLimitError{Limit: 2}, StatusOutputLimit("2")},
-			{&writing.ShortChapterError{Count: 2}, CheckShortChapter(2)},
+			{&writing.ShortChapterError{Count: 2}, CheckShortChapter(2, "character")},
 			{&writing.CheckResultError{Err: errors.New("detail")}, CheckResultError("detail")},
 			{&discussion.CompactError{Err: errors.New("detail")}, ChatCompactError("detail")},
 			{&discussion.ReplyError{Err: errors.New("detail")}, ChatReplyError("detail")},

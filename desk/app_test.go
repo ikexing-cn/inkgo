@@ -32,7 +32,7 @@ import (
 func fixture(t *testing.T) (*App, *ui.Tester, workspace.Entry) {
 	t.Helper()
 	root := t.TempDir()
-	s, err := workspace.Create(filepath.Join(root, "work"), "测试作品", "网文")
+	s, err := workspace.Create(filepath.Join(root, "work"), "测试作品", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +98,7 @@ func TestLeavingAWorkSavesItAndStopsItsChecks(t *testing.T) {
 			}
 			switch how {
 			case "attach":
-				next, err := workspace.Create(filepath.Join(t.TempDir(), "next"), "另一本", "网文")
+				next, err := workspace.Create(filepath.Join(t.TempDir(), "next"), "另一本", "网文", "zh-Hans")
 				if err != nil {
 					t.Fatal(err)
 				}

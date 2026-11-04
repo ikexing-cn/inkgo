@@ -19,7 +19,7 @@ const drawPoint = (point, ...args) => contributions(point).map((draw) => draw(..
 // 设置左栏的页由各扩展登记到 SettingsPages；同名合用一页，不登记的只在自己的详情页里。
 const EXTS = () => [
   { id: 'focus', g: 'write', name: L.modFocus(), about: L.modFocusAbout() },
-  { id: 'goal', g: 'write', name: L.modGoal(), about: L.modGoalAbout() },
+  { id: 'goal', g: 'write', name: L.modGoal('character'), about: L.modGoalAbout() },
   { id: 'names', g: 'write', name: L.modNames(), about: L.modNamesAbout(), req: ['lore'] },
   { id: 'find', g: 'write', name: L.modFind(), about: L.modFindAbout() },
   { id: 'notes', g: 'write', name: L.modNotes(), about: L.modNotesAbout(), req: ['marks'] },

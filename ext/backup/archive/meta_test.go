@@ -1,5 +1,7 @@
 package archive
 
+import "writer/workspace"
+
 import "testing"
 
 func TestBackupMetadata(t *testing.T) {
@@ -13,10 +15,10 @@ func TestBackupMetadata(t *testing.T) {
 		{Rel: "trash/丙.txt", Data: []byte("trash")},
 		{Rel: "chapters-other/丁.txt", Data: []byte("outside")},
 	}}
-	if m := files.Meta("work-id"); m.Work != "work-id" || m.Words != 5 || m.Chapters != 2 || m.Sum != "" {
+	if m := files.Meta("work-id", workspace.Chinese); m.Work != "work-id" || m.Words != 5 || m.Chapters != 2 || m.Sum != "" {
 		t.Fatal(m)
 	}
-	if m := (Files{}).Meta("empty"); m.Work != "empty" || m.Words != 0 || m.Chapters != 0 {
+	if m := (Files{}).Meta("empty", workspace.Chinese); m.Work != "empty" || m.Words != 0 || m.Chapters != 0 {
 		t.Fatal(m)
 	}
 }

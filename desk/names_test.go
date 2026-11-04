@@ -69,7 +69,7 @@ func TestNamesInTheProse(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(filepath.Dir(a.books.file), "appearance.json")); !os.IsNotExist(err) {
 		t.Fatalf("separate appearance file: %v", err)
 	}
-	s, err := workspace.Create(filepath.Join(t.TempDir(), "another"), "另一本", "网文")
+	s, err := workspace.Create(filepath.Join(t.TempDir(), "another"), "另一本", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}

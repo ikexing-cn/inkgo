@@ -135,7 +135,7 @@ func TestLaterLinesFromChapters(t *testing.T) {
 		t.Fatal(err)
 	}
 	e, _ := h.content.Setting().Entry(id)
-	if got := laterLines(h.content, e); !slices.Equal(got, []string{"第3章起：配角，学会了修灯。"}) {
+	if got := laterLines(h.content, e, workspace.Chinese); !slices.Equal(got, []string{"第3章起：配角，学会了修灯。"}) {
 		t.Fatalf("exports %q", got)
 	}
 }

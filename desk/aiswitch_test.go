@@ -21,7 +21,7 @@ import (
 
 func TestBuildersReadTheShelfSwitch(t *testing.T) {
 	a := newApp("")
-	st, err := workspace.Create(t.TempDir(), "雨城", "网文")
+	st, err := workspace.Create(t.TempDir(), "雨城", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +129,7 @@ func aiWork(t *testing.T) (root, chapter string) {
 		}
 	}
 	root = t.TempDir()
-	s, err := workspace.Create(filepath.Join(root, "work"), "雨城", "网文")
+	s, err := workspace.Create(filepath.Join(root, "work"), "雨城", "网文", "zh-Hans")
 	must(err)
 	_, err = s.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "林晚怕黑", Names: []string{"林晚"}}}})
 	must(err)
@@ -140,7 +140,7 @@ func aiWork(t *testing.T) (root, chapter string) {
 		{Kind: workspace.MarkForeshadow, Quote: "一只旧灯泡", Orphaned: true, ID: workspace.NewID()},
 	})
 	must(err)
-	hash, words := workspace.ProseHash(aiProse), workspace.Count(aiProse)
+	hash, words := workspace.ProseHash(aiProse), workspace.Chinese.Count(aiProse)
 	must(os.WriteFile(filepath.Join(root, "work", "chapters", "停电.summary.json"), []byte(oldSummary), 0o644))
 	must(s.WriteCheck(chapter, workspace.Check{Of: hash, Words: words, By: "deepseek/deepseek-flash", At: time.Now(), Findings: []workspace.Finding{
 		{ID: workspace.NewID(), Kind: workspace.FindName, Title: "「林婉」是不是「林晚」写错了？", Quote: "林婉", Name: "林晚"},

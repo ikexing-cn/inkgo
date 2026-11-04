@@ -27,6 +27,8 @@ func (a *App) errText(err error) string {
 		return ""
 	}
 	switch cause := err.(type) {
+	case *workspace.LanguageError:
+		return locales.BookLanguageUnsupported(cause.Value)
 	case workspace.Error:
 		switch cause {
 		case workspace.ErrTitleEmpty:

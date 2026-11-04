@@ -13,7 +13,7 @@ import (
 func BenchmarkChapterPoll(b *testing.B) {
 	for _, chapters := range []int{15, 300, 1000} {
 		b.Run(fmt.Sprint(chapters), func(b *testing.B) {
-			s, err := Create(b.TempDir(), "读盘基准", "网文")
+			s, err := Create(b.TempDir(), "读盘基准", "网文", "zh-Hans")
 			if err != nil {
 				b.Fatal(err)
 			}

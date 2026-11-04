@@ -54,7 +54,7 @@ func (h *testHost) openChapter(t *testing.T, id string) {
 
 func previewFixture(t *testing.T, text string) (*testHost, *Panel, *ui.Tester, string) {
 	t.Helper()
-	store, err := workspace.Create(t.TempDir(), "测试作品", "网文")
+	store, err := workspace.Create(t.TempDir(), "测试作品", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}

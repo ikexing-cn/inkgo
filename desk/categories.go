@@ -41,7 +41,7 @@ func (a *App) categories(c *ui.Context) {
 						// One with entries asks first, as they will move to 其他;
 						// an empty one goes at the click.
 						if a.removeCategory == cat.Name && counts[cat.Name] > 0 {
-							ui.Text(c, locales.CatsMoveTo(counts[cat.Name], workspace.Other)).FontSize(kit.FsBody).Grow(1).Shrink(1)
+							ui.Text(c, locales.CatsMoveTo(counts[cat.Name], a.Store.Work().Language.OtherCategory())).FontSize(kit.FsBody).Grow(1).Shrink(1)
 							if a.pal.Secondary(c, locales.CommonCancel()).Clicked() {
 								a.removeCategory = ""
 							}
@@ -61,7 +61,7 @@ func (a *App) categories(c *ui.Context) {
 							a.categoryName, a.categoryTarget, a.categoryShow = cat.Name, cat.Target, true
 						}
 						// 其他 cannot go: what has no category is kept there.
-						del := a.pal.Ghost(c, locales.CommonDelete(), ui.Color{}).Label("删除-" + cat.Name).Disabled(busy || cat.Name == workspace.Other)
+						del := a.pal.Ghost(c, locales.CommonDelete(), ui.Color{}).Label("删除-" + cat.Name).Disabled(busy || cat.Name == a.Store.Work().Language.OtherCategory())
 						if del.IsDisabled() {
 							kit.Pale(del)
 						}

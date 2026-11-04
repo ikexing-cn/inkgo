@@ -144,13 +144,13 @@ function checkFoot(cur) {
   else if (S.queue.includes(cur.key)) state = L.statusQueued()
   else if (S.failed[cur.key]) { state = L.statusFailed(whyText(S.failed[cur.key])); can = true; tip = state } // 出错的说明长，放不下时悬停看全
   else if (!S.entries.some((e) => e.place === 'body')) state = L.statusNoEntries()
-  else if (sizeOf(cur) < 200) state = L.statusShort()
+  else if (sizeOf(cur) < 200) state = L.statusShort('character')
   else if (S.never[cur.key]) { state = L.statusNever(); can = true }
   else if (n && dirty) { state = L.statusDirtyIssues(n); can = true }
-  else if (n && part) state = L.statusPartIssues(part, n)
+  else if (n && part) state = L.statusPartIssues(part, n, 'character')
   else if (n) state = L.statusIssues(n)
   else if (dirty) { state = L.statusEdited(); can = true }
-  else if (part) { state = L.statusPartOK(part); tip = PART() }
+  else if (part) { state = L.statusPartOK(part, 'character'); tip = PART() }
   const found = n && !S.checking && !S.failed[cur.key] && !S.never[cur.key] && sizeOf(cur) >= 200
   return '<div class="foot-check">' + (found ? `<div class="foot-state ell hit link" title="${L.statusGoCheck()}"${onClick(seeAll)}>${t(state)}</div>` : `<div class="foot-state ell"${tip ? ` title="${t(tip)}"` : ''}>${t(state)}</div>`) +
     (can ? `<div class="hit link" title="${L.statusCheckTip()}"${onClick(() => checkNow(cur.key))}>${L.statusCheckNow()}</div>` : '') + '<div class="faint">·</div>' +

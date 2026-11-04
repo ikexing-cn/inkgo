@@ -27,7 +27,7 @@ type replies []model.Reply
 // chapter's cards, whether the chapter before goes whole, and the outline
 // source.
 func TestPreloadedMapsTheTalksContext(t *testing.T) {
-	st, err := workspace.Create(t.TempDir(), "雨城", "网文")
+	st, err := workspace.Create(t.TempDir(), "雨城", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func (r *replies) Complete(ctx context.Context, req model.Request, on func(model
 }
 
 func TestRoutedModelNamesAreRecordedVerbatim(t *testing.T) {
-	st, err := workspace.Create(t.TempDir(), "雨城", "网文")
+	st, err := workspace.Create(t.TempDir(), "雨城", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +130,7 @@ func TestRoutedModelNamesAreRecordedVerbatim(t *testing.T) {
 }
 
 func TestSetupErrorsCrossThePort(t *testing.T) {
-	st, err := workspace.Create(filepath.Join(t.TempDir(), "work"), "测试作品", "网文")
+	st, err := workspace.Create(filepath.Join(t.TempDir(), "work"), "测试作品", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -212,7 +212,7 @@ func (f failingRequest) ListModels(context.Context) ([]string, error) { return n
 // cancelled, and cancelled by its maker for having enough, which is done.
 // A trace folder gets each whole; the record and the work get no text.
 func TestEachRequestIsRecorded(t *testing.T) {
-	st, err := workspace.Create(filepath.Join(t.TempDir(), "work"), "测试作品", "网文")
+	st, err := workspace.Create(filepath.Join(t.TempDir(), "work"), "测试作品", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -276,7 +276,7 @@ func TestEachRequestIsRecorded(t *testing.T) {
 // Off, nothing that sends is built: the catalog of a service, the talk
 // and the pen fail at once. On again, they are built as before.
 func TestOffBuildsNothing(t *testing.T) {
-	st, err := workspace.Create(filepath.Join(t.TempDir(), "work"), "测试作品", "网文")
+	st, err := workspace.Create(filepath.Join(t.TempDir(), "work"), "测试作品", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -316,7 +316,7 @@ func TestOffBuildsNothing(t *testing.T) {
 }
 
 func TestSendingDoesNotReadTheSwitch(t *testing.T) {
-	st, err := workspace.Create(t.TempDir(), "雨城", "网文")
+	st, err := workspace.Create(t.TempDir(), "雨城", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -380,7 +380,7 @@ func TestSendingDoesNotReadTheSwitch(t *testing.T) {
 }
 
 func TestFailedRequestIsRecordedInTheWordsTheAuthorSaw(t *testing.T) {
-	st, err := workspace.Create(t.TempDir(), "Book", "Fantasy")
+	st, err := workspace.Create(t.TempDir(), "Book", "Fantasy", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -398,7 +398,7 @@ func TestFailedRequestIsRecordedInTheWordsTheAuthorSaw(t *testing.T) {
 }
 
 func TestPreloadedReportsNoOutlineProviderInsteadOfEmptyOutlines(t *testing.T) {
-	st, err := workspace.Create(t.TempDir(), "书", "网文")
+	st, err := workspace.Create(t.TempDir(), "书", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}

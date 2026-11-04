@@ -12,7 +12,7 @@ import (
 
 func TestLayoutOutline(t *testing.T) {
 	root := t.TempDir()
-	s, err := workspace.Create(filepath.Join(root, "work"), "雨城来信", "网文")
+	s, err := workspace.Create(filepath.Join(root, "work"), "雨城来信", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}

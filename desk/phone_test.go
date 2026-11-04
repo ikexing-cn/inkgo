@@ -81,7 +81,7 @@ func TestPhonePreferencesAreLocal(t *testing.T) {
 		t.Fatalf("reopened %+v want %+v", savedTypesetting(t, b), want)
 	}
 	root := filepath.Join(t.TempDir(), "other")
-	store, err := workspace.Create(root, "另一本", "网文")
+	store, err := workspace.Create(root, "另一本", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}

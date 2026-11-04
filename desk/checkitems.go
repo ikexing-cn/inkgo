@@ -180,7 +180,7 @@ func (a *App) checkDue() []string {
 		a.warn(err)
 		return nil
 	}
-	return workspace.DueChapters(a.book.Checks(), a.book.Tree(), texts, a.ai.MinCheck())
+	return workspace.DueChapters(a.book.Checks(), a.book.Tree(), texts, a.ai.MinCheck(), a.Store.Work().Language)
 }
 
 // openCheck shows the page of the checks, at finding id when given.
@@ -272,21 +272,21 @@ func (a *App) checkState() (line string, found int, can bool, tip string) {
 		return line, 0, true, line // what went wrong is long: in full on hover
 	case !a.hasSetting():
 		return locales.CheckNoSettings(), 0, false, ""
-	case workspace.Count(text) < a.ai.MinCheck():
-		return locales.CheckMinimum(a.ai.MinCheck()), 0, false, ""
+	case a.Store.Work().Language.Count(text) < a.ai.MinCheck():
+		return locales.CheckMinimum(a.ai.MinCheck(), a.countUnit()), 0, false, ""
 	case !ok:
 		return locales.StatusNever(), 0, true, ""
 	case found > 0 && had.Stale(text):
 		return locales.StatusDirtyIssues(found), found, true, ""
 	case found > 0 && had.Read > 0:
-		return locales.StatusPartIssues(had.Read, found), found, false, ""
+		return locales.StatusPartIssues(had.Read, found, a.countUnit()), found, false, ""
 	case found > 0:
 		return locales.StatusIssues(found), found, false, ""
 	case had.Stale(text):
 		return locales.StatusEdited(), 0, true, ""
 	case had.Read > 0:
 		// The rest was not looked at: not to be told as nothing found.
-		return locales.StatusPartOK(had.Read), 0, false, locales.StatusPartLong()
+		return locales.StatusPartOK(had.Read, a.countUnit()), 0, false, locales.StatusPartLong()
 	}
 	return locales.StatusChecked(), 0, false, ""
 }

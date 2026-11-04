@@ -166,7 +166,11 @@ func (a *App) draft(c *ui.Context) {
 	}
 	text := "按章纲起草本章"
 	if words > 0 {
-		text += fmt.Sprintf("，约 %d 字", words)
+		if a.Store.Work().Language == "en" {
+			text += fmt.Sprintf(", about %d words", words)
+		} else {
+			text += fmt.Sprintf("，约 %d 字", words)
+		}
 	}
 	if strings.TrimSpace(w.cur().ed.Doc.String()) != "" {
 		if w.draftMode == draftReplace {
@@ -247,10 +251,10 @@ func (a *App) draftView(c *ui.Context) {
 				ui.Text(c, strings.TrimSpace(a.chapterOutline(w.node))).FontSize(kit.FsControl).TextColor(t.TextMuted).LineHeight(kit.LhLoose).FillWidth()
 			})
 			_, fits := prefs.CountOrNone(w.words)
-			kit.Labeled(c, locales.DraftGoal(), func() {
-				ui.TextInput(c, &w.words).Label(locales.DraftGoalLabel()).Placeholder(locales.DraftGoalHint()).FillWidth()
+			kit.Labeled(c, locales.DraftGoal(a.countUnit()), func() {
+				ui.TextInput(c, &w.words).Label(locales.DraftGoalLabel(a.countUnit())).Placeholder(locales.DraftGoalHint()).FillWidth()
 				if !fits {
-					ui.Text(c, locales.DraftGoalInvalid()).FontSize(kit.FsNote).TextColor(t.Danger)
+					ui.Text(c, locales.DraftGoalInvalid(a.countUnit())).FontSize(kit.FsNote).TextColor(t.Danger)
 				}
 			})
 			if strings.TrimSpace(w.cur().ed.Doc.String()) != "" {

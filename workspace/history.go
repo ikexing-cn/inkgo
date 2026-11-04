@@ -148,7 +148,7 @@ func (s *Store) takeSnapshot(id, reason, text string, marks []ChapterMark, talks
 		m.Quote = string(runes[m.Start:m.End])
 		kept = append(kept, m)
 	}
-	snap := Snapshot{At: at.UTC(), Reason: reason, Title: n.Title, Count: Count(text), Marks: kept, Talks: talks}
+	snap := Snapshot{At: at.UTC(), Reason: reason, Title: n.Title, Count: s.work.Language.Count(text), Marks: kept, Talks: talks}
 	b, err := json.MarshalIndent(snap, "", "  ")
 	if err != nil {
 		return false, err

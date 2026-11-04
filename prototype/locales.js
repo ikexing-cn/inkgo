@@ -143,6 +143,9 @@ const CATALOG = {
    "dir"
   ],
   "backupWhenClose": [],
+  "bookLanguageUnsupported": [
+   "language"
+  ],
   "catsConfirmDelete": [],
   "catsCount": [
    "count"
@@ -188,7 +191,9 @@ const CATALOG = {
   "chatAskNext": [],
   "chatAskVolumePace": [],
   "chatAttachChapter": [],
-  "chatAttachChapterTip": [],
+  "chatAttachChapterTip": [
+   "unit"
+  ],
   "chatAttachVolume": [],
   "chatAttachVolumeTip": [],
   "chatAttachedAll": [
@@ -296,7 +301,8 @@ const CATALOG = {
   "chatProposalMeta": [
    "where",
    "count",
-   "state"
+   "state",
+   "unit"
   ],
   "chatProposalVoid": [],
   "chatProposalVoidWhy": [],
@@ -358,7 +364,8 @@ const CATALOG = {
   "chatWhereEnd": [],
   "chatWhereSwap": [],
   "chatWords": [
-   "count"
+   "count",
+   "unit"
   ],
   "chatWriting": [],
   "checkAddToSettings": [],
@@ -422,7 +429,8 @@ const CATALOG = {
   ],
   "checkMarkedNoChange": [],
   "checkMinimum": [
-   "count"
+   "count",
+   "unit"
   ],
   "checkMismatchAbout": [
    "at",
@@ -472,7 +480,8 @@ const CATALOG = {
   "checkSeeSetting": [],
   "checkSeeText": [],
   "checkShortChapter": [
-   "count"
+   "count",
+   "unit"
   ],
   "checkStart": [],
   "checkStop": [],
@@ -593,7 +602,8 @@ const CATALOG = {
   "dialogOsNewBookFolder": [],
   "dialogOsOpenConfig": [],
   "dialogPicked": [
-   "count"
+   "count",
+   "unit"
   ],
   "dialogSettingAdded": [],
   "dialogSettingCat": [],
@@ -633,10 +643,16 @@ const CATALOG = {
   "draftExisting": [],
   "draftExistingHow": [],
   "draftFromOutline": [],
-  "draftGoal": [],
+  "draftGoal": [
+   "unit"
+  ],
   "draftGoalHint": [],
-  "draftGoalInvalid": [],
-  "draftGoalLabel": [],
+  "draftGoalInvalid": [
+   "unit"
+  ],
+  "draftGoalLabel": [
+   "unit"
+  ],
   "draftItemBooks": [],
   "draftItemCards": [
    "count"
@@ -1084,7 +1100,9 @@ const CATALOG = {
   "modFullwidth": [],
   "modFullwidthAbout": [],
   "modFullwidthQuotes": [],
-  "modGoal": [],
+  "modGoal": [
+   "unit"
+  ],
   "modGoalAbout": [],
   "modGroupAI": [],
   "modGroupFiles": [],
@@ -1613,7 +1631,8 @@ const CATALOG = {
   "shelfChangePlace": [],
   "shelfChapterTitle": [],
   "shelfChapterWords": [
-   "count"
+   "count",
+   "unit"
   ],
   "shelfCountLibrary": [
    "count",
@@ -1689,7 +1708,8 @@ const CATALOG = {
   "shelfPreviewAbout": [
    "volumes",
    "chapters",
-   "words"
+   "words",
+   "unit"
   ],
   "shelfPreviewTitle": [
    "file"
@@ -1785,7 +1805,8 @@ const CATALOG = {
   ],
   "snapRowInfo": [
    "kind",
-   "count"
+   "count",
+   "unit"
   ],
   "snapSame": [],
   "snapTitle": [
@@ -1818,7 +1839,8 @@ const CATALOG = {
   ],
   "statusChapterMissing": [],
   "statusChapterWords": [
-   "count"
+   "count",
+   "unit"
   ],
   "statusCheckNow": [],
   "statusCheckTip": [],
@@ -1837,7 +1859,8 @@ const CATALOG = {
    "book",
    "count",
    "signed",
-   "goal"
+   "goal",
+   "unit"
   ],
   "statusCountLine": [
    "scope",
@@ -1847,12 +1870,14 @@ const CATALOG = {
   "statusCountTip": [
    "book",
    "count",
-   "signed"
+   "signed",
+   "unit"
   ],
   "statusDailyGoal": [],
   "statusDayWritten": [
    "day",
-   "count"
+   "count",
+   "unit"
   ],
   "statusDestination": [],
   "statusDirtyIssues": [
@@ -1867,8 +1892,12 @@ const CATALOG = {
   "statusGoCheck": [],
   "statusGoalError": [],
   "statusGoalHint": [],
-  "statusGoalLabel": [],
-  "statusGoalNote": [],
+  "statusGoalLabel": [
+   "unit"
+  ],
+  "statusGoalNote": [
+   "unit"
+  ],
   "statusGroupBackup": [],
   "statusGroupMarks": [],
   "statusHTTPAuth": [
@@ -1928,11 +1957,13 @@ const CATALOG = {
   ],
   "statusPartIssues": [
    "part",
-   "count"
+   "count",
+   "unit"
   ],
   "statusPartLong": [],
   "statusPartOK": [
-   "part"
+   "part",
+   "unit"
   ],
   "statusPending": [],
   "statusPendingCount": [
@@ -1957,13 +1988,17 @@ const CATALOG = {
   "statusSaved": [],
   "statusSavedAutomatically": [],
   "statusSelected": [
-   "count"
+   "count",
+   "unit"
   ],
   "statusService": [],
-  "statusShort": [],
+  "statusShort": [
+   "unit"
+  ],
   "statusSignedWords": [
    "count",
-   "signed"
+   "signed",
+   "unit"
   ],
   "statusTodayCount": [
    "count",
@@ -1986,7 +2021,8 @@ const CATALOG = {
   ],
   "statusWanWords": [
    "value",
-   "full"
+   "full",
+   "unit"
   ],
   "statusWhenAfter": [],
   "statusWhenAfterAbout": [],
@@ -1995,11 +2031,16 @@ const CATALOG = {
   "statusWhenTitle": [],
   "statusWhenWriting": [],
   "statusWhenWritingAbout": [],
-  "statusWordCount": [],
-  "statusWords": [
-   "count"
+  "statusWordCount": [
+   "unit"
   ],
-  "statusWordsTip": [],
+  "statusWords": [
+   "count",
+   "unit"
+  ],
+  "statusWordsTip": [
+   "unit"
+  ],
   "statusWorkSwitchedUndo": [],
   "tabClose": [],
   "tabExitFocus": [],
@@ -2164,6 +2205,7 @@ const CATALOG = {
    "backupTiming": "备份时机",
    "backupTo": "备份至 {dir}",
    "backupWhenClose": "关闭作品时",
+   "bookLanguageUnsupported": "作品语言“{language}”不受支持。请使用 zh-Hans 或 en。",
    "catsConfirmDelete": "确认删除",
    "catsCount": "{count, plural, other {# 条}}",
    "catsDeleted": "已删除分类“{name}”",
@@ -2193,7 +2235,7 @@ const CATALOG = {
    "chatAskNext": "接下来可以怎么写",
    "chatAskVolumePace": "这一卷的节奏怎么样",
    "chatAttachChapter": "附上本章内容",
-   "chatAttachChapterTip": "将章纲和光标前约 2000 字一并发送给 AI",
+   "chatAttachChapterTip": "{unit, select, word {将章纲和光标前约 2000 词一并发送给 AI} other {将章纲和光标前约 2000 字一并发送给 AI}}",
    "chatAttachVolume": "附上本卷内容",
    "chatAttachVolumeTip": "将卷纲一并发送给 AI",
    "chatAttachedAll": "附带全部 {count} 条设定",
@@ -2264,7 +2306,7 @@ const CATALOG = {
    "chatPartSaid": "本次发言",
    "chatPartThisChapter": "本章全文",
    "chatPickModel": "选择讨论模型",
-   "chatProposalMeta": "{where} · {count, plural, other {# 字}} · {state}",
+   "chatProposalMeta": "{unit, select, word {{where} · {count, plural, other {# 词}} · {state}} other {{where} · {count, plural, other {# 字}} · {state}}}",
    "chatProposalVoid": "改稿建议已作废",
    "chatProposalVoidWhy": "写的时候，它要换掉的原文改动了",
    "chatProposeEdit": "建议修改「{chapter}」",
@@ -2302,7 +2344,7 @@ const CATALOG = {
    "chatWhereAll": "换掉全章",
    "chatWhereEnd": "接在章末",
    "chatWhereSwap": "换掉一句",
-   "chatWords": "{count} 字",
+   "chatWords": "{unit, select, word {{count} 词} other {{count} 字}}",
    "chatWriting": "正在写…",
    "checkAddToSettings": "加入设定",
    "checkAddedSetting": "已加入设定",
@@ -2336,7 +2378,7 @@ const CATALOG = {
    "checkLoreHeading": "设定 · {entry}",
    "checkManualNote": "当前为「{mode}」，需要时点击「{again}」。",
    "checkMarkedNoChange": "已标为「无需修改」",
-   "checkMinimum": "{count, plural, other {满 # 字后可检查}}",
+   "checkMinimum": "{unit, select, word {{count, plural, other {满 # 词后可检查}}} other {{count, plural, other {满 # 字后可检查}}}}",
    "checkMismatchAbout": "{at} ↔ 设定「{what}」",
    "checkModeManual": "手动检查",
    "checkNameAbout": "{at} · 应为「{right}」",
@@ -2362,7 +2404,7 @@ const CATALOG = {
    "checkRunningTitle": "正在检查…",
    "checkSeeSetting": "查看设定",
    "checkSeeText": "查看原文",
-   "checkShortChapter": "这一章还不到 {count, plural, other {#}} 字，不用检查",
+   "checkShortChapter": "{unit, select, word {这一章还不到 {count, plural, other {#}} 词，不用检查} other {这一章还不到 {count, plural, other {#}} 字，不用检查}}",
    "checkStart": "开始检查",
    "checkStop": "停止",
    "checkTextChapter": "正文 · {chapter}",
@@ -2461,7 +2503,7 @@ const CATALOG = {
    "dialogOsBackupFolder": "选择备份文件夹",
    "dialogOsNewBookFolder": "选择新作品所在的文件夹",
    "dialogOsOpenConfig": "用记事本打开配置文件",
-   "dialogPicked": "已选 {count} 字",
+   "dialogPicked": "{unit, select, word {已选 {count} 词} other {已选 {count} 字}}",
    "dialogSettingAdded": "已加入设定正文",
    "dialogSettingCat": "设定分类",
    "dialogSettingText": "设定内容",
@@ -2486,10 +2528,10 @@ const CATALOG = {
    "draftExisting": "本章已有内容",
    "draftExistingHow": "已有内容的处理方式",
    "draftFromOutline": "按章纲起草",
-   "draftGoal": "目标字数（选填）",
+   "draftGoal": "{unit, select, word {目标词数（选填）} other {目标字数（选填）}}",
    "draftGoalHint": "由 AI 按章纲判断",
-   "draftGoalInvalid": "目标字数须为正整数，或留空",
-   "draftGoalLabel": "目标字数",
+   "draftGoalInvalid": "{unit, select, word {目标词数须为正整数，或留空} other {目标字数须为正整数，或留空}}",
+   "draftGoalLabel": "{unit, select, word {目标词数} other {目标字数}}",
    "draftItemBooks": "各卷卷纲",
    "draftItemCards": "本章的 {count} 张卡片",
    "draftItemPrev": "上一章全文",
@@ -2798,7 +2840,7 @@ const CATALOG = {
    "modFullwidth": "全角标点",
    "modFullwidthAbout": "打字时把半角标点换成全角",
    "modFullwidthQuotes": "引号也换成「」",
-   "modGoal": "字数目标",
+   "modGoal": "{unit, select, word {词数目标} other {字数目标}}",
    "modGoalAbout": "每天写多少字",
    "modGroupAI": "AI",
    "modGroupFiles": "作品与文件",
@@ -3164,7 +3206,7 @@ const CATALOG = {
    "shelfChangeFile": "更换…",
    "shelfChangePlace": "更改…",
    "shelfChapterTitle": "章节标题",
-   "shelfChapterWords": "本章 {count} 字",
+   "shelfChapterWords": "{unit, select, word {本章 {count} 词} other {本章 {count} 字}}",
    "shelfCountLibrary": "{count, plural, other {# 部}} · 作品库：{library}",
    "shelfDeleted": "已删除「{title}」",
    "shelfDetected": "识别出 {volumes, plural, other {# 卷}} {chapters, plural, other {# 章}}，下一步可以看一遍、再调整。",
@@ -3210,7 +3252,7 @@ const CATALOG = {
    "shelfPickImport": "选择要导入的文件或文件夹",
    "shelfPickLibrary": "选择作品库文件夹",
    "shelfPickNewLocation": "选择新作品所在的文件夹",
-   "shelfPreviewAbout": "共 {volumes, plural, other {# 卷}} {chapters, plural, other {# 章}}，全书 {words} 字。切错的地方在这里改，确定后才新建作品。",
+   "shelfPreviewAbout": "{unit, select, word {共 {volumes, plural, other {# 卷}} {chapters, plural, other {# 章}}，全书 {words} 词。切错的地方在这里改，确定后才新建作品。} other {共 {volumes, plural, other {# 卷}} {chapters, plural, other {# 章}}，全书 {words} 字。切错的地方在这里改，确定后才新建作品。}}",
    "shelfPreviewTitle": "预览 · {file}",
    "shelfRelocate": "重新定位…",
    "shelfRemove": "从书架移除",
@@ -3275,7 +3317,7 @@ const CATALOG = {
    "snapNone": "本章暂无历史版本",
    "snapRestore": "恢复这个版本",
    "snapRestored": "已恢复到 {at} 的版本，恢复前的内容已存为历史版本",
-   "snapRowInfo": "{kind} · {count} 字",
+   "snapRowInfo": "{unit, select, word {{kind} · {count} 词} other {{kind} · {count} 字}}",
    "snapSame": "该历史版本与当前正文相同",
    "snapTitle": "历史版本 · {chapter}",
    "statusAllCount": "全部 {count}",
@@ -3291,7 +3333,7 @@ const CATALOG = {
    "statusBookCountLine": "{book}{today}",
    "statusBookWords": "全书 {count}",
    "statusChapterMissing": "找不到这一章",
-   "statusChapterWords": "本章 {count} 字",
+   "statusChapterWords": "{unit, select, word {本章 {count} 词} other {本章 {count} 字}}",
    "statusCheckNow": "立即检查",
    "statusCheckTip": "调用一次 AI，对照设定检查本章",
    "statusChecked": "本章检查完成，未发现不一致",
@@ -3305,11 +3347,11 @@ const CATALOG = {
    "statusContextOutline": "纲和要求超出了模型的上下文上限：请缩短，或在设置中「AI」配置里调大上下文上限",
    "statusContextSummary": "之前讨论的摘要超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限",
    "statusContextTurn": "有一轮讨论太长，超出模型的上下文上限，请在设置中「AI」配置里调大上下文上限",
-   "statusCountGoalTip": "{book}，今天 {count, plural, other {{signed} 字}}，目标 {goal, plural, other {# 字}}。点击设置每日目标",
+   "statusCountGoalTip": "{unit, select, word {{book}，今天 {count, plural, other {{signed} 词}}，目标 {goal, plural, other {# 词}}。点击设置每日目标} other {{book}，今天 {count, plural, other {{signed} 字}}，目标 {goal, plural, other {# 字}}。点击设置每日目标}}",
    "statusCountLine": "{scope} · {book}{today}",
-   "statusCountTip": "{book}，今天 {count, plural, other {{signed} 字}}。点击设置每日目标",
+   "statusCountTip": "{unit, select, word {{book}，今天 {count, plural, other {{signed} 词}}。点击设置每日目标} other {{book}，今天 {count, plural, other {{signed} 字}}。点击设置每日目标}}",
    "statusDailyGoal": "每日目标",
-   "statusDayWritten": "{day} 写了 {count, plural, other {# 字}}",
+   "statusDayWritten": "{unit, select, word {{day} 写了 {count, plural, other {# 词}}} other {{day} 写了 {count, plural, other {# 字}}}}",
    "statusDestination": "模型请求的目的地址与配置不符",
    "statusDirtyIssues": "本章有 {count} 处待处理，正文已再次修改",
    "statusDisconnected": "模型回复中途断开，没有完成",
@@ -3319,8 +3361,8 @@ const CATALOG = {
    "statusGoCheck": "前往「检查」页逐条查看",
    "statusGoalError": "每日目标须为正整数，留空则不设。",
    "statusGoalHint": "比如 2000",
-   "statusGoalLabel": "每日目标字数",
-   "statusGoalNote": "字数旁显示今日字数和目标。",
+   "statusGoalLabel": "{unit, select, word {每日目标词数} other {每日目标字数}}",
+   "statusGoalNote": "{unit, select, word {词数旁显示今日词数和目标。} other {字数旁显示今日字数和目标。}}",
    "statusGroupBackup": "备份",
    "statusGroupMarks": "伏笔",
    "statusHTTPAuth": "模型服务返回 HTTP {code}：API key 无效、缺失或没有权限",
@@ -3348,9 +3390,9 @@ const CATALOG = {
    "statusNoneHere": "本章没有待处理项",
    "statusNotInLore": "「{title}」尚未加入设定",
    "statusOutputLimit": "回复超出模型的最大输出 {limit}（含思考）；请在设置中「AI」配置里调大",
-   "statusPartIssues": "本章仅检查前 {part} 字，有 {count} 处待处理",
+   "statusPartIssues": "{unit, select, word {本章仅检查前 {part} 词，有 {count} 处待处理} other {本章仅检查前 {part} 字，有 {count} 处待处理}}",
    "statusPartLong": "后文超出模型的上下文上限，可在设置中「AI」配置里调整",
-   "statusPartOK": "本章仅检查前 {part} 字，未发现不一致",
+   "statusPartOK": "{unit, select, word {本章仅检查前 {part} 词，未发现不一致} other {本章仅检查前 {part} 字，未发现不一致}}",
    "statusPending": "待处理",
    "statusPendingCount": "待处理 {count}",
    "statusPendingScope": "待处理范围",
@@ -3365,10 +3407,10 @@ const CATALOG = {
    "statusRole": "消息角色只能是 user、assistant 或 tool；系统指令放在 Request.System",
    "statusSaved": "已保存",
    "statusSavedAutomatically": "已保存。停笔片刻也会自动保存",
-   "statusSelected": "选中 {count} 字",
+   "statusSelected": "{unit, select, word {选中 {count} 词} other {选中 {count} 字}}",
    "statusService": "模型服务返回了错误（为保护密钥和内容，不显示原文）",
-   "statusShort": "满 200 字后可检查",
-   "statusSignedWords": "{count, plural, other {{signed} 字}}",
+   "statusShort": "{unit, select, word {满 200 词后可检查} other {满 200 字后可检查}}",
+   "statusSignedWords": "{unit, select, word {{count, plural, other {{signed} 词}}} other {{count, plural, other {{signed} 字}}}}",
    "statusTodayCount": "{count, plural, other { · 今天 {signed}}}",
    "statusTodayGoal": " · 今天 {today} / {goal}",
    "statusToolCallMissing": "工具结果没有对应的调用",
@@ -3377,7 +3419,7 @@ const CATALOG = {
    "statusTruncated": "模型回复被截断",
    "statusUnpaid": "「{name}」{count} 章未回收",
    "statusVolumeWords": "本卷 {count}",
-   "statusWanWords": "{full, plural, other {{value, number, ::.0} 万字}}",
+   "statusWanWords": "{unit, select, word {{full, plural, other {{value, number, ::.0} 万词}}} other {{full, plural, other {{value, number, ::.0} 万字}}}}",
    "statusWhenAfter": "写完一章后检查",
    "statusWhenAfterAbout": "推荐，每章用一次 AI",
    "statusWhenManual": "手动检查",
@@ -3385,9 +3427,9 @@ const CATALOG = {
    "statusWhenTitle": "检查时机",
    "statusWhenWriting": "边写边检查",
    "statusWhenWritingAbout": "一停笔就查，最费用量",
-   "statusWordCount": "字数",
-   "statusWords": "{count} 字",
-   "statusWordsTip": "字数。点击设置每日目标",
+   "statusWordCount": "{unit, select, word {词数} other {字数}}",
+   "statusWords": "{unit, select, word {{count} 词} other {{count} 字}}",
+   "statusWordsTip": "{unit, select, word {词数。点击设置每日目标} other {字数。点击设置每日目标}}",
    "statusWorkSwitchedUndo": "作品已切换，无法撤销",
    "tabClose": "关闭标签页",
    "tabExitFocus": "退出专注",
@@ -3523,6 +3565,7 @@ const CATALOG = {
    "backupTiming": "Backup timing",
    "backupTo": "Backs up to {dir}",
    "backupWhenClose": "When closing the book",
+   "bookLanguageUnsupported": "Book language “{language}” is not supported. Use zh-Hans or en.",
    "catsConfirmDelete": "Confirm Delete",
    "catsCount": "{count, plural, one {# lore entry} other {# lore entries}}",
    "catsDeleted": "Deleted category “{name}”",
@@ -3552,7 +3595,7 @@ const CATALOG = {
    "chatAskNext": "What could I write next?",
    "chatAskVolumePace": "How is the pacing of this volume?",
    "chatAttachChapter": "Attach this chapter",
-   "chatAttachChapterTip": "Also send the chapter outline and about 2000 characters before the cursor to the AI",
+   "chatAttachChapterTip": "{unit, select, word {Also send the chapter outline and about 2000 words before the cursor to the AI} other {Also send the chapter outline and about 2000 characters before the cursor to the AI}}",
    "chatAttachVolume": "Attach this volume",
    "chatAttachVolumeTip": "Also send the volume outline to the AI",
    "chatAttachedAll": "Attaches all {count, plural, one {# lore entry} other {# lore entries}}",
@@ -3623,7 +3666,7 @@ const CATALOG = {
    "chatPartSaid": "This message",
    "chatPartThisChapter": "Full text of this chapter",
    "chatPickModel": "Choose a chat model",
-   "chatProposalMeta": "{where} · {count, plural, one {# character} other {# characters}} · {state}",
+   "chatProposalMeta": "{unit, select, word {{where} · {count, plural, one {# word} other {# words}} · {state}} other {{where} · {count, plural, one {# character} other {# characters}} · {state}}}",
    "chatProposalVoid": "The AI proposal was voided",
    "chatProposalVoidWhy": "The original text it was going to replace changed while it was writing",
    "chatProposeEdit": "Proposed an edit to “{chapter}”",
@@ -3661,7 +3704,7 @@ const CATALOG = {
    "chatWhereAll": "Replace whole chapter",
    "chatWhereEnd": "Add at chapter end",
    "chatWhereSwap": "Replace a sentence",
-   "chatWords": "{count, plural, one {# character} other {# characters}}",
+   "chatWords": "{unit, select, word {{count, plural, one {# word} other {# words}}} other {{count, plural, one {# character} other {# characters}}}}",
    "chatWriting": "Writing…",
    "checkAddToSettings": "Add to Lore",
    "checkAddedSetting": "Added to lore",
@@ -3695,7 +3738,7 @@ const CATALOG = {
    "checkLoreHeading": "Lore · {entry}",
    "checkManualNote": "Currently “{mode}”. Click “{again}” when you need it.",
    "checkMarkedNoChange": "Marked “No Change Needed”",
-   "checkMinimum": "{count, plural, one {Check available after # character} other {Check available after # characters}}",
+   "checkMinimum": "{unit, select, word {{count, plural, one {Check available after # word} other {Check available after # words}}} other {{count, plural, one {Check available after # character} other {Check available after # characters}}}}",
    "checkMismatchAbout": "{at} ↔ Lore “{what}”",
    "checkModeManual": "Manual check",
    "checkNameAbout": "{at} · should be “{right}”",
@@ -3721,7 +3764,7 @@ const CATALOG = {
    "checkRunningTitle": "Checking…",
    "checkSeeSetting": "View Lore",
    "checkSeeText": "View Original",
-   "checkShortChapter": "This chapter has fewer than {count, plural, one {# character} other {# characters}} and does not need a Check",
+   "checkShortChapter": "{unit, select, word {This chapter has fewer than {count, plural, one {# word} other {# words}} and does not need a Check} other {This chapter has fewer than {count, plural, one {# character} other {# characters}} and does not need a Check}}",
    "checkStart": "Start Checking",
    "checkStop": "Stop",
    "checkTextChapter": "Text · {chapter}",
@@ -3820,7 +3863,7 @@ const CATALOG = {
    "dialogOsBackupFolder": "Choose backup folder",
    "dialogOsNewBookFolder": "Choose the folder for the new book",
    "dialogOsOpenConfig": "Open config file in Notepad",
-   "dialogPicked": "{count, plural, one {# character} other {# characters}} selected",
+   "dialogPicked": "{unit, select, word {{count, plural, one {# word} other {# words}} selected} other {{count, plural, one {# character} other {# characters}} selected}}",
    "dialogSettingAdded": "Added to Active Lore",
    "dialogSettingCat": "Lore category",
    "dialogSettingText": "Lore text",
@@ -3845,10 +3888,10 @@ const CATALOG = {
    "draftExisting": "Existing text in this chapter",
    "draftExistingHow": "How to handle existing text",
    "draftFromOutline": "Draft from Chapter Outline",
-   "draftGoal": "Target length (optional)",
+   "draftGoal": "{unit, select, word {Target length (optional)} other {Target length (optional)}}",
    "draftGoalHint": "AI decides from the chapter outline",
-   "draftGoalInvalid": "Target length must be a positive whole number, or left empty",
-   "draftGoalLabel": "Target length",
+   "draftGoalInvalid": "{unit, select, word {Target length must be a positive whole number, or left empty} other {Target length must be a positive whole number, or left empty}}",
+   "draftGoalLabel": "{unit, select, word {Target length} other {Target length}}",
    "draftItemBooks": "the volume outlines",
    "draftItemCards": "{count, plural, one {# card} other {# cards}} for this chapter",
    "draftItemPrev": "the full text of the previous chapter",
@@ -4157,7 +4200,7 @@ const CATALOG = {
    "modFullwidth": "Full-Width Punctuation",
    "modFullwidthAbout": "Turns half-width punctuation full-width as you type",
    "modFullwidthQuotes": "Use corner brackets for quotes",
-   "modGoal": "Daily Goal",
+   "modGoal": "{unit, select, word {Daily Goal} other {Daily Goal}}",
    "modGoalAbout": "How much to write each day",
    "modGroupAI": "AI",
    "modGroupFiles": "Works & Files",
@@ -4523,7 +4566,7 @@ const CATALOG = {
    "shelfChangeFile": "Change…",
    "shelfChangePlace": "Change…",
    "shelfChapterTitle": "Chapter title",
-   "shelfChapterWords": "{count, plural, one {# character} other {# characters}} in this chapter",
+   "shelfChapterWords": "{unit, select, word {{count, plural, one {# word} other {# words}} in this chapter} other {{count, plural, one {# character} other {# characters}} in this chapter}}",
    "shelfCountLibrary": "{count, plural, one {# book} other {# books}} · Library: {library}",
    "shelfDeleted": "Deleted “{title}”",
    "shelfDetected": "Detected {volumes, plural, one {# volume} other {# volumes}} and {chapters, plural, one {# chapter} other {# chapters}}. Review and adjust them on the next step.",
@@ -4569,7 +4612,7 @@ const CATALOG = {
    "shelfPickImport": "Choose the file or folder to import",
    "shelfPickLibrary": "Choose the library folder",
    "shelfPickNewLocation": "Choose the folder for the new book",
-   "shelfPreviewAbout": "{volumes, plural, one {# volume} other {# volumes}} and {chapters, plural, one {# chapter} other {# chapters}}, {words} characters in total. Fix any wrong splits here. The book is created only after you confirm.",
+   "shelfPreviewAbout": "{unit, select, word {{volumes, plural, one {# volume} other {# volumes}} and {chapters, plural, one {# chapter} other {# chapters}}, {words} words in total. Fix any wrong splits here. The book is created only after you confirm.} other {{volumes, plural, one {# volume} other {# volumes}} and {chapters, plural, one {# chapter} other {# chapters}}, {words} characters in total. Fix any wrong splits here. The book is created only after you confirm.}}",
    "shelfPreviewTitle": "Preview · {file}",
    "shelfRelocate": "Locate…",
    "shelfRemove": "Remove from Shelf",
@@ -4634,7 +4677,7 @@ const CATALOG = {
    "snapNone": "No snapshots for this chapter yet",
    "snapRestore": "Restore This Version",
    "snapRestored": "Restored the version from {at}. The text from before the restore was saved as a snapshot.",
-   "snapRowInfo": "{kind} · {count, plural, one {# character} other {# characters}}",
+   "snapRowInfo": "{unit, select, word {{kind} · {count, plural, one {# word} other {# words}}} other {{kind} · {count, plural, one {# character} other {# characters}}}}",
    "snapSame": "This snapshot matches the current text",
    "snapTitle": "Snapshots · {chapter}",
    "statusAllCount": "All {count}",
@@ -4650,7 +4693,7 @@ const CATALOG = {
    "statusBookCountLine": "{book}{today}",
    "statusBookWords": "Book {count}",
    "statusChapterMissing": "Chapter not found",
-   "statusChapterWords": "Chapter {count, plural, one {# char} other {# chars}}",
+   "statusChapterWords": "{unit, select, word {Chapter {count, plural, one {# word} other {# words}}} other {Chapter {count, plural, one {# char} other {# chars}}}}",
    "statusCheckNow": "Check Now",
    "statusCheckTip": "Calls the AI once to check this chapter against the lore",
    "statusChecked": "Checked, all clear",
@@ -4664,11 +4707,11 @@ const CATALOG = {
    "statusContextOutline": "The outline and requirements exceeds the model’s context limit. Increase it in Settings → AI or shorten the text",
    "statusContextSummary": "The previous Chat summary exceeds the model’s context limit. Increase it in Settings → AI",
    "statusContextTurn": "The Chat turn exceeds the model’s context limit. Increase it in Settings → AI",
-   "statusCountGoalTip": "{book}, {count, plural, one {{signed} character} other {{signed} characters}} today, goal {goal, plural, one {# character} other {# characters}}. Click to set a daily goal.",
+   "statusCountGoalTip": "{unit, select, word {{book}, {count, plural, one {{signed} word} other {{signed} words}} today, goal {goal, plural, one {# word} other {# words}}. Click to set a daily goal.} other {{book}, {count, plural, one {{signed} character} other {{signed} characters}} today, goal {goal, plural, one {# character} other {# characters}}. Click to set a daily goal.}}",
    "statusCountLine": "{scope} · {book}{today}",
-   "statusCountTip": "{book}, {count, plural, one {{signed} character} other {{signed} characters}} today. Click to set a daily goal.",
+   "statusCountTip": "{unit, select, word {{book}, {count, plural, one {{signed} word} other {{signed} words}} today. Click to set a daily goal.} other {{book}, {count, plural, one {{signed} character} other {{signed} characters}} today. Click to set a daily goal.}}",
    "statusDailyGoal": "Daily Goal",
-   "statusDayWritten": "{day}: {count, plural, one {# character} other {# characters}} written",
+   "statusDayWritten": "{unit, select, word {{day}: {count, plural, one {# word} other {# words}} written} other {{day}: {count, plural, one {# character} other {# characters}} written}}",
    "statusDestination": "Request destination differs from configuration",
    "statusDirtyIssues": "{count, plural, one {# issue} other {# issues}} found; edited since",
    "statusDisconnected": "Reply disconnected before completion",
@@ -4678,8 +4721,8 @@ const CATALOG = {
    "statusGoCheck": "Open the Check page to review each item",
    "statusGoalError": "The daily goal must be a positive whole number. Leave it empty for no goal.",
    "statusGoalHint": "For example, 2000",
-   "statusGoalLabel": "Daily word goal",
-   "statusGoalNote": "The word count shows today's count and the goal.",
+   "statusGoalLabel": "{unit, select, word {Daily word goal} other {Daily word goal}}",
+   "statusGoalNote": "{unit, select, word {The word count shows today's count and the goal.} other {The word count shows today's count and the goal.}}",
    "statusGroupBackup": "Backup",
    "statusGroupMarks": "Foreshadowing",
    "statusHTTPAuth": "Model service returned HTTP {code}: API key is invalid, missing or lacks permission",
@@ -4707,9 +4750,9 @@ const CATALOG = {
    "statusNoneHere": "Nothing pending in this chapter",
    "statusNotInLore": "“{title}” isn't in the lore yet",
    "statusOutputLimit": "Reply exceeds the model’s maximum output of {limit} (including reasoning). Increase it in Settings → AI",
-   "statusPartIssues": "First {part} chars: {count, plural, one {# issue} other {# issues}} found",
+   "statusPartIssues": "{unit, select, word {First {part} words: {count, plural, one {# issue} other {# issues}} found} other {First {part} chars: {count, plural, one {# issue} other {# issues}} found}}",
    "statusPartLong": "The text past this point is beyond the model's context limit. You can adjust it in Settings under AI.",
-   "statusPartOK": "First {part} chars checked, all clear",
+   "statusPartOK": "{unit, select, word {First {part} words checked, all clear} other {First {part} chars checked, all clear}}",
    "statusPending": "Pending",
    "statusPendingCount": "Pending {count}",
    "statusPendingScope": "Pending scope",
@@ -4724,10 +4767,10 @@ const CATALOG = {
    "statusRole": "Invalid message role; use Request.System for instructions",
    "statusSaved": "Saved",
    "statusSavedAutomatically": "Saved. Changes are also saved automatically after a brief pause.",
-   "statusSelected": "{count, plural, one {# char} other {# chars}} selected",
+   "statusSelected": "{unit, select, word {{count, plural, one {# word} other {# words}} selected} other {{count, plural, one {# char} other {# chars}} selected}}",
    "statusService": "Service returned an error; details redacted",
-   "statusShort": "Checks start at 200 chars",
-   "statusSignedWords": "{count, plural, one {{signed} character} other {{signed} characters}}",
+   "statusShort": "{unit, select, word {Checks start at 200 words} other {Checks start at 200 chars}}",
+   "statusSignedWords": "{unit, select, word {{count, plural, one {{signed} word} other {{signed} words}}} other {{count, plural, one {{signed} character} other {{signed} characters}}}}",
    "statusTodayCount": "{count, plural, one { · Today {signed}} other { · Today {signed}}}",
    "statusTodayGoal": " · Today {today}/{goal}",
    "statusToolCallMissing": "Tool result has no matching call",
@@ -4736,7 +4779,7 @@ const CATALOG = {
    "statusTruncated": "Reply truncated",
    "statusUnpaid": "“{name}”: {count, plural, one {# chapter} other {# chapters}} without a payoff",
    "statusVolumeWords": "Volume {count}",
-   "statusWanWords": "{full, plural, one {# char} other {# chars}}",
+   "statusWanWords": "{unit, select, word {{full, plural, one {# word} other {# words}}} other {{full, plural, one {# char} other {# chars}}}}",
    "statusWhenAfter": "Per Chapter",
    "statusWhenAfterAbout": "Recommended. Calls the AI once per chapter.",
    "statusWhenManual": "Manually",
@@ -4744,9 +4787,9 @@ const CATALOG = {
    "statusWhenTitle": "When to Check",
    "statusWhenWriting": "While Writing",
    "statusWhenWritingAbout": "Checks when you pause. Calls the AI the most.",
-   "statusWordCount": "Character Count",
-   "statusWords": "{count, plural, one {# char} other {# chars}}",
-   "statusWordsTip": "Word count. Click to set a daily goal.",
+   "statusWordCount": "{unit, select, word {Word Count} other {Character Count}}",
+   "statusWords": "{unit, select, word {{count, plural, one {# word} other {# words}}} other {{count, plural, one {# char} other {# chars}}}}",
+   "statusWordsTip": "{unit, select, word {Word count. Click to set a daily goal.} other {Word count. Click to set a daily goal.}}",
    "statusWorkSwitchedUndo": "The book has changed; this action cannot be undone.",
    "tabClose": "Close Tab",
    "tabExitFocus": "Exit Focus Mode",

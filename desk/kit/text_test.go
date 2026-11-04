@@ -28,7 +28,7 @@ func TestTextLabels(t *testing.T) {
 }
 
 func TestFromLabel(t *testing.T) {
-	st, err := workspace.Create(t.TempDir(), "雨城", "网文")
+	st, err := workspace.Create(t.TempDir(), "雨城", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestClipMeasure(t *testing.T) {
 
 func TestWords(t *testing.T) {
 	for n, want := range map[int]string{0: "0 字", 54: "54 字", 2846: "2,846 字", 9999: "9,999 字", 10000: "1.0 万字", 312345: "31.2 万字", 1200000: "120.0 万字"} {
-		if got := Words(n); got != want {
+		if got := Words(n, workspace.Chinese); got != want {
 			t.Errorf("words(%d) = %q, want %q", n, got, want)
 		}
 	}

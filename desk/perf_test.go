@@ -112,7 +112,7 @@ func (l *live) reset() {
 // new reply into it, one delta a frame.
 func streamingBench(b *testing.B, turns int, reasoning bool) {
 	root := b.TempDir()
-	s, err := workspace.Create(filepath.Join(root, "work"), "测试作品", "网文")
+	s, err := workspace.Create(filepath.Join(root, "work"), "测试作品", "网文", "zh-Hans")
 	if err != nil {
 		b.Fatal(err)
 	}

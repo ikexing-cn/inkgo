@@ -13,7 +13,7 @@ import (
 func BenchmarkLog(b *testing.B) {
 	for _, count := range []int{1000, 10000} {
 		b.Run(fmt.Sprint(count), func(b *testing.B) {
-			s, err := Create(b.TempDir(), "基准作品", "非虚构")
+			s, err := Create(b.TempDir(), "基准作品", "非虚构", "zh-Hans")
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -44,7 +44,7 @@ func BenchmarkLog(b *testing.B) {
 func BenchmarkAppend(b *testing.B) {
 	for _, count := range []int{1000, 10000} {
 		b.Run(fmt.Sprint(count), func(b *testing.B) {
-			s, err := Create(b.TempDir(), "基准作品", "非虚构")
+			s, err := Create(b.TempDir(), "基准作品", "非虚构", "zh-Hans")
 			if err != nil {
 				b.Fatal(err)
 			}

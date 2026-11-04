@@ -214,7 +214,7 @@ func besideRulesFor(material aiapi.Material) string {
 }
 
 // originRulesFor retains shared instructions while omitting absent materials.
-func originRulesFor(origin string, material aiapi.Material) string {
+func originRulesFor(origin string, material aiapi.Material, language workspace.Language) string {
 	var lines []string
 	switch origin {
 	case workspace.AIDraft:
@@ -244,6 +244,9 @@ func originRulesFor(origin string, material aiapi.Material) string {
 			lines = append(lines, rewriteContextRuleWithoutOutline)
 		}
 		lines = append(lines, rewriteInstruction, rewriteFollowupRule)
+	}
+	if len(lines) > 0 && language == workspace.English {
+		lines = append(lines, "- The prose is written in English.")
 	}
 	if len(lines) > 0 && material.Setting {
 		lines = append(lines, chapterSettingRule)

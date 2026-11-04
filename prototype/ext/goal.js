@@ -10,5 +10,5 @@ contribute('State', 'goal', () => ({
   goalSet: ''
 }))
 
-const goal = () => '<div class="pop goal-pop" data-k="goal-pop"><div class="pop-label">' + L.statusLast7() + '</div>' + BOOK.days.map(([day, n]) => `<div class="goal-day"><div class="grow">${timeShown(day)}</div><div>${(n ? '+' : '') + L.statusWords(n)}</div></div>`).join('') + HAIR +
-    field(L.statusDailyGoal(), line(S.goal, (v) => set({ goal: v, ...(countOrNone(v) ? { goalSet: v.trim() } : {}) }), L.statusGoalHint(), L.statusGoalLabel())) + (countOrNone(S.goal) ? '<div class="note">' + L.statusGoalNote() + '</div>' : '<div class="note danger">' + L.statusGoalError() + '</div>') + '</div>'
+const goal = () => '<div class="pop goal-pop" data-k="goal-pop"><div class="pop-label">' + L.statusLast7() + '</div>' + BOOK.days.map(([day, n]) => `<div class="goal-day"><div class="grow">${timeShown(day)}</div><div>${(n ? '+' : '') + L.statusWords(n, 'character')}</div></div>`).join('') + HAIR +
+    field(L.statusDailyGoal(), line(S.goal, (v) => set({ goal: v, ...(countOrNone(v) ? { goalSet: v.trim() } : {}) }), L.statusGoalHint(), L.statusGoalLabel('character'))) + (countOrNone(S.goal) ? '<div class="note">' + L.statusGoalNote('character') + '</div>' : '<div class="note danger">' + L.statusGoalError() + '</div>') + '</div>'

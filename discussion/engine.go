@@ -266,13 +266,13 @@ func (e *Engine) respond(ctx context.Context, session string, turn Turn, assembl
 				return turn, err
 			}
 			told := out.text
-			if spent > 0 && spent+prompt.Estimate(told) > e.Talk.Input() || spent == 0 && looked+prompt.Estimate(told) > assembled.Left {
+			if spent > 0 && spent+prompt.Estimate(told, e.Store.Work().Language) > e.Talk.Input() || spent == 0 && looked+prompt.Estimate(told, e.Store.Work().Language) > assembled.Left {
 				told, req.NoCalls = fullNote, true
 			}
 			if spent > 0 {
-				spent += prompt.Estimate(told)
+				spent += prompt.Estimate(told, e.Store.Work().Language)
 			}
-			looked += prompt.Estimate(told)
+			looked += prompt.Estimate(told, e.Store.Work().Language)
 			req.Messages = append(req.Messages, model.Message{Role: "tool", CallID: c.ID, Content: told})
 		}
 		if step+1 == maxSteps {

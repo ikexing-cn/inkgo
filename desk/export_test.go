@@ -204,7 +204,7 @@ func TestExportTracksPageRefreshAndWorkChanges(t *testing.T) {
 	if !tt.HasText("还没有已定的设定，不导出设定。") {
 		t.Fatal("setting refresh did not update the plan", tt.Texts())
 	}
-	other, err := workspace.Create(filepath.Join(t.TempDir(), "other"), "另一部", "网文")
+	other, err := workspace.Create(filepath.Join(t.TempDir(), "other"), "另一部", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}

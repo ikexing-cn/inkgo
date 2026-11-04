@@ -43,12 +43,13 @@ func TestEnglishInterfaceDrawsNoHan(t *testing.T) {
 	i18n.SetLocaleFunc(func() string { return "en" })
 	t.Cleanup(func() { i18n.SetLocaleFunc(testLocale) })
 	root := t.TempDir()
-	store, err := workspace.Create(filepath.Join(root, "book"), "English Book", "Fantasy")
+	store, err := workspace.Create(filepath.Join(root, "book"), "English Book", "Fantasy", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}
 	work := store.Work()
-	work.Categories = []workspace.Category{{Name: "People", Target: "Lore"}, {Name: workspace.Other, Target: "Lore"}}
+	work.Language = "en"
+	work.Categories = workspace.Categories(work.Genre, "en")
 	if err := store.SaveWork(work); err != nil {
 		t.Fatal(err)
 	}
@@ -81,14 +82,13 @@ func TestEnglishInterfaceDrawsNoHan(t *testing.T) {
 		if len(texts) == 0 {
 			t.Fatal(state, "no text collected")
 		}
-		// Each language is named in itself, as in the prototype; the default
-		// category is the book's own word.
+		// Each language is named in itself, as in the prototype.
 		autonyms := map[string]bool{}
 		for _, tag := range locales.Catalog.Languages() {
 			autonyms[i18n.Autonym(tag)] = true
 		}
 		for _, text := range texts {
-			if text == workspace.Other || autonyms[text] {
+			if autonyms[text] {
 				continue
 			}
 			if strings.ContainsFunc(text, func(r rune) bool { return unicode.Is(unicode.Han, r) }) {

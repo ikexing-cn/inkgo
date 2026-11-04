@@ -32,7 +32,7 @@ func TestATalkTellsAndNotesHowTheSettingChanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	box := &toolbox{allowed: tools(workspace.Work{}), store: e.Store, session: session, turn: ok.ID, model: inference.Model{Name: "deepseek/deepseek-flash"}}
+	box := &toolbox{allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store, session: session, turn: ok.ID, model: inference.Model{Name: "deepseek/deepseek-flash"}}
 	for _, c := range []struct {
 		in   noteArgs
 		want string // in the refusal; empty when it is noted

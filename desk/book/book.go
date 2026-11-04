@@ -253,7 +253,7 @@ func (b *Book) saveChapter(id, text string, marks []workspace.ChapterMark, over 
 		return stamp, err
 	}
 	b.version++
-	b.setCount(id, workspace.Count(text))
+	b.setCount(id, b.store.Work().Language.Count(text))
 	ch, err := b.store.ReadChapter(id)
 	if err != nil {
 		return stamp, err

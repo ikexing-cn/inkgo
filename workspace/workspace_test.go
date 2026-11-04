@@ -129,7 +129,7 @@ func TestSessionCursorExternalChanges(t *testing.T) {
 
 func testStore(t *testing.T) *Store {
 	t.Helper()
-	s, err := Create(t.TempDir(), "测试作品", "非虚构")
+	s, err := Create(t.TempDir(), "测试作品", "非虚构", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -207,7 +207,7 @@ func TestCreateAndRoundTrip(t *testing.T) {
 	if s.Work().Categories[0].Name == "mutated copy" {
 		t.Fatal("Work leaked mutable slice")
 	}
-	if _, err := Create(root, "overwrite", "novel"); err == nil {
+	if _, err := Create(root, "overwrite", "novel", "zh-Hans"); err == nil {
 		t.Fatal("Create overwrote workspace")
 	}
 	if err := s.Close(); err != nil {
@@ -401,12 +401,12 @@ func TestCategoryRemovalMovesEntries(t *testing.T) {
 // one the author adds.
 func TestOtherStaysLast(t *testing.T) {
 	for _, genre := range []string{"网文", "出版小说", "剧本", "非虚构", ""} {
-		c := Categories(genre)
+		c := Categories(genre, Chinese)
 		if c[len(c)-1].Name != Other {
 			t.Fatalf("%s: %v", genre, c)
 		}
 	}
-	c := AddCategory(Categories("网文"), Category{Name: "门派", Target: "设定库"})
+	c := AddCategory(Categories("网文", Chinese), Category{Name: "门派", Target: "设定库"})
 	if n := len(c); c[n-1].Name != Other || c[n-2].Name != "门派" || c[n-3].Name != "力量体系" {
 		t.Fatalf("added: %v", c)
 	}
@@ -664,7 +664,7 @@ func TestAnAnswerTakesTheQuestionsPlace(t *testing.T) {
 // opening: it is passed over, and left as it is.
 func TestFilesThatAreNotSessionsArePassedOver(t *testing.T) {
 	dir := t.TempDir()
-	s, err := Create(dir, "测试作品", "非虚构")
+	s, err := Create(dir, "测试作品", "非虚构", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -702,7 +702,7 @@ func TestFilesThatAreNotSessionsArePassedOver(t *testing.T) {
 // talks, and the first talk and chapter make their folders again.
 func TestAWorkWithoutItsEmptyFoldersOpens(t *testing.T) {
 	dir := t.TempDir()
-	s, err := Create(dir, "测试作品", "网文")
+	s, err := Create(dir, "测试作品", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}

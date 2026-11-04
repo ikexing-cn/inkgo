@@ -18,7 +18,7 @@ func TestApplicationBackupAssemblyAsksButTestAssemblyDoesNot(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			root := t.TempDir()
 			dir := filepath.Join(root, "work")
-			st, err := workspace.Create(dir, "测试作品", "网文")
+			st, err := workspace.Create(dir, "测试作品", "网文", "zh-Hans")
 			if err != nil {
 				t.Fatal(err)
 			}

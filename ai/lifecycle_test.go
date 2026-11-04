@@ -19,7 +19,7 @@ func (w waitingForStop) Complete(ctx context.Context, _ model.Request, _ func(mo
 
 func TestClosingServiceCancelsAnInflightRequest(t *testing.T) {
 	service := New("")
-	st, err := workspace.Create(t.TempDir(), "test", "test")
+	st, err := workspace.Create(t.TempDir(), "test", "test", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}

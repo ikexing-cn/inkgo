@@ -14,7 +14,7 @@ import (
 
 func TestBackupRoundTripKeepsLoreCardsChapterAndVolumeOutlinesAndBookSettings(t *testing.T) {
 	root := t.TempDir()
-	s, err := workspace.Create(root, "book", "网文")
+	s, err := workspace.Create(root, "book", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func TestBackupRoundTripKeepsLoreCardsChapterAndVolumeOutlinesAndBookSettings(t 
 	check(os.WriteFile(workspace.ExtSettingsPath(root), settings, 0600))
 	files, err := Read(root)
 	check(err)
-	meta := files.Meta(s.Work().ID)
+	meta := files.Meta(s.Work().ID, workspace.Chinese)
 	if meta.Chapters != 1 || meta.Words != 5 {
 		t.Fatal(meta)
 	}
@@ -58,7 +58,7 @@ func TestBackupRoundTripKeepsLoreCardsChapterAndVolumeOutlinesAndBookSettings(t 
 }
 
 func TestImportingCopiedBookKeepsExtensionDataAndChapterIDs(t *testing.T) {
-	s, err := workspace.Create(t.TempDir(), "book", "网文")
+	s, err := workspace.Create(t.TempDir(), "book", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}

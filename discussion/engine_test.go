@@ -112,7 +112,7 @@ func (f *fake) Complete(ctx context.Context, r model.Request, on func(model.Delt
 
 func setup(t *testing.T) (*Engine, string) {
 	t.Helper()
-	s, err := workspace.Create(t.TempDir(), "雨夜", "网文")
+	s, err := workspace.Create(t.TempDir(), "雨夜", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -255,7 +255,7 @@ func TestSetupErrorsForDiscussionLimits(t *testing.T) {
 	if !errors.As(errNoModel, &setupError) {
 		t.Fatal(errNoModel)
 	}
-	_, err := Assemble(workspace.Work{}, 1, workspace.Setting{}, workspace.Tree{}, nil, "问题", Along{Material: aiapi.Material{Setting: true, Outline: true}})
+	_, err := Assemble(workspace.Work{Language: workspace.Chinese}, 1, workspace.Setting{}, workspace.Tree{}, nil, "问题", Along{Material: aiapi.Material{Setting: true, Outline: true}})
 	if !errors.As(err, &setupError) {
 		t.Fatal("context limit lost its setup identity", err)
 	}
@@ -264,14 +264,14 @@ func TestSetupErrorsForDiscussionLimits(t *testing.T) {
 // The setting goes whole while it fits after the talk, and as an index
 // when it does not; the index must fit, and so must the author's words.
 func TestContextBudget(t *testing.T) {
-	w := workspace.Work{Categories: workspace.Categories("网文")}
+	w := workspace.Work{Language: workspace.Chinese, Categories: workspace.Categories("网文", workspace.Chinese)}
 	set := workspace.Setting{Entries: []workspace.Entry{
 		{ID: "old", Place: workspace.PlaceBody, Category: "人物", Names: []string{"林晚"}, Text: "林晚怕黑。" + strings.Repeat("旧", 300), Rev: 1},
 		{ID: "new", Place: workspace.PlaceOpen, Category: "人物", Text: "她有个妹妹？" + strings.Repeat("新", 300), Rev: 2},
 	}, Revisions: make([]workspace.Revision, 2)}
 	whole := prompt.Render(w, set, talkPlaces, nil, numbered(set, prompt.Whole))
-	rules := prompt.Estimate(withTools(talkRules, tools(w)))
-	room := 512 + rules + prompt.Estimate("问") + prompt.Estimate(whole)
+	rules := prompt.Estimate(withTools(talkRules, tools(w)), workspace.Chinese)
+	room := 512 + rules + prompt.Estimate("问", workspace.Chinese) + prompt.Estimate(whole, workspace.Chinese)
 	got, err := Assemble(w, room, set, workspace.Tree{}, nil, "问", Along{Material: aiapi.Material{Setting: true, Outline: true}})
 	if err != nil {
 		t.Fatal(err)
@@ -279,7 +279,7 @@ func TestContextBudget(t *testing.T) {
 	if !strings.HasSuffix(got.Request.System, whole) || len(got.Included) != 2 || !reflect.DeepEqual(got.Included[0], workspace.ContextItem{ID: "old", Text: "林晚：" + set.Entries[0].Text}) || got.Included[1].Text != "悬而未决："+set.Entries[1].Text {
 		t.Fatalf("whole: %+v", got.Included)
 	}
-	if s := got.Sent; s.Setting != 2 || s.Part(workspace.PartSetting) != prompt.Estimate(whole) || s.Part(workspace.PartIndex) != 0 || s.Part(workspace.PartRules) != rules || s.Part(workspace.PartInput) == 0 || got.Left != 0 {
+	if s := got.Sent; s.Setting != 2 || s.Part(workspace.PartSetting) != prompt.Estimate(whole, workspace.Chinese) || s.Part(workspace.PartIndex) != 0 || s.Part(workspace.PartRules) != rules || s.Part(workspace.PartInput) == 0 || got.Left != 0 {
 		t.Fatalf("sent %+v", s)
 	}
 
@@ -306,7 +306,7 @@ func TestContextBudget(t *testing.T) {
 		t.Fatalf("oversized current input: %v", err)
 	}
 	index := indexNote + "\n\n" + prompt.Render(w, set, talkPlaces, nil, numbered(set, prompt.Short))
-	if _, err = Assemble(w, 512+rules+prompt.Estimate("问")+prompt.Estimate(index)-1, set, workspace.Tree{}, nil, "问", Along{Material: aiapi.Material{Setting: true, Outline: true}}); err == nil || !strings.Contains(err.Error(), "context limit exceeded by index") {
+	if _, err = Assemble(w, 512+rules+prompt.Estimate("问", workspace.Chinese)+prompt.Estimate(index, workspace.Chinese)-1, set, workspace.Tree{}, nil, "问", Along{Material: aiapi.Material{Setting: true, Outline: true}}); err == nil || !strings.Contains(err.Error(), "context limit exceeded by index") {
 		t.Fatalf("an index too big: %v", err)
 	}
 	got, err = Assemble(w, 16000, workspace.Setting{}, workspace.Tree{}, events, "本轮", Along{Material: aiapi.Material{Setting: true, Outline: true}})

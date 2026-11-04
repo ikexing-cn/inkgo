@@ -14,8 +14,12 @@ var ErrChapterMissing = errors.New("writing: chapter not found")
 // ErrNoSetting reports lore is empty.
 var ErrNoSetting = errors.New("writing: lore is empty")
 
-// ShortChapterError records the minimum character count for a check.
-type ShortChapterError struct{ Count int }
+// ShortChapterError records the minimum book-unit count for a check.
+type ShortChapterError struct {
+	Count int
+	// Unit is the book counting unit used to display the minimum.
+	Unit string
+}
 
 func (e *ShortChapterError) Error() string {
 	return fmt.Sprintf("writing: chapter has fewer than %d characters", e.Count)

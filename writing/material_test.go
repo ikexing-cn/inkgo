@@ -28,7 +28,7 @@ func TestPredictionOmitsAbsentSettingButIncludesPresentAndEmptySetting(t *testin
 			}
 		}
 	}
-	st, err := workspace.Create(t.TempDir(), "空设定", "网文")
+	st, err := workspace.Create(t.TempDir(), "空设定", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}

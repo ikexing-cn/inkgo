@@ -11,6 +11,8 @@ import (
 // execution, persistence and cancellation, and holds the stored results:
 // each method that weighs them is given them, by chapter.
 type CheckQueue struct {
+	// Language selects the counting rule for automatic checks.
+	Language Language
 	// Pending is the chapters waiting in submission order.
 	Pending []string
 	// Running is the chapter awaiting a result, including after cancellation.
@@ -39,7 +41,7 @@ func (c *CheckQueue) Keep(chapter string, had, result Check, err error) (Check, 
 
 // EnqueueStale submits changed or unchecked prose once it is long enough.
 func (c *CheckQueue) EnqueueStale(all map[string]Check, chapter, text string, minimum int) {
-	if Count(text) < minimum {
+	if c.Language.Count(text) < minimum {
 		return
 	}
 	if had, ok := all[chapter]; !ok || had.Stale(text) {
@@ -111,11 +113,11 @@ func (c *CheckQueue) Fail(chapter string, err error) {
 
 // DueChapters lists long-enough chapters never checked, by all, or changed
 // since, in tree order.
-func DueChapters(all map[string]Check, tree Tree, texts map[string]string, minimum int) []string {
+func DueChapters(all map[string]Check, tree Tree, texts map[string]string, minimum int, language Language) []string {
 	var due []string
 	tree.Walk(func(n *Node, _ int) {
 		text, ok := texts[n.ID]
-		if n.Folder || !ok || Count(text) < minimum {
+		if n.Folder || !ok || language.Count(text) < minimum {
 			return
 		}
 		if had, ok := all[n.ID]; !ok || had.Stale(text) {
@@ -138,7 +140,7 @@ func (c *CheckQueue) AfterPause(chapter, text string, had Check, minimum int, ed
 		return
 	}
 	hash := ProseHash(text)
-	if c.Tried[chapter] == hash || had.Of == hash || Count(text) < minimum {
+	if c.Tried[chapter] == hash || had.Of == hash || c.Language.Count(text) < minimum {
 		return
 	}
 	if c.Tried == nil {

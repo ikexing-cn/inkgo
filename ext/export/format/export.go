@@ -37,9 +37,11 @@ type Cover struct {
 // Doc is what is exported. Title is said first as plain text; as a Word
 // document the Cover is, when there is one, and the Title otherwise.
 type Doc struct {
-	Title string
-	Cover *Cover
-	Paras []Para
+	// Language selects the manuscript typography; empty means Chinese.
+	Language workspace.Language
+	Title    string
+	Cover    *Cover
+	Paras    []Para
 }
 
 // level is a heading's level for a node: a folder by its depth, a
@@ -191,6 +193,10 @@ func Settled(entries []workspace.Entry) bool {
 // them, the paragraphs under them one to a line; indent puts two
 // full-width spaces before each paragraph of the body.
 func (d Doc) Text(indent bool) string {
+	if d.Language == "en" {
+		indent = false
+		d = d.english()
+	}
 	var b strings.Builder
 	first, body := true, false
 	head := func(s string) {
@@ -218,4 +224,25 @@ func (d Doc) Text(indent bool) string {
 		first, body = false, true
 	}
 	return b.String()
+}
+
+// english localizes generated manuscript labels without rewriting the prose.
+func (d Doc) english() Doc {
+	d.Paras = append([]Para(nil), d.Paras...)
+	d.Title = strings.TrimSuffix(strings.TrimSuffix(d.Title, " · 大纲"), " · 设定") + func() string {
+		if strings.HasSuffix(d.Title, " · 大纲") {
+			return " · Outline"
+		}
+		if strings.HasSuffix(d.Title, " · 设定") {
+			return " · Lore"
+		}
+		return ""
+	}()
+	for i, p := range d.Paras {
+		if p.Lead != "" {
+			p.Text = strings.NewReplacer("：", ": ", "（", " (", "）", ")", "、", ", ").Replace(p.Text)
+			d.Paras[i] = p
+		}
+	}
+	return d
 }

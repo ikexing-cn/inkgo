@@ -98,6 +98,7 @@ func (a *App) leaveCheck() {
 	if !changed || k.when != checkOnLeave || !a.hasSetting() {
 		return
 	}
+	k.queue.Language = a.Store.Work().Language
 	k.queue.EnqueueStale(a.book.Checks(), w.node, w.cur().saved, a.ai.MinCheck())
 }
 
@@ -189,5 +190,6 @@ func (a *App) checkWhilePausing() {
 	if k.when != checkOnPause || !a.checksOn() || w.cur().ed == nil || w.node == "" || w.cur().lost || w.cur().ed.Doc.Version() != w.cur().savedVer || !a.hasSetting() {
 		return
 	}
+	k.queue.Language = a.Store.Work().Language
 	k.queue.AfterPause(w.node, w.cur().saved, a.book.Checks()[w.node], a.ai.MinCheck(), w.cur().ed.LastEdit(), time.Now())
 }

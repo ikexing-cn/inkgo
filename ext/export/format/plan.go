@@ -89,7 +89,7 @@ type Plan struct {
 
 // BuildPlan selects the available ranges, contents and explanation for the choices.
 // span formats the two chapter titles in a multi-chapter range for file names.
-func BuildPlan(pieces []workspace.Piece, entries []workspace.Entry, current string, options Options, selection Selection, span func(from, to string) string) Plan {
+func BuildPlan(pieces []workspace.Piece, entries []workspace.Entry, current string, options Options, selection Selection, span func(from, to string) string, language workspace.Language) Plan {
 	plan := Plan{Current: current}
 	scope, from, to := selection.Scope, selection.From, selection.To
 	// The chapter open on the page of prose, and the volume it is in, or
@@ -165,7 +165,7 @@ func BuildPlan(pieces []workspace.Piece, entries []workspace.Entry, current stri
 	for _, p := range plan.Pieces {
 		chaptered = chaptered || !p.Folder
 		outlined = outlined || p.Outline != ""
-		plan.Words += workspace.Count(p.Text)
+		plan.Words += language.Count(p.Text)
 	}
 	plan.Skip = map[string]string{}
 	if !chaptered {

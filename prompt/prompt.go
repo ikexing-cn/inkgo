@@ -12,11 +12,11 @@ import (
 	"writer/workspace"
 )
 
-// Estimate bounds the tokens of s without the provider's tokenizer: one for
-// every three ASCII bytes, and one and a half for every other character,
-// above what the tokenizers we know of spend on Chinese. It is never
-// reported as an exact count.
-func Estimate(s string) int {
+// Estimate approximates tokens without a provider tokenizer. Chinese uses
+// three ASCII characters per token, English four; non-ASCII characters
+// retain the Chinese margin of 1.5 tokens each. Every part adds 16 tokens.
+// The language is required; the result is never an exact count.
+func Estimate(s string, language workspace.Language) int {
 	ascii, other := 0, 0
 	for _, r := range s {
 		if r < utf8.RuneSelf {
@@ -25,11 +25,7 @@ func Estimate(s string) int {
 			other++
 		}
 	}
-	return estimate(ascii, other)
-}
-
-func estimate(ascii, other int) int {
-	return (ascii+2)/3 + (other*3+1)/2 + 16
+	return estimate(ascii, other, language)
 }
 
 // CutMark ends what was cut to fit.
@@ -37,7 +33,7 @@ const CutMark = "……（后面太长，略去）"
 
 // ClipTokens cuts s from its end to at most tokens, as estimated. If even
 // the marker does not fit, it still returns the marker, as the talk expects.
-func ClipTokens(s string, tokens int) string {
+func ClipTokens(s string, tokens int, language workspace.Language) string {
 	r := []rune(s)
 	ascii, other, cut := 0, 0, 0
 	// CutMark contains only non-ASCII runes.
@@ -48,11 +44,11 @@ func ClipTokens(s string, tokens int) string {
 		} else {
 			other++
 		}
-		if estimate(ascii, other+mark) <= tokens {
+		if estimate(ascii, other+mark, language) <= tokens {
 			cut = i + 1
 		}
 	}
-	if estimate(ascii, other) <= tokens {
+	if estimate(ascii, other, language) <= tokens {
 		return s
 	}
 	return string(r[:cut]) + CutMark
@@ -65,13 +61,14 @@ const slack = 512
 // Budget is the room of one request, as estimated, and what each of its
 // parts took of it.
 type Budget struct {
-	left  int
-	taken map[string]int
+	language workspace.Language
+	left     int
+	taken    map[string]int
 }
 
 // NewBudget is a budget of room tokens, a model's input.
-func NewBudget(room int) *Budget {
-	return &Budget{left: room - slack, taken: map[string]int{}}
+func NewBudget(room int, language workspace.Language) *Budget {
+	return &Budget{language: language, left: room - slack, taken: map[string]int{}}
 }
 
 // Left is the room not yet taken; below 0 once what must go is too much.
@@ -79,7 +76,7 @@ func (b *Budget) Left() int { return b.left }
 
 // Take charges text to part if it fits, and tells whether it did.
 func (b *Budget) Take(part, text string) bool {
-	n := Estimate(text)
+	n := Estimate(text, b.language)
 	if n > b.left {
 		return false
 	}
@@ -91,7 +88,7 @@ func (b *Budget) Take(part, text string) bool {
 // Must charges text to part, fitting or not, and tells whether the
 // request still fits.
 func (b *Budget) Must(part, text string) bool {
-	n := Estimate(text)
+	n := Estimate(text, b.language)
 	b.left -= n
 	b.taken[part] += n
 	return b.left >= 0
@@ -125,3 +122,14 @@ func (b *Budget) Sent(rules string, set workspace.Setting) *workspace.Sent {
 	}
 	return out
 }
+
+// estimate retains the non-ASCII margin for mixed text and Chinese rules.
+func estimate(ascii, other int, language workspace.Language) int {
+	// OpenAI's tokenizer rule of thumb is about four English characters per token.
+	// https://help.openai.com/en/articles/4936856-what-are-tokens-and-how-to-count-them
+	ratio := language.ASCIICharsPerToken()
+	return (ascii+ratio-1)/ratio + (other*3+1)/2 + 16
+}
+
+// Clip cuts text using this budget's book language and token estimate.
+func (b *Budget) Clip(text string, tokens int) string { return ClipTokens(text, tokens, b.language) }

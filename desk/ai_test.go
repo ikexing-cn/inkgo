@@ -67,7 +67,7 @@ func TestDraftNoteKeepsItsOutlineSource(t *testing.T) {
 				a.openNode(two)
 				a.openDraft()
 				prefix := "将带上" + outlines + "等，约 "
-				if workspace.Count(previous) > 0 {
+				if workspace.Chinese.Count(previous) > 0 {
 					prefix = "将带上上一章全文、" + outlines + "等，约 "
 				}
 				if !strings.HasPrefix(a.write.draftNote, prefix) || !strings.HasSuffix(a.write.draftNote, " token；AI 需要时会自己再查。") {

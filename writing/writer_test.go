@@ -68,7 +68,7 @@ func (f *fake) Complete(ctx context.Context, req model.Request, on func(model.De
 // book is a work with a setting, a volume of two chapters, and a writer.
 func book(t *testing.T, f *fake) (*Writer, string, workspace.Revision) {
 	t.Helper()
-	s, err := workspace.Create(filepath.Join(t.TempDir(), "work"), "雨城", "网文")
+	s, err := workspace.Create(filepath.Join(t.TempDir(), "work"), "雨城", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,7 +173,7 @@ func TestSentence(t *testing.T) {
 		"没有句号":     "没有句号",
 		"一行\n两行":   "一行",
 	} {
-		if got, _ := sentence(in); got != want {
+		if got, _ := sentence(in, workspace.Chinese); got != want {
 			t.Errorf("sentence(%q) = %q, want %q", in, got, want)
 		}
 	}
@@ -201,8 +201,8 @@ func TestBudgetCutsTheTextBeforeFromItsStart(t *testing.T) {
 	}
 	req := f.got[0]
 	msg := req.Messages[0].Content
-	if !strings.Contains(msg, "最后一句。") || prompt.Estimate(req.System+msg) > w.Model.Input() {
-		t.Fatalf("estimate %d", prompt.Estimate(req.System+msg))
+	if !strings.Contains(msg, "最后一句。") || prompt.Estimate(req.System+msg, workspace.Chinese) > w.Model.Input() {
+		t.Fatalf("estimate %d", prompt.Estimate(req.System+msg, workspace.Chinese))
 	}
 }
 

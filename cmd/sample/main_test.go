@@ -14,7 +14,7 @@ import (
 // places, and foreshadowings paid off, open and given up.
 func TestBooksAreWritten(t *testing.T) {
 	dirs, err := writeAll(t.TempDir())
-	if err != nil || len(dirs) != 2 {
+	if err != nil || len(dirs) != 3 {
 		t.Fatal(err, dirs)
 	}
 	for _, dir := range dirs {
@@ -25,6 +25,26 @@ func TestBooksAreWritten(t *testing.T) {
 		set, err := s.Setting()
 		if err != nil {
 			t.Fatal(err)
+		}
+		if s.Work().Language == "en" {
+			pieces, err := s.Pieces()
+			if err != nil {
+				t.Fatal(err)
+			}
+			chapters := 0
+			for _, p := range pieces {
+				if !p.Folder {
+					chapters++
+					if p.Outline == "" || s.Work().Language.Count(p.Text) == 0 {
+						t.Fatal(p)
+					}
+				}
+			}
+			if chapters != 5 || len(set.Entries) < 3 {
+				t.Fatal(chapters, set)
+			}
+			s.Close()
+			continue
 		}
 		places := map[string]int{}
 		for _, e := range set.Entries {
@@ -72,8 +92,8 @@ func TestBooksAreWritten(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if ch.Outline == "" || workspace.Count(ch.Text) < writing.MinCheck || strings.ContainsAny(ch.Text, "{}|") {
-					t.Fatal(dir, n.Title, workspace.Count(ch.Text))
+				if ch.Outline == "" || workspace.Chinese.Count(ch.Text) < writing.MinCheck || strings.ContainsAny(ch.Text, "{}|") {
+					t.Fatal(dir, n.Title, workspace.Chinese.Count(ch.Text))
 				}
 				chapters++
 				for _, m := range ch.Marks {

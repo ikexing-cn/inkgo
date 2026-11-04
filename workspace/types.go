@@ -75,10 +75,12 @@ func ParseModelRef(name string) (ModelRef, bool) {
 func (m ModelRef) String() string { return m.Provider + "/" + m.Model }
 
 type Work struct {
-	Schema int    `yaml:"schema" json:"schema"`
-	ID     string `yaml:"id" json:"id"`
-	Name   string `yaml:"name" json:"name"`
-	Genre  string `yaml:"genre" json:"genre"`
+	// Language is zh-Hans (also the default for empty) or en.
+	Language Language `yaml:"language" json:"language"`
+	Schema   int      `yaml:"schema" json:"schema"`
+	ID       string   `yaml:"id" json:"id"`
+	Name     string   `yaml:"name" json:"name"`
+	Genre    string   `yaml:"genre" json:"genre"`
 	// Pen is the name the author writes this work under, put on the first
 	// page of what is exported; empty, none.
 	Pen        string     `yaml:"pen,omitempty" json:"pen,omitempty"`
@@ -383,7 +385,7 @@ const (
 
 // NameCategories are the categories whose entries name something: a
 // person, a place, a group, a thing, a rank or art of the power system.
-var NameCategories = []string{"人物", "地点", "组织", "物品", "力量体系"}
+var NameCategories = []string{"人物", "地点", "组织", "物品", "力量体系", "People", "Places", "Organizations", "Items", "Power System"}
 
 const maxNameRunes = 12
 
@@ -460,7 +462,8 @@ func NewID() string {
 	return time.Now().Format("20060102-1504-") + hex.EncodeToString(b[:])
 }
 
-func Categories(genre string) []Category {
+// Categories returns default book data for the genre and language.
+func Categories(genre string, language Language) []Category {
 	c := []Category{{"人物", "设定库"}, {"关系", "设定库"}, {"地点", "设定库"}, {"组织", "设定库"}, {"物品", "设定库"}, {"规则", "设定库·世界观"}, {"情节", "大纲"}, {"主题", "作品说明"}, {"风格", "风格指南"}}
 	switch genre {
 	case "网文", "webnovel":
@@ -472,15 +475,26 @@ func Categories(genre string) []Category {
 	case "非虚构", "nonfiction":
 		c = append(c, Category{"论点", "大纲"}, Category{"资料", "设定库"})
 	}
-	return append(c, Category{Other, "思路池"})
+	c = append(c, Category{Other, "思路池"})
+	if language == English {
+		for i := range c {
+			c[i].Name = englishCategory[c[i].Name]
+			c[i].Target = englishCategory[c[i].Target]
+		}
+	}
+	return c
 }
 
 // AddCategory puts a new category in front of 其他, which stays last as the
 // place everything without a better home ends up.
 func AddCategory(cats []Category, add Category) []Category {
-	at := slices.IndexFunc(cats, func(c Category) bool { return c.Name == Other })
+	at := slices.IndexFunc(cats, func(c Category) bool { return c.Name == Other || c.Name == "Other" })
 	if at < 0 {
 		at = len(cats)
 	}
 	return slices.Insert(cats, at, add)
+}
+
+var englishCategory = map[string]string{
+	"人物": "People", "关系": "Relationships", "地点": "Places", "组织": "Organizations", "物品": "Items", "规则": "Rules", "情节": "Plot", "主题": "Themes", "风格": "Style", "力量体系": "Power System", "叙事结构": "Narrative Structure", "场景": "Scenes", "论点": "Arguments", "资料": "Sources", "其他": "Other", "设定库": "Lore", "设定库·世界观": "Lore · World", "大纲": "Outline", "作品说明": "Book Notes", "风格指南": "Style Guide", "思路池": "Ideas",
 }

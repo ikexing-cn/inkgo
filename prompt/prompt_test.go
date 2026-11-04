@@ -11,10 +11,10 @@ import (
 )
 
 func TestEstimateCountsCharacters(t *testing.T) {
-	if got := Estimate(strings.Repeat("雨", 1000)); got != 1516 {
+	if got := Estimate(strings.Repeat("雨", 1000), workspace.Chinese); got != 1516 {
 		t.Fatalf("1000 汉字 = %d", got)
 	}
-	if got := Estimate(strings.Repeat("rain ", 300)); got != 516 {
+	if got := Estimate(strings.Repeat("rain ", 300), workspace.Chinese); got != 516 {
 		t.Fatalf("1500 ASCII bytes = %d", got)
 	}
 }
@@ -23,22 +23,22 @@ func TestEstimateCountsCharacters(t *testing.T) {
 // whatever order they were charged in, with the rules by a digest and the
 // setting by its revision.
 func TestBudgetRecordsItsParts(t *testing.T) {
-	b := NewBudget(slack + 100)
+	b := NewBudget(slack+100, workspace.Chinese)
 	b.Must(workspace.PartInput, "问")
 	if !b.Take(workspace.PartRules, "规则") || b.Take(workspace.PartTalk, strings.Repeat("长", 100)) {
 		t.Fatal("took what does not fit, or left what does")
 	}
 	b.Must(workspace.PartIndex, "目录")
 	b.Return(workspace.PartIndex)
-	if b.Left() != 100-Estimate("问")-Estimate("规则") {
+	if b.Left() != 100-Estimate("问", workspace.Chinese)-Estimate("规则", workspace.Chinese) {
 		t.Fatalf("left %d", b.Left())
 	}
 	got := b.Sent("规则", workspace.Setting{Revisions: make([]workspace.Revision, 3)})
 	if len(got.Rules) != 8 || got.Setting != 3 || len(got.Parts) != 2 ||
-		got.Parts[0] != (workspace.Part{Name: workspace.PartRules, Tokens: Estimate("规则")}) || got.Part(workspace.PartInput) != Estimate("问") {
+		got.Parts[0] != (workspace.Part{Name: workspace.PartRules, Tokens: Estimate("规则", workspace.Chinese)}) || got.Part(workspace.PartInput) != Estimate("问", workspace.Chinese) {
 		t.Fatalf("%+v", got)
 	}
-	if Size(got) != slack+Estimate("规则")+Estimate("问") {
+	if Size(got) != slack+Estimate("规则", workspace.Chinese)+Estimate("问", workspace.Chinese) {
 		t.Fatalf("size %d", Size(got))
 	}
 	if other := b.Sent("别的规则", workspace.Setting{}); other.Rules == got.Rules {
@@ -71,7 +71,7 @@ func TestAnAnswerKeepsItsQuestion(t *testing.T) {
 // its text; the index has each entry's category, first name and first
 // sentence; a budget too small keeps the newest.
 func TestTheSettingReadsInAStableOrder(t *testing.T) {
-	w := workspace.Work{Categories: workspace.Categories("网文")}
+	w := workspace.Work{Language: workspace.Chinese, Categories: workspace.Categories("网文", workspace.Chinese)}
 	set := workspace.Setting{Entries: []workspace.Entry{
 		{ID: "a", Place: workspace.PlaceBody, Category: "物品", Text: "铜钥匙挂在她脖子上。不知道开哪扇门。", Names: []string{"铜钥匙"}, Rev: 3},
 		{ID: "b", Place: workspace.PlaceBody, Category: "人物", Text: "林晚怕黑。\n她是左撇子。", Names: []string{"林晚", "晚晚"}, Rev: 1},
@@ -91,7 +91,7 @@ func TestTheSettingReadsInAStableOrder(t *testing.T) {
 	if got := Render(w, workspace.Setting{}, places, nil, Whole); got != "设定文档还是空的。" {
 		t.Fatal(got)
 	}
-	b := NewBudget(slack + Estimate("- "+Whole(set.Entries[3])) + Estimate("- "+Whole(set.Entries[0])))
+	b := NewBudget(slack+Estimate("- "+Whole(set.Entries[3]), workspace.Chinese)+Estimate("- "+Whole(set.Entries[0]), workspace.Chinese), workspace.Chinese)
 	shown, left := b.Fit(set, []string{workspace.PlaceBody, workspace.PlaceDropped}, Whole)
 	if len(shown) != 2 || !shown["d"] || !shown["a"] || len(left) != 2 || left[0].ID != "b" || left[1].ID != "c" {
 		t.Fatalf("shown %v left %v", shown, left)
@@ -102,19 +102,19 @@ func TestTheSettingReadsInAStableOrder(t *testing.T) {
 }
 
 func binaryClip(s string, tokens int) string {
-	if Estimate(s) <= tokens {
+	if Estimate(s, workspace.Chinese) <= tokens {
 		return s
 	}
 	r := []rune(s)
-	n := sort.Search(len(r)+1, func(n int) bool { return Estimate(string(r[:n])+CutMark) > tokens }) - 1
+	n := sort.Search(len(r)+1, func(n int) bool { return Estimate(string(r[:n])+CutMark, workspace.Chinese) > tokens }) - 1
 	return string(r[:max(n, 0)]) + CutMark
 }
 
 func TestClipTokensMatchesBinarySearch(t *testing.T) {
 	check := func(s string) {
 		t.Helper()
-		for budget := -2; budget <= Estimate(s)+2; budget++ {
-			if got, want := ClipTokens(s, budget), binaryClip(s, budget); got != want {
+		for budget := -2; budget <= Estimate(s, workspace.Chinese)+2; budget++ {
+			if got, want := ClipTokens(s, budget, workspace.Chinese), binaryClip(s, budget); got != want {
 				t.Fatalf("ClipTokens(%q, %d) = %q, want %q", s, budget, got, want)
 			}
 		}

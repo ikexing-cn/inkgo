@@ -30,7 +30,7 @@ func (a *App) countAsTyped() {
 		return
 	}
 	w.counted, w.countedVer = w.cur().ed.Doc, w.cur().ed.Doc.Version()
-	a.book.SetCount(w.node, workspace.Count(w.cur().ed.Doc.String()))
+	a.book.SetCount(w.node, a.Store.Work().Language.Count(w.cur().ed.Doc.String()))
 }
 
 func (a *App) total() int {
@@ -90,28 +90,28 @@ func (a *App) wordCount(c *ui.Context) {
 	if ok {
 		here = a.wordsIn(n)
 	}
-	scope := locales.StatusChapterWords(here)
+	scope := locales.StatusChapterWords(here, a.countUnit())
 	if ok && n.Folder {
-		scope = locales.StatusVolumeWords(kit.Words(here))
+		scope = locales.StatusVolumeWords(kit.Words(here, a.countLanguage()))
 	}
 	if w.cur().ed != nil {
 		if sel := w.cur().ed.SelectedText(); sel != "" {
-			here = workspace.Count(sel)
-			scope = locales.StatusSelected(here)
+			here = a.Store.Work().Language.Count(sel)
+			scope = locales.StatusSelected(here, a.countUnit())
 		}
 	}
-	book := locales.StatusBookWords(kit.Words(a.total()))
+	book := locales.StatusBookWords(kit.Words(a.total(), a.countLanguage()))
 	today := ""
 	k := a.today(time.Now())
-	tip := locales.StatusCountTip(book, k, kit.Signed(k))
+	tip := locales.StatusCountTip(book, k, kit.Signed(k), a.countUnit())
 	if w.counter.Goal > 0 {
 		today = locales.StatusTodayGoal(k, w.counter.Goal)
-		tip = locales.StatusCountGoalTip(book, k, kit.Signed(k), w.counter.Goal)
+		tip = locales.StatusCountGoalTip(book, k, kit.Signed(k), w.counter.Goal, a.countUnit())
 	} else if k != 0 {
 		today = locales.StatusTodayCount(k, kit.Signed(k))
 	}
 	color := a.pal.Faint // as the design has it, met or not: the numbers say so
-	counts := ui.ButtonBase(c).Row().Shrink(1000).MinWidth(0).Label(locales.StatusWordCount()).Tooltip(tip)
+	counts := ui.ButtonBase(c).Row().Shrink(1000).MinWidth(0).Label(locales.StatusWordCount(a.countUnit())).Tooltip(tip)
 	a.slideEdge(counts)
 	if counts.Hovered() {
 		color = t.Text
@@ -135,7 +135,7 @@ func (a *App) wordCount(c *ui.Context) {
 		ui.Box(c).FillWidth().Height(1).Margin(4, 0).Background(a.pal.Line).Shrink(0)
 		ui.Column(c).FillWidth().Gap(6).Padding(4, 6).Children(func() {
 			ui.Text(c, locales.StatusDailyGoal()).FontSize(kit.FsNote).TextColor(t.TextMuted)
-			in := ui.TextInput(c, &w.goalText).Label(locales.StatusGoalLabel()).Placeholder(locales.StatusGoalHint()).FillWidth().AutoFocus()
+			in := ui.TextInput(c, &w.goalText).Label(locales.StatusGoalLabel(a.countUnit())).Placeholder(locales.StatusGoalHint()).FillWidth().AutoFocus()
 			if in.Changed() {
 				a.setGoal(w.goalText)
 			}
@@ -144,7 +144,7 @@ func (a *App) wordCount(c *ui.Context) {
 			}
 		})
 		// What is not a count leaves the goal be, and says so.
-		note, ink := locales.StatusGoalNote(), t.TextMuted
+		note, ink := locales.StatusGoalNote(a.countUnit()), t.TextMuted
 		if _, ok := prefs.CountOrNone(w.goalText); !ok {
 			note, ink = locales.StatusGoalError(), t.Danger
 		}
@@ -160,11 +160,11 @@ func (a *App) lastWeek(c *ui.Context) {
 	ui.Text(c, locales.StatusLast7()).FontSize(kit.FsSmall).TextColor(a.pal.Faint).Padding(6, 10, 2, 10)
 	for i := len(days) - 1; i >= 0; i-- {
 		day, k := now.AddDate(0, 0, i-len(days)+1), days[i]
-		got := locales.StatusWords(0)
+		got := locales.StatusWords(0, a.countUnit())
 		if k != 0 {
-			got = locales.StatusSignedWords(k, kit.Signed(k))
+			got = locales.StatusSignedWords(k, kit.Signed(k), a.countUnit())
 		}
-		ui.Row(c.Key(i)).FillWidth().Padding(4, 10).Label(locales.StatusDayWritten(kit.DayOf(day, now), k)).Children(func() {
+		ui.Row(c.Key(i)).FillWidth().Padding(4, 10).Label(locales.StatusDayWritten(kit.DayOf(day, now), k, a.countUnit())).Children(func() {
 			ui.Text(c, kit.DayOf(day, now)).FontSize(kit.FsNote).TextColor(a.pal.Theme.TextMuted).Grow(1)
 			ui.Text(c, got).FontSize(kit.FsNote).TextColor(a.pal.Theme.TextMuted)
 		})
@@ -193,4 +193,15 @@ func nodeWords(root *workspace.Node, counts map[string]int) map[string]int {
 		}
 	}
 	return out
+}
+
+// countUnit identifies the current book counting unit.
+func (a *App) countUnit() string { return a.countLanguage().Unit() }
+
+// countLanguage supplies Chinese for the shelf, where no book is open.
+func (a *App) countLanguage() workspace.Language {
+	if a.Store == nil {
+		return workspace.Chinese
+	}
+	return a.Store.Work().Language
 }

@@ -28,7 +28,7 @@ function snapsDialog(d) {
   const same = shown && shown.paras.join('\n') === cur.paras.join('\n')
   return dialog('wide', dialogHead(L.snapTitle(titleOf(cur)), L.snapAbout(aiOn() ? L.snapAboutAI() : '')) +
     (shown
-      ? `<div class="snaps"><div class="snap-list scroll">${list.map((x) => `<div class="snap-row row${x === shown ? ' on' : ''}"${onClick(pick({ id: x.id }))}><div>${t(timeShown(x.at))}</div><div class="note">${t(L.snapRowInfo(snapKind(x.kind), x.paras.join('').length))}</div></div>`).join('')}</div>` +
+      ? `<div class="snaps"><div class="snap-list scroll">${list.map((x) => `<div class="snap-row row${x === shown ? ' on' : ''}"${onClick(pick({ id: x.id }))}><div>${t(timeShown(x.at))}</div><div class="note">${t(L.snapRowInfo(snapKind(x.kind), x.paras.join('').length, 'character'))}</div></div>`).join('')}</div>` +
         `<div class="snap-side"><div class="snap-tools">${tickbox(d.diff, L.snapCompare(), pick({ diff: !d.diff }))}<div class="fit note ell">${same ? t(L.snapSame()) : d.diff ? t(L.snapDiffHint()) : ''}</div></div>` +
         (shown.ai && aiOn() ? `<div class="card"><div class="who">${t(aiFrom(shown.ai.talks))}</div>${shown.ai.saw ? `<div class="extra">${t(shown.ai.saw)}</div>` : ''}</div>` : '') +
         `<div class="snap-text scroll">${d.diff ? compare(shown.paras, cur.paras) : shown.paras.map((p) => `<div>${t(p)}</div>`).join('') || `<div class="faint">${t(L.snapEmpty())}</div>`}</div></div></div>`

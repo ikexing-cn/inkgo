@@ -111,7 +111,7 @@ func (a *App) composer(c *ui.Context) {
 					ui.Text(c, locales.ChatFollows(a.nodeTitle(kept))).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1).
 						Tooltip(locales.ChatFixedTip())
 				} else {
-					label, tip := locales.ChatAttachChapter(), locales.ChatAttachChapterTip()
+					label, tip := locales.ChatAttachChapter(), locales.ChatAttachChapterTip(a.countUnit())
 					if a.openUnit() == "volume" {
 						label, tip = locales.ChatAttachVolume(), locales.ChatAttachVolumeTip()
 					}
@@ -185,7 +185,7 @@ func (a *App) openSource(m workspace.Event, start, end int) {
 		a.source.MoveTo(end, true)
 	}
 	a.sourceMessage = m.ID
-	a.sourceCategory = workspace.Other
+	a.sourceCategory = a.Store.Work().Language.OtherCategory()
 	a.sourceOpen = true
 }
 
@@ -210,7 +210,7 @@ func (a *App) extraction(c *ui.Context) {
 				if start == end {
 					ui.Text(c, locales.DialogNotPicked()).FontSize(kit.FsNote).TextColor(a.pal.Faint)
 				} else {
-					ui.Text(c, locales.DialogPicked(end-start)).FontSize(kit.FsNote).TextColor(a.pal.Ink)
+					ui.Text(c, locales.DialogPicked(a.Store.Work().Language.Count(a.source.SelectedText()), a.countUnit())).FontSize(kit.FsNote).TextColor(a.pal.Ink)
 				}
 				ui.Spacer(c)
 				if a.pal.Ghost(c, locales.DialogSourceCollapse(), ui.Color{}).Clicked() {
@@ -249,7 +249,7 @@ func (a *App) firstCategory() string {
 	if cats := a.Store.Work().Categories; len(cats) > 0 {
 		return cats[0].Name
 	}
-	return workspace.Other
+	return a.Store.Work().Language.OtherCategory()
 }
 
 // modelMenu changes the discussion model and its effort without leaving the

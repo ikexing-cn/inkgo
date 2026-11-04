@@ -119,7 +119,7 @@ func TestPaneDrawPanicHidesPartialFrameAndOnlyStopsItsExtension(t *testing.T) {
 
 func extensionBook(t *testing.T) string {
 	t.Helper()
-	s, err := workspace.Create(filepath.Join(t.TempDir(), "work"), "书", "网文")
+	s, err := workspace.Create(filepath.Join(t.TempDir(), "work"), "书", "网文", "zh-Hans")
 	requireExtension(t, err)
 	root := s.Root()
 	requireExtension(t, s.Close())

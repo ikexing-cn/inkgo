@@ -13,7 +13,7 @@ import (
 
 func TestDescribeAndShelfWorkDecisions(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "book")
-	w, err := workspace.Create(root, "雨城", "网文")
+	w, err := workspace.Create(root, "雨城", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestShelfWorkFailuresDoNotChangeShelf(t *testing.T) {
 
 func TestRelocateToExistingWork(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "work")
-	w, err := workspace.Create(root, "当前名字", "网文")
+	w, err := workspace.Create(root, "当前名字", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}

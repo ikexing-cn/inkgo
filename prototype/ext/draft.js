@@ -9,7 +9,7 @@ function draftDialog(d) {
   const items = [cards ? L.draftItemCards(cards) : '', prev ? L.draftItemPrev() : '', cur.vol ? L.draftItemVolume() : L.draftItemBooks()].filter(Boolean).join(L.draftListSep())
   return dialog('small', dialogHead(L.cmdDraft(), L.draftAbout(cards ? L.draftAboutCards() : L.draftAboutOutline(), L.draftAboutFlow())) +
     `<div class="quote">${t(S.outlines[cur.key])}</div>` +
-    field(L.draftGoal(), line(d.goal, type('goal'), L.draftGoalHint(), L.draftGoalLabel()) + (countOrNone(d.goal) ? '' : `<div class="note danger">${t(L.draftGoalInvalid())}</div>`)) +
+    field(L.draftGoal('character'), line(d.goal, type('goal'), L.draftGoalHint(), L.draftGoalLabel('character')) + (countOrNone(d.goal) ? '' : `<div class="note danger">${t(L.draftGoalInvalid('character'))}</div>`)) +
     (cur.paras.length ? field(L.draftExisting(), dots(d.how, [['接在已有内容之后', L.draftAppend()], ['覆盖已有内容', L.draftOverwrite()]], type('how'), L.draftExistingHow())) : '') +
     `<div class="note">${t(L.draftSends(items, tokens(sent)))}</div>` +
     `<div class="note">${t(L.draftUsing(use.model, use.effort))}</div>` +

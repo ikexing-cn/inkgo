@@ -103,7 +103,7 @@ func (d *Dialog) Replan() {
 	}
 	id, _, _ := d.book.Get().Chapter()
 	d.planned = d.planKey()
-	d.plan = format.BuildPlan(d.pieces, d.book.Get().Content().Setting().Entries, id, d.effectiveOptions(), d.selection, exporttext.ExportSpan)
+	d.plan = format.BuildPlan(d.pieces, d.book.Get().Content().Setting().Entries, id, d.effectiveOptions(), d.selection, exporttext.ExportSpan, d.book.Get().Store().Work().Language)
 	d.selection.Scope = d.plan.Scope
 }
 
@@ -231,15 +231,20 @@ func (d *Dialog) export(c *ui.Context, plan format.Plan) {
 		parts := []string{work.Name}
 		switch what {
 		case format.ProseContent:
-			doc = format.Prose(format.Cover{Title: work.Name, Pen: pen, Words: kit.Words(plan.Words)}, plan.Pieces, plan.Whole)
+			count := kit.Words(plan.Words, work.Language)
+			if work.Language == "en" {
+				count = locales.In("en").StatusWords(plan.Words, "word")
+			}
+			doc = format.Prose(format.Cover{Title: work.Name, Pen: pen, Words: count}, plan.Pieces, plan.Whole)
 			parts = append(parts, plan.Part)
 		case format.OutlineContent:
 			doc = format.Outline(work.Name, plan.Pieces)
 			parts = append(parts, plan.Part, "大纲")
 		case format.SettingContent:
-			doc = format.Setting(work.Name, work.Categories, content.Setting().Entries, func(entry workspace.Entry) []string { return laterLines(content, entry) })
+			doc = format.Setting(work.Name, work.Categories, content.Setting().Entries, func(entry workspace.Entry) []string { return laterLines(content, entry, work.Language) })
 			parts = append(parts, "设定")
 		}
+		doc.Language = work.Language
 		data := doc.Text(what == format.ProseContent && d.indent)
 		if !set.Text {
 			b, err := doc.Docx()
@@ -311,11 +316,15 @@ func (d *Dialog) export(c *ui.Context, plan format.Plan) {
 
 // laterLines are how e reads from chapters on, as the setting exports
 // them: each change that holds, from where it starts.
-func laterLines(b *book.Book, e workspace.Entry) []string {
+func laterLines(b *book.Book, e workspace.Entry, language workspace.Language) []string {
+	colon := "："
+	if language == workspace.English {
+		colon = ": "
+	}
 	var out []string
 	o := b.Tree().Order()
 	for _, g := range e.Holding(o) {
-		out = append(out, kit.FromLabel(b.Tree(), g.From)+"："+g.Text)
+		out = append(out, kit.FromLabel(b.Tree(), g.From)+colon+g.Text)
 	}
 	return out
 }

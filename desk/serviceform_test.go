@@ -61,7 +61,7 @@ func TestCatalogBelongsToItsServiceForm(t *testing.T) {
 				aiViewOf(a).ServiceForm.Provider.Name = "unsaved edit"
 			case "switch work":
 				aiViewOf(a).ServiceForm.Key = "unsaved-test-key"
-				next, err := workspace.Create(filepath.Join(t.TempDir(), "next"), "另一本", "网文")
+				next, err := workspace.Create(filepath.Join(t.TempDir(), "next"), "另一本", "网文", "zh-Hans")
 				if err != nil {
 					t.Fatal(err)
 				}

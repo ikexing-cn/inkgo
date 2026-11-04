@@ -143,7 +143,7 @@ func TestATalkOpenedToRewriteKeepsToItsChapter(t *testing.T) {
 		f.purposes[0].Feature != workspace.FeatureRewrite {
 		t.Fatalf("asked %s", asked.System)
 	}
-	box := &toolbox{allowed: tools(workspace.Work{}), store: e.Store, session: session, model: e.Talk, at: two}
+	box := &toolbox{allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store, session: session, model: e.Talk, at: two}
 	if out := box.lookUp(lookUpArgs{Query: "林晚"}); !strings.Contains(out.text, "左手拧灯座") || strings.Contains(out.text, "没了左手") {
 		t.Fatalf("looked up %s", out.text)
 	}
@@ -160,7 +160,7 @@ func TestAProposalFindsItsPlace(t *testing.T) {
 	if _, err := e.Store.WriteChapter(two, "她推开门。\n灯灭了。\n灯灭了。她没动。", nil); err != nil {
 		t.Fatal(err)
 	}
-	box := &toolbox{allowed: tools(workspace.Work{}), store: e.Store, session: session}
+	box := &toolbox{allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store, session: session}
 	for _, c := range []struct {
 		in   proposeArgs
 		want string // in the refusal

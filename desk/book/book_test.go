@@ -11,7 +11,7 @@ import (
 
 func makeWork(t *testing.T) *workspace.Store {
 	t.Helper()
-	s, err := workspace.Create(t.TempDir(), "书", "网文")
+	s, err := workspace.Create(t.TempDir(), "书", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestOpenReadsEverything(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := s.WriteCheck(one, workspace.Check{Of: workspace.ProseHash(text), Words: workspace.Count(text), By: "test", At: time.Now()}); err != nil {
+	if err := s.WriteCheck(one, workspace.Check{Of: workspace.ProseHash(text), Words: workspace.Chinese.Count(text), By: "test", At: time.Now()}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -59,7 +59,7 @@ func TestOpenReadsEverything(t *testing.T) {
 	if _, ok := b.Tree().Node(one); !ok {
 		t.Fatal("the tree has no chapter")
 	}
-	if b.Count(one) != workspace.Count(text) {
+	if b.Count(one) != workspace.Chinese.Count(text) {
 		t.Fatalf("count = %d", b.Count(one))
 	}
 	if marks := b.Marks()[one]; len(marks) != 1 || marks[0].Quote != "有一" {
@@ -109,7 +109,7 @@ func TestWritesUpdateTheCopyAndTheDisk(t *testing.T) {
 		}})
 		return err
 	})
-	if b.Count(one) != workspace.Count("井边有一把钥匙。") {
+	if b.Count(one) != workspace.Chinese.Count("井边有一把钥匙。") {
 		t.Fatalf("count = %d", b.Count(one))
 	}
 	if marks := b.Marks()[one]; len(marks) != 1 || marks[0].Quote != "有一" {

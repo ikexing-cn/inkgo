@@ -504,8 +504,8 @@ function todoPop(list) {
 // 底栏右边的字数：选中的、本章或本卷的、全书的，设了每日目标还有今天的。点开设目标。
 function wordsOf(cur, vol) {
   const inVol = vol && wordCount(vol[2] || S.chapters.filter((c) => c.vol === vol[0]).reduce((n, c) => n + sizeOf(c), 0))
-  const count = (S.bar ? L.statusSelected(S.bar.text.length) : cur ? L.statusChapterWords(sizeOf(cur)) : vol ? L.statusVolumeWords(inVol) : '') + (cur || vol ? ' · ' : '') + L.statusBookWords(wordCount(S.book === BOOK.shelf[0].id ? BOOK.words : S.chapters.reduce((n, c) => n + sizeOf(c), 0))) + (drawPoint('WordSuffix'))
-  return `<div class="anchor up"><div class="words ell hit" title="${L.statusWordsTip()}"${onClick(() => set({ open: S.open === 'goal' ? '' : 'goal' }))}>${t(count)}</div>${drawPoint('WordPopovers')}</div>`
+  const count = (S.bar ? L.statusSelected(S.bar.text.length, 'character') : cur ? L.statusChapterWords(sizeOf(cur), 'character') : vol ? L.statusVolumeWords(inVol) : '') + (cur || vol ? ' · ' : '') + L.statusBookWords(wordCount(S.book === BOOK.shelf[0].id ? BOOK.words : S.chapters.reduce((n, c) => n + sizeOf(c), 0))) + (drawPoint('WordSuffix'))
+  return `<div class="anchor up"><div class="words ell hit" title="${L.statusWordsTip('character')}"${onClick(() => set({ open: S.open === 'goal' ? '' : 'goal' }))}>${t(count)}</div>${drawPoint('WordPopovers')}</div>`
 }
 
 // 标题栏右边那几样：写作页才有。专注写作时也在，那时标题栏只剩它们和正中的章名。
@@ -564,7 +564,7 @@ function folderPage([key, title]) {
     `<div class="chapter-title">${t(title)}</div><div class="folder-label">${L.editorVolumeOutline()}</div>` +
     area(S.outlines[key] || '', (v) => set((s) => ({ outlines: { ...s.outlines, [key]: v } })), L.editorOutlineHint(), L.editorVolumeOutline(), 6) +
     `<div class="folder-count"><div class="grow">${L.editorItems(inside.length)}</div><div class="hit link"${onClick(newChapter)}>${L.editorNewHere()}</div></div>` +
-    inside.map((c) => `<div class="folder-row hit"${onClick(goTo(c.key))}><div class="folder-name">${icon('page', 'md', 'muted')}<div class="fit ell">${t(titleOf(c))}</div><div class="count">${t(L.statusWords(sizeOf(c)))}</div></div>${gist(c) ? `<div class="gist">${t(gist(c))}</div>` : ''}</div>`).join('') +
+    inside.map((c) => `<div class="folder-row hit"${onClick(goTo(c.key))}><div class="folder-name">${icon('page', 'md', 'muted')}<div class="fit ell">${t(titleOf(c))}</div><div class="count">${t(L.statusWords(sizeOf(c), 'character'))}</div></div>${gist(c) ? `<div class="gist">${t(gist(c))}</div>` : ''}</div>`).join('') +
     '</div></div>'
 }
 

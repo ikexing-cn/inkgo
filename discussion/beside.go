@@ -2,6 +2,7 @@ package discussion
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"writer/ext/ai/aiapi"
 
@@ -25,7 +26,7 @@ const BesideCap = 2000
 // render writes w for the author's turn, charged to budget as prose: the
 // outlines must go, and the text before the caret goes as far as it holds,
 // cut from its start. It lists what it sent.
-func (w Writing) render(budget *prompt.Budget, material aiapi.Material) (string, []workspace.ContextItem) {
+func (w Writing) render(budget *prompt.Budget, material aiapi.Material, language workspace.Language) (string, []workspace.ContextItem) {
 	if !material.Outline {
 		w.Outline, w.VolumeOutline = "", ""
 	}
@@ -53,7 +54,10 @@ func (w Writing) render(budget *prompt.Budget, material aiapi.Material) (string,
 	}
 	budget.Must(workspace.PartProse, s.String())
 	before := []rune(w.Before)
-	if len(before) > BesideCap {
+	if language == workspace.English {
+		start := sort.Search(len(before), func(i int) bool { return language.Count(string(before[i:])) <= BesideCap })
+		before = before[start:]
+	} else if len(before) > BesideCap {
 		before = before[len(before)-BesideCap:]
 	}
 	for len(before) > 0 && !budget.Take(workspace.PartProse, string(before)) {
@@ -62,8 +66,17 @@ func (w Writing) render(budget *prompt.Budget, material aiapi.Material) (string,
 	if len(before) > 0 {
 		body := string(before)
 		s.WriteString("【光标前的正文】\n" + body + "\n\n")
-		items = append(items, workspace.ContextItem{Text: fmt.Sprintf("本章光标前 %d 字", workspace.Count(body))})
+		items = append(items, workspace.ContextItem{Text: fmt.Sprintf("本章光标前 %d %s", language.Count(body), countUnit(language))})
 	}
 	s.WriteString("【作者说】\n")
 	return s.String(), items
+}
+
+// countUnit is the Chinese label used by stored context descriptions.
+// These descriptions are plain book records, not interface catalog messages.
+func countUnit(language workspace.Language) string {
+	if language == workspace.English {
+		return "词"
+	}
+	return "字"
 }

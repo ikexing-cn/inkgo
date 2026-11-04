@@ -63,7 +63,7 @@ const timeShown = (text) => {
 // 体裁：状态里存的是中文（「网文」），显示时换成当前语言，别的样子原样写。
 const genreWord = (k) => ({ 网文: L.genreWeb(), 出版小说: L.genreNovel(), 剧本: L.genreScript(), 非虚构: L.genreNonfiction() })[k] ?? k
 // 字数存的是数，满一万按万写（31.2 万字）。书架和备份上没有字的书写「暂无正文」。
-const wordCount = (n) => (n >= 10000 ? L.statusWanWords(n / 10000, n) : L.statusWords(n))
+const wordCount = (n) => (n >= 10000 ? L.statusWanWords(n / 10000, n, 'character') : L.statusWords(n, 'character'))
 const wordsShown = (n) => (n ? wordCount(n) : L.shelfNoWords())
 // token 数按 K、M、B 写，留一位小数（9.6K、1.7M）；不到一千的照写。
 const tokens = (n) => {

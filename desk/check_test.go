@@ -144,7 +144,7 @@ func TestANewNameIsListedOnce(t *testing.T) {
 		_, err = a.Store.WriteChapter(second, text, nil)
 	}
 	if err == nil {
-		err = a.Store.WriteCheck(second, workspace.Check{Of: workspace.ProseHash(text), Words: workspace.Count(text), By: "test", At: time.Now(),
+		err = a.Store.WriteCheck(second, workspace.Check{Of: workspace.ProseHash(text), Words: workspace.Chinese.Count(text), By: "test", At: time.Now(),
 			Findings: []workspace.Finding{{ID: "n2", Kind: workspace.FindNew, Title: "老周", Quote: "老周把旧灯泡放在窗台上", Name: "老周", Category: "人物"}}})
 	}
 	if err != nil {
@@ -189,7 +189,7 @@ func TestPendingNameOpensCurrentFinding(t *testing.T) {
 	if _, err := a.Store.WriteChapter(second, text, nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := a.Store.WriteCheck(second, workspace.Check{Of: workspace.ProseHash(text), Words: workspace.Count(text), By: "test", At: time.Now(),
+	if err := a.Store.WriteCheck(second, workspace.Check{Of: workspace.ProseHash(text), Words: workspace.Chinese.Count(text), By: "test", At: time.Now(),
 		Findings: []workspace.Finding{{ID: "n2", Kind: workspace.FindNew, Title: "老周", Quote: "老周把旧灯泡放在窗台上", Name: "老周", Category: "人物"}}}); err != nil {
 		t.Fatal(err)
 	}
@@ -347,7 +347,7 @@ func TestCompletedCheckDoesNotLandInAnotherWork(t *testing.T) {
 	case <-time.After(3 * time.Second):
 		t.Fatal("check did not complete")
 	}
-	next, err := workspace.Create(filepath.Join(t.TempDir(), "next"), "另一本", "网文")
+	next, err := workspace.Create(filepath.Join(t.TempDir(), "next"), "另一本", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -443,7 +443,7 @@ func TestAChapterReadInPartIsToldSo(t *testing.T) {
 	if read <= 0 || read >= 36000 {
 		t.Fatalf("read %d", read)
 	}
-	if want := locales.StatusPartOK(read); !tt.HasText(want) || tt.HasText("本章检查完成，未发现不一致") {
+	if want := locales.StatusPartOK(read, "character"); !tt.HasText(want) || tt.HasText("本章检查完成，未发现不一致") {
 		t.Fatal(want, tt.Texts())
 	}
 
@@ -463,7 +463,7 @@ func TestShowingAChapterKeepsWhatItsCheckFound(t *testing.T) {
 		t.Fatal(err)
 	}
 	found := workspace.Finding{ID: workspace.NewID(), Kind: workspace.FindName, Title: "「林婉」是不是「林晚」写错了？", Quote: "林婉", Name: "林晚"}
-	if err = a.Store.WriteCheck(id, workspace.Check{Of: workspace.ProseHash(checkProse), Words: workspace.Count(checkProse), By: "deepseek/deepseek-flash", At: time.Now(), Findings: []workspace.Finding{found}}); err != nil {
+	if err = a.Store.WriteCheck(id, workspace.Check{Of: workspace.ProseHash(checkProse), Words: workspace.Chinese.Count(checkProse), By: "deepseek/deepseek-flash", At: time.Now(), Findings: []workspace.Finding{found}}); err != nil {
 		t.Fatal(err)
 	}
 	a.loadChecks()

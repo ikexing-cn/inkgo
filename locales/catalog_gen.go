@@ -1216,14 +1216,14 @@ func (msgs Messages) TabClose() string {
 	return Catalog.Format(msgs.locale, "tabClose", nil)
 }
 
-// StatusWordCount says "字数"
+// StatusWordCount says "{unit, select, word {词数} other {字数}}"
 // in the language the app shows.
-func StatusWordCount() string { return In(i18n.Locale()).StatusWordCount() }
+func StatusWordCount(unit string) string { return In(i18n.Locale()).StatusWordCount(unit) }
 
-// StatusWordCount says "字数"
+// StatusWordCount says "{unit, select, word {词数} other {字数}}"
 // in the language of msgs.
-func (msgs Messages) StatusWordCount() string {
-	return Catalog.Format(msgs.locale, "statusWordCount", nil)
+func (msgs Messages) StatusWordCount(unit string) string {
+	return Catalog.Format(msgs.locale, "statusWordCount", map[string]any{"unit": unit})
 }
 
 // StatusWorkSwitchedUndo says "作品已切换，无法撤销"
@@ -1240,72 +1240,72 @@ func (msgs Messages) StatusWorkSwitchedUndo() string {
 	return Catalog.Format(msgs.locale, "statusWorkSwitchedUndo", nil)
 }
 
-// StatusDayWritten says "{day} 写了 {count, plural, other {# 字}}"
+// StatusDayWritten says "{unit, select, word {{day} 写了 {count, plural, other {# 词}}} other {{day} 写了 {count, plural, other {# 字}}}}"
 // in the language the app shows.
 //
 // 应用外壳：{day}写了{count, plural, other { # 字}}
-func StatusDayWritten(day string, count int) string {
-	return In(i18n.Locale()).StatusDayWritten(day, count)
+func StatusDayWritten(day string, count int, unit string) string {
+	return In(i18n.Locale()).StatusDayWritten(day, count, unit)
 }
 
-// StatusDayWritten says "{day} 写了 {count, plural, other {# 字}}"
+// StatusDayWritten says "{unit, select, word {{day} 写了 {count, plural, other {# 词}}} other {{day} 写了 {count, plural, other {# 字}}}}"
 // in the language of msgs.
 //
 // 应用外壳：{day}写了{count, plural, other { # 字}}
-func (msgs Messages) StatusDayWritten(day string, count int) string {
-	return Catalog.Format(msgs.locale, "statusDayWritten", map[string]any{"day": day, "count": count})
+func (msgs Messages) StatusDayWritten(day string, count int, unit string) string {
+	return Catalog.Format(msgs.locale, "statusDayWritten", map[string]any{"day": day, "count": count, "unit": unit})
 }
 
-// StatusSignedWords says "{count, plural, other {{signed} 字}}"
+// StatusSignedWords says "{unit, select, word {{count, plural, other {{signed} 词}}} other {{count, plural, other {{signed} 字}}}}"
 // in the language the app shows.
 //
 // 应用外壳：{count, plural, other {{signed} 字}}
-func StatusSignedWords(count int, signed string) string {
-	return In(i18n.Locale()).StatusSignedWords(count, signed)
+func StatusSignedWords(count int, signed string, unit string) string {
+	return In(i18n.Locale()).StatusSignedWords(count, signed, unit)
 }
 
-// StatusSignedWords says "{count, plural, other {{signed} 字}}"
+// StatusSignedWords says "{unit, select, word {{count, plural, other {{signed} 词}}} other {{count, plural, other {{signed} 字}}}}"
 // in the language of msgs.
 //
 // 应用外壳：{count, plural, other {{signed} 字}}
-func (msgs Messages) StatusSignedWords(count int, signed string) string {
-	return Catalog.Format(msgs.locale, "statusSignedWords", map[string]any{"count": count, "signed": signed})
+func (msgs Messages) StatusSignedWords(count int, signed string, unit string) string {
+	return Catalog.Format(msgs.locale, "statusSignedWords", map[string]any{"count": count, "signed": signed, "unit": unit})
 }
 
-// StatusCountGoalTip says "{book}，今天 {count, plural, other {{signed} 字}}，目标 {goal, plural, other {# 字}}。点击设置每日目标"
+// StatusCountGoalTip says "{unit, select, word {{book}，今天 {count, plural, other {{signed} 词}}，目标 {goal, plural, other {# 词}}…"
 // in the language the app shows.
 //
 // 底栏字数提示；signed 是带正负号的展示串，count 和 goal
 // 是数量。
-func StatusCountGoalTip(book string, count int, signed string, goal int) string {
-	return In(i18n.Locale()).StatusCountGoalTip(book, count, signed, goal)
+func StatusCountGoalTip(book string, count int, signed string, goal int, unit string) string {
+	return In(i18n.Locale()).StatusCountGoalTip(book, count, signed, goal, unit)
 }
 
-// StatusCountGoalTip says "{book}，今天 {count, plural, other {{signed} 字}}，目标 {goal, plural, other {# 字}}。点击设置每日目标"
+// StatusCountGoalTip says "{unit, select, word {{book}，今天 {count, plural, other {{signed} 词}}，目标 {goal, plural, other {# 词}}…"
 // in the language of msgs.
 //
 // 底栏字数提示；signed 是带正负号的展示串，count 和 goal
 // 是数量。
-func (msgs Messages) StatusCountGoalTip(book string, count int, signed string, goal int) string {
-	return Catalog.Format(msgs.locale, "statusCountGoalTip", map[string]any{"book": book, "count": count, "signed": signed, "goal": goal})
+func (msgs Messages) StatusCountGoalTip(book string, count int, signed string, goal int, unit string) string {
+	return Catalog.Format(msgs.locale, "statusCountGoalTip", map[string]any{"book": book, "count": count, "signed": signed, "goal": goal, "unit": unit})
 }
 
-// StatusCountTip says "{book}，今天 {count, plural, other {{signed} 字}}。点击设置每日目标"
+// StatusCountTip says "{unit, select, word {{book}，今天 {count, plural, other {{signed} 词}}。点击设置每日目标} other {{book}…"
 // in the language the app shows.
 //
 // 应用外壳：{book}，今天 {count, plural, other {{signed}
 // 字}}。点击设置每日目标
-func StatusCountTip(book string, count int, signed string) string {
-	return In(i18n.Locale()).StatusCountTip(book, count, signed)
+func StatusCountTip(book string, count int, signed string, unit string) string {
+	return In(i18n.Locale()).StatusCountTip(book, count, signed, unit)
 }
 
-// StatusCountTip says "{book}，今天 {count, plural, other {{signed} 字}}。点击设置每日目标"
+// StatusCountTip says "{unit, select, word {{book}，今天 {count, plural, other {{signed} 词}}。点击设置每日目标} other {{book}…"
 // in the language of msgs.
 //
 // 应用外壳：{book}，今天 {count, plural, other {{signed}
 // 字}}。点击设置每日目标
-func (msgs Messages) StatusCountTip(book string, count int, signed string) string {
-	return Catalog.Format(msgs.locale, "statusCountTip", map[string]any{"book": book, "count": count, "signed": signed})
+func (msgs Messages) StatusCountTip(book string, count int, signed string, unit string) string {
+	return Catalog.Format(msgs.locale, "statusCountTip", map[string]any{"book": book, "count": count, "signed": signed, "unit": unit})
 }
 
 // StatusTodayCount says "{count, plural, other { · 今天 {signed}}}"
@@ -1444,14 +1444,14 @@ func (msgs Messages) StatusNoEntries() string {
 	return Catalog.Format(msgs.locale, "statusNoEntries", nil)
 }
 
-// StatusShort says "满 200 字后可检查"
+// StatusShort says "{unit, select, word {满 200 词后可检查} other {满 200 字后可检查}}"
 // in the language the app shows.
-func StatusShort() string { return In(i18n.Locale()).StatusShort() }
+func StatusShort(unit string) string { return In(i18n.Locale()).StatusShort(unit) }
 
-// StatusShort says "满 200 字后可检查"
+// StatusShort says "{unit, select, word {满 200 词后可检查} other {满 200 字后可检查}}"
 // in the language of msgs.
-func (msgs Messages) StatusShort() string {
-	return Catalog.Format(msgs.locale, "statusShort", nil)
+func (msgs Messages) StatusShort(unit string) string {
+	return Catalog.Format(msgs.locale, "statusShort", map[string]any{"unit": unit})
 }
 
 // StatusNever says "本章尚未检查"
@@ -1478,22 +1478,22 @@ func (msgs Messages) StatusDirtyIssues(count int) string {
 	return Catalog.Format(msgs.locale, "statusDirtyIssues", map[string]any{"count": count})
 }
 
-// StatusPartIssues says "本章仅检查前 {part} 字，有 {count} 处待处理"
+// StatusPartIssues says "{unit, select, word {本章仅检查前 {part} 词，有 {count} 处待处理} other {本章仅检查前 {part} …"
 // in the language the app shows.
 //
 // 太长的章节只检查了前面一段，part
 // 是检查读了前多少字。
-func StatusPartIssues(part int, count int) string {
-	return In(i18n.Locale()).StatusPartIssues(part, count)
+func StatusPartIssues(part int, count int, unit string) string {
+	return In(i18n.Locale()).StatusPartIssues(part, count, unit)
 }
 
-// StatusPartIssues says "本章仅检查前 {part} 字，有 {count} 处待处理"
+// StatusPartIssues says "{unit, select, word {本章仅检查前 {part} 词，有 {count} 处待处理} other {本章仅检查前 {part} …"
 // in the language of msgs.
 //
 // 太长的章节只检查了前面一段，part
 // 是检查读了前多少字。
-func (msgs Messages) StatusPartIssues(part int, count int) string {
-	return Catalog.Format(msgs.locale, "statusPartIssues", map[string]any{"part": part, "count": count})
+func (msgs Messages) StatusPartIssues(part int, count int, unit string) string {
+	return Catalog.Format(msgs.locale, "statusPartIssues", map[string]any{"part": part, "count": count, "unit": unit})
 }
 
 // StatusIssues says "本章检查完成，有 {count} 处待处理"
@@ -1520,18 +1520,18 @@ func (msgs Messages) StatusEdited() string {
 	return Catalog.Format(msgs.locale, "statusEdited", nil)
 }
 
-// StatusPartOK says "本章仅检查前 {part} 字，未发现不一致"
+// StatusPartOK says "{unit, select, word {本章仅检查前 {part} 词，未发现不一致} other {本章仅检查前 {part} …"
 // in the language the app shows.
 //
 // 太长的章节只检查了前面一段，且没发现问题。
-func StatusPartOK(part int) string { return In(i18n.Locale()).StatusPartOK(part) }
+func StatusPartOK(part int, unit string) string { return In(i18n.Locale()).StatusPartOK(part, unit) }
 
-// StatusPartOK says "本章仅检查前 {part} 字，未发现不一致"
+// StatusPartOK says "{unit, select, word {本章仅检查前 {part} 词，未发现不一致} other {本章仅检查前 {part} …"
 // in the language of msgs.
 //
 // 太长的章节只检查了前面一段，且没发现问题。
-func (msgs Messages) StatusPartOK(part int) string {
-	return Catalog.Format(msgs.locale, "statusPartOK", map[string]any{"part": part})
+func (msgs Messages) StatusPartOK(part int, unit string) string {
+	return Catalog.Format(msgs.locale, "statusPartOK", map[string]any{"part": part, "unit": unit})
 }
 
 // StatusPartLong says "后文超出模型的上下文上限，可在设置中「AI」配置里调整"
@@ -1882,64 +1882,68 @@ func (msgs Messages) StatusPlantedIn(chapter string) string {
 	return Catalog.Format(msgs.locale, "statusPlantedIn", map[string]any{"chapter": chapter})
 }
 
-// StatusWords says "{count} 字"
+// StatusWords says "{unit, select, word {{count} 词} other {{count} 字}}"
 // in the language the app shows.
 //
 // 字数，count 已经是数字的写法（带逗号的）。
-func StatusWords(count int) string { return In(i18n.Locale()).StatusWords(count) }
+func StatusWords(count int, unit string) string { return In(i18n.Locale()).StatusWords(count, unit) }
 
-// StatusWords says "{count} 字"
+// StatusWords says "{unit, select, word {{count} 词} other {{count} 字}}"
 // in the language of msgs.
 //
 // 字数，count 已经是数字的写法（带逗号的）。
-func (msgs Messages) StatusWords(count int) string {
-	return Catalog.Format(msgs.locale, "statusWords", map[string]any{"count": count})
+func (msgs Messages) StatusWords(count int, unit string) string {
+	return Catalog.Format(msgs.locale, "statusWords", map[string]any{"count": count, "unit": unit})
 }
 
-// StatusWanWords says "{full, plural, other {{value, number, ::.0} 万字}}"
+// StatusWanWords says "{unit, select, word {{full, plural, other {{value, number, ::.0} 万词}}} other {{full, plural, other {{value, numbe…"
 // in the language the app shows.
 //
 // 以万计的字数。value 是以万计的数；full
 // 是完整的数，中文只拿它选复数的样子，en 写它。
-func StatusWanWords(value float64, full int) string {
-	return In(i18n.Locale()).StatusWanWords(value, full)
+func StatusWanWords(value float64, full int, unit string) string {
+	return In(i18n.Locale()).StatusWanWords(value, full, unit)
 }
 
-// StatusWanWords says "{full, plural, other {{value, number, ::.0} 万字}}"
+// StatusWanWords says "{unit, select, word {{full, plural, other {{value, number, ::.0} 万词}}} other {{full, plural, other {{value, numbe…"
 // in the language of msgs.
 //
 // 以万计的字数。value 是以万计的数；full
 // 是完整的数，中文只拿它选复数的样子，en 写它。
-func (msgs Messages) StatusWanWords(value float64, full int) string {
-	return Catalog.Format(msgs.locale, "statusWanWords", map[string]any{"value": value, "full": full})
+func (msgs Messages) StatusWanWords(value float64, full int, unit string) string {
+	return Catalog.Format(msgs.locale, "statusWanWords", map[string]any{"value": value, "full": full, "unit": unit})
 }
 
-// StatusSelected says "选中 {count} 字"
+// StatusSelected says "{unit, select, word {选中 {count} 词} other {选中 {count} 字}}"
 // in the language the app shows.
 //
 // 底栏字数：选中了几个字。
-func StatusSelected(count int) string { return In(i18n.Locale()).StatusSelected(count) }
+func StatusSelected(count int, unit string) string {
+	return In(i18n.Locale()).StatusSelected(count, unit)
+}
 
-// StatusSelected says "选中 {count} 字"
+// StatusSelected says "{unit, select, word {选中 {count} 词} other {选中 {count} 字}}"
 // in the language of msgs.
 //
 // 底栏字数：选中了几个字。
-func (msgs Messages) StatusSelected(count int) string {
-	return Catalog.Format(msgs.locale, "statusSelected", map[string]any{"count": count})
+func (msgs Messages) StatusSelected(count int, unit string) string {
+	return Catalog.Format(msgs.locale, "statusSelected", map[string]any{"count": count, "unit": unit})
 }
 
-// StatusChapterWords says "本章 {count} 字"
+// StatusChapterWords says "{unit, select, word {本章 {count} 词} other {本章 {count} 字}}"
 // in the language the app shows.
 //
 // 底栏字数：本章多少字。
-func StatusChapterWords(count int) string { return In(i18n.Locale()).StatusChapterWords(count) }
+func StatusChapterWords(count int, unit string) string {
+	return In(i18n.Locale()).StatusChapterWords(count, unit)
+}
 
-// StatusChapterWords says "本章 {count} 字"
+// StatusChapterWords says "{unit, select, word {本章 {count} 词} other {本章 {count} 字}}"
 // in the language of msgs.
 //
 // 底栏字数：本章多少字。
-func (msgs Messages) StatusChapterWords(count int) string {
-	return Catalog.Format(msgs.locale, "statusChapterWords", map[string]any{"count": count})
+func (msgs Messages) StatusChapterWords(count int, unit string) string {
+	return Catalog.Format(msgs.locale, "statusChapterWords", map[string]any{"count": count, "unit": unit})
 }
 
 // StatusVolumeWords says "本卷 {count}"
@@ -2018,24 +2022,24 @@ func (msgs Messages) StatusGoalHint() string {
 	return Catalog.Format(msgs.locale, "statusGoalHint", nil)
 }
 
-// StatusGoalLabel says "每日目标字数"
+// StatusGoalLabel says "{unit, select, word {每日目标词数} other {每日目标字数}}"
 // in the language the app shows.
-func StatusGoalLabel() string { return In(i18n.Locale()).StatusGoalLabel() }
+func StatusGoalLabel(unit string) string { return In(i18n.Locale()).StatusGoalLabel(unit) }
 
-// StatusGoalLabel says "每日目标字数"
+// StatusGoalLabel says "{unit, select, word {每日目标词数} other {每日目标字数}}"
 // in the language of msgs.
-func (msgs Messages) StatusGoalLabel() string {
-	return Catalog.Format(msgs.locale, "statusGoalLabel", nil)
+func (msgs Messages) StatusGoalLabel(unit string) string {
+	return Catalog.Format(msgs.locale, "statusGoalLabel", map[string]any{"unit": unit})
 }
 
-// StatusGoalNote says "字数旁显示今日字数和目标。"
+// StatusGoalNote says "{unit, select, word {词数旁显示今日词数和目标。} other {字数旁显示今日字数和目标。}}"
 // in the language the app shows.
-func StatusGoalNote() string { return In(i18n.Locale()).StatusGoalNote() }
+func StatusGoalNote(unit string) string { return In(i18n.Locale()).StatusGoalNote(unit) }
 
-// StatusGoalNote says "字数旁显示今日字数和目标。"
+// StatusGoalNote says "{unit, select, word {词数旁显示今日词数和目标。} other {字数旁显示今日字数和目标。}}"
 // in the language of msgs.
-func (msgs Messages) StatusGoalNote() string {
-	return Catalog.Format(msgs.locale, "statusGoalNote", nil)
+func (msgs Messages) StatusGoalNote(unit string) string {
+	return Catalog.Format(msgs.locale, "statusGoalNote", map[string]any{"unit": unit})
 }
 
 // StatusGoalError says "每日目标须为正整数，留空则不设。"
@@ -2048,14 +2052,14 @@ func (msgs Messages) StatusGoalError() string {
 	return Catalog.Format(msgs.locale, "statusGoalError", nil)
 }
 
-// StatusWordsTip says "字数。点击设置每日目标"
+// StatusWordsTip says "{unit, select, word {词数。点击设置每日目标} other {字数。点击设置每日目标}}"
 // in the language the app shows.
-func StatusWordsTip() string { return In(i18n.Locale()).StatusWordsTip() }
+func StatusWordsTip(unit string) string { return In(i18n.Locale()).StatusWordsTip(unit) }
 
-// StatusWordsTip says "字数。点击设置每日目标"
+// StatusWordsTip says "{unit, select, word {词数。点击设置每日目标} other {字数。点击设置每日目标}}"
 // in the language of msgs.
-func (msgs Messages) StatusWordsTip() string {
-	return Catalog.Format(msgs.locale, "statusWordsTip", nil)
+func (msgs Messages) StatusWordsTip(unit string) string {
+	return Catalog.Format(msgs.locale, "statusWordsTip", map[string]any{"unit": unit})
 }
 
 // StatusMorePending says "{count, plural, other {还有 # 条}}"
@@ -4050,18 +4054,18 @@ func (msgs Messages) ChatFateWaiting() string {
 	return Catalog.Format(msgs.locale, "chatFateWaiting", nil)
 }
 
-// ChatWords says "{count} 字"
+// ChatWords says "{unit, select, word {{count} 词} other {{count} 字}}"
 // in the language the app shows.
 //
 // 改稿建议改动的字数。
-func ChatWords(count int) string { return In(i18n.Locale()).ChatWords(count) }
+func ChatWords(count int, unit string) string { return In(i18n.Locale()).ChatWords(count, unit) }
 
-// ChatWords says "{count} 字"
+// ChatWords says "{unit, select, word {{count} 词} other {{count} 字}}"
 // in the language of msgs.
 //
 // 改稿建议改动的字数。
-func (msgs Messages) ChatWords(count int) string {
-	return Catalog.Format(msgs.locale, "chatWords", map[string]any{"count": count})
+func (msgs Messages) ChatWords(count int, unit string) string {
+	return Catalog.Format(msgs.locale, "chatWords", map[string]any{"count": count, "unit": unit})
 }
 
 // ChatDigestRounds says "以上 {count} 轮已整理成摘要"
@@ -4604,14 +4608,14 @@ func (msgs Messages) ChatAttachVolumeTip() string {
 	return Catalog.Format(msgs.locale, "chatAttachVolumeTip", nil)
 }
 
-// ChatAttachChapterTip says "将章纲和光标前约 2000 字一并发送给 AI"
+// ChatAttachChapterTip says "{unit, select, word {将章纲和光标前约 2000 词一并发送给 AI} other {将章纲和光标前约 2000 …"
 // in the language the app shows.
-func ChatAttachChapterTip() string { return In(i18n.Locale()).ChatAttachChapterTip() }
+func ChatAttachChapterTip(unit string) string { return In(i18n.Locale()).ChatAttachChapterTip(unit) }
 
-// ChatAttachChapterTip says "将章纲和光标前约 2000 字一并发送给 AI"
+// ChatAttachChapterTip says "{unit, select, word {将章纲和光标前约 2000 词一并发送给 AI} other {将章纲和光标前约 2000 …"
 // in the language of msgs.
-func (msgs Messages) ChatAttachChapterTip() string {
-	return Catalog.Format(msgs.locale, "chatAttachChapterTip", nil)
+func (msgs Messages) ChatAttachChapterTip(unit string) string {
+	return Catalog.Format(msgs.locale, "chatAttachChapterTip", map[string]any{"unit": unit})
 }
 
 // ChatPartCards says "本章的卡片"
@@ -4716,20 +4720,20 @@ func (msgs Messages) ChatAttachedOmitted(count int, omitted int) string {
 	return Catalog.Format(msgs.locale, "chatAttachedOmitted", map[string]any{"count": count, "omitted": omitted})
 }
 
-// ChatProposalMeta says "{where} · {count, plural, other {# 字}} · {state}"
+// ChatProposalMeta says "{unit, select, word {{where} · {count, plural, other {# 词}} · {state}} other {{where} · {count, plural, other {#…"
 // in the language the app shows.
 //
 // 提议卡片的整行：位置、字数和处理状态。
-func ChatProposalMeta(where string, count int, state string) string {
-	return In(i18n.Locale()).ChatProposalMeta(where, count, state)
+func ChatProposalMeta(where string, count int, state string, unit string) string {
+	return In(i18n.Locale()).ChatProposalMeta(where, count, state, unit)
 }
 
-// ChatProposalMeta says "{where} · {count, plural, other {# 字}} · {state}"
+// ChatProposalMeta says "{unit, select, word {{where} · {count, plural, other {# 词}} · {state}} other {{where} · {count, plural, other {#…"
 // in the language of msgs.
 //
 // 提议卡片的整行：位置、字数和处理状态。
-func (msgs Messages) ChatProposalMeta(where string, count int, state string) string {
-	return Catalog.Format(msgs.locale, "chatProposalMeta", map[string]any{"where": where, "count": count, "state": state})
+func (msgs Messages) ChatProposalMeta(where string, count int, state string, unit string) string {
+	return Catalog.Format(msgs.locale, "chatProposalMeta", map[string]any{"where": where, "count": count, "state": state, "unit": unit})
 }
 
 // ChatAskChapterPace says "这一章的节奏怎么样"
@@ -5462,18 +5466,18 @@ func (msgs Messages) PlanClearSearchHint() string {
 	return Catalog.Format(msgs.locale, "planClearSearchHint", nil)
 }
 
-// CheckMinimum says "{count, plural, other {满 # 字后可检查}}"
+// CheckMinimum says "{unit, select, word {{count, plural, other {满 # 词后可检查}}} other {{count, plural, other {满 # …"
 // in the language the app shows.
 //
 // 应用现有界面的检查文案；原型没有同等的动态消息。
-func CheckMinimum(count int) string { return In(i18n.Locale()).CheckMinimum(count) }
+func CheckMinimum(count int, unit string) string { return In(i18n.Locale()).CheckMinimum(count, unit) }
 
-// CheckMinimum says "{count, plural, other {满 # 字后可检查}}"
+// CheckMinimum says "{unit, select, word {{count, plural, other {满 # 词后可检查}}} other {{count, plural, other {满 # …"
 // in the language of msgs.
 //
 // 应用现有界面的检查文案；原型没有同等的动态消息。
-func (msgs Messages) CheckMinimum(count int) string {
-	return Catalog.Format(msgs.locale, "checkMinimum", map[string]any{"count": count})
+func (msgs Messages) CheckMinimum(count int, unit string) string {
+	return Catalog.Format(msgs.locale, "checkMinimum", map[string]any{"count": count, "unit": unit})
 }
 
 // CheckTextChapter says "正文 · {chapter}"
@@ -7002,20 +7006,20 @@ func (msgs Messages) ShelfPreviewTitle(file string) string {
 	return Catalog.Format(msgs.locale, "shelfPreviewTitle", map[string]any{"file": file})
 }
 
-// ShelfPreviewAbout says "共 {volumes, plural, other {# 卷}} {chapters, plural, other {# 章}}，全书 {words} …"
+// ShelfPreviewAbout says "{unit, select, word {共 {volumes, plural, other {# 卷}} {chapters, plural, other {# 章}}，全书 {words} …"
 // in the language the app shows.
 //
 // 导入预览的说明：卷、章、字数。
-func ShelfPreviewAbout(volumes int, chapters int, words int) string {
-	return In(i18n.Locale()).ShelfPreviewAbout(volumes, chapters, words)
+func ShelfPreviewAbout(volumes int, chapters int, words int, unit string) string {
+	return In(i18n.Locale()).ShelfPreviewAbout(volumes, chapters, words, unit)
 }
 
-// ShelfPreviewAbout says "共 {volumes, plural, other {# 卷}} {chapters, plural, other {# 章}}，全书 {words} …"
+// ShelfPreviewAbout says "{unit, select, word {共 {volumes, plural, other {# 卷}} {chapters, plural, other {# 章}}，全书 {words} …"
 // in the language of msgs.
 //
 // 导入预览的说明：卷、章、字数。
-func (msgs Messages) ShelfPreviewAbout(volumes int, chapters int, words int) string {
-	return Catalog.Format(msgs.locale, "shelfPreviewAbout", map[string]any{"volumes": volumes, "chapters": chapters, "words": words})
+func (msgs Messages) ShelfPreviewAbout(volumes int, chapters int, words int, unit string) string {
+	return Catalog.Format(msgs.locale, "shelfPreviewAbout", map[string]any{"volumes": volumes, "chapters": chapters, "words": words, "unit": unit})
 }
 
 // ShelfVolumesChapters says "卷和章"
@@ -7158,18 +7162,20 @@ func (msgs Messages) ShelfNoChaptersAbout() string {
 	return Catalog.Format(msgs.locale, "shelfNoChaptersAbout", nil)
 }
 
-// ShelfChapterWords says "本章 {count} 字"
+// ShelfChapterWords says "{unit, select, word {本章 {count} 词} other {本章 {count} 字}}"
 // in the language the app shows.
 //
 // 导入预览：当前章的字数。
-func ShelfChapterWords(count int) string { return In(i18n.Locale()).ShelfChapterWords(count) }
+func ShelfChapterWords(count int, unit string) string {
+	return In(i18n.Locale()).ShelfChapterWords(count, unit)
+}
 
-// ShelfChapterWords says "本章 {count} 字"
+// ShelfChapterWords says "{unit, select, word {本章 {count} 词} other {本章 {count} 字}}"
 // in the language of msgs.
 //
 // 导入预览：当前章的字数。
-func (msgs Messages) ShelfChapterWords(count int) string {
-	return Catalog.Format(msgs.locale, "shelfChapterWords", map[string]any{"count": count})
+func (msgs Messages) ShelfChapterWords(count int, unit string) string {
+	return Catalog.Format(msgs.locale, "shelfChapterWords", map[string]any{"count": count, "unit": unit})
 }
 
 // ShelfUntitledBook says "未命名作品"
@@ -8170,18 +8176,20 @@ func (msgs Messages) SnapKindOpening() string {
 	return Catalog.Format(msgs.locale, "snapKindOpening", nil)
 }
 
-// SnapRowInfo says "{kind} · {count} 字"
+// SnapRowInfo says "{unit, select, word {{kind} · {count} 词} other {{kind} · {count} 字}}"
 // in the language the app shows.
 //
 // 快照列表里一行：存的原因和字数。
-func SnapRowInfo(kind string, count int) string { return In(i18n.Locale()).SnapRowInfo(kind, count) }
+func SnapRowInfo(kind string, count int, unit string) string {
+	return In(i18n.Locale()).SnapRowInfo(kind, count, unit)
+}
 
-// SnapRowInfo says "{kind} · {count} 字"
+// SnapRowInfo says "{unit, select, word {{kind} · {count} 词} other {{kind} · {count} 字}}"
 // in the language of msgs.
 //
 // 快照列表里一行：存的原因和字数。
-func (msgs Messages) SnapRowInfo(kind string, count int) string {
-	return Catalog.Format(msgs.locale, "snapRowInfo", map[string]any{"kind": kind, "count": count})
+func (msgs Messages) SnapRowInfo(kind string, count int, unit string) string {
+	return Catalog.Format(msgs.locale, "snapRowInfo", map[string]any{"kind": kind, "count": count, "unit": unit})
 }
 
 // SnapCompare says "与当前对比"
@@ -8400,18 +8408,18 @@ func (msgs Messages) DialogSourceCat() string {
 	return Catalog.Format(msgs.locale, "dialogSourceCat", nil)
 }
 
-// DialogPicked says "已选 {count} 字"
+// DialogPicked says "{unit, select, word {已选 {count} 词} other {已选 {count} 字}}"
 // in the language the app shows.
 //
 // 摘取原文时选中了几个字。
-func DialogPicked(count int) string { return In(i18n.Locale()).DialogPicked(count) }
+func DialogPicked(count int, unit string) string { return In(i18n.Locale()).DialogPicked(count, unit) }
 
-// DialogPicked says "已选 {count} 字"
+// DialogPicked says "{unit, select, word {已选 {count} 词} other {已选 {count} 字}}"
 // in the language of msgs.
 //
 // 摘取原文时选中了几个字。
-func (msgs Messages) DialogPicked(count int) string {
-	return Catalog.Format(msgs.locale, "dialogPicked", map[string]any{"count": count})
+func (msgs Messages) DialogPicked(count int, unit string) string {
+	return Catalog.Format(msgs.locale, "dialogPicked", map[string]any{"count": count, "unit": unit})
 }
 
 // DialogNotPicked says "尚未选中文字"
@@ -8870,24 +8878,24 @@ func (msgs Messages) DraftBusyOther(action string) string {
 	return Catalog.Format(msgs.locale, "draftBusyOther", map[string]any{"action": action})
 }
 
-// DraftGoal says "目标字数（选填）"
+// DraftGoal says "{unit, select, word {目标词数（选填）} other {目标字数（选填）}}"
 // in the language the app shows.
-func DraftGoal() string { return In(i18n.Locale()).DraftGoal() }
+func DraftGoal(unit string) string { return In(i18n.Locale()).DraftGoal(unit) }
 
-// DraftGoal says "目标字数（选填）"
+// DraftGoal says "{unit, select, word {目标词数（选填）} other {目标字数（选填）}}"
 // in the language of msgs.
-func (msgs Messages) DraftGoal() string {
-	return Catalog.Format(msgs.locale, "draftGoal", nil)
+func (msgs Messages) DraftGoal(unit string) string {
+	return Catalog.Format(msgs.locale, "draftGoal", map[string]any{"unit": unit})
 }
 
-// DraftGoalLabel says "目标字数"
+// DraftGoalLabel says "{unit, select, word {目标词数} other {目标字数}}"
 // in the language the app shows.
-func DraftGoalLabel() string { return In(i18n.Locale()).DraftGoalLabel() }
+func DraftGoalLabel(unit string) string { return In(i18n.Locale()).DraftGoalLabel(unit) }
 
-// DraftGoalLabel says "目标字数"
+// DraftGoalLabel says "{unit, select, word {目标词数} other {目标字数}}"
 // in the language of msgs.
-func (msgs Messages) DraftGoalLabel() string {
-	return Catalog.Format(msgs.locale, "draftGoalLabel", nil)
+func (msgs Messages) DraftGoalLabel(unit string) string {
+	return Catalog.Format(msgs.locale, "draftGoalLabel", map[string]any{"unit": unit})
 }
 
 // DraftGoalHint says "由 AI 按章纲判断"
@@ -8900,14 +8908,14 @@ func (msgs Messages) DraftGoalHint() string {
 	return Catalog.Format(msgs.locale, "draftGoalHint", nil)
 }
 
-// DraftGoalInvalid says "目标字数须为正整数，或留空"
+// DraftGoalInvalid says "{unit, select, word {目标词数须为正整数，或留空} other {目标字数须为正整数，或留空}}"
 // in the language the app shows.
-func DraftGoalInvalid() string { return In(i18n.Locale()).DraftGoalInvalid() }
+func DraftGoalInvalid(unit string) string { return In(i18n.Locale()).DraftGoalInvalid(unit) }
 
-// DraftGoalInvalid says "目标字数须为正整数，或留空"
+// DraftGoalInvalid says "{unit, select, word {目标词数须为正整数，或留空} other {目标字数须为正整数，或留空}}"
 // in the language of msgs.
-func (msgs Messages) DraftGoalInvalid() string {
-	return Catalog.Format(msgs.locale, "draftGoalInvalid", nil)
+func (msgs Messages) DraftGoalInvalid(unit string) string {
+	return Catalog.Format(msgs.locale, "draftGoalInvalid", map[string]any{"unit": unit})
 }
 
 // DraftExisting says "本章已有内容"
@@ -10022,18 +10030,18 @@ func (msgs Messages) ModNamesAbout() string {
 	return Catalog.Format(msgs.locale, "modNamesAbout", nil)
 }
 
-// ModGoal says "字数目标"
+// ModGoal says "{unit, select, word {词数目标} other {字数目标}}"
 // in the language the app shows.
 //
 // 「功能」里一个模块的名字。
-func ModGoal() string { return In(i18n.Locale()).ModGoal() }
+func ModGoal(unit string) string { return In(i18n.Locale()).ModGoal(unit) }
 
-// ModGoal says "字数目标"
+// ModGoal says "{unit, select, word {词数目标} other {字数目标}}"
 // in the language of msgs.
 //
 // 「功能」里一个模块的名字。
-func (msgs Messages) ModGoal() string {
-	return Catalog.Format(msgs.locale, "modGoal", nil)
+func (msgs Messages) ModGoal(unit string) string {
+	return Catalog.Format(msgs.locale, "modGoal", map[string]any{"unit": unit})
 }
 
 // ModGoalAbout says "每天写多少字"
@@ -10778,4 +10786,16 @@ func ShelfNoBook(path string) string { return In(i18n.Locale()).ShelfNoBook(path
 // Application error or display text; does not change saved book content.
 func (msgs Messages) ShelfNoBook(path string) string {
 	return Catalog.Format(msgs.locale, "shelfNoBook", map[string]any{"path": path})
+}
+
+// BookLanguageUnsupported says "作品语言“{language}”不受支持。请使用 zh-Hans 或 en。"
+// in the language the app shows.
+func BookLanguageUnsupported(language string) string {
+	return In(i18n.Locale()).BookLanguageUnsupported(language)
+}
+
+// BookLanguageUnsupported says "作品语言“{language}”不受支持。请使用 zh-Hans 或 en。"
+// in the language of msgs.
+func (msgs Messages) BookLanguageUnsupported(language string) string {
+	return Catalog.Format(msgs.locale, "bookLanguageUnsupported", map[string]any{"language": language})
 }

@@ -40,6 +40,13 @@ func esc(s string) string {
 // Docx is d as a Word document. The cover is a section of its own, so the
 // pages of the rest are numbered from 1 at the foot.
 func (d Doc) Docx() ([]byte, error) {
+	if d.Language == "en" {
+		d = d.english()
+	}
+	authorLabel, countLabel := "作者：", "字数："
+	if d.Language == "en" {
+		authorLabel, countLabel = "Author: ", "Word count: "
+	}
 	var body strings.Builder
 	para := func(props, runs string) {
 		body.WriteString("<w:p>")
@@ -63,10 +70,10 @@ func (d Doc) Docx() ([]byte, error) {
 	if c := d.Cover; c != nil {
 		para(fmt.Sprintf(`<w:pStyle w:val="Title"/><w:spacing w:before="%d" w:after="1200"/>`, coverDrop), run(c.Title, false))
 		if c.Pen != "" {
-			para(centered, run("作者："+c.Pen, false))
+			para(centered, run(authorLabel+c.Pen, false))
 		}
 		// The cover's section ends with this paragraph; it has no footer.
-		para(centered+`<w:sectPr>`+page+`</w:sectPr>`, run("字数："+c.Words, false))
+		para(centered+`<w:sectPr>`+page+`</w:sectPr>`, run(countLabel+c.Words, false))
 	} else if d.Title != "" {
 		para(`<w:pStyle w:val="Title"/>`, run(d.Title, false))
 	}
@@ -95,7 +102,7 @@ func (d Doc) Docx() ([]byte, error) {
 		{"word/_rels/document.xml.rels", documentRels},
 		{"word/document.xml", xmlHeader +
 			`<w:document ` + wordNS + `><w:body>` + body.String() + `</w:body></w:document>`},
-		{"word/styles.xml", styles()},
+		{"word/styles.xml", d.styles()},
 		{"word/footer1.xml", xmlHeader +
 			`<w:ftr ` + wordNS + `><w:p><w:pPr>` + centered + `</w:pPr><w:fldSimple w:instr=" PAGE "><w:r><w:t>1</w:t></w:r></w:fldSimple></w:p></w:ftr>`},
 	}
@@ -162,4 +169,13 @@ func styles() string {
 	}
 	b.WriteString(`</w:styles>`)
 	return b.String()
+}
+
+func (d Doc) styles() string {
+	s := styles()
+	if d.Language != "en" {
+		return s
+	}
+	s = strings.NewReplacer("宋体", "Times New Roman", "黑体", "Georgia", `w:val="en-US" w:eastAsia="zh-CN"`, `w:val="en" w:eastAsia="en"`, `w:firstLineChars="200"`, `w:firstLineChars="0"`, fmt.Sprintf(`w:firstLine="%d"`, firstLine), `w:firstLine="0"`).Replace(s)
+	return s
 }

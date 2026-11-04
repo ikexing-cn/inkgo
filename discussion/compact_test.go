@@ -125,7 +125,7 @@ func TestALongTalkIsCompacted(t *testing.T) {
 	if r := events[len(events)-1]; r.Role != workspace.RoleAssistant || r.Sent.Part(workspace.PartDigest) == 0 {
 		t.Fatalf("the reply did not record the digest: %+v", r.Sent)
 	}
-	found := (&toolbox{allowed: tools(workspace.Work{}), store: e.Store, session: session}).searchTalks(searchArgs{Query: "井边的灯"})
+	found := (&toolbox{allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store, session: session}).searchTalks(searchArgs{Query: "井边的灯"})
 	if found.failed || !strings.Contains(found.text, "作者：井边的灯为什么不亮") {
 		t.Fatalf("search_talks lost what was compacted: %s", found.text)
 	}
@@ -241,15 +241,15 @@ func TestAFailedCompactionIsRetried(t *testing.T) {
 // A turn too long for a digest request by itself goes cut to what fits.
 func TestATurnTooLongIsCut(t *testing.T) {
 	long := exchange{model.Message{Role: workspace.RoleUser, Content: strings.Repeat("问", 1000)}, model.Message{Role: workspace.RoleAssistant, Content: strings.Repeat("答", 1000)}, 1}
-	b := prompt.NewBudget(1512)
+	b := prompt.NewBudget(1512, workspace.Chinese)
 	msgs, took := fill(b, []exchange{long, long}, true)
 	if took != 1 || len(msgs) != 2 || !strings.HasSuffix(msgs[0].Content, prompt.CutMark) || !strings.HasSuffix(msgs[1].Content, prompt.CutMark) || b.Left() < 0 {
 		t.Fatalf("took %d, left %d", took, b.Left())
 	}
-	if cut := prompt.ClipTokens(long.user.Content, 300); prompt.Estimate(cut) > 300 || prompt.Estimate(cut+"问") <= 300 || prompt.ClipTokens("短", 300) != "短" {
+	if cut := prompt.ClipTokens(long.user.Content, 300, workspace.Chinese); prompt.Estimate(cut, workspace.Chinese) > 300 || prompt.Estimate(cut+"问", workspace.Chinese) <= 300 || prompt.ClipTokens("短", 300, workspace.Chinese) != "短" {
 		t.Fatalf("cut to %d runes", len([]rune(cut)))
 	}
-	if _, took = fill(prompt.NewBudget(1512), []exchange{long}, false); took != 0 {
+	if _, took = fill(prompt.NewBudget(1512, workspace.Chinese), []exchange{long}, false); took != 0 {
 		t.Fatal("the talk cut a turn")
 	}
 }

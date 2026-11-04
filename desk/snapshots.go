@@ -145,7 +145,7 @@ func (a *App) snapshots(c *ui.Context) {
 							}
 							b.Children(func() {
 								ui.Text(c, at).FontSize(kit.FsControl)
-								ui.Text(c, locales.SnapRowInfo(a.snapReason(sn.Reason), sn.Count)).FontSize(kit.FsNote).TextColor(t.TextMuted)
+								ui.Text(c, locales.SnapRowInfo(a.snapReason(sn.Reason), sn.Count, a.countUnit())).FontSize(kit.FsNote).TextColor(t.TextMuted)
 							})
 							if b.Clicked() {
 								a.pickSnapshot(sn.Name)

@@ -22,7 +22,7 @@ func TestCheckFollowsItsChapter(t *testing.T) {
 		t.Fatal(k, err)
 	}
 	ch, _ := s.ReadChapter(one)
-	want := Check{Of: ProseHash(ch.Text), Words: Count(ch.Text), By: "deepseek/deepseek-flash", At: time.Now().Truncate(time.Second),
+	want := Check{Of: ProseHash(ch.Text), Words: Chinese.Count(ch.Text), By: "deepseek/deepseek-flash", At: time.Now().Truncate(time.Second),
 		Findings: []Finding{{ID: NewID(), Kind: FindConflict, Title: "林晚怕黑", Quote: "一个人走进了没有灯的巷子", Entry: NewID(), Says: "她很怕黑", Meant: true}}}
 	if err := s.WriteCheck(one, want); err != nil {
 		t.Fatal(err)

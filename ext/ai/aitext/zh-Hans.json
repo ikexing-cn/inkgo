@@ -461,15 +461,8 @@
       }
     }
   },
-  "checkShortChapter": "这一章还不到 {count, plural, other {#}} 字，不用检查",
-  "@checkShortChapter": {
-    "description": "writing.ShortChapterError failure. Translated by desk for the AI toast.",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
+  "checkShortChapter": "{unit, select, word {这一章还不到 {count, plural, other {#}} 词，不用检查} other {这一章还不到 {count, plural, other {#}} 字，不用检查}}",
+  "@checkShortChapter": {"description": "writing.ShortChapterError failure. Translated by desk for the AI toast.", "placeholders": {"count": {"type": "int"}, "unit": {"type": "String", "example": "character"}}},
   "checkResultError": "模型给的检查结果读不了，可以再查一次：{reason}",
   "@checkResultError": {
     "description": "writing.CheckResultError failure. Translated by desk for the AI toast.",

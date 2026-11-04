@@ -169,7 +169,7 @@ func TestShotShelf(t *testing.T) {
 		{"旧城灯匠", "出版小说", strings.Repeat("她修了七年路灯。", 400)},
 		{"井边", "剧本", ""},
 	} {
-		s, err := workspace.Create(filepath.Join(root, w.name), w.name, w.genre)
+		s, err := workspace.Create(filepath.Join(root, w.name), w.name, w.genre, "zh-Hans")
 		if err != nil {
 			t.Fatal(err)
 		}

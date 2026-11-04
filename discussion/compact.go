@@ -45,9 +45,9 @@ func (e *Engine) compact(ctx context.Context, session string, before int, user w
 	_, turns := uncompacted(events)
 	index := 0
 	if e.Material.Setting {
-		index = prompt.Estimate(talkIndex(w, set, viewOf(set, tree, along.Fixed)))
+		index = prompt.Estimate(talkIndex(w, set, viewOf(set, tree, along.Fixed)), w.Language)
 	}
-	n := due(e.Talk.Model, probe.Sent, measured(events, probe.Sent), index, turns)
+	n := due(e.Talk.Model, probe.Sent, measured(events, probe.Sent), index, turns, w.Language)
 	if n == 0 {
 		return nil
 	}
@@ -99,7 +99,7 @@ func (e *Engine) compact(ctx context.Context, session string, before int, user w
 // window, all but the last. The setting counts as it would go with the
 // talk that short: whole, or as its index of index tokens, which shift
 // does not measure.
-func due(m model.Model, sent *workspace.Sent, shift, index int, turns []exchange) int {
+func due(m model.Model, sent *workspace.Sent, shift, index int, turns []exchange, language workspace.Language) int {
 	limit := min(m.Window*m.CompactAt/100, m.Input())
 	keep := m.Window * keepPercent / 100
 	setting, talk := sent.Part(workspace.PartSetting), sent.Part(workspace.PartTalk)
@@ -112,7 +112,7 @@ func due(m model.Model, sent *workspace.Sent, shift, index int, turns []exchange
 	}
 	n := 0
 	for ; n < len(turns)-1 && talk > keep; n++ {
-		talk -= prompt.Estimate(turns[n].text())
+		talk -= prompt.Estimate(turns[n].text(), language)
 	}
 	return n
 }

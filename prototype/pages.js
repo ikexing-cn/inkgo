@@ -308,7 +308,7 @@ function importPreviewDialog() {
   const side = !cur ? '<div class="snap-side">' + empty(L.shelfNoChapters(), L.shelfNoChaptersAbout()) + '</div>' : '<div class="snap-side">' +
     `<div class="import-head"><input class="in chapter-title import-title" value="${t(cur.title)}" placeholder="${t(L.commonUntitled())}" aria-label="${t(L.shelfChapterTitle())}" spellcheck="false"${onInput((v) => { impRetire(); set((s) => ({ imp: { ...s.imp, chapters: s.imp.chapters.map((c) => (c.id === cur.id ? { ...c, title: v } : c)) } })) })}${keys(toProse)}>${acts}</div><div class="note">${t(L.shelfSplitNote())}</div>` +
     `<div class="snap-text imp-text scroll"><div class="import-prose" contenteditable="plaintext-only" spellcheck="false" aria-label="${t(L.shelfTextLabel())}"${onInput(importWrote)}${onKey(importKey)}${onPaste(importPaste)}>${(cur.paras.length ? cur.paras : ['']).map((p, i) => `<div data-para="${i}">${p ? t(p) : '<br>'}</div>`).join('')}</div></div>` +
-    `<div class="faint">${t(L.shelfChapterWords(impWords(cur)))}</div></div>`
+    `<div class="faint">${t(L.shelfChapterWords(impWords(cur), 'character'))}</div></div>`
   const ok = !!chapters.length
   const go = () => {
     const id = 'book' + S.n, words = total
@@ -316,7 +316,7 @@ function importPreviewDialog() {
     openBook(id)
     say(L.shelfImported(chapters.length), w.name, 'ok')
   }
-  return dialog('preview', dialogHead(L.shelfPreviewTitle(BOOK.source.file), L.shelfPreviewAbout(imp.volumes.length, imp.chapters.length, total)) +
+  return dialog('preview', dialogHead(L.shelfPreviewTitle(BOOK.source.file), L.shelfPreviewAbout(imp.volumes.length, imp.chapters.length, total, 'character')) +
     '<div class="snaps">' +
     `<div class="import-tree">${add}<div class="tree scroll">${tree}</div></div>` + side + '</div>' +
     buttons(button(L.commonCancel(), () => set({ dialog: null, imp: null, ...SHUT })), button(L.commonBack(), () => set({ dialog: { kind: 'importForm' }, ...SHUT })), button(L.commonOK(), ok ? go : null, ok ? 'primary' : 'primary off'))) +

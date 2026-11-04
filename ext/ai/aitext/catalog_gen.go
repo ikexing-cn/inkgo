@@ -1631,18 +1631,20 @@ func (msgs Messages) StatusOutputLimit(limit string) string {
 	return Catalog.Format(msgs.locale, "statusOutputLimit", map[string]any{"limit": limit})
 }
 
-// CheckShortChapter says "这一章还不到 {count, plural, other {#}} 字，不用检查"
+// CheckShortChapter says "{unit, select, word {这一章还不到 {count, plural, other {#}} 词，不用检查} other {这一章还不到 {count, plural, other {#}} 字，不用检查}}"
 // in the language the app shows.
 //
 // writing.ShortChapterError failure. Translated by desk for the AI toast.
-func CheckShortChapter(count int) string { return In(i18n.Locale()).CheckShortChapter(count) }
+func CheckShortChapter(count int, unit string) string {
+	return In(i18n.Locale()).CheckShortChapter(count, unit)
+}
 
-// CheckShortChapter says "这一章还不到 {count, plural, other {#}} 字，不用检查"
+// CheckShortChapter says "{unit, select, word {这一章还不到 {count, plural, other {#}} 词，不用检查} other {这一章还不到 {count, plural, other {#}} 字，不用检查}}"
 // in the language of msgs.
 //
 // writing.ShortChapterError failure. Translated by desk for the AI toast.
-func (msgs Messages) CheckShortChapter(count int) string {
-	return Catalog.Format(msgs.locale, "checkShortChapter", map[string]any{"count": count})
+func (msgs Messages) CheckShortChapter(count int, unit string) string {
+	return Catalog.Format(msgs.locale, "checkShortChapter", map[string]any{"count": count, "unit": unit})
 }
 
 // CheckResultError says "模型给的检查结果读不了，可以再查一次：{reason}"

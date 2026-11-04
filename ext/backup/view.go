@@ -137,7 +137,7 @@ func (a *View) Run(sv ui.Services) {
 	a.jobs.Get().StartJob(sv, func() func() {
 		fl, err := readWork(st)
 		if err == nil {
-			_, _, err = archive.Make(fl, s.Dir, work.Name, fl.Meta(work.ID), s.Kept(), time.Now())
+			_, _, err = archive.Make(fl, s.Dir, work.Name, fl.Meta(work.ID, work.Language), s.Kept(), time.Now())
 		}
 		// Done before the result is handed back: a closing work waits on
 		// done from the view thread, which runs no jobs meanwhile.
@@ -171,7 +171,7 @@ func (a *View) backupNow() {
 	work := st.Work()
 	fl, err := readWork(st)
 	if err == nil {
-		_, _, err = archive.Make(fl, s.Dir, work.Name, fl.Meta(work.ID), s.Kept(), time.Now())
+		_, _, err = archive.Make(fl, s.Dir, work.Name, fl.Meta(work.ID, work.Language), s.Kept(), time.Now())
 	}
 	a.RecordResult(s, err)
 }
@@ -239,8 +239,8 @@ func lastSaid(s archive.Settings, now time.Time) string {
 
 // Kept says what the last of the backups listed holds and how many there
 // are, newest first, with the day of the first when there are more.
-func Kept(list []archive.Info, now time.Time) string {
-	note := backuptext.BackupSummary(kit.Words(list[0].Words), list[0].Chapters, len(list))
+func Kept(list []archive.Info, now time.Time, language workspace.Language) string {
+	note := backuptext.BackupSummary(kit.Words(list[0].Words, language), list[0].Chapters, len(list))
 	if len(list) > 1 {
 		note = backuptext.BackupSummaryOldest(note, kit.DayOf(list[len(list)-1].At, now))
 	}
@@ -564,7 +564,7 @@ func (a *View) backupSettingsView(c *ui.Context) {
 		ui.Column(c).Grow(1).Shrink(1).Children(func() {
 			title, note := backuptext.BackupDone(kit.When(s.Last, now)), ""
 			if len(list) > 0 {
-				note = Kept(list, now)
+				note = Kept(list, now, a.book.Get().Store().Work().Language)
 			}
 			switch {
 			case a.State.Running:

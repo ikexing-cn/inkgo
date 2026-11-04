@@ -18,7 +18,7 @@ import (
 )
 
 func BenchmarkSearchBook(b *testing.B) {
-	st, err := workspace.Create(filepath.Join(b.TempDir(), "work"), "基准作品", "非虚构")
+	st, err := workspace.Create(filepath.Join(b.TempDir(), "work"), "基准作品", "非虚构", "zh-Hans")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -32,7 +32,7 @@ func BenchmarkSearchBook(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
-	box := toolbox{allowed: tools(workspace.Work{}), store: st}
+	box := toolbox{allowed: tools(workspace.Work{Language: workspace.Chinese}), store: st}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for range b.N {
@@ -235,7 +235,7 @@ func TestNoteKeepsTheRules(t *testing.T) {
 	revise(t, e,
 		workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Names: []string{"林晚"}, Text: "林晚是主角"},
 		workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceOpen, Category: "规则", Text: "雨每年停一天"})
-	box := &toolbox{allowed: tools(workspace.Work{}), store: e.Store, session: session, turn: ok.ID, model: inference.Model{Name: "deepseek/deepseek-flash"}}
+	box := &toolbox{allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store, session: session, turn: ok.ID, model: inference.Model{Name: "deepseek/deepseek-flash"}}
 	for _, c := range []struct {
 		in   noteArgs
 		want string // in the refusal; empty when it is noted
@@ -296,7 +296,7 @@ func TestToolsReadTheBook(t *testing.T) {
 	write(v2, "雨", "又下雨了。")
 	write(v2, "第三章：停电", "灯灭了。")
 	turn(t, e, session, "灯是谁点的？", "也许是她妹妹。")
-	box := &toolbox{allowed: tools(workspace.Work{}), store: e.Store, session: session}
+	box := &toolbox{allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store, session: session}
 	for _, c := range []struct {
 		name string
 		in   map[string]any
@@ -342,7 +342,7 @@ func TestToolsReadTheBook(t *testing.T) {
 }
 
 func TestReadSummaryIsAnUnknownTool(t *testing.T) {
-	box := &toolbox{allowed: tools(workspace.Work{})}
+	box := &toolbox{allowed: tools(workspace.Work{Language: workspace.Chinese})}
 	c := call("old", "read_summary", map[string]any{"chapters": []string{"第三章", "雪"}})
 	if out := box.run(c); !out.failed || out.text != "没有叫 read_summary 的工具" {
 		t.Fatalf("retired tool: %+v", out)
@@ -387,7 +387,7 @@ func TestSearchBookIgnoresDamagedCompanions(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			box := toolbox{allowed: tools(workspace.Work{}), store: e.Store}
+			box := toolbox{allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store}
 			out := box.searchBook(searchArgs{Query: "林晚"})
 			if out.failed || out.text != "共 1 处，在「章节」。\n「章节」第 1 段：雨中的林晚" {
 				t.Fatalf("prose-only search = %+v", out)
@@ -397,7 +397,7 @@ func TestSearchBookIgnoresDamagedCompanions(t *testing.T) {
 }
 
 func TestLabelsWithoutUnneededReads(t *testing.T) {
-	box := toolbox{allowed: tools(workspace.Work{})}
+	box := toolbox{allowed: tools(workspace.Work{Language: workspace.Chinese})}
 	for _, c := range []struct {
 		name string
 		in   map[string]any
@@ -472,7 +472,7 @@ func TestToolSchemasMatchTheirArguments(t *testing.T) {
 		var schema struct {
 			Properties map[string]json.RawMessage `json:"properties"`
 		}
-		if err := json.Unmarshal(tl.schema(workspace.Work{}), &schema); err != nil {
+		if err := json.Unmarshal(tl.schema(workspace.Work{Language: workspace.Chinese}), &schema); err != nil {
 			t.Fatalf("%s schema: %v", tl.name, err)
 		}
 		var properties []string

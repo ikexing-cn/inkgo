@@ -55,9 +55,33 @@ func (s *Store) outlines(pick func(*Node) bool) (map[string]string, error) {
 	return out, nil
 }
 
-// Count is how many characters a text has as writers count them: every
-// character but white space.
-func Count(s string) int {
+// Count measures text using the book language, with CJK counted individually.
+func (l Language) Count(s string) int {
+	if l == English {
+		r := []rune(s)
+		n := 0
+		inside := false
+		for i, ch := range r {
+			cjk := unicode.In(ch, unicode.Han, unicode.Hiragana, unicode.Katakana, unicode.Hangul)
+			if cjk {
+				n++
+				inside = false
+				continue
+			}
+			if unicode.IsLetter(ch) || unicode.IsDigit(ch) {
+				if !inside {
+					n++
+				}
+				inside = true
+				continue
+			}
+			if (ch == '\'' || ch == '-') && inside && i+1 < len(r) && (unicode.IsLetter(r[i+1]) || unicode.IsDigit(r[i+1])) {
+				continue
+			}
+			inside = false
+		}
+		return n
+	}
 	n := 0
 	for _, r := range s {
 		if !unicode.IsSpace(r) {
@@ -75,7 +99,7 @@ func (s *Store) Counts() (map[string]int, error) {
 	}
 	counts := map[string]int{}
 	for id, text := range texts {
-		counts[id] = Count(text)
+		counts[id] = s.Work().Language.Count(text)
 	}
 	return counts, nil
 }

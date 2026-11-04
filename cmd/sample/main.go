@@ -87,9 +87,9 @@ func writeAll(dir string) ([]string, error) {
 }
 
 type book struct {
-	name, genre string
-	entries     []workspace.Op
-	nodes       []node
+	name, genre, language string
+	entries               []workspace.Op
+	nodes                 []node
 }
 
 // node is a volume, or a chapter of the volume before it.
@@ -131,6 +131,8 @@ func parse(src string) (book, error) {
 		case last < 0:
 			if v, is = rest("书名："); is {
 				b.name = v
+			} else if v, is = rest("语言："); is {
+				b.language = v
 			} else if v, is = rest("题材："); is {
 				b.genre = v
 			} else {
@@ -176,7 +178,12 @@ var marked = regexp.MustCompile(`\{(伏|收|弃):([^|}]*)\|([^}]*)\}`)
 
 // write makes the work in dir, which must be missing or empty.
 func (b book) write(dir string) error {
-	s, err := workspace.Create(dir, b.name, b.genre)
+	s, err := workspace.Create(dir, b.name, b.genre, func() workspace.Language {
+		if b.language == "en" {
+			return "en"
+		}
+		return "zh-Hans"
+	}())
 	if err != nil {
 		return err
 	}

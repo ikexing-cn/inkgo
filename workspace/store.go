@@ -86,7 +86,7 @@ func IsWork(dir string) bool {
 
 // Create accepts a missing or empty directory. It never replaces an existing
 // workspace or adopts unrelated files in a nonempty directory.
-func Create(dir, name, genre string) (*Store, error) {
+func Create(dir, name, genre string, language Language) (*Store, error) {
 	root, err := filepath.Abs(dir)
 	if err != nil {
 		return nil, err
@@ -98,7 +98,10 @@ func Create(dir, name, genre string) (*Store, error) {
 	if len(entries) > 0 {
 		return nil, fmt.Errorf("%s: directory is not empty", root)
 	}
-	w := Work{Schema: Schema, ID: NewID(), Name: name, Genre: genre, Categories: Categories(genre)}
+	if language == "" {
+		language = Chinese
+	}
+	w := Work{Language: language, Schema: Schema, ID: NewID(), Name: name, Genre: genre, Categories: Categories(genre, language)}
 	if err = validateWork(w); err != nil {
 		return nil, err
 	}
@@ -230,6 +233,9 @@ func (s *Store) reloadWork() error {
 		Bookkeeping Selection `yaml:"bookkeeping"`
 	}
 	if err = decodeYAML(b, &w); err == nil {
+		if w.Language == "" {
+			w.Language = Chinese
+		}
 		err = validateWork(w.Work)
 	}
 	if err != nil {
@@ -304,7 +310,7 @@ func (s *Store) RemoveCategory(name string) error {
 		return err
 	}
 	defer unlock()
-	if name == Other {
+	if name == s.work.Language.OtherCategory() {
 		return fmt.Errorf("categories: cannot remove %q", Other)
 	}
 	w := cloneWork(s.work)
@@ -326,7 +332,7 @@ func (s *Store) RemoveCategory(name string) error {
 	var ops []Op
 	for _, e := range set.Entries {
 		if e.Category == name {
-			ops = append(ops, Op{Op: OpMove, Entry: e.ID, Category: Other})
+			ops = append(ops, Op{Op: OpMove, Entry: e.ID, Category: s.work.Language.OtherCategory()})
 		}
 	}
 	if len(ops) > 0 {

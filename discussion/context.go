@@ -157,16 +157,19 @@ func (v view) note() string {
 func lay(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree, t talk) (Context, int, error) {
 	out := Context{} // the reply may take all the model gives: its output is kept out of the room
 	rules := rulesFor(t.material)
+	if w.Language == "en" {
+		rules += "\n- In edit proposals, the prose is written in English."
+	}
 	switch {
 	case t.fixed != nil:
-		rules += "\n\n" + originRulesFor(t.fixed.Origin, t.material)
+		rules += "\n\n" + originRulesFor(t.fixed.Origin, t.material, w.Language)
 	case t.near:
 		rules += "\n\n" + besideRulesFor(t.material)
 	}
 	tooLong := &model.SetupError{Err: &model.ContextLimitError{Part: "message"}}
 	out.Request.Tools = toolsFor(w, t.material)
 	told := withTools(rules, out.Request.Tools)
-	b := prompt.NewBudget(room)
+	b := prompt.NewBudget(room, w.Language)
 	input := t.input
 	if !b.Must(workspace.PartRules, told) || !b.Must(workspace.PartInput, input) {
 		return out, 0, tooLong
@@ -201,7 +204,7 @@ func lay(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree,
 	}
 	// What the author is writing goes with their words: they asked beside it.
 	if t.beside != nil {
-		attached, items := t.beside.render(b, t.material)
+		attached, items := t.beside.render(b, t.material, w.Language)
 		if b.Left() < 0 {
 			return out, 0, tooLong
 		}
@@ -269,7 +272,7 @@ func fill(b *prompt.Budget, turns []exchange, oldest bool) ([]model.Message, int
 	}
 	if took == 0 && oldest && len(turns) > 0 {
 		x, half := turns[0], b.Left()/2
-		x.user.Content, x.reply.Content = prompt.ClipTokens(x.user.Content, half), prompt.ClipTokens(x.reply.Content, half)
+		x.user.Content, x.reply.Content = b.Clip(x.user.Content, half), b.Clip(x.reply.Content, half)
 		if b.Take(workspace.PartTalk, x.text()) {
 			msgs, took = []model.Message{x.user, x.reply}, 1
 		}

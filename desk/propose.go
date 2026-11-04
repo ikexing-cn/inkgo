@@ -563,7 +563,7 @@ func (a *App) propCardOf(c *ui.Context, p workspace.Proposal, live *prop, fate s
 				a.showProp(live)
 			}
 		})
-		ui.Text(c, locales.ChatProposalMeta(where, workspace.Count(p.Text), state)).FontSize(kit.FsNote).TextColor(t.TextMuted)
+		ui.Text(c, locales.ChatProposalMeta(where, a.Store.Work().Language.Count(p.Text), state, a.countUnit())).FontSize(kit.FsNote).TextColor(t.TextMuted)
 	})
 }
 

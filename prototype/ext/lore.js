@@ -282,7 +282,7 @@ function sourceDialog(d) {
   }
   return dialog('source', dialogHead(L.dialogSourceTitle(), L.dialogSourceAbout()) +
     `<div class="source-text scroll"${onUp(read)}>${t(d.text)}</div>` +
-    `<div class="source-line">${choose('source-cat', d.cat, S.cats, (v) => set((s) => ({ dialog: { ...s.dialog, cat: v } })), L.dialogSourceCat())}<div class="${d.picked ? 'ink' : 'faint'}">${t(d.picked ? L.dialogPicked(d.picked.length) : L.dialogNotPicked())}</div><div class="grow"></div>` +
+    `<div class="source-line">${choose('source-cat', d.cat, S.cats, (v) => set((s) => ({ dialog: { ...s.dialog, cat: v } })), L.dialogSourceCat())}<div class="${d.picked ? 'ink' : 'faint'}">${t(d.picked ? L.dialogPicked(d.picked.length, 'character') : L.dialogNotPicked())}</div><div class="grow"></div>` +
     `<div class="hit link"${onClick(shut)}>${t(L.dialogSourceCollapse())}</div>${button(L.dialogAddSetting(), add, d.picked ? 'primary' : 'primary off')}</div>`)
 }
 

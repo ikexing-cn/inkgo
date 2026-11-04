@@ -31,7 +31,7 @@ func TestPlanRanges(t *testing.T) {
 		{"unknown scope", "a", "unknown", "", "", "", []string{"outer", "inner", "a", "b", "c"}, 5, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			p := BuildPlan(pieces, nil, tc.current, Options{Prose: true}, Selection{Scope: tc.scope, From: tc.from, To: tc.to}, func(from, to string) string { return from + "至" + to })
+			p := BuildPlan(pieces, nil, tc.current, Options{Prose: true}, Selection{Scope: tc.scope, From: tc.from, To: tc.to}, func(from, to string) string { return from + "至" + to }, workspace.Chinese)
 			var ids []string
 			for _, piece := range p.Pieces {
 				ids = append(ids, piece.ID)
@@ -63,7 +63,7 @@ func TestPlanRanges(t *testing.T) {
 func TestPlanContents(t *testing.T) {
 	for mask := 0; mask < 8; mask++ {
 		prose, outline, setting := mask&1 != 0, mask&2 != 0, mask&4 != 0
-		p := BuildPlan(book, []workspace.Entry{{Place: workspace.PlaceBody}}, "1", Options{Prose: prose, Outline: outline, Setting: setting}, Selection{Scope: ScopeWork}, func(from, to string) string { return from + "至" + to })
+		p := BuildPlan(book, []workspace.Entry{{Place: workspace.PlaceBody}}, "1", Options{Prose: prose, Outline: outline, Setting: setting}, Selection{Scope: ScopeWork}, func(from, to string) string { return from + "至" + to }, workspace.Chinese)
 		var want []string
 		for i, name := range []string{ProseContent, OutlineContent, SettingContent} {
 			if mask&(1<<i) != 0 {
@@ -84,7 +84,7 @@ func TestPlanContents(t *testing.T) {
 		{book[2:], []workspace.Entry{{Place: workspace.PlaceOpen}}, []string{ProseContent}, "", SkipNoOutlines, SkipNoLore},
 		{nil, []workspace.Entry{{Place: workspace.PlaceBody}}, []string{SettingContent}, SkipNoChapters, SkipNoChapters, ""},
 	} {
-		p := BuildPlan(tc.pieces, tc.entries, "", Options{Prose: true, Outline: true, Setting: true, Text: true}, Selection{Scope: ScopeWork}, func(from, to string) string { return from + "至" + to })
+		p := BuildPlan(tc.pieces, tc.entries, "", Options{Prose: true, Outline: true, Setting: true, Text: true}, Selection{Scope: ScopeWork}, func(from, to string) string { return from + "至" + to }, workspace.Chinese)
 		if !slices.Equal(p.Going, tc.going) || p.Skip[ProseContent] != tc.prose || p.Skip[OutlineContent] != tc.outline || p.Skip[SettingContent] != tc.setting {
 			t.Fatal(p)
 		}
@@ -99,7 +99,7 @@ func TestPlanContents(t *testing.T) {
 		{true, false, false, true, AboutText},
 		{true, false, false, false, AboutWord},
 	} {
-		p := BuildPlan(book, nil, "", Options{Prose: tc.prose, Outline: tc.outline, Setting: tc.setting, Text: tc.text}, Selection{Scope: ScopeWork}, func(from, to string) string { return from + "至" + to })
+		p := BuildPlan(book, nil, "", Options{Prose: tc.prose, Outline: tc.outline, Setting: tc.setting, Text: tc.text}, Selection{Scope: ScopeWork}, func(from, to string) string { return from + "至" + to }, workspace.Chinese)
 		if p.About != tc.about {
 			t.Fatal(p.About)
 		}
@@ -112,7 +112,7 @@ func TestChapterNames(t *testing.T) {
 	if !slices.Equal(names, []string{"同名", "同名 (2)", "同名 (2) (2)"}) || ids[names[0]] != "a" || ids[names[1]] != "b" || ids[names[2]] != "c" {
 		t.Fatal(names, ids)
 	}
-	p := BuildPlan(pieces[1:2], nil, "a", Options{Prose: true}, Selection{Scope: ScopeSpan}, func(from, to string) string { return from + "至" + to })
+	p := BuildPlan(pieces[1:2], nil, "a", Options{Prose: true}, Selection{Scope: ScopeSpan}, func(from, to string) string { return from + "至" + to }, workspace.Chinese)
 	if !p.Whole || !slices.Equal(p.Scopes, []string{ScopeWork, ScopeChapter}) {
 		t.Fatal(p)
 	}

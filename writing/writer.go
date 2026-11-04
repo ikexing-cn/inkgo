@@ -84,7 +84,10 @@ func (w *Writer) prepare(task string, scene Scene, tail string) (model.Request, 
 		later = fmt.Sprintf("\n\n以上是写到本章时的设定；后面的章节里还有 %d 处变化，未列出。", ahead)
 	}
 	rules := rulesFor(w.Material)
-	b := prompt.NewBudget(w.Model.Input())
+	if work.Language == "en" {
+		rules += "\n- The prose is written in English."
+	}
+	b := prompt.NewBudget(w.Model.Input(), work.Language)
 	b.Must(workspace.PartRules, rules+task)
 	b.Must(workspace.PartInput, tail)
 	if w.Material.Setting {
@@ -111,10 +114,10 @@ func (w *Writer) prepare(task string, scene Scene, tail string) (model.Request, 
 	if b.Left() < 0 {
 		return req, nil, &model.SetupError{Err: &model.ContextLimitError{Part: "outline"}}
 	}
-	if t := fit(textclip.Last(scene.Before, beforeCap), b.Left(), true); strings.TrimSpace(t) != "" {
+	if t := fit(textclip.Last(scene.Before, beforeCap), b.Left(), true, work.Language); strings.TrimSpace(t) != "" {
 		take(&near, workspace.PartProse, "【本章前文】", t)
 	}
-	if t := fit(textclip.First(scene.After, afterCap), b.Left(), false); strings.TrimSpace(t) != "" {
+	if t := fit(textclip.First(scene.After, afterCap), b.Left(), false, work.Language); strings.TrimSpace(t) != "" {
 		take(&far, workspace.PartProse, "【本章后文】", t)
 	}
 
@@ -133,7 +136,7 @@ func (w *Writer) prepare(task string, scene Scene, tail string) (model.Request, 
 	// The previous chapter's end, while this one has little before.
 	if p, ok := tree.Previous(n); ok && len([]rune(scene.Before)) < beforeCap {
 		if pc, err := w.Store.ReadChapter(p.ID); err == nil {
-			if t := fit(textclip.Last(pc.Text, previousCap), b.Left()-64, true); strings.TrimSpace(t) != "" {
+			if t := fit(textclip.Last(pc.Text, previousCap), b.Left()-64, true, work.Language); strings.TrimSpace(t) != "" {
 				take(&prev, workspace.PartProse, "【上一章《"+p.Title+"》的结尾】", t)
 			}
 		}
@@ -167,7 +170,7 @@ func (w *Writer) Predict(ctx context.Context, scene Scene) (string, error) {
 	var line string
 	_, err = w.Model.Complete(ctx, req, func(d model.Delta) {
 		got.WriteString(d.Text)
-		if s, done := sentence(got.String()); done {
+		if s, done := sentence(got.String(), w.Store.Work().Language); done {
 			line = s
 			cancel(workspace.ErrEnough)
 		}
@@ -178,7 +181,7 @@ func (w *Writer) Predict(ctx context.Context, scene Scene) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	s, _ := sentence(got.String())
+	s, _ := sentence(got.String(), w.Store.Work().Language)
 	return s, nil
 }
 
@@ -193,10 +196,10 @@ func purpose(ctx context.Context, feature, chapter string, sent *workspace.Sent)
 }
 
 // fit cuts s to what budget tokens hold, keeping its end, or its start.
-func fit(s string, budget int, end bool) string {
-	for s != "" && prompt.Estimate(s) > budget {
+func fit(s string, budget int, end bool, language workspace.Language) string {
+	for s != "" && prompt.Estimate(s, language) > budget {
 		r := []rune(s)
-		k := max(len(r)*2/3, len(r)-max((prompt.Estimate(s)-budget)*2/3, 1))
+		k := max(len(r)*2/3, len(r)-max((prompt.Estimate(s, language)-budget)*2/3, 1))
 		if end {
 			s = string(r[len(r)-k:])
 		} else {
@@ -214,17 +217,21 @@ const closers = "”’」』）)】》"
 
 // sentence returns the first sentence of s, on one line, and whether it
 // ended.
-func sentence(s string) (string, bool) {
+func sentence(s string, language workspace.Language) (string, bool) {
+	endings := "。！？!?…"
+	if language == workspace.English {
+		endings += "."
+	}
 	r := []rune(strings.TrimLeftFunc(s, unicode.IsSpace))
 	for i := 0; i < len(r); i++ {
 		if r[i] == '\n' {
 			return strings.TrimSpace(string(r[:i])), i > 0
 		}
-		if !strings.ContainsRune("。！？!?…", r[i]) {
+		if !strings.ContainsRune(endings, r[i]) {
 			continue
 		}
 		j := i + 1
-		for j < len(r) && strings.ContainsRune("。！？!?…"+closers, r[j]) {
+		for j < len(r) && strings.ContainsRune(endings+closers, r[j]) {
 			j++
 		}
 		if j == len(r) {

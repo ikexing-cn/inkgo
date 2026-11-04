@@ -30,11 +30,12 @@ func FromLabel(tree workspace.Tree, id string) string {
 
 // Words says how many characters, the way the design writes them: grouped
 // by thousands, and in 万 from ten thousand on.
-func Words(n int) string {
+func Words(n int, language workspace.Language) string {
+	unit := language.Unit()
 	if n >= 10000 {
-		return locales.StatusWanWords(float64(n)/10000, n)
+		return locales.StatusWanWords(float64(n)/10000, n, unit)
 	}
-	return locales.StatusWords(n)
+	return locales.StatusWords(n, unit)
 }
 
 // Grouped writes n with a comma between each three digits.

@@ -54,7 +54,7 @@ func (h *testHost) Dialogs() (func(string, string) (string, error), func(string)
 
 func dialogFixture(t *testing.T, text string) (*testHost, *Dialog, *ui.Tester, string) {
 	t.Helper()
-	store, err := workspace.Create(t.TempDir(), "测试作品", "网文")
+	store, err := workspace.Create(t.TempDir(), "测试作品", "网文", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}

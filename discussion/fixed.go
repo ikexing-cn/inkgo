@@ -125,7 +125,7 @@ func fixedOf(st *workspace.Store, material aiapi.Material, tree workspace.Tree, 
 		}
 	}
 	if origin == workspace.AIRewrite {
-		add(workspace.PartChapter, "【本章全文】\n"+ch.Text, fmt.Sprintf("本章全文 %d 字", workspace.Count(ch.Text)))
+		add(workspace.PartChapter, "【本章全文】\n"+ch.Text, fmt.Sprintf("本章全文 %d %s", st.Work().Language.Count(ch.Text), countUnit(st.Work().Language)))
 		return f, nil
 	}
 	// The volumes before, and the chapters before in the volume, in the
@@ -149,12 +149,12 @@ func fixedOf(st *workspace.Store, material aiapi.Material, tree workspace.Tree, 
 	if p, ok := tree.Previous(n); ok {
 		if pc, err := st.ReadChapter(p.ID); err == nil && strings.TrimSpace(pc.Text) != "" {
 			f.preload.Previous = true
-			add(workspace.PartPrevious, "【上一章全文："+b.name[p.ID]+"】\n"+pc.Text, fmt.Sprintf("上一章全文：%s %d 字", b.name[p.ID], workspace.Count(pc.Text)))
+			add(workspace.PartPrevious, "【上一章全文："+b.name[p.ID]+"】\n"+pc.Text, fmt.Sprintf("上一章全文：%s %d %s", b.name[p.ID], st.Work().Language.Count(pc.Text), countUnit(st.Work().Language)))
 		}
 	}
 	// A draft goes on from what the chapter has, or takes its place.
 	if strings.TrimSpace(ch.Text) != "" {
-		add(workspace.PartChapter, "【本章已有的正文】\n"+ch.Text, fmt.Sprintf("本章已有正文 %d 字", workspace.Count(ch.Text)))
+		add(workspace.PartChapter, "【本章已有的正文】\n"+ch.Text, fmt.Sprintf("本章已有正文 %d %s", st.Work().Language.Count(ch.Text), countUnit(st.Work().Language)))
 	}
 	return f, nil
 }

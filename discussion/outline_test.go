@@ -71,7 +71,7 @@ func TestReadOutline(t *testing.T) {
 		},
 	}
 	before := writePlan(t, e.Store, p)
-	box := &toolbox{allowed: tools(workspace.Work{}), store: e.Store, session: session}
+	box := &toolbox{allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store, session: session}
 	first := "#1｜时间：去年｜发生：下井｜「第二章」｜情节线：小祥｜说明：找到灯。 留下钥匙。"
 	second := "#2｜发生：收徒｜「第一章」｜情节线：小祥"
 	for _, tc := range []struct {
@@ -140,7 +140,7 @@ func TestReadOutline(t *testing.T) {
 func TestReadOutlinePagesAndFailures(t *testing.T) {
 	e, _ := setup(t)
 	_, one, two, _ := shelf(t, e)
-	box := &toolbox{allowed: tools(workspace.Work{}), store: e.Store}
+	box := &toolbox{allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store}
 	if out := box.readOutline(outlineArgs{}); out.failed || !strings.Contains(out.text, "大纲是空的。") {
 		t.Fatal(out)
 	}
@@ -293,7 +293,7 @@ func TestReadOutlineIgnoresDamagedMarks(t *testing.T) {
 	if err := os.WriteFile(path, []byte("broken"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	box := toolbox{allowed: tools(workspace.Work{}), store: e.Store}
+	box := toolbox{allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store}
 	for _, chapter := range []string{"第一卷", "第一章"} {
 		out := box.readOutline(outlineArgs{Chapter: chapter})
 		if out.failed || !strings.Contains(out.text, "她回到旧城。") {
@@ -312,7 +312,7 @@ func TestReadOutlineBatchFailureNamesRequestedNode(t *testing.T) {
 	if err := os.Mkdir(path, 0700); err != nil {
 		t.Fatal(err)
 	}
-	box := toolbox{allowed: tools(workspace.Work{}), store: e.Store}
+	box := toolbox{allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store}
 	out := box.readOutline(outlineArgs{Chapter: "第一卷"})
 	if !out.failed || out.text != "读不出「第一卷」的纲。" {
 		t.Fatalf("outline batch failure = %+v", out)
