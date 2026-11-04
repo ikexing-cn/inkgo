@@ -27,12 +27,13 @@ type serviceUse struct {
 	typ        reflect.Type
 }
 type entry struct {
-	mod     Module
-	ledger  Ledger
-	ids     map[string]bool
-	starts  []func(*Session) error
-	stops   []func(*Session)
-	session *Session
+	loadIndex int
+	mod       Module
+	ledger    Ledger
+	ids       map[string]bool
+	starts    []func(*Session) error
+	stops     []func(*Session)
+	session   *Session
 }
 
 // Registrar is valid only during its module's Setup. It exposes no IO or paths.

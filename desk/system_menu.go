@@ -27,9 +27,9 @@ var systemCommands = []struct {
 	cmd *command
 }{
 	{"settings", cmdSettings}, {"new-chapter", cmdNewChapter}, {"new-folder", cmdNewFolder},
-	{"save", cmdSave}, {"snapshots", cmdSnapshots},
-	{"trash", cmdTrash}, {"undo", cmdUndo}, {"redo", cmdRedo},
-	{"find", cmdFind}, {"rename", cmdRename}, {"continue", cmdContinue}, {"draft", cmdDraft},
+	{"save", cmdSave},
+	{"undo", cmdUndo}, {"redo", cmdRedo},
+	{"rename", cmdRename}, {"continue", cmdContinue}, {"draft", cmdDraft},
 	{"side", cmdSide}, {"pane", cmdPane},
 	{"zoom-in", cmdZoomIn}, {"zoom-out", cmdZoomOut}, {"zoom-reset", cmdZoomReset}, {"shortcuts", cmdHelp},
 }
@@ -130,10 +130,19 @@ func (a *App) SystemMenu() []SystemMenuItem {
 			file = append(file, row(entry.id))
 		}
 	}
+	var edit []SystemMenuItem
+	for _, entry := range a.editCommands() {
+		if entry.cmd == nil {
+			edit = append(edit, sep(entry.id))
+		} else {
+			edit = append(edit, row(entry.id))
+		}
+	}
+	edit = append(edit, aiSep, row("continue"), row("draft"))
 	return []SystemMenuItem{
 		menu("app", "", "appMenu", role("about", "about"), sep("app-settings-separator"), row("settings"), sep("app-hide-separator"), role("hide", "hide"), role("hide-others", "hideOthers"), sep("app-quit-separator"), role("quit", "quit")),
 		menu("file", locales.MenuFile(), "", file...),
-		menu("edit", locales.MenuEdit(), "", row("undo"), row("redo"), sep("edit-find-separator"), row("find"), row("rename"), aiSep, row("continue"), row("draft")),
+		menu("edit", locales.MenuEdit(), "", edit...),
 		menu("view", locales.MenuView(), "", view...),
 		menu("window", locales.MenuWindow(), "windowMenu", role("minimize", "minimize"), role("window-zoom", "zoom"), sep("window-front-separator"), role("front", "front")),
 		menu("help", "", "help", row("shortcuts")),

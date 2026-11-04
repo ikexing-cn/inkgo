@@ -66,14 +66,8 @@ var (
 	cmdSave = &command{label: locales.CmdSave, key: ui.KeyS, mods: modCmd, page: pageWrite, by: byDesk,
 		can: func(a *App) bool { return chapterShown(a) },
 		run: func(a *App) { a.saveNow() }}
-	cmdSnapshots = &command{label: locales.CmdSnapshots, page: pageAny,
-		can: func(a *App) bool { open, busy := a.chapterOpen(); return open && !busy },
-		run: func(a *App) { a.openSnapshots() }}
 	cmdSettings = &command{label: locales.AppSettings, onMac: true, macKey: ui.KeyComma, macMods: modCmd, page: pageAny,
 		run: func(a *App) { a.openPrefs(a.settings.tab) }}
-	cmdTrash = &command{label: locales.CmdTrash, page: pageAny,
-		can: func(a *App) bool { return a.Store != nil },
-		run: func(a *App) { a.openTrash() }}
 
 	// The title bar's 编辑, and the prose's menu where it shares them.
 	cmdUndo = &command{label: locales.CmdUndo, key: ui.KeyZ, mods: modCmd, page: pageWrite, by: byEditor,
@@ -82,9 +76,6 @@ var (
 	cmdRedo = &command{label: locales.CmdRedo, key: ui.KeyZ, mods: modCmd | ui.Shift, page: pageWrite, by: byEditor,
 		can: func(a *App) bool { open, busy := a.chapterOpen(); return open && !busy && a.write.cur().ed.CanRedo() },
 		run: func(a *App) { a.write.cur().ed.Redo() }}
-	cmdFind = &command{label: locales.CmdFind, key: ui.KeyF, mods: modCmd, page: pageWrite, by: byDesk,
-		can: func(a *App) bool { open, busy := a.chapterOpen(); return open && !busy },
-		run: func(a *App) { a.openFind() }}
 	cmdRename = &command{label: locales.CmdRename, key: ui.KeyF2, onMac: true, page: pageWrite, by: byDesk,
 		can: func(a *App) bool {
 			if !writingPage(a) || a.write.renaming != "" {
@@ -209,13 +200,12 @@ var (
 // commandList is every command, in the order the desk tries its keys.
 var commandList = []*command{
 	cmdHelp,
-	cmdFind, cmdQuote, cmdNewChapter, cmdRename,
+	cmdQuote, cmdNewChapter, cmdRename,
 	cmdZoomIn, cmdZoomOut, cmdZoomReset, cmdSave, cmdPrevChapter, cmdNextChapter,
 	cmdCloseTab, cmdNextTab, cmdPrevTab,
 	cmdUndo, cmdRedo, cmdContinue, cmdCut, cmdCopy, cmdPaste, cmdSelectAll,
 	cmdDeleteWordBack, cmdDeleteWordForward, cmdTakePrediction, cmdDropPrediction,
-	cmdNewFolder, cmdSnapshots, cmdSettings, cmdDraft,
-	cmdTrash,
+	cmdNewFolder, cmdSettings, cmdDraft,
 	cmdSide, cmdPane, cmdRewrite, cmdTake, cmdUnmark,
 	cmdBury, cmdPay, cmdViewFore, cmdCloseOthers, cmdCloseRight, cmdSend,
 }
@@ -252,7 +242,6 @@ func (r *helpRow) keys() string { return r.keysOn(onMacOS) }
 
 var commandHelp = []*helpRow{
 	{group: locales.HelpGroupWrite, does: locales.HelpSave, cmds: []*command{cmdSave}},
-	{group: locales.HelpGroupWrite, does: locales.HelpFind, cmds: []*command{cmdFind}},
 	{group: locales.HelpGroupWrite, does: locales.HelpNewChapter, cmds: []*command{cmdNewChapter}},
 	{group: locales.HelpGroupWrite, does: locales.HelpRename, cmds: []*command{cmdRename}},
 	{group: locales.HelpGroupWrite, does: locales.HelpChapterNav, cmds: []*command{cmdNextChapter, cmdPrevChapter}},

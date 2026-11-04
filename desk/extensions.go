@@ -186,6 +186,7 @@ type extensionViews struct {
 	system         []namedCommand
 	view           []namedCommand
 	file           []namedCommand
+	edit           []namedCommand
 	overlays       []ext.Item[hostapi.Overlay]
 	panes          []ext.Item[hostapi.PaneTab]
 	footer, title  []ext.Item[hostapi.DrawItem]
@@ -291,10 +292,11 @@ func (a *App) syncExtensions() {
 
 			cache.help = slices.Insert(cache.help, at, row)
 		}
-		if c.menu.Menu == hostapi.MenuView || c.menu.Menu == hostapi.MenuFile {
+		if c.menu.Menu == hostapi.MenuView || c.menu.Menu == hostapi.MenuFile || c.menu.Menu == hostapi.MenuEdit {
 			cache.system = append(cache.system, c)
 		}
 	}
+	cache.edit = orderMenuCommands(hostapi.MenuEdit, editCommandRows, cache.commands)
 	cache.file = orderMenuCommands(hostapi.MenuFile, fileCommandRows, cache.commands)
 	cache.overlays = ext.Items(a.extensions, hostapi.Overlays)
 	cache.view = orderMenuCommands(hostapi.MenuView, viewCommandRows, cache.commands)
@@ -409,7 +411,7 @@ func (a *App) buildExtensionCommands() []namedCommand {
 	}
 	for _, item := range ext.Items(a.extensions, hostapi.Commands) {
 		value := item.Value
-		cmd := &command{label: value.Name, key: value.Key, mods: value.Mods, macKey: value.MacKey, macMods: value.MacMods, onMac: value.OnMac, page: pageAny, by: byDesk, systemMenu: value.Menu.Menu == hostapi.MenuView || value.Menu.Menu == hostapi.MenuFile}
+		cmd := &command{label: value.Name, key: value.Key, mods: value.Mods, macKey: value.MacKey, macMods: value.MacMods, onMac: value.OnMac, page: pageAny, by: byDesk, systemMenu: value.Menu.Menu == hostapi.MenuView || value.Menu.Menu == hostapi.MenuFile || value.Menu.Menu == hostapi.MenuEdit}
 		cmd.can = func(*App) bool { return value.Can == nil || value.Can() }
 		cmd.when = cmd.can
 		cmd.run = func(*App) {
@@ -428,32 +430,52 @@ func (a *App) commandHelp() []*helpRow { a.syncExtensions(); return a.extViews.h
 
 func (a *App) viewCommands() []namedCommand { a.syncExtensions(); return a.extViews.view }
 
-// orderMenuCommands is shared by title and system menus. Equal anchors keep
-// assembly and registration order; unknown anchors append to the menu.
+// orderMenuCommands uses order when an anchor is missing, preserving menu groups.
 func orderMenuCommands(menu hostapi.Menu, base, pending []namedCommand) []namedCommand {
+
+	rows := append([]namedCommand(nil), base...)
+	for i := range rows {
+		rows[i].menu.Order = (i + 1) * 10
+	}
+	for _, c := range pending {
+		if c.menu.Menu == menu {
+			rows = append(rows, c)
+		}
+	}
+	slices.SortStableFunc(rows, func(a, b namedCommand) int { return cmp.Compare(a.menu.Order, b.menu.Order) })
+	ids := map[string]bool{}
+	for _, r := range rows {
+		ids[r.id] = true
+	}
 	var out []namedCommand
-	for _, row := range base {
-		out = append(out, row)
-		for _, c := range pending {
-			if c.menu.Menu == menu && c.menu.After == row.id {
-				out = append(out, c)
+	seen := map[string]bool{}
+	var emit func(namedCommand)
+	emit = func(r namedCommand) {
+		if seen[r.id] {
+			return
+		}
+		seen[r.id] = true
+		out = append(out, r)
+		for _, c := range rows {
+			if c.menu.After == r.id {
+				emit(c)
 			}
 		}
 	}
-	for _, c := range pending {
-		if c.menu.Menu != menu {
-			continue
-		}
-		found := false
-		for _, row := range base {
-			found = found || row.id == c.menu.After
-		}
-		if !found {
-			out = append(out, c)
+	for _, r := range rows {
+		if r.menu.After == "" || !ids[r.menu.After] {
+			emit(r)
 		}
 	}
+	for _, r := range rows {
+		emit(r)
+	}
+
 	return out
 }
+func (a *App) editCommands() []namedCommand { a.syncExtensions(); return a.extViews.edit }
+
+var editCommandRows = []namedCommand{{id: "undo", cmd: cmdUndo}, {id: "redo", cmd: cmdRedo}, {id: "edit-find-separator"}, {id: "rename", cmd: cmdRename}}
 
 func (h extensionHost) Store() *workspace.Store { return h.a.Store }
 
@@ -499,8 +521,8 @@ func (a *App) extensionOverlays(c *ui.Context) {
 
 var fileCommandRows = []namedCommand{
 	{id: "new-chapter", cmd: cmdNewChapter}, {id: "new-folder", cmd: cmdNewFolder},
-	{id: "file-save-separator"}, {id: "save", cmd: cmdSave}, {id: "snapshots", cmd: cmdSnapshots},
-	{id: "file-organize-separator"}, {id: "categories"}, {id: "trash", cmd: cmdTrash},
+	{id: "file-save-separator"}, {id: "save", cmd: cmdSave},
+	{id: "file-organize-separator"}, {id: "categories"},
 }
 
 func (a *App) fileCommands() []namedCommand { a.syncExtensions(); return a.extViews.file }

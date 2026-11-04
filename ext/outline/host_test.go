@@ -3,6 +3,7 @@ package outline
 import (
 	"testing"
 	"time"
+	"writer/ext/hostapi"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/book"
@@ -12,6 +13,7 @@ import (
 )
 
 type testHost struct {
+	hostapi.Desktop
 	Store                   *workspace.Store
 	book                    *book.Book
 	pal                     *kit.Palette
@@ -32,7 +34,7 @@ func newTestHost(t *testing.T) *testHost {
 	}
 	t.Cleanup(func() { _ = store.Close() })
 	h := &testHost{Store: store, book: book.Open(store), pal: kit.LightPalette()}
-	h.plan.Services = Services{Book: testBook{h}, Palette: h, Notices: h, Dialogs: h, Desktop: h}
+	h.plan.Services = Services{Book: testBook{h: h}, Palette: h, Notices: h, Dialogs: h, Desktop: h}
 	return h
 }
 
@@ -106,7 +108,10 @@ func outlineErr(h *testHost) error { return h.plan.loadErr }
 
 func forgetOutline(h *testHost) { h.plan.Enter() }
 
-type testBook struct{ h *testHost }
+type testBook struct {
+	hostapi.Book
+	h *testHost
+}
 
 func (b testBook) Store() *workspace.Store { return b.h.Store }
 

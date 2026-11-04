@@ -67,15 +67,6 @@ type writeView struct {
 	titleHeld       bool   // the box for the title has had the caret: losing it settles the name
 	titleAll        bool   // the name the box opens with is selected, to be typed over
 	focus           bool   // the page alone, without the tree and the column
-	finding         bool
-	findAgain       bool // the caret goes to the find box, its words selected
-	query, with     string
-	current         int
-	wide            bool              // finding in the whole book
-	sure            bool              // asking before replacing through the book
-	texts           map[string]string // the chapters' text while finding in the book
-	hits            []bookHit
-	hitsFor         [3]any // the query, chapter and edit the hits were found for
 
 	// named is the editor last given the names, as of namedRevs setting revisions.
 	namesActive bool
@@ -101,17 +92,6 @@ type writeView struct {
 	doubts    cached[doubtKey, [][2]int]
 	margin    marginState
 	lateAfter int
-
-	snapsOpen bool
-	snaps     []workspace.Snapshot
-	snap      string // the snapshot chosen
-	snapText  string
-	compare   bool
-	snapShown snapView
-
-	trashOpen bool
-	trash     []workspace.Trashed
-	purge     string // the trashed node whose purge awaits confirmation
 
 	takeOpen            bool
 	takeQuote, takeText string
@@ -169,10 +149,7 @@ func (a *App) writing(c *ui.Context) {
 	// Escape backs out of the find bar first, then out of a pick in the
 	// prose, so the bar over the pick goes with it.
 	if ed := a.write.cur().ed; ed != nil && c.Shortcut(0, ui.KeyEscape) {
-		if s, e := ed.Selection(); a.write.finding {
-			a.closeFind()
-			ed.Focus()
-		} else if s != e && ed.Focused() {
+		if s, e := ed.Selection(); !a.writingEscape() && s != e && ed.Focused() {
 			ed.Select(ed.Caret(), ed.Caret())
 		}
 	}
@@ -200,9 +177,6 @@ func (a *App) writing(c *ui.Context) {
 		})
 		a.settingColumn(c)
 	})
-	if a.write.snapsOpen {
-		a.snapshots(c)
-	}
 	if a.write.takeOpen {
 		a.take(c)
 	}
@@ -269,13 +243,13 @@ func (a *App) paneColumn(c *ui.Context, width float32) {
 // writeTools keeps changing notices before the two fixed tools.
 func (a *App) writeTools(c *ui.Context) {
 	w := &a.write
-	open, busy := a.chapterOpen()
+	open, _ := a.chapterOpen()
 	win, _ := c.Size()
 	// Leave the middle switch and the window buttons clear when several
 	// notices appear together; their full words remain in the tooltips.
 	// Find, focus and pane are three square buttons, with the pane's
 	// margins (2 and 8) and the three gaps between notices and buttons.
-	tools := 2 + len(ext.Items(a.extensions, hostapi.Tools))
+	tools := 1 + len(ext.Items(a.extensions, hostapi.Tools))
 	fixed := float32(tools*kit.HControlSm + 2 + 8 + tools*2)
 	room := win/2 - a.pageSwitchWidth(c)/2 - c.TitleBar().Right - fixed
 	if w.focus {
@@ -315,17 +289,6 @@ func (a *App) writeTools(c *ui.Context) {
 		a.extensionTitle(c)
 		a.pendingButton(c)
 	})
-	color := ui.Color{}
-	if w.finding {
-		color = a.pal.Ink
-	}
-	if kit.IconButton(c, kit.IcSearch, locales.CmdFind(), color).Tooltip(locales.TabFindTip(cmdFind.keys())).Disabled(!open || busy).KeepFocus().Clicked() {
-		if w.finding {
-			a.closeFind()
-		} else {
-			a.openFind()
-		}
-	}
 	a.extensionTools(c)
 }
 
@@ -362,9 +325,7 @@ func (a *App) emptyWriting(c *ui.Context) {
 func (a *App) chapterView(c *ui.Context) {
 	t := a.pal.Theme
 	w := &a.write
-	if w.finding && !w.cur().ed.ReadOnly() {
-		a.findBar(c)
-	}
+	a.beforeProse(c)
 	if w.cur().external != nil {
 		a.notice2(c, t.Warning, locales.EditorOutsideChanged(), func() {
 			if kit.Action(c, locales.EditorUseDisk(), t.Warning, false).Clicked() {

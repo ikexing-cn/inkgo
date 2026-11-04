@@ -13,6 +13,13 @@ import (
 )
 
 func declareLifecycle(r *ext.Registrar, a *App) {
+	ext.Declare(r, hostapi.BeforeProse)
+	ext.DeclareCalls(r, hostapi.BeforeProse, drawItemCall)
+	ext.Declare(r, hostapi.WritingKeys)
+	ext.DeclareCalls(r, hostapi.WritingKeys, func(k hostapi.WritingKey) func(func(hostapi.WritingKey)) struct{} {
+		return func(fn func(hostapi.WritingKey)) struct{} { fn(k); return struct{}{} }
+	})
+
 	h := extensionHost{a}
 	ext.Declare(r, hostapi.WordSuffix)
 	ext.Declare(r, hostapi.WordPopovers)

@@ -65,7 +65,7 @@ func (a *Panel) noteRename(old, new string) {
 }
 
 // renameNotice says the prose still has the old name, and replaces it
-// through the book on a click, after the usual confirmation.
+// through the find review interface when that extension is available.
 func (a *Panel) renameNotice(c *ui.Context) {
 	r := a.renamed
 	if r.count == 0 {
@@ -73,10 +73,15 @@ func (a *Panel) renameNotice(c *ui.Context) {
 	}
 	ui.Row(c).FillWidth().Gap(6).Padding(6, 8, 6, 10).Radius(kit.RCard).Background(a.services.Palette.Colors().Raised).Border(1, a.services.Palette.Colors().Line).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, loretext.LoreRenamedLeft(r.count, r.old)).FontSize(kit.FsNote).Grow(1).Shrink(1)
-		if a.services.Palette.Colors().Ghost(c, loretext.LoreReplaceAll(), ui.Color{}).Label("将旧名替换为新名").Clicked() {
-			a.renamed = renamed{}
-			a.services.Search.ReplaceText(r.old, r.new)
+		if a.replacement != nil {
+			if review, ok := a.replacement.Get(); ok {
+				if a.services.Palette.Colors().Ghost(c, loretext.LoreReplaceAll(), ui.Color{}).Label("将旧名替换为新名").Clicked() {
+					a.renamed = renamed{}
+					review.Review(r.old, r.new)
+				}
+			}
 		}
+
 		if kit.IconButton(c, kit.IcX, loretext.LoreKeepOld(), ui.Color{}).Tooltip(loretext.LoreKeepOldTip()).Clicked() {
 			a.renamed = renamed{}
 		}

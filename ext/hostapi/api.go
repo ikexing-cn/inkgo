@@ -30,14 +30,19 @@ type Menu string
 // MenuFile is the file menu in both title and system menus; frame thread only.
 const MenuFile Menu = "file"
 
+// MenuEdit is the EditActions position, on the frame thread.
+const MenuEdit Menu = "edit"
+
 // MenuView is the view menu in both title and system menus.
 const MenuView Menu = "view"
 
 // MenuPosition places a command after a host command ID, such as focus.
-// Empty After appends. Desk reads it on the frame thread.
+// A missing anchor falls back to Order among all rows, rather than appending.
+// Desk reads it on the frame thread.
 type MenuPosition struct {
 	Menu  Menu
 	After string
+	Order int
 }
 
 // Command is invoked by desk on the frame thread. Name may reflect live state;
@@ -106,6 +111,17 @@ type Page struct {
 
 // Book exposes current book content to extensions on the frame thread only.
 type Book interface {
+	// SaveText saves the selected chapter on the frame thread and returns any error.
+	SaveText() error
+	// RestoreSnapshot replaces the editor, keeps a restoration snapshot and saves on the frame thread.
+	RestoreSnapshot(workspace.Snapshot, string) error
+	// RestoreTrash restores a node and reloads the book tree and counts on the frame thread.
+	RestoreTrash(string) error
+	// PurgeTrash purges a node and reloads the book tree and counts on the frame thread.
+	PurgeTrash(string) error
+	// ReplaceBookText snapshots and replaces live book prose on the frame thread.
+	ReplaceBookText(string, string) (chapters, total int, here bool, err error)
+
 	// Held reports a blocking book operation on the frame thread.
 	Held() bool
 	// CategoriesChanged reloads derived setting data and notifies the open book on the frame thread.

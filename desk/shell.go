@@ -119,9 +119,6 @@ func (a *App) View(c *ui.Context) {
 	a.renameDialog(c)
 	if a.Store != nil {
 		a.leaveView(c)
-		if a.write.trashOpen { // the trash is at the foot of every page
-			a.trashView(c)
-		}
 	}
 	a.extensionOverlays(c)
 	a.toasts(c) // over every dialog

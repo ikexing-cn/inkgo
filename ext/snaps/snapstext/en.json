@@ -1,0 +1,35 @@
+{
+  "cmdSnapshots": "Snapshots",
+  "snapTitle": "Snapshots · {chapter}",
+  "snapAbout": "A snapshot is saved when you open a chapter, every ten minutes while writing, before restoring, {ai}and before a book-wide replace. All snapshots from the last seven days are kept; older ones keep the last one of each day.",
+  "snapAboutAI": "before accepting AI suggestions, ",
+  "snapKindRestore": "Before Restore",
+  "snapKindAI": "Before AI Edit",
+  "snapKindEdit": "Before Edit",
+  "snapKindOutside": "External Edit",
+  "snapKindSwap": "Before Book-Wide Replace",
+  "snapKindWriting": "While Writing",
+  "snapKindOpening": "On Open",
+  "snapRowInfo": "{unit, select, word {{kind} · {count, plural, one {# word} other {# words}}} other {{kind} · {count, plural, one {# character} other {# characters}}}}",
+  "snapCompare": "Compare with Current",
+  "snapSame": "This snapshot matches the current text",
+  "snapDiffHint": "Red strikethrough marks text in the snapshot that isn’t in the current text. Green marks new text.",
+  "snapNone": "No snapshots for this chapter yet",
+  "snapRestore": "Restore This Version",
+  "snapRestored": "Restored the version from {at}. The text from before the restore was saved as a snapshot.",
+  "modSnaps": "Snapshots",
+  "modSnapsAbout": "Go back to an earlier draft",
+  "@snapRowInfo": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "draftFromOutline": "Draft from Chapter Outline",
+  "draftOmittedLore": "{count, plural, one {# lore entry omitted due to the context limit} other {# lore entries omitted due to the context limit}}",
+  "draftReferenced": "AI referenced: {items}",
+  "recordsLoreCount": "Lore ({count, plural, one {# item} other {# items}})",
+  "snapAIFrom": "Accepted suggestions from {talks}",
+  "snapAITalk": "“{title}”"
+}

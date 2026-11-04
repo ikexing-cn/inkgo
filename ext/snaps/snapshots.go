@@ -1,4 +1,4 @@
-package desk
+package snaps
 
 import (
 	"slices"
@@ -7,7 +7,8 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
-	"writer/internal/textdiff"
+	"writer/ext/snaps/snapstext"
+	"writer/ext/snaps/textdiff"
 	"writer/locales"
 	"writer/workspace"
 )
@@ -15,13 +16,13 @@ import (
 // snapReasons say why a snapshot was taken; with the AI off, snapReason
 // tells one taken before the AI changed the prose as one before a change.
 var snapReasons = map[string]func() string{
-	workspace.SnapOpen: locales.SnapKindOpening, workspace.SnapInterval: locales.SnapKindWriting, workspace.SnapRestore: locales.SnapKindRestore,
-	workspace.SnapExternal: locales.SnapKindOutside, workspace.SnapAI: locales.SnapKindAI, workspace.SnapReplace: locales.SnapKindSwap,
+	workspace.SnapOpen: snapstext.SnapKindOpening, workspace.SnapInterval: snapstext.SnapKindWriting, workspace.SnapRestore: snapstext.SnapKindRestore,
+	workspace.SnapExternal: snapstext.SnapKindOutside, workspace.SnapAI: snapstext.SnapKindAI, workspace.SnapReplace: snapstext.SnapKindSwap,
 }
 
-func (a *App) snapReason(reason string) string {
-	if reason == workspace.SnapAI && !a.aiOn() {
-		return locales.SnapKindEdit()
+func (a *View) snapReason(reason string) string {
+	if reason == workspace.SnapAI && !a.AI.AIEnabled() {
+		return snapstext.SnapKindEdit()
 	}
 	if label := snapReasons[reason]; label != nil {
 		return label()
@@ -29,29 +30,29 @@ func (a *App) snapReason(reason string) string {
 	return ""
 }
 
-func (a *App) openSnapshots() {
-	w := &a.write
-	a.warn(a.saveText())
-	snaps, err := a.Store.Snapshots(w.node)
+func (a *View) openSnapshots() {
+	w := a
+	a.Notices.Notices().Warn(a.Book.SaveText())
+	snaps, err := a.Book.Store().Snapshots(a.node())
 	if err != nil {
-		a.warn(err)
+		a.Notices.Notices().Warn(err)
 		return
 	}
-	w.snaps, w.snapsOpen, w.compare = snaps, true, true
-	w.snap, w.snapText = "", ""
+	w.Snaps, w.SnapsOpen, w.Compare = snaps, true, true
+	w.Snap, w.SnapText = "", ""
 	if len(snaps) > 0 {
 		a.pickSnapshot(snaps[0].Name)
 	}
 }
 
-func (a *App) pickSnapshot(name string) {
-	w := &a.write
-	text, err := a.Store.SnapshotText(w.node, name)
+func (a *View) pickSnapshot(name string) {
+	w := a
+	text, err := a.Book.Store().SnapshotText(a.node(), name)
 	if err != nil {
-		a.warn(err)
+		a.Notices.Notices().Warn(err)
 		return
 	}
-	w.snap, w.snapText = name, text
+	w.Snap, w.SnapText = name, text
 }
 
 // snapView is the snapshot chosen as its dialog shows it: whether it is
@@ -59,10 +60,10 @@ func (a *App) pickSnapshot(name string) {
 // the two are compared.
 type snapView struct {
 	key   [5]any // the snapshot, comparing or not, the editor's text, the two colours
-	same  bool
-	paras [][]ui.Span
-	long  bool         // more than snapWhole: only the paragraphs in view are built
-	list  ui.ListState // where a long one is scrolled to
+	Same  bool
+	Paras [][]ui.Span
+	Long  bool         // more than snapWhole: only the paragraphs in view are built
+	List  ui.ListState // where a Long one is scrolled to
 }
 
 // snapWhole is the most a snapshot shows with every paragraph built, in
@@ -73,32 +74,32 @@ type snapView struct {
 const snapWhole, snapWholeParas = 90_000, 1000
 
 // snapView is made as the snapshot, the comparing or the text beside it
-// changes, not in each frame: comparing two chapters takes long. A
+// changes, not in each frame: comparing two chapters takes Long. A
 // paragraph is an element of its own, for the toolkit keeps the lines of
 // a text only up to a size, and lays a longer one out again in every frame.
-func (a *App) snapView() *snapView {
-	t := a.pal.Theme
-	w := &a.write
-	v := &w.snapShown
-	key := [5]any{w.snap, w.compare, w.cur().ed, w.cur().ed.Doc.Version(), [2]ui.Color{t.Danger, t.Success}}
+func (a *View) snapView() *snapView {
+	t := a.Palette.Colors().Theme
+	w := a
+	v := &w.SnapShown
+	key := [5]any{w.Snap, w.Compare, a.editor(), a.editor().Doc.Version(), [2]ui.Color{t.Danger, t.Success}}
 	if v.key == key {
 		return v
 	}
-	now := w.cur().ed.Doc.String()
-	*v = snapView{key: key, same: w.snap != "" && w.snapText == now}
-	if w.snap == "" {
+	now := a.editor().Doc.String()
+	*v = snapView{key: key, Same: w.Snap != "" && w.SnapText == now}
+	if w.Snap == "" {
 		return v
 	}
-	pieces := []textdiff.Piece{{Kind: textdiff.Same, Text: w.snapText}}
-	if w.compare {
-		pieces = textdiff.Compare(w.snapText, now)
+	pieces := []textdiff.Piece{{Kind: textdiff.Same, Text: w.SnapText}}
+	if w.Compare {
+		pieces = textdiff.Compare(w.SnapText, now)
 	}
 	size := 0
 	for _, p := range pieces {
 		size += len(p.Text)
 	}
 	paras := textdiff.Paragraphs(pieces)
-	v.long = size > snapWhole || len(paras) > snapWholeParas
+	v.Long = size > snapWhole || len(paras) > snapWholeParas
 	for _, para := range paras {
 		spans := make([]ui.Span, len(para))
 		for i, p := range para {
@@ -111,31 +112,31 @@ func (a *App) snapView() *snapView {
 				spans[i] = ui.Span{Text: p.Text}
 			}
 		}
-		v.paras = append(v.paras, spans)
+		v.Paras = append(v.Paras, spans)
 	}
 	return v
 }
 
-func (a *App) snapshots(c *ui.Context) {
-	t := a.pal.Theme
-	w := &a.write
-	a.pal.Modal(c, &w.snapsOpen, func() {
+func (a *View) snapshots(c *ui.Context) {
+	t := a.Palette.Colors().Theme
+	w := a
+	a.Palette.Colors().Modal(c, &w.SnapsOpen, func() {
 		shown := a.snapView()
-		same := shown.same // nothing to restore
+		same := shown.Same // nothing to restore
 		ui.Column(c).Width(kit.DialogWide).Height(kit.DialogTall).Padding(kit.DialogPad).Gap(16).Children(func() {
 			ai := ""
-			if a.aiOn() {
-				ai = locales.SnapAboutAI()
+			if a.AI.AIEnabled() {
+				ai = snapstext.SnapAboutAI()
 			}
-			a.pal.DialogHead(c, locales.SnapTitle(a.shownTitle()), locales.SnapAbout(ai))
+			a.Palette.Colors().DialogHead(c, snapstext.SnapTitle(a.title()), snapstext.SnapAbout(ai))
 			ui.Row(c).FillWidth().Grow(1).Gap(16).AlignItems(ui.Stretch).Children(func() {
 				ui.Scroll(c.Key("snaps")).Width(200).FillHeight().Shrink(0).Children(func() {
 					ui.Column(c).FillWidth().Gap(2).Children(func() {
-						if len(w.snaps) == 0 {
-							ui.Text(c, locales.SnapNone()).FontSize(kit.FsControl).TextColor(a.pal.Faint).Padding(8)
+						if len(w.Snaps) == 0 {
+							ui.Text(c, snapstext.SnapNone()).FontSize(kit.FsControl).TextColor(a.Palette.Colors().Faint).Padding(8)
 						}
-						for _, sn := range w.snaps {
-							on := sn.Name == w.snap
+						for _, sn := range w.Snaps {
+							on := sn.Name == w.Snap
 							at := kit.When(sn.At, time.Now())
 							b := ui.ButtonBase(c.Key("s-"+sn.Name)).Column().FillWidth().AlignItems(ui.Start).Gap(2).Padding(8, 10).Radius(kit.RControl).Label("快照-" + at)
 							if on {
@@ -145,7 +146,7 @@ func (a *App) snapshots(c *ui.Context) {
 							}
 							b.Children(func() {
 								ui.Text(c, at).FontSize(kit.FsControl)
-								ui.Text(c, locales.SnapRowInfo(a.snapReason(sn.Reason), sn.Count, a.countUnit())).FontSize(kit.FsNote).TextColor(t.TextMuted)
+								ui.Text(c, snapstext.SnapRowInfo(a.snapReason(sn.Reason), sn.Count, a.Book.Store().Work().Language.Unit())).FontSize(kit.FsNote).TextColor(t.TextMuted)
 							})
 							if b.Clicked() {
 								a.pickSnapshot(sn.Name)
@@ -155,15 +156,15 @@ func (a *App) snapshots(c *ui.Context) {
 				})
 				ui.Column(c).Grow(1).Shrink(1).FillHeight().Gap(10).Children(func() {
 					ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Center).Children(func() {
-						ui.Checkbox(c, &w.compare, locales.SnapCompare())
+						ui.Checkbox(c, &w.Compare, snapstext.SnapCompare())
 						if same {
-							ui.Text(c, locales.SnapSame()).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
-						} else if w.compare {
-							ui.Text(c, locales.SnapDiffHint()).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
+							ui.Text(c, snapstext.SnapSame()).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
+						} else if w.Compare {
+							ui.Text(c, snapstext.SnapDiffHint()).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 						}
 					})
-					if i := slices.IndexFunc(w.snaps, func(s workspace.Snapshot) bool { return s.Name == w.snap }); i >= 0 && a.aiOn() {
-						switch sn := w.snaps[i]; {
+					if i := slices.IndexFunc(w.Snaps, func(s workspace.Snapshot) bool { return s.Name == w.Snap }); i >= 0 && a.AI.AIEnabled() {
+						switch sn := w.Snaps[i]; {
 						case len(sn.Talks) > 0:
 							a.talkRecord(c, sn.Talks)
 						case sn.AI != nil:
@@ -172,7 +173,7 @@ func (a *App) snapshots(c *ui.Context) {
 					}
 					// The paragraphs select as one text, and copy a line each.
 					para := func(i int) {
-						switch spans := shown.paras[i]; {
+						switch spans := shown.Paras[i]; {
 						case len(spans) == 0: // an empty line keeps its height
 							ui.Text(c, "").FontSize(kit.FsRead).LineHeight(kit.LhRead).FillWidth()
 						case len(spans) == 1 && spans[0] == (ui.Span{Text: spans[0].Text}):
@@ -181,14 +182,14 @@ func (a *App) snapshots(c *ui.Context) {
 							ui.RichText(c, spans...).FontSize(kit.FsRead).LineHeight(kit.LhRead).FillWidth()
 						}
 					}
-					if shown.long {
-						ui.Box(c).FillWidth().Grow(1).Background(a.pal.Canvas).Border(1, a.pal.Line).Radius(kit.RControl).Selectable().Children(func() {
-							ui.List(c, &shown.list, len(shown.paras), para).Fill().Padding(12, 16)
+					if shown.Long {
+						ui.Box(c).FillWidth().Grow(1).Background(a.Palette.Colors().Canvas).Border(1, a.Palette.Colors().Line).Radius(kit.RControl).Selectable().Children(func() {
+							ui.List(c, &shown.List, len(shown.Paras), para).Fill().Padding(12, 16)
 						})
 					} else {
-						ui.Scroll(c.Key("snap-text")).FillWidth().Grow(1).Background(a.pal.Canvas).Border(1, a.pal.Line).Radius(kit.RControl).Children(func() {
+						ui.Scroll(c.Key("Snap-text")).FillWidth().Grow(1).Background(a.Palette.Colors().Canvas).Border(1, a.Palette.Colors().Line).Radius(kit.RControl).Children(func() {
 							ui.Column(c).FillWidth().Padding(12, 16).Selectable().Children(func() {
-								for i := range shown.paras {
+								for i := range shown.Paras {
 									para(i)
 								}
 							})
@@ -198,10 +199,10 @@ func (a *App) snapshots(c *ui.Context) {
 			})
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 				ui.Spacer(c)
-				if a.pal.Secondary(c, locales.CommonClose()).Clicked() {
-					w.snapsOpen = false
+				if a.Palette.Colors().Secondary(c, locales.CommonClose()).Clicked() {
+					w.SnapsOpen = false
 				}
-				if a.pal.Primary(c, locales.SnapRestore()).Disabled(w.snap == "" || same || w.cur().lost || w.cur().external != nil).Clicked() {
+				if a.Palette.Colors().Primary(c, snapstext.SnapRestore()).Disabled(w.Snap == "" || same || a.lost() || a.paused()).Clicked() {
 					a.restoreSnapshot()
 				}
 			})
@@ -211,27 +212,16 @@ func (a *App) snapshots(c *ui.Context) {
 
 // restoreSnapshot replaces the text with the snapshot chosen, keeping the
 // text replaced as a snapshot of its own.
-func (a *App) restoreSnapshot() {
-	w := &a.write
-	i := slices.IndexFunc(w.snaps, func(s workspace.Snapshot) bool { return s.Name == w.snap })
+func (a *View) restoreSnapshot() {
+	w := a
+	i := slices.IndexFunc(w.Snaps, func(s workspace.Snapshot) bool { return s.Name == w.Snap })
 	if i < 0 {
 		return
 	}
-	if err := a.saveText(); err != nil {
-		a.warn(err)
+	if err := a.Book.RestoreSnapshot(w.Snaps[i], w.SnapText); err != nil {
+		a.Notices.Notices().Warn(err)
 		return
 	}
-	if _, err := a.Store.TakeSnapshot(w.node, workspace.SnapRestore, w.cur().ed.Doc.String(), storedMarks(w.cur().ed.Doc.Marks())); err != nil {
-		a.warn(err)
-		return
-	}
-	w.cur().ed = a.chapterEditor(w.snapText, w.snaps[i].Marks)
-	w.cur().ed.Select(0, 0)
-	w.cur().savedVer = -1
-	if err := a.saveText(); err != nil {
-		a.warn(err)
-		return
-	}
-	w.snapsOpen = false
-	a.status.Did(locales.SnapRestored(kit.When(w.snaps[i].At, time.Now())))
+	w.SnapsOpen = false
+	a.Notices.Notices().Did(snapstext.SnapRestored(kit.When(w.Snaps[i].At, time.Now())))
 }

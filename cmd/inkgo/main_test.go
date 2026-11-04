@@ -25,7 +25,7 @@ func layoutBook(t *testing.T, root string) *workspace.Store {
 }
 
 func newLayoutApp(root string) *desk.App {
-	a := desk.New(filepath.Join(root, "providers.yaml"), append([]ext.Module{aimod.New(aimod.Options{ConfigFile: filepath.Join(root, "providers.yaml")})}, testModules()...)...)
+	a := desk.New(filepath.Join(root, "providers.yaml"), append(testModules(), aimod.New(aimod.Options{ConfigFile: filepath.Join(root, "providers.yaml")}))...)
 	return a
 }
 
@@ -313,5 +313,5 @@ func shot(t *testing.T, tt *ui.Tester, suffix string) {
 }
 
 func newModuleApp(config string, mods ...ext.Module) *desk.App {
-	return desk.New(config, append([]ext.Module{aimod.New(aimod.Options{ConfigFile: config})}, mods...)...)
+	return desk.New(config, append(append([]ext.Module(nil), mods...), aimod.New(aimod.Options{ConfigFile: config}))...)
 }

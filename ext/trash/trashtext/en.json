@@ -1,0 +1,13 @@
+{
+  "cmdTrash": "Trash…",
+  "trashTitle": "Trash",
+  "trashAbout": "Restored items return to the end of their original folder.",
+  "trashRestored": "Restored “{title}”",
+  "trashDeletedAt": "Deleted {at}",
+  "trashConfirm": "Delete Permanently",
+  "trashDelete": "Delete Forever",
+  "trashRestore": "Restore",
+  "trashEmpty": "The trash is empty",
+  "modTrash": "Trash",
+  "modTrashAbout": "Deleted chapters can be brought back"
+}

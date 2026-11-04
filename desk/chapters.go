@@ -167,7 +167,6 @@ func (a *App) openNode(id string) {
 		w.open[id] = c
 	}
 	w.node = id
-	w.current = 0
 	c.changed = false
 	if c.lost {
 		// Gone from the disk, its words are only here.

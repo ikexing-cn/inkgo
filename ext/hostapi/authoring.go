@@ -32,8 +32,6 @@ type Search interface {
 	FindInChapter(string, string)
 	// CountText counts live whole-book matches on the frame thread, directly without ext.Call or ext.Guard.
 	CountText(string) int
-	// ReplaceText opens whole-book replacement on the frame thread, directly without ext.Call or ext.Guard.
-	ReplaceText(string, string)
 }
 
 // SearchService resolves direct frame-thread prose search.

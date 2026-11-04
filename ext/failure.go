@@ -70,7 +70,7 @@ func (h *Host) failCall(id, stage, target, injection, chain string, v any) error
 	e.ledger.State = Failed
 	e.ledger.Errors = append(e.ledger.Errors, f)
 	blocked := map[string]bool{id: true}
-	for _, other := range h.entries {
+	for _, other := range h.loadOrder {
 		for _, dep := range other.mod.Requires {
 			if blocked[dep] {
 				blocked[other.mod.ID] = true

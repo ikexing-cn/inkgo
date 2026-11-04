@@ -68,23 +68,3 @@ func (a *App) feedNames() {
 	})
 	w.cur().ed.SetNameLinks(links, a.seeName)
 }
-
-// replaceName opens whole-book replacement using the writing page.
-func (a *App) replaceName(old, new string) {
-	a.page = pageWrite
-	w := &a.write
-	if w.cur().ed == nil {
-		id := w.node
-		if _, ok := a.book.Tree().Node(id); !ok {
-			id = a.firstChapter()
-		}
-		if id != "" {
-			a.openNode(id)
-		}
-	}
-	if w.cur().ed == nil {
-		return // no chapter to find in
-	}
-	w.finding, w.query, w.with, w.wide, w.sure = true, old, new, true, false
-	w.texts, w.hitsFor = nil, [3]any{}
-}

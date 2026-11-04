@@ -49,7 +49,7 @@ func TestFocusOffRemovesControlsAndKeysAndLeavesFocusGloballyAndPerBook(t *testi
 			}
 			a.setExtension("focus", false, book)
 			tt.Frame()
-			if a.write.focus || len(ext.Items(a.extensions, hostapi.Tools)) != 0 {
+			if a.write.focus || len(ext.Items(a.extensions, hostapi.Tools)) != 1 {
 				t.Fatal("focus survived disable")
 			}
 			for _, row := range a.commandList() {

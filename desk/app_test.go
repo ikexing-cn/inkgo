@@ -23,12 +23,15 @@ import (
 	"writer/ext/cats"
 	contextmod "writer/ext/context"
 	"writer/ext/export"
+	findmod "writer/ext/find"
 	"writer/ext/focus"
 	"writer/ext/goal"
 	"writer/ext/lore"
 	"writer/ext/outline"
 	"writer/ext/phone"
+	"writer/ext/snaps"
 	talkmod "writer/ext/talk"
+	"writer/ext/trash"
 	"writer/model"
 	"writer/workspace"
 )
@@ -70,7 +73,7 @@ func newApp(config string) *App { return testApp(ai.New(config)) }
 
 func testModules() []ext.Module {
 	mod, _ := backup.New(false)
-	return []ext.Module{contextmod.Module, talkmod.Module, lore.Module, outline.Module, mod, export.Module, phone.Module, focus.Module, goal.Module, cats.Module}
+	return []ext.Module{focus.Module, goal.Module, findmod.Module, lore.Module, outline.Module, talkmod.Module, snaps.Module, trash.Module, cats.Module, mod, export.Module, phone.Module, contextmod.Module}
 }
 
 func testApp(service aiapi.Backend) *App {
@@ -78,7 +81,13 @@ func testApp(service aiapi.Backend) *App {
 	outlineModule, page := outline.New()
 	gm, gp := goal.New()
 	cm, cp := cats.New()
-	a := newTestApp(service, contextmod.Module, talkmod.Module, lore.Module, outlineModule, mod, export.Module, phone.Module, focus.Module, gm, cm)
+	sm, sp := snaps.New()
+	tm, tp := trash.New()
+	fm, fp := findmod.New()
+	a := newTestApp(service, focus.Module, gm, fm, lore.Module, outlineModule, talkmod.Module, sm, tm, cm, mod, export.Module, phone.Module, contextmod.Module)
+	snapControllers[a] = sp
+	trashControllers[a] = tp
+	findControllers[a] = fp
 	goalControllers[a] = gp
 	catsControllers[a] = cp
 	outlineControllers[a] = page
@@ -1052,7 +1061,7 @@ func outlinePage(a *App) *outline.Page { return outlineControllers[a] }
 func newTestApp(service aiapi.Backend, mods ...ext.Module) *App {
 	view := &aimod.View{}
 	mod := aimod.New(aimod.Options{View: view, ConfigFile: service.ConfigFile(), Factory: func() aiapi.Backend { return service }})
-	a := New(service.ConfigFile(), append([]ext.Module{mod}, mods...)...)
+	a := New(service.ConfigFile(), append(append([]ext.Module(nil), mods...), mod)...)
 	aiViews[a] = view
 	return a
 }

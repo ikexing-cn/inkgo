@@ -1,4 +1,4 @@
-package desk
+package find
 
 import (
 	"testing"
@@ -12,7 +12,7 @@ func TestFindAndReplaceInAChapter(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	a.write.query, a.write.with = "林晚", "沈砚"
+	findOf(a).Query, findOf(a).With = "林晚", "沈砚"
 	tt.Frame()
 	if !tt.HasText("1 / 2") {
 		t.Fatal(tt.Texts())
@@ -35,26 +35,25 @@ func TestFindAndReplaceInAChapter(t *testing.T) {
 // not looked for.
 func TestFindWhatIsPicked(t *testing.T) {
 	a, tt, _ := writingFixture(t, "林晚说，林晚走了。\n雨还在下。")
-	w := &a.write
 	shownEditor(a).Select(4, 6)
 	tt.Frame()
 	tt.Key(ui.Cmd, ui.KeyF)
 	tt.Frame()
-	if w.query != "林晚" || !tt.HasText("2 / 2") || !tt.Focused("查找") {
-		t.Fatalf("query %q, %v, focused %v", w.query, tt.Texts(), tt.Focused("查找"))
+	if findOf(a).Query != "林晚" || !tt.HasText("2 / 2") || !tt.Focused("查找") {
+		t.Fatalf("query %q, %v, focused %v", findOf(a).Query, tt.Texts(), tt.Focused("查找"))
 	}
 	tt.Type("雨")
 	tt.Frame()
-	if w.query != "雨" || !tt.HasText("1 / 1") {
-		t.Fatalf("typed over: query %q", w.query)
+	if findOf(a).Query != "雨" || !tt.HasText("1 / 1") {
+		t.Fatalf("typed over: query %q", findOf(a).Query)
 	}
 	shownEditor(a).Select(6, 12)
 	shownEditor(a).Focus()
 	tt.Frame()
 	tt.Key(ui.Cmd, ui.KeyF)
 	tt.Frame()
-	if w.query != "雨" || !tt.Focused("查找") {
-		t.Fatalf("a pick over two paragraphs: query %q, focused %v", w.query, tt.Focused("查找"))
+	if findOf(a).Query != "雨" || !tt.Focused("查找") {
+		t.Fatalf("a pick over two paragraphs: query %q, focused %v", findOf(a).Query, tt.Focused("查找"))
 	}
 }
 
@@ -66,7 +65,7 @@ func TestEscapeBacksOutOfFinding(t *testing.T) {
 	tt.Key(ui.Cmd, ui.KeyF)
 	tt.Frame()
 	tt.Frame()
-	a.write.query = "林晚"
+	findOf(a).Query = "林晚"
 	tt.Frame()
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
@@ -79,8 +78,8 @@ func TestEscapeBacksOutOfFinding(t *testing.T) {
 	tt.Key(0, ui.KeyEscape)
 	tt.Frame()
 	tt.Frame()
-	if a.write.finding || tt.HasText("2 / 2") || !tt.Focused("正文") {
-		t.Fatalf("Escape left the find bar: finding %v, the prose focused %v", a.write.finding, tt.Focused("正文"))
+	if findOf(a).Finding || tt.HasText("2 / 2") || !tt.Focused("正文") {
+		t.Fatalf("Escape left the find bar: finding %v, the prose focused %v", findOf(a).Finding, tt.Focused("正文"))
 	}
 	if !tt.HasText("加入设定") {
 		t.Fatal("what was found is no longer picked in the prose")

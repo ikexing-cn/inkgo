@@ -1,0 +1,135 @@
+{
+  "cmdFind": "查找替换",
+  "tabFindTip": "查找替换（{key}）",
+  "@tabFindTip": {
+    "description": "标题栏查找替换按钮的提示，后面是快捷键。",
+    "placeholders": {
+      "key": {
+        "type": "String",
+        "example": "Ctrl+F"
+      }
+    }
+  },
+  "findReplacedBookUndo": "{chapters, plural, other {已在 # 章中替换 {total, plural, other {# 处}}，各章替换前的版本已存入历史版本；本章也可直接撤销}}",
+  "@findReplacedBookUndo": {
+    "description": "应用外壳：{chapters, plural, other {已在 # 章中替换 {total, plural, other {# 处}}，各章替换前的版本已存入历史版本；本章也可直接撤销}}",
+    "placeholders": {
+      "chapters": {
+        "type": "int",
+        "example": "5"
+      },
+      "total": {
+        "type": "int",
+        "example": "9"
+      }
+    }
+  },
+  "findMatchCount": "{count, plural, other {# 处}}",
+  "@findMatchCount": {
+    "description": "应用外壳：{count, plural, other {# 处}}",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "findBox": "查找",
+  "@findBox": {
+    "description": "查找框的占位字和无障碍名称。"
+  },
+  "findReplaceWith": "替换为",
+  "findPrev": "上一个",
+  "findNext": "下一个",
+  "findClose": "关闭查找",
+  "findAllTip": "在全部章节中查找",
+  "findBook": "全书",
+  "@findBook": {
+    "description": "查找栏里「全书」开关上的字。"
+  },
+  "findBookCount": "全书 {chapters} 章、共 {total} 处",
+  "@findBookCount": {
+    "description": "全书查找的结果数。",
+    "placeholders": {
+      "chapters": {
+        "type": "int",
+        "example": "5"
+      },
+      "total": {
+        "type": "int",
+        "example": "9"
+      }
+    }
+  },
+  "findNoneBook": "全书未找到",
+  "findReplaceBook": "全书替换",
+  "findReplace": "替换",
+  "findReplaceAll": "全部替换",
+  "findReplaced": "已替换 {count} 处，可撤销",
+  "@findReplaced": {
+    "description": "替换完成的提示。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "findReplacedBook": "已在 {chapters} 章中替换 {total} 处，各章替换前的版本已存入历史版本",
+  "@findReplacedBook": {
+    "description": "全书替换完成的提示。",
+    "placeholders": {
+      "chapters": {
+        "type": "int",
+        "example": "5"
+      },
+      "total": {
+        "type": "int",
+        "example": "9"
+      }
+    }
+  },
+  "dialogSwapAbout": "将全书 {chapters} 章中的 {total} 处“{q}”替换为{target}？仅修改正文，设定和章纲不变；各章替换前均保存历史版本。",
+  "@dialogSwapAbout": {
+    "description": "全书替换前的确认：章数、处数、要换的字、换成什么。",
+    "placeholders": {
+      "chapters": {
+        "type": "int",
+        "example": "15"
+      },
+      "total": {
+        "type": "int",
+        "example": "3"
+      },
+      "q": {
+        "type": "String",
+        "example": "小祥"
+      },
+      "target": {
+        "type": "String",
+        "example": "“小翔”"
+      }
+    }
+  },
+  "dialogSwapTo": "“{to}”",
+  "@dialogSwapTo": {
+    "description": "全书替换里换成的字，带引号。",
+    "placeholders": {
+      "to": {
+        "type": "String",
+        "example": "小翔"
+      }
+    }
+  },
+  "dialogSwapNone": "空（删除）",
+  "dialogSwapConfirm": "确定替换",
+  "helpFind": "查找替换，可切换到全书",
+  "modFind": "全书查找",
+  "@modFind": {
+    "description": "「功能」里一个模块的名字。"
+  },
+  "modFindAbout": "在整本书里查找替换",
+  "@modFindAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  }
+}

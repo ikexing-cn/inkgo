@@ -162,7 +162,7 @@ func TestWritingToolsKeepTheirPlaces(t *testing.T) {
 	tt.Frame()
 	tt.Frame()
 	click(t, tt, "查找替换")
-	if a.write.finding || find(t, tt, "查找替换") != search {
+	if findOf(a).Finding || find(t, tt, "查找替换") != search {
 		t.Fatal("find moved or acted without a chapter")
 	}
 	find(t, tt, "标签行")

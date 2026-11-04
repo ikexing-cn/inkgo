@@ -1,0 +1,37 @@
+{
+  "cmdTrash": "回收站…",
+  "trashTitle": "回收站",
+  "trashAbout": "恢复后回到原文件夹末尾。",
+  "trashRestored": "已恢复「{title}」",
+  "@trashRestored": {
+    "description": "从回收站恢复后的提示。",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "第八章"
+      }
+    }
+  },
+  "trashDeletedAt": "{at} 删除",
+  "@trashDeletedAt": {
+    "description": "回收站里一行：删除的时间。",
+    "placeholders": {
+      "at": {
+        "type": "String",
+        "example": "今天 09:12"
+      }
+    }
+  },
+  "trashConfirm": "确认彻底删除",
+  "trashDelete": "彻底删除",
+  "trashRestore": "恢复",
+  "trashEmpty": "回收站为空",
+  "modTrash": "回收站",
+  "@modTrash": {
+    "description": "「功能」里一个模块的名字。"
+  },
+  "modTrashAbout": "删掉的章节可以找回",
+  "@modTrashAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  }
+}

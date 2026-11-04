@@ -1,0 +1,123 @@
+{
+  "cmdSnapshots": "历史版本",
+  "snapTitle": "历史版本 · {chapter}",
+  "@snapTitle": {
+    "description": "快照对话框的标题，后面是章名。",
+    "placeholders": {
+      "chapter": {
+        "type": "String",
+        "example": "第一章：雨"
+      }
+    }
+  },
+  "snapAbout": "打开章节时、连续写作每十分钟、恢复前、{ai}全书替换前都会保存一份。最近七天的全部保留，更早的每天保留最后一份。",
+  "@snapAbout": {
+    "description": "快照什么时候存；AI 开着时多写一项采纳提议前，关着时为空。",
+    "placeholders": {
+      "ai": {
+        "type": "String",
+        "example": "采纳改稿建议前、"
+      }
+    }
+  },
+  "snapAboutAI": "采纳改稿建议前、",
+  "snapKindRestore": "恢复前",
+  "snapKindAI": "AI 改动前",
+  "snapKindEdit": "改动前",
+  "snapKindOutside": "外部改动",
+  "snapKindSwap": "全书替换前",
+  "snapKindWriting": "写作中",
+  "snapKindOpening": "打开时",
+  "snapRowInfo": "{unit, select, word {{kind} · {count} 词} other {{kind} · {count} 字}}",
+  "@snapRowInfo": {
+    "description": "快照列表里一行：存的原因和字数。",
+    "placeholders": {
+      "kind": {
+        "type": "String",
+        "example": "打开时"
+      },
+      "count": {
+        "type": "int",
+        "example": "1820"
+      },
+      "unit": {
+        "type": "String",
+        "example": "character"
+      }
+    }
+  },
+  "snapCompare": "与当前对比",
+  "snapSame": "该历史版本与当前正文相同",
+  "snapDiffHint": "红色删除线为历史版本中有而当前没有的内容，绿色为当前新增的内容",
+  "snapNone": "本章暂无历史版本",
+  "snapRestore": "恢复这个版本",
+  "snapRestored": "已恢复到 {at} 的版本，恢复前的内容已存为历史版本",
+  "@snapRestored": {
+    "description": "恢复快照后的提示。",
+    "placeholders": {
+      "at": {
+        "type": "String",
+        "example": "今天 10:20"
+      }
+    }
+  },
+  "modSnaps": "历史版本",
+  "@modSnaps": {
+    "description": "「功能」里一个模块的名字。"
+  },
+  "modSnapsAbout": "随时退回之前的稿子",
+  "@modSnapsAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  },
+  "draftFromOutline": "按章纲起草",
+  "draftOmittedLore": "{count, plural, other {超出上下文上限而未放入的设定 # 条}}",
+  "@draftOmittedLore": {
+    "description": "应用界面提示。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "draftReferenced": "AI 参考了：{items}",
+  "@draftReferenced": {
+    "description": "应用界面提示。",
+    "placeholders": {
+      "items": {
+        "type": "String",
+        "example": "设定"
+      }
+    }
+  },
+  "recordsLoreCount": "设定 {count} 条",
+  "@recordsLoreCount": {
+    "description": "AI 记录里发了几条设定，「设定 7 条」这样。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "7"
+      }
+    }
+  },
+  "snapAIFrom": "采纳讨论{talks}里的建议",
+  "@snapAIFrom": {
+    "description": "「AI 改动前」的快照写着改动从哪来。talks 是一串讨论名，每个用 snapAITalk 写，按语言连起来。",
+    "placeholders": {
+      "talks": {
+        "type": "String",
+        "example": "「阿棠的口癖」"
+      }
+    }
+  },
+  "snapAITalk": "「{title}」",
+  "@snapAITalk": {
+    "description": "snapAIFrom 里的一段讨论名。",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "阿棠的口癖"
+      }
+    }
+  }
+}

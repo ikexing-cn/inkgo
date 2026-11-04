@@ -241,10 +241,10 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 	shownEditor(a).Focus()
 	tt.Frame()
 	choose("编辑", "查找替换")
-	if !w.finding {
+	if !findOf(a).Finding {
 		t.Fatal("查找替换 did not open the finding")
 	}
-	shut(tt, &w.finding)
+	shut(tt, &findOf(a).Finding)
 	if err := clickMenu(tt, "编辑", "菜单-撤销"); err != nil {
 		t.Fatal(err)
 	}
@@ -287,10 +287,10 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 	}
 	a.book.Timing.SaveAfter = 0
 	choose("文件", "历史版本")
-	if !w.snapsOpen {
+	if !snapsOf(a).SnapsOpen {
 		t.Fatal("历史版本 did not open the snapshots")
 	}
-	shut(tt, &w.snapsOpen)
+	shut(tt, &snapsOf(a).SnapsOpen)
 	choose("文件", "导出")
 	if !exportOpen(tt) || !tt.HasText("本章") {
 		t.Fatal("导出 did not ask what to export, the whole work first", tt.Texts())
@@ -414,7 +414,7 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 		if page != pageTalk {
 			pale("视图", "展开右栏")
 		}
-		if shownPage(a) != page || w.focus || w.finding || w.snapsOpen || w.renaming != "" || w.draftOpen {
+		if shownPage(a) != page || w.focus || findOf(a).Finding || snapsOf(a).SnapsOpen || w.renaming != "" || w.draftOpen {
 			t.Fatalf("page %d: a pale row did something", page)
 		}
 		if err := clickMenu(tt, "文件", "菜单-导出"); err != nil {
@@ -582,10 +582,10 @@ func TestTheBarGivesTheCaretBack(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Frame()
-	if !w.finding || !tt.Focused("查找") {
-		t.Fatalf("查找替换: finding %v, its field focused %v", w.finding, tt.Focused("查找"))
+	if !findOf(a).Finding || !tt.Focused("查找") {
+		t.Fatalf("查找替换: finding %v, its field focused %v", findOf(a).Finding, tt.Focused("查找"))
 	}
-	shut(tt, &w.finding)
+	shut(tt, &findOf(a).Finding)
 	shownEditor(a).Focus()
 	tt.Frame()
 	tt.Frame()

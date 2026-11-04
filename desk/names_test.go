@@ -172,9 +172,8 @@ func TestRenameOffersToReplace(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	w := &a.write
-	if !w.finding || !w.wide || w.query != "林晚" || w.with != "苏晴" || shownChapter(a) != id {
-		t.Fatalf("find bar %v %v %q %q", w.finding, w.wide, w.query, w.with)
+	if !findOf(a).Finding || !findOf(a).Wide || findOf(a).Query != "林晚" || findOf(a).With != "苏晴" || shownChapter(a) != id {
+		t.Fatalf("find bar %v %v %q %q", findOf(a).Finding, findOf(a).Wide, findOf(a).Query, findOf(a).With)
 	}
 	if !tt.HasText("全书 1 章、共 2 处") || strings.Contains(shownEditor(a).Doc.String(), "苏晴") {
 		t.Fatal("replaced before the confirmation", tt.Texts())

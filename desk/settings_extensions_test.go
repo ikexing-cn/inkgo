@@ -21,8 +21,8 @@ import (
 func extensionSettingsFixture(t *testing.T) (*App, *ui.Tester) {
 	t.Helper()
 	mods := append(testModules(),
-		ext.Module{ID: "source", Group: hostapi.GroupWrite, Name: func() string { return "前置功能" }, Desc: func() string { return "提供资料。" }},
 		ext.Module{ID: "consumer", Group: hostapi.GroupWrite, Name: func() string { return "使用资料" }, Desc: func() string { return "读取资料。" }, Off: func() string { return "已停止读取。" }, Requires: []string{"source"}},
+		ext.Module{ID: "source", Group: hostapi.GroupWrite, Name: func() string { return "前置功能" }, Desc: func() string { return "提供资料。" }},
 		ext.Module{ID: "optional", Group: hostapi.GroupLore, Name: func() string { return "配合资料" }, Optional: []string{"source"}},
 		ext.Module{ID: "unused", Kind: ext.Library, Group: hostapi.GroupWrite, Name: func() string { return "闲置基础" }},
 		ext.Module{ID: "installed", Group: "unknown", Name: func() string { return "另装功能" }},
@@ -52,7 +52,7 @@ func extensionDetails(t *testing.T, a *App, tt *ui.Tester, id string) {
 
 func TestExtensionOverviewListsOnlyAssemblyInGroupOrderAndResetsDetails(t *testing.T) {
 	a, tt := extensionSettingsFixture(t)
-	want := [][]string{{"focus", "goal", "source", "consumer"}, {"lore", "outline", "optional"}, {"talk"}, {"backup", "export", "phone", "cats"}, {"installed"}, {"ai", "context", "unused"}}
+	want := [][]string{{"focus", "goal", "find", "consumer", "source"}, {"lore", "outline", "optional"}, {"talk"}, {"snaps", "trash", "cats", "backup", "export", "phone"}, {"installed"}, {"context", "unused", "ai"}}
 	if len(a.extViews.groups) != len(want) {
 		t.Fatal(a.extViews.groups)
 	}
@@ -67,7 +67,7 @@ func TestExtensionOverviewListsOnlyAssemblyInGroupOrderAndResetsDetails(t *testi
 	for _, mod := range a.extViews.modules {
 		find(t, tt, "扩展-"+mod.ID)
 	}
-	left, right := find(t, tt, "扩展-source"), find(t, tt, "扩展-consumer")
+	left, right := find(t, tt, "扩展-focus"), find(t, tt, "扩展-goal")
 	if left.Y != right.Y || left.W != right.W || left.X >= right.X {
 		t.Fatal("overview is not two equal columns", left, right)
 	}

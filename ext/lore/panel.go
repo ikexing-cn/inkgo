@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 	"writer/ext"
+	"writer/ext/find/findapi"
 	"writer/ext/hostapi"
 	"writer/ext/lore/loreapi"
 	"writer/ext/lore/loretext"
@@ -38,9 +39,10 @@ type Services struct {
 
 // Panel owns one work's entry routes and form drafts.
 type Panel struct {
-	services Services
-	Doc      Form
-	renamed  renamed
+	replacement *ext.OptRef[findapi.Replacement]
+	services    Services
+	Doc         Form
+	renamed     renamed
 }
 
 // Form holds the entry panel draft and route.

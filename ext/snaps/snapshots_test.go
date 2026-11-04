@@ -1,4 +1,4 @@
-package desk
+package snaps
 
 import (
 	"fmt"
@@ -55,7 +55,7 @@ func TestASnapshotLikeTheChapter(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !a.write.snapsOpen || noticeOf(a) != "" {
+	if !snapsOf(a).SnapsOpen || noticeOf(a) != "" {
 		t.Fatal("restored the same text", noticeOf(a))
 	}
 }
@@ -70,21 +70,21 @@ func TestASnapshotSelectsAcrossItsParagraphs(t *testing.T) {
 	}
 	a.openSnapshots()
 	tt.Frame()
-	shown := &a.write.snapShown
-	if shown.same || shown.long || len(shown.paras) != 4 || len(shown.paras[0]) != 4 || len(shown.paras[1]) != 0 {
-		t.Fatalf("compared: %+v", shown.paras)
+	shown := &snapsOf(a).SnapShown
+	if shown.Same || shown.Long || len(shown.Paras) != 4 || len(shown.Paras[0]) != 4 || len(shown.Paras[1]) != 0 {
+		t.Fatalf("compared: %+v", shown.Paras)
 	}
 	// Made as the snapshot or the comparing changes, and not in each frame.
-	first := &shown.paras[0][0]
+	first := &shown.Paras[0][0]
 	tt.Move(500, 300)
 	tt.Frame()
-	if first != &a.write.snapShown.paras[0][0] {
+	if first != &snapsOf(a).SnapShown.Paras[0][0] {
 		t.Fatal("the comparison was made again in a frame nothing changed in")
 	}
-	a.write.compare = false
+	snapsOf(a).Compare = false
 	tt.Frame()
-	if len(shown.paras) != 4 || len(shown.paras[0]) != 1 || shown.paras[0][0].Text != "第一段旧的。" {
-		t.Fatalf("plain: %+v", shown.paras)
+	if len(shown.Paras) != 4 || len(shown.Paras[0]) != 1 || shown.Paras[0][0].Text != "第一段旧的。" {
+		t.Fatalf("plain: %+v", shown.Paras)
 	}
 	from, ok := tt.Find("第一段旧的。")
 	to, ok2 := tt.Find("第四段。")
@@ -113,7 +113,7 @@ func TestASnapshotSelectsAcrossItsParagraphs(t *testing.T) {
 func TestALongSnapshot(t *testing.T) {
 	var old strings.Builder
 	n := 0
-	for ; old.Len() <= snapWhole; n++ {
+	for ; old.Len() <= 90_000; n++ {
 		fmt.Fprintf(&old, "第%d段，街上的灯一盏一盏地灭下去。\n", n)
 	}
 	last := fmt.Sprintf("第%d段，街上的灯一盏一盏地灭下去。", n-1)
@@ -122,12 +122,12 @@ func TestALongSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	a.openSnapshots()
-	a.write.compare = false
+	snapsOf(a).Compare = false
 	tt.Frame()
 	tt.Frame()
-	shown := &a.write.snapShown
-	if !shown.long || len(shown.paras) != n+1 {
-		t.Fatalf("long %v, %d paragraphs of %d", shown.long, len(shown.paras), n+1)
+	shown := &snapsOf(a).SnapShown
+	if !shown.Long || len(shown.Paras) != n+1 {
+		t.Fatalf("long %v, %d paragraphs of %d", shown.Long, len(shown.Paras), n+1)
 	}
 	if !tt.HasText("第0段，街上的灯一盏一盏地灭下去。") || tt.HasText(last) {
 		t.Fatal("the paragraphs in view, and only those, are built")
@@ -138,7 +138,7 @@ func TestALongSnapshot(t *testing.T) {
 		tt.Scroll(at.X+10, at.Y+10, 0, 600)
 		tt.Frame()
 	}
-	if first, _ := shown.list.Visible(); first == 0 || tt.HasText("第0段，街上的灯一盏一盏地灭下去。") {
+	if first, _ := shown.List.Visible(); first == 0 || tt.HasText("第0段，街上的灯一盏一盏地灭下去。") {
 		t.Fatal("the long snapshot did not scroll: its first paragraph in view is", first)
 	}
 	if err := tt.Click("恢复这个版本"); err != nil {

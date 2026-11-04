@@ -188,26 +188,6 @@ func (msgs Messages) CmdSave() string {
 	return Catalog.Format(msgs.locale, "cmdSave", nil)
 }
 
-// CmdSnapshots says "历史版本"
-// in the language the app shows.
-func CmdSnapshots() string { return In(i18n.Locale()).CmdSnapshots() }
-
-// CmdSnapshots says "历史版本"
-// in the language of msgs.
-func (msgs Messages) CmdSnapshots() string {
-	return Catalog.Format(msgs.locale, "cmdSnapshots", nil)
-}
-
-// CmdTrash says "回收站…"
-// in the language the app shows.
-func CmdTrash() string { return In(i18n.Locale()).CmdTrash() }
-
-// CmdTrash says "回收站…"
-// in the language of msgs.
-func (msgs Messages) CmdTrash() string {
-	return Catalog.Format(msgs.locale, "cmdTrash", nil)
-}
-
 // CmdUndo says "撤销"
 // in the language the app shows.
 func CmdUndo() string { return In(i18n.Locale()).CmdUndo() }
@@ -226,16 +206,6 @@ func CmdRedo() string { return In(i18n.Locale()).CmdRedo() }
 // in the language of msgs.
 func (msgs Messages) CmdRedo() string {
 	return Catalog.Format(msgs.locale, "cmdRedo", nil)
-}
-
-// CmdFind says "查找替换"
-// in the language the app shows.
-func CmdFind() string { return In(i18n.Locale()).CmdFind() }
-
-// CmdFind says "查找替换"
-// in the language of msgs.
-func (msgs Messages) CmdFind() string {
-	return Catalog.Format(msgs.locale, "cmdFind", nil)
 }
 
 // CmdRename says "重命名"
@@ -1068,20 +1038,6 @@ func SideMoveToTrash() string { return In(i18n.Locale()).SideMoveToTrash() }
 // in the language of msgs.
 func (msgs Messages) SideMoveToTrash() string {
 	return Catalog.Format(msgs.locale, "sideMoveToTrash", nil)
-}
-
-// TabFindTip says "查找替换（{key}）"
-// in the language the app shows.
-//
-// 标题栏查找替换按钮的提示，后面是快捷键。
-func TabFindTip(key string) string { return In(i18n.Locale()).TabFindTip(key) }
-
-// TabFindTip says "查找替换（{key}）"
-// in the language of msgs.
-//
-// 标题栏查找替换按钮的提示，后面是快捷键。
-func (msgs Messages) TabFindTip(key string) string {
-	return Catalog.Format(msgs.locale, "tabFindTip", map[string]any{"key": key})
 }
 
 // TabMarksHere says "本章伏笔"
@@ -2708,144 +2664,6 @@ func (msgs Messages) EditorWhyNoModel() string {
 	return Catalog.Format(msgs.locale, "editorWhyNoModel", nil)
 }
 
-// FindReplacedBookUndo says "{chapters, plural, other {已在 # 章中替换 {total, plural, other {# 处}}…"
-// in the language the app shows.
-//
-// 应用外壳：{chapters, plural, other {已在 # 章中替换 {total,
-// plural, other {#
-// 处}}，各章替换前的版本已存入历史版本；本章也可直接撤销}}
-func FindReplacedBookUndo(chapters int, total int) string {
-	return In(i18n.Locale()).FindReplacedBookUndo(chapters, total)
-}
-
-// FindReplacedBookUndo says "{chapters, plural, other {已在 # 章中替换 {total, plural, other {# 处}}…"
-// in the language of msgs.
-//
-// 应用外壳：{chapters, plural, other {已在 # 章中替换 {total,
-// plural, other {#
-// 处}}，各章替换前的版本已存入历史版本；本章也可直接撤销}}
-func (msgs Messages) FindReplacedBookUndo(chapters int, total int) string {
-	return Catalog.Format(msgs.locale, "findReplacedBookUndo", map[string]any{"chapters": chapters, "total": total})
-}
-
-// FindMatchCount says "{count, plural, other {# 处}}"
-// in the language the app shows.
-//
-// 应用外壳：{count, plural, other {# 处}}
-func FindMatchCount(count int) string { return In(i18n.Locale()).FindMatchCount(count) }
-
-// FindMatchCount says "{count, plural, other {# 处}}"
-// in the language of msgs.
-//
-// 应用外壳：{count, plural, other {# 处}}
-func (msgs Messages) FindMatchCount(count int) string {
-	return Catalog.Format(msgs.locale, "findMatchCount", map[string]any{"count": count})
-}
-
-// FindBox says "查找"
-// in the language the app shows.
-//
-// 查找框的占位字和无障碍名称。
-func FindBox() string { return In(i18n.Locale()).FindBox() }
-
-// FindBox says "查找"
-// in the language of msgs.
-//
-// 查找框的占位字和无障碍名称。
-func (msgs Messages) FindBox() string {
-	return Catalog.Format(msgs.locale, "findBox", nil)
-}
-
-// FindReplaceWith says "替换为"
-// in the language the app shows.
-func FindReplaceWith() string { return In(i18n.Locale()).FindReplaceWith() }
-
-// FindReplaceWith says "替换为"
-// in the language of msgs.
-func (msgs Messages) FindReplaceWith() string {
-	return Catalog.Format(msgs.locale, "findReplaceWith", nil)
-}
-
-// FindPrev says "上一个"
-// in the language the app shows.
-func FindPrev() string { return In(i18n.Locale()).FindPrev() }
-
-// FindPrev says "上一个"
-// in the language of msgs.
-func (msgs Messages) FindPrev() string {
-	return Catalog.Format(msgs.locale, "findPrev", nil)
-}
-
-// FindNext says "下一个"
-// in the language the app shows.
-func FindNext() string { return In(i18n.Locale()).FindNext() }
-
-// FindNext says "下一个"
-// in the language of msgs.
-func (msgs Messages) FindNext() string {
-	return Catalog.Format(msgs.locale, "findNext", nil)
-}
-
-// FindClose says "关闭查找"
-// in the language the app shows.
-func FindClose() string { return In(i18n.Locale()).FindClose() }
-
-// FindClose says "关闭查找"
-// in the language of msgs.
-func (msgs Messages) FindClose() string {
-	return Catalog.Format(msgs.locale, "findClose", nil)
-}
-
-// FindAllTip says "在全部章节中查找"
-// in the language the app shows.
-func FindAllTip() string { return In(i18n.Locale()).FindAllTip() }
-
-// FindAllTip says "在全部章节中查找"
-// in the language of msgs.
-func (msgs Messages) FindAllTip() string {
-	return Catalog.Format(msgs.locale, "findAllTip", nil)
-}
-
-// FindBook says "全书"
-// in the language the app shows.
-//
-// 查找栏里「全书」开关上的字。
-func FindBook() string { return In(i18n.Locale()).FindBook() }
-
-// FindBook says "全书"
-// in the language of msgs.
-//
-// 查找栏里「全书」开关上的字。
-func (msgs Messages) FindBook() string {
-	return Catalog.Format(msgs.locale, "findBook", nil)
-}
-
-// FindBookCount says "全书 {chapters} 章、共 {total} 处"
-// in the language the app shows.
-//
-// 全书查找的结果数。
-func FindBookCount(chapters int, total int) string {
-	return In(i18n.Locale()).FindBookCount(chapters, total)
-}
-
-// FindBookCount says "全书 {chapters} 章、共 {total} 处"
-// in the language of msgs.
-//
-// 全书查找的结果数。
-func (msgs Messages) FindBookCount(chapters int, total int) string {
-	return Catalog.Format(msgs.locale, "findBookCount", map[string]any{"chapters": chapters, "total": total})
-}
-
-// FindNoneBook says "全书未找到"
-// in the language the app shows.
-func FindNoneBook() string { return In(i18n.Locale()).FindNoneBook() }
-
-// FindNoneBook says "全书未找到"
-// in the language of msgs.
-func (msgs Messages) FindNoneBook() string {
-	return Catalog.Format(msgs.locale, "findNoneBook", nil)
-}
-
 // FindNone says "未找到"
 // in the language the app shows.
 func FindNone() string { return In(i18n.Locale()).FindNone() }
@@ -2854,36 +2672,6 @@ func FindNone() string { return In(i18n.Locale()).FindNone() }
 // in the language of msgs.
 func (msgs Messages) FindNone() string {
 	return Catalog.Format(msgs.locale, "findNone", nil)
-}
-
-// FindReplaceBook says "全书替换"
-// in the language the app shows.
-func FindReplaceBook() string { return In(i18n.Locale()).FindReplaceBook() }
-
-// FindReplaceBook says "全书替换"
-// in the language of msgs.
-func (msgs Messages) FindReplaceBook() string {
-	return Catalog.Format(msgs.locale, "findReplaceBook", nil)
-}
-
-// FindReplace says "替换"
-// in the language the app shows.
-func FindReplace() string { return In(i18n.Locale()).FindReplace() }
-
-// FindReplace says "替换"
-// in the language of msgs.
-func (msgs Messages) FindReplace() string {
-	return Catalog.Format(msgs.locale, "findReplace", nil)
-}
-
-// FindReplaceAll says "全部替换"
-// in the language the app shows.
-func FindReplaceAll() string { return In(i18n.Locale()).FindReplaceAll() }
-
-// FindReplaceAll says "全部替换"
-// in the language of msgs.
-func (msgs Messages) FindReplaceAll() string {
-	return Catalog.Format(msgs.locale, "findReplaceAll", nil)
 }
 
 // FindChapterHead says "{title} · {count} 处"
@@ -2900,36 +2688,6 @@ func FindChapterHead(title string, count int) string {
 // 全书查找结果里，每一章的标题行。
 func (msgs Messages) FindChapterHead(title string, count int) string {
 	return Catalog.Format(msgs.locale, "findChapterHead", map[string]any{"title": title, "count": count})
-}
-
-// FindReplaced says "已替换 {count} 处，可撤销"
-// in the language the app shows.
-//
-// 替换完成的提示。
-func FindReplaced(count int) string { return In(i18n.Locale()).FindReplaced(count) }
-
-// FindReplaced says "已替换 {count} 处，可撤销"
-// in the language of msgs.
-//
-// 替换完成的提示。
-func (msgs Messages) FindReplaced(count int) string {
-	return Catalog.Format(msgs.locale, "findReplaced", map[string]any{"count": count})
-}
-
-// FindReplacedBook says "已在 {chapters} 章中替换 {total} 处，各章替换前的版本已存入历史版本"
-// in the language the app shows.
-//
-// 全书替换完成的提示。
-func FindReplacedBook(chapters int, total int) string {
-	return In(i18n.Locale()).FindReplacedBook(chapters, total)
-}
-
-// FindReplacedBook says "已在 {chapters} 章中替换 {total} 处，各章替换前的版本已存入历史版本"
-// in the language of msgs.
-//
-// 全书替换完成的提示。
-func (msgs Messages) FindReplacedBook(chapters int, total int) string {
-	return Catalog.Format(msgs.locale, "findReplacedBook", map[string]any{"chapters": chapters, "total": total})
 }
 
 // CommonCancel says "取消"
@@ -7662,162 +7420,6 @@ func (msgs Messages) ExportRangeChapter() string {
 	return Catalog.Format(msgs.locale, "exportRangeChapter", nil)
 }
 
-// SnapTitle says "历史版本 · {chapter}"
-// in the language the app shows.
-//
-// 快照对话框的标题，后面是章名。
-func SnapTitle(chapter string) string { return In(i18n.Locale()).SnapTitle(chapter) }
-
-// SnapTitle says "历史版本 · {chapter}"
-// in the language of msgs.
-//
-// 快照对话框的标题，后面是章名。
-func (msgs Messages) SnapTitle(chapter string) string {
-	return Catalog.Format(msgs.locale, "snapTitle", map[string]any{"chapter": chapter})
-}
-
-// SnapAbout says "打开章节时、连续写作每十分钟、恢复前、{ai}…"
-// in the language the app shows.
-//
-// 快照什么时候存；AI
-// 开着时多写一项采纳提议前，关着时为空。
-func SnapAbout(ai string) string { return In(i18n.Locale()).SnapAbout(ai) }
-
-// SnapAbout says "打开章节时、连续写作每十分钟、恢复前、{ai}…"
-// in the language of msgs.
-//
-// 快照什么时候存；AI
-// 开着时多写一项采纳提议前，关着时为空。
-func (msgs Messages) SnapAbout(ai string) string {
-	return Catalog.Format(msgs.locale, "snapAbout", map[string]any{"ai": ai})
-}
-
-// SnapAboutAI says "采纳改稿建议前、"
-// in the language the app shows.
-func SnapAboutAI() string { return In(i18n.Locale()).SnapAboutAI() }
-
-// SnapAboutAI says "采纳改稿建议前、"
-// in the language of msgs.
-func (msgs Messages) SnapAboutAI() string {
-	return Catalog.Format(msgs.locale, "snapAboutAI", nil)
-}
-
-// SnapKindRestore says "恢复前"
-// in the language the app shows.
-func SnapKindRestore() string { return In(i18n.Locale()).SnapKindRestore() }
-
-// SnapKindRestore says "恢复前"
-// in the language of msgs.
-func (msgs Messages) SnapKindRestore() string {
-	return Catalog.Format(msgs.locale, "snapKindRestore", nil)
-}
-
-// SnapKindAI says "AI 改动前"
-// in the language the app shows.
-func SnapKindAI() string { return In(i18n.Locale()).SnapKindAI() }
-
-// SnapKindAI says "AI 改动前"
-// in the language of msgs.
-func (msgs Messages) SnapKindAI() string {
-	return Catalog.Format(msgs.locale, "snapKindAI", nil)
-}
-
-// SnapKindEdit says "改动前"
-// in the language the app shows.
-func SnapKindEdit() string { return In(i18n.Locale()).SnapKindEdit() }
-
-// SnapKindEdit says "改动前"
-// in the language of msgs.
-func (msgs Messages) SnapKindEdit() string {
-	return Catalog.Format(msgs.locale, "snapKindEdit", nil)
-}
-
-// SnapKindOutside says "外部改动"
-// in the language the app shows.
-func SnapKindOutside() string { return In(i18n.Locale()).SnapKindOutside() }
-
-// SnapKindOutside says "外部改动"
-// in the language of msgs.
-func (msgs Messages) SnapKindOutside() string {
-	return Catalog.Format(msgs.locale, "snapKindOutside", nil)
-}
-
-// SnapKindSwap says "全书替换前"
-// in the language the app shows.
-func SnapKindSwap() string { return In(i18n.Locale()).SnapKindSwap() }
-
-// SnapKindSwap says "全书替换前"
-// in the language of msgs.
-func (msgs Messages) SnapKindSwap() string {
-	return Catalog.Format(msgs.locale, "snapKindSwap", nil)
-}
-
-// SnapKindWriting says "写作中"
-// in the language the app shows.
-func SnapKindWriting() string { return In(i18n.Locale()).SnapKindWriting() }
-
-// SnapKindWriting says "写作中"
-// in the language of msgs.
-func (msgs Messages) SnapKindWriting() string {
-	return Catalog.Format(msgs.locale, "snapKindWriting", nil)
-}
-
-// SnapKindOpening says "打开时"
-// in the language the app shows.
-func SnapKindOpening() string { return In(i18n.Locale()).SnapKindOpening() }
-
-// SnapKindOpening says "打开时"
-// in the language of msgs.
-func (msgs Messages) SnapKindOpening() string {
-	return Catalog.Format(msgs.locale, "snapKindOpening", nil)
-}
-
-// SnapRowInfo says "{unit, select, word {{kind} · {count} 词} other {{kind} · {count} 字}}"
-// in the language the app shows.
-//
-// 快照列表里一行：存的原因和字数。
-func SnapRowInfo(kind string, count int, unit string) string {
-	return In(i18n.Locale()).SnapRowInfo(kind, count, unit)
-}
-
-// SnapRowInfo says "{unit, select, word {{kind} · {count} 词} other {{kind} · {count} 字}}"
-// in the language of msgs.
-//
-// 快照列表里一行：存的原因和字数。
-func (msgs Messages) SnapRowInfo(kind string, count int, unit string) string {
-	return Catalog.Format(msgs.locale, "snapRowInfo", map[string]any{"kind": kind, "count": count, "unit": unit})
-}
-
-// SnapCompare says "与当前对比"
-// in the language the app shows.
-func SnapCompare() string { return In(i18n.Locale()).SnapCompare() }
-
-// SnapCompare says "与当前对比"
-// in the language of msgs.
-func (msgs Messages) SnapCompare() string {
-	return Catalog.Format(msgs.locale, "snapCompare", nil)
-}
-
-// SnapSame says "该历史版本与当前正文相同"
-// in the language the app shows.
-func SnapSame() string { return In(i18n.Locale()).SnapSame() }
-
-// SnapSame says "该历史版本与当前正文相同"
-// in the language of msgs.
-func (msgs Messages) SnapSame() string {
-	return Catalog.Format(msgs.locale, "snapSame", nil)
-}
-
-// SnapDiffHint says "红色删除线为历史版本中有而当前没有的内容，绿色为当前新增的内容"
-// in the language the app shows.
-func SnapDiffHint() string { return In(i18n.Locale()).SnapDiffHint() }
-
-// SnapDiffHint says "红色删除线为历史版本中有而当前没有的内容，绿色为当前新增的内容"
-// in the language of msgs.
-func (msgs Messages) SnapDiffHint() string {
-	return Catalog.Format(msgs.locale, "snapDiffHint", nil)
-}
-
 // SnapEmpty says "该历史版本为空"
 // in the language the app shows.
 func SnapEmpty() string { return In(i18n.Locale()).SnapEmpty() }
@@ -7826,88 +7428,6 @@ func SnapEmpty() string { return In(i18n.Locale()).SnapEmpty() }
 // in the language of msgs.
 func (msgs Messages) SnapEmpty() string {
 	return Catalog.Format(msgs.locale, "snapEmpty", nil)
-}
-
-// SnapNone says "本章暂无历史版本"
-// in the language the app shows.
-func SnapNone() string { return In(i18n.Locale()).SnapNone() }
-
-// SnapNone says "本章暂无历史版本"
-// in the language of msgs.
-func (msgs Messages) SnapNone() string {
-	return Catalog.Format(msgs.locale, "snapNone", nil)
-}
-
-// SnapRestore says "恢复这个版本"
-// in the language the app shows.
-func SnapRestore() string { return In(i18n.Locale()).SnapRestore() }
-
-// SnapRestore says "恢复这个版本"
-// in the language of msgs.
-func (msgs Messages) SnapRestore() string {
-	return Catalog.Format(msgs.locale, "snapRestore", nil)
-}
-
-// SnapRestored says "已恢复到 {at} 的版本，恢复前的内容已存为历史版本"
-// in the language the app shows.
-//
-// 恢复快照后的提示。
-func SnapRestored(at string) string { return In(i18n.Locale()).SnapRestored(at) }
-
-// SnapRestored says "已恢复到 {at} 的版本，恢复前的内容已存为历史版本"
-// in the language of msgs.
-//
-// 恢复快照后的提示。
-func (msgs Messages) SnapRestored(at string) string {
-	return Catalog.Format(msgs.locale, "snapRestored", map[string]any{"at": at})
-}
-
-// TrashTitle says "回收站"
-// in the language the app shows.
-func TrashTitle() string { return In(i18n.Locale()).TrashTitle() }
-
-// TrashTitle says "回收站"
-// in the language of msgs.
-func (msgs Messages) TrashTitle() string {
-	return Catalog.Format(msgs.locale, "trashTitle", nil)
-}
-
-// TrashAbout says "恢复后回到原文件夹末尾。"
-// in the language the app shows.
-func TrashAbout() string { return In(i18n.Locale()).TrashAbout() }
-
-// TrashAbout says "恢复后回到原文件夹末尾。"
-// in the language of msgs.
-func (msgs Messages) TrashAbout() string {
-	return Catalog.Format(msgs.locale, "trashAbout", nil)
-}
-
-// TrashRestored says "已恢复「{title}」"
-// in the language the app shows.
-//
-// 从回收站恢复后的提示。
-func TrashRestored(title string) string { return In(i18n.Locale()).TrashRestored(title) }
-
-// TrashRestored says "已恢复「{title}」"
-// in the language of msgs.
-//
-// 从回收站恢复后的提示。
-func (msgs Messages) TrashRestored(title string) string {
-	return Catalog.Format(msgs.locale, "trashRestored", map[string]any{"title": title})
-}
-
-// TrashDeletedAt says "{at} 删除"
-// in the language the app shows.
-//
-// 回收站里一行：删除的时间。
-func TrashDeletedAt(at string) string { return In(i18n.Locale()).TrashDeletedAt(at) }
-
-// TrashDeletedAt says "{at} 删除"
-// in the language of msgs.
-//
-// 回收站里一行：删除的时间。
-func (msgs Messages) TrashDeletedAt(at string) string {
-	return Catalog.Format(msgs.locale, "trashDeletedAt", map[string]any{"at": at})
 }
 
 // TrashWithChapters says "连同里面的 {count} 章"
@@ -7922,46 +7442,6 @@ func TrashWithChapters(count int) string { return In(i18n.Locale()).TrashWithCha
 // 回收站里删掉的卷连同里面的章数。
 func (msgs Messages) TrashWithChapters(count int) string {
 	return Catalog.Format(msgs.locale, "trashWithChapters", map[string]any{"count": count})
-}
-
-// TrashConfirm says "确认彻底删除"
-// in the language the app shows.
-func TrashConfirm() string { return In(i18n.Locale()).TrashConfirm() }
-
-// TrashConfirm says "确认彻底删除"
-// in the language of msgs.
-func (msgs Messages) TrashConfirm() string {
-	return Catalog.Format(msgs.locale, "trashConfirm", nil)
-}
-
-// TrashDelete says "彻底删除"
-// in the language the app shows.
-func TrashDelete() string { return In(i18n.Locale()).TrashDelete() }
-
-// TrashDelete says "彻底删除"
-// in the language of msgs.
-func (msgs Messages) TrashDelete() string {
-	return Catalog.Format(msgs.locale, "trashDelete", nil)
-}
-
-// TrashRestore says "恢复"
-// in the language the app shows.
-func TrashRestore() string { return In(i18n.Locale()).TrashRestore() }
-
-// TrashRestore says "恢复"
-// in the language of msgs.
-func (msgs Messages) TrashRestore() string {
-	return Catalog.Format(msgs.locale, "trashRestore", nil)
-}
-
-// TrashEmpty says "回收站为空"
-// in the language the app shows.
-func TrashEmpty() string { return In(i18n.Locale()).TrashEmpty() }
-
-// TrashEmpty says "回收站为空"
-// in the language of msgs.
-func (msgs Messages) TrashEmpty() string {
-	return Catalog.Format(msgs.locale, "trashEmpty", nil)
 }
 
 // KeysTitle says "快捷键"
@@ -8122,56 +7602,6 @@ func DialogSwapTitle() string { return In(i18n.Locale()).DialogSwapTitle() }
 // in the language of msgs.
 func (msgs Messages) DialogSwapTitle() string {
 	return Catalog.Format(msgs.locale, "dialogSwapTitle", nil)
-}
-
-// DialogSwapAbout says "将全书 {chapters} 章中的 {total} 处“{q}”替换为{target}…"
-// in the language the app shows.
-//
-// 全书替换前的确认：章数、处数、要换的字、换成什么。
-func DialogSwapAbout(chapters int, total int, q string, target string) string {
-	return In(i18n.Locale()).DialogSwapAbout(chapters, total, q, target)
-}
-
-// DialogSwapAbout says "将全书 {chapters} 章中的 {total} 处“{q}”替换为{target}…"
-// in the language of msgs.
-//
-// 全书替换前的确认：章数、处数、要换的字、换成什么。
-func (msgs Messages) DialogSwapAbout(chapters int, total int, q string, target string) string {
-	return Catalog.Format(msgs.locale, "dialogSwapAbout", map[string]any{"chapters": chapters, "total": total, "q": q, "target": target})
-}
-
-// DialogSwapTo says "“{to}”"
-// in the language the app shows.
-//
-// 全书替换里换成的字，带引号。
-func DialogSwapTo(to string) string { return In(i18n.Locale()).DialogSwapTo(to) }
-
-// DialogSwapTo says "“{to}”"
-// in the language of msgs.
-//
-// 全书替换里换成的字，带引号。
-func (msgs Messages) DialogSwapTo(to string) string {
-	return Catalog.Format(msgs.locale, "dialogSwapTo", map[string]any{"to": to})
-}
-
-// DialogSwapNone says "空（删除）"
-// in the language the app shows.
-func DialogSwapNone() string { return In(i18n.Locale()).DialogSwapNone() }
-
-// DialogSwapNone says "空（删除）"
-// in the language of msgs.
-func (msgs Messages) DialogSwapNone() string {
-	return Catalog.Format(msgs.locale, "dialogSwapNone", nil)
-}
-
-// DialogSwapConfirm says "确定替换"
-// in the language the app shows.
-func DialogSwapConfirm() string { return In(i18n.Locale()).DialogSwapConfirm() }
-
-// DialogSwapConfirm says "确定替换"
-// in the language of msgs.
-func (msgs Messages) DialogSwapConfirm() string {
-	return Catalog.Format(msgs.locale, "dialogSwapConfirm", nil)
 }
 
 // DialogUnsavedTitle says "保存对「{chapter}」的修改？"
@@ -8420,44 +7850,6 @@ func DialogOsNewBookFolder() string { return In(i18n.Locale()).DialogOsNewBookFo
 // in the language of msgs.
 func (msgs Messages) DialogOsNewBookFolder() string {
 	return Catalog.Format(msgs.locale, "dialogOsNewBookFolder", nil)
-}
-
-// DraftFromOutline says "按章纲起草"
-// in the language the app shows.
-func DraftFromOutline() string { return In(i18n.Locale()).DraftFromOutline() }
-
-// DraftFromOutline says "按章纲起草"
-// in the language of msgs.
-func (msgs Messages) DraftFromOutline() string {
-	return Catalog.Format(msgs.locale, "draftFromOutline", nil)
-}
-
-// DraftOmittedLore says "{count, plural, other {超出上下文上限而未放入的设定 # 条}}"
-// in the language the app shows.
-//
-// 应用界面提示。
-func DraftOmittedLore(count int) string { return In(i18n.Locale()).DraftOmittedLore(count) }
-
-// DraftOmittedLore says "{count, plural, other {超出上下文上限而未放入的设定 # 条}}"
-// in the language of msgs.
-//
-// 应用界面提示。
-func (msgs Messages) DraftOmittedLore(count int) string {
-	return Catalog.Format(msgs.locale, "draftOmittedLore", map[string]any{"count": count})
-}
-
-// DraftReferenced says "AI 参考了：{items}"
-// in the language the app shows.
-//
-// 应用界面提示。
-func DraftReferenced(items string) string { return In(i18n.Locale()).DraftReferenced(items) }
-
-// DraftReferenced says "AI 参考了：{items}"
-// in the language of msgs.
-//
-// 应用界面提示。
-func (msgs Messages) DraftReferenced(items string) string {
-	return Catalog.Format(msgs.locale, "draftReferenced", map[string]any{"items": items})
 }
 
 // DraftBusyOther says "AI 正在回复别的讨论；等它回完或取消后再{action}"
@@ -8748,16 +8140,6 @@ func (msgs Messages) HelpSave() string {
 	return Catalog.Format(msgs.locale, "helpSave", nil)
 }
 
-// HelpFind says "查找替换，可切换到全书"
-// in the language the app shows.
-func HelpFind() string { return In(i18n.Locale()).HelpFind() }
-
-// HelpFind says "查找替换，可切换到全书"
-// in the language of msgs.
-func (msgs Messages) HelpFind() string {
-	return Catalog.Format(msgs.locale, "helpFind", nil)
-}
-
 // HelpNewChapter says "在本章之后新建章节"
 // in the language the app shows.
 func HelpNewChapter() string { return In(i18n.Locale()).HelpNewChapter() }
@@ -9010,20 +8392,6 @@ func (msgs Messages) RecordsLore() string {
 	return Catalog.Format(msgs.locale, "recordsLore", nil)
 }
 
-// RecordsLoreCount says "设定 {count} 条"
-// in the language the app shows.
-//
-// AI 记录里发了几条设定，「设定 7 条」这样。
-func RecordsLoreCount(count int) string { return In(i18n.Locale()).RecordsLoreCount(count) }
-
-// RecordsLoreCount says "设定 {count} 条"
-// in the language of msgs.
-//
-// AI 记录里发了几条设定，「设定 7 条」这样。
-func (msgs Messages) RecordsLoreCount(count int) string {
-	return Catalog.Format(msgs.locale, "recordsLoreCount", map[string]any{"count": count})
-}
-
 // RecordsOutlines says "章纲和卷纲"
 // in the language the app shows.
 //
@@ -9274,36 +8642,6 @@ func CommonNumber(n int) string { return In(i18n.Locale()).CommonNumber(n) }
 // 单写一个数，比如目录里每章的字数。按语言分组。
 func (msgs Messages) CommonNumber(n int) string {
 	return Catalog.Format(msgs.locale, "commonNumber", map[string]any{"n": n})
-}
-
-// SnapAIFrom says "采纳讨论{talks}里的建议"
-// in the language the app shows.
-//
-// 「AI 改动前」的快照写着改动从哪来。talks
-// 是一串讨论名，每个用 snapAITalk 写，按语言连起来。
-func SnapAIFrom(talks string) string { return In(i18n.Locale()).SnapAIFrom(talks) }
-
-// SnapAIFrom says "采纳讨论{talks}里的建议"
-// in the language of msgs.
-//
-// 「AI 改动前」的快照写着改动从哪来。talks
-// 是一串讨论名，每个用 snapAITalk 写，按语言连起来。
-func (msgs Messages) SnapAIFrom(talks string) string {
-	return Catalog.Format(msgs.locale, "snapAIFrom", map[string]any{"talks": talks})
-}
-
-// SnapAITalk says "「{title}」"
-// in the language the app shows.
-//
-// snapAIFrom 里的一段讨论名。
-func SnapAITalk(title string) string { return In(i18n.Locale()).SnapAITalk(title) }
-
-// SnapAITalk says "「{title}」"
-// in the language of msgs.
-//
-// snapAIFrom 里的一段讨论名。
-func (msgs Messages) SnapAITalk(title string) string {
-	return Catalog.Format(msgs.locale, "snapAITalk", map[string]any{"title": title})
 }
 
 // SnapAITalkGone says "已删除的讨论"
@@ -9586,90 +8924,6 @@ func ModNamesAbout() string { return In(i18n.Locale()).ModNamesAbout() }
 // 「扩展」里：这个扩展是做什么的，一句话。
 func (msgs Messages) ModNamesAbout() string {
 	return Catalog.Format(msgs.locale, "modNamesAbout", nil)
-}
-
-// ModSnaps says "历史版本"
-// in the language the app shows.
-//
-// 「功能」里一个模块的名字。
-func ModSnaps() string { return In(i18n.Locale()).ModSnaps() }
-
-// ModSnaps says "历史版本"
-// in the language of msgs.
-//
-// 「功能」里一个模块的名字。
-func (msgs Messages) ModSnaps() string {
-	return Catalog.Format(msgs.locale, "modSnaps", nil)
-}
-
-// ModSnapsAbout says "随时退回之前的稿子"
-// in the language the app shows.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func ModSnapsAbout() string { return In(i18n.Locale()).ModSnapsAbout() }
-
-// ModSnapsAbout says "随时退回之前的稿子"
-// in the language of msgs.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func (msgs Messages) ModSnapsAbout() string {
-	return Catalog.Format(msgs.locale, "modSnapsAbout", nil)
-}
-
-// ModTrash says "回收站"
-// in the language the app shows.
-//
-// 「功能」里一个模块的名字。
-func ModTrash() string { return In(i18n.Locale()).ModTrash() }
-
-// ModTrash says "回收站"
-// in the language of msgs.
-//
-// 「功能」里一个模块的名字。
-func (msgs Messages) ModTrash() string {
-	return Catalog.Format(msgs.locale, "modTrash", nil)
-}
-
-// ModTrashAbout says "删掉的章节可以找回"
-// in the language the app shows.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func ModTrashAbout() string { return In(i18n.Locale()).ModTrashAbout() }
-
-// ModTrashAbout says "删掉的章节可以找回"
-// in the language of msgs.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func (msgs Messages) ModTrashAbout() string {
-	return Catalog.Format(msgs.locale, "modTrashAbout", nil)
-}
-
-// ModFind says "全书查找"
-// in the language the app shows.
-//
-// 「功能」里一个模块的名字。
-func ModFind() string { return In(i18n.Locale()).ModFind() }
-
-// ModFind says "全书查找"
-// in the language of msgs.
-//
-// 「功能」里一个模块的名字。
-func (msgs Messages) ModFind() string {
-	return Catalog.Format(msgs.locale, "modFind", nil)
-}
-
-// ModFindAbout says "在整本书里查找替换"
-// in the language the app shows.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func ModFindAbout() string { return In(i18n.Locale()).ModFindAbout() }
-
-// ModFindAbout says "在整本书里查找替换"
-// in the language of msgs.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func (msgs Messages) ModFindAbout() string {
-	return Catalog.Format(msgs.locale, "modFindAbout", nil)
 }
 
 // ModGroupLibraries says "基础"

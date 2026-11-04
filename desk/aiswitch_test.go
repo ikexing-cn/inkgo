@@ -335,11 +335,11 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !w.snapsOpen || !tt.HasText("改动前") {
+	if !snapsOf(a).SnapsOpen || !tt.HasText("改动前") {
 		t.Fatalf("the snapshots do not show the one from before the draft: %q", tt.Texts())
 	}
 	look("the snapshots")
-	shut(tt, &w.snapsOpen)
+	shut(tt, &snapsOf(a).SnapsOpen)
 
 	// The chapter changed and left: no check.
 	shownEditor(a).Focus()

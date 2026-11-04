@@ -2,6 +2,7 @@ package desk
 
 import (
 	"github.com/egoist/mygo/ui"
+	"strings"
 	"time"
 	"writer/workspace"
 )
@@ -18,9 +19,6 @@ func (h extensionHost) TalkTitle(id string) (string, bool) { return h.a.talkName
 // FindInChapter implements the frame-thread host capability.
 func (h extensionHost) FindInChapter(id, quote string) { h.a.findInChapter(id, quote) }
 
-// ReplaceText implements the frame-thread host capability.
-func (h extensionHost) ReplaceText(old, new string) { h.a.replaceName(old, new) }
-
 // Flashed implements the frame-thread host capability.
 func (h extensionHost) Flashed(id string) (time.Time, bool) { at, ok := h.a.flash[id]; return at, ok }
 
@@ -35,16 +33,20 @@ func (h extensionHost) UndoRevision(text string, ops ...workspace.Op) { h.a.undo
 
 // CountText implements the frame-thread host capability.
 func (h extensionHost) CountText(text string) int {
-	if h.a.loadTree() != nil {
+	if text == "" || h.a.loadTree() != nil {
 		return 0
 	}
-	keep := h.a.write.texts
-	h.a.write.texts = nil
-	n := 0
-	for _, hit := range h.a.bookHits(text) {
-		n += hit.Count
+	texts, err := h.a.Store.Texts()
+	if err != nil {
+		return 0
 	}
-	h.a.write.texts = keep
+	if ed := h.a.write.cur().ed; ed != nil {
+		texts[h.a.write.node] = ed.Doc.String()
+	}
+	n := 0
+	for _, s := range texts {
+		n += strings.Count(s, text)
+	}
 	return n
 }
 

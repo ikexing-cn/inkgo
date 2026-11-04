@@ -52,7 +52,7 @@ func TestExtensionSettingsFollowHostPagesThenStableOrderAndCache(t *testing.T) {
 	}}
 	a := newTestApp(ai.New(""), mod)
 	defer a.Close()
-	want := []string{"appearance", "extensions", "AI", "pages.first", "pages.second", "reminders", "pages.late"}
+	want := []string{"appearance", "extensions", "pages.first", "pages.second", "AI", "reminders", "pages.late"}
 	for i, id := range want {
 		if a.prefTabs[i].id != id {
 			t.Fatal(a.prefTabs)

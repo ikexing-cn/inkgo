@@ -26,7 +26,7 @@ func TestLoreImportsOnlyPublicHostContracts(t *testing.T) {
 		for _, imp := range file.Imports {
 			pkg, _ := strconv.Unquote(imp.Path.Value)
 			switch pkg {
-			case "writer/ext/talk/talkapi", "writer/ext/ai/aiapi", "writer/talkbook", "writer/prompt", "writer/inference", "writer/internal/textclip", "writer/ext/context/contextapi", "writer/ext/lore/loreapi", "writer/ext/lore/loretext", "writer/ext", "writer/ext/hostapi", "writer/desk/kit", "writer/desk/book", "writer/workspace", "writer/locales":
+			case "writer/ext/talk/talkapi", "writer/ext/find/findapi", "writer/ext/ai/aiapi", "writer/talkbook", "writer/prompt", "writer/inference", "writer/internal/textclip", "writer/ext/context/contextapi", "writer/ext/lore/loreapi", "writer/ext/lore/loretext", "writer/ext", "writer/ext/hostapi", "writer/desk/kit", "writer/desk/book", "writer/workspace", "writer/locales":
 				continue
 			}
 			if strings.HasPrefix(pkg, "github.com/egoist/mygo/") {

@@ -20,7 +20,7 @@ func TestCommandLabelsFollowLocale(t *testing.T) {
 		if got := cmdNewChapter.name(a); got != c.name {
 			t.Errorf("%s command: %q", tag, got)
 		}
-		row := commandHelp[2]
+		row := commandHelp[1]
 		if got := row.group(); got != c.group {
 			t.Errorf("%s group: %q", tag, got)
 		}
@@ -70,7 +70,7 @@ func TestMacFocusDoesNotTriggerFind(t *testing.T) {
 	find, focus := false, false
 	tt := ui.NewTester(func(c *ui.Context) {
 		// Preserve commandList's order: Find is checked first.
-		find = cmdFind.pressedOn(c, true) || find
+		find = (&command{key: ui.KeyF, mods: modCmd}).pressedOn(c, true) || find
 		focus = cmdFocus.pressedOn(c, true) || focus
 	}, 800, 600)
 	tt.Frame()

@@ -26,7 +26,8 @@ type Host struct {
 	changes              uint64
 	closed               bool
 	setup                bool
-	entries              []*entry
+	entries              []*entry // assembly order, used for display
+	loadOrder            []*entry // stable dependency order, used for lifecycle and registration
 	byID                 map[string]*entry
 	points               map[string]point
 	contributions        []contribution
@@ -45,7 +46,7 @@ type Host struct {
 
 var moduleID = regexp.MustCompile(`^[a-z][a-z0-9]*$`)
 
-// New validates the entire graph, runs Setup in assembly order, reads local
+// New validates the entire graph, runs Setup in stable dependency order, reads local
 // switches and starts eligible modules on the shelf. Each Setup runs once for
 // this assembly; Open and switch changes never repeat it.
 func New(opts Options, mods ...Module) (*Host, error) {
@@ -60,8 +61,7 @@ func New(opts Options, mods ...Module) (*Host, error) {
 			return nil, err
 		}
 	}
-	positions := map[string]int{}
-	for i, m := range mods {
+	for _, m := range mods {
 		if !moduleID.MatchString(m.ID) || m.ID == HostOwner {
 			return nil, fmt.Errorf("module %q: invalid or reserved ID", m.ID)
 		}
@@ -75,7 +75,6 @@ func New(opts Options, mods ...Module) (*Host, error) {
 		e := &entry{mod: m, ids: map[string]bool{}, ledger: Ledger{ID: m.ID}}
 		h.entries = append(h.entries, e)
 		h.byID[m.ID] = e
-		positions[m.ID] = i
 	}
 	for _, e := range h.entries {
 		for _, id := range append(slices.Clone(e.mod.Requires), e.mod.Optional...) {
@@ -108,16 +107,41 @@ func New(opts Options, mods ...Module) (*Host, error) {
 			return nil, err
 		}
 	}
-	for i, e := range h.entries {
-		for _, dep := range append(slices.Clone(e.mod.Requires), e.mod.Optional...) {
-			if positions[dep] >= i {
-				return nil, fmt.Errorf("module %s: dependency %s must be assembled before it", e.mod.ID, dep)
+	// Select the earliest assembled ready module at every step. The graph was
+	// checked above, so a ready module always exists until every entry is loaded.
+	loaded := map[string]bool{}
+	for len(h.loadOrder) < len(h.entries) {
+		for _, e := range h.entries {
+			if loaded[e.mod.ID] {
+				continue
 			}
+			ready := true
+			for _, dep := range append(slices.Clone(e.mod.Requires), e.mod.Optional...) {
+				ready = ready && loaded[dep]
+			}
+			if !ready {
+				continue
+			}
+			e.loadIndex = len(h.loadOrder)
+			h.loadOrder = append(h.loadOrder, e)
+			loaded[e.mod.ID] = true
+			break
 		}
+	}
+	for _, e := range h.loadOrder {
 		if err := h.register(e); err != nil {
 			return nil, err
 		}
 	}
+	// Registration requires dependency order; contribution presentation retains
+	// assembly order, with each module's own registration order unchanged.
+	assembly := map[string]int{}
+	for i, e := range h.entries {
+		assembly[e.mod.ID] = i + 1
+	}
+	slices.SortStableFunc(h.contributions, func(a, b contribution) int { return assembly[a.owner] - assembly[b.owner] })
+	// Explicit chain preferences still override the default assembly order.
+	slices.SortStableFunc(h.injections, func(a, b interception) int { return assembly[a.Owner] - assembly[b.Owner] })
 	pointTypes := map[string]reflect.Type{}
 	for _, c := range h.contributions {
 		p, ok := h.points[c.key]
@@ -419,7 +443,7 @@ func (h *Host) reconcile() {
 	defer func() { h.mu.Lock(); h.rebuildChains(); h.mu.Unlock() }()
 	wanted := map[string]bool{}
 	h.mu.RLock()
-	for _, e := range h.entries {
+	for _, e := range h.loadOrder {
 		on := h.own(e.mod.ID)
 		for _, dep := range e.mod.Requires {
 			on = on && wanted[dep]
@@ -433,7 +457,7 @@ func (h *Host) reconcile() {
 			h.stop(e)
 		}
 	}
-	for _, e := range h.entries {
+	for _, e := range h.loadOrder {
 		h.mu.Lock()
 		if !wanted[e.mod.ID] {
 			e.ledger.State = Off
@@ -503,7 +527,11 @@ func (h *Host) start(e *entry) {
 	e.ledger.State = On
 	h.rebuildChains()
 	h.mu.Unlock()
-	h.running = append(h.running, e)
+	at := slices.IndexFunc(h.running, func(other *entry) bool { return other.loadIndex > e.loadIndex })
+	if at < 0 {
+		at = len(h.running)
+	}
+	h.running = slices.Insert(h.running, at, e)
 }
 func (h *Host) removeServices(e *entry) {
 	for _, key := range e.ledger.Provides {

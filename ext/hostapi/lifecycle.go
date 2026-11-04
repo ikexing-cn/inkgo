@@ -4,6 +4,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
 	"writer/ext"
+	"writer/workspace"
 )
 
 // DrawItem draws inline on the frame thread, through ext.Call.
@@ -68,6 +69,11 @@ type SettingsSection struct {
 // Desktop exposes the writing page, footer animation, settings navigation and
 // platform folder comparison on the frame thread.
 type Desktop interface {
+	// ModelLabel describes a recorded AI model on the frame thread.
+	ModelLabel(workspace.AIRecord) string
+	// ChapterExternal reports an unresolved outside edit on the frame thread.
+	ChapterExternal() bool
+
 	// HasPage reports an available contributed page on the frame thread.
 	HasPage(string) bool
 	// Focused reports the layout focus state on the frame thread.

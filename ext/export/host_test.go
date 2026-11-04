@@ -17,6 +17,7 @@ import (
 )
 
 type testHost struct {
+	hostapi.Book
 	store   *workspace.Store
 	content *book.Book
 	prefs   struct{ Export *Choices }

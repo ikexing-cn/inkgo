@@ -1,4 +1,4 @@
-package desk
+package trash
 
 import (
 	"testing"
@@ -39,7 +39,7 @@ func TestTrashAndRestoreFromTheTree(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.write.trashOpen {
+	if trashOf(a).TrashOpen {
 		t.Fatal("the trash stays open")
 	}
 	if err = tt.RightClick("章节-第二章"); err != nil {

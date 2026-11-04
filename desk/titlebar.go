@@ -203,11 +203,13 @@ func (a *App) togglePane() {
 
 // editMenu lists the title bar's 编辑.
 func (a *App) editMenu(m *kit.Menu, later func(func()) func()) {
-	a.barItem(m, later, cmdUndo)
-	a.barItem(m, later, cmdRedo)
-	m.Separator()
-	a.barItem(m, later, cmdFind)
-	a.barItem(m, later, cmdRename)
+	for _, row := range a.editCommands() {
+		if row.cmd == nil {
+			m.Separator()
+		} else {
+			a.barItem(m, later, row.cmd)
+		}
+	}
 	if !a.aiOn() {
 		return
 	}

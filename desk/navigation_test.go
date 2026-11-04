@@ -9,11 +9,11 @@ import (
 func TestShellLabelsFollowLocale(t *testing.T) {
 	a, _, _ := fixture(t)
 	t.Setenv("MYGO_LOCALE", "en")
-	if a.pages[pageWrite].title(a) != "Write" || a.paneTabs[0].title(a) != "Notes" || a.snapReason(workspace.SnapOpen) != "On Open" {
-		t.Fatal(a.pages[pageWrite].title(a), a.paneTabs[0].title(a), a.snapReason(workspace.SnapOpen))
+	if a.pages[pageWrite].title(a) != "Write" || a.paneTabs[0].title(a) != "Notes" || snapsOf(a).Reason(workspace.SnapOpen) != "On Open" {
+		t.Fatal(a.pages[pageWrite].title(a), a.paneTabs[0].title(a), snapsOf(a).Reason(workspace.SnapOpen))
 	}
 	t.Setenv("MYGO_LOCALE", "zh-Hans")
-	if a.pages[pageWrite].title(a) != "正文" || a.paneTabs[0].title(a) != "批注" || a.snapReason(workspace.SnapOpen) != "打开时" {
+	if a.pages[pageWrite].title(a) != "正文" || a.paneTabs[0].title(a) != "批注" || snapsOf(a).Reason(workspace.SnapOpen) != "打开时" {
 		t.Fatal("shell labels retained the previous locale")
 	}
 }
@@ -22,14 +22,14 @@ func TestShotShellLocale(t *testing.T) {
 	testshot.Dir(t)
 	a, tt, id := writingFixture(t, "雨从傍晚开始下。林晚沿着亮着的灯往旧城走。")
 	a.openFind()
-	a.write.query, a.write.with, a.write.wide = "雨", "雪", true
+	findOf(a).Query, findOf(a).With, findOf(a).Wide = "雨", "雪", true
 	shot(t, tt, "shell-find.png")
-	a.write.sure = true
+	findOf(a).Sure = true
 	shot(t, tt, "shell-replace.png")
 	a.closeFind()
 	a.openSnapshots()
 	shot(t, tt, "shell-snapshots.png")
-	a.write.snapsOpen = false
+	snapsOf(a).SnapsOpen = false
 	goalOf(a).Open = true
 	shot(t, tt, "shell-goal.png")
 	goalOf(a).Open = false

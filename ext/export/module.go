@@ -27,7 +27,7 @@ var Module = ext.Module{ID: "export", Kind: ext.Feature, Optional: []string{"out
 	})
 	ext.Contribute(r, hostapi.Commands, "open", hostapi.Command{Name: exporttext.CmdExport,
 		Can: func() bool { return d.book.Get().Store() != nil }, Run: d.Show,
-		Menu: hostapi.MenuPosition{Menu: hostapi.MenuFile, After: "snapshots"}})
+		Menu: hostapi.MenuPosition{Menu: hostapi.MenuFile, After: "snaps.open", Order: 45}})
 	ext.Contribute(r, hostapi.Overlays, "dialog", hostapi.Overlay{Draw: d.View})
 }}
 

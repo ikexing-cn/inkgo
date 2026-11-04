@@ -28,8 +28,6 @@
 // commands.go: the one table of commands, for the keys, the menus, and the shortcut help.
 // counts.go: book and daily word counts, goals, and recent days.
 // doc.go: this package index.
-// find.go: the prose find-and-replace bar.
-// findbook.go: whole-book search results and replacement.
 // foreshadow.go: live-mark wiring, foreshadowing column, popovers, actions, and reminders.
 // host.go: appHost, what the pages of the packages under desk reach of App.
 // ideas.go: setting ideas, questions, and changes awaiting the author.
@@ -53,14 +51,15 @@
 // settings.go: settings state and lifecycle, dialog, tabs, and appearance settings.
 // shell.go: page types, window frame, sidebar navigation, and discussion switching.
 // sidebar.go: chapter tree, menus, drag and drop, creation, and renaming.
-// snapshots.go: snapshots, comparisons, and restoration.
 // tabs.go: chapter tabs, keeping them across runs, closing, and save confirmation.
 // take.go: taking a prose selection into the 设定.
 // talkrun.go: a discussion turn's state, stream, requests, cancellation and completion.
 // titlebar.go: title bar, its menus, and keyboard focus.
 // toast.go: toast selection, errors, progress, notices, and their actions.
 // toolbar.go: appearance switching and prose-selection tools.
-// trash.go: chapter trash, restoration, and permanent deletion.
+// trash.go: tree deletion into the core trash.
+// version_points.go: writing presentation hooks for extensions.
+// version_services.go: editor restoration and book storage coordination.
 // welcome.go: 书架, work creation, opening, renaming, and relocation.
 // write.go: writing-page state, frame, prose, 章纲, volumes, and footer.
 package desk

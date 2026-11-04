@@ -132,7 +132,7 @@ func TestDisableRemovesItemsServicesAndJoinsTasksBeforeOnStop(t *testing.T) {
 		t.Fatal("stopped session accepted task")
 	}
 }
-func TestStartIsTopologicalAndStopReversesActualStartOrder(t *testing.T) {
+func TestStartIsTopologicalAndStopReversesLoadOrder(t *testing.T) {
 	var log []string
 	mod := func(id string, req, opt []string) ext.Module {
 		return ext.Module{ID: id, Requires: req, Optional: opt, Setup: func(r *ext.Registrar) {

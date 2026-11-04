@@ -492,7 +492,7 @@ func TestTheProseKeepsTheKeyboard(t *testing.T) {
 		{"out of focus mode", func() { tt.Key(0, ui.KeyF11) }},
 		{"the sidebar hidden", func() { a.sideHidden = true }},
 		{"the sidebar shown", func() { a.sideHidden = false }},
-		{"the find bar over it", func() { a.write.finding = true; a.write.query = "林晚" }},
+		{"the find bar over it", func() { findOf(a).Finding = true; findOf(a).Query = "林晚" }},
 	}
 	for _, s := range steps {
 		if s.name == "the find bar over it" {
