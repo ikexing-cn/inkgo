@@ -45,3 +45,23 @@ func (r *PointReader[T]) Guard(owner, target string, fn func()) error {
 
 // Revision returns the host's activation and declaration revision after Setup.
 func (r *PointReader[T]) Revision() uint64 { return r.host.Changes() }
+
+// Activation captures the contributor's current session on the frame thread.
+func (r *PointReader[T]) Activation(owner string) *Session {
+	r.host.mu.RLock()
+	defer r.host.mu.RUnlock()
+	if e := r.host.byID[owner]; e != nil {
+		return e.session
+	}
+	return nil
+}
+
+// ActivationOf captures an active contributor's Session on the frame thread.
+func ActivationOf(h *Host, owner string) *Session {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	if e := h.byID[owner]; e != nil {
+		return e.session
+	}
+	return nil
+}

@@ -2163,6 +2163,9 @@ const CATALOG = {
   "trashWithChapters": [
    "count"
   ],
+  "usageLogFailed": [
+   "error"
+  ],
   "viewLook": [],
   "viewZoom": [
    "percent"
@@ -3555,6 +3558,7 @@ const CATALOG = {
    "trashRestored": "已恢复「{title}」",
    "trashTitle": "回收站",
    "trashWithChapters": "连同里面的 {count} 章",
+   "usageLogFailed": "用量记录没能保存：{error}",
    "viewLook": "外观",
    "viewZoom": "缩放 {percent}%",
    "winBringAll": "前置全部窗口",
@@ -4942,6 +4946,7 @@ const CATALOG = {
    "trashRestored": "Restored “{title}”",
    "trashTitle": "Trash",
    "trashWithChapters": "including {count, plural, one {# chapter} other {# chapters}}",
+   "usageLogFailed": "Could not save the usage record: {error}",
    "viewLook": "Appearance",
    "viewZoom": "Zoom {percent}%",
    "winBringAll": "Bring All to Front",

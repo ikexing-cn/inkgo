@@ -67,7 +67,7 @@ func module(v *View) ext.Module {
 				v.draftView(c)
 			}
 		}})
-		r.OnStop(func(*ext.Session) { v.Open = false })
+		r.OnStop(func(*ext.Session) { v.Open = false; v.Words, v.Mode, v.Note, v.Cards = "", "", "", 0 })
 	}}
 }
 func (v *View) node() string       { id, _, _ := v.book.Get().Chapter(); return id }

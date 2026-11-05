@@ -34,6 +34,7 @@ type entry struct {
 	starts    []func(*Session) error
 	stops     []func(*Session)
 	session   *Session
+	state     *BookState
 }
 
 // Registrar is valid only during its module's Setup. It exposes no IO or paths.
@@ -132,14 +133,15 @@ func use[T any](r *Registrar, key ServiceKey[T], optional bool) {
 
 // Ref resolves the current service on each call, including after a book switch.
 type Ref[T any] struct {
-	h   *Host
-	key string
+	h     *Host
+	key   string
+	owner string
 }
 
 // Use records a required service dependency.
 func Use[T any](r *Registrar, key ServiceKey[T]) *Ref[T] {
 	use(r, key, false)
-	return &Ref[T]{r.h, string(key)}
+	return &Ref[T]{r.h, string(key), r.e.mod.ID}
 }
 
 // Get panics during Setup or while the provider is inactive.
@@ -147,6 +149,12 @@ func (r *Ref[T]) Get() T {
 	v, ok := serviceGet[T](r.h, r.key)
 	if !ok {
 		panic(fmt.Sprintf("service %q is inactive", r.key))
+	}
+	if binder, ok := any(v).(SessionBinder); ok && r.owner != HostOwner {
+		r.h.mu.RLock()
+		s := r.h.byID[r.owner].session
+		r.h.mu.RUnlock()
+		return binder.BindSession(s).(T)
 	}
 	return v
 }

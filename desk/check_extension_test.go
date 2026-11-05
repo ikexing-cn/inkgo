@@ -143,7 +143,7 @@ func TestRemindersIsOnePageThatStaysWithEachExtensionsHeaderAndOnlyActiveSetting
 func TestCheckLedgerOwnsItsSurfacesAndHostHasNoCheckMarginSource(t *testing.T) {
 	a, _, _, _ := checkFixture(t)
 	l := a.extensions.Ledger("check")
-	want := map[string]bool{string(hostapi.Commands): false, string(hostapi.Pages): false, string(hostapi.FrameTicks): false, string(hostapi.FooterItems): false, string(hostapi.PendingGroups): false, string(hostapi.SettingsPages): false, string(hostapi.SettingsSections): false, string(hostapi.State): false, string(marksapi.MarginSources): false}
+	want := map[string]bool{string(hostapi.Commands): false, string(hostapi.Pages): false, string(hostapi.FrameTicks): false, string(hostapi.FooterItems): false, string(hostapi.PendingGroups): false, string(hostapi.SettingsPages): false, string(hostapi.SettingsSections): false, string(marksapi.MarginSources): false}
 	for _, c := range l.Contributions {
 		if _, ok := want[c.Point]; ok {
 			want[c.Point] = true

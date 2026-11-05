@@ -2,6 +2,7 @@ package prefs
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -22,32 +23,34 @@ type Prefs struct {
 	Writing bool `json:"writing,omitempty"`
 	// AutoPredict continues the prose as typing pauses, not on demand.
 	AutoPredict bool `json:"auto_predict,omitempty"`
-	// The right column's width and selected tab, and whether a turn from
-	// there leaves the chapter out.
+	// The right column's width and selected tab.
 	PanelWidth float32 `json:"panel_width,omitempty"`
 	PaneTab    string  `json:"pane_tab,omitempty"`
-	NoAttach   bool    `json:"no_attach,omitempty"`
 	// Carets is where the caret was left in each chapter, by ID.
 	Carets map[string]int `json:"carets,omitempty"`
 	// TextSize is the size of the chapters' text, or 0 for the default.
 	TextSize int `json:"text_size,omitempty"`
-	// Shelved are the conversations put out of the list, still on disk.
-	Shelved []string `json:"shelved_sessions,omitempty"`
 	// Ignored are the keys of the pending things the author ignored.
 	Ignored []string `json:"ignored,omitempty"`
 	// LateAfter is how many chapters may follow a foreshadowing before it
 	// is listed as buried long, or 0 for the default.
 	LateAfter int `json:"late_after,omitempty"`
-	// CheckWhen is when chapters are checked against the setting: as the
-	// author leaves one changed when empty, "manual" or "always".
-	CheckWhen string `json:"check_when,omitempty"`
+	// Extensions preserves each module's opaque preferences, even while off.
+	Extensions map[string]json.RawMessage `json:"extensions,omitempty"`
+	unreadable bool
 }
 
 func Load(path string) Prefs {
 	p := Prefs{Writing: true} // a work new to this machine opens on its prose
 	if b, err := os.ReadFile(path); err == nil {
+		if !json.Valid(b) {
+			p = Prefs{unreadable: true}
+			return p
+		}
 		p = Prefs{}
-		_ = json.Unmarshal(b, &p) // a damaged file is as good as none
+		if err := json.Unmarshal(b, &p); err != nil {
+			return Prefs{unreadable: true}
+		}
 		// The old pair is read only for files without pane_tab. In those
 		// files foreshadowings took precedence over the remembered talk.
 		var old struct {
@@ -63,11 +66,20 @@ func Load(path string) Prefs {
 				p.PaneTab = "talk"
 			}
 		}
+	} else if !os.IsNotExist(err) {
+		p.unreadable = true
 	}
 	return p
 }
 
 func (p Prefs) Save(path string) error {
+	if p.unreadable {
+		return fmt.Errorf("preferences could not be read: %s", path)
+	}
+	old := Load(path)
+	if old.unreadable {
+		return fmt.Errorf("preferences could not be read: %s", path)
+	}
 	b, err := json.Marshal(p)
 	if err == nil {
 		// .writer/ is kept out of git: a work fetched has none till now.

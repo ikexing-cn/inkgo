@@ -11,8 +11,10 @@ const Usage ext.PointKey[func(*ui.Context)] = "ai.usage"
 
 // Call describes one finished model call, without request or response text.
 type Call struct {
-	Store  *workspace.Store
-	Record workspace.Record
+	// Activation identifies the captured observer activation, when dispatched by AI.
+	Activation *ext.Session
+	Store      *workspace.Store
+	Record     workspace.Record
 }
 
 // Calls observes every finished model call on its worker, through ext.Guard.

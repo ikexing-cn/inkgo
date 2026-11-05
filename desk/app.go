@@ -178,13 +178,6 @@ func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 }
 
 func (a *App) resetView() {
-	if a.extensions != nil {
-		for _, item := range ext.Items(a.extensions, hostapi.State) {
-			if item.Value.Reset != nil {
-				_ = ext.Guard(a.extensions, item.Owner, item.ID+".reset", item.Value.Reset)
-			}
-		}
-	}
 
 	if a.cancel != nil {
 		a.cancel()

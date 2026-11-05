@@ -54,20 +54,31 @@ import 一个公开包只是编译期用到它的类型，不等于运行时依�
 
 ### 生命周期：Setup 一次，Start、Stop 多次
 
-- **Setup** 每个进程跑一次，不管扩展开没开：
+- **Setup** 每装配一次宿主跑一次（应用里就是每个进程一次），不管扩展开没开：
   - 只许登记，不许读写文件、起后台任务、取服务的实现；
   - 宿主把它登记的一切记进账里，所以扩展关着也列得出加了什么（VS Code 的 Feature Contributions）；
-  - Setup 里调 IO 或 `Ref.Get` 直接 panic，测试能抓到。
+  - Setup 里调 `Ref.Get` 直接 panic，测试能抓到。读写文件靠规矩：普通的 Go 文件操作宿主拦不住。
 - **Start** 在扩展生效时跑：
   - 跑的时机：开着且依赖都已 Start、打开一本书、换书；
   - 用 `r.OnStart(func(s *ext.Session) error)` 登记，读写文件、建状态都在这里做。
+  - 记在这本书界面上的偏好（不是 `ext.Setting` 那种设置）用 `r.Persist(ext.BookState{Load, Save})` 登记：Load 在 OnStart 之后、扩展可用之前跑，每次 Start 都跑，所以打开书时关着、后来才开的扩展也读得到；Save 在 Stop 拆状态之前跑，宿主存自己的界面状态时也让开着的扩展各存一份。存在 `.writer/desk.json` 的 `extensions.<扩展 ID>` 下，每个扩展一段原样的 JSON，关着的扩展那段原样留着。2026-11-05 以前是并进宿主的 `prefs.Prefs`，宿主不认识的键会丢，检查的「何时检查」就这样丢过；旧的平铺键不迁移。
 - **Session** 的寿命是「这个扩展开着」乘「这本书开着」：
   - 换书时所有开着的扩展都先 Stop 再 Start，所以两者都要便宜，有测试计时；
-  - 按书开关变了的，只 Stop 或只 Start。
+  - 按书开关变了的，只 Stop 或只 Start；
+  - 一次开启就是一个 Session 实例。`Session.ID()` 是扩展 ID，不能拿来认「是不是这一次开启」，认这个用 `Session.Active()`。
+- **扩展的状态分三种**（2026-11-05 审查后定的规矩，起因是换书时宿主先关掉所有扩展，再调各扩展的 `ViewState.Reset`，这时它们都已不算开着，`Reset` 一个都没跑）：
+  - 这一次开启的状态：后台任务、回调、收结果的信箱、临时的界面对象。Stop 以后一律作废。
+  - 同一本书里关了再开能接着用的：未定的提议、讨论输入框里的字这类。记着属于哪本书（`*workspace.Store`），Start 时比一下，换了书就清掉；同一本书里关了再开照旧在。
+  - 长期偏好：经上面的 `Persist` 存取。
+  - `ViewState.Reset` 从宿主的约定里删了。
 - **Stop** 按 Start 的相反顺序跑：
-  - 宿主先拆掉这次 Session 里起的后台任务；
-  - 再跑 `r.OnStop` 登记的清理。
-- **贡献的回调**（命令的 Run、标签的 Draw……）只在扩展生效时被调，读 Start 时建好的状态。宿主在扩展没生效时不调它们。
+  - 先让扩展存下偏好（`Persist` 的 Save）；
+  - 再让这次 Session 作废、取消它的后台任务、等这些任务退出，跑 `Session.OnStop` 登记的资源清理（只跑一次）；
+  - 最后跑 `r.OnStop` 登记的清理。
+- **后台任务**归这次开启：扩展经 `Ref.Get` 取到的 `hostapi.Jobs` 是绑在取用方这次 Session 上的一份（宿主服务实现 `ext.SessionBinder`）。任务排到帧线程的回调，在真正执行时再查一次 Session 还在不在；不在就不执行它的结果、出错提示和「再试一次」，宿主只把忙碌状态结掉。后台任务不许等帧线程，因为 Stop 要等后台任务退出。
+  - 一个扩展的工具在别的扩展的请求里跑时（改稿建议的 `propose_edit` 在讨论的请求里），提供方也要认：工具拿到时记下提供方的 Session（`ext.WithSession`、`ext.SessionOf`），交结果时比一下，提供方中途关了再开，旧结果不收。
+  - AI 每次调用的记录交给 `aiapi.Calls` 时带着收记录那一方的这次开启（`aiapi.Call.Activation`），用量记录关了再开，旧调用不会记到新的那一次头上。
+- **贡献的回调**（命令的 Run、标签的 Draw……）只在扩展生效时被调，读 Start 时建好的状态。宿主在扩展没生效时不调它们，也不经 `Declared` 去调关着的扩展的回调。
 - **状态**有四种：关着、启动中、开着、出错。出错时带错误原文和出错的位置：哪个回调，在谁的注入链里。
 
 ### 登记表
@@ -84,7 +95,7 @@ import 一个公开包只是编译期用到它的类型，不等于运行时依�
   - 取用必需依赖的：`ref := ext.Use(r, key)`，返回 `*ext.Ref[T]`，用的时候 `ref.Get()`。这样关掉再开、换书之后，拿到的总是当前那份；Setup 时提供方可能还关着，也没有东西可返回。
   - 取用可选依赖的：`ref := ext.UseOptional(r, key)`，`ref.Get()` 返回 `(T, bool)`，对方没开时是 false。类型上就逼着调用方处理「没有」的情况。
   - 往可选依赖的点里放东西、注入它，写法和必需依赖一样；对方没开时宿主不生效这些登记，详情页写「X 没开，以下不生效」。对方中途开、关，宿主照账接上或拆下，依赖方不用重启。
-- **宿主的能力也是服务**，键在 `hostapi` 包里：`BookService`（当前的书、选中的章节和编辑器、先存下显示着的那一章）、`PaletteService`（颜色）、`PaneService`（打开右栏的某个标签）、`NoticesService`（提示条）、`JobsService`（后台任务）、`DialogsService`（选文件夹、存文件、在文件夹里显示）。原来每个子包一个的窄 `Host` 已经换成这些。宿主的服务由 `ext.DeclareHost` 在装配时提供，一直在，不用写进 Requires。每个方法的 doc comment 写明在哪个线程调。
+- **宿主的能力也是服务**，键在 `hostapi` 包里：`BookService`（当前的书、选中的章节和编辑器、先存下显示着的那一章）、`PaletteService`（颜色）、`PaneService`（打开右栏的某个标签）、`NoticesService`（提示条）、`JobsService`（后台任务）、`DialogsService`（选文件夹、存文件、在文件夹里显示）。原来每个子包一个的窄 `Host` 已经换成这些。宿主的服务由 `ext.Options.DeclareHost` 在装配时提供，一直在，不用写进 Requires；其中 `Jobs` 交给每个扩展的是绑在它这次开启上的一份，见上面「后台任务」。每个方法的 doc comment 写明在哪个线程调。
 - **设置**：
   - `ext.Setting(r, "name", ext.Schema[T]{…})`，返回 `*ext.Pref[T]`，带 `Get()`、`Set()` 和 `OnChange`；值按 JSON 存；
   - Schema 有标题、说明、默认值、可选项（每项带说明）、分组、顺序、作用范围（`Local` 本机、`BookScope` 按书、`Both` 两者都有）；
@@ -143,7 +154,7 @@ ext.Replace(r, point, "export.docx", value)                    // 换掉一整�
 - 数据目录和大小；
 - 状态、出错记录。
 
-扩展经 Registrar 和 Session 做的每件事都记在它名下（cordis 的 `Fiber.effect` 和 `getEffects()`）。关掉时宿主照账拆，拆完这个扩展在生效表里一条不剩，有测试。
+扩展经 Registrar 登记的东西都记在它名下（cordis 的 `Fiber.effect` 和 `getEffects()`）。关掉时宿主照账拆，拆完这个扩展在生效表里一条不剩，有测试。`Persist` 的登记、Session 里一件件的任务和清理没有逐条进账：它们的寿命由 Session 管住，但账里看不到。
 
 ### 两层
 
@@ -239,7 +250,8 @@ ext.Before(r, ext.EditorKey, func(in *ext.KeyIn) { in.Text = fullWidth(in.Text) 
 - 两个 overwrite 抢同一处：两个都不生效，原来的照跑，账里标冲突；作者选一个以后，被选的那个生效。
 - 注入的目标关着时，注入方照常开着，注入不生效，账里写「X 没开，以下不生效」。
 - 一个扩展的回调 panic：只有它和依赖它的变成出错或关着，别的照常。
-- 关掉以后，这个扩展在生效表里一条不剩：命令、菜单、标签、注入、服务、后台任务都没了。
+- 关掉以后，这个扩展在生效表里一条不剩：命令、菜单、标签、注入、服务都没了；它的后台任务已退出，排着的回调不再执行。可选依赖的工具若正在依赖方的请求里跑，关掉提供方不会等那个请求，靠交结果时比 Session 挡住。
+- 换书、关了再开：上一本书的状态不会带到下一本；同一本书里关了再开，能接着用的照旧在（`desk/lifecycle_fix_test.go`）。
 - 换书时开着的扩展 Stop、Start 一轮，总耗时有上限。
 - 依赖边界测试：import 了谁的公开包，谁就在 Requires 或 Optional 里。
 - 可选依赖：打开依赖方不会打开对方；关掉对方，依赖方照常开着，`UseOptional` 的 `Get()` 返回 false，往对方放的东西和注入都不生效；再打开对方，这些不重启依赖方就回来。

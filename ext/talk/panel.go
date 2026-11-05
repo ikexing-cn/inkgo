@@ -78,6 +78,8 @@ type Panel struct {
 	paletteHost hostapi.Palette
 	noticeHost  hostapi.Notices
 	jobs        hostapi.Jobs
+	activation  *ext.Session
+	reload      bool
 
 	suggestions      aiapi.Suggestions
 	materialRef      *ext.Ref[contextapi.Context]
@@ -159,18 +161,20 @@ func (a *Panel) tick(*ui.Context) {
 	}
 }
 func (a *Panel) stop() {
+	a.reload = a.Turn.Active
 	if a.Turn.Active {
 		if a.cancel != nil {
 			a.cancel()
 		} else {
 			a.jobs.CancelRequest()
 		}
-		a.UpdateSuggestions()
-
 		a.Turn.Active = false
 	}
 	a.suggestions.Drop()
 	a.SourceOpen = false
+	a.Source = nil
+	a.ContextReply = ""
+	a.Turn = &Turn{}
 }
 func (a *Panel) loadState(m map[string]json.RawMessage) {
 	var ids []string

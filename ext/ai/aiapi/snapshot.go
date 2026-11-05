@@ -18,9 +18,14 @@ func SnapshotTools(h *ext.Host) []Tool {
 	for _, item := range ext.Items(h, Tools) {
 		tool := item.Value
 		owner := item.Owner
+		activation := ext.ActivationOf(h, owner)
 		run, label := tool.Run, tool.Label
 		tool.Run = func(ctx context.Context, e ToolEnv, in json.RawMessage) (result ToolResult) {
-			err := ext.Guard(h, owner, "ai.tools."+tool.Name, func() { result = run(ctx, e, in) })
+			err := ext.Guard(h, owner, "ai.tools."+tool.Name, func() {
+				if activation.Active() {
+					result = run(ext.WithSession(ctx, activation), e, in)
+				}
+			})
 			if err != nil {
 				return ToolResult{Text: fmt.Sprintf("工具调用失败：%v", err), Failed: true}
 			}
@@ -71,16 +76,26 @@ func InvokeTool(tool Tool) func(ToolCall) ToolAnswer {
 func SnapshotReadTools(reader *ext.PointReader[Tool]) []Tool {
 	out := []Tool{}
 	for _, item := range reader.Items() {
+		activation := reader.Activation(item.Owner)
 		original := item.Value
 		tool := original
 		tool.Run = func(ctx context.Context, e ToolEnv, in json.RawMessage) ToolResult {
-			out, err := ext.CallReadPoint(reader, item.ID, ToolCall{Context: ctx, Env: e, Input: in}, InvokeTool(original))
+			if !activation.Active() {
+				return ToolResult{Failed: true}
+			}
+			out, err := ext.CallReadPoint(reader, item.ID, ToolCall{Context: ext.WithSession(ctx, activation), Env: e, Input: in}, InvokeTool(original))
 			if err != nil {
 				return ToolResult{Text: fmt.Sprintf("工具调用失败：%v", err), Failed: true}
+			}
+			if !activation.Active() {
+				return ToolResult{Failed: true}
 			}
 			return out.Result
 		}
 		tool.Label = func(e ToolEnv, in json.RawMessage) string {
+			if !activation.Active() {
+				return tool.Name
+			}
 			out, err := ext.CallReadPoint(reader, item.ID, ToolCall{Env: e, Input: in, Label: true}, InvokeTool(original))
 			if err != nil {
 				return tool.Name

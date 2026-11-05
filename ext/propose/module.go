@@ -23,6 +23,8 @@ type View struct {
 
 	completedMu sync.Mutex
 	completed   []completedProposal
+	activation  *ext.Session
+	of          *workspace.Store
 
 	aiHost *ext.Ref[hostapi.AI]
 
@@ -92,14 +94,21 @@ func module(v *View) ext.Module {
 		ext.Contribute(r, hostapi.Overlays, "leave", hostapi.Overlay{Open: func() bool { return v.Leaving != nil }, Draw: v.leaveView})
 		ext.Contribute(r, hostapi.LeaveQuestions, "leave-question", v.Leave)
 		ext.Contribute(r, hostapi.WritingKeys, "rewrite-keys", hostapi.WritingKey{HideSelection: func() bool { return v.Rewriting }, Close: func() { v.Rewriting = false }})
-		ext.Contribute(r, hostapi.State, "state", hostapi.ViewState{Reset: func() {
-			v.Props = nil
-			v.seen = nil
-			v.propVer++
-			v.Rewriting = false
-			v.Leaving = nil
-			v.Frame = aiapi.ProposalFrame{}
-		}, Refresh: func() error { v.pruneProps(); return nil }})
+		r.OnStart(func(s *ext.Session) error {
+			v.completedMu.Lock()
+			v.activation = s
+			v.completed = nil
+			v.completedMu.Unlock()
+			if st := v.book.Get().Store(); st != v.of {
+				v.of = st
+				v.Props = nil
+				v.seen = nil
+				v.propVer++
+				v.Instruction = ""
+			}
+			return nil
+		})
+		ext.Contribute(r, hostapi.State, "state", hostapi.ViewState{Refresh: func() error { v.pruneProps(); return nil }})
 		ext.Contribute(r, marksapi.MarginSources, "ai-written", marksapi.MarginSource{Key: func() any {
 			ed := v.ed()
 			ver := 0
@@ -123,6 +132,11 @@ func module(v *View) ext.Module {
 			return out
 		}})
 		r.OnStop(func(*ext.Session) {
+			v.completedMu.Lock()
+			v.activation = nil
+			v.completed = nil
+			v.completedMu.Unlock()
+			v.Frame = aiapi.ProposalFrame{}
 			if !v.aiHost.Get().AIEnabled() {
 				v.dropProps(v.Props, workspace.FateOff)
 			}
@@ -162,10 +176,18 @@ func (v *View) tool() aiapi.Tool {
 	tool := TalkTool()
 	run := tool.Run
 	tool.Run = func(ctx context.Context, env aiapi.ToolEnv, raw json.RawMessage) aiapi.ToolResult {
+		v.completedMu.Lock()
+		activation := ext.SessionOf(ctx)
+		if activation == nil {
+			activation = v.activation
+		}
+		v.completedMu.Unlock()
 		result := run(ctx, env, raw)
 		if result.Proposal != nil {
 			v.completedMu.Lock()
-			v.completed = append(v.completed, completedProposal{env.Store, env.Session, env.Call, env.Model, *result.Proposal})
+			if activation != nil && activation.Active() && v.activation == activation && ctx.Err() == nil {
+				v.completed = append(v.completed, completedProposal{env.Store, env.Session, env.Call, env.Model, *result.Proposal})
+			}
 			v.completedMu.Unlock()
 		}
 		return result

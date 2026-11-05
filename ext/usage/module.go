@@ -2,11 +2,15 @@
 package usage
 
 import (
+	"fmt"
 	"github.com/egoist/mygo/ui"
+	"sync"
+	"sync/atomic"
 	"writer/ext"
 	"writer/ext/ai/aiapi"
 	"writer/ext/hostapi"
 	"writer/ext/usage/usagetext"
+	"writer/workspace"
 )
 
 // Module registers usage accounting and its presentation.
@@ -25,7 +29,9 @@ func setupView(r *ext.Registrar, a *View) {
 	palette := ext.Use(r, hostapi.PaletteService)
 	backend := ext.Use(r, aiapi.Service)
 	notices := ext.Use(r, hostapi.NoticesService)
-	r.OnStart(func(*ext.Session) error {
+	var current atomic.Pointer[logRun]
+	r.OnStart(func(s *ext.Session) error {
+		current.Store(&logRun{session: s, store: book.Get().Store()})
 		a.host = book.Get()
 		a.store = a.host.Store()
 		a.book = a.host.Content()
@@ -35,13 +41,36 @@ func setupView(r *ext.Registrar, a *View) {
 		a.revision.Add(1)
 		return nil
 	})
-	r.OnStop(func(*ext.Session) { a.Record.reset() })
+	r.OnStop(func(*ext.Session) { current.Store(nil); a.Record.reset() })
 	ext.Contribute(r, aiapi.Calls, "record", func(call aiapi.Call) {
-		if call.Store != nil {
-			_ = call.Store.Log(call.Record)
-			a.revision.Add(1)
+		run := current.Load()
+		if run == nil || !run.session.Active() || (call.Activation != nil && call.Activation != run.session) || call.Store == nil || call.Store != run.store {
+			return
 		}
+		run.mu.Lock()
+		err := call.Store.Log(call.Record)
+		if err == nil {
+			run.failed = false
+		} else if !run.failed {
+			run.errors = append(run.errors, err)
+			run.failed = true
+		}
+		run.mu.Unlock()
+		a.revision.Add(1)
 	})
+	ext.Contribute(r, hostapi.FrameTicks, "log-errors", hostapi.FrameTick{Tick: func(*ui.Context) {
+		run := current.Load()
+		if run == nil || !run.session.Active() {
+			return
+		}
+		run.mu.Lock()
+		errors := run.errors
+		run.errors = nil
+		run.mu.Unlock()
+		for _, err := range errors {
+			notices.Get().Notices().Warn(fmt.Errorf("%s", usagetext.UsageLogFailed(err.Error())))
+		}
+	}})
 	ext.Contribute(r, aiapi.Usage, "usage", func(c *ui.Context) {
 		if a.host.Store() == nil {
 			return
@@ -61,4 +90,12 @@ func setupView(r *ext.Registrar, a *View) {
 		Title:   usagetext.SettingsRecordsTitle, Note: usagetext.SettingsRecordsNote,
 		Draw: a.recordsView, Close: func() { a.Record.Showing = false },
 	})
+}
+
+type logRun struct {
+	session *ext.Session
+	store   *workspace.Store
+	mu      sync.Mutex
+	failed  bool
+	errors  []error
 }

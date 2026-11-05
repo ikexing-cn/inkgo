@@ -21,5 +21,6 @@
   "settingsSpentRow": "{count, plural, one {# request} other {# requests}} · Input {input}, {cached}% cache hits · Output {output}",
   "settingsUsage": "Usage",
   "settingsUsageBack": "‹ Usage",
-  "settingsViewAll": "View All {count}"
+  "settingsViewAll": "View All {count}",
+  "usageLogFailed": "Could not save the usage record: {error}"
 }

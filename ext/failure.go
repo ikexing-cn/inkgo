@@ -38,6 +38,7 @@ func (h *Host) startFailure(e *entry, s *Session, stage string, err error) {
 	h.removeServices(e)
 	h.mu.Unlock()
 	h.recordFailure(e.mod.ID, Failure{Stage: stage, Err: err})
+	h.saveState(e)
 	s.stop()
 	for i := len(e.stops) - 1; i >= 0; i-- {
 		h.stopCallback(e, s, e.stops[i])

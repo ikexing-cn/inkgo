@@ -110,7 +110,13 @@ func TestPaneTabPreferences(t *testing.T) {
 	}
 }
 
-func savedPrefs(t *testing.T, a *App) prefs.Prefs {
+type inspectedPrefs struct {
+	prefs.Prefs
+	Shelved  []string `json:"shelved_sessions"`
+	NoAttach bool     `json:"no_attach"`
+}
+
+func savedPrefs(t *testing.T, a *App) inspectedPrefs {
 	t.Helper()
 	var p prefs.Prefs
 	b, err := os.ReadFile(a.Store.PrefsPath())
@@ -120,7 +126,9 @@ func savedPrefs(t *testing.T, a *App) prefs.Prefs {
 	if err = json.Unmarshal(b, &p); err != nil {
 		t.Fatal(err)
 	}
-	return p
+	out := inspectedPrefs{Prefs: p}
+	_ = json.Unmarshal(p.Extensions["talk"], &out)
+	return out
 }
 
 // The writing page's right column holds the talk too, and keeps which it

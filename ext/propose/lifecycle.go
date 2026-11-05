@@ -20,7 +20,14 @@ func (h *View) Finish(session string) {
 
 // Drop discards the book's undecided proposals on the frame thread.
 func (h *View) Drop() {
+	h.completedMu.Lock()
+	h.completed = nil
+	h.completedMu.Unlock()
 	h.dropProps(h.Props, workspace.FateClosed)
+	if ed := h.ed(); ed != nil {
+		ed.SetProposals(nil, propRoom)
+	}
+	h.placed = placedKey{}
 	h.Frame.Active = false
 }
 

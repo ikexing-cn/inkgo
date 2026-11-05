@@ -77,7 +77,7 @@ func (a *App) initExtensions(mods []ext.Module) {
 		}
 		names[mod.ID] = name
 	}
-	h, err := ext.New(ext.Options{BookDir: workspace.ExtDir, LocalRoot: root, LocalSwitches: localExtensions{a.extStore}, BookSwitches: bookExtensions{a.extStore}, Settings: a.extStore, Injections: injectionExtensions{a.extStore},
+	h, err := ext.New(ext.Options{BookState: viewStateStore{a}, BookDir: workspace.ExtDir, LocalRoot: root, LocalSwitches: localExtensions{a.extStore}, BookSwitches: bookExtensions{a.extStore}, Settings: a.extStore, Injections: injectionExtensions{a.extStore},
 		OnFailure: func(id string, f ext.Failure) {
 			a.extensionError(extensionFailedError{name: names[id], err: f.Err})
 		},
@@ -97,8 +97,8 @@ func (a *App) initExtensions(mods []ext.Module) {
 			ext.DeclareCalls(r, hostapi.Commands, commandCall)
 			ext.DeclareCalls(r, hostapi.PaneTabs, paneCall)
 			ext.Provide(r, hostapi.NoticesService, func(*ext.Session) hostapi.Notices { return extensionHost{a} })
-			ext.Provide(r, hostapi.JobsService, func(*ext.Session) hostapi.Jobs { return extensionHost{a} })
-			ext.Provide(r, hostapi.DialogsService, func(*ext.Session) hostapi.Dialogs { return extensionHost{a} })
+			ext.Provide(r, hostapi.JobsService, func(*ext.Session) hostapi.Jobs { return jobsHost{extensionHost{a}} })
+			ext.Provide(r, hostapi.DialogsService, func(*ext.Session) hostapi.Dialogs { return dialogsHost{extensionHost{a}} })
 			ext.Provide(r, hostapi.BookService, func(*ext.Session) hostapi.Book { return extensionHost{a} })
 			ext.Provide(r, hostapi.PaletteService, func(*ext.Session) hostapi.Palette { return extensionHost{a} })
 			ext.Provide(r, hostapi.PaneService, func(*ext.Session) hostapi.Pane { return extensionHost{a} })

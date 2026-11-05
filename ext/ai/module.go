@@ -65,9 +65,16 @@ func New(opts Options) ext.Module {
 		calls := ext.ReadPoint(r, aiapi.Calls)
 		v.usageItems = ext.ReadPoint(r, aiapi.Usage)
 		v.modelSections = ext.ReadPoint(r, hostapi.SettingsSections)
-		ext.Provide(r, aiapi.Service, func(*ext.Session) aiapi.Backend {
+		ext.Provide(r, aiapi.Service, func(activation *ext.Session) aiapi.Backend {
 			if opts.Factory != nil {
 				v.ai = opts.Factory()
+				for {
+					source, ok := v.ai.(interface{ BackendSource() aiapi.Backend })
+					if !ok {
+						break
+					}
+					v.ai = source.BackendSource()
+				}
 			} else {
 				backend := core.New(opts.ConfigFile)
 				backend.Trace = opts.Trace
@@ -80,14 +87,7 @@ func New(opts Options) ext.Module {
 				}
 				v.ai = backend
 			}
-			if observer, ok := v.ai.(interface{ BindCalls(func(aiapi.Call)) }); ok {
-				observer.BindCalls(func(call aiapi.Call) {
-					for _, item := range calls.Items() {
-						_ = calls.Guard(item.Owner, item.ID, func() { item.Value(call) })
-					}
-				})
-			}
-			return v.ai
+			return accountingBackend{v.ai, calls, activation}
 		})
 		r.OnStart(func(*ext.Session) error {
 			v.pal = v.palette.Get().Colors()

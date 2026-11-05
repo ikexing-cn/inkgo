@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 	"time"
+	talkmod "writer/ext/talk"
 	"writer/ext/talk/talkapi"
 
 	"github.com/egoist/mygo/ui"
@@ -73,7 +74,9 @@ func TestOldStreamCannotEnterNewDiscussion(t *testing.T) {
 		}
 	}, 64, 64)
 	old := talkOf(a).Turn
-	a.resetView()
+	a.setExtension("talk", false, false)
+	a.setExtension("talk", true, false)
+	talkOf(a).Turn = &talkmod.Turn{}
 	a.SetError(errors.New("current error"))
 	stream.progress(talkapi.Progress{Text: "old reply"})
 	stream.step(workspace.Event{Revision: "old revision"})

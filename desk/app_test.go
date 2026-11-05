@@ -109,7 +109,17 @@ func testApp(service aiapi.Backend) *App {
 }
 
 // aiOf is the AI of a, for a test to swap fake models in.
-func aiOf(a *App) *ai.Service { return a.ai.(*ai.Service) }
+func aiOf(a *App) *ai.Service {
+	backend := a.ai
+	for {
+		source, ok := backend.(interface{ BackendSource() aiapi.Backend })
+		if !ok {
+			break
+		}
+		backend = source.BackendSource()
+	}
+	return backend.(*ai.Service)
+}
 
 func TestLeavingAWorkSavesItAndStopsItsChecks(t *testing.T) {
 	for _, how := range []string{"attach", "shelf", "close", "busy close"} {

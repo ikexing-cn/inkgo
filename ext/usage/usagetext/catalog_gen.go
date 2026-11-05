@@ -312,3 +312,13 @@ func SettingsViewAll(count int) string { return In(i18n.Locale()).SettingsViewAl
 func (msgs Messages) SettingsViewAll(count int) string {
 	return Catalog.Format(msgs.locale, "settingsViewAll", map[string]any{"count": count})
 }
+
+// UsageLogFailed says "用量记录没能保存：{error}"
+// in the language the app shows.
+func UsageLogFailed(error string) string { return In(i18n.Locale()).UsageLogFailed(error) }
+
+// UsageLogFailed says "用量记录没能保存：{error}"
+// in the language of msgs.
+func (msgs Messages) UsageLogFailed(error string) string {
+	return Catalog.Format(msgs.locale, "usageLogFailed", map[string]any{"error": error})
+}

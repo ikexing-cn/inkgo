@@ -5,6 +5,8 @@ import (
 	"errors"
 
 	"github.com/egoist/mygo/ui"
+	"writer/ext"
+	"writer/ext/hostapi"
 	"writer/workspace"
 )
 
@@ -16,7 +18,9 @@ type chapterChecker interface {
 // checkRunner owns cancellation and the one-result mailbox across work switches.
 type checkRunner struct {
 	// Cancel holds the active request cancellation function.
-	Cancel context.CancelFunc
+	Cancel  context.CancelFunc
+	session *ext.Session
+	jobs    hostapi.Jobs
 	// Done holds the result mailbox for this activation.
 	Done chan checkDone
 }
@@ -41,15 +45,26 @@ func (c *checkRunner) start(pen chapterChecker, store *workspace.Store, chapter 
 	ctx, cancel := context.WithCancel(context.Background()) // the request has its own time limit
 	c.Cancel = cancel
 	done := c.Done
-	go func() {
+	work := func(parent context.Context) func() {
+		stop := context.AfterFunc(parent, cancel)
+		defer stop()
 		check, err := pen.Check(ctx, chapter)
 		if errors.Is(ctx.Err(), context.Canceled) {
 			err = context.Canceled // stopped, not failed
 		}
 		cancel()
-		done <- checkDone{Chapter: chapter, Store: store, Check: check, Err: err}
-		services.Invalidate()
-	}()
+		result := checkDone{Chapter: chapter, Store: store, Check: check, Err: err}
+		return func() { done <- result }
+	}
+	if c.session != nil {
+		hostapi.Run(c.jobs, c.session, func(ctx context.Context) {
+			apply := work(ctx)
+			apply()
+			services.Invalidate()
+		})
+	} else {
+		go func() { apply := work(context.Background()); apply(); services.Invalidate() }()
+	}
 }
 
 // stop cancels the running check; its result still returns through the mailbox.

@@ -511,6 +511,12 @@ func (h *Host) start(e *entry) {
 			return
 		}
 	}
+	if h.opts.BookState != nil && e.state != nil && e.state.Load != nil {
+		if err := protect(func() { e.state.Load(h.opts.BookState.LoadState(s.Book(), e.mod.ID)) }); err != nil {
+			h.startFailure(e, s, "LoadState", err)
+			return
+		}
+	}
 	h.mu.Lock()
 	if e.ledger.State != Starting {
 		h.mu.Unlock()
@@ -539,6 +545,7 @@ func (h *Host) removeServices(e *entry) {
 	}
 }
 func (h *Host) stop(e *entry) {
+	h.saveState(e)
 	h.mu.Lock()
 	if e.ledger.State != Failed {
 		e.ledger.State = Off

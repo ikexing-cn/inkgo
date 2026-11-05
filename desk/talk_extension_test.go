@@ -10,6 +10,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"writer/ext"
+	"writer/ext/ai/aiapi"
 	"writer/ext/hostapi"
 	"writer/ext/talk/talkapi"
 )
@@ -72,12 +73,34 @@ func TestTalkOffRemovesDraftAndRewrite(t *testing.T) {
 	}
 }
 
+type cancellableTalk struct{ started chan context.Context }
+
+func (t cancellableTalk) Say(ctx context.Context, _ string, _ workspace.Event) (bool, error) {
+	t.started <- ctx
+	<-ctx.Done()
+	return false, ctx.Err()
+}
+func (t cancellableTalk) Retry(ctx context.Context, _, _ string) error {
+	<-ctx.Done()
+	return ctx.Err()
+}
+
 func TestTalkOffSynchronouslyCancelsReply(t *testing.T) {
 	a, _, _ := fixture(t)
-	ctx, cancel := context.WithCancel(context.Background())
-	a.cancel, a.busy, talkOf(a).Turn.Active = cancel, "reply", true
+	started := make(chan context.Context, 1)
+	talkOf(a).Build = func(*workspace.Store, aiapi.Material, []aiapi.Tool, *talkapi.Beside, func(talkapi.Progress), func(workspace.Event)) (talkapi.Talk, error) {
+		return cancellableTalk{started}, nil
+	}
+	sent := false
+	stillTester(func(c *ui.Context) {
+		if !sent {
+			sent = true
+			talkOf(a).Say(c, talkOf(a).Session, workspace.Event{Text: "test"}, nil)
+		}
+	}, 64, 64)
+	ctx := <-started
 	a.setExtension("talk", false, false)
-	if ctx.Err() != context.Canceled {
+	if ctx.Err() != context.Canceled || a.busy != "" {
 		t.Fatal("reply survived extension shutdown")
 	}
 }
@@ -123,10 +146,11 @@ func TestDisablingTalkDuringRealStreamingDraftStopsReplyAndDiscardsPartialPropos
 			if len(shownProposals(a)) != 0 || len(proposeOf(a).Props) != 0 || shownEditor(a).Doc.String() != "" {
 				t.Fatal("partial reply remained")
 			}
-			a.setExtension("talk", true, false)
+			a.setExtension("talk", true, bookScope)
 			tt.Frame()
 			if len(talkOf(a).Events) == 0 {
-				t.Fatal("conversation disappeared")
+				events, err := a.Store.Events(talkOf(a).Session)
+				t.Fatal("conversation disappeared", talkOf(a).Session, len(events), err, a.extensions.Ledger("talk").Errors)
 			}
 
 		})

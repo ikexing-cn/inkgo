@@ -18,6 +18,7 @@ type Session struct {
 	stopped   bool
 	wg        sync.WaitGroup
 	onPanic   func(any)
+	cleanups  []func()
 }
 
 func newSession(id string, book Book, local string) *Session {
@@ -66,10 +67,38 @@ func (s *Session) Go(f Task) {
 		f(s.ctx)
 	}()
 }
+
+// Active reports whether this activation still accepts results, on any goroutine.
+func (s *Session) Active() bool { return s != nil && s.ctx.Err() == nil }
+
+// OnStop registers frame-thread resource cleanup before starting work.
+func (s *Session) OnStop(f func()) { s.cleanups = append(s.cleanups, f) }
+
 func (s *Session) stop() {
 	s.mu.Lock()
 	s.stopped = true
 	s.cancel()
 	s.mu.Unlock()
 	s.wg.Wait()
+	for _, f := range s.cleanups {
+		f()
+	}
+	s.cleanups = nil
+}
+
+// SessionBinder creates a service handle owned by the consuming activation.
+// Ref.Get calls it on the frame thread; handles must capture this exact Session.
+type SessionBinder interface{ BindSession(*Session) any }
+
+type sessionContextKey struct{}
+
+// WithSession binds a delegated callback to its provider's captured activation.
+func WithSession(ctx context.Context, s *Session) context.Context {
+	return context.WithValue(ctx, sessionContextKey{}, s)
+}
+
+// SessionOf returns the provider activation captured by a delegated callback.
+func SessionOf(ctx context.Context) *Session {
+	s, _ := ctx.Value(sessionContextKey{}).(*Session)
+	return s
 }

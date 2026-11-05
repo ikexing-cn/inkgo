@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"writer/ext/hostapi"
 	"writer/ext/talk/talkapi"
 	"writer/ext/talk/talktext"
 
@@ -20,6 +21,7 @@ import (
 // Workers keep this instance even after App starts a different turn.
 type Turn struct {
 	Active           bool
+	jobs             hostapi.Jobs
 	Session, Chapter string
 	Pending          string
 	Quotes           []workspace.Quote
@@ -100,7 +102,7 @@ func (a *Panel) Talk(c *ui.Context) (talkapi.Talk, error) {
 	if a.Build == nil {
 		return nil, &aiapi.SetupError{Err: errors.New(locales.ChatNeedModel())}
 	}
-	turn := &Turn{}
+	turn := &Turn{jobs: a.jobs}
 	a.Turn = turn
 	a.suggestions.Begin()
 	sv := c.Services()
@@ -117,7 +119,11 @@ func (a *Panel) Talk(c *ui.Context) (talkapi.Talk, error) {
 func (a *Panel) Stepped(turn *Turn, sv ui.Services, e workspace.Event) {
 	turn.Live.Step(e)
 	if e.Revision != "" || e.Role == workspace.RoleDigest && e.ID != "" { // the setting it noted, or the talk compacted
-		a.post(sv, func() {
+		jobs := turn.jobs
+		if jobs == nil {
+			jobs = a.jobs
+		}
+		jobs.Post(sv, func() {
 			if a.Turn == turn {
 				a.SetError(a.bookHost.CategoriesChanged())
 			}

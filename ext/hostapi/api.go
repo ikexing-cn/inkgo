@@ -3,7 +3,6 @@ package hostapi
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/egoist/mygo/ui"
 	"time"
 
@@ -287,12 +286,8 @@ const ErrorTexts ext.PointKey[ErrorTranslator] = "host.error-texts"
 type ViewState struct {
 	// PaneChanged observes host pane navigation on the frame thread.
 	PaneChanged func(string)
-	// Reset clears transient state before the host changes its book view; frame thread only.
-	Reset func()
 	// Refresh updates derived view content on the frame thread.
 	Refresh func() error
-	Load    func(map[string]json.RawMessage)
-	Save    func() map[string]json.RawMessage
 }
 
 // State collects view preference contributions; called through ext.Guard on the frame thread.

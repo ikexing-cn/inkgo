@@ -1,9 +1,7 @@
 package talk
 
 import (
-	"encoding/json"
 	"github.com/egoist/mygo/ui"
-	"os"
 	"writer/desk/kit"
 	"writer/ext"
 	"writer/ext/ai/aiapi"
@@ -46,7 +44,9 @@ func setupPanel(r *ext.Registrar, panel *Panel) {
 	palette := ext.Use(r, hostapi.PaletteService)
 	s.panel = panel
 	*s.panel = Panel{Turn: &Turn{}, Titles: map[string]workspace.ConversationTitle{}, Blank: map[string]bool{}, Thoughts: map[string]*bool{}, Shelved: map[string]bool{}, Attach: true, aiRef: s.ai, materialRef: material, tools: ext.ReadPoint(r, aiapi.Tools)}
-	r.OnStart(func(*ext.Session) error {
+	r.Persist(ext.BookState{Load: panel.loadState, Save: panel.saveState})
+	r.OnStart(func(activation *ext.Session) error {
+		panel.activation = activation
 		p := s.panel
 		p.bookHost = s.book.Get()
 		p.desktop = desktop.Get()
@@ -64,8 +64,16 @@ func setupPanel(r *ext.Registrar, panel *Panel) {
 		}
 		st := s.book.Get().Store()
 		if st == p.Store {
+			if p.reload {
+				p.reload = false
+				return p.Refresh()
+			}
 			return nil
 		}
+		p.reset()
+		p.ShowShelved, p.FocusTalk = false, false
+		p.SourceMessage, p.SourceCategory = "", ""
+		p.Rows = nil
 		p.Store = st
 		if st != nil {
 			w := st.Work()
@@ -88,10 +96,6 @@ func setupPanel(r *ext.Registrar, panel *Panel) {
 		if st == nil {
 			return nil
 		}
-		raw, _ := os.ReadFile(st.PrefsPath())
-		var state map[string]json.RawMessage
-		_ = json.Unmarshal(raw, &state)
-		p.loadState(state)
 		ids, err := st.Sessions()
 		if err != nil {
 			return err
@@ -116,7 +120,7 @@ func setupPanel(r *ext.Registrar, panel *Panel) {
 		if tab != "talk" {
 			s.panel.Talks = false
 		}
-	}, Reset: s.panel.reset, Load: s.panel.loadState, Save: s.panel.saveState, Refresh: s.panel.Refresh})
+	}, Refresh: s.panel.Refresh})
 	ext.Contribute(r, hostapi.Pages, "page", hostapi.Page{Title: locales.PageTalk, Icon: kit.IcChat, Order: 10, Sidebar: s.panel.SideBody, SidebarAction: func(c *ui.Context) {
 		if kit.IconButton(c, kit.IcPlus, locales.SideNewTalk(), ui.Color{}).Disabled(s.panel.held()).Clicked() {
 			s.panel.NewSession()

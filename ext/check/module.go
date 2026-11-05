@@ -21,6 +21,8 @@ import (
 type Panel struct {
 	// State exposes cached findings and runner state for frame-thread diagnostics.
 	State      checks
+	activation *ext.Session
+	jobs       hostapi.Jobs
 	bookHost   hostapi.Book
 	palette    hostapi.Palette
 	notices    hostapi.Notices
@@ -52,7 +54,10 @@ func module(controller *Panel) ext.Module {
 		material := ext.Use(r, loreapi.ReferencesService)
 		nav := ext.Use(r, loreapi.EntryNavigationService)
 		rev := ext.Use(r, loreapi.RevisionsService)
-		r.OnStart(func(*ext.Session) error {
+		jobs := ext.Use(r, hostapi.JobsService)
+		r.OnStart(func(s *ext.Session) error {
+			p.activation = s
+			p.jobs = jobs.Get()
 			p.bookHost = b.Get()
 			p.palette = pal.Get()
 			p.notices = n.Get()
@@ -63,12 +68,16 @@ func module(controller *Panel) ext.Module {
 			p.navigation = nav.Get()
 			p.revisions = rev.Get()
 			if p.State.Of != b.Get().Store() {
-				p.State = checks{}
+				p.State = checks{Of: b.Get().Store()}
 			}
-			p.State.Runner = checkRunner{}
+			p.State.Runner = checkRunner{session: s, jobs: p.jobs}
 			return nil
 		})
-		r.OnStop(func(*ext.Session) { p.stopChecks() })
+		r.OnStop(func(*ext.Session) {
+			p.stopChecks()
+			p.State.WhenOpen, p.State.AskOpen = false, false
+			p.State.Due = nil
+		})
 		ext.Contribute(r, hostapi.Commands, "open", hostapi.Command{Name: locales.PageCheck, Can: func() bool { return p.store() != nil }, Run: func() { p.openCheck("") }})
 		ext.Contribute(r, hostapi.Pages, "check", hostapi.Page{Title: locales.PageCheck, Available: func() bool { return p.store() != nil }, Count: func() int { return len(p.listedChecks()) }, Icon: kit.IcDone, Order: 40, Enter: func() { p.loadChecks(); p.pruneStoredChecks(); p.State.ProseOf = "" }, Draw: p.checkPage})
 		ext.Contribute(r, hostapi.FrameTicks, "run", hostapi.FrameTick{Tick: func(c *ui.Context) {
@@ -92,7 +101,7 @@ func module(controller *Panel) ext.Module {
 			p.pal().Subhead(c, checktext.SettingsCheckText(), "")
 			ui.Column(c).FillWidth().Gap(2).Children(func() { p.whenRows(c) })
 		}})
-		ext.Contribute(r, hostapi.State, "view", hostapi.ViewState{Load: p.loadState, Save: p.saveState})
+		r.Persist(ext.BookState{Load: p.loadState, Save: p.saveState})
 	}}
 }
 func (a *Panel) book() *book.Book                                 { return a.bookHost.Content() }

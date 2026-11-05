@@ -126,5 +126,13 @@
         "example": "12"
       }
     }
+  },
+  "usageLogFailed": "用量记录没能保存：{error}",
+  "@usageLogFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   }
 }
