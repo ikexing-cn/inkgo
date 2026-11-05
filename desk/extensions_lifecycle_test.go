@@ -52,7 +52,7 @@ func TestExtensionSettingsFollowHostPagesThenStableOrderAndCache(t *testing.T) {
 	}}
 	a := newTestApp(ai.New(""), mod)
 	defer a.Close()
-	want := []string{"appearance", "extensions", "pages.first", "pages.second", "AI", "reminders", "pages.late"}
+	want := []string{"appearance", "extensions", "pages.first", "pages.second", "AI", "pages.late"}
 	for i, id := range want {
 		if a.prefTabs[i].id != id {
 			t.Fatal(a.prefTabs)
@@ -67,7 +67,7 @@ func TestExtensionSettingsFollowHostPagesThenStableOrderAndCache(t *testing.T) {
 	}
 	requireExtension(t, a.extensions.Set("pages", false))
 	a.syncExtensions()
-	if len(a.prefTabs) != len(want) || len(a.extViews.settings) != 5 || len(a.extViews.sections) != 1 {
+	if len(a.prefTabs) != len(want) || len(a.extViews.settings) != 4 || len(a.extViews.sections) != 1 {
 		t.Fatal("disabled pages disappeared")
 	}
 	requireExtension(t, a.extensions.Set("pages", true))
@@ -160,7 +160,7 @@ func TestBackupSwitchRemovesAndRestoresEverySurfaceAndLifecycle(t *testing.T) {
 		if line != on {
 			t.Fatalf("footer on=%v visible=%v", on, line)
 		}
-		if (len(a.extViews.footer) > 0) != on || (len(a.extViews.title) > 0) != on || hasOwner(a.extViews.pending, "backup") != on || hasOwner(a.extViews.sections, "backup") != on || hasOwner(a.extViews.ticks, "backup") != on || hasOwner(a.extViews.leave, "backup") != on {
+		if hasOwner(a.extViews.footer, "backup") != on || (len(a.extViews.title) > 0) != on || hasOwner(a.extViews.pending, "backup") != on || hasOwner(a.extViews.sections, "backup") != on || hasOwner(a.extViews.ticks, "backup") != on || hasOwner(a.extViews.leave, "backup") != on {
 			t.Fatalf("stale contribution cache: on=%v", on)
 		}
 		if on {

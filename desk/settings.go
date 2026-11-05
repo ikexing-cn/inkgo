@@ -190,8 +190,6 @@ func (a *App) preferences(c *ui.Context) {
 						switch a.settings.tab {
 						case "appearance":
 							a.looksView(c)
-						case "reminders":
-							a.reminderSettings(c)
 						case "extensions":
 							if a.settings.ext != "" {
 								a.extensionSection(c, a.settings.ext)

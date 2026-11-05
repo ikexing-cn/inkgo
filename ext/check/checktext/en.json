@@ -1,0 +1,102 @@
+{
+  "statusChecked": "Checked, all clear",
+  "statusChecking": "Checking…",
+  "statusQueued": "Waiting to check",
+  "statusFailed": "Check failed: {why}",
+  "statusNever": "Not checked yet",
+  "statusDirtyIssues": "{count, plural, one {# issue} other {# issues}} found; edited since",
+  "statusPartIssues": "{unit, select, word {First {part} words: {count, plural, one {# issue} other {# issues}} found} other {First {part} chars: {count, plural, one {# issue} other {# issues}} found}}",
+  "statusIssues": "{count, plural, one {# issue} other {# issues}} found",
+  "statusEdited": "Edited since last check",
+  "statusPartOK": "{unit, select, word {First {part} words checked, all clear} other {First {part} chars checked, all clear}}",
+  "statusPartLong": "The text past this point is beyond the model's context limit. You can adjust it in Settings under AI.",
+  "statusGoCheck": "Open the Check page to review each item",
+  "statusCheckNow": "Check Now",
+  "statusCheckTip": "Calls the AI once to check this chapter against the lore",
+  "statusWhenTitle": "When to Check",
+  "statusWhenAfter": "Per Chapter",
+  "statusWhenAfterAbout": "Recommended. Calls the AI once per chapter.",
+  "statusWhenManual": "Manually",
+  "statusWhenManualAbout": "Doesn't call the AI in normal use",
+  "statusWhenWriting": "While Writing",
+  "statusWhenWritingAbout": "Checks when you pause. Calls the AI the most.",
+  "statusNotInLore": "“{title}” isn't in the lore yet",
+  "notesSays": "Lore says “{says}”",
+  "notesKindInconsistent": "Inconsistent with Lore",
+  "checkMinimum": "{unit, select, word {{count, plural, one {Check available after # word} other {Check available after # words}}} other {{count, plural, one {Check available after # character} other {Check available after # characters}}}}",
+  "checkTextChapter": "Text · {chapter}",
+  "checkLoreHeading": "Lore · {entry}",
+  "checkKindCount": "{kind} {count, number}",
+  "checkKindAll": "All",
+  "checkKindMismatch": "Inconsistent",
+  "checkKindName": "Wrong Name",
+  "checkKindNew": "New",
+  "checkKindAria": "Check category",
+  "checkMarkedNoChange": "Marked “No Change Needed”",
+  "checkAddedSetting": "Added to lore",
+  "checkNoChange": "No Change Needed",
+  "checkAddToSettings": "Add to Lore",
+  "checkEditSetting": "Edit Lore",
+  "checkEditText": "Edit Text",
+  "checkMismatchAbout": "{at} ↔ Lore “{what}”",
+  "checkNameAbout": "{at} · should be “{right}”",
+  "checkFirstSeen": "{cat} · first seen in “{at}”",
+  "checkFirstSeenMore": "{cat} · first seen in “{at}”, {count, plural, one {# chapter} other {# chapters}} in total",
+  "checkNoSettings": "Lore is empty, so there is nothing to compare",
+  "checkAllDone": "Every chapter has been checked, with no new changes in the text",
+  "checkOwedTitle": "{count, plural, one {# chapter is unchecked or changed} other {# chapters are unchecked or changed}}",
+  "checkOwedNote": "Calls the AI once per chapter, {count} times in total.",
+  "checkStart": "Start Checking",
+  "checkRunning": "Checking “{title}”",
+  "checkRunningMore": "Checking “{title}”, {count, plural, one {# more chapter} other {# more chapters}} to go",
+  "checkStop": "Stop",
+  "checkProgress": "Checked {checked, plural, one {# chapter} other {# chapters}}; {failed, plural, one {# chapter} other {# chapters}} failed",
+  "checkRecheck": "Re-check",
+  "checkAllBook": "Check Whole Book",
+  "checkCheckedUpTo": "Checked up to “{title}”",
+  "checkIncomplete": "Check Incomplete",
+  "checkFailedAt": "“{title}” failed to check: {reason}",
+  "checkRunningTitle": "Checking…",
+  "checkRunningAbout": "Results will appear on the left.",
+  "checkNoSettingsTitle": "Lore is empty",
+  "checkNoSettingsAbout": "Settle the lore in a chat first, so the text can be checked against it.",
+  "checkNoneInKind": "Nothing pending in this category",
+  "checkNotYet": "Not checked yet",
+  "checkNotYetAbout": "Click “{button}” at the top left, or checks run automatically after a chapter is written.",
+  "checkNoneFound": "No inconsistencies found",
+  "checkManualNote": "Currently “{mode}”. Click “{again}” when you need it.",
+  "checkModeManual": "Manual check",
+  "checkAutoNote": "Checks run after each chapter is written. Results appear here.",
+  "checkTextPara": "Text · {chapter} · paragraph {para}",
+  "checkSeeSetting": "View Lore",
+  "checkCanAdd": "Can be added to lore · {cat}",
+  "checkAlsoNew": "Also appears in other chapters",
+  "checkAlsoSimilar": "Similar cases in other chapters",
+  "checkNext": "Next",
+  "checkLater": "Maybe Later",
+  "settingsCheckText": "When to Check",
+  "modCheck": "Check",
+  "modCheckAbout": "Finds where the text contradicts the lore",
+  "checkAlsoOpen": "Not handled yet",
+  "@statusPartIssues": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@statusPartOK": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@checkMinimum": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  }
+}

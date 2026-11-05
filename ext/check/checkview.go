@@ -1,28 +1,28 @@
-package desk
+package check
 
 import (
 	"github.com/egoist/mygo/ui"
 	"slices"
 	"strings"
-	"time"
 	"unicode/utf8"
 	"writer/desk/kit"
 	"writer/ext/lore/loreapi"
 	"writer/internal/textclip"
 	"writer/workspace"
 
+	"writer/ext/check/checktext"
 	"writer/locales"
 )
 
 // whenRows are the three times to check, one chosen.
-func (a *App) whenRows(c *ui.Context) {
-	t := a.pal.Theme
-	k := &a.ck
+func (a *Panel) whenRows(c *ui.Context) {
+	t := a.pal().Theme
+	k := &a.State
 	for _, o := range checkWhens {
-		on := o.when == k.when
-		ring := a.pal.Faint
+		on := o.When == k.When
+		ring := a.pal().Faint
 		if on {
-			ring = a.pal.Ink
+			ring = a.pal().Ink
 		}
 		b := ui.ButtonBase(c).Row().FillWidth().Gap(10).Padding(6, 8).Radius(kit.RControl).AlignItems(ui.Start).Justify(ui.Start).Label(o.label())
 		if b.Hovered() {
@@ -31,7 +31,7 @@ func (a *App) whenRows(c *ui.Context) {
 		b.Children(func() {
 			ui.Box(c).Size(14, 14).Margin(4, 0, 0, 0).Radius(kit.RRound).Border(1.5, ring).Center().Shrink(0).Children(func() {
 				if on {
-					kit.Dot(c, a.pal.Ink, 6)
+					kit.Dot(c, a.pal().Ink, 6)
 				}
 			})
 			ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
@@ -40,8 +40,8 @@ func (a *App) whenRows(c *ui.Context) {
 			})
 		})
 		if b.Clicked() && !on {
-			k.when = o.when
-			a.savePrefs()
+			k.When = o.When
+			a.desktop.SavePreferences()
 		}
 	}
 }
@@ -51,7 +51,7 @@ var checkKinds = []struct {
 	kind  string
 	label func() string
 }{
-	{"", locales.CheckKindAll}, {workspace.FindConflict, locales.CheckKindMismatch}, {workspace.FindName, locales.CheckKindName}, {workspace.FindNew, locales.CheckKindNew},
+	{"", checktext.CheckKindAll}, {workspace.FindConflict, checktext.CheckKindMismatch}, {workspace.FindName, checktext.CheckKindName}, {workspace.FindNew, checktext.CheckKindNew},
 }
 
 func kindLabel(kind string) string {
@@ -65,27 +65,27 @@ func kindLabel(kind string) string {
 
 // checkPage is the page 检查: what the checks found on the left, the one
 // chosen on the right, the prose beside the setting.
-func (a *App) checkPage(c *ui.Context) {
-	k := &a.ck
+func (a *Panel) checkPage(c *ui.Context) {
+	k := &a.State
 	all := a.listedChecks()
-	var shown []checkItem
+	var shown []Item
 	for _, it := range all {
-		if kind := checkKinds[k.tab].kind; kind == "" || kind == it.f.Kind {
+		if kind := checkKinds[k.Tab].kind; kind == "" || kind == it.F.Kind {
 			shown = append(shown, it)
 		}
 	}
-	at := slices.IndexFunc(shown, func(it checkItem) bool {
-		return it.f.ID == k.shown || slices.ContainsFunc(it.also, func(o checkItem) bool { return o.f.ID == k.shown })
+	at := slices.IndexFunc(shown, func(it Item) bool {
+		return it.F.ID == k.Shown || slices.ContainsFunc(it.Also, func(o Item) bool { return o.F.ID == k.Shown })
 	})
 	if at < 0 {
 		at = min(0, len(shown)-1)
 	}
 	if at >= 0 {
-		k.shown = shown[at].f.ID
+		k.Shown = shown[at].F.ID
 	}
 	ui.Row(c).Fill().AlignItems(ui.Stretch).Children(func() {
 		ui.Column(c).Width(360).Shrink(0).FillHeight().Children(func() { a.checkList(c, all, shown) })
-		ui.Box(c).Width(1).FillHeight().Background(a.pal.Line)
+		ui.Box(c).Width(1).FillHeight().Background(a.pal().Line)
 		ui.Column(c).Grow(1).Shrink(1).FillHeight().Padding(32, 32, 20, 32).Gap(20).Children(func() {
 			if at < 0 {
 				a.checkEmpty(c, len(all))
@@ -98,9 +98,9 @@ func (a *App) checkPage(c *ui.Context) {
 
 // checkList is the page's left: how far the checks got, the kinds, and
 // the findings.
-func (a *App) checkList(c *ui.Context, all, shown []checkItem) {
-	t := a.pal.Theme
-	k := &a.ck
+func (a *Panel) checkList(c *ui.Context, all, shown []Item) {
+	t := a.pal().Theme
+	k := &a.State
 	ui.Column(c).FillWidth().Padding(14, 20, 10, 20).Gap(10).Shrink(0).Children(func() {
 		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
 			a.checkProgress(c)
@@ -109,32 +109,32 @@ func (a *App) checkList(c *ui.Context, all, shown []checkItem) {
 		for i, kind := range checkKinds {
 			n := 0
 			for _, it := range all {
-				if kind.kind == "" || kind.kind == it.f.Kind {
+				if kind.kind == "" || kind.kind == it.F.Kind {
 					n++
 				}
 			}
-			names[i] = locales.CheckKindCount(kind.label(), n)
+			names[i] = checktext.CheckKindCount(kind.label(), n)
 		}
-		ui.Row(c).Children(func() { a.pal.Segments(c, &k.tab, locales.CheckKindAria(), names) })
+		ui.Row(c).Children(func() { a.pal().Segments(c, &k.Tab, checktext.CheckKindAria(), names) })
 	})
 	ui.Scroll(c.Key("checks")).FillWidth().Grow(1).Shrink(1).Children(func() {
 		ui.Column(c).FillWidth().Padding(0, 14, 12, 14).Gap(2).Children(func() {
 			for _, it := range shown {
-				sub := it.title
-				switch it.f.Kind {
+				sub := it.Title
+				switch it.F.Kind {
 				case workspace.FindConflict:
-					sub = locales.CheckMismatchAbout(sub, entryTitle(it.entry))
+					sub = checktext.CheckMismatchAbout(sub, entryTitle(it.Entry))
 				case workspace.FindName:
-					sub = locales.CheckNameAbout(sub, it.f.Name)
+					sub = checktext.CheckNameAbout(sub, it.F.Name)
 				case workspace.FindNew:
 					at := sub
-					sub = locales.CheckFirstSeen(it.f.Category, at)
-					if len(it.also) > 0 {
-						sub = locales.CheckFirstSeenMore(it.f.Category, at, len(it.also)+1)
+					sub = checktext.CheckFirstSeen(it.F.Category, at)
+					if len(it.Also) > 0 {
+						sub = checktext.CheckFirstSeenMore(it.F.Category, at, len(it.Also)+1)
 					}
 				}
-				b := ui.ButtonBase(c.Key("ck-"+it.f.ID)).Row().FillWidth().AlignItems(ui.Center).Gap(10).Padding(8, 10).Radius(kit.RControl).Label("检查-" + it.f.Title)
-				if it.f.ID == k.shown {
+				b := ui.ButtonBase(c.Key("ck-"+it.F.ID)).Row().FillWidth().AlignItems(ui.Center).Gap(10).Padding(8, 10).Radius(kit.RControl).Label("检查-" + it.F.Title)
+				if it.F.ID == k.Shown {
 					b.Background(t.SurfacePressed)
 				} else if b.Hovered() {
 					b.Background(t.SurfaceHover)
@@ -142,13 +142,13 @@ func (a *App) checkList(c *ui.Context, all, shown []checkItem) {
 				kit.PressRow(c, b)
 				b.Children(func() {
 					ui.Column(c).Grow(1).Shrink(1).Basis(0).Children(func() {
-						ui.Text(c, it.f.Title).FontSize(kit.FsBody).LineHeight(kit.LhBody).SingleLine().Ellipsis("…").FillWidth()
+						ui.Text(c, it.F.Title).FontSize(kit.FsBody).LineHeight(kit.LhBody).SingleLine().Ellipsis("…").FillWidth()
 						ui.Text(c, sub).FontSize(kit.FsNote).LineHeight(kit.LhBody).TextColor(t.TextMuted).SingleLine().Ellipsis("…").FillWidth()
 					})
-					ui.Text(c, kindLabel(it.f.Kind)).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Shrink(0)
+					ui.Text(c, kindLabel(it.F.Kind)).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Shrink(0)
 				})
 				if b.Clicked() {
-					k.shown = it.f.ID
+					k.Shown = it.F.ID
 				}
 			}
 		})
@@ -156,34 +156,34 @@ func (a *App) checkList(c *ui.Context, all, shown []checkItem) {
 }
 
 // checkProgress says how far the checks got, and checks the book again.
-func (a *App) checkProgress(c *ui.Context) {
-	t := a.pal.Theme
-	k := &a.ck
-	if k.queue.Running != "" {
-		left := len(k.queue.Pending)
-		_, title := a.checkAt(k.queue.Running)
-		line := locales.CheckRunning(title)
+func (a *Panel) checkProgress(c *ui.Context) {
+	t := a.pal().Theme
+	k := &a.State
+	if k.Queue.Running != "" {
+		left := len(k.Queue.Pending)
+		_, title := a.checkAt(k.Queue.Running)
+		line := checktext.CheckRunning(title)
 		if left > 0 {
-			line = locales.CheckRunningMore(title, left)
+			line = checktext.CheckRunningMore(title, left)
 		}
 		ui.Text(c, line).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
-		if a.pal.Ghost(c, locales.CheckStop(), ui.Color{}).Clicked() {
-			k.queue.Stop()
-			k.runner.stop()
+		if a.pal().Ghost(c, checktext.CheckStop(), ui.Color{}).Clicked() {
+			k.Queue.Stop()
+			k.Runner.stop()
 		}
 		return
 	}
 	last, lastTitle, done, failed := 0, "", 0, 0
-	for id := range a.book.Checks() {
+	for id := range a.book().Checks() {
 		no, title := a.checkAt(id)
 		if no > last {
 			last, lastTitle = no, title
 		}
-		if _, bad := k.queue.Failed[id]; no > 0 && !bad {
+		if _, bad := k.Queue.Failed[id]; no > 0 && !bad {
 			done++
 		}
 	}
-	for id := range k.queue.Failed {
+	for id := range k.Queue.Failed {
 		if no, _ := a.checkAt(id); no > 0 {
 			failed++
 		}
@@ -191,41 +191,41 @@ func (a *App) checkProgress(c *ui.Context) {
 	switch {
 	case failed > 0:
 		// 已检查至 would read as all before it checked.
-		ui.Text(c, locales.CheckProgress(done, failed)).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
+		ui.Text(c, checktext.CheckProgress(done, failed)).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
 	case last > 0:
-		ui.Text(c, locales.CheckCheckedUpTo(lastTitle)).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
+		ui.Text(c, checktext.CheckCheckedUpTo(lastTitle)).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1)
 	}
-	label := locales.CheckRecheck()
+	label := checktext.CheckRecheck()
 	if last == 0 {
-		label = locales.CheckAllBook()
+		label = checktext.CheckAllBook()
 	}
-	b := a.pal.Ghost(c, label, ui.Color{}).Label(label)
+	b := a.pal().Ghost(c, label, ui.Color{}).Label(label)
 	if b.Clicked() {
-		k.due = a.checkDue()
+		k.Due = a.checkDue()
 		switch {
 		case !a.hasSetting():
-			a.status.Hint(locales.CheckNoSettings())
-		case len(k.due) == 0:
-			a.status.Hint(locales.CheckAllDone())
+			a.status().Hint(checktext.CheckNoSettings())
+		case len(k.Due) == 0:
+			a.status().Hint(checktext.CheckAllDone())
 		default:
-			k.askOpen = true
+			k.AskOpen = true
 		}
 	}
-	kit.Popover(c, b, &k.askOpen, 1, 0, func(panel ui.Element) {
+	kit.Popover(c, b, &k.AskOpen, 1, 0, func(panel ui.Element) {
 		panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(6, 0, 0, 0).Width(280).Radius(kit.RCard).Padding(14).Gap(12).
-			Background(a.pal.Canvas).Border(1, t.Border)
-		a.pal.Pop.On(panel)
-		ui.Text(c, locales.CheckOwedTitle(len(k.due))).FontSize(kit.FsBody).FontWeight(600)
-		ui.Text(c, locales.CheckOwedNote(len(k.due))).FontSize(kit.FsNote).TextColor(t.TextMuted)
+			Background(a.pal().Canvas).Border(1, t.Border)
+		a.pal().Pop.On(panel)
+		ui.Text(c, checktext.CheckOwedTitle(len(k.Due))).FontSize(kit.FsBody).FontWeight(600)
+		ui.Text(c, checktext.CheckOwedNote(len(k.Due))).FontSize(kit.FsNote).TextColor(t.TextMuted)
 		ui.Row(c).FillWidth().Gap(8).Children(func() {
 			ui.Spacer(c)
-			if a.pal.Secondary(c, locales.CommonCancel()).Clicked() {
-				k.askOpen = false
+			if a.pal().Secondary(c, locales.CommonCancel()).Clicked() {
+				k.AskOpen = false
 			}
-			if a.pal.Primary(c, locales.CheckStart()).Clicked() {
-				k.askOpen = false
-				for _, id := range k.due {
-					a.ck.queue.Enqueue(id)
+			if a.pal().Primary(c, checktext.CheckStart()).Clicked() {
+				k.AskOpen = false
+				for _, id := range k.Due {
+					a.State.Queue.Enqueue(id)
 				}
 			}
 		})
@@ -234,10 +234,10 @@ func (a *App) checkProgress(c *ui.Context) {
 
 // checkAt is which chapter of the book node is, as the checks number
 // them, and its title; a chapter no longer in the book is 0, 已删除的章.
-func (a *App) checkAt(node string) (no int, title string) {
+func (a *Panel) checkAt(node string) (no int, title string) {
 	n := 0
 	title = locales.AppChapterDeleted()
-	a.book.Tree().Walk(func(nd *workspace.Node, _ int) {
+	a.book().Tree().Walk(func(nd *workspace.Node, _ int) {
 		if !nd.Folder {
 			n++
 			if nd.ID == node {
@@ -249,35 +249,35 @@ func (a *App) checkAt(node string) (no int, title string) {
 }
 
 // checkEmpty is the page's right with nothing to show.
-func (a *App) checkEmpty(c *ui.Context, all int) {
-	k := &a.ck
-	pic, words, how := kit.IcDone, locales.CheckNoneFound(), locales.CheckAutoNote()
+func (a *Panel) checkEmpty(c *ui.Context, all int) {
+	k := &a.State
+	pic, words, how := kit.IcDone, checktext.CheckNoneFound(), checktext.CheckAutoNote()
 	switch {
 	case all > 0:
-		words, how = locales.CheckNoneInKind(), ""
+		words, how = checktext.CheckNoneInKind(), ""
 	case !a.hasSetting():
-		words, how = locales.CheckNoSettingsTitle(), locales.CheckNoSettingsAbout()
-	case len(a.book.Checks()) == 0 && k.queue.Running == "":
-		words, how = locales.CheckNotYet(), locales.CheckNotYetAbout(locales.CheckAllBook())
-	case k.queue.Running != "":
-		words, how = locales.CheckRunningTitle(), locales.CheckRunningAbout()
-	case k.when == checkOnDemand:
-		how = locales.CheckManualNote(locales.CheckModeManual(), locales.CheckRecheck())
+		words, how = checktext.CheckNoSettingsTitle(), checktext.CheckNoSettingsAbout()
+	case len(a.book().Checks()) == 0 && k.Queue.Running == "":
+		words, how = checktext.CheckNotYet(), checktext.CheckNotYetAbout(checktext.CheckAllBook())
+	case k.Queue.Running != "":
+		words, how = checktext.CheckRunningTitle(), checktext.CheckRunningAbout()
+	case k.When == checkOnDemand:
+		how = checktext.CheckManualNote(checktext.CheckModeManual(), checktext.CheckRecheck())
 	}
 	// One that failed is not told as one that found nothing; the first in
 	// the book is named, so it is the same one every frame.
-	if lost := a.firstFailed(); lost != "" && k.queue.Running == "" {
+	if lost := a.firstFailed(); lost != "" && k.Queue.Running == "" {
 		_, title := a.checkAt(lost)
-		pic, words, how = kit.IcAlert, locales.CheckIncomplete(), locales.CheckFailedAt(title, a.errText(k.queue.Failed[lost]))
+		pic, words, how = kit.IcAlert, checktext.CheckIncomplete(), checktext.CheckFailedAt(title, a.settings.ErrorText(k.Queue.Failed[lost]))
 	}
-	a.pal.Blank(c, pic, words, how, nil)
+	a.pal().Blank(c, pic, words, how, nil)
 }
 
 // firstFailed is the first chapter in the book whose check failed, or "".
-func (a *App) firstFailed() string {
+func (a *Panel) firstFailed() string {
 	first := ""
-	a.book.Tree().Walk(func(nd *workspace.Node, _ int) {
-		if _, ok := a.ck.queue.Failed[nd.ID]; ok && first == "" && !nd.Folder {
+	a.book().Tree().Walk(func(nd *workspace.Node, _ int) {
+		if _, ok := a.State.Queue.Failed[nd.ID]; ok && first == "" && !nd.Folder {
 			first = nd.ID
 		}
 	})
@@ -286,30 +286,30 @@ func (a *App) firstFailed() string {
 
 // quoted is text in spans with its part, quote, as the design marks what
 // is at odds; long text is cut around it.
-func (a *App) quoted(text, quote string) []ui.Span {
+func (a *Panel) quoted(text, quote string) []ui.Span {
 	const around = 120
 	i := strings.Index(text, quote)
 	if quote == "" || i < 0 {
 		return []ui.Span{{Text: text}}
 	}
 	before, after := text[:i], text[i+len(quote):]
-	return []ui.Span{{Text: textclip.Tail(before, around)}, {Text: quote, Color: a.pal.Theme.Text, Background: a.pal.Theme.SurfacePressed}, {Text: textclip.Clip(after, around)}}
+	return []ui.Span{{Text: textclip.Tail(before, around)}, {Text: quote, Color: a.pal().Theme.Text, Background: a.pal().Theme.SurfacePressed}, {Text: textclip.Clip(after, around)}}
 }
 
 // checkCard is one side of the comparison: what it is, a link to it, and
 // its words.
-func (a *App) checkCard(c *ui.Context, head, link string, spans []ui.Span) (clicked bool) {
-	t := a.pal.Theme
+func (a *Panel) checkCard(c *ui.Context, head, link string, spans []ui.Span) (clicked bool) {
+	t := a.pal().Theme
 	ui.Column(c).Grow(1).Shrink(1).Basis(0).Gap(6).Children(func() {
 		// As tall without the link as with it, so cards side by side line up.
 		ui.Row(c).FillWidth().MinHeight(22).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, head).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 			if link != "" {
-				clicked = a.pal.Ghost(c, link, ui.Color{}).Clicked()
+				clicked = a.pal().Ghost(c, link, ui.Color{}).Clicked()
 			}
 		})
 		ui.RichText(c, spans...).Label("检查对照-"+head).FontSize(kit.FsRead).LineHeight(kit.LhRead).TextColor(t.TextMuted).FillWidth().
-			Padding(12, 14).Radius(kit.RCard).Background(a.pal.Side).Border(1, a.pal.Line).Selectable().Grow(1)
+			Padding(12, 14).Radius(kit.RCard).Background(a.pal().Side).Border(1, a.pal().Line).Selectable().Grow(1)
 	})
 	return clicked
 }
@@ -362,66 +362,66 @@ func paragraphOf(text, quote string) (string, int) {
 
 // checkDetail is the finding chosen: the prose beside the setting, what
 // was found alike before, and what to do about it.
-func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
-	t := a.pal.Theme
-	k := &a.ck
+func (a *Panel) checkDetail(c *ui.Context, shown []Item, at int) {
+	t := a.pal().Theme
+	k := &a.State
 	it := shown[at]
-	if k.proseOf != it.node {
-		k.prose, k.proseOf = "", it.node
-		if ch, err := a.Store.ReadChapter(it.node); err == nil {
-			k.prose = ch.Text
+	if k.ProseOf != it.Node {
+		k.Prose, k.ProseOf = "", it.Node
+		if ch, err := a.store().ReadChapter(it.Node); err == nil {
+			k.Prose = ch.Text
 		}
 	}
-	next := func() { k.shown = shown[(at+1)%len(shown)].f.ID }
-	toProse := func() { a.findInChapter(it.node, it.f.Quote) }
+	next := func() { k.Shown = shown[(at+1)%len(shown)].F.ID }
+	toProse := func() { a.search.FindInChapter(it.Node, it.F.Quote) }
 	toEntry := func() {
 		if !a.entryNavigationAvailable() {
 			return
 		}
-		a.findInChapter(it.node, it.f.Quote)
-		a.entryNavigation(func(n loreapi.EntryNavigation) { n.Reveal(it.entry.ID) })
-		a.savePrefs()
+		a.search.FindInChapter(it.Node, it.F.Quote)
+		a.entryNavigation(func(n loreapi.EntryNavigation) { n.Reveal(it.Entry.ID) })
+		a.desktop.SavePreferences()
 	}
 	ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Shrink(0).Children(func() {
-		ui.Text(c, it.f.Title).FontSize(kit.FsDialog).FontWeight(700).Grow(1).Shrink(1)
+		ui.Text(c, it.F.Title).FontSize(kit.FsDialog).FontWeight(700).Grow(1).Shrink(1)
 		ui.Textf(c, "%d / %d", at+1, len(shown)).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Shrink(0)
-		if a.pal.Ghost(c, locales.CheckNext(), ui.Color{}).Disabled(len(shown) < 2).Clicked() {
+		if a.pal().Ghost(c, checktext.CheckNext(), ui.Color{}).Disabled(len(shown) < 2).Clicked() {
 			next()
 		}
 	})
-	ui.Scroll(c.Key("check-" + it.f.ID)).FillWidth().Grow(1).Shrink(1).Children(func() {
+	ui.Scroll(c.Key("check-" + it.F.ID)).FillWidth().Grow(1).Shrink(1).Children(func() {
 		ui.Column(c).FillWidth().Gap(16).Children(func() {
-			para, no := paragraphOf(k.prose, it.f.Quote)
-			head := locales.CheckTextChapter(it.title)
+			para, no := paragraphOf(k.Prose, it.F.Quote)
+			head := checktext.CheckTextChapter(it.Title)
 			if no > 0 {
-				head = locales.CheckTextPara(it.title, no)
+				head = checktext.CheckTextPara(it.Title, no)
 			}
 			ui.Row(c).FillWidth().Gap(16).AlignItems(ui.Stretch).Children(func() {
-				if a.checkCard(c, head, locales.CheckSeeText(), a.quoted(para, it.f.Quote)) {
+				if a.checkCard(c, head, locales.CheckSeeText(), a.quoted(para, it.F.Quote)) {
 					toProse()
 				}
-				switch it.f.Kind {
+				switch it.F.Kind {
 				case workspace.FindConflict:
-					if a.checkCard(c, locales.CheckLoreHeading(entryTitle(it.entry)), a.entryLinkLabel(), a.quoted(it.entry.Text, it.f.Says)) {
+					if a.checkCard(c, checktext.CheckLoreHeading(entryTitle(it.Entry)), a.entryLinkLabel(), a.quoted(it.Entry.Text, it.F.Says)) {
 						toEntry()
 					}
 				case workspace.FindName:
-					if a.checkCard(c, locales.CheckLoreHeading(entryTitle(it.entry)), a.entryLinkLabel(), a.quoted(it.entry.Text, it.f.Name)) {
+					if a.checkCard(c, checktext.CheckLoreHeading(entryTitle(it.Entry)), a.entryLinkLabel(), a.quoted(it.Entry.Text, it.F.Name)) {
 						toEntry()
 					}
 				case workspace.FindNew:
-					text := it.f.Name
-					if it.f.Text != "" {
-						text += "：" + it.f.Text
+					text := it.F.Name
+					if it.F.Text != "" {
+						text += "：" + it.F.Text
 					}
-					a.checkCard(c, locales.CheckCanAdd(it.f.Category), "", a.quoted(text, it.f.Name))
+					a.checkCard(c, checktext.CheckCanAdd(it.F.Category), "", a.quoted(text, it.F.Name))
 				}
 			})
-			head, alike := locales.CheckAlsoNew(), slices.Clone(it.also)
-			if it.f.Kind == workspace.FindConflict {
-				head = locales.CheckAlsoSimilar()
+			head, alike := checktext.CheckAlsoNew(), slices.Clone(it.Also)
+			if it.F.Kind == workspace.FindConflict {
+				head = checktext.CheckAlsoSimilar()
 				for _, o := range a.checkItems(true) {
-					if o.f.Kind == workspace.FindConflict && o.f.Entry == it.f.Entry && o.f.ID != it.f.ID && overlap(it.entry.Text, it.f.Says, o.f.Says) {
+					if o.F.Kind == workspace.FindConflict && o.F.Entry == it.F.Entry && o.F.ID != it.F.ID && overlap(it.Entry.Text, it.F.Says, o.F.Says) {
 						alike = append(alike, o)
 					}
 				}
@@ -434,12 +434,12 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 				ui.Column(c).FillWidth().Gap(8).Children(func() {
 					for _, o := range alike {
 						ui.Row(c).FillWidth().Gap(12).Padding(8, 12).Radius(kit.RControl).Background(t.SurfaceHover).AlignItems(ui.Center).Children(func() {
-							ui.Text(c, o.title).FontSize(kit.FsControl).TextColor(t.TextMuted).SingleLine().Shrink(0)
-							ui.Text(c, o.f.Quote).FontSize(kit.FsControl).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
-							if o.f.Kind == workspace.FindConflict {
-								said := locales.CheckAlsoOpen()
-								if o.f.Meant {
-									said = locales.CheckMarkedNoChange()
+							ui.Text(c, o.Title).FontSize(kit.FsControl).TextColor(t.TextMuted).SingleLine().Shrink(0)
+							ui.Text(c, o.F.Quote).FontSize(kit.FsControl).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
+							if o.F.Kind == workspace.FindConflict {
+								said := checktext.CheckAlsoOpen()
+								if o.F.Meant {
+									said = checktext.CheckMarkedNoChange()
 								}
 								ui.Text(c, said).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Shrink(0)
 							}
@@ -449,9 +449,9 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 			})
 		})
 	})
-	a.pal.Hairline(c)
+	a.pal().Hairline(c)
 	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Shrink(0).Children(func() {
-		if a.pal.Ghost(c, locales.CheckLater(), ui.Color{}).Disabled(len(shown) < 2).Clicked() {
+		if a.pal().Ghost(c, checktext.CheckLater(), ui.Color{}).Disabled(len(shown) < 2).Clicked() {
 			next()
 		}
 		ui.Spacer(c)
@@ -459,9 +459,9 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 		for i, act := range acts {
 			var button ui.Element
 			if i == len(acts)-1 {
-				button = a.pal.Primary(c, act.label)
+				button = a.pal().Primary(c, act.label)
 			} else {
-				button = a.pal.Secondary(c, act.label)
+				button = a.pal().Secondary(c, act.label)
 			}
 			if button.Clicked() {
 				if i == 0 && len(shown) > 1 {
@@ -474,29 +474,29 @@ func (a *App) checkDetail(c *ui.Context, shown []checkItem, at int) {
 }
 
 // takeFound adds what a check found new to the setting, as the author's.
-func (a *App) takeFound(it checkItem) {
-	text := it.f.Text
+func (a *Panel) takeFound(it Item) {
+	text := it.F.Text
 	if text == "" {
-		text = it.f.Name
+		text = it.F.Name
 	}
-	r, err := a.book.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{{
-		Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: it.f.Category, Text: text, Names: []string{it.f.Name},
-		Sources: []workspace.Source{{Chapter: it.node, Quote: it.f.Quote}},
+	r, err := a.revisions.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{{
+		Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: it.F.Category, Text: text, Names: []string{it.F.Name},
+		Sources: []workspace.Source{{Chapter: it.Node, Quote: it.F.Quote}},
 	}}})
 	if err == nil {
-		err = a.refreshFromSetting()
+		err = a.revisions.Refresh()
 	}
 	if err != nil {
 		a.warn(err)
 		return
 	}
-	a.flash[r.Ops[0].Entry] = time.Now()
-	a.status.Did(locales.CheckAddedSetting())
+	a.bookHost.Flash(r.Ops[0].Entry)
+	a.status().Did(checktext.CheckAddedSetting())
 }
 
-func (a *App) entryLinkLabel() string {
+func (a *Panel) entryLinkLabel() string {
 	if !a.entryNavigationAvailable() {
 		return ""
 	}
-	return locales.CheckSeeSetting()
+	return checktext.CheckSeeSetting()
 }

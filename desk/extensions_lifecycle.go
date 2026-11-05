@@ -76,7 +76,6 @@ func declareLifecycle(r *ext.Registrar, a *App, mods []ext.Module) {
 	ext.DeclareCalls(r, hostapi.BeforeLeave, leaveCall)
 	ext.Declare(r, hostapi.PendingGroups)
 	ext.Declare(r, hostapi.SettingsPages)
-	registerCheckSettings(r, a)
 	ext.Declare(r, hostapi.SettingsSections)
 	ext.DeclareCalls(r, hostapi.SettingsSections, settingsCall)
 	ext.Provide(r, hostapi.DesktopService, func(*ext.Session) hostapi.Desktop { return extensionHost{a} })
@@ -174,7 +173,11 @@ func (a *App) extensionDraw(c *ui.Context, point ext.PointKey[hostapi.DrawItem],
 
 func (a *App) extensionFooter(c *ui.Context) {
 	a.syncExtensions()
-	a.extensionDraw(c, hostapi.FooterItems, a.extViews.footer)
+	for _, item := range a.extViews.footer {
+		if item.Value.Placement != "prose" {
+			a.extensionDraw(c, hostapi.FooterItems, []ext.Item[hostapi.DrawItem]{item})
+		}
+	}
 }
 
 func (a *App) extensionTitle(c *ui.Context) {
@@ -311,4 +314,22 @@ func (h extensionHost) HasPage(id string) bool {
 	h.a.syncExtensions()
 	p, ok := h.a.pageIDs[id]
 	return ok && h.a.pages[p].available(h.a)
+}
+
+func (h extensionHost) ChapterState() hostapi.ChapterState {
+	w := h.a.write.cur()
+	return hostapi.ChapterState{Saved: w.saved, Version: w.savedVer, Changed: w.changed, Lost: w.lost}
+}
+func (h extensionHost) AcknowledgeChapterChange() { h.a.write.cur().changed = false }
+
+func (a *App) extensionProseFooter(c *ui.Context, chapter bool) {
+	if !chapter {
+		return
+	}
+	a.syncExtensions()
+	for _, item := range a.extViews.footer {
+		if item.Value.Placement == "prose" {
+			a.slide(ui.Row(c).Gap(8).AlignItems(ui.Center).Shrink(1).MinWidth(0)).Children(func() { a.extensionDraw(c, hostapi.FooterItems, []ext.Item[hostapi.DrawItem]{item}) })
+		}
+	}
 }

@@ -22,6 +22,7 @@ import (
 	"writer/ext/ai/aiapi"
 	"writer/ext/backup"
 	"writer/ext/cats"
+	checkmod "writer/ext/check"
 	contextmod "writer/ext/context"
 	"writer/ext/context/contextapi"
 	"writer/ext/export"
@@ -79,7 +80,7 @@ func newApp(config string) *App { return testApp(ai.New(config)) }
 
 func testModules() []ext.Module {
 	mod, _ := backup.New(false)
-	return []ext.Module{focus.Module, goal.Module, names.Module, findmod.Module, notes.Module, lore.Module, outline.Module, hooks.Module, talkmod.Module, snaps.Module, trash.Module, cats.Module, mod, export.Module, phone.Module, contextmod.Module, marks.Module}
+	return []ext.Module{focus.Module, goal.Module, names.Module, findmod.Module, notes.Module, lore.Module, outline.Module, hooks.Module, talkmod.Module, checkmod.Module, snaps.Module, trash.Module, cats.Module, mod, export.Module, phone.Module, contextmod.Module, marks.Module}
 }
 
 func testApp(service aiapi.Backend) *App {
@@ -90,7 +91,9 @@ func testApp(service aiapi.Backend) *App {
 	sm, sp := snaps.New()
 	tm, tp := trash.New()
 	fm, fp := findmod.New()
-	a := newTestApp(service, focus.Module, gm, names.Module, fm, notes.Module, lore.Module, outlineModule, hooks.Module, talkmod.Module, sm, tm, cm, mod, export.Module, phone.Module, contextmod.Module, marks.Module)
+	km, kp := checkmod.New()
+	a := newTestApp(service, focus.Module, gm, names.Module, fm, notes.Module, lore.Module, outlineModule, hooks.Module, talkmod.Module, km, sm, tm, cm, mod, export.Module, phone.Module, contextmod.Module, marks.Module)
+	checkControllers[a] = kp
 	snapControllers[a] = sp
 	trashControllers[a] = tp
 	findControllers[a] = fp
@@ -113,8 +116,8 @@ func TestLeavingAWorkSavesItAndStopsItsChecks(t *testing.T) {
 			want := shownEditor(a).Doc.String()
 			check, stopCheck := context.WithCancel(context.Background())
 			defer stopCheck()
-			a.ck.runner.cancel = stopCheck
-			a.ck.queue.Enqueue(id)
+			checkOf(a).State.Runner.Cancel = stopCheck
+			checkOf(a).State.Queue.Enqueue(id)
 			worker, stopWorker := context.WithCancel(context.Background())
 			defer stopWorker()
 			if how == "busy close" {
@@ -142,7 +145,7 @@ func TestLeavingAWorkSavesItAndStopsItsChecks(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			if check.Err() != context.Canceled || len(a.ck.queue.Pending) != 0 {
+			if check.Err() != context.Canceled || len(checkOf(a).State.Queue.Pending) != 0 {
 				t.Fatal("checks were not stopped")
 			}
 			_, err := store.Chapters()
@@ -1154,7 +1157,7 @@ func (a *App) foreshadows() []workspace.Foreshadow {
 
 // paneKey is everything the right column's tab counts read.
 type paneKey struct {
-	fores checkKey
+	fores struct{}
 	ai    bool
 	late  int
 }

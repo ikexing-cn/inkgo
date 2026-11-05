@@ -1,4 +1,4 @@
-package desk
+package check
 
 import (
 	"context"
@@ -20,7 +20,7 @@ func TestCheckRunnerKeepsItsMailboxAndCancellation(t *testing.T) {
 	started := make(chan context.Context, 1)
 	release := make(chan struct{})
 	old := make(chan checkDone, 1)
-	c := checkRunner{done: old}
+	c := checkRunner{Done: old}
 	store := new(workspace.Store)
 	c.start(checkFunc(func(ctx context.Context, chapter string) (workspace.Check, error) {
 		started <- ctx
@@ -34,19 +34,19 @@ func TestCheckRunnerKeepsItsMailboxAndCancellation(t *testing.T) {
 		close(release)
 		t.Fatal("check did not start")
 	}
-	c.done = make(chan checkDone, 1)
+	c.Done = make(chan checkDone, 1)
 	c.stop()
 	close(release)
 	select {
 	case got := <-old:
-		if got.chapter != "chapter" || got.store != store || got.check.Of != "chapter" || !errors.Is(got.err, context.Canceled) || ctx.Err() != context.Canceled {
+		if got.Chapter != "chapter" || got.Store != store || got.Check.Of != "chapter" || !errors.Is(got.Err, context.Canceled) || ctx.Err() != context.Canceled {
 			t.Fatal(got, ctx.Err())
 		}
 	case <-time.After(3 * time.Second):
 		t.Fatal("check did not return to its original mailbox")
 	}
 	select {
-	case got := <-c.done:
+	case got := <-c.Done:
 		t.Fatal("a running check used a replacement mailbox", got)
 	default:
 	}
@@ -62,8 +62,8 @@ func TestCheckRunnerReturnsItsResult(t *testing.T) {
 			return workspace.Check{Of: chapter}, err
 		}), nil, "chapter", ui.Services{})
 		select {
-		case got := <-c.done:
-			if got.check.Of != "chapter" || got.err != err || (<-contexts).Err() != context.Canceled {
+		case got := <-c.Done:
+			if got.Check.Of != "chapter" || got.Err != err || (<-contexts).Err() != context.Canceled {
 				t.Fatal(got)
 			}
 		case <-time.After(3 * time.Second):
@@ -76,15 +76,15 @@ func TestCheckRunnerReturnsItsResult(t *testing.T) {
 func TestCheckRunnerFinishedDoesNotBlock(t *testing.T) {
 	var c checkRunner
 	c.stop()
-	if got, ok := c.finished(); ok || got.chapter != "" || got.store != nil || got.err != nil {
+	if got, ok := c.finished(); ok || got.Chapter != "" || got.Store != nil || got.Err != nil {
 		t.Fatal("an idle runner returned a result", got, ok)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	c.cancel = cancel
-	c.done = make(chan checkDone, 1)
-	c.done <- checkDone{chapter: "old-work"}
-	if got, ok := c.finished(); !ok || got.chapter != "old-work" || c.cancel != nil || ctx.Err() != nil {
+	c.Cancel = cancel
+	c.Done = make(chan checkDone, 1)
+	c.Done <- checkDone{Chapter: "old-work"}
+	if got, ok := c.finished(); !ok || got.Chapter != "old-work" || c.Cancel != nil || ctx.Err() != nil {
 		t.Fatal("the runner did not hand back its result", got, ok)
 	}
 	if _, ok := c.finished(); ok {

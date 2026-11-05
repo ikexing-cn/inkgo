@@ -10,7 +10,7 @@ var bookLanguageExceptions = map[string]struct {
 	"desk/extensions.go":           {reason: "Stable reminder settings test identity.", fragments: []string{"设置-提醒"}},
 	"desk/app.go":                  {reason: "Default genre is saved in the book.", fragments: []string{"网文"}},
 	"desk/welcome.go":              {reason: "Default title and genre values are saved in books.", fragments: []string{"网文", "出版小说", "剧本", "非虚构", "未命名作品"}},
-	"desk/checkitems.go":           {reason: "Persisted pending-check key.", fragments: []string{"检查/"}},
+	"ext/check/checkitems.go":      {reason: "Persisted pending-check key.", fragments: []string{"检查/"}},
 	"ext/hooks/module.go":          {reason: "Persisted pending-foreshadowing keys.", fragments: []string{"伏笔/失去锚点/", "伏笔/没回收/"}},
 	"desk/save.go":                 {reason: "Recovered title becomes saved book content in saveLost.", fragments: []string{"找回的章节"}},
 	"desk/sidebar.go":              {reason: "Default node names are book content.", fragments: []string{"新章节", "新文件夹"}},

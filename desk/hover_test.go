@@ -133,7 +133,7 @@ func TestCheckSidesHaveTheSameHeight(t *testing.T) {
 	a, tt, _, _ := checkFixture(t)
 	click(t, tt, "立即检查")
 	until(t, tt, "check", func() bool { return len(a.checkItems(false)) == 3 })
-	a.openCheck(a.checkItems(false)[0].f.ID)
+	a.openCheck(a.checkItems(false)[0].F.ID)
 	tt.Frame()
 	tt.Frame()
 	var cards []ui.Rect

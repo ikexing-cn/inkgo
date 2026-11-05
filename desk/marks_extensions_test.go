@@ -7,6 +7,7 @@ import (
 	"writer/desk/kit"
 	"writer/editor"
 	"writer/ext"
+	"writer/ext/check/checktext"
 	"writer/ext/hooks/hookstext"
 	"writer/ext/hostapi"
 	"writer/ext/marks/marksapi"
@@ -120,7 +121,7 @@ func TestMarksOffStopsHooksAndNotesAndRemovesEveryMarkIncludingCheck(t *testing.
 		if (len(marks) > 0) != on {
 			t.Fatal("prose marks", on, marks)
 		}
-		if !on && len(a.write.doubts.val) > 0 {
+		if !on && len(checkRanges(a)) > 0 {
 			t.Fatal("check marks")
 		}
 	}
@@ -155,17 +156,17 @@ func TestRemindersMergeHooksAndCheckIntoOnePageAndHideInactiveContent(t *testing
 	}
 	a.openPrefs("reminders")
 	tt.Frame()
-	if !tt.HasText(hookstext.SettingsLateAfter()) || !tt.HasText(locales.SettingsCheckText()) {
+	if !tt.HasText(hookstext.SettingsLateAfter()) || !tt.HasText(checktext.SettingsCheckText()) {
 		t.Fatal("missing sections")
 	}
 	a.setExtension("hooks", false, false)
 	tt.Frame()
-	if tt.HasText(hookstext.SettingsLateAfter()) || !tt.HasText(locales.SettingsCheckText()) {
+	if tt.HasText(hookstext.SettingsLateAfter()) || !tt.HasText(checktext.SettingsCheckText()) {
 		t.Fatal("inactive hooks")
 	}
 	a.setExtension("marks", false, false)
 	tt.Frame()
-	if tt.HasText(locales.SettingsCheckText()) {
+	if tt.HasText(checktext.SettingsCheckText()) {
 		t.Fatal("inactive check")
 	}
 }

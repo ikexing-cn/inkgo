@@ -35,7 +35,7 @@ func TestCheckDecisionsUndoTheChapterResult(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			a.openCheck(a.checkItems(false)[which].f.ID)
+			a.openCheck(a.checkItems(false)[which].F.ID)
 			tt.Frame()
 			label, notice := "无需修改", "已标为「无需修改」"
 			if which == 2 {
@@ -120,8 +120,8 @@ func TestIgnorePendingOnlyHidesTheListAndUndoes(t *testing.T) {
 	before := maps.Clone(a.write.ignored)
 	click(t, tt, "待处理", "全部忽略")
 	hasText(t, tt, "已忽略 3 条待处理")
-	a.markDoubts()
-	if len(a.pendingGroups()) != 0 || len(a.checkItems(false)) != 3 || len(a.write.doubts.val) == 0 {
+	a.feedMarks()
+	if len(a.pendingGroups()) != 0 || len(a.checkItems(false)) != 3 || len(checkRanges(a)) == 0 {
 		t.Fatal("ignore changed more than the list")
 	}
 	other, err := a.book.NewChapter("", "第二章", false)
@@ -227,7 +227,7 @@ func TestUndoRefusesAReplacedChapterCheck(t *testing.T) {
 					t.Fatal(err)
 				}
 				r, err := a.Store.Revise(workspace.Revision{By: workspace.ByTalk, Session: talkOf(a).Session, Turn: u.ID, Ops: []workspace.Op{{
-					Op: workspace.OpChange, Entry: finding.entry.ID, From: node, Place: workspace.PlaceOpen, Text: "她不再怕黑",
+					Op: workspace.OpChange, Entry: finding.Entry.ID, From: node, Place: workspace.PlaceOpen, Text: "她不再怕黑",
 				}}})
 				if err != nil {
 					t.Fatal(err)
@@ -239,7 +239,7 @@ func TestUndoRefusesAReplacedChapterCheck(t *testing.T) {
 				tt.Frame()
 				click(t, tt, "采纳-"+r.Ops[0].Change)
 			} else {
-				a.openCheck(finding.f.ID)
+				a.openCheck(finding.F.ID)
 				tt.Frame()
 				click(t, tt, "无需修改")
 			}
@@ -252,7 +252,8 @@ func TestUndoRefusesAReplacedChapterCheck(t *testing.T) {
 				t.Fatal(err)
 			}
 			settingPath := filepath.Join(a.Store.Root(), "ext", "lore", "setting.jsonl")
-			checkPath := filepath.Join(a.Store.Root(), "chapters", "第一章.check.json")
+			checkPath := filepath.Join(a.Store.Root(), "ext", "check", node+".json")
+			_ = os.MkdirAll(filepath.Dir(checkPath), 0755)
 			settingBytes, checkBytes := diskBytes(t, settingPath), diskBytes(t, checkPath)
 			click(t, tt, "撤销提示")
 			if !tt.HasText("本章检查结果已再次修改") || !bytes.Equal(settingBytes, diskBytes(t, settingPath)) || !bytes.Equal(checkBytes, diskBytes(t, checkPath)) {
@@ -284,7 +285,8 @@ func TestTakingAChangeRollsBackWhenTheCheckCannotSave(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	checkPath := filepath.Join(a.Store.Root(), "chapters", "第一章.check.json")
+	checkPath := filepath.Join(a.Store.Root(), "ext", "check", node+".json")
+	_ = os.MkdirAll(filepath.Dir(checkPath), 0755)
 	if err := os.WriteFile(checkPath, data, 0600); err != nil {
 		t.Fatal(err)
 	}

@@ -9,6 +9,7 @@ import (
 
 	"github.com/egoist/mygo/i18n"
 	"github.com/egoist/mygo/ui"
+	"writer/ext/check/checktext"
 	"writer/internal/testshot"
 	"writer/locales"
 	"writer/shelf"
@@ -96,7 +97,7 @@ func TestLocaleChangedRefreshesSettingsExtensionsMenusAndCommandsBothWays(t *tes
 			t.Fatal("command list kept old words", tag)
 		}
 		for _, note := range a.marginNotes() {
-			if note.id == "check-conflict" && note.kind != want.NotesKindInconsistent() {
+			if note.id == "check-conflict" && note.kind != checktext.NotesKindInconsistent() {
 				t.Fatal("margin cache kept old words", tag, note.kind)
 			}
 		}

@@ -90,7 +90,6 @@ type App struct {
 	settings               settingsView
 	record                 recordView
 	books                  shelfView
-	ck                     checks
 	seen                   int // revisions of the setting the view has flashed
 	flash                  map[string]time.Time
 	workEpoch              uint64
@@ -148,11 +147,6 @@ func New(configFile string, mods ...ext.Module) *App {
 		func() {
 			if a.Store != nil {
 				a.dropProps(a.write.props, workspace.FateOff)
-			}
-		},
-		func() {
-			if a.Store != nil {
-				a.stopChecks()
 			}
 		},
 		func() { a.write.draftOpen, a.write.rewriting = false, false },
@@ -260,7 +254,6 @@ func (a *App) leaveWork() {
 	a.keepUnsettled()
 	a.remember(false)
 	a.extensionLeave()
-	a.stopChecks()
 }
 
 func (a *App) refresh() error {

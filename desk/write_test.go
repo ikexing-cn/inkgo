@@ -425,7 +425,7 @@ func TestLeavingAChangedChapterAsksNothing(t *testing.T) {
 	a, tt, _ := writingFixture(t, strings.Repeat("她蹲下去拧开灯座。", 60))
 	f := &stream{pieces: []string{"不该有人问。"}}
 	penWith(a, f)
-	a.ck.when = checkOnDemand
+	checkOf(a).State.When = checkOnDemand
 	two, err := a.Store.NewChapter("", "第二章", false)
 	if err != nil {
 		t.Fatal(err)

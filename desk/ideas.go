@@ -12,8 +12,8 @@ type ideasKey struct {
 }
 
 func (a *App) ideas() []workspace.Idea {
-	return a.doc.ideas.get(ideasKey{a.book, a.book.Version(), a.checksOn()}, func() []workspace.Idea {
-		if !a.checksOn() {
+	return a.doc.ideas.get(ideasKey{a.book, a.book.Version(), (a.aiOn() && a.hasEntries() && a.marksOn())}, func() []workspace.Idea {
+		if !(a.aiOn() && a.hasEntries() && a.marksOn()) {
 			return nil
 		}
 		return (workspace.Setting{Entries: a.entries()}).Ideas(a.book.Tree().Order())

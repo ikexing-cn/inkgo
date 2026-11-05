@@ -1,18 +1,17 @@
-package desk
+package check
 
 import (
 	"context"
 	"errors"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"writer/desk/kit"
 	"writer/internal/testshot"
-	"writer/locales"
+
+	"writer/ext/check/checktext"
 	"writer/model"
 	"writer/workspace"
 )
@@ -26,7 +25,7 @@ const checkAnswer = `{"findings":[
 
 // checkFixture is a chapter at odds with the setting in three ways, and a
 // model that says so.
-func checkFixture(t *testing.T) (*App, *ui.Tester, string, *stream) {
+func checkFixture(t *testing.T) (*testApp, *ui.Tester, string, *stream) {
 	t.Helper()
 	a, tt, id := writingFixture(t, checkProse+strings.Repeat("她蹲下去拧开灯座。", 30))
 	a.revise(workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Text: "主角靠维修路灯谋生，但她很怕黑。她宁可绕路，沿着亮着的灯走回家。", Names: []string{"林晚"}})
@@ -47,8 +46,8 @@ func TestCheckAChapterAndSettleWhatItFinds(t *testing.T) {
 	if err := tt.Click("立即检查"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the check", func() bool { return tt.HasText(locales.StatusIssues(3)) })
-	if len(f.asked) != 1 || !tt.HasText("待处理 3") || !exists(a, "第一章.check.json") {
+	until(t, tt, "the check", func() bool { return tt.HasText(checktext.StatusIssues(3)) })
+	if len(f.asked) != 1 || !tt.HasText("待处理 3") || !existsCheck(a, id) {
 		t.Fatal(len(f.asked), tt.Texts())
 	}
 	if err := tt.Click("待处理"); err != nil {
@@ -122,7 +121,7 @@ func TestCheckAChapterAndSettleWhatItFinds(t *testing.T) {
 	if err := tt.Click("检查"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the check on leaving", func() bool { return len(f.asked) == 2 && a.ck.queue.Running == "" })
+	until(t, tt, "the check on leaving", func() bool { return len(f.asked) == 2 && checkOf(a).State.Queue.Running == "" })
 	tt.Frame()
 	if !tt.HasText("没有发现不一致") || !strings.Contains(f.asked[1].Messages[0].Content, "【作者说过是故意的】\n- 一个人走进了没有灯的巷子") {
 		t.Fatal(tt.Texts())
@@ -137,7 +136,7 @@ func TestANewNameIsListedOnce(t *testing.T) {
 	if err := tt.Click("立即检查"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the check", func() bool { return tt.HasText(locales.StatusIssues(3)) })
+	until(t, tt, "the check", func() bool { return tt.HasText(checktext.StatusIssues(3)) })
 	text := "老周把旧灯泡放在窗台上。" + strings.Repeat("雨一直下。", 40)
 	second, err := a.Store.NewChapter("", "第二章", false)
 	if err == nil {
@@ -180,7 +179,7 @@ func TestPendingNameOpensCurrentFinding(t *testing.T) {
 	if err := tt.Click("立即检查"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the check", func() bool { return tt.HasText(locales.StatusIssues(3)) })
+	until(t, tt, "the check", func() bool { return tt.HasText(checktext.StatusIssues(3)) })
 	text := "老周把旧灯泡放在窗台上。" + strings.Repeat("雨一直下。", 40)
 	second, err := a.Store.NewChapter("", "第二章", false)
 	if err != nil {
@@ -211,8 +210,8 @@ func TestPendingNameOpensCurrentFinding(t *testing.T) {
 	if !opened {
 		t.Fatal("no pending 老周")
 	}
-	if shownPage(a) != pageCheck || a.ck.shown != "n2" {
-		t.Fatalf("pending name: page %s, finding %s", a.pages[shownPage(a)].name(), a.ck.shown)
+	if shownPage(a) != pageCheck || checkOf(a).State.Shown != "n2" {
+		t.Fatalf("pending name: page %s, finding %s", string(shownPage(a)), checkOf(a).State.Shown)
 	}
 	tt.Frame()
 	if !tt.HasText("其他章节中也出现") || !tt.HasText("老周把旧灯泡放在窗台上") {
@@ -221,30 +220,6 @@ func TestPendingNameOpensCurrentFinding(t *testing.T) {
 }
 
 // Findings on one entry are alike where they hold to one sentence of it.
-func TestAlikeHoldToOneSentence(t *testing.T) {
-	const text = "主角，二十六岁，旧城电力局的路灯维修工。怕黑，天黑以后不进没有灯的巷子。左撇子。"
-	for _, c := range []struct {
-		x, y string
-		want bool
-	}{
-		{"怕黑", "天黑以后不进没有灯的巷子", true},
-		{"怕黑", "怕黑，天黑以后", true},
-		{"怕黑", "左撇子", false},
-		{"路灯维修工", "左撇子", false},
-		{"左撇子", "", true},
-		{"左撇子", "右撇子", true},
-	} {
-		if got := overlap(text, c.x, c.y); got != c.want {
-			t.Errorf("%s / %s: %v", c.x, c.y, got)
-		}
-	}
-}
-
-func exists(a *App, name string) bool {
-	_, err := os.Stat(filepath.Join(a.Store.Root(), "chapters", name))
-	return err == nil
-}
-
 // When to check is the work's: asked only, nothing is checked on leaving;
 // the book is checked from the page, after saying how many times the AI
 // is used.
@@ -258,8 +233,8 @@ func TestCheckOnlyWhenAsked(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.ck.when != checkOnDemand || !tt.HasText("手动检查 ▴") {
-		t.Fatal(a.ck.when, tt.Texts())
+	if checkOf(a).State.When != checkOnDemand || !tt.HasText("手动检查 ▴") {
+		t.Fatal(checkOf(a).State.When, tt.Texts())
 	}
 	shownEditor(a).Focus()
 	tt.Type("雨。")
@@ -269,7 +244,7 @@ func TestCheckOnlyWhenAsked(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Frame()
-	if len(f.asked) != 0 || a.ck.queue.Running != "" || !tt.HasText("尚未检查") {
+	if len(f.asked) != 0 || checkOf(a).State.Queue.Running != "" || !tt.HasText("尚未检查") {
 		t.Fatal(len(f.asked), tt.Texts())
 	}
 	if err := tt.Click("检查全书"); err != nil {
@@ -296,7 +271,7 @@ func TestCheckOnlyWhenAsked(t *testing.T) {
 
 	// The choice is kept with the work.
 	a.loadPrefs()
-	if a.ck.when != checkOnDemand {
+	if checkOf(a).State.When != checkOnDemand {
 		t.Fatal("the choice was not kept")
 	}
 }
@@ -304,26 +279,26 @@ func TestCheckOnlyWhenAsked(t *testing.T) {
 func TestCloseCancelsARunningCheck(t *testing.T) {
 	a, tt, id, f := checkFixture(t)
 	f.pieces, f.hold = []string{`{"findings":`, `[]}`}, make(chan struct{})
-	a.ck.queue.Enqueue(id)
+	checkOf(a).State.Queue.Enqueue(id)
 	tt.Frame()
 	until(t, tt, "the check request", func() bool {
 		f.mu.Lock()
 		defer f.mu.Unlock()
 		return len(f.asked) > 0
 	})
-	done, store := a.ck.runner.done, a.Store
+	done, store := checkOf(a).State.Runner.Done, a.Store
 	if err := a.Close(); err != nil {
 		t.Fatal(err)
 	}
 	select {
 	case result := <-done:
-		if !errors.Is(result.err, context.Canceled) || result.store != store {
-			t.Fatal("check did not stop on window close", result.err)
+		if !errors.Is(result.Err, context.Canceled) || result.Store != store {
+			t.Fatal("check did not stop on window close", result.Err)
 		}
 	case <-time.After(3 * time.Second):
 		t.Fatal("check kept running after window close")
 	}
-	if len(a.ck.queue.Pending) != 0 {
+	if len(checkOf(a).State.Queue.Pending) != 0 {
 		t.Fatal("queued checks survived window close")
 	}
 }
@@ -331,19 +306,19 @@ func TestCloseCancelsARunningCheck(t *testing.T) {
 func TestCompletedCheckDoesNotLandInAnotherWork(t *testing.T) {
 	a, tt, id, _ := checkFixture(t)
 	oldStore := a.Store
-	a.ck.queue.Enqueue(id)
-	if _, ok := a.ck.queue.Next(); !ok {
+	checkOf(a).State.Queue.Enqueue(id)
+	if _, ok := checkOf(a).State.Queue.Next(); !ok {
 		t.Fatal("check did not enter the running state")
 	}
-	a.ck.runner.start(checkFunc(func(context.Context, string) (workspace.Check, error) {
+	checkOf(a).Start(checkFunc(func(context.Context, string) (workspace.Check, error) {
 		return workspace.Check{Of: workspace.ProseHash(checkProse)}, nil
-	}), oldStore, id, ui.Services{})
+	}), id, ui.Services{})
 	select {
-	case result := <-a.ck.runner.done:
-		if result.err != nil || result.store != oldStore {
+	case result := <-checkOf(a).State.Runner.Done:
+		if result.Err != nil || result.Store != oldStore {
 			t.Fatal(result)
 		}
-		a.ck.runner.done <- result
+		checkOf(a).State.Runner.Done <- result
 	case <-time.After(3 * time.Second):
 		t.Fatal("check did not complete")
 	}
@@ -360,9 +335,10 @@ func TestCompletedCheckDoesNotLandInAnotherWork(t *testing.T) {
 		next.Close()
 		t.Fatal(err)
 	}
+	next = a.Store
 	tt.Frame()
-	if a.ck.of != next || a.ck.queue.Running != "" || len(a.book.Checks()) != 0 || len(a.ck.queue.Failed) != 0 {
-		t.Fatal("an old result changed the new work", a.ck)
+	if checkOf(a).State.Of != next || checkOf(a).State.Queue.Running != "" || len(a.book.Checks()) != 0 || len(checkOf(a).State.Queue.Failed) != 0 {
+		t.Fatal("an old result changed the new work", checkOf(a).State)
 	}
 	if got, err := next.ReadCheck(nextID); err != nil || got.Of != "" {
 		t.Fatal("an old result was saved in the new work", got, err)
@@ -373,7 +349,7 @@ func TestCheckResultStaysStaleWhenProseChangesWhileRunning(t *testing.T) {
 	a, tt, id, f := checkFixture(t)
 	f.pieces, f.hold = []string{`{"findings":`, strings.TrimPrefix(checkAnswer, `{"findings":`)}, make(chan struct{})
 	before := savedText(a)
-	a.ck.queue.Enqueue(id)
+	checkOf(a).State.Queue.Enqueue(id)
 	tt.Frame()
 	until(t, tt, "the check request", func() bool {
 		f.mu.Lock()
@@ -387,7 +363,7 @@ func TestCheckResultStaysStaleWhenProseChangesWhileRunning(t *testing.T) {
 	}
 	close(f.hold)
 	until(t, tt, "the old prose result", func() bool {
-		return a.book.Checks()[id].Of != "" && a.ck.queue.Running == ""
+		return a.book.Checks()[id].Of != "" && checkOf(a).State.Queue.Running == ""
 	})
 	got := a.book.Checks()[id]
 	if got.Of != workspace.ProseHash(before) || !got.Stale(savedText(a)) {
@@ -399,7 +375,7 @@ func TestCheckResultStaysStaleWhenProseChangesWhileRunning(t *testing.T) {
 	}
 }
 
-// SHOT=dir go test ./desk -run TestShotCheck draws the page of the checks,
+// SHOT=dir go test ./ext/check -run TestShotCheck draws the page of the checks,
 // the foot of a chapter and the settings.
 func TestShotCheck(t *testing.T) {
 	testshot.Dir(t)
@@ -409,16 +385,16 @@ func TestShotCheck(t *testing.T) {
 	if err := tt.Click("立即检查"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the check", func() bool { return tt.HasText(locales.StatusIssues(3)) })
-	a.ck.whenOpen = true
+	until(t, tt, "the check", func() bool { return tt.HasText(checktext.StatusIssues(3)) })
+	checkOf(a).State.WhenOpen = true
 	shot(t, tt, "check-foot.png")
-	a.ck.whenOpen = false
+	checkOf(a).State.WhenOpen = false
 	showPage(a, pageCheck)
 	shot(t, tt, "check-page.png")
-	a.ck.shown = ""
-	a.ck.tab = 3
+	checkOf(a).State.Shown = ""
+	checkOf(a).State.Tab = 3
 	shot(t, tt, "check-new.png")
-	a.ck.tab = 0
+	checkOf(a).State.Tab = 0
 	tt.SetDark(true)
 	shot(t, tt, "check-page-dark.png")
 	tt.SetDark(false)
@@ -437,13 +413,13 @@ func TestAChapterReadInPartIsToldSo(t *testing.T) {
 	if err := tt.Click("立即检查"); err != nil {
 		t.Fatal(err)
 	}
-	until(t, tt, "the check", func() bool { return a.book.Checks()[id].Of != "" && a.ck.queue.Running == "" })
+	until(t, tt, "the check", func() bool { return a.book.Checks()[id].Of != "" && checkOf(a).State.Queue.Running == "" })
 	tt.Frame()
 	read := a.book.Checks()[id].Read
 	if read <= 0 || read >= 36000 {
 		t.Fatalf("read %d", read)
 	}
-	if want := locales.StatusPartOK(read, "character"); !tt.HasText(want) || tt.HasText("本章检查完成，未发现不一致") {
+	if want := checktext.StatusPartOK(read, "character"); !tt.HasText(want) || tt.HasText("本章检查完成，未发现不一致") {
 		t.Fatal(want, tt.Texts())
 	}
 
@@ -489,8 +465,8 @@ func TestAFailedCheckIsNotToldAsClear(t *testing.T) {
 	}
 	a.warn(a.loadTree())
 	a.loadChecks()
-	a.ck.queue.Fail(second, errors.New("请求超时"))
-	a.ck.queue.Fail(id, errors.New("无法连接模型服务"))
+	checkOf(a).State.Queue.Fail(second, errors.New("请求超时"))
+	checkOf(a).State.Queue.Fail(id, errors.New("无法连接模型服务"))
 	if err := tt.Click("检查"); err != nil {
 		t.Fatal(err)
 	}
@@ -515,18 +491,10 @@ func TestAFailedCheckIsNotToldAsClear(t *testing.T) {
 // on hover where the line is cut short.
 func TestAFailedCheckSaysWhyInFull(t *testing.T) {
 	a, tt, id, _ := checkFixture(t)
-	a.ck.queue.Fail(id, errors.New("请在设置中「AI」配置里选择续写和检查模型"))
+	checkOf(a).State.Queue.Fail(id, errors.New("请在设置中「AI」配置里选择续写和检查模型"))
 	tt.Frame()
 	line, _, can, tip := a.checkState()
-	if want := "检查失败：" + a.errText(a.ck.queue.Failed[id]); line != want || tip != want || !can {
+	if want := "检查失败：" + a.errText(checkOf(a).State.Queue.Failed[id]); line != want || tip != want || !can {
 		t.Fatalf("%q, tip %q, can %v", line, tip, can)
-	}
-}
-
-func TestQuotedMeasure(t *testing.T) {
-	a := &App{pal: &kit.Palette{Theme: &ui.Theme{}}}
-	spans := a.quoted(strings.Repeat("甲", 121)+"关键"+strings.Repeat("a", 121), "关键")
-	if len(spans) != 3 || spans[0].Text != "…"+strings.Repeat("甲", 120) || spans[1].Text != "关键" || spans[2].Text != strings.Repeat("a", 120)+"…" {
-		t.Fatalf("quoted = %+v", spans)
 	}
 }

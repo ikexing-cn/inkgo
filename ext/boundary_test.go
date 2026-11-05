@@ -36,6 +36,9 @@ func extensionImport(pkg, imp string, deps []string) error {
 	if pkg == "writer/ext/ai/aiapi" && imp == "writer/inference" {
 		return nil
 	}
+	if pkg == "writer/ext/check" && slices.Contains([]string{"writer/writing", "writer/internal/textclip"}, imp) {
+		return nil
+	}
 	if (pkg == "writer/ext/talk" || pkg == "writer/ext/talk/engine") && slices.Contains([]string{"writer/model", "writer/inference", "writer/prompt", "writer/internal/textclip", "writer/tokens"}, imp) {
 		return nil
 	}
@@ -286,7 +289,7 @@ func TestDeskContextExceptionDoesNotAllowConcreteOutline(t *testing.T) {
 	}
 }
 
-// deskLoreImport is temporary: remove after discussion and checks leave desk.
+// deskLoreImport is temporary: author entry actions and AI-off cleanup still use navigation.
 // Only their host package may consume entry navigation.
 func deskLoreImport(pkg, imp string) bool {
 	return pkg == "writer/desk" && imp == "writer/ext/lore/loreapi"
@@ -298,7 +301,7 @@ func TestDeskLoreExceptionDoesNotAllowConcreteLore(t *testing.T) {
 	}
 }
 
-// deskAIImport bridges talk, continuation and checking until they become
+// deskAIImport bridges continuation, drafting and usage records until they become
 // extensions. The exception is only for their public contract, never ext/ai.
 func deskAIImport(pkg, imp string) bool { return pkg == "writer/desk" && imp == "writer/ext/ai/aiapi" }
 
@@ -368,7 +371,7 @@ func TestHostAPIHasNoTalkService(t *testing.T) {
 	}
 }
 
-// deskMarksImport bridges checks until they become an extension. Remove with check.
+// deskMarksImport bridges the AI-written source until edit suggestions become an extension.
 func deskMarksImport(pkg, imp string) bool {
 	return pkg == "writer/desk" && imp == "writer/ext/marks/marksapi"
 }
@@ -391,6 +394,33 @@ func TestDeskMarksExceptionOnlyAllowsThePublicContract(t *testing.T) {
 		}
 		if strings.Contains(string(b), `"writer/ext/marks/marksapi"`) {
 			t.Error(path)
+		}
+	}
+}
+
+func TestDeskTemporaryAIContextAndLoreImportsStayInRemainingConsumers(t *testing.T) {
+	allowed := map[string][]string{
+		"writer/ext/ai/aiapi":           {"ai.go", "ai_settings.go", "app.go", "context.go", "errtext.go", "extensions.go", "welcome.go", "write.go"},
+		"writer/ext/context/contextapi": {"context.go"},
+		"writer/ext/lore/loreapi":       {"entry_navigation.go", "app.go"},
+	}
+	files, err := filepath.Glob("../desk/*.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range files {
+		if strings.HasSuffix(path, "_test.go") {
+			continue
+		}
+		file, err := parser.ParseFile(token.NewFileSet(), path, nil, parser.ImportsOnly)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, imp := range file.Imports {
+			name, _ := strconv.Unquote(imp.Path.Value)
+			if names, ok := allowed[name]; ok && !slices.Contains(names, filepath.Base(path)) {
+				t.Errorf("%s added temporary import %s", path, name)
+			}
 		}
 	}
 }

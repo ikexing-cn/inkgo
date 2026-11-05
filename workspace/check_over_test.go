@@ -19,7 +19,7 @@ func TestWriteCheckOverGuardsOnlyItsChapter(t *testing.T) {
 	after := before
 	after.Findings = []Finding{{ID: "f", Kind: FindNew, Quote: "雨", Meant: true}}
 	// An unrelated unreadable result does not participate in this save.
-	if err := os.WriteFile(filepath.Join(s.Root(), "chapters", "第二章.check.json"), []byte("broken"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(s.Root(), "ext", "check", two+".json"), []byte("broken"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.WriteCheckOver(one, after, before); err != nil {
@@ -37,7 +37,7 @@ func TestWriteCheckOverGuardsOnlyItsChapter(t *testing.T) {
 	if err := s.WriteCheck(one, later); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(s.Root(), "chapters", "第一章.check.json")
+	path := filepath.Join(s.Root(), "ext", "check", one+".json")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)

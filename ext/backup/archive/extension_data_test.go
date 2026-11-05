@@ -12,7 +12,7 @@ import (
 	"writer/workspace"
 )
 
-func TestBackupRoundTripKeepsTalksLoreCardsChapterAndVolumeOutlinesAndBookSettingsAndForeshadowing(t *testing.T) {
+func TestBackupRoundTripKeepsTalksLoreCardsChapterAndVolumeOutlinesAndBookSettingsAndForeshadowingAndChecks(t *testing.T) {
 	root := t.TempDir()
 	s, err := workspace.Create(root, "book", "网文", "zh-Hans")
 	if err != nil {
@@ -31,6 +31,8 @@ func TestBackupRoundTripKeepsTalksLoreCardsChapterAndVolumeOutlinesAndBookSettin
 	check(err)
 	_, err = s.WriteChapter(id, "prose", []workspace.ChapterMark{{Kind: workspace.MarkForeshadow, ID: "hook", Start: 0, End: 2}})
 	check(err)
+	finding := workspace.Check{Of: workspace.ProseHash("prose"), Findings: []workspace.Finding{{ID: "finding", Kind: workspace.FindNew, Quote: "prose", Name: "name"}}}
+	check(s.WriteCheck(id, finding))
 	check(s.WriteOutline(vol, "volume outline"))
 	check(s.WriteOutline(id, "chapter outline"))
 	_, err = s.Revise(workspace.Revision{By: workspace.ByAuthor, Ops: []workspace.Op{{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: s.Work().Categories[0].Name, Text: "lore"}}})
@@ -65,6 +67,14 @@ func TestBackupRoundTripKeepsTalksLoreCardsChapterAndVolumeOutlinesAndBookSettin
 	restored, err := workspace.Open(into)
 	check(err)
 	defer restored.Close()
+	gotCheck, err := restored.ReadCheck(id)
+	check(err)
+	if !gotCheck.Equal(finding) {
+		t.Fatal("check lost in backup", gotCheck)
+	}
+	if _, err := os.Stat(filepath.Join(into, "ext", "check", id+".json")); err != nil {
+		t.Fatal(err)
+	}
 	ch, err := restored.ReadChapter(id)
 	check(err)
 	if len(ch.Marks) != 1 || ch.Marks[0].ID != "hook" {

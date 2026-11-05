@@ -26,21 +26,12 @@ func (a *App) initPages() {
 			enter:    a.enterWriting,
 			leave: func() {
 				a.flush()
-				a.leaveCheck()
+				a.beforeChapterChange()
 			},
 			view: a.writing,
 		},
-		pagePlan: {},
-		pageCheck: {
-			tabEntry: tabEntry[page]{name: locales.PageCheck, visible: a.hasEntries, icon: kit.IcDone, ai: true, work: true,
-				count: func() int { return len(a.listedChecks()) }},
-			enter: func() {
-				a.loadChecks() // as of the disk, without what was put right meanwhile
-				a.pruneStoredChecks()
-				a.ck.proseOf = ""
-			},
-			view: a.checkPage,
-		},
+		pagePlan:       {},
+		pageCheck:      {},
 		pageCategories: {},
 	}
 	for id := range a.pages {

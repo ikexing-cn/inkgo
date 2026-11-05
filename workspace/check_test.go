@@ -47,7 +47,7 @@ func TestCheckFollowsItsChapter(t *testing.T) {
 	if err := s.RenameChapter(one, "序章"); err != nil {
 		t.Fatal(err)
 	}
-	if !exists(t, s.Root(), "chapters", "序章.check.json") {
+	if !exists(t, s.Root(), "ext", "check", one+".json") {
 		t.Fatal("the check did not follow")
 	}
 	if err := s.TrashChapter(one); err != nil {
@@ -62,14 +62,14 @@ func TestCheckFollowsItsChapter(t *testing.T) {
 	}
 
 	// A check edited by hand into something else is an error, not lost.
-	p := filepath.Join(s.Root(), "chapters", "序章.check.json")
+	p := filepath.Join(s.Root(), "ext", "check", one+".json")
 	if err := os.WriteFile(p, []byte(`{"of":"y","extra":1}`), 0644); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := s.ReadCheck(one); err == nil {
 		t.Fatal("unknown field accepted")
 	}
-	if err := s.WriteCheck(one, Check{}); err != nil || exists(t, s.Root(), "chapters", "序章.check.json") {
+	if err := s.WriteCheck(one, Check{}); err != nil || exists(t, s.Root(), "ext", "check", one+".json") {
 		t.Fatal("an empty check stayed", err)
 	}
 }
@@ -77,7 +77,8 @@ func TestCheckFollowsItsChapter(t *testing.T) {
 func TestCheckRejectsTrailingContent(t *testing.T) {
 	s := testStore(t)
 	id := mustChapter(t, s, "", "章节", false)
-	path := filepath.Join(s.Root(), "chapters", "章节.check.json")
+	path := filepath.Join(s.Root(), "ext", "check", id+".json")
+	_ = os.MkdirAll(filepath.Dir(path), 0755)
 	for _, tail := range []string{"{}", "null", "trailing", "{"} {
 		if err := os.WriteFile(path, []byte(`{"of":"hash"}`+tail), 0644); err != nil {
 			t.Fatal(err)

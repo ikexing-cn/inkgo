@@ -1,19 +1,12 @@
 package desk
 
 import (
-	"strings"
-	"unicode/utf8"
 	"writer/desk/book"
 	"writer/editor"
 	"writer/ext"
 	"writer/ext/hostapi"
 	"writer/ext/marks/marksapi"
-	"writer/locales"
-	"writer/workspace"
 )
-
-// marksOn is the temporary check prerequisite bridge. Remove it when check moves.
-func (a *App) marksOn() bool { _, ok := ext.Lookup(a.extensions, marksapi.Service); return ok }
 
 type proseKey struct {
 	book     *book.Book
@@ -71,7 +64,6 @@ func (a *App) feedMarks() {
 }
 
 func registerLegacyMarks(r *ext.Registrar, a *App) {
-	ext.Contribute(r, marksapi.MarginSources, "check", marksapi.MarginSource{Key: func() any { return a.checkKey() }, Notes: a.checkMarginSource})
 	ext.Contribute(r, marksapi.MarginSources, "ai-written", marksapi.MarginSource{Key: func() any {
 		ed := a.write.cur().ed
 		version := 0
@@ -96,35 +88,8 @@ func registerLegacyMarks(r *ext.Registrar, a *App) {
 		return out
 	}})
 }
-func (a *App) checkMarginSource(chapter, text string) []marksapi.MarginItem {
-	if !a.checksOn() {
-		return nil
-	}
-	var out []marksapi.MarginItem
-	for _, it := range a.checkItems(false) {
-		if it.node != chapter || it.f.Quote == "" {
-			continue
-		}
-		at := strings.Index(text, it.f.Quote)
-		if at < 0 {
-			continue
-		}
-		start := utf8.RuneCountInString(text[:at])
-		n := marksapi.MarginItem{ID: "check-" + it.f.ID, Kind: kindLabel(it.f.Kind), Title: it.f.Title, Start: start, End: start + utf8.RuneCountInString(it.f.Quote), Warn: true, Look: editor.MarkCheck, Open: func() { a.ck.tab = 0; a.openCheck(it.f.ID) }}
-		switch it.f.Kind {
-		case workspace.FindConflict:
-			n.Kind, n.Text = locales.NotesKindInconsistent(), locales.NotesSays(it.f.Says)
-		case workspace.FindNew:
-			n.Text = it.f.Text
-		}
-		for _, act := range a.checkActions(it) {
-			n.Actions = append(n.Actions, marksapi.NoteAction{Label: act.label, Run: act.run})
-		}
-		out = append(out, n)
-	}
-	return out
-}
-
 func proseMarksCall(p hostapi.ProseMarkProvider) func(hostapi.ProseRequest) []editor.ProseMark {
 	return func(in hostapi.ProseRequest) []editor.ProseMark { return p.Marks(in.Chapter, in.Text) }
 }
+
+func (a *App) marksOn() bool { return a.extensions.Ledger("marks").State == ext.On }

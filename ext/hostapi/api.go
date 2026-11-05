@@ -88,6 +88,8 @@ type PaneTab struct {
 // Page is a title-bar page contributed by an extension. Metadata and
 // availability are read on the frame thread; Draw uses ext.Call.
 type Page struct {
+	// Count queries the page badge through the owner guard on the frame thread.
+	Count func() int
 	// Sidebar draws page-specific sidebar content on the frame thread through ext.Guard.
 	Sidebar func(*ui.Context)
 	// SidebarAction draws the page-specific sidebar add button on the frame thread.
@@ -120,6 +122,10 @@ type Page struct {
 
 // Book exposes current book content to extensions on the frame thread only.
 type Book interface {
+	// ChapterState returns saved prose and tab changes on the frame thread.
+	ChapterState() ChapterState
+	// AcknowledgeChapterChange clears the tab change flag after a leave listener consumes it.
+	AcknowledgeChapterChange()
 	// SaveText saves the selected chapter on the frame thread and returns any error.
 	SaveText() error
 	// RestoreSnapshot replaces the editor, keeps a restoration snapshot and saves on the frame thread.
@@ -281,3 +287,10 @@ type ViewState struct {
 
 // State collects view preference contributions; called through ext.Guard on the frame thread.
 const State ext.PointKey[ViewState] = "host.state"
+
+// ChapterState is the saved prose and edit history of the selected writing tab.
+type ChapterState struct {
+	Saved         string
+	Version       int
+	Changed, Lost bool
+}

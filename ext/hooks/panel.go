@@ -664,7 +664,6 @@ func (a *Panel) remindersView(c *ui.Context) {
 			n++
 		}
 	}
-	a.pal().Subhead(c, hookstext.PaneTabHooks(), "")
 	ui.Row(c).FillWidth().MinHeight(kit.HControl).Gap(12).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, hookstext.SettingsLateAfter()).FontSize(kit.FsBody).LineHeight(kit.LhBody).Grow(1).Shrink(1)
 		set := func(v int) {

@@ -217,7 +217,7 @@ func TestSelectionActionClickIsGuardedAfterMenuConstruction(t *testing.T) {
 
 func TestEntryActionsAreAbsentWithoutNavigationService(t *testing.T) {
 	a := &App{}
-	actions := a.checkActions(checkItem{f: workspace.Finding{Kind: workspace.FindConflict}})
+	actions := checkActionsWithoutNavigation()
 	if len(actions) != 2 {
 		t.Fatal("entry edit action remained", actions)
 	}

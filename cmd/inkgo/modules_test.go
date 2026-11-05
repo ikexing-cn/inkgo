@@ -8,6 +8,7 @@ import (
 	"writer/ext"
 	"writer/ext/backup"
 	"writer/ext/cats"
+	"writer/ext/check"
 	"writer/ext/context"
 	"writer/ext/export"
 	"writer/ext/find"
@@ -27,7 +28,7 @@ import (
 
 func testModules() []ext.Module {
 	mod, _ := backup.New(false)
-	return []ext.Module{focus.Module, goal.Module, names.Module, find.Module, notes.Module, lore.Module, outline.Module, hooks.Module, talk.Module, snaps.Module, trash.Module, cats.Module, mod, export.Module, phone.Module, context.Module, marks.Module}
+	return []ext.Module{focus.Module, goal.Module, names.Module, find.Module, notes.Module, lore.Module, outline.Module, hooks.Module, talk.Module, check.Module, snaps.Module, trash.Module, cats.Module, mod, export.Module, phone.Module, context.Module, marks.Module}
 }
 
 func TestApplicationAssemblyIncludesExportFeature(t *testing.T) {
@@ -47,7 +48,7 @@ func TestApplicationListsImplementedExtensionsInPrototypeGroupOrder(t *testing.T
 	for _, m := range assembledModules("", "") {
 		ids = append(ids, m.ID)
 	}
-	want := []string{"focus", "goal", "names", "find", "notes", "lore", "outline", "hooks", "talk", "snaps", "trash", "cats", "backup", "export", "phone", "context", "marks", "ai"}
+	want := []string{"focus", "goal", "names", "find", "notes", "lore", "outline", "hooks", "talk", "check", "snaps", "trash", "cats", "backup", "export", "phone", "context", "marks", "ai"}
 	if !slices.Equal(ids, want) {
 		t.Fatal(ids)
 	}

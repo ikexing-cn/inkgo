@@ -234,12 +234,6 @@ func (a *App) syncExtensions() {
 	if a.extViews.ready && a.extViews.changes == changes && a.extViews.localeRevision == revision {
 		return
 	}
-	if !a.hasEntries() {
-		if a.page == pageCheck {
-			a.page = pageWrite
-		}
-		a.stopChecks()
-	}
 	a.mergePages()
 	cache := extensionViews{ready: true, changes: changes, localeRevision: revision}
 	a.cacheExtensionViews(&cache)

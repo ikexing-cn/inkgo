@@ -88,7 +88,6 @@ type writeView struct {
 	// The foreshadowings: what their column and popovers show, and how
 	// many chapters may follow one before it is buried long (0: the
 	// default).
-	doubts cached[doubtKey, [][2]int]
 
 	takeOpen            bool
 	takeQuote, takeText string
@@ -136,8 +135,6 @@ func (a *App) writingTurn(c *ui.Context) {
 		a.write.cur().ed.SetTypewriter(a.write.focus) // focused, the line written on stays mid-view
 	}
 	a.watch(c)
-	a.checkWhilePausing()
-	a.markDoubts()
 	a.feedMarks()
 }
 
@@ -442,79 +439,10 @@ func (a *App) footBar(c *ui.Context, chapter bool) {
 	foot := ui.Row(c).FillWidth().Height(kit.HRow).Gap(8).AlignItems(ui.Center).Shrink(0).Label("底栏")
 	foot.Padding(0, 24, 0, a.paperInset(c))
 	foot.Children(func() {
-		if chapter && a.checksOn() {
-			// Where the check stands goes with the paper as it folds; the
-			// Status items and the words keep to its right edge (slideEdge).
-			a.slide(ui.Row(c).Gap(8).AlignItems(ui.Center).Shrink(1).MinWidth(0)).Children(func() { a.footCheck(c) })
-		}
+		a.extensionProseFooter(c, chapter)
 		ui.Spacer(c)
 		a.extensionFooter(c)
 		a.wordCount(c)
-	})
-}
-
-// footCheck is where the check of the chapter stands, a way to it, and
-// when chapters are checked.
-func (a *App) footCheck(c *ui.Context) {
-	t := a.pal.Theme
-	w := &a.write
-	k := &a.ck
-	line, found, can, tip := a.checkState()
-	short := checkWhens[0].label
-	for _, o := range checkWhens {
-		if o.when == k.when {
-			short = o.label
-		}
-	}
-	if found > 0 {
-		b := a.pal.Ghost(c, line, ui.Color{}).Label("查看检查结果").Tooltip(locales.StatusGoCheck()).Shrink(1).MinWidth(0)
-		if b.Clicked() {
-			for _, it := range a.checkItems(false) {
-				if it.here {
-					a.openCheck(it.f.ID)
-					break
-				}
-			}
-		}
-	} else {
-		said := ui.Text(c, line).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
-		if tip != "" {
-			said.Tooltip(tip)
-		}
-	}
-	if can {
-		b := ui.ButtonBase(c).Label(locales.StatusCheckNow()).Tooltip(locales.StatusCheckTip()).Shrink(0)
-		color := t.TextMuted
-		if b.Hovered() {
-			color = t.Text
-		}
-		b.Children(func() {
-			ui.Text(c, locales.StatusCheckNow()).FontSize(kit.FsNote).TextColor(color).Underline().SingleLine()
-		})
-		if b.Clicked() {
-			if err := a.saveText(); err != nil {
-				a.warn(err)
-			} else {
-				a.ck.queue.Enqueue(w.node)
-			}
-		}
-	}
-	ui.Text(c, "·").FontSize(kit.FsNote).TextColor(a.pal.Faint).Shrink(0)
-	b := ui.ButtonBase(c).Label(locales.StatusWhenTitle()).Shrink(0)
-	color := t.TextMuted
-	if b.Hovered() {
-		color = t.Text
-	}
-	b.Children(func() { ui.Text(c, short()+" ▴").FontSize(kit.FsNote).TextColor(color).SingleLine() })
-	if b.Clicked() {
-		k.whenOpen = !k.whenOpen
-	}
-	kit.Popover(c, b, &k.whenOpen, 0, 1, func(panel ui.Element) {
-		panel.AttachTo(b, ui.AnchorTopLeft, ui.AnchorBottomLeft).Margin(0, 0, 4, 0).Width(270).Radius(kit.RCard).Padding(10, 6, 6, 6).Gap(4).
-			Background(a.pal.Raised).Border(1, t.Border)
-		a.pal.Pop.On(panel)
-		ui.Text(c, locales.StatusWhenTitle()).FontSize(kit.FsBody).FontWeight(600).Padding(0, 8, 4, 8)
-		ui.Column(c).FillWidth().Gap(2).Children(func() { a.whenRows(c) })
 	})
 }
 

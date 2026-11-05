@@ -93,29 +93,8 @@
   "statusSavedAutomatically": "Saved. Changes are also saved automatically after a brief pause.",
   "statusSaved": "Saved",
   "statusAutosave": "It also saves automatically when you pause.",
-  "statusChecked": "Checked, all clear",
-  "statusChecking": "Checking…",
-  "statusQueued": "Waiting to check",
-  "statusFailed": "Check failed: {why}",
   "statusNoEntries": "No lore to check against",
   "statusShort": "{unit, select, word {Checks start at 200 words} other {Checks start at 200 chars}}",
-  "statusNever": "Not checked yet",
-  "statusDirtyIssues": "{count, plural, one {# issue} other {# issues}} found; edited since",
-  "statusPartIssues": "{unit, select, word {First {part} words: {count, plural, one {# issue} other {# issues}} found} other {First {part} chars: {count, plural, one {# issue} other {# issues}} found}}",
-  "statusIssues": "{count, plural, one {# issue} other {# issues}} found",
-  "statusEdited": "Edited since last check",
-  "statusPartOK": "{unit, select, word {First {part} words checked, all clear} other {First {part} chars checked, all clear}}",
-  "statusPartLong": "The text past this point is beyond the model's context limit. You can adjust it in Settings under AI.",
-  "statusGoCheck": "Open the Check page to review each item",
-  "statusCheckNow": "Check Now",
-  "statusCheckTip": "Calls the AI once to check this chapter against the lore",
-  "statusWhenTitle": "When to Check",
-  "statusWhenAfter": "Per Chapter",
-  "statusWhenAfterAbout": "Recommended. Calls the AI once per chapter.",
-  "statusWhenManual": "Manually",
-  "statusWhenManualAbout": "Doesn't call the AI in normal use",
-  "statusWhenWriting": "While Writing",
-  "statusWhenWritingAbout": "Checks when you pause. Calls the AI the most.",
   "statusBackupBusy": "Backing Up…",
   "statusBackupFailed": "Backup Failed",
   "statusBackupNone": "Not Backed Up Yet",
@@ -130,7 +109,6 @@
   "statusIgnoreAll": "Ignore All",
   "statusIgnored": "Ignored {count, plural, one {# pending item} other {# pending items}}",
   "statusGroupBackup": "Backup",
-  "statusNotInLore": "“{title}” isn't in the lore yet",
   "statusWords": "{unit, select, word {{count, plural, one {# word} other {# words}}} other {{count, plural, one {# char} other {# chars}}}}",
   "statusWanWords": "{unit, select, word {{full, plural, one {# word} other {# words}}} other {{full, plural, one {# char} other {# chars}}}}",
   "statusSelected": "{unit, select, word {{count, plural, one {# word} other {# words}} selected} other {{count, plural, one {# char} other {# chars}} selected}}",
@@ -215,8 +193,6 @@
   "commonRetry": "Retry",
   "commonSelectAll": "Select All",
   "paneResize": "Resize Side Pane",
-  "notesSays": "Lore says “{says}”",
-  "notesKindInconsistent": "Inconsistent with Lore",
   "notesKindName": "Wrong Name",
   "notesKindNew": "New Appearance",
   "commonSave": "Save",
@@ -286,65 +262,14 @@
   "planSlotAtTime": "Add a card to {line} at {when}",
   "planLastSlot": "the end",
   "planClearSearchHint": "Clear Search (Esc)",
-  "checkMinimum": "{unit, select, word {{count, plural, one {Check available after # word} other {Check available after # words}}} other {{count, plural, one {Check available after # character} other {Check available after # characters}}}}",
-  "checkTextChapter": "Text · {chapter}",
-  "checkLoreHeading": "Lore · {entry}",
-  "checkKindCount": "{kind} {count, number}",
-  "checkKindAll": "All",
-  "checkKindMismatch": "Inconsistent",
-  "checkKindName": "Wrong Name",
-  "checkKindNew": "New",
-  "checkKindAria": "Check category",
   "checkIgnored": "Ignored",
-  "checkMarkedNoChange": "Marked “No Change Needed”",
-  "checkAddedSetting": "Added to lore",
   "checkLogAdded": "Added to Active Lore · {cat}: {text}",
-  "checkNoChange": "No Change Needed",
   "checkIgnore": "Ignore",
-  "checkAddToSettings": "Add to Lore",
-  "checkEditSetting": "Edit Lore",
-  "checkEditText": "Edit Text",
-  "checkMismatchAbout": "{at} ↔ Lore “{what}”",
-  "checkNameAbout": "{at} · should be “{right}”",
-  "checkFirstSeen": "{cat} · first seen in “{at}”",
-  "checkFirstSeenMore": "{cat} · first seen in “{at}”, {count, plural, one {# chapter} other {# chapters}} in total",
-  "checkNoSettings": "Lore is empty, so there is nothing to compare",
-  "checkAllDone": "Every chapter has been checked, with no new changes in the text",
-  "checkOwedTitle": "{count, plural, one {# chapter is unchecked or changed} other {# chapters are unchecked or changed}}",
-  "checkOwedNote": "Calls the AI once per chapter, {count} times in total.",
-  "checkStart": "Start Checking",
-  "checkRunning": "Checking “{title}”",
-  "checkRunningMore": "Checking “{title}”, {count, plural, one {# more chapter} other {# more chapters}} to go",
-  "checkStop": "Stop",
-  "checkProgress": "Checked {checked, plural, one {# chapter} other {# chapters}}; {failed, plural, one {# chapter} other {# chapters}} failed",
-  "checkRecheck": "Re-check",
-  "checkAllBook": "Check Whole Book",
-  "checkCheckedUpTo": "Checked up to “{title}”",
-  "checkIncomplete": "Check Incomplete",
-  "checkFailedAt": "“{title}” failed to check: {reason}",
-  "checkRunningTitle": "Checking…",
-  "checkRunningAbout": "Results will appear on the left.",
-  "checkNoSettingsTitle": "Lore is empty",
-  "checkNoSettingsAbout": "Settle the lore in a chat first, so the text can be checked against it.",
-  "checkNoneInKind": "Nothing pending in this category",
-  "checkNotYet": "Not checked yet",
-  "checkNotYetAbout": "Click “{button}” at the top left, or checks run automatically after a chapter is written.",
-  "checkNoneFound": "No inconsistencies found",
-  "checkManualNote": "Currently “{mode}”. Click “{again}” when you need it.",
-  "checkModeManual": "Manual check",
-  "checkAutoNote": "Checks run after each chapter is written. Results appear here.",
-  "checkTextPara": "Text · {chapter} · paragraph {para}",
   "checkTextParaNoChapter": "Text · paragraph {para}",
   "checkSeeText": "View Original",
-  "checkSeeSetting": "View Lore",
   "checkFromSetting": "Lore · {cat} · {name}",
   "checkNameInSettings": "Name in lore",
-  "checkCanAdd": "Can be added to lore · {cat}",
   "checkColon": ": ",
-  "checkAlsoNew": "Also appears in other chapters",
-  "checkAlsoSimilar": "Similar cases in other chapters",
-  "checkNext": "Next",
-  "checkLater": "Maybe Later",
   "shelfViewAs": "Show as {view}",
   "shelfPickExisting": "Choose an Existing Book Folder",
   "shelfAddedBook": "Added to shelf: {name}",
@@ -451,7 +376,6 @@
   "settingsGPUNext": "Takes effect after a restart.",
   "settingsRestartNow": "Restart Now",
   "settingsForeshadow": "Foreshadowing",
-  "settingsCheckText": "When to Check",
   "settingsWriting": "While writing",
   "settingsAutoContinue": "Continue automatically after pausing",
   "settingsAutoNote": "When on, AI is called each time you pause.",
@@ -597,8 +521,6 @@
   "modDraftAbout": "AI drafts a chapter from its outline",
   "modPropose": "Suggestions",
   "modProposeAbout": "Changes AI suggests, written only once you accept",
-  "modCheck": "Check",
-  "modCheckAbout": "Finds where the text contradicts the lore",
   "modGroupLibraries": "Basics",
   "modLibrariesAbout": "Other features run on these.",
   "modGroupWrite": "Writing",
@@ -652,7 +574,6 @@
   "keysConflict": "{names} also wants this key; {winner} has it. Turn off the one you do not need in Extensions.",
   "extFailed": "{name} ran into an error and stopped: {error}",
   "extFileUnreadable": "Extension settings could not be read; using defaults this time: {error}",
-  "checkAlsoOpen": "Not handled yet",
   "@chatNeedModel": {
     "description": "Typed AI validation failure displayed by desk."
   },
@@ -683,20 +604,6 @@
     }
   },
   "@statusShort": {
-    "placeholders": {
-      "unit": {
-        "type": "String"
-      }
-    }
-  },
-  "@statusPartIssues": {
-    "placeholders": {
-      "unit": {
-        "type": "String"
-      }
-    }
-  },
-  "@statusPartOK": {
     "placeholders": {
       "unit": {
         "type": "String"
@@ -739,13 +646,6 @@
     }
   },
   "@chatWords": {
-    "placeholders": {
-      "unit": {
-        "type": "String"
-      }
-    }
-  },
-  "@checkMinimum": {
     "placeholders": {
       "unit": {
         "type": "String"

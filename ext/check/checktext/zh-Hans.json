@@ -1,0 +1,387 @@
+{
+  "statusChecked": "本章检查完成，未发现不一致",
+  "statusChecking": "正在检查本章…",
+  "statusQueued": "本章等待检查",
+  "statusFailed": "检查失败：{why}",
+  "@statusFailed": {
+    "description": "正文底下说明检查失败的原因。",
+    "placeholders": {
+      "why": {
+        "type": "String",
+        "example": "无法连接模型服务"
+      }
+    }
+  },
+  "statusNever": "本章尚未检查",
+  "statusDirtyIssues": "本章有 {count} 处待处理，正文已再次修改",
+  "@statusDirtyIssues": {
+    "description": "正文底下，检查过的章节又改过了。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "statusPartIssues": "{unit, select, word {本章仅检查前 {part} 词，有 {count} 处待处理} other {本章仅检查前 {part} 字，有 {count} 处待处理}}",
+  "@statusPartIssues": {
+    "description": "太长的章节只检查了前面一段，part 是检查读了前多少字。",
+    "placeholders": {
+      "part": {
+        "type": "int",
+        "example": "5000"
+      },
+      "count": {
+        "type": "int",
+        "example": "2"
+      },
+      "unit": {
+        "type": "String",
+        "example": "character"
+      }
+    }
+  },
+  "statusIssues": "本章检查完成，有 {count} 处待处理",
+  "@statusIssues": {
+    "description": "正文底下，检查完成且有待处理的条目。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "statusEdited": "本章已修改，尚未重新检查",
+  "statusPartOK": "{unit, select, word {本章仅检查前 {part} 词，未发现不一致} other {本章仅检查前 {part} 字，未发现不一致}}",
+  "@statusPartOK": {
+    "description": "太长的章节只检查了前面一段，且没发现问题。",
+    "placeholders": {
+      "part": {
+        "type": "int",
+        "example": "5000"
+      },
+      "unit": {
+        "type": "String",
+        "example": "character"
+      }
+    }
+  },
+  "statusPartLong": "后文超出模型的上下文上限，可在设置中「AI」配置里调整",
+  "@statusPartLong": {
+    "description": "章节太长、AI 只读了前一段时，提示上的说明。"
+  },
+  "statusGoCheck": "前往「检查」页逐条查看",
+  "statusCheckNow": "立即检查",
+  "statusCheckTip": "调用一次 AI，对照设定检查本章",
+  "statusWhenTitle": "检查时机",
+  "statusWhenAfter": "写完一章后检查",
+  "statusWhenAfterAbout": "推荐，每章用一次 AI",
+  "statusWhenManual": "手动检查",
+  "statusWhenManualAbout": "平时不用 AI",
+  "statusWhenWriting": "边写边检查",
+  "statusWhenWritingAbout": "一停笔就查，最费用量",
+  "statusNotInLore": "「{title}」尚未加入设定",
+  "@statusNotInLore": {
+    "description": "待处理里检查出来的新名字。",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "何主任"
+      }
+    }
+  },
+  "notesSays": "设定里写的是“{says}”",
+  "@notesSays": {
+    "description": "批注里说明设定原文的一行。",
+    "placeholders": {
+      "says": {
+        "type": "String",
+        "example": "林晚，二十八岁"
+      }
+    }
+  },
+  "notesKindInconsistent": "与设定不一致",
+  "checkMinimum": "{unit, select, word {{count, plural, other {满 # 词后可检查}}} other {{count, plural, other {满 # 字后可检查}}}}",
+  "@checkMinimum": {
+    "description": "应用现有界面的检查文案；原型没有同等的动态消息。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "unit": {
+        "type": "String",
+        "example": "character"
+      }
+    }
+  },
+  "checkTextChapter": "正文 · {chapter}",
+  "@checkTextChapter": {
+    "description": "应用现有界面的检查文案；原型没有同等的动态消息。",
+    "placeholders": {
+      "chapter": {
+        "type": "String",
+        "example": "chapter"
+      }
+    }
+  },
+  "checkLoreHeading": "设定 · {entry}",
+  "@checkLoreHeading": {
+    "description": "应用现有界面的检查文案；原型没有同等的动态消息。",
+    "placeholders": {
+      "entry": {
+        "type": "String",
+        "example": "entry"
+      }
+    }
+  },
+  "checkKindCount": "{kind} {count, number}",
+  "@checkKindCount": {
+    "description": "检查分类标签和该类数量。",
+    "placeholders": {
+      "kind": {
+        "type": "String",
+        "example": "全部"
+      },
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "checkKindAll": "全部",
+  "checkKindMismatch": "不一致",
+  "checkKindName": "名字有误",
+  "checkKindNew": "新出现",
+  "checkKindAria": "检查分类",
+  "checkMarkedNoChange": "已标为「无需修改」",
+  "checkAddedSetting": "已加入设定",
+  "checkNoChange": "无需修改",
+  "checkAddToSettings": "加入设定",
+  "checkEditSetting": "修改设定",
+  "checkEditText": "修改正文",
+  "checkMismatchAbout": "{at} ↔ 设定「{what}」",
+  "@checkMismatchAbout": {
+    "description": "检查列表一行的副标题：章节和它对上的设定。",
+    "placeholders": {
+      "at": {
+        "type": "String",
+        "example": "第一章"
+      },
+      "what": {
+        "type": "String",
+        "example": "人物 · 林晚"
+      }
+    }
+  },
+  "checkNameAbout": "{at} · 应为「{right}」",
+  "@checkNameAbout": {
+    "description": "名字有误的副标题：章节和应当写成的名字。",
+    "placeholders": {
+      "at": {
+        "type": "String",
+        "example": "第一章"
+      },
+      "right": {
+        "type": "String",
+        "example": "林晚"
+      }
+    }
+  },
+  "checkFirstSeen": "{cat} · 「{at}」起出现",
+  "@checkFirstSeen": {
+    "description": "新出现的副标题：分类和第一次出现的章。",
+    "placeholders": {
+      "cat": {
+        "type": "String",
+        "example": "地点"
+      },
+      "at": {
+        "type": "String",
+        "example": "第一章"
+      }
+    }
+  },
+  "checkFirstSeenMore": "{cat} · 「{at}」起出现，共 {count, plural, other {# 章}}",
+  "@checkFirstSeenMore": {
+    "description": "新出现的副标题，其他章也出现过。",
+    "placeholders": {
+      "cat": {
+        "type": "String",
+        "example": "地点"
+      },
+      "at": {
+        "type": "String",
+        "example": "第一章"
+      },
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "checkNoSettings": "设定为空，无可对照内容",
+  "checkAllDone": "各章均已检查，正文无新改动",
+  "checkOwedTitle": "{count, plural, other {# 章未检查或有改动}}",
+  "@checkOwedTitle": {
+    "description": "「检查全书」弹出框的标题：要查几章。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "checkOwedNote": "每章调用一次 AI，共 {count} 次。",
+  "@checkOwedNote": {
+    "description": "「检查全书」弹出框的说明：会调用几次 AI。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "checkStart": "开始检查",
+  "checkRunning": "正在检查「{title}」",
+  "@checkRunning": {
+    "description": "正在检查哪一章。",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "第一章"
+      }
+    }
+  },
+  "checkRunningMore": "正在检查「{title}」，还有 {count, plural, other {# 章}}",
+  "@checkRunningMore": {
+    "description": "正在检查哪一章，后面还有几章。",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "第一章"
+      },
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "checkStop": "停止",
+  "checkProgress": "已检查 {checked, plural, other {# 章}}，{failed, plural, other {# 章失败}}",
+  "@checkProgress": {
+    "description": "检查没完成时，已检查几章、几章失败。",
+    "placeholders": {
+      "checked": {
+        "type": "int",
+        "example": "12"
+      },
+      "failed": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "checkRecheck": "重新检查",
+  "checkAllBook": "检查全书",
+  "checkCheckedUpTo": "已检查至「{title}」",
+  "@checkCheckedUpTo": {
+    "description": "检查页顶上：检查到了哪一章。",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "第十五章"
+      }
+    }
+  },
+  "checkIncomplete": "检查未完成",
+  "checkFailedAt": "「{title}」检查失败：{reason}",
+  "@checkFailedAt": {
+    "description": "检查失败的那一章和原因。",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "第三章"
+      },
+      "reason": {
+        "type": "String",
+        "example": "网络中断"
+      }
+    }
+  },
+  "checkRunningTitle": "正在检查…",
+  "checkRunningAbout": "检查结果将显示在左侧。",
+  "checkNoSettingsTitle": "设定为空",
+  "checkNoSettingsAbout": "请先在讨论中确定设定，才能对照检查。",
+  "checkNoneInKind": "这一类没有待处理的",
+  "checkNotYet": "尚未检查",
+  "checkNotYetAbout": "点击左上角「{button}」，或写完一章后自动检查。",
+  "@checkNotYetAbout": {
+    "description": "还没检查过时的说明，{button} 是「检查全书」。",
+    "placeholders": {
+      "button": {
+        "type": "String",
+        "example": "检查全书"
+      }
+    }
+  },
+  "checkNoneFound": "没有发现不一致",
+  "checkManualNote": "当前为「{mode}」，需要时点击「{again}」。",
+  "@checkManualNote": {
+    "description": "检查方式是手动时的说明。",
+    "placeholders": {
+      "mode": {
+        "type": "String",
+        "example": "手动检查"
+      },
+      "again": {
+        "type": "String",
+        "example": "重新检查"
+      }
+    }
+  },
+  "checkModeManual": "手动检查",
+  "checkAutoNote": "写完一章后自动检查，结果显示在此处。",
+  "checkTextPara": "正文 · {chapter} · 第 {para} 段",
+  "@checkTextPara": {
+    "description": "检查详情左上：哪一章第几段。",
+    "placeholders": {
+      "chapter": {
+        "type": "String",
+        "example": "第一章"
+      },
+      "para": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "checkSeeSetting": "查看设定",
+  "checkCanAdd": "可加入设定 · {cat}",
+  "@checkCanAdd": {
+    "description": "检查详情右侧：这条可以加入设定，以及它的分类。",
+    "placeholders": {
+      "cat": {
+        "type": "String",
+        "example": "人物"
+      }
+    }
+  },
+  "checkAlsoNew": "其他章节中也出现",
+  "checkAlsoSimilar": "其他章节的类似情况",
+  "checkNext": "下一条",
+  "checkLater": "稍后再说",
+  "settingsCheckText": "何时检查",
+  "modCheck": "检查",
+  "@modCheck": {
+    "description": "「功能」里一个模块的名字。"
+  },
+  "modCheckAbout": "找出和设定矛盾的地方",
+  "@modCheckAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  },
+  "checkAlsoOpen": "尚未处理",
+  "@checkAlsoOpen": {
+    "description": "检查页「其他章节里的类似情况」：那一处还没处理。"
+  }
+}

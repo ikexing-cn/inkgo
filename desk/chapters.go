@@ -141,7 +141,6 @@ func (a *App) textMenu(m *kit.Menu) {
 func (a *App) openNode(id string) {
 	a.flush()
 	a.beforeChapterChange()
-	a.leaveCheck()
 	a.scanMarks()
 	w := &a.write
 	w.closing = nil // the question about saving was about the node shown

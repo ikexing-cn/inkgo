@@ -7,14 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
 
 	"writer/internal/strictjson"
 )
-
-const checkExt = ".check.json"
 
 // Kinds of finding.
 const (
@@ -125,7 +124,7 @@ func (s *Store) ReadCheck(id string) (Check, error) {
 }
 
 func (s *Store) readCheck(n *Node) (Check, error) {
-	p, err := s.nodePath(n, checkExt)
+	p, err := s.extensionPath("check", n.ID+".json")
 	if err != nil {
 		return Check{}, err
 	}
@@ -203,7 +202,7 @@ func (s *Store) writeCheckOver(id string, k Check, over *Check) error {
 			return ErrCheckChanged
 		}
 	}
-	p, err := s.nodePath(n, checkExt)
+	p, err := s.extensionPath("check", n.ID+".json")
 	if err != nil {
 		return err
 	}
@@ -225,6 +224,9 @@ func (s *Store) writeCheckOver(id string, k Check, over *Check) error {
 	}
 	b, err := json.MarshalIndent(k, "", "  ")
 	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(p), 0755); err != nil {
 		return err
 	}
 	return atomicWrite(p, append(b, '\n'), false)

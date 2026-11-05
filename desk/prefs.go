@@ -40,16 +40,13 @@ func (a *App) loadPrefs() {
 	if !known {
 		a.doc.tab = paneMargin
 	}
-	a.ck.when = checkOnLeave
-	if p.CheckWhen == checkOnDemand || p.CheckWhen == checkOnPause {
-		a.ck.when = p.CheckWhen
-	}
+
 }
 
 func (a *App) savePrefs() error {
 	old := prefs.Load(a.Store.PrefsPath())
 	p := prefs.Prefs{Shelved: old.Shelved, NoAttach: old.NoAttach, SettingHidden: a.doc.hidden, SideHidden: a.sideHidden, Chapter: a.write.node, Tabs: a.write.tabs, Blank: a.write.blank, Writing: a.leftWriting, AutoPredict: a.write.autoPredict,
-		PanelWidth: a.doc.width, PaneTab: string(a.doc.tab), CheckWhen: a.ck.when,
+		PanelWidth: a.doc.width, PaneTab: string(a.doc.tab), CheckWhen: old.CheckWhen,
 		Carets: a.write.carets, TextSize: a.write.size,
 		Ignored: a.write.ignoredKeys()}
 	data, _ := json.Marshal(p)

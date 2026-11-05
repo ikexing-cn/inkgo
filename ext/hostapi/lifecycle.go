@@ -8,7 +8,11 @@ import (
 )
 
 // DrawItem draws inline on the frame thread, through ext.Call.
-type DrawItem struct{ Draw func(*ui.Context) }
+type DrawItem struct {
+	// Placement selects a host slot; FooterItems accepts "prose" before its spacer.
+	Placement string
+	Draw      func(*ui.Context)
+}
 
 // ChapterHeadItems draws beneath the writing page's chapter title in
 // registration order; each Draw runs through ext.Call on the frame thread.

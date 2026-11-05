@@ -171,8 +171,8 @@ func TestButtonsAtTheRight(t *testing.T) {
 	files := deskSources(t)
 	// The palette is a.pal in desk, pal where a page took it from its host
 	// once, or the host's Colors() itself.
-	button := regexp.MustCompile(`(?:\bpal|Colors\(\))\.(Primary|Secondary|Danger)\(|(?:\bpal|Colors\(\))\.Ghost\(`)
-	answer := regexp.MustCompile(`(?:\bpal|Colors\(\))\.\w+\(c, locales\.(\w+)\(\)\)`)
+	button := regexp.MustCompile(`(?:\bpal(?:\(\))?|Colors\(\))\.(Primary|Secondary|Danger)\(|(?:\bpal(?:\(\))?|Colors\(\))\.Ghost\(`)
+	answer := regexp.MustCompile(`(?:\bpal(?:\(\))?|Colors\(\))\.\w+\(c, locales\.(\w+)\(\)\)`)
 	asked := 0 // the rows in the system's order: the one question about saving
 	rows := 0  // the rows with a button in them
 	for _, f := range files {

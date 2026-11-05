@@ -22,6 +22,7 @@ func setup(r *ext.Registrar) {
 
 	replacement := ext.UseOptional(r, findapi.ReplacementService)
 	p := &Panel{}
+	material := ext.Use(r, contextapi.Service)
 	book := ext.Use(r, hostapi.BookService)
 	palette := ext.Use(r, hostapi.PaletteService)
 	notices := ext.Use(r, hostapi.NoticesService)
@@ -41,6 +42,8 @@ func setup(r *ext.Registrar) {
 		}
 		*p = Panel{}
 	})
+	ext.Provide(r, loreapi.ReferencesService, func(*ext.Session) loreapi.References { return material.Get() })
+	ext.Provide(r, loreapi.RevisionsService, func(*ext.Session) loreapi.Revisions { return p })
 	ext.Provide(r, loreapi.Active, func(*ext.Session) struct{} { return struct{}{} })
 	ext.Contribute(r, contextapi.Entries, "entries", contextapi.EntryProvider(func(struct{}) []workspace.Entry {
 		if p.services.Book.Content() == nil {

@@ -115,7 +115,7 @@ func companions(n *Node) []string {
 	if n.Folder {
 		return []string{""}
 	}
-	return []string{textExt, marksExt, checkExt}
+	return []string{textExt, marksExt}
 }
 
 // ExtDir returns the book's directory for extension id without creating it.

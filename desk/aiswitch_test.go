@@ -354,7 +354,7 @@ func TestAIOffShowsNothingOfIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	look("the categories")
-	if len(a.ck.queue.Pending) > 0 || a.ck.queue.Running != "" {
+	if len(checkOf(a).State.Queue.Pending) > 0 || checkOf(a).State.Queue.Running != "" {
 		t.Error("a chapter left with the AI off is to be checked")
 	}
 	a.closeWork()
@@ -491,8 +491,10 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if tt.HasText("检查") {
-		t.Fatalf("with the AI off, the reminders tell of the checks: %q", tt.Texts())
+	// Check's header stays, saying it waits for the AI, as the prototype's
+	// extHead does; its settings are gone.
+	if !tt.HasText("AI已关闭，暂时用不了") || tt.HasText("何时检查") {
+		t.Fatalf("with the AI off, the reminders show check's settings: %q", tt.Texts())
 	}
 	shut(tt, &a.settings.open)
 	b := newApp(config)
@@ -570,11 +572,11 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 
 func TestAISwitchCallsPartsInOrder(t *testing.T) {
 	a, _, _ := writingFixture(t, "雨停了。")
-	parts := []string{"talk", "proposals", "checks", "draft and rewrite dialogs", "setting waiting", "status"}
+	parts := []string{"talk", "proposals", "draft and rewrite dialogs", "setting waiting", "status"}
 	if len(a.aiOff) != len(parts) {
 		t.Fatalf("registered %d parts, want %v", len(a.aiOff), parts)
 	}
-	a.ck.queue.Enqueue("waiting")
+	checkOf(a).State.Queue.Enqueue("waiting")
 	a.write.draftOpen, a.write.rewriting = true, true
 	showTodo(a, true)
 	a.SetError(errors.New("AI failed"))
@@ -583,16 +585,16 @@ func TestAISwitchCallsPartsInOrder(t *testing.T) {
 		a.aiOff[i] = func() {
 			calls = append(calls, parts[i])
 			off()
-			if got, want := len(a.ck.queue.Pending) > 0, i < 2; got != want {
+			if got, want := len(checkOf(a).State.Queue.Pending) > 0, false; got != want {
 				t.Errorf("after %s: checks waiting %v, want %v", parts[i], got, want)
 			}
-			if want := i < 3; a.write.draftOpen != want || a.write.rewriting != want {
+			if want := i < 2; a.write.draftOpen != want || a.write.rewriting != want {
 				t.Errorf("after %s: draft/rewrite open %v/%v, want %v", parts[i], a.write.draftOpen, a.write.rewriting, want)
 			}
-			if got, want := todoShown(a), i < 4; got != want {
+			if got, want := todoShown(a), i < 3; got != want {
 				t.Errorf("after %s: setting waiting %v, want %v", parts[i], got, want)
 			}
-			if got, want := appError(a) != nil, i < 5; got != want {
+			if got, want := appError(a) != nil, i < 4; got != want {
 				t.Errorf("after %s: status has error %v, want %v", parts[i], got, want)
 			}
 		}

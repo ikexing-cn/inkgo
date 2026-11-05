@@ -9,11 +9,11 @@ import (
 )
 
 func cacheBuilds(a *App) int {
-	return hooksOf(a).CacheBuilds() + a.write.doubts.builds + a.write.pending.builds +
+	return hooksOf(a).CacheBuilds() + a.write.pending.builds +
 		a.write.names.builds + a.write.prose.marks.builds +
 		a.write.nodeWords.builds + a.write.total.builds +
 		notesOf(a).Inspect().Builds +
-		a.ck.items.builds + a.ck.itemsMeant.builds + a.ck.listed.builds +
+		checkOf(a).State.Items.Builds + checkOf(a).State.ItemsMeant.Builds + checkOf(a).State.Listed.Builds +
 		a.doc.ideas.builds + lorePanel(a).CacheBuilds()
 }
 

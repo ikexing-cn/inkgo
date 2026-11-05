@@ -62,8 +62,8 @@ func (a *App) pendingKey() pendingKey {
 		doc = w.cur().ed.Doc.Version()
 	}
 	b := a.extensionPendingKey()
-	return pendingKey{i18n.Locale(), a.book, a.book.Version(), w.cur().ed, doc, w.node, a.liveChapter(),
-		a.checksOn(), 0, w.ignoredVer, b, a.pal}
+	return pendingKey{i18n.Locale(), a.book, a.book.Version(), w.cur().ed, doc, w.node, w.cur().ed != nil && w.node != "" && a.page == pageWrite,
+		a.aiOn(), 0, w.ignoredVer, b, a.pal}
 }
 
 // pendingGroups gathers what is pending and not ignored, by kind: what the
@@ -75,9 +75,6 @@ func (a *App) pendingGroups() []pendGroup {
 
 func (a *App) buildPendingGroups() []pendGroup {
 	var groups []pendGroup
-	if g, ok := a.checkPending(); ok {
-		groups = append(groups, g)
-	}
 	groups = append(groups, a.extensionPendingGroups()...)
 	return groups
 }

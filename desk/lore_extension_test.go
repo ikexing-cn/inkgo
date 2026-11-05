@@ -22,7 +22,7 @@ func TestLoreGlobalAndBookSwitchRemoveAndRestoreDependentInterfaces(t *testing.T
 				a.setExtension("lore", on, bookScope)
 				tt.Frame()
 				tt.Frame()
-				if (len(a.nameValues().Links) > 0) != on || (len(a.write.doubts.val) > 0) != on {
+				if (len(a.nameValues().Links) > 0) != on || (len(checkRanges(a)) > 0) != on {
 					t.Fatal("prose name links or check marks", on)
 				}
 				if a.hasEntries() != on || a.checksOn() != on || (len(a.entities()) > 0) != on {

@@ -81,7 +81,6 @@ func (a *App) View(c *ui.Context) {
 	c.SetTheme(a.pal.Theme)
 	a.page = a.pageShown()
 	if a.Store != nil {
-		a.pollChecks(c)
 		a.extensionTicks(c)
 	}
 	a.turnPage()

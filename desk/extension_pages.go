@@ -23,14 +23,14 @@ func activityCall(fn func(hostapi.WindowActivity)) func(hostapi.WindowActivity) 
 
 func (a *App) mergePages() {
 	if a.pageIDs == nil {
-		a.pageIDs = map[string]page{"cats.categories": pageCategories, "talk.page": pageTalk, "host.write": pageWrite, "host.check": pageCheck, "outline.outline": pagePlan}
+		a.pageIDs = map[string]page{"cats.categories": pageCategories, "talk.page": pageTalk, "host.write": pageWrite, "check.check": pageCheck, "outline.outline": pagePlan}
 	}
 	for i := range a.pages {
-		if i == int(pageTalk) || i == int(pagePlan) || i >= int(pageCategories) {
+		if i == int(pageTalk) || i == int(pagePlan) || i == int(pageCheck) || i >= int(pageCategories) {
 			a.pages[i].visible = func() bool { return false }
 		}
 	}
-	a.pageOrder = []page{pageWrite, pageCheck}
+	a.pageOrder = []page{pageWrite}
 	for _, item := range ext.Items(a.extensions, hostapi.Pages) {
 		id, ok := a.pageIDs[item.ID]
 		if !ok {
@@ -72,6 +72,14 @@ func (a *App) mergePages() {
 				}
 			})
 			return title
+		}, count: func() int {
+			n := 0
+			_ = ext.Guard(a.extensions, item.Owner, item.ID+".count", func() {
+				if p.Count != nil {
+					n = p.Count()
+				}
+			})
+			return n
 		}, icon: p.Icon, label: p.Label, order: p.Order, visible: guardBool(".available", p.Available, true)}, enter: func() { call("enter", nil) }, leave: func() { call("leave", nil) }, view: func(c *ui.Context) { call("draw", c) }, hasPane: guardBool(".has-pane", p.HasPane, false), paneOpen: guardBool(".pane-open", p.PaneOpen, false), togglePane: func() {
 			_ = ext.Guard(a.extensions, item.Owner, item.ID+".toggle-pane", func() {
 				if p.TogglePane != nil {

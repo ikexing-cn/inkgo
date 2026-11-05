@@ -124,11 +124,11 @@ func TestMarginActionsUndoAndOpenTheirDetails(t *testing.T) {
 	a, tt, node := marginFixture(t, true)
 	for _, which := range []struct{ id, action string }{{"check-name", "无需修改"}, {"check-conflict", "无需修改"}, {"check-new", "忽略"}} {
 		click(t, tt, "批注-"+which.id+"-"+which.action)
-		if a.page != pageWrite || len(a.marginNotes()) != 4 || len(a.write.doubts.val) != 2 {
+		if a.page != pageWrite || len(a.marginNotes()) != 4 || len(checkRanges(a)) != 2 {
 			t.Fatal("decision did not update the prose and margin together", tt.Texts())
 		}
 		click(t, tt, "撤销提示")
-		if len(a.marginNotes()) != 5 || len(a.write.doubts.val) != 3 {
+		if len(a.marginNotes()) != 5 || len(checkRanges(a)) != 3 {
 			t.Fatal("undo did not restore both")
 		}
 	}
@@ -166,7 +166,7 @@ func TestMarginActionsUndoAndOpenTheirDetails(t *testing.T) {
 	}
 	lorePanel(a).Doc.Route = lore.Route{}
 	click(t, tt, "右栏-批注", "批注-check-name")
-	if a.page != pageCheck || a.ck.shown != "name" {
+	if a.page != pageCheck || checkOf(a).State.Shown != "name" {
 		t.Fatal("finding detail destination")
 	}
 	a.findInChapter(node, "旧钥匙")
@@ -185,13 +185,13 @@ func TestMarginActionsUndoAndOpenTheirDetails(t *testing.T) {
 func TestIgnoringPendingKeepsTheMarginAndAILeavesOnlyForeshadowing(t *testing.T) {
 	a, tt, _ := marginFixture(t, true)
 	click(t, tt, "待处理", "全部忽略")
-	if len(a.marginNotes()) != 5 || len(a.write.doubts.val) != 3 {
+	if len(a.marginNotes()) != 5 || len(checkRanges(a)) != 3 {
 		t.Fatal("ignoring pending erased margin notes")
 	}
 	click(t, tt, "撤销提示")
 	a.turnAI(!(true))
 	tt.Frame()
-	if list := a.marginNotes(); len(list) != 1 || list[0].fore != "key" || len(a.write.doubts.val) != 0 {
+	if list := a.marginNotes(); len(list) != 1 || list[0].fore != "key" || len(checkRanges(a)) != 0 {
 		t.Fatal("AI-off margin includes AI data", list)
 	}
 	a.page = pagePlan
