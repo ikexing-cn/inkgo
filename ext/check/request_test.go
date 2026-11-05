@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"writer/ai"
 	"writer/ext/ai/aiapi"
 	"writer/ext/hostapi"
 	"writer/inference"
@@ -67,7 +68,7 @@ func TestAllOnCheckUsesWritingModelAndPreservesLegacyRequestBytes(t *testing.T) 
 	}
 	capture := &requestCapture{}
 	handle := inference.Model{Completer: capture, Model: model.Builtin("deepseek-flash"), Name: "deepseek/deepseek-flash", Effort: model.EffortHigh}
-	backend := &requestBackend{handle: handle}
+	backend := &requestBackend{Backend: ai.New(""), handle: handle}
 	setting, err := st.Setting()
 	if err != nil {
 		t.Fatal(err)

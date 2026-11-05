@@ -34,8 +34,8 @@ type Service struct {
 	// and its reply, a file for each; it is for tuning the prompts, and
 	// no work is written to.
 	Trace string
-	// Calls observes completed calls on the calling worker.
-	Calls func(aiapi.Call)
+	// Calls captures a completion observer at each request start on its worker.
+	Calls func() func(aiapi.Call)
 	// ErrorText words a failed request for the AI record, which keeps it
 	// as the author saw it; unset, the error's own text.
 	ErrorText func(error) string
@@ -230,10 +230,14 @@ type counted struct {
 	life     context.Context
 	trace    string
 	words    func(error) string
-	calls    func(aiapi.Call)
+	calls    func() func(aiapi.Call)
 }
 
 func (c counted) Complete(ctx context.Context, req model.Request, on func(model.Delta)) (model.Reply, error) {
+	var observe func(aiapi.Call)
+	if c.calls != nil {
+		observe = c.calls()
+	}
 	start := time.Now()
 	ctx, cancel := linkedContext(ctx, c.life)
 	defer cancel()
@@ -254,8 +258,8 @@ func (c counted) Complete(ctx context.Context, req model.Request, on func(model.
 	}
 	// The record is for the author to look at: failing to keep it does
 	// not fail the request.
-	if c.calls != nil {
-		c.calls(aiapi.Call{Store: c.st, Record: r})
+	if observe != nil {
+		observe(aiapi.Call{Store: c.st, Record: r})
 	}
 	if c.trace != "" {
 		_ = traced(c.trace, r, req, reply, err)
@@ -368,11 +372,11 @@ func linkedContext(ctx, life context.Context) (context.Context, context.CancelFu
 	return linked, func() { stop(); cancel() }
 }
 
-// BindCalls installs the finished-call observer before model handles are built.
-// The observer runs on the calling worker.
-func (s *Service) BindCalls(fn func(aiapi.Call)) { s.Calls = fn }
+// BindCalls installs the request observer factory before publishing the service.
+// The factory and returned observer run on the calling worker.
+func (s *Service) BindCalls(fn func() func(aiapi.Call)) { s.Calls = fn }
 
-// NewWriter adapts a selected public handle to the internal writing implementation.
-func NewWriter(st *workspace.Store, h aiapi.Handle, material aiapi.Material) aiapi.Pen {
+// Writer adapts a selected public handle to the internal writing implementation.
+func (s *Service) Writer(st *workspace.Store, h aiapi.Handle, material aiapi.Material) aiapi.Pen {
 	return pen{&writing.Writer{Store: st, Model: inference.Model{Model: model.Model(h.Model), Name: h.Name, Effort: h.Effort, Completer: h.Completer}, Material: material}}
 }

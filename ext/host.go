@@ -490,6 +490,7 @@ func (h *Host) reconcile() {
 func (h *Host) start(e *entry) {
 	h.mu.Lock()
 	s := newSession(e.mod.ID, h.book, h.opts.LocalRoot)
+	s.onCleanupError = func(err error) { h.recordFailure(e.mod.ID, Failure{Stage: "OnStop", Err: err}) }
 	s.bookDir = h.opts.BookDir
 	s.onPanic = func(v any) { h.callFailure(e.mod.ID, "Task", "", "", v) }
 	e.session = s
@@ -590,6 +591,10 @@ func Declared[T any](h *Host, key PointKey[T]) []Item[T] {
 func pointItems[T any](h *Host, key PointKey[T], declared bool) []Item[T] {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
+	return pointItemsLocked(h, key, declared)
+}
+
+func pointItemsLocked[T any](h *Host, key PointKey[T], declared bool) []Item[T] {
 	var out []Item[T]
 	o := owner(string(key))
 	if !declared && o != HostOwner && (h.byID[o] == nil || h.byID[o].ledger.State != On) {

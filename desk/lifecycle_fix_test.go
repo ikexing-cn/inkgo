@@ -224,3 +224,47 @@ func TestUsageLogFailureNoticesAreScopedAndRearmed(t *testing.T) {
 		t.Fatal("old book notice survived")
 	}
 }
+
+func TestDeskSavesPreserveUnreadablePreferences(t *testing.T) {
+	for _, extension := range []bool{false, true} {
+		t.Run(map[bool]string{false: "desk", true: "extension"}[extension], func(t *testing.T) {
+			a, _, _ := writingFixture(t, "正文。")
+			path := a.Store.PrefsPath()
+			original := []byte("{ corrupt\n")
+			requireExtension(t, os.WriteFile(path, original, 0600))
+			a.loadPrefs()
+			if extension {
+				viewStateStore{a}.SaveState(ext.Book{Dir: a.Store.Root()}, "test", map[string]json.RawMessage{"value": json.RawMessage(`true`)})
+			} else {
+				requireExtension(t, a.savePrefs())
+			}
+			b, err := os.ReadFile(path + ".unreadable")
+			if err != nil || string(b) != string(original) {
+				t.Fatal(string(b), err)
+			}
+			b, err = os.ReadFile(path)
+			if err != nil || !json.Valid(b) {
+				t.Fatal(string(b), err)
+			}
+		})
+	}
+}
+
+func TestDeskRetainsTransientPreferencesReadFailureUntilSave(t *testing.T) {
+	a, _, _ := writingFixture(t, "正文。")
+	path := a.Store.PrefsPath()
+	requireExtension(t, os.Remove(path))
+	requireExtension(t, os.Mkdir(path, 0700))
+	a.loadPrefs()
+	requireExtension(t, os.Remove(path))
+	original := []byte(`{"extensions":{"inactive":{"raw":123}}}`)
+	requireExtension(t, os.WriteFile(path, original, 0600))
+	requireExtension(t, a.savePrefs())
+	b, err := os.ReadFile(path + ".unreadable")
+	if err != nil || string(b) != string(original) {
+		t.Fatal(string(b), err)
+	}
+	if string(prefs.Load(path).Extensions["inactive"]) != `{"raw":123}` {
+		t.Fatal("inactive namespace lost")
+	}
+}

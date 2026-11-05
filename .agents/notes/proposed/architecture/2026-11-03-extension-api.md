@@ -61,7 +61,7 @@ import 一个公开包只是编译期用到它的类型，不等于运行时依�
 - **Start** 在扩展生效时跑：
   - 跑的时机：开着且依赖都已 Start、打开一本书、换书；
   - 用 `r.OnStart(func(s *ext.Session) error)` 登记，读写文件、建状态都在这里做。
-  - 记在这本书界面上的偏好（不是 `ext.Setting` 那种设置）用 `r.Persist(ext.BookState{Load, Save})` 登记：Load 在 OnStart 之后、扩展可用之前跑，每次 Start 都跑，所以打开书时关着、后来才开的扩展也读得到；Save 在 Stop 拆状态之前跑，宿主存自己的界面状态时也让开着的扩展各存一份。存在 `.writer/desk.json` 的 `extensions.<扩展 ID>` 下，每个扩展一段原样的 JSON，关着的扩展那段原样留着。2026-11-05 以前是并进宿主的 `prefs.Prefs`，宿主不认识的键会丢，检查的「何时检查」就这样丢过；旧的平铺键不迁移。
+  - 记在这本书界面上的偏好（不是 `ext.Setting` 那种设置）用 `r.Persist(ext.BookState{Load, Save})` 登记：Load 在 OnStart 之后、扩展可用之前跑，每次 Start 都跑，所以打开书时关着、后来才开的扩展也读得到；Save 在 Stop 拆状态之前跑，宿主存自己的界面状态时也让开着的扩展各存一份。存在 `.writer/desk.json` 的 `extensions.<扩展 ID>` 下，每个扩展一段原样的 JSON，关着的扩展那段原样留着。这个文件读不出来（读失败或不是合法 JSON）时，这次按默认值开，提示一次；之后第一次保存前先把原文件改名留在旁边（`desk.json.unreadable`，替掉更早的同名文件），留不下就不保存。2026-11-05 以前是并进宿主的 `prefs.Prefs`，宿主不认识的键会丢，检查的「何时检查」就这样丢过；旧的平铺键不迁移。
 - **Session** 的寿命是「这个扩展开着」乘「这本书开着」：
   - 换书时所有开着的扩展都先 Stop 再 Start，所以两者都要便宜，有测试计时；
   - 按书开关变了的，只 Stop 或只 Start；
@@ -73,11 +73,11 @@ import 一个公开包只是编译期用到它的类型，不等于运行时依�
   - `ViewState.Reset` 从宿主的约定里删了。
 - **Stop** 按 Start 的相反顺序跑：
   - 先让扩展存下偏好（`Persist` 的 Save）；
-  - 再让这次 Session 作废、取消它的后台任务、等这些任务退出，跑 `Session.OnStop` 登记的资源清理（只跑一次）；
+  - 再让这次 Session 作废、取消它的后台任务、等这些任务退出，跑 `Session.OnStop` 登记的资源清理（只跑一次；每一条都和 `r.OnStop` 一样在出错边界里跑，panic 记在这个扩展的账上，接着跑下一条）；
   - 最后跑 `r.OnStop` 登记的清理。
 - **后台任务**归这次开启：扩展经 `Ref.Get` 取到的 `hostapi.Jobs` 是绑在取用方这次 Session 上的一份（宿主服务实现 `ext.SessionBinder`）。任务排到帧线程的回调，在真正执行时再查一次 Session 还在不在；不在就不执行它的结果、出错提示和「再试一次」，宿主只把忙碌状态结掉。后台任务不许等帧线程，因为 Stop 要等后台任务退出。
   - 一个扩展的工具在别的扩展的请求里跑时（改稿建议的 `propose_edit` 在讨论的请求里），提供方也要认：工具拿到时记下提供方的 Session（`ext.WithSession`、`ext.SessionOf`），交结果时比一下，提供方中途关了再开，旧结果不收。
-  - AI 每次调用的记录交给 `aiapi.Calls` 时带着收记录那一方的这次开启（`aiapi.Call.Activation`），用量记录关了再开，旧调用不会记到新的那一次头上。
+  - AI 每次调用的记录交给 `aiapi.Calls` 时带着收记录那一方的这次开启（`aiapi.Call.Activation`），收记录的是哪几方、哪一次开启，在每次请求开始时取，不在建模型句柄时取：续写缓存着的笔照样记账，用量记录关了再开，旧调用不会记到新的那一次头上，新的那一次也收不到半截调用。
 - **贡献的回调**（命令的 Run、标签的 Draw……）只在扩展生效时被调，读 Start 时建好的状态。宿主在扩展没生效时不调它们，也不经 `Declared` 去调关着的扩展的回调。
 - **状态**有四种：关着、启动中、开着、出错。出错时带错误原文和出错的位置：哪个回调，在谁的注入链里。
 
@@ -95,7 +95,7 @@ import 一个公开包只是编译期用到它的类型，不等于运行时依�
   - 取用必需依赖的：`ref := ext.Use(r, key)`，返回 `*ext.Ref[T]`，用的时候 `ref.Get()`。这样关掉再开、换书之后，拿到的总是当前那份；Setup 时提供方可能还关着，也没有东西可返回。
   - 取用可选依赖的：`ref := ext.UseOptional(r, key)`，`ref.Get()` 返回 `(T, bool)`，对方没开时是 false。类型上就逼着调用方处理「没有」的情况。
   - 往可选依赖的点里放东西、注入它，写法和必需依赖一样；对方没开时宿主不生效这些登记，详情页写「X 没开，以下不生效」。对方中途开、关，宿主照账接上或拆下，依赖方不用重启。
-- **宿主的能力也是服务**，键在 `hostapi` 包里：`BookService`（只读：当前的书 `Store`、界面读的内容 `Content`）、`EditingService`（会动编辑器、目录、字数、撤销的操作：选中的章和编辑器、先存下显示着的那一章、恢复快照、全书替换、内容刚变的闪烁……）、`NavigationService`（页、条目、选中的章、专注）、`NativeUIService`（菜单、动画、右栏里画的东西）、`MachinePathsService`（本机路径）、`PaletteService`（颜色）、`PaneService`（打开右栏的某个标签）、`NoticesService`（提示条）、`JobsService`（后台任务）、`DialogsService`（选文件夹、存文件、在文件夹里显示）。原来每个子包一个的窄 `Host` 已经换成这些。2026-11-05 审查后把迁移中越长越宽的 `Desktop`、`Book` 按能力拆成上面几个，`Desktop` 删了；`Store` 是给仓库里 Go 代码的可信能力，后台任务开始时拿住那一本书的，不在中途问「现在是哪本书」。宿主的服务由 `ext.Options.DeclareHost` 在装配时提供，一直在，不用写进 Requires；其中 `Jobs` 交给每个扩展的是绑在它这次开启上的一份，见上面「后台任务」。每个方法的 doc comment 写明在哪个线程调。
+- **宿主的能力也是服务**，键在 `hostapi` 包里：`BookService`（可信的书句柄：当前的书 `Store`、界面读的内容 `Content`；`Store` 能写，不是只读）、`EditingService`（会动编辑器、目录、字数、撤销的操作：选中的章和编辑器、先存下显示着的那一章、恢复快照、全书替换、内容刚变的闪烁……）、`NavigationService`（页、条目、选中的章、专注）、`NativeUIService`（菜单、动画、右栏里画的东西）、`MachinePathsService`（本机路径）、`PaletteService`（颜色）、`PaneService`（打开右栏的某个标签）、`NoticesService`（提示条）、`JobsService`（后台任务）、`DialogsService`（选文件夹、存文件、在文件夹里显示）。原来每个子包一个的窄 `Host` 已经换成这些。2026-11-05 审查后把迁移中越长越宽的 `Desktop`、`Book` 按能力拆成上面几个，`Desktop` 删了；`Store` 是给仓库里 Go 代码的可信能力，后台任务开始时拿住那一本书的，不在中途问「现在是哪本书」。宿主的服务由 `ext.Options.DeclareHost` 在装配时提供，一直在，不用写进 Requires；其中 `Jobs` 交给每个扩展的是绑在它这次开启上的一份，见上面「后台任务」。每个方法的 doc comment 写明在哪个线程调。
 - **设置**：
   - `ext.Setting(r, "name", ext.Schema[T]{…})`，返回 `*ext.Pref[T]`，带 `Get()`、`Set()` 和 `OnChange`；值按 JSON 存；
   - Schema 有标题、说明、默认值、可选项（每项带说明）、分组、顺序、作用范围（`Local` 本机、`BookScope` 按书、`Both` 两者都有）；
@@ -237,17 +237,17 @@ ext.Before(r, ext.EditorKey, func(in *ext.KeyIn) { in.Text = fullWidth(in.Text) 
 | ext/ai/aiapi: `ai.calls` (Calls) | `PointKey[func(Call)]` | 只限 Go 层：捕获的 Store 和 Session 身份。适配：书 ID 和这次开启 ID，加上不可变的用量 Record DTO，以及有类型的完成通知。 |
 | ext/ai/aiapi: `ai.model-changes` (ModelChanges) | `PointKey[func()]` | 提供方/配置修订事件，没有原生负载；调用订阅者的动作 ID。 |
 | ext/ai/aiapi: `ai.proposals` (Proposals) | `PointKey[Suggestions]` | 只限 Go 层的 ProposalFrame.Stop 回调。适配：讨论 ID、调用 ID、章 ID，不可变的建议更新/失败，停止动作的动作 ID，以及每次操作的请求/回复。 |
-| ext/ai/aiapi: `ai.service` (Service) | `ServiceKey[Backend]` | 只限 Go 层：原生后端里的 Store 和补全函数。远端使用固定的书 ID、模型/角色/上限 DTO、请求 ID、流式增量和取消。 |
+| ext/ai/aiapi: `ai.service` (Service) | `ServiceKey[Backend]` | 只限 Go 层：原生后端里的 Store 和补全函数；也给选好的模型句柄配写作的笔（`Assistant.Writer`，检查用）。远端使用固定的书 ID、模型/角色/上限 DTO、请求 ID、流式增量和取消。 |
 | ext/ai/aiapi: `ai.talk-starters` (TalkStarters) | `PointKey[TalkStarter]` | 只限 Go 层的 Start.Services。适配：能力/提供方 ID 加讨论来源 Event DTO，返回已开始标记；预览/运行中/进度 DTO 来自同一提供方。 |
 | ext/ai/aiapi: `ai.tools` (Tools) | `PointKey[Tool]` | 只限 Go 层：ToolEnv.Store、context 和回调函数。适配：工具 ID/schema JSON，书 ID、这次开启 ID、会话 ID、轮次 ID、调用 ID，参数 JSON 和 ToolResult DTO。 |
-| ext/ai/aiapi: `ai.usage` (Usage) | `PointKey[func(*ui.Context)]` | 按 ID 寻址的订阅/动作，事件字段为普通数据；在数据适配层，原生回调变为请求/动作 ID。 |
+| ext/ai/aiapi: `ai.usage` (Usage) | `PointKey[func(*ui.Context)]` | 只限 Go 层：绘制回调拿着帧内的 `*ui.Context`。适配：贡献 ID，宿主每帧要一份 UI 描述 DTO，交互回成动作 ID。 |
 | ext/context/contextapi: `context.entries` (Entries) | `PointKey[EntryProvider]` | 提供方 ID + 书 ID → 条目 DTO 列表；空列表与不存在要区分开。 |
 | ext/context/contextapi: `context.hooks` (Hooks) | `PointKey[HookProvider]` | 提供方 ID + 书 ID → 伏笔 DTO 列表；空列表与不存在要区分开。 |
 | ext/context/contextapi: `context.outlines` (Outlines) | `PointKey[OutlineProvider]` | 章/卷 ID → 章纲文本和提供方是否存在的标记。 |
 | ext/context/contextapi: `context.service` (Service) | `ServiceKey[Context]` | 书 ID、条目 ID、章 ID → Entries/Hooks/Outline DTO，以及明确的提供方是否存在标记。 |
 | ext/find/findapi: `find.replacement` (ReplacementService) | `ServiceKey[Replacement]` | 章 ID、替换前后的字符串，以及替换/编辑操作 DTO；由宿主协调编辑器改动。 |
 | ext/hostapi: `host.before-chapter-change` (BeforeChapterChange) | `PointKey[func()]` | 按 ID 寻址的订阅/动作，事件字段为普通数据；在数据适配层，原生回调变为请求/动作 ID。 |
-| ext/hostapi: `host.before-editor` (BeforeEditor) | `PointKey[DrawItem]` | 按 ID 寻址的订阅/动作，事件字段为普通数据；在数据适配层，原生回调变为请求/动作 ID。 |
+| ext/hostapi: `host.before-editor` (BeforeEditor) | `PointKey[DrawItem]` | 只限 Go 层：绘制/动作回调或原生帧句柄。适配：贡献 ID、UI 描述/元数据 DTO、动作 ID 和可用性标记。 |
 | ext/hostapi: `host.before-leave` (BeforeLeave) | `PointKey[func()]` | 按 ID 寻址的订阅/动作，事件字段为普通数据；在数据适配层，原生回调变为请求/动作 ID。 |
 | ext/hostapi: `host.before-prose` (BeforeProse) | `PointKey[DrawItem]` | 只限 Go 层：绘制/动作回调或原生帧句柄。适配：贡献 ID、UI 描述/元数据 DTO、动作 ID 和可用性标记。 |
 | ext/hostapi: `host.beside` (BesideItems) | `PointKey[DrawItem]` | 只限 Go 层：绘制/动作回调或原生帧句柄。适配：贡献 ID、UI 描述/元数据 DTO、动作 ID 和可用性标记。 |
@@ -275,7 +275,7 @@ ext.Before(r, ext.EditorKey, func(in *ext.KeyIn) { in.Text = fullWidth(in.Text) 
 | ext/hostapi: `host.panes` (PaneTabs) | `PointKey[PaneTab]` | 只限 Go 层：绘制/动作回调或原生帧句柄。适配：贡献 ID、UI 描述/元数据 DTO、动作 ID 和可用性标记。 |
 | ext/hostapi: `host.pending` (PendingGroups) | `PointKey[PendingSource]` | 只限 Go 层：回调动作 / 借用的原生选择状态。适配：章 ID、范围 ID、项目 ID、动作描述和动作 ID。 |
 | ext/hostapi: `host.pending-state` (PendingService) | `ServiceKey[Pending]` | 待处理项目键 → 清除忽略请求。 |
-| ext/hostapi: `host.predictions` (Predictions) | `PointKey[Prediction]` | 按 ID 寻址的订阅/动作，事件字段为普通数据；在数据适配层，原生回调变为请求/动作 ID。 |
+| ext/hostapi: `host.predictions` (Predictions) | `PointKey[Prediction]` | 只限 Go 层：交出 `editor.Predictor`。适配：章 ID、光标前的正文 → 续写文字的请求和流式回复，接受/放弃回成动作 ID。 |
 | ext/hostapi: `host.prose-marks` (ProseMarks) | `PointKey[ProseMarkProvider]` | 只限 Go 层：编辑器装饰数据和回调导航。适配：章 ID、范围/名称/样式 DTO 和动作 ID。 |
 | ext/hostapi: `host.prose-overlays` (ProseOverlays) | `PointKey[DrawItem]` | 只限 Go 层：绘制/动作回调或原生帧句柄。适配：贡献 ID、UI 描述/元数据 DTO、动作 ID 和可用性标记。 |
 | ext/hostapi: `host.prose-ui` (ProseUIService) | `ServiceKey[ProseUI]` | 只限 Go 层：帧几何、编辑器和绘制/菜单回调。远端使用章 ID/文本、几何和 UI 描述消息。 |
@@ -287,7 +287,7 @@ ext.Before(r, ext.EditorKey, func(in *ext.KeyIn) { in.Text = fullWidth(in.Text) 
 | ext/hostapi: `host.settings-details` (SettingsDetails) | `PointKey[SettingsDetail]` | 只限 Go 层：绘制/动作回调或原生帧句柄。适配：贡献 ID、UI 描述/元数据 DTO、动作 ID 和可用性标记。 |
 | ext/hostapi: `host.settings-sections` (SettingsSections) | `PointKey[SettingsSection]` | 只限 Go 层：绘制/动作回调或原生帧句柄。适配：贡献 ID、UI 描述/元数据 DTO、动作 ID 和可用性标记。 |
 | ext/hostapi: `host.state` (State) | `PointKey[ViewState]` | 只限 Go 层：刷新/窗格回调；远端使用书 ID、模块 ID、窗格 ID 和修订通知。 |
-| ext/hostapi: `host.ticks` (FrameTicks) | `PointKey[FrameTick]` | 按 ID 寻址的订阅/动作，事件字段为普通数据；在数据适配层，原生回调变为请求/动作 ID。 |
+| ext/hostapi: `host.ticks` (FrameTicks) | `PointKey[FrameTick]` | 只限 Go 层：每帧的回调拿着 `*ui.Context`。适配：宿主按帧或按修订号发事件（普通数据），扩展回动作 ID；不交出帧内对象。 |
 | ext/hostapi: `host.title` (TitleItems) | `PointKey[DrawItem]` | 只限 Go 层：绘制/动作回调或原生帧句柄。适配：贡献 ID、UI 描述/元数据 DTO、动作 ID 和可用性标记。 |
 | ext/hostapi: `host.tool-hints` (ToolHints) | `PointKey[DrawItem]` | 只限 Go 层：绘制/动作回调或原生帧句柄。适配：贡献 ID、UI 描述/元数据 DTO、动作 ID 和可用性标记。 |
 | ext/hostapi: `host.tools` (Tools) | `PointKey[Tool]` | 只限 Go 层：绘制/动作回调或原生帧句柄。适配：贡献 ID、UI 描述/元数据 DTO、动作 ID 和可用性标记。 |
@@ -322,12 +322,12 @@ ext.Before(r, ext.EditorKey, func(in *ext.KeyIn) { in.Text = fullWidth(in.Text) 
 
 - 打开一个，它的依赖一起打开；关掉一个，依赖它的一起关；再开时各自回到原来的开关。
 - 扩展关着时，账里也列得出它的贡献、注入、设置。
-- Setup 里读文件或调 `Ref.Get` 会失败。
+- Setup 里调 `Ref.Get` 会失败（读文件靠规矩，宿主拦不住）。
 - 同一个扩展内 id 重名时，Setup 报错。
 - 取用没声明依赖的服务、注入没声明的目标时，Setup 报错。
 - 两个 overwrite 抢同一处：两个都不生效，原来的照跑，账里标冲突；作者选一个以后，被选的那个生效。
 - 注入的目标关着时，注入方照常开着，注入不生效，账里写「X 没开，以下不生效」。
-- 一个扩展的回调 panic：只有它和依赖它的变成出错或关着，别的照常。
+- 一个扩展的回调 panic：只有它和依赖它的变成出错或关着，别的照常。停下时的清理（`Session.OnStop`、`r.OnStop`）panic 只记账，停照常停完，不再连带别的扩展。
 - 关掉以后，这个扩展在生效表里一条不剩：命令、菜单、标签、注入、服务都没了；它的后台任务已退出，排着的回调不再执行。可选依赖的工具若正在依赖方的请求里跑，关掉提供方不会等那个请求，靠交结果时比 Session 挡住。
 - 换书、关了再开：上一本书的状态不会带到下一本；同一本书里关了再开，能接着用的照旧在（`desk/lifecycle_fix_test.go`）。
 - 换书时开着的扩展 Stop、Start 一轮，总耗时有上限。

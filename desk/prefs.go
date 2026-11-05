@@ -6,7 +6,7 @@ import (
 )
 
 func (a *App) loadPrefs() {
-	p := prefs.Load(a.Store.PrefsPath())
+	p := a.readPrefs(a.Store.PrefsPath())
 	if p.Unreadable() {
 		a.warn(fmt.Errorf("preferences could not be read; using defaults: %s", a.Store.PrefsPath()))
 	}
@@ -40,9 +40,32 @@ func (a *App) savePrefs() error {
 		PanelWidth: a.doc.width, PaneTab: string(a.doc.tab),
 		Carets: a.write.carets, TextSize: a.write.size,
 		Ignored: a.write.ignoredKeys()}
-	old := prefs.Load(a.Store.PrefsPath())
+	old := a.readPrefs(a.Store.PrefsPath())
 	p.Extensions = old.Extensions
-	err := p.Save(a.Store.PrefsPath())
+	err := a.writePrefs(p, a.Store.PrefsPath())
 	a.warn(err)
 	return err
+}
+
+func (a *App) readPrefs(path string) prefs.Prefs {
+	p := prefs.Load(path)
+	if p.Unreadable() {
+		if a.prefsRecovery == nil {
+			a.prefsRecovery = map[string]prefs.Prefs{}
+		}
+		if _, exists := a.prefsRecovery[path]; !exists {
+			a.prefsRecovery[path] = p
+		}
+	}
+	return p
+}
+
+func (a *App) writePrefs(p prefs.Prefs, path string) error {
+	if previous, ok := a.prefsRecovery[path]; ok {
+		if err := previous.PreserveUnreadable(path); err != nil {
+			return err
+		}
+		delete(a.prefsRecovery, path)
+	}
+	return p.Save(path)
 }

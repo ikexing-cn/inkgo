@@ -74,3 +74,21 @@ func ActivationOf(h *Host, owner string) *Session {
 func CallReadOperation[T, In, Out any](r *PointReader[T], operation, id string, in In, original func(In) Out) (Out, error) {
 	return Call(r.host, HookOf(CallPoint[T, In, Out]{Point: r.key, Operation: operation}, id), in, original)
 }
+
+// Capture returns active contributions and their sessions in one snapshot.
+// It may run on a worker after Setup.
+func (r *PointReader[T]) Capture() ([]Item[T], map[string]*Session) {
+	r.host.mu.RLock()
+	defer r.host.mu.RUnlock()
+	if r.host.setup {
+		panic("PointReader.Capture during Setup is forbidden")
+	}
+	items := pointItemsLocked(r.host, r.key, false)
+	sessions := make(map[string]*Session, len(items))
+	for _, item := range items {
+		if e := r.host.byID[item.Owner]; e != nil {
+			sessions[item.Owner] = e.session
+		}
+	}
+	return items, sessions
+}

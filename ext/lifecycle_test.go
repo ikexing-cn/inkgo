@@ -338,3 +338,31 @@ func TestConcurrentTaskReadsAndSessionShutdown(t *testing.T) {
 	must(t, h.Set("b", false))
 	wg.Wait()
 }
+
+func TestSessionCleanupPanicDoesNotInterruptStop(t *testing.T) {
+	var calls []string
+	boom := errors.New("cleanup failed")
+	h := host(t, ext.Options{}, ext.Module{ID: "a", Setup: func(r *ext.Registrar) {
+		r.OnStart(func(s *ext.Session) error {
+			s.OnStop(func() { calls = append(calls, "panic"); panic(boom) })
+			s.OnStop(func() { calls = append(calls, "remaining") })
+			return nil
+		})
+		r.OnStop(func(*ext.Session) { calls = append(calls, "registrar") })
+	}}, ext.Module{ID: "b", Setup: func(r *ext.Registrar) {
+		r.OnStop(func(*ext.Session) { calls = append(calls, "other") })
+	}})
+	h.Close()
+	if !reflect.DeepEqual(calls, []string{"other", "panic", "remaining", "registrar"}) {
+		t.Fatal(calls)
+	}
+	failures := h.Ledger("a").Errors
+	if len(failures) != 1 || failures[0].Stage != "OnStop" || failures[0].Err != boom {
+		t.Fatal(failures)
+	}
+	// A second shutdown neither hangs nor repeats the callbacks.
+	h.Close()
+	if len(calls) != 4 {
+		t.Fatal(calls)
+	}
+}

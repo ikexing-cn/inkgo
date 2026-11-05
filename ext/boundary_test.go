@@ -36,7 +36,7 @@ func extensionImport(pkg, imp string, deps []string) error {
 	if pkg == "writer/ext/ai/aiapi" && imp == "writer/model" {
 		return nil
 	}
-	if pkg == "writer/ext/check" && slices.Contains([]string{"writer/ai", "writer/internal/textclip"}, imp) {
+	if pkg == "writer/ext/check" && imp == "writer/internal/textclip" {
 		return nil
 	}
 	if (pkg == "writer/ext/talk" || pkg == "writer/ext/talk/engine") && slices.Contains([]string{"writer/model", "writer/prompt", "writer/internal/textclip", "writer/tokens"}, imp) {

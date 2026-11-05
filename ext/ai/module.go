@@ -94,7 +94,9 @@ func New(opts Options) ext.Module {
 				}
 				v.ai = backend
 			}
-			return accountingBackend{v.ai, calls, activation}
+			backend := accountingBackend{v.ai, calls, activation}
+			backend.prepare()
+			return backend
 		})
 		r.OnStart(func(*ext.Session) error {
 			v.pal = v.palette.Get().Colors()

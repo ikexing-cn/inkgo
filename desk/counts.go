@@ -90,17 +90,20 @@ func (a *App) wordCount(c *ui.Context) {
 	} else {
 		counts = ui.Box(c)
 	}
-	counts.Row().Shrink(1000).MinWidth(0).Label(locales.StatusWordCount(a.countUnit())).Tooltip(tip)
+	line := locales.StatusBookCountLine(book, suffix)
+	if ok {
+		line = locales.StatusCountLine(scope, book, suffix)
+	}
+	width, _ := c.MeasureText(0, ui.Span{Text: line, Size: kit.FsNote})
+	// Allocate counts from the space left by the fixed footer items. A large
+	// shrink factor still takes fractions from the status and triggers ellipsis.
+	counts.Row().Basis(0).Grow(1000).MaxWidth(width).Shrink(1000).MinWidth(0).Label(locales.StatusWordCount(a.countUnit())).Tooltip(tip)
 	a.slideEdge(counts)
 	if len(popovers) > 0 && counts.Hovered() {
 		color = t.Text
 	}
 	counts.Children(func() {
-		if ok {
-			ui.Text(c, locales.StatusCountLine(scope, book, suffix)).FontSize(kit.FsNote).TextColor(color).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
-		} else {
-			ui.Text(c, locales.StatusBookCountLine(book, suffix)).FontSize(kit.FsNote).TextColor(color).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
-		}
+		ui.Text(c, line).FontSize(kit.FsNote).TextColor(color).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
 	})
 	for _, item := range popovers {
 		_, _ = ext.Call(a.extensions, ext.HookOf(ext.CallPoint[hostapi.WordPopover, func(hostapi.WordPopover) struct{}, struct{}]{Point: hostapi.WordPopovers}, item.ID), func(p hostapi.WordPopover) struct{} { p.Draw(c, counts, counts.Clicked()); return struct{}{} }, wordPopoverCall(item.Value))

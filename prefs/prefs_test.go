@@ -82,3 +82,57 @@ func TestPrefsAreWrittenWhole(t *testing.T) {
 		t.Fatalf("a file left beside it: %v", err)
 	}
 }
+
+func TestUnreadablePreferencesPreserveOriginalOnce(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "desk.json")
+	original := []byte("{ broken\n")
+	if err := os.WriteFile(path, original, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path+".unreadable", []byte("older"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	p := Load(path)
+	if !p.Unreadable() || !p.Writing {
+		t.Fatal(p)
+	}
+	for range 2 {
+		if err := p.Save(path); err != nil {
+			t.Fatal(err)
+		}
+	}
+	b, err := os.ReadFile(path + ".unreadable")
+	if err != nil || string(b) != string(original) {
+		t.Fatal(string(b), err)
+	}
+	b, err = os.ReadFile(path)
+	if err != nil || !json.Valid(b) {
+		t.Fatal(string(b), err)
+	}
+}
+
+func TestReadFailurePreservesBytesWhenReadingRecovers(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "desk.json")
+	// A directory gives a deterministic I/O read failure, including as root.
+	if err := os.Mkdir(path, 0700); err != nil {
+		t.Fatal(err)
+	}
+	p := Load(path)
+	if !p.Unreadable() {
+		t.Fatal("missing read failure")
+	}
+	if err := os.Remove(path); err != nil {
+		t.Fatal(err)
+	}
+	original := `{"extensions":{"inactive":{"raw":123}}}`
+	if err := os.WriteFile(path, []byte(original), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.Save(path); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(path + ".unreadable")
+	if err != nil || string(b) != original {
+		t.Fatal(string(b), err)
+	}
+}

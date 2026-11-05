@@ -7,6 +7,7 @@ import (
 	"time"
 	"writer/ext/hostapi"
 	"writer/ext/lore/loreapi"
+	"writer/prefs"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/book"
@@ -22,7 +23,8 @@ import (
 const flashFor = 3 * time.Second
 
 type App struct {
-	prediction predictionFeed
+	prefsRecovery map[string]prefs.Prefs
+	prediction    predictionFeed
 	// Window callbacks only touch these atomics. View consumes the return
 	// signal, even when blur and focus both happened between two frames.
 	windowInactive atomic.Bool

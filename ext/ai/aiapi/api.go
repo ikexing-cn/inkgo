@@ -74,6 +74,8 @@ type Assistant interface {
 	Model(*workspace.Store, Role) (Handle, error)
 	// Pen writes the prose of s with its writing model.
 	Pen(s *workspace.Store, material Material) (Pen, error)
+	// Writer adapts a selected handle without changing its request accounting.
+	Writer(*workspace.Store, Handle, Material) Pen
 	// MinCheck is the shortest prose worth a check.
 	MinCheck() int
 }

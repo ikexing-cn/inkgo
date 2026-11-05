@@ -2,6 +2,7 @@ package prefs
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -37,18 +38,19 @@ type Prefs struct {
 	// Extensions preserves each module's opaque preferences, even while off.
 	Extensions map[string]json.RawMessage `json:"extensions,omitempty"`
 	unreadable bool
+	recovery   *bool
 }
 
 func Load(path string) Prefs {
 	p := Prefs{Writing: true} // a work new to this machine opens on its prose
 	if b, err := os.ReadFile(path); err == nil {
 		if !json.Valid(b) {
-			p = Prefs{Writing: true, unreadable: true}
+			p = Prefs{Writing: true, unreadable: true, recovery: new(bool)}
 			return p
 		}
 		p = Prefs{}
 		if err := json.Unmarshal(b, &p); err != nil {
-			return Prefs{Writing: true, unreadable: true}
+			return Prefs{Writing: true, unreadable: true, recovery: new(bool)}
 		}
 		// The old pair is read only for files without pane_tab. In those
 		// files foreshadowings took precedence over the remembered talk.
@@ -67,6 +69,7 @@ func Load(path string) Prefs {
 		}
 	} else if !os.IsNotExist(err) {
 		p.unreadable = true
+		p.recovery = new(bool)
 	}
 	return p
 }
@@ -78,6 +81,9 @@ func (p Prefs) Save(path string) error {
 		err = os.MkdirAll(filepath.Dir(path), 0755)
 	}
 	if err == nil {
+		err = p.PreserveUnreadable(path)
+	}
+	if err == nil {
 		err = atomicfile.Write(path, b, 0644)
 	}
 	return err
@@ -85,3 +91,23 @@ func (p Prefs) Save(path string) error {
 
 // Unreadable reports whether loading used defaults after a read or decode failure.
 func (p Prefs) Unreadable() bool { return p.unreadable }
+
+// PreserveUnreadable moves an unreadable original beside its replacement once.
+// A failed move prevents saving, including after a transient read failure.
+func (p Prefs) PreserveUnreadable(path string) error {
+	if !p.unreadable || p.recovery != nil && *p.recovery {
+		return nil
+	}
+	if info, err := os.Lstat(path); err == nil && !info.Mode().IsRegular() {
+		return fmt.Errorf("cannot preserve unreadable preferences: %s is not a regular file", path)
+	} else if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	if err := os.Rename(path, path+".unreadable"); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	if p.recovery != nil {
+		*p.recovery = true
+	}
+	return nil
+}

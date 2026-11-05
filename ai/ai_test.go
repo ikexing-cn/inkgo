@@ -62,14 +62,14 @@ func TestRoutedModelNamesAreRecordedVerbatim(t *testing.T) {
 		t.Fatal(m.Name)
 	}
 	c := m.Completer.(counted)
-	c.calls = func(call aiapi.Call) { _ = call.Store.Log(call.Record) }
+	c.calls = func() func(aiapi.Call) { return func(call aiapi.Call) { _ = call.Store.Log(call.Record) } }
 	c.Completer = &replies{{Text: "雨还在下。", Usage: model.Usage{Input: 1_000_000}}}
 	m.Completer = c
 	session, err := st.NewSession()
 	if err != nil {
 		t.Fatal(err)
 	}
-	c.calls = func(call aiapi.Call) { _ = call.Store.Log(call.Record) }
+	c.calls = func() func(aiapi.Call) { return func(call aiapi.Call) { _ = call.Store.Log(call.Record) } }
 	m.Completer = c
 	e := discussion.Engine{Store: st, Talk: aiapi.Handle{Model: aiapi.Model(m.Model), Name: m.Name, Effort: m.Effort, Completer: m}}
 	turn, err := e.Say(context.Background(), session, workspace.Event{Text: "接着说。"})
@@ -186,7 +186,7 @@ func TestModelHandleRecordsEveryOutcomeAndFullTraces(t *testing.T) {
 		{Usage: model.Usage{Input: 1000}},
 		{Text: "取消了。"},
 		{Text: "够了。", Usage: model.Usage{Input: 10, Output: 2}},
-	}, st, "deepseek/deepseek-flash", "deepseek-flash", nil, trace, nil, func(call aiapi.Call) { _ = call.Store.Log(call.Record) }}
+	}, st, "deepseek/deepseek-flash", "deepseek-flash", nil, trace, nil, func() func(aiapi.Call) { return func(call aiapi.Call) { _ = call.Store.Log(call.Record) } }}
 	service := New("")
 	w := st.Work()
 	w.Discussion = workspace.Selection{Provider: "deepseek", Model: "deepseek-flash"}
@@ -362,7 +362,7 @@ func TestFailedRequestIsRecordedInTheWordsTheAuthorSaw(t *testing.T) {
 	}
 	defer st.Close()
 	words := func(err error) string { return "shown: " + err.Error() }
-	c := counted{Completer: failingRequest{errors.New("model: refused")}, st: st, name: "deepseek/deepseek-flash", words: words, calls: func(call aiapi.Call) { _ = call.Store.Log(call.Record) }}
+	c := counted{Completer: failingRequest{errors.New("model: refused")}, st: st, name: "deepseek/deepseek-flash", words: words, calls: func() func(aiapi.Call) { return func(call aiapi.Call) { _ = call.Store.Log(call.Record) } }}
 	ctx := workspace.WithPurpose(context.Background(), workspace.Purpose{Feature: workspace.FeatureCheck, Chapter: "c1"})
 	if _, err := c.Complete(ctx, model.Request{}, nil); err == nil {
 		t.Fatal("the failure was lost")

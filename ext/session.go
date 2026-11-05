@@ -8,17 +8,18 @@ import (
 
 // Session owns tasks and immutable paths for one activation in one book.
 type Session struct {
-	id        string
-	book      Book
-	localRoot string
-	bookDir   func(string, string) (string, error)
-	ctx       context.Context
-	cancel    context.CancelFunc
-	mu        sync.Mutex
-	stopped   bool
-	wg        sync.WaitGroup
-	onPanic   func(any)
-	cleanups  []func()
+	id             string
+	book           Book
+	localRoot      string
+	bookDir        func(string, string) (string, error)
+	ctx            context.Context
+	cancel         context.CancelFunc
+	mu             sync.Mutex
+	stopped        bool
+	wg             sync.WaitGroup
+	onPanic        func(any)
+	cleanups       []func()
+	onCleanupError func(error)
 }
 
 func newSession(id string, book Book, local string) *Session {
@@ -81,7 +82,9 @@ func (s *Session) stop() {
 	s.mu.Unlock()
 	s.wg.Wait()
 	for _, f := range s.cleanups {
-		f()
+		if err := protect(f); err != nil && s.onCleanupError != nil {
+			s.onCleanupError(err)
+		}
 	}
 	s.cleanups = nil
 }

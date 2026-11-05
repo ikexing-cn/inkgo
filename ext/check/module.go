@@ -3,7 +3,6 @@ package check
 
 import (
 	"github.com/egoist/mygo/ui"
-	"writer/ai"
 	"writer/desk/book"
 	"writer/desk/kit"
 	"writer/editor"
@@ -132,7 +131,7 @@ func (a *Panel) pen() (chapterChecker, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ai.NewWriter(a.store(), m, aiapi.Material{Setting: setting, Outline: a.context.HasOutlines()}), nil
+	return a.ai().Writer(a.store(), m, aiapi.Material{Setting: setting, Outline: a.context.HasOutlines()}), nil
 }
 
 type currentChapter struct {
