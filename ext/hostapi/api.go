@@ -327,3 +327,10 @@ type ChapterState struct {
 	Version       int
 	Changed, Lost bool
 }
+
+// Activity reports an extension's author operation on the frame thread.
+// Nonblocking lets the author keep editing; Presented suppresses the duplicate busy toast.
+type Activity struct{ Nonblocking, Presented func() bool }
+
+// Activities collects frame-thread operation presentation queries.
+const Activities ext.PointKey[Activity] = "host.activities"

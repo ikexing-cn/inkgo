@@ -1,4 +1,4 @@
-package aiapi
+package talkapi
 
 import (
 	"github.com/egoist/mygo/ui"
@@ -15,7 +15,7 @@ type StartTalk struct {
 	Event    workspace.Event
 }
 
-// DeclareOperations declares the typed state-changing AI collaboration calls.
+// DeclareOperations declares the typed state-changing conversation collaboration calls.
 func DeclareOperations(r *ext.Registrar) {
 	ext.DeclareOperation(r, Proposals, "Begin", InvokeBegin)
 	ext.DeclareOperation(r, Proposals, "Follow", InvokeFollow)

@@ -167,8 +167,8 @@ func (h extensionHost) Show(tab string) {
 
 // extensionViews holds derived tables until the host or language changes.
 type extensionViews struct {
+	activities       []ext.Item[hostapi.Activity]
 	beforeEditor     []ext.Item[hostapi.DrawItem]
-	starters         []ext.Item[aiapi.TalkStarter]
 	selectionButtons []ext.Item[hostapi.SelectionButton]
 	beforeProse      []ext.Item[hostapi.DrawItem]
 	// Host contributions precede module callbacks and survive module switches.
@@ -222,12 +222,12 @@ func (a *App) syncExtensions() {
 	}
 	a.mergePages()
 	cache := extensionViews{ready: true, changes: changes, localeRevision: revision}
-	cache.starters = ext.Items(a.extensions, aiapi.TalkStarters)
 	cache.selectionButtons = ext.Items(a.extensions, hostapi.SelectionButtons)
 	cache.beforeEditor = ext.Items(a.extensions, hostapi.BeforeEditor)
 	cache.beforeProse = ext.Items(a.extensions, hostapi.BeforeProse)
 	a.cacheExtensionViews(&cache)
 	_, cache.outlines = a.outlineValue(a.write.node)
+	cache.activities = ext.Items(a.extensions, hostapi.Activities)
 	cache.commands = a.buildExtensionCommands()
 	for _, cmd := range commandList {
 		if cmd != cmdTake || a.hasEntries() {
@@ -522,20 +522,23 @@ var fileCommandRows = []namedCommand{
 
 func (a *App) fileCommands() []namedCommand { a.syncExtensions(); return a.extViews.file }
 
-func (a *App) talkOn() bool { return len(a.extViews.starters) > 0 }
-func (a *App) talkProgress() bool {
-	shown := false
-	for _, i := range a.extViews.starters {
-		_ = ext.Guard(a.extensions, i.Owner, i.ID, func() { shown = i.Value.ProgressVisible() })
+// busyPresented reports whether an extension already shows the operation's progress.
+func (a *App) busyPresented() bool {
+	for _, i := range a.extViews.activities {
+		shown := false
+		_ = ext.Guard(a.extensions, i.Owner, i.ID, func() { shown = i.Value.Presented != nil && i.Value.Presented() })
+		if shown {
+			return true
+		}
 	}
-	return shown
+	return false
 }
 
-func (a *App) talkRunning() bool {
-	for _, i := range a.extViews.starters {
-		running := false
-		_ = ext.Guard(a.extensions, i.Owner, i.ID, func() { running = i.Value.Running() })
-		if running {
+func (a *App) nonblockingActivity() bool {
+	for _, i := range a.extViews.activities {
+		active := false
+		_ = ext.Guard(a.extensions, i.Owner, i.ID, func() { active = i.Value.Nonblocking != nil && i.Value.Nonblocking() })
+		if active {
 			return true
 		}
 	}

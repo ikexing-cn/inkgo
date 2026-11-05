@@ -4,7 +4,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"slices"
 	"writer/desk/kit"
-	"writer/ext/ai/aiapi"
+	"writer/ext/talk/talkapi"
 	"writer/ext/talk/talktext"
 	"writer/locales"
 	"writer/workspace"
@@ -131,7 +131,7 @@ func (a *Panel) UpdateSuggestions() {
 		return
 	}
 	_, _, steps, _ := a.Turn.Live.Read()
-	f := aiapi.ProposalFrame{Active: a.Turn.Active, Session: a.Turn.Session, Chapter: a.Turn.Chapter, Visible: a.TalkShown() && a.Session == a.Turn.Session, Looking: len(workspace.Looks(steps, "")) > 0, Stop: a.cancel}
+	f := talkapi.ProposalFrame{Active: a.Turn.Active, Session: a.Turn.Session, Chapter: a.Turn.Chapter, Visible: a.TalkShown() && a.Session == a.Turn.Session, Looking: len(workspace.Looks(steps, "")) > 0, Stop: a.cancel}
 	models := map[string]string{}
 	for _, e := range steps {
 		for _, c := range e.Calls {
@@ -139,14 +139,14 @@ func (a *Panel) UpdateSuggestions() {
 		}
 	}
 	for _, s := range a.Turn.Live.Proposals() {
-		f.Updates = append(f.Updates, aiapi.ProposalUpdate{Call: s.Call, Proposal: s.Proposal, Writing: true})
+		f.Updates = append(f.Updates, talkapi.ProposalUpdate{Call: s.Call, Proposal: s.Proposal, Writing: true})
 	}
 	for _, e := range steps {
 		if e.Role != workspace.RoleResult {
 			continue
 		}
 		if e.Proposal != nil {
-			f.Updates = append(f.Updates, aiapi.ProposalUpdate{Call: e.Call, Proposal: *e.Proposal, Model: models[e.Call]})
+			f.Updates = append(f.Updates, talkapi.ProposalUpdate{Call: e.Call, Proposal: *e.Proposal, Model: models[e.Call]})
 		} else {
 			f.Failed = append(f.Failed, e.Call)
 		}

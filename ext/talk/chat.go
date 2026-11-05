@@ -2,6 +2,7 @@ package talk
 
 import (
 	"github.com/egoist/mygo/ui"
+	"strings"
 	"writer/desk/kit"
 	"writer/ext/talk/talktext"
 	"writer/workspace"
@@ -236,7 +237,11 @@ func (a *Panel) EmptyChat(c *ui.Context) {
 	t := a.palette().Theme
 	title, about := talktext.TalkStartTitle(), talktext.TalkStartAbout()
 	starts := []string{talktext.TalkStart1(), talktext.TalkStart2(), talktext.TalkStart3()}
-	if len(a.content().Setting().Entries) > 0 { // a work begun goes on from what it has
+	noLore := !a.extensions.Enabled("lore")
+	if noLore {
+		about = talktext.TalkStartAboutNoLore()
+	}
+	if !noLore && len(a.content().Setting().Entries) > 0 { // a work begun goes on from what it has
 		title, about = talktext.TalkContinueTitle(), talktext.TalkContinueAbout()
 		starts = []string{talktext.TalkNext1(), talktext.TalkNext2(), talktext.TalkNext3()}
 	}
@@ -258,6 +263,17 @@ func (a *Panel) EmptyChat(c *ui.Context) {
 		return
 	}
 	a.palette().Blank(c, kit.IcSparkle, title, about, func() {
+		if name, ok := a.extensions.Name("lore"); noLore && ok {
+			before, after, _ := strings.Cut(talktext.TalkLoreSuggest("\x01"), "\x01")
+			ui.Row(c).Justify(ui.Center).AlignItems(ui.Center).Children(func() {
+				ui.Text(c, before).FontSize(kit.FsBody).LineHeight(kit.LhLoose).TextColor(t.TextMuted)
+				// The name stands in the sentence: its padding is taken back, as the design's .link does.
+				if a.palette().Ghost(c, name, ui.Color{}).Margin(-2, -6).Clicked() {
+					a.desktop.OpenExtension("lore")
+				}
+				ui.Text(c, after).FontSize(kit.FsBody).LineHeight(kit.LhLoose).TextColor(t.TextMuted)
+			})
+		}
 		ui.Row(c).Gap(8).Padding(10, 0, 0, 0).Wrap().Justify(ui.Center).Children(func() {
 			for _, s := range starts {
 				b := ui.ButtonBase(c).Padding(6, 12).Radius(kit.RRound).Border(1, t.Border)

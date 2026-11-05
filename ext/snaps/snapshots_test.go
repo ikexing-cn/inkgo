@@ -2,8 +2,11 @@ package snaps
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+	"writer/internal/testshot"
 
 	"writer/workspace"
 )
@@ -19,7 +22,7 @@ func TestRestoreASnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("打开时 · 4 字") || !tt.HasText("加了一句。") {
+	if !tt.HasText("打开时 · 4 字") || !tt.HasText("第一版。") {
 		t.Fatal(tt.Texts())
 	}
 	if err := tt.Click("恢复这个版本"); err != nil {
@@ -69,6 +72,7 @@ func TestASnapshotSelectsAcrossItsParagraphs(t *testing.T) {
 		t.Fatal(err)
 	}
 	a.openSnapshots()
+	snapsOf(a).Compare = true
 	tt.Frame()
 	shown := &snapsOf(a).SnapShown
 	if shown.Same || shown.Long || len(shown.Paras) != 4 || len(shown.Paras[0]) != 4 || len(shown.Paras[1]) != 0 {
@@ -148,4 +152,36 @@ func TestALongSnapshot(t *testing.T) {
 	if got := disk(t, a, "第一章.txt"); got != old.String() {
 		t.Fatalf("restored %d bytes of %d", len(got), old.Len())
 	}
+}
+
+func TestHistoryOpensUntickedAndEmptyHasNoColumns(t *testing.T) {
+	a, tt, id := writingFixture(t, "第一版。")
+	a.openSnapshots()
+	tt.Frame()
+	if snapsOf(a).Compare {
+		t.Fatal("comparison starts checked")
+	}
+	testshot.Save(t, "history-unticked.png", tt.Image())
+	snapsOf(a).SnapsOpen = false
+	if err := os.RemoveAll(filepath.Join(a.Store.Root(), "history", id)); err != nil {
+		t.Fatal(err)
+	}
+	a.openSnapshots()
+	tt.Frame()
+	if len(snapsOf(a).Snaps) != 0 || !tt.HasText("本章暂无历史版本") {
+		t.Fatal(tt.Texts())
+	}
+	if _, ok := tt.Find("与当前对比"); ok {
+		t.Fatal("empty history has preview tools")
+	}
+	if len(snapsOf(a).SnapShown.Paras) != 0 {
+		t.Fatal("empty history has preview paragraphs")
+	}
+	if err := tt.Click("恢复这个版本"); err == nil {
+		tt.Frame()
+	}
+	if !snapsOf(a).SnapsOpen {
+		t.Fatal("empty history restored")
+	}
+	testshot.Save(t, "history-empty.png", tt.Image())
 }

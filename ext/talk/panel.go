@@ -72,6 +72,7 @@ type Panel struct {
 	Attach bool
 	// LastChat is the last measured page conversation area.
 	LastChat    ui.Rect
+	extensions  hostapi.Extensions
 	bookHost    hostapi.Book
 	editingHost hostapi.Editing
 	desktop     hostapi.Navigation
@@ -84,7 +85,7 @@ type Panel struct {
 	activation  *ext.Session
 	reload      bool
 
-	suggestions      aiapi.Suggestions
+	suggestions      talkapi.Suggestions
 	materialRef      *ext.Ref[contextapi.Context]
 	aiRef            *ext.Ref[aiapi.Backend]
 	tools            *ext.PointReader[aiapi.Tool]

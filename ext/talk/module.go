@@ -17,6 +17,7 @@ import (
 var Module = ext.Module{ID: "talk", Kind: ext.Feature, Group: hostapi.GroupAI, Requires: []string{"ai", "context"}, Name: talktext.ModTalk, Desc: talktext.ModTalkAbout, Setup: setup}
 
 type service struct {
+	starters *ext.PointReader[talkapi.TalkStarter]
 	ai       *ext.Ref[aiapi.Backend]
 	panel    *Panel
 	markdown *Markdown
@@ -35,13 +36,18 @@ func New() (ext.Module, *Panel) {
 }
 func setup(r *ext.Registrar) { setupPanel(r, &Panel{}) }
 func setupPanel(r *ext.Registrar, panel *Panel) {
+	ext.Declare(r, talkapi.TalkStarters)
+	ext.Declare(r, talkapi.Proposals)
+	talkapi.DeclareOperations(r)
 	s := &service{book: ext.Use(r, hostapi.BookService), editing: ext.Use(r, hostapi.EditingService), notices: ext.Use(r, hostapi.NoticesService), ai: ext.Use(r, aiapi.Service)}
+	s.starters = ext.ReadPoint(r, talkapi.TalkStarters)
+	extensions := ext.Use(r, hostapi.ExtensionsService)
 	pane := ext.Use(r, hostapi.PaneService)
 	desktop := ext.Use(r, hostapi.NavigationService)
 	desktopNative := ext.Use(r, hostapi.NativeUIService)
 	desktopPaths := ext.Use(r, hostapi.MachinePathsService)
 	jobs := ext.Use(r, hostapi.JobsService)
-	suggestions := &suggestionReader{point: ext.ReadPoint(r, aiapi.Proposals)}
+	suggestions := &suggestionReader{point: ext.ReadPoint(r, talkapi.Proposals)}
 	search := ext.Use(r, hostapi.SearchService)
 	material := ext.Use(r, contextapi.Service)
 	palette := ext.Use(r, hostapi.PaletteService)
@@ -51,6 +57,7 @@ func setupPanel(r *ext.Registrar, panel *Panel) {
 	r.OnStart(func(activation *ext.Session) error {
 		panel.activation = activation
 		p := s.panel
+		p.extensions = extensions.Get()
 		p.bookHost = s.book.Get()
 		p.editingHost = s.editing.Get()
 		p.desktop = desktop.Get()
@@ -116,6 +123,7 @@ func setupPanel(r *ext.Registrar, panel *Panel) {
 		}
 		return p.Refresh()
 	})
+	ext.Contribute(r, hostapi.Activities, "progress", hostapi.Activity{Nonblocking: func() bool { return s.panel.Turn.Active }, Presented: s.panel.ProgressVisible})
 	ext.Contribute(r, hostapi.FrameTicks, "tick", hostapi.FrameTick{Tick: s.panel.tick})
 	ext.Contribute(r, hostapi.Overlays, "source", hostapi.Overlay{Open: func() bool { return s.panel.SourceOpen }, Draw: func(c *ui.Context) {
 		if s.panel.SourceOpen && s.panel.Source != nil {
@@ -149,7 +157,7 @@ func setupPanel(r *ext.Registrar, panel *Panel) {
 	ext.Contribute(r, hostapi.SelectionMenus, "quote-menu", hostapi.SelectionMenu{Order: -10, Build: func(text string) []hostapi.SelectionAction {
 		return []hostapi.SelectionAction{{Label: talktext.EditorQuote(), Command: "talk.quote", Disabled: text == "", Run: func() { s.panel.QuoteToTalk() }}}
 	}})
-	ext.Contribute(r, aiapi.TalkStarters, "starter", aiapi.TalkStarter{Start: s.panel.StartTalk, DraftContext: s.panel.draftContext, Open: func(id string) { s.panel.OpenTalk(id); pane.Get().Show("talk") }, Running: func() bool { return s.panel.Turn.Active }, ProgressVisible: s.panel.ProgressVisible})
+	ext.Contribute(r, talkapi.TalkStarters, "starter", talkapi.TalkStarter{Start: s.panel.StartTalk, DraftContext: s.panel.draftContext, Open: func(id string) { s.panel.OpenTalk(id); pane.Get().Show("talk") }, Running: func() bool { return s.panel.Turn.Active }, ProgressVisible: s.panel.ProgressVisible})
 	s.markdown = &Markdown{Palette: func() *kit.Palette { return palette.Get().Colors() }, Entries: func() []workspace.Entry { got, _ := material.Get().Entries(); return got }, ShowEntry: func(entry workspace.Entry) { s.panel.showEntry(entry) }}
 	ext.Contribute(r, hostapi.ErrorTexts, "errors", hostapi.ErrorTranslator(translate))
 	ext.Contribute(r, hostapi.SettingsSections, "model", hostapi.SettingsSection{Work: true, Placement: "ai.models", Draw: s.modelSettings})
@@ -173,3 +181,38 @@ func (s *service) View() *Panel { return s.panel }
 
 // OpenTalk opens a saved conversation on the frame thread.
 func (p *Panel) OpenTalk(id string) { p.desktop.ShowPage("talk.page"); p.SwitchSession(id) }
+
+// Start dispatches conversation creation through the declared talk operation.
+func (s *service) Start(in talkapi.StartTalk) bool {
+	for _, i := range s.starters.Items() {
+		ok, _ := ext.CallReadOperation(s.starters, "Start", i.ID, in, talkapi.InvokeStart(i.Value))
+		return ok
+	}
+	return false
+}
+
+// Open dispatches pane navigation through the declared talk operation.
+func (s *service) Open(id string) {
+	for _, i := range s.starters.Items() {
+		_, _ = ext.CallReadOperation(s.starters, "Open", i.ID, id, talkapi.InvokeOpen(i.Value))
+		return
+	}
+}
+
+// DraftContext queries the controller through its guarded point.
+func (s *service) DraftContext() (out talkapi.DraftContext, err error) {
+	for _, i := range s.starters.Items() {
+		guardErr := s.starters.Guard(i.Owner, i.ID, func() { out, err = i.Value.DraftContext() })
+		if guardErr != nil {
+			err = guardErr
+		}
+		return
+	}
+	return
+}
+
+// Running reports whether a reply is in flight on the frame thread.
+func (s *service) Running() bool { return s.panel.Turn.Active }
+
+// ProgressVisible reports whether the current reply is shown on the frame thread.
+func (s *service) ProgressVisible() bool { return s.panel.ProgressVisible() }

@@ -7,9 +7,8 @@ import (
 )
 
 type point struct {
-	single bool
-	owner  string
-	typ    reflect.Type
+	owner string
+	typ   reflect.Type
 }
 type contribution struct {
 	id, owner, key string
@@ -201,11 +200,3 @@ func (r *Registrar) OnStart(f func(*Session) error) { r.check(); r.e.starts = ap
 
 // OnStop registers cleanup after session tasks have exited; callbacks run in reverse order.
 func (r *Registrar) OnStop(f func(*Session)) { r.check(); r.e.stops = append(r.e.stops, f) }
-
-// DeclareSingle declares a capability with no fallback: only one active candidate is usable.
-func DeclareSingle[T any](r *Registrar, key PointKey[T]) {
-	Declare(r, key)
-	p := r.h.points[string(key)]
-	p.single = true
-	r.h.points[string(key)] = p
-}

@@ -1157,6 +1157,20 @@ func (msgs Messages) TalkInputLabel() string {
 	return Catalog.Format(msgs.locale, "talkInputLabel", nil)
 }
 
+// TalkLoreSuggest says "推荐去开启「{name}」功能，使用更佳"
+// in the language the app shows.
+//
+// 设定关着时空白讨论页上的一句；名字可点，打开设置里那个扩展的页。
+func TalkLoreSuggest(name string) string { return In(i18n.Locale()).TalkLoreSuggest(name) }
+
+// TalkLoreSuggest says "推荐去开启「{name}」功能，使用更佳"
+// in the language of msgs.
+//
+// 设定关着时空白讨论页上的一句；名字可点，打开设置里那个扩展的页。
+func (msgs Messages) TalkLoreSuggest(name string) string {
+	return Catalog.Format(msgs.locale, "talkLoreSuggest", map[string]any{"name": name})
+}
+
 // TalkNext1 says "接下来的情节怎么走"
 // in the language the app shows.
 func TalkNext1() string { return In(i18n.Locale()).TalkNext1() }
@@ -1231,6 +1245,20 @@ func TalkStartAbout() string { return In(i18n.Locale()).TalkStartAbout() }
 // in the language of msgs.
 func (msgs Messages) TalkStartAbout() string {
 	return Catalog.Format(msgs.locale, "talkStartAbout", nil)
+}
+
+// TalkStartAboutNoLore says "写下初步的想法，和 AI 一起理清。"
+// in the language the app shows.
+//
+// 设定关着时空白讨论页的说明：没有设定文档可记，不提设定。
+func TalkStartAboutNoLore() string { return In(i18n.Locale()).TalkStartAboutNoLore() }
+
+// TalkStartAboutNoLore says "写下初步的想法，和 AI 一起理清。"
+// in the language of msgs.
+//
+// 设定关着时空白讨论页的说明：没有设定文档可记，不提设定。
+func (msgs Messages) TalkStartAboutNoLore() string {
+	return Catalog.Format(msgs.locale, "talkStartAboutNoLore", nil)
 }
 
 // TalkStartTitle says "从一个初步的想法开始"

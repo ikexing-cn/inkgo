@@ -27,6 +27,7 @@ func declareLifecycle(r *ext.Registrar, a *App) {
 
 	h := extensionHost{a}
 	ext.Provide(r, hostapi.ProseUIService, func(*ext.Session) hostapi.ProseUI { return h })
+	ext.Declare(r, hostapi.Activities)
 	ext.Declare(r, hostapi.ToolHints)
 	ext.DeclareCalls(r, hostapi.ToolHints, drawItemCall)
 	ext.Declare(r, hostapi.ProseOverlays)
@@ -335,4 +336,20 @@ func (a *App) extensionProseFooter(c *ui.Context, chapter bool) {
 			a.extensionDraw(c, hostapi.FooterItems, []ext.Item[hostapi.DrawItem]{item})
 		}
 	}
+}
+
+// OpenExtension opens the registered extension details on the frame thread.
+func (h extensionHost) OpenExtension(id string) {
+	h.a.openPrefs("extensions")
+	if _, ok := h.a.extViews.moduleViews[id]; ok {
+		h.a.settings.ext = id
+	}
+}
+
+// Name returns cached module metadata localized on the frame thread.
+func (h extensionHost) Name(id string) (string, bool) {
+	if v, ok := h.a.extViews.moduleViews[id]; ok {
+		return v.name(), true
+	}
+	return "", false
 }

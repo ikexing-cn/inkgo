@@ -83,20 +83,6 @@
       }
     }
   },
-  "statusTodayCount": "{count, plural, other { · 今天 {signed}}}",
-  "@statusTodayCount": {
-    "description": "应用外壳：{count, plural, other { · 今天 {signed}}}",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "100"
-      },
-      "signed": {
-        "type": "String",
-        "example": "+100"
-      }
-    }
-  },
   "statusTodayGoal": " · 今天 {today} / {goal}",
   "@statusTodayGoal": {
     "description": "底栏字数后面：今天写了多少字 / 每日目标。前面有空格和中点。",

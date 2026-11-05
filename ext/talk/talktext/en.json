@@ -167,6 +167,7 @@
   "talkCount": "{count, plural, one {# message} other {# messages}}",
   "talkInputHint": "Type an idea, or ask the AI…",
   "talkInputLabel": "Chat input",
+  "talkLoreSuggest": "Turn on “{name}” for a better experience",
   "talkNext1": "What happens next in the plot?",
   "talkNext2": "Which lore is still unclear?",
   "talkNext3": "Sort out the relationships between the characters",
@@ -175,6 +176,7 @@
   "talkStart2": "The protagonist has a secret they cannot say aloud",
   "talkStart3": "Where is the conflict in this story?",
   "talkStartAbout": "Write down a rough idea. The AI records what the chat settles in the lore document on the right, right away. Settled lore guides later chats; abandoned lore is no longer mentioned.",
+  "talkStartAboutNoLore": "Write down a rough idea and work it through with the AI.",
   "talkStartTitle": "Start from a rough idea",
   "helpGroupChat": "Chat",
   "helpSend": "Send"

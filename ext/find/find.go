@@ -45,6 +45,9 @@ func (a *View) closeFind() {
 func (a *View) findBar(c *ui.Context) {
 	t := a.Palette.Colors().Theme
 	w := a
+	if w.Wide {
+		a.refreshBookHits()
+	}
 	found := a.editor().Doc.Find(w.Query)
 	if w.Current >= len(found) {
 		w.Current = 0
@@ -105,8 +108,8 @@ func (a *View) findBar(c *ui.Context) {
 			}
 		}
 		if w.Wide {
-			if a.Palette.Colors().Secondary(c, findtext.FindReplaceBook()).Disabled(w.Query == "" || len(w.Hits) == 0 || a.lost() || a.paused()).Clicked() {
-				w.Sure = !w.Sure
+			if a.Palette.Colors().Secondary(c, findtext.FindReplaceBook()).KeepFocus().Disabled(w.Query == "" || len(w.Hits) == 0 || a.lost() || a.paused()).Clicked() {
+				w.Sure = true
 			}
 			return
 		}
@@ -129,9 +132,6 @@ func (a *View) findBar(c *ui.Context) {
 	bar.Children(func() {
 		line(func() { Query(); count(); move(); Wide(); closer() })
 		line(func() { with(); replace() })
-		if w.Wide && w.Sure {
-			a.confirmBookReplace(c)
-		}
 		if w.Wide {
 			a.bookResults(c)
 		}

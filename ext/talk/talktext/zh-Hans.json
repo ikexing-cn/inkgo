@@ -391,6 +391,16 @@
   },
   "talkInputHint": "输入想法，或向 AI 提问…",
   "talkInputLabel": "讨论输入",
+  "talkLoreSuggest": "推荐去开启「{name}」功能，使用更佳",
+  "@talkLoreSuggest": {
+    "description": "设定关着时空白讨论页上的一句；名字可点，打开设置里那个扩展的页。",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "设定"
+      }
+    }
+  },
   "talkNext1": "接下来的情节怎么走",
   "talkNext2": "哪些设定还没想清楚",
   "talkNext3": "梳理一下人物关系",
@@ -411,6 +421,10 @@
   "talkStart2": "主角有个说不出口的秘密",
   "talkStart3": "这个故事的冲突在哪",
   "talkStartAbout": "写下初步的想法。讨论中定下的内容，AI 会当场记进右侧的设定文档；已确定的设定将作为后续讨论的依据，已放弃的不再提及。",
+  "talkStartAboutNoLore": "写下初步的想法，和 AI 一起理清。",
+  "@talkStartAboutNoLore": {
+    "description": "设定关着时空白讨论页的说明：没有设定文档可记，不提设定。"
+  },
   "talkStartTitle": "从一个初步的想法开始",
   "@helpGroupChat": {
     "description": "快捷键表里「讨论」那一组的名字。"

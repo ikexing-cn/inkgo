@@ -3,8 +3,6 @@ package propose
 import (
 	"slices"
 	"strings"
-	"writer/ext"
-	"writer/ext/ai/aiapi"
 	"writer/ext/propose/proposetext"
 
 	"github.com/egoist/mygo/ui"
@@ -313,9 +311,7 @@ func (a *View) showProp(p *Proposal) {
 }
 
 func (a *View) openTalk(ID string) {
-	for _, i := range a.starterItems() {
-		_, _ = ext.CallReadOperation(a.starters, "Open", i.ID, ID, aiapi.InvokeOpen(i.Value))
-	}
+	a.talk.Get().Open(ID)
 }
 
 // propActs float in the room after each proposal shown: 放弃, then 采纳

@@ -1,4 +1,4 @@
-package aiapi
+package talkapi
 
 import (
 	"writer/ext"
@@ -40,4 +40,4 @@ type Suggestions interface {
 }
 
 // Proposals is filled by propose and called by talk on the frame thread.
-const Proposals ext.PointKey[Suggestions] = "ai.proposals"
+const Proposals ext.PointKey[Suggestions] = "talk.proposals"

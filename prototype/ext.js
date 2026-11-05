@@ -15,6 +15,7 @@ const drawPoint = (point, ...args) => contributions(point).map((draw) => draw(..
 
 // 一行一个扩展，照笔记里那张表写；两边对不上，有一边错了。顺序就是「扩展」总览里的顺序。
 // g：在总览的哪一组；lib 那一组是基础扩展，给别的扩展用，自己没有界面。
+// 起草、改写（在改稿建议里）都是开一段讨论来做，所以必需讨论：讨论关着时它们一起关（作者 2026-11-05 定）。
 // req：必需依赖，连带开关。opt：可选依赖，开着就用，不连带。off：关着时多说的一句。
 // 设置左栏的页由各扩展登记到 SettingsPages；同名合用一页，不登记的只在自己的详情页里。
 const EXTS = () => [
@@ -23,16 +24,16 @@ const EXTS = () => [
   { id: 'names', g: 'write', name: L.modNames(), about: L.modNamesAbout(), req: ['lore'] },
   { id: 'find', g: 'write', name: L.modFind(), about: L.modFindAbout() },
   { id: 'notes', g: 'write', name: L.modNotes(), about: L.modNotesAbout(), req: ['marks'] },
-  { id: 'lore', g: 'lore', name: L.modLore(), about: L.modLoreAbout(), req: ['context'], opt: ['marks', 'ai', 'talk', 'find'] }, // 提议，等作者看：设定使用讨论和查找的可选能力。
+  { id: 'lore', g: 'lore', name: L.modLore(), about: L.modLoreAbout(), req: ['context'], opt: ['marks', 'ai', 'talk', 'find'] },
   { id: 'outline', g: 'lore', name: L.modOutline(), about: L.modOutlineAbout(), req: ['context'], opt: ['ai'] },
   { id: 'hooks', g: 'lore', name: L.modHooks(), about: L.modHooksAbout(), req: ['context', 'marks'] },
   { id: 'talk', g: 'ai', name: L.modTalk(), about: L.modTalkAbout(), req: ['ai', 'context'] },
   { id: 'continue', g: 'ai', name: L.modContinue(), about: L.modContinueAbout(), req: ['ai', 'context'] },
-  { id: 'draft', g: 'ai', name: L.modDraft(), about: L.modDraftAbout(), req: ['ai', 'outline'] },
-  { id: 'propose', g: 'ai', name: L.modPropose(), about: L.modProposeAbout(), req: ['ai'], opt: ['marks'] },
-  { id: 'check', g: 'ai', name: L.modCheck(), about: L.modCheckAbout(), req: ['ai', 'lore', 'marks', 'context'] }, // 提议，等作者看：检查直接读取资料库。
+  { id: 'draft', g: 'ai', name: L.modDraft(), about: L.modDraftAbout(), req: ['ai', 'outline', 'talk'] },
+  { id: 'propose', g: 'ai', name: L.modPropose(), about: L.modProposeAbout(), req: ['ai', 'talk'], opt: ['marks'] },
+  { id: 'check', g: 'ai', name: L.modCheck(), about: L.modCheckAbout(), req: ['ai', 'lore', 'marks', 'context'] },
   { id: 'usage', g: 'ai', name: L.modUsage(), about: L.modUsageAbout(), req: ['ai'] },
-  { id: 'snaps', g: 'files', name: L.modSnaps(), about: L.modSnapsAbout() }, // 提议，等作者看：快照保存来源标题，无需依赖讨论。
+  { id: 'snaps', g: 'files', name: L.modSnaps(), about: L.modSnapsAbout() },
   { id: 'trash', g: 'files', name: L.modTrash(), about: L.modTrashAbout() },
   { id: 'cats', g: 'files', name: L.modCats(), about: L.modCatsAbout() },
   { id: 'backup', g: 'files', name: L.modBackup(), about: L.modBackupAbout(), off: L.modBackupOff() },

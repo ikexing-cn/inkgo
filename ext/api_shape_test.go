@@ -36,37 +36,6 @@ func TestReadPointAssemblyValidation(t *testing.T) {
 	}
 }
 
-func TestSingleCapabilityHasNoFallbackOnConflict(t *testing.T) {
-	const point ext.PointKey[int] = "base.capability"
-	for count := 0; count <= 2; count++ {
-		mods := []ext.Module{{ID: "base", Setup: func(r *ext.Registrar) { ext.DeclareSingle(r, point) }}}
-		for _, id := range []string{"one", "two"}[:count] {
-			mods = append(mods, ext.Module{ID: id, Requires: []string{"base"}, Setup: func(r *ext.Registrar) { ext.Contribute(r, point, "candidate", 1) }})
-		}
-		h, err := ext.New(ext.Options{}, mods...)
-		if err != nil {
-			t.Fatal(err)
-		}
-		items := ext.Items(h, point)
-		if (len(items) == 1) != (count == 1) {
-			t.Fatal(count, items)
-		}
-		ledger := h.Ledger("base").Capabilities
-		if len(ledger) != 1 || len(ledger[0].Candidates) != count || ledger[0].Conflict != (count == 2) {
-			t.Fatal(ledger)
-		}
-		if count == 2 {
-			if err := h.Set("two", false); err != nil {
-				t.Fatal(err)
-			}
-			if len(ext.Items(h, point)) != 1 {
-				t.Fatal("remaining candidate unavailable")
-			}
-		}
-		h.Close()
-	}
-}
-
 type operations struct {
 	first  func(int) int
 	second func(string) string

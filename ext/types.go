@@ -203,18 +203,10 @@ type Failure struct {
 // CallInfo records a point operation and its input/output type names at assembly.
 type CallInfo struct{ Point, Operation, Input, Output string }
 
-// Capability records the active candidates of a single-valued point.
-type Capability struct {
-	Point      string
-	Candidates []string
-	Conflict   bool
-}
-
 // Ledger is a snapshot of declarations and runtime status.
 type Ledger struct {
 	// Calls records the typed operations declared by this module.
 	Calls                      []CallInfo
-	Capabilities               []Capability
 	ID                         string
 	Requires, Optional         []Dependency
 	NeededBy, UsedOptionallyBy []string

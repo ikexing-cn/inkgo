@@ -506,7 +506,9 @@ function todoPop(list) {
 function wordsOf(cur, vol) {
   const inVol = vol && wordCount(vol[2] || S.chapters.filter((c) => c.vol === vol[0]).reduce((n, c) => n + sizeOf(c), 0))
   const count = (S.bar ? L.statusSelected(S.bar.text.length, 'character') : cur ? L.statusChapterWords(sizeOf(cur), 'character') : vol ? L.statusVolumeWords(inVol) : '') + (cur || vol ? ' · ' : '') + L.statusBookWords(wordCount(S.book === BOOK.shelf[0].id ? BOOK.words : S.chapters.reduce((n, c) => n + sizeOf(c), 0))) + (drawPoint('WordSuffix'))
-  return `<div class="anchor up"><div class="words ell hit" title="${L.statusWordsTip('character')}"${onClick(() => set({ open: S.open === 'goal' ? '' : 'goal' }))}>${t(count)}</div>${drawPoint('WordPopovers')}</div>`
+  // 点开的是字数目标的浮层；字数目标关着时没有浮层，字数只是字，不能点。
+  const pops = contributions('WordPopovers').length > 0
+  return `<div class="anchor up"><div class="words ell${pops ? ' hit' : ''}"${pops ? ` title="${L.statusWordsTip('character')}"${onClick(() => set({ open: S.open === 'goal' ? '' : 'goal' }))}` : ''}>${t(count)}</div>${drawPoint('WordPopovers')}</div>`
 }
 
 // 标题栏右边那几样：写作页才有。专注写作时也在，那时标题栏只剩它们和正中的章名。

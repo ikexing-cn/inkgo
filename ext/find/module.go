@@ -46,6 +46,11 @@ func module(controller *View) ext.Module {
 			}
 		}, Menu: hostapi.MenuPosition{Menu: hostapi.MenuEdit, After: "edit-find-separator", Order: 25}, Key: ui.KeyF, Mods: ui.Cmd, OnMac: true, MacKey: ui.KeyF, MacMods: ui.Super, HelpGroup: locales.HelpGroupWrite, HelpText: findtext.HelpFind, HelpAfter: locales.HelpSave})
 
+		ext.Contribute(r, hostapi.Overlays, "replace-dialog", hostapi.Overlay{Open: func() bool { return p.Sure }, Draw: func(c *ui.Context) {
+			if p.Sure {
+				p.confirmBookReplace(c)
+			}
+		}})
 		ext.Contribute(r, hostapi.ChapterOpens, "chapter", func(hostapi.ChapterOpened) { p.Current = 0 })
 		ext.Contribute(r, hostapi.BeforeProse, "bar", hostapi.DrawItem{Draw: func(c *ui.Context) {
 			if p.Finding && p.editor() != nil && !p.editor().ReadOnly() {

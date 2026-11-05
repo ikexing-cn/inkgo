@@ -6,8 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
 	"writer/ext/goal"
+	"writer/internal/testshot"
 	"writer/workspace"
 )
 
@@ -100,7 +102,14 @@ func TestCountsMoveAsTyped(t *testing.T) {
 	tt.Frame()
 	tt.Type("二三")
 	tt.Frame()
-	if !tt.HasText("本章 3 字 · 全书 3 字 · 今天 +2") {
+	if !slices.Contains(tt.Texts(), "本章 3 字 · 全书 3 字") {
+		t.Fatal(tt.Texts())
+	}
+	testshot.Save(t, "count-no-goal.png", tt.Image())
+	goalOf(a).SetGoal("2000")
+	tt.Frame()
+	testshot.Save(t, "count-with-goal.png", tt.Image())
+	if !tt.HasText("本章 3 字 · 全书 3 字 · 今天 2 / 2,000") {
 		t.Fatal(tt.Texts())
 	}
 }
@@ -130,4 +139,37 @@ func TestCountsWaitForTheBook(t *testing.T) {
 	if goalOf(a).Today(now) != 0 {
 		t.Fatal("new day did not start at zero")
 	}
+}
+
+func TestShotCountWithGoalOffIsPlainText(t *testing.T) {
+	a, tt, _ := writingFixture(t, "一二三")
+	a.setExtension("goal", false, false)
+	a.write.focus = true
+	tt.Move(0, 0)
+	tt.Frame()
+	tt.Frame()
+	r := find(t, tt, "字数")
+	before := tt.Image()
+	tt.Move(r.X+r.W/2, r.Y+r.H/2)
+	tt.Advance(time.Second)
+	tt.Frame()
+	tt.Frame()
+	if slices.Contains(tt.Texts(), "全书 3 字") {
+		t.Fatal("plain count has tooltip")
+	}
+	if pixelsChanged(before, tt.Image(), r) {
+		t.Fatal("plain count responds to hover")
+	}
+	tt.Click("字数")
+	tt.Frame()
+	if tt.HasText("每日目标") {
+		t.Fatal("disabled goal opened")
+	}
+	for range 80 {
+		tt.Key(0, ui.KeyTab)
+		if tt.Focused("字数") {
+			t.Fatal("plain count is focusable")
+		}
+	}
+	testshot.Save(t, "count-goal-off.png", tt.Image())
 }

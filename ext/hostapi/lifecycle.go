@@ -76,6 +76,9 @@ type SettingsSection struct {
 
 // Navigation groups related frame-thread host capabilities.
 type Navigation interface {
+	// OpenExtension opens Settings > Extensions at the registered extension details.
+	// Unknown IDs open the overview. Call directly on the frame thread.
+	OpenExtension(id string)
 	// Page returns the current qualified page identity on the frame thread.
 	Page() string
 

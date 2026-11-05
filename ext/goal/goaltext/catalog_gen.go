@@ -93,22 +93,6 @@ func (msgs Messages) StatusCountTip(book string, count int, signed string, unit 
 	return Catalog.Format(msgs.locale, "statusCountTip", map[string]any{"book": book, "count": count, "signed": signed, "unit": unit})
 }
 
-// StatusTodayCount says "{count, plural, other { · 今天 {signed}}}"
-// in the language the app shows.
-//
-// 应用外壳：{count, plural, other { · 今天 {signed}}}
-func StatusTodayCount(count int, signed string) string {
-	return In(i18n.Locale()).StatusTodayCount(count, signed)
-}
-
-// StatusTodayCount says "{count, plural, other { · 今天 {signed}}}"
-// in the language of msgs.
-//
-// 应用外壳：{count, plural, other { · 今天 {signed}}}
-func (msgs Messages) StatusTodayCount(count int, signed string) string {
-	return Catalog.Format(msgs.locale, "statusTodayCount", map[string]any{"count": count, "signed": signed})
-}
-
 // StatusTodayGoal says " · 今天 {today} / {goal}"
 // in the language the app shows.
 //

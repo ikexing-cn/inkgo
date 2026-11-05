@@ -134,7 +134,8 @@ function view() {
   const focus = S.focus && S.page === 'write'
   // 换页入口看开关；已经在那一页、或从舞台摆出的少见情况，仍用登记过的画法。
   const main = { write: () => editor(chapterOf(S.ch)), ...Object.fromEntries(registered('Pages').map(({ value: x }) => [x.id, x.draw])) }
-  const side = (S.page === 'write' && !focus) || S.page === 'talk' ? S.paneOpen : S.page === 'plan' ? S.planPane : false
+  // 讨论页的右栏是设定放进来的：设定关着时没有右栏，和开关灰着一致。
+  const side = S.page === 'write' && !focus ? S.paneOpen : S.page === 'talk' ? S.paneOpen && !!paneHere()[0] : S.page === 'plan' ? S.planPane : false
   const bare = focus || !S.sideOpen
   // 缩放：窗口里按 1/z 的大小排，再整个放大 z 倍；排出来窄过 1180 就是窄窗口。
   const [w, h] = winSize(), z = S.zoom, narrow = w / z < 1180

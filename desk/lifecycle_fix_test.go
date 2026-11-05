@@ -13,6 +13,7 @@ import (
 	"writer/ext"
 	"writer/ext/ai/aiapi"
 	"writer/ext/hostapi"
+	"writer/ext/talk/talkapi"
 	"writer/prefs"
 	"writer/workspace"
 )
@@ -160,8 +161,8 @@ func TestToolProviderRestartDropsPausedProposal(t *testing.T) {
 	close(release)
 	<-done
 	// The native controller was replaced during reassembly; use the contribution.
-	for _, item := range ext.Items(a.extensions, aiapi.Proposals) {
-		item.Value.Follow(aiapi.ProposalFrame{Session: talkOf(a).Session})
+	for _, item := range ext.Items(a.extensions, talkapi.Proposals) {
+		item.Value.Follow(talkapi.ProposalFrame{Session: talkOf(a).Session})
 		ok, _ := item.Value.State(talkOf(a).Session, "paused")
 		if ok {
 			t.Fatal("old provider result accepted")

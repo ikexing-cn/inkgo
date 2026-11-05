@@ -9,6 +9,7 @@ import (
 	"writer/ext/ai/aiapi"
 	"writer/ext/hostapi"
 	"writer/ext/marks/marksapi"
+	"writer/ext/talk/talkapi"
 	"writer/workspace"
 )
 
@@ -34,7 +35,7 @@ func TestDraftAndProposeOffRemoveEveryContributionAndOnRestoresThemGloballyAndPe
 				if hasOwner(ext.Items(a.extensions, hostapi.Commands), id) || hasOwner(ext.Items(a.extensions, hostapi.Overlays), id) || hasOwner(ext.Items(a.extensions, hostapi.SelectionMenus), id) || hasOwner(ext.Items(a.extensions, hostapi.BeforeProse), id) || hasOwner(ext.Items(a.extensions, hostapi.PendingGroups), id) || hasOwner(ext.Items(a.extensions, marksapi.MarginSources), id) || hasOwner(ext.Items(a.extensions, aiapi.Tools), id) {
 					t.Fatal("disabled contributions survived")
 				}
-				if id == "propose" && (len(shownEditor(a).Proposals()) != 0 || len(ext.Items(a.extensions, aiapi.Proposals)) != 0) {
+				if id == "propose" && (len(shownEditor(a).Proposals()) != 0 || len(ext.Items(a.extensions, talkapi.Proposals)) != 0) {
 					t.Fatal("disabled proposals survived")
 				}
 				a.setExtension(id, true, book)
@@ -102,7 +103,7 @@ func TestProposeOffReceivesNoProposalAndHasNoCardActions(t *testing.T) {
 	a, tt, _ := writingFixture(t, "原文。")
 	a.setExtension("propose", false, false)
 	tt.Frame()
-	if len(ext.Items(a.extensions, aiapi.Proposals)) != 0 {
+	if len(ext.Items(a.extensions, talkapi.Proposals)) != 0 {
 		t.Fatal("receiver remained")
 	}
 	p := talkOf(a)
@@ -153,7 +154,7 @@ func TestProposeToolReceivesItsOwnCompletedProposalWithoutTalkResultHandover(t *
 			t.Fatal(result)
 		}
 	}
-	proposeOf(a).Follow(aiapi.ProposalFrame{Session: session})
+	proposeOf(a).Follow(talkapi.ProposalFrame{Session: session})
 	tt.Frame()
 	if len(proposeOf(a).Props) != 1 || proposeOf(a).Props[0].Chapter != ch {
 		t.Fatal("completion required talk result handover")

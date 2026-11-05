@@ -69,4 +69,4 @@ func (a *App) poll() {
 // under: the list of models holds the window. A talk turn holds only
 // sending another and switching the work; the rest goes on as it replies,
 // and a model changed meanwhile takes the next turn.
-func (a *App) held() bool { return a.busy != "" && !a.nonblocking && !a.talkRunning() }
+func (a *App) held() bool { return a.busy != "" && !a.nonblocking && !a.nonblockingActivity() }

@@ -621,9 +621,6 @@ func pointItemsLocked[T any](h *Host, key PointKey[T], declared bool) []Item[T] 
 			out = append(out, Item[T]{ID: c.id, Owner: c.owner, Value: v, ReplacedBy: replacedBy})
 		}
 	}
-	if !declared && h.points[string(key)].single && len(out) != 1 {
-		return nil
-	}
 	return out
 }
 
@@ -636,30 +633,6 @@ func (h *Host) Ledger(id string) Ledger {
 		return Ledger{}
 	}
 	l := e.ledger
-	for key, p := range h.points {
-		if !p.single {
-			continue
-		}
-		status := Capability{Point: key}
-		for _, c := range h.contributions {
-			if c.key == key && h.active(c.owner) && h.active(p.owner) {
-				status.Candidates = append(status.Candidates, c.id)
-			}
-		}
-		status.Conflict = len(status.Candidates) > 1
-		if p.owner == id || slices.ContainsFunc(h.contributions, func(c contribution) bool { return c.key == key && c.owner == id }) {
-			l.Capabilities = append(l.Capabilities, status)
-		}
-	}
-	slices.SortFunc(l.Capabilities, func(a, b Capability) int {
-		if a.Point < b.Point {
-			return -1
-		}
-		if a.Point > b.Point {
-			return 1
-		}
-		return 0
-	})
 	l.Points = slices.Clone(l.Points)
 	l.Reads = slices.Clone(l.Reads)
 	l.Calls = slices.Clone(l.Calls)

@@ -18,6 +18,8 @@ const SearchService ext.ServiceKey[Search] = "host.search"
 
 // Extensions reads host activation state on the frame thread.
 type Extensions interface {
+	// Name returns a registered extension’s localized name, even while disabled.
+	Name(string) (string, bool)
 	// Enabled reports whether a registered extension is active.
 	Enabled(string) bool
 }

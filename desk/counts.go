@@ -86,7 +86,7 @@ func (a *App) wordCount(c *ui.Context) {
 	color := a.pal.Faint // as the design has it, met or not: the numbers say so
 	var counts ui.Element
 	if len(popovers) > 0 {
-		counts = ui.ButtonBase(c)
+		counts = ui.ButtonBase(c).Tooltip(tip)
 	} else {
 		counts = ui.Box(c)
 	}
@@ -97,7 +97,7 @@ func (a *App) wordCount(c *ui.Context) {
 	width, _ := c.MeasureText(0, ui.Span{Text: line, Size: kit.FsNote})
 	// Allocate counts from the space left by the fixed footer items. A large
 	// shrink factor still takes fractions from the status and triggers ellipsis.
-	counts.Row().Basis(0).Grow(1000).MaxWidth(width).Shrink(1000).MinWidth(0).Label(locales.StatusWordCount(a.countUnit())).Tooltip(tip)
+	counts.Row().Basis(0).Grow(1000).MaxWidth(width).Shrink(1000).MinWidth(0).Label(locales.StatusWordCount(a.countUnit()))
 	a.slideEdge(counts)
 	if len(popovers) > 0 && counts.Hovered() {
 		color = t.Text

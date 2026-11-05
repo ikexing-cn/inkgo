@@ -253,28 +253,14 @@ func (h *Host) active(id string) bool {
 }
 func (h *Host) targetActive(target string) bool {
 	if d, ok := h.hooks[target]; ok {
-		return h.active(d.owner) && (d.point == "" || h.active(owner(d.point)) && !h.pointConflict(d.point))
+		return h.active(d.owner) && (d.point == "" || h.active(owner(d.point)))
 	}
 	for _, c := range h.contributions {
 		if itemTarget(c.key, c.id) == target {
-			return h.active(c.owner) && h.active(owner(c.key)) && !h.pointConflict(c.key)
+			return h.active(c.owner) && h.active(owner(c.key))
 		}
 	}
 	return false
-}
-
-// pointConflict is read under mu, including while rebuilding call chains.
-func (h *Host) pointConflict(key string) bool {
-	if !h.points[key].single {
-		return false
-	}
-	n := 0
-	for _, c := range h.contributions {
-		if c.key == key && h.active(c.owner) {
-			n++
-		}
-	}
-	return n > 1
 }
 
 func (h *Host) inactiveTargetReason(target string) Reason {

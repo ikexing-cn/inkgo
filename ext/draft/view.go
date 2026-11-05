@@ -13,7 +13,7 @@ import (
 
 // OpenDraft opens the chapter drafting dialog on the frame thread.
 func (a *View) OpenDraft() {
-	if _, present := a.outlineValue(a.node()); !present || !a.talkOn() {
+	if _, present := a.outlineValue(a.node()); !present {
 		return
 	}
 	w := a

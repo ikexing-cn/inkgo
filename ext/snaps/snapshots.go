@@ -38,7 +38,7 @@ func (a *View) openSnapshots() {
 		a.Notices.Notices().Warn(err)
 		return
 	}
-	w.Snaps, w.SnapsOpen, w.Compare = snaps, true, true
+	w.Snaps, w.SnapsOpen, w.Compare = snaps, true, false
 	w.Snap, w.SnapText = "", ""
 	if len(snaps) > 0 {
 		a.pickSnapshot(snaps[0].Name)
@@ -129,74 +129,77 @@ func (a *View) snapshots(c *ui.Context) {
 				ai = snapstext.SnapAboutAI()
 			}
 			a.Palette.Colors().DialogHead(c, snapstext.SnapTitle(a.title()), snapstext.SnapAbout(ai))
-			ui.Row(c).FillWidth().Grow(1).Gap(16).AlignItems(ui.Stretch).Children(func() {
-				ui.Scroll(c.Key("snaps")).Width(200).FillHeight().Shrink(0).Children(func() {
-					ui.Column(c).FillWidth().Gap(2).Children(func() {
-						if len(w.Snaps) == 0 {
-							ui.Text(c, snapstext.SnapNone()).FontSize(kit.FsControl).TextColor(a.Palette.Colors().Faint).Padding(8)
-						}
-						for _, sn := range w.Snaps {
-							on := sn.Name == w.Snap
-							at := kit.When(sn.At, time.Now())
-							b := ui.ButtonBase(c.Key("s-"+sn.Name)).Column().FillWidth().AlignItems(ui.Start).Gap(2).Padding(8, 10).Radius(kit.RControl).Label("快照-" + at)
-							if on {
-								b.Background(t.SurfacePressed)
-							} else if b.Hovered() {
-								b.Background(t.SurfaceHover)
-							}
-							b.Children(func() {
-								ui.Text(c, at).FontSize(kit.FsControl)
-								ui.Text(c, snapstext.SnapRowInfo(a.snapReason(sn.Reason), sn.Count, a.Book.Store().Work().Language.Unit())).FontSize(kit.FsNote).TextColor(t.TextMuted)
-							})
-							if b.Clicked() {
-								a.pickSnapshot(sn.Name)
-							}
-						}
-					})
+			if len(w.Snaps) == 0 {
+				ui.Box(c).FillWidth().Padding(20, 10).Children(func() {
+					ui.Text(c, snapstext.SnapNone()).FontSize(kit.FsBody)
 				})
-				ui.Column(c).Grow(1).Shrink(1).FillHeight().Gap(10).Children(func() {
-					ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Center).Children(func() {
-						ui.Checkbox(c, &w.Compare, snapstext.SnapCompare())
-						if same {
-							ui.Text(c, snapstext.SnapSame()).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
-						} else if w.Compare {
-							ui.Text(c, snapstext.SnapDiffHint()).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
-						}
-					})
-					if i := slices.IndexFunc(w.Snaps, func(s workspace.Snapshot) bool { return s.Name == w.Snap }); i >= 0 && a.AI.Enabled("ai") {
-						switch sn := w.Snaps[i]; {
-						case len(sn.Talks) > 0:
-							a.talkRecord(c, sn.Sources)
-						case sn.AI != nil:
-							a.aiRecord(c, sn.AI)
-						}
-					}
-					// The paragraphs select as one text, and copy a line each.
-					para := func(i int) {
-						switch spans := shown.Paras[i]; {
-						case len(spans) == 0: // an empty line keeps its height
-							ui.Text(c, "").FontSize(kit.FsRead).LineHeight(kit.LhRead).FillWidth()
-						case len(spans) == 1 && spans[0] == (ui.Span{Text: spans[0].Text}):
-							ui.Text(c, spans[0].Text).FontSize(kit.FsRead).LineHeight(kit.LhRead).FillWidth()
-						default:
-							ui.RichText(c, spans...).FontSize(kit.FsRead).LineHeight(kit.LhRead).FillWidth()
-						}
-					}
-					if shown.Long {
-						ui.Box(c).FillWidth().Grow(1).Background(a.Palette.Colors().Canvas).Border(1, a.Palette.Colors().Line).Radius(kit.RControl).Selectable().Children(func() {
-							ui.List(c, &shown.List, len(shown.Paras), para).Fill().Padding(12, 16)
-						})
-					} else {
-						ui.Scroll(c.Key("Snap-text")).FillWidth().Grow(1).Background(a.Palette.Colors().Canvas).Border(1, a.Palette.Colors().Line).Radius(kit.RControl).Children(func() {
-							ui.Column(c).FillWidth().Padding(12, 16).Selectable().Children(func() {
-								for i := range shown.Paras {
-									para(i)
+			} else {
+				ui.Row(c).FillWidth().Grow(1).Gap(16).AlignItems(ui.Stretch).Children(func() {
+					ui.Scroll(c.Key("snaps")).Width(200).FillHeight().Shrink(0).Children(func() {
+						ui.Column(c).FillWidth().Gap(2).Children(func() {
+							for _, sn := range w.Snaps {
+								on := sn.Name == w.Snap
+								at := kit.When(sn.At, time.Now())
+								b := ui.ButtonBase(c.Key("s-"+sn.Name)).Column().FillWidth().AlignItems(ui.Start).Gap(2).Padding(8, 10).Radius(kit.RControl).Label("快照-" + at)
+								if on {
+									b.Background(t.SurfacePressed)
+								} else if b.Hovered() {
+									b.Background(t.SurfaceHover)
 								}
-							})
+								b.Children(func() {
+									ui.Text(c, at).FontSize(kit.FsControl)
+									ui.Text(c, snapstext.SnapRowInfo(a.snapReason(sn.Reason), sn.Count, a.Book.Store().Work().Language.Unit())).FontSize(kit.FsNote).TextColor(t.TextMuted)
+								})
+								if b.Clicked() {
+									a.pickSnapshot(sn.Name)
+								}
+							}
 						})
-					}
+					})
+					ui.Column(c).Grow(1).Shrink(1).FillHeight().Gap(10).Children(func() {
+						ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Center).Children(func() {
+							ui.Checkbox(c, &w.Compare, snapstext.SnapCompare())
+							if same {
+								ui.Text(c, snapstext.SnapSame()).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
+							} else if w.Compare {
+								ui.Text(c, snapstext.SnapDiffHint()).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
+							}
+						})
+						if i := slices.IndexFunc(w.Snaps, func(s workspace.Snapshot) bool { return s.Name == w.Snap }); i >= 0 && a.AI.Enabled("ai") {
+							switch sn := w.Snaps[i]; {
+							case len(sn.Talks) > 0:
+								a.talkRecord(c, sn.Sources)
+							case sn.AI != nil:
+								a.aiRecord(c, sn.AI)
+							}
+						}
+						// The paragraphs select as one text, and copy a line each.
+						para := func(i int) {
+							switch spans := shown.Paras[i]; {
+							case len(spans) == 0: // an empty line keeps its height
+								ui.Text(c, "").FontSize(kit.FsRead).LineHeight(kit.LhRead).FillWidth()
+							case len(spans) == 1 && spans[0] == (ui.Span{Text: spans[0].Text}):
+								ui.Text(c, spans[0].Text).FontSize(kit.FsRead).LineHeight(kit.LhRead).FillWidth()
+							default:
+								ui.RichText(c, spans...).FontSize(kit.FsRead).LineHeight(kit.LhRead).FillWidth()
+							}
+						}
+						if shown.Long {
+							ui.Box(c).FillWidth().Grow(1).Background(a.Palette.Colors().Canvas).Border(1, a.Palette.Colors().Line).Radius(kit.RControl).Selectable().Children(func() {
+								ui.List(c, &shown.List, len(shown.Paras), para).Fill().Padding(12, 16)
+							})
+						} else {
+							ui.Scroll(c.Key("Snap-text")).FillWidth().Grow(1).Background(a.Palette.Colors().Canvas).Border(1, a.Palette.Colors().Line).Radius(kit.RControl).Children(func() {
+								ui.Column(c).FillWidth().Padding(12, 16).Selectable().Children(func() {
+									for i := range shown.Paras {
+										para(i)
+									}
+								})
+							})
+						}
+					})
 				})
-			})
+			}
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 				ui.Spacer(c)
 				if a.Palette.Colors().Secondary(c, locales.CommonClose()).Clicked() {

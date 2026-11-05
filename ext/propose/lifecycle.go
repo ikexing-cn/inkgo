@@ -1,7 +1,7 @@
 package propose
 
 import (
-	"writer/ext/ai/aiapi"
+	"writer/ext/talk/talkapi"
 	"writer/workspace"
 )
 
@@ -9,7 +9,7 @@ import (
 func (h *View) Begin() { h.seen = map[string]bool{} }
 
 // Follow receives a copied discussion frame, without its mailbox.
-func (h *View) Follow(f aiapi.ProposalFrame) { h.Frame = f; h.receiveCompleted(); h.followProps() }
+func (h *View) Follow(f talkapi.ProposalFrame) { h.Frame = f; h.receiveCompleted(); h.followProps() }
 
 // Finish drops unfinished text from this conversation on the frame thread.
 func (h *View) Finish(session string) {

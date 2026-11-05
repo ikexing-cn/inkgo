@@ -3,7 +3,6 @@
   "statusSignedWords": "{unit, select, word {{count, plural, one {{signed} word} other {{signed} words}}} other {{count, plural, one {{signed} character} other {{signed} characters}}}}",
   "statusCountGoalTip": "{unit, select, word {{book}, {count, plural, one {{signed} word} other {{signed} words}} today, goal {goal, plural, one {# word} other {# words}}. Click to set a daily goal.} other {{book}, {count, plural, one {{signed} character} other {{signed} characters}} today, goal {goal, plural, one {# character} other {# characters}}. Click to set a daily goal.}}",
   "statusCountTip": "{unit, select, word {{book}, {count, plural, one {{signed} word} other {{signed} words}} today. Click to set a daily goal.} other {{book}, {count, plural, one {{signed} character} other {{signed} characters}} today. Click to set a daily goal.}}",
-  "statusTodayCount": "{count, plural, one { · Today {signed}} other { · Today {signed}}}",
   "statusTodayGoal": " · Today {today}/{goal}",
   "statusLast7": "Last 7 Days",
   "statusDailyGoal": "Daily Goal",

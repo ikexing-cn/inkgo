@@ -1,4 +1,4 @@
-package aiapi
+package talkapi
 
 import (
 	"github.com/egoist/mygo/ui"
@@ -17,9 +17,9 @@ type TalkStarter struct {
 	ProgressVisible func() bool
 }
 
-// TalkStarters is filled by talk; draft and rewrite call it to start a new
-// talk with an origin, title, author's first words and quotes.
-const TalkStarters ext.PointKey[TalkStarter] = "ai.talk-starters"
+// TalkStarters declares talk’s injectable operations. Talk contributes its
+// controller and its Service dispatches Start and Open through this point.
+const TalkStarters ext.PointKey[TalkStarter] = "talk.starters"
 
 // DraftContext describes the fixed chapter context without constructing UI text.
 type DraftContext struct {

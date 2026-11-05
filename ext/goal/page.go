@@ -139,8 +139,6 @@ func (a *Page) suffix(book string) (string, string) {
 	if a.Counter.Goal > 0 {
 		today = goaltext.StatusTodayGoal(k, a.Counter.Goal)
 		tip = goaltext.StatusCountGoalTip(book, k, kit.Signed(k), a.Counter.Goal, a.unit())
-	} else if k != 0 {
-		today = goaltext.StatusTodayCount(k, kit.Signed(k))
 	}
 	return today, tip
 }

@@ -304,7 +304,7 @@ func TestDeskLoreExceptionDoesNotAllowConcreteLore(t *testing.T) {
 	}
 }
 
-// deskAIImport remains for the backend contract, host assembly and AI progress.
+// deskAIImport remains for the backend contract and host assembly.
 // The exception is only for their public contract, never ext/ai.
 func deskAIImport(pkg, imp string) bool { return pkg == "writer/desk" && imp == "writer/ext/ai/aiapi" }
 
@@ -458,5 +458,32 @@ func TestExtensionsOwnModelHandles(t *testing.T) {
 				t.Errorf("obsolete broad capability %s in %s", name, path)
 			}
 		}
+	}
+}
+
+func TestDeskDoesNotKnowConversationContracts(t *testing.T) {
+	files, err := filepath.Glob("../desk/*.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range files {
+		if strings.HasSuffix(path, "_test.go") {
+			continue
+		}
+		file, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, imp := range file.Imports {
+			if strings.HasPrefix(strings.Trim(imp.Path.Value, "\""), "writer/ext/talk") {
+				t.Errorf("%s imports talk's contract", path)
+			}
+		}
+		ast.Inspect(file, func(n ast.Node) bool {
+			if id, ok := n.(*ast.Ident); ok && slices.Contains([]string{"TalkStarter", "TalkStarters", "ProposalFrame", "Suggestions"}, id.Name) {
+				t.Errorf("%s knows conversation contract %s", path, id.Name)
+			}
+			return true
+		})
 	}
 }

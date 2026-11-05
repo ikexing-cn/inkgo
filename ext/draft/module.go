@@ -8,6 +8,7 @@ import (
 	"writer/ext/ai/aiapi"
 	"writer/ext/draft/drafttext"
 	"writer/ext/hostapi"
+	"writer/ext/talk/talkapi"
 	"writer/locales"
 	"writer/tokens"
 	"writer/workspace"
@@ -15,18 +16,15 @@ import (
 
 // View keeps the drafting dialog on the frame thread.
 type View struct {
-	starterRevision uint64
-	starterCache    []ext.Item[aiapi.TalkStarter]
-
 	// Preview overrides context preview in UI fixtures; nil uses the active starter.
 	Preview func() string
 
-	book     *ext.Ref[hostapi.Book]
-	editing  *ext.Ref[hostapi.Editing]
-	surface  *ext.Ref[hostapi.ProseUI]
-	palette  *ext.Ref[hostapi.Palette]
-	ai       *ext.Ref[aiapi.Backend]
-	starters *ext.PointReader[aiapi.TalkStarter]
+	book    *ext.Ref[hostapi.Book]
+	editing *ext.Ref[hostapi.Editing]
+	surface *ext.Ref[hostapi.ProseUI]
+	palette *ext.Ref[hostapi.Palette]
+	ai      *ext.Ref[aiapi.Backend]
+	talk    *ext.Ref[talkapi.ServiceAPI]
 	// Open reports whether the drafting dialog is open.
 	Open bool
 	// Words and Mode are the author's draft request; Note is its frozen context preview.
@@ -45,14 +43,14 @@ var Module = func() ext.Module {
 // New returns an isolated drafting controller.
 func New() (ext.Module, *View) { v := &View{}; return module(v), v }
 func module(v *View) ext.Module {
-	return ext.Module{ID: "draft", Kind: ext.Feature, Group: hostapi.GroupAI, Requires: []string{"ai", "outline"}, Name: drafttext.ModDraft, Desc: drafttext.ModDraftAbout, Setup: func(r *ext.Registrar) {
+	return ext.Module{ID: "draft", Kind: ext.Feature, Group: hostapi.GroupAI, Requires: []string{"ai", "outline", "talk"}, Name: drafttext.ModDraft, Desc: drafttext.ModDraftAbout, Setup: func(r *ext.Registrar) {
 		v.book = ext.Use(r, hostapi.BookService)
 		v.editing = ext.Use(r, hostapi.EditingService)
 		v.surface = ext.Use(r, hostapi.ProseUIService)
 		v.palette = ext.Use(r, hostapi.PaletteService)
 		v.ai = ext.Use(r, aiapi.Service)
-		v.starters = ext.ReadPoint(r, aiapi.TalkStarters)
-		ext.Contribute(r, hostapi.Commands, "draft", hostapi.Command{ID: "draft", Name: drafttext.CmdDraft, Present: v.talkOn, Hint: func() string {
+		v.talk = ext.Use(r, talkapi.Service)
+		ext.Contribute(r, hostapi.Commands, "draft", hostapi.Command{ID: "draft", Name: drafttext.CmdDraft, Hint: func() string {
 			if v.ed() != nil && v.chapterOutline(v.node()) == "" {
 				return drafttext.CmdDraftNeedsOutline()
 			}
@@ -61,11 +59,8 @@ func module(v *View) ext.Module {
 			_, ed, ok := v.editing.Get().Chapter()
 			return ok && ed != nil && !ed.ReadOnly() && v.chapterOutline(v.node()) != ""
 		}, Run: v.OpenDraft, Menu: hostapi.MenuPosition{Menu: hostapi.MenuEdit, Order: 60}})
-		ext.Contribute(r, hostapi.Overlays, "dialog", hostapi.Overlay{Open: func() bool { return v.Open && v.talkOn() }, Draw: func(c *ui.Context) {
-			if !v.talkOn() {
-				v.Open = false
-			}
-			if v.Open && v.talkOn() {
+		ext.Contribute(r, hostapi.Overlays, "dialog", hostapi.Overlay{Open: func() bool { return v.Open }, Draw: func(c *ui.Context) {
+			if v.Open {
 				v.draftView(c)
 			}
 		}})
@@ -74,7 +69,6 @@ func module(v *View) ext.Module {
 }
 func (v *View) node() string       { id, _, _ := v.editing.Get().Chapter(); return id }
 func (v *View) ed() *editor.Editor { _, ed, _ := v.editing.Get().Chapter(); return ed }
-func (v *View) talkOn() bool       { return len(v.starterItems()) > 0 }
 func (v *View) outlineValue(id string) (string, bool) {
 	b := v.book.Get().Content()
 	if b == nil {
@@ -91,11 +85,7 @@ func (v *View) DraftNote() string {
 	if v.Preview != nil {
 		return v.Preview()
 	}
-	var p aiapi.DraftContext
-	var err error
-	for _, i := range v.starterItems() {
-		_ = v.starters.Guard(i.Owner, i.ID, func() { p, err = i.Value.DraftContext() })
-	}
+	p, err := v.talk.Get().DraftContext()
 	if err != nil {
 		return ""
 	}
@@ -112,18 +102,5 @@ func (v *View) DraftNote() string {
 	return drafttext.DraftSends(what, tokens.Round(p.Tokens))
 }
 func (v *View) beginTalk(c *ui.Context, e workspace.Event) bool {
-	ok := false
-	for _, i := range v.starterItems() {
-		ok, _ = ext.CallReadOperation(v.starters, "Start", i.ID, aiapi.StartTalk{Services: c.Services(), Event: e}, aiapi.InvokeStart(i.Value))
-	}
-	return ok
-}
-
-func (v *View) starterItems() []ext.Item[aiapi.TalkStarter] {
-	revision := v.starters.Revision()
-	if v.starterRevision != revision || v.starterRevision == 0 {
-		v.starterCache = v.starters.Items()
-		v.starterRevision = revision
-	}
-	return v.starterCache
+	return v.talk.Get().Start(talkapi.StartTalk{Services: c.Services(), Event: e})
 }

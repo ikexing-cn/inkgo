@@ -56,8 +56,6 @@ func New(opts Options) ext.Module {
 		ext.Declare(r, aiapi.ModelChanges)
 		ext.DeclareCalls(r, aiapi.ModelChanges, func(f func()) func(struct{}) struct{} { return func(struct{}) struct{} { f(); return struct{}{} } })
 		v.modelChanges = ext.ReadPoint(r, aiapi.ModelChanges)
-		ext.DeclareSingle(r, aiapi.TalkStarters)
-		ext.Declare(r, aiapi.Proposals)
 		ext.Declare(r, aiapi.Tools)
 		ext.DeclareCalls(r, aiapi.Tools, aiapi.InvokeTool)
 		ext.Declare(r, aiapi.Usage)
@@ -68,7 +66,6 @@ func New(opts Options) ext.Module {
 		ext.DeclareCalls(r, aiapi.Calls, func(f func(aiapi.Call)) func(aiapi.Call) struct{} {
 			return func(c aiapi.Call) struct{} { f(c); return struct{}{} }
 		})
-		aiapi.DeclareOperations(r)
 		calls := ext.ReadPoint(r, aiapi.Calls)
 		v.usageItems = ext.ReadPoint(r, aiapi.Usage)
 		v.modelSections = ext.ReadPoint(r, hostapi.SettingsSections)

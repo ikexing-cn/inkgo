@@ -1,6 +1,7 @@
 package find
 
 import (
+	"github.com/egoist/mygo/ui"
 	"writer/editor"
 	"writer/ext/hostapi"
 )
@@ -35,7 +36,10 @@ type View struct {
 	// Hits is frame-thread presentation state.
 	Hits []bookHit
 	// HitsFor is frame-thread presentation state.
-	HitsFor [3]any // the Query, chapter and edit the Hits were found for
+	hitRows  []bookRow
+	hitTotal int
+	hitList  ui.ListState
+	HitsFor  [3]any // the Query, chapter and edit the Hits were found for
 
 }
 

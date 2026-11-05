@@ -256,7 +256,7 @@ func TestExportUsesSnapshotAnchorWhenPresentAndOrderWhenMissing(t *testing.T) {
 
 func TestVersionExtensionsDeclareContributionsAndHostServicesOnLedger(t *testing.T) {
 	a, _, _ := writingFixture(t, "正文")
-	for id, n := range map[string]int{"snaps": 2, "trash": 2, "find": 5} {
+	for id, n := range map[string]int{"snaps": 2, "trash": 2, "find": 6} {
 		l := a.extensions.Ledger(id)
 		if len(l.Contributions) != n {
 			t.Fatal(id, l.Contributions)

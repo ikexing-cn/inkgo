@@ -13,14 +13,12 @@ import (
 	"writer/ext/hostapi"
 	"writer/ext/marks/marksapi"
 	"writer/ext/propose/proposetext"
+	"writer/ext/talk/talkapi"
 	"writer/workspace"
 )
 
 // View keeps proposal state and placement caches on the frame thread.
 type View struct {
-	starterRevision uint64
-	starterCache    []ext.Item[aiapi.TalkStarter]
-
 	completedMu sync.Mutex
 	completed   []completedProposal
 	activation  *ext.Session
@@ -28,17 +26,17 @@ type View struct {
 
 	aiHost *ext.Ref[hostapi.Extensions]
 
-	book     *ext.Ref[hostapi.Book]
-	editing  *ext.Ref[hostapi.Editing]
-	surface  *ext.Ref[hostapi.ProseUI]
-	desktop  *ext.Ref[hostapi.Navigation]
-	native   *ext.Ref[hostapi.NativeUI]
-	paths    *ext.Ref[hostapi.MachinePaths]
-	palette  *ext.Ref[hostapi.Palette]
-	notices  *ext.Ref[hostapi.Notices]
-	starters *ext.PointReader[aiapi.TalkStarter]
+	book    *ext.Ref[hostapi.Book]
+	editing *ext.Ref[hostapi.Editing]
+	surface *ext.Ref[hostapi.ProseUI]
+	desktop *ext.Ref[hostapi.Navigation]
+	native  *ext.Ref[hostapi.NativeUI]
+	paths   *ext.Ref[hostapi.MachinePaths]
+	palette *ext.Ref[hostapi.Palette]
+	notices *ext.Ref[hostapi.Notices]
+	talk    *ext.Ref[talkapi.ServiceAPI]
 	// Frame is the latest copied talk snapshot on the frame thread.
-	Frame aiapi.ProposalFrame
+	Frame talkapi.ProposalFrame
 	// Props holds undecided proposals, retained while the extension is disabled.
 	Props   []*Proposal
 	propVer int
@@ -62,7 +60,7 @@ var Module = func() ext.Module {
 // New returns an isolated edit suggestion controller.
 func New() (ext.Module, *View) { v := &View{}; return module(v), v }
 func module(v *View) ext.Module {
-	return ext.Module{ID: "propose", Kind: ext.Feature, Group: hostapi.GroupAI, Requires: []string{"ai"}, Optional: []string{"marks"}, Name: proposetext.ModPropose, Desc: proposetext.ModProposeAbout, Setup: func(r *ext.Registrar) {
+	return ext.Module{ID: "propose", Kind: ext.Feature, Group: hostapi.GroupAI, Requires: []string{"ai", "talk"}, Optional: []string{"marks"}, Name: proposetext.ModPropose, Desc: proposetext.ModProposeAbout, Setup: func(r *ext.Registrar) {
 		v.aiHost = ext.Use(r, hostapi.ExtensionsService)
 		v.book = ext.Use(r, hostapi.BookService)
 		v.editing = ext.Use(r, hostapi.EditingService)
@@ -72,21 +70,15 @@ func module(v *View) ext.Module {
 		v.paths = ext.Use(r, hostapi.MachinePathsService)
 		v.palette = ext.Use(r, hostapi.PaletteService)
 		v.notices = ext.Use(r, hostapi.NoticesService)
-		v.starters = ext.ReadPoint(r, aiapi.TalkStarters)
-		ext.Contribute(r, aiapi.Proposals, "proposals", aiapi.Suggestions(v))
+		v.talk = ext.Use(r, talkapi.Service)
+		ext.Contribute(r, talkapi.Proposals, "proposals", talkapi.Suggestions(v))
 		ext.Contribute(r, aiapi.Tools, "propose", v.tool())
 		ext.Contribute(r, hostapi.SelectionButtons, "rewrite-button", hostapi.SelectionButton{Icon: kit.IcPen, Label: proposetext.EditorAIRewrite, Tip: proposetext.EditorRewriteSel, Available: v.canRewrite, Run: v.OpenRewrite})
-		ext.Contribute(r, hostapi.Commands, "rewrite", hostapi.Command{Present: v.talkOn, Name: proposetext.EditorAIRewriteMore, Can: v.canRewrite, Run: v.OpenRewrite})
+		ext.Contribute(r, hostapi.Commands, "rewrite", hostapi.Command{Name: proposetext.EditorAIRewriteMore, Can: v.canRewrite, Run: v.OpenRewrite})
 		ext.Contribute(r, hostapi.SelectionMenus, "rewrite-menu", hostapi.SelectionMenu{Order: -20, Build: func(string) []hostapi.SelectionAction {
-			if !v.talkOn() {
-				return nil
-			}
 			return []hostapi.SelectionAction{{Label: proposetext.EditorAIRewriteMore(), Disabled: !v.canRewrite(), Run: v.OpenRewrite}}
 		}})
 		ext.Contribute(r, hostapi.BeforeEditor, "bar", hostapi.DrawItem{Draw: func(c *ui.Context) {
-			if !v.talkOn() {
-				v.Rewriting = false
-			}
 			if v.ed() != nil {
 				v.placeProps()
 				v.aiBar(c)
@@ -142,7 +134,10 @@ func module(v *View) ext.Module {
 			v.activation = nil
 			v.completed = nil
 			v.completedMu.Unlock()
-			v.Frame = aiapi.ProposalFrame{}
+			v.Frame = talkapi.ProposalFrame{}
+			if !v.aiHost.Get().Enabled("talk") {
+				v.Drop()
+			}
 			if !v.aiHost.Get().Enabled("ai") {
 				v.dropProps(v.Props, workspace.FateOff)
 			}
@@ -158,18 +153,13 @@ func module(v *View) ext.Module {
 func (v *View) ed() *editor.Editor { _, ed, _ := v.editing.Get().Chapter(); return ed }
 func (v *View) node() string       { ID, _, _ := v.editing.Get().Chapter(); return ID }
 func (v *View) title() string      { s, _ := v.editing.Get().ChapterTitle(v.node()); return s }
-func (v *View) talkOn() bool       { return len(v.starterItems()) > 0 }
 func (v *View) canRewrite() bool {
 	ed := v.ed()
-	return v.talkOn() && ed != nil && !ed.ReadOnly() && func() bool { s, e := ed.Selection(); return s != e }()
+	return ed != nil && !ed.ReadOnly() && func() bool { s, e := ed.Selection(); return s != e }()
 }
 func (v *View) warn(err error) { v.notices.Get().Notices().Warn(err) }
 func (v *View) beginTalk(c *ui.Context, e workspace.Event) bool {
-	ok := false
-	for _, i := range v.starterItems() {
-		ok, _ = ext.CallReadOperation(v.starters, "Start", i.ID, aiapi.StartTalk{Services: c.Services(), Event: e}, aiapi.InvokeStart(i.Value))
-	}
-	return ok
+	return v.talk.Get().Start(talkapi.StartTalk{Services: c.Services(), Event: e})
 }
 
 type completedProposal struct {
@@ -210,13 +200,4 @@ func (v *View) receiveCompleted() {
 			v.TakeProposal(p.call, p.p, false, p.model)
 		}
 	}
-}
-
-func (v *View) starterItems() []ext.Item[aiapi.TalkStarter] {
-	revision := v.starters.Revision()
-	if v.starterRevision != revision || v.starterRevision == 0 {
-		v.starterCache = v.starters.Items()
-		v.starterRevision = revision
-	}
-	return v.starterCache
 }

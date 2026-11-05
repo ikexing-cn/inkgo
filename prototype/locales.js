@@ -2051,10 +2051,6 @@ const CATALOG = {
    "signed",
    "unit"
   ],
-  "statusTodayCount": [
-   "count",
-   "signed"
-  ],
   "statusTodayGoal": [
    "today",
    "goal"
@@ -2119,6 +2115,9 @@ const CATALOG = {
   ],
   "talkInputHint": [],
   "talkInputLabel": [],
+  "talkLoreSuggest": [
+   "name"
+  ],
   "talkModelHint": [],
   "talkNew": [],
   "talkNext1": [],
@@ -2133,6 +2132,7 @@ const CATALOG = {
   "talkStart2": [],
   "talkStart3": [],
   "talkStartAbout": [],
+  "talkStartAboutNoLore": [],
   "talkStartTitle": [],
   "timeToday": [
    "clock"
@@ -3492,7 +3492,6 @@ const CATALOG = {
    "statusService": "模型服务返回了错误（为保护密钥和内容，不显示原文）",
    "statusShort": "{unit, select, word {满 200 词后可检查} other {满 200 字后可检查}}",
    "statusSignedWords": "{unit, select, word {{count, plural, other {{signed} 词}}} other {{count, plural, other {{signed} 字}}}}",
-   "statusTodayCount": "{count, plural, other { · 今天 {signed}}}",
    "statusTodayGoal": " · 今天 {today} / {goal}",
    "statusToolCallMissing": "工具结果没有对应的调用",
    "statusToolJSON": "模型调用工具时写的参数不是 JSON",
@@ -3528,6 +3527,7 @@ const CATALOG = {
    "talkCount": "{count, plural, other {# 条发言}}",
    "talkInputHint": "输入想法，或向 AI 提问…",
    "talkInputLabel": "讨论输入",
+   "talkLoreSuggest": "推荐去开启「{name}」功能，使用更佳",
    "talkModelHint": "输入或选择模型",
    "talkNew": "新对话",
    "talkNext1": "接下来的情节怎么走",
@@ -3540,6 +3540,7 @@ const CATALOG = {
    "talkStart2": "主角有个说不出口的秘密",
    "talkStart3": "这个故事的冲突在哪",
    "talkStartAbout": "写下初步的想法。讨论中定下的内容，AI 会当场记进右侧的设定文档；已确定的设定将作为后续讨论的依据，已放弃的不再提及。",
+   "talkStartAboutNoLore": "写下初步的想法，和 AI 一起理清。",
    "talkStartTitle": "从一个初步的想法开始",
    "timeToday": "今天 {clock}",
    "timeTodayDay": "今天",
@@ -4880,7 +4881,6 @@ const CATALOG = {
    "statusService": "Service returned an error; details redacted",
    "statusShort": "{unit, select, word {Checks start at 200 words} other {Checks start at 200 chars}}",
    "statusSignedWords": "{unit, select, word {{count, plural, one {{signed} word} other {{signed} words}}} other {{count, plural, one {{signed} character} other {{signed} characters}}}}",
-   "statusTodayCount": "{count, plural, one { · Today {signed}} other { · Today {signed}}}",
    "statusTodayGoal": " · Today {today}/{goal}",
    "statusToolCallMissing": "Tool result has no matching call",
    "statusToolJSON": "Tool arguments are not JSON",
@@ -4916,6 +4916,7 @@ const CATALOG = {
    "talkCount": "{count, plural, one {# message} other {# messages}}",
    "talkInputHint": "Type an idea, or ask the AI…",
    "talkInputLabel": "Chat input",
+   "talkLoreSuggest": "Turn on “{name}” for a better experience",
    "talkModelHint": "Type or choose a model",
    "talkNew": "New Chat",
    "talkNext1": "What happens next in the plot?",
@@ -4928,6 +4929,7 @@ const CATALOG = {
    "talkStart2": "The protagonist has a secret they cannot say aloud",
    "talkStart3": "Where is the conflict in this story?",
    "talkStartAbout": "Write down a rough idea. The AI records what the chat settles in the lore document on the right, right away. Settled lore guides later chats; abandoned lore is no longer mentioned.",
+   "talkStartAboutNoLore": "Write down a rough idea and work it through with the AI.",
    "talkStartTitle": "Start from a rough idea",
    "timeToday": "Today at {clock}",
    "timeTodayDay": "Today",

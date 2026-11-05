@@ -6,8 +6,11 @@
 function talkPage() {
   const talk = S.tv === 'one' ? S.talks.find((x) => x.id === S.tid) : null
   // 设定里已经有东西的书，接着往下聊，不再从一个想法开始。
-  const begun = S.entries.length > 0
-  const [opening, about] = begun ? [L.talkContinueTitle(), L.talkContinueAbout()] : [L.talkStartTitle(), L.talkStartAbout()]
+  // 设定关着时没有设定文档可记、可参考：从一个想法开始，说明不提设定，下面一句推荐开启，名字点了打开设置里设定那一页。
+  const noLore = !extOn('lore'), begun = !noLore && S.entries.length > 0
+  const [opening, about] = begun ? [L.talkContinueTitle(), L.talkContinueAbout()] : [L.talkStartTitle(), noLore ? L.talkStartAboutNoLore() : L.talkStartAbout()]
+  const [before, after] = L.talkLoreSuggest('').split('')
+  const suggest = noLore && extOf('lore') ? `<div class="blank-about">${t(before)}<span class="hit link"${onClick(() => set({ dialog: { kind: 'settings', tab: '扩展', ext: 'lore', edit: '' }, ...SHUT }))}>${t(extOf('lore').name)}</span>${t(after)}</div>` : ''
   const starts = begun ? [L.talkNext1(), L.talkNext2(), L.talkNext3()] : [L.talkStart1(), L.talkStart2(), L.talkStart3()]
   return '<div class="editor">' +
     `<div class="toolbar"><div class="crumb">${t(L.talkAll())}</div>${icon('right', 'xs', 'faint')}<div class="crumb here ell">${t(talk ? talk.title : L.talkNew())}</div><div class="grow"></div>` +
@@ -15,7 +18,7 @@ function talkPage() {
     (S.paneOpen ? '' : `<button class="icon-btn muted" aria-label="${t(L.talkShowSettings())}" title="${t(L.talkShowSettingsDoc())}"${onClick(() => set({ paneOpen: true }))}>${svg('icon-md', PANEL + path('M15 5v14'))}</button>`) + '</div>' +
     (talk
       ? `<div class="talk big scroll" id="talk-page">${said(talk)}</div>`
-      : '<div class="paper">' + blank('spark', opening, about,
+      : '<div class="paper">' + blank('spark', opening, about, suggest +
         `<div class="starts">${starts.map((words) => `<div class="hit"${onClick(offer(words))}>${t(words)}</div>`).join('')}</div>`) + '</div>') +
     '<div class="composer big" data-k="composer-page"><div class="box send-box">' +
     `<textarea class="in" rows="2" placeholder="${t(L.talkInputHint())}" aria-label="${t(L.talkInputLabel())}"${onInput((v) => set({ draft: v }))}${onKey(sendKey)}>${t(S.draft)}</textarea>` +
