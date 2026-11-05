@@ -87,7 +87,11 @@ async function stop(proc: Started['proc'], profile: string, wsURL?: string) {
   if (wsURL) {
     try {
       const ws = new WebSocket(wsURL)
-      await new Promise((ok, fail) => { ws.onopen = ok; ws.onerror = fail })
+      await new Promise<void>((ok, fail) => {
+        const t = setTimeout(fail, 5000)
+        ws.onopen = () => { clearTimeout(t); ok() }
+        ws.onerror = ws.onclose = () => { clearTimeout(t); fail() }
+      })
       ws.send(JSON.stringify({ id: 1, method: 'Browser.close' }))
       await new Promise<void>((r) => { const t = setTimeout(r, 5000); ws.onclose = () => { clearTimeout(t); r() } })
     } catch { /* it is gone already */ }
@@ -137,18 +141,40 @@ export async function open(file: string, ready: string, shots?: string): Promise
   const { proc, profile, wsURL } = started
   const targets = await (await fetch(`http://127.0.0.1:${new URL(wsURL).port}/json`)).json() as { type: string; webSocketDebuggerUrl: string }[]
   const ws = new WebSocket(targets.find((t) => t.type === 'page')!.webSocketDebuggerUrl)
-  await new Promise((r) => (ws.onopen = r))
+  // Every wait on the connection ends: a connection that fails, closes or stays silent is an error,
+  // not a promise left pending with nothing else to run, which hung the walk for minutes at a time.
+  const opened = await new Promise<boolean>((r) => {
+    const t = setTimeout(() => r(false), 15000)
+    ws.onopen = () => { clearTimeout(t); r(true) }
+    ws.onerror = ws.onclose = () => { clearTimeout(t); r(false) }
+  })
+  if (!opened) { await stop(proc, profile, wsURL); throw new Error(`${file}: could not reach the page over DevTools`) }
 
   let seq = 0
-  const waits = new Map<number, (m: any) => void>()
+  let lost = ''
+  const waits = new Map<number, { ok: (m: any) => void; fail: (e: Error) => void; timer: ReturnType<typeof setTimeout> }>()
+  const giveUp = (why: string) => {
+    lost ||= why
+    for (const w of waits.values()) { clearTimeout(w.timer); w.fail(new Error(why)) }
+    waits.clear()
+  }
+  ws.onerror = () => giveUp('the DevTools connection failed')
+  ws.onclose = () => giveUp('the DevTools connection closed')
   const errors: string[] = []
   ws.onmessage = (ev) => {
     const m = JSON.parse(String(ev.data))
-    if (m.id && waits.has(m.id)) { waits.get(m.id)!(m); waits.delete(m.id) }
+    const w = m.id && waits.get(m.id)
+    if (w) { clearTimeout(w.timer); waits.delete(m.id); w.ok(m) }
     if (m.method === 'Runtime.consoleAPICalled' && m.params.type === 'error') errors.push(m.params.args.map((a: any) => a.value ?? a.description ?? '').join(' '))
     if (m.method === 'Runtime.exceptionThrown') errors.push(m.params.exceptionDetails.exception?.description ?? m.params.exceptionDetails.text)
   }
-  const send = (method: string, params = {}) => new Promise<any>((r) => { const id = ++seq; waits.set(id, r); ws.send(JSON.stringify({ id, method, params })) })
+  const send = (method: string, params = {}) => new Promise<any>((ok, fail) => {
+    if (lost) { fail(new Error(lost)); return }
+    const id = ++seq
+    const timer = setTimeout(() => { waits.delete(id); fail(new Error(`${method} got no answer in 60 seconds`)) }, 60000)
+    waits.set(id, { ok, fail, timer })
+    ws.send(JSON.stringify({ id, method, params }))
+  })
   const idle = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
   const js = async (expression: string) => {
     const r = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true })
