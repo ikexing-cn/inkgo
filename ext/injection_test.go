@@ -179,7 +179,7 @@ const commandPoint = ext.PointKey[command]("host.commands")
 
 func commandOptions(calls *ext.CallPoint[command, int, int]) ext.Options {
 	return ext.Options{DeclareHost: func(r *ext.Registrar) {
-		ext.Declare(r, commandPoint)
+		ext.Declare(r, commandPoint, ext.Hidden)
 		*calls = ext.DeclareCalls(r, commandPoint, func(v command) func(int) int { return v.Run })
 	}}
 }
@@ -509,7 +509,7 @@ func TestExtensionOwnedCallPointUsesContributionOwnerForDependencyBoundary(t *te
 	p := ext.PointKey[command]("point.commands")
 	var calls ext.CallPoint[command, int, int]
 	h := host(t, ext.Options{}, ext.Module{ID: "point", Setup: func(r *ext.Registrar) {
-		ext.Declare(r, p)
+		ext.Declare(r, p, ext.Hidden)
 		calls = ext.DeclareCalls(r, p, func(c command) func(int) int { return c.Run })
 	}}, ext.Module{ID: "export", Optional: []string{"point"}, Setup: func(r *ext.Registrar) { ext.Contribute(r, p, "docx", command{"Original", identity}) }}, ext.Module{ID: "a", Optional: []string{"export"}, Setup: func(r *ext.Registrar) { ext.Before(r, ext.HookOf(calls, "export.docx"), "add", func(n *int) { *n++ }) }})
 	key := ext.HookOf(calls, "export.docx")
@@ -533,7 +533,7 @@ func TestInjectionIDsShareRegistrationNamespace(t *testing.T) {
 func TestHookDeclarationsRejectForeignOwnerAndTypeMismatch(t *testing.T) {
 	assemblyError(t, "not owned", ext.Module{ID: "a", Setup: func(r *ext.Registrar) { ext.DeclareHook(r, ownedHook) }})
 	assemblyError(t, "different type", ext.Module{ID: "a", Setup: func(r *ext.Registrar) {
-		ext.Declare(r, ext.PointKey[int]("a.items"))
+		ext.Declare(r, ext.PointKey[int]("a.items"), "")
 		ext.DeclareCalls(r, ext.PointKey[string]("a.items"), func(string) func(int) int { return identity })
 	}})
 }

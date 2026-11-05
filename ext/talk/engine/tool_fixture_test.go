@@ -94,7 +94,7 @@ const (
 func TestContributedToolPanicFailsCallAndTalkContinuesWithOwnerFailure(t *testing.T) {
 	e, session := setup(t)
 	h, err := ext.New(ext.Options{}, ext.Module{ID: "ai", Setup: func(r *ext.Registrar) {
-		ext.Declare(r, aiapi.Tools)
+		ext.Declare(r, aiapi.Tools, "tools")
 		ext.DeclareCalls(r, aiapi.Tools, aiapi.InvokeTool)
 	}}, ext.Module{ID: "broken", Optional: []string{"ai"}, Setup: func(r *ext.Registrar) {
 		ext.Contribute(r, aiapi.Tools, "panic", aiapi.Tool{Name: "panic", Schema: func(workspace.Work) json.RawMessage { return json.RawMessage(`{"type":"object"}`) }, Run: func(context.Context, aiapi.ToolEnv, json.RawMessage) aiapi.ToolResult { panic("tool broke") }})

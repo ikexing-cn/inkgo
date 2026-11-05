@@ -23,6 +23,7 @@ type nameBox struct {
 func (e *Editor) SetNameLinks(names []NameLink, open func(string)) {
 	if !slices.Equal(e.names, names) {
 		e.names = slices.Clone(names)
+		e.namesRevision++
 		e.namesVer = -1
 		e.nameBoxes = nil
 	}
@@ -30,97 +31,53 @@ func (e *Editor) SetNameLinks(names []NameLink, open func(string)) {
 }
 
 func (e *Editor) rebuildNames() {
-	if e.namesVer != e.Doc.textVer {
-		e.namesVer, e.nameSpans = e.Doc.textVer, e.nameSpans[:0]
-		e.nameBoxes = nil
-		scratch := make([]nameRange, 0, cap(e.nameSpans))
-		var added []nameRange
-		for _, n := range e.names {
-			r := []rune(n.Name)
-			if len(r) == 0 {
+	if e.namesVer == e.Doc.textVer {
+		return
+	}
+	e.namesVer, e.nameSpans = e.Doc.textVer, e.nameSpans[:0]
+	e.nameBoxes = nil
+	for _, n := range e.names {
+		r := []rune(n.Name)
+		if len(r) == 0 {
+			continue
+		}
+		for at := 0; at+len(r) <= e.Doc.Len(); at++ {
+			if !slices.Equal(e.Doc.text[at:at+len(r)], r) {
 				continue
 			}
-			added = added[:0]
-			j := 0
-			for at := 0; at+len(r) <= e.Doc.Len(); at++ {
-				if !slices.Equal(e.Doc.text[at:at+len(r)], r) {
-					continue
-				}
-				x := nameRange{at, at + len(r), n.Entry}
-				for j < len(e.nameSpans) && e.nameSpans[j].b <= x.a {
-					j++
-				}
-				if j == len(e.nameSpans) || e.nameSpans[j].a >= x.b {
-					added = append(added, x)
-				}
-				at += len(r) - 1
-			}
-			// Earlier names win overlaps; merge only after sweeping this name.
-			merged := scratch[:0]
-			i, j := 0, 0
-			for i < len(e.nameSpans) && j < len(added) {
-				if e.nameSpans[i].a < added[j].a {
-					merged = append(merged, e.nameSpans[i])
-					i++
-				} else {
-					merged = append(merged, added[j])
-					j++
-				}
-			}
-			merged = append(merged, e.nameSpans[i:]...)
-			merged = append(merged, added[j:]...)
-			e.nameSpans, scratch = merged, e.nameSpans[:0]
+			e.nameSpans = append(e.nameSpans, nameRange{at, at + len(r), n.Entry})
+			at += len(r) - 1
 		}
 	}
 }
 
-func (e *Editor) nameRanges() []nameRange {
-	e.rebuildNames()
-	if len(e.nameSpans) == 0 {
-		return nil
-	}
-	out := make([]nameRange, 0, len(e.nameSpans))
-	for _, n := range e.nameSpans {
-		if e.nameVisible(n) {
-			out = append(out, n)
-		}
-	}
-	return out
-}
-
-func (e *Editor) nameVisible(n nameRange) bool {
-	overlaps := func(a, b int) bool { return a < n.b && n.a < b }
-	if slices.ContainsFunc(e.decorations(), func(m ProseMark) bool { return overlaps(m.Start, m.End) }) ||
-		slices.ContainsFunc(e.found, func(r [2]int) bool { return overlaps(r[0], r[1]) }) ||
-		slices.ContainsFunc(e.doubts, func(r [2]int) bool { return overlaps(r[0], r[1]) }) ||
-		slices.ContainsFunc(e.props, func(p Proposal) bool { return overlaps(p.A, p.B) }) {
-		return false
-	}
-	a, b := e.Selection()
-	if a != b && overlaps(a, b) {
-		return false
-	}
-	return true
-}
+func (e *Editor) nameRanges() []nameRange { return e.proseLayers().names }
 
 func (e *Editor) visibleNames(top, bottom float32, fn func(nameBox)) {
-	e.rebuildNames()
+	visible := e.nameRanges()
 	if e.nameBoxes == nil || e.nameLayout != e.layoutVer {
-		e.nameBoxes = make([]nameBox, 0, len(e.nameSpans))
+		e.nameBoxes = make([]nameBox, 0, len(visible))
 		e.nameLayout = e.layoutVer
 		l := &e.lay
-		for _, n := range e.nameSpans {
+		for _, n := range visible {
 			l.eachVisible(l.toDisp(n.a, true), l.toDisp(n.b, false), -1, l.height, func(x0, x1, y float32) {
 				e.nameBoxes = append(e.nameBoxes, nameBox{n, x0, x1, y})
 			})
 		}
+		slices.SortStableFunc(e.nameBoxes, func(a, b nameBox) int {
+			if a.y < b.y {
+				return -1
+			}
+			if a.y > b.y {
+				return 1
+			}
+			return a.span.a - b.span.a
+		})
 	}
 	i := sort.Search(len(e.nameBoxes), func(i int) bool { return e.nameBoxes[i].y >= top })
 	for ; i < len(e.nameBoxes) && e.nameBoxes[i].y <= bottom; i++ {
 		box := e.nameBoxes[i]
-		if e.nameVisible(box.span) {
-			fn(box)
-		}
+		fn(box)
 	}
 }
 

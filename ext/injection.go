@@ -210,7 +210,7 @@ func (h *Host) editInjectionPreference(target string, ids []string, choice strin
 	}
 	p := prefs[target]
 	if choose {
-		if k, ok := known[choice]; choice != "" && (!ok || k < OverwriteKind) {
+		if k, ok := known[choice]; choice != "" && choice != DefaultChoice && (!ok || k < OverwriteKind) {
 			return fmt.Errorf("invalid choice %q", choice)
 		}
 		p.Choice = choice
@@ -341,6 +341,9 @@ func (h *Host) validateInjections() error {
 // Call only binds the immutable chain to its own invocation frame.
 func (h *Host) rebuildChains() {
 	h.changes++
+	// Key claims follow the chains, but nothing reads them while extensions
+	// start and stop; Ledger works them out when it is next asked.
+	h.keysDirty.Store(true)
 	groups := map[string][]interception{}
 	statuses := map[string]Injection{}
 	for key := range h.hooks {
@@ -391,8 +394,10 @@ func (h *Host) rebuildChains() {
 		for _, n := range eligible {
 			if n != chosen {
 				list[n].Active = false
-				list[n].Conflict = chosen < 0
-				if chosen < 0 {
+				list[n].Conflict = chosen < 0 && pref.Choice != DefaultChoice
+				if chosen < 0 && pref.Choice == DefaultChoice {
+					list[n].Reason = Reason{Kind: ReasonNotSelected, ID: DefaultChoice}
+				} else if chosen < 0 {
 					list[n].Reason = Reason{Kind: ReasonConflict}
 				} else {
 					list[n].Reason = Reason{Kind: ReasonNotSelected, ID: list[chosen].ID}

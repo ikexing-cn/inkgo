@@ -96,6 +96,8 @@ func (a *App) closeSettingsDetails() {
 
 // openPrefs opens the settings at the part named, or the AI.
 func (a *App) openPrefs(tab string) {
+	a.ledgerData.page = ""
+	a.ledgerData.generation++
 	if tab == "" {
 		tab = "AI"
 	}
@@ -109,6 +111,8 @@ func (a *App) openPrefs(tab string) {
 // closePrefs also drops an unanswered AI-switch question. It keeps this
 // work's selected tab and service draft for reopening the settings.
 func (a *App) closePrefs() {
+	a.ledgerData.page = ""
+	a.ledgerData.generation++
 	a.settings.open, a.settings.askAI = false, false
 	a.settings.ext, a.settings.flip, a.settings.askExt = "", "", false
 	a.closeExtensionMenu()
@@ -117,6 +121,7 @@ func (a *App) closePrefs() {
 // resetPrefs releases state belonging to the work being left. Saved model
 // settings and AI records stay on disk; only their views and drafts go.
 func (a *App) resetPrefs() {
+	a.ledgerData = ledgerDataCache{generation: a.ledgerData.generation + 1}
 	a.settings = settingsView{}
 	a.closeSettingsDetails()
 }

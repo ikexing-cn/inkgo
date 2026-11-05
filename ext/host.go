@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"slices"
 	"sync"
+	"sync/atomic"
 )
 
 // Host owns immutable declarations and synchronized runtime snapshots. Mutating
@@ -14,6 +15,10 @@ import (
 type Host struct {
 	opMu                 sync.Mutex
 	mu                   sync.RWMutex
+	hostEntry            *entry
+	keySources           []keySource
+	keysDirty            atomic.Bool
+	targetNames          map[string]func() string
 	hooks                map[string]hookDecl
 	calls                map[string]callDeclaration
 	injections           []interception
@@ -58,6 +63,7 @@ func New(opts Options, mods ...Module) (*Host, error) {
 	h.pending = map[*entry]bool{}
 	if opts.DeclareHost != nil {
 		e := &entry{mod: Module{ID: HostOwner, Setup: opts.DeclareHost}, ids: map[string]bool{}}
+		h.hostEntry = e
 		if err := h.register(e); err != nil {
 			return nil, err
 		}
@@ -143,6 +149,11 @@ func New(opts Options, mods ...Module) (*Host, error) {
 	slices.SortStableFunc(h.contributions, func(a, b contribution) int { return assembly[a.owner] - assembly[b.owner] })
 	// Explicit chain preferences still override the default assembly order.
 	slices.SortStableFunc(h.injections, func(a, b interception) int { return assembly[a.Owner] - assembly[b.Owner] })
+	for key, p := range h.points {
+		if !validPlace(p.place) {
+			return nil, fmt.Errorf("point %s needs an explicit valid place (empty means invisible)", key)
+		}
+	}
 	pointTypes := map[string]reflect.Type{}
 	for _, c := range h.contributions {
 		p, ok := h.points[c.key]
@@ -220,6 +231,7 @@ func (h *Host) register(e *entry) (err error) {
 	if e.mod.Setup != nil {
 		e.mod.Setup(r)
 	}
+
 	return nil
 }
 func (h *Host) own(id string) bool {
@@ -582,8 +594,9 @@ func Items[T any](h *Host, key PointKey[T]) []Item[T] {
 
 // Declared returns all Setup contributions in assembly and registration order,
 // even when the contributor or point owner is inactive. Replacements follow Items.
-// For inactive contributions, read data fields only: do not invoke callbacks,
-// which may depend on state created by Start. Reading does not change Changes.
+// For inactive contributions, read data and localization-only names declared
+// with DeclareName. Do not invoke runtime callbacks, which may depend on Start.
+// Reading does not change Changes.
 func Declared[T any](h *Host, key PointKey[T]) []Item[T] {
 	return pointItems(h, key, true)
 }
@@ -626,9 +639,19 @@ func pointItemsLocked[T any](h *Host, key PointKey[T], declared bool) []Item[T] 
 
 // Ledger returns declaration and status snapshots; an unknown ID returns zero.
 func (h *Host) Ledger(id string) Ledger {
+	if h.keysDirty.Load() {
+		h.mu.Lock()
+		if h.keysDirty.Swap(false) {
+			h.rebuildKeys()
+		}
+		h.mu.Unlock()
+	}
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	e := h.byID[id]
+	if id == HostOwner {
+		e = h.hostEntry
+	}
 	if e == nil {
 		return Ledger{}
 	}
@@ -642,6 +665,10 @@ func (h *Host) Ledger(id string) Ledger {
 	l.Settings = slices.Clone(l.Settings)
 	l.Injections = slices.Clone(l.Injections)
 	l.Errors = slices.Clone(l.Errors)
+	l.Keys = slices.Clone(l.Keys)
+	for i := range l.Keys {
+		l.Keys[i].Owners = slices.Clone(l.Keys[i].Owners)
+	}
 	for _, dep := range e.mod.Requires {
 		l.Requires = append(l.Requires, Dependency{dep, h.byID[dep].ledger.State == On})
 	}

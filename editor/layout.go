@@ -191,7 +191,7 @@ func (e *Editor) display(l *layout) {
 		pieces = append(pieces, piece{at: clamp(at, 0, len(text)), caret: true})
 	}
 	struck := map[int]bool{}
-	for _, p := range e.props {
+	for _, p := range e.proseLayers().proposals {
 		pieces = append(pieces, piece{at: clamp(p.B, 0, len(text)), p: p})
 		if !p.Keep {
 			for i := clamp(p.A, 0, len(text)); i < clamp(p.B, 0, len(text)); i++ {

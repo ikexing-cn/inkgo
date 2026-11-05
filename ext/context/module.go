@@ -10,13 +10,13 @@ import (
 
 // Module registers the reference library without reading book data in Setup.
 var Module = ext.Module{ID: "context", Kind: ext.Library, Name: contexttext.ModContext, Desc: contexttext.ModContextAbout, Setup: func(r *ext.Registrar) {
-	ext.Declare(r, contextapi.Entries)
+	ext.Declare(r, contextapi.Entries, ext.Hidden)
 	ext.DeclareCalls(r, contextapi.Entries, func(p contextapi.EntryProvider) func(struct{}) []workspace.Entry { return p })
 	entries := ext.ReadPoint(r, contextapi.Entries)
-	ext.Declare(r, contextapi.Hooks)
+	ext.Declare(r, contextapi.Hooks, ext.Hidden)
 	ext.DeclareCalls(r, contextapi.Hooks, func(p contextapi.HookProvider) func(struct{}) []workspace.Foreshadow { return p })
 	hooks := ext.ReadPoint(r, contextapi.Hooks)
-	ext.Declare(r, contextapi.Outlines)
+	ext.Declare(r, contextapi.Outlines, ext.Hidden)
 	ext.DeclareCalls(r, contextapi.Outlines, func(p contextapi.OutlineProvider) func(string) string { return p })
 	providers := ext.ReadPoint(r, contextapi.Outlines)
 	ext.Provide(r, contextapi.Service, func(*ext.Session) contextapi.Context {

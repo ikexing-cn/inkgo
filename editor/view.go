@@ -114,6 +114,7 @@ func (e *Editor) SetFontSize(px float32) {
 
 type layoutKey struct {
 	ver, caret, props int
+	selection         [2]int
 	preedit, ghost    string
 	width, size       float32
 	column            TextColumn
@@ -125,7 +126,11 @@ func (e *Editor) ensureLayout() {
 	if e.preedit != "" || extra != "" {
 		caret = e.caret
 	}
-	k := layoutKey{e.Doc.textVer, caret, e.propVer, e.preedit, extra, e.width, e.opts.Font.Size, e.opts.Column}
+	var selection [2]int
+	if e.rewriting && len(e.props) > 0 {
+		selection[0], selection[1] = e.Selection()
+	}
+	k := layoutKey{e.Doc.textVer, caret, e.propVer, selection, e.preedit, extra, e.width, e.opts.Font.Size, e.opts.Column}
 	if k != e.layKey || e.lay.lines == nil {
 		e.buildLayout(e.width)
 		e.layKey = k

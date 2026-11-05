@@ -82,6 +82,7 @@ func module(v *View) ext.Module {
 			if v.ed() != nil {
 				v.placeProps()
 				v.aiBar(c)
+				v.ed().SetRewriting(v.Rewriting)
 			}
 		}})
 		ext.Contribute(r, hostapi.ProseOverlays, "actions", hostapi.DrawItem{Draw: func(c *ui.Context) {
@@ -143,6 +144,7 @@ func module(v *View) ext.Module {
 			}
 			if ed := v.ed(); ed != nil {
 				ed.SetProposals(nil, propRoom)
+				ed.SetRewriting(false)
 			}
 			v.Rewriting = false
 			v.Leaving = nil

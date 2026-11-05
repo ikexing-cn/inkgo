@@ -81,17 +81,19 @@ func (a *App) initExtensions(mods []ext.Module) {
 		OnFailure: func(id string, f ext.Failure) {
 			a.extensionError(extensionFailedError{name: names[id], err: f.Err})
 		},
+		HostKeys: hostKeys(),
 		DeclareHost: func(r *ext.Registrar) {
 			a.aiRef = ext.UseOptional(r, aiapi.Service)
 
-			ext.Declare(r, hostapi.ErrorTexts)
-			ext.Declare(r, hostapi.SettingsDetails)
+			ext.Declare(r, hostapi.ErrorTexts, ext.Hidden)
+			ext.Declare(r, hostapi.SettingsDetails, "prefs")
 			ext.DeclareCalls(r, hostapi.SettingsDetails, func(d hostapi.SettingsDetail) func(*ui.Context) struct{} {
 				return func(c *ui.Context) struct{} { d.Draw(c); return struct{}{} }
 			})
-			ext.Declare(r, hostapi.Commands)
-			ext.Declare(r, hostapi.PaneTabs)
-			ext.Declare(r, hostapi.Overlays)
+			ext.Declare(r, hostapi.Commands, ext.Hidden)
+			ext.Declare(r, hostapi.PaneTabs, "pane")
+			ext.DeclareName(r, hostapi.PaneTabs, func(v hostapi.PaneTab) func() string { return v.Title })
+			ext.Declare(r, hostapi.Overlays, "dialog")
 			declareLifecycle(r, a)
 			ext.DeclareCalls(r, hostapi.Overlays, overlayCall)
 			ext.DeclareCalls(r, hostapi.Commands, commandCall)
@@ -233,6 +235,9 @@ func (a *App) syncExtensions() {
 		if cmd != cmdTake || a.hasEntries() {
 			cache.list = append(cache.list, cmd)
 		}
+	}
+	for _, cmd := range commandList {
+		a.applyKeyClaim(cmd, hostCommandID(cmd), ext.HostOwner)
 	}
 	cache.help = append(cache.help, commandHelp...)
 	for _, row := range systemCommands {
@@ -399,6 +404,8 @@ func (a *App) buildExtensionCommands() []namedCommand {
 	for _, item := range ext.Items(a.extensions, hostapi.Commands) {
 		value := item.Value
 		cmd := &command{label: value.Name, key: value.Key, mods: value.Mods, macKey: value.MacKey, macMods: value.MacMods, onMac: value.OnMac, page: pageAny, by: byDesk, systemMenu: value.Menu.Menu == hostapi.MenuView || value.Menu.Menu == hostapi.MenuFile || value.Menu.Menu == hostapi.MenuEdit}
+		a.applyKeyClaim(cmd, item.ID, item.Owner)
+
 		cmd.presentNow = value.Present
 		if value.Hint != nil {
 			cmd.hint = func(*App) string { return value.Hint() }

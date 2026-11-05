@@ -10,6 +10,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/egoist/mygo/i18n"
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
 	"writer/ext/ai/aiapi"
@@ -30,6 +31,7 @@ type shelfView struct {
 	// The new-work dialog: where it goes, and whether the author chose it
 	// rather than following the name; what is there, as last looked at.
 	creating bool
+	language string
 	at, auto string
 	looked   string
 	place    string
@@ -116,6 +118,7 @@ func (a *App) switchWork(path string) {
 // openCreate starts the new-work dialog.
 func (a *App) openCreate() {
 	a.name, a.genre = "", "网文"
+	a.books.language = defaultBookLanguage(i18n.Locale())
 	a.books.creating, a.books.at, a.books.auto, a.books.place = true, "", "", ""
 }
 
@@ -155,7 +158,7 @@ func (a *App) create() error {
 	if name == "" {
 		name = filepath.Base(dir)
 	}
-	s, err := workspace.Create(dir, name, a.genre, "zh-Hans")
+	s, err := workspace.Create(dir, name, a.genre, workspace.Language(a.books.language))
 	if err != nil {
 		return err
 	}
@@ -571,6 +574,7 @@ func (a *App) createDialog(c *ui.Context) {
 			kit.Labeled(c, locales.DialogNewBookKind(), func() {
 				a.pal.SelectNamed(c, &a.genre, genres, genreName).Label(locales.DialogNewBookKind()).FillWidth()
 			})
+			a.bookLanguageField(c, &v.language)
 			kit.Labeled(c, locales.DialogNewBookPlace(), func() {
 				ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 					ui.TextInput(c, &v.at).Label(locales.DialogNewBookPlaceLabel()).Grow(1)
@@ -627,4 +631,19 @@ func (a *App) renameDialog(c *ui.Context) {
 	if !open {
 		v.renaming = ""
 	}
+}
+
+// defaultBookLanguage follows supported interface languages at creation time.
+func defaultBookLanguage(locale string) string {
+	if locale == string(workspace.English) {
+		return locale
+	}
+	return string(workspace.Chinese)
+}
+
+func (a *App) bookLanguageField(c *ui.Context, language *string) {
+	kit.Labeled(c, locales.ShelfBookLanguage(), func() {
+		a.pal.SelectNamed(c, language, []string{string(workspace.Chinese), string(workspace.English)}, i18n.Autonym).Label(locales.ShelfBookLanguage()).FillWidth()
+		ui.Text(c, locales.ShelfBookLanguageNote()).FontSize(kit.FsNote).TextColor(a.pal.Theme.TextMuted)
+	})
 }

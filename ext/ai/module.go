@@ -53,16 +53,16 @@ func New(opts Options) ext.Module {
 		v.palette = ext.Use(r, hostapi.PaletteService)
 		v.jobs = ext.Use(r, hostapi.JobsService)
 		notices := ext.Use(r, hostapi.NoticesService)
-		ext.Declare(r, aiapi.ModelChanges)
+		ext.Declare(r, aiapi.ModelChanges, ext.Hidden)
 		ext.DeclareCalls(r, aiapi.ModelChanges, func(f func()) func(struct{}) struct{} { return func(struct{}) struct{} { f(); return struct{}{} } })
 		v.modelChanges = ext.ReadPoint(r, aiapi.ModelChanges)
-		ext.Declare(r, aiapi.Tools)
+		ext.Declare(r, aiapi.Tools, ext.Hidden) // tools the model calls, not buttons
 		ext.DeclareCalls(r, aiapi.Tools, aiapi.InvokeTool)
-		ext.Declare(r, aiapi.Usage)
+		ext.Declare(r, aiapi.Usage, "usage")
 		ext.DeclareCalls(r, aiapi.Usage, func(draw func(*ui.Context)) func(*ui.Context) struct{} {
 			return func(c *ui.Context) struct{} { draw(c); return struct{}{} }
 		})
-		ext.Declare(r, aiapi.Calls)
+		ext.Declare(r, aiapi.Calls, ext.Hidden)
 		ext.DeclareCalls(r, aiapi.Calls, func(f func(aiapi.Call)) func(aiapi.Call) struct{} {
 			return func(c aiapi.Call) struct{} { f(c); return struct{}{} }
 		})

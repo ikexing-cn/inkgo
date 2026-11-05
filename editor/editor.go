@@ -78,10 +78,13 @@ type Editor struct {
 	// What an AI proposes, shown in the text, with room after each; the
 	// version tells the layout they changed. follow keeps the end of one
 	// in view as it grows, and show brings the start of one into view.
-	props        []Proposal
-	gap          float32
-	propVer      int
-	follow, show string
+	props                             []Proposal
+	gap                               float32
+	propVer                           int
+	rewriting                         bool
+	proseCache                        proseCache
+	marksVer, foundVer, namesRevision int
+	follow, show                      string
 
 	// Ranges found, painted under the text; the current one stronger.
 	found                 [][2]int

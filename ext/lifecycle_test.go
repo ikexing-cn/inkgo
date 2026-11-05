@@ -21,7 +21,7 @@ func TestOptionalDependencyDisappearsAndReturnsWithoutConsumerRestart(t *testing
 	var ref *ext.OptRef[string]
 	starts, stops := 0, 0
 	h := host(t, ext.Options{LocalSwitches: &localStore{off: []string{"a", "b"}}}, ext.Module{ID: "b", Setup: func(r *ext.Registrar) {
-		ext.Declare(r, point)
+		ext.Declare(r, point, ext.Hidden)
 		ext.Provide(r, key, func(*ext.Session) string { return "service" })
 	}}, ext.Module{ID: "a", Optional: []string{"b"}, Setup: func(r *ext.Registrar) {
 		ref = ext.UseOptional(r, key)
@@ -57,7 +57,7 @@ func TestDisabledLedgerRetainsEveryDeclarationAndReverseDependency(t *testing.T)
 	key := ext.ServiceKey[int]("b")
 	point := ext.PointKey[int]("a.items")
 	h := host(t, ext.Options{LocalSwitches: &localStore{off: []string{"a"}}}, ext.Module{ID: "b", Setup: func(r *ext.Registrar) { ext.Provide(r, key, func(*ext.Session) int { return 1 }) }}, ext.Module{ID: "a", Requires: []string{"b"}, Setup: func(r *ext.Registrar) {
-		ext.Declare(r, point)
+		ext.Declare(r, point, ext.Hidden)
 		ext.Contribute(r, point, "item", 1)
 		ext.Provide(r, ext.ServiceKey[int]("a"), func(*ext.Session) int { return 2 })
 		ext.Use(r, key)
@@ -255,7 +255,7 @@ func TestThirtyModulesBookSwitchHasBoundedOverhead(t *testing.T) {
 func TestItemsKeepAssemblyAndRegistrationOrder(t *testing.T) {
 	point := ext.PointKey[int]("a.items")
 	h := host(t, ext.Options{}, ext.Module{ID: "a", Setup: func(r *ext.Registrar) {
-		ext.Declare(r, point)
+		ext.Declare(r, point, ext.Hidden)
 		ext.Contribute(r, point, "one", 1)
 		ext.Contribute(r, point, "two", 2)
 	}}, ext.Module{ID: "b", Requires: []string{"a"}, Setup: func(r *ext.Registrar) { ext.Contribute(r, point, "three", 3) }})

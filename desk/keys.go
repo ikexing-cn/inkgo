@@ -30,6 +30,11 @@ func (a *App) keysHelp(c *ui.Context) {
 							ui.Text(c, row.keys()).FontSize(kit.FsControl).TextColor(t.TextMuted).Width(250).Shrink(0)
 							ui.Text(c, row.does()).FontSize(kit.FsControl).Grow(1).Shrink(1)
 						})
+						for _, cmd := range row.cmds {
+							if cmd.clash != nil {
+								ui.Text(c, cmd.clash()).FontSize(kit.FsNote).TextColor(t.Warning).LineHeight(kit.LhBody)
+							}
+						}
 					}
 				})
 			})

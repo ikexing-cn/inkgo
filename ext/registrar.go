@@ -9,6 +9,8 @@ import (
 type point struct {
 	owner string
 	typ   reflect.Type
+	place Place
+	named func(any) func() string
 }
 type contribution struct {
 	id, owner, key string
@@ -73,15 +75,17 @@ func (r *Registrar) owned(key, operation string) {
 	}
 }
 
-// Declare opens a typed point owned by this module.
-func Declare[T any](r *Registrar, key PointKey[T]) {
+// Declare opens a typed point owned by this module. place says where the
+// author sees what is contributed to it; Hidden for points the author does
+// not see. An unknown place prevents assembly.
+func Declare[T any](r *Registrar, key PointKey[T], place Place) {
 	k := string(key)
 	r.owned(k, "Declare")
 	r.claim(k)
 	if !strings.Contains(k, ".") {
 		r.fail("Declare key %q needs an owner prefix", k)
 	}
-	r.h.points[k] = point{owner: r.e.mod.ID, typ: reflect.TypeFor[T]()}
+	r.h.points[k] = point{owner: r.e.mod.ID, typ: reflect.TypeFor[T](), place: place}
 	r.e.ledger.Points = append(r.e.ledger.Points, k)
 }
 
@@ -100,7 +104,7 @@ func Contribute[T any](r *Registrar, key PointKey[T], name string, value T) {
 	id := m.ID + "." + name
 	r.claim(id)
 	r.h.contributions = append(r.h.contributions, contribution{id, m.ID, k, value, reflect.TypeFor[T]()})
-	r.e.ledger.Contributions = append(r.e.ledger.Contributions, Contribution{id, k})
+	r.e.ledger.Contributions = append(r.e.ledger.Contributions, Contribution{ID: id, Point: k})
 }
 
 // Provide records a factory; construction is deferred until the session starts.

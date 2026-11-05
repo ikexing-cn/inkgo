@@ -10,7 +10,7 @@ import (
 func TestDeclaredReadsInactiveContributorsAndPointOwnersWithoutChangingRevision(t *testing.T) {
 	point := ext.PointKey[string]("base.items")
 	h := host(t, ext.Options{LocalSwitches: &localStore{off: []string{"base", "extra"}}},
-		ext.Module{ID: "base", Setup: func(r *ext.Registrar) { ext.Declare(r, point) }},
+		ext.Module{ID: "base", Setup: func(r *ext.Registrar) { ext.Declare(r, point, ext.Hidden) }},
 		ext.Module{ID: "extra", Optional: []string{"base"}, Setup: func(r *ext.Registrar) {
 			ext.Contribute(r, point, "one", "first")
 			ext.Contribute(r, point, "two", "second")

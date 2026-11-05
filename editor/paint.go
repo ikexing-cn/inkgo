@@ -81,6 +81,7 @@ func (e *Editor) scrollIntoView(r ui.Rect) {
 func (e *Editor) paintDecorations(p *ui.Painter, ox, oy, top, bottom float32) {
 	t := p.Theme()
 	l := &e.lay
+	layers := e.proseLayers()
 	if a, b := e.noteHighlight[0], e.noteHighlight[1]; b > a {
 		l.eachVisible(l.toDisp(a, true), l.toDisp(b, false), top, bottom, func(x0, x1, y float32) {
 			p.Fill(ui.Rect{X: ox + x0, Y: oy + y, W: x1 - x0, H: l.lineH}, t.SurfacePressed, 0)
@@ -88,7 +89,7 @@ func (e *Editor) paintDecorations(p *ui.Painter, ox, oy, top, bottom float32) {
 	}
 	e.paintNames(p, ox, oy, top, bottom)
 
-	for _, m := range e.decorations() {
+	for _, m := range layers.marks {
 		if m.End <= m.Start {
 			continue
 		}
@@ -116,9 +117,9 @@ func (e *Editor) paintDecorations(p *ui.Painter, ox, oy, top, bottom float32) {
 		})
 	}
 
-	for i, f := range e.found {
+	for _, f := range layers.found {
 		color := colorFound.Alpha(0.28)
-		if i == e.current {
+		if e.current >= 0 && e.current < len(e.found) && f == e.found[e.current] {
 			color = colorFound.Alpha(0.6)
 		}
 		l.eachVisible(l.toDisp(f[0], true), l.toDisp(f[1], false), top, bottom, func(x0, x1, y float32) {
@@ -130,17 +131,7 @@ func (e *Editor) paintDecorations(p *ui.Painter, ox, oy, top, bottom float32) {
 		p.Text(ox+l.lines[0].dx, oy+l.lines[0].y+(l.lineH-e.opts.Font.Size*1.3)/2, e.opts.Placeholder(), e.opts.Font.Size, t.TextMuted.Alpha(0.6))
 	}
 
-	if a, b := e.Selection(); a != b {
-		sel := t.Selection
-		if !e.focused {
-			sel = t.TextMuted.Alpha(0.2)
-		}
-		l.eachVisible(l.toDisp(a, true), l.toDisp(b, false), top, bottom, func(x0, x1, y float32) {
-			p.Fill(ui.Rect{X: ox + x0, Y: oy + y + 2, W: x1 - x0, H: l.lineH - 4}, sel, 0)
-		})
-	}
-
-	for _, pr := range e.props {
+	for _, pr := range layers.proposals {
 		if pr.Keep {
 			continue
 		}
@@ -149,6 +140,15 @@ func (e *Editor) paintDecorations(p *ui.Painter, ox, oy, top, bottom float32) {
 				mid := oy + y + l.lineH/2
 				p.Line(ox+x0, mid, ox+x1, mid, 1.2, t.Danger)
 			}
+		})
+	}
+	if a, b := e.Selection(); layers.selection {
+		sel := t.Selection
+		if !e.focused {
+			sel = t.TextMuted.Alpha(0.2)
+		}
+		l.eachVisible(l.toDisp(a, true), l.toDisp(b, false), top, bottom, func(x0, x1, y float32) {
+			p.Fill(ui.Rect{X: ox + x0, Y: oy + y + 2, W: x1 - x0, H: l.lineH - 4}, sel, 0)
 		})
 	}
 }

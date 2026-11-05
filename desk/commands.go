@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
+	"writer/ext/hostapi"
 	"writer/locales"
 )
 
@@ -27,6 +28,8 @@ const pageAny page = -1
 // where a menu does something of its own, such as closing the tab clicked,
 // it gives that instead.
 type command struct {
+	keyLost    bool
+	clash      func() string
 	presentNow func() bool
 	label      func() string     // what the menus and the help call it, said when shown
 	labelNow   func(*App) string // what the state calls it, as 收起侧栏 / 展开侧栏
@@ -258,7 +261,7 @@ var onMacOS = runtime.GOOS == "darwin"
 // is Ctrl itself elsewhere; the table keeps a bit of its own, outside the
 // toolkit's four, so that either system's keys can be written and tested
 // from one, and Ctrl+Tab stays ⌃Tab on macOS.
-const modCmd ui.Modifiers = 1 << 7
+const modCmd ui.Modifiers = hostapi.CommandModifier
 
 // cmdKeyOn is the command key on macOS or another system.
 func cmdKeyOn(mac bool) ui.Modifiers {
@@ -284,6 +287,9 @@ func (c *command) bindingOn(mac bool) (ui.Modifiers, ui.Key) {
 // keysOn is the command's shortcut as the menus and the help write it on
 // macOS or another system, or "" where it has none.
 func (c *command) keysOn(mac bool) string {
+	if c.keyLost {
+		return ""
+	}
 	mods, key := c.bindingOn(mac)
 	if key == 0 {
 		return ""
@@ -467,7 +473,7 @@ func stepTab(a *App, d int) {
 func (a *App) commandKeys(c *ui.Context) {
 	for _, cmd := range a.commandList() {
 		_, key := cmd.bindingOn(onMacOS)
-		if key == 0 || cmd.by != byDesk || cmd.ai && !a.aiOn() {
+		if cmd.keyLost || key == 0 || cmd.by != byDesk || cmd.ai && !a.aiOn() {
 			continue
 		}
 		if cmd.page != pageAny && cmd.page != a.page {

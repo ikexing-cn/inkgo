@@ -15,7 +15,7 @@ import (
 
 // Module registers the prose marks prerequisite and its editor adapter.
 var Module = ext.Module{ID: "marks", Kind: ext.Library, Name: markstext.ModMarks, Desc: markstext.ModMarksAbout, Setup: func(r *ext.Registrar) {
-	ext.Declare(r, marksapi.MarginSources)
+	ext.Declare(r, marksapi.MarginSources, "marks")
 	ext.DeclareCalls(r, marksapi.MarginSources, sourceCall)
 	reader := &library{sources: ext.ReadPoint(r, marksapi.MarginSources)}
 	ext.Provide(r, marksapi.Service, func(*ext.Session) marksapi.Reader { return reader })
@@ -26,7 +26,6 @@ var Module = ext.Module{ID: "marks", Kind: ext.Library, Name: markstext.ModMarks
 				out = append(out, editor.ProseMark{Kind: v.Look, Start: v.Start, End: v.End, Dropped: v.Dropped, Open: v.Open})
 			}
 		}
-		slices.SortStableFunc(out, func(a, b editor.ProseMark) int { return priority(a.Kind) - priority(b.Kind) })
 		return out
 	}})
 }}
@@ -93,17 +92,6 @@ func (l *library) Items(chapter, text string) []marksapi.MarginItem {
 	l.items = out
 	return l.items
 }
-func priority(k editor.MarkKind) int {
-	switch k {
-	case editor.MarkForeshadow, editor.MarkPayoff:
-		return 0
-	case editor.MarkCheck:
-		return 1
-	default:
-		return 2
-	}
-}
-
 func (l *library) Revision() uint64 {
 	changes, locale := l.sources.Revision(), i18n.Locale()
 	dirty := l.serial == 0 || l.changes != changes || l.locale != locale

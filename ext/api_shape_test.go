@@ -16,7 +16,7 @@ func TestReadPointAssemblyValidation(t *testing.T) {
 		{name: "empty", key: string(point)}, {name: "typo", key: "base.value", fail: true}, {name: "type", key: string(point), wrong: true, fail: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			h, err := ext.New(ext.Options{}, ext.Module{ID: "base", Setup: func(r *ext.Registrar) { ext.Declare(r, point) }}, ext.Module{ID: "reader", Requires: []string{"base"}, Setup: func(r *ext.Registrar) {
+			h, err := ext.New(ext.Options{}, ext.Module{ID: "base", Setup: func(r *ext.Registrar) { ext.Declare(r, point, ext.Hidden) }}, ext.Module{ID: "reader", Requires: []string{"base"}, Setup: func(r *ext.Registrar) {
 				if tc.wrong {
 					ext.ReadPoint(r, ext.PointKey[string](tc.key))
 				} else {
@@ -46,7 +46,7 @@ func TestNamedPointOperationsHaveIndependentInjectionChains(t *testing.T) {
 	var reader *ext.PointReader[operations]
 	var trace []string
 	h, err := ext.New(ext.Options{}, ext.Module{ID: "base", Setup: func(r *ext.Registrar) {
-		ext.Declare(r, point)
+		ext.Declare(r, point, ext.Hidden)
 		ext.DeclareOperation(r, point, "first", func(o operations) func(int) int { return o.first })
 		ext.DeclareOperation(r, point, "second", func(o operations) func(string) string { return o.second })
 		ext.Contribute(r, point, "value", operations{first: func(n int) int { trace = append(trace, "original"); return n * 2 }, second: func(s string) string { return s + "!" }})

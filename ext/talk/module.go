@@ -36,8 +36,8 @@ func New() (ext.Module, *Panel) {
 }
 func setup(r *ext.Registrar) { setupPanel(r, &Panel{}) }
 func setupPanel(r *ext.Registrar, panel *Panel) {
-	ext.Declare(r, talkapi.TalkStarters)
-	ext.Declare(r, talkapi.Proposals)
+	ext.Declare(r, talkapi.TalkStarters, ext.Hidden)
+	ext.Declare(r, talkapi.Proposals, ext.Hidden)
 	talkapi.DeclareOperations(r)
 	s := &service{book: ext.Use(r, hostapi.BookService), editing: ext.Use(r, hostapi.EditingService), notices: ext.Use(r, hostapi.NoticesService), ai: ext.Use(r, aiapi.Service)}
 	s.starters = ext.ReadPoint(r, talkapi.TalkStarters)

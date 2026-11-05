@@ -85,7 +85,8 @@ func IsWork(dir string) bool {
 }
 
 // Create accepts a missing or empty directory. It never replaces an existing
-// workspace or adopts unrelated files in a nonempty directory.
+// workspace or adopts unrelated files in a nonempty directory. Language must
+// be explicitly Chinese or English; only reading legacy works supplies a default.
 func Create(dir, name, genre string, language Language) (*Store, error) {
 	root, err := filepath.Abs(dir)
 	if err != nil {
@@ -97,9 +98,6 @@ func Create(dir, name, genre string, language Language) (*Store, error) {
 	}
 	if len(entries) > 0 {
 		return nil, fmt.Errorf("%s: directory is not empty", root)
-	}
-	if language == "" {
-		language = Chinese
 	}
 	w := Work{Language: language, Schema: Schema, ID: NewID(), Name: name, Genre: genre, Categories: Categories(genre, language)}
 	if err = validateWork(w); err != nil {

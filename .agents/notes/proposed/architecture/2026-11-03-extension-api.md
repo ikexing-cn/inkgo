@@ -143,7 +143,7 @@ ext.Replace(r, point, "export.docx", value)                    // 换掉一整�
   - `ext.Call(h, hook, in, original)`：要让别的扩展能改的调用，经注入链。命令的 Run、各种 Draw、每帧的 Tick、离开作品前的回调都走它。
   - `ext.Guard(h, owner, target, fn)`：只是问一下、不该被注入的，不声明调用处、不进链。对话框开没开（`Overlay.Open`）、待处理的缓存键和那一组（`PendingSource`）、点了待处理的一项都走它。
   - 扩展没生效、或调用出错，都返回能用 `errors.Is(err, ext.ErrCallFailed)` 判断的错误。宿主自己（`ext.HostOwner`）的 panic 不吞。
-- 提示条只写扩展名和错误原文：「{name}出错，已停下：{error}」（`locales.ExtFailed`）。出错的阶段、调用处、在谁的注入里记在账的 `Errors` 里，留给详情页。
+- 提示条只写扩展名和错误原文：「{name}出错，已停下：{error}」（`locales.ExtFailed`）。出错的时间、阶段、调用处、在谁的注入里记在账的 `Errors` 里，详情页的「出错记录」列出来，新的在上。
 
 ### 账和详情页
 
@@ -153,8 +153,11 @@ ext.Replace(r, point, "export.docx", value)                    // 换掉一整�
 - 开的点、放进去的贡献、提供和取用的服务；读了哪些点（`Ledger.Reads`，装配时查点在不在、类型对不对）；声明的调用（`Ledger.Calls`）；
 - 注入：哪一处、哪一种、排第几、生效还是冲突、目标开没开；
 - 设置、自定义设置页；
-- 数据目录和大小；
-- 状态、出错记录。
+- 数据目录（`Host.DataPaths`；大小由宿主在后台量，不进账）；
+- 状态、出错记录；
+- 快捷键：每个键谁要、谁生效（`Ledger.Keys`）。
+
+详情页的「功能入口」读点的声明：`ext.Declare` 写明这个点在界面上的什么地方（`ext.Place`，作者看不见的写 `ext.Hidden`），`ext.DeclareName` 写明怎么从值里取名字；被注入的那一处叫什么由开它的一方经 `ext.NameTarget` 声明。
 
 扩展经 Registrar 登记的东西都记在它名下（cordis 的 `Fiber.effect` 和 `getEffects()`）。关掉时宿主照账拆，拆完这个扩展在生效表里一条不剩，有测试。`Persist` 的登记、Session 里一件件的任务和清理没有逐条进账：它们的寿命由 Session 管住，但账里看不到。
 
@@ -223,7 +226,7 @@ ext.Before(r, ext.EditorKey, func(in *ext.KeyIn) { in.Text = fullWidth(in.Text) 
 写例子时发现的缺口，落地时一并定：
 
 - 菜单位置要有名字：`ext.MenuView` 这类常量，加上「排在谁后面」。现在的标题栏菜单和 macOS 的系统菜单都从 [desk/commands.go](../../../desk/commands.go) 的表生成，命令的贡献要能进同一张表。
-- 命令的快捷键要分系统写，和现在的 `macKey`、`macMods` 一样，冲突照快捷键表的规矩标出来。
+- 命令的快捷键要分系统写，和现在的 `macKey`、`macMods` 一样，冲突照快捷键表的规矩标出来。2026-11-05 做了：值实现 `ext.ShortcutSource` 的贡献都参加，宿主自己的键经 `Options.HostKeys` 参加且总是生效，结果记在账的 `Keys`，见[扩展模块](2026-11-02-extension-modules.md)「顺序」第 8 条。
 - `Editing.Chapter` 交出 `*editor.Editor`、`Book` 交出 `Store`、`Content` 都只在 Go 层可以；数据层要换成章节 id 加读写正文的服务。
 - `ext.EditorKey` 每按一下都跑整条链，链要预先建好，并有帧耗时的测试。
 - 补全来源要说明多久取一次。现在 `namesKey` 按设定是否变了来缓存，点里要留一个「什么变了才重取」的键。

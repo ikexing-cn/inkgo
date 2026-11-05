@@ -8,7 +8,7 @@ import (
 	"writer/ext/marks/marksapi"
 )
 
-func TestSourcesAreOrderedHooksCheckAIAndOptionalSourcesDisappearAndReturn(t *testing.T) {
+func TestSourcesKeepRegistrationOrderAndOptionalSourcesDisappearAndReturn(t *testing.T) {
 	source := ext.Module{ID: "source", Optional: []string{"marks"}, Setup: func(r *ext.Registrar) {
 		ext.Contribute(r, marksapi.MarginSources, "annotations", marksapi.MarginSource{Notes: func(chapter, text string) []marksapi.MarginItem {
 			return []marksapi.MarginItem{{Start: 2, End: 3, Look: editor.MarkAI}, {Start: 2, End: 3, Look: editor.MarkCheck}, {Start: 2, End: 3, Look: editor.MarkForeshadow}}
@@ -34,7 +34,7 @@ func TestSourcesAreOrderedHooksCheckAIAndOptionalSourcesDisappearAndReturn(t *te
 			continue
 		}
 		got := values[0].Value.Marks("chapter", "a\nbc")
-		if len(got) != 3 || got[0].Kind != editor.MarkForeshadow || got[1].Kind != editor.MarkCheck || got[2].Kind != editor.MarkAI {
+		if len(got) != 3 || got[0].Kind != editor.MarkAI || got[1].Kind != editor.MarkCheck || got[2].Kind != editor.MarkForeshadow {
 			t.Fatal(got)
 		}
 		reader, _ := ext.Lookup(h, marksapi.Service)
@@ -126,5 +126,25 @@ func TestSourcePositionsUseRuneOffsetsAcrossParagraphsAndClampToText(t *testing.
 		if got := [2]int{items[i].Paragraph, items[i].Character}; got != want {
 			t.Fatal(i, got, want)
 		}
+	}
+}
+
+func TestMarginSourceRegistrationOrderOverridesMarkKind(t *testing.T) {
+	source := func(id string, kind editor.MarkKind) ext.Module {
+		return ext.Module{ID: id, Optional: []string{"marks"}, Setup: func(r *ext.Registrar) {
+			ext.Contribute(r, marksapi.MarginSources, id, marksapi.MarginSource{Notes: func(string, string) []marksapi.MarginItem {
+				return []marksapi.MarginItem{{Start: 0, End: 4, Look: kind}}
+			}})
+		}}
+	}
+	h, err := ext.New(ext.Options{}, Module, source("first", editor.MarkAI), source("second", editor.MarkForeshadow))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer h.Close()
+	values := ext.Items(h, hostapi.ProseMarks)
+	got := values[0].Value.Marks("chapter", "text")
+	if len(got) != 2 || got[0].Kind != editor.MarkAI || got[1].Kind != editor.MarkForeshadow {
+		t.Fatal(got)
 	}
 }

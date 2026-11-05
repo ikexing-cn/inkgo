@@ -92,6 +92,7 @@ type App struct {
 	workEpoch              uint64
 	busy                   string
 	cancel                 context.CancelFunc
+	ledgerData             ledgerDataCache
 	jobs                   jobs
 	nonblocking            bool
 	doc                    docView

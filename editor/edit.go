@@ -128,7 +128,11 @@ func (e *Editor) Select(a, b int) {
 // SetFound shows ranges found in the text, current the one stronger; nil
 // clears them.
 func (e *Editor) SetFound(ranges [][2]int, current int) {
-	e.found, e.current = ranges, current
+	if !slices.Equal(e.found, ranges) {
+		e.found = slices.Clone(ranges)
+		e.foundVer++
+	}
+	e.current = current
 }
 
 // SetDoubts shows ranges of the text something is in doubt about, with a

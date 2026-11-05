@@ -86,7 +86,9 @@ type PaneTab struct {
 	// Fallback makes this tab the default when no chosen pane is available.
 	Fallback bool
 	// Count queries the badge on the frame thread through ext.Guard.
-	Count     func() int
+	Count func() int
+	// Title is localization only, like Module.Name; safe while disabled,
+	// without accessing session state or services.
 	Title     func() string
 	Draw      func(*ui.Context)
 	Available func() bool
@@ -104,7 +106,8 @@ type Page struct {
 
 	// MenuOnly excludes the page from the title switch on the frame thread.
 	MenuOnly bool
-	// Title supplies display text on the frame thread through ext.Guard.
+	// Title is localization only, like Module.Name; safe while disabled,
+	// without accessing session state or services.
 	Title func() string
 	// Icon is drawn by the host on the frame thread.
 	Icon *ui.SVG

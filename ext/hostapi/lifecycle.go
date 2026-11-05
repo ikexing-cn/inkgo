@@ -57,7 +57,9 @@ type PendingSource struct {
 // on the frame thread without session state. Sections sort by page order then
 // registration order.
 type SettingsPage struct {
-	Key   string
+	Key string
+	// Title is localization only, like Module.Name; safe while disabled,
+	// without accessing session state or services.
 	Title func() string
 	Label string
 	Order int

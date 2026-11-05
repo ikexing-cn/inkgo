@@ -12,6 +12,8 @@ import (
 
 // extensionView keeps allocating host snapshots out of the frame path.
 type extensionView struct {
+	adds              []string
+	injected          []ledgerInjection
 	module            ext.Module
 	ledger            ext.Ledger
 	own, active, mine bool
@@ -114,6 +116,10 @@ func (a *App) cacheExtensionNotes() {
 			}
 			meta = append(meta, text)
 		}
+		v.adds = a.ledgerAdds(id, v.ledger)
+		for _, i := range v.ledger.Injections {
+			v.injected = append(v.injected, a.cacheInjectedRow(i))
+		}
 		v.meta = strings.Join(meta, " · ")
 		if len(v.waits) > 0 {
 			v.waiting = locales.ModWaiting(a.extensionNames(v.waits))
@@ -147,6 +153,10 @@ func (a *App) extensionPrefTitle(c *ui.Context) {
 }
 
 func (a *App) extensionOverview(c *ui.Context) {
+	if a.ledgerData.page != "" {
+		a.ledgerData.page = ""
+		a.ledgerData.generation++
+	}
 	for _, group := range a.extViews.groups {
 		caption := ""
 		if group.library {
@@ -237,6 +247,9 @@ func (a *App) extensionSection(c *ui.Context, id string) {
 			}
 		})
 	})
+	if a.settings.tab == "extensions" && a.settings.ext == id {
+		a.extensionLedger(c, v)
+	}
 }
 
 func (a *App) extensionHead(c *ui.Context, v extensionView) {

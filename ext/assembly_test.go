@@ -62,15 +62,15 @@ func TestAssemblyRejectsDependencyCycle(t *testing.T) {
 }
 func TestAssemblyRejectsDuplicateRegistrationID(t *testing.T) {
 	assemblyError(t, "module a: Setup: duplicate registration id", ext.Module{ID: "a", Setup: func(r *ext.Registrar) {
-		ext.Declare(r, ext.PointKey[int]("a.same"))
+		ext.Declare(r, ext.PointKey[int]("a.same"), "")
 		ext.Setting(r, "same", ext.Schema[int]{})
 	}})
 }
 func TestAssemblyRejectsForeignDeclareKey(t *testing.T) {
-	assemblyError(t, "module a: Setup: Declare key", ext.Module{ID: "a", Setup: func(r *ext.Registrar) { ext.Declare(r, ext.PointKey[int]("b.items")) }})
+	assemblyError(t, "module a: Setup: Declare key", ext.Module{ID: "a", Setup: func(r *ext.Registrar) { ext.Declare(r, ext.PointKey[int]("b.items"), "") }})
 }
 func TestAssemblyRejectsUndeclaredContributionDependency(t *testing.T) {
-	assemblyError(t, "module a: Setup: Contribute target", ext.Module{ID: "b", Setup: func(r *ext.Registrar) { ext.Declare(r, ext.PointKey[int]("b.items")) }}, ext.Module{ID: "a", Setup: func(r *ext.Registrar) { ext.Contribute(r, ext.PointKey[int]("b.items"), "item", 1) }})
+	assemblyError(t, "module a: Setup: Contribute target", ext.Module{ID: "b", Setup: func(r *ext.Registrar) { ext.Declare(r, ext.PointKey[int]("b.items"), "") }}, ext.Module{ID: "a", Setup: func(r *ext.Registrar) { ext.Contribute(r, ext.PointKey[int]("b.items"), "item", 1) }})
 }
 func TestAssemblyRejectsUseWithoutRequiredDependency(t *testing.T) {
 	for _, optional := range []bool{false, true} {
@@ -104,7 +104,7 @@ func TestSetupRefGetBecomesAssemblyError(t *testing.T) {
 }
 func TestAssemblyChecksPointAndServiceTypes(t *testing.T) {
 	base := ext.Module{ID: "b", Setup: func(r *ext.Registrar) {
-		ext.Declare(r, ext.PointKey[int]("b.items"))
+		ext.Declare(r, ext.PointKey[int]("b.items"), "")
 		ext.Provide(r, ext.ServiceKey[int]("b"), func(*ext.Session) int { return 1 })
 	}}
 	assemblyError(t, "module a: Contribute point", base, ext.Module{ID: "a", Requires: []string{"b"}, Setup: func(r *ext.Registrar) { ext.Contribute(r, ext.PointKey[string]("b.items"), "x", "x") }})
@@ -123,7 +123,7 @@ func TestRegistrarRejectsRegistrationAfterSetup(t *testing.T) {
 			t.Error("registration after Setup accepted")
 		}
 	}()
-	ext.Declare(saved, ext.PointKey[int]("a.late"))
+	ext.Declare(saved, ext.PointKey[int]("a.late"), "")
 }
 func TestSetupRunsOnceInAssemblyOrderEvenWhenDisabled(t *testing.T) {
 	var log []string
@@ -185,7 +185,7 @@ func TestConsumersBeforeRequiredAndOptionalProvidersUseStableLoadOrder(t *testin
 		return ext.Module{ID: id, Setup: func(r *ext.Registrar) {
 			events = append(events, "setup "+id)
 			if id == "optional" {
-				ext.Declare(r, point)
+				ext.Declare(r, point, ext.Hidden)
 			}
 			ext.Provide(r, key, func(*ext.Session) int { events = append(events, "provide "+id); return value })
 			r.OnStart(func(*ext.Session) error { events = append(events, "start "+id); return nil })
@@ -242,7 +242,7 @@ func TestFailurePropagatesInLoadOrderWhenConsumersAreAssembledFirst(t *testing.T
 
 func TestContributionsKeepAssemblyOrderWhileRegistrationUsesLoadOrder(t *testing.T) {
 	point := ext.PointKey[int]("provider.items")
-	h := host(t, ext.Options{}, ext.Module{ID: "consumer", Requires: []string{"provider"}, Setup: func(r *ext.Registrar) { ext.Contribute(r, point, "first", 1); ext.Contribute(r, point, "second", 2) }}, ext.Module{ID: "provider", Setup: func(r *ext.Registrar) { ext.Declare(r, point); ext.Contribute(r, point, "own", 3) }})
+	h := host(t, ext.Options{}, ext.Module{ID: "consumer", Requires: []string{"provider"}, Setup: func(r *ext.Registrar) { ext.Contribute(r, point, "first", 1); ext.Contribute(r, point, "second", 2) }}, ext.Module{ID: "provider", Setup: func(r *ext.Registrar) { ext.Declare(r, point, ext.Hidden); ext.Contribute(r, point, "own", 3) }})
 	items := ext.Items(h, point)
 	if len(items) != 3 || items[0].ID != "consumer.first" || items[1].ID != "consumer.second" || items[2].ID != "provider.own" {
 		t.Fatal(items)

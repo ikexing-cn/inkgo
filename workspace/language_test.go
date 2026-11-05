@@ -11,7 +11,11 @@ import (
 func TestLanguageRoundTripsDefaultsAndRejectsUnknownOnOpen(t *testing.T) {
 	for _, language := range []Language{Chinese, English, ""} {
 		t.Run(string(language), func(t *testing.T) {
-			s, err := Create(t.TempDir(), "Book", "novel", language)
+			createLanguage := language
+			if createLanguage == "" {
+				createLanguage = Chinese
+			}
+			s, err := Create(t.TempDir(), "Book", "novel", createLanguage)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -125,5 +129,15 @@ func TestReadingMissingOrEmptyLanguageNormalizesBeforeUse(t *testing.T) {
 				t.Fatal(opened.Work())
 			}
 		})
+	}
+}
+
+func TestCreateRequiresSupportedLanguage(t *testing.T) {
+	for _, language := range []Language{"", "fr"} {
+		_, err := Create(t.TempDir(), "Book", "novel", language)
+		var bad *LanguageError
+		if !errors.As(err, &bad) || bad.Value != string(language) {
+			t.Fatalf("%q: %v", language, err)
+		}
 	}
 }

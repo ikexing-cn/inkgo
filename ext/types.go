@@ -2,7 +2,10 @@
 // It performs no filesystem IO; the application owns persistence.
 package ext
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 // Kind distinguishes user features from shared libraries.
 type Kind uint8
@@ -17,8 +20,11 @@ const HostOwner = "host"
 
 // Module describes an extension. Setup only records declarations, once per Host.
 type Module struct {
-	ID                 string
-	Kind               Kind
+	ID string
+	// Installed distinguishes separately installed modules from bundled modules.
+	Installed bool
+	Kind      Kind
+	// Name and Desc are localization only and remain safe while disabled.
 	Name, Desc         func() string
 	Requires, Optional []string
 	// Group is a host display grouping key; ext does not interpret it.
@@ -72,6 +78,9 @@ type Options struct {
 	BookState BookStateStore
 	// DeclareHost records host-owned points, hooks and services before module Setup.
 	DeclareHost func(*Registrar)
+	// HostKeys are the host's own key bindings. They take part in key claims
+	// and always win; their claims are in Ledger(HostOwner).Keys.
+	HostKeys []HostKey
 	// Injections persists author-controlled ordering and choices.
 	Injections InjectionStore
 	// OnFailure reports failures without the state lock. It can run on any calling
@@ -193,6 +202,8 @@ type Injection struct {
 
 // Failure retains the original error and the lifecycle location.
 type Failure struct {
+	// At records when the failure occurred.
+	At    time.Time
 	Stage string
 	Err   error
 	// Module, Target, Injection and Chain locate the failing callback.
@@ -220,6 +231,7 @@ type Ledger struct {
 	Injections    []Injection
 	State         State
 	Errors        []Failure
+	Keys          []KeyClaim
 }
 
 // Task is a background operation tied to a session's cancellation and shutdown.

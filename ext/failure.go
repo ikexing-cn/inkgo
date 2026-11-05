@@ -3,6 +3,7 @@ package ext
 import (
 	"errors"
 	"fmt"
+	"time"
 )
 
 func panicError(v any) error {
@@ -24,8 +25,11 @@ func protect(f func()) (err error) {
 
 func (h *Host) recordFailure(id string, f Failure) {
 	f.Module = id
+	f.At = time.Now()
+
 	h.mu.Lock()
 	h.byID[id].ledger.Errors = append(h.byID[id].ledger.Errors, f)
+	h.changes++
 	h.mu.Unlock()
 	if h.opts.OnFailure != nil {
 		h.opts.OnFailure(id, f)
@@ -65,7 +69,7 @@ func (h *Host) callFailure(id, stage, target, injection string, v any) error {
 
 func (h *Host) failCall(id, stage, target, injection, chain string, v any) error {
 	err := panicError(v)
-	f := Failure{Module: id, Stage: stage, Target: target, Injection: injection, Chain: chain, Err: err}
+	f := Failure{At: time.Now(), Module: id, Stage: stage, Target: target, Injection: injection, Chain: chain, Err: err}
 	h.mu.Lock()
 	e := h.byID[id]
 	e.ledger.State = Failed

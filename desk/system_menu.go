@@ -37,6 +37,9 @@ var systemCommands = []struct {
 // systemAccelerator writes the command's macOS key as mygo's menus take it
 // ("Shift+Cmd+Z"); "" when it has none there.
 func systemAccelerator(cmd *command) string {
+	if cmd.keyLost {
+		return ""
+	}
 	mods, key := cmd.bindingOn(true)
 	if key == 0 {
 		return ""
