@@ -57,6 +57,8 @@ type SelectionMenu struct {
 	// Order sorts contributions on the frame thread; negative values precede legacy host selection actions.
 	// Equal values retain registration order.
 	Order int
+	// Group separates extension actions from the foreshadowing group.
+	Group string
 	Build func(string) []SelectionAction
 }
 
@@ -67,30 +69,3 @@ const SelectionMenus ext.PointKey[SelectionMenu] = "host.selection-menu"
 // thread through ext.Call. Each contribution must not retain frame objects.
 // This drawing point is Go-only; a data-layer adapter must return UI descriptions.
 const BesideItems ext.PointKey[DrawItem] = "host.beside"
-
-// NoteAction is a frame-thread action on a contributed margin note.
-// Run is invoked through ext.Guard by the host.
-type NoteAction struct {
-	Label string
-	Run   func()
-}
-
-// MarginItem describes a note attached to a prose range; all callbacks run
-// through ext.Guard on the frame thread. It contains no frame objects.
-type MarginItem struct {
-	// Idea optionally identifies an entry change for diagnostics and inspection.
-	Idea                  *workspace.Idea
-	ID, Kind, Title, Text string
-	Start, End            int
-	Warn                  bool
-	Open                  func()
-	Actions               []NoteAction
-}
-
-// MarginSource supplies notes on the frame thread through ext.Guard.
-type MarginSource struct {
-	Notes func(string, string) []MarginItem
-}
-
-// MarginSources collects contributed prose margin notes.
-const MarginSources ext.PointKey[MarginSource] = "host.margin-sources"

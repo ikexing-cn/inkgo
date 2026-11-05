@@ -20,7 +20,7 @@ func (testPredictor) Predict(ctx context.Context, _ string) (string, error) {
 }
 
 func newTester(e *Editor) *ui.Tester {
-	tt := ui.NewTester(func(c *ui.Context) { e.View(c).Fill() }, 600, 400)
+	tt := ui.NewTester(func(c *ui.Context) { supplyTestMarks(e); e.View(c).Fill() }, 600, 400)
 	tt.Frame()
 	tt.Frame() // the first paint learns the size
 	return tt
@@ -356,4 +356,18 @@ func TestSelectionTop(t *testing.T) {
 	if r.Y <= r0.Y || r.X <= r0.X {
 		t.Fatalf("second line's selection at %+v is not right of and below the first's %+v", r, r0)
 	}
+}
+
+// supplyTestMarks is the standalone editor fixture's adapter for persisted marks.
+func supplyTestMarks(e *Editor) {
+	var out []ProseMark
+	for _, m := range e.Doc.Marks() {
+		if !e.hidden(m) {
+			out = append(out, ProseMark{Kind: m.Kind, Start: m.Start, End: m.End, Dropped: m.Dropped})
+		}
+	}
+	for _, r := range e.doubts {
+		out = append(out, ProseMark{Kind: MarkCheck, Start: r[0], End: r[1]})
+	}
+	e.SetProseMarks(out)
 }

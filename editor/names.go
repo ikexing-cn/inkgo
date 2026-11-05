@@ -90,7 +90,7 @@ func (e *Editor) nameRanges() []nameRange {
 
 func (e *Editor) nameVisible(n nameRange) bool {
 	overlaps := func(a, b int) bool { return a < n.b && n.a < b }
-	if slices.ContainsFunc(e.Doc.marks, func(m Mark) bool { return !e.hidden(m) && overlaps(m.Start, m.End) }) ||
+	if slices.ContainsFunc(e.decorations(), func(m ProseMark) bool { return overlaps(m.Start, m.End) }) ||
 		slices.ContainsFunc(e.found, func(r [2]int) bool { return overlaps(r[0], r[1]) }) ||
 		slices.ContainsFunc(e.doubts, func(r [2]int) bool { return overlaps(r[0], r[1]) }) ||
 		slices.ContainsFunc(e.props, func(p Proposal) bool { return overlaps(p.A, p.B) }) {

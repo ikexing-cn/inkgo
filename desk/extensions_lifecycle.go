@@ -12,7 +12,9 @@ import (
 	"writer/shelf"
 )
 
-func declareLifecycle(r *ext.Registrar, a *App) {
+func declareLifecycle(r *ext.Registrar, a *App, mods []ext.Module) {
+	ext.Declare(r, hostapi.NameHighlights)
+	ext.DeclareCalls(r, hostapi.NameHighlights, func(p hostapi.NameProvider) func(struct{}) hostapi.Names { return p })
 	ext.Declare(r, hostapi.BeforeProse)
 	ext.DeclareCalls(r, hostapi.BeforeProse, drawItemCall)
 	ext.Declare(r, hostapi.WritingKeys)
@@ -21,6 +23,11 @@ func declareLifecycle(r *ext.Registrar, a *App) {
 	})
 
 	h := extensionHost{a}
+	ext.Provide(r, hostapi.ProseUIService, func(*ext.Session) hostapi.ProseUI { return h })
+	ext.Declare(r, hostapi.ToolHints)
+	ext.DeclareCalls(r, hostapi.ToolHints, drawItemCall)
+	ext.Declare(r, hostapi.ProseOverlays)
+	ext.DeclareCalls(r, hostapi.ProseOverlays, drawItemCall)
 	ext.Declare(r, hostapi.WordSuffix)
 	ext.Declare(r, hostapi.WordPopovers)
 	ext.DeclareCalls(r, hostapi.WordPopovers, wordPopoverCall)
@@ -37,7 +44,14 @@ func declareLifecycle(r *ext.Registrar, a *App) {
 	ext.DeclareCalls(r, hostapi.SelectionMenus, selectionMenuCall)
 	ext.Declare(r, hostapi.BesideItems)
 	ext.DeclareCalls(r, hostapi.BesideItems, drawItemCall)
-	ext.Declare(r, hostapi.MarginSources)
+	ext.Declare(r, hostapi.ProseMarks)
+	ext.DeclareCalls(r, hostapi.ProseMarks, proseMarksCall)
+	for _, mod := range mods {
+		if mod.ID == "marks" {
+			registerLegacyMarks(r, a)
+			break
+		}
+	}
 
 	ext.Declare(r, hostapi.ChapterOpens)
 	ext.DeclareCalls(r, hostapi.ChapterOpens, chapterOpenCall)
@@ -62,6 +76,7 @@ func declareLifecycle(r *ext.Registrar, a *App) {
 	ext.DeclareCalls(r, hostapi.BeforeLeave, leaveCall)
 	ext.Declare(r, hostapi.PendingGroups)
 	ext.Declare(r, hostapi.SettingsPages)
+	registerCheckSettings(r, a)
 	ext.Declare(r, hostapi.SettingsSections)
 	ext.DeclareCalls(r, hostapi.SettingsSections, settingsCall)
 	ext.Provide(r, hostapi.DesktopService, func(*ext.Session) hostapi.Desktop { return extensionHost{a} })

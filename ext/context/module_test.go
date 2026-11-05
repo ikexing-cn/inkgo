@@ -77,3 +77,23 @@ func TestHasOutlinesAsksOnlyForProviderPresence(t *testing.T) {
 		t.Fatal(calls)
 	}
 }
+
+func TestHooksDistinguishesAbsentProviderFromPresentEmpty(t *testing.T) {
+	h, err := ext.New(ext.Options{}, context.Module, ext.Module{ID: "provider", Requires: []string{"context"}, Setup: func(r *ext.Registrar) {
+		ext.Contribute(r, contextapi.Hooks, "empty-hooks", contextapi.HookProvider(func(struct{}) []workspace.Foreshadow { return nil }))
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer h.Close()
+	service, _ := ext.Lookup(h, contextapi.Service)
+	if hooks, present := service.Hooks(); hooks == nil || !present {
+		t.Fatal(hooks, present)
+	}
+	if err = h.Set("provider", false); err != nil {
+		t.Fatal(err)
+	}
+	if hooks, present := service.Hooks(); hooks != nil || present {
+		t.Fatal(hooks, present)
+	}
+}

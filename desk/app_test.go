@@ -16,17 +16,23 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/ai"
 	"writer/desk/kit"
+	"writer/editor"
 	"writer/ext"
 	aimod "writer/ext/ai"
 	"writer/ext/ai/aiapi"
 	"writer/ext/backup"
 	"writer/ext/cats"
 	contextmod "writer/ext/context"
+	"writer/ext/context/contextapi"
 	"writer/ext/export"
 	findmod "writer/ext/find"
 	"writer/ext/focus"
 	"writer/ext/goal"
+	"writer/ext/hooks"
 	"writer/ext/lore"
+	"writer/ext/marks"
+	"writer/ext/names"
+	"writer/ext/notes"
 	"writer/ext/outline"
 	"writer/ext/phone"
 	"writer/ext/snaps"
@@ -73,7 +79,7 @@ func newApp(config string) *App { return testApp(ai.New(config)) }
 
 func testModules() []ext.Module {
 	mod, _ := backup.New(false)
-	return []ext.Module{focus.Module, goal.Module, findmod.Module, lore.Module, outline.Module, talkmod.Module, snaps.Module, trash.Module, cats.Module, mod, export.Module, phone.Module, contextmod.Module}
+	return []ext.Module{focus.Module, goal.Module, names.Module, findmod.Module, notes.Module, lore.Module, outline.Module, hooks.Module, talkmod.Module, snaps.Module, trash.Module, cats.Module, mod, export.Module, phone.Module, contextmod.Module, marks.Module}
 }
 
 func testApp(service aiapi.Backend) *App {
@@ -84,7 +90,7 @@ func testApp(service aiapi.Backend) *App {
 	sm, sp := snaps.New()
 	tm, tp := trash.New()
 	fm, fp := findmod.New()
-	a := newTestApp(service, focus.Module, gm, fm, lore.Module, outlineModule, talkmod.Module, sm, tm, cm, mod, export.Module, phone.Module, contextmod.Module)
+	a := newTestApp(service, focus.Module, gm, names.Module, fm, notes.Module, lore.Module, outlineModule, hooks.Module, talkmod.Module, sm, tm, cm, mod, export.Module, phone.Module, contextmod.Module, marks.Module)
 	snapControllers[a] = sp
 	trashControllers[a] = tp
 	findControllers[a] = fp
@@ -1059,6 +1065,17 @@ var outlineControllers = map[*App]*outline.Page{}
 func outlinePage(a *App) *outline.Page { return outlineControllers[a] }
 
 func newTestApp(service aiapi.Backend, mods ...ext.Module) *App {
+	var hookPanel *hooks.Panel
+	var notePanel *notes.Panel
+	mods = slices.Clone(mods)
+	for i, m := range mods {
+		switch m.ID {
+		case "hooks":
+			mods[i], hookPanel = hooks.New()
+		case "notes":
+			mods[i], notePanel = notes.New()
+		}
+	}
 	view := &aimod.View{}
 	mod := aimod.New(aimod.Options{View: view, ConfigFile: service.ConfigFile(), Factory: func() aiapi.Backend { return service }})
 	a := New(service.ConfigFile(), append(append([]ext.Module(nil), mods...), mod)...)
@@ -1066,6 +1083,8 @@ func newTestApp(service aiapi.Backend, mods ...ext.Module) *App {
 	if svc, ok := ext.Lookup(a.extensions, talkapi.Service); ok {
 		talkControllers[a] = svc.(interface{ View() *talkmod.Panel }).View()
 	}
+	hookControllers[a] = hookPanel
+	noteControllers[a] = notePanel
 	return a
 }
 
@@ -1104,3 +1123,55 @@ func talkChoicesOf(a *App) *talkapi.ModelChoices {
 	}
 	return &talkapi.ModelChoices{}
 }
+
+var hookControllers = map[*App]*hooks.Panel{}
+var noteControllers = map[*App]*notes.Panel{}
+
+func hooksOf(a *App) *hooks.Panel                             { return hookControllers[a] }
+func notesOf(a *App) *notes.Panel                             { return noteControllers[a] }
+func (a *App) openBury()                                      { hooksOf(a).OpenBury() }
+func (a *App) openPay(id string)                              { hooksOf(a).OpenPay(id) }
+func (a *App) pay(id string)                                  { hooksOf(a).Pay(id) }
+func (a *App) renoteFore(f workspace.Foreshadow, note string) { hooksOf(a).Renote(f, note) }
+func (a *App) dropFore(f workspace.Foreshadow, dropped bool)  { hooksOf(a).Drop(f, dropped) }
+func (a *App) rehang(f workspace.Foreshadow)                  { hooksOf(a).Rehang(f) }
+func (a *App) showFore(id string)                             { hooksOf(a).Show(id) }
+
+func (a *App) bury() { hooksOf(a).Bury() }
+
+func (a *App) foreshadows() []workspace.Foreshadow {
+	if a.extensions == nil {
+		return nil
+	}
+	service, ok := ext.Lookup(a.extensions, contextapi.Service)
+	if !ok {
+		return nil
+	}
+	var out []workspace.Foreshadow
+	_ = ext.Guard(a.extensions, "context", "context.hooks", func() { out, _ = service.Hooks() })
+	return out
+}
+
+// paneKey is everything the right column's tab counts read.
+type paneKey struct {
+	fores checkKey
+	ai    bool
+	late  int
+}
+
+type paneNums struct {
+	waiting, open int
+}
+
+func (a *App) paneCounts() paneNums {
+	a.syncExtensions()
+	n := paneNums{open: len(a.ideas())}
+	for _, item := range a.extViews.panes {
+		if item.Owner == "hooks" && item.Value.Count != nil {
+			_ = ext.Guard(a.extensions, item.Owner, item.ID, func() { n.waiting = item.Value.Count() })
+		}
+	}
+	return n
+}
+
+func (a *App) entities() []editor.Entity { return a.nameValues().Entities }

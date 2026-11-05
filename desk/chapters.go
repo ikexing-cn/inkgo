@@ -109,25 +109,27 @@ func (a *App) textMenu(m *kit.Menu) {
 	cmdCopy.item(a, m).Do(cmdCopy.act(a))
 	cmdPaste.item(a, m).Do(cmdPaste.act(a))
 	cmdSelectAll.item(a, m).Do(cmdSelectAll.act(a))
-	if a.aiOn() || a.hasEntries() {
-		m.Separator()
-	}
+	group := &kit.Menu{}
 	if a.aiOn() {
 		// The row's own state is the editor's: it does not wait on the
 		// chapter's saves as the title bar's does.
-		cmdContinue.item(a, m).Disabled(busy).Do(cmdContinue.act(a))
+		cmdContinue.item(a, group).Disabled(busy).Do(cmdContinue.act(a))
 		if a.talkOn() {
-			cmdRewrite.item(a, m).Do(cmdRewrite.act(a))
+			cmdRewrite.item(a, group).Do(cmdRewrite.act(a))
 		}
 	}
-	a.selectionMenusAt(m, ed.Doc.Slice(s, e), true)
+	a.selectionMenusAt(group, ed.Doc.Slice(s, e), true)
 	if a.hasEntries() {
-		cmdTake.item(a, m).Do(cmdTake.act(a))
+		cmdTake.item(a, group).Do(cmdTake.act(a))
 	}
-	a.selectionMenus(m, ed.Doc.Slice(s, e))
-	m.Separator()
-	a.foreMenu(m)
-	if ed.Marked() {
+	a.selectionMenus(group, ed.Doc.Slice(s, e))
+	if len(group.Rows) > 0 {
+		m.Separator()
+		m.Rows = append(m.Rows, group.Rows...)
+	}
+
+	a.selectionMenusGroup(m, ed.Doc.Slice(s, e), "hooks", true)
+	if a.marksOn() && ed.Marked() {
 		cmdUnmark.item(a, m).Do(cmdUnmark.act(a))
 	}
 }

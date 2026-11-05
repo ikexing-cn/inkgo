@@ -113,7 +113,7 @@ func TestFindOffClosesBarAndRemovesKeysMenusToolsAndProsePoint(t *testing.T) {
 					t.Fatal("tool survived")
 				}
 			}
-			if len(ext.Items(a.extensions, hostapi.BeforeProse)) != 0 || len(ext.Items(a.extensions, hostapi.WritingKeys)) != 0 {
+			if len(ext.Items(a.extensions, hostapi.BeforeProse)) != 0 || hasOwner(ext.Items(a.extensions, hostapi.WritingKeys), "find") {
 				t.Fatal("points survived")
 			}
 			tt.Key(ui.Cmd, ui.KeyF)

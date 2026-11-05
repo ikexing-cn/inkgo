@@ -63,7 +63,7 @@ func (a *App) pendingKey() pendingKey {
 	}
 	b := a.extensionPendingKey()
 	return pendingKey{i18n.Locale(), a.book, a.book.Version(), w.cur().ed, doc, w.node, a.liveChapter(),
-		a.checksOn(), w.lateAfter, w.ignoredVer, b, a.pal}
+		a.checksOn(), 0, w.ignoredVer, b, a.pal}
 }
 
 // pendingGroups gathers what is pending and not ignored, by kind: what the
@@ -74,54 +74,9 @@ func (a *App) pendingGroups() []pendGroup {
 }
 
 func (a *App) buildPendingGroups() []pendGroup {
-	w := &a.write
-	var items []pendItem
-	for _, f := range a.foreshadows() {
-		it := pendItem{here: f.Here, sub: f.Title}
-		switch st := f.Status(); {
-		case st == workspace.ForeLost:
-			it.key = "伏笔/失去锚点/" + f.Node + "/" + f.Quote
-			it.text = locales.StatusQuoteGone(kit.Clip(foreName(f), 16))
-		case f.Late(a.write.lateAfter):
-			it.key = "伏笔/没回收/" + f.Node + "/" + f.Quote
-			it.text = locales.StatusUnpaid(kit.Clip(foreName(f), 16), f.Gap)
-			it.sub = locales.StatusPlantedIn(it.sub)
-		default:
-			continue
-		}
-		if f.Here {
-			it.sub += locales.StatusHereTag()
-		}
-		it.open = func(_ ui.Services) {
-			if w.node != f.Node {
-				a.openNode(f.Node)
-			}
-			if w.node == f.Node && w.cur().ed != nil {
-				w.cur().ed.Select(f.Start, f.End)
-				w.cur().ed.Focus()
-			}
-			if f.ID != "" && !a.doc.hidden {
-				a.showFore(f.ID)
-			}
-		}
-		if !w.ignored[it.key] {
-			items = append(items, it)
-		}
-	}
-	slices.SortStableFunc(items, func(x, y pendItem) int {
-		if x.here == y.here {
-			return 0
-		} else if x.here {
-			return -1
-		}
-		return 1
-	})
 	var groups []pendGroup
 	if g, ok := a.checkPending(); ok {
 		groups = append(groups, g)
-	}
-	if len(items) > 0 {
-		groups = append(groups, pendGroup{id: "marks", name: locales.StatusGroupMarks(), color: a.pal.Faint, items: items})
 	}
 	groups = append(groups, a.extensionPendingGroups()...)
 	return groups

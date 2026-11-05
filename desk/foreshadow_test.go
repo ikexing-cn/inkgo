@@ -13,14 +13,13 @@ import (
 // chapter, takes that back, gives it up and takes it up again.
 func TestForeshadowBuryAndPay(t *testing.T) {
 	a, tt, one := writingFixture(t, "她修了七年路灯，却不敢走进没有灯的巷子。\n小祥在身后叫她。")
-	w := &a.write
 	shownEditor(a).Select(0, 20)
 	a.openBury()
 	tt.Frame()
 	if !tt.HasText("记为伏笔，填写备注") {
 		t.Fatal("no note asked for", tt.Texts())
 	}
-	w.fore.note = "她怕黑的真正原因"
+	hooksOf(a).State.Note = "她怕黑的真正原因"
 	if err := tt.Click("确定"); err != nil {
 		t.Fatal(err)
 	}
@@ -51,15 +50,15 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 		t.Fatalf("from the next chapter %+v", f)
 	}
 	a.openPay("") // nothing selected: nothing to pay off with
-	if w.fore.paying || hintOf(a) == "" {
+	if hooksOf(a).State.Paying || hintOf(a) == "" {
 		t.Fatal("paying off without a passage")
 	}
 	setHint(a, "") // the hint floats over the foot of the column
 	shownEditor(a).Select(0, 18)
 	a.openPay("")
 	tt.Frame()
-	if !tt.HasText("选择要回收的伏笔") || !tt.HasText("第一章 · 1 章前埋下") || w.fore.pick != id {
-		t.Fatal("nothing to pick", w.fore.pick, tt.Texts())
+	if !tt.HasText("选择要回收的伏笔") || !tt.HasText("第一章 · 1 章前埋下") || hooksOf(a).State.Pick != id {
+		t.Fatal("nothing to pick", hooksOf(a).State.Pick, tt.Texts())
 	}
 	if err = tt.Click("确定回收"); err != nil {
 		t.Fatal(err)
@@ -124,7 +123,7 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 	if !tt.HasText("未回收") || !tt.HasText("怕黑") {
 		t.Fatal("the list", tt.Texts())
 	}
-	w.fore.query = "钥匙"
+	hooksOf(a).State.Query = "钥匙"
 	tt.Frame()
 	if !tt.HasText("未找到") {
 		t.Fatal("found what is not there", tt.Texts())
@@ -135,7 +134,6 @@ func TestForeshadowBuryAndPay(t *testing.T) {
 // back from the chapter: what a later chapter buries is not there yet.
 func TestThePickerListsWhatCameBefore(t *testing.T) {
 	a, tt, one := writingFixture(t, "她修了七年路灯，却不敢走进没有灯的巷子。")
-	w := &a.write
 	two, err := a.Store.NewChapter("", "停电", false)
 	if err != nil {
 		t.Fatal(err)
@@ -152,16 +150,16 @@ func TestThePickerListsWhatCameBefore(t *testing.T) {
 	shownEditor(a).Select(0, 8)
 	a.openPay("")
 	tt.Frame()
-	if !tt.HasText("选择要回收的伏笔") || tt.HasText("钥匙开哪扇门") || w.fore.pick != "" {
+	if !tt.HasText("选择要回收的伏笔") || tt.HasText("钥匙开哪扇门") || hooksOf(a).State.Pick != "" {
 		t.Fatal("a later chapter's is listed", tt.Texts())
 	}
-	w.fore.paying = false
+	hooksOf(a).State.Paying = false
 	a.openNode(two)
 	tt.Frame()
 	shownEditor(a).Select(0, 8)
 	a.openPay("")
 	tt.Frame()
-	if !tt.HasText("钥匙开哪扇门") || !tt.HasText("本章埋下") || w.fore.pick != "key" {
+	if !tt.HasText("钥匙开哪扇门") || !tt.HasText("本章埋下") || hooksOf(a).State.Pick != "key" {
 		t.Fatal("the chapter's own is not listed", tt.Texts())
 	}
 }
@@ -170,10 +168,9 @@ func TestThePickerListsWhatCameBefore(t *testing.T) {
 // it on another sentence or gives it up.
 func TestForeshadowLost(t *testing.T) {
 	a, tt, one := writingFixture(t, "井边有一把钥匙。\n她没有去捡。")
-	w := &a.write
 	shownEditor(a).Select(0, 8)
 	a.openBury()
-	w.fore.note = "钥匙"
+	hooksOf(a).State.Note = "钥匙"
 	a.bury()
 	id := shownEditor(a).Doc.Marks()[0].Key
 	shownEditor(a).Select(0, 8)
@@ -219,7 +216,7 @@ func TestForeshadowLost(t *testing.T) {
 	tt.Frame()
 	_ = tt.Click("记为回收")
 	tt.Frame()
-	if hintOf(a) != "" || w.fore.paying {
+	if hintOf(a) != "" || hooksOf(a).State.Paying {
 		t.Fatalf("记为回收 pressed with nothing picked: %q", hintOf(a))
 	}
 	shownEditor(a).Select(0, 2)
@@ -228,7 +225,7 @@ func TestForeshadowLost(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !w.fore.paying {
+	if !hooksOf(a).State.Paying {
 		t.Fatal("记为回收 waits with words picked")
 	}
 	ch, err := a.Store.ReadChapter(one)
@@ -277,7 +274,6 @@ func TestShotForeshadow(t *testing.T) {
 	testshot.Dir(t)
 	a, tt, one := writingFixture(t, "雨从傍晚开始下，一直没有停。\n林晚背着工具箱，沿着亮着的灯往旧城走。她修了七年路灯，却从来不敢在天黑以后走进没有灯的巷子。\n巷口那盏灯的灯罩上，有人用指甲刻了一个“晚”字。")
 
-	w := &a.write
 	find := func(q string) (int, int) {
 		text := shownEditor(a).Doc.String()
 		at := len([]rune(text[:strings.Index(text, q)]))
@@ -288,13 +284,13 @@ func TestShotForeshadow(t *testing.T) {
 	s, e := find("她修了七年路灯，却从来不敢在天黑以后走进没有灯的巷子。")
 	shownEditor(a).Select(s, e)
 	a.openBury()
-	w.fore.note = "她怕黑的真正原因"
+	hooksOf(a).State.Note = "她怕黑的真正原因"
 	shot(t, tt, "fore-bury.png")
 	a.bury()
 	s, e = find("巷口那盏灯的灯罩上，有人用指甲刻了一个“晚”字。")
 	shownEditor(a).Select(s, e)
 	a.openBury()
-	w.fore.note = "灯罩上的“晚”字是谁刻的"
+	hooksOf(a).State.Note = "灯罩上的“晚”字是谁刻的"
 	a.bury()
 	if _, err := a.Store.WriteChapter(one, shownEditor(a).Doc.String(), append(storedMarks(shownEditor(a).Doc.Marks()),
 		workspace.ChapterMark{Kind: workspace.MarkForeshadow, ID: "lost", Orphaned: true, Quote: "周祥把左手揣在兜里，从来不拿出来。", Note: "小祥的左手"})); err != nil {
@@ -323,7 +319,7 @@ func TestShotForeshadow(t *testing.T) {
 	shownEditor(a).Select(s, e)
 	a.openPay("")
 	shot(t, tt, "fore-pay.png")
-	a.pay(w.fore.pick)
+	a.pay(hooksOf(a).State.Pick)
 	shot(t, tt, "fore-detail.png")
 	tt.SetDark(true)
 	shot(t, tt, "fore-detail-dark.png")

@@ -45,11 +45,15 @@ type PendingSource struct {
 }
 
 // SettingsPage registers a persistent sidebar page, even while inactive or on
-// the shelf. Label is its stable UI test label and shared-page identity. The
-// smallest Order places the page among the host's (AI 10, reminders 20); it must
-// be positive. Sections sort by Order then assembly order.
-// Title supplies display metadata on the frame thread without session state.
+// the shelf. Pages with the same nonempty Key merge; the lowest Order wins the
+// title, label and position, with registration order breaking ties. An empty Key
+// keeps the page separate under its contribution ID; a nonempty Key is also the
+// shared page's navigation ID. Order must be positive.
+// Label is the stable accessibility/test label. Title supplies display metadata
+// on the frame thread without session state. Sections sort by page order then
+// registration order.
 type SettingsPage struct {
+	Key   string
 	Title func() string
 	Label string
 	Order int

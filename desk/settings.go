@@ -191,7 +191,7 @@ func (a *App) preferences(c *ui.Context) {
 						case "appearance":
 							a.looksView(c)
 						case "reminders":
-							a.remindersView(c)
+							a.reminderSettings(c)
 						case "extensions":
 							if a.settings.ext != "" {
 								a.extensionSection(c, a.settings.ext)
@@ -237,13 +237,6 @@ func (a *App) looksView(c *ui.Context) {
 			}
 		}
 	})
-	if a.hasEntries() {
-		on := !a.shelf.NoNames
-		if ui.Checkbox(c, &on, locales.SettingsMarkNames()).Changed() {
-			a.shelf.NoNames = !on
-			a.saveShelf()
-		}
-	}
 	if offerNoGPU {
 		a.gpuSwitch(c)
 	}

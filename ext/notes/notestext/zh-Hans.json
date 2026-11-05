@@ -1,0 +1,19 @@
+{
+  "paneTabNotes": "批注",
+  "@paneTabNotes": {
+    "description": "右栏标签：页边的批注。"
+  },
+  "notesNone": "本章没有批注",
+  "notesOpenChapter": "打开一章后，这里列出它的批注",
+  "@notesOpenChapter": {
+    "description": "批注页没有打开章节时的空白说明。"
+  },
+  "modNotes": "批注",
+  "@modNotes": {
+    "description": "「功能」里一个模块的名字。"
+  },
+  "modNotesAbout": "在正文旁边写备注",
+  "@modNotesAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  }
+}

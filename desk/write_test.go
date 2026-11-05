@@ -468,7 +468,7 @@ func TestRemindersBeforeTheWritingPage(t *testing.T) {
 		t.Fatal("the writing page was shown")
 	}
 	rereadBook(a)
-	a.write.lateAfter = lateMin
+	hooksOf(a).SetLateAfter(10)
 	a.openPrefs("reminders")
 	tt.Frame()
 	if !tt.HasText("当前有 1 个伏笔久未回收。") {

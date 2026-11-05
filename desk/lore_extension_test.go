@@ -10,8 +10,8 @@ import (
 	exportext "writer/ext/export"
 	"writer/ext/export/exporttext"
 	"writer/ext/hostapi"
+	"writer/ext/names/namestext"
 	"writer/internal/testshot"
-	"writer/locales"
 )
 
 func TestLoreGlobalAndBookSwitchRemoveAndRestoreDependentInterfaces(t *testing.T) {
@@ -22,7 +22,7 @@ func TestLoreGlobalAndBookSwitchRemoveAndRestoreDependentInterfaces(t *testing.T
 				a.setExtension("lore", on, bookScope)
 				tt.Frame()
 				tt.Frame()
-				if (len(a.write.nameLinks.val) > 0) != on || (len(a.write.doubts.val) > 0) != on {
+				if (len(a.nameValues().Links) > 0) != on || (len(a.write.doubts.val) > 0) != on {
 					t.Fatal("prose name links or check marks", on)
 				}
 				if a.hasEntries() != on || a.checksOn() != on || (len(a.entities()) > 0) != on {
@@ -34,7 +34,7 @@ func TestLoreGlobalAndBookSwitchRemoveAndRestoreDependentInterfaces(t *testing.T
 				if slices.Contains(a.commandList(), cmdTake) != on {
 					t.Fatal("selection command", on)
 				}
-				if (len(ext.Items(a.extensions, hostapi.MarginSources)) > 0) != on || hasLoreSelectionMenu(a) != on {
+				if (len(a.extensions.Ledger("lore").Contributions) > 0 && a.extensions.Ledger("lore").State == ext.On) != on || (len(ext.Items(a.extensions, hostapi.NameHighlights)) > 0) != on || hasLoreSelectionMenu(a) != on {
 					t.Fatal("lore contributions", on)
 				}
 				if _, ok := a.extensionTab(paneSetting); ok != on {
@@ -62,9 +62,10 @@ func TestLoreGlobalAndBookSwitchRemoveAndRestoreDependentInterfaces(t *testing.T
 					}
 				}
 				a.page = pageWrite
-				a.openPrefs("appearance")
+				a.openPrefs("extensions")
+				a.settings.ext = "names"
 				tt.Frame()
-				if tt.HasText(locales.SettingsMarkNames()) != on {
+				if tt.HasText(namestext.SettingsMarkNames()) != on {
 					t.Fatal("appearance", on)
 				}
 				a.closePrefs()

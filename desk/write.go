@@ -59,7 +59,6 @@ type writeView struct {
 	gists      map[string]string // a line on each chapter of the folder open
 	nodeWords  cached[bookKey, map[string]int]
 	total      cached[bookKey, int]
-	pane       cached[paneKey, paneNums]
 	carets     map[string]int // where the caret was in each chapter, as it was left
 
 	renaming, title string
@@ -68,11 +67,13 @@ type writeView struct {
 	titleAll        bool   // the name the box opens with is selected, to be typed over
 	focus           bool   // the page alone, without the tree and the column
 
-	// named is the editor last given the names, as of namedRevs setting revisions.
-	namesActive bool
+	// named records the editor and provider revision last handed to it; a new
+	// editor receives even an unchanged set of candidates and links once.
+	names       nameFeed
 	named       *editor.Editor
-	namedRevs   int
-	nameLinks   cached[namesKey, []editor.NameLink]
+	namedRevs   uint64
+	namedValues hostapi.Names
+	prose       proseFeed
 
 	// What is pending: the list open, showing the open chapter's alone, the
 	// groups listed whole, and the keys of what the author ignored.
@@ -87,11 +88,7 @@ type writeView struct {
 	// The foreshadowings: what their column and popovers show, and how
 	// many chapters may follow one before it is buried long (0: the
 	// default).
-	fore      foreState
-	fores     cached[foreshadowKey, []workspace.Foreshadow]
-	doubts    cached[doubtKey, [][2]int]
-	margin    marginState
-	lateAfter int
+	doubts cached[doubtKey, [][2]int]
 
 	takeOpen            bool
 	takeQuote, takeText string
@@ -141,6 +138,7 @@ func (a *App) writingTurn(c *ui.Context) {
 	a.watch(c)
 	a.checkWhilePausing()
 	a.markDoubts()
+	a.feedMarks()
 }
 
 // writing is the writing page: the node shown between the chapter tree in
@@ -225,12 +223,8 @@ func (a *App) paneColumn(c *ui.Context, width float32) {
 	panel.Children(func() {
 		shown := a.paneTabs.shown(a, a.doc.tab)
 		extension, contributed := a.extensionTab(shown)
-		if a.page == pageWrite && shown == paneMargin {
-			a.marginPanel(c)
-		} else if a.page == pageWrite && contributed {
+		if a.page == pageWrite && contributed {
 			a.extensionPane(c, extension)
-		} else if a.page == pageWrite && shown == paneFore {
-			a.forePanel(c)
 		} else {
 			a.besideItems(c)
 		}
@@ -261,28 +255,8 @@ func (a *App) writeTools(c *ui.Context) {
 				ui.Text(c, locales.EditorGhostHint()).FontSize(kit.FsNote).TextColor(a.pal.Faint).SingleLine().Ellipsis("…").Shrink(1).Tooltip(locales.EditorGhostHint())
 			}
 		}
-		if a.doc.hidden && !w.focus {
-			here := 0
-			for _, f := range a.foreshadows() {
-				if f.Here && f.Status() == workspace.ForeOpen {
-					here++
-				}
-			}
-			if here > 0 {
-				b := ui.ButtonBase(c).Row().Height(kit.HControlSm).Gap(6).Padding(0, 6).AlignItems(ui.Center).Shrink(1).MinWidth(40).Label(locales.TabMarksHere()).Tooltip(locales.TabMarksCount(here)).KeepFocus()
-				fg := a.pal.Theme.TextMuted
-				if b.Hovered() {
-					fg = a.pal.Ink
-				}
-				b.Children(func() {
-					kit.Glyph(c, kit.IcFlag, kit.IconMd, fg)
-					ui.Text(c, locales.TabMarksCount(here)).FontSize(kit.FsNote).TextColor(fg).SingleLine().Ellipsis("…").Shrink(1)
-				})
-				if b.Clicked() {
-					a.doc.tab = paneFore
-					a.setDocHidden(false)
-				}
-			}
+		for _, item := range ext.Items(a.extensions, hostapi.ToolHints) {
+			_, _ = ext.Call(a.extensions, ext.HookOf(ext.CallPoint[hostapi.DrawItem, *ui.Context, struct{}]{Point: hostapi.ToolHints}, item.ID), c, drawItemCall(item.Value))
 		}
 		a.extensionTitle(c)
 		a.pendingButton(c)
@@ -360,7 +334,9 @@ func (a *App) chapterView(c *ui.Context) {
 		a.LastProse = prose.Bounds()
 		a.propActs(c)
 		a.selectionBar(c)
-		a.forePopover(c)
+		for _, item := range ext.Items(a.extensions, hostapi.ProseOverlays) {
+			_, _ = ext.Call(a.extensions, ext.HookOf(ext.CallPoint[hostapi.DrawItem, *ui.Context, struct{}]{Point: hostapi.ProseOverlays}, item.ID), c, drawItemCall(item.Value))
+		}
 		a.menu.MenuAt(c, a.pal, "prose", a.textMenu)
 	}).DrawOver(func(_ *ui.Painter, r ui.Rect) { a.LastProse = r })
 	a.footBar(c, true)

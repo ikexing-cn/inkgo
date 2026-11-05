@@ -40,6 +40,8 @@ func (e *Editor) View(c *ui.Context) ui.Element {
 	switch {
 	case e.barHot || e.barDrag:
 		el.Cursor(ui.CursorDefault)
+	case e.proseMarkAt(x, y) != nil && e.proseMarkAt(x, y).Open != nil:
+		el.Cursor(ui.CursorPointer)
 	case e.nameHover.entry != "":
 		el.Tooltip(locales.EditorSeeEntry()).Cursor(ui.CursorPointer)
 	}

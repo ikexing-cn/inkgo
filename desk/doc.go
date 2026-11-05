@@ -28,7 +28,6 @@
 // commands.go: the one table of commands, for the keys, the menus, and the shortcut help.
 // counts.go: book and daily word counts, goals, and recent days.
 // doc.go: this package index.
-// foreshadow.go: live-mark wiring, foreshadowing column, popovers, actions, and reminders.
 // host.go: appHost, what the pages of the packages under desk reach of App.
 // ideas.go: setting ideas, questions, and changes awaiting the author.
 // jobs.go: work off the view thread and what it hands back.

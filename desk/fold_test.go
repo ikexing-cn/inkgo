@@ -236,7 +236,7 @@ func TestSwitchingNotesDuringAFoldStillBringsThemInTurn(t *testing.T) {
 	a.doc.tab = paneMargin
 	tt.Frame()
 	for _, n := range a.marginNotes() {
-		if a.write.margin.runs[n.id] == 0 {
+		if notesOf(a).Inspect().Runs[n.id] == 0 {
 			t.Fatal("a tab change was treated as the explicit opening")
 		}
 	}

@@ -212,7 +212,7 @@ func (a *App) extensionSection(c *ui.Context, id string) {
 		if !v.active {
 			return
 		}
-		hasSettings := false
+		hasSettings := len(a.simpleSettings(id)) > 0
 		for _, item := range a.extViews.sections {
 			if item.Owner == id && (!item.Value.Work || a.Store != nil) {
 				hasSettings = true
@@ -223,6 +223,7 @@ func (a *App) extensionSection(c *ui.Context, id string) {
 			return
 		}
 		ui.Column(c).FillWidth().Gap(10).Margin(0, 0, 0, kit.TickIndent).Children(func() {
+			a.drawSimpleSettings(c, id)
 			for _, item := range a.extViews.sections {
 				if item.Owner != id || item.Value.Work && a.Store == nil {
 					continue

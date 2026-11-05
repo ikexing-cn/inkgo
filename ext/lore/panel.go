@@ -9,6 +9,7 @@ import (
 	"writer/ext/hostapi"
 	"writer/ext/lore/loreapi"
 	"writer/ext/lore/loretext"
+	"writer/ext/marks/marksapi"
 	"writer/ext/talk/talkapi"
 	"writer/workspace"
 )
@@ -58,7 +59,9 @@ func register(r *ext.Registrar, p *Panel) {
 	ext.Contribute(r, hostapi.PaneTabs, "setting", hostapi.PaneTab{Key: "setting", Title: loretext.PaneTabLore, Draw: p.body, Before: "talk", BeforeFallback: "fore", Fallback: true, Count: func() int { return len(p.ideas()) }})
 	ext.Contribute(r, hostapi.BesideItems, "setting-column", hostapi.DrawItem{Draw: p.settingPanel})
 	ext.Contribute(r, hostapi.SelectionMenus, "setting-name", hostapi.SelectionMenu{Build: p.nameMenu})
-	ext.Contribute(r, hostapi.MarginSources, "setting-changes", hostapi.MarginSource{Notes: p.marginNotes})
+	ext.Contribute(r, marksapi.MarginSources, "setting-changes", marksapi.MarginSource{Key: func() any {
+		return ideasKey{p.services.Book.Content(), p.services.Book.Content().Version(), p.services.AI.AIEnabled()}
+	}, Notes: p.marginNotes})
 	ext.Provide(r, loreapi.EntryNavigationService, func(*ext.Session) loreapi.EntryNavigator {
 		return loreapi.EntryNavigator{Owner: "lore", Navigation: p}
 	})

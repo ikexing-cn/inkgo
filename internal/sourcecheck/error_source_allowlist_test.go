@@ -7,10 +7,11 @@ var bookLanguageExceptions = map[string]struct {
 	fragments []string
 }{
 	"desk/ai.go":                   {reason: "Model prompt follows the book language.", fragments: []string{"按章纲起草本章", "，约 %d 字", "，覆盖已有内容", "，接在已有内容之后"}},
+	"desk/extensions.go":           {reason: "Stable reminder settings test identity.", fragments: []string{"设置-提醒"}},
 	"desk/app.go":                  {reason: "Default genre is saved in the book.", fragments: []string{"网文"}},
 	"desk/welcome.go":              {reason: "Default title and genre values are saved in books.", fragments: []string{"网文", "出版小说", "剧本", "非虚构", "未命名作品"}},
 	"desk/checkitems.go":           {reason: "Persisted pending-check key.", fragments: []string{"检查/"}},
-	"desk/pending.go":              {reason: "Persisted pending-foreshadowing keys.", fragments: []string{"伏笔/失去锚点/", "伏笔/没回收/"}},
+	"ext/hooks/module.go":          {reason: "Persisted pending-foreshadowing keys.", fragments: []string{"伏笔/失去锚点/", "伏笔/没回收/"}},
 	"desk/save.go":                 {reason: "Recovered title becomes saved book content in saveLost.", fragments: []string{"找回的章节"}},
 	"desk/sidebar.go":              {reason: "Default node names are book content.", fragments: []string{"新章节", "新文件夹"}},
 	"ext/outline/plan_layout.go":   {reason: "A CJK glyph measured for the line height, never drawn.", fragments: []string{"字"}},

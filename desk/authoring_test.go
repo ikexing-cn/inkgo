@@ -9,6 +9,7 @@ import (
 	"writer/ext"
 	"writer/ext/hostapi"
 	"writer/ext/lore/loreapi"
+	"writer/ext/marks/marksapi"
 	"writer/ext/talk/talkapi"
 	"writer/workspace"
 )
@@ -104,13 +105,13 @@ func TestMarginSourcesAndActionsUseGuardAndIsolateFailures(t *testing.T) {
 	for _, stage := range []string{"source", "open", "action"} {
 		t.Run(stage, func(t *testing.T) {
 			calls := 0
-			fake := ext.Module{ID: "fakenotes", Setup: func(r *ext.Registrar) {
-				ext.Contribute(r, hostapi.MarginSources, "notes", hostapi.MarginSource{Notes: func(chapter, text string) []hostapi.MarginItem {
+			fake := ext.Module{ID: "fakenotes", Requires: []string{"marks"}, Setup: func(r *ext.Registrar) {
+				ext.Contribute(r, marksapi.MarginSources, "notes", marksapi.MarginSource{Notes: func(chapter, text string) []marksapi.MarginItem {
 					if stage == "source" {
 						calls++
 						panic("source failed")
 					}
-					return []hostapi.MarginItem{{ID: "fakenotes.note", Title: "fake note", Start: 0, End: 1, Open: func() { calls++; panic("open failed") }, Actions: []hostapi.NoteAction{{Label: "act", Run: func() { calls++; panic("action failed") }}}}}
+					return []marksapi.MarginItem{{ID: "fakenotes.note", Kind: "fake", Title: "fake note", Start: 0, End: 1, Open: func() { calls++; panic("open failed") }, Actions: []marksapi.NoteAction{{Label: "act", Run: func() { calls++; panic("action failed") }}}}}
 				}})
 			}}
 			a := newTestApp(ai.New(""), append(testModules(), fake)...)
@@ -140,7 +141,7 @@ func TestMarginSourcesAndActionsUseGuardAndIsolateFailures(t *testing.T) {
 			tt.Frame()
 			tt.Frame()
 			ledger := a.extensions.Ledger("fakenotes")
-			if calls != 1 || ledger.State != ext.Failed || len(ledger.Errors) != 1 || ledger.Errors[0].Stage != "Guard" {
+			if calls != 1 || ledger.State != ext.Failed || len(ledger.Errors) != 1 || ledger.Errors[0].Stage != map[bool]string{true: "Original", false: "Guard"}[stage == "source"] {
 				t.Fatal(calls, ledger)
 			}
 			if !tt.HasText("host alive") {

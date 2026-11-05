@@ -16,6 +16,8 @@ type OutlineProvider func(id string) string
 type Context interface {
 	// HasOutlines reports whether an outline provider is active, without reading a node; frame thread only.
 	HasOutlines() bool
+	// Hooks returns live foreshadowing and whether a provider is present; frame thread only.
+	Hooks() ([]workspace.Foreshadow, bool)
 	// Entries returns live entries and whether a provider is present; frame thread only.
 	Entries() ([]workspace.Entry, bool)
 	// Outline returns live text and whether a provider is present; frame thread only.
@@ -34,3 +36,9 @@ type EntryProvider func(struct{}) []workspace.Entry
 
 // Entries accepts entry providers, invoked through ext.Call on the frame thread.
 const Entries ext.PointKey[EntryProvider] = "context.entries"
+
+// HookProvider supplies live foreshadowing on the frame thread through ext.Call.
+type HookProvider func(struct{}) []workspace.Foreshadow
+
+// Hooks collects reference providers; an empty active provider is still present.
+const Hooks ext.PointKey[HookProvider] = "context.hooks"

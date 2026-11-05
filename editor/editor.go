@@ -53,8 +53,9 @@ type Options struct {
 // Editor edits a Doc in a window of native UI. Its methods run on the main
 // thread, as the view does.
 type Editor struct {
-	Doc  *Doc
-	opts Options
+	proseMarks []ProseMark
+	Doc        *Doc
+	opts       Options
 
 	caret, anchor int
 	goalX         float32

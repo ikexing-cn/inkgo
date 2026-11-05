@@ -13,6 +13,7 @@ import (
 	aimod "writer/ext/ai"
 	"writer/ext/context"
 	"writer/ext/lore"
+	"writer/ext/marks"
 	"writer/ext/outline"
 	"writer/ext/talk"
 	"writer/workspace"
@@ -42,7 +43,7 @@ func writingFixture(t *testing.T, text string) (*testApp, *ui.Tester, string) {
 	desk.Library = func() string { return filepath.Join(root, "library") }
 	t.Cleanup(func() { desk.Library = was })
 	mod, v := New()
-	app := desk.New(filepath.Join(root, "providers.yaml"), mod, lore.Module, outline.Module, talk.Module, context.Module, aimod.New(aimod.Options{}))
+	app := desk.New(filepath.Join(root, "providers.yaml"), mod, lore.Module, marks.Module, outline.Module, talk.Module, context.Module, aimod.New(aimod.Options{}))
 	a := &testApp{app, v}
 	if err = app.Open(filepath.Join(root, "work")); err != nil {
 		t.Fatal(err)

@@ -1524,20 +1524,6 @@ func (msgs Messages) StatusIgnored(count int) string {
 	return Catalog.Format(msgs.locale, "statusIgnored", map[string]any{"count": count})
 }
 
-// StatusGroupMarks says "伏笔"
-// in the language the app shows.
-//
-// 待处理面板里的分组名。
-func StatusGroupMarks() string { return In(i18n.Locale()).StatusGroupMarks() }
-
-// StatusGroupMarks says "伏笔"
-// in the language of msgs.
-//
-// 待处理面板里的分组名。
-func (msgs Messages) StatusGroupMarks() string {
-	return Catalog.Format(msgs.locale, "statusGroupMarks", nil)
-}
-
 // StatusGroupBackup says "备份"
 // in the language the app shows.
 //
@@ -1564,48 +1550,6 @@ func StatusNotInLore(title string) string { return In(i18n.Locale()).StatusNotIn
 // 待处理里检查出来的新名字。
 func (msgs Messages) StatusNotInLore(title string) string {
 	return Catalog.Format(msgs.locale, "statusNotInLore", map[string]any{"title": title})
-}
-
-// StatusQuoteGone says "「{name}」原句已删"
-// in the language the app shows.
-//
-// 待处理里伏笔的原句已被删掉的那一条。
-func StatusQuoteGone(name string) string { return In(i18n.Locale()).StatusQuoteGone(name) }
-
-// StatusQuoteGone says "「{name}」原句已删"
-// in the language of msgs.
-//
-// 待处理里伏笔的原句已被删掉的那一条。
-func (msgs Messages) StatusQuoteGone(name string) string {
-	return Catalog.Format(msgs.locale, "statusQuoteGone", map[string]any{"name": name})
-}
-
-// StatusUnpaid says "「{name}」{count} 章未回收"
-// in the language the app shows.
-//
-// 待处理里伏笔超过几章还没回收的那一条。
-func StatusUnpaid(name string, count int) string { return In(i18n.Locale()).StatusUnpaid(name, count) }
-
-// StatusUnpaid says "「{name}」{count} 章未回收"
-// in the language of msgs.
-//
-// 待处理里伏笔超过几章还没回收的那一条。
-func (msgs Messages) StatusUnpaid(name string, count int) string {
-	return Catalog.Format(msgs.locale, "statusUnpaid", map[string]any{"name": name, "count": count})
-}
-
-// StatusPlantedIn says "{chapter} 埋下"
-// in the language the app shows.
-//
-// 待处理里伏笔是在哪一章埋下的，接在名字后面的小字。
-func StatusPlantedIn(chapter string) string { return In(i18n.Locale()).StatusPlantedIn(chapter) }
-
-// StatusPlantedIn says "{chapter} 埋下"
-// in the language of msgs.
-//
-// 待处理里伏笔是在哪一章埋下的，接在名字后面的小字。
-func (msgs Messages) StatusPlantedIn(chapter string) string {
-	return Catalog.Format(msgs.locale, "statusPlantedIn", map[string]any{"chapter": chapter})
 }
 
 // StatusWords says "{unit, select, word {{count} 词} other {{count} 字}}"
@@ -2160,26 +2104,6 @@ func (msgs Messages) EditorMarkForeshadow() string {
 	return Catalog.Format(msgs.locale, "editorMarkForeshadow", nil)
 }
 
-// EditorMarkPay says "记为回收…"
-// in the language the app shows.
-func EditorMarkPay() string { return In(i18n.Locale()).EditorMarkPay() }
-
-// EditorMarkPay says "记为回收…"
-// in the language of msgs.
-func (msgs Messages) EditorMarkPay() string {
-	return Catalog.Format(msgs.locale, "editorMarkPay", nil)
-}
-
-// EditorSeeMark says "查看伏笔"
-// in the language the app shows.
-func EditorSeeMark() string { return In(i18n.Locale()).EditorSeeMark() }
-
-// EditorSeeMark says "查看伏笔"
-// in the language of msgs.
-func (msgs Messages) EditorSeeMark() string {
-	return Catalog.Format(msgs.locale, "editorSeeMark", nil)
-}
-
 // EditorNoClipboard says "无法读取剪贴板"
 // in the language the app shows.
 func EditorNoClipboard() string { return In(i18n.Locale()).EditorNoClipboard() }
@@ -2202,136 +2126,6 @@ func EditorPasteKey(key string) string { return In(i18n.Locale()).EditorPasteKey
 // 读不到剪贴板时的提示，key 是粘贴的快捷键。
 func (msgs Messages) EditorPasteKey(key string) string {
 	return Catalog.Format(msgs.locale, "editorPasteKey", map[string]any{"key": key})
-}
-
-// EditorBuryTitle says "记为伏笔，填写备注"
-// in the language the app shows.
-func EditorBuryTitle() string { return In(i18n.Locale()).EditorBuryTitle() }
-
-// EditorBuryTitle says "记为伏笔，填写备注"
-// in the language of msgs.
-func (msgs Messages) EditorBuryTitle() string {
-	return Catalog.Format(msgs.locale, "editorBuryTitle", nil)
-}
-
-// EditorBuryHint says "例如：他为什么突然改口"
-// in the language the app shows.
-func EditorBuryHint() string { return In(i18n.Locale()).EditorBuryHint() }
-
-// EditorBuryHint says "例如：他为什么突然改口"
-// in the language of msgs.
-func (msgs Messages) EditorBuryHint() string {
-	return Catalog.Format(msgs.locale, "editorBuryHint", nil)
-}
-
-// EditorBuryLabel says "伏笔备注"
-// in the language the app shows.
-func EditorBuryLabel() string { return In(i18n.Locale()).EditorBuryLabel() }
-
-// EditorBuryLabel says "伏笔备注"
-// in the language of msgs.
-func (msgs Messages) EditorBuryLabel() string {
-	return Catalog.Format(msgs.locale, "editorBuryLabel", nil)
-}
-
-// EditorPayTitle says "选择要回收的伏笔"
-// in the language the app shows.
-func EditorPayTitle() string { return In(i18n.Locale()).EditorPayTitle() }
-
-// EditorPayTitle says "选择要回收的伏笔"
-// in the language of msgs.
-func (msgs Messages) EditorPayTitle() string {
-	return Catalog.Format(msgs.locale, "editorPayTitle", nil)
-}
-
-// EditorPayHint says "搜索备注或原句"
-// in the language the app shows.
-func EditorPayHint() string { return In(i18n.Locale()).EditorPayHint() }
-
-// EditorPayHint says "搜索备注或原句"
-// in the language of msgs.
-func (msgs Messages) EditorPayHint() string {
-	return Catalog.Format(msgs.locale, "editorPayHint", nil)
-}
-
-// EditorPayLabel says "查找伏笔"
-// in the language the app shows.
-func EditorPayLabel() string { return In(i18n.Locale()).EditorPayLabel() }
-
-// EditorPayLabel says "查找伏笔"
-// in the language of msgs.
-func (msgs Messages) EditorPayLabel() string {
-	return Catalog.Format(msgs.locale, "editorPayLabel", nil)
-}
-
-// EditorNoMatch says "没有匹配的伏笔"
-// in the language the app shows.
-func EditorNoMatch() string { return In(i18n.Locale()).EditorNoMatch() }
-
-// EditorNoMatch says "没有匹配的伏笔"
-// in the language of msgs.
-func (msgs Messages) EditorNoMatch() string {
-	return Catalog.Format(msgs.locale, "editorNoMatch", nil)
-}
-
-// EditorNoMarks says "暂无已埋下的伏笔。请先选中一句，右键选择「记为伏笔」。"
-// in the language the app shows.
-func EditorNoMarks() string { return In(i18n.Locale()).EditorNoMarks() }
-
-// EditorNoMarks says "暂无已埋下的伏笔。请先选中一句，右键选择「记为伏笔」。"
-// in the language of msgs.
-func (msgs Messages) EditorNoMarks() string {
-	return Catalog.Format(msgs.locale, "editorNoMarks", nil)
-}
-
-// EditorMetaPaid says "{title} · 已回收"
-// in the language the app shows.
-//
-// 选择要回收的伏笔时，已回收那一条的小字。
-func EditorMetaPaid(title string) string { return In(i18n.Locale()).EditorMetaPaid(title) }
-
-// EditorMetaPaid says "{title} · 已回收"
-// in the language of msgs.
-//
-// 选择要回收的伏笔时，已回收那一条的小字。
-func (msgs Messages) EditorMetaPaid(title string) string {
-	return Catalog.Format(msgs.locale, "editorMetaPaid", map[string]any{"title": title})
-}
-
-// EditorMetaBefore says "{title} · {count} 章前埋下"
-// in the language the app shows.
-//
-// 选择要回收的伏笔时，埋在前面几章的那一条的小字。
-func EditorMetaBefore(title string, count int) string {
-	return In(i18n.Locale()).EditorMetaBefore(title, count)
-}
-
-// EditorMetaBefore says "{title} · {count} 章前埋下"
-// in the language of msgs.
-//
-// 选择要回收的伏笔时，埋在前面几章的那一条的小字。
-func (msgs Messages) EditorMetaBefore(title string, count int) string {
-	return Catalog.Format(msgs.locale, "editorMetaBefore", map[string]any{"title": title, "count": count})
-}
-
-// EditorMetaHere says "本章埋下"
-// in the language the app shows.
-func EditorMetaHere() string { return In(i18n.Locale()).EditorMetaHere() }
-
-// EditorMetaHere says "本章埋下"
-// in the language of msgs.
-func (msgs Messages) EditorMetaHere() string {
-	return Catalog.Format(msgs.locale, "editorMetaHere", nil)
-}
-
-// EditorMetaHerePaid says "本章 · 已回收"
-// in the language the app shows.
-func EditorMetaHerePaid() string { return In(i18n.Locale()).EditorMetaHerePaid() }
-
-// EditorMetaHerePaid says "本章 · 已回收"
-// in the language of msgs.
-func (msgs Messages) EditorMetaHerePaid() string {
-	return Catalog.Format(msgs.locale, "editorMetaHerePaid", nil)
 }
 
 // EditorPayTip says "确定回收"
@@ -2372,16 +2166,6 @@ func EditorAddSelTip() string { return In(i18n.Locale()).EditorAddSelTip() }
 // in the language of msgs.
 func (msgs Messages) EditorAddSelTip() string {
 	return Catalog.Format(msgs.locale, "editorAddSelTip", nil)
-}
-
-// EditorSelectFirst says "请先在正文中选中回收伏笔的段落"
-// in the language the app shows.
-func EditorSelectFirst() string { return In(i18n.Locale()).EditorSelectFirst() }
-
-// EditorSelectFirst says "请先在正文中选中回收伏笔的段落"
-// in the language of msgs.
-func (msgs Messages) EditorSelectFirst() string {
-	return Catalog.Format(msgs.locale, "editorSelectFirst", nil)
 }
 
 // EditorSettledDisk says "已采用磁盘版本，编辑器原内容已存为历史版本"
@@ -2622,16 +2406,6 @@ func (msgs Messages) CommonCollapse() string {
 	return Catalog.Format(msgs.locale, "commonCollapse", nil)
 }
 
-// CommonConfirm says "确定"
-// in the language the app shows.
-func CommonConfirm() string { return In(i18n.Locale()).CommonConfirm() }
-
-// CommonConfirm says "确定"
-// in the language of msgs.
-func (msgs Messages) CommonConfirm() string {
-	return Catalog.Format(msgs.locale, "commonConfirm", nil)
-}
-
 // CommonCopy says "复制"
 // in the language the app shows.
 func CommonCopy() string { return In(i18n.Locale()).CommonCopy() }
@@ -2712,34 +2486,6 @@ func (msgs Messages) CommonSelectAll() string {
 	return Catalog.Format(msgs.locale, "commonSelectAll", nil)
 }
 
-// PaneTabNotes says "批注"
-// in the language the app shows.
-//
-// 右栏标签：页边的批注。
-func PaneTabNotes() string { return In(i18n.Locale()).PaneTabNotes() }
-
-// PaneTabNotes says "批注"
-// in the language of msgs.
-//
-// 右栏标签：页边的批注。
-func (msgs Messages) PaneTabNotes() string {
-	return Catalog.Format(msgs.locale, "paneTabNotes", nil)
-}
-
-// PaneTabHooks says "伏笔"
-// in the language the app shows.
-//
-// 右栏标签：伏笔。
-func PaneTabHooks() string { return In(i18n.Locale()).PaneTabHooks() }
-
-// PaneTabHooks says "伏笔"
-// in the language of msgs.
-//
-// 右栏标签：伏笔。
-func (msgs Messages) PaneTabHooks() string {
-	return Catalog.Format(msgs.locale, "paneTabHooks", nil)
-}
-
 // PaneResize says "调整右栏宽度"
 // in the language the app shows.
 //
@@ -2752,30 +2498,6 @@ func PaneResize() string { return In(i18n.Locale()).PaneResize() }
 // 右栏左边缘的拖动条悬停提示。
 func (msgs Messages) PaneResize() string {
 	return Catalog.Format(msgs.locale, "paneResize", nil)
-}
-
-// NotesNone says "本章没有批注"
-// in the language the app shows.
-func NotesNone() string { return In(i18n.Locale()).NotesNone() }
-
-// NotesNone says "本章没有批注"
-// in the language of msgs.
-func (msgs Messages) NotesNone() string {
-	return Catalog.Format(msgs.locale, "notesNone", nil)
-}
-
-// NotesOpenChapter says "打开一章后，这里列出它的批注"
-// in the language the app shows.
-//
-// 批注页没有打开章节时的空白说明。
-func NotesOpenChapter() string { return In(i18n.Locale()).NotesOpenChapter() }
-
-// NotesOpenChapter says "打开一章后，这里列出它的批注"
-// in the language of msgs.
-//
-// 批注页没有打开章节时的空白说明。
-func (msgs Messages) NotesOpenChapter() string {
-	return Catalog.Format(msgs.locale, "notesOpenChapter", nil)
 }
 
 // NotesSays says "设定里写的是“{says}”"
@@ -2824,50 +2546,6 @@ func NotesKindNew() string { return In(i18n.Locale()).NotesKindNew() }
 // 检查出的新出现的人名或地名，批注上的类别。
 func (msgs Messages) NotesKindNew() string {
 	return Catalog.Format(msgs.locale, "notesKindNew", nil)
-}
-
-// NotesKindHook says "伏笔 · 在此埋下"
-// in the language the app shows.
-func NotesKindHook() string { return In(i18n.Locale()).NotesKindHook() }
-
-// NotesKindHook says "伏笔 · 在此埋下"
-// in the language of msgs.
-func (msgs Messages) NotesKindHook() string {
-	return Catalog.Format(msgs.locale, "notesKindHook", nil)
-}
-
-// NotesKindHookPaid says "伏笔 · 在此埋下，已回收"
-// in the language the app shows.
-func NotesKindHookPaid() string { return In(i18n.Locale()).NotesKindHookPaid() }
-
-// NotesKindHookPaid says "伏笔 · 在此埋下，已回收"
-// in the language of msgs.
-func (msgs Messages) NotesKindHookPaid() string {
-	return Catalog.Format(msgs.locale, "notesKindHookPaid", nil)
-}
-
-// NotesKindPayoff says "伏笔 · 在此回收"
-// in the language the app shows.
-func NotesKindPayoff() string { return In(i18n.Locale()).NotesKindPayoff() }
-
-// NotesKindPayoff says "伏笔 · 在此回收"
-// in the language of msgs.
-func (msgs Messages) NotesKindPayoff() string {
-	return Catalog.Format(msgs.locale, "notesKindPayoff", nil)
-}
-
-// NotesPlanted says "埋在{chapter}"
-// in the language the app shows.
-//
-// 批注里说明设定或伏笔在哪一章。
-func NotesPlanted(chapter string) string { return In(i18n.Locale()).NotesPlanted(chapter) }
-
-// NotesPlanted says "埋在{chapter}"
-// in the language of msgs.
-//
-// 批注里说明设定或伏笔在哪一章。
-func (msgs Messages) NotesPlanted(chapter string) string {
-	return Catalog.Format(msgs.locale, "notesPlanted", map[string]any{"chapter": chapter})
 }
 
 // CommonSave says "保存"
@@ -3456,36 +3134,6 @@ func (msgs Messages) ChatPartProse() string {
 	return Catalog.Format(msgs.locale, "chatPartProse", nil)
 }
 
-// HooksSelectFirst says "请先在正文中选中要关联的句子"
-// in the language the app shows.
-func HooksSelectFirst() string { return In(i18n.Locale()).HooksSelectFirst() }
-
-// HooksSelectFirst says "请先在正文中选中要关联的句子"
-// in the language of msgs.
-func (msgs Messages) HooksSelectFirst() string {
-	return Catalog.Format(msgs.locale, "hooksSelectFirst", nil)
-}
-
-// HooksLost says "原句已删"
-// in the language the app shows.
-func HooksLost() string { return In(i18n.Locale()).HooksLost() }
-
-// HooksLost says "原句已删"
-// in the language of msgs.
-func (msgs Messages) HooksLost() string {
-	return Catalog.Format(msgs.locale, "hooksLost", nil)
-}
-
-// HooksDone says "已回收"
-// in the language the app shows.
-func HooksDone() string { return In(i18n.Locale()).HooksDone() }
-
-// HooksDone says "已回收"
-// in the language of msgs.
-func (msgs Messages) HooksDone() string {
-	return Catalog.Format(msgs.locale, "hooksDone", nil)
-}
-
 // HooksDropped says "已放弃"
 // in the language the app shows.
 func HooksDropped() string { return In(i18n.Locale()).HooksDropped() }
@@ -3494,270 +3142,6 @@ func HooksDropped() string { return In(i18n.Locale()).HooksDropped() }
 // in the language of msgs.
 func (msgs Messages) HooksDropped() string {
 	return Catalog.Format(msgs.locale, "hooksDropped", nil)
-}
-
-// HooksPlanted says "埋在「{chapter}」"
-// in the language the app shows.
-//
-// 伏笔埋在哪一章。
-func HooksPlanted(chapter string) string { return In(i18n.Locale()).HooksPlanted(chapter) }
-
-// HooksPlanted says "埋在「{chapter}」"
-// in the language of msgs.
-//
-// 伏笔埋在哪一章。
-func (msgs Messages) HooksPlanted(chapter string) string {
-	return Catalog.Format(msgs.locale, "hooksPlanted", map[string]any{"chapter": chapter})
-}
-
-// HooksPlantedGap says "埋在「{chapter}」，已过 {count} 章"
-// in the language the app shows.
-//
-// 伏笔埋在哪一章，离现在过了几章。
-func HooksPlantedGap(chapter string, count int) string {
-	return In(i18n.Locale()).HooksPlantedGap(chapter, count)
-}
-
-// HooksPlantedGap says "埋在「{chapter}」，已过 {count} 章"
-// in the language of msgs.
-//
-// 伏笔埋在哪一章，离现在过了几章。
-func (msgs Messages) HooksPlantedGap(chapter string, count int) string {
-	return Catalog.Format(msgs.locale, "hooksPlantedGap", map[string]any{"chapter": chapter, "count": count})
-}
-
-// HooksAlreadyPaid says "「{chapter}」里已有一处回收"
-// in the language the app shows.
-//
-// 选择要回收的伏笔时，那一章里已经有一处回收。
-func HooksAlreadyPaid(chapter string) string { return In(i18n.Locale()).HooksAlreadyPaid(chapter) }
-
-// HooksAlreadyPaid says "「{chapter}」里已有一处回收"
-// in the language of msgs.
-//
-// 选择要回收的伏笔时，那一章里已经有一处回收。
-func (msgs Messages) HooksAlreadyPaid(chapter string) string {
-	return Catalog.Format(msgs.locale, "hooksAlreadyPaid", map[string]any{"chapter": chapter})
-}
-
-// HooksDrop says "放弃伏笔"
-// in the language the app shows.
-func HooksDrop() string { return In(i18n.Locale()).HooksDrop() }
-
-// HooksDrop says "放弃伏笔"
-// in the language of msgs.
-func (msgs Messages) HooksDrop() string {
-	return Catalog.Format(msgs.locale, "hooksDrop", nil)
-}
-
-// HooksCancelPayoff says "取消回收"
-// in the language the app shows.
-func HooksCancelPayoff() string { return In(i18n.Locale()).HooksCancelPayoff() }
-
-// HooksCancelPayoff says "取消回收"
-// in the language of msgs.
-func (msgs Messages) HooksCancelPayoff() string {
-	return Catalog.Format(msgs.locale, "hooksCancelPayoff", nil)
-}
-
-// HooksRestore says "恢复伏笔"
-// in the language the app shows.
-func HooksRestore() string { return In(i18n.Locale()).HooksRestore() }
-
-// HooksRestore says "恢复伏笔"
-// in the language of msgs.
-func (msgs Messages) HooksRestore() string {
-	return Catalog.Format(msgs.locale, "hooksRestore", nil)
-}
-
-// HooksDelete says "删除伏笔"
-// in the language the app shows.
-func HooksDelete() string { return In(i18n.Locale()).HooksDelete() }
-
-// HooksDelete says "删除伏笔"
-// in the language of msgs.
-func (msgs Messages) HooksDelete() string {
-	return Catalog.Format(msgs.locale, "hooksDelete", nil)
-}
-
-// HooksAll says "全部伏笔"
-// in the language the app shows.
-func HooksAll() string { return In(i18n.Locale()).HooksAll() }
-
-// HooksAll says "全部伏笔"
-// in the language of msgs.
-func (msgs Messages) HooksAll() string {
-	return Catalog.Format(msgs.locale, "hooksAll", nil)
-}
-
-// HooksNote says "备注"
-// in the language the app shows.
-func HooksNote() string { return In(i18n.Locale()).HooksNote() }
-
-// HooksNote says "备注"
-// in the language of msgs.
-func (msgs Messages) HooksNote() string {
-	return Catalog.Format(msgs.locale, "hooksNote", nil)
-}
-
-// HooksEditNote says "修改伏笔备注"
-// in the language the app shows.
-func HooksEditNote() string { return In(i18n.Locale()).HooksEditNote() }
-
-// HooksEditNote says "修改伏笔备注"
-// in the language of msgs.
-func (msgs Messages) HooksEditNote() string {
-	return Catalog.Format(msgs.locale, "hooksEditNote", nil)
-}
-
-// HooksEditNoteBtn says "修改备注"
-// in the language the app shows.
-func HooksEditNoteBtn() string { return In(i18n.Locale()).HooksEditNoteBtn() }
-
-// HooksEditNoteBtn says "修改备注"
-// in the language of msgs.
-func (msgs Messages) HooksEditNoteBtn() string {
-	return Catalog.Format(msgs.locale, "hooksEditNoteBtn", nil)
-}
-
-// HooksLostIn says "「{chapter}」里的原句已删除"
-// in the language the app shows.
-//
-// 原句删了的伏笔，它原来在哪一章。
-func HooksLostIn(chapter string) string { return In(i18n.Locale()).HooksLostIn(chapter) }
-
-// HooksLostIn says "「{chapter}」里的原句已删除"
-// in the language of msgs.
-//
-// 原句删了的伏笔，它原来在哪一章。
-func (msgs Messages) HooksLostIn(chapter string) string {
-	return Catalog.Format(msgs.locale, "hooksLostIn", map[string]any{"chapter": chapter})
-}
-
-// HooksUnpaid says "未回收"
-// in the language the app shows.
-func HooksUnpaid() string { return In(i18n.Locale()).HooksUnpaid() }
-
-// HooksUnpaid says "未回收"
-// in the language of msgs.
-func (msgs Messages) HooksUnpaid() string {
-	return Catalog.Format(msgs.locale, "hooksUnpaid", nil)
-}
-
-// HooksSelectPayoff says "请先在正文中选中回收的段落"
-// in the language the app shows.
-func HooksSelectPayoff() string { return In(i18n.Locale()).HooksSelectPayoff() }
-
-// HooksSelectPayoff says "请先在正文中选中回收的段落"
-// in the language of msgs.
-func (msgs Messages) HooksSelectPayoff() string {
-	return Catalog.Format(msgs.locale, "hooksSelectPayoff", nil)
-}
-
-// HooksMarkPaid says "记为回收"
-// in the language the app shows.
-func HooksMarkPaid() string { return In(i18n.Locale()).HooksMarkPaid() }
-
-// HooksMarkPaid says "记为回收"
-// in the language of msgs.
-func (msgs Messages) HooksMarkPaid() string {
-	return Catalog.Format(msgs.locale, "hooksMarkPaid", nil)
-}
-
-// HooksPaidIn says "回收在「{chapter}」，相隔 {count} 章"
-// in the language the app shows.
-//
-// 已回收的伏笔，回收在哪一章、与埋下相隔几章。
-func HooksPaidIn(chapter string, count int) string {
-	return In(i18n.Locale()).HooksPaidIn(chapter, count)
-}
-
-// HooksPaidIn says "回收在「{chapter}」，相隔 {count} 章"
-// in the language of msgs.
-//
-// 已回收的伏笔，回收在哪一章、与埋下相隔几章。
-func (msgs Messages) HooksPaidIn(chapter string, count int) string {
-	return Catalog.Format(msgs.locale, "hooksPaidIn", map[string]any{"chapter": chapter, "count": count})
-}
-
-// HooksSelectNew says "请先在正文中选中新的句子"
-// in the language the app shows.
-func HooksSelectNew() string { return In(i18n.Locale()).HooksSelectNew() }
-
-// HooksSelectNew says "请先在正文中选中新的句子"
-// in the language of msgs.
-func (msgs Messages) HooksSelectNew() string {
-	return Catalog.Format(msgs.locale, "hooksSelectNew", nil)
-}
-
-// HooksReplaceQuote says "更换原句"
-// in the language the app shows.
-func HooksReplaceQuote() string { return In(i18n.Locale()).HooksReplaceQuote() }
-
-// HooksReplaceQuote says "更换原句"
-// in the language of msgs.
-func (msgs Messages) HooksReplaceQuote() string {
-	return Catalog.Format(msgs.locale, "hooksReplaceQuote", nil)
-}
-
-// HooksNoneHere says "此处暂无伏笔"
-// in the language the app shows.
-func HooksNoneHere() string { return In(i18n.Locale()).HooksNoneHere() }
-
-// HooksNoneHere says "此处暂无伏笔"
-// in the language of msgs.
-func (msgs Messages) HooksNoneHere() string {
-	return Catalog.Format(msgs.locale, "hooksNoneHere", nil)
-}
-
-// HooksEmpty says "暂无伏笔"
-// in the language the app shows.
-func HooksEmpty() string { return In(i18n.Locale()).HooksEmpty() }
-
-// HooksEmpty says "暂无伏笔"
-// in the language of msgs.
-func (msgs Messages) HooksEmpty() string {
-	return Catalog.Format(msgs.locale, "hooksEmpty", nil)
-}
-
-// HooksEmptyHow says "在正文中选中一句，右键选择「记为伏笔」"
-// in the language the app shows.
-func HooksEmptyHow() string { return In(i18n.Locale()).HooksEmptyHow() }
-
-// HooksEmptyHow says "在正文中选中一句，右键选择「记为伏笔」"
-// in the language of msgs.
-func (msgs Messages) HooksEmptyHow() string {
-	return Catalog.Format(msgs.locale, "hooksEmptyHow", nil)
-}
-
-// HooksLong says "久未回收"
-// in the language the app shows.
-func HooksLong() string { return In(i18n.Locale()).HooksLong() }
-
-// HooksLong says "久未回收"
-// in the language of msgs.
-func (msgs Messages) HooksLong() string {
-	return Catalog.Format(msgs.locale, "hooksLong", nil)
-}
-
-// HooksNoneOpen says "没有未回收的伏笔"
-// in the language the app shows.
-func HooksNoneOpen() string { return In(i18n.Locale()).HooksNoneOpen() }
-
-// HooksNoneOpen says "没有未回收的伏笔"
-// in the language of msgs.
-func (msgs Messages) HooksNoneOpen() string {
-	return Catalog.Format(msgs.locale, "hooksNoneOpen", nil)
-}
-
-// HooksSearch says "搜索伏笔"
-// in the language the app shows.
-func HooksSearch() string { return In(i18n.Locale()).HooksSearch() }
-
-// HooksSearch says "搜索伏笔"
-// in the language of msgs.
-func (msgs Messages) HooksSearch() string {
-	return Catalog.Format(msgs.locale, "hooksSearch", nil)
 }
 
 // ChatAnswered says "（回答：{answer}）"
@@ -5776,16 +5160,6 @@ func (msgs Messages) SettingsColor() string {
 	return Catalog.Format(msgs.locale, "settingsColor", nil)
 }
 
-// SettingsMarkNames says "标出设定里的名字"
-// in the language the app shows.
-func SettingsMarkNames() string { return In(i18n.Locale()).SettingsMarkNames() }
-
-// SettingsMarkNames says "标出设定里的名字"
-// in the language of msgs.
-func (msgs Messages) SettingsMarkNames() string {
-	return Catalog.Format(msgs.locale, "settingsMarkNames", nil)
-}
-
 // SettingsDisableGPU says "关闭显卡加速"
 // in the language the app shows.
 func SettingsDisableGPU() string { return In(i18n.Locale()).SettingsDisableGPU() }
@@ -5824,64 +5198,6 @@ func SettingsForeshadow() string { return In(i18n.Locale()).SettingsForeshadow()
 // in the language of msgs.
 func (msgs Messages) SettingsForeshadow() string {
 	return Catalog.Format(msgs.locale, "settingsForeshadow", nil)
-}
-
-// SettingsLateAfter says "超过多少章算久未回收"
-// in the language the app shows.
-func SettingsLateAfter() string { return In(i18n.Locale()).SettingsLateAfter() }
-
-// SettingsLateAfter says "超过多少章算久未回收"
-// in the language of msgs.
-func (msgs Messages) SettingsLateAfter() string {
-	return Catalog.Format(msgs.locale, "settingsLateAfter", nil)
-}
-
-// SettingsLateLess says "减少 5 章"
-// in the language the app shows.
-func SettingsLateLess() string { return In(i18n.Locale()).SettingsLateLess() }
-
-// SettingsLateLess says "减少 5 章"
-// in the language of msgs.
-func (msgs Messages) SettingsLateLess() string {
-	return Catalog.Format(msgs.locale, "settingsLateLess", nil)
-}
-
-// SettingsLateMore says "增加 5 章"
-// in the language the app shows.
-func SettingsLateMore() string { return In(i18n.Locale()).SettingsLateMore() }
-
-// SettingsLateMore says "增加 5 章"
-// in the language of msgs.
-func (msgs Messages) SettingsLateMore() string {
-	return Catalog.Format(msgs.locale, "settingsLateMore", nil)
-}
-
-// SettingsLateChapters says "{count} 章"
-// in the language the app shows.
-//
-// 伏笔「久未回收」的章数。
-func SettingsLateChapters(count int) string { return In(i18n.Locale()).SettingsLateChapters(count) }
-
-// SettingsLateChapters says "{count} 章"
-// in the language of msgs.
-//
-// 伏笔「久未回收」的章数。
-func (msgs Messages) SettingsLateChapters(count int) string {
-	return Catalog.Format(msgs.locale, "settingsLateChapters", map[string]any{"count": count})
-}
-
-// SettingsLateNow says "当前有 {count} 个伏笔久未回收。"
-// in the language the app shows.
-//
-// 伏笔页的说明：现在有几个久未回收。
-func SettingsLateNow(count int) string { return In(i18n.Locale()).SettingsLateNow(count) }
-
-// SettingsLateNow says "当前有 {count} 个伏笔久未回收。"
-// in the language of msgs.
-//
-// 伏笔页的说明：现在有几个久未回收。
-func (msgs Messages) SettingsLateNow(count int) string {
-	return Catalog.Format(msgs.locale, "settingsLateNow", map[string]any{"count": count})
 }
 
 // SettingsCheckText says "何时检查"
@@ -7500,36 +6816,6 @@ func (msgs Messages) SettingsTabExtensions() string {
 	return Catalog.Format(msgs.locale, "settingsTabExtensions", nil)
 }
 
-// ModMarks says "正文标记"
-// in the language the app shows.
-//
-// 「功能」里一个前置扩展的名字，照代码里的 ID
-// 写，不翻。
-func ModMarks() string { return In(i18n.Locale()).ModMarks() }
-
-// ModMarks says "正文标记"
-// in the language of msgs.
-//
-// 「功能」里一个前置扩展的名字，照代码里的 ID
-// 写，不翻。
-func (msgs Messages) ModMarks() string {
-	return Catalog.Format(msgs.locale, "modMarks", nil)
-}
-
-// ModMarksAbout says "在正文上画高亮和标注"
-// in the language the app shows.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func ModMarksAbout() string { return In(i18n.Locale()).ModMarksAbout() }
-
-// ModMarksAbout says "在正文上画高亮和标注"
-// in the language of msgs.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func (msgs Messages) ModMarksAbout() string {
-	return Catalog.Format(msgs.locale, "modMarksAbout", nil)
-}
-
 // ModUsage says "用量记录"
 // in the language the app shows.
 //
@@ -7668,90 +6954,6 @@ func ModCheckAbout() string { return In(i18n.Locale()).ModCheckAbout() }
 // 「扩展」里：这个扩展是做什么的，一句话。
 func (msgs Messages) ModCheckAbout() string {
 	return Catalog.Format(msgs.locale, "modCheckAbout", nil)
-}
-
-// ModHooks says "伏笔"
-// in the language the app shows.
-//
-// 「功能」里一个模块的名字。
-func ModHooks() string { return In(i18n.Locale()).ModHooks() }
-
-// ModHooks says "伏笔"
-// in the language of msgs.
-//
-// 「功能」里一个模块的名字。
-func (msgs Messages) ModHooks() string {
-	return Catalog.Format(msgs.locale, "modHooks", nil)
-}
-
-// ModHooksAbout says "记下伏笔，久了提醒回收"
-// in the language the app shows.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func ModHooksAbout() string { return In(i18n.Locale()).ModHooksAbout() }
-
-// ModHooksAbout says "记下伏笔，久了提醒回收"
-// in the language of msgs.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func (msgs Messages) ModHooksAbout() string {
-	return Catalog.Format(msgs.locale, "modHooksAbout", nil)
-}
-
-// ModNotes says "批注"
-// in the language the app shows.
-//
-// 「功能」里一个模块的名字。
-func ModNotes() string { return In(i18n.Locale()).ModNotes() }
-
-// ModNotes says "批注"
-// in the language of msgs.
-//
-// 「功能」里一个模块的名字。
-func (msgs Messages) ModNotes() string {
-	return Catalog.Format(msgs.locale, "modNotes", nil)
-}
-
-// ModNotesAbout says "在正文旁边写备注"
-// in the language the app shows.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func ModNotesAbout() string { return In(i18n.Locale()).ModNotesAbout() }
-
-// ModNotesAbout says "在正文旁边写备注"
-// in the language of msgs.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func (msgs Messages) ModNotesAbout() string {
-	return Catalog.Format(msgs.locale, "modNotesAbout", nil)
-}
-
-// ModNames says "名字补全"
-// in the language the app shows.
-//
-// 「功能」里一个模块的名字。
-func ModNames() string { return In(i18n.Locale()).ModNames() }
-
-// ModNames says "名字补全"
-// in the language of msgs.
-//
-// 「功能」里一个模块的名字。
-func (msgs Messages) ModNames() string {
-	return Catalog.Format(msgs.locale, "modNames", nil)
-}
-
-// ModNamesAbout says "打字时补全人名、地名"
-// in the language the app shows.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func ModNamesAbout() string { return In(i18n.Locale()).ModNamesAbout() }
-
-// ModNamesAbout says "打字时补全人名、地名"
-// in the language of msgs.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func (msgs Messages) ModNamesAbout() string {
-	return Catalog.Format(msgs.locale, "modNamesAbout", nil)
 }
 
 // ModGroupLibraries says "基础"

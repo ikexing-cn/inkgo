@@ -116,13 +116,13 @@ func TestForeshadowTabCountsLostAndLate(t *testing.T) {
 	}
 	forgetChapter(a)
 	a.openNode(one)
-	a.write.lateAfter = 2
+	hooksOf(a).SetLateAfter(2)
 	tt.Frame()
 	group := a.pendingGroups()
 	if a.paneCounts().waiting != 2 || len(group) != 1 || len(group[0].items) != 2 {
 		t.Fatal("lost and late counts disagree", a.paneCounts(), group)
 	}
-	a.write.lateAfter = 3
+	hooksOf(a).SetLateAfter(3)
 	tt.Frame()
 	if a.paneCounts().waiting != 1 {
 		t.Fatal("tab ignored the changed threshold")

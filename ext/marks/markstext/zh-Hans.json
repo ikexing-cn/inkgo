@@ -1,0 +1,10 @@
+{
+  "modMarks": "正文标记",
+  "@modMarks": {
+    "description": "「功能」里一个前置扩展的名字，照代码里的 ID 写，不翻。"
+  },
+  "modMarksAbout": "在正文上画高亮和标注",
+  "@modMarksAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  }
+}

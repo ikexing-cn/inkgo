@@ -125,6 +125,7 @@ func TestUnorderedMarkedAndNameHoverExcludeVisualGaps(t *testing.T) {
 	e.shapes = []paragraphShape{{text: e.Doc.text, sh: &s}}
 	e.ensureLayout()
 	e.SetDoubts([][2]int{{0, 2}})
+	supplyTestMarks(e)
 	ln := &e.lay.lines[0]
 	for _, c := range []struct {
 		x   float32
@@ -136,6 +137,7 @@ func TestUnorderedMarkedAndNameHoverExcludeVisualGaps(t *testing.T) {
 		}
 	}
 	e.SetDoubts(nil)
+	supplyTestMarks(e)
 	e.SetNameLinks([]NameLink{{Name: "甲乙", Entry: "entry"}}, nil)
 	for _, c := range []struct {
 		x   float32
@@ -179,6 +181,7 @@ func TestUnorderedDecorationsPaintOnlyTheirVisualIntervals(t *testing.T) {
 			case "mark":
 				e.Doc.marks = []Mark{{Kind: MarkAI, Start: 0, End: 2}}
 			}
+			supplyTestMarks(e)
 			tt := ui.NewTester(func(c *ui.Context) {
 				ui.Box(c).Fill().Background(ui.RGB(255, 255, 255)).Draw(func(p *ui.Painter, r ui.Rect) { e.paintDecorations(p, 10, 0, 0, 100) })
 			}, 80, 40)

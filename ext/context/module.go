@@ -13,13 +13,19 @@ var Module = ext.Module{ID: "context", Kind: ext.Library, Name: contexttext.ModC
 	ext.Declare(r, contextapi.Entries)
 	ext.DeclareCalls(r, contextapi.Entries, func(p contextapi.EntryProvider) func(struct{}) []workspace.Entry { return p })
 	entries := ext.ReadPoint(r, contextapi.Entries)
+	ext.Declare(r, contextapi.Hooks)
+	ext.DeclareCalls(r, contextapi.Hooks, func(p contextapi.HookProvider) func(struct{}) []workspace.Foreshadow { return p })
+	hooks := ext.ReadPoint(r, contextapi.Hooks)
 	ext.Declare(r, contextapi.Outlines)
 	ext.DeclareCalls(r, contextapi.Outlines, func(p contextapi.OutlineProvider) func(string) string { return p })
 	providers := ext.ReadPoint(r, contextapi.Outlines)
-	ext.Provide(r, contextapi.Service, func(*ext.Session) contextapi.Context { return library{providers: providers, entries: entries} })
+	ext.Provide(r, contextapi.Service, func(*ext.Session) contextapi.Context {
+		return library{providers: providers, entries: entries, hooks: hooks}
+	})
 }}
 
 type library struct {
+	hooks     *ext.PointReader[contextapi.HookProvider]
 	entries   *ext.PointReader[contextapi.EntryProvider]
 	providers *ext.PointReader[contextapi.OutlineProvider]
 }
@@ -49,3 +55,16 @@ func (l library) Entries() ([]workspace.Entry, bool) {
 
 // HasOutlines reports an active provider without asking it for node content.
 func (l library) HasOutlines() bool { return len(l.providers.Items()) > 0 }
+
+func (l library) Hooks() ([]workspace.Foreshadow, bool) {
+	for _, item := range l.hooks.Items() {
+		value, err := ext.CallReadPoint(l.hooks, item.ID, struct{}{}, item.Value)
+		if err == nil {
+			if value == nil {
+				value = []workspace.Foreshadow{}
+			}
+			return value, true
+		}
+	}
+	return nil, false
+}

@@ -7,7 +7,6 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
 	"writer/locales"
-	"writer/workspace"
 )
 
 const (
@@ -52,30 +51,6 @@ func (a *App) resizer(c *ui.Context, width float32) {
 		a.doc.resizing = false
 		a.savePrefs()
 	}
-}
-
-// paneKey is everything the right column's tab counts read.
-type paneKey struct {
-	fores foreshadowKey
-	ai    bool
-	late  int
-}
-
-type paneNums struct {
-	waiting, open int
-}
-
-func (a *App) paneCounts() paneNums {
-	key := paneKey{a.foreshadowKey(), a.aiOn(), a.write.lateAfter}
-	return a.write.pane.get(key, func() paneNums {
-		n := paneNums{open: len(a.ideas())}
-		for _, f := range a.foreshadows() {
-			if f.Status() == workspace.ForeLost || f.Late(a.write.lateAfter) {
-				n.waiting++
-			}
-		}
-		return n
-	})
 }
 
 // panelTabs switch the writing page's right column between the margin,

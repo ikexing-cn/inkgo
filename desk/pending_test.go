@@ -110,7 +110,7 @@ func TestPendingForeshadowingOpensPane(t *testing.T) {
 			}
 			a.warn(a.loadTree())
 			a.openNode(two)
-			a.write.lateAfter = 1
+			hooksOf(a).SetLateAfter(1)
 			a.doc.hidden = hidden
 			showTab(a, paneSetting)
 			tt.Frame()
@@ -134,8 +134,8 @@ func TestPendingForeshadowingOpensPane(t *testing.T) {
 				if !a.doc.hidden || shownTab(a) != paneSetting {
 					t.Fatal("the hidden pane changed")
 				}
-			} else if shownTab(a) != paneFore || a.write.fore.shown != id {
-				t.Fatalf("pane shows %s, foreshadowing %s, want %s", shownTab(a), a.write.fore.shown, id)
+			} else if shownTab(a) != paneFore || hooksOf(a).State.Shown != id {
+				t.Fatalf("pane shows %s, foreshadowing %s, want %s", shownTab(a), hooksOf(a).State.Shown, id)
 			}
 		})
 	}

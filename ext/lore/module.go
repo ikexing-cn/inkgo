@@ -13,7 +13,7 @@ import (
 )
 
 // Module registers the setting interface and its live reference entries.
-var Module = ext.Module{ID: "lore", Kind: ext.Feature, Group: hostapi.GroupLore, Requires: []string{"context"}, Optional: []string{"ai", "talk", "find"}, Name: loretext.ModLore, Desc: loretext.ModLoreAbout, Setup: setup}
+var Module = ext.Module{ID: "lore", Kind: ext.Feature, Group: hostapi.GroupLore, Requires: []string{"context"}, Optional: []string{"ai", "talk", "find", "marks"}, Name: loretext.ModLore, Desc: loretext.ModLoreAbout, Setup: setup}
 
 func setup(r *ext.Registrar) {
 	for _, tool := range TalkTools() {

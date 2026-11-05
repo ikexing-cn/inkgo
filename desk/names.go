@@ -2,69 +2,68 @@ package desk
 
 import (
 	"slices"
-
-	"writer/desk/book"
-	"writer/editor"
-	"writer/workspace"
+	"writer/ext"
+	"writer/ext/hostapi"
 )
 
-// The names of the setting complete as the prose is typed: those of the
-// settled entries of workspace.NameCategories, each other name showing
-// whose it is.
+// nameFeed retains the point's borrowed results and aggregates only new revisions.
+type nameFeed struct {
+	changes uint64
+	inputs  []hostapi.Names
+	value   hostapi.Names
+	builds  int
+}
 
-// entities are the names that complete.
-func (a *App) entities() []editor.Entity {
-	var out []editor.Entity
-	for _, e := range a.entries() {
-		if e.Place != workspace.PlaceBody || len(e.Names) == 0 || !slices.Contains(workspace.NameCategories, e.Category) {
-			continue
-		}
-		for i, n := range e.Names {
-			en := editor.Entity{Name: n, Kind: e.Category}
-			if i > 0 {
-				en.Of = e.Names[0]
-			}
-			out = append(out, en)
+func (a *App) nameValues() hostapi.Names {
+	a.syncExtensions()
+	c := &a.write.names
+	dirty := c.builds == 0 || c.changes != a.extViews.changes
+	if dirty {
+		c.inputs = make([]hostapi.Names, len(a.extViews.names))
+		c.changes = a.extViews.changes
+	}
+	for i, item := range a.extViews.names {
+		v, _ := ext.Call(a.extensions, ext.HookOf(ext.CallPoint[hostapi.NameProvider, struct{}, hostapi.Names]{Point: hostapi.NameHighlights}, item.ID), struct{}{}, item.Value)
+		dirty = dirty || c.inputs[i].Revision != v.Revision
+		c.inputs[i] = v
+	}
+	if !dirty {
+		return c.value
+	}
+	var out hostapi.Names
+	for i, item := range a.extViews.names {
+		v := c.inputs[i]
+		out.Entities = append(out.Entities, v.Entities...)
+		out.Links = append(out.Links, v.Links...)
+		if v.Open != nil {
+			owner, id, open := item.Owner, item.ID, v.Open
+			out.Open = func(entry string) { _ = ext.Guard(a.extensions, owner, id, func() { open(entry) }) }
 		}
 	}
-	return out
+	c.builds++
+	out.Revision = uint64(c.builds)
+	c.value = out
+	return c.value
 }
 
-// namesKey is everything the name links read: the setting and whether
-// names are shown at all.
-type namesKey struct {
-	book    *book.Book
-	version int
-	noNames bool
-	active  bool
-}
-
-// feedNames gives the chapter's editor the names, again once the setting
-// changed.
 func (a *App) feedNames() {
-	w := &a.write
-	if w.cur().ed == nil {
-		return
-	}
-	if w.named != w.cur().ed || w.namedRevs != len(a.book.Setting().Revisions) || w.namesActive != a.hasEntries() {
-		w.named, w.namedRevs = w.cur().ed, len(a.book.Setting().Revisions)
-		w.namesActive = a.hasEntries()
-		w.cur().ed.SetEntities(a.entities())
-	}
-	key := namesKey{a.book, a.book.Version(), a.shelf.NoNames, a.hasEntries()}
-	links := w.nameLinks.get(key, func() []editor.NameLink {
-		var links []editor.NameLink
-		if a.shelf.NoNames {
-			return links
+	if ed := a.write.cur().ed; ed != nil {
+		w := &a.write
+		names := a.nameValues()
+		if w.named == ed && w.namedRevs == names.Revision {
+			return
 		}
-		for _, e := range a.entries() {
-			if e.Place == workspace.PlaceBody {
-				for _, n := range e.Names {
-					links = append(links, editor.NameLink{Name: n, Entry: e.ID})
+		if w.named != ed || !slices.Equal(w.namedValues.Entities, names.Entities) {
+			ed.SetEntities(names.Entities)
+		}
+		if w.named != ed || !slices.Equal(w.namedValues.Links, names.Links) {
+			ed.SetNameLinks(names.Links, func(entry string) {
+				if open := a.write.names.value.Open; open != nil {
+					open(entry)
 				}
-			}
+			})
 		}
-		return links
-	})
-	w.cur().ed.SetNameLinks(links, a.seeName)
+		w.named, w.namedRevs = ed, names.Revision
+		w.namedValues = names
+	}
 }

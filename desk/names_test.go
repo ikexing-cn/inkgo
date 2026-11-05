@@ -1,7 +1,6 @@
 package desk
 
 import (
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -45,7 +44,7 @@ func TestNamesInTheProse(t *testing.T) {
 	tt.Key(ui.Cmd, ui.KeyZ)
 	tt.Frame()
 	click(t, tt, "菜单栏-文件", "菜单-设置")
-	click(t, tt, "设置-外观")
+	extensionDetails(t, a, tt, "names")
 	hasText(t, tt, "标出设定里的名字")
 	if tt.HasText("名字下面一道虚线") {
 		t.Fatal("unnecessary names note", tt.Texts())
@@ -55,19 +54,13 @@ func TestNamesInTheProse(t *testing.T) {
 	tt.Frame()
 	showEntry(a, "")
 	clickName()
-	if shownEntry(a) != "" || !a.shelf.NoNames {
+	if shownEntry(a) != "" || namesShown(a) {
 		t.Fatal("names still open")
 	}
 	b := newApp(a.ai.ConfigFile())
 	defer b.Close()
-	if !b.shelf.NoNames {
+	if namesShown(b) {
 		t.Fatal("appearance not persisted")
-	}
-	if data, err := os.ReadFile(a.books.file); err != nil || !strings.Contains(string(data), `"noNames": true`) {
-		t.Fatalf("preference missing from works.json: %s %v", data, err)
-	}
-	if _, err := os.Stat(filepath.Join(filepath.Dir(a.books.file), "appearance.json")); !os.IsNotExist(err) {
-		t.Fatalf("separate appearance file: %v", err)
 	}
 	s, err := workspace.Create(filepath.Join(t.TempDir(), "another"), "另一本", "网文", "zh-Hans")
 	if err != nil {
@@ -78,11 +71,11 @@ func TestNamesInTheProse(t *testing.T) {
 	if err = b.Open(root); err != nil {
 		t.Fatal(err)
 	}
-	if !b.shelf.NoNames {
+	if namesShown(b) {
 		t.Fatal("preference did not follow work switch")
 	}
 	click(t, tt, "菜单栏-文件", "菜单-设置")
-	click(t, tt, "设置-外观")
+	extensionDetails(t, a, tt, "names")
 	click(t, tt, "标出设定里的名字")
 	tt.Key(0, ui.KeyEscape)
 	tt.Frame()
@@ -179,3 +172,5 @@ func TestRenameOffersToReplace(t *testing.T) {
 		t.Fatal("replaced before the confirmation", tt.Texts())
 	}
 }
+
+func namesShown(a *App) bool { return a.extensions.Ledger("names").Settings[0].Read().(bool) }

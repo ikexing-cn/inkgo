@@ -1,0 +1,11 @@
+{
+  "settingsMarkNames": "标出设定里的名字",
+  "modNames": "名字补全",
+  "@modNames": {
+    "description": "「功能」里一个模块的名字。"
+  },
+  "modNamesAbout": "打字时补全人名、地名",
+  "@modNamesAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  }
+}

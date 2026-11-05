@@ -14,6 +14,7 @@ func TestNameLinksYieldToAnnotations(t *testing.T) {
 	e.found = [][2]int{{6, 8}}
 	e.doubts = [][2]int{{9, 11}}
 	e.props = []Proposal{{ID: "prop", A: 12, B: 14}}
+	supplyTestMarks(e)
 	if spans := e.nameRanges(); len(spans) != 1 || spans[0].a != 15 {
 		t.Fatal(spans)
 	}
@@ -23,6 +24,7 @@ func TestNameLinksYieldToAnnotations(t *testing.T) {
 	}
 	e.Select(0, 0)
 	e.opts.NoAI = true
+	supplyTestMarks(e)
 	if len(e.nameRanges()) != 2 {
 		t.Fatal("hidden AI annotation suppressed names")
 	}
@@ -56,6 +58,7 @@ func TestNameLinksFollowEditedProse(t *testing.T) {
 	if e.Doc.String() != "雨林晚推门，晚晚回头。" || len(e.Doc.Marks()) != 0 {
 		t.Fatal(e.Doc.String(), e.Doc.Marks())
 	}
+	supplyTestMarks(e)
 	if spans := e.nameRanges(); len(spans) != 2 || spans[0].a != 1 {
 		t.Fatal(spans)
 	}

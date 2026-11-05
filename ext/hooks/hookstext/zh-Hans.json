@@ -1,0 +1,206 @@
+{
+  "statusGroupMarks": "伏笔",
+  "@statusGroupMarks": {
+    "description": "待处理面板里的分组名。"
+  },
+  "statusQuoteGone": "「{name}」原句已删",
+  "@statusQuoteGone": {
+    "description": "待处理里伏笔的原句已被删掉的那一条。",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "灯数"
+      }
+    }
+  },
+  "statusUnpaid": "「{name}」{count} 章未回收",
+  "@statusUnpaid": {
+    "description": "待处理里伏笔超过几章还没回收的那一条。",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "灯数"
+      },
+      "count": {
+        "type": "int",
+        "example": "6"
+      }
+    }
+  },
+  "statusPlantedIn": "{chapter} 埋下",
+  "@statusPlantedIn": {
+    "description": "待处理里伏笔是在哪一章埋下的，接在名字后面的小字。",
+    "placeholders": {
+      "chapter": {
+        "type": "String",
+        "example": "第2章：井沿"
+      }
+    }
+  },
+  "editorMarkPay": "记为回收…",
+  "editorSeeMark": "查看伏笔",
+  "editorBuryTitle": "记为伏笔，填写备注",
+  "editorBuryHint": "例如：他为什么突然改口",
+  "editorBuryLabel": "伏笔备注",
+  "editorPayTitle": "选择要回收的伏笔",
+  "editorPayHint": "搜索备注或原句",
+  "editorPayLabel": "查找伏笔",
+  "editorNoMatch": "没有匹配的伏笔",
+  "editorNoMarks": "暂无已埋下的伏笔。请先选中一句，右键选择「记为伏笔」。",
+  "editorMetaPaid": "{title} · 已回收",
+  "@editorMetaPaid": {
+    "description": "选择要回收的伏笔时，已回收那一条的小字。",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "第2章：井沿"
+      }
+    }
+  },
+  "editorMetaBefore": "{title} · {count} 章前埋下",
+  "@editorMetaBefore": {
+    "description": "选择要回收的伏笔时，埋在前面几章的那一条的小字。",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "第2章：井沿"
+      },
+      "count": {
+        "type": "int",
+        "example": "84"
+      }
+    }
+  },
+  "editorMetaHere": "本章埋下",
+  "editorMetaHerePaid": "本章 · 已回收",
+  "editorSelectFirst": "请先在正文中选中回收伏笔的段落",
+  "commonConfirm": "确定",
+  "paneTabHooks": "伏笔",
+  "@paneTabHooks": {
+    "description": "右栏标签：伏笔。"
+  },
+  "notesKindHook": "伏笔 · 在此埋下",
+  "notesKindHookPaid": "伏笔 · 在此埋下，已回收",
+  "notesKindPayoff": "伏笔 · 在此回收",
+  "notesPlanted": "埋在{chapter}",
+  "@notesPlanted": {
+    "description": "批注里说明设定或伏笔在哪一章。",
+    "placeholders": {
+      "chapter": {
+        "type": "String",
+        "example": "第1章：巷口"
+      }
+    }
+  },
+  "hooksSelectFirst": "请先在正文中选中要关联的句子",
+  "hooksLost": "原句已删",
+  "hooksDone": "已回收",
+  "hooksPlanted": "埋在「{chapter}」",
+  "@hooksPlanted": {
+    "description": "伏笔埋在哪一章。",
+    "placeholders": {
+      "chapter": {
+        "type": "String",
+        "example": "第86章：档案室"
+      }
+    }
+  },
+  "hooksPlantedGap": "埋在「{chapter}」，已过 {count} 章",
+  "@hooksPlantedGap": {
+    "description": "伏笔埋在哪一章，离现在过了几章。",
+    "placeholders": {
+      "chapter": {
+        "type": "String",
+        "example": "第86章：档案室"
+      },
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "hooksAlreadyPaid": "「{chapter}」里已有一处回收",
+  "@hooksAlreadyPaid": {
+    "description": "选择要回收的伏笔时，那一章里已经有一处回收。",
+    "placeholders": {
+      "chapter": {
+        "type": "String",
+        "example": "第87章：停电"
+      }
+    }
+  },
+  "hooksDrop": "放弃伏笔",
+  "hooksCancelPayoff": "取消回收",
+  "hooksRestore": "恢复伏笔",
+  "hooksDelete": "删除伏笔",
+  "hooksAll": "全部伏笔",
+  "hooksNote": "备注",
+  "hooksEditNote": "修改伏笔备注",
+  "hooksEditNoteBtn": "修改备注",
+  "hooksLostIn": "「{chapter}」里的原句已删除",
+  "@hooksLostIn": {
+    "description": "原句删了的伏笔，它原来在哪一章。",
+    "placeholders": {
+      "chapter": {
+        "type": "String",
+        "example": "第86章：档案室"
+      }
+    }
+  },
+  "hooksUnpaid": "未回收",
+  "hooksSelectPayoff": "请先在正文中选中回收的段落",
+  "hooksMarkPaid": "记为回收",
+  "hooksPaidIn": "回收在「{chapter}」，相隔 {count} 章",
+  "@hooksPaidIn": {
+    "description": "已回收的伏笔，回收在哪一章、与埋下相隔几章。",
+    "placeholders": {
+      "chapter": {
+        "type": "String",
+        "example": "第87章：停电"
+      },
+      "count": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "hooksSelectNew": "请先在正文中选中新的句子",
+  "hooksReplaceQuote": "更换原句",
+  "hooksNoneHere": "此处暂无伏笔",
+  "hooksEmpty": "暂无伏笔",
+  "hooksEmptyHow": "在正文中选中一句，右键选择「记为伏笔」",
+  "hooksLong": "久未回收",
+  "hooksNoneOpen": "没有未回收的伏笔",
+  "hooksSearch": "搜索伏笔",
+  "settingsLateAfter": "超过多少章算久未回收",
+  "settingsLateLess": "减少 5 章",
+  "settingsLateMore": "增加 5 章",
+  "settingsLateChapters": "{count} 章",
+  "@settingsLateChapters": {
+    "description": "伏笔「久未回收」的章数。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "20"
+      }
+    }
+  },
+  "settingsLateNow": "当前有 {count} 个伏笔久未回收。",
+  "@settingsLateNow": {
+    "description": "伏笔页的说明：现在有几个久未回收。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "modHooks": "伏笔",
+  "@modHooks": {
+    "description": "「功能」里一个模块的名字。"
+  },
+  "modHooksAbout": "记下伏笔，久了提醒回收",
+  "@modHooksAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  }
+}

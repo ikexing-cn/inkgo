@@ -165,7 +165,7 @@ func TestReducedMotionPutsColumnsAndNotesInPlaceAtOnce(t *testing.T) {
 	marginPositions(t, a, tt)
 	click(t, tt, "撤销提示")
 	marginPositions(t, a, tt)
-	if len(a.write.margin.departed) != 0 {
+	if notesOf(a).Inspect().Departed != 0 {
 		t.Fatal("reduced motion retained a departure")
 	}
 }

@@ -88,8 +88,8 @@ func (e *Editor) paintDecorations(p *ui.Painter, ox, oy, top, bottom float32) {
 	}
 	e.paintNames(p, ox, oy, top, bottom)
 
-	for _, m := range e.Doc.marks {
-		if m.End <= m.Start || e.hidden(m) {
+	for _, m := range e.decorations() {
+		if m.End <= m.Start {
 			continue
 		}
 		a, b := l.toDisp(m.Start, true), l.toDisp(m.End, false)
@@ -104,19 +104,15 @@ func (e *Editor) paintDecorations(p *ui.Painter, ox, oy, top, bottom float32) {
 				}
 			case MarkPayoff:
 				dotted(p, ox+x0, ox+x1, base, t.Text.Alpha(0.55))
+			case MarkCheck:
+				color := e.doubtColor
+				if color.A == 0 {
+					color = t.Warning
+				}
+				dashed(p, ox+x0, ox+x1, base, color)
 			case MarkAI:
 				p.Line(ox+x0, base, ox+x1, base, 1, colorAI.Alpha(0.55))
 			}
-		})
-	}
-
-	for _, f := range e.doubts {
-		color := e.doubtColor
-		if color.A == 0 {
-			color = t.Warning
-		}
-		l.eachVisible(l.toDisp(f[0], true), l.toDisp(f[1], false), top, bottom, func(x0, x1, y float32) {
-			dashed(p, ox+x0, ox+x1, oy+y+l.lineH-5, color)
 		})
 	}
 

@@ -100,7 +100,7 @@ func (a *App) initExtensions(mods []ext.Module) {
 			ext.Declare(r, hostapi.Commands)
 			ext.Declare(r, hostapi.PaneTabs)
 			ext.Declare(r, hostapi.Overlays)
-			declareLifecycle(r, a)
+			declareLifecycle(r, a, mods)
 			ext.DeclareCalls(r, hostapi.Overlays, overlayCall)
 			ext.DeclareCalls(r, hostapi.Commands, commandCall)
 			ext.DeclareCalls(r, hostapi.PaneTabs, paneCall)
@@ -191,6 +191,8 @@ type extensionViews struct {
 	ticks          []ext.Item[hostapi.FrameTick]
 	leave          []ext.Item[func()]
 	pending        []ext.Item[hostapi.PendingSource]
+	names          []ext.Item[hostapi.NameProvider]
+	prose          []ext.Item[hostapi.ProseMarkProvider]
 	settings       []ext.Item[hostapi.SettingsPage]
 	sections       []ext.Item[hostapi.SettingsSection]
 	settingsTabs   map[string]string
@@ -337,22 +339,28 @@ func (a *App) syncExtensions() {
 		}
 	}
 	cache.pending = ext.Items(a.extensions, hostapi.PendingGroups)
+	cache.names = ext.Items(a.extensions, hostapi.NameHighlights)
+	cache.prose = ext.Items(a.extensions, hostapi.ProseMarks)
 	cache.settings = ext.Declared(a.extensions, hostapi.SettingsPages)
 	cache.sections = ext.Items(a.extensions, hostapi.SettingsSections)
 	cache.settingsTabs = map[string]string{}
 	cache.pageOwners = map[string][]string{}
 	slices.SortStableFunc(cache.settings, func(x, y ext.Item[hostapi.SettingsPage]) int { return cmp.Compare(x.Value.Order, y.Value.Order) })
 	a.prefTabs = slices.Clone(a.hostPrefTabs)
-	pagesByLabel := map[string]string{}
+	pagesByKey := map[string]string{}
 	for _, item := range cache.settings {
 		p := item.Value
-		id, shared := pagesByLabel[p.Label]
+		key := p.Key
+		if key == "" {
+			key = item.ID
+		}
+		id, shared := pagesByKey[key]
 		if !shared {
-			id = item.ID
+			id = key
 			if item.ID == "ai.settings" {
 				id = "AI"
 			}
-			pagesByLabel[p.Label] = id
+			pagesByKey[key] = id
 			a.prefTabs = append(a.prefTabs, tabEntry[string]{id: id, name: p.Title, label: p.Label, order: p.Order, fallback: item.Owner == "ai"})
 		}
 		cache.settingsTabs[item.ID] = id

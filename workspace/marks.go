@@ -1,8 +1,6 @@
 package workspace
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 )
@@ -72,28 +70,19 @@ func (s *Store) Marks() (map[string][]ChapterMark, error) {
 		if n.Folder {
 			continue
 		}
-		p, err := s.nodePath(n, marksExt)
+		marks, err := s.readMarks(n)
 		if err != nil {
 			return nil, err
-		}
-		b, err := os.ReadFile(p)
-		if errors.Is(err, os.ErrNotExist) {
-			continue
-		}
-		if err != nil {
-			return nil, err
-		}
-		var marks []ChapterMark
-		if err = json.Unmarshal(b, &marks); err != nil {
-			return nil, fmt.Errorf("%s: %w", p, err)
 		}
 		if len(marks) == 0 {
 			continue
 		}
-		if p, err = s.nodePath(n, textExt); err != nil {
+		p, err := s.nodePath(n, textExt)
+		if err != nil {
 			return nil, err
 		}
-		if b, err = os.ReadFile(p); err != nil {
+		b, err := os.ReadFile(p)
+		if err != nil {
 			return nil, err
 		}
 		text := []rune(CleanProse(string(b)))

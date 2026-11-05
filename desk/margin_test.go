@@ -64,7 +64,7 @@ func marginPositions(t *testing.T, a *App, tt *ui.Tester) {
 			t.Fatal("notes are out of prose order")
 		}
 		last = n.start
-		row := a.write.margin.boxes[n.id]
+		row := notesOf(a).Inspect().Boxes[n.id]
 		anchor, ok := shownEditor(a).RangeBoxUnclipped(n.start, n.end)
 		want := max(a.LastProse.Y+anchor.Y-3, floor)
 		if !ok || math.Abs(float64(row.Y-want)) > 1 {
@@ -91,17 +91,17 @@ func TestMarginNotesFollowTheProseAndLeaveEightPixels(t *testing.T) {
 	if tab := find(t, tt, "右栏-批注"); tab.X+10 != first.X+20 {
 		t.Fatal("note text and tab text have different left edges")
 	}
-	before := a.write.margin.notes.builds
+	before := notesOf(a).Inspect().Builds
 	for range 4 {
 		tt.Frame()
 	}
-	if before != a.write.margin.notes.builds || tt.FramePending() {
+	if before != notesOf(a).Inspect().Builds || tt.FramePending() {
 		t.Fatal("unchanged notes rebuilt or kept asking for frames")
 	}
 	prose := a.LastProse
 	tt.Scroll(prose.X+prose.W/2, prose.Y+prose.H/2, 0, 500)
 	marginPositions(t, a, tt)
-	if top := a.write.margin.boxes[a.marginNotes()[0].id]; top.Y >= find(t, tt, "页边批注").Y {
+	if top := notesOf(a).Inspect().Boxes[a.marginNotes()[0].id]; top.Y >= find(t, tt, "页边批注").Y {
 		t.Fatal("offscreen annotation pinned to the edge")
 	}
 	for _, mutate := range []func(){
@@ -173,7 +173,7 @@ func TestMarginActionsUndoAndOpenTheirDetails(t *testing.T) {
 	a.doc.tab = paneMargin
 	tt.Frame()
 	click(t, tt, "批注-fore-key")
-	if a.doc.tab != paneFore || a.write.fore.shown != "key" {
+	if a.doc.tab != paneFore || hooksOf(a).State.Shown != "key" {
 		t.Fatal("foreshadow detail destination")
 	}
 	click(t, tt, "右栏-批注", "批注-"+id)
@@ -216,7 +216,7 @@ func TestMarginAndUnderlinedProsePointToEachOther(t *testing.T) {
 	r, _ := shownEditor(a).RangeBox(n.start, n.end)
 	r.X, r.Y, r.W = r.X+a.LastProse.X, r.Y+a.LastProse.Y, 30
 	tt.Move(row.X+24, row.Y+14)
-	if a.write.margin.lit != n.id || !pixelsChanged(base, tt.Image(), r) {
+	if notesOf(a).Inspect().Lit != n.id || !pixelsChanged(base, tt.Image(), r) {
 		t.Fatal("margin hover did not shade the quoted text")
 	}
 	tt.Move(0, 0)
@@ -229,8 +229,8 @@ func TestMarginAndUnderlinedProsePointToEachOther(t *testing.T) {
 		}
 		box, _ := shownEditor(a).RangeBox(note.start, note.end)
 		tt.Move(a.LastProse.X+box.X+2, a.LastProse.Y+box.Y+box.H/2)
-		if a.write.margin.lit != note.id {
-			t.Fatal("underlined prose did not light its note", note.id, a.write.margin.lit)
+		if notesOf(a).Inspect().Lit != note.id {
+			t.Fatal("underlined prose did not light its note", note.id, notesOf(a).Inspect().Lit)
 		}
 	}
 }
@@ -318,7 +318,7 @@ func TestMarginRequestsItsOwnCorrectionInTheNextFrame(t *testing.T) {
 			aligned := true
 			floor := float32(math.Inf(-1))
 			for _, n := range a.marginNotes() {
-				box := a.write.margin.boxes[n.id]
+				box := notesOf(a).Inspect().Boxes[n.id]
 				r, _ := shownEditor(a).RangeBoxUnclipped(n.start, n.end)
 				top := max(a.LastProse.Y+r.Y-3, floor)
 				aligned = aligned && math.Abs(float64(box.Y-top)) <= 1
@@ -361,7 +361,7 @@ func TestTypingKeepsMarginNotesApartFromTheFirstFrame(t *testing.T) {
 				t.Fatal("typing lost a margin note")
 			}
 			for _, n := range list {
-				box := a.write.margin.boxes[n.id]
+				box := notesOf(a).Inspect().Boxes[n.id]
 				if box.H <= 0 || box.Y < floor-0.5 {
 					t.Fatalf("frame %d: %s at %v overlaps the preceding note ending at %v", frames, n.id, box, floor-8)
 				}
@@ -373,9 +373,9 @@ func TestTypingKeepsMarginNotesApartFromTheFirstFrame(t *testing.T) {
 	checking = true
 	for range 4 {
 		frames = 0
-		before := a.write.margin.notes.builds
+		before := notesOf(a).Inspect().Builds
 		tt.Type("雨")
-		if frames == 0 || a.write.margin.notes.builds <= before {
+		if frames == 0 || notesOf(a).Inspect().Builds <= before {
 			t.Fatal("typing did not render rebuilt margin notes")
 		}
 	}

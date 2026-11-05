@@ -137,7 +137,7 @@ func TestNavigationTables(t *testing.T) {
 				name string
 				work bool
 			}{
-				{"appearance", false}, {"extensions", false}, {"AI", false}, {"reminders", true}, {"备份", false},
+				{"appearance", false}, {"extensions", false}, {"AI", false}, {"reminders", false}, {"备份", false},
 			} {
 				entry := a.prefTabs[i]
 				id := p.name

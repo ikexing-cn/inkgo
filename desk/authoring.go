@@ -19,16 +19,26 @@ func selectionMenuCall(v hostapi.SelectionMenu) func(string) []hostapi.Selection
 }
 
 func (a *App) selectionMenus(m *kit.Menu, text string) { a.selectionMenusAt(m, text, false) }
-
 func (a *App) selectionMenusAt(m *kit.Menu, text string, before bool) {
+	a.selectionMenusIn(m, text, "", false, before)
+}
+func (a *App) selectionMenusGroup(m *kit.Menu, text, group string, separator bool) {
+	a.selectionMenusIn(m, text, group, separator, false)
+}
+func (a *App) selectionMenusIn(m *kit.Menu, text, group string, separator, before bool) {
+	started := false
 	items := ext.Items(a.extensions, hostapi.SelectionMenus)
 	slices.SortStableFunc(items, func(a, b ext.Item[hostapi.SelectionMenu]) int { return cmp.Compare(a.Value.Order, b.Value.Order) })
 	for _, item := range items {
-		if (item.Value.Order < 0) != before {
+		if item.Value.Group != group || group == "" && (item.Value.Order < 0) != before {
 			continue
 		}
 		actions, err := ext.Call(a.extensions, ext.HookOf(ext.CallPoint[hostapi.SelectionMenu, string, []hostapi.SelectionAction]{Point: hostapi.SelectionMenus}, item.ID), text, selectionMenuCall(item.Value))
-		if err == nil {
+		if err == nil && len(actions) > 0 {
+			if separator && !started {
+				m.Separator()
+				started = true
+			}
 			a.selectionActions(m, item.Owner, item.ID, actions)
 		}
 	}

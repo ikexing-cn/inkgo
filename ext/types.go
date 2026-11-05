@@ -144,6 +144,9 @@ type SettingInfo struct {
 	Group       string
 	Order       int
 	Schema      any
+	// Read and Write access the declared value on the frame thread, outside Setup.
+	Read  func() any
+	Write func(any)
 }
 
 // InjectionKind identifies an interception operation.

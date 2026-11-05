@@ -36,3 +36,12 @@ func CallReadPoint[T, In, Out any](r *PointReader[T], id string, in In, original
 // Lookup resolves an optional service for host consumers. Extension consumers
 // must use Use or UseOptional so their dependency is recorded during Setup.
 func Lookup[T any](h *Host, key ServiceKey[T]) (T, bool) { return serviceGet[T](h, string(key)) }
+
+// Guard runs an action from this point while its contributing owner is active.
+// It isolates failures in callbacks returned by a point contribution.
+func (r *PointReader[T]) Guard(owner, target string, fn func()) error {
+	return Guard(r.host, owner, target, fn)
+}
+
+// Revision returns the host's activation and declaration revision after Setup.
+func (r *PointReader[T]) Revision() uint64 { return r.host.Changes() }

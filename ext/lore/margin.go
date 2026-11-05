@@ -3,12 +3,12 @@ package lore
 import (
 	"strings"
 	"unicode/utf8"
-	"writer/ext/hostapi"
 	"writer/ext/lore/loretext"
+	"writer/ext/marks/marksapi"
 )
 
-func (a *Panel) marginNotes(chapter, text string) []hostapi.MarginItem {
-	var out []hostapi.MarginItem
+func (a *Panel) marginNotes(chapter, text string) []marksapi.MarginItem {
+	var out []marksapi.MarginItem
 	for _, it := range a.ideas() {
 		if it.Change.ID == "" || it.Change.From != chapter {
 			continue
@@ -28,9 +28,9 @@ func (a *Panel) marginNotes(chapter, text string) []hostapi.MarginItem {
 		if len(it.Entry.Names) > 0 {
 			name = it.Entry.Names[0]
 		}
-		n := hostapi.MarginItem{Idea: &it, ID: "idea-" + it.ID(), Kind: loretext.NotesKindIdea(), Title: loretext.NotesLoreChanged(name), Text: it.Change.Text, Start: start, End: end, Warn: true, Open: a.Waiting}
+		n := marksapi.MarginItem{Idea: &it, ID: "idea-" + it.ID(), Kind: loretext.NotesKindIdea(), Title: loretext.NotesLoreChanged(name), Text: it.Change.Text, Start: start, End: end, Warn: true, Open: a.Waiting}
 		for _, act := range a.changeActions(it) {
-			n.Actions = append(n.Actions, hostapi.NoteAction{Label: act.label, Run: act.run})
+			n.Actions = append(n.Actions, marksapi.NoteAction{Label: act.label, Run: act.run})
 		}
 		out = append(out, n)
 	}

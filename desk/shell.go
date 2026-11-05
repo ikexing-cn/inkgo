@@ -116,9 +116,6 @@ func (a *App) View(c *ui.Context) {
 	}
 	a.extensionOverlays(c)
 	a.toasts(c) // over every dialog
-	if a.page != pageWrite || !a.paneOpen() && !a.foldLeaving(false) || a.focused() || a.paneTabs.shown(a, a.doc.tab) != paneMargin {
-		a.write.margin.visible = false
-	}
 	// A key or menu may have changed the scale during this build.
 	c.SetZoom(a.Zoom())
 }

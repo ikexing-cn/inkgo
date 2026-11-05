@@ -33,9 +33,7 @@ func TestSettingsSidebarOrdersAppearanceExtensionsThenHostAndRegisteredPages(t *
 			}
 		}
 		want := []string{"设置-外观", "设置-扩展", "设置-AI"}
-		if work {
-			want = append(want, "设置-提醒")
-		}
+		want = append(want, "设置-提醒")
 		want = append(want, "设置-备份")
 		if !slices.Equal(labels, want) {
 			t.Fatal(labels, want)
@@ -61,11 +59,11 @@ func TestBackupSettingsPageRemainsOnShelfWithoutWorkSettings(t *testing.T) {
 	}
 }
 
-func TestSettingsSharedLabelKeepsOnePageAndOrdersActiveSections(t *testing.T) {
+func TestSettingsSameKeyMergesDifferentTitlesAndOrdersActiveSections(t *testing.T) {
 	var drawn []string
 	makeModule := func(id string, order int) ext.Module {
 		return ext.Module{ID: id, Setup: func(r *ext.Registrar) {
-			ext.Contribute(r, hostapi.SettingsPages, "settings", hostapi.SettingsPage{Title: func() string { return id }, Label: "shared", Order: order})
+			ext.Contribute(r, hostapi.SettingsPages, "settings", hostapi.SettingsPage{Key: "shared", Title: func() string { return id }, Label: id, Order: order})
 			ext.Contribute(r, hostapi.SettingsSections, "preferences", hostapi.SettingsSection{Draw: func(c *ui.Context) { drawn = append(drawn, id); ui.Text(c, id) }})
 		}}
 	}
@@ -73,7 +71,7 @@ func TestSettingsSharedLabelKeepsOnePageAndOrdersActiveSections(t *testing.T) {
 	defer a.Close()
 	for _, id := range []string{"late.settings", "early.settings", "equal.settings"} {
 		(extensionHost{a}).OpenSettings(id)
-		if a.settings.tab != "early.settings" {
+		if a.settings.tab != "shared" {
 			t.Fatal("shared ID did not resolve", a.settings)
 		}
 	}
@@ -83,11 +81,11 @@ func TestSettingsSharedLabelKeepsOnePageAndOrdersActiveSections(t *testing.T) {
 		a.syncExtensions()
 		count := 0
 		for _, tab := range a.prefTabs {
-			if tab.label == "shared" {
+			if tab.id == "shared" {
 				count++
 			}
 		}
-		if count != 1 || a.prefTabs[2].id != "early.settings" {
+		if count != 1 || a.prefTabs[2].id != "shared" || a.prefTabs[2].name() != "early" || a.prefTabs[2].label != "early" || a.prefTabs[2].order != 5 {
 			t.Fatal(a.prefTabs)
 		}
 		drawn = nil
@@ -98,6 +96,28 @@ func TestSettingsSharedLabelKeepsOnePageAndOrdersActiveSections(t *testing.T) {
 		}
 		if !slices.Equal(drawn, want) {
 			t.Fatal(drawn, want)
+		}
+	}
+}
+
+func TestSettingsDifferentKeysAndUnkeyedPagesStaySeparateWhenTranslatedTitlesMatch(t *testing.T) {
+	title := "shared title"
+	page := func(id, key string) ext.Module {
+		return ext.Module{ID: id, Setup: func(r *ext.Registrar) {
+			ext.Contribute(r, hostapi.SettingsPages, "settings", hostapi.SettingsPage{Key: key, Title: func() string { return title }, Label: id, Order: 5})
+		}}
+	}
+	a := newTestApp(ai.New(""), page("one", "first"), page("two", "second"), page("three", ""), page("four", ""))
+	defer a.Close()
+	for _, translated := range []string{"shared title", "same translation"} {
+		title = translated
+		a.localeRevision.Add(1)
+		a.syncExtensions()
+		for _, test := range []struct{ page, tab string }{{"one.settings", "first"}, {"two.settings", "second"}, {"three.settings", "three.settings"}, {"four.settings", "four.settings"}} {
+			(extensionHost{a}).OpenSettings(test.page)
+			if a.settings.tab != test.tab {
+				t.Fatal("translated title changed page identity", test.page, a.settings.tab)
+			}
 		}
 	}
 }

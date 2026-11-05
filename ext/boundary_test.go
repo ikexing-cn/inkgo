@@ -171,7 +171,7 @@ func TestProductionDependencyBoundaries(t *testing.T) {
 						}
 					}
 				case strings.HasPrefix(pkg, "writer/desk"):
-					if strings.HasPrefix(imp, "writer/ext/") && imp != "writer/ext/hostapi" && !deskContextImport(pkg, imp) && !deskLoreImport(pkg, imp) && !deskAIImport(pkg, imp) && !deskTalkImport(pkg, imp) {
+					if strings.HasPrefix(imp, "writer/ext/") && imp != "writer/ext/hostapi" && !deskMarksImport(pkg, imp) && !deskContextImport(pkg, imp) && !deskLoreImport(pkg, imp) && !deskAIImport(pkg, imp) && !deskTalkImport(pkg, imp) {
 						t.Errorf("%s imports concrete extension %s", pkg, imp)
 					}
 				default:
@@ -364,6 +364,33 @@ func TestHostAPIHasNoTalkService(t *testing.T) {
 				}
 				return true
 			})
+		}
+	}
+}
+
+// deskMarksImport bridges checks until they become an extension. Remove with check.
+func deskMarksImport(pkg, imp string) bool {
+	return pkg == "writer/desk" && imp == "writer/ext/marks/marksapi"
+}
+
+func TestDeskMarksExceptionOnlyAllowsThePublicContract(t *testing.T) {
+	if !deskMarksImport("writer/desk", "writer/ext/marks/marksapi") || deskMarksImport("writer/desk/book", "writer/ext/marks/marksapi") || deskMarksImport("writer/desk", "writer/ext/marks") {
+		t.Fatal("marks exception escaped")
+	}
+	files, err := filepath.Glob("../desk/*.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range files {
+		if strings.HasSuffix(path, "_test.go") || strings.HasSuffix(path, "marks_legacy.go") {
+			continue
+		}
+		b, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(b), `"writer/ext/marks/marksapi"`) {
+			t.Error(path)
 		}
 	}
 }

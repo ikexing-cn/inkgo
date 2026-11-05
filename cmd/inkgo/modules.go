@@ -10,7 +10,11 @@ import (
 	"writer/ext/find"
 	"writer/ext/focus"
 	"writer/ext/goal"
+	"writer/ext/hooks"
 	"writer/ext/lore"
+	"writer/ext/marks"
+	"writer/ext/names"
+	"writer/ext/notes"
 	"writer/ext/outline"
 	"writer/ext/phone"
 	"writer/ext/snaps"
@@ -20,7 +24,7 @@ import (
 
 var backupModule, _ = backup.New(true)
 
-var modules = []ext.Module{focus.Module, goal.Module, find.Module, lore.Module, outline.Module, talk.Module, snaps.Module, trash.Module, cats.Module, backupModule, export.Module, phone.Module, context.Module}
+var modules = []ext.Module{focus.Module, goal.Module, names.Module, find.Module, notes.Module, lore.Module, outline.Module, hooks.Module, talk.Module, snaps.Module, trash.Module, cats.Module, backupModule, export.Module, phone.Module, context.Module, marks.Module}
 
 // assembledModules passes machine parameters to the AI prerequisite.
 func assembledModules(configFile, trace string) []ext.Module {

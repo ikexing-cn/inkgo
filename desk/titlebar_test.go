@@ -455,7 +455,7 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if _, ok := tt.Find("设置-外观"); !a.settings.open || !ok || tt.HasText("提醒") || !tt.HasText("备份") {
+	if _, ok := tt.Find("设置-外观"); !a.settings.open || !ok || !tt.HasText("备份") {
 		t.Fatalf("on the shelf the settings are not those of the machine: %q", tt.Texts())
 	}
 	shut(tt, &a.settings.open)

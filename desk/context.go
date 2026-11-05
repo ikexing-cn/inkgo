@@ -43,7 +43,7 @@ func (a *App) entries() []workspace.Entry { entries, _ := a.entryValues(); retur
 
 func (a *App) hasEntries() bool { _, present := a.entryValues(); return present }
 
-func (a *App) checksOn() bool { return a.aiOn() && a.hasEntries() }
+func (a *App) checksOn() bool { return a.aiOn() && a.hasEntries() && a.marksOn() }
 
 // material snapshots provider availability on the frame thread.
 func (a *App) material() aiapi.Material {

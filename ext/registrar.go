@@ -90,7 +90,7 @@ func Contribute[T any](r *Registrar, key PointKey[T], name string, value T) {
 	k := string(key)
 	o := owner(k)
 	m := r.e.mod
-	if o != m.ID && o != HostOwner && !contains(m.Requires, o) && !contains(m.Optional, o) {
+	if m.ID != HostOwner && o != m.ID && o != HostOwner && !contains(m.Requires, o) && !contains(m.Optional, o) {
 		r.fail("Contribute target %q is not a declared dependency", k)
 	}
 	if name == "" {

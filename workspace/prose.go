@@ -1,7 +1,6 @@
 package workspace
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -85,15 +84,9 @@ func (s *Store) readChapter(n *Node) (Chapter, error) {
 	if ch.Stamp, err = s.stamp(n); err != nil {
 		return Chapter{}, err
 	}
-	marks, err := read(marksExt)
+	ch.Marks, err = s.readMarks(n)
 	if err != nil {
 		return Chapter{}, err
-	}
-	if marks != "" {
-		if err = json.Unmarshal([]byte(marks), &ch.Marks); err != nil {
-			p, _ := s.nodePath(n, marksExt)
-			return Chapter{}, fmt.Errorf("%s: %w", p, err)
-		}
 	}
 	text := []rune(ch.Text)
 	for i, m := range ch.Marks {
@@ -183,32 +176,18 @@ func (s *Store) writeChapter(id, text string, marks []ChapterMark, over *Stamp) 
 	if err = atomicWrite(p, []byte(text), false); err != nil {
 		return Stamp{}, err
 	}
-	mp, err := s.nodePath(n, marksExt)
-	if err != nil {
-		return Stamp{}, err
+	runes := []rune(text)
+	out := make([]ChapterMark, len(marks))
+	for i, m := range marks {
+		m.Start, m.End = clampIndex(m.Start, len(runes)), clampIndex(m.End, len(runes))
+		m.End = max(m.End, m.Start)
+		if !m.Orphaned {
+			m.Quote = string(runes[m.Start:m.End])
+		}
+		out[i] = m
 	}
-	if len(marks) == 0 {
-		if err = os.Remove(mp); err != nil && !errors.Is(err, os.ErrNotExist) {
-			return Stamp{}, err
-		}
-	} else {
-		runes := []rune(text)
-		out := make([]ChapterMark, len(marks))
-		for i, m := range marks {
-			m.Start, m.End = clampIndex(m.Start, len(runes)), clampIndex(m.End, len(runes))
-			m.End = max(m.End, m.Start)
-			if !m.Orphaned {
-				m.Quote = string(runes[m.Start:m.End])
-			}
-			out[i] = m
-		}
-		b, err := json.MarshalIndent(out, "", "  ")
-		if err != nil {
-			return Stamp{}, err
-		}
-		if err = atomicWrite(mp, append(b, '\n'), false); err != nil {
-			return Stamp{}, err
-		}
+	if err = s.writeMarks(n, out); err != nil {
+		return Stamp{}, err
 	}
 	return s.stamp(n)
 }

@@ -129,12 +129,8 @@
   "statusNoneHere": "Nothing pending in this chapter",
   "statusIgnoreAll": "Ignore All",
   "statusIgnored": "Ignored {count, plural, one {# pending item} other {# pending items}}",
-  "statusGroupMarks": "Foreshadowing",
   "statusGroupBackup": "Backup",
   "statusNotInLore": "“{title}” isn't in the lore yet",
-  "statusQuoteGone": "“{name}”: original sentence deleted",
-  "statusUnpaid": "“{name}”: {count, plural, one {# chapter} other {# chapters}} without a payoff",
-  "statusPlantedIn": "Planted in {chapter}",
   "statusWords": "{unit, select, word {{count, plural, one {# word} other {# words}}} other {{count, plural, one {# char} other {# chars}}}}",
   "statusWanWords": "{unit, select, word {{full, plural, one {# word} other {# words}}} other {{full, plural, one {# char} other {# chars}}}}",
   "statusSelected": "{unit, select, word {{count, plural, one {# word} other {# words}} selected} other {{count, plural, one {# char} other {# chars}} selected}}",
@@ -183,27 +179,12 @@
   "editorAIRewriteMore": "AI Rewrite…",
   "editorAddToLore": "Add to Lore",
   "editorMarkForeshadow": "Mark as Foreshadowing…",
-  "editorMarkPay": "Mark as Payoff…",
-  "editorSeeMark": "View Foreshadowing",
   "editorNoClipboard": "Couldn't read the clipboard",
   "editorPasteKey": "Press {key} to paste",
-  "editorBuryTitle": "Mark as Foreshadowing: Enter a Note",
-  "editorBuryHint": "For example: why did he change his mind",
-  "editorBuryLabel": "Foreshadowing note",
-  "editorPayTitle": "Choose a Foreshadowing to Pay Off",
-  "editorPayHint": "Search notes or quoted text",
-  "editorPayLabel": "Find foreshadowing",
-  "editorNoMatch": "No matching foreshadowing",
-  "editorNoMarks": "No foreshadowing planted yet. Select a sentence first, then right-click and choose “Mark as Foreshadowing”.",
-  "editorMetaPaid": "{title} · Paid off",
-  "editorMetaBefore": "{title} · planted {count, plural, one {# chapter} other {# chapters}} ago",
-  "editorMetaHere": "Planted in this chapter",
-  "editorMetaHerePaid": "This chapter · Paid off",
   "editorPayTip": "Confirm Payoff",
   "editorPayButton": "Mark as Payoff",
   "editorRewriteSel": "Rewrite the selection with AI",
   "editorAddSelTip": "Add the selected text to the lore",
-  "editorSelectFirst": "Select the passage that pays off the foreshadowing first",
   "editorSettledDisk": "Used the disk version. The editor's previous text is saved as a snapshot.",
   "editorSettledKeep": "Kept the editor version. The disk text is saved as a snapshot.",
   "editorSavedNewTop": "Saved as a new chapter at the end of the top level",
@@ -225,7 +206,6 @@
   "commonCancel": "Cancel",
   "commonClose": "Close",
   "commonCollapse": "Collapse",
-  "commonConfirm": "OK",
   "commonCopy": "Copy",
   "commonCopyCode": "Copy Code",
   "commonCut": "Cut",
@@ -234,19 +214,11 @@
   "commonPaste": "Paste",
   "commonRetry": "Retry",
   "commonSelectAll": "Select All",
-  "paneTabNotes": "Notes",
-  "paneTabHooks": "Foreshadowing",
   "paneResize": "Resize Side Pane",
-  "notesNone": "No notes in this chapter",
-  "notesOpenChapter": "Open a chapter to see its notes here",
   "notesSays": "Lore says “{says}”",
   "notesKindInconsistent": "Inconsistent with Lore",
   "notesKindName": "Wrong Name",
   "notesKindNew": "New Appearance",
-  "notesKindHook": "Foreshadowing · planted here",
-  "notesKindHookPaid": "Foreshadowing · planted here, paid off",
-  "notesKindPayoff": "Foreshadowing · paid off here",
-  "notesPlanted": "Planted in {chapter}",
   "commonSave": "Save",
   "commonAccept": "Accept",
   "commonMore": "More",
@@ -297,34 +269,7 @@
   "chatPartCards": "Chapter Cards",
   "chatPartRecap": "Story Recap",
   "chatPartProse": "Attached Text",
-  "hooksSelectFirst": "Select the sentence to link in the text first",
-  "hooksLost": "Quote Removed",
-  "hooksDone": "Paid Off",
   "hooksDropped": "Dropped",
-  "hooksPlanted": "Planted in “{chapter}”",
-  "hooksPlantedGap": "Planted in “{chapter}”, {count, plural, one {# chapter} other {# chapters}} ago",
-  "hooksAlreadyPaid": "“{chapter}” already has a payoff",
-  "hooksDrop": "Drop Foreshadowing",
-  "hooksCancelPayoff": "Cancel Payoff",
-  "hooksRestore": "Restore Foreshadowing",
-  "hooksDelete": "Delete Foreshadowing",
-  "hooksAll": "All Foreshadowing",
-  "hooksNote": "Note",
-  "hooksEditNote": "Edit Foreshadowing Note",
-  "hooksEditNoteBtn": "Edit Note",
-  "hooksLostIn": "The quote was removed from “{chapter}”",
-  "hooksUnpaid": "Unpaid",
-  "hooksSelectPayoff": "Select the payoff passage in the text first",
-  "hooksMarkPaid": "Mark as Payoff",
-  "hooksPaidIn": "Paid off in “{chapter}”, {count, plural, one {# chapter} other {# chapters}} apart",
-  "hooksSelectNew": "Select a new sentence in the text first",
-  "hooksReplaceQuote": "Replace Quote",
-  "hooksNoneHere": "No foreshadowing here",
-  "hooksEmpty": "No foreshadowing yet",
-  "hooksEmptyHow": "Select a sentence in the text, right-click it, and choose “Mark as Foreshadowing”",
-  "hooksLong": "Long Unpaid",
-  "hooksNoneOpen": "No unpaid foreshadowing",
-  "hooksSearch": "Search Foreshadowing",
   "chatAnswered": "(answer: {answer})",
   "commonOK": "OK",
   "commonDelete": "Delete",
@@ -502,16 +447,10 @@
   "settingsRecordsTitle": "AI Records",
   "settingsRecordsNote": "Records only which parts were sent and how big they were. Content is not stored.",
   "settingsColor": "Color",
-  "settingsMarkNames": "Mark lore names",
   "settingsDisableGPU": "Turn Off Graphics Acceleration",
   "settingsGPUNext": "Takes effect after a restart.",
   "settingsRestartNow": "Restart Now",
   "settingsForeshadow": "Foreshadowing",
-  "settingsLateAfter": "Chapters before a foreshadowing counts as overdue",
-  "settingsLateLess": "Decrease by 5 chapters",
-  "settingsLateMore": "Increase by 5 chapters",
-  "settingsLateChapters": "{count, plural, one {# chapter} other {# chapters}}",
-  "settingsLateNow": "Currently {count, plural, one {# foreshadowing has} other {# foreshadowings have}} gone unpaid for a long time.",
   "settingsCheckText": "When to Check",
   "settingsWriting": "While writing",
   "settingsAutoContinue": "Continue automatically after pausing",
@@ -650,8 +589,6 @@
   "commonNumber": "{n}",
   "snapAITalkGone": "a deleted chat",
   "settingsTabExtensions": "Extensions",
-  "modMarks": "Text Marks",
-  "modMarksAbout": "Draws highlights and marks on the text",
   "modUsage": "Usage Records",
   "modUsageAbout": "Records how much AI was used and what it cost",
   "modContinue": "Continue Writing",
@@ -662,12 +599,6 @@
   "modProposeAbout": "Changes AI suggests, written only once you accept",
   "modCheck": "Check",
   "modCheckAbout": "Finds where the text contradicts the lore",
-  "modHooks": "Foreshadowing",
-  "modHooksAbout": "Keeps foreshadowing and reminds you to pay it off",
-  "modNotes": "Notes",
-  "modNotesAbout": "Notes in the margin",
-  "modNames": "Name Completion",
-  "modNamesAbout": "Completes names as you type",
   "modGroupLibraries": "Basics",
   "modLibrariesAbout": "Other features run on these.",
   "modGroupWrite": "Writing",
@@ -722,8 +653,12 @@
   "extFailed": "{name} ran into an error and stopped: {error}",
   "extFileUnreadable": "Extension settings could not be read; using defaults this time: {error}",
   "checkAlsoOpen": "Not handled yet",
-  "@chatNeedModel": {"description":"Typed AI validation failure displayed by desk."},
-  "@chatChapterGone": {"description":"Typed AI validation failure displayed by desk."},
+  "@chatNeedModel": {
+    "description": "Typed AI validation failure displayed by desk."
+  },
+  "@chatChapterGone": {
+    "description": "Typed AI validation failure displayed by desk."
+  },
   "workspaceTitleEmpty": "A title is required",
   "workspaceMoveIntoSelf": "A folder cannot be moved into itself",
   "workspaceTrashMissing": "There is no {id} in the trash",
@@ -733,22 +668,124 @@
   "workspaceLegacySchema": "schema: This book uses the old schema 1 (idea cards) and has not been migrated. Create a new book.",
   "shelfNoBook": "There is no book in this folder (work.yaml is missing): {path}",
   "bookLanguageUnsupported": "Book language “{language}” is not supported. Use zh-Hans or en.",
-  "@bookLanguageUnsupported": {"placeholders": {"language": {"type": "String"}}},
-  "@statusWordCount": {"placeholders": {"unit": {"type": "String"}}},
-  "@statusShort": {"placeholders": {"unit": {"type": "String"}}},
-  "@statusPartIssues": {"placeholders": {"unit": {"type": "String"}}},
-  "@statusPartOK": {"placeholders": {"unit": {"type": "String"}}},
-  "@statusWords": {"placeholders": {"unit": {"type": "String"}}},
-  "@statusWanWords": {"placeholders": {"unit": {"type": "String"}}},
-  "@statusSelected": {"placeholders": {"unit": {"type": "String"}}},
-  "@statusChapterWords": {"placeholders": {"unit": {"type": "String"}}},
-  "@statusWordsTip": {"placeholders": {"unit": {"type": "String"}}},
-  "@chatWords": {"placeholders": {"unit": {"type": "String"}}},
-  "@checkMinimum": {"placeholders": {"unit": {"type": "String"}}},
-  "@shelfPreviewAbout": {"placeholders": {"unit": {"type": "String"}}},
-  "@shelfChapterWords": {"placeholders": {"unit": {"type": "String"}}},
-  "@draftGoal": {"placeholders": {"unit": {"type": "String"}}},
-  "@draftGoalLabel": {"placeholders": {"unit": {"type": "String"}}},
-  "@draftGoalInvalid": {"placeholders": {"unit": {"type": "String"}}},
+  "@bookLanguageUnsupported": {
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "@statusWordCount": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@statusShort": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@statusPartIssues": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@statusPartOK": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@statusWords": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@statusWanWords": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@statusSelected": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@statusChapterWords": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@statusWordsTip": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatWords": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@checkMinimum": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@shelfPreviewAbout": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@shelfChapterWords": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@draftGoal": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@draftGoalLabel": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@draftGoalInvalid": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
   "cmdCategories": "Book Categories"
 }

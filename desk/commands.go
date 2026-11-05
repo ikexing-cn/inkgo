@@ -143,22 +143,10 @@ var (
 	cmdTake = &command{label: locales.EditorAddToLore, page: pageWrite,
 		can: func(a *App) bool { return a.hasEntries() && selected(a) },
 		run: func(a *App) { a.openTake() }}
-	cmdBury = &command{label: locales.EditorMarkForeshadow, page: pageWrite,
-		can: func(a *App) bool { return selected(a) && editable(a) },
-		run: func(a *App) { a.openBury() }}
-	cmdPay = &command{label: locales.EditorMarkPay, page: pageWrite,
-		can: func(a *App) bool { return selected(a) && editable(a) },
-		run: func(a *App) { a.openPay("") }}
-	cmdViewFore = &command{label: locales.EditorSeeMark, page: pageWrite,
-		can: func(a *App) bool { return a.foreAt() != "" }}
-	cmdUnmark = &command{label: locales.CmdUnmark, page: pageWrite,
-		can: func(a *App) bool { return editable(a) && a.write.cur().ed.Marked() },
-		run: func(a *App) { a.write.cur().ed.Unmark() }}
 
-	// The tab's menu.
-	cmdCloseTab = &command{label: locales.CommonClose, key: ui.KeyW, mods: modCmd, page: pageWrite, by: byDesk,
-		when: func(a *App) bool { return a.write.node != "" },
-		run:  func(a *App) { a.shutTabs([]string{a.write.node}) }}
+	cmdUnmark = &command{label: locales.CmdUnmark, page: pageWrite,
+		can: func(a *App) bool { return a.marksOn() && editable(a) && a.write.cur().ed.Marked() }, run: func(a *App) { a.write.cur().ed.Unmark() }}
+	cmdCloseTab    = &command{label: locales.CommonClose, key: ui.KeyW, mods: modCmd, page: pageWrite, by: byDesk, when: func(a *App) bool { return a.write.node != "" }, run: func(a *App) { a.shutTabs([]string{a.write.node}) }}
 	cmdCloseOthers = &command{label: locales.SideCloseOthers, page: pageWrite}
 	cmdCloseRight  = &command{label: locales.SideCloseRight, page: pageWrite}
 
@@ -200,7 +188,7 @@ var commandList = []*command{
 	cmdDeleteWordBack, cmdDeleteWordForward, cmdTakePrediction, cmdDropPrediction,
 	cmdNewFolder, cmdSettings, cmdDraft,
 	cmdSide, cmdPane, cmdRewrite, cmdTake, cmdUnmark,
-	cmdBury, cmdPay, cmdViewFore, cmdCloseOthers, cmdCloseRight,
+	cmdCloseOthers, cmdCloseRight,
 }
 
 // helpRow is one row of the help: the keys as the help writes them, what

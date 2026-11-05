@@ -3,18 +3,36 @@
   "menuEdit": "编辑",
   "menuView": "视图",
   "menuWindow": "窗口",
-  "@menuWindow": { "description": "macOS 系统菜单栏里的「窗口」菜单。" },
+  "@menuWindow": {
+    "description": "macOS 系统菜单栏里的「窗口」菜单。"
+  },
   "menuHelp": "帮助",
   "appOpenBookFailed": "打开作品「{book}」失败：{why}",
-  "@appOpenBookFailed": {"description":"应用打开作品失败；底层错误原样显示。","placeholders":{"book":{"type":"String","example":"雨城来信"},"why":{"type":"String","example":"access denied"}}},
+  "@appOpenBookFailed": {
+    "description": "应用打开作品失败；底层错误原样显示。",
+    "placeholders": {
+      "book": {
+        "type": "String",
+        "example": "雨城来信"
+      },
+      "why": {
+        "type": "String",
+        "example": "access denied"
+      }
+    }
+  },
   "appAbout": "关于 Inkgo",
-  "@appAbout": { "description": "macOS 系统菜单栏「Inkgo」菜单里的一行。" },
+  "@appAbout": {
+    "description": "macOS 系统菜单栏「Inkgo」菜单里的一行。"
+  },
   "appSettings": "设置…",
   "appHide": "隐藏 Inkgo",
   "appHideOthers": "隐藏其他",
   "appQuit": "退出 Inkgo",
   "mygo.menuAbout": "关于 {app}",
-  "@mygo.menuAbout": { "description": "改 mygo 自己的字：macOS「Inkgo」菜单的角色项，照原型在中文和字母之间加空格。mygo i18n check 按 mygo 的表查。" },
+  "@mygo.menuAbout": {
+    "description": "改 mygo 自己的字：macOS「Inkgo」菜单的角色项，照原型在中文和字母之间加空格。mygo i18n check 按 mygo 的表查。"
+  },
   "mygo.menuHide": "隐藏 {app}",
   "mygo.menuQuitApp": "退出 {app}",
   "cmdNewChapter": "新建章节",
@@ -26,7 +44,9 @@
   "cmdContinue": "续写一句",
   "cmdDraft": "起草本章",
   "cmdDraftNeedsOutline": "请先填写章纲",
-  "@cmdDraftNeedsOutline": { "description": "「起草本章」灰着时，菜单行右边说为什么。" },
+  "@cmdDraftNeedsOutline": {
+    "description": "「起草本章」灰着时，菜单行右边说为什么。"
+  },
   "cmdHideSidebar": "收起侧栏",
   "cmdShowSidebar": "展开侧栏",
   "cmdHidePane": "收起右栏",
@@ -45,14 +65,24 @@
   "cmdDropPrediction": "放弃续写",
   "cmdUnmark": "移除此处标记",
   "viewZoom": "缩放 {percent}%",
-  "@viewZoom": { "description": "「视图」菜单里缩放那一组的小标题，带现在的倍数。", "placeholders": { "percent": { "type": "int", "example": "100" } } },
+  "@viewZoom": {
+    "description": "「视图」菜单里缩放那一组的小标题，带现在的倍数。",
+    "placeholders": {
+      "percent": {
+        "type": "int",
+        "example": "100"
+      }
+    }
+  },
   "viewLook": "外观",
   "lookSystem": "跟随系统",
   "lookLight": "浅色",
   "lookDark": "深色",
   "winMinimize": "最小化",
   "winZoom": "缩放",
-  "@winZoom": { "description": "macOS「窗口」菜单里把窗口放大到合适大小的那一行，不是界面缩放。" },
+  "@winZoom": {
+    "description": "macOS「窗口」菜单里把窗口放大到合适大小的那一行，不是界面缩放。"
+  },
   "winBringAll": "前置全部窗口",
   "pageTalk": "讨论",
   "pageWrite": "正文",
@@ -62,44 +92,128 @@
   "toastCancel": "取消",
   "toastClose": "关闭提示",
   "toastMore": "还有 {count} 条",
-  "@toastMore": { "description": "提示条多过三条时，露出来的那几条上面说还有几条没露。", "placeholders": { "count": { "type": "int", "example": "2" } } },
+  "@toastMore": {
+    "description": "提示条多过三条时，露出来的那几条上面说还有几条没露。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "appCopyDetails": "复制详情",
-  "@appCopyDetails": { "description": "出错的提示条上的按钮，把标题和小字复制到剪贴板。" },
+  "@appCopyDetails": {
+    "description": "出错的提示条上的按钮，把标题和小字复制到剪贴板。"
+  },
   "appFrom": "{what}起",
-  "@appFrom": { "description": "设定的一处变化从哪里起，what 是章或卷的名字，如「第3章起」「第三卷：停电起」。", "placeholders": { "what": { "type": "String", "example": "第3章" } } },
+  "@appFrom": {
+    "description": "设定的一处变化从哪里起，what 是章或卷的名字，如「第3章起」「第三卷：停电起」。",
+    "placeholders": {
+      "what": {
+        "type": "String",
+        "example": "第3章"
+      }
+    }
+  },
   "appChapterDeleted": "已删除的章",
-  "@appChapterDeleted": { "description": "指着的章已经不在了时，代替章名写的字。" },
+  "@appChapterDeleted": {
+    "description": "指着的章已经不在了时，代替章名写的字。"
+  },
   "appChapterGone": "所在章节已删除",
-  "@appChapterGone": { "description": "设定的变化所在的章已经删除时，代替「从哪里起」写的字。" },
+  "@appChapterGone": {
+    "description": "设定的变化所在的章已经删除时，代替「从哪里起」写的字。"
+  },
   "appViewOriginal": "查看原文",
-  "@appViewOriginal": { "description": "设定、伏笔等处「查看原文」的链接字样，点了跳到正文那一句。" },
+  "@appViewOriginal": {
+    "description": "设定、伏笔等处「查看原文」的链接字样，点了跳到正文那一句。"
+  },
   "timeToday": "今天 {clock}",
-  "@timeToday": { "description": "今天某个时间，如「今天 10:40」，用在记录、备份等的时间上。", "placeholders": { "clock": { "type": "String", "example": "10:40" } } },
+  "@timeToday": {
+    "description": "今天某个时间，如「今天 10:40」，用在记录、备份等的时间上。",
+    "placeholders": {
+      "clock": {
+        "type": "String",
+        "example": "10:40"
+      }
+    }
+  },
   "timeYesterday": "昨天 {clock}",
-  "@timeYesterday": { "description": "昨天某个时间，如「昨天 21:40」。", "placeholders": { "clock": { "type": "String", "example": "21:40" } } },
+  "@timeYesterday": {
+    "description": "昨天某个时间，如「昨天 21:40」。",
+    "placeholders": {
+      "clock": {
+        "type": "String",
+        "example": "21:40"
+      }
+    }
+  },
   "aiCostUnder": "不到 {amount}",
-  "@aiCostUnder": { "description": "AI 这次的花费估出来不到一分钱，amount 是带货币符号的最小一档，如「不到 $0.01」。", "placeholders": { "amount": { "type": "String", "example": "$0.01" } } },
+  "@aiCostUnder": {
+    "description": "AI 这次的花费估出来不到一分钱，amount 是带货币符号的最小一档，如「不到 $0.01」。",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "$0.01"
+      }
+    }
+  },
   "aiCostAbout": "约 {amount}",
-  "@aiCostAbout": { "description": "AI 这次的花费估出来的数，如「约 $0.23」。", "placeholders": { "amount": { "type": "String", "example": "$0.23" } } },
+  "@aiCostAbout": {
+    "description": "AI 这次的花费估出来的数，如「约 $0.23」。",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "$0.23"
+      }
+    }
+  },
   "timeTodayDay": "今天",
-  "@timeTodayDay": { "description": "只有日子、没有几点的「今天」，如书里讨论的时间。" },
+  "@timeTodayDay": {
+    "description": "只有日子、没有几点的「今天」，如书里讨论的时间。"
+  },
   "timeYesterdayDay": "昨天",
-  "@timeYesterdayDay": { "description": "只有日子、没有几点的「昨天」，如书里讨论的时间。" },
+  "@timeYesterdayDay": {
+    "description": "只有日子、没有几点的「昨天」，如书里讨论的时间。"
+  },
   "sideNewChapterName": "新章节",
-  "@sideNewChapterName": { "description": "新建在卷外的章节的默认标题，全选着等作者改。" },
+  "@sideNewChapterName": {
+    "description": "新建在卷外的章节的默认标题，全选着等作者改。"
+  },
   "sideNewFolderName": "新文件夹",
-  "@sideNewFolderName": { "description": "新建卷（文件夹）的默认名字，全选着等作者改。" },
+  "@sideNewFolderName": {
+    "description": "新建卷（文件夹）的默认名字，全选着等作者改。"
+  },
   "sideMovedToTrash": "「{title}」已移到回收站",
-  "@sideMovedToTrash": { "description": "移到回收站以后的提示，标题是那一卷或那一章的名字。", "placeholders": { "title": { "type": "String", "example": "第1章：雨停" } } },
+  "@sideMovedToTrash": {
+    "description": "移到回收站以后的提示，标题是那一卷或那一章的名字。",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "第1章：雨停"
+      }
+    }
+  },
   "sideChapterTitle": "章节标题",
-  "@sideChapterTitle": { "description": "侧栏里改名字的输入框的无障碍名称。" },
+  "@sideChapterTitle": {
+    "description": "侧栏里改名字的输入框的无障碍名称。"
+  },
   "sideBooks": "作品",
-  "@sideBooks": { "description": "点作品名出来的菜单上的小标题。" },
+  "@sideBooks": {
+    "description": "点作品名出来的菜单上的小标题。"
+  },
   "sideNewBook": "新建作品…",
   "sideAllBooks": "全部作品…",
   "sideSwitchBook": "切换作品",
   "sideNewChapterKey": "新建章节（{key}）",
-  "@sideNewChapterKey": { "description": "新建章节按钮的提示，后面是快捷键。", "placeholders": { "key": { "type": "String", "example": "Ctrl+N" } } },
+  "@sideNewChapterKey": {
+    "description": "新建章节按钮的提示，后面是快捷键。",
+    "placeholders": {
+      "key": {
+        "type": "String",
+        "example": "Ctrl+N"
+      }
+    }
+  },
   "sideCloseOthers": "关闭其他",
   "sideCloseRight": "关闭右侧",
   "sideEditVolumeOutline": "编辑卷纲",
@@ -107,47 +221,147 @@
   "sideMoveDown": "下移",
   "sideMoveTo": "移到",
   "sideTopLevel": "最上层",
-  "@sideTopLevel": { "description": "「移到」的下一级里，移到最外面一层。" },
+  "@sideTopLevel": {
+    "description": "「移到」的下一级里，移到最外面一层。"
+  },
   "sideMoveToTrash": "移到回收站",
   "tabMarksHere": "本章伏笔",
-  "@tabMarksHere": { "description": "标题栏「本章伏笔」按钮的无障碍名称。" },
+  "@tabMarksHere": {
+    "description": "标题栏「本章伏笔」按钮的无障碍名称。"
+  },
   "tabMarksCount": "本章伏笔 {count}",
-  "@tabMarksCount": { "description": "标题栏「本章伏笔」按钮上的字，count 是本章伏笔的条数。", "placeholders": { "count": { "type": "int", "example": "3" } } },
+  "@tabMarksCount": {
+    "description": "标题栏「本章伏笔」按钮上的字，count 是本章伏笔的条数。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "tabPrevOpened": "上一个打开的章节",
   "tabNextOpened": "下一个打开的章节",
   "tabUnsaved": " · 未保存",
-  "@tabUnsaved": { "description": "标签页提示里，没存的章节后面接的字（前面有一个空格和中点）。" },
+  "@tabUnsaved": {
+    "description": "标签页提示里，没存的章节后面接的字（前面有一个空格和中点）。"
+  },
   "tabClose": "关闭标签页",
   "statusWordCount": "{unit, select, word {词数} other {字数}}",
   "statusWorkSwitchedUndo": "作品已切换，无法撤销",
-  "@statusWorkSwitchedUndo": {"description":"应用外壳：作品已切换，无法撤销"},
+  "@statusWorkSwitchedUndo": {
+    "description": "应用外壳：作品已切换，无法撤销"
+  },
   "statusBookCountLine": "{book}{today}",
-  "@statusBookCountLine": {"description":"应用外壳：{book}{today}","placeholders":{"book":{"type":"String","example":"全书 3.0 万字"},"today":{"type":"String","example":" · 今天 +100"}}},
+  "@statusBookCountLine": {
+    "description": "应用外壳：{book}{today}",
+    "placeholders": {
+      "book": {
+        "type": "String",
+        "example": "全书 3.0 万字"
+      },
+      "today": {
+        "type": "String",
+        "example": " · 今天 +100"
+      }
+    }
+  },
   "statusCountLine": "{scope} · {book}{today}",
-  "@statusCountLine": {"description":"应用外壳：{scope} · {book}{today}","placeholders":{"scope":{"type":"String","example":"本章 2,846 字"},"book":{"type":"String","example":"全书 3.0 万字"},"today":{"type":"String","example":" · 今天 +100"}}},
+  "@statusCountLine": {
+    "description": "应用外壳：{scope} · {book}{today}",
+    "placeholders": {
+      "scope": {
+        "type": "String",
+        "example": "本章 2,846 字"
+      },
+      "book": {
+        "type": "String",
+        "example": "全书 3.0 万字"
+      },
+      "today": {
+        "type": "String",
+        "example": " · 今天 +100"
+      }
+    }
+  },
   "statusSavedAutomatically": "已保存。停笔片刻也会自动保存",
-  "@statusSavedAutomatically": {"description":"应用外壳：已保存。停笔片刻也会自动保存"},
+  "@statusSavedAutomatically": {
+    "description": "应用外壳：已保存。停笔片刻也会自动保存"
+  },
   "statusSaved": "已保存",
   "statusAutosave": "停笔片刻也会自动保存",
   "statusChecked": "本章检查完成，未发现不一致",
   "statusChecking": "正在检查本章…",
   "statusQueued": "本章等待检查",
   "statusFailed": "检查失败：{why}",
-  "@statusFailed": { "description": "正文底下说明检查失败的原因。", "placeholders": { "why": { "type": "String", "example": "无法连接模型服务" } } },
+  "@statusFailed": {
+    "description": "正文底下说明检查失败的原因。",
+    "placeholders": {
+      "why": {
+        "type": "String",
+        "example": "无法连接模型服务"
+      }
+    }
+  },
   "statusNoEntries": "设定为空，无可对照内容",
   "statusShort": "{unit, select, word {满 200 词后可检查} other {满 200 字后可检查}}",
   "statusNever": "本章尚未检查",
   "statusDirtyIssues": "本章有 {count} 处待处理，正文已再次修改",
-  "@statusDirtyIssues": { "description": "正文底下，检查过的章节又改过了。", "placeholders": { "count": { "type": "int", "example": "2" } } },
+  "@statusDirtyIssues": {
+    "description": "正文底下，检查过的章节又改过了。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "statusPartIssues": "{unit, select, word {本章仅检查前 {part} 词，有 {count} 处待处理} other {本章仅检查前 {part} 字，有 {count} 处待处理}}",
-  "@statusPartIssues": {"description": "太长的章节只检查了前面一段，part 是检查读了前多少字。", "placeholders": {"part": {"type": "int", "example": "5000"}, "count": {"type": "int", "example": "2"}, "unit": {"type": "String", "example": "character"}}},
+  "@statusPartIssues": {
+    "description": "太长的章节只检查了前面一段，part 是检查读了前多少字。",
+    "placeholders": {
+      "part": {
+        "type": "int",
+        "example": "5000"
+      },
+      "count": {
+        "type": "int",
+        "example": "2"
+      },
+      "unit": {
+        "type": "String",
+        "example": "character"
+      }
+    }
+  },
   "statusIssues": "本章检查完成，有 {count} 处待处理",
-  "@statusIssues": { "description": "正文底下，检查完成且有待处理的条目。", "placeholders": { "count": { "type": "int", "example": "2" } } },
+  "@statusIssues": {
+    "description": "正文底下，检查完成且有待处理的条目。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "statusEdited": "本章已修改，尚未重新检查",
   "statusPartOK": "{unit, select, word {本章仅检查前 {part} 词，未发现不一致} other {本章仅检查前 {part} 字，未发现不一致}}",
-  "@statusPartOK": {"description": "太长的章节只检查了前面一段，且没发现问题。", "placeholders": {"part": {"type": "int", "example": "5000"}, "unit": {"type": "String", "example": "character"}}},
+  "@statusPartOK": {
+    "description": "太长的章节只检查了前面一段，且没发现问题。",
+    "placeholders": {
+      "part": {
+        "type": "int",
+        "example": "5000"
+      },
+      "unit": {
+        "type": "String",
+        "example": "character"
+      }
+    }
+  },
   "statusPartLong": "后文超出模型的上下文上限，可在设置中「AI」配置里调整",
-  "@statusPartLong": { "description": "章节太长、AI 只读了前一段时，提示上的说明。" },
+  "@statusPartLong": {
+    "description": "章节太长、AI 只读了前一段时，提示上的说明。"
+  },
   "statusGoCheck": "前往「检查」页逐条查看",
   "statusCheckNow": "立即检查",
   "statusCheckTip": "调用一次 AI，对照设定检查本章",
@@ -164,47 +378,161 @@
   "statusBackupTip": "备份提示",
   "statusPending": "待处理",
   "statusPendingCount": "待处理 {count}",
-  "@statusPendingCount": { "description": "标题栏「待处理」按钮上的字。", "placeholders": { "count": { "type": "int", "example": "5" } } },
+  "@statusPendingCount": {
+    "description": "标题栏「待处理」按钮上的字。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
   "statusPendingScope": "待处理范围",
   "statusAllCount": "全部 {count}",
-  "@statusAllCount": { "description": "待处理面板里「全部」那一项，count 是全书的条数。", "placeholders": { "count": { "type": "int", "example": "5" } } },
+  "@statusAllCount": {
+    "description": "待处理面板里「全部」那一项，count 是全书的条数。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
   "statusHereCount": "本章 {count}",
-  "@statusHereCount": { "description": "待处理面板里「本章」那一项，count 是本章的条数。", "placeholders": { "count": { "type": "int", "example": "2" } } },
+  "@statusHereCount": {
+    "description": "待处理面板里「本章」那一项，count 是本章的条数。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "statusHereTag": " · 本章",
-  "@statusHereTag": { "description": "待处理里属于本章的那一条，接在小字后面。" },
+  "@statusHereTag": {
+    "description": "待处理里属于本章的那一条，接在小字后面。"
+  },
   "statusNoneHere": "本章没有待处理项",
   "statusIgnoreAll": "全部忽略",
   "statusIgnored": "已忽略 {count} 条待处理",
-  "@statusIgnored": { "description": "全部忽略以后的提示。", "placeholders": { "count": { "type": "int", "example": "4" } } },
-  "statusGroupMarks": "伏笔",
-  "@statusGroupMarks": { "description": "待处理面板里的分组名。" },
+  "@statusIgnored": {
+    "description": "全部忽略以后的提示。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
   "statusGroupBackup": "备份",
-  "@statusGroupBackup": { "description": "待处理面板里的分组名。" },
+  "@statusGroupBackup": {
+    "description": "待处理面板里的分组名。"
+  },
   "statusNotInLore": "「{title}」尚未加入设定",
-  "@statusNotInLore": { "description": "待处理里检查出来的新名字。", "placeholders": { "title": { "type": "String", "example": "何主任" } } },
-  "statusQuoteGone": "「{name}」原句已删",
-  "@statusQuoteGone": { "description": "待处理里伏笔的原句已被删掉的那一条。", "placeholders": { "name": { "type": "String", "example": "灯数" } } },
-  "statusUnpaid": "「{name}」{count} 章未回收",
-  "@statusUnpaid": { "description": "待处理里伏笔超过几章还没回收的那一条。", "placeholders": { "name": { "type": "String", "example": "灯数" }, "count": { "type": "int", "example": "6" } } },
-  "statusPlantedIn": "{chapter} 埋下",
-  "@statusPlantedIn": { "description": "待处理里伏笔是在哪一章埋下的，接在名字后面的小字。", "placeholders": { "chapter": { "type": "String", "example": "第2章：井沿" } } },
+  "@statusNotInLore": {
+    "description": "待处理里检查出来的新名字。",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "何主任"
+      }
+    }
+  },
   "statusWords": "{unit, select, word {{count} 词} other {{count} 字}}",
-  "@statusWords": {"description": "字数，count 已经是数字的写法（带逗号的）。", "placeholders": {"count": {"type": "int", "example": "1234"}, "unit": {"type": "String", "example": "character"}}},
+  "@statusWords": {
+    "description": "字数，count 已经是数字的写法（带逗号的）。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "1234"
+      },
+      "unit": {
+        "type": "String",
+        "example": "character"
+      }
+    }
+  },
   "statusWanWords": "{unit, select, word {{full, plural, other {{value, number, ::.0} 万词}}} other {{full, plural, other {{value, number, ::.0} 万字}}}}",
-  "@statusWanWords": {"description": "以万计的字数。value 是以万计的数；full 是完整的数，中文只拿它选复数的样子，en 写它。", "placeholders": {"value": {"type": "double", "example": "31.2"}, "full": {"type": "int", "example": "312000"}, "unit": {"type": "String", "example": "character"}}},
+  "@statusWanWords": {
+    "description": "以万计的字数。value 是以万计的数；full 是完整的数，中文只拿它选复数的样子，en 写它。",
+    "placeholders": {
+      "value": {
+        "type": "double",
+        "example": "31.2"
+      },
+      "full": {
+        "type": "int",
+        "example": "312000"
+      },
+      "unit": {
+        "type": "String",
+        "example": "character"
+      }
+    }
+  },
   "statusSelected": "{unit, select, word {选中 {count} 词} other {选中 {count} 字}}",
-  "@statusSelected": {"description": "底栏字数：选中了几个字。", "placeholders": {"count": {"type": "int", "example": "12"}, "unit": {"type": "String", "example": "character"}}},
+  "@statusSelected": {
+    "description": "底栏字数：选中了几个字。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      },
+      "unit": {
+        "type": "String",
+        "example": "character"
+      }
+    }
+  },
   "statusChapterWords": "{unit, select, word {本章 {count} 词} other {本章 {count} 字}}",
-  "@statusChapterWords": {"description": "底栏字数：本章多少字。", "placeholders": {"count": {"type": "int", "example": "2310"}, "unit": {"type": "String", "example": "character"}}},
+  "@statusChapterWords": {
+    "description": "底栏字数：本章多少字。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2310"
+      },
+      "unit": {
+        "type": "String",
+        "example": "character"
+      }
+    }
+  },
   "statusVolumeWords": "本卷 {count}",
-  "@statusVolumeWords": { "description": "底栏字数：本卷多少字，count 已经带了「字」。", "placeholders": { "count": { "type": "String", "example": "6,840 字" } } },
+  "@statusVolumeWords": {
+    "description": "底栏字数：本卷多少字，count 已经带了「字」。",
+    "placeholders": {
+      "count": {
+        "type": "String",
+        "example": "6,840 字"
+      }
+    }
+  },
   "statusBookWords": "全书 {count}",
-  "@statusBookWords": { "description": "底栏字数：全书多少字，count 已经带了「字」。", "placeholders": { "count": { "type": "String", "example": "31.2 万字" } } },
+  "@statusBookWords": {
+    "description": "底栏字数：全书多少字，count 已经带了「字」。",
+    "placeholders": {
+      "count": {
+        "type": "String",
+        "example": "31.2 万字"
+      }
+    }
+  },
   "statusWordsTip": "{unit, select, word {词数。点击设置每日目标} other {字数。点击设置每日目标}}",
   "statusMorePending": "{count, plural, other {还有 # 条}}",
-  "@statusMorePending": { "description": "待处理分组展开按钮里尚未显示的条数。", "placeholders": { "count": { "type": "int", "example": "3" } } },
+  "@statusMorePending": {
+    "description": "待处理分组展开按钮里尚未显示的条数。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "editorSeeEntry": "查看设定",
-  "@editorSeeEntry": { "description": "正文里有设定名字的地方的提示。" },
+  "@editorSeeEntry": {
+    "description": "正文里有设定名字的地方的提示。"
+  },
   "editorStopDrop": "让 AI 停下，放弃这一处",
   "editorDropOne": "放弃这一处建议",
   "editorWriting": "正在写…",
@@ -213,7 +541,9 @@
   "editorDropAll": "全部放弃",
   "editorAcceptAll": "全部采纳",
   "editorRewriteHint": "改写要求，例如：放慢节奏，多写她的犹豫",
-  "@editorRewriteHint": { "description": "改写要求输入框的占位字。" },
+  "@editorRewriteHint": {
+    "description": "改写要求输入框的占位字。"
+  },
   "editorRewriteLabel": "改写要求",
   "editorRewrite": "改写",
   "editorCloseRewrite": "关闭改写",
@@ -221,25 +551,55 @@
   "editorSeeTalk": "查看讨论",
   "editorWritingSuggestions": "AI 正在写改稿建议…",
   "editorSuggestionsHere": "本章有 {count} 处改稿建议",
-  "@editorSuggestionsHere": { "description": "正文上面一行：本章有几处改稿建议。", "placeholders": { "count": { "type": "int", "example": "2" } } },
+  "@editorSuggestionsHere": {
+    "description": "正文上面一行：本章有几处改稿建议。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "editorHowReplace": "绿字是 AI 新写的，划掉的是会被换掉的原文；采纳后才写入正文",
-  "@editorHowReplace": { "description": "改稿建议里有换掉原文的，悬停时的说明。" },
+  "@editorHowReplace": {
+    "description": "改稿建议里有换掉原文的，悬停时的说明。"
+  },
   "editorHowAppend": "绿字是 AI 新写的；采纳后才写入正文",
-  "@editorHowAppend": { "description": "改稿建议都是接在后面的，悬停时的说明。" },
+  "@editorHowAppend": {
+    "description": "改稿建议都是接在后面的，悬停时的说明。"
+  },
   "editorOutlineEmpty": " · 空",
   "editorSeeOnTimeline": "在时间线上查看",
   "editorInStory": "故事中 {when}",
-  "@editorInStory": { "description": "章的标题下面：这一章在故事里的时间。", "placeholders": { "when": { "type": "String", "example": "10月8日" } } },
+  "@editorInStory": {
+    "description": "章的标题下面：这一章在故事里的时间。",
+    "placeholders": {
+      "when": {
+        "type": "String",
+        "example": "10月8日"
+      }
+    }
+  },
   "editorContinuing": "续写中…",
   "editorGhostHint": "Tab 采纳 · Esc 放弃",
-  "@editorGhostHint": { "description": "续写出的一句还没采纳时，标题栏上的操作提示。" },
+  "@editorGhostHint": {
+    "description": "续写出的一句还没采纳时，标题栏上的操作提示。"
+  },
   "editorOutsideChanged": "本章文件已被其他程序修改。请选择保留的版本，另一版本将存为历史版本。",
   "editorUseDisk": "使用磁盘版本",
   "editorKeepCurrent": "保留当前版本",
   "editorOutsideLost": "磁盘上已找不到本章文件：在软件外改名、移动或删除，均视为删除。编辑器中的内容仍保留。",
   "editorSaveAsNew": "存为新章节",
   "editorItems": "{count} 项",
-  "@editorItems": { "description": "卷的页面上：里面有几章。", "placeholders": { "count": { "type": "int", "example": "3" } } },
+  "@editorItems": {
+    "description": "卷的页面上：里面有几章。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "editorNewHere": "在此新建章节",
   "editorPickChapter": "从左侧选择一章开始写作",
   "editorNoChapters": "暂无章节",
@@ -247,35 +607,28 @@
   "editorNewFirst": "新建第一章",
   "editorStartHint": "在此开始写作…",
   "editorBody": "正文",
-  "@editorBody": { "description": "正文输入区的无障碍名称。" },
+  "@editorBody": {
+    "description": "正文输入区的无障碍名称。"
+  },
   "editorAIRewrite": "AI 改写",
   "editorAIRewriteMore": "AI 改写…",
   "editorAddToLore": "加入设定",
   "editorMarkForeshadow": "记为伏笔…",
-  "editorMarkPay": "记为回收…",
-  "editorSeeMark": "查看伏笔",
   "editorNoClipboard": "无法读取剪贴板",
   "editorPasteKey": "请按 {key} 粘贴",
-  "@editorPasteKey": { "description": "读不到剪贴板时的提示，key 是粘贴的快捷键。", "placeholders": { "key": { "type": "String", "example": "Ctrl+V" } } },
-  "editorBuryTitle": "记为伏笔，填写备注",
-  "editorBuryHint": "例如：他为什么突然改口",
-  "editorBuryLabel": "伏笔备注",
-  "editorPayTitle": "选择要回收的伏笔",
-  "editorPayHint": "搜索备注或原句",
-  "editorPayLabel": "查找伏笔",
-  "editorNoMatch": "没有匹配的伏笔",
-  "editorNoMarks": "暂无已埋下的伏笔。请先选中一句，右键选择「记为伏笔」。",
-  "editorMetaPaid": "{title} · 已回收",
-  "@editorMetaPaid": { "description": "选择要回收的伏笔时，已回收那一条的小字。", "placeholders": { "title": { "type": "String", "example": "第2章：井沿" } } },
-  "editorMetaBefore": "{title} · {count} 章前埋下",
-  "@editorMetaBefore": { "description": "选择要回收的伏笔时，埋在前面几章的那一条的小字。", "placeholders": { "title": { "type": "String", "example": "第2章：井沿" }, "count": { "type": "int", "example": "84" } } },
-  "editorMetaHere": "本章埋下",
-  "editorMetaHerePaid": "本章 · 已回收",
+  "@editorPasteKey": {
+    "description": "读不到剪贴板时的提示，key 是粘贴的快捷键。",
+    "placeholders": {
+      "key": {
+        "type": "String",
+        "example": "Ctrl+V"
+      }
+    }
+  },
   "editorPayTip": "确定回收",
   "editorPayButton": "记为回收",
   "editorRewriteSel": "由 AI 改写选中内容",
   "editorAddSelTip": "将选中的原文加入设定",
-  "editorSelectFirst": "请先在正文中选中回收伏笔的段落",
   "editorSettledDisk": "已采用磁盘版本，编辑器原内容已存为历史版本",
   "editorSettledKeep": "已保留编辑器版本，磁盘内容已存为历史版本",
   "editorSavedNewTop": "已存为新章节，位于最上层末尾",
@@ -285,25 +638,58 @@
   "editorOutputTooLongHint": "请在设置中「AI」配置里调大",
   "editorModelListFailed": "读取模型目录失败",
   "editorSuggestionsVoided": "{count} 处改稿建议已作废",
-  "@editorSuggestionsVoided": { "description": "改稿建议的原文被改动了，提议作废的提示。", "placeholders": { "count": { "type": "int", "example": "2" } } },
+  "@editorSuggestionsVoided": {
+    "description": "改稿建议的原文被改动了，提议作废的提示。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "editorVoidedWhy": "它要换掉的原文改动了",
   "editorAccepted": "已采纳改稿建议",
   "editorAcceptedUndo": "可撤销恢复原文，原版本已存入历史版本",
   "editorProposalAccepted": "已采纳改稿建议；可撤销恢复原文，原版本已存入历史版本",
-  "@editorProposalAccepted": { "description": "应用单行提示条：采纳提议成功，同时说明撤销和快照。" },
+  "@editorProposalAccepted": {
+    "description": "应用单行提示条：采纳提议成功，同时说明撤销和快照。"
+  },
   "editorProposalVoid": "改稿建议已作废；写的时候，它要换掉的原文改动了",
-  "@editorProposalVoid": { "description": "应用单行提示条：一处流式提议因作者修改原文而作废。" },
+  "@editorProposalVoid": {
+    "description": "应用单行提示条：一处流式提议因作者修改原文而作废。"
+  },
   "editorProposalsVoid": "{count, plural, other {# 处改稿建议已作废；它要换掉的原文改动了}}",
-  "@editorProposalsVoid": { "description": "应用单行提示条：原文变化导致多处提议作废。", "placeholders": { "count": { "type": "int", "example": "2" } } },
+  "@editorProposalsVoid": {
+    "description": "应用单行提示条：原文变化导致多处提议作废。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "editorWhyNoModel": "无法连接模型服务",
-  "@editorWhyNoModel": { "description": "检查或读取失败的原因，显示用；状态里记的仍是这句中文。" },
+  "@editorWhyNoModel": {
+    "description": "检查或读取失败的原因，显示用；状态里记的仍是这句中文。"
+  },
   "findNone": "未找到",
   "findChapterHead": "{title} · {count} 处",
-  "@findChapterHead": { "description": "全书查找结果里，每一章的标题行。", "placeholders": { "title": { "type": "String", "example": "第2章：井沿" }, "count": { "type": "int", "example": "3" } } },
+  "@findChapterHead": {
+    "description": "全书查找结果里，每一章的标题行。",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "第2章：井沿"
+      },
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "commonCancel": "取消",
   "commonClose": "关闭",
   "commonCollapse": "收起",
-  "commonConfirm": "确定",
   "commonCopy": "复制",
   "commonCopyCode": "复制代码",
   "commonCut": "剪切",
@@ -312,48 +698,98 @@
   "commonPaste": "粘贴",
   "commonRetry": "重试",
   "commonSelectAll": "全选",
-  "paneTabNotes": "批注",
-  "@paneTabNotes": { "description": "右栏标签：页边的批注。" },
-  "paneTabHooks": "伏笔",
-  "@paneTabHooks": { "description": "右栏标签：伏笔。" },
   "paneResize": "调整右栏宽度",
-  "@paneResize": { "description": "右栏左边缘的拖动条悬停提示。" },
-  "notesNone": "本章没有批注",
-  "notesOpenChapter": "打开一章后，这里列出它的批注",
-  "@notesOpenChapter": { "description": "批注页没有打开章节时的空白说明。" },
+  "@paneResize": {
+    "description": "右栏左边缘的拖动条悬停提示。"
+  },
   "notesSays": "设定里写的是“{says}”",
-  "@notesSays": { "description": "批注里说明设定原文的一行。", "placeholders": { "says": { "type": "String", "example": "林晚，二十八岁" } } },
+  "@notesSays": {
+    "description": "批注里说明设定原文的一行。",
+    "placeholders": {
+      "says": {
+        "type": "String",
+        "example": "林晚，二十八岁"
+      }
+    }
+  },
   "notesKindInconsistent": "与设定不一致",
   "notesKindName": "名字有误",
   "notesKindNew": "新出现",
-  "@notesKindNew": { "description": "检查出的新出现的人名或地名，批注上的类别。" },
-  "notesKindHook": "伏笔 · 在此埋下",
-  "notesKindHookPaid": "伏笔 · 在此埋下，已回收",
-  "notesKindPayoff": "伏笔 · 在此回收",
-  "notesPlanted": "埋在{chapter}",
-  "@notesPlanted": { "description": "批注里说明设定或伏笔在哪一章。", "placeholders": { "chapter": { "type": "String", "example": "第1章：巷口" } } },
+  "@notesKindNew": {
+    "description": "检查出的新出现的人名或地名，批注上的类别。"
+  },
   "commonSave": "保存",
   "commonAccept": "采纳",
   "commonMore": "更多",
   "commonFound": "找到 {count} 条",
-  "@commonFound": { "description": "搜索结果的标题，写找到几条。", "placeholders": { "count": { "type": "int", "example": "3" } } },
+  "@commonFound": {
+    "description": "搜索结果的标题，写找到几条。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "commonNotFound": "未找到",
   "commonThisChapter": "本章",
   "commonListSep": "，",
-  "@commonListSep": { "description": "几项并排在一起时的分隔符。" },
+  "@commonListSep": {
+    "description": "几项并排在一起时的分隔符。"
+  },
   "loreSource": "「{chapter}」“{quote}”",
-  "@loreSource": { "description": "设定来自哪一章的哪段原文。", "placeholders": { "chapter": { "type": "String", "example": "第1章：巷口" }, "quote": { "type": "String", "example": "林晚站在巷口" } } },
+  "@loreSource": {
+    "description": "设定来自哪一章的哪段原文。",
+    "placeholders": {
+      "chapter": {
+        "type": "String",
+        "example": "第1章：巷口"
+      },
+      "quote": {
+        "type": "String",
+        "example": "林晚站在巷口"
+      }
+    }
+  },
   "loreReplaceAllTip": "将旧名替换为新名",
   "loreGoneChapter": "所在章节已删除",
   "loreIgnored": "已忽略",
   "loreAddedTo": "新增到{what}",
-  "@loreAddedTo": { "description": "修改记录里讨论中 AI 新增设定的一行。", "placeholders": { "what": { "type": "String", "example": "待确认 · 人物：…" } } },
+  "@loreAddedTo": {
+    "description": "修改记录里讨论中 AI 新增设定的一行。",
+    "placeholders": {
+      "what": {
+        "type": "String",
+        "example": "待确认 · 人物：…"
+      }
+    }
+  },
   "loreToConfirmLine": "待确认 · {cat}：{text}",
-  "@loreToConfirmLine": { "description": "一条等作者确认的设定，写成一行。", "placeholders": { "cat": { "type": "String", "example": "人物" }, "text": { "type": "String", "example": "小祥是顺口的叫法" } } },
+  "@loreToConfirmLine": {
+    "description": "一条等作者确认的设定，写成一行。",
+    "placeholders": {
+      "cat": {
+        "type": "String",
+        "example": "人物"
+      },
+      "text": {
+        "type": "String",
+        "example": "小祥是顺口的叫法"
+      }
+    }
+  },
   "chatNeedModel": "请先配置讨论模型",
   "chatBusyOther": "AI 正在回复别的讨论",
   "chatBusyOtherWhy": "等它回完或取消后再{action}",
-  "@chatBusyOtherWhy": { "description": "AI 正忙时的提示，后面接「起草」或「改写」。", "placeholders": { "action": { "type": "String", "example": "起草" } } },
+  "@chatBusyOtherWhy": {
+    "description": "AI 正忙时的提示，后面接「起草」或「改写」。",
+    "placeholders": {
+      "action": {
+        "type": "String",
+        "example": "起草"
+      }
+    }
+  },
   "chatActDraft": "起草",
   "chatActRewrite": "改写",
   "chatChapterGone": "该章已不存在",
@@ -361,7 +797,15 @@
   "chatProposalVoid": "改稿建议已作废",
   "chatProposalVoidWhy": "写的时候，它要换掉的原文改动了",
   "chatChapterCards": "本章的卡片 {count} 张",
-  "@chatChapterCards": { "description": "AI 参考内容里本章卡片的一项。", "placeholders": { "count": { "type": "int", "example": "2" } } },
+  "@chatChapterCards": {
+    "description": "AI 参考内容里本章卡片的一项。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "chatPartOutline": "章纲和卷纲",
   "chatPartPrevOutlines": "本卷前面各章章纲",
   "chatPartPrevChapter": "上一章全文",
@@ -376,65 +820,115 @@
   "chatLabelOpen": "悬而未决：",
   "chatWriting": "正在写…",
   "chatWords": "{unit, select, word {{count} 词} other {{count} 字}}",
-  "@chatWords": {"description": "改稿建议改动的字数。", "placeholders": {"count": {"type": "int", "example": "312"}, "unit": {"type": "String", "example": "character"}}},
+  "@chatWords": {
+    "description": "改稿建议改动的字数。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "312"
+      },
+      "unit": {
+        "type": "String",
+        "example": "character"
+      }
+    }
+  },
   "chatLookSearched": "搜了{what}",
-  "@chatLookSearched": { "description": "AI 查阅记录：搜了什么。", "placeholders": { "what": { "type": "String", "example": "全书「停电」" } } },
+  "@chatLookSearched": {
+    "description": "AI 查阅记录：搜了什么。",
+    "placeholders": {
+      "what": {
+        "type": "String",
+        "example": "全书「停电」"
+      }
+    }
+  },
   "chatLookRead": "读了{what}",
-  "@chatLookRead": { "description": "AI 查阅记录：读了哪段正文。", "placeholders": { "what": { "type": "String", "example": "「第87章：停电」" } } },
+  "@chatLookRead": {
+    "description": "AI 查阅记录：读了哪段正文。",
+    "placeholders": {
+      "what": {
+        "type": "String",
+        "example": "「第87章：停电」"
+      }
+    }
+  },
   "chatLookLore": "查了设定{what}",
-  "@chatLookLore": { "description": "AI 查阅记录：查了哪条设定。", "placeholders": { "what": { "type": "String", "example": "「周祥」" } } },
+  "@chatLookLore": {
+    "description": "AI 查阅记录：查了哪条设定。",
+    "placeholders": {
+      "what": {
+        "type": "String",
+        "example": "「周祥」"
+      }
+    }
+  },
   "chatLookOutline": "查了大纲{what}",
-  "@chatLookOutline": { "description": "AI 查阅记录：查了哪条大纲。", "placeholders": { "what": { "type": "String", "example": "「小祥」这条线" } } },
+  "@chatLookOutline": {
+    "description": "AI 查阅记录：查了哪条大纲。",
+    "placeholders": {
+      "what": {
+        "type": "String",
+        "example": "「小祥」这条线"
+      }
+    }
+  },
   "chatLookChats": "搜了讨论{what}",
-  "@chatLookChats": { "description": "AI 查阅记录：搜了哪段讨论。", "placeholders": { "what": { "type": "String", "example": "「停电」" } } },
+  "@chatLookChats": {
+    "description": "AI 查阅记录：搜了哪段讨论。",
+    "placeholders": {
+      "what": {
+        "type": "String",
+        "example": "「停电」"
+      }
+    }
+  },
   "chatLookNoted": "记下：{what}",
-  "@chatLookNoted": { "description": "AI 查阅记录：记下了一条设定。", "placeholders": { "what": { "type": "String", "example": "待确认 · 人物：…" } } },
+  "@chatLookNoted": {
+    "description": "AI 查阅记录：记下了一条设定。",
+    "placeholders": {
+      "what": {
+        "type": "String",
+        "example": "待确认 · 人物：…"
+      }
+    }
+  },
   "chatCopied": "已复制",
   "chatCancelRequest": "取消请求",
   "chatEmpty": "暂无讨论",
   "chatSendTip": "发送（{key}）",
-  "@chatSendTip": { "description": "发送按钮的提示，括号里是快捷键。", "placeholders": { "key": { "type": "String", "example": "Ctrl+Enter" } } },
+  "@chatSendTip": {
+    "description": "发送按钮的提示，括号里是快捷键。",
+    "placeholders": {
+      "key": {
+        "type": "String",
+        "example": "Ctrl+Enter"
+      }
+    }
+  },
   "chatPartCards": "本章的卡片",
-  "@chatPartCards": { "description": "AI 参考内容和请求记录里的章节卡片部分名；不含张数。" },
+  "@chatPartCards": {
+    "description": "AI 参考内容和请求记录里的章节卡片部分名；不含张数。"
+  },
   "chatPartRecap": "前情提要",
-  "@chatPartRecap": { "description": "AI 参考内容和请求记录里的前情提要部分名。" },
+  "@chatPartRecap": {
+    "description": "AI 参考内容和请求记录里的前情提要部分名。"
+  },
   "chatPartProse": "附上的正文",
-  "@chatPartProse": { "description": "AI 参考内容里随讨论附上的正文部分名。" },
-  "hooksSelectFirst": "请先在正文中选中要关联的句子",
-  "hooksLost": "原句已删",
-  "hooksDone": "已回收",
+  "@chatPartProse": {
+    "description": "AI 参考内容里随讨论附上的正文部分名。"
+  },
   "hooksDropped": "已放弃",
-  "hooksPlanted": "埋在「{chapter}」",
-  "@hooksPlanted": { "description": "伏笔埋在哪一章。", "placeholders": { "chapter": { "type": "String", "example": "第86章：档案室" } } },
-  "hooksPlantedGap": "埋在「{chapter}」，已过 {count} 章",
-  "@hooksPlantedGap": { "description": "伏笔埋在哪一章，离现在过了几章。", "placeholders": { "chapter": { "type": "String", "example": "第86章：档案室" }, "count": { "type": "int", "example": "3" } } },
-  "hooksAlreadyPaid": "「{chapter}」里已有一处回收",
-  "@hooksAlreadyPaid": { "description": "选择要回收的伏笔时，那一章里已经有一处回收。", "placeholders": { "chapter": { "type": "String", "example": "第87章：停电" } } },
-  "hooksDrop": "放弃伏笔",
-  "hooksCancelPayoff": "取消回收",
-  "hooksRestore": "恢复伏笔",
-  "hooksDelete": "删除伏笔",
-  "hooksAll": "全部伏笔",
-  "hooksNote": "备注",
-  "hooksEditNote": "修改伏笔备注",
-  "hooksEditNoteBtn": "修改备注",
-  "hooksLostIn": "「{chapter}」里的原句已删除",
-  "@hooksLostIn": { "description": "原句删了的伏笔，它原来在哪一章。", "placeholders": { "chapter": { "type": "String", "example": "第86章：档案室" } } },
-  "hooksUnpaid": "未回收",
-  "hooksSelectPayoff": "请先在正文中选中回收的段落",
-  "hooksMarkPaid": "记为回收",
-  "hooksPaidIn": "回收在「{chapter}」，相隔 {count} 章",
-  "@hooksPaidIn": { "description": "已回收的伏笔，回收在哪一章、与埋下相隔几章。", "placeholders": { "chapter": { "type": "String", "example": "第87章：停电" }, "count": { "type": "int", "example": "1" } } },
-  "hooksSelectNew": "请先在正文中选中新的句子",
-  "hooksReplaceQuote": "更换原句",
-  "hooksNoneHere": "此处暂无伏笔",
-  "hooksEmpty": "暂无伏笔",
-  "hooksEmptyHow": "在正文中选中一句，右键选择「记为伏笔」",
-  "hooksLong": "久未回收",
-  "hooksNoneOpen": "没有未回收的伏笔",
-  "hooksSearch": "搜索伏笔",
   "chatAnswered": "（回答：{answer}）",
-  "@chatAnswered": { "description": "AI 参考内容里设定回答过的问题，跟在设定后面。", "placeholders": { "answer": { "type": "String", "example": "是" } } },
+  "@chatAnswered": {
+    "description": "AI 参考内容里设定回答过的问题，跟在设定后面。",
+    "placeholders": {
+      "answer": {
+        "type": "String",
+        "example": "是"
+      }
+    }
+  },
   "commonOK": "确定",
   "commonDelete": "删除",
   "commonRename": "重命名",
@@ -443,26 +937,96 @@
   "commonBack": "上一步",
   "commonUntitled": "未命名",
   "commonOpenFolder": "打开所在文件夹",
-  "@commonOpenFolder": { "description": "文件夹相关的菜单行和按钮，原型里只说一声，不真开。" },
+  "@commonOpenFolder": {
+    "description": "文件夹相关的菜单行和按钮，原型里只说一声，不真开。"
+  },
   "talkNew": "新对话",
-  "@talkNew": { "description": "还没有标题的讨论显示的名字。" },
+  "@talkNew": {
+    "description": "还没有标题的讨论显示的名字。"
+  },
   "talkShowSettings": "展开设定",
   "talkShowSettingsDoc": "展开设定文档",
   "planSlotInChapter": "在{chapter}的{line}里添加卡片",
-  "@planSlotInChapter": { "description": "章与情节线交叉格子里「添加」的无障碍名称。", "placeholders": { "chapter": { "type": "String", "example": "第一章" }, "line": { "type": "String", "example": "主线" } } },
+  "@planSlotInChapter": {
+    "description": "章与情节线交叉格子里「添加」的无障碍名称。",
+    "placeholders": {
+      "chapter": {
+        "type": "String",
+        "example": "第一章"
+      },
+      "line": {
+        "type": "String",
+        "example": "主线"
+      }
+    }
+  },
   "planSlotAtTime": "在{when}的{line}里添加卡片",
-  "@planSlotAtTime": { "description": "时间线上一列里「添加」的无障碍名称。", "placeholders": { "when": { "type": "String", "example": "十月六日夜" }, "line": { "type": "String", "example": "主线" } } },
+  "@planSlotAtTime": {
+    "description": "时间线上一列里「添加」的无障碍名称。",
+    "placeholders": {
+      "when": {
+        "type": "String",
+        "example": "十月六日夜"
+      },
+      "line": {
+        "type": "String",
+        "example": "主线"
+      }
+    }
+  },
   "planLastSlot": "最后",
-  "@planLastSlot": { "description": "时间线最右一列没写时间时，代替时间的字，放在「在……的」中间。" },
+  "@planLastSlot": {
+    "description": "时间线最右一列没写时间时，代替时间的字，放在「在……的」中间。"
+  },
   "planClearSearchHint": "清除搜索（Esc）",
   "checkMinimum": "{unit, select, word {{count, plural, other {满 # 词后可检查}}} other {{count, plural, other {满 # 字后可检查}}}}",
-  "@checkMinimum": {"description": "应用现有界面的检查文案；原型没有同等的动态消息。", "placeholders": {"count": {"type": "int", "example": "3"}, "unit": {"type": "String", "example": "character"}}},
+  "@checkMinimum": {
+    "description": "应用现有界面的检查文案；原型没有同等的动态消息。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "unit": {
+        "type": "String",
+        "example": "character"
+      }
+    }
+  },
   "checkTextChapter": "正文 · {chapter}",
-  "@checkTextChapter": {"description":"应用现有界面的检查文案；原型没有同等的动态消息。","placeholders":{"chapter":{"type":"String","example":"chapter"}}},
+  "@checkTextChapter": {
+    "description": "应用现有界面的检查文案；原型没有同等的动态消息。",
+    "placeholders": {
+      "chapter": {
+        "type": "String",
+        "example": "chapter"
+      }
+    }
+  },
   "checkLoreHeading": "设定 · {entry}",
-  "@checkLoreHeading": {"description":"应用现有界面的检查文案；原型没有同等的动态消息。","placeholders":{"entry":{"type":"String","example":"entry"}}},
+  "@checkLoreHeading": {
+    "description": "应用现有界面的检查文案；原型没有同等的动态消息。",
+    "placeholders": {
+      "entry": {
+        "type": "String",
+        "example": "entry"
+      }
+    }
+  },
   "checkKindCount": "{kind} {count, number}",
-  "@checkKindCount": {"description":"检查分类标签和该类数量。","placeholders":{"kind":{"type":"String","example":"全部"},"count":{"type":"int","example":"3"}}},
+  "@checkKindCount": {
+    "description": "检查分类标签和该类数量。",
+    "placeholders": {
+      "kind": {
+        "type": "String",
+        "example": "全部"
+      },
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "checkKindAll": "全部",
   "checkKindMismatch": "不一致",
   "checkKindName": "名字有误",
@@ -472,41 +1036,173 @@
   "checkMarkedNoChange": "已标为「无需修改」",
   "checkAddedSetting": "已加入设定",
   "checkLogAdded": "新增到正文 · {cat}：{text}",
-  "@checkLogAdded": { "description": "操作记录里的一行：把检查结果加进了设定。", "placeholders": { "cat": { "type": "String", "example": "人物" }, "text": { "type": "String", "example": "林晚的父亲在矿上出过事" } } },
+  "@checkLogAdded": {
+    "description": "操作记录里的一行：把检查结果加进了设定。",
+    "placeholders": {
+      "cat": {
+        "type": "String",
+        "example": "人物"
+      },
+      "text": {
+        "type": "String",
+        "example": "林晚的父亲在矿上出过事"
+      }
+    }
+  },
   "checkNoChange": "无需修改",
   "checkIgnore": "忽略",
   "checkAddToSettings": "加入设定",
   "checkEditSetting": "修改设定",
   "checkEditText": "修改正文",
   "checkMismatchAbout": "{at} ↔ 设定「{what}」",
-  "@checkMismatchAbout": { "description": "检查列表一行的副标题：章节和它对上的设定。", "placeholders": { "at": { "type": "String", "example": "第一章" }, "what": { "type": "String", "example": "人物 · 林晚" } } },
+  "@checkMismatchAbout": {
+    "description": "检查列表一行的副标题：章节和它对上的设定。",
+    "placeholders": {
+      "at": {
+        "type": "String",
+        "example": "第一章"
+      },
+      "what": {
+        "type": "String",
+        "example": "人物 · 林晚"
+      }
+    }
+  },
   "checkNameAbout": "{at} · 应为「{right}」",
-  "@checkNameAbout": { "description": "名字有误的副标题：章节和应当写成的名字。", "placeholders": { "at": { "type": "String", "example": "第一章" }, "right": { "type": "String", "example": "林晚" } } },
+  "@checkNameAbout": {
+    "description": "名字有误的副标题：章节和应当写成的名字。",
+    "placeholders": {
+      "at": {
+        "type": "String",
+        "example": "第一章"
+      },
+      "right": {
+        "type": "String",
+        "example": "林晚"
+      }
+    }
+  },
   "checkFirstSeen": "{cat} · 「{at}」起出现",
-  "@checkFirstSeen": { "description": "新出现的副标题：分类和第一次出现的章。", "placeholders": { "cat": { "type": "String", "example": "地点" }, "at": { "type": "String", "example": "第一章" } } },
+  "@checkFirstSeen": {
+    "description": "新出现的副标题：分类和第一次出现的章。",
+    "placeholders": {
+      "cat": {
+        "type": "String",
+        "example": "地点"
+      },
+      "at": {
+        "type": "String",
+        "example": "第一章"
+      }
+    }
+  },
   "checkFirstSeenMore": "{cat} · 「{at}」起出现，共 {count, plural, other {# 章}}",
-  "@checkFirstSeenMore": { "description": "新出现的副标题，其他章也出现过。", "placeholders": { "cat": { "type": "String", "example": "地点" }, "at": { "type": "String", "example": "第一章" }, "count": { "type": "int", "example": "3" } } },
+  "@checkFirstSeenMore": {
+    "description": "新出现的副标题，其他章也出现过。",
+    "placeholders": {
+      "cat": {
+        "type": "String",
+        "example": "地点"
+      },
+      "at": {
+        "type": "String",
+        "example": "第一章"
+      },
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "checkNoSettings": "设定为空，无可对照内容",
   "checkAllDone": "各章均已检查，正文无新改动",
   "checkOwedTitle": "{count, plural, other {# 章未检查或有改动}}",
-  "@checkOwedTitle": { "description": "「检查全书」弹出框的标题：要查几章。", "placeholders": { "count": { "type": "int", "example": "3" } } },
+  "@checkOwedTitle": {
+    "description": "「检查全书」弹出框的标题：要查几章。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "checkOwedNote": "每章调用一次 AI，共 {count} 次。",
-  "@checkOwedNote": { "description": "「检查全书」弹出框的说明：会调用几次 AI。", "placeholders": { "count": { "type": "int", "example": "3" } } },
+  "@checkOwedNote": {
+    "description": "「检查全书」弹出框的说明：会调用几次 AI。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "checkStart": "开始检查",
   "checkRunning": "正在检查「{title}」",
-  "@checkRunning": { "description": "正在检查哪一章。", "placeholders": { "title": { "type": "String", "example": "第一章" } } },
+  "@checkRunning": {
+    "description": "正在检查哪一章。",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "第一章"
+      }
+    }
+  },
   "checkRunningMore": "正在检查「{title}」，还有 {count, plural, other {# 章}}",
-  "@checkRunningMore": { "description": "正在检查哪一章，后面还有几章。", "placeholders": { "title": { "type": "String", "example": "第一章" }, "count": { "type": "int", "example": "2" } } },
+  "@checkRunningMore": {
+    "description": "正在检查哪一章，后面还有几章。",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "第一章"
+      },
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "checkStop": "停止",
   "checkProgress": "已检查 {checked, plural, other {# 章}}，{failed, plural, other {# 章失败}}",
-  "@checkProgress": { "description": "检查没完成时，已检查几章、几章失败。", "placeholders": { "checked": { "type": "int", "example": "12" }, "failed": { "type": "int", "example": "1" } } },
+  "@checkProgress": {
+    "description": "检查没完成时，已检查几章、几章失败。",
+    "placeholders": {
+      "checked": {
+        "type": "int",
+        "example": "12"
+      },
+      "failed": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
   "checkRecheck": "重新检查",
   "checkAllBook": "检查全书",
   "checkCheckedUpTo": "已检查至「{title}」",
-  "@checkCheckedUpTo": { "description": "检查页顶上：检查到了哪一章。", "placeholders": { "title": { "type": "String", "example": "第十五章" } } },
+  "@checkCheckedUpTo": {
+    "description": "检查页顶上：检查到了哪一章。",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "第十五章"
+      }
+    }
+  },
   "checkIncomplete": "检查未完成",
   "checkFailedAt": "「{title}」检查失败：{reason}",
-  "@checkFailedAt": { "description": "检查失败的那一章和原因。", "placeholders": { "title": { "type": "String", "example": "第三章" }, "reason": { "type": "String", "example": "网络中断" } } },
+  "@checkFailedAt": {
+    "description": "检查失败的那一章和原因。",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "第三章"
+      },
+      "reason": {
+        "type": "String",
+        "example": "网络中断"
+      }
+    }
+  },
   "checkRunningTitle": "正在检查…",
   "checkRunningAbout": "检查结果将显示在左侧。",
   "checkNoSettingsTitle": "设定为空",
@@ -514,50 +1210,176 @@
   "checkNoneInKind": "这一类没有待处理的",
   "checkNotYet": "尚未检查",
   "checkNotYetAbout": "点击左上角「{button}」，或写完一章后自动检查。",
-  "@checkNotYetAbout": { "description": "还没检查过时的说明，{button} 是「检查全书」。", "placeholders": { "button": { "type": "String", "example": "检查全书" } } },
+  "@checkNotYetAbout": {
+    "description": "还没检查过时的说明，{button} 是「检查全书」。",
+    "placeholders": {
+      "button": {
+        "type": "String",
+        "example": "检查全书"
+      }
+    }
+  },
   "checkNoneFound": "没有发现不一致",
   "checkManualNote": "当前为「{mode}」，需要时点击「{again}」。",
-  "@checkManualNote": { "description": "检查方式是手动时的说明。", "placeholders": { "mode": { "type": "String", "example": "手动检查" }, "again": { "type": "String", "example": "重新检查" } } },
+  "@checkManualNote": {
+    "description": "检查方式是手动时的说明。",
+    "placeholders": {
+      "mode": {
+        "type": "String",
+        "example": "手动检查"
+      },
+      "again": {
+        "type": "String",
+        "example": "重新检查"
+      }
+    }
+  },
   "checkModeManual": "手动检查",
   "checkAutoNote": "写完一章后自动检查，结果显示在此处。",
   "checkTextPara": "正文 · {chapter} · 第 {para} 段",
-  "@checkTextPara": { "description": "检查详情左上：哪一章第几段。", "placeholders": { "chapter": { "type": "String", "example": "第一章" }, "para": { "type": "int", "example": "3" } } },
+  "@checkTextPara": {
+    "description": "检查详情左上：哪一章第几段。",
+    "placeholders": {
+      "chapter": {
+        "type": "String",
+        "example": "第一章"
+      },
+      "para": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "checkTextParaNoChapter": "正文 · 第 {para} 段",
-  "@checkTextParaNoChapter": { "description": "检查详情左上，章节已删除时只写第几段。", "placeholders": { "para": { "type": "int", "example": "3" } } },
+  "@checkTextParaNoChapter": {
+    "description": "检查详情左上，章节已删除时只写第几段。",
+    "placeholders": {
+      "para": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "checkSeeText": "查看原文",
   "checkSeeSetting": "查看设定",
   "checkFromSetting": "设定 · {cat} · {name}",
-  "@checkFromSetting": { "description": "检查详情右侧：对上的设定的分类和名字。", "placeholders": { "cat": { "type": "String", "example": "人物" }, "name": { "type": "String", "example": "林晚" } } },
+  "@checkFromSetting": {
+    "description": "检查详情右侧：对上的设定的分类和名字。",
+    "placeholders": {
+      "cat": {
+        "type": "String",
+        "example": "人物"
+      },
+      "name": {
+        "type": "String",
+        "example": "林晚"
+      }
+    }
+  },
   "checkNameInSettings": "设定中的名字",
   "checkCanAdd": "可加入设定 · {cat}",
-  "@checkCanAdd": { "description": "检查详情右侧：这条可以加入设定，以及它的分类。", "placeholders": { "cat": { "type": "String", "example": "人物" } } },
+  "@checkCanAdd": {
+    "description": "检查详情右侧：这条可以加入设定，以及它的分类。",
+    "placeholders": {
+      "cat": {
+        "type": "String",
+        "example": "人物"
+      }
+    }
+  },
   "checkColon": "：",
-  "@checkColon": { "description": "标题和正文之间的冒号。" },
+  "@checkColon": {
+    "description": "标题和正文之间的冒号。"
+  },
   "checkAlsoNew": "其他章节中也出现",
   "checkAlsoSimilar": "其他章节的类似情况",
   "checkNext": "下一条",
   "checkLater": "稍后再说",
   "shelfViewAs": "按{view}显示",
-  "@shelfViewAs": {"description":"应用界面提示。","placeholders":{"view":{"type":"String","example":"列表"}}},
+  "@shelfViewAs": {
+    "description": "应用界面提示。",
+    "placeholders": {
+      "view": {
+        "type": "String",
+        "example": "列表"
+      }
+    }
+  },
   "shelfPickExisting": "选择已有作品的文件夹",
   "shelfAddedBook": "已加入书架：{name}",
-  "@shelfAddedBook": {"description":"应用界面提示。","placeholders":{"name":{"type":"String","example":"书名"}}},
+  "@shelfAddedBook": {
+    "description": "应用界面提示。",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "书名"
+      }
+    }
+  },
   "shelfFolderEmpty": "文件夹「{path}」为空，作品将建在其中。",
-  "@shelfFolderEmpty": {"description":"应用界面提示。","placeholders":{"path":{"type":"String","example":"C:/Books"}}},
+  "@shelfFolderEmpty": {
+    "description": "应用界面提示。",
+    "placeholders": {
+      "path": {
+        "type": "String",
+        "example": "C:/Books"
+      }
+    }
+  },
   "shelfFolderUnreadable": "无法打开文件夹「{path}」，请更换名称或位置。",
-  "@shelfFolderUnreadable": {"description":"应用界面提示。","placeholders":{"path":{"type":"String","example":"C:/Books"}}},
+  "@shelfFolderUnreadable": {
+    "description": "应用界面提示。",
+    "placeholders": {
+      "path": {
+        "type": "String",
+        "example": "C:/Books"
+      }
+    }
+  },
   "shelfPathIsFile": "「{path}」是一个文件，请更换名称或位置。",
-  "@shelfPathIsFile": {"description":"应用界面提示。","placeholders":{"path":{"type":"String","example":"C:/Books"}}},
+  "@shelfPathIsFile": {
+    "description": "应用界面提示。",
+    "placeholders": {
+      "path": {
+        "type": "String",
+        "example": "C:/Books"
+      }
+    }
+  },
   "shelfBookFolderMissing": "找不到该作品的文件夹：{path}",
-  "@shelfBookFolderMissing": {"description":"应用界面提示。","placeholders":{"path":{"type":"String","example":"C:/Books"}}},
+  "@shelfBookFolderMissing": {
+    "description": "应用界面提示。",
+    "placeholders": {
+      "path": {
+        "type": "String",
+        "example": "C:/Books"
+      }
+    }
+  },
   "shelfListUnreadable": "作品清单无法读取，本次不会改动：{error}",
-  "@shelfListUnreadable": {"description":"应用界面提示。","placeholders":{"error":{"type":"String","example":"access denied"}}},
+  "@shelfListUnreadable": {
+    "description": "应用界面提示。",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "access denied"
+      }
+    }
+  },
   "shelfNotOpened": "尚未打开",
   "shelfAdded": "已加入书架",
   "shelfAlready": "该作品已在书架上",
   "shelfOSTitle": "原型不会打开系统窗口",
   "shelfOSStep": "软件中此步骤为：{step}",
-  "@shelfOSStep": { "description": "原型里点了系统窗口的按钮，说明软件里这一步是什么。", "placeholders": { "step": { "type": "String", "example": "选择作品库文件夹" } } },
+  "@shelfOSStep": {
+    "description": "原型里点了系统窗口的按钮，说明软件里这一步是什么。",
+    "placeholders": {
+      "step": {
+        "type": "String",
+        "example": "选择作品库文件夹"
+      }
+    }
+  },
   "shelfShowFolder": "在资源管理器中显示这部作品的文件夹",
   "shelfPickBookFolder": "选择该作品当前所在的文件夹",
   "shelfPickLibrary": "选择作品库文件夹",
@@ -567,7 +1389,15 @@
   "shelfRemove": "从书架移除",
   "shelfRemoveShort": "移除",
   "shelfRemoved": "已从书架移除，文件夹未改动：{name}",
-  "@shelfRemoved": { "description": "从书架移除后的提示。", "placeholders": { "name": { "type": "String", "example": "井边的旧稿" } } },
+  "@shelfRemoved": {
+    "description": "从书架移除后的提示。",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "井边的旧稿"
+      }
+    }
+  },
   "shelfFolderMissing": "找不到文件夹",
   "shelfLocate": "定位",
   "shelfRelocate": "重新定位…",
@@ -583,10 +1413,24 @@
   "shelfFactFilesNoAI": "· 作品和设定文档均为文件夹中的普通文件，可备份、同步或用其他编辑器打开。",
   "shelfTitle": "我的作品",
   "shelfCountLibrary": "{count, plural, other {# 部}} · 作品库：{library}",
-  "@shelfCountLibrary": { "description": "书架顶上：几部作品，作品库在哪个文件夹。", "placeholders": { "count": { "type": "int", "example": "3" }, "library": { "type": "String", "example": "D:\\作品" } } },
+  "@shelfCountLibrary": {
+    "description": "书架顶上：几部作品，作品库在哪个文件夹。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "library": {
+        "type": "String",
+        "example": "D:\\作品"
+      }
+    }
+  },
   "shelfChange": "更改",
   "shelfView": "显示",
-  "@shelfView": { "description": "书架的列表、卡片两个切换按钮的无障碍名称。" },
+  "@shelfView": {
+    "description": "书架的列表、卡片两个切换按钮的无障碍名称。"
+  },
   "shelfList": "列表",
   "shelfCards": "卡片",
   "shelfImportBook": "导入书籍",
@@ -594,26 +1438,86 @@
   "shelfFile": "文件",
   "shelfChangeFile": "更换…",
   "shelfDetected": "识别出 {volumes, plural, other {# 卷}} {chapters, plural, other {# 章}}，下一步可以看一遍、再调整。",
-  "@shelfDetected": { "description": "导入表单：识别出几卷几章。", "placeholders": { "volumes": { "type": "int", "example": "2" }, "chapters": { "type": "int", "example": "15" } } },
+  "@shelfDetected": {
+    "description": "导入表单：识别出几卷几章。",
+    "placeholders": {
+      "volumes": {
+        "type": "int",
+        "example": "2"
+      },
+      "chapters": {
+        "type": "int",
+        "example": "15"
+      }
+    }
+  },
   "shelfBookName": "作品名称",
   "shelfNameNeeded": "请填写作品名称。",
   "shelfGenre": "体裁",
   "shelfBookLanguage": "正文语言",
-  "@shelfBookLanguage": { "description": "新建作品和导入对话框里选这本书正文用什么语言的那一栏，选项是语言自己的名字。" },
+  "@shelfBookLanguage": {
+    "description": "新建作品和导入对话框里选这本书正文用什么语言的那一栏，选项是语言自己的名字。"
+  },
   "shelfBookLanguageNote": "按它数字数、排版导出，AI 也用它写。",
-  "@shelfBookLanguageNote": { "description": "正文语言下面的说明：中文数字，英文数词；导出的字体和缩进跟着它。" },
+  "@shelfBookLanguageNote": {
+    "description": "正文语言下面的说明：中文数字，英文数词；导出的字体和缩进跟着它。"
+  },
   "shelfLocation": "位置",
   "shelfBookLocation": "作品位置",
   "shelfLocationNeeded": "请填写作品位置。",
   "shelfFolderTaken": "文件夹「{folder}」中已有文件，请更换名称或位置。",
-  "@shelfFolderTaken": { "description": "导入表单：作品位置里已经有文件。", "placeholders": { "folder": { "type": "String", "example": "井边的旧稿" } } },
+  "@shelfFolderTaken": {
+    "description": "导入表单：作品位置里已经有文件。",
+    "placeholders": {
+      "folder": {
+        "type": "String",
+        "example": "井边的旧稿"
+      }
+    }
+  },
   "shelfWillCreate": "将新建文件夹「{folder}」。",
-  "@shelfWillCreate": { "description": "导入表单：会新建的文件夹。", "placeholders": { "folder": { "type": "String", "example": "井边的旧稿" } } },
+  "@shelfWillCreate": {
+    "description": "导入表单：会新建的文件夹。",
+    "placeholders": {
+      "folder": {
+        "type": "String",
+        "example": "井边的旧稿"
+      }
+    }
+  },
   "shelfChangePlace": "更改…",
   "shelfPreviewTitle": "预览 · {file}",
-  "@shelfPreviewTitle": { "description": "导入预览的标题，file 是原文件名。", "placeholders": { "file": { "type": "String", "example": "旧稿.docx" } } },
+  "@shelfPreviewTitle": {
+    "description": "导入预览的标题，file 是原文件名。",
+    "placeholders": {
+      "file": {
+        "type": "String",
+        "example": "旧稿.docx"
+      }
+    }
+  },
   "shelfPreviewAbout": "{unit, select, word {共 {volumes, plural, other {# 卷}} {chapters, plural, other {# 章}}，全书 {words} 词。切错的地方在这里改，确定后才新建作品。} other {共 {volumes, plural, other {# 卷}} {chapters, plural, other {# 章}}，全书 {words} 字。切错的地方在这里改，确定后才新建作品。}}",
-  "@shelfPreviewAbout": {"description": "导入预览的说明：卷、章、字数。", "placeholders": {"volumes": {"type": "int", "example": "2"}, "chapters": {"type": "int", "example": "15"}, "words": {"type": "int", "example": "21000"}, "unit": {"type": "String", "example": "character"}}},
+  "@shelfPreviewAbout": {
+    "description": "导入预览的说明：卷、章、字数。",
+    "placeholders": {
+      "volumes": {
+        "type": "int",
+        "example": "2"
+      },
+      "chapters": {
+        "type": "int",
+        "example": "15"
+      },
+      "words": {
+        "type": "int",
+        "example": "21000"
+      },
+      "unit": {
+        "type": "String",
+        "example": "character"
+      }
+    }
+  },
   "shelfVolumesChapters": "卷和章",
   "shelfMoveTo": "移到",
   "shelfTopLevel": "最上层",
@@ -629,18 +1533,62 @@
   "shelfNoChapters": "没有章节",
   "shelfNoChaptersAbout": "在左边新建一章，或者回到上一步换一个文件。",
   "shelfChapterWords": "{unit, select, word {本章 {count} 词} other {本章 {count} 字}}",
-  "@shelfChapterWords": {"description": "导入预览：当前章的字数。", "placeholders": {"count": {"type": "int", "example": "1234"}, "unit": {"type": "String", "example": "character"}}},
+  "@shelfChapterWords": {
+    "description": "导入预览：当前章的字数。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "1234"
+      },
+      "unit": {
+        "type": "String",
+        "example": "character"
+      }
+    }
+  },
   "shelfUntitledBook": "未命名作品",
   "shelfNewChapterName": "新章节",
   "shelfNewFolderName": "新文件夹",
   "shelfMergedInto": "已将「{title}」并入上一章",
-  "@shelfMergedInto": { "description": "导入预览：并入上一章后的提示。", "placeholders": { "title": { "type": "String", "example": "第二节" } } },
+  "@shelfMergedInto": {
+    "description": "导入预览：并入上一章后的提示。",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "第二节"
+      }
+    }
+  },
   "shelfSplitDone": "已另起一章「{title}」",
-  "@shelfSplitDone": { "description": "导入预览：从光标处另起一章后的提示。", "placeholders": { "title": { "type": "String", "example": "第二节" } } },
+  "@shelfSplitDone": {
+    "description": "导入预览：从光标处另起一章后的提示。",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "第二节"
+      }
+    }
+  },
   "shelfDeleted": "已删除「{title}」",
-  "@shelfDeleted": { "description": "导入预览：删除一章或一卷后的提示。", "placeholders": { "title": { "type": "String", "example": "第二卷" } } },
+  "@shelfDeleted": {
+    "description": "导入预览：删除一章或一卷后的提示。",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "第二卷"
+      }
+    }
+  },
   "shelfImported": "已导入 {count, plural, other {# 章}}",
-  "@shelfImported": { "description": "导入完成后的提示，几章。", "placeholders": { "count": { "type": "int", "example": "15" } } },
+  "@shelfImported": {
+    "description": "导入完成后的提示，几章。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "15"
+      }
+    }
+  },
   "backupDiskShort": "找不到 E 盘",
   "backupDiskTitle": "找不到 E 盘，本次备份未完成",
   "backupNextHour": "一小时后",
@@ -648,7 +1596,15 @@
   "backupKeep30": "最近 30 份",
   "backupKeep90": "最近 90 份",
   "backupSize": "每份约 1.1 MB，共 {total, number, ::.0} MB",
-  "@backupSize": { "description": "备份文件占的空间，每份约 1.1 MB。", "placeholders": { "total": { "type": "double", "example": "13.2" } } },
+  "@backupSize": {
+    "description": "备份文件占的空间，每份约 1.1 MB。",
+    "placeholders": {
+      "total": {
+        "type": "double",
+        "example": "13.2"
+      }
+    }
+  },
   "backupOldest": "，最早 09-28",
   "settingsLocal": "本机",
   "settingsRemote": "远程",
@@ -663,18 +1619,10 @@
   "settingsRecordsTitle": "AI 记录",
   "settingsRecordsNote": "只记发了什么、多少字，不存原文。",
   "settingsColor": "颜色",
-  "settingsMarkNames": "标出设定里的名字",
   "settingsDisableGPU": "关闭显卡加速",
   "settingsGPUNext": "重启软件后生效。",
   "settingsRestartNow": "立即重启",
   "settingsForeshadow": "伏笔",
-  "settingsLateAfter": "超过多少章算久未回收",
-  "settingsLateLess": "减少 5 章",
-  "settingsLateMore": "增加 5 章",
-  "settingsLateChapters": "{count} 章",
-  "@settingsLateChapters": { "description": "伏笔「久未回收」的章数。", "placeholders": { "count": { "type": "int", "example": "20" } } },
-  "settingsLateNow": "当前有 {count} 个伏笔久未回收。",
-  "@settingsLateNow": { "description": "伏笔页的说明：现在有几个久未回收。", "placeholders": { "count": { "type": "int", "example": "2" } } },
   "settingsCheckText": "何时检查",
   "settingsWriting": "写作时",
   "settingsAutoContinue": "停笔后自动续写",
@@ -682,43 +1630,173 @@
   "settingsUsage": "用量",
   "settingsNoUsage": "还没用过 AI。",
   "settingsSpentRow": "{count} 次请求 · 输入 {input}，缓存命中 {cached}% · 输出 {output}",
-  "@settingsSpentRow": { "description": "本作品用量表里一行：请求数、输入、缓存命中比例、输出。", "placeholders": { "count": { "type": "int", "example": "12" }, "input": { "type": "String", "example": "9.6K" }, "cached": { "type": "int", "example": "60" }, "output": { "type": "String", "example": "1.7K" } } },
+  "@settingsSpentRow": {
+    "description": "本作品用量表里一行：请求数、输入、缓存命中比例、输出。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      },
+      "input": {
+        "type": "String",
+        "example": "9.6K"
+      },
+      "cached": {
+        "type": "int",
+        "example": "60"
+      },
+      "output": {
+        "type": "String",
+        "example": "1.7K"
+      }
+    }
+  },
   "settingsSpentCost": "约 ${amount, number, ::.00}",
-  "@settingsSpentCost": { "description": "按内置价格估的花费。", "placeholders": { "amount": { "type": "double", "example": "0.42" } } },
+  "@settingsSpentCost": {
+    "description": "按内置价格估的花费。",
+    "placeholders": {
+      "amount": {
+        "type": "double",
+        "example": "0.42"
+      }
+    }
+  },
   "settingsViewAll": "查看全部 {count} 次",
-  "@settingsViewAll": { "description": "用量下面的链接，后面写共几次请求。", "placeholders": { "count": { "type": "int", "example": "12" } } },
+  "@settingsViewAll": {
+    "description": "用量下面的链接，后面写共几次请求。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
   "settingsRecordsAll": "全部",
   "settingsFilterByFeature": "按功能看",
   "settingsNoRecords": "没有记录。",
   "settingsRecordDone": "完成",
   "settingsRecordCancelled": "已取消",
   "settingsRecordSent": "发了：{parts}",
-  "@settingsRecordSent": { "description": "AI 记录里一次请求发了哪几部分、各多大。", "placeholders": { "parts": { "type": "String", "example": "规则 1.1K · 设定 7 条 1.8K" } } },
+  "@settingsRecordSent": {
+    "description": "AI 记录里一次请求发了哪几部分、各多大。",
+    "placeholders": {
+      "parts": {
+        "type": "String",
+        "example": "规则 1.1K · 设定 7 条 1.8K"
+      }
+    }
+  },
   "settingsRecordActualCached": "实际用量：输入 {input}，其中缓存命中 {cached}；输出 {output}",
-  "@settingsRecordActualCached": { "description": "AI 记录里服务商算的实际用量，有缓存命中时。", "placeholders": { "input": { "type": "String", "example": "19.1K" }, "cached": { "type": "String", "example": "18.9K" }, "output": { "type": "String", "example": "52" } } },
+  "@settingsRecordActualCached": {
+    "description": "AI 记录里服务商算的实际用量，有缓存命中时。",
+    "placeholders": {
+      "input": {
+        "type": "String",
+        "example": "19.1K"
+      },
+      "cached": {
+        "type": "String",
+        "example": "18.9K"
+      },
+      "output": {
+        "type": "String",
+        "example": "52"
+      }
+    }
+  },
   "settingsRecordActual": "实际用量：输入 {input}；输出 {output}",
-  "@settingsRecordActual": { "description": "AI 记录里服务商算的实际用量，没有缓存命中时。", "placeholders": { "input": { "type": "String", "example": "7.5K" }, "output": { "type": "String", "example": "1.5K" } } },
+  "@settingsRecordActual": {
+    "description": "AI 记录里服务商算的实际用量，没有缓存命中时。",
+    "placeholders": {
+      "input": {
+        "type": "String",
+        "example": "7.5K"
+      },
+      "output": {
+        "type": "String",
+        "example": "1.5K"
+      }
+    }
+  },
   "settingsCostCurrency": "约 {currency}{amount, number, ::.00}",
-  "@settingsCostCurrency": { "description": "非美元币种的估算花费；美元复用 settingsSpentCost。", "placeholders": { "currency": { "type": "String", "example": "$" }, "amount": { "type": "double", "example": "0.42" } } },
+  "@settingsCostCurrency": {
+    "description": "非美元币种的估算花费；美元复用 settingsSpentCost。",
+    "placeholders": {
+      "currency": {
+        "type": "String",
+        "example": "$"
+      },
+      "amount": {
+        "type": "double",
+        "example": "0.42"
+      }
+    }
+  },
   "settingsNoPrice": "价格未知",
-  "@settingsNoPrice": { "description": "用量汇总里模型没有定价时显示。" },
+  "@settingsNoPrice": {
+    "description": "用量汇总里模型没有定价时显示。"
+  },
   "settingsUsageBack": "‹ 用量",
-  "@settingsUsageBack": { "description": "AI 记录页返回本作品用量的按钮，含返回箭头。" },
+  "@settingsUsageBack": {
+    "description": "AI 记录页返回本作品用量的按钮，含返回箭头。"
+  },
   "settingsRecordFailed": "失败：{why}",
-  "@settingsRecordFailed": { "description": "请求记录里失败结果的前缀；why 是底层错误原文。", "placeholders": { "why": { "type": "String", "example": "无法连接模型服务" } } },
+  "@settingsRecordFailed": {
+    "description": "请求记录里失败结果的前缀；why 是底层错误原文。",
+    "placeholders": {
+      "why": {
+        "type": "String",
+        "example": "无法连接模型服务"
+      }
+    }
+  },
   "settingsRecordNoThinking": "{model} · 不思考",
-  "@settingsRecordNoThinking": { "description": "请求记录里模型名和关闭思考的状态整行。", "placeholders": { "model": { "type": "String", "example": "qwen3" } } },
+  "@settingsRecordNoThinking": {
+    "description": "请求记录里模型名和关闭思考的状态整行。",
+    "placeholders": {
+      "model": {
+        "type": "String",
+        "example": "qwen3"
+      }
+    }
+  },
   "settingsRecordChapterGone": "已删除的章节",
-  "@settingsRecordChapterGone": { "description": "请求记录对应章节已经删除时的标题。" },
+  "@settingsRecordChapterGone": {
+    "description": "请求记录对应章节已经删除时的标题。"
+  },
   "settingsFeatureDraft": "起草",
   "settingsFeatureRewrite": "改写",
   "settingsFeatureContinue": "续写",
   "settingsModelFor": "{job}模型",
-  "@settingsModelFor": { "description": "某项 AI 工作用的模型输入框的名字。", "placeholders": { "job": { "type": "String", "example": "讨论" } } },
+  "@settingsModelFor": {
+    "description": "某项 AI 工作用的模型输入框的名字。",
+    "placeholders": {
+      "job": {
+        "type": "String",
+        "example": "讨论"
+      }
+    }
+  },
   "settingsServiceFor": "{job}使用的服务",
-  "@settingsServiceFor": { "description": "某项 AI 工作用哪个服务的下拉框的名字。", "placeholders": { "job": { "type": "String", "example": "讨论" } } },
+  "@settingsServiceFor": {
+    "description": "某项 AI 工作用哪个服务的下拉框的名字。",
+    "placeholders": {
+      "job": {
+        "type": "String",
+        "example": "讨论"
+      }
+    }
+  },
   "settingsEffortFor": "{job}的思考程度",
-  "@settingsEffortFor": { "description": "某项 AI 工作的思考程度下拉框的名字。", "placeholders": { "job": { "type": "String", "example": "讨论" } } },
+  "@settingsEffortFor": {
+    "description": "某项 AI 工作的思考程度下拉框的名字。",
+    "placeholders": {
+      "job": {
+        "type": "String",
+        "example": "讨论"
+      }
+    }
+  },
   "settingsCompressAt": "压缩阈值",
   "settingsEdit": "编辑",
   "settingsCloseAI": "关闭 AI",
@@ -733,7 +1811,15 @@
   "exportRangeChapter": "本章",
   "snapEmpty": "该历史版本为空",
   "trashWithChapters": "连同里面的 {count} 章",
-  "@trashWithChapters": { "description": "回收站里删掉的卷连同里面的章数。", "placeholders": { "count": { "type": "int", "example": "3" } } },
+  "@trashWithChapters": {
+    "description": "回收站里删掉的卷连同里面的章数。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "keysTitle": "快捷键",
   "dialogSourceTitle": "摘取原文",
   "dialogAddSetting": "加入设定",
@@ -743,23 +1829,67 @@
   "dialogAdd": "加入",
   "dialogSettingAdded": "已加入设定正文",
   "dialogLogEntry": "新增到正文 · {cat}：{text}",
-  "@dialogLogEntry": { "description": "活动记录里一条：把什么设定加进了正文。", "placeholders": { "cat": { "type": "String", "example": "人物" }, "text": { "type": "String", "example": "林晚怕黑" } } },
+  "@dialogLogEntry": {
+    "description": "活动记录里一条：把什么设定加进了正文。",
+    "placeholders": {
+      "cat": {
+        "type": "String",
+        "example": "人物"
+      },
+      "text": {
+        "type": "String",
+        "example": "林晚怕黑"
+      }
+    }
+  },
   "dialogSwapTitle": "全书替换",
   "dialogUnsavedTitle": "保存对「{chapter}」的修改？",
-  "@dialogUnsavedTitle": { "description": "关标签页时，这一章还有没存的修改。", "placeholders": { "chapter": { "type": "String", "example": "第一章：雨" } } },
+  "@dialogUnsavedTitle": {
+    "description": "关标签页时，这一章还有没存的修改。",
+    "placeholders": {
+      "chapter": {
+        "type": "String",
+        "example": "第一章：雨"
+      }
+    }
+  },
   "dialogUnsavedAbout": "不保存将丢失上次保存后的修改。",
   "dialogDontSave": "不保存",
   "dialogLeaveTitle": "还有 {count} 处改稿建议没有处理",
-  "@dialogLeaveTitle": { "description": "关闭作品时还有没处理的 改稿建议。", "placeholders": { "count": { "type": "int", "example": "2" } } },
+  "@dialogLeaveTitle": {
+    "description": "关闭作品时还有没处理的 改稿建议。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "dialogLeaveAbout": "关闭后将丢弃。",
   "dialogLeaveDiscard": "丢弃并关闭",
   "dialogNewBookTitle": "新建作品",
   "dialogNewBookUntitled": "未命名作品",
   "dialogNewBookNoPlace": "请填写作品位置。",
   "dialogNewBookTaken": "文件夹「{folder}」中已有文件，请更换名称或位置。",
-  "@dialogNewBookTaken": { "description": "新建作品的文件夹已有文件，folder 是文件夹名。", "placeholders": { "folder": { "type": "String", "example": "旧城灯匠" } } },
+  "@dialogNewBookTaken": {
+    "description": "新建作品的文件夹已有文件，folder 是文件夹名。",
+    "placeholders": {
+      "folder": {
+        "type": "String",
+        "example": "旧城灯匠"
+      }
+    }
+  },
   "dialogNewBookWillCreate": "将新建文件夹「{folder}」。",
-  "@dialogNewBookWillCreate": { "description": "新建作品时说明将新建的文件夹名。", "placeholders": { "folder": { "type": "String", "example": "未命名作品" } } },
+  "@dialogNewBookWillCreate": {
+    "description": "新建作品时说明将新建的文件夹名。",
+    "placeholders": {
+      "folder": {
+        "type": "String",
+        "example": "未命名作品"
+      }
+    }
+  },
   "dialogNewBookName": "作品名称",
   "dialogNewBookNameHint": "之后可修改",
   "dialogNewBookKind": "体裁",
@@ -784,22 +1914,68 @@
   "draftAboutOutline": "AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。",
   "draftAboutFlow": "起草在一段新的讨论里进行：写好的先在正文里显示为改稿建议，采纳后才写入，写入前保存历史版本；想改哪里，在讨论里接着说。",
   "draftAbout": "{scope}{flow}",
-  "@draftAbout": { "description": "起草对话框的说明：先写 AI 只扩写什么，再写起草怎么进行。中文两句直接相连，英文中间有空格。", "placeholders": { "scope": { "type": "String" }, "flow": { "type": "String" } } },
+  "@draftAbout": {
+    "description": "起草对话框的说明：先写 AI 只扩写什么，再写起草怎么进行。中文两句直接相连，英文中间有空格。",
+    "placeholders": {
+      "scope": {
+        "type": "String"
+      },
+      "flow": {
+        "type": "String"
+      }
+    }
+  },
   "draftItemCards": "本章的 {count} 张卡片",
-  "@draftItemCards": { "description": "起草时带上的本章卡片数，是「将带上……」列表里的一项。", "placeholders": { "count": { "type": "int", "example": "4" } } },
+  "@draftItemCards": {
+    "description": "起草时带上的本章卡片数，是「将带上……」列表里的一项。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
   "draftItemPrev": "上一章全文",
   "draftItemVolume": "本卷各章章纲",
   "draftItemBooks": "各卷卷纲",
   "draftListSep": "、",
   "draftSends": "将带上{items}等，约 {tokens} token；AI 需要时会自己再查。",
-  "@draftSends": { "description": "起草前说明会带上哪些内容、大约多少 token。", "placeholders": { "items": { "type": "String", "example": "本章的 4 张卡片、上一章全文、本卷各章章纲" }, "tokens": { "type": "String", "example": "9.6K" } } },
+  "@draftSends": {
+    "description": "起草前说明会带上哪些内容、大约多少 token。",
+    "placeholders": {
+      "items": {
+        "type": "String",
+        "example": "本章的 4 张卡片、上一章全文、本卷各章章纲"
+      },
+      "tokens": {
+        "type": "String",
+        "example": "9.6K"
+      }
+    }
+  },
   "draftUsing": "用讨论模型 {model} · {effort}；可在设置中「AI」配置里更换。",
-  "@draftUsing": { "description": "起草用的模型和思考程度。", "placeholders": { "model": { "type": "String", "example": "claude-opus-5-5" }, "effort": { "type": "String", "example": "Default" } } },
+  "@draftUsing": {
+    "description": "起草用的模型和思考程度。",
+    "placeholders": {
+      "model": {
+        "type": "String",
+        "example": "claude-opus-5-5"
+      },
+      "effort": {
+        "type": "String",
+        "example": "Default"
+      }
+    }
+  },
   "draftStart": "开始起草",
   "helpGroupWrite": "正文",
-  "@helpGroupWrite": { "description": "快捷键表里「正文」那一组的名字。" },
+  "@helpGroupWrite": {
+    "description": "快捷键表里「正文」那一组的名字。"
+  },
   "helpGroupGlobal": "全局",
-  "@helpGroupGlobal": { "description": "快捷键表里「全局」那一组的名字。" },
+  "@helpGroupGlobal": {
+    "description": "快捷键表里「全局」那一组的名字。"
+  },
   "helpSave": "立即保存（停笔片刻也会自动保存）",
   "helpNewChapter": "在本章之后新建章节",
   "helpRename": "重命名当前章节",
@@ -811,206 +1987,532 @@
   "helpUndoRedo": "撤销 / 重做",
   "helpDeleteWord": "向前 / 向后删除一个词",
   "helpWheel": "滚轮",
-  "@helpWheel": { "description": "快捷键表里鼠标的滚轮，前面接修饰键（Ctrl+滚轮、⌘滚轮），修饰键按系统写，不在这里。" },
+  "@helpWheel": {
+    "description": "快捷键表里鼠标的滚轮，前面接修饰键（Ctrl+滚轮、⌘滚轮），修饰键按系统写，不在这里。"
+  },
   "helpZoomText": "正文字号增大 / 减小",
   "helpZoomUI": "界面放大 / 缩小 / 实际大小",
   "helpOpenKeys": "打开快捷键列表",
   "genreWeb": "网文",
-  "@genreWeb": { "description": "作品的体裁，显示在新建作品、导入和书架上。" },
+  "@genreWeb": {
+    "description": "作品的体裁，显示在新建作品、导入和书架上。"
+  },
   "genreNovel": "出版小说",
-  "@genreNovel": { "description": "作品的体裁，显示在新建作品、导入和书架上。" },
+  "@genreNovel": {
+    "description": "作品的体裁，显示在新建作品、导入和书架上。"
+  },
   "genreScript": "剧本",
-  "@genreScript": { "description": "作品的体裁，显示在新建作品、导入和书架上。" },
+  "@genreScript": {
+    "description": "作品的体裁，显示在新建作品、导入和书架上。"
+  },
   "genreNonfiction": "非虚构",
-  "@genreNonfiction": { "description": "作品的体裁，显示在新建作品、导入和书架上。" },
+  "@genreNonfiction": {
+    "description": "作品的体裁，显示在新建作品、导入和书架上。"
+  },
   "settingsJobChat": "讨论",
-  "@settingsJobChat": { "description": "AI 设置里「讨论」这件事的名字。" },
+  "@settingsJobChat": {
+    "description": "AI 设置里「讨论」这件事的名字。"
+  },
   "recordsRules": "规则",
-  "@recordsRules": { "description": "AI 记录里一次请求发了哪几部分的名字。" },
+  "@recordsRules": {
+    "description": "AI 记录里一次请求发了哪几部分的名字。"
+  },
   "recordsLore": "设定",
-  "@recordsLore": { "description": "AI 记录里一次请求发了哪几部分的名字。" },
+  "@recordsLore": {
+    "description": "AI 记录里一次请求发了哪几部分的名字。"
+  },
   "recordsOutlines": "章纲和卷纲",
-  "@recordsOutlines": { "description": "AI 记录里一次请求发了哪几部分的名字。" },
+  "@recordsOutlines": {
+    "description": "AI 记录里一次请求发了哪几部分的名字。"
+  },
   "recordsChapterOutline": "章纲",
-  "@recordsChapterOutline": { "description": "AI 记录里一次请求发了哪几部分的名字。" },
+  "@recordsChapterOutline": {
+    "description": "AI 记录里一次请求发了哪几部分的名字。"
+  },
   "recordsVolumeOutlines": "本卷前面各章章纲",
-  "@recordsVolumeOutlines": { "description": "AI 记录里一次请求发了哪几部分的名字。" },
+  "@recordsVolumeOutlines": {
+    "description": "AI 记录里一次请求发了哪几部分的名字。"
+  },
   "recordsPrevChapter": "上一章全文",
-  "@recordsPrevChapter": { "description": "AI 记录里一次请求发了哪几部分的名字。" },
+  "@recordsPrevChapter": {
+    "description": "AI 记录里一次请求发了哪几部分的名字。"
+  },
   "recordsWholeChapter": "本章全文",
-  "@recordsWholeChapter": { "description": "AI 记录里一次请求发了哪几部分的名字。" },
+  "@recordsWholeChapter": {
+    "description": "AI 记录里一次请求发了哪几部分的名字。"
+  },
   "recordsChapterText": "本章正文",
-  "@recordsChapterText": { "description": "AI 记录里一次请求发了哪几部分的名字。" },
+  "@recordsChapterText": {
+    "description": "AI 记录里一次请求发了哪几部分的名字。"
+  },
   "recordsChapterSoFar": "本章前文",
-  "@recordsChapterSoFar": { "description": "AI 记录里一次请求发了哪几部分的名字。" },
+  "@recordsChapterSoFar": {
+    "description": "AI 记录里一次请求发了哪几部分的名字。"
+  },
   "recordsBeforeCursor": "光标前的正文",
-  "@recordsBeforeCursor": { "description": "AI 记录里一次请求发了哪几部分的名字。" },
+  "@recordsBeforeCursor": {
+    "description": "AI 记录里一次请求发了哪几部分的名字。"
+  },
   "recordsChatSummary": "讨论摘要",
-  "@recordsChatSummary": { "description": "AI 记录里一次请求发了哪几部分的名字。" },
+  "@recordsChatSummary": {
+    "description": "AI 记录里一次请求发了哪几部分的名字。"
+  },
   "recordsEarlierChat": "之前的对话",
-  "@recordsEarlierChat": { "description": "AI 记录里一次请求发了哪几部分的名字。" },
+  "@recordsEarlierChat": {
+    "description": "AI 记录里一次请求发了哪几部分的名字。"
+  },
   "recordsEarlierChatLookups": "之前的对话和查阅",
-  "@recordsEarlierChatLookups": { "description": "AI 记录里一次请求发了哪几部分的名字。" },
+  "@recordsEarlierChatLookups": {
+    "description": "AI 记录里一次请求发了哪几部分的名字。"
+  },
   "recordsThisMessage": "本次发言",
-  "@recordsThisMessage": { "description": "AI 记录里一次请求发了哪几部分的名字。" },
+  "@recordsThisMessage": {
+    "description": "AI 记录里一次请求发了哪几部分的名字。"
+  },
   "recordsLookups": "查阅结果",
-  "@recordsLookups": { "description": "AI 记录里一次请求发了哪几部分的名字。" },
+  "@recordsLookups": {
+    "description": "AI 记录里一次请求发了哪几部分的名字。"
+  },
   "recordsEffortNone": "不思考",
-  "@recordsEffortNone": { "description": "AI 记录里的思考程度：关掉思考。" },
+  "@recordsEffortNone": {
+    "description": "AI 记录里的思考程度：关掉思考。"
+  },
   "recordsFailNoModel": "失败：无法连接模型服务",
-  "@recordsFailNoModel": { "description": "AI 记录里的结果：请求失败。" },
+  "@recordsFailNoModel": {
+    "description": "AI 记录里的结果：请求失败。"
+  },
   "shelfNoWords": "暂无正文",
-  "@shelfNoWords": { "description": "书架上还没有正文的作品，字数处显示这几个字。" },
+  "@shelfNoWords": {
+    "description": "书架上还没有正文的作品，字数处显示这几个字。"
+  },
   "commonNumber": "{n}",
-  "@commonNumber": { "description": "单写一个数，比如目录里每章的字数。按语言分组。", "placeholders": { "n": { "type": "int", "example": "3240" } } },
+  "@commonNumber": {
+    "description": "单写一个数，比如目录里每章的字数。按语言分组。",
+    "placeholders": {
+      "n": {
+        "type": "int",
+        "example": "3240"
+      }
+    }
+  },
   "snapAITalkGone": "已删除的讨论",
-  "@snapAITalkGone": { "description": "snapAIFrom 里那段讨论已经删了。" },
+  "@snapAITalkGone": {
+    "description": "snapAIFrom 里那段讨论已经删了。"
+  },
   "settingsTabExtensions": "扩展",
-  "@settingsTabExtensions": { "description": "设置左栏的一项：所有扩展的开关和各自的页。" },
-  "modMarks": "正文标记",
-  "@modMarks": { "description": "「功能」里一个前置扩展的名字，照代码里的 ID 写，不翻。" },
-  "modMarksAbout": "在正文上画高亮和标注",
-  "@modMarksAbout": { "description": "「扩展」里：这个扩展是做什么的，一句话。" },
+  "@settingsTabExtensions": {
+    "description": "设置左栏的一项：所有扩展的开关和各自的页。"
+  },
   "modUsage": "用量记录",
-  "@modUsage": { "description": "「功能」里一个模块的名字。" },
+  "@modUsage": {
+    "description": "「功能」里一个模块的名字。"
+  },
   "modUsageAbout": "记下 AI 用了多少、花了多少",
-  "@modUsageAbout": { "description": "「扩展」里：这个扩展是做什么的，一句话。" },
+  "@modUsageAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  },
   "modContinue": "续写",
-  "@modContinue": { "description": "「功能」里一个模块的名字。" },
+  "@modContinue": {
+    "description": "「功能」里一个模块的名字。"
+  },
   "modContinueAbout": "停笔时 AI 接着写一句",
-  "@modContinueAbout": { "description": "「扩展」里：这个扩展是做什么的，一句话。" },
+  "@modContinueAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  },
   "modDraft": "起草",
-  "@modDraft": { "description": "「功能」里一个模块的名字。" },
+  "@modDraft": {
+    "description": "「功能」里一个模块的名字。"
+  },
   "modDraftAbout": "照提纲让 AI 写初稿",
-  "@modDraftAbout": { "description": "「扩展」里：这个扩展是做什么的，一句话。" },
+  "@modDraftAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  },
   "modPropose": "改稿建议",
-  "@modPropose": { "description": "「功能」里一个模块的名字。" },
+  "@modPropose": {
+    "description": "「功能」里一个模块的名字。"
+  },
   "modProposeAbout": "AI 提的修改，同意才写入",
-  "@modProposeAbout": { "description": "「扩展」里：这个扩展是做什么的，一句话。" },
+  "@modProposeAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  },
   "modCheck": "检查",
-  "@modCheck": { "description": "「功能」里一个模块的名字。" },
+  "@modCheck": {
+    "description": "「功能」里一个模块的名字。"
+  },
   "modCheckAbout": "找出和设定矛盾的地方",
-  "@modCheckAbout": { "description": "「扩展」里：这个扩展是做什么的，一句话。" },
-  "modHooks": "伏笔",
-  "@modHooks": { "description": "「功能」里一个模块的名字。" },
-  "modHooksAbout": "记下伏笔，久了提醒回收",
-  "@modHooksAbout": { "description": "「扩展」里：这个扩展是做什么的，一句话。" },
-  "modNotes": "批注",
-  "@modNotes": { "description": "「功能」里一个模块的名字。" },
-  "modNotesAbout": "在正文旁边写备注",
-  "@modNotesAbout": { "description": "「扩展」里：这个扩展是做什么的，一句话。" },
-  "modNames": "名字补全",
-  "@modNames": { "description": "「功能」里一个模块的名字。" },
-  "modNamesAbout": "打字时补全人名、地名",
-  "@modNamesAbout": { "description": "「扩展」里：这个扩展是做什么的，一句话。" },
+  "@modCheckAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  },
   "modGroupLibraries": "基础",
-  "@modGroupLibraries": { "description": "「功能」页里一组的标题：给别的扩展用、自己没有界面的扩展（像 Minecraft 的前置 mod）。" },
+  "@modGroupLibraries": {
+    "description": "「功能」页里一组的标题：给别的扩展用、自己没有界面的扩展（像 Minecraft 的前置 mod）。"
+  },
   "modLibrariesAbout": "其他功能靠它们运行。",
-  "@modLibrariesAbout": { "description": "「功能」页「前置」那一组标题下的说明。" },
+  "@modLibrariesAbout": {
+    "description": "「功能」页「前置」那一组标题下的说明。"
+  },
   "modGroupWrite": "写作",
-  "@modGroupWrite": { "description": "「扩展」总览里一组的标题。" },
+  "@modGroupWrite": {
+    "description": "「扩展」总览里一组的标题。"
+  },
   "modGroupLore": "资料",
-  "@modGroupLore": { "description": "「扩展」总览里一组的标题。" },
+  "@modGroupLore": {
+    "description": "「扩展」总览里一组的标题。"
+  },
   "modGroupAI": "AI",
-  "@modGroupAI": { "description": "「扩展」总览里一组的标题。" },
+  "@modGroupAI": {
+    "description": "「扩展」总览里一组的标题。"
+  },
   "modGroupFiles": "作品与文件",
-  "@modGroupFiles": { "description": "「扩展」总览里一组的标题。" },
+  "@modGroupFiles": {
+    "description": "「扩展」总览里一组的标题。"
+  },
   "modGroupInstalled": "另装",
-  "@modGroupInstalled": { "description": "设置左栏、「扩展」总览里一组的标题：作者另外装的扩展。" },
+  "@modGroupInstalled": {
+    "description": "设置左栏、「扩展」总览里一组的标题：作者另外装的扩展。"
+  },
   "modOff": "已关闭",
-  "@modOff": { "description": "「扩展」总览一格右边：这个扩展关着，或它需要的关着。" },
+  "@modOff": {
+    "description": "「扩展」总览一格右边：这个扩展关着，或它需要的关着。"
+  },
   "modFollowLocal": "恢复默认",
-  "@modFollowLocal": { "description": "扩展页头「⋯」菜单的一项：这部作品不再单独设置，跟这台电脑上的一样。" },
+  "@modFollowLocal": {
+    "description": "扩展页头「⋯」菜单的一项：这部作品不再单独设置，跟这台电脑上的一样。"
+  },
   "modBookOnlyOff": "只在本作品关闭",
-  "@modBookOnlyOff": { "description": "扩展页头「⋯」菜单的一项：这部作品单独关掉这个扩展，别的作品不变。" },
+  "@modBookOnlyOff": {
+    "description": "扩展页头「⋯」菜单的一项：这部作品单独关掉这个扩展，别的作品不变。"
+  },
   "modBookOnlyOn": "只在本作品打开",
-  "@modBookOnlyOn": { "description": "扩展页头「⋯」菜单的一项：这部作品单独打开这个扩展，别的作品不变。" },
+  "@modBookOnlyOn": {
+    "description": "扩展页头「⋯」菜单的一项：这部作品单独打开这个扩展，别的作品不变。"
+  },
   "modBookOff": "本作品里已关闭",
-  "@modBookOff": { "description": "扩展页头灰的一行：这部作品单独关掉了它。" },
+  "@modBookOff": {
+    "description": "扩展页头灰的一行：这部作品单独关掉了它。"
+  },
   "modBookOn": "本作品里已打开",
-  "@modBookOn": { "description": "扩展页头灰的一行：这部作品单独打开了它。" },
+  "@modBookOn": {
+    "description": "扩展页头灰的一行：这部作品单独打开了它。"
+  },
   "modFullwidth": "全角标点",
-  "@modFullwidth": { "description": "原型里假装另装的一个扩展的名字。" },
+  "@modFullwidth": {
+    "description": "原型里假装另装的一个扩展的名字。"
+  },
   "modFullwidthAbout": "打字时把半角标点换成全角",
-  "@modFullwidthAbout": { "description": "「扩展」里：这个扩展是做什么的，一句话。" },
+  "@modFullwidthAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  },
   "modFullwidthQuotes": "引号也换成「」",
-  "@modFullwidthQuotes": { "description": "原型里假装另装的「全角标点」自己的一项设置。" },
+  "@modFullwidthQuotes": {
+    "description": "原型里假装另装的「全角标点」自己的一项设置。"
+  },
   "settingsLanguage": "语言",
-  "@settingsLanguage": { "description": "设置「外观」里选界面语言的那一行。" },
+  "@settingsLanguage": {
+    "description": "设置「外观」里选界面语言的那一行。"
+  },
   "settingsLangSystem": "跟随系统",
-  "@settingsLangSystem": { "description": "设置「语言」里的第一项。" },
+  "@settingsLangSystem": {
+    "description": "设置「语言」里的第一项。"
+  },
   "modListSep": "、",
-  "@modListSep": { "description": "「功能」页里把几个扩展的名字连成一串时中间的分隔。" },
+  "@modListSep": {
+    "description": "「功能」页里把几个扩展的名字连成一串时中间的分隔。"
+  },
   "modNeeds": "需要 {names}",
-  "@modNeeds": { "description": "「功能」页一行里：这个扩展必需哪些扩展。", "placeholders": { "names": { "type": "String", "example": "AI、context" } } },
+  "@modNeeds": {
+    "description": "「功能」页一行里：这个扩展必需哪些扩展。",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "example": "AI、context"
+      }
+    }
+  },
   "modOptional": "配合{names}更好用",
-  "@modOptional": { "description": "「功能」页一行里：这个扩展可选用哪些扩展，它们开着时多一些功能。", "placeholders": { "names": { "type": "String", "example": "大纲、设定" } } },
+  "@modOptional": {
+    "description": "「功能」页一行里：这个扩展可选用哪些扩展，它们开着时多一些功能。",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "example": "大纲、设定"
+      }
+    }
+  },
   "modNeededBy": "{names}要用它",
-  "@modNeededBy": { "description": "「功能」页一行里：哪些扩展必需这一个。", "placeholders": { "names": { "type": "String", "example": "讨论、检查" } } },
+  "@modNeededBy": {
+    "description": "「功能」页一行里：哪些扩展必需这一个。",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "example": "讨论、检查"
+      }
+    }
+  },
   "modNobodyNeeds": "暂时没有功能用它",
-  "@modNobodyNeeds": { "description": "「功能」页前置扩展那一行：现在没有哪个扩展需要它。" },
+  "@modNobodyNeeds": {
+    "description": "「功能」页前置扩展那一行：现在没有哪个扩展需要它。"
+  },
   "modWaiting": "{names}已关闭，暂时用不了",
-  "@modWaiting": { "description": "「功能」页一行里：它自己开着，但它需要的扩展关着。", "placeholders": { "names": { "type": "String", "example": "AI" } } },
+  "@modWaiting": {
+    "description": "「功能」页一行里：它自己开着，但它需要的扩展关着。",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "example": "AI"
+      }
+    }
+  },
   "modAskOffTitle": "关闭「{name}」？",
-  "@modAskOffTitle": { "description": "拨「功能」页的开关会连带别的扩展时，先问的那一句的标题。", "placeholders": { "name": { "type": "String", "example": "context" } } },
+  "@modAskOffTitle": {
+    "description": "拨「功能」页的开关会连带别的扩展时，先问的那一句的标题。",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "context"
+      }
+    }
+  },
   "modAskOffAbout": "{names}也会一起关闭。",
-  "@modAskOffAbout": { "description": "关闭一个扩展前问的那一句：哪些扩展会一起停用。", "placeholders": { "names": { "type": "String", "example": "讨论、检查" } } },
+  "@modAskOffAbout": {
+    "description": "关闭一个扩展前问的那一句：哪些扩展会一起停用。",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "example": "讨论、检查"
+      }
+    }
+  },
   "modAskOnTitle": "打开「{name}」？",
-  "@modAskOnTitle": { "description": "打开一个扩展前问的那一句的标题：它需要的扩展关着。", "placeholders": { "name": { "type": "String", "example": "检查" } } },
+  "@modAskOnTitle": {
+    "description": "打开一个扩展前问的那一句的标题：它需要的扩展关着。",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "检查"
+      }
+    }
+  },
   "modAskOnAbout": "{names}会一起打开。",
-  "@modAskOnAbout": { "description": "打开一个扩展前问的那一句：它需要的哪些扩展会一起打开。", "placeholders": { "names": { "type": "String", "example": "AI" } } },
+  "@modAskOnAbout": {
+    "description": "打开一个扩展前问的那一句：它需要的哪些扩展会一起打开。",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "example": "AI"
+      }
+    }
+  },
   "modAskLibraryLocal": "{names}是基础扩展，没有只管一部作品的开关，会在这台电脑的所有作品里打开。",
-  "@modAskLibraryLocal": { "description": "只在本作品打开一个扩展前问的那一句里，补的一句：一起打开的基础扩展管本机的所有作品。", "placeholders": { "names": { "type": "String", "example": "资料库" } } },
+  "@modAskLibraryLocal": {
+    "description": "只在本作品打开一个扩展前问的那一句里，补的一句：一起打开的基础扩展管本机的所有作品。",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "example": "资料库"
+      }
+    }
+  },
   "modTurnOff": "关闭",
-  "@modTurnOff": { "description": "关闭扩展前问的那一句里的主按钮。" },
+  "@modTurnOff": {
+    "description": "关闭扩展前问的那一句里的主按钮。"
+  },
   "modTurnOn": "打开",
   "modLedgerAdds": "功能入口",
-  "@modLedgerAdds": { "description": "扩展详情页：它在界面上加了哪些东西，扩展关着也列。" },
+  "@modLedgerAdds": {
+    "description": "扩展详情页：它在界面上加了哪些东西，扩展关着也列。"
+  },
   "modLedgerInjected": "介入",
-  "@modLedgerInjected": { "description": "扩展详情页：它插在别人的哪一步前后，或替换了哪一步。" },
+  "@modLedgerInjected": {
+    "description": "扩展详情页：它插在别人的哪一步前后，或替换了哪一步。"
+  },
   "modLedgerData": "数据",
-  "@modLedgerData": { "description": "扩展详情页：它的数据放在哪、多大。" },
+  "@modLedgerData": {
+    "description": "扩展详情页：它的数据放在哪、多大。"
+  },
   "modLedgerErrors": "出错记录",
-  "@modLedgerErrors": { "description": "扩展详情页：它出过的错，新的在上。" },
+  "@modLedgerErrors": {
+    "description": "扩展详情页：它出过的错，新的在上。"
+  },
   "modAdds": "{point, select, pane {右栏的一页：{names}} page {一页：{names}} settings {设置里的一页：{names}} prefs {设置项} dialog {对话框} prose {正文右键菜单里的项} file {「文件」菜单里的项} edit {「编辑」菜单里的项} view {「视图」菜单里的项} marks {正文上的标记和页边批注} pending {待处理里的一组} keys {快捷键} tools {正文上方的按钮} footer {底栏里的字} export {导出的一项：{names}} chead {章名下面的一行} beside {讨论页、大纲页旁的右栏} names {正文里标出的名字} usage {「AI」设置里的入口} other {其他}}",
-  "@modAdds": { "description": "扩展详情页「功能入口」里的一行：在哪种地方加了东西，有名字的写出名字。", "placeholders": { "point": { "type": "String", "example": "pane" }, "names": { "type": "String", "example": "设定" } } },
+  "@modAdds": {
+    "description": "扩展详情页「功能入口」里的一行：在哪种地方加了东西，有名字的写出名字。",
+    "placeholders": {
+      "point": {
+        "type": "String",
+        "example": "pane"
+      },
+      "names": {
+        "type": "String",
+        "example": "设定"
+      }
+    }
+  },
   "modInjected": "{where}：{kind, select, before {在它之前} after {在它之后} around {包住它} other {替换了默认的}}",
-  "@modInjected": { "description": "扩展详情页「介入」里的一行。", "placeholders": { "where": { "type": "String", "example": "编辑器处理按键" }, "kind": { "type": "String", "example": "before" } } },
+  "@modInjected": {
+    "description": "扩展详情页「介入」里的一行。",
+    "placeholders": {
+      "where": {
+        "type": "String",
+        "example": "编辑器处理按键"
+      },
+      "kind": {
+        "type": "String",
+        "example": "before"
+      }
+    }
+  },
   "modInjectKeys": "编辑器处理按键",
-  "@modInjectKeys": { "description": "「介入」里说的那一步：编辑器处理作者按的键。" },
+  "@modInjectKeys": {
+    "description": "「介入」里说的那一步：编辑器处理作者按的键。"
+  },
   "modDataBook": "本作品的 {path}，{size}",
-  "@modDataBook": { "description": "扩展详情页「数据」：放在作品文件夹里。", "placeholders": { "path": { "type": "String", "example": "ext/lore" }, "size": { "type": "String", "example": "12.5 KB" } } },
+  "@modDataBook": {
+    "description": "扩展详情页「数据」：放在作品文件夹里。",
+    "placeholders": {
+      "path": {
+        "type": "String",
+        "example": "ext/lore"
+      },
+      "size": {
+        "type": "String",
+        "example": "12.5 KB"
+      }
+    }
+  },
   "modDataLocal": "这台电脑上的 {path}，{size}",
-  "@modDataLocal": { "description": "扩展详情页「数据」：放在本机，不跟作品走。", "placeholders": { "path": { "type": "String", "example": "ext/goal" }, "size": { "type": "String", "example": "0.9 KB" } } },
+  "@modDataLocal": {
+    "description": "扩展详情页「数据」：放在本机，不跟作品走。",
+    "placeholders": {
+      "path": {
+        "type": "String",
+        "example": "ext/goal"
+      },
+      "size": {
+        "type": "String",
+        "example": "0.9 KB"
+      }
+    }
+  },
   "modErrorRow": "{at} · {where}：{message}",
   "modInjectDocx": "导出 docx",
-  "@modInjectDocx": { "description": "「介入」里说的那一步：把作品导出成 docx。" },
+  "@modInjectDocx": {
+    "description": "「介入」里说的那一步：把作品导出成 docx。"
+  },
   "modInjectConflict": "{where}：{names}也要替换它，两边都没生效，暂用默认的。",
-  "@modInjectConflict": { "description": "两个扩展都要替换同一步：都不生效，等作者在下面选一个。", "placeholders": { "where": { "type": "String", "example": "导出 docx" }, "names": { "type": "String", "example": "「古籍版式」" } } },
+  "@modInjectConflict": {
+    "description": "两个扩展都要替换同一步：都不生效，等作者在下面选一个。",
+    "placeholders": {
+      "where": {
+        "type": "String",
+        "example": "导出 docx"
+      },
+      "names": {
+        "type": "String",
+        "example": "「古籍版式」"
+      }
+    }
+  },
   "modInjectNotUsed": "{where}：没生效，用的是{name}",
-  "@modInjectNotUsed": { "description": "替换同一步时作者选了别的：这一个没生效。", "placeholders": { "where": { "type": "String", "example": "导出 docx" }, "name": { "type": "String", "example": "默认的" } } },
+  "@modInjectNotUsed": {
+    "description": "替换同一步时作者选了别的：这一个没生效。",
+    "placeholders": {
+      "where": {
+        "type": "String",
+        "example": "导出 docx"
+      },
+      "name": {
+        "type": "String",
+        "example": "默认的"
+      }
+    }
+  },
   "modUseDefault": "默认的",
-  "@modUseDefault": { "description": "替换冲突时的一个选项：不用扩展的，照软件原来的做。" },
+  "@modUseDefault": {
+    "description": "替换冲突时的一个选项：不用扩展的，照软件原来的做。"
+  },
   "modInjectChoose": "用哪个",
-  "@modInjectChoose": { "description": "替换冲突时那一排选项的无障碍名。" },
+  "@modInjectChoose": {
+    "description": "替换冲突时那一排选项的无障碍名。"
+  },
   "modVertical": "竖排导出",
-  "@modVertical": { "description": "原型里假装另装的扩展，演示替换冲突。" },
+  "@modVertical": {
+    "description": "原型里假装另装的扩展，演示替换冲突。"
+  },
   "modVerticalAbout": "把 docx 导出成竖排",
   "modClassic": "古籍版式",
-  "@modClassic": { "description": "原型里假装另装的扩展，演示替换冲突和快捷键冲突。" },
+  "@modClassic": {
+    "description": "原型里假装另装的扩展，演示替换冲突和快捷键冲突。"
+  },
   "modClassicAbout": "按古籍的版式导出 docx",
   "keysConflict": "{names}也要这个键，现在「{winner}」的生效。不要的那个可在「扩展」里关掉。",
-  "@keysConflict": { "description": "快捷键表里一个键被两个扩展要了：写明还有谁、谁生效、怎么办。", "placeholders": { "names": { "type": "String", "example": "「古籍版式」" }, "winner": { "type": "String", "example": "讨论" } } },
-  "@modErrorRow": { "description": "扩展详情页「出错记录」里的一行：什么时候、出在哪个回调、错误原文。", "placeholders": { "at": { "type": "String", "example": "今天 10:32" }, "where": { "type": "String", "example": "draw" }, "message": { "type": "String", "example": "draw failed" } } },
-  "@modTurnOn": { "description": "打开扩展前问的那一句里的主按钮。" },
+  "@keysConflict": {
+    "description": "快捷键表里一个键被两个扩展要了：写明还有谁、谁生效、怎么办。",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "example": "「古籍版式」"
+      },
+      "winner": {
+        "type": "String",
+        "example": "讨论"
+      }
+    }
+  },
+  "@modErrorRow": {
+    "description": "扩展详情页「出错记录」里的一行：什么时候、出在哪个回调、错误原文。",
+    "placeholders": {
+      "at": {
+        "type": "String",
+        "example": "今天 10:32"
+      },
+      "where": {
+        "type": "String",
+        "example": "draw"
+      },
+      "message": {
+        "type": "String",
+        "example": "draw failed"
+      }
+    }
+  },
+  "@modTurnOn": {
+    "description": "打开扩展前问的那一句里的主按钮。"
+  },
   "extFailed": "{name}出错，已停下：{error}",
-  "@extFailed": { "description": "应用界面提示：一个扩展出错后停下了。出错的位置记在扩展的账里，不进提示条。","placeholders":{"name":{"type":"String","example":"手机预览"},"error":{"type":"String","example":"draw failed"}} },
+  "@extFailed": {
+    "description": "应用界面提示：一个扩展出错后停下了。出错的位置记在扩展的账里，不进提示条。",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "手机预览"
+      },
+      "error": {
+        "type": "String",
+        "example": "draw failed"
+      }
+    }
+  },
   "extFileUnreadable": "扩展设置无法读取，本次按默认处理：{error}",
-  "@extFileUnreadable": { "description": "应用界面提示：扩展的开关和设置文件读不出来，这次按默认的来，坏文件不动。","placeholders":{"error":{"type":"String","example":"invalid JSON"}} },
+  "@extFileUnreadable": {
+    "description": "应用界面提示：扩展的开关和设置文件读不出来，这次按默认的来，坏文件不动。",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "invalid JSON"
+      }
+    }
+  },
   "checkAlsoOpen": "尚未处理",
-  "@checkAlsoOpen": { "description": "检查页「其他章节里的类似情况」：那一处还没处理。" },
-  "@chatNeedModel": {"description":"Typed AI validation failure displayed by desk."},
-  "@chatChapterGone": {"description":"Typed AI validation failure displayed by desk."},
+  "@checkAlsoOpen": {
+    "description": "检查页「其他章节里的类似情况」：那一处还没处理。"
+  },
+  "@chatNeedModel": {
+    "description": "Typed AI validation failure displayed by desk."
+  },
+  "@chatChapterGone": {
+    "description": "Typed AI validation failure displayed by desk."
+  },
   "workspaceTitleEmpty": "标题不能为空",
   "@workspaceTitleEmpty": {
     "description": "Application error or display text; does not change saved book content."
@@ -1056,12 +2558,54 @@
     }
   },
   "bookLanguageUnsupported": "作品语言“{language}”不受支持。请使用 zh-Hans 或 en。",
-  "@bookLanguageUnsupported": {"placeholders": {"language": {"type": "String"}}},
-  "@statusWordCount": {"placeholders": {"unit": {"type": "String"}}},
-  "@statusShort": {"placeholders": {"unit": {"type": "String"}}},
-  "@statusWordsTip": {"placeholders": {"unit": {"type": "String"}}},
-  "@draftGoal": {"placeholders": {"unit": {"type": "String"}}},
-  "@draftGoalLabel": {"placeholders": {"unit": {"type": "String"}}},
-  "@draftGoalInvalid": {"placeholders": {"unit": {"type": "String"}}},
+  "@bookLanguageUnsupported": {
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "@statusWordCount": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@statusShort": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@statusWordsTip": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@draftGoal": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@draftGoalLabel": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@draftGoalInvalid": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
   "cmdCategories": "作品分类"
 }

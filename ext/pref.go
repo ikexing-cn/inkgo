@@ -34,7 +34,7 @@ func Setting[T any](r *Registrar, name string, schema Schema[T]) *Pref[T] {
 	schema.Choices = append([]Choice[T](nil), schema.Choices...)
 	p := &Pref[T]{h: r.h, id: id, schema: schema}
 	r.h.prefs = append(r.h.prefs, p)
-	r.e.ledger.Settings = append(r.e.ledger.Settings, SettingInfo{ID: id, Title: schema.Title, Desc: schema.Desc, Scope: schema.Scope, Group: schema.Group, Order: schema.Order, Schema: schema})
+	r.e.ledger.Settings = append(r.e.ledger.Settings, SettingInfo{ID: id, Title: schema.Title, Desc: schema.Desc, Scope: schema.Scope, Group: schema.Group, Order: schema.Order, Schema: schema, Read: func() any { return p.Get() }, Write: func(v any) { p.Set(v.(T)) }})
 	return p
 }
 func (p *Pref[T]) book() Book {

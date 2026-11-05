@@ -1,19 +1,16 @@
-package desk
+package notes
 
 import (
 	"cmp"
 	"math"
 	"slices"
-	"strings"
 	"time"
-	"unicode/utf8"
-	"writer/ext/lore/loreapi"
+	"writer/ext/notes/notestext"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/book"
 	"writer/desk/kit"
-	"writer/ext"
-	"writer/ext/hostapi"
-	"writer/locales"
+	"writer/editor"
 	"writer/workspace"
 )
 
@@ -21,41 +18,21 @@ type noteAction struct {
 	label string
 	run   func()
 }
-
-func (a *App) checkActions(it checkItem) []noteAction {
-	leave := noteAction{locales.CheckNoChange(), func() { a.setMeant(it) }}
-	prose := noteAction{locales.CheckEditText(), func() { a.findInChapter(it.node, it.f.Quote) }}
-	switch it.f.Kind {
-	case workspace.FindNew:
-		leave.label = locales.CheckIgnore()
-		return []noteAction{leave, {locales.CheckAddToSettings(), func() { a.takeFound(it) }}}
-	case workspace.FindConflict:
-		if !a.entryNavigationAvailable() {
-			return []noteAction{leave, prose}
-		}
-		return []noteAction{leave, {locales.CheckEditSetting(), func() {
-			a.findInChapter(it.node, it.f.Quote)
-			a.entryNavigation(func(n loreapi.EntryNavigation) { n.Edit(it.entry) })
-			a.savePrefs()
-		}}, prose}
-	}
-	return []noteAction{leave, prose}
-}
-
 type marginNote struct {
 	idea                  *workspace.Idea
 	id, kind, title, text string
 	start, end            int
 	warn                  bool
-	check                 *checkItem
-	fore                  string
 	open                  func()
 	actions               []noteAction
 }
 
 type marginKey struct {
-	doubtKey
-	changes uint64
+	book              *book.Book
+	version, doc      int
+	ed                *editor.Editor
+	chapter, language string
+	changes           uint64
 }
 
 type marginState struct {
@@ -81,102 +58,41 @@ type marginDeparture struct {
 
 // marginNotes resolves quotes only when the document or the book changes.
 // Positions on each frame then cost one lookup per note, not per character.
-func (a *App) marginNotes() []marginNote {
-	m := &a.write.margin
-	return m.notes.get(marginKey{doubtKey{a.checkKey(), a.checksOn()}, a.extensions.Changes()}, func() []marginNote {
-		ed := a.write.cur().ed
-		if ed == nil {
-			return nil
-		}
-		text, _ := a.liveText()
+func (a *Panel) marginNotes() []marginNote {
+	m := &a.margin
+	chapter, ed, _ := a.services.Book.Chapter()
+	if ed == nil {
+		return nil
+	}
+	key := marginKey{a.services.Book.Content(), a.services.Book.Content().Version(), ed.Doc.Version(), ed, chapter, notestext.NotesNone(), a.reader.Get().Revision()}
+	return m.notes.get(key, func() []marginNote {
 		var out []marginNote
-		span := func(quote string) (int, int, bool) {
-			at := strings.Index(text, quote)
-			if quote == "" || at < 0 {
-				return 0, 0, false
-			}
-			start := utf8.RuneCountInString(text[:at])
-			return start, start + utf8.RuneCountInString(quote), true
-		}
-		if a.checksOn() {
-			for _, it := range a.checkItems(false) {
-				if !it.here {
-					continue
-				}
-				start, end, ok := span(it.f.Quote)
-				if !ok {
-					continue
-				}
-				n := marginNote{id: "check-" + it.f.ID, kind: kindLabel(it.f.Kind), title: it.f.Title, start: start, end: end, warn: true, check: &it}
-				switch it.f.Kind {
-				case workspace.FindConflict:
-					n.kind, n.text = locales.NotesKindInconsistent(), locales.NotesSays(it.f.Says)
-				case workspace.FindNew:
-					n.text = it.f.Text
-				}
-				out = append(out, n)
-			}
-		}
-		for _, f := range a.foreshadows() {
-			if f.Status() != workspace.ForeOpen && f.Status() != workspace.ForeDone {
+		for _, v := range a.reader.Get().Items(chapter, ed.Doc.String()) {
+			if v.Kind == "" {
 				continue
 			}
-			if f.Here && f.End > f.Start {
-				kind := locales.NotesKindHook()
-				if f.Status() == workspace.ForeDone {
-					kind = locales.NotesKindHookPaid()
-				}
-				out = append(out, marginNote{id: "fore-" + f.ID, kind: kind, title: foreName(f), start: f.Start, end: f.End, fore: f.ID})
+			n := marginNote{idea: v.Idea, id: v.ID, kind: v.Kind, title: v.Title, text: v.Text, start: v.Start, end: v.End, warn: v.Warn, open: v.Open}
+			for _, act := range v.Actions {
+				n.actions = append(n.actions, noteAction{act.Label, act.Run})
 			}
-			for _, p := range f.Payoffs {
-				if p.Here && p.End > p.Start {
-					out = append(out, marginNote{id: "pay-" + p.ID, kind: locales.NotesKindPayoff(), title: foreName(f), text: locales.NotesPlanted(f.Title), start: p.Start, end: p.End, fore: f.ID})
-				}
-			}
-		}
-		for _, item := range ext.Items(a.extensions, hostapi.MarginSources) {
-			var notes []hostapi.MarginItem
-			if ext.Guard(a.extensions, item.Owner, item.ID, func() { notes = item.Value.Notes(a.write.node, text) }) != nil {
-				continue
-			}
-			for _, v := range notes {
-				v := v
-				owner := item.Owner
-				n := marginNote{idea: v.Idea, id: v.ID, kind: v.Kind, title: v.Title, text: v.Text, start: v.Start, end: v.End, warn: v.Warn}
-				if v.Open != nil {
-					n.open = func() { _ = ext.Guard(a.extensions, owner, v.ID, v.Open) }
-				}
-				for _, action := range v.Actions {
-					action := action
-					n.actions = append(n.actions, noteAction{action.Label, func() { _ = ext.Guard(a.extensions, owner, v.ID, action.Run) }})
-				}
-				out = append(out, n)
-			}
+			out = append(out, n)
 		}
 		slices.SortStableFunc(out, func(x, y marginNote) int { return cmp.Compare(x.start, y.start) })
 		return out
 	})
 }
 
-func (a *App) openMarginNote(n marginNote) {
-	switch {
-	case n.check != nil:
-		a.ck.tab = 0
-		a.openCheck(n.check.f.ID)
-	case n.fore != "":
-		a.showFore(n.fore)
-	case n.open != nil:
+func (a *Panel) openMarginNote(n marginNote) {
+	if n.open != nil {
 		n.open()
-
 	}
 }
 
-func (a *App) marginPanel(c *ui.Context) {
-	a.pal.PaneTop(c).Children(func() { a.panelTabs(c) })
-	m := &a.write.margin
+func (a *Panel) marginPanel(c *ui.Context) {
+	m := &a.margin
 	list := a.marginNotes()
-	fresh := !m.visible || m.chapter != a.write.node
-	m.visible, m.chapter = true, a.write.node
+	fresh := !m.visible || m.chapter != a.chapter()
+	m.visible, m.chapter = true, a.chapter()
 	if fresh {
 		m.previous, m.departed, m.shifts, m.runs = nil, nil, nil, nil
 		m.shifting, m.action = false, false
@@ -189,12 +105,12 @@ func (a *App) marginPanel(c *ui.Context) {
 			m.serial++
 			m.runs[n.id] = m.serial
 		}
-		if a.fold.paneOpened {
+		if a.services.Prose.PaneOpened() {
 			m.runs[n.id] = 0 // the pane brings these notes in together
 		}
 	}
 	boxes := make(map[string]ui.Rect, len(list))
-	ed := a.write.cur().ed
+	ed := a.editor()
 	services := c.Services()
 	box := ui.Box(c.Key("margin")).FillWidth().Grow(1).Shrink(1).Clip().Label("页边批注")
 	m.top = box.Bounds().Y
@@ -235,11 +151,11 @@ func (a *App) marginPanel(c *ui.Context) {
 	m.lit = ""
 	box.Children(func() {
 		if len(drawing) == 0 {
-			text := locales.NotesNone()
+			text := notestext.NotesNone()
 			if ed == nil {
-				text = locales.NotesOpenChapter()
+				text = notestext.NotesOpenChapter()
 			}
-			ui.Text(c, text).FontSize(kit.FsNote).TextColor(a.pal.Faint).Padding(24, 20)
+			ui.Text(c, text).FontSize(kit.FsNote).TextColor(a.pal().Faint).Padding(24, 20)
 			return
 		}
 		ha, hb := ed.HoveredLine()
@@ -247,7 +163,7 @@ func (a *App) marginPanel(c *ui.Context) {
 			n := drawing[i]
 			leaving := i >= len(list)
 			rangeBox, _ := ed.RangeBoxUnclipped(n.start, n.end)
-			y := max(rangeBox.Y+a.LastProse.Y-m.top-3, floor)
+			y := max(rangeBox.Y+a.services.Prose.Bounds().Y-m.top-3, floor)
 			if leaving {
 				y = m.departed[i-len(list)].top
 			} else {
@@ -265,41 +181,37 @@ func (a *App) marginPanel(c *ui.Context) {
 				row.Translate(-kit.NoteTravel*(1-p), 0).Opacity(p)
 			}
 			lit := hb > ha && ha < n.end && n.start < hb && m.lit == ""
-			bg := a.pal.Theme.SurfaceHover.Alpha(0)
+			bg := a.pal().Theme.SurfaceHover.Alpha(0)
 			if !leaving && (lit || row.Hovered()) {
 				m.lit = n.id
-				bg = a.pal.Theme.SurfaceHover
+				bg = a.pal().Theme.SurfaceHover
 				ed.SetNoteHighlight(n.start, n.end)
 			}
 			row.Background(row.AnimateColor("hover", bg, ui.Animation{Duration: kit.HoverTime, Ease: kit.Out}))
 			rows = append(rows, row)
 			acted := false
 			row.Children(func() {
-				ui.Box(c).Absolute().Left(0).Top(16).Width(14).Height(1).Background(a.pal.Faint)
+				ui.Box(c).Absolute().Left(0).Top(16).Width(14).Height(1).Background(a.pal().Faint)
 				ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
 					if n.warn {
-						kit.Dot(c, a.pal.Amber, 5)
+						kit.Dot(c, a.pal().Amber, 5)
 					}
-					ui.Text(c, n.kind).FontSize(kit.FsSmall).TextColor(a.pal.Theme.TextMuted).LineHeight(kit.LhBody)
+					ui.Text(c, n.kind).FontSize(kit.FsSmall).TextColor(a.pal().Theme.TextMuted).LineHeight(kit.LhBody)
 				})
-				ui.Text(c, n.title).FontSize(kit.FsControl).FontWeight(600).TextColor(a.pal.Ink).LineHeight(kit.LhBody).FillWidth()
+				ui.Text(c, n.title).FontSize(kit.FsControl).FontWeight(600).TextColor(a.pal().Ink).LineHeight(kit.LhBody).FillWidth()
 				if n.text != "" {
-					ui.Text(c, n.text).FontSize(kit.FsNote).TextColor(a.pal.Theme.TextMuted).LineHeight(kit.LhBody).FillWidth()
+					ui.Text(c, n.text).FontSize(kit.FsNote).TextColor(a.pal().Theme.TextMuted).LineHeight(kit.LhBody).FillWidth()
 				}
 				var acts []noteAction
-				if n.check != nil {
-					acts = a.checkActions(*n.check)
-				} else {
-					acts = n.actions
-				}
+				acts = n.actions
 				if len(acts) > 0 {
 					ui.Row(c).FillWidth().Gap(16).Margin(6, 0, 0, 0).Justify(ui.End).Children(func() {
 						for j, act := range acts {
-							fg := a.pal.Theme.TextMuted
+							fg := a.pal().Theme.TextMuted
 							if j == len(acts)-1 {
-								fg = a.pal.Ink
+								fg = a.pal().Ink
 							}
-							button := a.pal.Ghost(c, act.label, fg).Label("批注-" + n.id + "-" + act.label)
+							button := a.pal().Ghost(c, act.label, fg).Label("批注-" + n.id + "-" + act.label)
 							if button.Clicked() {
 								acted = true
 								m.action = true
@@ -324,7 +236,7 @@ func (a *App) marginPanel(c *ui.Context) {
 			actual := row.Bounds()
 			boxes[n.id] = actual
 			anchor, _ := ed.RangeBoxUnclipped(n.start, n.end)
-			top := max(anchor.Y+a.LastProse.Y-3, floor)
+			top := max(anchor.Y+a.services.Prose.Bounds().Y-3, floor)
 			floor = top + actual.H + 8
 			if math.Abs(float64(actual.Y-top-m.shifts[n.id]*still)) > 0.5 {
 				services.Invalidate()

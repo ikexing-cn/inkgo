@@ -35,13 +35,8 @@ func (e *Editor) markedRangeAt(x, y float32) [2]int {
 		})
 		return hit
 	}
-	for _, r := range e.doubts {
-		if hit(r[0], r[1]) {
-			return r
-		}
-	}
-	for _, m := range e.Doc.marks {
-		if !e.hidden(m) && m.End > m.Start && (m.Kind == MarkForeshadow || m.Kind == MarkPayoff) && hit(m.Start, m.End) {
+	for _, m := range e.decorations() {
+		if m.End > m.Start && m.Kind != MarkAI && hit(m.Start, m.End) {
 			return [2]int{m.Start, m.End}
 		}
 	}

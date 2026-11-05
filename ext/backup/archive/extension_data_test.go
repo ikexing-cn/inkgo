@@ -12,7 +12,7 @@ import (
 	"writer/workspace"
 )
 
-func TestBackupRoundTripKeepsTalksLoreCardsChapterAndVolumeOutlinesAndBookSettings(t *testing.T) {
+func TestBackupRoundTripKeepsTalksLoreCardsChapterAndVolumeOutlinesAndBookSettingsAndForeshadowing(t *testing.T) {
 	root := t.TempDir()
 	s, err := workspace.Create(root, "book", "网文", "zh-Hans")
 	if err != nil {
@@ -29,7 +29,7 @@ func TestBackupRoundTripKeepsTalksLoreCardsChapterAndVolumeOutlinesAndBookSettin
 	check(err)
 	id, err := s.NewChapter(vol, "chapter", false)
 	check(err)
-	_, err = s.WriteChapter(id, "prose", nil)
+	_, err = s.WriteChapter(id, "prose", []workspace.ChapterMark{{Kind: workspace.MarkForeshadow, ID: "hook", Start: 0, End: 2}})
 	check(err)
 	check(s.WriteOutline(vol, "volume outline"))
 	check(s.WriteOutline(id, "chapter outline"))
@@ -59,6 +59,17 @@ func TestBackupRoundTripKeepsTalksLoreCardsChapterAndVolumeOutlinesAndBookSettin
 	into := t.TempDir()
 	check(Unpack(backup.Path, into))
 	verifyExtensionBook(t, s, into, vol, id, settings)
+	if _, err := os.Stat(filepath.Join(into, "ext", "hooks", id+".json")); err != nil {
+		t.Fatal(err)
+	}
+	restored, err := workspace.Open(into)
+	check(err)
+	defer restored.Close()
+	ch, err := restored.ReadChapter(id)
+	check(err)
+	if len(ch.Marks) != 1 || ch.Marks[0].ID != "hook" {
+		t.Fatal(ch.Marks)
+	}
 }
 
 func TestImportingCopiedBookKeepsExtensionDataAndChapterIDs(t *testing.T) {
