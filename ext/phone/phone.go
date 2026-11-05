@@ -96,6 +96,7 @@ type phoneAnchor struct {
 // Panel holds the phone preview, its reading position, and its layout.
 type Panel struct {
 	book    *ext.Ref[hostapi.Book]
+	editing *ext.Ref[hostapi.Editing]
 	palette *ext.Ref[hostapi.Palette]
 	setting *ext.Pref[Typesetting]
 	session *ext.Session
@@ -171,9 +172,9 @@ func (p *Panel) point(x, y float32) (para, offset int, ok bool) {
 }
 
 func (p *Panel) measure() {
-	id, ed, _ := p.book.Get().Chapter()
+	id, ed, _ := p.editing.Get().Chapter()
 	p.prefs = p.Preferences()
-	name, ok := p.book.Get().ChapterTitle(id)
+	name, ok := p.editing.Get().ChapterTitle(id)
 	if !ok || ed == nil {
 		return
 	}
@@ -197,7 +198,7 @@ func (p *Panel) measure() {
 // View draws the preview on the frame thread without retaining frame handles.
 func (p *Panel) View(c *ui.Context) {
 	pal := p.palette.Get().Colors()
-	if _, _, open := p.book.Get().Chapter(); !open {
+	if _, _, open := p.editing.Get().Chapter(); !open {
 		p.key = ""
 		p.look = false
 		pal.PaneEmpty(c, phonetext.PreviewOpenChapter(), "")
@@ -353,7 +354,7 @@ func (p *Panel) input(ev ui.InputEvent) bool {
 		return false
 	}
 	if _, offset, ok := p.point(ev.X, ev.Y); ok {
-		_, ed, _ := p.book.Get().Chapter()
+		_, ed, _ := p.editing.Get().Chapter()
 		ed.Select(offset, offset)
 		ed.Focus()
 		return true
@@ -362,7 +363,7 @@ func (p *Panel) input(ev ui.InputEvent) bool {
 }
 
 func (p *Panel) sync() {
-	_, ed, _ := p.book.Get().Chapter()
+	_, ed, _ := p.editing.Get().Chapter()
 	f, n, into := ed.ScrollAnchor()
 	anchor := phoneAnchor{f, into, n}
 	if p.anchored && anchor == p.anchor {
@@ -450,7 +451,7 @@ func (p *Panel) paint(painter *ui.Painter, r ui.Rect) {
 }
 
 func (p *Panel) paintText(painter *ui.Painter, ink, active, hover ui.Color) {
-	_, ed, _ := p.book.Get().Chapter()
+	_, ed, _ := p.editing.Get().Chapter()
 	from, to := ed.Selection()
 	// A paragraph is one continuous patch, including when its lines are
 	// split across pages. Selection is drawn over it, before the glyphs.

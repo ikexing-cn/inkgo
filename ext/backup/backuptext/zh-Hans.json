@@ -89,5 +89,8 @@
   "modBackup": "备份",
   "@modBackup": { "description": "「功能」里一个模块的名字。" },
   "modBackupOff": "不再自动备份，旧备份留着。",
-  "@modBackupOff": { "description": "「功能」里备份那一行多的一句：关掉以后会怎样。" }
+  "@modBackupOff": { "description": "「功能」里备份那一行多的一句：关掉以后会怎样。" },
+  "backupKeep10": "最近 10 份",
+  "backupKeep30": "最近 30 份",
+  "backupKeep90": "最近 90 份"
 }

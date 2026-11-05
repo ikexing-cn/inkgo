@@ -15,7 +15,7 @@ func (a *View) aiRecord(c *ui.Context, r *workspace.AIRecord) {
 	t := a.Palette.Colors().Theme
 	op := map[string]string{workspace.AIDraft: snapstext.DraftFromOutline(), workspace.AIRewrite: locales.SettingsFeatureRewrite()}[r.Op]
 	ui.Column(c).FillWidth().Gap(4).Padding(10, 12).Radius(kit.RControl).Border(1, t.Border).Children(func() {
-		line := op + " · " + a.Desktop.ModelLabel(*r)
+		line := op + " · " + a.Native.ModelLabel(*r)
 		if r.Instruction != "" {
 			line += " · " + r.Instruction
 		}
@@ -30,20 +30,30 @@ func (a *View) aiRecord(c *ui.Context, r *workspace.AIRecord) {
 
 // talkRecord shows, with a snapshot taken before what an AI proposed in
 // talks went in, which talks they were.
-func (a *View) talkRecord(c *ui.Context, sessions []string) {
+func (a *View) talkRecord(c *ui.Context, sources []workspace.SnapshotSource) {
 	t := a.Palette.Colors().Theme
 	var b strings.Builder
-	// With talk off its titles are unknown, so the line names no talk.
-	if talk, on := a.Talk(); on {
-		for _, s := range sessions {
-			title, ok := talk.TalkTitle(s)
-			if !ok {
-				title = locales.SnapAITalkGone()
-			}
-			b.WriteString(snapstext.SnapAITalk(title))
-		}
+	for _, source := range sources {
+		b.WriteString(snapstext.SnapAITalk(sourceTitle(source.Title)))
 	}
 	ui.Column(c).FillWidth().Padding(10, 12).Radius(kit.RControl).Border(1, t.Border).Children(func() {
 		ui.Text(c, snapstext.SnapAIFrom(b.String())).FontSize(kit.FsNote).FontWeight(600).FillWidth()
 	})
+}
+
+func sourceTitle(title workspace.ConversationTitle) string {
+	switch title.Kind {
+	case workspace.AIDraft:
+		text := title.Text
+		if text == "" {
+			text = locales.AppChapterDeleted()
+		}
+		return locales.SideDraftTitle(text)
+	case workspace.AIRewrite:
+		return locales.SideRewriteTitle(title.Text)
+	case workspace.TitleWords:
+		return title.Text
+	default:
+		return locales.SideNewTalk()
+	}
 }

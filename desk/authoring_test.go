@@ -77,11 +77,11 @@ func TestSearchBookAndRevisionServicesAreDirectFrameCapabilities(t *testing.T) {
 	if !ok {
 		t.Fatal("search missing")
 	}
-	content, ok := ext.Lookup(a.extensions, hostapi.BookService)
+	content, ok := ext.Lookup(a.extensions, hostapi.EditingService)
 	if !ok {
 		t.Fatal("book missing")
 	}
-	revisions, ok := ext.Lookup(a.extensions, hostapi.RevisionsService)
+	revisions, ok := ext.Lookup(a.extensions, hostapi.EditingService)
 	if !ok {
 		t.Fatal("revisions missing")
 	}
@@ -234,18 +234,18 @@ func TestTalkAndAIServiceMethodsAreDirectFrameCalls(t *testing.T) {
 	if !ok {
 		t.Fatal("talk missing")
 	}
-	state, ok := ext.Lookup(a.extensions, hostapi.AIService)
+	state, ok := ext.Lookup(a.extensions, hostapi.ExtensionsService)
 	if !ok {
 		t.Fatal("AI state missing")
 	}
 	id := talkOf(a).Session
 	talkOf(a).Titles[id] = workspace.ConversationTitle{Kind: workspace.TitleWords, Text: "服务测试"}
 	frame := stillTester(func(c *ui.Context) {
-		if !state.AIEnabled() {
+		if !state.Enabled("ai") {
 			t.Fatal("AI should be on")
 		}
 		a.turnAI(!(true))
-		if state.AIEnabled() {
+		if state.Enabled("ai") {
 			t.Fatal("AI state was cached")
 		}
 		a.turnAI(!(false))
@@ -264,13 +264,14 @@ func TestTalkAndAIServiceMethodsAreDirectFrameCalls(t *testing.T) {
 
 func TestExistingServicesOwnMenusPaneCategoriesAndContentFlashes(t *testing.T) {
 	a, _, _ := writingFixture(t, "正文")
-	desktop, _ := ext.Lookup(a.extensions, hostapi.DesktopService)
+	desktop, _ := ext.Lookup(a.extensions, hostapi.NavigationService)
+	native, _ := ext.Lookup(a.extensions, hostapi.NativeUIService)
 	pane, _ := ext.Lookup(a.extensions, hostapi.PaneService)
-	content, _ := ext.Lookup(a.extensions, hostapi.BookService)
+	content, _ := ext.Lookup(a.extensions, hostapi.EditingService)
 	now := time.Now()
 	frame := stillTester(func(c *ui.Context) {
 		a.menu = kit.MenuState{Owner: "service-menu"}
-		if !desktop.MenuOpen("service-menu") || desktop.MenuOpen("other") {
+		if !native.MenuOpen("service-menu") || native.MenuOpen("other") {
 			t.Fatal("shared menu state")
 		}
 		a.flash["entry"] = now
@@ -317,7 +318,7 @@ func TestSplitServicesUsedInsideCallKeepContributionFailureIsolated(t *testing.T
 			fake := ext.Module{ID: "serviceuser", Optional: []string{"talk"}, Setup: func(r *ext.Registrar) {
 				talk := ext.UseOptional(r, talkapi.Service)
 				search := ext.Use(r, hostapi.SearchService)
-				state := ext.Use(r, hostapi.AIService)
+				state := ext.Use(r, hostapi.ExtensionsService)
 				ext.Contribute(r, hostapi.BesideItems, "body", hostapi.DrawItem{Draw: func(c *ui.Context) {
 					switch service {
 					case "talk":
@@ -327,7 +328,7 @@ func TestSplitServicesUsedInsideCallKeepContributionFailureIsolated(t *testing.T
 					case "search":
 						search.Get().CountText("正文")
 					case "ai":
-						state.Get().AIEnabled()
+						state.Get().Enabled("ai")
 					}
 					calls++
 					panic("consumer failed")

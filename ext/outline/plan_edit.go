@@ -47,7 +47,7 @@ func (p *Page) line(c *ui.Context, l workspace.PlotLine) {
 		n := p.index.counts[l.ID]
 		ui.Textf(c, "%d", n).FontSize(kit.FsNote).TextColor(p.Services.Palette.Colors().Faint)
 		more := kit.IconButton(c, kit.IcMore, outlinetext.PlanLineActions(l.Name), ui.Color{})
-		p.Services.Desktop.DropMenu(c, more, "plan-line-"+l.ID, func(panel ui.Element) { panel.Width(planLineMenuWidth) }, func(m *kit.Menu) {
+		p.Services.Native.DropMenu(c, more, "plan-line-"+l.ID, func(panel ui.Element) { panel.Width(planLineMenuWidth) }, func(m *kit.Menu) {
 			i := slices.IndexFunc(content.Plan().Lines, func(x workspace.PlotLine) bool { return x.ID == l.ID })
 			up, down := outlinetext.PlanLineMoveLeft(), outlinetext.PlanLineMoveRight()
 			if p.mode == 1 {

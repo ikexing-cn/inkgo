@@ -2,7 +2,6 @@ package hostapi
 
 import (
 	"writer/ext"
-	"writer/workspace"
 )
 
 // Search exposes prose search on the frame thread. Methods are direct host
@@ -17,28 +16,14 @@ type Search interface {
 // SearchService resolves direct frame-thread prose search.
 const SearchService ext.ServiceKey[Search] = "host.search"
 
-// AI exposes only the AI switch state. Calls are direct on the frame thread,
-// without ext.Call or ext.Guard; host panics are not recovered.
-type AI interface {
-	// AIEnabled reports the AI switch state on the frame thread, directly without ext.Call or ext.Guard.
-	AIEnabled() bool
+// Extensions reads host activation state on the frame thread.
+type Extensions interface {
+	// Enabled reports whether a registered extension is active.
+	Enabled(string) bool
 }
 
-// AIService resolves direct frame-thread AI switch state. The AI library will
-// provide it under its own key when extracted in migration step 3.
-const AIService ext.ServiceKey[AI] = "host.ai"
-
-// Revisions coordinates content refresh and undo with other host features.
-// Methods run directly on the frame thread, without ext.Call or ext.Guard.
-type Revisions interface {
-	// Refresh reloads derived content after a revision on the frame thread.
-	Refresh() error
-	// UndoRevision applies author operations with the host's undo coordination.
-	UndoRevision(string, ...workspace.Op)
-}
-
-// RevisionsService resolves direct frame-thread revision coordination.
-const RevisionsService ext.ServiceKey[Revisions] = "host.revisions"
+// ExtensionsService resolves generic activation queries, including on the shelf.
+const ExtensionsService ext.ServiceKey[Extensions] = "host.extensions"
 
 // SelectionAction describes a prose menu item or submenu. Run executes on the
 // frame thread through ext.Guard. Children are plain data, built with the menu.

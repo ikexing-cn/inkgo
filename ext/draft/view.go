@@ -17,7 +17,7 @@ func (a *View) OpenDraft() {
 		return
 	}
 	w := a
-	a.book.Get().Flush()
+	a.editing.Get().Flush()
 	w.Open, w.Words, w.Mode = true, "", draftAppend
 	w.Cards = 0
 	if err := a.book.Get().Content().ReloadPlan(); err == nil {

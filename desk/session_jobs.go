@@ -78,3 +78,6 @@ func (j *sessionJobs) Request(sv ui.Services, label string, fn func(context.Cont
 }
 
 func (j *sessionJobs) Run(work func(context.Context)) { j.s.Go(work) }
+
+// Run rejects unbound worker dispatch; extensions obtain activation-bound handles.
+func (j jobsHost) Run(work func(context.Context)) { panic("Jobs.Run requires a bound activation") }

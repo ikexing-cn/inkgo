@@ -4,8 +4,8 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"writer/ext/ai/aiapi"
 
-	"writer/inference"
 	"writer/workspace"
 )
 
@@ -14,7 +14,7 @@ import (
 func TestTalkBesideTheProse(t *testing.T) {
 	e, session := setup(t)
 	f := &fake{replies: []string{"这里可以慢一点。", "好。"}}
-	e.Talk = inference.Model{Model: limits, Completer: f, Name: "deepseek/deepseek-flash"}
+	e.Talk = aiapi.Handle{Model: aiapi.Model(limits), Completer: f, Name: "deepseek/deepseek-flash"}
 	id, err := e.Store.NewChapter("", "第一章", false)
 	if err != nil {
 		t.Fatal(err)
@@ -81,7 +81,7 @@ func TestNoteQuotesTheProseQuoted(t *testing.T) {
 	if _, err = e.Store.WriteChapter(id, "她改了。", nil); err != nil {
 		t.Fatal(err)
 	}
-	box := &toolbox{extra: allTools(), allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store, session: session, turn: u.ID, model: inference.Model{Name: "deepseek/deepseek-flash"}}
+	box := &toolbox{extra: allTools(), allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store, session: session, turn: u.ID, model: aiapi.Handle{Name: "deepseek/deepseek-flash"}}
 	if out := box.note(noteArgs{Op: "add", Place: "body", Category: "人物", Text: "她怕黑，从不在夜里出门", Sources: []string{"她从不在夜里出门", "这说明她怕黑"}}); out.failed {
 		t.Fatal(out.text)
 	}

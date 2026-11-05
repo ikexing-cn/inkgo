@@ -59,7 +59,7 @@ func writingFixture(t *testing.T, text string) (*testApp, *ui.Tester, string) {
 	t.Cleanup(func() { app.Close() })
 	return a, tt, id
 }
-func shownEditor(a *testApp) *editor.Editor { _, ed, _ := a.controller.Book.Chapter(); return ed }
+func shownEditor(a *testApp) *editor.Editor { _, ed, _ := a.controller.Editing.Chapter(); return ed }
 func shownChapter(a *testApp) string        { id, _, _ := a.controller.Desktop.Selected(); return id }
 func findOf(a *testApp) *View               { return a.controller }
 func noticeOf(a *testApp) string            { return a.controller.Notices.Notices().NoticeText() }

@@ -21,7 +21,7 @@ func (a *Panel) footCheck(c *ui.Context) {
 		}
 	}
 	if found > 0 {
-		b := a.pal().Ghost(c, line, ui.Color{}).Label("查看检查结果").Tooltip(checktext.StatusGoCheck()).Shrink(1).MinWidth(0)
+		b := a.pal().Ghost(c, line, ui.Color{}).Padding(0).Label("查看检查结果").Tooltip(checktext.StatusGoCheck()).Shrink(1).MinWidth(0)
 		if b.Clicked() {
 			for _, it := range a.checkItems(false) {
 				if it.Here {
@@ -46,7 +46,7 @@ func (a *Panel) footCheck(c *ui.Context) {
 			ui.Text(c, checktext.StatusCheckNow()).FontSize(kit.FsNote).TextColor(color).Underline().SingleLine()
 		})
 		if b.Clicked() {
-			if err := a.bookHost.SaveText(); err != nil {
+			if err := a.editingHost.SaveText(); err != nil {
 				a.warn(err)
 			} else {
 				a.State.Queue.Enqueue(w.Node)

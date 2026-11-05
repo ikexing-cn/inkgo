@@ -76,7 +76,7 @@ func (a *App) selectionBar(c *ui.Context) {
 	w := &a.write
 	r, ok := w.cur().ed.SelectionTop()
 	if !ok || w.cur().ed.ReadOnly() || w.cur().lost || w.cur().external != nil ||
-		w.takeOpen || w.cur().ed.Predicting() || a.menu.MenuOpen("prose") ||
+		a.takeOpen() || w.cur().ed.Predicting() || a.menu.MenuOpen("prose") ||
 		a.hideSelection() { // stepping through what is found picks it, the caret in the find bar
 		return
 	}

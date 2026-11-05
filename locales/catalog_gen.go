@@ -3814,36 +3814,6 @@ func (msgs Messages) BackupNextHour() string {
 	return Catalog.Format(msgs.locale, "backupNextHour", nil)
 }
 
-// BackupKeep10 says "最近 10 份"
-// in the language the app shows.
-func BackupKeep10() string { return In(i18n.Locale()).BackupKeep10() }
-
-// BackupKeep10 says "最近 10 份"
-// in the language of msgs.
-func (msgs Messages) BackupKeep10() string {
-	return Catalog.Format(msgs.locale, "backupKeep10", nil)
-}
-
-// BackupKeep30 says "最近 30 份"
-// in the language the app shows.
-func BackupKeep30() string { return In(i18n.Locale()).BackupKeep30() }
-
-// BackupKeep30 says "最近 30 份"
-// in the language of msgs.
-func (msgs Messages) BackupKeep30() string {
-	return Catalog.Format(msgs.locale, "backupKeep30", nil)
-}
-
-// BackupKeep90 says "最近 90 份"
-// in the language the app shows.
-func BackupKeep90() string { return In(i18n.Locale()).BackupKeep90() }
-
-// BackupKeep90 says "最近 90 份"
-// in the language of msgs.
-func (msgs Messages) BackupKeep90() string {
-	return Catalog.Format(msgs.locale, "backupKeep90", nil)
-}
-
 // BackupSize says "每份约 1.1 MB，共 {total, number, ::.0} MB"
 // in the language the app shows.
 //

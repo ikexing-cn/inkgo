@@ -6,7 +6,6 @@ import (
 	"testing"
 	"writer/ext/ai/aiapi"
 
-	"writer/inference"
 	"writer/workspace"
 )
 
@@ -32,7 +31,7 @@ func TestATalkTellsAndNotesHowTheSettingChanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	box := &toolbox{extra: allTools(), allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store, session: session, turn: ok.ID, model: inference.Model{Name: "deepseek/deepseek-flash"}}
+	box := &toolbox{extra: allTools(), allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store, session: session, turn: ok.ID, model: aiapi.Handle{Name: "deepseek/deepseek-flash"}}
 	for _, c := range []struct {
 		in   noteArgs
 		want string // in the refusal; empty when it is noted

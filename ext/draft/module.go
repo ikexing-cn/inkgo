@@ -22,6 +22,7 @@ type View struct {
 	Preview func() string
 
 	book     *ext.Ref[hostapi.Book]
+	editing  *ext.Ref[hostapi.Editing]
 	surface  *ext.Ref[hostapi.ProseUI]
 	palette  *ext.Ref[hostapi.Palette]
 	ai       *ext.Ref[aiapi.Backend]
@@ -46,6 +47,7 @@ func New() (ext.Module, *View) { v := &View{}; return module(v), v }
 func module(v *View) ext.Module {
 	return ext.Module{ID: "draft", Kind: ext.Feature, Group: hostapi.GroupAI, Requires: []string{"ai", "outline"}, Name: drafttext.ModDraft, Desc: drafttext.ModDraftAbout, Setup: func(r *ext.Registrar) {
 		v.book = ext.Use(r, hostapi.BookService)
+		v.editing = ext.Use(r, hostapi.EditingService)
 		v.surface = ext.Use(r, hostapi.ProseUIService)
 		v.palette = ext.Use(r, hostapi.PaletteService)
 		v.ai = ext.Use(r, aiapi.Service)
@@ -56,7 +58,7 @@ func module(v *View) ext.Module {
 			}
 			return ""
 		}, Can: func() bool {
-			_, ed, ok := v.book.Get().Chapter()
+			_, ed, ok := v.editing.Get().Chapter()
 			return ok && ed != nil && !ed.ReadOnly() && v.chapterOutline(v.node()) != ""
 		}, Run: v.OpenDraft, Menu: hostapi.MenuPosition{Menu: hostapi.MenuEdit, Order: 60}})
 		ext.Contribute(r, hostapi.Overlays, "dialog", hostapi.Overlay{Open: func() bool { return v.Open && v.talkOn() }, Draw: func(c *ui.Context) {
@@ -70,8 +72,8 @@ func module(v *View) ext.Module {
 		r.OnStop(func(*ext.Session) { v.Open = false; v.Words, v.Mode, v.Note, v.Cards = "", "", "", 0 })
 	}}
 }
-func (v *View) node() string       { id, _, _ := v.book.Get().Chapter(); return id }
-func (v *View) ed() *editor.Editor { _, ed, _ := v.book.Get().Chapter(); return ed }
+func (v *View) node() string       { id, _, _ := v.editing.Get().Chapter(); return id }
+func (v *View) ed() *editor.Editor { _, ed, _ := v.editing.Get().Chapter(); return ed }
 func (v *View) talkOn() bool       { return len(v.starterItems()) > 0 }
 func (v *View) outlineValue(id string) (string, bool) {
 	b := v.book.Get().Content()
@@ -82,7 +84,7 @@ func (v *View) outlineValue(id string) (string, bool) {
 }
 func (v *View) chapterOutline(id string) string { s, _ := v.outlineValue(id); return s }
 func (v *View) countUnit() string               { return v.book.Get().Store().Work().Language.Unit() }
-func (v *View) flush()                          { v.book.Get().Flush() }
+func (v *View) flush()                          { v.editing.Get().Flush() }
 
 // DraftNote describes the fixed chapter context on the frame thread.
 func (v *View) DraftNote() string {
@@ -112,7 +114,7 @@ func (v *View) DraftNote() string {
 func (v *View) beginTalk(c *ui.Context, e workspace.Event) bool {
 	ok := false
 	for _, i := range v.starterItems() {
-		_ = v.starters.Guard(i.Owner, i.ID, func() { ok = i.Value.Start(c, e) })
+		ok, _ = ext.CallReadOperation(v.starters, "Start", i.ID, aiapi.StartTalk{Services: c.Services(), Event: e}, aiapi.InvokeStart(i.Value))
 	}
 	return ok
 }

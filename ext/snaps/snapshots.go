@@ -21,7 +21,7 @@ var snapReasons = map[string]func() string{
 }
 
 func (a *View) snapReason(reason string) string {
-	if reason == workspace.SnapAI && !a.AI.AIEnabled() {
+	if reason == workspace.SnapAI && !a.AI.Enabled("ai") {
 		return snapstext.SnapKindEdit()
 	}
 	if label := snapReasons[reason]; label != nil {
@@ -32,7 +32,7 @@ func (a *View) snapReason(reason string) string {
 
 func (a *View) openSnapshots() {
 	w := a
-	a.Notices.Notices().Warn(a.Book.SaveText())
+	a.Notices.Notices().Warn(a.Editing.SaveText())
 	snaps, err := a.Book.Store().Snapshots(a.node())
 	if err != nil {
 		a.Notices.Notices().Warn(err)
@@ -125,7 +125,7 @@ func (a *View) snapshots(c *ui.Context) {
 		same := shown.Same // nothing to restore
 		ui.Column(c).Width(kit.DialogWide).Height(kit.DialogTall).Padding(kit.DialogPad).Gap(16).Children(func() {
 			ai := ""
-			if a.AI.AIEnabled() {
+			if a.AI.Enabled("ai") {
 				ai = snapstext.SnapAboutAI()
 			}
 			a.Palette.Colors().DialogHead(c, snapstext.SnapTitle(a.title()), snapstext.SnapAbout(ai))
@@ -163,10 +163,10 @@ func (a *View) snapshots(c *ui.Context) {
 							ui.Text(c, snapstext.SnapDiffHint()).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
 						}
 					})
-					if i := slices.IndexFunc(w.Snaps, func(s workspace.Snapshot) bool { return s.Name == w.Snap }); i >= 0 && a.AI.AIEnabled() {
+					if i := slices.IndexFunc(w.Snaps, func(s workspace.Snapshot) bool { return s.Name == w.Snap }); i >= 0 && a.AI.Enabled("ai") {
 						switch sn := w.Snaps[i]; {
 						case len(sn.Talks) > 0:
-							a.talkRecord(c, sn.Talks)
+							a.talkRecord(c, sn.Sources)
 						case sn.AI != nil:
 							a.aiRecord(c, sn.AI)
 						}
@@ -218,7 +218,7 @@ func (a *View) restoreSnapshot() {
 	if i < 0 {
 		return
 	}
-	if err := a.Book.RestoreSnapshot(w.Snaps[i], w.SnapText); err != nil {
+	if err := a.Editing.RestoreSnapshot(w.Snaps[i], w.SnapText); err != nil {
 		a.Notices.Notices().Warn(err)
 		return
 	}

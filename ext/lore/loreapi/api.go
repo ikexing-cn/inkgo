@@ -2,12 +2,13 @@ package loreapi
 
 import (
 	"writer/ext"
-	"writer/ext/context/contextapi"
 	"writer/workspace"
 )
 
 // Revisions coordinates setting writes with derived views on the frame thread.
 type Revisions interface {
+	// UndoRevision applies a setting decision together with reversible check changes.
+	UndoRevision(string, ...workspace.Op)
 	// Revise records an author revision in the setting history.
 	Revise(workspace.Revision) (workspace.Revision, error)
 	// Refresh reloads derived views after setting writes.
@@ -17,8 +18,13 @@ type Revisions interface {
 // RevisionsService resolves the setting extension's revision coordinator.
 const RevisionsService ext.ServiceKey[Revisions] = "lore.revisions"
 
-// References is the context library used by the setting extension, on the frame thread.
-type References = contextapi.Context
+// Selection accepts prose into the setting on the frame thread.
+type Selection interface {
+	// OpenSelection starts a form using the current editor selection.
+	OpenSelection()
+	// SelectionOpen reports whether that form is open.
+	SelectionOpen() bool
+}
 
-// ReferencesService exposes lore's required context library to setting-dependent consumers.
-const ReferencesService ext.ServiceKey[References] = "lore.references"
+// SelectionService resolves the setting's selection form.
+const SelectionService ext.ServiceKey[Selection] = "lore.selection"

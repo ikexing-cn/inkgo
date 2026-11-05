@@ -3,7 +3,6 @@ package aiapi
 import (
 	"fmt"
 	"strings"
-	"writer/inference"
 	"writer/talkbook"
 	"writer/workspace"
 )
@@ -32,7 +31,7 @@ func PlaceProposal(st *workspace.Store, b talkbook.Book, chapter, at, quote stri
 	if err != nil {
 		return p, fmt.Sprintf("读不出「%s」：%v", name, err)
 	}
-	words, ok := inference.Locate(ch.Text, strings.TrimSpace(quote))
+	words, ok := Locate(ch.Text, strings.TrimSpace(quote))
 	if !ok {
 		return p, "「" + name + "」里找不到 quote 这段原文；要逐字复制，可以先用 read_prose 读一下。"
 	}

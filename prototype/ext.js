@@ -23,16 +23,16 @@ const EXTS = () => [
   { id: 'names', g: 'write', name: L.modNames(), about: L.modNamesAbout(), req: ['lore'] },
   { id: 'find', g: 'write', name: L.modFind(), about: L.modFindAbout() },
   { id: 'notes', g: 'write', name: L.modNotes(), about: L.modNotesAbout(), req: ['marks'] },
-  { id: 'lore', g: 'lore', name: L.modLore(), about: L.modLoreAbout(), req: ['context'], opt: ['marks', 'ai'] },
+  { id: 'lore', g: 'lore', name: L.modLore(), about: L.modLoreAbout(), req: ['context'], opt: ['marks', 'ai', 'talk', 'find'] }, // 提议，等作者看：设定使用讨论和查找的可选能力。
   { id: 'outline', g: 'lore', name: L.modOutline(), about: L.modOutlineAbout(), req: ['context'], opt: ['ai'] },
   { id: 'hooks', g: 'lore', name: L.modHooks(), about: L.modHooksAbout(), req: ['context', 'marks'] },
   { id: 'talk', g: 'ai', name: L.modTalk(), about: L.modTalkAbout(), req: ['ai', 'context'] },
   { id: 'continue', g: 'ai', name: L.modContinue(), about: L.modContinueAbout(), req: ['ai', 'context'] },
   { id: 'draft', g: 'ai', name: L.modDraft(), about: L.modDraftAbout(), req: ['ai', 'outline'] },
   { id: 'propose', g: 'ai', name: L.modPropose(), about: L.modProposeAbout(), req: ['ai'], opt: ['marks'] },
-  { id: 'check', g: 'ai', name: L.modCheck(), about: L.modCheckAbout(), req: ['ai', 'lore', 'marks'] },
+  { id: 'check', g: 'ai', name: L.modCheck(), about: L.modCheckAbout(), req: ['ai', 'lore', 'marks', 'context'] }, // 提议，等作者看：检查直接读取资料库。
   { id: 'usage', g: 'ai', name: L.modUsage(), about: L.modUsageAbout(), req: ['ai'] },
-  { id: 'snaps', g: 'files', name: L.modSnaps(), about: L.modSnapsAbout() },
+  { id: 'snaps', g: 'files', name: L.modSnaps(), about: L.modSnapsAbout() }, // 提议，等作者看：快照保存来源标题，无需依赖讨论。
   { id: 'trash', g: 'files', name: L.modTrash(), about: L.modTrashAbout() },
   { id: 'cats', g: 'files', name: L.modCats(), about: L.modCatsAbout() },
   { id: 'backup', g: 'files', name: L.modBackup(), about: L.modBackupAbout(), off: L.modBackupOff() },

@@ -20,11 +20,12 @@ func module(controller *Page) ext.Module {
 			p = &Page{}
 		}
 		book := ext.Use(r, hostapi.BookService)
+		bookEditing := ext.Use(r, hostapi.EditingService)
 		pal := ext.Use(r, hostapi.PaletteService)
 		notices := ext.Use(r, hostapi.NoticesService)
-		desktop := ext.Use(r, hostapi.DesktopService)
+		desktop := ext.Use(r, hostapi.NavigationService)
 		r.OnStart(func(*ext.Session) error {
-			*p = Page{Book: book.Get(), Palette: pal.Get(), Notices: notices.Get()}
+			*p = Page{Book: book.Get(), Editing: bookEditing.Get(), Palette: pal.Get(), Notices: notices.Get()}
 			return nil
 		})
 		r.OnStop(func(*ext.Session) { *p = Page{} })

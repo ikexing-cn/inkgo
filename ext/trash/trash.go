@@ -11,7 +11,7 @@ import (
 
 func (a *View) openTrash() {
 	w := a
-	a.Book.Flush()
+	a.Editing.Flush()
 	items, err := a.Book.Store().Trash()
 	a.Notices.Notices().Warn(err)
 	w.Trash, w.TrashOpen, w.Purge = items, true, ""
@@ -41,7 +41,7 @@ func (a *View) trashView(c *ui.Context) {
 									w.Purge = ""
 								}
 								if a.Palette.Colors().Danger(c, trashtext.TrashConfirm()).Clicked() {
-									a.Notices.Notices().Warn(a.Book.PurgeTrash(it.ID))
+									a.Notices.Notices().Warn(a.Editing.PurgeTrash(it.ID))
 									a.openTrash()
 								}
 								return
@@ -68,7 +68,7 @@ func (a *View) trashView(c *ui.Context) {
 }
 
 func (a *View) restore(id, title string) {
-	if err := a.Book.RestoreTrash(id); err != nil {
+	if err := a.Editing.RestoreTrash(id); err != nil {
 		a.Notices.Notices().Warn(err)
 		return
 	}

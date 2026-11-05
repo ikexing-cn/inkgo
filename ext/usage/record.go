@@ -295,7 +295,7 @@ func (a *View) recordWhere(r workspace.Record) string {
 		}
 		return locales.SnapAITalkGone()
 	}
-	if n, ok := a.host.ChapterTitle(r.Chapter); ok {
+	if n, ok := a.editing.ChapterTitle(r.Chapter); ok {
 		return n
 	}
 	return usagetext.SettingsRecordChapterGone()
@@ -339,12 +339,13 @@ type View struct {
 	ai       aiapi.Backend
 	book     *book.Book
 	host     hostapi.Book
+	editing  hostapi.Editing
 	store    *workspace.Store
 }
 
 func (a *View) talkTitle(id string) (string, bool) {
 	events, err := a.store.Events(id)
-	title := workspace.TalkTitle(events, func(id string) string { t, _ := a.host.ChapterTitle(id); return t })
+	title := workspace.TalkTitle(events, func(id string) string { t, _ := a.editing.ChapterTitle(id); return t })
 	if err != nil {
 		return "", false
 	}

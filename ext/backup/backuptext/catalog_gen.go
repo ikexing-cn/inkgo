@@ -738,3 +738,27 @@ func ModBackupOff() string { return In(i18n.Locale()).ModBackupOff() }
 //
 // 「功能」里备份那一行多的一句：关掉以后会怎样。
 func (msgs Messages) ModBackupOff() string { return Catalog.Format(msgs.locale, "modBackupOff", nil) }
+
+// BackupKeep10 says "最近 10 份"
+// in the language the app shows.
+func BackupKeep10() string { return In(i18n.Locale()).BackupKeep10() }
+
+// BackupKeep10 says "最近 10 份"
+// in the language of msgs.
+func (msgs Messages) BackupKeep10() string { return Catalog.Format(msgs.locale, "backupKeep10", nil) }
+
+// BackupKeep30 says "最近 30 份"
+// in the language the app shows.
+func BackupKeep30() string { return In(i18n.Locale()).BackupKeep30() }
+
+// BackupKeep30 says "最近 30 份"
+// in the language of msgs.
+func (msgs Messages) BackupKeep30() string { return Catalog.Format(msgs.locale, "backupKeep30", nil) }
+
+// BackupKeep90 says "最近 90 份"
+// in the language the app shows.
+func BackupKeep90() string { return In(i18n.Locale()).BackupKeep90() }
+
+// BackupKeep90 says "最近 90 份"
+// in the language of msgs.
+func (msgs Messages) BackupKeep90() string { return Catalog.Format(msgs.locale, "backupKeep90", nil) }

@@ -3,6 +3,8 @@ package propose
 import (
 	"slices"
 	"strings"
+	"writer/ext"
+	"writer/ext/ai/aiapi"
 	"writer/ext/propose/proposetext"
 
 	"github.com/egoist/mygo/ui"
@@ -223,7 +225,7 @@ func (a *View) TakeProps(ps []*Proposal) {
 		return
 	}
 	a.ed().Take(places, list[0].model)
-	a.warn(a.book.Get().SaveText())
+	a.warn(a.editing.Get().SaveText())
 	a.dropProps(list, workspace.FateTaken)
 	a.notices.Get().Notices().Did(proposetext.EditorProposalAccepted())
 	a.ed().Focus()
@@ -312,7 +314,7 @@ func (a *View) showProp(p *Proposal) {
 
 func (a *View) openTalk(ID string) {
 	for _, i := range a.starterItems() {
-		_ = a.starters.Guard(i.Owner, i.ID, func() { i.Value.Open(ID) })
+		_, _ = ext.CallReadOperation(a.starters, "Open", i.ID, ID, aiapi.InvokeOpen(i.Value))
 	}
 }
 

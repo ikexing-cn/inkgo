@@ -14,7 +14,7 @@ import (
 // It reports whether the talk began: there must be a model to talk with,
 // and no other reply in flight.
 // StartTalk runs on the frame thread.
-func (a *Panel) StartTalk(c *ui.Context, words workspace.Event) bool {
+func (a *Panel) StartTalk(sv ui.Services, words workspace.Event) bool {
 	if work := a.Store.Work(); work.Discussion.Provider == "" || work.Discussion.Model == "" {
 		a.SetError(&aiapi.SetupError{Err: errors.New(locales.ChatNeedModel())})
 		return false
@@ -24,7 +24,7 @@ func (a *Panel) StartTalk(c *ui.Context, words workspace.Event) bool {
 		a.notices().Hint(talktext.DraftBusyOther(what))
 		return false
 	}
-	a.bookHost.Flush() // the talk reads the chapter from the disk
+	a.editingHost.Flush() // the talk reads the chapter from the disk
 	id, err := a.BlankSession()
 	if err != nil {
 		a.warn(err)
@@ -37,6 +37,6 @@ func (a *Panel) StartTalk(c *ui.Context, words workspace.Event) bool {
 	a.Talks = false
 	a.desktop.SetFocus(false)
 	a.savePrefs()
-	a.Say(c, id, words, nil)
+	a.say(sv, id, words, nil)
 	return true
 }

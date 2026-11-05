@@ -3,14 +3,13 @@ package desk
 import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
-	"writer/ext"
 
 	"writer/locales"
 )
 
 // aiOn tells whether the AI is on on this machine. Off, nothing of it
 // shows, and nothing is sent.
-func (a *App) aiOn() bool { return a.extensions != nil && a.extensions.Ledger("ai").State == ext.On }
+func (a *App) aiOn() bool { return a.extensions != nil && a.extensions.Enabled("ai") }
 
 // askAI asks, over the settings, before the AI is turned off or on. Esc
 // and the shade put the question away, the settings staying.

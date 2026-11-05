@@ -19,6 +19,7 @@ import (
 
 type testHost struct {
 	hostapi.Book
+	hostapi.Editing
 	store   *workspace.Store
 	content *book.Book
 	prefs   struct{ Export *Choices }
@@ -71,6 +72,7 @@ func dialogFixture(t *testing.T, text string) (*testHost, *Dialog, *ui.Tester, s
 	h := &testHost{store: store, content: book.Open(store), pal: kit.LightPalette(), current: id}
 	var d *Dialog
 	host, err := ext.New(ext.Options{Settings: testSettings{h}, DeclareHost: func(r *ext.Registrar) {
+		ext.Provide(r, hostapi.EditingService, func(*ext.Session) hostapi.Editing { return h })
 		ext.Provide(r, hostapi.BookService, func(*ext.Session) hostapi.Book { return h })
 		ext.Provide(r, hostapi.PaletteService, func(*ext.Session) hostapi.Palette { return h })
 		ext.Provide(r, hostapi.NoticesService, func(*ext.Session) hostapi.Notices { return h })
@@ -141,3 +143,5 @@ func (h *testHost) Request(_ ui.Services, _ string, fn func(context.Context) (fu
 }
 
 func (h *testHost) Busy() bool { return false }
+
+func (h *testHost) Run(work func(context.Context)) { work(context.Background()) }

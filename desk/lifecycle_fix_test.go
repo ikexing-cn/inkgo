@@ -109,16 +109,16 @@ func TestCheckTimingPersistsAcrossActivationAndReopen(t *testing.T) {
 	}
 }
 
-func TestUnreadablePreferencesAreNotOverwritten(t *testing.T) {
+func TestUnreadablePreferencesUseDefaultsAndCanSave(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "desk.json")
-	broken := []byte("{")
-	requireExtension(t, os.WriteFile(path, broken, 0600))
-	if err := (prefs.Prefs{}).Save(path); err == nil {
-		t.Fatal("missing read error")
+	requireExtension(t, os.WriteFile(path, []byte("{"), 0600))
+	p := prefs.Load(path)
+	if !p.Unreadable() || !p.Writing {
+		t.Fatal("expected defaults and notice")
 	}
-	got, _ := os.ReadFile(path)
-	if string(got) != string(broken) {
-		t.Fatal(string(got))
+	requireExtension(t, p.Save(path))
+	if prefs.Load(path).Unreadable() {
+		t.Fatal("next save did not repair preferences")
 	}
 }
 

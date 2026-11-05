@@ -19,7 +19,7 @@ func TestLoadPreferences(t *testing.T) {
 		writing   bool
 	}{
 		{`{}`, "", false},
-		{`{`, "", false},
+		{`{`, "", true},
 		{`{"talk_tab":true}`, "talk", false},
 		{`{"talk_tab":true,"fore_tab":true}`, "fore", false},
 		{`{"pane_tab":"","fore_tab":true}`, "", false},

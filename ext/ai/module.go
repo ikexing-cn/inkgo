@@ -31,6 +31,7 @@ type View struct {
 	ai            aiapi.Backend
 	ServiceForm   ServiceForm
 	book          *ext.Ref[hostapi.Book]
+	editing       *ext.Ref[hostapi.Editing]
 	palette       *ext.Ref[hostapi.Palette]
 	jobs          *ext.Ref[hostapi.Jobs]
 	modelSections *ext.PointReader[hostapi.SettingsSection]
@@ -48,12 +49,14 @@ func New(opts Options) ext.Module {
 			v = &View{}
 		}
 		v.book = ext.Use(r, hostapi.BookService)
+		v.editing = ext.Use(r, hostapi.EditingService)
 		v.palette = ext.Use(r, hostapi.PaletteService)
 		v.jobs = ext.Use(r, hostapi.JobsService)
 		notices := ext.Use(r, hostapi.NoticesService)
 		ext.Declare(r, aiapi.ModelChanges)
+		ext.DeclareCalls(r, aiapi.ModelChanges, func(f func()) func(struct{}) struct{} { return func(struct{}) struct{} { f(); return struct{}{} } })
 		v.modelChanges = ext.ReadPoint(r, aiapi.ModelChanges)
-		ext.Declare(r, aiapi.TalkStarters)
+		ext.DeclareSingle(r, aiapi.TalkStarters)
 		ext.Declare(r, aiapi.Proposals)
 		ext.Declare(r, aiapi.Tools)
 		ext.DeclareCalls(r, aiapi.Tools, aiapi.InvokeTool)
@@ -62,6 +65,10 @@ func New(opts Options) ext.Module {
 			return func(c *ui.Context) struct{} { draw(c); return struct{}{} }
 		})
 		ext.Declare(r, aiapi.Calls)
+		ext.DeclareCalls(r, aiapi.Calls, func(f func(aiapi.Call)) func(aiapi.Call) struct{} {
+			return func(c aiapi.Call) struct{} { f(c); return struct{}{} }
+		})
+		aiapi.DeclareOperations(r)
 		calls := ext.ReadPoint(r, aiapi.Calls)
 		v.usageItems = ext.ReadPoint(r, aiapi.Usage)
 		v.modelSections = ext.ReadPoint(r, hostapi.SettingsSections)

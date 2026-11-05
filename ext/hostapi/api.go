@@ -127,48 +127,71 @@ type Page struct {
 	TogglePane func()
 }
 
-// Book exposes current book content to extensions on the frame thread only.
+// Book exposes trusted book handles on the frame thread. Workers capture Store before starting.
 type Book interface {
-	// ChapterState returns saved prose and tab changes on the frame thread.
-	ChapterState() ChapterState
-	// AcknowledgeChapterChange clears the tab change flag after a leave listener consumes it.
-	AcknowledgeChapterChange()
-	// SaveText saves the selected chapter on the frame thread and returns any error.
-	SaveText() error
-	// RestoreSnapshot replaces the editor, keeps a restoration snapshot and saves on the frame thread.
-	RestoreSnapshot(workspace.Snapshot, string) error
-	// RestoreTrash restores a node and reloads the book tree and counts on the frame thread.
-	RestoreTrash(string) error
-	// PurgeTrash purges a node and reloads the book tree and counts on the frame thread.
-	PurgeTrash(string) error
-	// ReplaceBookText snapshots and replaces live book prose on the frame thread.
-	ReplaceBookText(string, string) (chapters, total int, here bool, err error)
-	// Flash marks a content change on the frame thread.
-	Flash(string)
+	// Store returns the current store, or nil on the shelf; frame thread only.
+	Store() *workspace.Store
+
+	// Content returns borrowed UI content, or nil on the shelf; frame thread only.
+	Content() *book.Book
 
 	// Held reports a blocking book operation on the frame thread.
 	Held() bool
+}
+
+// Editing coordinates editors, undo, chapter trees, counts and view preferences.
+type Editing interface {
+	// Refresh reloads derived views after content revisions on the frame thread.
+	Refresh() error
+	// ChapterExternal reports an unresolved outside edit on the frame thread.
+	ChapterExternal() bool
+	// SavePreferences saves machine-local view state on the frame thread.
+	SavePreferences() error
+
+	// ChapterState returns saved prose and tab changes on the frame thread.
+	ChapterState() ChapterState
+
+	// AcknowledgeChapterChange clears the tab change flag after a leave listener consumes it.
+	AcknowledgeChapterChange()
+
+	// SaveText saves the selected chapter on the frame thread and returns any error.
+	SaveText() error
+
+	// RestoreSnapshot replaces the editor, keeps a restoration snapshot and saves on the frame thread.
+	RestoreSnapshot(workspace.Snapshot, string) error
+
+	// RestoreTrash restores a node and reloads the book tree and counts on the frame thread.
+	RestoreTrash(string) error
+
+	// PurgeTrash purges a node and reloads the book tree and counts on the frame thread.
+	PurgeTrash(string) error
+
+	// ReplaceBookText snapshots and replaces live book prose on the frame thread.
+	ReplaceBookText(string, string) (chapters, total int, here bool, err error)
+
+	// Flash marks a content change on the frame thread.
+	Flash(string)
+
 	// CategoriesChanged reloads derived setting data and notifies the open book on the frame thread.
 	CategoriesChanged() error
+
 	// Flashed returns when book content last received a recent-change notice.
 	// Call directly on the frame thread, without ext.Call or ext.Guard.
 	Flashed(string) (time.Time, bool)
+
 	// ClearFlash removes that content notice. Call directly on the frame thread,
 	// without ext.Call or ext.Guard; this does not change persisted book data.
 	ClearFlash(string)
-	// Store returns the current store, or nil on the shelf; frame thread only.
-	Store() *workspace.Store
-	// Content returns borrowed UI content, or nil on the shelf; frame thread only.
-	Content() *book.Book
+
 	// Flush saves the displayed chapter; frame thread only.
 	Flush()
+
 	// Chapter returns the selected editor; id is empty off the writing page.
 	// open requires an existing chapter, rather than a folder.
 	Chapter() (id string, ed *editor.Editor, open bool)
+
 	// ChapterTitle returns a chapter title, false for a missing node or folder.
 	ChapterTitle(id string) (string, bool)
-	// Dir returns the current work folder, or empty on the shelf.
-	Dir() string
 }
 
 // Palette provides desktop and preview colors on the frame thread only.
@@ -212,6 +235,9 @@ const PaneTabs ext.PointKey[PaneTab] = "host.panes"
 // Pages collects title-bar pages, sorted with host pages by Order.
 const Pages ext.PointKey[Page] = "host.pages"
 
+// EditingService resolves coordinated edits on the frame thread.
+const EditingService ext.ServiceKey[Editing] = "host.editing"
+
 // BookService resolves current book content; methods require the frame thread.
 const BookService ext.ServiceKey[Book] = "host.book"
 
@@ -237,6 +263,8 @@ type Notices interface {
 
 // Jobs dispatches background work from the frame thread.
 type Jobs interface {
+	// Run starts worker-only work owned and joined by this handle's activation.
+	Run(func(context.Context))
 	// Busy reports a running author operation on the frame thread.
 	Busy() bool
 	// Request starts a cancellable, nonblocking author operation on the frame thread.

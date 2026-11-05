@@ -56,15 +56,11 @@ func (c *checkRunner) start(pen chapterChecker, store *workspace.Store, chapter 
 		result := checkDone{Chapter: chapter, Store: store, Check: check, Err: err}
 		return func() { done <- result }
 	}
-	if c.session != nil {
-		hostapi.Run(c.jobs, c.session, func(ctx context.Context) {
-			apply := work(ctx)
-			apply()
-			services.Invalidate()
-		})
-	} else {
-		go func() { apply := work(context.Background()); apply(); services.Invalidate() }()
-	}
+	hostapi.Run(c.jobs, func(ctx context.Context) {
+		apply := work(ctx)
+		apply()
+		services.Invalidate()
+	})
 }
 
 // stop cancels the running check; its result still returns through the mailbox.

@@ -22,6 +22,7 @@ type View struct {
 	backend  aiapi.Backend
 	ai       *ext.Ref[aiapi.Backend]
 	book     *ext.Ref[hostapi.Book]
+	editing  *ext.Ref[hostapi.Editing]
 	notices  *ext.Ref[hostapi.Notices]
 	palette  *ext.Ref[hostapi.Palette]
 	material *ext.Ref[contextapi.Context]
@@ -61,7 +62,7 @@ func New() (ext.Module, *View) {
 }
 func setup(r *ext.Registrar) { setupView(r, &View{}) }
 func setupView(r *ext.Registrar, s *View) {
-	*s = View{ai: ext.Use(r, aiapi.Service), book: ext.Use(r, hostapi.BookService), notices: ext.Use(r, hostapi.NoticesService), palette: ext.Use(r, hostapi.PaletteService), material: ext.Use(r, contextapi.Service)}
+	*s = View{ai: ext.Use(r, aiapi.Service), book: ext.Use(r, hostapi.BookService), editing: ext.Use(r, hostapi.EditingService), notices: ext.Use(r, hostapi.NoticesService), palette: ext.Use(r, hostapi.PaletteService), material: ext.Use(r, contextapi.Service)}
 	ext.Contribute(r, aiapi.ModelChanges, "models", s.Invalidate)
 	s.auto = ext.Setting(r, "automatic", ext.Schema[bool]{Title: continuetext.SettingsAutoContinue, Scope: ext.BookScope})
 	r.OnStart(func(*ext.Session) error {
@@ -80,10 +81,10 @@ func setupView(r *ext.Registrar, s *View) {
 		}
 		return ""
 	}, OnDemand: func() bool { return !s.auto.Get() }})
-	can := func() bool { _, ed, ok := s.book.Get().Chapter(); return ok && ed != nil && !ed.ReadOnly() }
+	can := func() bool { _, ed, ok := s.editing.Get().Chapter(); return ok && ed != nil && !ed.ReadOnly() }
 	run := func() {
 		s.keepPen()
-		_, ed, ok := s.book.Get().Chapter()
+		_, ed, ok := s.editing.Get().Chapter()
 		if !ok || ed == nil {
 			return
 		}

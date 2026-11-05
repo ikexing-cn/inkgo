@@ -9,7 +9,6 @@ import (
 	"context"
 	"encoding/json"
 	"writer/ext/ai/aiapi"
-	"writer/inference"
 	"writer/internal/textclip"
 	"writer/prompt"
 	"writer/talkbook"
@@ -104,7 +103,7 @@ func (t *toolbox) note(in noteArgs) outcome {
 			if m.Role == workspace.RoleUser {
 				text = m.Said()
 			}
-			words, ok := inference.Locate(text, q)
+			words, ok := aiapi.Locate(text, q)
 			if !ok {
 				continue
 			}

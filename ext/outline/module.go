@@ -33,12 +33,15 @@ func module(controller *Page) ext.Module {
 		}
 		ext.Provide(r, outlineapi.Active, func(*ext.Session) struct{} { return struct{}{} })
 		book := ext.Use(r, hostapi.BookService)
+		bookEditing := ext.Use(r, hostapi.EditingService)
 		palette := ext.Use(r, hostapi.PaletteService)
 		notices := ext.Use(r, hostapi.NoticesService)
 		dialogs := ext.Use(r, hostapi.DialogsService)
-		desktop := ext.Use(r, hostapi.DesktopService)
+		desktop := ext.Use(r, hostapi.NavigationService)
+		desktopNative := ext.Use(r, hostapi.NativeUIService)
+		desktopPaths := ext.Use(r, hostapi.MachinePathsService)
 		r.OnStart(func(*ext.Session) error {
-			*p = Page{Services: Services{Book: book.Get(), Palette: palette.Get(), Notices: notices.Get(), Dialogs: dialogs.Get(), Desktop: desktop.Get()}}
+			*p = Page{Services: Services{Book: book.Get(), Editing: bookEditing.Get(), Palette: palette.Get(), Notices: notices.Get(), Dialogs: dialogs.Get(), Desktop: desktop.Get(), Native: desktopNative.Get(), Paths: desktopPaths.Get()}}
 			return nil
 		})
 		r.OnStop(func(*ext.Session) {

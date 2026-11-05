@@ -11,8 +11,10 @@ import (
 	"writer/workspace"
 )
 
-// AIEnabled implements the frame-thread host capability.
-func (h extensionHost) AIEnabled() bool { return h.a.aiOn() && h.a.extensions.Own("ai") }
+// Enabled implements the frame-thread host capability.
+func (h extensionHost) Enabled(id string) bool {
+	return h.a.extensions.Enabled(id)
+}
 
 // FindInChapter implements the frame-thread host capability.
 func (h extensionHost) FindInChapter(id, quote string) { h.a.findInChapter(id, quote) }
@@ -25,9 +27,6 @@ func (h extensionHost) ClearFlash(id string) { delete(h.a.flash, id) }
 
 // Refresh implements the frame-thread host capability.
 func (h extensionHost) Refresh() error { return h.a.refreshFromSetting() }
-
-// UndoRevision implements the frame-thread host capability.
-func (h extensionHost) UndoRevision(text string, ops ...workspace.Op) { h.a.undoSetting(text, ops...) }
 
 // CountText implements the frame-thread host capability.
 func (h extensionHost) CountText(text string) int {

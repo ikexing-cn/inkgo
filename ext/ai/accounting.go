@@ -32,7 +32,7 @@ func (b accountingBackend) prepare() {
 			if sessions[i].Active() {
 				observed := call
 				observed.Activation = sessions[i]
-				_ = b.calls.Guard(item.Owner, item.ID, func() { item.Value(observed) })
+				_, _ = ext.CallReadPoint(b.calls, item.ID, observed, func(c aiapi.Call) struct{} { item.Value(c); return struct{}{} })
 			}
 		}
 	})

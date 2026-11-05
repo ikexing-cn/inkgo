@@ -99,6 +99,7 @@ func (a *App) initExtensions(mods []ext.Module) {
 			ext.Provide(r, hostapi.NoticesService, func(*ext.Session) hostapi.Notices { return extensionHost{a} })
 			ext.Provide(r, hostapi.JobsService, func(*ext.Session) hostapi.Jobs { return jobsHost{extensionHost{a}} })
 			ext.Provide(r, hostapi.DialogsService, func(*ext.Session) hostapi.Dialogs { return dialogsHost{extensionHost{a}} })
+			ext.Provide(r, hostapi.EditingService, func(*ext.Session) hostapi.Editing { return extensionHost{a} })
 			ext.Provide(r, hostapi.BookService, func(*ext.Session) hostapi.Book { return extensionHost{a} })
 			ext.Provide(r, hostapi.PaletteService, func(*ext.Session) hostapi.Palette { return extensionHost{a} })
 			ext.Provide(r, hostapi.PaneService, func(*ext.Session) hostapi.Pane { return extensionHost{a} })

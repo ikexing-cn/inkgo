@@ -16,6 +16,7 @@ import (
 
 type testHost struct {
 	hostapi.Book
+	hostapi.Editing
 	store       *workspace.Store
 	content     *book.Book
 	prefs       struct{ Phone *Typesetting }
@@ -71,10 +72,11 @@ func previewFixture(t *testing.T, text string) (*testHost, *Panel, *ui.Tester, s
 	h.openChapter(t, id)
 	var p *Panel
 	host, err := ext.New(ext.Options{Settings: testSettings{h}, DeclareHost: func(r *ext.Registrar) {
+		ext.Provide(r, hostapi.EditingService, func(*ext.Session) hostapi.Editing { return h })
 		ext.Provide(r, hostapi.BookService, func(*ext.Session) hostapi.Book { return h })
 		ext.Provide(r, hostapi.PaletteService, func(*ext.Session) hostapi.Palette { return h })
 	}}, ext.Module{ID: "phone", Setup: func(r *ext.Registrar) {
-		p = &Panel{book: ext.Use(r, hostapi.BookService), palette: ext.Use(r, hostapi.PaletteService), setting: ext.Setting(r, "typesetting", ext.Schema[Typesetting]{Default: defaultPhone()})}
+		p = &Panel{book: ext.Use(r, hostapi.BookService), editing: ext.Use(r, hostapi.EditingService), palette: ext.Use(r, hostapi.PaletteService), setting: ext.Setting(r, "typesetting", ext.Schema[Typesetting]{Default: defaultPhone()})}
 		r.OnStart(func(s *ext.Session) error { p.session = s; return nil })
 	}})
 	if err != nil {

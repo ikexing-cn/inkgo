@@ -28,18 +28,23 @@ type noteAction struct {
 // Services contains the frame-thread host capabilities used by the panel.
 type Services struct {
 	Book    hostapi.Book
+	Editing hostapi.Editing
 	Palette hostapi.Palette
 	Notices hostapi.Notices
-	Desktop hostapi.Desktop
+	Desktop hostapi.Navigation
+	Native  hostapi.NativeUI
+	Paths   hostapi.MachinePaths
 	Talk    func() (talkapi.ServiceAPI, bool)
 	Search  hostapi.Search
-	AI      hostapi.AI
-	Edits   hostapi.Revisions
+	AI      hostapi.Extensions
 	Pane    hostapi.Pane
 }
 
 // Panel owns one work's entry routes and form drafts.
 type Panel struct {
+	// Take holds the author selection form.
+	Take        SelectionDraft
+	seen        int
 	replacement *ext.OptRef[findapi.Replacement]
 	services    Services
 	Doc         Form
@@ -60,7 +65,7 @@ func register(r *ext.Registrar, p *Panel) {
 	ext.Contribute(r, hostapi.BesideItems, "setting-column", hostapi.DrawItem{Draw: p.settingPanel})
 	ext.Contribute(r, hostapi.SelectionMenus, "setting-name", hostapi.SelectionMenu{Build: p.nameMenu})
 	ext.Contribute(r, marksapi.MarginSources, "setting-changes", marksapi.MarginSource{Key: func() any {
-		return ideasKey{p.services.Book.Content(), p.services.Book.Content().Version(), p.services.AI.AIEnabled()}
+		return ideasKey{p.services.Book.Content(), p.services.Book.Content().Version(), p.services.AI.Enabled("ai")}
 	}, Notes: p.marginNotes})
 	ext.Provide(r, loreapi.EntryNavigationService, func(*ext.Session) loreapi.EntryNavigator {
 		return loreapi.EntryNavigator{Owner: "lore", Navigation: p}

@@ -12,10 +12,22 @@ func (p *Palette) Select(c *ui.Context, selected *string, options []string) ui.E
 // SelectNamed is Select whose options are kept as they are and shown by
 // name: an ID saved or compared stays the same in every language.
 func (p *Palette) SelectNamed(c *ui.Context, selected *string, options []string, name func(string) string) ui.Element {
+	return p.selectNamed(c, selected, options, name, 0)
+}
+
+// SelectNamedSize draws a named select with an explicit label font size.
+func (p *Palette) SelectNamedSize(c *ui.Context, selected *string, options []string, name func(string) string, size float32) ui.Element {
+	return p.selectNamed(c, selected, options, name, size)
+}
+
+func (p *Palette) selectNamed(c *ui.Context, selected *string, options []string, name func(string) string, size float32) ui.Element {
 	t := c.Theme()
 	sel := ui.SelectBase(c, selected)
 	b := sel.Trigger.Padding(t.Space(1.5), t.Space(3.5)).Gap(t.Space(1.5)).Radius(t.Radius).
 		Background(t.Surface).TextColor(t.Text).Border(1, t.Border).Justify(ui.SpaceBetween).MinWidth(t.Space(35))
+	if size > 0 {
+		b.Height(HControl).Padding(0, 10).Gap(8)
+	}
 	switch {
 	case b.Pressed():
 		b.Background(t.SurfacePressed)
@@ -23,8 +35,15 @@ func (p *Palette) SelectNamed(c *ui.Context, selected *string, options []string,
 		b.Background(t.SurfaceHover)
 	}
 	b.Children(func() {
-		ui.Text(c, name(*selected)).SingleLine()
-		Glyph(c, IcChevronDown, t.Space(2.5), t.TextMuted)
+		label := ui.Text(c, name(*selected)).SingleLine()
+		if size > 0 {
+			label.FontSize(size).Shrink(0)
+		}
+		arrow := t.Space(2.5)
+		if size > 0 {
+			arrow = IconSm
+		}
+		Glyph(c, IcChevronDown, arrow, t.TextMuted)
 	})
 	sel.Popup(func(panel ui.Element) {
 		panel.Margin(t.Space(1), 0, 0, 0).Padding(t.Space(1)).Radius(t.Radius+2).Background(t.Background).Border(1, t.Border)
@@ -41,7 +60,12 @@ func (p *Palette) SelectNamed(c *ui.Context, selected *string, options []string,
 				case opt == *selected:
 					item.Background(t.Surface)
 				}
-				item.Children(func() { ui.Text(c, name(opt)).SingleLine() })
+				item.Children(func() {
+					label := ui.Text(c, name(opt)).SingleLine()
+					if size > 0 {
+						label.FontSize(size)
+					}
+				})
 			}
 		})
 	})

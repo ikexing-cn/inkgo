@@ -21,6 +21,7 @@ type service struct {
 	panel    *Panel
 	markdown *Markdown
 	book     *ext.Ref[hostapi.Book]
+	editing  *ext.Ref[hostapi.Editing]
 	notices  *ext.Ref[hostapi.Notices]
 	choices  talkapi.ModelChoices
 }
@@ -34,9 +35,11 @@ func New() (ext.Module, *Panel) {
 }
 func setup(r *ext.Registrar) { setupPanel(r, &Panel{}) }
 func setupPanel(r *ext.Registrar, panel *Panel) {
-	s := &service{book: ext.Use(r, hostapi.BookService), notices: ext.Use(r, hostapi.NoticesService), ai: ext.Use(r, aiapi.Service)}
+	s := &service{book: ext.Use(r, hostapi.BookService), editing: ext.Use(r, hostapi.EditingService), notices: ext.Use(r, hostapi.NoticesService), ai: ext.Use(r, aiapi.Service)}
 	pane := ext.Use(r, hostapi.PaneService)
-	desktop := ext.Use(r, hostapi.DesktopService)
+	desktop := ext.Use(r, hostapi.NavigationService)
+	desktopNative := ext.Use(r, hostapi.NativeUIService)
+	desktopPaths := ext.Use(r, hostapi.MachinePathsService)
 	jobs := ext.Use(r, hostapi.JobsService)
 	suggestions := &suggestionReader{point: ext.ReadPoint(r, aiapi.Proposals)}
 	search := ext.Use(r, hostapi.SearchService)
@@ -49,7 +52,10 @@ func setupPanel(r *ext.Registrar, panel *Panel) {
 		panel.activation = activation
 		p := s.panel
 		p.bookHost = s.book.Get()
+		p.editingHost = s.editing.Get()
 		p.desktop = desktop.Get()
+		p.native = desktopNative.Get()
+		p.paths = desktopPaths.Get()
 		p.jobs = jobs.Get()
 
 		p.suggestions = suggestions
@@ -134,7 +140,7 @@ func setupPanel(r *ext.Registrar, panel *Panel) {
 	ext.Contribute(r, hostapi.PaneTabs, "pane", hostapi.PaneTab{Key: "talk", Before: "fore", Title: talktext.PaneTabChat,
 		Draw: func(c *ui.Context) { s.panel.TalkPaneBody(c) },
 	})
-	canQuote := func() bool { _, ed, ok := s.book.Get().Chapter(); return ok && ed != nil && ed.SelectedText() != "" }
+	canQuote := func() bool { _, ed, ok := s.editing.Get().Chapter(); return ok && ed != nil && ed.SelectedText() != "" }
 	ext.Contribute(r, hostapi.Commands, "send", hostapi.Command{Name: talktext.HelpSend, Key: ui.KeyEnter, Mods: ui.Cmd, Can: func() bool { return false }, HelpGroup: talktext.HelpGroupChat, HelpText: talktext.HelpSend, HelpAfter: locales.HelpZoomText})
 	ext.Contribute(r, hostapi.Commands, "quote", hostapi.Command{Name: talktext.EditorQuote, Key: ui.KeyL, Mods: ui.Cmd,
 		HelpGroup: locales.HelpGroupWrite, HelpText: talktext.HelpCite, HelpAfter: locales.HelpAcceptDrop,

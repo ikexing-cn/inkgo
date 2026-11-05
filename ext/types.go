@@ -200,18 +200,34 @@ type Failure struct {
 }
 
 // Ledger is a snapshot of all declarations, including those of inactive modules.
+// CallInfo records a point operation and its input/output type names at assembly.
+type CallInfo struct{ Point, Operation, Input, Output string }
+
+// Capability records the active candidates of a single-valued point.
+type Capability struct {
+	Point      string
+	Candidates []string
+	Conflict   bool
+}
+
+// Ledger is a snapshot of declarations and runtime status.
 type Ledger struct {
+	// Calls records the typed operations declared by this module.
+	Calls                      []CallInfo
+	Capabilities               []Capability
 	ID                         string
 	Requires, Optional         []Dependency
 	NeededBy, UsedOptionallyBy []string
 	Points                     []string
-	Contributions              []Contribution
-	Provides                   []string
-	Uses                       []ServiceUse
-	Settings                   []SettingInfo
-	Injections                 []Injection
-	State                      State
-	Errors                     []Failure
+	// Reads records typed point consumption validated during assembly.
+	Reads         []string
+	Contributions []Contribution
+	Provides      []string
+	Uses          []ServiceUse
+	Settings      []SettingInfo
+	Injections    []Injection
+	State         State
+	Errors        []Failure
 }
 
 // Task is a background operation tied to a session's cancellation and shutdown.

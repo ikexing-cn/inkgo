@@ -115,7 +115,7 @@ func (a *Panel) leaveCheck() {
 	}
 	a.pruneStoredCheck(w.Node, w.cur().saved)
 	changed := w.cur().changed
-	a.bookHost.AcknowledgeChapterChange()
+	a.editingHost.AcknowledgeChapterChange()
 	if !changed || k.When != checkOnLeave || !a.hasSetting() {
 		return
 	}

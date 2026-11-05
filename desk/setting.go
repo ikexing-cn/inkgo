@@ -1,9 +1,5 @@
 package desk
 
-import (
-	"writer/workspace"
-)
-
 type paneTab string
 
 const (
@@ -14,7 +10,6 @@ const (
 )
 
 type docView struct {
-	ideas  cached[ideasKey, []workspace.Idea]
 	hidden bool
 	// The right column: its width as dragged, and, on the writing page,
 	// its selected tab and whether a talk sends the chapter with it.

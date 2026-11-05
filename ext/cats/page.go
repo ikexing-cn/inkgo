@@ -144,7 +144,7 @@ func (a *Page) Save() error {
 	if err := a.Book.Store().SaveWork(w); err != nil {
 		return err
 	}
-	if err := a.Book.CategoriesChanged(); err != nil {
+	if err := a.Editing.CategoriesChanged(); err != nil {
 		return err
 	}
 	a.Notices.Notices().Did(catstext.CatsSaved(name))
@@ -157,7 +157,7 @@ func (a *Page) Drop(name string) {
 	err := a.Book.Content().RemoveCategory(name)
 	if err == nil {
 		a.Notices.Notices().Did(catstext.CatsDeleted(name))
-		err = a.Book.CategoriesChanged()
+		err = a.Editing.CategoriesChanged()
 	}
 	a.Remove = ""
 	a.Notices.Notices().SetError(err)
@@ -166,6 +166,7 @@ func (a *Page) Drop(name string) {
 // Page owns category form state for a book session.
 type Page struct {
 	Book                 hostapi.Book
+	Editing              hostapi.Editing
 	Palette              hostapi.Palette
 	Notices              hostapi.Notices
 	Name, Target, Remove string

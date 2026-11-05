@@ -7,8 +7,9 @@ import (
 )
 
 type point struct {
-	owner string
-	typ   reflect.Type
+	single bool
+	owner  string
+	typ    reflect.Type
 }
 type contribution struct {
 	id, owner, key string
@@ -81,7 +82,7 @@ func Declare[T any](r *Registrar, key PointKey[T]) {
 	if !strings.Contains(k, ".") {
 		r.fail("Declare key %q needs an owner prefix", k)
 	}
-	r.h.points[k] = point{r.e.mod.ID, reflect.TypeFor[T]()}
+	r.h.points[k] = point{owner: r.e.mod.ID, typ: reflect.TypeFor[T]()}
 	r.e.ledger.Points = append(r.e.ledger.Points, k)
 }
 
@@ -200,3 +201,11 @@ func (r *Registrar) OnStart(f func(*Session) error) { r.check(); r.e.starts = ap
 
 // OnStop registers cleanup after session tasks have exited; callbacks run in reverse order.
 func (r *Registrar) OnStop(f func(*Session)) { r.check(); r.e.stops = append(r.e.stops, f) }
+
+// DeclareSingle declares a capability with no fallback: only one active candidate is usable.
+func DeclareSingle[T any](r *Registrar, key PointKey[T]) {
+	Declare(r, key)
+	p := r.h.points[string(key)]
+	p.single = true
+	r.h.points[string(key)] = p
+}

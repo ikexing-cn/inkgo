@@ -27,6 +27,7 @@ type Dialog struct {
 	outline    *ext.OptRef[struct{}]
 	lore       *ext.OptRef[struct{}]
 	book       *ext.Ref[hostapi.Book]
+	editing    *ext.Ref[hostapi.Editing]
 	palette    *ext.Ref[hostapi.Palette]
 	notices    *ext.Ref[hostapi.Notices]
 	jobs       *ext.Ref[hostapi.Jobs]
@@ -66,7 +67,7 @@ type planKey struct {
 
 func (d *Dialog) planKey() planKey {
 	b := d.book.Get().Content()
-	id, _, _ := d.book.Get().Chapter()
+	id, _, _ := d.editing.Get().Chapter()
 	return planKey{b, b.Version(), id, i18n.Locale(), d.outlineOn(), d.loreOn()}
 }
 
@@ -74,7 +75,7 @@ func (d *Dialog) planKey() planKey {
 // pen name the work had last, and 指定范围 from the first chapter to
 // the third.
 func (d *Dialog) Show() {
-	d.book.Get().Flush()
+	d.editing.Get().Flush()
 	store := d.book.Get().Store()
 	pieces, err := store.Pieces()
 	if err != nil {
@@ -101,7 +102,7 @@ func (d *Dialog) Replan() {
 	if !d.Open {
 		return
 	}
-	id, _, _ := d.book.Get().Chapter()
+	id, _, _ := d.editing.Get().Chapter()
 	d.planned = d.planKey()
 	d.plan = format.BuildPlan(d.pieces, d.book.Get().Content().Setting().Entries, id, d.effectiveOptions(), d.selection, exporttext.ExportSpan, d.book.Get().Store().Work().Language)
 	d.selection.Scope = d.plan.Scope
@@ -272,8 +273,7 @@ func (d *Dialog) export(c *ui.Context, plan format.Plan) {
 		d.Open = false
 		if set.Prose && !set.Text && pen != work.Pen {
 			work.Pen = pen
-			current := d.book.Get().Store()
-			status.Warn(current.SaveWork(work))
+			status.Warn(store.SaveWork(work))
 		}
 		if set.Prose && !set.Text && pen != set.Pen {
 			set.Pen = pen

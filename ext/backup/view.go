@@ -37,7 +37,7 @@ func (a *View) Settings() (archive.Settings, bool) {
 	if a.book.Get().Store() == nil {
 		return archive.Settings{}, false
 	}
-	return a.setting.Get().Get(a.book.Get().Dir(), a.desktop.Get().SameFolder)
+	return a.setting.Get().Get(a.paths.Get().Dir(), a.paths.Get().SameFolder)
 }
 
 // Configure persists this work's local settings on the frame thread.
@@ -49,7 +49,7 @@ func (a *View) Configure(s archive.Settings) {
 	if choices == nil {
 		choices = Choices{}
 	}
-	choices.Put(a.book.Get().Dir(), s, a.desktop.Get().SameFolder)
+	choices.Put(a.paths.Get().Dir(), s, a.paths.Get().SameFolder)
 	a.setting.Set(choices)
 }
 
@@ -128,7 +128,7 @@ func (a *View) Run(sv ui.Services) {
 	if !ok || s.Dir == "" || a.State.Running {
 		return
 	}
-	a.book.Get().Flush()
+	a.editing.Get().Flush()
 	st := a.book.Get().Store()
 	root, work := st.Root(), st.Work()
 	a.State.Running = true
@@ -148,7 +148,7 @@ func (a *View) Run(sv ui.Services) {
 			}
 			a.State.Running = false
 			a.State.Done = nil
-			if a.book.Get().Store() != nil && a.desktop.Get().SameFolder(a.book.Get().Store().Root(), root) {
+			if a.book.Get().Store() != nil && a.paths.Get().SameFolder(a.book.Get().Store().Root(), root) {
 				a.RecordResult(s, err)
 			}
 		}
@@ -166,7 +166,7 @@ func (a *View) backupNow() {
 	if !ok || s.Dir == "" || !s.OnClose {
 		return
 	}
-	a.book.Get().Flush()
+	a.editing.Get().Flush()
 	st := a.book.Get().Store()
 	work := st.Work()
 	fl, err := readWork(st)
@@ -291,8 +291,8 @@ func (a *View) backupLine(c *ui.Context) {
 		tip = text
 	}
 	// Set apart from the counts: one is of the work, the other of words.
-	b := ui.ButtonBase(c).Row().Height(kit.HControlSm).AlignItems(ui.Center).Gap(6).Margin(0, 8, 0, 0).Shrink(0).Label("备份状态").Tooltip(tip).KeepFocus()
-	a.desktop.Get().SlideEdge(b)
+	b := ui.ButtonBase(c).Row().Height(kit.HControlSm).AlignItems(ui.Center).Gap(6).Shrink(0).Label("备份状态").Tooltip(tip).KeepFocus()
+	a.native.Get().SlideEdge(b)
 	color := a.palette.Get().Colors().Faint
 	if b.Hovered() {
 		color = t.Text
@@ -616,8 +616,19 @@ func (a *View) backupSettingsView(c *ui.Context) {
 					counts[i] = strconv.Itoa(k)
 				}
 				a.State.KeepChoice = strconv.Itoa(s.Kept())
-				keepName := func(n string) string { k, _ := strconv.Atoi(n); return backuptext.BackupKeepCount(k) }
-				if a.palette.Get().Colors().SelectNamed(c, &a.State.KeepChoice, counts, keepName).Label("保留份数").Width(140).Changed() {
+				keepName := func(n string) string {
+					k, _ := strconv.Atoi(n)
+					switch k {
+					case 10:
+						return backuptext.BackupKeep10()
+					case 30:
+						return backuptext.BackupKeep30()
+					case 90:
+						return backuptext.BackupKeep90()
+					}
+					return backuptext.BackupKeepCount(k)
+				}
+				if a.palette.Get().Colors().SelectNamedSize(c, &a.State.KeepChoice, counts, keepName, kit.FsBody).Label("保留份数").Width(140).Changed() {
 					s.Keep, _ = strconv.Atoi(a.State.KeepChoice)
 					a.Configure(s) // the next backup removes those beyond it
 				}

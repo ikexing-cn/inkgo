@@ -14,6 +14,7 @@ import (
 // Services supplies the frame-thread book, palette and writing geometry.
 type Services struct {
 	Book    hostapi.Book
+	Editing hostapi.Editing
 	Palette hostapi.Palette
 	Prose   hostapi.ProseUI
 }
@@ -39,11 +40,12 @@ func New() (ext.Module, *Panel) {
 	p := &Panel{}
 	return ext.Module{ID: "notes", Kind: ext.Feature, Group: hostapi.GroupWrite, Requires: []string{"marks"}, Name: notestext.ModNotes, Desc: notestext.ModNotesAbout, Setup: func(r *ext.Registrar) {
 		book := ext.Use(r, hostapi.BookService)
+		bookEditing := ext.Use(r, hostapi.EditingService)
 		palette := ext.Use(r, hostapi.PaletteService)
 		prose := ext.Use(r, hostapi.ProseUIService)
 		p.reader = ext.Use(r, marksapi.Service)
 		r.OnStart(func(*ext.Session) error {
-			p.services = Services{book.Get(), palette.Get(), prose.Get()}
+			p.services = Services{book.Get(), bookEditing.Get(), palette.Get(), prose.Get()}
 			p.margin = marginState{}
 			return nil
 		})
@@ -57,8 +59,8 @@ func New() (ext.Module, *Panel) {
 	}}, p
 }
 func (a *Panel) pal() *kit.Palette      { return a.services.Palette.Colors() }
-func (a *Panel) chapter() string        { id, _, _ := a.services.Book.Chapter(); return id }
-func (a *Panel) editor() *editor.Editor { _, ed, _ := a.services.Book.Chapter(); return ed }
+func (a *Panel) chapter() string        { id, _, _ := a.services.Editing.Chapter(); return id }
+func (a *Panel) editor() *editor.Editor { _, ed, _ := a.services.Editing.Chapter(); return ed }
 
 // Layout reports the current note layout for diagnostics.
 type Layout struct {

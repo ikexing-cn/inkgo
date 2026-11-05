@@ -6,14 +6,13 @@ import (
 	"strings"
 	"writer/ext/ai/aiapi"
 
-	"writer/inference"
 	"writer/model"
 	"writer/prompt"
 	"writer/workspace"
 )
 
 // ask runs a request on m, streaming to on when it is set.
-func ask(ctx context.Context, m inference.Model, req model.Request, on func(model.Delta)) (model.Reply, error) {
+func ask(ctx context.Context, m aiapi.Handle, req model.Request, on func(model.Delta)) (model.Reply, error) {
 	req.Effort = m.Effort
 	return m.Complete(ctx, req, on)
 }
@@ -28,7 +27,7 @@ type Engine struct {
 	// Tools is the contributed tool snapshot taken on the frame thread.
 	Tools []aiapi.Tool
 	Store *workspace.Store
-	Talk  inference.Model
+	Talk  aiapi.Handle
 	// Progress, when set, hears what the reply streams, never empty, and
 	// Step each step's calls and each call's result as they are written,
 	// and each digest compacting the talk: with no ID as it is asked for,

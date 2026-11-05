@@ -18,6 +18,7 @@ import (
 // Page owns the counter and count popover for a book session.
 type Page struct {
 	Book    hostapi.Book
+	Editing hostapi.Editing
 	Palette hostapi.Palette
 	Notices hostapi.Notices
 	Counter Counter

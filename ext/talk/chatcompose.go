@@ -26,7 +26,7 @@ func (a *Panel) Composer(c *ui.Context) {
 	// opens a menu to change either; its tooltip says where the words go.
 	chip := func() {
 		chip := ui.ButtonBase(c).Row().Gap(6).AlignItems(ui.Center).Padding(4, 8).Radius(kit.RControl).Label(talktext.ChatCurrentModel()).Tooltip(a.destination(work.Discussion)).Shrink(1).Disabled(a.held())
-		if chip.Hovered() || a.desktop.MenuOpen("chat-model") {
+		if chip.Hovered() || a.native.MenuOpen("chat-model") {
 			chip.Background(t.SurfaceHover)
 		}
 		chip.Children(func() {
@@ -44,7 +44,7 @@ func (a *Panel) Composer(c *ui.Context) {
 			}
 			kit.Glyph(c, kit.IcChevronUp, kit.IconXs, a.palette().Faint)
 		})
-		a.desktop.MenuState().DropMenu(c, a.palette(), chip, "chat-model", func(panel ui.Element) {
+		a.native.MenuState().DropMenu(c, a.palette(), chip, "chat-model", func(panel ui.Element) {
 			panel.TransformOrigin(1, 1)
 			panel.AttachTo(chip, ui.AnchorTopRight, ui.AnchorBottomRight).Margin(0, 0, 4, 0).Width(220)
 		}, func(m *kit.Menu) { a.ModelMenu(m, work) })
@@ -183,7 +183,7 @@ func (a *Panel) OpenSource(m workspace.Event, start, end int) {
 		return
 	}
 	a.Source = editor.New(editor.NewDoc(m.Text), editor.Options{ReadOnly: true, LineHeight: kit.LhRead,
-		OwnMenu: func(x, y float32) { *a.desktop.MenuState() = kit.MenuState{Owner: "source-text", X: x, Y: y} }})
+		OwnMenu: func(x, y float32) { *a.native.MenuState() = kit.MenuState{Owner: "source-text", X: x, Y: y} }})
 	if end > start {
 		a.Source.MoveTo(start, false)
 		a.Source.MoveTo(end, true)
@@ -206,7 +206,7 @@ func (a *Panel) Extraction(c *ui.Context) {
 			a.palette().DialogHead(c, talktext.ChatPull(), talktext.DialogSourceAbout())
 			a.Source.View(c).Height(220).FillWidth().Border(1, t.Border).Radius(kit.RCard)
 			start, end := a.Source.Selection()
-			a.desktop.MenuState().MenuAt(c, a.palette(), "source-text", func(m *kit.Menu) {
+			a.native.MenuState().MenuAt(c, a.palette(), "source-text", func(m *kit.Menu) {
 				m.Item(locales.CommonCopy()).Hint(keyHint("C")).Disabled(start == end).Do(func() { a.Source.Copy() })
 				m.Item(locales.CommonSelectAll()).Hint(keyHint("A")).Do(func() { a.Source.SelectAll() })
 			})
@@ -226,8 +226,8 @@ func (a *Panel) Extraction(c *ui.Context) {
 					if err == nil {
 						a.SourceOpen = false
 						a.notices().Did(locales.DialogSettingAdded())
-						err = a.bookHost.CategoriesChanged()
-						a.bookHost.Flash(entry.ID)
+						err = a.editingHost.CategoriesChanged()
+						a.editingHost.Flash(entry.ID)
 					}
 					a.SetError(err)
 				}

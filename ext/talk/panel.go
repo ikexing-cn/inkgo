@@ -73,7 +73,10 @@ type Panel struct {
 	// LastChat is the last measured page conversation area.
 	LastChat    ui.Rect
 	bookHost    hostapi.Book
-	desktop     hostapi.Desktop
+	editingHost hostapi.Editing
+	desktop     hostapi.Navigation
+	native      hostapi.NativeUI
+	paths       hostapi.MachinePaths
 	pane        hostapi.Pane
 	paletteHost hostapi.Palette
 	noticeHost  hostapi.Notices
@@ -99,11 +102,11 @@ func (a *Panel) backend() aiapi.Backend { return a.aiRef.Get() }
 func (a *Panel) notices() *kit.Status   { return a.noticeHost.Notices() }
 func (a *Panel) selected() string       { id, _, _ := a.desktop.Selected(); return id }
 func (a *Panel) lost() bool             { _, lost, _ := a.desktop.Selected(); return lost }
-func (a *Panel) editor() *editor.Editor { _, ed, _ := a.bookHost.Chapter(); return ed }
+func (a *Panel) editor() *editor.Editor { _, ed, _ := a.editingHost.Chapter(); return ed }
 func (a *Panel) held() bool             { return a.bookHost.Held() }
 func (a *Panel) focused() bool          { return a.desktop.Focused() }
 func (a *Panel) talkTab() bool          { return a.pane.SelectedTab() == "talk" }
-func (a *Panel) savePrefs()             { a.warn(a.desktop.SavePreferences()) }
+func (a *Panel) savePrefs()             { a.warn(a.editingHost.SavePreferences()) }
 func (a *Panel) warn(err error) {
 	if err != nil {
 		a.SetError(err)
@@ -132,8 +135,10 @@ func (a *Panel) entryNavigationAvailable() bool { return a.desktop.EntryAvailabl
 func (a *Panel) showEntry(e workspace.Entry)    { a.desktop.ShowEntry(e) }
 func (a *Panel) post(sv ui.Services, fn func()) { a.jobs.Post(sv, fn) }
 func (a *Panel) run(c *ui.Context, label string, fn func(context.Context) (func(), error)) {
+	a.runServices(c.Services(), label, fn)
+}
+func (a *Panel) runServices(sv ui.Services, label string, fn func(context.Context) (func(), error)) {
 	turn := a.Turn
-	sv := c.Services()
 	a.cancel = a.jobs.CancelRequest
 	a.jobs.Request(sv, label, func(parent context.Context) (func(), error) {
 		ctx, cancel := context.WithCancel(parent)

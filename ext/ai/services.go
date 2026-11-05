@@ -257,7 +257,7 @@ func (a *View) errorText(err error) string {
 }
 func (a *View) modelsChanged() {
 	for _, item := range a.modelChanges.Items() {
-		_ = a.modelChanges.Guard(item.Owner, item.ID, item.Value)
+		_, _ = ext.CallReadPoint(a.modelChanges, item.ID, struct{}{}, func(struct{}) struct{} { item.Value(); return struct{}{} })
 	}
 }
 

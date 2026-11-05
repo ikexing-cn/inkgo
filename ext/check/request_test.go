@@ -16,13 +16,13 @@ import (
 
 type requestBackend struct {
 	aiapi.Backend
-	handle aiapi.Handle
+	handle inference.Model
 	roles  []aiapi.Role
 }
 
 func (b *requestBackend) Model(_ *workspace.Store, role aiapi.Role) (aiapi.Handle, error) {
 	b.roles = append(b.roles, role)
-	return b.handle, nil
+	return aiapi.Handle{Model: aiapi.Model(b.handle.Model), Name: b.handle.Name, Effort: b.handle.Effort, Completer: b.handle}, nil
 }
 
 type requestBook struct {

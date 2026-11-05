@@ -9,7 +9,7 @@ import (
 // TalkStarter starts a chapter talk and exposes its frame-thread navigation.
 // Callbacks borrow the current frame and must not retain it.
 type TalkStarter struct {
-	Start        func(*ui.Context, workspace.Event) bool
+	Start        func(ui.Services, workspace.Event) bool
 	DraftContext func() (DraftContext, error)
 	Open         func(string)
 	// Running reports a conversation reply in flight.

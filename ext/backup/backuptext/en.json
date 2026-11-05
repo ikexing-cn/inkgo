@@ -61,5 +61,8 @@
   "backupOtherFolder": "Choose Another Folder…",
   "backupTiming": "Backup timing",
   "modBackup": "Backup",
-  "modBackupOff": "No more automatic backups; old ones stay."
+  "modBackupOff": "No more automatic backups; old ones stay.",
+  "backupKeep10": "Last 10 copies",
+  "backupKeep30": "Last 30 copies",
+  "backupKeep90": "Last 90 copies"
 }

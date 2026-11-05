@@ -71,7 +71,7 @@ func TestRoutedModelNamesAreRecordedVerbatim(t *testing.T) {
 	}
 	c.calls = func(call aiapi.Call) { _ = call.Store.Log(call.Record) }
 	m.Completer = c
-	e := discussion.Engine{Store: st, Talk: m}
+	e := discussion.Engine{Store: st, Talk: aiapi.Handle{Model: aiapi.Model(m.Model), Name: m.Name, Effort: m.Effort, Completer: m}}
 	turn, err := e.Say(context.Background(), session, workspace.Event{Text: "接着说。"})
 	if err != nil || turn.Reply.Model != name {
 		t.Fatal(turn, err)

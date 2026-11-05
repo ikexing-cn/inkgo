@@ -146,7 +146,7 @@ func (a *Panel) changeForm(c *ui.Context, e workspace.Entry) {
 	a.services.Palette.Colors().PanePage(c, "change-"+e.ID, func() {
 		ui.Text(c, name+" · "+kit.FromLabel(tree, d.From)).FontSize(kit.FsGroup).FontWeight(600)
 		note := loretext.LoreChangeNoteNoAi()
-		if a.services.AI.AIEnabled() {
+		if a.services.AI.Enabled("ai") {
 			note = loretext.LoreChangeNoteAi()
 		}
 		a.services.Palette.Colors().PaneNote(c, note)
@@ -199,7 +199,7 @@ func (a *Panel) takeChange(e workspace.Entry, g workspace.Change) {
 			ops = append(ops, workspace.Op{Op: workspace.OpDropChange, Entry: e.ID, Change: x.ID})
 		}
 	}
-	a.services.Edits.UndoRevision(loretext.LoreNotedTo(shortName(e), kit.FromLabel(a.services.Book.Content().Tree(), g.From)), append(ops, workspace.Op{Op: workspace.OpEditChange, Entry: e.ID, Change: g.ID, Place: workspace.PlaceBody})...)
+	a.UndoRevision(loretext.LoreNotedTo(shortName(e), kit.FromLabel(a.services.Book.Content().Tree(), g.From)), append(ops, workspace.Op{Op: workspace.OpEditChange, Entry: e.ID, Change: g.ID, Place: workspace.PlaceBody})...)
 }
 
 func (a *Panel) saveChange() error {
@@ -237,7 +237,7 @@ func (a *Panel) saveChange() error {
 		if err != nil {
 			return err
 		}
-		if err = a.services.Edits.Refresh(); err != nil {
+		if err = a.services.Editing.Refresh(); err != nil {
 			return err
 		}
 	}

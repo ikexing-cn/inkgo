@@ -3,35 +3,39 @@ package check
 
 import (
 	"github.com/egoist/mygo/ui"
+	"writer/ai"
 	"writer/desk/book"
 	"writer/desk/kit"
 	"writer/editor"
 	"writer/ext"
 	"writer/ext/ai/aiapi"
 	"writer/ext/check/checktext"
+	"writer/ext/context/contextapi"
 	"writer/ext/hostapi"
 	"writer/ext/lore/loreapi"
 	"writer/ext/marks/marksapi"
 	"writer/locales"
 	"writer/workspace"
-	"writer/writing"
 )
 
 // Panel owns the cached findings, route and cancellable runner.
 type Panel struct {
 	// State exposes cached findings and runner state for frame-thread diagnostics.
-	State      checks
-	activation *ext.Session
-	jobs       hostapi.Jobs
-	bookHost   hostapi.Book
-	palette    hostapi.Palette
-	notices    hostapi.Notices
-	desktop    hostapi.Desktop
-	search     hostapi.Search
-	backend    aiapi.Backend
-	context    loreapi.References
-	navigation loreapi.EntryNavigator
-	revisions  loreapi.Revisions
+	State       checks
+	activation  *ext.Session
+	jobs        hostapi.Jobs
+	bookHost    hostapi.Book
+	editingHost hostapi.Editing
+	palette     hostapi.Palette
+	notices     hostapi.Notices
+	desktop     hostapi.Navigation
+	native      hostapi.NativeUI
+	paths       hostapi.MachinePaths
+	search      hostapi.Search
+	backend     aiapi.Backend
+	context     contextapi.Context
+	navigation  loreapi.EntryNavigator
+	revisions   loreapi.Revisions
 }
 
 // Module registers consistency checks with their required prerequisites.
@@ -40,18 +44,21 @@ var Module = module(nil)
 // New creates an isolated check controller for a host.
 func New() (ext.Module, *Panel) { p := &Panel{}; return module(p), p }
 func module(controller *Panel) ext.Module {
-	return ext.Module{ID: "check", Kind: ext.Feature, Group: hostapi.GroupAI, Requires: []string{"ai", "lore", "marks"}, Name: checktext.ModCheck, Desc: checktext.ModCheckAbout, Setup: func(r *ext.Registrar) {
+	return ext.Module{ID: "check", Kind: ext.Feature, Group: hostapi.GroupAI, Requires: []string{"ai", "lore", "marks", "context"}, Name: checktext.ModCheck, Desc: checktext.ModCheckAbout, Setup: func(r *ext.Registrar) {
 		p := controller
 		if p == nil {
 			p = &Panel{}
 		}
 		b := ext.Use(r, hostapi.BookService)
+		bEditing := ext.Use(r, hostapi.EditingService)
 		pal := ext.Use(r, hostapi.PaletteService)
 		n := ext.Use(r, hostapi.NoticesService)
-		d := ext.Use(r, hostapi.DesktopService)
+		d := ext.Use(r, hostapi.NavigationService)
+		dNative := ext.Use(r, hostapi.NativeUIService)
+		dPaths := ext.Use(r, hostapi.MachinePathsService)
 		search := ext.Use(r, hostapi.SearchService)
 		ai := ext.Use(r, aiapi.Service)
-		material := ext.Use(r, loreapi.ReferencesService)
+		material := ext.Use(r, contextapi.Service)
 		nav := ext.Use(r, loreapi.EntryNavigationService)
 		rev := ext.Use(r, loreapi.RevisionsService)
 		jobs := ext.Use(r, hostapi.JobsService)
@@ -59,9 +66,12 @@ func module(controller *Panel) ext.Module {
 			p.activation = s
 			p.jobs = jobs.Get()
 			p.bookHost = b.Get()
+			p.editingHost = bEditing.Get()
 			p.palette = pal.Get()
 			p.notices = n.Get()
 			p.desktop = d.Get()
+			p.native = dNative.Get()
+			p.paths = dPaths.Get()
 			p.search = search.Get()
 			p.backend = ai.Get()
 			p.context = material.Get()
@@ -83,14 +93,14 @@ func module(controller *Panel) ext.Module {
 		ext.Contribute(r, hostapi.FrameTicks, "run", hostapi.FrameTick{Tick: func(c *ui.Context) {
 			p.pollChecks(c)
 			p.checkWhilePausing()
-			if _, ed, _ := p.bookHost.Chapter(); ed != nil {
+			if _, ed, _ := p.editingHost.Chapter(); ed != nil {
 				ed.SetDoubtColor(p.pal().Amber)
 			}
 		}})
 		ext.Contribute(r, hostapi.BeforeChapterChange, "leave", p.leaveCheck)
 		ext.Contribute(r, hostapi.BeforeLeave, "leave-work", p.leaveCheck)
 		ext.Contribute(r, hostapi.FooterItems, "status", hostapi.DrawItem{Placement: "prose", Draw: func(c *ui.Context) {
-			if _, ed, ok := p.bookHost.Chapter(); ok && ed != nil {
+			if _, ed, ok := p.editingHost.Chapter(); ok && ed != nil {
 				ui.Row(c).Gap(8).AlignItems(ui.Center).Shrink(1).MinWidth(0).Children(func() { p.footCheck(c) })
 			}
 		}})
@@ -117,12 +127,12 @@ func (a *Panel) countUnit() string                                { return a.sto
 func (a *Panel) entryNavigationAvailable() bool                   { return a.navigation.Navigation != nil }
 func (a *Panel) entryNavigation(fn func(loreapi.EntryNavigation)) { fn(a.navigation.Navigation) }
 func (a *Panel) pen() (chapterChecker, error) {
+	_, setting := a.context.Entries()
 	m, err := a.ai().Model(a.store(), aiapi.RoleWriting)
 	if err != nil {
 		return nil, err
 	}
-	_, setting := a.context.Entries()
-	return &writing.Writer{Store: a.store(), Model: m, Material: aiapi.Material{Setting: setting, Outline: a.context.HasOutlines()}}, nil
+	return ai.NewWriter(a.store(), m, aiapi.Material{Setting: setting, Outline: a.context.HasOutlines()}), nil
 }
 
 type currentChapter struct {
@@ -138,7 +148,7 @@ type writingState struct {
 
 func (w writingState) cur() *currentChapter { return &w.Chapter }
 func (a *Panel) writing() writingState {
-	_, ed, _ := a.bookHost.Chapter()
-	state := a.bookHost.ChapterState()
+	_, ed, _ := a.editingHost.Chapter()
+	state := a.editingHost.ChapterState()
 	return writingState{a.node(), currentChapter{ed, state.Saved, state.Version, state.Changed, state.Lost}}
 }

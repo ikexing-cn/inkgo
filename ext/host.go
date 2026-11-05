@@ -34,6 +34,7 @@ type Host struct {
 	providers            map[string]provider
 	providerOrder        []string
 	uses                 []serviceUse
+	reads                []serviceUse
 	services             map[string]serviceValue
 	running              []*entry
 	book                 Book
@@ -155,6 +156,12 @@ func New(opts Options, mods ...Module) (*Host, error) {
 			return nil, fmt.Errorf("module %s: Contribute point %q has a different type", c.owner, c.key)
 		}
 		pointTypes[c.key] = c.typ
+	}
+	for _, u := range h.reads {
+		p, ok := h.points[u.key]
+		if !ok || p.typ != u.typ {
+			return nil, fmt.Errorf("module %s: ReadPoint %q is missing or has a different type", u.owner, u.key)
+		}
 	}
 	for _, u := range h.uses {
 		p, ok := h.providers[u.key]
@@ -609,6 +616,9 @@ func pointItems[T any](h *Host, key PointKey[T], declared bool) []Item[T] {
 			out = append(out, Item[T]{ID: c.id, Owner: c.owner, Value: v, ReplacedBy: replacedBy})
 		}
 	}
+	if !declared && h.points[string(key)].single && len(out) != 1 {
+		return nil
+	}
 	return out
 }
 
@@ -621,7 +631,33 @@ func (h *Host) Ledger(id string) Ledger {
 		return Ledger{}
 	}
 	l := e.ledger
+	for key, p := range h.points {
+		if !p.single {
+			continue
+		}
+		status := Capability{Point: key}
+		for _, c := range h.contributions {
+			if c.key == key && h.active(c.owner) && h.active(p.owner) {
+				status.Candidates = append(status.Candidates, c.id)
+			}
+		}
+		status.Conflict = len(status.Candidates) > 1
+		if p.owner == id || slices.ContainsFunc(h.contributions, func(c contribution) bool { return c.key == key && c.owner == id }) {
+			l.Capabilities = append(l.Capabilities, status)
+		}
+	}
+	slices.SortFunc(l.Capabilities, func(a, b Capability) int {
+		if a.Point < b.Point {
+			return -1
+		}
+		if a.Point > b.Point {
+			return 1
+		}
+		return 0
+	})
 	l.Points = slices.Clone(l.Points)
+	l.Reads = slices.Clone(l.Reads)
+	l.Calls = slices.Clone(l.Calls)
 	l.Contributions = slices.Clone(l.Contributions)
 	l.Provides = slices.Clone(l.Provides)
 	l.Uses = slices.Clone(l.Uses)
@@ -648,3 +684,11 @@ func (h *Host) Ledger(id string) Ledger {
 // Changes returns the revision of effective contributions, switches and call
 // chains. It is allocation-free and safe to read from any goroutine.
 func (h *Host) Changes() uint64 { h.mu.RLock(); defer h.mu.RUnlock(); return h.changes }
+
+// Enabled reports active state and the current own switch without allocating a ledger snapshot.
+func (h *Host) Enabled(id string) bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	e := h.byID[id]
+	return e != nil && h.own(id) && e.ledger.State == On
+}

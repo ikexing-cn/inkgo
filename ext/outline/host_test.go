@@ -13,7 +13,8 @@ import (
 )
 
 type testHost struct {
-	hostapi.Desktop
+	hostapi.Navigation
+	hostapi.MachinePaths
 	Store                   *workspace.Store
 	book                    *book.Book
 	pal                     *kit.Palette
@@ -34,7 +35,7 @@ func newTestHost(t *testing.T) *testHost {
 	}
 	t.Cleanup(func() { _ = store.Close() })
 	h := &testHost{Store: store, book: book.Open(store), pal: kit.LightPalette()}
-	h.plan.Services = Services{Book: testBook{h: h}, Palette: h, Notices: h, Dialogs: h, Desktop: h}
+	h.plan.Services = Services{Book: testBook{h: h}, Editing: testBook{h: h}, Native: h, Paths: h, Palette: h, Notices: h, Dialogs: h, Desktop: h}
 	return h
 }
 
@@ -109,6 +110,7 @@ func outlineErr(h *testHost) error { return h.plan.loadErr }
 func forgetOutline(h *testHost) { h.plan.Enter() }
 
 type testBook struct {
+	hostapi.Editing
 	hostapi.Book
 	h *testHost
 }
@@ -171,3 +173,7 @@ func (h *testHost) ShowEntry(workspace.Entry) {}
 func (h *testHost) SavePreferences() error    { return nil }
 func (h *testHost) Page() string              { return "outline.outline" }
 func (h *testHost) MenuState() *kit.MenuState { return &h.menu }
+
+func (h *testHost) Dir() string { return h.Store.Root() }
+
+func (h *testHost) ModelLabel(r workspace.AIRecord) string { return r.Model }

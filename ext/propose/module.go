@@ -26,11 +26,14 @@ type View struct {
 	activation  *ext.Session
 	of          *workspace.Store
 
-	aiHost *ext.Ref[hostapi.AI]
+	aiHost *ext.Ref[hostapi.Extensions]
 
 	book     *ext.Ref[hostapi.Book]
+	editing  *ext.Ref[hostapi.Editing]
 	surface  *ext.Ref[hostapi.ProseUI]
-	desktop  *ext.Ref[hostapi.Desktop]
+	desktop  *ext.Ref[hostapi.Navigation]
+	native   *ext.Ref[hostapi.NativeUI]
+	paths    *ext.Ref[hostapi.MachinePaths]
 	palette  *ext.Ref[hostapi.Palette]
 	notices  *ext.Ref[hostapi.Notices]
 	starters *ext.PointReader[aiapi.TalkStarter]
@@ -60,10 +63,13 @@ var Module = func() ext.Module {
 func New() (ext.Module, *View) { v := &View{}; return module(v), v }
 func module(v *View) ext.Module {
 	return ext.Module{ID: "propose", Kind: ext.Feature, Group: hostapi.GroupAI, Requires: []string{"ai"}, Optional: []string{"marks"}, Name: proposetext.ModPropose, Desc: proposetext.ModProposeAbout, Setup: func(r *ext.Registrar) {
-		v.aiHost = ext.Use(r, hostapi.AIService)
+		v.aiHost = ext.Use(r, hostapi.ExtensionsService)
 		v.book = ext.Use(r, hostapi.BookService)
+		v.editing = ext.Use(r, hostapi.EditingService)
 		v.surface = ext.Use(r, hostapi.ProseUIService)
-		v.desktop = ext.Use(r, hostapi.DesktopService)
+		v.desktop = ext.Use(r, hostapi.NavigationService)
+		v.native = ext.Use(r, hostapi.NativeUIService)
+		v.paths = ext.Use(r, hostapi.MachinePathsService)
 		v.palette = ext.Use(r, hostapi.PaletteService)
 		v.notices = ext.Use(r, hostapi.NoticesService)
 		v.starters = ext.ReadPoint(r, aiapi.TalkStarters)
@@ -137,7 +143,7 @@ func module(v *View) ext.Module {
 			v.completed = nil
 			v.completedMu.Unlock()
 			v.Frame = aiapi.ProposalFrame{}
-			if !v.aiHost.Get().AIEnabled() {
+			if !v.aiHost.Get().Enabled("ai") {
 				v.dropProps(v.Props, workspace.FateOff)
 			}
 			if ed := v.ed(); ed != nil {
@@ -149,9 +155,9 @@ func module(v *View) ext.Module {
 		})
 	}}
 }
-func (v *View) ed() *editor.Editor { _, ed, _ := v.book.Get().Chapter(); return ed }
-func (v *View) node() string       { ID, _, _ := v.book.Get().Chapter(); return ID }
-func (v *View) title() string      { s, _ := v.book.Get().ChapterTitle(v.node()); return s }
+func (v *View) ed() *editor.Editor { _, ed, _ := v.editing.Get().Chapter(); return ed }
+func (v *View) node() string       { ID, _, _ := v.editing.Get().Chapter(); return ID }
+func (v *View) title() string      { s, _ := v.editing.Get().ChapterTitle(v.node()); return s }
 func (v *View) talkOn() bool       { return len(v.starterItems()) > 0 }
 func (v *View) canRewrite() bool {
 	ed := v.ed()
@@ -161,7 +167,7 @@ func (v *View) warn(err error) { v.notices.Get().Notices().Warn(err) }
 func (v *View) beginTalk(c *ui.Context, e workspace.Event) bool {
 	ok := false
 	for _, i := range v.starterItems() {
-		_ = v.starters.Guard(i.Owner, i.ID, func() { ok = i.Value.Start(c, e) })
+		ok, _ = ext.CallReadOperation(v.starters, "Start", i.ID, aiapi.StartTalk{Services: c.Services(), Event: e}, aiapi.InvokeStart(i.Value))
 	}
 	return ok
 }

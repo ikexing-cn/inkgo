@@ -87,9 +87,6 @@ type writeView struct {
 	// many chapters may follow one before it is buried long (0: the
 	// default).
 
-	takeOpen            bool
-	takeQuote, takeText string
-	takeCategory        string
 }
 
 // warn shows err, leaving an error shown alone when there is none.
@@ -145,9 +142,6 @@ func (a *App) writing(c *ui.Context) {
 		})
 		a.settingColumn(c)
 	})
-	if a.write.takeOpen {
-		a.take(c)
-	}
 	a.askToSave(c)
 }
 

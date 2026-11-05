@@ -22,9 +22,9 @@ type ideasKey struct {
 // ideas are what the AI suggests and the author has not decided
 // (workspace.Setting.Ideas); with the AI off, there are none.
 func (a *Panel) ideas() []workspace.Idea {
-	key := ideasKey{a.services.Book.Content(), a.services.Book.Content().Version(), a.services.AI.AIEnabled()}
+	key := ideasKey{a.services.Book.Content(), a.services.Book.Content().Version(), a.services.AI.Enabled("ai")}
 	return a.Doc.ideas.get(key, func() []workspace.Idea {
-		if !a.services.AI.AIEnabled() {
+		if !a.services.AI.Enabled("ai") {
 			return nil
 		}
 		return a.services.Book.Content().Setting().Ideas(a.services.Book.Content().Tree().Order())
@@ -113,3 +113,6 @@ func (a *Panel) ideasPage(c *ui.Context) {
 		}
 	})
 }
+
+// Ideas returns the live pending setting ideas for frame-thread diagnostics.
+func (a *Panel) Ideas() []workspace.Idea { return a.ideas() }

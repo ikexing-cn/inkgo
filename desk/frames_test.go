@@ -14,7 +14,7 @@ func cacheBuilds(a *App) int {
 		a.write.nodeWords.builds + a.write.total.builds +
 		notesOf(a).Inspect().Builds +
 		checkOf(a).State.Items.Builds + checkOf(a).State.ItemsMeant.Builds + checkOf(a).State.Listed.Builds +
-		a.doc.ideas.builds + lorePanel(a).CacheBuilds()
+		lorePanel(a).CacheBuilds()
 }
 
 func TestNameFeedSteadyFramesKeepCompletionAndNewEditorGetsNamesOnce(t *testing.T) {

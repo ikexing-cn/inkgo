@@ -47,7 +47,7 @@ func (e *Engine) compact(ctx context.Context, session string, before int, user w
 	if e.Material.Setting {
 		index = prompt.Estimate(talkIndex(w, set, viewOf(set, tree, along.Fixed), along.Tools), w.Language)
 	}
-	n := due(e.Talk.Model, probe.Sent, measured(events, probe.Sent), index, turns, w.Language)
+	n := due(model.Model(e.Talk.Model), probe.Sent, measured(events, probe.Sent), index, turns, w.Language)
 	if n == 0 {
 		return nil
 	}

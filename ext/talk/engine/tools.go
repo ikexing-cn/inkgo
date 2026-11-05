@@ -10,7 +10,6 @@ import (
 	"writer/ext/ai/aiapi"
 	"writer/talkbook"
 
-	"writer/inference"
 	"writer/internal/textclip"
 	"writer/model"
 	"writer/prompt"
@@ -95,7 +94,7 @@ func runTool[T arguments[T]](run func(*toolbox, T) outcome) func(context.Context
 		if err := json.Unmarshal(input, &in); err != nil {
 			return aiapi.ToolResult{Text: fmt.Sprintf("参数不是约定的 JSON：%v", err), Failed: true}
 		}
-		t := &toolbox{store: env.Store, session: env.Session, turn: env.Turn, at: env.At, cache: env.Shared, ctx: ctx, model: inference.Model{Name: env.Model, Effort: model.Effort(env.Effort)}}
+		t := &toolbox{store: env.Store, session: env.Session, turn: env.Turn, at: env.At, cache: env.Shared, ctx: ctx, model: aiapi.Handle{Name: env.Model, Effort: model.Effort(env.Effort)}}
 		r := run(t, in.trim())
 		return aiapi.ToolResult{Text: r.text, Failed: r.failed, Revision: r.revision, Proposal: r.proposal}
 	}
@@ -119,7 +118,7 @@ type toolbox struct {
 	store   *workspace.Store
 	session string
 	turn    string
-	model   inference.Model
+	model   aiapi.Handle
 	at      string
 }
 

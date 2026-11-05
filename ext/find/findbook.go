@@ -167,12 +167,12 @@ func (a *View) confirmBookReplace(c *ui.Context) {
 func (a *View) replaceInBook() {
 	w := a
 	w.Sure = false
-	if err := a.Book.SaveText(); err != nil {
+	if err := a.Editing.SaveText(); err != nil {
 		a.Notices.Notices().Warn(err)
 		return
 	}
 	w.Texts = nil
-	chapters, total, here, err := a.Book.ReplaceBookText(w.Query, w.With)
+	chapters, total, here, err := a.Editing.ReplaceBookText(w.Query, w.With)
 	a.Notices.Notices().Warn(err)
 	w.Texts, w.Hits = nil, nil
 	w.HitsFor = [3]any{}

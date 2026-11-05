@@ -74,51 +74,69 @@ type SettingsSection struct {
 	Draw      func(*ui.Context)
 }
 
-// Desktop exposes the writing page, footer animation, settings navigation and
-// platform folder comparison on the frame thread.
-type Desktop interface {
-	// ModelLabel describes a recorded AI model on the frame thread.
-	ModelLabel(workspace.AIRecord) string
-	// ChapterExternal reports an unresolved outside edit on the frame thread.
-	ChapterExternal() bool
-	// SavePreferences persists book-local view state on the frame thread.
-	SavePreferences() error
+// Navigation groups related frame-thread host capabilities.
+type Navigation interface {
 	// Page returns the current qualified page identity on the frame thread.
 	Page() string
+
 	// EntryAvailable reports whether the host can navigate to an entry; frame thread only.
 	EntryAvailable() bool
+
 	// ShowEntry navigates to an entry using the installed entry provider; frame thread only.
 	ShowEntry(workspace.Entry)
 
 	// HasPage reports an available contributed page on the frame thread.
 	HasPage(string) bool
+
 	// Focused reports the layout focus state on the frame thread.
 	Focused() bool
+
 	// SetFocus changes layout focus on the frame thread.
 	SetFocus(bool)
+
 	// Selected returns the displayed node, whether it is lost, and whether saving waits for a close decision; frame thread only.
 	Selected() (id string, lost, paused bool)
+
 	// Writing reports whether the writing page is active.
 	Writing() bool
-	// SlideEdge applies the footer's current transition transform.
-	SlideEdge(ui.Element)
+
 	// OpenSettings opens the page registered by a qualified SettingsPages
 	// contribution ID, such as backup.settings. Unknown IDs open Extensions.
 	OpenSettings(id string)
+
 	// ShowPage selects a registered page by qualified ID, such as cats.categories.
 	// Call directly on the frame thread, without ext.Call or ext.Guard.
 	ShowPage(id string)
+
 	// OpenWriting selects the writing page and opens a chapter on the frame thread.
 	OpenWriting(string)
+}
+
+// NativeUI groups related frame-thread host capabilities.
+type NativeUI interface {
+	// ModelLabel formats historical model metadata through the owning API on the frame thread.
+	ModelLabel(workspace.AIRecord) string
+	// SlideEdge applies the footer's current transition transform.
+	SlideEdge(ui.Element)
+
 	// MenuOpen queries the shared menu state directly on the frame thread,
 	// without ext.Call or ext.Guard.
 	MenuOpen(string) bool
+
 	// MenuState returns persistent shared menu state on the frame thread.
 	MenuState() *kit.MenuState
+
 	// DropMenu draws a shared menu on the frame thread; frame values must not escape.
 	DropMenu(*ui.Context, ui.Element, string, func(ui.Element), func(*kit.Menu))
+
 	// SettingColumn draws the shared right column on the frame thread.
 	SettingColumn(*ui.Context)
+}
+
+// MachinePaths groups related frame-thread host capabilities.
+type MachinePaths interface {
+	// Dir returns the current work directory; capture it before starting a worker.
+	Dir() string
 	// SameFolder compares paths using the host platform's rules.
 	SameFolder(string, string) bool
 }
@@ -150,8 +168,14 @@ const SettingsPages ext.PointKey[SettingsPage] = "host.settings"
 // SettingsSections collects active settings content, associated by module owner.
 const SettingsSections ext.PointKey[SettingsSection] = "host.settings-sections"
 
-// DesktopService resolves frame-thread presentation helpers.
-const DesktopService ext.ServiceKey[Desktop] = "host.desktop"
+// NavigationService resolves page and chapter navigation.
+const NavigationService ext.ServiceKey[Navigation] = "host.navigation"
+
+// NativeUIService resolves menus, animation and pane drawing.
+const NativeUIService ext.ServiceKey[NativeUI] = "host.native-ui"
+
+// MachinePathsService resolves platform path comparison.
+const MachinePathsService ext.ServiceKey[MachinePaths] = "host.machine-paths"
 
 // PendingService resolves frame-thread ignored-item management.
 const PendingService ext.ServiceKey[Pending] = "host.pending-state"

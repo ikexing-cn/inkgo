@@ -86,7 +86,6 @@ type App struct {
 	settings          settingsView
 
 	books                  shelfView
-	seen                   int // revisions of the setting the view has flashed
 	flash                  map[string]time.Time
 	workEpoch              uint64
 	busy                   string
@@ -185,7 +184,7 @@ func (a *App) resetView() {
 	a.workEpoch++
 	a.busy, a.cancel, a.nonblocking = "", nil, false
 	a.resetPrefs()
-	a.seen, a.flash, a.doc, a.write = -1, map[string]time.Time{}, docView{}, writeView{}
+	a.flash, a.doc, a.write = map[string]time.Time{}, docView{}, writeView{}
 	a.page, a.shown, a.offAway = pageTalk, pageTalk, false
 }
 
@@ -251,7 +250,6 @@ func (a *App) refreshFromSetting() error {
 	if a.Store == nil {
 		return nil
 	}
-	a.flashNew()
 	for _, item := range ext.Items(a.extensions, hostapi.State) {
 		if item.Value.Refresh != nil {
 			var err error
@@ -277,19 +275,6 @@ func (a *App) nodeTitle(id string) string {
 		return n.Title
 	}
 	return ""
-}
-
-// flashNew tints the entries a talk noted since the view last looked; the
-// revisions there were when the work opened are not news.
-func (a *App) flashNew() {
-	if a.seen >= 0 {
-		for _, e := range a.book.Setting().Entries {
-			if e.Rev > a.seen && a.book.Setting().Revisions[e.Rev-1].By == workspace.ByTalk {
-				a.flash[e.ID] = time.Now()
-			}
-		}
-	}
-	a.seen = len(a.book.Setting().Revisions)
 }
 
 // SetError shows err in a toast until the author closes it; nil clears it.

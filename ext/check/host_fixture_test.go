@@ -134,7 +134,7 @@ func (a *testApp) openPrefs(id string) {
 	}
 	a.panel.desktop.OpenSettings(id)
 }
-func (a *testApp) flush() { a.panel.bookHost.Flush() }
+func (a *testApp) flush() { a.panel.editingHost.Flush() }
 func (a *testApp) loadPrefs() {
 	raw, _ := os.ReadFile(a.Store.PrefsPath())
 	var state map[string]json.RawMessage
@@ -164,7 +164,7 @@ func (a *testApp) attach(st *workspace.Store, path string, _ bool) error {
 }
 func shownPage(a *testApp) testPage         { return testPage(a.panel.desktop.Page()) }
 func showPage(a *testApp, p testPage)       { a.panel.desktop.ShowPage(string(p)) }
-func shownEditor(a *testApp) *editor.Editor { _, ed, _ := a.panel.bookHost.Chapter(); return ed }
+func shownEditor(a *testApp) *editor.Editor { _, ed, _ := a.panel.editingHost.Chapter(); return ed }
 func shownChapter(a *testApp) string        { return a.panel.node() }
 func setting(a *testApp) workspace.Setting  { return a.book.Setting() }
 func hintOf(a *testApp) string              { return a.panel.status().HintText() }
@@ -238,5 +238,5 @@ func (f *stream) Complete(ctx context.Context, r model.Request, on func(model.De
 	}
 	return model.Reply{Text: all.String()}, f.fail
 }
-func savedText(a *testApp) string { return a.panel.bookHost.ChapterState().Saved }
+func savedText(a *testApp) string { return a.panel.editingHost.ChapterState().Saved }
 func quick(a *testApp)            { a.book.Timing.SaveAfter, a.book.Timing.CheckEvery = 0, time.Hour }

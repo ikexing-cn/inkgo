@@ -41,7 +41,7 @@ func (a *Panel) whenRows(c *ui.Context) {
 		})
 		if b.Clicked() && !on {
 			k.When = o.When
-			a.desktop.SavePreferences()
+			a.editingHost.SavePreferences()
 		}
 	}
 }
@@ -380,7 +380,7 @@ func (a *Panel) checkDetail(c *ui.Context, shown []Item, at int) {
 		}
 		a.search.FindInChapter(it.Node, it.F.Quote)
 		a.entryNavigation(func(n loreapi.EntryNavigation) { n.Reveal(it.Entry.ID) })
-		a.desktop.SavePreferences()
+		a.editingHost.SavePreferences()
 	}
 	ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Shrink(0).Children(func() {
 		ui.Text(c, it.F.Title).FontSize(kit.FsDialog).FontWeight(700).Grow(1).Shrink(1)
@@ -490,7 +490,7 @@ func (a *Panel) takeFound(it Item) {
 		a.warn(err)
 		return
 	}
-	a.bookHost.Flash(r.Ops[0].Entry)
+	a.editingHost.Flash(r.Ops[0].Entry)
 	a.status().Did(checktext.CheckAddedSetting())
 }
 

@@ -32,7 +32,7 @@ var Module = ext.Module{ID: "export", Kind: ext.Feature, Optional: []string{"out
 }}
 
 func registerDialog(r *ext.Registrar) *Dialog {
-	return &Dialog{lore: ext.UseOptional(r, loreapi.Active), outline: ext.UseOptional(r, outlineapi.Active), book: ext.Use(r, hostapi.BookService), palette: ext.Use(r, hostapi.PaletteService),
+	return &Dialog{lore: ext.UseOptional(r, loreapi.Active), outline: ext.UseOptional(r, outlineapi.Active), book: ext.Use(r, hostapi.BookService), editing: ext.Use(r, hostapi.EditingService), palette: ext.Use(r, hostapi.PaletteService),
 		notices: ext.Use(r, hostapi.NoticesService), jobs: ext.Use(r, hostapi.JobsService), dialogs: ext.Use(r, hostapi.DialogsService),
 		setting: ext.Setting(r, "choices", ext.Schema[Choices]{Scope: ext.Local, Default: Choices{Options: format.Options{Prose: true}}})}
 }

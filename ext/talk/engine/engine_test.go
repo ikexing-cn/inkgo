@@ -12,7 +12,6 @@ import (
 	"testing"
 	"writer/ext/ai/aiapi"
 
-	"writer/inference"
 	"writer/model"
 	"writer/prompt"
 	"writer/workspace"
@@ -53,7 +52,7 @@ func TestTalkRequestBytes(t *testing.T) {
 				{Calls: []model.Call{call("c1", toolSearchBook, map[string]any{"query": " 雨 "})}},
 				{Text: "雨下了一夜。"},
 			}}
-			e.Talk = inference.Model{Model: limits, Completer: f, Effort: model.EffortHigh}
+			e.Talk = aiapi.Handle{Model: aiapi.Model(limits), Completer: f, Effort: model.EffortHigh}
 			words := workspace.Event{Text: "接着说。"}
 			switch origin {
 			case "beside":
@@ -158,13 +157,13 @@ func setting(t *testing.T, e *Engine) workspace.Setting {
 
 func TestRetryUnansweredTurnDoesNotDuplicateInput(t *testing.T) {
 	e, session := setup(t)
-	e.Talk = inference.Model{Model: limits, Completer: &fake{err: context.Canceled}}
+	e.Talk = aiapi.Handle{Model: aiapi.Model(limits), Completer: &fake{err: context.Canceled}}
 	turn, err := e.Say(context.Background(), session, workspace.Event{Text: "先讨论城市的天气"})
 	if !errors.Is(err, context.Canceled) || turn.User.ID == "" {
 		t.Fatal(turn, err)
 	}
 	talk := &fake{replies: []string{"可以从长期下雨对城市生活的影响谈起。"}}
-	e.Talk = inference.Model{Model: limits, Completer: talk}
+	e.Talk = aiapi.Handle{Model: aiapi.Model(limits), Completer: talk}
 	retried, err := e.Retry(context.Background(), session, turn.User.ID)
 	if err != nil {
 		t.Fatal(err)
@@ -188,7 +187,7 @@ func TestRetryUnansweredTurnDoesNotDuplicateInput(t *testing.T) {
 func TestTurnWaitsForTheReplyOnly(t *testing.T) {
 	e, session := setup(t)
 	talk := &fake{replies: []string{"可以让她修灯。"}, reasoning: "她怕黑，职业要和光有关", usage: model.Usage{Input: 900, CacheRead: 600, Output: 40, Reasoning: 12}}
-	e.Talk = inference.Model{Model: limits, Completer: talk, Name: "deepseek/deepseek-flash", Effort: model.EffortMax}
+	e.Talk = aiapi.Handle{Model: aiapi.Model(limits), Completer: talk, Name: "deepseek/deepseek-flash", Effort: model.EffortMax}
 	var streamed string
 	e.Progress = func(d model.Delta) { streamed += d.Reasoning + d.Text }
 	got, err := e.Say(context.Background(), session, workspace.Event{Text: "她做什么工作？"})
@@ -223,7 +222,7 @@ func TestTalkSeesTheSettingAndTheTurns(t *testing.T) {
 		turn(t, e, session, u, "好")
 	}
 	talk := &fake{replies: []string{"嗯"}}
-	e.Talk = inference.Model{Model: limits, Completer: talk}
+	e.Talk = aiapi.Handle{Model: aiapi.Model(limits), Completer: talk}
 	if _, err := e.Say(context.Background(), session, workspace.Event{Text: "继续"}); err != nil {
 		t.Fatal(err)
 	}

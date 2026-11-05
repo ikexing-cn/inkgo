@@ -47,8 +47,16 @@ type Snapshot struct {
 	// for a snapshot taken before they went in. AI is what an AI was about
 	// to do, as snapshots kept it while a draft or a rewrite asked the
 	// model once; none is written now.
-	Talks []string  `json:"talks,omitempty"`
-	AI    *AIRecord `json:"ai,omitempty"`
+	Talks []string `json:"talks,omitempty"`
+	// Sources captures conversation identities and titles at snapshot time.
+	Sources []SnapshotSource `json:"sources,omitempty"`
+	AI      *AIRecord        `json:"ai,omitempty"`
+}
+
+// SnapshotSource records a conversation's identity and title when its suggestion was accepted.
+type SnapshotSource struct {
+	ID    string            `json:"id"`
+	Title ConversationTitle `json:"title"`
 }
 
 // What a talk is opened to do to a chapter.
@@ -148,7 +156,21 @@ func (s *Store) takeSnapshot(id, reason, text string, marks []ChapterMark, talks
 		m.Quote = string(runes[m.Start:m.End])
 		kept = append(kept, m)
 	}
-	snap := Snapshot{At: at.UTC(), Reason: reason, Title: n.Title, Count: s.work.Language.Count(text), Marks: kept, Talks: talks}
+	sources := []SnapshotSource{}
+	for _, session := range talks {
+		events, _, err := s.events(session)
+		if err != nil {
+			return false, err
+		}
+		title := TalkTitle(events, func(id string) string {
+			if node := t.byID[id]; node != nil {
+				return node.Title
+			}
+			return ""
+		})
+		sources = append(sources, SnapshotSource{ID: session, Title: title})
+	}
+	snap := Snapshot{Sources: sources, At: at.UTC(), Reason: reason, Title: n.Title, Count: s.work.Language.Count(text), Marks: kept, Talks: talks}
 	b, err := json.MarshalIndent(snap, "", "  ")
 	if err != nil {
 		return false, err

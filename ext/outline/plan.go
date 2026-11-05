@@ -251,7 +251,7 @@ func (p *Page) View(c *ui.Context) {
 			}
 		})
 		if p.Pane {
-			p.Services.Desktop.SettingColumn(c)
+			p.Services.Native.SettingColumn(c)
 		}
 	})
 }
@@ -284,7 +284,7 @@ func (p *Page) broken(c *ui.Context) {
 		}
 		_, reveal := p.Services.Dialogs.Dialogs()
 		if reveal != nil && pal.Secondary(c, locales.CommonOpenFolder()).Clicked() {
-			p.Services.Notices.Notices().Warn(reveal(p.Services.Book.Dir()))
+			p.Services.Notices.Notices().Warn(reveal(p.Services.Paths.Dir()))
 		}
 	})
 }
@@ -358,7 +358,7 @@ func (p *Page) ChapterStory(c *ui.Context) {
 	if p.loadErr != nil {
 		return
 	}
-	id, _, _ := p.Services.Book.Chapter()
+	id, _, _ := p.Services.Editing.Chapter()
 	cards := p.cardsOf(id)
 	when := storyWhen(cards)
 	if when == "" {

@@ -23,7 +23,7 @@ func (a *Panel) Discussion(c *ui.Context) {
 				a.Composer(c)
 			})
 		})
-		a.desktop.SettingColumn(c)
+		a.native.SettingColumn(c)
 	})
 }
 

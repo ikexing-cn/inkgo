@@ -204,7 +204,8 @@ func (s *Service) Model(st *workspace.Store, role aiapi.Role) (aiapi.Handle, err
 	if sel.Provider == "" || sel.Model == "" {
 		return aiapi.Handle{}, setupError(ErrChatModel)
 	}
-	return s.Open(sel, st)
+	m, err := s.Open(sel, st)
+	return aiapi.Handle{Model: aiapi.Model(m.Model), Name: m.Name, Effort: m.Effort, Completer: m}, err
 }
 
 // open is the model sel names, with its limits as the services have
@@ -370,3 +371,8 @@ func linkedContext(ctx, life context.Context) (context.Context, context.CancelFu
 // BindCalls installs the finished-call observer before model handles are built.
 // The observer runs on the calling worker.
 func (s *Service) BindCalls(fn func(aiapi.Call)) { s.Calls = fn }
+
+// NewWriter adapts a selected public handle to the internal writing implementation.
+func NewWriter(st *workspace.Store, h aiapi.Handle, material aiapi.Material) aiapi.Pen {
+	return pen{&writing.Writer{Store: st, Model: inference.Model{Model: model.Model(h.Model), Name: h.Name, Effort: h.Effort, Completer: h.Completer}, Material: material}}
+}

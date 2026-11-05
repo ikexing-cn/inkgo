@@ -27,19 +27,19 @@ func extensionImport(pkg, imp string, deps []string) error {
 			return nil
 		}
 	}
-	if (pkg == "writer/ext/lore" || pkg == "writer/ext/outline") && slices.Contains([]string{"writer/prompt", "writer/internal/textclip", "writer/inference"}, imp) {
+	if (pkg == "writer/ext/lore" || pkg == "writer/ext/outline") && slices.Contains([]string{"writer/prompt", "writer/internal/textclip"}, imp) {
 		return nil
 	}
 	if strings.HasPrefix(imp, "github.com/egoist/mygo/") {
 		return nil
 	}
-	if pkg == "writer/ext/ai/aiapi" && imp == "writer/inference" {
+	if pkg == "writer/ext/ai/aiapi" && imp == "writer/model" {
 		return nil
 	}
-	if pkg == "writer/ext/check" && slices.Contains([]string{"writer/writing", "writer/internal/textclip"}, imp) {
+	if pkg == "writer/ext/check" && slices.Contains([]string{"writer/ai", "writer/internal/textclip"}, imp) {
 		return nil
 	}
-	if (pkg == "writer/ext/talk" || pkg == "writer/ext/talk/engine") && slices.Contains([]string{"writer/model", "writer/inference", "writer/prompt", "writer/internal/textclip", "writer/tokens"}, imp) {
+	if (pkg == "writer/ext/talk" || pkg == "writer/ext/talk/engine") && slices.Contains([]string{"writer/model", "writer/prompt", "writer/internal/textclip", "writer/tokens"}, imp) {
 		return nil
 	}
 	if (pkg == "writer/ext/usage" && imp == "writer/tokens") || (pkg == "writer/ext/draft" && (imp == "writer/prefs" || imp == "writer/tokens")) {
@@ -387,9 +387,9 @@ func TestTemporaryAISettingsUsageAndSuggestionsBridgesAreGone(t *testing.T) {
 
 func TestDeskTemporaryAIContextAndLoreImportsStayInRemainingConsumers(t *testing.T) {
 	allowed := map[string][]string{
-		"writer/ext/ai/aiapi":           {"app.go", "errtext.go", "extensions.go", "welcome.go"},
+		"writer/ext/ai/aiapi":           {"app.go", "ai.go", "errtext.go", "extensions.go", "welcome.go"},
 		"writer/ext/context/contextapi": {"context.go"},
-		"writer/ext/lore/loreapi":       {"entry_navigation.go", "app.go"},
+		"writer/ext/lore/loreapi":       {"entry_navigation.go", "app.go", "take.go"},
 	}
 	files, err := filepath.Glob("../desk/*.go")
 	if err != nil {
@@ -407,6 +407,55 @@ func TestDeskTemporaryAIContextAndLoreImportsStayInRemainingConsumers(t *testing
 			name, _ := strconv.Unquote(imp.Path.Value)
 			if names, ok := allowed[name]; ok && !slices.Contains(names, filepath.Base(path)) {
 				t.Errorf("%s added temporary import %s", path, name)
+			}
+		}
+	}
+}
+
+func TestExtensionsOwnModelHandles(t *testing.T) {
+	err := filepath.WalkDir(".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+			return nil
+		}
+		file, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
+		if err != nil {
+			return err
+		}
+		aliases := map[string]bool{}
+		for _, imp := range file.Imports {
+			if imp.Path.Value == `"writer/inference"` {
+				name := "inference"
+				if imp.Name != nil {
+					name = imp.Name.Name
+				}
+				aliases[name] = true
+			}
+		}
+		ast.Inspect(file, func(node ast.Node) bool {
+			if sel, ok := node.(*ast.SelectorExpr); ok && sel.Sel.Name == "Model" {
+				if pkg, ok := sel.X.(*ast.Ident); ok && aliases[pkg.Name] {
+					t.Errorf("%s imports inference.Model; extension model handles belong to aiapi", path)
+				}
+			}
+			return true
+		})
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"Desktop", "AIService"} {
+		files, _ := filepath.Glob("hostapi/*.go")
+		for _, path := range files {
+			data, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if strings.Contains(string(data), "type "+name+" interface") || strings.Contains(string(data), "const "+name+" ") {
+				t.Errorf("obsolete broad capability %s in %s", name, path)
 			}
 		}
 	}

@@ -60,7 +60,7 @@ type marginDeparture struct {
 // Positions on each frame then cost one lookup per note, not per character.
 func (a *Panel) marginNotes() []marginNote {
 	m := &a.margin
-	chapter, ed, _ := a.services.Book.Chapter()
+	chapter, ed, _ := a.services.Editing.Chapter()
 	if ed == nil {
 		return nil
 	}

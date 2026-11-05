@@ -193,3 +193,6 @@ type ToolPrompt struct {
 
 // Tools collects tools contributed to talk by active extensions.
 const Tools ext.PointKey[Tool] = "ai.tools"
+
+// Input is the model window left after reserving its maximum reply.
+func (m Model) Input() int { return m.Window - m.Output }

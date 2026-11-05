@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/ext"
+	"writer/ext/hostapi"
 	"writer/workspace"
 )
 
@@ -20,7 +22,8 @@ func TestCheckRunnerKeepsItsMailboxAndCancellation(t *testing.T) {
 	started := make(chan context.Context, 1)
 	release := make(chan struct{})
 	old := make(chan checkDone, 1)
-	c := checkRunner{Done: old}
+	c := runnerFixture(t)
+	c.Done = old
 	store := new(workspace.Store)
 	c.start(checkFunc(func(ctx context.Context, chapter string) (workspace.Check, error) {
 		started <- ctx
@@ -55,7 +58,7 @@ func TestCheckRunnerKeepsItsMailboxAndCancellation(t *testing.T) {
 func TestCheckRunnerReturnsItsResult(t *testing.T) {
 	wantErr := errors.New("model failed")
 	for _, err := range []error{nil, wantErr} {
-		var c checkRunner
+		c := runnerFixture(t)
 		contexts := make(chan context.Context, 1)
 		c.start(checkFunc(func(ctx context.Context, chapter string) (workspace.Check, error) {
 			contexts <- ctx
@@ -74,7 +77,7 @@ func TestCheckRunnerReturnsItsResult(t *testing.T) {
 }
 
 func TestCheckRunnerFinishedDoesNotBlock(t *testing.T) {
-	var c checkRunner
+	c := runnerFixture(t)
 	c.stop()
 	if got, ok := c.finished(); ok || got.Chapter != "" || got.Store != nil || got.Err != nil {
 		t.Fatal("an idle runner returned a result", got, ok)
@@ -90,4 +93,20 @@ func TestCheckRunnerFinishedDoesNotBlock(t *testing.T) {
 	if _, ok := c.finished(); ok {
 		t.Fatal("a result was returned twice")
 	}
+}
+
+type runnerJobs struct {
+	hostapi.Jobs
+	session *ext.Session
+}
+
+func (j runnerJobs) Run(work func(context.Context)) { j.session.Go(work) }
+func runnerFixture(t *testing.T) checkRunner {
+	var session *ext.Session
+	h, err := ext.New(ext.Options{}, ext.Module{ID: "runner", Setup: func(r *ext.Registrar) { r.OnStart(func(s *ext.Session) error { session = s; return nil }) }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(h.Close)
+	return checkRunner{session: session, jobs: runnerJobs{session: session}}
 }

@@ -87,7 +87,7 @@ func (p *Page) WatchChapter(c *ui.Context) {
 
 // ChapterHead draws the chapter outline and story time below the writing title.
 func (p *Page) ChapterHead(c *ui.Context) {
-	id, _, _ := p.Services.Book.Chapter()
+	id, _, _ := p.Services.Editing.Chapter()
 	n, ok := p.Services.Book.Content().Tree().Node(id)
 	if ok && n.Folder {
 		ui.Text(c, outlinetext.EditorVolumeOutline()).FontSize(kit.FsControl).FontWeight(600).TextColor(p.Services.Palette.Colors().Theme.TextMuted)
@@ -106,7 +106,7 @@ func (p *Page) ChapterHead(c *ui.Context) {
 }
 
 func (p *Page) chapterBox(c *ui.Context, label string, height float32) {
-	id, _, _ := p.Services.Book.Chapter()
+	id, _, _ := p.Services.Editing.Chapter()
 	_, exists := p.Services.Book.Content().Tree().Node(id)
 	ui.TextAreaBase(c, &p.Draft(id).Text).Label(label).Placeholder(outlinetext.EditorOutlineHint()).FillWidth().Height(height).
 		FontSize(kit.FsBody).LineHeight(kit.LhLoose).Padding(10, 12).Radius(kit.RControl).Background(p.Services.Palette.Colors().Side).Disabled(!exists)

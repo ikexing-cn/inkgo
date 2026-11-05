@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"writer/ext/ai/aiapi"
-	"writer/inference"
 	"writer/model"
 	"writer/workspace"
 )
@@ -17,7 +16,7 @@ func materialRequest(t *testing.T, e *Engine, session string, words workspace.Ev
 	t.Helper()
 	e.Tools = materialTools(e.Material)
 	f := &fake{replies: []string{"好。"}}
-	e.Talk = inference.Model{Model: limits, Completer: f}
+	e.Talk = aiapi.Handle{Model: aiapi.Model(limits), Completer: f}
 	turn, err := e.Say(context.Background(), session, words)
 	if err != nil {
 		t.Fatal(err)
@@ -127,7 +126,7 @@ func TestUnadvertisedToolsFailWithoutChangingSettingAndHistoryReplaysOnlyText(t 
 		call("outline", toolReadOutline, map[string]any{}),
 		call("unknown", "nonexistent", map[string]any{}),
 	}}, {Text: "好。"}, {Text: "继续。"}}}
-	e.Talk = inference.Model{Model: limits, Completer: f}
+	e.Talk = aiapi.Handle{Model: aiapi.Model(limits), Completer: f}
 	if _, err := e.Say(context.Background(), session, workspace.Event{Text: "秘密"}); err != nil {
 		t.Fatal(err)
 	}
@@ -171,7 +170,7 @@ func TestAbsentSettingCompactionHasZeroSettingBudget(t *testing.T) {
 	e.Tools = nil
 	long(t, e, session, 24, 700, "井边的灯为什么不亮")
 	f := &digester{}
-	e.Talk = inference.Model{Model: limits, Completer: f}
+	e.Talk = aiapi.Handle{Model: aiapi.Model(limits), Completer: f}
 	if _, err := e.Say(context.Background(), session, workspace.Event{Text: "继续"}); err != nil {
 		t.Fatal(err)
 	}

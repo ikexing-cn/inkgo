@@ -26,7 +26,7 @@ func (a *Panel) checkActions(it Item) []noteAction {
 		return []noteAction{leave, {checktext.CheckEditSetting(), func() {
 			a.search.FindInChapter(it.Node, it.F.Quote)
 			a.entryNavigation(func(n loreapi.EntryNavigation) { n.Edit(it.Entry) })
-			a.desktop.SavePreferences()
+			a.editingHost.SavePreferences()
 		}}, prose}
 	}
 	return []noteAction{leave, prose}

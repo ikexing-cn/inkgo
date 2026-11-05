@@ -12,15 +12,25 @@ import (
 type HookKey[In, Out any] string
 
 // CallPoint retains the input/output types needed by HookOf without reflection.
-type CallPoint[T, In, Out any] struct{ Point PointKey[T] }
+type CallPoint[T, In, Out any] struct {
+	Point     PointKey[T]
+	Operation string
+}
 
 // HookOf identifies a contribution's call. Its owner is the contribution owner,
 // not the owner of the point that collects it.
 func HookOf[T, In, Out any](p CallPoint[T, In, Out], id string) HookKey[In, Out] {
-	return HookKey[In, Out](itemTarget(string(p.Point), id))
+	return HookKey[In, Out](callTarget(string(p.Point), id, p.Operation))
 }
 
 func itemTarget(point, id string) string { return id + "@" + point }
+func callTarget(point, id, op string) string {
+	k := itemTarget(point, id)
+	if op != "" {
+		k += ":" + op
+	}
+	return k
+}
 
 // InjectionPreference stores a target's order and exclusive provider choice.
 // Order is a prefix; unlisted IDs retain assembly/registration order.
@@ -63,9 +73,10 @@ type hookDecl struct {
 }
 
 type callDeclaration struct {
-	typ       reflect.Type
-	install   func(*Host, contribution)
-	valueHook func(any) any
+	point, operation string
+	typ              reflect.Type
+	install          func(*Host, contribution)
+	valueHook        func(any) any
 }
 
 // DeclareHook declares a module-owned call, sharing the module's ID namespace.
@@ -82,22 +93,27 @@ func DeclareHook[In, Out any](r *Registrar, key HookKey[In, Out]) {
 // The returned typed point lets HookOf infer In and Out. It also works inside
 // Options.DeclareHost, using the same Registrar as Declare.
 func DeclareCalls[T, In, Out any](r *Registrar, p PointKey[T], get func(T) func(In) Out) CallPoint[T, In, Out] {
-	r.owned(string(p), "DeclareCalls")
+	return DeclareOperation(r, p, "", get)
+}
+
+// DeclareOperation declares one named typed operation on each point contribution.
+func DeclareOperation[T, In, Out any](r *Registrar, p PointKey[T], operation string, get func(T) func(In) Out) CallPoint[T, In, Out] {
+	r.owned(string(p), "DeclareOperation")
 	if get == nil {
-		r.fail("DeclareCalls needs an accessor")
+		r.fail("DeclareOperation needs an accessor")
 	}
-	if _, exists := r.h.calls[string(p)]; exists {
-		r.fail("duplicate calls declaration %q", p)
+	key := string(p) + ":" + operation
+	if _, exists := r.h.calls[key]; exists {
+		r.fail("duplicate calls declaration %q", key)
 	}
-	r.h.calls[string(p)] = callDeclaration{
-		typ: reflect.TypeFor[T](),
+	r.h.calls[key] = callDeclaration{point: string(p), operation: operation, typ: reflect.TypeFor[T](),
 		install: func(h *Host, c contribution) {
-			k := itemTarget(c.key, c.id)
+			k := callTarget(c.key, c.id, operation)
 			h.hooks[k] = hookDecl{owner: c.owner, point: c.key, impl: &typedHook[In, Out]{fallback: get(c.value.(T))}}
-		},
-		valueHook: func(v any) any { return get(v.(T)) },
+		}, valueHook: func(v any) any { return get(v.(T)) },
 	}
-	return CallPoint[T, In, Out]{p}
+	r.e.ledger.Calls = append(r.e.ledger.Calls, CallInfo{Point: string(p), Operation: operation, Input: reflect.TypeFor[In]().String(), Output: reflect.TypeFor[Out]().String()})
+	return CallPoint[T, In, Out]{Point: p, Operation: operation}
 }
 
 func (r *Registrar) injection(target, name string, kind InjectionKind, fn any, in, out, valueType reflect.Type) {
@@ -237,14 +253,28 @@ func (h *Host) active(id string) bool {
 }
 func (h *Host) targetActive(target string) bool {
 	if d, ok := h.hooks[target]; ok {
-		return h.active(d.owner) && (d.point == "" || h.active(owner(d.point)))
+		return h.active(d.owner) && (d.point == "" || h.active(owner(d.point)) && !h.pointConflict(d.point))
 	}
 	for _, c := range h.contributions {
 		if itemTarget(c.key, c.id) == target {
-			return h.active(c.owner) && h.active(owner(c.key))
+			return h.active(c.owner) && h.active(owner(c.key)) && !h.pointConflict(c.key)
 		}
 	}
 	return false
+}
+
+// pointConflict is read under mu, including while rebuilding call chains.
+func (h *Host) pointConflict(key string) bool {
+	if !h.points[key].single {
+		return false
+	}
+	n := 0
+	for _, c := range h.contributions {
+		if c.key == key && h.active(c.owner) {
+			n++
+		}
+	}
+	return n > 1
 }
 
 func (h *Host) inactiveTargetReason(target string) Reason {
@@ -271,13 +301,16 @@ func (h *Host) inactiveTargetReason(target string) Reason {
 
 func (h *Host) validateInjections() error {
 	for key, c := range h.calls {
-		p, ok := h.points[key]
+		p, ok := h.points[c.point]
 		if !ok || p.typ != c.typ {
 			return fmt.Errorf("DeclareCalls point %q is missing or has a different type", key)
 		}
 	}
 	for _, c := range h.contributions {
-		if d, ok := h.calls[c.key]; ok {
+		for _, d := range h.calls {
+			if d.point != c.key {
+				continue
+			}
 			if err := protect(func() { d.install(h, c) }); err != nil {
 				return fmt.Errorf("DeclareCalls %s: %w", c.key, err)
 			}
@@ -297,7 +330,7 @@ func (h *Host) validateInjections() error {
 			}
 			for _, c := range h.contributions {
 				if itemTarget(c.key, c.id) == i.Target {
-					if d, ok := h.calls[c.key]; ok {
+					if d, ok := h.calls[c.key+":"]; ok {
 						if err := protect(func() { h.injections[n].call = d.valueHook(i.fn) }); err != nil {
 							return err
 						}

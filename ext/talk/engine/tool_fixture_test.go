@@ -10,7 +10,6 @@ import (
 	"writer/ext/lore"
 	"writer/ext/outline"
 	"writer/ext/propose"
-	"writer/inference"
 	"writer/model"
 	"writer/workspace"
 )
@@ -94,7 +93,10 @@ const (
 
 func TestContributedToolPanicFailsCallAndTalkContinuesWithOwnerFailure(t *testing.T) {
 	e, session := setup(t)
-	h, err := ext.New(ext.Options{}, ext.Module{ID: "ai", Setup: func(r *ext.Registrar) { ext.Declare(r, aiapi.Tools) }}, ext.Module{ID: "broken", Optional: []string{"ai"}, Setup: func(r *ext.Registrar) {
+	h, err := ext.New(ext.Options{}, ext.Module{ID: "ai", Setup: func(r *ext.Registrar) {
+		ext.Declare(r, aiapi.Tools)
+		ext.DeclareCalls(r, aiapi.Tools, aiapi.InvokeTool)
+	}}, ext.Module{ID: "broken", Optional: []string{"ai"}, Setup: func(r *ext.Registrar) {
 		ext.Contribute(r, aiapi.Tools, "panic", aiapi.Tool{Name: "panic", Schema: func(workspace.Work) json.RawMessage { return json.RawMessage(`{"type":"object"}`) }, Run: func(context.Context, aiapi.ToolEnv, json.RawMessage) aiapi.ToolResult { panic("tool broke") }})
 	}})
 	if err != nil {
@@ -103,7 +105,7 @@ func TestContributedToolPanicFailsCallAndTalkContinuesWithOwnerFailure(t *testin
 	defer h.Close()
 	e.Tools = aiapi.SnapshotTools(h)
 	f := &fake{steps: []model.Reply{{Calls: []model.Call{call("bad", "panic", map[string]any{})}}, {Text: "还可以继续。"}}}
-	e.Talk = inference.Model{Model: limits, Completer: f}
+	e.Talk = aiapi.Handle{Model: aiapi.Model(limits), Completer: f}
 	got, err := e.Say(context.Background(), session, workspace.Event{Text: "你好"})
 	if err != nil || got.Reply.Text != "还可以继续。" {
 		t.Fatal(got, err)
@@ -122,7 +124,7 @@ func TestContributedToolPanicFailsCallAndTalkContinuesWithOwnerFailure(t *testin
 		t.Fatal(events)
 	}
 	ledger := h.Ledger("broken")
-	if ledger.State != ext.Failed || len(ledger.Errors) != 1 || ledger.Errors[0].Target != "ai.tools.panic" {
+	if ledger.State != ext.Failed || len(ledger.Errors) != 1 || ledger.Errors[0].Target != "broken.panic@ai.tools" {
 		t.Fatal(ledger)
 	}
 	if h.Ledger("ai").State != ext.On {

@@ -165,8 +165,8 @@ func TestMenuRows(t *testing.T) {
 	if err := pick(tt, "加入设定"); err != nil {
 		t.Fatal(err, rows(tt))
 	}
-	if a.write.takeOpen || len(rows(tt)) == 0 {
-		t.Fatal("a pale row was picked", a.write.takeOpen, rows(tt))
+	if a.takeOpen() || len(rows(tt)) == 0 {
+		t.Fatal("a pale row was picked", a.takeOpen(), rows(tt))
 	}
 	// Pale as the design has it: the ink at opacityDisabled over the panel.
 	off, _ := tt.Find("菜单-加入设定")

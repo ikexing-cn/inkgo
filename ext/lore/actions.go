@@ -101,7 +101,7 @@ func (a *Panel) editSetting(e workspace.Entry) {
 func (a *Panel) changeActions(it workspace.Idea) []noteAction {
 	return []noteAction{
 		{locales.CheckIgnore(), func() {
-			a.services.Edits.UndoRevision(locales.CheckIgnored(), workspace.Op{Op: workspace.OpDropChange, Entry: it.Entry.ID, Change: it.Change.ID})
+			a.UndoRevision(locales.CheckIgnored(), workspace.Op{Op: workspace.OpDropChange, Entry: it.Entry.ID, Change: it.Change.ID})
 		}},
 		{locales.EditorAccept(), func() { a.takeChange(it.Entry, it.Change) }},
 	}

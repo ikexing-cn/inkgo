@@ -1,5 +1,7 @@
 package ext
 
+import "reflect"
+
 // PointReader reads a declared point at runtime without exposing host mutation.
 // Obtain it during Setup; Items and CallReadPoint must run after Setup.
 type PointReader[T any] struct {
@@ -14,6 +16,8 @@ func ReadPoint[T any](r *Registrar, key PointKey[T]) *PointReader[T] {
 	if id != r.e.mod.ID && id != HostOwner && !contains(r.e.mod.Requires, id) && !contains(r.e.mod.Optional, id) {
 		r.fail("ReadPoint requires a declared dependency: %s", key)
 	}
+	r.h.reads = append(r.h.reads, serviceUse{owner: r.e.mod.ID, key: string(key), typ: reflect.TypeFor[T]()})
+	r.e.ledger.Reads = append(r.e.ledger.Reads, string(key))
 	return &PointReader[T]{r.h, key}
 }
 
@@ -64,4 +68,9 @@ func ActivationOf(h *Host, owner string) *Session {
 		return e.session
 	}
 	return nil
+}
+
+// CallReadOperation invokes a named operation through its typed injection boundary.
+func CallReadOperation[T, In, Out any](r *PointReader[T], operation, id string, in In, original func(In) Out) (Out, error) {
+	return Call(r.host, HookOf(CallPoint[T, In, Out]{Point: r.key, Operation: operation}, id), in, original)
 }

@@ -68,11 +68,11 @@ func (a *Panel) SessionItem(c *ui.Context, id string) {
 			fg = a.palette().Faint
 		}
 		ui.Text(c, words).FontSize(kit.FsControl).TextColor(fg).SingleLine().Ellipsis("…").Grow(1).Shrink(1)
-		if b.Hovered() || b.FocusWithin() || a.desktop.MenuOpen("talk-"+id) {
+		if b.Hovered() || b.FocusWithin() || a.native.MenuOpen("talk-"+id) {
 			ui.Text(c, talkDay(id, time.Now())).FontSize(kit.FsSmall).TextColor(a.palette().Faint).SingleLine()
 		}
 	})
-	a.desktop.MenuState().ContextMenu(c, a.palette(), b, "talk-"+id, func(m *kit.Menu) {
+	a.native.MenuState().ContextMenu(c, a.palette(), b, "talk-"+id, func(m *kit.Menu) {
 		if a.Shelved[id] {
 			m.Item(talktext.SideMoveBack()).Disabled(a.held()).Do(func() {
 				delete(a.Shelved, id)

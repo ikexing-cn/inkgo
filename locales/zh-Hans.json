@@ -1159,9 +1159,6 @@
   "backupDiskShort": "找不到 E 盘",
   "backupDiskTitle": "找不到 E 盘，本次备份未完成",
   "backupNextHour": "一小时后",
-  "backupKeep10": "最近 10 份",
-  "backupKeep30": "最近 30 份",
-  "backupKeep90": "最近 90 份",
   "backupSize": "每份约 1.1 MB，共 {total, number, ::.0} MB",
   "@backupSize": {
     "description": "备份文件占的空间，每份约 1.1 MB。",

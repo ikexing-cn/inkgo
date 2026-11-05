@@ -13,7 +13,6 @@ import (
 	"unicode/utf8"
 	"writer/ext/ai/aiapi"
 
-	"writer/inference"
 	"writer/model"
 	"writer/workspace"
 )
@@ -61,7 +60,7 @@ func TestATalkOpenedToDraftKeepsToItsChapter(t *testing.T) {
 		{Calls: []model.Call{call("c1", toolPropose, map[string]any{"chapter": "第二章", "at": "end", "text": "  灯又亮了。\n\n　她笑了。 "})}},
 		{Text: "接着写了两段。"},
 	}, replies: []string{"那就不笑。"}}
-	e.Talk = inference.Model{Model: limits, Completer: f}
+	e.Talk = aiapi.Handle{Model: aiapi.Model(limits), Completer: f}
 	if _, err := e.Say(context.Background(), session, workspace.Event{Text: "按章纲起草本章，约 800 字，接在已有内容之后", Origin: workspace.AIDraft, Chapter: two}); err != nil {
 		t.Fatal(err)
 	}
@@ -132,7 +131,7 @@ func TestATalkOpenedToRewriteKeepsToItsChapter(t *testing.T) {
 	r := revise(t, e, workspace.Op{Op: workspace.OpAdd, Place: workspace.PlaceBody, Category: "人物", Names: []string{"林晚"}, Text: "林晚用左手拧灯座。"})
 	revise(t, e, workspace.Op{Op: workspace.OpChange, Entry: r.Ops[0].Entry, From: three, Place: workspace.PlaceBody, Text: "林晚没了左手。"})
 	f := &fake{replies: []string{"好"}}
-	e.Talk = inference.Model{Model: limits, Completer: f}
+	e.Talk = aiapi.Handle{Model: aiapi.Model(limits), Completer: f}
 	words := workspace.Event{Text: "放慢", Origin: workspace.AIRewrite, Chapter: two, Quotes: []workspace.Quote{{Chapter: two, Title: "第二章", Text: "灯灭了。"}}}
 	if _, err := e.Say(context.Background(), session, words); err != nil {
 		t.Fatal(err)

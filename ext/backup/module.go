@@ -42,10 +42,13 @@ type View struct {
 	State      State
 	generation uint64
 	book       *ext.Ref[hostapi.Book]
+	editing    *ext.Ref[hostapi.Editing]
 	palette    *ext.Ref[hostapi.Palette]
 	jobs       *ext.Ref[hostapi.Jobs]
 	dialogs    *ext.Ref[hostapi.Dialogs]
-	desktop    *ext.Ref[hostapi.Desktop]
+	desktop    *ext.Ref[hostapi.Navigation]
+	native     *ext.Ref[hostapi.NativeUI]
+	paths      *ext.Ref[hostapi.MachinePaths]
 	pending    *ext.Ref[hostapi.Pending]
 	setting    *ext.Pref[Choices]
 }
@@ -56,7 +59,7 @@ type View struct {
 func New(ask bool) (ext.Module, *View) {
 	a := &View{}
 	return ext.Module{ID: "backup", Kind: ext.Feature, Group: hostapi.GroupFiles, Off: backuptext.ModBackupOff, Name: backuptext.ModBackup, Desc: backuptext.ModBackupAbout, Setup: func(r *ext.Registrar) {
-		*a = View{book: ext.Use(r, hostapi.BookService), palette: ext.Use(r, hostapi.PaletteService), jobs: ext.Use(r, hostapi.JobsService), dialogs: ext.Use(r, hostapi.DialogsService), desktop: ext.Use(r, hostapi.DesktopService), pending: ext.Use(r, hostapi.PendingService), setting: ext.Setting(r, "choices", ext.Schema[Choices]{Scope: ext.Local})}
+		*a = View{book: ext.Use(r, hostapi.BookService), editing: ext.Use(r, hostapi.EditingService), palette: ext.Use(r, hostapi.PaletteService), jobs: ext.Use(r, hostapi.JobsService), dialogs: ext.Use(r, hostapi.DialogsService), desktop: ext.Use(r, hostapi.NavigationService), native: ext.Use(r, hostapi.NativeUIService), paths: ext.Use(r, hostapi.MachinePathsService), pending: ext.Use(r, hostapi.PendingService), setting: ext.Setting(r, "choices", ext.Schema[Choices]{Scope: ext.Local})}
 		r.OnStart(func(s *ext.Session) error {
 			if ask && s.Book().Dir != "" {
 				a.askBackup()

@@ -26,6 +26,7 @@ func New() (ext.Module, *View) {
 func setup(r *ext.Registrar) { setupView(r, &View{}) }
 func setupView(r *ext.Registrar, a *View) {
 	book := ext.Use(r, hostapi.BookService)
+	editing := ext.Use(r, hostapi.EditingService)
 	palette := ext.Use(r, hostapi.PaletteService)
 	backend := ext.Use(r, aiapi.Service)
 	notices := ext.Use(r, hostapi.NoticesService)
@@ -33,6 +34,7 @@ func setupView(r *ext.Registrar, a *View) {
 	r.OnStart(func(s *ext.Session) error {
 		current.Store(&logRun{session: s, store: book.Get().Store()})
 		a.host = book.Get()
+		a.editing = editing.Get()
 		a.store = a.host.Store()
 		a.book = a.host.Content()
 		a.ai = backend.Get()

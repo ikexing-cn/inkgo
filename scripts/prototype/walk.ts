@@ -449,7 +449,7 @@ export async function walk({ js, shot, click: press, rclick, drag, type, text, k
   await settings(); await click('扩展'); for (const name of ['手机预览', '导出', '备份']) { await extPage(name); await extTick(name); await crumb('扩展') }
   await click('关闭'); must(await onTab() === '预览', 'Phone Preview came back on ' + await onTab()); must(await has('.backup-line'), 'the backup did not come back'); must(await inMenu('文件', '导出…'), 'Export did not come back'); await done('extensions off and on')
   // One that others need asks first and names them; set for this work alone, it leaves the other works as they were.
-  await settings(); await click('扩展'); await extPage('资料库'); await win('设定、大纲、伏笔、讨论、续写要用它'); await extTick('资料库'); await win('关闭「资料库」？'); await win('也会一起关闭。'); await shot('66e-extension-ask'); await click('取消'); await win('关闭「资料库」？', false); await crumb('扩展')
+  await settings(); await click('扩展'); await extPage('资料库'); await win('设定、大纲、伏笔、讨论、续写、检查要用它'); await extTick('资料库'); await win('关闭「资料库」？'); await win('也会一起关闭。'); await shot('66e-extension-ask'); await click('取消'); await win('关闭「资料库」？', false); await crumb('扩展')
   await extPage('字数目标'); await extMore('goal'); await click('只在本作品关闭'); await win('本作品里已关闭'); must(await js(`!extOn('goal') && !S.extOff.includes('goal')`), 'set for this work alone, the switch moved the one of this computer'); await shot('66f-extension-own')
   await extMore('goal'); await click('恢复默认'); await win('本作品里已关闭', false); must(await js(`extOn('goal')`), 'back to the default, the goal is still off')
   // Turned on for this work alone, what it needs of the libraries turns on for every work: the question says so.

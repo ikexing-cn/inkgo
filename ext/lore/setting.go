@@ -183,7 +183,7 @@ func settingPlaceName(place string) string {
 func (a *Panel) revise(ops ...workspace.Op) {
 	_, err := a.services.Book.Content().Revise(workspace.Revision{By: workspace.ByAuthor, Ops: ops})
 	if err == nil {
-		err = a.services.Edits.Refresh()
+		err = a.services.Editing.Refresh()
 	}
 	a.services.Notices.Notices().SetError(err)
 }
@@ -286,12 +286,12 @@ func (a *Panel) settingList(c *ui.Context) {
 		}
 		b := a.services.Palette.Colors().PaneRow(c.Key(e.ID), "设定-"+e.ID, name, gist, side, q, waiting[e.ID])
 		// One a talk just noted is tinted for a moment.
-		if at, ok := a.services.Book.Flashed(e.ID); ok {
+		if at, ok := a.services.Editing.Flashed(e.ID); ok {
 			if left := flashFor - time.Since(at); left > 0 {
 				b.Background(a.services.Palette.Colors().Ink.Alpha(0.2 * float32(left) / float32(flashFor)))
 				c.AnimationFrame()
 			} else {
-				a.services.Book.ClearFlash(e.ID)
+				a.services.Editing.ClearFlash(e.ID)
 			}
 		}
 		if b.Clicked() {
@@ -324,7 +324,7 @@ func (a *Panel) settingList(c *ui.Context) {
 		}
 		if a.bodyCount() == 0 {
 			how := loretext.LoreEmptyAi()
-			if !a.services.AI.AIEnabled() {
+			if !a.services.AI.Enabled("ai") {
 				how = loretext.LoreEmptyNoAi()
 			}
 			a.services.Palette.Colors().PaneEmpty(c, loretext.LoreEmpty(), how)
@@ -417,7 +417,7 @@ func (a *Panel) entryPage(c *ui.Context, e workspace.Entry) {
 		if i := slices.IndexFunc(e.Sources, func(s workspace.Source) bool { return s.Chapter != "" }); i >= 0 {
 			src := e.Sources[i]
 			where := "“" + src.Quote + "”"
-			if title, ok := a.services.Book.ChapterTitle(src.Chapter); ok {
+			if title, ok := a.services.Editing.ChapterTitle(src.Chapter); ok {
 				where = "「" + title + "」" + where
 			}
 			if a.services.Palette.Colors().PaneWhere(c, where, "原文-"+e.ID) {
@@ -539,7 +539,7 @@ func (a *Panel) history(c *ui.Context) {
 			shown := 0
 			for n := len(a.services.Book.Content().Setting().Revisions) - 1; n >= 0; n-- {
 				r := a.services.Book.Content().Setting().Revisions[n]
-				if len(r.Ops) == 0 || r.By != workspace.ByAuthor && !a.services.AI.AIEnabled() {
+				if len(r.Ops) == 0 || r.By != workspace.ByAuthor && !a.services.AI.Enabled("ai") {
 					continue // the bookkeeper's that failed changed nothing
 				}
 				shown++
@@ -569,7 +569,7 @@ func (a *Panel) history(c *ui.Context) {
 			}
 			switch {
 			case shown > 0:
-			case a.services.AI.AIEnabled():
+			case a.services.AI.Enabled("ai"):
 				a.services.Palette.Colors().PaneNote(c, loretext.LoreLogEmptyAi())
 			default:
 				a.services.Palette.Colors().PaneNote(c, loretext.LoreLogEmpty())
@@ -656,7 +656,7 @@ func (a *Panel) SaveEdits() error {
 		if err != nil {
 			return err
 		}
-		if err = a.services.Edits.Refresh(); err != nil {
+		if err = a.services.Editing.Refresh(); err != nil {
 			return err
 		}
 	}

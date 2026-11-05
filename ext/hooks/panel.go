@@ -133,7 +133,7 @@ func (a *Panel) bury() {
 	a.current().ed.AddMark(editor.Mark{Kind: editor.MarkForeshadow, Start: f.From, End: f.To, Note: strings.TrimSpace(f.Note),
 		Key: id, At: time.Now().Format(time.RFC3339)})
 	f.Noting = false
-	a.warn(a.services.Book.SaveText())
+	a.warn(a.services.Editing.SaveText())
 	a.current().ed.Focus()
 }
 
@@ -164,7 +164,7 @@ func (a *Panel) pay(id string) {
 	a.current().ed.AddMark(editor.Mark{Kind: editor.MarkPayoff, Start: f.From, End: f.To, Key: markID(), Ref: id,
 		At: time.Now().Format(time.RFC3339)})
 	f.Paying = false
-	a.warn(a.services.Book.SaveText())
+	a.warn(a.services.Editing.SaveText())
 	a.showFore(id)
 	a.current().ed.Focus()
 }
@@ -185,7 +185,7 @@ func (a *Panel) editMark(node, id string, fn func(m *workspace.ChapterMark) (kee
 				a.current().ed.Doc.RemoveMark(m.ID)
 			}
 		}
-		a.warn(a.services.Book.SaveText())
+		a.warn(a.services.Editing.SaveText())
 		return
 	}
 	ch, err := a.services.Book.Store().ReadChapter(node)
@@ -247,7 +247,7 @@ func (a *Panel) rehang(f workspace.Foreshadow) {
 		a.editMark(f.Node, f.ID, func(*workspace.ChapterMark) bool { return false })
 		a.current().ed.AddMark(editor.Mark{Kind: editor.MarkForeshadow, Start: s, End: e, Note: f.Note, Key: f.ID, At: f.At})
 	}
-	a.warn(a.services.Book.SaveText())
+	a.warn(a.services.Editing.SaveText())
 }
 
 // showFore shows the foreshadowing's details in the right column.
@@ -299,7 +299,7 @@ func (a *Panel) forePopover(c *ui.Context) {
 	if !f.Noting && !f.Paying {
 		return
 	}
-	if a.current().ed == nil || a.current().ed.ReadOnly() || a.lost() || a.services.Desktop.ChapterExternal() {
+	if a.current().ed == nil || a.current().ed.ReadOnly() || a.lost() || a.services.Editing.ChapterExternal() {
 		f.Noting, f.Paying = false, false
 		return
 	}

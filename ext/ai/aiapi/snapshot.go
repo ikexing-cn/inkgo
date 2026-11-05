@@ -7,36 +7,37 @@ import (
 	"writer/ext"
 )
 
-// SnapshotTools copies active tools on the frame thread and guards callbacks
-// with the host's concurrent failure boundary. Failed owners stop immediately;
-// task joins and OnStop follow the host's normal deferred cleanup rule.
+// SnapshotTools copies host-consumed tools on the frame thread. Each returned
+// callback uses the same typed call chain as an extension dependency reader.
 func SnapshotTools(h *ext.Host) []Tool {
 	out := []Tool{}
 	if h == nil {
 		return out
 	}
 	for _, item := range ext.Items(h, Tools) {
-		tool := item.Value
-		owner := item.Owner
-		activation := ext.ActivationOf(h, owner)
-		run, label := tool.Run, tool.Label
-		tool.Run = func(ctx context.Context, e ToolEnv, in json.RawMessage) (result ToolResult) {
-			err := ext.Guard(h, owner, "ai.tools."+tool.Name, func() {
-				if activation.Active() {
-					result = run(ext.WithSession(ctx, activation), e, in)
-				}
-			})
+		original := item.Value
+		tool := original
+		activation := ext.ActivationOf(h, item.Owner)
+		key := ext.HookOf(ext.CallPoint[Tool, ToolCall, ToolAnswer]{Point: Tools}, item.ID)
+		tool.Run = func(ctx context.Context, e ToolEnv, in json.RawMessage) ToolResult {
+			if !activation.Active() {
+				return ToolResult{Failed: true}
+			}
+			out, err := ext.Call(h, key, ToolCall{Context: ext.WithSession(ctx, activation), Env: e, Input: in}, InvokeTool(original))
 			if err != nil {
 				return ToolResult{Text: fmt.Sprintf("工具调用失败：%v", err), Failed: true}
 			}
-			return
+			if !activation.Active() {
+				return ToolResult{Failed: true}
+			}
+			return out.Result
 		}
 		tool.Label = func(e ToolEnv, in json.RawMessage) string {
-			v := tool.Name
-			if label != nil {
-				ext.Guard(h, owner, "ai.tools."+tool.Name+".label", func() { v = label(e, in) })
+			out, err := ext.Call(h, key, ToolCall{Env: e, Input: in, Label: true}, InvokeTool(original))
+			if err != nil {
+				return original.Name
 			}
-			return v
+			return out.Label
 		}
 		out = append(out, tool)
 	}

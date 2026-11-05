@@ -98,14 +98,14 @@ func (l *Live) Read() (reasoning, text string, steps []workspace.Event, compacti
 // what the author is writing beside it. What it notes in the setting
 // shows at once.
 // Talk runs on the frame thread.
-func (a *Panel) Talk(c *ui.Context) (talkapi.Talk, error) {
+func (a *Panel) Talk(c *ui.Context) (talkapi.Talk, error) { return a.talk(c.Services()) }
+func (a *Panel) talk(sv ui.Services) (talkapi.Talk, error) {
 	if a.Build == nil {
 		return nil, &aiapi.SetupError{Err: errors.New(locales.ChatNeedModel())}
 	}
 	turn := &Turn{jobs: a.jobs}
 	a.Turn = turn
 	a.suggestions.Begin()
-	sv := c.Services()
 	return a.Build(a.Store, a.material(), aiapi.SnapshotReadTools(a.tools), a.Beside(), func(p talkapi.Progress) {
 		turn.Live.Add(p)
 		sv.Invalidate()
@@ -125,7 +125,7 @@ func (a *Panel) Stepped(turn *Turn, sv ui.Services, e workspace.Event) {
 		}
 		jobs.Post(sv, func() {
 			if a.Turn == turn {
-				a.SetError(a.bookHost.CategoriesChanged())
+				a.SetError(a.editingHost.CategoriesChanged())
 			}
 		})
 	}
@@ -158,7 +158,10 @@ func (a *Panel) Send(c *ui.Context) {
 // until they are saved; unsaid runs when they were not.
 // Say runs on the frame thread.
 func (a *Panel) Say(c *ui.Context, session string, words workspace.Event, unsaid func()) {
-	talk, err := a.Talk(c)
+	a.say(c.Services(), session, words, unsaid)
+}
+func (a *Panel) say(sv ui.Services, session string, words workspace.Event, unsaid func()) {
+	talk, err := a.talk(sv)
 	if err != nil {
 		a.SetError(err)
 		if unsaid != nil {
@@ -169,7 +172,7 @@ func (a *Panel) Say(c *ui.Context, session string, words workspace.Event, unsaid
 	words.Role = workspace.RoleUser // as they are kept
 	a.Turn.Pending, a.Turn.Quotes = words.Text, words.Quotes
 	a.Chat.ScrollToEnd()
-	a.run(c, locales.ToastThinking(), func(ctx context.Context) (func(), error) {
+	a.runServices(sv, locales.ToastThinking(), func(ctx context.Context) (func(), error) {
 		saved, err := talk.Say(ctx, session, words)
 		return func() {
 			a.Turn.Pending, a.Turn.Quotes = "", nil

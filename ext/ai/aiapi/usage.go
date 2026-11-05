@@ -17,7 +17,7 @@ type Call struct {
 	Record     workspace.Record
 }
 
-// Calls observes every finished model call on its worker, through ext.Guard.
+// Calls observes every finished model call on its worker, through ext.Call.
 const Calls ext.PointKey[func(Call)] = "ai.calls"
 
 // ModelChanges observes provider configuration changes on the frame thread.

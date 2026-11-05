@@ -37,11 +37,11 @@ func (a *Panel) paneFind(c *ui.Context, query *string, hint, add string, more fu
 		}
 		if more != nil {
 			b := ui.ButtonBase(c).Size(kit.HControl, kit.HControl).Center().Radius(kit.RControl).Shrink(0).Label(locales.CommonMore()).Tooltip(locales.CommonMore())
-			if b.Hovered() || a.desktop.MenuOpen(hint) {
+			if b.Hovered() || a.native.MenuOpen(hint) {
 				b.Background(t.SurfacePressed)
 			}
 			b.Children(func() { kit.Glyph(c, kit.IcMore, kit.IconMd, t.TextMuted) })
-			a.desktop.MenuState().DropMenu(c, a.palette(), b, hint, func(panel ui.Element) {
+			a.native.MenuState().DropMenu(c, a.palette(), b, hint, func(panel ui.Element) {
 				panel.TransformOrigin(1, 0)
 				panel.AttachTo(b, ui.AnchorBottomRight, ui.AnchorTopRight).Margin(4, 0, 0, 0).Width(160)
 			}, more)

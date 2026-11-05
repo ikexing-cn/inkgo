@@ -19,9 +19,12 @@ import (
 // Services contains the frame-thread capabilities used by foreshadowing.
 type Services struct {
 	Book    hostapi.Book
+	Editing hostapi.Editing
 	Palette hostapi.Palette
 	Notices hostapi.Notices
-	Desktop hostapi.Desktop
+	Desktop hostapi.Navigation
+	Native  hostapi.NativeUI
+	Paths   hostapi.MachinePaths
 	Pane    hostapi.Pane
 	Prose   hostapi.ProseUI
 }
@@ -48,14 +51,17 @@ func New() (ext.Module, *Panel) {
 	p := &Panel{}
 	return ext.Module{ID: "hooks", Kind: ext.Feature, Group: hostapi.GroupLore, Requires: []string{"context", "marks"}, Name: hookstext.ModHooks, Desc: hookstext.ModHooksAbout, Setup: func(r *ext.Registrar) {
 		book := ext.Use(r, hostapi.BookService)
+		bookEditing := ext.Use(r, hostapi.EditingService)
 		palette := ext.Use(r, hostapi.PaletteService)
 		notices := ext.Use(r, hostapi.NoticesService)
-		desktop := ext.Use(r, hostapi.DesktopService)
+		desktopNative := ext.Use(r, hostapi.NativeUIService)
+		desktopPaths := ext.Use(r, hostapi.MachinePathsService)
+		desktop := ext.Use(r, hostapi.NavigationService)
 		pane := ext.Use(r, hostapi.PaneService)
 		prose := ext.Use(r, hostapi.ProseUIService)
 		p.late = ext.Setting(r, "late-after", ext.Schema[int]{Title: hookstext.SettingsLateAfter, Default: 30, Scope: ext.BookScope})
 		r.OnStart(func(*ext.Session) error {
-			p.services = Services{book.Get(), palette.Get(), notices.Get(), desktop.Get(), pane.Get(), prose.Get()}
+			p.services = Services{book.Get(), bookEditing.Get(), palette.Get(), notices.Get(), desktop.Get(), desktopNative.Get(), desktopPaths.Get(), pane.Get(), prose.Get()}
 			p.State = State{}
 			p.fores = cached[foreshadowKey, []workspace.Foreshadow]{}
 			return nil
@@ -80,13 +86,13 @@ func New() (ext.Module, *Panel) {
 }
 func (a *Panel) book() *book.Book  { return a.services.Book.Content() }
 func (a *Panel) pal() *kit.Palette { return a.services.Palette.Colors() }
-func (a *Panel) node() string      { id, _, _ := a.services.Book.Chapter(); return id }
+func (a *Panel) node() string      { id, _, _ := a.services.Editing.Chapter(); return id }
 func (a *Panel) lost() bool        { _, lost, _ := a.services.Desktop.Selected(); return lost }
 
 type currentChapter struct{ ed *editor.Editor }
 
 func (a *Panel) current() currentChapter {
-	_, ed, _ := a.services.Book.Chapter()
+	_, ed, _ := a.services.Editing.Chapter()
 	return currentChapter{ed}
 }
 func (a *Panel) warn(err error) { a.services.Notices.Notices().Warn(err) }

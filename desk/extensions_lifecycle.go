@@ -41,8 +41,7 @@ func declareLifecycle(r *ext.Registrar, a *App) {
 	ext.Declare(r, hostapi.LeaveQuestions)
 	ext.Declare(r, hostapi.State)
 	ext.Provide(r, hostapi.SearchService, func(*ext.Session) hostapi.Search { return h })
-	ext.Provide(r, hostapi.AIService, func(*ext.Session) hostapi.AI { return h })
-	ext.Provide(r, hostapi.RevisionsService, func(*ext.Session) hostapi.Revisions { return h })
+	ext.Provide(r, hostapi.ExtensionsService, func(*ext.Session) hostapi.Extensions { return h })
 	ext.Declare(r, hostapi.SelectionButtons)
 	ext.Declare(r, hostapi.SelectionMenus)
 	ext.DeclareCalls(r, hostapi.SelectionMenus, selectionMenuCall)
@@ -76,7 +75,9 @@ func declareLifecycle(r *ext.Registrar, a *App) {
 	ext.Declare(r, hostapi.SettingsPages)
 	ext.Declare(r, hostapi.SettingsSections)
 	ext.DeclareCalls(r, hostapi.SettingsSections, settingsCall)
-	ext.Provide(r, hostapi.DesktopService, func(*ext.Session) hostapi.Desktop { return extensionHost{a} })
+	ext.Provide(r, hostapi.NavigationService, func(*ext.Session) hostapi.Navigation { return extensionHost{a} })
+	ext.Provide(r, hostapi.NativeUIService, func(*ext.Session) hostapi.NativeUI { return extensionHost{a} })
+	ext.Provide(r, hostapi.MachinePathsService, func(*ext.Session) hostapi.MachinePaths { return extensionHost{a} })
 	ext.Provide(r, hostapi.PendingService, func(*ext.Session) hostapi.Pending { return extensionHost{a} })
 }
 
@@ -159,6 +160,10 @@ func settingsCall(v hostapi.SettingsSection) func(*ui.Context) struct{} {
 
 func (a *App) extensionDraw(c *ui.Context, point ext.PointKey[hostapi.DrawItem], items []ext.Item[hostapi.DrawItem]) {
 	for _, item := range items {
+		if point == hostapi.FooterItems {
+			_, _ = ext.Call(a.extensions, ext.HookOf(ext.CallPoint[hostapi.DrawItem, *ui.Context, struct{}]{Point: point}, item.ID), c, drawItemCall(item.Value))
+			continue
+		}
 		body := ui.Box(c)
 		var err error
 		body.Children(func() {
@@ -327,7 +332,7 @@ func (a *App) extensionProseFooter(c *ui.Context, chapter bool) {
 	a.syncExtensions()
 	for _, item := range a.extViews.footer {
 		if item.Value.Placement == "prose" {
-			a.slide(ui.Row(c).Gap(8).AlignItems(ui.Center).Shrink(1).MinWidth(0)).Children(func() { a.extensionDraw(c, hostapi.FooterItems, []ext.Item[hostapi.DrawItem]{item}) })
+			a.extensionDraw(c, hostapi.FooterItems, []ext.Item[hostapi.DrawItem]{item})
 		}
 	}
 }

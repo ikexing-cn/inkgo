@@ -14,7 +14,7 @@ import (
 
 // Module registers focus controls while the host owns the layout state.
 var Module = ext.Module{ID: "focus", Kind: ext.Feature, Group: hostapi.GroupWrite, Name: focustext.ModFocus, Desc: focustext.ModFocusAbout, Setup: func(r *ext.Registrar) {
-	desktop := ext.Use(r, hostapi.DesktopService)
+	desktop := ext.Use(r, hostapi.NavigationService)
 	book := ext.Use(r, hostapi.BookService)
 	toggle := func() { desktop.Get().SetFocus(!desktop.Get().Focused()) }
 	r.OnStop(func(*ext.Session) { desktop.Get().SetFocus(false) })

@@ -2,7 +2,6 @@ package prefs
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -44,12 +43,12 @@ func Load(path string) Prefs {
 	p := Prefs{Writing: true} // a work new to this machine opens on its prose
 	if b, err := os.ReadFile(path); err == nil {
 		if !json.Valid(b) {
-			p = Prefs{unreadable: true}
+			p = Prefs{Writing: true, unreadable: true}
 			return p
 		}
 		p = Prefs{}
 		if err := json.Unmarshal(b, &p); err != nil {
-			return Prefs{unreadable: true}
+			return Prefs{Writing: true, unreadable: true}
 		}
 		// The old pair is read only for files without pane_tab. In those
 		// files foreshadowings took precedence over the remembered talk.
@@ -73,13 +72,6 @@ func Load(path string) Prefs {
 }
 
 func (p Prefs) Save(path string) error {
-	if p.unreadable {
-		return fmt.Errorf("preferences could not be read: %s", path)
-	}
-	old := Load(path)
-	if old.unreadable {
-		return fmt.Errorf("preferences could not be read: %s", path)
-	}
 	b, err := json.Marshal(p)
 	if err == nil {
 		// .writer/ is kept out of git: a work fetched has none till now.
@@ -90,3 +82,6 @@ func (p Prefs) Save(path string) error {
 	}
 	return err
 }
+
+// Unreadable reports whether loading used defaults after a read or decode failure.
+func (p Prefs) Unreadable() bool { return p.unreadable }

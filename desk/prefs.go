@@ -1,11 +1,15 @@
 package desk
 
 import (
+	"fmt"
 	"writer/prefs"
 )
 
 func (a *App) loadPrefs() {
 	p := prefs.Load(a.Store.PrefsPath())
+	if p.Unreadable() {
+		a.warn(fmt.Errorf("preferences could not be read; using defaults: %s", a.Store.PrefsPath()))
+	}
 	a.doc.hidden = p.SettingHidden
 	a.sideHidden = p.SideHidden
 	a.write.node, a.write.tabs, a.write.blank = p.Chapter, p.Tabs, p.Blank && p.Chapter == ""

@@ -12,10 +12,10 @@ func TestTakeProseIntoTheSetting(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.write.takeCategory != "人物" {
-		t.Fatal("taken from the prose, an entry starts in", a.write.takeCategory)
+	if lorePanel(a).Take.Category != "人物" {
+		t.Fatal("taken from the prose, an entry starts in", lorePanel(a).Take.Category)
 	}
-	a.write.takeText, a.write.takeCategory = "主角怕黑，从小如此", "关系"
+	lorePanel(a).Take.Text, lorePanel(a).Take.Category = "主角怕黑，从小如此", "关系"
 	if err := tt.Click("加入"); err != nil {
 		t.Fatal(err)
 	}
