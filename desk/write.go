@@ -1,7 +1,6 @@
 package desk
 
 import (
-	"sync/atomic"
 	"time"
 	"writer/ext"
 	"writer/ext/hostapi"
@@ -9,7 +8,6 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
 	"writer/editor"
-	"writer/ext/ai/aiapi"
 	"writer/locales"
 	"writer/workspace"
 )
@@ -92,30 +90,6 @@ type writeView struct {
 	takeOpen            bool
 	takeQuote, takeText string
 	takeCategory        string
-
-	// The writing model: the writer the editors predict with, and why
-	// there is none.
-	pen         atomic.Pointer[aiapi.Pen]
-	penKey      *penKey // nil when there is no key to compare with
-	penErr      error
-	autoPredict bool
-
-	// What the AI does in the prose: the rewrite asked for, the dialog
-	// that asks for a draft, and the changes proposed in talks, the calls
-	// of the turn in flight taken in among them by talk and call, as last
-	// placed in the prose; and what waits on letting them go.
-	rewriting   bool
-	instruction string
-	draftOpen   bool
-	words       string
-	draftMode   string
-	draftNote   string
-	draftCards  int // the chapter's cards when the draft dialog opened
-	props       []*prop
-	propVer     int
-	seen        map[string]bool
-	placed      placedKey
-	leaving     func()
 }
 
 // warn shows err, leaving an error shown alone when there is none.
@@ -127,8 +101,7 @@ func (a *App) warn(err error) {
 // the tree as the page shows, the editor, the counts and the names, and
 // saving as the author pauses.
 func (a *App) writingTurn(c *ui.Context) {
-	a.keepPen()
-	a.pruneProps()
+	a.feedPrediction()
 	a.countAsTyped()
 	a.feedNames()
 	if a.write.cur().ed != nil {
@@ -174,9 +147,6 @@ func (a *App) writing(c *ui.Context) {
 	})
 	if a.write.takeOpen {
 		a.take(c)
-	}
-	if a.write.draftOpen {
-		a.draftView(c)
 	}
 	a.askToSave(c)
 }
@@ -320,8 +290,7 @@ func (a *App) chapterView(c *ui.Context) {
 			a.chapterHead(c)
 		})
 	})
-	a.placeProps()
-	a.aiBar(c)
+	a.extensionDraw(c, hostapi.BeforeEditor, a.extViews.beforeEditor)
 	// Keyed, as the bars over it come and go: the prose keeps the keyboard.
 	w.cur().ed.SetTextColumn(a.paperColumn(c))
 	w.cur().ed.SetScrollBarOffset(a.fold.edge - a.fold.offset)
@@ -329,7 +298,6 @@ func (a *App) chapterView(c *ui.Context) {
 	ui.Box(c.Key("prose")).Grow(1).FillWidth().Children(func() {
 		prose := a.slide(w.cur().ed.View(c).Fill())
 		a.LastProse = prose.Bounds()
-		a.propActs(c)
 		a.selectionBar(c)
 		for _, item := range ext.Items(a.extensions, hostapi.ProseOverlays) {
 			_, _ = ext.Call(a.extensions, ext.HookOf(ext.CallPoint[hostapi.DrawItem, *ui.Context, struct{}]{Point: hostapi.ProseOverlays}, item.ID), c, drawItemCall(item.Value))

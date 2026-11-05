@@ -6,6 +6,7 @@ package discussion
 import (
 	"fmt"
 	"slices"
+	"strings"
 	"writer/ext/ai/aiapi"
 	"writer/talkbook"
 
@@ -155,7 +156,11 @@ func lay(w workspace.Work, room int, set workspace.Setting, tree workspace.Tree,
 	case t.fixed != nil:
 		rules += "\n\n" + originRulesFor(t.fixed.Origin, t.material, w.Language)
 	case t.near:
-		rules += "\n\n" + besideRulesFor(t.material)
+		besideRules := besideRulesFor(t.material)
+		if !slices.ContainsFunc(t.tools, func(t aiapi.Tool) bool { return t.Name == workspace.ProposeTool }) {
+			besideRules = strings.ReplaceAll(besideRules, "\n"+besideProposeRule, "")
+		}
+		rules += "\n\n" + besideRules
 	}
 	tooLong := &model.SetupError{Err: &model.ContextLimitError{Part: "message"}}
 	out.Request.Tools = toolsOf(w, combined(t.tools))

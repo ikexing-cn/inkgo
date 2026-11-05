@@ -1,0 +1,13 @@
+{
+  "continueSettingsSameAsTalk": "Chat model",
+  "continueSettingsJobCheckAbout": "For continuing and checking",
+  "continueSettingsJobCheck": "Continue & Check",
+  "helpContinue": "Continue one sentence at the cursor",
+  "modContinue": "Continue Writing",
+  "modContinueAbout": "AI writes the next sentence when you pause",
+  "settingsAutoContinue": "Continue automatically after pausing",
+  "settingsAutoNote": "When on, AI is called each time you pause.",
+  "settingsWriting": "While writing",
+  "continueModelHint": "Type or choose a model",
+  "cmdContinue": "Continue a Sentence"
+}

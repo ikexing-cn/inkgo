@@ -62,7 +62,6 @@ func (a *App) finished(apply func(), err error) {
 }
 
 func (a *App) poll() {
-	a.followProps() // what the reply in flight proposes, in the prose
 	a.jobs.poll()
 }
 
@@ -70,4 +69,4 @@ func (a *App) poll() {
 // under: the list of models holds the window. A talk turn holds only
 // sending another and switching the work; the rest goes on as it replies,
 // and a model changed meanwhile takes the next turn.
-func (a *App) held() bool { return a.busy != "" && !a.nonblocking && !a.proposalFrame.Active }
+func (a *App) held() bool { return a.busy != "" && !a.nonblocking && !a.talkRunning() }

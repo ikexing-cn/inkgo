@@ -123,7 +123,7 @@ func (a *Panel) Message(c *ui.Context, m workspace.Event) {
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 				kit.Glyph(c, kit.IcAlert, kit.IconSm, t.Warning)
 				ui.Text(c, talktext.ChatUnanswered()).FontSize(kit.FsNote).TextColor(t.Warning)
-				if a.palette().Ghost(c, talktext.ChatRetry(), ui.Color{}).Disabled(a.request.Busy()).Clicked() {
+				if a.palette().Ghost(c, talktext.ChatRetry(), ui.Color{}).Disabled(a.jobs.Busy()).Clicked() {
 					a.Retry(c, m.ID)
 				}
 			})

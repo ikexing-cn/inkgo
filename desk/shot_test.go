@@ -60,12 +60,12 @@ func TestShotAI(t *testing.T) {
 	g := &script{}
 	penWith(a, g)
 	take := func() {
-		a.takeProps(a.write.props)
+		proposeOf(a).TakeProps(proposeOf(a).Props)
 	}
 	ed.Select(15, 34)
 	tt.Frame()
-	a.openRewrite()
-	a.write.instruction = "节奏放慢，多写她的犹豫"
+	proposeOf(a).OpenRewrite()
+	proposeOf(a).Instruction = "节奏放慢，多写她的犹豫"
 	shot(t, tt, "ai-rewrite-ask.png")
 	hold := g.holding()
 	g.then(proposal("第一章", "replace", ed.Doc.Slice(15, 34), "林晚背着工具箱，在亮着的灯下站了很久，才一盏一盏地往旧城走。"), []string{"放慢了：她先在灯下站了很久，再一盏一盏往旧城走，犹豫落在动作上。"})
@@ -80,8 +80,8 @@ func TestShotAI(t *testing.T) {
 	take()
 
 	setChapterOutline(a, "林晚夜里去旧城修灯，发现井边的灯是被人拧坏的。")
-	a.openDraft()
-	a.write.words = "1500"
+	draftOf(a).OpenDraft()
+	draftOf(a).Words = "1500"
 	shot(t, tt, "ai-draft-ask.png")
 	hold = g.holding()
 	g.then(proposal("第一章", "end", "", "她把手电咬在嘴里，拧下灯罩。灯座上的螺丝少了两颗，断口是新的。"), []string{"按章纲接着写了一段：她发现灯是被人拧坏的。"})
@@ -106,7 +106,7 @@ func TestShotAI(t *testing.T) {
 	replied(t, a, tt)
 	a.Leave(func() {})
 	shot(t, tt, "ai-leave.png")
-	a.write.leaving = nil
+	proposeOf(a).Leaving = nil
 	text := ed.Doc.String()
 	at := utf8.RuneCountInString(text[:strings.Index(text, "三天")])
 	ed.Select(at, at+2)

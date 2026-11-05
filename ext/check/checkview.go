@@ -268,7 +268,7 @@ func (a *Panel) checkEmpty(c *ui.Context, all int) {
 	// the book is named, so it is the same one every frame.
 	if lost := a.firstFailed(); lost != "" && k.Queue.Running == "" {
 		_, title := a.checkAt(lost)
-		pic, words, how = kit.IcAlert, checktext.CheckIncomplete(), checktext.CheckFailedAt(title, a.settings.ErrorText(k.Queue.Failed[lost]))
+		pic, words, how = kit.IcAlert, checktext.CheckIncomplete(), checktext.CheckFailedAt(title, a.status().FormatError(k.Queue.Failed[lost]))
 	}
 	a.pal().Blank(c, pic, words, how, nil)
 }

@@ -12,7 +12,7 @@ import (
 )
 
 // AIEnabled implements the frame-thread host capability.
-func (h extensionHost) AIEnabled() bool { return h.a.aiOn() }
+func (h extensionHost) AIEnabled() bool { return h.a.aiOn() && h.a.extensions.Own("ai") }
 
 // FindInChapter implements the frame-thread host capability.
 func (h extensionHost) FindInChapter(id, quote string) { h.a.findInChapter(id, quote) }

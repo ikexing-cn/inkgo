@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 	"time"
+	"writer/ext/propose"
 
 	"github.com/egoist/mygo/ui"
 	"writer/ext"
@@ -52,13 +53,13 @@ func TestSnapshotsOffStillTakesSnapshotsOnSaveAndProposalAcceptance(t *testing.T
 	if err != nil || !slices.ContainsFunc(snaps, func(s workspace.Snapshot) bool { return s.Reason == workspace.SnapInterval }) {
 		t.Fatal(snaps, err)
 	}
-	a.proposalFrame.Session = talkOf(a).Session
-	a.takeProposal("snapshot-off", workspace.Proposal{Chapter: id, At: workspace.ProposeReplace, Quote: "她走到井边。", Text: "她慢慢走到井边。"}, false, "test-model")
+	proposeOf(a).Frame.Session = talkOf(a).Session
+	proposeOf(a).TakeProposal("snapshot-off", workspace.Proposal{Chapter: id, At: workspace.ProposeReplace, Quote: "她走到井边。", Text: "她慢慢走到井边。"}, false, "test-model")
 	tt.Frame()
-	if len(a.write.props) == 0 {
+	if len(proposeOf(a).Props) == 0 {
 		t.Fatal("no proposal")
 	}
-	a.takeProps([]*prop{a.write.props[0]})
+	proposeOf(a).TakeProps([]*propose.Proposal{proposeOf(a).Props[0]})
 	snaps, err = a.Store.Snapshots(id)
 	if err != nil || !slices.ContainsFunc(snaps, func(s workspace.Snapshot) bool { return s.Reason == workspace.SnapAI }) {
 		t.Fatal(snaps, err)
@@ -113,7 +114,7 @@ func TestFindOffClosesBarAndRemovesKeysMenusToolsAndProsePoint(t *testing.T) {
 					t.Fatal("tool survived")
 				}
 			}
-			if len(ext.Items(a.extensions, hostapi.BeforeProse)) != 0 || hasOwner(ext.Items(a.extensions, hostapi.WritingKeys), "find") {
+			if hasOwner(ext.Items(a.extensions, hostapi.BeforeProse), "find") || hasOwner(ext.Items(a.extensions, hostapi.WritingKeys), "find") {
 				t.Fatal("points survived")
 			}
 			tt.Key(ui.Cmd, ui.KeyF)

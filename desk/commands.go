@@ -27,10 +27,11 @@ const pageAny page = -1
 // where a menu does something of its own, such as closing the tab clicked,
 // it gives that instead.
 type command struct {
-	label    func() string     // what the menus and the help call it, said when shown
-	labelNow func(*App) string // what the state calls it, as 收起侧栏 / 展开侧栏
-	key      ui.Key
-	mods     ui.Modifiers // modCmd for the system's command key
+	presentNow func() bool
+	label      func() string     // what the menus and the help call it, said when shown
+	labelNow   func(*App) string // what the state calls it, as 收起侧栏 / 展开侧栏
+	key        ui.Key
+	mods       ui.Modifiers // modCmd for the system's command key
 	// macKey and macMods are its key on macOS where onMac says it has one
 	// of its own; a zero macKey is none there.
 	onMac   bool
@@ -86,21 +87,6 @@ var (
 		},
 		when: func(a *App) bool { return a.write.renaming == "" },
 		run:  func(a *App) { a.renameOpen() }}
-	cmdContinue = &command{label: locales.CmdContinue, key: ui.KeyJ, mods: modCmd, page: pageWrite, by: byEditor, ai: true,
-		can: func(a *App) bool { open, busy := a.chapterOpen(); return open && !busy },
-		run: func(a *App) { a.continueText() }}
-	cmdDraft = &command{label: locales.CmdDraft, page: pageAny, ai: true,
-		can: func(a *App) bool {
-			open, busy := a.chapterOpen()
-			return open && !busy && strings.TrimSpace(a.chapterOutline(a.write.node)) != ""
-		},
-		hint: func(a *App) string {
-			if open, _ := a.chapterOpen(); open && strings.TrimSpace(a.chapterOutline(a.write.node)) == "" {
-				return locales.CmdDraftNeedsOutline()
-			}
-			return ""
-		},
-		run: func(a *App) { a.openDraft() }}
 
 	// The title bar's 视图.
 	cmdSide = &command{label: locales.CmdHideSidebar, page: pageAny,
@@ -137,9 +123,7 @@ var (
 	cmdSelectAll = &command{label: locales.CommonSelectAll, key: ui.KeyA, mods: modCmd, page: pageWrite, by: byEditor,
 		can: func(a *App) bool { return true },
 		run: func(a *App) { a.write.cur().ed.SelectAll() }}
-	cmdRewrite = &command{label: locales.EditorAIRewriteMore, page: pageWrite, ai: true,
-		can: func(a *App) bool { return a.talkOn() && selected(a) && editable(a) },
-		run: func(a *App) { a.openRewrite() }}
+
 	cmdTake = &command{label: locales.EditorAddToLore, page: pageWrite,
 		can: func(a *App) bool { return a.hasEntries() && selected(a) },
 		run: func(a *App) { a.openTake() }}
@@ -184,10 +168,10 @@ var commandList = []*command{
 	cmdNewChapter, cmdRename,
 	cmdZoomIn, cmdZoomOut, cmdZoomReset, cmdSave, cmdPrevChapter, cmdNextChapter,
 	cmdCloseTab, cmdNextTab, cmdPrevTab,
-	cmdUndo, cmdRedo, cmdContinue, cmdCut, cmdCopy, cmdPaste, cmdSelectAll,
+	cmdUndo, cmdRedo, cmdCut, cmdCopy, cmdPaste, cmdSelectAll,
 	cmdDeleteWordBack, cmdDeleteWordForward, cmdTakePrediction, cmdDropPrediction,
-	cmdNewFolder, cmdSettings, cmdDraft,
-	cmdSide, cmdPane, cmdRewrite, cmdTake, cmdUnmark,
+	cmdNewFolder, cmdSettings,
+	cmdSide, cmdPane, cmdTake, cmdUnmark,
 	cmdCloseOthers, cmdCloseRight,
 }
 
@@ -228,7 +212,6 @@ var commandHelp = []*helpRow{
 	{group: locales.HelpGroupWrite, does: locales.HelpChapterNav, cmds: []*command{cmdNextChapter, cmdPrevChapter}},
 	{group: locales.HelpGroupWrite, does: locales.HelpTabNav, cmds: []*command{cmdNextTab, cmdPrevTab}},
 	{group: locales.HelpGroupWrite, does: locales.HelpCloseTab, cmds: []*command{cmdCloseTab}},
-	{group: locales.HelpGroupWrite, does: locales.HelpContinue, ai: true, cmds: []*command{cmdContinue}},
 	{group: locales.HelpGroupWrite, does: locales.HelpAcceptDrop, ai: true, cmds: []*command{cmdTakePrediction, cmdDropPrediction}},
 	{group: locales.HelpGroupWrite, does: locales.HelpUndoRedo, cmds: []*command{cmdUndo, cmdRedo}},
 	{group: locales.HelpGroupWrite, does: locales.HelpDeleteWord, cmds: []*command{cmdDeleteWordBack, cmdDeleteWordForward}},
@@ -249,11 +232,11 @@ func (c *command) name(a *App) string {
 func (c *command) available(a *App) bool { return c.present(a) && (c.can == nil || c.can(a)) }
 
 func (c *command) present(a *App) bool {
-	if c == cmdDraft {
-		return a.talkOn() && a.hasOutlines()
+	if c == nil {
+		return false
 	}
-	if c == cmdRewrite {
-		return a.talkOn()
+	if c.presentNow != nil {
+		return c.presentNow()
 	}
 	return true
 }

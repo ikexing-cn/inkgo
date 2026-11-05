@@ -6,11 +6,12 @@
 // ext/phone: the phone preview panel.
 // ext/export: the export extension.
 // ext/lore: setting entries, changes, timelines, and forms.
+// ext/continue, ext/draft, ext/propose, ext/usage: writing AI features and records.
 // ext/outline: the 大纲 page, card editing, chapter table, and timeline.
 //
 // The files of desk:
 //
-// ai.go: inline continuation, rewriting, drafting, and the prose AI record.
+// ai.go: recorded model labels for the remaining host checks.
 // aiswitch.go: the machine-wide AI switch and shutdown handling.
 // app.go: App state, work lifecycle, content refresh, and errors.
 // extensions_lifecycle.go: extension status, settings, pending groups and lifecycle.
@@ -41,8 +42,8 @@
 // pages.go: page entry, exit, drawing, and counts.
 // pending.go: pending groups, ignored items, and navigation.
 // prefs.go: applying and collecting per-work preferences.
-// propose.go: discussion proposals in prose, accepting, dropping, and leaving.
-// record.go: AI usage snapshot, list state, cost totals, and request details.
+// leave.go: extension questions before leaving undecided author work.
+// ext/usage: AI usage snapshot, list state, cost totals, and request details.
 // save.go: prose and 章纲 saving, disk changes, conflicts, and lost chapters.
 // serviceform.go: service draft loading, model rows, validation, and clearing.
 // services.go: AI services, models, keys, limits, and forms.

@@ -13,7 +13,6 @@ import (
 	"writer/ext"
 	"writer/ext/ai/aiapi"
 	"writer/ext/hostapi"
-	"writer/ext/talk/talkapi"
 	"writer/locales"
 	"writer/workspace"
 )
@@ -84,23 +83,16 @@ func (a *App) initExtensions(mods []ext.Module) {
 		},
 		DeclareHost: func(r *ext.Registrar) {
 			a.aiRef = ext.UseOptional(r, aiapi.Service)
-			for _, mod := range mods {
-				if mod.ID == "talk" {
-					a.talkRef = ext.UseOptional(r, talkapi.Service)
-					break
-				}
-			}
+
 			ext.Declare(r, hostapi.ErrorTexts)
-			ext.Declare(r, hostapi.AIUsage)
-			ext.DeclareCalls(r, hostapi.AIUsage, func(draw func(*ui.Context)) func(*ui.Context) struct{} {
-				return func(c *ui.Context) struct{} { draw(c); return struct{}{} }
+			ext.Declare(r, hostapi.SettingsDetails)
+			ext.DeclareCalls(r, hostapi.SettingsDetails, func(d hostapi.SettingsDetail) func(*ui.Context) struct{} {
+				return func(c *ui.Context) struct{} { d.Draw(c); return struct{}{} }
 			})
-			ext.Provide(r, hostapi.SettingsHostService, func(*ext.Session) hostapi.SettingsHost { return extensionHost{a} })
-			ext.Contribute(r, hostapi.AIUsage, "ai-record-entry", a.spent)
 			ext.Declare(r, hostapi.Commands)
 			ext.Declare(r, hostapi.PaneTabs)
 			ext.Declare(r, hostapi.Overlays)
-			declareLifecycle(r, a, mods)
+			declareLifecycle(r, a)
 			ext.DeclareCalls(r, hostapi.Overlays, overlayCall)
 			ext.DeclareCalls(r, hostapi.Commands, commandCall)
 			ext.DeclareCalls(r, hostapi.PaneTabs, paneCall)
@@ -147,7 +139,10 @@ func (h extensionHost) ChapterTitle(id string) (string, bool) {
 		return "", false
 	}
 	n, ok := h.a.book.Tree().Node(id)
-	return n.Title, ok && !n.Folder
+	if !ok || n == nil {
+		return "", false
+	}
+	return n.Title, !n.Folder
 }
 
 func (h extensionHost) Dir() string {
@@ -171,6 +166,10 @@ func (h extensionHost) Show(tab string) {
 
 // extensionViews holds derived tables until the host or language changes.
 type extensionViews struct {
+	beforeEditor     []ext.Item[hostapi.DrawItem]
+	starters         []ext.Item[aiapi.TalkStarter]
+	selectionButtons []ext.Item[hostapi.SelectionButton]
+	beforeProse      []ext.Item[hostapi.DrawItem]
 	// Host contributions precede module callbacks and survive module switches.
 	hostTicks      []ext.Item[hostapi.FrameTick]
 	hostLeave      []ext.Item[func()]
@@ -215,20 +214,6 @@ func (a *App) syncExtensions() {
 		a.aiWasOn = on
 		a.applyAI(on)
 	}
-	var talkService talkapi.ServiceAPI
-	talkOn := false
-	if a.talkRef != nil {
-		talkService, talkOn = a.talkRef.Get()
-	}
-	if talkOn && talkService != a.talkResolved {
-		a.talkResolved, a.talkAPI = talkService, talkService
-
-	}
-	if !talkOn {
-		a.talkResolved, a.talkAPI = nil, nil
-
-		a.write.draftOpen, a.write.rewriting = false, false
-	}
 	changes := a.extensions.Changes()
 	revision := a.localeRevision.Load()
 	if a.extViews.ready && a.extViews.changes == changes && a.extViews.localeRevision == revision {
@@ -236,24 +221,19 @@ func (a *App) syncExtensions() {
 	}
 	a.mergePages()
 	cache := extensionViews{ready: true, changes: changes, localeRevision: revision}
+	cache.starters = ext.Items(a.extensions, aiapi.TalkStarters)
+	cache.selectionButtons = ext.Items(a.extensions, hostapi.SelectionButtons)
+	cache.beforeEditor = ext.Items(a.extensions, hostapi.BeforeEditor)
+	cache.beforeProse = ext.Items(a.extensions, hostapi.BeforeProse)
 	a.cacheExtensionViews(&cache)
-	cache.commands = a.buildExtensionCommands()
 	_, cache.outlines = a.outlineValue(a.write.node)
-	cache.outlines = cache.outlines && a.talkOn()
-	if !cache.outlines {
-		a.write.draftOpen = false
-	}
+	cache.commands = a.buildExtensionCommands()
 	for _, cmd := range commandList {
-		if (cmd != cmdDraft || cache.outlines) && (cmd != cmdRewrite || a.talkOn()) && (cmd != cmdTake || a.hasEntries()) {
+		if cmd != cmdTake || a.hasEntries() {
 			cache.list = append(cache.list, cmd)
 		}
 	}
-	for _, row := range commandHelp {
-		if !a.talkOn() && (slices.Contains(row.cmds, cmdDraft) || slices.Contains(row.cmds, cmdRewrite)) {
-			continue
-		}
-		cache.help = append(cache.help, row)
-	}
+	cache.help = append(cache.help, commandHelp...)
 	for _, row := range systemCommands {
 		cache.system = append(cache.system, namedCommand{id: row.id, cmd: row.cmd})
 	}
@@ -273,6 +253,15 @@ func (a *App) syncExtensions() {
 				for i, h := range cache.help {
 					if h.does() != "" && h.does() == value.HelpAfter() {
 						at = i + 1
+					}
+				}
+			}
+
+			if value.HelpBefore != nil {
+				for i, h := range cache.help {
+					if h.does() != "" && h.does() == value.HelpBefore() {
+						at = i
+						break
 					}
 				}
 			}
@@ -409,12 +398,20 @@ func (a *App) buildExtensionCommands() []namedCommand {
 	for _, item := range ext.Items(a.extensions, hostapi.Commands) {
 		value := item.Value
 		cmd := &command{label: value.Name, key: value.Key, mods: value.Mods, macKey: value.MacKey, macMods: value.MacMods, onMac: value.OnMac, page: pageAny, by: byDesk, systemMenu: value.Menu.Menu == hostapi.MenuView || value.Menu.Menu == hostapi.MenuFile || value.Menu.Menu == hostapi.MenuEdit}
+		cmd.presentNow = value.Present
+		if value.Hint != nil {
+			cmd.hint = func(*App) string { return value.Hint() }
+		}
 		cmd.can = func(*App) bool { return value.Can == nil || value.Can() }
 		cmd.when = cmd.can
 		cmd.run = func(*App) {
 			_, _ = ext.Call(a.extensions, ext.HookOf(ext.CallPoint[hostapi.Command, struct{}, struct{}]{Point: hostapi.Commands}, item.ID), struct{}{}, commandCall(value))
 		}
-		out = append(out, namedCommand{id: item.ID, cmd: cmd, menu: value.Menu, value: value})
+		id := item.ID
+		if value.ID != "" {
+			id = value.ID
+		}
+		out = append(out, namedCommand{id: id, cmd: cmd, menu: value.Menu, value: value})
 	}
 	return out
 }
@@ -524,10 +521,22 @@ var fileCommandRows = []namedCommand{
 
 func (a *App) fileCommands() []namedCommand { a.syncExtensions(); return a.extViews.file }
 
-func (a *App) talkOn() bool {
-	if a.talkRef == nil {
-		return false
+func (a *App) talkOn() bool { return len(a.extViews.starters) > 0 }
+func (a *App) talkProgress() bool {
+	shown := false
+	for _, i := range a.extViews.starters {
+		_ = ext.Guard(a.extensions, i.Owner, i.ID, func() { shown = i.Value.ProgressVisible() })
 	}
-	_, ok := a.talkRef.Get()
-	return ok
+	return shown
+}
+
+func (a *App) talkRunning() bool {
+	for _, i := range a.extViews.starters {
+		running := false
+		_ = ext.Guard(a.extensions, i.Owner, i.ID, func() { running = i.Value.Running() })
+		if running {
+			return true
+		}
+	}
+	return false
 }

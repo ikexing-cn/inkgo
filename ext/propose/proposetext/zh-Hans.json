@@ -1,0 +1,77 @@
+{
+  "editorStopDrop": "让 AI 停下，放弃这一处",
+  "editorDropOne": "放弃这一处建议",
+  "editorAcceptOne": "采纳这一处建议",
+  "editorDropAll": "全部放弃",
+  "editorAcceptAll": "全部采纳",
+  "editorRewriteHint": "改写要求，例如：放慢节奏，多写她的犹豫",
+  "@editorRewriteHint": {
+    "description": "改写要求输入框的占位字。"
+  },
+  "editorRewriteLabel": "改写要求",
+  "editorRewrite": "改写",
+  "editorCloseRewrite": "关闭改写",
+  "editorLooking": "AI 正在查阅…",
+  "editorSeeTalk": "查看讨论",
+  "editorWritingSuggestions": "AI 正在写改稿建议…",
+  "editorSuggestionsHere": "本章有 {count} 处改稿建议",
+  "@editorSuggestionsHere": {
+    "description": "正文上面一行：本章有几处改稿建议。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "editorHowReplace": "绿字是 AI 新写的，划掉的是会被换掉的原文；采纳后才写入正文",
+  "@editorHowReplace": {
+    "description": "改稿建议里有换掉原文的，悬停时的说明。"
+  },
+  "editorHowAppend": "绿字是 AI 新写的；采纳后才写入正文",
+  "@editorHowAppend": {
+    "description": "改稿建议都是接在后面的，悬停时的说明。"
+  },
+  "editorAIRewriteMore": "AI 改写…",
+  "editorProposalAccepted": "已采纳改稿建议；可撤销恢复原文，原版本已存入历史版本",
+  "@editorProposalAccepted": {
+    "description": "应用单行提示条：采纳提议成功，同时说明撤销和快照。"
+  },
+  "editorProposalVoid": "改稿建议已作废；写的时候，它要换掉的原文改动了",
+  "@editorProposalVoid": {
+    "description": "应用单行提示条：一处流式提议因作者修改原文而作废。"
+  },
+  "editorProposalsVoid": "{count, plural, other {# 处改稿建议已作废；它要换掉的原文改动了}}",
+  "@editorProposalsVoid": {
+    "description": "应用单行提示条：原文变化导致多处提议作废。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "commonDiscard": "放弃",
+  "dialogLeaveTitle": "还有 {count} 处改稿建议没有处理",
+  "@dialogLeaveTitle": {
+    "description": "关闭作品时还有没处理的 改稿建议。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "dialogLeaveAbout": "关闭后将丢弃。",
+  "dialogLeaveDiscard": "丢弃并关闭",
+  "modPropose": "改稿建议",
+  "@modPropose": {
+    "description": "「功能」里一个模块的名字。"
+  },
+  "modProposeAbout": "AI 提的修改，同意才写入",
+  "@modProposeAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  },
+  "editorAIRewrite": "AI 改写",
+  "editorRewriteSel": "由 AI 改写选中内容"
+}

@@ -1,0 +1,101 @@
+{
+  "cmdDraft": "起草本章",
+  "draftGoal": "{unit, select, word {目标词数（选填）} other {目标字数（选填）}}",
+  "draftGoalLabel": "{unit, select, word {目标词数} other {目标字数}}",
+  "draftGoalHint": "由 AI 按章纲判断",
+  "draftGoalInvalid": "{unit, select, word {目标词数须为正整数，或留空} other {目标字数须为正整数，或留空}}",
+  "draftExisting": "本章已有内容",
+  "draftExistingHow": "已有内容的处理方式",
+  "draftAppend": "接在已有内容之后",
+  "draftOverwrite": "覆盖已有内容",
+  "draftAboutCards": "AI 仅将章纲和本章的卡片扩写为正文，不添加这些之外的重大情节。",
+  "draftAboutOutline": "AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。",
+  "draftAboutFlow": "起草在一段新的讨论里进行：写好的先在正文里显示为改稿建议，采纳后才写入，写入前保存历史版本；想改哪里，在讨论里接着说。",
+  "draftAbout": "{scope}{flow}",
+  "@draftAbout": {
+    "description": "起草对话框的说明：先写 AI 只扩写什么，再写起草怎么进行。中文两句直接相连，英文中间有空格。",
+    "placeholders": {
+      "scope": {
+        "type": "String"
+      },
+      "flow": {
+        "type": "String"
+      }
+    }
+  },
+  "draftUsing": "用讨论模型 {model} · {effort}；可在设置中「AI」配置里更换。",
+  "@draftUsing": {
+    "description": "起草用的模型和思考程度。",
+    "placeholders": {
+      "model": {
+        "type": "String",
+        "example": "claude-opus-5-5"
+      },
+      "effort": {
+        "type": "String",
+        "example": "Default"
+      }
+    }
+  },
+  "draftStart": "开始起草",
+  "@draftGoal": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@draftGoalLabel": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "@draftGoalInvalid": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "cmdDraftNeedsOutline": "请先填写章纲",
+  "@cmdDraftNeedsOutline": {
+    "description": "「起草本章」灰着时，菜单行右边说为什么。"
+  },
+  "modDraft": "起草",
+  "@modDraft": {
+    "description": "「功能」里一个模块的名字。"
+  },
+  "modDraftAbout": "照提纲让 AI 写初稿",
+  "@modDraftAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  },
+  "draftItemCards": "本章的 {count} 张卡片",
+  "@draftItemCards": {
+    "description": "起草时带上的本章卡片数，是「将带上……」列表里的一项。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
+  "draftItemPrev": "上一章全文",
+  "draftItemVolume": "本卷各章章纲",
+  "draftItemBooks": "各卷卷纲",
+  "draftSends": "将带上{items}等，约 {tokens} token；AI 需要时会自己再查。",
+  "@draftSends": {
+    "description": "起草前说明会带上哪些内容、大约多少 token。",
+    "placeholders": {
+      "items": {
+        "type": "String",
+        "example": "本章的 4 张卡片、上一章全文、本卷各章章纲"
+      },
+      "tokens": {
+        "type": "String",
+        "example": "9.6K"
+      }
+    }
+  }
+}

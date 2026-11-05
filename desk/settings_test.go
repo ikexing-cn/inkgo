@@ -92,7 +92,7 @@ func TestNoGPUWaitsForTheNextStart(t *testing.T) {
 	penWith(a, f)
 	f.then(proposal("第一章", "end", "", "井里有光。"), []string{"接了一句。"})
 	setChapterOutline(a, "井里有光。")
-	a.openDraft()
+	draftOf(a).OpenDraft()
 	tt.Frame()
 	click(t, tt, "开始起草")
 	replied(t, a, tt)
@@ -121,7 +121,7 @@ func TestNoGPUWaitsForTheNextStart(t *testing.T) {
 		t.Fatal("relaunched without asking about the proposal", relaunched, tt.Texts())
 	}
 	click(t, tt, "丢弃并关闭")
-	if relaunched != 1 || len(a.write.props) != 0 {
+	if relaunched != 1 || len(proposeOf(a).Props) != 0 {
 		t.Fatal("let go, it did not relaunch", relaunched)
 	}
 }

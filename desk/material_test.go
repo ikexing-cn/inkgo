@@ -13,9 +13,9 @@ import (
 // materialSpy records the provider snapshots at the frame boundary.
 type materialSpy struct {
 	capturedStream
-	tools                 [][]aiapi.Tool
-	talks, pens, preloads []aiapi.Material
-	predictions           int
+	tools       [][]aiapi.Tool
+	talks, pens []aiapi.Material
+	predictions int
 }
 
 func (s *materialSpy) Build(st *workspace.Store, m aiapi.Material, tools []aiapi.Tool, b *talkapi.Beside, progress func(talkapi.Progress), step func(workspace.Event)) (talkapi.Talk, error) {
@@ -27,11 +27,6 @@ func (s *materialSpy) Build(st *workspace.Store, m aiapi.Material, tools []aiapi
 func (s *materialSpy) Pen(_ *workspace.Store, m aiapi.Material) (aiapi.Pen, error) {
 	s.pens = append(s.pens, m)
 	return materialPen{s}, nil
-}
-
-func (s *materialSpy) Preloaded(_ *workspace.Store, m aiapi.Material, _, _ string) (talkapi.Preload, error) {
-	s.preloads = append(s.preloads, m)
-	return talkapi.Preload{}, nil
 }
 
 type materialPen struct{ spy *materialSpy }
@@ -54,11 +49,11 @@ func TestNextTalkPredictionAndPreloadFollowGlobalAndBookMaterialSwitches(t *test
 		for _, bookScope := range []bool{false, true} {
 			t.Run(id+map[bool]string{false: "/global", true: "/book"}[bookScope], func(t *testing.T) {
 				a, tt, _ := marginFixture(t, true)
-				spy := &materialSpy{capturedStream: capturedStream{Backend: a.ai, ServiceAPI: a.talkAPI}}
+				spy := &materialSpy{capturedStream: capturedStream{Backend: a.ai}}
 				a.ai = spy
+				continueViews[a].SetBackend(spy)
 				talkOf(a).Build = spy.Build
-				a.talkAPI = spy
-				a.modelsChanged()
+				continueViews[a].Invalidate()
 				for _, on := range []bool{true, false, true} {
 					a.setExtension(id, on, bookScope)
 					tt.Frame()
@@ -72,7 +67,7 @@ func TestNextTalkPredictionAndPreloadFollowGlobalAndBookMaterialSwitches(t *test
 						if _, err := talkOf(a).Talk(c); err != nil {
 							t.Fatal(err)
 						}
-						a.draftNote()
+						draftOf(a).DraftNote()
 					}, 64, 64)
 					snapshot := spy.tools[len(spy.tools)-1]
 					for _, name := range []string{"look_up_setting", "note_setting", "read_outline"} {
@@ -88,10 +83,10 @@ func TestNextTalkPredictionAndPreloadFollowGlobalAndBookMaterialSwitches(t *test
 							t.Fatalf("%s present=%v want=%v", name, present, expected)
 						}
 					}
-					if spy.talks[len(spy.talks)-1] != want || spy.pens[len(spy.pens)-1] != want || spy.preloads[len(spy.preloads)-1] != want {
-						t.Fatal(want, spy.talks, spy.pens, spy.preloads)
+					if spy.talks[len(spy.talks)-1] != want || spy.pens[len(spy.pens)-1] != want {
+						t.Fatal(want, spy.talks, spy.pens)
 					}
-					if _, err := (pen{writer: &a.write.pen, chapter: a.write.node}).Predict(context.Background(), "正文"); err != nil {
+					if _, err := continueViews[a].Predict(context.Background(), a.write.node, "正文"); err != nil {
 						t.Fatal(err)
 					}
 					if id == "lore" {

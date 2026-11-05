@@ -6,7 +6,10 @@ var bookLanguageExceptions = map[string]struct {
 	reason    string
 	fragments []string
 }{
-	"desk/ai.go":                   {reason: "Model prompt follows the book language.", fragments: []string{"按章纲起草本章", "，约 %d 字", "，覆盖已有内容", "，接在已有内容之后"}},
+	"ext/propose/tool.go":           {reason: "Moved proposal model prompt, schema and responses follow the book language."},
+	"ext/ai/aiapi/proposal_text.go": {reason: "Shared proposal validation reports book-language tool errors."},
+
+	"ext/draft/view.go":            {reason: "Model prompt follows the book language.", fragments: []string{"按章纲起草本章", "，约 %d 字", "，覆盖已有内容", "，接在已有内容之后"}},
 	"desk/extensions.go":           {reason: "Stable reminder settings test identity.", fragments: []string{"设置-提醒"}},
 	"desk/app.go":                  {reason: "Default genre is saved in the book.", fragments: []string{"网文"}},
 	"desk/welcome.go":              {reason: "Default title and genre values are saved in books.", fragments: []string{"网文", "出版小说", "剧本", "非虚构", "未命名作品"}},

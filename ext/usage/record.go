@@ -1,41 +1,47 @@
-package desk
+package usage
 
 import (
 	"maps"
+	"writer/ext/usage/usagetext"
+
 	"math"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"writer/desk/book"
 	"writer/desk/kit"
+	"writer/ext/ai/aiapi"
+	"writer/ext/hostapi"
 	"writer/locales"
 	"writer/tokens"
 	"writer/workspace"
 )
 
-// recordView owns one work's AI usage snapshot and its request list.
+// RecordView owns one work's AI usage snapshot and its request list.
 // Loading invalidates row indices; only leaving the work resets the view.
-type recordView struct {
-	records  []workspace.Record
-	showing  bool
-	only     int // 0 for all, otherwise an index into recordFeatures plus one
-	expanded int // record index, or -1
-	rows     []int
-	rowsFor  int
-	list     ui.ListState
+type RecordView struct {
+	Records  []workspace.Record
+	Showing  bool
+	Only     int // 0 for all, otherwise an index into recordFeatures plus one
+	Expanded int // record index, or -1
+	Rows     []int
+	RowsFor  int
+	List     ui.ListState
 }
 
-func (v *recordView) reset() { *v = recordView{expanded: -1} }
+func (v *RecordView) reset() { *v = RecordView{Expanded: -1} }
 
-func (v *recordView) load(records []workspace.Record) {
-	v.records, v.rows = records, nil
+func (v *RecordView) load(records []workspace.Record) {
+	v.Records, v.Rows = records, nil
 }
 
-func (v *recordView) show() { v.showing, v.only, v.expanded = true, 0, -1 }
+func (v *RecordView) show() { v.Showing, v.Only, v.Expanded = true, 0, -1 }
 
 // recordFeatures are the features of the AI record as the author reads
-// them, in the order the settings list them.
+// them, in the order the settings List them.
 var recordFeatures = []struct {
 	id   string
 	name func() string
@@ -43,7 +49,7 @@ var recordFeatures = []struct {
 	{workspace.FeatureTalk, locales.PageTalk},
 	{workspace.FeatureDraft, locales.SettingsFeatureDraft},
 	{workspace.FeatureRewrite, locales.SettingsFeatureRewrite},
-	{workspace.FeatureContinue, locales.SettingsFeatureContinue},
+	{workspace.FeatureContinue, usagetext.SettingsFeatureContinue},
 	{workspace.FeatureCheck, locales.PageCheck},
 }
 
@@ -74,7 +80,7 @@ func costText(costs map[string]float64) string {
 	return strings.Join(out, " + ")
 }
 
-// costOf is what the records cost, by currency, those priced.
+// costOf is what the Records cost, by currency, those priced.
 func costOf(rs ...workspace.Record) map[string]float64 {
 	costs := map[string]float64{}
 	for _, r := range rs {
@@ -87,28 +93,28 @@ func costOf(rs ...workspace.Record) map[string]float64 {
 
 // spent is what the work has spent on the AI, a line for each feature: the
 // requests, their tokens as the providers counted them and the cost by the
-// prices built in. It is only to look at; nothing clears it. Under it, the
+// prices built in. It is Only to look at; nothing clears it. Under it, the
 // way to every request.
-func (a *App) spent(c *ui.Context) {
+func (a *View) spent(c *ui.Context) {
 	t := a.pal.Theme
-	a.pal.Subhead(c, locales.SettingsUsage(), "")
-	if len(a.record.records) == 0 {
-		ui.Text(c, locales.SettingsNoUsage()).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
+	a.pal.Subhead(c, usagetext.SettingsUsage(), "")
+	if len(a.Record.Records) == 0 {
+		ui.Text(c, usagetext.SettingsNoUsage()).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
 		return
 	}
 	all := 0
 	ui.Column(c).FillWidth().Gap(4).Children(func() {
 		for _, f := range recordFeatures {
-			var rows []workspace.Record
+			var Rows []workspace.Record
 			var u workspace.Usage
-			for _, r := range a.record.records {
+			for _, r := range a.Record.Records {
 				if r.Feature == f.id {
-					rows = append(rows, r)
+					Rows = append(Rows, r)
 					u = u.Add(r.Usage)
 				}
 			}
-			n := len(rows)
-			if len(rows) == 0 {
+			n := len(Rows)
+			if len(Rows) == 0 {
 				continue
 			}
 			all += n
@@ -116,10 +122,10 @@ func (a *App) spent(c *ui.Context) {
 			if u.Input > 0 {
 				cached = int(math.Round(float64(u.CacheRead) * 100 / float64(u.Input)))
 			}
-			used := locales.SettingsSpentRow(n, tokens.Round(u.Input), cached, tokens.Round(u.Output))
-			cost := costText(costOf(rows...))
+			used := usagetext.SettingsSpentRow(n, tokens.Round(u.Input), cached, tokens.Round(u.Output))
+			cost := costText(costOf(Rows...))
 			if cost == "" {
-				cost = locales.SettingsNoPrice()
+				cost = usagetext.SettingsNoPrice()
 			}
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 				ui.Text(c, f.name()).FontSize(kit.FsControl).Width(120).Shrink(0).SingleLine()
@@ -129,8 +135,8 @@ func (a *App) spent(c *ui.Context) {
 		}
 	})
 	ui.Row(c).FillWidth().Justify(ui.End).Children(func() {
-		if a.pal.Ghost(c, locales.SettingsViewAll(all), ui.Color{}).Clicked() {
-			a.record.show()
+		if a.pal.Ghost(c, usagetext.SettingsViewAll(all), ui.Color{}).Clicked() {
+			a.Record.show()
 		}
 	})
 }
@@ -140,33 +146,33 @@ func (a *App) spent(c *ui.Context) {
 // opens on the model, the parts sent and what the provider counted. The
 // text sent is not kept, so not shown. The head stays above the lines as
 // they scroll.
-func (a *App) recordsView(c *ui.Context) {
+func (a *View) recordsView(c *ui.Context) {
 	t := a.pal.Theme
-	names := []string{locales.SettingsRecordsAll()}
+	names := []string{usagetext.SettingsRecordsAll()}
 	for _, f := range recordFeatures {
 		names = append(names, f.name())
 	}
 	ui.Column(c).FillWidth().Grow(1).Shrink(1).Gap(12).Children(func() {
 		ui.Row(c).FillWidth().Padding(12, 56, 0, 32).Shrink(0).AlignItems(ui.Center).Gap(12).Children(func() {
-			if a.pal.Ghost(c, locales.SettingsUsageBack(), ui.Color{}).Clicked() {
-				a.record.showing = false
+			if a.pal.Ghost(c, usagetext.SettingsUsageBack(), ui.Color{}).Clicked() {
+				a.Record.Showing = false
 			}
 			ui.Spacer(c)
-			was := a.record.only
-			a.pal.Segments(c, &a.record.only, locales.SettingsFilterByFeature(), names)
-			if a.record.only != was {
-				a.record.expanded = -1
+			was := a.Record.Only
+			a.pal.Segments(c, &a.Record.Only, usagetext.SettingsFilterByFeature(), names)
+			if a.Record.Only != was {
+				a.Record.Expanded = -1
 			}
 		})
-		rows := a.record.filtered()
-		if len(rows) == 0 {
-			ui.Text(c, locales.SettingsNoRecords()).FontSize(kit.FsNote).TextColor(t.TextMuted).Padding(12, 56, 12, 32)
+		Rows := a.Record.filtered()
+		if len(Rows) == 0 {
+			ui.Text(c, usagetext.SettingsNoRecords()).FontSize(kit.FsNote).TextColor(t.TextMuted).Padding(12, 56, 12, 32)
 			return
 		}
 		now := time.Now()
-		a.record.list.Key = func(i int) any { return rows[i] }
-		ui.List(c, &a.record.list, len(rows), func(i int) {
-			a.recordRow(c, rows[i], now)
+		a.Record.List.Key = func(i int) any { return Rows[i] }
+		ui.List(c, &a.Record.List, len(Rows), func(i int) {
+			a.recordRow(c, Rows[i], now)
 		}).Grow(1).FillWidth().Padding(0, 56, 32, 32)
 	})
 }
@@ -174,35 +180,35 @@ func (a *App) recordsView(c *ui.Context) {
 // filtered is the records the filter leaves, newest first, by their
 // index in the record: built when the filter changes or showPref reads
 // the record anew.
-func (v *recordView) filtered() []int {
-	if v.rows != nil && v.rowsFor == v.only {
-		return v.rows
+func (v *RecordView) filtered() []int {
+	if v.Rows != nil && v.RowsFor == v.Only {
+		return v.Rows
 	}
-	rows := make([]int, 0, len(v.records))
-	for i := len(v.records) - 1; i >= 0; i-- {
-		if v.only == 0 || v.records[i].Feature == recordFeatures[v.only-1].id {
-			rows = append(rows, i)
+	Rows := make([]int, 0, len(v.Records))
+	for i := len(v.Records) - 1; i >= 0; i-- {
+		if v.Only == 0 || v.Records[i].Feature == recordFeatures[v.Only-1].id {
+			Rows = append(Rows, i)
 		}
 	}
-	v.rows, v.rowsFor = rows, v.only
-	return rows
+	v.Rows, v.RowsFor = Rows, v.Only
+	return Rows
 }
 
 // recordRow is one line of the AI record, opened on what it sent and what
 // the provider counted.
-func (a *App) recordRow(c *ui.Context, i int, now time.Time) {
+func (a *View) recordRow(c *ui.Context, i int, now time.Time) {
 	t := a.pal.Theme
-	r := a.record.records[i]
+	r := a.Record.Records[i]
 	a.pal.Hairline(c)
-	open := a.record.expanded == i
+	open := a.Record.Expanded == i
 	at, where, end, endColor := kit.When(r.At, now), featureName(r.Feature)+" · "+a.recordWhere(r), "", t.TextMuted
 	switch r.Outcome {
 	case workspace.OutcomeDone:
-		end, endColor = locales.SettingsRecordDone(), t.Text
+		end, endColor = usagetext.SettingsRecordDone(), t.Text
 	case workspace.OutcomeCancelled:
-		end = locales.SettingsRecordCancelled()
+		end = usagetext.SettingsRecordCancelled()
 	default:
-		end, endColor = locales.SettingsRecordFailed(r.Error), t.Danger
+		end, endColor = usagetext.SettingsRecordFailed(r.Error), t.Danger
 	}
 	cost := costText(costOf(r))
 	if cost == "" {
@@ -225,9 +231,9 @@ func (a *App) recordRow(c *ui.Context, i int, now time.Time) {
 		kit.Glyph(c, chevron, kit.IconXs, a.pal.Faint)
 	})
 	if row.Clicked() {
-		a.record.expanded = i
+		a.Record.Expanded = i
 		if open {
-			a.record.expanded = -1
+			a.Record.Expanded = -1
 		}
 	}
 	if open {
@@ -238,7 +244,7 @@ func (a *App) recordRow(c *ui.Context, i int, now time.Time) {
 // recordMore is a line of the AI record opened: the model and its effort,
 // the parts sent with their tokens as estimated, and what the provider
 // counted.
-func (a *App) recordMore(c *ui.Context, r workspace.Record) {
+func (a *View) recordMore(c *ui.Context, r workspace.Record) {
 	t := a.pal.Theme
 	note := func(s string) {
 		ui.Text(c, s).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody).Selectable().FillWidth()
@@ -246,7 +252,7 @@ func (a *App) recordMore(c *ui.Context, r workspace.Record) {
 	ui.Column(c).FillWidth().Padding(0, 6, 10, 6+92+12).Gap(2).Children(func() {
 		switch {
 		case r.Effort == "none":
-			note(locales.SettingsRecordNoThinking(a.recordReplyLabel(r.Model, "")))
+			note(usagetext.SettingsRecordNoThinking(a.recordReplyLabel(r.Model, "")))
 		default:
 			note(a.recordReplyLabel(r.Model, "") + " · " + a.ai.EffortLabel(r.Effort))
 		}
@@ -261,17 +267,17 @@ func (a *App) recordMore(c *ui.Context, r workspace.Record) {
 				case p.Name == workspace.PartSetting:
 					name = locales.RecordsLore()
 				case p.Name == workspace.PartProse && r.Feature != workspace.FeatureTalk:
-					name = locales.RecordsChapterText()
+					name = usagetext.RecordsChapterText()
 				case name == "":
 					name = p.Name
 				}
 				parts = append(parts, name+" "+tokens.Round(p.Tokens))
 			}
-			note(locales.SettingsRecordSent(strings.Join(parts, " · ")))
+			note(usagetext.SettingsRecordSent(strings.Join(parts, " · ")))
 		}
-		used := locales.SettingsRecordActual(tokens.Round(r.Usage.Input), tokens.Round(r.Usage.Output))
+		used := usagetext.SettingsRecordActual(tokens.Round(r.Usage.Input), tokens.Round(r.Usage.Output))
 		if r.Usage.CacheRead > 0 {
-			used = locales.SettingsRecordActualCached(tokens.Round(r.Usage.Input), tokens.Round(r.Usage.CacheRead), tokens.Round(r.Usage.Output))
+			used = usagetext.SettingsRecordActualCached(tokens.Round(r.Usage.Input), tokens.Round(r.Usage.CacheRead), tokens.Round(r.Usage.Output))
 		}
 		note(used)
 		if r.Outcome == workspace.OutcomeFailed {
@@ -282,20 +288,20 @@ func (a *App) recordMore(c *ui.Context, r workspace.Record) {
 
 // recordWhere names where a request of the AI record was for: its talk
 // by its first words, or its chapter by title, as the work has them now.
-func (a *App) recordWhere(r workspace.Record) string {
+func (a *View) recordWhere(r workspace.Record) string {
 	if r.Talk != "" {
-		if title, ok := a.conversationTitle(r.Talk); ok {
+		if title, ok := a.talkTitle(r.Talk); ok {
 			return title
 		}
 		return locales.SnapAITalkGone()
 	}
-	if n, ok := a.book.Tree().Node(r.Chapter); ok {
-		return n.Title
+	if n, ok := a.host.ChapterTitle(r.Chapter); ok {
+		return n
 	}
-	return locales.SettingsRecordChapterGone()
+	return usagetext.SettingsRecordChapterGone()
 }
 
-func (a *App) recordReplyLabel(name, effort string) string {
+func (a *View) recordReplyLabel(name, effort string) string {
 	ref, _ := workspace.ParseModelRef(name)
 	name = ref.Model
 	if i := strings.LastIndex(name, "/"); i >= 0 {
@@ -323,3 +329,40 @@ var partNames = map[string]func() string{
 	workspace.PartProse:    locales.ChatPartProse,
 	workspace.PartInput:    locales.ChatPartSaid,
 }
+
+// View owns the usage page on the frame thread.
+type View struct {
+	revision atomic.Uint64
+	loaded   uint64
+	Record   RecordView
+	pal      *kit.Palette
+	ai       aiapi.Backend
+	book     *book.Book
+	host     hostapi.Book
+	store    *workspace.Store
+}
+
+func (a *View) talkTitle(id string) (string, bool) {
+	events, err := a.store.Events(id)
+	title := workspace.TalkTitle(events, func(id string) string { t, _ := a.host.ChapterTitle(id); return t })
+	if err != nil {
+		return "", false
+	}
+	switch title.Kind {
+	case workspace.AIDraft:
+		text := title.Text
+		if text == "" {
+			text = locales.AppChapterDeleted()
+		}
+		return locales.SideDraftTitle(text), true
+	case workspace.AIRewrite:
+		return locales.SideRewriteTitle(title.Text), true
+	case workspace.TitleWords:
+		return title.Text, true
+	default:
+		return locales.SideNewTalk(), true
+	}
+}
+
+// Snapshot returns the native usage view on the frame thread.
+func (a *View) Snapshot() *RecordView { return &a.Record }

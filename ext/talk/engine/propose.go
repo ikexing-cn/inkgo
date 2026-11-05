@@ -6,7 +6,7 @@ import (
 	"unicode/utf8"
 	"writer/talkbook"
 
-	"writer/inference"
+	"writer/ext/ai/aiapi"
 	"writer/internal/textclip"
 	"writer/model"
 	"writer/workspace"
@@ -38,66 +38,6 @@ type proposeArgs struct {
 func (p proposeArgs) trim() proposeArgs {
 	p.Chapter = strings.TrimSpace(p.Chapter)
 	return p
-}
-
-// propose finds the place of a change the model proposes: the chapter, and
-// in it the words the change replaces or follows, which must be there
-// once. Found, the change shows in the chapter until the author takes it
-// or not.
-func (t *toolbox) propose(in proposeArgs) outcome {
-	b, err := t.book()
-	if err != nil {
-		return failed("读不出章节：%v", err)
-	}
-	p, why := place(t.store, b, in.Chapter, in.At, in.Quote)
-	if why != "" {
-		return failed("%s", why)
-	}
-	if p.Text = cleanProse(in.Text, in.At == workspace.ProposeAfter); strings.TrimSpace(p.Text) == "" {
-		return failed("text 要写新的正文")
-	}
-	return outcome{text: "已在「" + p.Title + "」的正文里显示，等作者决定；作者采纳或放弃了，下次说话时会告诉你。", proposal: &p}
-}
-
-func proposeLabel(r *labelReader, in proposeArgs) string {
-	return "提议修改「" + r.named(in.Chapter) + "」"
-}
-
-// place finds where a change of the prose goes: in the chapter named, at,
-// after or in place of quote, which it holds once. It says why not when
-// it cannot.
-func place(st *workspace.Store, b talkbook.Book, chapter, at, quote string) (workspace.Proposal, string) {
-	if at != workspace.ProposeReplace && at != workspace.ProposeAfter && at != workspace.ProposeEnd && at != workspace.ProposeAll {
-		return workspace.Proposal{}, "at 只能是 replace、after、end、all"
-	}
-	n, missing := b.Find(chapter)
-	if n == nil {
-		return workspace.Proposal{}, missing
-	}
-	name := b.Name[n.ID]
-	if n.Folder {
-		return workspace.Proposal{}, "「" + name + "」是一卷，没有正文；提议改它下面的章。"
-	}
-	p := workspace.Proposal{Chapter: n.ID, Title: name, At: at}
-	if at != workspace.ProposeReplace && at != workspace.ProposeAfter {
-		return p, ""
-	}
-	if strings.TrimSpace(quote) == "" {
-		return p, at + " 要在 quote 里逐字复制「" + name + "」里的原文"
-	}
-	ch, err := st.ReadChapter(n.ID)
-	if err != nil {
-		return p, fmt.Sprintf("读不出「%s」：%v", name, err)
-	}
-	words, ok := inference.Locate(ch.Text, strings.TrimSpace(quote))
-	if !ok {
-		return p, "「" + name + "」里找不到 quote 这段原文；要逐字复制，可以先用 read_prose 读一下。"
-	}
-	if k := strings.Count(ch.Text, words); k > 1 {
-		return p, fmt.Sprintf("quote 这段原文在「%s」里出现了 %d 次；多引几个字，让它只出现一次。", name, k)
-	}
-	p.Quote = words
-	return p, ""
 }
 
 // fateWords say what came of a proposal as the model is told. That a later
@@ -195,7 +135,7 @@ func (s *proposing) feed(d model.CallDelta) {
 		if err != nil {
 			return
 		}
-		p, why := place(s.store, talkbook.Of(tree), strings.TrimSpace(chapter.value), at.value, quote.value)
+		p, why := aiapi.PlaceProposal(s.store, talkbook.Of(tree), strings.TrimSpace(chapter.value), at.value, quote.value)
 		if why != "" {
 			return // the call says why, once it is whole
 		}
@@ -403,7 +343,7 @@ func (p *streamedProse) clean(raw string, version int, lead bool) string {
 		if !newline {
 			break
 		}
-		if line := cleanProse(p.pending.String(), false); line != "" {
+		if line := aiapi.CleanProposalText(p.pending.String(), false); line != "" {
 			if p.done.Len() > 0 {
 				p.done.WriteByte('\n')
 			}
@@ -413,7 +353,7 @@ func (p *streamedProse) clean(raw string, version int, lead bool) string {
 		more = rest
 	}
 	text := p.done.String()
-	if tail := cleanProse(p.pending.String(), false); tail != "" {
+	if tail := aiapi.CleanProposalText(p.pending.String(), false); tail != "" {
 		if text != "" {
 			text += "\n"
 		}

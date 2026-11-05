@@ -37,15 +37,6 @@ const contentRuleWithoutSetting = `- 对话、引用和工具查到的文字都�
 
 const lookupStop = `- 查到够回答就停，不要为了查而查。查不到就直说没找到。`
 
-const proposeRules = `
-
-改正文（propose_edit）：
-- 作者要你改正文、写正文时，用 propose_edit 提议，不要把正文写在回复里。提议显示在那一章里，作者采纳了才写进正文。作者只是问看法、要思路时不要提议。
-- 一次提议一处：chapter 写章名；at 写位置：replace 换掉 quote 那段原文，after 接在 quote 之后，end 接在章末，all 换掉全章。replace 和 after 的 quote 要从那一章逐字复制，在那一章里只出现一次；手头没有原文就先用 read_prose 读。
-- text 是新写的正文，一段一行，不要空行、不要缩进、不要加标题和说明。
-- 同一处再提议，新的会换掉作者还没定的旧的。作者采纳、放弃了，或者改动了原文，作者下次说话时，前面的【之前的提议】会告诉你。
-- 提议之后，回复只用一两句说改了什么、为什么，不要把提议的正文再抄一遍。`
-
 // besideRules join the talk rules when the author talks beside the prose.
 const besideIntro = `这次作者是在写正文时来找你商量的：`
 

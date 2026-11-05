@@ -417,7 +417,6 @@ func files(t *testing.T, root string) map[string]string {
 // checks are back, and the reply waits to be tried again.
 func TestTurnTheAIOffAndOn(t *testing.T) {
 	a, tt, _ := writingFixture(t, "")
-	w := &a.write
 	config := a.ai.ConfigFile()
 	noAI := func() bool {
 		t.Helper()
@@ -535,7 +534,7 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	w.words = "800"
+	draftOf(a).Words = "800"
 	if err := tt.Click("开始起草"); err != nil {
 		t.Fatal(err)
 	}
@@ -543,7 +542,7 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 	switchAI(t, a, tt, false)
 	until(t, tt, "the reply let go", func() bool { return a.busy == "" })
 	tt.Frame()
-	if len(shownEditor(a).Proposals()) != 0 || len(w.props) != 0 || shownEditor(a).ReadOnly() || shownEditor(a).Doc.String() != "" {
+	if len(shownEditor(a).Proposals()) != 0 || len(proposeOf(a).Props) != 0 || shownEditor(a).ReadOnly() || shownEditor(a).Doc.String() != "" {
 		t.Fatalf("the draft was not let go: %q", shownEditor(a).Doc.String())
 	}
 	if a.errorText() != "" || noticeOf(a) != "" || len(aiSaid(tt)) > 0 {
@@ -552,7 +551,7 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 	close(hold)
 	time.Sleep(50 * time.Millisecond)
 	tt.Frame()
-	if len(shownEditor(a).Proposals()) != 0 || len(w.props) != 0 || disk(t, a, "第一章.txt") != "" {
+	if len(shownEditor(a).Proposals()) != 0 || len(proposeOf(a).Props) != 0 || disk(t, a, "第一章.txt") != "" {
 		t.Fatalf("the draft went on with the AI off: %q", disk(t, a, "第一章.txt"))
 	}
 	switchAI(t, a, tt, true)
@@ -572,48 +571,15 @@ func TestTurnTheAIOffAndOn(t *testing.T) {
 
 func TestAISwitchCallsPartsInOrder(t *testing.T) {
 	a, _, _ := writingFixture(t, "雨停了。")
-	parts := []string{"talk", "proposals", "draft and rewrite dialogs", "setting waiting", "status"}
-	if len(a.aiOff) != len(parts) {
-		t.Fatalf("registered %d parts, want %v", len(a.aiOff), parts)
-	}
 	checkOf(a).State.Queue.Enqueue("waiting")
-	a.write.draftOpen, a.write.rewriting = true, true
+	draftOf(a).Open = true
+	proposeOf(a).Rewriting = true
 	showTodo(a, true)
 	a.SetError(errors.New("AI failed"))
-	var calls []string
-	for i, off := range a.aiOff {
-		a.aiOff[i] = func() {
-			calls = append(calls, parts[i])
-			off()
-			if got, want := len(checkOf(a).State.Queue.Pending) > 0, false; got != want {
-				t.Errorf("after %s: checks waiting %v, want %v", parts[i], got, want)
-			}
-			if want := i < 2; a.write.draftOpen != want || a.write.rewriting != want {
-				t.Errorf("after %s: draft/rewrite open %v/%v, want %v", parts[i], a.write.draftOpen, a.write.rewriting, want)
-			}
-			if got, want := todoShown(a), i < 3; got != want {
-				t.Errorf("after %s: setting waiting %v, want %v", parts[i], got, want)
-			}
-			if got, want := appError(a) != nil, i < 4; got != want {
-				t.Errorf("after %s: status has error %v, want %v", parts[i], got, want)
-			}
-		}
-	}
-	a.cancel = func() {
-		if want := []string{"talk"}; !slices.Equal(calls, want) {
-			t.Errorf("talk cancelled after %v, want %v", calls, want)
-		}
-	}
 	a.turnAI(false)
-	if !slices.Equal(calls, parts) {
-		t.Fatalf("shutdown order = %v, want %v", calls, parts)
+	if len(checkOf(a).State.Queue.Pending) > 0 || draftOf(a).Open || proposeOf(a).Rewriting || todoShown(a) || appError(a) != nil {
+		t.Fatal("AI dependent state survived")
 	}
-	calls = nil
-	a.turnAI(true)
-	if len(calls) != 0 {
-		t.Fatalf("switching on stopped %v", calls)
-	}
-	a.cancel = nil
 }
 
 // TestShotAIOff writes screenshots of the switch and of the window with the

@@ -17,7 +17,6 @@ func (a *App) loadPrefs() {
 	if p.Writing {
 		a.page = pageWrite
 	}
-	a.write.autoPredict = p.AutoPredict
 	a.write.carets, a.write.size = p.Carets, p.TextSize
 	a.write.ignored = map[string]bool{}
 	for _, k := range p.Ignored {
@@ -45,7 +44,7 @@ func (a *App) loadPrefs() {
 
 func (a *App) savePrefs() error {
 	old := prefs.Load(a.Store.PrefsPath())
-	p := prefs.Prefs{Shelved: old.Shelved, NoAttach: old.NoAttach, SettingHidden: a.doc.hidden, SideHidden: a.sideHidden, Chapter: a.write.node, Tabs: a.write.tabs, Blank: a.write.blank, Writing: a.leftWriting, AutoPredict: a.write.autoPredict,
+	p := prefs.Prefs{Shelved: old.Shelved, NoAttach: old.NoAttach, SettingHidden: a.doc.hidden, SideHidden: a.sideHidden, Chapter: a.write.node, Tabs: a.write.tabs, Blank: a.write.blank, Writing: a.leftWriting,
 		PanelWidth: a.doc.width, PaneTab: string(a.doc.tab), CheckWhen: old.CheckWhen,
 		Carets: a.write.carets, TextSize: a.write.size,
 		Ignored: a.write.ignoredKeys()}

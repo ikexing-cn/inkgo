@@ -71,15 +71,15 @@ type Panel struct {
 	// Attach includes the open prose with the next message.
 	Attach bool
 	// LastChat is the last measured page conversation area.
-	LastChat         ui.Rect
-	bookHost         hostapi.Book
-	desktop          hostapi.Desktop
-	pane             hostapi.Pane
-	paletteHost      hostapi.Palette
-	noticeHost       hostapi.Notices
-	jobs             hostapi.Jobs
-	request          hostapi.SettingsHost
-	suggestions      hostapi.Suggestions
+	LastChat    ui.Rect
+	bookHost    hostapi.Book
+	desktop     hostapi.Desktop
+	pane        hostapi.Pane
+	paletteHost hostapi.Palette
+	noticeHost  hostapi.Notices
+	jobs        hostapi.Jobs
+
+	suggestions      aiapi.Suggestions
 	materialRef      *ext.Ref[contextapi.Context]
 	aiRef            *ext.Ref[aiapi.Backend]
 	tools            *ext.PointReader[aiapi.Tool]
@@ -98,7 +98,7 @@ func (a *Panel) notices() *kit.Status   { return a.noticeHost.Notices() }
 func (a *Panel) selected() string       { id, _, _ := a.desktop.Selected(); return id }
 func (a *Panel) lost() bool             { _, lost, _ := a.desktop.Selected(); return lost }
 func (a *Panel) editor() *editor.Editor { _, ed, _ := a.bookHost.Chapter(); return ed }
-func (a *Panel) held() bool             { return a.request.Held() }
+func (a *Panel) held() bool             { return a.bookHost.Held() }
 func (a *Panel) focused() bool          { return a.desktop.Focused() }
 func (a *Panel) talkTab() bool          { return a.pane.SelectedTab() == "talk" }
 func (a *Panel) savePrefs()             { a.warn(a.desktop.SavePreferences()) }
@@ -154,7 +154,7 @@ func (a *Panel) run(c *ui.Context, label string, fn func(context.Context) (func(
 }
 func (a *Panel) tick(*ui.Context) {
 	a.UpdateSuggestions()
-	if !a.request.Busy() {
+	if !a.jobs.Busy() {
 		a.Turn.Active = false
 	}
 }
@@ -166,9 +166,10 @@ func (a *Panel) stop() {
 			a.jobs.CancelRequest()
 		}
 		a.UpdateSuggestions()
-		a.suggestions.Drop()
+
 		a.Turn.Active = false
 	}
+	a.suggestions.Drop()
 	a.SourceOpen = false
 }
 func (a *Panel) loadState(m map[string]json.RawMessage) {

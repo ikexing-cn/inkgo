@@ -32,8 +32,9 @@ type View struct {
 	ServiceForm   ServiceForm
 	book          *ext.Ref[hostapi.Book]
 	palette       *ext.Ref[hostapi.Palette]
-	host          *ext.Ref[hostapi.SettingsHost]
+	jobs          *ext.Ref[hostapi.Jobs]
 	modelSections *ext.PointReader[hostapi.SettingsSection]
+	modelChanges  *ext.PointReader[func()]
 	usageItems    *ext.PointReader[func(*ui.Context)]
 	pal           *kit.Palette
 	status        *kit.Status
@@ -48,11 +49,21 @@ func New(opts Options) ext.Module {
 		}
 		v.book = ext.Use(r, hostapi.BookService)
 		v.palette = ext.Use(r, hostapi.PaletteService)
-		v.host = ext.Use(r, hostapi.SettingsHostService)
+		v.jobs = ext.Use(r, hostapi.JobsService)
 		notices := ext.Use(r, hostapi.NoticesService)
+		ext.Declare(r, aiapi.ModelChanges)
+		v.modelChanges = ext.ReadPoint(r, aiapi.ModelChanges)
+		ext.Declare(r, aiapi.TalkStarters)
+		ext.Declare(r, aiapi.Proposals)
 		ext.Declare(r, aiapi.Tools)
 		ext.DeclareCalls(r, aiapi.Tools, aiapi.InvokeTool)
-		v.usageItems = ext.ReadPoint(r, hostapi.AIUsage)
+		ext.Declare(r, aiapi.Usage)
+		ext.DeclareCalls(r, aiapi.Usage, func(draw func(*ui.Context)) func(*ui.Context) struct{} {
+			return func(c *ui.Context) struct{} { draw(c); return struct{}{} }
+		})
+		ext.Declare(r, aiapi.Calls)
+		calls := ext.ReadPoint(r, aiapi.Calls)
+		v.usageItems = ext.ReadPoint(r, aiapi.Usage)
 		v.modelSections = ext.ReadPoint(r, hostapi.SettingsSections)
 		ext.Provide(r, aiapi.Service, func(*ext.Session) aiapi.Backend {
 			if opts.Factory != nil {
@@ -60,6 +71,7 @@ func New(opts Options) ext.Module {
 			} else {
 				backend := core.New(opts.ConfigFile)
 				backend.Trace = opts.Trace
+
 				backend.ErrorText = func(err error) string {
 					if text, ok := aitext.Text(err); ok {
 						return text
@@ -67,6 +79,13 @@ func New(opts Options) ext.Module {
 					return err.Error()
 				}
 				v.ai = backend
+			}
+			if observer, ok := v.ai.(interface{ BindCalls(func(aiapi.Call)) }); ok {
+				observer.BindCalls(func(call aiapi.Call) {
+					for _, item := range calls.Items() {
+						_ = calls.Guard(item.Owner, item.ID, func() { item.Value(call) })
+					}
+				})
 			}
 			return v.ai
 		})

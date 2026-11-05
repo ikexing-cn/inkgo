@@ -139,3 +139,5 @@ func (h *testHost) Request(_ ui.Services, _ string, fn func(context.Context) (fu
 		apply()
 	}
 }
+
+func (h *testHost) Busy() bool { return false }

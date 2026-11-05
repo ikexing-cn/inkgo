@@ -13,7 +13,6 @@ import (
 	"writer/desk/kit"
 	"writer/ext"
 	"writer/ext/ai/aiapi"
-	"writer/ext/talk/talkapi"
 	"writer/locales"
 	"writer/shelf"
 	"writer/workspace"
@@ -23,7 +22,7 @@ import (
 const flashFor = 3 * time.Second
 
 type App struct {
-	hostapi.ModelChoices
+	prediction predictionFeed
 	// Window callbacks only touch these atomics. View consumes the return
 	// signal, even when blur and focus both happened between two frames.
 	windowInactive atomic.Bool
@@ -34,15 +33,12 @@ type App struct {
 	// open. It is used on the view thread only.
 	book *book.Book
 	// ai is all the AI does: what sends goes through it alone.
-	configFile   string
-	aiRef        *ext.OptRef[aiapi.Backend]
-	aiWasOn      bool
-	talkRef      *ext.OptRef[talkapi.ServiceAPI]
-	talkResolved talkapi.ServiceAPI
-	talkAPI      talkapi.ServiceAPI
-	aiResolved   aiapi.Backend
-	ai           aiapi.Backend
-	aiOff        []func()
+	configFile string
+	aiRef      *ext.OptRef[aiapi.Backend]
+	aiWasOn    bool
+	aiResolved aiapi.Backend
+	ai         aiapi.Backend
+	aiOff      []func()
 	// PickFolder shows a native folder dialog; it runs off the UI thread.
 	// Nil hides the browse buttons (tests, platforms without dialogs).
 	PickFolder func(title string) (string, error)
@@ -63,32 +59,32 @@ type App struct {
 	light, dark *kit.Palette
 	pal         *kit.Palette
 
-	page                   page
-	pages                  []pageView
-	pageOrder              []page
-	pageIDs                map[string]page
-	paneTabs               tabTable[paneTab]
-	hostPaneTabs           tabTable[paneTab]
-	extViews               extensionViews
-	prefTabs               tabTable[string]
-	hostPrefTabs           tabTable[string]
-	offFrom                page              // the page of the AI the prose took the place of as the AI was turned off,
-	offAway                bool              // while there is one
-	shown                  page              // the page the last frame showed
-	leftWriting            bool              // the work was last on the writing page, not the discussion
-	toastShown             map[string]string // what each toast shows, by its id
-	toastsOpen             bool              // the folded toasts opened
-	status                 kit.Status        // the error, the failures, and what the toasts say
-	keysOpen               bool              // the shortcuts shown
-	sideHidden             bool              // the author put the sidebar away
-	bar                    barState          // what the title bar keeps from frame to frame
-	menu                   kit.MenuState     // the menu open
-	titled                 string            // the window title last set
-	path, name, genre      string
-	shelf                  shelf.Shelf
-	ranNoGPU               bool // the shelf's NoGPU as the software opened, which cmd/inkgo draws by
-	settings               settingsView
-	record                 recordView
+	page              page
+	pages             []pageView
+	pageOrder         []page
+	pageIDs           map[string]page
+	paneTabs          tabTable[paneTab]
+	hostPaneTabs      tabTable[paneTab]
+	extViews          extensionViews
+	prefTabs          tabTable[string]
+	hostPrefTabs      tabTable[string]
+	offFrom           page              // the page of the AI the prose took the place of as the AI was turned off,
+	offAway           bool              // while there is one
+	shown             page              // the page the last frame showed
+	leftWriting       bool              // the work was last on the writing page, not the discussion
+	toastShown        map[string]string // what each toast shows, by its id
+	toastsOpen        bool              // the folded toasts opened
+	status            kit.Status        // the error, the failures, and what the toasts say
+	keysOpen          bool              // the shortcuts shown
+	sideHidden        bool              // the author put the sidebar away
+	bar               barState          // what the title bar keeps from frame to frame
+	menu              kit.MenuState     // the menu open
+	titled            string            // the window title last set
+	path, name, genre string
+	shelf             shelf.Shelf
+	ranNoGPU          bool // the shelf's NoGPU as the software opened, which cmd/inkgo draws by
+	settings          settingsView
+
 	books                  shelfView
 	seen                   int // revisions of the setting the view has flashed
 	flash                  map[string]time.Time
@@ -97,7 +93,6 @@ type App struct {
 	cancel                 context.CancelFunc
 	jobs                   jobs
 	nonblocking            bool
-	proposalFrame          hostapi.ProposalFrame
 	doc                    docView
 	extensions             *ext.Host
 	extStore               *extensionStore
@@ -144,12 +139,6 @@ func New(configFile string, mods ...ext.Module) *App {
 				a.cancel()
 			}
 		},
-		func() {
-			if a.Store != nil {
-				a.dropProps(a.write.props, workspace.FateOff)
-			}
-		},
-		func() { a.write.draftOpen, a.write.rewriting = false, false },
 		func() { a.entryNavigation(func(n loreapi.EntryNavigation) { n.CloseWaiting() }) },
 		a.status.Clear,
 	}
@@ -184,7 +173,6 @@ func (a *App) attach(s *workspace.Store, path string, fresh bool) error {
 	}
 	a.syncExtensions()
 	a.loadPrefs()
-	a.loadWork()
 
 	return a.refresh()
 }
@@ -203,7 +191,6 @@ func (a *App) resetView() {
 	}
 	a.workEpoch++
 	a.busy, a.cancel, a.nonblocking = "", nil, false
-	a.proposalFrame = hostapi.ProposalFrame{}
 	a.resetPrefs()
 	a.seen, a.flash, a.doc, a.write = -1, map[string]time.Time{}, docView{}, writeView{}
 	a.page, a.shown, a.offAway = pageTalk, pageTalk, false
@@ -249,7 +236,6 @@ func (a *App) leaveWork() {
 	if a.Store == nil {
 		return
 	}
-	a.dropProps(a.write.props, workspace.FateClosed)
 	a.flush()
 	a.keepUnsettled()
 	a.remember(false)
@@ -318,11 +304,6 @@ func (a *App) SetError(err error) { a.status.SetError(err) }
 
 // errorText is the error shown, as text; "" when there is none.
 func (a *App) errorText() string { return a.status.ErrorText() }
-
-func (a *App) loadWork() {
-	w := a.Store.Work()
-	a.PenProvider, a.PenModel, a.PenEffort = w.Writing.Provider, w.Writing.Model, w.Writing.Effort
-}
 
 // openBookError retains the original cause while localizing the application message.
 type openBookError struct {

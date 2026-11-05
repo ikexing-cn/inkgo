@@ -34,6 +34,8 @@ type Service struct {
 	// and its reply, a file for each; it is for tuning the prompts, and
 	// no work is written to.
 	Trace string
+	// Calls observes completed calls on the calling worker.
+	Calls func(aiapi.Call)
 	// ErrorText words a failed request for the AI record, which keeps it
 	// as the author saw it; unset, the error's own text.
 	ErrorText func(error) string
@@ -213,7 +215,7 @@ func (s *Service) open(sel workspace.Selection, st *workspace.Store) (inference.
 		return inference.Model{}, setupError(err)
 	}
 	name := (workspace.ModelRef{Provider: sel.Provider, Model: sel.Model}).String()
-	return inference.Model{Completer: counted{client, st, name, sel.Model, s.life, s.Trace, s.ErrorText}, Model: s.cfg.Model(sel.Provider, sel.Model),
+	return inference.Model{Completer: counted{client, st, name, sel.Model, s.life, s.Trace, s.ErrorText, s.Calls}, Model: s.cfg.Model(sel.Provider, sel.Model),
 		Name: name, Effort: model.Effort(sel.Effort)}, nil
 }
 
@@ -227,6 +229,7 @@ type counted struct {
 	life     context.Context
 	trace    string
 	words    func(error) string
+	calls    func(aiapi.Call)
 }
 
 func (c counted) Complete(ctx context.Context, req model.Request, on func(model.Delta)) (model.Reply, error) {
@@ -250,7 +253,9 @@ func (c counted) Complete(ctx context.Context, req model.Request, on func(model.
 	}
 	// The record is for the author to look at: failing to keep it does
 	// not fail the request.
-	_ = c.st.Log(r)
+	if c.calls != nil {
+		c.calls(aiapi.Call{Store: c.st, Record: r})
+	}
 	if c.trace != "" {
 		_ = traced(c.trace, r, req, reply, err)
 	}
@@ -361,3 +366,7 @@ func linkedContext(ctx, life context.Context) (context.Context, context.CancelFu
 	}
 	return linked, func() { stop(); cancel() }
 }
+
+// BindCalls installs the finished-call observer before model handles are built.
+// The observer runs on the calling worker.
+func (s *Service) BindCalls(fn func(aiapi.Call)) { s.Calls = fn }

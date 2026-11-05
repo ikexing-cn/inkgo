@@ -52,7 +52,7 @@ func extensionDetails(t *testing.T, a *App, tt *ui.Tester, id string) {
 
 func TestExtensionOverviewListsOnlyAssemblyInGroupOrderAndResetsDetails(t *testing.T) {
 	a, tt := extensionSettingsFixture(t)
-	want := [][]string{{"focus", "goal", "names", "find", "notes", "consumer", "source"}, {"lore", "outline", "hooks", "optional"}, {"talk", "check"}, {"snaps", "trash", "cats", "backup", "export", "phone"}, {"installed"}, {"context", "marks", "unused", "ai"}}
+	want := [][]string{{"focus", "goal", "names", "find", "notes", "consumer", "source"}, {"lore", "outline", "hooks", "optional"}, {"talk", "continue", "draft", "propose", "check", "usage"}, {"snaps", "trash", "cats", "backup", "export", "phone"}, {"installed"}, {"context", "marks", "unused", "ai"}}
 	if len(a.extViews.groups) != len(want) {
 		t.Fatal(a.extViews.groups)
 	}
@@ -96,17 +96,17 @@ func TestExtensionOverviewListsOnlyAssemblyInGroupOrderAndResetsDetails(t *testi
 	if _, ok := tt.Find("扩展-consumer"); !ok {
 		t.Fatal("breadcrumb did not return to overview")
 	}
-	click(t, tt, "扩展-phone", "设置-外观", "设置-扩展")
+	click(t, tt, "扩展-focus", "设置-外观", "设置-扩展")
 	if a.settings.ext != "" {
 		t.Fatal(a.settings)
 	}
-	click(t, tt, "扩展-phone", locales.SettingsClose())
+	click(t, tt, "扩展-focus", locales.SettingsClose())
 	a.openPrefs("extensions")
 	tt.Frame()
 	if a.settings.ext != "" {
 		t.Fatal(a.settings)
 	}
-	click(t, tt, "扩展-phone")
+	click(t, tt, "扩展-focus")
 	a.closeWork()
 	if a.settings.ext != "" {
 		t.Fatal("work detail survived leaving")
@@ -345,7 +345,8 @@ func TestShotSettingsExtensions(t *testing.T) {
 	tt.SetDark(true)
 	shot(t, tt, "settings-ext-overview-dark.png")
 	tt.SetDark(false)
-	click(t, tt, "扩展-phone", "ext-more-phone")
+	extensionDetails(t, a, tt, "phone")
+	click(t, tt, "ext-more-phone")
 	shot(t, tt, "settings-ext-phone-more.png")
 	a.showPref("backup.settings")
 	tt.Frame()

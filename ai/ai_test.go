@@ -62,12 +62,15 @@ func TestRoutedModelNamesAreRecordedVerbatim(t *testing.T) {
 		t.Fatal(m.Name)
 	}
 	c := m.Completer.(counted)
+	c.calls = func(call aiapi.Call) { _ = call.Store.Log(call.Record) }
 	c.Completer = &replies{{Text: "雨还在下。", Usage: model.Usage{Input: 1_000_000}}}
 	m.Completer = c
 	session, err := st.NewSession()
 	if err != nil {
 		t.Fatal(err)
 	}
+	c.calls = func(call aiapi.Call) { _ = call.Store.Log(call.Record) }
+	m.Completer = c
 	e := discussion.Engine{Store: st, Talk: m}
 	turn, err := e.Say(context.Background(), session, workspace.Event{Text: "接着说。"})
 	if err != nil || turn.Reply.Model != name {
@@ -81,7 +84,7 @@ func TestRoutedModelNamesAreRecordedVerbatim(t *testing.T) {
 	if err != nil || len(records) != 1 || records[0].Model != name || records[0].Cost != 0 || records[0].Currency != "" {
 		t.Fatal(records, err)
 	}
-	for _, file := range []string{filepath.Join("ext", "talk", "sessions", session+".jsonl"), "ai-log.jsonl"} {
+	for _, file := range []string{filepath.Join("ext", "talk", "sessions", session+".jsonl"), "ext/usage/ai-log.jsonl"} {
 		raw, err := os.ReadFile(filepath.Join(st.Root(), file))
 		if err != nil || !strings.Contains(string(raw), `"model":"test-relay/vendor/deepseek-flash"`) {
 			t.Fatal(file, string(raw), err)
@@ -183,7 +186,7 @@ func TestModelHandleRecordsEveryOutcomeAndFullTraces(t *testing.T) {
 		{Usage: model.Usage{Input: 1000}},
 		{Text: "取消了。"},
 		{Text: "够了。", Usage: model.Usage{Input: 10, Output: 2}},
-	}, st, "deepseek/deepseek-flash", "deepseek-flash", nil, trace, nil}
+	}, st, "deepseek/deepseek-flash", "deepseek-flash", nil, trace, nil, func(call aiapi.Call) { _ = call.Store.Log(call.Record) }}
 	service := New("")
 	w := st.Work()
 	w.Discussion = workspace.Selection{Provider: "deepseek", Model: "deepseek-flash"}
@@ -228,7 +231,7 @@ func TestModelHandleRecordsEveryOutcomeAndFullTraces(t *testing.T) {
 	if r := got[3]; r.Feature != workspace.FeatureContinue || r.Outcome != workspace.OutcomeDone || r.Effort != "none" {
 		t.Errorf("the sentence taken: %+v", r)
 	}
-	if b, err := os.ReadFile(filepath.Join(st.Root(), "ai-log.jsonl")); err != nil || strings.Contains(string(b), "规则全文") || strings.Contains(string(b), "好。") {
+	if b, err := os.ReadFile(filepath.Join(st.Root(), "ext/usage/ai-log.jsonl")); err != nil || strings.Contains(string(b), "规则全文") || strings.Contains(string(b), "好。") {
 		t.Errorf("the record holds the text: %s %v", b, err)
 	}
 	files, err := os.ReadDir(trace)
@@ -359,7 +362,7 @@ func TestFailedRequestIsRecordedInTheWordsTheAuthorSaw(t *testing.T) {
 	}
 	defer st.Close()
 	words := func(err error) string { return "shown: " + err.Error() }
-	c := counted{Completer: failingRequest{errors.New("model: refused")}, st: st, name: "deepseek/deepseek-flash", words: words}
+	c := counted{Completer: failingRequest{errors.New("model: refused")}, st: st, name: "deepseek/deepseek-flash", words: words, calls: func(call aiapi.Call) { _ = call.Store.Log(call.Record) }}
 	ctx := workspace.WithPurpose(context.Background(), workspace.Purpose{Feature: workspace.FeatureCheck, Chapter: "c1"})
 	if _, err := c.Complete(ctx, model.Request{}, nil); err == nil {
 		t.Fatal("the failure was lost")

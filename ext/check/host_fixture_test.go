@@ -20,6 +20,8 @@ import (
 	"writer/ext/backup"
 	"writer/ext/cats"
 	contextmod "writer/ext/context"
+	continuation "writer/ext/continue"
+	"writer/ext/draft"
 	"writer/ext/export"
 	"writer/ext/find"
 	"writer/ext/focus"
@@ -31,9 +33,11 @@ import (
 	"writer/ext/notes"
 	"writer/ext/outline"
 	"writer/ext/phone"
+	"writer/ext/propose"
 	"writer/ext/snaps"
 	"writer/ext/talk"
 	"writer/ext/trash"
+	"writer/ext/usage"
 	"writer/inference"
 	"writer/internal/testshot"
 	"writer/model"
@@ -57,7 +61,7 @@ func newApp(config string) *testApp {
 	km, p := New()
 	backend := coreai.New(config)
 	bm, _ := backup.New(false)
-	mods := []ext.Module{focus.Module, goal.Module, names.Module, find.Module, notes.Module, lore.Module, outline.Module, hooks.Module, talk.Module, km, snaps.Module, trash.Module, cats.Module, bm, export.Module, phone.Module, contextmod.Module, marks.Module, aimod.New(aimod.Options{ConfigFile: config, Factory: func() aiapi.Backend { return backend }})}
+	mods := []ext.Module{focus.Module, goal.Module, names.Module, find.Module, notes.Module, lore.Module, outline.Module, hooks.Module, talk.Module, continuation.Module, draft.Module, propose.Module, km, usage.Module, snaps.Module, trash.Module, cats.Module, bm, export.Module, phone.Module, contextmod.Module, marks.Module, aimod.New(aimod.Options{ConfigFile: config, Factory: func() aiapi.Backend { return backend }})}
 	return &testApp{App: desk.New(config, mods...), panel: p, backend: backend}
 }
 func (a *testApp) Open(path string) error {
@@ -153,7 +157,7 @@ type hostPendingItem struct {
 }
 
 func (a *testApp) checkState() (string, int, bool, string) { return a.panel.checkState() }
-func (a *testApp) errText(err error) string                { return a.panel.settings.ErrorText(err) }
+func (a *testApp) errText(err error) string                { return a.panel.status().FormatError(err) }
 func (a *testApp) attach(st *workspace.Store, path string, _ bool) error {
 	st.Close()
 	return a.Open(path)

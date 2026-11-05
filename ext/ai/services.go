@@ -15,7 +15,6 @@ import (
 	"writer/ext/ai/aiapi"
 	"writer/ext/ai/aitext"
 	"writer/tokens"
-	"writer/workspace"
 )
 
 var protocols = []string{"chat", "responses", "anthropic"}
@@ -69,7 +68,11 @@ func (a *View) modelsView(c *ui.Context) {
 		for _, item := range a.usageItems.Items() {
 			_, _ = ext.CallReadPoint(a.usageItems, item.ID, c, func(c *ui.Context) struct{} { item.Value(c); return struct{}{} })
 		}
-		a.host.Get().WritingSettings(c)
+		for _, item := range a.modelSections.Items() {
+			if item.Value.Placement == "ai.writing" {
+				_, _ = ext.CallReadPoint(a.modelSections, item.ID, c, func(c *ui.Context) struct{} { item.Value.Draw(c); return struct{}{} })
+			}
+		}
 	}
 	a.services(c)
 }
@@ -79,53 +82,13 @@ func (a *View) modelsView(c *ui.Context) {
 // it is made, a model ID typed once the caret leaves it.
 func (a *View) usage(c *ui.Context) {
 	a.pal.Subhead(c, aitext.SettingsBookModels(), "")
-	var typing [2]bool
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
 		for _, item := range a.modelSections.Items() {
 			if item.Value.Placement == "ai.models" {
 				_, _ = ext.CallReadPoint(a.modelSections, item.ID, c, func(c *ui.Context) struct{} { item.Value.Draw(c); return struct{}{} })
 			}
 		}
-		typing[1] = a.useRow(c, aitext.SettingsJobCheck(), aitext.SettingsJobCheckAbout(), &a.host.Get().Choices().PenProvider, aitext.SettingsSameAsTalk(), "续写和检查提供商", &a.host.Get().Choices().PenModel, "续写和检查模型", &a.host.Get().Choices().PenEffort, "续写和检查的思考程度")
 	})
-	if typing == [2]bool{} {
-		if err := a.SaveUsage(); err != nil {
-			a.status.SetError(err)
-		}
-	}
-}
-
-// useRow is one of usage's rows: who, the service, the model and the
-// effort. With none, the row can go without a service of its own. A
-// service chosen brings its first model with it. It reports whether the
-// model ID is being typed.
-func (a *View) useRow(c *ui.Context, who, what string, provider *string, none, providerLabel string, model *string, modelLabel string, effort *string, effortLabel string) (typing bool) {
-	busy := a.host.Get().Held()
-	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-		ui.Column(c).Width(120).Shrink(0).Children(func() {
-			ui.Text(c, who).FontSize(kit.FsBody).FontWeight(500)
-			ui.Text(c, what).FontSize(kit.FsNote).TextColor(a.pal.Theme.TextMuted).LineHeight(kit.LhBody)
-		})
-		ui.Column(c).Width(150).Shrink(0).Children(func() {
-			if a.providerSelect(c, provider, none, providerLabel, busy) {
-				*model = ""
-				if ids := a.providerModels(*provider); len(ids) > 0 {
-					*model = ids[0]
-				}
-			}
-		})
-		ui.Column(c).Grow(1).Shrink(1).Children(func() {
-			if none != "" && *provider == "" {
-				*model = ""
-				return
-			}
-			typing = modelField(c, model, a.providerModels(*provider)).Label(modelLabel).Placeholder(aitext.SettingsModelHint()).FillWidth().Disabled(busy).Focused()
-		})
-		ui.Column(c).Width(110).Shrink(0).Children(func() {
-			a.effortSelect(c, effort, effortLabel, busy)
-		})
-	})
-	return typing
 }
 
 // services lists the model services kept on this computer; 编辑 opens a
@@ -133,7 +96,7 @@ func (a *View) useRow(c *ui.Context, who, what string, provider *string, none, p
 func (a *View) services(c *ui.Context) {
 	f := &a.ServiceForm
 	t := a.pal.Theme
-	busy := a.host.Get().Held()
+	busy := a.book.Get().Held()
 	a.pal.Subhead(c, aitext.SettingsServices(), aitext.SettingsServicesNote())
 	// A form just opened comes into view with its card: one added opens at
 	// the foot of the list, below what is shown.
@@ -207,7 +170,7 @@ func (a *View) services(c *ui.Context) {
 		if a.pal.Ghost(c, aitext.SettingsReload(), ui.Color{}).Disabled(busy || a.ai.ConfigFile() == "").Clicked() {
 			err := a.ai.Reload()
 			if err == nil {
-				a.host.Get().ModelsChanged()
+				a.modelsChanged()
 				f.Close()
 				if ps := a.ai.Providers(); len(ps) > 0 {
 					a.ChooseProvider(ps[0].ID)
@@ -277,25 +240,25 @@ func (a *View) effortSelect(c *ui.Context, value *string, label string, disabled
 	}
 }
 
-// SaveUsage keeps the models usage shows when they differ from the work's
-// and each names a model; a service chosen without one waits for it.
-func (a *View) SaveUsage() error {
-	w := a.book.Get().Store().Work()
-	was := w
-	w.Writing = workspace.Selection{Provider: kit.Trim(a.host.Get().Choices().PenProvider), Model: kit.Trim(a.host.Get().Choices().PenModel), Effort: a.host.Get().Choices().PenEffort}
-	if w.Writing.Provider == "" {
-		w.Writing.Model = ""
+func (a *View) errorText(err error) string {
+	if err == nil {
+		return ""
 	}
-	if w.Discussion == was.Discussion && w.Writing == was.Writing {
-		return nil
+	if e, ok := err.(*aiapi.SetupError); ok {
+		return a.errorText(e.Err)
 	}
-	// The store takes a service only with a model.
-	for _, s := range []workspace.Selection{w.Discussion, w.Writing} {
-		if s.Provider != "" && s.Model == "" {
-			return nil
-		}
+	if text, ok := formErrorText(err, a.errorText); ok {
+		return text
 	}
-	return a.book.Get().Store().SaveWork(w)
+	if text, ok := aitext.Text(err); ok {
+		return text
+	}
+	return err.Error()
+}
+func (a *View) modelsChanged() {
+	for _, item := range a.modelChanges.Items() {
+		_ = a.modelChanges.Guard(item.Owner, item.ID, item.Value)
+	}
 }
 
 // providerForm edits the service open in the list, or a new one, under
@@ -305,7 +268,7 @@ func (a *View) SaveUsage() error {
 func (a *View) providerForm(c *ui.Context) {
 	f := &a.ServiceForm
 	t := a.pal.Theme
-	busy := a.host.Get().Held()
+	busy := a.book.Get().Held()
 	p, bad := f.value(a.ai)
 	red := func(why string) {
 		ui.Text(c, why).FontSize(kit.FsNote).TextColor(t.Danger).LineHeight(kit.LhBody)
@@ -320,13 +283,13 @@ func (a *View) providerForm(c *ui.Context) {
 			}).Grow(1)
 		})
 		if bad.ID != nil && p.ID != "" {
-			red(a.host.Get().ErrorText(bad.ID))
+			red(a.errorText(bad.ID))
 		}
 		kit.Labeled(c, aitext.SettingsAPIURL(), func() {
 			ui.TextInput(c, &f.Provider.BaseURL).Label(aitext.SettingsAPIURL()).Placeholder("https://api.example.com/v1").FillWidth().Disabled(busy)
 			if kit.Trim(f.Provider.BaseURL) != "" {
 				if bad.BaseURL != nil {
-					red(a.host.Get().ErrorText(bad.BaseURL))
+					red(a.errorText(bad.BaseURL))
 				} else if isLocal(f.Provider.BaseURL) {
 					ui.Text(c, aitext.SettingsLocalNote()).FontSize(kit.FsNote).TextColor(t.TextMuted)
 				} else {
@@ -337,7 +300,7 @@ func (a *View) providerForm(c *ui.Context) {
 		kit.Labeled(c, aitext.SettingsProtocol(), func() {
 			a.pal.SelectNamed(c, &f.Provider.Protocol, protocols, protocolName).Label(aitext.SettingsProtocolAPI()).FillWidth().Disabled(busy)
 			if bad.Protocol != nil {
-				red(a.host.Get().ErrorText(bad.Protocol))
+				red(a.errorText(bad.Protocol))
 			}
 		})
 		ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Start).Children(func() {
@@ -351,7 +314,7 @@ func (a *View) providerForm(c *ui.Context) {
 			kit.Labeled(c, aitext.SettingsEnvOr(), func() {
 				ui.TextInput(c, &f.Provider.Env).Label(aitext.SettingsEnvName()).Placeholder(aitext.SettingsEnvExample()).FillWidth().Disabled(busy)
 				if bad.Env != nil {
-					red(a.host.Get().ErrorText(bad.Env))
+					red(a.errorText(bad.Env))
 				}
 			}).Grow(1).Basis(0)
 		})
@@ -363,14 +326,14 @@ func (a *View) providerForm(c *ui.Context) {
 		kit.Labeled(c, aitext.SettingsModels(), func() {
 			a.limitTable(c)
 			if bad.Models != nil {
-				red(a.host.Get().ErrorText(bad.Models))
+				red(a.errorText(bad.Models))
 			}
 		})
 		ui.Text(c, aitext.SettingsCompressNote()).FontSize(kit.FsNote).TextColor(t.TextMuted).LineHeight(kit.LhBody)
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Justify(ui.End).Children(func() {
 			if f.ProviderID != "" && a.pal.Ghost(c, aitext.SettingsClearKey(), t.Danger).Disabled(busy).Clicked() {
 				err := a.ai.SetKey(f.ProviderID, "")
-				a.host.Get().ModelsChanged()
+				a.modelsChanged()
 				if err == nil {
 					a.status.Did(aitext.SettingsKeyCleared())
 				}
@@ -385,7 +348,7 @@ func (a *View) providerForm(c *ui.Context) {
 				m, _ := a.ai.Limits("")
 				f.Limits = append(f.Limits, f.LimitRow(m))
 			}
-			if a.pal.Secondary(c, aitext.SettingsFetchModels()).Disabled(a.host.Get().Busy() || bad.First() != nil).Clicked() { // it waits for a turn in flight: one request at a time
+			if a.pal.Secondary(c, aitext.SettingsFetchModels()).Disabled(a.jobs.Get().Busy() || bad.First() != nil).Clicked() { // it waits for a turn in flight: one request at a time
 				a.FetchModels(c)
 			}
 			if a.pal.Primary(c, aitext.SettingsSaveProvider()).Disabled(busy || bad.First() != nil).Clicked() {
@@ -406,7 +369,7 @@ func (a *View) providerForm(c *ui.Context) {
 func (a *View) limitTable(c *ui.Context) {
 	f := &a.ServiceForm
 	t := a.pal.Theme
-	busy := a.host.Get().Held()
+	busy := a.book.Get().Held()
 	if len(f.Limits) == 0 {
 		ui.Text(c, aitext.SettingsNoModels()).FontSize(kit.FsNote).TextColor(t.TextMuted)
 		return
@@ -456,7 +419,7 @@ func (a *View) FetchModels(c *ui.Context) {
 		return
 	}
 	generation := a.ServiceForm.Generation
-	a.host.Get().Run(c, aitext.SettingsFetching(), func(ctx context.Context) (func(), error) {
+	a.jobs.Get().Request(c.Services(), aitext.SettingsFetching(), func(ctx context.Context) (func(), error) {
 		models, err := catalog.ListModels(ctx)
 		return func() {
 			if a.ServiceForm.Generation != generation {
@@ -487,7 +450,7 @@ func (a *View) SaveProvider() error {
 	f.Provider = p
 	f.setModels(p.Models)
 	f.ProviderID = p.ID
-	defer a.host.Get().ModelsChanged()
+	defer a.modelsChanged()
 	if f.Key != "" {
 		if err := a.ai.SetKey(p.ID, f.Key); err != nil {
 			return err

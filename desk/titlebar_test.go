@@ -329,17 +329,17 @@ func TestTheMenusDoWhatTheySay(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if w.draftOpen || !tt.HasText("请先填写章纲") {
+	if draftOf(a).Open || !tt.HasText("请先填写章纲") {
 		t.Fatal("起草本章 without an outline", tt.Texts())
 	}
 	a.menu = kit.MenuState{}
 	setChapterOutline(a, "林晚回到旧城。")
 	tt.Frame()
 	choose("编辑", "起草本章")
-	if !w.draftOpen {
+	if !draftOf(a).Open {
 		t.Fatal("起草本章 did not ask how to draft")
 	}
-	shut(tt, &w.draftOpen)
+	shut(tt, &draftOf(a).Open)
 	penWith(a, &stream{pieces: []string{"，屋里", "很暗。"}})
 	shownEditor(a).Focus()
 	shownEditor(a).MoveTo(shownEditor(a).Doc.Len(), false)
@@ -414,7 +414,7 @@ func TestMenuRowsOffThePageOfProse(t *testing.T) {
 		if page != pageTalk {
 			pale("视图", "展开右栏")
 		}
-		if shownPage(a) != page || w.focus || findOf(a).Finding || snapsOf(a).SnapsOpen || w.renaming != "" || w.draftOpen {
+		if shownPage(a) != page || w.focus || findOf(a).Finding || snapsOf(a).SnapsOpen || w.renaming != "" || draftOf(a).Open {
 			t.Fatalf("page %d: a pale row did something", page)
 		}
 		if err := clickMenu(tt, "文件", "菜单-导出"); err != nil {

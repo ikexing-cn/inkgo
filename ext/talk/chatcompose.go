@@ -50,7 +50,7 @@ func (a *Panel) Composer(c *ui.Context) {
 		}, func(m *kit.Menu) { a.ModelMenu(m, work) })
 	}
 	send := func() {
-		can := !a.request.Busy() && kit.Trim(a.Input) != ""
+		can := !a.jobs.Busy() && kit.Trim(a.Input) != ""
 		send := ui.ButtonBase(c).Size(kit.HControl, kit.HControl).Radius(kit.RRound).Center().Label(talktext.HelpSend()).Tooltip(talktext.TalkSend(sendKeys())).Disabled(!can).Shrink(0)
 		bg := a.palette().Ink
 		if !can {
@@ -66,7 +66,7 @@ func (a *Panel) Composer(c *ui.Context) {
 			}
 			kit.Glyph(c, kit.IcSend, kit.IconMd, fg)
 		})
-		if !a.request.Busy() && (send.Clicked() || c.Shortcut(ui.Cmd, ui.KeyEnter)) {
+		if !a.jobs.Busy() && (send.Clicked() || c.Shortcut(ui.Cmd, ui.KeyEnter)) {
 			a.Send(c)
 		}
 	}

@@ -3,6 +3,7 @@ package desk
 import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
+	"writer/ext"
 
 	"writer/locales"
 )
@@ -74,7 +75,7 @@ func (a *App) Theme() string { return a.shelf.Theme }
 func (a *App) selectionBar(c *ui.Context) {
 	w := &a.write
 	r, ok := w.cur().ed.SelectionTop()
-	if !ok || w.cur().ed.ReadOnly() || w.cur().lost || w.cur().external != nil || w.rewriting ||
+	if !ok || w.cur().ed.ReadOnly() || w.cur().lost || w.cur().external != nil ||
 		w.takeOpen || w.cur().ed.Predicting() || a.menu.MenuOpen("prose") ||
 		a.hideSelection() { // stepping through what is found picks it, the caret in the find bar
 		return
@@ -94,9 +95,18 @@ func (a *App) selectionBar(c *ui.Context) {
 	a.pal.Pop.On(bar)
 	kit.PopIn(bar, 0.5, 1)
 	bar.Children(func() {
-		if a.aiOn() && a.selButton(c, kit.IcPen, locales.EditorAIRewrite()).Tooltip(locales.EditorRewriteSel()).Clicked() {
-			a.openRewrite()
+		for _, i := range a.extViews.selectionButtons {
+			_ = ext.Guard(a.extensions, i.Owner, i.ID, func() {
+				b := i.Value
+				if b.Available != nil && !b.Available() {
+					return
+				}
+				if a.selButton(c, b.Icon, b.Label()).Tooltip(b.Tip()).Clicked() {
+					b.Run()
+				}
+			})
 		}
+
 		if a.selButton(c, kit.IcBookmark, locales.EditorAddToLore()).Tooltip(locales.EditorAddSelTip()).Clicked() {
 			a.openTake()
 		}

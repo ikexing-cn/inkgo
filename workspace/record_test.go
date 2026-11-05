@@ -133,7 +133,7 @@ func TestTheRecordKeepsEachRequest(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	p := filepath.Join(s.Root(), "ai-log.jsonl")
+	p := filepath.Join(s.Root(), logFile)
 	b, err := os.ReadFile(p)
 	if err != nil || strings.Count(string(b), "\n") != 2 {
 		t.Fatalf("the file holds %q, %v", b, err)
@@ -170,8 +170,11 @@ func TestTheRecordKeepsEachRequest(t *testing.T) {
 // A line gone wrong by hand is reported with the file and the line.
 func TestTheRecordIsChecked(t *testing.T) {
 	s := testStore(t)
+	if err := os.MkdirAll(filepath.Join(s.Root(), "ext", "usage"), 0755); err != nil {
+		t.Fatal(err)
+	}
 	line := `{"schema":2,"at":"2026-10-16T10:40:00Z","feature":"talk","model":"a/b","usage":{"input":1,"output":1},"outcome":"done","words":"灯"}` + "\n"
-	if err := os.WriteFile(filepath.Join(s.Root(), "ai-log.jsonl"), []byte(line), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(s.Root(), logFile), []byte(line), 0600); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := s.Records(); err == nil || !strings.Contains(err.Error(), "ai-log.jsonl:1") || !strings.Contains(err.Error(), `unknown field "words"`) {

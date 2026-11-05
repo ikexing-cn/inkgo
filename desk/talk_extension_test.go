@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"slices"
 	"testing"
+	continuation "writer/ext/continue"
 	"writer/workspace"
 
 	"github.com/egoist/mygo/ui"
@@ -63,7 +64,7 @@ func TestTalkOffRemovesDraftAndRewrite(t *testing.T) {
 			setChapterOutline(a, "章纲")
 			a.setExtension("talk", false, bookScope)
 			tt.Frame()
-			if cmdDraft.present(a) || cmdRewrite.present(a) {
+			if draftCommand(a).present(a) || a.rewriteCommand().present(a) {
 				t.Fatal("draft or rewrite remained")
 			}
 
@@ -92,7 +93,7 @@ func TestTalkModelSectionBelongsToTalkAndHostChoicesContainNoTalkFields(t *testi
 	if !found {
 		t.Fatal("talk model settings contribution missing")
 	}
-	typ := reflect.TypeOf(hostapi.ModelChoices{})
+	typ := reflect.TypeOf(continuation.ModelChoices{})
 	for _, name := range []string{"TalkProvider", "TalkModel", "TalkEffort"} {
 		if _, ok := typ.FieldByName(name); ok {
 			t.Fatal("host owns talk setting", name)
@@ -110,16 +111,16 @@ func TestDisablingTalkDuringRealStreamingDraftStopsReplyAndDiscardsPartialPropos
 			defer close(hold)
 			f.then(proposal("第一章", "end", "", "雨下了一夜。\n她醒了。"))
 			setChapterOutline(a, "她在雨夜醒来。")
-			a.openDraft()
+			draftOf(a).OpenDraft()
 			stillTester(func(c *ui.Context) {
-				if a.write.draftOpen {
-					a.draft(c)
+				if draftOf(a).Open {
+					draftOf(a).Draft(c)
 				}
 			}, 64, 64)
 			until(t, tt, "streamed proposal", func() bool { return len(shownProposals(a)) > 0 })
 			a.setExtension("talk", false, bookScope)
 			until(t, tt, "cancelled worker", func() bool { return a.busy == "" })
-			if len(shownProposals(a)) != 0 || len(a.write.props) != 0 || shownEditor(a).Doc.String() != "" {
+			if len(shownProposals(a)) != 0 || len(proposeOf(a).Props) != 0 || shownEditor(a).Doc.String() != "" {
 				t.Fatal("partial reply remained")
 			}
 			a.setExtension("talk", true, false)
@@ -255,12 +256,12 @@ func TestTalkProposalBridgeKeepsProseSuggestionsAndPendingSettingIdeas(t *testin
 	p.Turn.Live.Add(talkapi.Progress{Call: "edit-call", Proposal: &proposal})
 	p.UpdateSuggestions()
 	tt.Frame()
-	if len(a.write.props) != 1 || a.write.props[0].Text != "新增的句子。" || shownEditor(a).Doc.String() != "原来的正文。" {
+	if len(proposeOf(a).Props) != 1 || proposeOf(a).Props[0].Text != "新增的句子。" || shownEditor(a).Doc.String() != "原来的正文。" {
 		t.Fatal("stream did not reach prose as an undecided suggestion")
 	}
 	p.Turn.Live.Step(workspace.Event{Role: workspace.RoleResult, Call: "edit-call", Proposal: &proposal})
 	p.UpdateSuggestions()
-	if a.write.props[0].writing {
+	if proposeOf(a).Props[0].Writing {
 		t.Fatal("completed proposal still streaming")
 	}
 	user, err := a.Store.Append(p.Session, workspace.Event{Role: workspace.RoleUser, Text: "记下一条待确认的设定"})

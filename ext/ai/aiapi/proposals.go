@@ -1,4 +1,4 @@
-package hostapi
+package aiapi
 
 import (
 	"writer/ext"
@@ -23,8 +23,7 @@ type ProposalFrame struct {
 	Stop                     func()
 }
 
-// Suggestions is the temporary frame-thread bridge to edit suggestions in desk.
-// It is removed when edit suggestions become an extension.
+// Suggestions receives proposal lifecycle events on the frame thread.
 type Suggestions interface {
 	// Begin resets per-turn proposal deduplication on the frame thread.
 	Begin()
@@ -40,5 +39,5 @@ type Suggestions interface {
 	ShowProposal(string, string)
 }
 
-// SuggestionsService resolves the temporary edit-suggestion bridge on the frame thread.
-const SuggestionsService ext.ServiceKey[Suggestions] = "host.suggestions"
+// Proposals is filled by propose and called by talk on the frame thread.
+const Proposals ext.PointKey[Suggestions] = "ai.proposals"

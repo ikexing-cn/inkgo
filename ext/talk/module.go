@@ -40,8 +40,7 @@ func setupPanel(r *ext.Registrar, panel *Panel) {
 	pane := ext.Use(r, hostapi.PaneService)
 	desktop := ext.Use(r, hostapi.DesktopService)
 	jobs := ext.Use(r, hostapi.JobsService)
-	request := ext.Use(r, hostapi.SettingsHostService)
-	suggestions := ext.Use(r, hostapi.SuggestionsService)
+	suggestions := &suggestionReader{point: ext.ReadPoint(r, aiapi.Proposals)}
 	search := ext.Use(r, hostapi.SearchService)
 	material := ext.Use(r, contextapi.Service)
 	palette := ext.Use(r, hostapi.PaletteService)
@@ -52,8 +51,8 @@ func setupPanel(r *ext.Registrar, panel *Panel) {
 		p.bookHost = s.book.Get()
 		p.desktop = desktop.Get()
 		p.jobs = jobs.Get()
-		p.request = request.Get()
-		p.suggestions = suggestions.Get()
+
+		p.suggestions = suggestions
 		p.search = search.Get()
 		p.pane = pane.Get()
 		p.paletteHost = palette.Get()
@@ -119,7 +118,7 @@ func setupPanel(r *ext.Registrar, panel *Panel) {
 		}
 	}, Reset: s.panel.reset, Load: s.panel.loadState, Save: s.panel.saveState, Refresh: s.panel.Refresh})
 	ext.Contribute(r, hostapi.Pages, "page", hostapi.Page{Title: locales.PageTalk, Icon: kit.IcChat, Order: 10, Sidebar: s.panel.SideBody, SidebarAction: func(c *ui.Context) {
-		if kit.IconButton(c, kit.IcPlus, talktext.SideNewTalk(), ui.Color{}).Disabled(s.panel.held()).Clicked() {
+		if kit.IconButton(c, kit.IcPlus, locales.SideNewTalk(), ui.Color{}).Disabled(s.panel.held()).Clicked() {
 			s.panel.NewSession()
 		}
 	},
@@ -140,6 +139,7 @@ func setupPanel(r *ext.Registrar, panel *Panel) {
 	ext.Contribute(r, hostapi.SelectionMenus, "quote-menu", hostapi.SelectionMenu{Order: -10, Build: func(text string) []hostapi.SelectionAction {
 		return []hostapi.SelectionAction{{Label: talktext.EditorQuote(), Command: "talk.quote", Disabled: text == "", Run: func() { s.panel.QuoteToTalk() }}}
 	}})
+	ext.Contribute(r, aiapi.TalkStarters, "starter", aiapi.TalkStarter{Start: s.panel.StartTalk, DraftContext: s.panel.draftContext, Open: func(id string) { s.panel.OpenTalk(id); pane.Get().Show("talk") }, Running: func() bool { return s.panel.Turn.Active }, ProgressVisible: s.panel.ProgressVisible})
 	s.markdown = &Markdown{Palette: func() *kit.Palette { return palette.Get().Colors() }, Entries: func() []workspace.Entry { got, _ := material.Get().Entries(); return got }, ShowEntry: func(entry workspace.Entry) { s.panel.showEntry(entry) }}
 	ext.Contribute(r, hostapi.ErrorTexts, "errors", hostapi.ErrorTranslator(translate))
 	ext.Contribute(r, hostapi.SettingsSections, "model", hostapi.SettingsSection{Work: true, Placement: "ai.models", Draw: s.modelSettings})
@@ -153,19 +153,9 @@ func (s *service) OpenTalk(id string) { s.panel.OpenTalk(id) }
 // TalkTitle implements the frame-thread conversation capability.
 func (s *service) TalkTitle(id string) (string, bool) { return s.panel.TalkName(id) }
 
-// StartTalk implements the frame-thread conversation capability.
-func (s *service) StartTalk(c *ui.Context, words workspace.Event) bool {
-	return s.panel.StartTalk(c, words)
-}
-
 // Build implements the frame-thread conversation capability.
 func (s *service) Build(st *workspace.Store, material aiapi.Material, tools []aiapi.Tool, beside *talkapi.Beside, progress func(talkapi.Progress), step func(workspace.Event)) (talkapi.Talk, error) {
 	return Build(s.ai.Get(), st, material, tools, beside, progress, step)
-}
-
-// Preloaded implements the frame-thread conversation capability.
-func (s *service) Preloaded(st *workspace.Store, m aiapi.Material, origin, chapter string) (talkapi.Preload, error) {
-	return Preloaded(st, m, origin, chapter)
 }
 
 // View exposes the native discussion controller for UI inspection on the frame thread.
@@ -173,6 +163,3 @@ func (s *service) View() *Panel { return s.panel }
 
 // OpenTalk opens a saved conversation on the frame thread.
 func (p *Panel) OpenTalk(id string) { p.desktop.ShowPage("talk.page"); p.SwitchSession(id) }
-
-// ProgressVisible implements the frame-thread conversation capability.
-func (s *service) ProgressVisible() bool { return s.panel.ProgressVisible() }

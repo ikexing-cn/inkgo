@@ -164,7 +164,7 @@ func fixedOf(st *workspace.Store, material aiapi.Material, tree workspace.Tree, 
 // chapter carries before anything is said or looked up: the rules, the
 // setting as it stands at the chapter, and what goes with the chapter.
 // The dialog that opens the talk says it.
-func Preloaded(st *workspace.Store, material aiapi.Material, origin, chapter string) (Preload, error) {
+func Preloaded(st *workspace.Store, material aiapi.Material, origin, chapter string, tools ...aiapi.Tool) (Preload, error) {
 	tree, err := st.Chapters()
 	if err != nil {
 		return Preload{}, err
@@ -180,7 +180,7 @@ func Preloaded(st *workspace.Store, material aiapi.Material, origin, chapter str
 	if err != nil {
 		return Preload{}, err
 	}
-	asked, _, err := lay(st.Work(), 1<<30, set, tree, talk{fixed: f, material: material})
+	asked, _, err := lay(st.Work(), 1<<30, set, tree, talk{fixed: f, material: material, tools: tools})
 	if err != nil {
 		return Preload{}, err
 	}
@@ -195,23 +195,4 @@ func Preloaded(st *workspace.Store, material aiapi.Material, origin, chapter str
 // indent, no blank line, nothing around it. Proposed to follow words in
 // their paragraph, it may begin a paragraph of its own: lead keeps a
 // line break s begins with.
-func cleanProse(s string, lead bool) string {
-	var b strings.Builder
-	started := false
-	for _, line := range strings.Split(strings.ReplaceAll(s, "\r", ""), "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		if started {
-			b.WriteByte('\n')
-		}
-		b.WriteString(line)
-		started = true
-	}
-	out := b.String()
-	if lead && strings.HasPrefix(strings.TrimLeft(s, " \t　\r"), "\n") && out != "" {
-		out = "\n" + out
-	}
-	return out
-}
+func cleanProse(s string, lead bool) string { return aiapi.CleanProposalText(s, lead) }

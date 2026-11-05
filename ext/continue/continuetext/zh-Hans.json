@@ -1,0 +1,25 @@
+{
+  "continueSettingsSameAsTalk": "和讨论相同",
+  "continueSettingsJobCheckAbout": "续写和检查时用",
+  "@continueSettingsJobCheckAbout": {
+    "description": "AI 设置里「续写和检查」这件事下面的说明。"
+  },
+  "continueSettingsJobCheck": "续写检查",
+  "@continueSettingsJobCheck": {
+    "description": "AI 设置里「续写和检查」这件事的名字。"
+  },
+  "helpContinue": "在光标处续写一句",
+  "modContinue": "续写",
+  "@modContinue": {
+    "description": "「功能」里一个模块的名字。"
+  },
+  "modContinueAbout": "停笔时 AI 接着写一句",
+  "@modContinueAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  },
+  "settingsAutoContinue": "停笔后自动续写",
+  "settingsAutoNote": "每次停笔都会用一次 AI。",
+  "settingsWriting": "写作时",
+  "continueModelHint": "输入或选择模型",
+  "cmdContinue": "续写一句"
+}

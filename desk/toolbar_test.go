@@ -61,7 +61,7 @@ func TestTheSelectionBar(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !a.write.rewriting || tt.HasText("加入设定") {
+	if !proposeOf(a).Rewriting || tt.HasText("加入设定") {
 		t.Fatal("the bar stays over the rewrite")
 	}
 }

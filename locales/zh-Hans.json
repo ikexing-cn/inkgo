@@ -41,12 +41,6 @@
   "cmdUndo": "撤销",
   "cmdRedo": "重做",
   "cmdRename": "重命名",
-  "cmdContinue": "续写一句",
-  "cmdDraft": "起草本章",
-  "cmdDraftNeedsOutline": "请先填写章纲",
-  "@cmdDraftNeedsOutline": {
-    "description": "「起草本章」灰着时，菜单行右边说为什么。"
-  },
   "cmdHideSidebar": "收起侧栏",
   "cmdShowSidebar": "展开侧栏",
   "cmdHidePane": "收起右栏",
@@ -442,41 +436,8 @@
   "@editorSeeEntry": {
     "description": "正文里有设定名字的地方的提示。"
   },
-  "editorStopDrop": "让 AI 停下，放弃这一处",
-  "editorDropOne": "放弃这一处建议",
   "editorWriting": "正在写…",
-  "editorAcceptOne": "采纳这一处建议",
   "editorAccept": "采纳",
-  "editorDropAll": "全部放弃",
-  "editorAcceptAll": "全部采纳",
-  "editorRewriteHint": "改写要求，例如：放慢节奏，多写她的犹豫",
-  "@editorRewriteHint": {
-    "description": "改写要求输入框的占位字。"
-  },
-  "editorRewriteLabel": "改写要求",
-  "editorRewrite": "改写",
-  "editorCloseRewrite": "关闭改写",
-  "editorLooking": "AI 正在查阅…",
-  "editorSeeTalk": "查看讨论",
-  "editorWritingSuggestions": "AI 正在写改稿建议…",
-  "editorSuggestionsHere": "本章有 {count} 处改稿建议",
-  "@editorSuggestionsHere": {
-    "description": "正文上面一行：本章有几处改稿建议。",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    }
-  },
-  "editorHowReplace": "绿字是 AI 新写的，划掉的是会被换掉的原文；采纳后才写入正文",
-  "@editorHowReplace": {
-    "description": "改稿建议里有换掉原文的，悬停时的说明。"
-  },
-  "editorHowAppend": "绿字是 AI 新写的；采纳后才写入正文",
-  "@editorHowAppend": {
-    "description": "改稿建议都是接在后面的，悬停时的说明。"
-  },
   "editorOutlineEmpty": " · 空",
   "editorSeeOnTimeline": "在时间线上查看",
   "editorInStory": "故事中 {when}",
@@ -519,8 +480,6 @@
   "@editorBody": {
     "description": "正文输入区的无障碍名称。"
   },
-  "editorAIRewrite": "AI 改写",
-  "editorAIRewriteMore": "AI 改写…",
   "editorAddToLore": "加入设定",
   "editorMarkForeshadow": "记为伏笔…",
   "editorNoClipboard": "无法读取剪贴板",
@@ -536,7 +495,6 @@
   },
   "editorPayTip": "确定回收",
   "editorPayButton": "记为回收",
-  "editorRewriteSel": "由 AI 改写选中内容",
   "editorAddSelTip": "将选中的原文加入设定",
   "editorSettledDisk": "已采用磁盘版本，编辑器原内容已存为历史版本",
   "editorSettledKeep": "已保留编辑器版本，磁盘内容已存为历史版本",
@@ -559,24 +517,6 @@
   "editorVoidedWhy": "它要换掉的原文改动了",
   "editorAccepted": "已采纳改稿建议",
   "editorAcceptedUndo": "可撤销恢复原文，原版本已存入历史版本",
-  "editorProposalAccepted": "已采纳改稿建议；可撤销恢复原文，原版本已存入历史版本",
-  "@editorProposalAccepted": {
-    "description": "应用单行提示条：采纳提议成功，同时说明撤销和快照。"
-  },
-  "editorProposalVoid": "改稿建议已作废；写的时候，它要换掉的原文改动了",
-  "@editorProposalVoid": {
-    "description": "应用单行提示条：一处流式提议因作者修改原文而作废。"
-  },
-  "editorProposalsVoid": "{count, plural, other {# 处改稿建议已作废；它要换掉的原文改动了}}",
-  "@editorProposalsVoid": {
-    "description": "应用单行提示条：原文变化导致多处提议作废。",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    }
-  },
   "editorWhyNoModel": "无法连接模型服务",
   "@editorWhyNoModel": {
     "description": "检查或读取失败的原因，显示用；状态里记的仍是这句中文。"
@@ -602,7 +542,6 @@
   "commonCopy": "复制",
   "commonCopyCode": "复制代码",
   "commonCut": "剪切",
-  "commonDiscard": "放弃",
   "commonOpenSettings": "打开设置",
   "commonPaste": "粘贴",
   "commonRetry": "重试",
@@ -1244,40 +1183,11 @@
   "settingsClose": "关闭",
   "settingsLocalOnly": "这台电脑上的所有作品",
   "settingsBookOnly": "只管这部作品",
-  "settingsRecordsTitle": "AI 记录",
-  "settingsRecordsNote": "只记发了什么、多少字，不存原文。",
   "settingsColor": "颜色",
   "settingsDisableGPU": "关闭显卡加速",
   "settingsGPUNext": "重启软件后生效。",
   "settingsRestartNow": "立即重启",
   "settingsForeshadow": "伏笔",
-  "settingsWriting": "写作时",
-  "settingsAutoContinue": "停笔后自动续写",
-  "settingsAutoNote": "每次停笔都会用一次 AI。",
-  "settingsUsage": "用量",
-  "settingsNoUsage": "还没用过 AI。",
-  "settingsSpentRow": "{count} 次请求 · 输入 {input}，缓存命中 {cached}% · 输出 {output}",
-  "@settingsSpentRow": {
-    "description": "本作品用量表里一行：请求数、输入、缓存命中比例、输出。",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "12"
-      },
-      "input": {
-        "type": "String",
-        "example": "9.6K"
-      },
-      "cached": {
-        "type": "int",
-        "example": "60"
-      },
-      "output": {
-        "type": "String",
-        "example": "1.7K"
-      }
-    }
-  },
   "settingsSpentCost": "约 ${amount, number, ::.00}",
   "@settingsSpentCost": {
     "description": "按内置价格估的花费。",
@@ -1285,63 +1195,6 @@
       "amount": {
         "type": "double",
         "example": "0.42"
-      }
-    }
-  },
-  "settingsViewAll": "查看全部 {count} 次",
-  "@settingsViewAll": {
-    "description": "用量下面的链接，后面写共几次请求。",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "12"
-      }
-    }
-  },
-  "settingsRecordsAll": "全部",
-  "settingsFilterByFeature": "按功能看",
-  "settingsNoRecords": "没有记录。",
-  "settingsRecordDone": "完成",
-  "settingsRecordCancelled": "已取消",
-  "settingsRecordSent": "发了：{parts}",
-  "@settingsRecordSent": {
-    "description": "AI 记录里一次请求发了哪几部分、各多大。",
-    "placeholders": {
-      "parts": {
-        "type": "String",
-        "example": "规则 1.1K · 设定 7 条 1.8K"
-      }
-    }
-  },
-  "settingsRecordActualCached": "实际用量：输入 {input}，其中缓存命中 {cached}；输出 {output}",
-  "@settingsRecordActualCached": {
-    "description": "AI 记录里服务商算的实际用量，有缓存命中时。",
-    "placeholders": {
-      "input": {
-        "type": "String",
-        "example": "19.1K"
-      },
-      "cached": {
-        "type": "String",
-        "example": "18.9K"
-      },
-      "output": {
-        "type": "String",
-        "example": "52"
-      }
-    }
-  },
-  "settingsRecordActual": "实际用量：输入 {input}；输出 {output}",
-  "@settingsRecordActual": {
-    "description": "AI 记录里服务商算的实际用量，没有缓存命中时。",
-    "placeholders": {
-      "input": {
-        "type": "String",
-        "example": "7.5K"
-      },
-      "output": {
-        "type": "String",
-        "example": "1.5K"
       }
     }
   },
@@ -1359,41 +1212,8 @@
       }
     }
   },
-  "settingsNoPrice": "价格未知",
-  "@settingsNoPrice": {
-    "description": "用量汇总里模型没有定价时显示。"
-  },
-  "settingsUsageBack": "‹ 用量",
-  "@settingsUsageBack": {
-    "description": "AI 记录页返回本作品用量的按钮，含返回箭头。"
-  },
-  "settingsRecordFailed": "失败：{why}",
-  "@settingsRecordFailed": {
-    "description": "请求记录里失败结果的前缀；why 是底层错误原文。",
-    "placeholders": {
-      "why": {
-        "type": "String",
-        "example": "无法连接模型服务"
-      }
-    }
-  },
-  "settingsRecordNoThinking": "{model} · 不思考",
-  "@settingsRecordNoThinking": {
-    "description": "请求记录里模型名和关闭思考的状态整行。",
-    "placeholders": {
-      "model": {
-        "type": "String",
-        "example": "qwen3"
-      }
-    }
-  },
-  "settingsRecordChapterGone": "已删除的章节",
-  "@settingsRecordChapterGone": {
-    "description": "请求记录对应章节已经删除时的标题。"
-  },
   "settingsFeatureDraft": "起草",
   "settingsFeatureRewrite": "改写",
-  "settingsFeatureContinue": "续写",
   "settingsModelFor": "{job}模型",
   "@settingsModelFor": {
     "description": "某项 AI 工作用的模型输入框的名字。",
@@ -1482,18 +1302,6 @@
   },
   "dialogUnsavedAbout": "不保存将丢失上次保存后的修改。",
   "dialogDontSave": "不保存",
-  "dialogLeaveTitle": "还有 {count} 处改稿建议没有处理",
-  "@dialogLeaveTitle": {
-    "description": "关闭作品时还有没处理的 改稿建议。",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    }
-  },
-  "dialogLeaveAbout": "关闭后将丢弃。",
-  "dialogLeaveDiscard": "丢弃并关闭",
   "dialogNewBookTitle": "新建作品",
   "dialogNewBookUntitled": "未命名作品",
   "dialogNewBookNoPlace": "请填写作品位置。",
@@ -1529,72 +1337,6 @@
   "dialogNameBookNote": "仅修改作品名，文件夹不变。",
   "dialogOsOpenConfig": "用记事本打开配置文件",
   "dialogOsNewBookFolder": "选择新作品所在的文件夹",
-  "draftGoal": "{unit, select, word {目标词数（选填）} other {目标字数（选填）}}",
-  "draftGoalLabel": "{unit, select, word {目标词数} other {目标字数}}",
-  "draftGoalHint": "由 AI 按章纲判断",
-  "draftGoalInvalid": "{unit, select, word {目标词数须为正整数，或留空} other {目标字数须为正整数，或留空}}",
-  "draftExisting": "本章已有内容",
-  "draftExistingHow": "已有内容的处理方式",
-  "draftAppend": "接在已有内容之后",
-  "draftOverwrite": "覆盖已有内容",
-  "draftAboutCards": "AI 仅将章纲和本章的卡片扩写为正文，不添加这些之外的重大情节。",
-  "draftAboutOutline": "AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。",
-  "draftAboutFlow": "起草在一段新的讨论里进行：写好的先在正文里显示为改稿建议，采纳后才写入，写入前保存历史版本；想改哪里，在讨论里接着说。",
-  "draftAbout": "{scope}{flow}",
-  "@draftAbout": {
-    "description": "起草对话框的说明：先写 AI 只扩写什么，再写起草怎么进行。中文两句直接相连，英文中间有空格。",
-    "placeholders": {
-      "scope": {
-        "type": "String"
-      },
-      "flow": {
-        "type": "String"
-      }
-    }
-  },
-  "draftItemCards": "本章的 {count} 张卡片",
-  "@draftItemCards": {
-    "description": "起草时带上的本章卡片数，是「将带上……」列表里的一项。",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "4"
-      }
-    }
-  },
-  "draftItemPrev": "上一章全文",
-  "draftItemVolume": "本卷各章章纲",
-  "draftItemBooks": "各卷卷纲",
-  "draftListSep": "、",
-  "draftSends": "将带上{items}等，约 {tokens} token；AI 需要时会自己再查。",
-  "@draftSends": {
-    "description": "起草前说明会带上哪些内容、大约多少 token。",
-    "placeholders": {
-      "items": {
-        "type": "String",
-        "example": "本章的 4 张卡片、上一章全文、本卷各章章纲"
-      },
-      "tokens": {
-        "type": "String",
-        "example": "9.6K"
-      }
-    }
-  },
-  "draftUsing": "用讨论模型 {model} · {effort}；可在设置中「AI」配置里更换。",
-  "@draftUsing": {
-    "description": "起草用的模型和思考程度。",
-    "placeholders": {
-      "model": {
-        "type": "String",
-        "example": "claude-opus-5-5"
-      },
-      "effort": {
-        "type": "String",
-        "example": "Default"
-      }
-    }
-  },
-  "draftStart": "开始起草",
   "helpGroupWrite": "正文",
   "@helpGroupWrite": {
     "description": "快捷键表里「正文」那一组的名字。"
@@ -1609,7 +1351,6 @@
   "helpChapterNav": "下一章 / 上一章",
   "helpTabNav": "下一个 / 上一个标签页",
   "helpCloseTab": "关闭当前标签页",
-  "helpContinue": "在光标处续写一句",
   "helpAcceptDrop": "采纳 / 放弃续写",
   "helpUndoRedo": "撤销 / 重做",
   "helpDeleteWord": "向前 / 向后删除一个词",
@@ -1666,10 +1407,6 @@
   },
   "recordsWholeChapter": "本章全文",
   "@recordsWholeChapter": {
-    "description": "AI 记录里一次请求发了哪几部分的名字。"
-  },
-  "recordsChapterText": "本章正文",
-  "@recordsChapterText": {
     "description": "AI 记录里一次请求发了哪几部分的名字。"
   },
   "recordsChapterSoFar": "本章前文",
@@ -1729,38 +1466,6 @@
   "settingsTabExtensions": "扩展",
   "@settingsTabExtensions": {
     "description": "设置左栏的一项：所有扩展的开关和各自的页。"
-  },
-  "modUsage": "用量记录",
-  "@modUsage": {
-    "description": "「功能」里一个模块的名字。"
-  },
-  "modUsageAbout": "记下 AI 用了多少、花了多少",
-  "@modUsageAbout": {
-    "description": "「扩展」里：这个扩展是做什么的，一句话。"
-  },
-  "modContinue": "续写",
-  "@modContinue": {
-    "description": "「功能」里一个模块的名字。"
-  },
-  "modContinueAbout": "停笔时 AI 接着写一句",
-  "@modContinueAbout": {
-    "description": "「扩展」里：这个扩展是做什么的，一句话。"
-  },
-  "modDraft": "起草",
-  "@modDraft": {
-    "description": "「功能」里一个模块的名字。"
-  },
-  "modDraftAbout": "照提纲让 AI 写初稿",
-  "@modDraftAbout": {
-    "description": "「扩展」里：这个扩展是做什么的，一句话。"
-  },
-  "modPropose": "改稿建议",
-  "@modPropose": {
-    "description": "「功能」里一个模块的名字。"
-  },
-  "modProposeAbout": "AI 提的修改，同意才写入",
-  "@modProposeAbout": {
-    "description": "「扩展」里：这个扩展是做什么的，一句话。"
   },
   "modGroupLibraries": "基础",
   "@modGroupLibraries": {
@@ -2201,26 +1906,30 @@
       }
     }
   },
-  "@draftGoal": {
+  "cmdCategories": "作品分类",
+  "sideDraftTitle": "起草：{title}",
+  "@sideDraftTitle": {
+    "description": "按章纲起草新开的讨论的标题，title 是章的标题。",
     "placeholders": {
-      "unit": {
-        "type": "String"
+      "title": {
+        "type": "String",
+        "example": "第1章：雨停"
       }
     }
   },
-  "@draftGoalLabel": {
+  "sideRewriteTitle": "改写：{text}",
+  "@sideRewriteTitle": {
+    "description": "AI 改写新开的讨论的标题，text 是选中那段的开头几个字。",
     "placeholders": {
-      "unit": {
-        "type": "String"
+      "text": {
+        "type": "String",
+        "example": "他没有回头"
       }
     }
   },
-  "@draftGoalInvalid": {
-    "placeholders": {
-      "unit": {
-        "type": "String"
-      }
-    }
+  "sideNewTalk": "新对话",
+  "@sideNewTalk": {
+    "description": "讨论页侧栏顶上的加号的提示和无障碍名称。"
   },
-  "cmdCategories": "作品分类"
+  "draftListSep": "、"
 }

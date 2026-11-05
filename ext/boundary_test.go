@@ -42,6 +42,9 @@ func extensionImport(pkg, imp string, deps []string) error {
 	if (pkg == "writer/ext/talk" || pkg == "writer/ext/talk/engine") && slices.Contains([]string{"writer/model", "writer/inference", "writer/prompt", "writer/internal/textclip", "writer/tokens"}, imp) {
 		return nil
 	}
+	if (pkg == "writer/ext/usage" && imp == "writer/tokens") || (pkg == "writer/ext/draft" && (imp == "writer/prefs" || imp == "writer/tokens")) {
+		return nil
+	}
 	if (pkg == "writer/ext/ai" || pkg == "writer/ext/ai/aitext") && slices.Contains([]string{"writer/ai", "writer/model", "writer/inference", "writer/writing", "writer/tokens"}, imp) {
 		return nil
 	}
@@ -174,7 +177,7 @@ func TestProductionDependencyBoundaries(t *testing.T) {
 						}
 					}
 				case strings.HasPrefix(pkg, "writer/desk"):
-					if strings.HasPrefix(imp, "writer/ext/") && imp != "writer/ext/hostapi" && !deskMarksImport(pkg, imp) && !deskContextImport(pkg, imp) && !deskLoreImport(pkg, imp) && !deskAIImport(pkg, imp) && !deskTalkImport(pkg, imp) {
+					if strings.HasPrefix(imp, "writer/ext/") && imp != "writer/ext/hostapi" && !deskContextImport(pkg, imp) && !deskLoreImport(pkg, imp) && !deskAIImport(pkg, imp) {
 						t.Errorf("%s imports concrete extension %s", pkg, imp)
 					}
 				default:
@@ -277,8 +280,8 @@ func TestModuleDependenciesRejectNonliteralListsInsideFunctions(t *testing.T) {
 	}
 }
 
-// deskContextImport is temporary: remove after discussion, drafting and continuation
-// move out of desk. Only the host package may consume the context public contract.
+// deskContextImport remains for the host material assembly.
+// Only the host package may consume the context public contract.
 func deskContextImport(pkg, imp string) bool {
 	return pkg == "writer/desk" && imp == "writer/ext/context/contextapi"
 }
@@ -301,25 +304,13 @@ func TestDeskLoreExceptionDoesNotAllowConcreteLore(t *testing.T) {
 	}
 }
 
-// deskAIImport bridges continuation, drafting and usage records until they become
-// extensions. The exception is only for their public contract, never ext/ai.
+// deskAIImport remains for the backend contract, host assembly and AI progress.
+// The exception is only for their public contract, never ext/ai.
 func deskAIImport(pkg, imp string) bool { return pkg == "writer/desk" && imp == "writer/ext/ai/aiapi" }
 
 func TestDeskAIExceptionDoesNotAllowConcreteAI(t *testing.T) {
 	if !deskAIImport("writer/desk", "writer/ext/ai/aiapi") || deskAIImport("writer/desk", "writer/ext/ai") || deskAIImport("writer/desk/book", "writer/ext/ai/aiapi") {
 		t.Fatal("AI exception escaped its boundary")
-	}
-}
-
-// deskTalkImport permits only the conversation contract while drafting and
-// rewrite, snapshot titles and AI record navigation remain hosted. It never permits the concrete implementation.
-func deskTalkImport(pkg, imp string) bool {
-	return pkg == "writer/desk" && imp == "writer/ext/talk/talkapi"
-}
-
-func TestDeskTalkExceptionDoesNotAllowConcreteTalkOrEngine(t *testing.T) {
-	if !deskTalkImport("writer/desk", "writer/ext/talk/talkapi") || deskTalkImport("writer/desk", "writer/ext/talk") || deskTalkImport("writer/desk", "writer/ext/talk/engine") || deskTalkImport("writer/desk/book", "writer/ext/talk/talkapi") {
-		t.Fatal("talk exception escaped its boundary")
 	}
 }
 
@@ -371,36 +362,32 @@ func TestHostAPIHasNoTalkService(t *testing.T) {
 	}
 }
 
-// deskMarksImport bridges the AI-written source until edit suggestions become an extension.
-func deskMarksImport(pkg, imp string) bool {
-	return pkg == "writer/desk" && imp == "writer/ext/marks/marksapi"
-}
-
-func TestDeskMarksExceptionOnlyAllowsThePublicContract(t *testing.T) {
-	if !deskMarksImport("writer/desk", "writer/ext/marks/marksapi") || deskMarksImport("writer/desk/book", "writer/ext/marks/marksapi") || deskMarksImport("writer/desk", "writer/ext/marks") {
-		t.Fatal("marks exception escaped")
-	}
-	files, err := filepath.Glob("../desk/*.go")
+func TestTemporaryAISettingsUsageAndSuggestionsBridgesAreGone(t *testing.T) {
+	files, err := filepath.Glob("hostapi/*.go")
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, path := range files {
-		if strings.HasSuffix(path, "_test.go") || strings.HasSuffix(path, "marks_legacy.go") {
-			continue
-		}
-		b, err := os.ReadFile(path)
+		data, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if strings.Contains(string(b), `"writer/ext/marks/marksapi"`) {
-			t.Error(path)
+		for _, name := range []string{"SettingsHostService", "AIUsage", "SuggestionsService"} {
+			if strings.Contains(string(data), name) {
+				t.Errorf("%s still declares %s", path, name)
+			}
+		}
+	}
+	for _, path := range []string{"hostapi/ai_settings.go", "hostapi/suggestions.go"} {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Errorf("temporary bridge remains: %s", path)
 		}
 	}
 }
 
 func TestDeskTemporaryAIContextAndLoreImportsStayInRemainingConsumers(t *testing.T) {
 	allowed := map[string][]string{
-		"writer/ext/ai/aiapi":           {"ai.go", "ai_settings.go", "app.go", "context.go", "errtext.go", "extensions.go", "welcome.go", "write.go"},
+		"writer/ext/ai/aiapi":           {"app.go", "errtext.go", "extensions.go", "welcome.go"},
 		"writer/ext/context/contextapi": {"context.go"},
 		"writer/ext/lore/loreapi":       {"entry_navigation.go", "app.go"},
 	}

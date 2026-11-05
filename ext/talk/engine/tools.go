@@ -67,17 +67,7 @@ var toolTable = []aiapi.Tool{
 		Schema:      fixedSchema(`{"type":"object","properties":{` + queryArg + `,` + fromArg + `},"required":["query"]}`),
 		Run:         runTool((*toolbox).searchTalks),
 		Label:       labelTool(searchTalksLabel),
-	},
-	{
-		Name:        toolPropose,
-		Order:       70,
-		Prompt:      aiapi.ToolPrompt{Order: 70, Section: proposeRules},
-		Description: "在正文里提议一处修改，显示在那一章里，作者采纳了才写进正文。一次提议一处。参数按 chapter、at、quote、text 的次序写。",
-		Schema:      fixedSchema(`{"type":"object","properties":{"chapter":{"type":"string","description":"改哪一章，章名和搜全书结果里写的一样"},"at":{"type":"string","enum":["replace","after","end","all"],"description":"replace 换掉 quote 那段原文；after 接在 quote 之后，在同一段里接着写，text 以换行开头就另起一段；end 接在章末；all 换掉全章"},"quote":{"type":"string","description":"at 是 replace 或 after 时，逐字复制那一章里的原文，在那一章里只出现一次"},"text":{"type":"string","description":"新写的正文，一段一行"}},"required":["chapter","at","text"]}`),
-		Run:         runTool((*toolbox).propose),
-		Label:       labelTool(proposeLabel),
-	},
-}
+	}}
 
 // fixedSchema is schema for every work.
 func fixedSchema(schema string) func(workspace.Work) json.RawMessage {
@@ -151,7 +141,9 @@ func (t *toolbox) run(c model.Call) outcome {
 	if slices.ContainsFunc(t.allowed, func(t model.Tool) bool { return t.Name == c.Name }) {
 		for _, tool := range combined(t.extra) {
 			if tool.Name == c.Name {
-				r := tool.Run(t.ctx, t.env(), c.Input)
+				env := t.env()
+				env.Call = c.ID
+				r := tool.Run(t.ctx, env, c.Input)
 				return outcome{r.Text, r.Failed, r.Revision, r.Proposal}
 			}
 		}

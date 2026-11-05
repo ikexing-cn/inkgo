@@ -216,3 +216,17 @@ type Tool struct {
 
 // Tools collects writing tools on the frame thread through ext.Call.
 const Tools ext.PointKey[Tool] = "host.tools"
+
+// SettingsDetail replaces a settings page body while its detail is selected.
+// All callbacks run on the frame thread through the host failure boundary.
+type SettingsDetail struct {
+	// Enter observes settings navigation on the frame thread.
+	Enter       func(string)
+	Matches     func(string) bool
+	Title, Note func() string
+	Draw        func(*ui.Context)
+	Close       func()
+}
+
+// SettingsDetails collects nested settings pages, such as AI records.
+const SettingsDetails ext.PointKey[SettingsDetail] = "host.settings-details"

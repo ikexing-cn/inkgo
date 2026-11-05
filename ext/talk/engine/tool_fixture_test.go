@@ -9,12 +9,15 @@ import (
 	"writer/ext/ai/aiapi"
 	"writer/ext/lore"
 	"writer/ext/outline"
+	"writer/ext/propose"
 	"writer/inference"
 	"writer/model"
 	"writer/workspace"
 )
 
-func allTools() []aiapi.Tool { return append(lore.TalkTools(), outline.TalkTools()...) }
+func allTools() []aiapi.Tool {
+	return append(append(lore.TalkTools(), outline.TalkTools()...), propose.TalkTool())
+}
 func materialTools(m aiapi.Material) []aiapi.Tool {
 	var out []aiapi.Tool
 	for _, tl := range allTools() {
@@ -79,7 +82,9 @@ const noteRules = `
 - 工具说没有记下时，按它说的改了再记，或者放弃。记下了不用在回复里告诉作者，作者看得到。`
 const outlineRules = `- 大纲是作者排的卡片，先后是故事里发生的先后，可能和章节的先后不同。问到情节先后、某条线的进展、还没写的打算时，先用 read_outline 查。大纲和正文对不上时，以正文为准，并告诉作者哪里不一致。
 `
-const talkRules = talkIntro + talkManners + talkMust + settingRules + contentRule + lookupStart + lookupOutline + lookupSettingRule + lookupEnd + outlineRules + lookupStop + noteRules + proposeRules
+
+var proposeRules = propose.TalkTool().Prompt.Section
+var talkRules = talkIntro + talkManners + talkMust + settingRules + contentRule + lookupStart + lookupOutline + lookupSettingRule + lookupEnd + outlineRules + lookupStop + noteRules + proposeRules
 
 const (
 	toolLookUp      = "look_up_setting"
@@ -150,3 +155,5 @@ const lookupEnd = `search_talks 搜以前的讨论。
 `
 
 const indexNote = "设定较多，这里只列目录：每条的编号、分类、名字和第一句。要看全文和出处，用 look_up_setting 查。"
+
+func (t *toolbox) propose(in proposeArgs) outcome { return t.external(toolPropose, in) }

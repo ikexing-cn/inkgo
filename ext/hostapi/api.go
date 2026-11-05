@@ -51,19 +51,27 @@ type MenuPosition struct {
 // nil Can means always enabled. Run is dispatched through ext.Call.
 // Mods and MacMods are native UI modifiers; OnMac selects the macOS override.
 type Command struct {
+	// ID optionally preserves an existing system menu command identity.
+	ID string
 	// HelpGroup and HelpText optionally customize the shortcut row on the frame thread.
 	HelpGroup, HelpText func() string
 	// HelpAfter anchors the row after a host shortcut row's description on the frame thread.
 	HelpAfter func() string
-	Name      func() string
-	Can       func() bool
-	Run       func()
-	Menu      MenuPosition
-	Key       ui.Key
-	Mods      ui.Modifiers
-	MacKey    ui.Key
-	MacMods   ui.Modifiers
-	OnMac     bool
+	// HelpBefore anchors the row before another shortcut description on the frame thread.
+	HelpBefore func() string
+	// Present omits the command entirely when its optional capability is absent.
+	Present func() bool
+	// Hint supplies an optional disabled command explanation on the frame thread.
+	Hint    func() string
+	Name    func() string
+	Can     func() bool
+	Run     func()
+	Menu    MenuPosition
+	Key     ui.Key
+	Mods    ui.Modifiers
+	MacKey  ui.Key
+	MacMods ui.Modifiers
+	OnMac   bool
 }
 
 // PaneTab is a right pane contributed by an extension. Desk calls Title and
@@ -230,6 +238,8 @@ type Notices interface {
 
 // Jobs dispatches background work from the frame thread.
 type Jobs interface {
+	// Busy reports a running author operation on the frame thread.
+	Busy() bool
 	// Request starts a cancellable, nonblocking author operation on the frame thread.
 	Request(ui.Services, string, func(context.Context) (func(), error))
 	// CancelRequest stops the current author operation on the frame thread.

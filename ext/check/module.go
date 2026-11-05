@@ -26,7 +26,6 @@ type Panel struct {
 	notices    hostapi.Notices
 	desktop    hostapi.Desktop
 	search     hostapi.Search
-	settings   hostapi.SettingsHost
 	backend    aiapi.Backend
 	context    loreapi.References
 	navigation loreapi.EntryNavigator
@@ -49,7 +48,6 @@ func module(controller *Panel) ext.Module {
 		n := ext.Use(r, hostapi.NoticesService)
 		d := ext.Use(r, hostapi.DesktopService)
 		search := ext.Use(r, hostapi.SearchService)
-		settings := ext.Use(r, hostapi.SettingsHostService)
 		ai := ext.Use(r, aiapi.Service)
 		material := ext.Use(r, loreapi.ReferencesService)
 		nav := ext.Use(r, loreapi.EntryNavigationService)
@@ -60,7 +58,6 @@ func module(controller *Panel) ext.Module {
 			p.notices = n.Get()
 			p.desktop = d.Get()
 			p.search = search.Get()
-			p.settings = settings.Get()
 			p.backend = ai.Get()
 			p.context = material.Get()
 			p.navigation = nav.Get()

@@ -1,7 +1,6 @@
 package talk
 
 import (
-	"writer/ext/talk/talktext"
 	"writer/locales"
 	"writer/workspace"
 )
@@ -28,12 +27,12 @@ func TitleText(title workspace.ConversationTitle) string {
 		if text == "" {
 			text = locales.AppChapterDeleted()
 		}
-		return talktext.SideDraftTitle(text)
+		return locales.SideDraftTitle(text)
 	case workspace.AIRewrite:
-		return talktext.SideRewriteTitle(title.Text)
+		return locales.SideRewriteTitle(title.Text)
 	case workspace.TitleWords:
 		return title.Text
 	default:
-		return talktext.SideNewTalk()
+		return locales.SideNewTalk()
 	}
 }

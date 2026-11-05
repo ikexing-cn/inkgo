@@ -60,6 +60,15 @@ const ProseMarks ext.PointKey[ProseMarkProvider] = "host.prose-marks"
 // ProseUI exposes frame-thread geometry and shared writing controls.
 // Draw callbacks borrow the current frame and must not retain it.
 type ProseUI interface {
+	// ChapterText reads a live open editor, or falls back to storage; frame thread.
+	ChapterText(string) string
+	// EnsureTab keeps a background chapter tab available; frame thread.
+	EnsureTab(string)
+	// Band draws a full width band above prose in the current frame.
+	Band(*ui.Context, float32, float32, func())
+	// Refresh reloads derived book and extension views on the frame thread.
+	Refresh() error
+
 	// Bounds returns the prose viewport in window coordinates.
 	Bounds() ui.Rect
 	// PaneVisible reports whether the named pane is being displayed.
@@ -82,3 +91,31 @@ const ProseOverlays ext.PointKey[DrawItem] = "host.prose-overlays"
 
 // ToolHints draws writing hints before the pending button, on the frame thread.
 const ToolHints ext.PointKey[DrawItem] = "host.tool-hints"
+
+// Prediction supplies ghost text for a chapter. Predictor runs on a worker;
+// Note and OnDemand are queried on the frame thread.
+type Prediction struct {
+	Predictor func(string) editor.Predictor
+	Note      func() string
+	OnDemand  func() bool
+}
+
+// Predictions collects active continuation providers.
+const Predictions ext.PointKey[Prediction] = "host.predictions"
+
+// LeaveQuestions asks frame-thread extensions about undecided author work.
+const LeaveQuestions ext.PointKey[func(func()) bool] = "host.leave-questions"
+
+// SelectionButton contributes a compact action above selected prose; frame thread.
+type SelectionButton struct {
+	Icon       *ui.SVG
+	Label, Tip func() string
+	Available  func() bool
+	Run        func()
+}
+
+// SelectionButtons supplies actions before the host's capture action.
+const SelectionButtons ext.PointKey[SelectionButton] = "host.selection-buttons"
+
+// BeforeEditor draws bands after the chapter title and outline, on the frame thread.
+const BeforeEditor ext.PointKey[DrawItem] = "host.before-editor"

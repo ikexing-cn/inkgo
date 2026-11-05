@@ -111,7 +111,6 @@ func (a *App) View(c *ui.Context) {
 	a.createDialog(c)
 	a.renameDialog(c)
 	if a.Store != nil {
-		a.leaveView(c)
 	}
 	a.extensionOverlays(c)
 	a.toasts(c) // over every dialog

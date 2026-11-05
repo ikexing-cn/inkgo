@@ -5,6 +5,9 @@ import (
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
 
+	"writer/ext"
+
+	"writer/ext/hostapi"
 	"writer/locales"
 )
 
@@ -57,7 +60,7 @@ func (a *App) prefName(tab string) string {
 // record's, which shows in the AI's part.
 func (a *App) prefTitle(tab string) string {
 	if tab == "AI" && a.showsLog() {
-		return locales.SettingsRecordsTitle()
+		return a.settingsDetail().Value.Title()
 	}
 	return a.prefName(tab)
 }
@@ -65,7 +68,7 @@ func (a *App) prefTitle(tab string) string {
 func (a *App) prefNote(tab string) string {
 	switch {
 	case tab == "AI" && a.showsLog():
-		return locales.SettingsRecordsNote()
+		return a.settingsDetail().Value.Note()
 	}
 	if say := prefAbout[tab]; say != nil {
 		return say()
@@ -74,7 +77,22 @@ func (a *App) prefNote(tab string) string {
 }
 
 // showsLog is whether the AI's part of the settings shows the AI record.
-func (a *App) showsLog() bool { return a.record.showing && a.aiOn() && a.Store != nil }
+func (a *App) showsLog() bool { return a.settingsDetail().ID != "" }
+func (a *App) settingsDetail() ext.Item[hostapi.SettingsDetail] {
+	for _, item := range ext.Items(a.extensions, hostapi.SettingsDetails) {
+		matched := false
+		_ = ext.Guard(a.extensions, item.Owner, item.ID, func() { matched = item.Value.Matches(a.settings.tab) })
+		if matched {
+			return item
+		}
+	}
+	return ext.Item[hostapi.SettingsDetail]{}
+}
+func (a *App) closeSettingsDetails() {
+	for _, item := range ext.Items(a.extensions, hostapi.SettingsDetails) {
+		_ = ext.Guard(a.extensions, item.Owner, item.ID, item.Value.Close)
+	}
+}
 
 // openPrefs opens the settings at the part named, or the AI.
 func (a *App) openPrefs(tab string) {
@@ -100,21 +118,23 @@ func (a *App) closePrefs() {
 // settings and AI records stay on disk; only their views and drafts go.
 func (a *App) resetPrefs() {
 	a.settings = settingsView{}
-	a.record.reset()
+	a.closeSettingsDetails()
 }
 
 // showPref shows a part of the settings. The reminders count the book's
 // foreshadowings from the tree and the marks Book read, from any page. The
 // AI's part reads the AI record, and shows what it adds up to.
 func (a *App) showPref(tab string) {
-	a.settings.tab, a.record.showing = tab, false
+	a.settings.tab = tab
+	for _, item := range ext.Items(a.extensions, hostapi.SettingsDetails) {
+		if item.Value.Enter != nil {
+			_ = ext.Guard(a.extensions, item.Owner, item.ID, func() { item.Value.Enter(tab) })
+		}
+	}
+	a.closeSettingsDetails()
 	a.settings.ext, a.settings.flip, a.settings.askExt = "", "", false
 	a.closeExtensionMenu()
-	if tab == "AI" && a.Store != nil {
-		records, err := a.Store.Records()
-		a.warn(err)
-		a.record.load(records)
-	}
+
 }
 
 // preferences is the settings dialog: the AI, the appearance, the
@@ -183,7 +203,8 @@ func (a *App) preferences(c *ui.Context) {
 			})
 			a.pal.Hairline(c)
 			if a.showsLog() {
-				a.recordsView(c)
+				item := a.settingsDetail()
+				_, _ = ext.Call(a.extensions, ext.HookOf(ext.CallPoint[hostapi.SettingsDetail, *ui.Context, struct{}]{Point: hostapi.SettingsDetails}, item.ID), c, func(c *ui.Context) struct{} { item.Value.Draw(c); return struct{}{} })
 			} else {
 				ui.Scroll(c.Key("prefs-" + a.settings.tab + a.settings.ext)).Grow(1).Shrink(1).FillWidth().Children(func() {
 					ui.Column(c).FillWidth().Padding(12, 56, 32, 32).Gap(prefsGap).Children(func() {

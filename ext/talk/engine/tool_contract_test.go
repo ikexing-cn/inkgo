@@ -46,7 +46,7 @@ func TestToolListUsesDeclaredOrderAndKeepsRegistrationOrderForTies(t *testing.T)
 	for _, tool := range toolsOf(workspace.Work{}, table) {
 		names = append(names, tool.Name)
 	}
-	want := []string{toolSearchBook, "zeta", "alpha", toolReadProse, toolSearchTalks, toolPropose}
+	want := []string{toolSearchBook, "zeta", "alpha", toolReadProse, toolSearchTalks}
 	if !slices.Equal(names, want) {
 		t.Fatalf("tool order %v, want %v", names, want)
 	}

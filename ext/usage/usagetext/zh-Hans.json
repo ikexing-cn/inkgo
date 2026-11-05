@@ -1,0 +1,130 @@
+{
+  "modUsage": "用量记录",
+  "@modUsage": {
+    "description": "「功能」里一个模块的名字。"
+  },
+  "modUsageAbout": "记下 AI 用了多少、花了多少",
+  "@modUsageAbout": {
+    "description": "「扩展」里：这个扩展是做什么的，一句话。"
+  },
+  "recordsChapterText": "本章正文",
+  "@recordsChapterText": {
+    "description": "AI 记录里一次请求发了哪几部分的名字。"
+  },
+  "settingsFeatureContinue": "续写",
+  "settingsFilterByFeature": "按功能看",
+  "settingsNoPrice": "价格未知",
+  "@settingsNoPrice": {
+    "description": "用量汇总里模型没有定价时显示。"
+  },
+  "settingsNoRecords": "没有记录。",
+  "settingsNoUsage": "还没用过 AI。",
+  "settingsRecordActual": "实际用量：输入 {input}；输出 {output}",
+  "@settingsRecordActual": {
+    "description": "AI 记录里服务商算的实际用量，没有缓存命中时。",
+    "placeholders": {
+      "input": {
+        "type": "String",
+        "example": "7.5K"
+      },
+      "output": {
+        "type": "String",
+        "example": "1.5K"
+      }
+    }
+  },
+  "settingsRecordActualCached": "实际用量：输入 {input}，其中缓存命中 {cached}；输出 {output}",
+  "@settingsRecordActualCached": {
+    "description": "AI 记录里服务商算的实际用量，有缓存命中时。",
+    "placeholders": {
+      "input": {
+        "type": "String",
+        "example": "19.1K"
+      },
+      "cached": {
+        "type": "String",
+        "example": "18.9K"
+      },
+      "output": {
+        "type": "String",
+        "example": "52"
+      }
+    }
+  },
+  "settingsRecordCancelled": "已取消",
+  "settingsRecordChapterGone": "已删除的章节",
+  "@settingsRecordChapterGone": {
+    "description": "请求记录对应章节已经删除时的标题。"
+  },
+  "settingsRecordDone": "完成",
+  "settingsRecordFailed": "失败：{why}",
+  "@settingsRecordFailed": {
+    "description": "请求记录里失败结果的前缀；why 是底层错误原文。",
+    "placeholders": {
+      "why": {
+        "type": "String",
+        "example": "无法连接模型服务"
+      }
+    }
+  },
+  "settingsRecordNoThinking": "{model} · 不思考",
+  "@settingsRecordNoThinking": {
+    "description": "请求记录里模型名和关闭思考的状态整行。",
+    "placeholders": {
+      "model": {
+        "type": "String",
+        "example": "qwen3"
+      }
+    }
+  },
+  "settingsRecordSent": "发了：{parts}",
+  "@settingsRecordSent": {
+    "description": "AI 记录里一次请求发了哪几部分、各多大。",
+    "placeholders": {
+      "parts": {
+        "type": "String",
+        "example": "规则 1.1K · 设定 7 条 1.8K"
+      }
+    }
+  },
+  "settingsRecordsAll": "全部",
+  "settingsRecordsNote": "只记发了什么、多少字，不存原文。",
+  "settingsRecordsTitle": "AI 记录",
+  "settingsSpentRow": "{count} 次请求 · 输入 {input}，缓存命中 {cached}% · 输出 {output}",
+  "@settingsSpentRow": {
+    "description": "本作品用量表里一行：请求数、输入、缓存命中比例、输出。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      },
+      "input": {
+        "type": "String",
+        "example": "9.6K"
+      },
+      "cached": {
+        "type": "int",
+        "example": "60"
+      },
+      "output": {
+        "type": "String",
+        "example": "1.7K"
+      }
+    }
+  },
+  "settingsUsage": "用量",
+  "settingsUsageBack": "‹ 用量",
+  "@settingsUsageBack": {
+    "description": "AI 记录页返回本作品用量的按钮，含返回箭头。"
+  },
+  "settingsViewAll": "查看全部 {count} 次",
+  "@settingsViewAll": {
+    "description": "用量下面的链接，后面写共几次请求。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  }
+}

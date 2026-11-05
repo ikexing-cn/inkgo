@@ -3,12 +3,14 @@ package desk
 import (
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/egoist/mygo/ui"
 	"writer/desk/kit"
+	"writer/ext/usage"
 	"writer/internal/testshot"
 	"writer/workspace"
 )
@@ -30,12 +32,12 @@ func TestLeavingWorkClearsSettingsAndRecords(t *testing.T) {
 			a.openPrefs("AI")
 			tt.Frame()
 			click(t, tt, "查看全部 50 次")
-			a.record.only, a.record.expanded = 5, 49
+			usageViews[a].Record.Only, usageViews[a].Record.Expanded = 5, 49
 			tt.Frame()
-			a.record.list.ScrollTo(35, ui.Start)
+			usageViews[a].Record.List.ScrollTo(35, ui.Start)
 			tt.Frame()
 			tt.Frame()
-			if first, _ := a.record.list.Visible(); first == 0 {
+			if first, _ := usageViews[a].Record.List.Visible(); first == 0 {
 				t.Fatal("fixture did not scroll the record list")
 			}
 			a.settings.askAI = true
@@ -62,7 +64,7 @@ func TestLeavingWorkClearsSettingsAndRecords(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			if a.settings != (settingsView{}) || !reflect.DeepEqual(a.record, recordView{expanded: -1}) || aiViewOf(a).ServiceForm.Key != "" {
+			if a.settings != (settingsView{}) || !reflect.DeepEqual(usageViews[a].Record, usage.RecordView{Expanded: -1}) || aiViewOf(a).ServiceForm.Key != "" {
 				t.Fatal("leaving work kept settings, records or an unsaved key")
 			}
 			old, err := workspace.Open(oldRoot)
@@ -79,14 +81,14 @@ func TestLeavingWorkClearsSettingsAndRecords(t *testing.T) {
 			a.openPrefs("AI")
 			tt.Frame()
 			if next != nil {
-				if len(a.record.records) != 1 || a.record.records[0].Model != "local/new-model" {
+				if len(usageViews[a].Record.Records) != 1 || usageViews[a].Record.Records[0].Model != "local/new-model" {
 					t.Fatal("new work did not load its own records")
 				}
 				click(t, tt, "查看全部 1 次")
-				if first, _ := a.record.list.Visible(); first != 0 || a.record.only != 0 || a.record.expanded != -1 {
+				if first, _ := usageViews[a].Record.List.Visible(); first != 0 || usageViews[a].Record.Only != 0 || usageViews[a].Record.Expanded != -1 {
 					t.Fatal("new work inherited the previous record selection")
 				}
-			} else if len(a.record.records) != 0 || tt.HasText("用量") || tt.HasText("AI 记录") {
+			} else if len(usageViews[a].Record.Records) != 0 || slices.Contains(tt.Texts(), "用量") || tt.HasText("AI 记录") {
 				t.Fatal("shelf settings still show the previous work")
 			}
 		})
@@ -103,7 +105,7 @@ func TestTheWorkShowsWhatItSpent(t *testing.T) {
 	a, tt, _ := fixture(t)
 	a.openPrefs("AI")
 	tt.Frame()
-	if !tt.HasText("用量") || tt.HasText("按内置价格估算") || !tt.HasText("还没用过 AI。") {
+	if !slices.Contains(tt.Texts(), "用量") || tt.HasText("按内置价格估算") || !tt.HasText("还没用过 AI。") {
 		t.Fatal("nothing spent yet", tt.Texts())
 	}
 	chapter, err := a.Store.NewChapter("", "第一章", false)
@@ -146,7 +148,7 @@ func TestTheWorkShowsWhatItSpent(t *testing.T) {
 			t.Fatal(s, tt.Texts())
 		}
 	}
-	if tt.HasText("还没用过 AI。") || tt.HasText("清零") || tt.HasText("起草") {
+	if tt.HasText("还没用过 AI。") || tt.HasText("清零") {
 		t.Fatal(tt.Texts())
 	}
 
@@ -182,12 +184,12 @@ func TestTheWorkShowsWhatItSpent(t *testing.T) {
 	if !tt.HasText("qwen3 · 不思考") || tt.HasText("发了：规则 900 · 本章正文 4.4K") {
 		t.Fatal("one line opens at a time", tt.Texts())
 	}
-	a.record.only = 5 // 检查
+	usageViews[a].Record.Only = 5 // 检查
 	tt.Frame()
 	if !tt.HasText("检查 · 已删除的章节") || tt.HasText("续写 · 第一章") || tt.HasText("讨论 · 灯为什么会灭") {
 		t.Fatal("the filter", tt.Texts())
 	}
-	a.record.only = 2 // 起草
+	usageViews[a].Record.Only = 2 // 起草
 	tt.Frame()
 	if !tt.HasText("没有记录。") {
 		t.Fatal(tt.Texts())
@@ -196,13 +198,13 @@ func TestTheWorkShowsWhatItSpent(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !tt.HasText("用量") || tt.HasText("AI 记录") {
+	if !slices.Contains(tt.Texts(), "用量") || tt.HasText("AI 记录") {
 		t.Fatal(tt.Texts())
 	}
-	a.record.showing = true
+	usageViews[a].Record.Showing = true
 	a.turnAI(false)
 	tt.Frame()
-	if tt.HasText("AI 记录") || tt.HasText("用量") || tt.HasText("检查 · 已删除的章节") {
+	if tt.HasText("AI 记录") || slices.Contains(tt.Texts(), "用量") || tt.HasText("检查 · 已删除的章节") {
 		t.Fatal("the record shows with the AI off", tt.Texts())
 	}
 }
@@ -224,15 +226,15 @@ func TestTheRecordBuildsOnlyWhatShows(t *testing.T) {
 	a, tt, _ := fixture(t)
 	a.openPrefs("AI")
 	tt.Frame()
-	a.record.showing = true
-	a.record.records = make([]workspace.Record, 10_000)
+	usageViews[a].Record.Showing = true
+	usageViews[a].Record.Records = make([]workspace.Record, 10_000)
 	at := time.Now()
-	for i := range a.record.records {
-		a.record.records[i] = workspace.Record{Feature: workspace.FeatureTalk, Model: "deepseek/deepseek-flash",
+	for i := range usageViews[a].Record.Records {
+		usageViews[a].Record.Records[i] = workspace.Record{Feature: workspace.FeatureTalk, Model: "deepseek/deepseek-flash",
 			Usage: workspace.Usage{Input: 100, Output: 10}, Outcome: workspace.OutcomeDone, At: at.Add(-time.Duration(i) * time.Minute)}
 	}
-	a.record.rows = nil
-	a.record.expanded = -1
+	usageViews[a].Record.Rows = nil
+	usageViews[a].Record.Expanded = -1
 	tt.Frame()
 	tt.Frame()
 	built := 0
@@ -248,12 +250,12 @@ func TestTheRecordBuildsOnlyWhatShows(t *testing.T) {
 	if built == 0 || built > 40 {
 		t.Fatalf("%d lines built of 10000", built)
 	}
-	if len(a.record.rows) != len(a.record.records) {
-		t.Fatalf("%d lines found", len(a.record.rows))
+	if len(usageViews[a].Record.Rows) != len(usageViews[a].Record.Records) {
+		t.Fatalf("%d lines found", len(usageViews[a].Record.Rows))
 	}
-	rows := &a.record.rows[0]
+	rows := &usageViews[a].Record.Rows[0]
 	tt.Frame()
-	if &a.record.rows[0] != rows {
+	if &usageViews[a].Record.Rows[0] != rows {
 		t.Fatal("the lines were found again with nothing changed")
 	}
 	if err := tt.Click(first); err != nil {
@@ -261,16 +263,16 @@ func TestTheRecordBuildsOnlyWhatShows(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Frame()
-	if a.record.expanded != len(a.record.records)-1 {
-		t.Fatalf("opened record %d", a.record.expanded)
+	if usageViews[a].Record.Expanded != len(usageViews[a].Record.Records)-1 {
+		t.Fatalf("opened record %d", usageViews[a].Record.Expanded)
 	}
 	if !tt.HasText("实际用量：输入 100；输出 10") {
 		t.Fatal("the line did not open", tt.Texts())
 	}
-	a.record.only = 5 // 检查, which nothing was asked for
+	usageViews[a].Record.Only = 5 // 检查, which nothing was asked for
 	tt.Frame()
-	if !tt.HasText("没有记录。") || len(a.record.rows) != 0 {
-		t.Fatalf("the filter left %d lines", len(a.record.rows))
+	if !tt.HasText("没有记录。") || len(usageViews[a].Record.Rows) != 0 {
+		t.Fatalf("the filter left %d lines", len(usageViews[a].Record.Rows))
 	}
 	for _, s := range tt.Texts() {
 		if strings.HasPrefix(s, "记录-") {
@@ -310,11 +312,11 @@ func TestShotRecord(t *testing.T) {
 	}
 	a.openPrefs("AI")
 	tt.Frame()
-	a.record.showing = true
-	a.record.only = 0
-	a.record.expanded = 4 // the check, whose detail is longest
+	usageViews[a].Record.Showing = true
+	usageViews[a].Record.Only = 0
+	usageViews[a].Record.Expanded = 4 // the check, whose detail is longest
 	shot(t, tt, "record.png")
-	a.record.expanded = -1
-	a.record.only = 2 // 起草, which nothing was asked for
+	usageViews[a].Record.Expanded = -1
+	usageViews[a].Record.Only = 2 // 起草, which nothing was asked for
 	shot(t, tt, "record-none.png")
 }

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -14,7 +15,7 @@ import (
 
 // logFile is the AI record of the work, beside work.yaml, so that a backup
 // takes it along: a line for each request made of a model.
-const logFile = "ai-log.jsonl"
+const logFile = "ext/usage/ai-log.jsonl"
 
 // The features a request is made for, as the AI record counts them.
 const (
@@ -91,6 +92,9 @@ func (s *Store) Log(r Record) error {
 	defer unlock()
 	p, err := s.path(logFile)
 	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(p), 0755); err != nil {
 		return err
 	}
 	c, err := s.cursor(p, func(_ *jsonlCursor, raw []byte) error {

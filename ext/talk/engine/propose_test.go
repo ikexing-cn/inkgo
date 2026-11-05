@@ -152,41 +152,6 @@ func TestATalkOpenedToRewriteKeepsToItsChapter(t *testing.T) {
 	}
 }
 
-// A proposal finds its place: the chapter named, and in it the words it
-// replaces or follows, there once.
-func TestAProposalFindsItsPlace(t *testing.T) {
-	e, session := setup(t)
-	_, _, two, _ := shelf(t, e)
-	if _, err := e.Store.WriteChapter(two, "她推开门。\n灯灭了。\n灯灭了。她没动。", nil); err != nil {
-		t.Fatal(err)
-	}
-	box := &toolbox{extra: allTools(), allowed: tools(workspace.Work{Language: workspace.Chinese}), store: e.Store, session: session}
-	for _, c := range []struct {
-		in   proposeArgs
-		want string // in the refusal
-		got  workspace.Proposal
-	}{
-		{in: proposeArgs{Chapter: "第二章", At: "replace", Quote: "“她推开门”", Text: "她撞开门。"}, got: workspace.Proposal{Chapter: two, Title: "第二章", At: "replace", Quote: "她推开门", Text: "她撞开门。"}},
-		{in: proposeArgs{Chapter: "第二章", At: "after", Quote: "她没动。", Text: "\n她等着。"}, got: workspace.Proposal{Chapter: two, Title: "第二章", At: "after", Quote: "她没动。", Text: "\n她等着。"}},
-		{in: proposeArgs{Chapter: "第二章", At: "all", Text: "全新的一章。"}, got: workspace.Proposal{Chapter: two, Title: "第二章", At: "all", Text: "全新的一章。"}},
-		{in: proposeArgs{Chapter: "第二章", At: "replace", Quote: "灯灭了。", Text: "x"}, want: "出现了 2 次"},
-		{in: proposeArgs{Chapter: "第二章", At: "replace", Quote: "她跑了", Text: "x"}, want: "找不到 quote"},
-		{in: proposeArgs{Chapter: "第二章", At: "after", Text: "x"}, want: "要在 quote 里逐字复制"},
-		{in: proposeArgs{Chapter: "第一卷", At: "end", Text: "x"}, want: "是一卷"},
-		{in: proposeArgs{Chapter: "第九章", At: "end", Text: "x"}, want: "没有叫「第九章」的章"},
-		{in: proposeArgs{Chapter: "第二章", At: "middle", Text: "x"}, want: "at 只能是"},
-		{in: proposeArgs{Chapter: "第二章", At: "end", Text: " \n "}, want: "text 要写新的正文"},
-	} {
-		out := box.propose(c.in)
-		switch {
-		case c.want != "" && (!out.failed || !strings.Contains(out.text, c.want) || out.proposal != nil):
-			t.Errorf("%+v: %s", c.in, out.text)
-		case c.want == "" && (out.failed || out.proposal == nil || *out.proposal != c.got):
-			t.Errorf("%+v: %s %+v", c.in, out.text, out.proposal)
-		}
-	}
-}
-
 // A proposal shows as its call streams: once its place is found, then as
 // its text grows, a piece of JSON at a time, escapes cut in two and all.
 func TestAProposalShowsAsItStreams(t *testing.T) {

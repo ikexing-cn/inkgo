@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"writer/locales"
 
 	"writer/internal/testshot"
 	"writer/workspace"
@@ -26,9 +27,9 @@ func TestDraftDialogWithCards(t *testing.T) {
 	tail := "起草在一段新的讨论里进行：写好的先在正文里显示为改稿建议，采纳后才写入，写入前保存历史版本；想改哪里，在讨论里接着说。"
 	oldHead := "AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。" + tail
 	newHead := "AI 仅将章纲和本章的卡片扩写为正文，不添加这些之外的重大情节。" + tail
-	a.openDraft()
+	draftOf(a).OpenDraft()
 	tt.Frame()
-	if !tt.HasText(oldHead) || !strings.HasPrefix(a.write.draftNote, "将带上各卷卷纲等，约 ") || a.write.draftCards != 0 {
+	if !tt.HasText(oldHead) || !strings.HasPrefix(draftOf(a).Note, "将带上各卷卷纲等，约 ") || draftOf(a).Cards != 0 {
 		t.Fatal("dialog changed without cards of its chapter", tt.Texts())
 	}
 	if err := tt.Click("取消"); err != nil {
@@ -39,31 +40,31 @@ func TestDraftDialogWithCards(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	a.openDraft()
+	draftOf(a).OpenDraft()
 	tt.Frame()
 	tt.Frame()
-	if !tt.HasText(newHead) || tt.HasText(oldHead) || !strings.HasPrefix(a.write.draftNote, "将带上本章的 2 张卡片、各卷卷纲等，约 ") || a.write.draftCards != 2 {
+	if !tt.HasText(newHead) || tt.HasText(oldHead) || !strings.HasPrefix(draftOf(a).Note, "将带上本章的 2 张卡片、各卷卷纲等，约 ") || draftOf(a).Cards != 2 {
 		t.Fatal("dialog does not describe its chapter's cards", tt.Texts())
 	}
 	testshot.Save(t, "draft-with-cards.png", tt.Image())
-	note := a.write.draftNote
+	note := draftOf(a).Note
 	if err := os.WriteFile(filepath.Join(a.Store.Root(), "ext", "outline", "outline.json"), []byte(`{broken`), 0644); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
 	tt.Frame()
-	if !tt.HasText(newHead) || a.write.draftNote != note || a.write.draftCards != 2 {
+	if !tt.HasText(newHead) || draftOf(a).Note != note || draftOf(a).Cards != 2 {
 		t.Fatal("a frame reread the cards", tt.Texts())
 	}
 	if err := tt.Click("取消"); err != nil {
 		t.Fatal(err)
 	}
-	a.openDraft()
+	draftOf(a).OpenDraft()
 	tt.Frame()
-	if !tt.HasText(oldHead) || !strings.HasPrefix(a.write.draftNote, "将带上各卷卷纲等，约 ") || a.write.draftCards != 0 || a.errorText() != "" {
+	if !tt.HasText(oldHead) || !strings.HasPrefix(draftOf(a).Note, "将带上各卷卷纲等，约 ") || draftOf(a).Cards != 0 || a.errorText() != "" {
 		t.Fatal("a broken outline prevents ordinary drafting", a.errorText(), tt.Texts())
 	}
-	if partNames[workspace.PartCards]() != "本章的卡片" {
+	if locales.ChatPartCards() != "本章的卡片" {
 		t.Fatal("the cards have no part name")
 	}
 }
@@ -89,8 +90,8 @@ func TestDraftNoteCardsBeforePreviousChapter(t *testing.T) {
 		t.Fatal(err)
 	}
 	a.openNode(two)
-	a.openDraft()
-	if !strings.HasPrefix(a.write.draftNote, "将带上本章的 1 张卡片、上一章全文、本卷各章章纲等，约 ") {
-		t.Fatal(a.write.draftNote)
+	draftOf(a).OpenDraft()
+	if !strings.HasPrefix(draftOf(a).Note, "将带上本章的 1 张卡片、上一章全文、本卷各章章纲等，约 ") {
+		t.Fatal(draftOf(a).Note)
 	}
 }

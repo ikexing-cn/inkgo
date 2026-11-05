@@ -43,8 +43,8 @@ func Build(s aiapi.Assistant, st *workspace.Store, material aiapi.Material, tool
 }
 
 // Preloaded describes fixed draft and rewrite context without calling a model.
-func Preloaded(st *workspace.Store, material aiapi.Material, origin, chapter string) (talkapi.Preload, error) {
-	n, err := discussion.Preloaded(st, material, origin, chapter)
+func Preloaded(st *workspace.Store, material aiapi.Material, origin, chapter string, tools ...aiapi.Tool) (talkapi.Preload, error) {
+	n, err := discussion.Preloaded(st, material, origin, chapter, tools...)
 	if err != nil {
 		return talkapi.Preload{}, err
 	}

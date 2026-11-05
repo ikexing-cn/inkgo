@@ -20,7 +20,7 @@ func (a *Panel) StartTalk(c *ui.Context, words workspace.Event) bool {
 		return false
 	}
 	what := map[string]string{workspace.AIDraft: locales.SettingsFeatureDraft(), workspace.AIRewrite: locales.SettingsFeatureRewrite()}[words.Origin]
-	if a.request.Busy() {
+	if a.jobs.Busy() {
 		a.notices().Hint(talktext.DraftBusyOther(what))
 		return false
 	}

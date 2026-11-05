@@ -86,15 +86,10 @@ func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.
 	doc := editor.NewDoc(text)
 	doc.LoadMarks(editorMarks(marks))
 	return editor.New(doc, editor.Options{Prose: true, Placeholder: locales.EditorStartHint, Font: ui.Font{Size: float32(a.write.textSize())}, LineHeight: kit.LhPaper,
-		Predictor: pen{writer: &a.write.pen, chapter: a.write.node}, PredictDelay: a.book.Timing.SaveAfter, PredictOnDemand: !a.write.autoPredict, NoAI: !a.aiOn(),
-		GhostNote: func() string {
-			if pw := a.write.pen.Load(); pw != nil {
-				return (*pw).Name()
-			}
-			return ""
-		},
-		Zoom:    a.sizeText,
-		OwnMenu: func(x, y float32) { a.menu = kit.MenuState{Owner: "prose", X: x, Y: y} },
+		Predictor: chapterPrediction{feed: &a.prediction, chapter: a.write.node}, PredictDelay: a.book.Timing.SaveAfter, PredictOnDemand: true, NoAI: !a.aiOn(),
+		GhostNote: func() string { return a.predictionNote() },
+		Zoom:      a.sizeText,
+		OwnMenu:   func(x, y float32) { a.menu = kit.MenuState{Owner: "prose", X: x, Y: y} },
 	})
 }
 
@@ -104,21 +99,14 @@ func (a *App) chapterEditor(text string, marks []workspace.ChapterMark) *editor.
 func (a *App) textMenu(m *kit.Menu) {
 	ed := a.write.cur().ed
 	s, e := ed.Selection()
-	busy := ed.ReadOnly()
 	cmdCut.item(a, m).Do(cmdCut.act(a))
 	cmdCopy.item(a, m).Do(cmdCopy.act(a))
 	cmdPaste.item(a, m).Do(cmdPaste.act(a))
 	cmdSelectAll.item(a, m).Do(cmdSelectAll.act(a))
 	group := &kit.Menu{}
-	if a.aiOn() {
-		// The row's own state is the editor's: it does not wait on the
-		// chapter's saves as the title bar's does.
-		cmdContinue.item(a, group).Disabled(busy).Do(cmdContinue.act(a))
-		if a.talkOn() {
-			cmdRewrite.item(a, group).Do(cmdRewrite.act(a))
-		}
-	}
+
 	a.selectionMenusAt(group, ed.Doc.Slice(s, e), true)
+
 	if a.hasEntries() {
 		cmdTake.item(a, group).Do(cmdTake.act(a))
 	}

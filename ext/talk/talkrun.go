@@ -175,7 +175,7 @@ func (a *Panel) Say(c *ui.Context, session string, words workspace.Event, unsaid
 			}
 		}, err
 	})
-	a.Turn.Active, a.Turn.Session, a.Turn.Chapter = a.request.Busy(), session, originChapter(append(slices.Clip(a.Events), words))
+	a.Turn.Active, a.Turn.Session, a.Turn.Chapter = a.jobs.Busy(), session, originChapter(append(slices.Clip(a.Events), words))
 }
 
 // Retry runs on the frame thread.
@@ -194,5 +194,5 @@ func (a *Panel) Retry(c *ui.Context, userID string) {
 			}
 		}, err
 	})
-	a.Turn.Active, a.Turn.Session, a.Turn.Chapter = a.request.Busy(), session, originChapter(a.Events)
+	a.Turn.Active, a.Turn.Session, a.Turn.Chapter = a.jobs.Busy(), session, originChapter(a.Events)
 }

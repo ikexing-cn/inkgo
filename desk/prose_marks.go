@@ -5,7 +5,6 @@ import (
 	"writer/editor"
 	"writer/ext"
 	"writer/ext/hostapi"
-	"writer/ext/marks/marksapi"
 )
 
 type proseKey struct {
@@ -63,31 +62,6 @@ func (a *App) feedMarks() {
 	})
 }
 
-func registerLegacyMarks(r *ext.Registrar, a *App) {
-	ext.Contribute(r, marksapi.MarginSources, "ai-written", marksapi.MarginSource{Key: func() any {
-		ed := a.write.cur().ed
-		version := 0
-		if ed != nil {
-			version = ed.Doc.Version()
-		}
-		return struct {
-			ed      *editor.Editor
-			version int
-			ai      bool
-		}{ed, version, a.aiOn()}
-	}, Notes: func(chapter, text string) []marksapi.MarginItem {
-		if !a.aiOn() || a.write.cur().ed == nil {
-			return nil
-		}
-		var out []marksapi.MarginItem
-		for _, m := range a.write.cur().ed.Doc.Marks() {
-			if m.Kind == editor.MarkAI && !m.Orphaned {
-				out = append(out, marksapi.MarginItem{Start: m.Start, End: m.End, Look: editor.MarkAI})
-			}
-		}
-		return out
-	}})
-}
 func proseMarksCall(p hostapi.ProseMarkProvider) func(hostapi.ProseRequest) []editor.ProseMark {
 	return func(in hostapi.ProseRequest) []editor.ProseMark { return p.Marks(in.Chapter, in.Text) }
 }

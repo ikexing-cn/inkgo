@@ -37,7 +37,7 @@ func (a *App) closeFind() {
 	})
 }
 func (a *App) beforeProse(c *ui.Context) {
-	for _, i := range ext.Items(a.extensions, hostapi.BeforeProse) {
+	for _, i := range a.extViews.beforeProse {
 		_, _ = ext.Call(a.extensions, ext.HookOf(ext.CallPoint[hostapi.DrawItem, *ui.Context, struct{}]{Point: hostapi.BeforeProse}, i.ID), c, drawItemCall(i.Value))
 	}
 }

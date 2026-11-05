@@ -29,7 +29,7 @@ var systemCommands = []struct {
 	{"settings", cmdSettings}, {"new-chapter", cmdNewChapter}, {"new-folder", cmdNewFolder},
 	{"save", cmdSave},
 	{"undo", cmdUndo}, {"redo", cmdRedo},
-	{"rename", cmdRename}, {"continue", cmdContinue}, {"draft", cmdDraft},
+	{"rename", cmdRename},
 	{"side", cmdSide}, {"pane", cmdPane},
 	{"zoom-in", cmdZoomIn}, {"zoom-out", cmdZoomOut}, {"zoom-reset", cmdZoomReset}, {"shortcuts", cmdHelp},
 }
@@ -132,13 +132,15 @@ func (a *App) SystemMenu() []SystemMenuItem {
 	}
 	var edit []SystemMenuItem
 	for _, entry := range a.editCommands() {
+		if entry.id == "continue" {
+			edit = append(edit, aiSep)
+		}
 		if entry.cmd == nil {
 			edit = append(edit, sep(entry.id))
 		} else {
 			edit = append(edit, row(entry.id))
 		}
 	}
-	edit = append(edit, aiSep, row("continue"), row("draft"))
 	return []SystemMenuItem{
 		menu("app", "", "appMenu", role("about", "about"), sep("app-settings-separator"), row("settings"), sep("app-hide-separator"), role("hide", "hide"), role("hide-others", "hideOthers"), sep("app-quit-separator"), role("quit", "quit")),
 		menu("file", locales.MenuFile(), "", file...),

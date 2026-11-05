@@ -233,7 +233,7 @@ func (a *Panel) checkState() (line string, found int, can bool, tip string) {
 	case slices.Contains(k.Queue.Pending, w.Node):
 		return checktext.StatusQueued(), 0, false, ""
 	case k.Queue.Failed[w.Node] != nil:
-		line := checktext.StatusFailed(a.settings.ErrorText(k.Queue.Failed[w.Node]))
+		line := checktext.StatusFailed(a.status().FormatError(k.Queue.Failed[w.Node]))
 		return line, 0, true, line // what went wrong is long: in full on hover
 	case !a.hasSetting():
 		return checktext.CheckNoSettings(), 0, false, ""

@@ -364,16 +364,6 @@
     "description": "右栏标签和修改记录里「讨论」的来源：和 AI 的讨论。"
   },
   "sideCollapseTalk": "收起这段对话",
-  "sideDraftTitle": "起草：{title}",
-  "@sideDraftTitle": {
-    "description": "按章纲起草新开的讨论的标题，title 是章的标题。",
-    "placeholders": {
-      "title": {
-        "type": "String",
-        "example": "第1章：雨停"
-      }
-    }
-  },
   "sideFoldedCount": "已收起 {count} 段对话",
   "@sideFoldedCount": {
     "description": "讨论列表底下一行，收起的讨论有几段。",
@@ -386,20 +376,6 @@
   },
   "sideHideFolded": "不显示收起的对话",
   "sideMoveBack": "移回列表",
-  "sideNewTalk": "新对话",
-  "@sideNewTalk": {
-    "description": "讨论页侧栏顶上的加号的提示和无障碍名称。"
-  },
-  "sideRewriteTitle": "改写：{text}",
-  "@sideRewriteTitle": {
-    "description": "AI 改写新开的讨论的标题，text 是选中那段的开头几个字。",
-    "placeholders": {
-      "text": {
-        "type": "String",
-        "example": "他没有回头"
-      }
-    }
-  },
   "talkAll": "总讨论",
   "talkContinueAbout": "AI 会参考已有的设定和正文。",
   "talkContinueTitle": "接着聊这部作品",

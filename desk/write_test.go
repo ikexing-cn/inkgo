@@ -51,7 +51,7 @@ func TestTheHeadLinesUpWithTheProse(t *testing.T) {
 	a.sideHidden = true // whose 正文 is not the prose's
 	ed := shownEditor(a)
 	ed.Select(0, ed.Doc.Len())
-	a.openRewrite()
+	proposeOf(a).OpenRewrite()
 	for _, width := range []int{1000, 2200} {
 		tt.SetSize(width, 780)
 		tt.Frame()
@@ -68,7 +68,7 @@ func TestTheHeadLinesUpWithTheProse(t *testing.T) {
 			t.Fatalf("%d wide: the rewrite's box at %v, the prose at %v", width, ask.X, prose.X+box.X)
 		}
 	}
-	a.write.rewriting = false
+	proposeOf(a).Rewriting = false
 	if err := tt.Click("查找替换"); err != nil {
 		t.Fatal(err)
 	}
@@ -337,8 +337,12 @@ func TestWritingSwitchesKeepAsTicked(t *testing.T) {
 		t.Fatal(err, tt.Texts())
 	}
 	tt.Frame()
-	if p := savedPrefs(t, a); !p.AutoPredict {
-		t.Fatalf("prefs %+v", p)
+	if shownEditor(a).PredictOnDemand() {
+		t.Fatal("automatic continuation was not applied")
+	}
+	raw, err := os.ReadFile(filepath.Join(a.Store.Root(), "ext.json"))
+	if err != nil || !strings.Contains(string(raw), "continue.automatic") {
+		t.Fatal(string(raw), err)
 	}
 }
 

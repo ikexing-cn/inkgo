@@ -12,9 +12,12 @@ import (
 	"writer/shelf"
 )
 
-func declareLifecycle(r *ext.Registrar, a *App, mods []ext.Module) {
+func declareLifecycle(r *ext.Registrar, a *App) {
+	ext.Declare(r, hostapi.Predictions)
 	ext.Declare(r, hostapi.NameHighlights)
 	ext.DeclareCalls(r, hostapi.NameHighlights, func(p hostapi.NameProvider) func(struct{}) hostapi.Names { return p })
+	ext.Declare(r, hostapi.BeforeEditor)
+	ext.DeclareCalls(r, hostapi.BeforeEditor, drawItemCall)
 	ext.Declare(r, hostapi.BeforeProse)
 	ext.DeclareCalls(r, hostapi.BeforeProse, drawItemCall)
 	ext.Declare(r, hostapi.WritingKeys)
@@ -35,23 +38,18 @@ func declareLifecycle(r *ext.Registrar, a *App, mods []ext.Module) {
 	ext.DeclareCalls(r, hostapi.Tools, func(v hostapi.Tool) func(*ui.Context) struct{} {
 		return func(c *ui.Context) struct{} { v.Draw(c); return struct{}{} }
 	})
-	ext.Provide(r, hostapi.SuggestionsService, func(*ext.Session) hostapi.Suggestions { return h })
+	ext.Declare(r, hostapi.LeaveQuestions)
 	ext.Declare(r, hostapi.State)
 	ext.Provide(r, hostapi.SearchService, func(*ext.Session) hostapi.Search { return h })
 	ext.Provide(r, hostapi.AIService, func(*ext.Session) hostapi.AI { return h })
 	ext.Provide(r, hostapi.RevisionsService, func(*ext.Session) hostapi.Revisions { return h })
+	ext.Declare(r, hostapi.SelectionButtons)
 	ext.Declare(r, hostapi.SelectionMenus)
 	ext.DeclareCalls(r, hostapi.SelectionMenus, selectionMenuCall)
 	ext.Declare(r, hostapi.BesideItems)
 	ext.DeclareCalls(r, hostapi.BesideItems, drawItemCall)
 	ext.Declare(r, hostapi.ProseMarks)
 	ext.DeclareCalls(r, hostapi.ProseMarks, proseMarksCall)
-	for _, mod := range mods {
-		if mod.ID == "marks" {
-			registerLegacyMarks(r, a)
-			break
-		}
-	}
 
 	ext.Declare(r, hostapi.ChapterOpens)
 	ext.DeclareCalls(r, hostapi.ChapterOpens, chapterOpenCall)

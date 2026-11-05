@@ -1065,20 +1065,6 @@ func (msgs Messages) SideCollapseTalk() string {
 	return Catalog.Format(msgs.locale, "sideCollapseTalk", nil)
 }
 
-// SideDraftTitle says "起草：{title}"
-// in the language the app shows.
-//
-// 按章纲起草新开的讨论的标题，title 是章的标题。
-func SideDraftTitle(title string) string { return In(i18n.Locale()).SideDraftTitle(title) }
-
-// SideDraftTitle says "起草：{title}"
-// in the language of msgs.
-//
-// 按章纲起草新开的讨论的标题，title 是章的标题。
-func (msgs Messages) SideDraftTitle(title string) string {
-	return Catalog.Format(msgs.locale, "sideDraftTitle", map[string]any{"title": title})
-}
-
 // SideFoldedCount says "已收起 {count} 段对话"
 // in the language the app shows.
 //
@@ -1110,32 +1096,6 @@ func SideMoveBack() string { return In(i18n.Locale()).SideMoveBack() }
 // SideMoveBack says "移回列表"
 // in the language of msgs.
 func (msgs Messages) SideMoveBack() string { return Catalog.Format(msgs.locale, "sideMoveBack", nil) }
-
-// SideNewTalk says "新对话"
-// in the language the app shows.
-//
-// 讨论页侧栏顶上的加号的提示和无障碍名称。
-func SideNewTalk() string { return In(i18n.Locale()).SideNewTalk() }
-
-// SideNewTalk says "新对话"
-// in the language of msgs.
-//
-// 讨论页侧栏顶上的加号的提示和无障碍名称。
-func (msgs Messages) SideNewTalk() string { return Catalog.Format(msgs.locale, "sideNewTalk", nil) }
-
-// SideRewriteTitle says "改写：{text}"
-// in the language the app shows.
-//
-// AI 改写新开的讨论的标题，text 是选中那段的开头几个字。
-func SideRewriteTitle(text string) string { return In(i18n.Locale()).SideRewriteTitle(text) }
-
-// SideRewriteTitle says "改写：{text}"
-// in the language of msgs.
-//
-// AI 改写新开的讨论的标题，text 是选中那段的开头几个字。
-func (msgs Messages) SideRewriteTitle(text string) string {
-	return Catalog.Format(msgs.locale, "sideRewriteTitle", map[string]any{"text": text})
-}
 
 // TalkAll says "总讨论"
 // in the language the app shows.

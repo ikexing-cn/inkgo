@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 	"writer/ext"
+	"writer/ext/draft/drafttext"
 	"writer/ext/hostapi"
 	"writer/internal/testshot"
-	"writer/locales"
 )
 
 func TestOutlineGlobalAndBookSwitchRemoveEverySurfaceSaveDraftAndRestore(t *testing.T) {
@@ -29,11 +29,11 @@ func TestOutlineGlobalAndBookSwitchRemoveEverySurfaceSaveDraftAndRestore(t *test
 					t.Fatal("disabled surface", label)
 				}
 			}
-			if slices.Contains(a.commandList(), cmdDraft) || cmdDraft.present(a) {
+			if slices.Contains(a.commandList(), draftCommand(a)) || draftCommand(a).present(a) {
 				t.Fatal("draft command survived")
 			}
 			click(t, tt, "编辑")
-			if tt.HasText(locales.CmdDraft()) {
+			if tt.HasText(drafttext.CmdDraft()) {
 				t.Fatal("draft menu survived")
 			}
 			tt.Key(0, ui.KeyEscape)
@@ -46,7 +46,7 @@ func TestOutlineGlobalAndBookSwitchRemoveEverySurfaceSaveDraftAndRestore(t *test
 			}
 			a.setExtension("outline", true, book)
 			tt.Frame()
-			if !slices.Contains(a.commandList(), cmdDraft) || chapterOutline(a) != ch.Outline {
+			if !slices.Contains(a.commandList(), draftCommand(a)) || chapterOutline(a) != ch.Outline {
 				t.Fatal("outline did not return")
 			}
 			find(t, tt, "大纲")
@@ -100,14 +100,14 @@ func TestDiscussionUsesUnsavedOutlineAndOmitsItWhenOutlineIsOff(t *testing.T) {
 func TestDraftDisappearsWithoutProviderAndEmptyOutlineStaysDisabledWithHint(t *testing.T) {
 	a, tt, _ := writingFixture(t, "正文")
 	setChapterOutline(a, "")
-	if !slices.Contains(a.commandList(), cmdDraft) || cmdDraft.available(a) || cmdDraft.menuHint(a) != locales.CmdDraftNeedsOutline() {
+	if !slices.Contains(a.commandList(), draftCommand(a)) || draftCommand(a).available(a) || draftCommand(a).menuHint(a) != drafttext.CmdDraftNeedsOutline() {
 		t.Fatal("empty outline lost disabled command or hint")
 	}
 	click(t, tt, "编辑")
-	hasText(t, tt, locales.CmdDraft())
-	hasText(t, tt, locales.CmdDraftNeedsOutline())
+	hasText(t, tt, drafttext.CmdDraft())
+	hasText(t, tt, drafttext.CmdDraftNeedsOutline())
 	a.setExtension("outline", false, false)
-	if slices.Contains(a.commandList(), cmdDraft) || cmdDraft.available(a) {
+	if slices.Contains(a.commandList(), draftCommand(a)) || draftCommand(a).available(a) {
 		t.Fatal("missing provider kept command")
 	}
 }

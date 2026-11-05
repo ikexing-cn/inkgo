@@ -25,6 +25,8 @@ import (
 	checkmod "writer/ext/check"
 	contextmod "writer/ext/context"
 	"writer/ext/context/contextapi"
+	continuation "writer/ext/continue"
+	"writer/ext/draft"
 	"writer/ext/export"
 	findmod "writer/ext/find"
 	"writer/ext/focus"
@@ -36,9 +38,11 @@ import (
 	"writer/ext/notes"
 	"writer/ext/outline"
 	"writer/ext/phone"
+	"writer/ext/propose"
 	"writer/ext/snaps"
 	talkmod "writer/ext/talk"
 	"writer/ext/trash"
+	"writer/ext/usage"
 	"writer/model"
 	"writer/workspace"
 )
@@ -80,7 +84,7 @@ func newApp(config string) *App { return testApp(ai.New(config)) }
 
 func testModules() []ext.Module {
 	mod, _ := backup.New(false)
-	return []ext.Module{focus.Module, goal.Module, names.Module, findmod.Module, notes.Module, lore.Module, outline.Module, hooks.Module, talkmod.Module, checkmod.Module, snaps.Module, trash.Module, cats.Module, mod, export.Module, phone.Module, contextmod.Module, marks.Module}
+	return []ext.Module{focus.Module, goal.Module, names.Module, findmod.Module, notes.Module, lore.Module, outline.Module, hooks.Module, talkmod.Module, continuation.Module, draft.Module, propose.Module, checkmod.Module, usage.Module, snaps.Module, trash.Module, cats.Module, mod, export.Module, phone.Module, contextmod.Module, marks.Module}
 }
 
 func testApp(service aiapi.Backend) *App {
@@ -92,7 +96,7 @@ func testApp(service aiapi.Backend) *App {
 	tm, tp := trash.New()
 	fm, fp := findmod.New()
 	km, kp := checkmod.New()
-	a := newTestApp(service, focus.Module, gm, names.Module, fm, notes.Module, lore.Module, outlineModule, hooks.Module, talkmod.Module, km, sm, tm, cm, mod, export.Module, phone.Module, contextmod.Module, marks.Module)
+	a := newTestApp(service, focus.Module, gm, names.Module, fm, notes.Module, lore.Module, outlineModule, hooks.Module, talkmod.Module, continuation.Module, draft.Module, propose.Module, km, usage.Module, sm, tm, cm, mod, export.Module, phone.Module, contextmod.Module, marks.Module)
 	checkControllers[a] = kp
 	snapControllers[a] = sp
 	trashControllers[a] = tp
@@ -573,7 +577,7 @@ func TestABlankTalkFitsTheWork(t *testing.T) {
 func TestNewWorkKeepsTheModels(t *testing.T) {
 	a, _, _ := fixture(t)
 	talkChoicesOf(a).TalkProvider, talkChoicesOf(a).TalkModel, talkChoicesOf(a).TalkEffort = "deepseek", "deepseek-flash", "high"
-	a.PenProvider, a.PenModel = "deepseek", "deepseek-v4-pro"
+	continueViews[a].Choices().PenProvider, continueViews[a].Choices().PenModel = "deepseek", "deepseek-v4-pro"
 	if err := saveModelChoices(a); err != nil {
 		t.Fatal(err)
 	}
@@ -609,7 +613,7 @@ func TestIncompleteFormsExplainInChinese(t *testing.T) {
 	a, _, _ := fixture(t)
 	was := a.Store.Work()
 	talkChoicesOf(a).TalkProvider, talkChoicesOf(a).TalkModel = "deepseek", ""
-	a.PenProvider, a.PenModel = "deepseek", ""
+	continueViews[a].Choices().PenProvider, continueViews[a].Choices().PenModel = "deepseek", ""
 	if err := saveModelChoices(a); err != nil || a.Store.Work().Discussion != was.Discussion {
 		t.Fatalf("a service without a model: %v %+v", err, a.Store.Work().Discussion)
 	}
@@ -617,7 +621,7 @@ func TestIncompleteFormsExplainInChinese(t *testing.T) {
 	if err := saveModelChoices(a); err != nil || a.Store.Work().Discussion != was.Discussion {
 		t.Fatalf("the writing's service without a model: %v %+v", err, a.Store.Work().Discussion)
 	}
-	a.PenModel = "deepseek-v4-pro"
+	continueViews[a].Choices().PenModel = "deepseek-v4-pro"
 	if err := saveModelChoices(a); err != nil || a.Store.Work().Writing.Model != "deepseek-v4-pro" {
 		t.Fatalf("complete: %v %+v", err, a.Store.Work().Writing)
 	}
@@ -906,8 +910,8 @@ func TestChooseAServiceByName(t *testing.T) {
 	tt.Key(0, ui.KeyDown)
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if a.PenProvider != "deepseek" {
-		t.Fatal(a.PenProvider)
+	if continueViews[a].Choices().PenProvider != "deepseek" {
+		t.Fatal(continueViews[a].Choices().PenProvider)
 	}
 }
 
@@ -1068,11 +1072,23 @@ var outlineControllers = map[*App]*outline.Page{}
 func outlinePage(a *App) *outline.Page { return outlineControllers[a] }
 
 func newTestApp(service aiapi.Backend, mods ...ext.Module) *App {
+	var draftView *draft.View
+	var proposeView *propose.View
+	var continueView *continuation.View
+	var usageView *usage.View
 	var hookPanel *hooks.Panel
 	var notePanel *notes.Panel
 	mods = slices.Clone(mods)
 	for i, m := range mods {
 		switch m.ID {
+		case "draft":
+			mods[i], draftView = draft.New()
+		case "propose":
+			mods[i], proposeView = propose.New()
+		case "continue":
+			mods[i], continueView = continuation.New()
+		case "usage":
+			mods[i], usageView = usage.New()
 		case "hooks":
 			mods[i], hookPanel = hooks.New()
 		case "notes":
@@ -1082,7 +1098,11 @@ func newTestApp(service aiapi.Backend, mods ...ext.Module) *App {
 	view := &aimod.View{}
 	mod := aimod.New(aimod.Options{View: view, ConfigFile: service.ConfigFile(), Factory: func() aiapi.Backend { return service }})
 	a := New(service.ConfigFile(), append(append([]ext.Module(nil), mods...), mod)...)
+	draftViews[a] = draftView
+	proposeViews[a] = proposeView
 	aiViews[a] = view
+	usageViews[a] = usageView
+	continueViews[a] = continueView
 	if svc, ok := ext.Lookup(a.extensions, talkapi.Service); ok {
 		talkControllers[a] = svc.(interface{ View() *talkmod.Panel }).View()
 	}
@@ -1096,15 +1116,15 @@ var aiViews = map[*App]*aimod.View{}
 func aiViewOf(a *App) *aimod.View { return aiViews[a] }
 
 func saveModelChoices(a *App) error {
-	if talkChoicesOf(a).TalkProvider != "" && talkChoicesOf(a).TalkModel == "" || a.PenProvider != "" && a.PenModel == "" {
+	if talkChoicesOf(a).TalkProvider != "" && talkChoicesOf(a).TalkModel == "" || continueViews[a].Choices().PenProvider != "" && continueViews[a].Choices().PenModel == "" {
 		return nil
 	}
-	if a.talkAPI != nil {
-		if err := a.talkAPI.(interface{ SaveChoices() error }).SaveChoices(); err != nil {
+	if svc, ok := ext.Lookup(a.extensions, talkapi.Service); ok {
+		if err := svc.(interface{ SaveChoices() error }).SaveChoices(); err != nil {
 			return err
 		}
 	}
-	return aiViewOf(a).SaveUsage()
+	return continueViews[a].SaveChoices()
 }
 
 var talkControllers = map[*App]*talkmod.Panel{}
@@ -1178,3 +1198,22 @@ func (a *App) paneCounts() paneNums {
 }
 
 func (a *App) entities() []editor.Entity { return a.nameValues().Entities }
+
+var usageViews = map[*App]*usage.View{}
+
+var continueViews = map[*App]*continuation.View{}
+
+var draftViews = map[*App]*draft.View{}
+var proposeViews = map[*App]*propose.View{}
+
+func draftOf(a *App) *draft.View     { return draftViews[a] }
+func proposeOf(a *App) *propose.View { return proposeViews[a] }
+
+func draftCommand(a *App) *command {
+	for _, c := range a.extensionCommands() {
+		if c.id == "draft" {
+			return c.cmd
+		}
+	}
+	return nil
+}

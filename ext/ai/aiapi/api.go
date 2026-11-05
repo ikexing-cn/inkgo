@@ -155,6 +155,8 @@ const Service ext.ServiceKey[Backend] = "ai.service"
 type ToolEnv struct {
 	Store         *workspace.Store
 	Session, Turn string
+	// Call identifies this tool invocation for its owner.
+	Call          string
 	At            string
 	Model, Effort string
 	Shared        *ToolShared

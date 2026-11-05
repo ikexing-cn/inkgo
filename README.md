@@ -26,24 +26,29 @@ npm run verify
 | [cmd/inkgo](cmd/inkgo/main.go) | 装配应用、窗口生命周期、系统对话框和窗口回调 |
 | [desk](desk/doc.go) | 界面、导航、用户操作与后台结果的协调；包内文件分工见入口注释 |
 | [desk/book](desk/book/book.go) | 界面线程看到的书内容、版本与写后刷新 |
-| [outline](ext/outline/doc.go)、[phone](ext/phone/doc.go)、[export](ext/export/doc.go) | 独立页面或面板，都是扩展，经扩展宿主取得能力；outline 往资料库（[context](ext/context/module.go)）登记章纲、卷纲 |
+| [ext](ext/host.go)、[ext/hostapi](ext/hostapi/api.go) | 扩展宿主：装配、依赖、开关、宿主开的点；`hostapi` 是宿主和扩展之间的契约 |
+| `ext/<id>` | 各扩展，id 和原型的 `EXTS` 一样，[cmd/inkgo/modules.go](cmd/inkgo/modules.go) 按原型的顺序装上。对外的接口在 `ext/<id>/<id>api`，自己的文案在 `ext/<id>/<id>text` |
+| 写作：focus、goal、names、find、notes | 专注、目标、名字补全、全书查找、批注 |
+| 设定和大纲：[lore](ext/lore/module.go)、[outline](ext/outline/doc.go)、[hooks](ext/hooks/module.go) | 设定、章纲与卷纲、伏笔 |
+| AI：[talk](ext/talk/module.go)、continue、draft、[propose](ext/propose/module.go)、[check](ext/check/module.go)、usage | 讨论、续写、起草、改稿建议、检查、用量记录 |
+| 文件：snaps、trash、cats、[backup](ext/backup/module.go)、[export](ext/export/module.go)、[phone](ext/phone/doc.go) | 快照、废纸篓、作品分类、备份、导出、手机预览 |
+| 基础：[context](ext/context/module.go)、[marks](ext/marks/module.go)、[ai](ext/ai/module.go) | 资料库（别的扩展往里登记章纲、设定等）、正文标记和页边批注、模型服务和 AI 契约 [aiapi](ext/ai/aiapi/api.go) |
 | [desk/kit](desk/kit/doc.go) | 调色板、尺寸和共用界面零件 |
 | [editor](editor/editor.go) | 文本编辑、撤销、光标、标记与排版；不依赖作品或 AI 实现 |
 | [workspace](workspace/store.go) | 作品类型与规则、文件读写、校验和外部修改保护 |
-| [aiport](aiport/aiport.go)、[ai](ai/ai.go) | 界面使用的 AI 契约，以及装配、开关和请求记录 |
-| [discussion](discussion/engine.go)、[writing](writing/writer.go) | 讨论与工具调用，以及续写、正文检查 |
+| [ai](ai/ai.go)、[writing](writing/writer.go)、[talkbook](talkbook/book.go) | 模型服务、模型句柄和笔；续写与正文检查的请求；讨论工具读写的书中文档 |
 | [inference](inference/model.go)、[prompt](prompt/prompt.go)、[model](model/client.go) | 共用推理规则、上下文预算、模型配置及网络协议 |
-| [backup](ext/backup/module.go)、[export](ext/export/module.go)、[shelf](shelf/shelf.go)、[prefs](prefs/prefs.go) | 备份、导出、作品库与本机设置、每本作品的界面偏好 |
+| [shelf](shelf/shelf.go)、[prefs](prefs/prefs.go)、[locales](locales) | 作品库与本机设置、每本作品的界面偏好、界面上共用的文案 |
 | [internal](internal)、[tokens](tokens/tokens.go) | 有具体用途的小工具、测试辅助和 token 估算 |
 
-主要依赖方向：入口装配 `desk` 和 `ai`；`desk` 只通过 `aiport` 使用 AI；`ai` 组合 `discussion`、`writing` 和 `model`。界面和 AI 都使用 `workspace`，底层不反向依赖界面。对应边界由各包的依赖测试保护。
+主要依赖方向：入口装配 `desk`、扩展宿主和各扩展。`desk` 只经 `hostapi` 用扩展，例外（`aiapi`、`contextapi`、`loreapi` 的几处）列在 [ext/boundary_test.go](ext/boundary_test.go)，限到具体文件。扩展之间只经声明过的依赖、用对方的 `<id>api`。AI 的功能都经 `aiapi` 用模型，`ai` 组合 `writing` 和 `model`。界面和 AI 都使用 `workspace`，底层不反向依赖界面。对应边界由各包的依赖测试保护。
 
 ## 从一个操作读起
 
 - **启动和换书**：[main](cmd/inkgo/main.go) → `desk.New/Open/attach`（[app.go](desk/app.go)）→ `workspace.Open`。
 - **打字和保存**：[editor](editor/editor.go) → [save.go](desk/save.go) 的停笔保存 → [opened.go](desk/opened.go) 的当前章与冲突状态 → `Book.SaveChapterOver` → [workspace/prose.go](workspace/prose.go) 的写前版本比对。
 - **外部改稿检查**：[main](cmd/inkgo/main.go) 的窗口活动通知 → [save.go](desk/save.go) 的前台轮询 → `Book.PollChapter` → [workspace/tree.go](workspace/tree.go) 同次读取树和当前章时间戳。后台暂停周期检查，返回立即检查；自动保存照常。
-- **讨论和 AI 提议**：[talkrun.go](desk/talkrun.go) 的 `send/say` → `aiport.Talk` → [ai.go](ai/ai.go) → [discussion/engine.go](discussion/engine.go)。流式结果交回所属讨论轮次，正文提议的采纳在 [propose.go](desk/propose.go)。
+- **讨论和 AI 提议**：[talkrun.go](ext/talk/talkrun.go) 的 `Send/Say` → `Panel.Talk` 经 `aiapi` 取模型 → [ext/talk/engine](ext/talk/engine/engine.go)。流式结果交回所属讨论轮次；提议经 `aiapi.Proposals` 交给改稿建议，工具 `propose_edit` 在 [ext/propose/tool.go](ext/propose/tool.go)，采纳、拒绝在 [view.go](ext/propose/view.go)。
 
 阅读状态时区分三处：Store 是磁盘上的作品；Book 是界面线程最近读到的书内容；`openChapter` 是编辑器里尚未保存的字和外部冲突。后台任务使用 Store，交回界面后刷新 Book；集合访问的借用规则写在 Book 的类型注释中。
 

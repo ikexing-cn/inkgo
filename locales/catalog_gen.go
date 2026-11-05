@@ -218,40 +218,6 @@ func (msgs Messages) CmdRename() string {
 	return Catalog.Format(msgs.locale, "cmdRename", nil)
 }
 
-// CmdContinue says "续写一句"
-// in the language the app shows.
-func CmdContinue() string { return In(i18n.Locale()).CmdContinue() }
-
-// CmdContinue says "续写一句"
-// in the language of msgs.
-func (msgs Messages) CmdContinue() string {
-	return Catalog.Format(msgs.locale, "cmdContinue", nil)
-}
-
-// CmdDraft says "起草本章"
-// in the language the app shows.
-func CmdDraft() string { return In(i18n.Locale()).CmdDraft() }
-
-// CmdDraft says "起草本章"
-// in the language of msgs.
-func (msgs Messages) CmdDraft() string {
-	return Catalog.Format(msgs.locale, "cmdDraft", nil)
-}
-
-// CmdDraftNeedsOutline says "请先填写章纲"
-// in the language the app shows.
-//
-// 「起草本章」灰着时，菜单行右边说为什么。
-func CmdDraftNeedsOutline() string { return In(i18n.Locale()).CmdDraftNeedsOutline() }
-
-// CmdDraftNeedsOutline says "请先填写章纲"
-// in the language of msgs.
-//
-// 「起草本章」灰着时，菜单行右边说为什么。
-func (msgs Messages) CmdDraftNeedsOutline() string {
-	return Catalog.Format(msgs.locale, "cmdDraftNeedsOutline", nil)
-}
-
 // CmdHideSidebar says "收起侧栏"
 // in the language the app shows.
 func CmdHideSidebar() string { return In(i18n.Locale()).CmdHideSidebar() }
@@ -1430,26 +1396,6 @@ func (msgs Messages) EditorSeeEntry() string {
 	return Catalog.Format(msgs.locale, "editorSeeEntry", nil)
 }
 
-// EditorStopDrop says "让 AI 停下，放弃这一处"
-// in the language the app shows.
-func EditorStopDrop() string { return In(i18n.Locale()).EditorStopDrop() }
-
-// EditorStopDrop says "让 AI 停下，放弃这一处"
-// in the language of msgs.
-func (msgs Messages) EditorStopDrop() string {
-	return Catalog.Format(msgs.locale, "editorStopDrop", nil)
-}
-
-// EditorDropOne says "放弃这一处建议"
-// in the language the app shows.
-func EditorDropOne() string { return In(i18n.Locale()).EditorDropOne() }
-
-// EditorDropOne says "放弃这一处建议"
-// in the language of msgs.
-func (msgs Messages) EditorDropOne() string {
-	return Catalog.Format(msgs.locale, "editorDropOne", nil)
-}
-
 // EditorWriting says "正在写…"
 // in the language the app shows.
 func EditorWriting() string { return In(i18n.Locale()).EditorWriting() }
@@ -1460,16 +1406,6 @@ func (msgs Messages) EditorWriting() string {
 	return Catalog.Format(msgs.locale, "editorWriting", nil)
 }
 
-// EditorAcceptOne says "采纳这一处建议"
-// in the language the app shows.
-func EditorAcceptOne() string { return In(i18n.Locale()).EditorAcceptOne() }
-
-// EditorAcceptOne says "采纳这一处建议"
-// in the language of msgs.
-func (msgs Messages) EditorAcceptOne() string {
-	return Catalog.Format(msgs.locale, "editorAcceptOne", nil)
-}
-
 // EditorAccept says "采纳"
 // in the language the app shows.
 func EditorAccept() string { return In(i18n.Locale()).EditorAccept() }
@@ -1478,142 +1414,6 @@ func EditorAccept() string { return In(i18n.Locale()).EditorAccept() }
 // in the language of msgs.
 func (msgs Messages) EditorAccept() string {
 	return Catalog.Format(msgs.locale, "editorAccept", nil)
-}
-
-// EditorDropAll says "全部放弃"
-// in the language the app shows.
-func EditorDropAll() string { return In(i18n.Locale()).EditorDropAll() }
-
-// EditorDropAll says "全部放弃"
-// in the language of msgs.
-func (msgs Messages) EditorDropAll() string {
-	return Catalog.Format(msgs.locale, "editorDropAll", nil)
-}
-
-// EditorAcceptAll says "全部采纳"
-// in the language the app shows.
-func EditorAcceptAll() string { return In(i18n.Locale()).EditorAcceptAll() }
-
-// EditorAcceptAll says "全部采纳"
-// in the language of msgs.
-func (msgs Messages) EditorAcceptAll() string {
-	return Catalog.Format(msgs.locale, "editorAcceptAll", nil)
-}
-
-// EditorRewriteHint says "改写要求，例如：放慢节奏，多写她的犹豫"
-// in the language the app shows.
-//
-// 改写要求输入框的占位字。
-func EditorRewriteHint() string { return In(i18n.Locale()).EditorRewriteHint() }
-
-// EditorRewriteHint says "改写要求，例如：放慢节奏，多写她的犹豫"
-// in the language of msgs.
-//
-// 改写要求输入框的占位字。
-func (msgs Messages) EditorRewriteHint() string {
-	return Catalog.Format(msgs.locale, "editorRewriteHint", nil)
-}
-
-// EditorRewriteLabel says "改写要求"
-// in the language the app shows.
-func EditorRewriteLabel() string { return In(i18n.Locale()).EditorRewriteLabel() }
-
-// EditorRewriteLabel says "改写要求"
-// in the language of msgs.
-func (msgs Messages) EditorRewriteLabel() string {
-	return Catalog.Format(msgs.locale, "editorRewriteLabel", nil)
-}
-
-// EditorRewrite says "改写"
-// in the language the app shows.
-func EditorRewrite() string { return In(i18n.Locale()).EditorRewrite() }
-
-// EditorRewrite says "改写"
-// in the language of msgs.
-func (msgs Messages) EditorRewrite() string {
-	return Catalog.Format(msgs.locale, "editorRewrite", nil)
-}
-
-// EditorCloseRewrite says "关闭改写"
-// in the language the app shows.
-func EditorCloseRewrite() string { return In(i18n.Locale()).EditorCloseRewrite() }
-
-// EditorCloseRewrite says "关闭改写"
-// in the language of msgs.
-func (msgs Messages) EditorCloseRewrite() string {
-	return Catalog.Format(msgs.locale, "editorCloseRewrite", nil)
-}
-
-// EditorLooking says "AI 正在查阅…"
-// in the language the app shows.
-func EditorLooking() string { return In(i18n.Locale()).EditorLooking() }
-
-// EditorLooking says "AI 正在查阅…"
-// in the language of msgs.
-func (msgs Messages) EditorLooking() string {
-	return Catalog.Format(msgs.locale, "editorLooking", nil)
-}
-
-// EditorSeeTalk says "查看讨论"
-// in the language the app shows.
-func EditorSeeTalk() string { return In(i18n.Locale()).EditorSeeTalk() }
-
-// EditorSeeTalk says "查看讨论"
-// in the language of msgs.
-func (msgs Messages) EditorSeeTalk() string {
-	return Catalog.Format(msgs.locale, "editorSeeTalk", nil)
-}
-
-// EditorWritingSuggestions says "AI 正在写改稿建议…"
-// in the language the app shows.
-func EditorWritingSuggestions() string { return In(i18n.Locale()).EditorWritingSuggestions() }
-
-// EditorWritingSuggestions says "AI 正在写改稿建议…"
-// in the language of msgs.
-func (msgs Messages) EditorWritingSuggestions() string {
-	return Catalog.Format(msgs.locale, "editorWritingSuggestions", nil)
-}
-
-// EditorSuggestionsHere says "本章有 {count} 处改稿建议"
-// in the language the app shows.
-//
-// 正文上面一行：本章有几处改稿建议。
-func EditorSuggestionsHere(count int) string { return In(i18n.Locale()).EditorSuggestionsHere(count) }
-
-// EditorSuggestionsHere says "本章有 {count} 处改稿建议"
-// in the language of msgs.
-//
-// 正文上面一行：本章有几处改稿建议。
-func (msgs Messages) EditorSuggestionsHere(count int) string {
-	return Catalog.Format(msgs.locale, "editorSuggestionsHere", map[string]any{"count": count})
-}
-
-// EditorHowReplace says "绿字是 AI 新写的，划掉的是会被换掉的原文；采纳后才写入正文"
-// in the language the app shows.
-//
-// 改稿建议里有换掉原文的，悬停时的说明。
-func EditorHowReplace() string { return In(i18n.Locale()).EditorHowReplace() }
-
-// EditorHowReplace says "绿字是 AI 新写的，划掉的是会被换掉的原文；采纳后才写入正文"
-// in the language of msgs.
-//
-// 改稿建议里有换掉原文的，悬停时的说明。
-func (msgs Messages) EditorHowReplace() string {
-	return Catalog.Format(msgs.locale, "editorHowReplace", nil)
-}
-
-// EditorHowAppend says "绿字是 AI 新写的；采纳后才写入正文"
-// in the language the app shows.
-//
-// 改稿建议都是接在后面的，悬停时的说明。
-func EditorHowAppend() string { return In(i18n.Locale()).EditorHowAppend() }
-
-// EditorHowAppend says "绿字是 AI 新写的；采纳后才写入正文"
-// in the language of msgs.
-//
-// 改稿建议都是接在后面的，悬停时的说明。
-func (msgs Messages) EditorHowAppend() string {
-	return Catalog.Format(msgs.locale, "editorHowAppend", nil)
 }
 
 // EditorOutlineEmpty says " · 空"
@@ -1812,26 +1612,6 @@ func (msgs Messages) EditorBody() string {
 	return Catalog.Format(msgs.locale, "editorBody", nil)
 }
 
-// EditorAIRewrite says "AI 改写"
-// in the language the app shows.
-func EditorAIRewrite() string { return In(i18n.Locale()).EditorAIRewrite() }
-
-// EditorAIRewrite says "AI 改写"
-// in the language of msgs.
-func (msgs Messages) EditorAIRewrite() string {
-	return Catalog.Format(msgs.locale, "editorAIRewrite", nil)
-}
-
-// EditorAIRewriteMore says "AI 改写…"
-// in the language the app shows.
-func EditorAIRewriteMore() string { return In(i18n.Locale()).EditorAIRewriteMore() }
-
-// EditorAIRewriteMore says "AI 改写…"
-// in the language of msgs.
-func (msgs Messages) EditorAIRewriteMore() string {
-	return Catalog.Format(msgs.locale, "editorAIRewriteMore", nil)
-}
-
 // EditorAddToLore says "加入设定"
 // in the language the app shows.
 func EditorAddToLore() string { return In(i18n.Locale()).EditorAddToLore() }
@@ -1894,16 +1674,6 @@ func EditorPayButton() string { return In(i18n.Locale()).EditorPayButton() }
 // in the language of msgs.
 func (msgs Messages) EditorPayButton() string {
 	return Catalog.Format(msgs.locale, "editorPayButton", nil)
-}
-
-// EditorRewriteSel says "由 AI 改写选中内容"
-// in the language the app shows.
-func EditorRewriteSel() string { return In(i18n.Locale()).EditorRewriteSel() }
-
-// EditorRewriteSel says "由 AI 改写选中内容"
-// in the language of msgs.
-func (msgs Messages) EditorRewriteSel() string {
-	return Catalog.Format(msgs.locale, "editorRewriteSel", nil)
 }
 
 // EditorAddSelTip says "将选中的原文加入设定"
@@ -2042,48 +1812,6 @@ func (msgs Messages) EditorAcceptedUndo() string {
 	return Catalog.Format(msgs.locale, "editorAcceptedUndo", nil)
 }
 
-// EditorProposalAccepted says "已采纳改稿建议；可撤销恢复原文，原版本已存入历史版本"
-// in the language the app shows.
-//
-// 应用单行提示条：采纳提议成功，同时说明撤销和快照。
-func EditorProposalAccepted() string { return In(i18n.Locale()).EditorProposalAccepted() }
-
-// EditorProposalAccepted says "已采纳改稿建议；可撤销恢复原文，原版本已存入历史版本"
-// in the language of msgs.
-//
-// 应用单行提示条：采纳提议成功，同时说明撤销和快照。
-func (msgs Messages) EditorProposalAccepted() string {
-	return Catalog.Format(msgs.locale, "editorProposalAccepted", nil)
-}
-
-// EditorProposalVoid says "改稿建议已作废；写的时候，它要换掉的原文改动了"
-// in the language the app shows.
-//
-// 应用单行提示条：一处流式提议因作者修改原文而作废。
-func EditorProposalVoid() string { return In(i18n.Locale()).EditorProposalVoid() }
-
-// EditorProposalVoid says "改稿建议已作废；写的时候，它要换掉的原文改动了"
-// in the language of msgs.
-//
-// 应用单行提示条：一处流式提议因作者修改原文而作废。
-func (msgs Messages) EditorProposalVoid() string {
-	return Catalog.Format(msgs.locale, "editorProposalVoid", nil)
-}
-
-// EditorProposalsVoid says "{count, plural, other {# 处改稿建议已作废；它要换掉的原文改动了}}"
-// in the language the app shows.
-//
-// 应用单行提示条：原文变化导致多处提议作废。
-func EditorProposalsVoid(count int) string { return In(i18n.Locale()).EditorProposalsVoid(count) }
-
-// EditorProposalsVoid says "{count, plural, other {# 处改稿建议已作废；它要换掉的原文改动了}}"
-// in the language of msgs.
-//
-// 应用单行提示条：原文变化导致多处提议作废。
-func (msgs Messages) EditorProposalsVoid(count int) string {
-	return Catalog.Format(msgs.locale, "editorProposalsVoid", map[string]any{"count": count})
-}
-
 // EditorWhyNoModel says "无法连接模型服务"
 // in the language the app shows.
 //
@@ -2182,16 +1910,6 @@ func CommonCut() string { return In(i18n.Locale()).CommonCut() }
 // in the language of msgs.
 func (msgs Messages) CommonCut() string {
 	return Catalog.Format(msgs.locale, "commonCut", nil)
-}
-
-// CommonDiscard says "放弃"
-// in the language the app shows.
-func CommonDiscard() string { return In(i18n.Locale()).CommonDiscard() }
-
-// CommonDiscard says "放弃"
-// in the language of msgs.
-func (msgs Messages) CommonDiscard() string {
-	return Catalog.Format(msgs.locale, "commonDiscard", nil)
 }
 
 // CommonOpenSettings says "打开设置"
@@ -4250,26 +3968,6 @@ func (msgs Messages) SettingsBookOnly() string {
 	return Catalog.Format(msgs.locale, "settingsBookOnly", nil)
 }
 
-// SettingsRecordsTitle says "AI 记录"
-// in the language the app shows.
-func SettingsRecordsTitle() string { return In(i18n.Locale()).SettingsRecordsTitle() }
-
-// SettingsRecordsTitle says "AI 记录"
-// in the language of msgs.
-func (msgs Messages) SettingsRecordsTitle() string {
-	return Catalog.Format(msgs.locale, "settingsRecordsTitle", nil)
-}
-
-// SettingsRecordsNote says "只记发了什么、多少字，不存原文。"
-// in the language the app shows.
-func SettingsRecordsNote() string { return In(i18n.Locale()).SettingsRecordsNote() }
-
-// SettingsRecordsNote says "只记发了什么、多少字，不存原文。"
-// in the language of msgs.
-func (msgs Messages) SettingsRecordsNote() string {
-	return Catalog.Format(msgs.locale, "settingsRecordsNote", nil)
-}
-
 // SettingsColor says "颜色"
 // in the language the app shows.
 func SettingsColor() string { return In(i18n.Locale()).SettingsColor() }
@@ -4320,72 +4018,6 @@ func (msgs Messages) SettingsForeshadow() string {
 	return Catalog.Format(msgs.locale, "settingsForeshadow", nil)
 }
 
-// SettingsWriting says "写作时"
-// in the language the app shows.
-func SettingsWriting() string { return In(i18n.Locale()).SettingsWriting() }
-
-// SettingsWriting says "写作时"
-// in the language of msgs.
-func (msgs Messages) SettingsWriting() string {
-	return Catalog.Format(msgs.locale, "settingsWriting", nil)
-}
-
-// SettingsAutoContinue says "停笔后自动续写"
-// in the language the app shows.
-func SettingsAutoContinue() string { return In(i18n.Locale()).SettingsAutoContinue() }
-
-// SettingsAutoContinue says "停笔后自动续写"
-// in the language of msgs.
-func (msgs Messages) SettingsAutoContinue() string {
-	return Catalog.Format(msgs.locale, "settingsAutoContinue", nil)
-}
-
-// SettingsAutoNote says "每次停笔都会用一次 AI。"
-// in the language the app shows.
-func SettingsAutoNote() string { return In(i18n.Locale()).SettingsAutoNote() }
-
-// SettingsAutoNote says "每次停笔都会用一次 AI。"
-// in the language of msgs.
-func (msgs Messages) SettingsAutoNote() string {
-	return Catalog.Format(msgs.locale, "settingsAutoNote", nil)
-}
-
-// SettingsUsage says "用量"
-// in the language the app shows.
-func SettingsUsage() string { return In(i18n.Locale()).SettingsUsage() }
-
-// SettingsUsage says "用量"
-// in the language of msgs.
-func (msgs Messages) SettingsUsage() string {
-	return Catalog.Format(msgs.locale, "settingsUsage", nil)
-}
-
-// SettingsNoUsage says "还没用过 AI。"
-// in the language the app shows.
-func SettingsNoUsage() string { return In(i18n.Locale()).SettingsNoUsage() }
-
-// SettingsNoUsage says "还没用过 AI。"
-// in the language of msgs.
-func (msgs Messages) SettingsNoUsage() string {
-	return Catalog.Format(msgs.locale, "settingsNoUsage", nil)
-}
-
-// SettingsSpentRow says "{count} 次请求 · 输入 {input}，缓存命中 {cached}% · 输出 {output}"
-// in the language the app shows.
-//
-// 本作品用量表里一行：请求数、输入、缓存命中比例、输出。
-func SettingsSpentRow(count int, input string, cached int, output string) string {
-	return In(i18n.Locale()).SettingsSpentRow(count, input, cached, output)
-}
-
-// SettingsSpentRow says "{count} 次请求 · 输入 {input}，缓存命中 {cached}% · 输出 {output}"
-// in the language of msgs.
-//
-// 本作品用量表里一行：请求数、输入、缓存命中比例、输出。
-func (msgs Messages) SettingsSpentRow(count int, input string, cached int, output string) string {
-	return Catalog.Format(msgs.locale, "settingsSpentRow", map[string]any{"count": count, "input": input, "cached": cached, "output": output})
-}
-
 // SettingsSpentCost says "约 ${amount, number, ::.00}"
 // in the language the app shows.
 //
@@ -4398,116 +4030,6 @@ func SettingsSpentCost(amount float64) string { return In(i18n.Locale()).Setting
 // 按内置价格估的花费。
 func (msgs Messages) SettingsSpentCost(amount float64) string {
 	return Catalog.Format(msgs.locale, "settingsSpentCost", map[string]any{"amount": amount})
-}
-
-// SettingsViewAll says "查看全部 {count} 次"
-// in the language the app shows.
-//
-// 用量下面的链接，后面写共几次请求。
-func SettingsViewAll(count int) string { return In(i18n.Locale()).SettingsViewAll(count) }
-
-// SettingsViewAll says "查看全部 {count} 次"
-// in the language of msgs.
-//
-// 用量下面的链接，后面写共几次请求。
-func (msgs Messages) SettingsViewAll(count int) string {
-	return Catalog.Format(msgs.locale, "settingsViewAll", map[string]any{"count": count})
-}
-
-// SettingsRecordsAll says "全部"
-// in the language the app shows.
-func SettingsRecordsAll() string { return In(i18n.Locale()).SettingsRecordsAll() }
-
-// SettingsRecordsAll says "全部"
-// in the language of msgs.
-func (msgs Messages) SettingsRecordsAll() string {
-	return Catalog.Format(msgs.locale, "settingsRecordsAll", nil)
-}
-
-// SettingsFilterByFeature says "按功能看"
-// in the language the app shows.
-func SettingsFilterByFeature() string { return In(i18n.Locale()).SettingsFilterByFeature() }
-
-// SettingsFilterByFeature says "按功能看"
-// in the language of msgs.
-func (msgs Messages) SettingsFilterByFeature() string {
-	return Catalog.Format(msgs.locale, "settingsFilterByFeature", nil)
-}
-
-// SettingsNoRecords says "没有记录。"
-// in the language the app shows.
-func SettingsNoRecords() string { return In(i18n.Locale()).SettingsNoRecords() }
-
-// SettingsNoRecords says "没有记录。"
-// in the language of msgs.
-func (msgs Messages) SettingsNoRecords() string {
-	return Catalog.Format(msgs.locale, "settingsNoRecords", nil)
-}
-
-// SettingsRecordDone says "完成"
-// in the language the app shows.
-func SettingsRecordDone() string { return In(i18n.Locale()).SettingsRecordDone() }
-
-// SettingsRecordDone says "完成"
-// in the language of msgs.
-func (msgs Messages) SettingsRecordDone() string {
-	return Catalog.Format(msgs.locale, "settingsRecordDone", nil)
-}
-
-// SettingsRecordCancelled says "已取消"
-// in the language the app shows.
-func SettingsRecordCancelled() string { return In(i18n.Locale()).SettingsRecordCancelled() }
-
-// SettingsRecordCancelled says "已取消"
-// in the language of msgs.
-func (msgs Messages) SettingsRecordCancelled() string {
-	return Catalog.Format(msgs.locale, "settingsRecordCancelled", nil)
-}
-
-// SettingsRecordSent says "发了：{parts}"
-// in the language the app shows.
-//
-// AI 记录里一次请求发了哪几部分、各多大。
-func SettingsRecordSent(parts string) string { return In(i18n.Locale()).SettingsRecordSent(parts) }
-
-// SettingsRecordSent says "发了：{parts}"
-// in the language of msgs.
-//
-// AI 记录里一次请求发了哪几部分、各多大。
-func (msgs Messages) SettingsRecordSent(parts string) string {
-	return Catalog.Format(msgs.locale, "settingsRecordSent", map[string]any{"parts": parts})
-}
-
-// SettingsRecordActualCached says "实际用量：输入 {input}，其中缓存命中 {cached}；输出 {output}"
-// in the language the app shows.
-//
-// AI 记录里服务商算的实际用量，有缓存命中时。
-func SettingsRecordActualCached(input string, cached string, output string) string {
-	return In(i18n.Locale()).SettingsRecordActualCached(input, cached, output)
-}
-
-// SettingsRecordActualCached says "实际用量：输入 {input}，其中缓存命中 {cached}；输出 {output}"
-// in the language of msgs.
-//
-// AI 记录里服务商算的实际用量，有缓存命中时。
-func (msgs Messages) SettingsRecordActualCached(input string, cached string, output string) string {
-	return Catalog.Format(msgs.locale, "settingsRecordActualCached", map[string]any{"input": input, "cached": cached, "output": output})
-}
-
-// SettingsRecordActual says "实际用量：输入 {input}；输出 {output}"
-// in the language the app shows.
-//
-// AI 记录里服务商算的实际用量，没有缓存命中时。
-func SettingsRecordActual(input string, output string) string {
-	return In(i18n.Locale()).SettingsRecordActual(input, output)
-}
-
-// SettingsRecordActual says "实际用量：输入 {input}；输出 {output}"
-// in the language of msgs.
-//
-// AI 记录里服务商算的实际用量，没有缓存命中时。
-func (msgs Messages) SettingsRecordActual(input string, output string) string {
-	return Catalog.Format(msgs.locale, "settingsRecordActual", map[string]any{"input": input, "output": output})
 }
 
 // SettingsCostCurrency says "约 {currency}{amount, number, ::.00}"
@@ -4524,78 +4046,6 @@ func SettingsCostCurrency(currency string, amount float64) string {
 // 非美元币种的估算花费；美元复用 settingsSpentCost。
 func (msgs Messages) SettingsCostCurrency(currency string, amount float64) string {
 	return Catalog.Format(msgs.locale, "settingsCostCurrency", map[string]any{"currency": currency, "amount": amount})
-}
-
-// SettingsNoPrice says "价格未知"
-// in the language the app shows.
-//
-// 用量汇总里模型没有定价时显示。
-func SettingsNoPrice() string { return In(i18n.Locale()).SettingsNoPrice() }
-
-// SettingsNoPrice says "价格未知"
-// in the language of msgs.
-//
-// 用量汇总里模型没有定价时显示。
-func (msgs Messages) SettingsNoPrice() string {
-	return Catalog.Format(msgs.locale, "settingsNoPrice", nil)
-}
-
-// SettingsUsageBack says "‹ 用量"
-// in the language the app shows.
-//
-// AI 记录页返回本作品用量的按钮，含返回箭头。
-func SettingsUsageBack() string { return In(i18n.Locale()).SettingsUsageBack() }
-
-// SettingsUsageBack says "‹ 用量"
-// in the language of msgs.
-//
-// AI 记录页返回本作品用量的按钮，含返回箭头。
-func (msgs Messages) SettingsUsageBack() string {
-	return Catalog.Format(msgs.locale, "settingsUsageBack", nil)
-}
-
-// SettingsRecordFailed says "失败：{why}"
-// in the language the app shows.
-//
-// 请求记录里失败结果的前缀；why 是底层错误原文。
-func SettingsRecordFailed(why string) string { return In(i18n.Locale()).SettingsRecordFailed(why) }
-
-// SettingsRecordFailed says "失败：{why}"
-// in the language of msgs.
-//
-// 请求记录里失败结果的前缀；why 是底层错误原文。
-func (msgs Messages) SettingsRecordFailed(why string) string {
-	return Catalog.Format(msgs.locale, "settingsRecordFailed", map[string]any{"why": why})
-}
-
-// SettingsRecordNoThinking says "{model} · 不思考"
-// in the language the app shows.
-//
-// 请求记录里模型名和关闭思考的状态整行。
-func SettingsRecordNoThinking(model string) string {
-	return In(i18n.Locale()).SettingsRecordNoThinking(model)
-}
-
-// SettingsRecordNoThinking says "{model} · 不思考"
-// in the language of msgs.
-//
-// 请求记录里模型名和关闭思考的状态整行。
-func (msgs Messages) SettingsRecordNoThinking(model string) string {
-	return Catalog.Format(msgs.locale, "settingsRecordNoThinking", map[string]any{"model": model})
-}
-
-// SettingsRecordChapterGone says "已删除的章节"
-// in the language the app shows.
-//
-// 请求记录对应章节已经删除时的标题。
-func SettingsRecordChapterGone() string { return In(i18n.Locale()).SettingsRecordChapterGone() }
-
-// SettingsRecordChapterGone says "已删除的章节"
-// in the language of msgs.
-//
-// 请求记录对应章节已经删除时的标题。
-func (msgs Messages) SettingsRecordChapterGone() string {
-	return Catalog.Format(msgs.locale, "settingsRecordChapterGone", nil)
 }
 
 // SettingsFeatureDraft says "起草"
@@ -4616,16 +4066,6 @@ func SettingsFeatureRewrite() string { return In(i18n.Locale()).SettingsFeatureR
 // in the language of msgs.
 func (msgs Messages) SettingsFeatureRewrite() string {
 	return Catalog.Format(msgs.locale, "settingsFeatureRewrite", nil)
-}
-
-// SettingsFeatureContinue says "续写"
-// in the language the app shows.
-func SettingsFeatureContinue() string { return In(i18n.Locale()).SettingsFeatureContinue() }
-
-// SettingsFeatureContinue says "续写"
-// in the language of msgs.
-func (msgs Messages) SettingsFeatureContinue() string {
-	return Catalog.Format(msgs.locale, "settingsFeatureContinue", nil)
 }
 
 // SettingsModelFor says "{job}模型"
@@ -4954,40 +4394,6 @@ func (msgs Messages) DialogDontSave() string {
 	return Catalog.Format(msgs.locale, "dialogDontSave", nil)
 }
 
-// DialogLeaveTitle says "还有 {count} 处改稿建议没有处理"
-// in the language the app shows.
-//
-// 关闭作品时还有没处理的 改稿建议。
-func DialogLeaveTitle(count int) string { return In(i18n.Locale()).DialogLeaveTitle(count) }
-
-// DialogLeaveTitle says "还有 {count} 处改稿建议没有处理"
-// in the language of msgs.
-//
-// 关闭作品时还有没处理的 改稿建议。
-func (msgs Messages) DialogLeaveTitle(count int) string {
-	return Catalog.Format(msgs.locale, "dialogLeaveTitle", map[string]any{"count": count})
-}
-
-// DialogLeaveAbout says "关闭后将丢弃。"
-// in the language the app shows.
-func DialogLeaveAbout() string { return In(i18n.Locale()).DialogLeaveAbout() }
-
-// DialogLeaveAbout says "关闭后将丢弃。"
-// in the language of msgs.
-func (msgs Messages) DialogLeaveAbout() string {
-	return Catalog.Format(msgs.locale, "dialogLeaveAbout", nil)
-}
-
-// DialogLeaveDiscard says "丢弃并关闭"
-// in the language the app shows.
-func DialogLeaveDiscard() string { return In(i18n.Locale()).DialogLeaveDiscard() }
-
-// DialogLeaveDiscard says "丢弃并关闭"
-// in the language of msgs.
-func (msgs Messages) DialogLeaveDiscard() string {
-	return Catalog.Format(msgs.locale, "dialogLeaveDiscard", nil)
-}
-
 // DialogNewBookTitle says "新建作品"
 // in the language the app shows.
 func DialogNewBookTitle() string { return In(i18n.Locale()).DialogNewBookTitle() }
@@ -5168,228 +4574,6 @@ func (msgs Messages) DialogOsNewBookFolder() string {
 	return Catalog.Format(msgs.locale, "dialogOsNewBookFolder", nil)
 }
 
-// DraftGoal says "{unit, select, word {目标词数（选填）} other {目标字数（选填）}}"
-// in the language the app shows.
-func DraftGoal(unit string) string { return In(i18n.Locale()).DraftGoal(unit) }
-
-// DraftGoal says "{unit, select, word {目标词数（选填）} other {目标字数（选填）}}"
-// in the language of msgs.
-func (msgs Messages) DraftGoal(unit string) string {
-	return Catalog.Format(msgs.locale, "draftGoal", map[string]any{"unit": unit})
-}
-
-// DraftGoalLabel says "{unit, select, word {目标词数} other {目标字数}}"
-// in the language the app shows.
-func DraftGoalLabel(unit string) string { return In(i18n.Locale()).DraftGoalLabel(unit) }
-
-// DraftGoalLabel says "{unit, select, word {目标词数} other {目标字数}}"
-// in the language of msgs.
-func (msgs Messages) DraftGoalLabel(unit string) string {
-	return Catalog.Format(msgs.locale, "draftGoalLabel", map[string]any{"unit": unit})
-}
-
-// DraftGoalHint says "由 AI 按章纲判断"
-// in the language the app shows.
-func DraftGoalHint() string { return In(i18n.Locale()).DraftGoalHint() }
-
-// DraftGoalHint says "由 AI 按章纲判断"
-// in the language of msgs.
-func (msgs Messages) DraftGoalHint() string {
-	return Catalog.Format(msgs.locale, "draftGoalHint", nil)
-}
-
-// DraftGoalInvalid says "{unit, select, word {目标词数须为正整数，或留空} other {目标字数须为正整数，或留空}}"
-// in the language the app shows.
-func DraftGoalInvalid(unit string) string { return In(i18n.Locale()).DraftGoalInvalid(unit) }
-
-// DraftGoalInvalid says "{unit, select, word {目标词数须为正整数，或留空} other {目标字数须为正整数，或留空}}"
-// in the language of msgs.
-func (msgs Messages) DraftGoalInvalid(unit string) string {
-	return Catalog.Format(msgs.locale, "draftGoalInvalid", map[string]any{"unit": unit})
-}
-
-// DraftExisting says "本章已有内容"
-// in the language the app shows.
-func DraftExisting() string { return In(i18n.Locale()).DraftExisting() }
-
-// DraftExisting says "本章已有内容"
-// in the language of msgs.
-func (msgs Messages) DraftExisting() string {
-	return Catalog.Format(msgs.locale, "draftExisting", nil)
-}
-
-// DraftExistingHow says "已有内容的处理方式"
-// in the language the app shows.
-func DraftExistingHow() string { return In(i18n.Locale()).DraftExistingHow() }
-
-// DraftExistingHow says "已有内容的处理方式"
-// in the language of msgs.
-func (msgs Messages) DraftExistingHow() string {
-	return Catalog.Format(msgs.locale, "draftExistingHow", nil)
-}
-
-// DraftAppend says "接在已有内容之后"
-// in the language the app shows.
-func DraftAppend() string { return In(i18n.Locale()).DraftAppend() }
-
-// DraftAppend says "接在已有内容之后"
-// in the language of msgs.
-func (msgs Messages) DraftAppend() string {
-	return Catalog.Format(msgs.locale, "draftAppend", nil)
-}
-
-// DraftOverwrite says "覆盖已有内容"
-// in the language the app shows.
-func DraftOverwrite() string { return In(i18n.Locale()).DraftOverwrite() }
-
-// DraftOverwrite says "覆盖已有内容"
-// in the language of msgs.
-func (msgs Messages) DraftOverwrite() string {
-	return Catalog.Format(msgs.locale, "draftOverwrite", nil)
-}
-
-// DraftAboutCards says "AI 仅将章纲和本章的卡片扩写为正文，不添加这些之外的重大情节。"
-// in the language the app shows.
-func DraftAboutCards() string { return In(i18n.Locale()).DraftAboutCards() }
-
-// DraftAboutCards says "AI 仅将章纲和本章的卡片扩写为正文，不添加这些之外的重大情节。"
-// in the language of msgs.
-func (msgs Messages) DraftAboutCards() string {
-	return Catalog.Format(msgs.locale, "draftAboutCards", nil)
-}
-
-// DraftAboutOutline says "AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。"
-// in the language the app shows.
-func DraftAboutOutline() string { return In(i18n.Locale()).DraftAboutOutline() }
-
-// DraftAboutOutline says "AI 仅将章纲扩写为正文，不添加章纲之外的重大情节。"
-// in the language of msgs.
-func (msgs Messages) DraftAboutOutline() string {
-	return Catalog.Format(msgs.locale, "draftAboutOutline", nil)
-}
-
-// DraftAboutFlow says "…"
-// in the language the app shows.
-func DraftAboutFlow() string { return In(i18n.Locale()).DraftAboutFlow() }
-
-// DraftAboutFlow says "…"
-// in the language of msgs.
-func (msgs Messages) DraftAboutFlow() string {
-	return Catalog.Format(msgs.locale, "draftAboutFlow", nil)
-}
-
-// DraftAbout says "{scope}{flow}"
-// in the language the app shows.
-//
-// 起草对话框的说明：先写 AI
-// 只扩写什么，再写起草怎么进行。中文两句直接相连，英文中间有空格。
-func DraftAbout(scope string, flow string) string { return In(i18n.Locale()).DraftAbout(scope, flow) }
-
-// DraftAbout says "{scope}{flow}"
-// in the language of msgs.
-//
-// 起草对话框的说明：先写 AI
-// 只扩写什么，再写起草怎么进行。中文两句直接相连，英文中间有空格。
-func (msgs Messages) DraftAbout(scope string, flow string) string {
-	return Catalog.Format(msgs.locale, "draftAbout", map[string]any{"scope": scope, "flow": flow})
-}
-
-// DraftItemCards says "本章的 {count} 张卡片"
-// in the language the app shows.
-//
-// 起草时带上的本章卡片数，是「将带上……」列表里的一项。
-func DraftItemCards(count int) string { return In(i18n.Locale()).DraftItemCards(count) }
-
-// DraftItemCards says "本章的 {count} 张卡片"
-// in the language of msgs.
-//
-// 起草时带上的本章卡片数，是「将带上……」列表里的一项。
-func (msgs Messages) DraftItemCards(count int) string {
-	return Catalog.Format(msgs.locale, "draftItemCards", map[string]any{"count": count})
-}
-
-// DraftItemPrev says "上一章全文"
-// in the language the app shows.
-func DraftItemPrev() string { return In(i18n.Locale()).DraftItemPrev() }
-
-// DraftItemPrev says "上一章全文"
-// in the language of msgs.
-func (msgs Messages) DraftItemPrev() string {
-	return Catalog.Format(msgs.locale, "draftItemPrev", nil)
-}
-
-// DraftItemVolume says "本卷各章章纲"
-// in the language the app shows.
-func DraftItemVolume() string { return In(i18n.Locale()).DraftItemVolume() }
-
-// DraftItemVolume says "本卷各章章纲"
-// in the language of msgs.
-func (msgs Messages) DraftItemVolume() string {
-	return Catalog.Format(msgs.locale, "draftItemVolume", nil)
-}
-
-// DraftItemBooks says "各卷卷纲"
-// in the language the app shows.
-func DraftItemBooks() string { return In(i18n.Locale()).DraftItemBooks() }
-
-// DraftItemBooks says "各卷卷纲"
-// in the language of msgs.
-func (msgs Messages) DraftItemBooks() string {
-	return Catalog.Format(msgs.locale, "draftItemBooks", nil)
-}
-
-// DraftListSep says "、"
-// in the language the app shows.
-func DraftListSep() string { return In(i18n.Locale()).DraftListSep() }
-
-// DraftListSep says "、"
-// in the language of msgs.
-func (msgs Messages) DraftListSep() string {
-	return Catalog.Format(msgs.locale, "draftListSep", nil)
-}
-
-// DraftSends says "将带上{items}等，约 {tokens} token；AI 需要时会自己再查。"
-// in the language the app shows.
-//
-// 起草前说明会带上哪些内容、大约多少 token。
-func DraftSends(items string, tokens string) string {
-	return In(i18n.Locale()).DraftSends(items, tokens)
-}
-
-// DraftSends says "将带上{items}等，约 {tokens} token；AI 需要时会自己再查。"
-// in the language of msgs.
-//
-// 起草前说明会带上哪些内容、大约多少 token。
-func (msgs Messages) DraftSends(items string, tokens string) string {
-	return Catalog.Format(msgs.locale, "draftSends", map[string]any{"items": items, "tokens": tokens})
-}
-
-// DraftUsing says "用讨论模型 {model} · {effort}；可在设置中「AI」配置里更换。"
-// in the language the app shows.
-//
-// 起草用的模型和思考程度。
-func DraftUsing(model string, effort string) string {
-	return In(i18n.Locale()).DraftUsing(model, effort)
-}
-
-// DraftUsing says "用讨论模型 {model} · {effort}；可在设置中「AI」配置里更换。"
-// in the language of msgs.
-//
-// 起草用的模型和思考程度。
-func (msgs Messages) DraftUsing(model string, effort string) string {
-	return Catalog.Format(msgs.locale, "draftUsing", map[string]any{"model": model, "effort": effort})
-}
-
-// DraftStart says "开始起草"
-// in the language the app shows.
-func DraftStart() string { return In(i18n.Locale()).DraftStart() }
-
-// DraftStart says "开始起草"
-// in the language of msgs.
-func (msgs Messages) DraftStart() string {
-	return Catalog.Format(msgs.locale, "draftStart", nil)
-}
-
 // HelpGroupWrite says "正文"
 // in the language the app shows.
 //
@@ -5476,16 +4660,6 @@ func HelpCloseTab() string { return In(i18n.Locale()).HelpCloseTab() }
 // in the language of msgs.
 func (msgs Messages) HelpCloseTab() string {
 	return Catalog.Format(msgs.locale, "helpCloseTab", nil)
-}
-
-// HelpContinue says "在光标处续写一句"
-// in the language the app shows.
-func HelpContinue() string { return In(i18n.Locale()).HelpContinue() }
-
-// HelpContinue says "在光标处续写一句"
-// in the language of msgs.
-func (msgs Messages) HelpContinue() string {
-	return Catalog.Format(msgs.locale, "helpContinue", nil)
 }
 
 // HelpAcceptDrop says "采纳 / 放弃续写"
@@ -5730,20 +4904,6 @@ func (msgs Messages) RecordsWholeChapter() string {
 	return Catalog.Format(msgs.locale, "recordsWholeChapter", nil)
 }
 
-// RecordsChapterText says "本章正文"
-// in the language the app shows.
-//
-// AI 记录里一次请求发了哪几部分的名字。
-func RecordsChapterText() string { return In(i18n.Locale()).RecordsChapterText() }
-
-// RecordsChapterText says "本章正文"
-// in the language of msgs.
-//
-// AI 记录里一次请求发了哪几部分的名字。
-func (msgs Messages) RecordsChapterText() string {
-	return Catalog.Format(msgs.locale, "recordsChapterText", nil)
-}
-
 // RecordsChapterSoFar says "本章前文"
 // in the language the app shows.
 //
@@ -5924,118 +5084,6 @@ func SettingsTabExtensions() string { return In(i18n.Locale()).SettingsTabExtens
 // 设置左栏的一项：所有扩展的开关和各自的页。
 func (msgs Messages) SettingsTabExtensions() string {
 	return Catalog.Format(msgs.locale, "settingsTabExtensions", nil)
-}
-
-// ModUsage says "用量记录"
-// in the language the app shows.
-//
-// 「功能」里一个模块的名字。
-func ModUsage() string { return In(i18n.Locale()).ModUsage() }
-
-// ModUsage says "用量记录"
-// in the language of msgs.
-//
-// 「功能」里一个模块的名字。
-func (msgs Messages) ModUsage() string {
-	return Catalog.Format(msgs.locale, "modUsage", nil)
-}
-
-// ModUsageAbout says "记下 AI 用了多少、花了多少"
-// in the language the app shows.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func ModUsageAbout() string { return In(i18n.Locale()).ModUsageAbout() }
-
-// ModUsageAbout says "记下 AI 用了多少、花了多少"
-// in the language of msgs.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func (msgs Messages) ModUsageAbout() string {
-	return Catalog.Format(msgs.locale, "modUsageAbout", nil)
-}
-
-// ModContinue says "续写"
-// in the language the app shows.
-//
-// 「功能」里一个模块的名字。
-func ModContinue() string { return In(i18n.Locale()).ModContinue() }
-
-// ModContinue says "续写"
-// in the language of msgs.
-//
-// 「功能」里一个模块的名字。
-func (msgs Messages) ModContinue() string {
-	return Catalog.Format(msgs.locale, "modContinue", nil)
-}
-
-// ModContinueAbout says "停笔时 AI 接着写一句"
-// in the language the app shows.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func ModContinueAbout() string { return In(i18n.Locale()).ModContinueAbout() }
-
-// ModContinueAbout says "停笔时 AI 接着写一句"
-// in the language of msgs.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func (msgs Messages) ModContinueAbout() string {
-	return Catalog.Format(msgs.locale, "modContinueAbout", nil)
-}
-
-// ModDraft says "起草"
-// in the language the app shows.
-//
-// 「功能」里一个模块的名字。
-func ModDraft() string { return In(i18n.Locale()).ModDraft() }
-
-// ModDraft says "起草"
-// in the language of msgs.
-//
-// 「功能」里一个模块的名字。
-func (msgs Messages) ModDraft() string {
-	return Catalog.Format(msgs.locale, "modDraft", nil)
-}
-
-// ModDraftAbout says "照提纲让 AI 写初稿"
-// in the language the app shows.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func ModDraftAbout() string { return In(i18n.Locale()).ModDraftAbout() }
-
-// ModDraftAbout says "照提纲让 AI 写初稿"
-// in the language of msgs.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func (msgs Messages) ModDraftAbout() string {
-	return Catalog.Format(msgs.locale, "modDraftAbout", nil)
-}
-
-// ModPropose says "改稿建议"
-// in the language the app shows.
-//
-// 「功能」里一个模块的名字。
-func ModPropose() string { return In(i18n.Locale()).ModPropose() }
-
-// ModPropose says "改稿建议"
-// in the language of msgs.
-//
-// 「功能」里一个模块的名字。
-func (msgs Messages) ModPropose() string {
-	return Catalog.Format(msgs.locale, "modPropose", nil)
-}
-
-// ModProposeAbout says "AI 提的修改，同意才写入"
-// in the language the app shows.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func ModProposeAbout() string { return In(i18n.Locale()).ModProposeAbout() }
-
-// ModProposeAbout says "AI 提的修改，同意才写入"
-// in the language of msgs.
-//
-// 「扩展」里：这个扩展是做什么的，一句话。
-func (msgs Messages) ModProposeAbout() string {
-	return Catalog.Format(msgs.locale, "modProposeAbout", nil)
 }
 
 // ModGroupLibraries says "基础"
@@ -6914,4 +5962,58 @@ func CmdCategories() string { return In(i18n.Locale()).CmdCategories() }
 // in the language of msgs.
 func (msgs Messages) CmdCategories() string {
 	return Catalog.Format(msgs.locale, "cmdCategories", nil)
+}
+
+// SideDraftTitle says "起草：{title}"
+// in the language the app shows.
+//
+// 按章纲起草新开的讨论的标题，title 是章的标题。
+func SideDraftTitle(title string) string { return In(i18n.Locale()).SideDraftTitle(title) }
+
+// SideDraftTitle says "起草：{title}"
+// in the language of msgs.
+//
+// 按章纲起草新开的讨论的标题，title 是章的标题。
+func (msgs Messages) SideDraftTitle(title string) string {
+	return Catalog.Format(msgs.locale, "sideDraftTitle", map[string]any{"title": title})
+}
+
+// SideRewriteTitle says "改写：{text}"
+// in the language the app shows.
+//
+// AI 改写新开的讨论的标题，text
+// 是选中那段的开头几个字。
+func SideRewriteTitle(text string) string { return In(i18n.Locale()).SideRewriteTitle(text) }
+
+// SideRewriteTitle says "改写：{text}"
+// in the language of msgs.
+//
+// AI 改写新开的讨论的标题，text
+// 是选中那段的开头几个字。
+func (msgs Messages) SideRewriteTitle(text string) string {
+	return Catalog.Format(msgs.locale, "sideRewriteTitle", map[string]any{"text": text})
+}
+
+// SideNewTalk says "新对话"
+// in the language the app shows.
+//
+// 讨论页侧栏顶上的加号的提示和无障碍名称。
+func SideNewTalk() string { return In(i18n.Locale()).SideNewTalk() }
+
+// SideNewTalk says "新对话"
+// in the language of msgs.
+//
+// 讨论页侧栏顶上的加号的提示和无障碍名称。
+func (msgs Messages) SideNewTalk() string {
+	return Catalog.Format(msgs.locale, "sideNewTalk", nil)
+}
+
+// DraftListSep says "、"
+// in the language the app shows.
+func DraftListSep() string { return In(i18n.Locale()).DraftListSep() }
+
+// DraftListSep says "、"
+// in the language of msgs.
+func (msgs Messages) DraftListSep() string {
+	return Catalog.Format(msgs.locale, "draftListSep", nil)
 }

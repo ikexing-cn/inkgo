@@ -204,18 +204,16 @@ func (a *App) togglePane() {
 // editMenu lists the title bar's 编辑.
 func (a *App) editMenu(m *kit.Menu, later func(func()) func()) {
 	for _, row := range a.editCommands() {
+		if row.id == "continue" {
+			m.Separator()
+		}
 		if row.cmd == nil {
 			m.Separator()
 		} else {
 			a.barItem(m, later, row.cmd)
 		}
 	}
-	if !a.aiOn() {
-		return
-	}
-	m.Separator()
-	a.barItem(m, later, cmdContinue)
-	a.barItem(m, later, cmdDraft)
+
 }
 
 var viewCommandRows = []namedCommand{{id: "side", cmd: cmdSide}, {id: "pane", cmd: cmdPane}, {id: "focus"},

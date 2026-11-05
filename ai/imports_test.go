@@ -16,7 +16,7 @@ func TestImports(t *testing.T) {
 	}
 	within := func(p, root string) bool { return p == root || strings.HasPrefix(p, root+"/") }
 	wrong := slices.DeleteFunc(strings.Fields(string(out)), func(d string) bool {
-		return !within(d, "writer/desk") && !within(d, "github.com/egoist/mygo") && !within(d, "writer/ext/talk")
+		return !within(d, "writer/desk") && !within(d, "writer/ext/talk")
 	})
 	if len(wrong) > 0 {
 		t.Errorf("ai depends on %s", strings.Join(wrong, ", "))
