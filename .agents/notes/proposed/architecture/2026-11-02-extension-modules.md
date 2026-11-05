@@ -342,7 +342,7 @@ MCP 不承载界面，单独一条线：
         - 名字补全经宿主的点 `hostapi.NameHighlights`，照原型的叫法。
       - 重叠时整处让给先到的，和原型的 `pieces` 一样。原来编辑器把重叠的几种叠着画，所以选中一段伏笔或 AI 写的字时，那条线现在不画了（截图 fore-detail、toolbar-selection 变了）。
       - 正文右键菜单的三组：`SelectionMenu` 加了 `Group`，伏笔的几项是第三组；一组空了连同分隔线不画。引用（讨论）在第二组。
-      - 检查还在 `desk`，暂时以宿主的名义往 `marksapi` 登记它的标记和批注，经正文标记的服务判断正文标记开没开。改稿建议采纳后「AI 写的」下划线也一样。这两处在 `desk/marks_legacy.go`，靠 `ext/boundary_test.go` 里的具名例外 `deskMarksImport`（只许 import `marksapi`，只许这一个文件用）。两样都拆成扩展后删。
+      - 检查还在 `desk`，暂时以宿主的名义往 `marksapi` 登记它的标记和批注，经正文标记的服务判断正文标记开没开。改稿建议采纳后「AI 写的」下划线也一样。这两处在 `desk/marks_legacy.go`，靠 `ext/boundary_test.go` 里的具名例外 `deskMarksImport`（只许 import `marksapi`，只许这一个文件用）。两样都拆成扩展后删，2026-11-05 已删，见上面 3.4。
       - 每帧的开销和原来一样：
         - 每个来源给一个便宜的 `Key`，正文标记按它和开关、语言决定要不要重算，没变就不重新取正文。
         - 名字补全按书、版本、设定的修订、开关缓存，编辑器只在名字真变了时才收到。
@@ -358,7 +358,7 @@ MCP 不承载界面，单独一条线：
    2. 检查，2026-11-05 做完。功能扩展 `ext/check`（AI 组，必需 AI、设定、正文标记），能全局、按书开关。
       - 检查页、命令、跑检查、结果、底栏状态、正文上的标记和页边批注、待处理里的那一组、「提醒」页上的设置，都从 `desk` 搬进来。关着时都没有，停在检查页上回到正文，正在跑的那次当场停下；再打开，结果都还在。
       - 照旧用写作那个模型（`Assistant.Model(store, aiapi.RoleWriting)`），请求字节不变，没加模型那一行。
-      - 标记和批注由检查自己往 `marksapi` 登记，`desk/marks_legacy.go` 里只剩改稿建议的「AI 写的」，例外 `deskMarksImport` 留到改稿建议拆完。
+      - 标记和批注由检查自己往 `marksapi` 登记，`desk/marks_legacy.go` 里只剩改稿建议的「AI 写的」，例外 `deskMarksImport` 留到改稿建议拆完（已删，见上面 3.4）。
       - 设定的条目经资料库读，改设定经设定的 `loreapi.RevisionsService`，撤销照旧。设定把资料库的服务转交一份（`loreapi.ReferencesService`），这样检查只依赖设定，不用在依赖里多写一个资料库，和原型的 `EXTS` 一致。这是 Codex 的做法，我没改。
       - 宿主新加的：`Page.Count`（标题栏页名后的数）、`DrawItem.Placement`（底栏里排在中间那段的），`Book` 的 `ChapterState`、`AcknowledgeChapterChange`。
       - 检查的结果搬到 `ext/check/<章 ID>.json`，读写代码还在 `workspace`。不迁移已有的书。备份、恢复的往返测试多查了检查。
