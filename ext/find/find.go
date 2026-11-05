@@ -1,6 +1,7 @@
 package find
 
 import (
+	"fmt"
 	"strings"
 	"unicode/utf8"
 
@@ -62,8 +63,37 @@ func (a *View) findBar(c *ui.Context) {
 	// replacing on the next, so neither is squeezed in a narrow window.
 	bar := ui.Column(c).FillWidth().Padding(8, 24).Gap(6).Shrink(0).Background(a.Palette.Colors().Canvas)
 	none := len(found) == 0
+	replaceOne := func() {
+		if none {
+			return
+		}
+		a.editor().Replace(found[w.Current][0], found[w.Current][1], w.With)
+		if next := a.editor().Doc.Find(w.Query); len(next) > 0 {
+			if w.Current >= len(next) {
+				w.Current = 0
+			}
+			a.editor().Select(next[w.Current][0], next[w.Current][1])
+		}
+	}
+	input := func(value *string, label string, search bool) ui.Element {
+		box := ui.Row(c).Grow(1).Shrink(1).MinWidth(0).Height(kit.HControl).Gap(8).Padding(0, 10).AlignItems(ui.Center).Radius(kit.RControl).Background(a.Palette.Colors().Canvas).Border(1, t.Border)
+		if box.FocusWithin() {
+			box.Border(1, a.Palette.Colors().Ink)
+		}
+		var field ui.Element
+		box.Children(func() {
+			if search {
+				kit.Glyph(c, kit.IcSearch, kit.IconSm, a.Palette.Colors().Faint).Label("find-query-icon")
+			}
+			field = ui.TextInputBase(c, value).Label(label).Placeholder(label).Grow(1).Shrink(1).MinWidth(0).FontSize(kit.FsBody).PlaceholderColor(a.Palette.Colors().Faint)
+		})
+		return field
+	}
 	Query := func() {
-		q := ui.TextInput(c, &w.Query).Label(findtext.FindBox()).Placeholder(findtext.FindBox()).Width(150).Shrink(1).Grow(1).AutoFocus()
+		q := input(&w.Query, findtext.FindBox(), true).AutoFocus()
+		if q.Changed() {
+			w.Current = 0
+		}
 		if w.FindAgain {
 			q.Focus().SetTextSelection(0, utf8.RuneCountInString(w.Query))
 			w.FindAgain = false
@@ -74,44 +104,47 @@ func (a *View) findBar(c *ui.Context) {
 		}
 	}
 	with := func() {
-		ui.TextInput(c, &w.With).Label(findtext.FindReplaceWith()).Placeholder(findtext.FindReplaceWith()).Width(130).Shrink(1).Grow(1)
-	}
-	count := func() {
-		switch {
-		case w.Query == "":
-		case none:
-			ui.Text(c, locales.FindNone()).FontSize(kit.FsNote).TextColor(a.Palette.Colors().Faint).Shrink(0)
-		default:
-			ui.Textf(c, "%d / %d", w.Current+1, len(found)).FontSize(kit.FsNote).TextColor(t.TextMuted).Shrink(0)
+		if input(&w.With, findtext.FindReplaceWith(), false).Submitted() && !a.lost() && !a.paused() {
+			replaceOne()
 		}
 	}
+	count := func() {
+		text := ""
+		if w.Query != "" {
+			switch {
+			case w.Wide && w.hitTotal > 0:
+				text = findtext.FindBookCount(len(w.Hits), w.hitTotal)
+			case w.Wide:
+				text = findtext.FindNoneBook()
+			case none:
+				text = locales.FindNone()
+			default:
+				text = fmt.Sprintf("%d / %d", w.Current+1, len(found))
+			}
+		}
+		ui.Row(c).MinWidth(64).Shrink(0).Justify(ui.End).Label("find-count").Children(func() {
+			ui.Text(c, text).FontSize(kit.FsNote).TextColor(t.TextMuted).SingleLine()
+		})
+	}
 	move := func() {
-		if kit.IconButton(c, kit.IcChevronUp, findtext.FindPrev(), ui.Color{}).Disabled(none).Clicked() {
+		if kit.IconButton(c, kit.IcChevronUp, findtext.FindPrev(), ui.Color{}).Clicked() && !none {
 			w.Current = (w.Current + len(found) - 1) % len(found)
 			show()
 		}
-		if kit.IconButton(c, kit.IcChevronDown, findtext.FindNext(), ui.Color{}).Disabled(none).Clicked() {
+		if kit.IconButton(c, kit.IcChevronDown, findtext.FindNext(), ui.Color{}).Clicked() && !none {
 			w.Current = (w.Current + 1) % len(found)
 			show()
 		}
 	}
 	replace := func() {
-		if a.Palette.Colors().Secondary(c, findtext.FindReplace()).Disabled(none || a.lost()).Clicked() {
-			if s, e := a.editor().Selection(); s == found[w.Current][0] && e == found[w.Current][1] {
-				a.editor().Replace(s, e, w.With)
-				if found = a.editor().Doc.Find(w.Query); len(found) > 0 {
-					w.Current %= len(found)
-					show()
-				}
-			} else {
-				show()
-			}
-		}
 		if w.Wide {
-			if a.Palette.Colors().Secondary(c, findtext.FindReplaceBook()).KeepFocus().Disabled(w.Query == "" || len(w.Hits) == 0 || a.lost() || a.paused()).Clicked() {
+			if a.Palette.Colors().Secondary(c, findtext.FindReplaceBook()).KeepFocus().Disabled(w.hitTotal == 0 || a.lost() || a.paused()).Clicked() {
 				w.Sure = true
 			}
 			return
+		}
+		if a.Palette.Colors().Secondary(c, findtext.FindReplace()).Disabled(none || a.lost()).Clicked() {
+			replaceOne()
 		}
 		if a.Palette.Colors().Secondary(c, findtext.FindReplaceAll()).Disabled(none || a.lost()).Clicked() {
 			n := a.editor().ReplaceAll(w.Query, w.With)
@@ -120,7 +153,7 @@ func (a *View) findBar(c *ui.Context) {
 	}
 	Wide := func() {
 		if a.Palette.Colors().Chip(c, findtext.FindBook(), w.Wide).Tooltip(findtext.FindAllTip()).Clicked() {
-			w.Wide, w.Texts, w.Sure = !w.Wide, nil, false
+			w.Wide, w.Texts, w.Sure, w.Current = !w.Wide, nil, false, 0
 		}
 	}
 	closer := func() {
@@ -130,7 +163,15 @@ func (a *View) findBar(c *ui.Context) {
 	}
 	line := func(fn func()) { ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(fn) }
 	bar.Children(func() {
-		line(func() { Query(); count(); move(); Wide(); closer() })
+		line(func() {
+			Query()
+			count()
+			if !w.Wide {
+				move()
+			}
+			Wide()
+			closer()
+		})
 		line(func() { with(); replace() })
 		if w.Wide {
 			a.bookResults(c)

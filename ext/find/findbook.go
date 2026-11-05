@@ -132,13 +132,9 @@ func (a *View) refreshBookHits() {
 // bookResults lists each occurrence below its chapter heading.
 func (a *View) bookResults(c *ui.Context) {
 	if len(a.hitRows) == 0 {
-		if a.Query != "" {
-			ui.Text(c, findtext.FindNoneBook()).FontSize(kit.FsNote).TextColor(a.Palette.Colors().Faint)
-		}
 		return
 	}
 	pal := a.Palette.Colors()
-	ui.Text(c, findtext.FindBookCount(len(a.Hits), a.hitTotal)).FontSize(kit.FsNote).TextColor(pal.Theme.TextMuted)
 	ui.List(c.Key("bookhits"), &a.hitList, len(a.hitRows), func(i int) {
 		r := a.hitRows[i]
 		h := a.Hits[r.Chapter]
