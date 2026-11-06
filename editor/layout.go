@@ -40,11 +40,12 @@ func (c TextColumn) Layout(width float32) (left, textWidth float32) {
 
 // shaped is a paragraph Shape placed on one line, before it is broken.
 type shaped struct {
-	glyphs []ui.Glyph
-	xs     []float32 // cumulative logical advances; also visual boundaries when ordered
-	first  []int     // first glyph whose cluster is at least this rune; nil for visual order
-	visual []glyphCluster
-	views  map[[2]int]*visualLine
+	breakFlags []uint8 // paragraph segmentation, reused across width and caret changes
+	glyphs     []ui.Glyph
+	xs         []float32 // cumulative logical advances; also visual boundaries when ordered
+	first      []int     // first glyph whose cluster is at least this rune; nil for visual order
+	visual     []glyphCluster
+	views      map[[2]int]*visualLine
 }
 
 func (s *shaped) run(a, b int) []ui.Glyph {

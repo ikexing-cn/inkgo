@@ -4,6 +4,7 @@ go 1.27.3
 
 require (
 	github.com/egoist/mygo v0.7.4
+	github.com/go-text/typesetting v0.3.5
 	github.com/sergi/go-diff v1.4.0
 	github.com/zalando/go-keyring v0.2.8
 	github.com/zendev-sh/goai v0.11.0
@@ -13,7 +14,6 @@ require (
 require (
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/ebitengine/purego v0.11.2 // indirect
-	github.com/go-text/typesetting v0.3.5 // indirect
 	github.com/godbus/dbus/v5 v5.2.4 // indirect
 	github.com/stretchr/testify v1.12.1 // indirect
 	golang.org/x/image v0.47.0 // indirect

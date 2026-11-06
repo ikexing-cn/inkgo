@@ -92,3 +92,28 @@ func TestTextsAreWhatReadingEachGives(t *testing.T) {
 		t.Fatal("no text")
 	}
 }
+
+func TestCountGraphemeClusters(t *testing.T) {
+	for _, tc := range []struct {
+		text   string
+		zh, en int
+	}{
+		{"👨‍👩‍👧 🇨🇳 👍🏽 1️⃣", 4, 1},
+		{"👨‍👩‍👧 🇨🇳 👍🏽 © ∑", 5, 0},
+		{"e\u0301", 1, 1},
+		{"cafe\u0301 don't re-enter 123", 20, 4},
+		{"中e\u0301文👨‍👩‍👧hello🇨🇳", 10, 4},
+		{"か\u3099 \u1112\u1161\u11ab", 2, 2},
+		{" \n\t", 0, 0},
+	} {
+		for _, l := range []Language{Chinese, English} {
+			want := tc.zh
+			if l == English {
+				want = tc.en
+			}
+			if got := l.Count(tc.text); got != want {
+				t.Errorf("%s %q: %d want %d", l, tc.text, got, want)
+			}
+		}
+	}
+}

@@ -92,7 +92,7 @@ Status: implemented
 - 抽出共用小工具，放在新包 `internal/` 下：
   - 整份写文件：`Write` 和流式的 `Create`，替换现有 5 份，都 `Sync`，临时文件名不重复。
   - 严格解码 JSON：替换现有 4 份。
-  - 截断：`Clip` 按字数，`ClipTokens` 按 token 一次算出切点。现有约 7 处各自的口径（n 或 n−1、断不断在换行）原样保留，有测试守着。
+  - 截断：`Clip` 按字素簇数（segmenter v0.3.5），`ClipTokens` 按 token 一次算出切点。现有约 7 处各自的口径（n 或 n−1、断不断在换行）原样保留，有测试守着。
 - 重复的合成一份：
   - `previous`、`holds` 改用 `Node.Within`；
   - 修订改用 `freshID`；

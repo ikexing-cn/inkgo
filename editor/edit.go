@@ -3,6 +3,8 @@ package editor
 import (
 	"slices"
 	"time"
+
+	"github.com/go-text/typesetting/segmenter"
 )
 
 // typingMerge is how close keystrokes must come to undo together.
@@ -152,7 +154,7 @@ func (e *Editor) backspace() {
 		if a == 0 {
 			return
 		}
-		a--
+		a, b = e.graphemeSpan(a - 1)
 	}
 	e.replaceRange(a, b, "", false)
 	e.updateCompletion()
@@ -164,7 +166,7 @@ func (e *Editor) deleteForward() {
 		if b >= e.Doc.Len() {
 			return
 		}
-		b++
+		a, b = e.graphemeSpan(b)
 	}
 	e.replaceRange(a, b, "", false)
 	e.compOpen = false
@@ -232,7 +234,36 @@ func (e *Editor) wordAt(i int) (int, int) {
 	for b < len(r) && r[b] != '\n' && runeClass(r[b]) == cls {
 		b++
 	}
+	a, _ = e.graphemeSpan(a)
+	_, b = e.graphemeSpan(b - 1)
 	return a, b
+}
+
+// graphemeSpan returns the cluster containing rune i, segmenting only its paragraph.
+// Newlines are single clusters, including at paragraph and document edges.
+func (e *Editor) graphemeSpan(i int) (int, int) {
+	r := e.Doc.text
+	if i < 0 {
+		return 0, 0
+	}
+	if i >= len(r) {
+		return len(r), len(r)
+	}
+	if r[i] == '\n' {
+		return i, i + 1
+	}
+	a, b := e.paragraphAt(i)
+	var seg segmenter.Segmenter
+	seg.Init(r[a:b])
+	it := seg.GraphemeIterator()
+	for it.Next() {
+		g := it.Grapheme()
+		start, end := a+g.Offset, a+g.Offset+len(g.Text)
+		if i < end {
+			return start, end
+		}
+	}
+	return b, b
 }
 
 // paragraphAt returns the paragraph around i, without its line break.

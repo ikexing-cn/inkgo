@@ -40,7 +40,7 @@ Status: implemented
 
 `inference` 放讨论和写作共同使用的模型推理规则：`model.go` 的 `Model` 绑定客户端、模型上限和推理等级，`Ready` 判断客户端是否已配置；`decode.go` 的 `Decode` 读取模型回答中的一个严格 JSON 值；`locate.go` 的 `Locate` 容许模型抄引文时增删空白、Markdown 标记和引号，返回原文自己的字。名字取自模型推理，不取自调用它的讨论或写作功能。`ai` 构建 `inference.Model`，`discussion` 和 `writing` 都引用它，`writing` 不引用 `discussion`。`Ready` 在功能入口检查，`Complete` 在发送前填好最大输出并转换截断错误，`Decode`、`Locate` 在接收回答后校验，`Volume` 在拼装章节内容时取值；次数和调用位置由各功能保管。推理前后的规则不依赖界面。
 
-`workspace.Node.Volume` 在取所在卷时排除章节树根，讨论和写作共用这一条树规则。读前一章和遍历已由 `Tree.Previous`、`Tree.Walk` 提供。讨论的 `bookOf` 给模型的章名消歧，起草的 `fixedOf` 收集前卷、同卷前章和全文；写作按当前章取卷纲、章纲和前章结尾，内容范围与呈现规则各自保管。`writing.fit` 按预算迭代截正文，`discussion.Writing.render` 每次去掉四分之一前文，`prompt.ClipTokens` 按估算 token 保留最长前缀并加提示；裁剪结果不同，各自运行于请求拼装时。`writing.clipRunes` 把省略号算进字数，`textclip.Clip` 在保留的字数后加省略号；`discussion.snippet` 取命中前后文并合成一行，各自保留口径。
+`workspace.Node.Volume` 在取所在卷时排除章节树根，讨论和写作共用这一条树规则。读前一章和遍历已由 `Tree.Previous`、`Tree.Walk` 提供。讨论的 `bookOf` 给模型的章名消歧，起草的 `fixedOf` 收集前卷、同卷前章和全文；写作按当前章取卷纲、章纲和前章结尾，内容范围与呈现规则各自保管。`writing.fit` 按预算迭代截正文，`discussion.Writing.render` 每次去掉四分之一前文，`prompt.ClipTokens` 按估算 token 保留最长前缀并加提示；裁剪结果不同，各自运行于请求拼装时。`writing.clipRunes` 把省略号算进字数，`textclip.Clip` 按字素簇截取，在保留的簇数后加省略号；`discussion.snippet` 取命中前后文并合成一行，各自保留口径。
 
 ### 接口清单
 

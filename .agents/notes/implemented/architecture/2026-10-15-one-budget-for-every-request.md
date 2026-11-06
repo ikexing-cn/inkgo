@@ -16,7 +16,7 @@ Status: implemented
 
 `writer/prompt` 依赖 `workspace` 和 `internal/textclip`，不发请求，讨论和写作都用它：
 
-- `Estimate` 按字符估算 token（[按字符估计](2026-10-08-token-estimate-by-character.md)）；`ClipTokens` 与它共用计数公式，一遍累计 ASCII 和其他字符找到可保留的最长前缀，截断处加 `……（后面太长，略去）`。按字数的截断共用 `internal/textclip`，调用处保留 n 或 n−1、是否先停在换行的口径；取匹配前后的片段共用它的首尾截取，空白压缩由各调用处决定。
+- `Estimate` 按字符估算 token（[按字符估计](2026-10-08-token-estimate-by-character.md)）；`ClipTokens` 与它共用计数公式，一遍累计 ASCII 和其他字符找到可保留的最长前缀，截断处加 `……（后面太长，略去）`。按字素簇数的截断共用 `internal/textclip`（经 `internal/grapheme` 使用 segmenter v0.3.5，不切开表情或组合符号；首部截取按需读取，见到第 n+1 个簇即停止，尾部只处理足够的完整末段），调用处保留 n 或 n−1、是否先停在换行的口径；取匹配前后的片段共用它的首尾截取，空白压缩由各调用处决定。
 - `Budget` 是一次请求的空间：`NewBudget(room)` 先留 512 给标题和每条消息的开销；`Take` 放得下才记账，`Must` 不管放不放得下都记账（规则、作者的话、纲这些必须发的），`Return` 退回某一部分。每一部分记在一个名字下。
 - `Sent` 把账写成记录：规则按全文的 SHA-256 前 4 字节记成 8 位十六进制，设定记修订号（`len(Revisions)`），各部分按固定的先后列出估算的 token。只记这些，不存请求全文。
 - 设定只有一种拼法 `Render`：按位置分段，正文按作品分类的顺序、同一分类按加入的顺序，已放弃和悬而未决也按这个顺序。这个顺序只在设定本身变了的地方变，前面的部分缓存照样命中。`Fit` 是装不下时逐条挑：新改的优先，挑中的仍按 `Render` 的顺序发。

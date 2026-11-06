@@ -262,13 +262,17 @@ func (e *Editor) plainKey(shift bool, k ui.Key) bool {
 		a, b := e.Selection()
 		switch {
 		case a != b && !shift && k == ui.KeyLeft:
-			e.MoveTo(a, false)
+			start, _ := e.graphemeSpan(a)
+			e.MoveTo(start, false)
 		case a != b && !shift:
-			e.MoveTo(b, false)
+			_, end := e.graphemeSpan(b - 1)
+			e.MoveTo(end, false)
 		case k == ui.KeyLeft:
-			e.MoveTo(e.caret-1, shift)
+			start, _ := e.graphemeSpan(e.caret - 1)
+			e.MoveTo(start, shift)
 		default:
-			e.MoveTo(e.caret+1, shift)
+			_, end := e.graphemeSpan(e.caret)
+			e.MoveTo(end, shift)
 		}
 	case ui.KeyUp, ui.KeyDown:
 		d := 1

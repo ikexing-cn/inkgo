@@ -5,6 +5,9 @@ import (
 	"os"
 	"strings"
 	"unicode"
+	"unicode/utf8"
+
+	"writer/internal/grapheme"
 )
 
 // Outlines reads only the outlines of all live nodes, including folders.
@@ -57,37 +60,32 @@ func (s *Store) outlines(pick func(*Node) bool) (map[string]string, error) {
 
 // Count measures text using the book language, with CJK counted individually.
 func (l Language) Count(s string) int {
-	if l == English {
-		r := []rune(s)
-		n := 0
-		inside := false
-		for i, ch := range r {
-			cjk := unicode.In(ch, unicode.Han, unicode.Hiragana, unicode.Katakana, unicode.Hangul)
-			if cjk {
-				n++
-				inside = false
-				continue
-			}
-			if unicode.IsLetter(ch) || unicode.IsDigit(ch) {
-				if !inside {
-					n++
-				}
-				inside = true
-				continue
-			}
-			if (ch == '\'' || ch == '-') && inside && i+1 < len(r) && (unicode.IsLetter(r[i+1]) || unicode.IsDigit(r[i+1])) {
-				continue
-			}
-			inside = false
-		}
-		return n
+	if l != English {
+		return grapheme.NonSpace(s)
 	}
-	n := 0
-	for _, r := range s {
-		if !unicode.IsSpace(r) {
+	n, inside := 0, false
+	grapheme.Each(s, func(ch rune, end int) bool {
+		if unicode.In(ch, unicode.Han, unicode.Hiragana, unicode.Katakana, unicode.Hangul) {
 			n++
+			inside = false
+			return true
 		}
-	}
+		if unicode.IsLetter(ch) || unicode.IsDigit(ch) {
+			if !inside {
+				n++
+			}
+			inside = true
+			return true
+		}
+		if (ch == '\'' || ch == '-') && inside && end < len(s) {
+			next, _ := utf8.DecodeRuneInString(s[end:])
+			if unicode.IsLetter(next) || unicode.IsDigit(next) {
+				return true
+			}
+		}
+		inside = false
+		return true
+	})
 	return n
 }
 

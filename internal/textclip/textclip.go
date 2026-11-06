@@ -1,30 +1,21 @@
-// Package textclip clips text by runes, optionally marking omitted text.
+// Package textclip clips text by grapheme clusters, optionally marking omitted text.
 package textclip
 
-import "unicode/utf8"
+import "writer/internal/grapheme"
 
-func First(s string, n int) string {
-	r := []rune(s)
-	return string(r[:min(n, len(r))])
-}
-
-func Last(s string, n int) string {
-	r := []rune(s)
-	return string(r[max(0, len(r)-n):])
-}
-
-// Clip keeps n runes and adds an ellipsis only when text was omitted.
+func First(s string, n int) string { end, _ := grapheme.Prefix(s, n); return s[:end] }
+func Last(s string, n int) string  { start, _ := grapheme.Suffix(s, n); return s[start:] }
 func Clip(s string, n int) string {
-	if utf8.RuneCountInString(s) > n {
-		return First(s, n) + "…"
+	end, more := grapheme.Prefix(s, n)
+	if more {
+		return s[:end] + "…"
 	}
 	return s
 }
-
-// Tail keeps n final runes, prefixing an ellipsis when text was omitted.
 func Tail(s string, n int) string {
-	if utf8.RuneCountInString(s) > n {
-		return "…" + Last(s, n)
+	start, more := grapheme.Suffix(s, n)
+	if more {
+		return "…" + s[start:]
 	}
 	return s
 }

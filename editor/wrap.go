@@ -2,9 +2,11 @@ package editor
 
 import (
 	"strings"
+	"sync"
 	"unicode"
 
 	"github.com/egoist/mygo/ui"
+	"github.com/go-text/typesetting/segmenter"
 )
 
 // positions returns the x of each rune boundary of a text of n runes from
@@ -56,52 +58,91 @@ func positions(n int, gs []ui.Glyph) []float32 {
 	return xs
 }
 
-// breakLines breaks a paragraph into lines no wider than width and returns
-// the rune index each line starts at. Chinese breaks between any two
-// characters, but for punctuation that must not start or end a line
-// (避头尾); runs of Latin letters and digits break between words.
+// Reuse the segmenter's rune and attribute buffers across paragraph layouts.
+var wrapSegmenters = sync.Pool{New: func() any { return new(segmenter.Segmenter) }}
+
+// breakLines uses UAX #14 opportunities filtered by the local punctuation rules.
+// An overwide unbreakable run falls back to grapheme boundaries; a single
+// overwide cluster or punctuation group may overflow rather than be split.
 func breakLines(r []rune, xs []float32, width, indent float32) []int {
+	starts := []int{0}
+	if width <= 0 || len(r) == 0 {
+		return starts
+	}
+	return breakLinesAt(r, xs, width, indent, lineBreakFlags(r))
+}
+
+func lineBreakFlags(r []rune) []uint8 {
+	seg := wrapSegmenters.Get().(*segmenter.Segmenter)
+	defer wrapSegmenters.Put(seg)
+	seg.Init(r)
+	// 1: grapheme boundary, 2: line break, 4: mandatory, 8: local rules allow.
+	flags := make([]uint8, len(r)+1)
+	gi := seg.GraphemeIterator()
+	for gi.Next() {
+		g := gi.Grapheme()
+		flags[g.Offset+len(g.Text)] |= 1
+	}
+	li := seg.LineIterator()
+	for li.Next() {
+		l := li.Line()
+		end := l.Offset + len(l.Text)
+		flags[end] |= 2
+		if l.IsMandatoryBreak {
+			flags[end] |= 4
+		}
+	}
+	for i := 1; i <= len(r); i++ {
+		if flags[i]&1 != 0 && (i == len(r) || (!noLineStart(r[i]) && !noLineEnd(r[i-1]))) {
+			flags[i] |= 8
+		}
+	}
+	return flags
+}
+
+func breakLinesAt(r []rune, xs []float32, width, indent float32, flags []uint8) []int {
 	starts := []int{0}
 	if width <= 0 {
 		return starts
 	}
-	ls := 0
-	for i := 0; i < len(r); i++ {
+	ls, last, fallback := 0, 0, 0
+	for i := 1; i <= len(r); i++ {
+		if flags[i]&1 == 0 {
+			continue
+		}
 		w := width
 		if ls == 0 {
 			w -= indent
 		}
-		if i == ls || xs[i+1]-xs[ls] <= w {
-			continue
-		}
-		brk := i
-		if isWordRune(r[i]) && isWordRune(r[i-1]) {
-			j := i
-			for j > ls && isWordRune(r[j-1]) {
-				j--
+		// Spaces belong to the preceding line and do not force an earlier break.
+		if xs[i]-xs[ls] > w && r[i-1] != ' ' {
+			brk := last
+			if brk <= ls {
+				brk = fallback
 			}
-			if j > ls {
-				brk = j
+			if brk <= ls && flags[i]&8 != 0 {
+				brk = i
+			}
+			if brk > ls {
+				if brk >= len(r) {
+					break
+				}
+				starts = append(starts, brk)
+				ls, last, fallback = brk, brk, brk
+				i = brk
+				continue
 			}
 		}
-		// Pull a character down to the next line rather than start it
-		// with a closing mark or end a line with an opening one; twice at
-		// most, for marks that come in pairs such as ”。.
-		for k := 0; k < 2 && brk > ls+1; k++ {
-			if !noLineStart(r[brk]) && !noLineEnd(r[brk-1]) {
-				break
+		if flags[i]&8 != 0 {
+			fallback = i
+			if flags[i]&2 != 0 {
+				last = i
 			}
-			brk--
+			if flags[i]&4 != 0 && i < len(r) {
+				starts = append(starts, i)
+				ls, last, fallback = i, i, i
+			}
 		}
-		for brk < len(r) && r[brk] == ' ' {
-			brk++ // spaces stay at the end of the line they follow
-		}
-		if brk >= len(r) {
-			break
-		}
-		starts = append(starts, brk)
-		ls = brk
-		i = brk - 1
 	}
 	return starts
 }

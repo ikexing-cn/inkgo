@@ -52,7 +52,10 @@ func layoutParagraph(text []rune, font ui.Font, width, indent, gap float32, sh *
 		s := shapeText(string(text), font, gap)
 		sh = &s
 	}
-	return sh, breakLines(text, sh.xs, width, indent)
+	if sh.breakFlags == nil {
+		sh.breakFlags = lineBreakFlags(text)
+	}
+	return sh, breakLinesAt(text, sh.xs, width, indent, sh.breakFlags)
 }
 
 func textAscent(font ui.Font, lineHeight float32) float32 {

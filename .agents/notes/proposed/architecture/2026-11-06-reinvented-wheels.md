@@ -33,8 +33,8 @@ Status: proposed
 | 2 | `inference/` | 从回答里严格解析 JSON；`Locate` 忽略空白定位引文 | goai 的 `GenerateObject`、`StreamObject`；`kaptinlin/jsonrepair`（126 / 2026-10-25 / MIT）；`RealAlexandreAI/json-repair`（385 / 2026-11-02 / **GPL-3.0**）；`sergi/go-diff` 的模糊匹配作参照 | 部分。JSON 修复会把「拒绝坏回答」变成「容错」，语义不同；`Locate` 没有现成替代 | — | C、A |
 | 3（已施工） | `model/pricing.go` | 手抄的价格和上下文上限表 | models.dev（`anomalyco/models.dev`，7523 / 2026-11-06 / MIT） | 是。可以在发布时生成固定版本，不必运行时联网 | [模型上限和用量](../../implemented/architecture/2026-10-15-model-limits-and-usage.md)：随软件发布更新，不联网拉；发布时生成和它不冲突 | C |
 | 4 | `prompt/prompt.go` 的 `Estimate`、`ClipTokens` | 按字符比例估 token | `pkoukk/tiktoken-go`（960 / 2026-05-12 / MIT）、`tiktoken-go/tokenizer`（463 / 2026-10-21 / MIT），以及各家的 count tokens 接口 | 是。但没有一个精确计数器能覆盖所有模型 | [按字符估 token](../../implemented/architecture/2026-10-08-token-estimate-by-character.md)和 [M1 讨论](../../implemented/feature/2026-10-07-m1-discussion.md)：不接供应商 tokenizer，自定义端点未必提供 | C |
-| 5 | `editor/wrap.go` 63 行 `breakLines` | 断行、英文按词断、避头尾 | `rivo/uniseg`（740 / 2026-11-05 / MIT）；`go-text/typesetting` 的 segmenter（161 / 2026-11-02，已是间接依赖） | 是。库给出合法断点，字宽、缩进、AI 插入的间隙仍归本地 | [纯 Go 编辑器](../../implemented/architecture/2026-10-07-pure-go-native-editor.md)：编辑器自己断行；[两端对齐](../feature/2026-11-02-justified-prose-and-adjustable-spacing.md)否掉过换成 mygo 的断行 | C |
-| 6 | `internal/textclip` | 按 rune 截断，会切开表情和组合字符 | `rivo/uniseg` | 是。界面摘要可以改按字素截；业务上约定按 rune 计长度的地方不能一起改 | — | C |
+| 5 | `editor/wrap.go` 63 行 `breakLines` | 断行、英文按词断、避头尾 | `rivo/uniseg`（740 / 2026-11-05 / MIT）；`go-text/typesetting` 的 segmenter（161 / 2026-11-02，已是间接依赖） | 已施工（segmenter v0.3.5）。是。库给出合法断点，字宽、缩进、AI 插入的间隙仍归本地 | [纯 Go 编辑器](../../implemented/architecture/2026-10-07-pure-go-native-editor.md)：编辑器自己断行；[两端对齐](../feature/2026-11-02-justified-prose-and-adjustable-spacing.md)否掉过换成 mygo 的断行 | C |
+| 6 | `internal/textclip` | 按 rune 截断，会切开表情和组合字符 | `rivo/uniseg` | 已施工（segmenter v0.3.5）。是。界面摘要可以改按字素截；业务上约定按 rune 计长度的地方不能一起改 | — | C |
 | 7 | `ext/snaps/textdiff` | 盘点时为段落、字符两级 LCS；已施工：两层换成 go-diff | `sergi/go-diff`（2092 / 2025-06-05 / MIT）、`aymanbagabas/go-udiff`（235 / 2026-07-16 / BSD-3）、`hexops/gotextdiff`（7 / 2023-09，停更）、`pmezard/go-difflib`（429 / 2023-05，停更） | 是。另外 astra 发现，400 万格的上限只用在字符那一层（`diffRunes`），段落那一层的 LCS 没有上限，Claude 已核实 | — | C、A |
 | 8 | `internal/atomicfile` | 临时文件、Sync、改名 | `google/renameio`（681 / 2026-01-10 / Apache-2.0，**在 Windows 上不导出任何函数**）、`natefinch/atomic`（212 / 2022-05，停更，支持 Windows） | 是，但没有合适的替代 | [纯文件存储](../../implemented/architecture/2026-10-08-m1-storage-without-index.md)：写文件只留这一份实现 | C |
 | 9 | `ext/export/format/docx.go` | 手写 OOXML | `gomutex/godocx`（273 / 2025-08-11 / MIT）、`fumiama/go-docx`（307 / 2025-05 / **AGPL-3.0**）、`unidoc/unioffice`（4941 / 2026-09-21，**商业许可**） | 是。候选要么不常维护，要么许可证不合适 | [导出 Word](../../implemented/feature/2026-10-16-export-to-word.md)：要的几样用标准库一百多行就够，不多加依赖 | C |
@@ -47,8 +47,8 @@ Status: proposed
 | 16 | `scripts/prototype/browser.ts` | 自己写的 DevTools 协议驱动 | Playwright（99414 / 2026-11-06）、puppeteer（95806 / 2026-11-05）、`chromedp/chromedp`（13356 / 2026-11-05）、`go-rod/rod`（7145 / 2026-08-11） | 是。前两个违反「不装 npm 依赖」；后两个要把驱动改写成 Go | [本地原型](../../implemented/process/2026-10-12-local-prototype.md)：只用 Node 自带的 WebSocket 和 fetch | C |
 | 17 | `scripts/verify-agent-note-*.ts`、`check-note-anchors.ts` | 检查笔记格式和链接 | `lycheeverse/lychee`（4097 / 2026-11-02）、`remarkjs/remark-validate-links`（125 / 2025-02-21）、`DavidAnson/markdownlint`（6416 / 2026-11-06） | 部分。生命周期目录、必备的节、锚点是仓库自己的规则 | — | C |
 | 18 | `editor/` | 撤销栈、按键合并、文本缓冲 | `gioui/gio` 的 `widget.Editor`（2294 / 2026-11-02，只能参照，嵌不进 mygo）、`zyedidia/rope`（8 / 2021-06，停更） | 部分 | [纯 Go 编辑器](../../implemented/architecture/2026-10-07-pure-go-native-editor.md) | C、A |
-| 19 | `editor/edit.go` 149 行起、`wordAt`、`wrap.go` 的 `runeClass` | 退格和 Delete 一次删一个 rune；双击按自定义的字符类选词 | `rivo/uniseg`、go-text 的 segmenter | 是。**退格会把表情或组合字符删掉一半，作者看得见**（155 行 `a--`，Claude 已核实） | [纯 Go 编辑器](../../implemented/architecture/2026-10-07-pure-go-native-editor.md) | A |
-| 20 | `workspace/reads.go` 59 行 `Language.Count` | 字数统计 | `rivo/uniseg`、go-text 的 segmenter | 部分。统计口径是产品规则，换库不能悄悄改了字数 | — | A |
+| 19 | `editor/edit.go` 149 行起、`wordAt`、`wrap.go` 的 `runeClass` | 退格和 Delete 一次删一个 rune；双击按自定义的字符类选词 | `rivo/uniseg`、go-text 的 segmenter | 已施工（segmenter v0.3.5）。是。**退格会把表情或组合字符删掉一半，作者看得见**（155 行 `a--`，Claude 已核实） | [纯 Go 编辑器](../../implemented/architecture/2026-10-07-pure-go-native-editor.md) | A |
+| 20 | `workspace/reads.go` 59 行 `Language.Count` | 字数统计 | `rivo/uniseg`、go-text 的 segmenter | 已施工（segmenter v0.3.5）。部分。统计口径是产品规则，换库不能悄悄改了字数 | — | A |
 | 21 | `editor/doc.go` 115 行、`ext/find/findbook.go` | 逐位置比较的查找；全书查找 | `strings.Index`（标准库）、`blevesearch/bleve`（11251 / 2026-11-04）、SQLite FTS | 部分。全书索引受「不建索引」限制 | [纯文件存储](../../implemented/architecture/2026-10-08-m1-storage-without-index.md) | A |
 | 22 | `editor/names.go` 33 行、`editor/complete.go` 26 行 | 每个名字各扫一遍全章；逐个查前缀 | `cloudflare/ahocorasick`（728 / 2026-04-24）、`armon/go-radix`（948 / 2024-07，停更；astra 写成 `hashicorp/go-radix`，没有这个仓库）、`hashicorp/go-immutable-radix`（1106 / 2026-10-26 / MPL-2.0） | 部分。名字少时现在的写法够用 | — | A |
 | 23 | `desk/save.go` 64 行、`workspace/tree.go` | 定时检查文件在外面被改过没有 | `fsnotify/fsnotify`（10809 / 2026-05-11）、`radovskyb/watcher`（1506 / 2023-10，停更） | 部分。文件事件代替不了写之前的版本核对 | — | A |
@@ -70,7 +70,7 @@ Status: proposed
 
 这两条是盘点时顺带发现的缺陷，不管换不换库都该修：
 
-- **19**：退格和 Delete 会切开字素簇。
+- **19（已施工）**：退格和 Delete 会切开字素簇。
 - **7**：盘点时段落那一层的 LCS 没有上限，两份很长的稿子对比时，表会很大；第 7 条已施工，两层都交给 go-diff 的默认超时。
 
 ### 值得先看的
@@ -82,12 +82,14 @@ Status: proposed
   - 8、9 没有合适的替代（Windows 支持、许可证、维护频率），保留自写；
   - 13、14、15、16 牵涉已有决定或「不装 npm 依赖」的约定，要不要重议由作者定。
 
-### 作者的决定（2026-11-06，暂时搁置）
+### 作者的决定（2026-11-06）
+
+19、20、5、6 已施工（2026-11-06），现行事实见[纯 Go 编辑器](../../implemented/architecture/2026-10-07-pure-go-native-editor.md)和[字数口径](2026-11-02-i18n-on-mygo.md)。其余决定尚未全部落实，因此盘点整篇保留 proposed，不把未完成项标成 implemented。
 
 下面只记作者说过的话；后面跟着的是 Claude 为这一条查到的事实，不是作者的决定。表里没提到的项，作者还没表态。
 
-- **19**：「19 同意」；Claude 解释过以后，作者又说了一次「19 同意」。退格、Delete、双击选词改按字素簇。go-text/typesetting 的 segmenter 已经经 mygo 链进来了，有按 rune 的接口和字素、断行两种迭代器，不必新加依赖。
-- **5**：「5 同意」。断点改用 segmenter 的 UAX #14，字宽、缩进、AI 插入的间隙和避头尾的产品规则仍归本地。
+- **19**：「19 同意」；Claude 解释过以后，作者又说了一次「19 同意」。退格、Delete、普通左右键及 Shift 扩选按字素簇；双击保留 runeClass 产品分类，只将两端扩到字素簇边界。go-text/typesetting 的 segmenter 已经经 mygo 链进来了，有按 rune 的接口和字素、断行两种迭代器，不必新加依赖。
+- **5（已施工）**：「5 同意」。断点改用 segmenter 的 UAX #14，字宽、缩进、AI 插入的间隙和避头尾的产品规则仍归本地。
 - **7**：「7 同意，但是mygo好像也有个diff … 参考一下」。查过 mygo v0.7.4：
   - 算法在 `internal/diff`：git 的 histogram 算法，每行都重复太多时退回带代价上限的 Myers；另有 `Words`、`Chars` 两种行内比较，`ui/editor` 的 `alignBySimilarity` 按相似度给改过的行配对。这几样正是我们缺的：有上限而不是硬切成「整段替换」，段落配对也更像人想的。
   - `internal/diff` 本身导入不了，但段落那一层能经公开的 API 调到：`editor.DiffState{Old: editor.NewBuffer(旧), New: editor.NewBuffer(新)}` 不画界面，直接调 `Hunks()`，得到按行（我们的段落）的改动范围，`Stats()` 得到增删行数。Claude 写了个不开窗口的小程序试过：三千段、每十段改一段，连建缓冲带比较约 0.11 秒。`ui/editor` 已经链进我们的包里，不增加体积。
@@ -127,8 +129,8 @@ Status: proposed
   - 往后的路：请 mygo 给 richtext 开按键、装饰、按字取位置的接口（对外的事，由作者定）；在那之前，第 5、19 条在现在的编辑器里修不算白做。
   - 作者说：「mygo 这个设计也保留笔记，也是后面再换」。新笔记是[编辑器以后换到 mygo 的 richtext](2026-11-06-editor-on-mygo-richtext.md)。
 - **23**：「这个感觉也是个有需要的，后续可能维护一个新的插件吧，先记一下笔记」。新笔记是[文件监视扩展](../feature/2026-11-06-watch-files-extension.md)。盘点时漏了一个候选：mygo 自己就有 `mygo.WatchFiles`（`watch.go`），能递归监视、合并短时间内的多次改动、把原子保存报成一次写入，比 fsnotify 更合适，也不加依赖。
-- **20**：「20 这个无伤大雅 用库吧」。字数统计改用 go-text/typesetting 的 segmenter（已经链进来了），按字素簇数，表情不再被拆成几个字。英文按词、中文按字的口径不变。
-- **6**：作者先说没看懂，Claude 解释过以后作者说「改」。界面上截短文字（`internal/textclip`）改成不切开字素簇。
+- **20（已施工）**：「20 这个无伤大雅 用库吧」。字数统计改用 go-text/typesetting 的 segmenter（已经链进来了），按字素簇数，表情不再被拆成几个字。英文按词、中文按字的口径不变。
+- **6（已施工）**：作者先说没看懂，Claude 解释过以后作者说「改」。界面上截短文字（`internal/textclip`）改成不切开字素簇。
 - **8**：作者问原子写文件的好处，说后续可能有增量云同步，「原子写文件和增量云同步都先记笔记」。新笔记是[增量云同步](../feature/2026-11-06-incremental-cloud-sync.md)。Claude 的看法仍是第 8 条保留自写，作者没表态。
 - **27**：作者问「model.dev应该有吧」。models.dev 有官方服务商的模型列表，但 `ListModels` 列的是作者自己的端点实际提供的模型，中转和自定义端点上有什么，models.dev 不知道。两者配合，见 [models.dev 后台拉取](../../implemented/architecture/2026-11-06-model-table-from-models-dev.md)「和模型列表的关系」。
 
@@ -161,7 +163,7 @@ Status: proposed
 ## 相关笔记当场审计
 
 - [契约审查](2026-11-06-extension-contract-review.md)：无关，那篇是扩展失败路径的修法。本篇是它施工前的另一项盘点，互不取代。
-- 「已有决定」一栏链到的笔记：部分重叠。本篇只引用它们，原篇这次不改；作者定了要重议或要换的项，再回原篇加链接、改内容。这些笔记是：
+- 「已有决定」一栏链到的笔记：部分重叠。本篇引用它们；19、20、5、6 的现行事实已同步原篇，其余项落实后再同步。这些笔记是：
   - [讨论用工具查全书](../../implemented/feature/2026-10-15-talk-looks-up-and-notes-the-setting.md)
   - [模型层](../../implemented/architecture/2026-10-08-model-layer-on-goai.md)
   - [模型上限和用量](../../implemented/architecture/2026-10-15-model-limits-and-usage.md)

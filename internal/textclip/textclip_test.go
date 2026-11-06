@@ -30,3 +30,24 @@ func TestMeasures(t *testing.T) {
 		}
 	}
 }
+
+func TestGraphemeClipping(t *testing.T) {
+	for _, g := range []string{"👨‍👩‍👧", "🇨🇳", "👍🏽", "1️⃣", "e\u0301"} {
+		s := "甲" + g + "乙"
+		if got := First(s, 2); got != "甲"+g {
+			t.Errorf("First: %q", got)
+		}
+		if got := Last(s, 2); got != g+"乙" {
+			t.Errorf("Last: %q", got)
+		}
+		if got := Clip(s, 2); got != "甲"+g+"…" {
+			t.Errorf("Clip: %q", got)
+		}
+		if got := Tail(s, 2); got != "…"+g+"乙" {
+			t.Errorf("Tail: %q", got)
+		}
+		if Clip(g, 1) != g || Tail(g, 1) != g {
+			t.Errorf("unnecessary ellipsis: %q", g)
+		}
+	}
+}
