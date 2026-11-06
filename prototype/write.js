@@ -358,6 +358,7 @@ function aiRare(here) {
     ['回复超出最大输出', () => { set(SHUT); say(L.editorOutputTooLong(), L.editorOutputTooLongHint(), 'fail', [[L.commonOpenSettings(), () => set({ dialog: { kind: 'settings', tab: 'AI', edit: '' }, toasts: [], ...SHUT })]]) }],
     ['讨论查阅达到上限', here((s) => ({ paneOpen: true, tab: '讨论', tv: 'one', tid: 't1', talks: s.talks.map((talk) => (talk.id !== 't1' ? talk : { ...talk, msgs: [...talk.msgs, ...capped()] })) }))],
     ['设定较多，只附目录', here(() => ({ paneOpen: true, tab: '讨论', tv: 'one', tid: 't2', crowded: true, told: { 't2-1': true } }))],
+    ['模型资料同步失败', () => set({ modelsFailed: '无法连接 models.dev', dialog: { kind: 'settings', tab: 'AI', edit: '' }, ...SHUT })],
     ['模型目录读取失败', () => { set(SHUT); const id = say(L.editorModelListFailed(), whyText(why), 'fail', [[L.commonRetry(), () => { unsay(id); fetchModels() }], [L.commonOpenSettings(), () => set({ dialog: { kind: 'settings', tab: 'AI', edit: '' }, toasts: [], ...SHUT })]]) }],
   ]
 }

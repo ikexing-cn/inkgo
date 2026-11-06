@@ -9,6 +9,35 @@
   "settingsOpenConfig": "打开配置文件",
   "settingsReload": "重新读取",
   "settingsReloaded": "已重新读取",
+  "settingsModelData": "模型资料",
+  "settingsModelDataNote": "上下文上限和最大输出从 models.dev 取，所有作品共用",
+  "settingsModelsAuto": "后台自动同步",
+  "settingsModelsAutoNote": "开着时，每次启动后在后台向 models.dev 请求一次，一天最多一次。只取公开的模型资料，不发送作品和设置。",
+  "settingsModelsLast": "上次同步：{when}",
+  "@settingsModelsLast": {
+    "description": "AI 设置「模型资料」里上次同步的时间。",
+    "placeholders": {
+      "when": {
+        "type": "String",
+        "example": "今天 09:12"
+      }
+    }
+  },
+  "settingsModelsNever": "还没同步过，用的是软件自带的资料",
+  "settingsModelsFailed": "上次同步没成功：{why}",
+  "@settingsModelsFailed": {
+    "description": "AI 设置「模型资料」里上次同步失败的原因，why 是底层错误原文。",
+    "placeholders": {
+      "why": {
+        "type": "String",
+        "example": "无法连接 models.dev"
+      }
+    }
+  },
+  "settingsModelsSyncNote": "立即同步会马上向 models.dev 请求一次。",
+  "settingsModelsSyncNow": "立即同步",
+  "settingsModelsSyncing": "正在同步模型资料…",
+  "settingsModelsSynced": "模型资料已同步",
   "settingsAddService": "添加服务",
   "settingsModelHint": "输入或选择模型",
   "settingsModelID": "模型 ID",

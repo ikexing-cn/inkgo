@@ -103,6 +103,124 @@ func (msgs Messages) SettingsReloaded() string {
 	return Catalog.Format(msgs.locale, "settingsReloaded", nil)
 }
 
+// SettingsModelData says "模型资料"
+// in the language the app shows.
+func SettingsModelData() string { return In(i18n.Locale()).SettingsModelData() }
+
+// SettingsModelData says "模型资料"
+// in the language of msgs.
+func (msgs Messages) SettingsModelData() string {
+	return Catalog.Format(msgs.locale, "settingsModelData", nil)
+}
+
+// SettingsModelDataNote says "上下文上限和最大输出从 models.dev 取，所有作品共用"
+// in the language the app shows.
+func SettingsModelDataNote() string { return In(i18n.Locale()).SettingsModelDataNote() }
+
+// SettingsModelDataNote says "上下文上限和最大输出从 models.dev 取，所有作品共用"
+// in the language of msgs.
+func (msgs Messages) SettingsModelDataNote() string {
+	return Catalog.Format(msgs.locale, "settingsModelDataNote", nil)
+}
+
+// SettingsModelsAuto says "后台自动同步"
+// in the language the app shows.
+func SettingsModelsAuto() string { return In(i18n.Locale()).SettingsModelsAuto() }
+
+// SettingsModelsAuto says "后台自动同步"
+// in the language of msgs.
+func (msgs Messages) SettingsModelsAuto() string {
+	return Catalog.Format(msgs.locale, "settingsModelsAuto", nil)
+}
+
+// SettingsModelsAutoNote says "开着时，每次启动后在后台向 models.dev 请求一次，一天最多一次。只取公开的模型资料，不发送作品和设置。"
+// in the language the app shows.
+func SettingsModelsAutoNote() string { return In(i18n.Locale()).SettingsModelsAutoNote() }
+
+// SettingsModelsAutoNote says "开着时，每次启动后在后台向 models.dev 请求一次，一天最多一次。只取公开的模型资料，不发送作品和设置。"
+// in the language of msgs.
+func (msgs Messages) SettingsModelsAutoNote() string {
+	return Catalog.Format(msgs.locale, "settingsModelsAutoNote", nil)
+}
+
+// SettingsModelsLast says "上次同步：{when}"
+// in the language the app shows.
+//
+// AI 设置「模型资料」里上次同步的时间。
+func SettingsModelsLast(when string) string { return In(i18n.Locale()).SettingsModelsLast(when) }
+
+// SettingsModelsLast says "上次同步：{when}"
+// in the language of msgs.
+//
+// AI 设置「模型资料」里上次同步的时间。
+func (msgs Messages) SettingsModelsLast(when string) string {
+	return Catalog.Format(msgs.locale, "settingsModelsLast", map[string]any{"when": when})
+}
+
+// SettingsModelsNever says "还没同步过，用的是软件自带的资料"
+// in the language the app shows.
+func SettingsModelsNever() string { return In(i18n.Locale()).SettingsModelsNever() }
+
+// SettingsModelsNever says "还没同步过，用的是软件自带的资料"
+// in the language of msgs.
+func (msgs Messages) SettingsModelsNever() string {
+	return Catalog.Format(msgs.locale, "settingsModelsNever", nil)
+}
+
+// SettingsModelsFailed says "上次同步没成功：{why}"
+// in the language the app shows.
+//
+// AI 设置「模型资料」里上次同步失败的原因，why 是底层错误原文。
+func SettingsModelsFailed(why string) string { return In(i18n.Locale()).SettingsModelsFailed(why) }
+
+// SettingsModelsFailed says "上次同步没成功：{why}"
+// in the language of msgs.
+//
+// AI 设置「模型资料」里上次同步失败的原因，why 是底层错误原文。
+func (msgs Messages) SettingsModelsFailed(why string) string {
+	return Catalog.Format(msgs.locale, "settingsModelsFailed", map[string]any{"why": why})
+}
+
+// SettingsModelsSyncNote says "立即同步会马上向 models.dev 请求一次。"
+// in the language the app shows.
+func SettingsModelsSyncNote() string { return In(i18n.Locale()).SettingsModelsSyncNote() }
+
+// SettingsModelsSyncNote says "立即同步会马上向 models.dev 请求一次。"
+// in the language of msgs.
+func (msgs Messages) SettingsModelsSyncNote() string {
+	return Catalog.Format(msgs.locale, "settingsModelsSyncNote", nil)
+}
+
+// SettingsModelsSyncNow says "立即同步"
+// in the language the app shows.
+func SettingsModelsSyncNow() string { return In(i18n.Locale()).SettingsModelsSyncNow() }
+
+// SettingsModelsSyncNow says "立即同步"
+// in the language of msgs.
+func (msgs Messages) SettingsModelsSyncNow() string {
+	return Catalog.Format(msgs.locale, "settingsModelsSyncNow", nil)
+}
+
+// SettingsModelsSyncing says "正在同步模型资料…"
+// in the language the app shows.
+func SettingsModelsSyncing() string { return In(i18n.Locale()).SettingsModelsSyncing() }
+
+// SettingsModelsSyncing says "正在同步模型资料…"
+// in the language of msgs.
+func (msgs Messages) SettingsModelsSyncing() string {
+	return Catalog.Format(msgs.locale, "settingsModelsSyncing", nil)
+}
+
+// SettingsModelsSynced says "模型资料已同步"
+// in the language the app shows.
+func SettingsModelsSynced() string { return In(i18n.Locale()).SettingsModelsSynced() }
+
+// SettingsModelsSynced says "模型资料已同步"
+// in the language of msgs.
+func (msgs Messages) SettingsModelsSynced() string {
+	return Catalog.Format(msgs.locale, "settingsModelsSynced", nil)
+}
+
 // SettingsAddService says "添加服务"
 // in the language the app shows.
 func SettingsAddService() string { return In(i18n.Locale()).SettingsAddService() }

@@ -47,8 +47,21 @@ function fetchModels() {
   const timer = aiLater(1200, () => { unsay(id); set((s) => (s.dialog && s.dialog.svc ? { dialog: { ...s.dialog, svc: { ...s.dialog.svc, models: (BOOK.services.find((x) => x.id === s.dialog.svc.id) || BOOK.services[0]).models.map(limits) } } } : null)); say(L.settingsModelsFetched(), '', 'ok') })
 }
 
-// 这部作品用了多少：按功能各一行，请求数、token、按内置价格估的花费；表里没有价格的模型不估。
+// 这部作品用了多少：按功能各一行，请求数和 token。软件不估花费。
 // 每次请求都在 AI 记录里有一行，点「查看全部记录」一行一行看；只能看，不能删。
+
+// 模型资料：新模型的上下文上限和最大输出从 models.dev 取，所有作品共用。开着自动同步时，启动后在后台请求一次，之后一天最多一次；
+// 关着时只用软件自带的和手动同步的那份。开关和「立即同步」都写明会向 models.dev 发请求。
+function syncModels() {
+  const id = say(L.settingsModelsSyncing(), '', 'busy')
+  later(1200, () => { unsay(id); set({ modelsSynced: stamp(), modelsFailed: '' }); say(L.settingsModelsSynced(), '', 'ok') })
+}
+function modelData() {
+  const status = S.modelsFailed ? `<div class="note danger">${t(L.settingsModelsFailed(S.modelsFailed))}</div>` : `<div>${t(S.modelsSynced ? L.settingsModelsLast(timeShown(S.modelsSynced)) : L.settingsModelsNever())}</div>`
+  return `<div class="prefs-group"><div class="group-title">${t(L.settingsModelData())}</div><div class="note">${t(L.settingsModelDataNote())}</div></div>` +
+    `<div class="ticks">${tickbox(S.modelsAuto, L.settingsModelsAuto(), () => set({ modelsAuto: !S.modelsAuto }))}<div class="note tick-note">${t(L.settingsModelsAutoNote())}</div></div>` +
+    `<div class="sync-row"><div class="fit">${status}<div class="note">${t(L.settingsModelsSyncNote())}</div></div>${button(L.settingsModelsSyncNow(), syncModels)}</div>`
+}
 
 function settingsModel(d) {
   const used = (svc) => S.page !== 'shelf' && S.uses.some((u) => u.service === svc.name) // 书架上没有打开的作品
@@ -93,6 +106,7 @@ function settingsModel(d) {
     `<div class="prefs-group"><div class="group-title">${t(L.settingsServices())}</div><div class="note">${t(L.settingsServicesNote())}</div></div>` +
     `<div class="services">${S.services.map(card).join('')}` +
     (d.edit === 'new' ? `<div class="service" data-reveal="new">${form()}</div>` : `<div class="service add hit"${onClick(() => open(() => editing(null), 'new'))}>${ICON.plus}${t(L.settingsAddService())}</div>`) + '</div>' +
+    modelData() +
     `<div class="prefs-links"><div class="hit link"${onClick(osAsk(L.dialogOsOpenConfig()))}>${t(L.settingsOpenConfig())}</div><div class="hit link"${onClick(() => say(L.settingsReloaded(), '', 'ok'))}>${t(L.settingsReload())}</div></div>`
 }
 
@@ -106,6 +120,7 @@ contribute('State', 'ai', () => ({
   uses: structuredClone(BOOK.uses),
   services: BOOK.services.map((x) => ({ ...x, models: x.models.map(limits) })),
   auto: false,
+  modelsAuto: true, modelsSynced: '今天 09:12', modelsFailed: '', // 模型资料：自动同步开着没有、上次同步、上次没成功的原因
   noAI: false,
   offFrom: ''
 }))
