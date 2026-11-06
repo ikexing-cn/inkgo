@@ -501,7 +501,8 @@ func (d *typedHook[In, Out]) rebuild(h *Host, target string, list []interception
 	for n := len(wraps) - 1; n >= 0; n-- {
 		i, next := wraps[n], p.next
 		p.next = func(frame *callFrame[In, Out], in In) (out Out) {
-			if !h.injectionLive(i) {
+			s, live := h.injectionLive(i)
+			if !live {
 				return next(frame, in)
 			}
 			// An around that panics after calling next keeps next's result,
@@ -513,7 +514,7 @@ func (d *typedHook[In, Out]) rebuild(h *Host, target string, list []interception
 					if _, ok := v.(hostPanic); ok {
 						panic(v)
 					}
-					h.callFailure(i.Owner, "Around", target, i.ID, v)
+					h.failCall(i.Owner, s, "Around", target, i.ID, target, v)
 					if called {
 						out = inner
 					} else {
@@ -532,22 +533,30 @@ func (d *typedHook[In, Out]) rebuild(h *Host, target string, list []interception
 
 type hostPanic struct{ value any }
 
-func (h *Host) injectionLive(i interception) bool {
+func (h *Host) injectionLive(i interception) (*Session, bool) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	return h.active(i.Owner) && h.targetActive(i.Target)
+	if !h.active(i.Owner) || !h.targetActive(i.Target) {
+		return nil, false
+	}
+	return h.byID[i.Owner].session, true
 }
 
 func (p *callFrame[In, Out]) callBase(in In) (out Out) {
 	i := p.base
-	if i.ID != "" && p.h.injectionLive(i) {
+	var s *Session
+	live := false
+	if i.ID != "" {
+		s, live = p.h.injectionLive(i)
+	}
+	if live {
 		defer func() {
 			if v := recover(); v != nil {
 				stage := "Overwrite"
 				if i.Kind == ReplaceKind {
 					stage = "Replace"
 				}
-				p.h.callFailure(i.Owner, stage, p.target, i.ID, v)
+				p.h.failCall(i.Owner, s, stage, p.target, i.ID, p.target, v)
 				out = p.callOriginal(in)
 			}
 		}()
@@ -571,6 +580,10 @@ func (p *callFrame[In, Out]) callOriginal(in In) (out Out) {
 	}
 	p.h.mu.RLock()
 	live := p.h.targetActive(p.target)
+	var s *Session
+	if live {
+		s = p.h.byID[o].session
+	}
 	p.h.mu.RUnlock()
 	if !live {
 		p.err = ErrCallFailed
@@ -578,7 +591,7 @@ func (p *callFrame[In, Out]) callOriginal(in In) (out Out) {
 	}
 	defer func() {
 		if v := recover(); v != nil {
-			p.err = p.h.callFailure(o, "Original", p.target, "", v)
+			p.err = p.h.failCall(o, s, "Original", p.target, "", p.target, v)
 			var zero Out
 			out = zero
 		}
@@ -600,14 +613,14 @@ func (p *callFrame[In, Out]) run(in In) (out Out, err error) {
 		}
 	}()
 	for _, i := range p.before {
-		if p.h.injectionLive(i) {
-			in = p.callBefore(i, in)
+		if s, live := p.h.injectionLive(i); live {
+			in = p.callBefore(i, s, in)
 		}
 	}
 	out = p.next(p, in)
 	for _, i := range p.after {
-		if p.h.injectionLive(i) {
-			out = p.callAfter(i, in, out)
+		if s, live := p.h.injectionLive(i); live {
+			out = p.callAfter(i, s, in, out)
 		}
 	}
 	if p.err != nil {
@@ -617,24 +630,24 @@ func (p *callFrame[In, Out]) run(in In) (out Out, err error) {
 	return out, nil
 }
 
-func (p *callFrame[In, Out]) callBefore(i interception, in In) (out In) {
+func (p *callFrame[In, Out]) callBefore(i interception, s *Session, in In) (out In) {
 	out = in
 	defer func() {
 		if v := recover(); v != nil {
 			out = in
-			p.h.callFailure(i.Owner, "Before", p.target, i.ID, v)
+			p.h.failCall(i.Owner, s, "Before", p.target, i.ID, p.target, v)
 		}
 	}()
 	i.fn.(func(*In))(&out)
 	return
 }
 
-func (p *callFrame[In, Out]) callAfter(i interception, in In, value Out) (out Out) {
+func (p *callFrame[In, Out]) callAfter(i interception, s *Session, in In, value Out) (out Out) {
 	out = value
 	defer func() {
 		if v := recover(); v != nil {
 			out = value
-			p.h.callFailure(i.Owner, "After", p.target, i.ID, v)
+			p.h.failCall(i.Owner, s, "After", p.target, i.ID, p.target, v)
 		}
 	}()
 	i.fn.(func(In, *Out))(in, &out)
@@ -673,13 +686,17 @@ func plainCall[In, Out any](h *Host, key string, in In, original func(In) Out) (
 	}
 	h.mu.RLock()
 	live := h.targetActive(key)
+	var s *Session
+	if live {
+		s = h.byID[owner(key)].session
+	}
 	h.mu.RUnlock()
 	if !live {
 		return out, ErrCallFailed
 	}
 	defer func() {
 		if v := recover(); v != nil {
-			err = h.callFailure(owner(key), "Original", key, "", v)
+			err = h.failCall(owner(key), s, "Original", key, "", key, v)
 			var zero Out
 			out = zero
 		}

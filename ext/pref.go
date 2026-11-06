@@ -125,10 +125,14 @@ func (p *Pref[T]) OnChange(f func(T)) {
 func (p *Pref[T]) notify(v T) {
 	p.h.mu.RLock()
 	listeners := append([]func(T){}, p.listeners...)
+	var s *Session
+	if e := p.h.byID[owner(p.id)]; e != nil {
+		s = e.session
+	}
 	p.h.mu.RUnlock()
 	for _, f := range listeners {
 		if err := protect(func() { f(v) }); err != nil {
-			p.h.callFailure(owner(p.id), "OnChange", p.id, "", err)
+			p.h.failCall(owner(p.id), s, "OnChange", p.id, "", p.id, err)
 			return
 		}
 	}

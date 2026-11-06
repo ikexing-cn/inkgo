@@ -16,6 +16,7 @@ type Session struct {
 	cancel         context.CancelFunc
 	mu             sync.Mutex
 	stopped        bool
+	activated      bool // reached On; accessed only by the UI thread
 	wg             sync.WaitGroup
 	onPanic        func(any)
 	cleanups       []func()

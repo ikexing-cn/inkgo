@@ -3,7 +3,8 @@ package ext
 import "encoding/json"
 
 // BookState describes persistent preferences owned by a module.
-// Load runs after initialization and before activation; Save runs before Stop.
+// Load runs after initialization and before activation.
+// Save runs before Stop only after successful activation.
 type BookState struct {
 	// Load restores this module's namespace before the activation becomes available.
 	Load func(map[string]json.RawMessage)
@@ -29,7 +30,7 @@ func (h *Host) SaveStates() {
 	}
 }
 func (h *Host) saveState(e *entry) {
-	if h.opts.BookState != nil && e.state != nil && e.state.Save != nil && e.session != nil && e.session.Book().Dir != "" {
+	if h.opts.BookState != nil && e.state != nil && e.state.Save != nil && e.session != nil && e.session.activated && e.session.Book().Dir != "" {
 		if err := protect(func() { h.opts.BookState.SaveState(e.session.Book(), e.mod.ID, e.state.Save()) }); err != nil {
 			h.recordFailure(e.mod.ID, Failure{Stage: "SaveState", Err: err})
 		}

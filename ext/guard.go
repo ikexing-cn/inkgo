@@ -13,13 +13,17 @@ func Guard(h *Host, owner, target string, fn func()) (err error) {
 	}
 	h.mu.RLock()
 	live := h.byID[owner] != nil && h.active(owner)
+	var s *Session
+	if live {
+		s = h.byID[owner].session
+	}
 	h.mu.RUnlock()
 	if !live {
 		return ErrCallFailed
 	}
 	defer func() {
 		if v := recover(); v != nil {
-			err = h.failCall(owner, "Guard", target, "", "", v)
+			err = h.failCall(owner, s, "Guard", target, "", "", v)
 		}
 	}()
 	fn()

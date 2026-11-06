@@ -26,6 +26,7 @@ type Host struct {
 	chains               map[string][]ChainLink
 	replacements         map[string]interception
 	pending              map[*entry]bool
+	hasPending           atomic.Bool
 	storeMu              sync.Mutex
 	opts                 Options
 	changes              uint64
@@ -504,7 +505,7 @@ func (h *Host) start(e *entry) {
 	s := newSession(e.mod.ID, h.book, h.opts.LocalRoot)
 	s.onCleanupError = func(err error) { h.recordFailure(e.mod.ID, Failure{Stage: "OnStop", Err: err}) }
 	s.bookDir = h.opts.BookDir
-	s.onPanic = func(v any) { h.callFailure(e.mod.ID, "Task", "", "", v) }
+	s.onPanic = func(v any) { h.failCall(e.mod.ID, s, "Task", "", "", "", v) }
 	e.session = s
 	e.ledger.State = Starting
 	h.mu.Unlock()
@@ -547,10 +548,12 @@ func (h *Host) start(e *entry) {
 		h.mu.Lock()
 		e.session = nil
 		delete(h.pending, e)
+		h.hasPending.Store(len(h.pending) != 0)
 		h.mu.Unlock()
 		return
 	}
 	e.ledger.State = On
+	s.activated = true
 	h.rebuildChains()
 	h.mu.Unlock()
 	at := slices.IndexFunc(h.running, func(other *entry) bool { return other.loadIndex > e.loadIndex })
