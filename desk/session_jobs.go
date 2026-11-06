@@ -20,13 +20,13 @@ func (j *sessionJobs) Busy() bool { return j.a.busy != "" }
 func (j *sessionJobs) Post(sv ui.Services, fn func()) {
 	j.a.jobs.post(sv, func() {
 		if j.s.Active() {
-			fn()
+			j.guard(fn)
 		}
 	})
 }
-func (j *sessionJobs) StartJob(sv ui.Services, fn func() func()) {
-	j.s.Go(func(context.Context) {
-		apply := fn()
+func (j *sessionJobs) StartJob(sv ui.Services, fn func(context.Context) func()) {
+	j.s.Go(func(ctx context.Context) {
+		apply := fn(ctx)
 		j.Post(sv, func() {
 			if apply != nil {
 				apply()
@@ -48,17 +48,10 @@ func (j *sessionJobs) Request(sv ui.Services, label string, fn func(context.Cont
 	epoch := a.workEpoch
 	j.epoch = epoch
 	a.busy, a.nonblocking = label, true
+	a.requestSession = j.s
 	a.SetError(nil)
 	ctx, cancel := context.WithCancel(context.Background())
 	a.cancel = cancel
-	settle := func() {
-		if a.workEpoch == epoch {
-			a.workEpoch++
-			a.busy, a.nonblocking, a.cancel = "", false, nil
-			a.status.Retry(nil)
-		}
-	}
-	j.s.OnStop(func() { cancel(); settle() })
 	a.status.Retry(func() {
 		if j.s.Active() {
 			j.Request(sv, label, fn)
@@ -69,9 +62,9 @@ func (j *sessionJobs) Request(sv ui.Services, label string, fn func(context.Cont
 		defer stop()
 		defer cancel()
 		apply, err := fn(ctx)
-		j.Post(sv, func() {
-			if a.workEpoch == epoch {
-				a.finished(apply, err)
+		a.jobs.post(sv, func() {
+			if a.workEpoch == epoch && j.s.Active() {
+				a.finished(func() { j.guard(apply) }, err)
 			}
 		})
 	})
@@ -81,3 +74,13 @@ func (j *sessionJobs) Run(work func(context.Context)) { j.s.Go(work) }
 
 // Run rejects unbound worker dispatch; extensions obtain activation-bound handles.
 func (j jobsHost) Run(work func(context.Context)) { panic("Jobs.Run requires a bound activation") }
+
+func (j *sessionJobs) guard(fn func()) {
+	if fn != nil && j.s.Active() {
+		_ = ext.Guard(j.a.extensions, j.s.ID(), "Jobs callback", func() {
+			if j.s.Active() {
+				fn()
+			}
+		})
+	}
+}

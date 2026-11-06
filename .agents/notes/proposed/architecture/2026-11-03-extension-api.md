@@ -75,11 +75,13 @@ import 一个公开包只是编译期用到它的类型，不等于运行时依�
   - 成功到过「开着」的 Session 先存下书级状态（`Persist` 的 Save），启动失败不保存；
   - 再让这次 Session 作废、取消它的后台任务、等这些任务退出，跑 `Session.OnStop` 登记的资源清理（只跑一次；每一条都和 `r.OnStop` 一样在出错边界里跑，panic 记在这个扩展的账上，接着跑下一条）；
   - 最后跑 `r.OnStop` 登记的清理。
-- **后台任务**归这次开启：扩展经 `Ref.Get` 取到的 `hostapi.Jobs` 是绑在取用方这次 Session 上的一份（宿主服务实现 `ext.SessionBinder`）。任务排到帧线程的回调，在真正执行时再查一次 Session 还在不在；不在就不执行它的结果、出错提示和「再试一次」，宿主只把忙碌状态结掉。后台任务不许等帧线程，因为 Stop 要等后台任务退出。
-  - 一个扩展的工具在别的扩展的请求里跑时（改稿建议的 `propose_edit` 在讨论的请求里），提供方也要认：工具拿到时记下提供方的 Session（`ext.WithSession`、`ext.SessionOf`），交结果时比一下，提供方中途关了再开，旧结果不收。
+- **后台任务**归这次开启：扩展经 `Ref.Get` 取到的 `hostapi.Jobs` 是绑在取用方这次 Session 上的一份（宿主服务实现 `ext.SessionBinder`）。任务排到帧线程的回调，在真正执行时再查一次 Session 还在不在；不在就不执行它的结果、出错提示和「再试一次」，宿主只把忙碌状态结掉。后台任务不许等帧线程，因为 Stop 要等后台任务退出。停止同步等待，可能长时间阻塞。StartJob 的工作函数接收取消 ctx；Post、StartJob apply、Request apply 和对话框结果回调都在所属扩展的出错边界内，宿主结算和 jobs.poll 不 recover。Request 的 Session 和 epoch 归 App；每帧先装唤醒函数、Settle，再结算失效 Session 的 busy、处理错误通知，最后 poll。finished 在 apply 前清归属；App.work、resetView 清归属；Close 在 leaveWork 后结算再推进 epoch，不用取消提示覆盖扩展错误。
+  - 一个扩展的工具在别的扩展的请求里跑时（改稿建议的 `propose_edit` 在讨论的请求里），提供方也要认：工具拿到时记下提供方的 Session（`ext.WithSession`、`ext.SessionOf`），交结果时比一下，提供方中途关了再开，旧结果不收，propose_edit 返回失败且不带建议。
   - AI 每次调用的记录交给 `aiapi.Calls` 时带着收记录那一方的这次开启（`aiapi.Call.Activation`），收记录的是哪几方、哪一次开启，在每次请求开始时取，不在建模型句柄时取：续写缓存着的笔照样记账，用量记录关了再开，旧调用不会记到新的那一次头上，新的那一次也收不到半截调用。
 - **贡献的回调**（命令的 Run、标签的 Draw……）只在扩展生效时被调，读 Start 时建好的状态。宿主在扩展没生效时不调它们，也不经 `Declared` 去调关着的扩展的回调。
 - **状态**有四种：关着、启动中、开着、出错。出错时带错误原文和出错的位置：哪个回调，在谁的注入链里。
+
+Dialogs.SaveInto 和 PickInto 的原生操作归宿主管，不计入 Session 任务；结果回调只在原 Session 有效时执行。Reveal 是 Dialogs 的普通方法，不暴露裸函数。帮助行 HelpAfter、HelpBefore 使用稳定行 ID，显示函数只负责文字，语言切换不影响位置。
 
 ### 登记表
 

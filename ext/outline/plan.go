@@ -282,9 +282,8 @@ func (p *Page) broken(c *ui.Context) {
 		if why != "" {
 			ui.Text(c, why).FontSize(kit.FsNote).TextColor(pal.Faint).TextAlign(ui.Center).MaxWidth(440)
 		}
-		_, reveal := p.Services.Dialogs.Dialogs()
-		if reveal != nil && pal.Secondary(c, locales.CommonOpenFolder()).Clicked() {
-			p.Services.Notices.Notices().Warn(reveal(p.Services.Paths.Dir()))
+		if pal.Secondary(c, locales.CommonOpenFolder()).Clicked() {
+			p.Services.Notices.Notices().Warn(p.Services.Dialogs.Reveal(p.Services.Paths.Dir()))
 		}
 	})
 }

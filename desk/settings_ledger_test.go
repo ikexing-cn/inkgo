@@ -29,7 +29,7 @@ func ledgerFixture(t *testing.T, extra ...ext.Module) (*App, *ui.Tester, *int, *
 	rival := func(id, name string, n *int) ext.Module {
 		return ext.Module{ID: id, Installed: true, Name: func() string { return name }, Requires: []string{"ledgerbase"}, Setup: func(r *ext.Registrar) {
 			ext.Replace(r, hostapi.Commands, "ledgerbase.docx", "replace", hostapi.Command{Name: locales.ModInjectDocx, Run: func() {}})
-			ext.Contribute(r, hostapi.Commands, "key", hostapi.Command{Name: func() string { return name }, Key: ui.KeyA, Mods: ui.Ctrl | ui.Shift, HelpBefore: locales.HelpNewChapter, HelpGroup: locales.HelpGroupWrite, Run: func() { *n++ }})
+			ext.Contribute(r, hostapi.Commands, "key", hostapi.Command{Name: func() string { return name }, Key: ui.KeyA, Mods: ui.Ctrl | ui.Shift, HelpBefore: "new-chapter", HelpGroup: locales.HelpGroupWrite, Run: func() { *n++ }})
 		}}
 	}
 	saveRival := ext.Module{ID: "saverival", Installed: true, Name: locales.ModClassic, Setup: func(r *ext.Registrar) {

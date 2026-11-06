@@ -65,3 +65,7 @@ func labelProposal(env aiapi.ToolEnv, raw json.RawMessage) string {
 	_ = json.Unmarshal(raw, &in)
 	return "提议修改「" + env.Shared.Named(strings.TrimSpace(in.Chapter)) + "」"
 }
+
+// proposalNotTaken is what the model hears when the talk that asked for a
+// proposal stopped or the book changed before it could be shown.
+const proposalNotTaken = "提议没有被接收：讨论已结束或已换书"

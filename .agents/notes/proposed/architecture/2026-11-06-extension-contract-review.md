@@ -113,6 +113,8 @@ Status: proposed
   - 第 4 条有个直接后果：`Session.Active` 看 ctx，出错当下就为假。正在跑 Request 的扩展出错后，结果回来被跳过，`settle` 只挂在 `Session.OnStop` 上，`a.busy` 一直不清，之后所有扩展的 Request 都在 busy 检查处直接返回，直到作者动一次开关。
 - 第 5 条（overwrite 重做副作用）契约上成立，降为 P2：测试以外没有 `Overwrite`、`Replace`、`Around` 的用法。其中一处现在就错：`callBase` 和 Around 的 recover 丢掉了 `callFailure` 返回的错误，扩展出了错 `Call` 仍返回 nil。Around 在调 next 之前 panic 也会重跑 next，是同一类问题。
 - 多语言一条：全局不重名、语言集合一致，是对仓库内扩展的生成期检查，原因写在[多语言](2026-11-02-i18n-on-mygo.md)：原型把这些表平铺在一起用。它不是运行时加载规则，mygo 的缺译回退照样在。同意按模块加命名空间，留到外部扩展之前做。
+已施工（第二批）。
+
 - context 的三个点现在各只有一个提供方（设定、伏笔、章纲），遮蔽还不会发生。帮助行锚点确实比的是翻译后的字（`desk/extensions.go` 260、268 行）。
 
 ### 修复方案（第四版，Claude 与 Codex 一致，作者已确认）
@@ -136,6 +138,8 @@ Status: proposed
   - 备份 `Run` 里的 `close(done)` 改成 defer。现在工作函数 panic 会跳过它，`backupNow` 和备份的停下回调都会一直等着。
   - 原生保存对话框照 `PickInto` 的做法归宿主管，不再算 Session 的任务。`Dialogs()` 返回两个裸函数的写法删掉；「在文件夹里显示」（章纲在用）改成 `Dialogs` 上的普通方法。
 
+已施工（第二批）。
+
 **2. 出错只算在当时那次 Session 上**
 
 - `Guard`、无注入的快路径、注入计划，在检查「开着没有」的同一把读锁里记下当时的 Session，出错只记到它头上。它已经不是当前实例时，不改状态、不进账、不弹提示，只写日志。
@@ -153,6 +157,8 @@ Status: proposed
 
 接口和测试已施工（第一批前半）；desk 帧循环接入留给下一批。
 
+已施工（第二批）。
+
 **4. 回到帧线程的回调和 busy**
 
 - 扩展回到帧线程的回调包上出错边界：Post、StartJob 的 apply、`PickInto` 的 picked、保存对话框的结果。宿主自己的结算和 panic 留在边界外，`jobs.poll` 本身不 recover。
@@ -163,6 +169,8 @@ Status: proposed
   - 宿主自己发请求（`App.work`）时置空；`resetView` 清 busy 时一起清。
   - 退出程序：`App.Close` 在 `leaveWork` 返回后、推进 epoch 之前手动结算一次，否则 busy 还在，会跳过关 Store。
 - 结算不要用「已取消」的提示盖掉扩展出错的通知。
+
+已施工（第二批）。
 
 **5. 书级状态只在成功开过之后保存**
 
@@ -202,7 +210,7 @@ Status: proposed
   - 删掉 `ext/ai/aiapi/snapshot.go` 30、91 行的事后检查：工具做完了，就如实返回它的结果。
   - `propose_edit` 的 `v.tool()`（`ext/propose/module.go` 183–191 行）已经会判断建议收没收下，结果也按这个判断返回：没收下就返回失败、不带建议。否则旧实例的建议会经讨论的事件绕进新实例，模型也会以为建议已经显示了。
 
-已施工（第一批后半）。
+已施工：事后检查在第一批后半删掉，`propose_edit` 的返回值在第二批改。
 
 **这一批不做**
 

@@ -100,6 +100,7 @@ func TestTalkOffSynchronouslyCancelsReply(t *testing.T) {
 	}, 64, 64)
 	ctx := <-started
 	a.setExtension("talk", false, false)
+	a.settleRequest()
 	if ctx.Err() != context.Canceled || a.busy != "" {
 		t.Fatal("reply survived extension shutdown")
 	}

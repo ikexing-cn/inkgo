@@ -49,10 +49,13 @@ func (h *testHost) CanPickFolder() bool { return false }
 
 func (h *testHost) PickInto(*ui.Context, string, func(string)) bool { return false }
 
-func (h *testHost) StartJob(_ ui.Services, work func() func()) { work()() }
+func (h *testHost) StartJob(_ ui.Services, work func(context.Context) func()) {
+	work(context.Background())()
+}
 
-func (h *testHost) Dialogs() (func(string, string) (string, error), func(string) error) {
-	return nil, nil
+func (h *testHost) Reveal(path string) error { return nil }
+func (h *testHost) SaveInto(c *ui.Context, title, name string, picked func(string, error)) bool {
+	return false
 }
 
 func dialogFixture(t *testing.T, text string) (*testHost, *Dialog, *ui.Tester, string) {

@@ -182,6 +182,7 @@ var commandList = []*command{
 // they do, and the commands it speaks for. Some rows join several
 // commands, as Ctrl+PgDn / PgUp does.
 type helpRow struct {
+	id          string
 	group, does func() string
 	ai          bool
 	cmds        []*command
@@ -209,18 +210,18 @@ func (r *helpRow) keysOn(mac bool) string {
 func (r *helpRow) keys() string { return r.keysOn(onMacOS) }
 
 var commandHelp = []*helpRow{
-	{group: locales.HelpGroupWrite, does: locales.HelpSave, cmds: []*command{cmdSave}},
-	{group: locales.HelpGroupWrite, does: locales.HelpNewChapter, cmds: []*command{cmdNewChapter}},
-	{group: locales.HelpGroupWrite, does: locales.HelpRename, cmds: []*command{cmdRename}},
-	{group: locales.HelpGroupWrite, does: locales.HelpChapterNav, cmds: []*command{cmdNextChapter, cmdPrevChapter}},
-	{group: locales.HelpGroupWrite, does: locales.HelpTabNav, cmds: []*command{cmdNextTab, cmdPrevTab}},
-	{group: locales.HelpGroupWrite, does: locales.HelpCloseTab, cmds: []*command{cmdCloseTab}},
-	{group: locales.HelpGroupWrite, does: locales.HelpAcceptDrop, ai: true, cmds: []*command{cmdTakePrediction, cmdDropPrediction}},
-	{group: locales.HelpGroupWrite, does: locales.HelpUndoRedo, cmds: []*command{cmdUndo, cmdRedo}},
-	{group: locales.HelpGroupWrite, does: locales.HelpDeleteWord, cmds: []*command{cmdDeleteWordBack, cmdDeleteWordForward}},
-	{group: locales.HelpGroupWrite, does: locales.HelpZoomText},
-	{group: locales.HelpGroupGlobal, does: locales.HelpZoomUI, cmds: []*command{cmdZoomIn, cmdZoomOut, cmdZoomReset}},
-	{group: locales.HelpGroupGlobal, does: locales.HelpOpenKeys, cmds: []*command{cmdHelp}},
+	{id: "save", group: locales.HelpGroupWrite, does: locales.HelpSave, cmds: []*command{cmdSave}},
+	{id: "new-chapter", group: locales.HelpGroupWrite, does: locales.HelpNewChapter, cmds: []*command{cmdNewChapter}},
+	{id: "rename", group: locales.HelpGroupWrite, does: locales.HelpRename, cmds: []*command{cmdRename}},
+	{id: "chapter-nav", group: locales.HelpGroupWrite, does: locales.HelpChapterNav, cmds: []*command{cmdNextChapter, cmdPrevChapter}},
+	{id: "tab-nav", group: locales.HelpGroupWrite, does: locales.HelpTabNav, cmds: []*command{cmdNextTab, cmdPrevTab}},
+	{id: "close-tab", group: locales.HelpGroupWrite, does: locales.HelpCloseTab, cmds: []*command{cmdCloseTab}},
+	{id: "accept-drop", group: locales.HelpGroupWrite, does: locales.HelpAcceptDrop, ai: true, cmds: []*command{cmdTakePrediction, cmdDropPrediction}},
+	{id: "undo-redo", group: locales.HelpGroupWrite, does: locales.HelpUndoRedo, cmds: []*command{cmdUndo, cmdRedo}},
+	{id: "delete-word", group: locales.HelpGroupWrite, does: locales.HelpDeleteWord, cmds: []*command{cmdDeleteWordBack, cmdDeleteWordForward}},
+	{id: "zoom-text", group: locales.HelpGroupWrite, does: locales.HelpZoomText},
+	{id: "zoom-ui", group: locales.HelpGroupGlobal, does: locales.HelpZoomUI, cmds: []*command{cmdZoomIn, cmdZoomOut, cmdZoomReset}},
+	{id: "open-keys", group: locales.HelpGroupGlobal, does: locales.HelpOpenKeys, cmds: []*command{cmdHelp}},
 }
 
 // name is what a menu calls the command, or the help where it has no menu.

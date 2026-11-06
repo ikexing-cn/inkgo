@@ -17,6 +17,7 @@ func (a *App) work(sv ui.Services, label string, fn func(context.Context) (func(
 	if a.busy != "" {
 		return
 	}
+	a.requestSession = nil
 	a.workEpoch++
 	epoch := a.workEpoch
 	ctx, cancel := context.WithCancel(context.Background()) // each request has its own time limit; a turn takes as many as it needs
@@ -42,6 +43,7 @@ func (a *App) work(sv ui.Services, label string, fn func(context.Context) (func(
 // finished is what a request ended with, run on the view thread: what it
 // applied, whether it failed, and the view after it.
 func (a *App) finished(apply func(), err error) {
+	a.requestSession = nil
 	a.busy = ""
 	a.nonblocking = false
 	a.cancel = nil
@@ -62,6 +64,7 @@ func (a *App) finished(apply func(), err error) {
 }
 
 func (a *App) poll() {
+	a.settleRequest()
 	a.jobs.poll()
 }
 
@@ -70,3 +73,17 @@ func (a *App) poll() {
 // sending another and switching the work; the rest goes on as it replies,
 // and a model changed meanwhile takes the next turn.
 func (a *App) held() bool { return a.busy != "" && !a.nonblocking && !a.nonblockingActivity() }
+
+// settleRequest releases only the current extension request, without replacing its failure notice.
+func (a *App) settleRequest() {
+	if a.requestSession == nil || a.requestSession.Active() {
+		return
+	}
+	a.workEpoch++
+	a.requestSession = nil
+	if a.cancel != nil {
+		a.cancel()
+	}
+	a.busy, a.nonblocking, a.cancel = "", false, nil
+	a.status.Retry(nil)
+}

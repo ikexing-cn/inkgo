@@ -114,7 +114,7 @@ func TestOutlineReadError(t *testing.T) {
 		t.Fatal(err)
 	}
 	var shown string
-	a.Reveal = func(path string) error { shown = path; return nil }
+	a.revealFile = func(path string) error { shown = path; return nil }
 	a.plan.Enter()
 	tt.Frame()
 	hasText(t, tt, "大纲文件读不出来")

@@ -95,7 +95,7 @@ func setupView(r *ext.Registrar, s *View) {
 		ed.RequestPrediction()
 		ed.Focus()
 	}
-	ext.Contribute(r, hostapi.Commands, "continue", hostapi.Command{ID: "continue", Menu: hostapi.MenuPosition{Menu: hostapi.MenuEdit, Order: 50}, Name: continuetext.CmdContinue, Key: ui.KeyJ, Mods: ui.Cmd, Can: can, Run: run, HelpGroup: locales.HelpGroupWrite, HelpText: continuetext.HelpContinue, HelpBefore: locales.HelpAcceptDrop})
+	ext.Contribute(r, hostapi.Commands, "continue", hostapi.Command{ID: "continue", Menu: hostapi.MenuPosition{Menu: hostapi.MenuEdit, Order: 50}, Name: continuetext.CmdContinue, Key: ui.KeyJ, Mods: ui.Cmd, Can: can, Run: run, HelpGroup: locales.HelpGroupWrite, HelpText: continuetext.HelpContinue, HelpBefore: "accept-drop"})
 	ext.Contribute(r, hostapi.SelectionMenus, "menu", hostapi.SelectionMenu{Order: -30, Build: func(string) []hostapi.SelectionAction {
 		return []hostapi.SelectionAction{{Label: continuetext.CmdContinue(), Command: "continue", Disabled: !can(), Run: run}}
 	}})

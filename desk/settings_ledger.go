@@ -1,6 +1,7 @@
 package desk
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"os"
@@ -112,7 +113,7 @@ func (a *App) refreshLedgerData(c *ui.Context, id string) {
 	}
 	host := a.extensions
 	store := a.Store
-	jobsHost{extensionHost{a}}.StartJob(c.Services(), func() func() {
+	jobsHost{extensionHost{a}}.StartJob(c.Services(), func(context.Context) func() {
 		book, local := host.DataPaths(id)
 		var rows []ledgerData
 		if size, ok := measureLedgerData(book); ok {

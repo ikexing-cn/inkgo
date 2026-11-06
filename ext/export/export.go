@@ -284,23 +284,17 @@ func (d *Dialog) export(c *ui.Context, plan format.Plan) {
 			status.Did(exporttext.ExportedMany(len(files), dir))
 		}
 	}
-	save, _ := d.dialogs.Get().Dialogs()
-	if len(files) == 1 && save != nil {
-		sv := c.Services()
-		d.jobs.Get().StartJob(sv, func() func() {
-			path, err := save(exporttext.ExportTitle(), files[0].name)
-			return func() {
-				if d.generation != generation || !d.Open {
-					return
-				}
-				if err != nil {
-					status.Warn(err)
-				} else if path != "" {
-					files[0].name = filepath.Base(path)
-					write(filepath.Dir(path))
-				}
-			}
-		})
+	if len(files) == 1 && d.dialogs.Get().SaveInto(c, exporttext.ExportTitle(), files[0].name, func(path string, err error) {
+		if d.generation != generation || !d.Open {
+			return
+		}
+		if err != nil {
+			status.Warn(err)
+		} else if path != "" {
+			files[0].name = filepath.Base(path)
+			write(filepath.Dir(path))
+		}
+	}) {
 		return
 	}
 	if len(files) > 1 && d.dialogs.Get().PickInto(c, exporttext.ExportInto(), write) {

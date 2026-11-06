@@ -1,6 +1,7 @@
 package backup
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -134,14 +135,18 @@ func (a *View) Run(sv ui.Services) {
 	a.State.Running = true
 	done := make(chan struct{})
 	a.State.Done = done
-	a.jobs.Get().StartJob(sv, func() func() {
-		fl, err := readWork(st)
+	a.jobs.Get().StartJob(sv, func(ctx context.Context) func() {
+		defer close(done)
+		var fl archive.Files
+		err := ctx.Err()
 		if err == nil {
-			_, _, err = archive.Make(fl, s.Dir, work.Name, fl.Meta(work.ID, work.Language), s.Kept(), time.Now())
+			fl, err = readWork(st)
+		}
+		if err == nil {
+			_, _, err = archive.MakeContext(ctx, fl, s.Dir, work.Name, fl.Meta(work.ID, work.Language), s.Kept(), time.Now())
 		}
 		// Done before the result is handed back: a closing work waits on
 		// done from the view thread, which runs no jobs meanwhile.
-		close(done)
 		return func() {
 			if a.State.Done != done {
 				return
@@ -171,7 +176,7 @@ func (a *View) backupNow() {
 	work := st.Work()
 	fl, err := readWork(st)
 	if err == nil {
-		_, _, err = archive.Make(fl, s.Dir, work.Name, fl.Meta(work.ID, work.Language), s.Kept(), time.Now())
+		_, _, err = archive.MakeContext(context.Background(), fl, s.Dir, work.Name, fl.Meta(work.ID, work.Language), s.Kept(), time.Now())
 	}
 	a.RecordResult(s, err)
 }

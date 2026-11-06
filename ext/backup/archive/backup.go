@@ -5,6 +5,7 @@ package archive
 
 import (
 	"archive/zip"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -146,6 +147,13 @@ func base(name string) string {
 // latest backup there holds the same files; made says whether it wrote
 // one. It then removes the oldest beyond keep.
 func Make(fl Files, dir, name string, meta Meta, keep int, now time.Time) (info Info, made bool, err error) {
+	return MakeContext(context.Background(), fl, dir, name, meta, keep, now)
+}
+
+func MakeContext(ctx context.Context, fl Files, dir, name string, meta Meta, keep int, now time.Time) (info Info, made bool, err error) {
+	if err := ctx.Err(); err != nil {
+		return Info{}, false, err
+	}
 	meta.Sum = fl.Sum
 	if _, err = os.Stat(dir); err != nil {
 		return Info{}, false, err // a disk unplugged is not a folder to make
@@ -162,12 +170,18 @@ func Make(fl Files, dir, name string, meta Meta, keep int, now time.Time) (info 
 		return Info{}, false, err
 	}
 	defer tmp.Discard()
+	if err = ctx.Err(); err != nil {
+		return Info{}, false, err
+	}
 	if err = write(tmp, fl, meta); err != nil {
 		return Info{}, false, err
 	}
 	p := filepath.Join(dir, base(name)+now.Format(stampLayout)+".zip")
 	for i := 2; exists(p); i++ {
 		p = filepath.Join(dir, fmt.Sprintf("%s%s (%d).zip", base(name), now.Format(stampLayout), i))
+	}
+	if err = ctx.Err(); err != nil {
+		return Info{}, false, err
 	}
 	if err = tmp.Commit(p); err != nil {
 		return Info{}, false, err

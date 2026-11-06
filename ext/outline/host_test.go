@@ -23,7 +23,7 @@ type testHost struct {
 	plan                    Page
 	current                 string
 	writing                 bool
-	Reveal                  func(string) error
+	revealFile              func(string) error
 	syncedID, syncedOutline string
 }
 
@@ -58,8 +58,14 @@ func (h *testHost) ShowOutline() { h.writing = false }
 
 func (h *testHost) SettingColumn(*ui.Context) {}
 
-func (h *testHost) Dialogs() (func(string, string) (string, error), func(string) error) {
-	return nil, h.Reveal
+func (h *testHost) Reveal(path string) error {
+	if h.revealFile != nil {
+		return h.revealFile(path)
+	}
+	return nil
+}
+func (h *testHost) SaveInto(c *ui.Context, title, name string, picked func(string, error)) bool {
+	return false
 }
 
 func (h *testHost) DropMenu(c *ui.Context, button ui.Element, key string, place func(ui.Element), build func(*kit.Menu)) {

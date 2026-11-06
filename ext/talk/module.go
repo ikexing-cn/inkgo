@@ -149,9 +149,9 @@ func setupPanel(r *ext.Registrar, panel *Panel) {
 		Draw: func(c *ui.Context) { s.panel.TalkPaneBody(c) },
 	})
 	canQuote := func() bool { _, ed, ok := s.editing.Get().Chapter(); return ok && ed != nil && ed.SelectedText() != "" }
-	ext.Contribute(r, hostapi.Commands, "send", hostapi.Command{Name: talktext.HelpSend, Key: ui.KeyEnter, Mods: ui.Cmd, Can: func() bool { return false }, HelpGroup: talktext.HelpGroupChat, HelpText: talktext.HelpSend, HelpAfter: locales.HelpZoomText})
+	ext.Contribute(r, hostapi.Commands, "send", hostapi.Command{Name: talktext.HelpSend, Key: ui.KeyEnter, Mods: ui.Cmd, Can: func() bool { return false }, HelpGroup: talktext.HelpGroupChat, HelpText: talktext.HelpSend, HelpAfter: "zoom-text"})
 	ext.Contribute(r, hostapi.Commands, "quote", hostapi.Command{Name: talktext.EditorQuote, Key: ui.KeyL, Mods: ui.Cmd,
-		HelpGroup: locales.HelpGroupWrite, HelpText: talktext.HelpCite, HelpAfter: locales.HelpAcceptDrop,
+		HelpGroup: locales.HelpGroupWrite, HelpText: talktext.HelpCite, HelpAfter: "accept-drop",
 		Can: canQuote, Run: func() { s.panel.QuoteToTalk() },
 	})
 	ext.Contribute(r, hostapi.SelectionMenus, "quote-menu", hostapi.SelectionMenu{Order: -10, Build: func(text string) []hostapi.SelectionAction {

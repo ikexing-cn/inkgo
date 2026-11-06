@@ -37,8 +37,14 @@ func (h appHost) Chapter() (id string, ed *editor.Editor, open bool) {
 	return id, h.a.write.cur().ed, open
 }
 
-func (h appHost) Dialogs() (func(string, string) (string, error), func(string) error) {
-	return h.a.SaveFile, h.a.Reveal
+func (h appHost) Reveal(path string) error {
+	if h.a.Reveal != nil {
+		return h.a.Reveal(path)
+	}
+	return nil
+}
+func (h appHost) SaveInto(c *ui.Context, title, name string, picked func(string, error)) bool {
+	return sessionDialogs{extensionHost: extensionHost{h.a}}.SaveInto(c, title, name, picked)
 }
 
 func (h appHost) OpenWriting(id string) {

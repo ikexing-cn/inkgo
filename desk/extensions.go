@@ -2,6 +2,7 @@ package desk
 
 import (
 	"cmp"
+	"context"
 	"path/filepath"
 	"slices"
 	"sync"
@@ -49,6 +50,12 @@ func (a *App) extensionFrame(c *ui.Context) {
 	n.mu.Lock()
 	sv := c.Services()
 	n.invalidate = sv.Invalidate
+	n.mu.Unlock()
+	if a.extensions != nil {
+		a.extensions.Settle()
+	}
+	a.settleRequest()
+	n.mu.Lock()
 	errors := n.errors
 	n.errors = nil
 	n.mu.Unlock()
@@ -246,7 +253,7 @@ func (a *App) syncExtensions() {
 	for _, c := range cache.commands {
 		cache.list = append(cache.list, c.cmd)
 		if c.cmd.key != 0 || c.cmd.macKey != 0 {
-			row := &helpRow{group: locales.HelpGroupGlobal, does: c.cmd.label, cmds: []*command{c.cmd}}
+			row := &helpRow{id: c.id, group: locales.HelpGroupGlobal, does: c.cmd.label, cmds: []*command{c.cmd}}
 			value := c.value
 			if value.HelpGroup != nil {
 				row.group = value.HelpGroup
@@ -255,17 +262,17 @@ func (a *App) syncExtensions() {
 				row.does = value.HelpText
 			}
 			at := len(cache.help)
-			if value.HelpAfter != nil {
+			if value.HelpAfter != "" {
 				for i, h := range cache.help {
-					if h.does() != "" && h.does() == value.HelpAfter() {
+					if h.id == value.HelpAfter {
 						at = i + 1
 					}
 				}
 			}
 
-			if value.HelpBefore != nil {
+			if value.HelpBefore != "" {
 				for i, h := range cache.help {
-					if h.does() != "" && h.does() == value.HelpBefore() {
+					if h.id == value.HelpBefore {
 						at = i
 						break
 					}
@@ -487,12 +494,20 @@ func (h extensionHost) Flush() { h.a.flush() }
 
 func (h extensionHost) Notices() *kit.Status { return &h.a.status }
 
-func (h extensionHost) StartJob(sv ui.Services, fn func() func()) { h.a.jobs.start(sv, fn) }
+func (h extensionHost) StartJob(sv ui.Services, fn func(context.Context) func()) {
+	h.a.jobs.start(sv, func() func() { return fn(context.Background()) })
+}
 
 func (h extensionHost) CanPickFolder() bool { return h.a.PickFolder != nil }
 
-func (h extensionHost) Dialogs() (func(string, string) (string, error), func(string) error) {
-	return h.a.SaveFile, h.a.Reveal
+func (h extensionHost) Reveal(path string) error {
+	if h.a.Reveal != nil {
+		return h.a.Reveal(path)
+	}
+	return nil
+}
+func (h extensionHost) SaveInto(c *ui.Context, title, name string, picked func(string, error)) bool {
+	return sessionDialogs{extensionHost: extensionHost{h.a}}.SaveInto(c, title, name, picked)
 }
 
 func (h extensionHost) PickInto(c *ui.Context, title string, picked func(string)) bool {

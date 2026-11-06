@@ -44,7 +44,7 @@ func module(controller *View) ext.Module {
 			if desktop.Get().Writing() {
 				p.openFind()
 			}
-		}, Menu: hostapi.MenuPosition{Menu: hostapi.MenuEdit, After: "edit-find-separator", Order: 25}, Key: ui.KeyF, Mods: ui.Cmd, OnMac: true, MacKey: ui.KeyF, MacMods: ui.Super, HelpGroup: locales.HelpGroupWrite, HelpText: findtext.HelpFind, HelpAfter: locales.HelpSave})
+		}, Menu: hostapi.MenuPosition{Menu: hostapi.MenuEdit, After: "edit-find-separator", Order: 25}, Key: ui.KeyF, Mods: ui.Cmd, OnMac: true, MacKey: ui.KeyF, MacMods: ui.Super, HelpGroup: locales.HelpGroupWrite, HelpText: findtext.HelpFind, HelpAfter: "save"})
 
 		ext.Contribute(r, hostapi.Overlays, "replace-dialog", hostapi.Overlay{Open: func() bool { return p.Sure }, Draw: func(c *ui.Context) {
 			if p.Sure {

@@ -30,9 +30,28 @@ func (d sessionDialogs) PickInto(c *ui.Context, title string, picked func(string
 			if err != nil {
 				d.a.SetError(err)
 			} else if path != "" {
-				picked(path)
+				d.guard(func() { picked(path) })
 			}
 		}
+	})
+	return true
+}
+
+func (d sessionDialogs) guard(fn func()) {
+	if d.session == nil {
+		fn()
+		return
+	}
+	(&sessionJobs{a: d.a, s: d.session}).guard(fn)
+}
+func (d sessionDialogs) SaveInto(c *ui.Context, title, name string, picked func(string, error)) bool {
+	save := d.a.SaveFile
+	if save == nil || (d.session != nil && !d.session.Active()) {
+		return false
+	}
+	d.a.jobs.start(c.Services(), func() func() {
+		path, err := save(title, name)
+		return func() { d.guard(func() { picked(path, err) }) }
 	})
 	return true
 }

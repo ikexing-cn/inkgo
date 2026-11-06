@@ -182,11 +182,16 @@ func (v *View) tool() aiapi.Tool {
 		v.completedMu.Unlock()
 		result := run(ctx, env, raw)
 		if result.Proposal != nil {
+			accepted := false
 			v.completedMu.Lock()
 			if activation != nil && activation.Active() && v.activation == activation && ctx.Err() == nil {
+				accepted = true
 				v.completed = append(v.completed, completedProposal{env.Store, env.Session, env.Call, env.Model, *result.Proposal})
 			}
 			v.completedMu.Unlock()
+			if !accepted {
+				return aiapi.ToolResult{Failed: true, Text: proposalNotTaken}
+			}
 		}
 		return result
 	}

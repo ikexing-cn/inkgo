@@ -18,7 +18,7 @@ var Module = ext.Module{ID: "focus", Kind: ext.Feature, Group: hostapi.GroupWrit
 	book := ext.Use(r, hostapi.BookService)
 	toggle := func() { desktop.Get().SetFocus(!desktop.Get().Focused()) }
 	r.OnStop(func(*ext.Session) { desktop.Get().SetFocus(false) })
-	ext.Contribute(r, hostapi.Commands, "focus", hostapi.Command{HelpGroup: locales.HelpGroupWrite, HelpText: focustext.HelpFocus, HelpAfter: locales.HelpCloseTab, Name: focustext.CmdFocus, Can: func() bool { return book.Get().Store() != nil && desktop.Get().Writing() }, Run: toggle, Key: ui.KeyF11, OnMac: true, MacKey: ui.KeyF, MacMods: ui.Ctrl | ui.Super, Menu: hostapi.MenuPosition{Menu: hostapi.MenuView, After: "pane"}})
+	ext.Contribute(r, hostapi.Commands, "focus", hostapi.Command{HelpGroup: locales.HelpGroupWrite, HelpText: focustext.HelpFocus, HelpAfter: "close-tab", Name: focustext.CmdFocus, Can: func() bool { return book.Get().Store() != nil && desktop.Get().Writing() }, Run: toggle, Key: ui.KeyF11, OnMac: true, MacKey: ui.KeyF, MacMods: ui.Ctrl | ui.Super, Menu: hostapi.MenuPosition{Menu: hostapi.MenuView, After: "pane"}})
 	palette := ext.Use(r, hostapi.PaletteService)
 	ext.Contribute(r, hostapi.Tools, "tool", hostapi.Tool{Order: 1, Draw: func(c *ui.Context) {
 		pal := palette.Get().Colors()

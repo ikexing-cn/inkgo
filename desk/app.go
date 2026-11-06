@@ -90,6 +90,7 @@ type App struct {
 	books                  shelfView
 	flash                  map[string]time.Time
 	workEpoch              uint64
+	requestSession         *ext.Session
 	busy                   string
 	cancel                 context.CancelFunc
 	ledgerData             ledgerDataCache
@@ -186,6 +187,7 @@ func (a *App) resetView() {
 	}
 	a.workEpoch++
 	a.busy, a.cancel, a.nonblocking = "", nil, false
+	a.requestSession = nil
 	a.resetPrefs()
 	a.flash, a.doc, a.write = map[string]time.Time{}, docView{}, writeView{}
 	a.page, a.shown, a.offAway = pageTalk, pageTalk, false
@@ -211,6 +213,7 @@ func (a *App) Close() error {
 		a.cancel()
 	}
 	a.leaveWork()
+	a.settleRequest()
 	a.resetPrefs()
 	a.workEpoch++
 	// Window shutdown exits the process. A cancelled worker may still be

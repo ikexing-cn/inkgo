@@ -54,10 +54,10 @@ type Command struct {
 	ID string
 	// HelpGroup and HelpText optionally customize the shortcut row on the frame thread.
 	HelpGroup, HelpText func() string
-	// HelpAfter anchors the row after a host shortcut row's description on the frame thread.
-	HelpAfter func() string
-	// HelpBefore anchors the row before another shortcut description on the frame thread.
-	HelpBefore func() string
+	// HelpAfter anchors the row after a stable shortcut row ID on the frame thread.
+	HelpAfter string
+	// HelpBefore anchors the row before a stable shortcut row ID on the frame thread.
+	HelpBefore string
 	// Present omits the command entirely when its optional capability is absent.
 	Present func() bool
 	// Hint supplies an optional disabled command explanation on the frame thread.
@@ -279,15 +279,17 @@ type Jobs interface {
 
 	// StartJob runs fn on a worker and its result on the frame thread.
 	// Capture Services in the initiating frame; never retain its Context.
-	StartJob(ui.Services, func() func())
+	StartJob(ui.Services, func(context.Context) func())
 }
 
 // Dialogs exposes native dialogs; accessors require the frame thread.
 type Dialogs interface {
 	// CanPickFolder reports whether a native folder picker is installed; frame thread only.
 	CanPickFolder() bool
-	// Dialogs returns optional save-file and reveal callbacks, called on workers.
-	Dialogs() (save func(string, string) (string, error), reveal func(string) error)
+	// SaveInto runs a host-owned native save dialog; its result runs on the frame thread.
+	SaveInto(*ui.Context, string, string, func(string, error)) bool
+	// Reveal opens the system file manager on the frame thread.
+	Reveal(string) error
 	// PickInto starts a folder picker on the frame thread. The picker runs on a
 	// worker; picked runs on the frame thread. False means no picker is available.
 	PickInto(*ui.Context, string, func(string)) bool
