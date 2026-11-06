@@ -3,7 +3,7 @@
   "@modUsage": {
     "description": "「功能」里一个模块的名字。"
   },
-  "modUsageAbout": "记下 AI 用了多少、花了多少",
+  "modUsageAbout": "记下 AI 用了多少",
   "@modUsageAbout": {
     "description": "「扩展」里：这个扩展是做什么的，一句话。"
   },

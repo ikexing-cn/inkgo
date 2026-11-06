@@ -41,13 +41,13 @@ func ModUsage() string { return In(i18n.Locale()).ModUsage() }
 // 「功能」里一个模块的名字。
 func (msgs Messages) ModUsage() string { return Catalog.Format(msgs.locale, "modUsage", nil) }
 
-// ModUsageAbout says "记下 AI 用了多少、花了多少"
+// ModUsageAbout says "记下 AI 用了多少"
 // in the language the app shows.
 //
 // 「扩展」里：这个扩展是做什么的，一句话。
 func ModUsageAbout() string { return In(i18n.Locale()).ModUsageAbout() }
 
-// ModUsageAbout says "记下 AI 用了多少、花了多少"
+// ModUsageAbout says "记下 AI 用了多少"
 // in the language of msgs.
 //
 // 「扩展」里：这个扩展是做什么的，一句话。

@@ -70,14 +70,6 @@ const tokens = (n) => {
   const [unit, by] = [['B', 1e9], ['M', 1e6], ['K', 1e3]].find(([, by]) => n >= 1000 && Math.round((n / by) * 10) >= 10) || ['', 1]
   return Math.round((n / by) * 10) / 10 + unit
 }
-// 按内置价格估一次或几次请求花了多少：use 每项是 [输入, 其中缓存命中, 输出]。表里没有价格的模型不估，给空。
-const price = (model, use) => {
-  const p = (BOOK.table[model] || [])[2]
-  if (!p) return ''
-  const v = use.reduce((n, [input, cached, output]) => n + (input - cached) * p[0] + cached * p[1] + output * p[2], 0) / 1e6
-  return v < 0.01 ? L.aiCostUnder(p[3] + '0.01') : L.aiCostAbout(p[3] + v.toFixed(2))
-}
-
 // 设定随章节变：一章（或一卷的第一章）排在全书的第几个，照侧栏的先后。不在书里（进了回收站）的是 -1。
 const rank = (key) => (key ? S.chapters.findIndex((c) => c.key === key || c.vol === key) : -1)
 // 刚打开一本书的样子。书架上只有第一本有内容，别的是空书。

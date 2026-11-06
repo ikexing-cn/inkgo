@@ -19,12 +19,11 @@ function noted(s, feature, where, parts, use, end = '完成') {
 
 const FEATURES = ['讨论', '起草', '改写', '续写', '检查']
 const featureName = (f) => ({ 讨论: L.pageTalk(), 起草: L.settingsFeatureDraft(), 改写: L.settingsFeatureRewrite(), 续写: L.settingsFeatureContinue(), 检查: L.pageCheck() })[f] ?? f
-const spentOn = (rows) => rows.reduce((n, r) => { const p = (BOOK.table[r[3]] || [])[2], [input, cached, output] = r[6]; return n + (p ? ((input - cached) * p[0] + cached * p[1] + output * p[2]) / 1e6 : 0) }, 0)
 function spent() {
   const all = S.records
   const row = (feature) => {
     const rows = all.filter((r) => r[1] === feature), sum = (i) => rows.reduce((n, r) => n + r[6][i], 0)
-    return `<div class="spent-row"><div>${t(featureName(feature))}</div><div class="fit ell">${t(L.settingsSpentRow(rows.length, tokens(sum(0)), Math.round((sum(1) / sum(0)) * 100), tokens(sum(2))))}</div><div>${t(L.settingsSpentCost(spentOn(rows)))}</div></div>`
+    return `<div class="spent-row"><div>${t(featureName(feature))}</div><div class="fit ell">${t(L.settingsSpentRow(rows.length, tokens(sum(0)), Math.round((sum(1) / sum(0)) * 100), tokens(sum(2))))}</div></div>`
   }
   const used = FEATURES.filter((f) => all.some((r) => r[1] === f))
   return `<div class="prefs-group"><div class="group-title">${t(L.settingsUsage())}</div></div>` +
@@ -40,9 +39,9 @@ function records(d) {
   const shown = S.records.filter((r) => d.only === '全部' || r[1] === d.only)
   const pick = (change) => () => set((s) => ({ dialog: { ...s.dialog, ...change } }))
   const line = (r, i) => {
-    const [at, feature, where, model, effort, parts, [input, cached, output], end] = r, open = d.row === i, cost = price(model, [r[6]])
+    const [at, feature, where, model, effort, parts, [input, cached, output], end] = r, open = d.row === i
     return `<div class="record${open ? ' on' : ''}"><div class="record-row hit"${onClick(pick({ row: open ? -1 : i }))}><div class="record-at">${t(timeShown(at))}</div><div class="fit ell">${t(featureName(feature) + ' · ' + where)}</div>` +
-      `<div class="record-n">${tokens(input + output)}</div><div class="record-cost">${t(cost || '—')}</div><div class="record-end ell${end === '完成' ? '' : end === '已取消' ? ' muted' : ' danger'}">${t(endName(end))}</div>${icon(open ? 'down' : 'right', 'xs')}</div>` +
+      `<div class="record-n">${tokens(input + output)}</div><div class="record-end ell${end === '完成' ? '' : end === '已取消' ? ' muted' : ' danger'}">${t(endName(end))}</div>${icon(open ? 'down' : 'right', 'xs')}</div>` +
       (open ? `<div class="record-more"><div>${t(model + ' · ' + effortWord(effort))}</div><div>${t(L.settingsRecordSent(parts.map(([name, x]) => partName(name) + ' ' + tokens(x)).join(' · ')))}</div>` +
         `<div>${cached ? t(L.settingsRecordActualCached(tokens(input), tokens(cached), tokens(output))) : t(L.settingsRecordActual(tokens(input), tokens(output)))}</div></div>` : '') + '</div>'
   }

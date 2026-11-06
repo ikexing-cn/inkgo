@@ -248,8 +248,8 @@ function message(talk, m, i) {
       (left ? `<div class="unanswered">${icon('warn', 'sm')}<div>${t(L.chatUnanswered())}</div><div class="hit link${S.waiting ? ' off' : ''}"${onClick(S.waiting ? null : () => answer(talk.id))}>${t(L.chatRetry())}</div></div>` : '') + '</div>'
   }
   const copy = () => { if (navigator.clipboard) navigator.clipboard.writeText(m.text).catch(() => {}); say(L.chatCopied(), '', 'ok') }
-  // 这一轮所有请求的合计，和按内置价格估的花费；表里没有价格的模型不写花费。
-  const cost = m.use && price(S.uses[0].model, m.use), use = m.use ? ' · ' + tokens(m.use.reduce((n, [input, , output]) => n + input + output, 0)) + ' token' + (cost ? ' · ' + cost : '') : ''
+  // 这一轮所有请求的 token 合计。
+  const use = m.use ? ' · ' + tokens(m.use.reduce((n, [input, , output]) => n + input + output, 0)) + ' token' : ''
   return `<div class="msg${last ? ' last' : ''}"><div class="reply-row"><div class="reply-face">${icon('spark')}</div><div class="fit">${m.think ? thought(key, m.think) : ''}${m.look && m.look.length ? looked('look-' + key, m.look) : ''}${m.prop ? propCard(m) : ''}<div class="reply" data-reply="${i}">${t(m.text)}</div>` +
     (m.capped ? '<div class="note">' + t(L.chatCapped()) + '</div>' : '') +
     `<div class="reply-tools"><div class="faint ell" title="${t(timeShown(m.at) + ' · ' + S.uses[0].model + use)}">${t(timeShown(m.at))} · ${t(S.uses[0].model)}${use}</div>${pull}${tool(L.chatCopyAll(), 'copy', copy)}${m.use ? tool(L.chatContextSent(), 'eye', () => set((s) => ({ told: { ...s.told, [key]: !saw } })), saw) : ''}</div>` +
