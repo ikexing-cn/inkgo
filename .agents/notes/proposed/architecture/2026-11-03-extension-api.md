@@ -348,6 +348,7 @@ ext.Before(r, ext.EditorKey, func(in *ext.KeyIn) { in.Text = fullWidth(in.Text) 
 
 ## 相关笔记当场审计
 
+- [2026-11-06 契约审查](2026-11-06-extension-contract-review.md)：记录已复现的启动回滚、Session 身份和回调边界缺口；作者 2026-11-06 确认了第四版修复方案，施工完要回到本篇改齐。
 - [扩展模块](2026-11-02-extension-modules.md)：本篇的上篇，互链。那篇管模型和行为，本篇管接口；两篇说法不一样时以那篇为准，并当场改齐。
 - [扩展的安全模式](../feature/2026-11-03-extension-safe-mode.md)：部分重叠。安全模式读的就是本篇的账和状态。
 - [desk 状态](../../implemented/architecture/2026-10-22-desk-state.md)、[理一遍代码](../../implemented/architecture/2026-10-21-code-reorganization.md)：部分重叠。它们定的窄 `Host` 会被服务取代，落地时改那两篇。
