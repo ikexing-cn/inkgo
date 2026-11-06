@@ -131,7 +131,8 @@ func (r *Registrar) injection(target, name string, kind InjectionKind, fn any, i
 	r.h.injections = append(r.h.injections, interception{Injection: Injection{ID: id, Target: target, Owner: m.ID, Kind: kind}, fn: fn, in: in, out: out, valueType: valueType})
 }
 
-// Before changes a call's input before any around layer executes.
+// Before changes a call's input before any around layer executes. Panic restores
+// only a value copy: slice elements and pointed-to data are not rolled back.
 func Before[In, Out any](r *Registrar, key HookKey[In, Out], name string, f func(*In)) {
 	if f == nil {
 		r.fail("nil Before")
@@ -139,7 +140,8 @@ func Before[In, Out any](r *Registrar, key HookKey[In, Out], name string, f func
 	r.injection(string(key), name, BeforeKind, f, reflect.TypeFor[In](), reflect.TypeFor[Out](), nil)
 }
 
-// After changes the result after every around layer has returned.
+// After changes the result after every around layer has returned. Recovery is
+// a value copy only; mutations through references are not rolled back.
 func After[In, Out any](r *Registrar, key HookKey[In, Out], name string, f func(In, *Out)) {
 	if f == nil {
 		r.fail("nil After")
@@ -148,7 +150,8 @@ func After[In, Out any](r *Registrar, key HookKey[In, Out], name string, f func(
 }
 
 // Around wraps the next layer; first in order is outermost. Calls to next must
-// finish before the callback returns and must not escape to another goroutine.
+// finish before the callback returns, occur at most once, and must not escape
+// to another goroutine or be retained. This is a caller contract.
 func Around[In, Out any](r *Registrar, key HookKey[In, Out], name string, f func(In, func(In) Out) Out) {
 	if f == nil {
 		r.fail("nil Around")
@@ -514,11 +517,11 @@ func (d *typedHook[In, Out]) rebuild(h *Host, target string, list []interception
 					if _, ok := v.(hostPanic); ok {
 						panic(v)
 					}
-					h.failCall(i.Owner, s, "Around", target, i.ID, target, v)
+					failure := h.failCall(i.Owner, s, "Around", target, i.ID, target, v)
 					if called {
 						out = inner
 					} else {
-						out = next(frame, in)
+						frame.err = failure
 					}
 				}
 			}()
@@ -556,8 +559,7 @@ func (p *callFrame[In, Out]) callBase(in In) (out Out) {
 				if i.Kind == ReplaceKind {
 					stage = "Replace"
 				}
-				p.h.failCall(i.Owner, s, stage, p.target, i.ID, p.target, v)
-				out = p.callOriginal(in)
+				p.err = p.h.failCall(i.Owner, s, stage, p.target, i.ID, p.target, v)
 			}
 		}()
 		if i.Kind == ReplaceKind {
@@ -655,7 +657,12 @@ func (p *callFrame[In, Out]) callAfter(i interception, s *Session, in In, value 
 }
 
 // Call executes a prebuilt chain. With no active injections it allocates nothing.
-// Extension panics return ErrCallFailed (errors.Is); host original panics escape.
+// Original, Overwrite, Replace, or Around-before-next panics return zero and
+// ErrCallFailed (errors.Is); host original panics escape. No operation is retried.
+// Before/After and Around-after-next failures preserve the inner result and error.
+// Calling next does not imply success; an inner ErrCallFailed remains a failure.
+// Around may legally short-circuit without next. ErrCallFailed does not imply
+// absence of side effects: callers must not retry writes or run a default action.
 // Calls are reentrant and concurrent; only their immutable plan is shared.
 // Use Call for work other extensions may alter, and Guard for plain queries
 // and callbacks that should not be injectable.

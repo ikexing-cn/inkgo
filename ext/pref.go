@@ -2,21 +2,13 @@ package ext
 
 import (
 	"encoding/json"
-	"reflect"
 )
 
-type preference interface {
-	current() any
-	changed(any)
-}
-
-// Pref reads persisted values on demand. Listener registration is synchronized;
-// listeners run on the thread calling Set or Open, without host locks held.
+// Pref reads persisted values on demand.
 type Pref[T any] struct {
-	h         *Host
-	id        string
-	schema    Schema[T]
-	listeners []func(T)
+	h      *Host
+	id     string
+	schema Schema[T]
 }
 
 // Setting records a schema under the module's namespace. BookScope requires an
@@ -33,7 +25,6 @@ func Setting[T any](r *Registrar, name string, schema Schema[T]) *Pref[T] {
 	r.claim(id)
 	schema.Choices = append([]Choice[T](nil), schema.Choices...)
 	p := &Pref[T]{h: r.h, id: id, schema: schema}
-	r.h.prefs = append(r.h.prefs, p)
 	r.e.ledger.Settings = append(r.e.ledger.Settings, SettingInfo{ID: id, Title: schema.Title, Desc: schema.Desc, Scope: schema.Scope, Group: schema.Group, Order: schema.Order, Schema: schema, Read: func() any { return p.Get() }, Write: func(v any) { p.Set(v.(T)) }})
 	return p
 }
@@ -85,7 +76,7 @@ func (p *Pref[T]) Get() T {
 	return p.get(b)
 }
 
-// Set persists the value and notifies listeners if the effective value changed.
+// Set persists the value.
 // The JSON bytes are independent of the caller's mutable value. Values that
 // cannot be JSON encoded panic before storage changes.
 func (p *Pref[T]) Set(value T) {
@@ -101,7 +92,6 @@ func (p *Pref[T]) Set(value T) {
 		panic(err)
 	}
 	p.h.storeMu.Lock()
-	old := p.get(b)
 	if p.h.opts.Settings != nil {
 		p.h.opts.Settings.Save(b, p.id, data)
 	} else {
@@ -111,35 +101,4 @@ func (p *Pref[T]) Set(value T) {
 		p.h.settingMemory[b][p.id] = data
 	}
 	p.h.storeMu.Unlock()
-	if !reflect.DeepEqual(old, value) {
-		p.notify(value)
-	}
-}
-
-// OnChange adds a listener for Set and effective value changes on Open.
-func (p *Pref[T]) OnChange(f func(T)) {
-	p.h.mu.Lock()
-	p.listeners = append(p.listeners, f)
-	p.h.mu.Unlock()
-}
-func (p *Pref[T]) notify(v T) {
-	p.h.mu.RLock()
-	listeners := append([]func(T){}, p.listeners...)
-	var s *Session
-	if e := p.h.byID[owner(p.id)]; e != nil {
-		s = e.session
-	}
-	p.h.mu.RUnlock()
-	for _, f := range listeners {
-		if err := protect(func() { f(v) }); err != nil {
-			p.h.failCall(owner(p.id), s, "OnChange", p.id, "", p.id, err)
-			return
-		}
-	}
-}
-func (p *Pref[T]) current() any { return p.Get() }
-func (p *Pref[T]) changed(old any) {
-	if v := p.Get(); !reflect.DeepEqual(old, v) {
-		p.notify(v)
-	}
 }

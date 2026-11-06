@@ -3,6 +3,7 @@ package ext_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 	"slices"
 	"sync"
@@ -343,7 +344,7 @@ func TestConcurrentCallsAndSwitchesUseSafeChainSnapshots(t *testing.T) {
 	wg.Wait()
 }
 
-func TestInjectionPanicFallsBackAndIsolatesRequiredConsumers(t *testing.T) {
+func TestInjectionPanicResultAndIsolatesRequiredConsumers(t *testing.T) {
 	for _, kind := range []string{"Before", "After", "Around", "Overwrite"} {
 		t.Run(kind, func(t *testing.T) {
 			boom := errors.New("injection original panic")
@@ -363,7 +364,14 @@ func TestInjectionPanicFallsBackAndIsolatesRequiredConsumers(t *testing.T) {
 				}
 				r.OnStop(func(*ext.Session) { stops = append(stops, "a") })
 			}}, ext.Module{ID: "dep", Requires: []string{"a"}, Setup: func(r *ext.Registrar) { r.OnStop(func(*ext.Session) { stops = append(stops, "dep") }) }}, ext.Module{ID: "other", Optional: []string{"a", "base"}, Setup: func(r *ext.Registrar) { ext.After(r, ownedHook, "good", func(_ int, n *int) { *n += 2 }) }})
-			callInt(t, h, ownedHook, 3, 5)
+			v, err := ext.Call(h, ownedHook, 3, func(n int) int { return n })
+			if kind == "Around" || kind == "Overwrite" {
+				if v != 0 || !errors.Is(err, ext.ErrCallFailed) {
+					t.Fatal(v, err)
+				}
+			} else if v != 5 || err != nil {
+				t.Fatal(v, err)
+			}
 			state(t, h, "a", ext.Failed)
 			state(t, h, "dep", ext.Off)
 			state(t, h, "base", ext.On)
@@ -467,14 +475,14 @@ func TestTaskCanFailOwnCallWithoutWaitingForItself(t *testing.T) {
 	state(t, h, "base", ext.Failed)
 }
 
-func TestReplacePanicBlamesReplacementAndUsesOriginalValueCall(t *testing.T) {
+func TestReplacePanicBlamesReplacementWithoutRetry(t *testing.T) {
 	var calls ext.CallPoint[command, int, int]
 	h := host(t, commandOptions(&calls), exporter(), ext.Module{ID: "a", Optional: []string{"export"}, Setup: func(r *ext.Registrar) {
 		ext.Replace(r, commandPoint, "export.docx", "bad", command{"Bad", func(int) int { panic("replacement boom") }})
 	}})
 	item := ext.Items(h, commandPoint)[0]
 	v, err := ext.Call(h, ext.HookOf(calls, item.ID), 7, item.Value.Run)
-	if v != 7 || err != nil {
+	if v != 0 || !errors.Is(err, ext.ErrCallFailed) {
 		t.Fatal(v, err)
 	}
 	state(t, h, "a", ext.Failed)
@@ -565,5 +573,56 @@ func TestInjectionPreferenceErrorsKeepLiveChainsAndRejectInvalidIDs(t *testing.T
 	}
 	if h.Choose(string(hostHook), "a.add") == nil || h.Choose(string(hostHook), "missing") == nil || h.SetOrder("host.missing", nil) == nil {
 		t.Fatal("invalid preferences accepted")
+	}
+}
+
+func TestOverwriteSideEffectIsNotRepeated(t *testing.T) {
+	writes := 0
+	h := host(t, ext.Options{}, baseModule(), ext.Module{ID: "a", Optional: []string{"base"}, Setup: func(r *ext.Registrar) {
+		ext.Overwrite(r, ownedHook, "write", func(int) int { writes++; panic("after write") })
+	}})
+	v, err := ext.Call(h, ownedHook, 1, func(int) int { writes++; return 1 })
+	if writes != 1 || v != 0 || !errors.Is(err, ext.ErrCallFailed) {
+		t.Fatal(writes, v, err)
+	}
+}
+
+func TestAroundPanicPreservesInnerOutcome(t *testing.T) {
+	for _, fail := range []bool{false, true} {
+		t.Run(fmt.Sprint(fail), func(t *testing.T) {
+			h := host(t, ext.Options{}, baseModule(), ext.Module{ID: "a", Optional: []string{"base"}, Setup: func(r *ext.Registrar) {
+				ext.Around(r, ownedHook, "outer", func(in int, next func(int) int) int { next(in); panic("outer") })
+			}})
+			calls := 0
+			v, err := ext.Call(h, ownedHook, 3, func(n int) int {
+				calls++
+				if fail {
+					panic("inner")
+				}
+				return n + 4
+			})
+			if calls != 1 {
+				t.Fatal(calls)
+			}
+			if fail {
+				if v != 0 || !errors.Is(err, ext.ErrCallFailed) {
+					t.Fatal(v, err)
+				}
+			} else if v != 7 || err != nil {
+				t.Fatal(v, err)
+			}
+		})
+	}
+}
+
+func TestBeforePanicDoesNotRollBackSliceElements(t *testing.T) {
+	key := ext.HookKey[[]string, string]("base.slice")
+	h := host(t, ext.Options{}, ext.Module{ID: "base", Setup: func(r *ext.Registrar) { ext.DeclareHook(r, key) }}, ext.Module{ID: "a", Optional: []string{"base"}, Setup: func(r *ext.Registrar) {
+		ext.Before(r, key, "mutate", func(in *[]string) { (*in)[0] = "modified"; panic("before") })
+	}})
+	in := []string{"original"}
+	v, err := ext.Call(h, key, in, func(in []string) string { return in[0] })
+	if v != "modified" || in[0] != "modified" || err != nil {
+		t.Fatal(v, in, err)
 	}
 }

@@ -1,7 +1,12 @@
 package main
 
 import (
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 	"writer/ext/export/exporttext"
 
@@ -55,5 +60,55 @@ func TestApplicationListsImplementedExtensionsInPrototypeGroupOrder(t *testing.T
 	want := []string{"focus", "goal", "names", "find", "notes", "lore", "outline", "hooks", "talk", "continue", "draft", "propose", "check", "usage", "snaps", "trash", "cats", "backup", "export", "phone", "context", "marks", "ai"}
 	if !slices.Equal(ids, want) {
 		t.Fatal(ids)
+	}
+}
+
+// Check registration, including providers that might be disabled at runtime.
+func TestContextPointsHaveSingleBundledProvider(t *testing.T) {
+	counts := map[string]int{"Outlines": 0, "Entries": 0, "Hooks": 0}
+	for _, m := range assembledModules("", "") {
+		files, err := filepath.Glob(filepath.Join("..", "..", "ext", m.ID, "*.go"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, name := range files {
+			if strings.HasSuffix(name, "_test.go") {
+				continue
+			}
+			file, err := parser.ParseFile(token.NewFileSet(), name, nil, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			ast.Inspect(file, func(n ast.Node) bool {
+				call, ok := n.(*ast.CallExpr)
+				if !ok || len(call.Args) < 2 {
+					return true
+				}
+				fn, ok := call.Fun.(*ast.SelectorExpr)
+				if !ok || fn.Sel.Name != "Contribute" {
+					return true
+				}
+				pkg, ok := fn.X.(*ast.Ident)
+				if !ok || pkg.Name != "ext" {
+					return true
+				}
+				point, ok := call.Args[1].(*ast.SelectorExpr)
+				if !ok {
+					return true
+				}
+				pkg, ok = point.X.(*ast.Ident)
+				if ok && pkg.Name == "contextapi" {
+					if _, ok := counts[point.Sel.Name]; ok {
+						counts[point.Sel.Name]++
+					}
+				}
+				return true
+			})
+		}
+	}
+	for point, count := range counts {
+		if count != 1 {
+			t.Errorf("context.%s: %d providers, want 1", point, count)
+		}
 	}
 }

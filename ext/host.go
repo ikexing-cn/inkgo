@@ -48,7 +48,6 @@ type Host struct {
 	bookSwitch           map[string]bool
 	bookMemory           map[Book]map[string]bool
 	settingMemory        map[Book]map[string][]byte
-	prefs                []preference
 }
 
 var moduleID = regexp.MustCompile(`^[a-z][a-z0-9]*$`)
@@ -423,10 +422,6 @@ func (h *Host) Open(book Book) error {
 		}
 	}
 	h.storeMu.Unlock()
-	old := make([]any, len(h.prefs))
-	for i, p := range h.prefs {
-		old[i] = p.current()
-	}
 	for len(h.running) > 0 {
 		h.stop(h.running[len(h.running)-1])
 	}
@@ -438,9 +433,6 @@ func (h *Host) Open(book Book) error {
 	}
 	h.mu.Unlock()
 	h.reconcile()
-	for i, p := range h.prefs {
-		p.changed(old[i])
-	}
 	return nil
 }
 

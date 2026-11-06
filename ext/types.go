@@ -25,7 +25,8 @@ type Module struct {
 	Installed bool
 	Kind      Kind
 	// Name and Desc are localization only and remain safe while disabled.
-	Name, Desc         func() string
+	Name, Desc func() string
+	// Optional dependencies must be installed; only their activation is optional.
 	Requires, Optional []string
 	// Group is a host display grouping key; ext does not interpret it.
 	Group string

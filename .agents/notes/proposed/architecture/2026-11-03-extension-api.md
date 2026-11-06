@@ -93,11 +93,11 @@ import 一个公开包只是编译期用到它的类型，不等于运行时依�
 - **服务** `ServiceKey[T]`：
   - 提供：`ext.Provide(r, key, func(*ext.Session) T)`。实现在 Start 时才造出来，所以能读这本书的数据。
   - 取用必需依赖的：`ref := ext.Use(r, key)`，返回 `*ext.Ref[T]`，用的时候 `ref.Get()`。这样关掉再开、换书之后，拿到的总是当前那份；Setup 时提供方可能还关着，也没有东西可返回。
-  - 取用可选依赖的：`ref := ext.UseOptional(r, key)`，`ref.Get()` 返回 `(T, bool)`，对方没开时是 false。类型上就逼着调用方处理「没有」的情况。
+  - 取用可选依赖的：`ref := ext.UseOptional(r, key)`，`ref.Get()` 返回 `(T, bool)`，对方没开时是 false。Optional 只指「装了但关着」：提供模块必须参与装配，缺席或依赖成环仍报错。两种引用共用服务解析和 SessionBinder 绑定，服务绑定到消费方的当前 Session。
   - 往可选依赖的点里放东西、注入它，写法和必需依赖一样；对方没开时宿主不生效这些登记，详情页写「X 没开，以下不生效」。对方中途开、关，宿主照账接上或拆下，依赖方不用重启。
 - **宿主的能力也是服务**，键在 `hostapi` 包里：`BookService`（可信的书句柄：当前的书 `Store`、界面读的内容 `Content`；`Store` 能写，不是只读）、`EditingService`（会动编辑器、目录、字数、撤销的操作：选中的章和编辑器、先存下显示着的那一章、恢复快照、全书替换、内容刚变的闪烁……）、`NavigationService`（页、条目、选中的章、专注、打开某个扩展的详情页）、`NativeUIService`（菜单、动画、右栏里画的东西）、`MachinePathsService`（本机路径）、`PaletteService`（颜色）、`PaneService`（打开右栏的某个标签）、`NoticesService`（提示条）、`JobsService`（后台任务）、`DialogsService`（选文件夹、存文件、在文件夹里显示）。原来每个子包一个的窄 `Host` 已经换成这些。2026-11-05 审查后把迁移中越长越宽的 `Desktop`、`Book` 按能力拆成上面几个，`Desktop` 删了；`Store` 是给仓库里 Go 代码的可信能力，后台任务开始时拿住那一本书的，不在中途问「现在是哪本书」。宿主的服务由 `ext.Options.DeclareHost` 在装配时提供，一直在，不用写进 Requires；其中 `Jobs` 交给每个扩展的是绑在它这次开启上的一份，见上面「后台任务」。每个方法的 doc comment 写明在哪个线程调。
 - **设置**：
-  - `ext.Setting(r, "name", ext.Schema[T]{…})`，返回 `*ext.Pref[T]`，带 `Get()`、`Set()` 和 `OnChange`；值按 JSON 存；
+  - `ext.Setting(r, "name", ext.Schema[T]{…})`，返回 `*ext.Pref[T]`，带 `Get()`、`Set()`，不提供变更监听；值按 JSON 存；
   - Schema 有标题、说明、默认值、可选项（每项带说明）、分组、顺序、作用范围（`Local` 本机、`BookScope` 按书、`Both` 两者都有）；
   - 存放：本机的在 `works.json` 旁边的 `ext.json`（键 `off` 本机关掉的扩展、`settings`、`injections` 作者调过的顺序和选择），按书的在作品根上的 `ext.json`（键 `switches`、`settings`；2026-11-04 从 `.writer/ext.json` 搬出来，好进备份）。都用 `internal/atomicfile` 写。文件读不出来时这一次按默认处理、提示条说一句（`locales.ExtFileUnreadable`），在真正存一次以前不覆盖它；
   - 宿主照声明用 `kit` 画在设置里这个扩展的那一节（`desk/settings_declared.go`）：现在只画开关（`Schema[bool]`）和带可选项的 `Schema[string]`，按分组、顺序排；别的类型扩展自己画。宿主开的具名分组（`ext.SettingsGroupChecks` 这类，几个扩展的项画在一页、每项记着是谁加的）没做：几个扩展合用一页改用下面登记同一个页；
@@ -139,6 +139,8 @@ ext.Replace(r, point, "export.docx", value)                    // 换掉一整�
 - 只把出错的那个扩展标成出错，Stop 它，依赖它的跟着关。注入方出错时，只拆掉它的注入，被注入的照常。
 - `Guard`、无注入的快路径和注入计划的各调用边界，在检查是否开着的同一把读锁内捕获 Session；任务 panic 用任务自己的 Session。出错时若它已不是当前 Session，只写日志，不改状态、不进账、不提示。对外调用签名不变，工作线程仍可用 `PointReader.Capture`。
 - `Host.Settle()` 在界面线程推进出错后待停的扩展；没有待收尾时靠原子标志直接返回，不拿锁。Set、Open 等宿主变更仍先走同一收尾逻辑。等待任务退出时不持 `h.mu`，任务不得等界面线程；同步收尾可能长时间等待。接口已有测试，desk 每帧接入留给下一批。
+- 同一次调用不自动重做。原实现、Overwrite、Replace panic，或 Around 未调 next 就 panic，`Call` 返回零值和 `ErrCallFailed`；不回退到原实现。Before、After、next 成功后的 Around 出错只停注入方，保留内层结果和 nil。内层原有的 `ErrCallFailed` 必须保留；调过 next 不等于成功，Around 不调 next 自行返回仍是合法短路。
+- next 只能在回调内同步调用、最多一次，不缓存、不转交其他 goroutine；这是约定，不加运行期机制。Before、After 只按值恢复，切片元素及指针内容不回滚，不能保证保存的是注入前参数。`ErrCallFailed` 不表示没有副作用，调用方不得自动重试写操作或补做默认操作；desk 调用点已核对。
 - 提示条和详情页写明是哪个扩展、哪个回调、在谁的注入链里。
 - 画界面的回调半路 panic 时，desk 把每个扩展画的东西包在一个 `ui.Box` 里，出错就把这个盒子藏起来：这一帧画了一半的不露出来，下一帧起不再调它。底栏的项例外：多包一层它们就没法照原型的规则收缩（英文下右栏开着时会被截断），所以直接排进底栏；出错照样记账、停掉，只是没有那层盒子来藏。
 - 宿主调扩展有两种办法，都 recover、都记账、都只停出错的和必需依赖它的：

@@ -1,7 +1,6 @@
 package ext_test
 
 import (
-	"reflect"
 	"testing"
 
 	"writer/ext"
@@ -28,39 +27,31 @@ func (s *settingsStore) Save(b ext.Book, id string, v []byte) {
 	s.values[b][id] = v
 }
 
-func TestSettingDefaultsSetGetAndOnChange(t *testing.T) {
+func TestSettingDefaultsSetGet(t *testing.T) {
 	var p *ext.Pref[int]
-	var changes []int
 	store := &settingsStore{}
 	h := host(t, ext.Options{Settings: store}, ext.Module{ID: "a", Setup: func(r *ext.Registrar) {
 		p = ext.Setting(r, "count", ext.Schema[int]{Default: 7})
-		p.OnChange(func(v int) {
-			if p.Get() != v {
-				t.Error("notification before persistence")
-			}
-			changes = append(changes, v)
-		})
+
 	}})
 	if p.Get() != 7 {
 		t.Fatal(p.Get())
 	}
 	p.Set(9)
-	if p.Get() != 9 || !reflect.DeepEqual(changes, []int{9}) || string(store.values[ext.Book{}]["a.count"]) != "9" {
-		t.Fatal(changes, store.values)
+	if p.Get() != 9 || string(store.values[ext.Book{}]["a.count"]) != "9" {
+		t.Fatal(store.values)
 	}
 	p.Set(9)
 	must(t, h.Open(ext.Book{Dir: "one"}))
-	if p.Get() != 9 || len(changes) != 1 {
+	if p.Get() != 9 {
 		t.Fatal("local preference changed with book")
 	}
 }
 func TestBookSettingFollowsCurrentBookAndDefaultsOnShelf(t *testing.T) {
 	var p *ext.Pref[string]
-	var changes []string
 	store := &settingsStore{values: map[ext.Book]map[string][]byte{{Dir: "two"}: {"a.mode": []byte("\"second\"")}}}
 	h := host(t, ext.Options{Settings: store}, ext.Module{ID: "a", Setup: func(r *ext.Registrar) {
 		p = ext.Setting(r, "mode", ext.Schema[string]{Default: "default", Scope: ext.BookScope})
-		p.OnChange(func(v string) { changes = append(changes, v) })
 	}})
 	if p.Get() != "default" {
 		t.Fatal(p.Get())
@@ -76,8 +67,8 @@ func TestBookSettingFollowsCurrentBookAndDefaultsOnShelf(t *testing.T) {
 		t.Fatal(p.Get())
 	}
 	must(t, h.Open(ext.Book{}))
-	if p.Get() != "default" || !reflect.DeepEqual(changes, []string{"first", "second", "first", "default"}) {
-		t.Fatal(p.Get(), changes)
+	if p.Get() != "default" {
+		t.Fatal(p.Get())
 	}
 	func() {
 		defer func() {

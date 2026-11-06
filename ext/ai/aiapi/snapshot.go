@@ -23,17 +23,14 @@ func SnapshotTools(h *ext.Host) []Tool {
 			if !activation.Active() {
 				return ToolResult{Failed: true}
 			}
-			out, err := ext.Call(h, key, ToolCall{Context: ext.WithSession(ctx, activation), Env: e, Input: in}, InvokeTool(original))
+			out, err := ext.Call(h, key, ToolCall{Context: ext.WithSession(ctx, activation), Env: e, Input: in}, invokeActiveTool(original, activation))
 			if err != nil {
 				return ToolResult{Text: fmt.Sprintf("工具调用失败：%v", err), Failed: true}
-			}
-			if !activation.Active() {
-				return ToolResult{Failed: true}
 			}
 			return out.Result
 		}
 		tool.Label = func(e ToolEnv, in json.RawMessage) string {
-			out, err := ext.Call(h, key, ToolCall{Env: e, Input: in, Label: true}, InvokeTool(original))
+			out, err := ext.Call(h, key, ToolCall{Env: e, Input: in, Label: true}, invokeActiveTool(original, activation))
 			if err != nil {
 				return original.Name
 			}
@@ -84,12 +81,9 @@ func SnapshotReadTools(reader *ext.PointReader[Tool]) []Tool {
 			if !activation.Active() {
 				return ToolResult{Failed: true}
 			}
-			out, err := ext.CallReadPoint(reader, item.ID, ToolCall{Context: ext.WithSession(ctx, activation), Env: e, Input: in}, InvokeTool(original))
+			out, err := ext.CallReadPoint(reader, item.ID, ToolCall{Context: ext.WithSession(ctx, activation), Env: e, Input: in}, invokeActiveTool(original, activation))
 			if err != nil {
 				return ToolResult{Text: fmt.Sprintf("工具调用失败：%v", err), Failed: true}
-			}
-			if !activation.Active() {
-				return ToolResult{Failed: true}
 			}
 			return out.Result
 		}
@@ -97,7 +91,7 @@ func SnapshotReadTools(reader *ext.PointReader[Tool]) []Tool {
 			if !activation.Active() {
 				return tool.Name
 			}
-			out, err := ext.CallReadPoint(reader, item.ID, ToolCall{Env: e, Input: in, Label: true}, InvokeTool(original))
+			out, err := ext.CallReadPoint(reader, item.ID, ToolCall{Env: e, Input: in, Label: true}, invokeActiveTool(original, activation))
 			if err != nil {
 				return tool.Name
 			}
@@ -106,4 +100,16 @@ func SnapshotReadTools(reader *ext.PointReader[Tool]) []Tool {
 		out = append(out, tool)
 	}
 	return out
+}
+
+// Check the snapshot instance inside the original call boundary, including when
+// an injection disables and re-enables the provider before invoking next.
+func invokeActiveTool(tool Tool, activation *ext.Session) func(ToolCall) ToolAnswer {
+	invoke := InvokeTool(tool)
+	return func(c ToolCall) ToolAnswer {
+		if !activation.Active() {
+			return ToolAnswer{Result: ToolResult{Failed: true}, Label: tool.Name}
+		}
+		return invoke(c)
+	}
 }

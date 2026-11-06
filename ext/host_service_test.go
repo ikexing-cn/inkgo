@@ -56,19 +56,16 @@ func TestHostServiceGetDuringSetupStillPanics(t *testing.T) {
 	}
 }
 
-func TestOpenAfterCloseNotifiesBookPreferenceChanges(t *testing.T) {
+func TestOpenAfterCloseResetsBookPreference(t *testing.T) {
 	var p *ext.Pref[int]
-	var changes []int
 	h := host(t, ext.Options{}, ext.Module{ID: "prefs", Setup: func(r *ext.Registrar) {
 		p = ext.Setting(r, "n", ext.Schema[int]{Scope: ext.BookScope})
-		p.OnChange(func(v int) { changes = append(changes, v) })
 	}})
 	must(t, h.Open(ext.Book{Dir: "one"}))
 	p.Set(7)
-	changes = nil
 	h.Close()
 	must(t, h.Open(ext.Book{}))
-	if len(changes) != 1 || changes[0] != 0 {
-		t.Fatal("book preference reset notification lost", changes)
+	if p.Get() != 0 {
+		t.Fatal("book preference reset lost", p.Get())
 	}
 }

@@ -150,37 +150,38 @@ func Use[T any](r *Registrar, key ServiceKey[T]) *Ref[T] {
 
 // Get panics during Setup or while the provider is inactive.
 func (r *Ref[T]) Get() T {
-	v, ok := serviceGet[T](r.h, r.key)
+	v, ok := serviceGet[T](r.h, r.key, r.owner)
 	if !ok {
 		panic(fmt.Sprintf("service %q is inactive", r.key))
-	}
-	if binder, ok := any(v).(SessionBinder); ok && r.owner != HostOwner {
-		r.h.mu.RLock()
-		s := r.h.byID[r.owner].session
-		r.h.mu.RUnlock()
-		return binder.BindSession(s).(T)
 	}
 	return v
 }
 
 // OptRef resolves a service that can disappear without restarting its consumer.
 type OptRef[T any] struct {
-	h   *Host
-	key string
+	h     *Host
+	key   string
+	owner string
 }
 
 // UseOptional permits either a required or an optional declared dependency.
+// Optional means installed but possibly disabled; missing modules fail assembly.
 func UseOptional[T any](r *Registrar, key ServiceKey[T]) *OptRef[T] {
 	use(r, key, true)
-	return &OptRef[T]{r.h, string(key)}
+	return &OptRef[T]{r.h, string(key), r.e.mod.ID}
 }
 
 // Get returns false while the provider is inactive, and panics during Setup.
-func (r *OptRef[T]) Get() (T, bool) { return serviceGet[T](r.h, r.key) }
+func (r *OptRef[T]) Get() (T, bool) { return serviceGet[T](r.h, r.key, r.owner) }
 
-func serviceGet[T any](h *Host, key string) (T, bool) {
+func serviceGet[T any](h *Host, key, consumer string) (T, bool) {
 	h.mu.RLock()
-	defer h.mu.RUnlock()
+	locked := true
+	defer func() {
+		if locked {
+			h.mu.RUnlock()
+		}
+	}()
 	if h.setup {
 		panic("Ref.Get during Setup is forbidden")
 	}
@@ -196,7 +197,17 @@ func serviceGet[T any](h *Host, key string) (T, bool) {
 	if v.value == nil {
 		return zero, true
 	}
-	return v.value.(T), true
+	value := v.value.(T)
+	var session *Session
+	if consumer != HostOwner {
+		session = h.byID[consumer].session
+	}
+	h.mu.RUnlock()
+	locked = false // BindSession may use host services.
+	if binder, ok := any(value).(SessionBinder); ok && consumer != HostOwner {
+		return binder.BindSession(session).(T), true
+	}
+	return value, true
 }
 
 // OnStart registers initialization after required services become available.
