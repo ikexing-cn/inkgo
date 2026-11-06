@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"slices"
 	"testing"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/go-text/typesetting/segmenter"
@@ -22,7 +23,9 @@ func ends(s string) []int {
 
 func TestAgainstSegmenter(t *testing.T) {
 	rng := rand.New(rand.NewSource(42))
-	pool := []rune("汉字abc12 -'\r\n👨‍👩‍👧🇨🇳👍🏽1️⃣é한\u0600\u0890\u0903\uff9e\u200c\u200d\U0001f600")
+	pool := []rune("かé\u3099\u1161\u3000\u00a0\ufffd汉字abc12 -'\r\n👨‍👩‍👧🇨🇳👍🏽1️⃣é한\u0600\u0890\u0903\uff9e\u200c\u200d\U0001f600")
+	// Prefix and Suffix are checked for every n, so the cost grows with the
+	// square of the length; 1500 trials take about a second.
 	for trial := 0; trial < 1500; trial++ {
 		r := make([]rune, rng.Intn(120))
 		for i := range r {
@@ -33,12 +36,19 @@ func TestAgainstSegmenter(t *testing.T) {
 		seg.Init(r)
 		it := seg.GraphemeIterator()
 		want := []int{}
+		non := 0
 		for it.Next() {
 			g := it.Grapheme()
+			if !unicode.IsSpace(g.Text[0]) {
+				non++
+			}
 			want = append(want, g.Offset+len(g.Text))
 		}
 		if got := ends(s); !slices.Equal(got, want) {
 			t.Fatalf("%q: %v want %v", s, got, want)
+		}
+		if NonSpace(s) != non {
+			t.Fatal("nonspace", s)
 		}
 		if Count(s) != len(want) {
 			t.Fatal("count", s)

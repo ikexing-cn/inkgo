@@ -9,56 +9,101 @@ import (
 	"github.com/go-text/typesetting/segmenter"
 )
 
-// simple deliberately admits only known independent characters. Everything
-// else, including all Extend/ZWJ/SpacingMark/Prepend/RI/L/V/T characters,
-// takes the Unicode path. Precomposed Hangul is safe only in a simple paragraph.
-func simple(r rune) bool {
-	if r < 128 {
-		return r != '\r'
+//go:generate go run gen.go
+
+var kind = makeKind()
+
+func makeKind() (k [65536]uint8) {
+	for r := range k {
+		if bmpSimple[r>>3]&(1<<uint(r&7)) != 0 {
+			k[r] = 1
+			if unicode.IsSpace(rune(r)) {
+				k[r] = 2
+			}
+		}
 	}
-	return r >= 0x3400 && r <= 0x9fff || r >= 0xac00 && r <= 0xd7a3 ||
-		strings.ContainsRune("，。、；：？！）》」』”’…—·（《「『“‘　", r)
+	return
+}
+
+// decode handles the common three-byte BMP spelling without a decoder call.
+// Invalid spellings take the slow paragraph path, preserving segmenter offsets.
+func decode(s string, i int) (r rune, size int) {
+	b := s[i]
+	if b < utf8.RuneSelf {
+		return rune(b), 1
+	}
+	if b&0xf0 == 0xe0 && i+2 < len(s) && s[i+1]&0xc0 == 0x80 && s[i+2]&0xc0 == 0x80 {
+		r = rune(b&15)<<12 | rune(s[i+1]&63)<<6 | rune(s[i+2]&63)
+		if r >= 0x800 && (r < 0xd800 || r > 0xdfff) {
+			return r, 3
+		}
+		return -1, 1
+	}
+	r, size = utf8.DecodeRuneInString(s[i:])
+	if r == utf8.RuneError && size == 1 {
+		return -1, 1
+	}
+	return
+}
+
+func paragraphEnd(s string, i int) int {
+	if n := strings.IndexByte(s[i:], '\n'); n >= 0 {
+		return i + n + 1
+	}
+	return len(s)
+}
+
+// segment hands s to the segmenter. Its byte offsets are those of the rune
+// slice, where an invalid byte became a three-byte U+FFFD, so ends are counted
+// in s itself, one rune at a time.
+func segment(s string, base int, yield func(rune, int) bool) bool {
+	var seg segmenter.Segmenter
+	seg.Init([]rune(s))
+	it := seg.GraphemeIterator()
+	b, runes := 0, 0
+	for it.Next() {
+		g := it.Grapheme()
+		for end := g.Offset + len(g.Text); runes < end; runes++ {
+			_, size := utf8.DecodeRuneInString(s[b:])
+			b += size
+		}
+		if !yield(g.Text[0], base+b) {
+			return false
+		}
+	}
+	return true
 }
 
 // Each calls yield for each cluster's first rune and ending byte offset.
 // Returning false stops iteration. Newlines stay with their preceding paragraph
 // so CRLF and combining sequences on either side retain Unicode semantics.
 func Each(s string, yield func(rune, int) bool) {
-	base := 0
-	for len(s) > 0 {
-		end := strings.IndexByte(s, '\n')
-		if end < 0 {
-			end = len(s)
-		} else {
-			end++
-		}
-		p := s[:end]
-		fast := true
-		for _, r := range p {
-			if !simple(r) {
+	for start := 0; start < len(s); {
+		end, fast := start, true
+		for end < len(s) {
+			r, size := decode(s, end)
+			if r < 0 || r >= 65536 || kind[r] == 0 {
 				fast = false
+				end = paragraphEnd(s, end)
+				break
+			}
+			end += size
+			if r == '\n' {
 				break
 			}
 		}
 		if fast {
-			for i, r := range p {
-				if !yield(r, base+i+utf8.RuneLen(r)) {
+			for i := start; i < end; {
+				r, size := decode(s, i)
+				i += size
+				if !yield(r, i) {
 					return
 				}
 			}
-		} else {
-			var seg segmenter.Segmenter
-			seg.Init([]rune(p))
-			it := seg.GraphemeIterator()
-			for it.Next() {
-				g := it.Grapheme()
-				if !yield(g.Text[0], base+g.OffsetInBytes+g.LengthInBytes) {
-					return
-				}
-			}
+		} else if !segment(s[start:end], start, yield) {
+			return
 		}
-		base += end
-		s = s[end:]
+		start = end
 	}
 }
 
@@ -115,38 +160,46 @@ func Suffix(s string, n int) (int, bool) {
 	}
 }
 
-// NonSpace counts clusters whose first rune is not whitespace.
+// NonSpace counts clusters whose first rune is not whitespace. It spells out
+// decode inline: the counter runs on every keystroke and decode is too big for
+// the compiler to inline.
 func NonSpace(s string) int {
-	n := 0
-	for len(s) > 0 {
-		end := strings.IndexByte(s, '\n')
-		if end < 0 {
-			end = len(s)
-		} else {
-			end++
-		}
-		p := s[:end]
-		fast, local := true, 0
-		for _, r := range p {
-			if !simple(r) {
-				fast = false
-				break
+	n, start, saved := 0, 0, 0
+	for i := 0; i < len(s); {
+		var r rune
+		size := 1
+		b := s[i]
+		if b < utf8.RuneSelf {
+			r = rune(b)
+		} else if b&0xf0 == 0xe0 && i+2 < len(s) && s[i+1]&0xc0 == 0x80 && s[i+2]&0xc0 == 0x80 {
+			r = rune(b&15)<<12 | rune(s[i+1]&63)<<6 | rune(s[i+2]&63)
+			size = 3
+			if r < 0x800 || r >= 0xd800 && r <= 0xdfff {
+				r = -1
 			}
+		} else {
+			r, size = utf8.DecodeRuneInString(s[i:])
+			if r == utf8.RuneError && size == 1 {
+				r = -1
+			}
+		}
+		if r >= 0 && r < 65536 && kind[r] != 0 {
+			n += int(kind[r] & 1)
+			i += size
+			if r == '\n' {
+				start, saved = i, n
+			}
+			continue
+		}
+		end := paragraphEnd(s, i)
+		n = saved
+		segment(s[start:end], 0, func(r rune, _ int) bool {
 			if !unicode.IsSpace(r) {
-				local++
+				n++
 			}
-		}
-		if fast {
-			n += local
-		} else {
-			Each(p, func(r rune, _ int) bool {
-				if !unicode.IsSpace(r) {
-					n++
-				}
-				return true
-			})
-		}
-		s = s[end:]
+			return true
+		})
+		i, start, saved = end, end, n
 	}
 	return n
 }
