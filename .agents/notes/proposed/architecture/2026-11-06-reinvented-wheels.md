@@ -31,7 +31,7 @@ Status: proposed
 |---|---|---|---|---|---|---|
 | 1 | `ext/talk/engine/engine.go` 229 行起 | 多步工具循环 | `zendev-sh/goai`（234 / 2026-10-31 / MIT）。它已经是依赖，有 `WithMaxSteps`、`WithStopWhen` 和工具执行前后的钩子，项目只用了单步的 `StreamText` | 是。要核对钩子能不能保住逐步落盘、推理内容回传、预算用完强制总结 | [讨论用工具查全书](../../implemented/feature/2026-10-15-talk-looks-up-and-notes-the-setting.md)写了「循环由讨论自己跑」，但没比较过 goai 的多步执行；[模型层](../../implemented/architecture/2026-10-08-model-layer-on-goai.md)记着作者当初不想自己补工具循环 | C |
 | 2 | `inference/` | 从回答里严格解析 JSON；`Locate` 忽略空白定位引文 | goai 的 `GenerateObject`、`StreamObject`；`kaptinlin/jsonrepair`（126 / 2026-10-25 / MIT）；`RealAlexandreAI/json-repair`（385 / 2026-11-02 / **GPL-3.0**）；`sergi/go-diff` 的模糊匹配作参照 | 部分。JSON 修复会把「拒绝坏回答」变成「容错」，语义不同；`Locate` 没有现成替代 | — | C、A |
-| 3 | `model/pricing.go` | 手抄的价格和上下文上限表 | models.dev（`anomalyco/models.dev`，7523 / 2026-11-06 / MIT） | 是。可以在发布时生成固定版本，不必运行时联网 | [模型上限和用量](../../implemented/architecture/2026-10-15-model-limits-and-usage.md)：随软件发布更新，不联网拉；发布时生成和它不冲突 | C |
+| 3（已施工） | `model/pricing.go` | 手抄的价格和上下文上限表 | models.dev（`anomalyco/models.dev`，7523 / 2026-11-06 / MIT） | 是。可以在发布时生成固定版本，不必运行时联网 | [模型上限和用量](../../implemented/architecture/2026-10-15-model-limits-and-usage.md)：随软件发布更新，不联网拉；发布时生成和它不冲突 | C |
 | 4 | `prompt/prompt.go` 的 `Estimate`、`ClipTokens` | 按字符比例估 token | `pkoukk/tiktoken-go`（960 / 2026-05-12 / MIT）、`tiktoken-go/tokenizer`（463 / 2026-10-21 / MIT），以及各家的 count tokens 接口 | 是。但没有一个精确计数器能覆盖所有模型 | [按字符估 token](../../implemented/architecture/2026-10-08-token-estimate-by-character.md)和 [M1 讨论](../../implemented/feature/2026-10-07-m1-discussion.md)：不接供应商 tokenizer，自定义端点未必提供 | C |
 | 5 | `editor/wrap.go` 63 行 `breakLines` | 断行、英文按词断、避头尾 | `rivo/uniseg`（740 / 2026-11-05 / MIT）；`go-text/typesetting` 的 segmenter（161 / 2026-11-02，已是间接依赖） | 是。库给出合法断点，字宽、缩进、AI 插入的间隙仍归本地 | [纯 Go 编辑器](../../implemented/architecture/2026-10-07-pure-go-native-editor.md)：编辑器自己断行；[两端对齐](../feature/2026-11-02-justified-prose-and-adjustable-spacing.md)否掉过换成 mygo 的断行 | C |
 | 6 | `internal/textclip` | 按 rune 截断，会切开表情和组合字符 | `rivo/uniseg` | 是。界面摘要可以改按字素截；业务上约定按 rune 计长度的地方不能一起改 | — | C |
@@ -110,7 +110,7 @@ Status: proposed
   - 所以可以：段落那一层换成 `DiffState.Hunks()`，顺带修掉段落那一层没有上限的问题；段落里面按字比较先留着现在带 400 万格上限的那一份，或者换 `sergi/go-diff`。要连按字比较也用 mygo 的，得请 mygo 把它公开，这是对外的事，由作者去提或让 Claude 起草。
   - 作者看了实测说：「7 不错 这个保留」；看推进计划时又说「第二的 diff 不是说了换 go diff 吗」。所以两层都换成 `sergi/go-diff`：段落一层用它的按行比较，改过的段落再按字比较，做语义整理，用它的超时代替 400 万格的上限。上面 mygo `Hunks()` 那条路不走。
   - **已施工（2026-11-06）**：`ext/snaps/textdiff` 两层均使用 go-diff v1.4.0；删除自写 LCS 和 `maxCells`，保留默认每次 1 秒超时、按序配对段落及换行拼接，按 rune 比较后做语义整理。实现约定及验证覆盖已就地更新到[正文页与快照笔记](../../implemented/feature/2026-10-08-writing-page-and-chapters.md)。本篇还有未落地或搁置的其他项，仍留 proposed。
-- **3**：「3 同意，原来的决定我可能要放弃，这个可以先弄个新笔记」。新笔记是 [models.dev 后台拉取](2026-11-06-model-table-from-models-dev.md)。推进计划里作者又定：数对不上「以 model.dev 为主」，内置表和拉来的目录都是 JSON（「models.dev 拉取弄成个 json，这样云端拉取完替换和每次更新都很方便」）。
+- **3（已施工）**：「3 同意，原来的决定我可能要放弃，这个可以先弄个新笔记」。新笔记是 [models.dev 后台拉取](../../implemented/architecture/2026-11-06-model-table-from-models-dev.md)。推进计划里作者又定：数对不上「以 model.dev 为主」，内置表和拉来的目录都是 JSON（「models.dev 拉取弄成个 json，这样云端拉取完替换和每次更新都很方便」）。
 - **1**：作者让 Claude 用 haiku 先做一次快速调研。结论是**部分可替换，不值得整体替换**：
   - goai 能接管工具执行、推理回传和每步用量。
   - 接管不了的：goai 在第一步以后清空 `ToolChoice`（`generate.go` 1151 行，Claude 已核实），预算或步数用完时没法在它的循环里发 `tool_choice: none`，只能用 `WithStopWhen` 让它停下，再在循环外自己发最后一次请求。请求数和现在一样，但收尾、超预算换提示、关掉后续工具这些控制仍要自己写（[讨论用工具查全书](../../implemented/feature/2026-10-15-talk-looks-up-and-notes-the-setting.md)记着为什么收尾要发 `tool_choice: none`、不拿掉工具）。
@@ -130,7 +130,7 @@ Status: proposed
 - **20**：「20 这个无伤大雅 用库吧」。字数统计改用 go-text/typesetting 的 segmenter（已经链进来了），按字素簇数，表情不再被拆成几个字。英文按词、中文按字的口径不变。
 - **6**：作者先说没看懂，Claude 解释过以后作者说「改」。界面上截短文字（`internal/textclip`）改成不切开字素簇。
 - **8**：作者问原子写文件的好处，说后续可能有增量云同步，「原子写文件和增量云同步都先记笔记」。新笔记是[增量云同步](../feature/2026-11-06-incremental-cloud-sync.md)。Claude 的看法仍是第 8 条保留自写，作者没表态。
-- **27**：作者问「model.dev应该有吧」。models.dev 有官方服务商的模型列表，但 `ListModels` 列的是作者自己的端点实际提供的模型，中转和自定义端点上有什么，models.dev 不知道。两者配合，见 [models.dev 后台拉取](2026-11-06-model-table-from-models-dev.md)「和模型列表的关系」。
+- **27**：作者问「model.dev应该有吧」。models.dev 有官方服务商的模型列表，但 `ListModels` 列的是作者自己的端点实际提供的模型，中转和自定义端点上有什么，models.dev 不知道。两者配合，见 [models.dev 后台拉取](../../implemented/architecture/2026-11-06-model-table-from-models-dev.md)「和模型列表的关系」。
 
 ### 换之前要核对的
 
@@ -177,7 +177,7 @@ Status: proposed
   - [扩展 API](2026-11-03-extension-api.md)
   - [多语言](2026-11-02-i18n-on-mygo.md)
 - 这期作者定下来、另开的五篇，部分重叠，互链；本篇的表照旧留着那几行：
-  - [models.dev 后台拉取](2026-11-06-model-table-from-models-dev.md)接手第 3 条；
+  - [models.dev 后台拉取](../../implemented/architecture/2026-11-06-model-table-from-models-dev.md)接手第 3 条，已施工；
   - [文件监视扩展](../feature/2026-11-06-watch-files-extension.md)接手第 23 条；
   - [增量云同步](../feature/2026-11-06-incremental-cloud-sync.md)接手第 8 条引出的讨论；
   - [查阅到头时不逼模型作答](../feature/2026-11-06-talk-stops-without-forcing-an-answer.md)由第 1 条的调研引出；

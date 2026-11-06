@@ -29,7 +29,7 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 			t.Fatal(s, tt.Texts())
 		}
 	}
-	if len(aiViewOf(a).ServiceForm.Limits) != 2 || aiViewOf(a).ServiceForm.Limits[0].ID != "deepseek-flash" || aiViewOf(a).ServiceForm.Limits[0].Window != "1M" || aiViewOf(a).ServiceForm.Limits[0].Output != "384K" || aiViewOf(a).ServiceForm.Limits[0].At != "80" {
+	if len(aiViewOf(a).ServiceForm.Limits) != 2 || aiViewOf(a).ServiceForm.Limits[0].ID != "deepseek-flash" || aiViewOf(a).ServiceForm.Limits[0].Window != "1048576" || aiViewOf(a).ServiceForm.Limits[0].Output != "393216" || aiViewOf(a).ServiceForm.Limits[0].At != "80" {
 		t.Fatalf("rows %+v", aiViewOf(a).ServiceForm.Limits)
 	}
 	retype := func(label, text string) {
@@ -68,7 +68,7 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 	save("deepseek-flash 的压缩阈值须为整数")
 	retype("上下文上限-1", "一百万")
 	save("deepseek-flash 的上下文上限和最大输出须为正整数，可写成 128K、1M")
-	if got := a.ai.Providers()[0].Models[0]; got.Window != 1_000_000 {
+	if got := a.ai.Providers()[0].Models[0]; got.Window != 1_048_576 {
 		t.Fatalf("a form that broke a rule was saved: %+v", got)
 	}
 	retype("上下文上限-1", "131072")
@@ -100,7 +100,7 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 		t.Fatalf("a new row %+v", aiViewOf(a).ServiceForm.Limits)
 	}
 	retype("模型 ID-1", "kimi-k3")
-	if r := aiViewOf(a).ServiceForm.Limits[0]; r.Window != "1048576" || r.Output != "128K" {
+	if r := aiViewOf(a).ServiceForm.Limits[0]; r.Window != "1048576" || r.Output != "262144" {
 		t.Fatalf("kimi-k3 brought %+v", r)
 	}
 	save("")

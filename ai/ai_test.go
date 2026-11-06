@@ -90,7 +90,7 @@ func TestRoutedModelNamesAreRecordedVerbatim(t *testing.T) {
 			t.Fatal(file, string(raw), err)
 		}
 	}
-	if cost, currency, ok := s.Cost(name, workspace.Usage{Input: 1_000_000}); !ok || cost != 0.3 || currency != "$" {
+	if cost, currency, ok := s.Cost(name, workspace.Usage{Input: 1_000_000}); !ok || cost != 0.15 || currency != "$" {
 		t.Fatal(cost, currency, ok)
 	}
 }
@@ -216,7 +216,7 @@ func TestModelHandleRecordsEveryOutcomeAndFullTraces(t *testing.T) {
 	if err != nil || len(got) != 4 {
 		t.Fatalf("recorded %+v %v", got, err)
 	}
-	want := 0.5*0.3 + 0.5*0.006 + 0.001*1.2
+	want := 0.5*0.15 + 0.5*0.003 + 0.001*0.6
 	if r := got[0]; r.Feature != workspace.FeatureTalk || r.Talk != "s1" || r.Model != "deepseek/deepseek-flash" || r.Effort != "high" ||
 		!slices.Equal(r.Parts, parts) || r.Usage.Input != 1_000_000 || r.Outcome != workspace.OutcomeDone || r.At.IsZero() ||
 		r.Currency != "$" || r.Cost < want-1e-9 || r.Cost > want+1e-9 {

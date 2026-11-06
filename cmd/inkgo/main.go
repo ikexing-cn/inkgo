@@ -19,6 +19,7 @@ import (
 	"writer/desk"
 	aimod "writer/ext/ai"
 	"writer/locales"
+	"writer/model"
 )
 
 func main() {
@@ -31,6 +32,7 @@ func main() {
 	// The AI keeps its services in this machine's settings folder, and
 	// the shelf of works lies beside them.
 	path, err := aimod.ConfigPath()
+	model.StartModelUpdates(path)
 	d := desk.New(path, assembledModules(path, *trace)...)
 	mygo.App.SetLanguages(locales.Catalog.Languages()...)
 	// The in-app choice is authoritative: on macOS this intentionally

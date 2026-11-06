@@ -221,8 +221,8 @@ func (s *Service) open(sel workspace.Selection, st *workspace.Store) (inference.
 }
 
 // counted is a model whose every request goes into the AI record of a
-// work, for the purpose its context carries and at the prices built in
-// for the model id; and, with a trace folder, whole into a file there.
+// work, for the purpose its context carries and at the directory prices
+// for its model ID; with a trace folder, it also saves full traces.
 type counted struct {
 	model.Completer
 	st       *workspace.Store
