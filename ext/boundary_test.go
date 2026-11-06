@@ -39,6 +39,9 @@ func extensionImport(pkg, imp string, deps []string) error {
 	if pkg == "writer/ext/check" && imp == "writer/internal/textclip" {
 		return nil
 	}
+	if pkg == "writer/ext/snaps/textdiff" && imp == "github.com/sergi/go-diff/diffmatchpatch" {
+		return nil
+	}
 	if (pkg == "writer/ext/talk" || pkg == "writer/ext/talk/engine") && slices.Contains([]string{"writer/model", "writer/prompt", "writer/internal/textclip", "writer/tokens"}, imp) {
 		return nil
 	}
