@@ -18,7 +18,7 @@ Status: proposed
 - 事件只是提示，不是结论。收到以后照旧走 `ChaptersAndStamp` 和写之前的时间戳核对，判断有没有改、改了什么，仍归宿主现在的代码。
 - 轮询留着兜底，不删。网盘同步目录、网络盘、FAT 上的事件可能漏，[少看几次磁盘](../../implemented/architecture/2026-10-13-fewer-looks-at-the-disk.md)的备选里写过这一点。扩展开着时轮询可以放慢，放慢到多少施工时量。
 - 自己写的文件也会触发事件，要认出来跳过，不然每次保存都多查一次。
-- 扩展只往宿主开的一个点报「某路径变了」，不碰界面、不读正文。点叫什么、在哪一帧处理，照[扩展 API](../architecture/2026-11-03-extension-api.md)的规矩定。
+- 扩展只往宿主开的一个点报「某路径变了」，不碰界面、不读正文。点叫什么、在哪一帧处理，照[扩展 API](../../implemented/architecture/2026-11-03-extension-api.md)的规矩定。
 - 和[增量云同步](2026-11-06-incremental-cloud-sync.md)有关：同步客户端从别的机器拉下来的改动，在本机看来就是「软件外面改了」，这个扩展能让它更快出现在界面上。
 
 ## Alternatives considered

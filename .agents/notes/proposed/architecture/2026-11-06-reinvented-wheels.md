@@ -4,11 +4,11 @@ Status: proposed
 
 ## Problem
 
-作者要在动手修扩展契约（[契约审查](2026-11-06-extension-contract-review.md)）之前，先盘点项目里有多少是「重复造轮子」。作者定的标准：市面上已经有成熟、更完整的方案，就算；star 少但维护勤的库，也应当拿来作参照。作者说讨论过程不重要，但 Claude 和 Codex（astra）任何一方提到的轮子都要列出来。
+作者要在动手修扩展契约（[契约审查](../../implemented/architecture/2026-11-06-extension-contract-review.md)）之前，先盘点项目里有多少是「重复造轮子」。作者定的标准：市面上已经有成熟、更完整的方案，就算；star 少但维护勤的库，也应当拿来作参照。作者说讨论过程不重要，但 Claude 和 Codex（astra）任何一方提到的轮子都要列出来。
 
 本篇只是盘点，不代表要换。哪项换、哪项留、哪项重议，由作者逐项定。
 
-作者 2026-11-06 逐项给了意见，见下面「作者的决定」，并说：「这期我确定的都写到一个笔记，暂时搁置」。之后看过推进计划，作者定「第一第二同步推进」：[契约审查](2026-11-06-extension-contract-review.md)的修复，和本篇的 19、20、5、6、7、3 同时施工；查阅不逼答、文件监视扩展「先搁着，这个我后面再定夺」；编辑器换 richtext、增量云同步照旧搁置。
+作者 2026-11-06 逐项给了意见，见下面「作者的决定」，并说：「这期我确定的都写到一个笔记，暂时搁置」。之后看过推进计划，作者定「第一第二同步推进」：[契约审查](../../implemented/architecture/2026-11-06-extension-contract-review.md)的修复，和本篇的 19、20、5、6、7、3 同时施工；查阅不逼答、文件监视扩展「先搁着，这个我后面再定夺」；编辑器换 richtext、增量云同步照旧搁置。
 
 ## Proposal
 
@@ -41,8 +41,8 @@ Status: proposed
 | 10 | `internal/strictjson` | 36 行：`DisallowUnknownFields`，再查是否读到 EOF | `encoding/json/v2`（go1.27.3 里仍要 `GOEXPERIMENT=jsonv2`） | 不是，只是薄封装。另外它不拒绝重复键 | — | C、A |
 | 11 | `tokens/`、`desk/kit/when.go` | K/M 格式化；「今天」「昨天」「10-06 21:40」 | `dustin/go-humanize`（4856 / 2026-10-13） | 部分。精确往返和中文日期说法是产品规则 | — | C、A |
 | 12 | `workspace/numbering.go` | 汉字数字和章节序号互转 | `duke-git/lancet/v2` 的 convertor（5300 / 2026-11-02 / MIT） | 部分。反向转换和「两」「〇」的覆盖待核 | — | C、A |
-| 13 | `ext/` 宿主 | 装配、依赖排序、生命周期、服务注入、注入链 | `uber-go/fx`（7725 / 2025-12-27）、`uber-go/dig`（4509 / 2025-05-13）、`samber/do`（2834 / 2026-11-05）。外部插件层：`hashicorp/go-plugin`（6119 / 2026-11-02 / MPL-2.0）；`extism/extism`（5827 / 2026-10-09），它的 `go-sdk`（186 / 2025-05）建在 wazero 上，纯 Go，不要 CGO；`wazero/wazero`（6455 / 2026-10-19）；`traefik/yaegi`（8437 / 2026-11-05）；`dop251/goja`（7188 / 2026-11-05）；`yuin/gopher-lua`（7004 / 2026-04-01） | 部分。DI 库不管书级开关、注入顺序和帧线程；插件运行时是外部扩展层的参照 | [扩展模块](2026-11-02-extension-modules.md)、[扩展 API](2026-11-03-extension-api.md) | C、A |
-| 14 | `internal/extlocales` | 检查翻译表，生成带类型的取词函数 | `golang.org/x/text/message` 和 gotext（golang/text 810 / 2026-10-21）、`nicksnyder/go-i18n`（3552 / 2026-11-01） | 部分。运行时已经用 mygo | [多语言](2026-11-02-i18n-on-mygo.md)：否掉过 go-i18n，以免出现两个「当前语言」 | C、A |
+| 13 | `ext/` 宿主 | 装配、依赖排序、生命周期、服务注入、注入链 | `uber-go/fx`（7725 / 2025-12-27）、`uber-go/dig`（4509 / 2025-05-13）、`samber/do`（2834 / 2026-11-05）。外部插件层：`hashicorp/go-plugin`（6119 / 2026-11-02 / MPL-2.0）；`extism/extism`（5827 / 2026-10-09），它的 `go-sdk`（186 / 2025-05）建在 wazero 上，纯 Go，不要 CGO；`wazero/wazero`（6455 / 2026-10-19）；`traefik/yaegi`（8437 / 2026-11-05）；`dop251/goja`（7188 / 2026-11-05）；`yuin/gopher-lua`（7004 / 2026-04-01） | 部分。DI 库不管书级开关、注入顺序和帧线程；插件运行时是外部扩展层的参照 | [扩展模块](../../implemented/architecture/2026-11-02-extension-modules.md)、[扩展 API](../../implemented/architecture/2026-11-03-extension-api.md) | C、A |
+| 14 | `internal/extlocales` | 检查翻译表，生成带类型的取词函数 | `golang.org/x/text/message` 和 gotext（golang/text 810 / 2026-10-21）、`nicksnyder/go-i18n`（3552 / 2026-11-01） | 部分。运行时已经用 mygo | [多语言](../../implemented/architecture/2026-11-02-i18n-on-mygo.md)：否掉过 go-i18n，以免出现两个「当前语言」 | C、A |
 | 15 | `workspace/` 的 JSONL、游标、修订历史；`ext/snaps`；`ext/backup` | 追加日志、修订历史、快照 | `modernc.org/sqlite`（主仓库在 GitLab cznic/sqlite，515 / 2026-11-04）、`etcd-io/bbolt`（9804 / 2026-10-16）、`go-git/go-git`（7846 / 2026-11-05） | 部分。ZIP 用的是标准库，不算自写 | [纯文件存储](../../implemented/architecture/2026-10-08-m1-storage-without-index.md)：可以手改、可以带走的纯文件；[备份](../../implemented/feature/2026-10-09-backup.md) | C、A |
 | 16 | `scripts/prototype/browser.ts` | 自己写的 DevTools 协议驱动 | Playwright（99414 / 2026-11-06）、puppeteer（95806 / 2026-11-05）、`chromedp/chromedp`（13356 / 2026-11-05）、`go-rod/rod`（7145 / 2026-08-11） | 是。前两个违反「不装 npm 依赖」；后两个要把驱动改写成 Go | [本地原型](../../implemented/process/2026-10-12-local-prototype.md)：只用 Node 自带的 WebSocket 和 fetch | C |
 | 17 | `scripts/verify-agent-note-*.ts`、`check-note-anchors.ts` | 检查笔记格式和链接 | `lycheeverse/lychee`（4097 / 2026-11-02）、`remarkjs/remark-validate-links`（125 / 2025-02-21）、`DavidAnson/markdownlint`（6416 / 2026-11-06） | 部分。生命周期目录、必备的节、锚点是仓库自己的规则 | — | C |
@@ -86,7 +86,7 @@ Status: proposed
 
 ### 作者的决定（2026-11-06）
 
-19、20、5、6 已施工（2026-11-06），现行事实见[纯 Go 编辑器](../../implemented/architecture/2026-10-07-pure-go-native-editor.md)和[字数口径](2026-11-02-i18n-on-mygo.md)。其余决定尚未全部落实，因此盘点整篇保留 proposed，不把未完成项标成 implemented。
+19、20、5、6 已施工（2026-11-06），现行事实见[纯 Go 编辑器](../../implemented/architecture/2026-10-07-pure-go-native-editor.md)和[字数口径](../../implemented/architecture/2026-11-02-i18n-on-mygo.md)。其余决定尚未全部落实，因此盘点整篇保留 proposed，不把未完成项标成 implemented。
 
 下面只记作者说过的话；后面跟着的是 Claude 为这一条查到的事实，不是作者的决定。表里没提到的项，作者还没表态。
 
@@ -164,7 +164,7 @@ Status: proposed
 
 ## 相关笔记当场审计
 
-- [契约审查](2026-11-06-extension-contract-review.md)：无关，那篇是扩展失败路径的修法。本篇是它施工前的另一项盘点，互不取代。
+- [契约审查](../../implemented/architecture/2026-11-06-extension-contract-review.md)：无关，那篇是扩展失败路径的修法。本篇是它施工前的另一项盘点，互不取代。
 - 「已有决定」一栏链到的笔记：部分重叠。本篇引用它们；19、20、5、6 的现行事实已同步原篇，其余项落实后再同步。这些笔记是：
   - [讨论用工具查全书](../../implemented/feature/2026-10-15-talk-looks-up-and-notes-the-setting.md)
   - [模型层](../../implemented/architecture/2026-10-08-model-layer-on-goai.md)
@@ -177,9 +177,9 @@ Status: proposed
   - [导出 Word](../../implemented/feature/2026-10-16-export-to-word.md)
   - [备份](../../implemented/feature/2026-10-09-backup.md)
   - [本地原型](../../implemented/process/2026-10-12-local-prototype.md)
-  - [扩展模块](2026-11-02-extension-modules.md)
-  - [扩展 API](2026-11-03-extension-api.md)
-  - [多语言](2026-11-02-i18n-on-mygo.md)
+  - [扩展模块](../../implemented/architecture/2026-11-02-extension-modules.md)
+  - [扩展 API](../../implemented/architecture/2026-11-03-extension-api.md)
+  - [多语言](../../implemented/architecture/2026-11-02-i18n-on-mygo.md)
 - 这期作者定下来、另开的五篇，部分重叠，互链；本篇的表照旧留着那几行：
   - [models.dev 后台拉取](../../implemented/architecture/2026-11-06-model-table-from-models-dev.md)接手第 3 条，已施工；
   - [文件监视扩展](../feature/2026-11-06-watch-files-extension.md)接手第 23 条；

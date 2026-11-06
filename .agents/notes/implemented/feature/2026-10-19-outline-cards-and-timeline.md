@@ -52,7 +52,7 @@ Status: implemented
 - 把一张没放进章节的卡片放进一章（拖进格子，或在对话框里选章），它在故事先后里挪到那一章和前面各章的卡片后面。
 - 新记的一张也排在那里；在时间线上某一列添加的，排在那一列后面。
 
-章纲、卷纲照旧是节点旁边的 `.outline.txt`（2026-11-04 起和 `outline.json` 一起搬进 `ext/outline/`，章纲按节点 ID 存成 `<ID>.txt`，见[扩展模块](../../proposed/architecture/2026-11-02-extension-modules.md)）。大纲页改的就是它们，和正文页标题下面的「章纲」是同一份。
+章纲、卷纲照旧是节点旁边的 `.outline.txt`（2026-11-04 起和 `outline.json` 一起搬进 `ext/outline/`，章纲按节点 ID 存成 `<ID>.txt`，见[扩展模块](../architecture/2026-11-02-extension-modules.md)）。大纲页改的就是它们，和正文页标题下面的「章纲」是同一份。
 
 ### 章节变了
 

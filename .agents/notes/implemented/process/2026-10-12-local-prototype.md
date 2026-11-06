@@ -22,7 +22,7 @@ Status: implemented
   - `pages.js`：讨论、检查、作品分类、书架四页。
   - `dialogs.js`：对话框和备份。
   - `app.js`：把窗口拼起来，和全局的按键、拖动。
-  - 2026-11-04 起照[扩展模块](../../proposed/architecture/2026-11-02-extension-modules.md)按扩展分文件：
+  - 2026-11-04 起照[扩展模块](../architecture/2026-11-02-extension-modules.md)按扩展分文件：
     - 每个扩展的界面、状态、动作在 `ext/<id>.js`，经 `contribute(点, 扩展, 值)` 放进宿主开的点；
     - 宿主（`ext.js` 的 `contributions`/`drawPoint`）按开关取；
     - 点的名字尽量和应用的 `hostapi` 一样（`PaneTabs`、`SelectionMenus`、`MarginSources`、`Pages`……），两边对着读；

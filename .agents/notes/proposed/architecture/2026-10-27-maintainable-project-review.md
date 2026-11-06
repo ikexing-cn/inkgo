@@ -157,7 +157,7 @@ DESIGN.md 的 604 行里有 356 行是机器数值，不能把总行数全算作
 | [每条规则只说一次](../../implemented/process/2026-10-15-each-rule-said-once.md) | 支持本次建议的既有约束，保留，不另立重复规则 |
 | [加快检查](../../implemented/process/2026-10-13-fast-checks.md) | 部分重叠，互链；保留进程隔离的当前决定，实例化参数只是后续候选 |
 | [少看几次磁盘](../../implemented/architecture/2026-10-13-fewer-looks-at-the-disk.md) | 相关但独立决定；审查先校正事实，后续作者同意后单独实施去重与后台暂停 |
-| [扩展模块](2026-11-02-extension-modules.md) | 2026-11-02 补：部分重叠，互链；扩展点要在本篇「整理 App 的状态归属」之上做 |
+| [扩展模块](../../implemented/architecture/2026-11-02-extension-modules.md) | 2026-11-02 补：部分重叠，互链；扩展点要在本篇「整理 App 的状态归属」之上做 |
 | 其他架构笔记、功能提案及 rejected 中的灵感池讨论 | 不在本次建议中被取代；无须删除、转状态或归档 |
 
 ## Alternatives considered

@@ -77,7 +77,7 @@ Status: implemented
 
 - 大文件按阅读任务拆在原包内，不增加转发层：讨论外壳在 `chat.go`，消息和流式展示在 `chatmessage.go`，输入、模型菜单和摘取表单在 `chatcompose.go`；检查队列和调度在 `check.go`，结果整理与动作在 `checkitems.go`，页面在 `checkview.go`；大纲页状态和入口在 `outline/plan.go`，编辑表单在 `plan_edit.go`，网格和时间线在 `plan_grid.go`。声明内容保持不变，包内共享状态和调用关系不变。
 
-- 手机预览、导出、备份是扩展（`ext/phone`、`ext/export`、`ext/backup`，见[扩展 API](../../proposed/architecture/2026-11-03-extension-api.md)），状态在各自的包里，desk 不留它们的名字：
+- 手机预览、导出、备份是扩展（`ext/phone`、`ext/export`、`ext/backup`，见[扩展 API](2026-11-03-extension-api.md)），状态在各自的包里，desk 不留它们的名字：
   - `phone.Panel`（`ext/phone/phone.go`）持有分页、排版设置、正文缓存、阅读位置和命中几何；右栏顶行由 desk 的 `settingColumn` 画。
   - `export.Dialog`（`ext/export/export.go`）持有打开时的正文快照、范围、笔名、缩进和导出计划；`laterLines` 也在这里，只供设定导出使用。
   - 它们经 `ext/hostapi` 的服务取书、配色、提示条、后台任务和系统对话框，由 `desk/extensions.go` 的 `extensionHost` 实现；desk 按 `Host.Changes()` 缓存由扩展派生的表。

@@ -59,7 +59,7 @@ Status: implemented
 
 ### 开关存在哪
 
-2026-11-04 起这个开关就是 AI 扩展的本机开关，存在扩展开关的文件里，`shelf.Shelf.NoAI` 删了，勾选框换成 AI 设置页的扩展页头，见[扩展模块](../../proposed/architecture/2026-11-02-extension-modules.md)第 3 步。下面是原来的做法。
+2026-11-04 起这个开关就是 AI 扩展的本机开关，存在扩展开关的文件里，`shelf.Shelf.NoAI` 删了，勾选框换成 AI 设置页的扩展页头，见[扩展模块](../architecture/2026-11-02-extension-modules.md)第 3 步。下面是原来的做法。
 
 存在本机的作品清单 `works.json`（`shelf.Shelf.NoAI`，JSON 里是 `noAI`；外观 `Theme` 也存在这里），`desk` 自己读写。`desk.New` 通过 `aiport.Settings.BindSwitch` 绑定 `a.aiOn`；`ai` 构建目录、讨论或笔时在界面线程上读取这同一个字段，不复制开关，也不在后台读取它。没有这一项就是开着，旧的清单不用迁移；只在关着时写这一项（`omitempty`）。
 

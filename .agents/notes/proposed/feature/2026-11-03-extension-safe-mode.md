@@ -4,7 +4,7 @@ Status: proposed
 
 ## Problem
 
-扩展能注入核心的点，也能换掉别的扩展的东西（见[扩展模块](../architecture/2026-11-02-extension-modules.md)）。所以一个出了错的扩展可能让软件打不开，或者打开以后没法操作，作者连「扩展」页都进不去，也就没法把它关掉。
+扩展能注入核心的点，也能换掉别的扩展的东西（见[扩展模块](../../implemented/architecture/2026-11-02-extension-modules.md)）。所以一个出了错的扩展可能让软件打不开，或者打开以后没法操作，作者连「扩展」页都进不去，也就没法把它关掉。
 
 宿主出错时只停那一个扩展，但有两种情况它兜不住：
 
@@ -48,5 +48,5 @@ Status: proposed
 
 ## 相关笔记当场审计
 
-- [扩展模块](../architecture/2026-11-02-extension-modules.md)：部分重叠，互链。那篇的「出错只停那一个」兜不住的情况由本篇处理。
-- [扩展 API](../architecture/2026-11-03-extension-api.md)：部分重叠。安全模式只读宿主的账和状态，不另记。
+- [扩展模块](../../implemented/architecture/2026-11-02-extension-modules.md)：部分重叠，互链。那篇的「出错只停那一个」兜不住的情况由本篇处理。
+- [扩展 API](../../implemented/architecture/2026-11-03-extension-api.md)：部分重叠。安全模式只读宿主的账和状态，不另记。

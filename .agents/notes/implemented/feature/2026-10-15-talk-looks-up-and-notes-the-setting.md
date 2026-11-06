@@ -38,7 +38,7 @@ Status: implemented
 - 搜全书用 `Store.Texts()` 批量读取正文，按章节树的顺序和名称列出结果；标记或纲损坏不挡正文搜索。
 - 一次回复的标签按各调用自己的参数生成；只有某个调用写了章节名时才读章节树，只有某个 note_setting 在改位置或分类时才读设定，各自最多读一次。
 - 查设定先筛选并排序，只为实际展示的来源读取讨论标题，同一次查询复用已读的标题。
-- 每个工具的参数类型、处理函数和标签放在一起：`search_book`、`read_prose`、`look_up_setting`、`search_talks` 在 `discussion/tools.go`，`read_outline` 在 `outline.go`，`note_setting` 在 `note.go`，`propose_edit` 在 `propose.go`；`tools.go` 的 `toolTable` 按名字、说明、参数格式、处理函数和标签列出每个工具，`tools(w)` 从它生成发给模型的列表。2026-11-04 起 `look_up_setting`、`note_setting` 在 `ext/lore`（`note.go`），`read_outline` 在 `ext/outline`（`tools.go`），由扩展登记进 AI 的工具点；`toolTable` 只剩讨论自己的四个，见[扩展模块](../../proposed/architecture/2026-11-02-extension-modules.md)第 3.2 步。
+- 每个工具的参数类型、处理函数和标签放在一起：`search_book`、`read_prose`、`look_up_setting`、`search_talks` 在 `discussion/tools.go`，`read_outline` 在 `outline.go`，`note_setting` 在 `note.go`，`propose_edit` 在 `propose.go`；`tools.go` 的 `toolTable` 按名字、说明、参数格式、处理函数和标签列出每个工具，`tools(w)` 从它生成发给模型的列表。2026-11-04 起 `look_up_setting`、`note_setting` 在 `ext/lore`（`note.go`），`read_outline` 在 `ext/outline`（`tools.go`），由扩展登记进 AI 的工具点；`toolTable` 只剩讨论自己的四个，见[扩展模块](../architecture/2026-11-02-extension-modules.md)第 3.2 步。
 
 ### 记设定
 
@@ -148,7 +148,7 @@ DESIGN.md「模型看到的，作者也看得到」在原型那一步就写好�
 - **留下的**：`Locate`、`Decode` 和放宽匹配在 `inference/locate.go`、`inference/decode.go`，讨论和写作共同引用。「摘录」不调用模型，照旧。
 - **接口变化**：`aiport.Assistant.Talk` 多一个参数 `step func(workspace.Event)`。每写一条调用或结果，就交给界面：界面把它放进 `live` 里显示，带修订的就通知设定栏刷新。
 
-- 2026-11-04 起，设定、大纲是能关的扩展：关着的那样资料，提示词里没有那一段，查它、记它的工具也不交给模型，见[扩展模块](../../proposed/architecture/2026-11-02-extension-modules.md)的 2.4「资料库做门」。
+- 2026-11-04 起，设定、大纲是能关的扩展：关着的那样资料，提示词里没有那一段，查它、记它的工具也不交给模型，见[扩展模块](../architecture/2026-11-02-extension-modules.md)的 2.4「资料库做门」。
 
 ## Alternatives considered
 

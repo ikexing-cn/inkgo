@@ -83,7 +83,7 @@ Status: implemented
 
 ## Consequences
 
-- 手机预览是扩展 `phone`（见[扩展模块](../../proposed/architecture/2026-11-02-extension-modules.md)），`ext/phone/module.go` 登记视图菜单的命令和右栏标签「预览」。`ext/phone/phone.go` 的 `phone.Panel` 管预览面板、设置、坐标转换和绘制，配色和当前章经 `ext/hostapi` 的 `BookService`、`PaletteService` 取；右栏顶行由 `settingColumn`（`desk/write.go`）画在面板上方。`editor/pagination.go` 的 `PaginatedText` 管分行、分页、偏移所在页和文字命中：
+- 手机预览是扩展 `phone`（见[扩展模块](../architecture/2026-11-02-extension-modules.md)），`ext/phone/module.go` 登记视图菜单的命令和右栏标签「预览」。`ext/phone/phone.go` 的 `phone.Panel` 管预览面板、设置、坐标转换和绘制，配色和当前章经 `ext/hostapi` 的 `BookService`、`PaletteService` 取；右栏顶行由 `settingColumn`（`desk/write.go`）画在面板上方。`editor/pagination.go` 的 `PaginatedText` 管分行、分页、偏移所在页和文字命中：
   - 排版用 `editor.LayoutParagraph`（`editor/paragraph.go`），和正文共用 `layoutParagraph` 整形、断行（避头尾），用 `textAscent` 计算上升高度；每行字形从 rune 边界索引直接切片。按段缓存：同一段文字、同样的宽、字号、行距、缩进不重排。打一个字只重排那一段。
   - `ext/phone` 把屏幕尺寸、字体、行距、缩进和段间距传给 `editor.PaginationOptions`；分页不依赖排版设置存在哪里，也不依赖窗口。手机里的尺寸是开头那组 `phone…` 常量，单位是手机上的点或 em，数值照原型；不借用 `hTag` 这类桌面常量。
   - 滚动同步用 `Editor.ScrollAnchor`（`editor/view.go`），算法和原型的 `syncPhone` 一样。

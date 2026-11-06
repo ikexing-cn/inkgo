@@ -11,9 +11,9 @@ const drawPoint = (point, ...args) => contributions(point).map((draw) => draw(..
 
 // ───────── 扩展模块：宿主的那部分 ─────────
 // 有哪些扩展、各自需要谁，开着没有，拨开关时连带开、关哪些；设置里的「扩展」总览、每个扩展的页头和它自己的页。
-// 做法见 .agents/notes/proposed/architecture/2026-11-02-extension-modules.md。
+// 做法见 .agents/notes/implemented/architecture/2026-11-02-extension-modules.md。
 
-// 一行一个扩展，照笔记里那张表写；两边对不上，有一边错了。顺序就是「扩展」总览里的顺序。
+// 一行一个扩展，照应用的装配清单 cmd/inkgo/modules.go 写；两边对不上，有一边错了。顺序就是「扩展」总览里的顺序。
 // g：在总览的哪一组；lib 那一组是基础扩展，给别的扩展用，自己没有界面。
 // 起草、改写（在改稿建议里）都是开一段讨论来做，所以必需讨论：讨论关着时它们一起关（作者 2026-11-05 定）。
 // req：必需依赖，连带开关。opt：可选依赖，开着就用，不连带。off：关着时多说的一句。

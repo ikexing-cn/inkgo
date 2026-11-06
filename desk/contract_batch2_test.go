@@ -2,7 +2,9 @@ package desk
 
 import (
 	"context"
+	"github.com/egoist/mygo/i18n"
 	"github.com/egoist/mygo/ui"
+	"slices"
 	"testing"
 	"time"
 	"writer/ai"
@@ -81,5 +83,70 @@ func TestRequestCompletionClearsOwnershipBeforeApply(t *testing.T) {
 	a.poll()
 	if !applied || a.busy != "" {
 		t.Fatal("completion not applied")
+	}
+}
+
+func TestCloseSettlesExtensionRequestAndClosesStore(t *testing.T) {
+	var jobs hostapi.Jobs
+	mod := ext.Module{ID: "worker", Setup: func(r *ext.Registrar) {
+		ref := ext.Use(r, hostapi.JobsService)
+		r.OnStart(func(*ext.Session) error { jobs = ref.Get(); return nil })
+	}}
+	a := newTestApp(ai.New(""), mod)
+	requireExtension(t, a.Open(extensionBook(t)))
+	store := a.Store
+	started := make(chan struct{})
+	stopped := make(chan struct{})
+	jobs.Request(ui.Services{}, "request", func(ctx context.Context) (func(), error) {
+		close(started)
+		<-ctx.Done()
+		close(stopped)
+		return func() { t.Error("closed request applied") }, nil
+	})
+	<-started
+	requireExtension(t, a.Close())
+	select {
+	case <-stopped:
+	default:
+		t.Fatal("worker not joined")
+	}
+	if a.busy != "" || a.requestSession != nil {
+		t.Fatal("request not settled")
+	}
+	if _, err := store.Chapters(); err == nil {
+		t.Fatal("store remains open")
+	}
+	a.poll()
+}
+
+func TestExtensionHelpOrderSurvivesLocaleChange(t *testing.T) {
+	a, _, _ := fixture(t)
+	tag := "zh-Hans"
+	i18n.SetLocaleFunc(func() string { return tag })
+	t.Cleanup(func() { i18n.SetLocaleFunc(testLocale) })
+	var before []string
+	var texts []string
+	for _, locale := range []string{"zh-Hans", "en", "zh-Hans"} {
+		tag = locale
+		a.LocaleChanged()
+		a.syncExtensions()
+		var ids, labels []string
+		for _, row := range a.extViews.help {
+			ids = append(ids, row.id)
+			labels = append(labels, row.does())
+		}
+		for _, pair := range [][2]string{{"save", "find.find"}, {"continue", "accept-drop"}} {
+			left, right := slices.Index(ids, pair[0]), slices.Index(ids, pair[1])
+			if left < 0 || right != left+1 {
+				t.Fatalf("%s: %v not adjacent in %v", locale, pair, ids)
+			}
+		}
+		if before != nil && !slices.Equal(before, ids) {
+			t.Fatal("locale reordered help", ids)
+		}
+		if locale == "en" && slices.Equal(texts, labels) {
+			t.Fatal("locale did not change help text")
+		}
+		before, texts = ids, labels
 	}
 }
