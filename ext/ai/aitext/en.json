@@ -387,7 +387,18 @@
     }
   },
   "checkShortChapter": "{unit, select, word {This chapter has fewer than {count, plural, one {# word} other {# words}} and does not need a Check} other {This chapter has fewer than {count, plural, one {# character} other {# characters}} and does not need a Check}}",
-  "@checkShortChapter": {"description": "writing.ShortChapterError failure. Translated by desk for the AI toast.", "placeholders": {"count": {"type": "int"}, "unit": {"type": "String", "example": "character"}}},
+  "@checkShortChapter": {
+    "description": "writing.ShortChapterError failure. Translated by desk for the AI toast.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "unit": {
+        "type": "String",
+        "example": "character"
+      }
+    }
+  },
   "checkResultError": "Cannot read the model’s Check results. Try again: {reason}",
   "@checkResultError": {
     "description": "writing.CheckResultError failure. Translated by desk for the AI toast.",
@@ -494,5 +505,21 @@
         "type": "String"
       }
     }
+  },
+  "settingsModelsConnect": "Cannot connect to models.dev",
+  "@settingsModelsConnect": {
+    "description": "模型资料同步失败的简短原因。"
+  },
+  "settingsModelsHTTP": "models.dev could not provide model data",
+  "@settingsModelsHTTP": {
+    "description": "模型资料同步失败的简短原因。"
+  },
+  "settingsModelsData": "Could not read model data",
+  "@settingsModelsData": {
+    "description": "模型资料同步失败的简短原因。"
+  },
+  "settingsModelsCache": "Could not save the model data cache",
+  "@settingsModelsCache": {
+    "description": "模型资料同步失败的简短原因。"
   }
 }

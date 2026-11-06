@@ -22,8 +22,7 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	tt.Scroll(633, 400, 0, 1200) // down to the form
-	tt.Frame()
+	scrollToLabel(t, tt, "最大输出-1") // down to the form
 	for _, s := range []string{"上下文上限", "最大输出", "压缩阈值 %", "添加模型"} {
 		if !tt.HasText(s) {
 			t.Fatal(s, tt.Texts())
@@ -34,6 +33,7 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 	}
 	retype := func(label, text string) {
 		t.Helper()
+		scrollToLabel(t, tt, label)
 		if err := tt.Click(label); err != nil {
 			t.Fatal(err)
 		}
@@ -51,6 +51,7 @@ func TestModelLimitsInTheServiceForm(t *testing.T) {
 		if want != "" && !tt.HasText(want) {
 			t.Fatalf("the form does not say %q: %q", want, tt.Texts())
 		}
+		scrollToLabel(t, tt, "保存")
 		if err := tt.Click("保存"); err != nil {
 			t.Fatal(err)
 		}

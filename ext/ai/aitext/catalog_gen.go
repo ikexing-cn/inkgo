@@ -1848,3 +1848,59 @@ func SettingsConfigRead(reason string) string { return In(i18n.Locale()).Setting
 func (msgs Messages) SettingsConfigRead(reason string) string {
 	return Catalog.Format(msgs.locale, "settingsConfigRead", map[string]any{"reason": reason})
 }
+
+// SettingsModelsConnect says "无法连接 models.dev"
+// in the language the app shows.
+//
+// 模型资料同步失败的简短原因。
+func SettingsModelsConnect() string { return In(i18n.Locale()).SettingsModelsConnect() }
+
+// SettingsModelsConnect says "无法连接 models.dev"
+// in the language of msgs.
+//
+// 模型资料同步失败的简短原因。
+func (msgs Messages) SettingsModelsConnect() string {
+	return Catalog.Format(msgs.locale, "settingsModelsConnect", nil)
+}
+
+// SettingsModelsHTTP says "models.dev 暂时无法提供资料"
+// in the language the app shows.
+//
+// 模型资料同步失败的简短原因。
+func SettingsModelsHTTP() string { return In(i18n.Locale()).SettingsModelsHTTP() }
+
+// SettingsModelsHTTP says "models.dev 暂时无法提供资料"
+// in the language of msgs.
+//
+// 模型资料同步失败的简短原因。
+func (msgs Messages) SettingsModelsHTTP() string {
+	return Catalog.Format(msgs.locale, "settingsModelsHTTP", nil)
+}
+
+// SettingsModelsData says "无法读取模型资料"
+// in the language the app shows.
+//
+// 模型资料同步失败的简短原因。
+func SettingsModelsData() string { return In(i18n.Locale()).SettingsModelsData() }
+
+// SettingsModelsData says "无法读取模型资料"
+// in the language of msgs.
+//
+// 模型资料同步失败的简短原因。
+func (msgs Messages) SettingsModelsData() string {
+	return Catalog.Format(msgs.locale, "settingsModelsData", nil)
+}
+
+// SettingsModelsCache says "无法保存模型资料缓存"
+// in the language the app shows.
+//
+// 模型资料同步失败的简短原因。
+func SettingsModelsCache() string { return In(i18n.Locale()).SettingsModelsCache() }
+
+// SettingsModelsCache says "无法保存模型资料缓存"
+// in the language of msgs.
+//
+// 模型资料同步失败的简短原因。
+func (msgs Messages) SettingsModelsCache() string {
+	return Catalog.Format(msgs.locale, "settingsModelsCache", nil)
+}

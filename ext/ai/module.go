@@ -2,6 +2,7 @@
 package ai
 
 import (
+	"context"
 	"github.com/egoist/mygo/ui"
 	core "writer/ai"
 	"writer/desk/kit"
@@ -9,15 +10,25 @@ import (
 	"writer/ext/ai/aiapi"
 	"writer/ext/ai/aitext"
 	"writer/ext/hostapi"
+	"writer/model"
 )
 
 // Options supplies the configuration location, trace destination and an optional
 // backend factory for tests. Factory runs only at activation and retains
 // ownership of injected backends; the default backend is closed on Stop.
+type ModelDataState = model.ModelUpdateState
+type ModelUpdater interface {
+	Status() ModelDataState
+	Sync(context.Context) error
+	SetEnabled(bool)
+	OnChange(func())
+	Close()
+}
 type Options struct {
 	ConfigFile, Trace string
 	Factory           func() aiapi.Backend
 	View              *View
+	Updates           ModelUpdater
 }
 
 // ConfigPath locates this machine's model configuration.
@@ -28,6 +39,10 @@ var Module = New(Options{})
 
 // View owns the settings draft for one assembly, on the frame thread.
 type View struct {
+	modelsAuto    bool
+	modelsSyncing bool
+	autoModels    *ext.Pref[bool]
+	updates       ModelUpdater
 	ai            aiapi.Backend
 	ServiceForm   ServiceForm
 	book          *ext.Ref[hostapi.Book]
@@ -48,6 +63,8 @@ func New(opts Options) ext.Module {
 		if v == nil {
 			v = &View{}
 		}
+		v.autoModels = ext.Setting(r, "models-auto", ext.Schema[bool]{Title: aitext.SettingsModelsAuto, Default: true, Scope: ext.Local, Drawn: true})
+		v.updates = opts.Updates
 		v.book = ext.Use(r, hostapi.BookService)
 		v.editing = ext.Use(r, hostapi.EditingService)
 		v.palette = ext.Use(r, hostapi.PaletteService)
@@ -96,8 +113,16 @@ func New(opts Options) ext.Module {
 			return backend
 		})
 		r.OnStart(func(*ext.Session) error {
+			v.modelsAuto = v.autoModels.Get()
 			v.pal = v.palette.Get().Colors()
 			v.status = notices.Get().Notices()
+			if v.updates == nil && opts.Factory == nil && v.ai.ConfigFile() != "" {
+				v.updates = model.NewModelUpdates(v.ai.ConfigFile(), "", nil)
+			}
+			if v.updates != nil {
+				v.modelsAuto = v.autoModels.Get()
+				v.updates.SetEnabled(v.modelsAuto)
+			}
 			v.ai.BindSwitch(func() bool { return v.ai != nil })
 			if v.ai.ConfigFile() != "" {
 				if err := v.ai.Reload(); err != nil {
@@ -109,6 +134,10 @@ func New(opts Options) ext.Module {
 		r.OnStop(func(*ext.Session) {
 			if closer, ok := v.ai.(interface{ Close() }); ok && opts.Factory == nil {
 				closer.Close()
+			}
+			if v.updates != nil {
+				v.updates.Close()
+				v.updates = nil
 			}
 			v.ai = nil
 			v.ServiceForm.Close()
@@ -126,3 +155,5 @@ func New(opts Options) ext.Module {
 
 // SetBackend replaces the settings backend in integration fixtures on the frame thread.
 func (v *View) SetBackend(backend aiapi.Backend) { v.ai = backend }
+
+func (v *View) SetModelUpdater(u ModelUpdater) { v.updates = u }

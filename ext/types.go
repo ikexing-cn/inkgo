@@ -112,6 +112,9 @@ type Schema[T any] struct {
 	Choices     []Choice[T]
 	Group       string
 	Order       int
+	// Drawn means the module's own settings section draws this setting; the
+	// host keeps it in the ledger but adds no control for it.
+	Drawn bool
 }
 
 // State reports the lifetime of a module's current session.

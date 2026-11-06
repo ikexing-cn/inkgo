@@ -65,29 +65,17 @@ func readModelsBody(r io.Reader) ([]byte, error) {
 type refreshState struct {
 	ETag    string    `json:"etag"`
 	Checked time.Time `json:"checked"`
+	Success time.Time `json:"success"`
+	Failure string    `json:"failure,omitempty"`
 }
 
 var refreshMu sync.Mutex
 
-// StartModelUpdates loads the local cache before configuration is decoded,
-// then refreshes it in the background at most once per day. No UI callbacks.
-func StartModelUpdates(configPath string) {
-	if configPath == "" {
-		return
+// LoadModelCache reads local data without making any network request.
+func LoadModelCache(configPath string) {
+	if configPath != "" {
+		loadModelCache(filepath.Dir(configPath))
 	}
-	dir := filepath.Dir(configPath)
-	loadModelCache(dir)
-	go func() {
-		client := modelsClient()
-		defer client.CloseIdleConnections()
-		for {
-			if err := refreshModels(context.Background(), dir, ModelsURL, client, time.Now()); err != nil {
-				log.Printf("models.dev: %v", err)
-			}
-			timer := time.NewTimer(24 * time.Hour)
-			<-timer.C
-		}
-	}()
 }
 
 func loadModelCache(dir string) bool {
@@ -115,6 +103,10 @@ func loadModelCache(dir string) bool {
 }
 
 func refreshModels(ctx context.Context, dir, url string, client *http.Client, now time.Time) error {
+	return refreshModelsForce(ctx, dir, url, client, now, false)
+}
+
+func refreshModelsForce(ctx context.Context, dir, url string, client *http.Client, now time.Time, force bool) (result error) {
 	refreshMu.Lock()
 	defer refreshMu.Unlock()
 	statePath := filepath.Join(dir, "models-meta.json")
@@ -122,7 +114,7 @@ func refreshModels(ctx context.Context, dir, url string, client *http.Client, no
 	if data, err := os.ReadFile(statePath); err == nil {
 		_ = json.Unmarshal(data, &state)
 	}
-	if !state.Checked.IsZero() && now.Sub(state.Checked) < 24*time.Hour {
+	if !force && !state.Checked.IsZero() && now.Sub(state.Checked) < 24*time.Hour {
 		return nil
 	}
 	// Persist attempts too: failures must not produce repeated startup requests.
@@ -138,6 +130,21 @@ func refreshModels(ctx context.Context, dir, url string, client *http.Client, no
 		}
 		return atomicfile.Write(statePath, append(data, '\n'), 0600)
 	}
+	defer func() {
+		if ctx.Err() != nil {
+			// Turned off or closed mid-request: not a failure to show.
+			return
+		}
+		if result != nil {
+			state.Failure = failureKind(result)
+		} else {
+			state.Success = now
+			state.Failure = ""
+		}
+		if err := writeState(); err != nil {
+			result = &syncError{"cache", err}
+		}
+	}()
 	if err := writeState(); err != nil {
 		return err
 	}
@@ -153,21 +160,21 @@ func refreshModels(ctx context.Context, dir, url string, client *http.Client, no
 	}
 	res, err := client.Do(req)
 	if err != nil {
-		return err
+		return &syncError{"connect", err}
 	}
 	defer res.Body.Close()
 	if res.StatusCode == http.StatusNotModified {
 		if req.Header.Get("If-None-Match") == "" {
-			return fmt.Errorf("models.dev: unexpected 304")
+			return &syncError{"http", fmt.Errorf("unexpected 304")}
 		}
 		return nil
 	}
 	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("models.dev: HTTP %d", res.StatusCode)
+		return &syncError{"http", fmt.Errorf("HTTP %d", res.StatusCode)}
 	}
 	data, err := readModels(res.Body, false)
 	if err != nil {
-		return err
+		return &syncError{"data", err}
 	}
 	if err := atomicfile.Write(filepath.Join(dir, "models.json"), data, 0600); err != nil {
 		return err

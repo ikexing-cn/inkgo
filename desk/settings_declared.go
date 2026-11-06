@@ -16,9 +16,11 @@ func (a *App) simpleSettings(id string) []ext.SettingInfo {
 		}
 		switch v := s.Schema.(type) {
 		case ext.Schema[bool]:
-			out = append(out, s)
+			if !v.Drawn {
+				out = append(out, s)
+			}
 		case ext.Schema[string]:
-			if len(v.Choices) > 0 {
+			if len(v.Choices) > 0 && !v.Drawn {
 				out = append(out, s)
 			}
 		}

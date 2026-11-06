@@ -32,7 +32,7 @@ func main() {
 	// The AI keeps its services in this machine's settings folder, and
 	// the shelf of works lies beside them.
 	path, err := aimod.ConfigPath()
-	model.StartModelUpdates(path)
+	model.LoadModelCache(path)
 	d := desk.New(path, assembledModules(path, *trace)...)
 	mygo.App.SetLanguages(locales.Catalog.Languages()...)
 	// The in-app choice is authoritative: on macOS this intentionally

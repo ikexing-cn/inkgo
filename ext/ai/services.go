@@ -159,6 +159,7 @@ func (a *View) services(c *ui.Context) {
 			f.New()
 		}
 	})
+	a.modelData(c)
 	ui.Row(c).FillWidth().Gap(16).Justify(ui.End).Children(func() {
 		if a.pal.Ghost(c, aitext.SettingsOpenConfig(), ui.Color{}).Disabled(a.ai.ConfigFile() == "").Clicked() {
 			u := url.URL{Scheme: "file", Path: filepath.ToSlash(a.ai.ConfigFile())}

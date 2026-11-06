@@ -28,7 +28,7 @@ Stop 在取消、等待后逐条跑 Session.OnStop 和 Registrar.OnStop，单条
 
 链在登记、开关和排序变化时构建为不可变计划，不逐调用拼闭包。Before/After/Around 可叠加，Overwrite（包括整项 Replace）单处只允许一方；多方未选时用默认，顺序和选择持久化。`Host.Changes()` 无分配计数供 desk 缓存失效，语言修订号单独参与缓存判断。宿主内部没有注入键。
 
-设置按 JSON 原子写入本机或书根 ext.json；Local、BookScope、Both 区分覆盖范围。读坏文件先按默认并提示，真正保存前不覆盖。自动设置表单能力和自定义 SettingsSections / SettingsPages 见模块篇；没有 Pref 监听器，也没有未实现的具名设置分组 API。
+设置按 JSON 原子写入本机或书根 ext.json；Local、BookScope、Both 区分覆盖范围。读坏文件先按默认并提示，真正保存前不覆盖。宿主给扩展页自动画布尔和带选项的字符串设置；`Schema.Drawn` 为真的由扩展在自己的设置区里画，宿主只记账、不再加控件，免得同一项出现两次（AI 的「后台自动同步」画在「模型资料」组里）。自定义 SettingsSections / SettingsPages 见模块篇；没有 Pref 监听器，也没有未实现的具名设置分组 API。
 
 ### Go 层与未来数据层
 
