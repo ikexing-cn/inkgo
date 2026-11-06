@@ -17,12 +17,6 @@ const CATALOG = {
   ]
  },
  "params": {
-  "aiCostAbout": [
-   "amount"
-  ],
-  "aiCostUnder": [
-   "amount"
-  ],
   "appAbout": [],
   "appChapterDeleted": [],
   "appChapterGone": [],
@@ -1490,10 +1484,6 @@ const CATALOG = {
   ],
   "settingsConfigYAML": [],
   "settingsContextLimit": [],
-  "settingsCostCurrency": [
-   "currency",
-   "amount"
-  ],
   "settingsDisableGPU": [],
   "settingsDisplayName": [],
   "settingsEdit": [],
@@ -1581,7 +1571,6 @@ const CATALOG = {
   "settingsNameRequired": [],
   "settingsNoModels": [],
   "settingsNoPen": [],
-  "settingsNoPrice": [],
   "settingsNoRecords": [],
   "settingsNoUsage": [],
   "settingsOpenConfig": [],
@@ -1640,9 +1629,6 @@ const CATALOG = {
   ],
   "settingsServices": [],
   "settingsServicesNote": [],
-  "settingsSpentCost": [
-   "amount"
-  ],
   "settingsSpentRow": [
    "count",
    "input",
@@ -2185,8 +2171,6 @@ const CATALOG = {
  },
  "messages": {
   "zh-Hans": {
-   "aiCostAbout": "约 {amount}",
-   "aiCostUnder": "不到 {amount}",
    "appAbout": "关于 Inkgo",
    "appChapterDeleted": "已删除的章",
    "appChapterGone": "所在章节已删除",
@@ -3159,7 +3143,6 @@ const CATALOG = {
    "settingsConfigWrite": "无法写入模型配置：{reason}",
    "settingsConfigYAML": "模型配置不是合法的 YAML：请检查语法、字段名和字段类型",
    "settingsContextLimit": "上下文上限",
-   "settingsCostCurrency": "约 {currency}{amount, number, ::.00}",
    "settingsDisableGPU": "关闭显卡加速",
    "settingsDisplayName": "名称",
    "settingsEdit": "编辑",
@@ -3223,7 +3206,6 @@ const CATALOG = {
    "settingsNameRequired": "请填写显示名称",
    "settingsNoModels": "尚无模型，可获取可用模型或手动添加。",
    "settingsNoPen": "还没选续写检查的模型",
-   "settingsNoPrice": "价格未知",
    "settingsNoRecords": "没有记录。",
    "settingsNoUsage": "还没用过 AI。",
    "settingsOpenConfig": "打开配置文件",
@@ -3259,7 +3241,6 @@ const CATALOG = {
    "settingsServiceMeta": "{host} · {count} 个模型",
    "settingsServices": "AI 服务",
    "settingsServicesNote": "所有作品共用",
-   "settingsSpentCost": "约 ${amount, number, ::.00}",
    "settingsSpentRow": "{count} 次请求 · 输入 {input}，缓存命中 {cached}% · 输出 {output}",
    "settingsTabBackup": "备份",
    "settingsTabExtensions": "扩展",
@@ -3574,8 +3555,6 @@ const CATALOG = {
    "workspaceTrashMissing": "回收站里没有 {id}"
   },
   "en": {
-   "aiCostAbout": "About {amount}",
-   "aiCostUnder": "Under {amount}",
    "appAbout": "About Inkgo",
    "appChapterDeleted": "Deleted Chapter",
    "appChapterGone": "Its chapter was deleted",
@@ -4548,7 +4527,6 @@ const CATALOG = {
    "settingsConfigWrite": "Cannot write model configuration: {reason}",
    "settingsConfigYAML": "Invalid configuration YAML",
    "settingsContextLimit": "Context limit",
-   "settingsCostCurrency": "About {currency}{amount, number, ::.00}",
    "settingsDisableGPU": "Turn Off Graphics Acceleration",
    "settingsDisplayName": "Name",
    "settingsEdit": "Edit",
@@ -4612,7 +4590,6 @@ const CATALOG = {
    "settingsNameRequired": "Display name required",
    "settingsNoModels": "No models yet. Fetch the available models or add one manually.",
    "settingsNoPen": "No model for continuing and checking is configured yet",
-   "settingsNoPrice": "No Price",
    "settingsNoRecords": "No requests of this kind.",
    "settingsNoUsage": "AI hasn’t been used yet.",
    "settingsOpenConfig": "Open Config File",
@@ -4648,7 +4625,6 @@ const CATALOG = {
    "settingsServiceMeta": "{host} · {count, plural, one {# model} other {# models}}",
    "settingsServices": "AI Services",
    "settingsServicesNote": "Shared by all works",
-   "settingsSpentCost": "About ${amount, number, ::.00}",
    "settingsSpentRow": "{count, plural, one {# request} other {# requests}} · Input {input}, {cached}% cache hits · Output {output}",
    "settingsTabBackup": "Backup",
    "settingsTabExtensions": "Extensions",

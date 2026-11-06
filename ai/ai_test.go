@@ -81,7 +81,7 @@ func TestRoutedModelNamesAreRecordedVerbatim(t *testing.T) {
 		t.Fatal(events, err)
 	}
 	records, err := st.Records()
-	if err != nil || len(records) != 1 || records[0].Model != name || records[0].Cost != 0 || records[0].Currency != "" {
+	if err != nil || len(records) != 1 || records[0].Model != name {
 		t.Fatal(records, err)
 	}
 	for _, file := range []string{filepath.Join("ext", "talk", "sessions", session+".jsonl"), "ext/usage/ai-log.jsonl"} {
@@ -89,9 +89,6 @@ func TestRoutedModelNamesAreRecordedVerbatim(t *testing.T) {
 		if err != nil || !strings.Contains(string(raw), `"model":"test-relay/vendor/deepseek-flash"`) {
 			t.Fatal(file, string(raw), err)
 		}
-	}
-	if cost, currency, ok := s.Cost(name, workspace.Usage{Input: 1_000_000}); !ok || cost != 0.15 || currency != "$" {
-		t.Fatal(cost, currency, ok)
 	}
 }
 
@@ -171,7 +168,7 @@ func (f failingRequest) Complete(context.Context, model.Request, func(model.Delt
 func (f failingRequest) ListModels(context.Context) ([]string, error) { return nil, f.err }
 
 // Each request is a line of the AI record, for the purpose its context
-// carries and with its cost at the prices built in: done, failed,
+// carries: done, failed,
 // cancelled, and cancelled by its maker for having enough, which is done.
 // A trace folder gets each whole; the record and the work get no text.
 func TestModelHandleRecordsEveryOutcomeAndFullTraces(t *testing.T) {
@@ -186,7 +183,7 @@ func TestModelHandleRecordsEveryOutcomeAndFullTraces(t *testing.T) {
 		{Usage: model.Usage{Input: 1000}},
 		{Text: "取消了。"},
 		{Text: "够了。", Usage: model.Usage{Input: 10, Output: 2}},
-	}, st, "deepseek/deepseek-flash", "deepseek-flash", nil, trace, nil, func() func(aiapi.Call) { return func(call aiapi.Call) { _ = call.Store.Log(call.Record) } }}
+	}, st, "deepseek/deepseek-flash", nil, trace, nil, func() func(aiapi.Call) { return func(call aiapi.Call) { _ = call.Store.Log(call.Record) } }}
 	service := New("")
 	w := st.Work()
 	w.Discussion = workspace.Selection{Provider: "deepseek", Model: "deepseek-flash"}
@@ -216,10 +213,8 @@ func TestModelHandleRecordsEveryOutcomeAndFullTraces(t *testing.T) {
 	if err != nil || len(got) != 4 {
 		t.Fatalf("recorded %+v %v", got, err)
 	}
-	want := 0.5*0.15 + 0.5*0.003 + 0.001*0.6
 	if r := got[0]; r.Feature != workspace.FeatureTalk || r.Talk != "s1" || r.Model != "deepseek/deepseek-flash" || r.Effort != "high" ||
-		!slices.Equal(r.Parts, parts) || r.Usage.Input != 1_000_000 || r.Outcome != workspace.OutcomeDone || r.At.IsZero() ||
-		r.Currency != "$" || r.Cost < want-1e-9 || r.Cost > want+1e-9 {
+		!slices.Equal(r.Parts, parts) || r.Usage.Input != 1_000_000 || r.Outcome != workspace.OutcomeDone || r.At.IsZero() {
 		t.Errorf("the talk: %+v", r)
 	}
 	if r := got[1]; r.Feature != workspace.FeatureCheck || r.Chapter != "c1" || r.Outcome != workspace.OutcomeFailed || r.Error != "服务不可用" || r.Usage.Input != 1000 {

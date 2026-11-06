@@ -25,13 +25,12 @@ Status: implemented
   - `model`（服务商/模型）、`effort`；名字由 `workspace/types.go` 的 `ModelRef.String` 写出，`ParseModelRef` 按第一个 `/` 读取服务和完整模型 ID。事件、会话 JSONL、AI 记录保留完整名字；
   - `parts`：发出去的各部分各约多少 token，就是 `workspace.Sent` 的 `Parts`；
   - `usage`：服务商算的输入、缓存命中、缓存写入、输出、推理；
-  - `cost`、`currency`：按记账那一刻的内置价格估算（`model.Cost`），表里没有的模型不写；
   - `outcome`：`done`、`cancelled`、`failed`，失败的带 `error`。截断、被过滤的，模型层本来就报错（「模型回复被截断」），记成失败，原因照写，不另设「已截断」。
 - **不存正文、设定、讨论的文字**：这些在作品里本来就有；记录只说发了哪几部分、各多大。
 - **记账还是只有一处**：`ai.open` 给客户端包的 `counted` 原来记用量，改成记这一行。为了什么由发请求的地方放进 `context`：`workspace.WithPurpose` 放、`PurposeOf` 取。讨论在 `Engine.purpose` 里放（回复的每一步、压缩那一次都算它所在的讨论），起草、改写、续写、检查在 `writing` 的 `purpose` 里放。
 - **续写拿够了就停**：`Predict` 拿到一句就用 `workspace.ErrEnough` 取消请求，`counted` 看到这个原因记「完成」，不记「已取消」。
 - **记不上不让请求失败**：记录是给作者看的。
-- **读的时候校验**：schema、模型名、数不为负、有花费就要有币种、功能和结果认识、要有时间、失败的要有原因，有不认识的字段也报错。读写走 `workspace/jsonl.go`，最后一行写了一半时丢掉那一行。
+- **读的时候校验**：schema、模型名、数不为负、功能和结果认识、要有时间、失败的要有原因，有不认识的字段也报错。读写走 `workspace/jsonl.go`，最后一行写了一半时丢掉那一行。
 - 追加记录在 `Store` 上保留已校验前缀，本实例连续追加只解析新增内容。
 - 外部追加先核对前缀摘要；文件替换、截短或前缀改动后整份校验，避免缓存掩盖坏记录。
 - 讨论里的请求都算「讨论」；从起草、改写入口开的讨论按来处算「起草」「改写」，见[起草和改写交给讨论](2026-10-16-writing-through-the-talk.md)。
@@ -46,14 +45,14 @@ Status: implemented
 
 界面快照和列表状态由 `desk/record.go` 的 `recordView` 保管，设置窗口的开关与页面由 `desk/settings.go` 的 `settingsView` 保管。换书、回书架及关闭应用经 `resetPrefs` 清空这些视图，磁盘记录不变；完整归属与生命周期见 [desk 内部状态](../architecture/2026-10-22-desk-state.md)。
 
-- 设置「AI」的「本作品用量」按功能各一行：「5 次请求 · 输入 82.7K，缓存命中 85% · 输出 732」和「约 $0.12」，没有价格的写「无价格」；说明仍是「按内置价格估算，以服务商账单为准。」下面右对齐「查看全部记录（N 次请求）」。
-- 点开是「AI 记录」，还在设置的「AI」这一栏里，标题换成「AI 记录」，说明「本作品每次向模型发的请求记一行，失败、取消的也记；只记发了哪几部分、各多大，不存内容。」左上「‹ 本作品用量」回去，右上按功能筛选。一行一次请求，新的在上：时间、「检查 · 第87章：停电」、token、花费、结果。点开一行写模型和思考程度、「发送：规则 1.1K · 设定 1.8K · …」、「实际用量：输入 17.6K，其中缓存命中 15.2K；输出 88」，失败的再写原因。
+- 设置「AI」的「本作品用量」按功能各一行：「5 次请求 · 输入 82.7K，缓存命中 85% · 输出 732」。下面右对齐「查看全部记录（N 次请求）」。
+- 点开是「AI 记录」，还在设置的「AI」这一栏里，标题换成「AI 记录」，说明「本作品每次向模型发的请求记一行，失败、取消的也记；只记发了哪几部分、各多大，不存内容。」左上「‹ 本作品用量」回去，右上按功能筛选。一行一次请求，新的在上：时间、「检查 · 第87章：停电」、token、结果。点开一行写模型和思考程度、「发送：规则 1.1K · 设定 1.8K · …」、「实际用量：输入 17.6K，其中缓存命中 15.2K；输出 88」，失败的再写原因。
 - 打开设置或切到「AI」时读一次。只能看，没有删除和清零。
 - AI 关着时整个不显示，记录留着，和讨论、检查结果一样（DESIGN.md「AI 可以整个关掉」）。
 
 ### 讨论回复写上钱
 
-回复下面那一行，「· N token」后面加估算花费：「· 42K token · 约 $0.08」，不到一分钱写「不到 $0.01」。这是这一轮所有请求的和，和 token 数一样（`desk/chat.go` 的 `turnCost`，经 `aiport.Settings.Cost` 按事件上记的模型算）；这一轮用到的模型有一个不在价格表里，就不写花费。`model/pricing.go` 的 `PriceID` 取模型 ID 最后一个 `/` 后的部分，所以经另一服务路由的 `vendor/id` 按 `id` 估价。AI 记录在请求结束时用配置的完整模型 ID 调 `model.Cost` 查表；这两个入口各按自己的口径查价。
+回复下面只显示本轮 token 合计，不再估算金额。取消理由与旧记录处置见[models.dev](../architecture/2026-11-06-model-table-from-models-dev.md)。
 
 不在发请求之前报价：讨论带工具，查几次、写多长事先不知道，报出来的数不准；起草对话框说清会预先带上哪些内容、约多少 token，见[起草和改写交给讨论](2026-10-16-writing-through-the-talk.md)。
 
@@ -89,9 +88,9 @@ AI 记录按功能分开以后，起草、改写要走讨论，原来的「写�
 - 有 `usage.json` 的作品，升级以后「本作品用量」只算之后的请求。
 - 测试：
   - `workspace/record_test.go`：`TestTheRecordKeepsEachRequest` 一行一行记、读回来先后不变、写了一半的最后一行丢掉；`TestTheRecordIsChecked` 各条校验；`TestThePurposeGoesWithTheContext`。原来的 `workspace/usage_test.go` 删了。
-  - `ai/ai_test.go` 的 `TestEachRequestIsRecorded`：完成、失败、取消、拿够了停下各记成什么，花费和币种，`-trace` 的文件名和内容，记录里没有发出去的文字。
+  - `ai/ai_test.go` 的 `TestEachRequestIsRecorded`：完成、失败、取消、拿够了停下各记成什么，`-trace` 的文件名和内容，记录里没有发出去的文字。
   - `writing` 的 `TestDraftShowsWhatItRecords`、`TestRewriteShowsTheWordsAround`、`TestPredictOneSentence`（还查拿够了用 `ErrEnough` 取消）、`TestCheckAChapterAgainstTheSetting`，`discussion` 的 `TestReplyLooksUpAndNotes`、`TestALongTalkIsCompacted`：查放进 `context` 的功能、章、讨论和各部分。
-  - `desk/record_test.go`：`TestTheWorkShowsWhatItSpent` 查「本作品用量」按功能的各行、「无价格」「不到 $0.01」，「AI 记录」新的在上、「已删除的章节」、结果、点开一行、一次只开一行、筛选和「没有这类请求。」，关掉 AI 后都不显示。原来的 `desk/spent_test.go` 删了。
+  - `desk/record_test.go`：`TestTheWorkShowsWhatItSpent` 查「本作品用量」按功能的各行，「AI 记录」新的在上、「已删除的章节」、结果、点开一行、一次只开一行、筛选和「没有这类请求。」，关掉 AI 后都不显示。原来的 `desk/spent_test.go` 删了。
   - `desk/sent_test.go` 的 `TestWhatWasSent`：回复下面「· 19.4K token · 不到 $0.01」。
   - `npm run verify-prototype` 的「models and services」查按功能的各行、「AI 记录」、点开和筛选。
 - 取代[AI 写的字等作者采纳，作品记下用量](2026-10-15-ai-text-waits-and-usage-is-kept.md)里「作品记下用量」和「设置里看」两节，那一篇的其余部分照旧。

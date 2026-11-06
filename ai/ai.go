@@ -216,21 +216,21 @@ func (s *Service) open(sel workspace.Selection, st *workspace.Store) (inference.
 		return inference.Model{}, setupError(err)
 	}
 	name := (workspace.ModelRef{Provider: sel.Provider, Model: sel.Model}).String()
-	return inference.Model{Completer: counted{client, st, name, sel.Model, s.life, s.Trace, s.ErrorText, s.Calls}, Model: s.cfg.Model(sel.Provider, sel.Model),
+	return inference.Model{Completer: counted{client, st, name, s.life, s.Trace, s.ErrorText, s.Calls}, Model: s.cfg.Model(sel.Provider, sel.Model),
 		Name: name, Effort: model.Effort(sel.Effort)}, nil
 }
 
 // counted is a model whose every request goes into the AI record of a
-// work, for the purpose its context carries and at the directory prices
-// for its model ID; with a trace folder, it also saves full traces.
+// work, for the purpose its context carries;
+// with a trace folder, it also saves full traces.
 type counted struct {
 	model.Completer
-	st       *workspace.Store
-	name, id string
-	life     context.Context
-	trace    string
-	words    func(error) string
-	calls    func() func(aiapi.Call)
+	st    *workspace.Store
+	name  string
+	life  context.Context
+	trace string
+	words func(error) string
+	calls func() func(aiapi.Call)
 }
 
 func (c counted) Complete(ctx context.Context, req model.Request, on func(model.Delta)) (model.Reply, error) {
@@ -245,7 +245,6 @@ func (c counted) Complete(ctx context.Context, req model.Request, on func(model.
 	p := workspace.PurposeOf(ctx)
 	r := workspace.Record{At: start.UTC(), Took: time.Since(start).Milliseconds(), Feature: p.Feature, Chapter: p.Chapter, Talk: p.Talk,
 		Model: c.name, Effort: string(req.Effort), Parts: p.Parts, Usage: workspace.Usage(reply.Usage), Outcome: workspace.OutcomeDone}
-	r.Cost, r.Currency, _ = model.Cost(c.id, reply.Usage)
 	switch {
 	case err == nil || errors.Is(context.Cause(ctx), workspace.ErrEnough):
 	case ctx.Err() != nil:
@@ -351,11 +350,6 @@ func (s *Service) Pen(st *workspace.Store, material aiapi.Material) (aiapi.Pen, 
 }
 
 func (s *Service) MinCheck() int { return writing.MinCheck }
-
-func (s *Service) Cost(name string, u workspace.Usage) (float64, string, bool) {
-	ref, _ := workspace.ParseModelRef(name)
-	return model.Cost(model.PriceID(ref.Model), model.Usage(u))
-}
 
 // Close stops requests built by this activation. A stopped service is not reused.
 func (s *Service) Close() { s.cancel() }

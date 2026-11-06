@@ -126,7 +126,7 @@ func TestTheRecordKeepsEachRequest(t *testing.T) {
 	at := time.Date(2026, 10, 16, 10, 40, 0, 0, time.UTC)
 	talk := Record{At: at, Took: 4200, Feature: FeatureTalk, Talk: "s1", Model: "deepseek/deepseek-flash", Effort: "high",
 		Parts: []Part{{PartRules, 1100}, {PartTalk, 9600}}, Usage: Usage{Input: 12000, CacheRead: 9000, Output: 300},
-		Cost: 0.004, Currency: "$", Outcome: OutcomeDone}
+		Outcome: OutcomeDone}
 	check := Record{At: at.Add(time.Minute), Feature: FeatureCheck, Chapter: "c1", Model: "kimi/kimi-k3", Outcome: OutcomeFailed, Error: "无法连接模型服务"}
 	for _, r := range []Record{talk, check} {
 		if err := s.Log(r); err != nil {
@@ -158,7 +158,6 @@ func TestTheRecordKeepsEachRequest(t *testing.T) {
 		{At: at, Feature: "summary", Model: "a/b", Outcome: OutcomeDone},
 		{Feature: FeatureTalk, Model: "a/b", Outcome: OutcomeDone},
 		{At: at, Feature: FeatureTalk, Model: "a/b", Outcome: OutcomeFailed},
-		{At: at, Feature: FeatureTalk, Model: "a/b", Outcome: OutcomeDone, Cost: 1},
 		{At: at, Feature: FeatureTalk, Model: "a/b", Outcome: OutcomeDone, Usage: Usage{Input: -1}},
 	} {
 		if err := s.Log(bad); err == nil {

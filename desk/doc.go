@@ -10,7 +10,7 @@
 // ext/talk: discussions, messages, streaming replies, and the composer.
 // ext/check: background checks, findings, and the 检查 page.
 // ext/continue, ext/draft, ext/propose: prose continuation, drafts, and proposals.
-// ext/usage: AI usage records, costs, and request details.
+// ext/usage: AI usage records and request details.
 // ext/outline: the 大纲 page, card editing, chapter table, and timeline.
 //
 // The files of desk:

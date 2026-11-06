@@ -9,7 +9,7 @@ import (
 
 // Under each reply, the tokens the requests of its turn took and gave as
 // the provider counted: its own and those that looked something up; and
-// what they cost by the prices built in, unless a model has no price.
+// their total token usage.
 // What a reply was sent is of the request that replied, saying how many
 // the turn took: each part's tokens as estimated, what the provider
 // counted, and the setting, whole with a tick each, or as its index. A
@@ -57,7 +57,7 @@ func TestWhatWasSent(t *testing.T) {
 	tt.Frame()
 	footers, asked := 0, 0
 	for _, s := range tt.Texts() {
-		if strings.HasPrefix(s, "今天 ") && (strings.HasSuffix(s, " · 19.4K token · 不到 $0.01") || strings.HasSuffix(s, " · 920 token")) {
+		if strings.HasPrefix(s, "今天 ") && (strings.HasSuffix(s, " · 19.4K token") || strings.HasSuffix(s, " · 920 token")) {
 			footers++
 		}
 		if len(s) == len("今天 15:04") && strings.HasPrefix(s, "今天 ") {

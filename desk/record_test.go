@@ -97,7 +97,7 @@ func TestLeavingWorkClearsSettingsAndRecords(t *testing.T) {
 
 // The AI's settings show what the work spent on each feature, read as
 // they open: the requests, the tokens, the share read from the cache and
-// the cost estimated, or that a model has no price. There is nothing to
+// token usage. There is nothing to
 // clear it with. 查看全部 lists each request, the newest first, by
 // feature and where it was for; a line opens on what it sent and what the
 // provider counted. With the AI off, none of it shows.
@@ -105,7 +105,7 @@ func TestTheWorkShowsWhatItSpent(t *testing.T) {
 	a, tt, _ := fixture(t)
 	a.openPrefs("AI")
 	tt.Frame()
-	if !slices.Contains(tt.Texts(), "用量") || tt.HasText("按内置价格估算") || !tt.HasText("还没用过 AI。") {
+	if !slices.Contains(tt.Texts(), "用量") || !tt.HasText("还没用过 AI。") {
 		t.Fatal("nothing spent yet", tt.Texts())
 	}
 	chapter, err := a.Store.NewChapter("", "第一章", false)
@@ -119,11 +119,11 @@ func TestTheWorkShowsWhatItSpent(t *testing.T) {
 	a.SetError(a.loadTree())
 	at := time.Now().Add(-time.Hour)
 	for i, r := range []workspace.Record{
-		{Feature: workspace.FeatureTalk, Talk: talkOf(a).Session, Model: "anthropic/claude-opus-5-5", Usage: workspace.Usage{Input: 1_682_400, CacheRead: 1_211_300, Output: 59_200}, Cost: 4.444, Currency: "$", Outcome: workspace.OutcomeDone,
+		{Feature: workspace.FeatureTalk, Talk: talkOf(a).Session, Model: "anthropic/claude-opus-5-5", Usage: workspace.Usage{Input: 1_682_400, CacheRead: 1_211_300, Output: 59_200}, Outcome: workspace.OutcomeDone,
 			Parts: []workspace.Part{{Name: workspace.PartRules, Tokens: 1100}, {Name: workspace.PartTalk, Tokens: 9600}}},
-		{Feature: workspace.FeatureTalk, Talk: talkOf(a).Session, Model: "deepseek/deepseek-flash", Usage: workspace.Usage{Input: 142_000, CacheRead: 85_200, Output: 4100}, Cost: 0.021, Currency: "$", Outcome: workspace.OutcomeDone},
+		{Feature: workspace.FeatureTalk, Talk: talkOf(a).Session, Model: "deepseek/deepseek-flash", Usage: workspace.Usage{Input: 142_000, CacheRead: 85_200, Output: 4100}, Outcome: workspace.OutcomeDone},
 		{Feature: workspace.FeatureContinue, Chapter: chapter, Model: "local/qwen3", Effort: "none", Usage: workspace.Usage{Input: 900, Output: 30}, Outcome: workspace.OutcomeCancelled},
-		{Feature: workspace.FeatureCheck, Chapter: "gone", Model: "deepseek/deepseek-flash", Effort: "high", Usage: workspace.Usage{Input: 7000}, Cost: 0.002, Currency: "$", Outcome: workspace.OutcomeFailed, Error: "无法连接模型服务",
+		{Feature: workspace.FeatureCheck, Chapter: "gone", Model: "deepseek/deepseek-flash", Effort: "high", Usage: workspace.Usage{Input: 7000}, Outcome: workspace.OutcomeFailed, Error: "无法连接模型服务",
 			Parts: []workspace.Part{{Name: workspace.PartRules, Tokens: 900}, {Name: workspace.PartProse, Tokens: 4400}}},
 	} {
 		r.At = at.Add(time.Duration(i) * time.Minute)
@@ -139,9 +139,9 @@ func TestTheWorkShowsWhatItSpent(t *testing.T) {
 	a.openPrefs("AI")
 	tt.Frame()
 	for _, s := range []string{
-		"讨论", "2 次请求 · 输入 1.8M，缓存命中 71% · 输出 63.3K", "约 $4.47",
-		"续写", "1 次请求 · 输入 900，缓存命中 0% · 输出 30", "价格未知",
-		"检查", "1 次请求 · 输入 7K，缓存命中 0% · 输出 0", "不到 $0.01",
+		"讨论", "2 次请求 · 输入 1.8M，缓存命中 71% · 输出 63.3K",
+		"续写", "1 次请求 · 输入 900，缓存命中 0% · 输出 30",
+		"检查", "1 次请求 · 输入 7K，缓存命中 0% · 输出 0",
 		"查看全部 4 次",
 	} {
 		if !tt.HasText(s) {
@@ -157,7 +157,7 @@ func TestTheWorkShowsWhatItSpent(t *testing.T) {
 	}
 	tt.Frame()
 	for _, s := range []string{"AI 记录", "只记发了什么、多少字，不存原文。",
-		"‹ 用量", "检查 · 已删除的章节", "失败：无法连接模型服务", "续写 · 第一章", "已取消", "讨论 · 灯为什么会灭", "完成", "1.7M", "约 $4.44", "—"} {
+		"‹ 用量", "检查 · 已删除的章节", "失败：无法连接模型服务", "续写 · 第一章", "已取消", "讨论 · 灯为什么会灭", "完成", "1.7M"} {
 		if !tt.HasText(s) {
 			t.Fatal(s, tt.Texts())
 		}
@@ -297,12 +297,12 @@ func TestShotRecord(t *testing.T) {
 	a.SetError(a.loadTree())
 	at := time.Now().Add(-time.Hour)
 	for i, r := range []workspace.Record{
-		{Feature: workspace.FeatureTalk, Talk: talkOf(a).Session, Model: "anthropic/claude-opus-5-5", Usage: workspace.Usage{Input: 1_682_400, CacheRead: 1_211_300, Output: 59_200}, Cost: 4.444, Currency: "$", Outcome: workspace.OutcomeDone,
+		{Feature: workspace.FeatureTalk, Talk: talkOf(a).Session, Model: "anthropic/claude-opus-5-5", Usage: workspace.Usage{Input: 1_682_400, CacheRead: 1_211_300, Output: 59_200}, Outcome: workspace.OutcomeDone,
 			Parts: []workspace.Part{{Name: workspace.PartRules, Tokens: 1100}, {Name: workspace.PartTalk, Tokens: 9600}}},
 		{Feature: workspace.FeatureContinue, Chapter: chapter, Model: "local/qwen3", Effort: "none", Usage: workspace.Usage{Input: 900, Output: 30}, Outcome: workspace.OutcomeCancelled},
-		{Feature: workspace.FeatureRewrite, Chapter: chapter, Model: "deepseek/deepseek-flash", Usage: workspace.Usage{Input: 5000, Output: 700}, Cost: 0.001, Currency: "$", Outcome: workspace.OutcomeDone},
-		{Feature: workspace.FeatureTalk, Talk: talkOf(a).Session, Model: "deepseek/deepseek-flash", Usage: workspace.Usage{Input: 142_000, CacheRead: 85_200, Output: 4100}, Cost: 0.021, Currency: "$", Outcome: workspace.OutcomeCancelled},
-		{Feature: workspace.FeatureCheck, Chapter: "gone", Model: "deepseek/deepseek-flash", Effort: "high", Usage: workspace.Usage{Input: 7000}, Cost: 0.002, Currency: "$", Outcome: workspace.OutcomeFailed, Error: "无法连接模型服务",
+		{Feature: workspace.FeatureRewrite, Chapter: chapter, Model: "deepseek/deepseek-flash", Usage: workspace.Usage{Input: 5000, Output: 700}, Outcome: workspace.OutcomeDone},
+		{Feature: workspace.FeatureTalk, Talk: talkOf(a).Session, Model: "deepseek/deepseek-flash", Usage: workspace.Usage{Input: 142_000, CacheRead: 85_200, Output: 4100}, Outcome: workspace.OutcomeCancelled},
+		{Feature: workspace.FeatureCheck, Chapter: "gone", Model: "deepseek/deepseek-flash", Effort: "high", Usage: workspace.Usage{Input: 7000}, Outcome: workspace.OutcomeFailed, Error: "无法连接模型服务",
 			Parts: []workspace.Part{{Name: workspace.PartRules, Tokens: 900}, {Name: workspace.PartProse, Tokens: 4400}}},
 	} {
 		r.At = at.Add(time.Duration(i) * time.Minute)

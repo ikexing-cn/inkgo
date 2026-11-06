@@ -87,20 +87,6 @@ func (msgs Messages) SettingsFilterByFeature() string {
 	return Catalog.Format(msgs.locale, "settingsFilterByFeature", nil)
 }
 
-// SettingsNoPrice says "价格未知"
-// in the language the app shows.
-//
-// 用量汇总里模型没有定价时显示。
-func SettingsNoPrice() string { return In(i18n.Locale()).SettingsNoPrice() }
-
-// SettingsNoPrice says "价格未知"
-// in the language of msgs.
-//
-// 用量汇总里模型没有定价时显示。
-func (msgs Messages) SettingsNoPrice() string {
-	return Catalog.Format(msgs.locale, "settingsNoPrice", nil)
-}
-
 // SettingsNoRecords says "没有记录。"
 // in the language the app shows.
 func SettingsNoRecords() string { return In(i18n.Locale()).SettingsNoRecords() }

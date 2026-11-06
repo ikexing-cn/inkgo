@@ -35,23 +35,21 @@ const (
 
 // Record is a request the work made of a model: what it was for, the
 // parts it sent and their tokens as estimated, what the provider counted
-// and what that cost by the prices built in, and how it ended. The text
+// and how it ended. The text
 // sent is not kept: it is in the work.
 type Record struct {
-	Schema   int       `json:"schema"`
-	At       time.Time `json:"at,omitzero"`
-	Took     int64     `json:"took_ms,omitempty"` // milliseconds
-	Feature  string    `json:"feature"`
-	Chapter  string    `json:"chapter,omitempty"`
-	Talk     string    `json:"talk,omitempty"`
-	Model    string    `json:"model"` // provider/model
-	Effort   string    `json:"effort,omitempty"`
-	Parts    []Part    `json:"parts,omitempty"`
-	Usage    Usage     `json:"usage"`
-	Cost     float64   `json:"cost,omitempty"`
-	Currency string    `json:"currency,omitempty"`
-	Outcome  string    `json:"outcome"`
-	Error    string    `json:"error,omitempty"`
+	Schema  int       `json:"schema"`
+	At      time.Time `json:"at,omitzero"`
+	Took    int64     `json:"took_ms,omitempty"` // milliseconds
+	Feature string    `json:"feature"`
+	Chapter string    `json:"chapter,omitempty"`
+	Talk    string    `json:"talk,omitempty"`
+	Model   string    `json:"model"` // provider/model
+	Effort  string    `json:"effort,omitempty"`
+	Parts   []Part    `json:"parts,omitempty"`
+	Usage   Usage     `json:"usage"`
+	Outcome string    `json:"outcome"`
+	Error   string    `json:"error,omitempty"`
 }
 
 // Purpose is what a request is made for, as the code making it knows:
@@ -160,10 +158,8 @@ func validRecord(r Record) error {
 	switch {
 	case strings.TrimSpace(r.Model) == "":
 		return errors.New("model: a request without its model")
-	case r.Took < 0 || u.Input < 0 || u.CacheRead < 0 || u.CacheWrite < 0 || u.Output < 0 || u.Reasoning < 0 || r.Cost < 0:
+	case r.Took < 0 || u.Input < 0 || u.CacheRead < 0 || u.CacheWrite < 0 || u.Output < 0 || u.Reasoning < 0:
 		return errors.New("counts cannot be negative")
-	case r.Cost > 0 && r.Currency == "":
-		return errors.New("cost needs its currency")
 	}
 	switch r.Feature {
 	case FeatureTalk, FeatureDraft, FeatureRewrite, FeatureContinue, FeatureCheck:

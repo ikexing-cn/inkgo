@@ -59,10 +59,6 @@ type Settings interface {
 	// names one.
 	Efforts() []string
 	EffortLabel(effort string) string
-	// Cost is what a request that took and gave u costs on the model
-	// named provider/model, by the prices built in, in currency; known is
-	// false for a model with no price.
-	Cost(model string, u workspace.Usage) (cost float64, currency string, known bool)
 }
 
 // Assistant selects recorded model handles and builds a work's pen on the

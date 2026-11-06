@@ -18,25 +18,8 @@ type limits struct {
 	Output  int  `json:"output"`
 	Input   *int `json:"input,omitempty"`
 }
-type rates struct {
-	Input      *float64 `json:"input,omitempty"`
-	Output     *float64 `json:"output,omitempty"`
-	CacheRead  *float64 `json:"cache_read,omitempty"`
-	CacheWrite *float64 `json:"cache_write,omitempty"`
-}
-type priceTier struct {
-	rates
-	Tier struct {
-		Type string `json:"type"`
-		Size int    `json:"size"`
-	} `json:"tier"`
-}
 type modelEntry struct {
 	Limit limits `json:"limit"`
-	Cost  struct {
-		rates
-		Tiers []priceTier `json:"tiers,omitempty"`
-	} `json:"cost"`
 }
 type providerEntry struct {
 	Models map[string]modelEntry `json:"models"`
@@ -52,10 +35,6 @@ func mustDirectory(data []byte) directory {
 		panic(err)
 	}
 	return d
-}
-
-func validRates(r rates) bool {
-	return r.Input != nil && r.Output != nil && *r.Input >= 0 && *r.Output >= 0 && (r.CacheRead == nil || *r.CacheRead >= 0) && (r.CacheWrite == nil || *r.CacheWrite >= 0)
 }
 
 // parseDirectory isolates schema errors to individual providers/models.
@@ -85,7 +64,6 @@ func parseDirectory(data []byte, officialOnly bool) (directory, error) {
 		for id, b := range p.Models {
 			var rawModel struct {
 				Limit json.RawMessage `json:"limit"`
-				Cost  json.RawMessage `json:"cost"`
 			}
 			if json.Unmarshal(b, &rawModel) != nil {
 				continue
@@ -104,26 +82,6 @@ func parseDirectory(data []byte, officialOnly bool) (directory, error) {
 				m.Limit.Input = input
 			}
 
-			var rawCost struct {
-				Input      json.RawMessage   `json:"input"`
-				Output     json.RawMessage   `json:"output"`
-				CacheRead  json.RawMessage   `json:"cache_read"`
-				CacheWrite json.RawMessage   `json:"cache_write"`
-				Tiers      []json.RawMessage `json:"tiers"`
-			}
-			if json.Unmarshal(rawModel.Cost, &rawCost) == nil {
-				// A malformed price must never discard usable limits.
-				m.Cost.Input = parseRate(rawCost.Input)
-				m.Cost.Output = parseRate(rawCost.Output)
-				m.Cost.CacheRead = parseRate(rawCost.CacheRead)
-				m.Cost.CacheWrite = parseRate(rawCost.CacheWrite)
-				for _, b := range rawCost.Tiers {
-					var tier priceTier
-					if json.Unmarshal(b, &tier) == nil && validRates(tier.rates) && tier.Tier.Type == "context" && tier.Tier.Size > 0 {
-						m.Cost.Tiers = append(m.Cost.Tiers, tier)
-					}
-				}
-			}
 			models[id] = m
 		}
 		if len(models) > 0 {
@@ -136,7 +94,7 @@ func parseDirectory(data []byte, officialOnly bool) (directory, error) {
 	return out, nil
 }
 
-// FilterModelsJSON retains only models.dev limits and costs. officialOnly
+// FilterModelsJSON retains only models.dev limits. officialOnly
 // selects the four providers shipped with the application; caches retain all.
 // Output uses sorted keys and two-space indentation, including nested objects.
 func FilterModelsJSON(data []byte, officialOnly bool) ([]byte, error) {
@@ -187,12 +145,4 @@ func findModel(id string) (modelEntry, bool) {
 		}
 	}
 	return embeddedDirectory.find(id)
-}
-
-func parseRate(b json.RawMessage) *float64 {
-	var v *float64
-	if json.Unmarshal(b, &v) != nil {
-		return nil
-	}
-	return v
 }

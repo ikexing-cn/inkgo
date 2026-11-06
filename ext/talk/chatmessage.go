@@ -86,9 +86,6 @@ func (a *Panel) Message(c *ui.Context, m workspace.Event) {
 				}
 				if u, ok := workspace.Spent(a.Events, m); ok {
 					foot += " · " + tokens.Round(u.Input+u.Output) + " token"
-					if cost := a.TurnCost(a.Events, m); cost != "" {
-						foot += " · " + cost
-					}
 				}
 				ui.Text(c, foot).FontSize(kit.FsSmall).TextColor(a.palette().Faint).Padding(0, 6, 0, 0).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0).Tooltip(foot)
 			}
@@ -248,24 +245,6 @@ func proposed(events []workspace.Event, userID string) []workspace.Event {
 		}
 	}
 	return out
-}
-
-// turnCost is what the requests of the turn reply ends cost by the prices
-// built in, or nothing when one of them is of a model with no price.
-// TurnCost runs on the frame thread.
-func (a *Panel) TurnCost(events []workspace.Event, reply workspace.Event) string {
-	costs := map[string]float64{}
-	for _, e := range events {
-		if e.Usage == nil || e.ID != reply.ID && (e.Role != workspace.RoleCall || e.ReplyTo != reply.ReplyTo) {
-			continue
-		}
-		cost, currency, ok := a.backend().Cost(e.Model, *e.Usage)
-		if !ok {
-			return ""
-		}
-		costs[currency] += cost
-	}
-	return costText(costs)
 }
 
 // looked folds what a reply looked up above it, as thought folds its

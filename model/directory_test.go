@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -25,15 +24,14 @@ func isolatedDirectory(t *testing.T) {
 	t.Cleanup(func() { cachedDirectory.Store(old) })
 }
 
-func entry(window int, price float64) modelEntry {
+func entry(window int) modelEntry {
 	var m modelEntry
 	m.Limit = limits{Context: window, Output: 100}
-	m.Cost.Input, m.Cost.Output = &price, &price
 	return m
 }
 
 func TestFilterModelsJSON(t *testing.T) {
-	raw := `{"openai":{"name":"ignored","models":{"ok":{"limit":{"context":1000,"output":10,"input":900,"unknown":1},"cost":{"input":2,"output":3,"unknown":1},"name":"ignored"},"bad":{"limit":"bad"},"null":null}},"other":{"models":{"ok":{"limit":{"context":1000,"output":10},"cost":{"input":0,"output":0}}}}}`
+	raw := `{"openai":{"name":"ignored","models":{"ok":{"limit":{"context":1000,"output":10,"input":900,"unknown":1},"name":"ignored"},"bad":{"limit":"bad"},"null":null}},"other":{"models":{"ok":{"limit":{"context":1000,"output":10}}}}}`
 	for _, official := range []bool{true, false} {
 		data, err := FilterModelsJSON([]byte(raw), official)
 		if err != nil {
@@ -76,9 +74,9 @@ func TestFilterModelsJSON(t *testing.T) {
 func TestDirectoryLookupOrder(t *testing.T) {
 	isolatedDirectory(t)
 	d := directory{
-		"deepseek":   {map[string]modelEntry{"same": entry(1000, 1)}},
-		"moonshotai": {map[string]modelEntry{"same": entry(2000, 2)}},
-		"relay":      {map[string]modelEntry{"same": entry(3000, 3), "relay-only": entry(4000, 4)}},
+		"deepseek":   {map[string]modelEntry{"same": entry(1000)}},
+		"moonshotai": {map[string]modelEntry{"same": entry(2000)}},
+		"relay":      {map[string]modelEntry{"same": entry(3000), "relay-only": entry(4000)}},
 	}
 	cachedDirectory.Store(&d)
 	for id, want := range map[string]int{"same": 1000, "relay-only": 4000, "deepseek-flash": 1048576, "unknown": 32000} {
@@ -91,32 +89,11 @@ func TestDirectoryLookupOrder(t *testing.T) {
 		t.Fatal("official order")
 	}
 	delete(d, "moonshotai")
-	d["a-relay"] = providerEntry{map[string]modelEntry{"same": entry(5000, 5)}}
+	d["a-relay"] = providerEntry{map[string]modelEntry{"same": entry(5000)}}
 	if Builtin("same").Window != 5000 {
 		t.Fatal("third-party order")
 	}
 
-}
-
-func TestTiersAndCacheFallback(t *testing.T) {
-	isolatedDirectory(t)
-	data := []byte(`{"openai":{"models":{"tiered":{"limit":{"context":10000,"output":100},"cost":{"input":1,"output":2,"tiers":[{"tier":{"type":"context","size":200},"input":5,"output":6},{"tier":{"type":"context","size":100},"input":3,"output":4}]}}}}}`)
-	d := mustDirectory(data)
-	cachedDirectory.Store(&d)
-	for _, tc := range []struct {
-		input int
-		rate  float64
-	}{{100, 1}, {101, 3}, {200, 3}, {201, 5}} {
-		cost, cur, ok := Cost("tiered", Usage{Input: tc.input, CacheRead: 20, CacheWrite: 10})
-		if !ok || cur != "$" || math.Abs(cost-float64(tc.input)*tc.rate/1e6) > 1e-12 {
-			t.Fatal(tc, cost, cur, ok)
-		}
-	}
-	// models.dev explicitly lists this cache-write price (unlike the old table).
-	cost, _, _ := Cost("gpt-6-astra", Usage{Input: 100, CacheWrite: 100})
-	if cost != 100*12.5/1e6 {
-		t.Fatal(cost)
-	}
 }
 
 // Exercise HTTP through httptest without a listening socket. The transport
@@ -173,7 +150,7 @@ func TestRefreshModels(t *testing.T) {
 				switch mode {
 				case "success":
 					w.Header().Set("ETag", `"new"`)
-					io.WriteString(w, `{"moonshotai":{"models":{"kimi-k3":{"limit":{"context":3000000,"output":200},"cost":{"input":1,"output":2}}}},"relay":{"models":{"new":{"limit":{"context":9000,"output":100},"cost":{"input":1,"output":2}}}}}`)
+					io.WriteString(w, `{"moonshotai":{"models":{"kimi-k3":{"limit":{"context":3000000,"output":200}}}},"relay":{"models":{"new":{"limit":{"context":9000,"output":100}}}}}`)
 				case "304":
 					w.WriteHeader(http.StatusNotModified)
 				case "bad":
@@ -256,9 +233,9 @@ func TestBadCacheFallsBack(t *testing.T) {
 func TestYAMLDefaultsAndOverrides(t *testing.T) {
 	isolatedDirectory(t)
 	d := directory{
-		"moonshotai": {map[string]modelEntry{"same": entry(2000, 2)}},
+		"moonshotai": {map[string]modelEntry{"same": entry(2000)}},
 	}
-	d["moonshotai"].Models["same"] = func() modelEntry { m := entry(2000, 2); m.Limit.Output = 300; return m }()
+	d["moonshotai"].Models["same"] = func() modelEntry { m := entry(2000); m.Limit.Output = 300; return m }()
 	cachedDirectory.Store(&d)
 	path := filepath.Join(t.TempDir(), "providers.yaml")
 	data := "schema: 1\nproviders:\n- id: kimi\n  name: Kimi\n  protocol: chat\n  base_url: https://example.com\n  models:\n  - id: same\n    context: 9K\n"
@@ -272,7 +249,7 @@ func TestYAMLDefaultsAndOverrides(t *testing.T) {
 	if got := before.Model("kimi", "same"); got.Window != 9000 || got.Output != 300 {
 		t.Fatal(got)
 	}
-	newer := directory{"moonshotai": {map[string]modelEntry{"same": entry(5000, 3)}}}
+	newer := directory{"moonshotai": {map[string]modelEntry{"same": entry(5000)}}}
 	cachedDirectory.Store(&newer)
 	after, err := Load(path)
 	if err != nil {
@@ -305,7 +282,7 @@ func TestDirectoryOutputBudget(t *testing.T) {
 		t.Fatal(m)
 	}
 	for _, tc := range []struct{ input, output, want int }{{800, 500, 200}, {800, 100, 100}, {0, 1000, 250}, {1000, 1000, 250}, {-1, 1000, 250}, {1001, 1000, 250}, {0, 500, 500}} {
-		d := directory{"openai": {map[string]modelEntry{"budget": entry(1000, 1)}}}
+		d := directory{"openai": {map[string]modelEntry{"budget": entry(1000)}}}
 		v := d["openai"].Models["budget"]
 		v.Limit.Input = &tc.input
 		v.Limit.Output = tc.output
@@ -314,36 +291,6 @@ func TestDirectoryOutputBudget(t *testing.T) {
 		if got := Builtin("budget"); got.Output != tc.want {
 			t.Fatal(tc, got)
 		}
-	}
-}
-
-func TestLimitsWithoutPricesAndBadTiers(t *testing.T) {
-	isolatedDirectory(t)
-	raw := `{"openai":{"models":{
- "none":{"limit":{"context":1000,"output":100,"input":"unknown"}},
- "partial":{"limit":{"context":1000,"output":100},"cost":{"input":1}},
- "bad":{"limit":{"context":1000,"output":100},"cost":{"input":"oops","output":1}},
- "tiers":{"limit":{"context":1000,"output":100},"cost":{"input":1,"output":2,"tiers":[{"tier":{"type":"context","size":100},"input":3,"output":4},{"tier":{"type":"context","size":200},"input":"bad","output":5},{"tier":{"type":"context","size":300},"input":9}]}}
- }}}`
-	filtered, err := FilterModelsJSON([]byte(raw), false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	d := mustDirectory(filtered)
-	cachedDirectory.Store(&d)
-	for _, id := range []string{"none", "partial", "bad"} {
-		if m, ok := Lookup(id); !ok || m.Window != 1000 {
-			t.Fatal(id, m, ok)
-		}
-		if _, _, ok := Cost(id, Usage{Input: 500}); ok {
-			t.Fatal(id, "unexpected price")
-		}
-	}
-	if len(d["openai"].Models["tiers"].Cost.Tiers) != 1 {
-		t.Fatal("bad tier retained")
-	}
-	if c, _, ok := Cost("tiers", Usage{Input: 500}); !ok || c != 0.0015 {
-		t.Fatal(c, ok)
 	}
 }
 
@@ -385,7 +332,7 @@ func BenchmarkLoadModelCache(b *testing.B) {
 	for p := 0; p < 235; p++ {
 		models := map[string]modelEntry{}
 		for m := 0; m < 15; m++ {
-			models[fmt.Sprintf("model-%04d", m)] = entry(1048576, 1.5)
+			models[fmt.Sprintf("model-%04d", m)] = entry(1048576)
 		}
 		d[fmt.Sprintf("provider-%03d", p)] = providerEntry{models}
 	}

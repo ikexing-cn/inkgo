@@ -31,7 +31,7 @@ Status: proposed
 |---|---|---|---|---|---|---|
 | 1 | `ext/talk/engine/engine.go` 229 行起 | 多步工具循环 | `zendev-sh/goai`（234 / 2026-10-31 / MIT）。它已经是依赖，有 `WithMaxSteps`、`WithStopWhen` 和工具执行前后的钩子，项目只用了单步的 `StreamText` | 是。要核对钩子能不能保住逐步落盘、推理内容回传、预算用完强制总结 | [讨论用工具查全书](../../implemented/feature/2026-10-15-talk-looks-up-and-notes-the-setting.md)写了「循环由讨论自己跑」，但没比较过 goai 的多步执行；[模型层](../../implemented/architecture/2026-10-08-model-layer-on-goai.md)记着作者当初不想自己补工具循环 | C |
 | 2 | `inference/` | 从回答里严格解析 JSON；`Locate` 忽略空白定位引文 | goai 的 `GenerateObject`、`StreamObject`；`kaptinlin/jsonrepair`（126 / 2026-10-25 / MIT）；`RealAlexandreAI/json-repair`（385 / 2026-11-02 / **GPL-3.0**）；`sergi/go-diff` 的模糊匹配作参照 | 部分。JSON 修复会把「拒绝坏回答」变成「容错」，语义不同；`Locate` 没有现成替代 | — | C、A |
-| 3（已施工） | `model/pricing.go` | 手抄的价格和上下文上限表 | models.dev（`anomalyco/models.dev`，7523 / 2026-11-06 / MIT） | 是。可以在发布时生成固定版本，不必运行时联网 | [模型上限和用量](../../implemented/architecture/2026-10-15-model-limits-and-usage.md)：随软件发布更新，不联网拉；发布时生成和它不冲突 | C |
+| 3（已施工） | `model/limits.go`、`model/directory.go` | 上下文上限目录（原手抄表） | models.dev（`anomalyco/models.dev`，7523 / 2026-11-06 / MIT） | 已后台拉取；价格统计取消，只留上限 | [模型上限和用量](../../implemented/architecture/2026-10-15-model-limits-and-usage.md)：已由 models.dev 后台更新决定取代 | C |
 | 4 | `prompt/prompt.go` 的 `Estimate`、`ClipTokens` | 按字符比例估 token | `pkoukk/tiktoken-go`（960 / 2026-05-12 / MIT）、`tiktoken-go/tokenizer`（463 / 2026-10-21 / MIT），以及各家的 count tokens 接口 | 是。但没有一个精确计数器能覆盖所有模型 | [按字符估 token](../../implemented/architecture/2026-10-08-token-estimate-by-character.md)和 [M1 讨论](../../implemented/feature/2026-10-07-m1-discussion.md)：不接供应商 tokenizer，自定义端点未必提供 | C |
 | 5 | `editor/wrap.go` 63 行 `breakLines` | 断行、英文按词断、避头尾 | `rivo/uniseg`（740 / 2026-11-05 / MIT）；`go-text/typesetting` 的 segmenter（161 / 2026-11-02，已是间接依赖） | 已施工（segmenter v0.3.5）。是。库给出合法断点，字宽、缩进、AI 插入的间隙仍归本地 | [纯 Go 编辑器](../../implemented/architecture/2026-10-07-pure-go-native-editor.md)：编辑器自己断行；[两端对齐](../feature/2026-11-02-justified-prose-and-adjustable-spacing.md)否掉过换成 mygo 的断行 | C |
 | 6 | `internal/textclip` | 按 rune 截断，会切开表情和组合字符 | `rivo/uniseg` | 已施工（segmenter v0.3.5）。是。界面摘要可以改按字素截；业务上约定按 rune 计长度的地方不能一起改 | — | C |
@@ -65,6 +65,8 @@ Status: proposed
 | 34 | `ext/backup/archive/backup.go` | 整套备份流程 | `restic/restic`（37020 / 2026-11-05），独立工具，只能参照 | 部分。ZIP 作者能直接打开，这个优点要留 | [备份](../../implemented/feature/2026-10-09-backup.md) | A |
 | 35 | `desk/kit/markdown.go`、`ext/talk/markdown.go` | — | 已经在用 mygo 的 Markdown | 不是 | — | A |
 | 36 | 日志、限流、网络重试、模板 | — | — | 没发现自写的框架 | — | A |
+
+第 3 条结局：后台拉取已实现；价格统计随后由作者取消，只保留上限，见[models.dev](../../implemented/architecture/2026-11-06-model-table-from-models-dev.md)。
 
 ### 和换不换无关、先修的
 

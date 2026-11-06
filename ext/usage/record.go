@@ -1,11 +1,9 @@
 package usage
 
 import (
-	"maps"
 	"writer/ext/usage/usagetext"
 
 	"math"
-	"slices"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -62,39 +60,7 @@ func featureName(id string) string {
 	return id
 }
 
-// costText says what costs cost in their currencies, estimated: under a
-// cent as such. With none priced it says nothing.
-func costText(costs map[string]float64) string {
-	var out []string
-	for _, cur := range slices.Sorted(maps.Keys(costs)) {
-		if v := costs[cur]; v < 0.01 {
-			out = append(out, locales.AiCostUnder(cur+"0.01"))
-		} else {
-			if cur == "$" {
-				out = append(out, locales.SettingsSpentCost(v))
-			} else {
-				out = append(out, locales.SettingsCostCurrency(cur, v))
-			}
-		}
-	}
-	return strings.Join(out, " + ")
-}
-
-// costOf is what the Records cost, by currency, those priced.
-func costOf(rs ...workspace.Record) map[string]float64 {
-	costs := map[string]float64{}
-	for _, r := range rs {
-		if r.Currency != "" {
-			costs[r.Currency] += r.Cost
-		}
-	}
-	return costs
-}
-
-// spent is what the work has spent on the AI, a line for each feature: the
-// requests, their tokens as the providers counted them and the cost by the
-// prices built in. It is Only to look at; nothing clears it. Under it, the
-// way to every request.
+// spent shows request counts and provider token usage by feature.
 func (a *View) spent(c *ui.Context) {
 	t := a.pal.Theme
 	a.pal.Subhead(c, usagetext.SettingsUsage(), "")
@@ -123,14 +89,9 @@ func (a *View) spent(c *ui.Context) {
 				cached = int(math.Round(float64(u.CacheRead) * 100 / float64(u.Input)))
 			}
 			used := usagetext.SettingsSpentRow(n, tokens.Round(u.Input), cached, tokens.Round(u.Output))
-			cost := costText(costOf(Rows...))
-			if cost == "" {
-				cost = usagetext.SettingsNoPrice()
-			}
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 				ui.Text(c, f.name()).FontSize(kit.FsControl).Width(120).Shrink(0).SingleLine()
 				ui.Text(c, used).FontSize(kit.FsControl).TextColor(t.TextMuted).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
-				ui.Text(c, cost).FontSize(kit.FsControl).Shrink(0)
 			})
 		}
 	})
@@ -210,10 +171,6 @@ func (a *View) recordRow(c *ui.Context, i int, now time.Time) {
 	default:
 		end, endColor = usagetext.SettingsRecordFailed(r.Error), t.Danger
 	}
-	cost := costText(costOf(r))
-	if cost == "" {
-		cost = "—"
-	}
 	row := ui.ButtonBase(c).Row().FillWidth().MinHeight(kit.HRow+3).Gap(12).AlignItems(ui.Center).Padding(0, 6).Radius(kit.RXs).Label("记录-" + at + " " + where)
 	if row.Hovered() {
 		row.Background(t.SurfaceHover)
@@ -221,9 +178,8 @@ func (a *View) recordRow(c *ui.Context, i int, now time.Time) {
 	row.Children(func() {
 		ui.Text(c, at).FontSize(kit.FsControl).TextColor(t.TextMuted).Width(92).Shrink(0).SingleLine()
 		ui.Text(c, where).FontSize(kit.FsControl).Grow(1).Shrink(1).SingleLine().Ellipsis("…")
-		ui.Text(c, tokens.Round(r.Usage.Input+r.Usage.Output)).FontSize(kit.FsControl).TextColor(t.TextMuted).Width(48).Shrink(0).SingleLine()
-		ui.Text(c, cost).FontSize(kit.FsControl).TextColor(t.TextMuted).Width(76).Shrink(0).SingleLine()
-		ui.Text(c, end).FontSize(kit.FsControl).TextColor(endColor).Width(120).Shrink(0).SingleLine().Ellipsis("…")
+		ui.Text(c, tokens.Round(r.Usage.Input+r.Usage.Output)).FontSize(kit.FsControl).TextColor(t.TextMuted).Width(64).Shrink(0).SingleLine().TextAlign(ui.End)
+		ui.Text(c, end).FontSize(kit.FsControl).TextColor(endColor).Width(150).Shrink(0).SingleLine().Ellipsis("…")
 		chevron := kit.IcChevron
 		if open {
 			chevron = kit.IcChevronDown

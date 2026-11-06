@@ -150,7 +150,7 @@ Status: implemented
 
 ### 第 5 批：AI 层
 
-- `desk/aiport` 挪到顶层 `aiport`，拆成「设置」（服务、key、目录、价格）和「助手」（讨论、笔、检查）两个接口。
+- `desk/aiport` 挪到顶层 `aiport`，拆成「设置」（服务、key、目录）和「助手」（讨论、笔、检查）两个接口。
 - `writing` 和 `discussion` 共用的绑好的模型、`Decode`、`Locate` 放进 `inference`，名字指模型推理的共同规则，两边都引用它，`writing` 不再引用 `discussion`。所在卷的判断放进 `workspace.Node.Volume`：排除树根是章节树的规则，不属于推理。遍历和前章读取共用 `Tree.Walk`、`Tree.Previous`；讨论的章名消歧、预加载范围和各处不同口径的裁剪各自保留。
 - 跨包约定改成由拥有它的包导出解析函数：
   - 设定按序号取（`[n]`）：`workspace/mentions.go` 的 `Setting.EntryNumbers`、`Setting.EntryByNumber`、`EntryRef`，讨论写编号和摘要读编号共用；检查自己的答复列表由 `writing/check.go` 编号；

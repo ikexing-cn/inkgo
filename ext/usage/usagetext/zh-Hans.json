@@ -13,10 +13,6 @@
   },
   "settingsFeatureContinue": "续写",
   "settingsFilterByFeature": "按功能看",
-  "settingsNoPrice": "价格未知",
-  "@settingsNoPrice": {
-    "description": "用量汇总里模型没有定价时显示。"
-  },
   "settingsNoRecords": "没有记录。",
   "settingsNoUsage": "还没用过 AI。",
   "settingsRecordActual": "实际用量：输入 {input}；输出 {output}",

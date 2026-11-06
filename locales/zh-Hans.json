@@ -141,26 +141,6 @@
       }
     }
   },
-  "aiCostUnder": "不到 {amount}",
-  "@aiCostUnder": {
-    "description": "AI 这次的花费估出来不到一分钱，amount 是带货币符号的最小一档，如「不到 $0.01」。",
-    "placeholders": {
-      "amount": {
-        "type": "String",
-        "example": "$0.01"
-      }
-    }
-  },
-  "aiCostAbout": "约 {amount}",
-  "@aiCostAbout": {
-    "description": "AI 这次的花费估出来的数，如「约 $0.23」。",
-    "placeholders": {
-      "amount": {
-        "type": "String",
-        "example": "$0.23"
-      }
-    }
-  },
   "timeTodayDay": "今天",
   "@timeTodayDay": {
     "description": "只有日子、没有几点的「今天」，如书里讨论的时间。"
@@ -1185,30 +1165,6 @@
   "settingsGPUNext": "重启软件后生效。",
   "settingsRestartNow": "立即重启",
   "settingsForeshadow": "伏笔",
-  "settingsSpentCost": "约 ${amount, number, ::.00}",
-  "@settingsSpentCost": {
-    "description": "按内置价格估的花费。",
-    "placeholders": {
-      "amount": {
-        "type": "double",
-        "example": "0.42"
-      }
-    }
-  },
-  "settingsCostCurrency": "约 {currency}{amount, number, ::.00}",
-  "@settingsCostCurrency": {
-    "description": "非美元币种的估算花费；美元复用 settingsSpentCost。",
-    "placeholders": {
-      "currency": {
-        "type": "String",
-        "example": "$"
-      },
-      "amount": {
-        "type": "double",
-        "example": "0.42"
-      }
-    }
-  },
   "settingsFeatureDraft": "起草",
   "settingsFeatureRewrite": "改写",
   "settingsModelFor": "{job}模型",

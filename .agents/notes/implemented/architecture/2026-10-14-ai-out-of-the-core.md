@@ -46,7 +46,7 @@ Status: implemented
 
 | 接口 | 方法 | 用处 |
 | --- | --- | --- |
-| `aiport.Settings` | `BindSwitch`、`ConfigFile`、`Providers`、`Reload`、`SaveProvider`、`Check`、`Limits`、`SetKey`、`Catalog`、`Efforts`、`EffortLabel`、`Cost` | 本机的开关、服务、密钥、配置文件、模型目录、推理等级、上限与价格；`Check` 按栏给出服务存不下的原因（`aiport.Problems`） |
+| `aiport.Settings` | `BindSwitch`、`ConfigFile`、`Providers`、`Reload`、`SaveProvider`、`Check`、`Limits`、`SetKey`、`Catalog`、`Efforts`、`EffortLabel` | 本机的开关、服务、密钥、配置文件、模型目录、推理等级、上限；`Check` 按栏给出服务存不下的原因（`aiport.Problems`） |
 | `aiport.Assistant` | `Talk`、`Preloaded`、`Extract`、`Pen`、`MinCheck` | 作品的讨论、预加载内容与来源、摘入设定、续写与检查 |
 
 `ai.Service` 实现两者。`aiport.Service` 嵌入这两个接口，`desk.App` 用一个值保管：同一个服务同时提供本机设置和作品助手，调用处的 `a.ai` 不必分出两个名字。职责划分按 `Settings` 和 `Assistant` 阅读。

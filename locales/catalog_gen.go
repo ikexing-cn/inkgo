@@ -662,36 +662,6 @@ func (msgs Messages) TimeYesterday(clock string) string {
 	return Catalog.Format(msgs.locale, "timeYesterday", map[string]any{"clock": clock})
 }
 
-// AiCostUnder says "不到 {amount}"
-// in the language the app shows.
-//
-// AI 这次的花费估出来不到一分钱，amount
-// 是带货币符号的最小一档，如「不到 $0.01」。
-func AiCostUnder(amount string) string { return In(i18n.Locale()).AiCostUnder(amount) }
-
-// AiCostUnder says "不到 {amount}"
-// in the language of msgs.
-//
-// AI 这次的花费估出来不到一分钱，amount
-// 是带货币符号的最小一档，如「不到 $0.01」。
-func (msgs Messages) AiCostUnder(amount string) string {
-	return Catalog.Format(msgs.locale, "aiCostUnder", map[string]any{"amount": amount})
-}
-
-// AiCostAbout says "约 {amount}"
-// in the language the app shows.
-//
-// AI 这次的花费估出来的数，如「约 $0.23」。
-func AiCostAbout(amount string) string { return In(i18n.Locale()).AiCostAbout(amount) }
-
-// AiCostAbout says "约 {amount}"
-// in the language of msgs.
-//
-// AI 这次的花费估出来的数，如「约 $0.23」。
-func (msgs Messages) AiCostAbout(amount string) string {
-	return Catalog.Format(msgs.locale, "aiCostAbout", map[string]any{"amount": amount})
-}
-
 // TimeTodayDay says "今天"
 // in the language the app shows.
 //
@@ -3986,36 +3956,6 @@ func SettingsForeshadow() string { return In(i18n.Locale()).SettingsForeshadow()
 // in the language of msgs.
 func (msgs Messages) SettingsForeshadow() string {
 	return Catalog.Format(msgs.locale, "settingsForeshadow", nil)
-}
-
-// SettingsSpentCost says "约 ${amount, number, ::.00}"
-// in the language the app shows.
-//
-// 按内置价格估的花费。
-func SettingsSpentCost(amount float64) string { return In(i18n.Locale()).SettingsSpentCost(amount) }
-
-// SettingsSpentCost says "约 ${amount, number, ::.00}"
-// in the language of msgs.
-//
-// 按内置价格估的花费。
-func (msgs Messages) SettingsSpentCost(amount float64) string {
-	return Catalog.Format(msgs.locale, "settingsSpentCost", map[string]any{"amount": amount})
-}
-
-// SettingsCostCurrency says "约 {currency}{amount, number, ::.00}"
-// in the language the app shows.
-//
-// 非美元币种的估算花费；美元复用 settingsSpentCost。
-func SettingsCostCurrency(currency string, amount float64) string {
-	return In(i18n.Locale()).SettingsCostCurrency(currency, amount)
-}
-
-// SettingsCostCurrency says "约 {currency}{amount, number, ::.00}"
-// in the language of msgs.
-//
-// 非美元币种的估算花费；美元复用 settingsSpentCost。
-func (msgs Messages) SettingsCostCurrency(currency string, amount float64) string {
-	return Catalog.Format(msgs.locale, "settingsCostCurrency", map[string]any{"currency": currency, "amount": amount})
 }
 
 // SettingsFeatureDraft says "起草"
